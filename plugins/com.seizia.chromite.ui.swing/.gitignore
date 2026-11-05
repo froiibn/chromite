@@ -1,0 +1,2 @@
+# Third-party jars are copied from Maven Central by pom.xml (maven-dependency-plugin) at build time
+/lib/

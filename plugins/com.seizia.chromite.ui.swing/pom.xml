@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd" xmlns="http://maven.apache.org/POM/4.0.0"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <modelVersion>4.0.0</modelVersion>
+  <parent>
+    <groupId>org.jkiss.dbeaver</groupId>
+    <artifactId>plugins</artifactId>
+    <version>1.0.0-SNAPSHOT</version>
+    <relativePath>../</relativePath>
+  </parent>
+  <groupId>com.seizia.chromite</groupId>
+  <artifactId>com.seizia.chromite.ui.swing</artifactId>
+  <version>1.0.0-SNAPSHOT</version>
+  <packaging>eclipse-plugin</packaging>
+
+  <properties>
+    <!-- New Swing code targets Java 25 (docs/chromite/runtime.md). Overrides the shared default (21) for this bundle only. -->
+    <java.version>25</java.version>
+    <flatlaf.version>3.8</flatlaf.version>
+  </properties>
+
+  <build>
+    <plugins>
+      <!-- FlatLaf has no OSGi manifest: embed it via Bundle-ClassPath (lib/flatlaf.jar).
+           The jar is copied from Maven Central before compilation instead of being committed. -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-dependency-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>copy-swing-libraries</id>
+            <phase>generate-resources</phase>
+            <goals>
+              <goal>copy</goal>
+            </goals>
+            <configuration>
+              <artifactItems>
+                <artifactItem>
+                  <groupId>com.formdev</groupId>
+                  <artifactId>flatlaf</artifactId>
+                  <version>${flatlaf.version}</version>
+                  <destFileName>flatlaf.jar</destFileName>
+                </artifactItem>
+              </artifactItems>
+              <outputDirectory>${project.basedir}/lib</outputDirectory>
+              <overWriteReleases>true</overWriteReleases>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+    </plugins>
+  </build>
+</project>
