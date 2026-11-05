@@ -5,5 +5,5 @@
     <feature id="org.jkiss.dbeaver.git.feature">
         <category name="org.jkiss.dbeaver.git.category"/>
     </feature>
-    <category-def name="org.jkiss.dbeaver.git.category" label="DBeaver Git Support"/>
+    <category-def name="org.jkiss.dbeaver.git.category" label="Chromite Git Support"/>
 </site>

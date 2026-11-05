@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <feature
       id="org.jkiss.dbeaver.db.feature"
-      label="DBeaver Databases"
+      label="Chromite Databases"
       version="1.0.182.qualifier"
       provider-name="DBeaver Corp">
 
