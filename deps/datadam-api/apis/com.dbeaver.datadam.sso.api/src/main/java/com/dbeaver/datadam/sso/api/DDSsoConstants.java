@@ -1,0 +1,116 @@
+/*
+ * DBeaver - Universal Database Manager
+ * Copyright (C) 2010-2026 DBeaver Corp
+ *
+ * All Rights Reserved.
+ *
+ * NOTICE:  All information contained herein is, and remains
+ * the property of DBeaver Corp and its suppliers, if any.
+ * The intellectual and technical concepts contained
+ * herein are proprietary to DBeaver Corp and its suppliers
+ * and may be covered by U.S. and Foreign Patents,
+ * patents in process, and are protected by trade secret or copyright law.
+ * Dissemination of this information or reproduction of this material
+ * is strictly forbidden unless prior written permission is obtained
+ * from DBeaver Corp.
+ */
+package com.dbeaver.datadam.sso.api;
+
+import java.util.regex.Pattern;
+
+/** Shared wire constants for SSO clients and server endpoints. */
+public final class DDSsoConstants {
+    public static final String AUTHORIZE_PATH = "/authorize";
+    public static final String TOKEN_PATH = "/token";
+    public static final String REVOKE_PATH = "/revoke";
+    public static final String PARAM_TOKEN = "token";
+    public static final String LOGOUT_PATH = "/logout";
+    public static final String JWKS_PATH = "/.well-known/jwks.json";
+    public static final String METADATA_PATH = "/.well-known/oauth-authorization-server";
+    public static final String HEALTH_PATH = "/health";
+
+    public static final String PARAM_LOGOUT = "logout";
+    public static final String PARAM_LOGOUT_CHALLENGE = "logout_challenge";
+    public static final String PARAM_PROMPT = "prompt";
+    public static final String PARAM_RESOURCE = "resource";
+    public static final String PARAM_SCOPE = "scope";
+    public static final String PARAM_RESPONSE_TYPE = "response_type";
+    public static final String RESPONSE_TYPE_CODE = "code";
+    public static final String PARAM_ERROR_URI = "error_uri";
+    public static final String RESPONSE_EXPIRES_IN = "expires_in";
+    public static final String PROMPT_LOGIN = "login";
+
+    public static final String ERROR_INVALID_REQUEST = "invalid_request";
+    public static final String ERROR_INVALID_CLIENT = "invalid_client";
+    public static final String ERROR_INVALID_GRANT = "invalid_grant";
+    public static final String ERROR_INVALID_TARGET = "invalid_target";
+    public static final String ERROR_INVALID_SCOPE = "invalid_scope";
+    public static final String ERROR_UNSUPPORTED_RESPONSE_TYPE = "unsupported_response_type";
+    public static final String ERROR_INVALID_LOGOUT = "invalid_logout";
+    public static final String ERROR_UNSUPPORTED_GRANT_TYPE = "unsupported_grant_type";
+    public static final String ERROR_SERVER = "server_error";
+    public static final String ERROR_TEMPORARILY_UNAVAILABLE = "temporarily_unavailable";
+
+    public static final String CLAIM_ISSUER = "iss";
+    public static final String CLAIM_AUDIENCE = "aud";
+    public static final String CLAIM_SUBJECT = "sub";
+    public static final String CLAIM_ISSUED_AT = "iat";
+    public static final String CLAIM_EXPIRATION_TIME = "exp";
+    public static final String CLAIM_NOT_BEFORE = "nbf";
+    public static final String CLAIM_EMAIL = "email";
+    public static final String CLAIM_SOURCE = "source";
+    public static final String CLAIM_AUTH_TIME = "auth_time";
+    /** ISO-8601 instant string with microsecond precision, matching PostgreSQL TIMESTAMP enrollment times. */
+    public static final String CLAIM_MFA_VERIFIED_AT = "mfa_verified_at";
+    public static final String CLAIM_TOKEN_USE = "token_use";
+    public static final String TOKEN_USE_IDENTITY = "identity";
+    public static final String TOKEN_USE_SESSION = "sso_session";
+
+    public static final String JOSE_ALGORITHM = "alg";
+    public static final String JOSE_KEY_ID = "kid";
+    public static final String JOSE_TYPE = "typ";
+    public static final String JOSE_CRITICAL = "crit";
+    public static final String JOSE_BASE64_PAYLOAD = "b64";
+    public static final String JOSE_TYPE_JWT = "JWT";
+    public static final String JWKS_KEYS = "keys";
+    public static final String JWK_KEY_TYPE = "kty";
+    public static final String JWK_USE = "use";
+    public static final String JWK_CURVE = "crv";
+    public static final String JWK_PUBLIC_KEY = "x";
+    public static final String JWK_TYPE_OKP = "OKP";
+    public static final String JWK_USE_SIGNATURE = "sig";
+
+    public static final String ALGORITHM_ED25519 = "Ed25519";
+    public static final String ALGORITHM_SHA256 = "SHA-256";
+    public static final String PKCE_METHOD_S256 = "S256";
+    public static final int OPAQUE_VALUE_BYTES = 32;
+    public static final int SHA256_BYTES = 32;
+    public static final int ED25519_PUBLIC_KEY_BYTES = 32;
+    public static final int ED25519_SIGNATURE_BYTES = 64;
+    public static final Pattern BASE64URL_256_PATTERN = Pattern.compile("[A-Za-z0-9_-]{43}");
+
+    public static final String HEADER_REFERRER_POLICY = "Referrer-Policy";
+    public static final String REFERRER_POLICY_NO_REFERRER = "no-referrer";
+    public static final String DESKTOP_CLIENT_ID = "dbeaver-desktop";
+    public static final String DESKTOP_CALLBACK_TEMPLATE = "http://127.0.0.1/callback";
+    /** Fixed audience for ordinary DataDam API access tokens; not a client resource setting or an endpoint URL. */
+    public static final String API_AUDIENCE = "https://datadam.cloud/api";
+    public static final String SCOPE_ACCOUNT_FULL_ACCESS = "account:full_access";
+    public static final String SCOPE_DBEAVER_STORAGE_FULL_ACCESS = "dbeaver-storage:full_access";
+    public static final String SCOPE_ADMIN_FULL_ACCESS = "admin:full_access";
+    public static final String SCOPE_MCP_CONNECT = "mcp:connect";
+    public static final String SCOPE_MCP_INVOKE = "mcp:invoke";
+    public static final String TOKEN_USE_ACCESS = "access";
+    public static final String CLAIM_CLIENT_ID = "client_id";
+    public static final String CLAIM_ACCOUNT_ID = "account_id";
+    public static final String TOKEN_TYPE_BEARER = "Bearer";
+    public static final String LOGIN_APPROVE_PATH = "/login/approve";
+    public static final String LOGIN_RESUME_PATH = "/login/resume";
+    public static final String APPLICATION_LOGIN_START_PATH = "/sso/login/start";
+    public static final String APPLICATION_CONFIG_PATH = "/sso/config";
+    public static final String ACCESS_CONTEXT_PATH = "/api/internal/access-context";
+    public static final String HEADER_SERVICE_TOKEN = "X-DD-Service-Token";
+
+    private DDSsoConstants() {
+    }
+}

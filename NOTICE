@@ -12,6 +12,21 @@ Chromite has changed the product name, logos, icons, splash screen and
 product metadata, and may contain further modifications to the original
 source code. Modified files keep their original copyright notices.
 
+This product also includes the following DBeaver Corp projects, which are
+licensed under the Apache License, Version 2.0. They are kept unmodified
+in the deps/ directory so that Chromite can be built from this repository
+alone:
+
+  dbeaver-common (deps/dbeaver-common)
+  https://github.com/dbeaver/dbeaver-common
+  imported from commit ea9ab625b056f603cc8b1d156d1c48fb8d069f6f
+  Copyright (C) 2010-2026 DBeaver Corp and others
+
+  datadam-api (deps/datadam-api)
+  https://github.com/dbeaver/datadam-api
+  imported from commit e1b28c3b4572cb29ddf0f04db1435fc51e835c45
+  Copyright (C) 2010-2026 DBeaver Corp and others
+
 "DBeaver" is a trademark of DBeaver Corp. Chromite is not affiliated with,
 endorsed by or sponsored by DBeaver Corp.
 
