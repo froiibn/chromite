@@ -65,8 +65,23 @@ DataGrip처럼 사용자가 Java 런타임(JRE)을 따로 설치하지 않아도
 | 서명 | 코드 서명 인증서 검토 (없으면 SmartScreen 경고) | Apple Developer 계정으로 서명 + 공증. 공증 결과를 붙여 두면(stapling) 폐쇄망에서도 실행 |
 | 기타 | | 화면 상단 메뉴 막대, Cmd 단축키, 제목 표시줄 통합 |
 
-- Linux, Intel Mac, Windows ARM은 지원하지 않는다. 기존 제품 정의의 Linux·Solaris 항목
-  (`DBeaver.product`의 `<linux>`, `<solaris>`, `product/community/pom.xml`의 루트 폴더)은 Swing 제품을 구성할 때 뺀다.
+- Linux, Intel Mac, Windows ARM은 지원하지 않는다. 그래서 빌드 대상 환경도 두 가지만 둔다.
+  - 루트 `pom.xml`의 `target-platform-configuration` `<environments>`: `win32/win32/x86_64`, `macosx/cocoa/aarch64`.
+    Chromite의 모든 플러그인, 기능, 제품 모듈의 부모 POM이라 여기서 정하면 제품 빌드(`product/community`)에도 적용된다.
+    `deps/dbeaver-common/root/pom.xml`에는 대상 환경 설정이 없다.
+  - 그래서 `product/community/target/products/org.jkiss.dbeaver.core.product/`에는 `win32/win32/x86_64`와
+    `macosx/cocoa/aarch64` 폴더만 생긴다.
+  - Linux·Solaris 전용 제품 설정(`DBeaver.product`의 `<linux icon>`, `<solaris/>`, `product/community/pom.xml`의
+    `<linux>`, `<solaris>` 루트 폴더, `features/org.jkiss.dbeaver.ce.feature/build.properties`의 `root.linux.*`)과
+    거기에만 쓰이던 아이콘(`product/community/icons/dbeaver.xpm`, `dbeaver.png`)은 삭제했다.
+  - Linux 전용 SWT 프래그먼트 플러그인 `org.jkiss.dbeaver.ui.swt.linux`도 삭제했다(`plugins/pom.xml` 모듈,
+    `org.jkiss.dbeaver.app.base.feature`의 `os="linux"` 항목 포함). `Eclipse-PlatformFilter`가 gtk/linux라 대상 환경에
+    Linux가 없으면 Tycho가 의존성을 풀지 못하고("cannot be installed in this environment because its filter is not
+    applicable"), 이 플러그인의 대상 환경만 Linux로 바꾸면 기능 패키징이 "was not found in the target platform"으로 실패한다.
+    이 플러그인의 `DBeaverBrowserHelper`는 `BrowserClearCookiesHandler`가 클래스 이름으로 찾는데, Windows·macOS에는
+    각각 `ui.swt.windows`, `ui.swt.macos`의 같은 이름 클래스가 있다.
+  - 기능(feature)의 외부 Eclipse 번들 `os="linux"` 항목(`org.jkiss.dbeaver.rcp.feature`의 `org.eclipse.equinox.security.linux`,
+    `org.eclipse.core.filesystem.linux.*`)은 빌드에 문제가 없고 제품에 들어가지 않아 그대로 두었다.
 - Apple은 macOS 26 Tahoe가 Intel Mac을 지원하는 마지막 버전이라고 발표했다. 그래서 Apple Silicon만 지원한다.
 
 ## 미완료 항목
@@ -79,3 +94,6 @@ DataGrip처럼 사용자가 Java 런타임(JRE)을 따로 설치하지 않아도
 ## 변경 이력
 
 - 2026-11-06 최초 작성. JBR 25 + jlink 내장, 플랫폼(Windows x64, macOS arm64) 결정을 정리.
+- 2026-11-06 빌드 대상 환경을 Windows x64, macOS aarch64 두 가지로 줄였다(루트 `pom.xml`). 그 전에는 Linux gtk
+  x86_64/aarch64, Windows aarch64, macOS x86_64 제품도 함께 만들었다. Linux·Solaris 전용 제품 설정과 아이콘,
+  Linux 전용 플러그인 `org.jkiss.dbeaver.ui.swt.linux` 삭제.

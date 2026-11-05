@@ -29,8 +29,6 @@
                                 <!-- for MacOSX, make sure you use a folder ending with .app , see bug 463670 -->
                                 <macosx>Chromite.app</macosx>
                                 <win32>chromite</win32>
-                                <linux>chromite</linux>
-                                <solaris>chromite</solaris>
                             </rootFolders>
                         </product>
                     </products>
