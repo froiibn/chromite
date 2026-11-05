@@ -362,7 +362,7 @@ public class DriverEditDialog extends BaseDialog {
         anonymousDriverCheck = UIUtils.createCheckbox(optionsPanel, UIConnectionMessages.dialog_edit_driver_anonymous_label, UIConnectionMessages.dialog_edit_driver_anonymous_tip, driver.isAnonymousAccess(), 1);
         allowsEmptyPasswordCheck = UIUtils.createCheckbox(optionsPanel, UIConnectionMessages.dialog_edit_driver_allows_empty_password_label, UIConnectionMessages.dialog_edit_driver_allows_empty_password_tip, driver.isAnonymousAccess(), 1);
         nonInstantiableCheck = UIUtils.createCheckbox(optionsPanel, UIConnectionMessages.dialog_edit_driver_use_legacy_instantiation_label, UIConnectionMessages.dialog_edit_driver_use_legacy_instantiation_tip, !driver.isInstantiable(), 1);
-        threadSafeCheck = UIUtils.createCheckbox(optionsPanel, "Thread safe driver", "Driver is thread safe (default). Otherwise DBeaver will lock all driver invocations to protect it from any data corruptions.", driver.isThreadSafeDriver(), 1);
+        threadSafeCheck = UIUtils.createCheckbox(optionsPanel, "Thread safe driver", "Driver is thread safe (default). Otherwise Chromite will lock all driver invocations to protect it from any data corruptions.", driver.isThreadSafeDriver(), 1);
 
         if (isReadOnly) {
             embeddedDriverCheck.setEnabled(false);
@@ -961,7 +961,7 @@ public class DriverEditDialog extends BaseDialog {
             if (!UIUtils.confirmAction(
                 getShell(),
                 "Driver libraries upload",
-                "DBeaver will upload driver files back to the server. Do you confirm?")) {
+                "Chromite will upload driver files back to the server. Do you confirm?")) {
                 return;
             }
             try {

@@ -41,7 +41,7 @@ import java.nio.file.Path;
 public abstract class SQLPlanSaveProvider implements SQLPlanViewProvider {
 
     public static final String[] EXT = {"*.dbplan", "*"}; //$NON-NLS-1$ //$NON-NLS-2$;
-    private static final String[] NAMES = {"DBeaver Plan File", "All files"}; //$NON-NLS-1$ //$NON-NLS-2$;
+    private static final String[] NAMES = {"Chromite Plan File", "All files"}; //$NON-NLS-1$ //$NON-NLS-2$;
 
     private Viewer viewer;
     private SQLQuery query;
