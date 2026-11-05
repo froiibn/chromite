@@ -38,7 +38,7 @@ DBeaver Community 포크를 **Chromite** 제품으로 배포하기 위해, 사�
 
 | 파일 | 크기 | 쓰이는 곳 |
 |---|---|---|
-| `product/community/icons/dbeaver.ico` | 16~256 (7단계) | Windows 실행 파일 아이콘 |
+| `product/community/icons/dbeaver.ico` | 256/48/32/16 32비트, 48/32/16 8비트 (BMP 7개) | Windows 실행 파일 아이콘 (`tools/branding/gen_launcher_ico.py`로 생성) |
 | `product/community/icons/dbeaver.icns` | 16~1024 | macOS 앱 아이콘 |
 | `product/community/icons/dbeaver.xpm` | 128×128, 2 cpp | Linux 실행 파일 아이콘 |
 | `product/community/icons/dbeaver.png` | 256×256 | Linux 패키지 루트 아이콘 (`features/org.jkiss.dbeaver.ce.feature/build.properties`) |
@@ -80,6 +80,13 @@ DBeaver Community 포크를 **Chromite** 제품으로 배포하기 위해, 사�
 - **DBeaver CE p2 업데이트 사이트를 뺀다.** 남겨 두면 "업데이트 확인"에서 DBeaver 번들이 Chromite를 덮어쓴다.
 - **확장 업데이트 사이트는 남긴다.** Office, Git, Debug 확장(dbeaver.io)은 기능 유지를 위해 그대로 두었다.
 - **이메일은 비운다.** `productEmail`은 About 대화상자에서 쓰이지 않는다(`AboutBoxDialog`의 이메일 속성은 주석 처리돼 있음).
+- **Windows 아이콘(`dbeaver.ico`)은 BMP 7개로 만든다.** 빌드 중 p2 `BrandingIron`이 `IconExe`로 launcher.exe의
+  아이콘 리소스를 바꾼다. `IconExe`는 ICO 항목을 BMP(DIB)로만 읽고 PNG 항목이 하나라도 있으면 파일 전체를 읽지 못하며
+  (`Error 40`), 실행 파일 아이콘과 크기와 색 깊이가 정확히 같은 이미지만 같은 자리에 덮어쓴다.
+  Eclipse 4.x launcher의 아이콘은 256×256, 48×48, 32×32, 16×16 32비트와 48×48, 32×32, 16×16 8비트(256색)다
+  ([IconExe.java](https://github.com/eclipse-equinox/p2/blob/master/bundles/org.eclipse.equinox.p2.publisher.eclipse/src/org/eclipse/pde/internal/swt/tools/IconExe.java) "Note 3").
+  Pillow의 ICO 저장은 모든 항목을 32비트 PNG로 쓰므로 `tools/branding/gen_launcher_ico.py`가 ICO를 직접 쓴다.
+  그림은 1단계와 같고(32비트 항목은 1단계 PNG 항목과 픽셀 단위로 같음), 8비트 항목은 256색으로 줄이고 투명은 AND 마스크로 표현한다.
 - **버전 표시 위치를 옮긴다.** upstream 위치(154,53)는 새 로고와 겹쳐서 로고 아래(60,225)로 옮겼다.
 
 ## upstream 대비 남은 차이와 미완료 항목
@@ -107,3 +114,6 @@ DBeaver Community 포크를 **Chromite** 제품으로 배포하기 위해, 사�
   "Chromite connection name: ".
 - 2026-11-06 `plugin.xml`의 Microsoft Store 제품 정의(`msstore`) 저작권을 standalone 제품과 같은
   `© 2026 Chromite contributors. Based on DBeaver Community © DBeaver Corp`로 변경. 이름과 `appName`은 이미 Chromite다.
+- 2026-11-06 Windows 실행 파일 아이콘 수정: 1단계 `dbeaver.ico`가 PNG 항목만 있어 `IconExe`가 읽지 못했고
+  (`[IconExe] Error - 7 original icon(s) not replaced`), `chromite.exe`에 Eclipse 아이콘이 남아 있었다.
+  upstream과 같은 BMP 7개 구성으로 다시 만들고 생성 스크립트 `tools/branding/gen_launcher_ico.py`를 추가했다.
