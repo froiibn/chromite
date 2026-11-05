@@ -1,6 +1,7 @@
 /*
  * DBeaver - Universal Database Manager
  * Copyright (C) 2010-2026 DBeaver Corp and others
+ * Modifications Copyright (C) 2026 Chromite contributors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -34,7 +35,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
 
-@CommandLine.Command(name = "dbeaver", description = "DBeaver commands")
+@CommandLine.Command(name = "dbeaver", description = "Chromite commands")
 public class DBeaverTopLevelCommand extends AbstractTopLevelCommand {
     private static final Log log = Log.getLog(DBeaverTopLevelCommand.class);
 
@@ -56,7 +57,7 @@ public class DBeaverTopLevelCommand extends AbstractTopLevelCommand {
     private boolean newInstance;
     @CommandLine.Option(names = {CLIConstants.COMMAND_REUSE_WORKSPACE}, description = "Force workspace reuse (do not show warnings)")
     private boolean reuseWorkspace;
-    @CommandLine.Option(names = {"-stop", "-quit"}, description = "Stop DBeaver running instance")
+    @CommandLine.Option(names = {"-stop", "-quit"}, description = "Stop Chromite running instance")
     private boolean stop;
 
     @CommandLine.Option(names = {"-f", "-file"}, arity = "1", split = ",", description = "Open a file")
@@ -80,7 +81,7 @@ public class DBeaverTopLevelCommand extends AbstractTopLevelCommand {
     private boolean closeTabs;
     
 
-    @CommandLine.Option(names = {"-bringToFront"}, description = "Bring DBeaver window on top of other applications")
+    @CommandLine.Option(names = {"-bringToFront"}, description = "Bring Chromite window on top of other applications")
     private boolean bringToFront;
     @CommandLine.Option(names = {"-q", "-quiet"}, description = "Run quietly (do not print logs)")
     private boolean quiet;

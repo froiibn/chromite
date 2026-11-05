@@ -1,6 +1,6 @@
 Manifest-Version: 1.0
 Bundle-ManifestVersion: 2
-Bundle-Name: DBeaver WMI Model
+Bundle-Name: Chromite WMI Model
 Bundle-SymbolicName: org.jkiss.dbeaver.ext.wmi;singleton:=true
 Bundle-Version: 2.0.293.qualifier
 Bundle-Release-Date: 20261116

@@ -1,7 +1,7 @@
 Manifest-Version: 1.0
 Bundle-ManifestVersion: 2
 Bundle-Vendor: DBeaver Corp
-Bundle-Name: DBeaver SSH Tunnels
+Bundle-Name: Chromite SSH Tunnels
 Bundle-SymbolicName: org.jkiss.dbeaver.net.ssh;singleton:=true
 Bundle-Version: 1.0.212.qualifier
 Bundle-Release-Date: 20261116

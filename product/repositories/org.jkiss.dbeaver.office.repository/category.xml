@@ -5,5 +5,5 @@
     <feature id="org.jkiss.dbeaver.ext.office.feature">
         <category name="org.jkiss.dbeaver.office.category"/>
     </feature>
-    <category-def name="org.jkiss.dbeaver.office.category" label="DBeaver Office Support"/>
+    <category-def name="org.jkiss.dbeaver.office.category" label="Chromite Office Support"/>
 </site>

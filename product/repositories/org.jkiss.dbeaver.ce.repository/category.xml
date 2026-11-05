@@ -2,14 +2,14 @@
 <site>
     <description name="DBeaver Update Site" url="https://dbeaver.io/update/latest">DBeaver Update Site</description>
 
-    <category-def name="org.jkiss.dbeaver" label="DBeaver">
+    <category-def name="org.jkiss.dbeaver" label="Chromite">
         <description>Universal Database Manager</description>
     </category-def>
     <category-def name="org.jkiss.dbeaver.drivers" label="External database drivers">
-        <description>3rd party JDBC drivers for DBeaver</description>
+        <description>3rd party JDBC drivers for Chromite</description>
     </category-def>
-    <category-def name="org.jkiss.dbeaver.additions" label="DBeaver Extensions">
-        <description>DBeaver advanced extensions</description>
+    <category-def name="org.jkiss.dbeaver.additions" label="Chromite Extensions">
+        <description>Chromite advanced extensions</description>
     </category-def>
 
     <feature id="org.jkiss.dbeaver.ide.feature">

@@ -27,7 +27,7 @@
     <extension point="org.jkiss.dbeaver.ui.app.config">
         <action
             label="Create sample database"
-            description="DBeaver comes with a handy sample database powered by SQLite that you can use to explore the features and capabilities of the application."
+            description="Chromite comes with a handy sample database powered by SQLite that you can use to explore the features and capabilities of the application."
             class="org.jkiss.dbeaver.ui.app.config.ProductConfigCreateSampleDatabaseAction"/>
     </extension>
 

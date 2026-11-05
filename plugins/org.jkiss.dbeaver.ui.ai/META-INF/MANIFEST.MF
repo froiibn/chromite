@@ -1,7 +1,7 @@
 Manifest-Version: 1.0
 Bundle-ManifestVersion: 2
 Bundle-Vendor: DBeaver Corp
-Bundle-Name: DBeaver AI UI
+Bundle-Name: Chromite AI UI
 Bundle-SymbolicName: org.jkiss.dbeaver.ui.ai;singleton:=true
 Bundle-Version: 1.0.93.qualifier
 Import-Package: org.jkiss.dbeaver.model.ai,

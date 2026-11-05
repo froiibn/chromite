@@ -1,6 +1,7 @@
 /*
  * DBeaver - Universal Database Manager
  * Copyright (C) 2010-2024 DBeaver Corp and others
+ * Modifications Copyright (C) 2026 Chromite contributors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -38,7 +39,7 @@ public final class EFSNIOFolder extends EFSNIOContainer implements IFolder {
 
     private final String FOLDER_EMULATION_FILE_NAME = ".dbeaver-placeholder";
     private final byte[] FOLDER_EMULATION_FILE_CONTENT =
-        "This file is created by DBeaver to guarantee support of folders instantiation and deletion."
+        "This file is created by Chromite to guarantee support of folders instantiation and deletion."
         .getBytes(StandardCharsets.UTF_8);
 
     public EFSNIOFolder(EFSNIOFileSystemRoot root, Path backendFolder) {

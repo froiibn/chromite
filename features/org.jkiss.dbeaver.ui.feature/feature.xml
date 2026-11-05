@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <feature
       id="org.jkiss.dbeaver.ui.feature"
-      label="DBeaver Desktop UI"
+      label="Chromite Desktop UI"
       version="26.2.5.qualifier"
       provider-name="DBeaver Corp">
 

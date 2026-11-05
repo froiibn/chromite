@@ -1,6 +1,6 @@
 Manifest-Version: 1.0
 Bundle-ManifestVersion: 2
-Bundle-Name: DBeaver TiDBLake UI
+Bundle-Name: Chromite TiDBLake UI
 Bundle-SymbolicName: org.jkiss.dbeaver.ext.tidblake.ui;singleton:=true
 Bundle-Version: 1.0.0.qualifier
 Bundle-Release-Date: 20260629

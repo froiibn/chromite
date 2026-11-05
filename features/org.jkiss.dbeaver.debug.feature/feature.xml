@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <feature
       id="org.jkiss.dbeaver.debug.feature"
-      label="DBeaver Debugger"
+      label="Chromite Debugger"
       version="6.1.181.qualifier"
       provider-name="DBeaver Corp">
 

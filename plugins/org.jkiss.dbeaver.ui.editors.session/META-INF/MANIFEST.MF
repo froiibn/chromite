@@ -1,7 +1,7 @@
 Manifest-Version: 1.0
 Bundle-ManifestVersion: 2
 Bundle-Vendor: DBeaver Corp
-Bundle-Name: DBeaver UI Editors - Session Manager
+Bundle-Name: Chromite UI Editors - Session Manager
 Bundle-SymbolicName: org.jkiss.dbeaver.ui.editors.session;singleton:=true
 Bundle-Version: 1.0.169.qualifier
 Bundle-Release-Date: 20261116

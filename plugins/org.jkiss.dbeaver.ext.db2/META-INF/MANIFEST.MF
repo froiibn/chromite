@@ -1,7 +1,7 @@
 Manifest-Version: 1.0
 Bundle-ManifestVersion: 2
 Bundle-Vendor: DBeaver Corp
-Bundle-Name: DBeaver IBM DB2 Model
+Bundle-Name: Chromite IBM DB2 Model
 Bundle-SymbolicName: org.jkiss.dbeaver.ext.db2;singleton:=true
 Bundle-Version: 2.1.276.qualifier
 Bundle-Release-Date: 20261116

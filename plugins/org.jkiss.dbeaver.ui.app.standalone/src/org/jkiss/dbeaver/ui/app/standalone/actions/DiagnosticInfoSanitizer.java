@@ -1,6 +1,7 @@
 /*
  * DBeaver - Universal Database Manager
  * Copyright (C) 2010-2026 DBeaver Corp and others
+ * Modifications Copyright (C) 2026 Chromite contributors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,6 +18,7 @@
 package org.jkiss.dbeaver.ui.app.standalone.actions;
 
 import org.jkiss.code.NotNull;
+import org.jkiss.dbeaver.utils.GeneralUtils;
 
 import java.util.Comparator;
 import java.util.List;
@@ -24,7 +26,13 @@ import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-/** Sanitizes text only when it is copied into a diagnostic archive. */
+/**
+ * Sanitizes text only when it is copied into a diagnostic archive.
+ *
+ * Change history:
+ * - 2026-11-06 Chromite: recognize the startup line by the actual product name, because DBeaverApplication logs
+ *   "{@code <product name> <version> is starting}" and the product name is no longer "DBeaver".
+ */
 final class DiagnosticInfoSanitizer {
     private static final String REDACTED = "[REDACTED]";
     private static final Pattern CONNECTION = Pattern.compile("(?i)\\b(?:jdbc:[^\\s\\\"'<>]+|(?:https?|ssh)://[^\\s\\\"'<>]+)");
@@ -116,7 +124,9 @@ final class DiagnosticInfoSanitizer {
         result = ADDRESS.matcher(result).replaceAll(m -> {
             String line = lineAt(beforeAddresses, m.start());
             // The four numeric components of a product version can also look like an IPv4 address.
-            boolean productVersion = line.contains("DBeaver") && line.contains(" is starting");
+            // Logs written by an earlier DBeaver installation sharing the workspace still start with "DBeaver".
+            boolean productVersion = line.contains(" is starting")
+                && (line.contains("DBeaver") || line.contains(GeneralUtils.getProductName()));
             int offset = m.start() - beforeAddresses.lastIndexOf('\n', m.start() - 1) - 1;
             boolean version = VERSION.matcher(line).results().anyMatch(v -> v.start() <= offset && v.end() >= offset + m.group().length());
             return productVersion || version ? Matcher.quoteReplacement(m.group()) : REDACTED;

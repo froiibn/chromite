@@ -59,8 +59,8 @@
         <context
                 id="org.jkiss.dbeaver.ui.perspective"
                 parentId="org.eclipse.ui.contexts.window"
-                name="DBeaver Perspective"
-                description="DBeaver Perspective Context"/>
+                name="Chromite Perspective"
+                description="Chromite Perspective Context"/>
     </extension>
 
     <extension point="org.eclipse.ui.handlers">

@@ -4,15 +4,15 @@ ${dbeaver-version}
 
 README
 
-Thank you for downloading DBeaver!
+Thank you for downloading Chromite!
 
-Installing DBeaver
+Installing Chromite
 ========================
   Use automatic installer distribution (Windows and Linux versions)
-  or just unpack archive and start "dbeaver" executable.
+  or just unpack archive and start "chromite" executable.
   
   Note: do not extract archive in the same folder where older version
-  of DBeaver is installed.
+  of Chromite is installed.
   Remove previous version or extract archive in another folder.
 
 Command line parameters
@@ -20,17 +20,17 @@ Command line parameters
 
   -f <sql-file1 [sql-file2..]>
     Open specified SQL file(s) in SQL editor.
-    This command can be used to associate SQL files with DBeaver in shell.
+    This command can be used to associate SQL files with Chromite in shell.
 
   -nosplash
     Do not show splash screen
 
   -data <path>
-    Store all projects/configuration in folder <path>. By default DBeaver
+    Store all projects/configuration in folder <path>. By default Chromite
 	stores all its data in user's home "DBeaverData" folder.
 	<path> can be an absolute or relative directory name.
-	If you want to use DBeaver as redistributable program start it
-	with arguments like "dbeaver -data workspace".
+	If you want to use Chromite as redistributable program start it
+	with arguments like "chromite -data workspace".
 
   -nl locale
     Use specified locale instead of default one.
@@ -46,7 +46,7 @@ Command line parameters
     3-rd party jdbc drivers.
 
   -clean
-    Clears all Eclipse caches. Use it if DBeaver fails to start after version upgrade.
+    Clears all Eclipse caches. Use it if Chromite fails to start after version upgrade.
 
 Licensing
 ==========================

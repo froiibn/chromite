@@ -1,6 +1,7 @@
 /*
  * DBeaver - Universal Database Manager
  * Copyright (C) 2010-2026 DBeaver Corp and others
+ * Modifications Copyright (C) 2026 Chromite contributors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -36,6 +37,11 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Change history:
+ * - 2026-11-06 Chromite: the prompts name the application "Chromite", so the model does not present itself
+ *   (or refer to connections) as DBeaver.
+ */
 public class AIPromptUtils {
     public static final String[] SQL_OUTPUT_FORMATS = {
         "Place any explanation or comments before the SQL code block.",
@@ -63,7 +69,7 @@ public class AIPromptUtils {
                 lines.add("Server version: " + dsInfo.getDatabaseProductName() + " " + dsInfo.getDatabaseVersion());
             }
             if (dataSource.getDataSourceContainer() instanceof DataSourceDescriptor) {
-                lines.add("DBeaver connection name: " + dataSource.getDataSourceContainer().getName());
+                lines.add("Chromite connection name: " + dataSource.getDataSourceContainer().getName());
                 DBPDriver driver = dataSource.getDataSourceContainer().getDriver();
                 if (ds instanceof JDBCDataSource) {
                     lines.add("JDBC driver: " + dsInfo.getDriverName() + " (" + dsInfo.getDriverVersion() + ")");
@@ -126,7 +132,7 @@ public class AIPromptUtils {
     @NotNull
     public static String[] createGeneralRulesInstructions() {
         List<String> instructions = new ArrayList<>();
-        instructions.add("You are the DBeaver AI assistant.");
+        instructions.add("You are the Chromite AI assistant.");
         instructions.add("Act as a database architect and SQL expert.");
         instructions.add("Use tools to ask for database schema information.");
         instructions.add("Rely only on the provided schema information, do not make assumptions.");

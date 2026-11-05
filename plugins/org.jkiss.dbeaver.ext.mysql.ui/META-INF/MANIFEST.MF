@@ -1,6 +1,6 @@
 Manifest-Version: 1.0
 Bundle-ManifestVersion: 2
-Bundle-Name: DBeaver MySQL UI Support
+Bundle-Name: Chromite MySQL UI Support
 Bundle-SymbolicName: org.jkiss.dbeaver.ext.mysql.ui;singleton:=true
 Bundle-Version: 1.0.183.qualifier
 Bundle-Release-Date: 20261116

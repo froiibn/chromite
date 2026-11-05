@@ -1,6 +1,7 @@
 /*
  * DBeaver - Universal Database Manager
  * Copyright (C) 2010-2026 DBeaver Corp and others
+ * Modifications Copyright (C) 2026 Chromite contributors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -68,12 +69,21 @@ import java.util.*;
 /**
  * BaseWorkspaceImpl.
  * Base implementation of DBeaver platform for all products
+ *
+ * Change history:
+ * - 2026-11-06 Chromite: resolve the launcher ini from the launcher name instead of a hardcoded "dbeaver.ini",
+ *   because the Chromite launcher is "chromite" and reads "chromite.ini".
  */
 public abstract class BasePlatformImpl implements DBPPlatform, DBPApplicationConfigurator, DBPPlatformLanguageManager {
 
     private static final Log log = Log.getLog(BasePlatformImpl.class);
 
-    private static final String APP_CONFIG_FILE = "dbeaver.ini";
+    // Used when the launcher name is unknown or its ini file is missing (e.g. the Windows console launcher
+    // "chromitec" shares the GUI launcher's ini).
+    private static final String APP_CONFIG_FILE = "chromite.ini";
+    // Full launcher path, set by the startup code from the native launcher's -launcher argument
+    private static final String PROP_LAUNCHER = "eclipse.launcher";
+    private static final String LAUNCHER_EXE_EXTENSION = ".exe";
     private static final String ECLIPSE_CONFIG_FILE = "eclipse.ini";
     private static final String TEMP_PROJECT_NAME = ".dbeaver-temp"; //$NON-NLS-1$
     private static final String TEMP_SESSION_PREFIX = "session-"; //$NON-NLS-1$
@@ -401,9 +411,32 @@ public abstract class BasePlatformImpl implements DBPPlatform, DBPApplicationCon
         }
         Path iniFile = configPath.resolve(ECLIPSE_CONFIG_FILE);
         if (!Files.exists(iniFile)) {
-            iniFile = configPath.resolve(APP_CONFIG_FILE);
+            iniFile = getLauncherConfiguration(configPath);
         }
         return iniFile;
+    }
+
+    /**
+     * The native launcher reads {@code <launcher name>.ini} from the installation folder,
+     * so the name is taken from the actual launcher rather than assumed.
+     */
+    @NotNull
+    private static Path getLauncherConfiguration(@NotNull Path configPath) {
+        String launcher = System.getProperty(PROP_LAUNCHER);
+        if (!CommonUtils.isEmpty(launcher)) {
+            Path launcherFile = Path.of(launcher).getFileName();
+            if (launcherFile != null) {
+                String launcherName = launcherFile.toString();
+                if (launcherName.toLowerCase(Locale.ROOT).endsWith(LAUNCHER_EXE_EXTENSION)) {
+                    launcherName = launcherName.substring(0, launcherName.length() - LAUNCHER_EXE_EXTENSION.length());
+                }
+                Path iniFile = configPath.resolve(launcherName + ".ini");
+                if (Files.exists(iniFile)) {
+                    return iniFile;
+                }
+            }
+        }
+        return configPath.resolve(APP_CONFIG_FILE);
     }
 
     @NotNull
@@ -509,7 +542,7 @@ public abstract class BasePlatformImpl implements DBPPlatform, DBPApplicationCon
                 }
             }
         }
-        throw new IOException("Can't create DBeaver temp folder", failure);
+        throw new IOException("Can't create Chromite temp folder", failure);
     }
 
     private static void scheduleAbandonedTempFoldersCleanup(@NotNull Path root, @NotNull Path currentSession) {

@@ -1,6 +1,7 @@
 /*
  * DBeaver - Universal Database Manager
  * Copyright (C) 2010-2026 DBeaver Corp and others
+ * Modifications Copyright (C) 2026 Chromite contributors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -115,7 +116,7 @@ public class DBeaverApplication extends DesktopApplicationImpl implements DBPApp
     private static final String DEFAULT_PROJECT_NAME = "General";
 
     /**
-     * Specified in {@code dbeaver.ini} as a JVM parameter during packaging. Possible values are:
+     * Specified in {@code chromite.ini} as a JVM parameter during packaging. Possible values are:
      * <ul>
      *     <li>{@code zip}, {@code exe}, {@code msstore} on Windows;</li>
      *     <li>{@code deb}, {@code rpm} on Linux;</li>
@@ -562,9 +563,9 @@ public class DBeaverApplication extends DesktopApplicationImpl implements DBPApp
                     } else {
                         // Can't lock specified path
                         int msgResult = showMessageBox(
-                            "DBeaver - Can't lock workspace",
+                            "Chromite - Can't lock workspace",
                             "Can't lock workspace at " + defaultHomePath + ".\n" +
-                                "It seems that you have another DBeaver instance running.\n" +
+                                "It seems that you have another Chromite instance running.\n" +
                                 "You may ignore it and work without lock but it is recommended to shutdown previous instance otherwise you may corrupt workspace data.",
                             SWT.ICON_WARNING | SWT.IGNORE | SWT.RETRY | SWT.ABORT);
 

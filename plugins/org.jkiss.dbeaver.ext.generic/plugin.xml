@@ -20,13 +20,6 @@
             icon="icons/elasticsearch_icon.png"
             iconBig="icons/elasticsearch_icon_big.png"/>
         <dataSourceType
-            id="odbc_legacy"
-            label="ODBC - Legacy"
-            description="Relational data sources through ODBC"
-            dataSourceInformation="Protocol-based access to relational data sources"
-            icon="icons/odbc_icon.png"
-            iconBig="icons/odbc_icon_big.png"/>
-        <dataSourceType
             id="teiid"
             label="Teiid"
             description="Teiid data virtualization platform"
@@ -792,7 +785,7 @@
                     sampleURL="jdbc:relique:csv:{folder}"
                     embedded="true"
                     anonymous="true"
-                    description="CsvJdbc driver for handling CSV files. Included in DBeaver Community Edition."
+                    description="CsvJdbc driver for handling CSV files. Included in Chromite."
                     supportedConfigurationTypes="MANUAL,URL"
                     supportsDistributedMode="false"
                     webURL="http://csvjdbc.sourceforge.net/"
@@ -1743,92 +1736,6 @@
                 <driver id="vertica" dataSourceType="vertica"/>
                 <driver id="yandex_clickhouse" dataSourceType="clickhouse"/>
                 <driver id="apache_hive2" dataSourceType="hive"/>
-
-                <!-- Drivers Teasers -->
-                <driver
-                        id="odbc"
-                        dataSourceType="odbc_legacy"
-                        label="ODBC - Legacy"
-                        class="sun.jdbc.odbc.JdbcOdbcDriver"
-                        sampleURL="jdbc:odbc:{database}"
-                        webURL="https://sun.com"
-                        description="ODBC bridge driver"
-                        supportedConfigurationTypes="MANUAL,URL"
-                        supportsDistributedMode="false"
-                        categories="sql">
-                    <os name="win32"/>
-                    <notAvailableDriver title="%deprecated.title" description="%deprecated.description" message="%driver.odbc.deprecation.reason"/>
-                </driver>
-                <driver
-                        id="mongo-ce"
-                        dataSourceType="mongodb"
-                        label="MongoDB"
-                        description="Driver for MongoDB"
-                        iconBig="icons/mongodb_icon_big.png"
-                        supportsDistributedMode="false"
-                        categories="nosql,bigdata,document">
-                    <notAvailableDriver title="%not.available.title" description="%not.available.description" message="%driver.mongodb.reason"/>
-                </driver>
-                <driver
-                        id="cql-ce"
-                        dataSourceType="cassandra"
-                        label="Cassandra"
-                        description="Driver for Apache Cassandra 2.x/3.x/4.x"
-                        iconBig="icons/cassandra_icon_big.png"
-                        supportsDistributedMode="false"
-                        categories="nosql,bigdata,keyvalue">
-                    <notAvailableDriver title="%not.available.title" description="%not.available.description" message="%driver.cassandra.reason"/>
-                </driver>
-                <driver
-                        id="salesforce-ce"
-                        dataSourceType="salesforce"
-                        label="Salesforce"
-                        description="Salesforce JDBC driver"
-                        iconBig="icons/salesforce_pro_icon.png"
-                        supportsDistributedMode="false"
-                        categories="sql">
-                    <notAvailableDriver title="%not.available.title" description="%not.available.description" message="%driver.salesforce.reason"/>
-                </driver>
-                <driver
-                        id="couchbase-ce"
-                        dataSourceType="couchbase"
-                        label="Couchbase"
-                        description="Couchbase Driver"
-                        iconBig="icons/couchbase_pro_icon.png"
-                        supportsDistributedMode="false"
-                        categories="nosql">
-                    <notAvailableDriver title="%not.available.title" description="%not.available.description" message="%driver.couchbase.reason"/>
-                </driver>
-                <driver
-                        id="redis-ce"
-                        dataSourceType="redis"
-                        label="Redis"
-                        description="Redis Driver"
-                        iconBig="icons/redis_pro_icon.png"
-                        supportsDistributedMode="false"
-                        categories="nosql,keyvalue">
-                    <notAvailableDriver title="%not.available.title" description="%not.available.description" message="%driver.redis.reason"/>
-                </driver>
-                <driver
-                        id="timestream-ce"
-                        dataSourceType="timestream"
-                        label="Timestream"
-                        description="AWS Timestream Driver"
-                        iconBig="icons/timestream_pro_icon.png"
-                        supportsDistributedMode="false"
-                        categories="nosql,timeseries,aws">
-                    <notAvailableDriver title="%not.available.title" description="%not.available.description" message="%driver.timestream.reason"/>
-                </driver>
-                <driver
-                        id="neo4j_jdbc"
-                        dataSourceType="neo4j"
-                        label="Neo4j"
-                        description="Driver for Neo4j"
-                        iconBig="icons/neo4j_icon_big.png"
-                        supportsDistributedMode="false"
-                        categories="graph">
-                    <notAvailableDriver title="%not.available.title" description="%not.available.description" message="%driver.neo4j.reason"/>
-                </driver>
             </drivers>
 
         </datasource>

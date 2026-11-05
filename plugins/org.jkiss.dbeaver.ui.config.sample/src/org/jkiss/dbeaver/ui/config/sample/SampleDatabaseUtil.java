@@ -1,6 +1,7 @@
 /*
  * DBeaver - Universal Database Manager
  * Copyright (C) 2010-2026 DBeaver Corp and others
+ * Modifications Copyright (C) 2026 Chromite contributors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -96,7 +97,7 @@ public final class SampleDatabaseUtil {
             dataSource = registry.createDataSource(SAMPLE_DB1_ID, sqliteDriver, connectionInfo);
             dataSource.setSavePassword(true);
             dataSource.getNavigatorSettings().setShowSystemObjects(true);
-            dataSource.setName("DBeaver Sample Database (SQLite)");
+            dataSource.setName("Chromite Sample Database (SQLite)");
             registry.addDataSource(dataSource);
         } catch (DBException e) {
             DBWorkbench.getPlatformUI().showError("Connection create error", null, e);
