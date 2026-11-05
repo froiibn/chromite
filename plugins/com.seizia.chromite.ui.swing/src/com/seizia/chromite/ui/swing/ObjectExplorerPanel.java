@@ -24,6 +24,8 @@ import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
 import org.jkiss.dbeaver.Log;
 import org.jkiss.dbeaver.model.DBPDataSourceContainer;
+import org.jkiss.dbeaver.model.DBPEvaluationContext;
+import org.jkiss.dbeaver.model.DBUtils;
 import org.jkiss.dbeaver.model.app.DBPProject;
 import org.jkiss.dbeaver.model.navigator.DBNDataSource;
 import org.jkiss.dbeaver.model.navigator.DBNDatabaseNode;
@@ -36,6 +38,9 @@ import org.jkiss.dbeaver.model.navigator.DBNUtils;
 import org.jkiss.dbeaver.model.navigator.INavigatorListener;
 import org.jkiss.dbeaver.model.runtime.AbstractJob;
 import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
+import org.jkiss.dbeaver.model.runtime.DBRRunnableWithReturn;
+import org.jkiss.dbeaver.model.struct.DBSEntity;
+import org.jkiss.dbeaver.model.struct.DBSObject;
 import org.jkiss.dbeaver.runtime.DBInterruptedException;
 import org.jkiss.dbeaver.runtime.DBWorkbench;
 import org.jkiss.utils.CommonUtils;
@@ -86,6 +91,9 @@ import java.util.function.Consumer;
  *     SQL 편집기를 연다(SSMS처럼 연결 아래 어느 노드에서나). 연결은 편집기가 실행할 때 필요하면 연다.</li>
  *     <li>연결 명령({@link ConnectionCommands}): New Connection(빈 곳·폴더에서도), Connect / Disconnect / Reconnect(연결 아래 어느 노드에서나),
  *     Edit Connection(Enter), Rename(F2), Delete(Delete 키, 확인 후)는 연결 노드에서.</li>
+ *     <li>객체 스크립트(SSMS): "Select Top 1000 Rows"(테이블·뷰, 새 편집기에서 바로 실행), "Script as > CREATE To / SELECT To >
+ *     New Query Editor Window / Clipboard", "View DDL"(읽기 전용 탭). SQL은 {@link ObjectScripts}(모델의 SQL 생성기)가 만들고,
+ *     DB 메타데이터를 읽으므로 진행 대화상자({@link ProgressDialog})의 작업 스레드에서 만든다.</li>
  *     <li>모델 이벤트: 탐색기 모델({@link INavigatorListener}, 모델이 EDT에서 부름)을 듣고 다른 곳에서 일어난 변경을 반영한다.
  *     연결 목록이 바뀌면(추가·삭제·이름 변경·폴더) 목록을 다시 읽되 이미 있는 트리 노드와 펼친 상태는 그대로 둔다.
  *     연결이 끊기면({@code UNLOAD}) 그 연결을 접고 다시 펼칠 때 읽게 하고, 연결 상태가 바뀌면 아이콘을 다시 그린다.
@@ -97,12 +105,40 @@ import java.util.function.Consumer;
  * - 2026-11-06 B단계: 최초 작성 (docs/chromite/swing-frontend.md "구현 현황 — B단계")
  * - 2026-11-06 C단계: "New Query" 메뉴, 선택한 연결 조회 (docs/chromite/swing-frontend.md "구현 현황 — C단계")
  * - 2026-11-06 D단계: 연결 명령 메뉴와 단축키, 탐색기 모델 이벤트로 트리 갱신 (docs/chromite/swing-frontend.md "구현 현황 — D단계")
+ * - 2026-11-06 E단계: Select Top 1000 Rows, Script as(CREATE·SELECT), View DDL (docs/chromite/swing-frontend.md "구현 현황 — E단계")
  */
 final class ObjectExplorerPanel extends JPanel {
 
     private static final Log log = Log.getLog(ObjectExplorerPanel.class);
 
     private static final String LOADING_TEXT = "Loading…"; //$NON-NLS-1$
+    /**
+     * Rows of "Select Top N Rows", as SSMS.
+     */
+    private static final int SELECT_TOP_ROWS = 1000;
+
+    /**
+     * The main window side: document tabs for queries and scripts.
+     */
+    interface QueryWindows {
+        /**
+         * Opens an empty query window for the connection ("New Query").
+         */
+        void openQuery(@NotNull DBPDataSourceContainer dataSource);
+
+        /**
+         * Opens a query window with a generated script.
+         *
+         * @param maxRows rows the window fetches at least (0: the connection's maximum)
+         * @param execute run the script right away
+         */
+        void openScript(@NotNull DBPDataSourceContainer dataSource, @NotNull String script, long maxRows, boolean execute);
+
+        /**
+         * Shows an object definition in a read-only tab ("View DDL").
+         */
+        void showDdl(@NotNull String objectName, @NotNull String ddl);
+    }
 
     private final DefaultTreeModel treeModel;
     private final JTree tree;
@@ -118,6 +154,11 @@ final class ObjectExplorerPanel extends JPanel {
     private final Action editConnectionAction;
     private final Action renameAction;
     private final Action deleteAction;
+    private final Action selectTopAction;
+    private final Action viewDdlAction;
+    private final JMenu scriptAsMenu;
+    private final JMenu createToMenu;
+    private final JMenu selectToMenu;
     private final INavigatorListener navigatorListener = this::navigatorNodeChanged;
     /**
      * A connection to select once the connection list has been read again (a connection created in this window).
@@ -128,9 +169,9 @@ final class ObjectExplorerPanel extends JPanel {
 
     /**
      * @param selectionListener receives the selected navigator node (or null)
-     * @param newQueryHandler   opens a query window for a connection ("New Query" menu)
+     * @param queryWindows      opens query windows ("New Query", scripts) and DDL tabs
      */
-    ObjectExplorerPanel(@NotNull Consumer<DBNNode> selectionListener, @NotNull Consumer<DBPDataSourceContainer> newQueryHandler) {
+    ObjectExplorerPanel(@NotNull Consumer<DBNNode> selectionListener, @NotNull QueryWindows queryWindows) {
         super(new BorderLayout());
 
         DBPProject project = DBWorkbench.getPlatform().getWorkspace().getActiveProject();
@@ -172,10 +213,38 @@ final class ObjectExplorerPanel extends JPanel {
             public void actionPerformed(ActionEvent e) {
                 DBPDataSourceContainer dataSource = getSelectedDataSource();
                 if (dataSource != null) {
-                    newQueryHandler.accept(dataSource);
+                    queryWindows.openQuery(dataSource);
                 }
             }
         };
+        selectTopAction = createAction("Select Top " + SELECT_TOP_ROWS + " Rows", () -> {
+            DBPDataSourceContainer dataSource = getSelectedDataSource();
+            if (getSelectedObject() instanceof DBSEntity entity && dataSource != null) {
+                String script = generate("Select Top " + SELECT_TOP_ROWS + " Rows",
+                    monitor -> ObjectScripts.generateSelect(monitor, entity, SELECT_TOP_ROWS));
+                if (script != null) {
+                    queryWindows.openScript(dataSource, script, SELECT_TOP_ROWS, true);
+                }
+            }
+        });
+        viewDdlAction = createAction("View DDL", () -> {
+            DBSObject object = getSelectedObject();
+            if (object != null) {
+                String ddl = generate("View DDL", monitor -> ObjectScripts.generateCreate(monitor, object));
+                if (ddl != null) {
+                    queryWindows.showDdl(DBUtils.getObjectFullName(object, DBPEvaluationContext.UI), ddl);
+                }
+            }
+        });
+        createToMenu = new JMenu("CREATE To");
+        createToMenu.add(createAction("New Query Editor Window", () -> scriptSelected(queryWindows, false, false)));
+        createToMenu.add(createAction("Clipboard", () -> scriptSelected(queryWindows, false, true)));
+        selectToMenu = new JMenu("SELECT To");
+        selectToMenu.add(createAction("New Query Editor Window", () -> scriptSelected(queryWindows, true, false)));
+        selectToMenu.add(createAction("Clipboard", () -> scriptSelected(queryWindows, true, true)));
+        scriptAsMenu = new JMenu("Script as");
+        scriptAsMenu.add(createToMenu);
+        scriptAsMenu.add(selectToMenu);
         newConnectionAction = createAction("New Connection…", () -> ConnectionCommands.newConnection(this,
             getSelectedNavigatorNode() instanceof DBNLocalFolder folderNode ? folderNode.getFolder() : null));
         newConnectionAction.putValue(Action.SHORT_DESCRIPTION, "Create a connection in the active project");
@@ -225,6 +294,9 @@ final class ObjectExplorerPanel extends JPanel {
         popupMenu.add(newConnectionAction);
         popupMenu.addSeparator();
         popupMenu.add(newQueryAction);
+        popupMenu.add(selectTopAction);
+        popupMenu.add(scriptAsMenu);
+        popupMenu.add(viewDdlAction);
         popupMenu.addSeparator();
         popupMenu.add(connectAction);
         popupMenu.add(disconnectAction);
@@ -306,6 +378,53 @@ final class ObjectExplorerPanel extends JPanel {
         tree.getActionMap().put(actionKey, createAction(actionKey, task));
     }
 
+    /**
+     * "Script as > CREATE To / SELECT To": a new query window with the script, or the clipboard.
+     */
+    private void scriptSelected(@NotNull QueryWindows queryWindows, boolean select, boolean toClipboard) {
+        DBSObject object = getSelectedObject();
+        DBPDataSourceContainer dataSource = getSelectedDataSource();
+        if (object == null || dataSource == null) {
+            return;
+        }
+        String script = select
+            ? (object instanceof DBSEntity entity ? generate("Script as SELECT", monitor -> ObjectScripts.generateSelect(monitor, entity, 0)) : null)
+            : generate("Script as CREATE", monitor -> ObjectScripts.generateCreate(monitor, object));
+        if (script == null) {
+            return;
+        }
+        if (toClipboard) {
+            DBWorkbench.getPlatformUI().copyTextToClipboard(script, false);
+        } else {
+            queryWindows.openScript(dataSource, script, 0, false);
+        }
+    }
+
+    /**
+     * Generates SQL in a job, waiting in a progress dialog (it reads metadata). Errors are shown; null if it
+     * failed or was canceled.
+     */
+    @Nullable
+    private String generate(@NotNull String title, @NotNull DBRRunnableWithReturn<String> generator) {
+        try {
+            return ProgressDialog.runTask(title, generator);
+        } catch (DBInterruptedException e) {
+            return null;
+        } catch (DBException e) {
+            DBWorkbench.getPlatformUI().showError(title, "Can't generate the script", e);
+            return null;
+        }
+    }
+
+    /**
+     * The database object of the selected node; null for connections and folders.
+     */
+    @Nullable
+    private DBSObject getSelectedObject() {
+        return getSelectedNavigatorNode() instanceof DBNDatabaseNode databaseNode && !(databaseNode instanceof DBNDataSource)
+            ? databaseNode.getObject() : null;
+    }
+
     private void runOnSelectedDataSource(@NotNull Consumer<DBPDataSourceContainer> command) {
         DBPDataSourceContainer dataSource = getSelectedDataSource();
         if (dataSource != null) {
@@ -319,6 +438,14 @@ final class ObjectExplorerPanel extends JPanel {
         boolean connected = dataSource != null && dataSource.isConnected();
         newConnectionAction.setEnabled(projectNode != null);
         newQueryAction.setEnabled(dataSource != null);
+        DBSObject object = getSelectedObject();
+        boolean canScript = ObjectScripts.canScriptCreate(object);
+        boolean canSelect = ObjectScripts.canSelect(object);
+        selectTopAction.setEnabled(canSelect);
+        createToMenu.setEnabled(canScript);
+        selectToMenu.setEnabled(canSelect);
+        scriptAsMenu.setEnabled(canScript || canSelect);
+        viewDdlAction.setEnabled(canScript);
         connectAction.setEnabled(dataSource != null && !connected);
         disconnectAction.setEnabled(connected);
         reconnectAction.setEnabled(connected);

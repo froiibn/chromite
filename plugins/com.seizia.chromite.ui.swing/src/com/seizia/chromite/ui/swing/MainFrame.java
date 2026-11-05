@@ -32,6 +32,9 @@ import org.jkiss.dbeaver.utils.PrefUtils;
 import org.jkiss.utils.CommonUtils;
 
 import javax.swing.*;
+import javax.swing.event.MenuEvent;
+import javax.swing.event.MenuListener;
+import javax.swing.filechooser.FileNameExtensionFilter;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ComponentAdapter;
@@ -40,6 +43,10 @@ import java.awt.event.InputEvent;
 import java.awt.event.KeyEvent;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.IntConsumer;
@@ -54,7 +61,7 @@ import java.util.function.IntConsumer;
  *     <li>창 위치·크기·최대화 여부와 도구 창 크기·표시 여부는 이 번들의 설정 저장소에 저장한다({@link ChromiteTheme} 참고).
  *     저장은 창을 닫을 때({@link #dispose()}) 한 번 한다.</li>
  *     <li>도구 창 크기는 창이 실제 크기를 가진 뒤(windowOpened 이후) 바깥 분할부터 차례로 적용한다.</li>
- *     <li>메뉴는 File(Exit), View(도구 창 토글, Theme), Help(About)이다. FlatLaf의 통합 제목 표시줄(Windows)에서
+ *     <li>메뉴는 File(새 연결·쿼리, 파일, Exit), View(도구 창 토글, Theme), Query(실행, 취소), Help(About)이다. FlatLaf의 통합 제목 표시줄(Windows)에서
  *     메뉴 막대는 A단계처럼 제목 표시줄 안에 들어간다.
  *     도구 창 단축키는 SSMS와 같다(Object Explorer F8, Properties F4, Results Ctrl+R).</li>
  *     <li>문서 탭: 시작 탭과 SQL 편집기 탭({@link SqlEditorPanel}). 편집기는 Object Explorer의 "New Query", File > New Query(Ctrl+N),
@@ -63,7 +70,14 @@ import java.util.function.IntConsumer;
  *     <li>결과는 SSMS처럼 쿼리 창마다 따로 있다({@link QueryResultsView}). 아래 Results / Messages 탭에는 활성 편집기의 결과를 끼우고,
  *     편집기가 없으면 자리 표시 내용을 보여 준다. 편집기마다 마지막으로 본 탭(Results 또는 Messages)을 기억한다. 탭에서 빠져 있던 결과 컴포넌트는 테마 전환을 받지 못했을 수 있어, 끼울 때 Look and Feel을 맞춘다.</li>
  *     <li>File > New Connection과 도구 막대의 New Connection은 Object Explorer의 같은 명령으로 연결 대화상자({@link ConnectionDialog})를 연다.</li>
- *     <li>상태 표시줄의 연결 수는 모든 프로젝트의 연결 레지스트리 이벤트({@link DBPEventListener}, 연결 추가·삭제)를 받아 다시 센다.</li>
+ *     <li>상태 표시줄의 연결 수는 모든 프로젝트의 연결 레지스트리 이벤트({@link DBPEventListener}, 연결 추가·삭제)를 받아 다시 센다.
+ *     같은 이벤트의 연결 변경(이름 바꾸기, 연결, 끊기)은 그 연결을 쓰는 편집기의 탭 제목과 기본 스키마 콤보에 알린다.</li>
+ *     <li>SQL 파일(SSMS): File > Open File(Ctrl+O), Save(Ctrl+S), Save As, Recent Files(최근 10개, {@link RecentFiles}).
+ *     연 파일은 Object Explorer에서 고른 연결(없으면 활성 편집기의 연결, 그것도 없으면 연결 없음)로 연다. 이미 열린 파일은 그 탭을 보여 준다.
+ *     파일 대화상자의 폴더는 실행 중에만 기억한다.</li>
+ *     <li>고친 편집기 탭을 닫거나 앱을 끝낼 때(창 닫기, File > Exit) SSMS처럼 Save / Don't Save / Cancel을 묻는다.
+ *     그래서 창 닫기는 직접 처리하고({@code DO_NOTHING_ON_CLOSE}), 끝내기로 하면 dispose한다. 외부 종료 요청({@code IApplication.stop})은 묻지 않고 닫는다.</li>
+ *     <li>Object Explorer의 스크립트 명령({@link ObjectExplorerPanel.QueryWindows}): 스크립트를 담은 새 편집기, "View DDL"의 읽기 전용 탭({@link DdlViewerPanel}).</li>
  * </ul>
  * 창을 닫으면 dispose되고, {@link ChromiteSwingApplication}이 windowClosed 이벤트로 앱을 종료한다.
  * 창 아이콘은 Java 런타임(JBR) 기본 아이콘 대신 Chromite 아이콘을 쓴다({@link ChromiteIcons}).
@@ -76,8 +90,10 @@ import java.util.function.IntConsumer;
  *   편집기별 Results / Messages 표시 (docs/chromite/swing-frontend.md "구현 현황 — C단계")
  * - 2026-11-06 D단계: New Connection(메뉴·도구 막대), 연결 추가·삭제 때 상태 표시줄 연결 수 갱신
  *   (docs/chromite/swing-frontend.md "구현 현황 — D단계")
+ * - 2026-11-06 E단계: SQL 파일 열기·저장·최근 파일, 닫을 때 저장 확인, 스크립트 편집기와 DDL 탭, 연결 변경을 편집기에 알림
+ *   (docs/chromite/swing-frontend.md "구현 현황 — E단계")
  */
-final class MainFrame extends JFrame implements SqlEditorPanel.Host {
+final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplorerPanel.QueryWindows {
 
     private static final String PREF_BOUNDS = "mainWindow.bounds"; //$NON-NLS-1$
     private static final String PREF_MAXIMIZED = "mainWindow.maximized"; //$NON-NLS-1$
@@ -94,6 +110,8 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host {
             && event.getObject() instanceof DBPDataSourceContainer) {
             // Registry events come from any thread
             SwingUtilities.invokeLater(this::updateStatusText);
+        } else if (event.getAction() == DBPEvent.Action.OBJECT_UPDATE && event.getObject() instanceof DBPDataSourceContainer container) {
+            SwingUtilities.invokeLater(() -> connectionUpdated(container));
         }
     };
     private final JTabbedPane documentTabs;
@@ -102,9 +120,17 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host {
     private final JComponent messagesPlaceholder;
     private final ToolWindow resultsWindow;
     private final Action newQueryAction;
+    private final Action openFileAction;
+    private final Action saveAction;
+    private final Action saveAsAction;
     private final Action executeQueryAction;
     private final Action cancelQueryAction;
     private int queryCounter;
+    /**
+     * Folder of the last file dialog, for this run of the application.
+     */
+    @Nullable
+    private Path lastDirectory;
     private boolean switchingResults;
     // Outer split first: inner split panes are sized from the outer layout
     private final List<ToolWindow> toolWindows;
@@ -115,10 +141,11 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host {
     MainFrame(@NotNull String title, @NotNull String statusText) {
         super(title);
         setIconImages(ChromiteIcons.getWindowIcons());
-        setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);
+        // Closing asks to save modified query windows first (requestExit)
+        setDefaultCloseOperation(WindowConstants.DO_NOTHING_ON_CLOSE);
 
         PropertiesPanel propertiesPanel = new PropertiesPanel();
-        explorerPanel = new ObjectExplorerPanel(propertiesPanel::showNode, this::openQueryEditor);
+        explorerPanel = new ObjectExplorerPanel(propertiesPanel::showNode, this);
         resultsPlaceholder = createPlaceholder("No results. Query results will appear here.");
         messagesPlaceholder = createPlaceholder("No messages.");
         resultTabs = new JTabbedPane();
@@ -152,6 +179,21 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host {
 
         newQueryAction = createAction("New Query", "Open a SQL editor for the connection selected in Object Explorer (Ctrl+N)",
             KeyStroke.getKeyStroke(KeyEvent.VK_N, InputEvent.CTRL_DOWN_MASK), this::newQuery);
+        openFileAction = createAction("Open File…", "Open a SQL file in a new query window (Ctrl+O)",
+            KeyStroke.getKeyStroke(KeyEvent.VK_O, InputEvent.CTRL_DOWN_MASK), this::openFile);
+        saveAction = createAction("Save", "Save the active query window (Ctrl+S)",
+            KeyStroke.getKeyStroke(KeyEvent.VK_S, InputEvent.CTRL_DOWN_MASK), () -> {
+                SqlEditorPanel editor = getActiveEditor();
+                if (editor != null) {
+                    saveEditor(editor, false);
+                }
+            });
+        saveAsAction = createAction("Save As…", "Save the active query window to another file", null, () -> {
+            SqlEditorPanel editor = getActiveEditor();
+            if (editor != null) {
+                saveEditor(editor, true);
+            }
+        });
         executeQueryAction = createAction("Execute", "Execute the selection, or the whole script without a selection",
             KeyStroke.getKeyStroke(KeyEvent.VK_F5, 0), () -> {
                 SqlEditorPanel editor = getActiveEditor();
@@ -202,6 +244,11 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host {
             }
         });
         addWindowListener(new WindowAdapter() {
+            @Override
+            public void windowClosing(WindowEvent e) {
+                requestExit();
+            }
+
             @Override
             public void windowOpened(WindowEvent e) {
                 // Split panes have their real size only after the window is shown and laid out
@@ -261,7 +308,7 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host {
     }
 
     @NotNull
-    private static Action createAction(@NotNull String name, @Nullable String description, @NotNull KeyStroke accelerator, @NotNull Runnable task) {
+    private static Action createAction(@NotNull String name, @Nullable String description, @Nullable KeyStroke accelerator, @NotNull Runnable task) {
         Action action = new AbstractAction(name) {
             @Override
             public void actionPerformed(ActionEvent e) {
@@ -278,7 +325,7 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host {
         JToolBar toolBar = new JToolBar();
         toolBar.setFloatable(false);
         toolBar.setBorder(BorderFactory.createEmptyBorder(2, 4, 2, 4));
-        for (Action action : List.of(explorerPanel.getNewConnectionAction(), newQueryAction)) {
+        for (Action action : List.of(explorerPanel.getNewConnectionAction(), newQueryAction, openFileAction, saveAction)) {
             JButton button = new JButton(action);
             button.putClientProperty(FlatClientProperties.BUTTON_TYPE, FlatClientProperties.BUTTON_TYPE_TOOLBAR_BUTTON);
             button.setFocusable(false);
@@ -304,25 +351,252 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host {
                 "New Query", JOptionPane.INFORMATION_MESSAGE);
             return;
         }
-        openQueryEditor(dataSource);
+        openQuery(dataSource);
     }
 
-    private void openQueryEditor(@NotNull DBPDataSourceContainer dataSource) {
-        queryCounter++;
-        SqlEditorPanel editor = new SqlEditorPanel(dataSource, "SQLQuery" + queryCounter + ".sql", this); //$NON-NLS-1$ //$NON-NLS-2$
+    @Override
+    public void openQuery(@NotNull DBPDataSourceContainer dataSource) {
+        openQueryEditor(dataSource, null);
+    }
+
+    @Override
+    public void openScript(@NotNull DBPDataSourceContainer dataSource, @NotNull String script, long maxRows, boolean execute) {
+        SqlEditorPanel editor = openQueryEditor(dataSource, null);
+        editor.setContent(SqlFileContent.newFile(script), null);
+        editor.setMaxRows(maxRows);
+        if (execute) {
+            editor.execute();
+        }
+    }
+
+    @Override
+    public void showDdl(@NotNull String objectName, @NotNull String ddl) {
+        DdlViewerPanel viewer = new DdlViewerPanel(objectName, ddl);
+        viewer.putClientProperty(FlatClientProperties.TABBED_PANE_TAB_CLOSABLE, true);
+        documentTabs.addTab(viewer.getTitle(), viewer);
+        int index = documentTabs.indexOfComponent(viewer);
+        documentTabs.setToolTipTextAt(index, viewer.getTitle());
+        documentTabs.setSelectedIndex(index);
+    }
+
+    /**
+     * Adds a query window tab.
+     *
+     * @param dataSource connection of the window, or null (chosen in its tool bar)
+     * @param fileName   name of the window, or null for the next {@code SQLQueryN.sql}
+     */
+    @NotNull
+    private SqlEditorPanel openQueryEditor(@Nullable DBPDataSourceContainer dataSource, @Nullable String fileName) {
+        if (fileName == null) {
+            queryCounter++;
+            fileName = "SQLQuery" + queryCounter + ".sql"; //$NON-NLS-1$ //$NON-NLS-2$
+        }
+        SqlEditorPanel editor = new SqlEditorPanel(dataSource, fileName, this);
         editor.putClientProperty(FlatClientProperties.TABBED_PANE_TAB_CLOSABLE, true);
         documentTabs.addTab(editor.getTitle(), editor);
         int index = documentTabs.indexOfComponent(editor);
-        documentTabs.setToolTipTextAt(index, editor.getTitle());
+        documentTabs.setToolTipTextAt(index, editor.getToolTip());
         documentTabs.setSelectedIndex(index);
         SwingUtilities.invokeLater(editor::focusEditor);
+        return editor;
     }
 
     private void closeDocumentTab(int index) {
-        if (documentTabs.getComponentAt(index) instanceof SqlEditorPanel editor) {
+        Component component = documentTabs.getComponentAt(index);
+        if (component instanceof SqlEditorPanel editor) {
+            if (!confirmClose(editor)) {
+                return;
+            }
             editor.dispose();
+            documentTabs.remove(editor);
+        } else if (component instanceof DdlViewerPanel) {
             documentTabs.removeTabAt(index);
         }
+    }
+
+    @NotNull
+    private List<SqlEditorPanel> getEditors() {
+        List<SqlEditorPanel> editors = new ArrayList<>();
+        for (int i = 0; i < documentTabs.getTabCount(); i++) {
+            if (documentTabs.getComponentAt(i) instanceof SqlEditorPanel editor) {
+                editors.add(editor);
+            }
+        }
+        return editors;
+    }
+
+    private void connectionUpdated(@NotNull DBPDataSourceContainer container) {
+        for (SqlEditorPanel editor : getEditors()) {
+            if (editor.getDataSourceContainer() == container) {
+                editor.connectionChanged();
+            }
+        }
+    }
+
+    //////////////////////////////////////////////////////////
+    // SQL files
+
+    private void openFile() {
+        JFileChooser chooser = createSqlFileChooser("Open File");
+        if (chooser.showOpenDialog(this) == JFileChooser.APPROVE_OPTION) {
+            openFile(chooser.getSelectedFile().toPath());
+        }
+    }
+
+    /**
+     * Opens a SQL file in a new query window, or shows the window that has it open already.
+     */
+    private void openFile(@NotNull Path path) {
+        Path file = path.toAbsolutePath().normalize();
+        lastDirectory = file.getParent();
+        for (SqlEditorPanel editor : getEditors()) {
+            if (file.equals(editor.getFile())) {
+                documentTabs.setSelectedComponent(editor);
+                RecentFiles.add(file);
+                return;
+            }
+        }
+        if (!Files.isRegularFile(file)) {
+            RecentFiles.remove(file);
+            JOptionPane.showMessageDialog(this, "The file was not found:\n" + file, "Open File", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+        SqlFileContent content;
+        try {
+            content = SqlFileContent.read(file);
+        } catch (IOException e) {
+            DBWorkbench.getPlatformUI().showError("Open File", "Can't open " + file, e);
+            return;
+        }
+        DBPDataSourceContainer dataSource = explorerPanel.getSelectedDataSource();
+        if (dataSource == null) {
+            SqlEditorPanel activeEditor = getActiveEditor();
+            dataSource = activeEditor != null ? activeEditor.getDataSourceContainer() : null;
+        }
+        SqlEditorPanel editor = openQueryEditor(dataSource, file.getFileName().toString());
+        editor.setContent(content, file);
+        RecentFiles.add(file);
+    }
+
+    /**
+     * Saves a query window to its file, or asks for a file (Save As, or never saved).
+     *
+     * @return false if it was not saved (canceled or failed)
+     */
+    private boolean saveEditor(@NotNull SqlEditorPanel editor, boolean saveAs) {
+        Path file = editor.getFile();
+        if (saveAs || file == null) {
+            JFileChooser chooser = createSqlFileChooser(saveAs ? "Save As" : "Save");
+            File directory = file != null ? file.getParent().toFile() : chooser.getCurrentDirectory();
+            chooser.setSelectedFile(new File(directory, editor.getFileName()));
+            if (chooser.showSaveDialog(this) != JFileChooser.APPROVE_OPTION) {
+                return false;
+            }
+            Path selected = chooser.getSelectedFile().toPath().toAbsolutePath().normalize();
+            if (!selected.getFileName().toString().contains(".")) {
+                selected = selected.resolveSibling(selected.getFileName() + ".sql"); //$NON-NLS-1$
+            }
+            if (!selected.equals(file) && Files.exists(selected) && JOptionPane.showConfirmDialog(this,
+                selected.getFileName() + " already exists.\nDo you want to replace it?", "Save As",
+                JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE) != JOptionPane.YES_OPTION) {
+                return false;
+            }
+            file = selected;
+        }
+        SqlFileContent content = editor.getContent();
+        try {
+            content.write(file);
+        } catch (IOException e) {
+            DBWorkbench.getPlatformUI().showError("Save", "Can't save " + file, e);
+            return false;
+        }
+        editor.saved(file, content);
+        lastDirectory = file.getParent();
+        RecentFiles.add(file);
+        return true;
+    }
+
+    @NotNull
+    private JFileChooser createSqlFileChooser(@NotNull String title) {
+        JFileChooser chooser = new JFileChooser(lastDirectory != null ? lastDirectory.toFile() : null);
+        chooser.setDialogTitle(title);
+        chooser.setFileFilter(new FileNameExtensionFilter("SQL files (*.sql)", "sql")); //$NON-NLS-1$
+        return chooser;
+    }
+
+    /**
+     * Asks to save a modified query window before it is closed.
+     *
+     * @return true if the window may be closed
+     */
+    private boolean confirmClose(@NotNull SqlEditorPanel editor) {
+        if (!editor.isDirty()) {
+            return true;
+        }
+        documentTabs.setSelectedComponent(editor);
+        return switch (askSave("Save changes to " + editor.getFileName() + "?")) {
+            case 0 -> saveEditor(editor, false);
+            case 1 -> true;
+            default -> false;
+        };
+    }
+
+    /**
+     * Window closing and File > Exit: asks to save the modified query windows (SSMS lists them in one question),
+     * then closes the window.
+     */
+    private void requestExit() {
+        List<SqlEditorPanel> modified = new ArrayList<>();
+        for (SqlEditorPanel editor : getEditors()) {
+            if (editor.isDirty()) {
+                modified.add(editor);
+            }
+        }
+        if (!modified.isEmpty()) {
+            StringBuilder message = new StringBuilder("Save changes to the following items?\n");
+            for (SqlEditorPanel editor : modified) {
+                message.append('\n').append(editor.getFile() != null ? editor.getFile().toString() : editor.getFileName());
+            }
+            int answer = askSave(message.toString());
+            if (answer == 0) {
+                for (SqlEditorPanel editor : modified) {
+                    documentTabs.setSelectedComponent(editor);
+                    if (!saveEditor(editor, false)) {
+                        return;
+                    }
+                }
+            } else if (answer != 1) {
+                return;
+            }
+        }
+        dispose();
+    }
+
+    /**
+     * @return 0 Save, 1 Don't Save, anything else Cancel
+     */
+    private int askSave(@NotNull String message) {
+        String[] options = {"Save", "Don't Save", "Cancel"};
+        return JOptionPane.showOptionDialog(this, message, GeneralUtils.getProductName(), JOptionPane.YES_NO_CANCEL_OPTION,
+            JOptionPane.WARNING_MESSAGE, null, options, options[0]);
+    }
+
+    /**
+     * File > Recent Files, rebuilt each time the File menu opens.
+     */
+    private void fillRecentFilesMenu(@NotNull JMenu recentMenu) {
+        recentMenu.removeAll();
+        List<Path> files = RecentFiles.get();
+        for (int i = 0; i < files.size(); i++) {
+            Path file = files.get(i);
+            JMenuItem item = new JMenuItem((i + 1) + " " + file);
+            if (i < 9) {
+                item.setMnemonic(KeyEvent.VK_1 + i);
+            }
+            item.addActionListener(e -> openFile(file));
+            recentMenu.add(item);
+        }
+        recentMenu.setEnabled(!files.isEmpty());
     }
 
     @Nullable
@@ -363,6 +637,8 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host {
         SqlEditorPanel editor = getActiveEditor();
         executeQueryAction.setEnabled(editor != null && !editor.isExecuting());
         cancelQueryAction.setEnabled(editor != null && editor.isExecuting());
+        saveAction.setEnabled(editor != null);
+        saveAsAction.setEnabled(editor != null);
     }
 
     @Override
@@ -379,6 +655,15 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host {
     public void executionStateChanged(@NotNull SqlEditorPanel editor) {
         if (editor == getActiveEditor()) {
             updateQueryActions();
+        }
+    }
+
+    @Override
+    public void titleChanged(@NotNull SqlEditorPanel editor) {
+        int index = documentTabs.indexOfComponent(editor);
+        if (index >= 0) {
+            documentTabs.setTitleAt(index, editor.getTitle());
+            documentTabs.setToolTipTextAt(index, editor.getToolTip());
         }
     }
 
@@ -424,14 +709,37 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host {
     private JMenuBar createMenuBar() {
         JMenuItem exitItem = new JMenuItem("Exit");
         exitItem.setMnemonic(KeyEvent.VK_X);
-        exitItem.addActionListener(e -> dispose());
+        exitItem.addActionListener(e -> requestExit());
 
+        JMenu recentMenu = new JMenu("Recent Files");
+        recentMenu.setMnemonic(KeyEvent.VK_R);
         JMenu fileMenu = new JMenu("File");
         fileMenu.setMnemonic(KeyEvent.VK_F);
         fileMenu.add(new JMenuItem(explorerPanel.getNewConnectionAction()));
         fileMenu.add(new JMenuItem(newQueryAction));
         fileMenu.addSeparator();
+        fileMenu.add(new JMenuItem(openFileAction));
+        fileMenu.add(recentMenu);
+        fileMenu.addSeparator();
+        fileMenu.add(new JMenuItem(saveAction));
+        fileMenu.add(new JMenuItem(saveAsAction));
+        fileMenu.addSeparator();
         fileMenu.add(exitItem);
+        fileMenu.addMenuListener(new MenuListener() {
+            @Override
+            public void menuSelected(MenuEvent e) {
+                fillRecentFilesMenu(recentMenu);
+            }
+
+            @Override
+            public void menuDeselected(MenuEvent e) {
+            }
+
+            @Override
+            public void menuCanceled(MenuEvent e) {
+            }
+        });
+        fillRecentFilesMenu(recentMenu);
 
         JMenu queryMenu = new JMenu("Query");
         queryMenu.setMnemonic(KeyEvent.VK_Q);

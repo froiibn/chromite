@@ -17,12 +17,17 @@
 package com.seizia.chromite.ui.swing;
 
 import org.jkiss.code.NotNull;
+import org.jkiss.code.Nullable;
+import org.jkiss.dbeaver.runtime.DBWorkbench;
 
 import javax.swing.*;
 import javax.swing.table.AbstractTableModel;
 import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.TableColumn;
 import java.awt.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.InputEvent;
+import java.awt.event.KeyEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.util.List;
@@ -37,9 +42,12 @@ import java.util.List;
  * 왼쪽에 SSMS처럼 행 번호 열을 둔다(행 머리글, 누르면 그 행 선택).
  * 편집은 아직 없다(swing-frontend.md "결과 모델 분석"의 Swing 그리드 계획 1단계).
  * 복사(Ctrl+C)는 {@link JTable}의 기본 전송 처리기가 선택한 칸의 표시 문자열을 탭으로 나눠 복사한다.
+ * 오른쪽 클릭 메뉴(SSMS 결과 그리드와 같은 항목): Copy, Copy with Headers(Ctrl+Shift+C), Export to CSV…({@link ResultSetExport}).
+ * 오른쪽 클릭한 칸이 선택 밖이면 그 칸을 선택한 뒤 메뉴를 연다.
  *
  * 변경 이력:
  * - 2026-11-06 C단계: 최초 작성 (docs/chromite/swing-frontend.md "구현 현황 — C단계")
+ * - 2026-11-06 E단계: 오른쪽 클릭 메뉴(복사, 머리글 포함 복사, CSV 내보내기) (docs/chromite/swing-frontend.md "구현 현황 — E단계")
  */
 final class ResultSetGrid extends JPanel {
 
@@ -82,6 +90,54 @@ final class ResultSetGrid extends JPanel {
         scrollPane.setRowHeaderView(createRowHeader(table, data.rows().size()));
         add(scrollPane, BorderLayout.CENTER);
         fitColumnWidths(table, data);
+        installContextMenu(table, data);
+    }
+
+    private static void installContextMenu(@NotNull JTable table, @NotNull Data data) {
+        Action copyAction = createAction("Copy", KeyStroke.getKeyStroke(KeyEvent.VK_C, InputEvent.CTRL_DOWN_MASK),
+            () -> TransferHandler.getCopyAction().actionPerformed(new ActionEvent(table, ActionEvent.ACTION_PERFORMED, "copy"))); //$NON-NLS-1$
+        Action copyWithHeadersAction = createAction("Copy with Headers",
+            KeyStroke.getKeyStroke(KeyEvent.VK_C, InputEvent.CTRL_DOWN_MASK | InputEvent.SHIFT_DOWN_MASK),
+            () -> DBWorkbench.getPlatformUI().copyTextToClipboard(ResultSetExport.copySelection(table, data, true), false));
+        Action exportCsvAction = createAction("Export to CSV…", null, () -> ResultSetExport.exportCsv(table, data));
+        // Ctrl+C stays with the table's transfer handler; the menu only shows it
+        table.getInputMap(JComponent.WHEN_FOCUSED).put((KeyStroke) copyWithHeadersAction.getValue(Action.ACCELERATOR_KEY), "chromite.copyWithHeaders"); //$NON-NLS-1$
+        table.getActionMap().put("chromite.copyWithHeaders", copyWithHeadersAction); //$NON-NLS-1$
+
+        JPopupMenu popupMenu = new JPopupMenu();
+        popupMenu.add(copyAction);
+        popupMenu.add(copyWithHeadersAction);
+        popupMenu.addSeparator();
+        popupMenu.add(exportCsvAction);
+        table.setComponentPopupMenu(popupMenu);
+        table.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mousePressed(MouseEvent e) {
+                if (SwingUtilities.isRightMouseButton(e)) {
+                    int row = table.rowAtPoint(e.getPoint());
+                    int column = table.columnAtPoint(e.getPoint());
+                    if (row >= 0 && column >= 0 && !table.isCellSelected(row, column)) {
+                        table.changeSelection(row, column, false, false);
+                    }
+                    table.requestFocusInWindow();
+                }
+            }
+        });
+        boolean hasRows = !data.rows().isEmpty();
+        copyAction.setEnabled(hasRows);
+        copyWithHeadersAction.setEnabled(hasRows);
+    }
+
+    @NotNull
+    private static Action createAction(@NotNull String name, @Nullable KeyStroke accelerator, @NotNull Runnable task) {
+        Action action = new AbstractAction(name) {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                task.run();
+            }
+        };
+        action.putValue(Action.ACCELERATOR_KEY, accelerator);
+        return action;
     }
 
     private static void fitColumnWidths(@NotNull JTable table, @NotNull Data data) {
