@@ -25,10 +25,15 @@ import org.jkiss.dbeaver.DBException;
 import org.jkiss.dbeaver.Log;
 import org.jkiss.dbeaver.model.DBPDataSourceContainer;
 import org.jkiss.dbeaver.model.app.DBPProject;
+import org.jkiss.dbeaver.model.navigator.DBNDataSource;
 import org.jkiss.dbeaver.model.navigator.DBNDatabaseNode;
+import org.jkiss.dbeaver.model.navigator.DBNEvent;
+import org.jkiss.dbeaver.model.navigator.DBNLocalFolder;
 import org.jkiss.dbeaver.model.navigator.DBNNode;
 import org.jkiss.dbeaver.model.navigator.DBNProject;
+import org.jkiss.dbeaver.model.navigator.DBNProjectDatabases;
 import org.jkiss.dbeaver.model.navigator.DBNUtils;
+import org.jkiss.dbeaver.model.navigator.INavigatorListener;
 import org.jkiss.dbeaver.model.runtime.AbstractJob;
 import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
 import org.jkiss.dbeaver.runtime.DBInterruptedException;
@@ -36,17 +41,27 @@ import org.jkiss.dbeaver.runtime.DBWorkbench;
 import org.jkiss.utils.CommonUtils;
 
 import javax.swing.*;
+import javax.swing.event.PopupMenuEvent;
+import javax.swing.event.PopupMenuListener;
 import javax.swing.event.TreeExpansionEvent;
 import javax.swing.event.TreeWillExpandListener;
 import javax.swing.tree.DefaultMutableTreeNode;
 import javax.swing.tree.DefaultTreeCellRenderer;
 import javax.swing.tree.DefaultTreeModel;
+import javax.swing.tree.TreeNode;
 import javax.swing.tree.TreePath;
 import javax.swing.tree.TreeSelectionModel;
 import java.awt.*;
 import java.awt.event.ActionEvent;
+import java.awt.event.KeyEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Enumeration;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.function.Consumer;
 
 /**
@@ -69,11 +84,19 @@ import java.util.function.Consumer;
  *     <li>더블클릭은 Swing 트리의 기본 동작(펼치기/접기)만 한다. 객체 편집기는 다음 단계에서 만든다.</li>
  *     <li>오른쪽 클릭 메뉴 "New Query"는 선택한 노드가 속한 연결({@link DBNDatabaseNode#getDataSourceContainer()})로
  *     SQL 편집기를 연다(SSMS처럼 연결 아래 어느 노드에서나). 연결은 편집기가 실행할 때 필요하면 연다.</li>
+ *     <li>연결 명령({@link ConnectionCommands}): New Connection(빈 곳·폴더에서도), Connect / Disconnect / Reconnect(연결 아래 어느 노드에서나),
+ *     Edit Connection(Enter), Rename(F2), Delete(Delete 키, 확인 후)는 연결 노드에서.</li>
+ *     <li>모델 이벤트: 탐색기 모델({@link INavigatorListener}, 모델이 EDT에서 부름)을 듣고 다른 곳에서 일어난 변경을 반영한다.
+ *     연결 목록이 바뀌면(추가·삭제·이름 변경·폴더) 목록을 다시 읽되 이미 있는 트리 노드와 펼친 상태는 그대로 둔다.
+ *     연결이 끊기면({@code UNLOAD}) 그 연결을 접고 다시 펼칠 때 읽게 하고, 연결 상태가 바뀌면 아이콘을 다시 그린다.
+ *     모델이 지운 DB 객체 노드는 트리에서 뺀다. 이 패널이 보낸 이벤트(새로 고침의 원천이 이 패널)는 이미 처리했으므로 무시한다.
+ *     다른 곳에서 새로 만든 DB 객체({@code ADD})는 아직 반영하지 않는다(새로 고침으로 보임).</li>
  * </ul>
  *
  * 변경 이력:
  * - 2026-11-06 B단계: 최초 작성 (docs/chromite/swing-frontend.md "구현 현황 — B단계")
  * - 2026-11-06 C단계: "New Query" 메뉴, 선택한 연결 조회 (docs/chromite/swing-frontend.md "구현 현황 — C단계")
+ * - 2026-11-06 D단계: 연결 명령 메뉴와 단축키, 탐색기 모델 이벤트로 트리 갱신 (docs/chromite/swing-frontend.md "구현 현황 — D단계")
  */
 final class ObjectExplorerPanel extends JPanel {
 
@@ -84,8 +107,24 @@ final class ObjectExplorerPanel extends JPanel {
     private final DefaultTreeModel treeModel;
     private final JTree tree;
     private final ExplorerNode rootNode;
+    @Nullable
+    private final DBNProject projectNode;
     private final Action refreshAction;
     private final Action newQueryAction;
+    private final Action newConnectionAction;
+    private final Action connectAction;
+    private final Action disconnectAction;
+    private final Action reconnectAction;
+    private final Action editConnectionAction;
+    private final Action renameAction;
+    private final Action deleteAction;
+    private final INavigatorListener navigatorListener = this::navigatorNodeChanged;
+    /**
+     * A connection to select once the connection list has been read again (a connection created in this window).
+     */
+    @Nullable
+    private DBNNode pendingReveal;
+    private boolean disposed;
 
     /**
      * @param selectionListener receives the selected navigator node (or null)
@@ -95,7 +134,7 @@ final class ObjectExplorerPanel extends JPanel {
         super(new BorderLayout());
 
         DBPProject project = DBWorkbench.getPlatform().getWorkspace().getActiveProject();
-        DBNProject projectNode = project == null ? null :
+        projectNode = project == null ? null :
             DBWorkbench.getPlatform().getNavigatorModel().getRoot().getProjectNode(project);
         rootNode = new ExplorerNode(projectNode != null ? projectNode : "No active project");
         treeModel = new DefaultTreeModel(rootNode);
@@ -137,22 +176,91 @@ final class ObjectExplorerPanel extends JPanel {
                 }
             }
         };
-        newQueryAction.setEnabled(false);
-        tree.addTreeSelectionListener(e -> newQueryAction.setEnabled(getSelectedDataSource() != null));
+        newConnectionAction = createAction("New Connection…", () -> ConnectionCommands.newConnection(this,
+            getSelectedNavigatorNode() instanceof DBNLocalFolder folderNode ? folderNode.getFolder() : null));
+        newConnectionAction.putValue(Action.SHORT_DESCRIPTION, "Create a connection in the active project");
+        connectAction = createAction("Connect", () -> runOnSelectedDataSource(ConnectionCommands::connect));
+        disconnectAction = createAction("Disconnect", () -> runOnSelectedDataSource(ConnectionCommands::disconnect));
+        reconnectAction = createAction("Reconnect", () -> runOnSelectedDataSource(ConnectionCommands::reconnect));
+        editConnectionAction = createAction("Edit Connection…", () -> {
+            if (getSelectedNavigatorNode() instanceof DBNDataSource node) {
+                ConnectionCommands.edit(this, node.getDataSourceContainer());
+            }
+        });
+        editConnectionAction.putValue(Action.ACCELERATOR_KEY, KeyStroke.getKeyStroke(KeyEvent.VK_ENTER, 0));
+        renameAction = createAction("Rename", () -> {
+            if (getSelectedNavigatorNode() instanceof DBNDataSource node) {
+                ConnectionCommands.rename(this, node);
+            }
+        });
+        renameAction.putValue(Action.ACCELERATOR_KEY, KeyStroke.getKeyStroke(KeyEvent.VK_F2, 0));
+        deleteAction = createAction("Delete", () -> {
+            if (getSelectedNavigatorNode() instanceof DBNDataSource node) {
+                ConnectionCommands.delete(this, node.getDataSourceContainer());
+            }
+        });
+        deleteAction.putValue(Action.ACCELERATOR_KEY, KeyStroke.getKeyStroke(KeyEvent.VK_DELETE, 0));
+        updateActions();
+        tree.addTreeSelectionListener(e -> updateActions());
+
+        // Keys of the connection commands (shown in the menu); Enter on other nodes keeps expanding/collapsing them
+        bindKey(KeyStroke.getKeyStroke(KeyEvent.VK_ENTER, 0), "chromite.editOrToggle", () -> { //$NON-NLS-1$
+            if (getSelectedNavigatorNode() instanceof DBNDataSource) {
+                editConnectionAction.actionPerformed(null);
+            } else {
+                TreePath path = tree.getSelectionPath();
+                if (path != null) {
+                    if (tree.isExpanded(path)) {
+                        tree.collapsePath(path);
+                    } else {
+                        tree.expandPath(path);
+                    }
+                }
+            }
+        });
+        bindKey(KeyStroke.getKeyStroke(KeyEvent.VK_F2, 0), "chromite.rename", () -> renameAction.actionPerformed(null)); //$NON-NLS-1$
+        bindKey(KeyStroke.getKeyStroke(KeyEvent.VK_DELETE, 0), "chromite.delete", () -> deleteAction.actionPerformed(null)); //$NON-NLS-1$
 
         JPopupMenu popupMenu = new JPopupMenu();
+        popupMenu.add(newConnectionAction);
+        popupMenu.addSeparator();
         popupMenu.add(newQueryAction);
         popupMenu.addSeparator();
+        popupMenu.add(connectAction);
+        popupMenu.add(disconnectAction);
+        popupMenu.add(reconnectAction);
+        popupMenu.addSeparator();
+        popupMenu.add(editConnectionAction);
+        popupMenu.add(renameAction);
+        popupMenu.add(deleteAction);
+        popupMenu.addSeparator();
         popupMenu.add(refreshAction);
+        popupMenu.addPopupMenuListener(new PopupMenuListener() {
+            @Override
+            public void popupMenuWillBecomeVisible(PopupMenuEvent e) {
+                // The connection state may have changed since the selection did
+                updateActions();
+            }
+
+            @Override
+            public void popupMenuWillBecomeInvisible(PopupMenuEvent e) {
+            }
+
+            @Override
+            public void popupMenuCanceled(PopupMenuEvent e) {
+            }
+        });
         tree.setComponentPopupMenu(popupMenu);
         tree.addMouseListener(new MouseAdapter() {
             @Override
             public void mousePressed(MouseEvent e) {
-                // The context menu acts on the row under the mouse, as in SSMS
+                // The context menu acts on the row under the mouse, as in SSMS; on empty space it offers New Connection
                 if (SwingUtilities.isRightMouseButton(e)) {
                     TreePath path = tree.getClosestPathForLocation(e.getX(), e.getY());
                     if (path != null && tree.getPathBounds(path) != null && tree.getPathBounds(path).contains(e.getPoint())) {
                         tree.setSelectionPath(path);
+                    } else {
+                        tree.clearSelection();
                     }
                 }
             }
@@ -163,8 +271,60 @@ final class ObjectExplorerPanel extends JPanel {
         add(scrollPane, BorderLayout.CENTER);
 
         if (projectNode != null) {
+            DBWorkbench.getPlatform().getNavigatorModel().addListener(navigatorListener);
             loadChildren(rootNode, false);
         }
+    }
+
+    /**
+     * Stops listening to the navigator model (the main window is closing).
+     */
+    void dispose() {
+        if (projectNode != null && !disposed) {
+            disposed = true;
+            DBWorkbench.getPlatform().getNavigatorModel().removeListener(navigatorListener);
+        }
+    }
+
+    @NotNull
+    Action getNewConnectionAction() {
+        return newConnectionAction;
+    }
+
+    @NotNull
+    private static Action createAction(@NotNull String name, @NotNull Runnable task) {
+        return new AbstractAction(name) {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                task.run();
+            }
+        };
+    }
+
+    private void bindKey(@NotNull KeyStroke keyStroke, @NotNull String actionKey, @NotNull Runnable task) {
+        tree.getInputMap(JComponent.WHEN_FOCUSED).put(keyStroke, actionKey);
+        tree.getActionMap().put(actionKey, createAction(actionKey, task));
+    }
+
+    private void runOnSelectedDataSource(@NotNull Consumer<DBPDataSourceContainer> command) {
+        DBPDataSourceContainer dataSource = getSelectedDataSource();
+        if (dataSource != null) {
+            command.accept(dataSource);
+        }
+    }
+
+    private void updateActions() {
+        DBPDataSourceContainer dataSource = getSelectedDataSource();
+        boolean connectionNode = getSelectedNavigatorNode() instanceof DBNDataSource;
+        boolean connected = dataSource != null && dataSource.isConnected();
+        newConnectionAction.setEnabled(projectNode != null);
+        newQueryAction.setEnabled(dataSource != null);
+        connectAction.setEnabled(dataSource != null && !connected);
+        disconnectAction.setEnabled(connected);
+        reconnectAction.setEnabled(connected);
+        editConnectionAction.setEnabled(connectionNode);
+        renameAction.setEnabled(connectionNode);
+        deleteAction.setEnabled(connectionNode);
     }
 
     /**
@@ -326,6 +486,216 @@ final class ObjectExplorerPanel extends JPanel {
         if (node.loadSerial == serial && node.getParent() != null) {
             treeModel.removeNodeFromParent(node);
         }
+    }
+
+    //////////////////////////////////////////////////////////
+    // Navigator model events
+
+    /**
+     * Called by the navigator model on the EDT ({@code DBPPlatformUI.executeInMainThread}), in batches.
+     */
+    private void navigatorNodeChanged(@NotNull DBNEvent event) {
+        if (projectNode == null || event.getSource() == this) {
+            // Refreshes started here are already shown by loadChildren
+            return;
+        }
+        DBNNode node = event.getNode();
+        DBNProjectDatabases databases = projectNode.getDatabases();
+        if (node == databases) {
+            // Connection list rebuilt (STRUCT_REFRESH after a removal, folder changes)
+            reloadConnectionList();
+            return;
+        }
+        if (node instanceof DBNDataSource || node instanceof DBNLocalFolder) {
+            if (!isInProject(node, databases)) {
+                return;
+            }
+            switch (event.getAction()) {
+                case ADD -> {
+                    if (event.getNodeChange() == DBNEvent.NodeChange.SELECT) {
+                        // Created by this application with "reveal" (DBPDataSourceRegistry.addDataSource)
+                        pendingReveal = node;
+                    }
+                    reloadConnectionList();
+                }
+                case REMOVE -> reloadConnectionList();
+                case UPDATE -> connectionUpdated(node, event.getNodeChange());
+            }
+            return;
+        }
+        ExplorerNode explorerNode = findExplorerNode(node);
+        if (explorerNode == null) {
+            return;
+        }
+        switch (event.getAction()) {
+            case REMOVE -> {
+                if (explorerNode.getParent() != null) {
+                    treeModel.removeNodeFromParent(explorerNode);
+                }
+            }
+            case UPDATE -> {
+                if (event.getNodeChange() == DBNEvent.NodeChange.UNLOAD) {
+                    resetNode(explorerNode);
+                }
+                treeModel.nodeChanged(explorerNode);
+            }
+            case ADD -> {
+                // Objects created elsewhere: shown after a refresh of their parent
+            }
+        }
+    }
+
+    private static boolean isInProject(@NotNull DBNNode node, @NotNull DBNProjectDatabases databases) {
+        if (node instanceof DBNDataSource dataSourceNode) {
+            return dataSourceNode.getDataSourceContainer().getRegistry() == databases.getDataSourceRegistry();
+        }
+        return node instanceof DBNLocalFolder folderNode && folderNode.getDataSourceRegistry() == databases.getDataSourceRegistry();
+    }
+
+    private void connectionUpdated(@NotNull DBNNode node, @NotNull DBNEvent.NodeChange change) {
+        ExplorerNode explorerNode = findExplorerNode(node);
+        switch (change) {
+            case UNLOAD -> {
+                // Disconnected: the children were disposed; they are read again (connecting) when the node is expanded
+                if (explorerNode != null) {
+                    resetNode(explorerNode);
+                }
+            }
+            case REFRESH -> {
+                // Saved settings (rename, edit): the name and the position in the sorted list may have changed
+                reloadConnectionList();
+            }
+            default -> {
+                // BEFORE_LOAD, AFTER_LOAD, LOAD, STRUCT_REFRESH: connection state icon
+            }
+        }
+        if (explorerNode != null) {
+            treeModel.nodeChanged(explorerNode);
+        }
+        updateActions();
+    }
+
+    /**
+     * Collapses a node and makes it read its children again the next time it is expanded. A node whose children
+     * are being read is left alone: that read ends with the current state (e.g. a failed connect reports its error).
+     */
+    private void resetNode(@NotNull ExplorerNode node) {
+        if (node.state == LoadState.LOADING) {
+            return;
+        }
+        node.loadSerial++;
+        node.state = LoadState.NOT_LOADED;
+        node.removeAllChildren();
+        if (node.getUserObject() instanceof DBNNode navigatorNode && navigatorNode.hasChildren(true)) {
+            node.add(new ExplorerNode(LOADING_TEXT));
+        }
+        treeModel.nodeStructureChanged(node);
+        tree.collapsePath(new TreePath(node.getPath()));
+    }
+
+    /**
+     * Reads the connection list (and the loaded connection folders) again, keeping the tree nodes that are still
+     * there with their children and expansion state.
+     */
+    private void reloadConnectionList() {
+        if (rootNode.state != LoadState.NOT_LOADED) {
+            reloadPreserving(rootNode);
+        }
+        for (int i = 0; i < rootNode.getChildCount(); i++) {
+            if (rootNode.getChildAt(i) instanceof ExplorerNode child && child.getUserObject() instanceof DBNLocalFolder
+                && child.state == LoadState.LOADED) {
+                reloadPreserving(child);
+            }
+        }
+    }
+
+    private void reloadPreserving(@NotNull ExplorerNode node) {
+        DBNNode navigatorNode = (DBNNode) node.getUserObject();
+        int serial = ++node.loadSerial;
+        new AbstractJob("Reload " + navigatorNode.getNodeDisplayName()) {
+            @NotNull
+            @Override
+            protected IStatus run(@NotNull DBRProgressMonitor monitor) {
+                try {
+                    DBNNode[] children = readChildren(monitor, navigatorNode);
+                    SwingUtilities.invokeLater(() -> mergeChildren(node, serial, children));
+                } catch (Throwable e) {
+                    log.debug("Error reloading '" + navigatorNode.getNodeDisplayName() + "'", e);
+                }
+                return Status.OK_STATUS;
+            }
+        }.schedule();
+    }
+
+    private void mergeChildren(@NotNull ExplorerNode node, int serial, @Nullable DBNNode[] children) {
+        if (node.loadSerial != serial || (node != rootNode && node.getParent() == null)) {
+            return;
+        }
+        TreePath nodePath = new TreePath(node.getPath());
+        List<TreePath> expanded = new ArrayList<>();
+        Enumeration<TreePath> expandedPaths = tree.getExpandedDescendants(nodePath);
+        if (expandedPaths != null) {
+            expanded.addAll(Collections.list(expandedPaths));
+        }
+        TreePath selection = tree.getSelectionPath();
+
+        Map<DBNNode, ExplorerNode> existing = new HashMap<>();
+        for (int i = 0; i < node.getChildCount(); i++) {
+            if (node.getChildAt(i) instanceof ExplorerNode child && child.getUserObject() instanceof DBNNode childNode) {
+                existing.put(childNode, child);
+            }
+        }
+        node.removeAllChildren();
+        if (children != null) {
+            for (DBNNode child : children) {
+                ExplorerNode explorerChild = existing.get(child);
+                node.add(explorerChild != null ? explorerChild : new ExplorerNode(child));
+            }
+        }
+        node.state = LoadState.LOADED;
+        treeModel.nodeStructureChanged(node);
+
+        for (TreePath path : expanded) {
+            if (isAttached(path)) {
+                tree.expandPath(path);
+            }
+        }
+        if (selection != null && isAttached(selection)) {
+            tree.setSelectionPath(selection);
+        }
+        if (pendingReveal != null) {
+            for (int i = 0; i < node.getChildCount(); i++) {
+                if (node.getChildAt(i) instanceof ExplorerNode child && child.getUserObject() == pendingReveal) {
+                    pendingReveal = null;
+                    TreePath path = new TreePath(child.getPath());
+                    tree.setSelectionPath(path);
+                    tree.scrollPathToVisible(path);
+                    break;
+                }
+            }
+        }
+        updateActions();
+    }
+
+    /**
+     * True when the path's node is still in the tree (it was not removed by a reload).
+     */
+    private boolean isAttached(@NotNull TreePath path) {
+        return path.getLastPathComponent() instanceof ExplorerNode node && node.getRoot() == rootNode;
+    }
+
+    /**
+     * The tree node of a navigator node, searched among the children read so far.
+     */
+    @Nullable
+    private ExplorerNode findExplorerNode(@NotNull DBNNode navigatorNode) {
+        Enumeration<TreeNode> nodes = rootNode.breadthFirstEnumeration();
+        while (nodes.hasMoreElements()) {
+            if (nodes.nextElement() instanceof ExplorerNode node && node.getUserObject() == navigatorNode) {
+                return node;
+            }
+        }
+        return null;
     }
 
     private enum LoadState {

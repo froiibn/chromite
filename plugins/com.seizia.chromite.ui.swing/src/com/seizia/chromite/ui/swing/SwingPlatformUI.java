@@ -67,7 +67,7 @@ import java.util.function.Supplier;
  * 백그라운드 Job이다. 그래서 대화상자는 항상 EDT에서 띄우고, 결과가 필요하면 {@link SwingUtilities#invokeAndWait}로
  * 기다린다(이미 EDT이면 바로 실행). A단계는 {@link JOptionPane} 기반의 단순한 대화상자로 구현했고,
  * B단계에서 진행 표시({@link ProgressDialog})와 비모달 알림({@link NotificationToast})을 더했다.
- * 아직 화면이 없는 기능(객체 선택, 객체·연결 편집기 등)은 {@code ConsoleUserInterface}와 같은 안전한 기본값을
+ * 아직 화면이 없는 기능(객체 선택, 객체 편집기 등)은 {@code ConsoleUserInterface}와 같은 안전한 기본값을
  * 돌려주며 {@code // Phase C:} 주석으로 무엇이 빠졌는지 표시한다.
  * {@code ConsoleUserInterface}를 상속하지 않은 것은, 어떤 메서드가 아직 콘솔 동작인지 이 클래스만 보고 알 수 있게 하기 위해서다.
  *
@@ -76,6 +76,8 @@ import java.util.function.Supplier;
  * - 2026-11-06 B단계: 진행 대화상자({@code runWithProgress}, {@code runWithMonitor}, {@code executeWithProgressBlocking}),
  *   비모달 알림({@code showNotification}, {@code showWarningNotification}). 남은 항목은 {@code // Phase C:}로 표시
  *   (docs/chromite/swing-frontend.md "구현 현황 — B단계")
+ * - 2026-11-06 D단계: {@code openConnectionEditor}를 범용 연결 대화상자({@link ConnectionDialog})로 구현
+ *   (docs/chromite/swing-frontend.md "구현 현황 — D단계")
  */
 public class SwingPlatformUI implements DBPPlatformUI {
 
@@ -498,8 +500,12 @@ public class SwingPlatformUI implements DBPPlatformUI {
 
     @Override
     public void openConnectionEditor(@NotNull DBPDataSourceContainer dataSourceContainer) {
-        // Phase C: generic connection dialog (swing-frontend.md, MVP item 2)
-        log.debug("Connection editor is not implemented yet: " + dataSourceContainer.getName());
+        // Generic connection dialog (swing-frontend.md, MVP item 2). Waits until it is closed, like DesktopUI (syncExec):
+        // callers may use the changed settings right after this call.
+        runOnEdt(() -> {
+            ConnectionCommands.edit(getDialogParent(), dataSourceContainer);
+            return null;
+        });
     }
 
     //////////////////////////////////////////////////////////

@@ -26,7 +26,6 @@ import org.jkiss.dbeaver.LogOutputStream;
 import org.jkiss.dbeaver.ModelPreferences;
 import org.jkiss.dbeaver.model.DBConstants;
 import org.jkiss.dbeaver.model.app.DBPPlatform;
-import org.jkiss.dbeaver.model.app.DBPProject;
 import org.jkiss.dbeaver.model.preferences.DBPPreferenceStore;
 import org.jkiss.dbeaver.model.rcp.DesktopApplicationImpl;
 import org.jkiss.dbeaver.runtime.DBWorkbench;
@@ -69,6 +68,8 @@ import java.util.concurrent.CountDownLatch;
  * 변경 이력:
  * - 2026-11-06 A단계: 최초 작성 (docs/chromite/swing-frontend.md "구현 현황 — A단계")
  * - 2026-11-06 B단계: Chromite 테마 설치와 저장된 테마 적용 (docs/chromite/swing-frontend.md "구현 현황 — B단계")
+ * - 2026-11-06 D단계: 연결 수 문구를 {@link MainFrame#describeWorkspace}로 옮김(메인 창이 연결 추가·삭제 때 다시 셈)
+ *   (docs/chromite/swing-frontend.md "구현 현황 — D단계")
  */
 public class ChromiteSwingApplication extends DesktopApplicationImpl {
 
@@ -114,7 +115,8 @@ public class ChromiteSwingApplication extends DesktopApplicationImpl {
             // Activates plugin services and the connection monitor; the SWT workbench window advisor does the same
             platform.postInitialize();
 
-            String statusText = describeWorkspace(platform);
+            // Counted here, off the EDT: the first count loads the connection registries of all projects
+            String statusText = MainFrame.describeWorkspace(platform.getWorkspace());
             context.applicationRunning();
 
             SwingUtilities.invokeAndWait(() -> openMainWindow(statusText));
@@ -175,15 +177,6 @@ public class ChromiteSwingApplication extends DesktopApplicationImpl {
             "Can't lock workspace at " + workspacePath + ".\n" +
                 "It seems that another " + GeneralUtils.getProductName() + " instance is running.");
         return false;
-    }
-
-    @NotNull
-    private static String describeWorkspace(@NotNull DBPPlatform platform) {
-        int connections = 0;
-        for (DBPProject project : platform.getWorkspace().getProjects()) {
-            connections += project.getDataSourceRegistry().getDataSources().size();
-        }
-        return connections + (connections == 1 ? " connection" : " connections") + " in workspace";
     }
 
     private void openMainWindow(@NotNull String statusText) {
