@@ -39,7 +39,7 @@ JDBC 드라이버를 설치 파일에 미리 넣는다.
 | 구분 | 공개판 | 내부판 |
 |---|---|---|
 | 내장 드라이버 | SQL Server, Oracle, PostgreSQL, MariaDB | 전체 |
-| MySQL | MariaDB 드라이버로 연결 (GPL인 Connector/J 미포함) | Connector/J 포함 (라이선스 확인 후) |
+| MySQL | MariaDB 드라이버로 연결. Connector/J는 재배포 가능으로 확인됐으나 포함 여부 미결정 | Connector/J 포함 |
 | 그 밖의 드라이버 | 인터넷이 되면 Maven에서 온라인 다운로드. 폐쇄망에서는 jar 파일을 직접 지정 | 모두 내장, 원격 다운로드 끔 |
 
 ### 내장 방법
@@ -68,27 +68,31 @@ JDBC 드라이버를 설치 파일에 미리 넣는다.
 
 ## 라이선스
 
-- 드라이버 정의에 라이선스 동의 항목(`type="license"`)이 118개 있다. 내장 전에 드라이버별 라이선스 원문을 확인해 목록으로 만든다.
-- 현재 파악한 내용(원문 확인 전, 법률 자문 아님):
+- 드라이버별 버전, 라이선스, 출처, 크기, 분류 전체 목록은 [driver-licenses.md](driver-licenses.md)에 있다(법률 자문 아님).
+- 요약(2026-11-06 원문 확인):
 
 | 드라이버 | 라이선스 | 공개판 내장 |
 |---|---|---|
-| SQL Server (`mssql-jdbc`) | MIT | 가능 |
-| PostgreSQL | BSD | 가능 |
-| MariaDB Connector/J | LGPL 2.1 | 가능 (jar 수정 없이, 라이선스 동봉) |
-| Oracle (`ojdbc11`) | Oracle Free Use Terms and Conditions | 재배포 허용으로 파악, 원문 확인 필요 |
-| MySQL Connector/J | GPLv2 (Universal FOSS Exception 여부 확인 필요) | 보류 |
-| IBM DB2·Informix, Teradata, SAP HANA 등 | 각 사 라이선스 | 재배포 제한 가능성, 내부판도 사용 약관 확인 필요 |
+| SQL Server (`mssql-jdbc`, Azure용 `msal4j`) | MIT | 가능 |
+| SQL Server 통합 인증 DLL (`mssql-jdbc_auth`) | Microsoft Software License Terms (최종 사용자 약관 전가·면책 의무) | 제외. 내부판만 |
+| PostgreSQL (`postgresql`) | BSD-2-Clause | 가능 |
+| MariaDB Connector/J | LGPL-2.1-or-later | 가능 (jar 수정 없이, 라이선스·소스 위치 동봉) |
+| Oracle (`ojdbc11`, `orai18n`, `xdb6`, `xmlparserv2`) | Oracle Free Use Terms and Conditions | 가능. 수정 없는 재배포 허용, 약관 사본 동봉·사용료 미부과 조건 |
+| MySQL Connector/J | GPLv2 + Universal FOSS Exception 1.0 | 가능(조건부). Apache-2.0 공개판은 예외가 적용되는 "Other FOSS"에 해당. GPL 원문 동봉과 Connector/J 소스 제공 의무 |
+| IBM Db2·Informix, Vertica | 재배포 허용이지만 최종 사용자 약관 전가·면책 조건 | 제외. 내부판만 |
+| Teradata, SAP HANA, SAP ASE(jConnect), GBase 8s, Simba BigQuery | 재배포 금지 또는 서면 동의 필요 | 제외. 내부판에도 내장하지 않음 |
 
-- Chromite는 오픈소스(Apache 2.0)로 공개하기로 했다. MySQL Connector/J에 Universal FOSS Exception이 적용되면
-  공개판에도 넣을 수 있으므로 원문 확인 후 다시 결정한다.
+- 공개판 4종 크기는 의존성 포함 약 23.7MB(최소 구성 약 14.7MB)다. 전체를 내장하면 약 1.7GB다.
+- MySQL Connector/J를 공개판에 넣을 수 있게 됐으므로, 넣을지(+약 4.5MB) 다시 결정한다.
 
 ## 미완료 항목
 
-- 드라이버별 라이선스 목록 작성
-- 전체 내장 시 크기 실측 (주요 4종은 수십 MB, Snowflake·Databricks·BigQuery·Hive 등을 포함하면 수백 MB~1GB 이상으로 추정)
+- 공개판에 MySQL Connector/J 포함 여부 결정
+- [driver-licenses.md](driver-licenses.md)의 "확인 못함" 항목 약관 원문 확인, 공개판 라이선스 고지 형식 법률 검토
 - MariaDB 드라이버로 MySQL 8 연결 시 인증 방식(`caching_sha2_password`) 등 호환성 실측
 
 ## 변경 이력
 
 - 2026-11-06 최초 작성. 현재 드라이버 로딩 구조 분석, 공개판·내부판 구성, 오프라인 우선 조회 설계를 정리.
+- 2026-11-06 드라이버별 라이선스 조사 결과([driver-licenses.md](driver-licenses.md)) 반영. Oracle FUTC 재배포 허용 확인,
+  MySQL Connector/J에 Universal FOSS Exception 적용 확인, SQL Server 통합 인증 DLL 공개판 제외, 크기 실측.
