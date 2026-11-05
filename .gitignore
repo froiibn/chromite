@@ -28,6 +28,11 @@ dependency-reduced-pom.xml
 buildNumber.properties
 .mvn/timing.properties
 /workspace/
+# Tycho build by-product, also written into deps/ sources
+**/.tycho-consumer-pom.xml
+
+## Claude Code local agent worktrees and settings
+.claude/
 
 ## IDEA configs
 .idea/
