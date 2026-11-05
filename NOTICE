@@ -1,0 +1,19 @@
+Chromite
+Copyright 2026 Chromite contributors
+
+This product is a modified version of DBeaver Community
+(https://github.com/dbeaver/dbeaver), which is licensed under the
+Apache License, Version 2.0.
+
+  DBeaver - Universal Database Manager
+  Copyright (C) 2010-2026 DBeaver Corp and others
+
+Chromite has changed the product name, logos, icons, splash screen and
+product metadata, and may contain further modifications to the original
+source code. Modified files keep their original copyright notices.
+
+"DBeaver" is a trademark of DBeaver Corp. Chromite is not affiliated with,
+endorsed by or sponsored by DBeaver Corp.
+
+This product includes third-party libraries that are distributed under
+their own licenses.

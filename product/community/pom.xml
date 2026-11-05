@@ -24,13 +24,13 @@
                     <products>
                         <product>
                             <id>org.jkiss.dbeaver.core.product</id>
-                            <archiveFileName>dbeaver-ce-${dbeaver-version}</archiveFileName>
+                            <archiveFileName>chromite-${dbeaver-version}</archiveFileName>
                             <rootFolders>
                                 <!-- for MacOSX, make sure you use a folder ending with .app , see bug 463670 -->
-                                <macosx>DBeaver.app</macosx>
-                                <win32>dbeaver</win32>
-                                <linux>dbeaver</linux>
-                                <solaris>dbeaver</solaris>
+                                <macosx>Chromite.app</macosx>
+                                <win32>chromite</win32>
+                                <linux>chromite</linux>
+                                <solaris>chromite</solaris>
                             </rootFolders>
                         </product>
                     </products>
