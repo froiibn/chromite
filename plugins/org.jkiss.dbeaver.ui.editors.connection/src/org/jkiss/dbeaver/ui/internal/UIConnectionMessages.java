@@ -1,6 +1,7 @@
 /*
  * DBeaver - Universal Database Manager
  * Copyright (C) 2010-2026 DBeaver Corp and others
+ * Modifications Copyright (C) 2026 Chromite contributors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,6 +19,10 @@ package org.jkiss.dbeaver.ui.internal;
 
 import org.eclipse.osgi.util.NLS;
 
+/**
+ * 변경 이력:
+ * - 2026-11-06 드라이버 오프라인 모드 설정 문구(pref_page_drivers_offline_mode*) 추가
+ */
 public class UIConnectionMessages extends NLS {
 
     static final String BUNDLE_NAME = "org.jkiss.dbeaver.ui.internal.UIConnectionMessages"; //$NON-NLS-1$
@@ -240,6 +245,8 @@ public class UIConnectionMessages extends NLS {
     public static String pref_page_ui_general_group_settings;
     public static String pref_page_ui_general_check_new_driver_versions;
     public static String pref_page_ui_general_check_new_driver_versions_tip;
+    public static String pref_page_drivers_offline_mode;
+    public static String pref_page_drivers_offline_mode_tip;
     public static String pref_page_drivers_local_folder;
     public static String pref_page_drivers_group_file_repositories;
     public static String pref_page_drivers_button_add;

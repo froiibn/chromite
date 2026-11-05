@@ -1,6 +1,7 @@
 /*
  * DBeaver - Universal Database Manager
  * Copyright (C) 2010-2026 DBeaver Corp and others
+ * Modifications Copyright (C) 2026 Chromite contributors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -41,6 +42,10 @@ import java.util.*;
 
 /**
  * Maven artifact version descriptor (POM).
+ *
+ * 변경 이력:
+ * - 2026-11-06 드라이버 오프라인 모드에서는 캐시에 없는 POM을 원격 저장소에서 받지 않는다
+ *   ({@link MavenRepository#checkNetworkAccessAllowed()}).
  */
 public class MavenArtifactVersion implements IMavenIdentifier {
     private static final Log log = Log.getLog(MavenArtifactVersion.class);
@@ -278,6 +283,7 @@ public class MavenArtifactVersion implements IMavenIdentifier {
         if (artifact.getRepository().getType() == MavenRepository.RepositoryType.LOCAL) {
             return;
         }
+        artifact.getRepository().checkNetworkAccessAllowed();
         String pomURL = getRemotePOMLocation();
         try (InputStream is = WebUtils.openConnection(monitor, pomURL, artifact.getRepository().getAuthInfo(), null).getInputStream()) {
             Path folder = localPOM.getParent();

@@ -1,6 +1,7 @@
 /*
  * DBeaver - Universal Database Manager
  * Copyright (C) 2010-2026 DBeaver Corp and others
+ * Modifications Copyright (C) 2026 Chromite contributors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,6 +21,7 @@ import org.eclipse.core.runtime.IConfigurationElement;
 import org.jkiss.code.NotNull;
 import org.jkiss.dbeaver.DBException;
 import org.jkiss.dbeaver.Log;
+import org.jkiss.dbeaver.ModelPreferences;
 import org.jkiss.dbeaver.model.DBPDataSource;
 import org.jkiss.dbeaver.model.DBPDataSourceContainer;
 import org.jkiss.dbeaver.model.DBPNamedObject;
@@ -50,11 +52,23 @@ import java.util.zip.ZipInputStream;
 
 /**
  * DriverUtils
+ *
+ * 변경 이력:
+ * - 2026-11-06 {@link #isOfflineMode()} 추가. 드라이버 파일 원격 다운로드를 막는 오프라인 모드 판단을 한곳에 둔다
+ *   (docs/chromite/drivers.md).
  */
 public class DriverUtils {
     private static final Log log = Log.getLog(DriverUtils.class);
 
     public static final String ZIP_EXTRACT_DIR = "zip-cache";
+
+    /**
+     * Returns true when remote downloads of driver files are disabled ({@link ModelPreferences#UI_DRIVERS_OFFLINE}).
+     * Read on every call (not cached) so that changing the preference applies to the next download attempt.
+     */
+    public static boolean isOfflineMode() {
+        return DBWorkbench.getPlatform().getPreferenceStore().getBoolean(ModelPreferences.UI_DRIVERS_OFFLINE);
+    }
 
     public static boolean matchesBundle(@NotNull IConfigurationElement config) {
         // Check bundle

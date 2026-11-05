@@ -1,6 +1,7 @@
 /*
  * DBeaver - Universal Database Manager
  * Copyright (C) 2010-2025 DBeaver Corp and others
+ * Modifications Copyright (C) 2026 Chromite contributors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -41,6 +42,16 @@ import java.io.StringReader;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 
+/**
+ * Maven repositories registry.
+ *
+ * 설계: 설치 폴더의 로컬 저장소(maven-local)는 설치 파일에 미리 넣은 드라이버를 담으므로 원격 저장소보다 먼저 찾는다.
+ * 원격을 먼저 시도하면 폐쇄망에서 연결 시간 초과까지 기다린 뒤에야 로컬 파일을 쓰게 된다.
+ * 원격 접근 자체를 막는 오프라인 모드는 {@link MavenRepository#checkNetworkAccessAllowed()}에서 처리한다.
+ *
+ * 변경 이력:
+ * - 2026-11-06 로컬 저장소 조회 순서를 마지막에서 처음으로 변경(docs/chromite/drivers.md).
+ */
 public class MavenRegistry {
     private static final Log log = Log.getLog(MavenRegistry.class);
 
@@ -226,6 +237,13 @@ public class MavenRegistry {
     @Nullable
     private MavenArtifactVersion findInRepositories(@NotNull DBRProgressMonitor monitor, MavenArtifactVersion owner, @NotNull MavenArtifactReference ref) {
         MavenRepository currentRepository = owner == null ? null : owner.getArtifact().getRepository();
+        // Bundled artifacts first: the local repository needs no network access
+        if (localRepository != currentRepository) {
+            MavenArtifactVersion artifact = localRepository.findArtifact(monitor, ref);
+            if (artifact != null) {
+                return artifact;
+            }
+        }
         if (currentRepository != null) {
             MavenArtifactVersion artifact = currentRepository.findArtifact(monitor, ref);
             if (artifact != null) {
@@ -260,13 +278,6 @@ public class MavenRegistry {
                         return artifact;
                     }
                 }
-            }
-        }
-
-        if (localRepository != currentRepository) {
-            MavenArtifactVersion artifact = localRepository.findArtifact(monitor, ref);
-            if (artifact != null) {
-                return artifact;
             }
         }
 
