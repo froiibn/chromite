@@ -1,6 +1,7 @@
 /*
  * DBeaver - Universal Database Manager
  * Copyright (C) 2010-2026 DBeaver Corp and others
+ * Modifications Copyright (C) 2026 Chromite contributors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,7 +24,6 @@ import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.model.impl.AbstractDescriptor;
 import org.jkiss.dbeaver.model.qm.QMUtils;
-import org.jkiss.dbeaver.utils.GeneralUtils;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -31,6 +31,13 @@ import java.util.Objects;
 
 /**
  * DBeaver feature registry
+ *
+ * 설계: 기능 사용 기록은 로컬 쿼리 관리자(QM) 처리기에만 전달한다. Chromite는 사용 통계를 수집하거나
+ * 외부로 보내지 않으므로 upstream의 추적기(DBRFeatureTracker) 연결 지점을 두지 않는다.
+ *
+ * 변경 이력:
+ * - 2026-11-06 사용 통계 기능 제거: DBRFeatureTracker 어댑터 조회, startTracking(), endTracking() 삭제
+ *   (docs/chromite/telemetry.md)
  */
 public class DBRFeatureRegistry {
 
@@ -57,9 +64,6 @@ public class DBRFeatureRegistry {
     private final Map<String, DBRFeature> commandFeatures = new HashMap<>();
 
     @Nullable
-    private final DBRFeatureTracker tracker;
-
-    @Nullable
     private static DBRFeatureRegistry instance = null;
 
     @NotNull
@@ -71,7 +75,6 @@ public class DBRFeatureRegistry {
     }
 
     private DBRFeatureRegistry() {
-        this.tracker = GeneralUtils.adapt(this, DBRFeatureTracker.class);
         for (IConfigurationElement element : Platform.getExtensionRegistry().getConfigurationElementsFor(COMMAND_FEATURE_EXTENSION)) {
             if (element.getAttribute("id") == null || element.getAttribute("commandId") == null) {
                 continue;
@@ -81,28 +84,12 @@ public class DBRFeatureRegistry {
         }
     }
 
-    public void startTracking() {
-        if (tracker != null) {
-            tracker.startTracking();
-        }
-    }
-
-    public void endTracking() {
-        if (tracker != null) {
-            tracker.dispose();
-        }
-    }
-
     @Nullable
     public DBRFeature findCommandFeature(@NotNull String commandId) {
         return commandFeatures.get(commandId);
     }
 
     public static void useFeature(@NotNull DBRFeature feature, @Nullable Map<String, Object> parameters) {
-        DBRFeatureTracker tracker = getInstance().tracker;
-        if (tracker != null) {
-            tracker.trackFeature(feature, parameters);
-        }
         QMUtils.getDefaultHandler().handleFeatureUsage(feature, parameters);
     }
 

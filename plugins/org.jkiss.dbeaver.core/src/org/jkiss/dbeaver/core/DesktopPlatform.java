@@ -1,6 +1,7 @@
 /*
  * DBeaver - Universal Database Manager
  * Copyright (C) 2010-2026 DBeaver Corp and others
+ * Modifications Copyright (C) 2026 Chromite contributors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -33,7 +34,6 @@ import org.jkiss.dbeaver.model.navigator.DesktopNavigatorModel;
 import org.jkiss.dbeaver.model.preferences.DBPPreferenceStore;
 import org.jkiss.dbeaver.model.qm.QMUtils;
 import org.jkiss.dbeaver.model.runtime.LoggingProgressMonitor;
-import org.jkiss.dbeaver.model.runtime.features.DBRFeatureRegistry;
 import org.jkiss.dbeaver.registry.BasePlatformImpl;
 import org.jkiss.dbeaver.registry.DataSourceProviderRegistry;
 import org.jkiss.dbeaver.registry.GlobalEventManagerImpl;
@@ -42,6 +42,12 @@ import org.jkiss.dbeaver.utils.RuntimeUtils;
 
 /**
  * DesktopPlatform
+ *
+ * 설계: Chromite는 사용 통계를 수집하지 않으므로 플랫폼 초기화 때 기능 추적을 시작하지 않는다.
+ *
+ * 변경 이력:
+ * - 2026-11-06 사용 통계 기능 제거: initialize()의 DBRFeatureRegistry.startTracking() 호출 삭제
+ *   (docs/chromite/telemetry.md)
  */
 public class DesktopPlatform extends BasePlatformImpl implements DBPPlatformDesktop {
 
@@ -107,8 +113,6 @@ public class DesktopPlatform extends BasePlatformImpl implements DBPPlatformDesk
         QMUtils.initPlatform(true);
 
         super.initialize();
-
-        DBRFeatureRegistry.getInstance().startTracking();
 
         log.debug("Platform initialized (" + (System.currentTimeMillis() - startTime) + "ms)");
     }

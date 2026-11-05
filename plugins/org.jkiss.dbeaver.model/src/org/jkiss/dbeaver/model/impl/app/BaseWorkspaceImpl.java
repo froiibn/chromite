@@ -1,6 +1,7 @@
 /*
  * DBeaver - Universal Database Manager
  * Copyright (C) 2010-2026 DBeaver Corp and others
+ * Modifications Copyright (C) 2026 Chromite contributors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -34,7 +35,6 @@ import org.jkiss.dbeaver.model.impl.auth.SessionContextImpl;
 import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
 import org.jkiss.dbeaver.model.runtime.VoidProgressMonitor;
 import org.jkiss.dbeaver.model.virtual.DBVModel;
-import org.jkiss.dbeaver.utils.GeneralUtils;
 import org.jkiss.dbeaver.utils.RuntimeUtils;
 import org.jkiss.utils.CommonUtils;
 import org.jkiss.utils.SecurityUtils;
@@ -51,6 +51,10 @@ import java.util.Properties;
 
 /**
  * BaseWorkspaceImpl.
+ *
+ * 변경 이력:
+ * - 2026-11-06 사용 통계 기능 제거: 통계 전송용 작업 공간 ID를 읽던 readWorkspaceIdProperty()와
+ *   그 캐시 필드 globalWorkspaceId 삭제 (docs/chromite/telemetry.md)
  */
 public abstract class BaseWorkspaceImpl implements DBPWorkspace {
 
@@ -61,8 +65,6 @@ public abstract class BaseWorkspaceImpl implements DBPWorkspace {
     protected static final String PROP_PROJECT_ACTIVE = "project.active";
 
     private static final String WORKSPACE_ID = "workspace-id";
-
-    private static String globalWorkspaceId;
 
     protected final DBPPlatform platform;
     private final Path workspacePath;
@@ -230,16 +232,6 @@ public abstract class BaseWorkspaceImpl implements DBPWorkspace {
     @Override
     public Path getMetadataFolder() {
         return getAbsolutePath().resolve(METADATA_FOLDER);
-    }
-
-    @NotNull
-    public static String readWorkspaceIdProperty() {
-        if (globalWorkspaceId == null) {
-            // Check workspace ID
-            Path metadataFolder = GeneralUtils.getMetadataFolder();
-            globalWorkspaceId = readWorkspaceId(metadataFolder);
-        }
-        return globalWorkspaceId;
     }
 
     @NotNull
