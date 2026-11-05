@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd"
+         xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>org.jkiss.dbeaver</groupId>
+        <artifactId>dbeaver</artifactId>
+        <version>1.0.0-SNAPSHOT</version>
+        <relativePath>../../</relativePath>
+    </parent>
+    <groupId>com.seizia.chromite</groupId>
+    <artifactId>com.seizia.chromite.swing.product</artifactId>
+    <version>26.2.5-SNAPSHOT</version>
+    <packaging>eclipse-repository</packaging>
+    <name>Chromite Swing</name>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.eclipse.tycho</groupId>
+                <artifactId>tycho-p2-director-plugin</artifactId>
+                <version>${tycho-version}</version>
+                <configuration>
+                    <products>
+                        <product>
+                            <id>com.seizia.chromite.swing.product</id>
+                            <archiveFileName>chromite-swing-${dbeaver-version}</archiveFileName>
+                            <rootFolders>
+                                <!-- for MacOSX, make sure you use a folder ending with .app , see bug 463670 -->
+                                <macosx>ChromiteSwing.app</macosx>
+                                <win32>chromite-swing</win32>
+                            </rootFolders>
+                        </product>
+                    </products>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>materialize-products</id>
+                        <goals>
+                            <goal>materialize-products</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.eclipse.tycho</groupId>
+                <artifactId>target-platform-configuration</artifactId>
+                <version>${tycho-version}</version>
+                <configuration>
+                    <!-- Only the supported platforms (docs/chromite/runtime.md) -->
+                    <environments>
+                        <environment>
+                            <os>win32</os>
+                            <ws>win32</ws>
+                            <arch>x86_64</arch>
+                        </environment>
+                        <environment>
+                            <os>macosx</os>
+                            <ws>cocoa</ws>
+                            <arch>aarch64</arch>
+                        </environment>
+                    </environments>
+                </configuration>
+            </plugin>
+            <!-- Disable P2 repository generation -->
+            <plugin>
+                <groupId>org.eclipse.tycho</groupId>
+                <artifactId>tycho-p2-repository-plugin</artifactId>
+                <version>${tycho-version}</version>
+                <configuration>
+                    <createArtifactRepository>false</createArtifactRepository>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+</project>

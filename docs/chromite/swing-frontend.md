@@ -110,6 +110,166 @@ MVP 이후: 테이블 디자이너, ER 다이어그램, 데이터 비교, AI 기
   배치와 사용 흐름, 색감만 참고하고, 아이콘은 직접 그리거나 공개 라이선스 아이콘 세트를 쓴다.
 - **아이콘 규모:** 기존 플러그인 아이콘은 약 1,060개다. 자주 보이는 것부터 단계적으로 만든다.
 
+## 구현 현황 — A단계
+
+A단계의 목표는 SWT 없이 모델 계층을 띄우고 빈 메인 창을 여는 배관 작업이다.
+SSMS 배치, Object Explorer 등 실제 화면은 B단계에서 만든다.
+
+### 식별자
+
+새 Chromite 코드는 Java 패키지와 OSGi ID 모두 `com.seizia.chromite` 접두어를 쓴다(2026-11-06 결정). 기존 `org.jkiss.dbeaver.*`는 그대로 둔다.
+
+| 구분 | ID / 위치 |
+|---|---|
+| 번들 | `com.seizia.chromite.ui.swing` ([plugins/com.seizia.chromite.ui.swing](../../plugins/com.seizia.chromite.ui.swing)), 패키지 `com.seizia.chromite.ui.swing` |
+| Equinox 애플리케이션 | `com.seizia.chromite.ui.swing.application` |
+| 제품 확장 | `com.seizia.chromite.ui.swing.product` (`org.eclipse.core.runtime.products`) |
+| `org.jkiss.dbeaver.application` 확장 | `chromite-swing` (이름 `Chromite`, `GeneralUtils.getProductName()`이 읽음) |
+| 피처 | `com.seizia.chromite.swing.feature` ([features/com.seizia.chromite.swing.feature](../../features/com.seizia.chromite.swing.feature)) |
+| 제품 정의 | uid `com.seizia.chromite.swing.product`, [product/swing/chromite-swing.product](../../product/swing/chromite-swing.product) |
+| 실행 파일 | `chromite-swing.exe` / `ChromiteSwing.app` (SWT 제품의 `chromite`를 덮어쓰지 않도록 이름을 나눔) |
+| Maven 프로파일 | `product-chromite-swing` ([product/pom.xml](../../product/pom.xml)). Windows x64, macOS arm64만 빌드 |
+| Maven groupId | `com.seizia.chromite` (번들, 피처, 제품 모듈) |
+
+번들과 피처는 `plugins/pom.xml`, `features/pom.xml`의 `desktop` 프로파일(헤드리스 빌드가 아닐 때 기본 활성)에 넣었다.
+그래서 `-Pproduct-dbeaver-ce` 빌드에서도 함께 컴파일된다(SWT 제품에는 들어가지 않는다).
+
+```bash
+mvn package -f product/aggregate/pom.xml -T1C -Pproduct-chromite-swing
+```
+
+결과물: `product/swing/target/products/com.seizia.chromite.swing.product/win32/win32/x86_64/chromite-swing/`,
+`.../macosx/cocoa/aarch64/ChromiteSwing.app/`
+
+### 시작 흐름
+
+헤드리스 앱([org.jkiss.dbeaver.headless](../../plugins/org.jkiss.dbeaver.headless))과 같은 구조로 만들었다.
+
+| 클래스 | 역할 |
+|---|---|
+| `ChromiteSwingActivator` (`Plugin`) | 제품 번들. `ModelPreferences.setMainBundle()`, 설정 저장소, 상태 폴더(인증서 저장소) 제공 |
+| `ChromiteSwingApplication` (`DesktopApplicationImpl`) | Equinox `IApplication` 진입점 |
+| `ChromiteSwingPlatform` (`BasePlatformImpl`, `DBPPlatformDesktop`) | `DesktopPlatform`(SWT)의 초기화 순서를 UI 의존 없이 재구현 |
+| `SwingPlatformUI` (`DBPPlatformUI`) | 모델 계층의 UI 요청을 Swing 대화상자로 처리 |
+| `MainFrame` (`JFrame`) | 메인 창. File > Exit 메뉴, 상태 표시줄 |
+| `ChromiteIcons` | 창 아이콘(여러 크기) |
+
+1. Equinox가 `ChromiteSwingApplication.start()`를 애플리케이션 스레드(main)에서 호출한다.
+2. EDT에서 FlatLaf(`FlatLightLaf.setup()`)를 적용한다.
+3. 작업 공간을 잠근다. `-data`가 없으면 SWT 버전과 같은 기본 작업 공간(`DBeaverData/workspace6`)을 쓴다.
+   잠글 수 없으면 오류 대화상자를 띄우고 끝낸다.
+4. `initializeApplicationServices()` → 디버그 로그(`.metadata/dbeaver-debug.log`, 표준 출력/오류를 함께 기록) →
+   `DBWorkbench.getPlatform()`으로 플랫폼을 초기화한다(인증서 저장소 → `DesktopWorkspaceImpl` → 프로젝트 → Query Manager → 탐색기 모델).
+   작업 공간 형식, 기본 프로젝트 이름(`General`), 탐색기 모델(`DesktopNavigatorModel`)은 SWT 버전과 같아서 연결 목록을 공유한다.
+5. `postInitialize()`로 플러그인 서비스와 연결 감시 Job을 시작한다(SWT에서는 워크벤치 창 어드바이저가 호출).
+6. 작업 공간의 모든 프로젝트에서 연결 수를 세어 상태 표시줄 문구(`N connections in workspace`)를 만든다.
+   모델 계층이 정상으로 떴는지 확인하는 용도다.
+7. EDT에서 `MainFrame`을 열고, 창이 닫힐 때까지 애플리케이션 스레드가 기다린다(`start()`가 반환되면 Equinox가 종료되기 때문).
+8. 창을 닫거나 File > Exit를 누르면 창이 dispose되고, 애플리케이션 스레드가 작업 공간을 저장하고 플랫폼을 정리한 뒤 반환한다.
+   `IApplication.stop()`(외부 종료 요청)은 창을 닫아 같은 경로로 끝낸다.
+
+제품 설정에서 `org.eclipse.core.runtime`을 시작 수준 4로 자동 시작한다. SWT 제품에서는 워크벤치 번들이 시작시키지만
+Swing 제품에는 그런 번들이 없어서, 빼면 `Unable to acquire application service` 오류로 실행되지 않는다(2026-11-06 확인).
+
+SWT 버전의 `DesktopPreferencesInitializer`(`org.jkiss.dbeaver.core`)가 정하던 기본 설정은 Swing 제품에 없다.
+A단계에서는 디버그 로그 순환 한도(`logs.files.output.maxSize`, `logs.files.output.maxCount`)만 같은 값으로 정한다.
+이 값이 없으면 한도가 0이 되어 로그가 쓸 때마다 순환되어 사라진다(2026-11-06 확인).
+
+### DBPPlatformUI 구현 현황
+
+모든 대화상자는 EDT에서 띄운다. 호출 스레드가 EDT가 아니면 `SwingUtilities.invokeAndWait`로 결과를 기다린다.
+
+| 메서드 | A단계 구현 | B단계에서 할 일 |
+|---|---|---|
+| `showError` (3종) | `JOptionPane` 오류 대화상자. 상태·예외 메시지를 줄바꿈되는 텍스트로 표시 | DB 오류별 처리(연결 끊김, 드라이버 파일 없음), 상세 정보 창 |
+| `showMessageBox`, `showWarningMessageBox` | `JOptionPane` 정보·오류·경고 대화상자 | |
+| `confirmAction` (3종) | 예/아니오 또는 지정 버튼/취소. 경고일 때 기본 버튼은 취소 | |
+| `showUserChoice` | 선택 버튼 + "모두 적용" 체크박스(서로 배타) | |
+| `showErrorStopRetryIgnore` | Stop/Retry(+Skip/Skip All), SWT `ExecutionQueueErrorDialog`와 같은 응답 매핑 | |
+| `promptUserCredentials` (2종) | 사용자/비밀번호/비밀번호 저장 입력 대화상자 | |
+| `promptUserPasswordChange` | 사용자/이전 비밀번호/새 비밀번호/확인 입력, 불일치 시 다시 묻기 | |
+| `promptProperty` (2종), `promptText` | 한 줄/여러 줄 입력 대화상자 | |
+| `acceptLicense` | 라이선스 본문 + Accept/Decline | |
+| `executeInMainThread` | EDT에서 동기 실행(SWT의 `syncExec`와 같음) | |
+| `executeProcess` | 콘솔 구현과 같음(실패 시 오류 대화상자) | |
+| `copyTextToClipboard` | 시스템 클립보드에 일반 텍스트 | HTML 형식 |
+| `executeShellProgram` | `Desktop.open`(파일) / `Desktop.browse`(URL) | |
+| `showInSystemExplorer` | Windows `explorer /select,`, macOS `open -R` | |
+| `openFileSystemSelector` | SWT `DesktopUI`와 같이 "지원하지 않음" 메시지 후 `null` | |
+| `showNotification`, `showWarningNotification` | **로그만 남김** | 모달이 아닌 알림 팝업(피드백 동작 포함) |
+| `selectObject` | **`null` 반환** | 탐색기 트리 선택 대화상자 |
+| `openEntityEditor` (2종) | **아무것도 하지 않음** | 객체 편집기(속성, DDL) |
+| `openConnectionEditor` | **아무것도 하지 않음** | 범용 연결 화면(MVP 2번) |
+| `executeWithProgressBlocking` | **호출 스레드에서 실행, 진행 표시 없음** | Job + 진행 표시 |
+| `runWithMonitor`, `runWithProgress` | **호출 스레드에서 실행, 진행 표시 없음** | 진행 대화상자 |
+| `createLoadingService` | **콘솔 구현과 같음(Job 스레드에서 완료 통지)** | Swing 로딩 표시, EDT에서 완료 통지 |
+| `readAndDispatchEvents` | **`false`** | EDT에서 기다릴 때 `SecondaryLoop` 사용 검토 |
+| `promptAuthModelCredentials` (기본 메서드) | **인터페이스 기본값 `false`** | 인증 모델별 입력 화면 |
+
+코드에서는 B단계 항목을 `// Phase B:` 주석으로 표시했다.
+
+### 외부 라이브러리 연결 방식
+
+| 라이브러리 | 버전 | 라이선스 | 출처 |
+|---|---|---|---|
+| FlatLaf (`com.formdev:flatlaf`) | 3.8 | Apache 2.0 | Maven Central. SHA-1 `5e06f19b28ef1fa1543fa99ac632903aa2cede6b`, SHA-256 `8d8489dee6b9512a669be7670fd2d010f6a7dcfb23b622329ce3c61f8529e76b` 확인 |
+
+- FlatLaf jar에는 OSGi 매니페스트가 없다(`Bundle-SymbolicName` 없음). 그래서 번들 안에 넣고 `Bundle-ClassPath: ., lib/flatlaf.jar`로 쓴다.
+  이 방식은 기존 `org.jkiss.dbeaver.core`의 `lib/awt.injector-1.0.0.jar`와 같다.
+- 바이너리를 커밋하지 않는다. 번들 `pom.xml`의 `maven-dependency-plugin:copy`가 `generate-resources` 단계(컴파일 전)에
+  Maven Central에서 받아 `lib/flatlaf.jar`로 복사한다. 버전은 `pom.xml`의 `flatlaf.version` 한 곳에만 있다.
+  `lib/`는 번들의 `.gitignore`로 제외한다.
+- 다른 방법(`pomDependencies`의 `wrapAsBundle`)은 루트 POM의 공유 빌드 설정과 피처·제품 모듈까지 바꿔야 해서 쓰지 않았다.
+- FlatLaf의 네이티브 라이브러리(Windows 창 장식 등)는 jar 안에 들어 있고, FlatLaf가 실행 중에 임시 폴더로 풀어서 쓴다.
+- `NOTICE`에 출처를 적었다. 라이브러리를 추가하면 이 표와 `NOTICE`를 함께 갱신한다.
+
+### 창 아이콘과 JVM 실행 방식
+
+JBR/JetBrains 브랜드가 화면에 보이지 않게 한다.
+
+- **창 아이콘:** 모든 최상위 창에 Chromite 아이콘을 지정한다(`ChromiteIcons`, `Window.setIconImages`).
+  크기는 16, 20, 24, 32, 40, 48, 64, 128, 256이다. 16·32·48·64·128·256은 `product/community/icons-sources`의 Chromite 아이콘을
+  그대로 복사했고, 20·24·40은 512px 원본을 축소해 만들었다(번들의 `icons/chromite<크기>.png`).
+  지정하지 않으면 JBR의 기본 아이콘(JetBrains "JB")이 제목 표시줄과 작업 표시줄에 나온다.
+- **대화상자:** `SwingPlatformUI`는 활성 창(없으면 보이는 프레임)을 부모로 넘겨 대화상자가 그 아이콘을 물려받는다.
+  부모 없이 띄우는 대화상자(시작 오류 등)는 Swing의 공유 소유 프레임(`JOptionPane.getRootFrame()`)이 소유하므로,
+  시작할 때 그 프레임에도 아이콘을 지정한다.
+- **JVM 실행 방식 (Windows):** Equinox 런처는 `-vm`에 따라 JVM을 다르게 띄운다(2026-11-06 확인).
+  - `-vm ...\bin\javaw.exe`: 런처(`chromite-swing.exe`)가 별도 `javaw.exe` 프로세스를 띄우고 창은 그 프로세스에 속한다.
+    `javaw.exe`의 실행 파일 아이콘은 JetBrains 아이콘이고, 작업 표시줄 그룹·고정도 `javaw.exe` 기준이 된다.
+    창 아이콘을 지정하기 전에는 작업 표시줄에 "JB" 아이콘이 보였다.
+  - `-vm ...\bin\server\jvm.dll` 또는 런처 옆 `jre/` 폴더(내장 런타임): 런처가 JVM을 자기 프로세스 안에 올린다.
+    프로세스는 Chromite 아이콘의 `chromite-swing.exe` 하나다. 내장 런타임 배포([runtime.md](runtime.md))에서는 이 방식이 된다.
+- **AppUserModelID:** 보류. 지정하려면 JNA로 `SetCurrentProcessExplicitAppUserModelID`를 부를 수 있지만, 명시적 ID를 쓰면
+  같은 ID와 재실행 명령(`System.AppUserModel.RelaunchCommand`)을 가진 바로가기가 있어야 작업 표시줄 고정이 제대로 동작한다.
+  설치 프로그램을 만들 때(런타임 내장 단계) 바로가기와 함께 정한다. 그 전까지는 in-process 실행으로 `chromite-swing.exe` 기준 그룹이 된다.
+
+### Java 버전 결정
+
+- 새 번들은 `Bundle-RequiredExecutionEnvironment: JavaSE-25`이고, 번들 `pom.xml`에서 `java.version`을 25로 바꾼다.
+  공유 설정(`deps/dbeaver-common/root/pom.xml`의 `java.version` 21)과 루트 `pom.xml`의 `tycho-compiler-plugin` 설정은
+  `${java.version}`을 참조하므로, 이 번들에서만 25로 컴파일된다. `deps/`와 공유 빌드 설정은 고치지 않았다.
+- 확인 결과(2026-11-06, Tycho 5.0.4, JBR 25.0.4): 빌드 로그에 이 번들의 컴파일이 `javac [debug release 25]`로 나오고,
+  만든 클래스 파일의 major 버전이 69(Java 25)다. 피처·제품 단계의 의존성 해석에도 문제가 없었다.
+- 제품 실행 옵션은 `-Dosgi.requiredJavaVersion=25`다. 나머지 JVM 옵션은 SWT 제품과 같고,
+  macOS의 `-XstartOnFirstThread`(SWT용, AWT를 막음)는 넣지 않았다.
+
+### SWT 미포함 확인 (2026-11-06)
+
+Windows x64 결과물의 `plugins/`에는 번들 128개가 있고, `swt`, `jface`, `org.eclipse.ui`, `org.eclipse.e4.ui`가 들어간 이름은 0개다
+(macOS arm64 결과물은 129개, 같은 검사 0개). 런타임 피처(`org.jkiss.dbeaver.runtime.feature`)와 DB 피처(`org.jkiss.dbeaver.db.feature`)를
+그대로 포함하고, Equinox 번들은 필요한 것만 직접 넣었다.
+
+### A단계에서 남긴 것 (B단계 이후)
+
+- 작업 공간 선택, 잠긴 작업 공간 무시하고 열기, 이전 버전 작업 공간 이전, 인스턴스 서버, CLI 명령 처리(SWT 앱의 `DBeaverApplication`에 있음)
+- SWT `DesktopPreferencesInitializer`의 나머지 기본 설정(Query Manager 기록 기간 등). Swing용 기본 설정 초기화가 필요하다.
+- 설정 저장 위치: 설정은 이 번들 ID(`com.seizia.chromite.ui.swing`) 기준으로 저장되어 SWT 버전(`org.jkiss.dbeaver.core`)과 공유되지 않는다.
+- 테마 전환(DataGrip풍 다크), macOS 메뉴 막대 통합, Windows AppUserModelID(위 "창 아이콘과 JVM 실행 방식")
+- macOS arm64 실행은 확인하지 못했다(빌드 결과만 확인). AWT는 Equinox 런처가 만든 보조 스레드에서 시작된다.
+
 ## 변경 이력
 
 - 2026-11-06 최초 작성. Swing 전환 결정, 구조, 재사용 분석, MVP 범위, F5 실행 사양을 정리.
+- 2026-11-06 A단계 구현: `com.seizia.chromite.ui.swing` 번들(앱, 플랫폼, `SwingPlatformUI`, 메인 창), FlatLaf 3.8 연동,
+  `com.seizia.chromite.swing.feature` 피처, `product-chromite-swing` 제품, Chromite 창 아이콘. "구현 현황 — A단계" 절 추가.
