@@ -58,3 +58,10 @@ The Chromite Swing frontend (plugins/com.seizia.chromite.ui.swing) includes:
   Copyright (C) 2019-2026 FormDev Software
   Licensed under the Apache License, Version 2.0.
   Downloaded from Maven Central at build time; not stored in this repository.
+
+  JSVG 2.1.0 (com.github.weisj.jsvg)
+  https://github.com/weisJ/jsvg
+  Copyright (c) 2021-2024 Jannis Weis
+  Licensed under the MIT License (included in the bundle as META-INF/LICENSE).
+  Taken as an OSGi bundle from the Eclipse release repository at build time;
+  not stored in this repository.

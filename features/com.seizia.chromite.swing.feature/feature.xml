@@ -17,6 +17,8 @@
 
     <!-- Swing UI -->
     <plugin id="com.seizia.chromite.ui.swing" version="0.0.0"/>
+    <!-- SVG rendering of navigator icons (MIT, from the Eclipse release repository) -->
+    <plugin id="com.github.weisj.jsvg" version="0.0.0"/>
     <!-- Desktop workspace (DesktopApplicationImpl, DesktopWorkspaceImpl); not part of runtime.feature -->
     <plugin id="org.jkiss.dbeaver.model.rcp" version="0.0.0"/>
     <!-- Logging: slf4j binding fragment, not reachable through bundle requirements -->

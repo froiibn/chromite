@@ -17,10 +17,13 @@
 package com.seizia.chromite.ui.swing;
 
 import org.jkiss.code.NotNull;
+import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.Log;
 
 import javax.imageio.ImageIO;
+import javax.swing.*;
 import java.awt.*;
+import java.awt.image.BaseMultiResolutionImage;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
@@ -36,8 +39,11 @@ import java.util.List;
  * 이미지는 {@code product/community/icons-sources}의 Chromite 아이콘이다(16, 32, 48, 64, 128, 256은 그대로 복사,
  * 20, 24, 40은 512px 원본을 축소해 만들었다).
  *
+ * 같은 이미지로 About 대화상자와 시작 탭의 로고({@link #getLogoIcon})도 만든다.
+ *
  * 변경 이력:
  * - 2026-11-06 A단계: 최초 작성 (docs/chromite/swing-frontend.md "구현 현황 — A단계")
+ * - 2026-11-06 B단계: 로고 아이콘 추가 (docs/chromite/swing-frontend.md "구현 현황 — B단계")
  */
 final class ChromiteIcons {
 
@@ -72,5 +78,26 @@ final class ChromiteIcons {
             windowIcons = Collections.unmodifiableList(icons);
         }
         return windowIcons;
+    }
+
+    /**
+     * The Chromite logo at the given logical size, with the double-size image for HiDPI screens when available.
+     * Returns {@code null} if there is no window icon of that size.
+     */
+    @Nullable
+    static Icon getLogoIcon(int size) {
+        Image image = null;
+        Image hiDpiImage = null;
+        for (Image icon : getWindowIcons()) {
+            if (icon.getWidth(null) == size) {
+                image = icon;
+            } else if (icon.getWidth(null) == size * 2) {
+                hiDpiImage = icon;
+            }
+        }
+        if (image == null) {
+            return null;
+        }
+        return new ImageIcon(hiDpiImage == null ? image : new BaseMultiResolutionImage(image, hiDpiImage));
     }
 }
