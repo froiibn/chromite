@@ -77,7 +77,7 @@ mvn package -f product/aggregate/pom.xml -T1C -Pproduct-dbeaver-ce
 - `project.deps`는 DBeaver의 CI(`dbeaver/github-actions/clone-repositories`)와 AGENTS.md "Repo dependencies"가
   옆 폴더에 clone할 저장소 목록으로 읽는 파일이다.
 - Chromite 루트의 `project.deps`는 삭제했다. 의존 저장소가 저장소 안에 있으므로 clone할 대상이 없다.
-  `.github/workflows/push-pr-devel.yml`에서도 `project-deps` 입력을 뺐다.
+  `.github/workflows/push-pr-devel.yml`에서도 `project-deps` 입력을 뺐다(이 워크플로는 나중에 Chromite 자체 CI로 바꾸면서 삭제했다, [ci.md](ci.md)).
 - `deps/datadam-api/project.deps`는 그대로 두었다. 이 저장소에서 읽는 곳이 없고(하위 폴더의 `.github/workflows`는
   GitHub이 실행하지 않는다), upstream과 같게 유지해야 갱신할 때 충돌이 없다.
 
@@ -88,7 +88,7 @@ mvn package -f product/aggregate/pom.xml -T1C -Pproduct-dbeaver-ce
 | `pom.xml` | 부모 `relativePath`: `../dbeaver-common/pom.xml` → `deps/dbeaver-common/pom.xml` |
 | `product/aggregate/pom.xml` | 모듈: `../../../dbeaver-common`, `../../../datadam-api/apis` → `../../deps/...` |
 | `project.deps` | 삭제 |
-| `.github/workflows/push-pr-devel.yml` | `project-deps` 입력 삭제, `project-directory`를 `./chromite/product/aggregate`로 변경 (CI는 저장소 이름 폴더에 checkout한다) |
+| `.github/workflows/push-pr-devel.yml` | 삭제. Chromite 자체 워크플로 `.github/workflows/build.yml`로 대체([ci.md](ci.md)) |
 | `tools/build.cmd`, `tools/build.sh` | 옆 폴더 clone 단계 삭제, `deps/dbeaver-common/mvnw`로 빌드 |
 | `osgi-app.properties` | IDEA 작업 공간 생성기용 번들 경로를 `dbeaver/deps/...`로 변경 |
 
@@ -111,8 +111,8 @@ git subtree pull --prefix=deps/datadam-api   --squash https://github.com/dbeaver
 - 빌드는 아직 실행해서 확인하지 않았다(2026-11-06 기준 Maven 미설치). 경로와 부모 POM 좌표는 파일을 읽어 확인했다.
 - 빌드는 여전히 인터넷의 P2 저장소(`download.eclipse.org`, `repo.dbeaver.net/p2/ce/<버전>`)와 Maven Central을 쓴다.
   `deps/dbeaver-common/root/pom.xml`의 `repo.p2.dbeaver-ce.url`이 DBeaver의 서드파티 번들 저장소다.
-- CI(`push-pr-devel.yml`)는 DBeaver의 재사용 워크플로(`dbeaver/dbeaver-common/.github/workflows/*.yml@devel`)를 그대로 호출한다.
-  재사용 워크플로는 저장소 최상위 `.github/workflows`에 있어야 하므로 `deps/` 안의 사본은 쓸 수 없다.
+- CI는 Chromite 자체 워크플로(`.github/workflows/build.yml`)가 이 문서의 빌드 명령을 Maven Wrapper로 실행한다([ci.md](ci.md)).
+  DBeaver의 재사용 워크플로(`dbeaver/dbeaver-common/.github/workflows/*.yml@devel`)는 더 이상 호출하지 않는다.
 - `tools/generate_workspace.*`(IDEA 작업 공간 생성)는 여전히 옆 폴더의 `idea-rcp-launch-config-generator`와
   `dbeaver-common/mvnw`를 쓰고, `osgi-app.properties`의 경로는 저장소 폴더 이름이 `dbeaver`라고 가정한다.
 
@@ -120,3 +120,4 @@ git subtree pull --prefix=deps/datadam-api   --squash https://github.com/dbeaver
 
 - 2026-11-06 `dbeaver-common`, `datadam-api`를 `git subtree --squash`로 `deps/`에 넣고, 빌드 경로를 저장소 안으로 변경.
   루트 `project.deps` 삭제. `NOTICE`에 출처 추가.
+- 2026-11-06 CI를 Chromite 자체 워크플로로 바꾸면서 `push-pr-devel.yml`을 삭제. CI 관련 설명을 [ci.md](ci.md)로 옮김.
