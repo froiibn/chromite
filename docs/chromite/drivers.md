@@ -215,3 +215,5 @@ JDBC 드라이버를 설치 파일에 미리 넣는다.
   SWT 제품과 Swing 제품이 같은 feature를 포함해 같은 `drivers/`를 배포한다.
 - 2026-11-06 `drivers-root/**/*.txt`를 루트 `.gitattributes`에서 `text eol=lf`로 고정. Windows `core.autocrlf=true` 체크아웃에서도
   라이선스 텍스트가 LF로 들어가 배포되는 `drivers/` 바이트가 체크아웃 설정에 따라 달라지지 않는다(텍스트 11개, 70,322 bytes).
+- 2026-11-06 설치 폴더의 `licenses/external/readme.txt`(원본 `docs/root/licenses/external/readme.txt`)가 "드라이버는 제품에 포함되지 않는다"고
+  적고 있어, 일부 드라이버는 내장되며 `drivers/README.txt`와 `NOTICE`를 보라고 고침.
