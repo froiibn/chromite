@@ -235,7 +235,7 @@ SSMS 배치, Object Explorer 등 실제 화면은 B단계에서 만든다.
 | Equinox 애플리케이션 | `com.seizia.chromite.ui.swing.application` |
 | 제품 확장 | `com.seizia.chromite.ui.swing.product` (`org.eclipse.core.runtime.products`) |
 | `org.jkiss.dbeaver.application` 확장 | `chromite-swing` (이름 `Chromite`, `GeneralUtils.getProductName()`이 읽음) |
-| 피처 | `com.seizia.chromite.swing.feature` ([features/com.seizia.chromite.swing.feature](../../features/com.seizia.chromite.swing.feature)) |
+| 피처 | `com.seizia.chromite.swing.feature` ([features/com.seizia.chromite.swing.feature](../../features/com.seizia.chromite.swing.feature)). 공개판 내장 드라이버 피처 `com.seizia.chromite.drivers.public.feature`를 SWT 제품과 같이 포함한다([drivers.md](drivers.md)) |
 | 제품 정의 | uid `com.seizia.chromite.swing.product`, [product/swing/chromite-swing.product](../../product/swing/chromite-swing.product) |
 | 실행 파일 | `chromite-swing.exe` / `ChromiteSwing.app` (SWT 제품의 `chromite`를 덮어쓰지 않도록 이름을 나눔) |
 | Maven 프로파일 | `product-chromite-swing` ([product/pom.xml](../../product/pom.xml)). Windows x64, macOS arm64만 빌드 |
@@ -833,6 +833,16 @@ SWT의 DB별 연결 화면(`ext.*.ui`, 32개 번들)에만 있는 설정은 범�
 - 디버그 로그에 ERROR 없음. WARN/예외는 일부러 취소한 PostgreSQL 드라이버 내려받기("Can't load driver properties", `ClassNotFoundException: org.postgresql.Driver`)뿐이다.
 - 확인하지 못한 것: 실제 드라이버 내려받기(네트워크), 오프라인 모드에서의 오류 문구(모델 코드 경로만 확인), 서버형 DB(PostgreSQL 등) 실제 연결, macOS 실행.
 
+### 내장 드라이버 (2026-11-06)
+
+- D단계 결과물에는 공개판 내장 드라이버(묶음 선언 번들과 설치 폴더 `drivers/`)가 없어서, SWT 제품에서는 내장된 PostgreSQL 드라이버도 내려받기를 물었다.
+  둘을 `org.jkiss.dbeaver.ce.feature`에서 전용 피처 `com.seizia.chromite.drivers.public.feature`로 옮기고 Swing 피처도 포함하게 했다(jar 목록은 그 피처 한곳).
+- 확인: `-Pproduct-dbeaver-ce,product-chromite-swing` BUILD SUCCESS. Swing 결과물 Windows `chromite-swing/drivers/`, macOS `ChromiteSwing.app/Contents/Eclipse/drivers/`의
+  파일 34개(18,917,823 bytes)가 SWT 제품의 `drivers/`와 이름·크기·SHA-256이 모두 같고, SWT 제품의 `drivers/`도 바꾸기 전과 같다.
+  `com.seizia.chromite.drivers.public` 번들이 `bundles.info`에 들어가 번들 수는 Windows x64 130개, macOS arm64 131개이며, `swt`·`jface`·`org.eclipse.ui`·`org.eclipse.e4.ui` 번들은 여전히 0개다.
+- Windows in-process JVM 실행(C단계 작업 공간 사본): New Connection → PostgreSQL → Driver Properties 탭이 내려받기 확인 없이 pgjdbc 속성(adaptiveFetch 등)을 바로 보였고,
+  Test Connection은 pgjdbc의 "Connection refused"(localhost:5432, 서버 없음)로 끝났다. 사용자 드라이버 폴더(`DBeaverData/drivers`)에는 PostgreSQL jar가 없으므로 설치 폴더의 `drivers/postgresql`에서 불러온 것이다.
+
 ### D단계에서 남긴 것
 
 - 인증 방식 선택, 네트워크 핸들러(SSH 등), 연결 일반 설정(폴더, 연결 종류, 읽기 전용, 설명), 초기화 설정 — 위 표.
@@ -841,8 +851,6 @@ SWT의 DB별 연결 화면(`ext.*.ui`, 32개 번들)에만 있는 설정은 범�
   연결 이름을 바꿔도 열린 편집기 탭 제목(`SQLQueryN.sql - 연결 이름`)은 바뀌지 않는다.
 - 다른 곳에서 만든 DB 객체를 트리에 바로 넣기(`ADD` 이벤트), 활성 프로젝트 전환.
 - 이름 규칙 설정(`navigator.settings.default.connectionPattern`) 읽기.
-- Swing 제품에는 공개판 내장 드라이버([drivers.md](drivers.md)의 `com.seizia.chromite.drivers.public`과 설치 폴더 `drivers/`, `org.jkiss.dbeaver.ce.feature`에 있음)가
-  들어 있지 않다(2026-11-06 결과물 확인). 그래서 SWT 제품에서는 내장된 PostgreSQL 드라이버도 Swing 제품에서는 내려받기를 묻는다. 제품 구성 작업으로 따로 다룬다.
 
 ## 변경 이력
 
@@ -859,3 +867,4 @@ SWT의 DB별 연결 화면(`ext.*.ui`, 32개 번들)에만 있는 설정은 범�
 - 2026-11-06 D단계 구현: 연결 만들기·편집 대화상자(드라이버 고르기, 드라이버 정의로 구성하는 범용 설정 화면, 드라이버·공급자 속성 표, Test Connection),
   연결 명령(연결, 끊기, 다시 연결, 이름 바꾸기, 삭제), `openConnectionEditor`, 드라이버 파일 내려받기 확인(`UIServiceDrivers`),
   탐색기 모델 이벤트로 Object Explorer 갱신과 상태 표시줄 연결 수 갱신. "구현 현황 — D단계" 절 추가, B·C단계의 남긴 항목에서 구현한 것을 뺌.
+- 2026-11-06 Swing 제품에 공개판 내장 드라이버 포함(`com.seizia.chromite.drivers.public.feature`). "내장 드라이버" 절 추가, D단계의 남긴 항목에서 뺌.
