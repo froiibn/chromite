@@ -12,7 +12,7 @@ DBeaver Community 포크를 **Chromite** 제품으로 배포하기 위해, 사�
 | 항목 | 값 |
 |---|---|
 | 제품명 | `Chromite` |
-| 부제 | `Database Workbench` (로고 문구와 같음) |
+| 부제 | `Database Workbench` (로고 문구와 같음). 한국어 `데이터베이스 워크벤치` |
 | 실행 파일 | `chromite` (`chromite.exe`) |
 | macOS 앱 폴더 | `Chromite.app` |
 | 배포 파일 이름 | `chromite-<버전>-<플랫폼>` |
@@ -117,3 +117,8 @@ DBeaver Community 포크를 **Chromite** 제품으로 배포하기 위해, 사�
 - 2026-11-06 Windows 실행 파일 아이콘 수정: 1단계 `dbeaver.ico`가 PNG 항목만 있어 `IconExe`가 읽지 못했고
   (`[IconExe] Error - 7 original icon(s) not replaced`), `chromite.exe`에 Eclipse 아이콘이 남아 있었다.
   upstream과 같은 BMP 7개 구성으로 다시 만들고 생성 스크립트 `tools/branding/gen_launcher_ico.py`를 추가했다.
+- 2026-11-06 다국어 부제(`productSubTitle`, `aboutText`)에 남아 있던 DBeaver 문구("Universal Database Manager"의 번역,
+  한국어 "통합 데이터베이스 관리툴")를 Chromite 부제로 변경. 한국어 `데이터베이스 워크벤치`, 독일어 `Datenbank-Workbench`,
+  프랑스어 `Atelier de bases de données`, 러시아어 `Рабочая среда для баз данных`, 우크라이나어
+  `Робоче середовище для баз даних`, 중국어 간체 `数据库工作台`, 번체 `資料庫工作台`. 확실한 번역이 없는 스페인어,
+  이탈리아어(`aboutText`), 폴란드어, 포르투갈어(브라질), 루마니아어는 영어 `Database Workbench`를 쓴다.
