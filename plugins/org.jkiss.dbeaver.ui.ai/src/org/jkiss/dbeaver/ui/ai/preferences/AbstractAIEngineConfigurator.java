@@ -1,6 +1,7 @@
 /*
  * DBeaver - Universal Database Manager
  * Copyright (C) 2010-2026 DBeaver Corp and others
+ * Modifications Copyright (C) 2026 Chromite contributors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -30,6 +31,7 @@ import org.eclipse.ui.forms.events.ExpansionEvent;
 import org.eclipse.ui.forms.widgets.ExpandableComposite;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
+import org.jkiss.dbeaver.model.ai.AIConstants;
 import org.jkiss.dbeaver.model.ai.engine.AIEngineProperties;
 import org.jkiss.dbeaver.model.ai.engine.AIModel;
 import org.jkiss.dbeaver.model.ai.engine.BaseAIEngineProperties;
@@ -43,6 +45,14 @@ import java.util.Locale;
 
 /**
  * Base class for AI engine settings configurators.
+ *
+ * 설계: 모델을 고르면 제공자 모델 목록이 준 컨텍스트 크기를 기본값으로 보여 준다. 제공자가 크기를 주지 않으면
+ * OpenAIProperties.selectModel()과 같은 보수적 기본값 AIConstants.DEFAULT_CONTEXT_WINDOW_SIZE를 보여 준다.
+ * 사용자는 이 값을 고칠 수 있다.
+ *
+ * 변경 이력:
+ * - 2026-11-06 dbeaver.com AI 모델 카탈로그 제거: 카탈로그가 채우던 컨텍스트 크기 대신, 목록에 크기가 없는 모델에는
+ *   AIConstants.DEFAULT_CONTEXT_WINDOW_SIZE를 기본값으로 보여 준다(공식 OpenAI API의 모델 목록은 크기를 주지 않는다).
  */
 public abstract class AbstractAIEngineConfigurator<ENGINE extends AIEngineDescriptor, PROPERTIES extends AIEngineProperties>
     implements AIIObjectPropertyConfigurator<ENGINE, PROPERTIES> {
@@ -83,8 +93,9 @@ public abstract class AbstractAIEngineConfigurator<ENGINE extends AIEngineDescri
             temperatureText.setText(String.valueOf(model == null ? 0.0 : model.defaultTemperature()));
         }
         temperatureText.setEnabled(model == null || model.isTemperatureEditable());
-        if (contextField != null && model != null && model.contextWindowSize() != null) {
-            contextField.setDefaultValue(model.contextWindowSize());
+        if (contextField != null && model != null) {
+            Integer contextSize = model.contextWindowSize();
+            contextField.setDefaultValue(contextSize != null ? contextSize : AIConstants.DEFAULT_CONTEXT_WINDOW_SIZE);
         }
     }
 

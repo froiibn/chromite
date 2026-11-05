@@ -1,6 +1,7 @@
 /*
  * DBeaver - Universal Database Manager
  * Copyright (C) 2010-2026 DBeaver Corp and others
+ * Modifications Copyright (C) 2026 Chromite contributors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,13 +21,20 @@ import com.google.gson.annotations.SerializedName;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.model.ai.engine.AIModel;
-import org.jkiss.dbeaver.model.ai.engine.AIModelCatalogEntry;
 import org.jkiss.dbeaver.model.ai.engine.AIModelFeature;
 
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+/**
+ * A model entry returned by the Copilot models endpoint.
+ *
+ * 설계: 모델의 한도와 기능은 Copilot 모델 목록 응답(capabilities.limits, capabilities.supports)에서만 읽는다.
+ *
+ * 변경 이력:
+ * - 2026-11-06 dbeaver.com AI 모델 카탈로그 제거: 카탈로그 항목으로 빈 값을 채우던 toAIModel(AIModelCatalogEntry)를 삭제했다.
+ */
 public record CopilotModel(
     @SerializedName("name") @NotNull String name,
     @SerializedName("id") @NotNull String id,
@@ -84,25 +92,6 @@ public record CopilotModel(
             limits == null ? null : limits.maxOutputTokens(),
             null
         ).withFeature(AIModelFeature.VISION, supports == null ? null : supports.vision());
-    }
-
-    @NotNull
-    public AIModel toAIModel(@Nullable AIModelCatalogEntry catalogEntry) {
-        AIModel nativeModel = toAIModel();
-        if (catalogEntry == null) {
-            return nativeModel;
-        }
-        AIModel result = catalogEntry.enrich(nativeModel);
-        CopilotModelSupports supports = capabilities == null ? null : capabilities.supports();
-        if (supports != null) {
-            result = result.withFeature(AIModelFeature.STREAMING, supports.streaming())
-                .withFeature(AIModelFeature.TOOL_CALL, supports.toolCalls())
-                .withFeature(AIModelFeature.VISION, supports.vision());
-            if (supports.thinking() != null || supports.adaptiveThinking() != null || supports.reasoningEffort() != null) {
-                result = result.withFeature(AIModelFeature.REASONING, nativeModel.features().contains(AIModelFeature.REASONING));
-            }
-        }
-        return result;
     }
 
     public record CopilotModelPolicy(@SerializedName("state") @Nullable String state) {

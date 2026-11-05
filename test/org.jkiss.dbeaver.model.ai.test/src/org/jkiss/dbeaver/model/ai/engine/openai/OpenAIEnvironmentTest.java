@@ -1,6 +1,7 @@
 /*
  * DBeaver - Universal Database Manager
  * Copyright (C) 2010-2026 DBeaver Corp and others
+ * Modifications Copyright (C) 2026 Chromite contributors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,17 +21,12 @@ import com.google.gson.Gson;
 import org.jkiss.code.NotNull;
 import org.jkiss.dbeaver.DBException;
 import org.jkiss.dbeaver.model.ai.AIConfigurationProfile;
-import org.jkiss.dbeaver.model.ai.engine.AIModelCatalog;
-import org.jkiss.dbeaver.model.ai.engine.AIModelCatalogEntry;
 import org.jkiss.dbeaver.model.ai.engine.BaseAIEngineProperties;
 import org.jkiss.dbeaver.model.ai.engine.copilot.CopilotCompletionEngine;
-import org.jkiss.dbeaver.model.ai.engine.copilot.CopilotModels;
 import org.jkiss.dbeaver.model.ai.engine.copilot.CopilotProperties;
 import org.jkiss.dbeaver.model.runtime.VoidProgressMonitor;
 import org.jkiss.dbeaver.model.secret.DBSSecretController;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
 import org.mockito.Mockito;
@@ -39,23 +35,15 @@ import java.net.URI;
 import java.net.http.HttpRequest;
 import java.util.Map;
 
+/**
+ * Environment variable handling of the OpenAI and Copilot settings.
+ *
+ * 변경 이력:
+ * - 2026-11-06 dbeaver.com AI 모델 카탈로그 제거: 카탈로그 픽스처를 삭제했다. 환경 변수로 지정한 모델에도 카탈로그 크기 대신
+ *   설정한 컨텍스트 크기를 쓰도록 기대값을 바꾸고, 카탈로그 한도를 빌리지 않는지 보던
+ *   environmentGatewayDoesNotBorrowFirstPartyCatalogLimits 테스트와 getEffectiveTemperature() 검사를 삭제했다.
+ */
 class OpenAIEnvironmentTest {
-    private AutoCloseable catalogFixture;
-
-    @BeforeEach
-    void setUpCatalog() {
-        AIModelCatalogEntry entry = new Gson().fromJson("{\"limit\":{\"context\":128000}}", AIModelCatalogEntry.class);
-        catalogFixture = AIModelCatalog.useForTests(Map.of(
-            OpenAIModels.CATALOG_PROVIDER_ID, Map.of("gpt-4o", entry),
-            CopilotModels.CATALOG_PROVIDER_ID, Map.of("gpt-4o", entry)
-        ));
-    }
-
-    @AfterEach
-    void tearDownCatalog() throws Exception {
-        catalogFixture.close();
-    }
-
     @Test
     void environmentIsOptInAndDoesNotReplaceStoredValues() {
         OpenAIProperties properties = withEnvironment(new OpenAIProperties(), Map.of(
@@ -179,7 +167,7 @@ class OpenAIEnvironmentTest {
         properties.setContextWindowSize(4096);
         properties.setUseEnvVariables(true);
         try (OpenAIEngine<OpenAIProperties> engine = new OpenAIEngine<>(properties)) {
-            Assertions.assertEquals(128000, engine.getContextWindowSize(new VoidProgressMonitor()));
+            Assertions.assertEquals(4096, engine.getContextWindowSize(new VoidProgressMonitor()));
         }
         properties.setContextWindowSize(properties.getContextWindowSize());
         OpenAIProperties saved = new Gson().fromJson(new Gson().toJson(properties, OpenAIProperties.class), OpenAIProperties.class);
@@ -195,7 +183,7 @@ class OpenAIEnvironmentTest {
         properties.setContextWindowSize(4096);
         properties.setUseEnvVariables(true);
         try (CopilotCompletionEngine<CopilotProperties> engine = new CopilotCompletionEngine<>(properties)) {
-            Assertions.assertEquals(128000, engine.getContextWindowSize(new VoidProgressMonitor()));
+            Assertions.assertEquals(4096, engine.getContextWindowSize(new VoidProgressMonitor()));
         }
         properties.setContextWindowSize(properties.getContextWindowSize());
         CopilotProperties saved = new Gson().fromJson(new Gson().toJson(properties, CopilotProperties.class), CopilotProperties.class);
@@ -211,13 +199,11 @@ class OpenAIEnvironmentTest {
         properties.setTemperature(0.0);
         properties.setUseEnvVariables(true);
         Assertions.assertEquals(0.0, properties.getTemperature());
-        Assertions.assertEquals(0.0, properties.getEffectiveTemperature());
         Assertions.assertEquals(0.0, properties.getRequestTemperature());
         properties.setTemperature(properties.getTemperature());
         CopilotProperties saved = new Gson().fromJson(new Gson().toJson(properties, CopilotProperties.class), CopilotProperties.class);
         saved.setUseEnvVariables(false);
         Assertions.assertEquals(0.0, saved.getTemperature());
-        Assertions.assertEquals(0.0, saved.getEffectiveTemperature());
         Assertions.assertEquals("gpt-4o", saved.getModel());
     }
 
@@ -227,10 +213,9 @@ class OpenAIEnvironmentTest {
             "{\"gpt.model\":\"gpt-4o\",\"gpt.model.temperature\":0.0,\"ai.useEnvVariables\":true}", CopilotProperties.class);
         properties = withEnvironment(properties, Map.of(CopilotProperties.ENV_MODEL, "gpt-5"));
         Assertions.assertEquals(0.0, properties.getTemperature());
-        Assertions.assertEquals(0.0, properties.getEffectiveTemperature());
         CopilotProperties saved = new Gson().fromJson(new Gson().toJson(properties, CopilotProperties.class), CopilotProperties.class);
         saved = withEnvironment(saved, Map.of(CopilotProperties.ENV_MODEL, "gpt-5"));
-        Assertions.assertEquals(0.0, saved.getEffectiveTemperature());
+        Assertions.assertEquals(0.0, saved.getTemperature());
     }
 
     @Test
@@ -240,7 +225,6 @@ class OpenAIEnvironmentTest {
         properties.setTemperature(0.5);
         properties.setUseEnvVariables(true);
         Assertions.assertEquals(0.5, properties.getTemperature());
-        Assertions.assertEquals(0.5, properties.getEffectiveTemperature());
     }
 
     @Test
@@ -253,20 +237,6 @@ class OpenAIEnvironmentTest {
         copilotProperties.setUseEnvVariables(true);
         copilotProperties.setContextWindowSize(4096);
         Assertions.assertEquals(4096, copilotProperties.getEffectiveContextWindowSize());
-    }
-
-    @Test
-    void environmentGatewayDoesNotBorrowFirstPartyCatalogLimits() throws DBException {
-        OpenAIProperties properties = withEnvironment(new OpenAIProperties(), Map.of(
-            OpenAIProperties.ENV_MODEL, "gpt-4o",
-            OpenAIProperties.ENV_BASE_URL, "https://gateway.example/v1/"
-        ));
-        properties.setUseEnvVariables(true);
-        properties.setContextWindowSize(4096);
-
-        try (OpenAIEngine<OpenAIProperties> engine = new OpenAIEngine<>(properties)) {
-            Assertions.assertEquals(4096, engine.getContextWindowSize(new VoidProgressMonitor()));
-        }
     }
 
     @NotNull

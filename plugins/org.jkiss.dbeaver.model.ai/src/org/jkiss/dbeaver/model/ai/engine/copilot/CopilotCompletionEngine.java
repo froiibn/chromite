@@ -1,6 +1,7 @@
 /*
  * DBeaver - Universal Database Manager
  * Copyright (C) 2010-2026 DBeaver Corp and others
+ * Modifications Copyright (C) 2026 Chromite contributors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -40,6 +41,15 @@ import org.jkiss.utils.Pair;
 import java.util.List;
 import java.util.Objects;
 
+/**
+ * GitHub Copilot completion engine.
+ *
+ * 설계: 모델 목록과 모델별 한도·기능은 Copilot 모델 목록 API(CopilotClientBase.loadModels)의 응답만 쓴다.
+ *
+ * 변경 이력:
+ * - 2026-11-06 dbeaver.com AI 모델 카탈로그 제거: 카탈로그 공급자 ID(getCatalogProviderId)와 카탈로그 보강(mapModels)을 삭제했다.
+ *   모델별 기본 temperature가 없어져 temperature() 재정의(CopilotProperties.getEffectiveTemperature 사용)도 삭제했다.
+ */
 public class CopilotCompletionEngine<P extends CopilotProperties> extends BaseCompletionEngine<P> {
 
     protected final DisposableLazyValue<CopilotClientResponses, DBException> client = new DisposableLazyValue<>() {
@@ -69,22 +79,13 @@ public class CopilotCompletionEngine<P extends CopilotProperties> extends BaseCo
 
     @NotNull
     @Override
-    protected String getCatalogProviderId() {
-        return CopilotModels.CATALOG_PROVIDER_ID;
-    }
-
-    @Override
-    protected double temperature() {
-        return properties.getEffectiveTemperature();
-    }
-
-    @NotNull
-    @Override
     public List<AIModel> getModels(@NotNull DBRProgressMonitor monitor) throws DBException {
         List<CopilotModel> models = client.getInstance().loadModels(monitor, requestSessionToken(monitor));
         boolean isPremium = models.stream().anyMatch(CopilotModel::modelPickerEnabled);
-        return mapModels(monitor, models.stream().filter(model -> isModelOffered(model, isPremium)).toList(),
-            CopilotModel::id, CopilotModel::toAIModel);
+        return models.stream()
+            .filter(model -> isModelOffered(model, isPremium))
+            .map(CopilotModel::toAIModel)
+            .toList();
     }
 
     private static boolean isModelOffered(@NotNull CopilotModel model, boolean isPremium) {

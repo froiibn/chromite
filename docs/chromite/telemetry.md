@@ -78,7 +78,7 @@ DBeaver 소유 서버로 나가는 다른 요청은 이번 작업에서 조사�
 ## 외부 전송 현황 (2026-11-06 조사, 후속 결정용)
 
 사용 통계 외에 DBeaver 소유 서버(dbeaver.io, dbeaver.com, dbeaver.net, datadam.cloud)로 나가는 요청을 정리했다.
-조사만 했고 이번 작업에서는 바꾸지 않았다.
+조사만 했고 이번 작업에서는 바꾸지 않았다. 이후 처리한 항목은 각 항목에 적었다.
 
 ### 공통 헤더
 
@@ -86,15 +86,18 @@ DBeaver 소유 서버로 나가는 다른 요청은 이번 작업에서 조사�
   모든 요청에 `User-Agent: <제품명> <버전>`(예: `Chromite 26.2.5`)을 넣고, 호출자가 referrer를 주면 `X-Referrer` 헤더로 보낸다.
 - DataDam REST 클라이언트(`DDClient.java` 44~45행)는 `User-Agent: <제품명> (<OS>; <플랫폼>; <아키텍처>)`를 쓴다.
 
-### 1. AI 모델 카탈로그 (제품에 포함, 사용자가 의식하지 못하는 요청)
+### 1. AI 모델 카탈로그 (2026-11-06 제거)
 
-- 위치: `plugins/org.jkiss.dbeaver.model.ai/src/org/jkiss/dbeaver/model/ai/engine/AIModelCatalog.java` 51~52행(주소), 247~251행(요청)
-- 주소: `GET https://dbeaver.com/info/ai_models_api.json` (본문과 쿼리 없음, JDK `HttpClient` 기본 User-Agent)
-- 시점: OpenAI(기본 엔드포인트나 ChatGPT 계정 인증)나 GitHub Copilot AI 엔진으로 AI 기능을 쓸 때
-  (`BaseCompletionEngine` 49~51·80·91행, `AIEngineRequestFactory`, `OpenAIAccountAuthenticator` 264행).
-  캐시(`ai-model-catalog-dbeaver.com.json`)가 7일 지났거나, 실패하고 1일 지났을 때만 받는다.
-- 제어: 설정 키나 시스템 속성이 없다. 제품 기능 "ai"(`model.ai/plugin.xml`, 기본 켜짐)를 끄는 방법뿐이다.
-- 판단: 사용자는 OpenAI나 GitHub를 골랐는데 dbeaver.com에도 요청이 간다. 사용자가 시작한 동작에 딸린 부수 요청이다.
+- 제거 전: `AIModelCatalog`가 `GET https://dbeaver.com/info/ai_models_api.json`(본문과 쿼리 없음, JDK `HttpClient` 기본 User-Agent)을
+  받아 모델별 컨텍스트·입출력 한도, temperature 지원, 도구 호출·추론·구조화 출력 지원, 입력 형식(이미지, PDF)을 채웠다.
+  OpenAI(기본 엔드포인트나 ChatGPT 계정 인증)나 GitHub Copilot 엔진을 쓸 때 요청했고,
+  번들 상태 폴더의 캐시(`ai-model-catalog-dbeaver.com.json`)가 7일 지났거나 실패하고 1일 지났을 때만 다시 받았다.
+- 제거: 사용자 결정(2026-11-06)에 따라 `AIModelCatalog`, `AIModelCatalogEntry`, `CopilotModels`와 카탈로그 조회 코드를 모두 지웠다.
+  이제 Chromite는 이 용도로 dbeaver.com에 접속하지 않는다.
+- 대체: 모델 목록과 메타데이터는 사용자가 연결한 제공자의 모델 목록 API에서만 받고, 없는 값은 사용자 설정과 보수적 기본값을 쓴다.
+  자세한 동작은 [ai.md](ai.md)를 본다.
+- 남은 파일: upstream DBeaver나 이전 빌드에서 쓰던 작업 공간에는 캐시 파일 `ai-model-catalog-dbeaver.com.json`이 남아 있을 수 있다.
+  이 파일을 읽거나 쓰는 코드는 없고, 자동으로 지우지 않는다.
 
 ### 2. 버전 업데이트 확인 (연결은 남아 있으나 지금은 동작하지 않음)
 
@@ -142,8 +145,10 @@ DBeaver 소유 서버로 나가는 다른 요청은 이번 작업에서 조사�
 - `DBRFeatureTracker` 인터페이스, `DBRFeatureRegistry.startTracking()`과 `endTracking()`,
   `DBPApplication.isStatisticsCollectionRequired()`와 `getAdditionalApplicationProperties()`,
   `BaseWorkspaceImpl.readWorkspaceIdProperty()`가 없다.
+- AI 모델 카탈로그(`AIModelCatalog`, `AIModelCatalogEntry`, `CopilotModels`)가 없다. 변경 내용은 [ai.md](ai.md)에 적었다.
 
 ## 변경 이력
 
 - 2026-11-06 사용 통계 기능 제거(ui.statistics 플러그인, 빌드·피처 참조, model·core·ui.app.standalone의 연결 지점, 환영 문구 en/pl).
   DBeaver 소유 서버로 나가는 다른 요청을 조사해 기록.
+- 2026-11-06 외부 전송 1번(AI 모델 카탈로그, `dbeaver.com/info/ai_models_api.json`) 제거. 대체 동작은 [ai.md](ai.md).

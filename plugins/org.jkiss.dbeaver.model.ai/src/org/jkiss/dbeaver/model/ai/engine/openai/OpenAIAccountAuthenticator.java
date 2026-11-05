@@ -1,6 +1,7 @@
 /*
  * DBeaver - Universal Database Manager
  * Copyright (C) 2010-2026 DBeaver Corp and others
+ * Modifications Copyright (C) 2026 Chromite contributors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -25,11 +26,7 @@ import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
 import org.jkiss.dbeaver.model.access.DBAuthUtils;
 import org.jkiss.dbeaver.model.ai.engine.AIModel;
-import org.jkiss.dbeaver.model.ai.engine.AIModelCatalog;
-import org.jkiss.dbeaver.model.ai.engine.AIModelCatalogEntry;
 import org.jkiss.dbeaver.model.ai.engine.OAuthDeviceCodeFlow;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.model.runtime.VoidProgressMonitor;
 import org.jkiss.dbeaver.utils.GeneralUtils;
 import org.jkiss.utils.HttpConstants;
 import org.jkiss.utils.oauth.OAuthConstants;
@@ -49,6 +46,17 @@ import java.time.Duration;
 import java.util.*;
 import java.util.concurrent.*;
 
+/**
+ * ChatGPT account (subscription) sign-in for the OpenAI engine.
+ *
+ * 설계: 계정 방식의 모델 목록과 컨텍스트 크기는 chatgpt.com Codex 모델 목록(CODEX_MODELS_ENDPOINT)의
+ * slug, visibility, priority, context_window만 쓴다.
+ *
+ * 변경 이력:
+ * - 2026-11-06 dbeaver.com AI 모델 카탈로그 제거: listModelDetails()에서 카탈로그로 메타데이터를 보강하던 코드를 삭제했다.
+ *   진행 모니터는 카탈로그 다운로드에만 쓰였으므로 listModelDetails(DBRProgressMonitor, OpenAIProperties) 오버로드를 없애고
+ *   listModelDetails(OpenAIProperties) 하나로 합쳤다.
+ */
 public class OpenAIAccountAuthenticator implements AIAccountAuthenticator {
     private static final String ISSUER = "https://auth.openai.com";
     // Public OAuth client ID registered by OpenAI for the Codex browser authorization flow.
@@ -242,11 +250,6 @@ public class OpenAIAccountAuthenticator implements AIAccountAuthenticator {
 
     @NotNull
     public List<AIModel> listModelDetails(@NotNull OpenAIProperties properties) throws DBException {
-        return listModelDetails(new VoidProgressMonitor(), properties);
-    }
-
-    @NotNull
-    public List<AIModel> listModelDetails(@NotNull DBRProgressMonitor monitor, @NotNull OpenAIProperties properties) throws DBException {
         var productVersion = GeneralUtils.getProductVersion();
         String clientVersion = productVersion.getMajor() + "." + productVersion.getMinor() + "." + productVersion.getMicro();
         HttpRequest.Builder request = HttpRequest.newBuilder(URI.create(CODEX_MODELS_ENDPOINT + "?client_version=" + clientVersion))
@@ -261,13 +264,7 @@ public class OpenAIAccountAuthenticator implements AIAccountAuthenticator {
         }
 
         JsonObject response = send(request.build());
-        Map<String, AIModelCatalogEntry> catalog = AIModelCatalog.getInstance().getModels(monitor, OpenAIModels.CATALOG_PROVIDER_ID);
-        return parseModelDetails(response).stream()
-            .map(model -> {
-                AIModelCatalogEntry entry = OpenAIModels.findCatalogEntry(catalog, model.name());
-                return entry == null ? model : entry.enrich(model);
-            })
-            .toList();
+        return parseModelDetails(response);
     }
 
     @NotNull

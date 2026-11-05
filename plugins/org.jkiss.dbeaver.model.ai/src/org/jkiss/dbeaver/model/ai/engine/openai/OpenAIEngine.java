@@ -1,6 +1,7 @@
 /*
  * DBeaver - Universal Database Manager
  * Copyright (C) 2010-2026 DBeaver Corp and others
+ * Modifications Copyright (C) 2026 Chromite contributors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,7 +18,6 @@
 package org.jkiss.dbeaver.model.ai.engine.openai;
 
 import org.jkiss.code.NotNull;
-import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
 import org.jkiss.dbeaver.model.ai.AIFunctionCall;
 import org.jkiss.dbeaver.model.ai.AIImageAttachment;
@@ -25,7 +25,6 @@ import org.jkiss.dbeaver.model.ai.AIMessageType;
 import org.jkiss.dbeaver.model.ai.AIUsage;
 import org.jkiss.dbeaver.model.ai.engine.*;
 import org.jkiss.dbeaver.model.ai.engine.openai.dto.OAIMessage;
-import org.jkiss.dbeaver.model.ai.engine.openai.dto.OAIModel;
 import org.jkiss.dbeaver.model.ai.engine.openai.dto.OAIResponsesRequest;
 import org.jkiss.dbeaver.model.ai.engine.openai.dto.OAIResponsesResponse;
 import org.jkiss.dbeaver.model.ai.internal.AIMessages;
@@ -34,9 +33,18 @@ import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
 import org.jkiss.utils.CommonUtils;
 
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
+/**
+ * OpenAI engine (API key or ChatGPT account sign-in).
+ *
+ * 설계: 모델 목록은 사용자가 연결한 제공자에서만 받는다. API 키 방식은 설정한 base URL의 GET models,
+ * ChatGPT 계정 방식은 OpenAIAccountAuthenticator.listModelDetails()(chatgpt.com Codex 모델 목록)를 쓴다.
+ *
+ * 변경 이력:
+ * - 2026-11-06 dbeaver.com AI 모델 카탈로그 제거: getCatalogProviderId(), findCatalogEntry() 재정의와
+ *   목록 보강(mapModels)을 삭제했다.
+ */
 public class OpenAIEngine<PROPS extends OpenAIBaseProperties> extends BaseCompletionEngine<PROPS> {
 
     protected DisposableLazyValue<OpenAIClientResponses, DBException> openAiService = new DisposableLazyValue<>() {
@@ -70,10 +78,11 @@ public class OpenAIEngine<PROPS extends OpenAIBaseProperties> extends BaseComple
             if (!OpenAIAccountAuthenticator.isSupported()) {
                 throw new DBException("ChatGPT account authentication is available only in standalone desktop applications");
             }
-            return new OpenAIAccountAuthenticator(openAIProperties.getTimeout()).listModelDetails(monitor, openAIProperties);
+            return new OpenAIAccountAuthenticator(openAIProperties.getTimeout()).listModelDetails(openAIProperties);
         }
-        return mapModels(monitor, openAiService.getInstance().getModels(monitor), OAIModel::id,
-            (model, entry) -> OpenAIModels.fromApiModel(model, entry, getModelFeatures(model.id())));
+        return openAiService.getInstance().getModels(monitor).stream()
+            .map(model -> OpenAIModels.fromApiModel(model, getModelFeatures(model.id())))
+            .toList();
     }
 
     @NotNull
@@ -149,25 +158,6 @@ public class OpenAIEngine<PROPS extends OpenAIBaseProperties> extends BaseComple
             OpenAiUtils.prepareChatGptAccountRequest(oaiRequest);
         }
         return oaiRequest;
-    }
-
-    @Nullable
-    @Override
-    protected String getCatalogProviderId() {
-        boolean accountAuthentication = properties instanceof OpenAIProperties openAIProperties
-            && openAIProperties.isChatGptAccountAuthentication();
-        return accountAuthentication || OpenAIModels.isOpenAIEndpoint(properties.getEffectiveBaseUrl())
-            ? OpenAIModels.CATALOG_PROVIDER_ID : null;
-    }
-
-    @Nullable
-    @Override
-    protected AIModelCatalogEntry findCatalogEntry(
-        @NotNull Map<String, AIModelCatalogEntry> catalog,
-        @Nullable String modelName
-    ) {
-        return OpenAIModels.CATALOG_PROVIDER_ID.equals(getCatalogProviderId())
-            ? OpenAIModels.findCatalogEntry(catalog, modelName) : super.findCatalogEntry(catalog, modelName);
     }
 
     @NotNull

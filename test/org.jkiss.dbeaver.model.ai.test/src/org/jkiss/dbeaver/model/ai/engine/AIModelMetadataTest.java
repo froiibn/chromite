@@ -1,6 +1,7 @@
 /*
  * DBeaver - Universal Database Manager
  * Copyright (C) 2010-2026 DBeaver Corp and others
+ * Modifications Copyright (C) 2026 Chromite contributors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,29 +24,20 @@ import org.jkiss.dbeaver.model.ai.engine.openai.dto.OAIModel;
 import org.jkiss.junit.DBeaverUnitTest;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.ValueSource;
 
 import java.util.Set;
 
+/**
+ * Model metadata parsed from provider model list responses.
+ *
+ * 설계: 제공자 응답(OpenAI 호환 models, Copilot models)에서 읽은 값만 검증한다.
+ *
+ * 변경 이력:
+ * - 2026-11-06 dbeaver.com AI 모델 카탈로그 제거: 카탈로그 보강(AIModelCatalogEntry.enrich, CopilotModel.toAIModel(entry),
+ *   OpenAIModels.fromApiModel(model, entry))을 검증하던 테스트 7개를 삭제했다.
+ */
 class AIModelMetadataTest extends DBeaverUnitTest {
     private static final Gson GSON = new Gson();
-
-    @Test
-    void catalogEnrichmentPreservesNativeImageInputRestriction() {
-        AIModel model = new AIModel("text-only", 64000, Set.of(AIModelFeature.CHAT), 0.7, false);
-        AIModelCatalogEntry entry = GSON.fromJson("""
-            {"tool_call":true,"temperature":false,"modalities":{"input":["text","image"]}}
-            """, AIModelCatalogEntry.class);
-
-        AIModel result = entry.enrich(model);
-
-        Assertions.assertFalse(result.imageInputSupported());
-        Assertions.assertFalse(result.features().contains(AIModelFeature.VISION));
-        Assertions.assertTrue(result.features().contains(AIModelFeature.TOOL_CALL));
-        Assertions.assertEquals(64000, result.contextWindowSize());
-        Assertions.assertFalse(result.withFeature(AIModelFeature.REASONING, true).imageInputSupported());
-    }
 
     @Test
     void featureOverridesPreserveMetadataAndDoNotMutateOriginal() {
@@ -78,18 +70,6 @@ class AIModelMetadataTest extends DBeaverUnitTest {
         Assertions.assertEquals(128_000, model.contextWindowSize());
         Assertions.assertEquals(0.0, model.defaultTemperature());
         Assertions.assertFalse(model.features().contains(AIModelFeature.ALWAYS_DEFAULT_TEMPERATURE));
-    }
-
-    @Test
-    void catalogImageModalitiesControlImageInputWhileMissingMetadataKeepsTheFallback() {
-        AIModel model = new AIModel("gpt-test", 64000, Set.of(AIModelFeature.CHAT));
-        AIModelCatalogEntry textOnly = GSON.fromJson("{\"modalities\":{\"input\":[\"text\"]}}", AIModelCatalogEntry.class);
-        AIModelCatalogEntry vision = GSON.fromJson("{\"modalities\":{\"input\":[\"text\",\"image\"]}}", AIModelCatalogEntry.class);
-
-        Assertions.assertFalse(textOnly.enrich(model).imageInputSupported());
-        Assertions.assertTrue(vision.enrich(model).imageInputSupported());
-        Assertions.assertTrue(GSON.fromJson("{}", AIModelCatalogEntry.class).enrich(model).imageInputSupported());
-        Assertions.assertTrue(model.imageInputSupported());
     }
 
     @Test
@@ -133,21 +113,6 @@ class AIModelMetadataTest extends DBeaverUnitTest {
         ), model.features());
     }
 
-    @ParameterizedTest
-    @ValueSource(booleans = {false, true})
-    void copilotNativeVisionSupportOverridesCatalog(boolean imageInputSupported) {
-        CopilotModel response = GSON.fromJson(
-            "{\"id\":\"custom-chat\",\"capabilities\":{\"supports\":{\"vision\":" + imageInputSupported + "}}}", CopilotModel.class);
-        AIModelCatalogEntry entry = GSON.fromJson(
-            imageInputSupported ? "{\"modalities\":{\"input\":[\"text\"]}}" : "{\"modalities\":{\"input\":[\"text\",\"image\"]}}",
-            AIModelCatalogEntry.class);
-
-        AIModel model = response.toAIModel(entry);
-
-        Assertions.assertEquals(imageInputSupported, model.imageInputSupported());
-        Assertions.assertEquals(imageInputSupported, model.features().contains(AIModelFeature.VISION));
-    }
-
     @Test
     void missingCopilotCapabilitiesDoNotInventLimitsOrStreamingSupport() {
         AIModel model = GSON.fromJson("{\"id\":\"legacy-chat\"}", CopilotModel.class).toAIModel();
@@ -157,74 +122,5 @@ class AIModelMetadataTest extends DBeaverUnitTest {
         Assertions.assertNull(model.inputTokenLimit());
         Assertions.assertNull(model.outputTokenLimit());
         Assertions.assertNull(model.maxTemperature());
-    }
-
-    @Test
-    void catalogFillsMissingMetadataButDoesNotReplaceNativeContext() {
-        AIModelCatalogEntry entry = GSON.fromJson("""
-            {"limit":{"context":500000,"input":300000,"output":100000},"temperature":false,"tool_call":true}
-            """, AIModelCatalogEntry.class);
-        OAIModel model = GSON.fromJson("{\"id\":\"gpt-5\"}", OAIModel.class);
-
-        AIModel result = OpenAIModels.fromApiModel(model, entry);
-        Assertions.assertEquals(500_000, result.contextWindowSize());
-        Assertions.assertEquals(300_000, result.inputTokenLimit());
-        Assertions.assertEquals(100_000, result.outputTokenLimit());
-        Assertions.assertEquals(0.0, result.defaultTemperature());
-        Assertions.assertFalse(OpenAIModels.isTemperatureEditable(result));
-        Assertions.assertTrue(result.features().contains(AIModelFeature.TOOL_CALL));
-
-        OAIModel limited = GSON.fromJson("{\"id\":\"gpt-5\",\"context_length\":64000}", OAIModel.class);
-        Assertions.assertEquals(64_000, OpenAIModels.fromApiModel(limited, entry).contextWindowSize());
-    }
-
-    @Test
-    void temperatureSupportIsNotConfusedWithNumericDefault() {
-        AIModel model = new AIModel("gpt-test", 128_000, Set.of(AIModelFeature.CHAT), 0.7);
-        AIModelCatalogEntry unsupported = GSON.fromJson("{\"temperature\":false}", AIModelCatalogEntry.class);
-
-        AIModel result = unsupported.enrich(model);
-        Assertions.assertEquals(0.7, result.defaultTemperature());
-        Assertions.assertNull(result.maxTemperature());
-        Assertions.assertTrue(result.features().contains(AIModelFeature.TEMPERATURE_UNSUPPORTED));
-
-        AIModelCatalogEntry supported = GSON.fromJson("{\"temperature\":true}", AIModelCatalogEntry.class);
-        Assertions.assertTrue(OpenAIModels.isTemperatureEditable(supported.enrich(result)));
-    }
-
-    @Test
-    void missingCatalogFieldsPreserveFallbackFeaturesAndDoNotInventStreaming() {
-        AIModel fallback = new AIModel("gpt-test", 32_000, Set.of(AIModelFeature.CHAT, AIModelFeature.REASONING), 0.0);
-        AIModelCatalogEntry entry = GSON.fromJson("{\"tool_call\":true}", AIModelCatalogEntry.class);
-
-        AIModel result = entry.enrich(fallback);
-
-        Assertions.assertEquals(32_000, result.contextWindowSize());
-        Assertions.assertEquals(Set.of(AIModelFeature.CHAT, AIModelFeature.REASONING, AIModelFeature.TOOL_CALL), result.features());
-    }
-
-    @Test
-    void copilotCatalogFillsMissingFieldsButNativeLimitsAndCapabilitiesWin() {
-        CopilotModel response = GSON.fromJson("""
-            {"id":"gpt-test","capabilities":{"type":"chat",
-              "limits":{"max_context_window_tokens":64000,"max_output_tokens":16000},
-              "supports":{"tool_calls":false,"vision":false,"thinking":false}
-            }}
-            """, CopilotModel.class);
-        AIModelCatalogEntry entry = GSON.fromJson("""
-            {"limit":{"context":500000,"input":48000,"output":128000},
-             "tool_call":true,"reasoning":true,"modalities":{"input":["text","image"]},"temperature":false}
-            """, AIModelCatalogEntry.class);
-
-        AIModel model = response.toAIModel(entry);
-
-        Assertions.assertEquals(64_000, model.contextWindowSize());
-        Assertions.assertEquals(48_000, model.inputTokenLimit());
-        Assertions.assertEquals(16_000, model.outputTokenLimit());
-        Assertions.assertFalse(model.features().contains(AIModelFeature.TOOL_CALL));
-        Assertions.assertFalse(model.features().contains(AIModelFeature.VISION));
-        Assertions.assertFalse(model.features().contains(AIModelFeature.REASONING));
-        Assertions.assertFalse(model.imageInputSupported());
-        Assertions.assertTrue(model.features().contains(AIModelFeature.TEMPERATURE_UNSUPPORTED));
     }
 }

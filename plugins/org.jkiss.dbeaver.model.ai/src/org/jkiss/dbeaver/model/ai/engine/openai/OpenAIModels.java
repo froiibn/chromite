@@ -1,6 +1,7 @@
 /*
  * DBeaver - Universal Database Manager
  * Copyright (C) 2010-2026 DBeaver Corp and others
+ * Modifications Copyright (C) 2026 Chromite contributors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,21 +20,27 @@ package org.jkiss.dbeaver.model.ai.engine.openai;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.model.ai.engine.AIModel;
-import org.jkiss.dbeaver.model.ai.engine.AIModelCatalog;
-import org.jkiss.dbeaver.model.ai.engine.AIModelCatalogEntry;
 import org.jkiss.dbeaver.model.ai.engine.AIModelFeature;
 import org.jkiss.dbeaver.model.ai.engine.openai.dto.OAIModel;
 import org.jkiss.utils.CommonUtils;
 
 import java.net.URI;
 import java.util.*;
-import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+/**
+ * OpenAI model helpers.
+ *
+ * 설계: 모델 정보는 OpenAI 호환 엔드포인트의 GET models 응답(id, context_length)과 모델 ID로 추정한 기능만 쓴다.
+ * 공식 OpenAI API의 GET /v1/models는 context_length를 주지 않으므로, 그때 컨텍스트 크기는 사용자 설정이나
+ * AIConstants.DEFAULT_CONTEXT_WINDOW_SIZE를 쓴다(docs/chromite/ai.md).
+ *
+ * 변경 이력:
+ * - 2026-11-06 dbeaver.com AI 모델 카탈로그 제거: CATALOG_PROVIDER_ID, getModelByName(), findCatalogEntry()와
+ *   스냅샷 이름 패턴, 카탈로그 항목을 받던 fromApiModel() 오버로드, isTemperatureEditable()을 삭제했다.
+ */
 public final class OpenAIModels {
-    public static final String CATALOG_PROVIDER_ID = "openai";
     private static final Pattern EMBEDDING_MODEL_PATTERN = Pattern.compile("text-embedding-.*");
-    private static final Pattern SNAPSHOT_MODEL_PATTERN = Pattern.compile("^(.+)-\\d{4}-\\d{2}-\\d{2}$");
 
     private OpenAIModels() {
     }
@@ -54,32 +61,6 @@ public final class OpenAIModels {
         return modelName;
     }
 
-    @NotNull
-    public static Optional<AIModel> getModelByName(@Nullable String modelName) {
-        String name = getEffectiveModelName(modelName);
-        if (name == null) {
-            return Optional.empty();
-        }
-        AIModelCatalogEntry entry = findCatalogEntry(AIModelCatalog.getInstance().getCachedModels(CATALOG_PROVIDER_ID), name);
-        return Optional.ofNullable(entry).map(metadata -> metadata.enrich(new AIModel(name, null, detectModelFeatures(name))));
-    }
-
-    @Nullable
-    public static AIModelCatalogEntry findCatalogEntry(
-        @NotNull Map<String, AIModelCatalogEntry> catalog,
-        @Nullable String modelName
-    ) {
-        if (CommonUtils.isEmpty(modelName)) {
-            return null;
-        }
-        AIModelCatalogEntry entry = catalog.get(modelName);
-        if (entry != null) {
-            return entry;
-        }
-        Matcher snapshot = SNAPSHOT_MODEL_PATTERN.matcher(modelName);
-        return snapshot.matches() ? catalog.get(snapshot.group(1)) : null;
-    }
-
     public static boolean isOpenAIEndpoint(@Nullable String baseUrl) {
         if (baseUrl == null || baseUrl.isBlank()) {
             return true;
@@ -93,25 +74,15 @@ public final class OpenAIModels {
 
     @NotNull
     public static AIModel fromApiModel(@NotNull OAIModel model) {
-        return fromApiModel(model, null);
+        return fromApiModel(model, detectModelFeatures(model.id()));
     }
 
     @NotNull
-    public static AIModel fromApiModel(@NotNull OAIModel model, @Nullable AIModelCatalogEntry catalogEntry) {
-        return fromApiModel(model, catalogEntry, detectModelFeatures(model.id()));
-    }
-
-    @NotNull
-    public static AIModel fromApiModel(
-        @NotNull OAIModel model,
-        @Nullable AIModelCatalogEntry catalogEntry,
-        @NotNull Set<AIModelFeature> features
-    ) {
+    public static AIModel fromApiModel(@NotNull OAIModel model, @NotNull Set<AIModelFeature> features) {
         Integer contextSize = model.contextLength();
-        AIModel result = new AIModel(
+        return new AIModel(
             model.id(), contextSize != null && contextSize > 0 ? contextSize : null, features
         );
-        return catalogEntry == null ? result : catalogEntry.enrich(result);
     }
 
     @NotNull
@@ -154,9 +125,5 @@ public final class OpenAIModels {
             }
         }
         return true;
-    }
-
-    public static boolean isTemperatureEditable(@NotNull AIModel model) {
-        return model.isTemperatureEditable();
     }
 }

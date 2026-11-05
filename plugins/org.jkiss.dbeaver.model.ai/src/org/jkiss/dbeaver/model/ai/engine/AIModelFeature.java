@@ -1,6 +1,7 @@
 /*
  * DBeaver - Universal Database Manager
  * Copyright (C) 2010-2026 DBeaver Corp and others
+ * Modifications Copyright (C) 2026 Chromite contributors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,6 +17,15 @@
  */
 package org.jkiss.dbeaver.model.ai.engine;
 
+/**
+ * Model capabilities reported by an AI provider.
+ *
+ * 설계: 제공자 모델 목록 API가 알려 주거나 모델 ID로 추정할 수 있는 기능만 둔다.
+ *
+ * 변경 이력:
+ * - 2026-11-06 dbeaver.com AI 모델 카탈로그 제거: 카탈로그만 채우던 PDF_INPUT, STRUCTURED_OUTPUT,
+ *   TEMPERATURE_UNSUPPORTED를 삭제했다.
+ */
 public enum AIModelFeature {
     CHAT,
     STREAMING,
@@ -24,8 +34,5 @@ public enum AIModelFeature {
     ALWAYS_DEFAULT_TEMPERATURE,
     TOOL_CALL,
     REASONING,
-    VISION,
-    PDF_INPUT,
-    STRUCTURED_OUTPUT,
-    TEMPERATURE_UNSUPPORTED
+    VISION
 }
