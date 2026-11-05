@@ -1,6 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <site>
-    <description name="DBeaver Update Site" url="https://dbeaver.io/update/latest">DBeaver CE Update Site</description>
 
     <category-def name="org.jkiss.dbeaver" label="Chromite">
         <description>Universal Database Manager</description>

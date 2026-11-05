@@ -60,7 +60,8 @@ DBeaver Community 포크를 **Chromite** 제품으로 배포하기 위해, 사�
 | `product/community/product-branding.properties` | 패키지명, 앱 이름, 제품명, 설명, 상표 문구, 저작권, 회사, 웹사이트, 저장소. 이메일은 비움 |
 | `product/community/DBeaver.product` | 제품 `name="Chromite"`, 실행 파일 `launcher name="chromite"` |
 | `product/community/pom.xml` | 배포 파일 이름 `chromite-${dbeaver-version}`, 루트 폴더 `Chromite.app` / `chromite` |
-| `product/community/DBeaver.p2.inf` | DBeaver CE 업데이트 사이트 제거 |
+| `product/community/DBeaver.p2.inf` | DBeaver CE 업데이트 사이트와 dbeaver.io 확장(Office, Git, Debug) 업데이트 사이트 제거. Eclipse 릴리스 저장소만 남음 |
+| `product/community/category.xml`, `product/repositories/*/category.xml` | dbeaver.io 업데이트 사이트를 가리키던 `<description>` 제거 |
 | `plugins/org.jkiss.dbeaver.ui.app.standalone/plugin.xml` | 제품 이름, `appName`, 저작권, 버전 표시 위치(`versionInfoCoord`), 업데이트 확인 URL 제거 |
 | `plugins/org.jkiss.dbeaver.ui.app.standalone/about.properties` | About 문구와 출처 표기 |
 | `plugins/org.jkiss.dbeaver.ui.app.standalone/OSGI-INF/l10n/bundle*.properties` (13개 언어) | `productName`, `aboutText`의 제품명, `productWebsite`, `productEmail`, 영어로 남아 있던 `productSubTitle` |
@@ -76,7 +77,12 @@ DBeaver Community 포크를 **Chromite** 제품으로 배포하기 위해, 사�
 - **업데이트 확인을 끈다.** `versionUpdateURL`과 `earlyAccessURL`을 지웠다.
   `DBeaverVersionChecker`는 URL이 없으면 확인을 건너뛴다. 남겨 두면 DBeaver 새 버전을 안내한다.
 - **DBeaver CE p2 업데이트 사이트를 뺀다.** 남겨 두면 "업데이트 확인"에서 DBeaver 번들이 Chromite를 덮어쓴다.
-- **확장 업데이트 사이트는 남긴다.** Office, Git, Debug 확장(dbeaver.io)은 기능 유지를 위해 그대로 두었다.
+- **dbeaver.io 확장 업데이트 사이트도 뺀다.** 처음에는 Office, Git, Debug 확장 사이트
+  (`https://dbeaver.io/update/{office,git,debug}/latest/`)를 기능 유지를 위해 남겼으나 2026-11-06 사용자 결정으로 뺐다.
+  이 세 확장은 Chromite 제품 기능(`org.jkiss.dbeaver.ce.feature`)에 들어 있지 않고 DBeaver Corp가 빌드해 올린 번들이라,
+  Chromite 사용자가 DBeaver 서버에서 받을 이유가 없다. 이제 Install New Software에서 이 확장을 설치할 수 없다.
+- **category.xml의 dbeaver.io 사이트 설명도 뺀다.** `<description name="DBeaver ..." url="https://dbeaver.io/update/...">`는
+  빌드한 p2 저장소의 설명으로만 쓰이고, DBeaver가 운영하는 사이트를 가리킨다. 설명 요소는 선택 항목이라 지웠다.
 - **이메일은 비운다.** `productEmail`은 About 대화상자에서 쓰이지 않는다(`AboutBoxDialog`의 이메일 속성은 주석 처리돼 있음).
 - **Windows 아이콘(`dbeaver.ico`)은 BMP 7개로 만든다.** 빌드 중 p2 `BrandingIron`이 `IconExe`로 launcher.exe의
   아이콘 리소스를 바꾼다. `IconExe`는 ICO 항목을 BMP(DIB)로만 읽고 PNG 항목이 하나라도 있으면 파일 전체를 읽지 못하며
@@ -122,3 +128,5 @@ DBeaver Community 포크를 **Chromite** 제품으로 배포하기 위해, 사�
   이탈리아어(`aboutText`), 폴란드어, 포르투갈어(브라질), 루마니아어는 영어 `Database Workbench`를 쓴다.
 - 2026-11-06 Linux를 빌드하지 않게 되어([runtime.md](runtime.md)) Linux 전용 아이콘 `product/community/icons/dbeaver.xpm`,
   `dbeaver.png`를 삭제.
+- 2026-11-06 `DBeaver.p2.inf`에서 dbeaver.io Office, Git, Debug 확장 업데이트 사이트(type 0, 1 각 3개) 제거.
+  `category.xml` 5개(`product/community`, `product/repositories/*`)에서 dbeaver.io를 가리키던 `<description>` 제거.
