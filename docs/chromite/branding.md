@@ -73,7 +73,8 @@ DBeaver Community 포크를 **Chromite** 제품으로 배포하기 위해, 사�
 
 - **내부 이름은 유지한다.** 패키지명(`org.jkiss.dbeaver.*`), 번들 ID, 제품 ID(`org.jkiss.dbeaver.core.product`),
   Maven 프로파일(`product-dbeaver-ce`), 이미지 파일 이름은 바꾸지 않았다. 사용자에게 보이지 않고,
-  바꾸면 upstream 변경을 병합할 때 충돌이 크게 늘어나기 때문이다.
+  사용자 설정과 플러그인 참조가 이 이름에 묶여 있어 바꾸려면 별도 작업으로 한꺼번에 해야 하기 때문이다.
+  (처음에는 upstream 병합 충돌을 줄이려는 이유도 있었으나, 2026-11-06 독립 개발로 정해 그 이유는 없어졌다.)
 - **업데이트 확인을 끈다.** `versionUpdateURL`과 `earlyAccessURL`을 지웠다.
   `DBeaverVersionChecker`는 URL이 없으면 확인을 건너뛴다. 남겨 두면 DBeaver 새 버전을 안내한다.
 - **DBeaver CE p2 업데이트 사이트를 뺀다.** 남겨 두면 "업데이트 확인"에서 DBeaver 번들이 Chromite를 덮어쓴다.
@@ -94,3 +95,4 @@ DBeaver Community 포크를 **Chromite** 제품으로 배포하기 위해, 사�
 - 2026-11-06 1단계 리브랜딩: 제품명, 실행 파일, 배포 파일 이름, 아이콘, 스플래시, About 화면, 다국어 제품명을 Chromite로 변경.
   DBeaver 업데이트 확인과 CE 업데이트 사이트 제거. `NOTICE` 추가, `README.md` 재작성. (PR froiibn/chromite#1)
 - 2026-11-06 일본어 `aboutText`에 영어로 남아 있던 부제를 `Database Workbench`로 수정.
+- 2026-11-06 독립 개발 결정에 따라 "내부 이름 유지" 결정의 이유를 갱신.
