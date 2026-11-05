@@ -1,6 +1,7 @@
 /*
  * DBeaver - Universal Database Manager
  * Copyright (C) 2010-2026 DBeaver Corp and others
+ * Modifications Copyright (C) 2026 Chromite contributors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -30,6 +31,12 @@ import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
 
 /**
  * MissingDataSourceProvider
+ *
+ * 설계: 저장된 연결이 가리키는 데이터 소스 공급자를 찾지 못했을 때 임시 공급자에 붙는 구현이다.
+ * 연결을 열면 원인을 알리는 오류만 낸다.
+ *
+ * 변경 이력:
+ * - 2026-11-06 오류 문구에서 "DBeaver" 판 이름을 빼고 "a different edition of the product"로 일반화(Chromite).
  */
 public class MissingDataSourceProvider implements DBPDataSourceProvider<DBPDataSource> {
 
@@ -71,7 +78,7 @@ public class MissingDataSourceProvider implements DBPDataSourceProvider<DBPDataS
     ) throws DBException {
         throw new DBException("Error: invalid datasource configuration:\n"
                 + "The specified driver '" + container.getDriver().getFullName() + "' could not be found.\n"
-                + "This error may occur if the configuration was created in a different edition of DBeaver.");
+                + "This error may occur if the configuration was created in a different edition of the product.");
     }
 
     @NotNull
