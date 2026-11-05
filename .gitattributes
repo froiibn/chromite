@@ -1,0 +1,2 @@
+# Shipped driver license/README/SOURCE texts: always LF so the product drivers/ bytes do not depend on core.autocrlf.
+/features/com.seizia.chromite.drivers.public.feature/drivers-root/**/*.txt text eol=lf
