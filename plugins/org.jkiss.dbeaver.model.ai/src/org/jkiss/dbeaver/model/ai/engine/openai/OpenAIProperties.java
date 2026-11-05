@@ -1,6 +1,7 @@
 /*
  * DBeaver - Universal Database Manager
  * Copyright (C) 2010-2026 DBeaver Corp and others
+ * Modifications Copyright (C) 2026 Chromite contributors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -37,6 +38,17 @@ import org.jkiss.utils.CommonUtils;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * OpenAI engine settings (API key or ChatGPT account sign-in).
+ *
+ * 설계: 컨텍스트 크기는 사용자가 저장한 값만 쓴다. 모델을 고를 때(selectModel) 제공자 모델 목록이 크기를 주면 그 값을,
+ * 주지 않으면 AIConstants.DEFAULT_CONTEXT_WINDOW_SIZE를 저장한다. 사용자는 설정 화면에서 이 값을 바꿀 수 있다.
+ *
+ * 변경 이력:
+ * - 2026-11-06 dbeaver.com AI 모델 카탈로그 제거: 모델 이름으로 카탈로그에서 컨텍스트 크기를 찾던 코드
+ *   (OpenAIModels.getModelByName 사용)를 삭제했다. 그 결과 저장값과 같아진 getEffectiveContextWindowSize() 재정의와
+ *   getConfiguredContextWindowSize()도 삭제했다.
+ */
 public class OpenAIProperties extends BaseAIEngineProperties implements OpenAIBaseProperties, AIAccountProperties {
     public static final String ENV_API_KEY = "OPENAI_API_KEY";
     public static final String ENV_BASE_URL = "OPENAI_BASE_URL";
@@ -161,9 +173,6 @@ public class OpenAIProperties extends BaseAIEngineProperties implements OpenAIBa
     public void selectModel(@NotNull AIModel model) {
         setModel(model.name());
         Integer contextSize = model.contextWindowSize();
-        if (contextSize == null && (isChatGptAccountAuthentication() || OpenAIModels.isOpenAIEndpoint(getEffectiveBaseUrl()))) {
-            contextSize = OpenAIModels.getModelByName(model.name()).map(AIModel::contextWindowSize).orElse(null);
-        }
         setContextWindowSize(contextSize != null ? contextSize : AIConstants.DEFAULT_CONTEXT_WINDOW_SIZE);
     }
 
@@ -195,35 +204,11 @@ public class OpenAIProperties extends BaseAIEngineProperties implements OpenAIBa
     @Override
     @Property(order = 6, min = 1)
     public Integer getContextWindowSize() {
-        if (contextWindowSize != null) {
-            return contextWindowSize;
-        }
-        if (!isChatGptAccountAuthentication() && !OpenAIModels.isOpenAIEndpoint(getEffectiveBaseUrl())) {
-            return null;
-        }
-
-        return OpenAIModels.getModelByName(getModel())
-            .map(AIModel::contextWindowSize)
-            .orElse(null);
-    }
-
-    @Nullable
-    @Override
-    public Integer getEffectiveContextWindowSize() {
-        String environmentModel = getEnvironmentModel();
-        return environmentModel == null || !isChatGptAccountAuthentication() && !OpenAIModels.isOpenAIEndpoint(getEffectiveBaseUrl())
-            ? getContextWindowSize() : OpenAIModels.getModelByName(environmentModel)
-            .map(AIModel::contextWindowSize)
-            .orElseGet(this::getContextWindowSize);
+        return contextWindowSize;
     }
 
     public void setContextWindowSize(@Nullable Integer contextWindowSize) {
         this.contextWindowSize = contextWindowSize;
-    }
-
-    @Nullable
-    public Integer getConfiguredContextWindowSize() {
-        return contextWindowSize;
     }
 
     @NotNull

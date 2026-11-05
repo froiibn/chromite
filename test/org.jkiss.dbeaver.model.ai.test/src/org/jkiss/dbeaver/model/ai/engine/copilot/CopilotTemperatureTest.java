@@ -1,6 +1,7 @@
 /*
  * DBeaver - Universal Database Manager
  * Copyright (C) 2010-2026 DBeaver Corp and others
+ * Modifications Copyright (C) 2026 Chromite contributors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,12 +21,9 @@ import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import org.jkiss.code.NotNull;
-import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.model.ai.AIMessage;
 import org.jkiss.dbeaver.model.ai.engine.AIEngineRequest;
 import org.jkiss.dbeaver.model.ai.engine.AIEngineResponseConsumer;
-import org.jkiss.dbeaver.model.ai.engine.AIModelCatalog;
-import org.jkiss.dbeaver.model.ai.engine.AIModelCatalogEntry;
 import org.jkiss.dbeaver.model.ai.engine.copilot.dto.CopilotChatRequest;
 import org.jkiss.dbeaver.model.ai.engine.copilot.dto.CopilotSessionToken;
 import org.jkiss.dbeaver.model.ai.engine.openai.dto.OAIResponsesResponse;
@@ -39,23 +37,26 @@ import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 
-import java.util.Map;
 import java.util.stream.Stream;
 
+/**
+ * Saved temperature in Copilot requests.
+ *
+ * 설계: 저장한 temperature가 두 요청 형식(Responses, 레거시 chat)에 그대로 들어가고, 비워 두면 빠지는지 검증한다.
+ *
+ * 변경 이력:
+ * - 2026-11-06 dbeaver.com AI 모델 카탈로그 제거: 카탈로그의 temperature 지원 여부 차원(supported)과 카탈로그 픽스처를 삭제했다.
+ */
 class CopilotTemperatureTest extends DBeaverUnitTest {
     @NotNull
     static Stream<Arguments> requestSettings() {
         return Stream.of("", "0.0", "0.7").flatMap(value -> Stream.of(false, true)
-            .flatMap(streaming -> Stream.of(null, Boolean.FALSE, Boolean.TRUE)
-                .map(supported -> Arguments.of(value, streaming, supported))));
+            .map(streaming -> Arguments.of(value, streaming)));
     }
 
     @ParameterizedTest
     @MethodSource("requestSettings")
-    void preservesSavedTemperatureInBothRequestFormats(
-        @NotNull String value, boolean streaming, @Nullable Boolean supported
-    ) throws Exception {
-        AIModelCatalogEntry entry = new AIModelCatalogEntry(null, supported, null, null, null, null);
+    void preservesSavedTemperatureInBothRequestFormats(@NotNull String value, boolean streaming) throws Exception {
         CopilotProperties properties = new CopilotProperties();
         properties.setModel("test-model");
         if (value.isEmpty()) {
@@ -71,7 +72,6 @@ class CopilotTemperatureTest extends DBeaverUnitTest {
             OAIResponsesResponse.class
         ));
         try (
-            AutoCloseable ignored = AIModelCatalog.useForTests(Map.of("github-copilot", Map.of("test-model", entry)));
             CopilotCompletionEngine<CopilotProperties> engine = new CopilotCompletionEngine<>(properties) {
                 @NotNull
                 @Override
@@ -103,7 +103,7 @@ class CopilotTemperatureTest extends DBeaverUnitTest {
                     ? JsonParser.parseString(CopilotUtils.serializeChatRequest(chat)).getAsJsonObject()
                     : CopilotUtils.GSON.toJsonTree(payload).getAsJsonObject();
                 Assertions.assertFalse(json.has("useServerDefaultTemperature"));
-                if (value.isEmpty() || Boolean.FALSE.equals(supported)) {
+                if (value.isEmpty()) {
                     Assertions.assertFalse(json.has("temperature"));
                 } else {
                     Assertions.assertEquals(Double.parseDouble(value), json.get("temperature").getAsDouble());

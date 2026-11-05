@@ -1,6 +1,7 @@
 /*
  * DBeaver - Universal Database Manager
  * Copyright (C) 2010-2026 DBeaver Corp and others
+ * Modifications Copyright (C) 2026 Chromite contributors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -39,7 +40,6 @@ import org.jkiss.dbeaver.model.ai.engine.openai.OpenAIAccountAuthenticator;
 import org.jkiss.dbeaver.model.ai.engine.openai.OpenAIBaseProperties;
 import org.jkiss.dbeaver.model.ai.engine.openai.OpenAIClientResponses;
 import org.jkiss.dbeaver.model.ai.engine.openai.OpenAIEngine;
-import org.jkiss.dbeaver.model.ai.engine.openai.OpenAIModels;
 import org.jkiss.dbeaver.model.ai.engine.openai.OpenAIProperties;
 import org.jkiss.dbeaver.model.ai.registry.AIEngineDescriptor;
 import org.jkiss.dbeaver.model.runtime.AbstractJob;
@@ -62,6 +62,18 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 
+/**
+ * OpenAI engine settings page (API key or ChatGPT account sign-in).
+ *
+ * 설계: 모델 콤보의 목록과 모델별 컨텍스트 크기는 사용자가 연결한 제공자의 모델 목록에서만 가져온다.
+ * 목록에 없는 모델 이름도 직접 입력할 수 있고, 그때 컨텍스트 크기는 사용자가 입력한다.
+ *
+ * 변경 이력:
+ * - 2026-11-06 dbeaver.com AI 모델 카탈로그 제거: 목록에 없는 모델을 카탈로그(OpenAIModels.getModelByName)에서 찾던 코드를
+ *   삭제했다. 컨텍스트 크기 필드에는 저장된 값을 그대로 불러오고(getConfiguredContextWindowSize 삭제),
+ *   temperature 입력 가능 여부는 제공자 목록의 모델로 판단한다. fetchAccountModelDetails()에서 카탈로그용이던
+ *   진행 모니터 인자를 뺐다.
+ */
 public class OpenAiConfigurator<ENGINE extends AIEngineDescriptor, PROPERTIES extends OpenAIProperties>
     extends AbstractAIEngineConfigurator<ENGINE, PROPERTIES> {
     private static final String API_KEY_URL = "https://platform.openai.com/account/api-keys";
@@ -131,8 +143,7 @@ public class OpenAiConfigurator<ENGINE extends AIEngineDescriptor, PROPERTIES ex
         applySettings();
         loadAdvancedSettings(configuration);
 
-        contextWindowSizeField.setValue(configuration.getConfiguredContextWindowSize());
-        contextWindowSizeField.setDefaultValue(configuration.getContextWindowSize());
+        contextWindowSizeField.setValue(configuration.getContextWindowSize());
 
         boolean useAccountAuthentication = isAccountAuthenticationSupported()
             && configuration.isAccountAuthentication();
@@ -212,11 +223,6 @@ public class OpenAiConfigurator<ENGINE extends AIEngineDescriptor, PROPERTIES ex
             )
             .withModelChangeListener(modelChanged -> {
                 AIModel selectedModel = modelSelectorField.getSelectedModel();
-                if (selectedModel == null && (OpenAIModels.isOpenAIEndpoint(createConnectionProperties().getEffectiveBaseUrl())
-                    || isAccountAuthentication() && accountAuthenticator instanceof OpenAIAccountAuthenticator)
-                ) {
-                    selectedModel = OpenAIModels.getModelByName(modelSelectorField.getSelectedModelName()).orElse(null);
-                }
                 updateModelParameters(selectedModel, temperatureText, contextWindowSizeField, modelChanged);
             })
             .build();
@@ -242,7 +248,7 @@ public class OpenAiConfigurator<ENGINE extends AIEngineDescriptor, PROPERTIES ex
         String currentToken = useAccountAuthentication ? apiToken : token;
         String currentBaseUrl = baseUrl;
         if (currentProperties != null && useAccountAuthentication) {
-            return fetchAccountModelDetails(monitor, currentProperties, currentAuthenticator);
+            return fetchAccountModelDetails(currentProperties, currentAuthenticator);
         }
         OpenAIProperties properties = new OpenAIProperties();
         saveAdvancedSettings(properties);
@@ -262,11 +268,10 @@ public class OpenAiConfigurator<ENGINE extends AIEngineDescriptor, PROPERTIES ex
 
     @NotNull
     protected List<AIModel> fetchAccountModelDetails(
-        @NotNull DBRProgressMonitor monitor,
         @NotNull PROPERTIES properties,
         @NotNull AIAccountAuthenticator authenticator
     ) throws DBException {
-        return ((OpenAIAccountAuthenticator) authenticator).listModelDetails(monitor, properties);
+        return ((OpenAIAccountAuthenticator) authenticator).listModelDetails(properties);
     }
 
     @NotNull
@@ -707,9 +712,8 @@ public class OpenAiConfigurator<ENGINE extends AIEngineDescriptor, PROPERTIES ex
         String environmentModel = currentProperties.isModelSelectionSupported() ? null : currentProperties.getEffectiveModel();
         modelSelectorField.setEnvironmentModel(environmentModel);
         String effectiveModel = environmentModel == null ? modelSelectorField.getSelectedModelName() : environmentModel;
-        temperatureText.setEnabled(OpenAIModels.getModelByName(effectiveModel)
-            .map(OpenAIModels::isTemperatureEditable)
-            .orElse(true));
+        AIModel model = effectiveModel == null ? null : modelSelectorField.getModel(effectiveModel);
+        temperatureText.setEnabled(model == null || model.isTemperatureEditable());
     }
 
     @Override

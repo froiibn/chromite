@@ -1,6 +1,7 @@
 /*
  * DBeaver - Universal Database Manager
  * Copyright (C) 2010-2026 DBeaver Corp and others
+ * Modifications Copyright (C) 2026 Chromite contributors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -30,6 +31,17 @@ import org.jkiss.utils.CommonUtils;
 
 import java.util.List;
 
+/**
+ * GitHub Copilot engine settings.
+ *
+ * 설계: 컨텍스트 크기는 사용자가 저장한 값이나 모델을 고를 때 Copilot 모델 목록 응답에서 받은 값(selectModel)만 쓴다.
+ * temperature는 저장한 값을 쓰고, 값이 없으면 AIUtils.DEFAULT_TEMPERATURE를 쓴다.
+ *
+ * 변경 이력:
+ * - 2026-11-06 dbeaver.com AI 모델 카탈로그 제거: 모델 이름으로 카탈로그에서 컨텍스트 크기와 기본 temperature를 찾던 코드
+ *   (CopilotModels.getModelByName 사용)를 삭제했다. 그 결과 저장값과 같아진 getEffectiveTemperature(),
+ *   getEffectiveContextWindowSize() 재정의, getConfiguredContextWindowSize()도 삭제했다.
+ */
 public class CopilotProperties extends BaseAIEngineProperties {
     public static final String ENV_TOKEN = "COPILOT_GITHUB_TOKEN";
     public static final String ENV_GH_TOKEN = "GH_TOKEN";
@@ -88,51 +100,18 @@ public class CopilotProperties extends BaseAIEngineProperties {
     @Override
     @Property(order = 3)
     public double getTemperature() {
-        return resolveTemperature(getModel());
-    }
-
-    public double getEffectiveTemperature() {
-        return resolveTemperature(getEffectiveModel());
-    }
-
-    private double resolveTemperature(@Nullable String modelName) {
-        if (Double.isFinite(temperature) && (hasExplicitTemperature() || temperature != AIUtils.DEFAULT_TEMPERATURE)) {
-            return temperature;
-        }
-        return CopilotModels.getModelByName(modelName)
-            .map(AIModel::defaultTemperature)
-            .orElse(AIUtils.DEFAULT_TEMPERATURE);
+        return Double.isFinite(temperature) ? temperature : AIUtils.DEFAULT_TEMPERATURE;
     }
 
     @Override
     @Nullable
     @Property(order = 4, min = 1)
     public Integer getContextWindowSize() {
-        if (contextWindowSize != null) {
-            return contextWindowSize;
-        }
-
-        return CopilotModels.getModelByName(getModel())
-            .map(AIModel::contextWindowSize)
-            .orElse(null);
-    }
-
-    @Nullable
-    @Override
-    public Integer getEffectiveContextWindowSize() {
-        String environmentModel = getEnvironmentModel();
-        return environmentModel == null ? getContextWindowSize() : CopilotModels.getModelByName(environmentModel)
-            .map(AIModel::contextWindowSize)
-            .orElseGet(this::getContextWindowSize);
+        return contextWindowSize;
     }
 
     public void setContextWindowSize(@Nullable Integer contextWindowSize) {
         this.contextWindowSize = contextWindowSize;
-    }
-
-    @Nullable
-    public Integer getConfiguredContextWindowSize() {
-        return contextWindowSize;
     }
 
     /**

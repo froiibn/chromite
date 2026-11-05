@@ -1,6 +1,7 @@
 /*
  * DBeaver - Universal Database Manager
  * Copyright (C) 2010-2026 DBeaver Corp and others
+ * Modifications Copyright (C) 2026 Chromite contributors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,6 +23,15 @@ import org.jkiss.code.Nullable;
 import java.util.HashSet;
 import java.util.Set;
 
+/**
+ * An AI model as reported by the provider the user connected.
+ *
+ * 설계: 한도와 기능은 제공자 모델 목록 응답에서만 채운다. 값이 없으면 null(알 수 없음)로 두고 호출자가 사용자 설정이나
+ * 기본값을 쓴다.
+ *
+ * 변경 이력:
+ * - 2026-11-06 dbeaver.com AI 모델 카탈로그 제거: isTemperatureEditable()에서 삭제된 TEMPERATURE_UNSUPPORTED 검사를 뺐다.
+ */
 public record AIModel(
     @NotNull String name,
     @Nullable Integer contextWindowSize,
@@ -88,7 +98,6 @@ public record AIModel(
     }
 
     public boolean isTemperatureEditable() {
-        return !features.contains(AIModelFeature.ALWAYS_DEFAULT_TEMPERATURE)
-            && !features.contains(AIModelFeature.TEMPERATURE_UNSUPPORTED);
+        return !features.contains(AIModelFeature.ALWAYS_DEFAULT_TEMPERATURE);
     }
 }

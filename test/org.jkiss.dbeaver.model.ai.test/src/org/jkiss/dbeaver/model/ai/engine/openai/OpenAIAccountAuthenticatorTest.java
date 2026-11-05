@@ -1,6 +1,7 @@
 /*
  * DBeaver - Universal Database Manager
  * Copyright (C) 2010-2026 DBeaver Corp and others
+ * Modifications Copyright (C) 2026 Chromite contributors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,9 +17,7 @@
  */
 package org.jkiss.dbeaver.model.ai.engine.openai;
 
-import com.google.gson.Gson;
 import com.google.gson.JsonParser;
-import org.jkiss.dbeaver.model.ai.engine.AIModelCatalogEntry;
 import org.jkiss.dbeaver.model.ai.engine.openai.dto.OAIMessage;
 import org.jkiss.dbeaver.model.ai.engine.openai.dto.OAIMessageContent;
 import org.jkiss.dbeaver.model.ai.engine.openai.dto.OAIResponsesRequest;
@@ -37,6 +36,13 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+/**
+ * ChatGPT account sign-in and model listing.
+ *
+ * 변경 이력:
+ * - 2026-11-06 dbeaver.com AI 모델 카탈로그 제거: 카탈로그로 계정 모델의 컨텍스트 크기를 채우던
+ *   catalogFillsMissingAccountContextWithoutReplacingNativeLimit 테스트를 삭제했다.
+ */
 class OpenAIAccountAuthenticatorTest extends DBeaverUnitTest {
     @Test
     void fallsBackToAuthenticatorOwnedDevicePolling() throws Exception {
@@ -158,21 +164,6 @@ class OpenAIAccountAuthenticatorTest extends DBeaverUnitTest {
 
         assertEquals(4, models.size());
         models.forEach(model -> assertNull(model.contextWindowSize()));
-    }
-
-    @Test
-    void catalogFillsMissingAccountContextWithoutReplacingNativeLimit() {
-        var response = JsonParser.parseString("""
-            {"models":[
-              {"slug":"gpt-5","visibility":"list"},
-              {"slug":"custom-model","visibility":"list","context_window":272000}
-            ]}
-            """).getAsJsonObject();
-        var entry = new Gson().fromJson("{\"limit\":{\"context\":500000}}", AIModelCatalogEntry.class);
-        var models = OpenAIAccountAuthenticator.parseModelDetails(response);
-
-        assertEquals(500_000, entry.enrich(models.get(0)).contextWindowSize());
-        assertEquals(272_000, entry.enrich(models.get(1)).contextWindowSize());
     }
 
     @Test

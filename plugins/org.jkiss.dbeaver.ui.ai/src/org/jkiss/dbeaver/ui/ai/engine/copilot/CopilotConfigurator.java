@@ -1,6 +1,7 @@
 /*
  * DBeaver - Universal Database Manager
  * Copyright (C) 2010-2026 DBeaver Corp and others
+ * Modifications Copyright (C) 2026 Chromite contributors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -51,6 +52,16 @@ import java.util.Locale;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 
+/**
+ * GitHub Copilot engine settings page.
+ *
+ * 설계: 모델 콤보의 목록과 모델별 컨텍스트 크기는 Copilot 모델 목록 API에서만 가져온다.
+ * 목록에 없는 모델 이름도 직접 입력할 수 있고, 그때 컨텍스트 크기는 사용자가 입력한다.
+ *
+ * 변경 이력:
+ * - 2026-11-06 dbeaver.com AI 모델 카탈로그 제거: 목록에 없는 모델을 카탈로그(CopilotModels.getModelByName)에서 찾던 코드를
+ *   삭제했다. 컨텍스트 크기 필드에는 저장된 값을 그대로 불러온다(getConfiguredContextWindowSize 삭제).
+ */
 public class CopilotConfigurator<ENGINE extends AIEngineDescriptor, PROPERTIES extends CopilotProperties>
     extends AbstractAIEngineConfigurator<ENGINE, PROPERTIES> {
     private static final Log log = Log.getLog(CopilotConfigurator.class);
@@ -97,8 +108,7 @@ public class CopilotConfigurator<ENGINE extends AIEngineDescriptor, PROPERTIES e
     public void loadSettings(@NotNull PROPERTIES configuration) {
         token = CommonUtils.toString(configuration.getToken());
         modelSelectorField.setSelectedModel(configuration.getModel());
-        contextWindowSizeField.setValue(configuration.getConfiguredContextWindowSize());
-        contextWindowSizeField.setDefaultValue(configuration.getContextWindowSize());
+        contextWindowSizeField.setValue(configuration.getContextWindowSize());
         temperature = configuration.getRequestTemperature() == null ? "" : String.valueOf(configuration.getTemperature());
         accessToken = token;
         accessTokenText.setText(accessToken);
@@ -139,9 +149,6 @@ public class CopilotConfigurator<ENGINE extends AIEngineDescriptor, PROPERTIES e
             .withGridData(new GridData(GridData.FILL_HORIZONTAL))
             .withModelChangeListener(modelChanged -> {
                 AIModel selectedModel = modelSelectorField.getSelectedModel();
-                if (selectedModel == null) {
-                    selectedModel = CopilotModels.getModelByName(modelSelectorField.getSelectedModelName()).orElse(null);
-                }
                 updateModelParameters(selectedModel, temperatureText, contextWindowSizeField, modelChanged);
             })
             .withModelListSupplier(modelListProvider)

@@ -1,6 +1,7 @@
 /*
  * DBeaver - Universal Database Manager
  * Copyright (C) 2010-2026 DBeaver Corp and others
+ * Modifications Copyright (C) 2026 Chromite contributors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -26,6 +27,18 @@ import org.jkiss.dbeaver.ui.UIUtils;
 import org.jkiss.dbeaver.ui.validator.IntegerValidator;
 import org.jkiss.utils.CommonUtils;
 
+/**
+ * Context window size input of the AI engine settings pages.
+ *
+ * 설계: 화면에 보이는 값이 저장되는 값이다. 제공자 모델 목록에서 온 기본값(setDefaultValue)도 저장한다.
+ * 실행 중에 모델 이름으로 컨텍스트 크기를 다시 찾을 원본이 없으므로, 보이는 값을 저장하지 않으면 실제 요청에서는
+ * AIConstants.DEFAULT_CONTEXT_WINDOW_SIZE가 쓰여 화면과 달라진다.
+ * 사용자가 입력하거나 저장된 값을 불러온 뒤에는 목록 새로 고침이 값을 덮어쓰지 않는다(userDefined).
+ *
+ * 변경 이력:
+ * - 2026-11-06 dbeaver.com AI 모델 카탈로그 제거: getValue()가 기본값일 때 null을 돌려주던 동작을 없앴다.
+ *   이 동작은 카탈로그가 실행 중에 같은 값을 다시 채워 준다는 전제였다.
+ */
 public class ContextWindowSizeField {
     @NotNull
     private final Text text;
@@ -62,7 +75,7 @@ public class ContextWindowSizeField {
 
     @Nullable
     public Integer getValue() {
-        return userDefined ? value : null;
+        return value;
     }
 
     public boolean isComplete() {

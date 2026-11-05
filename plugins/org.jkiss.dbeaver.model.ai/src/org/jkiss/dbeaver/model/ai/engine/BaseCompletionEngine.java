@@ -1,6 +1,7 @@
 /*
  * DBeaver - Universal Database Manager
  * Copyright (C) 2010-2026 DBeaver Corp and others
+ * Modifications Copyright (C) 2026 Chromite contributors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,11 +22,20 @@ import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
 import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
 
-import java.util.List;
-import java.util.Map;
-import java.util.function.BiFunction;
-import java.util.function.Function;
-
+/**
+ * Base class for completion engines.
+ *
+ * 설계: 모델 메타데이터(컨텍스트 크기, 기능)는 각 엔진이 사용자가 연결한 제공자의 모델 목록 API에서 받은 값과
+ * 사용자 설정만 쓴다. 사용자가 연결하지 않은 서버(예: DBeaver가 운영하던 모델 카탈로그)로 요청을 보내지 않기
+ * 위해서다(docs/chromite/ai.md).
+ *
+ * 변경 이력:
+ * - 2026-11-06 dbeaver.com AI 모델 카탈로그 제거: 카탈로그 조회(getCatalogProviderId, getModelCatalog,
+ *   getCachedModelCatalog, getCachedCatalogEntry, findCatalogEntry, mapModels)를 삭제했다.
+ *   컨텍스트 크기는 설정값만 쓴다(없으면 호출자 AIEngineRequestFactory가 AIConstants.DEFAULT_CONTEXT_WINDOW_SIZE를 쓴다).
+ *   요청 temperature는 카탈로그의 미지원 표시로 빼지 않는다. 제공자가 temperature를 거부하면
+ *   클라이언트(OpenAIClientResponses, CopilotClientResponses)가 temperature를 빼고 다시 보낸다.
+ */
 public abstract class BaseCompletionEngine<PROPS extends AIEngineProperties> implements AIEngine<PROPS> {
 
     protected final PROPS properties;
@@ -41,72 +51,22 @@ public abstract class BaseCompletionEngine<PROPS extends AIEngineProperties> imp
     }
 
     @Nullable
-    protected String getCatalogProviderId() {
-        return null;
-    }
-
-    @NotNull
-    protected Map<String, AIModelCatalogEntry> getModelCatalog(@NotNull DBRProgressMonitor monitor) {
-        String providerId = getCatalogProviderId();
-        return providerId == null ? Map.of() : AIModelCatalog.getInstance().getModels(monitor, providerId);
-    }
-
-    @NotNull
-    protected Map<String, AIModelCatalogEntry> getCachedModelCatalog() {
-        String providerId = getCatalogProviderId();
-        return providerId == null ? Map.of() : AIModelCatalog.getInstance().getCachedModels(providerId);
-    }
-
-    @Nullable
-    protected AIModelCatalogEntry getCachedCatalogEntry() throws DBException {
-        return findCatalogEntry(getCachedModelCatalog(), model());
-    }
-
-    @Nullable
-    protected AIModelCatalogEntry findCatalogEntry(
-        @NotNull Map<String, AIModelCatalogEntry> catalog,
-        @Nullable String modelName
-    ) {
-        return modelName == null ? null : catalog.get(modelName);
-    }
-
-    @NotNull
-    protected <MODEL> List<AIModel> mapModels(
-        @NotNull DBRProgressMonitor monitor,
-        @NotNull List<MODEL> models,
-        @NotNull Function<MODEL, String> modelName,
-        @NotNull BiFunction<MODEL, AIModelCatalogEntry, AIModel> mapper
-    ) {
-        Map<String, AIModelCatalogEntry> catalog = getModelCatalog(monitor);
-        return models.stream().map(model -> mapper.apply(model, findCatalogEntry(catalog, modelName.apply(model)))).toList();
-    }
-
-    @Nullable
     protected String model() throws DBException {
         return properties.getEffectiveModel();
     }
 
     @Override
     public int getContextWindowSize(@NotNull DBRProgressMonitor monitor) throws DBException {
-        getModelCatalog(monitor);
         Integer contextSize = properties.getEffectiveContextWindowSize();
         if (contextSize != null && contextSize > 0) {
             return contextSize;
-        }
-        AIModelCatalogEntry entry = getCachedCatalogEntry();
-        if (entry != null && entry.limit() != null && entry.limit().context() != null && entry.limit().context() > 0) {
-            return entry.limit().context();
         }
         throw new DBException("Context window size is not set for the model: " + properties.getModel());
     }
 
     @Nullable
     protected Double getRequestTemperature() throws DBException {
-        if (properties.getRequestTemperature() == null) {
-            return null;
-        }
-        AIModelCatalogEntry entry = getCachedCatalogEntry();
-        return entry != null && Boolean.FALSE.equals(entry.temperature()) ? null : temperature();
+        return properties.getRequestTemperature() == null ? null : temperature();
     }
 
     protected double temperature() throws DBException {
