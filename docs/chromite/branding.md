@@ -104,3 +104,5 @@ DBeaver Community 포크를 **Chromite** 제품으로 배포하기 위해, 사�
 - 2026-11-06 진단 정보 수집(`DiagnosticInfoSanitizer`)이 시작 로그 줄(`<제품명> <버전> is starting`)의 버전을
   IP 주소로 보고 가리던 문제 수정: `GeneralUtils.getProductName()`도 확인한다. 같은 작업공간을 쓰던 DBeaver의
   이전 로그를 위해 "DBeaver"도 계속 인식한다.
+- 2026-11-06 AI 프롬프트(`AIPromptUtils`)의 제품명을 Chromite로 변경: "You are the Chromite AI assistant.",
+  "Chromite connection name: ".
