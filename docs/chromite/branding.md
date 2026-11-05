@@ -87,7 +87,6 @@ DBeaver Community 포크를 **Chromite** 제품으로 배포하기 위해, 사�
 - 메뉴, 대화상자, 메시지 등 화면 문구의 "DBeaver"는 아직 바꾸지 않았다(2단계 예정).
   properties 198개 파일, Java 93개 파일에 있다.
 - `product/community-msstore`, `product/testing` 제품 구성은 아직 바꾸지 않았다.
-- `plugin.xml`의 Microsoft Store 제품 정의(`appName="DBeaver CE"`)는 그대로다.
 - 빌드와 실행은 아직 확인하지 않았다(JDK 21과 Maven 필요).
 
 ## 변경 이력
@@ -106,3 +105,5 @@ DBeaver Community 포크를 **Chromite** 제품으로 배포하기 위해, 사�
   이전 로그를 위해 "DBeaver"도 계속 인식한다.
 - 2026-11-06 AI 프롬프트(`AIPromptUtils`)의 제품명을 Chromite로 변경: "You are the Chromite AI assistant.",
   "Chromite connection name: ".
+- 2026-11-06 `plugin.xml`의 Microsoft Store 제품 정의(`msstore`) 저작권을 standalone 제품과 같은
+  `© 2026 Chromite contributors. Based on DBeaver Community © DBeaver Corp`로 변경. 이름과 `appName`은 이미 Chromite다.
