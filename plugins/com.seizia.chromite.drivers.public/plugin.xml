@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?eclipse version="3.2"?>
+
+<!--
+    Chromite public edition: JDBC drivers shipped inside the installation.
+
+    Design: each driver in the driver plugin.xml files declares two alternative file sets,
+    a Maven artifact with bundle="!drivers.X" and an install-relative folder with bundle="drivers.X".
+    Declaring the product bundle "drivers.X" here makes the registry use the folder
+    <install>/drivers/... instead of downloading from Maven (DriverUtils.matchesBundle).
+    The folders are filled at build time by features/org.jkiss.dbeaver.ce.feature/pom.xml,
+    so this plugin and the jar files ship together in the same feature. Declaring a bundle
+    without its files would leave the driver without any file source, so never include this
+    plugin in a product that does not ship the matching drivers/ folders.
+
+    History:
+    - 2026-11-06 Created. Public edition bundles SQL Server, Oracle, PostgreSQL and MariaDB
+      (docs/chromite/drivers.md).
+-->
+<plugin>
+
+    <extension point="org.jkiss.dbeaver.product.bundles">
+        <bundle id="drivers.mssql.new" label="Microsoft SQL Server JDBC driver" description="mssql-jdbc with msal4j in drivers/mssql/new"/>
+        <bundle id="drivers.oracle" label="Oracle JDBC driver" description="ojdbc11, orai18n, xdb6 and xmlparserv2 in drivers/oracle"/>
+        <bundle id="drivers.postgresql" label="PostgreSQL JDBC driver" description="pgjdbc in drivers/postgresql, PostGIS in drivers/postgis"/>
+        <bundle id="drivers.mariadb" label="MariaDB JDBC driver" description="MariaDB Connector/J in drivers/mariadb"/>
+    </extension>
+
+</plugin>

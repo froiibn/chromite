@@ -32,3 +32,21 @@ endorsed by or sponsored by DBeaver Corp.
 
 This product includes third-party libraries that are distributed under
 their own licenses.
+
+Binary distributions of Chromite include the following unmodified
+third-party JDBC drivers in the drivers/ folder of the installation.
+They are not covered by the Apache License 2.0 of Chromite; each is
+distributed under its own license, and the license texts (and, for
+LGPL libraries, the location of the corresponding source code) are in
+the same folder as the jar files. See drivers/README.txt for the
+complete file list.
+
+  Microsoft JDBC Driver for SQL Server 13.4.0 (mssql-jdbc) - MIT License
+  Microsoft Authentication Library for Java 1.16.0 (msal4j) and its
+    dependencies - MIT License, Apache License 2.0, BSD 3-Clause License
+  Oracle JDBC driver 23.2.0.0 (ojdbc11, orai18n, xmlparserv2) and
+    xdb6 18.3.0.0 - Oracle Free Use Terms and Conditions
+  PostgreSQL JDBC Driver 42.7.14 (pgjdbc) - BSD 2-Clause License
+  PostGIS JDBC 2.5.0 - GNU Lesser General Public License 2.1
+  MariaDB Connector/J 3.5.10 - GNU Lesser General Public License 2.1
+    or later
