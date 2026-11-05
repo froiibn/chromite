@@ -1,6 +1,7 @@
 /*
  * DBeaver - Universal Database Manager
  * Copyright (C) 2010-2025 DBeaver Corp and others
+ * Modifications Copyright (C) 2026 Chromite contributors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -59,7 +60,7 @@ public class TrayIconHandler {
         trayItem.setImageAutoSize(true);
         {
             PopupMenu popupMenu = new PopupMenu();
-            MenuItem showItem = new MenuItem("Show DBeaver");
+            MenuItem showItem = new MenuItem("Show Chromite");
             showItem.addActionListener(e -> showMainWindow());
             popupMenu.add(showItem);
             trayItem.setPopupMenu(popupMenu);

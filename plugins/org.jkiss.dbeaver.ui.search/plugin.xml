@@ -7,7 +7,7 @@
     <extension point="org.eclipse.ui.actionSets">
         <actionSet
             id="org.jkiss.dbeaver.search.searchActionSet"
-            label="DBeaver Search"
+            label="Chromite Search"
             visible="true">
             <!-- Some ancient Eclipse bug makes us to do this crazy things.
             Redefine search menu placeholders. Otherwise it doesn't work. -->

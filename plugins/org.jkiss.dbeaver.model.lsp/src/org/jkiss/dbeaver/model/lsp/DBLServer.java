@@ -1,6 +1,7 @@
 /*
  * DBeaver - Universal Database Manager
  * Copyright (C) 2010-2025 DBeaver Corp and others
+ * Modifications Copyright (C) 2026 Chromite contributors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -30,7 +31,7 @@ import java.util.concurrent.CompletableFuture;
 public final class DBLServer implements LanguageServer, LanguageClientAware {
     private static final Log log = Log.getLog(DBLServer.class);
 
-    private static final String SERVER_NAME = "DBeaver language server"; //NON-NLS
+    private static final String SERVER_NAME = "Chromite language server"; //NON-NLS
 
     @Nullable
     private ClientInfo clientInfo;

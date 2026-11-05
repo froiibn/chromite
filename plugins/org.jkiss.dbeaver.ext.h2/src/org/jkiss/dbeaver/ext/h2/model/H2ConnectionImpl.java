@@ -1,6 +1,7 @@
 /*
  * DBeaver - Universal Database Manager
  * Copyright (C) 2010-2026 DBeaver Corp and others
+ * Modifications Copyright (C) 2026 Chromite contributors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -76,7 +77,7 @@ public class H2ConnectionImpl extends JDBCConnectionImpl {
         ) {
             throw new SQLException(
                 "Java source aliases and triggers are disabled for embedded H2 databases. " +
-                "Allow all H2 classes in Preferences > Drivers > H2 and restart DBeaver to enable them"
+                "Allow all H2 classes in Preferences > Drivers > H2 and restart Chromite to enable them"
             );
         }
     }
