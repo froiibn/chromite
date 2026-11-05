@@ -1,0 +1,351 @@
+/*
+ * Chromite - Database Workbench
+ * Copyright (C) 2026 Chromite contributors
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package com.seizia.chromite.ui.swing;
+
+import com.formdev.flatlaf.FlatClientProperties;
+import org.jkiss.code.NotNull;
+import org.jkiss.code.Nullable;
+import org.jkiss.dbeaver.model.impl.PropertyDescriptor;
+import org.jkiss.dbeaver.model.meta.IPropertyValueListProvider;
+import org.jkiss.dbeaver.model.preferences.DBPPropertyDescriptor;
+import org.jkiss.dbeaver.runtime.properties.PropertySourceCustom;
+import org.jkiss.utils.ArrayUtils;
+import org.jkiss.utils.CommonUtils;
+
+import javax.swing.*;
+import javax.swing.table.AbstractTableModel;
+import javax.swing.table.DefaultTableCellRenderer;
+import javax.swing.table.TableCellEditor;
+import java.awt.*;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Locale;
+
+/**
+ * 연결 속성 표(드라이버 속성, 공급자 속성). 범주 · 이름 · 값 세 열의 편집 가능한 표다.
+ *
+ * 설계: 값은 모델 계층의 {@link PropertySourceCustom}에 그대로 둔다. SWT의 {@code ConnectionPropertiesControl}
+ * ({@code PropertyTreeViewer})도 같은 객체를 쓰므로, 저장할 때 어떤 값이 남는지(원래 값 + 바꾼 값,
+ * {@link PropertySourceCustom#getPropertyValues()})가 SWT 버전과 같다.
+ * <ul>
+ *     <li>값 편집기: 가능한 값 목록이 있으면 편집 가능한 콤보, 불리언이면 true/false 콤보, 나머지는 글자 입력.
+ *     값을 지우면 기본값으로 되돌린다.</li>
+ *     <li>사용자 속성: Add로 이름을 받아 {@value #USER_PROPERTIES_CATEGORY} 범주에 더하고, 그 범주의 속성만 Remove로 지울 수 있다
+ *     (SWT와 같은 규칙). 사용자 속성을 받지 않는 표(공급자 속성)에는 두 단추가 없다.</li>
+ *     <li>이름에 password·token이 들어간 글자 속성은 값을 가린다(SWT {@code isHidePropertyValue}와 같은 규칙).</li>
+ * </ul>
+ * 트리 대신 표를 쓴 것은 MVP 범위("간단한 편집 가능한 표")에 맞추기 위해서다. 범주는 첫 열로 보여 주고 범주 순으로 정렬한다.
+ *
+ * 변경 이력:
+ * - 2026-11-06 D단계: 최초 작성 (docs/chromite/swing-frontend.md "구현 현황 — D단계")
+ */
+final class ConnectionPropertiesTable extends JPanel {
+
+    static final String USER_PROPERTIES_CATEGORY = "User Properties";
+
+    private static final String[] COLUMNS = {"Category", "Property", "Value"};
+    private static final int VALUE_COLUMN = 2;
+
+    private final boolean userPropertiesAllowed;
+    private final PropertiesModel model = new PropertiesModel();
+    private final JTable table;
+    private final JLabel statusLabel = new JLabel(" ");
+    @Nullable
+    private PropertySourceCustom source;
+    private final List<DBPPropertyDescriptor> rows = new ArrayList<>();
+    private Action addAction;
+    private Action removeAction;
+    private Action resetAction;
+
+    ConnectionPropertiesTable(boolean userPropertiesAllowed) {
+        super(new BorderLayout(0, 4));
+        this.userPropertiesAllowed = userPropertiesAllowed;
+
+        table = new JTable(model) {
+            @Override
+            public TableCellEditor getCellEditor(int row, int column) {
+                return column == VALUE_COLUMN ? createValueEditor(rows.get(row)) : super.getCellEditor(row, column);
+            }
+
+            @Override
+            public String getToolTipText(@NotNull java.awt.event.MouseEvent event) {
+                int row = rowAtPoint(event.getPoint());
+                if (row < 0) {
+                    return null;
+                }
+                DBPPropertyDescriptor property = rows.get(row);
+                String description = property.getDescription();
+                return CommonUtils.isEmpty(description) ? property.getId() : property.getId() + ": " + description;
+            }
+        };
+        table.setFillsViewportHeight(true);
+        table.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+        table.putClientProperty("terminateEditOnFocusLost", Boolean.TRUE); //$NON-NLS-1$
+        table.getColumnModel().getColumn(0).setPreferredWidth(120);
+        table.getColumnModel().getColumn(1).setPreferredWidth(220);
+        table.getColumnModel().getColumn(2).setPreferredWidth(240);
+        table.setDefaultRenderer(Object.class, new ValueRenderer());
+        table.getSelectionModel().addListSelectionListener(e -> updateActions());
+
+        add(new JScrollPane(table), BorderLayout.CENTER);
+        add(createToolBar(), BorderLayout.SOUTH);
+        updateActions();
+    }
+
+    /**
+     * Shows the properties of a source; {@code null} shows the given message instead (e.g. while loading).
+     */
+    void setSource(@Nullable PropertySourceCustom source, @Nullable String message) {
+        stopEditing();
+        this.source = source;
+        rows.clear();
+        if (source != null) {
+            for (DBPPropertyDescriptor property : source.getProperties()) {
+                if (!property.isHidden()) {
+                    rows.add(property);
+                }
+            }
+            sortRows();
+        }
+        model.fireTableDataChanged();
+        statusLabel.setText(CommonUtils.isEmpty(message) ? " " : message);
+        // Long messages (driver errors) are cut off in the label
+        statusLabel.setToolTipText(CommonUtils.isEmpty(message) ? null : message);
+        updateActions();
+    }
+
+    @Nullable
+    PropertySourceCustom getSource() {
+        return source;
+    }
+
+    void stopEditing() {
+        if (table.isEditing()) {
+            table.getCellEditor().stopCellEditing();
+        }
+    }
+
+    @NotNull
+    private JComponent createToolBar() {
+        JPanel bar = new JPanel(new BorderLayout());
+        JToolBar toolBar = new JToolBar();
+        toolBar.setFloatable(false);
+        if (userPropertiesAllowed) {
+            addAction = createAction("Add…", "Add a user property", this::addUserProperty);
+            removeAction = createAction("Remove", "Remove the selected user property", this::removeUserProperty);
+            toolBar.add(addAction);
+            toolBar.add(removeAction);
+        }
+        resetAction = createAction("Reset", "Reset the selected property to its default value", this::resetProperty);
+        toolBar.add(resetAction);
+        bar.add(toolBar, BorderLayout.WEST);
+        statusLabel.putClientProperty(FlatClientProperties.STYLE, "foreground: $Label.disabledForeground"); //$NON-NLS-1$
+        statusLabel.setHorizontalAlignment(SwingConstants.RIGHT);
+        bar.add(statusLabel, BorderLayout.CENTER);
+        return bar;
+    }
+
+    @NotNull
+    private static Action createAction(@NotNull String name, @NotNull String description, @NotNull Runnable task) {
+        Action action = new AbstractAction(name) {
+            @Override
+            public void actionPerformed(java.awt.event.ActionEvent e) {
+                task.run();
+            }
+        };
+        action.putValue(Action.SHORT_DESCRIPTION, description);
+        return action;
+    }
+
+    private void updateActions() {
+        DBPPropertyDescriptor selected = getSelectedProperty();
+        if (addAction != null) {
+            addAction.setEnabled(source != null);
+            removeAction.setEnabled(selected != null && USER_PROPERTIES_CATEGORY.equals(selected.getCategory()));
+        }
+        resetAction.setEnabled(selected != null && source != null && source.isPropertySet(selected.getId()));
+    }
+
+    @Nullable
+    private DBPPropertyDescriptor getSelectedProperty() {
+        int row = table.getSelectedRow();
+        return row >= 0 && row < rows.size() ? rows.get(row) : null;
+    }
+
+    private void addUserProperty() {
+        if (source == null) {
+            return;
+        }
+        stopEditing();
+        String name = JOptionPane.showInputDialog(this, "Property name:", "Add property", JOptionPane.PLAIN_MESSAGE);
+        if (name == null || name.isBlank()) {
+            return;
+        }
+        String id = name.trim();
+        for (int i = 0; i < rows.size(); i++) {
+            if (rows.get(i).getId().equals(id)) {
+                // Existing property: select it instead of adding a duplicate
+                selectRow(i);
+                return;
+            }
+        }
+        DBPPropertyDescriptor property = new PropertyDescriptor(
+            USER_PROPERTIES_CATEGORY, id, id, null, String.class, false, null, null, true);
+        source.addProperty(property);
+        rows.add(property);
+        sortRows();
+        model.fireTableDataChanged();
+        int row = rows.indexOf(property);
+        selectRow(row);
+        table.editCellAt(row, VALUE_COLUMN);
+    }
+
+    private void removeUserProperty() {
+        DBPPropertyDescriptor property = getSelectedProperty();
+        if (source == null || property == null || !USER_PROPERTIES_CATEGORY.equals(property.getCategory())) {
+            return;
+        }
+        stopEditing();
+        // PropertySourceCustom has no "remove property": dropping its value removes it from the saved values
+        source.resetPropertyValueToDefault(property.getId());
+        rows.remove(property);
+        model.fireTableDataChanged();
+        updateActions();
+    }
+
+    private void resetProperty() {
+        DBPPropertyDescriptor property = getSelectedProperty();
+        if (source == null || property == null) {
+            return;
+        }
+        stopEditing();
+        source.resetPropertyValueToDefault(property.getId());
+        model.fireTableDataChanged();
+        updateActions();
+    }
+
+    private void selectRow(int row) {
+        if (row >= 0) {
+            table.getSelectionModel().setSelectionInterval(row, row);
+            table.scrollRectToVisible(table.getCellRect(row, 0, true));
+        }
+    }
+
+    private void sortRows() {
+        // User properties last, as in the SWT tree
+        rows.sort(Comparator
+            .comparing((DBPPropertyDescriptor p) -> USER_PROPERTIES_CATEGORY.equals(p.getCategory()))
+            .thenComparing(p -> CommonUtils.notEmpty(p.getCategory()), String.CASE_INSENSITIVE_ORDER)
+            .thenComparing(p -> CommonUtils.notEmpty(p.getDisplayName()), String.CASE_INSENSITIVE_ORDER));
+    }
+
+    @NotNull
+    private TableCellEditor createValueEditor(@NotNull DBPPropertyDescriptor property) {
+        Object[] possibleValues = null;
+        if (property instanceof IPropertyValueListProvider<?> provider) {
+            @SuppressWarnings("unchecked")
+            IPropertyValueListProvider<Object> valueProvider = (IPropertyValueListProvider<Object>) provider;
+            possibleValues = valueProvider.getPossibleValues(source);
+        }
+        Class<?> dataType = property.getDataType();
+        if (ArrayUtils.isEmpty(possibleValues) && (dataType == Boolean.class || dataType == boolean.class)) {
+            possibleValues = new Object[]{Boolean.TRUE.toString(), Boolean.FALSE.toString()};
+        }
+        if (!ArrayUtils.isEmpty(possibleValues)) {
+            JComboBox<Object> comboBox = new JComboBox<>(possibleValues);
+            comboBox.setEditable(true);
+            return new DefaultCellEditor(comboBox);
+        }
+        return new DefaultCellEditor(new JTextField());
+    }
+
+    private static boolean isHiddenValue(@NotNull DBPPropertyDescriptor property) {
+        Class<?> dataType = property.getDataType();
+        if (dataType != null && !String.class.isAssignableFrom(dataType)) {
+            return false;
+        }
+        String name = CommonUtils.notEmpty(property.getId()).toLowerCase(Locale.ENGLISH);
+        return name.contains("password") || name.contains("token"); //$NON-NLS-1$ //$NON-NLS-2$
+    }
+
+    private final class PropertiesModel extends AbstractTableModel {
+        @Override
+        public int getRowCount() {
+            return rows.size();
+        }
+
+        @Override
+        public int getColumnCount() {
+            return COLUMNS.length;
+        }
+
+        @Override
+        public String getColumnName(int column) {
+            return COLUMNS[column];
+        }
+
+        @Override
+        public boolean isCellEditable(int row, int column) {
+            return column == VALUE_COLUMN && source != null && rows.get(row).isEditable(source);
+        }
+
+        @Override
+        public Object getValueAt(int row, int column) {
+            DBPPropertyDescriptor property = rows.get(row);
+            return switch (column) {
+                case 0 -> CommonUtils.notEmpty(property.getCategory());
+                case 1 -> CommonUtils.notEmpty(property.getDisplayName());
+                default -> source == null ? null : source.getPropertyValue(null, property.getId());
+            };
+        }
+
+        @Override
+        public void setValueAt(Object value, int row, int column) {
+            if (column != VALUE_COLUMN || source == null) {
+                return;
+            }
+            DBPPropertyDescriptor property = rows.get(row);
+            String text = value == null ? "" : value.toString();
+            if (text.isEmpty()) {
+                source.resetPropertyValueToDefault(property.getId());
+            } else {
+                source.setPropertyValue(null, property.getId(), text);
+            }
+            fireTableRowsUpdated(row, row);
+            updateActions();
+        }
+    }
+
+    /**
+     * Masks secret values and marks properties that differ from their defaults in bold.
+     */
+    private final class ValueRenderer extends DefaultTableCellRenderer {
+        @Override
+        public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
+            DBPPropertyDescriptor property = rows.get(table.convertRowIndexToModel(row));
+            Object shown = value;
+            if (column == VALUE_COLUMN && value != null && isHiddenValue(property) && !value.toString().isEmpty()) {
+                shown = "••••••"; //$NON-NLS-1$
+            }
+            super.getTableCellRendererComponent(table, shown, isSelected, hasFocus, row, column);
+            boolean set = source != null && source.isPropertySet(property.getId());
+            setFont(table.getFont().deriveFont(set && column != 0 ? Font.BOLD : Font.PLAIN));
+            return this;
+        }
+    }
+}

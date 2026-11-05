@@ -19,6 +19,8 @@
     <!-- Connects data sources for the model layer (navigator expansion); the SWT product registers UIServiceConnectionsImpl -->
     <extension point="org.jkiss.dbeaver.service">
         <service name="org.jkiss.dbeaver.runtime.DBServiceConnections" class="com.seizia.chromite.ui.swing.SwingConnectionService"/>
+        <!-- Asks before downloading missing driver files; the SWT product registers UIServiceDriversImpl -->
+        <service name="org.jkiss.dbeaver.runtime.ui.UIServiceDrivers" class="com.seizia.chromite.ui.swing.SwingDriversService"/>
     </extension>
 
     <!-- Product name for GeneralUtils.getProductName(). No class attribute: Equinox creates the application instance. -->

@@ -20,7 +20,13 @@ import com.formdev.flatlaf.FlatClientProperties;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.model.DBPDataSourceContainer;
+import org.jkiss.dbeaver.model.DBPEvent;
+import org.jkiss.dbeaver.model.DBPEventListener;
+import org.jkiss.dbeaver.model.app.DBPDataSourceRegistry;
+import org.jkiss.dbeaver.model.app.DBPProject;
+import org.jkiss.dbeaver.model.app.DBPWorkspace;
 import org.jkiss.dbeaver.model.preferences.DBPPreferenceStore;
+import org.jkiss.dbeaver.runtime.DBWorkbench;
 import org.jkiss.dbeaver.utils.GeneralUtils;
 import org.jkiss.dbeaver.utils.PrefUtils;
 import org.jkiss.utils.CommonUtils;
@@ -34,6 +40,7 @@ import java.awt.event.InputEvent;
 import java.awt.event.KeyEvent;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.function.IntConsumer;
 
@@ -55,6 +62,8 @@ import java.util.function.IntConsumer;
  *     <li>Query 메뉴의 Execute(F5)와 Cancel Executing Query(Alt+Break)는 활성 편집기에 적용된다. 메뉴 단축키라 포커스가 결과 표에 있어도 동작한다.</li>
  *     <li>결과는 SSMS처럼 쿼리 창마다 따로 있다({@link QueryResultsView}). 아래 Results / Messages 탭에는 활성 편집기의 결과를 끼우고,
  *     편집기가 없으면 자리 표시 내용을 보여 준다. 편집기마다 마지막으로 본 탭(Results 또는 Messages)을 기억한다. 탭에서 빠져 있던 결과 컴포넌트는 테마 전환을 받지 못했을 수 있어, 끼울 때 Look and Feel을 맞춘다.</li>
+ *     <li>File > New Connection과 도구 막대의 New Connection은 Object Explorer의 같은 명령으로 연결 대화상자({@link ConnectionDialog})를 연다.</li>
+ *     <li>상태 표시줄의 연결 수는 모든 프로젝트의 연결 레지스트리 이벤트({@link DBPEventListener}, 연결 추가·삭제)를 받아 다시 센다.</li>
  * </ul>
  * 창을 닫으면 dispose되고, {@link ChromiteSwingApplication}이 windowClosed 이벤트로 앱을 종료한다.
  * 창 아이콘은 Java 런타임(JBR) 기본 아이콘 대신 Chromite 아이콘을 쓴다({@link ChromiteIcons}).
@@ -65,6 +74,8 @@ import java.util.function.IntConsumer;
  *   창·도구 창 배치 저장, 알림 표시 (docs/chromite/swing-frontend.md "구현 현황 — B단계")
  * - 2026-11-06 C단계: SQL 편집기 탭, New Query(메뉴·도구 막대·Object Explorer), Query 메뉴(F5 실행, 취소),
  *   편집기별 Results / Messages 표시 (docs/chromite/swing-frontend.md "구현 현황 — C단계")
+ * - 2026-11-06 D단계: New Connection(메뉴·도구 막대), 연결 추가·삭제 때 상태 표시줄 연결 수 갱신
+ *   (docs/chromite/swing-frontend.md "구현 현황 — D단계")
  */
 final class MainFrame extends JFrame implements SqlEditorPanel.Host {
 
@@ -76,6 +87,15 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host {
     private static final int MESSAGES_TAB = 1;
 
     private final ObjectExplorerPanel explorerPanel;
+    private final StatusBar statusBar;
+    private final List<DBPDataSourceRegistry> listenedRegistries = new ArrayList<>();
+    private final DBPEventListener registryListener = event -> {
+        if ((event.getAction() == DBPEvent.Action.OBJECT_ADD || event.getAction() == DBPEvent.Action.OBJECT_REMOVE)
+            && event.getObject() instanceof DBPDataSourceContainer) {
+            // Registry events come from any thread
+            SwingUtilities.invokeLater(this::updateStatusText);
+        }
+    };
     private final JTabbedPane documentTabs;
     private final JTabbedPane resultTabs;
     private final JComponent resultsPlaceholder;
@@ -160,8 +180,14 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host {
         JPanel content = new JPanel(new BorderLayout());
         content.add(createToolBar(), BorderLayout.NORTH);
         content.add(explorerSplit, BorderLayout.CENTER);
-        content.add(new StatusBar(statusText), BorderLayout.SOUTH);
+        statusBar = new StatusBar(statusText);
+        content.add(statusBar, BorderLayout.SOUTH);
         setContentPane(content);
+        for (DBPProject project : DBWorkbench.getPlatform().getWorkspace().getProjects()) {
+            DBPDataSourceRegistry registry = project.getDataSourceRegistry();
+            registry.addDataSourceListener(registryListener);
+            listenedRegistries.add(registry);
+        }
 
         restoreLayout();
         addComponentListener(new ComponentAdapter() {
@@ -200,7 +226,30 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host {
             layoutSaved = true;
             saveLayout();
         }
+        explorerPanel.dispose();
+        for (DBPDataSourceRegistry registry : listenedRegistries) {
+            registry.removeDataSourceListener(registryListener);
+        }
+        listenedRegistries.clear();
         super.dispose();
+    }
+
+    /**
+     * Status bar text: the number of connections in all projects of the workspace.
+     */
+    @NotNull
+    static String describeWorkspace(@NotNull DBPWorkspace workspace) {
+        int connections = 0;
+        for (DBPProject project : workspace.getProjects()) {
+            connections += project.getDataSourceRegistry().getDataSources().size();
+        }
+        return connections + (connections == 1 ? " connection" : " connections") + " in workspace";
+    }
+
+    private void updateStatusText() {
+        if (isDisplayable()) {
+            statusBar.setText(describeWorkspace(DBWorkbench.getPlatform().getWorkspace()));
+        }
     }
 
     @NotNull
@@ -226,13 +275,15 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host {
 
     @NotNull
     private JComponent createToolBar() {
-        JButton newQueryButton = new JButton(newQueryAction);
-        newQueryButton.putClientProperty(FlatClientProperties.BUTTON_TYPE, FlatClientProperties.BUTTON_TYPE_TOOLBAR_BUTTON);
-        newQueryButton.setFocusable(false);
         JToolBar toolBar = new JToolBar();
         toolBar.setFloatable(false);
         toolBar.setBorder(BorderFactory.createEmptyBorder(2, 4, 2, 4));
-        toolBar.add(newQueryButton);
+        for (Action action : List.of(explorerPanel.getNewConnectionAction(), newQueryAction)) {
+            JButton button = new JButton(action);
+            button.putClientProperty(FlatClientProperties.BUTTON_TYPE, FlatClientProperties.BUTTON_TYPE_TOOLBAR_BUTTON);
+            button.setFocusable(false);
+            toolBar.add(button);
+        }
         return toolBar;
     }
 
@@ -377,6 +428,7 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host {
 
         JMenu fileMenu = new JMenu("File");
         fileMenu.setMnemonic(KeyEvent.VK_F);
+        fileMenu.add(new JMenuItem(explorerPanel.getNewConnectionAction()));
         fileMenu.add(new JMenuItem(newQueryAction));
         fileMenu.addSeparator();
         fileMenu.add(exitItem);
@@ -509,11 +561,17 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host {
      * from the look and feel.
      */
     private static final class StatusBar extends JPanel {
+        private final JLabel statusLabel;
+
         StatusBar(@NotNull String statusText) {
             super(new BorderLayout());
-            JLabel statusLabel = new JLabel(statusText);
+            statusLabel = new JLabel(statusText);
             statusLabel.setBorder(BorderFactory.createEmptyBorder(3, 8, 3, 8));
             add(statusLabel, BorderLayout.WEST);
+        }
+
+        void setText(@NotNull String text) {
+            statusLabel.setText(text);
         }
 
         @Override

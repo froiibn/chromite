@@ -213,7 +213,7 @@ job.schedule();                                             // 또는 작업 스
 ## 위험과 주의 사항
 
 - **연결 설정 화면:** 각 DB의 전용 연결 화면은 SWT로 된 `ext.*.ui` 플러그인에 있어 재사용할 수 없다. MVP는 범용 화면으로 대신한다.
-  드라이버별 특수 설정(예: Oracle SID/서비스명, SQL Server Windows 인증)이 범용 화면에서 표현되는지 확인해야 한다.
+  드라이버별 특수 설정이 범용 화면에서 되는 것과 안 되는 것은 "구현 현황 — D단계"의 "범용 화면에서 아직 못 하는 드라이버별 설정"에 정리했다.
 - **결과 편집 저장:** 키 판별, 트랜잭션, 오류 처리가 필요해 MVP에서 가장 신경 쓸 부분이다.
 - **기능 공백:** SWT 버전에 있던 ER 다이어그램, 데이터 비교, 설정 화면, 드라이버 관리 등은 다시 만들기 전까지 Swing 버전에 없다.
 - **디자인 자산:** JetBrains와 Microsoft의 아이콘, 로고 등 고유 디자인 자산은 복사하지 않는다.
@@ -273,7 +273,7 @@ mvn package -f product/aggregate/pom.xml -T1C -Pproduct-chromite-swing
    작업 공간 형식, 기본 프로젝트 이름(`General`), 탐색기 모델(`DesktopNavigatorModel`)은 SWT 버전과 같아서 연결 목록을 공유한다.
 5. `postInitialize()`로 플러그인 서비스와 연결 감시 Job을 시작한다(SWT에서는 워크벤치 창 어드바이저가 호출).
 6. 작업 공간의 모든 프로젝트에서 연결 수를 세어 상태 표시줄 문구(`N connections in workspace`)를 만든다.
-   모델 계층이 정상으로 떴는지 확인하는 용도다.
+   모델 계층이 정상으로 떴는지 확인하는 용도다. (D단계부터 계산은 `MainFrame.describeWorkspace`에 있고, 연결을 추가·삭제하면 다시 센다.)
 7. EDT에서 `MainFrame`을 열고, 창이 닫힐 때까지 애플리케이션 스레드가 기다린다(`start()`가 반환되면 Equinox가 종료되기 때문).
 8. 창을 닫거나 File > Exit를 누르면 창이 dispose되고, 애플리케이션 스레드가 작업 공간을 저장하고 플랫폼을 정리한 뒤 반환한다.
    `IApplication.stop()`(외부 종료 요청)은 창을 닫아 같은 경로로 끝낸다.
@@ -549,8 +549,8 @@ B단계는 `JSplitPane`만 쓴다.
 - **SQL 편집기:** RSyntaxTextArea 기반 편집기 탭, F5 실행(선택 1자 이상이면 선택, 아니면 전체), SQL Server `GO` 배치 묶기를
   `SQLQueryExecuteJob`·`SQLQueryExecuteHandler`로 연결("F5와 GO 배치를 실행 계층에 연결하는 방법").
 - **결과 그리드:** Results 탭에 결과 표 쌓기(자체 `DBDDataReceiver` + `AbstractTableModel`), Messages 탭에 행 수·경고·PRINT 출력.
-- **연결 화면:** 범용 연결 대화상자(`openConnectionEditor`), 새 연결 만들기·편집·삭제, 연결 끊기 메뉴.
-- 탐색기: 모델 이벤트(`INavigatorListener`)로 트리 갱신(다른 곳에서 연결을 추가·삭제·연결 끊기 했을 때), 활성 프로젝트 전환, 객체 편집기, Script as, 필터.
+- 탐색기: 활성 프로젝트 전환, 객체 편집기, Script as, 필터.
+  (연결 화면·연결 명령과 모델 이벤트로 트리 갱신은 D단계에서 구현했다. "구현 현황 — D단계")
 - 위 "DBPPlatformUI B단계 구현"의 남은 항목.
 - 도킹(끌어다 놓기, 떠 있는 창)이 필요해지면 ModernDocking 재검토.
 
@@ -647,8 +647,8 @@ Query 메뉴 항목은 활성 편집기에 적용되고, 메뉴 단축키라 포
 
 - 실행 중 오류는 `SQLQueryExecuteHandler.handleExecutionError`를 구현해 Messages 탭으로 보냈다. 그래서 `SwingPlatformUI`는 고치지 않았다.
 - 연결 실패는 B단계처럼 `SwingConnectionService`가 `showError` 대화상자로 알리고, Messages에는 "Not connected to '…'"를 쓴다.
-- 남은 항목(`// Phase C:` 표시 그대로): `showError`의 DB별 처리와 상세 정보 창, `selectObject`, `openEntityEditor`, `openConnectionEditor`, `createLoadingService`,
-  `copyTextToClipboard`의 HTML 형식, `readAndDispatchEvents`, `promptAuthModelCredentials`.
+- 남은 항목(`// Phase C:` 표시 그대로): `showError`의 DB별 처리와 상세 정보 창, `selectObject`, `openEntityEditor`, `createLoadingService`,
+  `copyTextToClipboard`의 HTML 형식, `readAndDispatchEvents`, `promptAuthModelCredentials`. (`openConnectionEditor`는 D단계에서 구현)
 
 ### 외부 라이브러리 (C단계 추가)
 
@@ -691,6 +691,159 @@ Query 메뉴 항목은 활성 편집기에 적용되고, 메뉴 단축키라 포
 - 결과: 편집(Edit Top 200 Rows, "결과 모델 분석"), 더 읽기(최대 행 수 이후), 정렬, 결과 내보내기, 텍스트로 결과 보기.
 - SQL Server `GO` 배치는 SQL Server로 실행해 보지 못했다(아래 확인 참고).
 
+## 구현 현황 — D단계
+
+D단계의 목표는 Swing 앱에서 연결을 만들고, 고치고, 지우고, 연결하고, 끊는 것이다(SSMS "Connect to Server"). MVP 2번
+"범용 연결 화면 하나로 전체 드라이버를 지원"을 구현했다.
+
+### 구성
+
+| 클래스 | 역할 |
+|---|---|
+| `ConnectionDialog` | 연결 만들기(드라이버 고르기 → 설정 2단계)·편집 대화상자. Test Connection, Save, 이름 만들기 |
+| `DriverSelectionPanel` | 1단계: 검색 칸, 범주 콤보, 아이콘이 있는 드라이버 목록 |
+| `ConnectionSettingsPanel` | 2단계: 드라이버 정의로 구성하는 범용 설정 화면(Main / Driver Properties / Provider Properties 탭) |
+| `ConnectionPropertiesTable` | 드라이버 속성·공급자 속성 표(범주·이름·값, 값 편집, 사용자 속성 추가·삭제, 기본값으로 되돌리기) |
+| `ConnectionCommands` | 새로 만들기, 편집, 이름 바꾸기, 삭제, 연결, 연결 끊기, 다시 연결 |
+| `SwingDriversService` | `UIServiceDrivers` 구현: 드라이버 파일이 없으면 내려받을지 묻고 진행 대화상자에서 내려받기 |
+| `ObjectExplorerPanel` (변경) | 연결 명령 메뉴·단축키, 탐색기 모델 이벤트로 트리 갱신 |
+| `MainFrame` (변경) | File > New Connection, 도구 막대 New Connection, 연결 레지스트리 이벤트로 상태 표시줄 연결 수 갱신 |
+| `SwingPlatformUI` (변경) | `openConnectionEditor` = 연결 편집 대화상자(SWT처럼 닫힐 때까지 기다림) |
+
+### 메뉴와 단축키
+
+| 위치 | 항목 | 대상 |
+|---|---|---|
+| File, 도구 막대, Object Explorer 오른쪽 클릭(빈 곳 포함) | New Connection… | 활성 프로젝트(연결 폴더를 고른 상태면 그 폴더) |
+| Object Explorer 오른쪽 클릭 | Connect / Disconnect / Reconnect | 선택한 노드가 속한 연결(연결 아래 어느 노드에서나) |
+| Object Explorer 오른쪽 클릭, Enter | Edit Connection… | 연결 노드 (다른 노드에서 Enter는 펼치기·접기) |
+| Object Explorer 오른쪽 클릭, F2 | Rename | 연결 노드 |
+| Object Explorer 오른쪽 클릭, Delete | Delete (확인 후) | 연결 노드 |
+
+### 새 연결: 드라이버 고르기
+
+- 목록은 모델의 `DriverUtils.getAllDrivers()`(활성 공급자의 `getEnabledDrivers`: 꺼짐·대체됨·이 OS 미지원 제외, 이름순)에서
+  임시 드라이버(`isTemporary`), 폐기된 드라이버 자리표시(`getDriverStub`), 상용 드라이버 자리표시(`DBPDriverWithLicense`, SWT도 설정을 켜야 보임),
+  JDK 내장 ODBC 브리지(`isInternalDriver`)를 뺀 것이다.
+- 검색은 SWT `DataSourceTypeViewer`처럼 대소문자·공백을 무시하고 이름, 전체 이름, ID, 설명, 범주에서 찾는다. 범주 콤보는 `getCategories()`로 거른다
+  (`getCategory()`는 폐기 예정 API라 쓰지 않음). 아이콘은 Object Explorer와 같은 `NodeIcons`로 그린다.
+- 검색 칸에서 위·아래 화살표로 목록을 움직이고, Enter·두 번 누르기·Next로 2단계로 간다. Back으로 돌아가 다른 드라이버를 고르면 이전 드라이버로 만든 설정은 버린다.
+
+### 범용 설정 화면 (`ConnectionSettingsPanel`)
+
+SWT 범용 화면(`GenericConnectionPage`)의 규칙을 모델 코드로 따랐다.
+
+- **입력 칸:** 드라이버 `sampleURL`을 `DatabaseURL.getUrlPattern`으로 읽어 들어 있는 자리 표시의 칸만 보인다.
+  `{host}`·`{port}` → Host·Port, `{server}` → Server, `{database}` → Database, `{file}` → Database file + Browse(파일 선택), `{folder}` → Folder + Browse(폴더 선택).
+  예시 URL이 없거나 위 자리 표시가 하나도 없으면 URL만 입력한다(`GenericConnectionPage.parseSampleURL`과 같은 판단).
+- **연결 방식:** Host(칸 입력. JDBC URL 칸은 읽기 전용으로 `DBPDriver.getConnectionURL`이 만든 URL을 입력하는 대로 보여 주고, 만들 수 없으면 이유를 도움말로) /
+  URL(JDBC URL 직접 입력). `DBPDriverConfigurationType`(MANUAL/URL)으로 저장한다.
+- **기본값(새 연결):** 드라이버의 기본 호스트(없으면 localhost)·포트·서버·DB·사용자(`ConnectionPageWithAuth`와 같음). 연결 종류는 기본 종류, 비밀번호 저장은 켬.
+- **필수 값:** URL 템플릿의 필수 자리 표시(`getMandatoryPropertyNames`)가 비어 있으면 Test·Save를 끄고 무엇이 빠졌는지 보여 준다.
+- **인증:** 사용자, 비밀번호, Save password. 드라이버가 익명 접속이면 숨긴다. 비밀번호를 저장하지 않으면 저장할 때 비밀번호(인증 방식의 비밀번호 속성 포함)를 지운다.
+  Test Connection에는 입력한 비밀번호를 쓴다(SWT가 임시 연결에서 하는 것과 같음). 인증 방식은 고를 수 없고 연결의 현재 방식(`detectConnectionAuthModel`, 새 연결은 Database Native)을 저장한다.
+- **Driver Properties 탭:** 처음 열 때 모델의 `DBPDataSourceProvider.getConnectionProperties`(JDBC 드라이버의 `getPropertyInfo`, SWT `ConnectionPropertiesControl`과 같은 호출)를
+  현재 폼 값을 쓴 임시 연결로 진행 대화상자에서 읽는다. 드라이버 속성이 아닌 값은 "User Properties" 범주로 보인다. 값은 모델의 `PropertySourceCustom`에 두고,
+  저장할 때 SWT `DriverPropertiesDialogPage.savePropertyValues`처럼 연결의 드라이버 속성을 그 값(원래 값 + 바꾼 값)으로 바꾼다. 탭을 열지 않았으면 드라이버 속성을 건드리지 않는다.
+  읽기에 실패하면(드라이버 파일 없음, 오프라인 모드 등) 이유를 표 아래에 쓰고, 탭을 다시 열면 다시 읽는다.
+- **Provider Properties 탭:** 드라이버 정의의 공급자 속성(`getProviderPropertyDescriptors`, `plugin.xml`의 `provider-properties`)이 있을 때만 보인다.
+  표에 있는 속성만 연결의 공급자 속성(`setProviderProperty`/`removeProviderProperty`)으로 저장하고, 표에 없는 공급자 속성(다른 설정이 쓰는 것)은 그대로 둔다.
+- **값 편집기:** 가능한 값이 있으면 편집 가능한 콤보, 불리언은 true/false 콤보, 나머지는 글자. 값을 지우면 기본값으로 돌아간다. 기본값과 다른 값은 굵게,
+  이름에 password·token이 있는 값은 가린다(SWT와 같은 규칙).
+
+### 저장, 시험, 편집
+
+- **새 연결 Save** (SWT `NewConnectionWizard.persistDataSource`): 아직 등록하지 않은 `DataSourceDescriptor`(`registry.createDataSource(새 ID, 드라이버, 설정)`)에 폼을 쓰고
+  `DBPDataSourceRegistry.addDataSource`로 등록한다. `addDataSource`가 설정 파일(`.dbeaver/data-sources.json`)을 바로 저장하고(`persistDataSourceCreate` → `saveDataSources`,
+  [DataSourceRegistry.java:558-566, 626-636](../../plugins/org.jkiss.dbeaver.registry/src/org/jkiss/dbeaver/registry/DataSourceRegistry.java)) `OBJECT_ADD` 이벤트를 보낸다.
+  그래서 `flushConfig`는 따로 부르지 않는다(SWT 마법사도 부르지 않음).
+- **이름:** 비워 두면 SWT 기본 이름 규칙(`${host_or_database}`의 legacy 규칙, `ConnectionNameResolver`: DB 이름의 마지막 부분 → 호스트 → 서버 → 드라이버 이름, 50자)으로 만든다.
+  다른 연결과 겹치면 `DataSourceUtils.generateUniqueDataSourceName`으로 `이름 (1)`처럼 만든다. 사용자가 바꾼 이름 규칙 설정(`navigator.settings.default.connectionPattern`)은 아직 읽지 않는다
+  (`ConnectionNameResolver`가 SWT 번들에 있음).
+- **Test Connection** (SWT `ConnectionWizard.testConnection`): 폼 값을 쓴 임시 연결(새 ID, `setTemporary`, 메타데이터 별도 연결 `NEVER`)로 모델의 `ConnectionTestJob`을 돌리고
+  진행 대화상자(Cancel 가능)에서 기다린다. 성공하면 연결 시간, 서버 버전, 드라이버 버전을, 실패하면 오류를 보여 준다. 끝나면 임시 연결을 버린다.
+- **편집** (SWT `EditConnectionWizard`): 원본의 사본(같은 ID)으로 폼을 채운다. Save에서 원본 사본과 바뀐 사본을 `equalSettings`로 비교해 바뀐 것이 있을 때만 원본에 쓰고
+  `persistConfiguration`으로 저장한다. 연결 중이면 다시 연결할지 묻는다. 폼에 없는 설정(폴더, 연결 종류, 읽기 전용, 탐색기 설정, 필터, 초기화 SQL, 네트워크 핸들러)은 그대로 남는다.
+- **이름 바꾸기:** `DBNDataSource.rename`(이름 저장 + 갱신 이벤트, SWT 이름 바꾸기와 같음).
+- **삭제** (SWT `DataSourceDescriptorManager.deleteObject`): 확인 → 연결 중이면 `DisconnectJob`으로 끊은 뒤 → `DBPDataSourceRegistry.removeDataSource`(설정 파일 저장, 비밀 정보 삭제, `OBJECT_REMOVE`).
+- **연결 / 끊기 / 다시 연결** (SWT `DataSourceHandler`): 연결은 `SwingConnectionService`(B단계, 연결 Job 예약), 끊기는 모델의 `DisconnectJob`(이미 연결·끊기 Job이 있으면 무시),
+  다시 연결은 끊기가 끝난 뒤 연결. SWT가 끊기 전에 하던 열린 편집기 저장 확인과 진행 중 트랜잭션 확인은 아직 없다.
+
+### 드라이버 파일 내려받기 (`SwingDriversService`)
+
+- 드라이버를 처음 쓸 때(연결, Test Connection, Driver Properties 읽기) `DriverLoaderDescriptor.downloadDriverLibraries`가 `UIServiceDrivers`를 부른다
+  ([DriverLoaderDescriptor.java:414-428](../../plugins/org.jkiss.dbeaver.registry/src/org/jkiss/dbeaver/registry/driver/DriverLoaderDescriptor.java)).
+  지시서에는 `DBPPlatformUI`의 메서드로 적혀 있었지만 실제 호출 지점은 이 서비스라서, `SwingConnectionService`처럼 `org.jkiss.dbeaver.service` 확장으로 등록했다.
+  SWT 제품은 `org.jkiss.dbeaver.core`의 `UIServiceDriversImpl`(`DriverDownloadDialog`)이다. Swing 제품에는 이 서비스가 없어서 지금까지는 묻지 않고 바로 내려받았다.
+- 없는 라이브러리 이름(이 OS용, 끄지 않은 필수 라이브러리 중 로컬 파일이 없는 것)을 보여 주고 Download / Cancel을 묻는다. Download면 모델의 `DriverUtils.downloadDriverFiles`를
+  모달 진행 대화상자(Cancel 가능)에서 돌리고 호출한 Job은 기다린다. Cancel이면 모델이 드라이버 클래스를 찾지 못했다는 오류를 낸다.
+- 오프라인 모드(`ui.drivers.offline`, [drivers.md](drivers.md))에서는 모델이 이 서비스를 부르지 않고 로컬 파일만 찾은 뒤, 없으면 이유를 설명하는 오류를 낸다.
+  그 오류는 Test Connection 오류 대화상자나 Driver Properties 표 아래에 그대로 보인다. 버전 선택과 의존성 트리 보기는 없다.
+
+### 탐색기 모델 이벤트
+
+B단계에서 남겼던 "모델 이벤트로 트리 갱신"을 구현했다. 다른 곳(연결 대화상자, 모델 Job, 다른 창)에서 일어난 변경이 다시 시작하지 않아도 보인다.
+
+- `ObjectExplorerPanel`이 `DBNModel.addListener(INavigatorListener)`로 듣는다. 모델은 이벤트를 모아 약 100ms마다 `DBPPlatformUI.executeInMainThread`(= EDT)로 보낸다
+  ([DBNModel.java:602-636](../../plugins/org.jkiss.dbeaver.model/src/org/jkiss/dbeaver/model/navigator/DBNModel.java)). 연결 레지스트리 이벤트는 `DBNProjectDatabases`가
+  탐색기 이벤트로 바꿔 준다([DBNProjectDatabases.java:351-470](../../plugins/org.jkiss.dbeaver.model/src/org/jkiss/dbeaver/model/navigator/DBNProjectDatabases.java)).
+- **연결 목록**(활성 프로젝트의 `DBNDataSource`·`DBNLocalFolder`·`DBNProjectDatabases`): 추가·삭제·이름 변경(`REFRESH`)·목록 재구성(`STRUCT_REFRESH`)이면 목록을 백그라운드에서 다시 읽고,
+  이미 있는 트리 노드(펼친 하위 트리와 펼침 상태 포함)와 선택은 그대로 둔다. 이 앱에서 만든 연결(`ADD` + `SELECT`)은 목록을 읽은 뒤 선택해 보여 준다.
+- **연결 상태:** 끊김(`UNLOAD`)이면 그 연결을 접고 자식을 버려 다시 펼칠 때 연결해서 읽게 한다(그 연결을 지금 읽는 중이면 그대로 둔다: 연결 실패 처리가 끝나야 하므로).
+  연결(`LOAD`, `BEFORE_LOAD`/`AFTER_LOAD`)이면 아이콘(연결 표시)을 다시 그린다.
+- **DB 객체:** 모델이 지운 노드(`REMOVE`)는 트리에서 뺀다. 다른 곳에서 새로 만든 객체(`ADD`)는 아직 반영하지 않는다(새로 고침으로 보인다. 객체를 만드는 화면이 아직 없음).
+- 이 패널이 원천인 이벤트(Refresh의 `refreshNode(monitor, 이 패널)`)는 무시한다. 이미 `loadChildren`이 반영하기 때문이다.
+- **상태 표시줄:** `MainFrame`이 모든 프로젝트의 연결 레지스트리에 `DBPEventListener`를 달아 연결 추가·삭제 때 `N connections in workspace`를 다시 센다.
+  창을 닫을 때 두 리스너를 뗀다.
+
+### 범용 화면에서 아직 못 하는 드라이버별 설정
+
+SWT의 DB별 연결 화면(`ext.*.ui`, 32개 번들)에만 있는 설정은 범용 화면에서 고를 수 없다. 공급자 속성으로 정의된 것과 JDBC 드라이버 속성은 표로 고칠 수 있다.
+
+| 드라이버 | 범용 화면에서 되는 것 | 아직 못 하는 것 (SWT 화면) |
+|---|---|---|
+| 공통 | 호스트·포트·DB·서버·파일, URL 직접 입력, 사용자·비밀번호, 드라이버 속성, 공급자 속성 | 인증 방식 선택(`AuthModelSelector`: Kerberos, NTLM, pgpass, 클라우드 IAM 등), SSH·프록시·SSL 네트워크 핸들러, 연결 종류·폴더·읽기 전용·설명(`ConnectionPageGeneral`), 초기화 SQL·자동 커밋·격리 수준(`ConnectionPageInitialization`), 드라이버 대체(Driver type), 드라이버 편집·라이선스 보기, 내장 DB 만들기(Create), 연결 변수 도움말 |
+| SQL Server | 공급자 속성 "Show all schemas", "Trust Server Certificate", JDBC 드라이버 속성(`encrypt`, `integratedSecurity`, `authentication` 등, 드라이버 파일이 있을 때) | 인증 종류 콤보(SQL Server / Windows / Kerberos / Azure AD 인증 방식), Azure "Show All Databases"(`show-all-databases-azure`), "Encrypt password" |
+| Oracle | 공급자 속성 "Service type"(SID/SERVICE), "Role"(SYSDBA 등), "Set Username to OS_USER", 메타데이터 옵션들 | 연결 방식 Basic/TNS/Custom 선택과 TNS 이름·`tnsnames.ora` 경로(`PROP_CONNECTION_TYPE`, `PROP_TNS_PATH`), Oracle 클라이언트(OCI) 선택 |
+| PostgreSQL | 공급자 속성 "Show all databases", 템플릿·사용할 수 없는 DB 보기, "Read all data types", "Read table keys with columns", "Replace legacy timezone", `$$` 문자열 처리, "User role", JDBC 드라이버 속성(SSL 등) | "Show database statistics", "Use prepared statements"(공급자 속성 목록에 없음), pgpass 인증 |
+| MySQL / MariaDB | 공급자 속성 "Show all databases", "Server Time Zone", JDBC 드라이버 속성(useSSL 등) | 고급 페이지(`MySQLConnectionPageAdvanced`)의 나머지 설정, 로컬 클라이언트 선택 |
+| DuckDB, Snowflake, Vertica 등 | 공급자 속성이 정의된 것 | 각 `*ConnectionPageAdvanced`의 추가 설정 |
+
+- 연결 편집에서 위 설정은 원래 값이 그대로 남는다(폼이 쓰지 않는다). 다만 Driver Properties 탭을 열고 저장하면 SWT처럼 연결의 드라이버 속성 전체를 표의 값으로 바꾼다.
+- 인증 방식 선택은 인증 방식별 입력 화면(`promptAuthModelCredentials`와 같은 문제)이 필요해 다음 단계로 남긴다.
+
+### 확인 (2026-11-06)
+
+- 빌드: `-Pproduct-dbeaver-ce,product-chromite-swing` BUILD SUCCESS. Swing 결과물 번들 수는 Windows x64 129개, macOS arm64 130개(C단계와 같음)이고,
+  이름에 `swt`, `jface`, `org.eclipse.ui`, `org.eclipse.e4.ui`가 들어간 번들은 둘 다 0개다.
+- Windows에서 in-process JVM(`-vm …\bin\server\jvm.dll`)으로 C단계 작업 공간 사본(샘플 SQLite 연결 1개)을 열어 키보드·마우스로 확인했다:
+  - **새 연결:** 도구 막대 New Connection → 드라이버 목록(아이콘, 범주) → "sqlite" 검색 → Enter → 범용 화면에 `{file}`용 "Database file" + Browse만 보임(인증 칸 없음, SQLite는 익명 접속)
+    → 샘플 Chinook.db 사본 경로 붙여 넣기 → JDBC URL 칸이 `jdbc:sqlite:<경로>`로 바로 바뀜 → Driver Properties 탭에 SQLite JDBC 드라이버 속성(application_id 등) 표시
+    → Test Connection: "Connected (148 ms) / Server: SQLite 3.54.1 / Driver: SQLite JDBC 3.54.1.0" → Save → Object Explorer에 `test.db`가 바로 생기고 선택됨,
+    상태 표시줄 `2 connections in workspace`, `.dbeaver/data-sources.json`에 연결 추가(이름 `test.db`, `configurationType` MANUAL, URL).
+  - 펼치기 → 연결됨 표시 → 테이블 11개 → New Query에서 `select count(*) from Album` → `347`.
+  - **편집:** 연결 노드에서 Enter → 편집 대화상자(값 채워짐) → 이름을 `Chinook Test`로 바꿔 Save → 트리 이름이 바로 바뀌고 정렬 위치가 바뀌었으며 펼친 하위 트리와 선택은 유지,
+    "다시 연결할까요?" → 예 → 연결이 접히고(끊김) 다시 연결됨 표시.
+  - **연결 끊기 / 연결:** 오른쪽 클릭 메뉴(연결 상태에 따라 Connect/Disconnect/Reconnect가 켜지고 꺼짐) → Disconnect → 연결 표시 사라짐 → Connect → 연결 표시.
+  - **이름 바꾸기:** F2 → `Chinook F2` → 트리와 설정 파일에 반영.
+  - **삭제:** Delete 키 → 확인 → (연결 중이라 끊은 뒤) 트리에서 사라지고 상태 표시줄 `1 connection in workspace`, 설정 파일에서 연결이 빠짐.
+  - **PostgreSQL 범용 화면:** "postgres" 검색 → PostgreSQL이 맨 위 → Host·Port(5432)·Database(postgres)·User(postgres)·Password·Save password, JDBC URL `jdbc:postgresql://localhost:5432/postgres`,
+    Provider Properties 탭(Show all databases 등 9개). 드라이버 파일이 없어 Driver Properties·Test Connection에서 "Download driver files" 확인이 떴고, Cancel하면
+    표 아래·오류 대화상자에 드라이버 클래스를 찾지 못했다는 모델 오류가 보였다(내려받기는 실행하지 않음).
+- 디버그 로그에 ERROR 없음. WARN/예외는 일부러 취소한 PostgreSQL 드라이버 내려받기("Can't load driver properties", `ClassNotFoundException: org.postgresql.Driver`)뿐이다.
+- 확인하지 못한 것: 실제 드라이버 내려받기(네트워크), 오프라인 모드에서의 오류 문구(모델 코드 경로만 확인), 서버형 DB(PostgreSQL 등) 실제 연결, macOS 실행.
+
+### D단계에서 남긴 것
+
+- 인증 방식 선택, 네트워크 핸들러(SSH 등), 연결 일반 설정(폴더, 연결 종류, 읽기 전용, 설명), 초기화 설정 — 위 표.
+- 연결 폴더 만들기·옮기기, 연결 복사, 연결 내보내기·가져오기.
+- 지운 연결을 쓰는 열린 SQL 편집기는 그대로 남는다(실행하면 연결 오류). SSMS처럼 연결 끊김 상태로 표시하는 처리가 필요하다.
+  연결 이름을 바꿔도 열린 편집기 탭 제목(`SQLQueryN.sql - 연결 이름`)은 바뀌지 않는다.
+- 다른 곳에서 만든 DB 객체를 트리에 바로 넣기(`ADD` 이벤트), 활성 프로젝트 전환.
+- 이름 규칙 설정(`navigator.settings.default.connectionPattern`) 읽기.
+- Swing 제품에는 공개판 내장 드라이버([drivers.md](drivers.md)의 `com.seizia.chromite.drivers.public`과 설치 폴더 `drivers/`, `org.jkiss.dbeaver.ce.feature`에 있음)가
+  들어 있지 않다(2026-11-06 결과물 확인). 그래서 SWT 제품에서는 내장된 PostgreSQL 드라이버도 Swing 제품에서는 내려받기를 묻는다. 제품 구성 작업으로 따로 다룬다.
+
 ## 변경 이력
 
 - 2026-11-06 최초 작성. Swing 전환 결정, 구조, 재사용 분석, MVP 범위, F5 실행 사양을 정리.
@@ -703,3 +856,6 @@ Query 메뉴 항목은 활성 편집기에 적용되고, 메뉴 단축키라 포
   About 대화상자, 진행 대화상자·비모달 알림, Swing 번들 버전을 제품 버전(26.2.5)으로 변경. "구현 현황 — B단계" 절 추가.
 - 2026-11-06 C단계 구현: RSyntaxTextArea 4.0.1 기반 SQL 편집기 탭(New Query, F5 실행·취소), `GO` 배치 묶기(`SQLScriptBatches`, model.sql),
   편집기별 Results(결과 표 쌓기)·Messages(행 수, 경고·PRINT, 오류 위치), 쿼리 상태 줄. "구현 현황 — C단계" 절 추가.
+- 2026-11-06 D단계 구현: 연결 만들기·편집 대화상자(드라이버 고르기, 드라이버 정의로 구성하는 범용 설정 화면, 드라이버·공급자 속성 표, Test Connection),
+  연결 명령(연결, 끊기, 다시 연결, 이름 바꾸기, 삭제), `openConnectionEditor`, 드라이버 파일 내려받기 확인(`UIServiceDrivers`),
+  탐색기 모델 이벤트로 Object Explorer 갱신과 상태 표시줄 연결 수 갱신. "구현 현황 — D단계" 절 추가, B·C단계의 남긴 항목에서 구현한 것을 뺌.
