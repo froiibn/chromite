@@ -83,7 +83,7 @@ JDBC 드라이버를 설치 파일에 미리 넣는다.
 | [plugins/com.seizia.chromite.drivers.public/plugin.xml](../../plugins/com.seizia.chromite.drivers.public/plugin.xml) | `org.jkiss.dbeaver.product.bundles`로 `drivers.mssql.new`, `drivers.oracle`, `drivers.postgresql`, `drivers.mariadb` 선언. 코드 없음 |
 | [features/com.seizia.chromite.drivers.public.feature/feature.xml](../../features/com.seizia.chromite.drivers.public.feature/feature.xml) | 공개판 드라이버 전용 feature `com.seizia.chromite.drivers.public.feature`. 위 플러그인 포함 |
 | [features/com.seizia.chromite.drivers.public.feature/pom.xml](../../features/com.seizia.chromite.drivers.public.feature/pom.xml) | `maven-dependency-plugin:copy`(실행 ID `bundle-public-drivers`)로 Maven Central에서 정확한 버전의 jar를 `target/generated/drivers/<이름>/`에 받는다. jar 목록·버전은 이곳에만 있다. jar는 저장소에 커밋하지 않는다 |
-| [features/com.seizia.chromite.drivers.public.feature/drivers-root/drivers/](../../features/com.seizia.chromite.drivers.public.feature/drivers-root/drivers/) | 라이선스 원문, LGPL 소스 위치 안내(`SOURCE.txt`), 전체 목록(`README.txt`) |
+| [features/com.seizia.chromite.drivers.public.feature/drivers-root/drivers/](../../features/com.seizia.chromite.drivers.public.feature/drivers-root/drivers/) | 라이선스 원문, LGPL 소스 위치 안내(`SOURCE.txt`), 전체 목록(`README.txt`). 루트 [.gitattributes](../../.gitattributes)로 `core.autocrlf`와 상관없이 항상 LF로 체크아웃된다 |
 | [features/com.seizia.chromite.drivers.public.feature/build.properties](../../features/com.seizia.chromite.drivers.public.feature/build.properties) | `root = target/generated,drivers-root` — 두 폴더가 설치 폴더의 `drivers/`로 합쳐진다 |
 | [features/org.jkiss.dbeaver.ce.feature/feature.xml](../../features/org.jkiss.dbeaver.ce.feature/feature.xml), [features/com.seizia.chromite.swing.feature/feature.xml](../../features/com.seizia.chromite.swing.feature/feature.xml) | SWT 제품과 Swing 제품이 위 feature를 `<includes>`로 포함한다 |
 
@@ -152,7 +152,8 @@ JDBC 드라이버를 설치 파일에 미리 넣는다.
   Oracle은 `ORA-12541`, SQL Server는 TCP/IP 연결 실패로 끝났다. 다운로드 대화상자 없이 드라이버 클래스가 내장 jar에서 로드됐다는 뜻이다.
 - 내장되지 않은 SQLite는 다운로드 대화상자 없이 위 안내 문구(한국어)로 실패했다. 환경설정 > 연결 > 드라이버에 체크박스가 보인다.
 - Swing 제품(2026-11-06, 드라이버 feature 분리 후): Windows·macOS 결과물의 `drivers/` 34개 파일이 SWT 제품과 이름·크기·SHA-256이 같고(18,917,823 bytes,
-  위 첫 확인보다 1,351바이트 큰 것은 `core.autocrlf=true` 체크아웃에서 라이선스 텍스트 1,351줄이 CRLF로 들어갔기 때문이다), SWT 제품의 `drivers/`도 분리 전과 같다. Swing 제품에서 오프라인 모드를 끈 채 PostgreSQL의
+  위 첫 확인보다 1,351바이트 큰 것은 `core.autocrlf=true` 체크아웃에서 라이선스 텍스트 1,351줄이 CRLF로 들어갔기 때문이다.
+  이후 `.gitattributes`로 이 텍스트를 항상 LF로 고정해 크기가 체크아웃 설정에 따라 달라지지 않는다), SWT 제품의 `drivers/`도 분리 전과 같다. Swing 제품에서 오프라인 모드를 끈 채 PostgreSQL의
   Driver Properties를 열면 내려받기 확인 없이 속성이 보이고, Test Connection은 pgjdbc의 "Connection refused"로 끝났다([swing-frontend.md](swing-frontend.md)).
 - 오프라인 모드를 끈 상태(공개판 기본값)의 SWT 제품 내장 드라이버는 실행해 보지 않았다. 코드상 묶음 모드에서는 4개 드라이버에
   내려받을 항목이 남지 않으므로(`getDriverDependencies`가 `null`) 다운로드 대화상자가 열리지 않는다.
@@ -212,3 +213,5 @@ JDBC 드라이버를 설치 파일에 미리 넣는다.
   라이선스 원문·LGPL 소스 안내·`NOTICE` 추가. `maven-local`을 가장 먼저 찾도록 변경, 오프라인 모드 설정(`ui.drivers.offline`) 추가.
 - 2026-11-06 묶음 선언 플러그인과 jar 받기·루트 파일을 `ce.feature`에서 전용 feature `com.seizia.chromite.drivers.public.feature`로 옮김.
   SWT 제품과 Swing 제품이 같은 feature를 포함해 같은 `drivers/`를 배포한다.
+- 2026-11-06 `drivers-root/**/*.txt`를 루트 `.gitattributes`에서 `text eol=lf`로 고정. Windows `core.autocrlf=true` 체크아웃에서도
+  라이선스 텍스트가 LF로 들어가 배포되는 `drivers/` 바이트가 체크아웃 설정에 따라 달라지지 않는다(텍스트 11개, 70,322 bytes).
