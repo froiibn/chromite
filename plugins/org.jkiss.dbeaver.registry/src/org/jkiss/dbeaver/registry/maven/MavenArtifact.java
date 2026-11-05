@@ -1,6 +1,7 @@
 /*
  * DBeaver - Universal Database Manager
  * Copyright (C) 2010-2026 DBeaver Corp and others
+ * Modifications Copyright (C) 2026 Chromite contributors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -45,6 +46,10 @@ import java.util.regex.Pattern;
 
 /**
  * Maven artifact descriptor
+ *
+ * 변경 이력:
+ * - 2026-11-06 드라이버 오프라인 모드에서는 원격 저장소의 maven-metadata.xml을 요청하지 않는다
+ *   ({@link MavenRepository#checkNetworkAccessAllowed()}).
  */
 public class MavenArtifact implements IMavenIdentifier
 {
@@ -97,6 +102,7 @@ public class MavenArtifact implements IMavenIdentifier
     }
 
     public void loadMetadata(DBRProgressMonitor monitor, String version) throws IOException {
+        repository.checkNetworkAccessAllowed();
         latestVersion = null;
         releaseVersion = null;
         versions.clear();

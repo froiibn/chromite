@@ -1,0 +1,20 @@
+PostGIS JDBC 2.5.0
+  postgis-jdbc-2.5.0.jar
+  postgis-geometry-2.5.0.jar
+  postgis-jdbc-jtsparser-2.5.0.jar
+
+These libraries are licensed under the GNU Lesser General Public License,
+version 2.1. See LICENSE.txt in this folder.
+
+The jar files are the unmodified binaries published on Maven Central:
+  https://repo1.maven.org/maven2/net/postgis/
+
+Complete corresponding source code:
+  https://github.com/postgis/postgis-java/tree/v2.5.0
+  https://repo1.maven.org/maven2/net/postgis/postgis-jdbc/2.5.0/postgis-jdbc-2.5.0-sources.jar
+  https://repo1.maven.org/maven2/net/postgis/postgis-geometry/2.5.0/postgis-geometry-2.5.0-sources.jar
+  https://repo1.maven.org/maven2/net/postgis/postgis-jdbc-jtsparser/2.5.0/postgis-jdbc-jtsparser-2.5.0-sources.jar
+
+The libraries are loaded as separate files and are not combined with
+Chromite code. You may replace these jar files with modified versions
+built from the source code above.

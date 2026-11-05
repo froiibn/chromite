@@ -1,0 +1,17 @@
+MariaDB Connector/J 3.5.10 (mariadb-java-client-3.5.10.jar)
+
+This library is licensed under the GNU Lesser General Public License,
+version 2.1 or (at your option) any later version. See LICENSE.txt in
+this folder.
+
+The jar file is the unmodified binary published on Maven Central:
+  https://repo1.maven.org/maven2/org/mariadb/jdbc/mariadb-java-client/3.5.10/
+
+Complete corresponding source code:
+  https://github.com/mariadb-corporation/mariadb-connector-j/tree/3.5.10
+  https://repo1.maven.org/maven2/org/mariadb/jdbc/mariadb-java-client/3.5.10/mariadb-java-client-3.5.10-sources.jar
+
+The library is loaded as a separate file and is not combined with
+Chromite code. You may replace this jar file with a modified version
+built from the source code above (for example with the driver settings
+dialog in Chromite).
