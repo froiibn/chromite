@@ -183,4 +183,8 @@ Chromite는 2026-11-06 포크 시점부터 DBeaver와 독립적으로 개발한�
   ```
 
 - 결과물은 `product/community/target/products/chromite-<버전>-<플랫폼>`이다.
+- 빌드에 필요한 `dbeaver-common`과 `datadam-api`는 이 저장소의 `deps/`에 들어 있다([docs/chromite/build.md](docs/chromite/build.md)).
+  AGENTS.md의 "Repo dependencies"(`project.deps`, 상위 폴더에 저장소 clone)는 적용하지 않는다. 다른 저장소를 옆에 clone하지 않는다.
+- `deps/` 아래 파일을 고쳐야 하면 먼저 사용자에게 묻는다. `NOTICE`에 수정하지 않은 사본이라고 적어 두었고,
+  고치면 upstream 버전으로 갱신할 때 충돌한다. upstream 버전으로 갱신하는 것은 사용자가 요청할 때만 한다(build.md 참고).
 - 빌드나 테스트를 실행하지 못했으면 확인하지 못했다고 분명히 보고한다.

@@ -19,8 +19,7 @@ jobs:
     name: Build
     secrets: inherit
     with:
-      project-directory: ./dbeaver/product/aggregate
-      project-deps: ./dbeaver/project.deps
+      project-directory: ./chromite/product/aggregate
       timeout-minutes: 10
       mvn-args: -Pproduct-dbeaver-ce,product-dbeaver-eclipse-ce
 

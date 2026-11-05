@@ -11,10 +11,10 @@
   <version>1.0.0-SNAPSHOT</version>
 
   <modules>
-    <!-- dbeaver common -->
-    <module>../../../dbeaver-common</module>
-    <!-- datadam api -->
-    <module>../../../datadam-api/apis</module>
+    <!-- dbeaver common (in-repo copy, see docs/chromite/build.md) -->
+    <module>../../deps/dbeaver-common</module>
+    <!-- datadam api (in-repo copy, see docs/chromite/build.md) -->
+    <module>../../deps/datadam-api/apis</module>
     <!-- dbeaver ce -->
     <module>../..</module>
   </modules>
