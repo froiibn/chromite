@@ -5,5 +5,5 @@
     <feature id="org.jkiss.dbeaver.debug.feature">
         <category name="org.jkiss.dbeaver.debug.category"/>
     </feature>
-    <category-def name="org.jkiss.dbeaver.debug.category" label="DBeaver SQL Debugger (PostgreSQL)"/>
+    <category-def name="org.jkiss.dbeaver.debug.category" label="Chromite SQL Debugger (PostgreSQL)"/>
 </site>

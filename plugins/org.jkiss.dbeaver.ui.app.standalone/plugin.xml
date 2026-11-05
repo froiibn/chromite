@@ -40,14 +40,14 @@
     </extension>
 
     <extension point="org.eclipse.core.runtime.products" id="msstore">
-        <product application="org.jkiss.dbeaver.ui.app.standalone.msstore" description="%productSubTitle" name="DBeaver CE">
+        <product application="org.jkiss.dbeaver.ui.app.standalone.msstore" description="%productSubTitle" name="Chromite">
             <property name="aboutText" value="%aboutText"/>
             <property name="copyright" value="© 2026 DBeaver Corp"/>
             <property name="subTitle" value="%productSubTitle"/>
             <property name="website" value="%productWebsite"/>
             <property name="email" value="%productEmail"/>
             <property name="windowImages" value="/icons/dbeaver16.png,/icons/dbeaver32.png,/icons/dbeaver48.png,/icons/dbeaver64.png,/icons/dbeaver256.png"/>
-            <property name="appName" value="DBeaver CE"/>
+            <property name="appName" value="Chromite"/>
             <property name="versionInfoCoord" value="60,225"/>
             <property name="versionInfoSize" value="8"/>
             <property name="startupMessageRect" value="60,270,270,21"/>
@@ -558,8 +558,8 @@
         <activityPatternBinding activityId="hideE4Activity" pattern=".*/org.eclipse.gef.ui.palette_view"/>
         <activityPatternBinding activityId="hideE4Activity" pattern=".*/org.eclipse.graphiti.ui.internal.editor.thumbnailview"/>
 
-        <activity id="dbeaver.app.StandaloneActivity" name="DBeaver standalone application activity"/>
-        <category id="dbeaver.app.StandaloneCategory" name="DBeaver standalone application activity category"/>
+        <activity id="dbeaver.app.StandaloneActivity" name="Chromite standalone application activity"/>
+        <category id="dbeaver.app.StandaloneCategory" name="Chromite standalone application activity category"/>
 
         <!-- put the activity in the category -->
         <categoryActivityBinding activityId="dbeaver.app.StandaloneActivity" categoryId="dbeaver.app.StandaloneCategory"/>

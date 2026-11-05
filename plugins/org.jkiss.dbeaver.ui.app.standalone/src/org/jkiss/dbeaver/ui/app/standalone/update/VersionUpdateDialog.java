@@ -1,6 +1,7 @@
 /*
  * DBeaver - Universal Database Manager
  * Copyright (C) 2010-2026 DBeaver Corp and others
+ * Modifications Copyright (C) 2026 Chromite contributors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -305,7 +306,7 @@ public class VersionUpdateDialog extends Dialog {
                 try {
                     Path globalTempFolder = DBWorkbench.getPlatform().getTempFolder(monitor, UPDATES_FOLDER).getParent();
                     if (globalTempFolder == null) {
-                        throw new IOException("Could not resolve the parent directory of the DBeaver temporary folder");
+                        throw new IOException("Could not resolve the parent directory of the Chromite temporary folder");
                     }
 
                     var updatesFolder = globalTempFolder.resolveSibling(UPDATES_FOLDER);

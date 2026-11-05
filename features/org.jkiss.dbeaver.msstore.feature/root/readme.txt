@@ -1,6 +1,6 @@
 ${dbeaver-product} ${dbeaver-version} for MSStore
 
-This is a special DBeaver distribution for Microsoft store.
+This is a special Chromite distribution for Microsoft store.
 
 License
 ==========================

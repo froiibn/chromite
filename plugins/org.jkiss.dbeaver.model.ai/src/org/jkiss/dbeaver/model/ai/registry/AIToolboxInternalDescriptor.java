@@ -1,6 +1,7 @@
 /*
  * DBeaver - Universal Database Manager
  * Copyright (C) 2010-2026 DBeaver Corp and others
+ * Modifications Copyright (C) 2026 Chromite contributors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -41,13 +42,13 @@ public class AIToolboxInternalDescriptor implements AIToolboxDescriptor {
     @Override
     @NotNull
     public String getDisplayName() {
-        return "DBeaver";
+        return "Chromite";
     }
 
     @Nullable
     @Override
     public String getDescription() {
-        return "DBeaver internal AI toolbox";
+        return "Chromite internal AI toolbox";
     }
 
     @NotNull

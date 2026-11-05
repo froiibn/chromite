@@ -1,6 +1,7 @@
 /*
  * DBeaver - Universal Database Manager
  * Copyright (C) 2010-2026 DBeaver Corp and others
+ * Modifications Copyright (C) 2026 Chromite contributors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -71,7 +72,7 @@ public class StatisticsCollectionConfirmDialog extends BaseDialog {
 
         if (DBWorkbench.getPlatform().getApplication().isStatisticsCollectionRequired()) {
             doNotShareDataButton.setEnabled(false);
-            UIUtils.createInfoLabel(composite, "You cannot opt-out from data sharing in this version of DBeaver.");
+            UIUtils.createInfoLabel(composite, "You cannot opt-out from data sharing in this version of Chromite.");
         }
 
         return composite;

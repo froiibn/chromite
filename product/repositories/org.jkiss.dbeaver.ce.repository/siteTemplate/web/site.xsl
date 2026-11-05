@@ -3,7 +3,7 @@
 	<xsl:key name="cat" match="category" use="@name"/>
 	<xsl:template match="/">
 		<xsl:for-each select="site">
-			<h1 class="title">DBeaver Community update site</h1>
+			<h1 class="title">Chromite update site</h1>
 			<p class="bodyText"><xsl:value-of select="description"/></p>
 			<table width="100%" border="0" cellspacing="1" cellpadding="2">
 				<xsl:for-each select="category-def">

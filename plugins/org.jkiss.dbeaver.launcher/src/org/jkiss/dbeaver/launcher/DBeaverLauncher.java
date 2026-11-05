@@ -1,6 +1,7 @@
 /*
  * DBeaver - Universal Database Manager
  * Copyright (C) 2010-2026 DBeaver Corp and others
+ * Modifications Copyright (C) 2026 Chromite contributors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -686,9 +687,9 @@ public class DBeaverLauncher {
                     You are using an incompatible operating system version: minimal supported
                     version is Windows 10 (1607) or Windows Server 2016.
                     
-                    You might experience issues and unexpected behavior when running DBeaver.
+                    You might experience issues and unexpected behavior when running Chromite.
                     
-                    Consider using an older version of DBeaver that supports your operating
+                    Consider using an older version of Chromite that supports your operating
                     system, or upgrade your operating system to a newer version.
                     """,
                 "Incompatible OS",
