@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<?eclipse version="3.2"?>
+<plugin>
+
+    <extension point="org.eclipse.core.runtime.applications" id="application" name="Chromite Swing">
+        <application visible="true">
+            <run class="com.seizia.chromite.ui.swing.ChromiteSwingApplication"/>
+        </application>
+    </extension>
+
+    <extension point="org.eclipse.core.runtime.products" id="product">
+        <product application="com.seizia.chromite.ui.swing.application" description="Database Workbench" name="Chromite">
+            <property name="appName" value="Chromite"/>
+            <property name="subTitle" value="Database Workbench"/>
+            <property name="copyright" value="© 2026 Chromite contributors. Based on DBeaver Community © DBeaver Corp"/>
+        </product>
+    </extension>
+
+    <!-- Product name for GeneralUtils.getProductName(). No class attribute: Equinox creates the application instance. -->
+    <extension point="org.jkiss.dbeaver.application">
+        <application id="chromite-swing"
+            family="DB"
+            name="Chromite"
+            description="Database Workbench"/>
+    </extension>
+
+</plugin>

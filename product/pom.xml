@@ -31,6 +31,13 @@
                 <module>community-msstore</module>
             </modules>
         </profile>
+        <profile>
+            <!-- Chromite Swing frontend, docs/chromite/swing-frontend.md -->
+            <id>product-chromite-swing</id>
+            <modules>
+                <module>swing</module>
+            </modules>
+        </profile>
     </profiles>
 
 </project>
