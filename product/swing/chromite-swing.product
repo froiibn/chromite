@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?pde version="3.5"?>
+
+<!-- Chromite Swing frontend product (docs/chromite/swing-frontend.md). No SWT/JFace/Eclipse UI bundles. -->
+<product name="Chromite" uid="com.seizia.chromite.swing.product" id="com.seizia.chromite.ui.swing.product"
+    application="com.seizia.chromite.ui.swing.application" version="26.2.5.qualifier" useFeatures="true"
+    includeLaunchers="true">
+
+    <configIni use="default">
+    </configIni>
+
+    <launcherArgs>
+        <programArgs></programArgs>
+
+        <!-- Same JVM options as the SWT product, but Java 25 (the Swing bundle requires JavaSE-25)
+             and no -XstartOnFirstThread on macOS (it is for SWT and blocks AWT). -->
+        <vmArgs>
+            -XX:+IgnoreUnrecognizedVMOptions
+            -Dosgi.requiredJavaVersion=25
+            -Dfile.encoding=UTF-8
+            --sun-misc-unsafe-memory-access=allow
+            --enable-native-access=ALL-UNNAMED
+            --add-modules=ALL-DEFAULT
+            --add-opens=java.base/java.io=ALL-UNNAMED
+            --add-opens=java.base/java.lang=ALL-UNNAMED
+            --add-opens=java.base/java.lang.reflect=ALL-UNNAMED
+            --add-opens=java.base/java.net=ALL-UNNAMED
+            --add-opens=java.base/java.nio=ALL-UNNAMED
+            --add-opens=java.base/java.nio.charset=ALL-UNNAMED
+            --add-opens=java.base/java.text=ALL-UNNAMED
+            --add-opens=java.base/java.time=ALL-UNNAMED
+            --add-opens=java.base/java.util=ALL-UNNAMED
+            --add-opens=java.base/java.util.concurrent=ALL-UNNAMED
+            --add-opens=java.base/java.util.concurrent.atomic=ALL-UNNAMED
+            --add-opens=java.base/jdk.internal.vm=ALL-UNNAMED
+            --add-opens=java.base/jdk.internal.misc=ALL-UNNAMED
+            --add-opens=java.base/sun.nio.ch=ALL-UNNAMED
+            --add-opens=java.base/sun.nio.fs=ALL-UNNAMED
+            --add-opens=java.base/sun.security.ssl=ALL-UNNAMED
+            --add-opens=java.base/sun.security.util=ALL-UNNAMED
+            --add-opens=java.security.jgss/sun.security.jgss=ALL-UNNAMED
+            --add-opens=java.security.jgss/sun.security.krb5=ALL-UNNAMED
+            --add-opens=java.desktop/java.awt=ALL-UNNAMED
+            --add-opens=java.desktop/java.awt.peer=ALL-UNNAMED
+            --add-opens=java.sql/java.sql=ALL-UNNAMED
+            -Xms64m
+            -Xmx1024m</vmArgs>
+    </launcherArgs>
+
+    <!-- Distinct launcher name so the SWT product (launcher "chromite") is not overwritten -->
+    <launcher name="chromite-swing">
+        <macosx icon="../community/icons/dbeaver.icns"/>
+        <win useIco="true">
+            <ico path="../community/icons/dbeaver.ico"/>
+        </win>
+    </launcher>
+
+    <vm>
+    </vm>
+
+    <plugins>
+    </plugins>
+
+    <features>
+        <feature id="com.seizia.chromite.swing.feature"/>
+    </features>
+
+    <configurations>
+        <plugin id="org.eclipse.osgi" autoStart="true" startLevel="-1"/>
+        <plugin id="org.apache.felix.scr" autoStart="true" startLevel="2"/>
+        <plugin id="org.eclipse.equinox.simpleconfigurator" autoStart="true" startLevel="1"/>
+        <plugin id="org.eclipse.equinox.common" autoStart="true" startLevel="2"/>
+        <plugin id="org.eclipse.equinox.event" autoStart="true" startLevel="2"/>
+        <!-- Provides the application service. In the SWT product the workbench bundles start it; here nothing else does. -->
+        <plugin id="org.eclipse.core.runtime" autoStart="true" startLevel="4"/>
+    </configurations>
+
+</product>

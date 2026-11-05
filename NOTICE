@@ -32,3 +32,11 @@ endorsed by or sponsored by DBeaver Corp.
 
 This product includes third-party libraries that are distributed under
 their own licenses.
+
+The Chromite Swing frontend (plugins/com.seizia.chromite.ui.swing) includes:
+
+  FlatLaf 3.8 (com.formdev:flatlaf)
+  https://github.com/JFormDesigner/FlatLaf
+  Copyright (C) 2019-2026 FormDev Software
+  Licensed under the Apache License, Version 2.0.
+  Downloaded from Maven Central at build time; not stored in this repository.

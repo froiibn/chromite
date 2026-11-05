@@ -40,6 +40,9 @@
                 <module>org.jkiss.dbeaver.test.base.feature</module>
                 <module>org.jkiss.dbeaver.msstore.feature</module>
                 <module>org.jkiss.dbeaver.ce.feature</module>
+
+                <!-- Chromite Swing frontend (no SWT), docs/chromite/swing-frontend.md -->
+                <module>com.seizia.chromite.swing.feature</module>
             </modules>
         </profile>
     </profiles>

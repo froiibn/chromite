@@ -1,0 +1,17 @@
+Manifest-Version: 1.0
+Bundle-ManifestVersion: 2
+Bundle-Vendor: Chromite contributors
+Bundle-Name: Chromite Swing UI
+Bundle-SymbolicName: com.seizia.chromite.ui.swing;singleton:=true
+Bundle-Version: 1.0.0.qualifier
+Bundle-ActivationPolicy: lazy
+Bundle-RequiredExecutionEnvironment: JavaSE-25
+Bundle-Activator: com.seizia.chromite.ui.swing.ChromiteSwingActivator
+Bundle-ClassPath: .,
+ lib/flatlaf.jar
+Require-Bundle: org.eclipse.equinox.app,
+ org.eclipse.core.resources,
+ org.jkiss.dbeaver.model,
+ org.jkiss.dbeaver.model.rcp,
+ org.jkiss.dbeaver.registry
+Automatic-Module-Name: com.seizia.chromite.ui.swing
