@@ -15,5 +15,7 @@
     <includes id="org.jkiss.dbeaver.ui.extra.feature" version="0.0.0"/>
 
     <plugin id="org.jkiss.dbeaver.ui.app.standalone" version="0.0.0"/>
+    <!-- Chromite: declares the bundled driver folders that pom.xml puts into the root files (drivers/) -->
+    <plugin id="com.seizia.chromite.drivers.public" version="0.0.0"/>
 
 </feature>

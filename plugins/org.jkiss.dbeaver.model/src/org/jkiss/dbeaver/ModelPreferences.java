@@ -1,6 +1,7 @@
 /*
  * DBeaver - Universal Database Manager
  * Copyright (C) 2010-2026 DBeaver Corp and others
+ * Modifications Copyright (C) 2026 Chromite contributors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -42,6 +43,9 @@ import java.util.Locale;
 
 /**
  * Preferences constants
+ *
+ * 변경 이력:
+ * - 2026-11-06 드라이버 오프라인 모드 설정 {@link #UI_DRIVERS_OFFLINE} 추가(기본값 끔, docs/chromite/drivers.md)
  */
 public final class ModelPreferences
 {
@@ -269,6 +273,13 @@ public final class ModelPreferences
     public static final String UI_PROXY_PASSWORD = "ui.proxy.password"; //$NON-NLS-1$
     public static final String UI_DRIVERS_SOURCES = "ui.drivers.sources"; //$NON-NLS-1$
     public static final String UI_DRIVERS_GLOBAL_LIBRARIES = "ui.drivers.global.libraries"; //$NON-NLS-1$
+    /**
+     * Offline mode: never download driver files (Maven artifacts, URL and repo: files).
+     * Only bundled files, local Maven repositories/caches and manually added files are used.
+     * Off by default (public edition); an edition can turn it on with plugin_customization.ini
+     * ({@code org.jkiss.dbeaver.core/ui.drivers.offline=true}).
+     */
+    public static final String UI_DRIVERS_OFFLINE = "ui.drivers.offline"; //$NON-NLS-1$
     public static final String UI_MAVEN_REPOSITORIES = "ui.maven.repositories"; //$NON-NLS-1$
 
     public static final String NAVIGATOR_SHOW_FOLDER_PLACEHOLDERS = "navigator.show.folder.placeholders"; //$NON-NLS-1$
@@ -409,6 +420,7 @@ public final class ModelPreferences
         PrefUtils.setDefaultPreferenceValue(store, UI_DRIVERS_VERSION_UPDATE, true);
         PrefUtils.setDefaultPreferenceValue(store, UI_DRIVERS_HOME, "");
         PrefUtils.setDefaultPreferenceValue(store, UI_DRIVERS_SOURCES, "https://dbeaver.io/files/jdbc/");
+        PrefUtils.setDefaultPreferenceValue(store, UI_DRIVERS_OFFLINE, false);
 
         PrefUtils.setDefaultPreferenceValue(store, PROP_USE_WIN_TRUST_STORE_TYPE, RuntimeUtils.isWindows());
 

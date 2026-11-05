@@ -1,6 +1,7 @@
 /*
  * DBeaver - Universal Database Manager
  * Copyright (C) 2010-2026 DBeaver Corp and others
+ * Modifications Copyright (C) 2026 Chromite contributors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,6 +18,7 @@
 
 package org.jkiss.dbeaver.registry.driver;
 
+import org.eclipse.osgi.util.NLS;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
@@ -31,6 +33,7 @@ import org.jkiss.dbeaver.model.connection.DBPDriverLibraryProvider;
 import org.jkiss.dbeaver.model.connection.DBPDriverLoader;
 import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
 import org.jkiss.dbeaver.model.runtime.LoggingProgressMonitor;
+import org.jkiss.dbeaver.registry.internal.RegistryMessages;
 import org.jkiss.dbeaver.runtime.DBWorkbench;
 import org.jkiss.dbeaver.runtime.ui.UIServiceDrivers;
 import org.jkiss.dbeaver.utils.VersionUtils;
@@ -52,6 +55,11 @@ import java.util.stream.Stream;
 
 /**
  * DriverLoaderDescriptor
+ *
+ * 변경 이력:
+ * - 2026-11-06 드라이버 오프라인 모드({@link DriverUtils#isOfflineMode()}): 다운로드 대화상자를 열지 않고
+ *   로컬 소스(설치 폴더의 maven-local, Maven 캐시, file: 저장소)에서만 파일을 찾는다. 그래도 드라이버 클래스를
+ *   불러오지 못하면 파일을 직접 추가하라는 안내로 실패한다(docs/chromite/drivers.md).
  */
 public class DriverLoaderDescriptor implements DBPDriverLoader {
 
@@ -174,6 +182,13 @@ public class DriverLoaderDescriptor implements DBPDriverLoader {
                     // Load driver classes into core module using plugin class loader
                     driverClass = Class.forName(driver.getDriverClassName(), true, classLoader);
                 } catch (Throwable ex) {
+                    if (DriverUtils.isOfflineMode() && needsExternalDependencies()) {
+                        // Required files could not be resolved locally and offline mode forbids downloading them.
+                        // The cause is logged, not chained: error dialogs show the root cause message, which
+                        // would hide this explanation behind "Class not found".
+                        log.debug("Driver '" + driver.getFullName() + "' class load failed in offline mode", ex);
+                        throw new DBException(NLS.bind(RegistryMessages.driver_offline_files_missing, driver.getFullName()));
+                    }
                     throw new DBException("Error creating driver '" + driver.getFullName()
                         + "' instance.\nMost likely required jar files are missing.\nYou should configure jars in driver settings.\n\n"
                         + "Reason: can't load driver class '" + driver.getDriverClassName() + "'",
@@ -401,10 +416,16 @@ public class DriverLoaderDescriptor implements DBPDriverLoader {
         if (dependencies == null) {
             return true;
         }
-        UIServiceDrivers serviceDrivers = DBWorkbench.getService(UIServiceDrivers.class);
-        boolean downloadOk = serviceDrivers != null ?
-                             serviceDrivers.downloadDriverFiles(monitor, driver, dependencies, isShowExpanded) :
-                             DriverUtils.downloadDriverFiles(monitor, driver, dependencies);
+        boolean downloadOk;
+        if (DriverUtils.isOfflineMode()) {
+            // No download dialog: resolve silently from local sources, remote access is blocked further down
+            downloadOk = DriverUtils.downloadDriverFiles(monitor, driver, dependencies);
+        } else {
+            UIServiceDrivers serviceDrivers = DBWorkbench.getService(UIServiceDrivers.class);
+            downloadOk = serviceDrivers != null ?
+                serviceDrivers.downloadDriverFiles(monitor, driver, dependencies, isShowExpanded) :
+                DriverUtils.downloadDriverFiles(monitor, driver, dependencies);
+        }
         if (!downloadOk) {
             return false;
         }

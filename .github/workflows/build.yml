@@ -1,0 +1,111 @@
+# Chromite build: builds the Eclipse RCP product for the two supported platforms
+# (Windows x64, macOS arm64) and uploads each platform's product as a workflow artifact.
+# The macOS product is built on Linux: hosted macOS arm64 runners were not acquired (capacity).
+# Design and decisions: docs/chromite/ci.md
+name: Build
+
+on:
+  push:
+    branches: [devel]
+  pull_request:
+    branches: [devel]
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event_name == 'pull_request' && github.event.pull_request.number || github.ref_name }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build (${{ matrix.name }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 120
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: windows-x64
+            os: windows-latest
+          # Tycho materializes both products on any OS; on Linux p2 also sets the launcher executable bit.
+          - name: macos-aarch64-on-linux
+            os: ubuntu-latest
+    env:
+      MAVEN_OPTS: -Xmx3g
+      PRODUCTS_DIR: product/community/target/products/org.jkiss.dbeaver.core.product
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Set up JDK 25 (JetBrains Runtime)
+        uses: actions/setup-java@v6
+        with:
+          distribution: jetbrains
+          java-version: '25'
+        env:
+          # The JetBrains installer lists JBR releases through the GitHub API; the token avoids
+          # the unauthenticated rate limit on shared runners (setup-java docs/advanced-usage.md).
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Cache Maven repository
+        uses: actions/cache@v6
+        with:
+          # repository: Maven and Tycho/p2 artifacts; wrapper: Maven distribution downloaded by mvnw
+          path: |
+            ~/.m2/repository
+            ~/.m2/wrapper
+          key: m2-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('**/pom.xml', 'deps/dbeaver-common/.mvn/wrapper/maven-wrapper.properties') }}
+          restore-keys: |
+            m2-${{ runner.os }}-${{ runner.arch }}-
+
+      # Same Maven arguments as the build command in docs/chromite/build.md, run through the Maven wrapper
+      # in deps/dbeaver-common (pins Maven 3.9.16, same as local builds). Keep both steps in sync.
+      # The Swing product profile (product-chromite-swing) will be added here once it is merged
+      # ("-Pproduct-dbeaver-ce,product-chromite-swing"), together with upload steps for its output folders.
+      - name: Build (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: .\deps\dbeaver-common\mvnw.cmd -B -ntp package -f product/aggregate/pom.xml -T1C -Pproduct-dbeaver-ce
+
+      - name: Build (Linux)
+        if: runner.os == 'Linux'
+        shell: bash
+        run: ./deps/dbeaver-common/mvnw -B -ntp package -f product/aggregate/pom.xml -T1C -Pproduct-dbeaver-ce
+
+      # Tycho materializes every environment from the root pom.xml; each job uploads only the product its matrix entry names.
+      - name: Upload Windows x64 product
+        if: runner.os == 'Windows'
+        uses: actions/upload-artifact@v7
+        with:
+          name: chromite-windows-x64
+          # Uploading the parent folder keeps the "chromite/" root folder inside the artifact.
+          path: ${{ env.PRODUCTS_DIR }}/win32/win32/x86_64/
+          if-no-files-found: error
+          retention-days: 7
+
+      # upload-artifact does not keep Unix file permissions, so the .app is packed with tar first
+      # to keep the launcher executable bits. p2's chmod touchpoint ignores chmod failures, so the
+      # launcher bit is checked before packing instead of shipping an .app that cannot start.
+      - name: Pack macOS arm64 product
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          app_dir="$PRODUCTS_DIR/macosx/cocoa/aarch64/Chromite.app"
+          if [ ! -x "$app_dir/Contents/MacOS/chromite" ]; then
+            echo "::error::$app_dir/Contents/MacOS/chromite is missing or not executable"
+            exit 1
+          fi
+          tar -czf "$RUNNER_TEMP/chromite-macos-aarch64.tar.gz" -C "$PRODUCTS_DIR/macosx/cocoa/aarch64" Chromite.app
+
+      - name: Upload macOS arm64 product
+        if: runner.os == 'Linux'
+        uses: actions/upload-artifact@v7
+        with:
+          name: chromite-macos-aarch64
+          path: ${{ runner.temp }}/chromite-macos-aarch64.tar.gz
+          if-no-files-found: error
+          retention-days: 7
+          compression-level: 0

@@ -1,6 +1,7 @@
 /*
  * DBeaver - Universal Database Manager
  * Copyright (C) 2010-2026 DBeaver Corp and others
+ * Modifications Copyright (C) 2026 Chromite contributors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -46,6 +47,9 @@ import java.util.StringJoiner;
 
 /**
  * PrefPageDrivers
+ *
+ * 변경 이력:
+ * - 2026-11-06 드라이버 오프라인 모드 체크박스 추가({@link ModelPreferences#UI_DRIVERS_OFFLINE}, docs/chromite/drivers.md)
  */
 public class PrefPageDrivers extends AbstractPrefPage implements IWorkbenchPreferencePage, IWorkbenchPropertyPage {
     private static final Log log = Log.getLog(PrefPageDrivers.class);
@@ -53,6 +57,7 @@ public class PrefPageDrivers extends AbstractPrefPage implements IWorkbenchPrefe
     public static final String PAGE_ID = "org.jkiss.dbeaver.preferences.drivers"; //$NON-NLS-1$
 
     private Button versionUpdateCheck;
+    private Button offlineModeCheck;
     private Button showCommercialDrivers;
 
     private List sourceList;
@@ -88,6 +93,12 @@ public class PrefPageDrivers extends AbstractPrefPage implements IWorkbenchPrefe
                 UIConnectionMessages.pref_page_ui_general_check_new_driver_versions,
                 UIConnectionMessages.pref_page_ui_general_check_new_driver_versions_tip,
                 store.getBoolean(ModelPreferences.UI_DRIVERS_VERSION_UPDATE), 1
+            );
+            offlineModeCheck = UIUtils.createCheckbox(
+                settings,
+                UIConnectionMessages.pref_page_drivers_offline_mode,
+                UIConnectionMessages.pref_page_drivers_offline_mode_tip,
+                store.getBoolean(ModelPreferences.UI_DRIVERS_OFFLINE), 2
             );
             if (DataSourceTypeViewer.isCommercialDriversEnabled()) {
                 showCommercialDrivers = UIUtils.createCheckbox(
@@ -197,6 +208,7 @@ public class PrefPageDrivers extends AbstractPrefPage implements IWorkbenchPrefe
     protected void performDefaults() {
         DBPPreferenceStore store = DBWorkbench.getPlatform().getPreferenceStore();
         versionUpdateCheck.setSelection(store.getDefaultBoolean(ModelPreferences.UI_DRIVERS_VERSION_UPDATE));
+        offlineModeCheck.setSelection(store.getDefaultBoolean(ModelPreferences.UI_DRIVERS_OFFLINE));
         if (showCommercialDrivers != null) {
             showCommercialDrivers.setSelection(store.getDefaultBoolean(UIPreferences.DRIVER_SELECTOR_SHOW_COMMERCIAL_DRIVERS));
         }
@@ -225,6 +237,7 @@ public class PrefPageDrivers extends AbstractPrefPage implements IWorkbenchPrefe
 
         DBPPreferenceStore store = DBWorkbench.getPlatform().getPreferenceStore();
         store.setValue(ModelPreferences.UI_DRIVERS_VERSION_UPDATE, versionUpdateCheck.getSelection());
+        store.setValue(ModelPreferences.UI_DRIVERS_OFFLINE, offlineModeCheck.getSelection());
         if (showCommercialDrivers != null) {
             store.setValue(UIPreferences.DRIVER_SELECTOR_SHOW_COMMERCIAL_DRIVERS, showCommercialDrivers.getSelection());
         }

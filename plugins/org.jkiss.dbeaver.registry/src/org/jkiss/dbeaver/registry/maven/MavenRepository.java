@@ -1,6 +1,7 @@
 /*
  * DBeaver - Universal Database Manager
  * Copyright (C) 2010-2025 DBeaver Corp and others
+ * Modifications Copyright (C) 2026 Chromite contributors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -24,6 +25,7 @@ import org.jkiss.dbeaver.model.connection.DBPAuthInfo;
 import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
 import org.jkiss.dbeaver.registry.RegistryConstants;
 import org.jkiss.dbeaver.registry.driver.DriverDescriptor;
+import org.jkiss.dbeaver.registry.driver.DriverUtils;
 import org.jkiss.dbeaver.runtime.DBWorkbench;
 import org.jkiss.utils.CommonUtils;
 
@@ -39,6 +41,10 @@ import java.util.Map;
 
 /**
  * Maven repository manager.
+ *
+ * 변경 이력:
+ * - 2026-11-06 {@link #checkNetworkAccessAllowed()} 추가. 드라이버 오프라인 모드에서 원격 저장소의 메타데이터·POM 요청을 막는다
+ *   (docs/chromite/drivers.md).
  */
 public class MavenRepository
 {
@@ -212,6 +218,18 @@ public class MavenRepository
             // Generally it is ok. Artifact not present in this repository
             log.debug("Maven artifact '" + ref + "' not found in repository '" + this + "': " + e.getMessage());
             return null;
+        }
+    }
+
+    /**
+     * Fails when reading this repository needs network access while driver offline mode is enabled.
+     * The install-local repository and file: repositories stay readable. A POM is fetched only when it is
+     * not in the local cache, so previously downloaded artifacts with a fixed version still resolve offline;
+     * version lookups (RELEASE, LATEST, ranges) need maven-metadata.xml and fail for remote repositories.
+     */
+    void checkNetworkAccessAllowed() throws IOException {
+        if (type != RepositoryType.LOCAL && !url.startsWith("file:") && DriverUtils.isOfflineMode()) {
+            throw new IOException("Driver offline mode is enabled: remote Maven repository '" + url + "' is not accessed");
         }
     }
 

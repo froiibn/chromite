@@ -1,8 +1,8 @@
-# DBeaver Support
+# Chromite Support
 
-If you're looking for support for DBeaver Community then there are two options:
+If you're looking for support for Chromite then there are two options:
 
-* User Documentation &mdash; [DBeaver WIKI](https://github.com/dbeaver/dbeaver/wiki)
-* [DBeaver Issue tracker](https://github.com/dbeaver/dbeaver/issues)
+* [Chromite Issue tracker](https://github.com/froiibn/chromite/issues)
+* Design documents &mdash; [docs/chromite](../docs/chromite/README.md)
 
-
+Chromite is an independent fork of DBeaver Community. Please do not report Chromite issues to the DBeaver issue tracker.

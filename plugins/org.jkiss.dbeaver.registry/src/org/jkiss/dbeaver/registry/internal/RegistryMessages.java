@@ -1,6 +1,7 @@
 /*
  * DBeaver - Universal Database Manager
  * Copyright (C) 2010-2026 DBeaver Corp and others
+ * Modifications Copyright (C) 2026 Chromite contributors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,6 +19,10 @@ package org.jkiss.dbeaver.registry.internal;
 
 import org.eclipse.osgi.util.NLS;
 
+/**
+ * 변경 이력:
+ * - 2026-11-06 드라이버 오프라인 모드 안내 문구(driver_offline_*) 추가, 한국어 번역 파일(_ko) 신설
+ */
 public class RegistryMessages extends NLS {
     public static final String BUNDLE_NAME = "org.jkiss.dbeaver.registry.internal.RegistryMessages"; //$NON-NLS-1$
 
@@ -52,6 +57,9 @@ public class RegistryMessages extends NLS {
     public static String connection_add_shell_cmd_context_project;
     public static String connection_add_shell_cmd_context_data_source;
     public static String connection_add_shell_cmd_context_event_type;
+
+    public static String driver_offline_files_missing;
+    public static String driver_offline_download_blocked;
 
     static {
         // initialize resource bundle

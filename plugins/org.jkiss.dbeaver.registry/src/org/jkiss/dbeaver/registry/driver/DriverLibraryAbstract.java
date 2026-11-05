@@ -1,6 +1,7 @@
 /*
  * DBeaver - Universal Database Manager
  * Copyright (C) 2010-2026 DBeaver Corp and others
+ * Modifications Copyright (C) 2026 Chromite contributors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,6 +18,7 @@
 package org.jkiss.dbeaver.registry.driver;
 
 import org.eclipse.core.runtime.IConfigurationElement;
+import org.eclipse.osgi.util.NLS;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
@@ -29,6 +31,7 @@ import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
 import org.jkiss.dbeaver.model.runtime.OSDescriptor;
 import org.jkiss.dbeaver.model.runtime.OSDescriptorMatch;
 import org.jkiss.dbeaver.registry.RegistryConstants;
+import org.jkiss.dbeaver.registry.internal.RegistryMessages;
 import org.jkiss.dbeaver.runtime.DBWorkbench;
 import org.jkiss.dbeaver.runtime.WebUtils;
 import org.jkiss.utils.CommonUtils;
@@ -42,6 +45,10 @@ import java.util.Collections;
 
 /**
  * DriverLibraryAbstract
+ *
+ * 변경 이력:
+ * - 2026-11-06 오프라인 모드({@link DriverUtils#isOfflineMode()})에서는 {@link #downloadLibraryFile}이 원격(file: 이외) 다운로드 대신
+ *   안내 메시지와 함께 실패한다. Maven, URL, repo: 파일 모두 이 메서드로 내려받으므로 여기 한곳에서 막는다.
  */
 public abstract class DriverLibraryAbstract implements DBPDriverLibrary {
     private static final Log log = Log.getLog(DriverLibraryAbstract.class);
@@ -255,6 +262,11 @@ public abstract class DriverLibraryAbstract implements DBPDriverLibrary {
         String externalURL = getExternalURL(monitor);
         if (externalURL == null) {
             throw new IOException("Unresolved file reference: " + getPath());
+        }
+        if (DriverUtils.isOfflineMode() && !externalURL.startsWith("file:")) {
+            // Every remote driver file (Maven artifact, URL, repo:) is fetched here, so this is the download gate.
+            // file: sources (e.g. a Maven repository on a network share) are local copies, not downloads.
+            throw new IOException(NLS.bind(RegistryMessages.driver_offline_download_blocked, getDisplayName()));
         }
 
         // Download to a temporary file first so in case the process was terminated we won't have

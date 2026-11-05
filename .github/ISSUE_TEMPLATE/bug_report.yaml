@@ -1,5 +1,5 @@
 name: 🐛 Bug Report
-description: Report a reproducible bug or regression in DBeaver
+description: Report a reproducible bug or regression in Chromite
 labels: [wait for review]
 type: Bug
 body:
@@ -13,7 +13,7 @@ body:
       label: Description
       description: |
         Describe the issue you are experiencing.
-        Attach log files if possible ([read how to provide log files on our wiki](https://github.com/dbeaver/dbeaver/wiki/Log-files))
+        Attach log files if possible (the Error Log view, or the log files in the .metadata folder of the workspace).
       placeholder: |
         Please enter a description of the issue. Here you can also attach log files, screenshots or a video
     validations:
@@ -21,9 +21,9 @@ body:
   - type: input
     id: version
     attributes:
-      label: DBeaver Version
-      description: What version of DBeaver are you running?
-      placeholder: ex. Community Edition 24.1.0
+      label: Chromite Version
+      description: What version of Chromite are you running?
+      placeholder: ex. 26.2.5
     validations:
       required: true
   - type: input
@@ -31,7 +31,7 @@ body:
     attributes:
       label: Operating System
       description: What an operating system do you use?
-      placeholder: ex. macOS Big Sur 11.5.2
+      placeholder: ex. Windows 11 24H2 (x64), macOS 26 (Apple Silicon)
     validations:
       required: false
   - type: textarea
