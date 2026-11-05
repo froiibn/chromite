@@ -51,6 +51,8 @@ import java.util.regex.Pattern;
  *
  * 변경 이력:
  * - 2026-11-06 C단계: 최초 작성 (docs/chromite/swing-frontend.md "구현 현황 — C단계")
+ * - 2026-11-06 F단계: {@link #createParserContext}를 공개해 Swing 편집기의 자동완성이 실행과 같은 파서 문맥을 쓰게 함
+ *   (docs/chromite/swing-frontend.md "구현 현황 — F단계")
  */
 public final class SQLScriptBatches {
 
@@ -160,9 +162,11 @@ public final class SQLScriptBatches {
     /**
      * Parser context like the one of the SWT SQL editor (SQLEditorBase): syntax and rules of the data source's
      * dialect and connection settings, and the SQL partitioner that the parser uses to skip comments and strings.
+     * Also used by the Swing editor's code completion, which needs the partitions (comments, strings) and the
+     * statement at the caret.
      */
     @NotNull
-    private static SQLParserContext createParserContext(@NotNull DBPDataSource dataSource, @NotNull String text) {
+    public static SQLParserContext createParserContext(@NotNull DBPDataSource dataSource, @NotNull String text) {
         SQLDialect dialect = dataSource.getSQLDialect();
         SQLSyntaxManager syntaxManager = new SQLSyntaxManager();
         syntaxManager.init(dialect, dataSource.getContainer().getPreferenceStore());

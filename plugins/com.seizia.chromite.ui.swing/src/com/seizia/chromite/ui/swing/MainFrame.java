@@ -66,7 +66,8 @@ import java.util.function.IntConsumer;
  *     도구 창 단축키는 SSMS와 같다(Object Explorer F8, Properties F4, Results Ctrl+R).</li>
  *     <li>문서 탭: 시작 탭과 SQL 편집기 탭({@link SqlEditorPanel}). 편집기는 Object Explorer의 "New Query", File > New Query(Ctrl+N),
  *     도구 막대의 New Query로 연다. 제목은 SSMS처럼 {@code SQLQueryN.sql - 연결 이름}이고 닫기 단추가 있다.</li>
- *     <li>Query 메뉴의 Execute(F5)와 Cancel Executing Query(Alt+Break)는 활성 편집기에 적용된다. 메뉴 단축키라 포커스가 결과 표에 있어도 동작한다.</li>
+ *     <li>Query 메뉴의 Execute(F5)와 Cancel Executing Query(Alt+Break)는 활성 편집기에 적용된다. 메뉴 단축키라 포커스가 결과 표에 있어도 동작한다.
+ *     Complete(Ctrl+Space)는 활성 편집기의 자동완성을 띄우고, Auto-Complete While Typing은 글자 입력 뒤 자동완성 설정을 켜고 끈다({@link SqlCompletionPopup}).</li>
  *     <li>결과는 SSMS처럼 쿼리 창마다 따로 있다({@link QueryResultsView}). 아래 Results / Messages 탭에는 활성 편집기의 결과를 끼우고,
  *     편집기가 없으면 자리 표시 내용을 보여 준다. 편집기마다 마지막으로 본 탭(Results 또는 Messages)을 기억한다. 탭에서 빠져 있던 결과 컴포넌트는 테마 전환을 받지 못했을 수 있어, 끼울 때 Look and Feel을 맞춘다.</li>
  *     <li>File > New Connection과 도구 막대의 New Connection은 Object Explorer의 같은 명령으로 연결 대화상자({@link ConnectionDialog})를 연다.</li>
@@ -92,6 +93,7 @@ import java.util.function.IntConsumer;
  *   (docs/chromite/swing-frontend.md "구현 현황 — D단계")
  * - 2026-11-06 E단계: SQL 파일 열기·저장·최근 파일, 닫을 때 저장 확인, 스크립트 편집기와 DDL 탭, 연결 변경을 편집기에 알림
  *   (docs/chromite/swing-frontend.md "구현 현황 — E단계")
+ * - 2026-11-06 F단계: Query > Complete(Ctrl+Space), Auto-Complete While Typing (docs/chromite/swing-frontend.md "구현 현황 — F단계")
  */
 final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplorerPanel.QueryWindows {
 
@@ -125,6 +127,7 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
     private final Action saveAsAction;
     private final Action executeQueryAction;
     private final Action cancelQueryAction;
+    private final Action completeAction;
     private int queryCounter;
     /**
      * Folder of the last file dialog, for this run of the application.
@@ -206,6 +209,13 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
                 SqlEditorPanel editor = getActiveEditor();
                 if (editor != null) {
                     editor.cancel();
+                }
+            });
+        completeAction = createAction("Complete", "Show code completion proposals at the caret of the active query window",
+            KeyStroke.getKeyStroke(KeyEvent.VK_SPACE, InputEvent.CTRL_DOWN_MASK), () -> {
+                SqlEditorPanel editor = getActiveEditor();
+                if (editor != null) {
+                    editor.complete();
                 }
             });
         documentTabs.addChangeListener(e -> activeEditorChanged());
@@ -637,6 +647,7 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
         SqlEditorPanel editor = getActiveEditor();
         executeQueryAction.setEnabled(editor != null && !editor.isExecuting());
         cancelQueryAction.setEnabled(editor != null && editor.isExecuting());
+        completeAction.setEnabled(editor != null);
         saveAction.setEnabled(editor != null);
         saveAsAction.setEnabled(editor != null);
     }
@@ -745,6 +756,12 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
         queryMenu.setMnemonic(KeyEvent.VK_Q);
         queryMenu.add(new JMenuItem(executeQueryAction));
         queryMenu.add(new JMenuItem(cancelQueryAction));
+        queryMenu.addSeparator();
+        queryMenu.add(new JMenuItem(completeAction));
+        JCheckBoxMenuItem autoCompleteItem = new JCheckBoxMenuItem("Auto-Complete While Typing", SqlCompletionPopup.isAutoActivateOnLetters());
+        autoCompleteItem.setToolTipText("Show completion proposals after typing letters (they always appear after a period)");
+        autoCompleteItem.addActionListener(e -> SqlCompletionPopup.setAutoActivateOnLetters(autoCompleteItem.isSelected()));
+        queryMenu.add(autoCompleteItem);
 
         JMenu viewMenu = new JMenu("View");
         viewMenu.setMnemonic(KeyEvent.VK_V);

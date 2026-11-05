@@ -25,6 +25,16 @@
     <plugin id="org.jkiss.dbeaver.model.rcp" version="0.0.0"/>
     <!-- Logging: slf4j binding fragment, not reachable through bundle requirements -->
     <plugin id="org.jkiss.dbeaver.slf4j" version="0.0.0"/>
+    <!-- XLSX export of the results grid: the model's exporter and Apache POI, the UI-free bundles of
+         org.jkiss.dbeaver.ext.office.feature (its org.jkiss.dbeaver.data.office.ui is SWT and stays out) -->
+    <plugin id="org.jkiss.dbeaver.data.office" version="0.0.0"/>
+    <plugin id="org.jkiss.bundle.apache.poi" version="0.0.0"/>
+    <plugin id="org.apache.commons.commons-collections4" version="0.0.0"/>
+    <plugin id="org.apache.commons.commons-codec" version="0.0.0"/>
+    <plugin id="org.apache.commons.commons-compress" version="0.0.0"/>
+    <plugin id="org.apache.commons.commons-io" version="0.0.0"/>
+    <plugin id="org.apache.commons.lang3" version="0.0.0"/>
+    <plugin id="org.apache.commons.text" version="0.0.0"/>
 
     <!-- Equinox runtime started by the product configuration (start levels in chromite-swing.product) -->
     <plugin id="org.eclipse.equinox.simpleconfigurator" version="0.0.0"/>
