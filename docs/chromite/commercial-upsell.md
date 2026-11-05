@@ -36,7 +36,46 @@ DBeaver Community에는 DBeaver Corp의 상용판(PRO, Lite, Enterprise, Ultimat
 - `TipsXmlHandler`의 `product` 필터(제품 속성 `appEdition`=`ce`와 비교)는 남은 `product="ce"` 팁이 쓰므로 그대로 둔다.
   `tips.xsd`의 `productList` 패턴(`ce|le|ee|ue|te`)도 스키마 정의라서 고치지 않았다.
 
+### 상용판 홍보용 드라이버 스텁
+
+`plugins/org.jkiss.dbeaver.ext.generic/plugin.xml`의 "Drivers Teasers" 블록에 있던 드라이버 8개를 지웠다.
+모두 `<notAvailableDriver>`가 붙은 스텁이라 연결할 수 없고, 선택하면 상용판 구매를 권하는 안내만 보여 줬다.
+
+| 드라이버 ID | 이름 | 비고 |
+|---|---|---|
+| `odbc` | ODBC - Legacy | `sun.jdbc.odbc.JdbcOdbcDriver`(Java 8에서 없어진 JDBC-ODBC 브리지). 연결 불가 스텁이고, 안내문이 PRO의 ODBC 드라이버를 권했다. |
+| `mongo-ce` | MongoDB | |
+| `cql-ce` | Cassandra | |
+| `salesforce-ce` | Salesforce | |
+| `couchbase-ce` | Couchbase | |
+| `redis-ce` | Redis | |
+| `timestream-ce` | Timestream | |
+| `neo4j_jdbc` | Neo4j | |
+
+- `odbc` 드라이버만 쓰던 데이터 소스 유형 `odbc_legacy`와 아이콘 `odbc_icon*.png`, 스텁만 쓰던 큰 아이콘
+  (`mongodb_icon_big`, `cassandra_icon_big`, `salesforce_pro_icon`, `couchbase_pro_icon`, `redis_pro_icon`,
+  `timestream_pro_icon`, `neo4j_icon_big`과 `@2x`)을 지웠다.
+- 메시지 키 `deprecated.title`, `deprecated.description`, `driver.odbc.deprecation.reason`, `not.available.title`,
+  `not.available.description`, `driver.{mongodb,cassandra,salesforce,couchbase,redis,timestream,neo4j}.reason`을
+  모든 로캘에서 지웠다.
+- 저장된 연결이 지운 드라이버를 가리키면 `DataSourceSerializerModern`이 "Missing driver" 임시 드라이버를 만들어 읽는다.
+  기존 스텁도 연결할 수 없었으므로 잃는 기능은 없다.
+
+남긴 것과 이유:
+
+- 스텁 표시 기능 자체(`DBPDriverStub`, `DBPDriver.getDriverStub()`, `DriverDescriptor`의 `notAvailableDriver` 읽기,
+  `RegistryConstants.ATTR_NOT_AVAILABLE_DRIVER`, 확장 지점 스키마의 `notAvailableDriver` 요소,
+  `ConnectionPageDeprecation`과 연결 마법사·`ConnectJob`의 분기)는 이제 쓰는 곳이 없다.
+  model, registry, ui.editors.connection 세 플러그인의 공개 API에 걸쳐 있어 이번 작업에서는 지우지 않고 후속 작업 후보로 남긴다.
+- CData 확장의 `cdata-driver-settings.json`은 아이콘을 빌려 쓰려고 `generic:mongo-ce` 같은 지운 드라이버 6개를
+  `icon_driver`로 가리킨다. `CDataDriverDescriptor.getImageDriver()`는 드라이버를 못 찾으면 `null`을 돌려주고
+  CData 웹사이트에서 아이콘을 내려받으므로 오류는 없다. 이 파일은 실행 중에 dbeaver.com에서 받은 설정으로 덮어쓰는
+  묶음 사본이라 고치지 않았다.
+- 드라이버 분류 `nosql`은 이제 이 분류를 쓰는 드라이버가 없다. `DataSourceTypeViewer`는 드라이버가 없는 분류 탭을
+  만들지 않으므로 화면에는 나타나지 않는다. 분류 정의는 registry 공통 설정이라 그대로 둔다.
+
 ## 변경 이력
 
 - 2026-11-06 Help 메뉴의 "Try DBeaver PRO" 명령과 그 명령에만 쓰던 핸들러, property tester, 메시지 키를 제거.
 - 2026-11-06 오늘의 팁에서 상용판 홍보 팁 64개와 일반 팁 1개의 PRO 홍보 문장을 제거.
+- 2026-11-06 Generic 플러그인의 상용판 홍보용 드라이버 스텁 8개와 그 데이터 소스 유형, 아이콘, 메시지 키를 제거.
