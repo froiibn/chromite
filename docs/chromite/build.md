@@ -85,7 +85,7 @@ mvn package -f product/aggregate/pom.xml -T1C -Pproduct-dbeaver-ce
 
 | 파일 | 변경 |
 |---|---|
-| `pom.xml` | 부모 `relativePath`: `../dbeaver-common/pom.xml` → `deps/dbeaver-common/pom.xml` |
+| `pom.xml` | 부모 `relativePath`: `../dbeaver-common/pom.xml` → `deps/dbeaver-common/pom.xml`. Tycho 대상 환경을 `win32/win32/x86_64`, `macosx/cocoa/aarch64`로 축소([runtime.md](runtime.md) "플랫폼별 사항") |
 | `product/aggregate/pom.xml` | 모듈: `../../../dbeaver-common`, `../../../datadam-api/apis` → `../../deps/...` |
 | `project.deps` | 삭제 |
 | `.github/workflows/push-pr-devel.yml` | 삭제. Chromite 자체 워크플로 `.github/workflows/build.yml`로 대체([ci.md](ci.md)) |
@@ -120,4 +120,6 @@ git subtree pull --prefix=deps/datadam-api   --squash https://github.com/dbeaver
 
 - 2026-11-06 `dbeaver-common`, `datadam-api`를 `git subtree --squash`로 `deps/`에 넣고, 빌드 경로를 저장소 안으로 변경.
   루트 `project.deps` 삭제. `NOTICE`에 출처 추가.
+- 2026-11-06 루트 `pom.xml`의 Tycho 대상 환경을 Windows x64, macOS aarch64만 남기도록 축소. 제품 빌드가 Linux,
+  Windows ARM, Intel Mac 제품을 더 이상 만들지 않는다.
 - 2026-11-06 CI를 Chromite 자체 워크플로로 바꾸면서 `push-pr-devel.yml`을 삭제. CI 관련 설명을 [ci.md](ci.md)로 옮김.
