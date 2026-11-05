@@ -68,7 +68,7 @@ UI는 SWT 위젯뿐 아니라 Eclipse RCP 워크벤치(뷰, 편집기, 퍼스펙
 | 자동완성 | `SQLCompletionAnalyzer` | `model.sql` (SWT 의존 없음) | 분석 로직 재사용, 팝업 UI만 새로 작성 |
 | SQL 문장 분리 | `SQLScriptParser` | `model.sql` | 그대로 재사용 |
 | DDL 보기, Script as | `DBPScriptObject` | `model` | 그대로 재사용 |
-| 결과 내보내기 | `DataExporterCSV` 등 | `data.transfer` (SWT 의존 없음) | 엔진 재사용, 설정 화면만 새로 작성 |
+| 결과 내보내기 | `DataExporterCSV` 등 | `data.transfer` (SWT 의존 없음) | 엔진 재사용, 설정 화면만 새로 작성. E단계의 결과 표 내보내기는 표가 표시 문자열만 가지고 있어 Swing 번들에서 CSV를 직접 쓴다("구현 현황 — E단계") |
 | 쿼리 실행 | `SQLQueryExecuteJob` + `SQLQueryExecuteHandler` | `model.sql` (SWT 의존 없음) | 2026-11-06 `SQLQueryJob`에서 분리 완료. 그대로 재사용 ("쿼리 실행 계층") |
 | 결과 데이터 모델 | `ResultSetModel` (1,261줄, UI import 1개) | `ui.editors.data` | 색상 처리를 떼어 낸 뒤 이전 ("쿼리 실행 계층"의 결과 모델 분석) |
 | 결과 편집 저장 | `ResultSetPersister` (816줄, UI import 4개) | `ui.editors.data` | `ResultSetViewer` 의존을 끊은 뒤 이전 (같은 곳) |
@@ -549,7 +549,7 @@ B단계는 `JSplitPane`만 쓴다.
 - **SQL 편집기:** RSyntaxTextArea 기반 편집기 탭, F5 실행(선택 1자 이상이면 선택, 아니면 전체), SQL Server `GO` 배치 묶기를
   `SQLQueryExecuteJob`·`SQLQueryExecuteHandler`로 연결("F5와 GO 배치를 실행 계층에 연결하는 방법").
 - **결과 그리드:** Results 탭에 결과 표 쌓기(자체 `DBDDataReceiver` + `AbstractTableModel`), Messages 탭에 행 수·경고·PRINT 출력.
-- 탐색기: 활성 프로젝트 전환, 객체 편집기, Script as, 필터.
+- 탐색기: 활성 프로젝트 전환, 객체 편집기, Script as, 필터. (Script as와 DDL 보기는 E단계에서 구현했다)
   (연결 화면·연결 명령과 모델 이벤트로 트리 갱신은 D단계에서 구현했다. "구현 현황 — D단계")
 - 위 "DBPPlatformUI B단계 구현"의 남은 항목.
 - 도킹(끌어다 놓기, 떠 있는 창)이 필요해지면 ModernDocking 재검토.
@@ -575,7 +575,7 @@ C단계의 목표는 SSMS식 SQL 편집기와 결과 창이다: 편집기 탭을
 - Object Explorer에서 연결이나 그 아래 아무 노드를 오른쪽 클릭 → **New Query**: 그 노드의 연결(`DBNDatabaseNode.getDataSourceContainer()`)로 연다.
 - **File > New Query (Ctrl+N)**, 메뉴 아래 도구 막대의 **New Query**: Object Explorer에서 선택한 연결, 없으면 활성 편집기의 연결. 둘 다 없으면 안내 메시지.
 - 탭 제목은 SSMS처럼 `SQLQueryN.sql - <연결 이름>`(N은 실행 중 1부터 증가). 편집기 탭에는 닫기 단추가 있고(FlatLaf `tabClosable`, 탭 줄은 여러 줄로 감지 않고 한 줄 스크롤), 닫으면 실행 중인 쿼리를 취소한다.
-  아직 파일 저장이 없어서 닫을 때 저장 여부를 묻지 않는다.
+  아직 파일 저장이 없어서 닫을 때 저장 여부를 묻지 않는다. (E단계에서 파일 열기·저장과 닫을 때 저장 확인을 넣고, 제목에 고침 표시 `*`를 붙였다)
 - 연결은 편집기를 열 때가 아니라 실행할 때 필요하면 연다(SSMS는 열 때 연결한다. 연결 실패를 실행 결과와 같은 곳에서 다루기 위해 실행 시점으로 했다).
 
 ### 편집기 (RSyntaxTextArea)
@@ -685,10 +685,10 @@ Query 메뉴 항목은 활성 편집기에 적용되고, 메뉴 단축키라 포
 
 ### C단계에서 남긴 것 (D단계 이후)
 
-- 편집기: 파일 열기·저장(닫을 때 저장 확인), 방언별 키워드·자동완성(`SQLCompletionAnalyzer`), 실행한 문장 강조, 오류 위치로 이동(Messages 더블클릭).
+- 편집기: 파일 열기·저장(닫을 때 저장 확인, E단계에서 구현), 방언별 키워드·자동완성(`SQLCompletionAnalyzer`), 실행한 문장 강조, 오류 위치로 이동(Messages 더블클릭).
 - 실행: 편집기별 별도 연결(SSMS는 쿼리 창마다 연결), 오류 뒤 다음 배치 계속 실행(SSMS 기본 동작. 지금은 멈춤), 커밋 방식·트랜잭션 표시, 서버 출력 읽기
   (`DBCServerOutputReader`, Oracle `DBMS_OUTPUT`), 매개변수 입력 대화상자, `@set` 변수의 편집기 단위 유지.
-- 결과: 편집(Edit Top 200 Rows, "결과 모델 분석"), 더 읽기(최대 행 수 이후), 정렬, 결과 내보내기, 텍스트로 결과 보기.
+- 결과: 편집(Edit Top 200 Rows, "결과 모델 분석"), 더 읽기(최대 행 수 이후), 정렬, 결과 내보내기(CSV는 E단계에서 구현), 텍스트로 결과 보기.
 - SQL Server `GO` 배치는 SQL Server로 실행해 보지 못했다(아래 확인 참고).
 
 ## 구현 현황 — D단계
@@ -848,10 +848,156 @@ SWT의 DB별 연결 화면(`ext.*.ui`, 32개 번들)에만 있는 설정은 범�
 - 인증 방식 선택, 네트워크 핸들러(SSH 등), 연결 일반 설정(폴더, 연결 종류, 읽기 전용, 설명), 초기화 설정 — 위 표.
 - 연결 폴더 만들기·옮기기, 연결 복사, 연결 내보내기·가져오기.
 - 지운 연결을 쓰는 열린 SQL 편집기는 그대로 남는다(실행하면 연결 오류). SSMS처럼 연결 끊김 상태로 표시하는 처리가 필요하다.
-  연결 이름을 바꿔도 열린 편집기 탭 제목(`SQLQueryN.sql - 연결 이름`)은 바뀌지 않는다.
+  연결 이름을 바꿔도 열린 편집기 탭 제목(`SQLQueryN.sql - 연결 이름`)은 바뀌지 않는다. (탭 제목은 E단계에서 연결 레지스트리 이벤트로 바뀌게 했다)
 - 다른 곳에서 만든 DB 객체를 트리에 바로 넣기(`ADD` 이벤트), 활성 프로젝트 전환.
 - 이름 규칙 설정(`navigator.settings.default.connectionPattern`) 읽기.
 
+## 구현 현황 — E단계
+
+E단계의 목표는 SSMS처럼 SQL 파일을 열고 저장하고, 편집기에서 연결과 기본 DB/스키마를 바꾸고, Object Explorer에서 스크립트를 만들고,
+결과를 복사·내보내는 것이다. MVP 6번(Script as / DDL 보기)과 7번(결과 내보내기 중 CSV)을 구현했다.
+
+### 구성
+
+| 클래스 | 역할 |
+|---|---|
+| `SqlFileContent` (새) | SQL 파일 하나의 내용과 저장 형식(문자 집합, BOM, 줄바꿈). 읽기·쓰기 |
+| `RecentFiles` (새) | File > Recent Files 목록(최근 10개) 저장 |
+| `ObjectScripts` (새) | Script as / Select Top / View DDL의 SQL 만들기(모델의 SQL 생성기) |
+| `DdlViewerPanel` (새) | View DDL 읽기 전용 문서 탭 |
+| `ResultSetExport` (새) | 결과 표 복사(머리글 포함/미포함), CSV 내보내기 |
+| `SqlEditorPanel` (변경) | 연결 없는 편집기, 연결 콤보, 기본 DB/스키마 콤보, 파일 내용·고침 표시, 편집기별 최대 행 수 |
+| `MainFrame` (변경) | File 메뉴(Open File, Recent Files, Save, Save As), 닫을 때·끝낼 때 저장 확인, 스크립트 편집기·DDL 탭, 연결 변경을 편집기에 알림 |
+| `ObjectExplorerPanel` (변경) | Select Top 1000 Rows, Script as, View DDL 메뉴 |
+| `ResultSetGrid` (변경) | 오른쪽 클릭 메뉴(Copy, Copy with Headers, Export to CSV…) |
+
+### 메뉴와 단축키
+
+| 위치 | 항목 | 단축키 |
+|---|---|---|
+| File, 도구 막대 | Open File… | Ctrl+O |
+| File | Recent Files ▸ (최근 10개, 번호 1–9가 니모닉) | |
+| File, 도구 막대 | Save | Ctrl+S |
+| File | Save As… | |
+| File | Exit (고친 편집기가 있으면 저장 확인) | |
+| Object Explorer 오른쪽 클릭 | Select Top 1000 Rows | |
+| Object Explorer 오른쪽 클릭 | Script as ▸ CREATE To ▸ New Query Editor Window / Clipboard | |
+| Object Explorer 오른쪽 클릭 | Script as ▸ SELECT To ▸ New Query Editor Window / Clipboard | |
+| Object Explorer 오른쪽 클릭 | View DDL | |
+| 결과 표 오른쪽 클릭 | Copy | Ctrl+C |
+| 결과 표 오른쪽 클릭 | Copy with Headers | Ctrl+Shift+C (SSMS와 같음) |
+| 결과 표 오른쪽 클릭 | Export to CSV… | |
+
+### SQL 파일
+
+- **열기:** File > Open File(Ctrl+O, `*.sql` 필터) 또는 Recent Files. 새 편집기 탭으로 열고 탭 제목은 SSMS처럼 `파일 이름 - 연결 이름`, 도구 설명은 전체 경로다.
+  연결은 Object Explorer에서 고른 연결(연결 아래 어느 노드든), 없으면 활성 편집기의 연결, 그것도 없으면 연결 없이 연다(`파일 이름 - not connected`).
+  연결 없는 편집기는 도구 막대의 연결 콤보로 고르고, 고르기 전에 F5를 누르면 안내 메시지를 띄운다. 이미 열린 파일을 다시 열면 그 탭을 보여 준다.
+  없는 파일(최근 파일에서 지워진 것)은 알리고 목록에서 뺀다.
+- **문자 집합(`SqlFileContent`):** BOM(UTF-8, UTF-16 LE/BE)이 있으면 그 문자 집합으로 읽고, 저장할 때 BOM을 다시 쓴다. BOM이 없으면 UTF-8로 엄격하게 읽고,
+  잘못된 바이트가 있으면 운영체제 기본 문자 집합(`native.encoding`, 한국어 Windows는 MS949)으로 읽는다. 대체 문자로 읽은 뒤 저장해 원본을 망가뜨리지 않기 위해서다.
+  저장할 때 그 문자 집합으로 쓸 수 없는 글자가 있으면 아무것도 쓰지 않고 오류를 보여 준다. 새 쿼리는 UTF-8(BOM 없음)이다.
+- **줄바꿈:** 편집기는 `\n`만 다루므로 읽을 때 첫 줄바꿈이 `\r\n`이면 CRLF로 기억했다가 저장할 때 되돌린다. 새 쿼리는 플랫폼 줄바꿈(Windows CRLF, SSMS와 같음)이다.
+- **저장:** File > Save(Ctrl+S)는 파일이 있으면 그 파일에, 없으면(새 쿼리) Save As처럼 묻는다. Save As는 현재 이름(`SQLQueryN.sql` 또는 파일 이름)을 제안하고,
+  확장자가 없으면 `.sql`을 붙이고, 다른 파일을 덮어쓸 때 확인한다. 저장하면 탭 제목이 파일 이름으로 바뀌고 최근 파일 맨 앞에 들어간다.
+  파일 대화상자의 폴더는 실행 중에만 기억한다.
+- **고침 표시:** 문서가 바뀌면(입력·삭제) 탭 제목 끝에 `*`(SSMS와 같음). 파일을 열거나 스크립트로 채운 직후와 저장한 뒤에는 없다.
+  되돌리기로 원래 내용이 되어도 `*`는 남는다(SSMS와 같음).
+- **닫을 때 확인:** 고친 편집기 탭을 닫으면 그 탭을 보여 주고 "Save changes to …?" Save / Don't Save / Cancel. Save에서 파일 선택을 취소하거나 저장에 실패하면 닫지 않는다.
+- **끝낼 때 확인:** 창 닫기와 File > Exit는 고친 편집기를 모두 모아 한 번에 묻는다(SSMS "Save changes to the following items?"). Save는 하나씩 저장하고
+  하나라도 취소·실패하면 끝내지 않는다. 그래서 메인 창은 `DO_NOTHING_ON_CLOSE`로 닫기를 직접 처리한다. 외부 종료 요청(`IApplication.stop`)은 묻지 않고 닫는다.
+- **최근 파일(`RecentFiles`):** 이 번들 설정 저장소의 `sqlEditor.recentFiles`(경로를 줄바꿈으로 이음)에 열거나 저장할 때마다 바로 저장한다(비정상 종료에도 남게). 최대 10개.
+
+### 편집기 연결과 기본 DB/스키마
+
+- **연결 콤보:** 편집기 도구 막대(Execute, Cancel 오른쪽)에 활성 프로젝트의 연결 목록(숨김·임시 연결 제외, 이름순, 드라이버 아이콘)을 보여 준다.
+  고르면 그 편집기의 연결이 바뀌고 탭 제목이 바뀐다. 연결은 C단계처럼 실행할 때 필요하면 연다. 목록은 콤보를 열 때마다 다시 채워 연결 추가·삭제·이름 변경을 반영한다.
+  실행 중에는 콤보를 끈다(실행 중인 Job은 시작할 때의 연결을 쓴다).
+- **기본 DB/스키마 콤보 (SSMS "Available Databases"):** SWT의 활성 스키마 선택(`SelectActiveSchemaHandler`)과 같은 모델 API를 쓴다.
+  - 목록과 현재 값: 모델의 `ContextDefaultObjectsReader`(`org.jkiss.dbeaver.model.impl.struct`)를 작업 스레드에서 돌린다. 주 자식 형식이 카탈로그면 카탈로그 목록
+    (카탈로그 아래 스키마가 있고 스키마를 바꿀 수 있으면 현재 카탈로그의 스키마 목록), 스키마면 스키마 목록이다. SWT처럼 `DBSObjectContainer`인 것만 보이고,
+    기본 객체 또는 그 부모를 고른다.
+  - 바꾸기: `DBExecUtils.setExecutionContextDefaults(monitor, 데이터 소스, 문맥, 새 카탈로그, 현재 카탈로그, 새 스키마)`를 SWT와 같은 인자로 부른다
+    (카탈로그를 고르면 새 카탈로그 = 그 이름, 스키마를 고르면 새 카탈로그 = 현재 카탈로그·새 스키마 = 그 이름). 실패하면 오류 대화상자를 띄우고 다시 읽는다.
+  - 실행 문맥이 연결의 기본(주) 문맥이므로 바꾼 기본값은 같은 연결의 다른 편집기에도 적용된다(편집기별 별도 연결은 아직 없음).
+  - 연결되어 있지 않거나, 문맥에 기본값 기능(`DBCExecutionContextDefaults`)이 없거나, 카탈로그·스키마를 바꿀 수 없으면 `< N/A >`로 끈다. SQLite가 그렇다.
+  - 다시 읽는 때: 편집기를 열 때, 연결을 바꿀 때, 실행이 끝날 때(연결이 열렸거나 `USE`로 바뀌었을 수 있음), 연결 레지스트리 이벤트(연결, 끊기, 이름 바꾸기).
+  - SWT가 하는 것 중 안 한 것: 트랜잭션 모드에서 기본값 변경이 트랜잭션에 속하는 DB(`isDefaultsChangeTransactional`)의 커밋 확인, 다른 인스턴스(카탈로그)로 넘어가 스키마 고르기.
+- **연결 변경 알림:** `MainFrame`이 이미 듣던 연결 레지스트리 이벤트 중 `OBJECT_UPDATE`(연결, 끊기, 설정 저장·이름 바꾸기)를 그 연결을 쓰는 편집기에 알려
+  탭 제목과 기본 스키마 콤보를 갱신한다. D단계에서 남긴 "연결 이름을 바꿔도 탭 제목이 바뀌지 않음"이 이것으로 해결되었다.
+
+### Script as, Select Top 1000 Rows, View DDL (`ObjectScripts`)
+
+SWT의 "Generate SQL" 메뉴가 쓰는 모델 계층 생성기(`org.jkiss.dbeaver.model.sql.generator`, UI 의존 없음)를 그대로 쓴다. 모두 DB 메타데이터를 읽으므로
+진행 대화상자(`ProgressDialog`, 300ms 뒤에 보임, Cancel)의 작업 스레드에서 만든다.
+
+| 메뉴 | 대상 (노드의 객체) | 만드는 방법 |
+|---|---|---|
+| Script as > CREATE To | `DBPScriptObject`(테이블, 뷰, 프로시저, 함수, 트리거, 인덱스 등. 연결·폴더 제외) | `SQLGeneratorDDL`(SWT "Generate SQL > DDL"): 테이블·뷰는 `DBStructUtils.generateTableListDDL`, 그 밖은 `getObjectDefinitionText` |
+| Script as > SELECT To | `DBSEntity`이면서 `DBSDataContainer`(테이블, 뷰) | `SQLGeneratorSelect`(SWT "Generate SQL > SELECT"): 숨은 열을 뺀 열 목록, 완전한 이름 |
+| Select Top 1000 Rows | 위와 같음 | SELECT + 방언의 행 수 제한 → 새 편집기에서 바로 실행 |
+| View DDL | Script as CREATE와 같음 | 같은 DDL을 읽기 전용 탭(`DdlViewerPanel`, 제목 `객체 이름 [DDL]`)에 보임 |
+
+- **행 수 제한 문법:** 방언 이름으로 분기하지 않고, 실행 엔진이 최대 행 수를 SQL에 넣을 때 쓰는 연결의 `DBCQueryTransformProvider.createQueryTransformer(RESULT_SET_LIMIT)`로
+  만든 SELECT를 바꾼다(`setParameters(0, 1000)` → `transformQueryString`). SQL Server는 `QueryTransformerTop`(`SELECT TOP 1000 …`), SQLite·MySQL·PostgreSQL 등은
+  `QueryTransformerLimit`(`… LIMIT 1000`)이다. 변환기가 없거나 적용할 수 없으면 SELECT를 그대로 두고 가져오기 단계에서 자른다. 끝에 방언의 기본 구분자를 붙인다.
+- **편집기 최대 행 수:** 편집기는 연결의 최대 행 수(`resultset.maxrows`, 기본 200)까지만 가져오므로 `LIMIT 1000`이어도 200행에서 멈춘다.
+  그래서 Select Top으로 연 편집기는 최대 행 수를 1000(연결 설정이 더 크면 그 값)으로 올린다(`SqlEditorPanel.setMaxRows` → `SQLQueryExecuteJob.setResultSetLimit`).
+  이 편집기에서 나중에 실행하는 쿼리에도 같은 한도가 적용된다.
+- **New Query Editor Window:** 노드의 연결로 새 편집기(`SQLQueryN.sql`)를 열고 스크립트를 채운다. 만든 직후에는 고침 표시가 없다(다시 만들 수 있는 내용).
+  **Clipboard:** `DBPPlatformUI.copyTextToClipboard`.
+- **알려진 차이:** `SQLGeneratorDDL`은 `OPTION_INCLUDE_OBJECT_DROP`을 켠다. 이 옵션을 읽는 것은 지금 MySQL 테이블(`MySQLTableManager`)뿐이라
+  MySQL 테이블의 CREATE 스크립트에는 SWT처럼 `DROP TABLE` 문이 앞에 붙는다(SSMS의 "CREATE To"에는 없음). 생성기 옵션(완전한 이름, 주석 포함 등)은 기본값이다.
+
+### 결과 복사와 CSV 내보내기 (`ResultSetExport`)
+
+- **Copy (Ctrl+C):** C단계와 같은 `JTable` 전송 처리기(선택한 칸의 표시 문자열, 탭·줄바꿈 구분). 메뉴 항목은 같은 동작을 부른다.
+- **Copy with Headers (Ctrl+Shift+C):** 선택한 행·열의 열 이름 줄을 앞에 붙여 같은 형식으로 복사한다.
+- 오른쪽 클릭한 칸이 선택 밖이면 그 칸을 선택하고 메뉴를 연다.
+- **Export to CSV…:** 파일 대화상자 옆에 옵션(열 머리글 포함, 구분자 쉼표·세미콜론·탭, UTF-8 BOM(Excel용), 수식 이스케이프)과 안내 문구를 둔다.
+  안내: "이 표가 이미 가져온 N행을 내보내며 쿼리를 다시 실행하지 않는다", 최대 행 수에서 멈춘 결과는 "그 뒤 행은 내보내지 않는다"를 굵게. 옵션은 실행 중에 기억한다.
+  - 쓰기는 진행 대화상자의 작업 스레드에서 한다(1000행마다 진행·취소 확인). 취소하거나 실패하면 쓰다 만 파일을 지운다.
+  - 형식은 RFC 4180: 구분자·큰따옴표·CR·LF가 있는 값만 큰따옴표로 감싸고 안의 큰따옴표는 두 번 쓴다. 줄 끝은 CRLF, 문자 집합은 UTF-8. NULL은 빈 칸(`DataExporterCSV` 기본값과 같음).
+  - 수식 이스케이프(기본 켬, `DataExporterCSV`의 기본 동작과 같은 규칙): `= + - @`, 탭, CR, LF(전각 포함)로 시작하는 값 앞에 `'`를 붙인다(CSV injection 방지). 숫자 열과 NULL은 건드리지 않는다.
+- **`DataExporterCSV`(data.transfer)를 쓰지 않은 이유:** `data.transfer` 번들은 Swing 제품에 들어 있지만(`org.jkiss.dbeaver.runtime.feature`), 이 내보내기는 원래 값(`Object[]`),
+  열 바인딩(`DBDAttributeBinding[]`), LOB 읽기용 열린 세션(`exportRow(DBCSession, …)`)이 필요하다. Swing 결과 표는 C단계 설계대로 작업 스레드에서 값을 표시 문자열로 바꾸고
+  원래 값을 놓아 주므로(`ResultSetGridReceiver`) 그 입력이 없다. 원래 값을 결과 표에 계속 들고 있게 바꾸는 것은 LOB·세션 수명 문제가 커서, 화면에 보이는 값을 그대로 쓰는 쪽을 골랐다.
+  그래서 숫자·날짜는 화면 표시 형식이다(숫자 묶음 기호는 기본 설정에서 꺼져 있음, `DataFormatterProfile`).
+- **XLSX 내보내기: 보류.** 모델의 XLSX 내보내기(`DataExporterXLSX`, `org.jkiss.dbeaver.data.office`)는 SWT 의존이 없지만, 그 번들과 Apache POI 번들(`org.jkiss.bundle.apache.poi`)은
+  `org.jkiss.dbeaver.ext.office.feature`에만 있고 Swing 피처(`com.seizia.chromite.swing.feature`)에는 없다. 피처를 바꾸는 작업은 이번 범위(Swing 플러그인) 밖이고,
+  위와 같은 이유로 원래 값도 필요하다. 메뉴에 넣지 않았다.
+
+### 확인
+
+- 빌드: `-Pproduct-dbeaver-ce,product-chromite-swing` BUILD SUCCESS. Swing 결과물 번들 수는 Windows x64 129개, macOS arm64 130개(D단계와 같음)이고,
+  이름에 `swt`, `jface`, `org.eclipse.ui`, `org.eclipse.e4.ui`가 들어간 번들은 둘 다 0개다. 새 번들 의존은 없다(`data.transfer`·`data.office`를 쓰지 않음).
+- Windows에서 in-process JVM(`-vm …\bin\server\jvm.dll`)으로 C단계 작업 공간 사본에 SQLite 연결 하나(`Chinook Copy`, Album 1번 제목을 `Copy: …`로 바꾼 사본)를 더해 열고
+  키보드·마우스로 확인했다:
+  - **파일:** Ctrl+O로 CRLF·BOM 없는 `test1.sql`을 Object Explorer 선택 없이 열기 → `test1.sql - not connected`, 기본 스키마 `< N/A >`. F5 → "연결을 먼저 고르라"는 안내.
+    연결 콤보에서 `Chromite Sample Database` → 제목이 바뀌고 F5로 3행. 한 줄 입력 → 제목 끝 `*`. Ctrl+S → `*` 사라짐, 파일이 CRLF·BOM 없이 저장됨(바이트 확인).
+    다시 입력 후 탭 닫기 → "Save changes to test1.sql?" → Cancel이면 탭이 남고, Don't Save면 닫히며 파일에는 저장한 내용만 있음.
+    Object Explorer에서 연결을 고른 뒤 File > Recent Files > `1 …test1.sql` → 그 연결로 다시 열리고 저장한 내용이 그대로.
+    UTF-8 BOM·LF·한글 주석 파일을 열어 고치고 저장 → BOM(`EF BB BF`), LF, 한글이 그대로.
+  - **연결 바꾸기:** 같은 편집기에서 연결 콤보를 `Chinook Copy`로 바꾸고 F5 → 1행 제목이 `Copy: For Those About To Rock…`(사본 DB에서 실행), 탭 제목도 바뀜.
+    SQLite는 카탈로그·스키마 기본값이 없어 기본 스키마 콤보는 `< N/A >`로 꺼져 있다.
+  - **Script as > CREATE To > New Query Editor Window (Album):** `SQLQuery1.sql`에 `CREATE TABLE [Album] (…)`(기본 키, 외래 키, 인덱스 포함), 고침 표시 없음.
+  - **View DDL (Album):** `Album [DDL]` 읽기 전용 탭, 같은 DDL. 이 탭에서는 아래 Results/Messages가 자리 표시로 바뀜.
+  - **Select Top 1000 Rows (Track, 3503행):** `SELECT TrackId, Name, … FROM Track LIMIT 1000;`(SQLite 변환기의 `LIMIT`)이 바로 실행되어 1000행(연결 최대 행 수 200을 넘음).
+  - **CSV (Album, Select Top으로 347행):** 결과 표 오른쪽 클릭 → Export to CSV… → 옵션과 "347 rows already fetched … not run again" 안내 → 저장.
+    파일: UTF-8 BOM, 머리글 `AlbumId,Title,ArtistId`, 348줄, 줄 끝 CRLF, 쉼표가 있는 제목만 큰따옴표(`54,"Chronicle, Vol. 1",76`).
+    특수 값 쿼리(`'a "q" b'`, `'x,y'`, NULL, `'=1+1'`, 줄바꿈이 든 값, `-5`)를 내보내면 `"a ""q"" b","x,y",,'=1+1,"l1␊l2",-5`.
+  - **복사:** Ctrl+Shift+C는 머리글 줄 + 탭 구분 값, Ctrl+C는 값만(같은 형식).
+  - **끝내기:** 고친 편집기가 있는 상태에서 File > Exit → "Save changes to the following items? SQLQuery3.sql" → Cancel이면 앱이 남고, Don't Save면 종료.
+- 디버그 로그(`.metadata/dbeaver-debug.log`)에 ERROR/WARN/예외 없음. Eclipse 로그(`.metadata/.log`)에 새 항목 없음.
+- 확인하지 못한 것: 기본 스키마 바꾸기(카탈로그·스키마가 있는 서버형 DB가 없음, 모델 코드 경로만 확인), SQL Server `TOP` 변환, MySQL 테이블 CREATE의 DROP 문, macOS 실행.
+
+### E단계에서 남긴 것
+
+- XLSX 내보내기(위 "결과 복사와 CSV 내보내기"), "다시 실행해서 모든 행 내보내기"(지금은 가져온 행만).
+- 기본 스키마: 트랜잭션에 속하는 기본값 변경의 커밋 확인, 다른 카탈로그의 스키마 고르기. 서버형 DB에서 실행 확인.
+- 편집기별 별도 연결(SSMS는 쿼리 창마다 연결) — 기본 스키마가 같은 연결의 모든 편집기에 적용되는 원인.
+- 파일: 다른 프로그램이 바꾼 파일 다시 읽기, 문자 집합 직접 고르기(Save with Encoding), 파일 끌어다 놓기, 프로젝트 `Scripts` 폴더 연동.
+- Script as의 DROP / ALTER / INSERT / UPDATE / DELETE, Edit Top 200 Rows(결과 편집), 생성기 옵션 설정 화면.
 ## 변경 이력
 
 - 2026-11-06 최초 작성. Swing 전환 결정, 구조, 재사용 분석, MVP 범위, F5 실행 사양을 정리.
@@ -868,3 +1014,6 @@ SWT의 DB별 연결 화면(`ext.*.ui`, 32개 번들)에만 있는 설정은 범�
   연결 명령(연결, 끊기, 다시 연결, 이름 바꾸기, 삭제), `openConnectionEditor`, 드라이버 파일 내려받기 확인(`UIServiceDrivers`),
   탐색기 모델 이벤트로 Object Explorer 갱신과 상태 표시줄 연결 수 갱신. "구현 현황 — D단계" 절 추가, B·C단계의 남긴 항목에서 구현한 것을 뺌.
 - 2026-11-06 Swing 제품에 공개판 내장 드라이버 포함(`com.seizia.chromite.drivers.public.feature`). "내장 드라이버" 절 추가, D단계의 남긴 항목에서 뺌.
+- 2026-11-06 E단계 구현: SQL 파일 열기·저장·다른 이름으로 저장·최근 파일(문자 집합·BOM·줄바꿈 유지), 고침 표시와 닫을 때·끝낼 때 저장 확인,
+  편집기 도구 막대의 연결 콤보와 기본 DB/스키마 콤보, Object Explorer의 Select Top 1000 Rows·Script as(CREATE·SELECT)·View DDL,
+  결과 표 오른쪽 클릭 메뉴(복사, 머리글 포함 복사, CSV 내보내기). "구현 현황 — E단계" 절 추가, 기존 단계의 남긴 항목에 구현 표시. XLSX 내보내기는 보류.

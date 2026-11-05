@@ -31,16 +31,22 @@ import org.fife.ui.rsyntaxtextarea.Theme;
 import org.fife.ui.rtextarea.RTextScrollPane;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
+import org.jkiss.dbeaver.DBException;
 import org.jkiss.dbeaver.Log;
 import org.jkiss.dbeaver.ModelPreferences;
+import org.jkiss.dbeaver.model.DBIcon;
 import org.jkiss.dbeaver.model.DBPDataSource;
 import org.jkiss.dbeaver.model.DBPDataSourceContainer;
 import org.jkiss.dbeaver.model.DBPErrorAssistant;
 import org.jkiss.dbeaver.model.DBUtils;
+import org.jkiss.dbeaver.model.app.DBPProject;
 import org.jkiss.dbeaver.model.data.DBDDataReceiver;
 import org.jkiss.dbeaver.model.exec.DBCExecutionContext;
+import org.jkiss.dbeaver.model.exec.DBCExecutionContextDefaults;
 import org.jkiss.dbeaver.model.exec.DBCSession;
 import org.jkiss.dbeaver.model.exec.DBCStatistics;
+import org.jkiss.dbeaver.model.exec.DBExecUtils;
+import org.jkiss.dbeaver.model.impl.struct.ContextDefaultObjectsReader;
 import org.jkiss.dbeaver.model.runtime.AbstractJob;
 import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
 import org.jkiss.dbeaver.model.sql.SQLQuery;
@@ -49,19 +55,32 @@ import org.jkiss.dbeaver.model.sql.SQLQueryResult;
 import org.jkiss.dbeaver.model.sql.SQLScriptContext;
 import org.jkiss.dbeaver.model.sql.SQLScriptElement;
 import org.jkiss.dbeaver.model.sql.data.SQLQueryDataContainer;
+import org.jkiss.dbeaver.model.struct.DBSObject;
+import org.jkiss.dbeaver.model.struct.DBSObjectContainer;
+import org.jkiss.dbeaver.model.struct.rdb.DBSCatalog;
+import org.jkiss.dbeaver.model.struct.rdb.DBSSchema;
+import org.jkiss.dbeaver.runtime.DBWorkbench;
 import org.jkiss.dbeaver.runtime.ui.DBPPlatformUI;
 import org.jkiss.utils.CommonUtils;
 
 import javax.swing.*;
+import javax.swing.event.DocumentEvent;
+import javax.swing.event.DocumentListener;
+import javax.swing.event.PopupMenuEvent;
+import javax.swing.event.PopupMenuListener;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.Writer;
+import java.lang.reflect.InvocationTargetException;
+import java.nio.file.Path;
 import java.sql.SQLException;
 import java.time.OffsetDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Comparator;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicLong;
@@ -84,11 +103,21 @@ import java.util.concurrent.atomic.AtomicLong;
  *     <li>오류는 대화상자 대신 Messages 탭에 쓰고(오류 위치 = 편집기의 줄·열), 엔진의 "계속할까요" 질문
  *     ({@link SQLQueryExecuteHandler#handleExecutionError})에는 묻지 않고 멈춤으로 답한다. 오류가 나면 SSMS처럼 Messages 탭을 보여 준다.</li>
  *     <li>커밋 방식, 오류 처리 방식, 최대 행 수는 엔진 기본값(SWT 편집기 설정 기본값, 연결의 최대 행 수 설정)을 쓴다.
+ *     "Select Top N Rows"로 연 편집기는 N행까지 가져오도록 최대 행 수를 키운다({@link #setMaxRows}).
  *     실행 문맥은 연결의 기본(주) 문맥이다(편집기별 별도 연결은 아직 없음).</li>
+ *     <li>연결: 편집기는 연결 없이 열 수 있다(파일 열기). 도구 막대의 연결 콤보(SSMS의 연결 바꾸기)로 연결을 고르거나 바꾸고,
+ *     실행 중에는 바꿀 수 없다. 목록은 콤보를 열 때 활성 프로젝트의 연결로 다시 채운다(추가·삭제·이름 변경 반영).</li>
+ *     <li>기본 DB/스키마 콤보(SSMS의 "Available Databases"): SWT의 활성 스키마 선택({@code SelectActiveSchemaHandler})과 같은 모델 API를 쓴다.
+ *     목록과 현재 값은 {@link ContextDefaultObjectsReader}, 바꾸기는 {@link DBExecUtils#setExecutionContextDefaults}다(둘 다 작업 스레드).
+ *     실행 문맥이 연결의 기본 문맥이라 같은 연결의 다른 편집기에도 적용된다. 연결되어 있지 않거나 문맥이 바꾸기를 지원하지 않으면 끈다.</li>
+ *     <li>파일: 편집기는 텍스트만 다루고, 파일의 문자 집합·BOM·줄바꿈은 {@link SqlFileContent}로 기억해 저장할 때 되살린다.
+ *     파일 대화상자와 최근 파일 목록은 메인 창이 맡는다. 문서가 바뀌면 고침 표시를 켜고 탭 제목 끝에 {@code *}를 붙인다.</li>
  * </ul>
  *
  * 변경 이력:
  * - 2026-11-06 C단계: 최초 작성 (docs/chromite/swing-frontend.md "구현 현황 — C단계")
+ * - 2026-11-06 E단계: 연결 없는 편집기, 연결·기본 스키마 콤보, 파일 내용과 고침 표시, 편집기별 최대 행 수
+ *   (docs/chromite/swing-frontend.md "구현 현황 — E단계")
  */
 final class SqlEditorPanel extends JPanel {
 
@@ -109,11 +138,35 @@ final class SqlEditorPanel extends JPanel {
          * Execution started or finished (Query menu state).
          */
         void executionStateChanged(@NotNull SqlEditorPanel editor);
+
+        /**
+         * The tab title or tool tip changed (file name, connection, modified marker).
+         */
+        void titleChanged(@NotNull SqlEditorPanel editor);
     }
 
-    private final DBPDataSourceContainer dataSourceContainer;
-    private final String title;
+    private static final String NOT_AVAILABLE = "< N/A >"; //$NON-NLS-1$
+
     private final Host host;
+    // EDT only
+    @Nullable
+    private DBPDataSourceContainer dataSourceContainer;
+    private String fileName;
+    @Nullable
+    private Path file;
+    /**
+     * Format (charset, BOM, line separator) of the file; its text is not kept up to date.
+     */
+    private SqlFileContent fileFormat;
+    private boolean dirty;
+    private long maxRows;
+    private final JComboBox<DBPDataSourceContainer> connectionCombo = new JComboBox<>();
+    private final JComboBox<Object> schemaCombo = new JComboBox<>();
+    private boolean updatingCombos;
+    private boolean schemaChangeSupported;
+    private int schemaSerial;
+    @Nullable
+    private SchemaState schemaState;
     private final SqlTextArea textArea;
     private final QueryResultsView resultsView = new QueryResultsView();
     private final Action executeAction;
@@ -127,10 +180,15 @@ final class SqlEditorPanel extends JPanel {
     @Nullable
     private Execution execution;
 
-    SqlEditorPanel(@NotNull DBPDataSourceContainer dataSourceContainer, @NotNull String fileName, @NotNull Host host) {
+    /**
+     * @param dataSourceContainer connection of the query window, or null to choose it later in the tool bar
+     * @param fileName            name of the new query ({@code SQLQueryN.sql}) until it is saved to a file
+     */
+    SqlEditorPanel(@Nullable DBPDataSourceContainer dataSourceContainer, @NotNull String fileName, @NotNull Host host) {
         super(new BorderLayout());
         this.dataSourceContainer = dataSourceContainer;
-        this.title = fileName + " - " + dataSourceContainer.getName();
+        this.fileName = fileName;
+        this.fileFormat = SqlFileContent.newFile("");
         this.host = host;
 
         executeAction = new AbstractAction("Execute") {
@@ -165,16 +223,123 @@ final class SqlEditorPanel extends JPanel {
             }
         });
         statusLabel.setText("Ready");
+        textArea.getDocument().addDocumentListener(new DocumentListener() {
+            @Override
+            public void insertUpdate(DocumentEvent e) {
+                setDirty(true);
+            }
+
+            @Override
+            public void removeUpdate(DocumentEvent e) {
+                setDirty(true);
+            }
+
+            @Override
+            public void changedUpdate(DocumentEvent e) {
+                // Attribute changes do not modify the text
+            }
+        });
+        reloadConnectionItems();
+        refreshSchemas();
     }
 
+    /**
+     * SSMS-like tab title: {@code SQLQuery1.sql - connection*} ({@code *} while modified).
+     */
     @NotNull
     String getTitle() {
-        return title;
+        return fileName + " - " + (dataSourceContainer != null ? dataSourceContainer.getName() : "not connected") + (dirty ? "*" : "");
     }
 
+    /**
+     * Tab tool tip: the file path, or the name of a query that was never saved.
+     */
     @NotNull
+    String getToolTip() {
+        return file != null ? file.toString() : fileName;
+    }
+
+    @Nullable
     DBPDataSourceContainer getDataSourceContainer() {
         return dataSourceContainer;
+    }
+
+    @Nullable
+    Path getFile() {
+        return file;
+    }
+
+    /**
+     * File name for Save As: the file's name, or {@code SQLQueryN.sql} for a query that was never saved.
+     */
+    @NotNull
+    String getFileName() {
+        return fileName;
+    }
+
+    boolean isDirty() {
+        return dirty;
+    }
+
+    /**
+     * The editor text in the format of its file (a new query: UTF-8, platform line separator).
+     */
+    @NotNull
+    SqlFileContent getContent() {
+        return fileFormat.withText(textArea.getText());
+    }
+
+    /**
+     * Replaces the text without marking the editor modified: a file that was opened, or a generated script.
+     *
+     * @param file the file the content was read from, or null for a script that is not a file yet
+     */
+    void setContent(@NotNull SqlFileContent content, @Nullable Path file) {
+        textArea.setText(content.text());
+        textArea.setCaretPosition(0);
+        textArea.discardAllEdits();
+        fileFormat = content;
+        if (file != null) {
+            this.file = file;
+            this.fileName = file.getFileName().toString();
+        }
+        dirty = false;
+        host.titleChanged(this);
+    }
+
+    /**
+     * The text was written to a file (Save, Save As).
+     */
+    void saved(@NotNull Path file, @NotNull SqlFileContent content) {
+        this.file = file;
+        this.fileName = file.getFileName().toString();
+        this.fileFormat = content;
+        dirty = false;
+        host.titleChanged(this);
+    }
+
+    private void setDirty(boolean dirty) {
+        if (this.dirty != dirty) {
+            this.dirty = dirty;
+            host.titleChanged(this);
+        }
+    }
+
+    /**
+     * Row limit of this query window ("Select Top N Rows"): it fetches at least this many rows, more if the
+     * connection's maximum is higher. 0 uses the connection's maximum.
+     */
+    void setMaxRows(long maxRows) {
+        this.maxRows = maxRows;
+    }
+
+    /**
+     * The connection was changed elsewhere (renamed, connected, disconnected): title and default schema.
+     */
+    void connectionChanged() {
+        host.titleChanged(this);
+        connectionCombo.repaint();
+        refreshSchemas();
     }
 
     @NotNull
@@ -205,11 +370,53 @@ final class SqlEditorPanel extends JPanel {
         toolBar.add(createToolBarButton(executeAction));
         toolBar.add(createToolBarButton(cancelAction));
         toolBar.addSeparator();
-        JLabel connectionLabel = new JLabel(dataSourceContainer.getName());
-        connectionLabel.setToolTipText("Connection of this query window");
-        toolBar.add(connectionLabel);
+
+        connectionCombo.setToolTipText("Connection of this query window");
+        connectionCombo.setRenderer(new ConnectionRenderer());
+        setFixedWidth(connectionCombo, 260);
+        connectionCombo.addActionListener(e -> {
+            if (!updatingCombos && connectionCombo.getSelectedItem() instanceof DBPDataSourceContainer selected && selected != dataSourceContainer) {
+                dataSourceContainer = selected;
+                statusLabel.setText("Ready");
+                host.titleChanged(this);
+                refreshSchemas();
+            }
+        });
+        connectionCombo.addPopupMenuListener(new PopupMenuListener() {
+            @Override
+            public void popupMenuWillBecomeVisible(PopupMenuEvent e) {
+                // Connections may have been added, removed or renamed since
+                reloadConnectionItems();
+            }
+
+            @Override
+            public void popupMenuWillBecomeInvisible(PopupMenuEvent e) {
+            }
+
+            @Override
+            public void popupMenuCanceled(PopupMenuEvent e) {
+            }
+        });
+        toolBar.add(connectionCombo);
+        toolBar.addSeparator();
+
+        schemaCombo.setToolTipText("Default database/schema of the connection (shared by its query windows)");
+        schemaCombo.setRenderer(new SchemaRenderer());
+        setFixedWidth(schemaCombo, 200);
+        schemaCombo.addActionListener(e -> {
+            if (!updatingCombos && schemaCombo.getSelectedItem() instanceof DBSObject selected) {
+                changeDefaultObject(selected);
+            }
+        });
+        toolBar.add(schemaCombo);
         toolBar.setBorder(BorderFactory.createEmptyBorder(2, 4, 2, 4));
         return toolBar;
+    }
+
+    private static void setFixedWidth(@NotNull JComponent component, int width) {
+        Dimension size = new Dimension(width, component.getPreferredSize().height);
+        component.setPreferredSize(size);
+        component.setMaximumSize(size);
     }
 
     @NotNull
@@ -267,12 +474,19 @@ final class SqlEditorPanel extends JPanel {
             statusLabel.setText("Nothing to execute");
             return;
         }
+        DBPDataSourceContainer container = dataSourceContainer;
+        if (container == null) {
+            JOptionPane.showMessageDialog(this, "Choose a connection for this query window in its tool bar first.",
+                "Execute", JOptionPane.INFORMATION_MESSAGE);
+            return;
+        }
 
-        Execution run = new Execution(text, offset, length,
-            dataSourceContainer.getPreferenceStore().getInt(ModelPreferences.RESULT_SET_MAX_ROWS));
+        long connectionMaxRows = container.getPreferenceStore().getInt(ModelPreferences.RESULT_SET_MAX_ROWS);
+        Execution run = new Execution(container, text, offset, length,
+            maxRows > 0 ? Math.max(maxRows, connectionMaxRows) : connectionMaxRows, maxRows > 0);
         execution = run;
         resultsView.clear();
-        statusLabel.setText(dataSourceContainer.isConnected() ? "Executing query…" : "Connecting…");
+        statusLabel.setText(container.isConnected() ? "Executing query…" : "Connecting…");
         elapsedLabel.setText(formatElapsed(0, false));
         rowsLabel.setText("");
         elapsedTimer.start();
@@ -314,6 +528,9 @@ final class SqlEditorPanel extends JPanel {
     private void updateActions() {
         executeAction.setEnabled(execution == null);
         cancelAction.setEnabled(execution != null && !execution.cancelRequested);
+        // The connection and its defaults stay as they are while a query runs on them
+        connectionCombo.setEnabled(execution == null);
+        schemaCombo.setEnabled(execution == null && schemaChangeSupported);
         host.executionStateChanged(this);
     }
 
@@ -353,26 +570,29 @@ final class SqlEditorPanel extends JPanel {
         updateActions();
         // As in SSMS: errors (or no result grids at all) bring the Messages tab to the front
         host.showResults(this, run.hasErrors || resultsView.getGridCount() == 0);
+        // The run may have connected, or changed the default database (USE)
+        refreshSchemas();
     }
 
     //////////////////////////////////////////////////////////
     // Execution (job threads)
 
     private void prepareAndSchedule(@NotNull Execution run, @NotNull DBRProgressMonitor monitor) {
+        DBPDataSourceContainer container = run.dataSourceContainer;
         try {
-            if (!dataSourceContainer.isConnected()) {
+            if (!container.isConnected()) {
                 // Reports connection errors itself (SwingConnectionService)
-                DBUtils.initDataSource(monitor, dataSourceContainer, null);
+                DBUtils.initDataSource(monitor, container, null);
             }
-            DBPDataSource dataSource = dataSourceContainer.getDataSource();
-            if (dataSource == null || !dataSourceContainer.isConnected()) {
+            DBPDataSource dataSource = container.getDataSource();
+            if (dataSource == null || !container.isConnected()) {
                 stopPreparation(run, run.cancelRequested ? Status.CANCEL_STATUS
-                    : errorStatus("Not connected to '" + dataSourceContainer.getName() + "'"));
+                    : errorStatus("Not connected to '" + container.getName() + "'"));
                 return;
             }
             DBCExecutionContext context = DBUtils.getDefaultContext(dataSource.getDefaultInstance(), false);
             if (context == null) {
-                stopPreparation(run, errorStatus("No execution context for '" + dataSourceContainer.getName() + "'"));
+                stopPreparation(run, errorStatus("No execution context for '" + container.getName() + "'"));
                 return;
             }
             List<SQLScriptElement> elements = SQLScriptBatches.extractQueries(dataSource, run.text, run.offset, run.length);
@@ -384,6 +604,9 @@ final class SqlEditorPanel extends JPanel {
             SQLQueryExecuteJob job = new SQLQueryExecuteJob(
                 "Execute query", context, null, elements, scriptContext,
                 new QueryListener(run), new QueryHandler(run, context, scriptContext));
+            if (run.customMaxRows) {
+                job.setResultSetLimit(0, run.maxRows);
+            }
             job.addJobChangeListener(new JobChangeAdapter() {
                 @Override
                 public void done(IJobChangeEvent event) {
@@ -563,10 +786,12 @@ final class SqlEditorPanel extends JPanel {
      * (the done event is posted after all their updates), except the cancel flag which is guarded by {@code jobLock}.
      */
     private static final class Execution {
+        final DBPDataSourceContainer dataSourceContainer;
         final String text;
         final int offset;
         final int length;
         final long maxRows;
+        final boolean customMaxRows;
         final long startTime = System.currentTimeMillis();
         final AtomicLong rowsFetched = new AtomicLong();
         final List<Throwable> reportedErrors = new CopyOnWriteArrayList<>();
@@ -575,11 +800,20 @@ final class SqlEditorPanel extends JPanel {
         @Nullable
         Job job;
 
-        Execution(@NotNull String text, int offset, int length, long maxRows) {
+        Execution(
+            @NotNull DBPDataSourceContainer dataSourceContainer,
+            @NotNull String text,
+            int offset,
+            int length,
+            long maxRows,
+            boolean customMaxRows
+        ) {
+            this.dataSourceContainer = dataSourceContainer;
             this.text = text;
             this.offset = offset;
             this.length = length;
             this.maxRows = maxRows;
+            this.customMaxRows = customMaxRows;
         }
     }
 
@@ -667,10 +901,193 @@ final class SqlEditorPanel extends JPanel {
         }
     }
 
+    //////////////////////////////////////////////////////////
+    // Connection and default schema (EDT)
+
     /**
-     * SQL text area with the Chromite colors of the current theme.
+     * Fills the connection combo with the connections of the active project (and the current one, if it is elsewhere).
      */
-    private static final class SqlTextArea extends RSyntaxTextArea {
+    private void reloadConnectionItems() {
+        List<DBPDataSourceContainer> containers = new ArrayList<>();
+        DBPProject project = DBWorkbench.getPlatform().getWorkspace().getActiveProject();
+        if (project != null) {
+            for (DBPDataSourceContainer container : project.getDataSourceRegistry().getDataSources()) {
+                if (!container.isHidden() && !container.isTemporary()) {
+                    containers.add(container);
+                }
+            }
+        }
+        if (dataSourceContainer != null && !containers.contains(dataSourceContainer)) {
+            containers.add(dataSourceContainer);
+        }
+        containers.sort(Comparator.comparing(DBPDataSourceContainer::getName, String.CASE_INSENSITIVE_ORDER));
+        updatingCombos = true;
+        try {
+            DefaultComboBoxModel<DBPDataSourceContainer> model = new DefaultComboBoxModel<>();
+            containers.forEach(model::addElement);
+            model.setSelectedItem(dataSourceContainer);
+            connectionCombo.setModel(model);
+        } finally {
+            updatingCombos = false;
+        }
+    }
+
+    /**
+     * Reads the default catalog/schema of the connection and the ones it can change to, in a job.
+     */
+    private void refreshSchemas() {
+        int serial = ++schemaSerial;
+        DBPDataSourceContainer container = dataSourceContainer;
+        DBPDataSource dataSource = container != null && container.isConnected() ? container.getDataSource() : null;
+        if (dataSource == null) {
+            showSchemas(serial, null);
+            return;
+        }
+        new AbstractJob("Read default schema of " + container.getName()) {
+            @NotNull
+            @Override
+            protected IStatus run(@NotNull DBRProgressMonitor monitor) {
+                SchemaState state = null;
+                DBCExecutionContext context = DBUtils.getDefaultContext(dataSource.getDefaultInstance(), false);
+                if (context != null && context.getContextDefaults() != null) {
+                    ContextDefaultObjectsReader reader = new ContextDefaultObjectsReader(dataSource, context);
+                    try {
+                        reader.run(monitor);
+                        state = new SchemaState(dataSource, context, reader);
+                    } catch (InvocationTargetException e) {
+                        log.debug("Can't read the default schema of '" + container.getName() + "'", e.getTargetException());
+                    } catch (InterruptedException e) {
+                        // Canceled
+                    }
+                }
+                SchemaState finalState = state;
+                SwingUtilities.invokeLater(() -> showSchemas(serial, finalState));
+                return Status.OK_STATUS;
+            }
+        }.schedule();
+    }
+
+    private void showSchemas(int serial, @Nullable SchemaState state) {
+        if (serial != schemaSerial) {
+            return;
+        }
+        schemaState = state;
+        DefaultComboBoxModel<Object> model = new DefaultComboBoxModel<>();
+        Object selected = NOT_AVAILABLE;
+        boolean supported = false;
+        DBCExecutionContextDefaults<?, ?> contextDefaults = state == null ? null : state.context().getContextDefaults();
+        Collection<? extends DBSObject> objects = state == null ? null : state.reader().getObjectList();
+        if (contextDefaults != null && objects != null) {
+            DBSObject defaultObject = state.reader().getDefaultObject();
+            for (DBSObject object : objects) {
+                if (object == null || DBUtils.getAdapter(DBSObjectContainer.class, object) == null) {
+                    continue;
+                }
+                model.addElement(object);
+                // A default schema selects its catalog when only catalogs are listed (as SelectActiveSchemaHandler)
+                if (defaultObject != null && (object == defaultObject || object == defaultObject.getParentObject())) {
+                    selected = object;
+                }
+            }
+            supported = model.getSize() > 0 && (contextDefaults.supportsCatalogChange() || contextDefaults.supportsSchemaChange());
+        }
+        if (model.getSize() == 0) {
+            model.addElement(NOT_AVAILABLE);
+        } else if (selected == NOT_AVAILABLE) {
+            model.insertElementAt(NOT_AVAILABLE, 0);
+        }
+        updatingCombos = true;
+        try {
+            model.setSelectedItem(selected);
+            schemaCombo.setModel(model);
+        } finally {
+            updatingCombos = false;
+        }
+        schemaChangeSupported = supported;
+        schemaCombo.setEnabled(execution == null && supported);
+    }
+
+    /**
+     * Makes a catalog or schema the default of the connection's context, with the same arguments as the SWT
+     * active schema selector ({@code SelectActiveSchemaHandler}).
+     */
+    private void changeDefaultObject(@NotNull DBSObject object) {
+        SchemaState state = schemaState;
+        if (state == null || object == state.reader().getDefaultObject()) {
+            return;
+        }
+        String currentCatalogName = state.reader().getDefaultCatalogName();
+        String newCatalogName = object instanceof DBSCatalog ? object.getName() : currentCatalogName;
+        String newSchemaName = object instanceof DBSSchema ? object.getName() : null;
+        // Reads that are still running show the old default; drop them
+        schemaSerial++;
+        schemaCombo.setEnabled(false);
+        new AbstractJob("Change default schema") {
+            @NotNull
+            @Override
+            protected IStatus run(@NotNull DBRProgressMonitor monitor) {
+                try {
+                    DBExecUtils.setExecutionContextDefaults(monitor, state.dataSource(), state.context(),
+                        newCatalogName, currentCatalogName, newSchemaName);
+                } catch (DBException e) {
+                    DBWorkbench.getPlatformUI().showError("Change default schema",
+                        "Can't make '" + object.getName() + "' the default", e);
+                }
+                SwingUtilities.invokeLater(SqlEditorPanel.this::refreshSchemas);
+                return Status.OK_STATUS;
+            }
+        }.schedule();
+    }
+
+    /**
+     * Default catalog/schema read for the combo.
+     */
+    private record SchemaState(
+        @NotNull DBPDataSource dataSource,
+        @NotNull DBCExecutionContext context,
+        @NotNull ContextDefaultObjectsReader reader
+    ) {
+    }
+
+    /**
+     * Connection items: driver icon and connection name.
+     */
+    private static final class ConnectionRenderer extends DefaultListCellRenderer {
+        @Override
+        public Component getListCellRendererComponent(JList<?> list, Object value, int index, boolean isSelected, boolean cellHasFocus) {
+            super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
+            if (value instanceof DBPDataSourceContainer container) {
+                setText(container.getName());
+                setIcon(NodeIcons.getIcon(container.getDriver().getIcon()));
+            } else {
+                setText("<Select connection>");
+                setIcon(null);
+            }
+            return this;
+        }
+    }
+
+    /**
+     * Catalog/schema items with the navigator icons; the "not available" text has none.
+     */
+    private static final class SchemaRenderer extends DefaultListCellRenderer {
+        @Override
+        public Component getListCellRendererComponent(JList<?> list, Object value, int index, boolean isSelected, boolean cellHasFocus) {
+            super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
+            if (value instanceof DBSObject object) {
+                setText(object.getName());
+                setIcon(NodeIcons.getIcon(object instanceof DBSSchema ? DBIcon.TREE_SCHEMA : DBIcon.TREE_DATABASE));
+            } else {
+                setIcon(null);
+            }
+            return this;
+        }
+    }
+
+    /**
+     * SQL text area with the Chromite colors of the current theme (also used read-only by {@link DdlViewerPanel}).
+     */
+    static final class SqlTextArea extends RSyntaxTextArea {
         SqlTextArea() {
             setSyntaxEditingStyle(SyntaxConstants.SYNTAX_STYLE_SQL);
             setCodeFoldingEnabled(false);
