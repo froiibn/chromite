@@ -40,8 +40,6 @@ DBeaver Community 포크를 **Chromite** 제품으로 배포하기 위해, 사�
 |---|---|---|
 | `product/community/icons/dbeaver.ico` | 256/48/32/16 32비트, 48/32/16 8비트 (BMP 7개) | Windows 실행 파일 아이콘 (`tools/branding/gen_launcher_ico.py`로 생성) |
 | `product/community/icons/dbeaver.icns` | 16~1024 | macOS 앱 아이콘 |
-| `product/community/icons/dbeaver.xpm` | 128×128, 2 cpp | Linux 실행 파일 아이콘 |
-| `product/community/icons/dbeaver.png` | 256×256 | Linux 패키지 루트 아이콘 (`features/org.jkiss.dbeaver.ce.feature/build.properties`) |
 | `product/community/icons/dbeaver_back.bmp` | 165×314 | 설치 프로그램 측면 이미지 |
 | `product/community/icons-sources/icon_*.png` | 16~1024 | 아이콘 원본 세트 |
 | `plugins/org.jkiss.dbeaver.ui.app.standalone/icons/dbeaver{16,32,48,64,256}.png` | 각 크기 | 창 아이콘 (`plugin.xml`의 `windowImages`), `about.ini`, 설정 가져오기 대화상자 |
@@ -122,3 +120,5 @@ DBeaver Community 포크를 **Chromite** 제품으로 배포하기 위해, 사�
   프랑스어 `Atelier de bases de données`, 러시아어 `Рабочая среда для баз данных`, 우크라이나어
   `Робоче середовище для баз даних`, 중국어 간체 `数据库工作台`, 번체 `資料庫工作台`. 확실한 번역이 없는 스페인어,
   이탈리아어(`aboutText`), 폴란드어, 포르투갈어(브라질), 루마니아어는 영어 `Database Workbench`를 쓴다.
+- 2026-11-06 Linux를 빌드하지 않게 되어([runtime.md](runtime.md)) Linux 전용 아이콘 `product/community/icons/dbeaver.xpm`,
+  `dbeaver.png`를 삭제.
