@@ -176,11 +176,16 @@ Chromite는 2026-11-06 포크 시점부터 DBeaver와 독립적으로 개발한�
 
 ## 빌드 환경
 
-- 빌드에는 JDK 21과 Maven 3.9 이상이 필요하다. 전체 빌드는 시간이 오래 걸리므로 백그라운드에서 실행한다.
+- 빌드에는 JDK 25(JBR 25 권장, [docs/chromite/runtime.md](docs/chromite/runtime.md))와 Maven 3.9 이상이 필요하다.
+  Swing 번들은 release 25로 컴파일된다([docs/chromite/swing-frontend.md](docs/chromite/swing-frontend.md)).
+  전체 빌드는 시간이 오래 걸리므로 백그라운드에서 실행한다.
 
   ```bash
   mvn package -f product/aggregate/pom.xml -T1C -Pproduct-dbeaver-ce
   ```
+
+- Swing 제품까지 함께 빌드하려면 `-Pproduct-dbeaver-ce,product-chromite-swing`을 쓴다. PowerShell에서는 프로파일 목록을
+  작은따옴표로 묶는다(`'-Pproduct-dbeaver-ce,product-chromite-swing'`). CI는 JBR 25로 두 제품을 모두 빌드한다([docs/chromite/ci.md](docs/chromite/ci.md)).
 
 - 결과물은 `product/community/target/products/chromite-<버전>-<플랫폼>`이다.
 - 빌드에 필요한 `dbeaver-common`과 `datadam-api`는 이 저장소의 `deps/`에 들어 있다([docs/chromite/build.md](docs/chromite/build.md)).

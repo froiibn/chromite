@@ -180,7 +180,6 @@ CI에서 checkstyle을 돌리지 않기로 했다. 깔끔하게 유지할 방법
 - 결과물은 서명하지 않았고 JRE를 내장하지 않는다. 실행하려면 JDK 21 이상(Swing 제품은 JDK 25 이상, [swing-frontend.md](swing-frontend.md))이
   설치되어 있어야 한다. 배포용이 아니라 확인용이며 7일 뒤 지워진다.
 - `actions/cache` 저장 공간은 저장소당 10GB다. 두 OS의 캐시가 커지면 오래된 캐시부터 지워진다.
-- 저장소 최상위 `SECURITY.md`는 아직 `security@dbeaver.com`을 안내한다(이 작업 범위 밖, 따로 고쳐야 함).
 
 ## upstream 대비 변경점
 
@@ -192,6 +191,7 @@ CI에서 checkstyle을 돌리지 않기로 했다. 깔끔하게 유지할 방법
 | `.github/codeql/codeql-config.yml` | 추가 |
 | `.github/ISSUE_TEMPLATE.md` | 삭제 |
 | `.github/ISSUE_TEMPLATE/config.yml`, `bug_report.yaml`, `SUPPORT.md`, `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md`, `copilot-instructions.md`, `skills/code-review/SKILL.md` | DBeaver 조직 링크·연락처·제품명을 Chromite 기준으로 변경 |
+| `SECURITY.md`(저장소 최상위) | 보고처를 `security@dbeaver.com`에서 GitHub Security Advisories(froiibn/chromite)로 변경, 지원 버전(최신 `devel`)과 upstream 보고 안내 추가 |
 
 ## 변경 이력
 
@@ -203,3 +203,4 @@ CI에서 checkstyle을 돌리지 않기로 했다. 깔끔하게 유지할 방법
 - 2026-11-06 Swing 제품을 CI에 넣었다. 두 빌드 단계가 Maven 한 번으로 `-Pproduct-dbeaver-ce,product-chromite-swing`을 빌드하고,
   결과물 `chromite-swing-windows-x64`(Windows 작업), `chromite-swing-macos-aarch64`(Linux 작업, 런처 실행 권한 확인 후 tar)를 더 올린다.
   "Swing 제품을 추가하는 방법" 절은 할 일을 마쳐 지웠다.
+- 2026-11-06 `SECURITY.md`를 Chromite 기준으로 고쳐(GitHub Security Advisories로 비공개 보고) 남은 문제 항목에서 지웠다.

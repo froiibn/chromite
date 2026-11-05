@@ -8,7 +8,7 @@
     a Maven artifact with bundle="!drivers.X" and an install-relative folder with bundle="drivers.X".
     Declaring the product bundle "drivers.X" here makes the registry use the folder
     <install>/drivers/... instead of downloading from Maven (DriverUtils.matchesBundle).
-    The folders are filled at build time by features/org.jkiss.dbeaver.ce.feature/pom.xml,
+    The folders are filled at build time by features/com.seizia.chromite.drivers.public.feature/pom.xml,
     so this plugin and the jar files ship together in the same feature. Declaring a bundle
     without its files would leave the driver without any file source, so never include this
     plugin in a product that does not ship the matching drivers/ folders.
@@ -16,6 +16,8 @@
     History:
     - 2026-11-06 Created. Public edition bundles SQL Server, Oracle, PostgreSQL and MariaDB
       (docs/chromite/drivers.md).
+    - 2026-11-06 Moved with the drivers/ root files into com.seizia.chromite.drivers.public.feature,
+      which both the SWT and the Swing product include.
 -->
 <plugin>
 
