@@ -74,8 +74,37 @@ DBeaver Community에는 DBeaver Corp의 상용판(PRO, Lite, Enterprise, Ultimat
 - 드라이버 분류 `nosql`은 이제 이 분류를 쓰는 드라이버가 없다. `DataSourceTypeViewer`는 드라이버가 없는 분류 탭을
   만들지 않으므로 화면에는 나타나지 않는다. 분류 정의는 registry 공통 설정이라 그대로 둔다.
 
+## 바꾼 문구
+
+기능은 필요하지만 문구가 DBeaver의 다른 판을 가리키던 곳이다. 구매 권유는 빼고 "다른 판의 제품"으로 일반화했다.
+
+| 위치 | 키 | 새 영어 문구 |
+|---|---|---|
+| `org.jkiss.dbeaver.registry` `RegistryMessages*.properties` | `project_open_cannot_read_credentials_message` | You are about to open an encrypted project: ''{0}''\n\nWarning: if you proceed, your credentials will be permanently deleted. They were encrypted with a project password in another edition of the product and cannot be read in Chromite. |
+| 같은 파일 | `project_open_cannot_read_configuration_message` | The ''{0}'' project was protected with a password in another edition of the product. It cannot be opened in Chromite. |
+| `org.jkiss.dbeaver.registry` `MissingDataSourceProvider.java` | Java 문자열 | This error may occur if the configuration was created in a different edition of the product. |
+| `org.jkiss.dbeaver.ui.editors.connection` `UIConnectionMessages*.properties` | `pref_page_drivers_repo_info` | The default file repository is a remote server and may be unreachable from closed networks. |
+
+- 번역: `RegistryMessages`는 pl, pt_BR, tw, zh(이 키가 있는 로캘 전부), `pref_page_drivers_repo_info`는
+  pl, pt_BR, ro, uk, zh(이 키가 있는 로캘 전부)를 같은 뜻으로 옮겼다.
+- pt_BR의 `project_open_cannot_read_credentials_message`는 원래 경고 문장이 없는 짧은 번역이라 "DBeaver"가 없어서 그대로 뒀다.
+- zh의 `project_open_cannot_read_credentials_message`는 줄바꿈이 `\\n`으로 이중 이스케이프돼 있다(기존 문제, 화면에 `\n`이 그대로 보일 수 있음).
+  이번 작업 범위가 아니라 고치지 않았다.
+- `pref_page_drivers_repo_info`의 원래 뜻은 "dbeaver.io 기본 저장소는 DBeaver로만 접근할 수 있다"였다. 기본 저장소 주소
+  (`ModelPreferences.UI_DRIVERS_SOURCES` 기본값 `https://dbeaver.io/files/jdbc/`)는 바꾸지 않았고, 문구만 원격 서버라서
+  닫힌 네트워크에서는 닿지 않을 수 있다는 중립적인 안내로 바꿨다.
+
+## CData 드라이버 라이선스 문구 (확인 필요)
+
+`plugins/org.jkiss.dbeaver.ext.cdata.ui/src/org/jkiss/dbeaver/ext/cdata/ui/internal/CDataUIResources.properties`
+11~12행(`activation_eula_consent`, `activation_eula_consent_accessible_name`, pl 번역 포함)은 CData 제품을
+"authorized DBeaver software"와 함께만 쓸 수 있다는 CData 사용권 동의 문구다. 법적 문구라서 고치지 않았다.
+이 조건이면 CData OEM 드라이버를 Chromite에서 쓸 권리가 없을 수 있다. 라이선스 활성화 보고(`CDataLicenseActivationReporter`)와
+드라이버 설정(`CDataDriverSettings.URL`)도 dbeaver.com을 쓴다. CData 기능을 유지할지는 별도로 결정해야 한다.
+
 ## 변경 이력
 
 - 2026-11-06 Help 메뉴의 "Try DBeaver PRO" 명령과 그 명령에만 쓰던 핸들러, property tester, 메시지 키를 제거.
 - 2026-11-06 오늘의 팁에서 상용판 홍보 팁 64개와 일반 팁 1개의 PRO 홍보 문장을 제거.
 - 2026-11-06 Generic 플러그인의 상용판 홍보용 드라이버 스텁 8개와 그 데이터 소스 유형, 아이콘, 메시지 키를 제거.
+- 2026-11-06 암호화 프로젝트 안내, 누락 드라이버 오류, 드라이버 저장소 안내 문구에서 DBeaver 상용판 언급을 일반화.
