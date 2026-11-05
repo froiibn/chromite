@@ -112,12 +112,14 @@ import java.util.concurrent.atomic.AtomicLong;
  *     실행 문맥이 연결의 기본 문맥이라 같은 연결의 다른 편집기에도 적용된다. 연결되어 있지 않거나 문맥이 바꾸기를 지원하지 않으면 끈다.</li>
  *     <li>파일: 편집기는 텍스트만 다루고, 파일의 문자 집합·BOM·줄바꿈은 {@link SqlFileContent}로 기억해 저장할 때 되살린다.
  *     파일 대화상자와 최근 파일 목록은 메인 창이 맡는다. 문서가 바뀌면 고침 표시를 켜고 탭 제목 끝에 {@code *}를 붙인다.</li>
+ *     <li>자동완성: {@link SqlCompletionPopup}(Ctrl+Space, {@code .}·글자 입력 뒤 자동)이 편집기의 현재 연결로 제안을 계산한다.</li>
  * </ul>
  *
  * 변경 이력:
  * - 2026-11-06 C단계: 최초 작성 (docs/chromite/swing-frontend.md "구현 현황 — C단계")
  * - 2026-11-06 E단계: 연결 없는 편집기, 연결·기본 스키마 콤보, 파일 내용과 고침 표시, 편집기별 최대 행 수
  *   (docs/chromite/swing-frontend.md "구현 현황 — E단계")
+ * - 2026-11-06 F단계: 자동완성 팝업 연결 (docs/chromite/swing-frontend.md "구현 현황 — F단계")
  */
 final class SqlEditorPanel extends JPanel {
 
@@ -168,6 +170,7 @@ final class SqlEditorPanel extends JPanel {
     @Nullable
     private SchemaState schemaState;
     private final SqlTextArea textArea;
+    private final SqlCompletionPopup completion;
     private final QueryResultsView resultsView = new QueryResultsView();
     private final Action executeAction;
     private final Action cancelAction;
@@ -208,6 +211,7 @@ final class SqlEditorPanel extends JPanel {
         cancelAction.setEnabled(false);
 
         textArea = new SqlTextArea();
+        completion = new SqlCompletionPopup(textArea, () -> dataSourceContainer);
         RTextScrollPane scrollPane = new RTextScrollPane(textArea, true);
         scrollPane.setBorder(BorderFactory.createEmptyBorder());
         // The gutter takes its colors from the theme too, so the theme is applied once the scroll pane exists
@@ -356,10 +360,19 @@ final class SqlEditorPanel extends JPanel {
     }
 
     /**
+     * Query > Complete (Ctrl+Space): code completion proposals at the caret.
+     */
+    void complete() {
+        textArea.requestFocusInWindow();
+        completion.complete();
+    }
+
+    /**
      * The tab is closing: stop a running query.
      */
     void dispose() {
         cancel();
+        completion.cancel();
         elapsedTimer.stop();
     }
 

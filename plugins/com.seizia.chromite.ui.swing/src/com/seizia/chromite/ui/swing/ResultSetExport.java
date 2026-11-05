@@ -19,24 +19,33 @@ package com.seizia.chromite.ui.swing;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
+import org.jkiss.dbeaver.data.office.export.DataExporterXLSX;
+import org.jkiss.dbeaver.model.DBPNamedObject;
+import org.jkiss.dbeaver.model.data.DBDAttributeBinding;
+import org.jkiss.dbeaver.model.data.DBDContentStorage;
+import org.jkiss.dbeaver.model.data.DBDDisplayFormat;
 import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
 import org.jkiss.dbeaver.runtime.DBInterruptedException;
 import org.jkiss.dbeaver.runtime.DBWorkbench;
+import org.jkiss.dbeaver.tools.transfer.stream.IStreamDataExporterSite;
 
 import javax.swing.*;
 import javax.swing.filechooser.FileNameExtensionFilter;
 import java.awt.*;
+import java.io.BufferedOutputStream;
 import java.io.BufferedWriter;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
+import java.io.PrintWriter;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.Map;
 
 /**
- * 결과 표 하나의 복사(머리글 포함/미포함)와 CSV 내보내기.
+ * 결과 표 하나의 복사(머리글 포함/미포함)와 CSV·XLSX 내보내기.
  *
  * 설계:
  * <ul>
@@ -49,17 +58,30 @@ import java.util.List;
  *     <li>수식 이스케이프: {@code DataExporterCSV}의 기본 동작처럼 {@code = + - @}, 탭, 줄바꿈으로 시작하는 글자 값 앞에 {@code '}를 붙여
  *     스프레드시트가 수식으로 실행하지 않게 한다(CSV injection). 숫자 열은 건드리지 않는다. 대화상자에서 끌 수 있다.</li>
  *     <li>파일 쓰기는 진행 대화상자({@link ProgressDialog}, 취소 가능)의 작업 스레드에서 한다. 취소하거나 실패하면 쓰다 만 파일을 지운다.</li>
- *     <li>XLSX 내보내기는 아직 없다. 모델의 XLSX 내보내기({@code org.jkiss.dbeaver.data.office})와 Apache POI 번들이 Swing 제품 구성에
- *     들어 있지 않다(docs/chromite/swing-frontend.md "구현 현황 — E단계").</li>
+ *     <li>XLSX는 모델의 내보내기 엔진 {@link DataExporterXLSX}({@code org.jkiss.dbeaver.data.office}, Apache POI)로 쓴다(SWT Office 확장의 "Open in Excel"과 같은 기본 속성).
+ *     숫자·불리언·날짜 칸은 결과 표가 표시 문자열과 함께 남긴 원래 값({@link ResultSetGrid.Data#values()})을 넘겨 숫자·불리언·날짜 셀이 되고,
+ *     나머지 값은 표에 보이는 표시 문자열을 그대로 쓴다({@link GridXlsxExporter}). 그래서 세션·결과 집합 없이 쓸 수 있다(LOB 값이 엔진에 가지 않음).
+ *     날짜 셀 형식은 {@value #XLSX_DATE_FORMAT}이다(엔진 기본 속성의 빈 형식 대신. 엑셀 셀 형식과 엔진이 1900년 이전 날짜에 쓰는
+ *     {@code SimpleDateFormat}에서 같은 뜻이다). NULL은 빈 칸이다.</li>
  * </ul>
  *
  * 변경 이력:
  * - 2026-11-06 E단계: 최초 작성 (docs/chromite/swing-frontend.md "구현 현황 — E단계")
+ * - 2026-11-06 F단계: XLSX 내보내기 (docs/chromite/swing-frontend.md "구현 현황 — F단계")
  */
 final class ResultSetExport {
 
     private static final String CSV_LINE_END = "\r\n"; //$NON-NLS-1$
     private static final int PROGRESS_STEP = 1000;
+
+    /**
+     * Property ids of the XLSX processor ({@code org.jkiss.dbeaver.data.office} plugin.xml, {@code DataExporterXLSX.PROP_*}).
+     */
+    private static final String XLSX_PROP_HEADER = "header"; //$NON-NLS-1$
+    private static final String XLSX_PROP_DATE_FORMAT = "dateFormat"; //$NON-NLS-1$
+    private static final String XLSX_HEADER_LABEL = "label"; //$NON-NLS-1$
+    private static final String XLSX_HEADER_NONE = "none"; //$NON-NLS-1$
+    static final String XLSX_DATE_FORMAT = "yyyy-MM-dd HH:mm:ss"; //$NON-NLS-1$
 
     private static final String[] DELIMITER_LABELS = {"Comma (,)", "Semicolon (;)", "Tab"};
     private static final char[] DELIMITERS = {',', ';', '\t'};
@@ -71,6 +93,7 @@ final class ResultSetExport {
     private static int lastDelimiter;
     private static boolean lastBom = true;
     private static boolean lastEscapeFormulas = true;
+    private static boolean lastXlsxHeaders = true;
 
     private ResultSetExport() {
     }
@@ -118,12 +141,6 @@ final class ResultSetExport {
         delimiterCombo.setSelectedIndex(lastDelimiter);
         JCheckBox bomCheck = new JCheckBox("UTF-8 BOM (for Excel)", lastBom);
         JCheckBox formulaCheck = new JCheckBox("Escape formulas (= + - @)", lastEscapeFormulas);
-        int rowCount = data.rows().size();
-        String rowsText = rowCount + (rowCount == 1 ? " row" : " rows");
-        JLabel noteLabel = new JLabel("<html><body style='width: 200px'>Exports the " + rowsText + " already fetched in this grid. The query is not run again."
-            + (data.truncated() ? "<br><b>Fetching stopped at the maximum row count</b>; rows after it are not exported." : "")
-            + "</html>");
-
         JPanel options = new JPanel(new GridBagLayout());
         options.setBorder(BorderFactory.createTitledBorder("CSV options"));
         GridBagConstraints constraints = new GridBagConstraints();
@@ -137,25 +154,13 @@ final class ResultSetExport {
         options.add(delimiterPanel, constraints);
         options.add(bomCheck, constraints);
         options.add(formulaCheck, constraints);
-        options.add(noteLabel, constraints);
+        options.add(createFetchedRowsNote(data), constraints);
 
-        JFileChooser chooser = new JFileChooser(lastDirectory != null ? lastDirectory.toFile() : null);
-        chooser.setDialogTitle("Export to CSV");
-        chooser.setFileFilter(new FileNameExtensionFilter("CSV files (*.csv)", "csv")); //$NON-NLS-1$
-        chooser.setSelectedFile(new java.io.File("Results.csv")); //$NON-NLS-1$
-        chooser.setAccessory(options);
-        if (chooser.showSaveDialog(parent) != JFileChooser.APPROVE_OPTION) {
+        Path file = chooseFile(parent, "Export to CSV", options,
+            new FileNameExtensionFilter("CSV files (*.csv)", "csv"), "Results.csv", "csv"); //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$
+        if (file == null) {
             return;
         }
-        Path file = chooser.getSelectedFile().toPath();
-        if (!file.getFileName().toString().contains(".")) {
-            file = file.resolveSibling(file.getFileName() + ".csv"); //$NON-NLS-1$
-        }
-        if (Files.exists(file) && JOptionPane.showConfirmDialog(parent, file.getFileName() + " already exists.\nDo you want to replace it?",
-            "Export to CSV", JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE) != JOptionPane.YES_OPTION) {
-            return;
-        }
-        lastDirectory = file.toAbsolutePath().getParent();
         lastIncludeHeaders = headersCheck.isSelected();
         lastDelimiter = delimiterCombo.getSelectedIndex();
         lastBom = bomCheck.isSelected();
@@ -172,6 +177,236 @@ final class ResultSetExport {
             // Canceled: the partial file was removed
         } catch (DBException e) {
             DBWorkbench.getPlatformUI().showError("Export to CSV", "Can't export to " + target, e);
+        }
+    }
+
+    /**
+     * Note under the export options: the grid's fetched rows are exported, the query is not run again.
+     */
+    @NotNull
+    private static JLabel createFetchedRowsNote(@NotNull ResultSetGrid.Data data) {
+        int rowCount = data.rows().size();
+        String rowsText = rowCount + (rowCount == 1 ? " row" : " rows");
+        return new JLabel("<html><body style='width: 200px'>Exports the " + rowsText + " already fetched in this grid. The query is not run again."
+            + (data.truncated() ? "<br><b>Fetching stopped at the maximum row count</b>; rows after it are not exported." : "")
+            + "</html>");
+    }
+
+    /**
+     * Save dialog with the options as accessory; adds the extension when the name has none and confirms replacing
+     * an existing file. Returns null when canceled. The folder is remembered for the session.
+     */
+    @Nullable
+    private static Path chooseFile(
+        @NotNull Component parent,
+        @NotNull String title,
+        @NotNull JComponent options,
+        @NotNull FileNameExtensionFilter filter,
+        @NotNull String defaultName,
+        @NotNull String extension
+    ) {
+        JFileChooser chooser = new JFileChooser(lastDirectory != null ? lastDirectory.toFile() : null);
+        chooser.setDialogTitle(title);
+        chooser.setFileFilter(filter);
+        chooser.setSelectedFile(new java.io.File(defaultName));
+        chooser.setAccessory(options);
+        if (chooser.showSaveDialog(parent) != JFileChooser.APPROVE_OPTION) {
+            return null;
+        }
+        Path file = chooser.getSelectedFile().toPath();
+        if (!file.getFileName().toString().contains(".")) {
+            file = file.resolveSibling(file.getFileName() + "." + extension);
+        }
+        if (Files.exists(file) && JOptionPane.showConfirmDialog(parent, file.getFileName() + " already exists.\nDo you want to replace it?",
+            title, JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE) != JOptionPane.YES_OPTION) {
+            return null;
+        }
+        lastDirectory = file.toAbsolutePath().getParent();
+        return file;
+    }
+
+    /**
+     * Asks for the file and options, then writes the fetched rows as an Excel workbook.
+     */
+    static void exportXlsx(@NotNull Component parent, @NotNull ResultSetGrid.Data data) {
+        JCheckBox headersCheck = new JCheckBox("Include column headers", lastXlsxHeaders);
+        JPanel options = new JPanel(new GridBagLayout());
+        options.setBorder(BorderFactory.createTitledBorder("Excel options"));
+        GridBagConstraints constraints = new GridBagConstraints();
+        constraints.gridx = 0;
+        constraints.anchor = GridBagConstraints.WEST;
+        constraints.insets = new Insets(2, 6, 2, 6);
+        options.add(headersCheck, constraints);
+        options.add(createFetchedRowsNote(data), constraints);
+
+        Path file = chooseFile(parent, "Export to Excel", options,
+            new FileNameExtensionFilter("Excel workbooks (*.xlsx)", "xlsx"), "Results.xlsx", "xlsx"); //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$
+        if (file == null) {
+            return;
+        }
+        lastXlsxHeaders = headersCheck.isSelected();
+        boolean headers = lastXlsxHeaders;
+        try {
+            ProgressDialog.runTask("Export to Excel", monitor -> {
+                writeXlsx(monitor, file, data, headers);
+                return null;
+            });
+        } catch (DBInterruptedException e) {
+            // Canceled: the partial file was removed
+        } catch (DBException e) {
+            DBWorkbench.getPlatformUI().showError("Export to Excel", "Can't export to " + file, e);
+        }
+    }
+
+    private static void writeXlsx(
+        @NotNull DBRProgressMonitor monitor,
+        @NotNull Path file,
+        @NotNull ResultSetGrid.Data data,
+        boolean headers
+    ) throws DBException {
+        List<Object[]> rows = data.rows();
+        monitor.beginTask("Export " + rows.size() + " rows to " + file.getFileName(), rows.size());
+        Map<String, Object> properties = DataExporterXLSX.getDefaultProperties();
+        properties.put(XLSX_PROP_HEADER, headers ? XLSX_HEADER_LABEL : XLSX_HEADER_NONE);
+        properties.put(XLSX_PROP_DATE_FORMAT, XLSX_DATE_FORMAT);
+        boolean completed = false;
+        try (OutputStream out = new BufferedOutputStream(Files.newOutputStream(file))) {
+            GridXlsxExporter exporter = new GridXlsxExporter();
+            exporter.init(new XlsxSite(data.bindings(), properties, out, file));
+            try {
+                // No session: the header has no column descriptions and the values hold no LOB content
+                exporter.exportHeader(null);
+                for (int rowIndex = 0; rowIndex < rows.size(); rowIndex++) {
+                    exporter.exportRow(null, null, getExportValues(data, rowIndex));
+                    if ((rowIndex + 1) % PROGRESS_STEP == 0) {
+                        if (monitor.isCanceled()) {
+                            throw new DBInterruptedException("Export canceled");
+                        }
+                        monitor.worked(PROGRESS_STEP);
+                    }
+                }
+                exporter.exportFooter(monitor);
+            } finally {
+                // Writes the workbook to the stream and releases POI's temporary files
+                exporter.dispose();
+            }
+            completed = true;
+        } catch (IOException e) {
+            throw new DBException("Error writing " + file, e);
+        } finally {
+            monitor.done();
+            if (!completed) {
+                try {
+                    Files.deleteIfExists(file);
+                } catch (IOException e) {
+                    // Reported by the original error
+                }
+            }
+        }
+    }
+
+    /**
+     * Values of one row for the XLSX exporter: the kept original value (number, boolean, date) where there is one,
+     * null for NULL, otherwise the display string of the grid.
+     */
+    @NotNull
+    private static Object[] getExportValues(@NotNull ResultSetGrid.Data data, int rowIndex) {
+        Object[] displayRow = data.rows().get(rowIndex);
+        Object[] kept = data.values().get(rowIndex);
+        Object[] values = new Object[displayRow.length];
+        for (int i = 0; i < displayRow.length; i++) {
+            Object display = displayRow[i];
+            if (kept != null && kept[i] != null) {
+                values[i] = kept[i];
+            } else if (display != null && display != ResultSetGrid.NULL_VALUE) {
+                values[i] = display.toString();
+            }
+        }
+        return values;
+    }
+
+    /**
+     * Display strings are written as they are, without going through the column's value handler again.
+     */
+    private static final class GridXlsxExporter extends DataExporterXLSX {
+        @Override
+        protected String getValueDisplayString(DBDAttributeBinding column, Object value) {
+            return value instanceof String text ? text : super.getValueDisplayString(column, value);
+        }
+    }
+
+    /**
+     * Exporter site of the grid: the result set's bindings, the export properties and the file stream.
+     */
+    private static final class XlsxSite implements IStreamDataExporterSite {
+        private final DBDAttributeBinding[] bindings;
+        private final Map<String, Object> properties;
+        private final OutputStream out;
+        private final Path file;
+
+        XlsxSite(
+            @NotNull DBDAttributeBinding[] bindings,
+            @NotNull Map<String, Object> properties,
+            @NotNull OutputStream out,
+            @NotNull Path file
+        ) {
+            this.bindings = bindings;
+            this.properties = properties;
+            this.out = out;
+            this.file = file;
+        }
+
+        @Override
+        public DBPNamedObject getSource() {
+            // Sheets keep the default names (useDefaultSpreadsheetNames); the source only needs a name
+            return () -> "Results"; //$NON-NLS-1$
+        }
+
+        @Override
+        public DBDDisplayFormat getExportFormat() {
+            return DBDDisplayFormat.UI;
+        }
+
+        @Override
+        public Map<String, Object> getProperties() {
+            return properties;
+        }
+
+        @Override
+        public DBDAttributeBinding[] getAttributes() {
+            return bindings;
+        }
+
+        @Override
+        public OutputStream getOutputStream() {
+            return out;
+        }
+
+        @Nullable
+        @Override
+        public Path getOutputFile() {
+            return file;
+        }
+
+        @Override
+        public PrintWriter getWriter() {
+            throw new UnsupportedOperationException("The XLSX exporter writes binary data"); //$NON-NLS-1$
+        }
+
+        @Override
+        public void flush() throws IOException {
+            out.flush();
+        }
+
+        @Override
+        public void writeBinaryData(@NotNull DBDContentStorage cs) {
+            throw new UnsupportedOperationException("The grid holds no content values"); //$NON-NLS-1$
+        }
+
+        @NotNull
+        @Override
+        public String getOutputEncoding() {
+            return StandardCharsets.UTF_8.name();
         }
     }
 

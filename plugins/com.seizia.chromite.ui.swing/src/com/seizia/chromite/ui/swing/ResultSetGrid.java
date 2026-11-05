@@ -18,6 +18,7 @@ package com.seizia.chromite.ui.swing;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
+import org.jkiss.dbeaver.model.data.DBDAttributeBinding;
 import org.jkiss.dbeaver.runtime.DBWorkbench;
 
 import javax.swing.*;
@@ -42,12 +43,13 @@ import java.util.List;
  * 왼쪽에 SSMS처럼 행 번호 열을 둔다(행 머리글, 누르면 그 행 선택).
  * 편집은 아직 없다(swing-frontend.md "결과 모델 분석"의 Swing 그리드 계획 1단계).
  * 복사(Ctrl+C)는 {@link JTable}의 기본 전송 처리기가 선택한 칸의 표시 문자열을 탭으로 나눠 복사한다.
- * 오른쪽 클릭 메뉴(SSMS 결과 그리드와 같은 항목): Copy, Copy with Headers(Ctrl+Shift+C), Export to CSV…({@link ResultSetExport}).
+ * 오른쪽 클릭 메뉴(SSMS 결과 그리드와 같은 항목): Copy, Copy with Headers(Ctrl+Shift+C), Export to CSV…, Export to Excel (XLSX)…({@link ResultSetExport}).
  * 오른쪽 클릭한 칸이 선택 밖이면 그 칸을 선택한 뒤 메뉴를 연다.
  *
  * 변경 이력:
  * - 2026-11-06 C단계: 최초 작성 (docs/chromite/swing-frontend.md "구현 현황 — C단계")
  * - 2026-11-06 E단계: 오른쪽 클릭 메뉴(복사, 머리글 포함 복사, CSV 내보내기) (docs/chromite/swing-frontend.md "구현 현황 — E단계")
+ * - 2026-11-06 F단계: XLSX 내보내기 메뉴, {@link Data}에 원래 값(숫자·불리언·날짜)과 열 바인딩 (docs/chromite/swing-frontend.md "구현 현황 — F단계")
  */
 final class ResultSetGrid extends JPanel {
 
@@ -72,9 +74,19 @@ final class ResultSetGrid extends JPanel {
      * @param columns   column labels
      * @param numeric   whether a column holds numbers (right-aligned)
      * @param rows      display strings or {@link #NULL_VALUE}
+     * @param values    per row, the original numbers, booleans and dates by column (null elsewhere), or null when the
+     *                  row has none; used by the XLSX export for typed cells
+     * @param bindings  column bindings of the result set (labels, data kinds, value handlers for the export)
      * @param truncated fetching stopped at the maximum row count
      */
-    record Data(@NotNull String[] columns, @NotNull boolean[] numeric, @NotNull List<Object[]> rows, boolean truncated) {
+    record Data(
+        @NotNull String[] columns,
+        @NotNull boolean[] numeric,
+        @NotNull List<Object[]> rows,
+        @NotNull List<Object[]> values,
+        @NotNull DBDAttributeBinding[] bindings,
+        boolean truncated
+    ) {
     }
 
     ResultSetGrid(@NotNull Data data) {
@@ -100,6 +112,7 @@ final class ResultSetGrid extends JPanel {
             KeyStroke.getKeyStroke(KeyEvent.VK_C, InputEvent.CTRL_DOWN_MASK | InputEvent.SHIFT_DOWN_MASK),
             () -> DBWorkbench.getPlatformUI().copyTextToClipboard(ResultSetExport.copySelection(table, data, true), false));
         Action exportCsvAction = createAction("Export to CSV…", null, () -> ResultSetExport.exportCsv(table, data));
+        Action exportXlsxAction = createAction("Export to Excel (XLSX)…", null, () -> ResultSetExport.exportXlsx(table, data));
         // Ctrl+C stays with the table's transfer handler; the menu only shows it
         table.getInputMap(JComponent.WHEN_FOCUSED).put((KeyStroke) copyWithHeadersAction.getValue(Action.ACCELERATOR_KEY), "chromite.copyWithHeaders"); //$NON-NLS-1$
         table.getActionMap().put("chromite.copyWithHeaders", copyWithHeadersAction); //$NON-NLS-1$
@@ -109,6 +122,7 @@ final class ResultSetGrid extends JPanel {
         popupMenu.add(copyWithHeadersAction);
         popupMenu.addSeparator();
         popupMenu.add(exportCsvAction);
+        popupMenu.add(exportXlsxAction);
         table.setComponentPopupMenu(popupMenu);
         table.addMouseListener(new MouseAdapter() {
             @Override

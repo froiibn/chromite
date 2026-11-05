@@ -65,10 +65,10 @@ UI는 SWT 위젯뿐 아니라 Eclipse RCP 워크벤치(뷰, 편집기, 퍼스펙
 | 기능 | 핵심 클래스 | 위치 | 판단 |
 |---|---|---|---|
 | 연결 정보, 드라이버 목록 | `DataSourceDescriptor`, `DriverDescriptor` | `registry` | 그대로 재사용 |
-| 자동완성 | `SQLCompletionAnalyzer` | `model.sql` (SWT 의존 없음) | 분석 로직 재사용, 팝업 UI만 새로 작성 |
+| 자동완성 | `SQLQueryCompletionAnalyzer` (SWT 기본 엔진), `SQLCompletionAnalyzer` (예전 엔진) | `model.sql` (SWT 의존 없음) | 분석 로직 재사용, 팝업 UI만 새로 작성. F단계에서 SWT 기본값과 같은 새 엔진을 연결("구현 현황 — F단계") |
 | SQL 문장 분리 | `SQLScriptParser` | `model.sql` | 그대로 재사용 |
 | DDL 보기, Script as | `DBPScriptObject` | `model` | 그대로 재사용 |
-| 결과 내보내기 | `DataExporterCSV` 등 | `data.transfer` (SWT 의존 없음) | 엔진 재사용, 설정 화면만 새로 작성. E단계의 결과 표 내보내기는 표가 표시 문자열만 가지고 있어 Swing 번들에서 CSV를 직접 쓴다("구현 현황 — E단계") |
+| 결과 내보내기 | `DataExporterCSV` 등 | `data.transfer` (SWT 의존 없음) | 엔진 재사용, 설정 화면만 새로 작성. E단계의 결과 표 내보내기는 표가 표시 문자열만 가지고 있어 Swing 번들에서 CSV를 직접 쓴다("구현 현황 — E단계"). XLSX는 F단계에서 `DataExporterXLSX`(`data.office`)를 그대로 쓴다("구현 현황 — F단계") |
 | 쿼리 실행 | `SQLQueryExecuteJob` + `SQLQueryExecuteHandler` | `model.sql` (SWT 의존 없음) | 2026-11-06 `SQLQueryJob`에서 분리 완료. 그대로 재사용 ("쿼리 실행 계층") |
 | 결과 데이터 모델 | `ResultSetModel` (1,261줄, UI import 1개) | `ui.editors.data` | 색상 처리를 떼어 낸 뒤 이전 ("쿼리 실행 계층"의 결과 모델 분석) |
 | 결과 편집 저장 | `ResultSetPersister` (816줄, UI import 4개) | `ui.editors.data` | `ResultSetViewer` 의존을 끊은 뒤 이전 (같은 곳) |
@@ -585,7 +585,7 @@ C단계의 목표는 SSMS식 SQL 편집기와 결과 창이다: 편집기 탭을
   `SqlEditorDark.xml`: DataGrip풍 — `#1e1f22` 바탕)로 정한다. 색값만 참고했고 SSMS·DataGrip의 테마 파일은 쓰지 않았다.
 - 테마 전환: Look and Feel이 바뀌면(`updateUI`) 트리 갱신이 끝난 뒤(`invokeLater`) 현재 테마의 XML을 다시 적용한다. 거터(줄 번호) 색도 테마가 정하므로
   처음 적용은 스크롤 창을 만든 뒤에 한다.
-- 구문 강조는 RSyntaxTextArea의 일반 SQL 규칙이다. DBeaver의 방언별 키워드·자동완성(`SQLCompletionAnalyzer`)은 아직 연결하지 않았다.
+- 구문 강조는 RSyntaxTextArea의 일반 SQL 규칙이다. DBeaver의 방언별 키워드는 아직 연결하지 않았다. (자동완성은 F단계에서 연결했다, "구현 현황 — F단계")
 
 ### 실행 흐름 (F5)
 
@@ -685,7 +685,7 @@ Query 메뉴 항목은 활성 편집기에 적용되고, 메뉴 단축키라 포
 
 ### C단계에서 남긴 것 (D단계 이후)
 
-- 편집기: 파일 열기·저장(닫을 때 저장 확인, E단계에서 구현), 방언별 키워드·자동완성(`SQLCompletionAnalyzer`), 실행한 문장 강조, 오류 위치로 이동(Messages 더블클릭).
+- 편집기: 파일 열기·저장(닫을 때 저장 확인, E단계에서 구현), 방언별 키워드·자동완성(자동완성은 F단계에서 구현), 실행한 문장 강조, 오류 위치로 이동(Messages 더블클릭).
 - 실행: 편집기별 별도 연결(SSMS는 쿼리 창마다 연결), 오류 뒤 다음 배치 계속 실행(SSMS 기본 동작. 지금은 멈춤), 커밋 방식·트랜잭션 표시, 서버 출력 읽기
   (`DBCServerOutputReader`, Oracle `DBMS_OUTPUT`), 매개변수 입력 대화상자, `@set` 변수의 편집기 단위 유지.
 - 결과: 편집(Edit Top 200 Rows, "결과 모델 분석"), 더 읽기(최대 행 수 이후), 정렬, 결과 내보내기(CSV는 E단계에서 구현), 텍스트로 결과 보기.
@@ -963,7 +963,7 @@ SWT의 "Generate SQL" 메뉴가 쓰는 모델 계층 생성기(`org.jkiss.dbeave
   열 바인딩(`DBDAttributeBinding[]`), LOB 읽기용 열린 세션(`exportRow(DBCSession, …)`)이 필요하다. Swing 결과 표는 C단계 설계대로 작업 스레드에서 값을 표시 문자열로 바꾸고
   원래 값을 놓아 주므로(`ResultSetGridReceiver`) 그 입력이 없다. 원래 값을 결과 표에 계속 들고 있게 바꾸는 것은 LOB·세션 수명 문제가 커서, 화면에 보이는 값을 그대로 쓰는 쪽을 골랐다.
   그래서 숫자·날짜는 화면 표시 형식이다(숫자 묶음 기호는 기본 설정에서 꺼져 있음, `DataFormatterProfile`).
-- **XLSX 내보내기: 보류.** 모델의 XLSX 내보내기(`DataExporterXLSX`, `org.jkiss.dbeaver.data.office`)는 SWT 의존이 없지만, 그 번들과 Apache POI 번들(`org.jkiss.bundle.apache.poi`)은
+- **XLSX 내보내기: 보류(F단계에서 구현, "구현 현황 — F단계").** 모델의 XLSX 내보내기(`DataExporterXLSX`, `org.jkiss.dbeaver.data.office`)는 SWT 의존이 없지만, 그 번들과 Apache POI 번들(`org.jkiss.bundle.apache.poi`)은
   `org.jkiss.dbeaver.ext.office.feature`에만 있고 Swing 피처(`com.seizia.chromite.swing.feature`)에는 없다. 피처를 바꾸는 작업은 이번 범위(Swing 플러그인) 밖이고,
   위와 같은 이유로 원래 값도 필요하다. 메뉴에 넣지 않았다.
 
@@ -993,11 +993,138 @@ SWT의 "Generate SQL" 메뉴가 쓰는 모델 계층 생성기(`org.jkiss.dbeave
 
 ### E단계에서 남긴 것
 
-- XLSX 내보내기(위 "결과 복사와 CSV 내보내기"), "다시 실행해서 모든 행 내보내기"(지금은 가져온 행만).
+- XLSX 내보내기(위 "결과 복사와 CSV 내보내기", F단계에서 구현), "다시 실행해서 모든 행 내보내기"(지금은 가져온 행만).
 - 기본 스키마: 트랜잭션에 속하는 기본값 변경의 커밋 확인, 다른 카탈로그의 스키마 고르기. 서버형 DB에서 실행 확인.
 - 편집기별 별도 연결(SSMS는 쿼리 창마다 연결) — 기본 스키마가 같은 연결의 모든 편집기에 적용되는 원인.
 - 파일: 다른 프로그램이 바꾼 파일 다시 읽기, 문자 집합 직접 고르기(Save with Encoding), 파일 끌어다 놓기, 프로젝트 `Scripts` 폴더 연동.
 - Script as의 DROP / ALTER / INSERT / UPDATE / DELETE, Edit Top 200 Rows(결과 편집), 생성기 옵션 설정 화면.
+
+## 구현 현황 — F단계
+
+F단계의 목표는 DataGrip의 핵심 강점인 SQL 자동완성과, MVP 7번의 남은 항목인 결과 표 Excel(XLSX) 내보내기다.
+
+### 구성
+
+| 클래스 | 역할 |
+|---|---|
+| `SqlCompletionAnalysis` (새) | 제안 계산(작업 스레드). 커서 위치의 문장을 파서로 찾아 의미 모델을 만들고 model.sql의 `SQLQueryCompletionAnalyzer`를 돌린다 |
+| `SqlCompletionPopup` (새) | 자동완성 팝업과 활성화(Ctrl+Space, `.`, 글자 입력), 비동기 분석·취소, 입력에 따른 거르기, 넣기 |
+| `SqlEditorPanel` (변경) | 팝업 연결, `complete()`, 탭을 닫으면 분석 취소 |
+| `MainFrame` (변경) | Query > Complete(Ctrl+Space), Query > Auto-Complete While Typing |
+| `SQLScriptBatches` (변경, model.sql) | `createParserContext`를 공개(자동완성이 실행과 같은 파서 문맥을 씀) |
+| `ResultSetGridReceiver` (변경) | 숫자·불리언·날짜 원래 값과 열 바인딩을 표시 문자열과 함께 넘김 |
+| `ResultSetGrid` (변경) | `Data`에 원래 값·바인딩, 오른쪽 클릭 "Export to Excel (XLSX)…" |
+| `ResultSetExport` (변경) | XLSX 내보내기(`DataExporterXLSX`), CSV와 같은 파일 대화상자·안내 문구를 함께 씀 |
+| `com.seizia.chromite.swing.feature` (변경) | `org.jkiss.dbeaver.data.office`, `org.jkiss.bundle.apache.poi`와 Apache Commons 번들 6개 |
+
+### 자동완성: 분석기 선택 근거 (SWT 편집기 조사)
+
+- **SWT가 쓰는 분석기:** `SQLCompletionProcessor.computeCompletionProposals`([SQLCompletionProcessor.java:177-233](../../plugins/org.jkiss.dbeaver.ui.editors.sql/src/org/jkiss/dbeaver/ui/editors/sql/syntax/SQLCompletionProcessor.java))는
+  설정 `SQLEditor.ContentAssistant.experimental.mode`(기본값 `NEW`, `SQLEditorPreferencesInitializer.java:86`)가 새 엔진을 켜고, 고급 강조·메타데이터 읽기 설정이 켜져 있고(둘 다 기본 켬, 같은 파일 :115-116),
+  방언이 `BasicSQLDialect`이면 새 엔진 `SQLQueryCompletionAnalyzer`(model.sql `semantics.completion`)를 쓴다. 예전 엔진 `SQLCompletionAnalyzer`는 모드가 `DEFAULT`/`COMBINED`이거나 새 엔진 조건이 안 맞을 때만 쓴다.
+  `SQLDialect`를 구현하는 유일한 추상 클래스 `AbstractSQLDialect`의 하위 클래스는 `BasicSQLDialect` 하나라 모든 방언이 조건을 만족한다. 그래서 **SWT 기본 설정은 새 엔진만 쓴다.** Swing 편집기도 새 엔진만 쓴다.
+- **실행 방식:** SWT는 분석기마다 시스템 Job(`ProposalSearchJob`/`NewProposalSearchJob`)을 예약하고 `DBExecUtils.tryExecuteRecover`(연결 끊김 복구)로 감싼다. UI 스레드는 `UIUtils.waitJobCompletion`으로 이벤트를 돌리며 기다리고,
+  그동안 커서가 움직였으면(`evaluateJobResult`) 결과를 거르거나 Job을 다시 만든다. 시간 제한은 없고 취소만 있다.
+- **요청 만들기:** `new SQLCompletionRequest(completionContext, document, offset, editor.extractQueryAtPos(offset), simpleMode)` + `setContentType(분할 영역)`. `simpleMode`는 자동 실행일 때 켠다.
+  커서 바로 앞이 한 줄 주석·제어 명령이면 제안하지 않고, 커서 위치가 일반 SQL·문자열·따옴표 이름일 때만 분석한다.
+- **완성 문맥:** 새 엔진은 SWT 편집기의 백그라운드 파싱 Job이 만든 의미 모델에서 문맥을 얻는다(`SQLBackgroundParsingJob.obtainCompletionContext`). Swing 편집기에는 그 Job이 없어서,
+  요청마다 커서가 있는 문장 하나를 `SQLScriptParser.extractQueryAtPos`로 찾아 SWT 파싱 Job과 같은 인자로 `SQLQueryModelRecognizer.recognizeQuery`를 부르고
+  `SQLDocumentSyntaxContext` → `SQLQueryCompletionContext.prepareCompletionContext`로 문맥을 만든다(모델 계층만 쓰는 선례: `model.lsp`의 `LspSQLCompletionContextParser`).
+  문장 밖(빈 줄, 문장 사이)은 `prepareOffquery`(문장 첫 키워드)다.
+- **완성 옵션(`SQLCompletionContext`):** SWT 설정 키(`SQLPreferenceConstants`)는 SWT 번들에 있고 Swing 제품에는 설정 화면이 없으므로 SWT 기본값을 그대로 옮겼다
+  (이름 안 어디든 일치, 이름순 정렬, 제안 뒤 공백, 값 제안 끔, 프로시저 검색 끔 등). 짧은/완전한 이름 형식은 모델 설정(`SQLModelPreferences`)을 연결 설정에서 읽는다.
+  메타데이터 읽기·함수 검사도 SWT 기본값(켬/끔)이다. 모델 계층에는 이 둘의 기본값이 없어 설정을 그대로 읽으면 꺼져서 테이블·열을 찾지 못한다. 연결의 `META_DISABLE_EXTRA_READ`는 SWT처럼 따른다.
+- **안 한 것:** 스크립트 변수(`@set`) 추적(편집기 단위 변수 유지가 아직 없음), 제어 명령(`@`) 이름 제안, 템플릿, 제안 설명 창(설명은 목록 도구 설명으로만 보임).
+
+### 자동완성: 동작
+
+| 동작 | 내용 |
+|---|---|
+| Ctrl+Space (편집기, Query > Complete) | 커서 위치의 제안. 연결되어 있지 않으면 F5처럼 연결한다. 제안이 하나뿐이면 목록 없이 바로 넣는다(SWT 기본 "단일 제안 자동 삽입") |
+| `.` 입력 | 별칭·스키마 뒤 이름 목록(항상 켬) |
+| 글자·`_` 입력 | Query > Auto-Complete While Typing이 켜져 있으면(기본 켬, SWT도 기본 켬) 입력이 멈춘 뒤 자동 실행. 연결은 열지 않는다 |
+| 위·아래, Page Up/Down | 목록 이동 |
+| Enter, Tab, 두 번 누르기 | 넣기 |
+| Esc | 닫기(분석 중이면 취소) |
+
+- **비동기와 취소:** 분석은 시스템 Job에서 하고 EDT는 기다리지 않는다. 자동 실행은 마지막 입력 뒤 지연 시간(기본 200ms)이 지나야 시작하고, 분석 중에 문서가 바뀌면 그 Job을 취소하고
+  지연 시간 뒤 새 위치에서 다시 분석한다(계속 입력하는 동안에는 분석을 끝까지 돌리지 않음). 요청 번호로 늦게 끝난 이전 결과를 버린다.
+- **목록이 뜬 뒤:** 이름 글자를 더 입력하거나 지우면 다시 분석하지 않고 받은 제안을 거른다. 일치·점수는 엔진의 `SQLQueryCompletionProposal.validate`, 정렬은 SWT 팝업과 같은
+  `SQLCompletionProposalComparator`(점수 → 이름 → 종류)다. 남는 제안이 없거나, 이름이 아닌 글자를 입력하거나, 커서가 단어 앞으로 가거나, 편집기가 초점을 잃거나 창이 움직이면 닫는다. `.`을 입력하면 닫고 새로 분석한다.
+- **넣기:** SWT 새 엔진 제안(`SQLEditorQueryCompletionProposal.apply`)과 같이 교체 시작 위치부터 커서까지를 엔진이 만든 글자로 바꾸고 커서를 그 뒤에 둔다.
+  따옴표가 필요한 이름의 따옴표, 대소문자, 테이블 별칭(`Album a`), 테이블·열 뒤 공백은 엔진(`SQLQueryCompletionTextProvider`, `prepareReplacementString`)이 정한다. 되돌리기 한 번에 취소되게 한 편집으로 묶었다.
+  뒤 공백은 커서 뒤에 이미 공백이 있어도 붙는다(`select a.| from` → `a.Title  from`). SWT 새 엔진도 같은 방식으로 넣는다.
+- **표시:** 아이콘은 Object Explorer와 같은 `NodeIcons`로 엔진이 고른 객체 종류 아이콘(테이블, 뷰, 열, 함수, 키워드 등)을 그리고, 오른쪽에 엔진의 꾸밈 글자(열의 테이블 등)를 흐리게 쓴다.
+- **팝업 창:** 초점을 가져가지 않는 소유 창(`JWindow`, `focusableWindowState = false`)이라 입력은 편집기로 계속 가고, 목록 키는 편집기의 키 리스너가 키 바인딩보다 먼저 받아 소비한다.
+  단어 아래(화면에 자리가 없으면 위)에 뜬다. 테마를 바꾸면 FlatLaf가 모든 창을 다시 그리므로 팝업도 바뀐다.
+
+설정(이 번들 설정 저장소):
+
+| 키 | 기본값 | 뜻 |
+|---|---|---|
+| `sqlEditor.completion.autoActivateOnLetters` | `true` | 글자·`_` 입력 뒤 자동 실행 (Query > Auto-Complete While Typing) |
+| `sqlEditor.completion.autoActivationDelay` | `200` | 자동 실행 전 기다리는 시간(ms). 설정 화면은 없다 |
+
+### AutoComplete 라이브러리를 쓰지 않은 이유
+
+RSyntaxTextArea의 `com.fifesoft:autocomplete`(BSD-3) 3.3.2 소스를 확인했다.
+
+- `AutoCompletion.refreshPopupWindow`(:818-839)가 EDT에서 `CompletionProvider.getCompletions`를 동기로 부르고, 목록이 떠 있는 동안 입력마다 다시 부른다(`AutoCompletePopupWindow.doAutocomplete`, :275).
+  DB 메타데이터를 읽는 분석을 EDT 밖에서 취소하며 돌리려면 제공자를 결과 캐시로 바꾸고 활성화를 따로 만들어야 한다.
+- `insertCompletion`(:627-650)은 커서 앞 "이미 입력한 글자"(`getAlreadyEnteredText`)만 바꾼다. 엔진 제안의 교체 시작 위치(따옴표 이름, 구조 구분자 뒤 등)를 쓰려면 이것도 바꿔야 한다.
+- 제공자·활성화·넣기를 모두 바꾸면 남는 것은 팝업 창뿐이라, 의존성(빌드 때 받기, `Bundle-ClassPath`, 체크섬, NOTICE)을 늘리지 않고 팝업을 직접 만들었다(`SqlCompletionPopup`).
+
+### XLSX 내보내기
+
+- **번들:** `org.jkiss.dbeaver.data.office`(`DataExporterXLSX`, SWT 의존 없음, `Require-Bundle`은 `data.transfer`와 POI뿐)와 `org.jkiss.bundle.apache.poi` 5.4.3
+  (POI 5.4.0과 의존 jar를 담은 DBeaver 번들, `Require-Bundle`은 Apache Commons 6개, `Import-Package`는 `org.slf4j`)를 Swing 피처에 넣었다.
+  두 번들은 Office 확장 피처 `org.jkiss.dbeaver.ext.office.feature`에만 있고, 이 피처는 SWT 제품에 들어 있지 않고 CE 업데이트 저장소(`org.jkiss.dbeaver.ce.repository/category.xml`)에서 설치하는 확장이다.
+  피처의 나머지 번들 `org.jkiss.dbeaver.data.office.ui`(SWT)는 넣지 않았다. Swing 번들은 `data.transfer`·`data.office`를 `Require-Bundle`로 쓴다.
+  B단계의 JSVG처럼 SWT만 제공하는 능력을 요구하는지 확인했다: 새 번들 매니페스트에 `Require-Capability`가 없고(POI 번들은 `osgi.ee`뿐), 빌드 결과에 SWT 계열 번들이 들어오지 않았다(아래 확인).
+- **원래 값을 남기기로 한 근거:** E단계 결과 표는 값을 표시 문자열로만 가지고 있다. 표시 문자열을 다시 숫자로 읽는 방법은 정확하지 않다.
+  숫자 표시 형식은 지역 설정의 `NumberFormat`이고(소수점 기호가 지역마다 다름) 최대 소수 자릿수가 10 이상으로 잘린다(`NumberFormatSample` :56, `NumberDataFormatter` :69-80). 날짜도 표시 형식을 알아야 다시 읽을 수 있다.
+  그래서 수신기가 결과 집합이 열려 있는 동안 받은 값 중 숫자·불리언·날짜(`java.util.Date`, `java.sql.Time` 제외)만 표시 문자열과 함께 남긴다. 이 값들은 결과 집합·세션과 무관한 불변 객체라
+  LOB처럼 수명 문제가 없다. 원래 값이 하나도 없는 행은 배열을 만들지 않는다.
+- **메모리 측정 (2026-11-06):** 샘플 DB의 `Track` 1000행(9열: INTEGER 6, NVARCHAR 2, NUMERIC 1)을 JBR 25에서 같은 방식으로 담아 GC 후 힙 차이를 쟀다(20벌 평균).
+  표시 문자열 행만 437,280바이트, 원래 값 사본을 더하면 146,950바이트가 늘었다(약 34%). 기본 최대 행 수(200)나 Select Top 1000 기준으로 결과 표 하나에 수백 KB 이내라 받아들였다.
+- **쓰기:** 모델의 `DataExporterXLSX`를 그대로 쓴다(머리글 굵게·테두리, 숫자·불리언·날짜 셀, 셀 최대 글자 수, 시트당 최대 행 수 나누기 등 SWT와 같은 결과). 세션·결과 집합 없이 부르도록
+  내보내기 사이트(`IStreamDataExporterSite`)를 결과 표 데이터로 구현했다: 열은 결과 집합의 바인딩, 행은 남긴 원래 값이 있으면 그 값, NULL이면 빈 칸, 나머지는 표시 문자열(값 처리기를 다시 거치지 않음).
+  속성은 Office 확장의 "Open in Excel"(`OpenSpreadsheetHandler`)과 같은 `DataExporterXLSX.getDefaultProperties()`(행 번호 없음, 얇은 테두리, 기본 시트 이름)에 머리글 포함 여부와 날짜 형식 `yyyy-MM-dd HH:mm:ss`를 더했다.
+  기본 속성의 날짜 형식은 빈 문자열이라 날짜 셀이 숫자로 보이고, 이 형식은 엑셀 셀 형식과 엔진이 1900년 이전 날짜에 쓰는 `SimpleDateFormat`에서 뜻이 같다.
+- **대화상자:** CSV처럼 저장 대화상자 옆에 "Include column headers"와 "이미 가져온 N행만 내보내며 쿼리를 다시 실행하지 않는다" 안내(최대 행 수에서 멈춘 결과는 굵게 경고).
+  쓰기는 진행 대화상자의 작업 스레드에서 하고, 취소·실패하면 파일을 지운다. CSV 동작은 바뀌지 않았다(파일 대화상자·안내 문구 코드만 함께 씀).
+
+### 확인 (2026-11-06)
+
+- 빌드: `-Pproduct-dbeaver-ce,product-chromite-swing` BUILD SUCCESS. Swing 결과물 번들 수는 Windows x64 137개, macOS arm64 138개(E단계 130/131 + 7)이고,
+  이름에 `swt`, `jface`, `org.eclipse.ui`, `org.eclipse.e4.ui`가 들어간 번들은 둘 다 0개다. 새 번들: `org.jkiss.dbeaver.data.office`, `org.jkiss.bundle.apache.poi` 5.4.3,
+  `org.apache.commons.commons-collections4` 4.6.0, `commons-compress` 1.28.0, `commons-io` 2.22.0, `lang3` 3.20.0, `text` 1.15.0
+  (`commons-codec`은 이미 있었음). `bundles.info`에 모두 들어 있다.
+- Windows에서 in-process JVM(`-vm …\bin\server\jvm.dll`)으로 E단계 작업 공간 사본(샘플 SQLite 연결 2개)을 열어 키보드·마우스로 확인했다. 팝업은 별도 창이라 창별로 찍어 확인했다.
+  - **테이블:** `select * from Al` + Ctrl+Space → `Album a`, `Playlist p`, `PlaylistTrack pt`(이름 안 일치, 테이블 아이콘, "- Table") → Enter → `select * from Album a `.
+    라이트 테마에서 `select * from A` + Ctrl+Space → 테이블 7개 목록, 아래 화살표 + Enter → `Artist a`.
+  - **별칭 뒤 열:** `select a from Album a`에서 `a` 뒤에 `.` 입력 → 자동으로 `AlbumId : INTEGER`, `ArtistId : INTEGER`, `Title : NVARCHAR`(열 아이콘) → `Ti` 입력하면 `Title`, `ArtistId`로 걸러짐 → Enter → `a.Title`.
+  - **키워드:** 새 줄에서 `sel` + Ctrl+Space → 제안이 하나라 바로 `SELECT `가 들어감. 글자 입력 자동 실행으로 `up` → `UPDATE`(키워드 아이콘) 목록.
+  - **글자 입력 자동 실행:** `select * from Ar`을 입력하고 멈추면 `Artist a`, `PlaylistTrack pt`.
+  - **연결 전:** 연결하지 않은 `Chinook Copy`의 새 편집기에서 `select * from Ge` + Ctrl+Space → 연결되고(탐색기에 연결 표시) `Genre g`가 들어감.
+  - **테마:** 다크 테마에서 연 편집기를 라이트로 바꾼 뒤 처음 띄운 팝업이 다크 색으로 남는 문제를 찾아 고쳤다(팝업 창을 처음 만들 때 현재 테마로 맞춤). 고친 뒤 라이트 테마 팝업 확인.
+  - **XLSX:** Album에서 Select Top 1000 Rows(347행) → 결과 표 오른쪽 클릭 → Export to Excel (XLSX)… → 옵션("Include column headers", "Exports the 347 rows already fetched…") → 저장.
+    Python `zipfile` + `xml.etree`로 읽은 결과: 시트 1개, 348행(머리글 `AlbumId`, `Title`, `ArtistId` + 347행), `AlbumId`·`ArtistId`는 모두 숫자 셀, `Title`은 문자열.
+    `select InvoiceId, InvoiceDate, BillingState, Total, Total > 10 as big from Invoice limit 5` → `Total`(NUMERIC) `1.98` 등 숫자 셀, NULL인 `BillingState`는 빈 칸,
+    `styles.xml`에 날짜 형식 `yyyy-MM-dd HH:mm:ss`. SQLite 드라이버는 `InvoiceDate`(DATETIME)를 문자열로 돌려주어 날짜 셀은 실제로 확인하지 못했다(문자열 셀).
+  - **CSV:** 같은 결과의 CSV 내보내기 대화상자·파일 형식이 E단계와 같음(`1,2009-01-01 00:00:00,,1.98,0`).
+- 디버그 로그에 ERROR/WARN/예외 없음. 다만 XLSX를 처음 쓸 때 POI가 쓰는 Log4j API가 표준 오류로
+  `Log4j API could not find a logging provider.`를 한 번 남긴다(Swing 제품에 Log4j 구현이 없음. 기록만 안 될 뿐 내보내기에는 영향 없음).
+- 확인하지 못한 것: 날짜·시각 셀(날짜 객체를 돌려주는 서버형 DB 없음), 큰 스크립트에서의 분석 시간, macOS 실행.
+
+
+### F단계에서 남긴 것
+
+- 자동완성: 설정 화면(지연 시간, 이름 형식, 대소문자 등), 제안 설명 창(객체 정보), 스크립트 변수·제어 명령·템플릿 제안, 함수 인자 도움말, 편집기별 연결(지금은 연결의 기본 문맥).
+  큰 스크립트에서 SWT처럼 의미 모델을 미리 만들어 두는 백그라운드 파싱(지금은 요청마다 커서 문장 하나만 분석).
+- XLSX: 시트 이름·날짜 형식·행 번호 등 내보내기 옵션 화면, "다시 실행해서 모든 행 내보내기", 시각(`TIME`) 셀 형식.
+  POI의 Log4j API 경고("could not find a logging provider")를 없애려면 Log4j를 slf4j로 보내는 구현 번들이나 실행 옵션이 필요하다(제품 구성 변경이라 이번에는 하지 않음).
+
 ## 변경 이력
 
 - 2026-11-06 최초 작성. Swing 전환 결정, 구조, 재사용 분석, MVP 범위, F5 실행 사양을 정리.
@@ -1017,3 +1144,6 @@ SWT의 "Generate SQL" 메뉴가 쓰는 모델 계층 생성기(`org.jkiss.dbeave
 - 2026-11-06 E단계 구현: SQL 파일 열기·저장·다른 이름으로 저장·최근 파일(문자 집합·BOM·줄바꿈 유지), 고침 표시와 닫을 때·끝낼 때 저장 확인,
   편집기 도구 막대의 연결 콤보와 기본 DB/스키마 콤보, Object Explorer의 Select Top 1000 Rows·Script as(CREATE·SELECT)·View DDL,
   결과 표 오른쪽 클릭 메뉴(복사, 머리글 포함 복사, CSV 내보내기). "구현 현황 — E단계" 절 추가, 기존 단계의 남긴 항목에 구현 표시. XLSX 내보내기는 보류.
+- 2026-11-06 F단계 구현: SQL 자동완성(model.sql의 `SQLQueryCompletionAnalyzer`, Ctrl+Space·`.`·글자 입력 뒤 자동 실행, 비동기 분석과 입력 중 취소, 엔진 일치 규칙으로 거르기),
+  결과 표 XLSX 내보내기(`DataExporterXLSX`, 숫자·불리언·날짜 원래 값 유지), Swing 피처에 `data.office`·Apache POI·Commons 번들 추가, NOTICE 갱신.
+  "구현 현황 — F단계" 절 추가, 재사용 분석 표와 이전 단계의 남긴 항목에 구현 표시.

@@ -72,3 +72,20 @@ The Chromite Swing frontend (plugins/com.seizia.chromite.ui.swing) includes:
   Licensed under the BSD 3-Clause License (included in the jar as
   META-INF/LICENSE).
   Downloaded from Maven Central at build time; not stored in this repository.
+
+The Chromite Swing product also includes, for the Excel (XLSX) export of
+query results, the following unmodified third-party libraries. Unlike the
+SWT product, where they come only with the optional Office extension, they
+are part of the Swing product:
+
+  Apache POI 5.4.0 (poi, poi-ooxml, poi-ooxml-lite) with Apache XMLBeans
+  5.3.0, Apache Commons Math 3.6.1, Apache Log4j API 2.25.5, SparseBitSet
+  1.3, excel-streaming-reader 5.0.2 and poi-shared-strings 2.9.0 -
+  Apache License 2.0; curvesapi 1.08 - BSD 3-Clause License.
+  Packaged by DBeaver Corp as the OSGi bundle org.jkiss.bundle.apache.poi
+  5.4.3 (repo.dbeaver.net); license and NOTICE files are inside the jars
+  where the projects provide them.
+
+  Apache Commons Collections 4.6.0, Compress 1.28.0, IO 2.22.0, Lang 3.20.0
+  and Text 1.15.0 - Apache License 2.0, OSGi bundles from the Eclipse
+  release repository (license and NOTICE files inside the jars).
