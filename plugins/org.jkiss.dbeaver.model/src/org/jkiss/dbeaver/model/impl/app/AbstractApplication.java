@@ -1,6 +1,7 @@
 /*
  * DBeaver - Universal Database Manager
  * Copyright (C) 2010-2026 DBeaver Corp and others
+ * Modifications Copyright (C) 2026 Chromite contributors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -31,11 +32,14 @@ import org.jkiss.dbeaver.runtime.ui.console.ConsoleUserInterface;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.util.Map;
 import java.util.UUID;
 
 /**
  * Abstract application implementation
+ *
+ * 변경 이력:
+ * - 2026-11-06 사용 통계 기능 제거: 통계 전송 헤더에만 쓰이던 getAdditionalApplicationProperties() 삭제
+ *   (docs/chromite/telemetry.md)
  */
 public abstract class AbstractApplication implements IApplication, DBPApplication {
 
@@ -75,12 +79,6 @@ public abstract class AbstractApplication implements IApplication, DBPApplicatio
             INSTANCE = instance;
         }
         return INSTANCE;
-    }
-
-    @NotNull
-    @Override
-    public Map<String, String> getAdditionalApplicationProperties() {
-        return Map.of();
     }
 
     public boolean isStandalone() {

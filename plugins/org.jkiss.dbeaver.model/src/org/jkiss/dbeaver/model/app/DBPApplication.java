@@ -1,6 +1,7 @@
 /*
  * DBeaver - Universal Database Manager
  * Copyright (C) 2010-2026 DBeaver Corp and others
+ * Modifications Copyright (C) 2026 Chromite contributors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,11 +24,17 @@ import org.jkiss.dbeaver.runtime.DBWorkbench;
 import org.jkiss.dbeaver.runtime.ui.DBPPlatformUI;
 
 import java.nio.file.Path;
-import java.util.Map;
 
 /**
  * DB application.
  * Application implementors may redefine core app behavior and/or settings.
+ *
+ * 설계: Chromite는 사용 통계를 수집하지 않으므로 통계 전송에만 쓰이던 애플리케이션 속성과
+ * 통계 수집 강제 여부를 이 인터페이스에 두지 않는다.
+ *
+ * 변경 이력:
+ * - 2026-11-06 사용 통계 기능 제거: getAdditionalApplicationProperties(), isStatisticsCollectionRequired() 삭제
+ *   (docs/chromite/telemetry.md)
  */
 public interface DBPApplication {
 
@@ -64,9 +71,6 @@ public interface DBPApplication {
     boolean isDistributed();
 
     boolean isDetachedProcess();
-
-    @NotNull
-    Map<String, String> getAdditionalApplicationProperties();
 
     /**
      * Application information details.
@@ -141,13 +145,6 @@ public interface DBPApplication {
      */
     default boolean isWorkspaceSwitchingAllowed() {
         return true;
-    }
-
-    /**
-     * Whether the statistics collection is enforced or can be disabled by the user
-     */
-    default boolean isStatisticsCollectionRequired() {
-        return false;
     }
 
     /**

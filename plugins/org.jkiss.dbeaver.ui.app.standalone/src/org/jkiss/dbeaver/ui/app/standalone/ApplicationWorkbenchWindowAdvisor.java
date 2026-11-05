@@ -1,6 +1,7 @@
 /*
  * DBeaver - Universal Database Manager
  * Copyright (C) 2010-2026 DBeaver Corp and others
+ * Modifications Copyright (C) 2026 Chromite contributors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -52,7 +53,6 @@ import org.jkiss.dbeaver.model.DBPDataSourceContainer;
 import org.jkiss.dbeaver.model.app.*;
 import org.jkiss.dbeaver.model.config.ProductConfigRegistry;
 import org.jkiss.dbeaver.model.impl.config.ProductConfigUtils;
-import org.jkiss.dbeaver.model.runtime.features.DBRFeatureRegistry;
 import org.jkiss.dbeaver.registry.DataSourceProviderRegistry;
 import org.jkiss.dbeaver.registry.WorkbenchHandlerRegistry;
 import org.jkiss.dbeaver.runtime.DBWorkbench;
@@ -69,6 +69,14 @@ import org.jkiss.dbeaver.utils.GeneralUtils;
 
 import java.util.StringJoiner;
 
+/**
+ * 설계: 첫 실행 제품 구성 마법사를 취소하면 바로 종료한다. Chromite는 사용 통계를 수집하지 않으므로
+ * 종료 전에 통계 추적을 마무리(전송)하는 단계가 없다.
+ *
+ * 변경 이력:
+ * - 2026-11-06 사용 통계 기능 제거: 마법사 취소 시 DBRFeatureRegistry.endTracking() 호출 삭제
+ *   (docs/chromite/telemetry.md)
+ */
 public class ApplicationWorkbenchWindowAdvisor extends IDEWorkbenchWindowAdvisor implements DBPProjectListener, IResourceChangeListener {
     private static final Log log = Log.getLog(ApplicationWorkbenchWindowAdvisor.class);
 
@@ -208,7 +216,6 @@ public class ApplicationWorkbenchWindowAdvisor extends IDEWorkbenchWindowAdvisor
                 ProductConfigWizard.Origin.AUTOMATIC
             );
             if (dialog.open() == IDialogConstants.CANCEL_ID) {
-                DBRFeatureRegistry.getInstance().endTracking();
                 System.exit(0);
             }
         } finally {
