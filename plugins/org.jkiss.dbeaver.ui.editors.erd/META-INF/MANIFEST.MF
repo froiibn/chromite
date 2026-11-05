@@ -1,7 +1,7 @@
 Manifest-Version: 1.0
 Bundle-ManifestVersion: 2
 Bundle-Vendor: DBeaver Corp
-Bundle-Name: DBeaver ERD UI
+Bundle-Name: Chromite ERD UI
 Bundle-SymbolicName: org.jkiss.dbeaver.ui.editors.erd;singleton:=true
 Bundle-Version: 3.1.32.qualifier
 Bundle-Release-Date: 20261116

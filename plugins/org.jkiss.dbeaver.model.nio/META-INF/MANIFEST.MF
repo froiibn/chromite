@@ -1,7 +1,7 @@
 Manifest-Version: 1.0
 Bundle-ManifestVersion: 2
 Bundle-Vendor: DBeaver Corp
-Bundle-Name: DBeaver NIO Model
+Bundle-Name: Chromite NIO Model
 Bundle-SymbolicName: org.jkiss.dbeaver.model.nio;singleton:=true
 Bundle-Version: 1.0.75.qualifier
 Bundle-Release-Date: 20261116

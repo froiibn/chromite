@@ -1,7 +1,7 @@
 Manifest-Version: 1.0
 Bundle-ManifestVersion: 2
 Bundle-Vendor: DBeaver Corp
-Bundle-Name: DBeaver DataDam Model
+Bundle-Name: Chromite DataDam Model
 Bundle-SymbolicName: org.jkiss.dbeaver.model.datadam;singleton:=true
 Bundle-Version: 1.0.0.qualifier
 Bundle-Release-Date: 20260720

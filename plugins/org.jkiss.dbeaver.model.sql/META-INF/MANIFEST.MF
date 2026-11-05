@@ -1,7 +1,7 @@
 Manifest-Version: 1.0
 Bundle-ManifestVersion: 2
 Bundle-Vendor: DBeaver Corp
-Bundle-Name: DBeaver SQL Model
+Bundle-Name: Chromite SQL Model
 Bundle-SymbolicName: org.jkiss.dbeaver.model.sql;singleton:=true
 Bundle-Version: 1.0.181.qualifier
 Bundle-Release-Date: 20261116

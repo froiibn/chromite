@@ -1,6 +1,6 @@
 Manifest-Version: 1.0
 Bundle-ManifestVersion: 2
-Bundle-Name: DBeaver LSP server implementation
+Bundle-Name: Chromite LSP server implementation
 Bundle-Vendor: DBeaver Corp
 Bundle-Version: 0.0.21.qualifier
 Bundle-Release-Date: 20261116

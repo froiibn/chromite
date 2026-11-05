@@ -1,7 +1,7 @@
 Manifest-Version: 1.0
 Bundle-ManifestVersion: 2
 Bundle-Vendor: DBeaver Corp
-Bundle-Name: DBeaver Eclipse IDE
+Bundle-Name: Chromite Eclipse IDE
 Bundle-SymbolicName: org.jkiss.dbeaver.ui.app.eclipse;singleton:=true
 Bundle-Version: 26.2.5.qualifier
 Bundle-Release-Date: 20261116

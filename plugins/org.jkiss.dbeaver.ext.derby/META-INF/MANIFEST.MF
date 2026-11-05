@@ -1,7 +1,7 @@
 Manifest-Version: 1.0
 Bundle-ManifestVersion: 2
 Bundle-Vendor: DBeaver Corp
-Bundle-Name: DBeaver Derby Model
+Bundle-Name: Chromite Derby Model
 Bundle-SymbolicName: org.jkiss.dbeaver.ext.derby;singleton:=true
 Bundle-Version: 1.1.276.qualifier
 Bundle-Release-Date: 20261116
