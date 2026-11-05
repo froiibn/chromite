@@ -1,6 +1,7 @@
 /*
  * DBeaver - Universal Database Manager
  * Copyright (C) 2010-2026 DBeaver Corp and others
+ * Modifications Copyright (C) 2026 Chromite contributors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -794,7 +795,7 @@ public class OracleDataSource extends JDBCDataSource implements DBPObjectStatist
                 if (!DBWorkbench.getPlatformUI().confirmAction(
                     "Oracle PLAN_TABLE missing",
                     "PLAN_TABLE not found in current user's session. " +
-                        "Do you want DBeaver to create new PLAN_TABLE (" + newPlanTableName + ")?")) {
+                        "Do you want Chromite to create new PLAN_TABLE (" + newPlanTableName + ")?")) {
                     return null;
                 }
                 planTableName = createPlanTable(session, newPlanTableName);

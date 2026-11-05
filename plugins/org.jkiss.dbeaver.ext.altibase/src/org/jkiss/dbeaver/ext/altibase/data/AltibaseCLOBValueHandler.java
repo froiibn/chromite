@@ -1,6 +1,7 @@
 /*
  * DBeaver - Universal Database Manager
  * Copyright (C) 2010-2026 DBeaver Corp and others
+ * Modifications Copyright (C) 2026 Chromite contributors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -104,7 +105,7 @@ public class AltibaseCLOBValueHandler extends JDBCContentValueHandler {
             if (e.getErrorCode() == AltibaseConstants.ERR_LOB_LOCATOR_SPAN_TRANS ||
                 e.getErrorCode() == AltibaseConstants.ERR_TEMP_LOB_SEEK_FAILED) {
                 return new JDBCContentChars(session.getExecutionContext(),
-                        "[Long CLOB/JSON data requires 'Manual Commit' mode in DBeaver to read.]");
+                        "[Long CLOB/JSON data requires 'Manual Commit' mode in Chromite to read.]");
             }
             throw e;
         }
