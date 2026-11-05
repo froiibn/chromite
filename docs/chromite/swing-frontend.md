@@ -56,8 +56,9 @@ UI는 SWT 위젯뿐 아니라 Eclipse RCP 워크벤치(뷰, 편집기, 퍼스펙
 | FlatLaf | IntelliJ/Darcula 계열 테마, JBR 사용자 정의 제목 표시줄 지원 | Apache 2.0 |
 | RSyntaxTextArea | SQL 편집기 (구문 강조, 자동완성 팝업) | BSD |
 | ModernDocking | SSMS식 도킹 창 배치 | MIT |
+| JSVG | 탐색기 SVG 아이콘 그리기 (B단계 도입) | MIT |
 
-도입 전에 각 라이브러리의 최신 라이선스를 다시 확인한다.
+도입 전에 각 라이브러리의 최신 라이선스를 다시 확인한다. ModernDocking은 B단계에서 검토했고 아직 쓰지 않는다("구현 현황 — B단계").
 
 ## 기존 코드 재사용 분석
 
@@ -376,6 +377,182 @@ Windows x64 결과물의 `plugins/`에는 번들 128개가 있고, `swt`, `jface
 - 테마 전환(DataGrip풍 다크), macOS 메뉴 막대 통합, Windows AppUserModelID(위 "창 아이콘과 JVM 실행 방식")
 - macOS arm64 실행은 확인하지 못했다(빌드 결과만 확인). AWT는 Equinox 런처가 만든 보조 스레드에서 시작된다.
 
+## 구현 현황 — B단계
+
+B단계의 목표는 SSMS식 메인 창, 실제 데이터를 보여 주는 Object Explorer, 라이트/다크 테마다.
+SQL 편집기, 결과 그리드, 연결 화면은 C단계에서 만든다.
+
+### 화면 배치
+
+```
+┌ 메뉴(File · View · Help, FlatLaf 통합 제목 표시줄 안) ─────────────────────────┐
+│ Object Explorer │ 문서 탭 (Welcome)                        │ Properties      │
+│  [Refresh] [×]  │                                          │  [×]            │
+│  연결            ├──────────────────────────────────────────┤  이름 / 종류     │
+│   └ Tables      │ Results | Messages                  [×] │  속성 표         │
+│      └ 테이블    │                                          │                 │
+├─────────────────┴──────────────────────────────────────────┴─────────────────┤
+│ 상태 표시줄 (N connections in workspace)                                       │
+└──────────────────────────────────────────────────────────────────────────────┘
+```
+
+| 클래스 | 역할 |
+|---|---|
+| `MainFrame` | 메인 창. 분할 창 3개, 메뉴, 상태 표시줄, 창·도구 창 배치 저장, 알림 표시 |
+| `ToolWindow` | 도구 창 하나(분할 창의 한쪽). 머리말(제목, 도구 단추, 숨기기 `×`), View 메뉴 토글, 크기·표시 여부 저장 |
+| `ObjectExplorerPanel` | 탐색기 트리 |
+| `PropertiesPanel` | 선택한 노드의 이름·종류·설명과 속성 표 |
+| `NodeIcons` | 노드 아이콘(`DBPImage`) → Swing `Icon` |
+| `ChromiteTheme`, `ChromiteLightLaf`, `ChromiteDarkLaf` | 테마와 그 저장 |
+| `AboutDialog` | Help > About Chromite |
+| `ProgressDialog`, `NotificationToast` | `DBPPlatformUI`의 진행 대화상자, 비모달 알림 |
+| `SwingConnectionService` | `DBServiceConnections` 구현(탐색기에서 연결 열기) |
+| `JsvgLogManager` | JSVG 로깅 공급자(JSVG 번들이 필수로 요구하는 능력, 아래 "외부 라이브러리") |
+
+- **분할 구조:** Object Explorer | ((문서 탭 / Results·Messages) | Properties). Properties는 SSMS처럼 문서와 결과 옆에 세로로 길게 붙는다.
+  창을 키우면 늘어난 공간은 문서 영역이 가져가고 도구 창 크기는 그대로다(오른쪽·아래 분할 창의 `resizeWeight = 1`).
+- **숨기기:** View 메뉴 토글(Object Explorer F8, Properties F4, Results Ctrl+R, SSMS와 같은 단축키) 또는 도구 창의 `×`.
+  숨긴 컴포넌트는 분할 창에서 빼지 않고 `setVisible(false)`로 감추고 구분선 크기를 0으로 둔다(테마 전환이 숨은 창에도 적용되게).
+- **Results / Messages:** 지금은 자리 표시용 내용만 있다. 탭 줄 오른쪽에 숨기기 단추가 있다(FlatLaf `JTabbedPane.trailingComponent`).
+- **문서 탭:** Welcome 탭 하나. SQL 편집기 탭은 C단계에서 넣는다.
+- **메뉴:** File(Exit), View(도구 창 3개, Theme > Light/Dark), Help(About Chromite). F5는 쿼리 실행용으로 비워 둔다.
+- **About:** 제품명, 부제, 버전, 저작권("© 2026 Chromite contributors. Based on DBeaver Community © DBeaver Corp"), 웹사이트
+  (https://github.com/froiibn/chromite, 누르면 브라우저로 연다). 제품명·부제·저작권은 `plugin.xml` 제품 확장의 속성에서 읽는다.
+  버전은 SWT 버전과 같이 제품 번들 버전(`GeneralUtils.getPlainVersion()`)이라, Swing 번들 버전을 제품 버전과 같은 `26.2.5`로 바꿨다
+  (SWT의 제품 번들 `org.jkiss.dbeaver.ui.app.standalone`과 같은 방식. 이전 `1.0.0`은 About에 그대로 나왔다).
+
+### 도킹 라이브러리 검토 (ModernDocking 대 `JSplitPane`)
+
+B단계는 `JSplitPane`만 쓴다.
+
+- B단계 배치는 SSMS의 기본 배치 하나(고정 위치의 도구 창 3개 + 문서 탭)이고, 필요한 동작은 크기 조절·숨기기·저장뿐이라 분할 창으로 충분하다.
+- ModernDocking(MIT)을 쓰면 OSGi 매니페스트 없는 jar를 FlatLaf처럼 빌드 때 받아 `Bundle-ClassPath`에 넣고, `NOTICE`·체크섬을 관리하고,
+  라이브러리 자체의 배치 저장 형식(XML)을 따라야 한다. 지금 얻는 것(끌어다 놓기, 떠 있는 창, 자동 숨김)에 비해 의존성과 테마·포커스 문제를 살필 범위가 크다.
+- 도구 창은 `ToolWindow` 하나로 감싸 두었으므로, 끌어다 놓기나 떠 있는 창이 필요해지면 `ToolWindow`와 `MainFrame`의 배치 부분만 도킹 라이브러리로 바꾸면 된다.
+
+### Object Explorer 데이터 흐름과 스레드
+
+1. 트리 뿌리(보이지 않음)는 활성 프로젝트의 `DBNProject`다. 첫 단계에 `DBNProject.getDatabases()`의 자식(연결 폴더 `DBNLocalFolder`, 연결 `DBNDataSource`)을 읽는다.
+   탐색기 모델은 SWT 버전과 같은 `DBWorkbench.getPlatform().getNavigatorModel()`(`DesktopNavigatorModel`)이다.
+2. 자식이 있을 수 있는 노드(`DBNNode.hasChildren(true)`, 메타데이터만 보고 DB를 읽지 않음)에는 "Loading…" 자식을 미리 넣어 펼칠 수 있게 한다.
+3. 노드를 펼치면(`TreeWillExpandListener`) `AbstractJob`을 예약하고, Job 스레드에서 `DBNUtils.getNodeChildrenFiltered(monitor, node, true)`
+   (SWT `DatabaseNavigatorContentProvider`와 같은 걸러내기: 숨은 객체, 트리에 보이지 않는 메타 노드 제외, 정렬)를 부른다. EDT에서는 모델을 읽지 않는다.
+4. 결과는 `SwingUtilities.invokeLater`로 EDT에서 트리 모델에 반영한다(`nodeStructureChanged`, 펼친 상태 유지). 노드마다 읽기 번호를 두어
+   새로 고침으로 더 새 읽기가 시작되었으면 늦게 끝난 이전 결과를 버린다.
+5. **연결:** 연결 노드의 자식을 읽으면 `DBNDatabaseNode.getChildren` → `initializeNode` → `DBUtils.initDataSource` →
+   `DBWorkbench.getService(DBServiceConnections.class).initConnection(monitor, …)`로 연결한다
+   ([DBNDatabaseNode.java:221-243](../../plugins/org.jkiss.dbeaver.model/src/org/jkiss/dbeaver/model/navigator/DBNDatabaseNode.java),
+   [DBUtils.java:2792-2808](../../plugins/org.jkiss.dbeaver.model/src/org/jkiss/dbeaver/model/DBUtils.java)).
+   SWT 제품에서는 `org.jkiss.dbeaver.core`의 `UIServiceConnectionsImpl`이 이 서비스인데 Swing 제품에는 없어서, 서비스가 없으면
+   연결하지 않고 "Connection was canceled"로 끝난다. 그래서 `SwingConnectionService`를 `org.jkiss.dbeaver.service` 확장으로 등록했다.
+   SWT `DataSourceHandler.connectToDataSource`의 UI 없는 부분(이미 연결 중이면 그 Job을 기다림, 모델 계층의 `ConnectJob`을 탐색기 Job 스레드에서 `runSync`)을 옮겼다.
+   공유 자격 증명 확인(팀/클라우드 기능)과 기능 사용 통계는 옮기지 않았다.
+6. **오류:** Job에서 난 예외는 `DBWorkbench.getPlatformUI().showError`(`SwingPlatformUI`)로 보여 주고, 노드를 접고 "Loading…" 자식을 되돌려 다시 펼치면 다시 읽는다.
+   연결 실패·취소(`DBInterruptedException`)는 연결 서비스가 이미 알렸으므로 다시 알리지 않는다.
+7. **새로 고침:** F5는 쿼리 실행용이라 쓰지 않고, Object Explorer 머리말의 Refresh 단추와 오른쪽 클릭 메뉴 "Refresh"로 한다.
+   선택한 노드(없으면 연결 목록 전체)에 `DBNNode.refreshNode(monitor, …)`를 부른 뒤 자식을 다시 읽는다. 새로 고침이 조상 노드로 넘어가면 그 조상의 하위 트리를 다시 그린다.
+   아직 펼친 적 없는 노드는 자식을 읽으면 연결이 열리므로 다시 그리기만 한다.
+8. **선택:** 선택이 바뀌면 Properties에 노드를 넘긴다. 더블클릭은 Swing 트리의 기본 동작(펼치기·접기)만 하고, 객체 편집기는 C단계 이후다.
+
+### Properties
+
+- 머리말에 이름(`getNodeDisplayName`), 종류(`getNodeTypeLabel`), 설명(`getNodeDescription`)을 보여 준다.
+- 속성 표는 SWT 속성 보기와 같은 모델을 쓴다(`NavigatorAdapterFactory`의 변환): 노드가 감싼 객체(`DBSWrapper.getObject()`, 아니면 노드)가
+  `DBPPropertySource`면 그것을, 아니면 `PropertyCollector`로 `@Property` 게터를 모은다. 둘 다 `org.jkiss.dbeaver.model`에 있고 UI에 의존하지 않아 그대로 쓸 수 있었다.
+- 값 읽기는 게으른 속성(DB 조회가 필요한 값)을 포함하므로 백그라운드 Job에서 모니터를 넘겨 읽는다. 선택이 바뀌면 이전 Job을 취소한다.
+  범주가 있는 속성은 범주 이름 줄(굵게) 아래에 모은다. 읽기 전용이다.
+
+### 노드 아이콘
+
+- `DBNNode.getNodeIcon()`은 `DBIcon`이고 위치는 `platform:/plugin/<번들>/<경로>`다. `Bundle.getEntry`로 번들 안의 파일을 직접 찾는다(SWT `DBeaverIcons`와 같은 위치 규칙).
+- DBeaver 트리 아이콘은 대부분 SVG다(예: `org.jkiss.dbeaver.model/icons/tree`에 SVG 73개, PNG 2개). 그래서 PNG만 읽는 방식으로는 부족하고,
+  SVG는 JSVG로 읽어 그릴 때마다 벡터로 그린다(HiDPI에서도 선명). PNG는 `@2x` 파일이 있으면 `BaseMultiResolutionImage`로 묶는다.
+- 상태 겹침 아이콘(`DBIconComposite`, 예: 연결됨 표시)은 기본 아이콘 네 모서리에 겹쳐 그린다(SWT `OverlayImageDescriptor`와 같음).
+- 읽을 수 없는 아이콘은 `DBIcon.TYPE_UNKNOWN`, 그것도 없으면 Look and Feel의 트리 잎 아이콘으로 대신한다. 위치별로 캐시한다(실패도 캐시).
+- 아이콘 파일은 DBeaver 번들의 것(Apache 2.0)을 그대로 쓴다. JetBrains·Microsoft 아이콘은 쓰지 않는다.
+
+### 테마
+
+| 테마 | 클래스 | 바탕 | 바꾼 값 (`<클래스>.properties`) |
+|---|---|---|---|
+| Light (SSMS풍) | `ChromiteLightLaf` | `FlatLightLaf` | 강조색 `#0078d4`(운영체제 강조색 대신 고정), 바탕 `#f3f3f3` |
+| Dark (DataGrip풍) | `ChromiteDarkLaf` | `FlatDarculaLaf` | 바탕 `#2b2d30`, 글자 `#dfe1e5`, 강조색 `#3574f0` |
+
+- FlatLaf는 Look and Feel 클래스 계층마다 "클래스 이름.properties"를 읽어 덮어쓴다. 그래서 외부 테마 파일 없이 색 변수 몇 개만 바꿨다.
+  JetBrains·Microsoft의 테마 파일과 아이콘은 쓰지 않고 색감만 참고했다.
+- View > Theme에서 바꾸면 바로 `FlatLaf.setup()` + `FlatLaf.updateUI()`로 열린 모든 창을 다시 그리고, 설정에 저장해 다음 시작에도 쓴다.
+  Look and Feel 색을 쓰는 직접 만든 테두리(상태 표시줄, 도구 창 머리말)는 `updateUI()`에서 다시 만든다.
+- 시작 순서: 작업 공간을 잠그기 전에는 설정을 읽을 수 없으므로(인스턴스 위치가 정해지기 전) 시작 오류 대화상자용으로 라이트 테마를 먼저 설치하고,
+  메인 창을 열기 직전에 저장된 테마로 바꾼다.
+
+### 설정 저장 위치
+
+테마, 창 위치·크기·최대화 여부, 도구 창 크기·표시 여부는 이 번들의 설정 저장소(`BundlePreferenceStore`, 작업 공간
+`.metadata/.plugins/org.eclipse.core.runtime/.settings/com.seizia.chromite.ui.swing.prefs`)에 저장한다.
+
+| 키 | 값 |
+|---|---|
+| `ui.theme` | `LIGHT` / `DARK` |
+| `mainWindow.bounds`, `mainWindow.maximized` | `x,y,너비,높이`(최대화 전 크기), 최대화 여부 |
+| `objectExplorer.visible`, `objectExplorer.size` 등 (`properties.*`, `results.*`) | 표시 여부, 너비(위·아래 분할은 높이) |
+
+- Java Preferences 대신 이 저장소를 고른 이유: SWT 버전도 화면 설정을 작업 공간 설정에 둔다. Windows에서 Java Preferences는 레지스트리에 쓰므로
+  작업 공간을 복사해 하는 스모크 테스트가 사용자 설정을 바꾸게 되고, 작업 공간과 함께 옮겨지지도 않는다. 기본 작업 공간은 사용자별 폴더에 있어 "사용자별 저장"도 된다.
+- 창 배치는 창을 닫을 때 한 번 저장하고, 테마는 바꿀 때 바로 저장한다. 저장된 창 위치가 어느 화면에도 없으면(모니터 분리 등) 기본 크기로 가운데에 연다.
+- 이 저장소는 기본값과 같은 값을 저장하지 않고 지운다(`BundlePreferenceStore.putBoolean` 등). 그래서 도구 창의 기본값(표시함, 기본 크기)을
+  `setDefault`로 먼저 선언한 뒤 읽는다. 선언하지 않으면 숨김(`false`)이 저장되지 않아 다음 시작에 다시 보였다(2026-11-06 스모크 테스트에서 발견).
+
+### DBPPlatformUI B단계 구현
+
+| 메서드 | B단계 구현 |
+|---|---|
+| `runWithProgress`, `runWithMonitor` | EDT에서 부르면 작업을 `AbstractJob`으로 돌리고 모달 진행 대화상자(`ProgressDialog`, 작업 이름, 진행 막대, Cancel)에서 기다린다. 다른 스레드면 그 스레드에서 실행 |
+| `executeWithProgressBlocking` | SWT `DesktopUI`와 같은 Job. EDT에서는 진행 대화상자에서 기다리고(취소 시 `runnable.cancel()`), 다른 스레드는 `join` |
+| `showNotification`, `showWarningNotification` | 로그 + 메인 창 오른쪽 아래의 비모달 알림(`NotificationToast`, 레이어 창에 올림, 몇 초 뒤 사라짐, 누르면 `feedback` 실행) |
+
+- 진행 대화상자는 짧은 작업에서 깜빡이지 않도록 처음 300ms는 대화상자 없이 기다린다(SWT의 짧은 대기와 같은 방식).
+  기다리는 동안 EDT는 모달 대화상자의 이벤트 루프에 있으므로, 작업이 `invokeAndWait`로 띄우는 대화상자(비밀번호 입력 등)도 정상으로 뜬다.
+- 남은 항목(코드에 `// Phase C:`로 표시): `showError`의 DB별 처리와 상세 정보 창, `selectObject`(탐색기 선택 대화상자),
+  `openEntityEditor`(객체 편집기), `openConnectionEditor`(범용 연결 화면), `createLoadingService`(Swing 로딩 표시, EDT에서 완료 통지),
+  `copyTextToClipboard`의 HTML 형식, `readAndDispatchEvents`, `promptAuthModelCredentials`(인터페이스 기본값 `false`).
+
+### 외부 라이브러리 (B단계 추가)
+
+| 라이브러리 | 버전 | 라이선스 | 출처 |
+|---|---|---|---|
+| JSVG (`com.github.weisj.jsvg`) | 2.1.0 | MIT | Eclipse 2026-09 릴리스 저장소(빌드 대상 플랫폼)의 OSGi 번들. SHA-1 `c1a403f318de302fa81e4403fe8fb4bd6056a41f`, SHA-256 `a538142d27c57c55066da02a535cc8eee3afd0d37b3daff8eba6344bd0ffc1b6` 확인 |
+
+- 이미 OSGi 번들(매니페스트에 `Bundle-License: MIT`, jar 안에 `META-INF/LICENSE`)이라 FlatLaf처럼 jar를 받아 넣을 필요 없이 `Require-Bundle`로 쓰고,
+  Swing 피처(`com.seizia.chromite.swing.feature`)에 넣었다. 번들이 요구하는 SPI Fly(`org.apache.aries.spifly.dynamic.bundle`)는 런타임 피처에 이미 들어 있다.
+- **SWT가 끌려 들어오는 문제:** JSVG 번들은 `Require-Capability`로 `osgi.serviceloader`(`com.github.weisj.jsvg.logging.LogManager` 공급자)를
+  필수로 요구한다. Eclipse 저장소에서 이 능력을 제공하는 것은 SWT 조각 `org.eclipse.swt.svg`뿐이라, JSVG만 피처에 넣은 첫 빌드에서는
+  p2가 `org.eclipse.swt`, `org.eclipse.swt.svg`, `org.eclipse.swt.win32.win32.x86_64`를 제품에 넣었다(2026-11-06 확인).
+  그래서 Swing 번들이 같은 능력을 제공한다: `MANIFEST.MF`의 `Provide-Capability: osgi.serviceloader;…;register:=…JsvgLogManager`,
+  `META-INF/services/com.github.weisj.jsvg.logging.LogManager`, `JsvgLogManager`(JSVG 로그를 Chromite 로그로 보냄).
+  SPI Fly가 동작하지 않으면 JSVG는 기본 로거(java.util.logging)를 쓰며, 아이콘 그리기에는 영향이 없다.
+- FlatLaf의 SVG 아이콘(`flatlaf-extras`의 `FlatSVGIcon`)도 JSVG를 쓰므로, JSVG를 직접 쓰고 `flatlaf-extras`는 넣지 않았다.
+- `NOTICE`에 출처를 적었다.
+
+### 확인 (2026-11-06)
+
+- 빌드: `-Pproduct-dbeaver-ce,product-chromite-swing` BUILD SUCCESS. Swing 결과물 번들 수는 Windows x64 129개, macOS arm64 130개(A단계 + JSVG)이고,
+  이름에 `swt`, `jface`, `org.eclipse.ui`, `org.eclipse.e4.ui`가 들어간 번들은 둘 다 0개다.
+- Windows에서 in-process JVM(`-vm …\bin\server\jvm.dll`)으로 샘플 SQLite 연결이 있는 작업 공간 사본을 열어 키보드로 확인했다:
+  연결 펼치기(연결됨, 연결 아이콘에 연결 표시) → 폴더(테이블, 뷰, 인덱스, 시퀀스, 테이블 트리거, 데이터 타입) → 테이블 12개 → 테이블 선택 시 Properties 표.
+  Refresh 단추, Results 숨기기(Ctrl+R)·Properties 숨기기(F4), 실행 중 다크 테마 전환, About, 다시 시작했을 때 다크 테마와 숨긴 Properties 복원.
+- 디버그 로그(`.metadata/dbeaver-debug.log`)에 ERROR/Exception 없음.
+- macOS 실행은 확인하지 못했다.
+
+### B단계에서 남긴 것 (C단계 이후)
+
+- **SQL 편집기:** RSyntaxTextArea 기반 편집기 탭, F5 실행(선택 1자 이상이면 선택, 아니면 전체), SQL Server `GO` 배치 묶기를
+  `SQLQueryExecuteJob`·`SQLQueryExecuteHandler`로 연결("F5와 GO 배치를 실행 계층에 연결하는 방법").
+- **결과 그리드:** Results 탭에 결과 표 쌓기(자체 `DBDDataReceiver` + `AbstractTableModel`), Messages 탭에 행 수·경고·PRINT 출력.
+- **연결 화면:** 범용 연결 대화상자(`openConnectionEditor`), 새 연결 만들기·편집·삭제, 연결 끊기 메뉴.
+- 탐색기: 모델 이벤트(`INavigatorListener`)로 트리 갱신(다른 곳에서 연결을 추가·삭제·연결 끊기 했을 때), 활성 프로젝트 전환, 객체 편집기, Script as, 필터.
+- 위 "DBPPlatformUI B단계 구현"의 남은 항목.
+- 도킹(끌어다 놓기, 떠 있는 창)이 필요해지면 ModernDocking 재검토.
+
 ## 변경 이력
 
 - 2026-11-06 최초 작성. Swing 전환 결정, 구조, 재사용 분석, MVP 범위, F5 실행 사양을 정리.
@@ -383,3 +560,6 @@ Windows x64 결과물의 `plugins/`에는 번들 128개가 있고, `swt`, `jface
   Swing 편집기 API, F5·GO 배치 연결 방법, `ResultSetModel`·`ResultSetPersister` 이전 분석을 추가.
 - 2026-11-06 A단계 구현: `com.seizia.chromite.ui.swing` 번들(앱, 플랫폼, `SwingPlatformUI`, 메인 창), FlatLaf 3.8 연동,
   `com.seizia.chromite.swing.feature` 피처, `product-chromite-swing` 제품, Chromite 창 아이콘. "구현 현황 — A단계" 절 추가.
+- 2026-11-06 B단계 구현: SSMS식 메인 창(Object Explorer, 문서 탭, Results/Messages, Properties, `JSplitPane` 기반 도구 창과 배치 저장),
+  탐색기 모델 기반 Object Explorer(백그라운드 읽기, `SwingConnectionService`로 연결, JSVG 아이콘), 속성 표, 라이트/다크 테마와 저장,
+  About 대화상자, 진행 대화상자·비모달 알림, Swing 번들 버전을 제품 버전(26.2.5)으로 변경. "구현 현황 — B단계" 절 추가.

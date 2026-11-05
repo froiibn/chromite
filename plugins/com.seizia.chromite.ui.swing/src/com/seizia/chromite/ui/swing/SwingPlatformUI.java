@@ -16,6 +16,7 @@
  */
 package com.seizia.chromite.ui.swing;
 
+import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.Status;
 import org.eclipse.core.runtime.jobs.Job;
@@ -64,13 +65,17 @@ import java.util.function.Supplier;
  *
  * 설계: 모델 계층은 오류 표시, 확인 질문, 비밀번호 입력 등을 이 인터페이스로 요청하고, 호출 스레드는 대개
  * 백그라운드 Job이다. 그래서 대화상자는 항상 EDT에서 띄우고, 결과가 필요하면 {@link SwingUtilities#invokeAndWait}로
- * 기다린다(이미 EDT이면 바로 실행). A단계는 {@link JOptionPane} 기반의 단순한 대화상자로 구현하고,
- * 탐색기·편집기·진행 표시처럼 B단계 화면이 있어야 하는 기능은 {@code ConsoleUserInterface}와 같은 안전한 기본값을
- * 돌려주며 {@code // Phase B:} 주석으로 무엇이 빠졌는지 표시한다.
+ * 기다린다(이미 EDT이면 바로 실행). A단계는 {@link JOptionPane} 기반의 단순한 대화상자로 구현했고,
+ * B단계에서 진행 표시({@link ProgressDialog})와 비모달 알림({@link NotificationToast})을 더했다.
+ * 아직 화면이 없는 기능(객체 선택, 객체·연결 편집기 등)은 {@code ConsoleUserInterface}와 같은 안전한 기본값을
+ * 돌려주며 {@code // Phase C:} 주석으로 무엇이 빠졌는지 표시한다.
  * {@code ConsoleUserInterface}를 상속하지 않은 것은, 어떤 메서드가 아직 콘솔 동작인지 이 클래스만 보고 알 수 있게 하기 위해서다.
  *
  * 변경 이력:
  * - 2026-11-06 A단계: 최초 작성 (docs/chromite/swing-frontend.md "구현 현황 — A단계")
+ * - 2026-11-06 B단계: 진행 대화상자({@code runWithProgress}, {@code runWithMonitor}, {@code executeWithProgressBlocking}),
+ *   비모달 알림({@code showNotification}, {@code showWarningNotification}). 남은 항목은 {@code // Phase C:}로 표시
+ *   (docs/chromite/swing-frontend.md "구현 현황 — B단계")
  */
 public class SwingPlatformUI implements DBPPlatformUI {
 
@@ -92,14 +97,14 @@ public class SwingPlatformUI implements DBPPlatformUI {
 
     @Override
     public UserResponse showError(@NotNull String title, @Nullable String message, @NotNull IStatus status) {
-        // Phase B: DB-specific handling of DesktopUI (connection lost, driver files missing, details pane)
+        // Phase C: DB-specific handling of DesktopUI (connection lost, driver files missing, details pane)
         showMessage(title, joinText(message, getStatusText(status)), JOptionPane.ERROR_MESSAGE);
         return UserResponse.OK;
     }
 
     @Override
     public UserResponse showError(@Nullable String title, @Nullable String message, @NotNull Throwable e) {
-        // Phase B: DB-specific handling of DesktopUI (connection lost, driver files missing, details pane)
+        // Phase C: DB-specific handling of DesktopUI (connection lost, driver files missing, details pane)
         log.debug(e);
         showMessage(CommonUtils.isEmpty(title) ? "Error" : title,
             joinText(message, CommonUtils.getAllExceptionMessages(e)), JOptionPane.ERROR_MESSAGE);
@@ -114,19 +119,38 @@ public class SwingPlatformUI implements DBPPlatformUI {
 
     @Override
     public void showNotification(@NotNull String title, @Nullable String message, boolean error, @Nullable Runnable feedback) {
-        // Phase B: non-modal notification popup (with the feedback action). Logged only for now,
-        // because a modal dialog would block whatever background job sent the notification.
         if (error) {
             log.error(title + (message == null ? "" : ": " + message));
         } else {
             log.info(title + (message == null ? "" : ": " + message));
         }
+        showToast(title, message, error ? NotificationToast.Kind.ERROR : NotificationToast.Kind.INFO, feedback);
     }
 
     @Override
     public void showWarningNotification(@NotNull String title, @Nullable String message) {
-        // Phase B: non-modal notification popup. Logged only for now (see showNotification).
         log.warn(title + (message == null ? "" : ": " + message));
+        showToast(title, message, NotificationToast.Kind.WARNING, null);
+    }
+
+    /**
+     * Non-modal toast in the main window. Never waits for the EDT, because notifications come from background jobs
+     * (a modal dialog would block them). Without a main window (startup, shutdown) the notification is only logged.
+     */
+    private static void showToast(
+        @NotNull String title,
+        @Nullable String message,
+        @NotNull NotificationToast.Kind kind,
+        @Nullable Runnable feedback
+    ) {
+        SwingUtilities.invokeLater(() -> {
+            for (Frame frame : Frame.getFrames()) {
+                if (frame instanceof MainFrame mainFrame && mainFrame.isDisplayable()) {
+                    mainFrame.showNotification(title, message, kind, feedback);
+                    return;
+                }
+            }
+        });
     }
 
     @Override
@@ -455,26 +479,26 @@ public class SwingPlatformUI implements DBPPlatformUI {
         Class<?>[] resultTypes,
         Class<?>[] leafTypes
     ) {
-        // Phase B: navigator tree selection dialog (needs the Object Explorer tree)
+        // Phase C: navigator tree selection dialog (can reuse the Object Explorer tree)
         log.debug("Object selection dialog is not implemented yet: " + title);
         return null;
     }
 
     @Override
     public void openEntityEditor(@NotNull DBSObject object) {
-        // Phase B: object editor (properties / DDL tabs)
+        // Phase C: object editor (properties / DDL tabs)
         log.debug("Entity editor is not implemented yet: " + object.getName());
     }
 
     @Override
     public void openEntityEditor(@NotNull DBNNode selectedNode, @Nullable String defaultPageId) {
-        // Phase B: object editor (properties / DDL tabs)
+        // Phase C: object editor (properties / DDL tabs)
         log.debug("Entity editor is not implemented yet: " + selectedNode.getNodeDisplayName());
     }
 
     @Override
     public void openConnectionEditor(@NotNull DBPDataSourceContainer dataSourceContainer) {
-        // Phase B: generic connection dialog (swing-frontend.md, MVP item 2)
+        // Phase C: generic connection dialog (swing-frontend.md, MVP item 2)
         log.debug("Connection editor is not implemented yet: " + dataSourceContainer.getName());
     }
 
@@ -505,24 +529,61 @@ public class SwingPlatformUI implements DBPPlatformUI {
         @NotNull String operationDescription,
         @NotNull DBRRunnableWithResult<Future<T>> runnable
     ) {
-        // Phase B: run as a job with a blocking progress indicator, like DesktopUI. Runs in the caller thread for now.
+        // Same job as DesktopUI. On the EDT the caller waits in a progress dialog, otherwise it just joins the job.
+        AbstractJob job = new AbstractJob(operationDescription) {
+            @NotNull
+            @Override
+            protected IStatus run(@NotNull DBRProgressMonitor monitor) {
+                monitor.beginTask(operationDescription, IProgressMonitor.UNKNOWN);
+                try {
+                    runnable.run(monitor);
+                    return Status.OK_STATUS;
+                } catch (Exception ex) {
+                    return GeneralUtils.makeExceptionStatus(ex);
+                } finally {
+                    monitor.done();
+                }
+            }
+
+            @Override
+            protected void canceling() {
+                runnable.cancel();
+            }
+        };
+        if (SwingUtilities.isEventDispatchThread()) {
+            ProgressDialog.waitForJob(operationDescription, job);
+        } else {
+            job.schedule();
+        }
         try {
-            runnable.run(new LoggingProgressMonitor(log));
-            return runnable.getResult();
-        } catch (Exception ex) {
+            job.join();
+        } catch (InterruptedException ex) {
+            Thread.currentThread().interrupt();
             return CompletableFuture.failedFuture(ex);
         }
+        IStatus result = job.getResult();
+        if (result == null) {
+            return CompletableFuture.failedFuture(new DBException("The result of the job is null. Has it finished?"));
+        }
+        if (result.isOK()) {
+            return runnable.getResult();
+        }
+        return CompletableFuture.failedFuture(result.getException());
     }
 
     @Override
     public <T> T runWithMonitor(@NotNull DBRRunnableWithReturn<T> runnable) throws DBException {
-        // Phase B: progress dialog. Runs in the caller thread with a logging monitor for now.
-        return runnable.runTask(new LoggingProgressMonitor(log));
+        // DesktopUI runs this in the workbench progress service, which shows a dialog for long tasks
+        return runWithProgress(runnable);
     }
 
     @Override
     public <T> T runWithProgress(@NotNull DBRRunnableWithReturn<T> runnable) throws DBException {
-        // Phase B: progress dialog. Runs in the caller thread with a logging monitor for now.
+        if (SwingUtilities.isEventDispatchThread()) {
+            // Keep the UI painting: run in a job and wait in a modal progress dialog with Cancel
+            return ProgressDialog.runTask(GeneralUtils.getProductName(), runnable);
+        }
+        // Already in a background thread: nothing to keep responsive
         return runnable.runTask(new LoggingProgressMonitor(log));
     }
 
@@ -532,7 +593,7 @@ public class SwingPlatformUI implements DBPPlatformUI {
         @NotNull ILoadService<RESULT> loadingService,
         @NotNull ILoadVisualizer<RESULT> visualizer
     ) {
-        // Phase B: Swing loading placeholder; the visualizer is completed in the job thread for now
+        // Phase C: Swing loading placeholder; the visualizer is completed in the job thread for now
         return new AbstractJob(loadingService.getServiceName()) {
             @NotNull
             @Override
@@ -558,7 +619,7 @@ public class SwingPlatformUI implements DBPPlatformUI {
         if (CommonUtils.isEmpty(text)) {
             return;
         }
-        // Phase B: HTML flavor when htmlFormat is true (copied as plain text for now)
+        // Phase C: HTML flavor when htmlFormat is true (copied as plain text for now)
         runOnEdt(() -> {
             Toolkit.getDefaultToolkit().getSystemClipboard().setContents(new StringSelection(text), null);
             return null;
@@ -618,7 +679,7 @@ public class SwingPlatformUI implements DBPPlatformUI {
 
     @Override
     public boolean readAndDispatchEvents() {
-        // Phase B: callers use this to keep the UI responsive while they wait. Swing can't pump events from
+        // Phase C: callers use this to keep the UI responsive while they wait. Swing can't pump events from
         // an arbitrary thread; a java.awt.SecondaryLoop would be needed when called on the EDT.
         return false;
     }

@@ -16,7 +16,6 @@
  */
 package com.seizia.chromite.ui.swing;
 
-import com.formdev.flatlaf.FlatLightLaf;
 import org.eclipse.core.runtime.Platform;
 import org.eclipse.equinox.app.IApplicationContext;
 import org.eclipse.osgi.service.datalocation.Location;
@@ -64,8 +63,12 @@ import java.util.concurrent.CountDownLatch;
  *     <li>{@link #stop}(외부에서 앱 종료를 요청할 때)은 창을 닫아 같은 종료 경로를 타게 한다.</li>
  * </ul>
  *
+ * Look and Feel은 작업 공간을 잠그기 전(시작 오류 대화상자용)에 기본 라이트 테마로 설치하고, 설정 저장소를 읽을 수 있게 된 뒤
+ * (작업 공간 잠금과 플랫폼 초기화 이후) 메인 창을 열기 직전에 저장된 테마({@link ChromiteTheme})로 바꾼다.
+ *
  * 변경 이력:
  * - 2026-11-06 A단계: 최초 작성 (docs/chromite/swing-frontend.md "구현 현황 — A단계")
+ * - 2026-11-06 B단계: Chromite 테마 설치와 저장된 테마 적용 (docs/chromite/swing-frontend.md "구현 현황 — B단계")
  */
 public class ChromiteSwingApplication extends DesktopApplicationImpl {
 
@@ -138,9 +141,8 @@ public class ChromiteSwingApplication extends DesktopApplicationImpl {
 
     private static void installLookAndFeel() throws InterruptedException, InvocationTargetException {
         SwingUtilities.invokeAndWait(() -> {
-            if (!FlatLightLaf.setup()) {
-                log.warn("Can't install FlatLaf look and feel, using the default one");
-            }
+            // The saved theme can't be read yet (the workspace is not locked); see openMainWindow
+            ChromiteTheme.LIGHT.install(false);
             // Dialogs without a parent window (startup errors, SwingPlatformUI before the main window exists)
             // are owned by this shared frame and take its icon instead of the Java runtime's one
             JOptionPane.getRootFrame().setIconImages(ChromiteIcons.getWindowIcons());
@@ -185,6 +187,11 @@ public class ChromiteSwingApplication extends DesktopApplicationImpl {
     }
 
     private void openMainWindow(@NotNull String statusText) {
+        ChromiteTheme savedTheme = ChromiteTheme.getSaved();
+        if (savedTheme != ChromiteTheme.getCurrent()) {
+            // Only the shared root frame of parentless dialogs exists yet
+            savedTheme.install(true);
+        }
         MainFrame frame = new MainFrame(GeneralUtils.getProductName(), statusText);
         frame.addWindowListener(new WindowAdapter() {
             @Override

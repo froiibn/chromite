@@ -16,6 +16,11 @@
         </product>
     </extension>
 
+    <!-- Connects data sources for the model layer (navigator expansion); the SWT product registers UIServiceConnectionsImpl -->
+    <extension point="org.jkiss.dbeaver.service">
+        <service name="org.jkiss.dbeaver.runtime.DBServiceConnections" class="com.seizia.chromite.ui.swing.SwingConnectionService"/>
+    </extension>
+
     <!-- Product name for GeneralUtils.getProductName(). No class attribute: Equinox creates the application instance. -->
     <extension point="org.jkiss.dbeaver.application">
         <application id="chromite-swing"
