@@ -177,7 +177,6 @@
                 <module>org.jkiss.dbeaver.ui.dashboard</module>
                 <module>org.jkiss.dbeaver.ui.search</module>
 
-                <module>org.jkiss.dbeaver.ui.swt.linux</module>
                 <module>org.jkiss.dbeaver.ui.swt.macos</module>
                 <module>org.jkiss.dbeaver.ui.swt.windows</module>
 

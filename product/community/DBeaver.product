@@ -50,9 +50,7 @@
     <splash location="org.jkiss.dbeaver.ui.app.standalone"/>
 
     <launcher name="chromite">
-        <linux icon="/icons/dbeaver.xpm"/>
         <macosx icon="/icons/dbeaver.icns"/>
-        <solaris/>
         <win useIco="true">
             <ico path="icons/dbeaver.ico"/>
         </win>
