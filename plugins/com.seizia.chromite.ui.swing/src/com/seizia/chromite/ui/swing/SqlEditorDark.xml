@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE RSyntaxTheme SYSTEM "theme.dtd">
+
+<!--
+	Chromite dark SQL editor colors (DataGrip-like palette on the ChromiteDarkLaf background).
+	Loaded by SqlEditorPanel; see org.fife.ui.rsyntaxtextarea.Theme and theme.dtd for the format.
+-->
+<RSyntaxTheme version="1.0">
+
+	<!-- No baseFont: the system monospaced font of RSyntaxTextArea. -->
+	<background color="1e1f22"/>
+	<caret color="ced0d6"/>
+	<selection useFG="false" bg="214283" roundedEdges="false"/>
+	<currentLineHighlight color="26282e" fade="false"/>
+	<marginLine fg="393b40"/>
+	<markAllHighlight color="3b514d"/>
+	<markOccurrencesHighlight color="3b514d" border="false"/>
+	<matchedBracket fg="bcbec4" bg="43454a" highlightBoth="false" animate="false"/>
+	<hyperlinks fg="56a8f5"/>
+	<secondaryLanguages>
+		<language index="1" bg="26282e"/>
+		<language index="2" bg="26282e"/>
+		<language index="3" bg="26282e"/>
+	</secondaryLanguages>
+
+	<gutterBackground color="1e1f22"/>
+	<gutterBorder color="393b40"/>
+	<lineNumbers fg="4b5059" currentFG="a1a3ab"/>
+	<foldIndicator fg="4b5059" iconBg="1e1f22"/>
+	<iconRowHeader activeLineRange="4b5059"/>
+
+	<tokenStyles>
+		<style token="IDENTIFIER" fg="bcbec4"/>
+		<style token="RESERVED_WORD" fg="cf8e6d"/>
+		<style token="RESERVED_WORD_2" fg="cf8e6d"/>
+		<style token="ANNOTATION" fg="bcbec4"/>
+		<style token="COMMENT_DOCUMENTATION" fg="7a7e85"/>
+		<style token="COMMENT_EOL" fg="7a7e85"/>
+		<style token="COMMENT_MULTILINE" fg="7a7e85"/>
+		<style token="COMMENT_KEYWORD" fg="7a7e85"/>
+		<style token="COMMENT_MARKUP" fg="7a7e85"/>
+		<style token="DATA_TYPE" fg="cf8e6d"/>
+		<style token="FUNCTION" fg="56a8f5"/>
+		<style token="LITERAL_BOOLEAN" fg="cf8e6d"/>
+		<style token="LITERAL_NUMBER_DECIMAL_INT" fg="2aacb8"/>
+		<style token="LITERAL_NUMBER_FLOAT" fg="2aacb8"/>
+		<style token="LITERAL_NUMBER_HEXADECIMAL" fg="2aacb8"/>
+		<style token="LITERAL_STRING_DOUBLE_QUOTE" fg="6aab73"/>
+		<style token="LITERAL_CHAR" fg="6aab73"/>
+		<style token="LITERAL_BACKQUOTE" fg="bcbec4"/>
+		<style token="MARKUP_TAG_DELIMITER" fg="bcbec4"/>
+		<style token="MARKUP_TAG_NAME" fg="bcbec4"/>
+		<style token="MARKUP_TAG_ATTRIBUTE" fg="bcbec4"/>
+		<style token="MARKUP_TAG_ATTRIBUTE_VALUE" fg="bcbec4"/>
+		<style token="MARKUP_COMMENT" fg="7a7e85"/>
+		<style token="MARKUP_DTD" fg="bcbec4"/>
+		<style token="MARKUP_PROCESSING_INSTRUCTION" fg="bcbec4"/>
+		<style token="MARKUP_CDATA" fg="bcbec4"/>
+		<style token="MARKUP_CDATA_DELIMITER" fg="bcbec4"/>
+		<style token="OPERATOR" fg="bcbec4"/>
+		<style token="PREPROCESSOR" fg="bcbec4"/>
+		<style token="REGEX" fg="bcbec4"/>
+		<style token="SEPARATOR" fg="bcbec4"/>
+		<style token="VARIABLE" fg="c77dbb"/>
+		<style token="WHITESPACE" fg="bcbec4"/>
+		<style token="ERROR_IDENTIFIER" fg="bcbec4" bg="5e3838"/>
+		<style token="ERROR_NUMBER_FORMAT" fg="bcbec4" bg="5e3838"/>
+		<style token="ERROR_STRING_DOUBLE" fg="bcbec4" bg="5e3838"/>
+		<style token="ERROR_CHAR" fg="bcbec4" bg="5e3838"/>
+	</tokenStyles>
+
+</RSyntaxTheme>

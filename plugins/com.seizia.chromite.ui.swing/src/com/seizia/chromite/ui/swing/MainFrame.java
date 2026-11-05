@@ -19,6 +19,7 @@ package com.seizia.chromite.ui.swing;
 import com.formdev.flatlaf.FlatClientProperties;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
+import org.jkiss.dbeaver.model.DBPDataSourceContainer;
 import org.jkiss.dbeaver.model.preferences.DBPPreferenceStore;
 import org.jkiss.dbeaver.utils.GeneralUtils;
 import org.jkiss.dbeaver.utils.PrefUtils;
@@ -26,6 +27,7 @@ import org.jkiss.utils.CommonUtils;
 
 import javax.swing.*;
 import java.awt.*;
+import java.awt.event.ActionEvent;
 import java.awt.event.ComponentAdapter;
 import java.awt.event.ComponentEvent;
 import java.awt.event.InputEvent;
@@ -33,6 +35,7 @@ import java.awt.event.KeyEvent;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.util.List;
+import java.util.function.IntConsumer;
 
 /**
  * Chromite Swing 메인 창 (SSMS식 배치).
@@ -45,9 +48,13 @@ import java.util.List;
  *     저장은 창을 닫을 때({@link #dispose()}) 한 번 한다.</li>
  *     <li>도구 창 크기는 창이 실제 크기를 가진 뒤(windowOpened 이후) 바깥 분할부터 차례로 적용한다.</li>
  *     <li>메뉴는 File(Exit), View(도구 창 토글, Theme), Help(About)이다. FlatLaf의 통합 제목 표시줄(Windows)에서
- *     메뉴 막대는 A단계처럼 제목 표시줄 안에 들어간다. F5는 쿼리 실행용으로 남겨 두고 쓰지 않는다.
+ *     메뉴 막대는 A단계처럼 제목 표시줄 안에 들어간다.
  *     도구 창 단축키는 SSMS와 같다(Object Explorer F8, Properties F4, Results Ctrl+R).</li>
- *     <li>문서 탭에는 지금은 시작 탭만 있다. SQL 편집기는 다음 단계(C단계)에서 넣는다.</li>
+ *     <li>문서 탭: 시작 탭과 SQL 편집기 탭({@link SqlEditorPanel}). 편집기는 Object Explorer의 "New Query", File > New Query(Ctrl+N),
+ *     도구 막대의 New Query로 연다. 제목은 SSMS처럼 {@code SQLQueryN.sql - 연결 이름}이고 닫기 단추가 있다.</li>
+ *     <li>Query 메뉴의 Execute(F5)와 Cancel Executing Query(Alt+Break)는 활성 편집기에 적용된다. 메뉴 단축키라 포커스가 결과 표에 있어도 동작한다.</li>
+ *     <li>결과는 SSMS처럼 쿼리 창마다 따로 있다({@link QueryResultsView}). 아래 Results / Messages 탭에는 활성 편집기의 결과를 끼우고,
+ *     편집기가 없으면 자리 표시 내용을 보여 준다. 편집기마다 마지막으로 본 탭(Results 또는 Messages)을 기억한다. 탭에서 빠져 있던 결과 컴포넌트는 테마 전환을 받지 못했을 수 있어, 끼울 때 Look and Feel을 맞춘다.</li>
  * </ul>
  * 창을 닫으면 dispose되고, {@link ChromiteSwingApplication}이 windowClosed 이벤트로 앱을 종료한다.
  * 창 아이콘은 Java 런타임(JBR) 기본 아이콘 대신 Chromite 아이콘을 쓴다({@link ChromiteIcons}).
@@ -56,14 +63,29 @@ import java.util.List;
  * - 2026-11-06 A단계: 최초 작성 (docs/chromite/swing-frontend.md "구현 현황 — A단계")
  * - 2026-11-06 B단계: SSMS식 배치(Object Explorer, 문서 탭, Results/Messages, Properties), View/Help 메뉴, 테마 전환,
  *   창·도구 창 배치 저장, 알림 표시 (docs/chromite/swing-frontend.md "구현 현황 — B단계")
+ * - 2026-11-06 C단계: SQL 편집기 탭, New Query(메뉴·도구 막대·Object Explorer), Query 메뉴(F5 실행, 취소),
+ *   편집기별 Results / Messages 표시 (docs/chromite/swing-frontend.md "구현 현황 — C단계")
  */
-final class MainFrame extends JFrame {
+final class MainFrame extends JFrame implements SqlEditorPanel.Host {
 
     private static final String PREF_BOUNDS = "mainWindow.bounds"; //$NON-NLS-1$
     private static final String PREF_MAXIMIZED = "mainWindow.maximized"; //$NON-NLS-1$
     private static final Dimension DEFAULT_SIZE = new Dimension(1280, 800);
+    private static final String UPDATED_LAF_KEY = "chromite.updatedLookAndFeel"; //$NON-NLS-1$
+    private static final int RESULTS_TAB = 0;
+    private static final int MESSAGES_TAB = 1;
 
     private final ObjectExplorerPanel explorerPanel;
+    private final JTabbedPane documentTabs;
+    private final JTabbedPane resultTabs;
+    private final JComponent resultsPlaceholder;
+    private final JComponent messagesPlaceholder;
+    private final ToolWindow resultsWindow;
+    private final Action newQueryAction;
+    private final Action executeQueryAction;
+    private final Action cancelQueryAction;
+    private int queryCounter;
+    private boolean switchingResults;
     // Outer split first: inner split panes are sized from the outer layout
     private final List<ToolWindow> toolWindows;
     @Nullable
@@ -76,11 +98,16 @@ final class MainFrame extends JFrame {
         setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);
 
         PropertiesPanel propertiesPanel = new PropertiesPanel();
-        explorerPanel = new ObjectExplorerPanel(propertiesPanel::showNode);
-        JTabbedPane resultTabs = createResultTabs();
+        explorerPanel = new ObjectExplorerPanel(propertiesPanel::showNode, this::openQueryEditor);
+        resultsPlaceholder = createPlaceholder("No results. Query results will appear here.");
+        messagesPlaceholder = createPlaceholder("No messages.");
+        resultTabs = new JTabbedPane();
+        resultTabs.addTab("Results", resultsPlaceholder);
+        resultTabs.addTab("Messages", messagesPlaceholder);
+        documentTabs = createDocumentTabs();
 
         JSplitPane documentSplit = createSplitPane(JSplitPane.VERTICAL_SPLIT);
-        documentSplit.setTopComponent(createDocumentTabs());
+        documentSplit.setTopComponent(documentTabs);
         JSplitPane propertiesSplit = createSplitPane(JSplitPane.HORIZONTAL_SPLIT);
         propertiesSplit.setLeftComponent(documentSplit);
         JSplitPane explorerSplit = createSplitPane(JSplitPane.HORIZONTAL_SPLIT);
@@ -93,7 +120,7 @@ final class MainFrame extends JFrame {
             propertiesPanel, null, propertiesSplit, false, 300,
             KeyStroke.getKeyStroke(KeyEvent.VK_F4, 0));
         // The Results/Messages tabs are their own header; the hide button sits next to the tabs
-        ToolWindow resultsWindow = new ToolWindow("results", "Results", false, //$NON-NLS-1$
+        resultsWindow = new ToolWindow("results", "Results", false, //$NON-NLS-1$
             resultTabs, null, documentSplit, false, 220,
             KeyStroke.getKeyStroke(KeyEvent.VK_R, InputEvent.CTRL_DOWN_MASK));
         // The trailing component fills the rest of the tab row; keep the button at its right end
@@ -103,9 +130,35 @@ final class MainFrame extends JFrame {
         resultTabs.putClientProperty(FlatClientProperties.TABBED_PANE_TRAILING_COMPONENT, resultTabsTrailing);
         toolWindows = List.of(explorerWindow, propertiesWindow, resultsWindow);
 
+        newQueryAction = createAction("New Query", "Open a SQL editor for the connection selected in Object Explorer (Ctrl+N)",
+            KeyStroke.getKeyStroke(KeyEvent.VK_N, InputEvent.CTRL_DOWN_MASK), this::newQuery);
+        executeQueryAction = createAction("Execute", "Execute the selection, or the whole script without a selection",
+            KeyStroke.getKeyStroke(KeyEvent.VK_F5, 0), () -> {
+                SqlEditorPanel editor = getActiveEditor();
+                if (editor != null) {
+                    editor.execute();
+                }
+            });
+        cancelQueryAction = createAction("Cancel Executing Query", null,
+            KeyStroke.getKeyStroke(KeyEvent.VK_PAUSE, InputEvent.ALT_DOWN_MASK), () -> {
+                SqlEditorPanel editor = getActiveEditor();
+                if (editor != null) {
+                    editor.cancel();
+                }
+            });
+        documentTabs.addChangeListener(e -> activeEditorChanged());
+        resultTabs.addChangeListener(e -> {
+            SqlEditorPanel editor = getActiveEditor();
+            if (editor != null && !switchingResults) {
+                editor.getResultsView().setMessagesTabSelected(resultTabs.getSelectedIndex() == MESSAGES_TAB);
+            }
+        });
+        updateQueryActions();
+
         setJMenuBar(createMenuBar());
 
         JPanel content = new JPanel(new BorderLayout());
+        content.add(createToolBar(), BorderLayout.NORTH);
         content.add(explorerSplit, BorderLayout.CENTER);
         content.add(new StatusBar(statusText), BorderLayout.SOUTH);
         setContentPane(content);
@@ -158,15 +211,142 @@ final class MainFrame extends JFrame {
         return splitPane;
     }
 
+    @NotNull
+    private static Action createAction(@NotNull String name, @Nullable String description, @NotNull KeyStroke accelerator, @NotNull Runnable task) {
+        Action action = new AbstractAction(name) {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                task.run();
+            }
+        };
+        action.putValue(Action.SHORT_DESCRIPTION, description);
+        action.putValue(Action.ACCELERATOR_KEY, accelerator);
+        return action;
+    }
+
+    @NotNull
+    private JComponent createToolBar() {
+        JButton newQueryButton = new JButton(newQueryAction);
+        newQueryButton.putClientProperty(FlatClientProperties.BUTTON_TYPE, FlatClientProperties.BUTTON_TYPE_TOOLBAR_BUTTON);
+        newQueryButton.setFocusable(false);
+        JToolBar toolBar = new JToolBar();
+        toolBar.setFloatable(false);
+        toolBar.setBorder(BorderFactory.createEmptyBorder(2, 4, 2, 4));
+        toolBar.add(newQueryButton);
+        return toolBar;
+    }
+
+    //////////////////////////////////////////////////////////
+    // Query editors
+
     /**
-     * Center document area. Only a welcome tab for now; SQL editor tabs come with the next phase.
+     * File > New Query and the tool bar: the connection selected in Object Explorer, else the one of the active editor.
+     */
+    private void newQuery() {
+        DBPDataSourceContainer dataSource = explorerPanel.getSelectedDataSource();
+        if (dataSource == null) {
+            SqlEditorPanel activeEditor = getActiveEditor();
+            dataSource = activeEditor != null ? activeEditor.getDataSourceContainer() : null;
+        }
+        if (dataSource == null) {
+            JOptionPane.showMessageDialog(this, "Select a connection (or any object under it) in Object Explorer first.",
+                "New Query", JOptionPane.INFORMATION_MESSAGE);
+            return;
+        }
+        openQueryEditor(dataSource);
+    }
+
+    private void openQueryEditor(@NotNull DBPDataSourceContainer dataSource) {
+        queryCounter++;
+        SqlEditorPanel editor = new SqlEditorPanel(dataSource, "SQLQuery" + queryCounter + ".sql", this); //$NON-NLS-1$ //$NON-NLS-2$
+        editor.putClientProperty(FlatClientProperties.TABBED_PANE_TAB_CLOSABLE, true);
+        documentTabs.addTab(editor.getTitle(), editor);
+        int index = documentTabs.indexOfComponent(editor);
+        documentTabs.setToolTipTextAt(index, editor.getTitle());
+        documentTabs.setSelectedIndex(index);
+        SwingUtilities.invokeLater(editor::focusEditor);
+    }
+
+    private void closeDocumentTab(int index) {
+        if (documentTabs.getComponentAt(index) instanceof SqlEditorPanel editor) {
+            editor.dispose();
+            documentTabs.removeTabAt(index);
+        }
+    }
+
+    @Nullable
+    private SqlEditorPanel getActiveEditor() {
+        return documentTabs.getSelectedComponent() instanceof SqlEditorPanel editor ? editor : null;
+    }
+
+    private void activeEditorChanged() {
+        SqlEditorPanel editor = getActiveEditor();
+        switchingResults = true;
+        try {
+            attachResultTab(RESULTS_TAB, editor != null ? editor.getResultsView().getResultsComponent() : resultsPlaceholder);
+            attachResultTab(MESSAGES_TAB, editor != null ? editor.getResultsView().getMessagesComponent() : messagesPlaceholder);
+            resultTabs.setSelectedIndex(editor != null && editor.getResultsView().isMessagesTabSelected() ? MESSAGES_TAB : RESULTS_TAB);
+        } finally {
+            switchingResults = false;
+        }
+        updateQueryActions();
+    }
+
+    /**
+     * Puts an editor's results component into the Results / Messages tab. Components of inactive editors are not in
+     * the window and miss theme switches, so their look and feel is brought up to date here.
+     */
+    private void attachResultTab(int index, @NotNull JComponent component) {
+        if (resultTabs.getComponentAt(index) == component) {
+            return;
+        }
+        LookAndFeel lookAndFeel = UIManager.getLookAndFeel();
+        if (component.getClientProperty(UPDATED_LAF_KEY) != lookAndFeel) {
+            SwingUtilities.updateComponentTreeUI(component);
+            component.putClientProperty(UPDATED_LAF_KEY, lookAndFeel);
+        }
+        resultTabs.setComponentAt(index, component);
+    }
+
+    private void updateQueryActions() {
+        SqlEditorPanel editor = getActiveEditor();
+        executeQueryAction.setEnabled(editor != null && !editor.isExecuting());
+        cancelQueryAction.setEnabled(editor != null && editor.isExecuting());
+    }
+
+    @Override
+    public void showResults(@NotNull SqlEditorPanel editor, boolean messages) {
+        if (editor != getActiveEditor()) {
+            return;
+        }
+        editor.getResultsView().setMessagesTabSelected(messages);
+        resultTabs.setSelectedIndex(messages ? MESSAGES_TAB : RESULTS_TAB);
+        resultsWindow.setShown(true);
+    }
+
+    @Override
+    public void executionStateChanged(@NotNull SqlEditorPanel editor) {
+        if (editor == getActiveEditor()) {
+            updateQueryActions();
+        }
+    }
+
+    @NotNull
+    private static JComponent createPlaceholder(@NotNull String text) {
+        JLabel placeholder = new JLabel(text, SwingConstants.CENTER);
+        placeholder.putClientProperty(FlatClientProperties.STYLE, "foreground: $Label.disabledForeground"); //$NON-NLS-1$
+        return placeholder;
+    }
+
+    /**
+     * Center document area: the welcome tab and the SQL editor tabs (closable).
      */
     @NotNull
-    private static JTabbedPane createDocumentTabs() {
+    private JTabbedPane createDocumentTabs() {
         JLabel titleLabel = new JLabel(GeneralUtils.getProductName());
         titleLabel.putClientProperty(FlatClientProperties.STYLE_CLASS, "h1"); //$NON-NLS-1$
         JLabel hintLabel = new JLabel("Expand a connection in Object Explorer to browse its objects.");
-        JLabel nextLabel = new JLabel("SQL editor tabs will open here.");
+        JLabel nextLabel = new JLabel("Right-click a connection and choose New Query (Ctrl+N) to open a SQL editor.");
         nextLabel.putClientProperty(FlatClientProperties.STYLE, "foreground: $Label.disabledForeground"); //$NON-NLS-1$
 
         JPanel welcome = new JPanel(new GridBagLayout());
@@ -182,23 +362,10 @@ final class MainFrame extends JFrame {
         welcome.add(nextLabel, constraints);
 
         JTabbedPane tabs = new JTabbedPane();
+        // One row that scrolls, like SSMS; wrapped rows would move the selected tab's row around
+        tabs.setTabLayoutPolicy(JTabbedPane.SCROLL_TAB_LAYOUT);
         tabs.addTab("Welcome", welcome);
-        return tabs;
-    }
-
-    /**
-     * Bottom Results / Messages tabs. Placeholders until query execution exists.
-     */
-    @NotNull
-    private static JTabbedPane createResultTabs() {
-        JLabel resultsPlaceholder = new JLabel("No results. Query results will appear here.", SwingConstants.CENTER);
-        resultsPlaceholder.putClientProperty(FlatClientProperties.STYLE, "foreground: $Label.disabledForeground"); //$NON-NLS-1$
-        JTextArea messagesArea = new JTextArea();
-        messagesArea.setEditable(false);
-
-        JTabbedPane tabs = new JTabbedPane();
-        tabs.addTab("Results", resultsPlaceholder);
-        tabs.addTab("Messages", new JScrollPane(messagesArea));
+        tabs.putClientProperty(FlatClientProperties.TABBED_PANE_TAB_CLOSE_CALLBACK, (IntConsumer) this::closeDocumentTab);
         return tabs;
     }
 
@@ -210,7 +377,14 @@ final class MainFrame extends JFrame {
 
         JMenu fileMenu = new JMenu("File");
         fileMenu.setMnemonic(KeyEvent.VK_F);
+        fileMenu.add(new JMenuItem(newQueryAction));
+        fileMenu.addSeparator();
         fileMenu.add(exitItem);
+
+        JMenu queryMenu = new JMenu("Query");
+        queryMenu.setMnemonic(KeyEvent.VK_Q);
+        queryMenu.add(new JMenuItem(executeQueryAction));
+        queryMenu.add(new JMenuItem(cancelQueryAction));
 
         JMenu viewMenu = new JMenu("View");
         viewMenu.setMnemonic(KeyEvent.VK_V);
@@ -231,6 +405,7 @@ final class MainFrame extends JFrame {
         JMenuBar menuBar = new JMenuBar();
         menuBar.add(fileMenu);
         menuBar.add(viewMenu);
+        menuBar.add(queryMenu);
         menuBar.add(helpMenu);
         return menuBar;
     }

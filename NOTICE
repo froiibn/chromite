@@ -65,3 +65,10 @@ The Chromite Swing frontend (plugins/com.seizia.chromite.ui.swing) includes:
   Licensed under the MIT License (included in the bundle as META-INF/LICENSE).
   Taken as an OSGi bundle from the Eclipse release repository at build time;
   not stored in this repository.
+
+  RSyntaxTextArea 4.0.1 (com.fifesoft:rsyntaxtextarea)
+  https://github.com/bobbylight/RSyntaxTextArea
+  Copyright (c) 2021, Robert Futrell
+  Licensed under the BSD 3-Clause License (included in the jar as
+  META-INF/LICENSE).
+  Downloaded from Maven Central at build time; not stored in this repository.

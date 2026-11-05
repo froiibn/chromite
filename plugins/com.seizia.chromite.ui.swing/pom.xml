@@ -18,12 +18,14 @@
     <!-- New Swing code targets Java 25 (docs/chromite/runtime.md). Overrides the shared default (21) for this bundle only. -->
     <java.version>25</java.version>
     <flatlaf.version>3.8</flatlaf.version>
+    <rsyntaxtextarea.version>4.0.1</rsyntaxtextarea.version>
   </properties>
 
   <build>
     <plugins>
-      <!-- FlatLaf has no OSGi manifest: embed it via Bundle-ClassPath (lib/flatlaf.jar).
-           The jar is copied from Maven Central before compilation instead of being committed. -->
+      <!-- FlatLaf has no OSGi manifest and RSyntaxTextArea exports no packages: embed them via Bundle-ClassPath
+           (lib/flatlaf.jar, lib/rsyntaxtextarea.jar). The jars are copied from Maven Central before compilation
+           instead of being committed. -->
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-dependency-plugin</artifactId>
@@ -41,6 +43,12 @@
                   <artifactId>flatlaf</artifactId>
                   <version>${flatlaf.version}</version>
                   <destFileName>flatlaf.jar</destFileName>
+                </artifactItem>
+                <artifactItem>
+                  <groupId>com.fifesoft</groupId>
+                  <artifactId>rsyntaxtextarea</artifactId>
+                  <version>${rsyntaxtextarea.version}</version>
+                  <destFileName>rsyntaxtextarea.jar</destFileName>
                 </artifactItem>
               </artifactItems>
               <outputDirectory>${project.basedir}/lib</outputDirectory>

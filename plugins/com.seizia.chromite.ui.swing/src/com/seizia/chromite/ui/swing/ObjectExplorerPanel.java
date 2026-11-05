@@ -23,7 +23,9 @@ import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
 import org.jkiss.dbeaver.Log;
+import org.jkiss.dbeaver.model.DBPDataSourceContainer;
 import org.jkiss.dbeaver.model.app.DBPProject;
+import org.jkiss.dbeaver.model.navigator.DBNDatabaseNode;
 import org.jkiss.dbeaver.model.navigator.DBNNode;
 import org.jkiss.dbeaver.model.navigator.DBNProject;
 import org.jkiss.dbeaver.model.navigator.DBNUtils;
@@ -65,10 +67,13 @@ import java.util.function.Consumer;
  *     <li>새로 고침(F5는 쿼리 실행용으로 남겨 두고 머리말 버튼과 오른쪽 클릭 메뉴로만 제공)은 {@code DBNNode#refreshNode} 뒤에
  *     자식을 다시 읽는다. 아직 펼친 적 없는 노드는 연결을 새로 열지 않도록 다시 그리기만 한다.</li>
  *     <li>더블클릭은 Swing 트리의 기본 동작(펼치기/접기)만 한다. 객체 편집기는 다음 단계에서 만든다.</li>
+ *     <li>오른쪽 클릭 메뉴 "New Query"는 선택한 노드가 속한 연결({@link DBNDatabaseNode#getDataSourceContainer()})로
+ *     SQL 편집기를 연다(SSMS처럼 연결 아래 어느 노드에서나). 연결은 편집기가 실행할 때 필요하면 연다.</li>
  * </ul>
  *
  * 변경 이력:
  * - 2026-11-06 B단계: 최초 작성 (docs/chromite/swing-frontend.md "구현 현황 — B단계")
+ * - 2026-11-06 C단계: "New Query" 메뉴, 선택한 연결 조회 (docs/chromite/swing-frontend.md "구현 현황 — C단계")
  */
 final class ObjectExplorerPanel extends JPanel {
 
@@ -80,8 +85,13 @@ final class ObjectExplorerPanel extends JPanel {
     private final JTree tree;
     private final ExplorerNode rootNode;
     private final Action refreshAction;
+    private final Action newQueryAction;
 
-    ObjectExplorerPanel(@NotNull Consumer<DBNNode> selectionListener) {
+    /**
+     * @param selectionListener receives the selected navigator node (or null)
+     * @param newQueryHandler   opens a query window for a connection ("New Query" menu)
+     */
+    ObjectExplorerPanel(@NotNull Consumer<DBNNode> selectionListener, @NotNull Consumer<DBPDataSourceContainer> newQueryHandler) {
         super(new BorderLayout());
 
         DBPProject project = DBWorkbench.getPlatform().getWorkspace().getActiveProject();
@@ -118,8 +128,21 @@ final class ObjectExplorerPanel extends JPanel {
             }
         };
         refreshAction.putValue(Action.SHORT_DESCRIPTION, "Refresh the selected node (or all connections)");
+        newQueryAction = new AbstractAction("New Query") {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                DBPDataSourceContainer dataSource = getSelectedDataSource();
+                if (dataSource != null) {
+                    newQueryHandler.accept(dataSource);
+                }
+            }
+        };
+        newQueryAction.setEnabled(false);
+        tree.addTreeSelectionListener(e -> newQueryAction.setEnabled(getSelectedDataSource() != null));
 
         JPopupMenu popupMenu = new JPopupMenu();
+        popupMenu.add(newQueryAction);
+        popupMenu.addSeparator();
         popupMenu.add(refreshAction);
         tree.setComponentPopupMenu(popupMenu);
         tree.addMouseListener(new MouseAdapter() {
@@ -160,6 +183,14 @@ final class ObjectExplorerPanel extends JPanel {
      */
     void focusTree() {
         tree.requestFocusInWindow();
+    }
+
+    /**
+     * The connection of the selected node: the connection itself or any object under it.
+     */
+    @Nullable
+    DBPDataSourceContainer getSelectedDataSource() {
+        return getSelectedNavigatorNode() instanceof DBNDatabaseNode databaseNode ? databaseNode.getDataSourceContainer() : null;
     }
 
     @Nullable
