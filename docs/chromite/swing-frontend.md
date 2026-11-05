@@ -54,7 +54,7 @@ UI는 SWT 위젯뿐 아니라 Eclipse RCP 워크벤치(뷰, 편집기, 퍼스펙
 | 라이브러리 | 용도 | 라이선스 |
 |---|---|---|
 | FlatLaf | IntelliJ/Darcula 계열 테마, JBR 사용자 정의 제목 표시줄 지원 | Apache 2.0 |
-| RSyntaxTextArea | SQL 편집기 (구문 강조, 자동완성 팝업) | BSD |
+| RSyntaxTextArea | SQL 편집기 (구문 강조, 자동완성 팝업, C단계 도입) | BSD |
 | ModernDocking | SSMS식 도킹 창 배치 | MIT |
 | JSVG | 탐색기 SVG 아이콘 그리기 (B단계 도입) | MIT |
 
@@ -179,7 +179,8 @@ job.schedule();                                             // 또는 작업 스
 - **SQL Server `GO` 배치:** SQL Server 방언은 `getScriptDelimiters()`가 `;`와 `GO`, `getBatchDelimiters()`가 `GO`다
   ([SQLServerDialectBase.java:121-129](../../plugins/org.jkiss.dbeaver.ext.mssql/src/org/jkiss/dbeaver/ext/mssql/model/SQLServerDialectBase.java)).
   `extractScriptQueries(..., includeBatchDelimiterElements = true)`로 나누면 `GO` 자리에 `SQLBatchDelimiterElement`가 들어온다.
-  Swing 편집기는 두 `GO` 사이의 문장들을 원문 범위 그대로 하나의 `SQLQuery`로 합쳐 Job에 넘긴다.
+  Swing 편집기는 두 `GO` 사이의 문장들을 원문 범위 그대로 하나의 `SQLQuery`로 합쳐 Job에 넘긴다
+  (C단계에서 `SQLScriptBatches`로 구현, "구현 현황 — C단계").
   엔진은 `SQLQuery` 하나를 JDBC 실행 한 번으로 보내므로 배치 안에서 `DECLARE`한 변수가 유지되고,
   배치가 돌려준 결과 집합마다 `getDataReceiver(query, n)`이 불려 결과 표가 차례로 쌓인다.
   영향받은 행 수는 `SQLQueryResult.getExecuteResults()`, PRINT 출력과 경고는 `SQLQueryResult.getWarnings()`(JDBC `SQLWarning`)로 받아 Messages 탭에 쓴다.
@@ -553,6 +554,143 @@ B단계는 `JSplitPane`만 쓴다.
 - 위 "DBPPlatformUI B단계 구현"의 남은 항목.
 - 도킹(끌어다 놓기, 떠 있는 창)이 필요해지면 ModernDocking 재검토.
 
+## 구현 현황 — C단계
+
+C단계의 목표는 SSMS식 SQL 편집기와 결과 창이다: 편집기 탭을 열고, F5로 실행하고, 결과 표와 메시지를 본다.
+
+### 구성
+
+| 클래스 | 위치 | 역할 |
+|---|---|---|
+| `SqlEditorPanel` | Swing 번들 | 편집기 탭 하나(SSMS 쿼리 창). 도구 막대(Execute, Cancel, 연결 이름), RSyntaxTextArea 편집기, 쿼리 상태 줄, 실행 흐름 |
+| `QueryResultsView` | Swing 번들 | 편집기 하나의 Results(결과 표 쌓기) / Messages(메시지) 내용 |
+| `ResultSetGrid` | Swing 번들 | 결과 집합 하나의 읽기 전용 표(`JTable` + `AbstractTableModel`, 행 번호 머리글) |
+| `ResultSetGridReceiver` | Swing 번들 | 엔진이 Job 스레드에서 부르는 `DBDDataReceiver`. 값을 표시 문자열로 바꿔 모은다 |
+| `SQLScriptBatches` | `model.sql`, `com.seizia.chromite.model.sql.exec` | 편집기 텍스트 → 실행할 요소. 배치 구분자가 있는 방언은 `GO` 사이 문장을 쿼리 하나로 묶는다 |
+| `MainFrame` (변경) | Swing 번들 | New Query(메뉴·도구 막대), Query 메뉴(F5, 취소), 닫을 수 있는 편집기 탭, 활성 편집기의 결과를 아래 탭에 끼우기 |
+| `ObjectExplorerPanel` (변경) | Swing 번들 | 오른쪽 클릭 "New Query", 선택한 노드의 연결 조회 |
+
+### 편집기 열기
+
+- Object Explorer에서 연결이나 그 아래 아무 노드를 오른쪽 클릭 → **New Query**: 그 노드의 연결(`DBNDatabaseNode.getDataSourceContainer()`)로 연다.
+- **File > New Query (Ctrl+N)**, 메뉴 아래 도구 막대의 **New Query**: Object Explorer에서 선택한 연결, 없으면 활성 편집기의 연결. 둘 다 없으면 안내 메시지.
+- 탭 제목은 SSMS처럼 `SQLQueryN.sql - <연결 이름>`(N은 실행 중 1부터 증가). 편집기 탭에는 닫기 단추가 있고(FlatLaf `tabClosable`, 탭 줄은 여러 줄로 감지 않고 한 줄 스크롤), 닫으면 실행 중인 쿼리를 취소한다.
+  아직 파일 저장이 없어서 닫을 때 저장 여부를 묻지 않는다.
+- 연결은 편집기를 열 때가 아니라 실행할 때 필요하면 연다(SSMS는 열 때 연결한다. 연결 실패를 실행 결과와 같은 곳에서 다루기 위해 실행 시점으로 했다).
+
+### 편집기 (RSyntaxTextArea)
+
+- `RSyntaxTextArea`(`SYNTAX_STYLE_SQL`) + `RTextScrollPane`(줄 번호). 실행 취소·다시 실행, 괄호 짝 표시 등은 라이브러리 기본 기능이다.
+- 색은 테마마다 RSyntaxTextArea 테마 XML(`SqlEditorLight.xml`: SSMS풍 — 파란 키워드, 자홍 함수, 빨간 문자열, 초록 주석, 회색 연산자 /
+  `SqlEditorDark.xml`: DataGrip풍 — `#1e1f22` 바탕)로 정한다. 색값만 참고했고 SSMS·DataGrip의 테마 파일은 쓰지 않았다.
+- 테마 전환: Look and Feel이 바뀌면(`updateUI`) 트리 갱신이 끝난 뒤(`invokeLater`) 현재 테마의 XML을 다시 적용한다. 거터(줄 번호) 색도 테마가 정하므로
+  처음 적용은 스크롤 창을 만든 뒤에 한다.
+- 구문 강조는 RSyntaxTextArea의 일반 SQL 규칙이다. DBeaver의 방언별 키워드·자동완성(`SQLCompletionAnalyzer`)은 아직 연결하지 않았다.
+
+### 실행 흐름 (F5)
+
+1. **범위:** 선택이 1자 이상이면 선택, 아니면 전체 텍스트("쿼리 실행 사양"). 공백뿐이면 실행하지 않는다.
+   범위는 전체 텍스트 안의 위치로 넘기므로 쿼리의 위치가 편집기 위치와 같다(오류 줄 번호 계산에 씀).
+2. **준비 Job (`AbstractJob`):** 연결이 없으면 `DBUtils.initDataSource`(→ `SwingConnectionService`)로 연결한다. 실행 문맥은 연결의 기본(주) 문맥
+   (`DBUtils.getDefaultContext(dataSource.getDefaultInstance(), false)`)이다. 그다음 `SQLScriptBatches.extractQueries`로 나눈다.
+3. **실행 Job:** `SQLQueryExecuteJob`을 만들어 예약한다(`runDirectly`가 아니라 예약하는 것은 `DataSourceJob`의 연결 잡기 `acquire/release`를 그대로 쓰기 위해서).
+   EDT는 기다리지 않는다. 실행 중에는 상태 줄의 경과 시간이 0.25초마다 바뀐다.
+4. **취소:** 편집기 도구 막대의 Cancel 또는 Query > Cancel Executing Query(Alt+Break). 지금 도는 Job(준비 또는 실행)을 취소한다.
+   준비 Job이 실행 Job을 예약하는 순간과 겹치지 않도록 같은 잠금 안에서 취소 표시를 확인하고 예약한다. 실행 Job의 취소는 `AbstractJob`이 실행 중인 문장을 취소한다.
+5. **끝:** 실행 Job의 `done` 이벤트(또는 준비 단계의 조기 종료)에서 EDT로 상태를 마무리한다. 실행마다 `Execution` 객체를 두어, 끝난 실행의 늦은 결과가 다음 실행 화면에 섞이지 않게 한다.
+
+- **커밋·오류 처리·최대 행 수:** 엔진 기본값을 쓴다. 커밋 방식 `NO_COMMIT`(연결의 자동 커밋 설정을 그대로 따름), 오류 처리 `STOP_ROLLBACK`,
+  최대 행 수는 연결의 `ModelPreferences.RESULT_SET_MAX_ROWS`(기본 200).
+- **핸들러(`SQLQueryExecuteHandler`):** `getDataReceiver`는 결과 집합마다 `ResultSetGridReceiver`를 만든다. `handleExecutionError`는 대화상자를 띄우지 않고
+  `STOP`을 돌려준다(오류는 Messages 탭에 이미 썼다. 쿼리를 보내기 전에 난 오류 — 매개변수, pragma, 제어 명령 — 는 여기서 Messages에 쓴다).
+  나머지(확인 대화상자, 설정값)는 인터페이스 기본 구현(`DBPPlatformUI` = `SwingPlatformUI`)이다.
+- **스크립트 문맥:** 실행마다 새 `SQLScriptContext`(부모 없음, 매개변수 입력기 없음). 제어 명령 출력(`@echo` 등)은 Messages 탭에 쓴다.
+
+### GO 배치 (`SQLScriptBatches`)
+
+- 방언에 배치 구분자가 있으면(`SQLSyntaxManager.getBatchDelimiters()`, SQL Server·Sybase의 `GO`. 설정 `SCRIPT_IGNORE_NATIVE_DELIMITER`를 켜면 없음)
+  `extractScriptQueries(..., includeBatchDelimiterElements = true)`로 나누고, 두 `SQLBatchDelimiterElement` 사이의 `SQLQuery`들을 첫 문장 시작부터 마지막 문장 끝까지의
+  원문 그대로 `SQLQuery` 하나로 합친다(사이의 `;`·주석 포함, 매개변수는 합친 범위에서 다시 찾음). 문장이 하나뿐인 배치는 파서가 만든 쿼리를 그대로 쓴다.
+- `GO 2`처럼 반복 횟수가 있으면 SSMS·sqlcmd처럼 그 배치를 그만큼 실행한다. 빈 배치(처음·연속 `GO`)는 건너뛴다. 제어 명령은 배치를 끊고 따로 실행한다.
+- 배치 구분자가 없는 방언은 지금까지처럼 문장마다 하나다.
+- SQL Server인지 이름으로 검사하지 않고 구분자 유무로 판단해 같은 구분자를 쓰는 방언이 같은 경로를 쓴다.
+  UI와 무관하고 단위 테스트할 수 있도록 실행 엔진 옆(`model.sql`의 `com.seizia.chromite.model.sql.exec`)에 두었다.
+  파서 문맥은 SWT `SQLEditorBase`와 같이 만든다(연결의 설정 저장소, `loadRules(연결, false)`, `SQLPartitionScanner` 문서 분할기).
+
+### Results / Messages
+
+- SSMS처럼 결과는 쿼리 창마다 따로 있다. 메인 창 아래의 Results / Messages 탭에는 활성 편집기의 두 컴포넌트를 끼운다(편집기가 없으면 자리 표시).
+  탭에서 빠져 있던 컴포넌트는 테마 전환을 받지 못했을 수 있어 끼울 때 Look and Feel을 맞춘다(`updateComponentTreeUI`, 마지막으로 맞춘 Look and Feel을 기억).
+- **Results:** 결과 집합마다 표 하나를 위아래로 쌓는다. 모두 최소 높이(140px) 이상으로 들어가면 높이를 똑같이 나눠 채우고, 아니면 바깥 세로 스크롤.
+  - 값은 `ResultSetGridReceiver`가 Job 스레드에서 결과 집합이 열려 있는 동안 읽어(`DBUtils.getAttributeBindings`, `fetchValueObject`) 표시 문자열(`DBDDisplayFormat.UI`)로 바꾸고
+    값을 놓아 준다(`DBUtils.releaseValue`). EDT는 문자열만 다룬다. 행은 모아 두었다가 `fetchEnd`에서 한 번에 넘긴다(실패로 `fetchEnd`가 없으면 `close`에서).
+  - 열 이름은 바인딩 이름(열 별칭), NULL은 흐린 기울임꼴 "NULL", 숫자 열(`DBPDataKind.NUMERIC`)은 오른쪽 정렬, 열 너비는 머리글과 앞 200행 글자 너비(40–320px),
+    왼쪽에 행 번호 머리글(누르면 그 행 선택), 칸 선택과 Ctrl+C(탭으로 나눈 표시 문자열) 복사. 편집은 아직 없다.
+- **Messages:** 쿼리마다 경고(JDBC `SQLWarning` — SQL Server `PRINT`, PostgreSQL `NOTICE` 등), `(N rows affected)`(결과 집합은 읽은 행 수, 최대 행 수에 닿으면 그 사실도),
+  `Execution time: N ms`를 쓴다. 오류는 빨간색으로 `Msg <오류 코드>, State <SQLSTATE>, Line L, Column C`와 예외 메시지를 쓴다.
+  위치는 방언의 `DBPErrorAssistant.getErrorPosition`이 찾으면 그 위치(편집기 기준 줄·열), 못 찾으면 쿼리 시작 줄이다. 끝에 `Completion time`.
+- **탭 전환:** 오류가 있거나 결과 표가 하나도 없으면 SSMS처럼 Messages 탭을, 아니면 Results 탭을 보여 주고, Results 도구 창이 숨어 있으면 다시 보인다.
+  편집기마다 마지막으로 본 탭을 기억해 편집기 탭을 바꾸면 그 탭을 다시 보여 준다.
+- **상태 줄(쿼리 창 아래):** "Executing query…" / "Query executed successfully." / "Query completed with errors." / "Query was canceled.", 경과 시간(`hh:mm:ss.SSS`), 읽은 행 수.
+
+### 메뉴와 단축키
+
+| 메뉴 | 항목 | 단축키 |
+|---|---|---|
+| File | New Query | Ctrl+N |
+| Query | Execute | F5 |
+| Query | Cancel Executing Query | Alt+Break |
+
+Query 메뉴 항목은 활성 편집기에 적용되고, 메뉴 단축키라 포커스가 결과 표에 있어도 동작한다. 편집기가 없거나 실행 중이면 해당 항목이 꺼진다.
+
+### DBPPlatformUI (C단계)
+
+- 실행 중 오류는 `SQLQueryExecuteHandler.handleExecutionError`를 구현해 Messages 탭으로 보냈다. 그래서 `SwingPlatformUI`는 고치지 않았다.
+- 연결 실패는 B단계처럼 `SwingConnectionService`가 `showError` 대화상자로 알리고, Messages에는 "Not connected to '…'"를 쓴다.
+- 남은 항목(`// Phase C:` 표시 그대로): `showError`의 DB별 처리와 상세 정보 창, `selectObject`, `openEntityEditor`, `openConnectionEditor`, `createLoadingService`,
+  `copyTextToClipboard`의 HTML 형식, `readAndDispatchEvents`, `promptAuthModelCredentials`.
+
+### 외부 라이브러리 (C단계 추가)
+
+| 라이브러리 | 버전 | 라이선스 | 출처 |
+|---|---|---|---|
+| RSyntaxTextArea (`com.fifesoft:rsyntaxtextarea`) | 4.0.1 (2026-07 Maven Central 최신 안정판) | BSD 3-Clause | Maven Central. SHA-1 `d3fc52cef78c172174a8a64e9c89758ebe674f1c`(Central의 `.sha1`과 같음), SHA-256 `fbe88919231bc468f9dddbd4450ef30634612a6e2ef3f84dff4f2789c8fc508e` 확인 |
+
+- jar에 OSGi 매니페스트가 있지만 모든 패키지가 `Private-Package`이고 `Export-Package`가 없어 `Require-Bundle`로 쓸 수 없다. 그래서 FlatLaf처럼
+  `maven-dependency-plugin`으로 받아 `lib/rsyntaxtextarea.jar`로 넣고 `Bundle-ClassPath`에 더했다. 버전은 번들 `pom.xml`의 `rsyntaxtextarea.version` 한 곳에 있다.
+- 라이선스 본문은 jar 안 `META-INF/LICENSE`에 있다. `NOTICE`에 출처를 적었다.
+- Swing 번들의 `Require-Bundle`에 `org.jkiss.dbeaver.model.sql`(실행 엔진, 파서)을 더했다. 이미 런타임 피처에 들어 있는 번들이다.
+
+### 확인
+
+- 빌드: `-Pproduct-dbeaver-ce,product-chromite-swing` BUILD SUCCESS. Swing 결과물 번들 수는 Windows x64 129개, macOS arm64 130개(B단계와 같음,
+  RSyntaxTextArea는 Swing 번들 안의 jar)이고, 이름에 `swt`, `jface`, `org.eclipse.ui`, `org.eclipse.e4.ui`가 들어간 번들은 둘 다 0개다.
+  Swing 번들 jar에 `lib/rsyntaxtextarea.jar`(SHA-256 위와 같음)와 테마 XML 두 개가 들어 있다.
+- Windows에서 in-process JVM(`-vm …\bin\server\jvm.dll`)으로 샘플 SQLite 연결이 있는 작업 공간 사본을 열어 키보드·마우스로 확인했다:
+  - Object Explorer 연결 오른쪽 클릭 → New Query: `SQLQuery1.sql - Chromite Sample Database (SQLite)` 탭, 연결 전 상태에서 F5 → 연결 후 실행.
+  - SELECT 두 개인 스크립트 전체 F5 → 결과 표 두 개가 위아래로 높이를 나눠 쌓임(5행, 8행), NULL 표시, 숫자 오른쪽 정렬, 행 번호, 상태 줄 `13 rows`,
+    Messages에 쿼리마다 `(N rows affected)`·실행 시간.
+  - 두 번째 문장만 선택하고 F5 → 표 하나(8행)만.
+  - Ctrl+N으로 새 편집기, `SELECT 1 AS ok;` + 없는 테이블 SELECT → Messages 탭으로 전환, 첫 쿼리 `(1 row affected)`, 오류 `Msg 1, Line 2`(SQLite는 오류 위치를 주지 않아 쿼리 시작 줄)와 SQLite 메시지(빨간색), 상태 줄 "Query completed with errors.".
+  - 끝나지 않는 재귀 CTE 실행 중 EDT가 막히지 않음(경과 시간 갱신), Cancel 단추와 Alt+Break(Query 메뉴)로 취소 → "Query was canceled.".
+  - 실행 중 다크 테마 전환 → 편집기(DataGrip풍 색)와 결과 표가 다크로 바뀜. 다른 편집기 탭의 결과·메시지(탭에서 빠져 있던 것)도 탭을 바꾸면 다크로 보임.
+  - 편집기 탭 닫기 → 다음 편집기의 결과와 마지막으로 보던 탭(Messages)이 아래에 나옴.
+- 디버그 로그(`.metadata/dbeaver-debug.log`)에 ERROR/WARN 없음. Eclipse 로그(`.metadata/.log`)에는 일부러 낸 SQL 오류(엔진이 `log.error`로 남김, SWT와 같음)만 있다.
+  첫 시험에서 SQLite는 경고가 없을 때 `SQLQueryResult.getWarnings()`가 `null`이라 Messages가 비는 문제를 찾아 고쳤다.
+- SQL Server `GO` 배치는 SQL Server가 없어 실행해 보지 못했다. 배치 묶기는 실제 SQL Server 방언으로 단위 테스트했다
+  (`test/org.jkiss.dbeaver.test.platform`의 `SQLScriptBatchesTest`: `GO` 사이 문장 합치기와 원문 범위, `GO 2` 반복, 빈 배치 건너뛰기, 배치 구분자 없는 방언).
+  `mvn verify -Pproduct-dbeaver-ce -Dtest=SQLScriptBatchesTest`로 실행해 3개 모두 통과했다.
+  SQL Server 방언은 `DECLARE`를 블록 머리로 보아 `DECLARE …; SELECT …;`를 파서가 이미 쿼리 하나로 돌려주고, 일반 문장 두 개(`SELECT 2; SELECT 3`)는 이 클래스가 합친다.
+- macOS 실행은 확인하지 못했다.
+
+### C단계에서 남긴 것 (D단계 이후)
+
+- 편집기: 파일 열기·저장(닫을 때 저장 확인), 방언별 키워드·자동완성(`SQLCompletionAnalyzer`), 실행한 문장 강조, 오류 위치로 이동(Messages 더블클릭).
+- 실행: 편집기별 별도 연결(SSMS는 쿼리 창마다 연결), 오류 뒤 다음 배치 계속 실행(SSMS 기본 동작. 지금은 멈춤), 커밋 방식·트랜잭션 표시, 서버 출력 읽기
+  (`DBCServerOutputReader`, Oracle `DBMS_OUTPUT`), 매개변수 입력 대화상자, `@set` 변수의 편집기 단위 유지.
+- 결과: 편집(Edit Top 200 Rows, "결과 모델 분석"), 더 읽기(최대 행 수 이후), 정렬, 결과 내보내기, 텍스트로 결과 보기.
+- SQL Server `GO` 배치는 SQL Server로 실행해 보지 못했다(아래 확인 참고).
+
 ## 변경 이력
 
 - 2026-11-06 최초 작성. Swing 전환 결정, 구조, 재사용 분석, MVP 범위, F5 실행 사양을 정리.
@@ -563,3 +701,5 @@ B단계는 `JSplitPane`만 쓴다.
 - 2026-11-06 B단계 구현: SSMS식 메인 창(Object Explorer, 문서 탭, Results/Messages, Properties, `JSplitPane` 기반 도구 창과 배치 저장),
   탐색기 모델 기반 Object Explorer(백그라운드 읽기, `SwingConnectionService`로 연결, JSVG 아이콘), 속성 표, 라이트/다크 테마와 저장,
   About 대화상자, 진행 대화상자·비모달 알림, Swing 번들 버전을 제품 버전(26.2.5)으로 변경. "구현 현황 — B단계" 절 추가.
+- 2026-11-06 C단계 구현: RSyntaxTextArea 4.0.1 기반 SQL 편집기 탭(New Query, F5 실행·취소), `GO` 배치 묶기(`SQLScriptBatches`, model.sql),
+  편집기별 Results(결과 표 쌓기)·Messages(행 수, 경고·PRINT, 오류 위치), 쿼리 상태 줄. "구현 현황 — C단계" 절 추가.

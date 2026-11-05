@@ -8,11 +8,13 @@ Bundle-ActivationPolicy: lazy
 Bundle-RequiredExecutionEnvironment: JavaSE-25
 Bundle-Activator: com.seizia.chromite.ui.swing.ChromiteSwingActivator
 Bundle-ClassPath: .,
- lib/flatlaf.jar
+ lib/flatlaf.jar,
+ lib/rsyntaxtextarea.jar
 Require-Bundle: org.eclipse.equinox.app,
  org.eclipse.core.resources,
  org.jkiss.dbeaver.model,
  org.jkiss.dbeaver.model.rcp,
+ org.jkiss.dbeaver.model.sql,
  org.jkiss.dbeaver.registry,
  com.github.weisj.jsvg
 Require-Capability: osgi.extender;filter:="(osgi.extender=osgi.serviceloader.registrar)"
