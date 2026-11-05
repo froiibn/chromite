@@ -67,10 +67,6 @@ DBeaver Community에는 DBeaver Corp의 상용판(PRO, Lite, Enterprise, Ultimat
   `RegistryConstants.ATTR_NOT_AVAILABLE_DRIVER`, 확장 지점 스키마의 `notAvailableDriver` 요소,
   `ConnectionPageDeprecation`과 연결 마법사·`ConnectJob`의 분기)는 이제 쓰는 곳이 없다.
   model, registry, ui.editors.connection 세 플러그인의 공개 API에 걸쳐 있어 이번 작업에서는 지우지 않고 후속 작업 후보로 남긴다.
-- CData 확장의 `cdata-driver-settings.json`은 아이콘을 빌려 쓰려고 `generic:mongo-ce` 같은 지운 드라이버 6개를
-  `icon_driver`로 가리킨다. `CDataDriverDescriptor.getImageDriver()`는 드라이버를 못 찾으면 `null`을 돌려주고
-  CData 웹사이트에서 아이콘을 내려받으므로 오류는 없다. 이 파일은 실행 중에 dbeaver.com에서 받은 설정으로 덮어쓰는
-  묶음 사본이라 고치지 않았다.
 - 드라이버 분류 `nosql`은 이제 이 분류를 쓰는 드라이버가 없다. `DataSourceTypeViewer`는 드라이버가 없는 분류 탭을
   만들지 않으므로 화면에는 나타나지 않는다. 분류 정의는 registry 공통 설정이라 그대로 둔다.
 
@@ -94,13 +90,11 @@ DBeaver Community에는 DBeaver Corp의 상용판(PRO, Lite, Enterprise, Ultimat
   (`ModelPreferences.UI_DRIVERS_SOURCES` 기본값 `https://dbeaver.io/files/jdbc/`)는 바꾸지 않았고, 문구만 원격 서버라서
   닫힌 네트워크에서는 닿지 않을 수 있다는 중립적인 안내로 바꿨다.
 
-## CData 드라이버 라이선스 문구 (확인 필요)
+## CData 드라이버 라이선스 문구
 
-`plugins/org.jkiss.dbeaver.ext.cdata.ui/src/org/jkiss/dbeaver/ext/cdata/ui/internal/CDataUIResources.properties`
-11~12행(`activation_eula_consent`, `activation_eula_consent_accessible_name`, pl 번역 포함)은 CData 제품을
-"authorized DBeaver software"와 함께만 쓸 수 있다는 CData 사용권 동의 문구다. 법적 문구라서 고치지 않았다.
-이 조건이면 CData OEM 드라이버를 Chromite에서 쓸 권리가 없을 수 있다. 라이선스 활성화 보고(`CDataLicenseActivationReporter`)와
-드라이버 설정(`CDataDriverSettings.URL`)도 dbeaver.com을 쓴다. CData 기능을 유지할지는 별도로 결정해야 한다.
+CData 사용권 동의 문구가 CData 제품을 "authorized DBeaver software"와 함께만 쓸 수 있다고 정하고, 라이선스 활성화와
+드라이버 설정이 dbeaver.com을 쓰는 문제가 있었다. 2026-11-06 사용자 결정에 따라 CData 연동 전체를 제거했다.
+자세한 내용은 [cdata-removal.md](cdata-removal.md)를 본다.
 
 ## 변경 이력
 
@@ -108,3 +102,4 @@ DBeaver Community에는 DBeaver Corp의 상용판(PRO, Lite, Enterprise, Ultimat
 - 2026-11-06 오늘의 팁에서 상용판 홍보 팁 64개와 일반 팁 1개의 PRO 홍보 문장을 제거.
 - 2026-11-06 Generic 플러그인의 상용판 홍보용 드라이버 스텁 8개와 그 데이터 소스 유형, 아이콘, 메시지 키를 제거.
 - 2026-11-06 암호화 프로젝트 안내, 누락 드라이버 오류, 드라이버 저장소 안내 문구에서 DBeaver 상용판 언급을 일반화.
+- 2026-11-06 CData 연동을 제거([cdata-removal.md](cdata-removal.md))하면서 CData 관련 메모를 정리.
