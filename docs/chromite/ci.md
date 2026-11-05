@@ -5,6 +5,7 @@
 Chromite의 CI를 DBeaver 조직의 워크플로, 액션, 시크릿 없이 이 저장소 안의 설정만으로 돌린다.
 
 - `devel`에 push하거나 `devel` 대상 PR을 열면 지원 플랫폼(Windows x64, macOS arm64)의 전체 제품을 빌드한다.
+  제품은 두 가지다: SWT 제품(`product/community`)과 Swing 제품(`product/swing`, [swing-frontend.md](swing-frontend.md)).
   Windows 제품은 Windows 러너에서, macOS 제품은 Linux 러너에서 만든다(아래 "macOS 제품을 Linux 러너에서 만드는 이유").
 - 빌드한 제품을 워크플로 결과물(artifact)로 올려 PR마다 바로 내려받아 실행해 볼 수 있게 한다.
 - CodeQL로 Chromite 코드(`deps/` 제외)의 보안 취약점을 검사한다.
@@ -24,20 +25,31 @@ Chromite의 CI를 DBeaver 조직의 워크플로, 액션, 시크릿 없이 이 �
 3. `actions/cache@v6`: `~/.m2/repository`(Maven·Tycho·p2 결과물), `~/.m2/wrapper`(mvnw가 받은 Maven)
    - 키: `m2-<OS>-<arch>-<모든 pom.xml과 maven-wrapper.properties의 해시>`, 복원 키: `m2-<OS>-<arch>-`
    - `<OS>`, `<arch>`는 `runner.os`, `runner.arch`라서 러너가 바뀌면 키도 따라 바뀐다(macOS 제품 작업: `m2-Linux-X64-...`).
-4. 빌드: `deps/dbeaver-common/mvnw -B -ntp package -f product/aggregate/pom.xml -T1C -Pproduct-dbeaver-ce`
+4. 빌드: `deps/dbeaver-common/mvnw -B -ntp package -f product/aggregate/pom.xml -T1C -Pproduct-dbeaver-ce,product-chromite-swing`
+   - Maven 한 번으로 SWT 제품(`product-dbeaver-ce`)과 Swing 제품(`product-chromite-swing`, `product/pom.xml`의 프로파일)을 함께 만든다.
+     두 제품은 같은 reactor의 번들을 쓰므로 따로 실행하면 같은 번들을 두 번 빌드한다.
    - Windows는 `pwsh`에서 `mvnw.cmd`, Linux는 `bash`에서 `mvnw`를 실행한다. 두 단계의 인수는 같게 유지한다.
+   - `pwsh`에서는 프로파일 목록을 작은따옴표로 묶는다(`'-Pproduct-dbeaver-ce,product-chromite-swing'`).
+     묶지 않으면 PowerShell이 쉼표를 배열 구분자로 읽어 인수를 나눌 수 있다.
    - `MAVEN_OPTS=-Xmx3g`
-5. 결과물 업로드(보관 7일). macOS 제품은 실행 파일의 실행 권한을 확인한 뒤 tar로 묶어 올린다.
+5. 결과물 업로드(보관 7일). macOS 제품은 실행 파일의 실행 권한을 확인한 뒤 tar로 묶어 올린다. 제품마다 결과물을 따로 올린다.
 
 ### 결과물 (artifact)
 
-Tycho는 `product/community/target/products/<제품 ID>/<os>/<ws>/<arch>/<루트 폴더>`에 제품을 만든다
-(`product/community/pom.xml`의 `rootFolders`, 로컬 빌드 결과로 확인). 압축 파일(`archive-products`)은 만들지 않는다.
+Tycho는 `product/<community|swing>/target/products/<제품 ID>/<os>/<ws>/<arch>/<루트 폴더>`에 제품을 만든다
+(`product/community/pom.xml`, `product/swing/pom.xml`의 `rootFolders`, 로컬 빌드 결과로 확인). 압축 파일(`archive-products`)은 만들지 않는다.
 
 | 결과물 이름 | 만드는 러너 | 원본 경로 | 내용 |
 |---|---|---|---|
 | `chromite-windows-x64` | `windows-latest` | `product/community/target/products/org.jkiss.dbeaver.core.product/win32/win32/x86_64/` | zip 안에 `chromite/` 폴더(`chromite.exe` 포함) |
 | `chromite-macos-aarch64` | `ubuntu-latest`(작업 `macos-aarch64-on-linux`) | `product/community/target/products/org.jkiss.dbeaver.core.product/macosx/cocoa/aarch64/Chromite.app` | zip 안에 `chromite-macos-aarch64.tar.gz`(`Chromite.app`) |
+| `chromite-swing-windows-x64` | `windows-latest` | `product/swing/target/products/com.seizia.chromite.swing.product/win32/win32/x86_64/` | zip 안에 `chromite-swing/` 폴더(`chromite-swing.exe` 포함) |
+| `chromite-swing-macos-aarch64` | `ubuntu-latest`(작업 `macos-aarch64-on-linux`) | `product/swing/target/products/com.seizia.chromite.swing.product/macosx/cocoa/aarch64/ChromiteSwing.app` | zip 안에 `chromite-swing-macos-aarch64.tar.gz`(`ChromiteSwing.app`, 런처 `Contents/MacOS/chromite-swing`) |
+
+Swing 제품의 루트 폴더(`chromite-swing`, `ChromiteSwing.app`)는 `product/swing/pom.xml`의 `rootFolders`, 런처 이름(`chromite-swing`)은
+`product/swing/chromite-swing.product`의 `<launcher name="chromite-swing">`이다. 로컬 빌드 결과
+(`product/swing/target/products/com.seizia.chromite.swing.product/`)에서 `win32/win32/x86_64/chromite-swing/chromite-swing.exe`와
+`macosx/cocoa/aarch64/ChromiteSwing.app/Contents/MacOS/chromite-swing`이 있는 것을 확인했다.
 
 ## 설계 결정과 이유
 
@@ -82,25 +94,26 @@ Tycho는 `product/community/target/products/<제품 ID>/<os>/<ws>/<arch>/<루트
   - p2 publisher가 macOS 런처 IU에 `chmod(targetDir:${installFolder}/../MacOS/, targetFile:<런처 이름>, permissions:755)`를
     넣는다(`org.eclipse.equinox.p2.publisher.eclipse` 1.6.900 소스, `EquinoxExecutableAction.computeMacInstallActions` 209~213행).
     런처 이름은 `product/community/DBeaver.product`의 `<launcher name="chromite">`다.
+    Swing 제품도 같은 방식이며 런처 이름은 `product/swing/chromite-swing.product`의 `<launcher name="chromite-swing">`다.
   - `ChmodAction`(`org.eclipse.equinox.p2.touchpoint.natives` 1.5.900 소스)은 빌드하는 OS가 Windows일 때만
     (`File.separatorChar == '\\'`, 30·100행) 아무것도 하지 않고, 그 밖의 OS에서는 `chmod 755 <파일>` 명령을 실행한다(191~208행).
     대상 제품의 OS가 아니라 빌드하는 OS를 본다. 그래서 Windows에서 만든 `Chromite.app`에는 실행 권한이 없고,
     Linux에서 만들면 macOS에서 만든 것과 같이 실행 권한이 붙는다.
   - `ChmodAction`은 `chmod`의 종료 코드를 확인하지 않는다(208~221행). 그래서 tar로 묶기 전에 런처에 실행 권한이 있는지
-    확인하고, 없으면 작업을 실패시킨다. `chmod +x`를 따로 하지 않는 이유: 위 근거로 p2가 권한을 주므로 필요 없고,
+    확인하고, 없으면 작업을 실패시킨다(SWT·Swing 제품 각각). `chmod +x`를 따로 하지 않는 이유: 위 근거로 p2가 권한을 주므로 필요 없고,
     p2 동작이 바뀌었을 때 덮어 숨기지 않고 바로 드러내기 위해서다.
 - Windows 제품은 계속 Windows 러너에서 만든다. 두 OS(Windows, Linux)에서 빌드하므로 경로 구분자, 대소문자 구분 같은
   OS 차이로 생기는 빌드 문제를 PR 단계에서 찾는다.
-- 각 작업은 행렬 항목이 가리키는 제품 하나만 올린다.
+- 각 작업은 행렬 항목이 가리키는 플랫폼의 제품(SWT, Swing)만 올린다.
 - 실제 macOS 러너는 나중에 다시 필요하다. 실행 시험(앱이 뜨는지), 코드 서명(`codesign`), 공증(notarization, `notarytool`)은
   macOS에서만 할 수 있다. 그때는 Linux 작업이 올린 `chromite-macos-aarch64`를 macOS 작업이 받아 처리하게 하면
   macOS 러너에서 빌드(수십 분)를 다시 하지 않아도 된다. macOS 러너 배정이 늦을 수 있으므로 그 작업은 PR을 막지 않게 둔다.
 
 ### macOS 결과물을 tar로 묶는 이유
 
-`actions/upload-artifact`는 파일 권한을 저장하지 않는다. `Chromite.app/Contents/MacOS/` 실행 파일의 실행 권한을 지키려고
-`tar -czf`로 묶어서 올린다. 이미 압축한 파일이라 `compression-level: 0`으로 다시 압축하지 않는다.
-Windows 제품은 권한 문제가 없어 폴더를 그대로 올린다(상위 폴더를 올려 결과물 안에 `chromite/` 폴더가 남는다).
+`actions/upload-artifact`는 파일 권한을 저장하지 않는다. `Chromite.app/Contents/MacOS/`(Swing: `ChromiteSwing.app/Contents/MacOS/`)
+실행 파일의 실행 권한을 지키려고 `tar -czf`로 묶어서 올린다. 이미 압축한 파일이라 `compression-level: 0`으로 다시 압축하지 않는다.
+Windows 제품은 권한 문제가 없어 폴더를 그대로 올린다(상위 폴더를 올려 결과물 안에 `chromite/`, `chromite-swing/` 폴더가 남는다).
 
 ### 캐시
 
@@ -156,26 +169,16 @@ CI에서 checkstyle을 돌리지 않기로 했다. 깔끔하게 유지할 방법
 
 `dependabot.yml`, `CODEOWNERS`는 원래 없었고 새로 만들지 않았다.
 
-## Swing 제품을 추가하는 방법
-
-다른 작업에서 `product-chromite-swing` 프로파일을 만들고 있다. 병합되면 `build.yml`에서 다음을 바꾼다.
-
-1. 두 빌드 단계의 `-Pproduct-dbeaver-ce`를 `-Pproduct-dbeaver-ce,product-chromite-swing`으로 바꾼다
-   (해당 자리에 주석이 있다). 두 단계의 인수를 같게 유지한다.
-2. Swing 제품의 실제 출력 경로를 로컬 빌드로 확인한 뒤, 플랫폼별 업로드 단계를 추가한다
-   (`if: runner.os == 'Windows'` / `'Linux'`, 이름 예: `chromite-swing-windows-x64`, `chromite-swing-macos-aarch64`).
-   macOS 결과물에 실행 파일이 있으면 위와 같이 tar로 묶는다.
-3. 이 문서의 결과물 표와 변경 이력을 갱신한다.
-
 ## 알려진 제약
 
 - GitHub Actions를 로컬에서 실행할 수 없어 이 설정은 push한 뒤 첫 실행으로만 확인할 수 있다(작성 시점에 미확인).
-- 두 작업 모두 두 플랫폼의 제품을 다 만들고 그중 하나만 올린다(루트 `pom.xml`의 두 환경).
+- 두 작업 모두 두 플랫폼의 제품을 다 만들고 그중 한 플랫폼의 것만 올린다(루트 `pom.xml`, `product/swing/pom.xml`의 두 환경).
 - macOS 제품은 Linux에서 만들기 때문에 CI는 이 제품이 macOS에서 실제로 실행되는지 확인하지 않는다(위 "macOS 제품을 Linux 러너에서 만드는 이유").
 - 빌드는 인터넷의 P2 저장소(`download.eclipse.org`, `repo.dbeaver.net/p2/ce/<버전>`)와 Maven Central을 쓴다([build.md](build.md)).
   이 서버가 응답하지 않으면 CI도 실패한다.
 - `package` 단계까지만 실행하므로 테스트(`test/`)는 돌리지 않는다.
-- 결과물은 서명하지 않았고 JRE를 내장하지 않는다. 실행하려면 JDK 21 이상이 설치되어 있어야 한다. 배포용이 아니라 확인용이며 7일 뒤 지워진다.
+- 결과물은 서명하지 않았고 JRE를 내장하지 않는다. 실행하려면 JDK 21 이상(Swing 제품은 JDK 25 이상, [swing-frontend.md](swing-frontend.md))이
+  설치되어 있어야 한다. 배포용이 아니라 확인용이며 7일 뒤 지워진다.
 - `actions/cache` 저장 공간은 저장소당 10GB다. 두 OS의 캐시가 커지면 오래된 캐시부터 지워진다.
 - 저장소 최상위 `SECURITY.md`는 아직 `security@dbeaver.com`을 안내한다(이 작업 범위 밖, 따로 고쳐야 함).
 
@@ -197,3 +200,6 @@ CI에서 checkstyle을 돌리지 않기로 했다. 깔끔하게 유지할 방법
 - 2026-11-06 macOS arm64 제품을 `macos-latest` 대신 `ubuntu-latest`에서 만든다(행렬 항목 `macos-aarch64-on-linux`).
   `macos-latest` 작업이 러너 용량 부족으로 한 번도 배정되지 않았다. 결과물 이름(`chromite-macos-aarch64`)과 tar 묶음은 그대로이고,
   묶기 전에 런처 실행 권한을 확인하는 단계를 넣었다. 루트 `pom.xml`의 환경 수(6개 → 2개)가 바뀐 것을 반영했다.
+- 2026-11-06 Swing 제품을 CI에 넣었다. 두 빌드 단계가 Maven 한 번으로 `-Pproduct-dbeaver-ce,product-chromite-swing`을 빌드하고,
+  결과물 `chromite-swing-windows-x64`(Windows 작업), `chromite-swing-macos-aarch64`(Linux 작업, 런처 실행 권한 확인 후 tar)를 더 올린다.
+  "Swing 제품을 추가하는 방법" 절은 할 일을 마쳐 지웠다.
