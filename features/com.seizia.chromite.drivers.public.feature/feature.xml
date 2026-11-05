@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    Chromite public edition bundled JDBC drivers (docs/chromite/drivers.md).
+
+    Design: the product bundle declarations (com.seizia.chromite.drivers.public) and the drivers/ root files
+    (jars fetched by pom.xml, license texts from drivers-root/) must always ship together: a declared bundle
+    without its folder leaves the driver without any file source. Keeping both in one feature makes that the
+    unit of inclusion, and lets every product (SWT org.jkiss.dbeaver.ce.feature, Swing
+    com.seizia.chromite.swing.feature) ship the same drivers from a single jar list.
+    p2 installs a feature's root files with the feature itself, also when it is only included by another feature.
+
+    History:
+    - 2026-11-06 Created. Moved out of org.jkiss.dbeaver.ce.feature so the Swing product ships the same drivers.
+-->
+<feature
+        id="com.seizia.chromite.drivers.public.feature"
+        label="Chromite Bundled JDBC Drivers (Public Edition)"
+        version="26.2.5.qualifier"
+        provider-name="Chromite contributors">
+
+    <description>JDBC drivers bundled with the Chromite public edition: SQL Server, Oracle, PostgreSQL, MariaDB</description>
+
+    <copyright>Chromite contributors. Driver licenses: drivers/README.txt</copyright>
+
+    <!-- Declares the bundled driver folders that pom.xml puts into the root files (drivers/) -->
+    <plugin id="com.seizia.chromite.drivers.public" version="0.0.0"/>
+
+</feature>

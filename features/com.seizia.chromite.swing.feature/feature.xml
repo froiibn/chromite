@@ -14,6 +14,8 @@
     <!-- Reused model layer (UI-free features) -->
     <includes id="org.jkiss.dbeaver.runtime.feature" version="0.0.0"/>
     <includes id="org.jkiss.dbeaver.db.feature" version="0.0.0"/>
+    <!-- Public edition bundled JDBC drivers, same as the SWT product (docs/chromite/drivers.md) -->
+    <includes id="com.seizia.chromite.drivers.public.feature" version="0.0.0"/>
 
     <!-- Swing UI -->
     <plugin id="com.seizia.chromite.ui.swing" version="0.0.0"/>

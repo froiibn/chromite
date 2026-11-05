@@ -16,8 +16,6 @@
     <properties>
         <sourceBranch>-</sourceBranch>
         <sourceCommit>-</sourceCommit>
-        <!-- Root files folder for the bundled JDBC drivers (installed as <install>/drivers) -->
-        <drivers.dir>${project.build.directory}/generated/drivers</drivers.dir>
     </properties>
 
     <build>
@@ -47,64 +45,6 @@
                         <goals>
                             <goal>copy-resources</goal>
                         </goals>
-                    </execution>
-                </executions>
-            </plugin>
-            <!--
-                Chromite public edition: bundled JDBC drivers (docs/chromite/drivers.md).
-                Copies exact, unmodified jars from Maven Central into target/generated/drivers/<name>/,
-                which build.properties installs as <install>/drivers/<name>/ (license texts come from drivers-root/).
-                Folder names must match the bundle="drivers.*" file paths in the driver plugin.xml files;
-                the bundle IDs are declared by com.seizia.chromite.drivers.public, which this feature includes.
-                Versions must match the Maven fallback versions in plugin.xml so both modes load the same driver.
-                Not bundled on purpose: mssql-jdbc_auth DLL (Microsoft license terms, internal edition only),
-                waffle-jna (PostgreSQL SSPI only; plugin.xml has no bundled alternative),
-                xmlparserv2 18.3.0.0 (pulled in by xdb6, duplicate of 23.2.0.0), checker-qual (annotations only).
-            -->
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-dependency-plugin</artifactId>
-                <version>3.8.1</version>
-                <executions>
-                    <execution>
-                        <id>bundle-public-drivers</id>
-                        <phase>generate-resources</phase>
-                        <goals>
-                            <goal>copy</goal>
-                        </goals>
-                        <configuration>
-                            <overWriteReleases>false</overWriteReleases>
-                            <artifactItems>
-                                <!-- drivers.mssql.new: SQL Server, Azure SQL Server, Babelfish -->
-                                <artifactItem><groupId>com.microsoft.sqlserver</groupId><artifactId>mssql-jdbc</artifactId><version>13.4.0.jre11</version><outputDirectory>${drivers.dir}/mssql/new</outputDirectory></artifactItem>
-                                <!-- msal4j and its runtime dependencies (mvn dependency:tree of msal4j 1.16.0): Entra ID authentication -->
-                                <artifactItem><groupId>com.microsoft.azure</groupId><artifactId>msal4j</artifactId><version>1.16.0</version><outputDirectory>${drivers.dir}/mssql/new</outputDirectory></artifactItem>
-                                <artifactItem><groupId>com.nimbusds</groupId><artifactId>oauth2-oidc-sdk</artifactId><version>11.9.1</version><outputDirectory>${drivers.dir}/mssql/new</outputDirectory></artifactItem>
-                                <artifactItem><groupId>com.github.stephenc.jcip</groupId><artifactId>jcip-annotations</artifactId><version>1.0-1</version><outputDirectory>${drivers.dir}/mssql/new</outputDirectory></artifactItem>
-                                <artifactItem><groupId>com.nimbusds</groupId><artifactId>content-type</artifactId><version>2.3</version><outputDirectory>${drivers.dir}/mssql/new</outputDirectory></artifactItem>
-                                <artifactItem><groupId>com.nimbusds</groupId><artifactId>lang-tag</artifactId><version>1.7</version><outputDirectory>${drivers.dir}/mssql/new</outputDirectory></artifactItem>
-                                <artifactItem><groupId>com.nimbusds</groupId><artifactId>nimbus-jose-jwt</artifactId><version>9.37.3</version><outputDirectory>${drivers.dir}/mssql/new</outputDirectory></artifactItem>
-                                <artifactItem><groupId>net.minidev</groupId><artifactId>json-smart</artifactId><version>2.5.0</version><outputDirectory>${drivers.dir}/mssql/new</outputDirectory></artifactItem>
-                                <artifactItem><groupId>net.minidev</groupId><artifactId>accessors-smart</artifactId><version>2.5.0</version><outputDirectory>${drivers.dir}/mssql/new</outputDirectory></artifactItem>
-                                <artifactItem><groupId>org.ow2.asm</groupId><artifactId>asm</artifactId><version>9.3</version><outputDirectory>${drivers.dir}/mssql/new</outputDirectory></artifactItem>
-                                <artifactItem><groupId>org.slf4j</groupId><artifactId>slf4j-api</artifactId><version>1.7.36</version><outputDirectory>${drivers.dir}/mssql/new</outputDirectory></artifactItem>
-                                <artifactItem><groupId>com.fasterxml.jackson.core</groupId><artifactId>jackson-databind</artifactId><version>2.13.4.2</version><outputDirectory>${drivers.dir}/mssql/new</outputDirectory></artifactItem>
-                                <artifactItem><groupId>com.fasterxml.jackson.core</groupId><artifactId>jackson-annotations</artifactId><version>2.13.4</version><outputDirectory>${drivers.dir}/mssql/new</outputDirectory></artifactItem>
-                                <artifactItem><groupId>com.fasterxml.jackson.core</groupId><artifactId>jackson-core</artifactId><version>2.13.4</version><outputDirectory>${drivers.dir}/mssql/new</outputDirectory></artifactItem>
-                                <!-- drivers.oracle -->
-                                <artifactItem><groupId>com.oracle.database.jdbc</groupId><artifactId>ojdbc11</artifactId><version>23.2.0.0</version><outputDirectory>${drivers.dir}/oracle</outputDirectory></artifactItem>
-                                <artifactItem><groupId>com.oracle.database.nls</groupId><artifactId>orai18n</artifactId><version>23.2.0.0</version><outputDirectory>${drivers.dir}/oracle</outputDirectory></artifactItem>
-                                <artifactItem><groupId>com.oracle.database.xml</groupId><artifactId>xdb6</artifactId><version>18.3.0.0</version><outputDirectory>${drivers.dir}/oracle</outputDirectory></artifactItem>
-                                <artifactItem><groupId>com.oracle.database.xml</groupId><artifactId>xmlparserv2</artifactId><version>23.2.0.0</version><outputDirectory>${drivers.dir}/oracle</outputDirectory></artifactItem>
-                                <!-- drivers.postgresql: all PostgreSQL-family drivers -->
-                                <artifactItem><groupId>org.postgresql</groupId><artifactId>postgresql</artifactId><version>42.7.14</version><outputDirectory>${drivers.dir}/postgresql</outputDirectory></artifactItem>
-                                <artifactItem><groupId>net.postgis</groupId><artifactId>postgis-jdbc</artifactId><version>2.5.0</version><outputDirectory>${drivers.dir}/postgis</outputDirectory></artifactItem>
-                                <artifactItem><groupId>net.postgis</groupId><artifactId>postgis-geometry</artifactId><version>2.5.0</version><outputDirectory>${drivers.dir}/postgis</outputDirectory></artifactItem>
-                                <artifactItem><groupId>net.postgis</groupId><artifactId>postgis-jdbc-jtsparser</artifactId><version>2.5.0</version><outputDirectory>${drivers.dir}/postgis</outputDirectory></artifactItem>
-                                <!-- drivers.mariadb: MariaDB (also used for MySQL in the public edition) -->
-                                <artifactItem><groupId>org.mariadb.jdbc</groupId><artifactId>mariadb-java-client</artifactId><version>3.5.10</version><outputDirectory>${drivers.dir}/mariadb</outputDirectory></artifactItem>
-                            </artifactItems>
-                        </configuration>
                     </execution>
                 </executions>
             </plugin>
