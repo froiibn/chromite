@@ -41,8 +41,8 @@ function Get-UpdateEntries([string]$Payload) {
 
 function Get-UpdateLauncherName([string]$Launcher) {
     $name = [IO.Path]::GetFileNameWithoutExtension($Launcher)
-    # The console launcher shares dbeaver.ini with the GUI launcher; there is no dbeaverc.ini.
-    if ($name -eq 'dbeaverc') { return 'dbeaver' }
+    # The console launcher shares chromite.ini with the GUI launcher; there is no chromitec.ini.
+    if ($name -eq 'chromitec') { return 'chromite' }
     return $name
 }
 

@@ -116,7 +116,7 @@ public class DBeaverApplication extends DesktopApplicationImpl implements DBPApp
     private static final String DEFAULT_PROJECT_NAME = "General";
 
     /**
-     * Specified in {@code dbeaver.ini} as a JVM parameter during packaging. Possible values are:
+     * Specified in {@code chromite.ini} as a JVM parameter during packaging. Possible values are:
      * <ul>
      *     <li>{@code zip}, {@code exe}, {@code msstore} on Windows;</li>
      *     <li>{@code deb}, {@code rpm} on Linux;</li>
