@@ -4,7 +4,8 @@
 
 Chromite의 CI를 DBeaver 조직의 워크플로, 액션, 시크릿 없이 이 저장소 안의 설정만으로 돌린다.
 
-- `devel`에 push하거나 `devel` 대상 PR을 열면 지원 플랫폼(Windows x64, macOS arm64)에서 전체 제품을 빌드한다.
+- `devel`에 push하거나 `devel` 대상 PR을 열면 지원 플랫폼(Windows x64, macOS arm64)의 전체 제품을 빌드한다.
+  Windows 제품은 Windows 러너에서, macOS 제품은 Linux 러너에서 만든다(아래 "macOS 제품을 Linux 러너에서 만드는 이유").
 - 빌드한 제품을 워크플로 결과물(artifact)로 올려 PR마다 바로 내려받아 실행해 볼 수 있게 한다.
 - CodeQL로 Chromite 코드(`deps/` 제외)의 보안 취약점을 검사한다.
 
@@ -12,7 +13,7 @@ Chromite의 CI를 DBeaver 조직의 워크플로, 액션, 시크릿 없이 이 �
 
 | 파일 | 실행 시점 | 하는 일 |
 |---|---|---|
-| `.github/workflows/build.yml` | `devel` push, `devel` 대상 PR, 수동 실행(`workflow_dispatch`) | 작업 `build`를 행렬(matrix)로 두 번 실행: `windows-latest`(x64), `macos-latest`(arm64). 제품 빌드 후 결과물 업로드 |
+| `.github/workflows/build.yml` | `devel` push, `devel` 대상 PR, 수동 실행(`workflow_dispatch`) | 작업 `build`를 행렬(matrix)로 두 번 실행: `windows-x64`(`windows-latest`), `macos-aarch64-on-linux`(`ubuntu-latest`). 제품 빌드 후 결과물 업로드 |
 | `.github/workflows/codeql.yml` | `devel` push, `devel` 대상 PR, 매주 화요일 03:30 UTC | 작업 `analyze`를 `actions`, `java-kotlin` 두 언어로 실행(`ubuntu-latest`) |
 | `.github/codeql/codeql-config.yml` | `codeql.yml`이 읽음 | `paths-ignore: deps` |
 
@@ -22,10 +23,11 @@ Chromite의 CI를 DBeaver 조직의 워크플로, 액션, 시크릿 없이 이 �
 2. `actions/setup-java@v6`, `distribution: jetbrains`, `java-version: '25'` (JBR 25 JBRSDK)
 3. `actions/cache@v6`: `~/.m2/repository`(Maven·Tycho·p2 결과물), `~/.m2/wrapper`(mvnw가 받은 Maven)
    - 키: `m2-<OS>-<arch>-<모든 pom.xml과 maven-wrapper.properties의 해시>`, 복원 키: `m2-<OS>-<arch>-`
+   - `<OS>`, `<arch>`는 `runner.os`, `runner.arch`라서 러너가 바뀌면 키도 따라 바뀐다(macOS 제품 작업: `m2-Linux-X64-...`).
 4. 빌드: `deps/dbeaver-common/mvnw -B -ntp package -f product/aggregate/pom.xml -T1C -Pproduct-dbeaver-ce`
-   - Windows는 `pwsh`에서 `mvnw.cmd`, macOS는 `bash`에서 `mvnw`를 실행한다. 두 단계의 인수는 같게 유지한다.
+   - Windows는 `pwsh`에서 `mvnw.cmd`, Linux는 `bash`에서 `mvnw`를 실행한다. 두 단계의 인수는 같게 유지한다.
    - `MAVEN_OPTS=-Xmx3g`
-5. 결과물 업로드(보관 7일)
+5. 결과물 업로드(보관 7일). macOS 제품은 실행 파일의 실행 권한을 확인한 뒤 tar로 묶어 올린다.
 
 ### 결과물 (artifact)
 
@@ -35,7 +37,7 @@ Tycho는 `product/community/target/products/<제품 ID>/<os>/<ws>/<arch>/<루트
 | 결과물 이름 | 만드는 러너 | 원본 경로 | 내용 |
 |---|---|---|---|
 | `chromite-windows-x64` | `windows-latest` | `product/community/target/products/org.jkiss.dbeaver.core.product/win32/win32/x86_64/` | zip 안에 `chromite/` 폴더(`chromite.exe` 포함) |
-| `chromite-macos-aarch64` | `macos-latest` | `product/community/target/products/org.jkiss.dbeaver.core.product/macosx/cocoa/aarch64/Chromite.app` | zip 안에 `chromite-macos-aarch64.tar.gz`(`Chromite.app`) |
+| `chromite-macos-aarch64` | `ubuntu-latest`(작업 `macos-aarch64-on-linux`) | `product/community/target/products/org.jkiss.dbeaver.core.product/macosx/cocoa/aarch64/Chromite.app` | zip 안에 `chromite-macos-aarch64.tar.gz`(`Chromite.app`) |
 
 ## 설계 결정과 이유
 
@@ -66,13 +68,33 @@ Tycho는 `product/community/target/products/<제품 ID>/<os>/<ws>/<arch>/<루트
   같은 Maven을 쓰므로 러너에 미리 깔린 Maven 버전에 영향을 받지 않는다([build.md](build.md) ".mvn/ 폴더를 만들지 않은 이유").
 - `-ntp`(다운로드 진행 표시 끄기)는 로그 크기만 줄인다. 빌드 결과에는 영향이 없다.
 
-### 두 러너에서 각각 빌드하는 이유
+### macOS 제품을 Linux 러너에서 만드는 이유
 
-- 루트 `pom.xml`의 `target-platform-configuration`에 6개 환경(win32·linux·macosx × x86_64·aarch64)이 있어
-  어느 러너에서 빌드해도 모든 플랫폼의 제품 폴더가 만들어진다. 하지만 Windows(NTFS)에서 만든 `Chromite.app`에는
-  Unix 실행 권한이 남지 않는다. macOS 제품은 macOS 러너에서 만들어야 그대로 실행할 수 있다.
-- 두 OS에서 빌드하면 경로 구분자, 대소문자 구분 같은 OS 차이로 생기는 빌드 문제를 PR 단계에서 찾는다.
-- 각 러너는 자기 플랫폼의 제품만 올린다.
+- 처음에는 macOS 제품을 `macos-latest`(arm64) 러너에서 만들었다. 이 작업은 한 번도 시작되지 않았다. GitHub이 러너를
+  배정하지 못해 15분 뒤 취소했고, 실행 주석은 "The job was not acquired by Runner of type hosted even after multiple attempts",
+  "Due to capacity constraints, jobs targeting macOS arm64 runners may experience longer queue times"였다
+  (실행 42094444213, 42097033922와 그 뒤 `devel` push 실행). 같은 실행의 Windows 작업은 통과했다.
+- macOS 러너가 없어도 macOS 제품을 만들 수 있다. 루트 `pom.xml`의 `target-platform-configuration`(44~55행)에
+  두 환경(win32/win32/x86_64, macosx/cocoa/aarch64)이 있어 어느 OS에서 빌드해도 두 제품 폴더가 모두 만들어진다.
+  그래서 러너가 넉넉한 `ubuntu-latest`에서 만든다.
+- 실행 권한: `Chromite.app/Contents/MacOS/chromite`의 실행 권한은 p2가 제품을 만들 때(materialize) native touchpoint의
+  `chmod` 동작으로 준다.
+  - p2 publisher가 macOS 런처 IU에 `chmod(targetDir:${installFolder}/../MacOS/, targetFile:<런처 이름>, permissions:755)`를
+    넣는다(`org.eclipse.equinox.p2.publisher.eclipse` 1.6.900 소스, `EquinoxExecutableAction.computeMacInstallActions` 209~213행).
+    런처 이름은 `product/community/DBeaver.product`의 `<launcher name="chromite">`다.
+  - `ChmodAction`(`org.eclipse.equinox.p2.touchpoint.natives` 1.5.900 소스)은 빌드하는 OS가 Windows일 때만
+    (`File.separatorChar == '\\'`, 30·100행) 아무것도 하지 않고, 그 밖의 OS에서는 `chmod 755 <파일>` 명령을 실행한다(191~208행).
+    대상 제품의 OS가 아니라 빌드하는 OS를 본다. 그래서 Windows에서 만든 `Chromite.app`에는 실행 권한이 없고,
+    Linux에서 만들면 macOS에서 만든 것과 같이 실행 권한이 붙는다.
+  - `ChmodAction`은 `chmod`의 종료 코드를 확인하지 않는다(208~221행). 그래서 tar로 묶기 전에 런처에 실행 권한이 있는지
+    확인하고, 없으면 작업을 실패시킨다. `chmod +x`를 따로 하지 않는 이유: 위 근거로 p2가 권한을 주므로 필요 없고,
+    p2 동작이 바뀌었을 때 덮어 숨기지 않고 바로 드러내기 위해서다.
+- Windows 제품은 계속 Windows 러너에서 만든다. 두 OS(Windows, Linux)에서 빌드하므로 경로 구분자, 대소문자 구분 같은
+  OS 차이로 생기는 빌드 문제를 PR 단계에서 찾는다.
+- 각 작업은 행렬 항목이 가리키는 제품 하나만 올린다.
+- 실제 macOS 러너는 나중에 다시 필요하다. 실행 시험(앱이 뜨는지), 코드 서명(`codesign`), 공증(notarization, `notarytool`)은
+  macOS에서만 할 수 있다. 그때는 Linux 작업이 올린 `chromite-macos-aarch64`를 macOS 작업이 받아 처리하게 하면
+  macOS 러너에서 빌드(수십 분)를 다시 하지 않아도 된다. macOS 러너 배정이 늦을 수 있으므로 그 작업은 PR을 막지 않게 둔다.
 
 ### macOS 결과물을 tar로 묶는 이유
 
@@ -141,15 +163,15 @@ CI에서 checkstyle을 돌리지 않기로 했다. 깔끔하게 유지할 방법
 1. 두 빌드 단계의 `-Pproduct-dbeaver-ce`를 `-Pproduct-dbeaver-ce,product-chromite-swing`으로 바꾼다
    (해당 자리에 주석이 있다). 두 단계의 인수를 같게 유지한다.
 2. Swing 제품의 실제 출력 경로를 로컬 빌드로 확인한 뒤, 플랫폼별 업로드 단계를 추가한다
-   (`if: runner.os == 'Windows'` / `'macOS'`, 이름 예: `chromite-swing-windows-x64`, `chromite-swing-macos-aarch64`).
+   (`if: runner.os == 'Windows'` / `'Linux'`, 이름 예: `chromite-swing-windows-x64`, `chromite-swing-macos-aarch64`).
    macOS 결과물에 실행 파일이 있으면 위와 같이 tar로 묶는다.
 3. 이 문서의 결과물 표와 변경 이력을 갱신한다.
 
 ## 알려진 제약
 
 - GitHub Actions를 로컬에서 실행할 수 없어 이 설정은 push한 뒤 첫 실행으로만 확인할 수 있다(작성 시점에 미확인).
-- 6개 환경을 모두 만들기 때문에 각 러너가 쓰지 않는 플랫폼까지 빌드한다. 지원하지 않는 환경을 루트 `pom.xml`에서 빼면
-  ([runtime.md](runtime.md) "플랫폼별 사항") 빌드 시간이 줄어든다.
+- 두 작업 모두 두 플랫폼의 제품을 다 만들고 그중 하나만 올린다(루트 `pom.xml`의 두 환경).
+- macOS 제품은 Linux에서 만들기 때문에 CI는 이 제품이 macOS에서 실제로 실행되는지 확인하지 않는다(위 "macOS 제품을 Linux 러너에서 만드는 이유").
 - 빌드는 인터넷의 P2 저장소(`download.eclipse.org`, `repo.dbeaver.net/p2/ce/<버전>`)와 Maven Central을 쓴다([build.md](build.md)).
   이 서버가 응답하지 않으면 CI도 실패한다.
 - `package` 단계까지만 실행하므로 테스트(`test/`)는 돌리지 않는다.
@@ -172,3 +194,6 @@ CI에서 checkstyle을 돌리지 않기로 했다. 깔끔하게 유지할 방법
 
 - 2026-11-06 최초 작성. DBeaver 재사용 워크플로를 Chromite 자체 빌드(`build.yml`, Windows x64·macOS arm64)로 바꾸고,
   checkstyle 린트를 CI에서 뺐다. CodeQL에서 `deps/`를 제외했다. `.github` 아래 DBeaver 조직 전용 링크와 설정을 정리했다.
+- 2026-11-06 macOS arm64 제품을 `macos-latest` 대신 `ubuntu-latest`에서 만든다(행렬 항목 `macos-aarch64-on-linux`).
+  `macos-latest` 작업이 러너 용량 부족으로 한 번도 배정되지 않았다. 결과물 이름(`chromite-macos-aarch64`)과 tar 묶음은 그대로이고,
+  묶기 전에 런처 실행 권한을 확인하는 단계를 넣었다. 루트 `pom.xml`의 환경 수(6개 → 2개)가 바뀐 것을 반영했다.
