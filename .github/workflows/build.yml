@@ -1,5 +1,6 @@
-# Chromite build: builds the Eclipse RCP product on the two supported platforms
+# Chromite build: builds the Eclipse RCP product for the two supported platforms
 # (Windows x64, macOS arm64) and uploads each platform's product as a workflow artifact.
+# The macOS product is built on Linux: hosted macOS arm64 runners were not acquired (capacity).
 # Design and decisions: docs/chromite/ci.md
 name: Build
 
@@ -28,8 +29,9 @@ jobs:
         include:
           - name: windows-x64
             os: windows-latest
-          - name: macos-aarch64
-            os: macos-latest
+          # Tycho materializes both products on any OS; on Linux p2 also sets the launcher executable bit.
+          - name: macos-aarch64-on-linux
+            os: ubuntu-latest
     env:
       MAVEN_OPTS: -Xmx3g
       PRODUCTS_DIR: product/community/target/products/org.jkiss.dbeaver.core.product
@@ -68,12 +70,12 @@ jobs:
         shell: pwsh
         run: .\deps\dbeaver-common\mvnw.cmd -B -ntp package -f product/aggregate/pom.xml -T1C -Pproduct-dbeaver-ce
 
-      - name: Build (macOS)
-        if: runner.os == 'macOS'
+      - name: Build (Linux)
+        if: runner.os == 'Linux'
         shell: bash
         run: ./deps/dbeaver-common/mvnw -B -ntp package -f product/aggregate/pom.xml -T1C -Pproduct-dbeaver-ce
 
-      # Tycho materializes every environment from the root pom.xml; only the runner's own platform is uploaded.
+      # Tycho materializes every environment from the root pom.xml; each job uploads only the product its matrix entry names.
       - name: Upload Windows x64 product
         if: runner.os == 'Windows'
         uses: actions/upload-artifact@v7
@@ -85,14 +87,21 @@ jobs:
           retention-days: 7
 
       # upload-artifact does not keep Unix file permissions, so the .app is packed with tar first
-      # to keep the launcher executable bits.
+      # to keep the launcher executable bits. p2's chmod touchpoint ignores chmod failures, so the
+      # launcher bit is checked before packing instead of shipping an .app that cannot start.
       - name: Pack macOS arm64 product
-        if: runner.os == 'macOS'
+        if: runner.os == 'Linux'
         shell: bash
-        run: tar -czf "$RUNNER_TEMP/chromite-macos-aarch64.tar.gz" -C "$PRODUCTS_DIR/macosx/cocoa/aarch64" Chromite.app
+        run: |
+          app_dir="$PRODUCTS_DIR/macosx/cocoa/aarch64/Chromite.app"
+          if [ ! -x "$app_dir/Contents/MacOS/chromite" ]; then
+            echo "::error::$app_dir/Contents/MacOS/chromite is missing or not executable"
+            exit 1
+          fi
+          tar -czf "$RUNNER_TEMP/chromite-macos-aarch64.tar.gz" -C "$PRODUCTS_DIR/macosx/cocoa/aarch64" Chromite.app
 
       - name: Upload macOS arm64 product
-        if: runner.os == 'macOS'
+        if: runner.os == 'Linux'
         uses: actions/upload-artifact@v7
         with:
           name: chromite-macos-aarch64
