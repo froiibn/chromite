@@ -42,6 +42,7 @@ import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ComponentAdapter;
 import java.awt.event.ComponentEvent;
+import java.awt.event.HierarchyEvent;
 import java.awt.event.InputEvent;
 import java.awt.event.KeyEvent;
 import java.awt.event.WindowAdapter;
@@ -77,7 +78,9 @@ import java.util.function.IntConsumer;
  *     <li>Query 메뉴의 Execute(F5)와 Cancel Executing Query(Alt+Break)는 활성 편집기에 적용된다. 메뉴 단축키라 포커스가 결과 표에 있어도 동작한다.
  *     Complete(Ctrl+Space)는 활성 편집기의 자동완성을 띄우고, Auto-Complete While Typing은 글자 입력 뒤 자동완성 설정을 켜고 끈다({@link SqlCompletionPopup}).</li>
  *     <li>결과는 SSMS처럼 쿼리 창마다 따로 있다({@link QueryResultsView}). 아래 Results / Messages 탭에는 활성 편집기의 결과를 끼우고,
- *     편집기가 없으면 자리 표시 내용을 보여 준다. 편집기마다 마지막으로 본 탭(Results 또는 Messages)을 기억한다. 탭에서 빠져 있던 결과 컴포넌트는 테마 전환을 받지 못했을 수 있어, 끼울 때 Look and Feel을 맞춘다.</li>
+ *     편집기가 없으면 자리 표시 내용을 보여 준다. 편집기마다 마지막으로 본 탭(Results 또는 Messages)을 기억한다. 탭에서 빠져 있던 결과 컴포넌트는 테마 전환을 받지 못했을 수 있어, 끼울 때 Look and Feel을 맞춘다.
+ *     쿼리 상태 줄({@link QueryStatusLine})도 같은 방식으로, 활성 편집기의 줄을 Results 카드의 아래쪽(SSMS 쿼리 창 맨 아래)에 끼운다.
+ *     Results가 숨겨져 있으면 문서 카드의 아래쪽(편집기 아래)으로 옮긴다. 시작 탭과 DDL 탭에는 없다.</li>
  *     <li>File > New Connection과 도구 막대의 New Connection은 Object Explorer의 같은 명령으로 연결 대화상자({@link ConnectionDialog})를 연다.</li>
  *     <li>상태 표시줄의 연결 수는 모든 프로젝트의 연결 레지스트리 이벤트({@link DBPEventListener}, 연결 추가·삭제)를 받아 다시 센다.
  *     같은 이벤트의 연결 변경(이름 바꾸기, 연결, 끊기)은 그 연결을 쓰는 편집기의 탭 제목과 기본 스키마 콤보에 알린다.</li>
@@ -110,6 +113,7 @@ import java.util.function.IntConsumer;
  * - 2026-11-06 Islands: 캔버스 위 둥근 카드(Object Explorer, 문서, Results, Properties), 카드 사이 6px 틈의 분할선, 문서 탭 알약 모양 선택,
  *   주 도구 막대·상태 표시줄은 캔버스 (docs/chromite/design-spec.md "Islands 적용")
  * - 2026-11-06 P1: Edit·Tools·Window 메뉴(SSMS 순서) (docs/chromite/swing-frontend.md "P1 디자인 적용")
+ * - 2026-11-06 P1: 쿼리 상태 줄을 결과 아래에 둠 (docs/chromite/swing-frontend.md "P1 디자인 적용")
  */
 final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplorerPanel.QueryWindows {
 
@@ -136,6 +140,14 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
     private final JTabbedPane resultTabs;
     private final JComponent resultsPlaceholder;
     private final JComponent messagesPlaceholder;
+    /**
+     * Hold the active editor's query status line at the bottom of the query window (SSMS): inside the Results card below
+     * the results, or at the bottom of the document card while the Results tool window is hidden.
+     */
+    private final JPanel resultsStatusHolder = new JPanel(new BorderLayout());
+    private final JPanel documentStatusHolder = new JPanel(new BorderLayout());
+    @Nullable
+    private JComponent attachedStatusLine;
     private final ToolWindow resultsWindow;
     private final Action newQueryAction;
     private final Action openFileAction;
@@ -176,8 +188,24 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
         documentTabs = createDocumentTabs();
 
         JSplitPane documentSplit = createSplitPane(JSplitPane.VERTICAL_SPLIT);
-        // Islands: the document tabs and their editors are one card
-        documentSplit.setTopComponent(new IslandPanel(documentTabs));
+        // Islands: the document tabs and their editors are one card; the query status line goes to its bottom only
+        // while the Results card is hidden (attachStatusLine)
+        JPanel documentArea = new JPanel(new BorderLayout());
+        documentArea.add(documentTabs, BorderLayout.CENTER);
+        documentArea.add(documentStatusHolder, BorderLayout.SOUTH);
+        documentSplit.setTopComponent(new IslandPanel(documentArea));
+        JPanel resultsArea = new JPanel(new BorderLayout());
+        resultsArea.setOpaque(false);
+        resultsArea.add(resultTabs, BorderLayout.CENTER);
+        resultsArea.add(resultsStatusHolder, BorderLayout.SOUTH);
+        // The status line follows the Results card when it is hidden or shown again (Ctrl+R, hide button)
+        resultsArea.addHierarchyListener(e -> {
+            if ((e.getChangeFlags() & HierarchyEvent.SHOWING_CHANGED) != 0) {
+                placeStatusLine();
+            }
+        });
+        resultsStatusHolder.setVisible(false);
+        documentStatusHolder.setVisible(false);
         JSplitPane propertiesSplit = createSplitPane(JSplitPane.HORIZONTAL_SPLIT);
         propertiesSplit.setLeftComponent(documentSplit);
         JSplitPane explorerSplit = createSplitPane(JSplitPane.HORIZONTAL_SPLIT);
@@ -191,7 +219,7 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
             KeyStroke.getKeyStroke(KeyEvent.VK_F4, 0));
         // The Results/Messages tabs are their own header; the hide button sits next to the tabs
         resultsWindow = new ToolWindow("results", "Results", false, //$NON-NLS-1$
-            resultTabs, documentSplit, false, 220,
+            resultsArea, documentSplit, false, 220,
             KeyStroke.getKeyStroke(KeyEvent.VK_R, InputEvent.CTRL_DOWN_MASK));
         // The trailing component fills the rest of the tab row; keep the button at its right end
         JPanel resultTabsTrailing = new JPanel(new FlowLayout(FlowLayout.RIGHT, 2, 0));
@@ -731,23 +759,62 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
         } finally {
             switchingResults = false;
         }
+        attachStatusLine(editor != null ? editor.getStatusLine() : null);
         updateQueryActions();
     }
 
     /**
      * Puts an editor's results component into the Results / Messages tab. Components of inactive editors are not in
-     * the window and miss theme switches, so their look and feel is brought up to date here.
+     * the window and miss theme switches, so their look and feel is brought up to date here (also for the status line).
      */
     private void attachResultTab(int index, @NotNull JComponent component) {
         if (resultTabs.getComponentAt(index) == component) {
             return;
         }
+        updateLookAndFeel(component);
+        resultTabs.setComponentAt(index, component);
+    }
+
+    private static void updateLookAndFeel(@NotNull JComponent component) {
         LookAndFeel lookAndFeel = UIManager.getLookAndFeel();
         if (component.getClientProperty(UPDATED_LAF_KEY) != lookAndFeel) {
             SwingUtilities.updateComponentTreeUI(component);
             component.putClientProperty(UPDATED_LAF_KEY, lookAndFeel);
         }
-        resultTabs.setComponentAt(index, component);
+    }
+
+    /**
+     * Shows the active editor's query status line at the bottom of the query window; other documents (Welcome, DDL)
+     * have none.
+     */
+    private void attachStatusLine(@Nullable JComponent statusLine) {
+        if (statusLine == attachedStatusLine) {
+            return;
+        }
+        attachedStatusLine = statusLine;
+        if (statusLine != null) {
+            updateLookAndFeel(statusLine);
+        }
+        placeStatusLine();
+    }
+
+    /**
+     * Puts the status line below the results (SSMS), or below the editor while the Results card is hidden.
+     */
+    private void placeStatusLine() {
+        JPanel target = resultsWindow != null && resultsWindow.isShown() ? resultsStatusHolder : documentStatusHolder;
+        for (JPanel holder : List.of(resultsStatusHolder, documentStatusHolder)) {
+            boolean show = holder == target && attachedStatusLine != null;
+            if (show && (holder.getComponentCount() == 0 || holder.getComponent(0) != attachedStatusLine)) {
+                holder.removeAll();
+                holder.add(attachedStatusLine, BorderLayout.CENTER);
+            } else if (!show) {
+                holder.removeAll();
+            }
+            holder.setVisible(show);
+            holder.revalidate();
+            holder.repaint();
+        }
     }
 
     private void updateQueryActions() {

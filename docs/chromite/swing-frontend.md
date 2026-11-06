@@ -1498,6 +1498,8 @@ Swing 제품에는 그 번들이 없다. 그래서 범용 칸(Login, Password)�
 | `OptionsDialog`(새 파일) | Tools > Options: 테마, 아이콘 스타일, 입력 중 자동완성, 자동완성 지연, 최대 행 수 |
 | `MainFrame` | 메뉴 순서 File, Edit, View, Query, Tools, Window, Help, Window 메뉴(Reset Window Layout, 열린 문서 탭), 탭 닫기 단추·가운데 단추, 쿼리 상태 줄 자리 |
 | `ToolWindow` | 기본 크기로 되돌리기(`reset`) |
+| `SqlEditorPanel`, `DdlViewerPanel` | 편집기 찾기 키, 상태 줄 `QueryStatusLine`, 탭 도구 설명(전체 경로, 연결·서버) |
+| `QueryStatusLine`(새 파일) | SSMS 쿼리 상태 줄: 상태 아이콘, 문구, 서버, 사용자, DB/스키마, 시간, 행 수 |
 
 ### 결과 그리드 머리글이 잘려 보이던 것 (근본 원인)
 
@@ -1526,6 +1528,14 @@ Swing 제품에는 그 번들이 없다. 그래서 범용 칸(Login, Password)�
   같은 설정을 보이는 메뉴 항목(View > Theme, Icon Style, Query > Auto-Complete While Typing)은 메뉴를 열 때 현재 값으로 맞춘다.
   자동완성 설정의 기본값은 처음 읽을 때 선언한다(편집기를 열기 전에 Options를 열어도 기본값이 보이게).
 - **Window**: Reset Window Layout(도구 창을 모두 보이고 기본 크기로), 열린 문서 탭 목록(활성 탭에 표시, 고르면 그 탭으로).
+
+### 쿼리 상태 줄 (SSMS)
+
+- `QueryStatusLine`: 상태 아이콘 16 + 문구 │ 서버 │ 사용자 │ DB/스키마 │ 경과 시간 │ 행 수. 높이 28, 위 1px 선, 글자 `text.secondary`, 칸 사이 1px 구분선.
+  상태 아이콘은 실행 전 연결 아이콘(연결되어 있으면 초록 상태 점), 실행 중 ▶, 성공 체크, 오류, 취소 경고다.
+- 서버는 호스트[:포트], 파일 DB는 파일 이름이고, 도구 설명에 전체 URL·경로와 DB 제품 버전(SSMS의 "서버 (버전)")을 둔다. 사용자는 연결의 사용자 이름, DB/스키마는 편집기 도구 막대의 기본 DB/스키마 콤보 값이다. 빈 칸은 숨긴다.
+- 위치: SSMS처럼 쿼리 창 맨 아래 = Results 카드의 아래쪽. Results를 숨기면(Ctrl+R) 문서 카드의 아래쪽(편집기 아래)으로 옮긴다. 시작 탭·DDL 탭에는 없다.
+  상태 줄은 편집기마다 있고 메인 창이 활성 편집기의 것을 끼운다(결과 탭과 같은 방식, 탭에서 빠져 있던 동안의 테마 전환을 끼울 때 맞춤).
 
 ## 변경 이력
 
