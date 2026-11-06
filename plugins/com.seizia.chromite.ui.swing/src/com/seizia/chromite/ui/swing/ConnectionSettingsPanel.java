@@ -96,6 +96,7 @@ import java.util.Set;
  *   연결 직후 SQL. 저장 순서에서 URL을 속성 표 뒤로 옮김 (docs/chromite/swing-conn-advanced.md)
  * - 2026-11-06 화면 문구를 ConnectionMessages로 옮김(OS 언어를 따름). 빠진 값 안내는 조각을 잇지 않고 칸마다 문장 하나
  * - 2026-11-07 오류 문구를 {@link ErrorText}로 만듦(클래스 이름이 화면에 나오지 않게, docs/chromite/swing-frontend.md "오류 문구")
+ * - 2026-11-07 {@link #focusAutoCommit()}: 쿼리 상태 줄의 커밋 방식 칸에서 이 설정으로 안내 (docs/chromite/swing-frontend.md "자동 커밋 상태")
  */
 final class ConnectionSettingsPanel extends JPanel {
 
@@ -273,6 +274,17 @@ final class ConnectionSettingsPanel extends JPanel {
         optionsTabs.setVisible(visible);
         revalidate();
         loadDriverPropertiesIfShown();
+    }
+
+    /**
+     * Shows the Connection properties tab with the Auto-commit field focused (the query status line's commit mode
+     * segment opens the connection's settings here). The caller sizes the dialog for the shown tabs.
+     */
+    void focusAutoCommit() {
+        setOptionsVisible(true);
+        optionsTabs.setSelectedIndex(0);
+        autoCommitCombo.requestFocusInWindow();
+        autoCommitCombo.scrollRectToVisible(new Rectangle(autoCommitCombo.getSize()));
     }
 
     void focusFirstField() {

@@ -16,13 +16,11 @@
  */
 package com.seizia.chromite.ui.swing;
 
-import com.formdev.flatlaf.FlatClientProperties;
 import com.seizia.chromite.model.sql.exec.SQLActualPlanProvider;
 import com.seizia.chromite.model.sql.exec.SQLQueryExecuteHandler;
 import com.seizia.chromite.model.sql.exec.SQLQueryExecuteJob;
 import com.seizia.chromite.model.sql.exec.SQLScriptBatches;
 import com.seizia.chromite.ui.swing.internal.EditorMessages;
-import com.seizia.chromite.ui.swing.internal.ToolbarMessages;
 import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.Status;
 import org.eclipse.core.runtime.jobs.IJobChangeEvent;
@@ -56,6 +54,7 @@ import com.seizia.chromite.model.exec.DBCSession;
 import com.seizia.chromite.model.exec.DBCStatement;
 import com.seizia.chromite.model.exec.DBCStatementType;
 import com.seizia.chromite.model.exec.DBCStatistics;
+import com.seizia.chromite.model.exec.DBCTransactionManager;
 import com.seizia.chromite.model.exec.DBExecUtils;
 import com.seizia.chromite.model.exec.plan.DBCQueryPlanner;
 import com.seizia.chromite.model.impl.struct.ContextDefaultObjectsReader;
@@ -116,7 +115,7 @@ import java.util.concurrent.atomic.AtomicLong;
  *     {@code SqlEditorDark.xml})에 사용자가 바꾼 색({@link EditorColors})을 덮어 정하고, 글꼴은 {@link EditorFont}다.
  *     Look and Feel이 바뀌면({@code updateUI}) 현재 테마의 색을 다시 적용한다. 단어 분류(키워드, 함수, 연산자)는 연결의 SQL 방언을 따른다
  *     ({@link SqlTokenClassifier}).</li>
- *     <li>F5(메인 창 Query 메뉴)와 Execute 단추는 선택이 1자 이상이면 선택한 부분만, 아니면 전체를 실행한다
+ *     <li>F5(메인 창 Query 메뉴)와 메인 창 SQL Editor 도구 막대의 Execute 단추는 선택이 1자 이상이면 선택한 부분만, 아니면 전체를 실행한다
  *     (swing-frontend.md "쿼리 실행 사양"). 범위는 전체 텍스트 안의 위치로 넘겨 쿼리 위치가 편집기 위치와 같게 한다(오류 줄 번호).</li>
  *     <li>실행은 두 Job으로 나눈다. 준비 Job이 연결(필요하면 {@link SwingConnectionService}), 실행 문맥, 문장 나누기
  *     ({@link SQLScriptBatches}: SQL Server 등은 {@code GO} 배치 단위)를 하고, 실행 엔진 {@link SQLQueryExecuteJob}을 예약한다.
@@ -129,8 +128,12 @@ import java.util.concurrent.atomic.AtomicLong;
  *     <li>커밋 방식, 오류 처리 방식, 최대 행 수는 엔진 기본값(SWT 편집기 설정 기본값, 연결의 최대 행 수 설정)을 쓴다.
  *     "Select Top N Rows"로 연 편집기는 N행까지 가져오도록 최대 행 수를 키운다({@link #setMaxRows}).
  *     실행 문맥은 연결의 기본(주) 문맥이다(편집기별 별도 연결은 아직 없음).</li>
- *     <li>연결: 편집기는 연결 없이 열 수 있다(파일 열기). 도구 막대의 연결 콤보(SSMS의 연결 바꾸기)로 연결을 고르거나 바꾸고,
+ *     <li>연결: 편집기는 연결 없이 열 수 있다(파일 열기). 연결 콤보(SSMS의 연결 바꾸기)로 연결을 고르거나 바꾸고,
  *     실행 중에는 바꿀 수 없다. 목록은 콤보를 열 때 활성 프로젝트의 연결로 다시 채운다(추가·삭제·이름 변경 반영).</li>
+ *     <li>도구 막대(2026-11-07 사용자 결정, SSMS): 쿼리 창마다의 도구 막대는 없다. 실행·중지·계획·편집 명령은 메인 창의 SQL Editor 도구 막대
+ *     ({@link SqlEditorToolBar}, 둘째 줄)가 활성 쿼리 창에 적용한다. 연결·DB 콤보는 이 창의 상태(모델, 리스너, 켜짐)라 이 창이 만들고 가지며,
+ *     메인 창이 활성 창의 콤보를 그 도구 막대에 끼운다(결과 탭·상태 줄과 같은 방식). 단추의 켜짐은 {@link #canExecute()}, {@link #canCancel()},
+ *     {@link #canExplain()}으로 메인 창이 정하고, 바뀔 때 {@link Host#executionStateChanged}로 알린다.</li>
  *     <li>기본 DB/스키마 콤보(SSMS의 "Available Databases"): SWT의 활성 스키마 선택({@code SelectActiveSchemaHandler})과 같은 모델 API를 쓴다.
  *     목록과 현재 값은 {@link ContextDefaultObjectsReader}, 바꾸기는 {@link DBExecUtils#setExecutionContextDefaults}다(둘 다 작업 스레드).
  *     실행 문맥이 연결의 기본 문맥이라 같은 연결의 다른 편집기에도 적용된다. 연결되어 있지 않거나 문맥이 바꾸기를 지원하지 않으면 끈다.</li>
@@ -150,7 +153,7 @@ import java.util.concurrent.atomic.AtomicLong;
  *     <li>편집 명령: SQL 서식(Ctrl+K Ctrl+D, Ctrl+Shift+F), 대문자·소문자(Ctrl+Shift+U/L), 주석 넣기·빼기(Ctrl+K Ctrl+C / Ctrl+K Ctrl+U),
  *     들여쓰기({@link SqlEditCommands}), 템플릿(이름 + Tab, Ctrl+K Ctrl+X 목록, {@link SqlTemplates})은 편집 영역({@link SqlTextArea})이 직접 키를 받는다.
  *     Ctrl+K로 시작하는 두 번 누르는 키는 편집 영역의 키 리스너가 두 번째 키를 받아 처리한다(키 바인딩보다 먼저 불려 Ctrl+C 복사 등을 막는다).
- *     도구 막대의 주석·들여쓰기·서식 단추도 같은 명령({@link SqlTextArea#runCommand})을 부른다.</li>
+ *     SQL Editor 도구 막대의 주석·들여쓰기·서식 단추도 같은 명령({@link SqlTextArea#runCommand})을 부른다.</li>
  * </ul>
  *
  * 변경 이력:
@@ -185,6 +188,11 @@ import java.util.concurrent.atomic.AtomicLong;
  *   좁은 창에서는 콤보를 줄이고 넘치는 단추를 넘침 메뉴로 ({@link OverflowToolBar}) (docs/chromite/swing-frontend.md "도구 막대")
  * - 2026-11-07 오류 문구를 {@link ErrorText}로 만듦(클래스 이름이 화면에 나오지 않게, docs/chromite/swing-frontend.md "오류 문구")
  * - 2026-11-07 밀도 B: 치수를 테마의 Chromite.size.* 키({@link UiSizes})에서 읽음 (docs/chromite/design-spec.md "치수 토큰")
+ * - 2026-11-07 쿼리 창 도구 막대 삭제(사용자 결정: SSMS처럼 메인 창 둘째 줄의 SQL Editor 도구 막대 {@link SqlEditorToolBar}).
+ *   실행·중지·계획 동작과 실제 계획 토글 단추, {@code Host#openQueryHistory}를 지우고, 연결·DB 콤보는 메인 창이 끼우도록 내줌
+ *   (docs/chromite/swing-frontend.md "SQL Editor 도구 막대")
+ * - 2026-11-07 상태 줄의 커밋 방식: 실행 컨텍스트의 실제 자동 커밋 상태를 작업 스레드에서 읽어 보임({@link #refreshTransactionMode}),
+ *   칸을 누르면 연결 설정의 Auto-commit으로 안내 (docs/chromite/swing-frontend.md "자동 커밋 상태")
  */
 final class SqlEditorPanel extends JPanel {
 
@@ -202,7 +210,8 @@ final class SqlEditorPanel extends JPanel {
         void showResults(@NotNull SqlEditorPanel editor, boolean messages);
 
         /**
-         * Execution started or finished (Query menu state).
+         * Execution or a plan started or finished, or a stop was requested: what can run now changed (Query menu and
+         * SQL Editor tool bar state, {@link #canExecute()}).
          */
         void executionStateChanged(@NotNull SqlEditorPanel editor);
 
@@ -215,14 +224,16 @@ final class SqlEditorPanel extends JPanel {
          * Brings the Execution plan tab of the editor to the front.
          */
         void showPlan(@NotNull SqlEditorPanel editor);
-
-        /**
-         * Query &gt; Query History (the tool bar's Query History button).
-         */
-        void openQueryHistory();
     }
 
     private static final String NOT_AVAILABLE = "< N/A >"; //$NON-NLS-1$
+    /**
+     * Widths of the connection and database/schema pickers, also of the empty pickers shown without a query window so
+     * that the tool bar does not move.
+     */
+    static final int CONNECTION_PICKER_WIDTH = 260;
+    static final int SCHEMA_PICKER_WIDTH = 200;
+    private static final int PICKER_MIN_WIDTH = 100;
 
     private final Host host;
     // EDT only
@@ -242,6 +253,8 @@ final class SqlEditorPanel extends JPanel {
     private boolean updatingCombos;
     private boolean schemaChangeSupported;
     private int schemaSerial;
+    // EDT only: a newer read of the auto-commit state replaces older ones still running
+    private int transactionSerial;
     @Nullable
     private SchemaState schemaState;
     private final SqlTextArea textArea;
@@ -266,10 +279,8 @@ final class SqlEditorPanel extends JPanel {
             }
         }
     });
-    private final Action executeAction;
-    private final Action cancelAction;
-    private final Action estimatedPlanAction;
-    private final JToggleButton actualPlanButton = new JToggleButton(EditorMessages.editor_sql_actual_plan);
+    // EDT only: Query > Include Actual Execution Plan for this window
+    private boolean includeActualPlan;
     private final ExecutionPlanView planView = new ExecutionPlanView();
     // EDT only
     private boolean explaining;
@@ -286,7 +297,7 @@ final class SqlEditorPanel extends JPanel {
     private Runnable executionFinishedListener;
 
     /**
-     * @param dataSourceContainer connection of the query window, or null to choose it later in the tool bar
+     * @param dataSourceContainer connection of the query window, or null to choose it later with the connection picker
      * @param fileName            name of the new query ({@code SQLQueryN.sql}) until it is saved to a file
      */
     SqlEditorPanel(@Nullable DBPDataSourceContainer dataSourceContainer, @NotNull String fileName, @NotNull Host host) {
@@ -296,35 +307,6 @@ final class SqlEditorPanel extends JPanel {
         this.fileFormat = SqlFileContent.newFile("");
         this.host = host;
 
-        executeAction = new AbstractAction(EditorMessages.editor_common_execute) {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                execute();
-            }
-        };
-        executeAction.putValue(Action.SHORT_DESCRIPTION, EditorMessages.editor_sql_execute_tip);
-        cancelAction = new AbstractAction(EditorMessages.editor_sql_cancel) {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                cancel();
-            }
-        };
-        cancelAction.putValue(Action.SHORT_DESCRIPTION, EditorMessages.editor_sql_cancel_tip);
-        cancelAction.setEnabled(false);
-        estimatedPlanAction = new AbstractAction(EditorMessages.editor_sql_estimated_plan) {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                explainEstimatedPlan();
-            }
-        };
-        estimatedPlanAction.putValue(Action.SHORT_DESCRIPTION, EditorMessages.editor_sql_estimated_plan_tip);
-        actualPlanButton.setToolTipText(EditorMessages.editor_sql_actual_plan_tip);
-        actualPlanButton.setIcon(UiIcons.get("plan")); //$NON-NLS-1$
-        actualPlanButton.putClientProperty(FlatClientProperties.BUTTON_TYPE, FlatClientProperties.BUTTON_TYPE_TOOLBAR_BUTTON);
-        actualPlanButton.putClientProperty(FlatClientProperties.STYLE, "arc: 6"); //$NON-NLS-1$
-        actualPlanButton.setFocusable(false);
-        actualPlanButton.addActionListener(e -> host.executionStateChanged(this));
-
         textArea = new SqlTextArea();
         completion = new SqlCompletionPopup(textArea, () -> dataSourceContainer);
         RTextScrollPane scrollPane = new RTextScrollPane(textArea, true);
@@ -332,7 +314,7 @@ final class SqlEditorPanel extends JPanel {
         // The gutter takes its colors from the theme too, so the theme is applied once the scroll pane exists
         textArea.applyTheme();
 
-        add(createToolBar(), BorderLayout.NORTH);
+        createPickers();
         add(scrollPane, BorderLayout.CENTER);
 
         elapsedTimer = new Timer(250, e -> {
@@ -341,6 +323,12 @@ final class SqlEditorPanel extends JPanel {
             }
         });
         statusLine.setConnection(dataSourceContainer);
+        // The commit mode segment only leads to the connection's Auto-commit setting (user decision 2026-11-07)
+        statusLine.setTransactionAction(() -> {
+            if (this.dataSourceContainer != null) {
+                ConnectionCommands.editAutoCommit(this, this.dataSourceContainer);
+            }
+        });
         textArea.addCaretListener(e -> updateCaretPosition());
         updateCaretPosition();
         textArea.getDocument().addDocumentListener(new DocumentListener() {
@@ -442,17 +430,14 @@ final class SqlEditorPanel extends JPanel {
     }
 
     /**
-     * Makes this window a window of another document kind (a Query Library query): its header goes below the tool bar,
+     * Makes this window a window of another document kind (a Query Library query): its header goes above the editor,
      * and saving, the tab icon and parameter binding come from the extension.
      */
     void setExtension(@NotNull SqlEditorExtension extension) {
         this.extension = extension;
         JComponent header = extension.getHeader();
-        if (header != null && ((BorderLayout) getLayout()).getLayoutComponent(BorderLayout.NORTH) instanceof JComponent toolBar) {
-            JPanel north = new JPanel(new BorderLayout());
-            north.add(toolBar, BorderLayout.NORTH);
-            north.add(header, BorderLayout.CENTER);
-            add(north, BorderLayout.NORTH);
+        if (header != null) {
+            add(header, BorderLayout.NORTH);
         }
         host.titleChanged(this);
     }
@@ -530,11 +515,11 @@ final class SqlEditorPanel extends JPanel {
      * Query &gt; Include Actual Execution Plan (Ctrl+M), per query window.
      */
     boolean isIncludeActualPlan() {
-        return actualPlanButton.isSelected();
+        return includeActualPlan;
     }
 
     void setIncludeActualPlan(boolean include) {
-        actualPlanButton.setSelected(include);
+        includeActualPlan = include;
         statusLine.setState(QueryStatusLine.State.READY, include
             ? EditorMessages.editor_sql_actual_plan_on : EditorMessages.editor_sql_actual_plan_off);
     }
@@ -638,24 +623,13 @@ final class SqlEditorPanel extends JPanel {
     }
 
     /**
-     * SSMS query tool bar in DataGrip style: [▶ Execute] (green icon and text) [■] (icon only) | [plans] | [connection ▾] |
-     * [database/schema ▾] | [Comment] [Uncomment] | [Decrease Indent] [Increase Indent] | [Format SQL] | [Query History].
-     * The editing buttons run the Edit &gt; Advanced commands on this window's text; in a narrow window the combos get
-     * narrower first, then the last buttons go into the overflow menu ({@link OverflowToolBar}).
+     * The connection and default database/schema pickers. They belong to this window (their models and listeners are its
+     * state); the main window shows the active window's pickers in its SQL Editor tool bar ({@link SqlEditorToolBar}).
      */
-    @NotNull
-    private JComponent createToolBar() {
-        JToolBar toolBar = new OverflowToolBar();
-        toolBar.add(UiIcons.createToolButton(executeAction, "run")); //$NON-NLS-1$
-        toolBar.add(UiIcons.createActionButton(cancelAction, "stop")); //$NON-NLS-1$
-        toolBar.addSeparator();
-        toolBar.add(UiIcons.createActionButton(estimatedPlanAction, "plan")); //$NON-NLS-1$
-        toolBar.add(actualPlanButton);
-        toolBar.addSeparator();
-
+    private void createPickers() {
         connectionCombo.setToolTipText(EditorMessages.editor_sql_connection_tip);
         connectionCombo.setRenderer(new ConnectionRenderer());
-        setFixedWidth(connectionCombo, 260);
+        sizePicker(connectionCombo, CONNECTION_PICKER_WIDTH);
         connectionCombo.addActionListener(e -> {
             if (!updatingCombos && connectionCombo.getSelectedItem() instanceof DBPDataSourceContainer selected && selected != dataSourceContainer) {
                 dataSourceContainer = selected;
@@ -680,63 +654,42 @@ final class SqlEditorPanel extends JPanel {
             public void popupMenuCanceled(PopupMenuEvent e) {
             }
         });
-        toolBar.add(connectionCombo);
-        toolBar.addSeparator();
 
         schemaCombo.setToolTipText(EditorMessages.editor_sql_schema_tip);
         schemaCombo.setRenderer(new SchemaRenderer());
-        setFixedWidth(schemaCombo, 200);
+        sizePicker(schemaCombo, SCHEMA_PICKER_WIDTH);
         schemaCombo.addActionListener(e -> {
             if (!updatingCombos && schemaCombo.getSelectedItem() instanceof DBSObject selected) {
                 changeDefaultObject(selected);
             }
         });
-        toolBar.add(schemaCombo);
-        // At 1920px and 150% with Object Explorer and Properties open the query window is about 640 wide: the combos give way first
-        OverflowToolBar.setShrinkable(connectionCombo, 100);
-        OverflowToolBar.setShrinkable(schemaCombo, 100);
-        toolBar.addSeparator();
-        toolBar.add(createCommandButton(ToolbarMessages.toolbar_comment, ToolbarMessages.toolbar_comment_tip, "comment", SqlTextArea.Command.COMMENT)); //$NON-NLS-1$
-        toolBar.add(createCommandButton(ToolbarMessages.toolbar_uncomment, ToolbarMessages.toolbar_uncomment_tip, "uncomment", SqlTextArea.Command.UNCOMMENT)); //$NON-NLS-1$
-        toolBar.addSeparator();
-        toolBar.add(createCommandButton(ToolbarMessages.toolbar_outdent, ToolbarMessages.toolbar_outdent_tip, "outdent", SqlTextArea.Command.OUTDENT)); //$NON-NLS-1$
-        toolBar.add(createCommandButton(ToolbarMessages.toolbar_indent, ToolbarMessages.toolbar_indent_tip, "indent", SqlTextArea.Command.INDENT)); //$NON-NLS-1$
-        toolBar.addSeparator();
-        toolBar.add(createCommandButton(ToolbarMessages.toolbar_format, ToolbarMessages.toolbar_format_tip, "format", SqlTextArea.Command.FORMAT)); //$NON-NLS-1$
-        toolBar.addSeparator();
-        Action historyAction = new AbstractAction(ToolbarMessages.toolbar_query_history) {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                host.openQueryHistory();
-            }
-        };
-        historyAction.putValue(Action.SHORT_DESCRIPTION, ToolbarMessages.toolbar_query_history_tip);
-        toolBar.add(UiIcons.createActionButton(historyAction, "history")); //$NON-NLS-1$
-        // size.toolbar.editor with size.control 28 combos
-        toolBar.setBorder(UiSizes.createPadding(UiSizes.EDITOR_TOOL_BAR_PADDING));
-        return toolBar;
     }
 
     /**
-     * Icon button of an editing command: the same command as Edit &gt; Advanced (the text area keeps the focus).
+     * Connection picker of this window, shown in the main window's SQL Editor tool bar while this window is active.
      */
     @NotNull
-    private JButton createCommandButton(@NotNull String name, @NotNull String toolTip, @NotNull String iconId, @NotNull SqlTextArea.Command command) {
-        Action action = new AbstractAction(name) {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                textArea.requestFocusInWindow();
-                textArea.runCommand(command);
-            }
-        };
-        action.putValue(Action.SHORT_DESCRIPTION, toolTip);
-        return UiIcons.createActionButton(action, iconId);
+    JComboBox<DBPDataSourceContainer> getConnectionCombo() {
+        return connectionCombo;
     }
 
-    private static void setFixedWidth(@NotNull JComponent component, int width) {
-        Dimension size = new Dimension(width, component.getPreferredSize().height);
-        component.setPreferredSize(size);
-        component.setMaximumSize(size);
+    /**
+     * Default database/schema picker of this window, shown like {@link #getConnectionCombo()}.
+     */
+    @NotNull
+    JComboBox<Object> getSchemaCombo() {
+        return schemaCombo;
+    }
+
+    /**
+     * Fixed width of a picker in the SQL Editor tool bar. In a narrow main window the pickers give way (down to
+     * {@link #PICKER_MIN_WIDTH}) before the tool bar's buttons overflow ({@link OverflowToolBar}).
+     */
+    static void sizePicker(@NotNull JComboBox<?> combo, int width) {
+        Dimension size = new Dimension(width, combo.getPreferredSize().height);
+        combo.setPreferredSize(size);
+        combo.setMaximumSize(size);
+        OverflowToolBar.setShrinkable(combo, PICKER_MIN_WIDTH);
     }
 
     //////////////////////////////////////////////////////////
@@ -837,13 +790,32 @@ final class SqlEditorPanel extends JPanel {
             }
         }
         statusLine.setState(QueryStatusLine.State.EXECUTING, EditorMessages.editor_sql_canceling);
-        cancelAction.setEnabled(false);
+        // Stop is disabled once it was pressed
+        host.executionStateChanged(this);
+    }
+
+    /**
+     * Whether Execute can start now (the main window's Query menu and SQL Editor tool bar ask).
+     */
+    boolean canExecute() {
+        return execution == null && !explaining && !resultsView.isSaving();
+    }
+
+    /**
+     * Whether a run is going on that was not asked to stop yet.
+     */
+    boolean canCancel() {
+        return execution != null && !execution.cancelRequested;
+    }
+
+    /**
+     * Whether Display Estimated Execution Plan can start now.
+     */
+    boolean canExplain() {
+        return execution == null && !explaining;
     }
 
     private void updateActions() {
-        executeAction.setEnabled(execution == null && !explaining && !resultsView.isSaving());
-        estimatedPlanAction.setEnabled(execution == null && !explaining);
-        cancelAction.setEnabled(execution != null && !execution.cancelRequested);
         // The connection and its defaults stay as they are while a query runs on them
         connectionCombo.setEnabled(execution == null);
         schemaCombo.setEnabled(execution == null && schemaChangeSupported);
@@ -1559,8 +1531,10 @@ final class SqlEditorPanel extends JPanel {
     private void refreshSchemas() {
         int serial = ++schemaSerial;
         DBPDataSourceContainer container = dataSourceContainer;
-        // Every connection change ends here: the highlighting follows the connection's SQL dialect too
+        // Every connection change ends here (choosing a connection, connect, disconnect, the end of a run): the
+        // highlighting follows the connection's SQL dialect, and the status line its commit mode
         textArea.setDataSourceContainer(container);
+        refreshTransactionMode();
         DBPDataSource dataSource = container != null && container.isConnected() ? container.getDataSource() : null;
         if (dataSource == null) {
             showSchemas(serial, null);
@@ -1585,6 +1559,45 @@ final class SqlEditorPanel extends JPanel {
                 }
                 SchemaState finalState = state;
                 SwingUtilities.invokeLater(() -> showSchemas(serial, finalState));
+                return Status.OK_STATUS;
+            }
+        }.schedule();
+    }
+
+    /**
+     * Shows the commit mode (auto-commit or manual) of the execution context this window runs in, the connection's
+     * main context, as the SWT auto-commit tool bar item reads it ({@code DataSourceAutoCommitHandler#updateElement}).
+     * The context caches the mode, but its first read after connecting asks the driver, so it is read in a job. Hidden
+     * while not connected. Also called by the main window when this window becomes active: another window on the
+     * same connection shares the context.
+     */
+    void refreshTransactionMode() {
+        int serial = ++transactionSerial;
+        DBPDataSourceContainer container = dataSourceContainer;
+        DBPDataSource dataSource = container != null && container.isConnected() ? container.getDataSource() : null;
+        if (dataSource == null) {
+            statusLine.setAutoCommit(null);
+            return;
+        }
+        new AbstractJob("Read commit mode of " + container.getName()) {
+            @NotNull
+            @Override
+            protected IStatus run(@NotNull DBRProgressMonitor monitor) {
+                Boolean autoCommit = null;
+                DBCTransactionManager txnManager = DBUtils.getTransactionManager(DBUtils.getDefaultContext(dataSource.getDefaultInstance(), false));
+                if (txnManager != null) {
+                    try {
+                        autoCommit = txnManager.isAutoCommit();
+                    } catch (DBCException e) {
+                        log.debug("Can't read the auto-commit state of '" + container.getName() + "'", e);
+                    }
+                }
+                Boolean finalAutoCommit = autoCommit;
+                SwingUtilities.invokeLater(() -> {
+                    if (serial == transactionSerial) {
+                        statusLine.setAutoCommit(finalAutoCommit);
+                    }
+                });
                 return Status.OK_STATUS;
             }
         }.schedule();

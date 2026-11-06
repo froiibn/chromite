@@ -63,6 +63,7 @@ import java.awt.*;
  * - 2026-11-06 Registered Servers: 새 연결 명령이 만든 연결을 돌려준다(docs/chromite/swing-registered-servers.md)
  * - 2026-11-06 화면 문구를 ConnectionMessages로 옮김(OS 언어를 따름)
  * - 2026-11-07 연결 끊기 오류 대화상자 제목을 모델 Job 이름("Disconnect from '…'") 대신 지역화된 문구로 바꿈 (docs/chromite/swing-frontend.md "오류 문구")
+ * - 2026-11-07 {@link #editAutoCommit}: 연결 편집을 Auto-commit 칸에 초점을 두고 엶(쿼리 상태 줄의 커밋 방식 칸) (docs/chromite/swing-frontend.md "자동 커밋 상태")
  */
 final class ConnectionCommands {
 
@@ -86,6 +87,15 @@ final class ConnectionCommands {
     static void edit(@Nullable Component parent, @NotNull DBPDataSourceContainer dataSource) {
         if (dataSource instanceof DataSourceDescriptor descriptor) {
             ConnectionDialog.openEdit(getWindow(parent), descriptor);
+        }
+    }
+
+    /**
+     * Edit Connection with the Auto-commit field focused: where the commit mode is changed.
+     */
+    static void editAutoCommit(@Nullable Component parent, @NotNull DBPDataSourceContainer dataSource) {
+        if (dataSource instanceof DataSourceDescriptor descriptor) {
+            ConnectionDialog.openEditAutoCommit(getWindow(parent), descriptor);
         }
     }
 

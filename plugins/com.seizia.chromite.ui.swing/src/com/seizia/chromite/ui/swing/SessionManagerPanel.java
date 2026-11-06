@@ -18,6 +18,7 @@ package com.seizia.chromite.ui.swing;
 
 import com.formdev.flatlaf.FlatClientProperties;
 import com.formdev.flatlaf.util.UIScale;
+import com.seizia.chromite.model.admin.ServerAdminAccess;
 import com.seizia.chromite.model.admin.ServerAdminMessages;
 import com.seizia.chromite.model.admin.ServerAdminProfile;
 import com.seizia.chromite.ui.swing.internal.ConnectionMessages;
@@ -72,6 +73,8 @@ import java.util.Map;
  *     <li>세션 읽기 SQL을 만들 수 있으면({@link DBAServerSessionManagerSQL}) SWT의 "Open SQL editor"처럼 그 SQL을 새 쿼리 창에서 실행한다.</li>
  *     <li>아래 탭: Current SQL(읽기 전용 SQL 편집기), Details(세션의 모든 속성, {@link PropertyCollector}), 그리고 세션 관리자가 주는
  *     추가 세부 정보({@link DBAServerSessionDetailsProvider}, 예: Oracle long operations). 실행 계획 탭은 Swing 계획 보기가 없어 아직 없다.</li>
+ *     <li>로그인 권한({@link ServerAdminAccess})이 모자라면 도구 막대 아래 안내 줄({@link AccessNoticeBar})에 알리고, 세션을 읽을 수 없으면
+ *     읽지 않으며, 세션을 끝낼 권한이 없으면 명령 단추를 끈다.</li>
  * </ul>
  *
  * 변경 이력:
@@ -81,6 +84,7 @@ import java.util.Map;
  * - 2026-11-06 화면 문구를 ConnectionMessages로 옮김(OS 언어를 따름)
  * - 2026-11-07 오류 문구를 {@link ErrorText}로 만듦(클래스 이름이 화면에 나오지 않게, docs/chromite/swing-frontend.md "오류 문구")
  * - 2026-11-07 밀도 B: 치수를 테마의 Chromite.size.* 키({@link UiSizes})에서 읽음 (docs/chromite/design-spec.md "치수 토큰")
+ * - 2026-11-07 권한 안내 줄과 권한에 따른 명령 끄기(PostgreSQL·Oracle 세션·잠금, docs/chromite/swing-admin-tools.md)
  */
 final class SessionManagerPanel extends JPanel {
 
@@ -96,6 +100,7 @@ final class SessionManagerPanel extends JPanel {
      * Second row under the tool bar: the read options (check boxes); one row would not fit next to the commands.
      */
     private final JPanel filterBar = new JPanel(new FlowLayout(FlowLayout.LEFT, UIScale.scale(12), 0));
+    private final AccessNoticeBar noticeBar = new AccessNoticeBar();
     private final JLabel statusLabel = new JLabel(" ");
     private final SqlEditorPanel.SqlTextArea sqlText = new SqlEditorPanel.SqlTextArea();
     private final DefaultTableModel detailsModel = new DefaultTableModel(
@@ -209,7 +214,8 @@ final class SessionManagerPanel extends JPanel {
         JPanel north = new JPanel(new BorderLayout());
         north.setOpaque(false);
         north.add(toolBar, BorderLayout.NORTH);
-        north.add(filterBar, BorderLayout.SOUTH);
+        north.add(filterBar, BorderLayout.CENTER);
+        north.add(noticeBar, BorderLayout.SOUTH);
         add(north, BorderLayout.NORTH);
         add(split, BorderLayout.CENTER);
         add(statusLabel, BorderLayout.SOUTH);
@@ -226,6 +232,11 @@ final class SessionManagerPanel extends JPanel {
             if (manager == null) {
                 // Shown in the status line
                 throw new DBException(NLS.bind(ConnectionMessages.sessions_not_supported, session.getDataSource().getContainer().getDriver().getName()));
+            }
+            ServerAdminAccess access = profile.getAccess();
+            if (!access.canReadSessions()) {
+                // The views are not readable: say what to grant instead of the server error (also in the notice bar)
+                throw new DBException(access.notice());
             }
             Map<String, Object> options = new LinkedHashMap<>();
             for (ServerAdminProfile.FilterOption option : profile.getFilterOptions()) {
@@ -273,6 +284,7 @@ final class SessionManagerPanel extends JPanel {
         }
         toolsCreated = true;
         profile = connectedProfile;
+        noticeBar.setNotice(profile.getAccess().notice());
         // Created with the panel but added to it only now: a theme switch since then (e.g. while the Locks tab was shown)
         // did not reach them, as it updates only the components in a window
         SwingUtilities.updateComponentTreeUI(searchField);
@@ -388,8 +400,10 @@ final class SessionManagerPanel extends JPanel {
 
     private void updateActions() {
         List<DBAServerSession> selected = sessionTable.getSelectedObjects();
+        // Without the privilege (e.g. Oracle ALTER SYSTEM) the commands stay disabled; the notice bar says why
+        boolean allowed = profile == null || profile.getAccess().canEndSessions();
         for (int i = 0; i < actions.size(); i++) {
-            actionButtons.get(i).setEnabled(actions.get(i).isEnabled(selected));
+            actionButtons.get(i).setEnabled(allowed && actions.get(i).isEnabled(selected));
         }
     }
 

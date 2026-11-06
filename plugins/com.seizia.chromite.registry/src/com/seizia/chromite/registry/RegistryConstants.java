@@ -19,6 +19,10 @@ package com.seizia.chromite.registry;
 
 /**
  * Data source descriptors constants
+ *
+ * 변경 이력:
+ * - 2026-11-07 옛 XML 연결 설정 읽기({@code DataSourceSerializerLegacy})만 쓰던 태그·속성 이름을 지움
+ *   (docs/chromite/internal-rename.md "사용자 데이터 이전")
  */
 public class RegistryConstants {
 
@@ -181,19 +185,14 @@ public class RegistryConstants {
     public static final String ATTR_HANDLER_CLASS = "handlerClass"; //$NON-NLS-1$
     public static final String ATTR_SECURED = "secured"; //$NON-NLS-1$
 
-    public static final String TAG_DATA_SOURCE = "data-source"; //$NON-NLS-1$
     public static final String TAG_EVENT = "event"; //$NON-NLS-1$
     public static final String TAG_EVENTS = "events"; //$NON-NLS-1$
     public static final String TAG_AUTH_PROPERTIES = "auth-properties"; //$NON-NLS-1$
     public static final String TAG_MAIN_PROPERTIES = "main-properties"; //$NON-NLS-1$
     public static final String TAG_PROVIDER_PROPERTIES = "provider-properties"; //$NON-NLS-1$
-    public static final String TAG_PROVIDER_PROPERTY = "provider-property"; //$NON-NLS-1$
-    public static final String TAG_CUSTOM_PROPERTY = "custom-property"; //$NON-NLS-1$
     public static final String TAG_CUSTOM_PROPERTIES = "custom-properties"; //$NON-NLS-1$
-    public static final String TAG_NETWORK_HANDLER = "network-handler"; //$NON-NLS-1$
     public static final String TAG_HANDLERS = "handlers";
     public static final String TAG_DESCRIPTION = "description"; //$NON-NLS-1$
-    public static final String TAG_CONNECTION = "connection"; //$NON-NLS-1$
     public static final String TAG_BOOTSTRAP = "bootstrap"; //$NON-NLS-1$
     public static final String TAG_QUERY = "query"; //$NON-NLS-1$
 
@@ -204,8 +203,6 @@ public class RegistryConstants {
     public static final String ATTR_SHARED_CREDENTIALS = "shared-credentials"; //$NON-NLS-1$
 
     public static final String ATTR_READ_ONLY = "read-only"; //$NON-NLS-1$
-    public static final String ATTR_FILTER_CATALOG = "filter-catalog"; //$NON-NLS-1$
-    public static final String ATTR_FILTER_SCHEMA = "filter-schema"; //$NON-NLS-1$
     public static final String ATTR_HOST = "host"; //$NON-NLS-1$
     public static final String ATTR_SERVER = "server"; //$NON-NLS-1$
     public static final String ATTR_DATABASE = "database"; //$NON-NLS-1$
@@ -224,7 +221,6 @@ public class RegistryConstants {
     public static final String TAG_INCLUDE = "include"; //$NON-NLS-1$
     public static final String TAG_EXCLUDE = "exclude"; //$NON-NLS-1$
 
-    public static final String TAG_VIRTUAL_META_DATA = "virtual-meta-data"; //$NON-NLS-1$
     public static final String TAG_MODEL = "model"; //$NON-NLS-1$
 
     public static final String MAPPED_URL = "*";

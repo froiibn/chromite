@@ -18,6 +18,8 @@ package com.seizia.chromite.ui.swing;
 
 import com.formdev.flatlaf.FlatClientProperties;
 import com.formdev.flatlaf.util.UIScale;
+import com.seizia.chromite.model.admin.ServerAdminAccess;
+import com.seizia.chromite.model.admin.ServerAdminProfile;
 import com.seizia.chromite.ui.swing.internal.ConnectionMessages;
 import org.eclipse.osgi.util.NLS;
 import org.jkiss.code.NotNull;
@@ -56,6 +58,8 @@ import java.util.Set;
  *     <li>나무와 표의 선택은 서로 따라간다. 고른 잠금의 세션(기다리는 쪽)과 그 세션을 막는 세션의 잠금을 아래 두 표에 읽는다.</li>
  *     <li>"Kill Session"은 SWT의 "Kill waiting session"처럼 고른 행의 세션을 확인 후 끝낸다(뿌리를 고르면 막는 세션).</li>
  *     <li>잠금 관리자가 없는 DB(DBeaver·Chromite 모두 없음)는 안내만 보인다.</li>
+ *     <li>로그인 권한({@link ServerAdminAccess})이 모자라면 도구 막대 아래 안내 줄({@link AccessNoticeBar})에 알리고, 잠금 뷰를 읽을 수 없으면
+ *     읽지 않으며, 세션을 끝낼 권한이 없으면 Kill Session을 끈다.</li>
  * </ul>
  *
  * 변경 이력:
@@ -63,6 +67,7 @@ import java.util.Set;
  * - 2026-11-06 화면 문구를 ConnectionMessages로 옮김(OS 언어를 따름)
  * - 2026-11-07 오류 문구를 {@link ErrorText}로 만듦(클래스 이름이 화면에 나오지 않게, docs/chromite/swing-frontend.md "오류 문구")
  * - 2026-11-07 밀도 B: 치수를 테마의 Chromite.size.* 키({@link UiSizes})에서 읽음 (docs/chromite/design-spec.md "치수 토큰")
+ * - 2026-11-07 권한 안내 줄과 권한에 따른 Kill Session 끄기(PostgreSQL·Oracle 세션·잠금, docs/chromite/swing-admin-tools.md)
  */
 final class LockManagerPanel extends JPanel {
 
@@ -88,6 +93,7 @@ final class LockManagerPanel extends JPanel {
         }
     };
     private final JLabel statusLabel = new JLabel(" ");
+    private final AccessNoticeBar noticeBar = new AccessNoticeBar();
     private final AutoRefreshBox autoRefresh;
     private final Action killAction;
     private boolean loading;
@@ -181,7 +187,11 @@ final class LockManagerPanel extends JPanel {
         statusLabel.setBorder(BorderFactory.createEmptyBorder(UIScale.scale(4), UIScale.scale(10), UIScale.scale(4), UIScale.scale(10)));
         statusLabel.putClientProperty(FlatClientProperties.STYLE, "foreground: $Label.disabledForeground"); //$NON-NLS-1$
 
-        add(toolBar, BorderLayout.NORTH);
+        JPanel north = new JPanel(new BorderLayout());
+        north.setOpaque(false);
+        north.add(toolBar, BorderLayout.NORTH);
+        north.add(noticeBar, BorderLayout.SOUTH);
+        add(north, BorderLayout.NORTH);
         add(split, BorderLayout.CENTER);
         add(statusLabel, BorderLayout.SOUTH);
     }
@@ -217,10 +227,16 @@ final class LockManagerPanel extends JPanel {
             if (manager == null) {
                 return null;
             }
+            ServerAdminAccess access = profile.getAccess();
+            if (!access.canReadLocks()) {
+                // The views are not readable: say what to grant instead of the server error (also in the notice bar)
+                throw new DBException(access.notice());
+            }
             Map<?, DBAServerLock> locks = manager.getLocks(session, null);
             return new LockList(new ArrayList<>(locks.values()), manager.getLocksType());
         }, this::showLocks, error -> {
             loading = false;
+            showAccess();
             statusLabel.setText(NLS.bind(ConnectionMessages.common_status_error, ErrorText.describeLine(error)));
             statusLabel.setToolTipText(ErrorText.describeLine(error));
             log.debug("Error reading locks", error);
@@ -234,8 +250,22 @@ final class LockManagerPanel extends JPanel {
     private record LockList(@NotNull List<DBAServerLock> locks, @NotNull Class<?> type) {
     }
 
+    /**
+     * The notice of the login permissions, once the first task has checked them.
+     */
+    private void showAccess() {
+        ServerAdminProfile profile = connection.getProfile();
+        noticeBar.setNotice(profile == null ? null : profile.getAccess().notice());
+    }
+
+    private boolean canEndSessions() {
+        ServerAdminProfile profile = connection.getProfile();
+        return profile == null || profile.getAccess().canEndSessions();
+    }
+
     private void showLocks(@Nullable LockList lockList) {
         loading = false;
+        showAccess();
         if (lockList == null) {
             autoRefresh.dispose();
             autoRefresh.setEnabled(false);
@@ -310,7 +340,8 @@ final class LockManagerPanel extends JPanel {
 
     private void lockSelected(@Nullable DBAServerLock lock) {
         currentLock = lock;
-        killAction.setEnabled(lock != null);
+        // Without the privilege (e.g. Oracle ALTER SYSTEM) Kill Session stays disabled; the notice bar says why
+        killAction.setEnabled(lock != null && canEndSessions());
         syncingSelection = true;
         try {
             if (lock != lockTable.getSelectedObject()) {

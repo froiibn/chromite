@@ -64,6 +64,7 @@ DBA가 자주 쓰는 상태 확인 쿼리(세션 수, 대기, 디스크 사용�
   처음에는 숨김이고 Window > Reset Window Layout도 숨김으로 되돌린다. 처음 설계는 Object Explorer와 문서 사이의 자기 열이었으나, 1920px 창에서도
   문서 영역이 좁아져 시작 화면 글자가 잘려 합칠 때 오른쪽 열로 옮겼다(되돌리기: `MainFrame`에서 `propertiesWindow.stackBelow(libraryWindow)` 대신
   예전처럼 가로 분할 열을 만든다).
+  Properties를 숨긴 사이에 보였다가 Properties를 다시 보여도 같은 열에 쌓인다(2026-11-07, [swing-frontend.md](swing-frontend.md) "Query Library 자리").
   Ctrl+Alt+T는 SSMS의 Template Browser 단축키이고 이 번들에서 비어 있다(2026-11-06 `KeyStroke.getKeyStroke` 전체 검색).
 - **트리:** 루트(책 아이콘, 읽기 전용이면 "read-only") → 폴더 → 쿼리(이름 뒤 보조 글자: 고정 대상 연결 이름, 또는 "ask"). 폴더가 쿼리보다 앞이고, 둘 다 자연 정렬("2. …" < "10. …").
   도구 설명은 설명과 파일 경로다. 모양(아이콘 팩, 행 높이, 마우스 올림 둥근 바탕, 보조 글자)은 Object Explorer와 같다.
@@ -168,7 +169,7 @@ WHERE state = :state
 4. 실행 직전(EDT) 확장의 `prepareExecution`이 매개변수를 묻는다(아래). 취소하면 실행하지 않는다.
 5. 준비 Job에서 `SqlParameterBinding.prepare`가 나눈 문장을 바꾸고(기본 DB/스키마 적용, `:name` → `?`), 엔진이 문장을 만들 때 `bindParameters`로 값을 바인딩한다.
 
-**Edit**(더블클릭)는 같은 창을 연다(실행하지 않음). 도구 막대 아래 머리말이 붙는다:
+**Edit**(더블클릭)는 같은 창을 연다(실행하지 않음). 편집기 위에 머리말이 붙는다(2026-11-07부터 쿼리 창 도구 막대는 메인 창 둘째 줄에 있다):
 
 ```
 [▶ Execute] [■] | [연결 ▾] [DB/스키마 ▾]
@@ -400,3 +401,5 @@ Schedule…·History…·Scheduled Queries… 대화상자, Save to Query Librar
   Options의 기록 보존 칸을 쿼리 창 기록 칸과 따로 둠. 바인딩한 쿼리의 결과는 다시 읽지 않음(Export Data·결과 뷰어 필터가 값 없는 `?`로 실패하던 것).
 - 2026-11-06 바인딩한 실행이 Query History에 `… = ?`로 남던 문제: 값을 SQL 리터럴로 넣은 원래 문장을 기록.
 - 2026-11-06 Schedule… 대화상자의 Connections·Parameters 목록이 한 줄로 줄던 문제: 목록에 최소 높이와 세로 가중치.
+- 2026-11-07 Query Library와 Properties가 한쪽을 숨긴 사이 다른 쪽을 보이면 따로 열을 만들던 문제: 서로를 기본 이웃으로 둠([swing-frontend.md](swing-frontend.md) "Query Library 자리").
+- 2026-11-07 쿼리 창 도구 막대가 메인 창 둘째 줄(SQL Editor 도구 막대)로 옮겨져 머리말 위치를 "편집기 위"로 고침. [swing-frontend.md](swing-frontend.md) "SQL Editor 도구 막대".

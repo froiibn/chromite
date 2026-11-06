@@ -53,6 +53,8 @@ import java.util.Map;
  * 변경 이력:
  * - 2026-11-06 디자인 적용: 최초 작성 (docs/chromite/design-spec.md "적용 현황")
  * - 2026-11-07 밀도 B: 글자 단추의 위 여백을 줄여 아이콘 단추와 높이를 맞춤 (docs/chromite/design-spec.md "치수 토큰")
+ * - 2026-11-07 UI 글꼴 12: 글자 단추 여백 주석을 고침(12px 글자 줄 15는 아이콘보다 낮아 여백을 줄이지 않음)
+ * - 2026-11-07 {@link #statusDot}: 아이콘 없는 상태 점(쿼리 상태 줄의 커밋 방식, 사용자 요청) (docs/chromite/swing-frontend.md "자동 커밋 상태")
  */
 final class UiIcons {
 
@@ -63,7 +65,7 @@ final class UiIcons {
     private static final int DOT_SIZE = 6;
 
     /**
-     * Connection state shown by {@link #withStatusDot}.
+     * State color of {@link #withStatusDot} (connection state) and {@link #statusDot}.
      */
     enum Status {
         CONNECTED("Chromite.status.success"), //$NON-NLS-1$
@@ -101,6 +103,15 @@ final class UiIcons {
     }
 
     /**
+     * A state dot without an icon (the query status line's commit mode: success color for auto-commit, error color
+     * for manual commit).
+     */
+    @NotNull
+    static Icon statusDot(@NotNull Status status) {
+        return new DotIcon(status);
+    }
+
+    /**
      * Icon-only tool bar button (size.actionButton: 16 + Button.toolbar.margin, radius.action 6, hover background).
      * The tool tip is the action's description (which names the shortcut), or its name.
      */
@@ -120,8 +131,9 @@ final class UiIcons {
     @NotNull
     static JButton createToolButton(@NotNull Action action, @NotNull String iconId) {
         JButton button = createButton(action, iconId);
-        // The text line (17 for the 13px UI font) is higher than the icon (16): take the difference off the top margin,
-        // or the button and its tool bar are 1px higher than size.actionButton (the margin is unscaled, like the theme value)
+        // A text line higher than the icon (16) would make the button and its tool bar higher than size.actionButton:
+        // take the difference off the top margin (the margin is unscaled, like the theme value). The 12px UI font's line
+        // (15) is lower than the icon, so nothing is taken off; a larger UI font (13px: 17) would need it
         Insets margin = UIManager.getInsets("Button.toolbar.margin"); //$NON-NLS-1$
         if (margin != null) {
             int excess = Math.max(0, UIScale.unscale(button.getFontMetrics(button.getFont()).getHeight()) - SIZE);
@@ -230,6 +242,34 @@ final class UiIcons {
                 };
             }
             return disabledIcon;
+        }
+    }
+
+    /**
+     * A state dot alone (size.statusDot 6), in the state's theme color read when painting.
+     */
+    private record DotIcon(@NotNull Status status) implements Icon {
+        @Override
+        public void paintIcon(Component c, Graphics g, int x, int y) {
+            Graphics2D g2 = (Graphics2D) g.create();
+            try {
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                Color color = UIManager.getColor(status.colorKey);
+                g2.setColor(color != null ? color : Color.GRAY);
+                g2.fill(new Ellipse2D.Double(x, y, DOT_SIZE, DOT_SIZE));
+            } finally {
+                g2.dispose();
+            }
+        }
+
+        @Override
+        public int getIconWidth() {
+            return DOT_SIZE;
+        }
+
+        @Override
+        public int getIconHeight() {
+            return DOT_SIZE;
         }
     }
 
