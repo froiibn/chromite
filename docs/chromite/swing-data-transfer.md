@@ -238,8 +238,63 @@ Copy Tables와 새 테이블로 가져오기는 대상 열 형식을 모델이 �
 - 다른 DB의 TINYINT → SQL Server·MariaDB `smallint`: SQL Server `tinyint`는 0~255, MySQL·MariaDB는 -128~127이라 어느 쪽이 원본이든 넘칠 수 있다.
 - 문자 길이: `nvarchar(n)`의 n은 원본 문자 수 그대로(4000 넘으면 `MAX`). MariaDB `VARCHAR`는 utf8mb4 16383자까지 두고 그보다 길면 `LONGTEXT`.
 
+**Oracle 대상과 남은 매핑 (2026-11-07 오후)**
+
+위 작업 뒤에도 Oracle로 가는 복사는 형식은 맞게 만들고 값 바인딩에서 실패했다(PostgreSQL → Oracle ORA-17004, MariaDB → Oracle ORA-01843).
+실수 끝값(`1.2345678901234567e300`, `-2.5e-300`)을 줄이지 않고 다시 확인하니 SQL Server → Oracle도 "Underflow"로 실패했다(위 확인은 `±1e±100`으로 줄인 값).
+원본에 열 두 개를 더해 확인했다: `c_korean_full`(한글 100자, 300바이트), PostgreSQL `c_numeric_free`(정밀도 없는 `numeric`, `12345678901234567890.123456789`, `-0.000000001`).
+고치기 전 결과(이 작업 전 devel 빌드): 12쌍 중 PostgreSQL → Oracle "Overflow", MariaDB → Oracle·SQL Server → Oracle "Underflow", PostgreSQL → SQL Server
+"Arithmetic overflow error converting numeric to data type numeric", PostgreSQL → MariaDB "Out of range value for column 'c_numeric_free'"(실수 오류가 먼저 나서 JSON·시각 오류는 가려짐).
+
+근본 원인:
+
+1. **다른 DB의 내용 객체가 자기 드라이버 방식으로 바인딩됨.** `DatabaseTransferConsumer.fetchRow`(`:364`)는 원본 값을 대상 처리기의 `getValueFromObject`로 넘기는데,
+   `JDBCContentValueHandler.getValueFromObject`는 `DBDContent`를 그대로 돌려주고(`:239-243`, 고치기 전) 바인딩은 내용 객체의 `bindParameter`가 한다.
+   PostgreSQL `json`의 `PostgreContentJSON`은 `setObject(…, Types.OTHER)`(`PostgreContentJSON.java:63`)라 Oracle 드라이버가 ORA-17004(부적합한 열 유형)를 냈다.
+   드라이버 전용 바인딩을 가진 다른 내용 클래스(Oracle `OracleContentXML`·`OracleContentOpaque` 등)가 다른 DB로 갈 때도 같은 경로다(확인하지 않음).
+2. **텍스트로 읽은 시각을 TIMESTAMP에 바인딩함.** MariaDB `TIME`은 24시간을 넘을 수 있어 문자열로 읽는다(`MySQLDateTimeValueHandler.java:75-77`). Oracle에는 TIME이 없어
+   대상은 `TIMESTAMP`인데, timestamp 형식기가 `23:59:58`을 해석하지 못해 문자열이 남고(`DateTimeCustomValueHandler.java:67-81`), `OracleTimestampValueHandler.bindValueObject`는
+   `Timestamp.valueOf`가 실패하면 `setString`으로 넘겨(`:155-157`) ORA-01843(부적합한 월). 같은 바인딩 경고에 보이던 "Cannot bind attribute 'c_uuid'"는
+   원본 결과 집합의 메타데이터 연결 디버그 로그(`DBExecUtils.java:933`)로, 성공한 MariaDB → PostgreSQL·SQL Server 복사에도 같은 줄이 남아 오류와 관계없다.
+3. **Oracle 드라이버의 `setDouble`은 NUMBER로 보냄.** `BINARY_DOUBLE` 열에도 일반 숫자 처리기가 `setDouble`/`setFloat`(`JDBCNumberValueHandler.bindParameter`)을 써서
+   값이 NUMBER(지수 -130~125)로 바뀌어 |x| ≥ 1e126은 "Overflow", |x| < 1e-130은 "Underflow". 표 편집(UPDATE)도 같다.
+4. **`VARCHAR2(n)`은 바이트 길이.** 시험 DB의 `NLS_LENGTH_SEMANTICS`는 기본값 `BYTE`(문자 집합 AL32UTF8)라 한글 100자(300바이트)가 `VARCHAR2(100)`에 들어가지 않는다(ORA-12899).
+   다른 DB의 길이는 문자 수다. 또 Oracle 열 모델(`OracleTableColumn`)은 `CHAR_USED`로 문자 길이를 읽기만 하고 단위를 버려(`:81-82`, 고치기 전) `VARCHAR2(100 CHAR)` 열의
+   DDL이 `VARCHAR2(100)`으로 나왔고(Oracle → Oracle 복사도 바이트 열이 됨), 새 열 형식으로 준 `VARCHAR2(50 CHAR)`은 숫자만 읽는 `AbstractAttribute.setFullTypeName`(`:137-159`)에서 길이를 잃었다.
+5. **정밀도 없는 소수가 같은 이름의 형식을 받음.** PostgreSQL `numeric`(정밀도·소수 자리 없음)은 SQL Server·MariaDB 형식 목록에서 이름으로 찾아져(`DBStructUtils` 이름 찾기)
+   정밀도 없는 소수 규칙(`findNumericTargetType`)에 닿지 않았다. 수식어 없는 SQL Server `numeric`은 방언 기본값 `numeric(18,0)`, MariaDB `NUMERIC`은 `DECIMAL(10,0)`이라
+   소수가 잘리고 큰 값은 넘쳤다. Oracle은 변환기가 `NUMBER`를 주지만, 새 열에 원본의 정밀도·소수 자리(둘 다 없음)를 옮긴 뒤(`DatabaseTransferUtils.java:498-506`)
+   `OracleSQLDialect.getColumnTypeModifiers`가 정밀도 0을 38로 바꿔 `NUMBER(38)`(정수)을 만들어 소수를 잃었다(매핑 표에는 `NUMBER`로 보여 실제 DDL에서만 드러남).
+6. **MariaDB `uuid` → PostgreSQL `varchar(36)`.** MariaDB `uuid`는 문자열 종류(STRING)라 같은 이름의 PostgreSQL `uuid`(OBJECT)를 종류가 달라 버리고 문자열 기본 형식을 골랐다.
+7. **Oracle 숨은 열 `SYS_IME_OSON_…`은 제품에서는 보이지 않는다.** 원본 열은 `DTUtils.getAttributes`(`:243-246`)와 결과 집합 연결, 대상 열은 `DatabaseMappingAttribute`(`:199`)와
+   Swing `DatabaseCopyMappings.readTargetColumns`(`:380`)가 숨은 열을 뺀다. 마법사 열 탭(21열)과 개체 탐색기의 열 폴더에서 확인했다. 앞의 "남긴 것"에 적은 것은
+   시험용 `TmProbe`가 `getAttributes`를 그대로 불러 보인 것이라 코드는 고치지 않았다.
+
+| 파일 | 내용 |
+|---|---|
+| `JDBCContentValueHandler` (model.jdbc) | 다른 데이터 소스의 내용 객체는 대상 형식에 맞는 이 처리기의 빈 내용(`getValueFromObject(null)`: 문자 → `JDBCContentChars`, CLOB → `JDBCContentCLOB`, 이진 → `JDBCContentBytes`, BLOB → `JDBCContentBLOB`)에 `updateContents`로 옮긴다. LOB 대상은 원본 저장소를 넘겨받아 큰 값을 여기서 메모리로 읽지 않는다. |
+| `JDBCDateTimeValueHandler` (model.jdbc) | `TIMESTAMP` 열에 시각 문자열(`HH:mm[:ss[.f]]`)이 오면 1970-01-01의 그 시각(`java.sql.Time` 값과 같은 규칙). |
+| `OracleBinaryFloatValueHandler` (oracle, 새 파일), `OracleValueHandlerProvider`, `plugin.xml` | `BINARY_FLOAT`/`BINARY_DOUBLE` 열의 숫자를 드라이버 형식 코드 100/101(`OracleTypes.BINARY_FLOAT`/`BINARY_DOUBLE`)로 `setObject`해 IEEE 값 그대로 보낸다. 표 편집에도 쓰인다. |
+| `OracleTableColumn` (oracle) | `CHAR_USED = 'C'`를 기억하고(`isCharLengthSemantics`), `setFullTypeName`이 `(n CHAR)`/`(n BYTE)`를 읽는다. |
+| `OracleSQLDialect` (oracle) | 변환기: 길이 4000 이하인 다른 DB 문자열 → `VARCHAR2(n CHAR)`, 고정 길이(JDBC CHAR/NCHAR) → `CHAR(n CHAR)`(`VARCHAR`만 `VARCHAR2(n)`으로 바꾸던 분기는 이 규칙에 합침). `getColumnTypeModifiers`: 문자 길이 열이면 `(n CHAR)`, 정밀도·소수 자리가 모두 없는 `NUMBER`는 수식어 없이. |
+| `DBStructUtils` (model) | 정밀도 없는 소수(`isDecimalWithoutPrecision`)는 같은 이름의 대상 형식을 쓰지 않고 정밀도 없는 소수 규칙(배정밀도)으로. |
+| `PostgreDialect` (postgresql) | 변환기에 MariaDB `uuid` → `uuid`. |
+
+판단:
+
+- PostgreSQL `numeric`(정밀도 없음) → SQL Server `float`, MariaDB `DOUBLE PRECISION`(Oracle `NUMBER`와 같은 규칙). 두 DB에는 정밀도 없는 소수를 손실 없이 담는 형식이 없다
+  (SQL Server `decimal`은 38자리, MariaDB `DECIMAL`은 65자리이고 소수 자리를 미리 정함). 고정 소수 자리(예: `numeric(38,10)`)는 더 작은 소수를 말없이 반올림하고 정수부가
+  자리를 넘으면 실패하며, 이전 `numeric(18,0)`은 소수를 모두 잃었다. 배정밀도는 유효 숫자 15~17자리까지 보존하고 ±1e308 안의 값은 모두 들어간다.
+  정확한 소수가 필요하면 열 탭에서 대상 형식을 `numeric(p,s)`로 바꾼다. PostgreSQL ↔ Oracle은 `numeric` ↔ `NUMBER`(38자리)로 둔다.
+- 문자 길이 단위는 `CHAR`(`VARCHAR2(n CHAR)`, `CHAR(n CHAR)`). `NVARCHAR2`/`NCHAR`는 쓰지 않는다: 데이터베이스 문자 집합(AL32UTF8, 23ai 기본)이 모든 문자를 담고,
+  `NVARCHAR2`는 AL16UTF16에서 2000자까지이며 국가 문자 바인딩(`setNString`)과 `N'…'` 리터럴이 필요하다. 그래서 SQL Server `nchar(10)`도 이전 `NCHAR(10)` 대신 `CHAR(10 CHAR)`.
+  바이트 한도는 그대로라(`MAX_STRING_SIZE = STANDARD`이면 4000바이트) `VARCHAR2(4000 CHAR)`에 한글 1334자 이상은 ORA-12899로 실패한다(말없이 잘리지 않음).
+- MariaDB `TIME`(문자열) → Oracle `TIMESTAMP`는 1970-01-01의 그 시각(PostgreSQL·SQL Server `time`과 같음). 24시간을 넘는 값(`838:59:59`)은 시각으로 바꾸지 않아 Oracle이 거부한다.
+- 다른 DB의 내용 객체는 대상 처리기가 늘 자기 내용으로 바꾼다(같은 데이터 소스 안의 복사는 전처럼 그대로). 대상이 LOB가 아니면(`varbinary(max)`, `bytea` 등) 값을 메모리로 읽는다.
+
 **형식 매핑 표 (고치기 전 → 고친 뒤)** — 원본 열 형식, 대상별 매핑 결과. "=" 는 바뀌지 않음.
 `TmProbe`(시험용, 저장소 밖)가 앱 안에서 각 원본 열에 `DBStructUtils.mapTargetDataType(대상 데이터 소스, 열, true)`를 불러 얻은 값이고, 실제 마법사의 "대상 DDL" 탭과 같다.
+2026-11-07 오후 작업(위 "Oracle 대상과 남은 매핑")으로 바뀐 칸은 "고친 뒤"에 반영했고 `c_korean_full`, `c_numeric_free` 행을 더했다(이 두 행의 "고치기 전"은 그 작업 전 devel).
 
 원본 **PostgreSQL**:
 
@@ -256,14 +311,16 @@ Copy Tables와 새 테이블로 가져오기는 대상 열 형식을 모델이 �
 | c_time | `time` | `time` = | `TIME` = | `TIME` → **`TIMESTAMP`** |
 | c_timestamp | `timestamp` | `datetime` → **`datetime2`** | `TIMESTAMP` → **`DATETIME(6)`** | `TIMESTAMP` = |
 | c_timestamptz | `timestamptz` | `datetime` → **`datetimeoffset`** | `TIMESTAMP` → **`DATETIME(6)`** | `TIMESTAMP` → **`TIMESTAMP WITH TIME ZONE`** |
-| c_varchar | `varchar(50)` | `varchar(50)` → **`nvarchar(50)`** | `VARCHAR(50)` = | `VARCHAR2(50)` = |
+| c_varchar | `varchar(50)` | `varchar(50)` → **`nvarchar(50)`** | `VARCHAR(50)` = | `VARCHAR2(50)` → **`VARCHAR2(50 CHAR)`** |
 | c_text | `text` | `text` → **`nvarchar(MAX)`** | `TEXT` → **`LONGTEXT`** | `VARCHAR2(100)` → **`CLOB`** |
-| c_char | `bpchar(10)` | `varchar(10)` → **`nchar(10)`** | `VARCHAR(10)` = | `VARCHAR2(10)` = |
+| c_char | `bpchar(10)` | `varchar(10)` → **`nchar(10)`** | `VARCHAR(10)` = | `VARCHAR2(10)` → **`VARCHAR2(10 CHAR)`** |
 | c_uuid | `uuid` | `geometry(100)` → **`uniqueidentifier`** | `UUID` = | `TABLE(100)` → **`VARCHAR2(36)`** |
 | c_json | `json` | `varbinary` → **`nvarchar(MAX)`** | `LONGBLOB` → **`LONGTEXT`** | `JSON` = |
 | c_jsonb | `jsonb` | `varbinary` → **`nvarchar(MAX)`** | `LONGBLOB` → **`LONGTEXT`** | `JSON` = |
 | c_bytea | `bytea` | `varbinary(MAX)` = | `BINARY` → **`LONGBLOB`** | `BLOB` = |
-| c_korean | `varchar(100)` | `varchar(100)` → **`nvarchar(100)`** | `VARCHAR(100)` = | `VARCHAR2(100)` = |
+| c_korean | `varchar(100)` | `varchar(100)` → **`nvarchar(100)`** | `VARCHAR(100)` = | `VARCHAR2(100)` → **`VARCHAR2(100 CHAR)`** |
+| c_korean_full | `varchar(100)` | `nvarchar(100)` = | `VARCHAR(100)` = | `VARCHAR2(100)` → **`VARCHAR2(100 CHAR)`** |
+| c_numeric_free | `numeric` | `numeric(18,0)` → **`float`** | `NUMERIC` → **`DOUBLE PRECISION`** | `NUMBER` = (새 열 DDL `NUMBER(38)` → **`NUMBER`**) |
 
 원본 **SQL Server**:
 
@@ -280,16 +337,17 @@ Copy Tables와 새 테이블로 가져오기는 대상 열 형식을 모델이 �
 | c_time | `time` | `time` = | `TIME` = | `TIME` → **`TIMESTAMP`** |
 | c_timestamp | `datetime2` | `timestamp` = | `TIMESTAMP` → **`DATETIME(6)`** | `TIMESTAMP` = |
 | c_timestamptz | `datetimeoffset` | `timestamp` → **`timestamptz`** | `TIMESTAMP` → **`DATETIME(6)`** | `TIMESTAMP` → **`TIMESTAMP WITH TIME ZONE`** |
-| c_varchar | `varchar(50)` | `varchar(50)` = | `VARCHAR(50)` = | `VARCHAR2(50)` = |
+| c_varchar | `varchar(50)` | `varchar(50)` = | `VARCHAR(50)` = | `VARCHAR2(50)` → **`VARCHAR2(50 CHAR)`** |
 | c_text | `nvarchar(MAX)` | `varchar` = | `TEXT` → **`LONGTEXT`** | `VARCHAR2(100)` → **`CLOB`** |
-| c_char | `char(10)` | `varchar(10)` = | `CHAR(10)` = | `CHAR(10)` = |
+| c_char | `char(10)` | `varchar(10)` = | `CHAR(10)` → **`CHAR(10 CHAR)`** | `CHAR(10)` = |
 | c_uuid | `uniqueidentifier` | `varchar(16)` → **`uuid`** | `VARCHAR(16)` → **`UUID`** | `VARCHAR2(16)` → **`VARCHAR2(36)`** |
 | c_json | `nvarchar(MAX)` | `varchar` = | `TEXT` → **`LONGTEXT`** | `VARCHAR2(100)` → **`CLOB`** |
-| c_nchar | `nchar(10)` | `varchar(10)` = | `VARCHAR(10)` = | `NCHAR(10)` = |
+| c_nchar | `nchar(10)` | `varchar(10)` = | `VARCHAR(10)` = | `NCHAR(10)` → **`CHAR(10 CHAR)`** |
 | c_bytea | `varbinary(MAX)` | `bytea` = | `VARBINARY` → **`LONGBLOB`** | `BLOB` = |
-| c_korean | `nvarchar(100)` | `varchar(100)` = | `VARCHAR(100)` = | `VARCHAR2(100)` = |
+| c_korean | `nvarchar(100)` | `varchar(100)` = | `VARCHAR(100)` = | `VARCHAR2(100)` → **`VARCHAR2(100 CHAR)`** |
 | c_ntext_old | `ntext` | `text(10485760)` → **`text`** | `TEXT(65535)` → **`LONGTEXT`** | `VARCHAR2(4000)` → **`CLOB`** |
 | c_text_old | `text` | `text(10485760)` → **`text`** | `TEXT(65535)` → **`LONGTEXT`** | `VARCHAR2(4000)` → **`CLOB`** |
+| c_korean_full | `nvarchar(100)` | `varchar(100)` = | `VARCHAR(100)` = | `VARCHAR2(100)` → **`VARCHAR2(100 CHAR)`** |
 
 원본 **MariaDB**:
 
@@ -306,16 +364,17 @@ Copy Tables와 새 테이블로 가져오기는 대상 열 형식을 모델이 �
 | c_time | `time` | `time` = | `time` = | `TIME` → **`TIMESTAMP`** |
 | c_timestamp | `datetime(6)` | `timestamp` = | `datetime` → **`datetime2`** | `TIMESTAMP` = |
 | c_timestamptz | `timestamp(6)` | `timestamp` = | `datetime` → **`datetime2`** | `TIMESTAMP` = |
-| c_varchar | `varchar(50)` | `varchar(50)` = | `varchar(50)` → **`nvarchar(50)`** | `VARCHAR2(50)` = |
+| c_varchar | `varchar(50)` | `varchar(50)` = | `varchar(50)` → **`nvarchar(50)`** | `VARCHAR2(50)` → **`VARCHAR2(50 CHAR)`** |
 | c_text | `longtext` | `text(10485760)` → **`text`** | `text` → **`nvarchar(MAX)`** | `VARCHAR2(4000)` → **`CLOB`** |
-| c_char | `char(10)` | `varchar(10)` = | `char(10)` → **`nchar(10)`** | `CHAR(10)` = |
-| c_uuid | `uuid` | `varchar(36)` = | `varchar(36)` → **`uniqueidentifier`** | `VARCHAR2(36)` = |
+| c_char | `char(10)` | `varchar(10)` = | `char(10)` → **`nchar(10)`** | `CHAR(10)` → **`CHAR(10 CHAR)`** |
+| c_uuid | `uuid` | `varchar(36)` → **`uuid`** | `varchar(36)` → **`uniqueidentifier`** | `VARCHAR2(36)` = |
 | c_json | `longtext` | `text(10485760)` → **`text`** | `text` → **`nvarchar(MAX)`** | `VARCHAR2(4000)` → **`CLOB`** |
 | c_tinyint | `tinyint(4)` | `int4` → **`smallint`** | `tinyint` → **`smallint`** | `INTEGER` → **`SMALLINT`** |
 | c_bytea | `longblob` | `bytea` = | `varbinary(MAX)` = | `BLOB` = |
-| c_korean | `varchar(100)` | `varchar(100)` = | `varchar(100)` → **`nvarchar(100)`** | `VARCHAR2(100)` = |
+| c_korean | `varchar(100)` | `varchar(100)` = | `varchar(100)` → **`nvarchar(100)`** | `VARCHAR2(100)` → **`VARCHAR2(100 CHAR)`** |
 | c_mediumint | `mediumint(9)` | `int4` → **`integer`** | `bigint` → **`int`** | `INTEGER` = |
 | c_int_unsigned | `int(10) unsigned` | `int` → **`bigint`** | `int` → **`bigint`** | `INTEGER` = |
+| c_korean_full | `varchar(100)` | `varchar(100)` = | `nvarchar(100)` = | `VARCHAR2(100)` → **`VARCHAR2(100 CHAR)`** |
 
 원본 **Oracle**:
 
@@ -341,6 +400,7 @@ Copy Tables와 새 테이블로 가져오기는 대상 열 형식을 모델이 �
 | C_KOREAN | `NVARCHAR2(100)` | `varchar(100)` = | `varchar(100)` → **`nvarchar(100)`** | `VARCHAR(100)` = |
 | C_NUMBER | `NUMBER` | `numeric` = | `int` → **`float`** | `BIGINT` → **`DOUBLE PRECISION`** |
 | C_FLOAT | `FLOAT` | `float8` → **`double precision`** | `float` = | `FLOAT` → **`DOUBLE PRECISION`** |
+| C_KOREAN_FULL | `VARCHAR2(100 CHAR)`(고치기 전 표시 `VARCHAR2(100)`) | `varchar(100)` = | `nvarchar(100)` = | `VARCHAR(100)` = |
 
 **데이터 확인** — 각 쌍을 Swing 제품의 Tasks ▸ Copy Tables…(새 테이블)로 복사하고, 시험용 비교기(`TmVerify`, 앱의 JDBC 연결로 두 테이블을 `ORDER BY` 첫 열로 읽어 열마다 비교:
 정수·소수는 정확히, 실수는 상대 오차 1e-6, 날짜시각은 순간(1 µs 이내), 문자열·이진·UUID·JSON(공백 무시))로 원본과 비교했다. 원본 행: 최댓값·최솟값 행(int/smallint/bigint 끝값,
@@ -350,16 +410,20 @@ Copy Tables와 새 테이블로 가져오기는 대상 열 형식을 모델이 �
 |---|---|
 | PostgreSQL → SQL Server | 4/4행, 19열 모두 같음(한글 `nvarchar`, `timestamptz` → `datetimeoffset` 순간 같음, uuid, JSON, bytea). 고치기 전: `uuid` → `geometry`로 "binding not supported", 문자열만 복사하면 한글이 `?` |
 | PostgreSQL → MariaDB | 4/4행, 모두 같음(int 끝값, `1.2345678901234567e300`, 1900-01-01, 5,000자 한글). 고치기 전: `id TINYINT` 등, `json` → `LONGBLOB`로 "Could not convert" |
-| PostgreSQL → Oracle | 형식은 위 표대로 만들어지나 값 바인딩 실패(ORA-17004, 아래 "남긴 것") |
+| PostgreSQL → Oracle | 4/4행, 21열 모두 같음(2026-11-07 오후: `json`/`jsonb` → `JSON`, `float8` 1.23e300·-2.5e-300 → `BINARY_DOUBLE`, `time` → `TIMESTAMP` 1970-01-01, 한글 100자 → `VARCHAR2(100 CHAR)`, 정밀도 없는 `numeric` → `NUMBER`). 그 전: "Overflow"(그 뒤 ORA-17004) |
 | SQL Server → PostgreSQL | 4/4행, 21열 모두 같음(`datetimeoffset` → `timestamptz`, `uniqueidentifier` → `uuid`, `ntext`/`text` → `text`) |
 | SQL Server → MariaDB | 4/4행, 모두 같음(`float` → `DOUBLE PRECISION`, `varbinary(max)` → `LONGBLOB`, `uniqueidentifier` → `UUID`) |
-| SQL Server → Oracle | 4/4행, 모두 같음(`1900-01-01`은 Oracle에 `1900-01-01 00:00:00`으로 저장됨을 sqlplus로 확인, 비교기의 차이는 JVM 시각대 Asia/Seoul의 1900년 지방시 오프셋 때문). 실수 끝값은 `±1e±100`으로 줄여 확인(아래 "남긴 것") |
+| SQL Server → Oracle | 4/4행, 22열 모두 같음(`1900-01-01`은 Oracle에 `1900-01-01 00:00:00`으로 저장됨을 sqlplus로 확인). 2026-11-07 오후에 실수 끝값을 줄이지 않고 다시 확인: 그 전 "Underflow" |
 | MariaDB → PostgreSQL | 4/4행, 모두 같음(`int unsigned` 4294967295 → `bigint`, `tinyint` -128 → `smallint`) |
 | MariaDB → SQL Server | 4/4행, 모두 같음(`double` → `float`, `tinyint` -128 → `smallint`, 한글 `nvarchar`) |
-| MariaDB → Oracle | 형식은 위 표대로 만들어지나 값 바인딩 실패(ORA-01843, 아래 "남긴 것") |
+| MariaDB → Oracle | 4/4행, 22열 모두 같음(2026-11-07 오후: `time` 문자열 → `TIMESTAMP` 1970-01-01, `uuid` → `VARCHAR2(36)`, `double` 끝값 → `BINARY_DOUBLE`). 그 전: "Underflow"(그 뒤 ORA-01843) |
 | Oracle → PostgreSQL | 4/4행, 20열 모두 같음(`CLOB`/`NCLOB` → `text`, `JSON` → `jsonb`, `BINARY_DOUBLE` 1.23e300, `NUMBER` 123.456) |
 | Oracle → SQL Server | 4/4행, 모두 같음(`NUMBER(19,0)` 끝값, `NUMBER` → `float` 123.456, `TIMESTAMP WITH TIME ZONE` → `datetimeoffset`) |
 | Oracle → MariaDB | 4/4행, 모두 같음 |
+
+2026-11-07 오후에 이 작업의 빌드로 12쌍을 모두 다시 복사했다(열 두 개를 더한 원본, 실수 끝값 그대로): 12쌍 모두 4/4행, 모든 열 같음(PostgreSQL·Oracle 원본 21열,
+SQL Server·MariaDB 원본 22열). PostgreSQL → SQL Server·MariaDB의 `c_numeric_free`는 배정밀도라 비교기의 상대 오차(1e-6) 안에서 같고, 자릿수 17 넘는 부분은 남지 않는다(위 "판단").
+비교기는 이때 시각대 없는 날짜시각을 JVM 시각대를 거치지 않는 벽시계 값(`LocalDateTime`)으로 비교하게 바꿨다(1900년 Asia/Seoul 지방시 오프셋 때문에 생기던 차이를 없앰).
 
 ## upstream 대비 변경점
 
@@ -371,7 +435,7 @@ Copy Tables와 새 테이블로 가져오기는 대상 열 형식을 모델이 �
 - 가져오기 자동 매핑에서 맞는 열이 없는 원본 열은 새 열 만들기가 아니라 건너뛰기.
 - 데이터베이스 노드의 원본 목록은 스키마별로 묶어 보이고(SWT는 데이터베이스에서 내보내기를 열 수 없음), 가져오기는 첫 단계에서 대상 테이블(기존 또는 새 테이블)을 고른다.
   여러 스키마의 같은 이름 테이블이 같은 파일·같은 대상 테이블로 가는 것을 막는다.
-- 새 테이블의 형식 매핑과 값 바인딩을 모델·방언에서 고쳤다(아래 "새 테이블의 형식 매핑", SWT에도 적용). 그 밖의 모델 코드 변경 없음.
+- 새 테이블의 형식 매핑과 값 바인딩, Oracle 열의 문자 길이 단위를 모델·방언에서 고쳤다(위 "새 테이블의 형식 매핑", SWT에도 적용). 그 밖의 모델 코드 변경 없음.
 
 ## 확인 (2026-11-06)
 
@@ -443,18 +507,30 @@ Copy Tables와 새 테이블로 가져오기는 대상 열 형식을 모델이 �
 - 회귀 테스트는 실행하지 않았다(CLAUDE.md 7번). 영향받을 수 있는 기능: 모든 데이터 전송의 새 테이블·새 열 형식(SWT 포함), `datetimeoffset`·`timestamptz`·Oracle
   `TIMESTAMP WITH TIME ZONE` 값 편집과 바인딩(`OffsetDateTime`/`ZonedDateTime`/`Timestamp`), PostgreSQL `text`·`bytea` 열 DDL의 길이.
 
+### Oracle 대상 복사 (2026-11-07 오후)
+
+- 빌드: `-Pproduct-dbeaver-ce,product-chromite-swing` BUILD SUCCESS(devel `fe9f9b150f` 위).
+- 네 Docker DB에 `chr_oracle_target`(PostgreSQL·SQL Server·MariaDB 데이터베이스, Oracle 사용자 `CHR_ORACLE_TARGET`)과 대상 스키마(`from_pg` 등, MariaDB는
+  `chr_oracle_target_from_pg` 등, Oracle은 `CHR_OT_FROM_PG` 등)를 만들고 위 `type_matrix`에 `c_korean_full`, `c_numeric_free`(PostgreSQL)를 더해 넣었다.
+  같은 시험(위 "새 테이블의 형식 매핑 (2026-11-07)"의 에이전트·비교기)을 이 작업 전 devel 빌드와 고친 빌드에서 했다(결과는 위 "Oracle 대상과 남은 매핑", "데이터 확인").
+- sqlplus로 확인: `CHR_OT_FROM_PG.TYPE_MATRIX`의 문자열 열이 `CHAR_USED = 'C'`, 한글 100자 = 300바이트, `c_double` 1.235E+300, `c_time` `1970-01-01 23:59:58`,
+  `c_numeric_free` `NUMBER`(`12345678901234567890.123456789` 그대로).
+- Oracle 표 편집: `CHR_ORACLE_TARGET.TYPE_MATRIX`를 "상위 1000개 행 선택"으로 열고 한 행의 `C_DOUBLE`(`BINARY_DOUBLE`)을 `1.5E300`·`-2.5E-300`으로,
+  `C_KOREAN_FULL`(`VARCHAR2(100 CHAR)`)을 한글 100자로 바꿔 저장 → sqlplus에서 값과 100자/300바이트 확인 후 원래 값으로 되돌림
+  (그림 `D:\Tools\_scratch\oracle-target\shots\grid-edit-oracle-final.png`). DDL 탭 그림은 `D:\Tools\_scratch\oracle-target\shots\a-*-ddl.png`.
+- UI는 바뀌지 않아 한국어·영어, 라이트·다크 화면은 다시 찍지 않았다.
+- 회귀 테스트는 실행하지 않았다(CLAUDE.md 7번). 영향받을 수 있는 기능: 다른 데이터 소스의 LOB·이진·JSON 값을 받는 모든 데이터 전송(내용 객체 변환), 시각 문자열을
+  받는 `TIMESTAMP` 열, Oracle `BINARY_FLOAT`/`BINARY_DOUBLE` 값 편집, Oracle 문자 길이(`CHAR`) 열의 DDL·표 디자이너의 형식 입력, Oracle `NUMBER` 새 열의 DDL.
+
 ## 남긴 것
 
 - 결과 표의 쿼리를 다른 DB 테이블로 복사(모델은 지원, 이 마법사에서는 확인하지 않아 "Database"를 두지 않음).
 - 테이블 복사의 매핑 규칙·열 변환기·새 테이블 속성·중복 키 처리 방법·매핑 저장, 작업으로 저장, 외래 키 옮기기.
 - XLSX 가져오기(모델에 처리기 없음), 여러 파일 한 번에 가져오기. 새 테이블로 가져오기는 데이터베이스 노드에서만 된다(테이블·스키마 노드는 전과 같음).
-- Oracle을 대상으로 한 값 바인딩(형식 매핑은 고침): PostgreSQL `json`의 내용 객체(`PostgreContentJSON`)가 자기 방식(`setObject(…, Types.OTHER)`)으로 묶여
-  Oracle `JSON`에서 ORA-17004, MariaDB → Oracle은 ORA-01843(`c_uuid` 바인딩 경고와 함께, 열을 좁히지 못함), `BINARY_DOUBLE` 열에도 드라이버가 `setDouble`을 NUMBER로 보내
-  |x| ≥ 1e126·< 1e-130인 값이 "Overflow"/"Underflow". 다른 DB의 내용 객체를 대상 처리기의 일반 형식으로 바꾸는 일(`JDBCContentValueHandler.getValueFromObject`)과
-  Oracle 실수 바인딩(`setBinaryDouble`)이 필요하다. SQL Server → Oracle은 성공.
-- 형식 매핑에 남은 것: Oracle `NUMBER(p,0)`은 정수가 아니라 같은 자릿수의 `numeric`, MariaDB `uuid`(문자열 종류) → PostgreSQL `varchar(36)`(`uuid`가 아님),
-  SQL Server `bit` → PostgreSQL `bit`(값은 같게 복사됨), Oracle 대상의 `VARCHAR2(n)`은 바이트 길이(NLS_LENGTH_SEMANTICS=BYTE면 한글 n자가 들어가지 않을 수 있음),
-  PostgreSQL 정밀도 없는 `numeric` → SQL Server `numeric(18,0)`(방언의 기본 정밀도, 확인하지 않음), Oracle 숨은 열 `SYS_IME_OSON_…`(JSON 열이 있는 테이블)이 원본 열 목록에 보이는 것.
+- 형식 매핑에 남은 것: Oracle `NUMBER(p,0)`은 정수가 아니라 같은 자릿수의 `numeric`, SQL Server `bit` → PostgreSQL `bit`(값은 같게 복사됨),
+  기존 Oracle 열을 복사·붙여넣기로 만든 새 열(`OracleTableColumnManager`의 복사)은 문자 길이 단위를 옮기지 않음, MariaDB `TIME`의 24시간 넘는 값 → Oracle,
+  Oracle 대상 문자열의 4000바이트 한도(`MAX_STRING_SIZE = EXTENDED`인지 읽지 않음). (2026-11-07 오후에 Oracle 대상 값 바인딩, MariaDB `uuid`, 바이트 길이,
+  정밀도 없는 `numeric`을 고쳤고 숨은 열은 제품에서 보이지 않음을 확인 — 위 "Oracle 대상과 남은 매핑")
 - 여러 스키마를 복사할 때 원본 스키마마다 같은 이름의 대상 스키마로 나눠 보내기(모델의 대상 컨테이너가 하나라 다루지 않음).
 - 데이터베이스가 여럿인 연결 노드에서 데이터베이스를 고르게 하기(지금은 꺼짐), 펼치지 않은 연결 노드에서 켜기(메타데이터를 EDT에서 읽지 않기 위해 꺼짐).
 - 내보내기 열 고르기, 형식 프로필(날짜·숫자 형식), 분할 파일, 작업으로 저장.
@@ -472,3 +548,7 @@ Copy Tables와 새 테이블로 가져오기는 대상 열 형식을 모델이 �
 - 2026-11-07 새 테이블의 형식 매핑(모델·방언, SWT에도 적용): PostgreSQL `int4`/`int8` → MariaDB `TINYINT`, 다른 DB 문자열 → SQL Server `varchar`(한글 손실) 등을
   JDBC 형식·값 범위와 방언 변환기로 고침(`DBStructUtils`, SQL Server·MySQL·PostgreSQL·Oracle 방언), 시각대 있는 값과 JSON 내용의 바인딩(`JDBCDateTimeValueHandler`,
   `SQLServerDateTimeOffsetHandler`, `TemporalAccessorValueHandler`, `PostgreJSONValueHandler`). 매핑 표와 4×3 복사 확인.
+- 2026-11-07 Oracle 대상 복사와 남은 매핑(모델·방언, SWT에도 적용): 다른 DB의 내용 객체를 대상 처리기의 내용으로 바꿔 바인딩(`JDBCContentValueHandler`, PostgreSQL `json` → Oracle
+  ORA-17004), 텍스트 시각 → `TIMESTAMP`(`JDBCDateTimeValueHandler`, MariaDB → Oracle ORA-01843), `BINARY_FLOAT`/`BINARY_DOUBLE`을 IEEE 값으로 바인딩
+  (`OracleBinaryFloatValueHandler`), 다른 DB 문자열 → `VARCHAR2(n CHAR)`/`CHAR(n CHAR)`와 Oracle 열의 문자 길이 단위(`OracleTableColumn`, `OracleSQLDialect`),
+  정밀도 없는 소수 → 배정밀도·Oracle `NUMBER`(`DBStructUtils`, `OracleSQLDialect`), MariaDB `uuid` → PostgreSQL `uuid`(`PostgreDialect`). 4×3 복사 다시 확인과 Oracle 표 편집.

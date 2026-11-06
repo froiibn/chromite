@@ -58,6 +58,7 @@ import java.util.*;
  * 변경 이력:
  * - 2026-11-07 Chromite: data transfer type mapping — uniqueidentifier, character LOBs, timestamps with and without
  *   time zone (Oracle DATE has a time part); text and bytea never get a length (text(10485760) failed).
+ * - 2026-11-07 Chromite: MariaDB uuid (a character type there) becomes uuid instead of varchar(36).
  */
 public class PostgreDialect extends JDBCSQLDialect implements TPRuleProvider, SQLDataTypeConverter,
     SQLDialectDDLExtension, SQLDialectSchemaController {
@@ -1245,6 +1246,9 @@ public class PostgreDialect extends JDBCSQLDialect implements TPRuleProvider, SQ
                 }
                 break;
             case "uniqueidentifier":
+            case "uuid":
+                // MariaDB uuid is a character type, so the name search skipped PostgreSQL uuid (another data kind)
+                // and created varchar(36)
                 localDataType = PostgreConstants.TYPE_UUID;
                 break;
             case "clob":

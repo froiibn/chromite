@@ -1,6 +1,7 @@
 /*
  * DBeaver - Universal Database Manager
  * Copyright (C) 2010-2026 DBeaver Corp and others
+ * Modifications Copyright (C) 2026 Chromite contributors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -34,18 +35,37 @@ import java.sql.ResultSet;
 import java.sql.Types;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * OracleTableColumn
+ *
+ * 설계: the length of VARCHAR2 and CHAR counts bytes or characters (CHAR_USED). Only the number was kept, so the DDL
+ * of a character-length column said VARCHAR2(n), which is n bytes with the default NLS_LENGTH_SEMANTICS = BYTE: a
+ * copy of the column did not hold n Korean characters (3 bytes each in AL32UTF8), and "VARCHAR2(n CHAR)" given as a
+ * new column type (data transfer, table designer) lost its length. {@link #isCharLengthSemantics()} keeps the unit;
+ * {@link OracleSQLDialect#getColumnTypeModifiers} writes it into the DDL.
+ *
+ * 변경 이력:
+ * - 2026-11-07 Chromite: keep CHAR length semantics (read from CHAR_USED, parsed from "(n CHAR)" / "(n BYTE)").
  */
 public class OracleTableColumn extends JDBCTableColumn<OracleTableBase> implements
     DBSTableColumn, DBSTypedObjectEx, DBSTypedObjectExt3, DBPHiddenObject, DBPNamedObject2, DBSTypedObjectExt4<OracleDataType>, DBPObjectWithLazyDescription, DBSDescriptionEditable
 {
 
+    // Length qualifier of VARCHAR2(n CHAR) and CHAR(n CHAR)
+    public static final String CHAR_LENGTH_SEMANTICS = "CHAR";
+    private static final String BYTE_LENGTH_SEMANTICS = "BYTE";
+    // "(100 CHAR)" or "(100 BYTE)" of a full type name
+    private static final Pattern LENGTH_SEMANTICS_PATTERN = Pattern.compile(
+        "\\(\\s*(\\d+)\\s+(" + CHAR_LENGTH_SEMANTICS + "|" + BYTE_LENGTH_SEMANTICS + ")\\s*\\)", Pattern.CASE_INSENSITIVE);
+
     private OracleDataType type;
     private OracleDataTypeModifier typeMod;
     private String comment;
     private boolean hidden;
+    private boolean charLengthSemantics;
 
     public OracleTableColumn(OracleTableBase table)
     {
@@ -79,7 +99,8 @@ public class OracleTableColumn extends JDBCTableColumn<OracleTableBase> implemen
             this.valueType = Types.REF;
         }
         String charUsed = JDBCUtils.safeGetString(dbResult, "CHAR_USED");
-        setMaxLength(JDBCUtils.safeGetLong(dbResult, "C".equals(charUsed) ? "CHAR_LENGTH" : "DATA_LENGTH"));
+        this.charLengthSemantics = "C".equals(charUsed);
+        setMaxLength(JDBCUtils.safeGetLong(dbResult, charLengthSemantics ? "CHAR_LENGTH" : "DATA_LENGTH"));
         setRequired(!OracleConstants.RESULT_YES_VALUE.equals(JDBCUtils.safeGetString(dbResult, "NULLABLE")));
         Integer scale = JDBCUtils.safeGetInteger(dbResult, "DATA_SCALE");
         if (scale == null) {
@@ -108,6 +129,27 @@ public class OracleTableColumn extends JDBCTableColumn<OracleTableBase> implemen
     @Override
     public String getFullTypeName() {
         return DBUtils.getFullTypeName(this);
+    }
+
+    @Override
+    public void setFullTypeName(@NotNull String fullTypeName) throws DBException {
+        Matcher matcher = LENGTH_SEMANTICS_PATTERN.matcher(fullTypeName);
+        if (matcher.find()) {
+            // The generic parser reads only numbers, "100 CHAR" became no length
+            charLengthSemantics = CHAR_LENGTH_SEMANTICS.equalsIgnoreCase(matcher.group(2));
+            fullTypeName = fullTypeName.substring(0, matcher.start()) + "(" + matcher.group(1) + ")" + fullTypeName.substring(matcher.end());
+        } else {
+            // Without a qualifier Oracle uses NLS_LENGTH_SEMANTICS, BYTE by default
+            charLengthSemantics = false;
+        }
+        super.setFullTypeName(fullTypeName);
+    }
+
+    /**
+     * True when the length of VARCHAR2/CHAR counts characters instead of bytes (CHAR_USED = 'C').
+     */
+    public boolean isCharLengthSemantics() {
+        return charLengthSemantics;
     }
 
     @Override

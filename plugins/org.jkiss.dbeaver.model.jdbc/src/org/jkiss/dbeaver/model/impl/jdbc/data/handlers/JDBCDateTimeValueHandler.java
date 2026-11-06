@@ -41,6 +41,7 @@ import java.text.Format;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.time.*;
+import java.time.format.DateTimeParseException;
 import java.util.Date;
 
 /**
@@ -54,6 +55,8 @@ import java.util.Date;
  *   SQL Server datetimeoffset values copied to PostgreSQL timestamptz or MySQL DATETIME by the offset difference),
  *   ZonedDateTime is accepted (Oracle TIMESTAMP WITH TIME ZONE values failed with "Timestamp format must be ...");
  *   class comment said "string value handler".
+ * - 2026-11-07 Chromite: a time of day given as text goes into a TIMESTAMP column on 1970-01-01 (MariaDB TIME into
+ *   Oracle failed with ORA-01843).
  */
 public class JDBCDateTimeValueHandler extends DateTimeCustomValueHandler {
 
@@ -76,6 +79,16 @@ public class JDBCDateTimeValueHandler extends DateTimeCustomValueHandler {
                 case Types.DATE -> getDateValue(value);
                 default -> getTimestampValue(value);
             };
+        }
+        if (value instanceof String text && type.getTypeID() == Types.TIMESTAMP) {
+            // A time of day that the source keeps as text (MariaDB TIME, which may exceed 24 hours) going to a
+            // timestamp column (Oracle has no TIME type): the text was bound as is and failed with ORA-01843.
+            // It goes on 1970-01-01 like a java.sql.Time value.
+            try {
+                return getTimestampValue(LocalDate.EPOCH.atTime(LocalTime.parse(text.trim())));
+            } catch (DateTimeParseException e) {
+                // Not a time of day: keep the text
+            }
         }
         return value;
     }

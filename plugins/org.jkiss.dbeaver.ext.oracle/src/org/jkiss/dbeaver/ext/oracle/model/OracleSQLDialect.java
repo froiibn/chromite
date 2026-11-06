@@ -60,11 +60,17 @@ import java.util.Set;
  *
  * 설계: {@link #convertExternalDataType} maps types of other databases for data transfer into new tables. Unbounded
  * character types (PostgreSQL text, SQL Server nvarchar(max)) became VARCHAR2(100) or VARCHAR2(4000) and cut values,
- * so they become CLOB; uuid became an unrelated object type.
+ * so they become CLOB; uuid became an unrelated object type. Bounded character types become VARCHAR2(n CHAR) or
+ * CHAR(n CHAR): the other databases count characters, VARCHAR2(n) counts bytes by default. NVARCHAR2 is not used:
+ * the database character set (AL32UTF8 by default) holds every character, NVARCHAR2 is limited to 2000 characters and
+ * needs national character binding.
  *
  * 변경 이력:
  * - 2026-11-07 Chromite: data transfer type mapping — unbounded character types, uuid, timestamps with time zone,
  *   time of day (Oracle has no TIME type), IEEE floating point values (BINARY_FLOAT/BINARY_DOUBLE).
+ * - 2026-11-07 Chromite: character length semantics — VARCHAR2(n CHAR)/CHAR(n CHAR) for character types of other
+ *   databases, and "(n CHAR)" in the DDL of columns that count characters ({@link OracleTableColumn}); NUMBER without
+ *   precision and scale stays NUMBER (it became NUMBER(38), an integer).
  */
 public class OracleSQLDialect extends JDBCSQLDialect
     implements SQLDataTypeConverter, SQLDialectDDLExtension, SQLDialectSchemaController {
@@ -77,6 +83,7 @@ public class OracleSQLDialect extends JDBCSQLDialect
     private static final String TYPE_NAME_TIMESTAMP_WITH_TIME_ZONE = "TIMESTAMP WITH TIME ZONE";
     private static final String TYPE_NAME_BINARY_FLOAT = "BINARY_FLOAT";
     private static final String TYPE_NAME_BINARY_DOUBLE = "BINARY_DOUBLE";
+    private static final String TYPE_NAME_CHAR = "CHAR";
     // Binary digits of an IEEE single precision value: JDBC FLOAT up to this precision is single precision
     private static final int MAX_BINARY_FLOAT_PRECISION = 24;
 
@@ -558,6 +565,11 @@ public class OracleSQLDialect extends JDBCSQLDialect
                 if (precision == 0 && dataType != null && scale != null && scale == dataType.getMinScale()) {
                     return "";
                 }
+                if (precision == 0 && scale == null) {
+                    // No precision and no scale (PostgreSQL numeric copied to a new column): NUMBER(38) is an
+                    // integer and cut the fraction, NUMBER keeps every value of up to 38 digits
+                    return "";
+                }
                 if (precision == 0 || precision > OracleConstants.NUMERIC_MAX_PRECISION) {
                     precision = OracleConstants.NUMERIC_MAX_PRECISION;
                 }
@@ -578,6 +590,15 @@ public class OracleSQLDialect extends JDBCSQLDialect
                     scale = OracleConstants.INTERVAL_DEFAULT_SECONDS_PRECISION;
                 }
                 return "(" + scale + ")";
+            case OracleConstants.TYPE_NAME_VARCHAR2:
+            case TYPE_NAME_CHAR:
+                String lengthModifier = super.getColumnTypeModifiers(dataSource, column, typeName, dataKind);
+                if (lengthModifier != null && lengthModifier.endsWith(")")
+                    && column instanceof OracleTableColumn oracleColumn && oracleColumn.isCharLengthSemantics()) {
+                    // Without the qualifier the length counts bytes (default NLS_LENGTH_SEMANTICS = BYTE)
+                    return lengthModifier.substring(0, lengthModifier.length() - 1) + " " + OracleTableColumn.CHAR_LENGTH_SEMANTICS + ")";
+                }
+                return lengthModifier;
             case OracleConstants.TYPE_NAME_BFILE:
             case OracleConstants.TYPE_NAME_CFILE:
             case OracleConstants.TYPE_CONTENT_POINTER:
@@ -601,16 +622,6 @@ public class OracleSQLDialect extends JDBCSQLDialect
         String localDataType = null, dataTypeModifies = null;
 
         switch (externalTypeName) {
-            case "VARCHAR":
-                //We don't want to use a VARCHAR it's not recommended
-                //See https://docs.oracle.com/en/database/oracle/oracle-database/19/sqlrf/Data-Types.html#GUID-DF7E10FC-A461-4325-A295-3FD4D150809E
-                localDataType = OracleConstants.TYPE_NAME_VARCHAR2;
-                if (sourceTypedObject.getMaxLength() > 0
-                    && sourceTypedObject.getMaxLength() != Integer.MAX_VALUE
-                    && sourceTypedObject.getMaxLength() != Long.MAX_VALUE) {
-                    dataTypeModifies = String.valueOf(sourceTypedObject.getMaxLength());
-                }
-                break;
             case "XML":
             case "XMLTYPE":
                 localDataType = OracleConstants.TYPE_FQ_XML;
@@ -662,6 +673,13 @@ public class OracleSQLDialect extends JDBCSQLDialect
             long maxLength = sourceTypedObject.getMaxLength();
             if (maxLength <= 0 || maxLength > MAX_VARCHAR2_LENGTH) {
                 localDataType = OracleConstants.TYPE_CLOB;
+            } else {
+                // Lengths of other databases count characters, VARCHAR2(n) counts bytes with the default
+                // NLS_LENGTH_SEMANTICS = BYTE (100 Korean characters need 300 bytes in AL32UTF8, ORA-12899).
+                // VARCHAR2 rather than VARCHAR, which Oracle does not recommend.
+                int typeID = sourceTypedObject.getTypeID();
+                localDataType = typeID == Types.CHAR || typeID == Types.NCHAR ? TYPE_NAME_CHAR : OracleConstants.TYPE_NAME_VARCHAR2;
+                dataTypeModifies = maxLength + " " + OracleTableColumn.CHAR_LENGTH_SEMANTICS;
             }
         }
         if (localDataType == null) {

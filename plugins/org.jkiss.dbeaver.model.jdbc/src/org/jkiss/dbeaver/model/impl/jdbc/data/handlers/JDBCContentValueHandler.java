@@ -1,6 +1,7 @@
 /*
  * DBeaver - Universal Database Manager
  * Copyright (C) 2010-2026 DBeaver Corp and others
+ * Modifications Copyright (C) 2026 Chromite contributors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,6 +19,7 @@ package org.jkiss.dbeaver.model.impl.jdbc.data.handlers;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
+import org.jkiss.dbeaver.DBException;
 import org.jkiss.dbeaver.Log;
 import org.jkiss.dbeaver.ModelPreferences;
 import org.jkiss.dbeaver.model.DBConstants;
@@ -46,6 +48,13 @@ import java.sql.*;
 /**
  * JDBC Content value handler.
  * Handle LOBs, LONGs and BINARY types.
+ *
+ * 설계: content values of another data source (data transfer between databases) are moved into this handler's own
+ * content for the target type instead of being bound by the source content, whose binding was written for the source
+ * driver (PostgreSQL json binds as Types.OTHER).
+ *
+ * 변경 이력:
+ * - 2026-11-07 Chromite: convert content values of other data sources (Copy Tables PostgreSQL json -> Oracle JSON).
  *
  * @author Serge Rider
  */
@@ -236,6 +245,19 @@ public class JDBCContentValueHandler extends JDBCAbstractValueHandler implements
             }
             IOUtils.close(reader);
             return new JDBCContentChars(session.getExecutionContext(), buffer.toString());
+        } else if (object instanceof DBDContent content && content.getDataSource() != session.getDataSource()) {
+            // Content of another database (data transfer) binds itself the way its own driver wants: PostgreSQL json
+            // sends Types.OTHER, which Oracle rejected with ORA-17004. Move its data into this handler's content for
+            // the target type; LOB contents take over the storage, so large values are not read into memory here.
+            DBDContent localContent = getValueFromObject(session, type, null, false, validateValue);
+            if (!content.isNull()) {
+                try {
+                    localContent.updateContents(session.getProgressMonitor(), content.getContents(session.getProgressMonitor()));
+                } catch (DBException e) {
+                    throw new DBCException("Error reading content value of another database", e);
+                }
+            }
+            return localContent;
         } else if (object instanceof DBDContent) {
             if (copy && object instanceof DBDValueCloneable) {
                 return (DBDContent) ((DBDValueCloneable)object).cloneValue(session.getProgressMonitor());

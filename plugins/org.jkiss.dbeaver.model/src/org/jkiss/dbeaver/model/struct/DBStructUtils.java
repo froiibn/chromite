@@ -64,6 +64,8 @@ import java.util.stream.Stream;
  * - 2026-11-07 Chromite: numeric fallback by JDBC type and value range (PostgreSQL int4 became MySQL TINYINT,
  *   float8 became FLOAT, MySQL DOUBLE became SQL Server int, Oracle NUMBER(12,2) became float and NUMBER became int),
  *   shared timestamp checks for dialect converters.
+ * - 2026-11-07 Chromite: a decimal without precision (PostgreSQL numeric) no longer takes the target type of the same
+ *   name, which has a fixed default precision and scale (SQL Server numeric(18,0), MySQL DECIMAL(10,0)).
  */
 public final class DBStructUtils {
 
@@ -435,7 +437,9 @@ public final class DBStructUtils {
                 // target type containing "int" (MySQL TINYINT for PostgreSQL int4/int8) or "float" (single precision
                 // FLOAT for float8), and an equal name may be narrower in the target (SQL Server float -> MySQL FLOAT).
                 int sourceRank = getNumericRank(srcTypedObject.getTypeID(), srcTypedObject.getPrecision(), srcTypedObject.getFullTypeName(), false);
-                if (dataType != null && isNarrowerNumericType(dataType, sourceRank)) {
+                if (dataType != null && (isNarrowerNumericType(dataType, sourceRank) || isDecimalWithoutPrecision(srcTypedObject))) {
+                    // A decimal without precision holds any scale; the target type of the same name without
+                    // modifiers has a fixed default (SQL Server numeric(18,0), MySQL DECIMAL(10,0)) and cut the values
                     dataType = null;
                 }
                 if (dataType == null) {
@@ -593,6 +597,10 @@ public final class DBStructUtils {
         return rank;
     }
 
+    private static boolean isDecimalWithoutPrecision(@NotNull DBSTypedObject type) {
+        return (type.getTypeID() == Types.NUMERIC || type.getTypeID() == Types.DECIMAL) && CommonUtils.toInt(type.getPrecision()) <= 0;
+    }
+
     private static boolean isSameRankGroup(int rank1, int rank2) {
         return rank1 != RANK_NONE && rank2 != RANK_NONE && (rank1 < FLOAT_RANK_BASE) == (rank2 < FLOAT_RANK_BASE);
     }
@@ -620,9 +628,10 @@ public final class DBStructUtils {
             if (typeID != Types.NUMERIC && typeID != Types.DECIMAL) {
                 return null;
             }
-            if (CommonUtils.toInt(source.getPrecision()) <= 0) {
-                // A decimal without precision (Oracle NUMBER) holds any scale: a fixed-scale type or an integer
-                // (the name search picked int) would cut the fraction, double precision keeps the value approximately
+            if (isDecimalWithoutPrecision(source)) {
+                // A decimal without precision (Oracle NUMBER, PostgreSQL numeric) holds any scale: a fixed-scale type
+                // or an integer (the name search picked int) would cut the fraction, double precision keeps the value
+                // approximately
                 sourceRank = RANK_DOUBLE;
             } else {
                 for (String name : DECIMAL_TYPE_NAMES) {
