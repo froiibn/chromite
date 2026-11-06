@@ -3,7 +3,7 @@
 ## 목적
 
 DBeaver의 SWT/Eclipse RCP UI를 Swing으로 새로 만든다.
-화면 배치는 SSMS를 따르고, 디자인은 DataGrip(다크)과 SSMS(라이트) 스타일로 한다.
+화면 배치와 동작은 SSMS를 따르고, 모양은 다크·라이트 모두 DataGrip New UI를 따른다(2026-11-06 결정, 목표 사양은 [design-spec.md](design-spec.md)).
 
 ## 왜 Swing인가
 
@@ -83,7 +83,7 @@ UI는 SWT 위젯뿐 아니라 Eclipse RCP 워크벤치(뷰, 편집기, 퍼스펙
 5. **결과 그리드:** 조회 결과 표시, 복사, 편집·저장 (SSMS의 Edit Top 200 Rows에 해당)
 6. **Script as / DDL 보기:** 객체 우클릭 → CREATE·SELECT 스크립트 생성, DDL 보기
 7. **결과 내보내기:** CSV, Excel
-8. **테마:** DataGrip풍 다크, SSMS풍 라이트
+8. **테마:** 다크·라이트 모두 DataGrip New UI 모양(목표 사양은 [design-spec.md](design-spec.md))
 
 MVP 이후: 테이블 디자이너, ER 다이어그램, 데이터 비교, AI 기능 등.
 
@@ -480,6 +480,7 @@ B단계는 `JSplitPane`만 쓴다.
 | Light (SSMS풍) | `ChromiteLightLaf` | `FlatLightLaf` | 강조색 `#0078d4`(운영체제 강조색 대신 고정), 바탕 `#f3f3f3` |
 | Dark (DataGrip풍) | `ChromiteDarkLaf` | `FlatDarculaLaf` | 바탕 `#2b2d30`, 글자 `#dfe1e5`, 강조색 `#3574f0` |
 
+- 위 표는 B단계 구현 상태다. 2026-11-06 결정으로 라이트도 DataGrip New UI 모양을 따르며, 목표 값(토큰, FlatLaf 키, 다크 기반을 `FlatDarkLaf`로 바꾸는 이유)은 [design-spec.md](design-spec.md)에 있다.
 - FlatLaf는 Look and Feel 클래스 계층마다 "클래스 이름.properties"를 읽어 덮어쓴다. 그래서 외부 테마 파일 없이 색 변수 몇 개만 바꿨다.
   JetBrains·Microsoft의 테마 파일과 아이콘은 쓰지 않고 색감만 참고했다.
 - View > Theme에서 바꾸면 바로 `FlatLaf.setup()` + `FlatLaf.updateUI()`로 열린 모든 창을 다시 그리고, 설정에 저장해 다음 시작에도 쓴다.
@@ -1298,3 +1299,4 @@ G단계의 목표는 쿼리 결과를 표에서 고치고 DB에 저장하는 것
 - 2026-11-06 G단계 구현: 결과 표 편집·저장(단일 테이블·고유 키 결과만, 모델 계층 `DBDResultSetModel` 구현과 `DBDResultSetDataUpdater` 상속, `bindAttributes`로 편집 가능 판단),
   셀 편집·NULL·행 추가·삭제, 한 트랜잭션 저장과 저장 뒤 행 다시 읽기, 실패 시 Messages와 변경 유지, 닫기·끝내기·다시 실행 전 확인.
   "구현 현황 — G단계" 절 추가, 재사용 분석 표와 이전 단계의 남긴 항목에 구현 표시.
+- 2026-11-06 디자인 방향 변경: 배치·동작은 SSMS, 모양은 다크·라이트 모두 DataGrip New UI. 목표 사양을 [design-spec.md](design-spec.md)로 분리하고 목적·MVP·테마 절에 연결.
