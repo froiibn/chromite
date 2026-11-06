@@ -1690,3 +1690,4 @@ Windows 11, 화면 배율 150%, JBR 25, 작업 공간 사본 `D:\Tools\_smoke\sw
 - 2026-11-06 화면 문구에서 다른 제품 이름 제거: 아이콘 팩 "Duo-tone"·"Full color", Options > Editor Colors의 "Reset to Defaults".
 - 2026-11-06 Registered Servers 도구 창(서버 그룹 = 연결 폴더), Object Explorer는 연 서버만 보이는 평평한 목록으로 바꿈.
   [swing-registered-servers.md](swing-registered-servers.md).
+- 2026-11-06 관리 도구: Tools·Object Explorer 메뉴의 Activity Monitor(세션, 잠금)와 Find Objects. 설계는 [swing-admin-tools.md](swing-admin-tools.md).

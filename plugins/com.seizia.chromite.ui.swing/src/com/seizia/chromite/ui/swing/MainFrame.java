@@ -27,6 +27,7 @@ import org.jkiss.dbeaver.model.DBPEventListener;
 import org.jkiss.dbeaver.model.app.DBPDataSourceRegistry;
 import org.jkiss.dbeaver.model.app.DBPProject;
 import org.jkiss.dbeaver.model.app.DBPWorkspace;
+import org.jkiss.dbeaver.model.navigator.DBNNode;
 import org.jkiss.dbeaver.model.preferences.DBPPreferenceStore;
 import org.jkiss.dbeaver.runtime.DBWorkbench;
 import org.jkiss.dbeaver.utils.GeneralUtils;
@@ -71,7 +72,7 @@ import java.util.function.IntConsumer;
  *     <li>모양은 DataGrip Islands다: 메인 창 바탕은 캔버스({@code Chromite.island.canvas})이고 Object Explorer, 문서 탭·편집기, Results, Properties가
  *     각각 둥근 카드({@link IslandPanel})다. 카드 사이 틈은 분할선(6px, 선 없음)과 좌우 바깥 여백이다. 주 도구 막대와 상태 표시줄은 캔버스 위에 있다.</li>
  *     <li>메뉴는 SSMS 순서로 File(새 연결·쿼리, 파일, Exit), Edit({@link EditMenu}), View(도구 창 토글, Theme), Query(실행, 취소, 자동완성),
- *     Tools(Options, {@link OptionsDialog}), Window(Reset Window Layout, 열린 문서 탭 목록), Help(About)이다. FlatLaf의 통합 제목 표시줄(Windows)에서
+ *     Tools(Activity Monitor, Locks, Find Objects, Options {@link OptionsDialog}), Window(Reset Window Layout, 열린 문서 탭 목록), Help(About)이다. FlatLaf의 통합 제목 표시줄(Windows)에서
  *     메뉴 막대는 A단계처럼 제목 표시줄 안에 들어간다. Tools &gt; Options와 같은 설정을 보이는 메뉴 항목(Theme, Icon Style, Auto-Complete While Typing)은
  *     메뉴를 열 때 현재 값으로 맞춘다.
  *     도구 창 단축키는 SSMS와 같다(Object Explorer F8, Registered Servers Ctrl+Alt+G, Properties F4, Results Ctrl+R).</li>
@@ -97,6 +98,8 @@ import java.util.function.IntConsumer;
  *     결과를 저장하는 중인 편집기는 닫지 않는다.
  *     그래서 창 닫기는 직접 처리하고({@code DO_NOTHING_ON_CLOSE}), 끝내기로 하면 dispose한다. 외부 종료 요청({@code IApplication.stop})은 묻지 않고 닫는다.</li>
  *     <li>Object Explorer의 스크립트 명령({@link ObjectExplorerPanel.QueryWindows}): 스크립트를 담은 새 편집기, "View DDL"의 읽기 전용 탭({@link DdlViewerPanel}).</li>
+ *     <li>관리 도구 문서 탭({@link ToolDocument}): Activity Monitor({@link ActivityMonitorPanel}, 연결마다 하나, 이미 열려 있으면 그 탭)와
+ *     Find Objects({@link ObjectSearchPanel}). Tools 메뉴와 Object Explorer 오른쪽 클릭 메뉴에서 연다. 탭을 닫거나 창을 닫으면 정리한다(타이머, 서버 연결).</li>
  * </ul>
  * 창을 닫으면 dispose되고, {@link ChromiteSwingApplication}이 windowClosed 이벤트로 앱을 종료한다.
  * 창 아이콘은 Java 런타임(JBR) 기본 아이콘 대신 Chromite 아이콘을 쓴다({@link ChromiteIcons}).
@@ -122,6 +125,7 @@ import java.util.function.IntConsumer;
  * - 2026-11-06 P1: 문서 탭 닫기 단추를 선택·마우스 올린 탭에만, 가운데 단추로 닫기 (docs/chromite/swing-frontend.md "P1 디자인 적용")
  * - 2026-11-06 DDL 탭에 객체의 연결을 넘김(구문 강조의 SQL 방언) (docs/chromite/design-spec.md "편집기 글꼴과 SQL 색")
  * - 2026-11-06 Registered Servers 도구 창(Object Explorer 위, Ctrl+Alt+G) (docs/chromite/swing-registered-servers.md)
+ * - 2026-11-06 관리 도구: Tools &gt; Activity Monitor, Locks, Find Objects와 도구 문서 탭 (docs/chromite/swing-admin-tools.md)
  */
 final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplorerPanel.QueryWindows {
 
@@ -371,6 +375,11 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
         explorerPanel.dispose();
         registeredServersPanel.dispose();
         editMenu.dispose();
+        for (int i = 0; i < documentTabs.getTabCount(); i++) {
+            if (documentTabs.getComponentAt(i) instanceof ToolDocument document) {
+                document.dispose();
+            }
+        }
         for (DBPDataSourceRegistry registry : listenedRegistries) {
             registry.removeDataSourceListener(registryListener);
         }
@@ -481,6 +490,55 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
         documentTabs.setSelectedIndex(index);
     }
 
+    @Override
+    public void openActivityMonitor(@NotNull DBPDataSourceContainer dataSource, int tab) {
+        for (int i = 0; i < documentTabs.getTabCount(); i++) {
+            if (documentTabs.getComponentAt(i) instanceof ActivityMonitorPanel monitor && monitor.getContainer() == dataSource) {
+                documentTabs.setSelectedIndex(i);
+                monitor.showTab(tab);
+                return;
+            }
+        }
+        ActivityMonitorPanel monitor = new ActivityMonitorPanel(dataSource, this);
+        addToolDocument(monitor);
+        monitor.showTab(tab);
+    }
+
+    @Override
+    public void openObjectSearch(@Nullable DBNNode selectedNode) {
+        addToolDocument(new ObjectSearchPanel(selectedNode, node -> {
+            // Object Explorer is the first tool window
+            toolWindows.get(0).setShown(true);
+            explorerPanel.revealNode(node);
+        }));
+    }
+
+    private void addToolDocument(@NotNull ToolDocument document) {
+        JComponent component = (JComponent) document;
+        component.putClientProperty(FlatClientProperties.TABBED_PANE_TAB_CLOSABLE, true);
+        documentTabs.addTab(document.getTitle(), document.getIcon(), component);
+        int index = documentTabs.indexOfComponent(component);
+        documentTabs.setToolTipTextAt(index, document.getToolTip());
+        documentTabs.setSelectedIndex(index);
+    }
+
+    /**
+     * Tools menu: the Activity Monitor of the connection selected in Object Explorer (or of the active editor).
+     */
+    private void openActivityMonitor(int tab) {
+        DBPDataSourceContainer dataSource = explorerPanel.getSelectedDataSource();
+        if (dataSource == null) {
+            SqlEditorPanel activeEditor = getActiveEditor();
+            dataSource = activeEditor != null ? activeEditor.getDataSourceContainer() : null;
+        }
+        if (dataSource == null) {
+            JOptionPane.showMessageDialog(this, "Select a connection (or any object under it) in Object Explorer first.",
+                "Activity Monitor", JOptionPane.INFORMATION_MESSAGE);
+            return;
+        }
+        openActivityMonitor(dataSource, tab);
+    }
+
     /**
      * Adds a query window tab.
      *
@@ -512,6 +570,9 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
             editor.dispose();
             documentTabs.remove(editor);
         } else if (component instanceof DdlViewerPanel) {
+            documentTabs.removeTabAt(index);
+        } else if (component instanceof ToolDocument document) {
+            document.dispose();
             documentTabs.removeTabAt(index);
         }
     }
@@ -989,8 +1050,21 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
         JMenuItem optionsItem = new JMenuItem("Options…");
         optionsItem.setMnemonic(KeyEvent.VK_O);
         optionsItem.addActionListener(e -> OptionsDialog.open(this));
+        JMenuItem activityMonitorItem = new JMenuItem("Activity Monitor");
+        activityMonitorItem.setMnemonic(KeyEvent.VK_A);
+        activityMonitorItem.addActionListener(e -> openActivityMonitor(ActivityMonitorPanel.PROCESSES_TAB));
+        JMenuItem locksItem = new JMenuItem("Locks");
+        locksItem.setMnemonic(KeyEvent.VK_L);
+        locksItem.addActionListener(e -> openActivityMonitor(ActivityMonitorPanel.LOCKS_TAB));
+        JMenuItem findObjectsItem = new JMenuItem("Find Objects…");
+        findObjectsItem.setMnemonic(KeyEvent.VK_F);
+        findObjectsItem.addActionListener(e -> openObjectSearch(explorerPanel.getSelectedNode()));
         JMenu toolsMenu = new JMenu("Tools");
         toolsMenu.setMnemonic(KeyEvent.VK_T);
+        toolsMenu.add(activityMonitorItem);
+        toolsMenu.add(locksItem);
+        toolsMenu.add(findObjectsItem);
+        toolsMenu.addSeparator();
         toolsMenu.add(optionsItem);
 
         JMenu windowMenu = new JMenu("Window");

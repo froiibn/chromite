@@ -115,6 +115,8 @@ import java.util.function.Consumer;
  *     마우스를 올린 행의 둥근 바탕({@link ExplorerTree}). 행 높이·들여쓰기·선택 모양은 테마 properties의 FlatLaf 키다.</li>
  *     <li>Filter(SSMS): 고른 객체 폴더에 이름 마스크를 건다. DBeaver 탐색기 필터({@code DBSObjectFilter})를 그대로 써서 연결 설정에 저장된다.
  *     Collapse All은 펼친 노드를 모두 접는다.</li>
+ *     <li>관리 도구: 오른쪽 클릭 메뉴의 Activity Monitor, Locks(선택한 노드의 연결), Find Objects…(선택한 노드의 연결과 스키마를 범위로).
+ *     Find Objects 결과는 {@link #revealNode}로 트리를 펼쳐 고른다.</li>
  * </ul>
  *
  * 변경 이력:
@@ -128,6 +130,7 @@ import java.util.function.Consumer;
  * - 2026-11-06 View DDL에 객체의 연결을 넘김(DDL 탭의 구문 강조가 연결의 SQL 방언을 따름) (docs/chromite/design-spec.md "편집기 글꼴과 SQL 색")
  * - 2026-11-06 Registered Servers: 연 서버만 보이는 평평한 목록(연결 폴더 노드 삭제), Disconnect로 목록에서 빼기, 도구 막대 Connect = 서버 고르기,
  *   New Connection으로 만든 서버 넣기 (docs/chromite/swing-registered-servers.md)
+ * - 2026-11-06 관리 도구: Activity Monitor·Locks·Find Objects 메뉴, 노드까지 펼쳐 고르기(revealNode) (docs/chromite/swing-admin-tools.md)
  */
 final class ObjectExplorerPanel extends JPanel {
 
@@ -140,7 +143,7 @@ final class ObjectExplorerPanel extends JPanel {
     private static final int SELECT_TOP_ROWS = 1000;
 
     /**
-     * The main window side: document tabs for queries and scripts.
+     * The main window side: document tabs for queries, scripts and tools.
      */
     interface QueryWindows {
         /**
@@ -162,6 +165,16 @@ final class ObjectExplorerPanel extends JPanel {
          * @param dataSource connection of the object (its SQL dialect highlights the text)
          */
         void showDdl(@Nullable DBPDataSourceContainer dataSource, @NotNull String objectName, @NotNull String ddl);
+
+        /**
+         * Opens (or shows) the Activity Monitor of the connection at a tab ({@link ActivityMonitorPanel#PROCESSES_TAB}, {@link ActivityMonitorPanel#LOCKS_TAB}).
+         */
+        void openActivityMonitor(@NotNull DBPDataSourceContainer dataSource, int tab);
+
+        /**
+         * Opens the Find Objects tab for the selected node (its connection and schema), or for no node.
+         */
+        void openObjectSearch(@Nullable DBNNode selectedNode);
     }
 
     private final DefaultTreeModel treeModel;
@@ -188,6 +201,9 @@ final class ObjectExplorerPanel extends JPanel {
     private final Action deleteAction;
     private final Action selectTopAction;
     private final Action viewDdlAction;
+    private final Action activityMonitorAction;
+    private final Action locksAction;
+    private final Action findObjectsAction;
     private final JMenu scriptAsMenu;
     private final JMenu createToMenu;
     private final JMenu selectToMenu;
@@ -201,6 +217,11 @@ final class ObjectExplorerPanel extends JPanel {
      * Expand {@link #pendingReveal} too (it connects): a server opened from Registered Servers or the Connect chooser.
      */
     private boolean expandReveal;
+    /**
+     * A node to expand down to and select once the children on its path have been read ({@link #revealNode}).
+     */
+    @Nullable
+    private DBNNode revealTarget;
     private boolean disposed;
 
     /**
@@ -281,6 +302,14 @@ final class ObjectExplorerPanel extends JPanel {
                 }
             }
         });
+        activityMonitorAction = createAction("Activity Monitor", () -> runOnSelectedDataSource(
+            dataSource -> queryWindows.openActivityMonitor(dataSource, ActivityMonitorPanel.PROCESSES_TAB)));
+        activityMonitorAction.putValue(Action.SHORT_DESCRIPTION, "Show the sessions of the server and end them");
+        locksAction = createAction("Locks", () -> runOnSelectedDataSource(
+            dataSource -> queryWindows.openActivityMonitor(dataSource, ActivityMonitorPanel.LOCKS_TAB)));
+        locksAction.putValue(Action.SHORT_DESCRIPTION, "Show the sessions that wait for locks and the sessions that block them");
+        findObjectsAction = createAction("Find Objects…", () -> queryWindows.openObjectSearch(getSelectedNavigatorNode()));
+        findObjectsAction.putValue(Action.SHORT_DESCRIPTION, "Find tables, views, procedures and columns by name");
         createToMenu = new JMenu("CREATE To");
         createToMenu.add(createAction("New Query Editor Window", () -> scriptSelected(queryWindows, false, false)));
         createToMenu.add(createAction("Clipboard", () -> scriptSelected(queryWindows, false, true)));
@@ -362,6 +391,10 @@ final class ObjectExplorerPanel extends JPanel {
         popupMenu.add(connectAction);
         popupMenu.add(disconnectAction);
         popupMenu.add(reconnectAction);
+        popupMenu.addSeparator();
+        popupMenu.add(activityMonitorAction);
+        popupMenu.add(locksAction);
+        popupMenu.add(findObjectsAction);
         popupMenu.addSeparator();
         popupMenu.add(editConnectionAction);
         popupMenu.add(renameAction);
@@ -543,6 +576,9 @@ final class ObjectExplorerPanel extends JPanel {
         // Also for a server that is no longer connected: Disconnect removes it from this window
         disconnectAction.setEnabled(dataSource != null);
         reconnectAction.setEnabled(connected);
+        activityMonitorAction.setEnabled(dataSource != null);
+        locksAction.setEnabled(dataSource != null);
+        findObjectsAction.setEnabled(projectNode != null);
         editConnectionAction.setEnabled(connectionNode);
         renameAction.setEnabled(connectionNode);
         deleteAction.setEnabled(connectionNode);
@@ -605,6 +641,62 @@ final class ObjectExplorerPanel extends JPanel {
     }
 
     /**
+     * Expands the tree down to a navigator node and selects it (Find Objects). Children on the path that have not
+     * been read yet are read first ({@link #loadChildren}); the walk goes on when they are shown ({@link #showChildren}).
+     */
+    void revealNode(@NotNull DBNNode node) {
+        revealTarget = node;
+        continueReveal();
+    }
+
+    /**
+     * One step of {@link #revealNode}: from the root, follows the tree child that is the target or one of its
+     * navigator ancestors. Stops at a node whose children are still being read, or when the target is not in the tree
+     * (e.g. hidden by a filter).
+     */
+    private void continueReveal() {
+        DBNNode target = revealTarget;
+        if (target == null) {
+            return;
+        }
+        ExplorerNode current = rootNode;
+        while (true) {
+            if (current.state != LoadState.LOADED) {
+                if (current.state == LoadState.NOT_LOADED) {
+                    if (current == rootNode) {
+                        loadChildren(rootNode, false);
+                    } else {
+                        // Expanding reads the children (tree will-expand listener)
+                        tree.expandPath(new TreePath(current.getPath()));
+                    }
+                }
+                return;
+            }
+            ExplorerNode next = null;
+            for (int i = 0; i < current.getChildCount(); i++) {
+                if (current.getChildAt(i) instanceof ExplorerNode child && child.getUserObject() instanceof DBNNode childNode
+                    && (childNode == target || target.isChildOf(childNode))) {
+                    next = child;
+                    break;
+                }
+            }
+            if (next == null) {
+                revealTarget = null;
+                return;
+            }
+            if (next.getUserObject() == target) {
+                revealTarget = null;
+                TreePath path = new TreePath(next.getPath());
+                tree.setSelectionPath(path);
+                tree.scrollPathToVisible(path);
+                tree.requestFocusInWindow();
+                return;
+            }
+            current = next;
+        }
+    }
+
+    /**
      * Focus goes to the tree when the main window opens, so the keyboard works right away.
      */
     void focusTree() {
@@ -617,6 +709,14 @@ final class ObjectExplorerPanel extends JPanel {
     @Nullable
     DBPDataSourceContainer getSelectedDataSource() {
         return getSelectedNavigatorNode() instanceof DBNDatabaseNode databaseNode ? databaseNode.getDataSourceContainer() : null;
+    }
+
+    /**
+     * The selected navigator node, or null (Tools &gt; Find Objects scope).
+     */
+    @Nullable
+    DBNNode getSelectedNode() {
+        return getSelectedNavigatorNode();
     }
 
     @Nullable
@@ -723,6 +823,7 @@ final class ObjectExplorerPanel extends JPanel {
         treeModel.nodeStructureChanged(target);
         // Connecting may change the node icon (connected state)
         treeModel.nodeChanged(target);
+        continueReveal();
     }
 
     private void showLoadError(@NotNull ExplorerNode node, int serial, @NotNull Throwable error) {
@@ -732,6 +833,7 @@ final class ObjectExplorerPanel extends JPanel {
         node.removeAllChildren();
         node.add(new ExplorerNode(LOADING_TEXT));
         node.state = LoadState.NOT_LOADED;
+        revealTarget = null;
         treeModel.nodeStructureChanged(node);
         if (node != rootNode) {
             tree.collapsePath(new TreePath(node.getPath()));
