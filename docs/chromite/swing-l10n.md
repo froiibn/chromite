@@ -88,6 +88,12 @@ A의 한글이 보통 굵기(B)와 같은 것이 증상의 원인이다.
   묶이므로 쓰지 않았다.
 - `deriveFont(Font.BOLD)`로 굵게 만든 글꼴(실행 계획 항목, 속성 표 등)은 원래 대체 칸도 Bold라 고치지 않았다.
 
+2026-11-07 UI 글꼴을 Pretendard로 바꿨다(design-spec.md "글꼴 토큰"). Pretendard SemiBold는 한글을 가지므로 한국어 화면에서도
+semibold 한글에 대체 글꼴이 필요 없고, 위 수정은 적용되지 않는다(영어·한국어 모두 Pretendard SemiBold로 그림).
+판단은 Inter 고정 이름 대신 **설치한 테마의 `semibold.font`**로 한다: 테마를 설치한 뒤 `UIManager.getFont("semibold.font")`의 이름으로
+물리 글꼴을 만들어 `canDisplayUpTo`를 보고, 화면 언어의 글자를 그릴 수 없으면 `semibold.font = bold`를 넣어 테마를 한 번 더 설치한다.
+Pretendard에 없는 한자·가나를 쓰는 화면 언어(일본어, 중국어)가 생기면 그때 적용된다.
+
 ## DBeaver 플러그인 한국어 보충
 
 사용자 결정(2026-11-06, 안 "가"): 한국어 Windows에서도 개체 탐색기 폴더(Databases, Schemas, Tables…), 개체 속성 이름(Object ID, Owner,
@@ -371,3 +377,4 @@ XML, XLSX, BOM, host:port 같은 기술 토큰은 번역하지 않는다. "…"�
   (폴더·개체·매개 변수), 테이블 아래 "CHECK 제약 조건" 폴더 → "제약 조건". 미해결 질문을 닫음.
 - 2026-11-06 SQL Server 탐색기에서 함수를 "함수"(Functions) 폴더로 분리(사용자 결정). 한 캐시를 종류별로 거르는 getter 두 개,
   CLR 함수 FS/FT 읽기, 폴더 설명 3개 `%키`로.
+- 2026-11-07 UI 글꼴 Pretendard: semibold 확인을 테마의 `semibold.font`로 바꿈. 한국어 화면의 굵은 대체 글꼴 처리는 Pretendard SemiBold가 한글을 가져 꺼짐.

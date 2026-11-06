@@ -178,6 +178,7 @@ import java.util.function.Consumer;
  *   (docs/chromite/swing-security.md)
  * - 2026-11-06 Import Data… / Export Data… / Copy Tables…를 데이터베이스 노드와 데이터베이스가 하나인 연결 노드에서도 켬, 도구 설명
  *   (docs/chromite/swing-data-transfer.md "데이터베이스 노드")
+ * - 2026-11-07 밀도 B: 치수를 테마의 Chromite.size.* 키({@link UiSizes})에서 읽음 (docs/chromite/design-spec.md "치수 토큰")
  * - 2026-11-07 탐색 불가 항목(프로시저·함수 매개 변수, MySQL/MariaDB 시스템 정보 폴더의 변수·상태·엔진 등)을 트리에 보여 줌,
  *   매개 변수 뒤 보조 글자는 형식 (docs/chromite/swing-frontend.md "Object Explorer 탐색 불가 항목")
  */
@@ -800,7 +801,7 @@ final class ObjectExplorerPanel extends JPanel {
         JToolBar toolBar = new JToolBar();
         toolBar.setFloatable(false);
         toolBar.setOpaque(false);
-        toolBar.setBorder(BorderFactory.createEmptyBorder(UIScale.scale(3), UIScale.scale(8), UIScale.scale(3), UIScale.scale(8)));
+        toolBar.setBorder(UiSizes.createPadding(UiSizes.TOOL_WINDOW_TOOL_BAR_PADDING));
         toolBar.add(UiIcons.createActionButton(newConnectionAction, "new-connection")); //$NON-NLS-1$
         toolBar.add(UiIcons.createActionButton(connectServerAction, "connect")); //$NON-NLS-1$
         toolBar.add(UiIcons.createActionButton(disconnectAction, "disconnect")); //$NON-NLS-1$
@@ -1503,9 +1504,6 @@ final class ObjectExplorerPanel extends JPanel {
      * same as in Registered Servers), also when it is selected or under the mouse.
      */
     private static final class ExplorerCellRenderer extends DefaultTreeCellRenderer {
-        // space.6: icon-text gap and gap before the secondary text
-        private static final int GAP = 6;
-
         @Nullable
         private String secondaryText;
         @Nullable
@@ -1522,14 +1520,15 @@ final class ObjectExplorerPanel extends JPanel {
             boolean hasFocus
         ) {
             super.getTreeCellRendererComponent(tree, value, selected, expanded, leaf, row, hasFocus);
-            setIconTextGap(UIScale.scale(GAP));
+            setIconTextGap(UiSizes.get(UiSizes.TREE_ICON_TEXT_GAP));
             secondaryText = null;
             pill = null;
             if (value instanceof ExplorerNode node && node.getUserObject() instanceof DBNNode navigatorNode) {
                 if (navigatorNode instanceof DBNDataSource dataSourceNode) {
                     pill = ConnectionPill.of(dataSourceNode.getDataSourceContainer());
                     if (pill != null) {
-                        setIconTextGap(UIScale.scale(GAP) + ConnectionPill.getPaddingX());
+                        // A pill keeps space.6 from the icon (connection color pill spec), not the denser icon-text gap
+                        setIconTextGap(UiSizes.get(UiSizes.TREE_SECONDARY_GAP) + ConnectionPill.getPaddingX());
                     setForeground(pill.getTextColor(getForeground()));
                     }
                 }
@@ -1580,7 +1579,7 @@ final class ObjectExplorerPanel extends JPanel {
                 size.width += ConnectionPill.getPaddingX();
             }
             if (size != null && secondaryText != null) {
-                size.width += UIScale.scale(GAP) + getFontMetrics(getFont()).stringWidth(secondaryText);
+                size.width += UiSizes.get(UiSizes.TREE_SECONDARY_GAP) + getFontMetrics(getFont()).stringWidth(secondaryText);
             }
             return size;
         }
@@ -1600,7 +1599,7 @@ final class ObjectExplorerPanel extends JPanel {
             if (secondaryText == null || baseline < 0) {
                 return;
             }
-            int x = textX + textWidth + (pill != null ? ConnectionPill.getPaddingX() : 0) + UIScale.scale(GAP);
+            int x = textX + textWidth + (pill != null ? ConnectionPill.getPaddingX() : 0) + UiSizes.get(UiSizes.TREE_SECONDARY_GAP);
             Color color = UIManager.getColor("Chromite.secondaryForeground"); //$NON-NLS-1$
             g.setColor(color != null ? color : getForeground());
             g.setFont(getFont());
