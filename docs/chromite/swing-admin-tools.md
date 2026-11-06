@@ -1,4 +1,4 @@
-# Swing 관리 도구 (Activity Monitor, Disk Usage, Server Logs, Find Objects)
+# Swing 관리 도구 (Activity Monitor, Disk Usage, Server Logs, Maintenance, Replication, Find Objects)
 
 ## 목적
 
@@ -10,6 +10,9 @@ DBeaver(SWT)의 서버 관리 도구를 Swing 프런트엔드로 옮긴다. 배�
 - **서버 대시보드**: 처음에는 미뤘고(아래 "미룬 것"), 뒤에 Activity Monitor의 첫 탭(개요)으로 옮겼다([swing-dashboard.md](swing-dashboard.md)).
 - **Disk Usage**(공간 사용량, DB 관리 축 3): 데이터베이스·파일·테이블스페이스 크기와 큰 테이블. Activity Monitor의 탭이다(아래 "공간 사용량").
 - **Server Logs**(서버 로그, DB 관리 축 5): 오류 로그·경고 로그·느린 쿼리 로그를 최신 항목부터 쪽 단위로. Activity Monitor의 탭이다(아래 "서버 로그").
+- **Maintenance**(유지 관리, DB 관리 축 4): VACUUM·ANALYZE·REINDEX, ANALYZE/OPTIMIZE/CHECK/REPAIR TABLE, DBMS_STATS·다시 컴파일, 인덱스 다시 작성·통계·CHECKDB를
+  미리 보기와 확인을 거쳐 실행하는 대화상자와, 후보·상태 목록을 보이는 Activity Monitor의 탭(아래 "유지 관리").
+- **Replication**(복제 상태, DB 관리 축 6): 대기 서버·슬롯·복제본·Data Guard·가용성 그룹 상태, 읽기 전용. Activity Monitor의 탭이다(아래 "복제 상태").
 
 ## 여는 곳
 
@@ -19,6 +22,9 @@ DBeaver(SWT)의 서버 관리 도구를 Swing 프런트엔드로 옮긴다. 배�
 | Locks | 위와 같음 | 같은 Activity Monitor를 Locks 탭으로 연다. |
 | Disk Usage | 위와 같음 | 같은 Activity Monitor를 Disk Usage 탭으로 연다(`AdminViewCommands`). |
 | Server Logs | 위와 같음 | 같은 Activity Monitor를 Server Logs 탭으로 연다(`AdminViewCommands`). |
+| Maintenance | 위와 같음 | 같은 Activity Monitor를 Maintenance 탭으로 연다(`AdminViewCommands`). |
+| Replication | 위와 같음 | 같은 Activity Monitor를 Replication 탭으로 연다(`AdminViewCommands`). |
+| Maintenance… | Object Explorer 오른쪽 클릭 메뉴(테이블·인덱스·스키마·데이터베이스) | 그 노드의 유지 관리 대화상자를 연다(`MaintenanceCommands`). |
 | Find Objects… | 위와 같음 | Find Objects 탭을 연다. 선택한 노드의 연결에 체크하고, 노드가 스키마·데이터베이스 아래면 그 컨테이너를 범위로 제안한다. |
 
 화면에 보이는 글자에는 다른 제품 이름을 쓰지 않는다(2026-11-06 사용자 규칙). "Activity Monitor"는 일반 명칭으로 쓴다.
@@ -34,13 +40,18 @@ com.seizia.chromite.ui.swing (Swing, SWT 없음)
     ├ LockManagerPanel ───── Locks 탭
     ├ DiskUsagePanel ─────── Disk Usage 탭 (표: AdminGridTable)
     ├ ServerLogPanel ─────── Server Logs 탭 (표: AdminGridTable)
+    ├ MaintenancePanel ───── Maintenance 탭 (하위 탭: AdminGridTabs) ── MaintenanceDialog 열기
+    ├ ReplicationPanel ───── Replication 탭 (하위 탭: AdminGridTabs, 자동 새로 고침)
     └ AdminConnection ────── 탭들이 함께 쓰는 서버 연결(격리된 실행 컨텍스트 하나)
-  AdminViewCommands ── Disk Usage·Server Logs 메뉴 항목(Tools, Object Explorer)
+  AdminViewCommands ── Disk Usage·Server Logs·Maintenance·Replication 메뉴 항목(Tools, Object Explorer)
+  MaintenanceDialog ── 유지 관리 대화상자(작업·옵션, 상태, 권한 안내, 경고, 미리 보기, 확인, 진행·취소, 결과)
+  MaintenanceCommands ─ Object Explorer의 Maintenance… 명령
+  AdminGridTabs ────── AdminGrid마다 하위 탭(설명, 표 또는 빈 표·읽을 수 없음 문구, 행 상세)
   AdminGridTable ───── 열 종류(크기·개수·백분율·글자)로 그리고 정렬·복사하는 표
   ObjectSearchPanel (ToolDocument) ── Find Objects 탭
   ObjectListTable ── @Property 열로 모델 객체 목록을 보이는 표
   AutoRefreshBox ─── 자동 새로 고침 간격 콤보
-  AccessNoticeBar ── Processes·Locks·Disk Usage·Server Logs 탭 위의 권한 안내 줄
+  AccessNoticeBar ── Processes·Locks·Disk Usage·Server Logs·Maintenance·Replication 탭 위의 권한 안내 줄(유지 관리 대화상자의 거부·경고 줄)
         │
         ▼
 com.seizia.chromite.model.admin (새 모델 번들, UI 없음)
@@ -56,6 +67,11 @@ com.seizia.chromite.model.admin (새 모델 번들, UI 없음)
     └ mssql/SQLServerSpaceDialect, postgresql/PostgreSpaceDialect, mysql/MySQLSpaceDialect, oracle/OracleSpaceDialect
   logs/ServerLogDialect(+ServerLogSource, ServerLogQuery, ServerLogEntry, ServerLogPage, LogMessages)
     └ mssql/SQLServerLogDialect, postgresql/PostgreLogDialect, mysql/MySQLLogDialect, oracle/OracleLogDialect
+  AdminGrid ── 유지 관리·복제 표(문자열 ID, 행 값·상세, 빈 표·읽을 수 없음 문구, 설명; 열은 SpaceColumn)
+  maintenance/MaintenanceDialect(+Target, Operation, Option, Plan, Command, Result, Report, Action, Runner, MaintenanceMessages)
+    └ mssql/SQLServerMaintenanceDialect, postgresql/PostgreMaintenanceDialect, mysql/MySQLMaintenanceDialect, oracle/OracleMaintenanceDialect
+  replication/ReplicationDialect(+ReplicationReport, ReplicationMessages)
+    └ mssql/SQLServerReplicationDialect, postgresql/PostgreReplicationDialect, mysql/MySQLReplicationDialect, oracle/OracleReplicationDialect
         │
         ▼
 DBeaver 모델 (그대로 재사용)
@@ -327,6 +343,113 @@ DB 관리 기능 축 5. 연결마다 서버의 로그를 최신 항목부터 한
 | MySQL·MariaDB | 느린 쿼리 로그 off / log_output에 TABLE 없음 / SELECT 권한 없음 | 각각 설정 값·파일 이름 또는 서버 메시지와 함께 |
 | Oracle | 10g 이하 / 뷰 권한 없음 | 11g 이상 필요 / SELECT ANY DICTIONARY 또는 SYS가 주는 `V_$DIAG_ALERT_EXT`의 SELECT(SELECT_CATALOG_ROLE에는 없음), 서버 메시지 |
 
+## 유지 관리 (Maintenance, 2026-11-07)
+
+DB 관리 축 4. 테이블·인덱스·스키마·데이터베이스에 VACUUM/ANALYZE/REINDEX/CLUSTER, ANALYZE/OPTIMIZE/CHECK/REPAIR TABLE, DBMS_STATS·다시 컴파일·인덱스 다시 작성,
+인덱스 다시 작성·다시 구성·통계 업데이트·DBCC CHECKDB를 미리 보기와 확인을 거쳐 실행하고, Activity Monitor의 Maintenance 탭에 후보·상태 목록을 보인다.
+모델은 `com.seizia.chromite.model.admin.maintenance`(`MaintenanceDialect`, `MaintenanceTarget`, `MaintenanceOperation`, `MaintenanceOption`, `MaintenancePlan`,
+`MaintenanceCommand`, `MaintenanceResult`, `MaintenanceReport`, `MaintenanceAction`, `MaintenanceRunner`, `MaintenanceMessages`)와 DB별 방언
+(`postgresql/PostgreMaintenanceDialect`, `mysql/MySQLMaintenanceDialect`, `oracle/OracleMaintenanceDialect`, `mssql/SQLServerMaintenanceDialect`),
+화면은 `MaintenancePanel`(탭), `MaintenanceDialog`(대화상자), `MaintenanceCommands`(Object Explorer 메뉴), `AdminGridTabs`(하위 탭)다.
+
+### 여는 곳
+
+| 명령 | 위치 | 동작 |
+|---|---|---|
+| Maintenance(유지 관리) | Tools 메뉴, Object Explorer 오른쪽 클릭 메뉴 | Activity Monitor를 Maintenance 탭(6번째, `ActivityMonitorPanel.MAINTENANCE_TAB`)으로 연다(`AdminViewCommands`) |
+| Maintenance…(유지 관리…) | Object Explorer 오른쪽 클릭 메뉴(테이블, 인덱스, 스키마, 데이터베이스 노드) | 그 노드를 대상으로 유지 관리 대화상자를 연다(`MaintenanceCommands`). 할 수 없는 노드에서는 꺼져 있다 |
+| 작업 실행…(행 두 번 클릭, Enter) | Maintenance 탭 도구 막대 | 고른 행의 권장 작업으로 대화상자를 연다. 실행이 끝나면 탭을 다시 읽어 전후 숫자를 보인다 |
+
+MainFrame은 고치지 않았다(Tools 메뉴는 `AdminViewCommands`가 만든다). ObjectExplorerPanel에는 `MaintenanceCommands`를 부르는 줄 4개와 변경 이력 1줄만 더했다.
+
+### DB별 지원
+
+| 항목 | PostgreSQL(9.4+, 서버 종류 PostgreSQL) | MySQL·MariaDB | Oracle | SQL Server |
+|---|---|---|---|---|
+| 테이블 | VACUUM(FULL, FREEZE, ANALYZE, VERBOSE), ANALYZE(VERBOSE), REINDEX TABLE(CONCURRENTLY 12+), CLUSTER(인덱스 고르기, 지난번 인덱스) | ANALYZE(NO_WRITE_TO_BINLOG), OPTIMIZE, CHECK(QUICK/FAST/MEDIUM/EXTENDED/CHANGED/FOR UPGRADE), REPAIR(QUICK/EXTENDED) | DBMS_STATS.GATHER_TABLE_STATS(표본 자동/1/10/30/100%, 인덱스 포함) | 모든 인덱스 다시 작성(ONLINE, SORT_IN_TEMPDB)·다시 구성(LOB_COMPACTION), UPDATE STATISTICS(기본/FULLSCAN/SAMPLE n PERCENT/RESAMPLE) |
+| 인덱스 | REINDEX INDEX(CONCURRENTLY), CLUSTER … USING | — | ALTER INDEX … REBUILD(ONLINE), GATHER_INDEX_STATS | 다시 작성·다시 구성·UPDATE STATISTICS(그 인덱스의 통계) |
+| 스키마 | 테이블마다 VACUUM/ANALYZE, REINDEX SCHEMA(9.5+) | (데이터베이스 = 스키마) 기본 테이블 50개씩 한 문장 | GATHER_SCHEMA_STATS(GATHER/STALE/EMPTY), 무효 개체 컴파일 | — |
+| 데이터베이스 | VACUUM/ANALYZE 전체, REINDEX DATABASE, CLUSTER(전에 정렬한 테이블) | — | — | DBCC CHECKDB(NO_INFOMSGS, PHYSICAL_ONLY), sp_updatestats |
+| 그 밖의 개체 | — | — | 무효 개체 하나 `ALTER … COMPILE`(패키지·형식 본문은 COMPILE BODY), 스키마 컴파일(COMPILE_SCHEMA 무효만/전체, 또는 개체마다 ALTER … COMPILE) | — |
+| 결과 | VERBOSE의 INFO 메시지 | Table/Op/Msg_type/Msg_text 표 | `ALL_ERRORS`의 줄·위치·메시지 표 | 정보 메시지(NO_INFOMSGS를 끄면 DBCC 출력) |
+| 유지 관리 탭 | VACUUM·ANALYZE(죽은 행 순, 마지막 (자동) VACUUM·ANALYZE, n_mod_since_analyze, 자동 VACUUM 대상), 부풀림(추정) | 빈 공간(DATA_FREE, 빈 공간 %, 마지막 변경·검사), InnoDB 통계(`mysql.innodb_table_stats.last_update`) | 무효 개체(오류 수, 고르면 컴파일 오류), 오래된 통계, 사용할 수 없는 인덱스 | 인덱스 조각화(LIMITED, 5% 이상, 권장 REORGANIZE/REBUILD), 통계(수정 수 순), 데이터베이스 무결성(마지막 정상 CHECKDB) |
+| 권한 확인 | 소유자(소유 역할 구성원)·superuser·데이터베이스 소유자(VACUUM·ANALYZE, 16까지)·MAINTAIN/pg_maintain(17+) | 테이블마다 SELECT+INSERT(ANALYZE·OPTIMIZE·REPAIR), CHECK는 아무 권한 | 남의 스키마: ANALYZE ANY, ALTER ANY INDEX, 종류별 ALTER ANY …, 목록은 DBA 뷰 없으면 ALL 뷰 + 안내 | 테이블 ALTER, CHECKDB·sp_updatestats는 sysadmin/db_owner, 목록은 VIEW DATABASE STATE |
+
+### 대화상자
+
+- 위: 서버, 대상, 작업 콤보(대상에 할 수 있는 작업, 권장 작업을 먼저 고름), 설명, 옵션(체크 상자·콤보, 서버가 허용하지 않는 옵션은 꺼진 채 이유를 도구 설명에),
+  현재 상태(죽은 행·마지막 VACUUM, 조각화와 권장, 마지막 분석, 무효 상태와 마지막 DDL, 마지막 정상 CHECKDB 등).
+- 권한이 없으면 맨 위 안내 줄에 이유와 무엇을 받아야 하는지를 보이고 실행을 끈다. 경고(VACUUM FULL·CLUSTER의 ACCESS EXCLUSIVE 잠금, CONCURRENTLY 없는 REINDEX,
+  OPTIMIZE의 재생성, REPAIR의 엔진 제한, 오프라인 다시 작성, FULLSCAN, CHECKDB 부하, ONLINE 없는 Oracle 다시 작성, 컴파일의 영향)는 미리 보기 위 경고 줄에 보인다.
+- 명령 미리 보기: 실행할 문장 그대로(PL/SQL 블록은 `/`로 끝냄). "명령 복사"로 복사한다.
+- 실행: 확인 창(서버 이름, 문장 최대 8개, 경고, "별도 연결에서 자동 커밋으로 실행") → 백그라운드 작업, 진행 막대, 취소 단추. 창을 닫으려 하면 실행 중일 때 취소할지 묻는다.
+- 결과: 메시지 탭(문장, 서버 메시지, 문장마다 걸린 시간, 오류)과 서버가 돌려준 표마다 탭 하나. 행이 있는 첫 표를 먼저 보인다.
+- 모달이 아니다: 오래 걸리는 CHECKDB 동안에도 앱을 쓸 수 있다.
+
+### 설계 결정
+
+- **사용자의 트랜잭션에 넣지 않는다**: 작업(상태 읽기, 실행)마다 대상의 인스턴스에서 격리된 실행 컨텍스트를 새로 열고 닫는다(`MaintenanceRunner`).
+  새 컨텍스트가 수동 커밋이면 자동 커밋으로 바꾼다: 방금 연 연결이라 열린 트랜잭션이 없으므로 트랜잭션 안전 규칙(커밋/롤백을 묻기)의 대상이 아니다.
+  VACUUM·REINDEX CONCURRENTLY·REINDEX DATABASE는 트랜잭션 블록 안에서 실행할 수 없고(DBeaver `PostgreToolBaseVacuum#isRunInAutoCommit`과 같은 이유),
+  Oracle DDL(ALTER INDEX REBUILD, ALTER … COMPILE)은 열린 트랜잭션을 커밋한다. 연결 설정이 "단일 연결"이어도 따로 연다(같은 이유). Activity Monitor가 열어 둔 연결도 쓰지 않는다.
+- **PostgreSQL은 대상의 데이터베이스에서**: 노드에서 열면 `DBUtils.getObjectOwnerInstance`(그 `PostgreDatabase`), 탭에서 열면 연결의 기본 인스턴스(탭이 읽은 데이터베이스)다.
+  대상의 데이터베이스가 연결된 데이터베이스와 다르면 상태 읽기에서 이유를 보인다.
+- **미리 보기 = 실행**: `buildCommand`는 서버를 읽지 않고 대화상자를 열 때 읽은 계획(`MaintenancePlan`: 작업, 거부 이유, 상태, 스키마의 테이블·무효 개체 목록, 에디션)만으로 문장을 만든다.
+  옵션을 바꿀 때마다 바로 바뀌고, 실행하는 문장은 미리 보기에 보인 목록 그대로다.
+- **취소**: 작업의 모니터가 실행 중인 JDBC 문장을 막는 객체로 가지고 있어(`JDBCStatementImpl#startBlock`), 작업 취소가 `Statement.cancel`(PostgreSQL 취소 요청, SQL Server 주의 신호)로 이어진다.
+  문장 사이에서도 취소를 본다(나머지는 실행하지 않음). 문장을 하나씩 실행해 스키마 대상도 테이블 사이에서 멈출 수 있다.
+- **권한을 먼저 본다**: PostgreSQL은 권한이 없는 테이블에 VACUUM을 보내도 오류 없이 "skipping" 경고만 하므로 미리 소유권·MAINTAIN을 보고, 스키마 대상은 할 수 있는 테이블만 문장에 넣는다(몇 개 중 몇 개인지 상태에 보임).
+  MySQL은 `information_schema`의 USER/SCHEMA/TABLE_PRIVILEGES에서 현재 계정의 SELECT·INSERT를 모은다. 역할이 켜져 있으면 역할의 권한까지 계산하지 않고 서버에 맡긴다.
+  MariaDB의 `ENABLED_ROLES`는 역할이 없을 때 ROLE_NAME이 NULL인 행 하나를 돌려주므로(11.8에서 확인) `COUNT(ROLE_NAME)`으로 센다.
+- **부풀림은 추정치**: 플래너 통계(`pg_stats`의 열 평균 너비·NULL 비율, `reltuples`, fillfactor)로 행 크기와 필요한 페이지 수를 계산해 실제 페이지 수와 비교한다
+  (check_postgres, pgsql-bloat-estimation에 널리 쓰이는 방법을 이 코드에서 다시 썼다). 표 제목과 설명에 "추정"을 쓰고, 통계가 낡으면 틀린다는 것(ANALYZE 먼저)을 적었다.
+  모든 열의 통계를 읽을 수 있는 테이블만 계산한다. 정확한 값은 pgstattuple 확장이 필요해 쓰지 않았다(확장 설치는 범위 밖).
+- **SQL Server 조각화는 LIMITED, 권장은 5–30% REORGANIZE, 30% 초과 REBUILD**(SSMS 문서의 권고). 다른 데이터베이스의 개체도 세션의 데이터베이스를 바꾸지 않는다:
+  문장은 세 부분 이름, 목록·권한은 `EXEC [db].sys.sp_executesql`. 목록·상태 읽기는 동적 배치 안에서 `SET LOCK_TIMEOUT 5000`을 써서, 긴 트랜잭션이나 오프라인 다시 작성이 테이블을 잠그고 있으면
+  기다리지 않고 "지금은 읽을 수 없음"을 보인다(확인 중 대화상자가 "읽는 중"에 멈춘 것을 고침). SET은 그 배치에만 적용된다.
+- **ONLINE**: SQL Server는 엔진 에디션 3/5/8에서만 켤 수 있고, 다른 에디션은 꺼진 옵션과 이유를 보인다. Oracle ONLINE 다시 작성은 Enterprise Edition 기능이라고 도구 설명에 적는다(Free 23ai에서 됨).
+- **Oracle 이름은 따옴표로**: DBMS_STATS는 따옴표 없는 이름을 대문자로 바꾸므로 `'"OWNER"'` 모양으로 넘기고, ALTER 문은 `"OWNER"."NAME"`이다.
+  컴파일 오류는 예외가 아니라 경고(ORA-17110)로 오므로 실행 뒤 `ALL_ERRORS`를 읽는 SELECT를 덧붙인다(미리 보기에도 보인다).
+- **ORACLE LICENSE GUARD**: 쓰는 뷰는 `DBA/ALL_OBJECTS`, `DBA/ALL_ERRORS`, `DBA/ALL_TAB_STATISTICS`, `DBA/ALL_INDEXES`, `ALL_USERS`, `SESSION_PRIVS`와 DBMS_STATS·DBMS_UTILITY 패키지다.
+  AWR(`DBA_HIST_*`), ASH, SQL Tuning/Access Advisor(인덱스 권고)는 쓰지 않는다.
+- **표 모양 공유**: 유지 관리·복제 표는 `AdminGrid`(문자열 ID, 행 값·상세 글, 빈 표·읽을 수 없음 문구, 설명)다. 공간 사용량의 `SpaceGrid`는 종류가 열거형이라 고치지 않고 두었다.
+  열은 같은 `SpaceColumn`이라 `AdminGridTable`이 그대로 그린다.
+
+## 복제 상태 (Replication, 2026-11-07)
+
+DB 관리 축 6, 읽기 전용. Activity Monitor의 Replication 탭(7번째, `ActivityMonitorPanel.REPLICATION_TAB`)에 서버의 복제 역할과 상태를 보인다.
+모델은 `com.seizia.chromite.model.admin.replication`(`ReplicationDialect`, `ReplicationReport`, `ReplicationMessages`)과 DB별 방언(`postgresql/PostgreReplicationDialect`,
+`mysql/MySQLReplicationDialect`, `oracle/OracleReplicationDialect`, `mssql/SQLServerReplicationDialect`), 화면은 `ReplicationPanel`이다. Tools·Object Explorer 메뉴의 "Replication(복제)"로 연다.
+
+### DB별 지원
+
+| DB | 요약 | 표 | 구성되지 않았을 때 |
+|---|---|---|---|
+| PostgreSQL 10+ | 역할(주/대기), 스트리밍·논리 복제 구성 여부, wal_level 등 설정, 현재(대기 서버는 받은·재생한) WAL 위치, 마지막 재생 뒤 경과 | 대기 서버(`pg_stat_replication`: 상태, 동기화, 보낸·재생한 LSN, 지연 바이트, write/flush/replay 지연 초), 복제 슬롯(활성, 재시작 LSN, 보존 중인 WAL 바이트, wal_status 13+), WAL 수신기(`pg_stat_wal_receiver`), 구독(`pg_stat_subscription` 적용 작업자), 게시(테이블 수, 작업) | "연결된 대기 서버가 없습니다(스트리밍 복제가 구성되지 않음)", "복제 슬롯이 없습니다" 등 |
+| MySQL·MariaDB | 역할(복제본/아님), 바이너리 로그와 등록된 복제본, server_id·log_bin·binlog_format·GTID 변수, 바이너리 로그 위치 | 복제본 연결(`SHOW REPLICA STATUS`/`SHOW SLAVE STATUS`, MariaDB `SHOW ALL SLAVES STATUS`: IO/SQL 스레드, Seconds_Behind, 원본 로그, 실행 위치, GTID, 마지막 IO/SQL 오류), 연결된 복제본(`SHOW REPLICAS`/`SHOW SLAVE HOSTS`) | "이 서버는 복제본이 아닙니다", "등록된 복제본이 없습니다" |
+| Oracle | Data Guard 구성 여부, `V$DATABASE`의 DATABASE_ROLE·PROTECTION_MODE/LEVEL·SWITCHOVER_STATUS·DATAGUARD_BROKER·FORCE_LOGGING·LOG_MODE·OPEN_MODE | 보관 대상(`V$ARCHIVE_DEST_STATUS`, INACTIVE 제외), Data Guard 통계(`V$DATAGUARD_STATS`, 읽을 수 있을 때) | "구성되지 않음(주 역할, 대기 대상 없음, Broker 꺼짐)", "Data Guard 통계가 없습니다" |
+| SQL Server | Always On(IsHadrEnabled, 그룹 수), 복제(게시·배포 데이터베이스 수), 배포 데이터베이스 | 가용성 복제본(역할, 연결, 동기화 상태, 가용성·장애 조치 모드), 가용성 데이터베이스(동기화 상태, 일시 중단 이유, 로그 전송·다시 실행 큐 크기, 마지막 커밋), 복제 데이터베이스(`sys.databases`의 is_published·is_merge_published·is_distributor) | "Always On 가용성 그룹을 사용하지 않습니다(구성되지 않음)", "게시되었거나 배포 데이터베이스로 쓰이는 데이터베이스가 없습니다" |
+
+### 설계 결정
+
+- **구성되지 않음은 오류가 아니다**: 표마다 빈 표 문구(`AdminGrid#getEmptyText`)를 두고 요약 행도 "구성되지 않음"이라고 한다.
+- **버전 차이는 시도해 본다(MySQL)**: 8.0.22의 SLAVE→REPLICA, 8.2의 SHOW MASTER STATUS→SHOW BINARY LOG STATUS는 패치 번호까지 맞춰야 해서, 새 문장을 먼저 실행하고 문법 오류(1064)면 옛 문장을 쓴다.
+  열은 새 이름과 옛 이름을 차례로 찾는다. MySQL·MariaDB는 실패한 문장이 트랜잭션을 깨지 않는다.
+- **대기 서버에서는 `pg_last_wal_receive_lsn()`**: 복구 중에는 `pg_current_wal_lsn()`이 오류를 낸다. 지연 시간은 interval 글자(00:00:00.075823)가 좁은 열에서 읽기 어려워 초("0.076 s")로 보인다.
+- **비밀이 있을 수 있는 값은 보이지 않는다**: `primary_conninfo`(비밀번호가 들어 있을 수 있음)와 `pg_subscription.subconninfo`는 읽지 않는다.
+- **자동 새로 고침**: 지연은 계속 바뀌므로 Processes·Locks와 같은 간격 상자(기본 10초, `activityMonitor.replication.refreshSeconds`)를 둔다. 탭이 보일 때만 읽는다.
+- **SQL Server 복제는 기본 정보만**: 구독자 상태와 에이전트 기록은 배포자의 복제 모니터 프로시저가 필요해 넣지 않았다. `sys.databases.is_subscribed`는 쓰이지 않는 열이라 보지 않는다.
+- **ORACLE LICENSE GUARD**: `V$DATABASE`, `V$ARCHIVE_DEST_STATUS`, `V$DATAGUARD_STATS`는 팩이 필요 없다. Active Data Guard가 필요한 기능을 쓰지 않는다.
+
+### 권한 확인
+
+| DB | 확인 | 모자랄 때 |
+|---|---|---|
+| PostgreSQL | superuser 또는 `pg_read_all_stats`(pg_monitor) | 행은 보이지만 위치·지연·상태가 비어 있다고 안내 + pg_monitor 부여 |
+| MySQL·MariaDB | 서버가 거부하면(1227) | REPLICATION CLIENT / REPLICATION SLAVE(MySQL), REPLICA MONITOR·BINLOG MONITOR / REPLICATION MASTER ADMIN(MariaDB 10.5.2+) 안내, 그 표는 "읽을 수 없음" |
+| Oracle | 뷰마다 `SELECT 1 FROM <뷰> WHERE 1 = 0` | 못 읽는 뷰 이름 + SELECT_CATALOG_ROLE |
+| SQL Server | `HAS_PERMS_BY_NAME(NULL, NULL, 'VIEW SERVER STATE')`(또는 2022의 VIEW SERVER PERFORMANCE STATE) | Always On이 켜져 있을 때만 필요. 가용성 표 "읽을 수 없음" + 안내 |
+
 ## Find Objects
 
 SWT 메타데이터 검색(`plugins/com.seizia.chromite.ui.search/.../SearchMetadataPage.java:427-485` 조건, `SearchMetadataQuery.java` 실행)과
@@ -436,6 +559,50 @@ PostgreSQL 10 이전·Oracle 11g 이전 분기, 열 머리글을 눌러 정렬�
 - 로그 내보내기(파일로 저장), 자동 새로 고침(tail), 로그 돌리기(쓰기 작업이라 이번 범위 밖).
 - AI DBA 도구로 내보내기(`ai-agent.md`): 모델 방언은 화면과 무관하게 만들어 두어 그대로 쓸 수 있다.
 
+## 확인 (2026-11-07, 유지 관리·복제 상태)
+
+빌드: `mvn -B clean package -f product/aggregate/pom.xml -T1C -Pproduct-chromite-swing` → BUILD SUCCESS, 이어서 `java tools/jre/BundleJre.java windows-x64`.
+Swing 제품을 별도 작업 공간으로 띄워(한국어 기본, `-nl en`, 라이트·다크) EDT 테스트 에이전트로 조작했다. 시험 객체는 `chr_maint_` 접두어다:
+PostgreSQL·SQL Server·MariaDB의 `chr_maint_repl` 데이터베이스(`chr_maint_items`(자동 VACUUM 끔, 60% 삭제), `chr_maint_frag`(NEWID 키로 조각화 / 90% 삭제한 InnoDB),
+`chr_maint_myisam`, `chr_maint_small`), Oracle FREEPDB1의 `CHR_MAINT_APP`(통계가 낡은 `CHR_MAINT_ORDERS`, UNUSABLE 인덱스, 무효 뷰·프로시저 3개).
+낮은 권한 로그인은 `chr_maint_viewer`(PostgreSQL: CONNECT와 작은 테이블 SELECT, SQL Server: 데이터베이스 사용자만, MariaDB: 테이블 하나의 SELECT, Oracle: CREATE SESSION만)다.
+복제는 공유 시험 서버에 구성되어 있지 않아 "구성되지 않음" 길을 확인했고, 로컬 이미지(postgres:17)로 버리는 주·대기 서버 한 쌍(포트 55491/55492, 물리 슬롯 둘, 게시 하나)을
+띄워 확인한 뒤 지웠다(컨테이너·볼륨·네트워크).
+
+| 항목 | 전 | 작업 | 후 |
+|---|---|---|---|
+| PostgreSQL 죽은 행 | `chr_maint_items` 죽은 행 160,000(66.7%), 분석 뒤 변경 160,000 | 탭의 행에서 ANALYZE → VACUUM(VERBOSE, ANALYZE) | 분석 뒤 변경 0, 죽은 행 0, 마지막 VACUUM·ANALYZE 시각 |
+| PostgreSQL 부풀림(추정) | 352 KB(1%, ANALYZE 전 통계) → ANALYZE 뒤 20.1 MB(60%) | 노드 메뉴에서 VACUUM FULL(경고 줄 확인) | 크기 33.2 MB → 13.3 MB, 부풀림 144 KB(1%) |
+| PostgreSQL 인덱스 | — | 인덱스 노드에서 REINDEX (VERBOSE) INDEX CONCURRENTLY, CLUSTER … USING | "was reindexed", "clustering … 80000 row versions", 상태에 "CLUSTER 인덱스" |
+| PostgreSQL 취소 | 다른 세션이 테이블을 읽는 트랜잭션을 열어 둠 | VACUUM FULL 실행(잠금 대기) → 취소 | 4.7초 뒤 취소, `pg_stat_activity`에 VACUUM 없음 |
+| SQL Server 조각화 | PK 99.1%(3,223페이지), 비클러스터형 98.5% | PK REBUILD WITH (ONLINE = ON), 비클러스터형 REORGANIZE, UPDATE STATISTICS … WITH FULLSCAN | 조각화 목록이 빔(5% 미만), 테이블 상태 "1,575페이지 중 1.7%, 권장: 필요 없음" |
+| SQL Server CHECKDB | 마지막 정상 CHECKDB "없음" | 데이터베이스 무결성 행에서 DBCC CHECKDB (N'chr_maint_repl') WITH NO_INFOMSGS | "2026-11-06 22:29:17"(서버 시각) |
+| SQL Server 취소·잠금 | 다른 세션이 TABLOCKX로 테이블을 잠금 | 대화상자를 엶(상태: "지금은 읽을 수 없음 … 잠겨 있습니다") → 모든 인덱스 다시 작성 → 취소 | 4.7초 뒤 취소, `sys.dm_exec_requests`에 ALTER INDEX 없음 |
+| MariaDB 빈 공간 | `chr_maint_frag` 데이터 59.1 MB, DATA_FREE 5 MB(7.8%) | OPTIMIZE TABLE | 결과 표 "note: Table does not support optimize, doing recreate + analyze instead", "status OK"; 데이터 7.5 MB, DATA_FREE 0 |
+| MariaDB 데이터베이스 | — | 데이터베이스 노드에서 CHECK TABLE … MEDIUM, REPAIR TABLE(테이블 3개 한 문장) | 테이블마다 Msg_type/Msg_text 행 |
+| Oracle 무효 개체 | 무효 3개(고르면 `4/10 ERROR: PL/SQL: ORA-00904` 상세) | 고칠 수 있는 프로시저 ALTER … COMPILE, 깨진 프로시저 컴파일(오류 표), 스키마 COMPILE_SCHEMA | 3 → 2(남은 두 개의 오류 표) |
+| Oracle 통계·인덱스 | `CHR_MAINT_ORDERS` 오래됨: 예, 인덱스 UNUSABLE | GATHER_TABLE_STATS(자동 표본, 인덱스 포함), ALTER INDEX … REBUILD ONLINE | 오래된 통계 목록에서 빠짐, 사용할 수 없는 인덱스 목록이 빔 |
+| 복제 PostgreSQL | 시험 서버: 주 서버, "구성되지 않음", 대기 서버 표 문구 | 버리는 주·대기 쌍, 대기 서버에서 재생을 멈추고 주 서버에서 갱신 | 주: 대기 서버 1(streaming, async, 지연 16.4 MB, replay 65 s), 슬롯 2(쉬는 슬롯이 WAL 24.1 MB 보존), 게시 1. 대기: WAL 수신기 streaming, 받은·재생한 위치 |
+| 복제 그 밖 | — | — | SQL Server: Always On·복제 "구성되지 않음". MariaDB: "복제본 아님", 바이너리 로그 꺼짐. Oracle: PRIMARY, Data Guard "구성되지 않음", 로컬 보관 대상 하나, 통계 문구 |
+| 권한 안내 | — | 낮은 권한 로그인 | PostgreSQL: 소유자 아님 → 실행 꺼짐 + MAINTAIN/pg_maintain 안내, 복제 pg_monitor 안내. SQL Server: VIEW DATABASE STATE 안내(목록), CHECKDB "sysadmin 또는 db_owner"(실행 꺼짐). MariaDB: ANALYZE "SELECT와 INSERT" 거부, CHECK는 됨, 복제 REPLICA MONITOR 안내. Oracle: DBA 뷰 4개·V$ 3개 안내 |
+
+화면: `D:\Tools\_scratch\admin-maintenance-replication\shots\`(작업 공간 밖의 확인용 파일; `maint-*`, `dialog-*`, `repl-*`의 `ko`/`en`, `light`/`dark`).
+
+확인 중 고친 것: 부풀림 질의의 열 이름 오류(`stat_cols`), SQL Server 표가 잠겨 있으면 대화상자의 상태 읽기가 끝나지 않던 것(`SET LOCK_TIMEOUT`), MariaDB `ENABLED_ROLES`가
+역할이 없어도 행 하나를 돌려 권한 확인을 건너뛰던 것(`COUNT(ROLE_NAME)`), REPAIR 경고 문구(InnoDB도 OK라고 답함), 빈 결과 표로 탭을 넘기던 것, Oracle 통계가 없는 테이블의 "오래됨" 값, PostgreSQL 지연 표시(초).
+
+확인하지 못한 것: MySQL(MariaDB만 시험; `SHOW REPLICA STATUS`·`SHOW BINARY LOG STATUS` 분기), MariaDB·MySQL 실제 복제본, Oracle Data Guard 대기 DB, SQL Server Always On·트랜잭션 복제(시험 서버에 없음, 이미지를 내려받지 않음),
+PostgreSQL 17 이전 권한 분기(데이터베이스 소유자)와 12 이전 CONCURRENTLY 끔, PostgreSQL 논리 복제 구독, 다른 PostgreSQL 데이터베이스 노드에서 연 대화상자, 오래 걸리는 DBCC CHECKDB 자체의 취소(작은 시험 데이터베이스는 1초 안에 끝나 잠금 대기로 SQL Server 취소 경로를 확인).
+
+### 미룬 것 (유지 관리·복제)
+
+- PostgreSQL 인덱스 부풀림 추정, pgstattuple을 쓰는 정확한 부풀림, VACUUM의 다른 옵션(DISABLE_PAGE_SKIPPING, SKIP_LOCKED, INDEX_CLEANUP, PARALLEL).
+- Oracle 분할 인덱스 파티션의 다시 작성(`REBUILD PARTITION`), 테이블 구조 검증(VALIDATE STRUCTURE), 세그먼트 축소(SHRINK SPACE).
+- SQL Server 파티션 단위 다시 작성, 인덱스 옵션(FILLFACTOR, MAXDOP, RESUMABLE), CHECKDB 진행률(`sys.dm_exec_requests.percent_complete`) 표시.
+- 복제: SQL Server 구독자·에이전트 상태, MySQL 그룹 복제·Galera, PostgreSQL 슬롯 지우기 같은 쓰기 명령(읽기 전용 범위 밖).
+- AI DBA 도구로 내보내기(`ai-agent.md`): 모델 방언은 화면과 무관하게 만들어 두어 그대로 쓸 수 있다.
+- 회귀 테스트는 요청이 없어 작성·실행하지 않았다.
+
 ## 변경 이력
 
 - 2026-11-06 최초 작성: Activity Monitor(Processes, Locks), Find Objects, `com.seizia.chromite.model.admin` 번들(SQL Server·MySQL 잠금 관리자).
@@ -446,3 +613,5 @@ PostgreSQL 10 이전·Oracle 11g 이전 분기, 열 머리글을 눌러 정렬�
 - 2026-11-07 PostgreSQL·Oracle 세션·잠금(DB 관리 축 2): 세션에 대기·막는 세션·트랜잭션 경과, 잠금에 `pg_blocking_pids`/`BLOCKING_SESSION` 기반 관리자와 객체로 풀린 대상,
   로그인 권한 확인과 안내 줄, Oracle 끝내기의 SERIAL# 보존, PostgreSQL 끝내기 결과 확인.
 - 2026-11-07 Disk Usage·Server Logs(DB 관리 축 3·5): Activity Monitor의 4·5번째 탭, `model.admin`의 `space`·`logs` 패키지와 DB별 방언 (SQL Server·PostgreSQL·MySQL/MariaDB·Oracle), 권한 확인과 안내, 쪽 단위 로그 읽기, `AdminGridTable`(단위 표시·정확한 바이트·복사).
+- 2026-11-07 Maintenance·Replication(DB 관리 축 4·6): Activity Monitor의 6·7번째 탭, 유지 관리 대화상자(권한 확인, 미리 보기, 확인, 별도 자동 커밋 연결, 진행·취소)와
+  Object Explorer의 Maintenance… 명령, `model.admin`의 `maintenance`·`replication` 패키지와 DB별 방언(SQL Server·PostgreSQL·MySQL/MariaDB·Oracle), `AdminGrid`·`AdminGridTabs`.

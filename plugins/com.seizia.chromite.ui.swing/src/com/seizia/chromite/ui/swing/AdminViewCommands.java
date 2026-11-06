@@ -17,6 +17,7 @@
 package com.seizia.chromite.ui.swing;
 
 import com.seizia.chromite.ui.swing.internal.AdminViewMessages;
+import com.seizia.chromite.ui.swing.internal.MaintenanceViewMessages;
 import org.jkiss.code.NotNull;
 
 import javax.swing.*;
@@ -25,13 +26,14 @@ import java.util.List;
 import java.util.function.IntConsumer;
 
 /**
- * Disk Usage·Server Logs 명령: Tools 메뉴와 Object Explorer 오른쪽 클릭 메뉴의 항목.
+ * Disk Usage·Server Logs·Maintenance·Replication 명령: Tools 메뉴와 Object Explorer 오른쪽 클릭 메뉴의 항목.
  *
- * 설계: 두 화면은 Activity Monitor 문서의 탭이라 여는 길은 기존 "Activity Monitor를 이 탭으로 열기"다. 여러 작업이 함께 고치는
+ * 설계: 네 화면은 Activity Monitor 문서의 탭이라 여는 길은 기존 "Activity Monitor를 이 탭으로 열기"다. 여러 작업이 함께 고치는
  * {@code MainFrame}과 {@code ObjectExplorerPanel}에는 이 클래스를 부르는 줄만 두어 병합 충돌을 줄인다.
  *
  * 변경 이력:
  * - 2026-11-07 최초 작성: 공간 사용량·서버 로그 (docs/chromite/swing-admin-tools.md)
+ * - 2026-11-07 Maintenance·Replication 탭 명령을 더함(DB 관리 축 4·6, docs/chromite/swing-admin-tools.md)
  */
 final class AdminViewCommands {
 
@@ -47,7 +49,11 @@ final class AdminViewCommands {
             createAction(AdminViewMessages.admin_space_command, AdminViewMessages.admin_space_command_tip,
                 () -> openTab.accept(ActivityMonitorPanel.DISK_USAGE_TAB)),
             createAction(AdminViewMessages.admin_logs_command, AdminViewMessages.admin_logs_command_tip,
-                () -> openTab.accept(ActivityMonitorPanel.SERVER_LOGS_TAB)));
+                () -> openTab.accept(ActivityMonitorPanel.SERVER_LOGS_TAB)),
+            createAction(MaintenanceViewMessages.maintview_maint_command, MaintenanceViewMessages.maintview_maint_command_tip,
+                () -> openTab.accept(ActivityMonitorPanel.MAINTENANCE_TAB)),
+            createAction(MaintenanceViewMessages.maintview_repl_command, MaintenanceViewMessages.maintview_repl_command_tip,
+                () -> openTab.accept(ActivityMonitorPanel.REPLICATION_TAB)));
     }
 
     /**
