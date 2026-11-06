@@ -12,8 +12,7 @@
     <launcherArgs>
         <programArgs></programArgs>
 
-        <!-- Same JVM options as the SWT product, but Java 25 (the Swing bundle requires JavaSE-25)
-             and no -XstartOnFirstThread on macOS (it is for SWT and blocks AWT). -->
+        <!-- Java 25 (the Swing bundle requires JavaSE-25). No -XstartOnFirstThread on macOS: it is for SWT and blocks AWT. -->
         <vmArgs>
             -XX:+IgnoreUnrecognizedVMOptions
             -Dosgi.requiredJavaVersion=25
@@ -47,11 +46,11 @@
             -Xmx1024m</vmArgs>
     </launcherArgs>
 
-    <!-- Distinct launcher name so the SWT product (launcher "chromite") is not overwritten -->
+    <!-- The name dates from when the SWT product used "chromite"; signing, release files and the macOS app folder use it -->
     <launcher name="chromite-swing">
-        <macosx icon="../community/icons/chromite.icns"/>
+        <macosx icon="icons/chromite.icns"/>
         <win useIco="true">
-            <ico path="../community/icons/chromite.ico"/>
+            <ico path="icons/chromite.ico"/>
         </win>
     </launcher>
 
@@ -71,7 +70,7 @@
         <plugin id="org.eclipse.equinox.simpleconfigurator" autoStart="true" startLevel="1"/>
         <plugin id="org.eclipse.equinox.common" autoStart="true" startLevel="2"/>
         <plugin id="org.eclipse.equinox.event" autoStart="true" startLevel="2"/>
-        <!-- Provides the application service. In the SWT product the workbench bundles start it; here nothing else does. -->
+        <!-- Provides the application service; no other bundle starts it. -->
         <plugin id="org.eclipse.core.runtime" autoStart="true" startLevel="4"/>
     </configurations>
 

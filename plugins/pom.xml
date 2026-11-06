@@ -13,7 +13,6 @@
     <packaging>pom</packaging>
 
     <modules>
-        <module>com.seizia.chromite.launcher</module>
         <module>com.seizia.chromite.model</module>
         <module>com.seizia.chromite.model.ai</module>
         <module>com.seizia.chromite.model.datadam</module>
@@ -96,8 +95,6 @@
         <module>com.seizia.chromite.data.transfer</module>
         <module>com.seizia.chromite.data.gis</module>
 
-        <module>com.seizia.chromite.debug.core</module>
-
         <module>com.seizia.chromite.net.ssh</module>
         <module>com.seizia.chromite.net.ssh.jsch</module>
         <module>com.seizia.chromite.net.ssh.sshj</module>
@@ -111,96 +108,9 @@
         <profile>
             <id>desktop</id>
             <activation><property><name>!headless-platform</name></property></activation>
-            <!-- Desktop (swt/jface) components -->
+            <!-- Desktop components (the Swing frontend; the SWT frontend was removed, docs/chromite/swt-removal.md) -->
             <modules>
-                <module>com.seizia.chromite.launcher</module>
-                <module>com.seizia.chromite.core</module>
-                <module>com.seizia.chromite.ui.app.standalone</module>
                 <module>com.seizia.chromite.drivers.public</module>
-                <module>com.seizia.chromite.ext.athena.ui</module>
-                <module>com.seizia.chromite.ext.bigquery.ui</module>
-                <module>com.seizia.chromite.ext.clickhouse.ui</module>
-                <module>com.seizia.chromite.ext.cubrid.ui</module>
-                <module>com.seizia.chromite.ext.dameng.ui</module>
-                <module>com.seizia.chromite.ext.databend.ui</module>
-                <module>com.seizia.chromite.ext.exasol.ui</module>
-                <module>com.seizia.chromite.ext.db2.ui</module>
-                <module>com.seizia.chromite.ext.duckdb.ui</module>
-                <module>com.seizia.chromite.ext.firebird.ui</module>
-                <module>com.seizia.chromite.ext.generic.ui</module>
-                <module>com.seizia.chromite.ext.h2.ui</module>
-                <module>com.seizia.chromite.ext.hana.ui</module>
-                <module>com.seizia.chromite.ext.iotdb.ui</module>
-                <module>com.seizia.chromite.ext.kingbase.ui</module>
-                <module>com.seizia.chromite.ext.tidblake.ui</module>
-                <module>com.seizia.chromite.ext.mssql.ui</module>
-                <module>com.seizia.chromite.ext.mysql.ui</module>
-                <module>com.seizia.chromite.ext.mimer.ui</module>
-                <module>com.seizia.chromite.ext.oceanbase.ui</module>
-                <module>com.seizia.chromite.ext.oracle.ui</module>
-
-                <module>com.seizia.chromite.ext.postgresql.ui</module>
-                <module>com.seizia.chromite.ext.postgresql.debug.core</module>
-                <module>com.seizia.chromite.ext.postgresql.debug.ui</module>
-                <module>com.seizia.chromite.ext.sqlite.ui</module>
-                <module>com.seizia.chromite.ext.cloudflare.d1.ui</module>
-                <module>com.seizia.chromite.ext.spanner.ui</module>
-                <module>com.seizia.chromite.ext.snowflake.ui</module>
-                <module>com.seizia.chromite.ext.vertica.ui</module>
-                <module>com.seizia.chromite.ext.tidb.ui</module>
-                <module>com.seizia.chromite.ext.altibase.ui</module>
-                <module>com.seizia.chromite.ext.yashandb.ui</module>
-
-                <module>com.seizia.chromite.ext.wmi</module>
-
-                <module>com.seizia.chromite.ui</module>
-                <module>com.seizia.chromite.ui.editors.acl</module>
-                <module>com.seizia.chromite.ui.editors.base</module>
-                <module>com.seizia.chromite.ui.editors.connection</module>
-                <module>com.seizia.chromite.ui.editors.data</module>
-                <module>com.seizia.chromite.ui.editors.entity</module>
-                <module>com.seizia.chromite.ui.editors.erd</module>
-                <module>com.seizia.chromite.ui.editors.hex</module>
-                <module>com.seizia.chromite.ui.editors.image</module>
-                <module>com.seizia.chromite.ui.editors.json</module>
-                <module>com.seizia.chromite.ui.editors.locks</module>
-                <module>com.seizia.chromite.ui.editors.sql</module>
-                <module>com.seizia.chromite.ui.ai</module>
-                <module>com.seizia.chromite.ui.datadam</module>
-                <module>com.seizia.chromite.ui.editors.sql.terminal</module>
-                <module>com.seizia.chromite.ui.editors.session</module>
-                <module>com.seizia.chromite.ui.editors.xml</module>
-                <module>com.seizia.chromite.ui.navigator</module>
-                <module>com.seizia.chromite.ui.forms</module>
-                <module>com.seizia.chromite.ui.charts</module>
-                <module>com.seizia.chromite.ui.dashboard</module>
-                <module>com.seizia.chromite.ui.search</module>
-
-                <module>com.seizia.chromite.ui.swt.macos</module>
-                <module>com.seizia.chromite.ui.swt.windows</module>
-
-                <module>com.seizia.chromite.tasks.native.ui</module>
-                <module>com.seizia.chromite.tasks.ui</module>
-                <module>com.seizia.chromite.tasks.ui.view</module>
-                <module>com.seizia.chromite.tasks.sql.ui</module>
-
-                <module>com.seizia.chromite.data.office.ui</module>
-                <module>com.seizia.chromite.ui.config.sample</module>
-                <module>com.seizia.chromite.ui.config.migration</module>
-                <module>com.seizia.chromite.ui.app.config</module>
-                <module>com.seizia.chromite.cmp.simple.ui</module>
-
-                <module>com.seizia.chromite.debug.ui</module>
-
-                <module>com.seizia.chromite.data.transfer.ui</module>
-                <module>com.seizia.chromite.data.gis.view</module>
-                <module>com.seizia.chromite.net.ssh.ui</module>
-
-                <module>com.seizia.chromite.ext.gaussdb.ui</module>
-
-                <module>com.seizia.chromite.team.git.ui</module>
-
-                <module>com.seizia.chromite.ui.app.devtools</module>
 
                 <!-- Chromite Swing frontend (no SWT), docs/chromite/swing-frontend.md -->
                 <module>com.seizia.chromite.ui.swing</module>

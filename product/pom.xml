@@ -14,12 +14,6 @@
 
     <profiles>
         <profile>
-            <id>product-chromite-swt</id>
-            <modules>
-                <module>community</module>
-            </modules>
-        </profile>
-        <profile>
             <!-- Chromite Swing frontend, docs/chromite/swing-frontend.md -->
             <id>product-chromite-swing</id>
             <modules>

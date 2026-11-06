@@ -488,10 +488,6 @@
         </factory>
     </extension>
 
-    <extension point="org.eclipse.ui.bindings">
-        <key commandId="com.seizia.chromite.ext.oracle.code.compile" schemeId="com.seizia.chromite.defaultKeyScheme" sequence="CTRL+F9"/>
-    </extension>
-
     <extension point="org.eclipse.core.runtime.preferences">
         <initializer class="com.seizia.chromite.ext.oracle.internal.OraclePreferencesInitializer"/>
     </extension>

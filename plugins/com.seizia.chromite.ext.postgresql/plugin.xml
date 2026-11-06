@@ -843,7 +843,7 @@
         <category id="postgreTool" parent="postgresql" name="%com.seizia.chromite.task.category.postgreTool.name" description="%com.seizia.chromite.task.category.postgreTool.description" icon="icons/postgresql_icon.png"/>
 
         <task id="pgDatabaseBackup" name="%task.pgDatabaseBackup.name" description="%task.pgDatabaseBackup.description"
-              icon="platform:/plugin/com.seizia.chromite.ui/icons/file/export.svg" type="postgresql"
+              icon="platform:/plugin/com.seizia.chromite.model/icons/file/export.svg" type="postgresql"
               handler="com.seizia.chromite.ext.postgresql.tasks.PostgreDatabaseBackupHandler" requiresExportPrivileges="true">
             <datasource id="postgresql"/>
             <objectType name="com.seizia.chromite.ext.postgresql.model.PostgreObject" if="object.dataSource.serverType.supportsNativeClient()"/>
@@ -851,7 +851,7 @@
             <objectType name="com.seizia.chromite.ext.postgresql.model.PostgreTableBase" if="object.dataSource.serverType.supportsNativeClient()"/>
         </task>
         <task id="pgDatabaseRestore" name="%task.pgDatabaseRestore.name" description="%task.pgDatabaseRestore.description"
-              icon="platform:/plugin/com.seizia.chromite.ui/icons/file/import.svg" type="postgresql"
+              icon="platform:/plugin/com.seizia.chromite.model/icons/file/import.svg" type="postgresql"
               handler="com.seizia.chromite.ext.postgresql.tasks.PostgreDatabaseRestoreHandler" requiresMutability="true"
               confirmationMessage="%pgDatabaseRestore.confirmationMessage">
             <datasource id="postgresql"/>
@@ -859,7 +859,7 @@
             <objectType name="com.seizia.chromite.ext.postgresql.model.PostgreSchema" if="object.dataSource.serverType.supportsNativeClient()"/>
         </task>
         <task id="pgDatabaseBackupAll" name="%task.pgDatabaseBackupAll.name" description="%task.pgDatabaseBackupAll.description"
-              icon="platform:/plugin/com.seizia.chromite.ui/icons/file/export.svg" type="postgresql"
+              icon="platform:/plugin/com.seizia.chromite.model/icons/file/export.svg" type="postgresql"
               handler="com.seizia.chromite.ext.postgresql.tasks.PostgreDatabaseBackupAllHandler" requiresExportPrivileges="true">
             <datasource id="postgresql"/>
             <objectType name="com.seizia.chromite.ext.postgresql.model.PostgreDatabase" if="object.dataSource.serverType.supportsNativeClient()"/>
