@@ -17,11 +17,13 @@
 package com.seizia.chromite.ui.swing;
 
 import com.formdev.flatlaf.FlatClientProperties;
+import com.seizia.chromite.ui.swing.internal.DbCopyMessages;
 import com.seizia.chromite.ui.swing.internal.ToolsMessages;
 import org.eclipse.osgi.util.NLS;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
+import org.jkiss.dbeaver.model.DBIcon;
 import org.jkiss.dbeaver.model.DBPEvaluationContext;
 import org.jkiss.dbeaver.model.DBPContextProvider;
 import org.jkiss.dbeaver.model.DBPDataSource;
@@ -92,6 +94,10 @@ import java.util.Set;
  *     <li>설정 기억: 폴더·패턴·문자 집합·BOM·형식·폴더 열기는 이 번들 설정 저장소에, 형식별 속성은 실행 중에만 기억한다.</li>
  *     <li>노드 설정은 모델의 저장된 대화상자 설정을 읽는 {@code loadNodeSettings}를 부르지 않고 객체의 기본값에서 시작해 화면 값을 직접 넣는다.
  *     빈 설정을 읽으면 {@link DatabaseProducerSettings}의 새 연결·행 수 세기가 꺼지기 때문이다(그 클래스의 {@code loadSettings}).</li>
+ *     <li>다른 연결·데이터베이스로 테이블 복사: SWT 마법사가 같은 원본 목록에서 대상 노드로 파일 또는 데이터베이스를 고르게 하듯이, 형식 목록 맨 앞에
+ *     "Database"를 두고 고르면 파일 단계(형식 설정, 출력) 대신 {@link DatabaseCopyPages}의 대상·매핑·넣기 설정 단계를 보인다.
+ *     Object Explorer의 Copy Tables…는 같은 마법사를 형식 단계 없이 연다({@link #openForCopy}). 원본 단계, 요약, 진행 페이지를 그대로 쓰기 위해서다.
+ *     결과 표의 쿼리는 이 대상을 두지 않는다(쿼리 원본의 대상 테이블 만들기는 확인하지 않았다).</li>
  * </ul>
  *
  * 변경 이력:
@@ -99,6 +105,7 @@ import java.util.Set;
  * - 2026-11-06 필터·정렬한 결과 표의 Export Data…가 원래 쿼리(모든 행, 원래 순서)를 내보내던 문제: 뷰어의 서버 필터를 producer에 넘김,
  *   표 안에서만 한 정렬은 알림 (docs/chromite/swing-data-transfer.md)
  * - 2026-11-06 화면 문구를 ToolsMessages로 옮김(OS 언어를 따름)
+ * - 2026-11-06 테이블 복사: 형식 목록의 "Database"와 Copy Tables… 진입점, 복사 단계({@link DatabaseCopyPages}) (docs/chromite/swing-data-transfer.md)
  */
 final class DataExportWizard extends DataTransferWizard {
 
@@ -122,7 +129,22 @@ final class DataExportWizard extends DataTransferWizard {
     private record SourceItem(@NotNull DBSDataContainer container, boolean[] selected) {
     }
 
+    /**
+     * The "Database" entry of the format list (copy the tables into a database instead of files).
+     */
+    private static final Object DATABASE_TARGET = new Object();
+
     private final List<SourceItem> sources = new ArrayList<>();
+    /**
+     * Opened as Copy Tables…: the destination is a database, the format page is not shown.
+     */
+    private final boolean copyOnly;
+    /**
+     * The copy pages; null for a query (see the class comment) or when the model has no database consumer.
+     */
+    @Nullable
+    private final DatabaseCopyPages copy;
+    private boolean toDatabase;
     @Nullable
     private final SQLQueryContainer query;
     /**
@@ -173,12 +195,15 @@ final class DataExportWizard extends DataTransferWizard {
         @NotNull Set<DBSDataContainer> selected,
         @Nullable SQLQueryContainer query,
         @Nullable DBDDataFilter queryFilter,
-        @Nullable String orderNote
+        @Nullable String orderNote,
+        boolean copyOnly,
+        @Nullable ObjectExplorerPanel.QueryWindows queryWindows
     ) {
-        super(owner, ToolsMessages.export_title);
+        super(owner, copyOnly ? DbCopyMessages.copy_title : ToolsMessages.export_title);
         this.query = query;
         this.queryFilter = queryFilter;
         this.orderNote = orderNote;
+        this.copyOnly = copyOnly;
         for (DBSDataContainer container : containers) {
             sources.add(new SourceItem(container, new boolean[]{selected.contains(container)}));
         }
@@ -197,7 +222,17 @@ final class DataExportWizard extends DataTransferWizard {
         if (query != null) {
             readContextDefaults(query);
         }
-        initWizard(List.of(new SourcePage(), new FormatPage(), new FormatSettingsPage(), new OutputPage(), new SummaryPage()));
+        DataTransferNodeDescriptor databaseNode = query == null ? DatabaseCopyPages.findConsumerNode(containers) : null;
+        DBPDataSource sourceDataSource = containers.isEmpty() ? null : containers.getFirst().getDataSource();
+        copy = databaseNode == null ? null : new DatabaseCopyPages(this, databaseNode, this::getSelectedSources, () -> toDatabase,
+            queryWindows, sourceDataSource == null ? null : sourceDataSource.getContainer());
+        toDatabase = copyOnly && copy != null;
+        List<Page> pages = new ArrayList<>(List.of(new SourcePage(), new FormatPage()));
+        if (copy != null) {
+            pages.addAll(copy.createPages());
+        }
+        pages.addAll(List.of(new FormatSettingsPage(), new OutputPage(), new SummaryPage()));
+        initWizard(pages);
     }
 
     //////////////////////////////////////////////////////////
@@ -216,8 +251,23 @@ final class DataExportWizard extends DataTransferWizard {
     /**
      * Opens the wizard for an Object Explorer object: a table or view (its siblings are listed, it is checked),
      * or a schema, catalog or folder (all its tables and views are listed).
+     *
+     * @param queryWindows opens the copied tables when the "Database" destination is chosen
      */
-    static void openForObject(@NotNull Component parent, @NotNull DBSObject object) {
+    static void openForObject(@NotNull Component parent, @NotNull DBSObject object, @Nullable ObjectExplorerPanel.QueryWindows queryWindows) {
+        open(parent, object, false, queryWindows);
+    }
+
+    /**
+     * Opens the wizard to copy tables of an Object Explorer object into another connection or database (Copy Tables…):
+     * the same sources as {@link #openForObject}, the destination is a database.
+     */
+    static void openForCopy(@NotNull Component parent, @NotNull DBSObject object, @Nullable ObjectExplorerPanel.QueryWindows queryWindows) {
+        open(parent, object, true, queryWindows);
+    }
+
+    private static void open(@NotNull Component parent, @NotNull DBSObject object, boolean copyOnly, @Nullable ObjectExplorerPanel.QueryWindows queryWindows) {
+        String title = copyOnly ? DbCopyMessages.copy_title : ToolsMessages.export_title;
         DBSObject container;
         Set<DBSDataContainer> selected = new LinkedHashSet<>();
         if (object instanceof DBSDataContainer dataContainer && object instanceof DBSEntity) {
@@ -229,11 +279,11 @@ final class DataExportWizard extends DataTransferWizard {
         List<DBSDataContainer> containers;
         try {
             containers = container == null ? new ArrayList<>(selected)
-                : ProgressDialog.runTask(ToolsMessages.export_title, monitor -> DataTransferObjects.readDataContainers(monitor, container));
+                : ProgressDialog.runTask(title, monitor -> DataTransferObjects.readDataContainers(monitor, container));
         } catch (DBInterruptedException e) {
             return;
         } catch (DBException e) {
-            DBWorkbench.getPlatformUI().showError(ToolsMessages.export_title,
+            DBWorkbench.getPlatformUI().showError(title,
                 NLS.bind(ToolsMessages.export_error_read_tables, DBUtils.getObjectFullName(object, DBPEvaluationContext.UI)), e);
             return;
         }
@@ -243,10 +293,11 @@ final class DataExportWizard extends DataTransferWizard {
             }
         }
         if (containers.isEmpty()) {
-            JOptionPane.showMessageDialog(parent, ToolsMessages.export_error_nothing, ToolsMessages.export_title, JOptionPane.INFORMATION_MESSAGE);
+            JOptionPane.showMessageDialog(parent, copyOnly ? DbCopyMessages.copy_error_nothing : ToolsMessages.export_error_nothing, title,
+                JOptionPane.INFORMATION_MESSAGE);
             return;
         }
-        new DataExportWizard(SwingUtilities.getWindowAncestor(parent), containers, selected, null, null, null).open();
+        new DataExportWizard(SwingUtilities.getWindowAncestor(parent), containers, selected, null, null, null, copyOnly, queryWindows).open();
     }
 
     /**
@@ -285,7 +336,7 @@ final class DataExportWizard extends DataTransferWizard {
             return;
         }
         new DataExportWizard(SwingUtilities.getWindowAncestor(parent), List.of(container), Set.of(container), (SQLQueryContainer) container,
-            filter != null && filter.hasFilters() ? new DBDDataFilter(filter) : null, orderNote).open();
+            filter != null && filter.hasFilters() ? new DBDDataFilter(filter) : null, orderNote, false, null).open();
     }
 
     /**
@@ -334,6 +385,9 @@ final class DataExportWizard extends DataTransferWizard {
     @Nullable
     @Override
     protected DataTransferSettings prepareTransfer() {
+        if (toDatabase) {
+            return copy == null ? null : copy.prepareTransfer();
+        }
         if (consumerNode == null || processor == null || processorProperties == null) {
             return null;
         }
@@ -396,6 +450,9 @@ final class DataExportWizard extends DataTransferWizard {
     @NotNull
     @Override
     protected String describeTarget(@NotNull DataTransferPipe pipe) {
+        if (toDatabase && copy != null) {
+            return copy.describeTarget(pipe);
+        }
         if (isClipboardOutput()) {
             return ToolsMessages.export_target_clipboard;
         }
@@ -405,10 +462,21 @@ final class DataExportWizard extends DataTransferWizard {
     @Nullable
     @Override
     protected String describeResult(@NotNull DataTransferPipe pipe) {
+        if (toDatabase && copy != null) {
+            // A new table has its final name now
+            return copy.describeTarget(pipe);
+        }
         if (pipe.getConsumer() instanceof StreamTransferConsumer consumer && !consumer.getOutputFiles().isEmpty()) {
             return consumer.getOutputFiles().stream().map(Path::toString).reduce((a, b) -> a + ", " + b).orElse(null);
         }
         return null;
+    }
+
+    @Override
+    protected void transferSucceeded() {
+        if (toDatabase && copy != null) {
+            copy.transferSucceeded();
+        }
     }
 
     private boolean isClipboardOutput() {
@@ -430,6 +498,17 @@ final class DataExportWizard extends DataTransferWizard {
             }
         }
         return count;
+    }
+
+    @NotNull
+    private List<DBSDataContainer> getSelectedSources() {
+        List<DBSDataContainer> selected = new ArrayList<>();
+        for (SourceItem item : sources) {
+            if (item.selected()[0]) {
+                selected.add(item.container());
+            }
+        }
+        return selected;
     }
 
     @NotNull
@@ -510,7 +589,7 @@ final class DataExportWizard extends DataTransferWizard {
         @Override
         public String getDescription() {
             return query != null ? ToolsMessages.export_source_query_description
-                : ToolsMessages.export_source_tables_description;
+                : copyOnly ? DbCopyMessages.copy_source_description : ToolsMessages.export_source_tables_description;
         }
 
         @NotNull
@@ -580,13 +659,20 @@ final class DataExportWizard extends DataTransferWizard {
     }
 
     /**
-     * Export format (SSMS "Choose a Destination"): the processors registered for the stream consumer.
+     * Export format (SSMS "Choose a Destination"): a database (copy, if the model has a database consumer for the
+     * sources) and the processors registered for the stream consumer.
      */
     private final class FormatPage implements Page {
         private final JPanel panel = new JPanel(new BorderLayout(0, 8));
-        private final JList<DataTransferProcessorDescriptor> list = new JList<>(processors.toArray(new DataTransferProcessorDescriptor[0]));
+        private final JList<Object> list = new JList<>();
 
         FormatPage() {
+            DefaultListModel<Object> formats = new DefaultListModel<>();
+            if (copy != null) {
+                formats.addElement(DATABASE_TARGET);
+            }
+            processors.forEach(formats::addElement);
+            list.setModel(formats);
             list.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
             list.setCellRenderer(new DefaultListCellRenderer() {
                 @Override
@@ -597,17 +683,36 @@ final class DataExportWizard extends DataTransferWizard {
                             + "</html>");
                         setIcon(NodeIcons.getIcon(descriptor.getIcon()));
                         setBorder(BorderFactory.createEmptyBorder(4, 6, 4, 6));
+                    } else if (value == DATABASE_TARGET) {
+                        setText("<html><b>" + escape(DbCopyMessages.format_database) + "</b>&nbsp;&nbsp;" + escape(DbCopyMessages.format_database_description)
+                            + "</html>");
+                        setIcon(NodeIcons.getIcon(DBIcon.TREE_DATABASE));
+                        setBorder(BorderFactory.createEmptyBorder(4, 6, 4, 6));
                     }
                     return this;
                 }
             });
-            list.setSelectedValue(processor, true);
+            list.setSelectedValue(toDatabase ? DATABASE_TARGET : processor, true);
             list.addListSelectionListener(e -> {
-                if (!e.getValueIsAdjusting() && list.getSelectedValue() != null) {
-                    setProcessor(list.getSelectedValue());
+                if (e.getValueIsAdjusting()) {
+                    return;
                 }
+                Object selected = list.getSelectedValue();
+                if (selected instanceof DataTransferProcessorDescriptor descriptor) {
+                    toDatabase = false;
+                    setProcessor(descriptor);
+                } else if (selected == DATABASE_TARGET) {
+                    toDatabase = true;
+                }
+                // The following steps differ for files and a database
+                refreshSteps();
             });
             panel.add(new JScrollPane(list), BorderLayout.CENTER);
+        }
+
+        @Override
+        public boolean isApplicable() {
+            return !copyOnly;
         }
 
         @NotNull
@@ -631,7 +736,7 @@ final class DataExportWizard extends DataTransferWizard {
         @Nullable
         @Override
         public String leave() {
-            return processor == null ? ToolsMessages.export_format_error_none : null;
+            return processor == null && !toDatabase ? ToolsMessages.export_format_error_none : null;
         }
     }
 
@@ -733,6 +838,11 @@ final class DataExportWizard extends DataTransferWizard {
         @Override
         public JComponent getComponent() {
             return panel;
+        }
+
+        @Override
+        public boolean isApplicable() {
+            return !toDatabase;
         }
 
         @Override
@@ -863,6 +973,11 @@ final class DataExportWizard extends DataTransferWizard {
         }
 
         @Override
+        public boolean isApplicable() {
+            return !toDatabase;
+        }
+
+        @Override
         public void activate() {
             updateEnablement();
         }
@@ -909,7 +1024,7 @@ final class DataExportWizard extends DataTransferWizard {
         @NotNull
         @Override
         public String getDescription() {
-            return ToolsMessages.export_summary_description;
+            return toDatabase ? DbCopyMessages.summary_description : ToolsMessages.export_summary_description;
         }
 
         @NotNull
@@ -935,6 +1050,13 @@ final class DataExportWizard extends DataTransferWizard {
                 if (orderNote != null) {
                     summary.append("    ").append(orderNote).append('\n');
                 }
+            }
+            if (toDatabase && copy != null) {
+                summary.append('\n');
+                copy.appendSummary(summary);
+                text.setText(summary.toString());
+                text.setCaretPosition(0);
+                return;
             }
             summary.append('\n').append(NLS.bind(ToolsMessages.export_summary_format, processor == null ? "?" : processor.getName())).append('\n');
             Map<String, Object> changed = getProcessorProperties().getPropertyValues();

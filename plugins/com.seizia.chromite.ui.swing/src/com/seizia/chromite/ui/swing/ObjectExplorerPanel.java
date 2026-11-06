@@ -21,6 +21,7 @@ import com.formdev.flatlaf.ui.FlatUIUtils;
 import com.formdev.flatlaf.util.UIScale;
 import com.seizia.chromite.ui.swing.internal.BackupRestoreMessages;
 import com.seizia.chromite.ui.swing.internal.CoreMessages;
+import com.seizia.chromite.ui.swing.internal.DbCopyMessages;
 import com.seizia.chromite.ui.swing.internal.ErdMessages;
 import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.Status;
@@ -128,7 +129,8 @@ import java.util.function.Consumer;
  *     <li>관리 도구: 오른쪽 클릭 메뉴의 Activity Monitor, Locks(선택한 노드의 연결), Find Objects…(선택한 노드의 연결과 스키마를 범위로).
  *     Find Objects 결과는 {@link #revealNode}로 트리를 펼쳐 고른다.</li>
  *     <li>Tasks &gt; Import Data… / Export Data…(SSMS 데이터베이스 Tasks 메뉴): 테이블에서 가져오기({@link DataImportWizard}),
- *     테이블·뷰 또는 그것들을 담은 스키마·폴더에서 내보내기({@link DataExportWizard}).</li>
+ *     테이블·뷰 또는 그것들을 담은 스키마·폴더에서 내보내기({@link DataExportWizard}). Copy Tables…는 같은 원본을 다른 연결·데이터베이스로 복사한다
+ *     ({@link DataExportWizard#openForCopy}).</li>
  *     <li>Tasks &gt; Back Up… / Restore…(SSMS 데이터베이스 Tasks 메뉴): 데이터베이스 백업·복원({@link BackupRestoreCommands}).</li>
  * </ul>
  *
@@ -156,6 +158,7 @@ import java.util.function.Consumer;
  * - 2026-11-06 ER 다이어그램: View Diagram 메뉴, Select Top 행 수를 다이어그램 메뉴와 같이 씀 (docs/chromite/swing-erd.md)
  * - 2026-11-06 개체 정의 편집: Modify, Script as &gt; ALTER To, New View/Procedure/Function 메뉴 (docs/chromite/swing-source-editor.md)
  * - 2026-11-06 백업·복원: Tasks &gt; Back Up… / Restore… 메뉴 (docs/chromite/swing-backup-restore.md)
+ * - 2026-11-06 테이블 복사: Tasks &gt; Copy Tables… 메뉴, 내보내기 마법사에 쿼리 창 열기를 넘김 (docs/chromite/swing-data-transfer.md)
  */
 final class ObjectExplorerPanel extends JPanel {
 
@@ -263,6 +266,7 @@ final class ObjectExplorerPanel extends JPanel {
     private final SourceEditCommands sourceEditCommands;
     private final Action backUpAction;
     private final Action restoreAction;
+    private final Action copyTablesAction;
     private final INavigatorListener navigatorListener = this::navigatorNodeChanged;
     /**
      * A connection to select once the connection list has been read again (a connection created in this window). The
@@ -406,7 +410,13 @@ final class ObjectExplorerPanel extends JPanel {
         exportDataAction = createAction(CoreMessages.explorer_export_data, () -> {
             DBSObject object = getSelectedObject();
             if (object != null) {
-                DataExportWizard.openForObject(this, object);
+                DataExportWizard.openForObject(this, object, queryWindows);
+            }
+        });
+        copyTablesAction = createAction(DbCopyMessages.explorer_copy_tables, () -> {
+            DBSObject object = getSelectedObject();
+            if (object != null) {
+                DataExportWizard.openForCopy(this, object, queryWindows);
             }
         });
         backUpAction = createAction(BackupRestoreMessages.backup_menu, () -> {
@@ -427,6 +437,7 @@ final class ObjectExplorerPanel extends JPanel {
         tasksMenu.addSeparator();
         tasksMenu.add(importDataAction);
         tasksMenu.add(exportDataAction);
+        tasksMenu.add(copyTablesAction);
         newConnectionAction = createAction(CoreMessages.explorer_new_connection, () -> {
             DBPDataSourceContainer created = ConnectionCommands.newConnection(this, null);
             if (created != null) {
@@ -693,6 +704,7 @@ final class ObjectExplorerPanel extends JPanel {
         exportDataAction.setEnabled(DataExportWizard.canExport(object));
         backUpAction.setEnabled(BackupRestoreCommands.canBackUp(object));
         restoreAction.setEnabled(backUpAction.isEnabled());
+        copyTablesAction.setEnabled(exportDataAction.isEnabled());
         tasksMenu.setEnabled(importDataAction.isEnabled() || exportDataAction.isEnabled() || backUpAction.isEnabled());
         designAction.setEnabled(TableDesignSession.canDesign(object));
         newTableAction.setEnabled(getSelectedNavigatorNode() instanceof DBNDatabaseFolder folder && TableDesignSession.canCreateTable(folder));
