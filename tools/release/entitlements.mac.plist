@@ -9,11 +9,10 @@
     allow-unsigned-executable-memory  HotSpot and native code loaded through JNI/JNA (libffi
                                       closures) also create writable and executable memory
                                       without MAP_JIT.
-    disable-library-validation        the VM is not part of the app yet: the launcher loads the
-                                      JDK installed on the user's Mac, signed by another team
-                                      (docs/chromite/runtime.md), and JDBC drivers or JNA unpack
-                                      native libraries at run time that are not signed by us.
-                                      Library validation would refuse all of them.
+    disable-library-validation        JDBC drivers and JNA unpack native libraries at run time
+                                      that are not signed by us; library validation would refuse
+                                      them. (The bundled runtime, Contents/Eclipse/jre, is signed
+                                      with the app and does not need it: docs/chromite/runtime.md.)
   Nothing else: no App Sandbox (the app opens user files, network connections and drivers freely).
   Design: docs/chromite/signing.md.
 -->
