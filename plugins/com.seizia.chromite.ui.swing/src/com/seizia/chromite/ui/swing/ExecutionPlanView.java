@@ -19,6 +19,7 @@ package com.seizia.chromite.ui.swing;
 import com.formdev.flatlaf.FlatClientProperties;
 import com.formdev.flatlaf.util.UIScale;
 import com.seizia.chromite.ui.swing.internal.EditorMessages;
+import com.seizia.chromite.ui.swing.internal.PlanMessages;
 import org.eclipse.osgi.util.NLS;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
@@ -29,12 +30,14 @@ import com.seizia.chromite.model.data.DBDDisplayFormat;
 import com.seizia.chromite.model.exec.plan.DBCPlan;
 import com.seizia.chromite.model.exec.plan.DBCPlanNode;
 import com.seizia.chromite.model.exec.plan.DBCPlanNodeKind;
+import com.seizia.chromite.model.preferences.DBPPreferenceStore;
 import com.seizia.chromite.model.preferences.DBPPropertyDescriptor;
 import com.seizia.chromite.model.preferences.DBPPropertySource;
 import com.seizia.chromite.model.runtime.VoidProgressMonitor;
 import com.seizia.chromite.runtime.properties.ObjectAttributeDescriptor;
 import com.seizia.chromite.runtime.properties.ObjectPropertyDescriptor;
 import com.seizia.chromite.runtime.properties.PropertyCollector;
+import com.seizia.chromite.utils.PrefUtils;
 import org.jkiss.utils.CommonUtils;
 
 import javax.swing.*;
@@ -43,8 +46,12 @@ import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.TableCellRenderer;
 import javax.swing.table.TableColumn;
 import java.awt.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.InputEvent;
+import java.awt.event.KeyEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.awt.geom.RoundRectangle2D;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -55,9 +62,20 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * Execution plan tab of a query window: one tree of plan nodes per statement, with the node's properties beside it.
+ * Execution plan tab of a query window: the plans in three views (graphical, tree, raw), with the selected node's
+ * properties beside the graphical and tree views.
  *
- * 설계: SWT 편집기의 계획 보기({@code ExplainPlanViewer}의 단순 보기 {@code PlanNodesTree}, {@code SQLPlanTreeViewer})를 옮겼다.
+ * 설계: 계획 탭 자체 도구 막대의 분할 단추(그래픽 | 트리 | 원본)로 보기를 바꾼다. 마지막에 고른 보기는 사용자 설정
+ * ({@value #PREF_VIEW})에 남겨 다음 계획 탭도 그 보기로 연다(기본은 그래픽).
+ * <ul>
+ *     <li>그래픽: {@link PlanDiagramView}(계획 모델을 모르는 그림)와 {@link PlanDiagramBuilder}(계획 → 그림 내용). 상자를 누르면 트리의
+ *     같은 노드를 고르므로 오른쪽 속성 표는 두 보기가 함께 쓴다. 확대·축소·창에 맞추기 단추는 그래픽 보기에서만 보인다.</li>
+ *     <li>트리: 아래의 트리 표(SWT 계획 보기를 옮긴 것).</li>
+ *     <li>원본: {@link PlanRawView}. 서버가 돌려준 계획 글자라 속성 표 없이 탭 전체를 쓰고, 복사·저장 단추와 문장 목록이 보인다.</li>
+ * </ul>
+ * SQL 편집기({@code SqlEditorPanel})는 이 클래스의 API({@link #clear}, {@link #addEntry})만 쓰므로 세 보기를 더해도 바뀌지 않았다.
+ *
+ * 트리 보기 설계: SWT 편집기의 계획 보기({@code ExplainPlanViewer}의 단순 보기 {@code PlanNodesTree}, {@code SQLPlanTreeViewer})를 옮겼다.
  * <ul>
  *     <li>계획은 DBeaver 계획 모델({@link DBCPlan}, {@link DBCPlanNode})이라 DB마다 다른 화면을 만들지 않는다. 노드는
  *     {@code DBCPlan.getPlanNodes(keepOriginal)}로 받는다(SWT와 같은 옵션: 서버가 만든 구조를 그대로).</li>
@@ -73,7 +91,6 @@ import java.util.Set;
  *     경고 색으로 행 바탕을 옅게 칠한다(테마의 상태 색을 섞어 두 테마 모두에서 읽히게).</li>
  *     <li>오른쪽 상세 표는 선택한 노드의 모든 속성이다. 노드가 {@link DBPPropertySource}이면(PostgreSQL 노드의 계획 속성 전체) 그것을,
  *     아니면 {@link PropertyCollector}로 {@code @Property} 게터를 모은다(Properties 창과 같은 방법).</li>
- *     <li>그래픽 계획 도면은 아직 없다(docs/chromite/swing-sql-editor-plus.md "미룬 일").</li>
  * </ul>
  * 모든 메서드는 EDT에서 부른다.
  *
@@ -81,10 +98,27 @@ import java.util.Set;
  * - 2026-11-06 최초 작성 (docs/chromite/swing-sql-editor-plus.md)
  * - 2026-11-06 열이 너무 좁아 연산 이름이 잘리던 문제: 고정 비율로 보기에 맞추던 열을 내용에 맞추고, 넘치면 가로 스크롤 (docs/chromite/swing-sql-editor-plus.md)
  * - 2026-11-06 화면 문구를 EditorMessages로 옮김(OS 언어를 따름)
+ * - 2026-11-07 세 보기(그래픽·트리·원본)와 보기 전환 도구 막대, 마지막 보기 기억 (docs/chromite/swing-sql-editor-plus.md "실행 계획 세 보기")
  */
 final class ExecutionPlanView {
 
     private static final Log log = Log.getLog(ExecutionPlanView.class);
+
+    /**
+     * Preference: the last chosen view ({@link View} name).
+     */
+    static final String PREF_VIEW = "plan.view"; //$NON-NLS-1$
+    private static final String CARD_SPLIT = "split"; //$NON-NLS-1$
+    private static final String CARD_RAW = "raw"; //$NON-NLS-1$
+
+    /**
+     * The views of the plan tab, in the order of the switch.
+     */
+    enum View {
+        GRAPHICAL,
+        TREE,
+        RAW
+    }
 
     private static final String NODE_TYPE_PROPERTY = "nodeType"; //$NON-NLS-1$
     private static final int INDENT = 16;
@@ -128,10 +162,32 @@ final class ExecutionPlanView {
     };
     private final DetailsModel detailsModel = new DetailsModel();
     private final JTable detailsTable = new JTable(detailsModel);
+    private final PlanDiagramView diagramView;
+    private final PlanRawView rawView = new PlanRawView();
+    private final CardLayout mainCards = new CardLayout();
+    private final JPanel mainPanel = new JPanel(mainCards);
+    private final CardLayout leftCards = new CardLayout();
+    private final JPanel leftPanel = new JPanel(leftCards);
+    private final Map<View, JToggleButton> viewButtons = new LinkedHashMap<>();
+    private final List<Component> graphicalTools = new ArrayList<>();
+    private final List<Component> rawTools = new ArrayList<>();
+    private final JButton zoomButton = new JButton();
+    private View view;
 
     ExecutionPlanView() {
-        headerLabel.setBorder(BorderFactory.createEmptyBorder(UIScale.scale(6), UIScale.scale(10), UIScale.scale(6), UIScale.scale(10)));
+        headerLabel.setBorder(BorderFactory.createEmptyBorder(0, UIScale.scale(10), 0, UIScale.scale(10)));
         headerLabel.putClientProperty(FlatClientProperties.STYLE, "foreground: $Chromite.secondaryForeground"); //$NON-NLS-1$
+        diagramView = new PlanDiagramView(new PlanDiagramView.Listener() {
+            @Override
+            public void selected(@Nullable Object userObject) {
+                selectItem(userObject);
+            }
+
+            @Override
+            public void zoomChanged() {
+                updateZoomLabel();
+            }
+        });
 
         table.setAutoResizeMode(JTable.AUTO_RESIZE_SUBSEQUENT_COLUMNS);
         table.setFillsViewportHeight(true);
@@ -142,6 +198,8 @@ final class ExecutionPlanView {
         table.getSelectionModel().addListSelectionListener(e -> {
             if (!e.getValueIsAdjusting()) {
                 showDetails();
+                int index = table.getSelectedRow();
+                diagramView.setSelected(index >= 0 && index < rows.size() ? rows.get(index).item : null);
             }
         });
         table.addMouseListener(new MouseAdapter() {
@@ -174,18 +232,214 @@ final class ExecutionPlanView {
 
         JScrollPane treeScroll = new JScrollPane(table);
         treeScroll.setBorder(BorderFactory.createEmptyBorder());
+        JScrollPane diagramScroll = new JScrollPane(diagramView);
+        diagramScroll.setBorder(BorderFactory.createEmptyBorder());
         JScrollPane detailsScroll = new JScrollPane(detailsTable);
         detailsScroll.setBorder(BorderFactory.createEmptyBorder());
-        // The divider starts from the preferred widths: most of the room for the tree
-        treeScroll.setPreferredSize(new Dimension(UIScale.scale(900), UIScale.scale(200)));
+        leftPanel.add(diagramScroll, View.GRAPHICAL.name());
+        leftPanel.add(treeScroll, View.TREE.name());
+        // The divider starts from the preferred widths: most of the room for the plan
+        leftPanel.setPreferredSize(new Dimension(UIScale.scale(900), UIScale.scale(200)));
         detailsScroll.setPreferredSize(new Dimension(UIScale.scale(320), UIScale.scale(200)));
-        JSplitPane split = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, treeScroll, detailsScroll);
+        JSplitPane split = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, leftPanel, detailsScroll);
         split.setResizeWeight(0.72);
         split.setBorder(BorderFactory.createEmptyBorder());
         split.setContinuousLayout(true);
-        component.add(headerLabel, BorderLayout.NORTH);
-        component.add(split, BorderLayout.CENTER);
+        mainPanel.add(split, CARD_SPLIT);
+        mainPanel.add(rawView.getComponent(), CARD_RAW);
+        component.add(createToolBar(), BorderLayout.NORTH);
+        component.add(mainPanel, BorderLayout.CENTER);
+        bindZoomKeys();
+        View saved = CommonUtils.valueOf(View.class, getPreferences().getString(PREF_VIEW), View.GRAPHICAL);
+        showView(saved);
         clear();
+    }
+
+    //////////////////////////////////////////////////////////
+    // Views
+
+    /**
+     * The plan tab's own tool bar: the view switch, the tools of the shown view, then the header text.
+     */
+    @NotNull
+    private JComponent createToolBar() {
+        SegmentedPanel switchPanel = new SegmentedPanel();
+        ButtonGroup group = new ButtonGroup();
+        addViewButton(switchPanel, group, View.GRAPHICAL, PlanMessages.plan_view_graphical, PlanMessages.plan_view_graphical_tip);
+        addViewButton(switchPanel, group, View.TREE, PlanMessages.plan_view_tree, PlanMessages.plan_view_tree_tip);
+        addViewButton(switchPanel, group, View.RAW, PlanMessages.plan_view_raw, PlanMessages.plan_view_raw_tip);
+
+        JToolBar toolBar = new JToolBar();
+        toolBar.setFloatable(false);
+        toolBar.setOpaque(false);
+        toolBar.setBorder(UiSizes.createPadding(UiSizes.TOOL_WINDOW_TOOL_BAR_PADDING));
+        toolBar.add(switchPanel);
+
+        // Graphical: zoom out, zoom ratio (resets to 100%), zoom in, fit
+        zoomButton.setAction(createAction("100%", diagramView::zoomActual)); //$NON-NLS-1$
+        zoomButton.setToolTipText(PlanMessages.plan_zoom_actual);
+        zoomButton.putClientProperty(FlatClientProperties.BUTTON_TYPE, FlatClientProperties.BUTTON_TYPE_TOOLBAR_BUTTON);
+        zoomButton.setFocusable(false);
+        addTool(toolBar, graphicalTools, Box.createHorizontalStrut(UIScale.scale(8)));
+        addTool(toolBar, graphicalTools, UiIcons.createActionButton(createAction(PlanMessages.plan_zoom_out, diagramView::zoomOut), "zoom-out")); //$NON-NLS-1$
+        addTool(toolBar, graphicalTools, zoomButton);
+        addTool(toolBar, graphicalTools, UiIcons.createActionButton(createAction(PlanMessages.plan_zoom_in, diagramView::zoomIn), "zoom-in")); //$NON-NLS-1$
+        addTool(toolBar, graphicalTools, UiIcons.createActionButton(createAction(PlanMessages.plan_zoom_fit, diagramView::zoomToFit), "zoom-fit")); //$NON-NLS-1$
+
+        // Raw: statement picker, copy, save
+        addTool(toolBar, rawTools, Box.createHorizontalStrut(UIScale.scale(8)));
+        JComboBox<?> selector = rawView.getSelector();
+        selector.setMaximumSize(new Dimension(UIScale.scale(180), selector.getPreferredSize().height));
+        toolBar.add(selector);
+        Action copyAction = createAction(PlanMessages.plan_raw_copy, rawView::copy);
+        copyAction.putValue(Action.SHORT_DESCRIPTION, PlanMessages.plan_raw_copy_tip);
+        Action saveAction = createAction(PlanMessages.plan_raw_save, rawView::saveAs);
+        saveAction.putValue(Action.SHORT_DESCRIPTION, PlanMessages.plan_raw_save_tip);
+        addTool(toolBar, rawTools, UiIcons.createToolButton(copyAction, "copy")); //$NON-NLS-1$
+        addTool(toolBar, rawTools, UiIcons.createToolButton(saveAction, "save")); //$NON-NLS-1$
+
+        JPanel bar = new JPanel(new BorderLayout());
+        bar.setOpaque(false);
+        bar.add(toolBar, BorderLayout.WEST);
+        bar.add(headerLabel, BorderLayout.CENTER);
+        return bar;
+    }
+
+    private void addViewButton(@NotNull JPanel panel, @NotNull ButtonGroup group, @NotNull View target, @NotNull String text, @NotNull String toolTip) {
+        JToggleButton button = new JToggleButton(text);
+        button.setToolTipText(toolTip);
+        button.putClientProperty(FlatClientProperties.BUTTON_TYPE, FlatClientProperties.BUTTON_TYPE_TOOLBAR_BUTTON);
+        button.putClientProperty(FlatClientProperties.STYLE, "arc: 6"); //$NON-NLS-1$
+        button.setFocusable(false);
+        button.addActionListener(e -> {
+            showView(target);
+            getPreferences().setValue(PREF_VIEW, target.name());
+            PrefUtils.savePreferenceStore(getPreferences());
+        });
+        group.add(button);
+        panel.add(button);
+        viewButtons.put(target, button);
+    }
+
+    private static void addTool(@NotNull JToolBar toolBar, @NotNull List<Component> tools, @NotNull Component tool) {
+        toolBar.add(tool);
+        tools.add(tool);
+    }
+
+    @NotNull
+    private static Action createAction(@NotNull String name, @NotNull Runnable task) {
+        return new AbstractAction(name) {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                task.run();
+            }
+        };
+    }
+
+    private void showView(@NotNull View newView) {
+        view = newView;
+        JToggleButton button = viewButtons.get(newView);
+        if (button != null && !button.isSelected()) {
+            button.setSelected(true);
+        }
+        for (Component tool : graphicalTools) {
+            tool.setVisible(newView == View.GRAPHICAL);
+        }
+        for (Component tool : rawTools) {
+            tool.setVisible(newView == View.RAW);
+        }
+        rawView.getSelector().setVisible(newView == View.RAW && rawView.getSelector().getItemCount() > 1);
+        if (newView == View.RAW) {
+            mainCards.show(mainPanel, CARD_RAW);
+        } else {
+            leftCards.show(leftPanel, newView.name());
+            mainCards.show(mainPanel, CARD_SPLIT);
+        }
+        component.revalidate();
+        component.repaint();
+    }
+
+    @NotNull
+    View getView() {
+        return view;
+    }
+
+    private void bindZoomKeys() {
+        InputMap inputs = diagramView.getInputMap(JComponent.WHEN_FOCUSED);
+        ActionMap actions = diagramView.getActionMap();
+        inputs.put(KeyStroke.getKeyStroke(KeyEvent.VK_EQUALS, InputEvent.CTRL_DOWN_MASK), "zoomIn"); //$NON-NLS-1$
+        inputs.put(KeyStroke.getKeyStroke(KeyEvent.VK_ADD, InputEvent.CTRL_DOWN_MASK), "zoomIn"); //$NON-NLS-1$
+        inputs.put(KeyStroke.getKeyStroke(KeyEvent.VK_MINUS, InputEvent.CTRL_DOWN_MASK), "zoomOut"); //$NON-NLS-1$
+        inputs.put(KeyStroke.getKeyStroke(KeyEvent.VK_SUBTRACT, InputEvent.CTRL_DOWN_MASK), "zoomOut"); //$NON-NLS-1$
+        inputs.put(KeyStroke.getKeyStroke(KeyEvent.VK_0, InputEvent.CTRL_DOWN_MASK), "zoomActual"); //$NON-NLS-1$
+        actions.put("zoomIn", createAction("zoomIn", diagramView::zoomIn)); //$NON-NLS-1$ //$NON-NLS-2$
+        actions.put("zoomOut", createAction("zoomOut", diagramView::zoomOut)); //$NON-NLS-1$ //$NON-NLS-2$
+        actions.put("zoomActual", createAction("zoomActual", diagramView::zoomActual)); //$NON-NLS-1$ //$NON-NLS-2$
+    }
+
+    private void updateZoomLabel() {
+        zoomButton.setText(Math.round(diagramView.getZoom() * 100) + "%"); //$NON-NLS-1$
+    }
+
+    /**
+     * Selects a diagram item in the tree (which shows its properties); an item hidden in a collapsed branch only shows its properties.
+     */
+    private void selectItem(@Nullable Object item) {
+        for (int i = 0; i < rows.size(); i++) {
+            if (rows.get(i).item == item) {
+                table.getSelectionModel().setSelectionInterval(i, i);
+                table.scrollRectToVisible(table.getCellRect(i, 0, true));
+                return;
+            }
+        }
+        table.clearSelection();
+        showDetails(item);
+        diagramView.setSelected(item);
+    }
+
+    /**
+     * Rebuilds the graphical and raw views from the entries (the tree rows are rebuilt by {@link #rebuild}).
+     */
+    private void refreshViews() {
+        diagramView.setStatements(PlanDiagramBuilder.build(entries));
+        rawView.setEntries(entries);
+        showView(view);
+    }
+
+    @NotNull
+    private static DBPPreferenceStore getPreferences() {
+        return ChromiteSwingActivator.getInstance().getPreferences();
+    }
+
+    /**
+     * The view switch: toggle buttons side by side in one rounded outline.
+     */
+    private static final class SegmentedPanel extends JPanel {
+        SegmentedPanel() {
+            super(new FlowLayout(FlowLayout.LEFT, 0, 0));
+            setOpaque(false);
+            setBorder(BorderFactory.createEmptyBorder(1, 1, 1, 1));
+        }
+
+        @Override
+        public Dimension getMaximumSize() {
+            return getPreferredSize();
+        }
+
+        @Override
+        protected void paintComponent(Graphics g) {
+            super.paintComponent(g);
+            Graphics2D g2 = (Graphics2D) g.create();
+            try {
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                Color border = UIManager.getColor("Component.borderColor"); //$NON-NLS-1$
+                g2.setColor(border != null ? border : getForeground());
+                float arc = UIScale.scale(8f);
+                g2.draw(new RoundRectangle2D.Float(0.5f, 0.5f, getWidth() - 1f, getHeight() - 1f, arc, arc));
+            } finally {
+                g2.dispose();
+            }
+        }
     }
 
     @NotNull
@@ -206,6 +460,7 @@ final class ExecutionPlanView {
         columns = List.of();
         headerLabel.setText(message);
         rebuild();
+        refreshViews();
     }
 
     void clear() {
@@ -220,6 +475,7 @@ final class ExecutionPlanView {
         updateHeader();
         rebuild();
         fitColumns();
+        refreshViews();
         if (table.getSelectedRow() < 0 && !rows.isEmpty()) {
             table.getSelectionModel().setSelectionInterval(0, 0);
         }
@@ -305,8 +561,11 @@ final class ExecutionPlanView {
         }
     }
 
+    /**
+     * The root nodes of a plan, as all three views show them.
+     */
     @NotNull
-    private static List<? extends DBCPlanNode> getRootNodes(@NotNull DBCPlan plan) {
+    static List<? extends DBCPlanNode> getRootNodes(@NotNull DBCPlan plan) {
         // Keep the server's own node structure, as the SWT plan tree does
         return plan.getPlanNodes(Collections.singletonMap(DBCPlan.OPTION_KEEP_ORIGINAL, true));
     }
@@ -534,9 +793,15 @@ final class ExecutionPlanView {
 
     private void showDetails() {
         int index = table.getSelectedRow();
+        showDetails(index >= 0 && index < rows.size() ? rows.get(index).item : null);
+    }
+
+    /**
+     * Shows the properties of a statement or plan node in the details table.
+     */
+    private void showDetails(@Nullable Object item) {
         List<String[]> properties = new ArrayList<>();
-        if (index >= 0 && index < rows.size()) {
-            Object item = rows.get(index).item;
+        if (item != null) {
             if (item instanceof Entry entry) {
                 properties.add(new String[]{EditorMessages.editor_plan_statement, entry.query().strip()});
                 if (entry.plan() != null) {

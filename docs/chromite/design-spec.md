@@ -671,7 +671,7 @@ P0 전체와 P1 일부를 `com.seizia.chromite.ui.swing`에 적용했다. 동작
 - 두 팩을 넣고 View > Theme > Icon Style에서 고른다(실행 중 바로 바뀌고 저장됨, 설정 키 `ui.iconStyle`).
   - **A "Duo-tone"(기본, DataGrip풍)**: 1px 윤곽 + 옅은 채움, 중립 회색, 폴더·DB·루틴·외래 키는 파랑, 기본 키는 주황.
   - **B "Full color"(SSMS풍)**: Visual Studio 이미지 라이브러리풍 진한 색(갈색 폴더, 파란 원통, 금·은 키).
-- 파일: `plugins/com.seizia.chromite.ui.swing/icons/ui/{duotone,color}/{light,dark}/<id>.svg` 74개씩(P1에서 Properties 도구 막대의 `categorized`, `sort-alpha`, Registered Servers 도구 막대의 `new-group`, SQL 편집기 확장에서 실행 계획 `plan`·쿼리 기록 `history`, Query Library에서 `library`·`library-query`·`new-folder`·`schedule`, ER 다이어그램에서 `diagram`·`zoom-in`·`zoom-out`·`zoom-fit`·`layout`, 도구 막대 확장에서 `save-all`·`undo`·`redo`·`activity-monitor`·`registered-servers`·`object-explorer`·`properties`·`comment`·`uncomment`·`indent`·`outdent`·`format`·`overflow` 추가(찾기·쿼리 라이브러리·쿼리 기록은 기존 `search`·`library`·`history`를 씀), [swing-sql-editor-plus.md](swing-sql-editor-plus.md), [swing-query-library.md](swing-query-library.md), [swing-erd.md](swing-erd.md), [swing-frontend.md](swing-frontend.md) "도구 막대"). 생성기 `tools/branding/gen_ui_icons.py`(Python 표준 라이브러리만, 다시 만드는 방법은 파일 머리말).
+- 파일: `plugins/com.seizia.chromite.ui.swing/icons/ui/{duotone,color}/{light,dark}/<id>.svg` 92개씩(P1에서 Properties 도구 막대의 `categorized`, `sort-alpha`, Registered Servers 도구 막대의 `new-group`, SQL 편집기 확장에서 실행 계획 `plan`·쿼리 기록 `history`, Query Library에서 `library`·`library-query`·`new-folder`·`schedule`, ER 다이어그램에서 `diagram`·`zoom-in`·`zoom-out`·`zoom-fit`·`layout`, 도구 막대 확장에서 `save-all`·`undo`·`redo`·`activity-monitor`·`registered-servers`·`object-explorer`·`properties`·`comment`·`uncomment`·`indent`·`outdent`·`format`·`overflow`, 실행 계획 세 보기에서 연산자 `plan-*` 17개와 `copy` 추가(찾기·쿼리 라이브러리·쿼리 기록은 기존 `search`·`library`·`history`를 씀), [swing-sql-editor-plus.md](swing-sql-editor-plus.md), [swing-query-library.md](swing-query-library.md), [swing-erd.md](swing-erd.md), [swing-frontend.md](swing-frontend.md) "도구 막대"). 생성기 `tools/branding/gen_ui_icons.py`(Python 표준 라이브러리만, 다시 만드는 방법은 파일 머리말).
   사용자가 고른 38개(색 토큰은 생성기의 `PAL`)에 도구 창·편집기용 9개(`new-connection`, `connect`, `disconnect`, `collapse-all`, `hide`, `close`, `results`, `messages`, `file-sql`)를 같은 규칙으로 더했다.
   원래 38개는 후보 파일과 바이트 단위로 같다.
 - 모양은 Tabler Icons(MIT)를 16px 격자에 다시 그린 Chromite 그림이다. JetBrains·Microsoft 그림은 쓰지 않았다. Tabler 라이선스는 번들의 `icons/ui/LICENSE-tabler.txt`와 `NOTICE`에 있다.
@@ -828,6 +828,27 @@ Windows 11, 화면 배율 150%, JBR 25, 작업 공간 사본 `D:\Tools\_smoke\sw
 - 캡처: `D:\Tools\_scratch\ui-pretendard-density\run\shots\`(before-·after- × ko·en × light·dark: 주 창, 파일 메뉴, 트리 메뉴, 연결 대화상자),
   전후 비교 `D:\Tools\_scratch\ui-pretendard-density\pair-*.png`.
 
+### 적용 현황 — 실행 계획 그림 (2026-11-07)
+
+사용자 결정: 실행 계획 탭에 그래픽(SSMS식 연산자 그림) · 트리 · 원본 세 보기. 동작과 DB별 범위는 [swing-sql-editor-plus.md](swing-sql-editor-plus.md) "실행 계획 세 보기".
+여기는 모양 토큰만 적는다(모든 값은 UIScale을 곱하기 전의 px).
+
+| 요소 | 값 |
+|---|---|
+| 보기 전환 | 계획 탭 도구 막대(`toolWindowToolBar.padding`) 맨 앞, 글자 토글 단추 셋(그래픽 / 트리 / 원본, `arc: 6` 도구 막대 단추)을 1px `Component.borderColor` 둥근 테두리(arc 8)로 묶음 |
+| 캔버스 | `Chromite.editorBackground`, 바깥 여백 16, 문장 사이 28, 머리말 아래 12 |
+| 문장 머리말 | 1줄 굵게 `쿼리 N: 쿼리 비용(일괄 처리 기준): X%`, 2줄 문장 첫 줄 `text.secondary`, 누락 인덱스 줄 `status.success`, 오류 줄 `status.error`(글자색과 35% 섞음). 최대 폭 1200 |
+| 연산자 상자 | 폭 168, 높이 = 여백 6 × 3 + 아이콘 32 + 글자 줄 4개, arc 10, 바탕 = 캔버스에 글자색 3.5%, 테두리 1px `Component.borderColor`. 열 간격 60, 줄 간격 22 |
+| 상자 글자 | 연산 이름 UI 글꼴 굵게, 둘째 줄(개체·논리 연산) UI 글꼴 −1 `text.secondary`, `비용: N%` UI 글꼴, 행 줄 UI 글꼴 −1 `text.secondary`. 넘치면 … |
+| 아이콘 | 연산자 아이콘 16px를 두 배(32)로 그림, 아이콘 팩·테마를 따름. 경고 배지는 `warning` 16을 아이콘 오른쪽 아래에 겹침 |
+| 비싼 연산자 | 최대 비용: 2px `status.error` 테두리 + 바탕 `status.error` 8%, 비용 글자 굵게 오류 색. 25% 이상: 1.5px `status.warning` 테두리, 비용 글자 경고 색 |
+| 예상 어긋남 | 행 줄을 굵게, `status.warning`과 글자색 35% 섞은 색 |
+| 선택 | 바탕 `Table.selectionBackground`, 2px `Component.focusedBorderColor` |
+| 화살표 | 캔버스와 글자색 45% 섞은 색, 굵기 1~10(행 수 로그 비율), 머리 길이 굵기+6 · 반폭 굵기/2+3, 자식마다 들어가는 높이 7씩 |
+| 원본 보기 | SQL 편집기 테마 파일(`SqlEditorLight/Dark.xml`), `monospaced.font`, 줄 번호, 현재 줄 강조 없음 |
+
+새 아이콘 18개(연산자 `plan-*` 17개, `copy`)는 생성기 규칙 그대로다: 데이터 객체 중립색, 동작 파랑, 데이터 변경은 표 위 배지(삽입 초록, 수정 파랑, 삭제 빨강).
+
 ### Swing/FlatLaf로 못 한 것과 이유
 
 | 항목 | 이유 | 대신 한 것 |
@@ -927,3 +948,4 @@ Windows 11, 화면 배율 150%, JBR 25, 작업 공간 사본 `D:\Tools\_smoke\sw
 - 2026-11-06 도구 막대 확장(사용자 결정 "가"): 주 도구 막대(2절)와 쿼리 창 도구 막대(7절)의 목표 구성을 SSMS Standard·SQL Editor 배치로 바꾸고 적용 현황 9·11행, 아이콘 팩 파일 수(61 → 74) 갱신.
 - 2026-11-07 UI 글꼴 Pretendard 13과 기본 밀도 B(사용자 결정): 글꼴 토큰, 치수 토큰(B 값, 처음 값, 촘촘한 모드 C 값과 바꾸는 방법),
   14절 표, 설계 결정, 미룬 결정 갱신. "적용 현황 — Pretendard와 밀도 B" 절(바뀐 파일, 전후 측정) 추가.
+- 2026-11-07 실행 계획 세 보기(사용자 결정): "적용 현황 — 실행 계획 그림" 절(보기 전환, 연산자 상자·화살표·비싼 연산자·경고 배지·선택 색과 치수) 추가, 아이콘 팩 파일 수(74 → 92) 갱신.

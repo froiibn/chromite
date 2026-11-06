@@ -26,6 +26,7 @@ import com.seizia.chromite.model.meta.Property;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.StringJoiner;
 
 /**
  * One operator ({@code RelOp}) or statement ({@code StmtSimple}) of a SQL Server showplan.
@@ -37,8 +38,57 @@ import java.util.Locale;
  * 변경 이력:
  * - 2026-11-06 최초 작성 (docs/chromite/swing-sql-editor-plus.md)
  * - 2026-11-06 속성 이름을 번들 지역화(OSGI-INF/l10n/bundle*.properties의 meta 키)로 옮김(OS 언어를 따름)
+ * - 2026-11-07 경고({@link Warning}), 누락 인덱스({@link MissingIndex}), 예상 실행 수: 그래픽 계획의 배지·머리말과 예상/실제 행 비교
+ *   (docs/chromite/swing-sql-editor-plus.md "실행 계획 세 보기")
  */
 public class SQLServerPlanNode extends AbstractExecutionPlanNode implements DBCPlanCostNode {
+
+    /**
+     * What a showplan warning is about.
+     */
+    public enum WarningKind {
+        IMPLICIT_CONVERSION,
+        SPILL,
+        NO_JOIN_PREDICATE,
+        NO_STATISTICS,
+        MEMORY_GRANT,
+        MISSING_INDEX,
+        OTHER
+    }
+
+    /**
+     * A warning of the plan.
+     *
+     * @param element the showplan element or attribute that reported it
+     * @param detail  the server's own details (expression, spill level, columns, ...), may be empty
+     */
+    public record Warning(@NotNull WarningKind kind, @NotNull String element, @NotNull String detail) {
+    }
+
+    /**
+     * An index the optimizer would have used (showplan {@code MissingIndex}).
+     *
+     * @param impact estimated improvement of the statement cost, in percent
+     * @param table  quoted schema and table name
+     */
+    public record MissingIndex(
+        double impact,
+        @NotNull String table,
+        @NotNull List<String> equality,
+        @NotNull List<String> inequality,
+        @NotNull List<String> include
+    ) {
+        /**
+         * The suggested index as a CREATE statement (key columns: equality columns, then inequality columns).
+         */
+        @NotNull
+        public String toCreateStatement() {
+            List<String> keys = new ArrayList<>(equality);
+            keys.addAll(inequality);
+            String statement = "CREATE NONCLUSTERED INDEX [<Name of Missing Index>] ON " + table + " (" + String.join(", ", keys) + ")"; //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$
+            return include.isEmpty() ? statement : statement + " INCLUDE (" + String.join(", ", include) + ")"; //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$
+        }
+    }
 
     final boolean statement;
     final String physicalOp;
@@ -54,6 +104,8 @@ public class SQLServerPlanNode extends AbstractExecutionPlanNode implements DBCP
     String statementText;
     @Nullable
     Double estimateRows;
+    @Nullable
+    Double estimateExecutions;
     @Nullable
     Double subtreeCost;
     @Nullable
@@ -73,6 +125,8 @@ public class SQLServerPlanNode extends AbstractExecutionPlanNode implements DBCP
     @Nullable
     private final SQLServerPlanNode parent;
     final List<SQLServerPlanNode> nested = new ArrayList<>();
+    final List<Warning> warnings = new ArrayList<>();
+    final List<MissingIndex> missingIndexes = new ArrayList<>();
 
     SQLServerPlanNode(@Nullable SQLServerPlanNode parent, boolean statement, @NotNull String physicalOp, @Nullable String logicalOp) {
         this.parent = parent;
@@ -204,6 +258,58 @@ public class SQLServerPlanNode extends AbstractExecutionPlanNode implements DBCP
     @Property(order = 15)
     public String getStatementText() {
         return statementText;
+    }
+
+    @Nullable
+    @Property(order = 16)
+    public Double getEstimatedExecutions() {
+        return estimateExecutions;
+    }
+
+    /**
+     * The warnings as the server names them (element and details), for the property table.
+     */
+    @Nullable
+    @Property(order = 17)
+    public String getWarningText() {
+        if (warnings.isEmpty()) {
+            return null;
+        }
+        StringJoiner text = new StringJoiner("; "); //$NON-NLS-1$
+        for (Warning warning : warnings) {
+            text.add(warning.detail().isEmpty() ? warning.element() : warning.element() + " " + warning.detail()); //$NON-NLS-1$
+        }
+        return text.toString();
+    }
+
+    @Nullable
+    @Property(order = 18)
+    public String getMissingIndexStatements() {
+        if (missingIndexes.isEmpty()) {
+            return null;
+        }
+        StringJoiner text = new StringJoiner(";" + System.lineSeparator()); //$NON-NLS-1$
+        for (MissingIndex index : missingIndexes) {
+            text.add(index.toCreateStatement());
+        }
+        return text.toString();
+    }
+
+    @NotNull
+    public List<Warning> getWarnings() {
+        return warnings;
+    }
+
+    @NotNull
+    public List<MissingIndex> getMissingIndexes() {
+        return missingIndexes;
+    }
+
+    /**
+     * Whether this is a statement node ({@code StmtSimple}) rather than an operator.
+     */
+    public boolean isStatement() {
+        return statement;
     }
 
     @Nullable
