@@ -1,6 +1,7 @@
 /*
  * DBeaver - Universal Database Manager
  * Copyright (C) 2010-2026 DBeaver Corp and others
+ * Modifications Copyright (C) 2026 Chromite contributors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -25,6 +26,9 @@ import java.util.Locale;
 
 /**
  * General model constants
+ *
+ * 변경 이력:
+ * - 2026-11-07 Microsoft Store 제품 삭제: 그 번들만 설정하던 IS_WINDOWS_STORE_APP를 지웠다.
  */
 public class DBConstants {
 
@@ -59,8 +63,6 @@ public class DBConstants {
 
     /////////////////////////////////
     // Misc
-    public static final String IS_WINDOWS_STORE_APP = "dbeaver.windows.store.app";
-
     public static final String DEFAULT_PROJECT_NAME = "General";
 
     public static final int METADATA_FETCH_SIZE = 1000;

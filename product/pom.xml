@@ -20,18 +20,6 @@
             </modules>
         </profile>
         <profile>
-            <id>product-dbeaver-eclipse-ce</id>
-            <modules>
-                <module>repositories</module>
-            </modules>
-        </profile>
-        <profile>
-            <id>product-dbeaver-ce-msstore</id>
-            <modules>
-                <module>community-msstore</module>
-            </modules>
-        </profile>
-        <profile>
             <!-- Chromite Swing frontend, docs/chromite/swing-frontend.md -->
             <id>product-chromite-swing</id>
             <modules>

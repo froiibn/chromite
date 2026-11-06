@@ -1,6 +1,7 @@
 /*
  * DBeaver - Universal Database Manager
  * Copyright (C) 2010-2026 DBeaver Corp and others
+ * Modifications Copyright (C) 2026 Chromite contributors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,6 +19,13 @@ package org.jkiss.dbeaver.core;
 
 import org.eclipse.osgi.util.NLS;
 
+/**
+ * Messages of the core plugin.
+ *
+ * 변경 이력:
+ * - 2026-11-07 Eclipse 플러그인 배포판(ui.app.eclipse) 삭제: 그 설정 페이지만 쓰던 pref_page_eclipse_ui_general_group_general,
+ *   pref_page_eclipse_ui_general_group_label을 지웠다.
+ */
 public class CoreMessages extends NLS {
     public static final String BUNDLE_NAME = "org.jkiss.dbeaver.core.CoreResources"; //$NON-NLS-1$
 
@@ -244,8 +252,6 @@ public class CoreMessages extends NLS {
     public static String pref_page_ui_general_check_zoom_restart_prompt_label;
     public static String pref_page_ui_general_check_zoom_restart_prompt_tip;
     public static String pref_page_ui_general_group_display;
-    public static String pref_page_eclipse_ui_general_group_general;
-    public static String pref_page_eclipse_ui_general_group_label;
 
     public static String pref_page_eclipse_ui_general_connections_group_label;
 

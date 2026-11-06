@@ -1,6 +1,7 @@
 /*
  * DBeaver - Universal Database Manager
  * Copyright (C) 2010-2025 DBeaver Corp and others
+ * Modifications Copyright (C) 2026 Chromite contributors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,20 +21,20 @@ package org.jkiss.dbeaver.registry;
 import org.eclipse.core.runtime.IConfigurationElement;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.model.app.DBPApplication;
 import org.jkiss.dbeaver.model.connection.DBPDriver;
 import org.jkiss.dbeaver.model.impl.AbstractDescriptor;
 import org.jkiss.dbeaver.model.runtime.OSDescriptor;
-import org.jkiss.dbeaver.registry.driver.DriverDescriptor;
 import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.utils.RuntimeUtils;
 
-import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 
 /**
  * NativeClientDescriptor
+ *
+ * 변경 이력:
+ * - 2026-11-07 Microsoft Store 제품 삭제: Store 앱의 가상화된 AppData 경로를 건너뛰던 검사를 지웠다.
+ *   Store 앱 표시 속성은 삭제한 ui.app.msstore 번들만 켰다.
  */
 public class NativeClientDescriptor extends AbstractDescriptor {
 
@@ -58,36 +59,16 @@ public class NativeClientDescriptor extends AbstractDescriptor {
         return label;
     }
 
-    /**
-     * Clients can't work from an AppData folder, if app is the Windows store app we don't want to use any native
-     * clients there.
-     * This happens due to WinStore apps using their own ms-appdata:// instead of a normal one and no other executables
-     * have access to it.
-     * see #15361
-     * https://docs.microsoft.com/en-us/windows/uwp/get-started/fileio-learning-track
-     * @param clientFile client path
-     * @return true if path is virtualized
-     */
-    private boolean isClientsPathVirtualizedByWindows(Path clientFile) {
-        final DBPApplication application = DBWorkbench.getPlatform().getApplication();
-        return (application.isStandalone()
-            && !application.isHeadlessMode()
-            && RuntimeUtils.isWindowsStoreApplication()
-            && clientFile.startsWith(System.getenv("AppData")));
-    }
-
     @Nullable
     public NativeClientDistributionDescriptor findDistribution(@NotNull DBPDriver driver) {
         OSDescriptor localSystem = DBWorkbench.getPlatform().getLocalSystem();
-        final Path driversHome = DriverDescriptor.getCustomDriversHome().toAbsolutePath();
 
         for (NativeClientDistributionDescriptor distr : distributions) {
             // Include all clients for custom drivers
             if (!driver.isCustom() && !distr.supports(driver)) {
                 continue;
             }
-            if (distr.getOs().matches(localSystem)
-                && !isClientsPathVirtualizedByWindows(driversHome.resolve(distr.getTargetPath()))) {
+            if (distr.getOs().matches(localSystem)) {
                 return distr;
             }
         }

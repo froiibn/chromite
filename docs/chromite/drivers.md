@@ -87,8 +87,8 @@ JDBC 드라이버를 설치 파일에 미리 넣는다.
 | [features/com.seizia.chromite.drivers.public.feature/build.properties](../../features/com.seizia.chromite.drivers.public.feature/build.properties) | `root = target/generated,drivers-root` — 두 폴더가 설치 폴더의 `drivers/`로 합쳐진다 |
 | [features/org.jkiss.dbeaver.ce.feature/feature.xml](../../features/org.jkiss.dbeaver.ce.feature/feature.xml), [features/com.seizia.chromite.swing.feature/feature.xml](../../features/com.seizia.chromite.swing.feature/feature.xml) | SWT 제품과 Swing 제품이 위 feature를 `<includes>`로 포함한다 |
 
-- **플러그인을 따로 만든 이유:** `ui.app.standalone`은 msstore·standalone·테스트 제품에도 들어간다. 그곳에 묶음을 선언하면
-  jar가 없는 제품에서 묶음 드라이버가 내려받을 곳도 잃는다. 선언(플러그인)과 파일(feature 루트 파일)을 같은 feature에 묶어
+- **플러그인을 따로 만든 이유:** 묶음 선언을 `ui.app.standalone` 같은 다른 번들에 두면, 그 번들은 들어가고 jar는 없는 제품에서
+  묶음 드라이버가 내려받을 곳도 잃는다. 선언(플러그인)과 파일(feature 루트 파일)을 같은 feature에 묶어
   함께만 배포되게 했다.
 - **feature를 따로 만든 이유:** 처음에는 플러그인과 루트 파일을 `ce.feature`에 두었는데, Swing 제품(`com.seizia.chromite.swing.feature`)은
   SWT 번들을 끌어오는 `ce.feature`를 포함할 수 없다. jar 목록을 두 곳에 적지 않도록 "선언 + 파일" 한 쌍을 전용 feature로 옮기고
@@ -253,3 +253,4 @@ JDBC 드라이버를 설치 파일에 미리 넣는다.
 - 2026-11-06 공개판에 MySQL Connector/J 9.7.0 내장(사용자 결정). `drivers.mysql` 선언, `drivers/mysql/mysql8/`에 jar,
   `drivers/mysql/`에 jar 안의 `LICENSE` 원문과 `SOURCE.txt`, `README.txt`·`NOTICE` 갱신. protobuf-java(X DevAPI 전용)는 넣지 않음.
   MySQL 5 (Legacy) 드라이버의 묶음 ID를 `ext.mysql/plugin.xml`에서 `drivers.mysql5`로 분리해 Maven 다운로드(5.1.49)를 유지.
+- 2026-11-07 Microsoft Store 제품 삭제([build.md](build.md) "빌드하는 제품")에 맞춰 "플러그인을 따로 만든 이유"에서 msstore 제품 언급을 뺌.
