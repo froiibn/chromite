@@ -35,7 +35,8 @@ import java.awt.event.ActionEvent;
  *     {@link #getToggleAction()}, {@link #setShown}, {@link #isShown()}, {@link #createHideButton()}만 쓰므로 배치 방식이 바뀌어도 고치지 않는다.</li>
  *     <li>Object Explorer, Registered Servers, Properties, Query Library는 도킹 라이브러리 위의 {@link ToolWindowDocking}이 호스트다
  *     (끌어서 옮기기, 탭으로 합치기, 떠 있는 창, 자동 숨기기, 배치 저장).</li>
- *     <li>Results는 SSMS처럼 쿼리 창(문서 카드) 안에 있으므로 도킹하지 않고 문서 영역의 분할 창 아래쪽을 쓴다({@link SplitHost}).</li>
+ *     <li>Results는 SSMS처럼 쿼리 창(문서 카드) 안에 있으므로 도킹하지 않고 문서 영역의 분할 창 아래쪽을 쓴다({@link SplitHost}).
+ *     보일지는 호스트의 전역 상태가 아니라 활성 쿼리 창이 정한다({@link SplitHost.Context}).</li>
  *     <li>토글의 선택 상태는 호스트가 실제 상태에서 다시 읽는다({@link #shownChanged()}). 떠 있는 창을 닫거나 끌어서 옮기는 것처럼
  *     이 클래스를 거치지 않은 변경도 View 메뉴에 보인다.</li>
  * </ul>
@@ -50,6 +51,8 @@ import java.awt.event.ActionEvent;
  * - 2026-11-06 화면 문구를 CoreMessages로 옮김(OS 언어를 따름)
  * - 2026-11-06 도킹: 배치를 {@link Host}로 나눔. 분할 창 열 쌓기({@code stackBelow}), 처음 숨김({@code setDefaultShown}), 머리말을 지우고
  *   도킹 도구 창은 {@link ToolWindowDocking}으로 옮김, 분할 창은 Results만 씀({@link SplitHost}) (docs/chromite/swing-frontend.md "도구 창 도킹")
+ * - 2026-11-07 Results 자동 숨김: {@link SplitHost}가 표시 여부를 {@link SplitHost.Context}(쿼리 창마다 기억)에서 읽고,
+ *   쓰지 않게 된 전역 표시 여부 설정({@code results.visible})을 삭제 (docs/chromite/swing-frontend.md "Results 자동 숨김")
  */
 final class ToolWindow {
 
@@ -151,9 +154,12 @@ final class ToolWindow {
     }
 
     /**
-     * Results: the trailing (bottom) side of the document area split pane, as an Islands card, with its size and
-     * visibility in the preferences.
+     * Results: the trailing (bottom) side of the document area split pane, as an Islands card, with its size in the
+     * preferences.
      * <ul>
+     *     <li>Whether it is shown belongs to a {@link Context} (for the Results: the active query window), so the host
+     *     keeps no shown state of its own and saves none. It applies the context's state ({@link #update()}) and passes
+     *     the user's choice (View menu, hide button, commands) to the context.</li>
      *     <li>Hiding keeps the card in the split pane and only makes it invisible, so theme changes ({@code FlatLaf.updateUI()})
      *     still reach it. {@link JSplitPane} gives no space to an invisible side but keeps the divider, so the divider size is 0 while hidden.</li>
      *     <li>The saved value is the card's height, not the divider location; the split pane gives extra space to the
@@ -161,13 +167,28 @@ final class ToolWindow {
      * </ul>
      */
     static final class SplitHost implements Host {
-        private static final String PREF_VISIBLE_SUFFIX = ".visible"; //$NON-NLS-1$
+        /**
+         * Where the shown state of the tool window is kept.
+         */
+        interface Context {
+            /**
+             * @return whether the tool window is shown now; false while there is nothing to show it for
+             */
+            boolean isShown();
+
+            /**
+             * Remembers the user's choice (View menu, hide button, commands) for the current context.
+             */
+            void setShown(boolean shown);
+        }
+
         private static final String PREF_SIZE_SUFFIX = ".size"; //$NON-NLS-1$
         private static final int MIN_SIZE = 50;
 
         private final ToolWindow toolWindow;
         private final JSplitPane splitPane;
         private final JComponent component;
+        private final Context context;
         private final int defaultSize;
         private int size;
 
@@ -175,10 +196,13 @@ final class ToolWindow {
          * @param content     content with its own header (it can embed {@link ToolWindow#createHideButton()})
          * @param splitPane   split pane whose trailing side hosts the tool window
          * @param defaultSize height (or width) used until the user resizes the tool window
+         * @param context     decides whether the tool window is shown
          */
-        SplitHost(@NotNull ToolWindow toolWindow, @NotNull JComponent content, @NotNull JSplitPane splitPane, int defaultSize) {
+        SplitHost(@NotNull ToolWindow toolWindow, @NotNull JComponent content, @NotNull JSplitPane splitPane, int defaultSize,
+                  @NotNull Context context) {
             this.toolWindow = toolWindow;
             this.splitPane = splitPane;
+            this.context = context;
             this.defaultSize = defaultSize;
             this.size = defaultSize;
             // Islands: the tool window is a rounded card on the main window canvas
@@ -187,6 +211,7 @@ final class ToolWindow {
             // Extra space goes to the document area, so the tool window keeps its size when the main window grows
             splitPane.setResizeWeight(1.0);
             toolWindow.setHost(this);
+            update();
         }
 
         @Override
@@ -196,9 +221,22 @@ final class ToolWindow {
 
         @Override
         public void setShown(boolean shown) {
-            if (shown == component.isVisible()) {
-                return;
+            context.setShown(shown);
+            update();
+        }
+
+        /**
+         * Shows or hides the tool window as its context says; call when the context changes (e.g. another document
+         * becomes active). The size is kept while it is hidden.
+         */
+        void update() {
+            if (context.isShown() != component.isVisible()) {
+                setVisible(context.isShown());
             }
+            toolWindow.shownChanged();
+        }
+
+        private void setVisible(boolean shown) {
             if (shown) {
                 component.setVisible(true);
                 updateDivider();
@@ -212,33 +250,31 @@ final class ToolWindow {
         }
 
         /**
-         * Window &gt; Reset Window Layout: shown, with the default size.
+         * Window &gt; Reset Window Layout: the default size. Whether it is shown stays with the context, which the
+         * caller resets first.
          */
         void reset() {
             size = defaultSize;
-            toolWindow.setShown(true);
+            update();
             applySize();
         }
 
         /**
-         * Reads visibility and size from the preferences. Call before the main window is shown;
+         * Reads the size from the preferences. Call before the main window is shown;
          * the size is applied by {@link #applySize()} once the split pane has its real size.
          */
         void load(@NotNull DBPPreferenceStore preferences) {
             String id = toolWindow.getId();
-            // The store drops values equal to their default (BundlePreferenceStore.putBoolean/putInt), so the visibility
-            // is only remembered if the declared default is the one the tool window has before the user changes it
-            preferences.setDefault(id + PREF_VISIBLE_SUFFIX, true);
+            // The store drops values equal to their default (BundlePreferenceStore.putInt), so the size is only
+            // remembered if the declared default is the one the tool window has before the user changes it
             preferences.setDefault(id + PREF_SIZE_SUFFIX, size);
             size = Math.max(MIN_SIZE, preferences.getInt(id + PREF_SIZE_SUFFIX));
-            toolWindow.setShown(preferences.getBoolean(id + PREF_VISIBLE_SUFFIX));
         }
 
         void save(@NotNull DBPPreferenceStore preferences) {
             if (component.isVisible()) {
                 size = getCurrentSize();
             }
-            preferences.setValue(toolWindow.getId() + PREF_VISIBLE_SUFFIX, component.isVisible());
             preferences.setValue(toolWindow.getId() + PREF_SIZE_SUFFIX, size);
         }
 

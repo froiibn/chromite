@@ -29,6 +29,7 @@ import org.eclipse.osgi.util.NLS;
  *
  * 변경 이력:
  * - 2026-11-06 최초 작성: 공통 화면 문구를 이 번들로 옮김(OS 언어를 따름)
+ * - 2026-11-07 Results 자동 숨김: 쓰지 않게 된 빈 Results 자리 표시 문구를 지우고, 쿼리 창이 없을 때 Results 토글의 도구 설명을 추가
  */
 public class CoreMessages extends NLS {
     private static final String BUNDLE_NAME = "com.seizia.chromite.ui.swing.internal.CoreMessages"; //$NON-NLS-1$
@@ -46,9 +47,7 @@ public class CoreMessages extends NLS {
     public static String main_results;
     public static String main_messages;
     public static String main_execution_plan;
-    public static String main_no_results;
-    public static String main_no_messages;
-    public static String main_no_plan;
+    public static String main_results_unavailable_tip;
     public static String main_object_explorer;
     public static String main_registered_servers;
     public static String main_properties;
