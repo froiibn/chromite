@@ -102,7 +102,7 @@
 - 사용자가 요청하면 다음과 같이 한다.
   - 모델 기능: `test/` 아래 테스트 플러그인에 JUnit 테스트로 작성한다(AGENTS.md "Creating unit tests" 참고).
   - 자동화하기 어려운 UI, 설치, 브랜딩 확인: `docs/chromite/regression-tests.md`에 확인 절차와 기대 결과를 체크리스트로 적는다.
-  - 자동 테스트 실행: `mvn verify -f product/aggregate/pom.xml -T1C -Pproduct-chromite-swt` (백그라운드에서 실행)
+  - 자동 테스트 실행: `mvn verify -f product/aggregate/pom.xml -T1C -Pproduct-chromite-swing` (백그라운드에서 실행)
   - 결과 보고: 실행한 테스트, 통과/실패 수, 실패 내용을 그대로 적는다.
     환경 문제(JDK 21이나 Maven 없음 등)로 실행하지 못했으면 실행하지 못했다고 밝히고, 사용자가 실행할 명령을 알려 준다.
 
@@ -111,10 +111,10 @@
 - 사용자에게 보이는 곳(제품명, 메뉴, 대화상자, About, 설치 파일, 스플래시, 아이콘)에는 "DBeaver" 이름이나 로고를 쓰지 않는다.
   제품명은 `Chromite`, 부제는 `Database Workbench`다. DBeaver는 DBeaver Corp의 상표다.
 - 로고와 아이콘 원본은 `chromite_logo_pack/`에 있다. 새 아이콘은 이 폴더의 이미지로 만든다.
-- 제품 정보는 `product/community/product-branding.properties`, `product/community/Chromite.product`,
-  `plugins/com.seizia.chromite.ui.app.standalone/plugin.xml`과 `OSGI-INF/l10n/bundle*.properties`에 있다.
+- 제품 정보는 `product/swing/chromite-swing.product`, `product/swing/icons/`,
+  `plugins/com.seizia.chromite.ui.swing/plugin.xml`(제품 확장)에 있다.
 - 내부 이름은 2026-11-07에 모두 Chromite 이름으로 바꿨다([docs/chromite/internal-rename.md](docs/chromite/internal-rename.md)).
-  - Java 패키지, 번들·피처·제품 ID, 확장 포인트 ID는 `com.seizia.chromite.*`, Maven 프로파일은 `product-chromite-swt`,
+  - Java 패키지, 번들·피처·제품 ID, 확장 포인트 ID는 `com.seizia.chromite.*`, Maven 프로파일은
     `product-chromite-swing`이다. 새 코드도 이 접두어를 쓴다.
   - `org.jkiss.dbeaver` 이름은 `deps/`에 있는 `org.jkiss.dbeaver.DBException` 하나만 남는다. 옛 이름(`org.jkiss.dbeaver`,
     `DBeaver<이름>` 타입, `com.dbeaver.ai` 등)을 다시 넣지 않는다. CI의 `tools/rename/gate.py`가 막는다.
@@ -187,13 +187,13 @@ Chromite는 2026-11-06 포크 시점부터 DBeaver와 독립적으로 개발한�
   전체 빌드는 시간이 오래 걸리므로 백그라운드에서 실행한다.
 
   ```bash
-  mvn package -f product/aggregate/pom.xml -T1C -Pproduct-chromite-swt
+  mvn package -f product/aggregate/pom.xml -T1C -Pproduct-chromite-swing
   ```
 
-- Swing 제품까지 함께 빌드하려면 `-Pproduct-chromite-swt,product-chromite-swing`을 쓴다. PowerShell에서는 프로파일 목록을
-  작은따옴표로 묶는다(`'-Pproduct-chromite-swt,product-chromite-swing'`). CI는 JBR 25로 두 제품을 모두 빌드한다([docs/chromite/ci.md](docs/chromite/ci.md)).
+- 제품은 Swing 하나다. SWT(Eclipse RCP) 제품과 `product-chromite-swt` 프로파일은 2026-11-07에 삭제했다
+  ([docs/chromite/swt-removal.md](docs/chromite/swt-removal.md)). CI는 JBR 25로 빌드한다([docs/chromite/ci.md](docs/chromite/ci.md)).
 
-- 결과물은 `product/community/target/products/chromite-<버전>-<플랫폼>`이다.
+- 결과물은 `product/swing/target/products/com.seizia.chromite.swing.product/<os>/<ws>/<arch>/`이다.
 - 빌드에 필요한 `dbeaver-common`과 `datadam-api`는 이 저장소의 `deps/`에 들어 있다([docs/chromite/build.md](docs/chromite/build.md)).
   AGENTS.md의 "Repo dependencies"(`project.deps`, 상위 폴더에 저장소 clone)는 적용하지 않는다. 다른 저장소를 옆에 clone하지 않는다.
 - `deps/` 아래 파일을 고쳐야 하면 먼저 사용자에게 묻는다. `NOTICE`에 수정하지 않은 사본이라고 적어 두었고,

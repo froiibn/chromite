@@ -5,6 +5,10 @@
 DBeaver의 SWT/Eclipse RCP UI를 Swing으로 새로 만든다.
 화면 배치와 동작은 SSMS를 따르고, 모양은 다크·라이트 모두 DataGrip New UI를 따른다(2026-11-06 결정, 목표 사양은 [design-spec.md](design-spec.md)).
 
+2026-11-07부터 Chromite는 Swing 제품만 만든다. SWT 제품과 SWT UI 번들은 삭제했다([swt-removal.md](swt-removal.md)).
+이 문서에서 "SWT 버전", "SWT 구현"으로 가리키는 클래스와 파일 링크(`ui.*`, `ext.*.ui`, `core` 번들)는 Swing으로 옮길 때 참고한
+삭제 전 코드다. 삭제 직전 커밋 `263b8ddb45`(git 이력)에서 볼 수 있다.
+
 ## 왜 Swing인가
 
 - DataGrip(IntelliJ 플랫폼)이 Swing 기반이다. DataGrip 수준의 디자인을 내려면 Swing이 유리하다.
@@ -46,7 +50,7 @@ UI는 SWT 위젯뿐 아니라 Eclipse RCP 워크벤치(뷰, 편집기, 퍼스펙
   [DBPPlatformUI](../../plugins/com.seizia.chromite.model/src/com/seizia/chromite/runtime/ui/DBPPlatformUI.java)(메서드 약 28개)로 요청한다.
   이것을 Swing으로 구현하면 모델 계층을 고치지 않고 쓸 수 있다.
 - **스레드:** 화면 작업은 Swing EDT에서 하고, DB 작업은 모델 계층의 Job으로 백그라운드에서 실행한다.
-- **제품 구성:** SWT UI 플러그인을 뺀 Swing 전용 `.product`를 새로 만든다.
+- **제품 구성:** SWT UI 플러그인을 뺀 Swing 전용 `.product`를 새로 만든다. 2026-11-07부터 유일한 제품이다.
 - **Java 버전:** 새 Swing 코드는 Java 25를 기준으로 한다(권장, [runtime.md](runtime.md) 참고).
 
 ## 외부 라이브러리 (후보)
@@ -216,7 +220,7 @@ job.schedule();                                             // 또는 작업 스
 - **연결 설정 화면:** 각 DB의 전용 연결 화면은 SWT로 된 `ext.*.ui` 플러그인에 있어 재사용할 수 없다. MVP는 범용 화면으로 대신한다.
   드라이버별 특수 설정이 범용 화면에서 되는 것과 안 되는 것은 "구현 현황 — D단계"의 "범용 화면에서 아직 못 하는 드라이버별 설정"에 정리했다.
 - **결과 편집 저장:** 키 판별, 트랜잭션, 오류 처리가 필요해 MVP에서 가장 신경 쓸 부분이다.
-- **기능 공백:** SWT 버전에 있던 ER 다이어그램, 데이터 비교, 설정 화면, 드라이버 관리 등은 다시 만들기 전까지 Swing 버전에 없다.
+- **기능 공백:** SWT 버전에 있던 기능 중 Swing으로 아직 만들지 않은 것은 SWT 삭제와 함께 없어졌다. 목록은 [swt-removal.md](swt-removal.md) "Swing으로 옮길 때까지 없는 기능".
 - **디자인 자산:** JetBrains와 Microsoft의 아이콘, 로고 등 고유 디자인 자산은 복사하지 않는다.
   배치와 사용 흐름, 색감만 참고하고, 아이콘은 직접 그리거나 공개 라이선스 아이콘 세트를 쓴다.
 - **아이콘 규모:** 기존 플러그인 아이콘은 약 1,060개다. 자주 보이는 것부터 단계적으로 만든다.
@@ -236,14 +240,13 @@ SSMS 배치, Object Explorer 등 실제 화면은 B단계에서 만든다.
 | Equinox 애플리케이션 | `com.seizia.chromite.ui.swing.application` |
 | 제품 확장 | `com.seizia.chromite.ui.swing.product` (`org.eclipse.core.runtime.products`) |
 | `com.seizia.chromite.application` 확장 | `chromite-swing` (이름 `Chromite`, `GeneralUtils.getProductName()`이 읽음) |
-| 피처 | `com.seizia.chromite.swing.feature` ([features/com.seizia.chromite.swing.feature](../../features/com.seizia.chromite.swing.feature)). 공개판 내장 드라이버 피처 `com.seizia.chromite.drivers.public.feature`를 SWT 제품과 같이 포함한다([drivers.md](drivers.md)) |
+| 피처 | `com.seizia.chromite.swing.feature` ([features/com.seizia.chromite.swing.feature](../../features/com.seizia.chromite.swing.feature)). 공개판 내장 드라이버 피처 `com.seizia.chromite.drivers.public.feature`를 포함한다([drivers.md](drivers.md)). 설치 폴더의 `licenses/`(`docs/root`)도 이 피처가 넣는다 |
 | 제품 정의 | uid `com.seizia.chromite.swing.product`, [product/swing/chromite-swing.product](../../product/swing/chromite-swing.product) |
-| 실행 파일 | `chromite-swing.exe` / `ChromiteSwing.app` (SWT 제품의 `chromite`를 덮어쓰지 않도록 이름을 나눔) |
+| 실행 파일 | `chromite-swing.exe` / `ChromiteSwing.app` (SWT 제품의 `chromite`와 나누려고 붙인 이름. SWT 삭제 뒤에도 서명·릴리스 파일 이름이 이 이름을 써서 유지) |
 | Maven 프로파일 | `product-chromite-swing` ([product/pom.xml](../../product/pom.xml)). Windows x64, macOS arm64만 빌드 |
 | Maven groupId | `com.seizia.chromite` (번들, 피처, 제품 모듈) |
 
 번들과 피처는 `plugins/pom.xml`, `features/pom.xml`의 `desktop` 프로파일(헤드리스 빌드가 아닐 때 기본 활성)에 넣었다.
-그래서 `-Pproduct-chromite-swt` 빌드에서도 함께 컴파일된다(SWT 제품에는 들어가지 않는다).
 
 ```bash
 mvn package -f product/aggregate/pom.xml -T1C -Pproduct-chromite-swing
@@ -375,7 +378,7 @@ Windows x64 결과물의 `plugins/`에는 번들 128개가 있고, `swt`, `jface
 
 - 작업 공간 선택, 잠긴 작업 공간 무시하고 열기, 이전 버전 작업 공간 이전, 인스턴스 서버, CLI 명령 처리(SWT 앱의 `ChromiteApplication`에 있음)
 - SWT `DesktopPreferencesInitializer`의 나머지 기본 설정(Query Manager 기록 기간 등). Swing용 기본 설정 초기화가 필요하다.
-- 설정 저장 위치: 설정은 이 번들 ID(`com.seizia.chromite.ui.swing`) 기준으로 저장되어 SWT 버전(`com.seizia.chromite.core`)과 공유되지 않는다.
+- 설정 저장 위치: 설정은 이 번들 ID(`com.seizia.chromite.ui.swing`) 기준으로 저장된다(SWT 버전은 자기 제품 번들 기준이라 공유되지 않았다).
 - 테마 전환(DataGrip풍 다크), macOS 메뉴 막대 통합, Windows AppUserModelID(위 "창 아이콘과 JVM 실행 방식")
 - macOS arm64 실행은 확인하지 못했다(빌드 결과만 확인). AWT는 Equinox 런처가 만든 보조 스레드에서 시작된다.
 
@@ -2113,3 +2116,4 @@ EDT 에이전트로 단추를 누르고(`doClick`) 결과를 읽었다. 캡처�
   연결·연결 끊기 오류 제목 지역화. "오류 문구" 절 추가.
 - 2026-11-07 내부 이름 변경([internal-rename.md](internal-rename.md)): "식별자" 절과 오류 문구 절의 로그 파일 이름 설명 갱신. 문서 안 경로·클래스 이름은 도구가 함께 바꿨다.
 - 2026-11-07 XLSX 내보내기 설명: Office 확장 피처의 설치 원본(CE 업데이트 저장소)을 삭제한 것을 반영.
+- 2026-11-07 SWT 프런트엔드 삭제([swt-removal.md](swt-removal.md)): 목적 절에 안내, 식별자 표(피처가 `licenses/`를 넣음, 실행 파일 이름을 유지하는 이유), 기능 공백·설정 저장 위치 설명 갱신.

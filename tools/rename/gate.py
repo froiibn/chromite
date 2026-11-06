@@ -52,22 +52,12 @@ G2 = [
     re.compile(r'product-dbeaver-ce(?![\w-])'),
     re.compile(r'org\.jkiss\.(?!code\b|utils\b|api\b|bundle\b|wmi\b|awt\b|jdbc\b|dbeaver\.DBException\b)[a-z]'),
 ]
-# References that were already broken upstream before the rename (same 13 on the pre-rename tree with the old prefix).
+# References that were already broken upstream before the rename (same 13 on the pre-rename tree with the old prefix;
+# 11 of them were in the SWT bundles removed on 2026-11-07, docs/chromite/swt-removal.md).
 # They are reported but do not fail the gate; fixing them is outside the rename (CLAUDE.md principle 1).
 KNOWN_BROKEN = {
-    'plugins/com.seizia.chromite.ui.editors.data/plugin.xml: schema schema/com.seizia.chromite.resultset.groupin.exsd missing',
-    'plugins/com.seizia.chromite.ui.editors.erd/plugin.xml: schema schema/com.seizia.chromite.ui.editors.erd.notation.style.exsd missing',
-    'plugins/com.seizia.chromite.ui.editors.erd/plugin.xml: schema schema/com.seizia.chromite.ui.editors.erd.routing.exsd missing',
-    'plugins/com.seizia.chromite.data.office.ui/plugin.xml: class com.seizia.chromite.data.office.handlers.OpenSpreadsheetHandler missing',
     'plugins/com.seizia.chromite.ext.ocient/plugin.xml: platform:/plugin/com.seizia.chromite.ext.generic/icons/ocient_icon.png missing',
     'plugins/com.seizia.chromite.ext.oracle/plugin.xml: class com.seizia.chromite.ext.oracle.model.resolvers.OracleUserResolver missing',
-    'plugins/com.seizia.chromite.ext.postgresql.ui/plugin.xml: class com.seizia.chromite.ext.postgresql.tools.maintenance.PostgreToolExtensionUninstall missing',
-    'plugins/com.seizia.chromite.team.git.ui/plugin.xml: class com.seizia.chromite.team.git.ui.handlers.GitPropertyTester missing',
-    'plugins/com.seizia.chromite.ui.editors.base/plugin.xml: platform:/plugin/com.seizia.chromite.ui/icons/misc/file.svg missing',
-    'plugins/com.seizia.chromite.ui.editors.data/plugin.xml: class com.seizia.chromite.ui.data.managers.BooleanValueManager missing',
-    'plugins/com.seizia.chromite.ui.editors.data/plugin.xml: class com.seizia.chromite.ui.data.managers.RowIdValueManager missing',
-    'plugins/com.seizia.chromite.ui.editors.sql/plugin.xml: class com.seizia.chromite.ui.editors.sql.handlers.SQLEditorHandlerRenameFilelerRenameFile missing',
-    'plugins/com.seizia.chromite.ui.editors.sql.terminal/src/com/seizia/chromite/ui/editors/sql/terminal/SQLTerminalEditorAddIn.java: BUNDLE_NAME com.seizia.chromite.ui.editors.sql.terminal has no com/seizia/chromite/ui/editors/sql/terminal.properties',
 }
 G3 = [re.compile(r'(?<![A-Za-z0-9_])DBeaver[A-Z][A-Za-z0-9_]*'), re.compile(r'\bUIFonts\.DBeaver\b')]
 
