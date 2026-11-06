@@ -499,6 +499,8 @@ B단계는 `JSplitPane`만 쓴다.
 |---|---|
 | `ui.theme` | `LIGHT` / `DARK` |
 | `ui.iconStyle` | `DUOTONE`(기본) / `COLOR` (디자인 적용) |
+| `sqlEditor.font.family`, `sqlEditor.font.size` | 편집기 글꼴 이름(없으면·설치되지 않았으면 Cascadia Mono), 크기(기본 13) (2026-11-06) |
+| `sqlEditor.color.<light\|dark>.<항목>` | 바꾼 편집기 색만: `rrggbb[,bold][,italic]`. 항목은 `text`, `keyword`, `operator`, `function`, `string`, `number`, `comment`, `data_type`, `variable`, `background`, `current_line`, `selection`, `line_number`, `current_line_number` (2026-11-06) |
 | `mainWindow.bounds`, `mainWindow.maximized` | `x,y,너비,높이`(최대화 전 크기), 최대화 여부 |
 | `objectExplorer.visible`, `objectExplorer.size` 등 (`properties.*`, `results.*`) | 표시 여부, 너비(위·아래 분할은 높이) |
 
@@ -587,11 +589,13 @@ C단계의 목표는 SSMS식 SQL 편집기와 결과 창이다: 편집기 탭을
 
 - `RSyntaxTextArea`(`SYNTAX_STYLE_SQL`) + `RTextScrollPane`(줄 번호). 실행 취소·다시 실행, 괄호 짝 표시 등은 라이브러리 기본 기능이다.
 - 색은 테마마다 RSyntaxTextArea 테마 XML(`SqlEditorLight.xml`, `SqlEditorDark.xml`)로 정한다. C단계에는 라이트가 SSMS풍이었고,
-  디자인 적용(2026-11-06)부터 두 테마 모두 DataGrip New UI 색이다([design-spec.md](design-spec.md) "SQL 구문 색"). 색값만 옮겼고 SSMS·DataGrip의 테마 파일은 쓰지 않았다.
-  글꼴은 XML이 아니라 코드에서 Look and Feel의 `monospaced.font`(JetBrains Mono 합성 글꼴)로 정한다.
+  디자인 적용(2026-11-06)에서 두 테마 모두 DataGrip New UI 색으로 바꿨다가, "편집기 글꼴과 SQL 색"(2026-11-06)에서 SSMS 색으로 바꿨다
+  ([design-spec.md](design-spec.md) "SQL 구문 색"). 색값만 옮겼고 SSMS·DataGrip의 테마 파일은 쓰지 않았다. 사용자가 Options에서 바꾼 색은 XML 위에 덮어쓴다(`EditorColors`).
+  글꼴은 XML이 아니라 코드에서 정한다(`EditorFont`, Cascadia Mono 합성 글꼴. 2026-11-06 전에는 Look and Feel의 `monospaced.font`).
 - 테마 전환: Look and Feel이 바뀌면(`updateUI`) 트리 갱신이 끝난 뒤(`invokeLater`) 현재 테마의 XML을 다시 적용한다. 거터(줄 번호) 색도 테마가 정하므로
   처음 적용은 스크롤 창을 만든 뒤에 한다.
 - 구문 강조는 RSyntaxTextArea의 일반 SQL 규칙이다. DBeaver의 방언별 키워드는 아직 연결하지 않았다. (자동완성은 F단계에서 연결했다, "구현 현황 — F단계")
+  → 2026-11-06 연결함: `SqlTokenClassifier`가 편집기 연결의 방언으로 키워드·함수·자료형을 고친다("편집기 글꼴과 SQL 색").
 
 ### 실행 흐름 (F5)
 
@@ -1591,7 +1595,59 @@ Object Explorer 오른쪽 클릭 메뉴의 Refresh에 F5를 보인다.
 - 주 상태 표시줄 오른쪽 위젯(Ln/Col, 인코딩, 줄바꿈), 연결별 상태 줄 색(SSMS), 상태 줄의 사용자 spid.
 - 자동완성 맞는 글자 강조(`completion.match`), 팝업 창 둥근 모서리(자동완성은 `JWindow`라 Windows 11 둥근 창이 아님).
 - Properties 열 경계 끌기, 이름순·접힌 분류의 저장(지금은 실행 중에만 기억).
-- Options의 다른 설정(편집기 글꼴 등)은 설정 자체가 아직 없어 넣지 않았다.
+- ~~Options의 다른 설정(편집기 글꼴 등)은 설정 자체가 아직 없어 넣지 않았다.~~ 2026-11-06 Editor·Editor Colors 탭("편집기 글꼴과 SQL 색").
+
+## 편집기 글꼴과 SQL 색 (2026-11-06)
+
+사용자 결정에 따라 SQL 편집기 글꼴을 Cascadia Mono 13(번들)으로, 구문 색을 SSMS 기본 색으로 바꾸고, 둘 다 Tools > Options에서 바꿀 수 있게 했다.
+결정, 색값, 근거, 라이선스는 [design-spec.md](design-spec.md) "SQL 구문 색"과 "적용 현황 — 편집기 글꼴과 SQL 색"에 있다.
+
+| 파일 | 바뀐 것 |
+|---|---|
+| `EditorFont`(새 파일) | 편집기 글꼴: 번들 Cascadia Mono 지연 등록, 저장한 글꼴 → Cascadia Mono → JetBrains Mono 대체, 합성 글꼴(한글 대체), 고정폭 글꼴 목록, 설정 저장 |
+| `EditorColors`(새 파일) | 편집기 색 항목 14개(토큰 9, 편집기 5), 테마 XML 기본값 + 바꾼 항목만 저장, 테마 XML에 덮어쓰기 |
+| `SqlTokenClassifier`(새 파일) | RSTA SQL 토크나이저 결과를 방언(키워드·함수·자료형)과 SSMS 규칙(논리 연산자, 날짜 부분, `N'…'`, 변수, 문장 부호)으로 고침. 텍스트 영역마다 `TokenMakerFactory` |
+| `SqlEditorPanel` | `SqlTextArea`: 토큰 분류기 설치, 연결 방언 반영(`setDataSourceContainer`, `refreshSchemas`에서), 색·글꼴 적용(`applyTheme`), 열린 모든 편집기에 적용(`applyThemeToAll`) |
+| `SqlEditorLight.xml`, `SqlEditorDark.xml` | SSMS 토큰 색(숫자 연두색, 주석 기울임) |
+| `OptionsDialog` | General·Editor·Editor Colors 탭, 미리 보기 |
+| `ChromiteTheme` | Look and Feel 설치 전에 편집기 글꼴 등록 |
+| `DdlViewerPanel`, `MainFrame`, `ObjectExplorerPanel` | View DDL이 객체의 연결을 넘겨 DDL 탭도 그 방언으로 강조 |
+| `fonts/cascadia-mono/*`(새 파일), `build.properties`, `NOTICE` | Cascadia Mono 정적 TTF 4개와 OFL, 번들에 포함 |
+
+### 확인 (2026-11-06)
+
+Windows 11, 화면 배율 150%, JBR 25, 작업 공간 사본 `D:\Tools\_smoke\swing-font`(연결 `Chinook Copy (SQLite)`), 창만 캡처(`shot.ps1`). 캡처는 `D:\Tools\_scratch\editor-font\`.
+
+- 시작 로그: `SQL editor font: Cascadia Mono 13 (font Cascadia Mono Regular, requested Cascadia Mono)`.
+- 예문(`SELECT a.AlbumId, COUNT(*) AS cnt, UPPER(a.Title) -- 한글 주석` / `FROM Album a` / `WHERE a.Title LIKE N'%한글%' AND a.AlbumId > 42.5` / `GROUP BY a.AlbumId;`)을
+  붙여 넣고 글자 픽셀의 가장 많은 색을 읽었다(`light-editor2-0.png`, `dark-editor-0.png`, 확대 `light-editor-zoom.png`, `dark-editor-zoom.png`):
+
+  | 토큰 | Light | Dark |
+  |---|---|---|
+  | `SELECT` | `#0000FF` | `#569CD6` |
+  | `COUNT`, `UPPER` | `#FF00FF` | `#D48CF5` |
+  | `N'%한글%'` | `#FF0000` | `#F07068` |
+  | `42.5` | `#669900` | `#B5E853` |
+  | `-- 한글 주석`(기울임) | `#008000` | `#57A64A` |
+  | `LIKE`, `AND`, `,` | `#808080` | `#B4B4B4` |
+  | `AlbumId` | `#000000` | `#DCDCDC` |
+
+  한글은 □ 없이 맑은 고딕으로 보이고, 한글이 있는 1·3행과 없는 2·4행의 줄 간격이 같다(27px, 150%).
+- 사용자 SSMS 사진의 문장을 다크 편집기에 넣어 나란히 비교(`compare-ssms-dark.png`): 키워드·연산자 단어·문자열·`DATEDIFF(SECOND, …)`·숫자 색이 사진과 같은 분류로 칠해진다.
+  다른 점: 사진에서 파란 `NOLOCK`(테이블 힌트)은 SQLite 연결의 방언에 없는 단어라 글자색이다.
+- Options(`opt-dark-editor-0.png`, `opt-dark-colors-0.png`, `opt-light-editor-0.png`, `opt-light-colors-0.png`): Editor 탭의 글꼴 목록에서 Lucida Sans Typewriter를
+  고르면 미리 보기가 바로 바뀐다(`opt-light-editor-lucida-0.png`, 취소함). Editor Colors에서 Keyword를 Bold로 하고 OK → 열린 편집기의 키워드가 바로 굵게 바뀌고(`dark-editor-keyword-bold-crop.png`)
+  설정 파일에 `sqlEditor.color.dark.keyword=569cd6,bold`만 저장됨. Reset to Defaults + OK → 그 키가 지워짐. Options에서 테마를 Light로 바꾸면 편집기 색도 라이트 값으로 바뀐다.
+- 빌드: `-Pproduct-dbeaver-ce,product-chromite-swing` BUILD SUCCESS, Swing 제품 `plugins/`에 `swt`·`jface`·`org.eclipse.ui`·`e4.ui` 번들 0개, 번들 jar에 `fonts/cascadia-mono/*` 포함.
+- 확인하지 못한 것: macOS(Cascadia Mono 등록, Apple SD Gothic Neo 대체), Windows 10(운영체제 Cascadia Mono 없음 → 번들 글꼴 등록 경로), DDL 탭의 방언 강조(화면 확인 안 함), 연결된 SQL Server 방언.
+- 회귀 테스트는 실행하지 않았다(요청 없음). 영향받을 수 있는 기능: SQL 편집기·DDL 탭의 구문 강조와 글꼴, 테마 전환 뒤 편집기 색, Tools > Options(탭 구성), View DDL.
+- 범위 밖 관찰: Options에서 라이트로 바꾼 직후 편집기 오른쪽(세로 스크롤 막대 자리)에 다크 바탕 띠가 한 번 남았고, 편집기를 누르니 다시 그려져 사라졌다(원인 미조사).
+
+### 남긴 것
+
+- 표·열·스키마 이름 색(SWT의 의미 분석 색), SSMS의 시스템 테이블·뷰(초록)·시스템 저장 프로시저(적갈색) 색.
+- `@set` 같은 클라이언트 명령 색(SWT command), `[이름]`·`"이름"` 구분(지금 `"이름"`은 문자열 색, RSTA 토크나이저 그대로).
+- 편집기 줄 간격 1.2(RSTA에 설정 없음), macOS의 Cascadia Mono·한글 대체 확인.
 
 ## 변경 이력
 
@@ -1629,3 +1685,6 @@ Object Explorer 오른쪽 클릭 메뉴의 Refresh에 F5를 보인다.
   "Islands 적용" 절 추가.
 - 2026-11-06 P1 디자인 적용: 결과 그리드 머리글(가로 스크롤 원인, 행 번호 클릭 스크롤, 열 너비 여백), 제목 표시줄 40·메뉴 24, Edit·Tools·Window 메뉴(찾기·바꾸기, Options),
   문서 탭 닫기 단추·가운데 단추·도구 설명, F5 포커스 분기, SSMS 쿼리 상태 줄, SSMS 속성 그리드, 자동완성 목록, 스크롤바. "P1 디자인 적용" 절 추가.
+- 2026-11-06 편집기 글꼴과 SQL 색: 편집기 글꼴 Cascadia Mono 13(번들, Options > Editor에서 변경), SSMS 구문 색, 방언 기반 단어 분류(`SqlTokenClassifier`),
+  Options > Editor Colors(테마별 사용자 색), DDL 탭도 객체 연결의 방언. "편집기 글꼴과 SQL 색" 절 추가, 편집기·설정 키·P1 남긴 것 갱신.
+- 2026-11-06 화면 문구에서 다른 제품 이름 제거: 아이콘 팩 "Duo-tone"·"Full color", Options > Editor Colors의 "Reset to Defaults".

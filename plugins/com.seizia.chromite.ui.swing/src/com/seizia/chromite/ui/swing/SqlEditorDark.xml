@@ -2,15 +2,17 @@
 <!DOCTYPE RSyntaxTheme SYSTEM "theme.dtd">
 
 <!--
-	Chromite dark SQL editor colors: DataGrip New UI Dark (IntelliJ expUI_darkScheme DEFAULT_* attributes),
-	values from docs/chromite/design-spec.md "SQL 구문 색"; background, gutter and current line are the Islands Dark editor
-	island (editor-bg #191A1C, layer-0-bg-inline #212326, design-spec "Islands 적용"). RSyntaxTextArea draws an underline in the token's
-	own color, so syntax errors are underlined in the text color (New UI: a red wave).
-	Loaded by SqlEditorPanel; see org.fife.ui.rsyntaxtextarea.Theme and theme.dtd for the format.
+	Chromite dark SQL editor colors. Tokens: the SSMS dark theme matched to a photo of the user's SSMS (no published
+	values) with the same categories as the light theme, numbers lime (user decision); values from
+	docs/chromite/design-spec.md "SQL 구문 색". Background, gutter and current line are the Islands Dark editor
+	island (editor-bg #191A1C, layer-0-bg-inline #212326, design-spec "Islands 적용"). These are the defaults of
+	Tools > Options > Editor Colors (EditorColors overrides them with the user's colors). RSyntaxTextArea draws an
+	underline in the token's own color, so syntax errors are underlined in the text color.
+	Loaded by EditorColors; see org.fife.ui.rsyntaxtextarea.Theme and theme.dtd for the format.
 -->
 <RSyntaxTheme version="1.0">
 
-	<!-- No baseFont: SqlEditorPanel sets the look and feel's JetBrains Mono composite font (font.code). -->
+	<!-- No baseFont: EditorColors loads the theme with the editor font (EditorFont, a composite font). -->
 	<background color="191a1c"/>
 	<caret color="ced0d6"/>
 	<selection useFG="false" bg="214283" roundedEdges="false"/>
@@ -33,43 +35,43 @@
 	<iconRowHeader activeLineRange="4b5059"/>
 
 	<tokenStyles>
-		<style token="IDENTIFIER" fg="bcbec4"/>
-		<style token="RESERVED_WORD" fg="cf8e6d"/>
-		<style token="RESERVED_WORD_2" fg="cf8e6d"/>
-		<style token="ANNOTATION" fg="bcbec4"/>
-		<style token="COMMENT_DOCUMENTATION" fg="7a7e85"/>
-		<style token="COMMENT_EOL" fg="7a7e85"/>
-		<style token="COMMENT_MULTILINE" fg="7a7e85"/>
-		<style token="COMMENT_KEYWORD" fg="7a7e85"/>
-		<style token="COMMENT_MARKUP" fg="7a7e85"/>
-		<style token="DATA_TYPE" fg="cf8e6d"/>
-		<style token="FUNCTION" fg="56a8f5"/>
-		<style token="LITERAL_BOOLEAN" fg="cf8e6d"/>
-		<style token="LITERAL_NUMBER_DECIMAL_INT" fg="2aacb8"/>
-		<style token="LITERAL_NUMBER_FLOAT" fg="2aacb8"/>
-		<style token="LITERAL_NUMBER_HEXADECIMAL" fg="2aacb8"/>
-		<style token="LITERAL_STRING_DOUBLE_QUOTE" fg="6aab73"/>
-		<style token="LITERAL_CHAR" fg="6aab73"/>
-		<style token="LITERAL_BACKQUOTE" fg="bcbec4"/>
-		<style token="MARKUP_TAG_DELIMITER" fg="bcbec4"/>
-		<style token="MARKUP_TAG_NAME" fg="bcbec4"/>
-		<style token="MARKUP_TAG_ATTRIBUTE" fg="bcbec4"/>
-		<style token="MARKUP_TAG_ATTRIBUTE_VALUE" fg="bcbec4"/>
-		<style token="MARKUP_COMMENT" fg="7a7e85"/>
-		<style token="MARKUP_DTD" fg="bcbec4"/>
-		<style token="MARKUP_PROCESSING_INSTRUCTION" fg="bcbec4"/>
-		<style token="MARKUP_CDATA" fg="bcbec4"/>
-		<style token="MARKUP_CDATA_DELIMITER" fg="bcbec4"/>
-		<style token="OPERATOR" fg="bcbec4"/>
-		<style token="PREPROCESSOR" fg="bcbec4"/>
-		<style token="REGEX" fg="bcbec4"/>
-		<style token="SEPARATOR" fg="bcbec4"/>
-		<style token="VARIABLE" fg="c77dbb"/>
-		<style token="WHITESPACE" fg="bcbec4"/>
-		<style token="ERROR_IDENTIFIER" fg="bcbec4" underline="true"/>
-		<style token="ERROR_NUMBER_FORMAT" fg="bcbec4" underline="true"/>
-		<style token="ERROR_STRING_DOUBLE" fg="bcbec4" underline="true"/>
-		<style token="ERROR_CHAR" fg="bcbec4" underline="true"/>
+		<style token="IDENTIFIER" fg="dcdcdc"/>
+		<style token="RESERVED_WORD" fg="569cd6"/>
+		<style token="RESERVED_WORD_2" fg="569cd6"/>
+		<style token="ANNOTATION" fg="dcdcdc"/>
+		<style token="COMMENT_DOCUMENTATION" fg="57a64a" italic="true"/>
+		<style token="COMMENT_EOL" fg="57a64a" italic="true"/>
+		<style token="COMMENT_MULTILINE" fg="57a64a" italic="true"/>
+		<style token="COMMENT_KEYWORD" fg="57a64a" italic="true"/>
+		<style token="COMMENT_MARKUP" fg="57a64a" italic="true"/>
+		<style token="DATA_TYPE" fg="569cd6"/>
+		<style token="FUNCTION" fg="d48cf5"/>
+		<style token="LITERAL_BOOLEAN" fg="569cd6"/>
+		<style token="LITERAL_NUMBER_DECIMAL_INT" fg="b5e853"/>
+		<style token="LITERAL_NUMBER_FLOAT" fg="b5e853"/>
+		<style token="LITERAL_NUMBER_HEXADECIMAL" fg="b5e853"/>
+		<style token="LITERAL_STRING_DOUBLE_QUOTE" fg="f07068"/>
+		<style token="LITERAL_CHAR" fg="f07068"/>
+		<style token="LITERAL_BACKQUOTE" fg="dcdcdc"/>
+		<style token="MARKUP_TAG_DELIMITER" fg="dcdcdc"/>
+		<style token="MARKUP_TAG_NAME" fg="dcdcdc"/>
+		<style token="MARKUP_TAG_ATTRIBUTE" fg="dcdcdc"/>
+		<style token="MARKUP_TAG_ATTRIBUTE_VALUE" fg="dcdcdc"/>
+		<style token="MARKUP_COMMENT" fg="57a64a" italic="true"/>
+		<style token="MARKUP_DTD" fg="dcdcdc"/>
+		<style token="MARKUP_PROCESSING_INSTRUCTION" fg="dcdcdc"/>
+		<style token="MARKUP_CDATA" fg="dcdcdc"/>
+		<style token="MARKUP_CDATA_DELIMITER" fg="dcdcdc"/>
+		<style token="OPERATOR" fg="b4b4b4"/>
+		<style token="PREPROCESSOR" fg="dcdcdc"/>
+		<style token="REGEX" fg="dcdcdc"/>
+		<style token="SEPARATOR" fg="b4b4b4"/>
+		<style token="VARIABLE" fg="dcdcdc"/>
+		<style token="WHITESPACE" fg="dcdcdc"/>
+		<style token="ERROR_IDENTIFIER" fg="dcdcdc" underline="true"/>
+		<style token="ERROR_NUMBER_FORMAT" fg="dcdcdc" underline="true"/>
+		<style token="ERROR_STRING_DOUBLE" fg="dcdcdc" underline="true"/>
+		<style token="ERROR_CHAR" fg="dcdcdc" underline="true"/>
 	</tokenStyles>
 
 </RSyntaxTheme>

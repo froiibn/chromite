@@ -116,7 +116,7 @@ Swing 프런트엔드(`com.seizia.chromite.ui.swing`)의 화면을 **배치와 �
 
 | 요소 | SSMS | DataGrip New UI | 현재 Chromite | 목표 | 우선 |
 |---|---|---|---|---|---|
-| 글꼴 | 고정폭 | JetBrains Mono 13, 줄 간격 1.2 | Consolas 13(RSyntaxTextArea 기본) [C] `FontUtil.getDefaultMonospacedFont` | `font.code` | P0 |
+| 글꼴 | 고정폭 | JetBrains Mono 13, 줄 간격 1.2 | Consolas 13(RSyntaxTextArea 기본) [C] `FontUtil.getDefaultMonospacedFont` | `font.editor` Cascadia Mono 13(2026-11-06 사용자 결정, 아래 "편집기 글꼴과 SQL 색") | P0 |
 | 바탕 | 흰색 / 다크 | L `#FFFFFF` / D `#1E1F22` [E `TEXT`] | 같음 [C] | `bg.editor` | — |
 | 현재 줄 | 옅은 테두리 | L `#F5F8FE` / D `#26282E` [E `CARET_ROW_COLOR`] | L `#F2F6FC` / D `#26282E` [C] | `editor.caretRow` | P0(라이트) |
 | 줄 번호 | 청록 `#2B91AF` | L `#AEB3C2`, 현재 줄 `#767A8A` / D `#4B5059`, 현재 줄 `#A1A3AB` [E] | L `#2B91AF`(SSMS) / D DataGrip 값 [C] | `editor.lineNumber`, `editor.lineNumberActive` | P0(라이트) |
@@ -124,7 +124,7 @@ Swing 프런트엔드(`com.seizia.chromite.ui.swing`)의 화면을 **배치와 �
 | 선택 | 파랑 | L `#A6D2FF` / D `#214283` [E `SELECTION_BACKGROUND`, 다크는 부모 Darcula] | L `#ADD6FF` / D `#214283` [C] | `editor.selection` | P0(라이트) |
 | 짝 괄호 | — | L 바탕 `#93D9D9` / D 바탕 `#43454A` 굵게 [E] | L `#DBE0CC` / D `#43454A` [C] | `editor.matchedBrace` | P1 |
 | 같은 이름 강조 | — | L `#EDEBFC` / D `#373B39` [E `IDENTIFIER_UNDER_CARET_ATTRIBUTES`] | L `#D4D4D4` / D `#3B514D` [C] | `editor.identifierUnderCaret` | P1 |
-| 구문 색 | 키워드 파랑, 함수 자홍, 문자열 빨강, 주석 초록 | 아래 "SQL 구문 색" 표 [E] | 다크는 DataGrip 값, 라이트는 SSMS 값 [C] `SqlEditorLight.xml` | 아래 표 | P0(라이트) |
+| 구문 색 | 키워드 파랑, 함수 자홍, 문자열 빨강, 주석 초록 | 아래 "SQL 구문 색" 표 [E] | 다크는 DataGrip 값, 라이트는 SSMS 값 [C] `SqlEditorLight.xml` | SSMS 색(2026-11-06 사용자 결정), 아래 표 | P0(라이트) |
 
 ### 7. 쿼리 창 도구 막대
 
@@ -278,28 +278,43 @@ IntelliJ 전용 키와 FlatLaf 키의 차이를 줄이기 위해서다(설계 �
 
 ### SQL 구문 색 (RSyntaxTextArea 토큰)
 
-DataGrip의 SQL 전용 색은 공개되지 않은 데이터베이스 플러그인에 정의되어 있어, IntelliJ 공통 기본 속성(`DEFAULT_*`)으로 맞춘다.
-함수 색은 `DEFAULT_FUNCTION_DECLARATION` 값을 쓰는 근사값이다.
+2026-11-06 사용자 결정: 토큰 색은 **SSMS 기본 색**이다(처음 판의 DataGrip 값에서 바꿈). 숫자만 사용자가 연두색을 골랐다.
+편집기 바탕·현재 줄·선택·줄 번호는 Islands/DataGrip 값 그대로다. 아래 값이 테마 XML(`SqlEditorLight.xml`, `SqlEditorDark.xml`)의 기본값이고,
+사용자는 Tools > Options > Editor Colors에서 테마마다 바꿀 수 있다("편집기 글꼴과 SQL 색").
 
-| RSTA 토큰 | New UI 속성 [E] | Light | Dark |
-|---|---|---|---|
-| `IDENTIFIER`, `OPERATOR`, `SEPARATOR`, `LITERAL_BACKQUOTE`, 기타 | `TEXT`, `DEFAULT_IDENTIFIER`, `DEFAULT_OPERATION_SIGN` | `#080808` | `#BCBEC4` |
-| `RESERVED_WORD`, `RESERVED_WORD_2`, `DATA_TYPE`, `LITERAL_BOOLEAN` | `DEFAULT_KEYWORD` | `#0033B3` | `#CF8E6D` |
-| `FUNCTION` | `DEFAULT_FUNCTION_DECLARATION`(근사) | `#00627A` | `#56A8F5` |
-| `LITERAL_STRING_DOUBLE_QUOTE`, `LITERAL_CHAR` | `DEFAULT_STRING` | `#067D17` | `#6AAB73` |
-| `LITERAL_NUMBER_*` | `DEFAULT_NUMBER` | `#1750EB` | `#2AACB8` |
-| `COMMENT_*` | `DEFAULT_LINE_COMMENT`, `DEFAULT_BLOCK_COMMENT` | `#8C8C8C` 기울임 | `#7A7E85` |
-| `VARIABLE` | `DEFAULT_INSTANCE_FIELD` | `#871094` | `#C77DBB` |
-| `ERROR_*` | `ERRORS_ATTRIBUTES`(물결 밑줄) | 밑줄 `#DB3B4B`(근사, 바탕 없음) | 밑줄 `#FA6675` |
-| 바탕 / 커서 | `TEXT`, `CARET_COLOR` | `#FFFFFF` / `#000000` | `#1E1F22` / `#CED0D6` |
-| 현재 줄 | `CARET_ROW_COLOR` | `#F5F8FE` | `#26282E` |
-| 선택 | `SELECTION_BACKGROUND` | `#A6D2FF` | `#214283` |
-| 줄 번호 / 현재 줄 번호 | `LINE_NUMBERS_COLOR`, `LINE_NUMBER_ON_CARET_ROW_COLOR` | `#AEB3C2` / `#767A8A` | `#4B5059` / `#A1A3AB` |
-| 짝 괄호 | `MATCHED_BRACE_ATTRIBUTES` | 바탕 `#93D9D9` | 바탕 `#43454A` |
-| 같은 이름 | `IDENTIFIER_UNDER_CARET_ATTRIBUTES` | `#EDEBFC` | `#373B39` |
-| 오른쪽 여백 선 | `RIGHT_MARGIN_COLOR` | `#EBECF0` | `#393B40` |
+근거:
+- [M] Microsoft Learn "Color coding in query editors"(SSMS, 2025-12-17판): 키워드 Blue, 시스템 함수 Magenta, Transact-SQL 문자열 Red, 주석 Dark green,
+  연산자 Dark gray, 줄 번호 Teal. 이 문서는 색 이름만 준다. 16진 값은 Visual Studio·SSMS 글꼴 및 색 대화상자의 이름 붙은 색(Blue `#0000FF`,
+  Magenta `#FF00FF`, Red `#FF0000`, Green `#008000`, Gray `#808080`)이다. 숫자는 SSMS 기본에서 일반 글자(검정)다.
+- [P] 사용자의 SSMS 다크 테마 화면 사진(`D:\Tools\_scratch\editor-font\ref\ssms-dark-user-photo.jpg`, 모니터를 찍은 사진이라 색은 근사): 키워드 파랑,
+  `AND`·`OR`·`IS`·`NULL`·비교 연산자·괄호·쉼표 회색, 문자열 빨강(연어색), `DATEDIFF`와 날짜 부분 `SECOND` 자홍-보라, 숫자 옅은 초록, 이름 흰색에 가까움.
+  SSMS 다크의 T-SQL 기본 색은 공개된 값을 찾지 못했다(Microsoft Learn, SSMS 21 다크 모드 소개 글 확인). 그래서 다크 값은 사진의 색상과 Visual Studio Dark의
+  일반 색(키워드 `#569CD6`, 주석 `#57A64A`, 연산자 `#B4B4B4`, 글자 `#DCDCDC`)에 맞추고 `#191A1C` 바탕에서 대비를 확인한 값이다.
 
-다크 `SqlEditorDark.xml`은 이미 이 값과 거의 같다(차이: `ERROR_*` 바탕 칠 → 밑줄). 라이트 `SqlEditorLight.xml`은 전부 바꾼다.
+| 항목 (Options 이름) | RSTA 토큰 | SSMS 분류 | Light | Dark | 대비(L/D) |
+|---|---|---|---|---|---|
+| Text (identifiers) | `IDENTIFIER`, `LITERAL_BACKQUOTE`, `PREPROCESSOR`(`[이름]`), `ANNOTATION`, `ERROR_*`(밑줄) | Plain Text | `#000000` | `#DCDCDC` | 21.0 / 12.7 |
+| Keyword | `RESERVED_WORD`, `RESERVED_WORD_2`, `LITERAL_BOOLEAN` | SQL Keyword (Blue) | `#0000FF` | `#569CD6` | 8.6 / 5.9 |
+| Operator | `OPERATOR`, `SEPARATOR`, 그리고 `ALL AND ANY BETWEEN EXISTS IN LIKE NOT OR SOME IS NULL`, 문장 부호 `, ; . ( )` | SQL Operator (Dark gray) | `#808080` | `#B4B4B4` | 4.0 / 8.4 |
+| Function | `FUNCTION`: 방언의 함수, 날짜 함수의 날짜 부분(`SECOND` 등), `@@ROWCOUNT` 같은 시스템 변수 | SQL System Function (Magenta) | `#FF00FF` | `#D48CF5` | 3.1 / 7.4 |
+| String | `LITERAL_CHAR`(`'...'`, `N'...'`의 `N` 포함), `LITERAL_STRING_DOUBLE_QUOTE` | SQL String (Red) | `#FF0000` | `#F07068` | 4.0 / 6.0 |
+| Number | `LITERAL_NUMBER_*` | (SSMS 기본은 Plain Text) 사용자 결정 연두색 | `#669900` | `#B5E853` | 3.4 / 12.1 |
+| Comment | `COMMENT_*` | Comment (Dark green) | `#008000` 기울임 | `#57A64A` 기울임 | 5.1 / 5.8 |
+| Data type | `DATA_TYPE` | SQL Keyword | `#0000FF` | `#569CD6` | 8.6 / 5.9 |
+| Variable / parameter | `VARIABLE`: `@이름`, `:이름`, `?` | Plain Text | `#000000` | `#DCDCDC` | 21.0 / 12.7 |
+| Background / 커서 | `TEXT`, `CARET_COLOR` [E] | | `#FFFFFF` / `#000000` | `#191A1C` / `#CED0D6` | |
+| Current line | `CARET_ROW_COLOR` [E] | | `#F5F8FE` | `#212326` | |
+| Selection | `SELECTION_BACKGROUND` [E] | | `#A6D2FF` | `#214283` | |
+| Line numbers / 현재 줄 번호 | `LINE_NUMBERS_COLOR`, `LINE_NUMBER_ON_CARET_ROW_COLOR` [E] | | `#AEB3C2` / `#767A8A` | `#4B5059` / `#A1A3AB` | |
+| 짝 괄호 | `MATCHED_BRACE_ATTRIBUTES` [E] | | 바탕 `#93D9D9` | 바탕 `#43454A` | |
+| 같은 이름 | `IDENTIFIER_UNDER_CARET_ATTRIBUTES` [E] | | `#EDEBFC` | `#373B39` | |
+| 오른쪽 여백 선 | `RIGHT_MARGIN_COLOR` [E] | | `#EBECF0` | `#393B40` | |
+
+- 대비는 WCAG 대비율(바탕 `#FFFFFF` / `#191A1C`)이다. 라이트의 자홍(3.1)·빨강(4.0)·회색(4.0)은 SSMS 기본 그대로라 4.5보다 낮다(사용자 결정: SSMS 값을 그대로 씀).
+- 숫자 연두색과 주석 초록의 구분: 라이트는 색상 80°(`#669900`)와 120°(`#008000`), 다크는 81°(`#B5E853`, 밝음)와 112°(`#57A64A`, 어두움)이고 주석은 기울임이다.
+  `#ADFF2F` 같은 옅은 연두는 흰 바탕에서 대비가 1.2라 쓰지 않았다.
+- 오류 표시(`ERROR_*`)는 글자색 밑줄이다(RSTA 밑줄은 직선뿐, "Swing/FlatLaf로 못 한 것").
+- SSMS가 따로 칠하는 시스템 테이블·뷰(초록), 시스템 저장 프로시저(적갈색)와 표·열·스키마 이름 색(SWT 편집기의 semantic 색)은 의미 분석이 필요해서 아직 없다.
 
 ### 치수 토큰
 
@@ -361,7 +376,8 @@ DataGrip의 SQL 전용 색은 공개되지 않은 데이터베이스 플러그�
 | `font.ui.semibold` | Inter 13 semibold | 도구 창 제목, 섹션 제목, Properties 분류 | 스타일 클래스 `semibold` |
 | `font.ui.small` | Inter 12 | 팝업 안내 줄, 배지 | 스타일 클래스 `small`(FlatLaf `@smallScale`이 아니라 −1px로 맞춤) |
 | `font.title` | Inter 15 semibold | 대화상자 머리말, 시작 탭 제목 | 스타일 클래스 `h3` 크기 조정 |
-| `font.code` | JetBrains Mono 13, 줄 간격 1.2 | SQL 편집기, 결과 그리드, 메시지 | RSTA `<baseFont>` 또는 코드에서 지정 |
+| `font.code` | JetBrains Mono 13, 줄 간격 1.2 | 결과 그리드, 메시지 | `monospaced.font` |
+| `font.editor` | Cascadia Mono 13(Options에서 바꿀 수 있음) | SQL 편집기, 줄 번호, DDL 탭 | `EditorFont`(2026-11-06, "편집기 글꼴과 SQL 색") |
 
 Inter와 JetBrains Mono는 SIL Open Font License 1.1이다. FlatLaf가 두 글꼴을 별도 jar(`flatlaf-fonts-inter`, `flatlaf-fonts-jetbrains-mono`)로 낸다.
 넣으려면 의존성 추가와 `NOTICE` 갱신이 필요하므로 구현 단계에서 따로 결정한다("미룬 결정").
@@ -609,8 +625,8 @@ P0 전체와 P1 일부를 `com.seizia.chromite.ui.swing`에 적용했다. 동작
 ### 아이콘 팩
 
 - 두 팩을 넣고 View > Theme > Icon Style에서 고른다(실행 중 바로 바뀌고 저장됨, 설정 키 `ui.iconStyle`).
-  - **A "DataGrip-style duo-tone"(기본)**: 1px 윤곽 + 옅은 채움, 중립 회색, 폴더·DB·루틴·외래 키는 파랑, 기본 키는 주황.
-  - **B "SSMS-style color"**: Visual Studio 이미지 라이브러리풍 진한 색(갈색 폴더, 파란 원통, 금·은 키).
+  - **A "Duo-tone"(기본, DataGrip풍)**: 1px 윤곽 + 옅은 채움, 중립 회색, 폴더·DB·루틴·외래 키는 파랑, 기본 키는 주황.
+  - **B "Full color"(SSMS풍)**: Visual Studio 이미지 라이브러리풍 진한 색(갈색 폴더, 파란 원통, 금·은 키).
 - 파일: `plugins/com.seizia.chromite.ui.swing/icons/ui/{duotone,color}/{light,dark}/<id>.svg` 49개씩(P1에서 Properties 도구 막대의 `categorized`, `sort-alpha` 추가). 생성기 `tools/branding/gen_ui_icons.py`(Python 표준 라이브러리만, 다시 만드는 방법은 파일 머리말).
   사용자가 고른 38개(색 토큰은 생성기의 `PAL`)에 도구 창·편집기용 9개(`new-connection`, `connect`, `disconnect`, `collapse-all`, `hide`, `close`, `results`, `messages`, `file-sql`)를 같은 규칙으로 더했다.
   원래 38개는 후보 파일과 바이트 단위로 같다.
@@ -634,9 +650,91 @@ P0 전체와 P1 일부를 `com.seizia.chromite.ui.swing`에 적용했다. 동작
   - `flatlaf-fonts-jetbrains-mono-2.304.jar`: SHA-1 `68c779e849aec16c69f69d4405fb1edea04e9b8f`(Central `.sha1`과 같음), SHA-256 `bc8e93479960b2a5e3b45fe724e16439a69f28cc43cac3a2b87b7f7f325fd3a5`
 - 테마 properties: `defaultFont = 13 Inter`, `semibold.font = "Inter SemiBold"`, `monospaced.font = "JetBrains Mono"`. `ChromiteTheme`가 Look and Feel을 설치하기 전에 `installLazy()`로 등록한다.
   FlatLaf는 글꼴 이름을 `StyleContext.getFont`(합성 글꼴)로 만들기 때문에, Inter·JetBrains Mono에 없는 한글은 운영체제 글꼴(Windows: 맑은 고딕)로 대체된다.
-- 편집기(RSyntaxTextArea)·그리드·Messages는 `monospaced.font`(JetBrains Mono 합성 글꼴)를 쓴다. 테마 XML에 `baseFont`를 쓰지 않은 이유: XML의 글꼴 이름은 합성 글꼴이 아니어서 한글이 □로 나온다.
+- 그리드·Messages는 `monospaced.font`(JetBrains Mono 합성 글꼴)를 쓴다. 편집기(RSyntaxTextArea)는 2026-11-06부터 `font.editor`(Cascadia Mono, "편집기 글꼴과 SQL 색")다.
+  테마 XML에 `baseFont`를 쓰지 않은 이유: XML의 글꼴 이름은 합성 글꼴이 아니어서 한글이 □로 나온다.
 - 확인: 트리 폴더 이름(`테이블`, `컬럼`, `인덱스`), 한글 테이블(`앨범_한글`), Properties 속성 이름, 메뉴, 대화상자, 편집기 글(`"앨범_한글" -- 한글 주석`), 그리드 머리글·값에 □ 없음(`x-korean-*.png`).
   macOS(Apple SD Gothic Neo)는 확인하지 못했다.
+
+### 편집기 글꼴과 SQL 색 (2026-11-06)
+
+사용자 결정(2026-11-06):
+- **편집기 글꼴은 Cascadia Mono 13**이고 Chromite에 넣는다. 처음에는 Lucida Sans Typewriter를 골랐다가 견본을 보고 바꿨다.
+  Lucida Sans Typewriter는 Microsoft Office 등과 함께 설치되는 상용 글꼴이라(Windows·macOS 기본 글꼴이 아님) 넣지 않고, 설치된 컴퓨터에서는 Options에서 고를 수 있다.
+- **구문 색은 SSMS 기본 색**(키워드 파랑, 시스템 함수 자홍, 문자열 빨강, 주석 초록, 연산자 회색), 숫자는 연두색. 다크는 사용자의 SSMS 다크 화면 사진에 맞춘다(위 "SQL 구문 색").
+- 사용자가 색을 바꿀 수 있어야 한다(SWT 제품의 설정 > Colors and Fonts > SQL Editor에 해당, `plugins/org.jkiss.dbeaver.ui.editors.sql/plugin.xml`의 `org.eclipse.ui.themes` 색 16개).
+
+#### 글꼴
+
+| 항목 | 내용 |
+|---|---|
+| 기본 글꼴 | Cascadia Mono 2407.24, 크기 13(Look and Feel 글꼴처럼 `UIScale`로 배율 적용) |
+| 넣은 파일 | `plugins/com.seizia.chromite.ui.swing/fonts/cascadia-mono/`: `CascadiaMono-Regular.ttf`, `-Bold`, `-Italic`, `-BoldItalic`(정적 TTF), `OFL.txt` |
+| 출처 | Microsoft 공식 릴리스 `CascadiaCode-2407.24.zip`(https://github.com/microsoft/cascadia-code/releases/tag/v2407.24, SHA-256 `e67a68ee3386db63f48b9054bd196ea752bc6a4ebb4df35adce6733da50c8474`)의 `ttf/static`. 바꾸지 않은 파일이다 |
+| 파일 SHA-256 | Regular `06520d032ec274fa5040b22c6f4a1d829081b24ba40b2da56dae89bf10c7b481`, Bold `b22cb603ed23cac36e8444846e1841caca21719a5e852780a8d37ae7a49b0a36`, Italic `8d98a33e7617c14dd1d200b4900bc6c2d5d7165abb5c09e9d2fd51c38ce9c9ff`, BoldItalic `ecaeab55e6334408f8ff1fde78a99ddaeb3bb7fad4fcd177df8475c88a7d240f` |
+| 라이선스 | SIL Open Font License 1.1(Reserved Font Name "Cascadia Code"). 재배포 허용, 파일을 바꾸지 않았으므로 이름도 그대로다. `NOTICE`와 번들의 `fonts/cascadia-mono/OFL.txt`(저장소 `LICENSE`, 태그 v2407.24) |
+| 저장소에 넣은 이유 | Inter·JetBrains Mono처럼 빌드 때 받으려 했으나 Cascadia는 Maven Central에 TTF 산출물이 없고, GitHub 릴리스는 150 MB zip 하나뿐이다. 빌드마다 150 MB를 받는 대신 필요한 TTF 4개(약 2 MB)를 넣었다 |
+| 가변 글꼴을 쓰지 않은 이유 | Java는 가변 글꼴의 축(굵기)을 고르지 못하고 기본 인스턴스만 그린다. 굵게·기울임이 진짜 글꼴로 나오도록 정적 TTF를 쓴다 |
+| 등록 | `EditorFont.installLazy()`(`ChromiteTheme.install`에서 Inter·JetBrains Mono와 함께): FlatLaf `FontUtils.registerFontFamilyLoader`로 처음 쓸 때 `FontUtils.installFont`(=`Font.createFont` + `GraphicsEnvironment.registerFont`) |
+| 대체 순서 | 저장한 글꼴(이 컴퓨터에 있으면) → Cascadia Mono(번들) → JetBrains Mono(번들). 운영체제에 같은 이름의 글꼴이 있으면 Java가 등록을 거절하고 운영체제 글꼴을 쓴다(Windows 11은 가변 글꼴 `C:\Windows\Fonts\CascadiaMono.ttf`를 가지고 있어 그 글꼴의 기본 인스턴스를 쓰고, 기울임은 합성 기울임이다) |
+| 한글 | `FontUtils.getCompositeFont`(= `StyleContext.getFont`, 합성 글꼴). 이 PC(JBR 25, 한국어 Windows 11)에서 합성 글꼴의 대체 칸은 Arial, **Malgun Gothic**, Wingdings, Symbol, … 순이다(`sun.font.CompositeFont` 칸 확인). macOS는 JDK의 대체 목록(Apple SD Gothic Neo)이며 확인하지 못했다 |
+| 행 높이 | RSyntaxTextArea는 행 높이를 글꼴에서 한 번 정하고 모든 줄에 같게 쓴다. 한글이 있는 줄도 높이가 같다(확인 아래) |
+| 쓰는 곳 | SQL 편집기, 줄 번호, DDL 탭, Options 미리 보기. 결과 그리드·Messages는 `font.code`(JetBrains Mono) 그대로 |
+| 설정 | Tools > Options > Editor: Family(설치된 고정폭 글꼴 + 번들 글꼴, 기본 Cascadia Mono), Size(6–72, 기본 13), 한글이 든 미리 보기. 키 `sqlEditor.font.family`, `sqlEditor.font.size` |
+
+#### 단어 분류 (`SqlTokenClassifier`)
+
+RSyntaxTextArea의 SQL 토크나이저(`SQLTokenMaker`, 4.0.1)를 그대로 쓰면 색이 틀린다. 확인한 토큰(예문을 토크나이저에 넣은 결과):
+`COUNT`·`SUM`·`VARCHAR`는 예약어(`RESERVED_WORD`), `UPPER`·`AVG`·`LOWER`만 함수, `COALESCE`·`GETDATE`·`ISNULL`·`OVER`·`TRUE`는 일반 이름,
+`,`·`;`는 이름, `a.Title`의 `.`은 실수(`LITERAL_NUMBER_FLOAT`), `@var`는 `@` + 예약어 `var`, `:p`는 이름 하나.
+그래서 토크나이저는 문자열·주석·숫자 경계에만 쓰고, 줄마다 받은 토큰의 종류를 고친다.
+
+- 방언: 편집기 연결이 연결되어 있으면 데이터 소스의 방언, 아니면 드라이버의 스크립트 방언, 연결이 없으면 표준 SQL(`BasicSQLDialect`).
+  SWT 편집기(`SQLRuleManager`, `SQLWordRule`)와 같은 규칙: 예약어 중 FUNCTION·OTHER는 함수, KEYWORD는 키워드, TYPE은 자료형, 연결되어 있으면 자료형·함수 목록을 더함.
+  함수 이름은 뒤에 `(`가 오거나 키워드가 아니면 함수(`LEFT JOIN`의 LEFT는 키워드). 방언이 모르는 단어는 토크나이저의 분류를 둔다.
+  편집기가 연결을 바꾸거나 연결·실행한 뒤 문서를 다시 칠한다. DDL 탭은 객체의 연결 방언을 쓴다.
+- SSMS 규칙: T-SQL 논리 연산자(Microsoft Learn "Logical operators (Transact-SQL)": `ALL AND ANY BETWEEN EXISTS IN LIKE NOT OR SOME`)와 `IS`, `NULL`은 연산자 색.
+  날짜 함수(`DATEADD DATEDIFF DATEDIFF_BIG DATENAME DATEPART DATETRUNC DATE_BUCKET`)와 그 첫 인수의 날짜 부분(`year`…`isoww`)은 함수 색(사진의 `DATEDIFF(SECOND, …)`).
+  `N'…'`의 `N`은 문자열, `@이름`·`:이름`·`?`는 변수, `@@ROWCOUNT` 같은 시스템 변수는 함수 색, 문장 부호는 연산자 색, `a.Count`처럼 한정자 뒤 단어는 이름.
+- 이 규칙은 연결의 DBMS와 관계없이 적용한다(편집기 전체가 SSMS 방식이다).
+
+#### Editor Colors 탭
+
+Tools > Options > Editor Colors: 테마(Light/Dark) 선택, 항목 목록(색 견본), Color…(`JColorChooser`), Bold, Italic, Reset to Defaults(SSMS 기본 색으로 되돌림), 미리 보기(한글·변수·날짜 부분 포함, 선택·현재 줄 보임).
+항목은 토크나이저가 실제로 내는 것만 둔다: Text, Keyword, Operator, Function, String, Number, Comment, Data type, Variable/parameter, Background, Current line, Selection,
+Line numbers, Current line number. 기본값은 테마 XML이고 바꾼 항목만 `sqlEditor.color.<light|dark>.<항목>` = `rrggbb[,bold][,italic]`로 저장한다.
+OK를 누르면 열린 모든 편집기·DDL 탭에 바로 적용한다(`SqlTextArea.applyThemeToAll`). 배경을 바꾸면 거터 바탕·테두리도 같은 색이다.
+
+SWT 색(`plugin.xml` 1360–1493행)과의 대응: keyword → Keyword, datatype → Data type, function → Function, string → String, number → Number, comment → Comment,
+delimiter → Operator(SSMS처럼 `;`도 연산자 색), sqlVariable·parameter → Variable/parameter, text.foreground·text.background → Text·Background.
+table, table.alias, column, column.derived, schema, composite.field, semanticError(의미 분석 색)와 command(`@set` 같은 클라이언트 명령)는
+Swing 편집기에 그 분류가 없어 넣지 않았다(미룸). disabled.background는 Swing 편집기에 비활성 상태가 없어 넣지 않았다.
+
+#### 확인
+
+Windows 11, 화면 배율 150%, JBR 25, 작업 공간 사본 `D:\Tools\_smoke\swing-font`(연결 `Chinook Copy (SQLite)`), 창만 캡처(`shot.ps1`). 캡처는 `D:\Tools\_scratch\editor-font\`.
+
+- 시작 로그: `SQL editor font: Cascadia Mono 13 (font Cascadia Mono Regular, requested Cascadia Mono)`.
+- 예문(`SELECT a.AlbumId, COUNT(*) AS cnt, UPPER(a.Title) -- 한글 주석` / `FROM Album a` / `WHERE a.Title LIKE N'%한글%' AND a.AlbumId > 42.5` / `GROUP BY a.AlbumId;`)을
+  붙여 넣고 글자 픽셀의 가장 많은 색을 읽었다(`light-editor2-0.png`, `dark-editor-0.png`, 확대 `light-editor-zoom.png`, `dark-editor-zoom.png`):
+
+  | 토큰 | Light | Dark |
+  |---|---|---|
+  | `SELECT` | `#0000FF` | `#569CD6` |
+  | `COUNT`, `UPPER` | `#FF00FF` | `#D48CF5` |
+  | `N'%한글%'` | `#FF0000` | `#F07068` |
+  | `42.5` | `#669900` | `#B5E853` |
+  | `-- 한글 주석`(기울임) | `#008000` | `#57A64A` |
+  | `LIKE`, `AND`, `,` | `#808080` | `#B4B4B4` |
+  | `AlbumId` | `#000000` | `#DCDCDC` |
+
+  한글은 □ 없이 맑은 고딕으로 보이고, 한글이 있는 1·3행과 없는 2·4행의 줄 간격이 같다(27px, 150%).
+- 사용자 SSMS 사진의 문장을 다크 편집기에 넣어 나란히 비교(`compare-ssms-dark.png`): 키워드·연산자 단어·문자열·`DATEDIFF(SECOND, …)`·숫자 색이 사진과 같은 분류로 칠해진다.
+  다른 점: 사진에서 파란 `NOLOCK`(테이블 힌트)은 SQLite 연결의 방언에 없는 단어라 글자색이다.
+- Options(`opt-dark-editor-0.png`, `opt-dark-colors-0.png`, `opt-light-editor-0.png`, `opt-light-colors-0.png`): Editor 탭의 글꼴 목록에서 Lucida Sans Typewriter를
+  고르면 미리 보기가 바로 바뀐다(`opt-light-editor-lucida-0.png`, 취소함). Editor Colors에서 Keyword를 Bold로 하고 OK → 열린 편집기의 키워드가 바로 굵게 바뀌고(`dark-editor-keyword-bold-crop.png`)
+  설정 파일에 `sqlEditor.color.dark.keyword=569cd6,bold`만 저장됨. Reset to Defaults + OK → 그 키가 지워짐. Options에서 테마를 Light로 바꾸면 편집기 색도 라이트 값으로 바뀐다.
+- 빌드: `-Pproduct-dbeaver-ce,product-chromite-swing` BUILD SUCCESS, Swing 제품 `plugins/`에 `swt`·`jface`·`org.eclipse.ui`·`e4.ui` 번들 0개, 번들 jar에 `fonts/cascadia-mono/*` 포함.
+- 확인하지 못한 것: macOS(Cascadia Mono 등록, Apple SD Gothic Neo 대체), Windows 10(운영체제 Cascadia Mono 없음 → 번들 글꼴 등록 경로), DDL 탭의 방언 강조(화면 확인 안 함), 연결된 SQL Server 방언.
 
 ### Swing/FlatLaf로 못 한 것과 이유
 
@@ -712,6 +810,9 @@ P0 전체와 P1 일부를 `com.seizia.chromite.ui.swing`에 적용했다. 동작
 - SSMS 22 릴리스 노트: https://learn.microsoft.com/ssms/release-notes-22
 - SSMS 21 발표: https://techcommunity.microsoft.com/t5/sql-server-blog/announcing-the-release-of-sql-server-management-studio-21/ba-p/4293314
 - FlatLaf 속성 파일: https://github.com/JFormDesigner/FlatLaf/tree/main/flatlaf-core/src/main/resources/com/formdev/flatlaf
+- SSMS 기본 코드 색(Color coding in query editors): https://learn.microsoft.com/en-us/ssms/scripting/color-coding-in-query-editors
+- T-SQL 논리 연산자: https://learn.microsoft.com/en-us/sql/t-sql/language-elements/logical-operators-transact-sql
+- Cascadia Code/Mono 릴리스 2407.24: https://github.com/microsoft/cascadia-code/releases/tag/v2407.24
 
 ## 변경 이력
 
@@ -723,3 +824,7 @@ P0 전체와 P1 일부를 `com.seizia.chromite.ui.swing`에 적용했다. 동작
   "적용 현황 — Islands 적용" 절 추가, 배경과 결정·Islands 항목·`radius.island`·미룬 결정 갱신.
 - 2026-11-06 P1 적용: "적용 현황 — P1 결과" 절 추가(그리드 머리글 원인, 제목 표시줄·메뉴, 탭, F5, 쿼리 상태 줄, Properties, 자동완성, 스크롤바), 남은 일 갱신,
   아이콘 팩 파일 수 갱신.
+- 2026-11-06 편집기 글꼴과 SQL 색: 사용자 결정에 따라 편집기 글꼴을 Cascadia Mono 13(번들, OFL)으로, 구문 색을 SSMS 기본 색(숫자는 연두색)으로 바꿈.
+  "SQL 구문 색" 표를 SSMS 근거로 다시 쓰고 `font.editor` 토큰, "적용 현황 — 편집기 글꼴과 SQL 색" 절(글꼴 결정·라이선스·대체 순서, 방언 기반 단어 분류,
+  Options의 Editor·Editor Colors 탭, 확인) 추가.
+- 2026-11-06 화면 문구 정리(사용자 요청): 사용자에게 보이는 문구에 다른 제품 이름(SSMS, DataGrip, Visual Studio)을 쓰지 않는다. 아이콘 팩 이름을 "Duo-tone", "Full color"로, Editor Colors 단추를 "Reset to Defaults"로 바꿈. 설계 근거로서의 제품 이름은 이 문서와 코드 주석에 남긴다.

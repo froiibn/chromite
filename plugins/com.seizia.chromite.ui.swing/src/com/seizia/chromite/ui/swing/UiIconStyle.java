@@ -32,11 +32,13 @@ import java.awt.*;
  *
  * 변경 이력:
  * - 2026-11-06 디자인 적용: 최초 작성 (docs/chromite/design-spec.md "적용 현황")
+ * - 2026-11-06 화면 이름에서 다른 제품 이름을 뺌: "Duo-tone", "Full color" (docs/chromite/design-spec.md "적용 현황 — 아이콘 팩")
  */
 enum UiIconStyle {
 
-    DUOTONE("DataGrip-style duo-tone", "duotone"), //$NON-NLS-2$
-    COLOR("SSMS-style color", "color"); //$NON-NLS-2$
+    // Labels name no other product (DataGrip-like duo-tone, SSMS-like color): they are shown in menus and Options
+    DUOTONE("Duo-tone", "duotone"), //$NON-NLS-2$
+    COLOR("Full color", "color"); //$NON-NLS-2$
 
     private static final String PREF_ICON_STYLE = "ui.iconStyle"; //$NON-NLS-1$
 

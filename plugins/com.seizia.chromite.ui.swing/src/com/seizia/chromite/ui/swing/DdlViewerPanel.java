@@ -18,6 +18,8 @@ package com.seizia.chromite.ui.swing;
 
 import org.fife.ui.rtextarea.RTextScrollPane;
 import org.jkiss.code.NotNull;
+import org.jkiss.code.Nullable;
+import org.jkiss.dbeaver.model.DBPDataSourceContainer;
 
 import javax.swing.*;
 import java.awt.*;
@@ -31,6 +33,7 @@ import java.awt.*;
  * 변경 이력:
  * - 2026-11-06 E단계: 최초 작성 (docs/chromite/swing-frontend.md "구현 현황 — E단계")
  * - 2026-11-06 P1: Edit &gt; Find가 쓰는 편집기 접근자 (docs/chromite/swing-frontend.md "P1 디자인 적용")
+ * - 2026-11-06 객체의 연결을 받아 그 SQL 방언으로 강조 (docs/chromite/design-spec.md "편집기 글꼴과 SQL 색")
  */
 final class DdlViewerPanel extends JPanel {
 
@@ -38,12 +41,14 @@ final class DdlViewerPanel extends JPanel {
     private final SqlEditorPanel.SqlTextArea textArea = new SqlEditorPanel.SqlTextArea();
 
     /**
+     * @param dataSource connection of the object, for the keywords and functions of its SQL dialect
      * @param objectName full name of the object (tab title and header)
      * @param ddl        object definition
      */
-    DdlViewerPanel(@NotNull String objectName, @NotNull String ddl) {
+    DdlViewerPanel(@Nullable DBPDataSourceContainer dataSource, @NotNull String objectName, @NotNull String ddl) {
         super(new BorderLayout());
         this.title = objectName + " [DDL]";
+        textArea.setDataSourceContainer(dataSource);
         textArea.setText(ddl);
         textArea.setCaretPosition(0);
         textArea.setEditable(false);
