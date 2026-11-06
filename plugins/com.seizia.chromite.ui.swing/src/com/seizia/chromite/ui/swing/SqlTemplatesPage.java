@@ -17,6 +17,7 @@
 package com.seizia.chromite.ui.swing;
 
 import com.formdev.flatlaf.FlatClientProperties;
+import com.seizia.chromite.ui.swing.internal.EditorMessages;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
@@ -38,6 +39,7 @@ import java.util.List;
  *
  * 변경 이력:
  * - 2026-11-06 최초 작성 (docs/chromite/swing-sql-editor-plus.md)
+ * - 2026-11-06 화면 문구를 EditorMessages로 옮김(OS 언어를 따름)
  */
 final class SqlTemplatesPage extends JPanel {
 
@@ -47,9 +49,9 @@ final class SqlTemplatesPage extends JPanel {
     private final JTable table = new JTable(model);
     private final JTextField nameField = new JTextField(16);
     private final JTextField descriptionField = new JTextField(30);
-    private final JCheckBox enabledBox = new JCheckBox("Enabled");
+    private final JCheckBox enabledBox = new JCheckBox(EditorMessages.editor_templates_enabled);
     private final SqlEditorPanel.SqlTextArea patternArea = new SqlEditorPanel.SqlTextArea();
-    private final JButton removeButton = new JButton("Remove");
+    private final JButton removeButton = new JButton(EditorMessages.editor_templates_remove);
     private boolean updating;
 
     SqlTemplatesPage() {
@@ -70,11 +72,11 @@ final class SqlTemplatesPage extends JPanel {
         JScrollPane tableScroll = new JScrollPane(table);
         tableScroll.setPreferredSize(new Dimension(260, 240));
 
-        JButton addButton = new JButton("New");
+        JButton addButton = new JButton(EditorMessages.editor_templates_new);
         addButton.addActionListener(e -> addTemplate());
         removeButton.addActionListener(e -> removeTemplate());
-        JButton restoreButton = new JButton("Restore Defaults");
-        restoreButton.setToolTipText("Bring back the built-in templates as they were; your own templates stay");
+        JButton restoreButton = new JButton(EditorMessages.editor_templates_restore);
+        restoreButton.setToolTipText(EditorMessages.editor_templates_restore_tip);
         restoreButton.addActionListener(e -> restoreDefaults());
         JPanel listButtons = new JPanel(new FlowLayout(FlowLayout.LEFT, 6, 0));
         listButtons.add(addButton);
@@ -109,20 +111,20 @@ final class SqlTemplatesPage extends JPanel {
         c.anchor = GridBagConstraints.WEST;
         c.insets = new Insets(0, 0, 6, 6);
         c.gridy = 0;
-        fields.add(new JLabel("Name"), c);
+        fields.add(new JLabel(EditorMessages.editor_common_name), c);
         c.gridx = 1;
         fields.add(nameField, c);
         c.gridx = 2;
         fields.add(enabledBox, c);
         c.gridy = 1;
         c.gridx = 0;
-        fields.add(new JLabel("Description"), c);
+        fields.add(new JLabel(EditorMessages.editor_common_description), c);
         c.gridx = 1;
         c.gridwidth = 2;
         c.fill = GridBagConstraints.HORIZONTAL;
         c.weightx = 1;
         fields.add(descriptionField, c);
-        JLabel hint = new JLabel("Type the name in a query window and press Tab. ${name} marks a value to fill in; Tab moves to the next.");
+        JLabel hint = new JLabel(EditorMessages.editor_templates_hint);
         hint.putClientProperty(FlatClientProperties.STYLE, "foreground: $Chromite.secondaryForeground"); //$NON-NLS-1$
         JScrollPane patternScroll = new JScrollPane(patternArea);
         patternScroll.setPreferredSize(new Dimension(380, 180));
@@ -150,7 +152,7 @@ final class SqlTemplatesPage extends JPanel {
         try {
             SqlTemplates.save(templates);
         } catch (DBException e) {
-            DBWorkbench.getPlatformUI().showError("Templates", "Can't save the SQL templates", e);
+            DBWorkbench.getPlatformUI().showError(EditorMessages.editor_templates_title, EditorMessages.editor_templates_cant_save, e);
         }
     }
 
@@ -238,7 +240,7 @@ final class SqlTemplatesPage extends JPanel {
 
         @Override
         public String getColumnName(int column) {
-            return column == 0 ? "Name" : "Description";
+            return column == 0 ? EditorMessages.editor_common_name : EditorMessages.editor_common_description;
         }
 
         @Override

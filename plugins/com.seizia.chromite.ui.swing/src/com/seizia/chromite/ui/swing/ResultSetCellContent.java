@@ -16,6 +16,7 @@
  */
 package com.seizia.chromite.ui.swing;
 
+import com.seizia.chromite.ui.swing.internal.EditorMessages;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
@@ -44,6 +45,7 @@ import java.io.Reader;
  *
  * 변경 이력:
  * - 2026-11-06 최초 작성: 값 패널 (docs/chromite/swing-result-viewer.md "값 패널")
+ * - 2026-11-06 화면 문구를 EditorMessages로 옮김(OS 언어를 따름)
  */
 final class ResultSetCellContent {
 
@@ -116,7 +118,7 @@ final class ResultSetCellContent {
             content = liveContent;
         }
         if (content == null) {
-            throw new DBException("The value was released");
+            throw new DBException(EditorMessages.editor_value_released);
         }
         DBDContentStorage storage = content.getContents(monitor);
         if (storage == null) {
@@ -131,7 +133,7 @@ final class ResultSetCellContent {
                     result = readBytes(storage);
                 }
             } catch (IOException e) {
-                throw new DBException("Can't read the value content", e);
+                throw new DBException(EditorMessages.editor_value_cant_read_content, e);
             }
         }
         loaded = result;

@@ -1,6 +1,7 @@
 /*
  * DBeaver - Universal Database Manager
  * Copyright (C) 2010-2026 DBeaver Corp and others
+ * Modifications Copyright (C) 2026 Chromite contributors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -40,6 +41,12 @@ public class ModelSQLMessages extends NLS {
     public static String model_sql_semantic_symbolClass_DBEAVER_PARAMETER;
     public static String model_sql_semantic_symbolClass_DBEAVER_COMMAND;
     public static String model_sql_semantic_symbolClass_ERROR;
+
+    // Query execution confirmations (com.seizia.chromite.model.sql.exec.SQLQueryExecuteHandler)
+    public static String model_sql_exec_confirm_title;
+    public static String model_sql_exec_confirm_message;
+    public static String model_sql_exec_many_results_title;
+    public static String model_sql_exec_many_results_message;
 
     static {
         // initialize resource bundle

@@ -36,6 +36,7 @@ import java.util.Locale;
  *
  * 변경 이력:
  * - 2026-11-06 최초 작성 (docs/chromite/swing-sql-editor-plus.md)
+ * - 2026-11-06 속성 이름을 번들 지역화(OSGI-INF/l10n/bundle*.properties의 meta 키)로 옮김(OS 언어를 따름)
  */
 public class SQLServerPlanNode extends AbstractExecutionPlanNode implements DBCPlanCostNode {
 
@@ -115,92 +116,92 @@ public class SQLServerPlanNode extends AbstractExecutionPlanNode implements DBCP
 
     @NotNull
     @Override
-    @Property(name = "Operation", order = 1, viewable = true)
+    @Property(order = 1, viewable = true)
     public String getNodeType() {
         return physicalOp;
     }
 
     @Nullable
-    @Property(name = "Logical operation", order = 2, viewable = true)
+    @Property(order = 2, viewable = true)
     public String getLogicalOperation() {
         return logicalOp;
     }
 
     @Nullable
-    @Property(name = "Object", order = 3, viewable = true)
+    @Property(order = 3, viewable = true)
     public String getObjectName() {
         return objectName;
     }
 
     @Nullable
-    @Property(name = "Est. rows", order = 4, viewable = true)
+    @Property(order = 4, viewable = true)
     public Double getEstimatedRows() {
         return estimateRows;
     }
 
     @Nullable
-    @Property(name = "Est. subtree cost", order = 5, viewable = true)
+    @Property(order = 5, viewable = true)
     public Double getSubtreeCost() {
         return subtreeCost;
     }
 
     @Nullable
-    @Property(name = "Cost %", order = 6, viewable = true)
+    @Property(order = 6, viewable = true)
     public Double getCostPercent() {
         return percent == null ? null : Math.round(percent * 10) / 10.0;
     }
 
     @Nullable
-    @Property(name = "Actual rows", order = 7, viewable = true)
+    @Property(order = 7, viewable = true)
     public Long getActualRows() {
         return actualRows;
     }
 
     @Nullable
-    @Property(name = "Actual time (ms)", order = 8, viewable = true)
+    @Property(order = 8, viewable = true)
     public Long getActualElapsedMs() {
         return actualElapsedMs;
     }
 
     @Nullable
-    @Property(name = "Actual executions", order = 9)
+    @Property(order = 9)
     public Long getActualExecutions() {
         return actualExecutions;
     }
 
     @Nullable
-    @Property(name = "Est. CPU cost", order = 10)
+    @Property(order = 10)
     public Double getEstimatedCpu() {
         return estimateCpu;
     }
 
     @Nullable
-    @Property(name = "Est. I/O cost", order = 11)
+    @Property(order = 11)
     public Double getEstimatedIo() {
         return estimateIo;
     }
 
     @Nullable
-    @Property(name = "Node ID", order = 12)
+    @Property(order = 12)
     public Integer getNodeId() {
         return nodeId;
     }
 
     @Nullable
     @Override
-    @Property(name = "Predicate", order = 13)
+    @Property(order = 13)
     public String getNodeCondition() {
         return predicate;
     }
 
     @Nullable
-    @Property(name = "Output list", order = 14)
+    @Property(order = 14)
     public String getOutputList() {
         return outputList;
     }
 
     @Nullable
-    @Property(name = "Statement", order = 15)
+    @Property(order = 15)
     public String getStatementText() {
         return statementText;
     }

@@ -17,6 +17,8 @@
 package com.seizia.chromite.ui.swing;
 
 import com.formdev.flatlaf.FlatClientProperties;
+import com.seizia.chromite.ui.swing.internal.EditorMessages;
+import org.eclipse.osgi.util.NLS;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.utils.CommonUtils;
@@ -39,11 +41,12 @@ import java.util.Map;
  *
  * 변경 이력:
  * - 2026-11-06 최초 작성 (docs/chromite/swing-result-viewer.md "정렬과 필터")
+ * - 2026-11-06 화면 문구를 EditorMessages로 옮김(OS 언어를 따름)
  */
 final class ResultSetFilterBar extends JPanel {
 
     private static final int MAX_HISTORY = 20;
-    private static final String HINT = "Filter: WHERE condition, Enter to apply";
+    private static final String HINT = EditorMessages.editor_filter_hint;
 
     /**
      * Applied filters by query text, newest first (this session).
@@ -111,13 +114,13 @@ final class ResultSetFilterBar extends JPanel {
             }
         });
 
-        applyButton = UiIcons.createActionButton(ResultSetViewerPanel.createAction("Apply Filter", null, this::apply), "check"); //$NON-NLS-1$
-        applyButton.setToolTipText("Apply the filter (Enter)");
-        clearButton = UiIcons.createActionButton(ResultSetViewerPanel.createAction("Clear Filter", null, () -> {
+        applyButton = UiIcons.createActionButton(ResultSetViewerPanel.createAction(EditorMessages.editor_filter_apply, null, this::apply), "check"); //$NON-NLS-1$
+        applyButton.setToolTipText(EditorMessages.editor_filter_apply_tip);
+        clearButton = UiIcons.createActionButton(ResultSetViewerPanel.createAction(EditorMessages.editor_common_clear_filter, null, () -> {
             setText("");
             apply();
         }), "close"); //$NON-NLS-1$
-        clearButton.setToolTipText("Remove the filter");
+        clearButton.setToolTipText(EditorMessages.editor_filter_clear_tip);
 
         JLabel icon = new JLabel(UiIcons.get("filter")); //$NON-NLS-1$
         JPanel buttons = new JPanel(new FlowLayout(FlowLayout.LEFT, 2, 0));
@@ -146,7 +149,7 @@ final class ResultSetFilterBar extends JPanel {
      */
     void setEnabled(boolean canFilter, @Nullable String reason) {
         this.canFilter = canFilter;
-        String tip = canFilter ? null : "Filters are not available: " + CommonUtils.notEmpty(reason);
+        String tip = canFilter ? null : NLS.bind(EditorMessages.editor_filter_not_available, CommonUtils.notEmpty(reason));
         combo.setToolTipText(tip);
         getEditorField().setToolTipText(tip);
         updateEnabled();

@@ -17,6 +17,7 @@
 package com.seizia.chromite.ui.swing;
 
 import com.formdev.flatlaf.FlatClientProperties;
+import com.seizia.chromite.ui.swing.internal.EditorMessages;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 
@@ -52,6 +53,7 @@ import java.util.List;
  *   (docs/chromite/swing-result-viewer.md)
  * - 2026-11-06 결과 뷰어가 다시 읽은 뒤의 행 수({@link #getRowCount()}, {@link Listener#resultsRowsChanged()}): 쿼리 상태 줄이 실행 때 행 수에
  *   머물던 문제 (docs/chromite/swing-result-viewer.md)
+ * - 2026-11-06 화면 문구를 EditorMessages로 옮김(OS 언어를 따름)
  */
 final class QueryResultsView {
 
@@ -114,7 +116,7 @@ final class QueryResultsView {
 
     QueryResultsView(@NotNull Listener listener) {
         this.listener = listener;
-        placeholder = new JLabel("No results.", SwingConstants.CENTER);
+        placeholder = new JLabel(EditorMessages.editor_results_none, SwingConstants.CENTER);
         placeholder.putClientProperty(FlatClientProperties.STYLE, "foreground: $Label.disabledForeground"); //$NON-NLS-1$
         resultsComponent = new JScrollPane(gridStack);
         resultsComponent.setBorder(BorderFactory.createEmptyBorder());

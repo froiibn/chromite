@@ -17,6 +17,8 @@
 package com.seizia.chromite.ui.swing;
 
 import com.formdev.flatlaf.util.UIScale;
+import com.seizia.chromite.ui.swing.internal.EditorMessages;
+import org.eclipse.osgi.util.NLS;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.model.DBPDataSource;
@@ -56,6 +58,7 @@ import java.awt.*;
  * - 2026-11-06 커서 위치(Ln, Col) 칸 (docs/chromite/swing-sql-editor-plus.md)
  * - 2026-11-06 고급 연결 설정: 바탕을 연결 색으로 칠함 (docs/chromite/swing-conn-advanced.md)
  * - 2026-11-06 띠 위 글자가 읽히지 않으면 대비 색 (docs/chromite/swing-registered-servers.md "연결 색 알약")
+ * - 2026-11-06 화면 문구를 EditorMessages로 옮김(OS 언어를 따름)
  */
 final class QueryStatusLine extends JPanel {
 
@@ -104,7 +107,7 @@ final class QueryStatusLine extends JPanel {
         segments.add(caretLabel);
         add(stateLabel, BorderLayout.CENTER);
         add(segments, BorderLayout.EAST);
-        setState(State.READY, "Ready");
+        setState(State.READY, EditorMessages.editor_status_ready);
         setElapsed(null);
         setRows(null);
     }
@@ -149,12 +152,12 @@ final class QueryStatusLine extends JPanel {
     void setConnection(@Nullable DBPDataSourceContainer container) {
         this.container = container;
         if (container == null) {
-            setSegment(serverLabel, "not connected", null);
+            setSegment(serverLabel, EditorMessages.editor_common_not_connected, null);
             setSegment(userLabel, null, null);
         } else {
             DBPConnectionConfiguration configuration = container.getConnectionConfiguration();
             setSegment(serverLabel, describeServer(container), describeServerDetails(container));
-            setSegment(userLabel, CommonUtils.nullIfEmpty(configuration.getUserName()), "User");
+            setSegment(userLabel, CommonUtils.nullIfEmpty(configuration.getUserName()), EditorMessages.editor_status_user);
         }
         applyConnectionColor();
         updateStateIcon();
@@ -164,22 +167,22 @@ final class QueryStatusLine extends JPanel {
      * Default database/schema of the connection, or null when unknown.
      */
     void setDatabase(@Nullable String name) {
-        setSegment(databaseLabel, name, "Database/schema");
+        setSegment(databaseLabel, name, EditorMessages.editor_status_database);
     }
 
     void setElapsed(@Nullable String elapsed) {
-        setSegment(elapsedLabel, elapsed, "Elapsed time");
+        setSegment(elapsedLabel, elapsed, EditorMessages.editor_status_elapsed);
     }
 
     void setRows(@Nullable String rows) {
-        setSegment(rowsLabel, rows, "Rows fetched");
+        setSegment(rowsLabel, rows, EditorMessages.editor_status_rows);
     }
 
     /**
      * Caret line and column (one-based), or negative values to hide them.
      */
     void setCaret(int line, int column) {
-        setSegment(caretLabel, line < 0 ? null : "Ln " + line + ", Col " + column, "Caret position");
+        setSegment(caretLabel, line < 0 ? null : NLS.bind(EditorMessages.editor_status_caret, line, column), EditorMessages.editor_status_caret_tip);
     }
 
     /**

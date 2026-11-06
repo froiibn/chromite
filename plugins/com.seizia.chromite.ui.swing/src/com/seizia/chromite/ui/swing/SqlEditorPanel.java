@@ -22,11 +22,13 @@ import com.seizia.chromite.model.sql.exec.SQLActualPlanProvider;
 import com.seizia.chromite.model.sql.exec.SQLQueryExecuteHandler;
 import com.seizia.chromite.model.sql.exec.SQLQueryExecuteJob;
 import com.seizia.chromite.model.sql.exec.SQLScriptBatches;
+import com.seizia.chromite.ui.swing.internal.EditorMessages;
 import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.Status;
 import org.eclipse.core.runtime.jobs.IJobChangeEvent;
 import org.eclipse.core.runtime.jobs.Job;
 import org.eclipse.core.runtime.jobs.JobChangeAdapter;
+import org.eclipse.osgi.util.NLS;
 import org.fife.ui.rsyntaxtextarea.RSyntaxDocument;
 import org.fife.ui.rsyntaxtextarea.RSyntaxTextArea;
 import org.fife.ui.rsyntaxtextarea.RSyntaxUtilities;
@@ -175,6 +177,7 @@ import java.util.concurrent.atomic.AtomicLong;
  *   {@code SQLQueryExecuteJob#isCanceledByUser}로 취소 상태를 보임 (docs/chromite/swing-sql-editor-plus.md "매개변수")
  * - 2026-11-06 결과 표를 필터·정렬·다음 페이지로 다시 읽은 뒤 상태 줄 행 수를 지금 보이는 행으로 바꿈 (docs/chromite/swing-result-viewer.md)
  * - 2026-11-06 Query Library의 바인딩한 실행을 Query History에 값을 넣은 글자로 기록 (docs/chromite/swing-query-library.md "매개변수 바인딩")
+ * - 2026-11-06 화면 문구를 EditorMessages로 옮김(OS 언어를 따름)
  */
 final class SqlEditorPanel extends JPanel {
 
@@ -247,14 +250,14 @@ final class SqlEditorPanel extends JPanel {
             // A grid was read again after the run (filter, sort, more rows): the rows it shows now, as the grid's own status
             if (execution == null) {
                 long rows = resultsView.getRowCount();
-                statusLine.setRows(rows + (rows == 1 ? " row" : " rows"));
+                statusLine.setRows(NLS.bind(rows == 1 ? EditorMessages.editor_sql_rows_one : EditorMessages.editor_sql_rows_many, rows));
             }
         }
     });
     private final Action executeAction;
     private final Action cancelAction;
     private final Action estimatedPlanAction;
-    private final JToggleButton actualPlanButton = new JToggleButton("Actual Plan");
+    private final JToggleButton actualPlanButton = new JToggleButton(EditorMessages.editor_sql_actual_plan);
     private final ExecutionPlanView planView = new ExecutionPlanView();
     // EDT only
     private boolean explaining;
@@ -279,29 +282,29 @@ final class SqlEditorPanel extends JPanel {
         this.fileFormat = SqlFileContent.newFile("");
         this.host = host;
 
-        executeAction = new AbstractAction("Execute") {
+        executeAction = new AbstractAction(EditorMessages.editor_common_execute) {
             @Override
             public void actionPerformed(ActionEvent e) {
                 execute();
             }
         };
-        executeAction.putValue(Action.SHORT_DESCRIPTION, "Execute the selection, or the whole script without a selection (F5)");
-        cancelAction = new AbstractAction("Cancel") {
+        executeAction.putValue(Action.SHORT_DESCRIPTION, EditorMessages.editor_sql_execute_tip);
+        cancelAction = new AbstractAction(EditorMessages.editor_sql_cancel) {
             @Override
             public void actionPerformed(ActionEvent e) {
                 cancel();
             }
         };
-        cancelAction.putValue(Action.SHORT_DESCRIPTION, "Cancel the executing query");
+        cancelAction.putValue(Action.SHORT_DESCRIPTION, EditorMessages.editor_sql_cancel_tip);
         cancelAction.setEnabled(false);
-        estimatedPlanAction = new AbstractAction("Display Estimated Execution Plan") {
+        estimatedPlanAction = new AbstractAction(EditorMessages.editor_sql_estimated_plan) {
             @Override
             public void actionPerformed(ActionEvent e) {
                 explainEstimatedPlan();
             }
         };
-        estimatedPlanAction.putValue(Action.SHORT_DESCRIPTION, "Display the estimated execution plan of the selection, or of the whole script (Ctrl+L)");
-        actualPlanButton.setToolTipText("Include the actual execution plan when executing (Ctrl+M)");
+        estimatedPlanAction.putValue(Action.SHORT_DESCRIPTION, EditorMessages.editor_sql_estimated_plan_tip);
+        actualPlanButton.setToolTipText(EditorMessages.editor_sql_actual_plan_tip);
         actualPlanButton.setIcon(UiIcons.get("plan")); //$NON-NLS-1$
         actualPlanButton.putClientProperty(FlatClientProperties.BUTTON_TYPE, FlatClientProperties.BUTTON_TYPE_TOOLBAR_BUTTON);
         actualPlanButton.putClientProperty(FlatClientProperties.STYLE, "arc: 6"); //$NON-NLS-1$
@@ -351,7 +354,7 @@ final class SqlEditorPanel extends JPanel {
      */
     @NotNull
     String getTitle() {
-        return fileName + " - " + (dataSourceContainer != null ? dataSourceContainer.getName() : "not connected") + (dirty ? "*" : "");
+        return fileName + " - " + (dataSourceContainer != null ? dataSourceContainer.getName() : EditorMessages.editor_common_not_connected) + (dirty ? "*" : "");
     }
 
     /**
@@ -359,9 +362,9 @@ final class SqlEditorPanel extends JPanel {
      */
     @NotNull
     String getToolTip() {
-        String location = file != null ? file.toString() : fileName + " (not saved)";
-        String connection = dataSourceContainer == null ? "Not connected"
-            : "Connection: " + dataSourceContainer.getName() + " - " + QueryStatusLine.describeServerDetails(dataSourceContainer);
+        String location = file != null ? file.toString() : NLS.bind(EditorMessages.editor_sql_tip_not_saved, fileName);
+        String connection = dataSourceContainer == null ? EditorMessages.editor_sql_tip_not_connected
+            : NLS.bind(EditorMessages.editor_sql_tip_connection, dataSourceContainer.getName(), QueryStatusLine.describeServerDetails(dataSourceContainer));
         return "<html>" + CommonUtils.escapeHtml(location) + "<br>" + CommonUtils.escapeHtml(connection) + "</html>"; //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$
     }
 
@@ -511,7 +514,7 @@ final class SqlEditorPanel extends JPanel {
     void setIncludeActualPlan(boolean include) {
         actualPlanButton.setSelected(include);
         statusLine.setState(QueryStatusLine.State.READY, include
-            ? "The actual execution plan will be included when executing." : "The actual execution plan will not be included.");
+            ? EditorMessages.editor_sql_actual_plan_on : EditorMessages.editor_sql_actual_plan_off);
     }
 
     boolean isExplaining() {
@@ -626,13 +629,13 @@ final class SqlEditorPanel extends JPanel {
         toolBar.add(actualPlanButton);
         toolBar.addSeparator();
 
-        connectionCombo.setToolTipText("Connection of this query window");
+        connectionCombo.setToolTipText(EditorMessages.editor_sql_connection_tip);
         connectionCombo.setRenderer(new ConnectionRenderer());
         setFixedWidth(connectionCombo, 260);
         connectionCombo.addActionListener(e -> {
             if (!updatingCombos && connectionCombo.getSelectedItem() instanceof DBPDataSourceContainer selected && selected != dataSourceContainer) {
                 dataSourceContainer = selected;
-                statusLine.setState(QueryStatusLine.State.READY, "Ready");
+                statusLine.setState(QueryStatusLine.State.READY, EditorMessages.editor_status_ready);
                 statusLine.setConnection(selected);
                 host.titleChanged(this);
                 refreshSchemas();
@@ -656,7 +659,7 @@ final class SqlEditorPanel extends JPanel {
         toolBar.add(connectionCombo);
         toolBar.addSeparator();
 
-        schemaCombo.setToolTipText("Default database/schema of the connection (shared by its query windows)");
+        schemaCombo.setToolTipText(EditorMessages.editor_sql_schema_tip);
         schemaCombo.setRenderer(new SchemaRenderer());
         setFixedWidth(schemaCombo, 200);
         schemaCombo.addActionListener(e -> {
@@ -687,7 +690,7 @@ final class SqlEditorPanel extends JPanel {
             return;
         }
         if (resultsView.isSaving()) {
-            statusLine.setState(QueryStatusLine.State.READY, "Saving result changes…");
+            statusLine.setState(QueryStatusLine.State.READY, EditorMessages.editor_sql_saving_changes);
             return;
         }
         String text = textArea.getText();
@@ -700,22 +703,22 @@ final class SqlEditorPanel extends JPanel {
             length = selectionEnd - selectionStart;
         }
         if (text.substring(offset, offset + length).isBlank()) {
-            statusLine.setState(QueryStatusLine.State.READY, "Nothing to execute");
+            statusLine.setState(QueryStatusLine.State.READY, EditorMessages.editor_sql_nothing_to_execute);
             return;
         }
         DBPDataSourceContainer container = dataSourceContainer;
         if (container == null) {
-            JOptionPane.showMessageDialog(this, "Choose a connection for this query window in its tool bar first.",
-                "Execute", JOptionPane.INFORMATION_MESSAGE);
+            JOptionPane.showMessageDialog(this, EditorMessages.editor_sql_choose_connection,
+                EditorMessages.editor_common_execute, JOptionPane.INFORMATION_MESSAGE);
             return;
         }
         int pendingChanges = resultsView.getChangeCount();
         if (pendingChanges > 0) {
-            String[] options = {"Discard and Execute", "Cancel"};
+            String[] options = {EditorMessages.editor_sql_discard_and_execute, EditorMessages.editor_common_cancel};
             if (JOptionPane.showOptionDialog(this,
-                "The results have " + pendingChanges + (pendingChanges == 1 ? " unsaved change" : " unsaved changes")
-                    + ".\nExecuting the query replaces them. Discard the changes?",
-                "Execute", JOptionPane.OK_CANCEL_OPTION, JOptionPane.WARNING_MESSAGE, null, options, options[1]) != 0) {
+                NLS.bind(pendingChanges == 1 ? EditorMessages.editor_sql_discard_confirm_one : EditorMessages.editor_sql_discard_confirm_many,
+                    pendingChanges),
+                EditorMessages.editor_common_execute, JOptionPane.OK_CANCEL_OPTION, JOptionPane.WARNING_MESSAGE, null, options, options[1]) != 0) {
                 return;
             }
         }
@@ -736,9 +739,9 @@ final class SqlEditorPanel extends JPanel {
         execution = run;
         resultsView.clear();
         if (run.includeActualPlan) {
-            planView.clear("Waiting for the actual execution plan…");
+            planView.clear(EditorMessages.editor_sql_waiting_actual_plan);
         }
-        statusLine.setState(QueryStatusLine.State.EXECUTING, container.isConnected() ? "Executing query…" : "Connecting…");
+        statusLine.setState(QueryStatusLine.State.EXECUTING, container.isConnected() ? EditorMessages.editor_sql_executing : EditorMessages.editor_sql_connecting);
         statusLine.setElapsed(formatElapsed(0, false));
         statusLine.setRows(null);
         elapsedTimer.start();
@@ -773,7 +776,7 @@ final class SqlEditorPanel extends JPanel {
                 run.job.cancel();
             }
         }
-        statusLine.setState(QueryStatusLine.State.EXECUTING, "Canceling…");
+        statusLine.setState(QueryStatusLine.State.EXECUTING, EditorMessages.editor_sql_canceling);
         cancelAction.setEnabled(false);
     }
 
@@ -805,23 +808,23 @@ final class SqlEditorPanel extends JPanel {
         }
         boolean canceled = run.cancelRequested || status.getSeverity() == IStatus.CANCEL;
         if (canceled) {
-            resultsView.appendMessage("Query was canceled by user.");
+            resultsView.appendMessage(EditorMessages.editor_sql_canceled_by_user);
         }
         resultsView.appendMessage("");
-        resultsView.appendMessage("Completion time: " + OffsetDateTime.now().format(COMPLETION_TIME_FORMAT));
+        resultsView.appendMessage(NLS.bind(EditorMessages.editor_sql_completion_time, OffsetDateTime.now().format(COMPLETION_TIME_FORMAT)));
 
         if (run.hasErrors) {
-            statusLine.setState(QueryStatusLine.State.ERROR, "Query completed with errors.");
+            statusLine.setState(QueryStatusLine.State.ERROR, EditorMessages.editor_sql_completed_with_errors);
         } else if (canceled) {
-            statusLine.setState(QueryStatusLine.State.CANCELED, "Query was canceled.");
+            statusLine.setState(QueryStatusLine.State.CANCELED, EditorMessages.editor_sql_query_canceled);
         } else {
-            statusLine.setState(QueryStatusLine.State.SUCCESS, "Query executed successfully.");
+            statusLine.setState(QueryStatusLine.State.SUCCESS, EditorMessages.editor_sql_executed_successfully);
         }
         // The run may have connected: server version and the connected icon
         statusLine.setConnection(run.dataSourceContainer);
         statusLine.setElapsed(formatElapsed(elapsed, true));
         long rows = run.rowsFetched.get();
-        statusLine.setRows(rows + (rows == 1 ? " row" : " rows"));
+        statusLine.setRows(NLS.bind(rows == 1 ? EditorMessages.editor_sql_rows_one : EditorMessages.editor_sql_rows_many, rows));
         updateActions();
         // As in SSMS: errors (or no result grids at all) bring the Messages tab to the front
         host.showResults(this, run.hasErrors || resultsView.getGridCount() == 0);
@@ -840,27 +843,27 @@ final class SqlEditorPanel extends JPanel {
         }
         if (!run.planChecked) {
             // The run stopped before it reached the connection
-            planView.clear("No actual execution plan: the query did not run.");
+            planView.clear(EditorMessages.editor_sql_plan_did_not_run);
             return;
         }
         if (run.actualPlanProvider != null) {
             if (!planView.hasContent()) {
-                planView.clear(canceled ? "No actual execution plan: the query was canceled." : "The server returned no actual execution plan.");
+                planView.clear(canceled ? EditorMessages.editor_sql_plan_canceled : EditorMessages.editor_sql_plan_none_returned);
             }
             return;
         }
         if (run.planner == null || run.context == null) {
-            planView.clear("This connection does not provide execution plans.");
+            planView.clear(EditorMessages.editor_sql_no_plans);
             return;
         }
         if (canceled || run.actualPlanQueries.isEmpty()) {
-            planView.clear(canceled ? "No actual execution plan: the query was canceled."
-                : "On this connection the actual execution plan is made for SELECT statements that succeeded.");
+            planView.clear(canceled ? EditorMessages.editor_sql_plan_canceled
+                : EditorMessages.editor_sql_actual_plan_select_only);
             return;
         }
         explaining = true;
         updateActions();
-        planView.clear("Making the actual execution plan…");
+        planView.clear(EditorMessages.editor_sql_making_actual_plan);
         SqlPlanExplainer.explain(run.context, run.planner, List.copyOf(run.actualPlanQueries), true, planView::addEntry, () -> {
             explaining = false;
             updateActions();
@@ -882,18 +885,18 @@ final class SqlEditorPanel extends JPanel {
             length = textArea.getSelectionEnd() - offset;
         }
         if (text.substring(offset, offset + length).isBlank()) {
-            statusLine.setState(QueryStatusLine.State.READY, "Nothing to explain");
+            statusLine.setState(QueryStatusLine.State.READY, EditorMessages.editor_sql_nothing_to_explain);
             return;
         }
         DBPDataSourceContainer container = dataSourceContainer;
         if (container == null) {
-            JOptionPane.showMessageDialog(this, "Choose a connection for this query window in its tool bar first.",
-                "Display Estimated Execution Plan", JOptionPane.INFORMATION_MESSAGE);
+            JOptionPane.showMessageDialog(this, EditorMessages.editor_sql_choose_connection,
+                EditorMessages.editor_sql_estimated_plan, JOptionPane.INFORMATION_MESSAGE);
             return;
         }
         explaining = true;
         updateActions();
-        planView.clear(container.isConnected() ? "Making the estimated execution plan…" : "Connecting…");
+        planView.clear(container.isConnected() ? EditorMessages.editor_sql_making_estimated_plan : EditorMessages.editor_sql_connecting);
         planTabSelected = true;
         host.showPlan(this);
         int finalOffset = offset;
@@ -911,9 +914,9 @@ final class SqlEditorPanel extends JPanel {
                     DBCQueryPlanner planner = SqlPlanExplainer.getPlanner(container.isConnected() ? dataSource : null);
                     DBCExecutionContext context = dataSource == null ? null : DBUtils.getDefaultContext(dataSource.getDefaultInstance(), false);
                     if (dataSource == null || context == null) {
-                        problem = "Not connected to '" + container.getName() + "'.";
+                        problem = NLS.bind(EditorMessages.editor_sql_not_connected_to, container.getName());
                     } else if (planner == null) {
-                        problem = "This connection does not provide execution plans.";
+                        problem = EditorMessages.editor_sql_no_plans;
                     } else {
                         List<SQLQuery> queries = new ArrayList<>();
                         for (SQLScriptElement element : SQLScriptBatches.extractQueries(dataSource, text, finalOffset, finalLength)) {
@@ -922,10 +925,10 @@ final class SqlEditorPanel extends JPanel {
                             }
                         }
                         if (queries.isEmpty()) {
-                            problem = "No statements to explain.";
+                            problem = EditorMessages.editor_sql_no_statements;
                         } else {
                             SwingUtilities.invokeLater(() -> {
-                                planView.clear("Making the estimated execution plan…");
+                                planView.clear(EditorMessages.editor_sql_making_estimated_plan);
                                 statusLine.setConnection(container);
                             });
                             SqlPlanExplainer.explain(context, planner, queries, false, planView::addEntry, () -> {
@@ -963,12 +966,12 @@ final class SqlEditorPanel extends JPanel {
             DBPDataSource dataSource = container.getDataSource();
             if (dataSource == null || !container.isConnected()) {
                 stopPreparation(run, run.cancelRequested ? Status.CANCEL_STATUS
-                    : errorStatus("Not connected to '" + container.getName() + "'"));
+                    : errorStatus(NLS.bind(EditorMessages.editor_sql_not_connected_to_short, container.getName())));
                 return;
             }
             DBCExecutionContext context = DBUtils.getDefaultContext(dataSource.getDefaultInstance(), false);
             if (context == null) {
-                stopPreparation(run, errorStatus("No execution context for '" + container.getName() + "'"));
+                stopPreparation(run, errorStatus(NLS.bind(EditorMessages.editor_sql_no_context, container.getName())));
                 return;
             }
             List<SQLScriptElement> elements = run.binding.prepare(monitor, context,
@@ -1009,7 +1012,7 @@ final class SqlEditorPanel extends JPanel {
                 run.job = job;
                 job.schedule();
             }
-            post(run, () -> statusLine.setState(QueryStatusLine.State.EXECUTING, "Executing query…"));
+            post(run, () -> statusLine.setState(QueryStatusLine.State.EXECUTING, EditorMessages.editor_sql_executing));
         } catch (Throwable e) {
             log.debug("Query preparation failed", e);
             stopPreparation(run, errorStatus(CommonUtils.getAllExceptionMessages(e)));
@@ -1034,7 +1037,7 @@ final class SqlEditorPanel extends JPanel {
                 run.actualPlanProvider = provider;
             } catch (Throwable e) {
                 log.debug("Can't turn the actual plan on", e);
-                post(run, () -> resultsView.appendError("Can't include the actual execution plan: " + CommonUtils.getAllExceptionMessages(e)));
+                post(run, () -> resultsView.appendError(NLS.bind(EditorMessages.editor_sql_cant_include_actual_plan, CommonUtils.getAllExceptionMessages(e))));
             }
         } else {
             run.planner = SqlPlanExplainer.getPlanner(dataSource);
@@ -1118,17 +1121,17 @@ final class SqlEditorPanel extends JPanel {
                     continue;
                 }
                 anyCount = true;
-                String line = "(" + count + (count == 1 ? " row affected)" : " rows affected)");
+                String line = NLS.bind(count == 1 ? EditorMessages.editor_sql_rows_affected_one : EditorMessages.editor_sql_rows_affected_many, count);
                 if (executeResult.isResultSet() && run.maxRows > 0 && count >= run.maxRows) {
-                    line += " - fetching stopped at the maximum of " + run.maxRows + " rows";
+                    line = NLS.bind(EditorMessages.editor_sql_rows_affected_max, line, run.maxRows);
                 }
                 messages.add(line);
             }
             if (!anyCount && !run.cancelRequested) {
                 // A canceled statement ends without an error and without counts; it did not complete
-                messages.add("Commands completed successfully.");
+                messages.add(EditorMessages.editor_sql_commands_completed);
             }
-            messages.add("Execution time: " + result.getQueryTime() + " ms");
+            messages.add(NLS.bind(EditorMessages.editor_sql_execution_time, result.getQueryTime()));
         } else {
             run.hasErrors = true;
             errorText = describeError(run, session, result.getStatement(), error);
@@ -1181,17 +1184,17 @@ final class SqlEditorPanel extends JPanel {
         StringBuilder header = new StringBuilder();
         SQLException sqlException = findSqlException(error);
         if (sqlException != null) {
-            header.append("Msg ").append(sqlException.getErrorCode());
+            header.append(NLS.bind(EditorMessages.editor_sql_error_msg, sqlException.getErrorCode()));
             if (!CommonUtils.isEmpty(sqlException.getSQLState())) {
-                header.append(", State ").append(sqlException.getSQLState());
+                header.append(NLS.bind(EditorMessages.editor_sql_error_state, sqlException.getSQLState()));
             }
             header.append(", ");
         } else {
-            header.append("Error, ");
+            header.append(EditorMessages.editor_sql_error_generic);
         }
-        header.append("Line ").append(line);
+        header.append(NLS.bind(EditorMessages.editor_sql_error_line, line));
         if (column > 0) {
-            header.append(", Column ").append(column);
+            header.append(NLS.bind(EditorMessages.editor_sql_error_column, column));
         }
         return header + "\n" + CommonUtils.getAllExceptionMessages(error);
     }
@@ -1316,13 +1319,13 @@ final class SqlEditorPanel extends JPanel {
             // Natively bound values (Query Library) exist only in this run's handler; the data container would send the
             // query's "?" markers without them, so the result is not read again (Export Data, filters, next pages)
             boolean boundParameters = run.binding.isBound(query);
-            return new ResultSetGridReceiver(dataContainer, boundParameters ? "parameter values bound for this run only" : null, fetched -> {
+            return new ResultSetGridReceiver(dataContainer, boundParameters ? EditorMessages.editor_sql_bound_parameters : null, fetched -> {
                 run.rowsFetched.addAndGet(fetched.data().rows().size());
                 // Only a query's first result set can be read again on its own (Export Data); receivers are called in order
                 boolean exportable = !boundParameters && gridQueries.add(query);
                 post(run, () -> {
                     resultsView.addGrid(exportable ? fetched.withExportQuery(dataContainer) : fetched);
-                    statusLine.setRows(run.rowsFetched.get() + " rows");
+                    statusLine.setRows(NLS.bind(EditorMessages.editor_sql_rows_many, run.rowsFetched.get()));
                     host.showResults(SqlEditorPanel.this, false);
                 });
             });
@@ -1587,8 +1590,8 @@ final class SqlEditorPanel extends JPanel {
                     DBExecUtils.setExecutionContextDefaults(monitor, state.dataSource(), state.context(),
                         newCatalogName, currentCatalogName, newSchemaName);
                 } catch (DBException e) {
-                    DBWorkbench.getPlatformUI().showError("Change default schema",
-                        "Can't make '" + object.getName() + "' the default", e);
+                    DBWorkbench.getPlatformUI().showError(EditorMessages.editor_sql_change_schema_title,
+                        NLS.bind(EditorMessages.editor_sql_change_schema_error, object.getName()), e);
                 }
                 SwingUtilities.invokeLater(SqlEditorPanel.this::refreshSchemas);
                 return Status.OK_STATUS;
@@ -1617,7 +1620,7 @@ final class SqlEditorPanel extends JPanel {
                 setText(container.getName());
                 setIcon(NodeIcons.getIcon(container.getDriver().getIcon()));
             } else {
-                setText("<Select connection>");
+                setText(EditorMessages.editor_sql_select_connection);
                 setIcon(null);
             }
             return this;

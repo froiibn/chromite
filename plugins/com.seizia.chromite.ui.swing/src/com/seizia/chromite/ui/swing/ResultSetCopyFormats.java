@@ -16,6 +16,7 @@
  */
 package com.seizia.chromite.ui.swing;
 
+import com.seizia.chromite.ui.swing.internal.EditorMessages;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.model.DBPDataSource;
@@ -37,14 +38,15 @@ import java.util.function.Supplier;
  *
  * 변경 이력:
  * - 2026-11-06 최초 작성 (docs/chromite/swing-result-viewer.md "표 편의 기능")
+ * - 2026-11-06 화면 문구를 EditorMessages로 옮김(OS 언어를 따름)
  */
 final class ResultSetCopyFormats {
 
     enum Format {
         CSV("CSV"),
-        TSV("TSV (with headers)"),
-        MARKDOWN("Markdown Table"),
-        SQL_IN("SQL IN List");
+        TSV(EditorMessages.editor_copy_tsv),
+        MARKDOWN(EditorMessages.editor_copy_markdown),
+        SQL_IN(EditorMessages.editor_copy_sql_in);
 
         private final String label;
 
@@ -62,7 +64,7 @@ final class ResultSetCopyFormats {
         @NotNull Supplier<ResultSetGrid.Data> data,
         @NotNull Supplier<DBPDataSource> dataSource
     ) {
-        JMenu menu = new JMenu("Copy As");
+        JMenu menu = new JMenu(EditorMessages.editor_copy_as);
         for (Format format : Format.values()) {
             menu.add(ResultSetViewerPanel.createAction(format.label, null, () -> {
                 if (table.getSelectedRowCount() > 0 && table.getSelectedColumnCount() > 0) {

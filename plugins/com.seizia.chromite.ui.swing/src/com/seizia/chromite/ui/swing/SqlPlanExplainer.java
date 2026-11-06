@@ -16,6 +16,7 @@
  */
 package com.seizia.chromite.ui.swing;
 
+import com.seizia.chromite.ui.swing.internal.EditorMessages;
 import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.Status;
 import org.jkiss.code.NotNull;
@@ -57,6 +58,7 @@ import java.util.function.Consumer;
  *
  * 변경 이력:
  * - 2026-11-06 최초 작성 (docs/chromite/swing-sql-editor-plus.md)
+ * - 2026-11-06 화면 문구를 EditorMessages로 옮김(OS 언어를 따름)
  */
 final class SqlPlanExplainer {
 
@@ -136,7 +138,7 @@ final class SqlPlanExplainer {
         }
         if (plan[0] == null) {
             // tryExecuteRecover returns without an error when it was interrupted
-            return new ExecutionPlanView.Entry(query, null, "Canceled", analyze);
+            return new ExecutionPlanView.Entry(query, null, EditorMessages.editor_plan_canceled, analyze);
         }
         return new ExecutionPlanView.Entry(query, plan[0], null, analyze && isActual(plan[0]));
     }

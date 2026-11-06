@@ -17,6 +17,7 @@
 package com.seizia.chromite.ui.swing;
 
 import com.formdev.flatlaf.FlatClientProperties;
+import com.seizia.chromite.ui.swing.internal.EditorMessages;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.Log;
@@ -54,6 +55,7 @@ import java.util.function.Supplier;
  *
  * 변경 이력:
  * - 2026-11-06 최초 작성 (docs/chromite/swing-sql-editor-plus.md)
+ * - 2026-11-06 화면 문구를 EditorMessages로 옮김(OS 언어를 따름)
  */
 final class SqlParameterDialog extends JDialog {
 
@@ -70,7 +72,7 @@ final class SqlParameterDialog extends JDialog {
     private Result result = Result.CANCEL;
 
     private SqlParameterDialog(@Nullable Window owner, @NotNull SQLQuery query, @NotNull List<SQLQueryParameter> parameters) {
-        super(owner, "Bind Parameters", ModalityType.APPLICATION_MODAL);
+        super(owner, EditorMessages.editor_param_title, ModalityType.APPLICATION_MODAL);
         setDefaultCloseOperation(DISPOSE_ON_CLOSE);
 
         // Parameters with the same name are one row; rows in the order the names first appear
@@ -103,7 +105,7 @@ final class SqlParameterDialog extends JDialog {
 
             @Override
             public String getColumnName(int column) {
-                return column == 0 ? "Name" : "Value";
+                return column == 0 ? EditorMessages.editor_common_name : EditorMessages.editor_common_value;
             }
 
             @Override
@@ -135,15 +137,15 @@ final class SqlParameterDialog extends JDialog {
         queryText.applyTheme();
         queryScroll.setPreferredSize(new Dimension(480, 110));
 
-        JLabel hint = new JLabel("Values are inserted into the query as SQL text: quote strings, e.g. 'abc'.");
+        JLabel hint = new JLabel(EditorMessages.editor_param_hint);
         hint.putClientProperty(FlatClientProperties.STYLE, "foreground: $Chromite.secondaryForeground"); //$NON-NLS-1$
 
-        JButton executeButton = new JButton("Execute");
+        JButton executeButton = new JButton(EditorMessages.editor_common_execute);
         executeButton.addActionListener(e -> close(Result.EXECUTE));
-        JButton ignoreButton = new JButton("Ignore");
-        ignoreButton.setToolTipText("Execute the script without binding parameters");
+        JButton ignoreButton = new JButton(EditorMessages.editor_param_ignore);
+        ignoreButton.setToolTipText(EditorMessages.editor_param_ignore_tip);
         ignoreButton.addActionListener(e -> close(Result.IGNORE));
-        JButton cancelButton = new JButton("Cancel");
+        JButton cancelButton = new JButton(EditorMessages.editor_common_cancel);
         cancelButton.addActionListener(e -> close(Result.CANCEL));
         JPanel buttons = new JPanel(new FlowLayout(FlowLayout.RIGHT, 6, 0));
         buttons.add(executeButton);

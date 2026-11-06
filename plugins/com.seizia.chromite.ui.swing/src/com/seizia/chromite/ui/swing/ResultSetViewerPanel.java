@@ -17,8 +17,10 @@
 package com.seizia.chromite.ui.swing;
 
 import com.formdev.flatlaf.FlatClientProperties;
+import com.seizia.chromite.ui.swing.internal.EditorMessages;
 import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.Status;
+import org.eclipse.osgi.util.NLS;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.Log;
@@ -96,6 +98,7 @@ import java.util.function.Consumer;
  *   (docs/chromite/swing-data-transfer.md)
  * - 2026-11-06 다시 읽기·다음 페이지 뒤 행 수를 알림({@link ResultSetGrid.Host#rowsChanged}): 쿼리 상태 줄이 실행 때 행 수에 머물던 문제
  *   (docs/chromite/swing-result-viewer.md)
+ * - 2026-11-06 화면 문구를 EditorMessages로 옮김(OS 언어를 따름)
  */
 final class ResultSetViewerPanel extends JPanel {
 
@@ -200,7 +203,7 @@ final class ResultSetViewerPanel extends JPanel {
                 // The rows as the server read them (SWT ResultSetHandlerMain passes the model's data filter); a sort done in
                 // the grid only can't be passed on
                 String orderNote = clientOrdered && dataFilter.hasOrdering()
-                    ? "The grid was sorted in the grid only: the exported rows keep the order in which the query returns them."
+                    ? EditorMessages.editor_viewer_order_note
                     : null;
                 DataExportWizard.openForQuery(parent, query, serverFilter, orderNote);
             }
@@ -226,21 +229,21 @@ final class ResultSetViewerPanel extends JPanel {
         valuePanel = new ResultSetValuePanel();
         recordView = new ResultSetRecordView(new RecordSource());
 
-        Action toggleValuePanel = createAction("Value Panel", KeyStroke.getKeyStroke(KeyEvent.VK_F7, 0), () -> setValuePanelShown(!valuePanelShown));
-        toggleValuePanel.putValue(Action.SHORT_DESCRIPTION, "Show the value of the selected cell beside the grid (F7)");
+        Action toggleValuePanel = createAction(EditorMessages.editor_viewer_value_panel, KeyStroke.getKeyStroke(KeyEvent.VK_F7, 0), () -> setValuePanelShown(!valuePanelShown));
+        toggleValuePanel.putValue(Action.SHORT_DESCRIPTION, EditorMessages.editor_viewer_value_panel_tip);
         valuePanelToggle = createToggle(toggleValuePanel);
-        Action toggleRecord = createAction("Record", null, () -> setRecordMode(!isRecordMode()));
-        toggleRecord.putValue(Action.SHORT_DESCRIPTION, "Show the selected row as a record (one column per line)");
+        Action toggleRecord = createAction(EditorMessages.editor_viewer_record, null, () -> setRecordMode(!isRecordMode()));
+        toggleRecord.putValue(Action.SHORT_DESCRIPTION, EditorMessages.editor_viewer_record_tip);
         recordToggle = createToggle(toggleRecord);
         filterBar.addTrailing(valuePanelToggle);
         filterBar.addTrailing(recordToggle);
         getInputMap(WHEN_ANCESTOR_OF_FOCUSED_COMPONENT).put((KeyStroke) toggleValuePanel.getValue(Action.ACCELERATOR_KEY), "chromite.toggleValuePanel"); //$NON-NLS-1$
         getActionMap().put("chromite.toggleValuePanel", toggleValuePanel); //$NON-NLS-1$
 
-        Action fetchNext = createAction("Fetch next", null, () -> readNextSegment(false));
+        Action fetchNext = createAction(EditorMessages.editor_viewer_fetch_next, null, () -> readNextSegment(false));
         fetchNextButton = createLinkButton(fetchNext);
-        Action fetchAll = createAction("Fetch all", null, this::readAllData);
-        fetchAll.putValue(Action.SHORT_DESCRIPTION, "Read all remaining rows of the query");
+        Action fetchAll = createAction(EditorMessages.editor_viewer_fetch_all, null, this::readAllData);
+        fetchAll.putValue(Action.SHORT_DESCRIPTION, EditorMessages.editor_viewer_fetch_all_tip);
         fetchAllButton = createLinkButton(fetchAll);
 
         cards.add(new JPanel(), CARD_GRID);
@@ -518,17 +521,17 @@ final class ResultSetViewerPanel extends JPanel {
                 JPopupMenu headerMenu = new JPopupMenu();
                 if (column >= 0) {
                     int modelColumn = table.convertColumnIndexToModel(column);
-                    headerMenu.add(createAction("Sort Ascending", null, () -> toggleSort(modelColumn, Boolean.FALSE, false)));
-                    headerMenu.add(createAction("Sort Descending", null, () -> toggleSort(modelColumn, Boolean.TRUE, false)));
+                    headerMenu.add(createAction(EditorMessages.editor_viewer_sort_ascending, null, () -> toggleSort(modelColumn, Boolean.FALSE, false)));
+                    headerMenu.add(createAction(EditorMessages.editor_viewer_sort_descending, null, () -> toggleSort(modelColumn, Boolean.TRUE, false)));
                 }
-                Action clearSort = createAction("Clear Sorting", null, this::clearSorting);
+                Action clearSort = createAction(EditorMessages.editor_viewer_clear_sorting, null, this::clearSorting);
                 clearSort.setEnabled(dataFilter.hasOrdering());
                 headerMenu.add(clearSort);
                 headerMenu.addSeparator();
                 if (column >= 0) {
-                    headerMenu.add(createAction("Fit Column Width", null, () -> ResultSetColumnFit.fitColumn(table, column)));
+                    headerMenu.add(createAction(EditorMessages.editor_viewer_fit_column, null, () -> ResultSetColumnFit.fitColumn(table, column)));
                 }
-                headerMenu.add(createAction("Fit All Column Widths", null, () -> ResultSetColumnFit.fitAllColumns(table)));
+                headerMenu.add(createAction(EditorMessages.editor_viewer_fit_all_columns, null, () -> ResultSetColumnFit.fitAllColumns(table)));
                 headerMenu.show(header, e.getX(), e.getY());
             }
 
@@ -565,16 +568,16 @@ final class ResultSetViewerPanel extends JPanel {
         if (menu == null) {
             return;
         }
-        JMenu filterMenu = new JMenu("Filter by Value");
+        JMenu filterMenu = new JMenu(EditorMessages.editor_viewer_filter_by_value);
         JMenu copyAsMenu = ResultSetCopyFormats.createMenu(table, () -> grid.getCurrentData(), this::getDataSource);
-        Action clearFilter = createAction("Clear Filter", null, () -> applyWhere(""));
-        Action fitColumns = createAction("Fit All Column Widths", null, () -> ResultSetColumnFit.fitAllColumns(table));
+        Action clearFilter = createAction(EditorMessages.editor_common_clear_filter, null, () -> applyWhere(""));
+        Action fitColumns = createAction(EditorMessages.editor_viewer_fit_all_columns, null, () -> ResultSetColumnFit.fitAllColumns(table));
         JCheckBoxMenuItem valuePanelItem = new JCheckBoxMenuItem(valuePanelToggle.getAction());
         JCheckBoxMenuItem recordItem = new JCheckBoxMenuItem(recordToggle.getAction());
 
         int copyIndex = -1;
         for (int i = 0; i < menu.getComponentCount(); i++) {
-            if (menu.getComponent(i) instanceof JMenuItem item && "Copy with Headers".equals(item.getText())) { //$NON-NLS-1$
+            if (menu.getComponent(i) instanceof JMenuItem item && EditorMessages.editor_grid_copy_with_headers.equals(item.getText())) {
                 copyIndex = i;
             }
         }
@@ -619,7 +622,7 @@ final class ResultSetViewerPanel extends JPanel {
         boolean enabled = fetched.source().canRequery() && !reading && row >= 0 && column >= 0;
         filterMenu.setEnabled(enabled);
         if (!enabled) {
-            filterMenu.setToolTipText(fetched.source().canRequery() ? null : "Filters need " + fetched.source().requeryBlocker());
+            filterMenu.setToolTipText(fetched.source().canRequery() ? null : NLS.bind(EditorMessages.editor_viewer_filters_need, fetched.source().requeryBlocker()));
             return;
         }
         filterMenu.setToolTipText(null);
@@ -646,7 +649,7 @@ final class ResultSetViewerPanel extends JPanel {
         DBDAttributeConstraint constraint = dataFilter.getConstraint(binding);
         if (constraint != null && constraint.hasCondition()) {
             filterMenu.addSeparator();
-            filterMenu.add(createAction("Remove the Filter of " + name, null, () -> {
+            filterMenu.add(createAction(NLS.bind(EditorMessages.editor_viewer_remove_filter_of, name), null, () -> {
                 DBDDataFilter filter = new DBDDataFilter(dataFilter);
                 DBDAttributeConstraint copy = filter.getConstraint(binding);
                 if (copy != null) {
@@ -776,14 +779,14 @@ final class ResultSetViewerPanel extends JPanel {
     @Nullable
     private String applyValueText(@NotNull String text) {
         if (grid == null) {
-            return "no grid";
+            return EditorMessages.editor_viewer_no_grid;
         }
         JTable table = grid.getTable();
         int row = table.getSelectionModel().getLeadSelectionIndex();
         int viewColumn = isRecordMode() && recordView.getSelectedColumn() >= 0
             ? recordView.getSelectedColumn() : table.getColumnModel().getSelectionModel().getLeadSelectionIndex();
         if (row < 0 || viewColumn < 0) {
-            return "no cell is selected";
+            return EditorMessages.editor_viewer_no_cell;
         }
         return grid.setCellText(row, table.convertColumnIndexToModel(viewColumn), text);
     }
@@ -803,22 +806,25 @@ final class ResultSetViewerPanel extends JPanel {
         int rows = getRowCount();
         String text;
         if (reading) {
-            text = "Reading…";
+            text = EditorMessages.editor_common_reading;
         } else if (statusMessage != null) {
             text = statusMessage;
         } else {
-            text = String.format("%,d", rows) + (rows == 1 ? " row" : " rows") + (hasMore ? " fetched — more available" : "");
+            String rowsText = String.format("%,d", rows); //$NON-NLS-1$
+            text = NLS.bind(hasMore
+                ? rows == 1 ? EditorMessages.editor_viewer_rows_more_one : EditorMessages.editor_viewer_rows_more_many
+                : rows == 1 ? EditorMessages.editor_viewer_rows_one : EditorMessages.editor_viewer_rows_many, rowsText);
             if (dataFilter.hasConditions()) {
-                text += " (filtered)";
+                text = NLS.bind(EditorMessages.editor_viewer_rows_filtered, text);
             }
         }
         rowsLabel.setText(text);
         boolean canRead = hasMore && fetched.source().canRequery() && !reading;
         fetchNextButton.setVisible(canRead);
         fetchAllButton.setVisible(canRead);
-        fetchNextButton.setText("Fetch next " + String.format("%,d", fetched.source().segmentSize()));
+        fetchNextButton.setText(NLS.bind(EditorMessages.editor_viewer_fetch_next_count, String.format("%,d", fetched.source().segmentSize()))); //$NON-NLS-1$
         if (!fetched.source().canRequery() && hasMore) {
-            rowsLabel.setToolTipText("More rows can't be read: " + fetched.source().requeryBlocker());
+            rowsLabel.setToolTipText(NLS.bind(EditorMessages.editor_viewer_more_rows_blocked, fetched.source().requeryBlocker()));
         } else {
             rowsLabel.setToolTipText(null);
         }
@@ -840,7 +846,7 @@ final class ResultSetViewerPanel extends JPanel {
      * @param add        keep the sort of the other columns
      */
     private void toggleSort(int column, @Nullable Boolean descending, boolean add) {
-        if (reading || !checkNoChanges("sort the results")) {
+        if (reading || !checkNoChanges(EditorMessages.editor_viewer_action_sort)) {
             return;
         }
         DBDDataFilter filter = new DBDDataFilter(dataFilter);
@@ -885,7 +891,7 @@ final class ResultSetViewerPanel extends JPanel {
     }
 
     private void clearSorting() {
-        if (reading || !dataFilter.hasOrdering() || !checkNoChanges("sort the results")) {
+        if (reading || !dataFilter.hasOrdering() || !checkNoChanges(EditorMessages.editor_viewer_action_sort)) {
             return;
         }
         DBDDataFilter filter = new DBDDataFilter(dataFilter);
@@ -1063,7 +1069,7 @@ final class ResultSetViewerPanel extends JPanel {
         if (reading || !fetched.source().canRequery()) {
             return;
         }
-        if (!checkNoChanges("filter the results")) {
+        if (!checkNoChanges(EditorMessages.editor_viewer_action_filter)) {
             filterBar.setFilterText(getConditionText());
             return;
         }
@@ -1081,7 +1087,7 @@ final class ResultSetViewerPanel extends JPanel {
             return false;
         }
         if (grid.isSaving()) {
-            statusMessage = "Wait until the changes are saved to " + what + ".";
+            statusMessage = NLS.bind(EditorMessages.editor_viewer_wait_saved, what);
             updateStatus();
             return false;
         }
@@ -1089,9 +1095,8 @@ final class ResultSetViewerPanel extends JPanel {
         if (changes == 0) {
             return true;
         }
-        return DBWorkbench.getPlatformUI().confirmAction("Unsaved Changes",
-            "The results have " + changes + (changes == 1 ? " unsaved change" : " unsaved changes")
-                + ". To " + what + " the changes are discarded. Discard them?", true);
+        return DBWorkbench.getPlatformUI().confirmAction(EditorMessages.editor_viewer_unsaved_title,
+            NLS.bind(changes == 1 ? EditorMessages.editor_viewer_unsaved_one : EditorMessages.editor_viewer_unsaved_many, changes, what), true);
     }
 
     /**
@@ -1160,7 +1165,7 @@ final class ResultSetViewerPanel extends JPanel {
             return;
         }
         if (automatic && (grid.isDirty() || grid.isSaving())) {
-            statusMessage = "Save or cancel the changes to fetch more rows.";
+            statusMessage = EditorMessages.editor_viewer_save_to_fetch;
             updateStatus();
             return;
         }
@@ -1177,8 +1182,8 @@ final class ResultSetViewerPanel extends JPanel {
         if (!hasMore || reading || !fetched.source().canRequery()) {
             return;
         }
-        if (!DBWorkbench.getPlatformUI().confirmAction("Fetch All Rows",
-            "Read all remaining rows of this result? A large result can take a long time and a lot of memory.")) {
+        if (!DBWorkbench.getPlatformUI().confirmAction(EditorMessages.editor_viewer_fetch_all_title,
+            EditorMessages.editor_viewer_fetch_all_confirm)) {
             return;
         }
         if (!checkSavedForAppend()) {
@@ -1195,8 +1200,8 @@ final class ResultSetViewerPanel extends JPanel {
             return false;
         }
         if (grid.isDirty()) {
-            DBWorkbench.getPlatformUI().showMessageBox("Fetch More Rows",
-                "Save or cancel the pending changes of this grid before fetching more rows.", false);
+            DBWorkbench.getPlatformUI().showMessageBox(EditorMessages.editor_viewer_fetch_more_title,
+                EditorMessages.editor_viewer_fetch_more_pending, false);
             return false;
         }
         return true;
@@ -1228,7 +1233,7 @@ final class ResultSetViewerPanel extends JPanel {
         if (grid == null || grid.isDirty() || grid.isSaving()) {
             // Changed while reading: the new rows would not match the edit model
             releaseContents(segment.source().cellValues());
-            statusMessage = "Save or cancel the changes to fetch more rows.";
+            statusMessage = EditorMessages.editor_viewer_save_to_fetch;
             updateStatus();
             return;
         }
@@ -1369,8 +1374,8 @@ final class ResultSetViewerPanel extends JPanel {
         }
         if (error != null) {
             String message = CommonUtils.getAllExceptionMessages(error);
-            statusMessage = "Read failed: " + CommonUtils.truncateString(message.replace('\n', ' '), 200);
-            host.appendError("Can't read the results again: " + message);
+            statusMessage = NLS.bind(EditorMessages.editor_viewer_read_failed, CommonUtils.truncateString(message.replace('\n', ' '), 200));
+            host.appendError(NLS.bind(EditorMessages.editor_viewer_cant_read_again, message));
             log.debug("Result read failed", error);
             // The filter that failed stays in the bar for correction; the data filter is what the grid shows
             updateStatus();
@@ -1496,7 +1501,7 @@ final class ResultSetViewerPanel extends JPanel {
         @Nullable
         @Override
         public String setText(int row, int column, @NotNull String text) {
-            return grid == null ? "no grid" : grid.setCellText(row, column, text);
+            return grid == null ? EditorMessages.editor_viewer_no_grid : grid.setCellText(row, column, text);
         }
 
         @Override

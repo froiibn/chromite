@@ -16,6 +16,8 @@
  */
 package com.seizia.chromite.ui.swing;
 
+import com.seizia.chromite.ui.swing.internal.EditorMessages;
+import org.eclipse.osgi.util.NLS;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
@@ -68,6 +70,7 @@ import java.util.Map;
  * 변경 이력:
  * - 2026-11-06 E단계: 최초 작성 (docs/chromite/swing-frontend.md "구현 현황 — E단계")
  * - 2026-11-06 F단계: XLSX 내보내기 (docs/chromite/swing-frontend.md "구현 현황 — F단계")
+ * - 2026-11-06 화면 문구를 EditorMessages로 옮김(OS 언어를 따름)
  */
 final class ResultSetExport {
 
@@ -83,7 +86,8 @@ final class ResultSetExport {
     private static final String XLSX_HEADER_NONE = "none"; //$NON-NLS-1$
     static final String XLSX_DATE_FORMAT = "yyyy-MM-dd HH:mm:ss"; //$NON-NLS-1$
 
-    private static final String[] DELIMITER_LABELS = {"Comma (,)", "Semicolon (;)", "Tab"};
+    private static final String[] DELIMITER_LABELS = {EditorMessages.editor_export_delimiter_comma, EditorMessages.editor_export_delimiter_semicolon,
+        EditorMessages.editor_export_delimiter_tab};
     private static final char[] DELIMITERS = {',', ';', '\t'};
 
     // Remembered for the session, like the file dialogs of the editor
@@ -136,28 +140,28 @@ final class ResultSetExport {
      * Asks for the file and options, then writes the fetched rows as CSV.
      */
     static void exportCsv(@NotNull Component parent, @NotNull ResultSetGrid.Data data) {
-        JCheckBox headersCheck = new JCheckBox("Include column headers", lastIncludeHeaders);
+        JCheckBox headersCheck = new JCheckBox(EditorMessages.editor_export_include_headers, lastIncludeHeaders);
         JComboBox<String> delimiterCombo = new JComboBox<>(DELIMITER_LABELS);
         delimiterCombo.setSelectedIndex(lastDelimiter);
-        JCheckBox bomCheck = new JCheckBox("UTF-8 BOM (for Excel)", lastBom);
-        JCheckBox formulaCheck = new JCheckBox("Escape formulas (= + - @)", lastEscapeFormulas);
+        JCheckBox bomCheck = new JCheckBox(EditorMessages.editor_export_bom, lastBom);
+        JCheckBox formulaCheck = new JCheckBox(EditorMessages.editor_export_escape_formulas, lastEscapeFormulas);
         JPanel options = new JPanel(new GridBagLayout());
-        options.setBorder(BorderFactory.createTitledBorder("CSV options"));
+        options.setBorder(BorderFactory.createTitledBorder(EditorMessages.editor_export_csv_options));
         GridBagConstraints constraints = new GridBagConstraints();
         constraints.gridx = 0;
         constraints.anchor = GridBagConstraints.WEST;
         constraints.insets = new Insets(2, 6, 2, 6);
         options.add(headersCheck, constraints);
         JPanel delimiterPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
-        delimiterPanel.add(new JLabel("Delimiter: "));
+        delimiterPanel.add(new JLabel(EditorMessages.editor_export_delimiter));
         delimiterPanel.add(delimiterCombo);
         options.add(delimiterPanel, constraints);
         options.add(bomCheck, constraints);
         options.add(formulaCheck, constraints);
         options.add(createFetchedRowsNote(data), constraints);
 
-        Path file = chooseFile(parent, "Export to CSV", options,
-            new FileNameExtensionFilter("CSV files (*.csv)", "csv"), "Results.csv", "csv"); //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$
+        Path file = chooseFile(parent, EditorMessages.editor_export_csv_title, options,
+            new FileNameExtensionFilter(EditorMessages.editor_export_csv_filter, "csv"), "Results.csv", "csv"); //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$
         if (file == null) {
             return;
         }
@@ -169,14 +173,14 @@ final class ResultSetExport {
         CsvOptions csvOptions = new CsvOptions(lastIncludeHeaders, DELIMITERS[lastDelimiter], lastBom, lastEscapeFormulas);
         Path target = file;
         try {
-            ProgressDialog.runTask("Export to CSV", monitor -> {
+            ProgressDialog.runTask(EditorMessages.editor_export_csv_title, monitor -> {
                 writeCsv(monitor, target, data, csvOptions);
                 return null;
             });
         } catch (DBInterruptedException e) {
             // Canceled: the partial file was removed
         } catch (DBException e) {
-            DBWorkbench.getPlatformUI().showError("Export to CSV", "Can't export to " + target, e);
+            DBWorkbench.getPlatformUI().showError(EditorMessages.editor_export_csv_title, NLS.bind(EditorMessages.editor_export_cant_export, target), e);
         }
     }
 
@@ -186,10 +190,10 @@ final class ResultSetExport {
     @NotNull
     private static JLabel createFetchedRowsNote(@NotNull ResultSetGrid.Data data) {
         int rowCount = data.rows().size();
-        String rowsText = rowCount + (rowCount == 1 ? " row" : " rows");
-        return new JLabel("<html><body style='width: 200px'>Exports the " + rowsText + " already fetched in this grid. The query is not run again."
-            + (data.truncated() ? "<br><b>Fetching stopped at the maximum row count</b>; rows after it are not exported." : "")
-            + "</html>");
+        String note = NLS.bind(rowCount == 1 ? EditorMessages.editor_export_note_one : EditorMessages.editor_export_note_many, rowCount);
+        return new JLabel("<html><body style='width: 200px'>" + note //$NON-NLS-1$
+            + (data.truncated() ? "<br>" + EditorMessages.editor_export_note_truncated : "") //$NON-NLS-1$ //$NON-NLS-2$
+            + "</html>"); //$NON-NLS-1$
     }
 
     /**
@@ -217,7 +221,7 @@ final class ResultSetExport {
         if (!file.getFileName().toString().contains(".")) {
             file = file.resolveSibling(file.getFileName() + "." + extension);
         }
-        if (Files.exists(file) && JOptionPane.showConfirmDialog(parent, file.getFileName() + " already exists.\nDo you want to replace it?",
+        if (Files.exists(file) && JOptionPane.showConfirmDialog(parent, NLS.bind(EditorMessages.editor_export_replace_confirm, file.getFileName()),
             title, JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE) != JOptionPane.YES_OPTION) {
             return null;
         }
@@ -229,9 +233,9 @@ final class ResultSetExport {
      * Asks for the file and options, then writes the fetched rows as an Excel workbook.
      */
     static void exportXlsx(@NotNull Component parent, @NotNull ResultSetGrid.Data data) {
-        JCheckBox headersCheck = new JCheckBox("Include column headers", lastXlsxHeaders);
+        JCheckBox headersCheck = new JCheckBox(EditorMessages.editor_export_include_headers, lastXlsxHeaders);
         JPanel options = new JPanel(new GridBagLayout());
-        options.setBorder(BorderFactory.createTitledBorder("Excel options"));
+        options.setBorder(BorderFactory.createTitledBorder(EditorMessages.editor_export_excel_options));
         GridBagConstraints constraints = new GridBagConstraints();
         constraints.gridx = 0;
         constraints.anchor = GridBagConstraints.WEST;
@@ -239,22 +243,22 @@ final class ResultSetExport {
         options.add(headersCheck, constraints);
         options.add(createFetchedRowsNote(data), constraints);
 
-        Path file = chooseFile(parent, "Export to Excel", options,
-            new FileNameExtensionFilter("Excel workbooks (*.xlsx)", "xlsx"), "Results.xlsx", "xlsx"); //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$
+        Path file = chooseFile(parent, EditorMessages.editor_export_xlsx_title, options,
+            new FileNameExtensionFilter(EditorMessages.editor_export_xlsx_filter, "xlsx"), "Results.xlsx", "xlsx"); //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$
         if (file == null) {
             return;
         }
         lastXlsxHeaders = headersCheck.isSelected();
         boolean headers = lastXlsxHeaders;
         try {
-            ProgressDialog.runTask("Export to Excel", monitor -> {
+            ProgressDialog.runTask(EditorMessages.editor_export_xlsx_title, monitor -> {
                 writeXlsx(monitor, file, data, headers);
                 return null;
             });
         } catch (DBInterruptedException e) {
             // Canceled: the partial file was removed
         } catch (DBException e) {
-            DBWorkbench.getPlatformUI().showError("Export to Excel", "Can't export to " + file, e);
+            DBWorkbench.getPlatformUI().showError(EditorMessages.editor_export_xlsx_title, NLS.bind(EditorMessages.editor_export_cant_export, file), e);
         }
     }
 
@@ -265,7 +269,7 @@ final class ResultSetExport {
         boolean headers
     ) throws DBException {
         List<Object[]> rows = data.rows();
-        monitor.beginTask("Export " + rows.size() + " rows to " + file.getFileName(), rows.size());
+        monitor.beginTask(NLS.bind(EditorMessages.editor_export_task, rows.size(), file.getFileName()), rows.size());
         Map<String, Object> properties = DataExporterXLSX.getDefaultProperties();
         properties.put(XLSX_PROP_HEADER, headers ? XLSX_HEADER_LABEL : XLSX_HEADER_NONE);
         properties.put(XLSX_PROP_DATE_FORMAT, XLSX_DATE_FORMAT);
@@ -292,7 +296,7 @@ final class ResultSetExport {
             }
             completed = true;
         } catch (IOException e) {
-            throw new DBException("Error writing " + file, e);
+            throw new DBException(NLS.bind(EditorMessages.editor_export_error_writing, file), e);
         } finally {
             monitor.done();
             if (!completed) {
@@ -420,7 +424,7 @@ final class ResultSetExport {
         @NotNull CsvOptions options
     ) throws DBException {
         List<Object[]> rows = data.rows();
-        monitor.beginTask("Export " + rows.size() + " rows to " + file.getFileName(), rows.size());
+        monitor.beginTask(NLS.bind(EditorMessages.editor_export_task, rows.size(), file.getFileName()), rows.size());
         boolean completed = false;
         try (OutputStream out = Files.newOutputStream(file);
              BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(out, StandardCharsets.UTF_8))) {
@@ -463,7 +467,7 @@ final class ResultSetExport {
             }
             completed = true;
         } catch (IOException e) {
-            throw new DBException("Error writing " + file, e);
+            throw new DBException(NLS.bind(EditorMessages.editor_export_error_writing, file), e);
         } finally {
             monitor.done();
             if (!completed) {

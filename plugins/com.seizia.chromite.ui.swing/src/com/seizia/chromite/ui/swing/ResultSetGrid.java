@@ -18,6 +18,8 @@ package com.seizia.chromite.ui.swing;
 
 import com.formdev.flatlaf.FlatClientProperties;
 import com.formdev.flatlaf.util.UIScale;
+import com.seizia.chromite.ui.swing.internal.EditorMessages;
+import org.eclipse.osgi.util.NLS;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
@@ -93,6 +95,7 @@ import java.util.Map;
  * - 2026-11-06 Export Data…를 {@link Host#exportData}로 열어 결과 뷰어가 필터·정렬을 넘김 (docs/chromite/swing-data-transfer.md)
  * - 2026-11-06 {@link Host#rowsChanged}: 결과 뷰어가 다시 읽은 행 수를 쿼리 상태 줄에 알림 (docs/chromite/swing-result-viewer.md)
  * - 2026-11-06 꺼진 Export Data…의 도구 설명에 수신기가 아는 실제 이유(예: 이번 실행에만 바인딩한 값)를 보임 (docs/chromite/swing-data-transfer.md)
+ * - 2026-11-06 화면 문구를 EditorMessages로 옮김(OS 언어를 따름)
  */
 final class ResultSetGrid extends JPanel {
 
@@ -296,15 +299,15 @@ final class ResultSetGrid extends JPanel {
     @Nullable
     String setCellText(int row, int column, @NotNull String text) {
         if (editModel == null || !editModel.isCellEditable(row, column)) {
-            return "the cell is read-only";
+            return EditorMessages.editor_grid_cell_read_only;
         }
         if (!stopEditing()) {
-            return "the open cell editor holds an invalid value";
+            return EditorMessages.editor_grid_invalid_editor;
         }
         try {
             editModel.setValue(row, column, editModel.parseValue(column, text));
         } catch (DBCException e) {
-            return "invalid value for " + data.columns()[column] + ": " + CommonUtils.notEmpty(e.getMessage());
+            return NLS.bind(EditorMessages.editor_grid_invalid_value, data.columns()[column], CommonUtils.notEmpty(e.getMessage()));
         }
         repaintKeepingSelection();
         return null;
@@ -337,14 +340,14 @@ final class ResultSetGrid extends JPanel {
         strip.setBorder(BorderFactory.createEmptyBorder(1, 2, 1, 2));
         statusLabel.putClientProperty(FlatClientProperties.STYLE, "foreground: $Label.disabledForeground"); //$NON-NLS-1$
         if (editModel != null) {
-            saveAction = createAction("Save", KeyStroke.getKeyStroke(KeyEvent.VK_S, InputEvent.CTRL_DOWN_MASK), () -> save(false));
-            saveAction.putValue(Action.SHORT_DESCRIPTION, "Save the changes of this grid to the database (Ctrl+S)");
-            cancelChangesAction = createAction("Cancel", null, this::cancelChanges);
-            cancelChangesAction.putValue(Action.SHORT_DESCRIPTION, "Discard the changes of this grid");
+            saveAction = createAction(EditorMessages.editor_common_save, KeyStroke.getKeyStroke(KeyEvent.VK_S, InputEvent.CTRL_DOWN_MASK), () -> save(false));
+            saveAction.putValue(Action.SHORT_DESCRIPTION, EditorMessages.editor_grid_save_tip);
+            cancelChangesAction = createAction(EditorMessages.editor_common_cancel, null, this::cancelChanges);
+            cancelChangesAction.putValue(Action.SHORT_DESCRIPTION, EditorMessages.editor_grid_cancel_tip);
             strip.add(createStripButton(saveAction));
             strip.add(createStripButton(cancelChangesAction));
         } else {
-            statusLabel.setText("read-only: " + CommonUtils.notEmpty(readOnlyReason));
+            statusLabel.setText(NLS.bind(EditorMessages.editor_grid_read_only, CommonUtils.notEmpty(readOnlyReason)));
         }
         strip.add(statusLabel);
         return strip;
@@ -378,14 +381,14 @@ final class ResultSetGrid extends JPanel {
         deleteRowsAction.setEnabled(!saving && hasRows && editModel.isDeleteSupported());
         String text;
         if (saving) {
-            text = "Saving…";
+            text = EditorMessages.editor_grid_saving;
         } else if (transientStatus != null) {
             text = transientStatus;
         } else {
             int changes = editModel.getChangeCount();
             String table = editModel.getSingleSource() != null ? editModel.getSingleSource().getName() : "";
-            text = "Editable (" + table + ") · " + (changes == 0 ? "no pending changes"
-                : changes + (changes == 1 ? " pending change" : " pending changes"));
+            text = changes == 0 ? NLS.bind(EditorMessages.editor_grid_editable_none, table)
+                : NLS.bind(changes == 1 ? EditorMessages.editor_grid_editable_one : EditorMessages.editor_grid_editable_many, table, changes);
         }
         statusLabel.setText(text);
         host.editStateChanged();
@@ -442,7 +445,7 @@ final class ResultSetGrid extends JPanel {
         try {
             position = editModel.addRow(index);
         } catch (DBException e) {
-            DBWorkbench.getPlatformUI().showError("Insert Row", "Can't add a new row", e);
+            DBWorkbench.getPlatformUI().showError(EditorMessages.editor_grid_insert_row, EditorMessages.editor_grid_cant_add_row, e);
             return;
         }
         dataChanged();
@@ -511,7 +514,7 @@ final class ResultSetGrid extends JPanel {
             return true;
         }
         ResultSetEditPersister persister = new ResultSetEditPersister(editModel);
-        String tableName = editModel.getSingleSource() != null ? editModel.getSingleSource().getName() : "results";
+        String tableName = editModel.getSingleSource() != null ? editModel.getSingleSource().getName() : EditorMessages.editor_grid_results;
         try {
             persister.checkEntityIdentifiers();
         } catch (DBException e) {
@@ -526,7 +529,7 @@ final class ResultSetGrid extends JPanel {
         updateState();
         DataUpdaterJob job = persister.createSaveJob(outcome -> finishSave(tableName, outcome, startTime));
         if (wait) {
-            ProgressDialog.waitForJob("Save results", job);
+            ProgressDialog.waitForJob(EditorMessages.editor_grid_save_job, job);
             return job.getError() == null;
         }
         job.schedule();
@@ -551,16 +554,15 @@ final class ResultSetGrid extends JPanel {
             table.changeSelection(Math.min(selectedRow, gridModel.getRowCount() - 1), selectedColumn, false, false);
         }
         if (error == null) {
-            host.appendMessage("Saved changes to " + tableName + ": " + outcome.inserted() + " inserted, "
-                + outcome.updated() + " updated, " + outcome.deleted() + " deleted.");
+            host.appendMessage(NLS.bind(EditorMessages.editor_grid_saved,
+                new Object[]{tableName, outcome.inserted(), outcome.updated(), outcome.deleted()}));
             if (outcome.zeroRowChanges() > 0) {
-                host.appendMessage("Warning: " + outcome.zeroRowChanges() + " statement(s) changed no rows "
-                    + "(the row may have been changed or deleted by someone else).");
+                host.appendMessage(NLS.bind(EditorMessages.editor_grid_zero_rows, outcome.zeroRowChanges()));
             }
             if (outcome.transaction() == ResultSetEditPersister.TransactionMode.OPEN_TRANSACTION) {
-                host.appendMessage("The connection is in manual commit mode: the changes are in the open transaction until you COMMIT.");
+                host.appendMessage(EditorMessages.editor_grid_manual_commit);
             }
-            host.appendMessage("Save time: " + (System.currentTimeMillis() - startTime) + " ms");
+            host.appendMessage(NLS.bind(EditorMessages.editor_grid_save_time, System.currentTimeMillis() - startTime));
             if (isDisplayable()) {
                 ResultSetEditPersister.refreshRows(editModel, refreshRows, refreshed -> {
                     refreshed.forEach((row, values) -> editModel.replaceValues(row, values[0], values[1]));
@@ -579,15 +581,15 @@ final class ResultSetGrid extends JPanel {
         boolean partlyApplied
     ) {
         String applied = switch (transaction) {
-            case SAVE_TRANSACTION -> "The save transaction was rolled back; nothing was saved. Your changes are kept in the grid.";
-            case OPEN_TRANSACTION -> "The statements of this save were rolled back. Your changes are kept in the grid.";
+            case SAVE_TRANSACTION -> EditorMessages.editor_grid_rollback_save;
+            case OPEN_TRANSACTION -> EditorMessages.editor_grid_rollback_open;
             case NONE -> partlyApplied
-                ? "Statements before the error were applied; the other changes are kept in the grid."
-                : "Nothing was saved. Your changes are kept in the grid.";
+                ? EditorMessages.editor_grid_partly_applied
+                : EditorMessages.editor_grid_nothing_saved;
         };
-        host.appendError("Can't save changes to " + tableName + ". " + applied + "\n" + CommonUtils.getAllExceptionMessages(error));
+        host.appendError(NLS.bind(EditorMessages.editor_grid_cant_save, tableName, applied) + "\n" + CommonUtils.getAllExceptionMessages(error)); //$NON-NLS-1$
         host.showMessages();
-        transientStatus = "Save failed: " + getChangeCount() + " pending changes kept (see Messages)";
+        transientStatus = NLS.bind(EditorMessages.editor_grid_save_failed, getChangeCount());
         updateState();
     }
 
@@ -599,14 +601,14 @@ final class ResultSetGrid extends JPanel {
      *                       this run only), or null
      */
     private void installContextMenu(@Nullable String requeryBlocker) {
-        copyAction = createAction("Copy", KeyStroke.getKeyStroke(KeyEvent.VK_C, InputEvent.CTRL_DOWN_MASK),
+        copyAction = createAction(EditorMessages.editor_grid_copy, KeyStroke.getKeyStroke(KeyEvent.VK_C, InputEvent.CTRL_DOWN_MASK),
             () -> TransferHandler.getCopyAction().actionPerformed(new ActionEvent(table, ActionEvent.ACTION_PERFORMED, "copy"))); //$NON-NLS-1$
-        copyWithHeadersAction = createAction("Copy with Headers",
+        copyWithHeadersAction = createAction(EditorMessages.editor_grid_copy_with_headers,
             KeyStroke.getKeyStroke(KeyEvent.VK_C, InputEvent.CTRL_DOWN_MASK | InputEvent.SHIFT_DOWN_MASK),
             () -> DBWorkbench.getPlatformUI().copyTextToClipboard(ResultSetExport.copySelection(table, getCurrentData(), true), false));
-        Action exportCsvAction = createAction("Export to CSV…", null, () -> ResultSetExport.exportCsv(table, getCurrentData()));
-        Action exportXlsxAction = createAction("Export to Excel (XLSX)…", null, () -> ResultSetExport.exportXlsx(table, getCurrentData()));
-        Action exportDataAction = createAction("Export Data…", null, () -> {
+        Action exportCsvAction = createAction(EditorMessages.editor_grid_export_csv, null, () -> ResultSetExport.exportCsv(table, getCurrentData()));
+        Action exportXlsxAction = createAction(EditorMessages.editor_grid_export_xlsx, null, () -> ResultSetExport.exportXlsx(table, getCurrentData()));
+        Action exportDataAction = createAction(EditorMessages.editor_grid_export_data, null, () -> {
             if (exportQuery != null) {
                 host.exportData(table, exportQuery);
             }
@@ -615,27 +617,27 @@ final class ResultSetGrid extends JPanel {
         exportDataAction.setEnabled(queryExportable);
         // Disabled: the known reason first (a bound Query Library run is a single SELECT too, the general rule misled)
         exportDataAction.putValue(Action.SHORT_DESCRIPTION, queryExportable
-            ? "Run the query again and export all its rows in any format"
+            ? EditorMessages.editor_grid_export_data_tip
             : requeryBlocker != null
-            ? "The query of this result can't be run again for export (" + requeryBlocker + "); use Export to CSV or Excel for the rows shown"
-            : "Only the result of a query with one SELECT statement can be run again for export; use Export to CSV or Excel for the rows shown");
+            ? NLS.bind(EditorMessages.editor_grid_export_data_blocked, requeryBlocker)
+            : EditorMessages.editor_grid_export_data_single);
         // Ctrl+C stays with the table's transfer handler; the menu only shows it
         bindKey(table, JComponent.WHEN_FOCUSED, copyWithHeadersAction, "chromite.copyWithHeaders"); //$NON-NLS-1$
 
         JPopupMenu popupMenu = new JPopupMenu();
         if (editModel != null) {
-            editCellAction = createAction("Edit Cell", KeyStroke.getKeyStroke(KeyEvent.VK_F2, 0), this::editSelectedCell);
-            setNullAction = createAction("Set NULL", KeyStroke.getKeyStroke(KeyEvent.VK_0, InputEvent.CTRL_DOWN_MASK), this::setSelectedToNull);
-            insertRowAction = createAction("Insert Row", KeyStroke.getKeyStroke(KeyEvent.VK_INSERT, InputEvent.ALT_DOWN_MASK), this::insertRow);
-            deleteRowsAction = createAction("Delete Row", KeyStroke.getKeyStroke(KeyEvent.VK_DELETE, 0), this::deleteSelectedRows);
-            Action saveMenuAction = createAction("Save Changes", (KeyStroke) saveAction.getValue(Action.ACCELERATOR_KEY), () -> save(false));
-            Action cancelMenuAction = createAction("Cancel Changes", null, this::cancelChanges);
+            editCellAction = createAction(EditorMessages.editor_grid_edit_cell, KeyStroke.getKeyStroke(KeyEvent.VK_F2, 0), this::editSelectedCell);
+            setNullAction = createAction(EditorMessages.editor_grid_set_null, KeyStroke.getKeyStroke(KeyEvent.VK_0, InputEvent.CTRL_DOWN_MASK), this::setSelectedToNull);
+            insertRowAction = createAction(EditorMessages.editor_grid_insert_row, KeyStroke.getKeyStroke(KeyEvent.VK_INSERT, InputEvent.ALT_DOWN_MASK), this::insertRow);
+            deleteRowsAction = createAction(EditorMessages.editor_grid_delete_row, KeyStroke.getKeyStroke(KeyEvent.VK_DELETE, 0), this::deleteSelectedRows);
+            Action saveMenuAction = createAction(EditorMessages.editor_grid_save_changes, (KeyStroke) saveAction.getValue(Action.ACCELERATOR_KEY), () -> save(false));
+            Action cancelMenuAction = createAction(EditorMessages.editor_grid_cancel_changes, null, this::cancelChanges);
             // F2 is the table's own "start editing" binding; the menu only shows it
             bindKey(table, JComponent.WHEN_FOCUSED, setNullAction, "chromite.setNull"); //$NON-NLS-1$
             bindKey(table, JComponent.WHEN_FOCUSED, insertRowAction, "chromite.insertRow"); //$NON-NLS-1$
             bindKey(table, JComponent.WHEN_FOCUSED, deleteRowsAction, "chromite.deleteRows"); //$NON-NLS-1$
             // Ctrl+S in the grid or its cell editor saves the grid, even without changes, instead of reaching File > Save
-            Action saveKeyAction = createAction("Save", null, () -> save(false));
+            Action saveKeyAction = createAction(EditorMessages.editor_common_save, null, () -> save(false));
             getInputMap(JComponent.WHEN_ANCESTOR_OF_FOCUSED_COMPONENT).put(
                 (KeyStroke) saveAction.getValue(Action.ACCELERATOR_KEY), "chromite.saveGrid"); //$NON-NLS-1$
             getActionMap().put("chromite.saveGrid", saveKeyAction); //$NON-NLS-1$
@@ -941,7 +943,7 @@ final class ResultSetGrid extends JPanel {
             } catch (DBCException e) {
                 Color errorColor = UIManager.getColor("Component.error.focusedBorderColor"); //$NON-NLS-1$
                 field.setBorder(BorderFactory.createLineBorder(errorColor != null ? errorColor : Color.RED, 2));
-                transientStatus = "Invalid value for " + data.columns()[modelColumn] + ": " + CommonUtils.notEmpty(e.getMessage());
+                transientStatus = NLS.bind(EditorMessages.editor_grid_invalid_value_status, data.columns()[modelColumn], CommonUtils.notEmpty(e.getMessage()));
                 updateState();
                 UIManager.getLookAndFeel().provideErrorFeedback(field);
                 return false;
