@@ -66,6 +66,7 @@ import org.jkiss.dbeaver.model.struct.rdb.DBSTable;
 import org.jkiss.dbeaver.model.struct.rdb.DBSTableColumn;
 import org.jkiss.dbeaver.model.struct.rdb.DBSTableForeignKey;
 import org.jkiss.dbeaver.model.struct.rdb.DBSTableIndex;
+import org.jkiss.dbeaver.model.struct.rdb.DBSView;
 import org.jkiss.dbeaver.runtime.DBWorkbench;
 import org.jkiss.dbeaver.runtime.properties.DataSourcePropertyFilter;
 import org.jkiss.dbeaver.runtime.properties.ObjectAttributeDescriptor;
@@ -113,6 +114,8 @@ import java.util.Set;
  *
  * 변경 이력:
  * - 2026-11-06 테이블 디자이너: 최초 작성 (docs/chromite/swing-table-designer.md)
+ * - 2026-11-06 canCreateTable: 뷰 폴더(Views, Materialized Views)에서 New Table…이 켜지던 문제 수정. 뷰 클래스도 대부분
+ *   DBSTable이라 DBSView를 따로 뺀다.
  * - 2026-11-06 화면 문구를 ToolsMessages로 옮김(OS 언어를 따름)
  */
 final class TableDesignSession {
@@ -239,7 +242,8 @@ final class TableDesignSession {
             return false;
         }
         Class<? extends DBSObject> childClass = folder.getChildrenClass();
-        if (childClass == null || !DBSTable.class.isAssignableFrom(childClass)
+        // Views (and materialized views) are DBSTable too in most drivers (e.g. SQLServerView, PostgreViewBase)
+        if (childClass == null || !DBSTable.class.isAssignableFrom(childClass) || DBSView.class.isAssignableFrom(childClass)
             || DBWorkbench.getPlatform().getEditorsRegistry().getObjectManager(childClass, DBEStructEditor.class) == null) {
             return false;
         }

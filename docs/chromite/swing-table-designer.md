@@ -130,3 +130,5 @@ PostgreSQL 17(`chr_table_designer`)에서 화면으로 확인했다(빌드한 Sw
 - 2026-11-06 다른 Swing 기능과 합침: 드라이버 번들 선택 의존을 고급 연결 설정의 필수 의존으로 대신함, Object Explorer 메뉴·`QueryWindows`·`MainFrame` 탭 처리를 관리 도구·데이터 전송과 함께 둠.
 - 2026-11-06 MySQL·MariaDB 새 인덱스에 SWT 대화상자의 기본 종류(BTREE)를 넣음: 관리자 기본값 OTHER 때문에 `CREATE INDEX … USING OTHER`가 나가 저장이 실패하던 것.
 - 2026-11-06 탭 제목에 연결 이름(`<테이블> [Design] - <연결>`): 여러 연결의 같은 이름 테이블 탭이 구별되지 않던 것.
+- 2026-11-06 통합 스모크 테스트에서 수정: Views·Materialized Views 폴더에서도 New Table…이 켜지던 것. 뷰 클래스
+  (`SQLServerView`, `PostgreViewBase` 등)도 `DBSTable`이라 `TableDesignSession.canCreateTable`이 `DBSView`를 뺀다.
