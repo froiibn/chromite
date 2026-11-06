@@ -273,6 +273,9 @@ CONCEPTS = [
     ("sort-alpha", "이름순", "Alphabetical", "sort-ascending-letters"),
     # Registered Servers tool bar
     ("new-group", "새 서버 그룹", "New server group", "folder-plus"),
+    # SQL editor: execution plan tab and query history window
+    ("plan", "실행 계획", "Execution plan", "hierarchy-2"),
+    ("history", "쿼리 기록", "Query history", "history"),
 ]
 
 
@@ -310,6 +313,18 @@ def sort_letters(s, arrow, sw=1):
             + path("M9.5 9.5H12.5L9.5 13.5H12.5", None, s, sw))
 
 
+def plan_tree(f, s, link, sw=1):
+    # Tabler "hierarchy-2" turned sideways like a plan: a root box feeding two operator boxes
+    return (rect(1.5, 5.5, 5, 5, 1, f, s, sw) + rect(9.5, 1.5, 5, 5, 1, f, s, sw) + rect(9.5, 9.5, 5, 5, 1, f, s, sw)
+            + path("M6.5 8H8M8 4V12M8 4H9.5M8 12H9.5", None, link, sw, cap="butt"))
+
+
+def clock_back(f, s, hand, sw=1):
+    # Tabler "history": a clock face whose rim ends in a back arrow
+    return (path("M3.2 4.5A6 6 0 1 1 2 8", f, s, sw) + path("M2 2.5V5H4.5", None, s, sw)
+            + path("M8 5V8L10 10", None, hand, sw))
+
+
 def extra_icons(I, P, n, nf, blue, blue_fill, green, green_fill, red, red_fill, sw, server_fill, doc_fill, table):
     """Icons shared by both packs; colours come from the pack."""
     server = (rect(1.5, 1.5, 13, 6, 1.5, server_fill, n) + rect(1.5, 8.5, 13, 6, 1.5, server_fill, n)
@@ -327,6 +342,8 @@ def extra_icons(I, P, n, nf, blue, blue_fill, green, green_fill, red, red_fill, 
     I["file-sql"] = svg(doc_shape(doc_fill, n) + path("M5.5 8H10.5M5.5 10.5H9", None, blue, sw, cap="butt"))
     I["categorized"] = svg(list_tree(n, blue, sw))
     I["sort-alpha"] = svg(sort_letters(n, blue, sw))
+    I["plan"] = svg(plan_tree(nf, n, blue, sw))
+    I["history"] = svg(clock_back(nf, n, blue, sw))
 
 
 # ----------------------------------------------------------------- SET A: duo-tone

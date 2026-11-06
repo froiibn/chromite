@@ -81,6 +81,7 @@ import java.util.function.Supplier;
  * - 2026-11-06 F단계: 최초 작성 (docs/chromite/swing-frontend.md "구현 현황 — F단계")
  * - 2026-11-06 P1: 자동완성 지연 설정 접근자와 처음 쓸 때 기본값 선언(Tools &gt; Options) (docs/chromite/swing-frontend.md "P1 디자인 적용")
  * - 2026-11-06 P1: 행 24, 오른쪽 형식 글자 text.secondary, 둥근 선택(arc 8, 좌우 4)과 글자색 유지 (docs/chromite/swing-frontend.md "P1 디자인 적용")
+ * - 2026-11-06 템플릿 이름 뒤의 Tab은 제안 대신 템플릿을 넣음 (docs/chromite/swing-sql-editor-plus.md)
  */
 final class SqlCompletionPopup {
 
@@ -539,6 +540,12 @@ final class SqlCompletionPopup {
             case KeyEvent.VK_PAGE_UP -> select(Math.max(0, index - page));
             case KeyEvent.VK_ENTER, KeyEvent.VK_TAB -> {
                 if (e.isShiftDown()) {
+                    return;
+                }
+                if (e.getKeyCode() == KeyEvent.VK_TAB && textArea instanceof SqlEditorPanel.SqlTextArea sqlTextArea
+                    && SqlTemplates.findAtCaret(sqlTextArea) != null) {
+                    // A template name: Tab inserts the template (the editor's Tab key), Enter still takes the proposal
+                    hide();
                     return;
                 }
                 insertSelected();

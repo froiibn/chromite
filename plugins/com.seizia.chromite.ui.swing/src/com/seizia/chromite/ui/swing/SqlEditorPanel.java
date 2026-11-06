@@ -16,7 +16,9 @@
  */
 package com.seizia.chromite.ui.swing;
 
+import com.formdev.flatlaf.FlatClientProperties;
 import com.formdev.flatlaf.util.UIScale;
+import com.seizia.chromite.model.sql.exec.SQLActualPlanProvider;
 import com.seizia.chromite.model.sql.exec.SQLQueryExecuteHandler;
 import com.seizia.chromite.model.sql.exec.SQLQueryExecuteJob;
 import com.seizia.chromite.model.sql.exec.SQLScriptBatches;
@@ -46,12 +48,17 @@ import org.jkiss.dbeaver.model.app.DBPProject;
 import org.jkiss.dbeaver.model.data.DBDDataReceiver;
 import org.jkiss.dbeaver.model.exec.DBCExecutionContext;
 import org.jkiss.dbeaver.model.exec.DBCExecutionContextDefaults;
+import org.jkiss.dbeaver.model.exec.DBCExecutionPurpose;
 import org.jkiss.dbeaver.model.exec.DBCSession;
+import org.jkiss.dbeaver.model.exec.DBCStatement;
+import org.jkiss.dbeaver.model.exec.DBCStatementType;
 import org.jkiss.dbeaver.model.exec.DBCStatistics;
 import org.jkiss.dbeaver.model.exec.DBExecUtils;
+import org.jkiss.dbeaver.model.exec.plan.DBCQueryPlanner;
 import org.jkiss.dbeaver.model.impl.struct.ContextDefaultObjectsReader;
 import org.jkiss.dbeaver.model.runtime.AbstractJob;
 import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
+import org.jkiss.dbeaver.model.runtime.VoidProgressMonitor;
 import org.jkiss.dbeaver.model.sql.SQLQuery;
 import org.jkiss.dbeaver.model.sql.SQLQueryListener;
 import org.jkiss.dbeaver.model.sql.SQLQueryResult;
@@ -71,9 +78,14 @@ import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
 import javax.swing.event.PopupMenuEvent;
 import javax.swing.event.PopupMenuListener;
+import javax.swing.text.BadLocationException;
+import javax.swing.text.DefaultEditorKit;
 import java.awt.*;
 import java.awt.event.ActionEvent;
+import java.awt.event.FocusAdapter;
+import java.awt.event.FocusEvent;
 import java.awt.event.InputEvent;
+import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
 import java.io.Writer;
 import java.lang.reflect.InvocationTargetException;
@@ -87,6 +99,7 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.IdentityHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicLong;
@@ -125,6 +138,15 @@ import java.util.concurrent.atomic.AtomicLong;
  *     <li>상태 줄({@link QueryStatusLine}): 편집기마다 하나이고 메인 창이 결과 아래에 보인다. 실행 상태, 연결의 서버·사용자, 기본 DB/스키마 콤보의 값, 시간, 행 수를 넣는다.</li>
  *     <li>결과 편집: 결과 표에 저장하지 않은 변경이 있으면 다시 실행하기 전에 버릴지 묻고(실행하면 결과 표를 새로 만든다), 저장 중에는 실행하지 않는다.
  *     닫을 때·끝낼 때 묻기는 메인 창이 {@link #hasPendingResultChanges}, {@link #saveResultChanges}로 한다.</li>
+ *     <li>실행 계획({@link ExecutionPlanView}, 메인 창의 Execution plan 탭): Ctrl+L은 선택(없으면 전체)의 문장마다 연결의 계획기로 예상 계획을 구한다
+ *     ({@link SqlPlanExplainer}). Ctrl+M(쿼리 창마다 켜고 끔)을 켜고 실행하면 실제 계획을 함께 받는다. 연결이 실행 중 계획 결과 집합을 주면
+ *     ({@link SQLActualPlanProvider}, SQL Server) 실행 전에 켜고 끝나면 끄며 그 결과 집합을 계획으로 바꾸고({@link ActualPlanReceiver}),
+ *     아니면 실행이 끝난 뒤 데이터를 바꾸지 않는 SELECT만 계획기의 ANALYZE 설정으로 다시 계획한다.</li>
+ *     <li>쿼리 기록: 엔진의 문장 끝 이벤트마다 {@link QueryHistory}에 문장, 연결, 기본 DB/스키마, 시간, 행 수, 결과를 남긴다.</li>
+ *     <li>매개변수: {@code :name}, {@code ${var}}에 값이 없으면 엔진이 {@link SqlParameterDialog}로 묻는다.</li>
+ *     <li>편집 명령: SQL 서식(Ctrl+K Ctrl+D, Ctrl+Shift+F), 대문자·소문자(Ctrl+Shift+U/L), 주석 넣기·빼기(Ctrl+K Ctrl+C / Ctrl+K Ctrl+U),
+ *     들여쓰기({@link SqlEditCommands}), 템플릿(이름 + Tab, Ctrl+K Ctrl+X 목록, {@link SqlTemplates})은 편집 영역({@link SqlTextArea})이 직접 키를 받는다.
+ *     Ctrl+K로 시작하는 두 번 누르는 키는 편집 영역의 키 리스너가 두 번째 키를 받아 처리한다(키 바인딩보다 먼저 불려 Ctrl+C 복사 등을 막는다).</li>
  * </ul>
  *
  * 변경 이력:
@@ -142,6 +164,8 @@ import java.util.concurrent.atomic.AtomicLong;
  * - 2026-11-06 편집기 글꼴(Cascadia Mono 13, Options에서 변경)과 SSMS 구문 색(사용자 색 설정), 방언 기반 단어 분류
  *   (docs/chromite/design-spec.md "편집기 글꼴과 SQL 색")
  * - 2026-11-06 데이터 전송: 쿼리의 첫 결과 표에 다시 실행할 쿼리를 넘김(Export Data) (docs/chromite/swing-data-transfer.md)
+ * - 2026-11-06 실행 계획(Ctrl+L, Ctrl+M), 쿼리 기록, 매개변수 묻기, SQL 서식·편집 명령, 템플릿, 상태 줄 커서 위치
+ *   (docs/chromite/swing-sql-editor-plus.md)
  */
 final class SqlEditorPanel extends JPanel {
 
@@ -167,6 +191,11 @@ final class SqlEditorPanel extends JPanel {
          * The tab title or tool tip changed (file name, connection, modified marker).
          */
         void titleChanged(@NotNull SqlEditorPanel editor);
+
+        /**
+         * Brings the Execution plan tab of the editor to the front.
+         */
+        void showPlan(@NotNull SqlEditorPanel editor);
     }
 
     private static final String NOT_AVAILABLE = "< N/A >"; //$NON-NLS-1$
@@ -206,6 +235,12 @@ final class SqlEditorPanel extends JPanel {
     });
     private final Action executeAction;
     private final Action cancelAction;
+    private final Action estimatedPlanAction;
+    private final JToggleButton actualPlanButton = new JToggleButton("Actual Plan");
+    private final ExecutionPlanView planView = new ExecutionPlanView();
+    // EDT only
+    private boolean explaining;
+    private boolean planTabSelected;
     private final QueryStatusLine statusLine = new QueryStatusLine();
     private final Timer elapsedTimer;
     private final Object jobLock = new Object();
@@ -239,6 +274,19 @@ final class SqlEditorPanel extends JPanel {
         };
         cancelAction.putValue(Action.SHORT_DESCRIPTION, "Cancel the executing query");
         cancelAction.setEnabled(false);
+        estimatedPlanAction = new AbstractAction("Display Estimated Execution Plan") {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                explainEstimatedPlan();
+            }
+        };
+        estimatedPlanAction.putValue(Action.SHORT_DESCRIPTION, "Display the estimated execution plan of the selection, or of the whole script (Ctrl+L)");
+        actualPlanButton.setToolTipText("Include the actual execution plan when executing (Ctrl+M)");
+        actualPlanButton.setIcon(UiIcons.get("plan")); //$NON-NLS-1$
+        actualPlanButton.putClientProperty(FlatClientProperties.BUTTON_TYPE, FlatClientProperties.BUTTON_TYPE_TOOLBAR_BUTTON);
+        actualPlanButton.putClientProperty(FlatClientProperties.STYLE, "arc: 6"); //$NON-NLS-1$
+        actualPlanButton.setFocusable(false);
+        actualPlanButton.addActionListener(e -> host.executionStateChanged(this));
 
         textArea = new SqlTextArea();
         completion = new SqlCompletionPopup(textArea, () -> dataSourceContainer);
@@ -256,6 +304,8 @@ final class SqlEditorPanel extends JPanel {
             }
         });
         statusLine.setConnection(dataSourceContainer);
+        textArea.addCaretListener(e -> updateCaretPosition());
+        updateCaretPosition();
         textArea.getDocument().addDocumentListener(new DocumentListener() {
             @Override
             public void insertUpdate(DocumentEvent e) {
@@ -385,6 +435,55 @@ final class SqlEditorPanel extends JPanel {
     }
 
     /**
+     * Content of the Execution plan tab.
+     */
+    @NotNull
+    ExecutionPlanView getPlanView() {
+        return planView;
+    }
+
+    /**
+     * Whether the Execution plan tab was the last one the user looked at for this window (restored on activation).
+     */
+    boolean isPlanTabSelected() {
+        return planTabSelected;
+    }
+
+    void setPlanTabSelected(boolean planTabSelected) {
+        this.planTabSelected = planTabSelected;
+    }
+
+    /**
+     * Query &gt; Include Actual Execution Plan (Ctrl+M), per query window.
+     */
+    boolean isIncludeActualPlan() {
+        return actualPlanButton.isSelected();
+    }
+
+    void setIncludeActualPlan(boolean include) {
+        actualPlanButton.setSelected(include);
+        statusLine.setState(QueryStatusLine.State.READY, include
+            ? "The actual execution plan will be included when executing." : "The actual execution plan will not be included.");
+    }
+
+    boolean isExplaining() {
+        return explaining;
+    }
+
+    /**
+     * Ln / Col of the caret in the status line (one-based, tabs count as one column).
+     */
+    private void updateCaretPosition() {
+        int caret = textArea.getCaretPosition();
+        try {
+            int line = textArea.getLineOfOffset(caret);
+            statusLine.setCaret(line + 1, caret - textArea.getLineStartOffset(line) + 1);
+        } catch (BadLocationException e) {
+            statusLine.setCaret(-1, -1);
+        }
+    }
+
+    /**
      * The query status line; the main window shows the active editor's line below the results (SSMS).
      */
     @NotNull
@@ -471,6 +570,9 @@ final class SqlEditorPanel extends JPanel {
         toolBar.add(UiIcons.createToolButton(executeAction, "run")); //$NON-NLS-1$
         toolBar.add(UiIcons.createActionButton(cancelAction, "stop")); //$NON-NLS-1$
         toolBar.addSeparator();
+        toolBar.add(UiIcons.createActionButton(estimatedPlanAction, "plan")); //$NON-NLS-1$
+        toolBar.add(actualPlanButton);
+        toolBar.addSeparator();
 
         connectionCombo.setToolTipText("Connection of this query window");
         connectionCombo.setRenderer(new ConnectionRenderer());
@@ -529,7 +631,7 @@ final class SqlEditorPanel extends JPanel {
      * Executes the selection if at least one character is selected, otherwise the whole editor text.
      */
     void execute() {
-        if (execution != null) {
+        if (execution != null || explaining) {
             return;
         }
         if (resultsView.isSaving()) {
@@ -569,8 +671,12 @@ final class SqlEditorPanel extends JPanel {
         long connectionMaxRows = container.getPreferenceStore().getInt(ModelPreferences.RESULT_SET_MAX_ROWS);
         Execution run = new Execution(container, text, offset, length,
             maxRows > 0 ? Math.max(maxRows, connectionMaxRows) : connectionMaxRows, maxRows > 0);
+        run.includeActualPlan = isIncludeActualPlan();
         execution = run;
         resultsView.clear();
+        if (run.includeActualPlan) {
+            planView.clear("Waiting for the actual execution plan…");
+        }
         statusLine.setState(QueryStatusLine.State.EXECUTING, container.isConnected() ? "Executing query…" : "Connecting…");
         statusLine.setElapsed(formatElapsed(0, false));
         statusLine.setRows(null);
@@ -611,7 +717,8 @@ final class SqlEditorPanel extends JPanel {
     }
 
     private void updateActions() {
-        executeAction.setEnabled(execution == null && !resultsView.isSaving());
+        executeAction.setEnabled(execution == null && !explaining && !resultsView.isSaving());
+        estimatedPlanAction.setEnabled(execution == null && !explaining);
         cancelAction.setEnabled(execution != null && !execution.cancelRequested);
         // The connection and its defaults stay as they are while a query runs on them
         connectionCombo.setEnabled(execution == null);
@@ -657,8 +764,129 @@ final class SqlEditorPanel extends JPanel {
         updateActions();
         // As in SSMS: errors (or no result grids at all) bring the Messages tab to the front
         host.showResults(this, run.hasErrors || resultsView.getGridCount() == 0);
+        finishActualPlan(run, canceled);
         // The run may have connected, or changed the default database (USE)
         refreshSchemas();
+    }
+
+    /**
+     * Include Actual Execution Plan: the plans already arrived as result sets, or the read-only SELECT statements of the
+     * run are planned now with run-time values (the planner executes them again and rolls back).
+     */
+    private void finishActualPlan(@NotNull Execution run, boolean canceled) {
+        if (!run.includeActualPlan) {
+            return;
+        }
+        if (!run.planChecked) {
+            // The run stopped before it reached the connection
+            planView.clear("No actual execution plan: the query did not run.");
+            return;
+        }
+        if (run.actualPlanProvider != null) {
+            if (!planView.hasContent()) {
+                planView.clear(canceled ? "No actual execution plan: the query was canceled." : "The server returned no actual execution plan.");
+            }
+            return;
+        }
+        if (run.planner == null || run.context == null) {
+            planView.clear("This connection does not provide execution plans.");
+            return;
+        }
+        if (canceled || run.actualPlanQueries.isEmpty()) {
+            planView.clear(canceled ? "No actual execution plan: the query was canceled."
+                : "On this connection the actual execution plan is made for SELECT statements that succeeded.");
+            return;
+        }
+        explaining = true;
+        updateActions();
+        planView.clear("Making the actual execution plan…");
+        SqlPlanExplainer.explain(run.context, run.planner, List.copyOf(run.actualPlanQueries), true, planView::addEntry, () -> {
+            explaining = false;
+            updateActions();
+        });
+    }
+
+    /**
+     * Query &gt; Display Estimated Execution Plan (Ctrl+L): the plans of the selected statements, or of the whole script.
+     */
+    void explainEstimatedPlan() {
+        if (execution != null || explaining) {
+            return;
+        }
+        String text = textArea.getText();
+        int offset = 0;
+        int length = text.length();
+        if (textArea.getSelectionEnd() - textArea.getSelectionStart() >= 1) {
+            offset = textArea.getSelectionStart();
+            length = textArea.getSelectionEnd() - offset;
+        }
+        if (text.substring(offset, offset + length).isBlank()) {
+            statusLine.setState(QueryStatusLine.State.READY, "Nothing to explain");
+            return;
+        }
+        DBPDataSourceContainer container = dataSourceContainer;
+        if (container == null) {
+            JOptionPane.showMessageDialog(this, "Choose a connection for this query window in its tool bar first.",
+                "Display Estimated Execution Plan", JOptionPane.INFORMATION_MESSAGE);
+            return;
+        }
+        explaining = true;
+        updateActions();
+        planView.clear(container.isConnected() ? "Making the estimated execution plan…" : "Connecting…");
+        planTabSelected = true;
+        host.showPlan(this);
+        int finalOffset = offset;
+        int finalLength = length;
+        new AbstractJob("Prepare execution plan") {
+            @NotNull
+            @Override
+            protected IStatus run(@NotNull DBRProgressMonitor monitor) {
+                String problem = null;
+                try {
+                    if (!container.isConnected()) {
+                        DBUtils.initDataSource(monitor, container, null);
+                    }
+                    DBPDataSource dataSource = container.getDataSource();
+                    DBCQueryPlanner planner = SqlPlanExplainer.getPlanner(container.isConnected() ? dataSource : null);
+                    DBCExecutionContext context = dataSource == null ? null : DBUtils.getDefaultContext(dataSource.getDefaultInstance(), false);
+                    if (dataSource == null || context == null) {
+                        problem = "Not connected to '" + container.getName() + "'.";
+                    } else if (planner == null) {
+                        problem = "This connection does not provide execution plans.";
+                    } else {
+                        List<SQLQuery> queries = new ArrayList<>();
+                        for (SQLScriptElement element : SQLScriptBatches.extractQueries(dataSource, text, finalOffset, finalLength)) {
+                            if (element instanceof SQLQuery query) {
+                                queries.add(query);
+                            }
+                        }
+                        if (queries.isEmpty()) {
+                            problem = "No statements to explain.";
+                        } else {
+                            SwingUtilities.invokeLater(() -> {
+                                planView.clear("Making the estimated execution plan…");
+                                statusLine.setConnection(container);
+                            });
+                            SqlPlanExplainer.explain(context, planner, queries, false, planView::addEntry, () -> {
+                                explaining = false;
+                                updateActions();
+                            });
+                            return Status.OK_STATUS;
+                        }
+                    }
+                } catch (Throwable e) {
+                    log.debug("Execution plan preparation failed", e);
+                    problem = CommonUtils.getAllExceptionMessages(e);
+                }
+                String message = problem;
+                SwingUtilities.invokeLater(() -> {
+                    explaining = false;
+                    planView.clear(message);
+                    updateActions();
+                });
+                return Status.OK_STATUS;
+            }
+        }.schedule();
     }
 
     //////////////////////////////////////////////////////////
@@ -687,22 +915,30 @@ final class SqlEditorPanel extends JPanel {
                 stopPreparation(run, Status.OK_STATUS);
                 return;
             }
-            SQLScriptContext scriptContext = new SQLScriptContext(null, () -> context, null, new MessagesWriter(run), null);
+            if (run.includeActualPlan) {
+                prepareActualPlan(run, monitor, dataSource, context);
+            }
+            // Parameters without a value are asked for in a dialog (SWT: SQLEditorParametersProvider)
+            SQLScriptContext scriptContext = new SQLScriptContext(null, () -> context, null, new MessagesWriter(run),
+                new SqlParameterDialog.Provider(this));
             SQLQueryExecuteJob job = new SQLQueryExecuteJob(
                 "Execute query", context, null, elements, scriptContext,
-                new QueryListener(run), new QueryHandler(run, context, scriptContext));
+                new QueryListener(run, context), new QueryHandler(run, context, scriptContext));
             if (run.customMaxRows) {
                 job.setResultSetLimit(0, run.maxRows);
             }
             job.addJobChangeListener(new JobChangeAdapter() {
                 @Override
                 public void done(IJobChangeEvent event) {
+                    // Also after errors and cancels: the connection must not keep returning plans
+                    disableActualPlan(run, context);
                     IStatus result = event.getResult();
                     SwingUtilities.invokeLater(() -> finishExecution(run, result != null ? result : Status.OK_STATUS));
                 }
             });
             synchronized (jobLock) {
                 if (run.cancelRequested) {
+                    disableActualPlan(run, context);
                     stopPreparation(run, Status.CANCEL_STATUS);
                     return;
                 }
@@ -713,6 +949,61 @@ final class SqlEditorPanel extends JPanel {
         } catch (Throwable e) {
             log.debug("Query preparation failed", e);
             stopPreparation(run, errorStatus(CommonUtils.getAllExceptionMessages(e)));
+        }
+    }
+
+    /**
+     * Include Actual Execution Plan, before the run (job thread): turns on the plan result sets of the connection, or
+     * keeps its planner for planning the SELECT statements afterwards.
+     */
+    private void prepareActualPlan(
+        @NotNull Execution run,
+        @NotNull DBRProgressMonitor monitor,
+        @NotNull DBPDataSource dataSource,
+        @NotNull DBCExecutionContext context
+    ) {
+        run.context = context;
+        SQLActualPlanProvider provider = DBUtils.getAdapter(SQLActualPlanProvider.class, dataSource);
+        if (provider != null) {
+            try {
+                executeStatements(monitor, context, provider.getEnableStatements());
+                run.actualPlanProvider = provider;
+            } catch (Throwable e) {
+                log.debug("Can't turn the actual plan on", e);
+                post(run, () -> resultsView.appendError("Can't include the actual execution plan: " + CommonUtils.getAllExceptionMessages(e)));
+            }
+        } else {
+            run.planner = SqlPlanExplainer.getPlanner(dataSource);
+        }
+        run.planChecked = true;
+    }
+
+    private void disableActualPlan(@NotNull Execution run, @NotNull DBCExecutionContext context) {
+        SQLActualPlanProvider provider = run.actualPlanProvider;
+        if (provider == null) {
+            return;
+        }
+        try {
+            executeStatements(new VoidProgressMonitor(), context, provider.getDisableStatements());
+        } catch (Throwable e) {
+            log.warn("Can't turn the actual plan off", e);
+        }
+    }
+
+    /**
+     * Runs statements one by one on the execution context's connection (session settings such as SET STATISTICS XML).
+     */
+    private static void executeStatements(
+        @NotNull DBRProgressMonitor monitor,
+        @NotNull DBCExecutionContext context,
+        @NotNull List<String> statements
+    ) throws DBException {
+        try (DBCSession session = context.openSession(monitor, DBCExecutionPurpose.UTIL, "Execution plan settings")) {
+            for (String sql : statements) {
+                try (DBCStatement statement = session.prepareStatement(DBCStatementType.SCRIPT, sql, false, false, false)) {
+                    statement.executeStatement();
+                }
+            }
         }
     }
 
@@ -750,7 +1041,14 @@ final class SqlEditorPanel extends JPanel {
         String errorText = null;
         if (error == null) {
             boolean anyCount = false;
+            List<ActualPlanReceiver> planReceivers = run.planReceivers.getOrDefault(result.getStatement(), List.of());
+            int resultSetIndex = 0;
             for (SQLQueryResult.ExecuteResult executeResult : result.getExecuteResults()) {
+                if (executeResult.isResultSet() && resultSetIndex < planReceivers.size()
+                    && planReceivers.get(resultSetIndex++).isPlanResultSet()) {
+                    // The actual plan of the statement, shown in the Execution plan tab
+                    continue;
+                }
                 Long count = executeResult.isResultSet() ? executeResult.getRowCount() : executeResult.getUpdateCount();
                 if (count == null) {
                     continue;
@@ -886,6 +1184,19 @@ final class SqlEditorPanel extends JPanel {
         volatile boolean cancelRequested;
         @Nullable
         Job job;
+        // Include Actual Execution Plan: set in the EDT before the run, the rest in the preparation job
+        boolean includeActualPlan;
+        volatile boolean planChecked;
+        @Nullable
+        volatile SQLActualPlanProvider actualPlanProvider;
+        @Nullable
+        volatile DBCQueryPlanner planner;
+        @Nullable
+        volatile DBCExecutionContext context;
+        // Succeeded read-only SELECT statements, planned after the run when there is no actualPlanProvider
+        final List<SQLQuery> actualPlanQueries = new CopyOnWriteArrayList<>();
+        // Receivers of each query's result sets in fetch order (job thread only): plan result sets are not counted as rows
+        final Map<SQLQuery, List<ActualPlanReceiver>> planReceivers = new IdentityHashMap<>();
 
         Execution(
             @NotNull DBPDataSourceContainer dataSourceContainer,
@@ -922,6 +1233,19 @@ final class SqlEditorPanel extends JPanel {
         @Nullable
         @Override
         public DBDDataReceiver getDataReceiver(@NotNull SQLQuery query, int resultSetNumber) {
+            SQLActualPlanProvider planProvider = run.actualPlanProvider;
+            if (planProvider != null) {
+                // Plan result sets go to the Execution plan tab, the others to the grids
+                ActualPlanReceiver receiver = new ActualPlanReceiver(planProvider, query.getText(), () -> createGridReceiver(query),
+                    entry -> post(run, () -> planView.addEntry(entry)));
+                run.planReceivers.computeIfAbsent(query, q -> new ArrayList<>()).add(receiver);
+                return receiver;
+            }
+            return createGridReceiver(query);
+        }
+
+        @NotNull
+        private DBDDataReceiver createGridReceiver(@NotNull SQLQuery query) {
             SQLQueryDataContainer dataContainer = new SQLQueryDataContainer(() -> context, query, scriptContext, log);
             return new ResultSetGridReceiver(dataContainer, fetched -> {
                 run.rowsFetched.addAndGet(fetched.data().rows().size());
@@ -953,15 +1277,75 @@ final class SqlEditorPanel extends JPanel {
      */
     private final class QueryListener implements SQLQueryListener {
         private final Execution run;
+        private final DBCExecutionContext context;
 
-        QueryListener(@NotNull Execution run) {
+        QueryListener(@NotNull Execution run, @NotNull DBCExecutionContext context) {
             this.run = run;
+            this.context = context;
         }
 
         @Override
         public void onEndQuery(@NotNull DBCSession session, @NotNull SQLQueryResult result, @NotNull DBCStatistics statistics) {
             reportQueryResult(run, session, result);
+            recordHistory(run, context, result);
+            if (run.includeActualPlan && run.planner != null && result.getError() == null && !run.cancelRequested
+                && SqlPlanExplainer.isReadOnlySelect(result.getStatement())) {
+                run.actualPlanQueries.add(result.getStatement());
+            }
         }
+    }
+
+    /**
+     * Adds a finished statement to the query history (job thread).
+     */
+    private static void recordHistory(@NotNull Execution run, @NotNull DBCExecutionContext context, @NotNull SQLQueryResult result) {
+        try {
+            long rows = -1;
+            List<ActualPlanReceiver> planReceivers = run.planReceivers.getOrDefault(result.getStatement(), List.of());
+            int resultSetIndex = 0;
+            for (SQLQueryResult.ExecuteResult executeResult : result.getExecuteResults()) {
+                if (executeResult.isResultSet() && resultSetIndex < planReceivers.size()
+                    && planReceivers.get(resultSetIndex++).isPlanResultSet()) {
+                    continue;
+                }
+                Long count = executeResult.isResultSet() ? executeResult.getRowCount() : executeResult.getUpdateCount();
+                if (count != null) {
+                    rows = Math.max(rows, 0) + count;
+                }
+            }
+            QueryHistory.Status status = result.getError() != null ? QueryHistory.Status.ERROR
+                : run.cancelRequested ? QueryHistory.Status.CANCELED : QueryHistory.Status.SUCCESS;
+            DBPDataSourceContainer container = run.dataSourceContainer;
+            QueryHistory.add(new QueryHistory.Entry(
+                System.currentTimeMillis() - result.getQueryTime(),
+                container.getId(),
+                container.getName(),
+                getDefaultObjectName(context),
+                result.getStatement().getText(),
+                result.getQueryTime(),
+                rows,
+                status,
+                result.getError() == null ? null : CommonUtils.getAllExceptionMessages(result.getError())));
+        } catch (Throwable e) {
+            log.debug("Can't record the query history", e);
+        }
+    }
+
+    /**
+     * Name of the default catalog and schema of the context, e.g. {@code sales.dbo} (cached values, no server call).
+     */
+    @Nullable
+    private static String getDefaultObjectName(@NotNull DBCExecutionContext context) {
+        DBCExecutionContextDefaults<?, ?> defaults = context.getContextDefaults();
+        if (defaults == null) {
+            return null;
+        }
+        DBSCatalog catalog = defaults.getDefaultCatalog();
+        DBSSchema schema = defaults.getDefaultSchema();
+        if (catalog != null && schema != null) {
+            return catalog.getName() + "." + schema.getName(); //$NON-NLS-1$
+        }
+        return catalog != null ? catalog.getName() : schema != null ? schema.getName() : null;
     }
 
     /**
@@ -1184,6 +1568,13 @@ final class SqlEditorPanel extends JPanel {
     static final class SqlTextArea extends RSyntaxTextArea {
         // EDT only; read by the token maker while painting
         private SqlTokenClassifier.Words words = SqlTokenClassifier.Words.STANDARD;
+        // EDT only: connection for the dialect of the editing commands
+        @Nullable
+        private DBPDataSourceContainer container;
+        // Ctrl+K was pressed; the next key completes the chord (Ctrl+K Ctrl+D etc.)
+        private boolean chordPending;
+        @Nullable
+        private SqlTemplates.Session templateSession;
 
         SqlTextArea() {
             // Keywords, functions and types of the connection's dialect, SSMS operator words (SqlTokenClassifier)
@@ -1200,6 +1591,127 @@ final class SqlEditorPanel extends JPanel {
                 () -> FindReplaceDialog.findAgain(this, true));
             bindKey(KeyStroke.getKeyStroke(KeyEvent.VK_F3, InputEvent.SHIFT_DOWN_MASK), "chromite.findPrevious", //$NON-NLS-1$
                 () -> FindReplaceDialog.findAgain(this, false));
+            // Editing commands (Edit > Advanced shows the same keys)
+            bindKey(KeyStroke.getKeyStroke(KeyEvent.VK_K, InputEvent.CTRL_DOWN_MASK), "chromite.chord", //$NON-NLS-1$
+                () -> chordPending = true);
+            bindKey(KeyStroke.getKeyStroke(KeyEvent.VK_F, InputEvent.CTRL_DOWN_MASK | InputEvent.SHIFT_DOWN_MASK), "chromite.format", //$NON-NLS-1$
+                () -> runCommand(Command.FORMAT));
+            bindKey(KeyStroke.getKeyStroke(KeyEvent.VK_U, InputEvent.CTRL_DOWN_MASK | InputEvent.SHIFT_DOWN_MASK), "chromite.upperCase", //$NON-NLS-1$
+                () -> runCommand(Command.UPPER_CASE));
+            bindKey(KeyStroke.getKeyStroke(KeyEvent.VK_L, InputEvent.CTRL_DOWN_MASK | InputEvent.SHIFT_DOWN_MASK), "chromite.lowerCase", //$NON-NLS-1$
+                () -> runCommand(Command.LOWER_CASE));
+            // Tab: next template variable, a template name before the caret, else the text area's own Tab (indent)
+            bindKey(KeyStroke.getKeyStroke(KeyEvent.VK_TAB, 0), "chromite.tab", this::tab); //$NON-NLS-1$
+            // Key listeners run before the key bindings: the second key of a chord never reaches them
+            addKeyListener(new KeyAdapter() {
+                @Override
+                public void keyPressed(KeyEvent e) {
+                    handleChordKey(e);
+                }
+            });
+            addFocusListener(new FocusAdapter() {
+                @Override
+                public void focusLost(FocusEvent e) {
+                    chordPending = false;
+                }
+            });
+        }
+
+        /**
+         * Editing commands of the query editor (Edit &gt; Advanced and the editor keys).
+         */
+        enum Command {
+            FORMAT, UPPER_CASE, LOWER_CASE, COMMENT, UNCOMMENT, INDENT, OUTDENT, INSERT_TEMPLATE
+        }
+
+        /**
+         * Runs an editing command on this text area; read-only text areas (DDL tabs) ignore them.
+         */
+        void runCommand(@NotNull Command command) {
+            if (!isEditable()) {
+                return;
+            }
+            switch (command) {
+                case FORMAT -> SqlEditCommands.format(this, container);
+                case UPPER_CASE -> SqlEditCommands.changeCase(this, true);
+                case LOWER_CASE -> SqlEditCommands.changeCase(this, false);
+                case COMMENT -> SqlEditCommands.comment(this, container);
+                case UNCOMMENT -> SqlEditCommands.uncomment(this, container);
+                case INDENT -> SqlEditCommands.indent(this);
+                case OUTDENT -> SqlEditCommands.outdent(this);
+                case INSERT_TEMPLATE -> showTemplateMenu();
+            }
+        }
+
+        private void handleChordKey(@NotNull KeyEvent e) {
+            if (!chordPending) {
+                return;
+            }
+            int code = e.getKeyCode();
+            if (code == KeyEvent.VK_CONTROL || code == KeyEvent.VK_SHIFT || code == KeyEvent.VK_ALT || code == KeyEvent.VK_META) {
+                return;
+            }
+            chordPending = false;
+            e.consume();
+            if (!e.isControlDown()) {
+                return;
+            }
+            switch (code) {
+                case KeyEvent.VK_D -> runCommand(Command.FORMAT);
+                case KeyEvent.VK_C -> runCommand(Command.COMMENT);
+                case KeyEvent.VK_U -> runCommand(Command.UNCOMMENT);
+                case KeyEvent.VK_X -> runCommand(Command.INSERT_TEMPLATE);
+                default -> UIManager.getLookAndFeel().provideErrorFeedback(this);
+            }
+        }
+
+        private void tab() {
+            Action defaultTab = getActionMap().get(DefaultEditorKit.insertTabAction);
+            if (isEditable() && getSelectionStart() == getSelectionEnd()) {
+                SqlTemplates.Session session = templateSession;
+                if (session != null && session.contains(getCaretPosition())) {
+                    session.selectNext(this);
+                    return;
+                }
+                templateSession = null;
+                SqlTemplates.Template template = SqlTemplates.findAtCaret(this);
+                if (template != null) {
+                    templateSession = SqlTemplates.expand(this, template);
+                    return;
+                }
+            } else if (templateSession != null && getSelectedText() != null && templateSession.contains(getSelectionStart())) {
+                // A selected template variable: go on to the next one
+                templateSession.selectNext(this);
+                return;
+            }
+            if (defaultTab != null) {
+                defaultTab.actionPerformed(new ActionEvent(this, ActionEvent.ACTION_PERFORMED, DefaultEditorKit.insertTabAction));
+            }
+        }
+
+        /**
+         * Ctrl+K Ctrl+X: the templates in a menu at the caret; the chosen one is inserted at the caret.
+         */
+        private void showTemplateMenu() {
+            JPopupMenu menu = new JPopupMenu();
+            for (SqlTemplates.Template template : SqlTemplates.getTemplates()) {
+                if (!template.enabled()) {
+                    continue;
+                }
+                JMenuItem item = new JMenuItem(template.name() + "  -  " + template.description()); //$NON-NLS-1$
+                item.addActionListener(e -> {
+                    replaceSelection(template.name());
+                    templateSession = SqlTemplates.expand(this, template);
+                    requestFocusInWindow();
+                });
+                menu.add(item);
+            }
+            try {
+                Rectangle caret = modelToView2D(getCaretPosition()).getBounds();
+                menu.show(this, caret.x, caret.y + caret.height);
+            } catch (BadLocationException e) {
+                menu.show(this, 0, 0);
+            }
         }
 
         private void bindKey(@NotNull KeyStroke keyStroke, @NotNull String actionKey, @NotNull Runnable task) {
@@ -1213,9 +1725,11 @@ final class SqlEditorPanel extends JPanel {
         }
 
         /**
-         * Highlights the words of the connection's SQL dialect (standard SQL without a connection) and repaints the text.
+         * Highlights the words of the connection's SQL dialect (standard SQL without a connection) and repaints the text;
+         * the editing commands (format, comment) use the same dialect.
          */
         void setDataSourceContainer(@Nullable DBPDataSourceContainer container) {
+            this.container = container;
             SqlTokenClassifier.Words newWords = SqlTokenClassifier.Words.of(container);
             if (newWords != words) {
                 words = newWords;
