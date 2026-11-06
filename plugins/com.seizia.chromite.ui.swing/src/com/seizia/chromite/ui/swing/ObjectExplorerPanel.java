@@ -131,6 +131,7 @@ import java.util.function.Consumer;
  * - 2026-11-06 Registered Servers: 연 서버만 보이는 평평한 목록(연결 폴더 노드 삭제), Disconnect로 목록에서 빼기, 도구 막대 Connect = 서버 고르기,
  *   New Connection으로 만든 서버 넣기 (docs/chromite/swing-registered-servers.md)
  * - 2026-11-06 관리 도구: Activity Monitor·Locks·Find Objects 메뉴, 노드까지 펼쳐 고르기(revealNode) (docs/chromite/swing-admin-tools.md)
+ * - 2026-11-06 revealNode: 결과의 서버가 이 창에 없으면 먼저 넣고 서버 목록을 다시 읽은 뒤 펼침(연 서버만 보이는 목록) (docs/chromite/swing-admin-tools.md)
  */
 final class ObjectExplorerPanel extends JPanel {
 
@@ -643,9 +644,16 @@ final class ObjectExplorerPanel extends JPanel {
     /**
      * Expands the tree down to a navigator node and selects it (Find Objects). Children on the path that have not
      * been read yet are read first ({@link #loadChildren}); the walk goes on when they are shown ({@link #showChildren}).
+     * The tree lists only the servers opened in this window, so a node of another server first opens that server here
+     * (as Registered Servers "Object Explorer" does); the walk goes on when the server list is read again ({@link #mergeChildren}).
      */
     void revealNode(@NotNull DBNNode node) {
         revealTarget = node;
+        if (node instanceof DBNDatabaseNode databaseNode && servers != null && servers.add(databaseNode.getDataSourceContainer())
+            && rootNode.state != LoadState.NOT_LOADED) {
+            reloadConnectionList();
+            return;
+        }
         continueReveal();
     }
 
@@ -1039,6 +1047,8 @@ final class ObjectExplorerPanel extends JPanel {
                 }
             }
         }
+        // Find Objects may have opened the server of its result here (revealNode)
+        continueReveal();
         updateActions();
     }
 

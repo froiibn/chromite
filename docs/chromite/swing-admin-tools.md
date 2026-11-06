@@ -136,6 +136,9 @@ SWT 메타데이터 검색(`plugins/org.jkiss.dbeaver.ui.search/.../SearchMetada
 - 범위: 탭을 열 때 고른 노드의 스키마·데이터베이스(`DBSStructContainer`)를 `setParentObject`로 넘긴다(SWT와 같음). 그 연결에만 적용한다.
 - 결과: 이름(탐색기 아이콘), 종류, 전체 이름, 연결. 두 번 누르거나 Enter를 누르면 Object Explorer를 보이고 그 노드까지 펼쳐 고른다
   (`ObjectExplorerPanel#revealNode`: 루트에서부터 대상의 조상 노드를 따라 내려가며, 읽지 않은 노드는 펼쳐 읽은 뒤 이어 간다).
+  Object Explorer는 연 서버만 보이므로([swing-registered-servers.md](swing-registered-servers.md)), 결과의 서버가 아직 없으면 Registered Servers의
+  "Object Explorer" 명령처럼 그 서버를 먼저 Object Explorer에 넣고(맨 아래) 서버 목록을 다시 읽은 뒤 이어서 펼친다.
+  없는 서버의 결과에서 조용히 멈추지 않게 하려는 것이다. 되돌리기: `revealNode`의 서버 넣기 분기를 지우면 Object Explorer에 있는 서버의 결과만 펼친다.
 
 ## 미룬 것
 
@@ -172,3 +175,4 @@ Swing 제품을 별도 작업 공간으로 띄우고 로컬 Docker DB(PostgreSQL
 ## 변경 이력
 
 - 2026-11-06 최초 작성: Activity Monitor(Processes, Locks), Find Objects, `com.seizia.chromite.model.admin` 번들(SQL Server·MySQL 잠금 관리자).
+- 2026-11-06 Registered Servers와 합침: Find Objects 결과의 서버가 Object Explorer에 없으면 먼저 넣고 펼친다(연 서버만 보이는 Object Explorer).
