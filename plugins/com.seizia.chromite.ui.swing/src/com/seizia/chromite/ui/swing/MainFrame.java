@@ -33,6 +33,7 @@ import org.jkiss.dbeaver.model.navigator.DBNDatabaseFolder;
 import org.jkiss.dbeaver.model.navigator.DBNNode;
 import org.jkiss.dbeaver.model.preferences.DBPPreferenceStore;
 import org.jkiss.dbeaver.model.struct.DBSEntity;
+import org.jkiss.dbeaver.model.struct.DBSObject;
 import org.jkiss.dbeaver.runtime.DBWorkbench;
 import org.jkiss.dbeaver.utils.GeneralUtils;
 import org.jkiss.dbeaver.utils.PrefUtils;
@@ -140,6 +141,7 @@ import java.util.function.IntConsumer;
  * - 2026-11-06 Query Library ③: 창을 닫을 때 예약 실행 정지 (docs/chromite/swing-query-library.md "예약 실행")
  * - 2026-11-06 연결이 바뀌면(이름) 그 연결의 테이블 디자이너 탭 제목도 다시 씀(제목에 연결 이름) (docs/chromite/swing-table-designer.md)
  * - 2026-11-06 화면 문구를 CoreMessages로 옮김(OS 언어를 따름)
+ * - 2026-11-06 ER 다이어그램: Object Explorer View Diagram의 도구 문서 탭({@link ErdDiagramPanel}) (docs/chromite/swing-erd.md)
  */
 final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplorerPanel.QueryWindows, TableDesignerPanel.Host, QueryLibraryPanel.Host {
 
@@ -557,6 +559,21 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
     @Override
     public void openObjectSearch(@Nullable DBNNode selectedNode) {
         addToolDocument(new ObjectSearchPanel(selectedNode, node -> {
+            // Object Explorer is the first tool window
+            toolWindows.get(0).setShown(true);
+            explorerPanel.revealNode(node);
+        }));
+    }
+
+    @Override
+    public void viewDiagram(@NotNull DBSObject root) {
+        for (int i = 0; i < documentTabs.getTabCount(); i++) {
+            if (documentTabs.getComponentAt(i) instanceof ErdDiagramPanel diagram && diagram.getRoot() == root) {
+                documentTabs.setSelectedIndex(i);
+                return;
+            }
+        }
+        addToolDocument(new ErdDiagramPanel(root, this, node -> {
             // Object Explorer is the first tool window
             toolWindows.get(0).setShown(true);
             explorerPanel.revealNode(node);
