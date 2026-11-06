@@ -29,6 +29,7 @@ import org.eclipse.osgi.util.NLS;
  *
  * 변경 이력:
  * - 2026-11-06 최초 작성: 백업·복원 (docs/chromite/swing-backup-restore.md)
+ * - 2026-11-06 pg_restore가 오류로 끝났을 때의 메시지(native_error_pg_restore_errors) 추가
  */
 public class BackupRestoreMessages extends NLS {
     private static final String BUNDLE_NAME = "com.seizia.chromite.ui.swing.internal.BackupRestoreMessages"; //$NON-NLS-1$
@@ -213,6 +214,7 @@ public class BackupRestoreMessages extends NLS {
     public static String native_error_no_output;
     public static String native_error_no_input;
     public static String native_error_input_missing;
+    public static String native_error_pg_restore_errors;
 
     static {
         NLS.initializeMessages(BUNDLE_NAME, BackupRestoreMessages.class);
