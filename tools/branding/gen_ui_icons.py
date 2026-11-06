@@ -281,6 +281,12 @@ CONCEPTS = [
     ("library-query", "라이브러리 쿼리", "Library query", "file-text + player-play"),
     ("new-folder", "새 폴더", "New folder", "folder-plus"),
     ("schedule", "예약 실행", "Schedule", "clock"),
+    # ER diagram tab and tool bar
+    ("diagram", "ER 다이어그램", "ER diagram", "schema (two linked tables)"),
+    ("zoom-in", "확대", "Zoom in", "zoom-in"),
+    ("zoom-out", "축소", "Zoom out", "zoom-out"),
+    ("zoom-fit", "창에 맞추기", "Fit to window", "arrows-maximize"),
+    ("layout", "자동 레이아웃", "Auto layout", "hierarchy-3"),
 ]
 
 
@@ -371,6 +377,18 @@ def extra_icons(I, P, n, nf, blue, blue_fill, green, green_fill, red, red_fill, 
                             play_badge(green), play_badge(0, True))
     I["library-query"] = svg(body, defs)
     I["schedule"] = svg(clock(blue_fill, blue, blue, sw))
+    # ER diagram: two small tables with a relationship line
+    I["diagram"] = svg(path("M4.5 7.5V11.5H7.5", None, n, sw)
+                       + rect(1.5, 1.5, 7, 6, 1, doc_fill, n) + path("M1.5 3.5H8.5", None, n, sw, cap="butt")
+                       + rect(7.5, 8.5, 7, 6, 1, blue_fill, blue) + path("M7.5 10.5H14.5", None, blue, sw, cap="butt"))
+    lens = circle(6.5, 6.5, 4.5, doc_fill, n, sw) + path("M10 10L13.5 13.5", None, n, 1.5)
+    I["zoom-in"] = svg(lens + path("M4.5 6.5H8.5M6.5 4.5V8.5", None, blue, sw))
+    I["zoom-out"] = svg(lens + path("M4.5 6.5H8.5", None, blue, sw))
+    I["zoom-fit"] = svg(path("M2.5 5.5V2.5H5.5M10.5 2.5H13.5V5.5M13.5 10.5V13.5H10.5M5.5 13.5H2.5V10.5", None, n, sw)
+                        + rect(5.5, 5.5, 5, 5, 1, blue_fill, blue))
+    I["layout"] = svg(path("M5.5 8H8M8 4.5V11.5M8 4.5H10.5M8 11.5H10.5", None, n, sw)
+                      + rect(1.5, 6, 4, 4, 1, doc_fill, n) + rect(10.5, 2.5, 4, 4, 1, blue_fill, blue)
+                      + rect(10.5, 9.5, 4, 4, 1, blue_fill, blue))
 
 
 # ----------------------------------------------------------------- SET A: duo-tone
