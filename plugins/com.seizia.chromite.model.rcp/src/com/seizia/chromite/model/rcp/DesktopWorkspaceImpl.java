@@ -51,13 +51,16 @@ import java.util.*;
 
 /**
  * DBeaver desktop workspace.
+ *
+ * 변경 이력:
+ * - 2026-11-07 외부 파일 속성 파일 이름 상수를 패키지 공개로 바꿈({@link LegacyNameMigration}이 옛 이름에서 복사할 대상으로 씀)
  */
 public class DesktopWorkspaceImpl extends EclipseWorkspaceImpl implements DBPWorkspaceDesktop, DBPExternalFileManager, DBFResourceAdapter {
 
     private static final Log log = Log.getLog(DesktopWorkspaceImpl.class);
 
-    private static final String EXT_FILES_PROPS_STORE_LEGACY = "chromite-external-files.data";
-    private static final String EXT_FILES_PROPS_STORE = "chromite-external-files.json";
+    static final String EXT_FILES_PROPS_STORE_LEGACY = "chromite-external-files.data";
+    static final String EXT_FILES_PROPS_STORE = "chromite-external-files.json";
 
     private final Map<String, Map<String, String>> externalFileProperties = new HashMap<>();
 

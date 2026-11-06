@@ -24,7 +24,8 @@ import re
 OLD_DOT = 'org.jkiss.dbeaver'
 NEW_DOT = 'com.seizia.chromite'
 
-# Files that are never read or rewritten: copied upstream code, legal texts, and this tool's own data.
+# Files that are never read or rewritten: copied upstream code, legal texts, this tool's own data, and the startup
+# migration that has to name the old identifiers to copy user data written before the rename.
 EXCLUDE_PREFIXES = (
     'deps/',
     'tools/rename/',
@@ -34,6 +35,7 @@ EXCLUDE_FILES = {
     'NOTICE',
     'LICENSE.md',
     'docs/chromite/internal-rename.md',
+    'plugins/com.seizia.chromite.model.rcp/src/com/seizia/chromite/model/rcp/LegacyNameMigration.java',
 }
 
 # DOC mode: only structural names (packages, bundle paths, type names, file names) are mapped, see module docstring.
