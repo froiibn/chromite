@@ -70,6 +70,7 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.IntConsumer;
+import java.util.function.Supplier;
 
 /**
  * Chromite Swing 메인 창 (SSMS식 배치).
@@ -181,6 +182,7 @@ import java.util.function.IntConsumer;
  *   Include Actual Execution Plan을 선택 상태가 있는 동작으로(메뉴와 도구 막대 단추가 같이 씀), 실행·계획 켜짐을 쿼리 창의
  *   {@code canExecute}·{@code canCancel}·{@code canExplain}으로 (docs/chromite/swing-frontend.md "SQL Editor 도구 막대")
  * - 2026-11-07 쿼리 창이 활성이 되면 쿼리 상태 줄의 커밋 방식을 다시 읽음 (docs/chromite/swing-frontend.md "자동 커밋 상태")
+ * - 2026-11-07 열쇠로 찾아 여는 도구 문서 탭 {@link #openToolDocument}(SQL Server 에이전트 작업 활동·기록·로그) (docs/chromite/swing-sqlserver-agent.md)
  */
 final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplorerPanel.QueryWindows, TableDesignerPanel.Host, QueryLibraryPanel.Host {
 
@@ -204,6 +206,10 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
      * Client property of a query window whose results the user hid; kept on the editor so the choice lives and dies with it.
      */
     private static final String RESULTS_HIDDEN_KEY = "chromite.resultsHidden"; //$NON-NLS-1$
+    /**
+     * Client property of a document tab opened with {@link #openToolDocument}: its key.
+     */
+    private static final String TOOL_DOCUMENT_KEY = "chromite.toolDocumentKey"; //$NON-NLS-1$
     private static final String DOCUMENTS_CARD = "documents"; //$NON-NLS-1$
     private static final String WELCOME_CARD = "welcome"; //$NON-NLS-1$
     private static final int RESULTS_TAB = 0;
@@ -742,6 +748,22 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
             toolWindows.get(0).setShown(true);
             explorerPanel.revealNode(node);
         }));
+    }
+
+    @NotNull
+    @Override
+    public ToolDocument openToolDocument(@NotNull String key, @NotNull Supplier<ToolDocument> factory) {
+        for (int i = 0; i < documentTabs.getTabCount(); i++) {
+            if (documentTabs.getComponentAt(i) instanceof ToolDocument document
+                && key.equals(((JComponent) document).getClientProperty(TOOL_DOCUMENT_KEY))) {
+                documentTabs.setSelectedIndex(i);
+                return document;
+            }
+        }
+        ToolDocument document = factory.get();
+        ((JComponent) document).putClientProperty(TOOL_DOCUMENT_KEY, key);
+        addToolDocument(document);
+        return document;
     }
 
     private void addToolDocument(@NotNull ToolDocument document) {
