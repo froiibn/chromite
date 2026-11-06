@@ -16,6 +16,7 @@ Chromite의 CI를 DBeaver 조직의 워크플로, 액션, 시크릿 없이 이 �
 |---|---|---|
 | `.github/workflows/build.yml` | `devel` push, `devel` 대상 PR, 수동 실행(`workflow_dispatch`) | 작업 `build`를 행렬(matrix)로 두 번 실행: `windows-x64`(`windows-latest`), `macos-aarch64-on-linux`(`ubuntu-latest`). 제품 빌드 후 결과물 업로드 |
 | `.github/workflows/codeql.yml` | `devel` push, `devel` 대상 PR, 매주 화요일 03:30 UTC | 작업 `analyze`를 `actions`, `java-kotlin` 두 언어로 실행(`ubuntu-latest`) |
+| `.github/workflows/release.yml` | `v*` 태그 push, `devel`에서 수동 실행 | 두 제품을 빌드·서명·확인하고 태그면 초안 Release에 올림([signing.md](signing.md)) |
 | `.github/codeql/codeql-config.yml` | `codeql.yml`이 읽음 | `paths-ignore: deps` |
 
 ### build.yml 단계
@@ -108,6 +109,8 @@ Swing 제품의 루트 폴더(`chromite-swing`, `ChromiteSwing.app`)는 `product
 - 실제 macOS 러너는 나중에 다시 필요하다. 실행 시험(앱이 뜨는지), 코드 서명(`codesign`), 공증(notarization, `notarytool`)은
   macOS에서만 할 수 있다. 그때는 Linux 작업이 올린 `chromite-macos-aarch64`를 macOS 작업이 받아 처리하게 하면
   macOS 러너에서 빌드(수십 분)를 다시 하지 않아도 된다. macOS 러너 배정이 늦을 수 있으므로 그 작업은 PR을 막지 않게 둔다.
+  - 서명·공증은 이 방식으로 `release.yml`에 넣었다(Linux 작업이 만든 앱을 `macos-15` 작업이 받아 서명, [signing.md](signing.md)).
+    `build.yml`은 바뀌지 않았고 PR을 막지 않는다. 실행 시험은 아직 없다.
 
 ### macOS 결과물을 tar로 묶는 이유
 
@@ -178,7 +181,7 @@ CI에서 checkstyle을 돌리지 않기로 했다. 깔끔하게 유지할 방법
   이 서버가 응답하지 않으면 CI도 실패한다.
 - `package` 단계까지만 실행하므로 테스트(`test/`)는 돌리지 않는다.
 - 결과물은 서명하지 않았고 JRE를 내장하지 않는다. 실행하려면 JDK 21 이상(Swing 제품은 JDK 25 이상, [swing-frontend.md](swing-frontend.md))이
-  설치되어 있어야 한다. 배포용이 아니라 확인용이며 7일 뒤 지워진다.
+  설치되어 있어야 한다. 배포용이 아니라 확인용이며 7일 뒤 지워진다. 서명한 배포 파일은 `release.yml`이 만든다([signing.md](signing.md)).
 - `actions/cache` 저장 공간은 저장소당 10GB다. 두 OS의 캐시가 커지면 오래된 캐시부터 지워진다.
 
 ## upstream 대비 변경점
@@ -204,3 +207,4 @@ CI에서 checkstyle을 돌리지 않기로 했다. 깔끔하게 유지할 방법
   결과물 `chromite-swing-windows-x64`(Windows 작업), `chromite-swing-macos-aarch64`(Linux 작업, 런처 실행 권한 확인 후 tar)를 더 올린다.
   "Swing 제품을 추가하는 방법" 절은 할 일을 마쳐 지웠다.
 - 2026-11-06 `SECURITY.md`를 Chromite 기준으로 고쳐(GitHub Security Advisories로 비공개 보고) 남은 문제 항목에서 지웠다.
+- 2026-11-06 서명 릴리스 워크플로 `release.yml`을 추가했다(Turbrix 서명 안내서 기준, [signing.md](signing.md)). `build.yml`은 바꾸지 않았다.
