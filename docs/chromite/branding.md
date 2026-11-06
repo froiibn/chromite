@@ -102,8 +102,6 @@ D:\Tools\_venvs\chromite-branding\Scripts\python tools/branding/gen_app_icons.py
 - 스플래시: 타일 그라데이션 바탕에 어두운 판 가로 로고(폭 480px)를 (60,60)에 놓았다. 왼쪽 끝을 버전 표시(`versionInfoCoord` 60,225)와 맞췄다.
   진행 메시지와 진행 막대 위치(`startupMessageRect`, `startupProgressRect`)는 upstream 값을 그대로 쓴다.
 - 설치 프로그램 측면 이미지: 타일 그라데이션 바탕 위쪽에 아이콘(112px).
-- `plugins/org.jkiss.dbeaver.ui.app.eclipse/icons/{dbeaver-plugin,ce_plugin_icon}.png`는 아직 DBeaver 그림이다.
-  Eclipse 플러그인 배포판(`product-dbeaver-eclipse-ce`)은 Chromite가 빌드하지 않아서 이번에 바꾸지 않았다.
 
 ### 제품 정보 파일
 
@@ -157,7 +155,7 @@ D:\Tools\_venvs\chromite-branding\Scripts\python tools/branding/gen_app_icons.py
 
 - 메뉴, 대화상자, 메시지 등 화면 문구의 "DBeaver"는 아직 바꾸지 않았다(2단계 예정).
   properties 198개 파일, Java 93개 파일에 있다.
-- `product/community-msstore`, `product/testing` 제품 구성은 아직 바꾸지 않았다.
+- `product/testing` 제품 구성(테스트 전용)은 아직 바꾸지 않았다.
 - 빌드와 실행은 아직 확인하지 않았다(JDK 21과 Maven 필요).
 
 ## 변경 이력
@@ -197,3 +195,4 @@ D:\Tools\_venvs\chromite-branding\Scripts\python tools/branding/gen_app_icons.py
 - 2026-11-06 가로 로고 글자를 Inter 워드마크에서 원래 로고의 글자로 바꿈(사용자 결정): 기울임 기하 글자 `CHROMITE`와 E의 파란 강조 획,
   얇은 세로 구분선, 원래 위치에 놓은 넓은 자간 부제. `chromite_full_*.png`, `chromite_wordmark_*.svg`, `chromite_symbol_dark.png`(바탕색), 스플래시를 다시 만듦.
 - 2026-11-07 Swing 오류 문구에서 Java 클래스·패키지 이름(`org.jkiss.dbeaver…`)이 보이지 않게 함(설계 결정 항목 추가). [swing-frontend.md](swing-frontend.md) "오류 문구".
+- 2026-11-07 Microsoft Store·Eclipse 플러그인 제품 삭제([build.md](build.md) "빌드하는 제품")로 `ui.app.eclipse` 아이콘과 `community-msstore` 미완료 항목을 지움.

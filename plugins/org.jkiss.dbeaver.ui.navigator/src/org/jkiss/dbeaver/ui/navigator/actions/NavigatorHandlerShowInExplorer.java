@@ -1,6 +1,7 @@
 /*
  * DBeaver - Universal Database Manager
  * Copyright (C) 2010-2025 DBeaver Corp and others
+ * Modifications Copyright (C) 2026 Chromite contributors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,11 +23,15 @@ import org.eclipse.core.resources.IResource;
 import org.eclipse.core.runtime.IPath;
 import org.eclipse.jface.viewers.IStructuredSelection;
 import org.eclipse.ui.handlers.HandlerUtil;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.runtime.IEnvironmentPathMapper;
 import org.jkiss.dbeaver.ui.ShellUtils;
 import org.jkiss.dbeaver.utils.GeneralUtils;
 
+/**
+ * Opens the selected resource in the system file manager.
+ *
+ * 변경 이력:
+ * - 2026-11-07 Microsoft Store 제품 삭제: 유일한 구현(WinStoreEnvPathMapper)과 함께 IEnvironmentPathMapper 경로 변환을 지웠다.
+ */
 public class NavigatorHandlerShowInExplorer extends NavigatorHandlerObjectBase {
 
     @Override
@@ -37,12 +42,7 @@ public class NavigatorHandlerShowInExplorer extends NavigatorHandlerObjectBase {
         if (resource != null) {
             IPath location = resource.getLocation();
             if (location != null) {
-                String filePath = location.toString();
-                IEnvironmentPathMapper envPathMapper = DBWorkbench.getService(IEnvironmentPathMapper.class);
-                if (envPathMapper != null && envPathMapper.isApplicable(filePath)) {
-                    filePath = envPathMapper.map(filePath);
-                }
-                ShellUtils.showInSystemExplorer(filePath);
+                ShellUtils.showInSystemExplorer(location.toString());
             }
         }
         return null;

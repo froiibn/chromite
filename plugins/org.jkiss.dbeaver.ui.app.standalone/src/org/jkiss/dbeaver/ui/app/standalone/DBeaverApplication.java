@@ -88,6 +88,11 @@ import java.util.stream.Stream;
 
 /**
  * This class controls all aspects of the application's execution
+ *
+ * 설계: Chromite는 Windows ZIP/설치 파일과 macOS DMG만 배포한다. Microsoft Store 제품은 빌드하지 않는다(docs/chromite/build.md).
+ *
+ * 변경 이력:
+ * - 2026-11-07 Microsoft Store 제품 삭제: 배포 형식 설명에서 {@code msstore}를 뺐다.
  */
 public class DBeaverApplication extends DesktopApplicationImpl implements DBPApplicationController {
 
@@ -118,7 +123,7 @@ public class DBeaverApplication extends DesktopApplicationImpl implements DBPApp
     /**
      * Specified in {@code chromite.ini} as a JVM parameter during packaging. Possible values are:
      * <ul>
-     *     <li>{@code zip}, {@code exe}, {@code msstore} on Windows;</li>
+     *     <li>{@code zip}, {@code exe} on Windows;</li>
      *     <li>{@code deb}, {@code rpm} on Linux;</li>
      *     <li>{@code dmg} on macOS.</li>
      * </ul>

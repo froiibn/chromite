@@ -1089,7 +1089,7 @@ RSyntaxTextArea의 `com.fifesoft:autocomplete`(BSD-3) 3.3.2 소스를 확인했�
 
 - **번들:** `org.jkiss.dbeaver.data.office`(`DataExporterXLSX`, SWT 의존 없음, `Require-Bundle`은 `data.transfer`와 POI뿐)와 `org.jkiss.bundle.apache.poi` 5.4.3
   (POI 5.4.0과 의존 jar를 담은 DBeaver 번들, `Require-Bundle`은 Apache Commons 6개, `Import-Package`는 `org.slf4j`)를 Swing 피처에 넣었다.
-  두 번들은 Office 확장 피처 `org.jkiss.dbeaver.ext.office.feature`에만 있고, 이 피처는 SWT 제품에 들어 있지 않고 CE 업데이트 저장소(`org.jkiss.dbeaver.ce.repository/category.xml`)에서 설치하는 확장이다.
+  두 번들은 Office 확장 피처 `org.jkiss.dbeaver.ext.office.feature`에만 있고, 이 피처는 SWT 제품에 들어 있지 않다(설치 원본이던 CE 업데이트 저장소 `product/repositories`는 2026-11-07 삭제, [build.md](build.md) "빌드하는 제품").
   피처의 나머지 번들 `org.jkiss.dbeaver.data.office.ui`(SWT)는 넣지 않았다. Swing 번들은 `data.transfer`·`data.office`를 `Require-Bundle`로 쓴다.
   B단계의 JSVG처럼 SWT만 제공하는 능력을 요구하는지 확인했다: 새 번들 매니페스트에 `Require-Capability`가 없고(POI 번들은 `osgi.ee`뿐), 빌드 결과에 SWT 계열 번들이 들어오지 않았다(아래 확인).
 - **원래 값을 남기기로 한 근거:** E단계 결과 표는 값을 표시 문자열로만 가지고 있다. 표시 문자열을 다시 숫자로 읽는 방법은 정확하지 않다.
@@ -2111,3 +2111,4 @@ EDT 에이전트로 단추를 누르고(`doClick`) 결과를 읽었다. 캡처�
 - 2026-11-07 오류 문구: 예외를 화면 문구로 바꾸는 곳을 `ErrorText` 하나로 모아 클래스·패키지 이름이 보이지 않게 함, 오류 대화상자에 접힌 자세히(스택 추적)·복사,
   인라인 오류 영역에 "자세히…", Swing `UIServiceSystemAgent`(`SwingSystemAgent`) 등록으로 백업·복원 메시지의 "Service … not found" 줄 제거,
   연결·연결 끊기 오류 제목 지역화. "오류 문구" 절 추가.
+- 2026-11-07 XLSX 내보내기 설명: Office 확장 피처의 설치 원본(CE 업데이트 저장소)을 삭제한 것을 반영.

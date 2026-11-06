@@ -1,8 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<site>
-
-    <feature id="org.jkiss.dbeaver.ext.office.feature">
-        <category name="org.jkiss.dbeaver.office.category"/>
-    </feature>
-    <category-def name="org.jkiss.dbeaver.office.category" label="Chromite Office Support"/>
-</site>

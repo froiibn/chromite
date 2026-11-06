@@ -43,6 +43,33 @@ mvn package -f product/aggregate/pom.xml -T1C -Pproduct-dbeaver-ce
 `tools/build.cmd`, `tools/build.sh`는 Maven을 설치하지 않아도 되도록 `deps/dbeaver-common`의 Maven Wrapper(`mvnw`)로
 전체 빌드를 실행한다(`mvnw`가 Maven 3.9.16을 받아서 쓴다. 프로파일은 스크립트 안에 적힌 대로다).
 
+### 빌드하는 제품
+
+| 프로파일 (`product/pom.xml`) | 모듈 | 제품 |
+|---|---|---|
+| `product-dbeaver-ce` | `product/community` | SWT 제품 `chromite` |
+| `product-chromite-swing` | `product/swing` | Swing 제품 `chromite-swing` ([swing-frontend.md](swing-frontend.md)) |
+
+- `product/testing/DBeaverUnitTest.product`는 Maven 모듈이 아니다. 테스트 기반 클래스 `DBeaverUnitTest`의
+  `@RunWithProduct("DBeaverUnitTest.product")`와 `osgi-app.properties`의 `productsPaths`(IDEA 작업 공간 생성기)가 이 파일을 쓴다.
+- 2026-11-07 Chromite가 빌드하거나 배포하지 않는 제품을 지웠다(내부 이름 변경 계획 결정 4, 이름을 바꿀 대상을 줄이기 위해).
+
+  | 삭제 | 내용 |
+  |---|---|
+  | `product/community-msstore`, 프로파일 `product-dbeaver-ce-msstore` | Microsoft Store 제품 |
+  | `product/repositories`, 프로파일 `product-dbeaver-eclipse-ce` | Eclipse 플러그인 배포판과 확장 p2 저장소 4개(`ce`, `debug`, `git`, `office`) |
+  | `product/snap-build` | Linux Snap 패키지 설정(Linux는 빌드하지 않는다, [runtime.md](runtime.md)) |
+  | `features/org.jkiss.dbeaver.ide.feature`, `plugins/org.jkiss.dbeaver.ui.app.eclipse` | Eclipse 플러그인 배포판 feature와 번들 |
+  | `features/org.jkiss.dbeaver.msstore.feature`, `plugins/org.jkiss.dbeaver.ui.app.msstore` | Microsoft Store feature와 번들 |
+  | `ui.app.standalone/plugin.xml`의 `msstore` 애플리케이션·제품·스플래시 연결 | Microsoft Store 제품만 썼다 |
+  | `IEnvironmentPathMapper`, `RuntimeUtils.isWindowsStoreApplication()`, `DBConstants.IS_WINDOWS_STORE_APP`, `NativeClientDescriptor`의 Store 경로 검사 | 유일한 구현과 속성 설정이 `ui.app.msstore` 번들에 있었다 |
+  | `CoreMessages.pref_page_eclipse_ui_general_group_{general,label}`과 `CoreResources*.properties` 키 | Eclipse 플러그인 설정 페이지만 썼다 |
+  | `osgi-app.properties`의 `optionalFeatureRepositories`, `tools/build.*`의 `product-dbeaver-eclipse-ce`, `appstore` 프로파일 | 지운 폴더와 없는 프로파일을 가리켰다 |
+
+- 남긴 것: Office·Git·Debug 확장 feature(`org.jkiss.dbeaver.{ext.office,git,debug}.feature`)와 그 번들은 그대로 빌드한다.
+  이 feature들은 이제 어느 제품이나 p2 저장소에도 들어가지 않지만, 번들 일부(`data.office`, `bundle.apache.poi`)를 Swing 제품이 쓰고
+  나머지는 SWT 확장 기능(PostgreSQL 디버거, Git, Office 내보내기 UI)이라, 지울지는 따로 정한다.
+
 ## 설계 결정과 이유
 
 ### 저장소 안에 넣은 이유
@@ -90,7 +117,8 @@ mvn package -f product/aggregate/pom.xml -T1C -Pproduct-dbeaver-ce
 | `project.deps` | 삭제 |
 | `.github/workflows/push-pr-devel.yml` | 삭제. Chromite 자체 워크플로 `.github/workflows/build.yml`로 대체([ci.md](ci.md)) |
 | `tools/build.cmd`, `tools/build.sh` | 옆 폴더 clone 단계 삭제, `deps/dbeaver-common/mvnw`로 빌드 |
-| `osgi-app.properties` | IDEA 작업 공간 생성기용 번들 경로를 `dbeaver/deps/...`로 변경 |
+| `osgi-app.properties` | IDEA 작업 공간 생성기용 번들 경로를 `dbeaver/deps/...`로 변경. `optionalFeatureRepositories`(`product/repositories`) 삭제 |
+| `product/pom.xml`, `features/pom.xml`, `plugins/pom.xml` | Microsoft Store, Eclipse 플러그인, Snap 제품과 그 feature·번들 삭제(위 "빌드하는 제품") |
 
 ## 갱신 방법 (사용자가 요청할 때만)
 
@@ -123,3 +151,5 @@ git subtree pull --prefix=deps/datadam-api   --squash https://github.com/dbeaver
 - 2026-11-06 루트 `pom.xml`의 Tycho 대상 환경을 Windows x64, macOS aarch64만 남기도록 축소. 제품 빌드가 Linux,
   Windows ARM, Intel Mac 제품을 더 이상 만들지 않는다.
 - 2026-11-06 CI를 Chromite 자체 워크플로로 바꾸면서 `push-pr-devel.yml`을 삭제. CI 관련 설명을 [ci.md](ci.md)로 옮김.
+- 2026-11-07 쓰지 않는 제품 삭제: Microsoft Store(`community-msstore`), Eclipse 플러그인(`repositories`, `ide.feature`, `ui.app.eclipse`),
+  Snap(`snap-build`)과 그것만 쓰던 코드·메시지 키. `tools/build.*`의 프로파일을 `product-dbeaver-ce`만 남김. "빌드하는 제품" 절 추가.

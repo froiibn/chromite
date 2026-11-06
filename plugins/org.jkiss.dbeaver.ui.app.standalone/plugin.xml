@@ -10,12 +10,6 @@
         </application>
     </extension>
 
-    <extension point="org.eclipse.core.runtime.applications" id="msstore" name="MSStore">
-        <application visible="true">
-            <run class="org.jkiss.dbeaver.ui.app.standalone.DBeaverApplication"/>
-        </application>
-    </extension>
-
     <extension point="org.eclipse.core.runtime.products" id="product">
         <product application="org.jkiss.dbeaver.ui.app.standalone.standalone" description="%productSubTitle" name="Chromite">
             <property name="aboutText" value="%aboutText"/>
@@ -36,28 +30,6 @@
             <property name="applicationXMI" value="org.jkiss.dbeaver.ui.app.standalone/dbeaver.e4xmi"/>
             <property name="rendererFactoryUri" value="bundleclass://org.jkiss.dbeaver.core/org.jkiss.dbeaver.ui.e4.DBeaverRendererFactory"/>
             <property name="preferenceCustomization" value="plugin_customization.ini"/>
-        </product>
-    </extension>
-
-    <extension point="org.eclipse.core.runtime.products" id="msstore">
-        <product application="org.jkiss.dbeaver.ui.app.standalone.msstore" description="%productSubTitle" name="Chromite">
-            <property name="aboutText" value="%aboutText"/>
-            <property name="copyright" value="© 2026 Chromite contributors. Based on DBeaver Community © DBeaver Corp"/>
-            <property name="subTitle" value="%productSubTitle"/>
-            <property name="website" value="%productWebsite"/>
-            <property name="email" value="%productEmail"/>
-            <property name="windowImages" value="/icons/dbeaver16.png,/icons/dbeaver32.png,/icons/dbeaver48.png,/icons/dbeaver64.png,/icons/dbeaver256.png"/>
-            <property name="appName" value="Chromite"/>
-            <property name="versionInfoCoord" value="60,225"/>
-            <property name="versionInfoSize" value="8"/>
-            <property name="startupMessageRect" value="60,270,270,21"/>
-            <property name="startupProgressRect" value="3,291,594,6"/>
-            <property name="cssTheme" value="org.eclipse.e4.ui.css.theme.e4_default"/>
-            <property name="applicationCSSResources" value="platform:/plugin/org.eclipse.ui.themes/images/"/>
-            <property name="applicationXMI" value="org.jkiss.dbeaver.ui.app.standalone/dbeaver.e4xmi"/>
-            <property name="rendererFactoryUri" value="bundleclass://org.jkiss.dbeaver.core/org.jkiss.dbeaver.ui.e4.DBeaverRendererFactory"/>
-            <property name="preferenceCustomization" value="plugin_customization.ini"/>
-            <property name="tipsFile" value="platform:/plugin/org.jkiss.dbeaver.ui.app.standalone/tips.xml"/>
         </product>
     </extension>
 
@@ -497,7 +469,6 @@
     <extension point="org.eclipse.ui.splashHandlers">
         <splashHandler class="org.jkiss.dbeaver.ui.app.standalone.DBeaverSplashHandler" id="org.jkiss.dbeaver.ui.splash.interactive"/>
         <splashHandlerProductBinding productId="org.jkiss.dbeaver.ui.app.standalone.product" splashId="org.jkiss.dbeaver.ui.splash.interactive"/>
-        <splashHandlerProductBinding productId="org.jkiss.dbeaver.ui.app.standalone.msstore" splashId="org.jkiss.dbeaver.ui.splash.interactive"/>
     </extension>
 
     <extension point="org.eclipse.ui.helpSupport">

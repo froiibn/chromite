@@ -1,6 +1,7 @@
 /*
  * DBeaver - Universal Database Manager
  * Copyright (C) 2010-2026 DBeaver Corp and others
+ * Modifications Copyright (C) 2026 Chromite contributors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -27,7 +28,6 @@ import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
 import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.DBConstants;
 import org.jkiss.dbeaver.model.connection.DBPNativeClientLocation;
 import org.jkiss.dbeaver.model.meta.ComponentReference;
 import org.jkiss.dbeaver.model.runtime.*;
@@ -51,6 +51,9 @@ import java.util.*;
 
 /**
  * RuntimeUtils
+ *
+ * 변경 이력:
+ * - 2026-11-07 Microsoft Store 제품 삭제: 그 번들이 켜던 시스템 속성만 보던 isWindowsStoreApplication()을 지웠다.
  */
 public final class RuntimeUtils {
 
@@ -417,19 +420,6 @@ public final class RuntimeUtils {
         return IS_WINDOWS;
     }
 
-
-    /**
-     * Checks if current application is shipped from Windows store
-     *
-     * @return true if shipped from Windows store, false if not.
-     */
-    public static boolean isWindowsStoreApplication() {
-        if (!IS_WINDOWS) {
-            return false;
-        }
-        final String property = System.getProperty(DBConstants.IS_WINDOWS_STORE_APP);
-        return property != null && property.equalsIgnoreCase("true");
-    }
 
     public static boolean isMacOS() {
         return IS_MACOS;
