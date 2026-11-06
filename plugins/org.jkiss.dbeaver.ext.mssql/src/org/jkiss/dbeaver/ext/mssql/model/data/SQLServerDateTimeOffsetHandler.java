@@ -1,6 +1,7 @@
 /*
  * DBeaver - Universal Database Manager
  * Copyright (C) 2010-2026 DBeaver Corp and others
+ * Modifications Copyright (C) 2026 Chromite contributors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -34,10 +35,23 @@ import org.jkiss.utils.BeanUtils;
 import java.sql.Timestamp;
 import java.text.ParseException;
 import java.time.OffsetDateTime;
+import java.time.ZoneId;
 import java.time.ZoneOffset;
+import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 
 
+/**
+ * Value handler of SQL Server datetimeoffset.
+ *
+ * 설계: values are bound as ISO text with an offset. A ZonedDateTime keeps its offset; a java.sql.Timestamp (an
+ * instant, read from timestamptz columns of other databases during data transfer) gets the JVM time zone offset: the
+ * driver's setTimestamp stored its local wall time with offset +00:00, which moved the instant by the JVM offset.
+ *
+ * 변경 이력:
+ * - 2026-11-07 Chromite: bind Timestamp values with the JVM offset and ZonedDateTime values with their offset
+ *   (Copy Tables timestamptz -> datetimeoffset).
+ */
 public class SQLServerDateTimeOffsetHandler extends JDBCDateTimeValueHandler {
     private static final Log log = Log.getLog(JDBCStringValueHandler.class);
 
@@ -116,6 +130,11 @@ public class SQLServerDateTimeOffsetHandler extends JDBCDateTimeValueHandler {
         int index,
         @Nullable Object value
     ) throws DBCException {
+        if (value instanceof ZonedDateTime zonedDateTime) {
+            value = zonedDateTime.toOffsetDateTime();
+        } else if (value instanceof Timestamp timestamp) {
+            value = timestamp.toInstant().atZone(ZoneId.systemDefault()).toOffsetDateTime();
+        }
         if (value instanceof OffsetDateTime) {
             String s = DateTimeFormatter.ISO_OFFSET_DATE_TIME.format(((OffsetDateTime) value));
             super.bindValueObject(session, statement, type, index, s);

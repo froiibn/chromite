@@ -1,6 +1,7 @@
 /*
  * DBeaver - Universal Database Manager
  * Copyright (C) 2010-2026 DBeaver Corp and others
+ * Modifications Copyright (C) 2026 Chromite contributors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -50,6 +51,13 @@ import java.util.*;
 
 /**
  * PostgreSQL dialect
+ *
+ * 설계: {@link #convertExternalDataType} maps foreign types that PostgreSQL knows under another name or that the
+ * generic name search maps to the wrong kind (character LOBs became bytea, datetimeoffset lost its offset).
+ *
+ * 변경 이력:
+ * - 2026-11-07 Chromite: data transfer type mapping — uniqueidentifier, character LOBs, timestamps with and without
+ *   time zone (Oracle DATE has a time part); text and bytea never get a length (text(10485760) failed).
  */
 public class PostgreDialect extends JDBCSQLDialect implements TPRuleProvider, SQLDataTypeConverter,
     SQLDialectDDLExtension, SQLDialectSchemaController {
@@ -1182,6 +1190,17 @@ public class PostgreDialect extends JDBCSQLDialect implements TPRuleProvider, SQ
     }
 
     @Override
+    public String getColumnTypeModifiers(@NotNull DBPDataSource dataSource, @NotNull DBSTypedObject column, @NotNull String typeName, @NotNull DBPDataKind dataKind) {
+        String lowerTypeName = typeName.toLowerCase(Locale.ENGLISH);
+        if (lowerTypeName.equals(PostgreConstants.TYPE_TEXT) || lowerTypeName.equals(PostgreConstants.TYPE_BYTEA)) {
+            // These types have no length. The generic code adds the source length (SQL Server ntext, Oracle BLOB),
+            // which made CREATE TABLE fail with text(10485760) or bytea(4000).
+            return null;
+        }
+        return super.getColumnTypeModifiers(dataSource, column, typeName, dataKind);
+    }
+
+    @Override
     public String convertExternalDataType(@NotNull SQLDialect sourceDialect, @NotNull DBSTypedObject sourceTypedObject, @Nullable DBPDataTypeProvider targetTypeProvider) {
         String typeName = sourceTypedObject.getTypeName();
         if (typeName == null) {
@@ -1225,6 +1244,19 @@ public class PostgreDialect extends JDBCSQLDialect implements TPRuleProvider, SQ
                     }
                 }
                 break;
+            case "uniqueidentifier":
+                localDataType = PostgreConstants.TYPE_UUID;
+                break;
+            case "clob":
+            case "nclob":
+                // Character LOBs are CONTENT, which the generic search maps to bytea
+                localDataType = PostgreConstants.TYPE_TEXT;
+                break;
+        }
+        if (localDataType == null && DBStructUtils.isTimestamp(sourceTypedObject)) {
+            // Oracle DATE (has a time part) and SQL Server datetimeoffset are not known by name
+            localDataType = DBStructUtils.isTimestampWithTimeZone(sourceTypedObject) ?
+                PostgreConstants.TYPE_TIMESTAMPTZ : PostgreConstants.TYPE_TIMESTAMP;
         }
         if (localDataType == null) {
             return null;

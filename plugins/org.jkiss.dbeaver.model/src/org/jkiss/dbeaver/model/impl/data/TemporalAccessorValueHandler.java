@@ -1,6 +1,7 @@
 /*
  * DBeaver - Universal Database Manager
  * Copyright (C) 2010-2026 DBeaver Corp and others
+ * Modifications Copyright (C) 2026 Chromite contributors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -28,14 +29,24 @@ import org.jkiss.dbeaver.model.exec.DBCSession;
 import org.jkiss.dbeaver.model.impl.data.formatters.DefaultDataFormatter;
 import org.jkiss.dbeaver.model.struct.DBSTypedObject;
 
+import java.sql.Timestamp;
 import java.text.ParseException;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.temporal.TemporalAccessor;
 import java.util.Date;
 
 /**
  * Date/time value handler
+ *
+ * 설계: values are java.time objects. A java.util.Date (java.sql.Timestamp read from a column of another database
+ * during data transfer) becomes the LocalDateTime or, for zoned types, the ZonedDateTime of the same instant in the
+ * JVM time zone, as the JDBC drivers read it.
+ *
+ * 변경 이력:
+ * - 2026-11-07 Chromite: accept java.util.Date values (Copy Tables PostgreSQL timestamptz to Oracle
+ *   TIMESTAMP WITH TIME ZONE failed with "Bad temporal accessor value").
  */
 public abstract class TemporalAccessorValueHandler extends BaseValueHandler implements DBDValueHandlerConfigurable {
 
@@ -80,6 +91,9 @@ public abstract class TemporalAccessorValueHandler extends BaseValueHandler impl
                     return object;
                 }
             }
+        } else if (object instanceof Date date) {
+            Timestamp timestamp = date instanceof Timestamp ts ? ts : new Timestamp(date.getTime());
+            return isZonedType(type) ? timestamp.toInstant().atZone(ZoneId.systemDefault()) : timestamp.toLocalDateTime();
         } else {
             throw new DBCException("Bad temporal accessor value: " + object);
         }
