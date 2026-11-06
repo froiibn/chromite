@@ -21,37 +21,82 @@ DBeaver Community 포크를 **Chromite** 제품으로 배포하기 위해, 사�
 
 ## 구조
 
-### 로고 원본
+### 아이콘
 
-`chromite_logo_pack/`에 원본 PNG 6개가 있다.
+**결정 (2026-11-06):** 사용자가 직접 고른 디자인을 쓴다. 남색 둥근 사각형 타일, 흰색 3단 데이터베이스 원통,
+원통 오른쪽 아래에서 나아가는 흰색 현대 군함 실루엣(원통과는 남색 틈으로 분리), 그 아래 하늘색→파란색 물결 두 줄.
+사용자가 준 래스터 이미지를 손으로 작성한 벡터 도형으로 다시 그렸다(구도, 비율, 색, 함선 실루엣은 원본을 따름).
+디자인은 사용자 소유라 `NOTICE`는 바뀌지 않는다. 1·2차 시안(육각 C, 등대 등)은 쓰지 않는다.
 
-| 파일 | 크기 | 용도 |
+- 원본에서 잰 값: 타일 모서리 반경 23.8%, 원통 좌우 239~749(1000 기준), 띠 사이 틈 37~39, 갑판 틈 15.
+  타일과 원통 음영은 원본 픽셀에 맞춘 방사형 그라데이션이다. 곡선은 원본 경계 점에 맞춘 3차 베지에다(오차 2 이하).
+- 원본에서 그대로 옮기지 않은 것: 함선 둘레의 남색 틈은 원본이 덩어리진 모양(AI 생성 흔적)이라 폭 20(1000 기준)의
+  일정한 틈으로 바꿨다. 돛대 오른쪽 위의 푸른 점 같은 생성 잡티도 뺐다.
+  원본 타일은 829×816으로 약간 납작해서 정사각형으로 맞췄고, 원통 위치는 128px 격자에 맞추려고 최대 5(1000 기준) 옮겼다.
+
+**크기별 단계.** 한 그림으로 16~1024px를 다 그리면 작은 크기에서 뭉개지므로 4단계로 나눈다.
+작은 단계는 쓰이는 크기마다 그 크기의 픽셀 격자에 맞춰 그린다(원통 옆선은 정수 열, 띠 경계는 가운데 열에서 정수 행이라 틈이 회색이 아닌 남색으로 나온다).
+
+| 단계 | 크기 | 내용 |
 |---|---|---|
-| `chromite_full_dark.png` | 1275×395 | 스플래시, README |
-| `chromite_full_light.png`, `chromite_full_transparent.png` | 1275×395 | 현재 사용하지 않음 |
-| `chromite_symbol_dark.png` | 360×395 | 모든 아이콘의 원본 |
-| `chromite_symbol_light.png`, `chromite_symbol_transparent.png` | 360×395 | 현재 사용하지 않음 |
+| full | 128px 이상 | 원본 재현: 돛대, 활대, 레이더, 깃대, 창, 갑판 틈, 항적, 물결 |
+| simple | 40, 48, 64 | 같은 구도. 창·레이더·깃대 없음, 틈을 넓히고 물결을 굵게 |
+| mark | 24, 32 | 원통 + 갑판실 하나와 돛대만 있는 선체 + 굵은 물결 하나 |
+| tiny | 16, 20 | 원통(윗면 + 띠 2개) + 물결 하나. 이 크기에서 함선은 뭉개져서 뺐다 |
+| glyph | 16 | 원통 + 물결, `currentColor` 단색, 타일 없음 (단색 아이콘용, 아직 쓰는 곳 없음) |
+
+- Windows `.ico`, SWT·Swing 창 아이콘: 타일이 정사각형을 채운다.
+- macOS `.icns`: Apple 격자(1024 안에 824 둥근 사각형 타일, 여백 100, 그림자). 16·32·64px 항목은 여백 안 타일의 픽셀 격자에 맞춰 따로 그린다.
+- 워드마크: full 타일 아이콘 + `CHROMITE` + `DATABASE WORKBENCH`(두 줄 폭이 같게 자간 조정). 글자는 Inter SemiBold(SIL OFL 1.1, FlatLaf 글꼴 jar)를 윤곽선으로 바꿨다.
+
+### 원본(SVG)과 다시 만드는 방법
+
+모든 이미지는 `tools/branding/gen_app_icons.py`가 만든다. 도형은 이 스크립트 안에 좌표로 있고,
+스크립트가 SVG 원본을 `chromite_logo_pack/`에 쓴 뒤 그 SVG를 렌더링해 아래 파생 이미지를 모두 다시 쓴다.
+SVG는 생성 파일이라 손으로 고치지 않는다(`gen_ui_icons.py`와 같은 규칙). 바꾸려면 스크립트를 고치고 다시 실행한다.
+
+```powershell
+# 한 번만: D 드라이브에 가상 환경을 만들고 렌더링 패키지를 설치
+py -3 -m venv D:\Tools\_venvs\chromite-branding
+D:\Tools\_venvs\chromite-branding\Scripts\pip install resvg-py Pillow fonttools
+# 실행 (저장소 루트에서). Swing 번들을 한 번 빌드했으면 --inter-jar는 생략할 수 있다
+D:\Tools\_venvs\chromite-branding\Scripts\python tools/branding/gen_app_icons.py --inter-jar D:\Tools\m2\repository\com\formdev\flatlaf-fonts-inter\4.1\flatlaf-fonts-inter-4.1.jar
+```
+
+확인한 버전: Python 3.13, resvg-py 0.5.0, Pillow 13.0.0, fonttools 4.68.0. 같은 버전이면 결과가 바이트 단위로 같다.
+
+| `chromite_logo_pack/` 파일 | 내용 |
+|---|---|
+| `chromite_icon.svg` | full 단계, 타일 포함 (1000 격자) |
+| `chromite_icon_{64,48,40}.svg`, `_{32,24}.svg`, `_{20,16}.svg` | simple, mark, tiny 단계 (각 크기의 픽셀 격자) |
+| `chromite_icon_macos.svg`, `chromite_icon_macos_{64,32,16}.svg` | macOS Apple 격자 |
+| `chromite_glyph16.svg` | 단색 글리프 |
+| `chromite_wordmark_{light,dark}.svg` | 워드마크 (투명 배경, 밝은 바탕용 / 어두운 바탕용) |
+| `chromite_symbol_{dark,light,transparent}.png` | 360×395, 아이콘을 어두운 바탕 / 흰 바탕 / 투명 위에 |
+| `chromite_full_{dark,light,transparent}.png` | 1275×395, 워드마크를 어두운 바탕 / 흰 바탕 / 투명(어두운 글자) 위에. `README.md`가 `chromite_full_dark.png`를 쓴다 |
 
 ### 파생 이미지
 
-모든 파생 이미지는 로고 원본에서 생성했다. 파일 이름은 upstream과 같게 유지하고 내용만 바꿨다.
+파일 이름은 upstream과 같게 유지하고 내용만 바꿨다(내부 파일 이름은 바꾸지 않는다는 원칙).
 
 | 파일 | 크기 | 쓰이는 곳 |
 |---|---|---|
-| `product/community/icons/dbeaver.ico` | 256/48/32/16 32비트, 48/32/16 8비트 (BMP 7개) | Windows 실행 파일 아이콘 (`tools/branding/gen_launcher_ico.py`로 생성) |
-| `product/community/icons/dbeaver.icns` | 16~1024 | macOS 앱 아이콘 |
-| `product/community/icons/dbeaver_back.bmp` | 165×314 | 설치 프로그램 측면 이미지 |
-| `product/community/icons-sources/icon_*.png` | 16~1024 | 아이콘 원본 세트 |
+| `product/community/icons/dbeaver.ico` | 256/48/32/16 32비트, 48/32/16 8비트 (BMP 7개) | Windows 실행 파일 아이콘. `chromite.exe`, `chromite-swing.exe` 둘 다 (`DBeaver.product`, `chromite-swing.product`) |
+| `product/community/icons/dbeaver.icns` | 16~1024 (PNG 10개) | macOS 앱 아이콘. 두 제품 공통 |
+| `product/community/icons/dbeaver_back.bmp` | 165×314 | 설치 프로그램 측면 이미지 (저장소 안에서는 참조 없음) |
+| `product/community/icons-sources/icon_*.png` | 16~1024 | macOS 아이콘 세트 (빌드에서는 쓰지 않음) |
 | `plugins/org.jkiss.dbeaver.ui.app.standalone/icons/dbeaver{16,32,48,64,256}.png` | 각 크기 | 창 아이콘 (`plugin.xml`의 `windowImages`), `about.ini`, 설정 가져오기 대화상자 |
 | `plugins/org.jkiss.dbeaver.ui.app.standalone/icons/dbeaver_about.png` | 256×256 | About 대화상자 (`AboutBoxDialog`) |
 | `plugins/org.jkiss.dbeaver.ui.app.standalone/splash.png` | 600×300 | 시작 화면 |
-| `plugins/org.jkiss.dbeaver.ui/icons/dbeaver_logo_{medium,small,small@2x}.png` | 48, 16, 32 | `UIIcon.DBEAVER_LOGO*` |
+| `plugins/org.jkiss.dbeaver.ui/icons/dbeaver_logo_{medium,small,small@2x}.png` | 48, 16, 32 | `UIIcon.DBEAVER_LOGO*` (트레이 아이콘, 알림 팝업, 제품 설정 마법사) |
 | `plugins/org.jkiss.dbeaver.ui/icons/dbeaver_perspective{,@2x}.png` | 16, 32 | 퍼스펙티브 아이콘 (`org.jkiss.dbeaver.core/plugin.xml`) |
+| `plugins/com.seizia.chromite.ui.swing/icons/chromite{16,20,24,32,40,48,64,128,256}.png` | 각 크기 | Swing 창·작업 표시줄 아이콘, 시작 탭 로고(128), About 로고(64) (`ChromiteIcons`) |
 
-- 아이콘 모양: `chromite_symbol_dark.png`를 남색 둥근 사각형(모서리 반경 20%) 위에 높이 84%로 올렸다.
-  `chromite_symbol_transparent.png`는 배경이 완전히 투명하지 않고 반투명 남색이 남아 있어서 아이콘에 쓰지 않았다.
-- 스플래시: 남색 배경에 전체 로고를 폭 520px로 위쪽(y=40)에 배치했다.
+- 스플래시: 타일 그라데이션 바탕에 어두운 워드마크(폭 470px)를 (60,60)에 놓았다. 왼쪽 끝을 버전 표시(`versionInfoCoord` 60,225)와 맞췄다.
   진행 메시지와 진행 막대 위치(`startupMessageRect`, `startupProgressRect`)는 upstream 값을 그대로 쓴다.
+- 설치 프로그램 측면 이미지: 타일 그라데이션 바탕 위쪽에 아이콘(112px).
+- `plugins/org.jkiss.dbeaver.ui.app.eclipse/icons/{dbeaver-plugin,ce_plugin_icon}.png`는 아직 DBeaver 그림이다.
+  Eclipse 플러그인 배포판(`product-dbeaver-eclipse-ce`)은 Chromite가 빌드하지 않아서 이번에 바꾸지 않았다.
 
 ### 제품 정보 파일
 
@@ -89,8 +134,13 @@ DBeaver Community 포크를 **Chromite** 제품으로 배포하기 위해, 사�
   (`Error 40`), 실행 파일 아이콘과 크기와 색 깊이가 정확히 같은 이미지만 같은 자리에 덮어쓴다.
   Eclipse 4.x launcher의 아이콘은 256×256, 48×48, 32×32, 16×16 32비트와 48×48, 32×32, 16×16 8비트(256색)다
   ([IconExe.java](https://github.com/eclipse-equinox/p2/blob/master/bundles/org.eclipse.equinox.p2.publisher.eclipse/src/org/eclipse/pde/internal/swt/tools/IconExe.java) "Note 3").
-  Pillow의 ICO 저장은 모든 항목을 32비트 PNG로 쓰므로 `tools/branding/gen_launcher_ico.py`가 ICO를 직접 쓴다.
-  그림은 1단계와 같고(32비트 항목은 1단계 PNG 항목과 픽셀 단위로 같음), 8비트 항목은 256색으로 줄이고 투명은 AND 마스크로 표현한다.
+  Pillow의 ICO 저장은 모든 항목을 32비트 PNG로 쓰므로 `tools/branding/gen_app_icons.py`가 ICO를 직접 쓴다.
+  각 항목은 그 크기의 단계 그림이고(16은 tiny, 32는 mark, 48은 simple, 256은 full), 8비트 항목은 256색으로 줄이고 투명은 AND 마스크로 표현한다.
+- **macOS 아이콘(`dbeaver.icns`)도 직접 쓴다.** Pillow의 ICNS 저장은 16px(`icp4`)과 32px(`icp5`) 항목을 넣지 않아
+  Finder 목록 보기 등에서 큰 그림을 줄여 쓴다. 스크립트는 PNG 항목 10개(`icp4`, `icp5`, `ic11`, `ic12`, `ic07`, `ic08`,
+  `ic13`, `ic09`, `ic14`, `ic10`)를 쓴다.
+- **아이콘 스크립트는 하나로 둔다.** `gen_launcher_ico.py`를 `gen_app_icons.py`로 이름을 바꿔 모든 아이콘·로고 이미지를 만들게 했다.
+  ICO만 따로 만드는 스크립트를 두면 같은 그림을 두 곳에서 그리게 되어 서로 달라질 수 있기 때문이다.
 - **버전 표시 위치를 옮긴다.** upstream 위치(154,53)는 새 로고와 겹쳐서 로고 아래(60,225)로 옮겼다.
 
 ## upstream 대비 남은 차이와 미완료 항목
@@ -130,3 +180,7 @@ DBeaver Community 포크를 **Chromite** 제품으로 배포하기 위해, 사�
   `dbeaver.png`를 삭제.
 - 2026-11-06 `DBeaver.p2.inf`에서 dbeaver.io Office, Git, Debug 확장 업데이트 사이트(type 0, 1 각 3개) 제거.
   `category.xml` 5개(`product/community`, `product/repositories/*`)에서 dbeaver.io를 가리키던 `<description>` 제거.
+- 2026-11-06 앱 아이콘을 사용자가 고른 디자인(원통 + 군함 + 물결)으로 교체. 사용자가 준 래스터를 벡터로 다시 그리고
+  크기별 단계(full, simple, mark, tiny, 단색 글리프)와 워드마크를 만들었다. `chromite_logo_pack/`에 SVG 원본을 추가하고
+  PNG 6개, `.ico`, `.icns`, 아이콘 세트, SWT 창 아이콘·About·스플래시·설치 이미지, `UIIcon` 로고, Swing 창 아이콘을 모두
+  다시 만들었다. `tools/branding/gen_launcher_ico.py`를 `gen_app_icons.py`로 바꿔 이 전부를 만들게 했다.

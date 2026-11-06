@@ -36,14 +36,15 @@ import java.util.List;
  * 설계: Swing 창에 아이콘을 지정하지 않으면 Java 런타임의 기본 아이콘이 제목 표시줄과 작업 표시줄에 나온다.
  * JBR에서는 JetBrains 아이콘이라 제품이 JetBrains 제품처럼 보인다. 그래서 모든 최상위 창에 Chromite 아이콘을 지정한다.
  * OS가 화면 배율에 맞는 크기를 고를 수 있게 여러 크기(16~256)를 함께 준다.
- * 이미지는 {@code product/community/icons-sources}의 Chromite 아이콘이다(16, 32, 48, 64, 128, 256은 그대로 복사,
- * 20, 24, 40은 512px 원본을 축소해 만들었다).
+ * 이미지({@code icons/chromite<크기>.png})는 {@code tools/branding/gen_app_icons.py}가 Chromite 아이콘 SVG에서
+ * 크기마다 따로 그려 만든다(작은 크기는 단순화한 그림, docs/chromite/branding.md "아이콘").
  *
  * 같은 이미지로 About 대화상자와 시작 탭의 로고({@link #getLogoIcon})도 만든다.
  *
  * 변경 이력:
  * - 2026-11-06 A단계: 최초 작성 (docs/chromite/swing-frontend.md "구현 현황 — A단계")
  * - 2026-11-06 B단계: 로고 아이콘 추가 (docs/chromite/swing-frontend.md "구현 현황 — B단계")
+ * - 2026-11-06 아이콘 이미지 출처 설명을 새 아이콘 생성 스크립트로 갱신(코드 변경 없음)
  */
 final class ChromiteIcons {
 
