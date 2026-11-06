@@ -378,3 +378,5 @@ XML, XLSX, BOM, host:port 같은 기술 토큰은 번역하지 않는다. "…"�
 - 2026-11-06 SQL Server 탐색기에서 함수를 "함수"(Functions) 폴더로 분리(사용자 결정). 한 캐시를 종류별로 거르는 getter 두 개,
   CLR 함수 FS/FT 읽기, 폴더 설명 3개 `%키`로.
 - 2026-11-07 UI 글꼴 Pretendard: semibold 확인을 테마의 `semibold.font`로 바꿈. 한국어 화면의 굵은 대체 글꼴 처리는 Pretendard SemiBold가 한글을 가져 꺼짐.
+- 2026-11-07 남은 영어 문구: 진행 대화상자의 "Canceling…"(`CoreMessages.progress_canceling`), FlatLaf 탭 넘침 단추의 "Show Hidden Tabs"
+  (FlatLaf 묶음에 한국어가 없어 `UIManager.put`으로 넣음). [swing-followup-fixes.md](swing-followup-fixes.md) "남은 영어 문구".

@@ -52,6 +52,7 @@ import java.awt.event.WindowEvent;
  * - 2026-11-06 B단계: 최초 작성 (docs/chromite/swing-frontend.md "구현 현황 — B단계")
  * - 2026-11-06 화면 문구를 CoreMessages로 옮김(OS 언어를 따름)
  * - 2026-11-07 감싼 오류의 영어 문구("Internal error")를 지역화된 문구로 바꿈 (docs/chromite/swing-frontend.md "오류 문구")
+ * - 2026-11-07 취소 중 문구("Canceling…")를 CoreMessages로 옮김 (docs/chromite/swing-followup-fixes.md "남은 영어 문구")
  */
 final class ProgressDialog {
 
@@ -153,7 +154,7 @@ final class ProgressDialog {
 
     private void cancel(@NotNull Job job) {
         cancelButton.setEnabled(false);
-        taskLabel.setText("Canceling…"); //$NON-NLS-1$
+        taskLabel.setText(CoreMessages.progress_canceling);
         job.cancel();
     }
 

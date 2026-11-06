@@ -54,6 +54,7 @@ import java.util.function.Supplier;
  * - 2026-11-06 화면 문구를 CoreMessages로 옮김(OS 언어를 따름)
  * - 2026-11-06 화면 언어의 글자가 Inter SemiBold에 없으면 semibold를 BOLD로 만들어 한글도 굵은 대체 글꼴로 그림
  * - 2026-11-07 UI 글꼴을 Pretendard로 바꿈(Inter 등록 삭제). semibold 확인은 Inter 고정 이름 대신 설치한 테마의 {@code semibold.font}로 함
+ * - 2026-11-07 FlatLaf 탭 넘침 단추의 도구 설명("Show Hidden Tabs")을 화면 언어로 바꿈 (docs/chromite/swing-followup-fixes.md "남은 영어 문구")
  */
 enum ChromiteTheme {
 
@@ -68,6 +69,10 @@ enum ChromiteTheme {
      * FlatLaf font value: the default font in the BOLD style, a composite font whose fallback fonts are bold too.
      */
     private static final String BOLD_FONT_VALUE = "bold"; //$NON-NLS-1$
+    /**
+     * Tooltip of the button that lists the tabs scrolled out of a tab strip (documents, tool windows, settings pages).
+     */
+    private static final String MORE_TABS_TOOLTIP_KEY = "TabbedPane.moreTabsButtonToolTipText"; //$NON-NLS-1$
 
     private final String label;
     private final Supplier<FlatLaf> lafFactory;
@@ -109,6 +114,9 @@ enum ChromiteTheme {
                 return;
             }
         }
+        // FlatLaf's own texts come from its resource bundle, which has no Korean translation (de, es, fr only).
+        // UIManager.put sets the developer defaults, which win over the look and feel defaults; tab panes read it on install.
+        UIManager.put(MORE_TABS_TOOLTIP_KEY, CoreMessages.main_show_hidden_tabs);
         if (updateWindows) {
             FlatLaf.updateUI();
             // Parentless dialogs are owned by the shared root frame, which is not a visible window

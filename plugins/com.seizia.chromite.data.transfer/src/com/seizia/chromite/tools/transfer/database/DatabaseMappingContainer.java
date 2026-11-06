@@ -50,6 +50,10 @@ import java.util.*;
 
 /**
  * DatabaseMappingContainer
+ *
+ * 변경 이력:
+ * - 2026-11-07 Chromite: {@link #getTargetFullName()}이 이름 필드 대신 {@link #getTargetName()}을 씀. 기존 테이블로 보낼 때는
+ *   이름 필드가 비어 전송 오류의 대상이 {@code 'schema.null'}로 나왔다 (docs/chromite/swing-followup-fixes.md "전송 대상 이름")
  */
 public class DatabaseMappingContainer implements DatabaseMappingObject {
 
@@ -404,7 +408,8 @@ public class DatabaseMappingContainer implements DatabaseMappingObject {
         DBSObjectContainer container = consumerSettings.getContainer();
 
         if (container instanceof DBSSchema || container instanceof DBSCatalog) {
-            return DBUtils.getObjectFullName(container, DBPEvaluationContext.DML) + "." + targetName;
+            // The targetName field is set only for a new or renamed target; an existing one is known by the target object
+            return DBUtils.getObjectFullName(container, DBPEvaluationContext.DML) + "." + getTargetName();
         }
         return getTargetName();
     }

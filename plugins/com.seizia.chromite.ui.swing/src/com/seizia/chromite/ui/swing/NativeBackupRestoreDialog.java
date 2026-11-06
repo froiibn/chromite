@@ -102,6 +102,7 @@ import java.util.List;
  * - 2026-11-06 최초 작성: 백업·복원 (docs/chromite/swing-backup-restore.md)
  * - 2026-11-06 pg_restore가 오류로 끝난 복원(종료 코드 1)을 성공으로 보이던 것을 실패로 보이게 고침
  * - 2026-11-07 메시지 페이지에서 로그의 스택 추적 머리줄("…Exception: …", "Caused by:")도 빼고 클래스 이름을 줄임 (docs/chromite/swing-frontend.md "오류 문구")
+ * - 2026-11-07 PostgreSQL 복원 옵션 "첫 오류에서 멈춤"(psql ON_ERROR_STOP, pg_restore --exit-on-error) (docs/chromite/swing-backup-restore.md "실패한 백업과 psql 오류")
  */
 final class NativeBackupRestoreDialog extends DatabaseTaskDialog {
 
@@ -202,6 +203,9 @@ final class NativeBackupRestoreDialog extends DatabaseTaskDialog {
             addOption(options, "clean", BackupRestoreMessages.native_pg_restore_clean, false); //$NON-NLS-1$
             addOption(options, "noOwner", BackupRestoreMessages.native_pg_no_owner, false); //$NON-NLS-1$
             addOption(options, "create", BackupRestoreMessages.native_pg_restore_create, false); //$NON-NLS-1$
+            // Off by default, as in DBeaver: a script made with --clean (without --if-exists) fails on its first DROP
+            // of an object that does not exist yet
+            addOption(options, "stopOnError", BackupRestoreMessages.native_pg_restore_stop_on_error, false); //$NON-NLS-1$
             options.addFull(FormPanel.note(BackupRestoreMessages.native_pg_plain_note));
         } else if (!restore) {
             addOption(options, "noCreate", BackupRestoreMessages.native_mysql_no_create, false); //$NON-NLS-1$
@@ -480,6 +484,12 @@ final class NativeBackupRestoreDialog extends DatabaseTaskDialog {
             pg.setCleanFirst(option("clean")); //$NON-NLS-1$
             pg.setNoOwner(option("noOwner")); //$NON-NLS-1$
             pg.setCreateDatabase(option("create")); //$NON-NLS-1$
+            if (option("stopOnError")) { //$NON-NLS-1$
+                // psql runs a plain script to the end and exits with 0 whatever failed; with ON_ERROR_STOP it stops and
+                // exits with 3. pg_restore goes on after errors too (exit code 1 at the end) unless --exit-on-error.
+                pg.setExtraCommandArgs(pg.getFormat() == PostgreBackupRestoreSettings.ExportFormat.PLAIN
+                    ? "-v ON_ERROR_STOP=1" : "--exit-on-error"); //$NON-NLS-1$ //$NON-NLS-2$
+            }
             settings = pg;
         } else if (!restore) {
             MySQLExportSettings my = new MySQLExportSettings(project);
