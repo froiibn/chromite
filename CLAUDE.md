@@ -113,11 +113,14 @@
 - 로고와 아이콘 원본은 `chromite_logo_pack/`에 있다. 새 아이콘은 이 폴더의 이미지로 만든다.
 - 제품 정보는 `product/community/product-branding.properties`, `product/community/Chromite.product`,
   `plugins/com.seizia.chromite.ui.app.standalone/plugin.xml`과 `OSGI-INF/l10n/bundle*.properties`에 있다.
-- 다음 내부 이름은 별도로 계획한 작업에서만 바꾼다. 다른 작업 중에 일부만 바꾸지 않는다.
-  사용자 설정, 저장된 연결 정보, 플러그인 참조가 이 이름에 묶여 있어 일부만 바꾸면 기능이 깨진다.
-  - Java 패키지명, 번들 ID, 확장 포인트 ID (`com.seizia.chromite.*`)
-  - 설정 키, 드라이버 ID, 내부 파일 이름(`chromite16.png` 같은 아이콘 파일명 포함)
-  - Maven 프로파일 이름(`product-chromite-swt` 등)
+- 내부 이름은 2026-11-07에 모두 Chromite 이름으로 바꿨다([docs/chromite/internal-rename.md](docs/chromite/internal-rename.md)).
+  - Java 패키지, 번들·피처·제품 ID, 확장 포인트 ID는 `com.seizia.chromite.*`, Maven 프로파일은 `product-chromite-swt`,
+    `product-chromite-swing`이다. 새 코드도 이 접두어를 쓴다.
+  - `org.jkiss.dbeaver` 이름은 `deps/`에 있는 `org.jkiss.dbeaver.DBException` 하나만 남는다. 옛 이름(`org.jkiss.dbeaver`,
+    `DBeaver<이름>` 타입, `com.dbeaver.ai` 등)을 다시 넣지 않는다. CI의 `tools/rename/gate.py`가 막는다.
+  - 외부와 약속된 값(OpenAI `originator`, Snowflake·TiDB 앱 이름, DataDam 범위, `jdbc:dbeaver:`, upstream URL)은
+    `dbeaver`가 들어 있어도 바꾸지 않는다(internal-rename.md "바꾸지 않는 것").
+  - 설정 키, 드라이버 ID, 데이터 폴더(`ChromiteData`), 저장 형식에 쓰는 이름은 사용자 데이터와 묶여 있다. 바꿔야 하면 따로 계획한다.
 - 화면 문구에서 "DBeaver"를 바꿀 때는 일괄 치환하지 않는다. 사용자에게 실제로 보이는 문자열만 골라서 바꾼다.
 - dbeaver.io의 버전 확인, 업데이트 사이트, 다운로드 링크를 새로 넣지 않는다. Chromite가 DBeaver 업데이트로 덮어써질 수 있다.
 
@@ -126,6 +129,7 @@
 - `LICENSE.md`와 `NOTICE`를 유지한다. 출처 표기가 바뀌면 `NOTICE`를 갱신한다.
 - 기존 소스 파일의 DBeaver Corp 저작권 머리말은 지우거나 고치지 않는다.
 - DBeaver에서 온 Java 파일을 수정하면 저작권 줄 바로 아래에 다음 한 줄을 넣는다(이미 있으면 연도만 갱신).
+  내부 이름 변경으로 DBeaver에서 온 Java 파일 대부분에 이 줄이 이미 들어 있다.
 
   ```
    * Modifications Copyright (C) 2026 Chromite contributors
@@ -171,6 +175,8 @@ Chromite는 2026-11-06 포크 시점부터 DBeaver와 독립적으로 개발한�
 - 필요한 변경(보안 패치, 드라이버 수정 등)은 사용자가 요청할 때만 해당 커밋을 `git cherry-pick`으로 가져온다.
   - 가져오기 전에 그 커밋이 바꾸는 파일과 Chromite에서 바뀐 부분이 겹치는지 확인하고 사용자에게 알린다.
   - 커밋 메시지에 원본 커밋을 남긴다(`git cherry-pick -x`).
+  - upstream 커밋은 옛 이름(`org.jkiss.dbeaver`)을 쓴다. `git cherry-pick` 대신 패치로 만들어
+    `python tools/rename/rename.py patch`로 이름을 바꾼 뒤 `git apply -3`으로 적용한다(internal-rename.md "upstream 커밋 가져오기").
   - 가져온 내용은 관련 설계 문서의 변경 이력에 적는다.
 - 보안 패치와 JDBC 드라이버 업데이트는 자동으로 들어오지 않는다. 관련 작업을 할 때 오래된 의존성이 보이면 사용자에게 알린다.
 

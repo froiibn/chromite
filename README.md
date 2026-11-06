@@ -33,8 +33,8 @@ Unpack one and run the `chromite` launcher.
 - [Eclipse RCP](https://github.com/eclipse-platform/eclipse.platform.ui/blob/master/docs/Rich_Client_Platform.md) for the desktop UI.
 - [JDBC](https://en.wikipedia.org/wiki/Java_Database_Connectivity) for database connectivity.
 - [JSQLParser](https://github.com/JSQLParser/JSqlParser) and [ANTLR4](https://github.com/antlr/antlr4) for SQL parsing.
-- Internal Java packages and bundle IDs keep the upstream `com.seizia.chromite.*` names so that upstream changes
-  can be merged.
+- Internal Java packages and bundle IDs use the `com.seizia.chromite.*` prefix (renamed from the upstream
+  `org.jkiss.*` names in 2026, see [docs/chromite/internal-rename.md](docs/chromite/internal-rename.md)).
 
 ## Branding assets
 

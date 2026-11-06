@@ -11,6 +11,9 @@ Apache License, Version 2.0.
 Chromite has changed the product name, logos, icons, splash screen and
 product metadata, and may contain further modifications to the original
 source code. Modified files keep their original copyright notices.
+The Java packages, OSGi bundle identifiers and other internal names of the
+original source code were renamed from org.jkiss.dbeaver to
+com.seizia.chromite.
 
 This product also includes the following DBeaver Corp projects, which are
 licensed under the Apache License, Version 2.0. They are kept unmodified
