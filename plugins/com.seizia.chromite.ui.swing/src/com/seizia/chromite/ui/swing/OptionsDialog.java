@@ -62,6 +62,7 @@ import java.util.Objects;
  * - 2026-11-06 Query Library ③: 예약 실행 기록 보존 설정 (docs/chromite/swing-query-library.md "예약 실행")
  * - 2026-11-06 화면 문구를 CoreMessages로 옮김(OS 언어를 따름)
  * - 2026-11-07 자동완성에 프로시저·함수 제안 설정 (docs/chromite/swing-followup-fixes.md "자동완성 프로시저")
+ * - 2026-11-07 날짜/시간 값을 데이터베이스 형식 그대로 보이는 설정(SWT "Disable date/time formatting") (docs/chromite/swing-followup-fixes.md "날짜/시간 소수 초")
  */
 final class OptionsDialog extends JDialog {
 
@@ -79,6 +80,7 @@ final class OptionsDialog extends JDialog {
     private final JCheckBox showProceduresBox = new JCheckBox(CoreMessages.options_show_procedures);
     private final JSpinner delaySpinner;
     private final JSpinner maxRowsSpinner;
+    private final JCheckBox nativeDateTimeBox = new JCheckBox(CoreMessages.options_native_datetime);
     private final JSpinner historyDaysSpinner = new JSpinner(new SpinnerNumberModel(
         Math.min(QueryHistory.getRetentionDays(), QueryHistory.MAX_RETENTION_DAYS), 0, QueryHistory.MAX_RETENTION_DAYS, 1));
     private final JComboBox<String> formatterCombo = new JComboBox<>(new String[]{CoreMessages.options_formatter_default, CoreMessages.options_formatter_compact});
@@ -139,6 +141,12 @@ final class OptionsDialog extends JDialog {
         row = addRow(form, row, null, showProceduresBox, null);
         row = addSection(form, row, CoreMessages.options_query_results);
         row = addRow(form, row, CoreMessages.options_max_rows, maxRowsSpinner, CoreMessages.options_max_rows_hint);
+        // The model setting of the SWT "Disable date/time formatting" (Data Formats page); connections without their own
+        // value inherit it. The default data formatter profile prints milliseconds only (yyyy-MM-dd HH:mm:ss.SSS), so the
+        // grid and the cell editor drop the micro- and nanoseconds of timestamp values unless the driver's text is used.
+        nativeDateTimeBox.setSelected(getPlatformPreferences().getBoolean(ModelPreferences.RESULT_NATIVE_DATETIME_FORMAT));
+        nativeDateTimeBox.setToolTipText(CoreMessages.options_native_datetime_tip);
+        row = addRow(form, row, null, nativeDateTimeBox, null);
         row = addSection(form, row, CoreMessages.options_query_history);
         row = addRow(form, row, CoreMessages.options_keep_history, historyDaysSpinner, CoreMessages.options_keep_history_hint);
         row = addSection(form, row, CoreMessages.options_query_library);
@@ -433,6 +441,10 @@ final class OptionsDialog extends JDialog {
         int maxRows = ((Number) maxRowsSpinner.getValue()).intValue();
         if (maxRows != platformPreferences.getInt(ModelPreferences.RESULT_SET_MAX_ROWS)) {
             platformPreferences.setValue(ModelPreferences.RESULT_SET_MAX_ROWS, maxRows);
+            PrefUtils.savePreferenceStore(platformPreferences);
+        }
+        if (nativeDateTimeBox.isSelected() != platformPreferences.getBoolean(ModelPreferences.RESULT_NATIVE_DATETIME_FORMAT)) {
+            platformPreferences.setValue(ModelPreferences.RESULT_NATIVE_DATETIME_FORMAT, nativeDateTimeBox.isSelected());
             PrefUtils.savePreferenceStore(platformPreferences);
         }
         int historyDays = ((Number) historyDaysSpinner.getValue()).intValue();

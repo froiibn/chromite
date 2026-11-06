@@ -51,6 +51,9 @@ import java.time.format.DateTimeFormatter;
  * 변경 이력:
  * - 2026-11-07 Chromite: bind Timestamp values with the JVM offset and ZonedDateTime values with their offset
  *   (Copy Tables timestamptz -> datetimeoffset).
+ * - 2026-11-07 Chromite: edited text is no longer turned into NULL when the client formatter can't parse it: native
+ *   date/time text is kept as it is, other unparsable text is passed to the server
+ *   (docs/chromite/swing-followup-fixes.md "날짜/시간 소수 초").
  */
 public class SQLServerDateTimeOffsetHandler extends JDBCDateTimeValueHandler {
     private static final Log log = Log.getLog(JDBCStringValueHandler.class);
@@ -89,13 +92,22 @@ public class SQLServerDateTimeOffsetHandler extends JDBCDateTimeValueHandler {
                 log.debug("error extracting datetimeoffset timestamp", e);
             }
         }
-        if (object instanceof String) {
+        if (object instanceof String text) {
+            if (text.isEmpty()) {
+                return null;
+            }
+            if (session.isUseNativeDateTimeFormat()) {
+                // The driver's text (all seven fractional digits) is bound as it is, as DateTimeCustomValueHandler does
+                return text;
+            }
             DBDDataFormatter formatter = getFormatter(type);
             try {
-                return formatter.parseValue(((String) object), OffsetDateTime.class);
+                return formatter.parseValue(text, OffsetDateTime.class);
             } catch (ParseException e) {
+                // The server reads more formats than the client formatter; an unreadable value fails there instead
+                // of being silently saved as NULL
                 log.debug("Error parsing offset datetime value", e);
-                return null;
+                return text;
             }
         }
         return super.getValueFromObject(session, type, object, copy, validateValue);

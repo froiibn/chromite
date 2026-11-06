@@ -144,7 +144,7 @@ SWT: 결과 뷰어의 레코드 모드(`ResultSetViewer.toggleMode`).
 
 ## upstream 대비 변경점
 
-- upstream(SWT) 코드는 바꾸지 않았다. Swing 번들만 바뀌었다.
+- upstream(SWT) 코드는 바꾸지 않았다. Swing 번들만 바뀌었다. 모델은 2026-11-07에 SQL Server `datetimeoffset` 편집 글자 처리(`SQLServerDateTimeOffsetHandler`)만 고쳤다(SWT에도 적용).
 - SWT와 다른 동작: 머리글 클릭은 한 열 정렬(Ctrl로 더하기), 서버 정렬 확인 대화상자 없음, 표 안 정렬에서 열마다 그 열의 비교기, 다시 실행해도 안전한지 묻는 대신 SELECT 하나만 다시 읽음,
   선택 집계는 숫자 값만, 필터 기록은 메모리에만.
 
@@ -180,3 +180,5 @@ SWT: 결과 뷰어의 레코드 모드(`ResultSetViewer.toggleMode`).
 - 2026-11-06 최초 작성: 값 패널, 정렬·필터·기록·칸 값 거르기, 다음 페이지·모두 읽기, 레코드 보기, 열 너비 맞춤, Copy As, 선택 집계.
 - 2026-11-06 데이터 전송과 합침: `ResultSetGrid.Fetched`에 두 기능의 항목(`source`, `exportQuery`)을 함께 두고, 다시 읽은 결과도 Export Data…의 쿼리를 이어받음.
 - 2026-11-06 필터·다음 페이지 뒤 쿼리 상태 줄의 행 수가 바뀌지 않던 문제: 뷰어가 행 수 변경을 알리고 쿼리 창이 지금 보이는 행 수로 바꿈.
+- 2026-11-07 날짜/시간 값을 소수 초까지 보이고 편집해도 남게 하는 Tools > Options 설정(SWT "Disable date/time formatting"과 같은 설정),
+  SQL Server `datetimeoffset` 편집이 NULL로 저장되던 것. [swing-followup-fixes.md](swing-followup-fixes.md) "날짜/시간 소수 초".
