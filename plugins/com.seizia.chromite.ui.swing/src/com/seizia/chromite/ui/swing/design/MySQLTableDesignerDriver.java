@@ -43,9 +43,13 @@ import java.util.List;
  * 설계: SWT의 {@code MySQLConstraintConfigurator}(CHECK 식은 {@code setCheckClause}, 서버가 CHECK 제약을 지원할 때만),
  * {@code MySQLIndexConfigurator}({@code MySQLTableIndexColumn}, 접두 길이 없음), {@code MySQLForeignKeyConfigurator}
  * ({@code MySQLTableForeignKeyColumn})가 대화상자 뒤에 하는 일을 그대로 한다. 테이블 클래스({@code MySQLTable})의 어댑터로 등록한다.
+ * 새 인덱스의 종류는 SWT 대화상자({@code EditIndexPage})가 처음 고르는 값, 곧 데이터 소스가 지원하는 첫 종류(BTREE)다.
+ * 인덱스 관리자가 만든 기본값({@code DBSIndexType.OTHER})을 그대로 두면 {@code MySQLIndexManager}가 {@code USING OTHER}를 써서 DDL이 틀린다.
  *
  * 변경 이력:
  * - 2026-11-06 테이블 디자이너: 최초 작성 (docs/chromite/swing-table-designer.md)
+ * - 2026-11-06 새 인덱스에 SWT 대화상자의 기본 종류(첫 지원 종류, BTREE)를 넣음: 관리자 기본값 OTHER로 "USING OTHER" DDL이 나가던 것
+ *   (docs/chromite/swing-table-designer.md)
  */
 public final class MySQLTableDesignerDriver implements TableDesignerDriver, IAdapterFactory {
 
@@ -84,6 +88,9 @@ public final class MySQLTableDesignerDriver implements TableDesignerDriver, IAda
     @Override
     public void configureIndex(@NotNull DBSTableIndex index, boolean unique, @NotNull List<IndexColumn> columns) {
         MySQLTableIndex mySQLIndex = (MySQLTableIndex) index;
+        // The index manager creates the index with DBSIndexType.OTHER and writes "USING <type>" for every type but
+        // FULLTEXT; the SWT dialog preselects the first supported type (BTREE), so the same default is set here
+        mySQLIndex.setIndexType(mySQLIndex.getDataSource().supportedIndexTypes().get(0));
         mySQLIndex.setUnique(unique);
         int position = 1;
         for (IndexColumn column : columns) {

@@ -68,9 +68,17 @@ SWT 버전의 객체 편집기(`EntityEditor`)가 하는 일을 Swing 프런트�
 - **드라이버별 부분은 어댑터로.** 새 인덱스·외래 키에 열을 넣는 API가 모델에 공통으로 없다(`PostgreIndexColumn`, `SQLServerTableIndexColumn`,
   `MySQLTableIndexColumn` 생성자가 모두 다름). SWT에서는 이 일을 SWT 플러그인의 설정기가 하므로 Swing 제품에 넣을 수 없다.
   설정기의 UI 아닌 부분만 `TableDesignerDriver`로 옮기고, 테이블 클래스의 Eclipse 어댑터로 등록했다. 어댑터 관리자는 그 드라이버 테이블을
-  어댑트할 때만 클래스를 읽으므로 드라이버 번들은 선택 의존으로 둔다. PK·UK는 공통 API(`AbstractTableConstraint.addAttributeReference`)가 있어
+  어댑트할 때만 클래스를 읽는다(드라이버 번들 의존은 위 MANIFEST 항목). PK·UK는 공통 API(`AbstractTableConstraint.addAttributeReference`)가 있어
   어댑터가 없는 드라이버(Oracle, DB2, Generic 등)에서도 된다. 인덱스·외래 키·CHECK는 어댑터가 있는 PostgreSQL·SQL Server·MySQL/MariaDB만 되고,
   나머지는 추가 단추가 꺼지고 "Not supported for this database yet"을 보여 준다.
+- **설정기가 대화상자 기본값으로 채우는 칸도 같은 값으로.** SWT 인덱스 대화상자(`EditIndexPage`, ui.editors.entity `EditIndexPage.java:100-106`)는
+  넘겨받은 종류 목록의 첫 값을 고르고 설정기가 그 값을 넣는다(`MySQLIndexConfigurator.java:78`). MySQL·MariaDB는 그 목록이
+  `MySQLDataSource.supportedIndexTypes()`(BTREE 먼저, `MySQLDataSource.java:1101-1105`)이고, 관리자는 인덱스를 `DBSIndexType.OTHER`로 만들고(`MySQLIndexManager.java:65`)
+  FULLTEXT가 아니면 `USING <종류>`를 쓴다(`MySQLIndexManager.java:76-80`). 그래서 `MySQLTableDesignerDriver`가 첫 지원 종류를 넣는다
+  (넣지 않으면 `USING OTHER`로 저장이 실패했다). PostgreSQL(대화상자 기본 OTHER, `PostgreIndexConfigurator.java:54`)과 SQL Server(기본
+  `INDEX_TYPE_DEFAULT`, `SQLServerIndexConfigurator.java:50-53`)는 관리자 기본값 UNKNOWN과 DDL이 같으므로(`PostgreIndexManager.java:61-64`는 HASHED만
+  `USING HASH`, `SQLServerIndexManager.java:96-110`은 CLUSTERED·NONCLUSTERED만 씀) 넣지 않았다. 외래 키 규칙은 대화상자에서 고른 값을 넣고,
+  PostgreSQL의 `DEFERRABLE`·`INITIALLY DEFERRED`는 SWT 기본값(꺼짐)과 모델 기본값이 같다.
 - **목록은 테이블 객체 API로 읽는다.** 탐색기 폴더 노드 대신 `getAttributes`·`getConstraints`·`getAssociations`·`getIndexes`를 쓴다.
   관리자가 새 객체를 모델 캐시에 넣고 지운 객체를 빼므로, 저장 전 새 테이블에서도 같은 경로로 보인다. SQL Server의 CHECK 제약은
   `getConstraints`에 없어 드라이버 구현이 더한다(`getExtraConstraints`).
@@ -118,3 +126,4 @@ PostgreSQL 17(`chr_table_designer`)에서 화면으로 확인했다(빌드한 Sw
 - 2026-11-06 최초 작성: 테이블 디자이너(Design), New Table…, 스크립트 미리 보기와 저장, PostgreSQL·SQL Server·MySQL/MariaDB 드라이버 구현.
 - 2026-11-06 확인 중 수정: 명령 묶음의 새 객체·삭제 객체를 목록에 반영(PostgreSQL 외래 키), 소유 테이블 열 숨김. "확인" 절 추가.
 - 2026-11-06 다른 Swing 기능과 합침: 드라이버 번들 선택 의존을 고급 연결 설정의 필수 의존으로 대신함, Object Explorer 메뉴·`QueryWindows`·`MainFrame` 탭 처리를 관리 도구·데이터 전송과 함께 둠.
+- 2026-11-06 MySQL·MariaDB 새 인덱스에 SWT 대화상자의 기본 종류(BTREE)를 넣음: 관리자 기본값 OTHER 때문에 `CREATE INDEX … USING OTHER`가 나가 저장이 실패하던 것.
