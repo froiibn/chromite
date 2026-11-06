@@ -76,6 +76,8 @@ import java.util.Map;
  *
  * 변경 이력:
  * - 2026-11-06 SQLQueryJob(ui.editors.sql)에서 실행 로직을 옮겨 만듦(docs/chromite/swing-frontend.md "쿼리 실행 계층").
+ * - 2026-11-06 Query Library: 핸들러가 값을 바인딩하는 쿼리({@link SQLQueryExecuteHandler#hasBoundParameters})는
+ *   스크립트 문장 대신 prepared statement로 만들고 값을 바인딩한다 (docs/chromite/swing-query-library.md "매개변수 바인딩").
  */
 public class SQLQueryExecuteJob extends DataSourceJob {
     private static final String PLUGIN_ID = "org.jkiss.dbeaver.model.sql";
@@ -687,13 +689,23 @@ public class SQLQueryExecuteJob extends DataSourceJob {
     private void executeStatement(@NotNull DBCSession session, SQLQuery sqlQuery, long startTime, SQLQueryResult curResult) throws DBException {
         AbstractExecutionSource source = new AbstractExecutionSource(dataContainer, session.getExecutionContext(), handler.getExecutionController(), sqlQuery);
         source.setScriptContext(scriptContext);
+        // Natively bound parameters need a prepared statement; everything else is sent as a script (SQLQueryJob)
+        final boolean boundParameters = handler.hasBoundParameters(sqlQuery);
         final DBCStatement dbcStatement = DBUtils.makeStatement(
             source,
             session,
-            DBCStatementType.SCRIPT,
+            boundParameters ? DBCStatementType.QUERY : DBCStatementType.SCRIPT,
             sqlQuery,
             rsOffset,
             rsMaxRows);
+        if (boundParameters) {
+            try {
+                handler.bindParameters(dbcStatement, sqlQuery);
+            } catch (DBCException e) {
+                dbcStatement.close();
+                throw e;
+            }
+        }
         DBExecUtils.setStatementFetchSize(dbcStatement, rsOffset, rsMaxRows, fetchSize);
         curStatement = dbcStatement;
 

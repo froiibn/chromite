@@ -133,8 +133,10 @@ import java.util.function.IntConsumer;
  * - 2026-11-06 Execution plan 탭, Query 메뉴의 실행 계획(Ctrl+L, Ctrl+M)·Query History, Edit &gt; Advanced
  *   (docs/chromite/swing-sql-editor-plus.md)
  * - 2026-11-06 테이블 디자이너: 디자이너 탭 열기·닫기·Ctrl+S·끝낼 때 확인 (docs/chromite/swing-table-designer.md)
+ * - 2026-11-06 Query Library: 오른쪽 열에서 Properties 위의 Query Library 도구 창(처음에는 숨김, Ctrl+Alt+T), Query &gt; Save to Query Library…,
+ *   확장이 붙은 쿼리 창의 저장은 확장이 함 (docs/chromite/swing-query-library.md)
  */
-final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplorerPanel.QueryWindows, TableDesignerPanel.Host {
+final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplorerPanel.QueryWindows, TableDesignerPanel.Host, QueryLibraryPanel.Host {
 
     private static final String PREF_BOUNDS = "mainWindow.bounds"; //$NON-NLS-1$
     private static final String PREF_MAXIMIZED = "mainWindow.maximized"; //$NON-NLS-1$
@@ -146,6 +148,7 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
 
     private final ObjectExplorerPanel explorerPanel;
     private final RegisteredServersPanel registeredServersPanel;
+    private final QueryLibraryPanel queryLibraryPanel;
     private final StatusBar statusBar;
     private final List<DBPDataSourceRegistry> listenedRegistries = new ArrayList<>();
     private final DBPEventListener registryListener = event -> {
@@ -269,7 +272,16 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
         resultTabsTrailing.setOpaque(false);
         resultTabsTrailing.add(resultsWindow.createHideButton());
         resultTabs.putClientProperty(FlatClientProperties.TABBED_PANE_TRAILING_COMPONENT, resultTabsTrailing);
-        toolWindows = List.of(explorerWindow, registeredServersWindow, propertiesWindow, resultsWindow);
+        queryLibraryPanel = new QueryLibraryPanel(this);
+        // Query Library above Properties in the right column (SSMS docks its Template Browser on the right), hidden until opened;
+        // a column of its own would narrow the documents
+        ToolWindow libraryWindow = new ToolWindow("queryLibrary", "Query Library", true, //$NON-NLS-1$
+            queryLibraryPanel, createSplitPane(JSplitPane.VERTICAL_SPLIT), true, 280,
+            KeyStroke.getKeyStroke(KeyEvent.VK_T, InputEvent.CTRL_DOWN_MASK | InputEvent.ALT_DOWN_MASK));
+        libraryWindow.setDefaultShown(false);
+        propertiesWindow.stackBelow(libraryWindow);
+        queryLibraryPanel.setShowWindow(() -> libraryWindow.setShown(true));
+        toolWindows = List.of(explorerWindow, registeredServersWindow, propertiesWindow, libraryWindow, resultsWindow);
 
         newQueryAction = createAction("New Query", "Open a SQL editor for the connection selected in Object Explorer (Ctrl+N)",
             KeyStroke.getKeyStroke(KeyEvent.VK_N, InputEvent.CTRL_DOWN_MASK), this::newQuery);
@@ -722,6 +734,10 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
      * @return false if it was not saved (canceled or failed)
      */
     private boolean saveEditor(@NotNull SqlEditorPanel editor, boolean saveAs) {
+        // A Query Library query is saved to the library (with its header), also for Save As
+        if (editor.getExtension() != null) {
+            return editor.getExtension().save(editor);
+        }
         Path file = editor.getFile();
         if (saveAs || file == null) {
             JFileChooser chooser = createSqlFileChooser(saveAs ? "Save As" : "Save");
@@ -902,6 +918,46 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
             recentMenu.add(item);
         }
         recentMenu.setEnabled(!files.isEmpty());
+    }
+
+    //////////////////////////////////////////////////////////
+    // Query Library
+
+    @NotNull
+    @Override
+    public Component getComponent() {
+        return this;
+    }
+
+    @Nullable
+    @Override
+    public DBPDataSourceContainer getCurrentConnection() {
+        DBPDataSourceContainer dataSource = explorerPanel.getSelectedDataSource();
+        SqlEditorPanel activeEditor = getActiveEditor();
+        return dataSource != null ? dataSource : activeEditor != null ? activeEditor.getDataSourceContainer() : null;
+    }
+
+    @NotNull
+    @Override
+    public List<SqlEditorPanel> getQueryWindows() {
+        return getEditors();
+    }
+
+    @Nullable
+    @Override
+    public SqlEditorPanel getActiveQueryWindow() {
+        return getActiveEditor();
+    }
+
+    @Override
+    public void showQueryWindow(@NotNull SqlEditorPanel editor) {
+        documentTabs.setSelectedComponent(editor);
+    }
+
+    @NotNull
+    @Override
+    public SqlEditorPanel openQueryWindow(@Nullable DBPDataSourceContainer container, @NotNull String fileName) {
+        return openQueryEditor(container, fileName);
     }
 
     @Nullable
@@ -1148,6 +1204,7 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
         historyItem.setToolTipText("Statements executed in query windows");
         historyItem.addActionListener(e -> QueryHistoryDialog.open(this, this::openHistoryQuery));
         queryMenu.add(historyItem);
+        queryMenu.add(new JMenuItem(queryLibraryPanel.getSaveToLibraryAction()));
         // Tools > Options changes the same setting
         onMenuSelected(queryMenu, () -> autoCompleteItem.setSelected(SqlCompletionPopup.isAutoActivateOnLetters()));
 

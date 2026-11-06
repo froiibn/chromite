@@ -276,6 +276,10 @@ CONCEPTS = [
     # SQL editor: execution plan tab and query history window
     ("plan", "실행 계획", "Execution plan", "hierarchy-2"),
     ("history", "쿼리 기록", "Query history", "history"),
+    # Query Library tool window
+    ("library", "쿼리 라이브러리", "Query library", "books"),
+    ("library-query", "라이브러리 쿼리", "Library query", "file-text + player-play"),
+    ("new-folder", "새 폴더", "New folder", "folder-plus"),
 ]
 
 
@@ -323,6 +327,18 @@ def clock_back(f, s, hand, sw=1):
     # Tabler "history": a clock face whose rim ends in a back arrow
     return (path("M3.2 4.5A6 6 0 1 1 2 8", f, s, sw) + path("M2 2.5V5H4.5", None, s, sw)
             + path("M8 5V8L10 10", None, hand, sw))
+def books(n, nf, blue, blue_fill):
+    # Tabler "books": two upright books and a leaning one
+    return (rect(1.5, 2.5, 3.5, 11, 0.75, nf, n) + path("M1.5 5.5H5M1.5 10.5H5", None, n, cap="butt")
+            + rect(5, 2.5, 3.5, 11, 0.75, blue_fill, blue) + path("M5 5.5H8.5M5 10.5H8.5", None, blue, cap="butt")
+            + path("M9.4 4.4L12.3 3.6L14.6 12.7L11.7 13.5Z", nf, n))
+
+
+def play_badge(c, halo=False):
+    """Run triangle for the bottom-right badge slot."""
+    if halo:
+        return rect(8, 8, 8, 8, 2, "#000")
+    return path("M10.5 9.5V15.5L15.5 12.5Z", c, c)
 
 
 def extra_icons(I, P, n, nf, blue, blue_fill, green, green_fill, red, red_fill, sw, server_fill, doc_fill, table):
@@ -344,6 +360,10 @@ def extra_icons(I, P, n, nf, blue, blue_fill, green, green_fill, red, red_fill, 
     I["sort-alpha"] = svg(sort_letters(n, blue, sw))
     I["plan"] = svg(plan_tree(nf, n, blue, sw))
     I["history"] = svg(clock_back(nf, n, blue, sw))
+    I["library"] = svg(books(n, doc_fill, blue, blue_fill))
+    body, defs = with_badge(doc_shape(doc_fill, n) + path("M5.5 8H10.5M5.5 10.5H8", None, blue, sw, cap="butt"),
+                            play_badge(green), play_badge(0, True))
+    I["library-query"] = svg(body, defs)
 
 
 # ----------------------------------------------------------------- SET A: duo-tone
@@ -365,6 +385,7 @@ def set_a(P):
     I["folder-open"] = svg(folder_open(bf, bf, b))
     body, defs = with_badge(folder_closed(bf, b), plus_badge(P["gs"]), plus_badge(0, True))
     I["new-group"] = svg(body, defs)
+    I["new-folder"] = svg(body, defs)
     I["table"] = svg(table_shape(nf, n))
     body, defs = with_badge(table_shape(nf, n), lens_badge(b, bf), lens_badge(0, 0, True))
     I["view"] = svg(body, defs)
@@ -444,6 +465,8 @@ def set_b(P):
     body, defs = with_badge(folder_b, plus_badge(P["gs"]), plus_badge(0, True))
     I["new-group"] = svg(body, defs)
     I["folder-open"] = svg(folder_open(P["fold"], P["fold_l"], P["fold_s"]))
+    body, defs = with_badge(folder_b, plus_badge(P["gs"]), plus_badge(0, True))
+    I["new-folder"] = svg(body, defs)
     tb = lambda hf, **k: table_shape(nf if nf != "#3A3A3D" else "#2D2D30", n, line=ln, head_fill=hf, **k)
     I["table"] = svg(tb(P["head"]))
     body, defs = with_badge(tb(P["vhead"]), lens_badge(n, P["bl"]), lens_badge(0, 0, True))

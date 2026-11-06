@@ -47,6 +47,7 @@ import org.jkiss.dbeaver.model.DBUtils;
 import org.jkiss.dbeaver.model.app.DBPProject;
 import org.jkiss.dbeaver.model.data.DBDDataReceiver;
 import org.jkiss.dbeaver.model.exec.DBCExecutionContext;
+import org.jkiss.dbeaver.model.exec.DBCException;
 import org.jkiss.dbeaver.model.exec.DBCExecutionContextDefaults;
 import org.jkiss.dbeaver.model.exec.DBCExecutionPurpose;
 import org.jkiss.dbeaver.model.exec.DBCSession;
@@ -166,6 +167,8 @@ import java.util.concurrent.atomic.AtomicLong;
  * - 2026-11-06 데이터 전송: 쿼리의 첫 결과 표에 다시 실행할 쿼리를 넘김(Export Data) (docs/chromite/swing-data-transfer.md)
  * - 2026-11-06 실행 계획(Ctrl+L, Ctrl+M), 쿼리 기록, 매개변수 묻기, SQL 서식·편집 명령, 템플릿, 상태 줄 커서 위치
  *   (docs/chromite/swing-sql-editor-plus.md)
+ * - 2026-11-06 Query Library: 편집기 확장({@link SqlEditorExtension}: 머리말, 저장, 탭 아이콘, 매개변수 바인딩 {@link SqlParameterBinding})
+ *   (docs/chromite/swing-query-library.md)
  */
 final class SqlEditorPanel extends JPanel {
 
@@ -247,6 +250,8 @@ final class SqlEditorPanel extends JPanel {
     // EDT only
     @Nullable
     private Execution execution;
+    @Nullable
+    private SqlEditorExtension extension;
 
     /**
      * @param dataSourceContainer connection of the query window, or null to choose it later in the tool bar
@@ -404,6 +409,34 @@ final class SqlEditorPanel extends JPanel {
         host.titleChanged(this);
     }
 
+    /**
+     * Makes this window a window of another document kind (a Query Library query): its header goes below the tool bar,
+     * and saving, the tab icon and parameter binding come from the extension.
+     */
+    void setExtension(@NotNull SqlEditorExtension extension) {
+        this.extension = extension;
+        JComponent header = extension.getHeader();
+        if (header != null && ((BorderLayout) getLayout()).getLayoutComponent(BorderLayout.NORTH) instanceof JComponent toolBar) {
+            JPanel north = new JPanel(new BorderLayout());
+            north.add(toolBar, BorderLayout.NORTH);
+            north.add(header, BorderLayout.CENTER);
+            add(north, BorderLayout.NORTH);
+        }
+        host.titleChanged(this);
+    }
+
+    @Nullable
+    SqlEditorExtension getExtension() {
+        return extension;
+    }
+
+    /**
+     * Something besides the text changed (the extension's header fields): the window needs saving.
+     */
+    void markModified() {
+        setDirty(true);
+    }
+
     private void setDirty(boolean dirty) {
         if (this.dirty != dirty) {
             this.dirty = dirty;
@@ -554,6 +587,10 @@ final class SqlEditorPanel extends JPanel {
      */
     @NotNull
     Icon getTabIcon() {
+        Icon extensionIcon = extension != null ? extension.getTabIcon() : null;
+        if (extensionIcon != null) {
+            return extensionIcon;
+        }
         if (file == null && dataSourceContainer != null) {
             return NodeIcons.getIcon(dataSourceContainer.getDriver().getIcon());
         }
@@ -667,11 +704,20 @@ final class SqlEditorPanel extends JPanel {
                 return;
             }
         }
+        // Parameter values (Query Library): asked here in the EDT, bound in the job threads
+        SqlParameterBinding binding = SqlParameterBinding.NONE;
+        if (extension != null) {
+            binding = extension.prepareExecution(this, container, text.substring(offset, offset + length));
+            if (binding == null) {
+                return;
+            }
+        }
 
         long connectionMaxRows = container.getPreferenceStore().getInt(ModelPreferences.RESULT_SET_MAX_ROWS);
         Execution run = new Execution(container, text, offset, length,
             maxRows > 0 ? Math.max(maxRows, connectionMaxRows) : connectionMaxRows, maxRows > 0);
         run.includeActualPlan = isIncludeActualPlan();
+        run.binding = binding;
         execution = run;
         resultsView.clear();
         if (run.includeActualPlan) {
@@ -910,7 +956,8 @@ final class SqlEditorPanel extends JPanel {
                 stopPreparation(run, errorStatus("No execution context for '" + container.getName() + "'"));
                 return;
             }
-            List<SQLScriptElement> elements = SQLScriptBatches.extractQueries(dataSource, run.text, run.offset, run.length);
+            List<SQLScriptElement> elements = run.binding.prepare(monitor, context,
+                SQLScriptBatches.extractQueries(dataSource, run.text, run.offset, run.length));
             if (elements.isEmpty()) {
                 stopPreparation(run, Status.OK_STATUS);
                 return;
@@ -1197,6 +1244,8 @@ final class SqlEditorPanel extends JPanel {
         final List<SQLQuery> actualPlanQueries = new CopyOnWriteArrayList<>();
         // Receivers of each query's result sets in fetch order (job thread only): plan result sets are not counted as rows
         final Map<SQLQuery, List<ActualPlanReceiver>> planReceivers = new IdentityHashMap<>();
+        // Set in the EDT before the jobs start
+        SqlParameterBinding binding = SqlParameterBinding.NONE;
 
         Execution(
             @NotNull DBPDataSourceContainer dataSourceContainer,
@@ -1269,6 +1318,16 @@ final class SqlEditorPanel extends JPanel {
                 post(run, () -> resultsView.appendError(CommonUtils.getAllExceptionMessages(error)));
             }
             return DBPPlatformUI.UserResponse.STOP;
+        }
+
+        @Override
+        public boolean hasBoundParameters(@NotNull SQLQuery query) {
+            return run.binding.isBound(query);
+        }
+
+        @Override
+        public void bindParameters(@NotNull DBCStatement statement, @NotNull SQLQuery query) throws DBCException {
+            run.binding.bind(statement, query);
         }
     }
 
