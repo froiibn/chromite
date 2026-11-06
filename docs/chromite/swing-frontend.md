@@ -1706,3 +1706,4 @@ Windows 11, 화면 배율 150%, JBR 25, 작업 공간 사본 `D:\Tools\_smoke\sw
 - 2026-11-06 연결 색 알약: Registered Servers와 Object Explorer의 서버 이름을 연결 색 알약으로 감쌈(줄 전체·노드 바탕 대신), 색 규칙 통일, 보조 글자 기준선 고침.
   [swing-registered-servers.md](swing-registered-servers.md) "연결 색 알약".
 - 2026-11-06 화면 언어: 화면 문구를 NLS 묶음(영어 기본, 한국어 `_ko`)으로 옮겨 OS 언어를 따르게 함, 한국어 semibold 한글을 굵은 대체 글꼴로 그림. [swing-l10n.md](swing-l10n.md).
+- 2026-11-06 DBeaver 모델 번들 한국어 보충: 개체 탐색기 폴더·속성 이름·세션/잠금/계획 열·데이터 전송 속성·인증 방식 이름이 한국어로 나옴. [swing-l10n.md](swing-l10n.md) "DBeaver 플러그인 한국어 보충".
