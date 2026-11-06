@@ -1,6 +1,7 @@
 /*
  * DBeaver - Universal Database Manager
  * Copyright (C) 2010-2024 DBeaver Corp and others
+ * Modifications Copyright (C) 2026 Chromite contributors
  * Copyright (C) 2017-2018 Andrew Khitrin (ahitrin@gmail.com)
  * Copyright (C) 2017-2018 Alexander Fedorov (alexander.fedorov@jkiss.org)
  *

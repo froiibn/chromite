@@ -1,6 +1,7 @@
 /*
  * DBeaver - Universal Database Manager
  * Copyright (C) 2010-2024 DBeaver Corp and others
+ * Modifications Copyright (C) 2026 Chromite contributors
  * Copyright (C) 2019 Dmitriy Dubson (ddubson@pivotal.io)
  * Copyright (C) 2019 Gavin Shaw (gshaw@pivotal.io)
  * Copyright (C) 2019 Zach Marcin (zmarcin@pivotal.io)

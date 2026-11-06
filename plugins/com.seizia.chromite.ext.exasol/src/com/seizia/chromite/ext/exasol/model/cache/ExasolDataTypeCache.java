@@ -1,6 +1,7 @@
 /*
  * DBeaver - Universal Database Manager
  * Copyright (C) 2010-2024 DBeaver Corp and others
+ * Modifications Copyright (C) 2026 Chromite contributors
  * Copyright (C) 2019-2019 Karl Griesser (fullref@gmail.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
