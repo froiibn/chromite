@@ -118,6 +118,7 @@ import java.util.function.IntConsumer;
  * - 2026-11-06 P1: Edit·Tools·Window 메뉴(SSMS 순서) (docs/chromite/swing-frontend.md "P1 디자인 적용")
  * - 2026-11-06 P1: 쿼리 상태 줄을 결과 아래에 둠 (docs/chromite/swing-frontend.md "P1 디자인 적용")
  * - 2026-11-06 P1: 문서 탭 닫기 단추를 선택·마우스 올린 탭에만, 가운데 단추로 닫기 (docs/chromite/swing-frontend.md "P1 디자인 적용")
+ * - 2026-11-06 DDL 탭에 객체의 연결을 넘김(구문 강조의 SQL 방언) (docs/chromite/design-spec.md "편집기 글꼴과 SQL 색")
  */
 final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplorerPanel.QueryWindows {
 
@@ -449,8 +450,8 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
     }
 
     @Override
-    public void showDdl(@NotNull String objectName, @NotNull String ddl) {
-        DdlViewerPanel viewer = new DdlViewerPanel(objectName, ddl);
+    public void showDdl(@Nullable DBPDataSourceContainer dataSource, @NotNull String objectName, @NotNull String ddl) {
+        DdlViewerPanel viewer = new DdlViewerPanel(dataSource, objectName, ddl);
         viewer.putClientProperty(FlatClientProperties.TABBED_PANE_TAB_CLOSABLE, true);
         documentTabs.addTab(viewer.getTitle(), UiIcons.get("file-sql"), viewer); //$NON-NLS-1$
         int index = documentTabs.indexOfComponent(viewer);

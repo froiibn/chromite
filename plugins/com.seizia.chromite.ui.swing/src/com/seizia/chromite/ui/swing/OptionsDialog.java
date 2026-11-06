@@ -17,6 +17,8 @@
 package com.seizia.chromite.ui.swing;
 
 import com.formdev.flatlaf.FlatClientProperties;
+import com.formdev.flatlaf.util.UIScale;
+import org.fife.ui.rsyntaxtextarea.Theme;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.ModelPreferences;
@@ -27,6 +29,9 @@ import org.jkiss.dbeaver.utils.PrefUtils;
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.KeyEvent;
+import java.util.EnumMap;
+import java.util.Map;
+import java.util.Objects;
 
 /**
  * Tools &gt; Options (SSMS): 이미 있는 설정만 한곳에서 바꾸는 대화상자.
@@ -37,21 +42,46 @@ import java.awt.event.KeyEvent;
  *     <li>Auto-complete while typing, Completion delay: {@link SqlCompletionPopup}의 설정(Query &gt; Auto-Complete While Typing과 같은 키).</li>
  *     <li>Maximum rows: 실행 엔진이 읽는 {@link ModelPreferences#RESULT_SET_MAX_ROWS}. 연결의 설정 저장소는 플랫폼 설정 저장소를 부모로 가지므로
  *     ({@code DataSourcePreferenceStore}), 플랫폼 저장소에 쓰면 연결별 값을 따로 두지 않은 모든 연결에 적용된다. 0은 제한 없음.</li>
+ *     <li>Editor 탭: SQL 편집기 글꼴과 크기({@link EditorFont}). Editor Colors 탭: 테마마다 구문·편집기 색({@link EditorColors}),
+ *     SWT 제품의 Colors and Fonts &gt; SQL Editor에 해당한다. 두 탭의 미리 보기는 저장하지 않은 값(한글 포함)을 바로 보여 주고,
+ *     OK를 누르면 저장해서 열린 모든 편집기와 DDL 탭에 적용한다.</li>
  * </ul>
  * OK를 누를 때 바뀐 값만 적용한다. 읽기는 열 때 한 번 한다.
  *
  * 변경 이력:
  * - 2026-11-06 P1: 최초 작성 (docs/chromite/swing-frontend.md "P1 디자인 적용")
+ * - 2026-11-06 General·Editor·Editor Colors 탭: 편집기 글꼴·크기와 테마별 편집기 색, 미리 보기 (docs/chromite/design-spec.md "편집기 글꼴과 SQL 색")
  */
 final class OptionsDialog extends JDialog {
 
     private static final int MAX_DELAY = 5000;
+    private static final String PREVIEW_TEXT = """
+        -- 한글 주석: editor preview
+        DECLARE @cnt INT = 0;
+        SELECT a.AlbumId, COUNT(*) AS cnt, UPPER(a.Title), DATEDIFF(SECOND, a.d1, a.d2)
+        FROM Album a
+        WHERE a.Title LIKE N'%한글%' AND a.AlbumId > 42.5 OR a.Note IS NULL;"""; //$NON-NLS-1$
 
     private final JComboBox<ChromiteTheme> themeCombo = new JComboBox<>(ChromiteTheme.values());
     private final JComboBox<UiIconStyle> iconStyleCombo = new JComboBox<>(UiIconStyle.values());
     private final JCheckBox autoCompleteBox = new JCheckBox("Show completion proposals while typing");
     private final JSpinner delaySpinner;
     private final JSpinner maxRowsSpinner;
+
+    // Editor tab
+    private final JComboBox<String> fontFamilyCombo;
+    private final JSpinner fontSizeSpinner;
+    private final SqlEditorPanel.SqlTextArea fontPreview = createPreview();
+
+    // Editor Colors tab: edited colors of both themes, saved on OK
+    private final Map<ChromiteTheme, Map<EditorColors.Item, EditorColors.Setting>> colors = new EnumMap<>(ChromiteTheme.class);
+    private final JComboBox<ChromiteTheme> colorThemeCombo = new JComboBox<>(ChromiteTheme.values());
+    private final JList<EditorColors.Item> colorItemList = new JList<>(EditorColors.Item.values());
+    private final JButton colorButton = new JButton("Color…");
+    private final JCheckBox boldBox = new JCheckBox("Bold");
+    private final JCheckBox italicBox = new JCheckBox("Italic");
+    private final SqlEditorPanel.SqlTextArea colorPreview = createPreview();
+    private boolean updatingColorControls;
 
     private OptionsDialog(@NotNull Frame owner) {
         super(owner, "Options", true);
@@ -66,6 +96,13 @@ final class OptionsDialog extends JDialog {
             Math.clamp(SqlCompletionPopup.getAutoActivationDelay(), 0, MAX_DELAY), 0, MAX_DELAY, 50));
         maxRowsSpinner = new JSpinner(new SpinnerNumberModel(
             Math.max(0, getPlatformPreferences().getInt(ModelPreferences.RESULT_SET_MAX_ROWS)), 0, Integer.MAX_VALUE, 100));
+
+        fontFamilyCombo = new JComboBox<>(EditorFont.getMonospacedFamilies().toArray(String[]::new));
+        fontFamilyCombo.setSelectedItem(EditorFont.getSavedFamily());
+        fontSizeSpinner = new JSpinner(new SpinnerNumberModel(EditorFont.getSavedSize(), EditorFont.MIN_SIZE, EditorFont.MAX_SIZE, 1));
+        for (ChromiteTheme theme : ChromiteTheme.values()) {
+            colors.put(theme, EditorColors.getSaved(theme));
+        }
 
         JPanel form = new JPanel(new GridBagLayout());
         int row = 0;
@@ -92,7 +129,11 @@ final class OptionsDialog extends JDialog {
         JPanel content = new JPanel(new BorderLayout(0, 20));
         // Dialog insets 10/12, groups 20 apart (design-spec space tokens)
         content.setBorder(BorderFactory.createEmptyBorder(10, 12, 10, 12));
-        content.add(form, BorderLayout.CENTER);
+        JTabbedPane tabs = new JTabbedPane();
+        tabs.addTab("General", wrapPage(form));
+        tabs.addTab("Editor", createEditorPage());
+        tabs.addTab("Editor Colors", createColorsPage());
+        content.add(tabs, BorderLayout.CENTER);
         content.add(buttons, BorderLayout.SOUTH);
         setContentPane(content);
 
@@ -106,6 +147,184 @@ final class OptionsDialog extends JDialog {
 
     static void open(@NotNull Frame owner) {
         new OptionsDialog(owner).setVisible(true);
+    }
+
+    /**
+     * A tab page: the form at the top, below the tabs.
+     */
+    @NotNull
+    private static JComponent wrapPage(@NotNull JComponent form) {
+        JPanel page = new JPanel(new BorderLayout());
+        page.setBorder(BorderFactory.createEmptyBorder(12, 0, 0, 0));
+        page.add(form, BorderLayout.NORTH);
+        return page;
+    }
+
+    @NotNull
+    private JComponent createEditorPage() {
+        fontFamilyCombo.addActionListener(e -> updatePreviews());
+        fontSizeSpinner.addChangeListener(e -> updatePreviews());
+        JPanel form = new JPanel(new GridBagLayout());
+        int row = addSection(form, 0, "Font");
+        row = addRow(form, row, "Family", fontFamilyCombo, "fixed-width fonts, default " + EditorFont.DEFAULT_FAMILY);
+        row = addRow(form, row, "Size", fontSizeSpinner, "points, default " + EditorFont.DEFAULT_SIZE);
+        addPreview(form, row, fontPreview);
+        updatePreviews();
+        return wrapPage(form);
+    }
+
+    @NotNull
+    private JComponent createColorsPage() {
+        colorThemeCombo.setSelectedItem(ChromiteTheme.getCurrent());
+        colorThemeCombo.setRenderer(new LabelRenderer());
+        colorThemeCombo.addActionListener(e -> {
+            colorItemList.repaint();
+            updateColorControls();
+            updatePreviews();
+        });
+        JButton resetButton = new JButton("Reset to SSMS Defaults");
+        resetButton.setToolTipText("Restore the default colors of the selected theme");
+        resetButton.addActionListener(e -> {
+            colors.put(getColorTheme(), EditorColors.getDefaults(getColorTheme()));
+            colorItemList.repaint();
+            updateColorControls();
+            updatePreviews();
+        });
+
+        colorItemList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+        colorItemList.setVisibleRowCount(EditorColors.Item.values().length);
+        colorItemList.setCellRenderer(new ColorItemRenderer());
+        colorItemList.addListSelectionListener(e -> updateColorControls());
+        colorItemList.setSelectedIndex(0);
+        colorButton.addActionListener(e -> chooseColor());
+        boldBox.addActionListener(e -> updateFontStyle());
+        italicBox.addActionListener(e -> updateFontStyle());
+
+        JPanel themeRow = new JPanel(new FlowLayout(FlowLayout.LEFT, 6, 0));
+        themeRow.add(new JLabel("Theme"));
+        themeRow.add(colorThemeCombo);
+        themeRow.add(resetButton);
+
+        JPanel itemControls = new JPanel(new GridLayout(0, 1, 0, 6));
+        itemControls.add(colorButton);
+        itemControls.add(boldBox);
+        itemControls.add(italicBox);
+        JPanel itemControlsTop = new JPanel(new BorderLayout());
+        itemControlsTop.add(itemControls, BorderLayout.NORTH);
+
+        JPanel items = new JPanel(new BorderLayout(12, 0));
+        items.add(new JScrollPane(colorItemList), BorderLayout.CENTER);
+        items.add(itemControlsTop, BorderLayout.EAST);
+
+        JPanel form = new JPanel(new GridBagLayout());
+        GridBagConstraints c = new GridBagConstraints();
+        c.gridx = 0;
+        c.gridy = 0;
+        c.gridwidth = 3;
+        c.anchor = GridBagConstraints.WEST;
+        c.fill = GridBagConstraints.HORIZONTAL;
+        c.weightx = 1;
+        c.insets = new Insets(0, 0, 6, 0);
+        form.add(themeRow, c);
+        c.gridy = 1;
+        form.add(items, c);
+        addPreview(form, 2, colorPreview);
+        updateColorControls();
+        updatePreviews();
+        return wrapPage(form);
+    }
+
+    /**
+     * Preview section: a read-only SQL text area with Hangul, keywords, functions, operators, strings and numbers.
+     */
+    private static void addPreview(@NotNull JPanel form, int row, @NotNull SqlEditorPanel.SqlTextArea preview) {
+        row = addSection(form, row, "Preview");
+        JScrollPane scrollPane = new JScrollPane(preview);
+        scrollPane.setPreferredSize(UIScale.scale(new Dimension(640, 130)));
+        GridBagConstraints c = new GridBagConstraints();
+        c.gridx = 0;
+        c.gridy = row;
+        c.gridwidth = 3;
+        c.fill = GridBagConstraints.BOTH;
+        c.weightx = 1;
+        form.add(scrollPane, c);
+    }
+
+    @NotNull
+    private static SqlEditorPanel.SqlTextArea createPreview() {
+        SqlEditorPanel.SqlTextArea preview = new SqlEditorPanel.SqlTextArea();
+        preview.setText(PREVIEW_TEXT);
+        preview.setEditable(false);
+        // Current line and selection colors are visible: "Album" selected, the caret on its line
+        int albumStart = PREVIEW_TEXT.indexOf("Album a"); //$NON-NLS-1$
+        preview.select(albumStart, albumStart + "Album".length()); //$NON-NLS-1$
+        return preview;
+    }
+
+    /**
+     * Shows the unsaved font and colors: the Editor tab in the current theme, the Editor Colors tab in the theme being edited.
+     */
+    private void updatePreviews() {
+        String family = Objects.requireNonNullElse((String) fontFamilyCombo.getSelectedItem(), EditorFont.getDefaultFamily());
+        Font font = EditorFont.create(family, ((Number) fontSizeSpinner.getValue()).intValue());
+        ChromiteTheme current = ChromiteTheme.getCurrent();
+        fontPreview.applyTheme(EditorColors.createTheme(current, colors.get(current), font), font);
+        ChromiteTheme edited = getColorTheme();
+        Theme theme = EditorColors.createTheme(edited, colors.get(edited), font);
+        colorPreview.applyTheme(theme, font);
+        // A text area without focus hides its selection
+        fontPreview.getCaret().setSelectionVisible(true);
+        colorPreview.getCaret().setSelectionVisible(true);
+    }
+
+    @NotNull
+    private ChromiteTheme getColorTheme() {
+        return colorThemeCombo.getSelectedItem() instanceof ChromiteTheme theme ? theme : ChromiteTheme.getCurrent();
+    }
+
+    private void updateColorControls() {
+        EditorColors.Item item = colorItemList.getSelectedValue();
+        updatingColorControls = true;
+        try {
+            colorButton.setEnabled(item != null);
+            boolean token = item != null && item.isToken();
+            boldBox.setEnabled(token);
+            italicBox.setEnabled(token);
+            EditorColors.Setting setting = item == null ? null : colors.get(getColorTheme()).get(item);
+            colorButton.setIcon(setting == null ? null : new ColorIcon(setting.color()));
+            boldBox.setSelected(setting != null && setting.bold());
+            italicBox.setSelected(setting != null && setting.italic());
+        } finally {
+            updatingColorControls = false;
+        }
+    }
+
+    private void chooseColor() {
+        EditorColors.Item item = colorItemList.getSelectedValue();
+        if (item == null) {
+            return;
+        }
+        EditorColors.Setting setting = colors.get(getColorTheme()).get(item);
+        Color color = JColorChooser.showDialog(this, item.getLabel() + " (" + getColorTheme().getLabel() + ")", setting.color());
+        if (color != null) {
+            // Opaque: the editor paints text and backgrounds without alpha
+            setColorSetting(item, new EditorColors.Setting(new Color(color.getRGB() & 0xFFFFFF), setting.bold(), setting.italic()));
+        }
+    }
+
+    private void updateFontStyle() {
+        EditorColors.Item item = colorItemList.getSelectedValue();
+        if (item != null && !updatingColorControls) {
+            EditorColors.Setting setting = colors.get(getColorTheme()).get(item);
+            setColorSetting(item, new EditorColors.Setting(setting.color(), boldBox.isSelected(), italicBox.isSelected()));
+        }
+    }
+
+    private void setColorSetting(@NotNull EditorColors.Item item, @NotNull EditorColors.Setting setting) {
+        colors.get(getColorTheme()).put(item, setting);
+        colorItemList.repaint();
+        updateColorControls();
+        updatePreviews();
     }
 
     /**
@@ -172,6 +391,22 @@ final class OptionsDialog extends JDialog {
             platformPreferences.setValue(ModelPreferences.RESULT_SET_MAX_ROWS, maxRows);
             PrefUtils.savePreferenceStore(platformPreferences);
         }
+        boolean editorChanged = false;
+        String family = (String) fontFamilyCombo.getSelectedItem();
+        int size = ((Number) fontSizeSpinner.getValue()).intValue();
+        if (family != null && (!family.equals(EditorFont.getSavedFamily()) || size != EditorFont.getSavedSize())) {
+            EditorFont.save(family, size);
+            editorChanged = true;
+        }
+        for (ChromiteTheme theme : ChromiteTheme.values()) {
+            if (!colors.get(theme).equals(EditorColors.getSaved(theme))) {
+                EditorColors.save(theme, colors.get(theme));
+                editorChanged = true;
+            }
+        }
+        if (editorChanged) {
+            SqlEditorPanel.SqlTextArea.applyThemeToAll();
+        }
         // Theme last: it updates every window, this dialog is about to close
         if (iconStyleCombo.getSelectedItem() instanceof UiIconStyle iconStyle && iconStyle != UiIconStyle.getCurrent()) {
             iconStyle.apply();
@@ -184,6 +419,46 @@ final class OptionsDialog extends JDialog {
     @NotNull
     private static DBPPreferenceStore getPlatformPreferences() {
         return DBWorkbench.getPlatform().getPreferenceStore();
+    }
+
+    /**
+     * Editor color items: a swatch of the edited color and the label.
+     */
+    private final class ColorItemRenderer extends DefaultListCellRenderer {
+        @Override
+        public Component getListCellRendererComponent(JList<?> list, Object value, int index, boolean isSelected, boolean cellHasFocus) {
+            super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
+            if (value instanceof EditorColors.Item item) {
+                setText(item.getLabel());
+                setIcon(new ColorIcon(colors.get(getColorTheme()).get(item).color()));
+                setIconTextGap(8);
+            }
+            return this;
+        }
+    }
+
+    /**
+     * A color swatch with a border, so that colors close to the background stay visible.
+     */
+    private record ColorIcon(@NotNull Color color) implements Icon {
+        @Override
+        public void paintIcon(Component c, Graphics g, int x, int y) {
+            int size = getIconWidth();
+            g.setColor(color);
+            g.fillRect(x, y, size, size);
+            g.setColor(UIManager.getColor("Component.borderColor")); //$NON-NLS-1$
+            g.drawRect(x, y, size - 1, size - 1);
+        }
+
+        @Override
+        public int getIconWidth() {
+            return UIScale.scale(14);
+        }
+
+        @Override
+        public int getIconHeight() {
+            return getIconWidth();
+        }
     }
 
     /**

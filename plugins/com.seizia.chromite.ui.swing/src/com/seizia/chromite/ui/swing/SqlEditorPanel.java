@@ -25,6 +25,7 @@ import org.eclipse.core.runtime.Status;
 import org.eclipse.core.runtime.jobs.IJobChangeEvent;
 import org.eclipse.core.runtime.jobs.Job;
 import org.eclipse.core.runtime.jobs.JobChangeAdapter;
+import org.fife.ui.rsyntaxtextarea.RSyntaxDocument;
 import org.fife.ui.rsyntaxtextarea.RSyntaxTextArea;
 import org.fife.ui.rsyntaxtextarea.RSyntaxUtilities;
 import org.fife.ui.rsyntaxtextarea.SyntaxConstants;
@@ -74,8 +75,6 @@ import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.InputEvent;
 import java.awt.event.KeyEvent;
-import java.io.IOException;
-import java.io.InputStream;
 import java.io.Writer;
 import java.lang.reflect.InvocationTargetException;
 import java.nio.file.Path;
@@ -95,7 +94,9 @@ import java.util.concurrent.atomic.AtomicLong;
  * 설계:
  * <ul>
  *     <li>편집기는 RSyntaxTextArea(SQL 구문 강조)다. 색은 테마마다 XML 테마 파일({@code SqlEditorLight.xml},
- *     {@code SqlEditorDark.xml})로 정하고, Look and Feel이 바뀌면({@code updateUI}) 현재 테마의 파일을 다시 적용한다.</li>
+ *     {@code SqlEditorDark.xml})에 사용자가 바꾼 색({@link EditorColors})을 덮어 정하고, 글꼴은 {@link EditorFont}다.
+ *     Look and Feel이 바뀌면({@code updateUI}) 현재 테마의 색을 다시 적용한다. 단어 분류(키워드, 함수, 연산자)는 연결의 SQL 방언을 따른다
+ *     ({@link SqlTokenClassifier}).</li>
  *     <li>F5(메인 창 Query 메뉴)와 Execute 단추는 선택이 1자 이상이면 선택한 부분만, 아니면 전체를 실행한다
  *     (swing-frontend.md "쿼리 실행 사양"). 범위는 전체 텍스트 안의 위치로 넘겨 쿼리 위치가 편집기 위치와 같게 한다(오류 줄 번호).</li>
  *     <li>실행은 두 Job으로 나눈다. 준비 Job이 연결(필요하면 {@link SwingConnectionService}), 실행 문맥, 문장 나누기
@@ -135,6 +136,8 @@ import java.util.concurrent.atomic.AtomicLong;
  * - 2026-11-06 P1: 상태 줄을 {@link QueryStatusLine}(SSMS 내용: 상태 아이콘, 서버, 사용자, DB/스키마, 시간, 행)으로 바꾸고 메인 창이 결과 아래에 둠
  *   (docs/chromite/swing-frontend.md "P1 디자인 적용")
  * - 2026-11-06 P1: 탭 도구 설명에 전체 경로와 연결·서버 (docs/chromite/swing-frontend.md "P1 디자인 적용")
+ * - 2026-11-06 편집기 글꼴(Cascadia Mono 13, Options에서 변경)과 SSMS 구문 색(사용자 색 설정), 방언 기반 단어 분류
+ *   (docs/chromite/design-spec.md "편집기 글꼴과 SQL 색")
  */
 final class SqlEditorPanel extends JPanel {
 
@@ -1018,6 +1021,8 @@ final class SqlEditorPanel extends JPanel {
     private void refreshSchemas() {
         int serial = ++schemaSerial;
         DBPDataSourceContainer container = dataSourceContainer;
+        // Every connection change ends here: the highlighting follows the connection's SQL dialect too
+        textArea.setDataSourceContainer(container);
         DBPDataSource dataSource = container != null && container.isConnected() ? container.getDataSource() : null;
         if (dataSource == null) {
             showSchemas(serial, null);
@@ -1166,10 +1171,16 @@ final class SqlEditorPanel extends JPanel {
     }
 
     /**
-     * SQL text area with the Chromite colors of the current theme (also used read-only by {@link DdlViewerPanel}).
+     * SQL text area with the Chromite colors of the current theme and the editor font (also used read-only by
+     * {@link DdlViewerPanel} and by the Options preview).
      */
     static final class SqlTextArea extends RSyntaxTextArea {
+        // EDT only; read by the token maker while painting
+        private SqlTokenClassifier.Words words = SqlTokenClassifier.Words.STANDARD;
+
         SqlTextArea() {
+            // Keywords, functions and types of the connection's dialect, SSMS operator words (SqlTokenClassifier)
+            ((RSyntaxDocument) getDocument()).setTokenMakerFactory(new SqlTokenClassifier.Factory(() -> words));
             setSyntaxEditingStyle(SyntaxConstants.SYNTAX_STYLE_SQL);
             setCodeFoldingEnabled(false);
             setTabSize(4);
@@ -1194,6 +1205,18 @@ final class SqlEditorPanel extends JPanel {
             });
         }
 
+        /**
+         * Highlights the words of the connection's SQL dialect (standard SQL without a connection) and repaints the text.
+         */
+        void setDataSourceContainer(@Nullable DBPDataSourceContainer container) {
+            SqlTokenClassifier.Words newWords = SqlTokenClassifier.Words.of(container);
+            if (newWords != words) {
+                words = newWords;
+                // Creates a new token maker (same factory) and re-lexes the whole document
+                ((RSyntaxDocument) getDocument()).setSyntaxStyle(getSyntaxEditingStyle());
+            }
+        }
+
         @Override
         public void updateUI() {
             super.updateUI();
@@ -1203,25 +1226,44 @@ final class SqlEditorPanel extends JPanel {
             }
         }
 
+        /**
+         * Applies the saved editor colors of the current theme and the saved editor font.
+         */
         void applyTheme() {
-            String resource = ChromiteTheme.getCurrent() == ChromiteTheme.DARK ? "SqlEditorDark.xml" : "SqlEditorLight.xml"; //$NON-NLS-1$ //$NON-NLS-2$
-            try (InputStream in = SqlEditorPanel.class.getResourceAsStream(resource)) {
-                if (in == null) {
-                    log.warn("SQL editor theme " + resource + " not found");
-                    return;
-                }
-                Theme.load(in).apply(this);
-            } catch (IOException e) {
-                log.warn("Can't load SQL editor theme " + resource, e);
+            ChromiteTheme theme = ChromiteTheme.getCurrent();
+            Font font = EditorFont.get();
+            applyTheme(EditorColors.createTheme(theme, EditorColors.getSaved(theme), font), font);
+        }
+
+        /**
+         * Applies colors and font that are not saved (Options preview).
+         */
+        void applyTheme(@NotNull Theme theme, @NotNull Font font) {
+            // The theme files name no font: the theme's base font is the editor font (a composite font, so Hangul is not
+            // shown as boxes), and its bold and italic styles are derived from it
+            theme.apply(this);
+            setFont(font);
+            Gutter gutter = RSyntaxUtilities.getGutter(this);
+            if (gutter != null) {
+                gutter.setLineNumberFont(font);
             }
-            // font.code: the theme files name no font (a font family there would not be a composite font, and Hangul
-            // would show as boxes), so the look and feel's JetBrains Mono composite font is set after the theme
-            Font codeFont = UIManager.getFont("monospaced.font"); //$NON-NLS-1$
-            if (codeFont != null) {
-                setFont(codeFont);
-                Gutter gutter = RSyntaxUtilities.getGutter(this);
-                if (gutter != null) {
-                    gutter.setLineNumberFont(codeFont);
+        }
+
+        /**
+         * Applies the saved colors and font to every SQL text area of every window (editors, DDL tabs).
+         */
+        static void applyThemeToAll() {
+            for (Window window : Window.getWindows()) {
+                applyThemeToAll(window);
+            }
+        }
+
+        private static void applyThemeToAll(@NotNull Container container) {
+            for (Component child : container.getComponents()) {
+                if (child instanceof SqlTextArea textArea) {
+                    textArea.applyTheme();
+                } else if (child instanceof Container childContainer) {
+                    applyThemeToAll(childContainer);
                 }
             }
         }

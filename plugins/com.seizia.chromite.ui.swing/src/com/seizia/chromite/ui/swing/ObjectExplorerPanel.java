@@ -123,6 +123,7 @@ import java.util.function.Consumer;
  * - 2026-11-06 디자인 적용: 아이콘 도구 막대(New Connection, Connect, Disconnect, Filter, Refresh, Collapse All), Filter·Collapse All 명령,
  *   아이콘 팩 노드 아이콘과 연결 상태 점, 보조 글자, 마우스 올림 표시 (docs/chromite/design-spec.md "적용 현황")
  * - 2026-11-06 P1: 트리에 초점이 있을 때 F5 = 새로 고침(SSMS) (docs/chromite/swing-frontend.md "P1 디자인 적용")
+ * - 2026-11-06 View DDL에 객체의 연결을 넘김(DDL 탭의 구문 강조가 연결의 SQL 방언을 따름) (docs/chromite/design-spec.md "편집기 글꼴과 SQL 색")
  */
 final class ObjectExplorerPanel extends JPanel {
 
@@ -153,8 +154,10 @@ final class ObjectExplorerPanel extends JPanel {
 
         /**
          * Shows an object definition in a read-only tab ("View DDL").
+         *
+         * @param dataSource connection of the object (its SQL dialect highlights the text)
          */
-        void showDdl(@NotNull String objectName, @NotNull String ddl);
+        void showDdl(@Nullable DBPDataSourceContainer dataSource, @NotNull String objectName, @NotNull String ddl);
     }
 
     private final DefaultTreeModel treeModel;
@@ -259,7 +262,7 @@ final class ObjectExplorerPanel extends JPanel {
             if (object != null) {
                 String ddl = generate("View DDL", monitor -> ObjectScripts.generateCreate(monitor, object));
                 if (ddl != null) {
-                    queryWindows.showDdl(DBUtils.getObjectFullName(object, DBPEvaluationContext.UI), ddl);
+                    queryWindows.showDdl(getSelectedDataSource(), DBUtils.getObjectFullName(object, DBPEvaluationContext.UI), ddl);
                 }
             }
         });

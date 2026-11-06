@@ -37,11 +37,12 @@ import java.util.function.Supplier;
  * 작업 공간을 복사한 스모크 테스트가 사용자 설정을 바꾸지 않는다.
  * 실행 중 전환은 {@link FlatLaf#updateUI()}로 열린 모든 창을 다시 그린다.
  * 글꼴(Inter, JetBrains Mono)은 번들에 넣은 FlatLaf 글꼴 jar를 Look and Feel을 설치하기 전에 등록한다
- * (테마 properties의 {@code defaultFont}, {@code monospaced.font}가 이 이름을 쓴다).
+ * (테마 properties의 {@code defaultFont}, {@code monospaced.font}가 이 이름을 쓴다). SQL 편집기 글꼴(Cascadia Mono)도 같은 때 등록한다({@link EditorFont}).
  *
  * 변경 이력:
  * - 2026-11-06 B단계: 최초 작성 (docs/chromite/swing-frontend.md "구현 현황 — B단계")
  * - 2026-11-06 디자인 적용: Inter·JetBrains Mono 글꼴 등록 (docs/chromite/design-spec.md "적용 현황")
+ * - 2026-11-06 편집기 글꼴 Cascadia Mono 등록 (docs/chromite/design-spec.md "편집기 글꼴과 SQL 색")
  */
 enum ChromiteTheme {
 
@@ -75,6 +76,8 @@ enum ChromiteTheme {
         // FlatLaf loads them on first use. Registering twice is harmless.
         FlatInterFont.installLazy();
         FlatJetBrainsMonoFont.installLazy();
+        // SQL editor font (Cascadia Mono, bundled)
+        EditorFont.installLazy();
         if (!FlatLaf.setup(lafFactory.get())) {
             log.warn("Can't install look and feel of theme " + name());
             return;
