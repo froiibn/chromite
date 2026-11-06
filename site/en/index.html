@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Download Chromite</title>
+<meta name="description" content="Chromite - Database Workbench. Download the installer for Windows or macOS.">
+<link rel="icon" href="/assets/chromite-icon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/assets/site.css">
+<link rel="alternate" hreflang="ko" href="/ko/">
+<script src="/downloads/releases.js" defer></script>
+<script src="/assets/site.js" defer></script>
+</head>
+<body>
+<header class="top">
+  <div class="wrap">
+    <a class="brand" href="/en/"><img src="/assets/chromite-icon.svg" alt="">Chromite</a>
+    <nav class="nav">
+      <a href="/en/" aria-current="page">Download</a>
+      <a href="/en/changelog.html">Changelog</a>
+      <a href="/en/privacy.html">Privacy</a>
+      <a href="/ko/" lang="ko">한국어</a>
+    </nav>
+  </div>
+</header>
+
+<main class="wrap">
+  <section class="hero">
+    <h1>Chromite</h1>
+    <p class="sub">Database Workbench</p>
+    <p class="lead">A desktop app to connect to, query and manage PostgreSQL, SQL Server, MariaDB and MySQL, Oracle and other databases in one window. It comes with its own Java runtime, so there is nothing else to install.</p>
+  </section>
+
+  <section class="downloads-area" data-state="loading" aria-live="polite">
+    <p class="state state-loading">Looking for the latest version…</p>
+    <p class="state state-error notice">The release list could not be read. Try again later. The list is also at <a href="/downloads/releases.json">releases.json</a>.</p>
+    <p class="state state-empty notice">No release has been published yet.</p>
+
+    <div class="downloads">
+      <article class="card" data-platform="windows" data-arch="x64" data-kind="setup">
+        <h2>Windows</h2>
+        <p class="req">Windows 10 or 11 (x64). Installs for your user account; no administrator rights needed.</p>
+        <div class="when-ready">
+          <a class="btn" data-field="link" href="/downloads/releases.json">Download the installer</a>
+        </div>
+        <dl class="facts when-ready">
+          <dt>Version</dt><dd data-field="version"></dd>
+          <dt>Size</dt><dd data-field="size"></dd>
+          <dt>Published</dt><dd data-field="date"></dd>
+          <dt>SHA-256</dt><dd class="hash"><code data-field="sha256"></code><button type="button" class="copy" data-done="Copied">Copy</button></dd>
+        </dl>
+        <p class="when-missing">There is no Windows file yet.</p>
+      </article>
+
+      <article class="card" data-platform="macos" data-arch="arm64" data-kind="dmg">
+        <h2>macOS</h2>
+        <p class="req">Mac with Apple silicon (M1 or later). Open the disk image and drag Chromite to Applications.</p>
+        <div class="when-ready">
+          <a class="btn" data-field="link" href="/downloads/releases.json">Download the disk image</a>
+        </div>
+        <dl class="facts when-ready">
+          <dt>Version</dt><dd data-field="version"></dd>
+          <dt>Size</dt><dd data-field="size"></dd>
+          <dt>Published</dt><dd data-field="date"></dd>
+          <dt>SHA-256</dt><dd class="hash"><code data-field="sha256"></code><button type="button" class="copy" data-done="Copied">Copy</button></dd>
+        </dl>
+        <p class="when-missing">There is no macOS file yet.</p>
+      </article>
+    </div>
+  </section>
+
+  <section class="info">
+    <h2>Signatures and checksums</h2>
+    <p>The Windows installer is code-signed by the publisher Seizia, and the macOS app is notarized by Apple. You can compare the SHA-256 of a downloaded file with the value above (Windows: <code>Get-FileHash file</code>, macOS: <code>shasum -a 256 file</code>).</p>
+    <h2>Automatic updates</h2>
+    <p>Chromite downloads a new version on its own and installs it when you restart the app. A downloaded file runs only after its size, SHA-256 and signature have been checked. What the update check sends is described under <a href="/en/privacy.html">Privacy</a>.</p>
+  </section>
+</main>
+
+<footer class="foot">
+  <div class="wrap">
+    © 2026 Chromite contributors · <a href="https://github.com/froiibn/chromite">Source code</a> (Apache License 2.0)
+  </div>
+</footer>
+</body>
+</html>
