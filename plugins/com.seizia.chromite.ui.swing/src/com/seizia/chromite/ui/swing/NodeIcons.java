@@ -84,6 +84,7 @@ import java.util.Map;
  * - 2026-11-06 Registered Servers: Object Explorer에 연결 폴더 노드가 없어져 그 아이콘 분기 삭제. Registered Servers도 서버 아이콘에
  *   {@link #getDataSourceIcon}을 쓴다 (docs/chromite/swing-registered-servers.md)
  * - 2026-11-07 SQL Server 에이전트 노드는 {@link AgentCommands#getNodeIcon}(서비스 상태 점) (docs/chromite/swing-sqlserver-agent.md)
+ * - 2026-11-07 작업 스케줄러 노드는 {@link SchedulerCommands#getNodeIcon}(스케줄러 폴더·이벤트 폴더·pg_cron 노드의 상태 점) (docs/chromite/swing-job-schedulers.md)
  */
 final class NodeIcons {
 
@@ -184,6 +185,10 @@ final class NodeIcons {
     static Icon getNodeIcon(@NotNull DBNNode node, boolean expanded) {
         if (node instanceof DBNDataSource dataSourceNode) {
             return getDataSourceIcon(dataSourceNode.getDataSourceContainer());
+        }
+        Icon schedulerIcon = SchedulerCommands.getNodeIcon(node, expanded);
+        if (schedulerIcon != null) {
+            return schedulerIcon;
         }
         if (node instanceof DBNDatabaseFolder) {
             return UiIcons.get(expanded ? "folder-open" : "folder"); //$NON-NLS-1$ //$NON-NLS-2$

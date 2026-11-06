@@ -2471,3 +2471,4 @@ SQL Editor 도구 막대다. 쿼리 창마다 있던 도구 막대는 없앴다(
 - 2026-11-07 SQL Server 에이전트 관리: 개체 탐색기의 에이전트 노드, 작업·작업 활동 모니터·경고·운영자·오류 로그. [swing-sqlserver-agent.md](swing-sqlserver-agent.md).
 - 2026-11-07 실행 계획 세 보기: 계획 탭에 그래픽(연산자 그림)·트리·원본 보기 전환. [swing-sql-editor-plus.md](swing-sql-editor-plus.md) "실행 계획 세 보기".
 - 2026-11-07 결과 그리드 열 필터: WHERE 필터 줄 삭제, 열 머리글의 필터·정렬 아이콘과 열 필터 팝업, 상태 줄 필터 요약. "Results / Messages" 절, [swing-grid-column-filters.md](swing-grid-column-filters.md).
+- 2026-11-07 작업 스케줄러(Oracle DBMS_SCHEDULER, PostgreSQL pg_cron, MySQL/MariaDB 이벤트): 탐색기 노드·명령·창·기록 탭. [swing-job-schedulers.md](swing-job-schedulers.md).
