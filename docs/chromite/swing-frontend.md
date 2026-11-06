@@ -70,8 +70,8 @@ UI는 SWT 위젯뿐 아니라 Eclipse RCP 워크벤치(뷰, 편집기, 퍼스펙
 | DDL 보기, Script as | `DBPScriptObject` | `model` | 그대로 재사용 |
 | 결과 내보내기 | `DataExporterCSV` 등 | `data.transfer` (SWT 의존 없음) | 엔진 재사용, 설정 화면만 새로 작성. E단계의 결과 표 내보내기는 표가 표시 문자열만 가지고 있어 Swing 번들에서 CSV를 직접 쓴다("구현 현황 — E단계"). XLSX는 F단계에서 `DataExporterXLSX`(`data.office`)를 그대로 쓴다("구현 현황 — F단계") |
 | 쿼리 실행 | `SQLQueryExecuteJob` + `SQLQueryExecuteHandler` | `model.sql` (SWT 의존 없음) | 2026-11-06 `SQLQueryJob`에서 분리 완료. 그대로 재사용 ("쿼리 실행 계층") |
-| 결과 데이터 모델 | `ResultSetModel` (1,261줄, UI import 1개) | `ui.editors.data` | 색상 처리를 떼어 낸 뒤 이전 ("쿼리 실행 계층"의 결과 모델 분석) |
-| 결과 편집 저장 | `ResultSetPersister` (816줄, UI import 4개) | `ui.editors.data` | `ResultSetViewer` 의존을 끊은 뒤 이전 (같은 곳) |
+| 결과 데이터 모델 | `ResultSetModel` (1,261줄, UI import 1개) | `ui.editors.data` | 색상 처리를 떼어 낸 뒤 이전 ("쿼리 실행 계층"의 결과 모델 분석). G단계에서는 옮기지 않고 모델 계층 인터페이스 `DBDResultSetModel`을 Swing 번들에서 구현("구현 현황 — G단계") |
+| 결과 편집 저장 | `ResultSetPersister` (816줄, UI import 4개) | `ui.editors.data` | `ResultSetViewer` 의존을 끊은 뒤 이전 (같은 곳). G단계에서는 옮기지 않고 모델 계층 저장 엔진 `DBDResultSetDataUpdater`를 Swing 번들에서 상속(같은 곳) |
 
 ## MVP 범위
 
@@ -209,6 +209,7 @@ job.schedule();                                             // 또는 작업 스
   2. 편집·저장(Edit Top 200 Rows)이 필요해지면 위 표의 의존을 끊어 `ResultSetModel`·`ResultSetRow`를 모델 번들로 옮기고,
      `ResultSetPersister`의 `ResultSetViewer` 호출을 콜백 인터페이스로 바꾼다. SWT 결과 뷰어는 그 인터페이스를 구현한다.
   3. 저장은 `DBDResultSetDataUpdater`를 그대로 쓴다.
+  - G단계에서 2번 대신 한 것: 저장 계약이 이미 모델 계층의 인터페이스·추상 클래스로 나뉘어 있어 SWT 클래스를 옮기지 않고 Swing 번들에서 구현·상속했다("구현 현황 — G단계").
 
 ## 위험과 주의 사항
 
@@ -625,7 +626,7 @@ C단계의 목표는 SSMS식 SQL 편집기와 결과 창이다: 편집기 탭을
   - 값은 `ResultSetGridReceiver`가 Job 스레드에서 결과 집합이 열려 있는 동안 읽어(`DBUtils.getAttributeBindings`, `fetchValueObject`) 표시 문자열(`DBDDisplayFormat.UI`)로 바꾸고
     값을 놓아 준다(`DBUtils.releaseValue`). EDT는 문자열만 다룬다. 행은 모아 두었다가 `fetchEnd`에서 한 번에 넘긴다(실패로 `fetchEnd`가 없으면 `close`에서).
   - 열 이름은 바인딩 이름(열 별칭), NULL은 흐린 기울임꼴 "NULL", 숫자 열(`DBPDataKind.NUMERIC`)은 오른쪽 정렬, 열 너비는 머리글과 앞 200행 글자 너비(40–320px),
-    왼쪽에 행 번호 머리글(누르면 그 행 선택), 칸 선택과 Ctrl+C(탭으로 나눈 표시 문자열) 복사. 편집은 아직 없다.
+    왼쪽에 행 번호 머리글(누르면 그 행 선택), 칸 선택과 Ctrl+C(탭으로 나눈 표시 문자열) 복사. 편집은 아직 없다(G단계에서 구현, "구현 현황 — G단계").
 - **Messages:** 쿼리마다 경고(JDBC `SQLWarning` — SQL Server `PRINT`, PostgreSQL `NOTICE` 등), `(N rows affected)`(결과 집합은 읽은 행 수, 최대 행 수에 닿으면 그 사실도),
   `Execution time: N ms`를 쓴다. 오류는 빨간색으로 `Msg <오류 코드>, State <SQLSTATE>, Line L, Column C`와 예외 메시지를 쓴다.
   위치는 방언의 `DBPErrorAssistant.getErrorPosition`이 찾으면 그 위치(편집기 기준 줄·열), 못 찾으면 쿼리 시작 줄이다. 끝에 `Completion time`.
@@ -688,7 +689,7 @@ Query 메뉴 항목은 활성 편집기에 적용되고, 메뉴 단축키라 포
 - 편집기: 파일 열기·저장(닫을 때 저장 확인, E단계에서 구현), 방언별 키워드·자동완성(자동완성은 F단계에서 구현), 실행한 문장 강조, 오류 위치로 이동(Messages 더블클릭).
 - 실행: 편집기별 별도 연결(SSMS는 쿼리 창마다 연결), 오류 뒤 다음 배치 계속 실행(SSMS 기본 동작. 지금은 멈춤), 커밋 방식·트랜잭션 표시, 서버 출력 읽기
   (`DBCServerOutputReader`, Oracle `DBMS_OUTPUT`), 매개변수 입력 대화상자, `@set` 변수의 편집기 단위 유지.
-- 결과: 편집(Edit Top 200 Rows, "결과 모델 분석"), 더 읽기(최대 행 수 이후), 정렬, 결과 내보내기(CSV는 E단계에서 구현), 텍스트로 결과 보기.
+- 결과: 편집(Edit Top 200 Rows, "결과 모델 분석", G단계에서 구현), 더 읽기(최대 행 수 이후), 정렬, 결과 내보내기(CSV는 E단계에서 구현), 텍스트로 결과 보기.
 - SQL Server `GO` 배치는 SQL Server로 실행해 보지 못했다(아래 확인 참고).
 
 ## 구현 현황 — D단계
@@ -997,7 +998,7 @@ SWT의 "Generate SQL" 메뉴가 쓰는 모델 계층 생성기(`org.jkiss.dbeave
 - 기본 스키마: 트랜잭션에 속하는 기본값 변경의 커밋 확인, 다른 카탈로그의 스키마 고르기. 서버형 DB에서 실행 확인.
 - 편집기별 별도 연결(SSMS는 쿼리 창마다 연결) — 기본 스키마가 같은 연결의 모든 편집기에 적용되는 원인.
 - 파일: 다른 프로그램이 바꾼 파일 다시 읽기, 문자 집합 직접 고르기(Save with Encoding), 파일 끌어다 놓기, 프로젝트 `Scripts` 폴더 연동.
-- Script as의 DROP / ALTER / INSERT / UPDATE / DELETE, Edit Top 200 Rows(결과 편집), 생성기 옵션 설정 화면.
+- Script as의 DROP / ALTER / INSERT / UPDATE / DELETE, Edit Top 200 Rows(결과 편집, G단계에서 구현), 생성기 옵션 설정 화면.
 
 ## 구현 현황 — F단계
 
@@ -1125,6 +1126,153 @@ RSyntaxTextArea의 `com.fifesoft:autocomplete`(BSD-3) 3.3.2 소스를 확인했�
 - XLSX: 시트 이름·날짜 형식·행 번호 등 내보내기 옵션 화면, "다시 실행해서 모든 행 내보내기", 시각(`TIME`) 셀 형식.
   POI의 Log4j API 경고("could not find a logging provider")를 없애려면 Log4j를 slf4j로 보내는 구현 번들이나 실행 옵션이 필요하다(제품 구성 변경이라 이번에는 하지 않음).
 
+## 구현 현황 — G단계
+
+G단계의 목표는 쿼리 결과를 표에서 고치고 DB에 저장하는 것이다(SSMS "Edit Top 200 Rows", DataGrip 그리드 편집, MVP 5번의 남은 항목).
+
+### 구성
+
+| 클래스 | 역할 |
+|---|---|
+| `ResultSetEditModel` (새) | 편집할 수 있는 결과 하나의 행(지금 값·표시 문자열·처음 값·상태)과 편집 연산. 모델 계층의 `DBDResultSetModel` 구현. 편집 가능 판단(`getReadOnlyReason`) |
+| `ResultSetEditPersister` (새) | 모델 계층의 저장 엔진 `DBDResultSetDataUpdater`를 상속. 저장 Job(`DataUpdaterJob` + 트랜잭션), 생성된 키 받기, 저장한 행 다시 읽기 |
+| `ResultSetGridReceiver` (변경) | 값 객체가 아닌 원래 값을 `fetchEnd`까지 남기고, `DBExecUtils.bindAttributes`로 열을 테이블 열·키에 묶은 뒤 편집 모델을 함께 넘김 |
+| `ResultSetGrid` (변경) | 셀 편집기, NULL·행 추가·삭제, 바뀐 셀 색, 표 위 상태 줄(Save / Cancel, 바뀐 수, 읽기 전용 이유), 저장 흐름 |
+| `QueryResultsView` (변경) | 저장 메시지를 Messages에 쓰기, 편집기에 저장하지 않은 변경·저장 중 여부 알리기, 닫기 전 모두 저장 |
+| `SqlEditorPanel` (변경) | 다시 실행 전 저장하지 않은 변경 확인, 저장 중 실행 막기 |
+| `MainFrame` (변경) | 탭 닫기·앱 끝내기에서 결과 변경도 Save / Don't Save / Cancel로 묻기(E단계 확인 흐름 재사용) |
+
+새 번들 의존은 없다. 저장 엔진(`org.jkiss.dbeaver.model.data.resultset`), 행 다시 읽기(`RowDataReceiver`, `SQLQueryDataContainer`)는 이미 쓰던 `model`·`model.sql` 번들에 있다.
+
+### SWT 편집 구조 조사와 재사용 방식
+
+- **편집 가능 판단 (SWT):** `ResultSetDataReceiver.fetchEnd`가 `DBExecUtils.bindAttributes(session, entity, resultSet, bindings, rows)`를 부른다
+  ([ResultSetDataReceiver.java:163](../../plugins/org.jkiss.dbeaver.ui.editors.data/src/org/jkiss/dbeaver/ui/controls/resultset/ResultSetDataReceiver.java)).
+  이 함수가 결과 열을 테이블 열(`setEntityAttribute`)에 묶고, `bindUniqueIdentifiers` → `getBestIdentifier`(기본 키 인덱스 → 고유 인덱스 → 제약 조건 → ROWID → 가상 키)로
+  테이블마다 `DBDRowIdentifier`를 만들어 각 열에 단다([DBExecUtils.java:759-1030](../../plugins/org.jkiss.dbeaver.model/src/org/jkiss/dbeaver/model/exec/DBExecUtils.java)).
+  `ResultSetModel.setData`는 `DBExecUtils.detectSingleSourceTable`로 단일 원본 테이블을 정하고(열의 식별자 테이블이 둘 이상이면 없음),
+  `ResultSetViewer.isReadOnly`/`getReadOnlyStatus`는 연결 상태(`DBExecUtils.getResultSetReadOnlyStatus`), 키(`isUniqueKeyUndefinedButRequired`)로,
+  열 하나는 `DBExecUtils.isAttributeReadOnly`(메타 읽기 전용, 행 식별자, `DBSDataManipulator.FEATURE_DATA_UPDATE`)로 판단한다.
+  행 추가·삭제는 원본 테이블의 `FEATURE_DATA_INSERT`/`FEATURE_DATA_DELETE`다([ResultSetViewer.java:2918-2975](../../plugins/org.jkiss.dbeaver.ui.editors.data/src/org/jkiss/dbeaver/ui/controls/resultset/ResultSetViewer.java)).
+- **저장 (SWT):** `ResultSetViewer.saveChanges` → `ResultSetPersister`(`DBDResultSetDataUpdater` 상속) → `prepareStatements` → `DataUpdaterJob`.
+  엔진은 테이블의 `DBSDataManipulator.insertData/updateData/deleteData`로 문장을 만들고 실행한다(SQL을 직접 만들지 않음). 성공하면 설정 `resultset.edit.refreshAfterUpdate`(기본 켬)에 따라
+  추가·수정한 행을 키로 다시 읽는다(`refreshInsertedRows`/`RowRefreshJob`).
+- **재사용 방식:** "결과 모델 분석"의 계획 2단계는 `ResultSetModel`·`ResultSetPersister`를 모델 번들로 옮기는 것이었다. 조사해 보니 저장에 필요한 계약은 이미 모델 계층의
+  인터페이스(`DBDResultSetModel`, `DBDValueRow`)와 추상 클래스(`DBDResultSetDataUpdater`, `DBDDataStatementInfo`, `DataUpdaterJob`)로 나뉘어 있고,
+  `ResultSetPersister`는 그 위에 `ResultSetViewer` 갱신, SWT 대화상자(가상 키 정의, 저장 미리 보기, 0행 경고)를 붙인 것이다. 그래서 SWT 클래스는 옮기지 않고(SWT 결과 뷰어를 바꾸지 않음)
+  Swing 번들에서 같은 추상 클래스를 상속해 SWT와 같은 규칙으로 채웠다. 문장 생성·실행·저장점·키 받기는 모델 코드를 그대로 쓴다.
+
+### 편집 가능 판단 (`ResultSetEditModel.getReadOnlyReason`)
+
+수신기(`fetchEnd`, Job 스레드)가 `bindAttributes` 뒤에 차례로 검사한다. 읽기 전용이면 표 위 상태 줄에 `read-only: <이유>`를 쓴다.
+
+| 순서 | 검사 | 이유 문구 |
+|---|---|---|
+| 1 | `DBExecUtils.getResultSetReadOnlyStatus`(연결 안 됨, 읽기 전용 연결, 읽기 전용 데이터, 편집 권한 없음), `isResultSetReadOnly` | 모델 문구 그대로(예: `Connection is in read-only state`) |
+| 2 | `bindAttributes` 실패 | `can't read table metadata (…)` |
+| 3 | 단일 원본 테이블 없음(`detectSingleSourceTable`) | 열에 식별자가 있으면 `columns of several tables`(조인), 없으면 `no table columns`(식, 상수, 테이블을 모르는 결과) |
+| 4 | 기본 행 식별자(첫 열 순서의 식별자, SWT `getDefaultRowIdentifier`)가 없거나 불완전하거나 유효하지 않음 | `no unique key` |
+| 5 | 키 열 값을 읽지 못함(값 객체·읽기 오류) | `key values can't be read` |
+| 6 | 원본 테이블이 `FEATURE_DATA_UPDATE`를 지원하지 않음 | `the table doesn't support data changes` |
+| 7 | 편집할 수 있는 열이 하나도 없음 | `no editable columns` |
+
+- **열 단위:** 원본 테이블의 열이면서 `DBExecUtils.isAttributeReadOnly(binding, true)`가 거짓이고, 의사 열(ROWID 등)이 아니고, 자료형이 문자열·숫자·불리언·날짜인 열만 편집한다.
+  식 열(`upper(Name)`)은 같은 결과 안에서도 읽기 전용이다. LOB·배열·구조체처럼 값 객체로 오는 열은 수신기가 표시 문자열을 만든 뒤 놓아 주므로 편집하지 않는다(글자 편집기로 다룰 수 없음).
+- **SWT와 다른 점:** 키가 없을 때 SWT는 가상 키를 정하는 대화상자(`ValidateUniqueKeyUsageDialog`, "모든 열을 키로")를 띄우지만 Swing은 읽기 전용으로 둔다(잘못된 행을 고칠 위험을 피함).
+  SWT에서 가상 키를 이미 정해 둔 테이블은 모델이 그 키를 돌려주므로 편집할 수 있다. 조인 결과에서 한 테이블의 열만 고르면(`select a.* from Artist a join Album b …`) 단일 원본이 그 테이블이고
+  키가 있으면 SWT처럼 편집할 수 있다(키로 찾으므로 안전하다).
+- **수신기 변경:** 값 객체가 아닌 원래 값(문자열 포함)을 `fetchEnd`까지 남긴다. `bindAttributes`가 테이블 열의 값 처리기로 바꾼 열은 남긴 값을 변환하므로 표시 문자열도 다시 만든다.
+  편집할 수 있으면 원래 값을 편집 모델에 넘기고, 읽기 전용이면 F단계처럼 XLSX용 값(숫자·불리언·날짜)만 남긴다. `bindAttributes`는 SWT가 모든 결과에 부르는 것과 같아서
+  테이블 메타데이터(열, 인덱스, 제약 조건)를 처음 한 번 읽는다(연결 설정 `isExtraMetadataReadEnabled`가 꺼져 있으면 캐시만 씀).
+
+### 편집 동작
+
+| 동작 | 방법 |
+|---|---|
+| 셀 편집 | 두 번 누르기, F2, 오른쪽 클릭 "Edit Cell". Enter로 끝내고 Esc로 취소 |
+| NULL | Ctrl+0, 오른쪽 클릭 "Set NULL"(선택한 칸 모두) |
+| 행 추가 | Alt+Insert, 오른쪽 클릭 "Insert Row"(선택한 행 아래, 행 머리글 `*`) |
+| 행 삭제 | Delete, 오른쪽 클릭 "Delete Row"(선택한 행. 새 행은 바로 사라지고, 다른 행은 저장 전까지 취소선) |
+| 저장 | Ctrl+S(포커스가 표나 셀 편집기에 있을 때), 표 위 Save, 오른쪽 클릭 "Save Changes" |
+| 취소 | 표 위 Cancel, 오른쪽 클릭 "Cancel Changes"(바뀐 셀·새 행·지울 행을 모두 되돌림) |
+
+- **셀 편집기:** 값 처리기의 편집 형식(`DBDDisplayFormat.EDIT`)으로 시작하고, 끝낼 때 SWT `StringInlineEditor`처럼 `DBDValueHandler.getValueFromObject(session, 열, 글자, false, true)`로 값을 만든다
+  (세션은 결과 실행 문맥의 유틸리티 세션, SWT와 같음). 숫자 열에 숫자가 아닌 글자를 넣으면 편집기에 빨간 테두리를 두르고 상태 줄에 이유를 쓴 뒤 편집을 계속한다.
+  글자를 바꾸지 않고 끝내면 값을 바꾸지 않는다(NULL 칸의 빈 편집기가 빈 문자열이 되지 않게). 빈 문자열과 NULL은 값 처리기 규칙을 따른다(숫자 열의 빈 글자는 NULL, 문자열 열은 빈 문자열).
+- **글자 입력으로 편집 시작 안 함:** `JTable`은 처리하지 않은 키(F5, Ctrl+N 등 메뉴 단축키 포함)가 오면 메뉴보다 먼저 셀 편집을 시작한다. 그래서 `JTable.autoStartsEdit`를 끄고
+  두 번 누르기·F2로만 시작한다.
+- **색:** 바뀐 칸(노랑), 새 행(초록), 지울 행(빨강 + 취소선). 다크 테마는 어두운 같은 계열 색이다.
+- **상태 줄(표 위):** `Editable (Artist) · 2 pending changes` / `Saving…` / `Save failed: …`. 바뀐 수는 SWT처럼 새 행·지울 행은 하나, 다른 행은 바뀐 칸 수로 센다.
+- **Ctrl+S:** 편집할 수 있는 표에 포커스가 있으면 바뀐 것이 없어도 표가 받는다(File > Save의 SQL 파일 저장 대화상자가 뜨지 않게). 읽기 전용 표에서는 지금처럼 SQL 파일 저장이다.
+- **복사·내보내기:** 지금 보이는 내용(저장하지 않은 변경 포함)을 쓴다.
+
+### 저장 (`ResultSetEditPersister`)
+
+1. EDT: 열린 셀 편집을 끝내고(값이 틀리면 멈춤) 바뀐 행을 모아(`collectChanges`) SWT `checkEntityIdentifiers`와 같은 규칙으로 검사한다(실패하면 Messages에 쓰고 멈춤).
+2. 저장 Job(`DataUpdaterJob`, `DataSourceJob`)에서 `prepareStatements`(DELETE → INSERT → UPDATE 문장 정보)와 엔진의 `executeStatements`를 실행한다. EDT는 기다리지 않는다(저장 중에는 편집과 F5를 막음).
+3. **트랜잭션:**
+   - 자동 커밋 연결: 저장 동안 자동 커밋을 끄고(`DBCTransactionManager.setAutoCommit(false)`) 모든 문장을 한 트랜잭션으로 실행한 뒤 커밋한다. 하나라도 실패하면 모두 롤백하고 자동 커밋을 되돌린다.
+     SWT는 자동 커밋 연결에서 문장마다 커밋되어 중간에 실패하면 앞 문장만 적용되지만, Swing은 "전부 저장되거나 하나도 저장되지 않음"으로 해서 실패하면 바뀐 내용을 모두 그대로 둘 수 있게 했다.
+   - 수동 커밋 연결: SWT처럼 열린 트랜잭션 안에서 실행한다. 엔진이 저장점을 잡고 실패하면 저장점까지 롤백한다. 성공하면 커밋은 사용자 몫이라
+     Messages에 "manual commit mode … until you COMMIT"을 쓴다(Swing에는 아직 커밋 단추가 없으므로 편집기에서 `COMMIT`을 실행한다).
+   - 트랜잭션을 지원하지 않는 연결: 문장마다 바로 적용된다. 실패하면 이미 실행한 문장의 행은 저장된 것으로 반영하고 나머지는 남긴다(SWT와 같음).
+4. **INSERT 값:** 원본 테이블 열만 넣는다(`shouldInsertAttribute`). 엔진의 INSERT 묶음이 NULL 값을 빼므로 새 행에서 정하지 않은 열은 DB 기본값·자동 증가 값을 받는다.
+   생성된 키는 SWT `KeyDataReceiver`와 같은 규칙(키 이름 → 자동 생성 열)으로 받아 새 행에 넣는다. 더해서 새 행에 기본 행 식별자의 키 값이 없으면 열이 자동 생성으로
+   표시되지 않았어도 생성된 키를 요청하고(SQLite의 `INTEGER` 기본 키는 rowid 별칭이지만 모델이 자동 생성 열로 표시하지 않는다), 드라이버가 붙인 이름(`last_insert_rowid()`)의
+   키 값 하나는 그 행에 없는 키 열에 넣는다. 그래야 새 행을 키로 다시 읽고 이어서 고치거나 지울 수 있다(SWT는 이 경우 키가 `NULL`로 남는다).
+5. **끝(EDT):** 성공하면 Messages에 `Saved changes to Artist: 1 inserted, 1 updated, 0 deleted.`와 저장 시간, 0행 문장이 있으면 경고(SWT의 0행 경고 대화상자 대신)를 쓰고,
+   지운 행은 빼고 나머지는 저장된 값을 새 기준으로 삼는다. 실패하면 Messages에 오류(무엇이 롤백되었는지와 DB 오류 메시지)를 빨간색으로 쓰고 Messages 탭을 보이며, 바뀐 내용은 그대로 둔다.
+6. **저장 뒤 새로 고침:** SWT 기본값처럼 추가·수정한 행만 키로 다시 읽는다. 원래 쿼리를 키 조건으로 거른 쿼리(`SQLQueryDataContainer.readData` + 방언의 `addFiltersToQuery`)라 열 구성이 같고,
+   DB가 정한 값(자동 증가 키, 기본값, 트리거가 바꾼 값)이 보인다. **쿼리를 다시 실행하지 않은 이유:** 편집기 실행은 스크립트 전체(다른 DML 포함)를 다시 실행하게 되고,
+   같은 실행의 다른 결과 표와 스크롤·선택 위치가 사라진다. 다시 읽기에 실패해도 저장은 끝났으므로 입력한 값을 그대로 두고 로그만 남긴다. 키를 모르는 새 행(키가 생성되지 않은 경우)은 다시 읽지 않는다.
+
+### 닫기·다시 실행 확인
+
+- **탭 닫기:** 결과 표에 저장하지 않은 변경이 있으면 E단계 확인과 같은 "Save / Don't Save / Cancel"을 먼저 묻는다(`Save changes to the results of SQLQuery1.sql?`).
+  Save면 결과 변경을 진행 대화상자에서 기다리며 저장하고, 실패하면 탭을 닫지 않는다(오류는 Messages). 그다음 편집기 글자가 고쳐져 있으면 E단계처럼 다시 묻는다.
+- **앱 끝내기:** E단계의 "Save changes to the following items?" 목록에 `Results of SQLQuery1.sql (2 unsaved changes)` 항목을 더한다. Save면 결과 변경을 먼저 저장하고 SQL 파일을 저장한다.
+  하나라도 실패하거나 취소되면 끝내지 않는다.
+- **저장 중:** 결과를 저장하는 중인 편집기는 닫거나 끝내지 않고 "Try again when the save is over"를 알린다.
+- **다시 실행(F5):** 실행하면 결과 표를 새로 만들므로, 저장하지 않은 변경이 있으면 "Discard and Execute / Cancel"을 묻는다. 저장 중에는 실행하지 않는다.
+
+### 확인 (2026-11-06)
+
+- 빌드: `-Pproduct-dbeaver-ce,product-chromite-swing` BUILD SUCCESS. Swing 결과물 번들 수는 Windows x64 137개, macOS arm64 138개(F단계와 같음, 새 번들 없음)이고,
+  이름에 `swt`, `jface`, `org.eclipse.ui`, `org.eclipse.e4.ui`가 들어간 번들은 둘 다 0개다.
+- Windows에서 in-process JVM(`-vm …\bin\server\jvm.dll`)으로 F단계 작업 공간 사본(연결 두 개를 사본 폴더의 DB 파일로 바꿈)을 열어 키보드·마우스로 확인했다.
+  편집은 사본 DB(`chinook-copy.db`, `Chinook Copy (SQLite)` 연결)에만 했고, 저장 결과는 Python 표준 `sqlite3`로 DB 파일을 읽기 전용으로 열어 따로 확인했다.
+  - **(a) 고치기:** `select * from Artist` → 표 위 `Editable (Artist) · no pending changes` → 2행 Name을 두 번 눌러 `Accept - edited in Chromite G`로 바꾸고 Enter →
+    노란 칸, `1 pending change` → 표에서 Ctrl+S → `no pending changes`(선택 위치 유지), Messages `Saved changes to Artist: 0 inserted, 1 updated, 0 deleted.` →
+    DB 파일 `(2, 'Accept - edited in Chromite G')` → F5 다시 실행 → 새 값.
+  - **(b) 행 추가:** `select * from Artist where ArtistId > 270` → 마지막 행에서 Alt+Insert → 행 머리글 `*`, 초록 행, ArtistId `NULL` → Name `Chromite G New Artist` → Ctrl+S →
+    표의 ArtistId가 `276`(생성된 키를 받아 키로 다시 읽음), `1 inserted`, DB 파일 `(276, 'Chromite G New Artist')`.
+    첫 시험에서는 저장은 되었지만 표의 ArtistId가 `NULL`로 남았다. SQLite 모델이 rowid 별칭 키(`INTEGER` 기본 키)를 자동 생성 열로 표시하지 않아 엔진이 생성된 키를 요청하지 않았기 때문이다.
+    키 값이 없는 새 행은 생성된 키를 요청하고, 드라이버가 붙인 이름(`last_insert_rowid()`)의 키 값 하나는 그 행에 없는 키 열에 넣도록 고쳤다.
+  - **(c) 행 삭제:** 276행에서 Delete → 빨간 취소선 행, `1 pending change` → Ctrl+S → 행이 사라짐, `0 inserted, 0 updated, 1 deleted.`, DB 파일에서 275까지만 남음.
+    첫 시험에서 실행하지 않은 종류의 수가 `-1`(값이 없는 `DBCStatistics`)로 나오던 것을 고쳤다.
+  - **(d) 읽기 전용:** `select ar.ArtistId, ar.Name, al.AlbumId, al.Title from Artist ar join Album al on al.ArtistId = ar.ArtistId` → `read-only: columns of several tables`,
+    두 번 눌러도 편집기가 열리지 않음. `select Name, upper(Name) as upper_name from Artist`(키 열 없음) → `read-only: no unique key`.
+  - **(e) 오류:** 2행 Name 변경(먼저 실행되는 UPDATE) + 4행 ArtistId `abc` + 6행 Ctrl+0(`NULL`) → `3 pending changes` → Ctrl+S → Messages에 빨간색으로
+    "Can't save changes to Artist. The save transaction was rolled back; nothing was saved. Your changes are kept in the grid." + `[SQLITE_MISMATCH] Data type mismatch`,
+    Messages 탭으로 전환 → 표에 변경 3개 그대로(`Save failed: 3 pending changes kept (see Messages)`) → DB 파일의 2행 Name은 (a)의 값 그대로(먼저 실행된 UPDATE도 롤백됨)
+    → Cancel → 모든 칸이 원래 값, `no pending changes`. 3행 ArtistId를 `1`로 바꿔 저장 → `[SQLITE_CONSTRAINT_PRIMARYKEY] A PRIMARY KEY constraint failed (UNIQUE constraint failed: Artist.ArtistId)`, DB 파일 그대로.
+  - 숫자 열에 `abc`가 들어간 이유: SQLite 모델의 값 처리기(`SQLiteValueHandler`)는 SQLite의 동적 자료형을 따라 글자를 그대로 값으로 받는다(SWT도 같음). 그래서 편집기의
+    "틀린 값" 표시(빨간 테두리, 편집 계속)는 이번 DB로 확인하지 못했다. DB가 거부한 값은 위처럼 저장 오류로 처리된다.
+  - **닫기:** 변경 1개가 있는 탭의 × → `Save changes to the results of SQLQuery1.sql?` / `Results of SQLQuery1.sql (1 unsaved change)` → Cancel이면 탭이 남음 →
+    다시 × → Save → DB 파일 `(3, 'Saved on close G')` → 이어서 E단계의 SQL 글자 확인 → Don't Save → 탭이 닫힘.
+  - **다시 실행·끝내기:** 새 편집기에서 변경 1개를 둔 채 F5 → "The results have 1 unsaved change. Executing the query replaces them. Discard the changes?"(Discard and Execute / Cancel) → Cancel.
+    Alt+F4 → `Save changes to the following items?` 목록에 `SQLQuery2.sql`, `Results of SQLQuery2.sql (1 unsaved change)` → Cancel이면 앱이 남고, 다시 Alt+F4 → Don't Save면 끝나며 DB 파일의 4행은 그대로.
+- 디버그 로그(`.metadata/dbeaver-debug.log`)에 ERROR/WARN/예외 없음, Eclipse 로그(`.metadata/.log`) 없음.
+- 확인하지 못한 것: 값 처리기가 거부하는 글자(서버형 DB의 숫자·날짜 열), 수동 커밋 연결·트랜잭션 없는 연결의 저장, 0행 경고, 다크 테마의 변경 색,
+  읽기 전용 이유 중 연결 상태·테이블 기능에 따른 것, macOS 실행.
+
+### G단계에서 남긴 것
+
+- 커밋·롤백 단추와 트랜잭션 표시(수동 커밋 연결), SWT의 저장 미리 보기(`resultset.confirm.beforeSave`, 연결 종류의 "데이터 변경 확인")와 연쇄 삭제 옵션.
+- 키 없는 테이블의 가상 키 정의, LOB·배열·JSON 값 편집기, 날짜 선택기·불리언 체크박스 같은 형식별 편집기, 글자 입력으로 편집 시작, 붙여넣기로 여러 칸 채우기, 행 복제, 실행 취소(Ctrl+Z).
+- 원본 테이블이 `FEATURE_DATA_REFRESH_AFTER_UPDATE`를 지원하면 SWT는 저장 뒤 결과 전체를 다시 읽는다(관계형 DB에는 해당 없음). Swing은 행 다시 읽기만 한다.
+- 편집기별 별도 연결: 저장은 연결의 기본 문맥에서 자동 커밋을 잠시 끄므로, 같은 연결의 다른 편집기가 그 사이에 실행한 문장도 저장 트랜잭션에 들어갈 수 있다(SWT도 같은 문맥을 쓰면 같은 문제).
+
 ## 변경 이력
 
 - 2026-11-06 최초 작성. Swing 전환 결정, 구조, 재사용 분석, MVP 범위, F5 실행 사양을 정리.
@@ -1147,3 +1295,6 @@ RSyntaxTextArea의 `com.fifesoft:autocomplete`(BSD-3) 3.3.2 소스를 확인했�
 - 2026-11-06 F단계 구현: SQL 자동완성(model.sql의 `SQLQueryCompletionAnalyzer`, Ctrl+Space·`.`·글자 입력 뒤 자동 실행, 비동기 분석과 입력 중 취소, 엔진 일치 규칙으로 거르기),
   결과 표 XLSX 내보내기(`DataExporterXLSX`, 숫자·불리언·날짜 원래 값 유지), Swing 피처에 `data.office`·Apache POI·Commons 번들 추가, NOTICE 갱신.
   "구현 현황 — F단계" 절 추가, 재사용 분석 표와 이전 단계의 남긴 항목에 구현 표시.
+- 2026-11-06 G단계 구현: 결과 표 편집·저장(단일 테이블·고유 키 결과만, 모델 계층 `DBDResultSetModel` 구현과 `DBDResultSetDataUpdater` 상속, `bindAttributes`로 편집 가능 판단),
+  셀 편집·NULL·행 추가·삭제, 한 트랜잭션 저장과 저장 뒤 행 다시 읽기, 실패 시 Messages와 변경 유지, 닫기·끝내기·다시 실행 전 확인.
+  "구현 현황 — G단계" 절 추가, 재사용 분석 표와 이전 단계의 남긴 항목에 구현 표시.

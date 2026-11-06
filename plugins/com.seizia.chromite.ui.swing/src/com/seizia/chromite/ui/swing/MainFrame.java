@@ -77,6 +77,8 @@ import java.util.function.IntConsumer;
  *     연 파일은 Object Explorer에서 고른 연결(없으면 활성 편집기의 연결, 그것도 없으면 연결 없음)로 연다. 이미 열린 파일은 그 탭을 보여 준다.
  *     파일 대화상자의 폴더는 실행 중에만 기억한다.</li>
  *     <li>고친 편집기 탭을 닫거나 앱을 끝낼 때(창 닫기, File > Exit) SSMS처럼 Save / Don't Save / Cancel을 묻는다.
+ *     결과 표에 저장하지 않은 변경이 있는 편집기도 같이 묻고, Save면 결과 변경을 진행 대화상자에서 저장한다(실패하면 닫지 않고 오류는 Messages에).
+ *     결과를 저장하는 중인 편집기는 닫지 않는다.
  *     그래서 창 닫기는 직접 처리하고({@code DO_NOTHING_ON_CLOSE}), 끝내기로 하면 dispose한다. 외부 종료 요청({@code IApplication.stop})은 묻지 않고 닫는다.</li>
  *     <li>Object Explorer의 스크립트 명령({@link ObjectExplorerPanel.QueryWindows}): 스크립트를 담은 새 편집기, "View DDL"의 읽기 전용 탭({@link DdlViewerPanel}).</li>
  * </ul>
@@ -94,6 +96,7 @@ import java.util.function.IntConsumer;
  * - 2026-11-06 E단계: SQL 파일 열기·저장·최근 파일, 닫을 때 저장 확인, 스크립트 편집기와 DDL 탭, 연결 변경을 편집기에 알림
  *   (docs/chromite/swing-frontend.md "구현 현황 — E단계")
  * - 2026-11-06 F단계: Query > Complete(Ctrl+Space), Auto-Complete While Typing (docs/chromite/swing-frontend.md "구현 현황 — F단계")
+ * - 2026-11-06 G단계: 닫을 때·끝낼 때 결과 표의 저장하지 않은 변경도 묻기 (docs/chromite/swing-frontend.md "구현 현황 — G단계")
  */
 final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplorerPanel.QueryWindows {
 
@@ -540,6 +543,9 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
      * @return true if the window may be closed
      */
     private boolean confirmClose(@NotNull SqlEditorPanel editor) {
+        if (!confirmResultChanges(editor)) {
+            return false;
+        }
         if (!editor.isDirty()) {
             return true;
         }
@@ -552,23 +558,78 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
     }
 
     /**
-     * Window closing and File > Exit: asks to save the modified query windows (SSMS lists them in one question),
-     * then closes the window.
+     * Asks to save the unsaved changes in a query window's result grids, like its text (Save / Don't Save / Cancel).
+     *
+     * @return true if the window may be closed
+     */
+    private boolean confirmResultChanges(@NotNull SqlEditorPanel editor) {
+        if (!checkNotSavingResults(editor)) {
+            return false;
+        }
+        if (!editor.hasPendingResultChanges()) {
+            return true;
+        }
+        documentTabs.setSelectedComponent(editor);
+        return switch (askSave("Save changes to the results of " + editor.getFileName() + "?\n\n" + describeResultChanges(editor))) {
+            case 0 -> editor.saveResultChanges();
+            case 1 -> true;
+            default -> false;
+        };
+    }
+
+    /**
+     * A query window whose results are being saved stays open until the save is over.
+     */
+    private boolean checkNotSavingResults(@NotNull SqlEditorPanel editor) {
+        if (!editor.isSavingResults()) {
+            return true;
+        }
+        documentTabs.setSelectedComponent(editor);
+        JOptionPane.showMessageDialog(this, "The results of " + editor.getFileName() + " are being saved.\nTry again when the save is over.",
+            GeneralUtils.getProductName(), JOptionPane.INFORMATION_MESSAGE);
+        return false;
+    }
+
+    @NotNull
+    private static String describeResultChanges(@NotNull SqlEditorPanel editor) {
+        int changes = editor.getPendingResultChangeCount();
+        return "Results of " + editor.getFileName() + " (" + changes + (changes == 1 ? " unsaved change)" : " unsaved changes)");
+    }
+
+    /**
+     * Window closing and File > Exit: asks to save the modified query windows and the unsaved changes of their
+     * result grids (SSMS lists them in one question), then closes the window.
      */
     private void requestExit() {
         List<SqlEditorPanel> modified = new ArrayList<>();
+        List<SqlEditorPanel> resultsModified = new ArrayList<>();
         for (SqlEditorPanel editor : getEditors()) {
+            if (!checkNotSavingResults(editor)) {
+                return;
+            }
             if (editor.isDirty()) {
                 modified.add(editor);
             }
+            if (editor.hasPendingResultChanges()) {
+                resultsModified.add(editor);
+            }
         }
-        if (!modified.isEmpty()) {
+        if (!modified.isEmpty() || !resultsModified.isEmpty()) {
             StringBuilder message = new StringBuilder("Save changes to the following items?\n");
             for (SqlEditorPanel editor : modified) {
                 message.append('\n').append(editor.getFile() != null ? editor.getFile().toString() : editor.getFileName());
             }
+            for (SqlEditorPanel editor : resultsModified) {
+                message.append('\n').append(describeResultChanges(editor));
+            }
             int answer = askSave(message.toString());
             if (answer == 0) {
+                for (SqlEditorPanel editor : resultsModified) {
+                    documentTabs.setSelectedComponent(editor);
+                    if (!editor.saveResultChanges()) {
+                        return;
+                    }
+                }
                 for (SqlEditorPanel editor : modified) {
                     documentTabs.setSelectedComponent(editor);
                     if (!saveEditor(editor, false)) {

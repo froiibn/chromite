@@ -26,6 +26,8 @@ import javax.swing.text.SimpleAttributeSet;
 import javax.swing.text.StyleConstants;
 import javax.swing.text.StyledDocument;
 import java.awt.*;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * 쿼리 창 하나의 Results / Messages 내용(SSMS의 결과 창).
@@ -35,14 +37,33 @@ import java.awt.*;
  * <ul>
  *     <li>Results: 결과 집합마다 {@link ResultSetGrid} 하나를 위아래로 쌓는다. 모두 들어가면 높이를 똑같이 나눠 채우고
  *     (SSMS와 같음), 표마다 최소 높이보다 작아지면 바깥 세로 스크롤로 넘긴다.</li>
- *     <li>Messages: 쿼리별 행 수, 실행 시간, 경고(PRINT 출력 포함), 오류를 차례로 쓴다. 오류는 빨간색이다.</li>
+ *     <li>Messages: 쿼리별 행 수, 실행 시간, 경고(PRINT 출력 포함), 오류를 차례로 쓴다. 오류는 빨간색이다.
+ *     결과 표의 저장 결과와 저장 오류도 여기에 쓴다.</li>
+ *     <li>결과 편집: 결과 표마다 바뀐 내용을 따로 가진다. 쿼리 창은 이 객체를 통해 저장하지 않은 변경이 있는지, 저장 중인지 묻고
+ *     닫거나 다시 실행하기 전에 모두 저장한다({@link #saveChanges}).</li>
  * </ul>
  * 모든 메서드는 EDT에서 부른다.
  *
  * 변경 이력:
  * - 2026-11-06 C단계: 최초 작성 (docs/chromite/swing-frontend.md "구현 현황 — C단계")
+ * - 2026-11-06 G단계: 편집할 수 있는 결과 표, 저장 메시지, 저장하지 않은 변경 묻기 (docs/chromite/swing-frontend.md "구현 현황 — G단계")
  */
 final class QueryResultsView {
+
+    /**
+     * The query window side: Messages tab and edit state of the grids.
+     */
+    interface Listener {
+        /**
+         * Brings the Messages tab to the front.
+         */
+        void showMessages();
+
+        /**
+         * Pending changes or the saving state of a grid changed.
+         */
+        void resultsEditStateChanged();
+    }
 
     private static final int MIN_GRID_HEIGHT = 140;
 
@@ -52,8 +73,31 @@ final class QueryResultsView {
     private final JTextPane messagesPane = new JTextPane();
     private final JScrollPane messagesComponent;
     private boolean messagesTabSelected;
+    private final Listener listener;
+    private final ResultSetGrid.Host gridHost = new ResultSetGrid.Host() {
+        @Override
+        public void appendMessage(@NotNull String text) {
+            QueryResultsView.this.appendMessage(text);
+        }
 
-    QueryResultsView() {
+        @Override
+        public void appendError(@NotNull String text) {
+            QueryResultsView.this.appendError(text);
+        }
+
+        @Override
+        public void showMessages() {
+            listener.showMessages();
+        }
+
+        @Override
+        public void editStateChanged() {
+            listener.resultsEditStateChanged();
+        }
+    };
+
+    QueryResultsView(@NotNull Listener listener) {
+        this.listener = listener;
         placeholder = new JLabel("No results.", SwingConstants.CENTER);
         placeholder.putClientProperty(FlatClientProperties.STYLE, "foreground: $Label.disabledForeground"); //$NON-NLS-1$
         resultsComponent = new JScrollPane(gridStack);
@@ -99,13 +143,58 @@ final class QueryResultsView {
         return gridStack.getComponentCount() == 1 && gridStack.getComponent(0) == placeholder ? 0 : gridStack.getComponentCount();
     }
 
-    void addGrid(@NotNull ResultSetGrid.Data data) {
+    void addGrid(@NotNull ResultSetGrid.Fetched fetched) {
         if (getGridCount() == 0) {
             gridStack.removeAll();
         }
-        gridStack.add(new ResultSetGrid(data));
+        gridStack.add(new ResultSetGrid(fetched, gridHost));
         gridStack.revalidate();
         gridStack.repaint();
+    }
+
+    @NotNull
+    private List<ResultSetGrid> getGrids() {
+        List<ResultSetGrid> grids = new ArrayList<>();
+        for (Component component : gridStack.getComponents()) {
+            if (component instanceof ResultSetGrid grid) {
+                grids.add(grid);
+            }
+        }
+        return grids;
+    }
+
+    /**
+     * Pending (unsaved) changes in all result grids.
+     */
+    int getChangeCount() {
+        int count = 0;
+        for (ResultSetGrid grid : getGrids()) {
+            count += grid.getChangeCount();
+        }
+        return count;
+    }
+
+    boolean isSaving() {
+        for (ResultSetGrid grid : getGrids()) {
+            if (grid.isSaving()) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Saves the pending changes of all grids, waiting for each in a progress dialog.
+     *
+     * @return false if a save failed (the error is in the Messages tab) or was canceled
+     */
+    boolean saveChanges() {
+        for (ResultSetGrid grid : getGrids()) {
+            if (grid.isDirty() && !grid.save(true)) {
+                return false;
+            }
+        }
+        return true;
     }
 
     void appendMessage(@NotNull String text) {
