@@ -45,7 +45,8 @@ Tycho는 `.product`, `MANIFEST.MF`, `pom.xml`의 버전을 Maven 속성으로 �
 | macOS `Info.plist` | `CFBundleShortVersionString` `0.1.0`, `CFBundleVersion` `0.1.0.<한정자>` | Tycho(p2 `BrandingIron`)가 제품 버전으로 바꾼다 |
 | `.eclipseproduct` | 만들어지지 않음 | Tycho 5.0.4는 이 제품에 `.eclipseproduct`를 만들지 않는다(Windows·macOS 결과물 모두 없음). 그래서 `GeneralUtils.getProductPatchNumber()`는 늘 0이다(이 작업 전과 같음) |
 | Windows 런처 버전 리소스 | 바뀌지 않음 | 아래 "Windows 런처 버전 리소스" |
-| 릴리스 zip·dmg 이름 | `chromite-swing-0.1.0-windows-x64.zip`, `chromite-swing-0.1.0-macos-aarch64.{zip,dmg}` | `release.yml`의 `version` 작업 출력(`VERSION`) |
+| 릴리스 파일 이름 | `Chromite-0.1.0-x64-setup.exe`, `Chromite-0.1.0-arm64.{zip,dmg}`, 포터블 `chromite-swing-0.1.0-windows-x64.zip` | `release.yml`의 `version` 작업 출력(`VERSION`), [distribution.md](distribution.md) "파일 이름" |
+| Windows 설치 프로그램 버전 리소스 | `ProductVersion` = `FileVersion` = `0.1.0`, 고정 필드 `0.1.0.0` | `tools/installer/build-installer.ps1`이 `VERSION`을 NSIS에 넘긴다. 업데이트 기능이 피드의 `version`과 비교한다 |
 | 릴리스 태그 검사 | `v0.1.0` | `release.yml`의 `version` 작업 |
 | 결과물 폴더 | `chromite-swing/`, `ChromiteSwing.app` | 버전 없음(설치 위치가 버전마다 바뀌지 않게) |
 | `product/swing/target/com.seizia.chromite.swing.product-0.1.0-SNAPSHOT.zip` | 제품 모듈 POM 버전 | Tycho가 만드는 p2 메타데이터 zip(약 45 KB). 배포하지 않는다 |
@@ -116,8 +117,8 @@ GitHub의 Linux 러너에도 `pwsh`가 있어서 `release.yml`이 같은 스크�
 
 Tycho(p2 `BrandingIron`)는 Windows 런처에 아이콘만 넣고 버전 리소스(FileVersion, ProductVersion)를 넣지 않는다.
 빌드한 `chromite-swing.exe`에는 버전 리소스가 아예 없다(FileVersion, ProductVersion, ProductName 모두 빈 값, 아래 "확인한 것").
-런처 브랜딩으로는 넣을 수 없으므로 제품 버전은 나중에 만들 NSIS 설치 프로그램이 담는다.
-Turbrix의 업데이트 확인처럼 설치 파일의 ProductVersion을 검사하려면 설치 프로그램에서 해야 한다.
+런처 브랜딩으로는 넣을 수 없으므로 제품 버전은 NSIS 설치 프로그램(`Chromite-<버전>-x64-setup.exe`)이 담는다([distribution.md](distribution.md)).
+Turbrix의 업데이트 확인처럼 업데이트 기능은 설치 파일의 ProductVersion을 검사한다.
 
 ## upstream 대비 변경점
 
@@ -171,3 +172,4 @@ DBeaver는 번들·제품 버전을 모두 DBeaver 릴리스 번호(예: 26.2.5)
 
 - 2026-11-07 최초 작성. 버전 체계 `major.minor.dev`(사용자 결정, Turbrix 방식)를 적용하고 버전을 0.1.0으로 설정.
   `tools/release/bump-version.ps1` 추가, `release.yml` `version` 작업 변경. 26.2.5 → 0.1.0은 번호가 내려가므로 스크립트가 아니라 손으로 바꿨다.
+- 2026-11-07 배포([distribution.md](distribution.md)): 릴리스 파일 이름이 계약 이름(`Chromite-<버전>-x64-setup.exe`, `Chromite-<버전>-arm64.{zip,dmg}`)이 됐고, Windows 버전 리소스는 설치 프로그램이 담는다.

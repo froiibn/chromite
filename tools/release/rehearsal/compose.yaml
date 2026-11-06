@@ -1,0 +1,53 @@
+# Local rehearsal of the chromite.seizia.com deploy (docs/chromite/distribution.md "Rehearsal"); started by
+# rehearse.ps1. Two containers share one volume, the way the server's host folder is shared:
+#   server  Ubuntu + sshd: the deploy script logs in as ubuntu and writes /srv/chromite
+#   proxy   Caddy (the image the server's proxy is built from) with the server's chromite.seizia.com
+#           site block; it mounts site/ and downloads/ read-only, as single folders (volume subpaths
+#           behave like the server's bind mounts: a renamed folder would stay mounted)
+# Both listen on 127.0.0.1 only.
+name: chromite-rehearsal
+services:
+  server:
+    build:
+      context: .
+      dockerfile: server.Dockerfile
+    image: chromite-rehearsal-server:1
+    environment:
+      AUTHORIZED_KEY: ${REHEARSAL_AUTHORIZED_KEY:?run rehearse.ps1}
+    ports:
+      - "127.0.0.1:${REHEARSAL_SSH_PORT:-2222}:22"
+    volumes:
+      - srv:/srv/chromite
+    healthcheck:
+      test: ["CMD", "test", "-f", "/srv/chromite/downloads/releases.json"]
+      interval: 2s
+      retries: 30
+  proxy:
+    image: caddy:2
+    depends_on:
+      server:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:${REHEARSAL_HTTP_PORT:-8088}:80"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - type: volume
+        source: srv
+        target: /chromite/site
+        read_only: true
+        volume:
+          subpath: site
+      - type: volume
+        source: srv
+        target: /chromite/downloads
+        read_only: true
+        volume:
+          subpath: downloads
+    # as the server's proxy: read-only, no capabilities but binding the port
+    read_only: true
+    tmpfs: [/tmp, /data, /config]
+    cap_drop: [ALL]
+    cap_add: [NET_BIND_SERVICE]
+    security_opt: [no-new-privileges:true]
+volumes:
+  srv:

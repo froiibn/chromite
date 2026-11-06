@@ -70,3 +70,6 @@ $RECYCLE.BIN/
 # Mac crap
 .DS_Store
 test/**/workspace/
+
+## Local release work (tools/release: downloads, staging, rehearsal keys)
+/.local/
