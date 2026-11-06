@@ -11,7 +11,7 @@ DBA가 자주 쓰는 상태 확인 쿼리(세션 수, 대기, 디스크 사용�
 |---|---|---|
 | ① | 라이브러리 트리 + 실행 | 구현 (2026-11-06) |
 | ② | 매개변수 매핑 | 구현 (2026-11-06) |
-| ③ | 예약 실행 | 설계(아래 "예약 실행 설계"), 구현 여부는 그 절의 상태 표를 본다 |
+| ③ | 예약 실행 (Chromite가 실행 중일 때만) | 구현 (2026-11-06, 아래 "예약 실행") |
 | ④ | 다른 사람과 공유 | 설계만 (아래 "공유 설계"), **구현하지 않음**. 저장 형식과 루트 구조는 공유를 전제로 만들었다 |
 
 ## 구조
@@ -30,6 +30,10 @@ DBA가 자주 쓰는 상태 확인 쿼리(세션 수, 대기, 디스크 사용�
 | `QueryParameterDefinitionsDialog` | 편집기의 "Parameters…": 매개변수 정의 표 |
 | `QueryLibraryRootsDialog` | "Library Roots…": 루트 목록 |
 | `SqlEditorExtension`, `SqlParameterBinding` | 쿼리 창(`SqlEditorPanel`)에 붙이는 확장 지점과 실행별 바인딩 계약 |
+| `QueryLibrarySchedule` | ③ 예약 정의(간격·매일·평일, 대상 서버, 매개변수 값, 조건, 사용 여부)와 다음 실행 시각 계산 |
+| `QueryScheduler` | ③ 예약 실행기(데몬 타이머 + 쿼리별 Job, 화면 없는 실행, 조건·알림) |
+| `QueryLibraryHistory` | ③ 실행 기록(작업 공간 메타데이터의 쿼리별 TSV 파일, 보존 기간·개수) |
+| `QueryScheduleDialog`, `QueryScheduledDialog`, `QueryHistoryDialog` | ③ Schedule…, Scheduled Queries…, History… 화면 |
 
 공유 파일에 넣은 연결 지점(다른 작업과 겹치는 곳을 줄이기 위해 작게 둠):
 
@@ -39,7 +43,8 @@ DBA가 자주 쓰는 상태 확인 쿼리(세션 수, 대기, 디스크 사용�
 | `SqlEditorPanel` | `setExtension`(머리말을 도구 막대 아래에), `markModified`, 탭 아이콘, 실행 전 `prepareExecution`, 준비 Job에서 `SqlParameterBinding.prepare`, 엔진 핸들러의 바인딩 메서드 |
 | `ToolWindow` | `setDefaultShown(false)`: 처음에는 숨긴 도구 창(Reset Window Layout도 숨김으로 되돌림) |
 | `SQLQueryExecuteHandler`, `SQLQueryExecuteJob` (model.sql, Chromite 실행 엔진) | `hasBoundParameters`/`bindParameters`: 핸들러가 값을 바인딩하는 쿼리는 스크립트 문장 대신 prepared statement로 만들고 바인딩. 기본값은 바인딩 없음이라 SWT 편집기 동작은 같다 |
-| `tools/branding/gen_ui_icons.py` | 아이콘 `library`(Tabler books), `library-query`(문서 + 실행 배지), `new-folder`(폴더 + 더하기 배지), 두 팩·두 테마 |
+| `tools/branding/gen_ui_icons.py` | 아이콘 `library`(Tabler books), `library-query`(문서 + 실행 배지), `new-folder`(폴더 + 더하기 배지), ③ `schedule`(Tabler clock), `history`(Tabler history), 두 팩·두 테마 |
+| `OptionsDialog` (③) | Tools > Options의 "Query Library" 절: 기록 보존 실행 수·일수 |
 
 ## 화면
 
@@ -226,33 +231,80 @@ SELECT ...
 - **`${name}`·`{{name}}` 변수(표시: "SQL text"):** SWT에서도 텍스트 치환 변수이고 식별자·SQL 조각 자리(테이블 이름, `ORDER BY` 열 등)라 바인딩할 수 없다.
   값을 **그대로 SQL에 끼운다**. 대화상자와 정의 표에 "SQL text"로 표시하고, 쓰는 사람이 이 점을 알도록 도구 설명을 단다. 신뢰하지 않는 값에는 `:name`을 쓴다.
 
-## 예약 실행 설계 (③)
+## 예약 실행 (③)
 
 사용자 결정(2026-11-06): **Chromite가 실행 중일 때만 앱 안에서 예약 실행한다.**
 
-검토한 방식:
-
 | 방식 | 판단 |
 |---|---|
-| 앱 안 스케줄러 (Chromite 실행 중에만) | **채택**. 연결·자격 증명·드라이버·알림을 그대로 쓰고, 설치·권한이 필요 없다 |
+| 앱 안 스케줄러 (Chromite 실행 중에만) | **채택, 구현**. 연결·자격 증명·드라이버·알림을 그대로 쓰고, 설치·권한이 필요 없다 |
 | OS 스케줄러(작업 스케줄러/cron) + 헤드리스 실행기(CLI) | **기각 — 사용자 결정 2026-11-06**. (참고로 남기는 단점: 저장된 비밀번호를 헤드리스 프로세스가 읽어야 하고, OS별 등록·해제와 결과를 앱에 되돌리는 경로가 따로 필요) |
 
-설계:
+### 정의 (쿼리 파일, 공유됨)
 
-- **예약 정의(쿼리 파일, 공유됨):** 머리말 `-- @schedule` 블록. 간격(`every: 5m`, `every: 1h`), 매일 시각(`daily: 08:30`), 평일 시각(`weekdays: 08:30`),
-  대상 서버(여러 개: `target: <id>|<이름>`), 예약 실행용 매개변수 값(`param.<이름>: 값`), 조건(`condition: rows > 0` 등), 사용 여부(`enabled`).
-  cron 문법 없이 위 세 가지 형태만 둔다(간단한 UI).
-- **이 PC에서 켤지(로컬 설정):** 파일의 `enabled`는 "예약할 수 있음"이고, 실제로 이 PC에서 돌릴지는 로컬 설정(`queryLibrary.schedule.active.<id>`)이다.
-  공유 쿼리가 동료 PC마다 저절로 돌지 않게 하기 위해서다. 공유 루트의 쿼리는 기본 꺼짐, 내가 만든 예약은 이 PC에서 켜짐.
-- **스케줄러:** 백그라운드 Job(EDT 아님). 1분 간격 타이머가 다음 실행 시각이 지난 예약을 고른다. 쿼리별로 한 번에 하나만 돈다(앞 실행이 끝나지 않았으면 건너뛰고 기록).
-  앱을 끝내면 깔끔하게 멈추고(진행 중인 실행 취소), 다음 시작 때 다시 이어서 돈다. 꺼져 있던 동안 놓친 실행은 몰아서 하지 않는다.
-- **실행:** 쿼리 창 없이 같은 엔진(`SQLQueryExecuteJob`)과 같은 바인딩(`QueryParameterBinder`)을 쓴다. 결과 집합의 행 수와 앞 N행만 받는 수신기를 둔다.
-- **결과 기록:** 쿼리별 기록(시각, 서버, 걸린 시간, 행 수, 상태/오류, 앞 N행 스냅숏). 작업 공간 메타데이터 폴더에 쿼리 ID별 파일로 둔다(공유 폴더에 쓰지 않음).
-  보존 기간·개수는 설정에서 정한다. 트리의 "History…"로 본다.
-- **조건과 알림:** "행 수 > 0", "행 수 >= X", "첫 열 값 > X" 같은 조건. 맞으면 기존 알림 토스트(`NotificationToast`)를 띄우고 트리 노드에 배지를 달아 확인할 때까지 둔다.
-  메일 등 외부 발송은 하지 않는다.
-- **개요:** "Scheduled" 목록(활성 예약, 다음 실행 시각, 마지막 상태, 일시 정지/다시 시작).
-- **보안:** 예약 실행은 연결에 저장된 자격 증명만 쓴다. 비밀번호를 저장하지 않은 연결은 예약 실행 때 묻지 않고 "자격 증명 없음"으로 기록한다(백그라운드 대화상자 금지).
+트리의 쿼리 오른쪽 클릭 > **Schedule…**:
+
+| 항목 | 내용 |
+|---|---|
+| Run this query on a schedule | 예약 사용 여부(파일의 `enabled`) |
+| When | Every N minutes/hours, Daily at hh:mm, Weekdays at hh:mm(월–금). cron 문법 없음 |
+| Connections | 실행할 서버(여러 개). 이 PC의 연결 목록 + 다른 PC에서 정한 대상 중 여기 없는 것("(not found)") |
+| Parameters | SQL의 매개변수마다 예약 실행용 값(비우면 정의의 기본값) |
+| Alert when | 없음 / Row count `>` `>=` `=` X / First value(첫 행 첫 열) `>` `>=` `<` `<=` `=` `!=` X. 숫자면 숫자로, 아니면 글자로 비교 |
+| Active on this computer | 이 PC에서 돌릴지(로컬 설정, 아래) |
+| Remove Schedule | 예약 블록을 파일에서 지움 |
+
+파일 형식(`-- @schedule` 블록, 쿼리 머리말의 다른 항목과 같은 규칙):
+
+```sql
+-- @schedule
+--   every: 1m                      (또는 every: 2h / daily: 08:30 / weekdays: 08:30)
+--   target: postgres-jdbc-chr-ql|QL PostgreSQL
+--   target: microsoft-chr-ql|QL SQL Server
+--   param.min_minutes: 10
+--   condition: rows > 0           (rows|first, >= <= != > < =)
+--   enabled: true
+```
+
+- 대상은 `데이터 소스 ID|이름`이다. 실행할 때 ID → 이름 순으로 찾는다(공유한 쿼리가 동료 PC에서도 맞는 연결을 찾음).
+- 쿼리 창의 저장(Ctrl+S)은 파일의 예약 블록을 그대로 둔다(예약은 Schedule…에서만 바뀜). 열린 편집 창이 오래된 예약을 덮어쓰지 않게 하기 위해서다.
+
+### 이 PC에서 돌릴지 (로컬 설정)
+
+- 파일의 `enabled`는 "예약할 수 있음"이고, 실제로 이 PC에서 돌지는 이 번들 설정의 `queryLibrary.schedule.active.<쿼리 ID>`다. 기본값은 꺼짐이다.
+  그래서 공유 루트(네트워크 폴더, Git)로 받은 예약 쿼리가 동료 PC마다 저절로 돌지 않는다. Schedule…에서 저장하면 "Active on this computer"(기본 켬)가 이 PC에 저장된다.
+- 읽기 전용 루트의 쿼리는 정의를 바꿀 수 없고 이 PC의 활성 여부만 바꾼다(Schedule…의 OK, 또는 Scheduled Queries의 "Active here").
+
+### 스케줄러 (`QueryScheduler`)
+
+- 데몬 스레드 하나의 타이머(`ScheduledExecutorService`, 15초 간격)가 다음 실행 시각이 지난 예약을 고르고, 실행은 쿼리마다 `AbstractJob` 하나로 한다(EDT 아님).
+- 같은 쿼리의 앞 실행이 아직 돌면 이번 실행은 건너뛰고 로그와 기록(`SKIPPED`)에 남긴다(겹쳐 돌지 않음).
+- 예약 목록은 라이브러리를 읽을 때마다(시작, Refresh, 저장) 바뀐다. 다음 실행 시각은 지금 이후의 첫 시각이고, 간격 예약은 기록의 마지막 실행 시각에 맞춰 이어 간다.
+  **꺼져 있던 동안 놓친 실행은 몰아서 하지 않는다.** 일시 정지한 예약은 다음 시각을 계속 미래로 옮겨, 다시 시작해도 바로 실행되지 않는다.
+- 메인 창을 닫으면(`MainFrame.dispose` → `QueryLibraryPanel.dispose`) 타이머를 멈추고 돌고 있는 실행을 취소한다. 다음 시작 때 라이브러리를 읽으면 다시 돈다.
+- 실행: 쿼리 창 없이 같은 엔진(`SQLQueryExecuteJob`, `SQLScriptBatches`로 GO 배치)과 같은 바인딩(`QueryParameterBinder`)을 쓴다. 대상마다 차례로 실행한다.
+  - 실행마다 **격리된 실행 문맥**(`DBSInstance.openIsolatedContext`, 연결 하나)을 열고 끝나면 닫는다. 처음에는 쿼리 창과 같은 기본 문맥을 썼는데,
+    80초 걸리는 예약 쿼리 뒤에 다른 예약 쿼리가 줄을 서서 다음 분에 건너뛰어졌다(2026-11-06 확인). 기본 문맥을 같이 쓰면 쿼리 창도 막히고,
+    쿼리의 기본 DB/스키마 설정이 쿼리 창의 것을 바꾸므로 분리했다.
+  - 대상 연결이 끊겨 있으면 **저장된 자격 증명이 있을 때만** 연결한다(`isCredentialsSaved`). 백그라운드에서 비밀번호 대화상자를 띄우지 않기 위해서다. 없으면 `SKIPPED`("password is not saved").
+  - 확인이 필요한 문장(운영 연결 유형의 변경 문장, `confirmQueryExecution`)은 묻지 않고 실행하지 않는다(오류로 기록). 결과 집합이 너무 많을 때도 묻지 않고 멈춘다.
+  - 첫 결과 집합의 행 수와 열 이름 + 앞 20행(글자)만 받는다. 행 수는 연결의 최대 행 수 설정까지다.
+- 조건이 맞으면(`ALERT`) 알림 토스트(`DBPPlatformUI.showNotification`, 오류 모양, 누르면 History…)를 띄우고, 트리 노드에 빨간 점 배지를 단다
+  (`queryLibrary.alert.<id>`, History…를 열면 지움). 실행 오류는 경고 토스트로 알린다. 메일 등 외부 발송은 없다.
+
+### 기록 (`QueryLibraryHistory`)
+
+- 이 PC의 것이라 쿼리 파일이 아니라 작업 공간 메타데이터 폴더 `.metadata/chromite-query-library/history/<쿼리 ID>.tsv`에 쓴다.
+  한 실행 = 한 줄(시각, 서버, 걸린 시간 ms, 행 수, 상태 `OK|ALERT|ERROR|SKIPPED`, 메시지, 스냅숏). 칸 안의 탭·줄바꿈·역슬래시는 `\t`, `\n`, `\\`로 쓰고,
+  스냅숏은 칸을 U+001F, 행을 U+001E로 잇는다.
+- 보존: Tools > Options > Query Library의 "Keep history runs"(기본 100), "Keep history days"(기본 30). 덧붙일 때 넘는 것을 지운다.
+- **History…**(트리 오른쪽 클릭, Scheduled Queries의 단추, 알림 클릭): 위는 실행 목록(최근 것이 위, 상태 색), 아래는 고른 실행의 앞 행. 비모달이고 새 실행이 기록되면 다시 읽는다.
+
+### 개요 (Scheduled Queries…)
+
+도구 막대의 시계 아이콘 또는 오른쪽 클릭 메뉴. 예약된 쿼리마다 Query, Schedule, Connections, Active here(체크 = 다시 시작, 해제 = 일시 정지, 로컬 설정),
+Next run(남은 시간), Last run, Last status. Run Now(바로 한 번), History…. 비모달, 5초마다 남은 시간을 다시 그린다.
+트리에서는 이 PC에서 켠 예약 쿼리의 보조 글자에 일정(`every minute` 등)이 붙는다.
 
 ## 공유 설계 (④, 구현하지 않음)
 
@@ -299,9 +351,21 @@ SELECT ...
 | 검색 | "디스크" → 해당 쿼리와 상위 폴더만 |
 | 마지막 입력값 | 끝낸 뒤 설정 파일에 `queryLibrary.lastValues.<id>`(쿼리 ID별) 저장 확인 |
 
+| ③ 1분 예약 (PostgreSQL) | "04. 오래 실행 중인 작업"(`param.state: failed`, `param.min_minutes: 10`, `condition: rows > 0`): 매분 실행, 13행 → `ALERT`, 알림 토스트, 폴더·쿼리에 빨간 점 |
+| ③ 1분 예약 (SQL Server) | "05. 사용자 세션 수"(`condition: first >= 1`): 매분 실행, 첫 값 9 → `ALERT` |
+| ③ 로컬 활성 | 파일에 예약이 있어도 이 PC 설정(`queryLibrary.schedule.active.<id>`)이 없으면 돌지 않음, 켠 뒤에만 실행 |
+| ③ 끝내기·다시 시작 | 13:18:02 실행 뒤 13:18:4x에 끝냄 → 13:21:41 다시 시작 → 13:22:16에 이어서 실행(13:19–13:21 놓친 실행은 몰아서 하지 않음) |
+| ③ 겹침 방지 | "06. 느린 점검"(`pg_sleep(80)`, 1분): 13:27:14 시작 → 13:28:14 `SKIPPED`("previous run is still running", 로그에도 남음) → 13:28:3x 끝(81초, `OK`) |
+| ③ 격리된 연결 | 같은 PostgreSQL에서 "06"(80초)이 도는 동안 "04"가 13:37:35, 13:38:35, 13:39:35에 그대로 실행됨(기본 문맥을 같이 쓰던 빌드에서는 13:28:29에 "04"가 건너뛰어짐) |
+| ③ 끝낼 때 취소 | 실행 중에 앱을 끝내면 그 실행은 `SKIPPED`("Canceled")로 기록되고 앱이 바로 끝남 |
+| ③ 기록 | `.metadata/chromite-query-library/history/<id>.tsv`에 시각·서버·ms·행 수·상태·메시지·앞 행 |
+| 여러 루트 | 개인 루트 + 읽기 전용 "Team (shared)" 루트(보조 글자 "read-only") |
+| 다크 테마 | 같은 화면을 다크 테마로 확인 |
+
 스크린숏: `D:\Tools\_scratch\query-library\shots\`. 회귀 테스트는 실행하지 않았다(요청 없음).
 영향받을 수 있는 기능: SWT·Swing의 쿼리 실행(실행 엔진의 바인딩 분기, 기본은 기존 경로), Swing 쿼리 창(확장 지점, 저장), 도구 창 배치(새 열, 처음에는 숨김).
 
 ## 변경 이력
 
 - 2026-11-06 최초 작성: ① 라이브러리 트리·실행, ② 매개변수 매핑 구현, ③·④ 설계.
+- 2026-11-06 ③ 예약 실행 구현(사용자 결정: 앱 실행 중에만, OS 스케줄러 기각): 예약 정의(파일), 이 PC 활성 여부(로컬), 스케줄러, 기록·보존, 조건 알림·배지, Scheduled Queries 개요.

@@ -78,6 +78,8 @@ import java.util.Set;
  *
  * 변경 이력:
  * - 2026-11-06 Query Library: 최초 작성 (docs/chromite/swing-query-library.md)
+ * - 2026-11-06 Query Library ③: Schedule…, History…, Scheduled Queries…, 알림 배지와 예약 보조 글자, 예약 실행기 시작·정지
+ *   (docs/chromite/swing-query-library.md "예약 실행")
  */
 final class QueryLibraryPanel extends JPanel {
 
@@ -134,6 +136,9 @@ final class QueryLibraryPanel extends JPanel {
     private final Action refreshAction;
     private final Action rootsAction;
     private final Action saveToLibraryAction;
+    private final Action scheduleAction;
+    private final Action historyAction;
+    private final Action scheduledAction;
     private List<QueryLibrary.Folder> folders = List.of();
     private int loadSerial;
     @Nullable
@@ -156,6 +161,10 @@ final class QueryLibraryPanel extends JPanel {
         rootsAction = createAction("Library Roots…", "Choose the folders of the Query Library (personal, shared, Git)", this::editRoots);
         saveToLibraryAction = createAction("Save to Query Library…",
             "Save the selection of the active query window (or all of its text) as a library query", this::saveActiveWindow);
+        scheduleAction = createAction("Schedule…", "Run the selected query on a schedule while Chromite is running", this::scheduleSelected);
+        historyAction = createAction("History…", "Results of the scheduled runs of the selected query", this::showHistory);
+        scheduledAction = createAction("Scheduled Queries…", "All scheduled queries: next run, last status, pause and resume",
+            () -> QueryScheduledDialog.open(host.getComponent()));
 
         tree.setRootVisible(false);
         tree.setShowsRootHandles(true);
@@ -240,8 +249,18 @@ final class QueryLibraryPanel extends JPanel {
         add(scrollPane, BorderLayout.CENTER);
 
         library.addListener(this::reload);
+        // Alerts and schedule state show in the tree
+        QueryScheduler.getInstance().addListener(tree::repaint);
+        QueryScheduler.getInstance().start();
         updateActions();
         reload();
+    }
+
+    /**
+     * The main window closes: scheduled runs stop.
+     */
+    void dispose() {
+        QueryScheduler.getInstance().stop();
     }
 
     /**
@@ -282,7 +301,7 @@ final class QueryLibraryPanel extends JPanel {
     }
 
     /**
-     * Icon tool bar below the header: Run | New Query, New Folder, Save to Query Library | Refresh, Library Roots.
+     * Icon tool bar below the header: Run | New Query, New Folder, Save to Query Library | Scheduled Queries, Refresh, Library Roots.
      */
     @NotNull
     private JComponent createToolBar() {
@@ -296,6 +315,7 @@ final class QueryLibraryPanel extends JPanel {
         toolBar.add(UiIcons.createActionButton(newFolderAction, "new-folder")); //$NON-NLS-1$
         toolBar.add(UiIcons.createActionButton(saveToLibraryAction, "save")); //$NON-NLS-1$
         toolBar.addSeparator();
+        toolBar.add(UiIcons.createActionButton(scheduledAction, "schedule")); //$NON-NLS-1$
         toolBar.add(UiIcons.createActionButton(refreshAction, "refresh")); //$NON-NLS-1$
         toolBar.add(UiIcons.createActionButton(rootsAction, "settings")); //$NON-NLS-1$
         return toolBar;
@@ -323,6 +343,9 @@ final class QueryLibraryPanel extends JPanel {
                         loaded.add(new QueryLibrary.Folder(root, root.path()));
                     }
                 }
+                List<QueryLibraryItem> scheduled = new ArrayList<>();
+                loaded.forEach(folder -> collectScheduled(folder, scheduled));
+                QueryScheduler.getInstance().update(scheduled);
                 SwingUtilities.invokeLater(() -> {
                     if (serial == loadSerial) {
                         folders = loaded;
@@ -402,6 +425,15 @@ final class QueryLibraryPanel extends JPanel {
         return filter.isEmpty() || node.getChildCount() > 0 ? node : null;
     }
 
+    private static void collectScheduled(@NotNull QueryLibrary.Folder folder, @NotNull List<QueryLibraryItem> result) {
+        for (QueryLibraryItem item : folder.queries) {
+            if (item.getSchedule() != null && item.getId() != null) {
+                result.add(item);
+            }
+        }
+        folder.folders.forEach(f -> collectScheduled(f, result));
+    }
+
     private static void collectNodes(@NotNull DefaultMutableTreeNode node, @NotNull List<DefaultMutableTreeNode> result) {
         result.add(node);
         for (int i = 0; i < node.getChildCount(); i++) {
@@ -473,6 +505,8 @@ final class QueryLibraryPanel extends JPanel {
         runAction.setEnabled(query != null);
         runOnAction.setEnabled(query != null);
         editAction.setEnabled(query != null);
+        scheduleAction.setEnabled(query != null && (writable || query.getSchedule() != null));
+        historyAction.setEnabled(query != null);
         newQueryAction.setEnabled(targetWritable);
         newFolderAction.setEnabled(targetWritable);
         duplicateAction.setEnabled(query != null && targetWritable);
@@ -500,6 +534,9 @@ final class QueryLibraryPanel extends JPanel {
             menu.add(runOnAction);
             menu.add(editAction);
             menu.addSeparator();
+            menu.add(scheduleAction);
+            menu.add(historyAction);
+            menu.addSeparator();
         }
         menu.add(newQueryAction);
         menu.add(newFolderAction);
@@ -511,6 +548,7 @@ final class QueryLibraryPanel extends JPanel {
         menu.add(deleteAction);
         menu.addSeparator();
         menu.add(openFolderAction);
+        menu.add(scheduledAction);
         menu.add(refreshAction);
         menu.add(rootsAction);
         menu.show(tree, e.getX(), e.getY());
@@ -559,6 +597,47 @@ final class QueryLibraryPanel extends JPanel {
             }
         }
         return item;
+    }
+
+    /**
+     * Schedule…: edits the schedule in the query file (the definition is shared with the file) and whether it runs on
+     * this computer (local). In a read-only root only the local part can change.
+     */
+    private void scheduleSelected() {
+        QueryLibraryItem selected = getSelectedQuery();
+        if (selected == null) {
+            return;
+        }
+        QueryLibraryItem item = readCurrent(selected);
+        Path file = library.resolveFile(item);
+        boolean readOnly = file == null || library.isReadOnly(file);
+        QueryScheduleDialog.Result result = QueryScheduleDialog.open(host.getComponent(), item,
+            item.getId() != null && QueryLibraryState.isScheduleActive(item));
+        if (result == null) {
+            return;
+        }
+        if (readOnly) {
+            // The shared definition stays as it is; only this computer's choice changes
+            QueryLibraryState.setScheduleActive(item, result.active() && item.getSchedule() != null);
+            library.fireChanged();
+            return;
+        }
+        item.setSchedule(result.schedule());
+        try {
+            library.save(item);
+        } catch (IOException e) {
+            DBWorkbench.getPlatformUI().showError("Schedule", "Can't save the schedule of " + item.getName(), e);
+            return;
+        }
+        QueryLibraryState.setScheduleActive(item, result.active() && result.schedule() != null);
+        library.fireChanged();
+    }
+
+    private void showHistory() {
+        QueryLibraryItem item = getSelectedQuery();
+        if (item != null) {
+            QueryRunHistoryDialog.open(host.getComponent(), item);
+        }
     }
 
     private void newQuery() {
@@ -1042,7 +1121,7 @@ final class QueryLibraryPanel extends JPanel {
 
     /**
      * Roots (library icon, "read-only"), folders, queries (name, target connection as secondary text, description and
-     * file as tool tip).
+     * file as tool tip). A query with an unseen alert has a red dot, and so has a collapsed folder that contains one.
      */
     private static final class LibraryCellRenderer extends DefaultTreeCellRenderer {
         private static final int GAP = 6;
@@ -1058,14 +1137,20 @@ final class QueryLibraryPanel extends JPanel {
             if (userObject instanceof QueryLibrary.Folder folder) {
                 boolean root = folder.path.equals(folder.root.path());
                 setText(folder.getName());
-                setIcon(UiIcons.get(root ? "library" : expanded ? "folder-open" : "folder")); //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$
+                Icon icon = UiIcons.get(root ? "library" : expanded ? "folder-open" : "folder"); //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$
+                // An alert inside a collapsed folder still shows
+                setIcon(!expanded && hasAlert((DefaultMutableTreeNode) value) ? UiIcons.withStatusDot(icon, UiIcons.Status.ERROR) : icon);
                 setToolTipText(folder.path.toString());
-                if (root && folder.root.readOnly()) {
+                if (root && folder.missing) {
+                    secondaryText = "folder not found";
+                } else if (root && folder.root.readOnly()) {
                     secondaryText = "read-only";
                 }
             } else if (userObject instanceof QueryLibraryItem item) {
                 setText(item.getName());
-                setIcon(UiIcons.get("library-query")); //$NON-NLS-1$
+                Icon icon = UiIcons.get("library-query"); //$NON-NLS-1$
+                // A scheduled run met its condition and nobody has looked at it yet
+                setIcon(item.getId() != null && QueryLibraryState.hasAlert(item) ? UiIcons.withStatusDot(icon, UiIcons.Status.ERROR) : icon);
                 String description = item.getDescription();
                 setToolTipText("<html>" + (description != null ? CommonUtils.escapeHtml(description) + "<br>" : "") //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$
                     + CommonUtils.escapeHtml(String.valueOf(item.getFile())) + "</html>"); //$NON-NLS-1$
@@ -1074,8 +1159,22 @@ final class QueryLibraryPanel extends JPanel {
                 } else if (item.getTargetMode() == QueryLibraryItem.TargetMode.ASK) {
                     secondaryText = "ask";
                 }
+                QueryLibrarySchedule schedule = item.getSchedule();
+                if (schedule != null && schedule.isEnabled() && item.getId() != null && QueryLibraryState.isScheduleActive(item)) {
+                    secondaryText = (secondaryText != null ? secondaryText + " · " : "") + schedule.describe(); //$NON-NLS-1$ //$NON-NLS-2$
+                }
             }
             return this;
+        }
+
+        private static boolean hasAlert(@NotNull DefaultMutableTreeNode node) {
+            for (int i = 0; i < node.getChildCount(); i++) {
+                DefaultMutableTreeNode child = (DefaultMutableTreeNode) node.getChildAt(i);
+                if (child.getUserObject() instanceof QueryLibraryItem item ? item.getId() != null && QueryLibraryState.hasAlert(item) : hasAlert(child)) {
+                    return true;
+                }
+            }
+            return false;
         }
 
         @Override

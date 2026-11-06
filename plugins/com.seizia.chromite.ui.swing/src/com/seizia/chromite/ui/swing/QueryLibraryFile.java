@@ -62,6 +62,7 @@ import java.util.Locale;
  *
  * 변경 이력:
  * - 2026-11-06 Query Library: 최초 작성 (docs/chromite/swing-query-library.md "저장 형식")
+ * - 2026-11-06 Query Library ③: {@code @schedule} 블록 (docs/chromite/swing-query-library.md "예약 실행")
  */
 final class QueryLibraryFile {
 
@@ -90,6 +91,7 @@ final class QueryLibraryFile {
     private static final String PARAM_REQUIRED = "required"; //$NON-NLS-1$
     private static final String PARAM_CHOICE = "choice"; //$NON-NLS-1$
     private static final String PARAM_LOOKUP = "lookup"; //$NON-NLS-1$
+    private static final String SCHEDULE = "schedule"; //$NON-NLS-1$
 
     private QueryLibraryFile() {
     }
@@ -112,6 +114,7 @@ final class QueryLibraryFile {
         String[] lines = text.split("\n", -1); //$NON-NLS-1$
         int index = 0;
         QueryLibraryParameter parameter = null;
+        QueryLibrarySchedule schedule = null;
         // Sub-lines of a block this version does not know are kept with it
         boolean inUnknownBlock = false;
         boolean header = false;
@@ -119,6 +122,7 @@ final class QueryLibraryFile {
             String line = lines[index];
             if (line.startsWith(KEY_PREFIX)) {
                 parameter = null;
+                schedule = null;
                 inUnknownBlock = false;
                 String entry = line.substring(KEY_PREFIX.length());
                 int colon = entry.indexOf(':');
@@ -127,13 +131,22 @@ final class QueryLibraryFile {
                 if (key.startsWith(PARAM + " ") && colon < 0) { //$NON-NLS-1$
                     parameter = new QueryLibraryParameter(key.substring(PARAM.length()).trim());
                     item.getParameters().add(parameter);
+                } else if (key.equals(SCHEDULE) && colon < 0) {
+                    schedule = new QueryLibrarySchedule();
+                    item.setSchedule(schedule);
                 } else if (!readKey(item, key, value)) {
                     item.getExtraHeader().add(line);
                     inUnknownBlock = colon < 0;
                 }
                 header = true;
             } else if (header && line.startsWith(SUB_PREFIX)) {
-                if (parameter != null) {
+                if (schedule != null) {
+                    String entry = line.substring(SUB_PREFIX.length());
+                    int colon = entry.indexOf(':');
+                    if (colon < 0 || !schedule.readKey(entry.substring(0, colon).trim(), unescape(entry.substring(colon + 1).trim()))) {
+                        item.getExtraHeader().add(line);
+                    }
+                } else if (parameter != null) {
                     String entry = line.substring(SUB_PREFIX.length());
                     int colon = entry.indexOf(':');
                     String key = colon >= 0 ? entry.substring(0, colon).trim() : entry.trim();
@@ -243,6 +256,23 @@ final class QueryLibraryFile {
                 appendSubKey(text, PARAM_CHOICE, choice);
             }
             appendSubKey(text, PARAM_LOOKUP, parameter.getLookupSql());
+        }
+        QueryLibrarySchedule schedule = item.getSchedule();
+        if (schedule != null) {
+            text.append(KEY_PREFIX).append(SCHEDULE).append('\n');
+            appendSubKey(text, switch (schedule.getKind()) {
+                case INTERVAL -> "every"; //$NON-NLS-1$
+                case DAILY -> "daily"; //$NON-NLS-1$
+                case WEEKDAYS -> "weekdays"; //$NON-NLS-1$
+            }, schedule.formatWhen());
+            for (QueryLibrarySchedule.Target target : schedule.getTargets()) {
+                appendSubKey(text, "target", CommonUtils.notEmpty(target.id()) + "|" + target.name()); //$NON-NLS-1$ //$NON-NLS-2$
+            }
+            schedule.getParameterValues().forEach((name, value) -> appendSubKey(text, "param." + name, value)); //$NON-NLS-1$
+            if (schedule.getCondition() != null) {
+                appendSubKey(text, "condition", schedule.getCondition().toString()); //$NON-NLS-1$
+            }
+            appendSubKey(text, "enabled", String.valueOf(schedule.isEnabled())); //$NON-NLS-1$
         }
         for (String line : item.getExtraHeader()) {
             text.append(line).append('\n');

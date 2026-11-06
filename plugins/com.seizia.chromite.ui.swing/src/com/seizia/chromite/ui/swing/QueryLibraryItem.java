@@ -44,6 +44,7 @@ import java.util.UUID;
  *
  * 변경 이력:
  * - 2026-11-06 Query Library: 최초 작성 (docs/chromite/swing-query-library.md "저장 형식")
+ * - 2026-11-06 Query Library ③: 예약 실행 정의({@link QueryLibrarySchedule}) (docs/chromite/swing-query-library.md "예약 실행")
  */
 final class QueryLibraryItem {
 
@@ -107,6 +108,8 @@ final class QueryLibraryItem {
     @Nullable
     private OffsetDateTime updated;
     private final List<QueryLibraryParameter> parameters = new ArrayList<>();
+    @Nullable
+    private QueryLibrarySchedule schedule;
     private final List<String> extraHeader = new ArrayList<>();
     private boolean hasHeader;
 
@@ -143,6 +146,7 @@ final class QueryLibraryItem {
         copy.created = created;
         copy.updated = updated;
         parameters.forEach(p -> copy.parameters.add(p.copy()));
+        copy.schedule = schedule != null ? schedule.copy() : null;
         copy.extraHeader.addAll(extraHeader);
         copy.hasHeader = hasHeader;
         return copy;
@@ -289,6 +293,19 @@ final class QueryLibraryItem {
             }
         }
         return null;
+    }
+
+    /**
+     * The schedule definition ({@code @schedule}), or null. Whether it runs on this computer is local state
+     * ({@link QueryLibraryState#isScheduleActive}).
+     */
+    @Nullable
+    QueryLibrarySchedule getSchedule() {
+        return schedule;
+    }
+
+    void setSchedule(@Nullable QueryLibrarySchedule schedule) {
+        this.schedule = schedule;
     }
 
     /**

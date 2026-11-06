@@ -53,6 +53,7 @@ import java.util.Map;
  *
  * 변경 이력:
  * - 2026-11-06 Query Library: 최초 작성 (docs/chromite/swing-query-library.md "실행 흐름")
+ * - 2026-11-06 Query Library ③: 저장할 때 파일의 예약 정의와 모르는 머리말을 유지 (docs/chromite/swing-query-library.md "예약 실행")
  */
 final class QueryLibraryEditor implements SqlEditorExtension {
 
@@ -282,6 +283,16 @@ final class QueryLibraryEditor implements SqlEditorExtension {
         QueryLibraryItem updated = item.copy();
         updated.setFile(file);
         applyFields(updated, editor.getContent().text());
+        // The schedule and unknown header lines are edited elsewhere (Schedule…, other versions): keep the file's
+        try {
+            QueryLibraryItem current = QueryLibraryFile.read(file);
+            updated.setSchedule(current.getSchedule());
+            updated.getExtraHeader().clear();
+            updated.getExtraHeader().addAll(current.getExtraHeader());
+        } catch (IOException e) {
+            DBWorkbench.getPlatformUI().showError("Save", "Can't read " + file, e);
+            return false;
+        }
         try {
             library.save(updated);
         } catch (IOException e) {

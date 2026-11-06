@@ -25,7 +25,7 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 
 /**
- * Query Library 쿼리마다 이 PC에만 두는 상태: 매개변수의 마지막 입력값.
+ * Query Library 쿼리마다 이 PC에만 두는 상태: 매개변수의 마지막 입력값, 예약 실행을 이 PC에서 돌릴지, 확인하지 않은 알림.
  *
  * 설계: 쿼리 파일은 공유될 수 있으므로(다른 사람의 PC, Git) 개인 입력값은 파일에 쓰지 않고 이 번들의 설정 저장소에 쿼리 ID로 저장한다
  * ({@link QueryLibraryItem#getStateKey}). ID는 파일을 옮겨도 그대로라 입력값도 따라간다. 모델의 {@code SQLQueryParameterRegistry}
@@ -33,10 +33,13 @@ import java.util.Map;
  *
  * 변경 이력:
  * - 2026-11-06 Query Library: 최초 작성 (docs/chromite/swing-query-library.md "매개변수")
+ * - 2026-11-06 Query Library ③: 예약 활성 여부와 알림 표시 (docs/chromite/swing-query-library.md "예약 실행")
  */
 final class QueryLibraryState {
 
     private static final String PREF_LAST_VALUES = "queryLibrary.lastValues."; //$NON-NLS-1$
+    private static final String PREF_SCHEDULE_ACTIVE = "queryLibrary.schedule.active."; //$NON-NLS-1$
+    private static final String PREF_ALERT = "queryLibrary.alert."; //$NON-NLS-1$
 
     private QueryLibraryState() {
     }
@@ -67,6 +70,33 @@ final class QueryLibraryState {
             .append('=').append(QueryLibraryFile.escape(CommonUtils.notEmpty(parameterValue))).append('\n'));
         DBPPreferenceStore preferences = getPreferences();
         preferences.setValue(PREF_LAST_VALUES + item.getStateKey(), value.toString());
+        PrefUtils.savePreferenceStore(preferences);
+    }
+
+    /**
+     * Whether the query's schedule runs on this computer. Off unless turned on here (a shared query does not start
+     * running on every computer that reads it).
+     */
+    static boolean isScheduleActive(@NotNull QueryLibraryItem item) {
+        return getPreferences().getBoolean(PREF_SCHEDULE_ACTIVE + item.getStateKey());
+    }
+
+    static void setScheduleActive(@NotNull QueryLibraryItem item, boolean active) {
+        DBPPreferenceStore preferences = getPreferences();
+        preferences.setValue(PREF_SCHEDULE_ACTIVE + item.getStateKey(), active);
+        PrefUtils.savePreferenceStore(preferences);
+    }
+
+    /**
+     * Whether a scheduled run met its condition and the user has not looked at it yet (tree badge).
+     */
+    static boolean hasAlert(@NotNull QueryLibraryItem item) {
+        return getPreferences().getBoolean(PREF_ALERT + item.getStateKey());
+    }
+
+    static void setAlert(@NotNull QueryLibraryItem item, boolean alert) {
+        DBPPreferenceStore preferences = getPreferences();
+        preferences.setValue(PREF_ALERT + item.getStateKey(), alert);
         PrefUtils.savePreferenceStore(preferences);
     }
 

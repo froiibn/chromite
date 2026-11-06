@@ -89,6 +89,8 @@ final class QueryLibrary {
         final Path path;
         final List<Folder> folders = new ArrayList<>();
         final List<QueryLibraryItem> queries = new ArrayList<>();
+        // A root whose folder was not there when it was read (an unplugged share, a wrong path)
+        boolean missing;
 
         Folder(@NotNull Root root, @NotNull Path path) {
             this.root = root;
@@ -220,6 +222,8 @@ final class QueryLibrary {
         Folder folder = new Folder(root, root.path());
         if (Files.isDirectory(root.path())) {
             loadFolder(folder);
+        } else {
+            folder.missing = true;
         }
         return folder;
     }
@@ -265,24 +269,6 @@ final class QueryLibrary {
         }
         Path indexed = item.getId() != null ? fileIndex.get(item.getId()) : null;
         return indexed != null && Files.isRegularFile(indexed) ? indexed : file;
-    }
-
-    /**
-     * Reads the query with the given id from its last known file, or null.
-     */
-    @Nullable
-    QueryLibraryItem findById(@NotNull String id) {
-        Path file = fileIndex.get(id);
-        if (file == null || !Files.isRegularFile(file)) {
-            return null;
-        }
-        try {
-            QueryLibraryItem item = QueryLibraryFile.read(file);
-            return id.equals(item.getId()) ? item : null;
-        } catch (IOException e) {
-            log.debug("Can't read " + file, e);
-            return null;
-        }
     }
 
     //////////////////////////////////////////////////////////

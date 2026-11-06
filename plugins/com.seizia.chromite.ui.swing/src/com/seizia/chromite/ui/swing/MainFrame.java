@@ -135,6 +135,7 @@ import java.util.function.IntConsumer;
  * - 2026-11-06 테이블 디자이너: 디자이너 탭 열기·닫기·Ctrl+S·끝낼 때 확인 (docs/chromite/swing-table-designer.md)
  * - 2026-11-06 Query Library: 오른쪽 열에서 Properties 위의 Query Library 도구 창(처음에는 숨김, Ctrl+Alt+T), Query &gt; Save to Query Library…,
  *   확장이 붙은 쿼리 창의 저장은 확장이 함 (docs/chromite/swing-query-library.md)
+ * - 2026-11-06 Query Library ③: 창을 닫을 때 예약 실행 정지 (docs/chromite/swing-query-library.md "예약 실행")
  */
 final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplorerPanel.QueryWindows, TableDesignerPanel.Host, QueryLibraryPanel.Host {
 
@@ -418,6 +419,7 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
         }
         explorerPanel.dispose();
         registeredServersPanel.dispose();
+        queryLibraryPanel.dispose();
         editMenu.dispose();
         for (int i = 0; i < documentTabs.getTabCount(); i++) {
             if (documentTabs.getComponentAt(i) instanceof ToolDocument document) {

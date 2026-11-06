@@ -273,13 +273,14 @@ CONCEPTS = [
     ("sort-alpha", "이름순", "Alphabetical", "sort-ascending-letters"),
     # Registered Servers tool bar
     ("new-group", "새 서버 그룹", "New server group", "folder-plus"),
-    # SQL editor: execution plan tab and query history window
+    # SQL editor: execution plan tab and query history window (also the Query Library run history)
     ("plan", "실행 계획", "Execution plan", "hierarchy-2"),
     ("history", "쿼리 기록", "Query history", "history"),
     # Query Library tool window
     ("library", "쿼리 라이브러리", "Query library", "books"),
     ("library-query", "라이브러리 쿼리", "Library query", "file-text + player-play"),
     ("new-folder", "새 폴더", "New folder", "folder-plus"),
+    ("schedule", "예약 실행", "Schedule", "clock"),
 ]
 
 
@@ -334,6 +335,11 @@ def books(n, nf, blue, blue_fill):
             + path("M9.4 4.4L12.3 3.6L14.6 12.7L11.7 13.5Z", nf, n))
 
 
+def clock(f, s, hand, sw=1):
+    # Tabler "clock": a circle with two hands
+    return circle(8, 8, 6.5, f, s, sw) + path("M8 4.5V8L10.5 9.5", None, hand, sw)
+
+
 def play_badge(c, halo=False):
     """Run triangle for the bottom-right badge slot."""
     if halo:
@@ -364,6 +370,7 @@ def extra_icons(I, P, n, nf, blue, blue_fill, green, green_fill, red, red_fill, 
     body, defs = with_badge(doc_shape(doc_fill, n) + path("M5.5 8H10.5M5.5 10.5H8", None, blue, sw, cap="butt"),
                             play_badge(green), play_badge(0, True))
     I["library-query"] = svg(body, defs)
+    I["schedule"] = svg(clock(blue_fill, blue, blue, sw))
 
 
 # ----------------------------------------------------------------- SET A: duo-tone
