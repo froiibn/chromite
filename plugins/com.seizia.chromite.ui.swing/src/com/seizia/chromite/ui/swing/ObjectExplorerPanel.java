@@ -135,6 +135,7 @@ import java.util.function.Consumer;
  * - 2026-11-06 관리 도구: Activity Monitor·Locks·Find Objects 메뉴, 노드까지 펼쳐 고르기(revealNode) (docs/chromite/swing-admin-tools.md)
  * - 2026-11-06 revealNode: 결과의 서버가 이 창에 없으면 먼저 넣고 서버 목록을 다시 읽은 뒤 펼침(연 서버만 보이는 목록) (docs/chromite/swing-admin-tools.md)
  * - 2026-11-06 데이터 전송: Tasks &gt; Import Data… / Export Data… 메뉴 (docs/chromite/swing-data-transfer.md)
+ * - 2026-11-06 고급 연결 설정: 연결 노드 바탕에 연결 색 (docs/chromite/swing-conn-advanced.md)
  */
 final class ObjectExplorerPanel extends JPanel {
 
@@ -1214,7 +1215,8 @@ final class ObjectExplorerPanel extends JPanel {
 
     /**
      * Icon (icon pack, {@link NodeIcons#getNodeIcon}), name and a secondary text in text.secondary after it: the data
-     * type of a column, the number of objects of a read folder, the host of a connection.
+     * type of a column, the number of objects of a read folder, the host of a connection. A connection with a color
+     * (custom or connection type, like SWT's navigator) gets it as a rounded background when it is not selected.
      */
     private static final class ExplorerCellRenderer extends DefaultTreeCellRenderer {
         // space.6: icon-text gap and gap before the secondary text
@@ -1222,6 +1224,11 @@ final class ObjectExplorerPanel extends JPanel {
 
         @Nullable
         private String secondaryText;
+        /**
+         * Color of a connection node ({@link ConnectionColors}), painted behind the unselected node.
+         */
+        @Nullable
+        private Color connectionColor;
 
         @Override
         public Component getTreeCellRendererComponent(
@@ -1236,7 +1243,11 @@ final class ObjectExplorerPanel extends JPanel {
             super.getTreeCellRendererComponent(tree, value, selected, expanded, leaf, row, hasFocus);
             setIconTextGap(UIScale.scale(GAP));
             secondaryText = null;
+            connectionColor = null;
             if (value instanceof ExplorerNode node && node.getUserObject() instanceof DBNNode navigatorNode) {
+                if (navigatorNode instanceof DBNDataSource dataSourceNode) {
+                    connectionColor = ConnectionColors.getColor(dataSourceNode.getDataSourceContainer().getConnectionConfiguration());
+                }
                 setIcon(NodeIcons.getNodeIcon(navigatorNode, expanded));
                 setToolTipText(navigatorNode.getNodeDescription());
                 secondaryText = getSecondaryText(node, navigatorNode);
@@ -1282,6 +1293,11 @@ final class ObjectExplorerPanel extends JPanel {
 
         @Override
         public void paint(Graphics g) {
+            if (connectionColor != null && !selected) {
+                g.setColor(connectionColor);
+                int arc = UIScale.scale(GAP);
+                g.fillRoundRect(0, 0, getWidth(), getHeight(), arc, arc);
+            }
             super.paint(g);
             if (secondaryText == null) {
                 return;

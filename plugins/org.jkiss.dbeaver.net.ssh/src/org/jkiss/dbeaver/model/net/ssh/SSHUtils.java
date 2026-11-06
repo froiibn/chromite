@@ -1,6 +1,7 @@
 /*
  * DBeaver - Universal Database Manager
  * Copyright (C) 2010-2026 DBeaver Corp and others
+ * Modifications Copyright (C) 2026 Chromite contributors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -38,9 +39,13 @@ import org.jkiss.dbeaver.runtime.DBWorkbench;
 import org.jkiss.dbeaver.utils.DataSourceUtils;
 import org.jkiss.dbeaver.utils.RuntimeUtils;
 import org.jkiss.utils.CommonUtils;
-import org.jkiss.utils.IOUtils;
+import org.jkiss.utils.SecurityUtils;
 
 import java.io.File;
+import java.io.IOException;
+import java.net.InetAddress;
+import java.net.ServerSocket;
+import java.net.UnknownHostException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.InvalidPathException;
@@ -51,6 +56,13 @@ import java.util.List;
 
 /**
  * SSH utils
+ *
+ * 설계(Chromite): 터널의 로컬 포트를 고를 때 포트 포워더가 실제로 열 주소(기본 127.0.0.1)에서만 시험한다.
+ *
+ * 변경 이력:
+ * - 2026-11-06 {@link #findFreePort}: {@code IOUtils.findFreePort}는 {@code new ServerSocket(port)}로 모든 인터페이스(0.0.0.0)에서
+ *   잠깐 듣기 때문에 Windows 방화벽이 앱마다 허용 여부를 묻는다(SSH 서버에 연결하기 전에도). 포워더가 열 주소에서만 시험하도록 바꿈
+ *   (docs/chromite/swing-conn-advanced.md "SSH 터널의 로컬 주소")
  */
 public class SSHUtils {
 
@@ -64,11 +76,30 @@ public class SSHUtils {
     private static final String DEFAULT_SSH_HOME_DIR_NAME_WIN_OLD = IConstants.SSH_OLD_DEFAULT_WIN32_HOME;
     private static final String KNOWN_SSH_HOSTS_FILE_NAME = "known_hosts";
 
-    static int findFreePort() {
+    /**
+     * A free port in the tunnel port range, tested on the address the port forwarder will listen on.
+     * IOUtils.findFreePort tests on all interfaces, which makes Windows Firewall ask about the application.
+     */
+    static int findFreePort(@NotNull String localHost) {
         DBPPreferenceStore store = DBWorkbench.getPlatform().getPreferenceStore();
         int minPort = store.getInt(ModelPreferences.NET_TUNNEL_PORT_MIN);
         int maxPort = store.getInt(ModelPreferences.NET_TUNNEL_PORT_MAX);
-        return IOUtils.findFreePort(minPort, maxPort);
+        InetAddress address;
+        try {
+            address = InetAddress.getByName(localHost);
+        } catch (UnknownHostException e) {
+            log.debug("Unknown tunnel local host '" + localHost + "', testing ports on the loopback address", e);
+            address = InetAddress.getLoopbackAddress();
+        }
+        int portRange = Math.abs(maxPort - minPort);
+        while (true) {
+            int port = minPort + SecurityUtils.getRandom().nextInt(portRange);
+            try (ServerSocket ignored = new ServerSocket(port, 0, address)) {
+                return port;
+            } catch (IOException e) {
+                // Port is busy
+            }
+        }
     }
 
     public static boolean isKeyFileEncrypted(@NotNull Path privKeyPath) {

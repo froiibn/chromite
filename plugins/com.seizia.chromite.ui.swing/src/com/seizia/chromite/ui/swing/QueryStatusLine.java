@@ -42,6 +42,8 @@ import java.awt.*;
  *     <li>서버는 호스트[:포트], 호스트가 없는 파일 DB는 파일 이름이다. 전체 경로·URL과 DB 제품 버전은 도구 설명에 둔다(SSMS의 "서버 (버전)"을 줄이지 않고 보이면 칸이 길어진다).
  *     빈 칸(사용자가 없는 SQLite, 기본 DB/스키마를 모르는 연결)은 숨긴다.</li>
  *     <li>커서 위치는 SSMS 창 아래 상태 표시줄의 Ln/Col이다(한 줄로 합쳐 쿼리 창 상태 줄 끝에 둔다).</li>
+ *     <li>바탕은 연결 색({@link ConnectionColors}: 연결에 정한 색, 없으면 연결 종류의 색)이다. 색이 없는 연결(기본 Development)은 카드 바탕 그대로다.
+ *     연결 설정이 바뀌면 편집기가 {@link #setConnection}을 다시 불러 색도 바뀐다.</li>
  *     <li>줄은 편집기마다 하나이고 메인 창이 Results 카드 아래쪽(쿼리 창 맨 아래, Results가 숨겨져 있으면 문서 카드 아래쪽)에 활성 편집기의 줄을 끼운다(결과와 같은 방식, {@link MainFrame}).</li>
  * </ul>
  *
@@ -49,6 +51,7 @@ import java.awt.*;
  * - 2026-11-06 P1: 최초 작성. C단계 편집기 상태 줄(상태, 시간, 행)에 서버·사용자·DB와 상태 아이콘을 더하고 결과 아래로 옮김
  *   (docs/chromite/swing-frontend.md "P1 디자인 적용")
  * - 2026-11-06 커서 위치(Ln, Col) 칸 (docs/chromite/swing-sql-editor-plus.md)
+ * - 2026-11-06 고급 연결 설정: 바탕을 연결 색으로 칠함 (docs/chromite/swing-conn-advanced.md)
  */
 final class QueryStatusLine extends JPanel {
 
@@ -107,8 +110,17 @@ final class QueryStatusLine extends JPanel {
     public void updateUI() {
         super.updateUI();
         // bg.chrome with a border.subtle line above; recreated on theme changes because the colors come from the theme
-        setBackground(UIManager.getColor("Panel.background")); //$NON-NLS-1$
+        applyConnectionColor();
         setBorder(BorderFactory.createMatteBorder(1, 0, 0, 0, getLineColor()));
+    }
+
+    /**
+     * The connection's color (custom or connection type) as the background, like the query window status bar
+     * colored by a connection's custom color; the card background when the connection has none.
+     */
+    private void applyConnectionColor() {
+        Color color = container == null ? null : ConnectionColors.getColor(container.getConnectionConfiguration());
+        setBackground(color != null ? color : UIManager.getColor("Panel.background")); //$NON-NLS-1$
     }
 
     void setState(@NotNull State state, @NotNull String text) {
@@ -130,6 +142,7 @@ final class QueryStatusLine extends JPanel {
             setSegment(serverLabel, describeServer(container), describeServerDetails(container));
             setSegment(userLabel, CommonUtils.nullIfEmpty(configuration.getUserName()), "User");
         }
+        applyConnectionColor();
         updateStateIcon();
     }
 

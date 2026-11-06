@@ -65,8 +65,13 @@ import java.util.Set;
  *     예시 URL이 없거나 그중 아무것도 없으면 JDBC URL만 입력한다.</li>
  *     <li>Authentication: {@link ConnectionAuthModels}가 고른 인증 방식(둘 이상일 때만 콤보를 보임, SWT {@code AuthModelSelector}와 같음).
  *     인증 방식마다 Login·Password 칸을 보이거나 숨긴다. 드라이버가 익명 접속이면 인증 칸을 모두 숨긴다.</li>
- *     <li>Options 탭: Connection Properties(연결 종류, 자동 커밋, 기본 DB·스키마, 읽기 전용, keep-alive, 유휴 연결 닫기. SWT
- *     {@code ConnectionPageGeneral}·{@code ConnectionPageInitialization}과 같은 값), Driver Properties, Provider Properties,
+ *     <li>인증 방식별 추가 칸({@link ConnectionAuthExtras}: SQL Server NTLM의 integrated security, Oracle Role, PgPass 호스트 이름)은
+ *     인증 묶음 아래에 두고 고른 방식의 것만 보인다. 저장할 때 고르지 않은 방식의 칸이 쓴 값은 지운다.</li>
+ *     <li>드라이버별 주 칸({@link ConnectionDriverFields}: SQL Server Encrypt·Trust server certificate, Oracle Basic/TNS·SID/Service)은
+ *     범용 칸 사이의 정해진 자리에 넣는다. 그 칸이 맡는 공급자 속성은 Provider Properties 표에서 뺀다(한 값을 두 곳에서 고치지 않게).</li>
+ *     <li>Options 탭: Connection Properties(연결 종류, 자동 커밋, 기본 DB·스키마, 읽기 전용, 연결 색, 연결 직후 SQL, keep-alive, 유휴 연결 닫기. SWT
+ *     {@code ConnectionPageGeneral}·{@code ConnectionPageInitialization}과 같은 값), 네트워크 핸들러 탭(SSH, Proxy, SSL: {@link ConnectionNetworkPage},
+ *     쓰는 핸들러의 탭에는 확인 표시), Driver Properties, Provider Properties,
  *     Additional Connection Parameters(연결 방식: 칸 / JDBC URL 직접 입력, {@link DBPDriverConfigurationType}).</li>
  *     <li>Driver Properties 탭: 처음 열 때 모델의 {@code DBPDataSourceProvider#getConnectionProperties}(JDBC 드라이버의
  *     {@code getPropertyInfo})로 읽는다(SWT {@code ConnectionPropertiesControl}과 같은 호출, 드라이버 파일이 없으면 이때 내려받기를 묻는다).
@@ -75,7 +80,9 @@ import java.util.Set;
  *     SWT에서는 DB별 전용 화면이 이 값을 고친다. 여기서는 범용 표로 고친다.</li>
  *     <li>새 연결의 기본값: 이 드라이버의 마지막 서버 이름(없으면 드라이버의 기본 호스트, 그것도 없으면 localhost)·포트·서버·DB·사용자.</li>
  * </ul>
- * 저장은 {@link #saveSettings}가 SWT의 페이지 저장 순서(주소 → 인증 → URL → 속성 → 연결 속성)대로 {@link DBPConnectionConfiguration}에 쓴다.
+ * 저장은 {@link #saveSettings}가 주소 → 인증 → 드라이버·공급자 속성 표 → 드라이버별 칸·인증 방식별 칸 → URL → 연결 속성 → 네트워크 핸들러 순서로
+ * {@link DBPConnectionConfiguration}에 쓴다. 드라이버별 칸은 표보다 뒤에 써서 같은 속성이면 주 양식이 이기고, URL은 그 뒤에 만들어
+ * 공급자 속성으로 URL을 만드는 드라이버(Oracle TNS)도 맞는 URL이 된다.
  * 색은 테마 키({@code Chromite.*}, 없으면 FlatLaf 키)로 읽어 테마를 바꾸는 작업과 독립적으로 둔다.
  *
  * 변경 이력:
@@ -83,6 +90,8 @@ import java.util.Set;
  * - 2026-11-06 SSMS식 Connect 대화상자: Main/Driver/Provider 탭 → 주 양식 + Options 탭. Server name 한 칸과 서버 기록,
  *   인증 방식 선택, Connection Properties·Additional Connection Parameters 탭 추가, 라벨 끝 ':' 제거
  *   (docs/chromite/swing-frontend.md "Connect 대화상자 (SSMS식)")
+ * - 2026-11-06 고급 연결 설정: 인증 방식별 칸, 드라이버별 주 칸(SQL Server, Oracle), 네트워크 핸들러 탭(SSH, Proxy, SSL), 연결 색,
+ *   연결 직후 SQL. 저장 순서에서 URL을 속성 표 뒤로 옮김 (docs/chromite/swing-conn-advanced.md)
  */
 final class ConnectionSettingsPanel extends JPanel {
 
@@ -117,6 +126,13 @@ final class ConnectionSettingsPanel extends JPanel {
     private final JLabel passwordLabel = new JLabel("Password");
     private final JPasswordField passwordField = new JPasswordField();
     private final JCheckBox savePasswordCheck = new JCheckBox("Remember password");
+    private final List<ConnectionAuthExtras.Extra> authExtras;
+    @Nullable
+    private final ConnectionDriverFields driverFields;
+    private final JLabel serverNameLabel = new JLabel("Server name");
+    private final JLabel databaseLabel = new JLabel("Database");
+    @Nullable
+    private JComponent databaseRow;
 
     private final JComboBox<DBPConnectionType> connectionTypeCombo = new JComboBox<>();
     private final JComboBox<String> autoCommitCombo = new JComboBox<>(AUTO_COMMIT_ITEMS);
@@ -126,6 +142,14 @@ final class ConnectionSettingsPanel extends JPanel {
     private final JSpinner keepAliveSpinner = new JSpinner(new SpinnerNumberModel(0, 0, Integer.MAX_VALUE, 1));
     private final JCheckBox closeIdleCheck = new JCheckBox("Close idle connection after (seconds)");
     private final JSpinner closeIdleSpinner = new JSpinner(new SpinnerNumberModel(0, 0, Integer.MAX_VALUE, 1));
+    private final JCheckBox customColorCheck = new JCheckBox("Custom color");
+    private final JButton colorButton = new JButton();
+    @Nullable
+    private Color customColor;
+    private final JButton bootstrapButton = new JButton();
+    private List<String> bootstrapQueries = new ArrayList<>();
+    private boolean ignoreBootstrapErrors;
+    private final List<ConnectionNetworkPage> networkPages;
 
     private final JTabbedPane optionsTabs = new JTabbedPane();
     private final ConnectionPropertiesTable driverPropertiesTable = new ConnectionPropertiesTable(true);
@@ -149,7 +173,12 @@ final class ConnectionSettingsPanel extends JPanel {
         super(new BorderLayout(0, 12));
         this.dataSource = dataSource;
         this.driver = dataSource.getDriver();
-        this.changeListener = changeListener;
+        // Every change also updates the network tabs (used or not) and the address rows (Oracle TNS hides some)
+        this.changeListener = () -> {
+            updateNetworkTabs();
+            updateAddressRows();
+            changeListener.run();
+        };
 
         DatabaseURL.Pattern pattern = null;
         String sampleURL = driver.getSampleURL();
@@ -178,12 +207,18 @@ final class ConnectionSettingsPanel extends JPanel {
         DBPAuthModelDescriptor currentAuthModel = driver.isAnonymousAccess() ? null
             : ConnectionAuthModels.detect(driver, dataSource.getConnectionConfiguration());
         authModels = currentAuthModel == null ? List.of() : ConnectionAuthModels.getChoices(driver, currentAuthModel);
+        authExtras = ConnectionAuthExtras.create(authModels);
+        driverFields = urlOnly ? null : ConnectionDriverFields.create(driver, this.changeListener);
+        networkPages = ConnectionNetworkPage.createPages(dataSource, this.changeListener);
 
         DBPPropertyDescriptor[] providerDescriptors = driver.getProviderPropertyDescriptors();
         providerPropertiesTable = providerDescriptors == null || providerDescriptors.length == 0 ? null : new ConnectionPropertiesTable(false);
 
         add(createMainForm(databaseTypeCombo), BorderLayout.NORTH);
         optionsTabs.addTab("Connection Properties", createConnectionPropertiesPage());
+        for (ConnectionNetworkPage page : networkPages) {
+            optionsTabs.addTab(page.getTitle(), page);
+        }
         optionsTabs.addTab("Driver Properties", driverPropertiesTable);
         if (providerPropertiesTable != null) {
             optionsTabs.addTab("Provider Properties", providerPropertiesTable);
@@ -250,8 +285,28 @@ final class ConnectionSettingsPanel extends JPanel {
      */
     @Nullable
     String validateSettings() {
+        String problem = validateAddress();
+        if (problem == null) {
+            for (ConnectionNetworkPage page : networkPages) {
+                problem = page.getErrorMessage();
+                if (problem != null) {
+                    break;
+                }
+            }
+        }
+        return problem;
+    }
+
+    /**
+     * The address part of {@link #validateSettings}: the URL, the generic fields or the driver's own fields.
+     */
+    @Nullable
+    private String validateAddress() {
         if (isUrlMode()) {
             return urlField.getText().isBlank() ? "Enter the JDBC URL." : null;
+        }
+        if (driverFields != null && !driverFields.isGenericAddressUsed()) {
+            return driverFields.validate();
         }
         String[] hostAndPort = getHostAndPort();
         if (!hostAndPort[1].isEmpty() && !hostAndPort[1].chars().allMatch(Character::isDigit)) {
@@ -271,7 +326,7 @@ final class ConnectionSettingsPanel extends JPanel {
                 return "Enter the " + missing + ".";
             }
         }
-        return null;
+        return driverFields == null ? null : driverFields.validate();
     }
 
     /**
@@ -311,17 +366,6 @@ final class ConnectionSettingsPanel extends JPanel {
             }
         }
 
-        if (urlMode) {
-            configuration.setUrl(urlField.getText().trim());
-        } else {
-            try {
-                configuration.setUrl(driver.getConnectionURL(configuration));
-            } catch (DBException e) {
-                // Regenerated from the template when connecting, as in ConnectionPageAbstract.saveConnectionURL
-                configuration.setUrl(null);
-            }
-        }
-
         PropertySourceCustom driverProperties = driverPropertiesTable.getSource();
         if (driverProperties != null) {
             // Same as DriverPropertiesDialogPage.savePropertyValues
@@ -347,7 +391,75 @@ final class ConnectionSettingsPanel extends JPanel {
                 }
             }
         }
+        // After the property tables: the main form's fields win over the same properties in the tables
+        if (driverFields != null) {
+            driverFields.saveSettings(configuration, urlMode);
+        }
+        for (ConnectionAuthExtras.Extra extra : authExtras) {
+            if (extra.model == authModel) {
+                extra.saveSettings(target);
+            } else {
+                extra.resetSettings(target);
+            }
+        }
+        // The URL is built after the driver's fields: some providers build it from provider properties (Oracle)
+        if (urlMode) {
+            configuration.setUrl(urlField.getText().trim());
+        } else {
+            try {
+                configuration.setUrl(driver.getConnectionURL(configuration));
+            } catch (DBException e) {
+                // Regenerated from the template when connecting, as in ConnectionPageAbstract.saveConnectionURL
+                configuration.setUrl(null);
+            }
+        }
         saveConnectionProperties(target);
+        for (ConnectionNetworkPage page : networkPages) {
+            page.saveSettings(target);
+        }
+    }
+
+    /**
+     * The network handlers the connection uses ("SSH, SSL"), or {@code null} when none.
+     */
+    @Nullable
+    String getNetworkSummary() {
+        List<String> used = new ArrayList<>();
+        for (ConnectionNetworkPage page : networkPages) {
+            String usage = page.describeUsage();
+            if (usage != null) {
+                used.add(usage);
+            }
+        }
+        return used.isEmpty() ? null : String.join(", ", used); //$NON-NLS-1$
+    }
+
+    /**
+     * Hides the server name and database rows when the driver's own fields replace them (Oracle TNS).
+     */
+    private void updateAddressRows() {
+        boolean generic = driverFields == null || driverFields.isGenericAddressUsed();
+        for (JComponent component : new JComponent[]{serverNameLabel, serverCombo, databaseLabel, databaseRow}) {
+            if (component != null) {
+                component.setVisible(generic);
+            }
+        }
+    }
+
+    /**
+     * A check mark on the tabs of the handlers the connection uses.
+     */
+    private void updateNetworkTabs() {
+        if (networkPages == null) {
+            // Called while the panel is being built
+            return;
+        }
+        for (ConnectionNetworkPage page : networkPages) {
+            int index = optionsTabs.indexOfComponent(page);
+            if (index >= 0) {
+                optionsTabs.setIconAt(index, page.isHandlerEnabled() ? UiIcons.get("check") : null); //$NON-NLS-1$
+            }
+        }
     }
 
     //////////////////////////////////////////////////////////
@@ -357,6 +469,9 @@ final class ConnectionSettingsPanel extends JPanel {
     private JComponent createMainForm(@NotNull JComponent databaseTypeCombo) {
         FormBuilder form = new FormBuilder();
         form.addRow("Database type", databaseTypeCombo);
+        if (driverFields != null) {
+            driverFields.addLeadingRows(form);
+        }
 
         if (urlProperties.contains(DBConstants.PROP_HOST)) {
             serverNameField.putClientProperty(FlatClientProperties.PLACEHOLDER_TEXT,
@@ -364,7 +479,7 @@ final class ConnectionSettingsPanel extends JPanel {
             serverCombo.setToolTipText(urlProperties.contains(DBConstants.PROP_PORT)
                 ? "Host name or address, optionally followed by :port or ,port (default port " + CommonUtils.notEmpty(driver.getDefaultPort()) + ")"
                 : "Host name or address");
-            form.addRow("Server name", serverCombo);
+            form.addRow(serverNameLabel, serverCombo);
             manualComponents.add(serverCombo);
         }
         if (urlProperties.contains(DBConstants.PROP_SERVER)) {
@@ -372,7 +487,8 @@ final class ConnectionSettingsPanel extends JPanel {
             manualComponents.add(serverField);
         }
         if (urlProperties.contains(DBConstants.PROP_DATABASE)) {
-            form.addRow("Database", databaseField);
+            databaseRow = driverFields == null ? databaseField : driverFields.decorateDatabaseField(databaseField);
+            form.addRow(databaseLabel, databaseRow);
             manualComponents.add(databaseField);
         }
         if (urlProperties.contains(DBConstants.PROP_FILE) || urlProperties.contains(DBConstants.PROP_FOLDER)) {
@@ -388,6 +504,9 @@ final class ConnectionSettingsPanel extends JPanel {
         }
         if (urlOnly) {
             form.addRow("JDBC URL", urlField);
+        }
+        if (driverFields != null) {
+            driverFields.addAddressRows(form);
         }
 
         if (!authModels.isEmpty()) {
@@ -413,6 +532,12 @@ final class ConnectionSettingsPanel extends JPanel {
             form.addRow(userLabel, userField);
             form.addRow(passwordLabel, passwordField);
             form.addRow((JLabel) null, savePasswordCheck);
+            for (ConnectionAuthExtras.Extra extra : authExtras) {
+                extra.addRows(form);
+            }
+        }
+        if (driverFields != null) {
+            driverFields.addSecurityRows(form);
         }
 
         form.addGroupGap();
@@ -468,6 +593,9 @@ final class ConnectionSettingsPanel extends JPanel {
         passwordLabel.setVisible(password);
         passwordField.setVisible(password);
         savePasswordCheck.setVisible(password);
+        for (ConnectionAuthExtras.Extra extra : authExtras) {
+            extra.setVisible(extra.model == model);
+        }
         revalidate();
         repaint();
         if (!loading) {
@@ -494,6 +622,7 @@ final class ConnectionSettingsPanel extends JPanel {
                 if (value instanceof DBPConnectionType type) {
                     setText(type.getName());
                     setToolTipText(type.getDescription());
+                    setIcon(new ColorSwatch(ConnectionColors.getTypeColor(type)));
                 }
                 return this;
             }
@@ -505,6 +634,7 @@ final class ConnectionSettingsPanel extends JPanel {
                 closeIdleSpinner.setValue(type.getCloseIdleConnectionPeriod());
                 closeIdleSpinner.setEnabled(closeIdleCheck.isSelected());
             }
+            updateColorButton();
         });
         closeIdleCheck.addActionListener(e -> closeIdleSpinner.setEnabled(closeIdleCheck.isSelected()));
         for (JSpinner spinner : List.of(keepAliveSpinner, closeIdleSpinner)) {
@@ -523,6 +653,30 @@ final class ConnectionSettingsPanel extends JPanel {
         form.addRow("Default database", defaultCatalogField);
         form.addRow("Default schema", defaultSchemaField);
         form.addRow((JLabel) null, readOnlyCheck);
+        JPanel colorPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
+        colorPanel.add(customColorCheck);
+        colorPanel.add(Box.createHorizontalStrut(6));
+        colorPanel.add(colorButton);
+        customColorCheck.setToolTipText("Color of the query window status bar and the connection in Object Explorer; "
+            + "without it the connection type's color is used");
+        customColorCheck.addActionListener(e -> {
+            if (customColorCheck.isSelected() && customColor == null) {
+                chooseColor();
+            }
+            updateColorButton();
+        });
+        colorButton.addActionListener(e -> chooseColor());
+        form.addRow("Color", colorPanel);
+        bootstrapButton.setToolTipText("SQL queries executed right after the connection is opened");
+        bootstrapButton.addActionListener(e -> {
+            BootstrapQueriesDialog dialog = BootstrapQueriesDialog.edit(this, bootstrapQueries, ignoreBootstrapErrors);
+            if (dialog != null) {
+                bootstrapQueries = dialog.getQueries();
+                ignoreBootstrapErrors = dialog.isIgnoreErrors();
+                updateBootstrapButton();
+            }
+        });
+        form.addRow("Bootstrap queries", leftAligned(bootstrapButton));
         form.addGroupGap();
         form.addRow("Keep-alive (seconds)", leftAligned(keepAliveSpinner));
         JPanel closeIdlePanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
@@ -608,15 +762,35 @@ final class ConnectionSettingsPanel extends JPanel {
 
             if (providerPropertiesTable != null && providerDescriptors != null) {
                 List<DBPPropertyDescriptor> descriptors = new ArrayList<>(List.of(providerDescriptors));
+                // Properties with a field in the main form are edited there only
+                Set<String> handled = new HashSet<>();
+                if (driverFields != null) {
+                    handled.addAll(driverFields.getHandledProviderProperties());
+                }
+                for (ConnectionAuthExtras.Extra extra : authExtras) {
+                    handled.addAll(extra.getHandledProviderProperties());
+                }
+                descriptors.removeIf(descriptor -> handled.contains(descriptor.getId()));
                 providerPropertiesTable.setSource(
                     new PropertySourceCustom(descriptors, new HashMap<>(configuration.getProviderProperties())), null);
             }
             loadConnectionProperties(configuration);
+            if (driverFields != null) {
+                driverFields.loadSettings(dataSource, isNew);
+            }
+            for (ConnectionAuthExtras.Extra extra : authExtras) {
+                extra.loadSettings(dataSource);
+            }
+            for (ConnectionNetworkPage page : networkPages) {
+                page.loadSettings(dataSource);
+            }
         } finally {
             loading = false;
         }
         authModelChanged();
         modeChanged();
+        updateNetworkTabs();
+        updateAddressRows();
     }
 
     /**
@@ -638,6 +812,40 @@ final class ConnectionSettingsPanel extends JPanel {
         closeIdleSpinner.setValue(Math.max(0, configuration.getCloseIdleInterval() > 0
             ? configuration.getCloseIdleInterval() : type.getCloseIdleConnectionPeriod()));
         closeIdleSpinner.setEnabled(closeIdleCheck.isSelected());
+        customColor = ConnectionColors.parse(configuration.getConnectionColor());
+        customColorCheck.setSelected(customColor != null);
+        updateColorButton();
+        bootstrapQueries = new ArrayList<>(configuration.getBootstrap().getInitQueries());
+        ignoreBootstrapErrors = configuration.getBootstrap().isIgnoreErrors();
+        updateBootstrapButton();
+    }
+
+    /**
+     * The color button shows the custom color, or (disabled) the connection type's color.
+     */
+    private void updateColorButton() {
+        boolean custom = customColorCheck.isSelected() && customColor != null;
+        Color color = custom ? customColor
+            : connectionTypeCombo.getSelectedItem() instanceof DBPConnectionType type ? ConnectionColors.getTypeColor(type) : null;
+        colorButton.setIcon(new ColorSwatch(color));
+        colorButton.setText(custom ? "Change…" : color == null ? "No color" : "Connection type color");
+        colorButton.setEnabled(customColorCheck.isSelected());
+    }
+
+    private void chooseColor() {
+        Color initial = customColor != null ? customColor
+            : connectionTypeCombo.getSelectedItem() instanceof DBPConnectionType type ? ConnectionColors.getTypeColor(type) : null;
+        Color chosen = JColorChooser.showDialog(this, "Connection Color", initial);
+        if (chosen != null) {
+            customColor = chosen;
+        } else if (customColor == null) {
+            customColorCheck.setSelected(false);
+        }
+        updateColorButton();
+    }
+
+    private void updateBootstrapButton() {
+        bootstrapButton.setText(bootstrapQueries.isEmpty() ? "Edit…" : "Edit… (" + bootstrapQueries.size() + ")");
     }
 
     /**
@@ -654,6 +862,11 @@ final class ConnectionSettingsPanel extends JPanel {
         bootstrap.setDefaultAutoCommit(autoCommit == 1 ? Boolean.TRUE : autoCommit == 2 ? Boolean.FALSE : null);
         bootstrap.setDefaultCatalogName(CommonUtils.nullIfEmpty(defaultCatalogField.getText().trim()));
         bootstrap.setDefaultSchemaName(CommonUtils.nullIfEmpty(defaultSchemaField.getText().trim()));
+        // ConnectionPageInitialization.saveSettings
+        bootstrap.setInitQueries(bootstrapQueries);
+        bootstrap.setIgnoreErrors(ignoreBootstrapErrors);
+        // ConnectionPageGeneral.saveSettings: the custom color, or none (the connection type's color)
+        configuration.setConnectionColor(customColorCheck.isSelected() && customColor != null ? ConnectionColors.format(customColor) : null);
         target.setConnectionReadOnly(readOnlyCheck.isSelected());
         configuration.setKeepAliveInterval((Integer) keepAliveSpinner.getValue());
         configuration.setCloseIdleConnection(closeIdleCheck.isSelected());
@@ -667,7 +880,7 @@ final class ConnectionSettingsPanel extends JPanel {
      * A field that keeps its preferred width in a form row.
      */
     @NotNull
-    private static JComponent leftAligned(@NotNull JComponent field) {
+    static JComponent leftAligned(@NotNull JComponent field) {
         JPanel panel = new JPanel(new BorderLayout());
         panel.add(field, BorderLayout.WEST);
         return panel;
@@ -713,6 +926,9 @@ final class ConnectionSettingsPanel extends JPanel {
         DBPConnectionConfiguration configuration = new DBPConnectionConfiguration();
         configuration.setConfigurationType(DBPDriverConfigurationType.MANUAL);
         writeAddress(configuration);
+        if (driverFields != null) {
+            driverFields.saveSettings(configuration, false);
+        }
         if (!driver.isAnonymousAccess()) {
             configuration.setUserName(GeneralUtils.trimAllWhitespaces(userField.getText()));
         }
@@ -897,10 +1113,43 @@ final class ConnectionSettingsPanel extends JPanel {
     }
 
     /**
+     * A 12x12 color square with a thin border; an empty square for "no color".
+     */
+    private static final class ColorSwatch implements Icon {
+        @Nullable
+        private final Color color;
+
+        ColorSwatch(@Nullable Color color) {
+            this.color = color;
+        }
+
+        @Override
+        public void paintIcon(Component c, Graphics g, int x, int y) {
+            int size = getIconWidth();
+            if (color != null) {
+                g.setColor(color);
+                g.fillRect(x, y, size, size);
+            }
+            g.setColor(ConnectionDialog.getThemeColor("Chromite.dividerColor", "Separator.foreground", Color.GRAY)); //$NON-NLS-1$ //$NON-NLS-2$
+            g.drawRect(x, y, size - 1, size - 1);
+        }
+
+        @Override
+        public int getIconWidth() {
+            return 12;
+        }
+
+        @Override
+        public int getIconHeight() {
+            return 12;
+        }
+    }
+
+    /**
      * Label/field rows on a GridBagLayout with the spacing of docs/chromite/design-spec.md "11. 대화상자"
      * (label to field 6, rows 6, groups 20). Hidden rows take no space.
      */
-    private static final class FormBuilder {
+    static final class FormBuilder {
         private static final int LABEL_GAP = 6;
         private static final int ROW_GAP = 6;
         private static final int GROUP_GAP = 20;

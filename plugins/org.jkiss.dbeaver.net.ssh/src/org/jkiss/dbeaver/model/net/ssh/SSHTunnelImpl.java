@@ -1,6 +1,7 @@
 /*
  * DBeaver - Universal Database Manager
  * Copyright (C) 2010-2026 DBeaver Corp and others
+ * Modifications Copyright (C) 2026 Chromite contributors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,6 +22,7 @@ import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
 import org.jkiss.dbeaver.Log;
 import org.jkiss.dbeaver.ModelPreferences;
+import org.jkiss.dbeaver.model.DBConstants;
 import org.jkiss.dbeaver.model.DBPDataSource;
 import org.jkiss.dbeaver.model.DBPDataSourceContainer;
 import org.jkiss.dbeaver.model.connection.DBPConnectionConfiguration;
@@ -41,6 +43,13 @@ import java.util.List;
 
 /**
  * SSH tunnel
+ *
+ * 설계(Chromite): 로컬 포트 포워드는 설정이 비어 있으면 루프백(127.0.0.1)에서만 듣는다(설정 화면의 설명과 점프 서버 포워드와 같음).
+ *
+ * 변경 이력:
+ * - 2026-11-06 비어 있는 {@code localHost}를 127.0.0.1로 바꿈. 빈 값은 JSch가 0.0.0.0(모든 인터페이스)으로 듣게 하고
+ *   ({@code com.jcraft.jsch.PortWatcher.normalize}), 빈 포트 시험도 모든 인터페이스에서 했다
+ *   (docs/chromite/swing-conn-advanced.md "SSH 터널의 로컬 주소")
  */
 public class SSHTunnelImpl implements DBWTunnel {
 
@@ -222,10 +231,14 @@ public class SSHTunnelImpl implements DBWTunnel {
         @NotNull DBPConnectionConfiguration connectionInfo
     ) {
         String sshLocalHost = CommonUtils.toString(configuration.getProperty(SSHConstants.PROP_LOCAL_HOST));
+        if (CommonUtils.isEmpty(sshLocalHost)) {
+            // Loopback only, like the jump server forwards: JSch listens on all interfaces for an empty address
+            sshLocalHost = DBConstants.HOST_LOCALHOST_IP;
+        }
 
         int sshLocalPort = configuration.getIntProperty(SSHConstants.PROP_LOCAL_PORT);
         if (sshLocalPort == 0) {
-            sshLocalPort = SSHUtils.findFreePort();
+            sshLocalPort = SSHUtils.findFreePort(sshLocalHost);
         }
 
         String sshRemoteHost = CommonUtils.toString(configuration.getProperty(SSHConstants.PROP_REMOTE_HOST));

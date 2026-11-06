@@ -1696,3 +1696,5 @@ Windows 11, 화면 배율 150%, JBR 25, 작업 공간 사본 `D:\Tools\_smoke\sw
   열 너비 맞춤, Copy As, 선택 집계. 설계는 [swing-result-viewer.md](swing-result-viewer.md).
 - 2026-11-06 SQL 편집기 확장: Execution plan 탭(Ctrl+L, Ctrl+M), Query History, Edit > Advanced(서식·대소문자·주석·들여쓰기), 템플릿, 매개변수 대화상자, 상태 줄 Ln/Col.
   [swing-sql-editor-plus.md](swing-sql-editor-plus.md)에 정리.
+- 2026-11-06 고급 연결 설정: 인증 방식별 칸, 네트워크 핸들러 탭(SSH, Proxy, SSL), SQL Server·Oracle 주 칸, 연결 색(쿼리 상태 줄, Object Explorer), 연결 직후 SQL.
+  [swing-conn-advanced.md](swing-conn-advanced.md)로 분리. "Connect 대화상자 (SSMS식)"의 남긴 것 중 해당 항목은 그 문서에서 구현했다.
