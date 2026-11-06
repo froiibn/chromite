@@ -5,12 +5,13 @@
     Design: the product bundle declarations (com.seizia.chromite.drivers.public) and the drivers/ root files
     (jars fetched by pom.xml, license texts from drivers-root/) must always ship together: a declared bundle
     without its folder leaves the driver without any file source. Keeping both in one feature makes that the
-    unit of inclusion, and lets every product (SWT com.seizia.chromite.ce.feature, Swing
-    com.seizia.chromite.swing.feature) ship the same drivers from a single jar list.
+    unit of inclusion: a product feature (com.seizia.chromite.swing.feature) includes it and gets the drivers
+    from a single jar list.
     p2 installs a feature's root files with the feature itself, also when it is only included by another feature.
 
     History:
     - 2026-11-06 Created. Moved out of com.seizia.chromite.ce.feature so the Swing product ships the same drivers.
+    - 2026-11-07 The SWT product was removed (docs/chromite/swt-removal.md); the Swing feature is the only includer.
 -->
 <feature
         id="com.seizia.chromite.drivers.public.feature"

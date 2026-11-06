@@ -18,7 +18,7 @@
                   class="com.seizia.chromite.model.dashboard.registry.WebDashboardProvider"
                   label="Web"
                   description="Web dashboards"
-                  icon="platform:/plugin/com.seizia.chromite.ui/icons/misc/browser.svg"
+                  icon="platform:/plugin/com.seizia.chromite.model/icons/misc/browser.svg"
                   supportsCustomization="true"
                   defaultRenderer="browser"
                   dataType="provided"/>

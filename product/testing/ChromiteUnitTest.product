@@ -47,8 +47,6 @@
         <vmArgsMac>-XstartOnFirstThread -Dorg.eclipse.swt.internal.cocoa.useNativeItemHeight=false</vmArgsMac>
     </launcherArgs>
 
-    <splash location="com.seizia.chromite.ui.app.standalone"/>
-
     <launcher name="chromite">
         <linux icon="/icons/chromite.xpm"/>
         <macosx icon="/icons/chromite.icns"/>

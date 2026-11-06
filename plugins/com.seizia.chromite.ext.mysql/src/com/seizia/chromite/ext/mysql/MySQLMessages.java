@@ -19,12 +19,14 @@ package com.seizia.chromite.ext.mysql;
 
 import org.eclipse.osgi.util.NLS;
 
+/**
+ * 변경 이력:
+ * - 2026-11-07 SWT 프런트엔드 삭제로 쓰는 곳이 없어진 문구 삭제(docs/chromite/swt-removal.md)
+ */
 public class MySQLMessages extends NLS {
     private static final String BUNDLE_NAME = "com.seizia.chromite.ext.mysql.MySQLMessages";
 
     public static String exception_direct_database_rename;
-    public static String table_column_length_tooltip;
-    public static String table_column_length;
 
     static {
         NLS.initializeMessages(BUNDLE_NAME, MySQLMessages.class);

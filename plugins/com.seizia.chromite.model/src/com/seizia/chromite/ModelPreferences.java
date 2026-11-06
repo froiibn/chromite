@@ -46,6 +46,7 @@ import java.util.Locale;
  *
  * 변경 이력:
  * - 2026-11-06 드라이버 오프라인 모드 설정 {@link #UI_DRIVERS_OFFLINE} 추가(기본값 끔, docs/chromite/drivers.md)
+ * - 2026-11-07 SWT 프런트엔드 삭제: {@link #UI_DRIVERS_OFFLINE} 설명의 설정 노드를 Swing 제품 번들로 고침(docs/chromite/swt-removal.md)
  */
 public final class ModelPreferences
 {
@@ -276,8 +277,8 @@ public final class ModelPreferences
     /**
      * Offline mode: never download driver files (Maven artifacts, URL and repo: files).
      * Only bundled files, local Maven repositories/caches and manually added files are used.
-     * Off by default (public edition); an edition can turn it on with plugin_customization.ini
-     * ({@code com.seizia.chromite.core/ui.drivers.offline=true}).
+     * Off by default (public edition); an edition can turn it on with plugin_customization.ini. The node is the
+     * product bundle that owns the platform preference store ({@code com.seizia.chromite.ui.swing/ui.drivers.offline=true}).
      */
     public static final String UI_DRIVERS_OFFLINE = "ui.drivers.offline"; //$NON-NLS-1$
     public static final String UI_MAVEN_REPOSITORIES = "ui.maven.repositories"; //$NON-NLS-1$

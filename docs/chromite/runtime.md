@@ -13,7 +13,7 @@ DataGrip처럼 사용자가 Java 런타임(JRE)을 따로 설치하지 않아도
 - 2026-11-06까지 이 저장소에는 JRE를 내장하는 빌드 설정이 없었다. DBeaver는 별도 빌드 저장소에서 JRE를 내장한다.
   제품 정의에는 macOS용 경로(`-vm ../Eclipse/jre/Contents/Home/lib/libjli.dylib`)만 남아 있었다.
   그래서 런처가 `PATH`의 Java를 골랐고, 이 PC처럼 `PATH`에 Oracle JDK 18이 있으면 `-vm` 없이는 실행되지 않았다.
-- 2026-11-07부터 빌드가 JBR 25로 만든 런타임을 두 제품에 넣는다(아래 "구조").
+- 2026-11-07부터 빌드가 JBR 25로 만든 런타임을 제품에 넣는다(아래 "구조"). 같은 날 SWT 제품을 삭제해 Swing 제품 하나다([swt-removal.md](swt-removal.md)).
 
 ## 결정 사항
 
@@ -57,8 +57,8 @@ DataGrip처럼 사용자가 Java 런타임(JRE)을 따로 설치하지 않아도
 | 파일 | 하는 일 |
 |---|---|
 | `tools/jre/jbr.properties` | 고정한 JBR 버전·빌드, 다운로드 주소, 플랫폼별 SHA-256, jlink 모듈 목록과 옵션 |
-| `tools/jre/BundleJre.java` | Maven 제품 빌드 뒤에 실행하는 Java 단일 파일 프로그램. JBR SDK를 받아(캐시, SHA-256 확인) `jmods`를 풀고, jlink로 런타임을 만들어 두 제품에 넣는다 |
-| `product/community/Chromite.product`, `product/swing/chromite-swing.product` | macOS 실행 옵션 `-vm ../Eclipse/jre/lib/libjli.dylib` (`<programArgsMac>`) |
+| `tools/jre/BundleJre.java` | Maven 제품 빌드 뒤에 실행하는 Java 단일 파일 프로그램. JBR SDK를 받아(캐시, SHA-256 확인) `jmods`를 풀고, jlink로 런타임을 만들어 제품에 넣는다 |
+| `product/swing/chromite-swing.product` | macOS 실행 옵션 `-vm ../Eclipse/jre/lib/libjli.dylib` (`<programArgsMac>`) |
 | `.github/workflows/build.yml`, `release.yml` | Maven 빌드 뒤 `BundleJre.java` 실행, 다운로드 캐시, 구조 확인([ci.md](ci.md)) |
 | `NOTICE` | JBR 출처, 라이선스(GPLv2 + Classpath Exception), 소스 위치 |
 
@@ -67,16 +67,16 @@ DataGrip처럼 사용자가 Java 런타임(JRE)을 따로 설치하지 않아도
 저장소 최상위에서, 빌드에 쓴 JDK 25로 실행한다.
 
 ```bash
-mvn package -f product/aggregate/pom.xml -T1C -Pproduct-chromite-swt,product-chromite-swing
+mvn package -f product/aggregate/pom.xml -T1C -Pproduct-chromite-swing
 java tools/jre/BundleJre.java windows-x64 osx-aarch64
 ```
 
-- 인수는 넣을 플랫폼이다(`windows-x64`, `osx-aarch64`). 빌드된 제품(SWT, Swing) 중 있는 것에만 넣는다. 하나도 없으면 실패한다.
+- 인수는 넣을 플랫폼이다(`windows-x64`, `osx-aarch64`). 빌드된 Swing 제품에 넣는다. 없으면 실패한다.
 - 다운로드 위치: 환경 변수 `CHROMITE_JBR_CACHE`, 없으면 `~/.cache/chromite-jbr`(이 PC에서는 `D:\Tools\_downloads\jbr`로 지정).
   같은 SHA-256의 파일이 있으면 다시 받지 않는다. 받는 중에는 `.part` 이름으로 두고, 확인한 뒤에 이름을 바꾼다.
 - 작업 폴더: `target/jre/<플랫폼>/jmods`(풀어 둔 jmod), `target/jre/<플랫폼>/image`(만든 런타임). `mvn clean`이 지운다.
 - 넣는 위치: Windows `<제품 폴더>/jre/`, macOS `<앱>.app/Contents/Eclipse/jre/`. 있던 `jre/`는 지우고 새로 넣는다.
-- `mvn package`만 실행하면 런타임이 없는 제품이 나온다. 이때는 지금까지처럼 설치된 JDK(SWT 21 이상, Swing 25 이상)로 실행된다.
+- `mvn package`만 실행하면 런타임이 없는 제품이 나온다. 이때는 지금까지처럼 설치된 JDK(25 이상)로 실행된다.
 
 ## 고정한 JBR
 
@@ -288,3 +288,4 @@ Swing 제품, 이 PC(논리 프로세서 12개). 프로세스 시작부터 주 �
   두 제품의 `jre/`(macOS `Contents/Eclipse/jre/`)에 넣는다. jdeps로 모듈 목록을 정하고 근거를 적었다. macOS `-vm`을
   `../Eclipse/jre/lib/libjli.dylib`로 바꾸고 Swing 제품에도 넣었다. CI·릴리스 워크플로에 단계 추가. CDS·AOT 시작 시간을 측정해
   기본 CDS 아카이브는 넣지 않기로 했다. "jlink 모듈" 절을 "모듈"로 바꿨다.
+- 2026-11-07 SWT 프런트엔드 삭제([swt-removal.md](swt-removal.md)): 런타임을 넣는 제품은 Swing 하나. 빌드 명령, `BundleJre.java`의 제품 목록, 구조 표를 고침. 모듈 근거·크기·확인 기록의 SWT 제품 값은 조사 당시 기록으로 둔다.

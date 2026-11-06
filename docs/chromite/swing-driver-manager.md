@@ -137,9 +137,11 @@ epository`에 `sqlite-jdbc` jar가 없어서, 지시대로 공개판에 내장�
 
 - SWT 제품 설치 폴더에는 `licenses/external/*.txt`(드라이버 라이선스 글, 예: `licenses/external/pg.txt`)가 있지만 Swing 제품에는 없어 PostgreSQL·SQLite 등의 라이선스 라이브러리가 "없음"으로 보인다.
   SWT도 같은 판단(파일 없음 = 오류색)을 하므로 상태 표시는 맞고, 파일을 Swing 제품에 넣을지는 따로 정할 일이다.
+  → 2026-11-07 SWT 삭제 때 Swing 피처가 `docs/root`(`licenses/`)를 넣게 했다([swt-removal.md](swt-removal.md)).
 
 ## 변경 이력
 
 - 2026-11-07 최초 작성: Tools > Driver Manager…, 드라이버 편집 창(Settings, Libraries, Default Properties, Advanced Parameters, License),
   라이브러리 상태, 로컬 파일·폴더 추가, Find Class, Download/Update(오프라인 모드에서 막음), Restore Deleted, 오프라인 모드 체크 상자,
   Connect 대화상자의 Edit Driver….
+- 2026-11-07 SWT 프런트엔드 삭제([swt-removal.md](swt-removal.md))로 Swing 제품에도 `licenses/external/*.txt`가 들어감을 기존 문제 항목에 적음.

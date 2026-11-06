@@ -20,17 +20,17 @@ sponsored by DBeaver Corp. "DBeaver" is a trademark of DBeaver Corp. See [NOTICE
 Requirements: JDK 21 and Apache Maven 3.9+.
 
 ```bash
-mvn package -f product/aggregate/pom.xml -T1C -Pproduct-chromite-swt
+mvn package -f product/aggregate/pom.xml -T1C -Pproduct-chromite-swing
 ```
 
-The built archives (`chromite-<version>-<platform>`) are placed under `product/community/target/products/`.
-Unpack one and run the `chromite` launcher.
+The built product is placed under `product/swing/target/products/com.seizia.chromite.swing.product/`.
+Run the `chromite-swing` launcher.
 
 ## Architecture
 
 - Written mostly in Java, built with Maven and Eclipse Tycho.
 - [OSGi](https://en.wikipedia.org/wiki/OSGi) for plugins and dependency management.
-- [Eclipse RCP](https://github.com/eclipse-platform/eclipse.platform.ui/blob/master/docs/Rich_Client_Platform.md) for the desktop UI.
+- Swing ([FlatLaf](https://github.com/JFormDesigner/FlatLaf)) for the desktop UI.
 - [JDBC](https://en.wikipedia.org/wiki/Java_Database_Connectivity) for database connectivity.
 - [JSQLParser](https://github.com/JSQLParser/JSqlParser) and [ANTLR4](https://github.com/antlr/antlr4) for SQL parsing.
 - Internal Java packages and bundle IDs use the `com.seizia.chromite.*` prefix (renamed from the upstream

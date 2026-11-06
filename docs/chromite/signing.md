@@ -31,25 +31,27 @@ Chromite 릴리스 파일을 GitHub Actions에서 빌드하고 서명·확인한
   다른 브랜치에서 수동 실행하면 모든 작업이 건너뛰어진다.
 - 서명하는 작업(`windows`, `macos-sign`)은 GitHub 환경 `signing`을 쓰고 `permissions: { contents: read, id-token: write }`를 둔다.
   `signing` 환경은 `devel` 브랜치와 `v*` 태그에서만 쓸 수 있게 제한한다(사용자가 만든다, 아래 체크리스트).
-- 버전: `version` 작업이 `product/community/Chromite.product`와 `product/swing/chromite-swing.product`의
-  `version="X.Y.Z.qualifier"`를 읽는다(현재 26.2.5). 두 값이 다르면 실패하고, 태그는 `v<버전>`이어야 한다(예: `v26.2.5`).
+- 버전: `version` 작업이 `tools/release/bump-version.ps1`(인자 없이 실행하는 검사 모드)로 커밋된 제품 버전을 읽는다
+  (`product/swing/chromite-swing.product`, 지금 0.1.0). 버전이 적힌 파일 4개가 서로 다르면 실패한다.
+  태그 push는 태그가 정확히 `v<버전>`(예: `v0.1.0`)이 아니면 실패한다. 수동 실행은 태그 없이 같은 버전을 쓴다.
+  버전 규칙은 [versioning.md](versioning.md).
 - 동시 실행: 같은 ref의 릴리스는 하나씩 돈다(`cancel-in-progress: false`, 서명 도중 취소하지 않는다).
 
 ### Windows (작업 `windows`, `windows-latest`)
 
 1. Azure 변수 6개 확인: 모두 있으면 서명, 모두 없으면 서명 없는 빌드(`UNSIGNED`), 일부만 있으면 실패.
-2. 빌드: `build.yml`의 Windows 빌드와 같은 명령(`mvnw.cmd ... '-Pproduct-chromite-swt,product-chromite-swing'`).
+2. 빌드: `build.yml`의 Windows 빌드와 같은 명령(`mvnw.cmd ... -Pproduct-chromite-swing`).
    Maven 캐시는 `build.yml`이 `devel`에서 저장한 것을 읽기만 한다(`actions/cache/restore`; 태그 실행은 캐시를 새로 저장하지 않는다).
    이어서 `build.yml`과 같은 내장 Java 런타임 단계(`tools/jre/BundleJre.java windows-x64`, JBR SDK 다운로드 캐시도 읽기만 함, [runtime.md](runtime.md)).
 3. 서명 전 상태를 로그에 남긴다(모든 exe·dll의 Authenticode 상태).
 4. `azure/login@v3`(OIDC, 비밀값 없음) → `azure/artifact-signing-action@v2`로 파일마다 한 단계씩 서명
    (`file-digest: SHA256`, `timestamp-rfc3161: http://timestamp.acs.microsoft.com`, `timestamp-digest: SHA256`).
    이 액션은 기존 서명을 덧붙이지 않고 바꾼다(`append-signature` 기본값 false).
-5. 확인: 우리 런처 2개가 `Valid`이고 타임스탬프가 있고 발급자가 Azure Artifact Signing(`Microsoft ID Verified CS ...`)인지 확인한다.
+5. 확인: 우리 런처가 `Valid`이고 타임스탬프가 있고 발급자가 Azure Artifact Signing(`Microsoft ID Verified CS ...`)인지 확인한다.
    나머지 exe·dll(제3자)에 우리 서명(같은 인증서 지문)이 없는지도 확인한다.
-6. zip: `build.yml` 결과물과 같은 구성(zip 안에 `chromite/`, `chromite-swing/` 폴더). zip의 파일 수가 폴더와 같은지,
+6. zip: `build.yml` 결과물과 같은 구성(zip 안에 `chromite-swing/` 폴더). zip의 파일 수가 폴더와 같은지,
    zip 안의 런처가 서명한 파일과 바이트 단위로 같은지 확인한다.
-   - 서명: `chromite-<버전>-windows-x64.zip`, `chromite-swing-<버전>-windows-x64.zip` → 결과물 `chromite-<버전>-windows-x64`
+   - 서명: `chromite-swing-<버전>-windows-x64.zip` → 결과물 `chromite-<버전>-windows-x64`
    - 서명 없음: 이름 끝에 `-UNSIGNED` → 결과물 `UNSIGNED-chromite-<버전>-windows-x64-not-for-release`(보관 3일)
 - 설치 프로그램(MSI·NSIS)은 아직 없어서 만들지 않는다. 생기면 설치 프로그램도 같은 작업에서 서명한다.
 
@@ -78,7 +80,7 @@ Chromite 릴리스 파일을 GitHub Actions에서 빌드하고 서명·확인한
      `stapler validate`, `spctl -a -t exec -vv`가 "accepted"이고 `source=Notarized Developer ID`인지 확인한다.
      dmg는 `stapler validate`와 `spctl -a -t open --context context:primary-signature -vv`. Gatekeeper가 꺼져 있으면 켠 뒤 확인한다.
   9. `keychain-delete`(`if: always()`): 키체인과 .p12·.p8 파일을 지운다.
-  - 결과물: 서명이면 `chromite-<버전>-macos-aarch64`(dmg 2개, zip 2개), 서명 없음이면 `-UNSIGNED` 이름으로
+  - 결과물: 서명이면 `chromite-<버전>-macos-aarch64`(`chromite-swing-<버전>-macos-aarch64.dmg`, `.zip`), 서명 없음이면 `-UNSIGNED` 이름으로
     `UNSIGNED-chromite-<버전>-macos-aarch64-not-for-release`(보관 3일).
 
 ### Release (작업 `release`)
@@ -96,13 +98,15 @@ Chromite 릴리스 파일을 GitHub Actions에서 빌드하고 서명·확인한
 macOS는 `python tools/release/macos_natives.py scan <앱>`(서명 상태는 Mach-O의 `LC_CODE_SIGNATURE` CMS에서 읽음),
 Windows는 `Get-AuthenticodeSignature`로 확인했다. 번들·드라이버 구성이 바뀌면 개수도 바뀐다. 스크립트는 릴리스 때마다 다시 찾는다.
 
-### Windows: 우리 런처 2개만
+### Windows: 우리 런처만
+
+SWT 제품(`chromite/chromite.exe`, `chromitec.exe`, `Chromite.app`)은 2026-11-07 삭제했다([swt-removal.md](swt-removal.md)).
+아래 표의 개수는 그 전에 두 제품을 조사한 값이고, `Chromite.app` 행과 SWT jar 행은 기록으로 남긴다.
 
 | 파일 | 서명 | 이유 |
 |---|---|---|
-| `chromite/chromite.exe` | **서명** | Tycho(p2 BrandingIron, `IconExe`)가 Eclipse 런처에 Chromite 아이콘을 넣어 만든 파일이다([tools/branding/gen_app_icons.py](../../tools/branding/gen_app_icons.py)). 이때 원래 붙어 있던 Eclipse 서명이 깨진다(`HashMismatch`, 서명자 Eclipse.org Foundation) |
-| `chromite-swing/chromite-swing.exe` | **서명** | 같은 이유(`HashMismatch`) |
-| `chromitec.exe`, `chromite-swingc.exe` (콘솔 런처) | 안 함 | 이름만 바뀐 Eclipse 파일이고 Eclipse 서명이 그대로 유효하다(`Valid`, Eclipse.org Foundation) |
+| `chromite-swing/chromite-swing.exe` | **서명** | Tycho(p2 BrandingIron, `IconExe`)가 Eclipse 런처에 Chromite 아이콘을 넣어 만든 파일이다([tools/branding/gen_app_icons.py](../../tools/branding/gen_app_icons.py)). 이때 원래 붙어 있던 Eclipse 서명이 깨진다(`HashMismatch`, 서명자 Eclipse.org Foundation) |
+| `chromite-swingc.exe` (콘솔 런처) | 안 함 | 이름만 바뀐 Eclipse 파일이고 Eclipse 서명이 그대로 유효하다(`Valid`, Eclipse.org Foundation) |
 | `plugins/org.eclipse.equinox.launcher.win32.win32.x86_64_*/eclipse_11924.dll` | 안 함 | Eclipse 파일, Eclipse 서명 `Valid` |
 | `plugins/com.sun.jna_*/com/sun/jna/win32-*/jnidispatch.dll` (3개) | 안 함 | JNA 파일, 서명 없음(`NotSigned`) |
 | jar 안의 DLL(SWT 등), JDBC 드라이버 jar | 안 함 | Authenticode 대상이 아니다(jar 안의 항목) |
@@ -212,7 +216,7 @@ App Sandbox는 쓰지 않는다(사용자 파일, 네트워크, 드라이버를 
 - **Release는 초안으로 만든다.** 공개는 되돌리기 어렵다. 사용자가 확인한 뒤 공개한다. 이미 공개된 Release는 워크플로가 바꾸지 않는다.
 - **두 OS가 모두 서명돼야 Release를 만든다.** 한쪽만 있는 릴리스를 막는다. 한쪽만 서명된 경우 서명 결과물은 워크플로 결과물로 7일 남는다.
 - **태그는 제품 버전과 같아야 한다.** 파일 이름의 버전과 앱 안의 버전(Info.plist `CFBundleShortVersionString` 등)이 어긋나지 않게 한다.
-  버전 체계는 아직 미결정이다([product-direction.md](product-direction.md)). 정해지면 이 검사도 그에 맞춘다.
+  버전 체계는 2026-11-07 정했다([versioning.md](versioning.md)): `major.minor.dev`, 태그 `v<버전>`, 한 번 쓴 번호와 태그는 다시 쓰거나 옮기지 않는다.
 - **dmg 파일 시스템은 HFS+(UDZO 압축)로 했다.** Apple Silicon이 지원하는 모든 macOS에서 열리고 압축 dmg로 가장 흔한 형식이다.
 - **`macos-sign`에도 `id-token: write`를 두었다.** Apple은 OIDC를 쓰지 않지만 안내서의 서명 작업 틀(Windows와 같은 틀)을 따랐다.
 
@@ -223,6 +227,8 @@ App Sandbox는 쓰지 않는다(사용자 파일, 네트워크, 드라이버를 
   - `release-macos.sh`: `bash -n` 구문 검사. `macos_natives.py`: 컴파일, `scan` 실행(위 목록), 가짜 서명기로 jar 다시 쓰기 확인(위 "jar 안의 Mach-O 처리").
   - Windows 묶기 단계: 로컬 빌드로 그대로 실행해 zip 2개(676개·398개 파일, 런처 바이트 일치)를 확인했다(서명 단계 제외).
   - `version` 단계: `v26.2.5` 통과, `v0.1.0` 실패, `devel` 통과.
+    버전 체계 적용 뒤(2026-11-07, 버전 0.1.0) 다시: `v0.1.0` 통과, `v0.1.1`·`v0.1.0-rc1`·`v0.1` 실패, `devel` 수동 실행 통과
+    (작업의 bash 스크립트를 환경 변수만 바꿔 이 PC에서 실행).
 - 확인하지 못함:
   - `actionlint`, `shellcheck`: 이 PC에 없고 내려받지 않았다.
   - `codesign`, `notarytool`, `stapler`, `spctl`, `hdiutil`, Azure 서명: Windows PC라 실행할 수 없다. 워크플로도 실행하지 않았다(push·태그 없음).
@@ -245,7 +251,6 @@ App Sandbox는 쓰지 않는다(사용자 파일, 네트워크, 드라이버를 
 - 브랜딩한 Eclipse 런처(`chromite.exe`, `chromite-swing.exe`)를 SEIZIA 게시자로 서명해도 되는지.
 - macOS에서 제3자 네이티브 라이브러리(Eclipse, JNA, SWT, junixsocket, FlatLaf)를 우리 Developer ID로 서명하는 것(Turbrix Electron 선례).
 - Turbrix와 같은 Apple Developer ID·App Store Connect API 키를 쓸지.
-- 버전 체계와 태그 이름(지금은 `v26.2.5`처럼 제품 버전).
 
 ## 사용자가 해야 할 일
 
@@ -261,7 +266,8 @@ App Sandbox는 쓰지 않는다(사용자 파일, 네트워크, 드라이버를 
 - [ ] `signing` 환경의 Environment secrets 6개(아직 없음, Apple 계정 필요): `APPLE_DEVID_P12_BASE64`, `APPLE_DEVID_P12_PASSWORD`,
       `APPLE_API_KEY_P8_BASE64`, `APPLE_API_KEY_ID`, `APPLE_API_ISSUER_ID`, `APPLE_TEAM_ID`.
 - [ ] Turbrix의 Developer ID·API 키를 같이 쓸지 결정.
-- [ ] 위 "미결정 사항" 답변. 그다음 `devel`에서 수동 실행으로 서명 경로를 한 번 확인(Release는 만들지 않음)하고, `v*` 태그로 첫 릴리스.
+- [ ] 위 "미결정 사항" 답변. 그다음 `devel`에서 수동 실행으로 서명 경로를 한 번 확인(Release는 만들지 않음)하고, `v0.1.0` 태그로 첫 릴리스
+      (태그 붙이는 순서는 [versioning.md](versioning.md) "릴리스 순서").
 
 ## upstream 대비 변경점
 
@@ -283,3 +289,6 @@ DBeaver는 이 저장소에 릴리스·서명 설정이 없다(별도 빌드 저
   이 경로들은 CI의 `tools/rename/gate.py`(G8)가 제품 uid·저장소 경로와 맞는지 검사한다.
 - 2026-11-07 내장 런타임 반영: Windows 런타임 exe·dll(제3자, 서명하지 않음), macOS 런타임 Mach-O 39개(기존 단계가 서명),
   `disable-library-validation` 이유 갱신(`entitlements.mac.plist` 주석 포함), `release.yml`의 런타임 단계, "남은 위험"의 JRE 항목.
+- 2026-11-07 SWT 프런트엔드 삭제([swt-removal.md](swt-removal.md)): `release.yml`이 Swing 제품만 빌드·서명(`chromite.exe`, `Chromite.app` 단계 삭제), 버전은 `chromite-swing.product`에서만 읽음.
+- 2026-11-07 버전 체계 결정([versioning.md](versioning.md)): `version` 작업이 `bump-version.ps1` 검사 모드로 버전을 읽고(파일 4개 일치 확인),
+  태그 push는 태그가 정확히 `v<버전>`이어야 함. 미결정 사항에서 "버전 체계와 태그 이름" 삭제. SWT 삭제 뒤 남아 있던 결과물 파일 이름(zip·dmg 2개)을 Swing 하나로 고침.

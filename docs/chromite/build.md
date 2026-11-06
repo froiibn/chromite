@@ -37,7 +37,7 @@ chromite/
 ### 빌드 명령
 
 ```bash
-mvn package -f product/aggregate/pom.xml -T1C -Pproduct-chromite-swt
+mvn package -f product/aggregate/pom.xml -T1C -Pproduct-chromite-swing
 ```
 
 `tools/build.cmd`, `tools/build.sh`는 Maven을 설치하지 않아도 되도록 `deps/dbeaver-common`의 Maven Wrapper(`mvnw`)로
@@ -58,8 +58,10 @@ CI는 작업마다 자기 플랫폼만 넣는다. 자세한 내용은 [runtime.m
 
 | 프로파일 (`product/pom.xml`) | 모듈 | 제품 |
 |---|---|---|
-| `product-chromite-swt` | `product/community` | SWT 제품 `chromite` |
 | `product-chromite-swing` | `product/swing` | Swing 제품 `chromite-swing` ([swing-frontend.md](swing-frontend.md)) |
+
+- SWT 제품(`product/community`, 프로파일 `product-chromite-swt`)은 2026-11-07 삭제했다([swt-removal.md](swt-removal.md)).
+  결과물은 `product/swing/target/products/com.seizia.chromite.swing.product/<os>/<ws>/<arch>/`(Windows `chromite-swing/`, macOS `ChromiteSwing.app`)이다.
 
 - `product/testing/ChromiteUnitTest.product`는 Maven 모듈이 아니다. 테스트 기반 클래스 `ChromiteUnitTest`의
   `@RunWithProduct("ChromiteUnitTest.product")`와 `osgi-app.properties`의 `productsPaths`(IDEA 작업 공간 생성기)가 이 파일을 쓴다.
@@ -80,6 +82,25 @@ CI는 작업마다 자기 플랫폼만 넣는다. 자세한 내용은 [runtime.m
 - 남긴 것: Office·Git·Debug 확장 feature(`com.seizia.chromite.{ext.office,git,debug}.feature`)와 그 번들은 그대로 빌드한다.
   이 feature들은 이제 어느 제품이나 p2 저장소에도 들어가지 않지만, 번들 일부(`data.office`, `bundle.apache.poi`)를 Swing 제품이 쓰고
   나머지는 SWT 확장 기능(PostgreSQL 디버거, Git, Office 내보내기 UI)이라, 지울지는 따로 정한다.
+  → 같은 날 SWT 프런트엔드 삭제에서 세 feature와 SWT 번들을 지웠다. `data.office`는 Swing feature가 직접 포함한다([swt-removal.md](swt-removal.md)).
+
+### 버전
+
+제품 버전은 `major.minor.dev`(0.1.0부터)이고, 원본은 `product/swing/chromite-swing.product`의 `version`이다.
+규칙과 설계는 [versioning.md](versioning.md)에 있다.
+
+- 사용자에게 줄 빌드를 만들기 전에 버전을 올리는 커밋을 먼저 한다.
+
+  ```powershell
+  pwsh tools/release/bump-version.ps1          # 지금 버전 출력, 버전이 적힌 파일 4개가 같은지 확인
+  pwsh tools/release/bump-version.ps1 0.1.1    # 4개 파일을 한 번에 바꿈(지금 버전과 v* 태그보다 높아야 함)
+  ```
+
+- 앱 안(About), macOS `Info.plist`, 릴리스 파일 이름과 태그 검사는 이 버전에서 나온다. Windows 런처에는 버전 리소스가 없다.
+  빌드할 때마다 바뀌는 정보는 OSGi 한정자(qualifier, 빌드 시각 `yyyyMMddHHmm`)에만 들어간다.
+- 번들·feature 버전(DBeaver에서 온 26.2.5, 1.0.x 등)과 Maven 부모 POM 버전(`1.0.0-SNAPSHOT`)은 제품 버전을 따르지 않는다.
+  예외는 제품을 정의하는 번들 `com.seizia.chromite.ui.swing`이다(About이 이 번들 버전을 보여 준다).
+- 결과물 폴더(`chromite-swing/`, `ChromiteSwing.app`)에는 버전이 없다. 버전이 들어간 zip·dmg는 `release.yml`이 만든다([signing.md](signing.md)).
 
 ## 설계 결정과 이유
 
@@ -166,3 +187,5 @@ git subtree pull --prefix=deps/datadam-api   --squash https://github.com/dbeaver
 - 2026-11-07 "내장 Java 런타임" 절 추가(`tools/jre/BundleJre.java`, [runtime.md](runtime.md)).
 - 2026-11-07 쓰지 않는 제품 삭제: Microsoft Store(`community-msstore`), Eclipse 플러그인(`repositories`, `ide.feature`, `ui.app.eclipse`),
   Snap(`snap-build`)과 그것만 쓰던 코드·메시지 키. `tools/build.*`의 프로파일을 `product-chromite-swt`만 남김. "빌드하는 제품" 절 추가.
+- 2026-11-07 SWT 프런트엔드 삭제([swt-removal.md](swt-removal.md)): 빌드 명령과 `tools/build.*`의 프로파일을 `product-chromite-swing`으로, "빌드하는 제품" 표에서 SWT 제품 삭제.
+- 2026-11-07 "버전" 절 추가: 제품 버전 체계 `major.minor.dev`(0.1.0), `tools/release/bump-version.ps1`([versioning.md](versioning.md)).
