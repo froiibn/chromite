@@ -1,6 +1,7 @@
 /*
  * DBeaver - Universal Database Manager
  * Copyright (C) 2010-2026 DBeaver Corp and others
+ * Modifications Copyright (C) 2026 Chromite contributors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -45,16 +46,49 @@ import org.jkiss.dbeaver.utils.GeneralUtils;
 import org.jkiss.utils.ArrayUtils;
 import org.jkiss.utils.CommonUtils;
 
+import java.sql.Types;
 import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Stream;
 
 /**
  * DBUtils
+ *
+ * 설계: {@link #mapTargetDataType} picks a target column type for data transfer (Copy Tables, import into a new table).
+ * Dialects convert well-known foreign type names first ({@link SQLDataTypeConverter}); the generic part then looks the
+ * source type name up in the target. Integer and floating point types fall back to the source JDBC type and its value
+ * range instead of parts of the type name, because vendor names (PostgreSQL int4, Oracle BINARY_DOUBLE) are unknown to
+ * other databases and the same name can mean a narrower type elsewhere (MySQL FLOAT is single precision).
+ *
+ * 변경 이력:
+ * - 2026-11-07 Chromite: numeric fallback by JDBC type and value range (PostgreSQL int4 became MySQL TINYINT,
+ *   float8 became FLOAT, MySQL DOUBLE became SQL Server int, Oracle NUMBER(12,2) became float and NUMBER became int),
+ *   shared timestamp checks for dialect converters.
  */
 public final class DBStructUtils {
 
     private static final Log log = Log.getLog(DBStructUtils.class);
+
+    // Value range ranks of integer and floating point types. A larger rank holds every value of a smaller one
+    // within the same group (integers below FLOAT_RANK_BASE, floating point types above it).
+    private static final int RANK_NONE = 0;
+    private static final int RANK_TINYINT = 1;
+    private static final int RANK_SMALLINT = 2;
+    private static final int RANK_INTEGER = 3;
+    private static final int RANK_BIGINT = 4;
+    private static final int FLOAT_RANK_BASE = 10;
+    private static final int RANK_REAL = 11;
+    private static final int RANK_DOUBLE = 12;
+    // Binary digits of an IEEE single precision value: JDBC FLOAT up to this precision is a REAL
+    private static final int MAX_REAL_BINARY_PRECISION = 24;
+    private static final String UNSIGNED_MODIFIER = "unsigned";
+
+    // Standard and common vendor names. The target type actually used is the one with the smallest rank that still
+    // holds the source range; the order breaks ties. Double precision names come first because some drivers report
+    // single precision types with a large precision (Oracle BINARY_FLOAT as FLOAT with precision 38).
+    private static final String[] INTEGER_TYPE_NAMES = {"tinyint", "smallint", "int2", "integer", "int", "int4", "bigint", "int8"};
+    private static final String[] FLOAT_TYPE_NAMES = {"double precision", "double", "float8", "binary_double", "float4", "real", "binary_float", "float"};
+    private static final String[] DECIMAL_TYPE_NAMES = {"numeric", "decimal", "number"};
 
     private static final String INT_DATA_TYPE = "int";
     private static final String INTEGER_DATA_TYPE = "integer";
@@ -396,6 +430,22 @@ public final class DBStructUtils {
                 // Type mismatch
                 dataType = null;
             }
+            if (dataKind == DBPDataKind.NUMERIC) {
+                // Choose by the source JDBC type and value range. Guessing by name parts below picked the first
+                // target type containing "int" (MySQL TINYINT for PostgreSQL int4/int8) or "float" (single precision
+                // FLOAT for float8), and an equal name may be narrower in the target (SQL Server float -> MySQL FLOAT).
+                int sourceRank = getNumericRank(srcTypedObject.getTypeID(), srcTypedObject.getPrecision(), srcTypedObject.getFullTypeName(), false);
+                if (dataType != null && isNarrowerNumericType(dataType, sourceRank)) {
+                    dataType = null;
+                }
+                if (dataType == null) {
+                    DBSDataType rangeType = findNumericTargetType(dataTypeProvider, srcTypedObject, sourceRank);
+                    if (rangeType != null) {
+                        dataType = rangeType;
+                        typeName = rangeType.getTypeName();
+                    }
+                }
+            }
             if (dataType == null) {
                 // Type not supported by target database
                 // Let's try to find something similar
@@ -511,6 +561,118 @@ public final class DBStructUtils {
             }
         }
         return typeName;
+    }
+
+    /**
+     * Value range rank of an integer or floating point type, {@link #RANK_NONE} for other types.
+     * JDBC FLOAT is double precision unless its (binary) precision says otherwise; PostgreSQL reports float4 as FLOAT.
+     * A FLOAT without precision counts as double for a source (keeps every value) and as single precision for a target
+     * (Oracle BINARY_FLOAT reports FLOAT without precision).
+     */
+    private static int getNumericRank(int typeID, @Nullable Integer precision, @Nullable String fullTypeName, boolean target) {
+        int rank = switch (typeID) {
+            case Types.TINYINT -> RANK_TINYINT;
+            case Types.SMALLINT -> RANK_SMALLINT;
+            case Types.INTEGER -> RANK_INTEGER;
+            case Types.BIGINT -> RANK_BIGINT;
+            case Types.REAL -> RANK_REAL;
+            case Types.DOUBLE -> RANK_DOUBLE;
+            case Types.FLOAT -> {
+                if (precision == null || precision <= 0) {
+                    yield target ? RANK_REAL : RANK_DOUBLE;
+                }
+                yield precision <= MAX_REAL_BINARY_PRECISION ? RANK_REAL : RANK_DOUBLE;
+            }
+            default -> RANK_NONE;
+        };
+        if (rank != RANK_NONE && rank < FLOAT_RANK_BASE
+            && CommonUtils.notEmpty(fullTypeName).toLowerCase(Locale.ENGLISH).contains(UNSIGNED_MODIFIER)) {
+            // An unsigned integer needs the next signed type (MySQL INT UNSIGNED holds 4294967295)
+            rank++;
+        }
+        return rank;
+    }
+
+    private static boolean isSameRankGroup(int rank1, int rank2) {
+        return rank1 != RANK_NONE && rank2 != RANK_NONE && (rank1 < FLOAT_RANK_BASE) == (rank2 < FLOAT_RANK_BASE);
+    }
+
+    private static boolean isNarrowerNumericType(@NotNull DBSDataType targetType, int sourceRank) {
+        int targetRank = getNumericRank(targetType.getTypeID(), targetType.getPrecision(), targetType.getTypeName(), true);
+        return isSameRankGroup(targetRank, sourceRank) && targetRank < sourceRank;
+    }
+
+    /**
+     * Finds the target type for a numeric source whose type name the target does not know (or knows as a narrower
+     * type): the smallest integer or floating point type holding the source range, the target decimal type for a
+     * decimal source with explicit precision (Oracle NUMBER(12,2)), or double precision for a decimal source without
+     * precision (Oracle NUMBER). Returns null when the target has no such type,
+     * then the name based search of {@link #mapTargetDataType} applies.
+     */
+    @Nullable
+    private static DBSDataType findNumericTargetType(
+        @NotNull DBPDataTypeProvider dataTypeProvider,
+        @NotNull DBSTypedObject source,
+        int sourceRank
+    ) {
+        if (sourceRank == RANK_NONE) {
+            int typeID = source.getTypeID();
+            if (typeID != Types.NUMERIC && typeID != Types.DECIMAL) {
+                return null;
+            }
+            if (CommonUtils.toInt(source.getPrecision()) <= 0) {
+                // A decimal without precision (Oracle NUMBER) holds any scale: a fixed-scale type or an integer
+                // (the name search picked int) would cut the fraction, double precision keeps the value approximately
+                sourceRank = RANK_DOUBLE;
+            } else {
+                for (String name : DECIMAL_TYPE_NAMES) {
+                    DBSDataType type = dataTypeProvider.getLocalDataType(name);
+                    if (type != null && type.getDataKind() == DBPDataKind.NUMERIC) {
+                        return type;
+                    }
+                }
+                return null;
+            }
+        }
+        DBSDataType bestType = null;
+        int bestRank = Integer.MAX_VALUE;
+        for (String name : sourceRank < FLOAT_RANK_BASE ? INTEGER_TYPE_NAMES : FLOAT_TYPE_NAMES) {
+            DBSDataType type = dataTypeProvider.getLocalDataType(name);
+            if (type == null || type.getDataKind() != DBPDataKind.NUMERIC) {
+                continue;
+            }
+            int rank = getNumericRank(type.getTypeID(), type.getPrecision(), type.getTypeName(), true);
+            if (isSameRankGroup(rank, sourceRank) && rank >= sourceRank && rank < bestRank) {
+                bestType = type;
+                bestRank = rank;
+            }
+        }
+        return bestType;
+    }
+
+    /**
+     * True for a date-time type that keeps a time zone or an offset: PostgreSQL timestamptz, Oracle
+     * TIMESTAMP WITH (LOCAL) TIME ZONE, SQL Server datetimeoffset. Their drivers report different JDBC types, so the
+     * name is checked too.
+     */
+    public static boolean isTimestampWithTimeZone(@NotNull DBSTypedObject type) {
+        if (type.getDataKind() != DBPDataKind.DATETIME) {
+            return false;
+        }
+        if (type.getTypeID() == Types.TIMESTAMP_WITH_TIMEZONE) {
+            return true;
+        }
+        String name = CommonUtils.notEmpty(type.getTypeName()).toLowerCase(Locale.ENGLISH);
+        return name.equals("timestamptz") || name.equals("datetimeoffset") || (name.startsWith("timestamp") && name.contains("time zone"));
+    }
+
+    /**
+     * True for a date-time type with date and time parts (JDBC TIMESTAMP, which includes Oracle DATE), with or
+     * without a time zone. Dialect type converters map these to their widest date-time type because the type with the
+     * same name can be narrower (MySQL TIMESTAMP ends in 2038, SQL Server datetime has 1/300 s precision).
+     */
+    public static boolean isTimestamp(@NotNull DBSTypedObject type) {
+        return type.getDataKind() == DBPDataKind.DATETIME && (type.getTypeID() == Types.TIMESTAMP || isTimestampWithTimeZone(type));
     }
 
     /**

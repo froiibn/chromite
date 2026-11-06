@@ -1,6 +1,7 @@
 /*
  * DBeaver - Universal Database Manager
  * Copyright (C) 2010-2026 DBeaver Corp and others
+ * Modifications Copyright (C) 2026 Chromite contributors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -41,12 +42,14 @@ import org.jkiss.dbeaver.model.sql.parser.tokens.predicates.TokenPredicateSet;
 import org.jkiss.dbeaver.model.sql.parser.tokens.predicates.TokenPredicatesCondition;
 import org.jkiss.dbeaver.model.struct.DBSDataType;
 import org.jkiss.dbeaver.model.struct.DBSTypedObject;
+import org.jkiss.dbeaver.model.struct.DBStructUtils;
 import org.jkiss.dbeaver.model.struct.rdb.DBSProcedure;
 import org.jkiss.dbeaver.model.struct.rdb.DBSProcedureType;
 import org.jkiss.utils.ArrayUtils;
 import org.jkiss.utils.CommonUtils;
 import org.jkiss.utils.SecurityUtils;
 
+import java.sql.Types;
 import java.util.Arrays;
 import java.util.EnumSet;
 import java.util.Locale;
@@ -54,10 +57,28 @@ import java.util.Set;
 
 /**
  * Oracle SQL dialect
+ *
+ * 설계: {@link #convertExternalDataType} maps types of other databases for data transfer into new tables. Unbounded
+ * character types (PostgreSQL text, SQL Server nvarchar(max)) became VARCHAR2(100) or VARCHAR2(4000) and cut values,
+ * so they become CLOB; uuid became an unrelated object type.
+ *
+ * 변경 이력:
+ * - 2026-11-07 Chromite: data transfer type mapping — unbounded character types, uuid, timestamps with time zone,
+ *   time of day (Oracle has no TIME type), IEEE floating point values (BINARY_FLOAT/BINARY_DOUBLE).
  */
 public class OracleSQLDialect extends JDBCSQLDialect
     implements SQLDataTypeConverter, SQLDialectDDLExtension, SQLDialectSchemaController {
     private static final Log log = Log.getLog(OracleSQLDialect.class);
+
+    // Text form of a UUID (8-4-4-4-12 hex digits)
+    private static final int UUID_TEXT_LENGTH = 36;
+    // Longest VARCHAR2 with the default MAX_STRING_SIZE = STANDARD
+    private static final long MAX_VARCHAR2_LENGTH = 4000;
+    private static final String TYPE_NAME_TIMESTAMP_WITH_TIME_ZONE = "TIMESTAMP WITH TIME ZONE";
+    private static final String TYPE_NAME_BINARY_FLOAT = "BINARY_FLOAT";
+    private static final String TYPE_NAME_BINARY_DOUBLE = "BINARY_DOUBLE";
+    // Binary digits of an IEEE single precision value: JDBC FLOAT up to this precision is single precision
+    private static final int MAX_BINARY_FLOAT_PRECISION = 24;
 
     private static final String[] EXEC_KEYWORDS = new String[]{"call"};
 
@@ -612,6 +633,36 @@ public class OracleSQLDialect extends JDBCSQLDialect
                     }
                 }
                 break;
+            case "UUID":
+            case "UNIQUEIDENTIFIER":
+                localDataType = OracleConstants.TYPE_NAME_VARCHAR2;
+                dataTypeModifies = String.valueOf(UUID_TEXT_LENGTH);
+                break;
+        }
+        if (localDataType == null && DBStructUtils.isTimestampWithTimeZone(sourceTypedObject)) {
+            // timestamptz, datetimeoffset: TIMESTAMP would drop the offset
+            localDataType = TYPE_NAME_TIMESTAMP_WITH_TIME_ZONE;
+        }
+        if (localDataType == null) {
+            // FLOAT, REAL and DOUBLE PRECISION of Oracle are decimal NUMBER types (exponent up to 125), so IEEE values
+            // of other databases overflowed; BINARY_FLOAT/BINARY_DOUBLE hold them
+            Integer precision = sourceTypedObject.getPrecision();
+            switch (sourceTypedObject.getTypeID()) {
+                case Types.REAL -> localDataType = TYPE_NAME_BINARY_FLOAT;
+                case Types.DOUBLE -> localDataType = TYPE_NAME_BINARY_DOUBLE;
+                case Types.FLOAT -> localDataType = precision != null && precision > 0 && precision <= MAX_BINARY_FLOAT_PRECISION ?
+                    TYPE_NAME_BINARY_FLOAT : TYPE_NAME_BINARY_DOUBLE;
+            }
+        }
+        if (localDataType == null && (sourceTypedObject.getTypeID() == Types.TIME || sourceTypedObject.getTypeID() == Types.TIME_WITH_TIMEZONE)) {
+            // Oracle has no TIME type (CREATE TABLE failed with ORA-00902): keep the time of day on 1970-01-01
+            localDataType = OracleConstants.TYPE_NAME_TIMESTAMP;
+        }
+        if (localDataType == null && sourceTypedObject.getDataKind() == DBPDataKind.STRING) {
+            long maxLength = sourceTypedObject.getMaxLength();
+            if (maxLength <= 0 || maxLength > MAX_VARCHAR2_LENGTH) {
+                localDataType = OracleConstants.TYPE_CLOB;
+            }
         }
         if (localDataType == null) {
             return null;

@@ -1,6 +1,7 @@
 /*
  * DBeaver - Universal Database Manager
  * Copyright (C) 2010-2026 DBeaver Corp and others
+ * Modifications Copyright (C) 2026 Chromite contributors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -43,7 +44,16 @@ import java.time.*;
 import java.util.Date;
 
 /**
- * JDBC string value handler
+ * JDBC date/time value handler
+ *
+ * 설계: values of other Java date/time types are converted to the JDBC type of the column before binding. An
+ * OffsetDateTime or ZonedDateTime is an instant, so it becomes the Timestamp of the same instant.
+ *
+ * 변경 이력:
+ * - 2026-11-07 Chromite: OffsetDateTime keeps its instant (its wall time was read in the JVM time zone, which moved
+ *   SQL Server datetimeoffset values copied to PostgreSQL timestamptz or MySQL DATETIME by the offset difference),
+ *   ZonedDateTime is accepted (Oracle TIMESTAMP WITH TIME ZONE values failed with "Timestamp format must be ...");
+ *   class comment said "string value handler".
  */
 public class JDBCDateTimeValueHandler extends DateTimeCustomValueHandler {
 
@@ -290,7 +300,9 @@ public class JDBCDateTimeValueHandler extends DateTimeCustomValueHandler {
         } else if (value instanceof LocalDateTime localDateTime) {
             return Timestamp.valueOf(localDateTime);
         } else if (value instanceof OffsetDateTime offsetDateTime) {
-            return Timestamp.valueOf((offsetDateTime.toLocalDateTime()));
+            return Timestamp.from(offsetDateTime.toInstant());
+        } else if (value instanceof ZonedDateTime zonedDateTime) {
+            return Timestamp.from(zonedDateTime.toInstant());
         } else if (value instanceof LocalTime localTime) {
             return Timestamp.valueOf(localTime.atDate(LocalDate.EPOCH));
         } else if (value instanceof OffsetTime offsetTime) {

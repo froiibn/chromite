@@ -1,6 +1,7 @@
 /*
  * DBeaver - Universal Database Manager
  * Copyright (C) 2010-2026 DBeaver Corp and others
+ * Modifications Copyright (C) 2026 Chromite contributors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -26,11 +27,19 @@ import org.jkiss.dbeaver.model.exec.DBCSession;
 import org.jkiss.dbeaver.model.exec.jdbc.JDBCResultSet;
 import org.jkiss.dbeaver.model.impl.jdbc.data.handlers.JDBCContentValueHandler;
 import org.jkiss.dbeaver.model.struct.DBSTypedObject;
+import org.jkiss.dbeaver.utils.ContentUtils;
 
 import java.sql.SQLException;
 
 /**
  * PostgreJSONValueHandler
+ *
+ * 설계: json/jsonb values are PostgreContentJSON, which binds as Types.OTHER. Text content of other databases
+ * (Oracle JSON, character LOBs) is turned into it too; bound as character data, PostgreSQL rejected it
+ * ("column is of type jsonb but expression is of type character varying").
+ *
+ * 변경 이력:
+ * - 2026-11-07 Chromite: convert content values of other handlers (Copy Tables Oracle JSON -> jsonb).
  */
 public class PostgreJSONValueHandler extends JDBCContentValueHandler {
 
@@ -59,6 +68,8 @@ public class PostgreJSONValueHandler extends JDBCContentValueHandler {
             case null -> new PostgreContentJSON(session.getExecutionContext(), null);
             case PostgreContentJSON contentJSON -> copy ? contentJSON.cloneValue(session.getProgressMonitor()) : contentJSON;
             case String stringValue -> new PostgreContentJSON(session.getExecutionContext(), stringValue);
+            case DBDContent content when !content.isNull() ->
+                new PostgreContentJSON(session.getExecutionContext(), ContentUtils.getContentStringValue(session.getProgressMonitor(), content));
             default -> super.getValueFromObject(session, type, object, copy, validateValue);
         };
     }

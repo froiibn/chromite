@@ -1,6 +1,7 @@
 /*
  * DBeaver - Universal Database Manager
  * Copyright (C) 2010-2026 DBeaver Corp and others
+ * Modifications Copyright (C) 2026 Chromite contributors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,7 +20,9 @@ package org.jkiss.dbeaver.ext.mysql.model;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.ext.mysql.MySQLConstants;
+import org.jkiss.dbeaver.model.DBPDataKind;
 import org.jkiss.dbeaver.model.DBPDataSource;
+import org.jkiss.dbeaver.model.DBPDataTypeProvider;
 import org.jkiss.dbeaver.model.DBPIdentifierCase;
 import org.jkiss.dbeaver.model.exec.jdbc.JDBCDatabaseMetaData;
 import org.jkiss.dbeaver.model.exec.jdbc.JDBCSession;
@@ -29,23 +32,47 @@ import org.jkiss.dbeaver.model.impl.sql.BasicSQLDialect;
 import org.jkiss.dbeaver.model.sql.SQLDialectFeatures;
 import org.jkiss.dbeaver.model.sql.*;
 import org.jkiss.dbeaver.model.struct.DBSTypedObject;
+import org.jkiss.dbeaver.model.struct.DBStructUtils;
 import org.jkiss.dbeaver.model.struct.rdb.DBSProcedure;
 import org.jkiss.dbeaver.model.struct.rdb.DBSProcedureType;
 import org.jkiss.utils.ArrayUtils;
 import org.jkiss.utils.CommonUtils;
 
+import java.sql.Types;
 import java.util.Arrays;
 import java.util.EnumSet;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
  * MySQL dialect
+ *
+ * 설계: {@link #convertExternalDataType} maps types of other databases for data transfer into new tables where the
+ * generic name search picks a MySQL type that is narrower or needs a length: TIMESTAMP only covers 1970..2038, TEXT
+ * holds 64 KB, VARBINARY/BINARY need a length, and JSON or character LOBs of other databases are CONTENT, which the
+ * generic search maps to LONGBLOB.
+ *
+ * 변경 이력:
+ * - 2026-11-07 Chromite: data transfer type mapping — timestamps, uuid, JSON, unbounded text and binary data, LOBs,
+ *   TINYINT of other databases.
  */
 public class MySQLDialect extends JDBCSQLDialect implements SQLDialectSchemaController, SQLDialectDDLExtension {
+
+    // Target types of convertExternalDataType
+    private static final String TYPE_NAME_UUID = "UUID";
+    private static final String TYPE_NAME_UUID_TEXT = "CHAR(36)";
+    private static final String TYPE_NAME_JSON = "JSON";
+    private static final String TYPE_NAME_LONGTEXT = "LONGTEXT";
+    private static final String TYPE_NAME_LONGBLOB = "LONGBLOB";
+    private static final String TYPE_NAME_DATETIME_MICROS = "DATETIME(6)";
+    private static final String TYPE_NAME_SMALLINT = "SMALLINT";
+    // VARCHAR holds 65535 bytes, that is 16383 utf8mb4 characters; VARBINARY holds 65535 bytes
+    private static final long MAX_VARCHAR_CHARACTERS = 16383;
+    private static final long MAX_VARBINARY_LENGTH = 65535;
 
     /** MySQL resolves an unqualified stored-program variable before a same-named table column.
      *
@@ -517,6 +544,66 @@ public class MySQLDialect extends JDBCSQLDialect implements SQLDialectSchemaCont
     @Override
     public boolean supportsAlterHasColumn() {
         return false;
+    }
+
+    @Nullable
+    @Override
+    public String convertExternalDataType(
+        @NotNull SQLDialect sourceDialect,
+        @NotNull DBSTypedObject sourceTypedObject,
+        @Nullable DBPDataTypeProvider targetTypeProvider
+    ) {
+        String converted = super.convertExternalDataType(sourceDialect, sourceTypedObject, targetTypeProvider);
+        if (converted != null || sourceDialect instanceof MySQLDialect) {
+            return converted;
+        }
+        String typeName = SQLUtils.stripColumnTypeModifiers(CommonUtils.notEmpty(sourceTypedObject.getTypeName())).toLowerCase(Locale.ENGLISH);
+        int typeID = sourceTypedObject.getTypeID();
+        switch (typeName) {
+            case MySQLConstants.TYPE_UUID:
+            case "uniqueidentifier":
+                // MariaDB 10.7+ has UUID, MySQL stores the text form
+                return hasLocalDataType(targetTypeProvider, MySQLConstants.TYPE_UUID) ? TYPE_NAME_UUID : TYPE_NAME_UUID_TEXT;
+            case MySQLConstants.TYPE_JSON:
+            case "jsonb":
+                // MariaDB JSON is LONGTEXT and is not in its type list
+                return hasLocalDataType(targetTypeProvider, MySQLConstants.TYPE_JSON) ? TYPE_NAME_JSON : TYPE_NAME_LONGTEXT;
+            case "clob":
+            case "nclob":
+                return TYPE_NAME_LONGTEXT;
+            case "blob":
+                // Oracle reports the LOB locator length (4000) as the BLOB length
+                return TYPE_NAME_LONGBLOB;
+        }
+        if (typeID == Types.CLOB || typeID == Types.NCLOB) {
+            return TYPE_NAME_LONGTEXT;
+        }
+        if (typeID == Types.BLOB) {
+            return TYPE_NAME_LONGBLOB;
+        }
+        if (DBStructUtils.isTimestamp(sourceTypedObject)) {
+            // MySQL TIMESTAMP covers 1970..2038 only. The offset of a zoned value is not kept (MySQL has no such type).
+            return TYPE_NAME_DATETIME_MICROS;
+        }
+        if (typeID == Types.TINYINT) {
+            // SQL Server tinyint is unsigned (0..255), MySQL TINYINT is signed
+            return TYPE_NAME_SMALLINT;
+        }
+        long maxLength = sourceTypedObject.getMaxLength();
+        DBPDataKind dataKind = sourceTypedObject.getDataKind();
+        if (dataKind == DBPDataKind.STRING && (maxLength <= 0 || maxLength > MAX_VARCHAR_CHARACTERS)) {
+            // PostgreSQL text, SQL Server nvarchar(max)/ntext: TEXT would cut values longer than 64 KB
+            return TYPE_NAME_LONGTEXT;
+        }
+        if (dataKind == DBPDataKind.BINARY && (maxLength <= 0 || maxLength > MAX_VARBINARY_LENGTH)) {
+            // PostgreSQL bytea, SQL Server varbinary(max): BINARY/VARBINARY without a length is BINARY(1) or invalid
+            return TYPE_NAME_LONGBLOB;
+        }
+        return null;
+    }
+
+    private static boolean hasLocalDataType(@Nullable DBPDataTypeProvider typeProvider, @NotNull String typeName) {
+        return typeProvider != null && typeProvider.getLocalDataType(typeName) != null;
     }
 
     @Nullable
