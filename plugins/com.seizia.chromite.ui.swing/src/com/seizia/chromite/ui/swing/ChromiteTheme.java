@@ -19,6 +19,7 @@ package com.seizia.chromite.ui.swing;
 import com.formdev.flatlaf.FlatLaf;
 import com.formdev.flatlaf.fonts.inter.FlatInterFont;
 import com.formdev.flatlaf.fonts.jetbrains_mono.FlatJetBrainsMonoFont;
+import com.seizia.chromite.ui.swing.internal.CoreMessages;
 import org.jkiss.code.NotNull;
 import org.jkiss.dbeaver.Log;
 import org.jkiss.dbeaver.model.preferences.DBPPreferenceStore;
@@ -43,11 +44,12 @@ import java.util.function.Supplier;
  * - 2026-11-06 B단계: 최초 작성 (docs/chromite/swing-frontend.md "구현 현황 — B단계")
  * - 2026-11-06 디자인 적용: Inter·JetBrains Mono 글꼴 등록 (docs/chromite/design-spec.md "적용 현황")
  * - 2026-11-06 편집기 글꼴 Cascadia Mono 등록 (docs/chromite/design-spec.md "편집기 글꼴과 SQL 색")
+ * - 2026-11-06 화면 문구를 CoreMessages로 옮김(OS 언어를 따름)
  */
 enum ChromiteTheme {
 
-    LIGHT("Light", ChromiteLightLaf::new),
-    DARK("Dark", ChromiteDarkLaf::new);
+    LIGHT(CoreMessages.theme_light, ChromiteLightLaf::new),
+    DARK(CoreMessages.theme_dark, ChromiteDarkLaf::new);
 
     private static final Log log = Log.getLog(ChromiteTheme.class);
 

@@ -27,7 +27,8 @@ Require-Bundle: org.eclipse.equinox.app,
  org.jkiss.dbeaver.ext.oracle,
  org.jkiss.dbeaver.ext.postgresql,
  org.jkiss.dbeaver.model.jdbc,
- com.github.weisj.jsvg
+ com.github.weisj.jsvg,
+ org.eclipse.osgi
 Require-Capability: osgi.extender;filter:="(osgi.extender=osgi.serviceloader.registrar)"
 Provide-Capability: osgi.serviceloader;osgi.serviceloader="com.github.weisj.jsvg.logging.LogManager";register:="com.seizia.chromite.ui.swing.JsvgLogManager"
 Automatic-Module-Name: com.seizia.chromite.ui.swing

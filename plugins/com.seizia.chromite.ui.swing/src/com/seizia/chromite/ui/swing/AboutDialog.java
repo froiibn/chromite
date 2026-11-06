@@ -17,8 +17,10 @@
 package com.seizia.chromite.ui.swing;
 
 import com.formdev.flatlaf.FlatClientProperties;
+import com.seizia.chromite.ui.swing.internal.CoreMessages;
 import org.eclipse.core.runtime.IProduct;
 import org.eclipse.core.runtime.Platform;
+import org.eclipse.osgi.util.NLS;
 import org.jkiss.code.NotNull;
 import org.jkiss.dbeaver.runtime.DBWorkbench;
 import org.jkiss.dbeaver.utils.GeneralUtils;
@@ -40,13 +42,14 @@ import java.awt.event.MouseEvent;
  *
  * 변경 이력:
  * - 2026-11-06 B단계: 최초 작성 (docs/chromite/swing-frontend.md "구현 현황 — B단계")
+ * - 2026-11-06 화면 문구를 CoreMessages로 옮김(OS 언어를 따름)
  */
 final class AboutDialog extends JDialog {
 
     private static final String WEBSITE = "https://github.com/froiibn/chromite"; //$NON-NLS-1$
 
     private AboutDialog(@NotNull Frame owner) {
-        super(owner, "About " + GeneralUtils.getProductName(), true);
+        super(owner, NLS.bind(CoreMessages.main_about, GeneralUtils.getProductName()), true);
         setDefaultCloseOperation(DISPOSE_ON_CLOSE);
 
         IProduct product = Platform.getProduct();
@@ -57,14 +60,14 @@ final class AboutDialog extends JDialog {
         nameLabel.putClientProperty(FlatClientProperties.STYLE_CLASS, "h1"); //$NON-NLS-1$
         JLabel subTitleLabel = new JLabel(CommonUtils.notEmpty(subTitle));
         subTitleLabel.putClientProperty(FlatClientProperties.STYLE_CLASS, "h3"); //$NON-NLS-1$
-        JLabel versionLabel = new JLabel("Version " + GeneralUtils.getPlainVersion());
+        JLabel versionLabel = new JLabel(NLS.bind(CoreMessages.about_version, GeneralUtils.getPlainVersion()));
         JLabel copyrightLabel = new JLabel(CommonUtils.notEmpty(copyright));
         copyrightLabel.putClientProperty(FlatClientProperties.STYLE_CLASS, "small"); //$NON-NLS-1$
 
         JLabel websiteLabel = new JLabel(WEBSITE);
         websiteLabel.putClientProperty(FlatClientProperties.STYLE, "foreground: $Component.linkColor"); //$NON-NLS-1$
         websiteLabel.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        websiteLabel.setToolTipText("Open in browser");
+        websiteLabel.setToolTipText(CoreMessages.about_open_in_browser);
         websiteLabel.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
@@ -86,7 +89,7 @@ final class AboutDialog extends JDialog {
         JLabel logoLabel = new JLabel(ChromiteIcons.getLogoIcon(64));
         logoLabel.setVerticalAlignment(SwingConstants.TOP);
 
-        JButton okButton = new JButton("OK");
+        JButton okButton = new JButton(CoreMessages.common_ok);
         okButton.addActionListener(e -> dispose());
         JPanel buttons = new JPanel(new FlowLayout(FlowLayout.RIGHT, 0, 0));
         buttons.add(okButton);

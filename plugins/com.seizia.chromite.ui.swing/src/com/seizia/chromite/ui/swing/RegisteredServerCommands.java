@@ -16,6 +16,8 @@
  */
 package com.seizia.chromite.ui.swing;
 
+import com.seizia.chromite.ui.swing.internal.CoreMessages;
+import org.eclipse.osgi.util.NLS;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
@@ -62,6 +64,7 @@ import java.util.Objects;
  *
  * 변경 이력:
  * - 2026-11-06 Registered Servers: 최초 작성 (docs/chromite/swing-registered-servers.md)
+ * - 2026-11-06 화면 문구를 CoreMessages로 옮김(OS 언어를 따름)
  */
 final class RegisteredServerCommands {
 
@@ -110,8 +113,8 @@ final class RegisteredServerCommands {
      */
     @Nullable
     static DBPDataSourceFolder newGroup(@NotNull Component parent, @NotNull DBPDataSourceRegistry registry, @Nullable DBPDataSourceFolder parentGroup) {
-        String name = askGroupName(parent, "New Server Group",
-            parentGroup == null ? "Group name:" : "Group name (in " + parentGroup.getName() + "):", "", registry, parentGroup);
+        String name = askGroupName(parent, CoreMessages.servers_new_group_title,
+            parentGroup == null ? CoreMessages.servers_group_name : NLS.bind(CoreMessages.servers_group_name_in, parentGroup.getName()), "", registry, parentGroup);
         if (name == null) {
             return null;
         }
@@ -122,7 +125,7 @@ final class RegisteredServerCommands {
 
     static void renameGroup(@NotNull Component parent, @NotNull DBPDataSourceFolder folder) {
         DBPDataSourceRegistry registry = folder.getDataSourceRegistry();
-        String name = askGroupName(parent, "Rename Server Group", "New name:", folder.getName(), registry, folder.getParent());
+        String name = askGroupName(parent, CoreMessages.servers_rename_group_title, CoreMessages.servers_new_name, folder.getName(), registry, folder.getParent());
         if (name == null || name.equals(folder.getName())) {
             return;
         }
@@ -133,7 +136,7 @@ final class RegisteredServerCommands {
                 node.rename(new VoidProgressMonitor(), name);
             }
         } catch (DBException e) {
-            DBWorkbench.getPlatformUI().showError("Rename Server Group", "Can't rename group '" + folder.getName() + "'", e);
+            DBWorkbench.getPlatformUI().showError(CoreMessages.servers_rename_group_title, NLS.bind(CoreMessages.servers_cant_rename_group, folder.getName()), e);
         }
     }
 
@@ -143,18 +146,21 @@ final class RegisteredServerCommands {
     static void deleteGroup(@NotNull Component parent, @NotNull DBPDataSourceFolder folder) {
         int servers = countServers(folder);
         int subgroups = countSubgroups(folder);
-        String target = folder.getParent() == null ? "the top level" : "'" + folder.getParent().getName() + "'";
-        StringBuilder message = new StringBuilder("Delete server group '" + folder.getName() + "'?");
+        String target = folder.getParent() == null ? CoreMessages.servers_target_top_level
+            : NLS.bind(CoreMessages.servers_target_group, folder.getParent().getName());
+        StringBuilder message = new StringBuilder(NLS.bind(CoreMessages.servers_delete_group_question, folder.getName()));
         if (subgroups > 0) {
-            message.append("\n\nIts ").append(subgroups).append(subgroups == 1 ? " subgroup is" : " subgroups are").append(" deleted too.");
+            message.append("\n\n").append(NLS.bind(subgroups == 1 ? CoreMessages.servers_delete_subgroup : CoreMessages.servers_delete_subgroups, subgroups)); //$NON-NLS-1$
         }
         if (servers > 0) {
-            message.append(subgroups > 0 ? "\n" : "\n\n").append(servers == 1 ? "The server" : "The " + servers + " servers")
-                .append(" in it ").append(subgroups > 0 ? "(including subgroups) " : "")
-                .append(servers == 1 ? "is" : "are").append(" not deleted: ").append(servers == 1 ? "it moves" : "they move")
-                .append(" to ").append(target).append('.');
+            // One whole sentence per case (one or more servers, with or without subgroups) so that translations can
+            // order the words freely; only the target (the top level or a group name) is passed in
+            String serversMessage = servers == 1
+                ? (subgroups > 0 ? CoreMessages.servers_delete_server_moves_sub : CoreMessages.servers_delete_server_moves)
+                : (subgroups > 0 ? CoreMessages.servers_delete_servers_move_sub : CoreMessages.servers_delete_servers_move);
+            message.append(subgroups > 0 ? "\n" : "\n\n").append(NLS.bind(serversMessage, target, servers)); //$NON-NLS-1$ //$NON-NLS-2$
         }
-        int answer = JOptionPane.showConfirmDialog(getWindow(parent), message.toString(), "Delete Server Group",
+        int answer = JOptionPane.showConfirmDialog(getWindow(parent), message.toString(), CoreMessages.servers_delete_group_title,
             JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE);
         if (answer != JOptionPane.YES_OPTION) {
             return;
@@ -198,15 +204,16 @@ final class RegisteredServerCommands {
         DBPDataSourceRegistry registry = folder.getDataSourceRegistry();
         if (findGroup(registry, target, folder.getName()) != null) {
             JOptionPane.showMessageDialog(getWindow(parent),
-                (target == null ? "The top level" : "'" + target.getName() + "'") + " already has a group named '" + folder.getName() + "'.",
-                "Move Server Group", JOptionPane.WARNING_MESSAGE);
+                target == null ? NLS.bind(CoreMessages.servers_top_level_has_group, folder.getName())
+                    : NLS.bind(CoreMessages.servers_group_has_group, target.getName(), folder.getName()),
+                CoreMessages.servers_move_group_title, JOptionPane.WARNING_MESSAGE);
             return;
         }
         String newPath = target == null ? folder.getName() : target.getFolderPath() + "/" + folder.getName(); //$NON-NLS-1$
         try {
             registry.moveFolder(folder.getFolderPath(), newPath);
         } catch (DBException e) {
-            DBWorkbench.getPlatformUI().showError("Move Server Group", "Can't move group '" + folder.getName() + "'", e);
+            DBWorkbench.getPlatformUI().showError(CoreMessages.servers_move_group_title, NLS.bind(CoreMessages.servers_cant_move_group, folder.getName()), e);
             return;
         }
         updateConfig(registry);
@@ -222,8 +229,8 @@ final class RegisteredServerCommands {
         List<DBPDataSourceContainer> servers = new ArrayList<>();
         collectServers(registry, null, servers);
         if (servers.isEmpty()) {
-            JOptionPane.showMessageDialog(getWindow(parent), "There are no registered servers. Create one with New Connection.",
-                "Connect to Server", JOptionPane.INFORMATION_MESSAGE);
+            JOptionPane.showMessageDialog(getWindow(parent), CoreMessages.servers_none_registered,
+                CoreMessages.servers_connect_title, JOptionPane.INFORMATION_MESSAGE);
             return null;
         }
         JComboBox<DBPDataSourceContainer> combo = new JComboBox<>(servers.toArray(new DBPDataSourceContainer[0]));
@@ -239,9 +246,9 @@ final class RegisteredServerCommands {
             }
         });
         JPanel panel = new JPanel(new BorderLayout(0, 6));
-        panel.add(new JLabel("Server:"), BorderLayout.NORTH);
+        panel.add(new JLabel(CoreMessages.servers_server), BorderLayout.NORTH);
         panel.add(combo, BorderLayout.CENTER);
-        int answer = JOptionPane.showConfirmDialog(getWindow(parent), panel, "Connect to Server",
+        int answer = JOptionPane.showConfirmDialog(getWindow(parent), panel, CoreMessages.servers_connect_title,
             JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
         return answer == JOptionPane.OK_OPTION ? (DBPDataSourceContainer) combo.getSelectedItem() : null;
     }
@@ -342,7 +349,7 @@ final class RegisteredServerCommands {
             value = input.toString().trim();
             String problem = null;
             if (value.isEmpty()) {
-                problem = "Enter a group name.";
+                problem = CoreMessages.servers_enter_group_name;
             } else {
                 try {
                     GeneralUtils.validateResourceNameUnconditionally(value);
@@ -351,7 +358,7 @@ final class RegisteredServerCommands {
                 }
                 DBPDataSourceFolder existing = findGroup(registry, parentGroup, value);
                 if (problem == null && existing != null && !Objects.equals(existing.getName(), initial)) {
-                    problem = "There is already a group named '" + existing.getName() + "' here.";
+                    problem = NLS.bind(CoreMessages.servers_group_exists, existing.getName());
                 }
             }
             if (problem == null) {

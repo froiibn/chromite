@@ -18,6 +18,8 @@ package com.seizia.chromite.ui.swing;
 
 import com.formdev.flatlaf.FlatClientProperties;
 import com.formdev.flatlaf.util.UIScale;
+import com.seizia.chromite.ui.swing.internal.CoreMessages;
+import org.eclipse.osgi.util.NLS;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.model.preferences.DBPPreferenceStore;
@@ -52,6 +54,7 @@ import java.awt.event.ActionEvent;
  * - 2026-11-06 P1: 기본 크기로 되돌리기(Window &gt; Reset Window Layout) (docs/chromite/swing-frontend.md "P1 디자인 적용")
  * - 2026-11-06 Registered Servers: 한 열에 두 도구 창 쌓기 (docs/chromite/swing-registered-servers.md)
  * - 2026-11-06 Query Library: 처음에는 숨긴 도구 창({@link #setDefaultShown}, Query Library) (docs/chromite/swing-query-library.md)
+ * - 2026-11-06 화면 문구를 CoreMessages로 옮김(OS 언어를 따름)
  */
 final class ToolWindow {
 
@@ -143,7 +146,7 @@ final class ToolWindow {
      */
     @NotNull
     JButton createHideButton() {
-        Action hideAction = new AbstractAction("Hide " + toggleAction.getValue(Action.NAME)) {
+        Action hideAction = new AbstractAction(NLS.bind(CoreMessages.toolwindow_hide, toggleAction.getValue(Action.NAME))) {
             @Override
             public void actionPerformed(ActionEvent e) {
                 setShown(false);

@@ -18,8 +18,10 @@ package com.seizia.chromite.ui.swing;
 
 import com.formdev.flatlaf.FlatClientProperties;
 import com.formdev.flatlaf.util.UIScale;
+import com.seizia.chromite.ui.swing.internal.CoreMessages;
 import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.Status;
+import org.eclipse.osgi.util.NLS;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.Log;
@@ -75,6 +77,7 @@ import java.util.stream.Stream;
  * 변경 이력:
  * - 2026-11-06 B단계: 최초 작성 (docs/chromite/swing-frontend.md "구현 현황 — B단계")
  * - 2026-11-06 P1: 머리글 있는 표 → SSMS식 속성 그리드(분류별·이름순, 분류 접기, 설명 칸) (docs/chromite/swing-frontend.md "P1 디자인 적용")
+ * - 2026-11-06 화면 문구를 CoreMessages로 옮김(OS 언어를 따름)
  */
 final class PropertiesPanel extends JPanel {
 
@@ -179,7 +182,7 @@ final class PropertiesPanel extends JPanel {
             loadJob = null;
         }
         if (node == null) {
-            nameLabel.setText("No selection");
+            nameLabel.setText(CoreMessages.properties_no_selection);
             typeLabel.setText(" ");
             descriptionLabel.setText(" ");
             setContent(List.of(), null);
@@ -190,7 +193,7 @@ final class PropertiesPanel extends JPanel {
         String description = node.getNodeDescription();
         descriptionLabel.setText(CommonUtils.isEmpty(description) ? " " : description);
         descriptionLabel.setToolTipText(CommonUtils.isEmpty(description) ? null : description);
-        setContent(List.of(), "Loading…");
+        setContent(List.of(), CoreMessages.common_loading);
 
         loadJob = new AbstractJob("Read properties of " + node.getNodeDisplayName()) {
             @NotNull
@@ -201,12 +204,12 @@ final class PropertiesPanel extends JPanel {
                 try {
                     result = readProperties(monitor, node);
                     if (result.isEmpty()) {
-                        resultMessage = "No properties";
+                        resultMessage = CoreMessages.properties_none;
                     }
                 } catch (Throwable e) {
                     log.debug("Error reading properties of " + node.getNodeDisplayName(), e);
                     result = List.of();
-                    resultMessage = "Error: " + CommonUtils.getAllExceptionMessages(e);
+                    resultMessage = NLS.bind(CoreMessages.properties_error, CommonUtils.getAllExceptionMessages(e));
                 }
                 if (!monitor.isCanceled()) {
                     List<Category> finalResult = result;
@@ -400,8 +403,8 @@ final class PropertiesPanel extends JPanel {
      */
     @NotNull
     private JComponent createToolBar() {
-        JToggleButton categorizedButton = createToggle("Categorized", "categorized", () -> setAlphabetical(false)); //$NON-NLS-2$
-        JToggleButton alphabeticalButton = createToggle("Alphabetical", "sort-alpha", () -> setAlphabetical(true)); //$NON-NLS-2$
+        JToggleButton categorizedButton = createToggle(CoreMessages.properties_categorized, "categorized", () -> setAlphabetical(false)); //$NON-NLS-1$
+        JToggleButton alphabeticalButton = createToggle(CoreMessages.properties_alphabetical, "sort-alpha", () -> setAlphabetical(true)); //$NON-NLS-1$
         ButtonGroup group = new ButtonGroup();
         group.add(categorizedButton);
         group.add(alphabeticalButton);

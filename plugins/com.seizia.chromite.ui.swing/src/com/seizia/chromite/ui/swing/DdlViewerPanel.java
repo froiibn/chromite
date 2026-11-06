@@ -16,6 +16,8 @@
  */
 package com.seizia.chromite.ui.swing;
 
+import com.seizia.chromite.ui.swing.internal.CoreMessages;
+import org.eclipse.osgi.util.NLS;
 import org.fife.ui.rtextarea.RTextScrollPane;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
@@ -34,6 +36,7 @@ import java.awt.*;
  * - 2026-11-06 E단계: 최초 작성 (docs/chromite/swing-frontend.md "구현 현황 — E단계")
  * - 2026-11-06 P1: Edit &gt; Find가 쓰는 편집기 접근자 (docs/chromite/swing-frontend.md "P1 디자인 적용")
  * - 2026-11-06 객체의 연결을 받아 그 SQL 방언으로 강조 (docs/chromite/design-spec.md "편집기 글꼴과 SQL 색")
+ * - 2026-11-06 화면 문구를 CoreMessages로 옮김(OS 언어를 따름)
  */
 final class DdlViewerPanel extends JPanel {
 
@@ -58,7 +61,7 @@ final class DdlViewerPanel extends JPanel {
         // The gutter takes its colors from the theme too, so the theme is applied once the scroll pane exists
         textArea.applyTheme();
 
-        JLabel header = new JLabel("DDL of " + objectName + " (read-only)");
+        JLabel header = new JLabel(NLS.bind(CoreMessages.ddl_header, objectName));
         header.setBorder(BorderFactory.createEmptyBorder(4, 8, 4, 8));
         add(header, BorderLayout.NORTH);
         add(scrollPane, BorderLayout.CENTER);

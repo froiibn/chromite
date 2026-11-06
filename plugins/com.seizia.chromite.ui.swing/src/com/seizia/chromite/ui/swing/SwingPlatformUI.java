@@ -16,10 +16,12 @@
  */
 package com.seizia.chromite.ui.swing;
 
+import com.seizia.chromite.ui.swing.internal.CoreMessages;
 import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.Status;
 import org.eclipse.core.runtime.jobs.Job;
+import org.eclipse.osgi.util.NLS;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
@@ -78,6 +80,7 @@ import java.util.function.Supplier;
  *   (docs/chromite/swing-frontend.md "구현 현황 — B단계")
  * - 2026-11-06 D단계: {@code openConnectionEditor}를 범용 연결 대화상자({@link ConnectionDialog})로 구현
  *   (docs/chromite/swing-frontend.md "구현 현황 — D단계")
+ * - 2026-11-06 화면 문구를 CoreMessages로 옮김(OS 언어를 따름)
  */
 public class SwingPlatformUI implements DBPPlatformUI {
 
@@ -108,7 +111,7 @@ public class SwingPlatformUI implements DBPPlatformUI {
     public UserResponse showError(@Nullable String title, @Nullable String message, @NotNull Throwable e) {
         // Phase C: DB-specific handling of DesktopUI (connection lost, driver files missing, details pane)
         log.debug(e);
-        showMessage(CommonUtils.isEmpty(title) ? "Error" : title,
+        showMessage(CommonUtils.isEmpty(title) ? CoreMessages.common_error : title,
             joinText(message, CommonUtils.getAllExceptionMessages(e)), JOptionPane.ERROR_MESSAGE);
         return UserResponse.OK;
     }
@@ -267,13 +270,13 @@ public class SwingPlatformUI implements DBPPlatformUI {
         log.debug(error);
         // Same buttons and mapping as ExecutionQueueErrorDialog / ExecutionQueueErrorJob of the SWT UI
         String[] options = queue
-            ? new String[]{"Stop", "Retry", "Skip", "Skip All"}
-            : new String[]{"Stop", "Retry"};
-        String text = joinText("Error occurred during " + task, CommonUtils.getAllExceptionMessages(error));
+            ? new String[]{CoreMessages.platform_stop, CoreMessages.platform_retry, CoreMessages.platform_skip, CoreMessages.platform_skip_all}
+            : new String[]{CoreMessages.platform_stop, CoreMessages.platform_retry};
+        String text = joinText(NLS.bind(CoreMessages.platform_error_during, task), CommonUtils.getAllExceptionMessages(error));
         Integer result = runOnEdt(() -> JOptionPane.showOptionDialog(
             getDialogParent(),
             createMessageComponent(text),
-            "Execution Error",
+            CoreMessages.platform_execution_error,
             JOptionPane.DEFAULT_OPTION,
             JOptionPane.ERROR_MESSAGE,
             null,
@@ -303,7 +306,7 @@ public class SwingPlatformUI implements DBPPlatformUI {
         boolean passwordOnly,
         boolean showSavePassword
     ) {
-        return promptUserCredentials(prompt, description, "User name", userName, "Password", userPassword,
+        return promptUserCredentials(prompt, description, CoreMessages.platform_user_name, userName, CoreMessages.platform_password, userPassword,
             passwordOnly, showSavePassword);
     }
 
@@ -327,7 +330,7 @@ public class SwingPlatformUI implements DBPPlatformUI {
             }
             JPasswordField passwordField = new JPasswordField(CommonUtils.notEmpty(userPassword), 24);
             form.addRow(passwordLabel, passwordField);
-            JCheckBox savePasswordCheck = new JCheckBox("Save password");
+            JCheckBox savePasswordCheck = new JCheckBox(CoreMessages.platform_save_password);
             if (showSavePassword) {
                 form.addRow(null, savePasswordCheck);
             }
@@ -336,7 +339,7 @@ public class SwingPlatformUI implements DBPPlatformUI {
             int result = JOptionPane.showConfirmDialog(
                 getDialogParent(),
                 form,
-                CommonUtils.isEmpty(prompt) ? "Authentication" : prompt,
+                CommonUtils.isEmpty(prompt) ? CoreMessages.platform_authentication : prompt,
                 JOptionPane.OK_CANCEL_OPTION,
                 JOptionPane.PLAIN_MESSAGE);
             if (result != JOptionPane.OK_OPTION) {
@@ -362,22 +365,22 @@ public class SwingPlatformUI implements DBPPlatformUI {
             FormPanel form = new FormPanel(null);
             JTextField userField = new JTextField(CommonUtils.notEmpty(userName), 24);
             userField.setEditable(userEditable);
-            form.addRow("User name", userField);
+            form.addRow(CoreMessages.platform_user_name, userField);
             JPasswordField oldPasswordField = new JPasswordField(CommonUtils.notEmpty(oldPassword), 24);
             if (oldPasswordVisible) {
-                form.addRow("Old password", oldPasswordField);
+                form.addRow(CoreMessages.platform_old_password, oldPasswordField);
             }
             JPasswordField newPasswordField = new JPasswordField(24);
-            form.addRow("New password", newPasswordField);
+            form.addRow(CoreMessages.platform_new_password, newPasswordField);
             JPasswordField confirmPasswordField = new JPasswordField(24);
-            form.addRow("Confirm password", confirmPasswordField);
+            form.addRow(CoreMessages.platform_confirm_password, confirmPasswordField);
             focusWhenShown(newPasswordField);
 
             while (true) {
                 int result = JOptionPane.showConfirmDialog(
                     getDialogParent(),
                     form,
-                    CommonUtils.isEmpty(prompt) ? "Change password" : prompt,
+                    CommonUtils.isEmpty(prompt) ? CoreMessages.platform_change_password : prompt,
                     JOptionPane.OK_CANCEL_OPTION,
                     JOptionPane.PLAIN_MESSAGE);
                 if (result != JOptionPane.OK_OPTION) {
@@ -389,7 +392,7 @@ public class SwingPlatformUI implements DBPPlatformUI {
                 Arrays.fill(confirmPassword, '\0');
                 if (!matches) {
                     Arrays.fill(newPassword, '\0');
-                    JOptionPane.showMessageDialog(getDialogParent(), "Passwords do not match", "Change password",
+                    JOptionPane.showMessageDialog(getDialogParent(), CoreMessages.platform_passwords_mismatch, CoreMessages.platform_change_password,
                         JOptionPane.ERROR_MESSAGE);
                     continue;
                 }
@@ -406,7 +409,7 @@ public class SwingPlatformUI implements DBPPlatformUI {
     @Nullable
     @Override
     public String promptProperty(@NotNull String prompt, @Nullable String defValue) {
-        return promptProperty("Input", prompt, defValue);
+        return promptProperty(CoreMessages.common_input, prompt, defValue);
     }
 
     @Nullable
@@ -436,7 +439,7 @@ public class SwingPlatformUI implements DBPPlatformUI {
             int result = JOptionPane.showConfirmDialog(
                 getDialogParent(),
                 panel,
-                CommonUtils.isEmpty(title) ? "Input" : title,
+                CommonUtils.isEmpty(title) ? CoreMessages.common_input : title,
                 JOptionPane.OK_CANCEL_OPTION,
                 JOptionPane.PLAIN_MESSAGE);
             return result == JOptionPane.OK_OPTION ? textArea.getText() : null;
@@ -454,11 +457,11 @@ public class SwingPlatformUI implements DBPPlatformUI {
             JPanel panel = new JPanel(new BorderLayout(0, 6));
             panel.add(createMessageComponent(message), BorderLayout.NORTH);
             panel.add(new JScrollPane(licenseArea), BorderLayout.CENTER);
-            Object[] options = {"Accept", "Decline"};
+            Object[] options = {CoreMessages.platform_accept, CoreMessages.platform_decline};
             return JOptionPane.showOptionDialog(
                 getDialogParent(),
                 panel,
-                "License agreement",
+                CoreMessages.platform_license_agreement,
                 JOptionPane.DEFAULT_OPTION,
                 JOptionPane.PLAIN_MESSAGE,
                 null,
@@ -516,7 +519,7 @@ public class SwingPlatformUI implements DBPPlatformUI {
         try {
             processDescriptor.execute();
         } catch (DBException e) {
-            showError("Execute process", processDescriptor.getName(), e);
+            showError(CoreMessages.platform_execute_process, processDescriptor.getName(), e);
         }
     }
 
@@ -679,7 +682,7 @@ public class SwingPlatformUI implements DBPPlatformUI {
         String defaultValue
     ) {
         // Same as DesktopUI of the SWT UI
-        showMessageBox("Not supported", "External file system are not supported", true);
+        showMessageBox(CoreMessages.platform_not_supported, CoreMessages.platform_external_fs_not_supported, true);
         return null;
     }
 

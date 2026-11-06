@@ -19,6 +19,8 @@ package com.seizia.chromite.ui.swing;
 import com.formdev.flatlaf.FlatClientProperties;
 import com.formdev.flatlaf.ui.FlatTabbedPaneUI;
 import com.formdev.flatlaf.util.UIScale;
+import com.seizia.chromite.ui.swing.internal.CoreMessages;
+import org.eclipse.osgi.util.NLS;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.model.DBPDataSourceContainer;
@@ -137,6 +139,7 @@ import java.util.function.IntConsumer;
  *   확장이 붙은 쿼리 창의 저장은 확장이 함 (docs/chromite/swing-query-library.md)
  * - 2026-11-06 Query Library ③: 창을 닫을 때 예약 실행 정지 (docs/chromite/swing-query-library.md "예약 실행")
  * - 2026-11-06 연결이 바뀌면(이름) 그 연결의 테이블 디자이너 탭 제목도 다시 씀(제목에 연결 이름) (docs/chromite/swing-table-designer.md)
+ * - 2026-11-06 화면 문구를 CoreMessages로 옮김(OS 언어를 따름)
  */
 final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplorerPanel.QueryWindows, TableDesignerPanel.Host, QueryLibraryPanel.Host {
 
@@ -184,7 +187,7 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
     private final Action cancelQueryAction;
     private final Action completeAction;
     private final Action estimatedPlanAction;
-    private final JCheckBoxMenuItem actualPlanItem = new JCheckBoxMenuItem("Include Actual Execution Plan");
+    private final JCheckBoxMenuItem actualPlanItem = new JCheckBoxMenuItem(CoreMessages.main_actual_plan);
     private final EditMenu editMenu;
     private int queryCounter;
     /**
@@ -207,15 +210,15 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
 
         PropertiesPanel propertiesPanel = new PropertiesPanel();
         explorerPanel = new ObjectExplorerPanel(propertiesPanel::showNode, this);
-        resultsPlaceholder = createPlaceholder("No results. Query results will appear here.");
-        messagesPlaceholder = createPlaceholder("No messages.");
-        planPlaceholder = createPlaceholder("No execution plan.");
+        resultsPlaceholder = createPlaceholder(CoreMessages.main_no_results);
+        messagesPlaceholder = createPlaceholder(CoreMessages.main_no_messages);
+        planPlaceholder = createPlaceholder(CoreMessages.main_no_plan);
         resultTabs = new JTabbedPane();
         // size.tab.tool 32 with a 3px underline (size.tabUnderline), icons results.grid / results.messages
         resultTabs.putClientProperty(FlatClientProperties.STYLE, "tabHeight: 32; tabSelectionHeight: 3"); //$NON-NLS-1$
-        resultTabs.addTab("Results", UiIcons.get("results"), resultsPlaceholder); //$NON-NLS-2$
-        resultTabs.addTab("Messages", UiIcons.get("messages"), messagesPlaceholder); //$NON-NLS-2$
-        resultTabs.addTab("Execution plan", UiIcons.get("plan"), planPlaceholder); //$NON-NLS-2$
+        resultTabs.addTab(CoreMessages.main_results, UiIcons.get("results"), resultsPlaceholder); //$NON-NLS-1$
+        resultTabs.addTab(CoreMessages.main_messages, UiIcons.get("messages"), messagesPlaceholder); //$NON-NLS-1$
+        resultTabs.addTab(CoreMessages.main_execution_plan, UiIcons.get("plan"), planPlaceholder); //$NON-NLS-1$
         documentTabs = createDocumentTabs();
 
         JSplitPane documentSplit = createSplitPane(JSplitPane.VERTICAL_SPLIT);
@@ -242,7 +245,7 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
         JSplitPane explorerSplit = createSplitPane(JSplitPane.HORIZONTAL_SPLIT);
         explorerSplit.setRightComponent(propertiesSplit);
 
-        ToolWindow explorerWindow = new ToolWindow("objectExplorer", "Object Explorer", true, //$NON-NLS-1$
+        ToolWindow explorerWindow = new ToolWindow("objectExplorer", CoreMessages.main_object_explorer, true, //$NON-NLS-1$
             explorerPanel, explorerSplit, true, 300,
             KeyStroke.getKeyStroke(KeyEvent.VK_F8, 0));
         // Registered Servers above Object Explorer in the left column, as SSMS docks it
@@ -258,15 +261,15 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
                 explorerPanel.showServer(dataSource, true);
             }
         });
-        ToolWindow registeredServersWindow = new ToolWindow("registeredServers", "Registered Servers", true, //$NON-NLS-1$
+        ToolWindow registeredServersWindow = new ToolWindow("registeredServers", CoreMessages.main_registered_servers, true, //$NON-NLS-1$
             registeredServersPanel, createSplitPane(JSplitPane.VERTICAL_SPLIT), true, 320,
             KeyStroke.getKeyStroke(KeyEvent.VK_G, InputEvent.CTRL_DOWN_MASK | InputEvent.ALT_DOWN_MASK));
         explorerWindow.stackBelow(registeredServersWindow);
-        ToolWindow propertiesWindow = new ToolWindow("properties", "Properties", true, //$NON-NLS-1$
+        ToolWindow propertiesWindow = new ToolWindow("properties", CoreMessages.main_properties, true, //$NON-NLS-1$
             propertiesPanel, propertiesSplit, false, 300,
             KeyStroke.getKeyStroke(KeyEvent.VK_F4, 0));
         // The Results/Messages tabs are their own header; the hide button sits next to the tabs
-        resultsWindow = new ToolWindow("results", "Results", false, //$NON-NLS-1$
+        resultsWindow = new ToolWindow("results", CoreMessages.main_results, false, //$NON-NLS-1$
             resultsArea, documentSplit, false, 220,
             KeyStroke.getKeyStroke(KeyEvent.VK_R, InputEvent.CTRL_DOWN_MASK));
         // The trailing component fills the rest of the tab row; keep the button at its right end
@@ -277,7 +280,7 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
         queryLibraryPanel = new QueryLibraryPanel(this);
         // Query Library above Properties in the right column (SSMS docks its Template Browser on the right), hidden until opened;
         // a column of its own would narrow the documents
-        ToolWindow libraryWindow = new ToolWindow("queryLibrary", "Query Library", true, //$NON-NLS-1$
+        ToolWindow libraryWindow = new ToolWindow("queryLibrary", CoreMessages.main_query_library, true, //$NON-NLS-1$
             queryLibraryPanel, createSplitPane(JSplitPane.VERTICAL_SPLIT), true, 280,
             KeyStroke.getKeyStroke(KeyEvent.VK_T, InputEvent.CTRL_DOWN_MASK | InputEvent.ALT_DOWN_MASK));
         libraryWindow.setDefaultShown(false);
@@ -285,11 +288,11 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
         queryLibraryPanel.setShowWindow(() -> libraryWindow.setShown(true));
         toolWindows = List.of(explorerWindow, registeredServersWindow, propertiesWindow, libraryWindow, resultsWindow);
 
-        newQueryAction = createAction("New Query", "Open a SQL editor for the connection selected in Object Explorer (Ctrl+N)",
+        newQueryAction = createAction(CoreMessages.main_new_query, CoreMessages.main_new_query_tip,
             KeyStroke.getKeyStroke(KeyEvent.VK_N, InputEvent.CTRL_DOWN_MASK), this::newQuery);
-        openFileAction = createAction("Open File…", "Open a SQL file in a new query window (Ctrl+O)",
+        openFileAction = createAction(CoreMessages.main_open_file, CoreMessages.main_open_file_tip,
             KeyStroke.getKeyStroke(KeyEvent.VK_O, InputEvent.CTRL_DOWN_MASK), this::openFile);
-        saveAction = createAction("Save", "Save the active query window (Ctrl+S)",
+        saveAction = createAction(CoreMessages.common_save, CoreMessages.main_save_tip,
             KeyStroke.getKeyStroke(KeyEvent.VK_S, InputEvent.CTRL_DOWN_MASK), () -> {
                 SqlEditorPanel editor = getActiveEditor();
                 if (editor != null) {
@@ -298,35 +301,35 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
                     designer.save();
                 }
             });
-        saveAsAction = createAction("Save As…", "Save the active query window to another file", null, () -> {
+        saveAsAction = createAction(CoreMessages.main_save_as, CoreMessages.main_save_as_tip, null, () -> {
             SqlEditorPanel editor = getActiveEditor();
             if (editor != null) {
                 saveEditor(editor, true);
             }
         });
-        executeQueryAction = createAction("Execute", "Execute the selection, or the whole script without a selection",
+        executeQueryAction = createAction(CoreMessages.main_execute, CoreMessages.main_execute_tip,
             KeyStroke.getKeyStroke(KeyEvent.VK_F5, 0), () -> {
                 SqlEditorPanel editor = getActiveEditor();
                 if (editor != null) {
                     editor.execute();
                 }
             });
-        cancelQueryAction = createAction("Cancel Executing Query", null,
+        cancelQueryAction = createAction(CoreMessages.main_cancel_query, null,
             KeyStroke.getKeyStroke(KeyEvent.VK_PAUSE, InputEvent.ALT_DOWN_MASK), () -> {
                 SqlEditorPanel editor = getActiveEditor();
                 if (editor != null) {
                     editor.cancel();
                 }
             });
-        completeAction = createAction("Complete", "Show code completion proposals at the caret of the active query window",
+        completeAction = createAction(CoreMessages.main_complete, CoreMessages.main_complete_tip,
             KeyStroke.getKeyStroke(KeyEvent.VK_SPACE, InputEvent.CTRL_DOWN_MASK), () -> {
                 SqlEditorPanel editor = getActiveEditor();
                 if (editor != null) {
                     editor.complete();
                 }
             });
-        estimatedPlanAction = createAction("Display Estimated Execution Plan",
-            "Show the estimated execution plan of the selection, or of the whole script",
+        estimatedPlanAction = createAction(CoreMessages.main_estimated_plan,
+            CoreMessages.main_estimated_plan_tip,
             KeyStroke.getKeyStroke(KeyEvent.VK_L, InputEvent.CTRL_DOWN_MASK), () -> {
                 SqlEditorPanel editor = getActiveEditor();
                 if (editor != null) {
@@ -334,7 +337,7 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
                 }
             });
         actualPlanItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_M, InputEvent.CTRL_DOWN_MASK));
-        actualPlanItem.setToolTipText("Return the actual execution plan with the results of the active query window");
+        actualPlanItem.setToolTipText(CoreMessages.main_actual_plan_tip);
         actualPlanItem.addActionListener(e -> {
             SqlEditorPanel editor = getActiveEditor();
             if (editor != null) {
@@ -443,7 +446,7 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
         for (DBPProject project : workspace.getProjects()) {
             connections += project.getDataSourceRegistry().getDataSources().size();
         }
-        return connections + (connections == 1 ? " connection" : " connections") + " in workspace";
+        return NLS.bind(connections == 1 ? CoreMessages.main_status_connection : CoreMessages.main_status_connections, connections);
     }
 
     private void updateStatusText() {
@@ -505,8 +508,8 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
             dataSource = activeEditor != null ? activeEditor.getDataSourceContainer() : null;
         }
         if (dataSource == null) {
-            JOptionPane.showMessageDialog(this, "Select a connection (or any object under it) in Object Explorer first.",
-                "New Query", JOptionPane.INFORMATION_MESSAGE);
+            JOptionPane.showMessageDialog(this, CoreMessages.common_select_connection_first,
+                CoreMessages.main_new_query, JOptionPane.INFORMATION_MESSAGE);
             return;
         }
         openQuery(dataSource);
@@ -579,8 +582,8 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
             dataSource = activeEditor != null ? activeEditor.getDataSourceContainer() : null;
         }
         if (dataSource == null) {
-            JOptionPane.showMessageDialog(this, "Select a connection (or any object under it) in Object Explorer first.",
-                "Activity Monitor", JOptionPane.INFORMATION_MESSAGE);
+            JOptionPane.showMessageDialog(this, CoreMessages.common_select_connection_first,
+                CoreMessages.main_activity_monitor, JOptionPane.INFORMATION_MESSAGE);
             return;
         }
         openActivityMonitor(dataSource, tab);
@@ -697,7 +700,7 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
     // SQL files
 
     private void openFile() {
-        JFileChooser chooser = createSqlFileChooser("Open File");
+        JFileChooser chooser = createSqlFileChooser(CoreMessages.main_open_file_title);
         if (chooser.showOpenDialog(this) == JFileChooser.APPROVE_OPTION) {
             openFile(chooser.getSelectedFile().toPath());
         }
@@ -718,14 +721,14 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
         }
         if (!Files.isRegularFile(file)) {
             RecentFiles.remove(file);
-            JOptionPane.showMessageDialog(this, "The file was not found:\n" + file, "Open File", JOptionPane.WARNING_MESSAGE);
+            JOptionPane.showMessageDialog(this, NLS.bind(CoreMessages.main_file_not_found, file), CoreMessages.main_open_file_title, JOptionPane.WARNING_MESSAGE);
             return;
         }
         SqlFileContent content;
         try {
             content = SqlFileContent.read(file);
         } catch (IOException e) {
-            DBWorkbench.getPlatformUI().showError("Open File", "Can't open " + file, e);
+            DBWorkbench.getPlatformUI().showError(CoreMessages.main_open_file_title, NLS.bind(CoreMessages.main_cant_open, file), e);
             return;
         }
         DBPDataSourceContainer dataSource = explorerPanel.getSelectedDataSource();
@@ -750,7 +753,7 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
         }
         Path file = editor.getFile();
         if (saveAs || file == null) {
-            JFileChooser chooser = createSqlFileChooser(saveAs ? "Save As" : "Save");
+            JFileChooser chooser = createSqlFileChooser(saveAs ? CoreMessages.main_save_as_title : CoreMessages.common_save);
             File directory = file != null ? file.getParent().toFile() : chooser.getCurrentDirectory();
             chooser.setSelectedFile(new File(directory, editor.getFileName()));
             if (chooser.showSaveDialog(this) != JFileChooser.APPROVE_OPTION) {
@@ -761,7 +764,7 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
                 selected = selected.resolveSibling(selected.getFileName() + ".sql"); //$NON-NLS-1$
             }
             if (!selected.equals(file) && Files.exists(selected) && JOptionPane.showConfirmDialog(this,
-                selected.getFileName() + " already exists.\nDo you want to replace it?", "Save As",
+                NLS.bind(CoreMessages.main_file_exists, selected.getFileName()), CoreMessages.main_save_as_title,
                 JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE) != JOptionPane.YES_OPTION) {
                 return false;
             }
@@ -771,7 +774,7 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
         try {
             content.write(file);
         } catch (IOException e) {
-            DBWorkbench.getPlatformUI().showError("Save", "Can't save " + file, e);
+            DBWorkbench.getPlatformUI().showError(CoreMessages.common_save, NLS.bind(CoreMessages.main_cant_save, file), e);
             return false;
         }
         editor.saved(file, content);
@@ -784,7 +787,7 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
     private JFileChooser createSqlFileChooser(@NotNull String title) {
         JFileChooser chooser = new JFileChooser(lastDirectory != null ? lastDirectory.toFile() : null);
         chooser.setDialogTitle(title);
-        chooser.setFileFilter(new FileNameExtensionFilter("SQL files (*.sql)", "sql")); //$NON-NLS-1$
+        chooser.setFileFilter(new FileNameExtensionFilter(CoreMessages.main_sql_files, "sql")); //$NON-NLS-1$
         return chooser;
     }
 
@@ -801,7 +804,7 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
             return true;
         }
         documentTabs.setSelectedComponent(editor);
-        return switch (askSave("Save changes to " + editor.getFileName() + "?")) {
+        return switch (askSave(NLS.bind(CoreMessages.main_save_changes, editor.getFileName()))) {
             case 0 -> saveEditor(editor, false);
             case 1 -> true;
             default -> false;
@@ -821,7 +824,7 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
             return true;
         }
         documentTabs.setSelectedComponent(editor);
-        return switch (askSave("Save changes to the results of " + editor.getFileName() + "?\n\n" + describeResultChanges(editor))) {
+        return switch (askSave(NLS.bind(CoreMessages.main_save_result_changes, editor.getFileName(), describeResultChanges(editor)))) {
             case 0 -> editor.saveResultChanges();
             case 1 -> true;
             default -> false;
@@ -836,7 +839,7 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
             return true;
         }
         documentTabs.setSelectedComponent(editor);
-        JOptionPane.showMessageDialog(this, "The results of " + editor.getFileName() + " are being saved.\nTry again when the save is over.",
+        JOptionPane.showMessageDialog(this, NLS.bind(CoreMessages.main_results_being_saved, editor.getFileName()),
             GeneralUtils.getProductName(), JOptionPane.INFORMATION_MESSAGE);
         return false;
     }
@@ -844,7 +847,7 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
     @NotNull
     private static String describeResultChanges(@NotNull SqlEditorPanel editor) {
         int changes = editor.getPendingResultChangeCount();
-        return "Results of " + editor.getFileName() + " (" + changes + (changes == 1 ? " unsaved change)" : " unsaved changes)");
+        return NLS.bind(changes == 1 ? CoreMessages.main_result_change : CoreMessages.main_result_changes, editor.getFileName(), changes);
     }
 
     /**
@@ -875,7 +878,7 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
             }
         }
         if (!modified.isEmpty() || !resultsModified.isEmpty()) {
-            StringBuilder message = new StringBuilder("Save changes to the following items?\n");
+            StringBuilder message = new StringBuilder(CoreMessages.main_save_following);
             for (SqlEditorPanel editor : modified) {
                 message.append('\n').append(editor.getFile() != null ? editor.getFile().toString() : editor.getFileName());
             }
@@ -907,7 +910,7 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
      * @return 0 Save, 1 Don't Save, anything else Cancel
      */
     private int askSave(@NotNull String message) {
-        String[] options = {"Save", "Don't Save", "Cancel"};
+        String[] options = {CoreMessages.common_save, CoreMessages.common_dont_save, CoreMessages.common_cancel};
         return JOptionPane.showOptionDialog(this, message, GeneralUtils.getProductName(), JOptionPane.YES_NO_CANCEL_OPTION,
             JOptionPane.WARNING_MESSAGE, null, options, options[0]);
     }
@@ -1134,8 +1137,8 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
     private JTabbedPane createDocumentTabs() {
         JLabel titleLabel = new JLabel(GeneralUtils.getProductName());
         titleLabel.putClientProperty(FlatClientProperties.STYLE_CLASS, "h1"); //$NON-NLS-1$
-        JLabel hintLabel = new JLabel("Expand a connection in Object Explorer to browse its objects.");
-        JLabel nextLabel = new JLabel("Right-click a connection and choose New Query (Ctrl+N) to open a SQL editor.");
+        JLabel hintLabel = new JLabel(CoreMessages.main_welcome_hint);
+        JLabel nextLabel = new JLabel(CoreMessages.main_welcome_next);
         nextLabel.putClientProperty(FlatClientProperties.STYLE, "foreground: $Label.disabledForeground"); //$NON-NLS-1$
 
         JPanel welcome = new JPanel(new GridBagLayout());
@@ -1155,7 +1158,7 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
         tabs.setTabLayoutPolicy(JTabbedPane.SCROLL_TAB_LAYOUT);
         // DataGrip editor tabs: size.tab.editor 40; the selected tab is an Islands pill (IslandTabbedPaneUI), no underline
         tabs.putClientProperty(FlatClientProperties.STYLE, "tabHeight: 40; tabSelectionHeight: 0"); //$NON-NLS-1$
-        tabs.addTab("Welcome", welcome);
+        tabs.addTab(CoreMessages.main_welcome, welcome);
         tabs.putClientProperty(FlatClientProperties.TABBED_PANE_TAB_CLOSE_CALLBACK, (IntConsumer) this::closeDocumentTab);
         tabs.addMouseListener(new MouseAdapter() {
             @Override
@@ -1175,13 +1178,13 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
 
     @NotNull
     private JMenuBar createMenuBar() {
-        JMenuItem exitItem = new JMenuItem("Exit");
+        JMenuItem exitItem = new JMenuItem(CoreMessages.main_menu_exit);
         exitItem.setMnemonic(KeyEvent.VK_X);
         exitItem.addActionListener(e -> requestExit());
 
-        JMenu recentMenu = new JMenu("Recent Files");
+        JMenu recentMenu = new JMenu(CoreMessages.main_menu_recent_files);
         recentMenu.setMnemonic(KeyEvent.VK_R);
-        JMenu fileMenu = new JMenu("File");
+        JMenu fileMenu = new JMenu(CoreMessages.main_menu_file);
         fileMenu.setMnemonic(KeyEvent.VK_F);
         fileMenu.add(new JMenuItem(explorerPanel.getNewConnectionAction()));
         fileMenu.add(new JMenuItem(newQueryAction));
@@ -1196,29 +1199,29 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
         onMenuSelected(fileMenu, () -> fillRecentFilesMenu(recentMenu));
         fillRecentFilesMenu(recentMenu);
 
-        JMenu queryMenu = new JMenu("Query");
+        JMenu queryMenu = new JMenu(CoreMessages.main_menu_query);
         queryMenu.setMnemonic(KeyEvent.VK_Q);
         queryMenu.add(new JMenuItem(executeQueryAction));
         queryMenu.add(new JMenuItem(cancelQueryAction));
         queryMenu.addSeparator();
         queryMenu.add(new JMenuItem(completeAction));
-        JCheckBoxMenuItem autoCompleteItem = new JCheckBoxMenuItem("Auto-Complete While Typing", SqlCompletionPopup.isAutoActivateOnLetters());
-        autoCompleteItem.setToolTipText("Show completion proposals after typing letters (they always appear after a period)");
+        JCheckBoxMenuItem autoCompleteItem = new JCheckBoxMenuItem(CoreMessages.main_auto_complete, SqlCompletionPopup.isAutoActivateOnLetters());
+        autoCompleteItem.setToolTipText(CoreMessages.main_auto_complete_tip);
         autoCompleteItem.addActionListener(e -> SqlCompletionPopup.setAutoActivateOnLetters(autoCompleteItem.isSelected()));
         queryMenu.add(autoCompleteItem);
         queryMenu.addSeparator();
         queryMenu.add(new JMenuItem(estimatedPlanAction));
         queryMenu.add(actualPlanItem);
         queryMenu.addSeparator();
-        JMenuItem historyItem = new JMenuItem("Query History…", UiIcons.get("history")); //$NON-NLS-2$
-        historyItem.setToolTipText("Statements executed in query windows");
+        JMenuItem historyItem = new JMenuItem(CoreMessages.main_query_history, UiIcons.get("history")); //$NON-NLS-1$
+        historyItem.setToolTipText(CoreMessages.main_query_history_tip);
         historyItem.addActionListener(e -> QueryHistoryDialog.open(this, this::openHistoryQuery));
         queryMenu.add(historyItem);
         queryMenu.add(new JMenuItem(queryLibraryPanel.getSaveToLibraryAction()));
         // Tools > Options changes the same setting
         onMenuSelected(queryMenu, () -> autoCompleteItem.setSelected(SqlCompletionPopup.isAutoActivateOnLetters()));
 
-        JMenu viewMenu = new JMenu("View");
+        JMenu viewMenu = new JMenu(CoreMessages.main_menu_view);
         viewMenu.setMnemonic(KeyEvent.VK_V);
         for (ToolWindow toolWindow : toolWindows) {
             viewMenu.add(new JCheckBoxMenuItem(toolWindow.getToggleAction()));
@@ -1226,27 +1229,27 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
         viewMenu.addSeparator();
         viewMenu.add(createThemeMenu());
 
-        JMenuItem aboutItem = new JMenuItem("About " + GeneralUtils.getProductName());
+        JMenuItem aboutItem = new JMenuItem(NLS.bind(CoreMessages.main_about, GeneralUtils.getProductName()));
         aboutItem.setMnemonic(KeyEvent.VK_A);
         aboutItem.addActionListener(e -> AboutDialog.open(this));
 
-        JMenu helpMenu = new JMenu("Help");
+        JMenu helpMenu = new JMenu(CoreMessages.main_menu_help);
         helpMenu.setMnemonic(KeyEvent.VK_H);
         helpMenu.add(aboutItem);
 
-        JMenuItem optionsItem = new JMenuItem("Options…");
+        JMenuItem optionsItem = new JMenuItem(CoreMessages.main_options);
         optionsItem.setMnemonic(KeyEvent.VK_O);
         optionsItem.addActionListener(e -> OptionsDialog.open(this));
-        JMenuItem activityMonitorItem = new JMenuItem("Activity Monitor");
+        JMenuItem activityMonitorItem = new JMenuItem(CoreMessages.main_activity_monitor);
         activityMonitorItem.setMnemonic(KeyEvent.VK_A);
         activityMonitorItem.addActionListener(e -> openActivityMonitor(ActivityMonitorPanel.PROCESSES_TAB));
-        JMenuItem locksItem = new JMenuItem("Locks");
+        JMenuItem locksItem = new JMenuItem(CoreMessages.main_locks);
         locksItem.setMnemonic(KeyEvent.VK_L);
         locksItem.addActionListener(e -> openActivityMonitor(ActivityMonitorPanel.LOCKS_TAB));
-        JMenuItem findObjectsItem = new JMenuItem("Find Objects…");
+        JMenuItem findObjectsItem = new JMenuItem(CoreMessages.main_find_objects);
         findObjectsItem.setMnemonic(KeyEvent.VK_F);
         findObjectsItem.addActionListener(e -> openObjectSearch(explorerPanel.getSelectedNode()));
-        JMenu toolsMenu = new JMenu("Tools");
+        JMenu toolsMenu = new JMenu(CoreMessages.main_menu_tools);
         toolsMenu.setMnemonic(KeyEvent.VK_T);
         toolsMenu.add(activityMonitorItem);
         toolsMenu.add(locksItem);
@@ -1254,7 +1257,7 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
         toolsMenu.addSeparator();
         toolsMenu.add(optionsItem);
 
-        JMenu windowMenu = new JMenu("Window");
+        JMenu windowMenu = new JMenu(CoreMessages.main_menu_window);
         windowMenu.setMnemonic(KeyEvent.VK_W);
         onMenuSelected(windowMenu, () -> fillWindowMenu(windowMenu));
         fillWindowMenu(windowMenu);
@@ -1279,7 +1282,7 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
      */
     private void fillWindowMenu(@NotNull JMenu windowMenu) {
         windowMenu.removeAll();
-        JMenuItem resetItem = new JMenuItem("Reset Window Layout");
+        JMenuItem resetItem = new JMenuItem(CoreMessages.main_reset_layout);
         resetItem.setMnemonic(KeyEvent.VK_R);
         resetItem.addActionListener(e -> resetWindowLayout());
         windowMenu.add(resetItem);
@@ -1332,7 +1335,7 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
 
     @NotNull
     private static JMenu createThemeMenu() {
-        JMenu themeMenu = new JMenu("Theme");
+        JMenu themeMenu = new JMenu(CoreMessages.main_menu_theme);
         themeMenu.setMnemonic(KeyEvent.VK_T);
         ButtonGroup group = new ButtonGroup();
         ChromiteTheme current = ChromiteTheme.getCurrent();
@@ -1350,7 +1353,7 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
             themeItems.add(item);
         }
         themeMenu.addSeparator();
-        JMenu iconStyleMenu = new JMenu("Icon Style");
+        JMenu iconStyleMenu = new JMenu(CoreMessages.main_menu_icon_style);
         iconStyleMenu.setMnemonic(KeyEvent.VK_I);
         ButtonGroup iconStyleGroup = new ButtonGroup();
         UiIconStyle currentIconStyle = UiIconStyle.getCurrent();

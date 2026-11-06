@@ -16,6 +16,7 @@
  */
 package com.seizia.chromite.ui.swing;
 
+import com.seizia.chromite.ui.swing.internal.CoreMessages;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
@@ -60,6 +61,7 @@ import java.util.List;
  *
  * 변경 이력:
  * - 2026-11-06 E단계: 최초 작성 (docs/chromite/swing-frontend.md "구현 현황 — E단계")
+ * - 2026-11-06 화면 문구를 CoreMessages로 옮김(OS 언어를 따름)
  */
 final class ObjectScripts {
 
@@ -100,13 +102,13 @@ final class ObjectScripts {
             generator.run(monitor);
         } catch (InvocationTargetException e) {
             Throwable cause = e.getTargetException();
-            throw cause instanceof DBException dbException ? dbException : new DBException("Can't generate SQL", cause);
+            throw cause instanceof DBException dbException ? dbException : new DBException(CoreMessages.scripts_cant_generate, cause);
         } catch (InterruptedException e) {
             throw new DBInterruptedException("SQL generation canceled");
         }
         String result = generator.getResult();
         if (result == null) {
-            throw new DBException("No SQL was generated");
+            throw new DBException(CoreMessages.scripts_none_generated);
         }
         return result;
     }

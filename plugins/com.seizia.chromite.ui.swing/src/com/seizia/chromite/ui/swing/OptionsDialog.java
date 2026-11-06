@@ -18,6 +18,8 @@ package com.seizia.chromite.ui.swing;
 
 import com.formdev.flatlaf.FlatClientProperties;
 import com.formdev.flatlaf.util.UIScale;
+import com.seizia.chromite.ui.swing.internal.CoreMessages;
+import org.eclipse.osgi.util.NLS;
 import org.fife.ui.rsyntaxtextarea.Theme;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
@@ -58,6 +60,7 @@ import java.util.Objects;
  * - 2026-11-06 화면 문구에 다른 제품 이름을 쓰지 않음: "Reset to Defaults" (docs/chromite/design-spec.md "편집기 글꼴과 SQL 색")
  * - 2026-11-06 SQL 서식(서식기, 키워드 대소문자), 쿼리 기록 보관 일수, Templates 탭 (docs/chromite/swing-sql-editor-plus.md)
  * - 2026-11-06 Query Library ③: 예약 실행 기록 보존 설정 (docs/chromite/swing-query-library.md "예약 실행")
+ * - 2026-11-06 화면 문구를 CoreMessages로 옮김(OS 언어를 따름)
  */
 final class OptionsDialog extends JDialog {
 
@@ -71,13 +74,14 @@ final class OptionsDialog extends JDialog {
 
     private final JComboBox<ChromiteTheme> themeCombo = new JComboBox<>(ChromiteTheme.values());
     private final JComboBox<UiIconStyle> iconStyleCombo = new JComboBox<>(UiIconStyle.values());
-    private final JCheckBox autoCompleteBox = new JCheckBox("Show completion proposals while typing");
+    private final JCheckBox autoCompleteBox = new JCheckBox(CoreMessages.options_auto_complete);
     private final JSpinner delaySpinner;
     private final JSpinner maxRowsSpinner;
     private final JSpinner historyDaysSpinner = new JSpinner(new SpinnerNumberModel(
         Math.min(QueryHistory.getRetentionDays(), QueryHistory.MAX_RETENTION_DAYS), 0, QueryHistory.MAX_RETENTION_DAYS, 1));
-    private final JComboBox<String> formatterCombo = new JComboBox<>(new String[]{"Default", "Compact"});
-    private final JComboBox<String> keywordCaseCombo = new JComboBox<>(new String[]{"Database default", "Upper", "Lower", "As typed"});
+    private final JComboBox<String> formatterCombo = new JComboBox<>(new String[]{CoreMessages.options_formatter_default, CoreMessages.options_formatter_compact});
+    private final JComboBox<String> keywordCaseCombo = new JComboBox<>(new String[]{
+        CoreMessages.options_case_database, CoreMessages.options_case_upper, CoreMessages.options_case_lower, CoreMessages.options_case_as_typed});
     private final SqlTemplatesPage templatesPage = new SqlTemplatesPage();
 
     // Editor tab
@@ -89,16 +93,16 @@ final class OptionsDialog extends JDialog {
     private final Map<ChromiteTheme, Map<EditorColors.Item, EditorColors.Setting>> colors = new EnumMap<>(ChromiteTheme.class);
     private final JComboBox<ChromiteTheme> colorThemeCombo = new JComboBox<>(ChromiteTheme.values());
     private final JList<EditorColors.Item> colorItemList = new JList<>(EditorColors.Item.values());
-    private final JButton colorButton = new JButton("Color…");
-    private final JCheckBox boldBox = new JCheckBox("Bold");
-    private final JCheckBox italicBox = new JCheckBox("Italic");
+    private final JButton colorButton = new JButton(CoreMessages.options_color);
+    private final JCheckBox boldBox = new JCheckBox(CoreMessages.options_bold);
+    private final JCheckBox italicBox = new JCheckBox(CoreMessages.options_italic);
     private final SqlEditorPanel.SqlTextArea colorPreview = createPreview();
     private boolean updatingColorControls;
     private final JSpinner libraryHistoryRunsSpinner;
     private final JSpinner libraryHistoryDaysSpinner;
 
     private OptionsDialog(@NotNull Frame owner) {
-        super(owner, "Options", true);
+        super(owner, CoreMessages.options_title, true);
         setDefaultCloseOperation(DISPOSE_ON_CLOSE);
 
         themeCombo.setSelectedItem(ChromiteTheme.getCurrent());
@@ -122,26 +126,26 @@ final class OptionsDialog extends JDialog {
 
         JPanel form = new JPanel(new GridBagLayout());
         int row = 0;
-        row = addSection(form, row, "Environment");
-        row = addRow(form, row, "Theme", themeCombo, null);
-        row = addRow(form, row, "Icon style", iconStyleCombo, null);
-        row = addSection(form, row, "Query Editor");
+        row = addSection(form, row, CoreMessages.options_environment);
+        row = addRow(form, row, CoreMessages.options_theme, themeCombo, null);
+        row = addRow(form, row, CoreMessages.options_icon_style, iconStyleCombo, null);
+        row = addSection(form, row, CoreMessages.options_query_editor);
         row = addRow(form, row, null, autoCompleteBox, null);
-        row = addRow(form, row, "Completion delay", delaySpinner, "ms after the last keystroke");
-        row = addSection(form, row, "Query Results");
-        row = addRow(form, row, "Maximum rows", maxRowsSpinner, "per result set, 0 = no limit");
-        row = addSection(form, row, "Query History");
-        row = addRow(form, row, "Keep history", historyDaysSpinner, "days, 0 = do not record");
-        row = addSection(form, row, "Query Library");
-        row = addRow(form, row, "Keep history runs", libraryHistoryRunsSpinner, "latest runs per scheduled query");
-        addRow(form, row, "Keep history days", libraryHistoryDaysSpinner, "older runs are removed");
+        row = addRow(form, row, CoreMessages.options_completion_delay, delaySpinner, CoreMessages.options_completion_delay_hint);
+        row = addSection(form, row, CoreMessages.options_query_results);
+        row = addRow(form, row, CoreMessages.options_max_rows, maxRowsSpinner, CoreMessages.options_max_rows_hint);
+        row = addSection(form, row, CoreMessages.options_query_history);
+        row = addRow(form, row, CoreMessages.options_keep_history, historyDaysSpinner, CoreMessages.options_keep_history_hint);
+        row = addSection(form, row, CoreMessages.options_query_library);
+        row = addRow(form, row, CoreMessages.options_keep_runs, libraryHistoryRunsSpinner, CoreMessages.options_keep_runs_hint);
+        addRow(form, row, CoreMessages.options_keep_days, libraryHistoryDaysSpinner, CoreMessages.options_keep_days_hint);
 
-        JButton okButton = new JButton("OK");
+        JButton okButton = new JButton(CoreMessages.common_ok);
         okButton.addActionListener(e -> {
             apply();
             dispose();
         });
-        JButton cancelButton = new JButton("Cancel");
+        JButton cancelButton = new JButton(CoreMessages.common_cancel);
         cancelButton.addActionListener(e -> dispose());
         JPanel buttons = new JPanel(new FlowLayout(FlowLayout.RIGHT, 6, 0));
         buttons.add(okButton);
@@ -151,10 +155,10 @@ final class OptionsDialog extends JDialog {
         // Dialog insets 10/12, groups 20 apart (design-spec space tokens)
         content.setBorder(BorderFactory.createEmptyBorder(10, 12, 10, 12));
         JTabbedPane tabs = new JTabbedPane();
-        tabs.addTab("General", wrapPage(form));
-        tabs.addTab("Editor", createEditorPage());
-        tabs.addTab("Editor Colors", createColorsPage());
-        tabs.addTab("Templates", templatesPage);
+        tabs.addTab(CoreMessages.options_general, wrapPage(form));
+        tabs.addTab(CoreMessages.options_editor, createEditorPage());
+        tabs.addTab(CoreMessages.options_editor_colors, createColorsPage());
+        tabs.addTab(CoreMessages.options_templates, templatesPage);
         content.add(tabs, BorderLayout.CENTER);
         content.add(buttons, BorderLayout.SOUTH);
         setContentPane(content);
@@ -187,9 +191,9 @@ final class OptionsDialog extends JDialog {
         fontFamilyCombo.addActionListener(e -> updatePreviews());
         fontSizeSpinner.addChangeListener(e -> updatePreviews());
         JPanel form = new JPanel(new GridBagLayout());
-        int row = addSection(form, 0, "Font");
-        row = addRow(form, row, "Family", fontFamilyCombo, "fixed-width fonts, default " + EditorFont.DEFAULT_FAMILY);
-        row = addRow(form, row, "Size", fontSizeSpinner, "points, default " + EditorFont.DEFAULT_SIZE);
+        int row = addSection(form, 0, CoreMessages.options_font);
+        row = addRow(form, row, CoreMessages.options_family, fontFamilyCombo, NLS.bind(CoreMessages.options_family_hint, EditorFont.DEFAULT_FAMILY));
+        row = addRow(form, row, CoreMessages.options_size, fontSizeSpinner, NLS.bind(CoreMessages.options_size_hint, EditorFont.DEFAULT_SIZE));
         formatterCombo.setSelectedIndex(SqlEditCommands.FORMATTER_COMPACT.equals(SqlEditCommands.getFormatterId()) ? 1 : 0);
         DBPIdentifierCase keywordCase = SqlEditCommands.getKeywordCase();
         keywordCaseCombo.setSelectedIndex(keywordCase == null ? 0 : switch (keywordCase) {
@@ -197,9 +201,9 @@ final class OptionsDialog extends JDialog {
             case LOWER -> 2;
             case MIXED -> 3;
         });
-        row = addSection(form, row, "Formatting");
-        row = addRow(form, row, "Style", formatterCombo, "Format SQL (Ctrl+K, Ctrl+D)");
-        row = addRow(form, row, "Keyword case", keywordCaseCombo, "database default: the case the database stores names in");
+        row = addSection(form, row, CoreMessages.options_formatting);
+        row = addRow(form, row, CoreMessages.options_style, formatterCombo, CoreMessages.options_style_hint);
+        row = addRow(form, row, CoreMessages.options_keyword_case, keywordCaseCombo, CoreMessages.options_keyword_case_hint);
         addPreview(form, row, fontPreview);
         updatePreviews();
         return wrapPage(form);
@@ -214,8 +218,8 @@ final class OptionsDialog extends JDialog {
             updateColorControls();
             updatePreviews();
         });
-        JButton resetButton = new JButton("Reset to Defaults");
-        resetButton.setToolTipText("Restore the default colors of the selected theme");
+        JButton resetButton = new JButton(CoreMessages.options_reset_defaults);
+        resetButton.setToolTipText(CoreMessages.options_reset_defaults_tip);
         resetButton.addActionListener(e -> {
             colors.put(getColorTheme(), EditorColors.getDefaults(getColorTheme()));
             colorItemList.repaint();
@@ -233,7 +237,7 @@ final class OptionsDialog extends JDialog {
         italicBox.addActionListener(e -> updateFontStyle());
 
         JPanel themeRow = new JPanel(new FlowLayout(FlowLayout.LEFT, 6, 0));
-        themeRow.add(new JLabel("Theme"));
+        themeRow.add(new JLabel(CoreMessages.options_theme));
         themeRow.add(colorThemeCombo);
         themeRow.add(resetButton);
 
@@ -270,7 +274,7 @@ final class OptionsDialog extends JDialog {
      * Preview section: a read-only SQL text area with Hangul, keywords, functions, operators, strings and numbers.
      */
     private static void addPreview(@NotNull JPanel form, int row, @NotNull SqlEditorPanel.SqlTextArea preview) {
-        row = addSection(form, row, "Preview");
+        row = addSection(form, row, CoreMessages.options_preview);
         JScrollPane scrollPane = new JScrollPane(preview);
         scrollPane.setPreferredSize(UIScale.scale(new Dimension(640, 130)));
         GridBagConstraints c = new GridBagConstraints();
