@@ -41,6 +41,7 @@ import java.util.List;
  *
  * 변경 이력:
  * - 2026-11-06 최초 작성: SQL Server 잠금 보기 (docs/chromite/swing-admin-tools.md)
+ * - 2026-11-07 세션 끝내기가 행을 받음(상위 클래스 변경, Oracle SERIAL# 때문)
  */
 public class SQLServerLockManager extends AbstractBlockingLockManager {
 
@@ -116,9 +117,9 @@ public class SQLServerLockManager extends AbstractBlockingLockManager {
     }
 
     @Override
-    protected void killSession(@NotNull JDBCSession session, long sessionId) throws SQLException {
+    protected void killSession(@NotNull JDBCSession session, @NotNull BlockingSessionLock lock) throws SQLException {
         // KILL takes no parameters; the id is a number read from the server
-        try (JDBCPreparedStatement dbStat = session.prepareStatement("KILL " + sessionId)) {
+        try (JDBCPreparedStatement dbStat = session.prepareStatement("KILL " + lock.getWaitId())) {
             dbStat.execute();
         }
     }

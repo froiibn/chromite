@@ -2359,5 +2359,6 @@ SQL Editor 도구 막대다. 쿼리 창마다 있던 도구 막대는 없앴다(
 - 2026-11-07 Query Library 자리: 한 열의 두 도구 창(Query Library·Properties, Object Explorer·Registered Servers)이 서로를 기본 이웃으로 두고,
   문서 영역 옆 열로 돌아가는 도구 창은 이웃이 같은 쪽에 있으면 이웃의 열로. "도구 창 도킹 — Query Library 자리" 절.
 - 2026-11-07 Results 기본 높이 220 → 280(사용자 결정, 밀도 B 때 결정 대기였던 것). "Results 자동 숨김" 절의 크기·Reset Window Layout.
+- 2026-11-07 Object Explorer 테이블 저장 방식 표시(Altibase 메모리 빨강, 디스크 파랑, 휘발성 호박색, 툴팁). [altibase.md](altibase.md).
 - 2026-11-07 도구 막대 두 줄(사용자 결정): 쿼리 창마다의 도구 막대를 없애고 메인 창 둘째 줄에 활성 쿼리 창을 따르는 SQL Editor 도구 막대.
   "SQL Editor 도구 막대" 절 추가, "도구 막대" 절에 안내, C단계 취소·E단계 연결 콤보 위치 갱신.

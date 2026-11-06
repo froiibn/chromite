@@ -18,6 +18,7 @@
 package com.seizia.chromite.ext.altibase.model;
 
 import org.jkiss.code.NotNull;
+import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
 import com.seizia.chromite.Log;
 import com.seizia.chromite.ext.altibase.AltibaseConstants;
@@ -40,6 +41,8 @@ import com.seizia.chromite.model.meta.Association;
 import com.seizia.chromite.model.meta.Property;
 import com.seizia.chromite.model.runtime.DBRProgressMonitor;
 import com.seizia.chromite.model.struct.DBSObject;
+import com.seizia.chromite.model.struct.rdb.DBSTableStorageKind;
+import com.seizia.chromite.model.struct.rdb.DBSTableWithStorageKind;
 import org.jkiss.utils.ByteNumberFormat;
 import org.jkiss.utils.CommonUtils;
 
@@ -47,21 +50,70 @@ import java.sql.SQLException;
 import java.util.Collection;
 import java.util.List;
 
-public class AltibaseTable extends GenericTable implements DBPNamedObject2, DBPObjectStatistics {
+/**
+ * Altibase table.
+ *
+ * 설계: 테이블 목록 질의({@link AltibaseMetaModel#prepareTableLoadStatement})가 테이블스페이스 이름, 파티션 여부,
+ * 테이블스페이스 종류를 함께 읽어 오므로 생성자에서 받아 둔다. 그래서 탐색기가 테이블마다 저장 방식(메모리/디스크/
+ * 휘발성)을 그려도 추가 질의가 없고, {@link #getTablespace}도 목록에서 온 테이블은 질의하지 않는다.
+ *
+ * 변경 이력:
+ * - 2026-11-07 저장 방식({@link DBSTableWithStorageKind}) 추가, 테이블스페이스와 파티션 여부를 목록 질의에서 받음
+ *   (docs/chromite/altibase.md)
+ */
+public class AltibaseTable extends GenericTable implements DBPNamedObject2, DBPObjectStatistics, DBSTableWithStorageKind {
 
     private static final Log log = Log.getLog(AltibaseTable.class);
     
+    // Extra columns of the table list query (AltibaseMetaModel.prepareTableLoadStatement)
+    static final String COLUMN_TBS_NAME = "TBS_NAME";
+    static final String COLUMN_IS_PARTITIONED = "IS_PARTITIONED";
+    static final String COLUMN_TBS_TYPE = "TBS_TYPE";
+    static final String COLUMN_PARTITION_TBS_TYPE_MIN = "PARTITION_TBS_TYPE_MIN";
+    static final String COLUMN_PARTITION_TBS_TYPE_MAX = "PARTITION_TBS_TYPE_MAX";
+
     private transient volatile Long[] tableSize;
     private static final int SIZE_IDX_MEM = 0;
     private static final int SIZE_IDX_DISK = 1;
     
     private String tablespace;
     private boolean partitioned;
+    @Nullable
+    private DBSTableStorageKind storageKind;
     
     private final TablePrivCache tablePrivCache = new TablePrivCache();
     
     public AltibaseTable(GenericStructContainer container, String tableName, String tableType, JDBCResultSet dbResult) {
         super(container, tableName, tableType, dbResult);
+        if (dbResult != null) {
+            tablespace = JDBCUtils.safeGetString(dbResult, COLUMN_TBS_NAME);
+            partitioned = JDBCUtils.safeGetBoolean(dbResult, COLUMN_IS_PARTITIONED, AltibaseConstants.RESULT_T_VALUE);
+            storageKind = readStorageKind(dbResult, partitioned);
+        }
+    }
+
+    /**
+     * A partitioned table keeps its rows in the tablespaces of its partitions, not in the tablespace of the table, and
+     * each partition may use another one (hybrid partitioned table). The list query gives the lowest and the highest
+     * V$TABLESPACES.TYPE of the partitions: the type codes are grouped by kind (memory 0-2, disk 3-7, volatile 8),
+     * so both have the same kind only when all partitions have it.
+     */
+    @Nullable
+    private static DBSTableStorageKind readStorageKind(@NotNull JDBCResultSet dbResult, boolean partitioned) {
+        if (!partitioned) {
+            return getStorageKind(JDBCUtils.safeGetInteger(dbResult, COLUMN_TBS_TYPE));
+        }
+        DBSTableStorageKind lowest = getStorageKind(JDBCUtils.safeGetInteger(dbResult, COLUMN_PARTITION_TBS_TYPE_MIN));
+        DBSTableStorageKind highest = getStorageKind(JDBCUtils.safeGetInteger(dbResult, COLUMN_PARTITION_TBS_TYPE_MAX));
+        if (lowest == null || highest == null) {
+            return null;
+        }
+        return lowest == highest ? lowest : DBSTableStorageKind.HYBRID;
+    }
+
+    @Nullable
+    private static DBSTableStorageKind getStorageKind(@Nullable Integer tablespaceType) {
+        return tablespaceType == null ? null : AltibaseTablespace.TbsType.getTbsTypeByIdx(tablespaceType).getStorageKind();
     }
 
     @Override
@@ -189,6 +241,13 @@ public class AltibaseTable extends GenericTable implements DBPNamedObject2, DBPO
         }
         
         return partitioned;
+    }
+
+    @Nullable
+    @Override
+    @Property(viewable = true, order = 17, editable = false)
+    public DBSTableStorageKind getStorageKind() {
+        return storageKind;
     }
     
     ///////////////////////////////////
