@@ -10,7 +10,9 @@
 
     <launcherArgs>
         <programArgs></programArgs>
-        <programArgsMac>-vm ../Eclipse/jre/Contents/Home/lib/libjli.dylib</programArgsMac>
+        <!-- Bundled runtime Contents/Eclipse/jre (tools/jre/BundleJre.java, docs/chromite/runtime.md).
+             Windows needs no -vm: the launcher uses jre\ next to chromite.exe before PATH. -->
+        <programArgsMac>-vm ../Eclipse/jre/lib/libjli.dylib</programArgsMac>
 
         <vmArgs>
             -XX:+IgnoreUnrecognizedVMOptions

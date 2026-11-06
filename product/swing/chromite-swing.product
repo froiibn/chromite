@@ -11,6 +11,9 @@
 
     <launcherArgs>
         <programArgs></programArgs>
+        <!-- Bundled runtime Contents/Eclipse/jre (tools/jre/BundleJre.java, docs/chromite/runtime.md).
+             Windows needs no -vm: the launcher uses jre\ next to chromite-swing.exe before PATH. -->
+        <programArgsMac>-vm ../Eclipse/jre/lib/libjli.dylib</programArgsMac>
 
         <!-- Same JVM options as the SWT product, but Java 25 (the Swing bundle requires JavaSE-25)
              and no -XstartOnFirstThread on macOS (it is for SWT and blocks AWT). -->

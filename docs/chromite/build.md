@@ -43,6 +43,17 @@ mvn package -f product/aggregate/pom.xml -T1C -Pproduct-dbeaver-ce
 `tools/build.cmd`, `tools/build.sh`는 Maven을 설치하지 않아도 되도록 `deps/dbeaver-common`의 Maven Wrapper(`mvnw`)로
 전체 빌드를 실행한다(`mvnw`가 Maven 3.9.16을 받아서 쓴다. 프로파일은 스크립트 안에 적힌 대로다).
 
+### 내장 Java 런타임
+
+Maven이 만든 제품에는 Java 런타임이 없다. 런타임을 넣으려면 빌드 뒤에 저장소 최상위에서 빌드에 쓴 JDK 25로 실행한다.
+
+```bash
+java tools/jre/BundleJre.java windows-x64 osx-aarch64
+```
+
+고정한 JBR SDK를 받아(SHA-256 확인, 다운로드 캐시) jlink로 줄인 런타임을 두 제품의 `jre/`(macOS `Contents/Eclipse/jre/`)에 넣는다.
+CI는 작업마다 자기 플랫폼만 넣는다. 자세한 내용은 [runtime.md](runtime.md). `tools/build.*`는 이 단계를 실행하지 않는다.
+
 ### 빌드하는 제품
 
 | 프로파일 (`product/pom.xml`) | 모듈 | 제품 |
@@ -138,6 +149,7 @@ git subtree pull --prefix=deps/datadam-api   --squash https://github.com/dbeaver
 
 - 빌드는 아직 실행해서 확인하지 않았다(2026-11-06 기준 Maven 미설치). 경로와 부모 POM 좌표는 파일을 읽어 확인했다.
 - 빌드는 여전히 인터넷의 P2 저장소(`download.eclipse.org`, `repo.dbeaver.net/p2/ce/<버전>`)와 Maven Central을 쓴다.
+  내장 런타임 단계는 JetBrains 다운로드 서버(`cache-redirector.jetbrains.com`)에서 JBR SDK를 받는다(캐시에 있으면 받지 않음).
   `deps/dbeaver-common/root/pom.xml`의 `repo.p2.dbeaver-ce.url`이 DBeaver의 서드파티 번들 저장소다.
 - CI는 Chromite 자체 워크플로(`.github/workflows/build.yml`)가 이 문서의 빌드 명령을 Maven Wrapper로 실행한다([ci.md](ci.md)).
   DBeaver의 재사용 워크플로(`dbeaver/dbeaver-common/.github/workflows/*.yml@devel`)는 더 이상 호출하지 않는다.
@@ -151,5 +163,6 @@ git subtree pull --prefix=deps/datadam-api   --squash https://github.com/dbeaver
 - 2026-11-06 루트 `pom.xml`의 Tycho 대상 환경을 Windows x64, macOS aarch64만 남기도록 축소. 제품 빌드가 Linux,
   Windows ARM, Intel Mac 제품을 더 이상 만들지 않는다.
 - 2026-11-06 CI를 Chromite 자체 워크플로로 바꾸면서 `push-pr-devel.yml`을 삭제. CI 관련 설명을 [ci.md](ci.md)로 옮김.
+- 2026-11-07 "내장 Java 런타임" 절 추가(`tools/jre/BundleJre.java`, [runtime.md](runtime.md)).
 - 2026-11-07 쓰지 않는 제품 삭제: Microsoft Store(`community-msstore`), Eclipse 플러그인(`repositories`, `ide.feature`, `ui.app.eclipse`),
   Snap(`snap-build`)과 그것만 쓰던 코드·메시지 키. `tools/build.*`의 프로파일을 `product-dbeaver-ce`만 남김. "빌드하는 제품" 절 추가.
