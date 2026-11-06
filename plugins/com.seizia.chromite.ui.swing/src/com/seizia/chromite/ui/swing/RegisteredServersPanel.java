@@ -861,6 +861,7 @@ final class RegisteredServersPanel extends JPanel {
                 pill = ConnectionPill.of(container);
                 if (pill != null) {
                     setIconTextGap(UIScale.scale(GAP) + ConnectionPill.getPaddingX());
+                setForeground(pill.getTextColor(getForeground()));
                 }
                 DBPConnectionConfiguration configuration = container.getConnectionConfiguration();
                 String host = configuration.getHostName();

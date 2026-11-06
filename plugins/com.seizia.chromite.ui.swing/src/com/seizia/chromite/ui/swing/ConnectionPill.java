@@ -36,7 +36,8 @@ import java.awt.geom.RoundRectangle2D;
  *     <li>색은 {@link ConnectionColors}(연결에 정한 색, 없으면 연결 종류의 라이트/다크 색)다. 두 창이 같은 규칙을 쓰므로 같은 서버는 두 창에서 같은 색이다.
  *     색이 없는 연결(흰색, 기본 Development)은 알약이 없다.</li>
  *     <li>줄 전체를 칠하지 않고 이름만 감싼다. 줄 바탕은 선택·마우스 올림 표시가 쓰고, 알약은 그 위에 그려 선택한 줄과 마우스를 올린 줄에서도 보인다.
- *     글자 색은 바꾸지 않는다(종류 색은 옅은 색이라 기본 글자 색과 대비가 충분하다).</li>
+ *     글자 색은 테마 색 그대로다. 다만 그 색이 알약 바탕과 4.5:1이 안 되면(다크 테마의 밝은 연결 지정 색 등) 그 라벨만 대비 색으로 바꾼다
+ *     ({@link ConnectionColors#getTextColor}). 기본 연결 종류 색은 테마별로 옅게/어둡게 정해져 있어 바뀌지 않는다.</li>
  *     <li>크기는 시안(D:\Tools\_scratch\conn-color-mock, {@code ConnColorMock} B안) 그대로다: 좌우 여백 6, 위는 대문자 높이 + 4, 아래는 descent + 1,
  *     둥글기(arc) 10. 위아래를 글꼴 줄 높이가 아니라 대문자 높이와 descent로 정해 글자 위아래 여백이 눈으로 같아 보인다.
  *     아이콘→알약, 알약→호스트 간격 6은 렌더러가 아이콘-글자 간격에 {@link #getPaddingX()}를 더해 맞춘다.</li>
@@ -48,6 +49,7 @@ import java.awt.geom.RoundRectangle2D;
  *
  * 변경 이력:
  * - 2026-11-06 최초 작성: 연결 색을 줄 바탕 대신 이름 알약으로 (docs/chromite/swing-registered-servers.md "연결 색 알약")
+ * - 2026-11-06 글자가 바탕과 4.5:1이 안 되면 대비 색, 대비 계산은 {@link ConnectionColors}로 옮김
  */
 final class ConnectionPill {
 
@@ -84,6 +86,15 @@ final class ConnectionPill {
         }
         boolean production = DBPConnectionType.PROD.getId().equals(configuration.getConnectionType().getId());
         return new ConnectionPill(fill, production ? deriveBorder(fill) : null);
+    }
+
+    /**
+     * Color of the name on the pill: the label's own color, or a contrasting one when it is unreadable on the fill
+     * ({@link ConnectionColors#getTextColor}).
+     */
+    @NotNull
+    Color getTextColor(@NotNull Color foreground) {
+        return ConnectionColors.getTextColor(fill, foreground);
     }
 
     /**
@@ -138,36 +149,16 @@ final class ConnectionPill {
         float[] hsb = Color.RGBtoHSB(fill.getRed(), fill.getGreen(), fill.getBlue(), null);
         // A gray fill has no hue to saturate
         float saturation = hsb[1] < 0.05f ? 0f : Math.max(hsb[1], BORDER_MIN_SATURATION);
-        boolean darker = contrast(fill, Color.BLACK) >= contrast(fill, Color.WHITE);
+        boolean darker = ConnectionColors.contrast(fill, Color.BLACK) >= ConnectionColors.contrast(fill, Color.WHITE);
         Color candidate = fill;
         for (float brightness = hsb[2]; brightness >= 0f && brightness <= 1f;
              brightness += darker ? -BORDER_BRIGHTNESS_STEP : BORDER_BRIGHTNESS_STEP) {
             candidate = new Color(Color.HSBtoRGB(hsb[0], saturation, brightness));
-            if (contrast(candidate, fill) >= BORDER_CONTRAST) {
+            if (ConnectionColors.contrast(candidate, fill) >= BORDER_CONTRAST) {
                 return candidate;
             }
         }
         return candidate;
     }
 
-    /**
-     * WCAG 2 contrast ratio of two colors.
-     */
-    private static double contrast(@NotNull Color a, @NotNull Color b) {
-        double la = luminance(a);
-        double lb = luminance(b);
-        return (Math.max(la, lb) + 0.05) / (Math.min(la, lb) + 0.05);
-    }
-
-    /**
-     * WCAG 2 relative luminance.
-     */
-    private static double luminance(@NotNull Color color) {
-        return 0.2126 * linear(color.getRed()) + 0.7152 * linear(color.getGreen()) + 0.0722 * linear(color.getBlue());
-    }
-
-    private static double linear(int channel) {
-        double value = channel / 255.0;
-        return value <= 0.03928 ? value / 12.92 : Math.pow((value + 0.055) / 1.055, 2.4);
-    }
 }

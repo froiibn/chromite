@@ -172,6 +172,7 @@ SSH 시험 직후 Windows 방화벽이 앱(`chromite-swing.exe`)의 네트워크
 - **연결 색이 보이는 곳**(`ConnectionColors`, SWT `UIUtils.getConnectionColor` 규칙): 쿼리 창 상태 줄(`QueryStatusLine`) 바탕, Registered Servers와 Object Explorer 서버 이름의 알약
   (`ConnectionPill`, 선택·마우스 올림 줄에서도 보임, Production은 1px 테두리. 크기와 규칙은 [swing-registered-servers.md](swing-registered-servers.md) "연결 색 알약").
   연결에 정한 색이 없으면 연결 종류의 라이트/다크 색(Test 214,250,207 / 64,89,66, Production 250,207,207 / 97,61,63)이고, 흰색(Development)은 색 없음이다.
+  테마 글자 색이 이 색과 4.5:1이 안 되면(다크 테마의 밝은 연결 지정 색) 그 글자만 대비 색이다(SWT `UIStyles.getContrastColor` 규칙, `ConnectionColors.getTextColor`).
   연결을 편집하면 열린 편집기가 레지스트리 이벤트로 상태 줄을 다시 그린다(`SqlEditorPanel.connectionChanged`).
 - **Bootstrap queries**: Edit… (N) 단추 → `BootstrapQueriesDialog`(목록, Add/Edit/Remove, Ignore SQL errors) → `bootstrap.initQueries`, `bootstrap.ignoreErrors`.
   모델이 연결 직후 이 SQL을 실행한다(`AbstractExecutionContext`의 bootstrap 처리).
@@ -225,10 +226,10 @@ Windows에서 in-process JVM으로 개인 작업 공간을 열어 로컬 Docker 
 - 인증 방식별 칸이 더 필요한 방식: 셸 명령 비밀번호, ClickHouse SSO/OIDC, BigQuery·Snowflake·Spanner 전용 칸(키 파일 등).
 - Oracle 클라이언트(OCI) 홈 선택, PostgreSQL SSL factory 목록 찾기.
 - 연결 색을 문서 탭에도 칠하기(지금은 상태 줄, Registered Servers, Object Explorer).
-- 연결에 정한 밝은 색은 다크 테마에서도 그대로라 기본 글자와 대비가 낮다(상태 줄, 알약). SWT 탐색기처럼 대비 글자 색을 쓸지 정해야 한다.
 
 ## 변경 이력
 
 - 2026-11-06 최초 작성: 인증 방식별 칸, 네트워크 핸들러 탭(SSH, Proxy, SSL), SQL Server·Oracle 주 양식 칸, 연결 색, 연결 직후 SQL, Test Connection 결과.
 - 2026-11-06 SSH 터널 로컬 포트를 루프백에서만 열도록 모델 수정(빈 포트 시험과 JSch의 빈 주소가 0.0.0.0에서 들음). "SSH 터널의 로컬 주소" 절 추가.
 - 2026-11-06 Object Explorer 연결 노드 바탕을 이름 알약(`ConnectionPill`, Registered Servers와 같음)으로 바꿈. [swing-registered-servers.md](swing-registered-servers.md) "연결 색 알약".
+- 2026-11-06 연결 색 위 글자가 읽히지 않으면 대비 색(상태 줄, 알약). 남긴 것에서 해당 항목 삭제.

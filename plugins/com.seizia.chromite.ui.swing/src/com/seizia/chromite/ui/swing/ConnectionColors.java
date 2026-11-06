@@ -36,12 +36,23 @@ import java.awt.*;
  * </ul>
  * 이 색은 쿼리 창 상태 줄({@link QueryStatusLine}) 바탕과 Registered Servers·Object Explorer 서버 이름의 알약({@link ConnectionPill})에 쓴다.
  * 모든 곳이 이 클래스 하나로 색을 정하므로 같은 연결은 어디서나 같은 색(다크 테마면 같은 어두운 색)이다.
+ * <p>
+ * 이 색 위의 글자({@link #getTextColor}): 테마 글자 색이 바탕과 4.5:1(WCAG AA 본문 대비) 이상이면 그대로, 아니면 SWT
+ * {@code UIStyles.getContrastColor}(org.jkiss.dbeaver.ui, UIStyles.java 159–168행; 탐색기는 {@code DatabaseNavigatorLabelProvider} 173–174행에서
+ * 연결 색 바탕의 글자에 씀)와 같은 규칙으로 검정·흰색을 고른다. 연결에 정한 색은 모델에 다크 값이 없어 다크 테마에서도 밝은 색이라, 테마 글자 색(밝은 색)이 읽히지 않기 때문이다.
+ * SWT는 항상 대비 색을 쓰지만 여기서는 읽히지 않을 때만 바꿔, 테마별로 정해진 기본 연결 종류 색에서는 지금 모양(테마 글자 색)을 그대로 둔다.
  *
  * 변경 이력:
  * - 2026-11-06 최초 작성: 고급 연결 설정 (docs/chromite/swing-conn-advanced.md)
  * - 2026-11-06 Registered Servers도 이 색을 씀, Object Explorer는 노드 바탕 대신 이름 알약 (docs/chromite/swing-registered-servers.md "연결 색 알약")
+ * - 2026-11-06 연결 색 위 글자 색({@link #getTextColor})과 WCAG 대비 계산 (docs/chromite/swing-registered-servers.md "연결 색 알약")
  */
 final class ConnectionColors {
+
+    // WCAG AA contrast for normal text
+    private static final double MIN_TEXT_CONTRAST = 4.5;
+    // UIStyles.COLOR_WHITE_DARK: SWT's "white" text in the dark theme
+    private static final Color WHITE_DARK = new Color(192, 192, 192);
 
     private ConnectionColors() {
     }
@@ -85,6 +96,44 @@ final class ConnectionColors {
             return null;
         }
         return new Color(clamp(red), clamp(green), clamp(blue));
+    }
+
+    /**
+     * Text color on a connection color: the given (theme) foreground when it is readable (4.5:1), otherwise black or
+     * white by the background's luma like SWT {@code UIStyles.getContrastColor}.
+     */
+    @NotNull
+    static Color getTextColor(@NotNull Color background, @NotNull Color foreground) {
+        if (contrast(background, foreground) >= MIN_TEXT_CONTRAST) {
+            return foreground;
+        }
+        // UIStyles.getContrastColor: Rec. 601 luma; a dark background gets white (light gray in the dark theme)
+        double darkness = 1 - (0.299 * background.getRed() + 0.587 * background.getGreen() + 0.114 * background.getBlue()) / 255;
+        if (darkness > 0.5) {
+            return FlatLaf.isLafDark() ? WHITE_DARK : Color.WHITE;
+        }
+        return Color.BLACK;
+    }
+
+    /**
+     * WCAG 2 contrast ratio of two colors.
+     */
+    static double contrast(@NotNull Color a, @NotNull Color b) {
+        double la = luminance(a);
+        double lb = luminance(b);
+        return (Math.max(la, lb) + 0.05) / (Math.min(la, lb) + 0.05);
+    }
+
+    /**
+     * WCAG 2 relative luminance.
+     */
+    private static double luminance(@NotNull Color color) {
+        return 0.2126 * linear(color.getRed()) + 0.7152 * linear(color.getGreen()) + 0.0722 * linear(color.getBlue());
+    }
+
+    private static double linear(int channel) {
+        double value = channel / 255.0;
+        return value <= 0.03928 ? value / 12.92 : Math.pow((value + 0.055) / 1.055, 2.4);
     }
 
     /**

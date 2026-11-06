@@ -16,7 +16,6 @@
  */
 package com.seizia.chromite.ui.swing;
 
-import com.formdev.flatlaf.FlatClientProperties;
 import com.formdev.flatlaf.util.UIScale;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
@@ -43,7 +42,11 @@ import java.awt.*;
  *     빈 칸(사용자가 없는 SQLite, 기본 DB/스키마를 모르는 연결)은 숨긴다.</li>
  *     <li>커서 위치는 SSMS 창 아래 상태 표시줄의 Ln/Col이다(한 줄로 합쳐 쿼리 창 상태 줄 끝에 둔다).</li>
  *     <li>바탕은 연결 색({@link ConnectionColors}: 연결에 정한 색, 없으면 연결 종류의 색)이다. 색이 없는 연결(기본 Development)은 카드 바탕 그대로다.
- *     연결 설정이 바뀌면 편집기가 {@link #setConnection}을 다시 불러 색도 바뀐다.</li>
+ *     연결 설정이 바뀌면 편집기가 {@link #setConnection}을 다시 불러 색도 바뀐다.
+ *     테마 글자 색이 띠와 4.5:1이 안 되면(다크 테마의 밝은 연결 지정 색 등) 줄의 모든 글자를 대비 색({@link ConnectionColors#getTextColor})으로 그린다.
+ *     라벨에 색을 설정하지 않고 그릴 때 읽는 색을 바꾼다({@link BandLabel#getForeground}). 테마를 바꿀 때 부모의 {@code updateUI}가 자식보다 먼저 불려
+ *     설정한 색이 자식의 테마 색으로 덮이기 때문이다. 같은 이유로 칸의 보조 글자 색도 FlatLaf 스타일({@code foreground: $Chromite.secondaryForeground}) 대신
+ *     여기서 읽는다: FlatLaf 스타일은 리플렉션으로 {@code getForeground}를 부르는데 이 번들 밖에서 접근할 수 없는 클래스의 메서드라 스타일 적용이 실패한다.</li>
  *     <li>줄은 편집기마다 하나이고 메인 창이 Results 카드 아래쪽(쿼리 창 맨 아래, Results가 숨겨져 있으면 문서 카드 아래쪽)에 활성 편집기의 줄을 끼운다(결과와 같은 방식, {@link MainFrame}).</li>
  * </ul>
  *
@@ -52,6 +55,7 @@ import java.awt.*;
  *   (docs/chromite/swing-frontend.md "P1 디자인 적용")
  * - 2026-11-06 커서 위치(Ln, Col) 칸 (docs/chromite/swing-sql-editor-plus.md)
  * - 2026-11-06 고급 연결 설정: 바탕을 연결 색으로 칠함 (docs/chromite/swing-conn-advanced.md)
+ * - 2026-11-06 띠 위 글자가 읽히지 않으면 대비 색 (docs/chromite/swing-registered-servers.md "연결 색 알약")
  */
 final class QueryStatusLine extends JPanel {
 
@@ -64,7 +68,7 @@ final class QueryStatusLine extends JPanel {
         READY, EXECUTING, SUCCESS, ERROR, CANCELED
     }
 
-    private final JLabel stateLabel = new JLabel();
+    private final JLabel stateLabel = new BandLabel(false);
     private final JLabel serverLabel = createSegment();
     private final JLabel userLabel = createSegment();
     private final JLabel databaseLabel = createSegment();
@@ -74,6 +78,11 @@ final class QueryStatusLine extends JPanel {
     private State state = State.READY;
     @Nullable
     private DBPDataSourceContainer container;
+    /**
+     * Text color of every label when the theme's text is unreadable on the connection color, else {@code null}.
+     */
+    @Nullable
+    private Color bandForeground;
 
     QueryStatusLine() {
         super(new BorderLayout());
@@ -116,11 +125,16 @@ final class QueryStatusLine extends JPanel {
 
     /**
      * The connection's color (custom or connection type) as the background, like the query window status bar
-     * colored by a connection's custom color; the card background when the connection has none.
+     * colored by a connection's custom color; the card background when the connection has none. Also picks the text
+     * color of the labels on it ({@link #bandForeground}).
      */
     private void applyConnectionColor() {
         Color color = container == null ? null : ConnectionColors.getColor(container.getConnectionConfiguration());
         setBackground(color != null ? color : UIManager.getColor("Panel.background")); //$NON-NLS-1$
+        Color foreground = UIManager.getColor("Label.foreground"); //$NON-NLS-1$
+        Color text = color == null || foreground == null ? null : ConnectionColors.getTextColor(color, foreground);
+        bandForeground = text == null || text.equals(foreground) ? null : text;
+        repaint();
     }
 
     void setState(@NotNull State state, @NotNull String text) {
@@ -222,9 +236,8 @@ final class QueryStatusLine extends JPanel {
     }
 
     @NotNull
-    private static JLabel createSegment() {
-        JLabel label = new JLabel();
-        label.putClientProperty(FlatClientProperties.STYLE, "foreground: $Chromite.secondaryForeground"); //$NON-NLS-1$
+    private JLabel createSegment() {
+        JLabel label = new BandLabel(true);
         label.setBorder(createSegmentBorder());
         return label;
     }
@@ -251,6 +264,27 @@ final class QueryStatusLine extends JPanel {
                 }
             },
             BorderFactory.createEmptyBorder((height - UIScale.scale(16)) / 2, UIScale.scale(12), (height - UIScale.scale(16)) / 2, UIScale.scale(12)));
+    }
+
+    /**
+     * Label whose text color is {@link #bandForeground} while that is set, else the theme's text or text.secondary
+     * color (read when painting, see the class comment).
+     */
+    private final class BandLabel extends JLabel {
+        private final boolean secondary;
+
+        BandLabel(boolean secondary) {
+            this.secondary = secondary;
+        }
+
+        @Override
+        public Color getForeground() {
+            Color color = bandForeground;
+            if (color == null && secondary) {
+                color = UIManager.getColor("Chromite.secondaryForeground"); //$NON-NLS-1$
+            }
+            return color != null ? color : super.getForeground();
+        }
     }
 
     @NotNull

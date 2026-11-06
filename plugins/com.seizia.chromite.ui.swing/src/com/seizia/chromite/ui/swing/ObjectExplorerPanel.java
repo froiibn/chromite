@@ -1319,6 +1319,7 @@ final class ObjectExplorerPanel extends JPanel {
                     pill = ConnectionPill.of(dataSourceNode.getDataSourceContainer());
                     if (pill != null) {
                         setIconTextGap(UIScale.scale(GAP) + ConnectionPill.getPaddingX());
+                    setForeground(pill.getTextColor(getForeground()));
                     }
                 }
                 setIcon(NodeIcons.getNodeIcon(navigatorNode, expanded));

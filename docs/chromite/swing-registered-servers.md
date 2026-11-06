@@ -89,7 +89,7 @@ Registered Servers와 Object Explorer의 서버 행이 같은 클래스(`Connect
 | 색 | `ConnectionColors.getColor`: 연결에 정한 색(Custom color)이 있으면 그 색, 없으면 연결 종류의 라이트/다크 색(Test 214,250,207 / 64,89,66, Production 250,207,207 / 97,61,63). 흰색(기본 Development)은 알약 없음. |
 | 크기(논리 px, UI 배율 적용) | 좌우 여백 6. 위 = 이름 기준선에서 대문자 높이 + 4, 아래 = 기준선에서 descent + 1. 둥글기(arc) 10. |
 | 간격 | 아이콘→알약 6(아이콘-글자 간격 6 + 여백 6에서 여백만큼 알약이 왼쪽으로 나옴), 알약→호스트 6. |
-| 글자 색 | 바꾸지 않는다. |
+| 글자 색 | 테마 글자 색 그대로. 그 색이 알약 바탕과 4.5:1(WCAG AA 본문 대비)이 안 될 때만 그 라벨을 대비 색으로 그린다(`ConnectionColors.getTextColor`, 아래). |
 | 선택·마우스 올림 | 줄 바탕(선택 색, bg.hover)은 그대로 그리고 알약은 그 위에 그린다. 선택한 줄과 마우스를 올린 줄에서도 알약이 보인다. |
 | Production 테두리 | 1px(색으로 Test와 Production을 구별하기 어려운 사용자를 위해). 바탕색과 같은 색상(hue)에서 채도를 0.6 이상으로 올리고 밝기를 바탕과 먼 쪽으로 0.01씩 옮겨 바탕과 대비 3:1(WCAG 비텍스트 대비)이 되는 첫 색. 라이트 250,207,207 → 204,82,82, 다크 97,61,63 → 245,98,106(어두운 바탕은 더 어두운 색으로 3:1이 안 되어 밝은 쪽). Production 연결에 정한 색도 같은 규칙(예 255,200,120 → 145,110,58). Production 판단은 연결 종류 ID `prod`(`DBPConnectionType.PROD`). |
 
@@ -98,7 +98,16 @@ Registered Servers와 Object Explorer의 서버 행이 같은 클래스(`Connect
   (호스트 글자가 이름보다 1px 위). 알약도 같은 기준선에서 잰다. Object Explorer의 다른 보조 글자(열 형식, 폴더 개수)도 같은 고침을 받는다.
 - 이전 방식은 지웠다: Registered Servers의 줄 전체 연결 종류 색(`ServersTree.paintRowBackgrounds`, `getConnectionTypeColor`, `NO_COLOR`), Object Explorer의 글자 폭 바탕(`connectionColor`, 고급 연결 설정에서 넣음).
 - 색 규칙을 한곳으로: 이전에는 Registered Servers가 연결 종류 색만(연결에 정한 색 무시), Object Explorer가 `ConnectionColors`를 썼다. 지금은 둘 다 `ConnectionColors`라 같은 서버가 두 창에서 같은 색이다.
-- 쿼리 창 상태 줄(`QueryStatusLine`)은 바꾸지 않았다: 이미 같은 `ConnectionColors`(같은 다크 색)로 상태 줄 띠 전체를 칠하고, 테마를 바꾸면 `updateUI`에서 다시 칠한다(편집기를 다시 붙일 때도 `MainFrame.attachStatusLine` → `updateLookAndFeel`).
+- 쿼리 창 상태 줄(`QueryStatusLine`)의 띠는 그대로다: 이미 같은 `ConnectionColors`(같은 다크 색)로 상태 줄 띠 전체를 칠하고, 테마를 바꾸면 `updateUI`에서 다시 칠한다(편집기를 다시 붙일 때도 `MainFrame.attachStatusLine` → `updateLookAndFeel`).
+- 연결 색 위의 글자(`ConnectionColors.getTextColor`): 연결에 정한 색은 모델에 다크 값이 없어 다크 테마에서도 밝은 색이고, 그 위의 테마 글자 색(#d1d3d9)은 대비가 1.0:1이라 읽히지 않았다.
+  그래서 테마 글자 색이 바탕과 4.5:1 이상이면 그대로 두고, 아니면 SWT `UIStyles.getContrastColor`(org.jkiss.dbeaver.ui, `UIStyles.java` 159–168행: Rec. 601 luma로 어두운 바탕이면 흰색(다크 테마 192,192,192), 밝은 바탕이면 검정)를 따른다.
+  SWT 탐색기도 연결 색 바탕의 글자에 이 함수를 쓴다(`DatabaseNavigatorLabelProvider.java` 173–174행). SWT는 항상 대비 색을 쓰지만 여기서는 읽히지 않을 때만 바꿔 기본 연결 종류 색은 지금 모양 그대로다
+  (테마 글자 색 대비: 라이트 Test 18.4, Production 14.9 / 다크 Test 5.1, Production 6.2).
+  - 알약: 렌더러가 알약이 있는 라벨만 `ConnectionPill.getTextColor`로 글자 색을 정한다(선택 줄이면 선택 글자 색을 기준으로).
+  - 상태 줄: 테마 글자 색(`Label.foreground`)이 띠와 4.5:1이 안 되면 줄의 모든 글자(상태, 서버·사용자·DB·시간·행·위치 칸)를 대비 색으로 그린다.
+    라벨에 색을 설정하지 않고 그릴 때 읽는다(`QueryStatusLine.BandLabel.getForeground`): 테마를 바꿀 때 부모의 `updateUI`가 자식보다 먼저 불려 설정한 색이 덮이기 때문이다.
+    같은 이유로 칸의 보조 글자 색(text.secondary)도 FlatLaf 스타일 대신 이 메서드에서 읽는다. FlatLaf 스타일은 리플렉션(`Class.getMethod`)으로 `getForeground`를 불러
+    번들 밖에서 접근할 수 없는 이 클래스에서는 적용이 실패한다(시험에서 칸 글자가 회색 대신 검정으로 보였다).
 
 ## 설계 결정과 이유
 
@@ -148,8 +157,12 @@ QMS SQL Server(SQL Server, Development), QMS PostgreSQL(Test), QMS MariaDB(Produ
 - 선택한 줄(QMS PostgreSQL)과 마우스를 올린 줄(QMS MariaDB)에서 줄 바탕 위에 알약이 보인다. 라이트 → 다크 테마를 바꾸면 알약이 다크 색으로 바뀐다.
 - 기준선: 라벨 기준선 17 = 호스트 글자 기준선(옛 계산 16). 확대 화면에서 이름과 호스트 글자의 아래 끝이 맞는다.
 - 쿼리 창 상태 줄: QMS Report DB의 New Query → 상태 줄 띠가 같은 주황(라이트·다크 모두 같은 값).
-- 확인한 문제(바꾸지 않음): 연결에 정한 밝은 색은 다크 테마에서도 그대로라(모델에 다크 값이 없음) 기본 밝은 글자와 대비가 낮다(알약 이름, 상태 줄 "Ready"가 거의 안 보임).
-  SWT 탐색기는 이때 글자를 대비 색(`UIStyles.getContrastColor`)으로 바꾼다. 글자 색을 바꾸지 않는다는 결정과 부딪혀 남겼다.
+- 대비 글자 색(같은 날 추가): 처음 구현에서는 연결에 정한 밝은 색이 다크 테마에서 알약 이름과 상태 줄 "Ready"를 거의 가렸다. 고친 뒤 다시 확인했다(`D:\Tools\_scratch\conn-color-pill\shots\contrast\`,
+  전후 그림 `D:\Tools\_scratch\conn-color-pill\compare-custom-color-dark.png`).
+  - 다크: QMS Report DB 알약 이름과 상태 줄의 모든 글자가 검정(대비 13.8:1)으로 읽힌다.
+  - 바뀌지 않음(처음 화면과 픽셀 비교): 라이트 두 트리와 상태 줄은 같은 픽셀. 다크 두 트리는 QMS Report DB 줄만 다르고 Test·Production 줄은 같다.
+    다크에서 QMS PostgreSQL(Test)·QMS MariaDB(Production)의 New Query 상태 줄은 상태 글자 #d1d3d9, 칸 글자 #73767c(text.secondary) 그대로.
+  - 테마 전환: 다크 → 라이트로 바꾼 뒤 Report DB 상태 줄이 처음 라이트 화면과 같은 픽셀(칸 글자 회색으로 돌아옴).
 
 ## 변경 이력
 
@@ -158,3 +171,4 @@ QMS SQL Server(SQL Server, Development), QMS PostgreSQL(Test), QMS MariaDB(Produ
   생기기 전이면 `showServer`가 그냥 돌아가던 것을 고침(ID를 먼저 넣고 탐색기 `ADD` 이벤트로 목록을 다시 읽을 때 고름).
 - 2026-11-06 연결 색 알약(B안): 두 창의 서버 이름을 연결 색 알약으로 감쌈(`ConnectionPill`), 줄 전체 색과 Object Explorer 글자 폭 바탕 삭제, 색 규칙을 `ConnectionColors`로 통일,
   Production 1px 테두리, 보조 글자를 라벨 기준선에 맞춤(1px 위로 뜨던 문제).
+- 2026-11-06 연결 색 위 글자: 테마 글자 색이 바탕과 4.5:1이 안 되면 대비 색(SWT `UIStyles.getContrastColor` 규칙). 알약과 쿼리 창 상태 줄. 상태 줄 칸 글자 색을 스타일 대신 라벨에서 읽음.
