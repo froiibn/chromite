@@ -32,6 +32,7 @@ import org.eclipse.osgi.util.NLS;
  * - 2026-11-06 최초 작성: 편집기 영역 화면 문구를 옮김(OS 언어를 따름)
  * - 2026-11-07 쿼리 창 도구 막대 삭제로 쓰지 않게 된 {@code editor_sql_cancel} 삭제. 실행·중지·계획 단추의 도구 설명은
  *   메인 창 SQL Editor 도구 막대가 씀 (docs/chromite/swing-frontend.md "SQL Editor 도구 막대")
+ * - 2026-11-07 쿼리 상태 줄의 커밋 방식 칸 문구({@code editor_status_auto_commit} 등) (docs/chromite/swing-frontend.md "자동 커밋 상태")
  */
 public class EditorMessages extends NLS {
     private static final String BUNDLE_NAME = "com.seizia.chromite.ui.swing.internal.EditorMessages"; //$NON-NLS-1$
@@ -196,6 +197,12 @@ public class EditorMessages extends NLS {
     public static String editor_status_rows;
     public static String editor_status_caret;
     public static String editor_status_caret_tip;
+    public static String editor_status_auto_commit;
+    public static String editor_status_auto_commit_tip;
+    public static String editor_status_manual_commit;
+    public static String editor_status_manual_commit_tip;
+    public static String editor_status_commit_setting_tip;
+    public static String editor_status_commit_default_differs;
 
     // Results (QueryResultsView)
     public static String editor_results_none;

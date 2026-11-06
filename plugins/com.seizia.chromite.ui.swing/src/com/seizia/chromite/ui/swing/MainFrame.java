@@ -180,6 +180,7 @@ import java.util.function.IntConsumer;
  * - 2026-11-07 도구 막대 두 줄(사용자 결정): SQL Editor 도구 막대 {@link SqlEditorToolBar}를 Standard 아래에 두고 활성 쿼리 창을 따름,
  *   Include Actual Execution Plan을 선택 상태가 있는 동작으로(메뉴와 도구 막대 단추가 같이 씀), 실행·계획 켜짐을 쿼리 창의
  *   {@code canExecute}·{@code canCancel}·{@code canExplain}으로 (docs/chromite/swing-frontend.md "SQL Editor 도구 막대")
+ * - 2026-11-07 쿼리 창이 활성이 되면 쿼리 상태 줄의 커밋 방식을 다시 읽음 (docs/chromite/swing-frontend.md "자동 커밋 상태")
  */
 final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplorerPanel.QueryWindows, TableDesignerPanel.Host, QueryLibraryPanel.Host {
 
@@ -1226,6 +1227,10 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
         resultsSplit.update();
         attachStatusLine(editor != null ? editor.getStatusLine() : null);
         sqlEditorToolBar.setActiveEditor(editor);
+        if (editor != null) {
+            // Another window on the same connection shares its session and may have changed the commit mode
+            editor.refreshTransactionMode();
+        }
         updateQueryActions();
     }
 

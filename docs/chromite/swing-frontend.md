@@ -1815,6 +1815,88 @@ SQL Editor 도구 막대다. 쿼리 창마다 있던 도구 막대는 없앴다(
   테마 전환으로 다시 등록된 탭 UI의 리스너보다 먼저 불려, UI가 탭 목록을 갱신하기 전에 배치하기 때문으로 보인다. 확인 중 테마는 문서가 없을 때만 바꿔 피했다.
 - Actual Plan 토글은 글자 단추라 다른 단추(24)보다 1 높다(25, design-spec "Pretendard와 밀도 B"에 적은 것과 같음). 막대 높이(콤보 28)에는 영향이 없다.
 
+## 자동 커밋 상태 (2026-11-07)
+
+사용자 요청(2026-11-07): "AutoCommit이 지금 어떤상태인지 상태표시줄에 표시해준다". 이어서 사용자 결정:
+- "상태표시줄에서 바꾸면 안된다. 사고난다. 옵션 설정은 설정 화면에서 하도록 해야 한다. 다만 상태표시줄에서 오토커밋을 클릭하면 옵션 창으로 안내까지는 허용한다."
+- "열려있는 세션에도 반영되는 방법을 찾아야 한다." (설정을 바꾸면 다시 연결하지 않아도 열린 세션에 적용)
+- "on일 경우 초록색 동그라미, off일 경우 빨간색 동그라미로 색상도 나타내야 한다."
+
+### 표시
+
+- **위치: 쿼리 상태 줄**(서버 │ 사용자 │ DB/스키마 │ **커밋 방식** │ 시간 │ 행 │ Ln, Col). 커밋 방식은 쿼리 창이 쓰는 실행 컨텍스트(연결의 주 컨텍스트)의 상태라
+  연결마다 다르다. 메인 창 상태 표시줄은 작업 공간 전체(연결 수)를 보이고, 연결별 정보(서버, 사용자, DB)는 쿼리 상태 줄에 있으므로(design-spec "9. 쿼리 상태 줄") 여기에 둔다.
+  메인 창은 활성 쿼리 창의 상태 줄을 끼우므로 활성 쿼리 창의 값이 보이고, 쿼리 창이 없으면 줄 자체가 없다.
+- **모양:** 점(size.statusDot 6) + 글자. 자동 커밋은 초록 점(`Chromite.status.success`) + "자동 커밋"/"Auto-commit", 수동 커밋은 빨간 점(`Chromite.status.error`) +
+  "수동 커밋"/"Manual commit". 색은 두 테마의 상태 색 토큰을 그릴 때 읽는다(라이트 `#208A3C`/`#DB3B4B`, 다크 `#5FAD65`/`#DB5C5C`). 글자가 함께 있어 색만으로 구별하지 않는다.
+  점은 연결 상태 점(`UiIcons.withStatusDot`)과 같은 크기·색 규칙의 새 `UiIcons.statusDot`이다.
+- **숨김:** 연결되어 있지 않으면(연결 전, 연결 끊김) 칸을 숨긴다(빨간 점을 보이지 않는다). 트랜잭션 관리자가 없는 연결도 숨긴다.
+- **도구 설명:** 상태 설명(수동 커밋은 "COMMIT을 실행할 때까지 열린 트랜잭션에 남는다, ROLLBACK은 버린다"), 연결 설정에 저장한 값이 실제 세션과 다르면
+  "연결 설정은 지금 …입니다. 다시 연결하면 적용됩니다", 끝에 "클릭하면 연결의 자동 커밋 설정을 엽니다".
+- **보이는 값은 열린 세션의 실제 상태다.** 연결 설정의 기본값이 아니라 컨텍스트의 `DBCTransactionManager#isAutoCommit`을 읽는다. 컨텍스트가 값을 캐시하지만 연결 직후 첫 읽기는
+  드라이버에 묻으므로 작업 스레드에서 읽는다(`SqlEditorPanel#refreshTransactionMode`, SWT `DataSourceAutoCommitHandler#updateElement`와 같은 API).
+- **갱신 시점:** 연결 고르기(2줄 연결 콤보), 연결·연결 끊기·연결 설정 변경(연결 갱신 이벤트 → `connectionChanged`), 실행이 끝날 때, 기본 DB 바꾸기(모두 `refreshSchemas`를 거침),
+  쿼리 창이 활성이 될 때(같은 연결의 다른 창이 세션을 함께 쓴다), 열린 세션에 적용한 뒤.
+  SQL Server `SET IMPLICIT_TRANSACTIONS ON`처럼 드라이버의 자동 커밋 플래그를 바꾸지 않는 문은 알 수 없다(JDBC `getAutoCommit`은 그대로 true). 서버에 물어야 하므로 이번에는 하지 않았다.
+
+### 바꾸기 (설정 화면에서만)
+
+- 상태 줄은 커밋 방식을 **바꾸지 않는다**(토글·팝업 메뉴 없음). 칸을 누르면 활성 쿼리 창 연결의 **연결 편집** 대화상자가 Options를 펼치고
+  Connection Properties 탭의 **Auto-commit** 칸에 초점을 둔 채 열린다(`ConnectionCommands.editAutoCommit` → `ConnectionDialog.openEditAutoCommit` → `ConnectionSettingsPanel.focusAutoCommit`).
+  커밋 방식을 실제로 정하는 설정은 이것(연결의 bootstrap `defaultAutoCommit`, "기본값(연결 유형)"이면 연결 유형의 자동 커밋)뿐이다. Swing Options에는 커밋 방식 설정이 없다.
+- **열린 세션에 적용(`AutoCommitApplier`):** 모델은 이 기본값을 컨텍스트를 열 때만 읽는다(`JDBCExecutionContext.connect`의 `isDefaultAutoCommit`).
+  그래서 연결 편집에서 Save했을 때 Auto-commit의 실제 값(연결 유형 포함)이 바뀌었고 연결되어 있으면, 그 연결의 모든 인스턴스의 모든 컨텍스트(주 컨텍스트 = 쿼리 창들,
+  메타데이터, 관리 도구의 격리 컨텍스트)에 `DBCTransactionManager#setAutoCommit`을 부른다. 다시 연결했을 때와 같은 결과이고, 다시 연결 질문은 그 밖의 설정도 바뀌었을 때만 묻는다.
+- **안전:** 자동 커밋을 켜면 JDBC가 열린 트랜잭션을 조용히 커밋한다. 그래서 먼저 쿼리 관리자의 트랜잭션 추적(`QMUtils.isTransactionActive`)으로 커밋하지 않은 변경이 있는 컨텍스트를 찾고,
+  있으면 한 대화상자에 목록(쿼리 창 이름과 연결, 쿼리 창이 아닌 세션은 "TR MSSQL의 Metadata 세션" 식)을 보이고 **커밋하고 적용 / 롤백하고 적용 / 취소**를 묻는다(기본은 취소).
+  취소하면 열린 세션은 수동 커밋 그대로이고, 저장한 설정은 다음 연결부터 적용된다(도구 설명이 이를 알린다). 끄기(자동 → 수동)는 묻지 않는다.
+- **오류:** 전환하지 못한 컨텍스트(드라이버 오류)는 창 이름과 오류 문구를 한 대화상자로 알린다. 끝나면 연결 갱신 이벤트를 보내 모든 쿼리 창이 실제 상태를 다시 읽으므로 상태 줄은 실제 값을 보인다.
+- JDBC 호출(현재 값 읽기, 커밋·롤백, 전환)은 모두 작업 스레드에서 하고, 질문·결과만 EDT에서 보인다.
+
+### 바뀐 파일
+
+| 파일 | 바뀐 것 |
+|---|---|
+| `QueryStatusLine` | 커밋 방식 칸(점 + 글자, 도구 설명, 누르면 설정으로 안내하는 동작) |
+| `SqlEditorPanel` | `refreshTransactionMode`(작업 스레드에서 실제 상태 읽기), `refreshSchemas`에서 부름, 칸의 동작을 연결 설정 열기로 |
+| `MainFrame` | 쿼리 창이 활성이 되면 커밋 방식을 다시 읽음 |
+| `AutoCommitApplier`(새 파일) | 열린 세션에 적용, 커밋하지 않은 변경 확인 대화상자, 오류 알림 |
+| `ConnectionDialog` | `openEditAutoCommit`, Save 뒤 Auto-commit이 바뀌었으면 열린 세션에 적용하고 그 밖의 변경이 있을 때만 다시 연결 질문 |
+| `ConnectionSettingsPanel` | `focusAutoCommit`(Options 펼치고 Auto-commit 칸에 초점) |
+| `ConnectionCommands` | `editAutoCommit` |
+| `UiIcons` | `statusDot`(아이콘 없는 상태 점) |
+| `internal/EditorMessages`, `internal/ConnectionMessages`(`_ko`) | 칸 글자·도구 설명, 적용 대화상자 문구 |
+
+### 확인 (2026-11-07)
+
+빌드 `-Pproduct-chromite-swing` BUILD SUCCESS, 번들 JRE로 실행. 개인 작업 공간, SQL Server 2022·PostgreSQL 17의 `chr_ssms_two_row_toolbar`, EDT 시험 에이전트.
+캡처는 창만 `D:\Tools\_scratch\ssms-two-row-toolbar\shots\c-*.png`.
+
+| 경우 | 결과 |
+|---|---|
+| SQL Server 쿼리 창 2개 + PostgreSQL 쿼리 창 1개, 처음 | 셋 다 초록 점 "Auto-commit"(연결 유형 Development 기본값) |
+| 상태 줄 칸 클릭 | 연결 편집이 Options를 펼치고 Auto-commit 칸에 초점(`c-en-light-02-settings-dialog`) |
+| SQL Server를 Manual commit으로 Save | 다시 연결 질문 없이 SQL Server 창 2개 모두 빨간 점 "Manual commit", PostgreSQL은 그대로 |
+| 수동 커밋에서 `INSERT … (10, …)` 뒤 Auto-commit으로 Save | 대화상자에 "SQLQuery1.sql - TR MSSQL, SQLQuery2.sql - TR MSSQL"(`c-en-light-05-pending-dialog`). 롤백하고 적용 → 두 창 Auto-commit, `sqlcmd`로 Id 10 = 0행 |
+| 같은 순서로 `INSERT … (11, …)` 뒤 커밋하고 적용 | 두 창 Auto-commit, Id 11 = 1행 |
+| PostgreSQL에서 같은 두 경우 | 롤백 → id 10 없음, 커밋 → id 11 있음(`psql`) |
+| PostgreSQL 수동 + 커밋 안 한 INSERT에서 Auto-commit으로 Save → 취소 | 세션은 Manual commit 그대로, 도구 설명 "The connection setting is now Auto-commit; it applies when you reconnect" |
+| PostgreSQL 연결 끊기 | PostgreSQL 창의 칸이 숨겨짐(빨간 점 없음). 다시 실행해 연결하면 다시 보임 |
+| 탭 바꾸기 | 각 창의 값(SQL Server 수동, PostgreSQL 자동)이 보임. 라이트·다크(`c-en-*`, `c-ko-*`) |
+| 한국어: 2줄 연결 콤보로 SQL Server 창을 PostgreSQL로 바꿈 | 연결 전에는 칸 숨김, 실행해 연결하면 초록 점 "자동 커밋" |
+| 한국어: SQL Server 수동 + `INSERT … (12, …)` → 자동 커밋으로 저장 | 대화상자 "• SQLQuery1.sql - TR MSSQL"(`c-ko-light-04-pending-dialog`), 롤백하고 적용 → Id 12 = 0행 |
+
+- 기본 배치(Object Explorer·Properties가 열린 1280 창)에서는 칸이 하나 늘어 왼쪽 상태 문구가 "…"로 줄어든다(아이콘은 보임, 도구 설명에 전문).
+- 회귀 테스트는 실행하지 않았다(요청 없음). 영향받을 수 있는 기능: 연결 편집의 Save(다시 연결 질문 조건이 바뀜), 쿼리 상태 줄 배치(칸이 하나 늘어 좁은 창에서 왼쪽 상태 문구가 더 일찍 줄어듦),
+  수동 커밋 연결의 실행.
+
+### 남긴 것 (사용자에게 물을 것)
+
+- 실행 중 커밋 방식 전환(토글)과 Commit/Rollback 단추는 요청 범위가 아니라 만들지 않았다. 지금 수동 커밋 연결에서 변경을 확정하려면 쿼리 창에서 `COMMIT`/`ROLLBACK`을 실행해야 한다.
+  상태 줄에서는 바꾸지 않는다는 결정과 별개로, 도구 막대나 Query 메뉴에 Commit/Rollback을 둘지 결정이 필요하다.
+- `SET IMPLICIT_TRANSACTIONS ON`(SQL Server) 같은 서버 쪽 트랜잭션 모드는 표시하지 않는다(위 "갱신 시점").
+- 쿼리 창마다 따로 세션을 쓰는 기능이 생기면 적용 대상 목록의 이름 붙이기(지금은 주 컨텍스트 = 그 연결의 모든 쿼리 창)를 고쳐야 한다.
+
 ## 도구 창 도킹 (2026-11-06)
 
 사용자 결정(2026-11-06): 도구 창을 익숙한 SQL Server 도구·IDE처럼 옮길 수 있게 한다. 머리말을 끌어 왼쪽·오른쪽·아래나 다른 도구 창 안(탭)에 놓고,
@@ -2362,3 +2444,5 @@ SQL Editor 도구 막대다. 쿼리 창마다 있던 도구 막대는 없앴다(
 - 2026-11-07 Object Explorer 테이블 저장 방식 표시(Altibase 메모리 빨강, 디스크 파랑, 휘발성 호박색, 툴팁). [altibase.md](altibase.md).
 - 2026-11-07 도구 막대 두 줄(사용자 결정): 쿼리 창마다의 도구 막대를 없애고 메인 창 둘째 줄에 활성 쿼리 창을 따르는 SQL Editor 도구 막대.
   "SQL Editor 도구 막대" 절 추가, "도구 막대" 절에 안내, C단계 취소·E단계 연결 콤보 위치 갱신.
+- 2026-11-07 자동 커밋 상태(사용자 요청·결정): 쿼리 상태 줄의 커밋 방식 칸(초록·빨간 점), 누르면 연결 설정의 Auto-commit으로 안내,
+  설정을 바꾸면 열린 세션에도 적용(커밋하지 않은 변경은 커밋/롤백/취소를 물음). "자동 커밋 상태" 절 추가.
