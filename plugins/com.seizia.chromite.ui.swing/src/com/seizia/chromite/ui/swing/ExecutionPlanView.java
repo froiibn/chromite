@@ -38,6 +38,7 @@ import org.jkiss.utils.CommonUtils;
 import javax.swing.*;
 import javax.swing.table.AbstractTableModel;
 import javax.swing.table.DefaultTableCellRenderer;
+import javax.swing.table.TableCellRenderer;
 import javax.swing.table.TableColumn;
 import java.awt.*;
 import java.awt.event.MouseAdapter;
@@ -63,6 +64,9 @@ import java.util.Set;
  *     "Query N" 행을 두고(SQL Server 계획 도구처럼 일괄 처리 대비 비용을 함께 보이는 문장 행) 그 아래에 계획 트리를 둔다.</li>
  *     <li>트리 표는 Swing에 없으므로 {@link JTable}에 펼친 행만 넣고 첫 열에 들여쓰기·펼침 화살표를 그린다. 첫 열 화살표를 누르거나
  *     행을 두 번 누르면 접고 편다. 처음에는 모두 펼친다(SWT {@code expandToLevel(10)}과 같은 의도).</li>
+ *     <li>열 너비는 계획이 들어올 때 머리글과 보이는 행의 내용에 맞춘다({@link #fitColumns}, SWT 계획 표 {@code PlanNodesTree}의 상위 {@code ObjectListControl}이 내용을 채운 뒤 열을 다시 맞추는 것과 같은 의도).
+ *     열이 보기보다 좁으면 보기를 채우고, 넓으면 가로로 스크롤한다. 모든 열을 보기 안에 밀어 넣으면(속성 열이 많은 SQL Server 계획)
+ *     연산 이름이 잘렸다.</li>
  *     <li>SWT와 같이 테이블 전체 읽기({@link DBCPlanNodeKind#TABLE_SCAN})는 오류 색, 인덱스 전체 읽기({@link DBCPlanNodeKind#INDEX_SCAN})는
  *     경고 색으로 행 바탕을 옅게 칠한다(테마의 상태 색을 섞어 두 테마 모두에서 읽히게).</li>
  *     <li>오른쪽 상세 표는 선택한 노드의 모든 속성이다. 노드가 {@link DBPPropertySource}이면(PostgreSQL 노드의 계획 속성 전체) 그것을,
@@ -73,6 +77,7 @@ import java.util.Set;
  *
  * 변경 이력:
  * - 2026-11-06 최초 작성 (docs/chromite/swing-sql-editor-plus.md)
+ * - 2026-11-06 열이 너무 좁아 연산 이름이 잘리던 문제: 고정 비율로 보기에 맞추던 열을 내용에 맞추고, 넘치면 가로 스크롤 (docs/chromite/swing-sql-editor-plus.md)
  */
 final class ExecutionPlanView {
 
@@ -80,6 +85,13 @@ final class ExecutionPlanView {
 
     private static final String NODE_TYPE_PROPERTY = "nodeType"; //$NON-NLS-1$
     private static final int INDENT = 16;
+    // Column fitting (fitColumns), unscaled pixels
+    private static final int MEASURED_ROWS = 2000;
+    private static final int MIN_OPERATION_WIDTH = 200;
+    private static final int MAX_OPERATION_WIDTH = 700;
+    private static final int MIN_PROPERTY_WIDTH = 60;
+    private static final int MAX_PROPERTY_WIDTH = 360;
+    private static final int COLUMN_PADDING = 12;
 
     /**
      * The plan of one statement, or why it could not be made.
@@ -101,7 +113,16 @@ final class ExecutionPlanView {
     private final JPanel component = new JPanel(new BorderLayout());
     private final JLabel headerLabel = new JLabel();
     private final PlanTableModel tableModel = new PlanTableModel();
-    private final JTable table = new JTable(tableModel);
+    private final JTable table = new JTable(tableModel) {
+        /**
+         * Fills the view when the fitted columns are narrower than it, scrolls horizontally otherwise (squeezing every
+         * column into the view cut the operation names).
+         */
+        @Override
+        public boolean getScrollableTracksViewportWidth() {
+            return getParent() instanceof JViewport viewport && getPreferredSize().width < viewport.getWidth();
+        }
+    };
     private final DetailsModel detailsModel = new DetailsModel();
     private final JTable detailsTable = new JTable(detailsModel);
 
@@ -195,6 +216,7 @@ final class ExecutionPlanView {
         }
         updateHeader();
         rebuild();
+        fitColumns();
         if (table.getSelectedRow() < 0 && !rows.isEmpty()) {
             table.getSelectionModel().setSelectionInterval(0, 0);
         }
@@ -242,7 +264,6 @@ final class ExecutionPlanView {
         if (!newColumns.equals(columns)) {
             columns = newColumns;
             tableModel.fireTableStructureChanged();
-            sizeColumns();
         }
     }
 
@@ -253,12 +274,30 @@ final class ExecutionPlanView {
         }
     }
 
-    private void sizeColumns() {
-        for (int i = 0; i < table.getColumnCount(); i++) {
-            TableColumn column = table.getColumnModel().getColumn(i);
-            // The columns share the width of the view in these proportions; the tree column keeps room for the indentation
-            column.setPreferredWidth(UIScale.scale(i == 0 ? 320 : i == columns.size() ? 200 : 110));
-            column.setMinWidth(UIScale.scale(i == 0 ? 200 : 60));
+    /**
+     * Fits the columns to their header and the shown rows, measured with the table's renderer (indentation and font
+     * included). The operation column fits the plan nodes only: a statement row is the SQL text, which the details show
+     * in full. Property values are capped so that one long value (a filter, an output list) does not take the view.
+     */
+    private void fitColumns() {
+        boolean hasNodes = rows.stream().anyMatch(row -> row.item instanceof DBCPlanNode);
+        int measuredRows = Math.min(rows.size(), MEASURED_ROWS);
+        for (int column = 0; column < table.getColumnCount(); column++) {
+            TableColumn tableColumn = table.getColumnModel().getColumn(column);
+            TableCellRenderer headerRenderer = tableColumn.getHeaderRenderer() != null
+                ? tableColumn.getHeaderRenderer() : table.getTableHeader().getDefaultRenderer();
+            int width = headerRenderer.getTableCellRendererComponent(table, tableColumn.getHeaderValue(), false, false, -1, column)
+                .getPreferredSize().width;
+            for (int row = 0; row < measuredRows; row++) {
+                if (column == 0 && hasNodes && !(rows.get(row).item instanceof DBCPlanNode)) {
+                    continue;
+                }
+                width = Math.max(width, table.prepareRenderer(table.getCellRenderer(row, column), row, column).getPreferredSize().width);
+            }
+            int minWidth = UIScale.scale(column == 0 ? MIN_OPERATION_WIDTH : MIN_PROPERTY_WIDTH);
+            int maxWidth = UIScale.scale(column == 0 ? MAX_OPERATION_WIDTH : MAX_PROPERTY_WIDTH);
+            tableColumn.setMinWidth(minWidth);
+            tableColumn.setPreferredWidth(Math.clamp(width + UIScale.scale(COLUMN_PADDING), minWidth, maxWidth));
         }
     }
 

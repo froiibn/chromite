@@ -78,6 +78,8 @@ import java.util.Map;
  * - 2026-11-06 SQLQueryJob(ui.editors.sql)에서 실행 로직을 옮겨 만듦(docs/chromite/swing-frontend.md "쿼리 실행 계층").
  * - 2026-11-06 Query Library: 핸들러가 값을 바인딩하는 쿼리({@link SQLQueryExecuteHandler#hasBoundParameters})는
  *   스크립트 문장 대신 prepared statement로 만들고 값을 바인딩한다 (docs/chromite/swing-query-library.md "매개변수 바인딩").
+ * - 2026-11-06 매개변수 대화상자·실행 확인에서 사용자가 멈춘 실행을 {@link #isCanceledByUser}로 알린다. 그런 실행은 오류 없이
+ *   OK 상태로 끝나서 Swing 편집기가 "성공"으로 보였다. Job 상태는 SWT 동작 그대로 둔다 (docs/chromite/swing-sql-editor-plus.md "매개변수").
  */
 public class SQLQueryExecuteJob extends DataSourceJob {
     private static final String PLUGIN_ID = "org.jkiss.dbeaver.model.sql";
@@ -113,6 +115,11 @@ public class SQLQueryExecuteJob extends DataSourceJob {
     private int queryNum = 0;
 
     private boolean skipConfirmation;
+    /**
+     * The user stopped the script in a dialog of the run (parameter values, execution confirmation). The job still
+     * ends with an OK status, as it always did for the SWT editor, so front ends that report the outcome read this.
+     */
+    private volatile boolean canceledByUser;
     private int fetchSize;
     private long fetchFlags;
     private SQLQueryResult curResult;
@@ -183,6 +190,15 @@ public class SQLQueryExecuteJob extends DataSourceJob {
         return curResult;
     }
 
+    /**
+     * Whether the last run was stopped by the user in a dialog (parameter values or execution confirmation canceled).
+     * Such a run ends without an error and with an OK job status; a canceled progress monitor is reported by the
+     * job status instead.
+     */
+    public boolean isCanceledByUser() {
+        return canceledByUser;
+    }
+
     private boolean hasLimits()
     {
         return rsOffset >= 0 && rsMaxRows > 0;
@@ -217,6 +233,7 @@ public class SQLQueryExecuteJob extends DataSourceJob {
         RuntimeUtils.setThreadName("SQL script execution");
         statistics = new DBCStatistics();
         skipConfirmation = false;
+        canceledByUser = false;
         if (queryNum == queries.size()) {
             queryNum = 0;
         }
@@ -501,6 +518,7 @@ public class SQLQueryExecuteJob extends DataSourceJob {
                         skipConfirmation = true;
                         break;
                     default:
+                        canceledByUser = true;
                         return false;
                 }
             }
@@ -520,6 +538,7 @@ public class SQLQueryExecuteJob extends DataSourceJob {
             CommonUtils.isBitSet(fetchFlags, DBSDataContainer.FLAG_REFRESH)
         )) {
             // User canceled
+            canceledByUser = true;
             return false;
         }
         monitor.done();

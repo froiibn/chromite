@@ -8,6 +8,8 @@ SWT 버전의 객체 편집기(`EntityEditor`)가 하는 일을 Swing 프런트�
 
 ## 화면
 
+- **문서 탭 제목:** `<테이블> [Design] - <연결>`(변경이 있으면 끝에 `*`). 쿼리 창(`<파일> - <연결>`)과 같은 형식이라 여러 연결에 같은 이름의
+  테이블이 있어도 구별된다. 연결 이름이 바뀌면 `MainFrame`이 연결 변경 이벤트로 제목을 다시 쓴다.
 - **도구 막대:** Save(Ctrl+S), Generate Script, Revert, 테이블 이름 칸, 상태 글자(새 테이블·변경 있음·읽기 전용).
 - **탭:** Columns, Keys, Foreign Keys, Indexes, Table.
   - 앞의 네 탭은 위쪽 표와 아래쪽 속성 시트(SSMS "Column Properties")로 나뉜다. 표에서 행을 고르면 그 객체의 모든 속성이 시트에 보인다.
@@ -127,3 +129,4 @@ PostgreSQL 17(`chr_table_designer`)에서 화면으로 확인했다(빌드한 Sw
 - 2026-11-06 확인 중 수정: 명령 묶음의 새 객체·삭제 객체를 목록에 반영(PostgreSQL 외래 키), 소유 테이블 열 숨김. "확인" 절 추가.
 - 2026-11-06 다른 Swing 기능과 합침: 드라이버 번들 선택 의존을 고급 연결 설정의 필수 의존으로 대신함, Object Explorer 메뉴·`QueryWindows`·`MainFrame` 탭 처리를 관리 도구·데이터 전송과 함께 둠.
 - 2026-11-06 MySQL·MariaDB 새 인덱스에 SWT 대화상자의 기본 종류(BTREE)를 넣음: 관리자 기본값 OTHER 때문에 `CREATE INDEX … USING OTHER`가 나가 저장이 실패하던 것.
+- 2026-11-06 탭 제목에 연결 이름(`<테이블> [Design] - <연결>`): 여러 연결의 같은 이름 테이블 탭이 구별되지 않던 것.

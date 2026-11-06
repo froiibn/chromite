@@ -90,6 +90,9 @@ import java.util.Map;
  * - 2026-11-06 결과 뷰어: {@link Fetched}에 다시 읽기 정보와 칸 값({@link ResultSetSource}), 결과 뷰어가 쓰는 표 접근과 글자로 칸 값 바꾸기
  *   ({@link #getTable}, {@link #setCellText}). 정렬·필터·값 패널 등은 이 표를 감싸는 {@link ResultSetViewerPanel}에 있다
  *   (docs/chromite/swing-result-viewer.md)
+ * - 2026-11-06 Export Data…를 {@link Host#exportData}로 열어 결과 뷰어가 필터·정렬을 넘김 (docs/chromite/swing-data-transfer.md)
+ * - 2026-11-06 {@link Host#rowsChanged}: 결과 뷰어가 다시 읽은 행 수를 쿼리 상태 줄에 알림 (docs/chromite/swing-result-viewer.md)
+ * - 2026-11-06 꺼진 Export Data…의 도구 설명에 수신기가 아는 실제 이유(예: 이번 실행에만 바인딩한 값)를 보임 (docs/chromite/swing-data-transfer.md)
  */
 final class ResultSetGrid extends JPanel {
 
@@ -169,6 +172,21 @@ final class ResultSetGrid extends JPanel {
          * Pending changes or the saving state changed.
          */
         void editStateChanged();
+
+        /**
+         * The rows of a result changed after its query ran: the result viewer read it again (filter, server-side sort) or
+         * read more rows.
+         */
+        default void rowsChanged() {
+        }
+
+        /**
+         * "Export Data…": runs the result's query again to export all rows. The result viewer overrides it to apply
+         * its filter and sort.
+         */
+        default void exportData(@NotNull Component parent, @NotNull DBSDataContainer query) {
+            DataExportWizard.openForQuery(parent, query, null, null);
+        }
     }
 
     /**
@@ -240,7 +258,7 @@ final class ResultSetGrid extends JPanel {
         add(createStatusStrip(fetched.readOnlyReason()), BorderLayout.NORTH);
         add(scrollPane, BorderLayout.CENTER);
         fitColumnWidths(table, data);
-        installContextMenu();
+        installContextMenu(fetched.source().requeryBlocker());
         updateState();
     }
 
@@ -576,7 +594,11 @@ final class ResultSetGrid extends JPanel {
     //////////////////////////////////////////////////////////
     // Actions and menus
 
-    private void installContextMenu() {
+    /**
+     * @param requeryBlocker why the result's query can't be read again, as the receiver knows it (e.g. values bound for
+     *                       this run only), or null
+     */
+    private void installContextMenu(@Nullable String requeryBlocker) {
         copyAction = createAction("Copy", KeyStroke.getKeyStroke(KeyEvent.VK_C, InputEvent.CTRL_DOWN_MASK),
             () -> TransferHandler.getCopyAction().actionPerformed(new ActionEvent(table, ActionEvent.ACTION_PERFORMED, "copy"))); //$NON-NLS-1$
         copyWithHeadersAction = createAction("Copy with Headers",
@@ -586,13 +608,16 @@ final class ResultSetGrid extends JPanel {
         Action exportXlsxAction = createAction("Export to Excel (XLSX)…", null, () -> ResultSetExport.exportXlsx(table, getCurrentData()));
         Action exportDataAction = createAction("Export Data…", null, () -> {
             if (exportQuery != null) {
-                DataExportWizard.openForQuery(table, exportQuery);
+                host.exportData(table, exportQuery);
             }
         });
         boolean queryExportable = DataExportWizard.canExportQuery(exportQuery);
         exportDataAction.setEnabled(queryExportable);
+        // Disabled: the known reason first (a bound Query Library run is a single SELECT too, the general rule misled)
         exportDataAction.putValue(Action.SHORT_DESCRIPTION, queryExportable
             ? "Run the query again and export all its rows in any format"
+            : requeryBlocker != null
+            ? "The query of this result can't be run again for export (" + requeryBlocker + "); use Export to CSV or Excel for the rows shown"
             : "Only the result of a query with one SELECT statement can be run again for export; use Export to CSV or Excel for the rows shown");
         // Ctrl+C stays with the table's transfer handler; the menu only shows it
         bindKey(table, JComponent.WHEN_FOCUSED, copyWithHeadersAction, "chromite.copyWithHeaders"); //$NON-NLS-1$

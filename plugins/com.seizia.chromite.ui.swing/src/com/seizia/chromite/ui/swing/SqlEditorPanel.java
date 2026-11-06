@@ -171,6 +171,10 @@ import java.util.concurrent.atomic.AtomicLong;
  *   (docs/chromite/swing-query-library.md)
  * - 2026-11-06 Query Library와 데이터 전송·결과 뷰어를 합침: 값을 바인딩한 쿼리의 결과는 다시 읽지 않음(Export Data·필터·다음 페이지가
  *   값 없이 {@code ?}를 보내 실패하던 것) (docs/chromite/swing-query-library.md "매개변수 바인딩")
+ * - 2026-11-06 매개변수 대화상자의 Cancel 뒤 상태 줄이 "Query executed successfully"이던 문제: 엔진이 알리는
+ *   {@code SQLQueryExecuteJob#isCanceledByUser}로 취소 상태를 보임 (docs/chromite/swing-sql-editor-plus.md "매개변수")
+ * - 2026-11-06 결과 표를 필터·정렬·다음 페이지로 다시 읽은 뒤 상태 줄 행 수를 지금 보이는 행으로 바꿈 (docs/chromite/swing-result-viewer.md)
+ * - 2026-11-06 Query Library의 바인딩한 실행을 Query History에 값을 넣은 글자로 기록 (docs/chromite/swing-query-library.md "매개변수 바인딩")
  */
 final class SqlEditorPanel extends JPanel {
 
@@ -236,6 +240,15 @@ final class SqlEditorPanel extends JPanel {
         @Override
         public void resultsEditStateChanged() {
             updateActions();
+        }
+
+        @Override
+        public void resultsRowsChanged() {
+            // A grid was read again after the run (filter, sort, more rows): the rows it shows now, as the grid's own status
+            if (execution == null) {
+                long rows = resultsView.getRowCount();
+                statusLine.setRows(rows + (rows == 1 ? " row" : " rows"));
+            }
         }
     });
     private final Action executeAction;
@@ -981,7 +994,9 @@ final class SqlEditorPanel extends JPanel {
                 public void done(IJobChangeEvent event) {
                     // Also after errors and cancels: the connection must not keep returning plans
                     disableActualPlan(run, context);
-                    IStatus result = event.getResult();
+                    // Canceling the parameter dialog (or the execution confirmation) stops the script without an error
+                    // and with an OK job status
+                    IStatus result = job.isCanceledByUser() ? Status.CANCEL_STATUS : event.getResult();
                     SwingUtilities.invokeLater(() -> finishExecution(run, result != null ? result : Status.OK_STATUS));
                 }
             });
@@ -1385,7 +1400,8 @@ final class SqlEditorPanel extends JPanel {
                 container.getId(),
                 container.getName(),
                 getDefaultObjectName(context),
-                result.getStatement().getText(),
+                // Bound values (Query Library) written into the text: the statement itself has "?" markers
+                run.binding.getHistoryText(result.getStatement()),
                 result.getQueryTime(),
                 rows,
                 status,

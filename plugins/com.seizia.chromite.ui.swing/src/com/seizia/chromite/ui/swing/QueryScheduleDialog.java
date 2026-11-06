@@ -42,6 +42,9 @@ import java.util.Map;
  *
  * 변경 이력:
  * - 2026-11-06 Query Library ③: 최초 작성 (docs/chromite/swing-query-library.md "예약 실행")
+ * - 2026-11-06 Connections·Parameters 목록이 한 줄로 줄고 빈 띠가 생기던 문제: 창이 선호 크기보다 1px만 작아도(화면 배율 반올림)
+ *   GridBagLayout이 모든 칸을 최소 크기로 놓는데 스크롤 창의 최소 높이가 한 줄이었다. 두 목록에 최소 높이와 세로 가중치를 줌
+ *   (docs/chromite/swing-query-library.md "예약 실행")
  */
 final class QueryScheduleDialog extends JDialog {
 
@@ -152,6 +155,9 @@ final class QueryScheduleDialog extends JDialog {
         }
         JScrollPane targetsScroll = new JScrollPane(targetsPanel);
         targetsScroll.setPreferredSize(new Dimension(260, 110));
+        // GridBagLayout lays every cell out at its minimum size as soon as the form is a little smaller than preferred,
+        // and a scroll pane's minimum is one line: keep a few rows
+        targetsScroll.setMinimumSize(new Dimension(160, 80));
 
         for (String name : QueryParameterBinder.detect(item.getSql()).keySet()) {
             String value = schedule.getParameterValues().get(name);
@@ -165,6 +171,7 @@ final class QueryScheduleDialog extends JDialog {
         parametersTable.putClientProperty("terminateEditOnFocusLost", Boolean.TRUE); //$NON-NLS-1$
         JScrollPane parametersScroll = new JScrollPane(parametersTable);
         parametersScroll.setPreferredSize(new Dimension(260, 90));
+        parametersScroll.setMinimumSize(new Dimension(160, 70));
 
         QueryLibrarySchedule.Condition condition = schedule.getCondition();
         if (condition != null) {
@@ -194,12 +201,13 @@ final class QueryScheduleDialog extends JDialog {
 
         JPanel form = new JPanel(new GridBagLayout());
         int row = 0;
-        addRow(form, row++, null, enabledBox);
-        addRow(form, row++, "When", when);
-        addRow(form, row++, "Connections", targetsScroll);
-        addRow(form, row++, "Parameters", parametersScroll);
-        addRow(form, row++, "Alert when", conditionPanel);
-        addRow(form, row, null, activeBox);
+        addRow(form, row++, null, enabledBox, 0);
+        addRow(form, row++, "When", when, 0);
+        // The two lists take the extra height of a larger dialog; the other rows keep theirs
+        addRow(form, row++, "Connections", targetsScroll, 1);
+        addRow(form, row++, "Parameters", parametersScroll, 1);
+        addRow(form, row++, "Alert when", conditionPanel, 0);
+        addRow(form, row, null, activeBox, 0);
 
         errorLabel.putClientProperty(FlatClientProperties.STYLE, "foreground: $Chromite.status.error"); //$NON-NLS-1$
         JButton okButton = new JButton("OK");
@@ -279,7 +287,10 @@ final class QueryScheduleDialog extends JDialog {
         panel.add(component, c);
     }
 
-    private static void addRow(@NotNull JPanel form, int row, @Nullable String label, @NotNull JComponent control) {
+    /**
+     * @param weighty share of the extra height; a control that gets some fills its cell in both directions
+     */
+    private static void addRow(@NotNull JPanel form, int row, @Nullable String label, @NotNull JComponent control, double weighty) {
         GridBagConstraints c = new GridBagConstraints();
         c.gridy = row;
         c.anchor = GridBagConstraints.NORTHWEST;
@@ -289,8 +300,9 @@ final class QueryScheduleDialog extends JDialog {
             form.add(new JLabel(label), c);
         }
         c.gridx = 1;
-        c.fill = GridBagConstraints.HORIZONTAL;
+        c.fill = weighty > 0 ? GridBagConstraints.BOTH : GridBagConstraints.HORIZONTAL;
         c.weightx = 1;
+        c.weighty = weighty;
         form.add(control, c);
     }
 

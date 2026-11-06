@@ -38,6 +38,8 @@ import java.util.List;
  *
  * 변경 이력:
  * - 2026-11-06 Query Library: 최초 작성 (docs/chromite/swing-query-library.md "매개변수 바인딩")
+ * - 2026-11-06 {@link #getHistoryText}: 바인딩한 쿼리가 Query History에 {@code ?}로 남아 다시 열거나 실행할 수 없던 문제
+ *   (docs/chromite/swing-query-library.md "매개변수 바인딩")
  */
 interface SqlParameterBinding {
 
@@ -84,4 +86,13 @@ interface SqlParameterBinding {
     boolean isBound(@NotNull SQLQuery query);
 
     void bind(@NotNull DBCStatement statement, @NotNull SQLQuery query) throws DBCException;
+
+    /**
+     * The text of an executed query for the query history: a bound query with its values written in as SQL literals
+     * (its own text has {@code ?} markers, which can't be run again from the history).
+     */
+    @NotNull
+    default String getHistoryText(@NotNull SQLQuery query) {
+        return query.getText();
+    }
 }

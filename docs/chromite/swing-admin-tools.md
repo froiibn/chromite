@@ -79,6 +79,10 @@ SWT `SessionManagerViewer`(`plugins/org.jkiss.dbeaver.ui.editors.session/.../Ses
 타이머는 탭이 보일 때만 읽고, 앞선 읽기가 끝나지 않았거나 연결이 끊겨 있으면 그 차례를 건너뛴다
 (연결에 실패한 뒤 간격마다 비밀번호를 다시 묻지 않도록. 다시 연결하려면 Refresh를 누른다).
 필터 체크 상자는 명령 단추 줄이 넘치지 않도록 도구 막대 아래 둘째 줄에 둔다.
+찾기 칸과 Only my sessions는 패널과 함께 만들지만 DB에 맞춘 도구가 생기는 첫 읽기 뒤에야 붙인다. 테마 전환(`FlatLaf.updateUI`)은 창에 붙은
+컴포넌트만 바꾸므로, Locks 탭으로 열고 테마를 바꾼 뒤 Processes 탭을 열면 이 둘이 이전 테마 색으로 남았다. 붙일 때 현재 Look and Feel로
+다시 설치한다(`SwingUtilities.updateComponentTreeUI`). 다른 관리 도구 문서(Locks, Find Objects)와 테이블 디자이너에는 나중에 붙이는
+미리 만든 컴포넌트가 없다.
 
 ### DB별 필터와 명령 (`ServerAdminProfile`)
 
@@ -176,3 +180,5 @@ Swing 제품을 별도 작업 공간으로 띄우고 로컬 Docker DB(PostgreSQL
 
 - 2026-11-06 최초 작성: Activity Monitor(Processes, Locks), Find Objects, `com.seizia.chromite.model.admin` 번들(SQL Server·MySQL 잠금 관리자).
 - 2026-11-06 Registered Servers와 합침: Find Objects 결과의 서버가 Object Explorer에 없으면 먼저 넣고 펼친다(연 서버만 보이는 Object Explorer).
+- 2026-11-06 테마 전환 뒤 Processes의 찾기 칸이 흰색, Only my sessions 글자가 어두운 색으로 남던 문제: 첫 읽기 뒤에 붙이는 두 컴포넌트를
+  붙일 때 현재 Look and Feel로 다시 설치함.

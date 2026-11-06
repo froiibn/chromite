@@ -72,6 +72,9 @@ Object Explorer는 SSMS처럼 사용자가 연 서버만 평평한 목록으로 
 - 최상위는 연 서버만의 평평한 목록이다. 연결 폴더 노드는 없다. 순서는 SSMS처럼 연 순서(새로 연 서버가 아래)다.
 - 서버가 들어오는 길: Registered Servers의 Object Explorer(더블클릭·Enter), 도구 막대 Connect(등록된 서버 목록에서 고르기, 그룹 경로와 함께 보임),
   New Connection(File 메뉴·주 도구 막대 포함, 만든 서버를 넣고 고름).
+  새 연결은 레지스트리의 `OBJECT_ADD` 이벤트가 지연 Job(`DataSourceRegistry.notifyDataSourceListeners`, 20ms)으로 가므로 대화상자가 닫힌
+  직후에는 탐색기 노드가 아직 없다. 그래서 ID를 먼저 목록에 넣고 고를 서버를 노드가 아닌 연결로 기억해 두었다가, 탐색기 `ADD` 이벤트로
+  목록을 다시 읽을 때 고른다.
 - Disconnect(오른쪽 클릭·도구 막대): 연결을 끊고 목록에서 뺀다(SSMS). 연결이 끊긴 채 남은 노드도 Disconnect로 뺄 수 있게 연결 여부와 관계없이 켠다.
 - 다른 곳(Registered Servers의 Disconnect, 편집기)에서 끊으면 노드는 접힌 채 남는다. 다시 펼치면 연결한다.
 - 오른쪽 클릭 Connect는 고른 노드의 서버를 연결한다(그대로).
@@ -114,3 +117,5 @@ Object Explorer는 SSMS처럼 사용자가 연 서버만 평평한 목록으로 
 ## 변경 이력
 
 - 2026-11-06 최초 작성: Registered Servers 창, 연 서버만 보이는 Object Explorer, 한 열에 두 도구 창 쌓기, New Server Group 아이콘.
+- 2026-11-06 New Connection(File 메뉴·Object Explorer 도구 막대)으로 만든 서버가 Object Explorer에 들어오지 않던 문제: 탐색기 노드가
+  생기기 전이면 `showServer`가 그냥 돌아가던 것을 고침(ID를 먼저 넣고 탐색기 `ADD` 이벤트로 목록을 다시 읽을 때 고름).

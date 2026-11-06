@@ -237,6 +237,11 @@ SELECT ...
   - 쿼리 창의 매개변수 대화상자(SQL 편집기 확장의 Bind Parameters, `SqlParameterDialog`)는 라이브러리 실행에서 뜨지 않는다. 바꾼 쿼리에 매개변수 목록이 없어
     엔진의 `fillQueryParameters`가 제공자를 부르지 않기 때문이다. 두 대화상자를 하나로 합치는 것은 남긴 일이다.
   - SQL Server `GO` 배치는 배치 하나가 prepared statement 하나다(`DECLARE`한 변수와 `?`를 함께 쓸 수 있음). JDBC가 아닌 연결은 바인딩할 수 없어 오류로 끝난다.
+  - Query History(쿼리 창 기록)에는 엔진이 보낸 `?` 문장이 아니라 원래 문장에 값을 SQL 리터럴로 넣은 글자(`SqlParameterBinding.getHistoryText`)를 남긴다.
+    `?` 문장은 값이 없어 기록에서 Open·Execute 해도 실행할 수 없었다. 쿼리 창의 Bind Parameters 기록(값을 글자로 치환한 문장)과 같은 모양이다.
+    `prepare`가 `?`로 바꿀 때 같은 자리에 리터럴을 넣은 글자를 함께 만든다: 숫자는 그대로, 문자열·날짜·시각은 방언의 따옴표 처리(`SQLUtils.quoteString`),
+    빈 값은 `NULL`, 불리언은 `TRUE`/`FALSE`. SQL Server에는 불리언 리터럴이 없어 불리언 매개변수가 있는 기록은 그 서버에서 오류가 난다
+    (`'true'` 같은 글자는 MySQL·MariaDB에서 오류 없이 0과 비교되므로 쓰지 않았다).
 - **`${name}`·`{{name}}` 변수(표시: "SQL text"):** SWT에서도 텍스트 치환 변수이고 식별자·SQL 조각 자리(테이블 이름, `ORDER BY` 열 등)라 바인딩할 수 없다.
   값을 **그대로 SQL에 끼운다**. 대화상자와 정의 표에 "SQL text"로 표시하고, 쓰는 사람이 이 점을 알도록 도구 설명을 단다. 신뢰하지 않는 값에는 `:name`을 쓴다.
 
@@ -262,6 +267,10 @@ SELECT ...
 | Alert when | 없음 / Row count `>` `>=` `=` X / First value(첫 행 첫 열) `>` `>=` `<` `<=` `=` `!=` X. 숫자면 숫자로, 아니면 글자로 비교 |
 | Active on this computer | 이 PC에서 돌릴지(로컬 설정, 아래) |
 | Remove Schedule | 예약 블록을 파일에서 지움 |
+
+배치: 양식은 GridBagLayout이다. 화면 배율에서 창 크기가 반올림되어 선호 크기보다 1px만 작아도(측정: 창 459×549, 선호 459×550)
+GridBagLayout은 모든 칸을 최소 크기로 놓는데, 스크롤 창의 최소 높이는 한 줄이라 Connections·Parameters 목록이 한 줄로 줄고 아래에 빈 띠가 남았다.
+두 목록에 최소 높이(몇 줄)와 세로 가중치를 주어 줄지 않게 하고, 창을 키우면 두 목록이 늘어난다.
 
 파일 형식(`-- @schedule` 블록, 쿼리 머리말의 다른 항목과 같은 규칙):
 
@@ -342,9 +351,9 @@ Next run(남은 시간), Last run, Last status. Run Now(바로 한 번), History
 - 파일 시스템 감시에 의한 자동 새로 고침(지금은 Refresh).
 - 트리 안에서 바로 이름 바꾸기(지금은 이름 입력 대화상자).
 - 예약 실행: 한 쿼리의 여러 서버를 차례로 실행한다(병렬 아님). 예약 실행마다 연결을 새로 열고 닫는다(자주 도는 예약이 많으면 연결 풀이 필요할 수 있음).
-- 범위 밖에서 발견한 문제(고치지 않음): 기존 `NotificationToast`가 메시지가 있는 새 알림을 창 높이만큼 크게 그린다.
-  `layoutToasts`가 `setSize(WIDTH, Integer.MAX_VALUE)` 직후 `getPreferredSize()`를 부르는데, 아직 배치되지 않은 줄바꿈 `JTextArea`는 폭 0으로 계산되어
-  높이가 커지는 것으로 보인다(새로 추가된 알림만 크고, 이미 배치된 알림은 정상). 예약 알림이 이 컴포넌트를 쓰므로 함께 보인다.
+- 범위 밖에서 발견한 문제: 기존 `NotificationToast`가 메시지가 있는 새 알림을 창 높이만큼 크게 그렸다. `layoutToasts`가 토스트를
+  배치하기 전에 `getPreferredSize()`를 불러 줄바꿈 `JTextArea`가 폭 없이 높이를 계산했다. 2026-11-06에 토스트를 먼저 배치한 뒤 재도록 고쳤다
+  ([swing-frontend.md](swing-frontend.md) 변경 이력).
 
 ## 확인 (2026-11-06)
 
@@ -389,3 +398,5 @@ Schedule…·History…·Scheduled Queries… 대화상자, Save to Query Librar
 - 2026-11-06 다른 Swing 기능과 합침: 도구 창을 오른쪽 열의 Properties 위로 옮김, 실행 기록 창 이름을 `QueryRunHistoryDialog`로 바꿈(쿼리 창 기록과 겹침),
   `history` 아이콘은 SQL 편집기 확장의 것을 함께 씀, `new-folder`의 Full color 그림을 `new-group`과 같은 폴더 모양으로 맞춤(생성기의 같은 폴더 식),
   Options의 기록 보존 칸을 쿼리 창 기록 칸과 따로 둠. 바인딩한 쿼리의 결과는 다시 읽지 않음(Export Data·결과 뷰어 필터가 값 없는 `?`로 실패하던 것).
+- 2026-11-06 바인딩한 실행이 Query History에 `… = ?`로 남던 문제: 값을 SQL 리터럴로 넣은 원래 문장을 기록.
+- 2026-11-06 Schedule… 대화상자의 Connections·Parameters 목록이 한 줄로 줄던 문제: 목록에 최소 높이와 세로 가중치.
