@@ -1703,3 +1703,5 @@ Windows 11, 화면 배율 150%, JBR 25, 작업 공간 사본 `D:\Tools\_smoke\sw
   [swing-query-library.md](swing-query-library.md).
 - 2026-11-06 알림(`NotificationToast`): 메시지가 있는 새 알림이 창 높이만큼 크게 그려지던 문제. `layoutToasts`가 한 번도 배치되지 않은 토스트의
   선호 높이를 재어 줄바꿈 글 상자가 너비 없이 줄을 나눴다. 토스트를 그 너비로 먼저 배치(`validate`)한 뒤 높이를 잰다.
+- 2026-11-06 연결 색 알약: Registered Servers와 Object Explorer의 서버 이름을 연결 색 알약으로 감쌈(줄 전체·노드 바탕 대신), 색 규칙 통일, 보조 글자 기준선 고침.
+  [swing-registered-servers.md](swing-registered-servers.md) "연결 색 알약".

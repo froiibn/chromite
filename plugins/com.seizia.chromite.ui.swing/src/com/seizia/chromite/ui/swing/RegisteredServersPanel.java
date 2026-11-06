@@ -17,7 +17,6 @@
 package com.seizia.chromite.ui.swing;
 
 import com.formdev.flatlaf.FlatClientProperties;
-import com.formdev.flatlaf.FlatLaf;
 import com.formdev.flatlaf.ui.FlatUIUtils;
 import com.formdev.flatlaf.util.UIScale;
 import org.jkiss.code.NotNull;
@@ -28,7 +27,6 @@ import org.jkiss.dbeaver.model.DBPEventListener;
 import org.jkiss.dbeaver.model.app.DBPDataSourceRegistry;
 import org.jkiss.dbeaver.model.app.DBPProject;
 import org.jkiss.dbeaver.model.connection.DBPConnectionConfiguration;
-import org.jkiss.dbeaver.model.connection.DBPConnectionType;
 import org.jkiss.dbeaver.model.navigator.DBNDataSource;
 import org.jkiss.dbeaver.model.navigator.DBNEvent;
 import org.jkiss.dbeaver.model.navigator.DBNLocalFolder;
@@ -78,8 +76,9 @@ import java.util.Set;
  *     <li>정렬: 그룹 다음 서버, 각각 이름의 자연 정렬("01. DEV", "02. QAS", "03. PRD").</li>
  *     <li>아이콘: 그룹은 아이콘 팩의 폴더(펼치면 열린 폴더), 서버는 Object Explorer 연결 노드와 같은
  *     {@link NodeIcons#getDataSourceIcon}(드라이버의 DB별 아이콘 + 연결 상태 점)이다. 두 창이 같은 서버를 같은 아이콘으로 보인다.</li>
- *     <li>연결 종류 색(dev/test/prod): 모델이 주는 {@link DBPConnectionType#getColorLight()}/{@link DBPConnectionType#getColorDark()}를
- *     서버 행 바탕에 둥글게 칠한다(DBeaver 탐색기의 연결 종류 바탕색과 같은 값). 흰색(기본 dev)은 칠하지 않는다.</li>
+ *     <li>연결 색(연결에 정한 색, 없으면 dev/test/prod 연결 종류의 색): 서버 이름을 감싸는 알약({@link ConnectionPill})으로 칠한다.
+ *     Object Explorer와 같은 색 규칙({@link ConnectionColors})과 같은 그리기라 같은 서버가 두 창에서 같게 보인다. 색이 없는 연결(흰색, 기본 dev)은 알약이 없다.
+ *     줄 전체를 칠하지 않는 것은 줄 바탕을 선택·마우스 올림 표시에 남기기 위해서다(사용자 결정 2026-11-06).</li>
  *     <li>서버 메뉴: New Query(필요하면 연결하고 그 연결의 SQL 편집기를 연다. SSMS처럼 Object Explorer에는 넣지 않는다),
  *     Object Explorer(더블클릭·Enter도 같음: Object Explorer에 넣고 골라 펼친다 = 연결), Connect / Disconnect, Move To,
  *     Properties…(연결 대화상자), Rename(F2), Delete(Delete, 확인). 연결 명령은 Object Explorer와 같은 {@link ConnectionCommands}다.</li>
@@ -92,6 +91,8 @@ import java.util.Set;
  *
  * 변경 이력:
  * - 2026-11-06 Registered Servers: 최초 작성 (docs/chromite/swing-registered-servers.md)
+ * - 2026-11-06 연결 색을 줄 바탕 대신 이름 알약({@link ConnectionPill})으로, 색은 연결에 정한 색 우선({@link ConnectionColors}),
+ *   호스트 글자를 이름의 실제 기준선(JLabel baseline)에 맞춤 (docs/chromite/swing-registered-servers.md "연결 색 알약")
  */
 final class RegisteredServersPanel extends JPanel {
 
@@ -102,7 +103,6 @@ final class RegisteredServersPanel extends JPanel {
      * drops values equal to their default, so the default must not be "".
      */
     private static final String EXPANDED_NEVER_SAVED = "*"; //$NON-NLS-1$
-    private static final String NO_COLOR = "255,255,255"; //$NON-NLS-1$
 
     /**
      * The main window side of the server commands.
@@ -647,27 +647,6 @@ final class RegisteredServersPanel extends JPanel {
         return selected instanceof DBPDataSourceContainer container ? container.getFolder() : null;
     }
 
-    /**
-     * The connection type color of a server for the current theme, or null for none (white, the plain dev type).
-     */
-    @Nullable
-    private static Color getConnectionTypeColor(@NotNull DBPDataSourceContainer container) {
-        DBPConnectionType type = container.getConnectionConfiguration().getConnectionType();
-        String value = FlatLaf.isLafDark() ? type.getColorDark() : type.getColorLight();
-        if (CommonUtils.isEmpty(value) || NO_COLOR.equals(value.replace(" ", ""))) { //$NON-NLS-1$ //$NON-NLS-2$
-            return null;
-        }
-        String[] parts = value.split(","); //$NON-NLS-1$
-        if (parts.length != 3) {
-            return null;
-        }
-        try {
-            return new Color(Integer.parseInt(parts[0].trim()), Integer.parseInt(parts[1].trim()), Integer.parseInt(parts[2].trim()));
-        } catch (IllegalArgumentException e) {
-            return null;
-        }
-    }
-
     //////////////////////////////////////////////////////////
     // Drag and drop
 
@@ -764,8 +743,8 @@ final class RegisteredServersPanel extends JPanel {
     // Look
 
     /**
-     * Tree with the Object Explorer hover highlight (bg.hover) and the connection type color behind server rows, both
-     * rounded like the selection and painted between the background and the rows.
+     * Tree with the Object Explorer hover highlight (bg.hover), rounded like the selection and painted between the
+     * background and the rows. The connection color is the renderer's pill ({@link ConnectionPill}), not a row background.
      */
     private static final class ServersTree extends JTree {
         private int hoverRow = -1;
@@ -819,41 +798,27 @@ final class RegisteredServersPanel extends JPanel {
                     g2.setColor(getBackground());
                     g2.fillRect(0, 0, getWidth(), getHeight());
                 }
-                paintRowBackgrounds(g2);
+                paintHover(g2);
                 ui.paint(g2, this);
             } finally {
                 g2.dispose();
             }
         }
 
-        private void paintRowBackgrounds(@NotNull Graphics2D g) {
+        private void paintHover(@NotNull Graphics2D g) {
+            Rectangle bounds = hoverRow >= 0 && hoverRow < getRowCount() && !isRowSelected(hoverRow) ? getRowBounds(hoverRow) : null;
+            Color color = UIManager.getColor("Chromite.Tree.hoverBackground"); //$NON-NLS-1$
+            if (bounds == null || color == null) {
+                return;
+            }
             Insets selectionInsets = UIManager.getInsets("Tree.selectionInsets"); //$NON-NLS-1$
             Insets insets = UIScale.scale(selectionInsets != null ? selectionInsets : new Insets(0, 0, 0, 0));
             float arc = UIScale.scale((float) UIManager.getInt("Tree.selectionArc")); //$NON-NLS-1$
-            Rectangle clip = g.getClipBounds();
             Object[] oldHints = FlatUIUtils.setRenderingHints(g);
             try {
-                int first = clip == null ? 0 : Math.max(0, getClosestRowForLocation(0, clip.y));
-                int last = clip == null ? getRowCount() - 1 : getClosestRowForLocation(0, clip.y + clip.height);
-                for (int row = first; row <= last && row < getRowCount(); row++) {
-                    if (isRowSelected(row)) {
-                        continue;
-                    }
-                    Color color = null;
-                    if (getUserObject(getPathForRow(row)) instanceof DBPDataSourceContainer container) {
-                        color = getConnectionTypeColor(container);
-                    }
-                    if (row == hoverRow) {
-                        Color hover = UIManager.getColor("Chromite.Tree.hoverBackground"); //$NON-NLS-1$
-                        color = hover != null ? hover : color;
-                    }
-                    Rectangle bounds = color == null ? null : getRowBounds(row);
-                    if (bounds != null) {
-                        g.setColor(color);
-                        g.fill(new RoundRectangle2D.Float(insets.left, bounds.y + insets.top, getWidth() - insets.left - insets.right,
-                            bounds.height - insets.top - insets.bottom, arc, arc));
-                    }
-                }
+                g.setColor(color);
+                g.fill(new RoundRectangle2D.Float(insets.left, bounds.y + insets.top, getWidth() - insets.left - insets.right,
+                    bounds.height - insets.top - insets.bottom, arc, arc));
             } finally {
                 FlatUIUtils.resetRenderingHints(g, oldHints);
             }
@@ -861,15 +826,17 @@ final class RegisteredServersPanel extends JPanel {
     }
 
     /**
-     * Group folder or server icon (the driver's database icon with the state dot), the name, and the server's host
-     * after it in text.secondary (as in Object Explorer).
+     * Group folder or server icon (the driver's database icon with the state dot), the name in the connection color pill
+     * ({@link ConnectionPill}), and the server's host after it in text.secondary (as in Object Explorer).
      */
     private static final class ServersCellRenderer extends DefaultTreeCellRenderer {
-        // space.6: icon-text gap and gap before the secondary text
+        // space.6: icon-text (icon-pill) gap and gap before the secondary text
         private static final int GAP = 6;
 
         @Nullable
         private String secondaryText;
+        @Nullable
+        private ConnectionPill pill;
 
         @Override
         public Component getTreeCellRendererComponent(
@@ -885,11 +852,17 @@ final class RegisteredServersPanel extends JPanel {
             super.getTreeCellRendererComponent(tree, getText(userObject), selected, expanded, leaf, row, hasFocus);
             setIconTextGap(UIScale.scale(GAP));
             secondaryText = null;
+            pill = null;
             if (userObject instanceof DBPDataSourceFolder folder) {
                 setIcon(UiIcons.get(expanded ? "folder-open" : "folder")); //$NON-NLS-1$ //$NON-NLS-2$
                 setToolTipText(CommonUtils.isEmpty(folder.getDescription()) ? folder.getFolderPath() : folder.getDescription());
             } else if (userObject instanceof DBPDataSourceContainer container) {
                 setIcon(NodeIcons.getDataSourceIcon(container));
+                pill = ConnectionPill.of(container);
+                if (pill != null) {
+                    setIconTextGap(UIScale.scale(GAP) + ConnectionPill.getPaddingX());
+                setForeground(pill.getTextColor(getForeground()));
+                }
                 DBPConnectionConfiguration configuration = container.getConnectionConfiguration();
                 String host = configuration.getHostName();
                 if (!CommonUtils.isEmpty(host)) {
@@ -918,6 +891,10 @@ final class RegisteredServersPanel extends JPanel {
         @Override
         public Dimension getPreferredSize() {
             Dimension size = super.getPreferredSize();
+            if (size != null && pill != null) {
+                // The pill's padding after the name (the padding before it is in the icon-text gap)
+                size.width += ConnectionPill.getPaddingX();
+            }
             if (size != null && secondaryText != null) {
                 size.width += UIScale.scale(GAP) + getFontMetrics(getFont()).stringWidth(secondaryText);
             }
@@ -926,20 +903,24 @@ final class RegisteredServersPanel extends JPanel {
 
         @Override
         public void paint(Graphics g) {
+            Icon icon = getIcon();
+            int textX = getInsets().left + (icon != null ? icon.getIconWidth() + getIconTextGap() : 0);
+            int textWidth = getFontMetrics(getFont()).stringWidth(CommonUtils.notEmpty(getText()));
+            // The label's own text baseline (its layout of icon and text), so the pill and the host line up with the name;
+            // negative when there is no text
+            int baseline = getBaseline(getWidth(), getHeight());
+            if (pill != null && baseline >= 0) {
+                pill.paint(g, this, textX, textWidth, baseline);
+            }
             super.paint(g);
-            if (secondaryText == null) {
+            if (secondaryText == null || baseline < 0) {
                 return;
             }
-            FontMetrics metrics = getFontMetrics(getFont());
-            Icon icon = getIcon();
-            Insets insets = getInsets();
-            int x = insets.left + (icon != null ? icon.getIconWidth() + getIconTextGap() : 0)
-                + metrics.stringWidth(CommonUtils.notEmpty(getText())) + UIScale.scale(GAP);
-            int y = insets.top + (getHeight() - insets.top - insets.bottom - metrics.getHeight()) / 2 + metrics.getAscent();
+            int x = textX + textWidth + (pill != null ? ConnectionPill.getPaddingX() : 0) + UIScale.scale(GAP);
             Color color = UIManager.getColor("Chromite.secondaryForeground"); //$NON-NLS-1$
             g.setColor(color != null ? color : getForeground());
             g.setFont(getFont());
-            FlatUIUtils.drawString(this, g, secondaryText, x, y);
+            FlatUIUtils.drawString(this, g, secondaryText, x, baseline);
         }
     }
 }

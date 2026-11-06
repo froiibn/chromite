@@ -8,7 +8,7 @@ SWT 연결 편집기(`org.jkiss.dbeaver.ui.editors.connection`, `ext.*.ui`의 �
 1. 드라이버별 인증 방식과 인증 방식별 추가 칸
 2. 네트워크 핸들러: SSH 터널, 프록시, SSL
 3. DB별 주 양식 칸: Oracle(Basic/TNS, SID/Service), SQL Server(Encrypt, Trust server certificate)
-4. 일반 설정: 연결 종류와 연결 색(쿼리 창 상태 줄·Object Explorer), 연결 직후 SQL(bootstrap queries)
+4. 일반 설정: 연결 종류와 연결 색(쿼리 창 상태 줄·Registered Servers·Object Explorer), 연결 직후 SQL(bootstrap queries)
 5. Test Connection 결과에 위 설정 반영
 
 모델 계층(`DBPConnectionConfiguration`, `DBWHandlerConfiguration`, 인증 방식·핸들러 레지스트리)은 그대로 쓰고, SWT 화면의 load/save 규칙을 Swing 칸으로 옮겼다.
@@ -30,7 +30,7 @@ SWT 연결 편집기(`org.jkiss.dbeaver.ui.editors.connection`, `ext.*.ui`의 �
 | `ConnectionSettingsPanel` (변경) | 위 칸·탭을 주 양식과 Options에 넣고 읽기·저장 순서를 정함 | `ConnectionPageGeneral`, `ConnectionPageInitialization` |
 | `ConnectionDialog` (변경) | Test Connection 결과에 쓴 네트워크 핸들러 표시 | `ConnectionWizard.testConnection` |
 | `QueryStatusLine` (변경) | 쿼리 창 상태 줄 바탕 = 연결 색 | — |
-| `ObjectExplorerPanel` (변경) | 연결 노드 바탕 = 연결 색(선택하지 않았을 때) | `DatabaseNavigatorLabelProvider`의 연결 색 |
+| `ObjectExplorerPanel` (변경) | 연결 노드 이름의 알약 = 연결 색(`ConnectionPill`, 2026-11-06 노드 바탕에서 바꿈) | `DatabaseNavigatorLabelProvider`의 연결 색 |
 
 `MANIFEST.MF`의 `Require-Bundle`에 UI 없는 모델 번들 `org.jkiss.dbeaver.net.ssh`, `ext.mssql`, `ext.mysql`, `ext.oracle`, `ext.postgresql`을 더했다.
 상수(속성 키, 핸들러 ID)와 모델 클래스(`SSHTunnelImpl`, `SSHUtils`, 인증 방식 클래스, `OCIUtils`)를 문자열로 베끼지 않고 그대로 쓰기 위해서다.
@@ -169,8 +169,10 @@ SSH 시험 직후 Windows 방화벽이 앱(`chromite-swing.exe`)의 네트워크
 - 기존: 연결 종류, 자동 커밋, 기본 DB·스키마, 읽기 전용, keep-alive, 유휴 연결 닫기("Connect 대화상자 (SSMS식)").
 - **연결 종류 콤보**: 항목마다 종류 색 견본을 보인다.
 - **Color**: Custom color 확인란 + 색 단추(`JColorChooser`). 켜면 연결 설정 `connectionColor`("r,g,b"), 끄면 지워서 연결 종류의 색을 쓴다(SWT `ConnectionPageGeneral`과 같은 값).
-- **연결 색이 보이는 곳**(`ConnectionColors`, SWT `UIUtils.getConnectionColor` 규칙): 쿼리 창 상태 줄(`QueryStatusLine`) 바탕, Object Explorer 연결 노드 바탕(선택하지 않았을 때).
+- **연결 색이 보이는 곳**(`ConnectionColors`, SWT `UIUtils.getConnectionColor` 규칙): 쿼리 창 상태 줄(`QueryStatusLine`) 바탕, Registered Servers와 Object Explorer 서버 이름의 알약
+  (`ConnectionPill`, 선택·마우스 올림 줄에서도 보임, Production은 1px 테두리. 크기와 규칙은 [swing-registered-servers.md](swing-registered-servers.md) "연결 색 알약").
   연결에 정한 색이 없으면 연결 종류의 라이트/다크 색(Test 214,250,207 / 64,89,66, Production 250,207,207 / 97,61,63)이고, 흰색(Development)은 색 없음이다.
+  테마 글자 색이 이 색과 4.5:1이 안 되면(다크 테마의 밝은 연결 지정 색) 그 글자만 대비 색이다(SWT `UIStyles.getContrastColor` 규칙, `ConnectionColors.getTextColor`).
   연결을 편집하면 열린 편집기가 레지스트리 이벤트로 상태 줄을 다시 그린다(`SqlEditorPanel.connectionChanged`).
 - **Bootstrap queries**: Edit… (N) 단추 → `BootstrapQueriesDialog`(목록, Add/Edit/Remove, Ignore SQL errors) → `bootstrap.initQueries`, `bootstrap.ignoreErrors`.
   모델이 연결 직후 이 SQL을 실행한다(`AbstractExecutionContext`의 bootstrap 처리).
@@ -223,9 +225,11 @@ Windows에서 in-process JVM으로 개인 작업 공간을 열어 로컬 Docker 
 - ClickHouse·Databend·TiDB Lake의 SSL 탭(Swing 칸 없음), 인증서 내용 붙여 넣기(분산 제품용 `.value` 속성).
 - 인증 방식별 칸이 더 필요한 방식: 셸 명령 비밀번호, ClickHouse SSO/OIDC, BigQuery·Snowflake·Spanner 전용 칸(키 파일 등).
 - Oracle 클라이언트(OCI) 홈 선택, PostgreSQL SSL factory 목록 찾기.
-- 연결 색을 문서 탭에도 칠하기(지금은 상태 줄과 Object Explorer).
+- 연결 색을 문서 탭에도 칠하기(지금은 상태 줄, Registered Servers, Object Explorer).
 
 ## 변경 이력
 
 - 2026-11-06 최초 작성: 인증 방식별 칸, 네트워크 핸들러 탭(SSH, Proxy, SSL), SQL Server·Oracle 주 양식 칸, 연결 색, 연결 직후 SQL, Test Connection 결과.
 - 2026-11-06 SSH 터널 로컬 포트를 루프백에서만 열도록 모델 수정(빈 포트 시험과 JSch의 빈 주소가 0.0.0.0에서 들음). "SSH 터널의 로컬 주소" 절 추가.
+- 2026-11-06 Object Explorer 연결 노드 바탕을 이름 알약(`ConnectionPill`, Registered Servers와 같음)으로 바꿈. [swing-registered-servers.md](swing-registered-servers.md) "연결 색 알약".
+- 2026-11-06 연결 색 위 글자가 읽히지 않으면 대비 색(상태 줄, 알약). 남긴 것에서 해당 항목 삭제.
