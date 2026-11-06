@@ -188,6 +188,7 @@ import java.util.function.Supplier;
  *   매개 변수 뒤 보조 글자는 형식 (docs/chromite/swing-frontend.md "Object Explorer 탐색 불가 항목")
  * - 2026-11-07 서버 대시보드: Server Dashboard 메뉴(Activity Monitor의 개요 탭) (docs/chromite/swing-dashboard.md)
  * - 2026-11-07 도구 막대를 {@link OverflowToolBar}로: 좁힌 도구 창에서 들어가지 않는 단추는 넘침 메뉴로 (docs/chromite/swing-frontend.md "도구 창 최소 폭")
+ * - 2026-11-07 Disk Usage·Server Logs 명령(Activity Monitor의 탭, {@link AdminViewCommands}) (docs/chromite/swing-admin-tools.md)
  * - 2026-11-07 테이블 저장 방식(메모리/디스크/휘발성) 글자색과 툴팁({@link TableStorageStyle}) (docs/chromite/altibase.md)
  * - 2026-11-07 SQL Server 에이전트: 에이전트 메뉴 항목, Properties·Delete 갈래, 두 번 클릭, 보조 글자, 도구 문서 열기
  *   ({@link QueryWindows#openToolDocument}) (docs/chromite/swing-sqlserver-agent.md)
@@ -295,6 +296,7 @@ final class ObjectExplorerPanel extends JPanel {
     private final Action activityMonitorAction;
     private final Action locksAction;
     private final Action dashboardAction;
+    private final List<Action> adminViewActions;
     private final Action findObjectsAction;
     private final Action designAction;
     private final Action newTableAction;
@@ -419,6 +421,7 @@ final class ObjectExplorerPanel extends JPanel {
         dashboardAction = createAction(DashboardMessages.dashboard_command, () -> runOnSelectedDataSource(
             dataSource -> queryWindows.openActivityMonitor(dataSource, ActivityMonitorPanel.OVERVIEW_TAB)));
         dashboardAction.putValue(Action.SHORT_DESCRIPTION, DashboardMessages.dashboard_command_tip);
+        adminViewActions = AdminViewCommands.createActions(tab -> runOnSelectedDataSource(dataSource -> queryWindows.openActivityMonitor(dataSource, tab)));
         findObjectsAction = createAction(CoreMessages.main_find_objects, () -> queryWindows.openObjectSearch(getSelectedNavigatorNode()));
         findObjectsAction.putValue(Action.SHORT_DESCRIPTION, CoreMessages.explorer_find_objects_tip);
         designAction = createAction(CoreMessages.explorer_design, () -> {
@@ -600,6 +603,7 @@ final class ObjectExplorerPanel extends JPanel {
         popupMenu.add(activityMonitorAction);
         popupMenu.add(locksAction);
         popupMenu.add(dashboardAction);
+        adminViewActions.forEach(popupMenu::add);
         popupMenu.add(findObjectsAction);
         popupMenu.addSeparator();
         popupMenu.add(editConnectionAction);
@@ -819,6 +823,7 @@ final class ObjectExplorerPanel extends JPanel {
         activityMonitorAction.setEnabled(dataSource != null);
         locksAction.setEnabled(dataSource != null);
         dashboardAction.setEnabled(dataSource != null);
+        adminViewActions.forEach(action -> action.setEnabled(dataSource != null));
         findObjectsAction.setEnabled(projectNode != null);
         editConnectionAction.setEnabled(connectionNode);
         renameAction.setEnabled(connectionNode);

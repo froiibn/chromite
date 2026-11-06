@@ -38,7 +38,7 @@ import javax.swing.*;
 import java.util.function.Consumer;
 
 /**
- * 관리 도구(Activity Monitor의 세션·잠금 탭)가 서버를 읽고 명령을 보내는 연결.
+ * 관리 도구(Activity Monitor의 개요·세션·잠금·공간 사용량·서버 로그 탭)가 서버를 읽고 명령을 보내는 연결.
  *
  * 설계: SWT 세션 표({@code SessionTable.LoadSessionsService})는 읽을 때마다 격리된 실행 컨텍스트를 새로 열고 닫는다
  * ({@code DBSInstance#openIsolatedContext}, 연결 설정이 "단일 연결"이면 기본 컨텍스트). 자동 새로 고침(SSMS 기본 10초)마다
@@ -56,6 +56,7 @@ import java.util.function.Consumer;
  * - 2026-11-06 최초 작성 (docs/chromite/swing-admin-tools.md)
  * - 2026-11-06 화면 문구를 ConnectionMessages로 옮김(OS 언어를 따름)
  * - 2026-11-07 첫 작업에서 로그인 권한 확인(PostgreSQL·Oracle 세션·잠금, docs/chromite/swing-admin-tools.md)
+ * - 2026-11-07 공간 사용량·서버 로그 탭도 이 연결을 씀(주석만 고침, docs/chromite/swing-admin-tools.md)
  */
 final class AdminConnection {
 

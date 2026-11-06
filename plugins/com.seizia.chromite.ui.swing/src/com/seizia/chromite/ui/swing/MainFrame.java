@@ -178,6 +178,7 @@ import java.util.function.Supplier;
  *   ({@link ExitTransactionCheck}) (docs/chromite/auto-update.md)
  * - 2026-11-07 Object Explorer·Properties의 기본 위치에 같은 열의 이웃(Registered Servers 위, Query Library 아래)을 둠 (docs/chromite/swing-frontend.md "Query Library 자리")
  * - 2026-11-07 Results 기본 높이 220 → 280(사용자 결정), {@link #DEFAULT_RESULTS_HEIGHT} (docs/chromite/swing-frontend.md "Results 자동 숨김")
+ * - 2026-11-07 Tools &gt; Disk Usage·Server Logs(Activity Monitor의 탭, {@link AdminViewCommands}) (docs/chromite/swing-admin-tools.md)
  * - 2026-11-07 도구 막대 두 줄(사용자 결정): SQL Editor 도구 막대 {@link SqlEditorToolBar}를 Standard 아래에 두고 활성 쿼리 창을 따름,
  *   Include Actual Execution Plan을 선택 상태가 있는 동작으로(메뉴와 도구 막대 단추가 같이 씀), 실행·계획 켜짐을 쿼리 창의
  *   {@code canExecute}·{@code canCancel}·{@code canExplain}으로 (docs/chromite/swing-frontend.md "SQL Editor 도구 막대")
@@ -1524,6 +1525,7 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
         toolsMenu.add(activityMonitorItem);
         toolsMenu.add(locksItem);
         toolsMenu.add(dashboardItem);
+        AdminViewCommands.addMenuItems(toolsMenu, this::openActivityMonitor);
         toolsMenu.add(findObjectsItem);
         toolsMenu.addSeparator();
         toolsMenu.add(driverManagerItem);
