@@ -44,6 +44,7 @@ import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
 import javax.swing.table.AbstractTableModel;
 import java.awt.*;
+import java.sql.SQLException;
 import java.text.DateFormat;
 import java.util.ArrayList;
 import java.util.List;
@@ -67,6 +68,7 @@ import java.util.List;
  *
  * 변경 이력:
  * - 2026-11-06 최초 작성: 백업·복원 (docs/chromite/swing-backup-restore.md)
+ * - 2026-11-07 오류 문구를 {@link ErrorText}로 만듦(클래스 이름이 화면에 나오지 않게, docs/chromite/swing-frontend.md "오류 문구")
  */
 final class SqlServerRestoreDialog extends DatabaseTaskDialog {
 
@@ -276,7 +278,7 @@ final class SqlServerRestoreDialog extends DatabaseTaskDialog {
                 return new Object[] {sets, plan.getSelectedSets(), baseFiles};
             });
         } catch (Exception e) {
-            JOptionPane.showMessageDialog(this, SQLServerBackupRestore.getErrorText(e), getTitle(), JOptionPane.ERROR_MESSAGE);
+            ErrorDialog.show(this, getTitle(), getErrorText(e), e);
             return;
         }
         @SuppressWarnings("unchecked")
@@ -321,7 +323,7 @@ final class SqlServerRestoreDialog extends DatabaseTaskDialog {
             loadedBaseSet = base;
             settings.setFiles(baseFiles);
         } catch (Exception e) {
-            JOptionPane.showMessageDialog(this, SQLServerBackupRestore.getErrorText(e), getTitle(), JOptionPane.ERROR_MESSAGE);
+            ErrorDialog.show(this, getTitle(), getErrorText(e), e);
         }
         resetFileTargets();
     }
@@ -404,7 +406,9 @@ final class SqlServerRestoreDialog extends DatabaseTaskDialog {
     @NotNull
     @Override
     protected String getErrorText(@NotNull Throwable error) {
-        return SQLServerBackupRestore.getErrorText(error);
+        // All server messages of a failed batch; other errors as everywhere else
+        return CommonUtils.getCauseOfType(error, SQLException.class) != null
+            ? SQLServerBackupRestore.getErrorText(error) : super.getErrorText(error);
     }
 
     @Override

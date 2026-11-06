@@ -17,6 +17,8 @@
 package com.seizia.chromite.ui.swing;
 
 import com.seizia.chromite.ui.swing.internal.ConnectionMessages;
+import com.seizia.chromite.ui.swing.internal.CoreMessages;
+import com.seizia.chromite.ui.swing.internal.ErrorMessages;
 import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.jobs.IJobChangeEvent;
 import org.eclipse.core.runtime.jobs.Job;
@@ -60,6 +62,7 @@ import java.awt.*;
  * - 2026-11-06 D단계: 최초 작성 (docs/chromite/swing-frontend.md "구현 현황 — D단계")
  * - 2026-11-06 Registered Servers: 새 연결 명령이 만든 연결을 돌려준다(docs/chromite/swing-registered-servers.md)
  * - 2026-11-06 화면 문구를 ConnectionMessages로 옮김(OS 언어를 따름)
+ * - 2026-11-07 연결 끊기 오류 대화상자 제목을 모델 Job 이름("Disconnect from '…'") 대신 지역화된 문구로 바꿈 (docs/chromite/swing-frontend.md "오류 문구")
  */
 final class ConnectionCommands {
 
@@ -180,7 +183,9 @@ final class ConnectionCommands {
                 if (onFinish != null) {
                     onFinish.run();
                 } else if (result != null && !result.isOK()) {
-                    DBWorkbench.getPlatformUI().showError(disconnectJob.getName(), null, result);
+                    // Localized title instead of the model job name ("Disconnect from '...'")
+                    DBWorkbench.getPlatformUI().showError(CoreMessages.explorer_disconnect,
+                        NLS.bind(ErrorMessages.error_disconnect, dataSource.getName()), result);
                 }
             }
         });

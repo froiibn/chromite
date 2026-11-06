@@ -83,6 +83,7 @@ import java.util.Locale;
  * - 2026-11-06 데이터 전송: 최초 작성 (docs/chromite/swing-data-transfer.md)
  * - 2026-11-06 화면 문구를 ToolsMessages로 옮김(OS 언어를 따름)
  * - 2026-11-06 테이블 복사: 성공 뒤 처리({@link #transferSucceeded}), 선택에 따라 단계 목록 다시 그리기({@link #refreshSteps})
+ * - 2026-11-07 오류 문구를 {@link ErrorText}로 만들고, 오류 영역에 스택 추적을 여는 "자세히…" 단추를 더함 (docs/chromite/swing-frontend.md "오류 문구")
  */
 abstract class DataTransferWizard extends JDialog {
 
@@ -169,6 +170,8 @@ abstract class DataTransferWizard extends JDialog {
     private final JProgressBar progressBar = new JProgressBar();
     private final JTextArea errorArea = new JTextArea(4, 40);
     private final JScrollPane errorScroll = new JScrollPane(errorArea);
+    private final ErrorDialog.DetailsButton errorDetailsButton = new ErrorDialog.DetailsButton(this::getTitle);
+    private final JPanel errorPanel = new JPanel(new BorderLayout(0, 2));
     private final List<PipeRow> pipeRows = new ArrayList<>();
     private final PipeTableModel pipeTableModel = new PipeTableModel();
     private int currentPage = -1;
@@ -444,7 +447,8 @@ abstract class DataTransferWizard extends JDialog {
         progressBar.setValue(0);
         progressBar.setIndeterminate(true);
         errorArea.setText("");
-        errorScroll.setVisible(false);
+        errorDetailsButton.setError(null, null);
+        errorPanel.setVisible(false);
 
         Throwable[] result = new Throwable[1];
         String title = getTitle();
@@ -625,7 +629,7 @@ abstract class DataTransferWizard extends JDialog {
                         completeRow(row, PipeState.SUCCESS);
                     } else {
                         completeRow(row, canceled ? PipeState.CANCELED : PipeState.ERROR);
-                        row.message = canceled ? "" : CommonUtils.notEmpty(CommonUtils.getRootCause(error).getMessage());
+                        row.message = canceled ? "" : ErrorText.summary(error);
                         failed = !canceled;
                     }
                 }
@@ -637,7 +641,7 @@ abstract class DataTransferWizard extends JDialog {
                     } else if (!failed) {
                         // Failed before the job took a pipe (e.g. opening the target or creating tables)
                         row.state = PipeState.ERROR;
-                        row.message = CommonUtils.notEmpty(CommonUtils.getRootCause(error).getMessage());
+                        row.message = ErrorText.summary(error);
                         failed = true;
                     } else {
                         row.state = PipeState.NOT_RUN;
@@ -660,10 +664,12 @@ abstract class DataTransferWizard extends JDialog {
             progressLabel.setText(NLS.bind(ToolsMessages.transfer_progress_canceled, succeeded, pipeRows.size()));
         } else {
             progressLabel.setText(NLS.bind(ToolsMessages.transfer_progress_failed, succeeded, pipeRows.size()));
-            errorArea.setText(CommonUtils.getAllExceptionMessages(error));
+            String errorText = ErrorText.describe(error);
+            errorArea.setText(errorText);
             errorArea.setCaretPosition(0);
-            errorScroll.setVisible(true);
-            errorScroll.getParent().revalidate();
+            errorDetailsButton.setError(errorText, error);
+            errorPanel.setVisible(true);
+            errorPanel.getParent().revalidate();
             log.debug("Data transfer failed", error);
         }
         updateButtons();
@@ -702,10 +708,15 @@ abstract class DataTransferWizard extends JDialog {
             errorArea.setLineWrap(true);
             errorArea.setWrapStyleWord(true);
             errorArea.putClientProperty(FlatClientProperties.STYLE, "foreground: $Component.error.focusedBorderColor"); //$NON-NLS-1$
-            errorScroll.setVisible(false);
+            // The stack trace stays behind Details: the visible text has no class names
+            JPanel detailsRow = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
+            detailsRow.add(errorDetailsButton);
+            errorPanel.add(errorScroll, BorderLayout.CENTER);
+            errorPanel.add(detailsRow, BorderLayout.SOUTH);
+            errorPanel.setVisible(false);
             panel.add(top, BorderLayout.NORTH);
             panel.add(new JScrollPane(table), BorderLayout.CENTER);
-            panel.add(errorScroll, BorderLayout.SOUTH);
+            panel.add(errorPanel, BorderLayout.SOUTH);
         }
 
         @NotNull

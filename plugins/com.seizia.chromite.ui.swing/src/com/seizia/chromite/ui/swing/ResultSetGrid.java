@@ -96,6 +96,7 @@ import java.util.Map;
  * - 2026-11-06 {@link Host#rowsChanged}: 결과 뷰어가 다시 읽은 행 수를 쿼리 상태 줄에 알림 (docs/chromite/swing-result-viewer.md)
  * - 2026-11-06 꺼진 Export Data…의 도구 설명에 수신기가 아는 실제 이유(예: 이번 실행에만 바인딩한 값)를 보임 (docs/chromite/swing-data-transfer.md)
  * - 2026-11-06 화면 문구를 EditorMessages로 옮김(OS 언어를 따름)
+ * - 2026-11-07 오류 문구를 {@link ErrorText}로 만듦(클래스 이름이 화면에 나오지 않게, docs/chromite/swing-frontend.md "오류 문구")
  */
 final class ResultSetGrid extends JPanel {
 
@@ -307,7 +308,7 @@ final class ResultSetGrid extends JPanel {
         try {
             editModel.setValue(row, column, editModel.parseValue(column, text));
         } catch (DBCException e) {
-            return NLS.bind(EditorMessages.editor_grid_invalid_value, data.columns()[column], CommonUtils.notEmpty(e.getMessage()));
+            return NLS.bind(EditorMessages.editor_grid_invalid_value, data.columns()[column], ErrorText.describeLine(e));
         }
         repaintKeepingSelection();
         return null;
@@ -587,7 +588,7 @@ final class ResultSetGrid extends JPanel {
                 ? EditorMessages.editor_grid_partly_applied
                 : EditorMessages.editor_grid_nothing_saved;
         };
-        host.appendError(NLS.bind(EditorMessages.editor_grid_cant_save, tableName, applied) + "\n" + CommonUtils.getAllExceptionMessages(error)); //$NON-NLS-1$
+        host.appendError(NLS.bind(EditorMessages.editor_grid_cant_save, tableName, applied) + "\n" + ErrorText.describe(error)); //$NON-NLS-1$
         host.showMessages();
         transientStatus = NLS.bind(EditorMessages.editor_grid_save_failed, getChangeCount());
         updateState();
@@ -943,7 +944,7 @@ final class ResultSetGrid extends JPanel {
             } catch (DBCException e) {
                 Color errorColor = UIManager.getColor("Component.error.focusedBorderColor"); //$NON-NLS-1$
                 field.setBorder(BorderFactory.createLineBorder(errorColor != null ? errorColor : Color.RED, 2));
-                transientStatus = NLS.bind(EditorMessages.editor_grid_invalid_value_status, data.columns()[modelColumn], CommonUtils.notEmpty(e.getMessage()));
+                transientStatus = NLS.bind(EditorMessages.editor_grid_invalid_value_status, data.columns()[modelColumn], ErrorText.describeLine(e));
                 updateState();
                 UIManager.getLookAndFeel().provideErrorFeedback(field);
                 return false;

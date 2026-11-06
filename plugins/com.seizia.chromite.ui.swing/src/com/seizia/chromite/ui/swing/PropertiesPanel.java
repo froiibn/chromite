@@ -78,6 +78,7 @@ import java.util.stream.Stream;
  * - 2026-11-06 B단계: 최초 작성 (docs/chromite/swing-frontend.md "구현 현황 — B단계")
  * - 2026-11-06 P1: 머리글 있는 표 → SSMS식 속성 그리드(분류별·이름순, 분류 접기, 설명 칸) (docs/chromite/swing-frontend.md "P1 디자인 적용")
  * - 2026-11-06 화면 문구를 CoreMessages로 옮김(OS 언어를 따름)
+ * - 2026-11-07 오류 문구를 {@link ErrorText}로 만듦(클래스 이름이 화면에 나오지 않게, docs/chromite/swing-frontend.md "오류 문구")
  */
 final class PropertiesPanel extends JPanel {
 
@@ -209,7 +210,7 @@ final class PropertiesPanel extends JPanel {
                 } catch (Throwable e) {
                     log.debug("Error reading properties of " + node.getNodeDisplayName(), e);
                     result = List.of();
-                    resultMessage = NLS.bind(CoreMessages.properties_error, CommonUtils.getAllExceptionMessages(e));
+                    resultMessage = NLS.bind(CoreMessages.properties_error, ErrorText.describe(e));
                 }
                 if (!monitor.isCanceled()) {
                     List<Category> finalResult = result;

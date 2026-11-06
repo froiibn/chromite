@@ -184,6 +184,7 @@ import java.util.concurrent.atomic.AtomicLong;
  *   (docs/chromite/swing-source-editor.md)
  * - 2026-11-06 도구 막대에 SSMS SQL Editor 단추 추가(Comment, Uncomment, Decrease/Increase Indent, Format SQL, Query History),
  *   좁은 창에서는 콤보를 줄이고 넘치는 단추를 넘침 메뉴로 ({@link OverflowToolBar}) (docs/chromite/swing-frontend.md "도구 막대")
+ * - 2026-11-07 오류 문구를 {@link ErrorText}로 만듦(클래스 이름이 화면에 나오지 않게, docs/chromite/swing-frontend.md "오류 문구")
  */
 final class SqlEditorPanel extends JPanel {
 
@@ -863,7 +864,7 @@ final class SqlEditorPanel extends JPanel {
         if (status.getSeverity() == IStatus.ERROR && !run.hasErrors) {
             // Errors outside of a query (e.g. opening the session); query errors were already written by the listener
             run.hasErrors = true;
-            resultsView.appendError(CommonUtils.notEmpty(status.getMessage()));
+            resultsView.appendError(ErrorText.describe(status));
         }
         boolean canceled = run.cancelRequested || status.getSeverity() == IStatus.CANCEL;
         if (canceled) {
@@ -1002,7 +1003,7 @@ final class SqlEditorPanel extends JPanel {
                     }
                 } catch (Throwable e) {
                     log.debug("Execution plan preparation failed", e);
-                    problem = CommonUtils.getAllExceptionMessages(e);
+                    problem = ErrorText.describe(e);
                 }
                 String message = problem;
                 SwingUtilities.invokeLater(() -> {
@@ -1077,7 +1078,7 @@ final class SqlEditorPanel extends JPanel {
             post(run, () -> statusLine.setState(QueryStatusLine.State.EXECUTING, EditorMessages.editor_sql_executing));
         } catch (Throwable e) {
             log.debug("Query preparation failed", e);
-            stopPreparation(run, errorStatus(CommonUtils.getAllExceptionMessages(e)));
+            stopPreparation(run, errorStatus(ErrorText.describe(e)));
         }
     }
 
@@ -1099,7 +1100,7 @@ final class SqlEditorPanel extends JPanel {
                 run.actualPlanProvider = provider;
             } catch (Throwable e) {
                 log.debug("Can't turn the actual plan on", e);
-                post(run, () -> resultsView.appendError(NLS.bind(EditorMessages.editor_sql_cant_include_actual_plan, CommonUtils.getAllExceptionMessages(e))));
+                post(run, () -> resultsView.appendError(NLS.bind(EditorMessages.editor_sql_cant_include_actual_plan, ErrorText.describe(e))));
             }
         } else {
             run.planner = SqlPlanExplainer.getPlanner(dataSource);
@@ -1258,7 +1259,8 @@ final class SqlEditorPanel extends JPanel {
         if (column > 0) {
             header.append(NLS.bind(EditorMessages.editor_sql_error_column, column));
         }
-        return header + "\n" + CommonUtils.getAllExceptionMessages(error);
+        // The header already shows the error code and state
+        return header + "\n" + ErrorText.describeMessages(error);
     }
 
     @Nullable
@@ -1400,7 +1402,7 @@ final class SqlEditorPanel extends JPanel {
             if (!run.reportedErrors.contains(error)) {
                 // Failed before the query was sent (parameters, pragmas, control commands)
                 run.hasErrors = true;
-                post(run, () -> resultsView.appendError(CommonUtils.getAllExceptionMessages(error)));
+                post(run, () -> resultsView.appendError(ErrorText.describe(error)));
             }
             return DBPPlatformUI.UserResponse.STOP;
         }
@@ -1470,7 +1472,7 @@ final class SqlEditorPanel extends JPanel {
                 result.getQueryTime(),
                 rows,
                 status,
-                result.getError() == null ? null : CommonUtils.getAllExceptionMessages(result.getError())));
+                result.getError() == null ? null : ErrorText.describe(result.getError())));
         } catch (Throwable e) {
             log.debug("Can't record the query history", e);
         }

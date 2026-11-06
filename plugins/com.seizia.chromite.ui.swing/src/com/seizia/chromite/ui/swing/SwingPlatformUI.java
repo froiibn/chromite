@@ -81,6 +81,9 @@ import java.util.function.Supplier;
  * - 2026-11-06 D단계: {@code openConnectionEditor}를 범용 연결 대화상자({@link ConnectionDialog})로 구현
  *   (docs/chromite/swing-frontend.md "구현 현황 — D단계")
  * - 2026-11-06 화면 문구를 CoreMessages로 옮김(OS 언어를 따름)
+ * - 2026-11-07 오류 문구를 {@link ErrorText}로 만들고(클래스 이름이 화면에 나오지 않게), 오류 대화상자에 접힌 스택 추적과
+ *   복사 단추({@link ErrorDialog})를 더함. 모델 계층이 넘긴 오류 문자열과 알림도 같은 규칙으로 정리한다
+ *   (docs/chromite/swing-frontend.md "오류 문구")
  */
 public class SwingPlatformUI implements DBPPlatformUI {
 
@@ -102,23 +105,23 @@ public class SwingPlatformUI implements DBPPlatformUI {
 
     @Override
     public UserResponse showError(@NotNull String title, @Nullable String message, @NotNull IStatus status) {
-        // Phase C: DB-specific handling of DesktopUI (connection lost, driver files missing, details pane)
-        showMessage(title, joinText(message, getStatusText(status)), JOptionPane.ERROR_MESSAGE);
+        // Phase C: DB-specific handling of DesktopUI (connection lost, driver files missing)
+        showErrorBox(title, joinText(ErrorText.clean(message), ErrorText.describe(status)), ErrorText.findException(status));
         return UserResponse.OK;
     }
 
     @Override
     public UserResponse showError(@Nullable String title, @Nullable String message, @NotNull Throwable e) {
-        // Phase C: DB-specific handling of DesktopUI (connection lost, driver files missing, details pane)
+        // Phase C: DB-specific handling of DesktopUI (connection lost, driver files missing)
         log.debug(e);
-        showMessage(CommonUtils.isEmpty(title) ? CoreMessages.common_error : title,
-            joinText(message, CommonUtils.getAllExceptionMessages(e)), JOptionPane.ERROR_MESSAGE);
+        showErrorBox(CommonUtils.isEmpty(title) ? CoreMessages.common_error : title,
+            joinText(ErrorText.clean(message), ErrorText.describe(e)), e);
         return UserResponse.OK;
     }
 
     @Override
     public UserResponse showError(@NotNull String title, @Nullable String message) {
-        showMessage(title, message, JOptionPane.ERROR_MESSAGE);
+        showMessage(title, ErrorText.clean(message), JOptionPane.ERROR_MESSAGE);
         return UserResponse.OK;
     }
 
@@ -129,13 +132,13 @@ public class SwingPlatformUI implements DBPPlatformUI {
         } else {
             log.info(title + (message == null ? "" : ": " + message));
         }
-        showToast(title, message, error ? NotificationToast.Kind.ERROR : NotificationToast.Kind.INFO, feedback);
+        showToast(title, ErrorText.clean(message), error ? NotificationToast.Kind.ERROR : NotificationToast.Kind.INFO, feedback);
     }
 
     @Override
     public void showWarningNotification(@NotNull String title, @Nullable String message) {
         log.warn(title + (message == null ? "" : ": " + message));
-        showToast(title, message, NotificationToast.Kind.WARNING, null);
+        showToast(title, ErrorText.clean(message), NotificationToast.Kind.WARNING, null);
     }
 
     /**
@@ -160,7 +163,7 @@ public class SwingPlatformUI implements DBPPlatformUI {
 
     @Override
     public void showMessageBox(@NotNull String title, @Nullable String message, boolean error) {
-        showMessage(title, message, error ? JOptionPane.ERROR_MESSAGE : JOptionPane.INFORMATION_MESSAGE);
+        showMessage(title, error ? ErrorText.clean(message) : message, error ? JOptionPane.ERROR_MESSAGE : JOptionPane.INFORMATION_MESSAGE);
     }
 
     @Override
@@ -272,10 +275,10 @@ public class SwingPlatformUI implements DBPPlatformUI {
         String[] options = queue
             ? new String[]{CoreMessages.platform_stop, CoreMessages.platform_retry, CoreMessages.platform_skip, CoreMessages.platform_skip_all}
             : new String[]{CoreMessages.platform_stop, CoreMessages.platform_retry};
-        String text = joinText(NLS.bind(CoreMessages.platform_error_during, task), CommonUtils.getAllExceptionMessages(error));
+        String text = joinText(NLS.bind(CoreMessages.platform_error_during, task), ErrorText.describe(error));
         Integer result = runOnEdt(() -> JOptionPane.showOptionDialog(
             getDialogParent(),
-            createMessageComponent(text),
+            ErrorDialog.createContent(text, error),
             CoreMessages.platform_execution_error,
             JOptionPane.DEFAULT_OPTION,
             JOptionPane.ERROR_MESSAGE,
@@ -727,6 +730,16 @@ public class SwingPlatformUI implements DBPPlatformUI {
     }
 
     /**
+     * Error message box; with an error it also has the collapsed stack trace (Details) and Copy.
+     */
+    private static void showErrorBox(@NotNull String title, @Nullable String message, @Nullable Throwable error) {
+        runOnEdt(() -> {
+            ErrorDialog.show(getDialogParent(), title, message, error);
+            return null;
+        });
+    }
+
+    /**
      * The focused window, or else any visible frame, so that dialogs stay on top of the application.
      */
     @Nullable
@@ -748,7 +761,7 @@ public class SwingPlatformUI implements DBPPlatformUI {
      * error messages. Long texts get a scroll bar.
      */
     @NotNull
-    private static JComponent createMessageComponent(@Nullable String message) {
+    static JComponent createMessageComponent(@Nullable String message) {
         JTextArea textArea = new JTextArea(CommonUtils.notEmpty(message));
         textArea.setEditable(false);
         textArea.setLineWrap(true);
@@ -778,33 +791,6 @@ public class SwingPlatformUI implements DBPPlatformUI {
             return first;
         }
         return first + "\n\n" + second;
-    }
-
-    @NotNull
-    private static String getStatusText(@NotNull IStatus status) {
-        StringBuilder text = new StringBuilder();
-        appendStatusText(text, status);
-        return text.toString();
-    }
-
-    private static void appendStatusText(@NotNull StringBuilder text, @NotNull IStatus status) {
-        String statusMessage = status.getMessage();
-        if (!CommonUtils.isEmpty(statusMessage)) {
-            if (!text.isEmpty()) {
-                text.append('\n');
-            }
-            text.append(statusMessage);
-        }
-        Throwable exception = status.getException();
-        if (exception != null) {
-            String exceptionMessage = CommonUtils.getAllExceptionMessages(exception);
-            if (!CommonUtils.isEmpty(exceptionMessage) && !exceptionMessage.equals(statusMessage)) {
-                text.append('\n').append(exceptionMessage);
-            }
-        }
-        for (IStatus child : status.getChildren()) {
-            appendStatusText(text, child);
-        }
     }
 
     /**

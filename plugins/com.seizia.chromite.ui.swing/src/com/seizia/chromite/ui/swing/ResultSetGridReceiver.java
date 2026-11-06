@@ -80,6 +80,7 @@ import java.util.function.Consumer;
  * - 2026-11-06 Query Library와 합침: 쿼리로는 다시 읽을 수 있어 보여도 다시 읽으면 안 되는 결과(이번 실행에만 바인딩한 매개변수 값)의 이유를
  *   받는 생성자 (docs/chromite/swing-query-library.md "매개변수 바인딩")
  * - 2026-11-06 화면 문구를 EditorMessages로 옮김(OS 언어를 따름)
+ * - 2026-11-07 오류 문구를 {@link ErrorText}로 만듦(클래스 이름이 화면에 나오지 않게, docs/chromite/swing-frontend.md "오류 문구")
  */
 final class ResultSetGridReceiver implements DBDDataReceiver {
 
@@ -208,7 +209,7 @@ final class ResultSetGridReceiver implements DBDDataReceiver {
                     cells[i] = value;
                 }
             } catch (Throwable e) {
-                row[i] = NLS.bind(EditorMessages.editor_grid_cell_error, e.getMessage());
+                row[i] = NLS.bind(EditorMessages.editor_grid_cell_error, ErrorText.describeLine(e));
                 unreadableColumns[i] = true;
                 if (failedColumns.add(i)) {
                     log.warn("Can't read column '" + binding.getName() + "' value", e);

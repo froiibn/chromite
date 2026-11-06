@@ -148,6 +148,9 @@ D:\Tools\_venvs\chromite-branding\Scripts\python tools/branding/gen_app_icons.py
   `ic13`, `ic09`, `ic14`, `ic10`)를 쓴다.
 - **아이콘 스크립트는 하나로 둔다.** `gen_launcher_ico.py`를 `gen_app_icons.py`로 이름을 바꿔 모든 아이콘·로고 이미지를 만들게 했다.
   ICO만 따로 만드는 스크립트를 두면 같은 그림을 두 곳에서 그리게 되어 서로 달라질 수 있기 때문이다.
+- **Swing 화면의 오류 문구에는 클래스·패키지 이름을 보이지 않는다.** 예외를 `toString()`째 보여 주면 `org.jkiss.dbeaver.…Exception:`이 화면에 나온다.
+  Swing 번들은 예외 문구를 모두 `ErrorText`로 만들고, 패키지 이름이 있는 스택 추적은 오류 대화상자의 접힌 "자세히"에만 둔다
+  ([swing-frontend.md](swing-frontend.md) "오류 문구"). 오류 대화상자 제목에 쓰이던 모델 Job 이름(`Connect to '…'`)도 지역화된 문구로 바꿨다.
 - **버전 표시 위치를 옮긴다.** upstream 위치(154,53)는 새 로고와 겹쳐서 로고 아래(60,225)로 옮겼다.
 
 ## upstream 대비 남은 차이와 미완료 항목
@@ -193,3 +196,4 @@ D:\Tools\_venvs\chromite-branding\Scripts\python tools/branding/gen_app_icons.py
   다시 만들었다. `tools/branding/gen_launcher_ico.py`를 `gen_app_icons.py`로 바꿔 이 전부를 만들게 했다.
 - 2026-11-06 가로 로고 글자를 Inter 워드마크에서 원래 로고의 글자로 바꿈(사용자 결정): 기울임 기하 글자 `CHROMITE`와 E의 파란 강조 획,
   얇은 세로 구분선, 원래 위치에 놓은 넓은 자간 부제. `chromite_full_*.png`, `chromite_wordmark_*.svg`, `chromite_symbol_dark.png`(바탕색), 스플래시를 다시 만듦.
+- 2026-11-07 Swing 오류 문구에서 Java 클래스·패키지 이름(`org.jkiss.dbeaver…`)이 보이지 않게 함(설계 결정 항목 추가). [swing-frontend.md](swing-frontend.md) "오류 문구".
