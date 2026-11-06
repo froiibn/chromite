@@ -28,6 +28,7 @@
         <module>com.seizia.chromite.model.sm</module>
         <module>com.seizia.chromite.model.sql</module>
         <module>com.seizia.chromite.model.sql.jdbc</module>
+        <module>com.seizia.chromite.model.update</module>
         <module>com.seizia.chromite.model.lsp</module>
         <module>com.seizia.chromite.registry</module>
 
