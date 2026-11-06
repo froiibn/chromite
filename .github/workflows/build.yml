@@ -85,6 +85,45 @@ jobs:
         shell: bash
         run: ./deps/dbeaver-common/mvnw -B -ntp package -f product/aggregate/pom.xml -T1C -Pproduct-chromite-swing
 
+      # Bundled Java runtime (docs/chromite/runtime.md): tools/jre/BundleJre.java downloads the pinned JBR SDK
+      # of the job's platform into ~/.cache/chromite-jbr (checked against the SHA-256 in tools/jre/jbr.properties),
+      # links it with the jlink of the JDK set up above and copies it into the product. The download is cached.
+      - name: Cache JBR SDK download
+        uses: actions/cache@v6
+        with:
+          path: ~/.cache/chromite-jbr
+          key: jbr-${{ matrix.name }}-${{ hashFiles('tools/jre/jbr.properties') }}
+
+      - name: Bundle Java runtime (Windows x64)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          java tools/jre/BundleJre.java windows-x64
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          # the launcher finds jre\ next to the exe before any Java on PATH
+          foreach ($jre in "$env:SWING_PRODUCTS_DIR/win32/win32/x86_64/chromite-swing/jre") {
+            if (-not (Test-Path "$jre/bin/server/jvm.dll") -or -not (Test-Path "$jre/bin/javaw.exe")) { throw "$jre is incomplete" }
+          }
+
+      # The product's ini on macOS start the VM through -vm ../Eclipse/jre/lib/libjli.dylib.
+      - name: Bundle Java runtime (macOS arm64, linked on Linux)
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          set -euo pipefail
+          java tools/jre/BundleJre.java osx-aarch64
+          for jre in "$SWING_PRODUCTS_DIR/macosx/cocoa/aarch64/ChromiteSwing.app/Contents/Eclipse/jre"; do
+            for f in lib/libjli.dylib lib/server/libjvm.dylib; do
+              [ -f "$jre/$f" ] || { echo "::error::$jre/$f is missing"; exit 1; }
+            done
+            for f in bin/java lib/jspawnhelper; do
+              [ -x "$jre/$f" ] || { echo "::error::$jre/$f is missing or not executable"; exit 1; }
+            done
+            # jlink's release file names no OS, so the VM library itself is checked
+            file -b "$jre/lib/server/libjvm.dylib" | grep -q 'Mach-O 64-bit.*arm64' \
+              || { echo "::error::$jre is not a macOS arm64 runtime"; exit 1; }
+          done
+
       # Tycho materializes every environment of product/swing/pom.xml;
       # each job uploads only the product of the platform its matrix entry names.
       - name: Upload Windows x64 Swing product

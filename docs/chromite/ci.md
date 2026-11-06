@@ -30,7 +30,13 @@ Chromite의 CI를 DBeaver 조직의 워크플로, 액션, 시크릿 없이 이 �
    - Windows는 `pwsh`에서 `mvnw.cmd`, Linux는 `bash`에서 `mvnw`를 실행한다. 두 단계의 인수는 같게 유지한다.
    - 프로파일을 여러 개 쓰게 되면 `pwsh`에서는 목록을 작은따옴표로 묶는다(PowerShell이 쉼표를 배열 구분자로 읽는다).
    - `MAVEN_OPTS=-Xmx3g`
-5. 결과물 업로드(보관 7일). macOS 제품은 실행 파일의 실행 권한을 확인한 뒤 tar로 묶어 올린다.
+5. 내장 Java 런타임([runtime.md](runtime.md)): `java tools/jre/BundleJre.java <플랫폼>`이 작업의 플랫폼(`windows-x64`, `osx-aarch64`)용
+   JBR SDK를 받아(SHA-256 확인) 위 JDK 25의 jlink로 줄인 런타임을 제품에 넣는다(Windows `jre/`, macOS `Contents/Eclipse/jre`).
+   - 받은 파일은 `~/.cache/chromite-jbr`에 두고 `actions/cache`로 캐시한다. 키: `jbr-<행렬 이름>-<tools/jre/jbr.properties의 해시>`.
+   - 단계 끝에서 구조를 확인한다. Windows: `jre/bin/server/jvm.dll`, `jre/bin/javaw.exe`(런처가 찾는 파일).
+     macOS: `lib/libjli.dylib`, 실행 권한이 있는 `bin/java`·`lib/jspawnhelper`, `lib/server/libjvm.dylib`가 arm64 Mach-O인지(`file`).
+     jlink가 만드는 `release` 파일에는 `JAVA_VERSION`, `MODULES`만 있고 OS 정보가 없어서 라이브러리 자체를 본다.
+6. 결과물 업로드(보관 7일). macOS 제품은 실행 파일의 실행 권한을 확인한 뒤 tar로 묶어 올린다.
 
 ### 결과물 (artifact)
 
@@ -176,9 +182,11 @@ CI에서 checkstyle을 돌리지 않기로 했다. 깔끔하게 유지할 방법
 - 빌드는 인터넷의 P2 저장소(`download.eclipse.org`, `repo.dbeaver.net/p2/ce/<버전>`)와 Maven Central을 쓴다([build.md](build.md)).
   이 서버가 응답하지 않으면 CI도 실패한다.
 - `package` 단계까지만 실행하므로 테스트(`test/`)는 돌리지 않는다.
-- 결과물은 서명하지 않았고 JRE를 내장하지 않는다. 실행하려면 JDK 21 이상(Swing 제품은 JDK 25 이상, [swing-frontend.md](swing-frontend.md))이
-  설치되어 있어야 한다. 배포용이 아니라 확인용이며 7일 뒤 지워진다. 서명한 배포 파일은 `release.yml`이 만든다([signing.md](signing.md)).
+- 결과물은 서명하지 않았다. 내장 런타임(`jre/`)이 들어 있어 Java를 따로 설치하지 않아도 실행된다([runtime.md](runtime.md)).
+  배포용이 아니라 확인용이며 7일 뒤 지워진다. 서명한 배포 파일은 `release.yml`이 만든다([signing.md](signing.md)).
+- macOS 런타임은 Linux에서 jlink로 만든다(교차 링크). CI는 구조와 실행 권한만 확인하고, macOS에서 실행되는지는 확인하지 않는다.
 - `actions/cache` 저장 공간은 저장소당 10GB다. 두 OS의 캐시가 커지면 오래된 캐시부터 지워진다.
+  JBR SDK 다운로드 캐시는 플랫폼마다 하나(Windows 약 280MB, macOS 약 230MB)다.
 
 ## upstream 대비 변경점
 
@@ -205,4 +213,7 @@ CI에서 checkstyle을 돌리지 않기로 했다. 깔끔하게 유지할 방법
 - 2026-11-06 `SECURITY.md`를 Chromite 기준으로 고쳐(GitHub Security Advisories로 비공개 보고) 남은 문제 항목에서 지웠다.
 - 2026-11-06 서명 릴리스 워크플로 `release.yml`을 추가했다(Turbrix 서명 안내서 기준, [signing.md](signing.md)). `build.yml`은 바꾸지 않았다.
 - 2026-11-07 내부 이름 변경: `build.yml`에 작업 `rename-gate` 추가(빌드 없이 수 초). SWT 프로파일 이름 `product-chromite-swt`, SWT 제품 폴더 `com.seizia.chromite.core.product`.
+- 2026-11-07 내장 Java 런타임 단계를 넣었다(`build.yml`, `release.yml`의 `windows`·`macos-build` 작업). 고정한 JBR SDK를 받아 캐시하고
+  `tools/jre/BundleJre.java`로 두 제품에 넣은 뒤(SWT 삭제 뒤에는 Swing 제품 하나) 구조를 확인한다([runtime.md](runtime.md)). "알려진 제약"의 JRE 설치 필요 항목을 고쳤다.
+  브랜치 `chromite/jbr-runtime`에서 수동 실행(실행 42267311710)으로 두 작업 성공과 macOS 결과물의 런타임 구조를 확인했다. `release.yml`은 실행하지 않았다.
 - 2026-11-07 SWT 프런트엔드 삭제([swt-removal.md](swt-removal.md)): `build.yml`·`release.yml`에서 SWT 제품 빌드·업로드·서명·패키징 단계 삭제, 프로파일은 `product-chromite-swing`만. 결과물 표와 설명 갱신.

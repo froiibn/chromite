@@ -111,7 +111,7 @@ Swing 소스에서 해당 모델 API나 기능을 찾지 못한 검색으로 확
 | AI 채팅·AI 자동완성 | `ui.ai` | `model.ai` | `model.ai` 참조 0 |
 | Query Manager(실행 로그 보기) | `ui.editors.sql`(`QueryLogViewer`) | `model`의 QM | QM 보기 없음. Swing에는 자체 쿼리 기록만 있다([swing-sql-editor-plus.md](swing-sql-editor-plus.md)) |
 | 데이터 검색(여러 테이블의 값 찾기) | `ui.search` | `model` | `DataSearch` 참조 0. 이름으로 객체 찾기는 있음(`ObjectSearchPanel`) |
-| 드라이버 편집기·관리자(사용자 드라이버 추가·라이브러리 편집), 오프라인 모드 설정 화면 | `ui.editors.connection` | `registry` | `DriverEditDialog`류 0 |
+| 드라이버 관리의 나머지: Maven 아티팩트 추가·편집, 라이브러리 의존성 트리, 전역 클래스패스 | `ui.editors.connection` | `registry` | 관리자·편집 창·오프라인 모드는 Swing에 있다([swing-driver-manager.md](swing-driver-manager.md) "남긴 것", 2026-11-07 devel 병합으로 확인) |
 | 다른 도구의 연결 설정 가져오기(DbVisualizer, Navicat, SQuirreL 등) | `ui.config.migration` | - | 참조 0 |
 | 환경설정 화면 대부분(편집기·결과·연결 기본값 등) | `ui`, `ui.editors.*`, `core` | `model` 설정 키 | Swing에는 일부 옵션 대화상자만 있다 |
 | DB별 전용 화면: 연결 페이지, 객체 편집기 탭, 도구(예: Oracle 컴파일, PostgreSQL 유지 보수, MySQL 세션) | `ext.*.ui` 32개 | `ext.*` | Swing은 범용 연결 화면과 일부 SQL Server·PostgreSQL·MySQL 도구만 있다([swing-frontend.md](swing-frontend.md) D단계, [swing-conn-advanced.md](swing-conn-advanced.md)) |
@@ -158,3 +158,4 @@ DBeaver CE의 Eclipse RCP 제품, SWT UI 번들 79개, SWT 전용 피처 12개, 
 ## 변경 이력
 
 - 2026-11-07 최초 작성. SWT 프런트엔드 삭제(번들 79개, 피처 12개, `product/community`, SWT 프로파일과 CI 단계), 남길 번들 판별 방법, 옮긴 리소스, 없어진 기능 목록.
+- 2026-11-07 devel 병합(#65 드라이버 관리자, #66 내장 런타임): 런타임 단계·`BundleJre.java`를 Swing 제품만 대상으로, 드라이버 관리자·오프라인 모드를 없는 기능 목록에서 뺌.

@@ -36,11 +36,12 @@ upstream의 전체 구조는 [AGENTS.md](../../AGENTS.md)와 [AGENTS-Architectur
 | [swing-query-library.md](swing-query-library.md) | Swing Query Library: 자주 쓰는 쿼리 트리(파일 하나 = 쿼리 하나, 여러 루트), 실행, 매개변수 매핑(안전한 바인딩), 예약 실행·공유 설계 |
 | [swing-erd.md](swing-erd.md) | Swing ER 다이어그램(View Diagram): 스키마·테이블의 관계도, 자동 배치, 확대·이동, PNG·SVG·.erd 내보내기, SWT와 같은 곳에 배치 저장 |
 | [swing-source-editor.md](swing-source-editor.md) | Swing 개체 정의 편집: Modify·Script as ALTER(SWT 소스 탭 저장과 같은 객체 관리자 스크립트), New View/Procedure/Function 템플릿, 실행 뒤 노드 다시 읽기 |
+| [swing-driver-manager.md](swing-driver-manager.md) | Swing 드라이버 관리자(Tools > Driver Manager…, Connect 대화상자의 Edit Driver…): 드라이버 만들기·복사·편집·삭제, 로컬 jar·폴더 라이브러리와 상태, 클래스 찾기, 오프라인 모드에서 다운로드 막기 |
 | [swing-l10n.md](swing-l10n.md) | Swing 화면 언어: OS 언어를 따르는 영어/한국어 NLS 묶음, 영역 나눔, 용어집, 영어로 남긴 것, 한글 굵은 글꼴(합성 글꼴 대체 칸) |
 | [swing-followup-fixes.md](swing-followup-fixes.md) | Swing 후속 수정(2026-11-07): 자동완성 프로시저 제안 설정, SQL Server 열 COLLATE, 날짜/시간 소수 초, 남은 영어 문구, 전송 대상 이름, 네이티브 백업 실패 |
 | [drivers.md](drivers.md) | JDBC 드라이버 내장(공개판 구현), 공개판·내부판 구성, 오프라인 우선 조회와 오프라인 모드 |
 | [driver-licenses.md](driver-licenses.md) | JDBC 드라이버별 라이선스·버전·크기 목록, 공개판 내장 가능 여부 분류 |
-| [runtime.md](runtime.md) | 내장 런타임(JBR 25 + jlink), 지원 플랫폼, 서명 |
+| [runtime.md](runtime.md) | 내장 런타임(JBR 25 + jlink, `tools/jre/`): 모듈 목록과 근거, 크기, 시작 시간 측정, 갱신 절차, 지원 플랫폼 |
 | [build.md](build.md) | 빌드 의존 저장소(`deps/dbeaver-common`, `deps/datadam-api`) 구성, 빌드 명령, 빌드하는 제품, 갱신 방법 |
 | [swt-removal.md](swt-removal.md) | SWT(Eclipse RCP) 프런트엔드 삭제: 남길 번들 판별, 삭제·이동한 것, Swing으로 옮길 때까지 없는 기능 목록 |
 | [internal-rename.md](internal-rename.md) | 내부 이름 변경(DBeaver 패키지·번들 이름 → `com.seizia.chromite`): 이름 규칙, 유지하는 이름, 도구(`tools/rename/`), 새로 시작(데이터 폴더), 검증 게이트 |

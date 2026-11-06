@@ -21,6 +21,7 @@ import com.formdev.flatlaf.ui.FlatTabbedPaneUI;
 import com.formdev.flatlaf.util.UIScale;
 import com.seizia.chromite.ui.swing.internal.CoreMessages;
 import com.seizia.chromite.ui.swing.internal.DashboardMessages;
+import com.seizia.chromite.ui.swing.internal.DriverManagerMessages;
 import com.seizia.chromite.ui.swing.internal.ToolbarMessages;
 import io.github.andrewauclair.moderndocking.DockingRegion;
 import org.eclipse.osgi.util.NLS;
@@ -85,7 +86,7 @@ import java.util.function.IntConsumer;
  *     <li>모양은 DataGrip Islands다: 메인 창 바탕은 캔버스({@code Chromite.island.canvas})이고 문서 탭·편집기와 Results는 각각 둥근 카드({@link IslandPanel}),
  *     도구 창(탭 묶음 포함)은 도킹 루트가 그리는 둥근 카드다. 카드 사이 틈은 분할선(6px, 선 없음)과 좌우 바깥 여백이다. 주 도구 막대와 상태 표시줄은 캔버스 위에 있다.</li>
  *     <li>메뉴는 SSMS 순서로 File(새 연결·쿼리, 파일, Exit), Edit({@link EditMenu}), View(도구 창 토글, Theme), Query(실행, 취소, 자동완성),
- *     Tools(Activity Monitor, Locks, Find Objects, Options {@link OptionsDialog}), Window(Reset Window Layout, 열린 문서 탭 목록), Help(About)이다. FlatLaf의 통합 제목 표시줄(Windows)에서
+ *     Tools(Activity Monitor, Locks, Find Objects, Driver Manager {@link DriverManagerDialog}, Options {@link OptionsDialog}), Window(Reset Window Layout, 열린 문서 탭 목록), Help(About)이다. FlatLaf의 통합 제목 표시줄(Windows)에서
  *     메뉴 막대는 A단계처럼 제목 표시줄 안에 들어간다. Tools &gt; Options와 같은 설정을 보이는 메뉴 항목(Theme, Icon Style, Auto-Complete While Typing)은
  *     메뉴를 열 때 현재 값으로 맞춘다.
  *     도구 창 단축키는 SSMS와 같다(Object Explorer F8, Registered Servers Ctrl+Alt+G, Properties F4, Results Ctrl+R).</li>
@@ -169,6 +170,7 @@ import java.util.function.IntConsumer;
  *   쓰지 않게 된 Results 자리 표시 내용 삭제 (docs/chromite/swing-frontend.md "Results 자동 숨김")
  * - 2026-11-07 밀도 B: 치수를 테마의 Chromite.size.* 키({@link UiSizes})에서 읽음 (docs/chromite/design-spec.md "치수 토큰")
  * - 2026-11-07 서버 대시보드: Tools &gt; Server Dashboard(Activity Monitor의 개요 탭) (docs/chromite/swing-dashboard.md)
+ * - 2026-11-07 Tools &gt; Driver Manager… ({@link DriverManagerDialog}) (docs/chromite/swing-driver-manager.md)
  */
 final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplorerPanel.QueryWindows, TableDesignerPanel.Host, QueryLibraryPanel.Host {
 
@@ -1445,6 +1447,9 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
         JMenuItem findObjectsItem = new JMenuItem(CoreMessages.main_find_objects);
         findObjectsItem.setMnemonic(KeyEvent.VK_F);
         findObjectsItem.addActionListener(e -> openObjectSearch(explorerPanel.getSelectedNode()));
+        JMenuItem driverManagerItem = new JMenuItem(DriverManagerMessages.drivermgr_menu);
+        driverManagerItem.setToolTipText(DriverManagerMessages.drivermgr_menu_tip);
+        driverManagerItem.addActionListener(e -> DriverManagerDialog.open(this));
         JMenu toolsMenu = new JMenu(CoreMessages.main_menu_tools);
         toolsMenu.setMnemonic(KeyEvent.VK_T);
         toolsMenu.add(activityMonitorItem);
@@ -1452,6 +1457,7 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
         toolsMenu.add(dashboardItem);
         toolsMenu.add(findObjectsItem);
         toolsMenu.addSeparator();
+        toolsMenu.add(driverManagerItem);
         toolsMenu.add(optionsItem);
 
         JMenu windowMenu = new JMenu(CoreMessages.main_menu_window);

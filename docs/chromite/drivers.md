@@ -149,7 +149,7 @@ JDBC 드라이버를 설치 파일에 미리 넣는다.
   설치 폴더의 `maven-local`을 원격 저장소보다 먼저 찾는다(기존의 마지막 조회는 삭제).
 - **설정 키:** `ui.drivers.offline`([ModelPreferences.UI_DRIVERS_OFFLINE](../../plugins/com.seizia.chromite.model/src/com/seizia/chromite/ModelPreferences.java:282)),
   저장 위치는 플랫폼 설정 저장소를 가진 제품 번들의 설정 노드(Swing 제품은 `com.seizia.chromite.ui.swing`), 기본값 `false`.
-  이 설정을 바꾸는 화면은 SWT 환경설정(드라이버 페이지)에만 있었고 SWT와 함께 삭제했다. Swing에는 아직 없다([swt-removal.md](swt-removal.md)).
+  화면은 Swing Driver Manager의 "오프라인 모드" 체크 상자다([swing-driver-manager.md](swing-driver-manager.md)). SWT 환경설정의 드라이버 페이지는 SWT와 함께 삭제했다.
   판별은 [DriverUtils.isOfflineMode](../../plugins/com.seizia.chromite.registry/src/com/seizia/chromite/registry/driver/DriverUtils.java:69) 한곳이며,
   값을 매번 읽으므로 켜는 즉시 적용된다.
 - **막는 곳(네트워크 접근 지점):**
