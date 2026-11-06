@@ -95,6 +95,7 @@ import java.util.Set;
  * - 2026-11-06 연결 색을 줄 바탕 대신 이름 알약({@link ConnectionPill})으로, 색은 연결에 정한 색 우선({@link ConnectionColors}),
  *   호스트 글자를 이름의 실제 기준선(JLabel baseline)에 맞춤 (docs/chromite/swing-registered-servers.md "연결 색 알약")
  * - 2026-11-06 화면 문구를 CoreMessages로 옮김(OS 언어를 따름)
+ * - 2026-11-07 밀도 B: 치수를 테마의 Chromite.size.* 키({@link UiSizes})에서 읽음 (docs/chromite/design-spec.md "치수 토큰")
  */
 final class RegisteredServersPanel extends JPanel {
 
@@ -324,7 +325,7 @@ final class RegisteredServersPanel extends JPanel {
         JToolBar toolBar = new JToolBar();
         toolBar.setFloatable(false);
         toolBar.setOpaque(false);
-        toolBar.setBorder(BorderFactory.createEmptyBorder(UIScale.scale(3), UIScale.scale(8), UIScale.scale(3), UIScale.scale(8)));
+        toolBar.setBorder(UiSizes.createPadding(UiSizes.TOOL_WINDOW_TOOL_BAR_PADDING));
         toolBar.add(UiIcons.createActionButton(newServerAction, "new-connection")); //$NON-NLS-1$
         toolBar.add(UiIcons.createActionButton(newGroupAction, "new-group")); //$NON-NLS-1$
         toolBar.addSeparator();
@@ -832,9 +833,6 @@ final class RegisteredServersPanel extends JPanel {
      * ({@link ConnectionPill}), and the server's host after it in text.secondary (as in Object Explorer).
      */
     private static final class ServersCellRenderer extends DefaultTreeCellRenderer {
-        // space.6: icon-text (icon-pill) gap and gap before the secondary text
-        private static final int GAP = 6;
-
         @Nullable
         private String secondaryText;
         @Nullable
@@ -852,7 +850,7 @@ final class RegisteredServersPanel extends JPanel {
         ) {
             Object userObject = value instanceof DefaultMutableTreeNode node ? node.getUserObject() : value;
             super.getTreeCellRendererComponent(tree, getText(userObject), selected, expanded, leaf, row, hasFocus);
-            setIconTextGap(UIScale.scale(GAP));
+            setIconTextGap(UiSizes.get(UiSizes.TREE_ICON_TEXT_GAP));
             secondaryText = null;
             pill = null;
             if (userObject instanceof DBPDataSourceFolder folder) {
@@ -862,7 +860,8 @@ final class RegisteredServersPanel extends JPanel {
                 setIcon(NodeIcons.getDataSourceIcon(container));
                 pill = ConnectionPill.of(container);
                 if (pill != null) {
-                    setIconTextGap(UIScale.scale(GAP) + ConnectionPill.getPaddingX());
+                    // A pill keeps space.6 from the icon (connection color pill spec), not the denser icon-text gap
+                    setIconTextGap(UiSizes.get(UiSizes.TREE_SECONDARY_GAP) + ConnectionPill.getPaddingX());
                 setForeground(pill.getTextColor(getForeground()));
                 }
                 DBPConnectionConfiguration configuration = container.getConnectionConfiguration();
@@ -898,7 +897,7 @@ final class RegisteredServersPanel extends JPanel {
                 size.width += ConnectionPill.getPaddingX();
             }
             if (size != null && secondaryText != null) {
-                size.width += UIScale.scale(GAP) + getFontMetrics(getFont()).stringWidth(secondaryText);
+                size.width += UiSizes.get(UiSizes.TREE_SECONDARY_GAP) + getFontMetrics(getFont()).stringWidth(secondaryText);
             }
             return size;
         }
@@ -918,7 +917,7 @@ final class RegisteredServersPanel extends JPanel {
             if (secondaryText == null || baseline < 0) {
                 return;
             }
-            int x = textX + textWidth + (pill != null ? ConnectionPill.getPaddingX() : 0) + UIScale.scale(GAP);
+            int x = textX + textWidth + (pill != null ? ConnectionPill.getPaddingX() : 0) + UiSizes.get(UiSizes.TREE_SECONDARY_GAP);
             Color color = UIManager.getColor("Chromite.secondaryForeground"); //$NON-NLS-1$
             g.setColor(color != null ? color : getForeground());
             g.setFont(getFont());

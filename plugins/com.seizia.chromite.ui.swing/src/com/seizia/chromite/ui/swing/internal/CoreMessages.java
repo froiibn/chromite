@@ -30,6 +30,9 @@ import org.eclipse.osgi.util.NLS;
  * 변경 이력:
  * - 2026-11-06 최초 작성: 공통 화면 문구를 이 번들로 옮김(OS 언어를 따름)
  * - 2026-11-07 Results 자동 숨김: 쓰지 않게 된 빈 Results 자리 표시 문구를 지우고, 쿼리 창이 없을 때 Results 토글의 도구 설명을 추가
+ * - 2026-11-07 Options의 프로시저·함수 제안 설정 문구 추가
+ * - 2026-11-07 Options의 날짜/시간 데이터베이스 형식 설정 문구 추가
+ * - 2026-11-07 진행 대화상자의 취소 중 문구, 탭 넘침 단추의 도구 설명 추가
  */
 public class CoreMessages extends NLS {
     private static final String BUNDLE_NAME = "com.seizia.chromite.ui.swing.internal.CoreMessages"; //$NON-NLS-1$
@@ -43,6 +46,7 @@ public class CoreMessages extends NLS {
     public static String common_loading;
     public static String common_no_active_project;
     public static String common_select_connection_first;
+    public static String progress_canceling;
 
     public static String main_results;
     public static String main_messages;
@@ -103,6 +107,7 @@ public class CoreMessages extends NLS {
     public static String main_menu_tools;
     public static String main_menu_window;
     public static String main_reset_layout;
+    public static String main_show_hidden_tabs;
     public static String main_menu_theme;
     public static String main_menu_icon_style;
 
@@ -163,9 +168,13 @@ public class CoreMessages extends NLS {
     public static String options_auto_complete;
     public static String options_completion_delay;
     public static String options_completion_delay_hint;
+    public static String options_show_procedures;
+    public static String options_show_procedures_tip;
     public static String options_query_results;
     public static String options_max_rows;
     public static String options_max_rows_hint;
+    public static String options_native_datetime;
+    public static String options_native_datetime_tip;
     public static String options_query_history;
     public static String options_keep_history;
     public static String options_keep_history_hint;

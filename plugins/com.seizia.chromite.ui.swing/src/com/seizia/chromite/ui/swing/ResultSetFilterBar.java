@@ -42,6 +42,7 @@ import java.util.Map;
  * 변경 이력:
  * - 2026-11-06 최초 작성 (docs/chromite/swing-result-viewer.md "정렬과 필터")
  * - 2026-11-06 화면 문구를 EditorMessages로 옮김(OS 언어를 따름)
+ * - 2026-11-07 밀도 B: 치수를 테마의 Chromite.size.* 키({@link UiSizes})에서 읽음 (docs/chromite/design-spec.md "치수 토큰")
  */
 final class ResultSetFilterBar extends JPanel {
 
@@ -84,7 +85,7 @@ final class ResultSetFilterBar extends JPanel {
     ResultSetFilterBar(@NotNull Listener listener) {
         super(new BorderLayout(4, 0));
         this.listener = listener;
-        setBorder(BorderFactory.createEmptyBorder(2, 4, 2, 4));
+        setBorder(UiSizes.createPadding(UiSizes.FILTER_BAR_PADDING));
         combo.setEditable(true);
         combo.putClientProperty(FlatClientProperties.PLACEHOLDER_TEXT, HINT);
         combo.putClientProperty(FlatClientProperties.STYLE_CLASS, "monospaced"); //$NON-NLS-1$
