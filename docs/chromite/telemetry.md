@@ -142,7 +142,7 @@ DBeaver 소유 서버로 나가는 다른 요청은 이번 작업에서 조사�
 
 ## upstream 대비 변경점
 
-- upstream의 `com.seizia.chromite.ui.statistics` 플러그인이 없다. 제품 구성 마법사에 "Data collection" 페이지가 없고,
+- upstream의 `ui.statistics` 플러그인(upstream 이름 접두어는 DBeaver 것)이 없다. 제품 구성 마법사에 "Data collection" 페이지가 없고,
   환경설정에 "Usage Statistics" 페이지가 없으며, 데이터 공유 확인 대화상자도 나오지 않는다.
 - `DBRFeatureTracker` 인터페이스, `DBRFeatureRegistry.startTracking()`과 `endTracking()`,
   `DBPApplication.isStatisticsCollectionRequired()`와 `getAdditionalApplicationProperties()`,
@@ -155,3 +155,4 @@ DBeaver 소유 서버로 나가는 다른 요청은 이번 작업에서 조사�
   DBeaver 소유 서버로 나가는 다른 요청을 조사해 기록.
 - 2026-11-06 외부 전송 1번(AI 모델 카탈로그, `dbeaver.com/info/ai_models_api.json`) 제거. 대체 동작은 [ai.md](ai.md).
 - 2026-11-06 외부 전송 5번(dbeaver.io Office, Git, Debug 확장 p2 업데이트 사이트) 제거.
+- 2026-11-07 내부 이름 변경([internal-rename.md](internal-rename.md)) 뒤에도 upstream 플러그인 이름을 가리키도록 "upstream 대비" 문구를 고침.

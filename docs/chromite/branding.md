@@ -120,10 +120,10 @@ D:\Tools\_venvs\chromite-branding\Scripts\python tools/branding/gen_app_icons.py
 
 ## 설계 결정과 이유
 
-- **내부 이름은 유지한다.** 패키지명(`com.seizia.chromite.*`), 번들 ID, 제품 ID(`com.seizia.chromite.core.product`),
-  Maven 프로파일(`product-chromite-swt`), 이미지 파일 이름은 바꾸지 않았다. 사용자에게 보이지 않고,
-  사용자 설정과 플러그인 참조가 이 이름에 묶여 있어 바꾸려면 별도 작업으로 한꺼번에 해야 하기 때문이다.
-  (처음에는 upstream 병합 충돌을 줄이려는 이유도 있었으나, 2026-11-06 독립 개발로 정해 그 이유는 없어졌다.)
+- **내부 이름은 별도 작업에서 한꺼번에 바꿨다.** 1단계에서는 패키지명, 번들 ID, 제품 ID, Maven 프로파일, 이미지 파일 이름을
+  유지했다. 사용자 설정과 플러그인 참조가 이 이름에 묶여 있어 일부만 바꾸면 기능이 깨지기 때문이다.
+  2026-11-07 [internal-rename.md](internal-rename.md)에서 모두 Chromite 이름으로 바꿨다(`com.seizia.chromite.*`,
+  제품 ID `com.seizia.chromite.core.product`, 프로파일 `product-chromite-swt`, 이미지 `chromite*.png/ico/icns`).
 - **업데이트 확인을 끈다.** `versionUpdateURL`과 `earlyAccessURL`을 지웠다.
   `ChromiteVersionChecker`는 URL이 없으면 확인을 건너뛴다. 남겨 두면 DBeaver 새 버전을 안내한다.
 - **DBeaver CE p2 업데이트 사이트를 뺀다.** 남겨 두면 "업데이트 확인"에서 DBeaver 번들이 Chromite를 덮어쓴다.
@@ -195,4 +195,6 @@ D:\Tools\_venvs\chromite-branding\Scripts\python tools/branding/gen_app_icons.py
 - 2026-11-06 가로 로고 글자를 Inter 워드마크에서 원래 로고의 글자로 바꿈(사용자 결정): 기울임 기하 글자 `CHROMITE`와 E의 파란 강조 획,
   얇은 세로 구분선, 원래 위치에 놓은 넓은 자간 부제. `chromite_full_*.png`, `chromite_wordmark_*.svg`, `chromite_symbol_dark.png`(바탕색), 스플래시를 다시 만듦.
 - 2026-11-07 Swing 오류 문구에서 Java 클래스·패키지 이름(`com.seizia.chromite…`)이 보이지 않게 함(설계 결정 항목 추가). [swing-frontend.md](swing-frontend.md) "오류 문구".
+- 2026-11-07 내부 이름 변경([internal-rename.md](internal-rename.md))에 맞춰 "내부 이름은 유지한다" 결정을 갱신.
+  표와 경로의 파일 이름(`Chromite.product`, `chromite*.png` 등)은 이름 변경 도구가 함께 바꿨다.
 - 2026-11-07 Microsoft Store·Eclipse 플러그인 제품 삭제([build.md](build.md) "빌드하는 제품")로 `ui.app.eclipse` 아이콘과 `community-msstore` 미완료 항목을 지움.

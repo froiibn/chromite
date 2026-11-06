@@ -17,7 +17,7 @@
     <packaging>pom</packaging>
 
     <properties>
-        <chromite-product>DBeaver</chromite-product>
+        <chromite-product>Chromite</chromite-product>
 
         <key.storage.path>/etc/</key.storage.path>
         <tsa/>
