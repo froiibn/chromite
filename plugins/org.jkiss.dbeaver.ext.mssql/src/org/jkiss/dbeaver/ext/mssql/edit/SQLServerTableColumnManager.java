@@ -1,6 +1,7 @@
 /*
  * DBeaver - Universal Database Manager
  * Copyright (C) 2010-2026 DBeaver Corp and others
+ * Modifications Copyright (C) 2026 Chromite contributors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -43,6 +44,10 @@ import java.util.Map;
 
 /**
  * SQLServer table column manager
+ *
+ * 변경 이력:
+ * - 2026-11-07 Chromite: 문자형이 아닌 열에는 COLLATE를 붙이지 않음. 형식을 varchar에서 int로 바꾸면 읽어 온 정렬 규칙이 열에 남아
+ *   {@code ALTER COLUMN … int COLLATE …}(오류 447)가 만들어졌다 (docs/chromite/swing-followup-fixes.md "SQL Server 열 정렬 규칙")
  */
 public class SQLServerTableColumnManager extends SQLTableColumnManager<SQLServerTableColumn, SQLServerTableBase> implements DBEStructEditor<SQLServerTableColumn>, DBEObjectRenamer<SQLServerTableColumn> {
 
@@ -63,7 +68,7 @@ public class SQLServerTableColumnManager extends SQLTableColumnManager<SQLServer
 
     protected final ColumnModifier<SQLServerTableColumn> CollateModifier = (monitor, column, sql, command) -> {
         String collationName = column.getCollationName();
-        if (!CommonUtils.isEmpty(collationName)) {
+        if (!CommonUtils.isEmpty(collationName) && isCollatableType(column)) {
             sql.append(" COLLATE ").append(collationName); //$NON-NLS-1$
         }
     };
@@ -134,6 +139,20 @@ public class SQLServerTableColumnManager extends SQLTableColumnManager<SQLServer
     @Override
     public boolean canDeleteObject(@NotNull SQLServerTableColumn object) {
         return !isTableType(object) && super.canDeleteObject(object);
+    }
+
+    /**
+     * The collation read with the column stays when its type is changed (e.g. varchar to int in a table designer),
+     * but SQL Server rejects COLLATE on non-character types (error 447). Alias types are checked by their base type.
+     * An unknown type keeps the collation, as before.
+     */
+    private static boolean isCollatableType(@NotNull SQLServerTableColumn column) {
+        if (!(column.getDataType() instanceof SQLServerDataType dataType)) {
+            return true;
+        }
+        SQLServerDataType systemType = dataType.getSystemDataType();
+        String typeName = (systemType != null ? systemType : dataType).getName();
+        return column.getTable().getDatabase().isCollatableType(typeName);
     }
 
     private boolean isTableType(SQLServerTableColumn column) {

@@ -20,6 +20,21 @@
 - 새 엔진에는 `EXEC`/`CALL` 뒤의 프로시저 제안 문맥이 없다. 예전 엔진(`SQLCompletionAnalyzer.java:353-358`)에는 있지만 SWT 기본 설정도
   새 엔진만 쓰므로(`SqlCompletionAnalysis` 클래스 설명) Swing도 그대로 두었다.
 
+## SQL Server 열 정렬 규칙
+
+- 증상: 테이블 디자이너에서 SQL Server 열의 형식을 `varchar`에서 `int`로 바꾸면 변경 스크립트가
+  `ALTER TABLE … ALTER COLUMN c int COLLATE Korean_Wansung_CI_AS NULL`이 되어 저장이 오류 447("Expression type int is invalid for COLLATE clause")로 실패함(#44).
+- 원인: `SQLServerTableColumn`은 읽어 온 정렬 규칙(`collation_name`, `SQLServerTableColumn.java:151`)을 형식과 따로 들고 있고 형식을 바꿔도
+  그대로 남는다(`setDataType` `:197`). 열 정의를 만드는 `SQLServerTableColumnManager.CollateModifier`(`:64-69`)는 형식을 보지 않고 정렬 규칙이 있으면
+  늘 `COLLATE`를 붙였다. 열 추가(ADD)와 변경(ALTER COLUMN)이 같은 수정자를 쓰므로 둘 다 해당하고, SWT 속성 편집기에서 형식을 바꿔도 같다.
+- 고친 것: `CollateModifier`가 열 형식이 정렬 규칙을 받을 수 있을 때만 `COLLATE`를 붙인다(`isCollatableType`). 판단은 데이터 전송이 이미 쓰는
+  `SQLServerDatabase.isCollatableType`(char, nchar, varchar, nvarchar, text, ntext, sysname)이고, 별칭 형식은 기본 형식(`getSystemDataType`)으로 본다.
+  형식을 모르면 예전처럼 붙인다. 정렬 규칙 값은 열에 남으므로 다시 문자형으로 돌리면 원래 정렬 규칙이 붙는다.
+- 다른 방언: MySQL/MariaDB는 이미 `getDataKind() == STRING`일 때만 `CHARACTER SET`·`COLLATE`를 붙인다(`MySQLTableColumnManager.java:76-86`).
+  PostgreSQL은 열 변경(`ALTER COLUMN … TYPE`, `PostgreTableColumnManager.addObjectModifyActions`)에 정렬 규칙을 넣지 않는다. 새 열을 만들 때만
+  `PostgreCollateModifier`(`:116-125`)가 붙이는데 기본 정렬 규칙은 건너뛰므로, 기본이 아닌 정렬 규칙을 가진 열을 복사해 형식을 바꾼 경우에만 남는다
+  (고치지 않음, "남긴 것"). Oracle·일반 드라이버의 열 관리자는 정렬 규칙을 쓰지 않는다.
+
 ## 확인 (2026-11-07)
 
 Swing 제품(`-vm D:\Tools\jbrsdk-25\bin\server\jvm.dll`, 비공개 작업 공간)을 실행하고 같은 프로세스에 붙인 EDT 시험 에이전트로 조작했다(OS 입력 없음).
@@ -28,11 +43,15 @@ Swing 제품(`-vm D:\Tools\jbrsdk-25\bin\server\jvm.dll`, 비공개 작업 공�
 - 자동완성: 팝업은 편집기가 초점을 가져야 뜨는데(`SqlCompletionPopup.analysisDone`) 시험 에이전트는 창 초점을 줄 수 없어, 팝업이 쓰는 분석
   (`SqlCompletionAnalysis.compute`)을 앱 프로세스 안에서 같은 요청으로 불렀다. 설정을 끄면 SQL Server `SELECT ufn_`·PostgreSQL `SELECT fx_` 제안 0개,
   켜면 `ufn_total_amount(:@a)`(PROCEDURE)가 나옴. Options 확인란·저장·다시 열기 확인.
+- SQL Server 디자이너: `c_code varchar(50) COLLATE Korean_Wansung_CI_AS` → `int`의 변경 스크립트가 `ALTER TABLE chr_fixes_editor.dbo.t_types ALTER COLUMN c_code int NULL;`,
+  실행 성공(`sys.columns`에서 int). 회귀: `varchar` → `nvarchar`와 별칭 형식 `code_t`(varchar 기반)는 `COLLATE Korean_Wansung_CS_AS`를 그대로 붙임.
 - 회귀 테스트는 실행하지 않았다(CLAUDE.md 7번). 영향받을 수 있는 기능은 각 항목의 "고친 것"에 적은 곳이다.
 
 ## 남긴 것
 - SQL Server에서 `EXEC dbo.` 뒤 자동완성이 모델 안에서 `NullPointerException`("identifier" is null)으로 실패한다. 프로시저 설정과 상관없다(고치기 전에도 같음).
 - 새 완성 엔진의 `EXEC`/`CALL` 뒤 프로시저 제안(SWT도 기본 설정에서는 없음).
+- PostgreSQL: 기본이 아닌 정렬 규칙을 가진 열을 복사해 만든 새 열의 형식을 정렬 규칙이 없는 형식으로 바꾸면 `COLLATE`가 남는다.
 
 ## 변경 이력
 - 2026-11-07 최초 작성: 자동완성 프로시저·함수 제안 설정(#33).
+- 2026-11-07 SQL Server 열 정의가 문자형이 아닌 형식에 COLLATE를 붙이던 것(#44).
