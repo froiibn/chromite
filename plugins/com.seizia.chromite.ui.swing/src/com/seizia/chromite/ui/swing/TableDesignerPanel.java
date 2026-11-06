@@ -74,6 +74,8 @@ import java.util.Set;
  *
  * 변경 이력:
  * - 2026-11-06 테이블 디자이너: 최초 작성 (docs/chromite/swing-table-designer.md)
+ * - 2026-11-06 탭 제목에 연결 이름(쿼리 창과 같은 "이름 - 연결" 형식): 여러 연결의 같은 이름 테이블이 구별되지 않던 문제
+ *   (docs/chromite/swing-table-designer.md)
  */
 final class TableDesignerPanel extends JPanel {
 
@@ -268,11 +270,13 @@ final class TableDesignerPanel extends JPanel {
     }
 
     /**
-     * Tab title: the table name, "[Design]", "*" while there are pending changes.
+     * Tab title: the table name, "[Design]" and the connection (as query windows name theirs: tables of the same name on
+     * several connections are told apart), "*" while there are pending changes.
      */
     @NotNull
     String getTitle() {
-        return session.getTable().getName() + " [Design]" + (isDirty() ? "*" : ""); //$NON-NLS-1$ //$NON-NLS-2$
+        DBSEntity table = session.getTable();
+        return table.getName() + " [Design] - " + table.getDataSource().getContainer().getName() + (isDirty() ? "*" : ""); //$NON-NLS-1$ //$NON-NLS-2$
     }
 
     @NotNull
