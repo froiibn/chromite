@@ -568,6 +568,7 @@ P0 전체와 P1 일부를 `com.seizia.chromite.ui.swing`에 적용했다. 동작
 | `Chromite.secondaryForeground`, 메뉴 단축키 | `#73767C` | `#73767C` | `text-secondary` |
 | `@selectionBackground` / `@selectionInactiveBackground` | `#D0DFFE` / `#E9EAEE` | `#2A4371` / `#33353B` | `selectionBackground` = `selection-bg-active`, `selection-bg-inactive` |
 | `Chromite.Tree.hoverBackground` | `#00000008` | `#FFFFFF10` | `Tree.hoverBackground` = `selection-bg-hovered` |
+| `Chromite.Tree.storageMemoryForeground` / `storageDiskForeground` / `storageVolatileForeground` | `#B3261E` / `#1A4FB0` / `#8F4F00` | `#FF9999` / `#94B8FF` / `#F0A858` | Chromite 결정: Object Explorer 테이블 저장 방식 글자색, 바탕·선택 바탕에서 4.5:1 이상([altibase.md](altibase.md)) |
 | `@accentColor`, 포커스, 기본 단추 | `#3871E1` | `#3871E1` | `control-brand-border`, `accent-brand-bg` |
 | `Component.borderColor` | `#D1D3D9` | `#40434A` | `control-border` |
 | `Separator.foreground`, `Chromite.dividerColor`, 탭 줄 아래 선, 그리드 세로선 | `#E9EAEE` | `#26282C` | `dialog-border`, `editor-border`, `Table.gridColor` |
@@ -1037,3 +1038,4 @@ UI 글꼴 `font.grid` = `font.ui`(Pretendard 12)로 바꿨다. 열 머리글은 
 - 2026-11-07 그리드 글꼴 Pretendard(사용자 요청 "쿼리결과 그리드의 폰트와 사이즈도 pretendard 12로 맞춘다"): `font.grid` 토큰 추가, `font.code`의 쓰는 곳 갱신,
   8절 표 갱신, "적용 현황 — 그리드 글꼴 Pretendard" 절(따를지 정한 것, 비례 숫자와 `tnum`, 측정) 추가.
 - 2026-11-07 결과 창 기본 높이 280(사용자 결정): "결과 창 기본 높이" 절 추가, 밀도 B 절의 결정 대기 문장 갱신.
+- 2026-11-07 Islands 색 표에 테이블 저장 방식 글자색 토큰(`Chromite.Tree.storage*Foreground`) 추가([altibase.md](altibase.md)).
