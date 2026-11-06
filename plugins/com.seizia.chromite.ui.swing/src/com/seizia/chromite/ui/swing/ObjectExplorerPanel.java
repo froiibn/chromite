@@ -109,7 +109,10 @@ import java.util.function.Consumer;
  *     연결 목록이 바뀌면(추가·삭제·이름 변경, 연 서버 목록 변경) 목록을 다시 읽되 이미 있는 트리 노드와 펼친 상태는 그대로 둔다.
  *     연결이 끊기면({@code UNLOAD}) 그 연결을 접고 다시 펼칠 때 읽게 하고, 연결 상태가 바뀌면 아이콘을 다시 그린다.
  *     모델이 지운 DB 객체 노드는 트리에서 뺀다. 이 패널이 보낸 이벤트(새로 고침의 원천이 이 패널)는 이미 처리했으므로 무시한다.
- *     다른 곳에서 새로 만든 DB 객체({@code ADD})는 아직 반영하지 않는다(새로 고침으로 보임).</li>
+ *     다른 곳에서 새로 만든 DB 객체({@code ADD}, 테이블 디자이너의 새 테이블·열)는 부모의 자식을 모델에서 다시 읽어 보여 주고,
+ *     다른 곳에서 새로 읽은 노드({@code UPDATE}·{@code REFRESH}, 디자이너의 저장 뒤)는 그 노드와 펼쳐 둔 하위 노드의 자식을
+ *     모델에서 다시 읽는다(DB는 다시 읽지 않고 펼친 상태는 유지).</li>
+ *     <li>테이블 디자이너({@link TableDesignerPanel}): 테이블의 "Design", Tables 폴더의 "New Table…".</li>
  *     <li>모양(docs/chromite/design-spec.md "트리"): 머리말 아래 아이콘 도구 막대({@link #createToolBar}, SSMS Object Explorer 도구 막대 순서),
  *     아이콘 팩 아이콘({@link NodeIcons#getNodeIcon}), 이름 뒤 보조 글자(열 형식, 읽은 폴더의 객체 수, 연결 호스트),
  *     마우스를 올린 행의 둥근 바탕({@link ExplorerTree}). 행 높이·들여쓰기·선택 모양은 테마 properties의 FlatLaf 키다.</li>
@@ -136,6 +139,7 @@ import java.util.function.Consumer;
  * - 2026-11-06 revealNode: 결과의 서버가 이 창에 없으면 먼저 넣고 서버 목록을 다시 읽은 뒤 펼침(연 서버만 보이는 목록) (docs/chromite/swing-admin-tools.md)
  * - 2026-11-06 데이터 전송: Tasks &gt; Import Data… / Export Data… 메뉴 (docs/chromite/swing-data-transfer.md)
  * - 2026-11-06 고급 연결 설정: 연결 노드 바탕에 연결 색 (docs/chromite/swing-conn-advanced.md)
+ * - 2026-11-06 테이블 디자이너: Design·New Table… 메뉴, 다른 곳에서 추가·새로 읽은 DB 객체 노드 반영 (docs/chromite/swing-table-designer.md)
  */
 final class ObjectExplorerPanel extends JPanel {
 
@@ -180,6 +184,16 @@ final class ObjectExplorerPanel extends JPanel {
          * Opens the Find Objects tab for the selected node (its connection and schema), or for no node.
          */
         void openObjectSearch(@Nullable DBNNode selectedNode);
+
+        /**
+         * Opens the table designer of a table ("Design").
+         */
+        void designTable(@NotNull DBSEntity table);
+
+        /**
+         * Opens the table designer for a new table in a "Tables" folder ("New Table").
+         */
+        void newTable(@NotNull DBNDatabaseFolder folder);
     }
 
     private final DefaultTreeModel treeModel;
@@ -209,6 +223,8 @@ final class ObjectExplorerPanel extends JPanel {
     private final Action activityMonitorAction;
     private final Action locksAction;
     private final Action findObjectsAction;
+    private final Action designAction;
+    private final Action newTableAction;
     private final JMenu scriptAsMenu;
     private final JMenu createToMenu;
     private final JMenu selectToMenu;
@@ -318,6 +334,17 @@ final class ObjectExplorerPanel extends JPanel {
         locksAction.putValue(Action.SHORT_DESCRIPTION, "Show the sessions that wait for locks and the sessions that block them");
         findObjectsAction = createAction("Find Objects…", () -> queryWindows.openObjectSearch(getSelectedNavigatorNode()));
         findObjectsAction.putValue(Action.SHORT_DESCRIPTION, "Find tables, views, procedures and columns by name");
+        designAction = createAction("Design", () -> {
+            if (getSelectedObject() instanceof DBSEntity table) {
+                queryWindows.designTable(table);
+            }
+        });
+        designAction.putValue(Action.SHORT_DESCRIPTION, "Edit the columns, keys and indexes of the table");
+        newTableAction = createAction("New Table…", () -> {
+            if (getSelectedNavigatorNode() instanceof DBNDatabaseFolder folder) {
+                queryWindows.newTable(folder);
+            }
+        });
         createToMenu = new JMenu("CREATE To");
         createToMenu.add(createAction("New Query Editor Window", () -> scriptSelected(queryWindows, false, false)));
         createToMenu.add(createAction("Clipboard", () -> scriptSelected(queryWindows, false, true)));
@@ -407,6 +434,8 @@ final class ObjectExplorerPanel extends JPanel {
         popupMenu.add(newConnectionAction);
         popupMenu.addSeparator();
         popupMenu.add(newQueryAction);
+        popupMenu.add(newTableAction);
+        popupMenu.add(designAction);
         popupMenu.add(selectTopAction);
         popupMenu.add(scriptAsMenu);
         popupMenu.add(viewDdlAction);
@@ -599,6 +628,8 @@ final class ObjectExplorerPanel extends JPanel {
         importDataAction.setEnabled(DataImportWizard.canImport(object));
         exportDataAction.setEnabled(DataExportWizard.canExport(object));
         tasksMenu.setEnabled(importDataAction.isEnabled() || exportDataAction.isEnabled());
+        designAction.setEnabled(TableDesignSession.canDesign(object));
+        newTableAction.setEnabled(getSelectedNavigatorNode() instanceof DBNDatabaseFolder folder && TableDesignSession.canCreateTable(folder));
         connectAction.setEnabled(dataSource != null && !connected);
         // Also for a server that is no longer connected: Disconnect removes it from this window
         disconnectAction.setEnabled(dataSource != null);
@@ -925,6 +956,10 @@ final class ObjectExplorerPanel extends JPanel {
             }
             return;
         }
+        if (event.getAction() == DBNEvent.Action.ADD) {
+            databaseNodeAdded(node);
+            return;
+        }
         ExplorerNode explorerNode = findExplorerNode(node);
         if (explorerNode == null) {
             return;
@@ -938,11 +973,41 @@ final class ObjectExplorerPanel extends JPanel {
             case UPDATE -> {
                 if (event.getNodeChange() == DBNEvent.NodeChange.UNLOAD) {
                     resetNode(explorerNode);
+                } else if (event.getNodeChange() == DBNEvent.NodeChange.REFRESH) {
+                    // Refreshed elsewhere (a table designer after saving): show the children the model has now
+                    reloadLoadedSubtree(explorerNode);
                 }
                 treeModel.nodeChanged(explorerNode);
             }
-            case ADD -> {
-                // Objects created elsewhere: shown after a refresh of their parent
+            default -> {
+                // ADD is handled before the lookup: the new node has no tree node yet
+            }
+        }
+    }
+
+    /**
+     * A database object node added elsewhere (a table designer's new table or column): its parent's children are read
+     * again from the model if the parent is shown with its children.
+     */
+    private void databaseNodeAdded(@NotNull DBNNode node) {
+        DBNNode parent = node.getParentNode();
+        ExplorerNode parentNode = parent == null ? null : findExplorerNode(parent);
+        if (parentNode != null && parentNode.state == LoadState.LOADED && findExplorerNode(node) == null) {
+            reloadPreserving(parentNode);
+        }
+    }
+
+    /**
+     * Reads the children of a node and of its loaded descendants again from the model, keeping expansion.
+     */
+    private void reloadLoadedSubtree(@NotNull ExplorerNode node) {
+        if (node.state != LoadState.LOADED) {
+            return;
+        }
+        reloadPreserving(node);
+        for (int i = 0; i < node.getChildCount(); i++) {
+            if (node.getChildAt(i) instanceof ExplorerNode child && child.getUserObject() instanceof DBNNode) {
+                reloadLoadedSubtree(child);
             }
         }
     }
