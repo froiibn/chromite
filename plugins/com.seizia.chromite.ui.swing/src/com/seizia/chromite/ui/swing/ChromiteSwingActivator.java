@@ -30,8 +30,13 @@ import org.osgi.framework.BundleContext;
  * SWT 버전에서는 {@code com.seizia.chromite.core}가 이 역할을 하지만 Swing 제품에는 그 번들이 없으므로
  * 이 번들이 대신 맡는다. 헤드리스 앱({@code ChromiteTestActivator})과 같은 방식이다.
  *
+ * 설정 저장소는 {@link #start}가 아니라 앱이 작업 공간을 정하고 잠근 뒤에 만든다({@link #initPreferences}).
+ * 이 번들은 앱 클래스를 읽을 때 앱보다 먼저 활성화되는데, {@code InstanceScope}를 처음 읽는 순간 Equinox가 정해지지 않은
+ * 작업 공간 위치를 기본값 {@code <현재 폴더>/workspace}로 고정하기 때문이다(docs/chromite/workspace-location.md).
+ *
  * 변경 이력:
  * - 2026-11-06 A단계: 최초 작성 (docs/chromite/swing-frontend.md "구현 현황 — A단계")
+ * - 2026-11-07 설정 저장소 생성을 {@link #initPreferences}로 옮김(작업 공간이 현재 폴더를 따라가던 문제)
  */
 public class ChromiteSwingActivator extends Plugin {
 
@@ -49,6 +54,14 @@ public class ChromiteSwingActivator extends Plugin {
     public void start(BundleContext context) throws Exception {
         super.start(context);
         instance = this;
+    }
+
+    /**
+     * Creates the preference stores of this bundle and of the model ({@link ModelPreferences#setMainBundle}).
+     * Called by the application once it has set and locked the workspace: the first read of the instance
+     * preferences fixes the instance location, to Equinox's default {@code <user.dir>/workspace} if nothing set it.
+     */
+    void initPreferences() {
         ModelPreferences.setMainBundle(getBundle());
         preferences = new BundlePreferenceStore(getBundle());
     }

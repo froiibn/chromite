@@ -118,23 +118,20 @@ Windows 언어가 한국어면 한국어, 아니면 영어(`MUI_LANGUAGE` 순서
 - 이미 있는 폴더는 비어 있거나 Chromite 설치 폴더(`chromite-swing.exe`나 `uninstall.exe`가 있음)일 때만 받는다. 다른 프로그램 폴더를 골랐을 때 같은 이름의 하위 폴더를 지우지 않기 위해서다.
 - 설치 폴더 안의 `chromite-swing.ini`를 사용자가 고쳤다면(예: `-Xmx`) 업그레이드가 새 파일로 바꾼다(DBeaver와 같은 동작).
 
-### 사용자 데이터의 위치 (확인 결과: 계약의 가정과 다름)
+### 사용자 데이터의 위치
 
-계약은 "사용자 데이터는 작업 공간 `%APPDATA%\ChromiteData`에 있고 설치 폴더에는 없다"고 가정한다. 실제로 확인해 보니 **Swing 제품의 작업 공간은
-`%APPDATA%\ChromiteData`가 아니라 실행할 때의 현재 폴더 아래 `workspace\`다.**
+사용자 데이터(작업 공간)는 `%APPDATA%\ChromiteData\workspace6`에 있고 설치 폴더에는 없다(계약의 가정과 같다). 처음 확인했을 때는 달라서
+2026-11-07에 고쳤다([workspace-location.md](workspace-location.md)).
 
-- 확인: 설치한 앱을 시작 메뉴 바로 가기와 같은 현재 폴더(설치 폴더)로, `APPDATA`만 시험 폴더로 바꿔 실행했다.
-  로그 `Instance path: 'file:/D:/tools/_scratch/installer-feed-site/install/Chromite/workspace/'`, 실행 뒤 설치 폴더에 `workspace\.metadata\…`(설정, 디버그 로그),
-  `workspace\General\.project`가 생겼다. `%APPDATA%\ChromiteData`에는 `drivers\`만 생겼다.
-- 원인(코드 근거): `ChromiteSwingApplication.lockWorkspace`(`plugins/com.seizia.chromite.ui.swing/.../ChromiteSwingApplication.java` 161~172행)는
-  인스턴스 위치가 아직 정해지지 않았을 때만 `%APPDATA%\ChromiteData\workspace6`(`BaseApplicationImpl`, `RuntimeUtils.getWorkingDirectory`)으로 정한다.
-  그런데 그 전에 번들 활성화 `ChromiteSwingActivator.start`(53행)가 `new BundlePreferenceStore(getBundle())`로 `InstanceScope` 설정을 열면서
-  인스턴스 위치를 읽어 Equinox 기본값(`user.dir`/`workspace`)으로 정해 버린다(실행 결과와 맞는 설명이며, Equinox 내부 호출 순서는 디버거로 따라가지 않았다).
-  제품 설정(`chromite-swing.ini`, `config.ini`)에 `-data`나 `osgi.instance.area(.default)`는 없다.
-- 영향: 바로 가기로 실행하면 `<설치 폴더>\workspace`, 다른 현재 폴더에서 실행하면 그 폴더의 `workspace`가 된다. macOS는 Finder에서 실행하면 현재 폴더가 `/`다.
-- 이 작업에서 한 것: 설치 프로그램은 `workspace\`를 지우지 않는다(업그레이드·되돌리기·제거 모두 확인). 시작 메뉴 바로 가기의 "시작 위치"는 설치 폴더다.
-  **업데이트 기능은 새 버전을 설치 폴더를 현재 폴더로 해서 시작해야** 같은 작업 공간이 열린다.
-- 하지 않은 것: 작업 공간 위치를 고치는 것은 기존 사용자 데이터를 옮기는 문제라(시작 때 데이터 이전 작업 범위) 이 작업에서 바꾸지 않았다. 사용자 결정이 필요하다.
+- 고치기 전: Swing 제품은 `-data`가 없으면 실행할 때의 현재 폴더 아래 `workspace\`를 썼다. 설치한 앱을 시작 메뉴 바로 가기와 같은 현재 폴더(설치 폴더)로,
+  `APPDATA`만 시험 폴더로 바꿔 실행하니 로그 `Instance path: 'file:/D:/tools/_scratch/installer-feed-site/install/Chromite/workspace/'`, 설치 폴더에
+  `workspace\.metadata\…`(설정, 디버그 로그)와 `workspace\General\.project`가 생기고 `%APPDATA%\ChromiteData`에는 `drivers\`만 생겼다.
+  원인은 Swing 번들의 활성화 클래스가 앱이 작업 공간을 정하기 전에 설정을 읽어 Equinox 기본값(`user.dir`/`workspace`)이 정해진 것이다
+  (jdb 추적은 workspace-location.md "원인").
+- 고친 뒤: 현재 폴더와 관계없이 `%APPDATA%\ChromiteData\workspace6`(`-data`가 있으면 그 폴더). 기본 작업 공간이 비어 있으면 처음 시작할 때
+  `<설치 폴더>\workspace`(없으면 `<현재 폴더>\workspace`)의 Chromite 작업 공간을 한 번 복사한다. 옛 `workspace\`는 지우지 않는다.
+- 설치 프로그램은 설치 폴더의 `workspace\`를 계속 지우지 않는다(업그레이드·되돌리기·제거 모두 확인). 고치기 전 버전 사용자의 원본이고, 첫 시작의 복사가
+  읽는 곳이다. 시작 메뉴 바로 가기의 "시작 위치"는 설치 폴더지만, 이제 업데이트 기능이 새 버전을 어느 현재 폴더에서 시작해도 같은 작업 공간이 열린다.
 
 ### 서명과 2단계 빌드
 
@@ -301,7 +298,7 @@ pwsh tools/release/rehearsal/rehearse.ps1 -Down
 
 ## 사용자가 해야 할 일
 
-- [ ] 사용자 데이터 위치 결정(위 "사용자 데이터의 위치"): 작업 공간을 `%APPDATA%\ChromiteData`로 고정할지, 기존 데이터 이전 포함.
+- [x] 사용자 데이터 위치 결정(위 "사용자 데이터의 위치"): `%APPDATA%\ChromiteData\workspace6`로 고정하고 기존 작업 공간은 첫 시작 때 복사(2026-11-07).
 - [ ] 첫 태그: 이 작업이 `devel`에 들어간 뒤 [versioning.md](versioning.md)의 순서로 `v<버전>` 태그(이미 커밋된 0.1.0이면 `v0.1.0`).
 - [ ] 첫 실제 배포 승인. 서버 접속(호스트, 사용자, 키, known_hosts)은 Turbrix 세션 또는 사용자가 준다. 배포 전 리허설.
 
@@ -320,3 +317,4 @@ DBeaver는 이 저장소에 설치 프로그램·배포 설정이 없다(별도 
 
 - 2026-11-07 최초 작성. NSIS 설치 프로그램(사용자별, 제자리 업그레이드·되돌리기, 2단계 서명), `release.yml` 연결, 피드 생성기(`releases.json`, `releases.js`),
   배포 스크립트와 로컬 Docker 리허설, 다운로드 사이트. Swing 제품의 작업 공간이 `%APPDATA%\ChromiteData`가 아니라 현재 폴더 아래 `workspace\`임을 확인해 기록.
+- 2026-11-07 작업 공간 위치 수정 반영: "사용자 데이터의 위치"를 고친 뒤 기준으로 바꾸고 사용자 할 일 완료 표시([workspace-location.md](workspace-location.md)).
