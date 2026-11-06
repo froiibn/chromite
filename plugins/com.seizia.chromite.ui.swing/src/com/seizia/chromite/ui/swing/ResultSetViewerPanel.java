@@ -17,7 +17,9 @@
 package com.seizia.chromite.ui.swing;
 
 import com.formdev.flatlaf.FlatClientProperties;
+import com.formdev.flatlaf.util.UIScale;
 import com.seizia.chromite.ui.swing.internal.EditorMessages;
+import com.seizia.chromite.ui.swing.internal.GridFilterMessages;
 import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.Status;
 import org.eclipse.osgi.util.NLS;
@@ -63,22 +65,25 @@ import java.util.List;
 import java.util.function.Consumer;
 
 /**
- * 결과 집합 하나의 뷰어(SWT {@code ResultSetViewer}에 해당): 결과 표({@link ResultSetGrid})를 감싸 필터 줄, 값 패널, 레코드 보기, 상태 줄을 붙인다.
+ * 결과 집합 하나의 뷰어(SWT {@code ResultSetViewer}에 해당): 결과 표({@link ResultSetGrid})를 감싸 열 필터·정렬 머리글, 값 패널, 레코드 보기, 상태 줄을 붙인다.
  *
  * 설계:
  * <ul>
  *     <li>표 자체(그리기, 셀 편집, 저장)는 {@link ResultSetGrid}가 맡고, 이 클래스는 표 밖의 기능만 가진다. 정렬·다음 페이지처럼 행이 바뀌면
  *     표를 고치지 않고 바뀐 행으로 새 {@link ResultSetGrid}를 만들어 바꿔 끼운다(열 너비, 스크롤, 선택은 이어받는다).
  *     표가 값을 표시 문자열로 미리 갖는 구조(C단계)와 편집 모델(G단계)을 그대로 두고 기능을 더하기 위해서다.</li>
+ *     <li><b>머리글</b>({@link ResultSetHeaderRenderer}): 열 아이콘, 이름, 오른쪽 끝에 필터(깔때기)·정렬 아이콘. 깔때기는 열 필터 팝업을 열고,
+ *     정렬 아이콘과 이름 자리는 똑같이 정렬을 바꾼다(예전 머리글 클릭 동작을 그대로 둠).</li>
  *     <li><b>정렬</b>(SWT {@code ResultSetViewer.toggleSortOrder}): 열 머리글을 누르면 오름차순 → 내림차순 → 정렬 없음 순서로 바뀐다.
  *     Ctrl을 누르고 누르면 다른 열의 정렬을 두고 이 열을 더한다. 서버에서 정렬할지는 SWT 설정 {@code resultset.order.mode}
  *     ({@link OrderingStrategy}: SMART면 아직 읽지 않은 행이 있을 때만 서버, CLIENT_SIDE는 항상 표 안에서, SERVER_SIDE는 항상 서버)와
  *     DB가 결과 정렬을 지원하는지로 정하고, 쿼리를 다시 읽을 수 없는 결과({@link ResultSetSource#requeryBlocker()})는 표 안에서 정렬한다.
  *     표 안 정렬은 SWT {@code ResultSetModel.resetOrderingImpl}처럼 먼저 읽은 순서로 되돌린 뒤 열의 값 처리기 비교기, 문자열은 대소문자 무시,
  *     그 밖에는 {@link DBUtils#compareDataValues}로 비교한다.</li>
- *     <li><b>필터</b>(SWT {@code ResultSetFilterPanel}): 필터 줄({@link ResultSetFilterBar})에 WHERE 조건을 쓰고 Enter로 적용하면
- *     {@link DBDDataFilter#setWhere}로 쿼리를 다시 읽는다. 표의 오른쪽 클릭 "Filter by Value"는 SWT {@code FilterByAttributeAction}처럼
- *     열 조건(연산자와 값)을 더한다. 필터 줄은 현재 조건을 SWT처럼 {@link SQLUtils#appendConditionString}으로 보여 준다.</li>
+ *     <li><b>필터</b>: 열마다 머리글의 깔때기로 여는 팝업({@link ResultSetColumnFilterPopup})이 그 열의 조건({@link DBDAttributeConstraint})을
+ *     정하고, 뷰어가 바뀐 {@link DBDDataFilter}로 쿼리를 서버에서 다시 읽는다. 표의 오른쪽 클릭 "Filter by Value"는 SWT
+ *     {@code FilterByAttributeAction}처럼 열 조건(연산자와 값)을 더한다. 조건이 있으면 상태 줄에 "필터: 열1, 열2 ✕" 요약을 보인다
+ *     (줄을 새로 두지 않고, 도구 설명은 {@link SQLUtils#appendConditionString}으로 만든 SQL 조건, ✕는 모든 필터 지우기).</li>
  *     <li><b>다음 페이지</b>(SWT {@code readNextSegment}, {@code readAllData}): 표를 끝까지 내리면(SWT 설정 {@code resultset.autofetch.next.segment},
  *     기본 켬) 또는 상태 줄의 "Fetch next"를 누르면 같은 쿼리를 지금 행 수부터 한 번에 읽는 행 수만큼 더 읽어 붙인다. "Fetch all"은 확인한 뒤 나머지를 모두 읽는다.</li>
  *     <li>다시 읽기는 모두 백그라운드 Job({@link DataSourceJob})에서 {@link DBSDataContainer#readData}로 한다. 저장하지 않은 변경이 있으면
@@ -101,6 +106,8 @@ import java.util.function.Consumer;
  * - 2026-11-06 화면 문구를 EditorMessages로 옮김(OS 언어를 따름)
  * - 2026-11-07 오류 문구를 {@link ErrorText}로 만듦(클래스 이름이 화면에 나오지 않게, docs/chromite/swing-frontend.md "오류 문구")
  * - 2026-11-07 밀도 B: 치수를 테마의 Chromite.size.* 키({@link UiSizes})에서 읽음 (docs/chromite/design-spec.md "치수 토큰")
+ * - 2026-11-07 WHERE 필터 줄을 없애고 열 머리글의 필터·정렬 아이콘과 열 필터 팝업으로 바꿈(사용자 요청). 값 패널·레코드 단추는 상태 줄 오른쪽으로,
+ *   필터 요약은 상태 줄에 (docs/chromite/swing-grid-column-filters.md)
  */
 final class ResultSetViewerPanel extends JPanel {
 
@@ -113,6 +120,10 @@ final class ResultSetViewerPanel extends JPanel {
     private static final String CARD_GRID = "grid"; //$NON-NLS-1$
     private static final String CARD_RECORD = "record"; //$NON-NLS-1$
     private static final int SORT_CLICK_BORDER = 4;
+    /**
+     * Widest first column width made for the header icons (the grid's own first widths stop at the same width).
+     */
+    private static final int HEADER_FIT_MAX_WIDTH = 320;
 
     /**
      * Whether new result viewers open with the value panel (the state of the last toggle in this session).
@@ -134,12 +145,13 @@ final class ResultSetViewerPanel extends JPanel {
 
     private final ResultSetGrid.Host host;
     private final ResultSetGrid.Host gridHost;
-    private final ResultSetFilterBar filterBar;
     private final ResultSetValuePanel valuePanel;
     private final ResultSetRecordView recordView;
     private final JLabel rowsLabel = new JLabel();
     private final JButton fetchNextButton;
     private final JButton fetchAllButton;
+    private final JPanel filterSummary = new JPanel(new FlowLayout(FlowLayout.LEFT, 2, 0));
+    private final JLabel filterSummaryLabel = new JLabel();
     private final JLabel aggregateLabel = new JLabel();
     private final JToggleButton valuePanelToggle;
     private final JToggleButton recordToggle;
@@ -216,18 +228,6 @@ final class ResultSetViewerPanel extends JPanel {
         this.serverFilter = new DBDDataFilter(dataFilter);
         this.hasMore = fetched.data().truncated() && fetched.source().segmentSize() > 0;
 
-        filterBar = new ResultSetFilterBar(new ResultSetFilterBar.Listener() {
-            @Override
-            public void applyFilter(@NotNull String where) {
-                ResultSetViewerPanel.this.applyWhere(where);
-            }
-
-            @Nullable
-            @Override
-            public String getQueryText() {
-                return ResultSetViewerPanel.this.getQueryText();
-            }
-        });
         valuePanel = new ResultSetValuePanel();
         recordView = new ResultSetRecordView(new RecordSource());
 
@@ -237,8 +237,6 @@ final class ResultSetViewerPanel extends JPanel {
         Action toggleRecord = createAction(EditorMessages.editor_viewer_record, null, () -> setRecordMode(!isRecordMode()));
         toggleRecord.putValue(Action.SHORT_DESCRIPTION, EditorMessages.editor_viewer_record_tip);
         recordToggle = createToggle(toggleRecord);
-        filterBar.addTrailing(valuePanelToggle);
-        filterBar.addTrailing(recordToggle);
         getInputMap(WHEN_ANCESTOR_OF_FOCUSED_COMPONENT).put((KeyStroke) toggleValuePanel.getValue(Action.ACCELERATOR_KEY), "chromite.toggleValuePanel"); //$NON-NLS-1$
         getActionMap().put("chromite.toggleValuePanel", toggleValuePanel); //$NON-NLS-1$
 
@@ -258,7 +256,6 @@ final class ResultSetViewerPanel extends JPanel {
         split.setBorder(BorderFactory.createEmptyBorder());
         valuePanel.setVisible(false);
 
-        add(filterBar, BorderLayout.NORTH);
         add(split, BorderLayout.CENTER);
         add(createStatusBar(), BorderLayout.SOUTH);
 
@@ -302,9 +299,26 @@ final class ResultSetViewerPanel extends JPanel {
         left.add(rowsLabel);
         left.add(fetchNextButton);
         left.add(fetchAllButton);
+        // Active filters: only when there are any, so the status line keeps its height and no row is added
+        filterSummary.setOpaque(false);
+        filterSummary.add(new JLabel(ResultSetHeaderRenderer.createActiveFilterIcon()));
+        filterSummary.add(filterSummaryLabel);
+        Action clearFilters = createAction(GridFilterMessages.gridfilter_clear_all, null, this::clearAllFilters);
+        clearFilters.putValue(Action.SHORT_DESCRIPTION, GridFilterMessages.gridfilter_clear_all);
+        JButton clearFiltersButton = UiIcons.createActionButton(clearFilters, "close"); //$NON-NLS-1$
+        // As high as the status line's text (an icon button's 24 would make the line grow while there are filters)
+        clearFiltersButton.setMargin(new Insets(1, 1, 1, 1));
+        filterSummary.add(clearFiltersButton);
+        filterSummary.setVisible(false);
+        left.add(filterSummary);
         aggregateLabel.putClientProperty(FlatClientProperties.STYLE, "foreground: $Chromite.secondaryForeground"); //$NON-NLS-1$
+        JPanel right = new JPanel(new FlowLayout(FlowLayout.RIGHT, 2, 0));
+        right.setOpaque(false);
+        right.add(aggregateLabel);
+        right.add(valuePanelToggle);
+        right.add(recordToggle);
         bar.add(left, BorderLayout.CENTER);
-        bar.add(aggregateLabel, BorderLayout.EAST);
+        bar.add(right, BorderLayout.EAST);
         return bar;
     }
 
@@ -425,7 +439,10 @@ final class ResultSetViewerPanel extends JPanel {
                 table.getColumnModel().getColumn(i).setPreferredWidth(widths[i]);
             }
         }
-        installSortHeader(table);
+        installHeader(table);
+        if (widths == null) {
+            fitHeaderWidths(table);
+        }
         installMenus(table);
         ListSelectionListener selectionListener = e -> scheduleSelectionUpdate();
         table.getSelectionModel().addListSelectionListener(selectionListener);
@@ -453,8 +470,6 @@ final class ResultSetViewerPanel extends JPanel {
                 }
             });
         }
-        filterBar.setEnabled(fetched.source().canRequery(), fetched.source().requeryBlocker());
-        filterBar.setFilterText(getConditionText());
         updateStatus();
         recordView.refresh();
         scheduleSelectionUpdate();
@@ -466,9 +481,10 @@ final class ResultSetViewerPanel extends JPanel {
     }
 
     /**
-     * Sort arrows in the column headers and header clicks that sort (Ctrl adds the column to the sort).
+     * Column headers with the column icon, the filter and sort icons ({@link ResultSetHeaderRenderer}); a click on the
+     * funnel opens the column's filter popup, on the sort icon or the name it sorts (Ctrl adds the column to the sort).
      */
-    private void installSortHeader(@NotNull JTable table) {
+    private void installHeader(@NotNull JTable table) {
         JTableHeader header = table.getTableHeader();
         TableCellRenderer delegate = header.getDefaultRenderer();
         // The wrapper is not a component, so a look and feel switch would not reach the wrapped renderer
@@ -477,19 +493,34 @@ final class ResultSetViewerPanel extends JPanel {
                 SwingUtilities.updateComponentTreeUI(component);
             }
         });
-        header.setDefaultRenderer((headerTable, value, isSelected, hasFocus, row, column) -> {
-            Component component = delegate.getTableCellRendererComponent(headerTable, value, isSelected, hasFocus, row, column);
-            if (component instanceof JLabel label) {
-                DBDAttributeConstraint constraint = getConstraint(headerTable.convertColumnIndexToModel(column));
-                Icon icon = null;
-                if (constraint != null && constraint.getOrderPosition() > 0) {
-                    icon = UIManager.getIcon(constraint.isOrderDescending() ? "Table.descendingSortIcon" : "Table.ascendingSortIcon"); //$NON-NLS-1$ //$NON-NLS-2$
-                }
-                label.setIcon(icon);
-                label.setHorizontalTextPosition(SwingConstants.LEFT);
+        ResultSetHeaderRenderer renderer = new ResultSetHeaderRenderer(delegate, new ResultSetHeaderRenderer.Columns() {
+            @NotNull
+            @Override
+            public DBDAttributeBinding getBinding(int modelColumn) {
+                return fetched.data().bindings()[modelColumn];
             }
-            return component;
+
+            @Override
+            public boolean isFiltered(int modelColumn) {
+                DBDAttributeConstraint constraint = getConstraint(modelColumn);
+                return constraint != null && constraint.hasCondition();
+            }
+
+            @Override
+            public int getSortDirection(int modelColumn) {
+                DBDAttributeConstraint constraint = getConstraint(modelColumn);
+                if (constraint == null || constraint.getOrderPosition() <= 0) {
+                    return 0;
+                }
+                return constraint.isOrderDescending() ? -1 : 1;
+            }
+
+            @Override
+            public boolean isFilterEnabled() {
+                return fetched.source().canRequery() && !reading;
+            }
         });
+        header.setDefaultRenderer(renderer);
         header.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
@@ -500,7 +531,29 @@ final class ResultSetViewerPanel extends JPanel {
                 if (column < 0 || isNearColumnBorder(header, column, e.getX())) {
                     return;
                 }
+                if (renderer.zoneAt(header, column, e.getPoint()) == ResultSetHeaderRenderer.Zone.FILTER) {
+                    openFilterPopup(header, column);
+                    return;
+                }
                 toggleSort(table.convertColumnIndexToModel(column), null, (e.getModifiersEx() & InputEvent.CTRL_DOWN_MASK) != 0);
+            }
+
+            @Override
+            public void mouseExited(MouseEvent e) {
+                if (renderer.setHover(-1, ResultSetHeaderRenderer.Zone.NAME)) {
+                    header.repaint();
+                }
+            }
+        });
+        header.addMouseMotionListener(new MouseAdapter() {
+            @Override
+            public void mouseMoved(MouseEvent e) {
+                int column = header.columnAtPoint(e.getPoint());
+                ResultSetHeaderRenderer.Zone zone = column < 0 ? ResultSetHeaderRenderer.Zone.NAME : renderer.zoneAt(header, column, e.getPoint());
+                if (renderer.setHover(column, zone)) {
+                    header.repaint();
+                }
+                header.setToolTipText(column < 0 ? null : getHeaderToolTip(table.convertColumnIndexToModel(column), zone));
             }
         });
         header.addMouseListener(new MouseAdapter() {
@@ -563,6 +616,68 @@ final class ResultSetViewerPanel extends JPanel {
     }
 
     /**
+     * Widens the columns whose first width (set by the grid from the plain header) leaves no room for the header icons.
+     */
+    private static void fitHeaderWidths(@NotNull JTable table) {
+        TableCellRenderer renderer = table.getTableHeader().getDefaultRenderer();
+        int maxWidth = UIScale.scale(HEADER_FIT_MAX_WIDTH);
+        for (int column = 0; column < table.getColumnCount(); column++) {
+            TableColumn tableColumn = table.getColumnModel().getColumn(column);
+            int width = renderer.getTableCellRendererComponent(table, tableColumn.getHeaderValue(), false, false, -1, column)
+                .getPreferredSize().width + table.getIntercellSpacing().width;
+            if (width > tableColumn.getPreferredWidth()) {
+                tableColumn.setPreferredWidth(Math.min(width, Math.max(maxWidth, tableColumn.getPreferredWidth())));
+            }
+        }
+    }
+
+    @Nullable
+    private String getHeaderToolTip(int column, @NotNull ResultSetHeaderRenderer.Zone zone) {
+        DBDAttributeBinding binding = fetched.data().bindings()[column];
+        DBDAttributeConstraint constraint = getConstraint(column);
+        return switch (zone) {
+            case NAME -> NLS.bind(GridFilterMessages.gridfilter_header_column_tip, binding.getLabel(), binding.getFullTypeName());
+            case FILTER -> {
+                if (!fetched.source().canRequery()) {
+                    yield NLS.bind(EditorMessages.editor_viewer_filters_need, fetched.source().requeryBlocker());
+                }
+                String condition = constraint != null && constraint.hasCondition() ? getConditionText(constraint) : null;
+                yield CommonUtils.isEmpty(condition) ? GridFilterMessages.gridfilter_header_filter_tip
+                    : NLS.bind(GridFilterMessages.gridfilter_header_filtered_tip, condition);
+            }
+            case SORT -> {
+                if (constraint == null || constraint.getOrderPosition() <= 0) {
+                    yield GridFilterMessages.gridfilter_header_sort_ascending_tip;
+                }
+                yield constraint.isOrderDescending() ? GridFilterMessages.gridfilter_header_sort_clear_tip
+                    : GridFilterMessages.gridfilter_header_sort_descending_tip;
+            }
+        };
+    }
+
+    /**
+     * Opens the filter popup of a column (view index) below its header cell.
+     */
+    private void openFilterPopup(@NotNull JTableHeader header, int column) {
+        if (reading || !fetched.source().canRequery()) {
+            return;
+        }
+        DBDAttributeBinding[] bindings = fetched.data().bindings();
+        ResultSetColumnFilterPopup.show(header, header.getHeaderRect(column), bindings[header.getTable().convertColumnIndexToModel(column)],
+            bindings, new DBDDataFilter(dataFilter), fetched.source(), new ResultSetColumnFilterPopup.Host() {
+                @Override
+                public void applyFilter(@NotNull DBDDataFilter filter) {
+                    ResultSetViewerPanel.this.applyFilter(filter);
+                }
+
+                @Override
+                public void clearAllFilters() {
+                    ResultSetViewerPanel.this.clearAllFilters();
+                }
+            });
+    }
+
+    /**
      * Adds the viewer's items to the grid's context menu: filters, copy formats, panels.
      */
     private void installMenus(@NotNull JTable table) {
@@ -572,7 +687,7 @@ final class ResultSetViewerPanel extends JPanel {
         }
         JMenu filterMenu = new JMenu(EditorMessages.editor_viewer_filter_by_value);
         JMenu copyAsMenu = ResultSetCopyFormats.createMenu(table, () -> grid.getCurrentData(), this::getDataSource);
-        Action clearFilter = createAction(EditorMessages.editor_common_clear_filter, null, () -> applyWhere(""));
+        Action clearFilter = createAction(EditorMessages.editor_common_clear_filter, null, this::clearAllFilters);
         Action fitColumns = createAction(EditorMessages.editor_viewer_fit_all_columns, null, () -> ResultSetColumnFit.fitAllColumns(table));
         JCheckBoxMenuItem valuePanelItem = new JCheckBoxMenuItem(valuePanelToggle.getAction());
         JCheckBoxMenuItem recordItem = new JCheckBoxMenuItem(recordToggle.getAction());
@@ -655,7 +770,7 @@ final class ResultSetViewerPanel extends JPanel {
                 DBDDataFilter filter = new DBDDataFilter(dataFilter);
                 DBDAttributeConstraint copy = filter.getConstraint(binding);
                 if (copy != null) {
-                    copy.setCriteria(null);
+                    ResultSetColumnFilterPopup.clearCondition(copy);
                 }
                 applyFilter(filter);
             }));
@@ -718,12 +833,6 @@ final class ResultSetViewerPanel extends JPanel {
     private DBPDataSource getDataSource() {
         DBCExecutionContext context = fetched.source().context();
         return context != null ? context.getDataSource() : null;
-    }
-
-    @Nullable
-    private String getQueryText() {
-        return fetched.source().dataContainer() instanceof SQLQueryContainer container
-            && container.getQuery() != null ? container.getQuery().getText() : null;
     }
 
     //////////////////////////////////////////////////////////
@@ -829,6 +938,29 @@ final class ResultSetViewerPanel extends JPanel {
             rowsLabel.setToolTipText(NLS.bind(EditorMessages.editor_viewer_more_rows_blocked, fetched.source().requeryBlocker()));
         } else {
             rowsLabel.setToolTipText(null);
+        }
+        updateFilterSummary();
+    }
+
+    /**
+     * "Filters: col1, col2 ✕" with the SQL condition as tool tip, only while there are filters.
+     */
+    private void updateFilterSummary() {
+        List<String> names = new ArrayList<>();
+        for (DBDAttributeBinding binding : fetched.data().bindings()) {
+            DBDAttributeConstraint constraint = dataFilter.getConstraint(binding);
+            if (constraint != null && constraint.hasCondition()) {
+                names.add(binding.getLabel());
+            }
+        }
+        filterSummary.setVisible(!names.isEmpty());
+        filterSummaryLabel.setText(NLS.bind(GridFilterMessages.gridfilter_summary, String.join(", ", names))); //$NON-NLS-1$
+        String condition = getConditionText(dataFilter);
+        filterSummaryLabel.setToolTipText(condition.isEmpty() ? null : condition);
+        for (Component component : filterSummary.getComponents()) {
+            if (component instanceof AbstractButton button) {
+                button.setEnabled(!reading);
+            }
         }
     }
 
@@ -1014,45 +1146,52 @@ final class ResultSetViewerPanel extends JPanel {
                 } else if (previous.getCriteria() != null) {
                     constraint.setCriteria(previous.getCriteria());
                 }
+                // What the column filter popup set (its operator and texts)
+                constraint.setOptions(previous.getOptions());
             }
         }
-        filter.setWhere(old.getWhere());
         filter.setOrder(old.getOrder());
         return filter;
     }
 
     /**
-     * The conditions of the filter as SQL, as the SWT filter panel shows them.
+     * The conditions of a filter as SQL, as the SWT filter panel shows them.
      */
     @NotNull
-    private String getConditionText() {
+    private String getConditionText(@NotNull DBDDataFilter filter) {
         DBPDataSource dataSource = getDataSource();
-        if (dataSource == null || !dataFilter.hasConditions()) {
+        if (dataSource == null || !filter.hasConditions()) {
             return "";
         }
         StringBuilder text = new StringBuilder();
         try {
-            SQLUtils.appendConditionString(dataFilter, dataSource, null, text, true);
+            SQLUtils.appendConditionString(filter, dataSource, null, text, true);
         } catch (Exception e) {
             log.debug("Can't make the filter text", e);
-            return CommonUtils.notEmpty(dataFilter.getWhere());
+            return "";
         }
         return text.toString();
     }
 
     /**
-     * The filter bar was applied (SWT {@code ResultSetFilterPanel.setCustomDataFilter}): the text replaces the column
-     * conditions.
+     * The condition of one column as SQL.
      */
-    private void applyWhere(@NotNull String where) {
-        if (where.trim().equals(getConditionText().trim())) {
+    @NotNull
+    private String getConditionText(@NotNull DBDAttributeConstraint constraint) {
+        return getConditionText(new DBDDataFilter(List.of(new DBDAttributeConstraint(constraint))));
+    }
+
+    /**
+     * Removes the conditions of all columns (the sort stays) and reads the result again.
+     */
+    private void clearAllFilters() {
+        if (!dataFilter.hasConditions()) {
             return;
         }
         DBDDataFilter filter = new DBDDataFilter(dataFilter);
         for (DBDAttributeConstraint constraint : filter.getConstraints()) {
-            constraint.setCriteria(null);
+            ResultSetColumnFilterPopup.clearCondition(constraint);
         }
-        filter.setWhere(where.isBlank() ? null : where.trim());
         applyFilter(filter);
     }
 
@@ -1062,6 +1201,8 @@ final class ResultSetViewerPanel extends JPanel {
         if (constraint == null) {
             return;
         }
+        // The popup's operator and texts no longer describe the column's condition
+        ResultSetColumnFilterPopup.clearCondition(constraint);
         constraint.setOperator(operator);
         constraint.setValue(value);
         applyFilter(filter);
@@ -1072,7 +1213,6 @@ final class ResultSetViewerPanel extends JPanel {
             return;
         }
         if (!checkNoChanges(EditorMessages.editor_viewer_action_filter)) {
-            filterBar.setFilterText(getConditionText());
             return;
         }
         requery(filter);
@@ -1349,7 +1489,7 @@ final class ResultSetViewerPanel extends JPanel {
         reading = true;
         statusMessage = null;
         updateStatus();
-        filterBar.setReading(true);
+        repaintHeader();
         new DataSourceJob(name, context) {
             @NotNull
             @Override
@@ -1370,24 +1510,32 @@ final class ResultSetViewerPanel extends JPanel {
 
     private void finishRead(@Nullable Runnable work, @Nullable Throwable error) {
         reading = false;
-        filterBar.setReading(false);
         if (!isDisplayable()) {
             return;
         }
+        repaintHeader();
         if (error != null) {
             String message = ErrorText.describe(error);
             statusMessage = NLS.bind(EditorMessages.editor_viewer_read_failed, CommonUtils.truncateString(message.replace('\n', ' '), 200));
             host.appendError(NLS.bind(EditorMessages.editor_viewer_cant_read_again, message));
             log.debug("Result read failed", error);
-            // The filter that failed stays in the bar for correction; the data filter is what the grid shows
+            // The data filter stays what the grid shows: the failed filter was only a copy
             updateStatus();
             return;
         }
         if (work != null) {
             work.run();
         }
-        filterBar.setFilterText(getConditionText());
         updateStatus();
+    }
+
+    /**
+     * The header's filter icons are off while reading.
+     */
+    private void repaintHeader() {
+        if (grid != null) {
+            grid.getTable().getTableHeader().repaint();
+        }
     }
 
     private void readData(

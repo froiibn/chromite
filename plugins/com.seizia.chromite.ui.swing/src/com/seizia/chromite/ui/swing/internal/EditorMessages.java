@@ -20,7 +20,7 @@ import org.eclipse.osgi.util.NLS;
 
 /**
  * Texts of the SQL editor area: query window, execution plan, results grid and its value panel, record view,
- * filter bar, Copy As, CSV/Excel export, query history, bind parameters and SQL templates.
+ * Copy As, CSV/Excel export, query history, bind parameters and SQL templates.
  *
  * 설계: DBeaver의 {@code *Messages}(예: {@code SQLEditorMessages})와 같이 {@link NLS} 필드와 같은 이름의 properties 파일을 쓴다.
  * 영어가 기본({@code EditorMessages.properties}), 한국어는 {@code EditorMessages_ko.properties}이고 언어는 OS(플랫폼 NL)를 따른다.
@@ -33,6 +33,7 @@ import org.eclipse.osgi.util.NLS;
  * - 2026-11-07 쿼리 창 도구 막대 삭제로 쓰지 않게 된 {@code editor_sql_cancel} 삭제. 실행·중지·계획 단추의 도구 설명은
  *   메인 창 SQL Editor 도구 막대가 씀 (docs/chromite/swing-frontend.md "SQL Editor 도구 막대")
  * - 2026-11-07 쿼리 상태 줄의 커밋 방식 칸 문구({@code editor_status_auto_commit} 등) (docs/chromite/swing-frontend.md "자동 커밋 상태")
+ * - 2026-11-07 결과 필터 줄(ResultSetFilterBar)을 없애며 그 문구를 지움. 열 필터 문구는 {@link GridFilterMessages}
  */
 public class EditorMessages extends NLS {
     private static final String BUNDLE_NAME = "com.seizia.chromite.ui.swing.internal.EditorMessages"; //$NON-NLS-1$
@@ -336,13 +337,6 @@ public class EditorMessages extends NLS {
     public static String editor_record_no_rows;
     public static String editor_record_position;
     public static String editor_record_type;
-
-    // Filter bar (ResultSetFilterBar)
-    public static String editor_filter_hint;
-    public static String editor_filter_apply;
-    public static String editor_filter_apply_tip;
-    public static String editor_filter_clear_tip;
-    public static String editor_filter_not_available;
 
     // Aggregates (ResultSetAggregates)
     public static String editor_aggregate_count;
