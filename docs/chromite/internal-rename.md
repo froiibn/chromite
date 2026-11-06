@@ -103,9 +103,32 @@ CLAUDE.md의 클래스 Javadoc "변경 이력" 규칙은 이름만 바뀐 파일
 | `ThemeColorOverridePreserver` `CHROMITE_COLOR_ID_PREFIX` | `"com.seizia.chromite."` | plugin.xml 색 ID도 같이 바뀌었다 |
 | `DesktopProjectImpl` 리소스 속성 한정자 | `"com.seizia.chromite"` | 쓰는 쪽(`QualifiedName`)도 같은 값으로 바뀌었다. 새로 시작이라 옛 값은 읽지 않는다 |
 
-## 검증
+## 검증 (2026-11-07)
 
-`docs/chromite/internal-rename.md`의 결과 절(작업 후 갱신)을 본다.
+| 항목 | 결과 |
+|---|---|
+| 도구 | 이동 10,873개(전부 R100), 내용 치환 8,688개 파일(R1 103,531 · R2 1,724 · R3 143 · R4 595 · R5 67 · R6 57 · R7 228 · Vendor 199), 수정 표시 줄 7,089개, 충돌 0 |
+| G1–G5, G8 | 옛 이름 0건. G5는 이름 변경 전부터 깨져 있던 upstream 참조 13개만 남음(`gate.py` `KNOWN_BROKEN`, 같은 13개가 변경 전 트리에서도 나옴) |
+| G6 | 변경 전 트리(`fe9f9b150f`)의 ID 15,385개(서로 다른 값 9,367개)에 규칙을 적용한 집합 = 현재 집합 |
+| G7 | 비교 파일 10,910개, BOM 11 = 11, 줄바꿈 종류(CRLF 614 · LF 10,190 · 혼합 36 · 없음 70) 변경 0, 마지막 줄바꿈 변경 0. 줄 수 증가는 수정 표시 줄과 import 추가·문서 수정분 |
+| 전체 빌드 | `-Pproduct-chromite-swt,product-chromite-swing -Dtycho.localArtifacts=ignore`: BUILD SUCCESS (4분 36초) |
+| 제품 산출물 | 번들 목록이 변경 전 제품에 규칙을 적용한 것과 같다(SWT Windows 340, SWT macOS 338, Swing Windows 138, Swing macOS 139). `config.ini`, `bundles.info`에 옛 이름 없음(`com.dbeaver.jdbc.api`는 `deps/` 번들). `.eclipseproduct` `name=Chromite`, `id=com.seizia.chromite.product`. macOS `CFBundleIdentifier` `org.jkiss.dbeaver.core.product` → `com.seizia.chromite.core.product`(Swing은 원래 `com.seizia.chromite.swing.product`), 아이콘 `chromite.icns`. 실행 파일 아이콘 교체 오류(`IconExe`) 없음 |
+| SWT 시작 | `chromitec -consoleLog -clean`, 새 데이터 폴더: `%APPDATA%\ChromiteData\workspace6`, `.metadata/chromite-debug.log`. 시작 로그는 변경 전 제품과 이름만 다르고, 번들 해석·확장·e4 클래스 오류 0건. 첫 실행 마법사, 주 창(AI Chat 포함), 새 연결 대화상자 확인 |
+| Swing smoke | JBR 25(`-vm`), 새 작업 공간. DB 종류 52개·드라이버 180개(변경 전 제품과 ID까지 같음). SQL Server·PostgreSQL·MariaDB·Oracle 연결과 F5, 결과 그리드 편집·저장(DB에서 확인), ERD, 테이블 디자이너, 내보내기(CSV 파일 확인), 가져오기 마법사, 테이블 복사(SQL Server → PostgreSQL, DB에서 확인), SQL Server 백업(파일 확인)·복원 대화상자(백업 세트 읽기), Activity Monitor, 권한·로그인 속성 편집기, Query Library, Registered Servers, 다크 테마·아이콘 스타일, 한국어 화면, 다시 시작 후 저장된 비밀번호로 연결, 필터 `type` = `com.seizia.chromite.ext.mssql.model.SQLServerTable`, `.chromite/data-sources.json`, `chromite-debug.log`, `ChromiteData\drivers` |
+| 브랜치 옮기기 | 아래 절차로 임시 브랜치를 옮긴 뒤 devel 병합: 충돌 0, 결과 차이는 브랜치가 바꾼 4개 파일(+23줄)뿐, 게이트 통과 |
+
+### 남은 옛 이름과 이유
+
+- `org.jkiss.dbeaver.DBException`(`deps/`), 위 "바꾸지 않는 것" 표의 외부 값.
+- 이름 중간의 `DBeaver`: `addDBeaverDebugLogs`, `isContributedByDBeaver`, `readDBeaverServerInfo`, `uiOpenDBeaverSQLEditor`.
+  R2는 이름 앞의 `DBeaver<이름>`만 바꾼다. 동작에는 영향이 없다.
+- 대화상자 설정 구역 이름 `"DBeaver.<대화상자>"`(44곳), 문자열 `"DBeaver"`(세션 종류, Eclipse 플러그인 판 제품명 등). 저장 키·문구라 브랜딩 작업에서 고른다.
+- `.ide/.idea`(IDEA 설정), `.agents/skills/dbeaver-code-review`, `osgi-app.properties`의 `dbeaver/` 경로: 외부 도구가 읽는 이름.
+- 예전 DBeaver 작업 공간 가져오기 코드(`ChromiteSettingsImporter`, `WORKSPACE_DIR_4`, `.chromite-data-sources*`)는 이름만 바뀌어
+  이제 Chromite 옛 형식을 찾는다. 새로 시작하므로 실제로는 쓰이지 않는다. 지울지는 따로 정한다.
+- import 순서: `com.seizia.chromite.*` import가 예전 `org.jkiss.dbeaver.*` 자리(`org.jkiss.code`와 `org.jkiss.utils` 사이)에 남아
+  알파벳 순서가 아니다. 7,000여 파일을 더 고치지 않으려고 그대로 두었다(동작 영향 없음, 파일을 고칠 때 정리).
+- Swing 제품은 `-data`가 없으면 작업 공간을 현재 폴더의 `workspace`에 만든다(이름 변경과 무관한 기존 동작, `ChromiteData`에는 드라이버만 둔다).
 
 ## 진행 중이던 브랜치 옮기기
 
@@ -151,3 +174,4 @@ git apply -3 chromite.patch
 ## 변경 이력
 
 - 2026-11-07 최초 작성(도구와 규칙).
+- 2026-11-07 진행 중이던 브랜치 옮기기(`rename.py convert`)와 시험 결과, 검증 결과, 남은 옛 이름을 추가.
