@@ -23,8 +23,10 @@ import com.seizia.chromite.model.app.DBPProject;
 import com.seizia.chromite.model.app.DBPWorkspace;
 import com.seizia.chromite.utils.SystemVariablesResolver;
 import org.eclipse.core.resources.IProject;
+import org.eclipse.core.resources.IResource;
 import org.eclipse.core.resources.IWorkspace;
 import org.eclipse.core.runtime.IPath;
+import org.eclipse.core.runtime.NullProgressMonitor;
 import org.eclipse.core.runtime.Platform;
 import org.eclipse.core.runtime.preferences.IEclipsePreferences;
 import org.eclipse.core.runtime.preferences.InstanceScope;
@@ -40,7 +42,7 @@ import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
-import java.util.LinkedHashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
@@ -76,7 +78,8 @@ import java.util.stream.Stream;
  *     {@code LOCAL_KEY_CACHE}, 이름 변경 전후 같다)로 암호화되어 있고, 내용(데이터 소스 ID별 사용자·비밀번호·인증 속성)에
  *     바뀐 이름이 없다. 그래서 복사만으로 저장된 비밀번호가 그대로 읽힌다.</li>
  *     <li>프로젝트 목록은 Eclipse 작업 공간에서 얻는다(작업 공간 밖에 연결한 프로젝트 포함). 연결 레지스트리를 읽기 전,
- *     {@link DesktopApplicationImpl#beforeWorkspaceInitialization()}에서 부른다.</li>
+ *     {@link DesktopApplicationImpl#beforeWorkspaceInitialization()}에서 부른다. 프로젝트 설정({@code .settings})은 Eclipse
+ *     리소스 트리를 거쳐 읽히므로 복사한 뒤 그 폴더를 새로 고친다.</li>
  *     <li>옛 이름 문자열은 이 클래스에만 둔다. 이름 변경 게이트({@code tools/rename/gate.py})와 도구가 이 파일을
  *     건너뛰도록 {@code rules.py}의 {@code EXCLUDE_FILES}에 등록했다.</li>
  * </ul>
@@ -135,22 +138,26 @@ final class LegacyNameMigration {
         } catch (Throwable e) {
             log.error("Error migrating workspace data written before the internal rename", e);
         }
-        Set<Path> projectFolders = new LinkedHashSet<>();
+        Map<Path, IProject> projects = new LinkedHashMap<>();
         try {
             for (IProject project : eclipseWorkspace.getRoot().getProjects()) {
                 IPath location = project.getLocation();
                 if (location != null) {
-                    projectFolders.add(location.toPath());
+                    projects.putIfAbsent(location.toPath(), project);
                 }
             }
         } catch (Throwable e) {
             log.error("Error listing projects for the legacy data migration", e);
         }
-        for (Path projectFolder : projectFolders) {
+        for (Map.Entry<Path, IProject> project : projects.entrySet()) {
             try {
-                migrateProject(projectFolder);
+                if (migrateProject(project.getKey()) && project.getValue().isOpen()) {
+                    // Project preferences are read through the Eclipse resource tree, which does not know files
+                    // created on disk until it is refreshed
+                    project.getValue().getFolder(PROJECT_SETTINGS_FOLDER).refreshLocal(IResource.DEPTH_ONE, new NullProgressMonitor());
+                }
             } catch (Throwable e) {
-                log.error("Error migrating project data written before the internal rename in " + projectFolder, e);
+                log.error("Error migrating project data written before the internal rename in " + project.getKey(), e);
             }
         }
     }
@@ -211,19 +218,23 @@ final class LegacyNameMigration {
         }
     }
 
-    static void migrateProject(@NotNull Path projectFolder) throws IOException {
+    /**
+     * @return whether project preference files were copied into the project settings folder
+     */
+    static boolean migrateProject(@NotNull Path projectFolder) throws IOException {
         Path source = projectFolder.resolve(LEGACY_PROJECT_FOLDER);
         if (!Files.isDirectory(source)) {
-            return;
+            return false;
         }
         Path target = projectFolder.resolve(DBPProject.METADATA_FOLDER);
         Path marker = target.resolve(MARKER_FILE);
         if (Files.exists(marker)) {
             log.debug("Project data written before the internal rename was already migrated (" + marker + ")");
-            return;
+            return false;
         }
         Counter counter = new Counter();
         copyTree(source, target, counter);
+        int copiedBeforeSettings = counter.files;
 
         // Project-scope preferences (<project>/.settings/<qualifier>.prefs), e.g. resource folders of the project
         Path settingsFolder = projectFolder.resolve(PROJECT_SETTINGS_FOLDER);
@@ -243,6 +254,7 @@ final class LegacyNameMigration {
         if (counter.failed == 0) {
             writeMarker(marker, source, counter);
         }
+        return counter.files > copiedBeforeSettings;
     }
 
     /**
