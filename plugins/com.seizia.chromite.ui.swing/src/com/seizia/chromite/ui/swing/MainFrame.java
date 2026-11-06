@@ -126,6 +126,8 @@ import java.util.function.IntConsumer;
  * - 2026-11-06 DDL 탭에 객체의 연결을 넘김(구문 강조의 SQL 방언) (docs/chromite/design-spec.md "편집기 글꼴과 SQL 색")
  * - 2026-11-06 Registered Servers 도구 창(Object Explorer 위, Ctrl+Alt+G) (docs/chromite/swing-registered-servers.md)
  * - 2026-11-06 관리 도구: Tools &gt; Activity Monitor, Locks, Find Objects와 도구 문서 탭 (docs/chromite/swing-admin-tools.md)
+ * - 2026-11-06 Execution plan 탭, Query 메뉴의 실행 계획(Ctrl+L, Ctrl+M)·Query History, Edit &gt; Advanced
+ *   (docs/chromite/swing-sql-editor-plus.md)
  */
 final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplorerPanel.QueryWindows {
 
@@ -135,6 +137,7 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
     private static final String UPDATED_LAF_KEY = "chromite.updatedLookAndFeel"; //$NON-NLS-1$
     private static final int RESULTS_TAB = 0;
     private static final int MESSAGES_TAB = 1;
+    private static final int PLAN_TAB = 2;
 
     private final ObjectExplorerPanel explorerPanel;
     private final RegisteredServersPanel registeredServersPanel;
@@ -153,6 +156,7 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
     private final JTabbedPane resultTabs;
     private final JComponent resultsPlaceholder;
     private final JComponent messagesPlaceholder;
+    private final JComponent planPlaceholder;
     /**
      * Hold the active editor's query status line at the bottom of the query window (SSMS): inside the Results card below
      * the results, or at the bottom of the document card while the Results tool window is hidden.
@@ -169,6 +173,8 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
     private final Action executeQueryAction;
     private final Action cancelQueryAction;
     private final Action completeAction;
+    private final Action estimatedPlanAction;
+    private final JCheckBoxMenuItem actualPlanItem = new JCheckBoxMenuItem("Include Actual Execution Plan");
     private final EditMenu editMenu;
     private int queryCounter;
     /**
@@ -193,11 +199,13 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
         explorerPanel = new ObjectExplorerPanel(propertiesPanel::showNode, this);
         resultsPlaceholder = createPlaceholder("No results. Query results will appear here.");
         messagesPlaceholder = createPlaceholder("No messages.");
+        planPlaceholder = createPlaceholder("No execution plan.");
         resultTabs = new JTabbedPane();
         // size.tab.tool 32 with a 3px underline (size.tabUnderline), icons results.grid / results.messages
         resultTabs.putClientProperty(FlatClientProperties.STYLE, "tabHeight: 32; tabSelectionHeight: 3"); //$NON-NLS-1$
         resultTabs.addTab("Results", UiIcons.get("results"), resultsPlaceholder); //$NON-NLS-2$
         resultTabs.addTab("Messages", UiIcons.get("messages"), messagesPlaceholder); //$NON-NLS-2$
+        resultTabs.addTab("Execution plan", UiIcons.get("plan"), planPlaceholder); //$NON-NLS-2$
         documentTabs = createDocumentTabs();
 
         JSplitPane documentSplit = createSplitPane(JSplitPane.VERTICAL_SPLIT);
@@ -296,12 +304,29 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
                     editor.complete();
                 }
             });
+        estimatedPlanAction = createAction("Display Estimated Execution Plan",
+            "Show the estimated execution plan of the selection, or of the whole script",
+            KeyStroke.getKeyStroke(KeyEvent.VK_L, InputEvent.CTRL_DOWN_MASK), () -> {
+                SqlEditorPanel editor = getActiveEditor();
+                if (editor != null) {
+                    editor.explainEstimatedPlan();
+                }
+            });
+        actualPlanItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_M, InputEvent.CTRL_DOWN_MASK));
+        actualPlanItem.setToolTipText("Return the actual execution plan with the results of the active query window");
+        actualPlanItem.addActionListener(e -> {
+            SqlEditorPanel editor = getActiveEditor();
+            if (editor != null) {
+                editor.setIncludeActualPlan(actualPlanItem.isSelected());
+            }
+        });
         editMenu = new EditMenu(this::getActiveTextArea);
         documentTabs.addChangeListener(e -> activeEditorChanged());
         resultTabs.addChangeListener(e -> {
             SqlEditorPanel editor = getActiveEditor();
             if (editor != null && !switchingResults) {
                 editor.getResultsView().setMessagesTabSelected(resultTabs.getSelectedIndex() == MESSAGES_TAB);
+                editor.setPlanTabSelected(resultTabs.getSelectedIndex() == PLAN_TAB);
             }
         });
         updateQueryActions();
@@ -843,7 +868,9 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
         try {
             attachResultTab(RESULTS_TAB, editor != null ? editor.getResultsView().getResultsComponent() : resultsPlaceholder);
             attachResultTab(MESSAGES_TAB, editor != null ? editor.getResultsView().getMessagesComponent() : messagesPlaceholder);
-            resultTabs.setSelectedIndex(editor != null && editor.getResultsView().isMessagesTabSelected() ? MESSAGES_TAB : RESULTS_TAB);
+            attachResultTab(PLAN_TAB, editor != null ? editor.getPlanView().getComponent() : planPlaceholder);
+            resultTabs.setSelectedIndex(editor != null && editor.isPlanTabSelected() ? PLAN_TAB
+                : editor != null && editor.getResultsView().isMessagesTabSelected() ? MESSAGES_TAB : RESULTS_TAB);
         } finally {
             switchingResults = false;
         }
@@ -910,6 +937,9 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
         executeQueryAction.setEnabled(editor != null && !editor.isExecuting());
         cancelQueryAction.setEnabled(editor != null && editor.isExecuting());
         completeAction.setEnabled(editor != null);
+        estimatedPlanAction.setEnabled(editor != null && !editor.isExecuting() && !editor.isExplaining());
+        actualPlanItem.setEnabled(editor != null);
+        actualPlanItem.setSelected(editor != null && editor.isIncludeActualPlan());
         saveAction.setEnabled(editor != null);
         saveAsAction.setEnabled(editor != null);
         editMenu.activeDocumentChanged();
@@ -921,8 +951,31 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
             return;
         }
         editor.getResultsView().setMessagesTabSelected(messages);
+        editor.setPlanTabSelected(false);
         resultTabs.setSelectedIndex(messages ? MESSAGES_TAB : RESULTS_TAB);
         resultsWindow.setShown(true);
+    }
+
+    @Override
+    public void showPlan(@NotNull SqlEditorPanel editor) {
+        if (editor != getActiveEditor()) {
+            return;
+        }
+        editor.setPlanTabSelected(true);
+        resultTabs.setSelectedIndex(PLAN_TAB);
+        resultsWindow.setShown(true);
+    }
+
+    /**
+     * Query History: opens a recorded statement in a new query window of its connection.
+     */
+    private void openHistoryQuery(@Nullable DBPDataSourceContainer container, @NotNull String query, boolean execute) {
+        SqlEditorPanel editor = openQueryEditor(container, null);
+        editor.setContent(SqlFileContent.newFile(query), null);
+        if (execute) {
+            editor.execute();
+        }
+        toFront();
     }
 
     @Override
@@ -1028,6 +1081,14 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
         autoCompleteItem.setToolTipText("Show completion proposals after typing letters (they always appear after a period)");
         autoCompleteItem.addActionListener(e -> SqlCompletionPopup.setAutoActivateOnLetters(autoCompleteItem.isSelected()));
         queryMenu.add(autoCompleteItem);
+        queryMenu.addSeparator();
+        queryMenu.add(new JMenuItem(estimatedPlanAction));
+        queryMenu.add(actualPlanItem);
+        queryMenu.addSeparator();
+        JMenuItem historyItem = new JMenuItem("Query History…", UiIcons.get("history")); //$NON-NLS-2$
+        historyItem.setToolTipText("Statements executed in query windows");
+        historyItem.addActionListener(e -> QueryHistoryDialog.open(this, this::openHistoryQuery));
+        queryMenu.add(historyItem);
         // Tools > Options changes the same setting
         onMenuSelected(queryMenu, () -> autoCompleteItem.setSelected(SqlCompletionPopup.isAutoActivateOnLetters()));
 
@@ -1075,6 +1136,8 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
         // SSMS order
         JMenuBar menuBar = new JMenuBar();
         menuBar.add(fileMenu);
+        editMenu.getMenu().addSeparator();
+        editMenu.getMenu().add(SqlEditCommands.createAdvancedMenu(this::getActiveTextArea));
         menuBar.add(editMenu.getMenu());
         menuBar.add(viewMenu);
         menuBar.add(queryMenu);

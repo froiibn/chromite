@@ -1,6 +1,7 @@
 /*
  * DBeaver - Universal Database Manager
  * Copyright (C) 2010-2026 DBeaver Corp and others
+ * Modifications Copyright (C) 2026 Chromite contributors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,6 +17,8 @@
  */
 package org.jkiss.dbeaver.ext.mssql.model;
 
+import com.seizia.chromite.ext.mssql.model.plan.SQLServerQueryPlanner;
+import com.seizia.chromite.model.sql.exec.SQLActualPlanProvider;
 import net.sf.jsqlparser.expression.NextValExpression;
 import net.sf.jsqlparser.statement.Statement;
 import net.sf.jsqlparser.statement.select.PlainSelect;
@@ -36,6 +39,7 @@ import org.jkiss.dbeaver.model.admin.sessions.DBAServerSessionManager;
 import org.jkiss.dbeaver.model.connection.DBPConnectionConfiguration;
 import org.jkiss.dbeaver.model.exec.*;
 import org.jkiss.dbeaver.model.exec.jdbc.*;
+import org.jkiss.dbeaver.model.exec.plan.DBCQueryPlanner;
 import org.jkiss.dbeaver.model.impl.jdbc.JDBCDataSource;
 import org.jkiss.dbeaver.model.impl.jdbc.JDBCExecutionContext;
 import org.jkiss.dbeaver.model.impl.jdbc.JDBCRemoteInstance;
@@ -61,6 +65,15 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Properties;
 
+/**
+ * SQL Server data source.
+ *
+ * 설계(Chromite): 실행 계획 어댑터({@link DBCQueryPlanner}, {@link SQLActualPlanProvider})를 다른 DB의 계획기처럼
+ * {@link #getAdapter}에서 돌려준다. DBeaver CE에는 SQL Server 계획기가 없어 Chromite가 추가했다.
+ *
+ * 변경 이력:
+ * - 2026-11-06 SQL Server 실행 계획 어댑터 {@link SQLServerQueryPlanner} (docs/chromite/swing-sql-editor-plus.md)
+ */
 public class SQLServerDataSource
     extends JDBCDataSource
     implements DBSInstanceContainer, DBPObjectStatisticsCollector, DBPAdaptable, DBCQueryTransformProviderExt, DBSVisibilityScopeProvider {
@@ -583,6 +596,10 @@ public class SQLServerDataSource
             return adapter.cast(new SQLServerSessionManager(this));
         } else if (adapter == DBAUserPasswordManager.class) {
             return adapter.cast(new SQLServerLoginPasswordManager(this));
+        } else if ((adapter == DBCQueryPlanner.class || adapter == SQLActualPlanProvider.class)
+            && SQLServerUtils.isDriverSqlServer(getContainer().getDriver()) && !SQLServerUtils.isDriverBabelfish(getContainer().getDriver())) {
+            // Chromite: showplan XML is a SQL Server feature; Babelfish speaks T-SQL over PostgreSQL and has no showplan
+            return adapter.cast(new SQLServerQueryPlanner(this));
         }
         return super.getAdapter(adapter);
     }

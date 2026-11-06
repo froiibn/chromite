@@ -73,6 +73,8 @@ import java.util.*;
  * Change history:
  * - 2026-11-06 Chromite: resolve the launcher ini from the launcher name instead of a hardcoded "dbeaver.ini",
  *   because the Chromite launcher is "chromite" and reads "chromite.ini".
+ * - 2026-11-06 Chromite: getLocalConfigurationFile creates the workspace configuration folder, because its callers write
+ *   the file directly and the Swing product has no earlier save that creates it (docs/chromite/swing-sql-editor-plus.md).
  */
 public abstract class BasePlatformImpl implements DBPPlatform, DBPApplicationConfigurator, DBPPlatformLanguageManager {
 
@@ -368,7 +370,17 @@ public abstract class BasePlatformImpl implements DBPPlatform, DBPApplicationCon
         if (Files.exists(productPluginPath)) {
             return productPluginPath;
         }
-        return getLocalWorkspaceConfigFolder().resolve(fileName);
+        // Chromite: callers write the returned file directly (SQL parameter bindings, column and filter states), so the
+        // folder must exist; a workspace that never saved a configuration file through the controller has none
+        Path configFolder = getLocalWorkspaceConfigFolder();
+        if (!Files.exists(configFolder)) {
+            try {
+                Files.createDirectories(configFolder);
+            } catch (IOException e) {
+                log.debug("Can't create the configuration folder " + configFolder, e);
+            }
+        }
+        return configFolder.resolve(fileName);
     }
 
     @NotNull

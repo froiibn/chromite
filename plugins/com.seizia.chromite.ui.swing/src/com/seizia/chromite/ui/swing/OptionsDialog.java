@@ -22,6 +22,7 @@ import org.fife.ui.rsyntaxtextarea.Theme;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.ModelPreferences;
+import org.jkiss.dbeaver.model.DBPIdentifierCase;
 import org.jkiss.dbeaver.model.preferences.DBPPreferenceStore;
 import org.jkiss.dbeaver.runtime.DBWorkbench;
 import org.jkiss.dbeaver.utils.PrefUtils;
@@ -34,9 +35,9 @@ import java.util.Map;
 import java.util.Objects;
 
 /**
- * Tools &gt; Options (SSMS): 이미 있는 설정만 한곳에서 바꾸는 대화상자.
+ * Tools &gt; Options (SSMS): 기능별 설정을 한곳에서 바꾸는 대화상자.
  *
- * 설계: 새 설정을 만들지 않고, 지금 있는 설정의 저장 위치와 적용 방법을 그대로 쓴다.
+ * 설계: 이 대화상자는 설정을 따로 저장하지 않고, 각 기능이 가진 설정의 저장 위치와 적용 방법을 그대로 쓴다.
  * <ul>
  *     <li>Theme, Icon style: {@link ChromiteTheme#apply()}, {@link UiIconStyle#apply()}(View &gt; Theme 메뉴와 같음, 실행 중 바로 바뀌고 저장).</li>
  *     <li>Auto-complete while typing, Completion delay: {@link SqlCompletionPopup}의 설정(Query &gt; Auto-Complete While Typing과 같은 키).</li>
@@ -45,6 +46,8 @@ import java.util.Objects;
  *     <li>Editor 탭: SQL 편집기 글꼴과 크기({@link EditorFont}). Editor Colors 탭: 테마마다 구문·편집기 색({@link EditorColors}),
  *     SWT 제품의 Colors and Fonts &gt; SQL Editor에 해당한다. 두 탭의 미리 보기는 저장하지 않은 값(한글 포함)을 바로 보여 주고,
  *     OK를 누르면 저장해서 열린 모든 편집기와 DDL 탭에 적용한다.</li>
+ *     <li>Editor 탭의 Formatting: SQL 서식기 종류와 키워드 대소문자({@link SqlEditCommands}, SWT 서식 설정과 같은 플랫폼 설정 키).
+ *     General 탭의 Query History: 쿼리 기록 보관 일수({@link QueryHistory}). Templates 탭: SQL 템플릿({@link SqlTemplatesPage}).</li>
  * </ul>
  * OK를 누를 때 바뀐 값만 적용한다. 읽기는 열 때 한 번 한다.
  *
@@ -52,6 +55,7 @@ import java.util.Objects;
  * - 2026-11-06 P1: 최초 작성 (docs/chromite/swing-frontend.md "P1 디자인 적용")
  * - 2026-11-06 General·Editor·Editor Colors 탭: 편집기 글꼴·크기와 테마별 편집기 색, 미리 보기 (docs/chromite/design-spec.md "편집기 글꼴과 SQL 색")
  * - 2026-11-06 화면 문구에 다른 제품 이름을 쓰지 않음: "Reset to Defaults" (docs/chromite/design-spec.md "편집기 글꼴과 SQL 색")
+ * - 2026-11-06 SQL 서식(서식기, 키워드 대소문자), 쿼리 기록 보관 일수, Templates 탭 (docs/chromite/swing-sql-editor-plus.md)
  */
 final class OptionsDialog extends JDialog {
 
@@ -68,6 +72,11 @@ final class OptionsDialog extends JDialog {
     private final JCheckBox autoCompleteBox = new JCheckBox("Show completion proposals while typing");
     private final JSpinner delaySpinner;
     private final JSpinner maxRowsSpinner;
+    private final JSpinner historyDaysSpinner = new JSpinner(new SpinnerNumberModel(
+        Math.min(QueryHistory.getRetentionDays(), QueryHistory.MAX_RETENTION_DAYS), 0, QueryHistory.MAX_RETENTION_DAYS, 1));
+    private final JComboBox<String> formatterCombo = new JComboBox<>(new String[]{"Default", "Compact"});
+    private final JComboBox<String> keywordCaseCombo = new JComboBox<>(new String[]{"Database default", "Upper", "Lower", "As typed"});
+    private final SqlTemplatesPage templatesPage = new SqlTemplatesPage();
 
     // Editor tab
     private final JComboBox<String> fontFamilyCombo;
@@ -114,7 +123,9 @@ final class OptionsDialog extends JDialog {
         row = addRow(form, row, null, autoCompleteBox, null);
         row = addRow(form, row, "Completion delay", delaySpinner, "ms after the last keystroke");
         row = addSection(form, row, "Query Results");
-        addRow(form, row, "Maximum rows", maxRowsSpinner, "per result set, 0 = no limit");
+        row = addRow(form, row, "Maximum rows", maxRowsSpinner, "per result set, 0 = no limit");
+        row = addSection(form, row, "Query History");
+        addRow(form, row, "Keep history", historyDaysSpinner, "days, 0 = do not record");
 
         JButton okButton = new JButton("OK");
         okButton.addActionListener(e -> {
@@ -134,6 +145,7 @@ final class OptionsDialog extends JDialog {
         tabs.addTab("General", wrapPage(form));
         tabs.addTab("Editor", createEditorPage());
         tabs.addTab("Editor Colors", createColorsPage());
+        tabs.addTab("Templates", templatesPage);
         content.add(tabs, BorderLayout.CENTER);
         content.add(buttons, BorderLayout.SOUTH);
         setContentPane(content);
@@ -169,6 +181,16 @@ final class OptionsDialog extends JDialog {
         int row = addSection(form, 0, "Font");
         row = addRow(form, row, "Family", fontFamilyCombo, "fixed-width fonts, default " + EditorFont.DEFAULT_FAMILY);
         row = addRow(form, row, "Size", fontSizeSpinner, "points, default " + EditorFont.DEFAULT_SIZE);
+        formatterCombo.setSelectedIndex(SqlEditCommands.FORMATTER_COMPACT.equals(SqlEditCommands.getFormatterId()) ? 1 : 0);
+        DBPIdentifierCase keywordCase = SqlEditCommands.getKeywordCase();
+        keywordCaseCombo.setSelectedIndex(keywordCase == null ? 0 : switch (keywordCase) {
+            case UPPER -> 1;
+            case LOWER -> 2;
+            case MIXED -> 3;
+        });
+        row = addSection(form, row, "Formatting");
+        row = addRow(form, row, "Style", formatterCombo, "Format SQL (Ctrl+K, Ctrl+D)");
+        row = addRow(form, row, "Keyword case", keywordCaseCombo, "database default: the case the database stores names in");
         addPreview(form, row, fontPreview);
         updatePreviews();
         return wrapPage(form);
@@ -392,6 +414,21 @@ final class OptionsDialog extends JDialog {
             platformPreferences.setValue(ModelPreferences.RESULT_SET_MAX_ROWS, maxRows);
             PrefUtils.savePreferenceStore(platformPreferences);
         }
+        int historyDays = ((Number) historyDaysSpinner.getValue()).intValue();
+        if (historyDays != QueryHistory.getRetentionDays()) {
+            QueryHistory.setRetentionDays(historyDays);
+        }
+        String formatterId = formatterCombo.getSelectedIndex() == 1 ? SqlEditCommands.FORMATTER_COMPACT : SqlEditCommands.FORMATTER_DEFAULT;
+        DBPIdentifierCase keywordCase = switch (keywordCaseCombo.getSelectedIndex()) {
+            case 1 -> DBPIdentifierCase.UPPER;
+            case 2 -> DBPIdentifierCase.LOWER;
+            case 3 -> DBPIdentifierCase.MIXED;
+            default -> null;
+        };
+        if (!formatterId.equals(SqlEditCommands.getFormatterId()) || keywordCase != SqlEditCommands.getKeywordCase()) {
+            SqlEditCommands.saveFormatSettings(formatterId, keywordCase);
+        }
+        templatesPage.apply();
         boolean editorChanged = false;
         String family = (String) fontFamilyCombo.getSelectedItem();
         int size = ((Number) fontSizeSpinner.getValue()).intValue();
