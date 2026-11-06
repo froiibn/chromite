@@ -1,0 +1,17 @@
+Manifest-Version: 1.0
+Bundle-ManifestVersion: 2
+Bundle-Vendor: Chromite contributors
+Bundle-Name: Chromite Tasks - Native Tools UI
+Bundle-SymbolicName: com.seizia.chromite.tasks.native.ui;singleton:=true
+Bundle-Version: 1.0.169.qualifier
+Bundle-Release-Date: 20261116
+Bundle-RequiredExecutionEnvironment: JavaSE-21
+Bundle-ActivationPolicy: lazy
+Require-Bundle: org.eclipse.ui.console,
+ com.seizia.chromite.model.sql,
+ com.seizia.chromite.ui.navigator,
+ com.seizia.chromite.ui.editors.connection;visibility:=reexport,
+ com.seizia.chromite.tasks.native;visibility:=reexport,
+ com.seizia.chromite.tasks.ui;visibility:=reexport
+Export-Package: com.seizia.chromite.tasks.ui.nativetool
+Automatic-Module-Name: com.seizia.chromite.tasks.native.ui

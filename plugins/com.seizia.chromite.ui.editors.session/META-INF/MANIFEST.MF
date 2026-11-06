@@ -1,0 +1,15 @@
+Manifest-Version: 1.0
+Bundle-ManifestVersion: 2
+Bundle-Vendor: Chromite contributors
+Bundle-Name: Chromite UI Editors - Session Manager
+Bundle-SymbolicName: com.seizia.chromite.ui.editors.session;singleton:=true
+Bundle-Version: 1.0.169.qualifier
+Bundle-Release-Date: 20261116
+Bundle-RequiredExecutionEnvironment: JavaSE-21
+Bundle-ActivationPolicy: lazy
+Require-Bundle: com.seizia.chromite.ui.editors.base,
+ com.seizia.chromite.ui.editors.sql,
+ com.seizia.chromite.ui.navigator
+Export-Package: com.seizia.chromite.ui.views.session
+Automatic-Module-Name: com.seizia.chromite.ui.editors.session
+

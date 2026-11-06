@@ -20,11 +20,11 @@ import com.seizia.chromite.ui.swing.internal.EditorMessages;
 import org.eclipse.osgi.util.NLS;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.model.data.aggregate.FunctionAvg;
-import org.jkiss.dbeaver.model.data.aggregate.FunctionMax;
-import org.jkiss.dbeaver.model.data.aggregate.FunctionMin;
-import org.jkiss.dbeaver.model.data.aggregate.FunctionSum;
-import org.jkiss.dbeaver.model.data.aggregate.IAggregateFunction;
+import com.seizia.chromite.model.data.aggregate.FunctionAvg;
+import com.seizia.chromite.model.data.aggregate.FunctionMax;
+import com.seizia.chromite.model.data.aggregate.FunctionMin;
+import com.seizia.chromite.model.data.aggregate.FunctionSum;
+import com.seizia.chromite.model.data.aggregate.IAggregateFunction;
 
 import javax.swing.*;
 import java.math.BigDecimal;
@@ -34,7 +34,7 @@ import java.math.MathContext;
 /**
  * 결과 표에서 고른 칸들의 집계(상태 줄 오른쪽): 개수, 그리고 숫자 칸이 있으면 합계·평균·최솟값·최댓값.
  *
- * 설계: 계산은 모델 계층의 집계 함수({@code org.jkiss.dbeaver.model.data.aggregate}, SWT {@code AggregateColumnsPanel}이 쓰는 것)를 그대로 쓴다.
+ * 설계: 계산은 모델 계층의 집계 함수({@code com.seizia.chromite.model.data.aggregate}, SWT {@code AggregateColumnsPanel}이 쓰는 것)를 그대로 쓴다.
  * SWT 집계 패널은 문자열도 숫자로 읽어 보지만, 여기서는 숫자 값({@link Number})만 넣는다(코드 열의 "001" 같은 글자가 합계에 들어가지 않게).
  * 칸이 하나뿐이면 아무것도 쓰지 않는다. 아주 큰 선택은 {@link #MAX_CELLS}칸까지만 센다(EDT에서 계산하므로).
  *

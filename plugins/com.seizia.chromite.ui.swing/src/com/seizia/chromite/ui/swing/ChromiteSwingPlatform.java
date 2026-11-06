@@ -19,30 +19,30 @@ package com.seizia.chromite.ui.swing;
 import org.eclipse.core.runtime.Plugin;
 import org.jkiss.code.NotNull;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.DBConstants;
-import org.jkiss.dbeaver.model.DBPExternalFileManager;
-import org.jkiss.dbeaver.model.app.DBACertificateStorage;
-import org.jkiss.dbeaver.model.app.DBPApplicationDesktop;
-import org.jkiss.dbeaver.model.app.DBPGlobalEventManager;
-import org.jkiss.dbeaver.model.app.DBPPlatformDesktop;
-import org.jkiss.dbeaver.model.app.DBPWorkspaceDesktop;
-import org.jkiss.dbeaver.model.impl.app.BaseApplicationImpl;
-import org.jkiss.dbeaver.model.impl.app.DefaultCertificateStorage;
-import org.jkiss.dbeaver.model.navigator.DBNModel;
-import org.jkiss.dbeaver.model.navigator.DesktopNavigatorModel;
-import org.jkiss.dbeaver.model.preferences.DBPPreferenceStore;
-import org.jkiss.dbeaver.model.qm.QMUtils;
-import org.jkiss.dbeaver.model.runtime.LoggingProgressMonitor;
-import org.jkiss.dbeaver.registry.BasePlatformImpl;
-import org.jkiss.dbeaver.registry.DataSourceProviderRegistry;
-import org.jkiss.dbeaver.registry.GlobalEventManagerImpl;
-import org.jkiss.dbeaver.utils.RuntimeUtils;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.DBConstants;
+import com.seizia.chromite.model.DBPExternalFileManager;
+import com.seizia.chromite.model.app.DBACertificateStorage;
+import com.seizia.chromite.model.app.DBPApplicationDesktop;
+import com.seizia.chromite.model.app.DBPGlobalEventManager;
+import com.seizia.chromite.model.app.DBPPlatformDesktop;
+import com.seizia.chromite.model.app.DBPWorkspaceDesktop;
+import com.seizia.chromite.model.impl.app.BaseApplicationImpl;
+import com.seizia.chromite.model.impl.app.DefaultCertificateStorage;
+import com.seizia.chromite.model.navigator.DBNModel;
+import com.seizia.chromite.model.navigator.DesktopNavigatorModel;
+import com.seizia.chromite.model.preferences.DBPPreferenceStore;
+import com.seizia.chromite.model.qm.QMUtils;
+import com.seizia.chromite.model.runtime.LoggingProgressMonitor;
+import com.seizia.chromite.registry.BasePlatformImpl;
+import com.seizia.chromite.registry.DataSourceProviderRegistry;
+import com.seizia.chromite.registry.GlobalEventManagerImpl;
+import com.seizia.chromite.utils.RuntimeUtils;
 
 /**
  * Swing 프런트엔드용 DBeaver 플랫폼 구현.
  *
- * 설계: SWT 버전의 {@code DesktopPlatform}(org.jkiss.dbeaver.core)은 Eclipse UI({@code PlatformUI})에 의존해서
+ * 설계: SWT 버전의 {@code DesktopPlatform}(com.seizia.chromite.core)은 Eclipse UI({@code PlatformUI})에 의존해서
  * 쓸 수 없다. 그래서 같은 초기화 순서(인증서 저장소 → 작업 공간 → 프로젝트 → Query Manager → 기반 플랫폼)를
  * UI 의존 없이 다시 구현한다. 작업 공간은 {@code DesktopApplicationImpl#createWorkspace}가 만드는
  * {@code DesktopWorkspaceImpl}을 그대로 써서 SWT 버전과 같은 작업 공간 형식(연결 목록 포함)을 공유한다.

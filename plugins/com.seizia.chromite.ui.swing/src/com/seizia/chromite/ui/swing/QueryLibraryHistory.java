@@ -19,10 +19,10 @@ package com.seizia.chromite.ui.swing;
 import com.seizia.chromite.ui.swing.internal.ToolsMessages;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.preferences.DBPPreferenceStore;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.utils.PrefUtils;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.preferences.DBPPreferenceStore;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.utils.PrefUtils;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;

@@ -20,7 +20,7 @@ import com.seizia.chromite.ui.swing.internal.CoreMessages;
 import org.eclipse.osgi.util.NLS;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.model.preferences.DBPPreferenceStore;
+import com.seizia.chromite.model.preferences.DBPPreferenceStore;
 
 import javax.swing.*;
 import java.awt.event.ActionEvent;

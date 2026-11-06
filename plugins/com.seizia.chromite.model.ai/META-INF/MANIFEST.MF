@@ -1,0 +1,34 @@
+Manifest-Version: 1.0
+Bundle-ManifestVersion: 2
+Bundle-Vendor: Chromite contributors
+Bundle-Activator: com.seizia.chromite.model.ai.internal.AIActivator
+Bundle-Name: Chromite AI Model
+Bundle-SymbolicName: com.seizia.chromite.model.ai;singleton:=true
+Bundle-Version: 2.0.34.qualifier
+Export-Package: com.seizia.chromite.model.ai,
+ com.seizia.chromite.model.ai.commands,
+ com.seizia.chromite.model.ai.engine,
+ com.seizia.chromite.model.ai.engine.copilot,
+ com.seizia.chromite.model.ai.engine.copilot.dto,
+ com.seizia.chromite.model.ai.engine.ollama,
+ com.seizia.chromite.model.ai.engine.ollama.dto,
+ com.seizia.chromite.model.ai.engine.openai,
+ com.seizia.chromite.model.ai.engine.openai.dto,
+ com.seizia.chromite.model.ai.functions,
+ com.seizia.chromite.model.ai.impl,
+ com.seizia.chromite.model.ai.internal,
+ com.seizia.chromite.model.ai.prompt,
+ com.seizia.chromite.model.ai.qm,
+ com.seizia.chromite.model.ai.quota,
+ com.seizia.chromite.model.ai.registry,
+ com.seizia.chromite.model.ai.utils
+Bundle-Release-Date: 20261116
+Bundle-RequiredExecutionEnvironment: JavaSE-21
+Bundle-ActivationPolicy: lazy
+Automatic-Module-Name: com.seizia.chromite.model.ai
+Require-Bundle: com.seizia.chromite.model.jdbc,
+ com.seizia.chromite.model.security,
+ com.seizia.chromite.model.sql,
+ com.seizia.chromite.registry;visibility:=reexport
+
+

@@ -1,0 +1,15 @@
+fManifest-Version: 1.0
+Bundle-ManifestVersion: 2
+Bundle-Vendor: Chromite contributors
+Bundle-Name: Chromite SQL JDBC Tools
+Bundle-SymbolicName: com.seizia.chromite.model.sql.jdbc;singleton:=true
+Bundle-Version: 1.0.55.qualifier
+Bundle-Release-Date: 20261116
+Bundle-RequiredExecutionEnvironment: JavaSE-21
+Bundle-ActivationPolicy: lazy
+Export-Package: com.seizia.chromite.model.sql.schema,
+ com.seizia.chromite.model.sql.task,
+ com.seizia.chromite.model.sql.db
+Require-Bundle: com.seizia.chromite.model.jdbc
+Automatic-Module-Name: com.seizia.chromite.model.sql.jdbc
+

@@ -1,0 +1,38 @@
+/*
+ * DBeaver - Universal Database Manager
+ * Copyright (C) 2010-2024 DBeaver Corp and others
+ * Modifications Copyright (C) 2026 Chromite contributors
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package com.seizia.chromite.tools.transfer.transformers;
+
+import org.jkiss.code.NotNull;
+import org.jkiss.dbeaver.DBException;
+import com.seizia.chromite.model.data.DBDAttributeBinding;
+import com.seizia.chromite.model.exec.DBCSession;
+import com.seizia.chromite.tools.transfer.IDataTransferAttributeTransformer;
+
+import java.util.Map;
+
+/**
+ * Null attribute transformer
+ */
+public class DataTransferTransformerNull implements IDataTransferAttributeTransformer {
+
+    @Override
+    public Object transformAttribute(@NotNull DBCSession session, @NotNull DBDAttributeBinding[] dataAttributes, @NotNull Object[] dataRow, @NotNull DBDAttributeBinding attribute, Object attrValue, @NotNull Map<String, Object> options) throws DBException {
+        return null;
+    }
+
+}

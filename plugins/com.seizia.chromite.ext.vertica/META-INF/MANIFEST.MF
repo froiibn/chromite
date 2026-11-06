@@ -1,0 +1,15 @@
+Manifest-Version: 1.0
+Bundle-ManifestVersion: 2
+Bundle-Name: Chromite Vertica Model
+Bundle-SymbolicName: com.seizia.chromite.ext.vertica;singleton:=true
+Bundle-Version: 2.0.221.qualifier
+Bundle-Release-Date: 20261116
+Require-Bundle: com.seizia.chromite.model,
+ com.seizia.chromite.model.sql,
+ com.seizia.chromite.ext.generic
+Bundle-ActivationPolicy: lazy
+Bundle-RequiredExecutionEnvironment: JavaSE-21
+Bundle-Vendor: Chromite contributors
+Automatic-Module-Name: com.seizia.chromite.ext.vertica
+Export-Package: com.seizia.chromite.ext.vertica,
+ com.seizia.chromite.ext.vertica.model

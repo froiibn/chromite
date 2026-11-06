@@ -20,7 +20,7 @@ sponsored by DBeaver Corp. "DBeaver" is a trademark of DBeaver Corp. See [NOTICE
 Requirements: JDK 21 and Apache Maven 3.9+.
 
 ```bash
-mvn package -f product/aggregate/pom.xml -T1C -Pproduct-dbeaver-ce
+mvn package -f product/aggregate/pom.xml -T1C -Pproduct-chromite-swt
 ```
 
 The built archives (`chromite-<version>-<platform>`) are placed under `product/community/target/products/`.
@@ -33,7 +33,7 @@ Unpack one and run the `chromite` launcher.
 - [Eclipse RCP](https://github.com/eclipse-platform/eclipse.platform.ui/blob/master/docs/Rich_Client_Platform.md) for the desktop UI.
 - [JDBC](https://en.wikipedia.org/wiki/Java_Database_Connectivity) for database connectivity.
 - [JSQLParser](https://github.com/JSQLParser/JSqlParser) and [ANTLR4](https://github.com/antlr/antlr4) for SQL parsing.
-- Internal Java packages and bundle IDs keep the upstream `org.jkiss.dbeaver.*` names so that upstream changes
+- Internal Java packages and bundle IDs keep the upstream `com.seizia.chromite.*` names so that upstream changes
   can be merged.
 
 ## Branding assets

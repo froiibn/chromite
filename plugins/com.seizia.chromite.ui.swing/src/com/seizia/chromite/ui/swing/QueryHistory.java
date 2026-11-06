@@ -20,10 +20,10 @@ import com.google.gson.Gson;
 import com.google.gson.JsonParseException;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.preferences.DBPPreferenceStore;
-import org.jkiss.dbeaver.utils.GeneralUtils;
-import org.jkiss.dbeaver.utils.PrefUtils;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.preferences.DBPPreferenceStore;
+import com.seizia.chromite.utils.GeneralUtils;
+import com.seizia.chromite.utils.PrefUtils;
 
 import java.io.BufferedWriter;
 import java.io.IOException;

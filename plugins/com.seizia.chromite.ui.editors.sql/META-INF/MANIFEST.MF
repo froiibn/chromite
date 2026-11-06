@@ -1,0 +1,46 @@
+Manifest-Version: 1.0
+Bundle-ManifestVersion: 2
+Bundle-Vendor: Chromite contributors
+Bundle-Name: Chromite UI Editors - SQL
+Bundle-SymbolicName: com.seizia.chromite.ui.editors.sql;singleton:=true
+Bundle-Version: 1.0.191.qualifier
+Bundle-Release-Date: 20261116
+Bundle-RequiredExecutionEnvironment: JavaSE-21
+Bundle-ActivationPolicy: lazy
+Bundle-Activator: com.seizia.chromite.ui.editors.sql.internal.SQLEditorActivator
+Require-Bundle: com.seizia.chromite.model.sql;visibility:=reexport,
+ com.seizia.chromite.model.lsm;visibility:=reexport,
+ com.seizia.chromite.data.transfer.ui,
+ com.seizia.chromite.registry,
+ com.seizia.chromite.ui.editors.data;visibility:=reexport,
+ com.seizia.chromite.ui.navigator,
+ com.seizia.chromite.tasks.native.ui;visibility:=reexport,
+ org.eclipse.ui.console,
+ org.eclipse.e4.ui.model.workbench,
+ org.eclipse.ui.forms
+Export-Package: com.seizia.chromite.ui.controls,
+ com.seizia.chromite.ui.controls.querylog,
+ com.seizia.chromite.ui.editors.sql,
+ com.seizia.chromite.ui.editors.sql.addins,
+ com.seizia.chromite.ui.editors.sql.convert,
+ com.seizia.chromite.ui.editors.sql.convert.impl,
+ com.seizia.chromite.ui.editors.sql.dialogs,
+ com.seizia.chromite.ui.editors.sql.generator,
+ com.seizia.chromite.ui.editors.sql.handlers,
+ com.seizia.chromite.ui.editors.sql.indent,
+ com.seizia.chromite.ui.editors.sql.internal,
+ com.seizia.chromite.ui.editors.sql.log,
+ com.seizia.chromite.ui.editors.sql.plan,
+ com.seizia.chromite.ui.editors.sql.plan.simple,
+ com.seizia.chromite.ui.editors.sql.preferences,
+ com.seizia.chromite.ui.editors.sql.preferences.format,
+ com.seizia.chromite.ui.editors.sql.registry,
+ com.seizia.chromite.ui.editors.sql.scripts,
+ com.seizia.chromite.ui.editors.sql.semantics,
+ com.seizia.chromite.ui.editors.sql.syntax,
+ com.seizia.chromite.ui.editors.sql.templates,
+ com.seizia.chromite.ui.editors.sql.util,
+ com.seizia.chromite.ui.editors.sql.suggestion,
+ com.seizia.chromite.ui.editors.sql.commands
+Automatic-Module-Name: com.seizia.chromite.ui.editors.sql
+

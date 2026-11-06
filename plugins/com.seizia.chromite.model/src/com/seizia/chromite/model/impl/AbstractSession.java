@@ -1,0 +1,146 @@
+/*
+ * DBeaver - Universal Database Manager
+ * Copyright (C) 2010-2026 DBeaver Corp and others
+ * Modifications Copyright (C) 2026 Chromite contributors
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package com.seizia.chromite.model.impl;
+
+import org.jkiss.code.NotNull;
+import com.seizia.chromite.model.data.DBDDataFormatterProfile;
+import com.seizia.chromite.model.data.DBDFormatSettingsExt;
+import com.seizia.chromite.model.data.DBDValueHandler;
+import com.seizia.chromite.model.exec.DBCExecutionPurpose;
+import com.seizia.chromite.model.exec.DBCSession;
+import com.seizia.chromite.model.impl.data.DefaultValueHandler;
+import com.seizia.chromite.model.qm.QMUtils;
+import com.seizia.chromite.model.runtime.DBRBlockingObject;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import org.jkiss.utils.CommonUtils;
+
+/**
+ * Abstract execution context
+ */
+public abstract class AbstractSession implements DBCSession, DBDFormatSettingsExt, DBRBlockingObject {
+
+    private final DBRProgressMonitor monitor;
+    private final DBCExecutionPurpose purpose;
+    private final String taskTitle;
+    private DBDDataFormatterProfile dataFormatterProfile;
+    private boolean holdsBlock = false;
+    private boolean loggingEnabled = true;
+    private byte useNativeDateTimeFormat = -1;
+
+    public AbstractSession(@NotNull DBRProgressMonitor monitor, @NotNull DBCExecutionPurpose purpose, @NotNull String taskTitle) {
+        this.monitor = monitor;
+        this.purpose = purpose;
+        this.taskTitle = taskTitle;
+
+        if (CommonUtils.isNotEmpty(taskTitle)) {
+            monitor.startBlock(this, taskTitle);
+            holdsBlock = true;
+        }
+        if (loggingEnabled) {
+            QMUtils.getDefaultHandler().handleSessionOpen(this);
+        }
+    }
+
+    @NotNull
+    @Override
+    public String getTaskTitle() {
+        return taskTitle;
+    }
+
+    @Override
+    public boolean isConnected() {
+        return true;
+    }
+
+    @NotNull
+    @Override
+    public DBRProgressMonitor getProgressMonitor() {
+        return monitor;
+    }
+
+    @NotNull
+    @Override
+    public DBCExecutionPurpose getPurpose() {
+        return purpose;
+    }
+
+    @Override
+    public boolean isLoggingEnabled() {
+        return loggingEnabled;
+    }
+
+    @Override
+    public void enableLogging(boolean enable) {
+        loggingEnabled = enable;
+    }
+
+    @NotNull
+    @Override
+    public DBDDataFormatterProfile getDataFormatterProfile() {
+        if (dataFormatterProfile == null) {
+            return getDataSource().getContainer().getDataFormatterProfile();
+        }
+        return dataFormatterProfile;
+    }
+
+    @Override
+    public void setDataFormatterProfile(@NotNull DBDDataFormatterProfile formatterProfile) {
+        dataFormatterProfile = formatterProfile;
+    }
+
+    @Override
+    public boolean isUseNativeDateTimeFormat() {
+        if (useNativeDateTimeFormat == -1) {
+            useNativeDateTimeFormat = (byte) (getExecutionContext().getDataSource().getContainer().isUseNativeDateTimeFormat() ? 1 : 0);
+        }
+        return useNativeDateTimeFormat == 1;
+    }
+
+    @Override
+    public void setUseNativeDateTimeFormat(boolean useNativeDateTimeFormat) {
+        this.useNativeDateTimeFormat = (byte) (useNativeDateTimeFormat ? 1 : 0);
+    }
+
+    @Override
+    public boolean isUseNativeNumericFormat() {
+        return getExecutionContext().getDataSource().getContainer().isUseNativeNumericFormat();
+    }
+
+    @Override
+    public boolean isUseScientificNumericFormat() {
+        return getExecutionContext().getDataSource().getContainer().isUseScientificNumericFormat();
+    }
+
+    @NotNull
+    @Override
+    public DBDValueHandler getDefaultValueHandler() {
+        return DefaultValueHandler.INSTANCE;
+    }
+
+    @Override
+    public void close() {
+        if (holdsBlock) {
+            monitor.endBlock();
+            holdsBlock = false;
+        }
+        if (loggingEnabled) {
+            QMUtils.getDefaultHandler().handleSessionClose(this);
+        }
+    }
+
+}

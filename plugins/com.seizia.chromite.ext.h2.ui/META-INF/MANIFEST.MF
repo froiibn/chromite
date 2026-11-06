@@ -1,0 +1,14 @@
+Manifest-Version: 1.0
+Bundle-ManifestVersion: 2
+Bundle-Name: Chromite H2 Support UI
+Bundle-SymbolicName: com.seizia.chromite.ext.h2.ui;singleton:=true
+Bundle-Version: 1.0.4.qualifier
+Bundle-Release-Date: 20261116
+Require-Bundle: com.seizia.chromite.ext.generic,
+ com.seizia.chromite.ext.generic.ui,
+ com.seizia.chromite.ext.h2,
+ com.seizia.chromite.ui.forms
+Bundle-ActivationPolicy: lazy
+Bundle-RequiredExecutionEnvironment: JavaSE-21
+Bundle-Vendor: Chromite contributors
+Automatic-Module-Name: com.seizia.chromite.ext.h2.ui

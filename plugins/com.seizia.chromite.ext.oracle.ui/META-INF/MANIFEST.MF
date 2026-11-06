@@ -1,0 +1,24 @@
+Manifest-Version: 1.0
+Bundle-ManifestVersion: 2
+Bundle-Name: Chromite Oracle UI
+Bundle-SymbolicName: com.seizia.chromite.ext.oracle.ui;singleton:=true
+Bundle-Version: 1.0.178.qualifier
+Bundle-Release-Date: 20261116
+Require-Bundle: com.seizia.chromite.ui.config.migration,
+ com.seizia.chromite.ui.editors.locks,
+ com.seizia.chromite.net.ssh,
+ com.seizia.chromite.ext.oracle,
+ com.seizia.chromite.ui.navigator,
+ com.seizia.chromite.ui.editors.connection,
+ com.seizia.chromite.ui.editors.data,
+ com.seizia.chromite.ui.editors.sql,
+ com.seizia.chromite.ui.editors.session,
+ com.seizia.chromite.tasks.ui
+Bundle-ActivationPolicy: lazy
+Bundle-RequiredExecutionEnvironment: JavaSE-21
+Bundle-Vendor: Chromite contributors
+Export-Package: com.seizia.chromite.ext.oracle.ui.config,
+ com.seizia.chromite.ext.oracle.ui.actions,
+ com.seizia.chromite.ext.oracle.ui.editors,
+ com.seizia.chromite.ext.oracle.ui.views
+Automatic-Module-Name: com.seizia.chromite.ext.oracle.ui

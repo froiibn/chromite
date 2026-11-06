@@ -1,0 +1,87 @@
+/*
+ * DBeaver - Universal Database Manager
+ * Copyright (C) 2010-2026 DBeaver Corp and others
+ * Modifications Copyright (C) 2026 Chromite contributors
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package com.seizia.chromite.ext.athena;
+
+import org.jkiss.code.DynamicCall;
+import org.jkiss.code.NotNull;
+import org.jkiss.code.Nullable;
+import org.jkiss.dbeaver.DBException;
+import com.seizia.chromite.ext.athena.model.AthenaConstants;
+import com.seizia.chromite.ext.athena.model.AthenaDataSource;
+import com.seizia.chromite.ext.athena.model.AthenaMetaModel;
+import com.seizia.chromite.ext.athena.model.AthenaUtils;
+import com.seizia.chromite.ext.generic.GenericDataSourceProvider;
+import com.seizia.chromite.model.DBPDataSourceContainer;
+import com.seizia.chromite.model.DBPInformationProvider;
+import com.seizia.chromite.model.DBPObject;
+import com.seizia.chromite.model.connection.DBPConnectionConfiguration;
+import com.seizia.chromite.model.connection.DBPDriver;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import org.jkiss.utils.CommonUtils;
+
+public class AthenaDataSourceProvider extends GenericDataSourceProvider<AthenaDataSource> implements DBPInformationProvider {
+
+    @DynamicCall
+    public AthenaDataSourceProvider() {
+        super(AthenaDataSource.class);
+    }
+
+    @NotNull
+    @Override
+    public AthenaDataSource openDataSource(
+        @NotNull DBRProgressMonitor monitor,
+        @NotNull DBPDataSourceContainer container
+    ) throws DBException {
+        return new AthenaDataSource(monitor, container, new AthenaMetaModel());
+    }
+
+    @NotNull
+    @Override
+    public String getConnectionURL(@NotNull DBPDriver driver, @NotNull DBPConnectionConfiguration connectionInfo) {
+        //jdbc:awsathena://AwsRegion=us-east-1;
+        String urlTemplate = driver.getSampleURL();
+        String regionName = connectionInfo.getServerName();
+        if (regionName == null) {
+            regionName = connectionInfo.getProviderProperty(AthenaConstants.DRIVER_PROP_REGION);
+            if (regionName == null) {
+                regionName = connectionInfo.getProviderProperty(AthenaConstants.DRIVER_PROP_REGION_OLD);
+            }
+        }
+        if (CommonUtils.isEmpty(urlTemplate) || !urlTemplate.startsWith(AthenaConstants.JDBC_URL_PREFIX)) {
+            String regionPropName = AthenaUtils.isLegacyDriver(driver) ?
+                AthenaConstants.DRIVER_PROP_REGION_OLD : AthenaConstants.DRIVER_PROP_REGION;
+
+            return AthenaConstants.JDBC_URL_PREFIX + regionPropName + "=" + regionName + ";";
+        }
+        urlTemplate = urlTemplate
+            .replace("{region}", regionName)
+            .replace("{server}", regionName)
+            .replace("=region;", "=" + regionName + ";"); // Left for backward compatibility
+        return urlTemplate;
+    }
+
+    @Nullable
+    @Override
+    public String getObjectInformation(@NotNull DBPObject object, @NotNull String infoType) {
+        if (object instanceof DBPDataSourceContainer && infoType.equals(INFO_TARGET_ADDRESS)) {
+            return ((DBPDataSourceContainer) object).getConnectionConfiguration().getServerName();
+        }
+        return null;
+    }
+
+}

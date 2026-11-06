@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?eclipse version="3.2"?>
+
+<plugin>
+
+    <extension point="com.seizia.chromite.net.ssh">
+        <implementation id="jsch" label="JSch" class="com.seizia.chromite.model.net.ssh.JSCHSessionController"/>
+    </extension>
+
+</plugin>

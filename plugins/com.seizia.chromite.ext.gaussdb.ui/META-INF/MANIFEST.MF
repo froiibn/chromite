@@ -1,0 +1,13 @@
+Manifest-Version: 1.0
+Bundle-ManifestVersion: 2
+Bundle-Name: Chromite GaussDB UI
+Bundle-SymbolicName: com.seizia.chromite.ext.gaussdb.ui;singleton:=true
+Bundle-Version: 1.0.52.qualifier
+Bundle-Release-Date: 20261116
+Require-Bundle: com.seizia.chromite.ext.postgresql.ui,
+ com.seizia.chromite.ext.gaussdb
+Bundle-ActivationPolicy: lazy
+Bundle-RequiredExecutionEnvironment: JavaSE-21
+Bundle-Vendor: Chromite contributors
+Automatic-Module-Name: com.seizia.chromite.ext.gaussdb.ui
+Import-Package: com.seizia.chromite.ui.editors.object.struct

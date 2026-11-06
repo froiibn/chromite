@@ -61,7 +61,7 @@ SWT는 같은 판단을 글자색으로만 보여 준다(오류색 = 파일 없�
 
 - 재사용: 속성 표는 `ConnectionPropertiesTable`, 진행 대화상자는 `ProgressDialog`, 다운로드 확인은 `SwingDriversService`, 아이콘은 `NodeIcons`,
   목록에서 뺄 드라이버는 Connect 대화상자와 같은 `DriverSelectionPanel.getConnectableDrivers()`다.
-- 새 번들 의존은 없다. 모델은 `org.jkiss.dbeaver.registry`(이미 `Require-Bundle`)의 `DriverDescriptor`, `DataSourceProviderDescriptor`,
+- 새 번들 의존은 없다. 모델은 `com.seizia.chromite.registry`(이미 `Require-Bundle`)의 `DriverDescriptor`, `DataSourceProviderDescriptor`,
   `DataSourceProviderRegistry`, `DriverLibraryAbstract`·`DriverLibraryBundle`, `DriverClassFindJob`, `DriverUtils`를 쓴다. SWT·JFace 번들은 쓰지 않는다.
 - 저장: `DataSourceProviderRegistry.saveDrivers()` → `DriverDescriptorSerializerLegacy`가 설정 컨트롤러
   (`DBWorkbench.getPlatform().getConfigurationController()`)의 `drivers.xml`, 곧 `<작업 공간>/.metadata/.config/drivers.xml`에 쓴다(확인한 위치).
@@ -94,7 +94,7 @@ SWT는 같은 판단을 글자색으로만 보여 준다(오류색 = 파일 없�
 - **클래스 로더 버리기:** SWT는 같은 이름의 드라이버가 있을 때만 `resetDriverInstance()`를 불러서, 이름을 바꾼 편집에서는 이전 jar의 클래스 로더가 남았다.
   Swing은 OK마다 버린다(다음 연결이 새 라이브러리로 드라이버를 다시 로드).
 - **오프라인 모드 체크 상자:** SWT 관리자는 환경설정 > 연결 > 드라이버 페이지로 가는 링크를 둔다. Swing 앱에는 그 페이지가 없어 같은 설정
-  (`ModelPreferences.UI_DRIVERS_OFFLINE`, `org.jkiss.dbeaver.core` 노드)을 관리자 창의 체크 상자로 둔다. 모델(`DriverUtils.isOfflineMode`)이 매번 읽으므로 바로 적용된다.
+  (`ModelPreferences.UI_DRIVERS_OFFLINE`, `com.seizia.chromite.core` 노드)을 관리자 창의 체크 상자로 둔다. 모델(`DriverUtils.isOfflineMode`)이 매번 읽으므로 바로 적용된다.
 - **Propagate driver properties:** SWT는 읽기 전용 공급자에서도 이 체크 상자만 켜 두는데, Swing은 다른 옵션처럼 끈다.
 - **상태 글자:** SWT의 색 구분 대신 상태 이름을 글로 보인다(위 표).
 - **Connect 대화상자의 Edit Driver…:** SWT 연결 페이지의 "Driver Settings" 단추(`ConnectionPageAbstract.java:252-258` → `ConnectionPageSettings.openDriverEditor`, 976-979행)에 해당한다. 편집 뒤 Swing은 폼 값을 작업용 연결에 쓰고

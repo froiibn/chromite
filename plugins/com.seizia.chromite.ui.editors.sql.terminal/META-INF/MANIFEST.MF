@@ -1,0 +1,16 @@
+Manifest-Version: 1.0
+Bundle-ManifestVersion: 2
+Bundle-Name: Chromite SQL Terminal
+Bundle-SymbolicName: com.seizia.chromite.ui.editors.sql.terminal;singleton:=true
+Bundle-Version: 1.0.167.qualifier
+Bundle-Release-Date: 20261116
+Bundle-Vendor: Chromite contributors
+Bundle-RequiredExecutionEnvironment: JavaSE-21
+Bundle-ActivationPolicy: lazy
+Bundle-Activator: com.seizia.chromite.ui.editors.sql.terminal.internal.SQLTerminalActivator
+Require-Bundle: org.eclipse.ui.console,
+ com.seizia.chromite.ui.navigator,
+ com.seizia.chromite.ui.editors.data,
+ com.seizia.chromite.ui.editors.sql
+Export-Package: com.seizia.chromite.ui.editors.sql.terminal
+Automatic-Module-Name: com.seizia.chromite.ui.editors.sql.terminal

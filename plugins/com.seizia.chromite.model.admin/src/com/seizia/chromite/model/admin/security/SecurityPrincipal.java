@@ -18,7 +18,7 @@ package com.seizia.chromite.model.admin.security;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.model.struct.DBSObject;
+import com.seizia.chromite.model.struct.DBSObject;
 
 import java.util.LinkedHashMap;
 import java.util.Map;

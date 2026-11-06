@@ -4,8 +4,8 @@
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
     <modelVersion>4.0.0</modelVersion>
     <parent>
-        <groupId>org.jkiss.dbeaver</groupId>
-        <artifactId>dbeaver</artifactId>
+        <groupId>com.seizia.chromite</groupId>
+        <artifactId>chromite</artifactId>
         <version>1.0.0-SNAPSHOT</version>
         <relativePath>../</relativePath>
     </parent>
@@ -13,98 +13,98 @@
     <packaging>pom</packaging>
 
     <modules>
-        <module>org.jkiss.dbeaver.launcher</module>
-        <module>org.jkiss.dbeaver.model</module>
-        <module>org.jkiss.dbeaver.model.ai</module>
-        <module>org.jkiss.dbeaver.model.datadam</module>
-        <module>org.jkiss.dbeaver.model.cli</module>
-        <module>org.jkiss.dbeaver.model.event</module>
-        <module>org.jkiss.dbeaver.model.dashboard</module>
-        <module>org.jkiss.dbeaver.model.erd</module>
-        <module>org.jkiss.dbeaver.model.jdbc</module>
-        <module>org.jkiss.dbeaver.model.lsm</module>
-        <module>org.jkiss.dbeaver.model.nio</module>
-        <module>org.jkiss.dbeaver.model.rcp</module>
-        <module>org.jkiss.dbeaver.model.security</module>
-        <module>org.jkiss.dbeaver.model.sm</module>
-        <module>org.jkiss.dbeaver.model.sql</module>
-        <module>org.jkiss.dbeaver.model.sql.jdbc</module>
-        <module>org.jkiss.dbeaver.model.lsp</module>
-        <module>org.jkiss.dbeaver.registry</module>
+        <module>com.seizia.chromite.launcher</module>
+        <module>com.seizia.chromite.model</module>
+        <module>com.seizia.chromite.model.ai</module>
+        <module>com.seizia.chromite.model.datadam</module>
+        <module>com.seizia.chromite.model.cli</module>
+        <module>com.seizia.chromite.model.event</module>
+        <module>com.seizia.chromite.model.dashboard</module>
+        <module>com.seizia.chromite.model.erd</module>
+        <module>com.seizia.chromite.model.jdbc</module>
+        <module>com.seizia.chromite.model.lsm</module>
+        <module>com.seizia.chromite.model.nio</module>
+        <module>com.seizia.chromite.model.rcp</module>
+        <module>com.seizia.chromite.model.security</module>
+        <module>com.seizia.chromite.model.sm</module>
+        <module>com.seizia.chromite.model.sql</module>
+        <module>com.seizia.chromite.model.sql.jdbc</module>
+        <module>com.seizia.chromite.model.lsp</module>
+        <module>com.seizia.chromite.registry</module>
 
-        <module>org.jkiss.dbeaver.cmp.simple</module>
+        <module>com.seizia.chromite.cmp.simple</module>
 
-        <module>org.jkiss.dbeaver.ext.generic</module>
+        <module>com.seizia.chromite.ext.generic</module>
 
 
-        <module>org.jkiss.dbeaver.ext.athena</module>
-        <module>org.jkiss.dbeaver.ext.bigquery</module>
-        <module>org.jkiss.dbeaver.ext.clickhouse</module>
-        <module>org.jkiss.dbeaver.ext.cubrid</module>
-        <module>org.jkiss.dbeaver.ext.databend</module>
-        <module>org.jkiss.dbeaver.ext.databricks</module>
-        <module>org.jkiss.dbeaver.ext.db2</module>
-        <module>org.jkiss.dbeaver.ext.db2.zos</module>
-        <module>org.jkiss.dbeaver.ext.db2.i</module>
-        <module>org.jkiss.dbeaver.ext.derby</module>
-        <module>org.jkiss.dbeaver.ext.dameng</module>
-        <module>org.jkiss.dbeaver.ext.mimer</module>
-        <module>org.jkiss.dbeaver.ext.duckdb</module>
-        <module>org.jkiss.dbeaver.ext.exasol</module>
-        <module>org.jkiss.dbeaver.ext.firebird</module>
-        <module>org.jkiss.dbeaver.ext.gbase8s</module>
-        <module>org.jkiss.dbeaver.ext.greenplum</module>
-        <module>org.jkiss.dbeaver.ext.h2</module>
-        <module>org.jkiss.dbeaver.ext.hana</module>
-        <module>org.jkiss.dbeaver.ext.hive</module>
-        <module>org.jkiss.dbeaver.ext.hsqldb</module>
-        <module>org.jkiss.dbeaver.ext.informix</module>
-        <module>org.jkiss.dbeaver.ext.iotdb</module>
-        <module>org.jkiss.dbeaver.ext.kingbase</module>
-        <module>org.jkiss.dbeaver.ext.manticore</module>
-        <module>org.jkiss.dbeaver.ext.tidblake</module>
-        <module>org.jkiss.dbeaver.ext.mssql</module>
-        <module>org.jkiss.dbeaver.ext.mysql</module>
-        <module>org.jkiss.dbeaver.ext.netezza</module>
-        <module>org.jkiss.dbeaver.ext.oceanbase</module>
-        <module>org.jkiss.dbeaver.ext.ocient</module>
-        <module>org.jkiss.dbeaver.ext.oracle</module>
-        <module>org.jkiss.dbeaver.ext.phoenix</module>
-        <module>org.jkiss.dbeaver.ext.doris</module>
-        <module>org.jkiss.dbeaver.ext.starrocks</module>
-        <module>org.jkiss.dbeaver.ext.greptime</module>
+        <module>com.seizia.chromite.ext.athena</module>
+        <module>com.seizia.chromite.ext.bigquery</module>
+        <module>com.seizia.chromite.ext.clickhouse</module>
+        <module>com.seizia.chromite.ext.cubrid</module>
+        <module>com.seizia.chromite.ext.databend</module>
+        <module>com.seizia.chromite.ext.databricks</module>
+        <module>com.seizia.chromite.ext.db2</module>
+        <module>com.seizia.chromite.ext.db2.zos</module>
+        <module>com.seizia.chromite.ext.db2.i</module>
+        <module>com.seizia.chromite.ext.derby</module>
+        <module>com.seizia.chromite.ext.dameng</module>
+        <module>com.seizia.chromite.ext.mimer</module>
+        <module>com.seizia.chromite.ext.duckdb</module>
+        <module>com.seizia.chromite.ext.exasol</module>
+        <module>com.seizia.chromite.ext.firebird</module>
+        <module>com.seizia.chromite.ext.gbase8s</module>
+        <module>com.seizia.chromite.ext.greenplum</module>
+        <module>com.seizia.chromite.ext.h2</module>
+        <module>com.seizia.chromite.ext.hana</module>
+        <module>com.seizia.chromite.ext.hive</module>
+        <module>com.seizia.chromite.ext.hsqldb</module>
+        <module>com.seizia.chromite.ext.informix</module>
+        <module>com.seizia.chromite.ext.iotdb</module>
+        <module>com.seizia.chromite.ext.kingbase</module>
+        <module>com.seizia.chromite.ext.manticore</module>
+        <module>com.seizia.chromite.ext.tidblake</module>
+        <module>com.seizia.chromite.ext.mssql</module>
+        <module>com.seizia.chromite.ext.mysql</module>
+        <module>com.seizia.chromite.ext.netezza</module>
+        <module>com.seizia.chromite.ext.oceanbase</module>
+        <module>com.seizia.chromite.ext.ocient</module>
+        <module>com.seizia.chromite.ext.oracle</module>
+        <module>com.seizia.chromite.ext.phoenix</module>
+        <module>com.seizia.chromite.ext.doris</module>
+        <module>com.seizia.chromite.ext.starrocks</module>
+        <module>com.seizia.chromite.ext.greptime</module>
 
-        <module>org.jkiss.dbeaver.ext.postgresql</module>
+        <module>com.seizia.chromite.ext.postgresql</module>
 
-        <module>org.jkiss.dbeaver.ext.snowflake</module>
-        <module>org.jkiss.dbeaver.ext.spanner</module>
-        <module>org.jkiss.dbeaver.ext.sqlite</module>
-        <module>org.jkiss.dbeaver.ext.cloudflare.d1</module>
-        <module>org.jkiss.dbeaver.ext.vertica</module>
-        <module>org.jkiss.dbeaver.ext.teradata</module>
-        <module>org.jkiss.dbeaver.ext.tidb</module>
-        <module>org.jkiss.dbeaver.ext.timeplus</module>
-        <module>org.jkiss.dbeaver.ext.trino</module>
-        <module>org.jkiss.dbeaver.ext.denodo</module>
-        <module>org.jkiss.dbeaver.ext.altibase</module>
-        <module>org.jkiss.dbeaver.ext.gaussdb</module>
-        <module>org.jkiss.dbeaver.ext.yashandb</module>
+        <module>com.seizia.chromite.ext.snowflake</module>
+        <module>com.seizia.chromite.ext.spanner</module>
+        <module>com.seizia.chromite.ext.sqlite</module>
+        <module>com.seizia.chromite.ext.cloudflare.d1</module>
+        <module>com.seizia.chromite.ext.vertica</module>
+        <module>com.seizia.chromite.ext.teradata</module>
+        <module>com.seizia.chromite.ext.tidb</module>
+        <module>com.seizia.chromite.ext.timeplus</module>
+        <module>com.seizia.chromite.ext.trino</module>
+        <module>com.seizia.chromite.ext.denodo</module>
+        <module>com.seizia.chromite.ext.altibase</module>
+        <module>com.seizia.chromite.ext.gaussdb</module>
+        <module>com.seizia.chromite.ext.yashandb</module>
         
-        <module>org.jkiss.dbeaver.tasks.native</module>
+        <module>com.seizia.chromite.tasks.native</module>
 
-        <module>org.jkiss.dbeaver.data.office</module>
-        <module>org.jkiss.dbeaver.data.transfer</module>
-        <module>org.jkiss.dbeaver.data.gis</module>
+        <module>com.seizia.chromite.data.office</module>
+        <module>com.seizia.chromite.data.transfer</module>
+        <module>com.seizia.chromite.data.gis</module>
 
-        <module>org.jkiss.dbeaver.debug.core</module>
+        <module>com.seizia.chromite.debug.core</module>
 
-        <module>org.jkiss.dbeaver.net.ssh</module>
-        <module>org.jkiss.dbeaver.net.ssh.jsch</module>
-        <module>org.jkiss.dbeaver.net.ssh.sshj</module>
-        <module>org.jkiss.dbeaver.slf4j</module>
+        <module>com.seizia.chromite.net.ssh</module>
+        <module>com.seizia.chromite.net.ssh.jsch</module>
+        <module>com.seizia.chromite.net.ssh.sshj</module>
+        <module>com.seizia.chromite.slf4j</module>
 
-        <module>org.jkiss.dbeaver.headless</module>
-        <module>org.jkiss.dbeaver.osgi.test.runner</module>
+        <module>com.seizia.chromite.headless</module>
+        <module>com.seizia.chromite.osgi.test.runner</module>
     </modules>
 
     <profiles>
@@ -113,94 +113,94 @@
             <activation><property><name>!headless-platform</name></property></activation>
             <!-- Desktop (swt/jface) components -->
             <modules>
-                <module>org.jkiss.dbeaver.launcher</module>
-                <module>org.jkiss.dbeaver.core</module>
-                <module>org.jkiss.dbeaver.ui.app.standalone</module>
+                <module>com.seizia.chromite.launcher</module>
+                <module>com.seizia.chromite.core</module>
+                <module>com.seizia.chromite.ui.app.standalone</module>
                 <module>com.seizia.chromite.drivers.public</module>
-                <module>org.jkiss.dbeaver.ext.athena.ui</module>
-                <module>org.jkiss.dbeaver.ext.bigquery.ui</module>
-                <module>org.jkiss.dbeaver.ext.clickhouse.ui</module>
-                <module>org.jkiss.dbeaver.ext.cubrid.ui</module>
-                <module>org.jkiss.dbeaver.ext.dameng.ui</module>
-                <module>org.jkiss.dbeaver.ext.databend.ui</module>
-                <module>org.jkiss.dbeaver.ext.exasol.ui</module>
-                <module>org.jkiss.dbeaver.ext.db2.ui</module>
-                <module>org.jkiss.dbeaver.ext.duckdb.ui</module>
-                <module>org.jkiss.dbeaver.ext.firebird.ui</module>
-                <module>org.jkiss.dbeaver.ext.generic.ui</module>
-                <module>org.jkiss.dbeaver.ext.h2.ui</module>
-                <module>org.jkiss.dbeaver.ext.hana.ui</module>
-                <module>org.jkiss.dbeaver.ext.iotdb.ui</module>
-                <module>org.jkiss.dbeaver.ext.kingbase.ui</module>
-                <module>org.jkiss.dbeaver.ext.tidblake.ui</module>
-                <module>org.jkiss.dbeaver.ext.mssql.ui</module>
-                <module>org.jkiss.dbeaver.ext.mysql.ui</module>
-                <module>org.jkiss.dbeaver.ext.mimer.ui</module>
-                <module>org.jkiss.dbeaver.ext.oceanbase.ui</module>
-                <module>org.jkiss.dbeaver.ext.oracle.ui</module>
+                <module>com.seizia.chromite.ext.athena.ui</module>
+                <module>com.seizia.chromite.ext.bigquery.ui</module>
+                <module>com.seizia.chromite.ext.clickhouse.ui</module>
+                <module>com.seizia.chromite.ext.cubrid.ui</module>
+                <module>com.seizia.chromite.ext.dameng.ui</module>
+                <module>com.seizia.chromite.ext.databend.ui</module>
+                <module>com.seizia.chromite.ext.exasol.ui</module>
+                <module>com.seizia.chromite.ext.db2.ui</module>
+                <module>com.seizia.chromite.ext.duckdb.ui</module>
+                <module>com.seizia.chromite.ext.firebird.ui</module>
+                <module>com.seizia.chromite.ext.generic.ui</module>
+                <module>com.seizia.chromite.ext.h2.ui</module>
+                <module>com.seizia.chromite.ext.hana.ui</module>
+                <module>com.seizia.chromite.ext.iotdb.ui</module>
+                <module>com.seizia.chromite.ext.kingbase.ui</module>
+                <module>com.seizia.chromite.ext.tidblake.ui</module>
+                <module>com.seizia.chromite.ext.mssql.ui</module>
+                <module>com.seizia.chromite.ext.mysql.ui</module>
+                <module>com.seizia.chromite.ext.mimer.ui</module>
+                <module>com.seizia.chromite.ext.oceanbase.ui</module>
+                <module>com.seizia.chromite.ext.oracle.ui</module>
 
-                <module>org.jkiss.dbeaver.ext.postgresql.ui</module>
-                <module>org.jkiss.dbeaver.ext.postgresql.debug.core</module>
-                <module>org.jkiss.dbeaver.ext.postgresql.debug.ui</module>
-                <module>org.jkiss.dbeaver.ext.sqlite.ui</module>
-                <module>org.jkiss.dbeaver.ext.cloudflare.d1.ui</module>
-                <module>org.jkiss.dbeaver.ext.spanner.ui</module>
-                <module>org.jkiss.dbeaver.ext.snowflake.ui</module>
-                <module>org.jkiss.dbeaver.ext.vertica.ui</module>
-                <module>org.jkiss.dbeaver.ext.tidb.ui</module>
-                <module>org.jkiss.dbeaver.ext.altibase.ui</module>
-                <module>org.jkiss.dbeaver.ext.yashandb.ui</module>
+                <module>com.seizia.chromite.ext.postgresql.ui</module>
+                <module>com.seizia.chromite.ext.postgresql.debug.core</module>
+                <module>com.seizia.chromite.ext.postgresql.debug.ui</module>
+                <module>com.seizia.chromite.ext.sqlite.ui</module>
+                <module>com.seizia.chromite.ext.cloudflare.d1.ui</module>
+                <module>com.seizia.chromite.ext.spanner.ui</module>
+                <module>com.seizia.chromite.ext.snowflake.ui</module>
+                <module>com.seizia.chromite.ext.vertica.ui</module>
+                <module>com.seizia.chromite.ext.tidb.ui</module>
+                <module>com.seizia.chromite.ext.altibase.ui</module>
+                <module>com.seizia.chromite.ext.yashandb.ui</module>
 
-                <module>org.jkiss.dbeaver.ext.wmi</module>
+                <module>com.seizia.chromite.ext.wmi</module>
 
-                <module>org.jkiss.dbeaver.ui</module>
-                <module>org.jkiss.dbeaver.ui.editors.acl</module>
-                <module>org.jkiss.dbeaver.ui.editors.base</module>
-                <module>org.jkiss.dbeaver.ui.editors.connection</module>
-                <module>org.jkiss.dbeaver.ui.editors.data</module>
-                <module>org.jkiss.dbeaver.ui.editors.entity</module>
-                <module>org.jkiss.dbeaver.ui.editors.erd</module>
-                <module>org.jkiss.dbeaver.ui.editors.hex</module>
-                <module>org.jkiss.dbeaver.ui.editors.image</module>
-                <module>org.jkiss.dbeaver.ui.editors.json</module>
-                <module>org.jkiss.dbeaver.ui.editors.locks</module>
-                <module>org.jkiss.dbeaver.ui.editors.sql</module>
-                <module>org.jkiss.dbeaver.ui.ai</module>
-                <module>org.jkiss.dbeaver.ui.datadam</module>
-                <module>org.jkiss.dbeaver.ui.editors.sql.terminal</module>
-                <module>org.jkiss.dbeaver.ui.editors.session</module>
-                <module>org.jkiss.dbeaver.ui.editors.xml</module>
-                <module>org.jkiss.dbeaver.ui.navigator</module>
-                <module>org.jkiss.dbeaver.ui.forms</module>
-                <module>org.jkiss.dbeaver.ui.charts</module>
-                <module>org.jkiss.dbeaver.ui.dashboard</module>
-                <module>org.jkiss.dbeaver.ui.search</module>
+                <module>com.seizia.chromite.ui</module>
+                <module>com.seizia.chromite.ui.editors.acl</module>
+                <module>com.seizia.chromite.ui.editors.base</module>
+                <module>com.seizia.chromite.ui.editors.connection</module>
+                <module>com.seizia.chromite.ui.editors.data</module>
+                <module>com.seizia.chromite.ui.editors.entity</module>
+                <module>com.seizia.chromite.ui.editors.erd</module>
+                <module>com.seizia.chromite.ui.editors.hex</module>
+                <module>com.seizia.chromite.ui.editors.image</module>
+                <module>com.seizia.chromite.ui.editors.json</module>
+                <module>com.seizia.chromite.ui.editors.locks</module>
+                <module>com.seizia.chromite.ui.editors.sql</module>
+                <module>com.seizia.chromite.ui.ai</module>
+                <module>com.seizia.chromite.ui.datadam</module>
+                <module>com.seizia.chromite.ui.editors.sql.terminal</module>
+                <module>com.seizia.chromite.ui.editors.session</module>
+                <module>com.seizia.chromite.ui.editors.xml</module>
+                <module>com.seizia.chromite.ui.navigator</module>
+                <module>com.seizia.chromite.ui.forms</module>
+                <module>com.seizia.chromite.ui.charts</module>
+                <module>com.seizia.chromite.ui.dashboard</module>
+                <module>com.seizia.chromite.ui.search</module>
 
-                <module>org.jkiss.dbeaver.ui.swt.macos</module>
-                <module>org.jkiss.dbeaver.ui.swt.windows</module>
+                <module>com.seizia.chromite.ui.swt.macos</module>
+                <module>com.seizia.chromite.ui.swt.windows</module>
 
-                <module>org.jkiss.dbeaver.tasks.native.ui</module>
-                <module>org.jkiss.dbeaver.tasks.ui</module>
-                <module>org.jkiss.dbeaver.tasks.ui.view</module>
-                <module>org.jkiss.dbeaver.tasks.sql.ui</module>
+                <module>com.seizia.chromite.tasks.native.ui</module>
+                <module>com.seizia.chromite.tasks.ui</module>
+                <module>com.seizia.chromite.tasks.ui.view</module>
+                <module>com.seizia.chromite.tasks.sql.ui</module>
 
-                <module>org.jkiss.dbeaver.data.office.ui</module>
-                <module>org.jkiss.dbeaver.ui.config.sample</module>
-                <module>org.jkiss.dbeaver.ui.config.migration</module>
-                <module>org.jkiss.dbeaver.ui.app.config</module>
-                <module>org.jkiss.dbeaver.cmp.simple.ui</module>
+                <module>com.seizia.chromite.data.office.ui</module>
+                <module>com.seizia.chromite.ui.config.sample</module>
+                <module>com.seizia.chromite.ui.config.migration</module>
+                <module>com.seizia.chromite.ui.app.config</module>
+                <module>com.seizia.chromite.cmp.simple.ui</module>
 
-                <module>org.jkiss.dbeaver.debug.ui</module>
+                <module>com.seizia.chromite.debug.ui</module>
 
-                <module>org.jkiss.dbeaver.data.transfer.ui</module>
-                <module>org.jkiss.dbeaver.data.gis.view</module>
-                <module>org.jkiss.dbeaver.net.ssh.ui</module>
+                <module>com.seizia.chromite.data.transfer.ui</module>
+                <module>com.seizia.chromite.data.gis.view</module>
+                <module>com.seizia.chromite.net.ssh.ui</module>
 
-                <module>org.jkiss.dbeaver.ext.gaussdb.ui</module>
+                <module>com.seizia.chromite.ext.gaussdb.ui</module>
 
-                <module>org.jkiss.dbeaver.team.git.ui</module>
+                <module>com.seizia.chromite.team.git.ui</module>
 
-                <module>org.jkiss.dbeaver.ui.app.devtools</module>
+                <module>com.seizia.chromite.ui.app.devtools</module>
 
                 <!-- Chromite Swing frontend (no SWT), docs/chromite/swing-frontend.md -->
                 <module>com.seizia.chromite.ui.swing</module>

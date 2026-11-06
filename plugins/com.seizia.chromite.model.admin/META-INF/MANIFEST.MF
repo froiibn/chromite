@@ -6,12 +6,12 @@ Bundle-SymbolicName: com.seizia.chromite.model.admin;singleton:=true
 Bundle-Version: 1.0.0.qualifier
 Bundle-RequiredExecutionEnvironment: JavaSE-21
 Bundle-Localization: OSGI-INF/l10n/bundle
-Require-Bundle: org.jkiss.dbeaver.model,
- org.jkiss.dbeaver.model.jdbc,
- org.jkiss.dbeaver.ext.postgresql,
- org.jkiss.dbeaver.ext.mssql,
- org.jkiss.dbeaver.ext.mysql,
- org.jkiss.dbeaver.ext.oracle
+Require-Bundle: com.seizia.chromite.model,
+ com.seizia.chromite.model.jdbc,
+ com.seizia.chromite.ext.postgresql,
+ com.seizia.chromite.ext.mssql,
+ com.seizia.chromite.ext.mysql,
+ com.seizia.chromite.ext.oracle
 Export-Package: com.seizia.chromite.model.admin,
  com.seizia.chromite.model.admin.mssql,
  com.seizia.chromite.model.admin.mysql,

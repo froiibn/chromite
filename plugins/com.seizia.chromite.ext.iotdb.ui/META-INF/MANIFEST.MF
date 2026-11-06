@@ -1,0 +1,21 @@
+Manifest-Version: 1.0
+Bundle-ManifestVersion: 2
+Bundle-Name: Chromite IoTDB UI Support
+Bundle-SymbolicName: com.seizia.chromite.ext.iotdb.ui;singleton:=true
+Bundle-Version: 1.0.29.qualifier
+Bundle-Release-Date: 20261116
+Require-Bundle: com.seizia.chromite.model.sql,
+ com.seizia.chromite.data.gis,
+ com.seizia.chromite.ext.generic.ui,
+ com.seizia.chromite.ext.iotdb,
+ com.seizia.chromite.registry,
+ com.seizia.chromite.tasks.native.ui,
+ com.seizia.chromite.ui.editors.base,
+ com.seizia.chromite.ui.editors.connection,
+ com.seizia.chromite.ui.editors.session,
+ com.seizia.chromite.tasks.ui
+Bundle-ActivationPolicy: lazy
+Bundle-RequiredExecutionEnvironment: JavaSE-21
+Bundle-Vendor: Chromite contributors
+Automatic-Module-Name: com.seizia.chromite.ext.iotdb.ui
+Export-Package: com.seizia.chromite.ext.iotdb.ui.editors
