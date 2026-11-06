@@ -332,6 +332,10 @@ Next run(남은 시간), Last run, Last status. Run Now(바로 한 번), History
 - 라이브러리 쿼리를 일반 `.sql` 파일로 내보내는 Save As.
 - 파일 시스템 감시에 의한 자동 새로 고침(지금은 Refresh).
 - 트리 안에서 바로 이름 바꾸기(지금은 이름 입력 대화상자).
+- 예약 실행: 한 쿼리의 여러 서버를 차례로 실행한다(병렬 아님). 예약 실행마다 연결을 새로 열고 닫는다(자주 도는 예약이 많으면 연결 풀이 필요할 수 있음).
+- 범위 밖에서 발견한 문제(고치지 않음): 기존 `NotificationToast`가 메시지가 있는 새 알림을 창 높이만큼 크게 그린다.
+  `layoutToasts`가 `setSize(WIDTH, Integer.MAX_VALUE)` 직후 `getPreferredSize()`를 부르는데, 아직 배치되지 않은 줄바꿈 `JTextArea`는 폭 0으로 계산되어
+  높이가 커지는 것으로 보인다(새로 추가된 알림만 크고, 이미 배치된 알림은 정상). 예약 알림이 이 컴포넌트를 쓰므로 함께 보인다.
 
 ## 확인 (2026-11-06)
 
@@ -361,6 +365,10 @@ Next run(남은 시간), Last run, Last status. Run Now(바로 한 번), History
 | ③ 기록 | `.metadata/chromite-query-library/history/<id>.tsv`에 시각·서버·ms·행 수·상태·메시지·앞 행 |
 | 여러 루트 | 개인 루트 + 읽기 전용 "Team (shared)" 루트(보조 글자 "read-only") |
 | 다크 테마 | 같은 화면을 다크 테마로 확인 |
+
+화면으로 확인하지 못한 것(13:06부터 다른 프로세스의 "Windows 보안" 자격 증명 창이 전경을 잡고 있어 클릭·키 입력을 보낼 수 없었음):
+Schedule…·History…·Scheduled Queries… 대화상자, Save to Query Library… 대화상자, Rename·Delete·끌어다 놓기, Parameters… 정의 표, 다크 테마의 편집 창·매개변수 대화상자.
+예약 실행 자체(실행, 조건, 알림, 기록, 겹침 방지, 다시 시작)는 파일과 로컬 설정을 미리 만들어 두고 앱을 실행해 기록 파일과 창 캡처로 확인했다.
 
 스크린숏: `D:\Tools\_scratch\query-library\shots\`. 회귀 테스트는 실행하지 않았다(요청 없음).
 영향받을 수 있는 기능: SWT·Swing의 쿼리 실행(실행 엔진의 바인딩 분기, 기본은 기존 경로), Swing 쿼리 창(확장 지점, 저장), 도구 창 배치(새 열, 처음에는 숨김).
