@@ -32,6 +32,10 @@ import java.sql.Types;
 
 /**
  * Oracle data types provider
+ *
+ * 변경 이력:
+ * - 2026-11-07 Chromite: BINARY_FLOAT/BINARY_DOUBLE get {@link OracleBinaryFloatValueHandler} (values beyond the
+ *   NUMBER range overflowed).
  */
 public class OracleValueHandlerProvider implements DBDValueHandlerProvider {
 
@@ -72,6 +76,9 @@ public class OracleValueHandlerProvider implements DBDValueHandlerProvider {
                 return OracleRefCursorValueHandler.INSTANCE;
             case OracleConstants.TYPE_NAME_JSON:
                 return JDBCContentValueHandler.INSTANCE;
+            case OracleBinaryFloatValueHandler.TYPE_NAME_BINARY_FLOAT:
+            case OracleBinaryFloatValueHandler.TYPE_NAME_BINARY_DOUBLE:
+                return new OracleBinaryFloatValueHandler(typedObject, preferences);
         }
 
         if (typeName.contains(OracleConstants.TYPE_NAME_TIMESTAMP) || typedObject.getDataKind() == DBPDataKind.DATETIME) {

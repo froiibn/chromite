@@ -80,6 +80,7 @@ import java.util.Map;
  *   붙일 때 현재 Look and Feel로 다시 설치함 (docs/chromite/swing-admin-tools.md)
  * - 2026-11-06 화면 문구를 ConnectionMessages로 옮김(OS 언어를 따름)
  * - 2026-11-07 오류 문구를 {@link ErrorText}로 만듦(클래스 이름이 화면에 나오지 않게, docs/chromite/swing-frontend.md "오류 문구")
+ * - 2026-11-07 밀도 B: 치수를 테마의 Chromite.size.* 키({@link UiSizes})에서 읽음 (docs/chromite/design-spec.md "치수 토큰")
  */
 final class SessionManagerPanel extends JPanel {
 
@@ -130,7 +131,7 @@ final class SessionManagerPanel extends JPanel {
 
         toolBar.setFloatable(false);
         toolBar.setOpaque(false);
-        toolBar.setBorder(BorderFactory.createEmptyBorder(UIScale.scale(3), UIScale.scale(8), UIScale.scale(3), UIScale.scale(8)));
+        toolBar.setBorder(UiSizes.createPadding(UiSizes.TOOL_WINDOW_TOOL_BAR_PADDING));
         Action refreshAction = new AbstractAction(ConnectionMessages.common_refresh) {
             @Override
             public void actionPerformed(java.awt.event.ActionEvent e) {
@@ -184,7 +185,7 @@ final class SessionManagerPanel extends JPanel {
         detailsTable.setIntercellSpacing(new Dimension(0, 0));
         JScrollPane detailsScroll = new JScrollPane(detailsTable);
         detailsScroll.setBorder(BorderFactory.createEmptyBorder());
-        detailTabs.putClientProperty(FlatClientProperties.STYLE, "tabHeight: 32; tabSelectionHeight: 3"); //$NON-NLS-1$
+        detailTabs.putClientProperty(FlatClientProperties.STYLE, UiSizes.TOOL_TABS_STYLE);
         detailTabs.addTab(ConnectionMessages.sessions_tab_sql, UiIcons.get("file-sql"), sqlScroll); //$NON-NLS-1$
         detailTabs.addTab(ConnectionMessages.sessions_tab_details, UiIcons.get("info"), detailsScroll); //$NON-NLS-1$
         detailTabs.addChangeListener(e -> loadSelectedDetails());
