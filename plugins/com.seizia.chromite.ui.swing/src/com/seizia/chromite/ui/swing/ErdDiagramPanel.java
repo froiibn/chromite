@@ -85,6 +85,7 @@ import java.util.function.Consumer;
  *
  * 변경 이력:
  * - 2026-11-06 최초 작성 (docs/chromite/swing-erd.md)
+ * - 2026-11-07 밀도 B: 치수를 테마의 Chromite.size.* 키({@link UiSizes})에서 읽음 (docs/chromite/design-spec.md "치수 토큰")
  */
 final class ErdDiagramPanel extends JPanel implements ToolDocument {
 
@@ -245,7 +246,7 @@ final class ErdDiagramPanel extends JPanel implements ToolDocument {
         statusLabel.putClientProperty(FlatClientProperties.STYLE, "foreground: $Chromite.secondaryForeground"); //$NON-NLS-1$
         // Below the diagram, so a narrow tab does not push tool bar buttons out of view
         statusLabel.setBorder(BorderFactory.createEmptyBorder(UIScale.scale(4), UIScale.scale(12), UIScale.scale(4), UIScale.scale(12)));
-        toolBar.setBorder(BorderFactory.createEmptyBorder(UIScale.scale(3), UIScale.scale(8), UIScale.scale(3), UIScale.scale(8)));
+        toolBar.setBorder(UiSizes.createPadding(UiSizes.TOOL_WINDOW_TOOL_BAR_PADDING));
         add(toolBar, BorderLayout.NORTH);
         add(statusLabel, BorderLayout.SOUTH);
 
