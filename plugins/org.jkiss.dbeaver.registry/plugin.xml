@@ -83,8 +83,8 @@
     <extension point="org.jkiss.dbeaver.dataSourceAuth">
         <authModel
             id="native"
-            label="Username/password"
-            description="Database authentication (username/password)"
+            label="%auth.native.label"
+            description="%auth.native.description"
             class="org.jkiss.dbeaver.model.impl.auth.AuthModelDatabaseNative"
             default="true">
 
@@ -96,8 +96,8 @@
         </authModel>
         <authModel
             id="shell_command"
-            label="Password from shell command"
-            description="Database authentication; the password is read from the stdout of a shell command run at connect time"
+            label="%auth.shell_command.label"
+            description="%auth.shell_command.description"
             class="org.jkiss.dbeaver.model.impl.auth.AuthModelDatabaseShellCommand"
             desktop="true">
 
