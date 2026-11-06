@@ -63,6 +63,12 @@ DBeaver의 데이터 전송(`org.jkiss.dbeaver.data.transfer` 모델 + `.ui` SWT
   메뉴를 켤지 판단은 형식만 본다(`DataTransferObjects.isDataContainerParent`: 폴더의 자식 클래스, 컨테이너의 `getPrimaryChildType(null)` — SWT `DataImportHandler`와 같은 방식).
 - **전체 행:** 테이블은 `DatabaseTransferProducer`가 테이블을 다시 읽는다. 결과 표는 그 쿼리의 `SQLQueryDataContainer`로 쿼리를 다시 실행한다(SWT 결과 표 내보내기의 기본,
   `ResultSetDataContainer.readData`가 가져온 행만 쓰는 옵션이 없으면 원래 컨테이너의 `readData`).
+- **결과 표의 필터와 정렬:** 결과 뷰어(`ResultSetViewerPanel`)가 서버에서 다시 읽은 조건과 정렬(`DBDDataFilter`: 필터 줄의 WHERE, Filter by Value,
+  서버 정렬의 ORDER BY)을 `DatabaseTransferProducer(container, filter)`에 넘긴다(SWT `ResultSetHandlerMain.java:595`가 `rsv.getModel().getDataFilter()`를
+  넘기는 것과 같음). 처음에는 필터 없이 원래 쿼리를 다시 실행해, 걸러 낸 표에서도 모든 행이 원래 순서로 나갔다. 표의 메뉴는 `ResultSetGrid.Host.exportData`로
+  마법사를 열고 뷰어가 이 필터를 넣는다. 뷰어는 서버에서 읽은 필터를 따로 둔다(`serverFilter`): 모든 행을 이미 읽은 표나 서버 정렬이 꺼진 연결의 정렬은
+  표 안에서만 하므로(`clientOrdered`) 내보내기가 따를 수 없고, 그때는 원본 페이지와 요약에 "내보낸 행은 쿼리가 돌려주는 순서"라고 적는다.
+  필터는 늘 서버에서 다시 읽으므로 표 안에서만 거른 결과는 없다. 마법사의 원본 페이지와 요약은 적용되는 WHERE·ORDER BY를 보여 준다.
 - **다시 실행해도 되는 결과만:** `Export Data…`는 (1) 쿼리의 첫 결과 집합이고 (2) 바꾸지 않는 SELECT(`SQLQuery.getType() == SELECT && !isModifying()` —
   `SELECT … INTO`, 데이터를 바꾸는 CTE, `FOR UPDATE` 제외)이면서 (3) 문장이 하나(`SQLScriptParser.parseScript`로 센다)일 때만 켜진다.
   `GO` 배치의 여러 문장은 쿼리 하나로 합쳐지고 그 형식은 첫 문장의 것이라, 셋째 조건이 없으면 `SELECT 1; DELETE …` 배치의 첫 결과 표에서도 켜졌다(SQL Server에서 확인 후 고침). `SQLQueryDataContainer`는 결과 집합을 하나만 읽고("Doesn't support multiple resulsets"),
@@ -121,3 +127,5 @@ DBeaver의 데이터 전송(`org.jkiss.dbeaver.data.transfer` 모델 + `.ui` SWT
 ## 변경 이력
 
 - 2026-11-06 최초 작성: Export Data(Object Explorer·결과 표, 모든 스트림 형식), Import Data(CSV → 기존 테이블).
+- 2026-11-06 필터·정렬한 결과 표의 Export Data…가 원래 쿼리(모든 행, 원래 순서)를 내보내던 문제: 뷰어가 서버에서 읽은 필터·정렬을 producer에 넘기고,
+  표 안에서만 한 정렬은 마법사에 알린다.

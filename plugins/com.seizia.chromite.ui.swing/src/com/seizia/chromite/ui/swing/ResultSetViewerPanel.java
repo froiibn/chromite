@@ -92,6 +92,8 @@ import java.util.function.Consumer;
  * - 2026-11-06 최초 작성: 값 패널, 정렬·필터, 다음 페이지, 레코드 보기, 복사 형식, 열 너비 맞춤, 선택 집계 (docs/chromite/swing-result-viewer.md)
  * - 2026-11-06 데이터 전송과 합침: 다시 읽은 결과(정렬·필터·다음 페이지)도 Export Data…의 쿼리({@link ResultSetGrid.Fetched#exportQuery()})를 이어받음
  *   (docs/chromite/swing-result-viewer.md)
+ * - 2026-11-06 Export Data…에 서버에서 읽은 필터·정렬({@code serverFilter})을 넘기고, 표 안에서만 한 정렬은 마법사에 알림
+ *   (docs/chromite/swing-data-transfer.md)
  */
 final class ResultSetViewerPanel extends JPanel {
 
@@ -146,6 +148,11 @@ final class ResultSetViewerPanel extends JPanel {
      */
     private int[] ordinals;
     private DBDDataFilter dataFilter;
+    /**
+     * The filter the shown rows were read with on the server (conditions and server-side sort; not a sort done in the
+     * grid), for "Export Data…".
+     */
+    private DBDDataFilter serverFilter;
     private boolean hasMore;
     private boolean clientOrdered;
     private boolean reading;
@@ -185,10 +192,21 @@ final class ResultSetViewerPanel extends JPanel {
                     scheduleSelectionUpdate();
                 }
             }
+
+            @Override
+            public void exportData(@NotNull Component parent, @NotNull DBSDataContainer query) {
+                // The rows as the server read them (SWT ResultSetHandlerMain passes the model's data filter); a sort done in
+                // the grid only can't be passed on
+                String orderNote = clientOrdered && dataFilter.hasOrdering()
+                    ? "The grid was sorted in the grid only: the exported rows keep the order in which the query returns them."
+                    : null;
+                DataExportWizard.openForQuery(parent, query, serverFilter, orderNote);
+            }
         };
         this.fetched = fetched;
         this.ordinals = sequence(fetched.data().rows().size());
         this.dataFilter = createDataFilter(fetched.data().bindings());
+        this.serverFilter = new DBDDataFilter(dataFilter);
         this.hasMore = fetched.data().truncated() && fetched.source().segmentSize() > 0;
 
         filterBar = new ResultSetFilterBar(new ResultSetFilterBar.Listener() {
@@ -1095,7 +1113,7 @@ final class ResultSetViewerPanel extends JPanel {
     }
 
     private void applyRequery(@NotNull ResultSetGrid.Fetched requeried, @NotNull DBDDataFilter filter) {
-        // The re-read keeps the query of the first result, so "Export Data…" stays available (it runs the query without the filter)
+        // The re-read keeps the query of the first result, so "Export Data…" stays available (with this filter, serverFilter)
         DBSDataContainer exportQuery = fetched.exportQuery();
         ResultSetGrid.Fetched newFetched = exportQuery == null ? requeried : requeried.withExportQuery(exportQuery);
         releaseContents(fetched.source().cellValues());
@@ -1103,6 +1121,7 @@ final class ResultSetViewerPanel extends JPanel {
         ordinals = sequence(newFetched.data().rows().size());
         hasMore = newFetched.data().truncated() && newFetched.source().segmentSize() > 0;
         dataFilter = rebindFilter(filter, newFetched.data().bindings());
+        serverFilter = new DBDDataFilter(dataFilter);
         clientOrdered = false;
         installGrid(new ResultSetGrid(newFetched, gridHost), false);
         host.editStateChanged();

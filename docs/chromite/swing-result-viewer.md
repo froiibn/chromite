@@ -171,7 +171,6 @@ SWT: 결과 뷰어의 레코드 모드(`ResultSetViewer.toggleMode`).
 - 열 고정(freeze), 열 숨기기·순서 바꾸기, 행 수 세기(SWT "Calculate total row count"), 저장한 필터, 필터 편집 대화상자, 자동완성되는 필터 입력.
 - LOB·JSON 열 편집(값 패널에서도 읽기 전용), 파일로 저장·파일에서 불러오기, 이진 값 형식 바꾸기(SWT의 Binary format 메뉴).
 - 결과 안 찾기(SWT Find/Replace), 그룹·참조 패널, 메타데이터 패널.
-- Export Data…에 지금 필터·서버 정렬 적용(지금은 원래 쿼리의 모든 행을 내보냄).
 
 ## 변경 이력
 

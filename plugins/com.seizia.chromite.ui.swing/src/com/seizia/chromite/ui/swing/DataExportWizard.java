@@ -24,6 +24,7 @@ import org.jkiss.dbeaver.model.DBPEvaluationContext;
 import org.jkiss.dbeaver.model.DBPContextProvider;
 import org.jkiss.dbeaver.model.DBPDataSource;
 import org.jkiss.dbeaver.model.DBUtils;
+import org.jkiss.dbeaver.model.data.DBDDataFilter;
 import org.jkiss.dbeaver.model.data.DBDDisplayFormat;
 import org.jkiss.dbeaver.model.exec.DBCExecutionContext;
 import org.jkiss.dbeaver.model.exec.DBCExecutionContextDefaults;
@@ -32,6 +33,7 @@ import org.jkiss.dbeaver.model.sql.SQLQuery;
 import org.jkiss.dbeaver.model.sql.SQLQueryContainer;
 import org.jkiss.dbeaver.model.sql.SQLQueryType;
 import org.jkiss.dbeaver.model.sql.SQLScriptElement;
+import org.jkiss.dbeaver.model.sql.SQLUtils;
 import org.jkiss.dbeaver.model.sql.parser.SQLScriptParser;
 import org.jkiss.dbeaver.model.struct.DBSDataContainer;
 import org.jkiss.dbeaver.model.struct.DBSEntity;
@@ -78,7 +80,9 @@ import java.util.Set;
  *     (SSMS "Select Source Tables and Views"). 트리의 단일 선택을 바꾸지 않고 여러 테이블을 고르기 위해서다. 원본마다
  *     {@link DatabaseTransferProducer}(SWT {@code DataExportHandler}와 같음)를 만들어 테이블 전체를 다시 읽는다.
  *     결과 표에서는 그 쿼리의 {@code SQLQueryDataContainer}로 producer를 만들어 쿼리를 다시 실행해 모든 행을 내보낸다(SWT 결과 표 내보내기의 기본값).
- *     다시 실행해도 되는 쿼리만 받는다({@link #canExportQuery}).</li>
+ *     다시 실행해도 되는 쿼리만 받는다({@link #canExportQuery}). 결과 뷰어가 서버에서 다시 읽은 필터와 정렬({@link DBDDataFilter}: WHERE, ORDER BY)은
+ *     producer에 넘겨 같은 조건으로 내보낸다(SWT {@code ResultSetHandlerMain}이 모델의 데이터 필터를 넘기는 것과 같음). 표 안에서만 한 정렬은
+ *     내보내기가 따를 수 없으므로 원본 페이지와 요약에 그렇다고 적는다.</li>
  *     <li>형식: {@link StreamTransferConsumer} 노드에 등록된 처리기 전체(SWT "Choose export format"과 같은 목록, 원본 형식에 맞는 것만)다.
  *     형식별 설정은 처리기 속성을 {@link PropertySourceCustom}에 담아 {@link ConnectionPropertiesTable}로 고친다(SWT {@code StreamConsumerPageSettings}).</li>
  *     <li>출력: {@link StreamConsumerSettings}의 폴더, 파일 이름 패턴(변수), 문자 집합, BOM, 하나의 파일, ZIP, 클립보드, 같은 이름 파일 처리,
@@ -90,6 +94,8 @@ import java.util.Set;
  *
  * 변경 이력:
  * - 2026-11-06 데이터 전송: 최초 작성 (docs/chromite/swing-data-transfer.md)
+ * - 2026-11-06 필터·정렬한 결과 표의 Export Data…가 원래 쿼리(모든 행, 원래 순서)를 내보내던 문제: 뷰어의 서버 필터를 producer에 넘김,
+ *   표 안에서만 한 정렬은 알림 (docs/chromite/swing-data-transfer.md)
  */
 final class DataExportWizard extends DataTransferWizard {
 
@@ -116,6 +122,16 @@ final class DataExportWizard extends DataTransferWizard {
     private final List<SourceItem> sources = new ArrayList<>();
     @Nullable
     private final SQLQueryContainer query;
+    /**
+     * The grid's filter and server-side sort, applied to the query when it runs again (null: the query as it is).
+     */
+    @Nullable
+    private final DBDDataFilter queryFilter;
+    /**
+     * Why the exported rows are not in the grid's order (a sort done in the grid only), or null.
+     */
+    @Nullable
+    private final String orderNote;
     private final DataTransferNodeDescriptor consumerNode;
     private final List<DataTransferProcessorDescriptor> processors;
     @Nullable
@@ -152,10 +168,14 @@ final class DataExportWizard extends DataTransferWizard {
         @Nullable Window owner,
         @NotNull List<DBSDataContainer> containers,
         @NotNull Set<DBSDataContainer> selected,
-        @Nullable SQLQueryContainer query
+        @Nullable SQLQueryContainer query,
+        @Nullable DBDDataFilter queryFilter,
+        @Nullable String orderNote
     ) {
         super(owner, "Export Data");
         this.query = query;
+        this.queryFilter = queryFilter;
+        this.orderNote = orderNote;
         for (DBSDataContainer container : containers) {
             sources.add(new SourceItem(container, new boolean[]{selected.contains(container)}));
         }
@@ -222,7 +242,7 @@ final class DataExportWizard extends DataTransferWizard {
             JOptionPane.showMessageDialog(parent, "There are no tables or views to export here.", "Export Data", JOptionPane.INFORMATION_MESSAGE);
             return;
         }
-        new DataExportWizard(SwingUtilities.getWindowAncestor(parent), containers, selected, null).open();
+        new DataExportWizard(SwingUtilities.getWindowAncestor(parent), containers, selected, null, null, null).open();
     }
 
     /**
@@ -246,12 +266,49 @@ final class DataExportWizard extends DataTransferWizard {
 
     /**
      * Opens the wizard for the query of a result grid; the query runs again to export all rows.
+     *
+     * @param filter    the grid's filter and server-side sort, applied to the query as when the grid read it again
+     *                  (SWT exports a result with its model's data filter), or null
+     * @param orderNote shown when the grid's order can't be reproduced by the export (sorted in the grid only), or null
      */
-    static void openForQuery(@NotNull Component parent, @NotNull DBSDataContainer container) {
+    static void openForQuery(
+        @NotNull Component parent,
+        @NotNull DBSDataContainer container,
+        @Nullable DBDDataFilter filter,
+        @Nullable String orderNote
+    ) {
         if (!canExportQuery(container)) {
             return;
         }
-        new DataExportWizard(SwingUtilities.getWindowAncestor(parent), List.of(container), Set.of(container), (SQLQueryContainer) container).open();
+        new DataExportWizard(SwingUtilities.getWindowAncestor(parent), List.of(container), Set.of(container), (SQLQueryContainer) container,
+            filter != null && filter.hasFilters() ? new DBDDataFilter(filter) : null, orderNote).open();
+    }
+
+    /**
+     * The grid's filter and sort applied to the exported query, as SQL ("WHERE …", "ORDER BY …"); empty without one.
+     */
+    @NotNull
+    private List<String> describeQueryFilter() {
+        List<String> lines = new ArrayList<>();
+        DBPDataSource dataSource = sources.isEmpty() ? null : sources.getFirst().container().getDataSource();
+        if (queryFilter == null || dataSource == null) {
+            return lines;
+        }
+        try {
+            if (queryFilter.hasConditions()) {
+                StringBuilder where = new StringBuilder();
+                SQLUtils.appendConditionString(queryFilter, dataSource, null, where, true);
+                lines.add("WHERE " + where);
+            }
+            if (queryFilter.hasOrdering()) {
+                StringBuilder order = new StringBuilder();
+                SQLUtils.appendOrderString(queryFilter, dataSource, null, false, order);
+                lines.add("ORDER BY " + order);
+            }
+        } catch (DBException e) {
+            lines.add("Filter: " + CommonUtils.notEmpty(queryFilter.getWhere()));
+        }
+        return lines;
     }
 
     /**
@@ -279,7 +336,7 @@ final class DataExportWizard extends DataTransferWizard {
         List<DatabaseTransferProducer> producers = new ArrayList<>();
         for (SourceItem item : sources) {
             if (item.selected()[0]) {
-                DatabaseTransferProducer producer = new DatabaseTransferProducer(item.container());
+                DatabaseTransferProducer producer = new DatabaseTransferProducer(item.container(), queryFilter);
                 producer.setDefaultCatalog(sourceCatalog);
                 producer.setDefaultSchema(sourceSchema);
                 producers.add(producer);
@@ -409,6 +466,17 @@ final class DataExportWizard extends DataTransferWizard {
                     "The query runs again on a separate connection, so all rows are exported, not only the rows fetched in the grid.");
                 panel.add(note, BorderLayout.NORTH);
                 panel.add(new JScrollPane(text), BorderLayout.CENTER);
+                List<String> filterLines = describeQueryFilter();
+                if (!filterLines.isEmpty() || orderNote != null) {
+                    JPanel notes = new JPanel(new GridLayout(0, 1, 0, 4));
+                    if (!filterLines.isEmpty()) {
+                        notes.add(DataTransferObjects.createNote("The grid's filter and sort are applied: " + String.join(" ", filterLines)));
+                    }
+                    if (orderNote != null) {
+                        notes.add(DataTransferObjects.createNote(orderNote));
+                    }
+                    panel.add(notes, BorderLayout.SOUTH);
+                }
                 return;
             }
             JTable table = new JTable(model);
@@ -853,6 +921,12 @@ final class DataExportWizard extends DataTransferWizard {
             }
             if (query != null) {
                 summary.append("    (the query runs again to read all rows)\n");
+                for (String line : describeQueryFilter()) {
+                    summary.append("    ").append(line).append('\n');
+                }
+                if (orderNote != null) {
+                    summary.append("    ").append(orderNote).append('\n');
+                }
             }
             summary.append("\nFormat: ").append(processor == null ? "?" : processor.getName()).append('\n');
             Map<String, Object> changed = getProcessorProperties().getPropertyValues();
