@@ -784,7 +784,7 @@ Windows 11, 화면 배율 150%, JBR 25, 작업 공간 사본 `D:\Tools\_smoke\sw
 ### 적용 현황 — Pretendard와 밀도 B (2026-11-07)
 
 사용자 결정(2026-11-07): UI 글꼴을 **Pretendard 13**으로(시안 `D:\Tools\_scratch\ui-font-mock\`), 기본 밀도를 **B "조금 촘촘"**으로
-(시안 `D:\Tools\_scratch\density-mock\`). 결과 창 기본 높이(220)는 결정 대기라 바꾸지 않았다.
+(시안 `D:\Tools\_scratch\density-mock\`). 결과 창 기본 높이(220)는 그때 결정 대기라 바꾸지 않았고, 2026-11-07 사용자 결정으로 **280**이 되었다(아래 "결과 창 기본 높이").
 
 | 파일 | 변경 |
 |---|---|
@@ -919,6 +919,15 @@ UI 글꼴 `font.grid` = `font.ui`(Pretendard 12)로 바꿨다. 열 머리글은 
 - 확인한 값: 숫자(정수·소수·음수·0), 날짜·날짜 시간, NULL(보조 글자색), 한글·영문 섞인 글. □ 없음, 잘림 없음.
 - 캡처: `D:\Tools\_scratch\ui-font-12\run\shots\`의 `after-{ko,en}-{light,dark}-grid.png`(전, UI 글꼴 12 브랜치)와 `gridp-{ko,en}-{light,dark}-{grid,main,value,record}.png`(후),
   전후 비교 `D:\Tools\_scratch\ui-font-12\pairs\grid-*.png`.
+### 결과 창 기본 높이 (2026-11-07 결정)
+
+사용자 결정(2026-11-07): Results 카드의 기본 높이를 220에서 **280**으로 바꾼다(밀도 B 적용 때 결정 대기였던 것).
+
+- 위치: `MainFrame.DEFAULT_RESULTS_HEIGHT`. 창 기본 크기(`DEFAULT_SIZE` 1280×800)·도구 창 열 비율과 같은 **배치 기본값**이라 밀도 토큰(`Chromite.size.*`, `UiSizes`)에 넣지 않았다.
+  밀도 토큰은 컨트롤 치수이고 촘촘한 모드(C)가 덮어쓰는 값인데, 결과 창 높이는 사용자가 끌어 바꾸고 저장되는 값이다.
+- 배율: 창 기본 크기(`setSize(DEFAULT_SIZE)`)처럼 `UIScale`을 곱하지 않는다(바꾸기 전 220도 곱하지 않았다). Windows 화면 배율(150% 등)은 Java 런타임이 처리한다.
+- 저장된 높이: 사용자가 높이를 바꿨으면 저장된 값(`results.size`)이 이긴다. 설정 저장소는 기본값과 같은 값을 저장하지 않으므로(`ToolWindow.SplitHost.load`)
+  높이를 바꾼 적 없는 사용자는 새 기본값 280을 받는다. Window > Reset Window Layout도 280으로 돌린다.
 
 ### Swing/FlatLaf로 못 한 것과 이유
 
@@ -1027,3 +1036,4 @@ UI 글꼴 `font.grid` = `font.ui`(Pretendard 12)로 바꿨다. 열 머리글은 
   "적용 현황 — UI 글꼴 12" 절(전후 측정, 1px 차이 항목) 추가.
 - 2026-11-07 그리드 글꼴 Pretendard(사용자 요청 "쿼리결과 그리드의 폰트와 사이즈도 pretendard 12로 맞춘다"): `font.grid` 토큰 추가, `font.code`의 쓰는 곳 갱신,
   8절 표 갱신, "적용 현황 — 그리드 글꼴 Pretendard" 절(따를지 정한 것, 비례 숫자와 `tnum`, 측정) 추가.
+- 2026-11-07 결과 창 기본 높이 280(사용자 결정): "결과 창 기본 높이" 절 추가, 밀도 B 절의 결정 대기 문장 갱신.
