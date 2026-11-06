@@ -74,6 +74,8 @@ DBeaver의 데이터 전송(`org.jkiss.dbeaver.data.transfer` 모델 + `.ui` SWT
   `GO` 배치의 여러 문장은 쿼리 하나로 합쳐지고 그 형식은 첫 문장의 것이라, 셋째 조건이 없으면 `SELECT 1; DELETE …` 배치의 첫 결과 표에서도 켜졌다(SQL Server에서 확인 후 고침). `SQLQueryDataContainer`는 결과 집합을 하나만 읽고("Doesn't support multiple resulsets"),
   `GO` 배치는 여러 문장이 한 쿼리라 다시 실행하면 INSERT 등이 되풀이되기 때문이다. 첫 결과 집합인지는 `SqlEditorPanel`의 처리기가 쿼리 객체별로 처음 넘긴 표인지로 정한다
   (`SQLQueryExecuteJob`의 결과 번호는 스크립트 전체에서 이어지므로 쓸 수 없음).
+  꺼진 메뉴의 도구 설명은 수신기가 아는 이유(`ResultSetSource.requeryBlocker`, 예: Query Library가 값을 바인딩한 실행의 "parameter values bound for this run only")가
+  있으면 그것을 보인다. 처음에는 늘 "SELECT 하나인 쿼리만" 문구라, SELECT 하나인 바인딩 실행에서 이유를 잘못 알렸다.
 - **기존 "Export to CSV… / Export to Excel (XLSX)…"는 남겼다.** 이 둘은 표에 보이는 행(편집 중인 값 포함, 다시 실행할 수 없는 결과 포함)을 바로 쓰는 기능이고,
   마법사는 쿼리를 다시 실행한다. 표는 값을 표시 문자열로만 들고 있어(C단계 설계) 모델의 스트림 내보내기(값 처리기로 결과 집합에서 다시 읽음)에 "가져온 행"을 넣을 수 없으므로
   마법사가 두 항목을 대신하지 못한다. 그래서 `ResultSetExport`는 지우지 않았다(CLAUDE.md 4번: 쓸모없어진 코드가 아님).
@@ -129,3 +131,4 @@ DBeaver의 데이터 전송(`org.jkiss.dbeaver.data.transfer` 모델 + `.ui` SWT
 - 2026-11-06 최초 작성: Export Data(Object Explorer·결과 표, 모든 스트림 형식), Import Data(CSV → 기존 테이블).
 - 2026-11-06 필터·정렬한 결과 표의 Export Data…가 원래 쿼리(모든 행, 원래 순서)를 내보내던 문제: 뷰어가 서버에서 읽은 필터·정렬을 producer에 넘기고,
   표 안에서만 한 정렬은 마법사에 알린다.
+- 2026-11-06 꺼진 Export Data…의 도구 설명이 실제 이유(바인딩한 실행 등) 대신 늘 "SELECT 하나인 쿼리만"이던 문제.
