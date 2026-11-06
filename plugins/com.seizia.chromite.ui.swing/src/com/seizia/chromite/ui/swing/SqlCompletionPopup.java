@@ -82,6 +82,7 @@ import java.util.function.Supplier;
  * - 2026-11-06 P1: 자동완성 지연 설정 접근자와 처음 쓸 때 기본값 선언(Tools &gt; Options) (docs/chromite/swing-frontend.md "P1 디자인 적용")
  * - 2026-11-06 P1: 행 24, 오른쪽 형식 글자 text.secondary, 둥근 선택(arc 8, 좌우 4)과 글자색 유지 (docs/chromite/swing-frontend.md "P1 디자인 적용")
  * - 2026-11-06 템플릿 이름 뒤의 Tab은 제안 대신 템플릿을 넣음 (docs/chromite/swing-sql-editor-plus.md)
+ * - 2026-11-07 프로시저·함수 제안 설정({@code sqlEditor.completion.showProcedures}, SWT와 같이 기본 끔) 접근자 (docs/chromite/swing-followup-fixes.md "자동완성 프로시저")
  */
 final class SqlCompletionPopup {
 
@@ -96,6 +97,11 @@ final class SqlCompletionPopup {
      */
     static final String PREF_AUTO_ACTIVATION_DELAY = "sqlEditor.completion.autoActivationDelay"; //$NON-NLS-1$
     static final int DEFAULT_ACTIVATION_DELAY = 200;
+    /**
+     * Stored procedures and functions among the proposals of value and table contexts. Off by default, as the SWT
+     * editor's {@code SQLPreferenceConstants.SHOW_COLUMN_PROCEDURES} ({@code SQLEditorPreferencesInitializer}).
+     */
+    static final String PREF_SHOW_PROCEDURES = "sqlEditor.completion.showProcedures"; //$NON-NLS-1$
 
     private static final int MAX_VISIBLE_ROWS = 12;
     // size.row.list
@@ -251,6 +257,16 @@ final class SqlCompletionPopup {
         PrefUtils.savePreferenceStore(preferences);
     }
 
+    static boolean isShowProcedures() {
+        return getPreferences().getBoolean(PREF_SHOW_PROCEDURES);
+    }
+
+    static void setShowProcedures(boolean show) {
+        DBPPreferenceStore preferences = getPreferences();
+        preferences.setValue(PREF_SHOW_PROCEDURES, show);
+        PrefUtils.savePreferenceStore(preferences);
+    }
+
     /**
      * The bundle preferences with this popup's defaults; the defaults are declared on first use, because Tools &gt; Options
      * may read the settings before any query window (and its popup) exists.
@@ -261,6 +277,7 @@ final class SqlCompletionPopup {
         if (!defaultsSet) {
             preferences.setDefault(PREF_AUTO_ACTIVATE_ON_LETTERS, true);
             preferences.setDefault(PREF_AUTO_ACTIVATION_DELAY, DEFAULT_ACTIVATION_DELAY);
+            preferences.setDefault(PREF_SHOW_PROCEDURES, false);
             defaultsSet = true;
         }
         return preferences;

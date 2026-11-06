@@ -20,6 +20,8 @@ import com.formdev.flatlaf.FlatClientProperties;
 import com.formdev.flatlaf.ui.FlatTabbedPaneUI;
 import com.formdev.flatlaf.util.UIScale;
 import com.seizia.chromite.ui.swing.internal.CoreMessages;
+import com.seizia.chromite.ui.swing.internal.DashboardMessages;
+import com.seizia.chromite.ui.swing.internal.DriverManagerMessages;
 import com.seizia.chromite.ui.swing.internal.ToolbarMessages;
 import io.github.andrewauclair.moderndocking.DockingRegion;
 import org.eclipse.osgi.util.NLS;
@@ -84,7 +86,7 @@ import java.util.function.IntConsumer;
  *     <li>모양은 DataGrip Islands다: 메인 창 바탕은 캔버스({@code Chromite.island.canvas})이고 문서 탭·편집기와 Results는 각각 둥근 카드({@link IslandPanel}),
  *     도구 창(탭 묶음 포함)은 도킹 루트가 그리는 둥근 카드다. 카드 사이 틈은 분할선(6px, 선 없음)과 좌우 바깥 여백이다. 주 도구 막대와 상태 표시줄은 캔버스 위에 있다.</li>
  *     <li>메뉴는 SSMS 순서로 File(새 연결·쿼리, 파일, Exit), Edit({@link EditMenu}), View(도구 창 토글, Theme), Query(실행, 취소, 자동완성),
- *     Tools(Activity Monitor, Locks, Find Objects, Options {@link OptionsDialog}), Window(Reset Window Layout, 열린 문서 탭 목록), Help(About)이다. FlatLaf의 통합 제목 표시줄(Windows)에서
+ *     Tools(Activity Monitor, Locks, Find Objects, Driver Manager {@link DriverManagerDialog}, Options {@link OptionsDialog}), Window(Reset Window Layout, 열린 문서 탭 목록), Help(About)이다. FlatLaf의 통합 제목 표시줄(Windows)에서
  *     메뉴 막대는 A단계처럼 제목 표시줄 안에 들어간다. Tools &gt; Options와 같은 설정을 보이는 메뉴 항목(Theme, Icon Style, Auto-Complete While Typing)은
  *     메뉴를 열 때 현재 값으로 맞춘다.
  *     도구 창 단축키는 SSMS와 같다(Object Explorer F8, Registered Servers Ctrl+Alt+G, Properties F4, Results Ctrl+R).</li>
@@ -166,6 +168,9 @@ import java.util.function.IntConsumer;
  * - 2026-11-06 빈 문서 영역: Welcome 탭 삭제, 문서가 없으면 문서 카드에 {@link WelcomePanel} (docs/chromite/swing-frontend.md "빈 문서 영역")
  * - 2026-11-07 Results 자동 숨김: Results는 활성 문서가 쿼리 창일 때만 보이고 숨김은 쿼리 창마다 기억, 쿼리 창이 없으면 Results 토글을 끔,
  *   쓰지 않게 된 Results 자리 표시 내용 삭제 (docs/chromite/swing-frontend.md "Results 자동 숨김")
+ * - 2026-11-07 밀도 B: 치수를 테마의 Chromite.size.* 키({@link UiSizes})에서 읽음 (docs/chromite/design-spec.md "치수 토큰")
+ * - 2026-11-07 서버 대시보드: Tools &gt; Server Dashboard(Activity Monitor의 개요 탭) (docs/chromite/swing-dashboard.md)
+ * - 2026-11-07 Tools &gt; Driver Manager… ({@link DriverManagerDialog}) (docs/chromite/swing-driver-manager.md)
  */
 final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplorerPanel.QueryWindows, TableDesignerPanel.Host, QueryLibraryPanel.Host {
 
@@ -258,8 +263,8 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
             updateActivityMonitorAction();
         }, this);
         resultTabs = new JTabbedPane();
-        // size.tab.tool 32 with a 3px underline (size.tabUnderline), icons results.grid / results.messages
-        resultTabs.putClientProperty(FlatClientProperties.STYLE, "tabHeight: 32; tabSelectionHeight: 3"); //$NON-NLS-1$
+        // size.tab.tool with a 3px underline (size.tabUnderline), icons results.grid / results.messages
+        resultTabs.putClientProperty(FlatClientProperties.STYLE, UiSizes.TOOL_TABS_STYLE);
         // The tabs get the active query window's components (activeEditorChanged); without one the Results card is hidden
         resultTabs.addTab(CoreMessages.main_results, UiIcons.get("results"), null); //$NON-NLS-1$
         resultTabs.addTab(CoreMessages.main_messages, UiIcons.get("messages"), null); //$NON-NLS-1$
@@ -568,7 +573,7 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
         JToolBar toolBar = new OverflowToolBar();
         // On the Islands canvas (MainToolbar.background = main-window-bg)
         toolBar.setOpaque(false);
-        toolBar.setBorder(BorderFactory.createEmptyBorder(UIScale.scale(5), UIScale.scale(8), UIScale.scale(5), UIScale.scale(8)));
+        toolBar.setBorder(UiSizes.createPadding(UiSizes.MAIN_TOOL_BAR_PADDING));
         toolBar.add(UiIcons.createToolButton(newQueryAction, "new-query")); //$NON-NLS-1$
         toolBar.add(UiIcons.createActionButton(explorerPanel.getNewConnectionAction(), "new-connection")); //$NON-NLS-1$
         toolBar.addSeparator();
@@ -1347,8 +1352,8 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
         JTabbedPane tabs = new EditorTabbedPane();
         // One row that scrolls, like SSMS; wrapped rows would move the selected tab's row around
         tabs.setTabLayoutPolicy(JTabbedPane.SCROLL_TAB_LAYOUT);
-        // DataGrip editor tabs: size.tab.editor 40; the selected tab is an Islands pill (IslandTabbedPaneUI), no underline
-        tabs.putClientProperty(FlatClientProperties.STYLE, "tabHeight: 40; tabSelectionHeight: 0"); //$NON-NLS-1$
+        // DataGrip editor tabs: size.tab.editor; the selected tab is an Islands pill (IslandTabbedPaneUI), no underline
+        tabs.putClientProperty(FlatClientProperties.STYLE, UiSizes.DOCUMENT_TABS_STYLE);
         tabs.putClientProperty(FlatClientProperties.TABBED_PANE_TAB_CLOSE_CALLBACK, (IntConsumer) this::closeDocumentTab);
         tabs.addMouseListener(new MouseAdapter() {
             @Override
@@ -1436,15 +1441,23 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
         JMenuItem locksItem = new JMenuItem(CoreMessages.main_locks);
         locksItem.setMnemonic(KeyEvent.VK_L);
         locksItem.addActionListener(e -> openActivityMonitor(ActivityMonitorPanel.LOCKS_TAB));
+        JMenuItem dashboardItem = new JMenuItem(DashboardMessages.dashboard_command);
+        dashboardItem.setToolTipText(DashboardMessages.dashboard_command_tip);
+        dashboardItem.addActionListener(e -> openActivityMonitor(ActivityMonitorPanel.OVERVIEW_TAB));
         JMenuItem findObjectsItem = new JMenuItem(CoreMessages.main_find_objects);
         findObjectsItem.setMnemonic(KeyEvent.VK_F);
         findObjectsItem.addActionListener(e -> openObjectSearch(explorerPanel.getSelectedNode()));
+        JMenuItem driverManagerItem = new JMenuItem(DriverManagerMessages.drivermgr_menu);
+        driverManagerItem.setToolTipText(DriverManagerMessages.drivermgr_menu_tip);
+        driverManagerItem.addActionListener(e -> DriverManagerDialog.open(this));
         JMenu toolsMenu = new JMenu(CoreMessages.main_menu_tools);
         toolsMenu.setMnemonic(KeyEvent.VK_T);
         toolsMenu.add(activityMonitorItem);
         toolsMenu.add(locksItem);
+        toolsMenu.add(dashboardItem);
         toolsMenu.add(findObjectsItem);
         toolsMenu.addSeparator();
+        toolsMenu.add(driverManagerItem);
         toolsMenu.add(optionsItem);
 
         JMenu windowMenu = new JMenu(CoreMessages.main_menu_window);
@@ -1706,7 +1719,7 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
                 return;
             }
             int arc = UIScale.scale(UIManager.getInt("Chromite.island.tabArc")); //$NON-NLS-1$
-            int insetY = UIScale.scale(6);
+            int insetY = UiSizes.get(UiSizes.DOCUMENT_TAB_PILL_INSET);
             int insetX = UIScale.scale(2);
             Graphics2D g2 = (Graphics2D) g.create();
             try {
@@ -1788,11 +1801,10 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
     }
 
     /**
-     * Status bar (size.statusBar 28) on the Islands canvas, without a separator line (StatusBar.background =
+     * Status bar (size.statusBar) on the Islands canvas, without a separator line (StatusBar.background =
      * main-window-bg, topBorderWidth 0); the background is set again on theme changes.
      */
     private static final class StatusBar extends JPanel {
-        private static final int HEIGHT = 28;
         private final JLabel statusLabel;
 
         StatusBar(@NotNull String statusText) {
@@ -1806,7 +1818,7 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
         @Override
         public Dimension getPreferredSize() {
             Dimension size = super.getPreferredSize();
-            return new Dimension(size.width, UIScale.scale(HEIGHT));
+            return new Dimension(size.width, UiSizes.get(UiSizes.STATUS_BAR_HEIGHT));
         }
 
         void setText(@NotNull String text) {

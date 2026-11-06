@@ -45,6 +45,13 @@ import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+/**
+ * Runs mysqldump for the MySQL backup task.
+ *
+ * 변경 이력:
+ * - 2026-11-07 Chromite: DEFINER를 지우는 출력 복사({@link DumpFilterJob})도 아무 줄도 받지 못한 출력 파일을 지움. 실패한 백업의
+ *   빈 파일 때문에 다시 실행하면 "Output file already exists"로 실패했다 (docs/chromite/swing-backup-restore.md "실패한 백업과 psql 오류")
+ */
 public class MySQLDatabaseExportHandler extends MySQLNativeToolHandler<MySQLExportSettings, DBSObject, MySQLDatabaseExportInfo> {
     private static final String DISTRIB = "Distrib ";
     private static final String VER = "Ver ";
@@ -226,6 +233,7 @@ public class MySQLDatabaseExportHandler extends MySQLNativeToolHandler<MySQLExpo
                     }
                     writer.flush();
                 }
+                deleteIfEmpty(outFile, reader.getLineNumber(), log);
             } finally {
                 monitor.done();
             }

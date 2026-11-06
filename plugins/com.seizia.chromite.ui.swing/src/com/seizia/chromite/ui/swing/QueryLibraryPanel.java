@@ -83,6 +83,7 @@ import java.util.Set;
  * - 2026-11-06 Query Library ③: Schedule…, History…, Scheduled Queries…, 알림 배지와 예약 보조 글자, 예약 실행기 시작·정지
  *   (docs/chromite/swing-query-library.md "예약 실행")
  * - 2026-11-06 화면 문구를 ToolsMessages로 옮김(OS 언어를 따름)
+ * - 2026-11-07 밀도 B: 치수를 테마의 Chromite.size.* 키({@link UiSizes})에서 읽음 (docs/chromite/design-spec.md "치수 토큰")
  */
 final class QueryLibraryPanel extends JPanel {
 
@@ -311,7 +312,7 @@ final class QueryLibraryPanel extends JPanel {
         JToolBar toolBar = new JToolBar();
         toolBar.setFloatable(false);
         toolBar.setOpaque(false);
-        toolBar.setBorder(BorderFactory.createEmptyBorder(UIScale.scale(3), UIScale.scale(8), UIScale.scale(3), UIScale.scale(8)));
+        toolBar.setBorder(UiSizes.createPadding(UiSizes.TOOL_WINDOW_TOOL_BAR_PADDING));
         toolBar.add(UiIcons.createActionButton(runAction, "run")); //$NON-NLS-1$
         toolBar.addSeparator();
         toolBar.add(UiIcons.createActionButton(newQueryAction, "new-query")); //$NON-NLS-1$
@@ -1135,14 +1136,13 @@ final class QueryLibraryPanel extends JPanel {
      * file as tool tip). A query with an unseen alert has a red dot, and so has a collapsed folder that contains one.
      */
     private static final class LibraryCellRenderer extends DefaultTreeCellRenderer {
-        private static final int GAP = 6;
         @Nullable
         private String secondaryText;
 
         @Override
         public Component getTreeCellRendererComponent(JTree tree, Object value, boolean selected, boolean expanded, boolean leaf, int row, boolean hasFocus) {
             super.getTreeCellRendererComponent(tree, value, selected, expanded, leaf, row, hasFocus);
-            setIconTextGap(UIScale.scale(GAP));
+            setIconTextGap(UiSizes.get(UiSizes.TREE_ICON_TEXT_GAP));
             secondaryText = null;
             Object userObject = value instanceof DefaultMutableTreeNode node ? node.getUserObject() : null;
             if (userObject instanceof QueryLibrary.Folder folder) {
@@ -1192,7 +1192,7 @@ final class QueryLibraryPanel extends JPanel {
         public Dimension getPreferredSize() {
             Dimension size = super.getPreferredSize();
             if (size != null && secondaryText != null) {
-                size.width += UIScale.scale(GAP) + getFontMetrics(getFont()).stringWidth(secondaryText);
+                size.width += UiSizes.get(UiSizes.TREE_SECONDARY_GAP) + getFontMetrics(getFont()).stringWidth(secondaryText);
             }
             return size;
         }
@@ -1207,7 +1207,7 @@ final class QueryLibraryPanel extends JPanel {
             Icon icon = getIcon();
             Insets insets = getInsets();
             int x = insets.left + (icon != null ? icon.getIconWidth() + getIconTextGap() : 0)
-                + metrics.stringWidth(CommonUtils.notEmpty(getText())) + UIScale.scale(GAP);
+                + metrics.stringWidth(CommonUtils.notEmpty(getText())) + UiSizes.get(UiSizes.TREE_SECONDARY_GAP);
             int y = insets.top + (getHeight() - insets.top - insets.bottom - metrics.getHeight()) / 2 + metrics.getAscent();
             Color color = UIManager.getColor("Chromite.secondaryForeground"); //$NON-NLS-1$
             g.setColor(color != null ? color : getForeground());

@@ -436,9 +436,10 @@ B단계는 `JSplitPane`만 쓴다. (2026-11-06 사용자가 끌어서 옮기기�
 
 1. 트리 뿌리(보이지 않음)는 활성 프로젝트의 `DBNProject`다. 첫 단계에 `DBNProject.getDatabases()`의 자식(연결 폴더 `DBNLocalFolder`, 연결 `DBNDataSource`)을 읽는다.
    탐색기 모델은 SWT 버전과 같은 `DBWorkbench.getPlatform().getNavigatorModel()`(`DesktopNavigatorModel`)이다.
-2. 자식이 있을 수 있는 노드(`DBNNode.hasChildren(true)`, 메타데이터만 보고 DB를 읽지 않음)에는 "Loading…" 자식을 미리 넣어 펼칠 수 있게 한다.
-3. 노드를 펼치면(`TreeWillExpandListener`) `AbstractJob`을 예약하고, Job 스레드에서 `DBNUtils.getNodeChildrenFiltered(monitor, node, true)`
-   (SWT `DatabaseNavigatorContentProvider`와 같은 걸러내기: 숨은 객체, 트리에 보이지 않는 메타 노드 제외, 정렬)를 부른다. EDT에서는 모델을 읽지 않는다.
+2. 자식이 있을 수 있는 노드(메타데이터만 보고 DB를 읽지 않음)에는 "Loading…" 자식을 미리 넣어 펼칠 수 있게 한다.
+   SWT 트리와 달리 탐색 불가 항목도 자식으로 친다("Object Explorer 후속 수정" 절).
+3. 노드를 펼치면(`TreeWillExpandListener`) `AbstractJob`을 예약하고, Job 스레드에서 `DBNNode.getChildren`을 부른 뒤 숨은 객체를 빼고 정렬한다.
+   EDT에서는 모델을 읽지 않는다.
 4. 결과는 `SwingUtilities.invokeLater`로 EDT에서 트리 모델에 반영한다(`nodeStructureChanged`, 펼친 상태 유지). 노드마다 읽기 번호를 두어
    새로 고침으로 더 새 읽기가 시작되었으면 늦게 끝난 이전 결과를 버린다.
 5. **연결:** 연결 노드의 자식을 읽으면 `DBNDatabaseNode.getChildren` → `initializeNode` → `DBUtils.initDataSource` →
@@ -2037,6 +2038,76 @@ EDT 에이전트로 단추를 누르고(`doClick`) 결과를 읽었다. 캡처�
 - 시험 중 본 범위 밖 문제(보고만): 테이블 디자이너가 문자열 열을 `int`로 바꿀 때 `COLLATE`를 남긴 `ALTER COLUMN`을 만든다(위 e의 서버 오류).
   도킹 탭 넘침 단추의 도구 설명 "Show Hidden Tabs"(ModernDocking 라이브러리 문구)가 번역되지 않았다.
 
+## Object Explorer 후속 수정 (2026-11-07)
+
+통합 중 모은 후속 과제 중 탐색기 항목 #31, #34, #35, #36을 고쳤다(번호는 2026-11-06 통합 후속 목록). #2·#25(보조 글자 기준선)는
+이미 고쳐져 있어 건너뛰었다: Object Explorer(`ExplorerCellRenderer.paint`)와 Registered Servers(`RegisteredServersPanel.java:913`)가 모두
+레이블의 실제 기준선(`getBaseline`)에 보조 글자를 그린다(연결 색 알약 커밋 `1099b00c3b`).
+화면 확인은 Swing 제품을 개인 작업 공간으로 실행해(`-vm` JBR 25) EDT 시험 에이전트로 했고, 이전 동작은 같은 순서를 수정 전 빌드
+(`mssql-functions-folder` 작업 트리 제품)에서 돌려 확인했다. 스크린숏은 `D:\Tools\_scratch\fixes-navigator\run\shots\`에 있다.
+회귀 테스트는 실행하지 않았다(요청 없음).
+
+### Object Explorer 탐색 불가 항목
+
+- 증상: 프로시저·함수 아래에 매개 변수가 없었다(#34). MySQL/MariaDB "시스템 정보" 아래 세션·전역 상태, 세션·전역 변수, 엔진,
+  문자 집합의 데이터 정렬, 사용자 권한, 플러그인 폴더가 펼쳐지지 않았다(#31). MySQL 프로시저의 "프로시저 매개 변수" 폴더도 펼쳐지지 않았다.
+- 근본 원인: 이 항목들은 `plugin.xml`에서 `navigable="false"`다(예: `ext.mssql/plugin.xml:130,135`, `ext.mysql/plugin.xml:91,129-152`,
+  `ext.postgresql/plugin.xml:260`). Object Explorer는 SWT 트리처럼 `DBNNode.hasChildren(true)`(→ `DBXTreeNode.hasChildren(context, true)`,
+  `DBXTreeNode.java:197-213`)로 펼칠 수 있는지 정하고 `DBNUtils.getNodeChildrenFiltered(monitor, node, true)`(`DBNUtils.java:101-136`)로
+  탐색 불가 항목을 뺐다. SWT도 트리에서는 똑같이 빼지만(`DatabaseNavigatorContentProvider.java:91,108`, `TreeLoadService.java:50`)
+  그 목록을 객체 편집기의 탭(`ItemListControl.java:286`, `forTree=false`)에서 보여 준다. Swing에는 객체 편집기가 없어 볼 곳이 없었다.
+  같은 원인으로 인덱스·키·외래 키의 열, PostgreSQL 역할의 구성원 폴더도 보이지 않았다.
+- 수정(`ObjectExplorerPanel`): `hasTreeChildren`이 탐색 가능 조건만 뺀 `DBXTreeNode.hasChildren(node, false)`로 펼침을 정하고,
+  `readChildren`이 `DBNNode.getChildren` 뒤 숨김 노드(`DBPHiddenObject`)만 빼고 `DBNUtils.filterNavigableChildren(…, false)`로 정렬한다.
+  `DBNNode.hasChildren(false)`를 그대로 쓰지 않은 것은 구조체 형식 열·매개 변수의 동적 속성(`DBNDatabaseNode.hasDynamicStructChildren`)까지
+  찾아 EDT에서 데이터 형식을 읽기 때문이다(이전에도 이 트리에 없던 항목).
+- 매개 변수 뒤 보조 글자는 형식이다(열처럼 길이 포함: `DBSTypedObject`이면 그 형식, 아니면 `DBSParameter.getParameterType()`).
+- SQL Server 스칼라 함수의 반환 값은 이름 없는 매개 변수(`sys.parameters.parameter_id` 0)라 탐색기 이름이 `toString`(클래스 이름)이었다.
+  이름이 없고 종류가 `RETURN`이거나 순서가 0인 매개 변수는 트리와 속성 창 제목에 "Returns"/"반환 값"으로 보인다
+  (`ObjectExplorerPanel.getNodeText`, 새 묶음 `internal/NavigatorMessages`). MySQL·generic 모델은 이런 매개 변수에 모델에서 "RETURN" 이름을 붙인다
+  (`MySQLCatalog.java:1007`, `GenericProcedure.java:179`).
+- SWT 화면은 바뀌지 않는다(Swing 번들만 고침).
+- 확인(SQL Server 2022, MariaDB 11, PostgreSQL 17, 한국어·영어, 라이트·다크): 수정 전에는 프로시저·함수가 펼쳐지지 않고 MariaDB 시스템 정보 폴더들이 잎 노드였다
+  (`before-ko-light-maria-system-info.png`). 수정 뒤 SQL Server `get_orders` 아래 `@customer nvarchar(100)`, `@min_amount decimal(10,2)`, `@total int`,
+  `order_count` 아래 "반환 값 int"/"Returns int"와 `@customer`, MariaDB 프로시저의 "프로시저 매개 변수" 아래 `p_customer`, `p_total`(함수는 `RETURN` 포함),
+  시스템 정보의 세션·전역 상태, 세션·전역 변수(수백 개), 엔진 8개, 문자 집합별 데이터 정렬이 보인다. 변수를 고르면 속성 창에 값이 나온다
+  (`ko-light-maria-session-variable.png`: `autocommit` = ON). PostgreSQL 함수·프로시저의 "함수 매개 변수" 폴더 아래 `p_customer varchar`,
+  `p_min numeric` 등이 보인다. 인덱스 노드는 이제 열을 펼친다.
+
+### SQL Server 스키마 새로 고침 뒤 트리거
+
+- 증상(#36): 스키마(또는 그 아래 폴더)를 새로 고치면 테이블의 "트리거" 폴더가 다시 연결할 때까지 비었다.
+- 근본 원인: `SQLServerSchema.refreshObject`(수정 전 `SQLServerSchema.java:193-205`)가 테이블·인덱스·제약 조건·프로시저 캐시는 비우고 트리거 캐시는
+  비우지 않았다. 테이블 캐시를 다시 읽으면 테이블 객체가 새로 생기는데, 남은 트리거는 이전 테이블 객체를 가리키고 캐시는 "다 읽음" 상태라 다시 읽지 않는다.
+  `SQLServerTableBase.getTriggers`(`SQLServerTableBase.java:321-333`)는 `this == trigger.getTable()`로 거르므로 새 테이블에는 트리거가 하나도 없다.
+  스키마 아래 "테이블 트리거" 가상 폴더(`plugin.xml:144`)는 이전 테이블 객체의 트리거를 보여 줬다.
+- 수정: `refreshObject`에서 `triggerCache.clearCache()`도 부른다. MySQL(`MySQLCatalog.java:550`)과 SQL Server 데이터베이스
+  (`SQLServerDatabase.java:289`)의 새로 고침은 이미 트리거 캐시를 비운다. 테이블 하나의 새로 고침(`SQLServerTableBase.refreshObject`)은
+  같은 테이블 객체를 다시 채우고 그 테이블의 트리거만 지워(`clearChildrenOf`, 캐시를 "덜 읽음"으로 돌림) 원래 문제가 없었다.
+- 모델 수정이라 SWT에도 같이 적용된다(upstream에도 있는 버그).
+- 확인(SQL Server 2022, 트리거 2개인 `orders`): 수정 전 빌드에서 `dbo`를 F5로 새로 고친 뒤 `orders` > 트리거가 비었다
+  (`before-ko-light-mssql-triggers-after-schema-refresh.png`). 수정 뒤에는 `trg_orders_delete`, `trg_orders_insert`가 그대로 보인다(한국어·영어).
+
+### 새 객체의 부모 폴더
+
+- 증상(#35): SQL Server "저장 프로시저"와 "함수" 폴더를 나눈 뒤(swing-l10n.md "SQL Server 함수 폴더"), 탐색기에 아직 없는 함수가 모델 추가 이벤트
+  (`OBJECT_ADD`, 컨테이너 폴더 없이)로 들어오면 "저장 프로시저" 폴더 아래에 붙었다. Oracle·generic의 프로시저/함수 폴더도 같은 구조다.
+- 근본 원인: `DBNModel.getParentNode`(수정 전 `DBNModel.java:418-450`)가 객체 클래스를 받는 첫 폴더를 부모로 골랐다. 두 폴더가 같은 클래스
+  (`SQLServerProcedure`)를 받고 항목 속성(`proceduresOnly`/`functionsOnly`)으로 객체를 나누므로 클래스만으로는 폴더를 알 수 없다.
+  `DBNModel.cacheNodeChildren`(수정 전 `DBNModel.java:385-415`, 객체로 노드를 찾을 때)도 같은 원인으로, 필터가 걸린 첫 폴더에 다른 폴더의 객체를 넣을 수 있었다.
+- 수정: `DBNModel.findObjectFolder`는 클래스가 맞는 폴더가 여럿이면 읽은 폴더 중 항목 속성이 그 객체를 담는 폴더를 고른다
+  (`DBNDatabaseNode.isCachedChildObject`: 속성을 `LocalCacheProgressMonitor`로 읽어 캐시만 본다. 이벤트는 UI 스레드에서 올 수 있어 DB를 읽지 않는다.
+  객체 관리자는 이벤트 전에 객체를 캐시에 넣는다, `AbstractObjectManager.CreateObjectReflector`). 담는 폴더가 없으면 아직 읽지 않은 폴더,
+  그것도 없으면 첫 폴더다. 폴더가 하나면 이전과 같고 아무것도 읽지 않는다. `cacheNodeChildren`은 필터로 걸러진 객체를 이 폴더에만 넣는다.
+- 특정 드라이버를 분기하지 않았다. 같은 클래스를 받는 형제 폴더(SQL Server·Oracle·generic의 프로시저/함수) 모두에 적용되고, 모델 수정이라 SWT에도 적용된다.
+- Swing의 "새 함수…"는 실행 뒤 폴더를 새로 고치고(폴더의 새로 고침은 스키마를 다시 읽음) 폴더마다 자기 속성으로 다시 읽으므로 원래도 맞는 폴더에 보였다.
+  이 문제는 객체 관리자로 만든 객체(SWT의 스키마 노드에서 만들기 등)나 다른 곳에서 모델에 추가한 객체에서 생긴다.
+- 확인(SQL Server 2022): DB에 함수를 만든 뒤 시험 에이전트가 그 함수를 스키마의 루틴 캐시에 읽어 넣고 컨테이너 없이 `OBJECT_ADD`를 보냈다
+  (객체 관리자와 같은 순서). 수정 전 빌드는 `getParentNode`가 `.../schema/dbo_1/procedure`를 돌려주고 새 함수가 "저장 프로시저" 아래에 붙었다
+  (`before-ko-light-mssql-new-function-parent.png`). 수정 뒤에는 `.../function`을 돌려주고 "함수" 아래에 붙는다(`ko-light-mssql-new-function-parent.png`).
+  같은 방법으로 넣은 저장 프로시저는 "저장 프로시저" 아래에 붙는다.
+  Swing "새 함수…"(New Function…) 템플릿을 실행한 뒤에도 `NewFunction`은 "함수"(Functions) 아래에 "Returns int", `@Param1`과 함께 보인다(영어).
+
 ## 변경 이력
 
 - 2026-11-06 최초 작성. Swing 전환 결정, 구조, 재사용 분석, MVP 범위, F5 실행 사양을 정리.
@@ -2113,3 +2184,13 @@ EDT 에이전트로 단추를 누르고(`doClick`) 결과를 읽었다. 캡처�
   연결·연결 끊기 오류 제목 지역화. "오류 문구" 절 추가.
 - 2026-11-07 내부 이름 변경([internal-rename.md](internal-rename.md)): "식별자" 절과 오류 문구 절의 로그 파일 이름 설명 갱신. 문서 안 경로·클래스 이름은 도구가 함께 바꿨다.
 - 2026-11-07 XLSX 내보내기 설명: Office 확장 피처의 설치 원본(CE 업데이트 저장소)을 삭제한 것을 반영.
+- 2026-11-07 UI 글꼴 Pretendard 13(번들, `UiFont`)과 기본 밀도 B: 컴포넌트에 흩어져 있던 치수를 테마의 `Chromite.size.*` 키(`UiSizes`)로 모으고
+  트리 22·그리드 24·도구 창 머리말 34·주 도구 막대 32 등으로 낮춤. 결과 창 기본 높이는 그대로(결정 대기). design-spec.md "치수 토큰", "적용 현황 — Pretendard와 밀도 B".
+- 2026-11-07 Object Explorer 후속 수정: 탐색 불가 항목(프로시저·함수 매개 변수, MySQL/MariaDB 시스템 정보의 변수·상태·엔진 등)을 트리에 보여 줌,
+  반환 값 매개 변수 이름. "Object Explorer 후속 수정" 절 추가, B단계 데이터 흐름 2·3 갱신.
+- 2026-11-07 SQL Server 스키마를 새로 고친 뒤 테이블 트리거가 비던 문제(트리거 캐시도 비움). "Object Explorer 후속 수정" 절.
+- 2026-11-07 새 객체의 부모 폴더: 같은 클래스를 받는 형제 폴더 중 객체를 담는 폴더를 고름(`DBNModel`, 새 함수가 "저장 프로시저"에 붙던 문제).
+  "Object Explorer 후속 수정" 절.
+- 2026-11-07 후속 수정(편집기·결과·도구): 자동완성 프로시저 제안 설정, 날짜/시간 데이터베이스 형식 설정, 남은 영어 문구 등. [swing-followup-fixes.md](swing-followup-fixes.md).
+- 2026-11-07 서버 대시보드: Activity Monitor 첫 탭 "개요"(연결별 실시간 차트), Tools·Object Explorer의 Server Dashboard. [swing-dashboard.md](swing-dashboard.md).
+- 2026-11-07 드라이버 관리자: Tools > Driver Manager…, Connect 대화상자의 Edit Driver…(드라이버 만들기·편집, 로컬 jar·폴더 라이브러리, 오프라인 모드). [swing-driver-manager.md](swing-driver-manager.md).

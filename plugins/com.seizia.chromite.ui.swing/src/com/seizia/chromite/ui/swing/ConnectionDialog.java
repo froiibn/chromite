@@ -17,6 +17,7 @@
 package com.seizia.chromite.ui.swing;
 
 import com.seizia.chromite.ui.swing.internal.ConnectionMessages;
+import com.seizia.chromite.ui.swing.internal.DriverManagerMessages;
 import org.eclipse.osgi.util.NLS;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
@@ -79,6 +80,8 @@ import java.util.StringTokenizer;
  *   (docs/chromite/swing-registered-servers.md)
  * - 2026-11-06 고급 연결 설정: Test Connection 결과에 쓴 네트워크 핸들러 표시 (docs/chromite/swing-conn-advanced.md)
  * - 2026-11-06 화면 문구를 ConnectionMessages로 옮김(OS 언어를 따름)
+ * - 2026-11-07 Database type 옆 Edit Driver…: 드라이버 편집({@link DriverEditorDialog}) 뒤 입력한 값을 지키며 설정 화면을 다시 만듦
+ *   (docs/chromite/swing-driver-manager.md)
  */
 final class ConnectionDialog extends JDialog {
 
@@ -90,6 +93,10 @@ final class ConnectionDialog extends JDialog {
 
     private final JPanel settingsHolder = new JPanel(new BorderLayout());
     private final DatabaseTypeCombo databaseTypeCombo;
+    /**
+     * The "Database type" row: the combo and Edit Driver….
+     */
+    private final JPanel driverRow = new JPanel(new BorderLayout(6, 0));
     @Nullable
     private ConnectionSettingsPanel settingsPanel;
     /**
@@ -129,6 +136,11 @@ final class ConnectionDialog extends JDialog {
         databaseTypeCombo = new DatabaseTypeCombo(driver, this::driverSelected);
         // The driver of an existing connection is not changed here (SWT: a separate "driver type" action)
         databaseTypeCombo.setEnabled(original == null);
+        JButton editDriverButton = new JButton(DriverManagerMessages.driveredit_button_edit_driver);
+        editDriverButton.setToolTipText(DriverManagerMessages.driveredit_button_edit_driver_tip);
+        editDriverButton.addActionListener(e -> editDriver());
+        driverRow.add(databaseTypeCombo, BorderLayout.CENTER);
+        driverRow.add(editDriverButton, BorderLayout.EAST);
 
         connectButton = new JButton(original == null ? ConnectionMessages.dialog_button_connect : ConnectionMessages.dialog_button_save);
         testButton.addActionListener(e -> testConnection());
@@ -231,10 +243,27 @@ final class ConnectionDialog extends JDialog {
         fitToContent();
     }
 
+    /**
+     * Edit Driver…: the driver's URL template and defaults shape the form, so after a change the form is built again
+     * from what was typed (written into the working connection first).
+     */
+    private void editDriver() {
+        if (working == null || settingsPanel == null || !(working.getDriver() instanceof DriverDescriptor driver)) {
+            return;
+        }
+        if (DriverEditorDialog.openEdit(this, driver)) {
+            settingsPanel.saveSettings(working, false);
+            // The name is applied only when saving (applyName); the rebuilt form reads it from the connection
+            working.setName(settingsPanel.getConnectionName());
+            createSettingsPanel(false);
+            fitToContent();
+        }
+    }
+
     private void createSettingsPanel(boolean isNew) {
         boolean optionsVisible = settingsPanel != null && settingsPanel.isOptionsVisible();
         settingsHolder.removeAll();
-        settingsPanel = new ConnectionSettingsPanel(working, isNew, databaseTypeCombo, this::updateButtons);
+        settingsPanel = new ConnectionSettingsPanel(working, isNew, driverRow, this::updateButtons);
         settingsPanel.setOptionsVisible(optionsVisible);
         settingsHolder.add(settingsPanel, BorderLayout.CENTER);
         settingsHolder.revalidate();
