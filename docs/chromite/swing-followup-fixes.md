@@ -76,6 +76,17 @@
   Look and Feel을 설치한 뒤 `UIManager.put("TabbedPane.moreTabsButtonToolTipText", …)`으로 넣는다. `UIManager.put`은 개발자 기본값이라 Look and Feel
   기본값보다 앞서고 테마를 바꿔도 남는다.
 
+## 전송 대상 이름
+
+- 증상: 데이터 전송(Copy Tables, Export Data… → Database)이 기존 테이블에 쓰다 실패하면 오류가
+  `Error while finishing result set fetching into 'chr_fixes_editor.dbo.null'`처럼 대상 이름 대신 `null`을 보임(#44).
+- 원인: 오류 문구(`DBDDataReceiver.java:78`)는 받는 쪽의 `toString()`을 쓰고, `DatabaseTransferConsumer.toString()`(`:1074`)은
+  `DatabaseMappingContainer.getTargetFullName()`을 돌려준다. 이 메서드는 스키마·카탈로그 아래 대상의 이름을 `targetName` 필드에서 직접 읽었다
+  (`DatabaseMappingContainer.java:402-409`). 필드는 새로 만들거나 이름을 바꾼 대상에만 채워지고, 기존 테이블을 고른 매핑(`existing`)은 대상 개체만 들고 있어
+  비어 있다. 같은 클래스의 `getTargetName()`(`:181-222`)은 대상 개체·원본 이름으로 채우는데, 스키마·카탈로그가 없을 때만 그것을 썼다.
+  같은 메서드를 쓰는 다른 곳은 매핑 화면의 대상 이름(`DatabaseTransferConsumer.getTargetName` `:888`)뿐이고, 대상 개체가 있으면 그 앞에서 개체 이름을 쓴다.
+- 고친 것: `getTargetFullName()`이 두 경우 모두 `getTargetName()`을 쓴다.
+
 ## 확인 (2026-11-07)
 
 Swing 제품(`-vm D:\Tools\jbrsdk-25\bin\server\jvm.dll`, 비공개 작업 공간)을 실행하고 같은 프로세스에 붙인 EDT 시험 에이전트로 조작했다(OS 입력 없음).
@@ -92,6 +103,8 @@ Swing 제품(`-vm D:\Tools\jbrsdk-25\bin\server\jvm.dll`, 비공개 작업 공�
   ISO 글자 `2026-11-06T12:30:00.5+09:00`도 `12:30:00.5000000 +09:00`으로 저장.
 - 문구: SQL Server 연결 테스트를 닿지 않는 주소(10.255.255.1)로 걸고 취소 → "취소하는 중…" / "Canceling…". 문서 탭 14개로 넘치게 한 뒤 넘침 단추의
   도구 설명이 "숨겨진 탭 표시" / "Show Hidden Tabs", 목록 열기 확인.
+- 전송: PostgreSQL `copy_src` → SQL Server 기존 테이블 `copy_dst`(기본 키 충돌)로 복사, 중지 → `Error while finishing result set fetching into 'chr_fixes_editor.dbo.copy_dst'`,
+  진행 표의 대상 열도 `chr_fixes_editor.dbo.copy_dst`.
 - 회귀 테스트는 실행하지 않았다(CLAUDE.md 7번). 영향받을 수 있는 기능은 각 항목의 "고친 것"에 적은 곳이다.
 
 ## 남긴 것
@@ -101,9 +114,11 @@ Swing 제품(`-vm D:\Tools\jbrsdk-25\bin\server\jvm.dll`, 비공개 작업 공�
 - 열의 소수 초 자릿수에 맞춘 표시(`datetime2(7)`은 일곱 자리처럼). 데이터베이스 형식 설정을 켠 채 Oracle로 복사하면 문자열 바인딩이 `NLS_TIMESTAMP_FORMAT`에 달려 있다.
 - 테마를 실행 중에 바꾸면 이미 있는 탭 창의 넘침 단추 도구 설명이 사라진다. FlatLaf가 단추를 `installComponents`에서 만들 때는 아직 문구를 읽기 전이라
   번역과 상관없이 영어 문구도 같다. 다시 시작하면 나온다.
+- 전송 오류의 앞부분 "Error while finishing result set fetching into"는 모델 예외 문구라 영어로 남는다.
 
 ## 변경 이력
 - 2026-11-07 최초 작성: 자동완성 프로시저·함수 제안 설정(#33).
 - 2026-11-07 SQL Server 열 정의가 문자형이 아닌 형식에 COLLATE를 붙이던 것(#44).
 - 2026-11-07 날짜/시간 값을 데이터베이스 형식으로 보이는 설정(#43), SQL Server `datetimeoffset` 편집이 NULL로 저장되던 것.
 - 2026-11-07 진행 대화상자의 "Canceling…"과 탭 넘침 단추의 "Show Hidden Tabs"를 화면 언어로(#44).
+- 2026-11-07 데이터 전송 오류의 대상 이름이 `….null`로 나오던 것(#44).

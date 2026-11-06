@@ -371,7 +371,7 @@ Copy Tables와 새 테이블로 가져오기는 대상 열 형식을 모델이 �
 - 가져오기 자동 매핑에서 맞는 열이 없는 원본 열은 새 열 만들기가 아니라 건너뛰기.
 - 데이터베이스 노드의 원본 목록은 스키마별로 묶어 보이고(SWT는 데이터베이스에서 내보내기를 열 수 없음), 가져오기는 첫 단계에서 대상 테이블(기존 또는 새 테이블)을 고른다.
   여러 스키마의 같은 이름 테이블이 같은 파일·같은 대상 테이블로 가는 것을 막는다.
-- 새 테이블의 형식 매핑과 값 바인딩을 모델·방언에서 고쳤다(아래 "새 테이블의 형식 매핑", SWT에도 적용). 그 밖의 모델 코드 변경 없음.
+- 새 테이블의 형식 매핑과 값 바인딩을 모델·방언에서 고쳤다(아래 "새 테이블의 형식 매핑", SWT에도 적용). 그 밖의 모델 코드 변경은 오류 문구의 대상 이름(`DatabaseMappingContainer.getTargetFullName`, 2026-11-07)뿐이다.
 
 ## 확인 (2026-11-06)
 
@@ -472,3 +472,5 @@ Copy Tables와 새 테이블로 가져오기는 대상 열 형식을 모델이 �
 - 2026-11-07 새 테이블의 형식 매핑(모델·방언, SWT에도 적용): PostgreSQL `int4`/`int8` → MariaDB `TINYINT`, 다른 DB 문자열 → SQL Server `varchar`(한글 손실) 등을
   JDBC 형식·값 범위와 방언 변환기로 고침(`DBStructUtils`, SQL Server·MySQL·PostgreSQL·Oracle 방언), 시각대 있는 값과 JSON 내용의 바인딩(`JDBCDateTimeValueHandler`,
   `SQLServerDateTimeOffsetHandler`, `TemporalAccessorValueHandler`, `PostgreJSONValueHandler`). 매핑 표와 4×3 복사 확인.
+- 2026-11-07 기존 테이블로 보낸 전송의 오류에 대상 이름 대신 `….null`이 나오던 것(`DatabaseMappingContainer.getTargetFullName`, SWT에도 적용).
+  [swing-followup-fixes.md](swing-followup-fixes.md) "전송 대상 이름".
