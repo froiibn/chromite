@@ -28,6 +28,7 @@ import org.eclipse.osgi.util.NLS;
  *
  * 변경 이력:
  * - 2026-11-06 최초 작성: 연결 영역 화면 문구를 옮김(OS 언어를 따름)
+ * - 2026-11-07 열린 세션에 자동 커밋을 적용할 때의 문구({@code autocommit_*}) (docs/chromite/swing-frontend.md "자동 커밋 상태")
  */
 public class ConnectionMessages extends NLS {
     private static final String BUNDLE_NAME = "com.seizia.chromite.ui.swing.internal.ConnectionMessages"; //$NON-NLS-1$
@@ -336,6 +337,15 @@ public class ConnectionMessages extends NLS {
     public static String search_column_type;
     public static String search_column_full_name;
     public static String search_column_connection;
+
+    // Auto-commit applied to open sessions (AutoCommitApplier)
+    public static String autocommit_title;
+    public static String autocommit_pending_message;
+    public static String autocommit_pending_cancel_note;
+    public static String autocommit_commit_apply;
+    public static String autocommit_rollback_apply;
+    public static String autocommit_error_message;
+    public static String autocommit_other_session;
 
     static {
         NLS.initializeMessages(BUNDLE_NAME, ConnectionMessages.class);
