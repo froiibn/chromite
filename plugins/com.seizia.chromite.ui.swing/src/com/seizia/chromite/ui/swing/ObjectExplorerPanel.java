@@ -19,6 +19,7 @@ package com.seizia.chromite.ui.swing;
 import com.formdev.flatlaf.FlatClientProperties;
 import com.formdev.flatlaf.ui.FlatUIUtils;
 import com.formdev.flatlaf.util.UIScale;
+import com.seizia.chromite.ui.swing.internal.BackupRestoreMessages;
 import com.seizia.chromite.ui.swing.internal.CoreMessages;
 import com.seizia.chromite.ui.swing.internal.ErdMessages;
 import org.eclipse.core.runtime.IStatus;
@@ -128,6 +129,7 @@ import java.util.function.Consumer;
  *     Find Objects 결과는 {@link #revealNode}로 트리를 펼쳐 고른다.</li>
  *     <li>Tasks &gt; Import Data… / Export Data…(SSMS 데이터베이스 Tasks 메뉴): 테이블에서 가져오기({@link DataImportWizard}),
  *     테이블·뷰 또는 그것들을 담은 스키마·폴더에서 내보내기({@link DataExportWizard}).</li>
+ *     <li>Tasks &gt; Back Up… / Restore…(SSMS 데이터베이스 Tasks 메뉴): 데이터베이스 백업·복원({@link BackupRestoreCommands}).</li>
  * </ul>
  *
  * 변경 이력:
@@ -153,6 +155,7 @@ import java.util.function.Consumer;
  * - 2026-11-06 화면 문구를 CoreMessages로 옮김(OS 언어를 따름)
  * - 2026-11-06 ER 다이어그램: View Diagram 메뉴, Select Top 행 수를 다이어그램 메뉴와 같이 씀 (docs/chromite/swing-erd.md)
  * - 2026-11-06 개체 정의 편집: Modify, Script as &gt; ALTER To, New View/Procedure/Function 메뉴 (docs/chromite/swing-source-editor.md)
+ * - 2026-11-06 백업·복원: Tasks &gt; Back Up… / Restore… 메뉴 (docs/chromite/swing-backup-restore.md)
  */
 final class ObjectExplorerPanel extends JPanel {
 
@@ -258,6 +261,8 @@ final class ObjectExplorerPanel extends JPanel {
     private final Action importDataAction;
     private final Action exportDataAction;
     private final SourceEditCommands sourceEditCommands;
+    private final Action backUpAction;
+    private final Action restoreAction;
     private final INavigatorListener navigatorListener = this::navigatorNodeChanged;
     /**
      * A connection to select once the connection list has been read again (a connection created in this window). The
@@ -404,7 +409,22 @@ final class ObjectExplorerPanel extends JPanel {
                 DataExportWizard.openForObject(this, object);
             }
         });
+        backUpAction = createAction(BackupRestoreMessages.backup_menu, () -> {
+            DBSObject object = getSelectedObject();
+            if (object != null) {
+                BackupRestoreCommands.backUp(this, object, queryWindows);
+            }
+        });
+        restoreAction = createAction(BackupRestoreMessages.restore_menu, () -> {
+            DBSObject object = getSelectedObject();
+            if (object != null) {
+                BackupRestoreCommands.restore(this, object, queryWindows);
+            }
+        });
         tasksMenu = new JMenu(CoreMessages.explorer_tasks);
+        tasksMenu.add(backUpAction);
+        tasksMenu.add(restoreAction);
+        tasksMenu.addSeparator();
         tasksMenu.add(importDataAction);
         tasksMenu.add(exportDataAction);
         newConnectionAction = createAction(CoreMessages.explorer_new_connection, () -> {
@@ -671,7 +691,9 @@ final class ObjectExplorerPanel extends JPanel {
         viewDiagramAction.setEnabled(ErdDiagramModel.canShow(object));
         importDataAction.setEnabled(DataImportWizard.canImport(object));
         exportDataAction.setEnabled(DataExportWizard.canExport(object));
-        tasksMenu.setEnabled(importDataAction.isEnabled() || exportDataAction.isEnabled());
+        backUpAction.setEnabled(BackupRestoreCommands.canBackUp(object));
+        restoreAction.setEnabled(backUpAction.isEnabled());
+        tasksMenu.setEnabled(importDataAction.isEnabled() || exportDataAction.isEnabled() || backUpAction.isEnabled());
         designAction.setEnabled(TableDesignSession.canDesign(object));
         newTableAction.setEnabled(getSelectedNavigatorNode() instanceof DBNDatabaseFolder folder && TableDesignSession.canCreateTable(folder));
         sourceEditCommands.update(getSelectedNavigatorNode());
