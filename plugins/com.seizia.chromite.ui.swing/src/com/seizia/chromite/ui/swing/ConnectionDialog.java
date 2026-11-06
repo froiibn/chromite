@@ -71,6 +71,8 @@ import java.util.StringTokenizer;
  * - 2026-11-06 D단계: 최초 작성 (docs/chromite/swing-frontend.md "구현 현황 — D단계")
  * - 2026-11-06 SSMS식 Connect 대화상자: 2단계 마법사(드라이버 고르기 → 설정, Back/Next) → 한 화면(Database type 콤보, Options >>),
  *   새 연결의 Save → Connect(저장하고 연결), 서버·드라이버 기록, 테마 키로 읽는 색 (docs/chromite/swing-frontend.md "Connect 대화상자 (SSMS식)")
+ * - 2026-11-06 Registered Servers: {@link #openNew}가 등록한 연결을 돌려준다(Object Explorer에 넣거나 Registered Servers에서 고르기 위해)
+ *   (docs/chromite/swing-registered-servers.md)
  */
 final class ConnectionDialog extends JDialog {
 
@@ -174,15 +176,19 @@ final class ConnectionDialog extends JDialog {
     /**
      * New connection in a project (File > New Connection, Object Explorer). Blocks until the dialog is closed.
      *
-     * @param folder connection folder of the new connection (the folder selected in Object Explorer)
+     * @param folder connection folder of the new connection (the server group selected in Registered Servers)
+     * @return the registered connection, or null if the dialog was canceled
      */
-    static void openNew(@Nullable Window owner, @NotNull DBPProject project, @Nullable DBPDataSourceFolder folder) {
+    @Nullable
+    static DataSourceDescriptor openNew(@Nullable Window owner, @NotNull DBPProject project, @Nullable DBPDataSourceFolder folder) {
         DBPDriver driver = DatabaseTypeCombo.getDefaultDriver();
         if (driver == null) {
             DBWorkbench.getPlatformUI().showError("New Connection", "There are no database drivers.");
-            return;
+            return null;
         }
-        new ConnectionDialog(owner, project.getDataSourceRegistry(), null, folder, driver).setVisible(true);
+        ConnectionDialog dialog = new ConnectionDialog(owner, project.getDataSourceRegistry(), null, folder, driver);
+        dialog.setVisible(true);
+        return dialog.registered ? dialog.working : null;
     }
 
     /**

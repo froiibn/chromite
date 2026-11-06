@@ -31,7 +31,6 @@ import org.jkiss.dbeaver.model.DBPStatefulObject;
 import org.jkiss.dbeaver.model.navigator.DBNDataSource;
 import org.jkiss.dbeaver.model.navigator.DBNDatabaseFolder;
 import org.jkiss.dbeaver.model.navigator.DBNDatabaseNode;
-import org.jkiss.dbeaver.model.navigator.DBNLocalFolder;
 import org.jkiss.dbeaver.model.navigator.DBNNode;
 import org.jkiss.dbeaver.model.struct.DBSEntityConstraint;
 import org.jkiss.dbeaver.model.struct.DBSEntityConstraintType;
@@ -82,6 +81,8 @@ import java.util.Map;
  * - 2026-11-06 B단계: 최초 작성 (docs/chromite/swing-frontend.md "구현 현황 — B단계")
  * - 2026-11-06 디자인 적용: 모델 아이콘을 Chromite 아이콘 팩에 대응, Object Explorer 노드 아이콘과 연결 상태 점
  *   (docs/chromite/design-spec.md "적용 현황")
+ * - 2026-11-06 Registered Servers: Object Explorer에 연결 폴더 노드가 없어져 그 아이콘 분기 삭제. Registered Servers도 서버 아이콘에
+ *   {@link #getDataSourceIcon}을 쓴다 (docs/chromite/swing-registered-servers.md)
  */
 final class NodeIcons {
 
@@ -183,7 +184,7 @@ final class NodeIcons {
         if (node instanceof DBNDataSource dataSourceNode) {
             return getDataSourceIcon(dataSourceNode.getDataSourceContainer());
         }
-        if (node instanceof DBNDatabaseFolder || node instanceof DBNLocalFolder) {
+        if (node instanceof DBNDatabaseFolder) {
             return UiIcons.get(expanded ? "folder-open" : "folder"); //$NON-NLS-1$ //$NON-NLS-2$
         }
         if (node instanceof DBNDatabaseNode databaseNode) {

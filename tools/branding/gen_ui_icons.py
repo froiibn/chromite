@@ -271,6 +271,8 @@ CONCEPTS = [
     # Properties tool window tool bar (SSMS property grid)
     ("categorized", "분류별", "Categorized", "list-tree"),
     ("sort-alpha", "이름순", "Alphabetical", "sort-ascending-letters"),
+    # Registered Servers tool bar
+    ("new-group", "새 서버 그룹", "New server group", "folder-plus"),
 ]
 
 
@@ -344,6 +346,8 @@ def set_a(P):
         + rect(1.5, 1.5, 6, 4.5, 1, nf, n))
     I["folder"] = svg(folder_closed(bf, b))
     I["folder-open"] = svg(folder_open(bf, bf, b))
+    body, defs = with_badge(folder_closed(bf, b), plus_badge(P["gs"]), plus_badge(0, True))
+    I["new-group"] = svg(body, defs)
     I["table"] = svg(table_shape(nf, n))
     body, defs = with_badge(table_shape(nf, n), lens_badge(b, bf), lens_badge(0, 0, True))
     I["view"] = svg(body, defs)
@@ -416,9 +420,12 @@ def set_b(P):
         path("M4.5 6V11.5H8.5", None, n) + path("M7.5 3.5H11.5V9", None, n)
         + rect(1.5, 1.5, 6, 4.5, 0.5, P["fold"], P["fold_s"])
         + rect(8.5, 9.5, 6, 4.5, 0.5, P["bf"], P["bs"]))
-    I["folder"] = svg(path("M1.5 4A1.5 1.5 0 0 1 3 2.5H6l1.5 1.5H13A1.5 1.5 0 0 1 14.5 5.5v6.5A1.5 1.5 0 0 1 13 13.5H3"
-                           "A1.5 1.5 0 0 1 1.5 12Z", P["fold"], P["fold_s"])
-                      + path("M2 6.5H14", None, P["fold_l"], 1, cap="butt"))
+    folder_b = (path("M1.5 4A1.5 1.5 0 0 1 3 2.5H6l1.5 1.5H13A1.5 1.5 0 0 1 14.5 5.5v6.5A1.5 1.5 0 0 1 13 13.5H3"
+                     "A1.5 1.5 0 0 1 1.5 12Z", P["fold"], P["fold_s"])
+                + path("M2 6.5H14", None, P["fold_l"], 1, cap="butt"))
+    I["folder"] = svg(folder_b)
+    body, defs = with_badge(folder_b, plus_badge(P["gs"]), plus_badge(0, True))
+    I["new-group"] = svg(body, defs)
     I["folder-open"] = svg(folder_open(P["fold"], P["fold_l"], P["fold_s"]))
     tb = lambda hf, **k: table_shape(nf if nf != "#3A3A3D" else "#2D2D30", n, line=ln, head_fill=hf, **k)
     I["table"] = svg(tb(P["head"]))

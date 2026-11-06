@@ -34,7 +34,6 @@ import org.jkiss.dbeaver.model.navigator.DBNDataSource;
 import org.jkiss.dbeaver.model.navigator.DBNDatabaseFolder;
 import org.jkiss.dbeaver.model.navigator.DBNDatabaseNode;
 import org.jkiss.dbeaver.model.navigator.DBNEvent;
-import org.jkiss.dbeaver.model.navigator.DBNLocalFolder;
 import org.jkiss.dbeaver.model.navigator.DBNNode;
 import org.jkiss.dbeaver.model.navigator.DBNProject;
 import org.jkiss.dbeaver.model.navigator.DBNProjectDatabases;
@@ -81,7 +80,10 @@ import java.util.function.Consumer;
  * Object Explorer: 활성 프로젝트의 연결과 DB 객체를 보여 주는 트리.
  *
  * 설계: SWT 버전의 Database Navigator와 같은 탐색기 모델({@code DBWorkbench.getPlatform().getNavigatorModel()})을 그대로 쓴다.
- * 트리의 최상위는 활성 프로젝트의 연결 목록({@code DBNProject#getDatabases()}의 자식: 연결 폴더와 연결)이다(SSMS의 서버 목록에 해당).
+ * 트리의 최상위는 SSMS처럼 사용자가 Object Explorer에 연 서버만의 평평한 목록이다({@link ObjectExplorerServers}, 연 순서, 연결 폴더 없음).
+ * 등록된 서버 전체와 서버 그룹(연결 폴더)은 Registered Servers 창({@link RegisteredServersPanel})이 보여 준다.
+ * 서버는 Registered Servers의 "Object Explorer"({@link #showServer}), 도구 막대의 Connect(등록된 서버 고르기), New Connection으로 들어오고,
+ * Disconnect로 연결을 끊으면 SSMS처럼 목록에서 빠진다. 다른 곳(Registered Servers, 편집기)에서 연결을 끊으면 노드는 접힌 채 남는다.
  * <ul>
  *     <li>자식은 처음 펼칠 때 읽는다. 읽는 동안 "Loading…" 자식을 보여 주고, {@link DBNUtils#getNodeChildrenFiltered}를
  *     {@link AbstractJob}(백그라운드 Job, {@link DBRProgressMonitor} 사용)에서 호출한다. EDT에서는 모델을 읽지 않는다
@@ -98,13 +100,13 @@ import java.util.function.Consumer;
  *     <li>더블클릭은 Swing 트리의 기본 동작(펼치기/접기)만 한다. 객체 편집기는 다음 단계에서 만든다.</li>
  *     <li>오른쪽 클릭 메뉴 "New Query"는 선택한 노드가 속한 연결({@link DBNDatabaseNode#getDataSourceContainer()})로
  *     SQL 편집기를 연다(SSMS처럼 연결 아래 어느 노드에서나). 연결은 편집기가 실행할 때 필요하면 연다.</li>
- *     <li>연결 명령({@link ConnectionCommands}): New Connection(빈 곳·폴더에서도), Connect / Disconnect / Reconnect(연결 아래 어느 노드에서나),
+ *     <li>연결 명령({@link ConnectionCommands}): New Connection(빈 곳에서도, 최상위에 만들고 이 창에 넣는다), Connect / Disconnect / Reconnect(연결 아래 어느 노드에서나),
  *     Edit Connection(Enter), Rename(F2), Delete(Delete 키, 확인 후)는 연결 노드에서.</li>
  *     <li>객체 스크립트(SSMS): "Select Top 1000 Rows"(테이블·뷰, 새 편집기에서 바로 실행), "Script as > CREATE To / SELECT To >
  *     New Query Editor Window / Clipboard", "View DDL"(읽기 전용 탭). SQL은 {@link ObjectScripts}(모델의 SQL 생성기)가 만들고,
  *     DB 메타데이터를 읽으므로 진행 대화상자({@link ProgressDialog})의 작업 스레드에서 만든다.</li>
  *     <li>모델 이벤트: 탐색기 모델({@link INavigatorListener}, 모델이 EDT에서 부름)을 듣고 다른 곳에서 일어난 변경을 반영한다.
- *     연결 목록이 바뀌면(추가·삭제·이름 변경·폴더) 목록을 다시 읽되 이미 있는 트리 노드와 펼친 상태는 그대로 둔다.
+ *     연결 목록이 바뀌면(추가·삭제·이름 변경, 연 서버 목록 변경) 목록을 다시 읽되 이미 있는 트리 노드와 펼친 상태는 그대로 둔다.
  *     연결이 끊기면({@code UNLOAD}) 그 연결을 접고 다시 펼칠 때 읽게 하고, 연결 상태가 바뀌면 아이콘을 다시 그린다.
  *     모델이 지운 DB 객체 노드는 트리에서 뺀다. 이 패널이 보낸 이벤트(새로 고침의 원천이 이 패널)는 이미 처리했으므로 무시한다.
  *     다른 곳에서 새로 만든 DB 객체({@code ADD})는 아직 반영하지 않는다(새로 고침으로 보임).</li>
@@ -124,6 +126,8 @@ import java.util.function.Consumer;
  *   아이콘 팩 노드 아이콘과 연결 상태 점, 보조 글자, 마우스 올림 표시 (docs/chromite/design-spec.md "적용 현황")
  * - 2026-11-06 P1: 트리에 초점이 있을 때 F5 = 새로 고침(SSMS) (docs/chromite/swing-frontend.md "P1 디자인 적용")
  * - 2026-11-06 View DDL에 객체의 연결을 넘김(DDL 탭의 구문 강조가 연결의 SQL 방언을 따름) (docs/chromite/design-spec.md "편집기 글꼴과 SQL 색")
+ * - 2026-11-06 Registered Servers: 연 서버만 보이는 평평한 목록(연결 폴더 노드 삭제), Disconnect로 목록에서 빼기, 도구 막대 Connect = 서버 고르기,
+ *   New Connection으로 만든 서버 넣기 (docs/chromite/swing-registered-servers.md)
  */
 final class ObjectExplorerPanel extends JPanel {
 
@@ -165,6 +169,12 @@ final class ObjectExplorerPanel extends JPanel {
     private final ExplorerNode rootNode;
     @Nullable
     private final DBNProject projectNode;
+    /**
+     * The servers opened in this window (null without an active project).
+     */
+    @Nullable
+    private final ObjectExplorerServers servers;
+    private final Action connectServerAction;
     private final Action refreshAction;
     private final Action collapseAllAction;
     private final Action filterAction;
@@ -187,6 +197,10 @@ final class ObjectExplorerPanel extends JPanel {
      */
     @Nullable
     private DBNNode pendingReveal;
+    /**
+     * Expand {@link #pendingReveal} too (it connects): a server opened from Registered Servers or the Connect chooser.
+     */
+    private boolean expandReveal;
     private boolean disposed;
 
     /**
@@ -199,6 +213,7 @@ final class ObjectExplorerPanel extends JPanel {
         DBPProject project = DBWorkbench.getPlatform().getWorkspace().getActiveProject();
         projectNode = project == null ? null :
             DBWorkbench.getPlatform().getNavigatorModel().getRoot().getProjectNode(project);
+        servers = projectNode == null ? null : new ObjectExplorerServers(project.getDataSourceRegistry());
         rootNode = new ExplorerNode(projectNode != null ? projectNode : "No active project");
         treeModel = new DefaultTreeModel(rootNode);
 
@@ -275,11 +290,25 @@ final class ObjectExplorerPanel extends JPanel {
         scriptAsMenu = new JMenu("Script as");
         scriptAsMenu.add(createToMenu);
         scriptAsMenu.add(selectToMenu);
-        newConnectionAction = createAction("New Connection…", () -> ConnectionCommands.newConnection(this,
-            getSelectedNavigatorNode() instanceof DBNLocalFolder folderNode ? folderNode.getFolder() : null));
+        newConnectionAction = createAction("New Connection…", () -> {
+            DBPDataSourceContainer created = ConnectionCommands.newConnection(this, null);
+            if (created != null) {
+                // The dialog connects it; only add and select it here
+                showServer(created, false);
+            }
+        });
         newConnectionAction.putValue(Action.SHORT_DESCRIPTION, "Create a connection in the active project");
+        connectServerAction = createAction("Connect…", () -> {
+            DBPDataSourceContainer chosen = projectNode == null ? null
+                : RegisteredServerCommands.chooseServer(this, projectNode.getDatabases().getDataSourceRegistry());
+            if (chosen != null) {
+                showServer(chosen, true);
+            }
+        });
+        connectServerAction.putValue(Action.SHORT_DESCRIPTION, "Connect to a registered server and show it here");
         connectAction = createAction("Connect", () -> runOnSelectedDataSource(ConnectionCommands::connect));
-        disconnectAction = createAction("Disconnect", () -> runOnSelectedDataSource(ConnectionCommands::disconnect));
+        disconnectAction = createAction("Disconnect", () -> runOnSelectedDataSource(this::disconnectServer));
+        disconnectAction.putValue(Action.SHORT_DESCRIPTION, "Disconnect the selected server and remove it from Object Explorer");
         reconnectAction = createAction("Reconnect", () -> runOnSelectedDataSource(ConnectionCommands::reconnect));
         editConnectionAction = createAction("Edit Connection…", () -> {
             if (getSelectedNavigatorNode() instanceof DBNDataSource node) {
@@ -397,6 +426,35 @@ final class ObjectExplorerPanel extends JPanel {
         return newConnectionAction;
     }
 
+    /**
+     * Adds a server to this window (at the end, as SSMS) if it is not there yet, then selects it.
+     *
+     * @param expand also expand it, which connects it (Registered Servers "Object Explorer", Connect)
+     */
+    void showServer(@NotNull DBPDataSourceContainer dataSource, boolean expand) {
+        if (projectNode == null || servers == null) {
+            return;
+        }
+        DBNDataSource node = projectNode.getDatabases().getDataSource(dataSource);
+        if (node == null) {
+            return;
+        }
+        servers.add(dataSource);
+        pendingReveal = node;
+        expandReveal = expand;
+        reloadConnectionList();
+    }
+
+    /**
+     * Object Explorer Disconnect (SSMS): disconnects the server and removes it from this window.
+     */
+    private void disconnectServer(@NotNull DBPDataSourceContainer dataSource) {
+        ConnectionCommands.disconnect(dataSource);
+        if (servers != null && servers.remove(dataSource)) {
+            reloadConnectionList();
+        }
+    }
+
     @NotNull
     private static Action createAction(@NotNull String name, @NotNull Runnable task) {
         return new AbstractAction(name) {
@@ -471,6 +529,7 @@ final class ObjectExplorerPanel extends JPanel {
         boolean connectionNode = getSelectedNavigatorNode() instanceof DBNDataSource;
         boolean connected = dataSource != null && dataSource.isConnected();
         newConnectionAction.setEnabled(projectNode != null);
+        connectServerAction.setEnabled(projectNode != null);
         newQueryAction.setEnabled(dataSource != null);
         DBSObject object = getSelectedObject();
         boolean canScript = ObjectScripts.canScriptCreate(object);
@@ -481,7 +540,8 @@ final class ObjectExplorerPanel extends JPanel {
         scriptAsMenu.setEnabled(canScript || canSelect);
         viewDdlAction.setEnabled(canScript);
         connectAction.setEnabled(dataSource != null && !connected);
-        disconnectAction.setEnabled(connected);
+        // Also for a server that is no longer connected: Disconnect removes it from this window
+        disconnectAction.setEnabled(dataSource != null);
         reconnectAction.setEnabled(connected);
         editConnectionAction.setEnabled(connectionNode);
         renameAction.setEnabled(connectionNode);
@@ -500,7 +560,7 @@ final class ObjectExplorerPanel extends JPanel {
         toolBar.setOpaque(false);
         toolBar.setBorder(BorderFactory.createEmptyBorder(UIScale.scale(3), UIScale.scale(8), UIScale.scale(3), UIScale.scale(8)));
         toolBar.add(UiIcons.createActionButton(newConnectionAction, "new-connection")); //$NON-NLS-1$
-        toolBar.add(UiIcons.createActionButton(connectAction, "connect")); //$NON-NLS-1$
+        toolBar.add(UiIcons.createActionButton(connectServerAction, "connect")); //$NON-NLS-1$
         toolBar.add(UiIcons.createActionButton(disconnectAction, "disconnect")); //$NON-NLS-1$
         toolBar.addSeparator();
         toolBar.add(UiIcons.createActionButton(filterAction, "filter")); //$NON-NLS-1$
@@ -629,10 +689,10 @@ final class ObjectExplorerPanel extends JPanel {
     }
 
     @Nullable
-    private static DBNNode[] readChildren(@NotNull DBRProgressMonitor monitor, @NotNull DBNNode node) throws DBException {
-        if (node instanceof DBNProject projectNode) {
-            // Root: the connections of the project, without the project's other resources (scripts, bookmarks)
-            return DBNUtils.getNodeChildrenFiltered(monitor, projectNode.getDatabases(), true);
+    private DBNNode[] readChildren(@NotNull DBRProgressMonitor monitor, @NotNull DBNNode node) throws DBException {
+        if (node instanceof DBNProject project && servers != null) {
+            // Root: the servers opened in this window, without folders or the project's other resources (scripts, bookmarks)
+            return servers.getNodes(project.getDatabases());
         }
         return DBNUtils.getNodeChildrenFiltered(monitor, node, true);
     }
@@ -712,7 +772,7 @@ final class ObjectExplorerPanel extends JPanel {
             reloadConnectionList();
             return;
         }
-        if (node instanceof DBNDataSource || node instanceof DBNLocalFolder) {
+        if (node instanceof DBNDataSource) {
             if (!isInProject(node, databases)) {
                 return;
             }
@@ -752,10 +812,8 @@ final class ObjectExplorerPanel extends JPanel {
     }
 
     private static boolean isInProject(@NotNull DBNNode node, @NotNull DBNProjectDatabases databases) {
-        if (node instanceof DBNDataSource dataSourceNode) {
-            return dataSourceNode.getDataSourceContainer().getRegistry() == databases.getDataSourceRegistry();
-        }
-        return node instanceof DBNLocalFolder folderNode && folderNode.getDataSourceRegistry() == databases.getDataSourceRegistry();
+        return node instanceof DBNDataSource dataSourceNode
+            && dataSourceNode.getDataSourceContainer().getRegistry() == databases.getDataSourceRegistry();
     }
 
     private void connectionUpdated(@NotNull DBNNode node, @NotNull DBNEvent.NodeChange change) {
@@ -800,18 +858,12 @@ final class ObjectExplorerPanel extends JPanel {
     }
 
     /**
-     * Reads the connection list (and the loaded connection folders) again, keeping the tree nodes that are still
-     * there with their children and expansion state.
+     * Reads the list of opened servers again, keeping the tree nodes that are still there with their children and
+     * expansion state.
      */
     private void reloadConnectionList() {
         if (rootNode.state != LoadState.NOT_LOADED) {
             reloadPreserving(rootNode);
-        }
-        for (int i = 0; i < rootNode.getChildCount(); i++) {
-            if (rootNode.getChildAt(i) instanceof ExplorerNode child && child.getUserObject() instanceof DBNLocalFolder
-                && child.state == LoadState.LOADED) {
-                reloadPreserving(child);
-            }
         }
     }
 
@@ -876,6 +928,11 @@ final class ObjectExplorerPanel extends JPanel {
                     TreePath path = new TreePath(child.getPath());
                     tree.setSelectionPath(path);
                     tree.scrollPathToVisible(path);
+                    if (expandReveal) {
+                        expandReveal = false;
+                        tree.expandPath(path);
+                    }
+                    tree.requestFocusInWindow();
                     break;
                 }
             }

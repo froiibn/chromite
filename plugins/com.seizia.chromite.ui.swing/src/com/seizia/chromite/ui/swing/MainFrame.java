@@ -74,7 +74,9 @@ import java.util.function.IntConsumer;
  *     Tools(Options, {@link OptionsDialog}), Window(Reset Window Layout, 열린 문서 탭 목록), Help(About)이다. FlatLaf의 통합 제목 표시줄(Windows)에서
  *     메뉴 막대는 A단계처럼 제목 표시줄 안에 들어간다. Tools &gt; Options와 같은 설정을 보이는 메뉴 항목(Theme, Icon Style, Auto-Complete While Typing)은
  *     메뉴를 열 때 현재 값으로 맞춘다.
- *     도구 창 단축키는 SSMS와 같다(Object Explorer F8, Properties F4, Results Ctrl+R).</li>
+ *     도구 창 단축키는 SSMS와 같다(Object Explorer F8, Registered Servers Ctrl+Alt+G, Properties F4, Results Ctrl+R).</li>
+ *     <li>Registered Servers({@link RegisteredServersPanel})는 SSMS처럼 왼쪽 열에서 Object Explorer 위에 있다({@link ToolWindow#stackBelow}).
+ *     그 창의 "Object Explorer" 명령은 Object Explorer를 보이고 서버를 넣으며, "New Query"는 SQL 편집기만 연다.</li>
  *     <li>문서 탭: 시작 탭과 SQL 편집기 탭({@link SqlEditorPanel}). 편집기는 Object Explorer의 "New Query", File > New Query(Ctrl+N),
  *     도구 막대의 New Query로 연다. 제목은 SSMS처럼 {@code SQLQueryN.sql - 연결 이름}이고, 도구 설명은 전체 파일 경로와 연결·서버다.
  *     닫기 단추는 DataGrip처럼 선택한 탭과 마우스를 올린 탭에만 보이고({@link IslandTabbedPaneUI}), 가운데 단추로 눌러도 닫는다.</li>
@@ -119,6 +121,7 @@ import java.util.function.IntConsumer;
  * - 2026-11-06 P1: 쿼리 상태 줄을 결과 아래에 둠 (docs/chromite/swing-frontend.md "P1 디자인 적용")
  * - 2026-11-06 P1: 문서 탭 닫기 단추를 선택·마우스 올린 탭에만, 가운데 단추로 닫기 (docs/chromite/swing-frontend.md "P1 디자인 적용")
  * - 2026-11-06 DDL 탭에 객체의 연결을 넘김(구문 강조의 SQL 방언) (docs/chromite/design-spec.md "편집기 글꼴과 SQL 색")
+ * - 2026-11-06 Registered Servers 도구 창(Object Explorer 위, Ctrl+Alt+G) (docs/chromite/swing-registered-servers.md)
  */
 final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplorerPanel.QueryWindows {
 
@@ -130,6 +133,7 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
     private static final int MESSAGES_TAB = 1;
 
     private final ObjectExplorerPanel explorerPanel;
+    private final RegisteredServersPanel registeredServersPanel;
     private final StatusBar statusBar;
     private final List<DBPDataSourceRegistry> listenedRegistries = new ArrayList<>();
     private final DBPEventListener registryListener = event -> {
@@ -219,6 +223,23 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
         ToolWindow explorerWindow = new ToolWindow("objectExplorer", "Object Explorer", true, //$NON-NLS-1$
             explorerPanel, explorerSplit, true, 300,
             KeyStroke.getKeyStroke(KeyEvent.VK_F8, 0));
+        // Registered Servers above Object Explorer in the left column, as SSMS docks it
+        registeredServersPanel = new RegisteredServersPanel(new RegisteredServersPanel.Host() {
+            @Override
+            public void openQuery(@NotNull DBPDataSourceContainer dataSource) {
+                MainFrame.this.openQuery(dataSource);
+            }
+
+            @Override
+            public void showInObjectExplorer(@NotNull DBPDataSourceContainer dataSource) {
+                explorerWindow.setShown(true);
+                explorerPanel.showServer(dataSource, true);
+            }
+        });
+        ToolWindow registeredServersWindow = new ToolWindow("registeredServers", "Registered Servers", true, //$NON-NLS-1$
+            registeredServersPanel, createSplitPane(JSplitPane.VERTICAL_SPLIT), true, 320,
+            KeyStroke.getKeyStroke(KeyEvent.VK_G, InputEvent.CTRL_DOWN_MASK | InputEvent.ALT_DOWN_MASK));
+        explorerWindow.stackBelow(registeredServersWindow);
         ToolWindow propertiesWindow = new ToolWindow("properties", "Properties", true, //$NON-NLS-1$
             propertiesPanel, propertiesSplit, false, 300,
             KeyStroke.getKeyStroke(KeyEvent.VK_F4, 0));
@@ -231,7 +252,7 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
         resultTabsTrailing.setOpaque(false);
         resultTabsTrailing.add(resultsWindow.createHideButton());
         resultTabs.putClientProperty(FlatClientProperties.TABBED_PANE_TRAILING_COMPONENT, resultTabsTrailing);
-        toolWindows = List.of(explorerWindow, propertiesWindow, resultsWindow);
+        toolWindows = List.of(explorerWindow, registeredServersWindow, propertiesWindow, resultsWindow);
 
         newQueryAction = createAction("New Query", "Open a SQL editor for the connection selected in Object Explorer (Ctrl+N)",
             KeyStroke.getKeyStroke(KeyEvent.VK_N, InputEvent.CTRL_DOWN_MASK), this::newQuery);
@@ -348,6 +369,7 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
             saveLayout();
         }
         explorerPanel.dispose();
+        registeredServersPanel.dispose();
         editMenu.dispose();
         for (DBPDataSourceRegistry registry : listenedRegistries) {
             registry.removeDataSourceListener(registryListener);
