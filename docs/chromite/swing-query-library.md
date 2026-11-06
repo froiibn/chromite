@@ -33,34 +33,37 @@ DBA가 자주 쓰는 상태 확인 쿼리(세션 수, 대기, 디스크 사용�
 | `QueryLibrarySchedule` | ③ 예약 정의(간격·매일·평일, 대상 서버, 매개변수 값, 조건, 사용 여부)와 다음 실행 시각 계산 |
 | `QueryScheduler` | ③ 예약 실행기(데몬 타이머 + 쿼리별 Job, 화면 없는 실행, 조건·알림) |
 | `QueryLibraryHistory` | ③ 실행 기록(작업 공간 메타데이터의 쿼리별 TSV 파일, 보존 기간·개수) |
-| `QueryScheduleDialog`, `QueryScheduledDialog`, `QueryHistoryDialog` | ③ Schedule…, Scheduled Queries…, History… 화면 |
+| `QueryScheduleDialog`, `QueryScheduledDialog`, `QueryRunHistoryDialog` | ③ Schedule…, Scheduled Queries…, History… 화면 (`QueryRunHistoryDialog`는 SQL 편집기 확장의 쿼리 창 기록 `QueryHistoryDialog`와 이름이 겹쳐 바꾼 이름) |
 
 공유 파일에 넣은 연결 지점(다른 작업과 겹치는 곳을 줄이기 위해 작게 둠):
 
 | 파일 | 바꾼 것 |
 |---|---|
-| `MainFrame` | Query Library 도구 창(Object Explorer와 문서 사이 열, 처음에는 숨김, View > Query Library, Ctrl+Alt+T), Query > Save to Query Library…, `QueryLibraryPanel.Host` 구현(창 열기·찾기, 현재 연결), 확장이 붙은 쿼리 창의 저장을 확장에 넘김 |
+| `MainFrame` | Query Library 도구 창(오른쪽 열에서 Properties 위, `ToolWindow.stackBelow`, 처음에는 숨김, View > Query Library, Ctrl+Alt+T), Query > Save to Query Library…, `QueryLibraryPanel.Host` 구현(창 열기·찾기, 현재 연결), 확장이 붙은 쿼리 창의 저장을 확장에 넘김 |
 | `SqlEditorPanel` | `setExtension`(머리말을 도구 막대 아래에), `markModified`, 탭 아이콘, 실행 전 `prepareExecution`, 준비 Job에서 `SqlParameterBinding.prepare`, 엔진 핸들러의 바인딩 메서드 |
 | `ToolWindow` | `setDefaultShown(false)`: 처음에는 숨긴 도구 창(Reset Window Layout도 숨김으로 되돌림) |
 | `SQLQueryExecuteHandler`, `SQLQueryExecuteJob` (model.sql, Chromite 실행 엔진) | `hasBoundParameters`/`bindParameters`: 핸들러가 값을 바인딩하는 쿼리는 스크립트 문장 대신 prepared statement로 만들고 바인딩. 기본값은 바인딩 없음이라 SWT 편집기 동작은 같다 |
-| `tools/branding/gen_ui_icons.py` | 아이콘 `library`(Tabler books), `library-query`(문서 + 실행 배지), `new-folder`(폴더 + 더하기 배지), ③ `schedule`(Tabler clock), `history`(Tabler history), 두 팩·두 테마 |
+| `tools/branding/gen_ui_icons.py` | 아이콘 `library`(Tabler books), `library-query`(문서 + 실행 배지), `new-folder`(폴더 + 더하기 배지), ③ `schedule`(Tabler clock), 두 팩·두 테마. History…는 SQL 편집기 확장의 `history` 아이콘(Tabler history)을 함께 쓴다 |
 | `OptionsDialog` (③) | Tools > Options의 "Query Library" 절: 기록 보존 실행 수·일수 |
 
 ## 화면
 
 ```
-┌ Object Explorer ┐┌ Query Library ─────────── — ┐┌ 문서 탭 ...
-│                 ││ [▶] | [+문서] [+폴더] | [⟳] [⚙] │
-│                 ││ [🔍 Search queries        ] │
-│                 ││ 📚 My Queries               │
-│                 ││  └ 📁 01. 상태 모니터링      │
-│                 ││     ├ ▶ 01. 세션 수   QL PostgreSQL
-│                 ││     ├ ▶ 02. 대기      ask
-│                 ││     └ ▶ 03. 디스크 사용량
-│                 ││ 📚 Team (shared)  read-only │
+┌ Registered Servers ┐┌ 문서 탭 ...   ┐┌ Query Library ─────────── — ┐
+│                    ││               ││ [▶] | [+문서] [+폴더] | [⟳] [⚙] │
+├ Object Explorer ───┤│               ││ [🔍 Search queries        ] │
+│                    ││               ││ 📚 My Queries               │
+│                    ││               ││  └ 📁 01. 상태 모니터링      │
+│                    ││               ││     ├ ▶ 01. 세션 수   QL PostgreSQL
+│                    ││               ││     ├ ▶ 02. 대기      ask
+│                    ││               ││ 📚 Team (shared)  read-only │
+│                    ││               │├ Properties ──────────────── ┤
 ```
 
-- **열기:** View > Query Library(Ctrl+Alt+T). 도구 창 하나를 Object Explorer와 문서 영역 사이의 열로 둔다. 처음에는 숨김이다(1280px 기본 창에서 세 도구 창을 모두 펴면 문서가 너무 좁다).
+- **열기:** View > Query Library(Ctrl+Alt+T). 오른쪽 열에서 Properties 위에 쌓는다(`ToolWindow.stackBelow`, SSMS의 Template Browser처럼 오른쪽 도킹).
+  처음에는 숨김이고 Window > Reset Window Layout도 숨김으로 되돌린다. 처음 설계는 Object Explorer와 문서 사이의 자기 열이었으나, 1920px 창에서도
+  문서 영역이 좁아져 시작 화면 글자가 잘려 합칠 때 오른쪽 열로 옮겼다(되돌리기: `MainFrame`에서 `propertiesWindow.stackBelow(libraryWindow)` 대신
+  예전처럼 가로 분할 열을 만든다).
   Ctrl+Alt+T는 SSMS의 Template Browser 단축키이고 이 번들에서 비어 있다(2026-11-06 `KeyStroke.getKeyStroke` 전체 검색).
 - **트리:** 루트(책 아이콘, 읽기 전용이면 "read-only") → 폴더 → 쿼리(이름 뒤 보조 글자: 고정 대상 연결 이름, 또는 "ask"). 폴더가 쿼리보다 앞이고, 둘 다 자연 정렬("2. …" < "10. …").
   도구 설명은 설명과 파일 경로다. 모양(아이콘 팩, 행 높이, 마우스 올림 둥근 바탕, 보조 글자)은 Object Explorer와 같다.
@@ -377,3 +380,6 @@ Schedule…·History…·Scheduled Queries… 대화상자, Save to Query Librar
 
 - 2026-11-06 최초 작성: ① 라이브러리 트리·실행, ② 매개변수 매핑 구현, ③·④ 설계.
 - 2026-11-06 ③ 예약 실행 구현(사용자 결정: 앱 실행 중에만, OS 스케줄러 기각): 예약 정의(파일), 이 PC 활성 여부(로컬), 스케줄러, 기록·보존, 조건 알림·배지, Scheduled Queries 개요.
+- 2026-11-06 다른 Swing 기능과 합침: 도구 창을 오른쪽 열의 Properties 위로 옮김, 실행 기록 창 이름을 `QueryRunHistoryDialog`로 바꿈(쿼리 창 기록과 겹침),
+  `history` 아이콘은 SQL 편집기 확장의 것을 함께 씀, `new-folder`의 Full color 그림을 `new-group`과 같은 폴더 모양으로 맞춤(생성기의 같은 폴더 식),
+  Options의 기록 보존 칸을 쿼리 창 기록 칸과 따로 둠.
