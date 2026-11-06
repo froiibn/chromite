@@ -21,7 +21,6 @@ import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import com.seizia.chromite.Log;
 import com.seizia.chromite.model.DBPDataSourceConfigurationStorage;
-import com.seizia.chromite.model.app.DBPDataSourceRegistry;
 import com.seizia.chromite.model.app.DBPProject;
 import com.seizia.chromite.utils.ContentUtils;
 
@@ -36,6 +35,10 @@ import java.util.stream.Stream;
 
 /**
  * Configuration files manager on FS
+ *
+ * 변경 이력:
+ * - 2026-11-07 프로젝트 폴더의 옛 XML 연결 설정({@code .chromite-data-sources*.xml}) 읽기를 지움. 내부 이름 변경(#59)으로
+ *   찾는 이름이 어떤 빌드도 쓰지 않는 이름이 됐다(docs/chromite/internal-rename.md "사용자 데이터 이전")
  */
 public class DataSourceConfigurationManagerNIO implements DataSourceConfigurationManager {
 
@@ -66,7 +69,6 @@ public class DataSourceConfigurationManagerNIO implements DataSourceConfiguratio
     public List<DBPDataSourceConfigurationStorage> getConfigurationStorages() {
         List<DBPDataSourceConfigurationStorage> storages = new ArrayList<>();
         Path metadataFolder = project.getMetadataFolder(false);
-        boolean modernFormat = false;
         if (Files.exists(metadataFolder)) {
             try (Stream<Path> list = Files.list(metadataFolder)) {
                 List<Path> mdFiles = list
@@ -77,36 +79,17 @@ public class DataSourceConfigurationManagerNIO implements DataSourceConfiguratio
                     if (fileName.startsWith(DataSourceRegistry.MODERN_CONFIG_FILE_PREFIX) &&
                         fileName.endsWith(DataSourceRegistry.MODERN_CONFIG_FILE_EXT))
                     {
-                        storages.add(new DataSourceFileStorage(res, false, fileName.equals(DataSourceRegistry.MODERN_CONFIG_FILE_NAME)));
-                        modernFormat = true;
+                        storages.add(new DataSourceFileStorage(res, fileName.equals(DataSourceRegistry.MODERN_CONFIG_FILE_NAME)));
                     }
                 }
             } catch (IOException e) {
                 log.error("Error during project files read", e);
             }
         }
-        if (!modernFormat) {
-            if (Files.exists(project.getAbsolutePath())) {
-                try (Stream<Path> list = Files.list(project.getAbsolutePath())) {
-                    // Legacy way (search config.xml in project folder)
-                    List<Path> mdFiles = list
-                        .filter(path -> !Files.isDirectory(path) && Files.exists(path))
-                        .toList();
-                    for (Path res : mdFiles) {
-                        String fileName = res.getFileName().toString();
-                        if (fileName.startsWith(DBPDataSourceRegistry.LEGACY_CONFIG_FILE_PREFIX) && fileName.endsWith(DBPDataSourceRegistry.LEGACY_CONFIG_FILE_EXT)) {
-                            storages.add(new DataSourceFileStorage(res, true, fileName.equals(DataSourceRegistry.LEGACY_CONFIG_FILE_NAME)));
-                        }
-                    }
-                } catch (IOException e) {
-                    log.error("Error during legacy project files read", e);
-                }
-            }
-        }
         if (storages.isEmpty()) {
             storages.add(
                 new DataSourceFileStorage(
-                    metadataFolder.resolve(DataSourceRegistry.MODERN_CONFIG_FILE_NAME), false, true));
+                    metadataFolder.resolve(DataSourceRegistry.MODERN_CONFIG_FILE_NAME), true));
         }
         return storages;
     }
@@ -114,10 +97,6 @@ public class DataSourceConfigurationManagerNIO implements DataSourceConfiguratio
     @Override
     public InputStream readConfiguration(@NotNull String name, Collection<String> dataSourceIds) throws IOException {
         Path path = getConfigurationPath(false).resolve(name);
-        if (Files.notExists(path)) {
-            // maybe it's .chromite-data-sources*.xml in the project folder (DBeaver < 6.1.3 (Legacy))
-            path = project.getAbsolutePath().resolve(name);
-        }
         if (Files.notExists(path)) {
             return null;
         }

@@ -39,6 +39,10 @@ import java.util.Set;
 /**
  * Datasource registry.
  * Keeps all database connection information in a project
+ *
+ * 변경 이력:
+ * - 2026-11-07 옛 XML 연결 설정({@code .chromite-data-sources*.xml}) 읽기를 지움. 내부 이름 변경(#59)으로 찾는 이름이
+ *   어떤 빌드도 쓰지 않는 이름이 됐다(docs/chromite/internal-rename.md "사용자 데이터 이전")
  */
 public interface DBPDataSourceRegistry extends DBPObject, DBPSecretHolder {
 
@@ -49,9 +53,6 @@ public interface DBPDataSourceRegistry extends DBPObject, DBPSecretHolder {
     String CREDENTIALS_CONFIG_FILE_EXT = ".json"; //$NON-NLS-1$
     String CREDENTIALS_CONFIG_FILE_NAME = CREDENTIALS_CONFIG_FILE_PREFIX + CREDENTIALS_CONFIG_FILE_EXT;
 
-    String LEGACY_CONFIG_FILE_PREFIX = ".chromite-data-sources"; //$NON-NLS-1$
-    String LEGACY_CONFIG_FILE_EXT = ".xml"; //$NON-NLS-1$
-    String LEGACY_CONFIG_FILE_NAME = LEGACY_CONFIG_FILE_PREFIX + LEGACY_CONFIG_FILE_EXT;
     String LEGACY2_CONFIG_FILE_NAME = "data-sources.xml"; //$NON-NLS-1$
 
     /**

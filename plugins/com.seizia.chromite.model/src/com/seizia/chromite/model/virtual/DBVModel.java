@@ -30,7 +30,6 @@ import com.seizia.chromite.model.runtime.DBRProgressMonitor;
 import com.seizia.chromite.model.struct.DBSEntity;
 import com.seizia.chromite.model.struct.DBSObject;
 import com.seizia.chromite.model.struct.DBSObjectContainer;
-import org.jkiss.utils.xml.SAXListener;
 import org.jkiss.utils.xml.XMLBuilder;
 
 import java.io.IOException;
@@ -41,6 +40,10 @@ import java.util.Map;
 
 /**
  * Virtual database model
+ *
+ * 변경 이력:
+ * - 2026-11-07 옛 XML 연결 설정 읽기({@code DataSourceSerializerLegacy})만 쓰던 {@code getModelParser()}를 지움
+ *   (docs/chromite/internal-rename.md "사용자 데이터 이전")
  */
 public class DBVModel extends DBVContainer {
     @Nullable
@@ -180,11 +183,6 @@ public class DBVModel extends DBVContainer {
     @Deprecated
     public void serialize(XMLBuilder xml) throws IOException {
         DBVModelSerializerLegacy.serializeContainer(xml, this);
-    }
-
-    @Deprecated
-    public SAXListener getModelParser() {
-        return new DBVModelSerializerLegacy.ModelParser(this);
     }
 
     public void copyFrom(DBVModel model) {
