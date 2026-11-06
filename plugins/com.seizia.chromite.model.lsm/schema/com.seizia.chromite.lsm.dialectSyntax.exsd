@@ -1,0 +1,57 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<!-- Schema file written by PDE -->
+<schema targetNamespace="com.seizia.chromite.model.lsm"
+    xmlns="http://www.w3.org/2001/XMLSchema">
+    <annotation>
+        <appInfo>
+            <meta.schema plugin="com.seizia.chromite.model.lsm"
+                id="com.seizia.chromite.lsm.dialectSyntax"
+                name="LSM dialect syntax" />
+        </appInfo>
+        <documentation>LSM dialect syntax</documentation>
+    </annotation>
+
+    <element name="extension">
+       <annotation><appInfo><meta.element/></appInfo></annotation>
+        <complexType>
+            <sequence>
+                <element ref="lsmDialect" minOccurs="0" maxOccurs="unbounded" />
+            </sequence>
+            <attribute name="point" type="string" use="required"/>
+            <attribute name="class" type="string"/>
+        </complexType>
+    </element>
+
+    <element name="lsmDialect">
+        <complexType>
+            <sequence>
+                <element ref="appliesTo" minOccurs="0" maxOccurs="unbounded" />
+            </sequence>
+            <attribute name="analyzerFactoryClass" type="string" use="required">
+                <annotation>
+                    <appInfo>
+                        <meta.attribute kind="java" basedOn=":com.seizia.chromite.model.lsm.LSMAnalyzer" />
+                    </appInfo>
+                </annotation>
+            </attribute>
+        </complexType>
+    </element>
+
+    <element name="appliesTo">
+        <complexType>
+            <attribute name="dialectClass" type="string" use="required">
+                <annotation>
+                    <appInfo>
+                        <meta.attribute kind="java" basedOn=":com.seizia.chromite.model.sql.SQLDialect" />
+                    </appInfo>
+                </annotation>
+            </attribute>
+        </complexType>
+    </element>
+
+
+
+
+
+
+</schema>

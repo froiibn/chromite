@@ -2,7 +2,7 @@
 
 ## 목적
 
-DBeaver(SWT)의 데이터베이스 대시보드(`org.jkiss.dbeaver.ui.dashboard`)를 Swing 프런트엔드로 옮긴다. 배치는 SSMS Activity Monitor의
+DBeaver(SWT)의 데이터베이스 대시보드(`com.seizia.chromite.ui.dashboard`)를 Swing 프런트엔드로 옮긴다. 배치는 SSMS Activity Monitor의
 개요(Overview) 창을 따른다: 연결 하나의 서버 활동(세션, 초당 트랜잭션·요청, CPU, I/O, 잠금·대기, 캐시 적중률)을 실시간 선 차트로 본다.
 [swing-admin-tools.md](swing-admin-tools.md)에서 "갱신 로직이 SWT 플러그인에 있고 차트 라이브러리가 필요하다"는 이유로 미뤘던 항목이다.
 
@@ -38,7 +38,7 @@ com.seizia.chromite.model.admin (모델 번들, UI 없음)
         │
         ▼
 DBeaver 모델 (그대로 재사용)
-  org.jkiss.dbeaver.model.dashboard: DashboardRegistry, DashboardItemConfiguration(질의, calc, value, fetch, mapQuery, mapFormula)
+  com.seizia.chromite.model.dashboard: DashboardRegistry, DashboardItemConfiguration(질의, calc, value, fetch, mapQuery, mapFormula)
   ext.postgresql·ext.mysql plugin.xml의 차트 정의
 ```
 
@@ -46,7 +46,7 @@ DBeaver 모델 (그대로 재사용)
 
 SWT에서 값을 읽고 모양을 바꾸는 코드는 UI 플러그인에 있다.
 
-| SWT 클래스 (org.jkiss.dbeaver.ui.dashboard) | 하는 일 | Swing에서 |
+| SWT 클래스 (com.seizia.chromite.ui.dashboard) | 하는 일 | Swing에서 |
 |---|---|---|
 | `view/DashboardUpdateJob` | 1초마다 도는 작업, 보이는 대시보드 보기가 없으면 멈춤 | `DashboardPanel`의 Swing 타이머(탭이 보일 때만, 고른 간격) |
 | `view/DashboardUpdater#updateDashboards`, `getDashboardsToUpdate` | 열린 Eclipse 보기에서 갱신할 차트를 모으고 차트마다 `updatePeriod` 확인 | `DashboardPanel#sample`(보이는 차트 전부, 실패한 차트는 30초 건너뜀) |
@@ -90,7 +90,7 @@ DBeaver 대시보드 등록부(`DashboardRegistry#getDashboardItems`)에서 연�
 | SQL Server | Chromite (DBeaver에는 없음) | 세션*, CPU 사용률*(%), 초당 요청*(일괄 처리·트랜잭션·컴파일), 대기 중인 작업*(대기·차단됨), 데이터베이스 I/O*, 잠금 대기*(잠금 대기·교착 상태, 초당), 버퍼 캐시 적중률*(%) |
 | 그 밖 | — | 정의가 없으면 "이 데이터베이스 유형에는 정의된 차트가 없습니다." |
 
-Chromite 정의는 DBeaver 확장 점(`org.jkiss.dbeaver.dashboard`)에 `com.seizia.chromite.model.admin/plugin.xml`로 더했다. 제목·설명은
+Chromite 정의는 DBeaver 확장 점(`com.seizia.chromite.dashboard`)에 `com.seizia.chromite.model.admin/plugin.xml`로 더했다. 제목·설명은
 `%키`로 이 번들의 `OSGI-INF/l10n/bundle*.properties`(영어·한국어)에 있다. DBeaver upstream 파일을 고치지 않으려는 것이다.
 
 SQL Server 질의의 근거(로컬 SQL Server 2022 Linux 컨테이너에서 확인):
@@ -125,7 +125,7 @@ DBeaver의 블록 I/O(읽기·적중 초당) 차트로 본다.
 | 기준 | JFreeChart 1.5.3 (`org.jkiss.bundle.jfreechart` 1.5.8) | 직접 만든 Java2D 차트 (`DashboardChart`) |
 |---|---|---|
 | SWT 없이 쓸 수 있나 | 예. 번들은 `Require-Bundle`이 없고 jar 안에 SWT 클래스가 없다(SWT 연결부는 `ui.charts`의 `org.jfree.swt`). | 예 |
-| Swing 제품에 이미 있나 | 아니요. `org.jkiss.dbeaver.ui.feature`(SWT)에만 들어 있어 Swing 피처에 더해야 한다. | 새 의존성 없음 |
+| Swing 제품에 이미 있나 | 아니요. `com.seizia.chromite.ui.feature`(SWT)에만 들어 있어 Swing 피처에 더해야 한다. | 새 의존성 없음 |
 | 라이선스 | LGPL 2.1. 배포하려면 `NOTICE`에 출처·소스 위치를 적고 라이선스 문서를 함께 내야 한다. DBeaver가 묶은 번들 jar에는 라이선스 파일이 없다. | Apache 2.0 (Chromite 코드) |
 | 크기 | 1.6 MB | 약 450줄 |
 | 테마 | 차트·축·범례 색과 글꼴을 테마를 바꿀 때마다 다시 넣어야 한다(SWT 렌더러도 만들 때 한 번만 넣는다). 기본 모양이 Islands와 다르다. | 그릴 때마다 Look and Feel 색을 읽어 라이트·다크를 따라간다. |
@@ -164,7 +164,7 @@ DBeaver의 블록 I/O(읽기·적중 초당) 차트로 본다.
 
 ## 확인 (2026-11-07)
 
-빌드: `mvn -B clean package -f product/aggregate/pom.xml -T1C -Pproduct-dbeaver-ce,product-chromite-swing` → BUILD SUCCESS.
+빌드: `mvn -B clean package -f product/aggregate/pom.xml -T1C -Pproduct-chromite-swt,product-chromite-swing` → BUILD SUCCESS.
 Swing 제품을 별도 작업 공간으로 띄우고(한국어 OS 기본, `-nl en`), 로컬 Docker DB의 `chr_dashboard`에 연결해 확인했다.
 부하는 `docker exec`로 만들었다: PostgreSQL `pgbench -c 6 -T 120`과 한 행을 잡고 `pg_sleep(45)` 하는 트랜잭션 + 같은 행을 갱신하는 세션 2개,
 SQL Server 갱신·조회 루프 4개(150초)와 `WAITFOR DELAY` 차단 + 대기 세션 2개, MariaDB 저장 프로시저 루프 4개와 `SLEEP(45)` 차단 + 대기 세션.

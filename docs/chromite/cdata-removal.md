@@ -24,19 +24,19 @@ CData 연동을 Chromite에서 모두 제거한다. 이유는 다음과 같다.
 
 | 경로 | 내용 |
 |---|---|
-| `plugins/org.jkiss.dbeaver.ext.cdata` | 모델: 데이터 소스 공급자 `cdata`, SQL 방언 `cdata`, generic 메타 모델 `cdata`(`cdata.jdbc.*`), 인증 모델 `cdata_native_url_builder`, 드라이버 분류 `cdata`(`commercial="true"`), Maven 저장소 `cdata-jdbc`, 제품 기능 `commercial-drivers`, 드라이버 카탈로그·라이선스 확인·활성화 코드, 묶음 `cdata-drivers.json`·`cdata-driver-settings.json`, 아이콘 `cdata*.svg` |
-| `plugins/org.jkiss.dbeaver.ext.cdata.ui` | UI: 라이선스 서비스 구현, 인증 모델 설정 화면, 연결 페이지, 라이선스 활성화 대화상자, 환경설정 페이지 `org.jkiss.dbeaver.ext.cdata.preferences`, 키워드, 활동(activity) `dbeaver.activity.commercialDrivers`, 메시지(en, pl) |
-| `features/org.jkiss.dbeaver.ext.cdata.feature` | 위 두 플러그인을 묶은 피처 |
-| `test/org.jkiss.dbeaver.ext.cdata.test` | CData 단위 테스트 플러그인 |
+| `plugins/com.seizia.chromite.ext.cdata` | 모델: 데이터 소스 공급자 `cdata`, SQL 방언 `cdata`, generic 메타 모델 `cdata`(`cdata.jdbc.*`), 인증 모델 `cdata_native_url_builder`, 드라이버 분류 `cdata`(`commercial="true"`), Maven 저장소 `cdata-jdbc`, 제품 기능 `commercial-drivers`, 드라이버 카탈로그·라이선스 확인·활성화 코드, 묶음 `cdata-drivers.json`·`cdata-driver-settings.json`, 아이콘 `cdata*.svg` |
+| `plugins/com.seizia.chromite.ext.cdata.ui` | UI: 라이선스 서비스 구현, 인증 모델 설정 화면, 연결 페이지, 라이선스 활성화 대화상자, 환경설정 페이지 `com.seizia.chromite.ext.cdata.preferences`, 키워드, 활동(activity) `dbeaver.activity.commercialDrivers`, 메시지(en, pl) |
+| `features/com.seizia.chromite.ext.cdata.feature` | 위 두 플러그인을 묶은 피처 |
+| `test/com.seizia.chromite.ext.cdata.test` | CData 단위 테스트 플러그인 |
 
 ### 다른 파일에서 지운 참조
 
-- `plugins/pom.xml`: 모듈 `org.jkiss.dbeaver.ext.cdata`, `org.jkiss.dbeaver.ext.cdata.ui`
-- `features/pom.xml`: 모듈 `org.jkiss.dbeaver.ext.cdata.feature`
-- `features/org.jkiss.dbeaver.standalone.feature/feature.xml`: `org.jkiss.dbeaver.ext.cdata.feature` 포함
-- `test/pom.xml`: 모듈 `org.jkiss.dbeaver.ext.cdata.test`
-- `features/org.jkiss.dbeaver.test.feature/feature.xml`: 플러그인 `org.jkiss.dbeaver.ext.cdata.test`
-- `plugins/org.jkiss.dbeaver.ui.editors.connection/.../UIConnectionMessages_pl.properties`: 키 `dialog_connection_show_cdata`.
+- `plugins/pom.xml`: 모듈 `com.seizia.chromite.ext.cdata`, `com.seizia.chromite.ext.cdata.ui`
+- `features/pom.xml`: 모듈 `com.seizia.chromite.ext.cdata.feature`
+- `features/com.seizia.chromite.standalone.feature/feature.xml`: `com.seizia.chromite.ext.cdata.feature` 포함
+- `test/pom.xml`: 모듈 `com.seizia.chromite.ext.cdata.test`
+- `features/com.seizia.chromite.test.feature/feature.xml`: 플러그인 `com.seizia.chromite.ext.cdata.test`
+- `plugins/com.seizia.chromite.ui.editors.connection/.../UIConnectionMessages_pl.properties`: 키 `dialog_connection_show_cdata`.
   `UIConnectionMessages`에 같은 이름의 필드가 없어 이미 쓰이지 않던 키다.
 
 ### 지우지 않은 "cdata" 검색 결과
@@ -47,7 +47,7 @@ CData 연동을 Chromite에서 모두 제거한다. 이유는 다음과 같다.
   `GenericDataSourceProvider`, `JDBCDataSource`, `JDBCDatabase...`, `publicDatabaseLinks` 같은 식별자 안의 부분 문자열이다.
 - `DiagramLoader.java`(DTD의 `CDATA` 속성 유형), `GeometryViewerRegistry.java`(XML CDATA 주석),
   `DataGripDataSourceConfigXmlServiceImpl.java`(`Node.CDATA_SECTION_NODE`), `ui.ai/web/*.js`(외부 JS 라이브러리).
-- `test/org.jkiss.dbeaver.test.platform/.../DriverLibraryMavenArtifactTest.java`: Maven 경로 처리 테스트의 예시 문자열
+- `test/com.seizia.chromite.test.platform/.../DriverLibraryMavenArtifactTest.java`: Maven 경로 처리 테스트의 예시 문자열
   (`maven:/cdata:box-jdbc:...`)이다. CData 플러그인에 의존하지 않는다.
 - `deps/datadam-api/README.md`: 수정하지 않는 의존 저장소 사본이다(CLAUDE.md "빌드 환경").
 
@@ -86,7 +86,7 @@ CData 드라이버로 만든 연결은 `data-sources.json`에 공급자 `cdata`�
 
 ## upstream 대비 변경점
 
-- upstream의 `org.jkiss.dbeaver.ext.cdata*` 플러그인, 피처, 테스트 플러그인이 없다.
+- upstream의 `com.seizia.chromite.ext.cdata*` 플러그인, 피처, 테스트 플러그인이 없다.
 - Chromite 제품에는 CData 드라이버 분류, CData 환경설정 페이지, "Show commercial drivers" 확인란이 나타나지 않는다.
 
 ## 변경 이력

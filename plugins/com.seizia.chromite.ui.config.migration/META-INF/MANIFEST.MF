@@ -1,0 +1,15 @@
+Manifest-Version: 1.0
+Bundle-ManifestVersion: 2
+Bundle-Name: Chromite Configuration Import Tool
+Bundle-SymbolicName: com.seizia.chromite.ui.config.migration;singleton:=true
+Bundle-Version: 2.1.254.qualifier
+Bundle-Release-Date: 20261116
+Require-Bundle: com.seizia.chromite.ui.editors.connection,
+ com.seizia.chromite.net.ssh,
+ com.seizia.chromite.net.ssh.jsch
+Bundle-ActivationPolicy: lazy
+Bundle-RequiredExecutionEnvironment: JavaSE-21
+Bundle-Vendor: Chromite contributors
+Export-Package: com.seizia.chromite.ui.config.migration.wizards,
+ com.seizia.chromite.ui.config.migration
+Automatic-Module-Name: com.seizia.chromite.ui.config.migration

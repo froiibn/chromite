@@ -1,0 +1,19 @@
+Manifest-Version: 1.0
+Bundle-ManifestVersion: 2
+Bundle-Vendor: Chromite contributors
+Bundle-Name: Chromite Command Line Model
+Bundle-SymbolicName: com.seizia.chromite.model.cli;singleton:=true
+Bundle-Version: 1.0.36.qualifier
+Bundle-Release-Date: 20261116
+Bundle-RequiredExecutionEnvironment: JavaSE-21
+Bundle-ActivationPolicy: lazy
+Export-Package: com.seizia.chromite.model.cli,
+ com.seizia.chromite.model.cli.registry,
+ com.seizia.chromite.model.cli.model,
+ com.seizia.chromite.model.cli.model.option,
+ com.seizia.chromite.model.cli.command,
+ com.seizia.chromite.model.cli.help,
+ com.seizia.chromite.model.cli.runtime
+Require-Bundle: com.seizia.chromite.model;visibility:=reexport,
+ picocli;visibility:=reexport
+Automatic-Module-Name: com.seizia.chromite.model.cli

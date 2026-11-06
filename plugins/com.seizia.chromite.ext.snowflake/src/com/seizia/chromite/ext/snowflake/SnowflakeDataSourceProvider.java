@@ -1,0 +1,93 @@
+/*
+ * DBeaver - Universal Database Manager
+ * Copyright (C) 2010-2026 DBeaver Corp and others
+ * Modifications Copyright (C) 2026 Chromite contributors
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package com.seizia.chromite.ext.snowflake;
+
+import org.jkiss.code.NotNull;
+import org.jkiss.dbeaver.DBException;
+import com.seizia.chromite.ext.generic.GenericDataSourceProvider;
+import com.seizia.chromite.ext.snowflake.model.SnowflakeDataSource;
+import com.seizia.chromite.ext.snowflake.model.SnowflakeMetaModel;
+import com.seizia.chromite.model.DBPDataSourceContainer;
+import com.seizia.chromite.model.connection.DBPConnectionConfiguration;
+import com.seizia.chromite.model.connection.DBPDriver;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import org.jkiss.utils.CommonUtils;
+
+public class SnowflakeDataSourceProvider extends GenericDataSourceProvider<SnowflakeDataSource> {
+
+    public SnowflakeDataSourceProvider() {
+        super(SnowflakeDataSource.class);
+    }
+
+    protected SnowflakeDataSourceProvider(@NotNull Class<? extends SnowflakeDataSource> dsClass) {
+        super(dsClass);
+    }
+
+    @Override
+    public long getFeatures()
+    {
+        return FEATURE_CATALOGS | FEATURE_SCHEMAS;
+    }
+
+    @NotNull
+    @Override
+    public String getConnectionURL(@NotNull DBPDriver driver, @NotNull DBPConnectionConfiguration connectionInfo)
+    {
+        StringBuilder url = new StringBuilder();
+        url.append("jdbc:snowflake://").append(connectionInfo.getHostName());
+        if (!CommonUtils.isEmpty(connectionInfo.getHostPort())) {
+            url.append(":").append(connectionInfo.getHostPort());
+        }
+        url.append("/?");
+
+        String warehouse = SnowflakeUtils.getWarehouse(connectionInfo);
+        String schemaName = connectionInfo.getProviderProperty(SnowflakeConstants.PROP_SCHEMA);
+        if (CommonUtils.isEmpty(schemaName)) {
+            schemaName = connectionInfo.getProviderProperty(SnowflakeConstants.PROP_SCHEMA2);
+        }
+
+        boolean hasParam = addParameter(url, "db", connectionInfo.getDatabaseName(), false);
+        hasParam = addParameter(url, "warehouse", warehouse, hasParam);
+        hasParam = addParameter(url, "schema", schemaName, hasParam);
+
+        // Backward compatibility
+        addParameter(url, "role", connectionInfo.getProviderProperty(SnowflakeConstants.PROP_ROLE_LEGACY), hasParam);
+
+        return url.toString();
+    }
+
+    private static boolean addParameter(StringBuilder url, String name, String value, boolean hasParam) {
+        if (!CommonUtils.isEmpty(value)) {
+            if (hasParam) url.append("&");
+            url.append(name).append("=").append(value);
+            return true;
+        }
+        return hasParam;
+    }
+
+    @NotNull
+    @Override
+    public SnowflakeDataSource openDataSource(
+        @NotNull DBRProgressMonitor monitor,
+        @NotNull DBPDataSourceContainer container)
+        throws DBException
+    {
+        return new SnowflakeDataSource(monitor, container, new SnowflakeMetaModel());
+    }
+
+}

@@ -1,0 +1,18 @@
+Manifest-Version: 1.0
+Bundle-ManifestVersion: 2
+Bundle-Name: Chromite OceanBase Model
+Bundle-SymbolicName: com.seizia.chromite.ext.oceanbase;singleton:=true
+Bundle-Version: 1.0.129.qualifier
+Bundle-Release-Date: 20261116
+Require-Bundle: com.seizia.chromite.model.sql,
+ com.seizia.chromite.ext.mysql,
+ com.seizia.chromite.ext.generic,
+ com.seizia.chromite.ext.oracle,
+ com.seizia.chromite.registry
+Export-Package: com.seizia.chromite.ext.oceanbase,
+ com.seizia.chromite.ext.oceanbase.model.auth,
+ com.seizia.chromite.ext.oceanbase.model
+Bundle-ActivationPolicy: lazy
+Bundle-RequiredExecutionEnvironment: JavaSE-21
+Bundle-Vendor: Chromite contributors
+Automatic-Module-Name: com.seizia.chromite.ext.oceanbase

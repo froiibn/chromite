@@ -1,0 +1,29 @@
+Manifest-Version: 1.0
+Bundle-ManifestVersion: 2
+Bundle-Vendor: Chromite contributors
+Bundle-Name: Chromite Model Registry
+Bundle-SymbolicName: com.seizia.chromite.registry;singleton:=true
+Bundle-Version: 1.0.185.qualifier
+Bundle-Release-Date: 20261116
+Bundle-ActivationPolicy: lazy
+Bundle-Activator: com.seizia.chromite.registry.internal.RegistryActivator
+Bundle-RequiredExecutionEnvironment: JavaSE-21
+Export-Package: com.seizia.chromite.registry,
+ com.seizia.chromite.registry.datatype,
+ com.seizia.chromite.registry.driver,
+ com.seizia.chromite.registry.internal,
+ com.seizia.chromite.registry.language,
+ com.seizia.chromite.registry.maven,
+ com.seizia.chromite.registry.network,
+ com.seizia.chromite.registry.rm,
+ com.seizia.chromite.registry.project,
+ com.seizia.chromite.registry.settings,
+ com.seizia.chromite.registry.storage,
+ com.seizia.chromite.registry.task,
+ com.seizia.chromite.registry.updater
+Require-Bundle: org.eclipse.core.expressions,
+ org.objectweb.asm,
+ com.seizia.chromite.model;visibility:=reexport,
+ com.sun.jna.platform
+Bundle-Localization: OSGI-INF/l10n/bundle
+Automatic-Module-Name: com.seizia.chromite.registry

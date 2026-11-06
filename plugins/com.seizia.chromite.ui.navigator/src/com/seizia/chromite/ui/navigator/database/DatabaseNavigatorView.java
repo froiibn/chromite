@@ -1,0 +1,138 @@
+/*
+ * DBeaver - Universal Database Manager
+ * Copyright (C) 2010-2026 DBeaver Corp and others
+ * Modifications Copyright (C) 2026 Chromite contributors
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package com.seizia.chromite.ui.navigator.database;
+
+import org.eclipse.jface.viewers.StructuredSelection;
+import org.eclipse.swt.widgets.Composite;
+import org.eclipse.ui.IMemento;
+import org.eclipse.ui.IViewSite;
+import org.eclipse.ui.PartInitException;
+import org.jkiss.code.NotNull;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.app.DBPPlatformDesktop;
+import com.seizia.chromite.model.app.DBPProject;
+import com.seizia.chromite.model.app.DBPProjectListener;
+import com.seizia.chromite.model.navigator.DBNEmptyNode;
+import com.seizia.chromite.model.navigator.DBNNode;
+import com.seizia.chromite.model.navigator.DBNProject;
+import com.seizia.chromite.model.preferences.DBPPreferenceStore;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.ui.IHelpContextIds;
+import com.seizia.chromite.ui.UIExecutionQueue;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.navigator.INavigatorFilter;
+import com.seizia.chromite.ui.navigator.NavigatorPreferences;
+import com.seizia.chromite.ui.navigator.NavigatorStatePersister;
+import com.seizia.chromite.ui.navigator.project.ProjectVisibility;
+
+public class DatabaseNavigatorView extends NavigatorViewBase implements DBPProjectListener {
+    public static final String VIEW_ID = "com.seizia.chromite.core.databaseNavigator";
+
+    private static final Log log = Log.getLog(DatabaseNavigatorView.class);
+    private IMemento memento;
+
+    public DatabaseNavigatorView() {
+        super();
+        DBPPlatformDesktop.getInstance().getWorkspace().addProjectListener(this);
+    }
+
+    @Override
+    public void saveState(IMemento memento) {
+        final DBPPreferenceStore preferences = DBWorkbench.getPlatform().getPreferenceStore();
+        if (preferences.getInt(NavigatorPreferences.NAVIGATOR_RESTORE_STATE_DEPTH) > 0) {
+            NavigatorStatePersister.saveExpandedState(getNavigatorViewer().getExpandedElements(), memento);
+        }
+        if (preferences.getBoolean(NavigatorPreferences.NAVIGATOR_RESTORE_FILTER)) {
+            NavigatorStatePersister.saveFilterState(getNavigatorTree(), memento);
+        }
+    }
+
+    private void restoreState() {
+        if (memento == null) {
+            return;
+        }
+        final DBPPreferenceStore preferences = DBWorkbench.getPlatform().getPreferenceStore();
+        final int maxDepth = preferences.getInt(NavigatorPreferences.NAVIGATOR_RESTORE_STATE_DEPTH);
+        if (maxDepth > 0) {
+            NavigatorStatePersister.restoreExpandedState(getNavigatorViewer(), getRootNode(), maxDepth, memento);
+        }
+        if (preferences.getBoolean(NavigatorPreferences.NAVIGATOR_RESTORE_FILTER)) {
+            NavigatorStatePersister.restoreFilterState(getNavigatorTree(), memento);
+        }
+    }
+
+    @Override
+    public void init(IViewSite site, IMemento memento) throws PartInitException {
+        this.memento = memento;
+        super.init(site, memento);
+    }
+
+    @Override
+    protected INavigatorFilter getNavigatorFilter() {
+        return new DatabaseNavigatorTreeFilter();
+    }
+
+    @Override
+    public DBNNode getRootNode() {
+        DBNProject projectNode = getGlobalNavigatorModel().getRoot().getProjectNode(
+            DBWorkbench.getPlatform().getWorkspace().getActiveProject());
+        return projectNode == null || !ProjectVisibility.isVisible(projectNode)
+            ? new DBNEmptyNode() : projectNode.getDatabases();
+    }
+
+    @Override
+    public void dispose() {
+        DBPPlatformDesktop.getInstance().getWorkspace().removeProjectListener(this);
+        super.dispose();
+    }
+
+    @Override
+    public void createPartControl(@NotNull Composite parent) {
+        super.createPartControl(parent);
+        UIUtils.setHelp(parent, IHelpContextIds.CTX_DATABASE_NAVIGATOR);
+        UIExecutionQueue.queueExec(this::restoreState);
+    }
+
+    @Override
+    public void handleProjectAdd(@NotNull DBPProject project) {
+        if (project.equals(DBPPlatformDesktop.getInstance().getWorkspace().getActiveProject())) {
+            UIExecutionQueue.queueExec(this::updateNavigatorRoot);
+        }
+    }
+
+    @Override
+    public void handleActiveProjectChange(@NotNull DBPProject oldValue, @NotNull DBPProject newValue) {
+        UIExecutionQueue.queueExec(this::updateNavigatorRoot);
+    }
+
+    private void updateNavigatorRoot() {
+        DatabaseNavigatorTree navigatorTree = getNavigatorTree();
+        if (navigatorTree == null || navigatorTree.isDisposed()) {
+            return;
+        }
+        DBNNode rootNode;
+        try {
+            rootNode = getRootNode();
+        } catch (Exception e) {
+            log.error(e);
+            rootNode = new DBNEmptyNode();
+        }
+        navigatorTree.setInput(rootNode);
+        getSite().getSelectionProvider().setSelection(new StructuredSelection());
+    }
+}

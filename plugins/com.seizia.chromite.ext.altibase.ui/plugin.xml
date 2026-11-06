@@ -1,0 +1,148 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?eclipse version="3.2"?>
+<plugin>
+    
+
+    <extension point="com.seizia.chromite.databaseEditor">
+        <editor id="source.declaration" class="com.seizia.chromite.ui.editors.sql.SQLSourceViewer"
+                label="%editor.package.declaration.name" description="%editor.package.declaration.description" icon="#sql_text" position="additions_middle"
+                contributor="com.seizia.chromite.ui.editors.sql.SQLEditorContributorNested" type="folder" embeddable="false">
+            <objectType name="com.seizia.chromite.ext.altibase.model.AltibaseSequence"/>
+            <objectType name="com.seizia.chromite.ext.altibase.model.AltibaseSynonym"/>
+            <objectType name="com.seizia.chromite.ext.altibase.model.AltibaseTableIndex"/>
+            <objectType name="com.seizia.chromite.ext.altibase.model.AltibaseReplication"/>
+            <objectType name="com.seizia.chromite.ext.altibase.model.AltibaseJob"/>
+            <objectType name="com.seizia.chromite.ext.altibase.model.AltibaseDbLink"/>
+            <objectType name="com.seizia.chromite.ext.altibase.model.AltibaseLibrary"/>
+            <objectType name="com.seizia.chromite.ext.altibase.model.AltibaseDirectory"/>
+        </editor>
+        <configurator class="com.seizia.chromite.ext.altibase.ui.config.AltibaseProcedureConfigurator">
+            <objectType name="com.seizia.chromite.ext.altibase.model.AltibaseProcedureStandAlone"/>
+        </configurator>
+        <configurator class="com.seizia.chromite.ext.altibase.ui.config.AltibaseTypesetConfigurator">
+            <objectType name="com.seizia.chromite.ext.altibase.model.AltibaseTypeset"/>
+        </configurator>
+        <configurator class="com.seizia.chromite.ext.altibase.ui.config.AltibaseSequenceConfigurator">
+            <objectType name="com.seizia.chromite.ext.altibase.model.AltibaseSequence"/>
+        </configurator>
+    </extension>
+
+    <extension point="org.eclipse.ui.preferencePages">
+        <page category="com.seizia.chromite.preferences.drivers" id="com.seizia.chromite.preferences.altibase.general" 
+        class="com.seizia.chromite.ext.altibase.ui.views.PrefPageAltibase" name="Altibase">
+            <keywordReference id="com.seizia.chromite.core.keyword.chromite"/>
+            <keywordReference id="com.seizia.chromite.ext.altibase.ui.keyword.pref.general"/>
+        </page>
+    </extension>
+
+    <extension point="org.eclipse.ui.keywords">
+        <keyword id="com.seizia.chromite.ext.altibase.ui.keyword.pref.general" label="%keyword.com.seizia.chromite.ext.altibase.ui.keyword.pref.general.label"/>
+    </extension>
+    
+    <extension point="org.eclipse.ui.propertyPages">
+        <page id="com.seizia.chromite.preferences.altibase.main" class="com.seizia.chromite.ext.altibase.ui.views.PrefPageAltibase" 
+        name="%page.com.seizia.chromite.preferences.altibase.main.name">
+            <enabledWhen>
+                <adapt type="com.seizia.chromite.model.DBPDataSourceContainer">
+                    <test property="com.seizia.chromite.core.datasourceContainer.driverId" value="Altibase"/>
+                </adapt>
+            </enabledWhen>
+        </page>
+    </extension>
+
+    <extension point="org.eclipse.ui.editors">
+        <editor
+                name="%editor.session_manager.name"
+                icon="platform:/plugin/com.seizia.chromite.model/icons/tree/sessions.svg"
+                class="com.seizia.chromite.ext.altibase.ui.editors.AltibaseSessionEditor"
+                id="com.seizia.chromite.ext.altibase.ui.editors.AltibaseSessionEditor"
+                contributorClass="com.seizia.chromite.ui.editors.EditorSearchActionsContributor">
+        </editor>
+        <editor
+                name="%editor.lock_manager.name"
+                icon="platform:/plugin/com.seizia.chromite.model/icons/tree/locked.svg"
+                class="com.seizia.chromite.ext.altibase.ui.editors.AltibaseLockEditor"
+                id="com.seizia.chromite.ext.altibase.ui.editors.AltibaseLockEditor">
+        </editor>
+    </extension>
+
+    <extension point="com.seizia.chromite.dataSourceProvider">
+        <editorContribution editorId="com.seizia.chromite.ext.altibase.ui.editors.AltibaseSessionEditor" category="connectionEditor" 
+        label="%editor.session_manager.name" icon="platform:/plugin/com.seizia.chromite.model/icons/tree/sessions.svg">
+            <supports dataSource="altibase"/>
+        </editorContribution>
+        <editorContribution editorId="com.seizia.chromite.ext.altibase.ui.editors.AltibaseLockEditor" category="connectionEditor" 
+        label="%editor.lock_manager.name" icon="platform:/plugin/com.seizia.chromite.model/icons/tree/locked.svg">
+            <supports dataSource="altibase"/>
+        </editorContribution>
+    </extension>
+    
+    <extension point="com.seizia.chromite.tools">
+        <tools>
+            <tool
+                  description="%tool.com.seizia.chromite.ext.altibase.ui.tools.maintenance.AltibaseToolMViewRefresh.label"
+                  group="com.seizia.chromite.ext.altibase.ui.tools.maintenance"
+                  icon="#refresh"
+                  id="com.seizia.chromite.ext.altibase.ui.tools.maintenance.AltibaseToolMViewRefresh"
+                  label="%tool.com.seizia.chromite.ext.altibase.ui.tools.maintenance.AltibaseToolMViewRefresh.label"
+                  singleton="false">
+                <task id="altibaseToolMViewRefresh"/>
+            </tool>
+            <tool
+                  description="%tool.com.seizia.chromite.ext.altibase.ui.tools.maintenance.AltibaseToolTruncateTable.label"
+                  group="com.seizia.chromite.ext.altibase.ui.tools.maintenance"
+                  icon="#clean"
+                  id="com.seizia.chromite.ext.altibase.ui.tools.maintenance.AltibaseToolTableTruncate"
+                  label="%tool.com.seizia.chromite.ext.altibase.ui.tools.maintenance.AltibaseToolTruncateTable.label"
+                  singleton="false">
+                <task id="altibaseToolTableTruncate"/>
+            </tool>
+            <tool
+                  description="%tool.com.seizia.chromite.ext.altibase.ui.tools.maintenance.AltibaseViewCompile.label"
+                  group="com.seizia.chromite.ext.altibase.ui.tools.maintenance"
+                  icon="icons/compile.png"
+                  id="com.seizia.chromite.ext.altibase.ui.tools.maintenance.AltibaseToolViewCompile"
+                  label="%tool.com.seizia.chromite.ext.altibase.ui.tools.maintenance.AltibaseViewCompile.label"
+                  singleton="false">
+                <task id="altibaseToolViewCompile"/>
+            </tool>
+            <tool
+                  description="%tool.com.seizia.chromite.ext.altibase.ui.tools.maintenance.AltibaseProcedureCompile.label"
+                  group="com.seizia.chromite.ext.altibase.ui.tools.maintenance"
+                  icon="icons/compile.png"
+                  id="com.seizia.chromite.ext.altibase.ui.tools.maintenance.AltibaseToolProcedureCompile"
+                  label="%tool.com.seizia.chromite.ext.altibase.ui.tools.maintenance.AltibaseProcedureCompile.label"
+                  singleton="false">
+                <task id="altibaseToolProcedureCompile"/>
+            </tool>
+            <tool
+                  description="%tool.com.seizia.chromite.ext.altibase.ui.tools.maintenance.AltibasePackageCompile.label"
+                  group="com.seizia.chromite.ext.altibase.ui.tools.maintenance"
+                  icon="icons/compile.png"
+                  id="com.seizia.chromite.ext.altibase.ui.tools.maintenance.AltibaseToolPackageCompile"
+                  label="%tool.com.seizia.chromite.ext.altibase.ui.tools.maintenance.AltibasePackageCompile.label"
+                  singleton="false">
+                <task id="altibaseToolPackageCompile"/>
+            </tool>
+            <tool
+                  description="%tool.com.seizia.chromite.ext.altibase.ui.tools.maintenance.AltibaseReplicationStart.label"
+                  id="com.seizia.chromite.ext.altibase.ui.tools.maintenance.AltibaseToolReplicationStart"
+                  label="%tool.com.seizia.chromite.ext.altibase.ui.tools.maintenance.AltibaseReplicationStart.label"
+                  group="com.seizia.chromite.ext.altibase.ui.tools.maintenance"
+                  icon="icons/repl_start.png"
+                  singleton="false">
+                <task id="altibaseToolReplicationStart"/>
+            </tool>
+            <tool
+                  description="%tool.com.seizia.chromite.ext.altibase.ui.tools.maintenance.AltibaseReplicationStop.label"
+                  id="com.seizia.chromite.ext.altibase.ui.tools.maintenance.AltibaseToolReplicationStop"
+                  label="%tool.com.seizia.chromite.ext.altibase.ui.tools.maintenance.AltibaseReplicationStop.label"
+                  group="com.seizia.chromite.ext.altibase.ui.tools.maintenance"
+                  icon="icons/repl_stop.png"
+                  singleton="false">
+                <task id="altibaseToolReplicationStop"/>
+            </tool>
+        </tools>
+    </extension>
+        
+</plugin>

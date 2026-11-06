@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?eclipse version="3.2"?>
+
+<plugin>
+    <extension-point id="com.seizia.chromite.dashboard" name="Dashboards" schema="schema/com.seizia.chromite.dashboard.exsd"/>
+
+    <extension point="com.seizia.chromite.dashboard">
+        <provider id="database"
+                  class="com.seizia.chromite.model.dashboard.registry.DatabaseDashboardProvider"
+                  label="Database"
+                  description="Database dashboards"
+                  icon="platform:/plugin/com.seizia.chromite.model/icons/tree/database.svg"
+                  supportsCustomization="true"
+                  databaseRequired="true"
+                  defaultRenderer="timeseries"
+                  dataType="timeseries"/>
+        <provider id="web"
+                  class="com.seizia.chromite.model.dashboard.registry.WebDashboardProvider"
+                  label="Web"
+                  description="Web dashboards"
+                  icon="platform:/plugin/com.seizia.chromite.ui/icons/misc/browser.svg"
+                  supportsCustomization="true"
+                  defaultRenderer="browser"
+                  dataType="provided"/>
+    </extension>
+
+
+    <extension point="org.eclipse.core.contenttype.contentTypes">
+        <content-type
+                base-type="org.eclipse.core.runtime.text"
+                default-charset="utf-8"
+                file-extensions="dashboard"
+                id="com.seizia.chromite.dashboard"
+                name="Dashboard"
+                priority="normal"/>
+    </extension>
+
+    <extension point="com.seizia.chromite.resourceType">
+        <type id="dashboard" name="Dashboard"
+              icon="icons/dashboard.svg"
+              folderIcon="icons/dashboard_folder.svg"
+              managable="true">
+            <root folder="Dashboards"/>
+            <contentTypeBinding contentTypeId="com.seizia.chromite.dashboard"/>
+        </type>
+    </extension>
+
+</plugin>

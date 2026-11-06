@@ -21,20 +21,20 @@ import org.apache.commons.jexl3.JexlExpression;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.dashboard.DBDashboardCalcType;
-import org.jkiss.dbeaver.model.dashboard.DBDashboardFetchType;
-import org.jkiss.dbeaver.model.dashboard.DBDashboardMapQuery;
-import org.jkiss.dbeaver.model.dashboard.DBDashboardValueType;
-import org.jkiss.dbeaver.model.dashboard.DashboardConstants;
-import org.jkiss.dbeaver.model.dashboard.registry.DashboardItemConfiguration;
-import org.jkiss.dbeaver.model.exec.DBCAttributeMetaData;
-import org.jkiss.dbeaver.model.exec.DBCException;
-import org.jkiss.dbeaver.model.exec.DBCResultSet;
-import org.jkiss.dbeaver.model.exec.DBCSession;
-import org.jkiss.dbeaver.model.exec.DBCStatement;
-import org.jkiss.dbeaver.model.exec.DBCStatementType;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.dashboard.DBDashboardCalcType;
+import com.seizia.chromite.model.dashboard.DBDashboardFetchType;
+import com.seizia.chromite.model.dashboard.DBDashboardMapQuery;
+import com.seizia.chromite.model.dashboard.DBDashboardValueType;
+import com.seizia.chromite.model.dashboard.DashboardConstants;
+import com.seizia.chromite.model.dashboard.registry.DashboardItemConfiguration;
+import com.seizia.chromite.model.exec.DBCAttributeMetaData;
+import com.seizia.chromite.model.exec.DBCException;
+import com.seizia.chromite.model.exec.DBCResultSet;
+import com.seizia.chromite.model.exec.DBCSession;
+import com.seizia.chromite.model.exec.DBCStatement;
+import com.seizia.chromite.model.exec.DBCStatementType;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
 import org.jkiss.utils.ArrayUtils;
 import org.jkiss.utils.CommonUtils;
 
@@ -50,7 +50,7 @@ import java.util.Map;
 /**
  * 서버 대시보드 차트의 값을 읽는다(연결 하나, 차트 여러 개).
  *
- * 설계: SWT에서는 이 일을 UI 플러그인 {@code org.jkiss.dbeaver.ui.dashboard}가 한다. 질의 실행과 결과 모양 바꾸기는
+ * 설계: SWT에서는 이 일을 UI 플러그인 {@code com.seizia.chromite.ui.dashboard}가 한다. 질의 실행과 결과 모양 바꾸기는
  * {@code DashboardUpdater}(updateDashboard, readMapQueryData, fetchDashboardMapData, fetchDashboardData, transposeDataset), 차분 계산은
  * 차트 그리기 클래스 {@code DashboardRendererTimeseries#updateDashboardData}에 있고, 둘 다 SWT·JFreeChart 화면 객체에 묶여 있다.
  * Swing 번들은 SWT 플러그인을 쓸 수 없으므로 화면과 상관없는 부분만 이 모델 클래스로 다시 만들었다. 정의(질의, 계산 방식, 값 형식)는

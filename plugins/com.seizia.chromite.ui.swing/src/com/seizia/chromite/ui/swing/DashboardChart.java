@@ -22,9 +22,9 @@ import com.seizia.chromite.model.admin.dashboard.DashboardHistory;
 import com.seizia.chromite.model.admin.dashboard.DashboardLabels;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.model.dashboard.DBDashboardCalcType;
-import org.jkiss.dbeaver.model.dashboard.DBDashboardValueType;
-import org.jkiss.dbeaver.model.dashboard.registry.DashboardItemConfiguration;
+import com.seizia.chromite.model.dashboard.DBDashboardCalcType;
+import com.seizia.chromite.model.dashboard.DBDashboardValueType;
+import com.seizia.chromite.model.dashboard.registry.DashboardItemConfiguration;
 
 import javax.swing.*;
 import java.awt.*;

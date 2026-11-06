@@ -17,8 +17,8 @@
 package com.seizia.chromite.model.admin.dashboard;
 
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.dashboard.registry.DashboardItemConfiguration;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.dashboard.registry.DashboardItemConfiguration;
 import org.jkiss.utils.CommonUtils;
 
 import java.util.Locale;

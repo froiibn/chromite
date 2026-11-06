@@ -9,7 +9,7 @@
 -->
 <plugin>
 
-    <extension point="org.jkiss.dbeaver.dashboard">
+    <extension point="com.seizia.chromite.dashboard">
 
         <!-- SQL Server -->
         <dashboard id="chromite.sqlserver.sessions" label="%dashboard.sqlserver.sessions.label" description="%dashboard.sqlserver.sessions.description"

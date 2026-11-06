@@ -1,0 +1,11 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<schema targetNamespace="com.seizia.chromite.model" xmlns="http://www.w3.org/2001/XMLSchema">
+<annotation>
+      <appInfo>
+         <meta.schema plugin="com.seizia.chromite.model" id="com.seizia.chromite.expressions" name="Expression functions and namespaces"/>
+      </appInfo>
+   </annotation>
+
+
+
+</schema>

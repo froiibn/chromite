@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?eclipse version="3.2"?>
+
+<plugin>
+
+    <extension point="com.seizia.chromite.dataSourceConfigurator">
+        <configurator dataSource="google_spanner" class="com.seizia.chromite.ext.spanner.ui.views.SpannerConnectionPage"/>
+    </extension>
+
+    <extension point="com.seizia.chromite.ui.propertyConfigurator">
+        <propertyConfigurator class="com.seizia.chromite.ext.spanner.auth.SpannerAuthModel" uiClass="com.seizia.chromite.ext.spanner.ui.config.SpannerAuthConfigurator"/>
+    </extension>
+
+</plugin>

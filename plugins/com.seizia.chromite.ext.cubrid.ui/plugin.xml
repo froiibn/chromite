@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?eclipse version="3.2"?>
+
+<plugin>
+    <extension point="com.seizia.chromite.databaseEditor">
+        <editor
+            id="com.seizia.chromite.ext.cubrid.ui.editors.CubridPrivilageEditor"
+            class="com.seizia.chromite.ext.cubrid.ui.editors.CubridPrivilageEditor"
+            objectType="com.seizia.chromite.ext.cubrid.model.CubridPrivilage"
+            main="true"
+            label="%editor.general.name"
+            description="General user settings"
+            icon="#user">
+        </editor>
+        <configurator class="com.seizia.chromite.ext.cubrid.ui.config.CubridTableUniqueKeyConfigurator">
+            <objectType name="com.seizia.chromite.ext.cubrid.model.CubridUniqueKey"/>
+        </configurator>
+        <configurator class="com.seizia.chromite.ext.cubrid.ui.config.CubridTableColumnConfigurator">
+            <objectType name="com.seizia.chromite.ext.cubrid.model.CubridTableColumn"/>
+        </configurator>
+        <configurator class="com.seizia.chromite.ext.cubrid.ui.config.CubridProcedureConfigurator">
+            <objectType name="com.seizia.chromite.ext.cubrid.model.CubridProcedure"/>
+        </configurator>
+    </extension>
+
+    <extension point="com.seizia.chromite.dataSourceConfigurator">
+        <configurator dataSource="cubrid" class="com.seizia.chromite.ext.cubrid.ui.views.CubridConnectionPage"/>
+    </extension>
+
+    <extension point="org.eclipse.ui.preferencePages">
+        <page category="com.seizia.chromite.preferences.drivers" id="com.seizia.chromite.preferences.cubrid.general" class="com.seizia.chromite.ext.cubrid.ui.views.PrefPageCubrid" name="%views.PrefPageCubrid.name">
+            <keywordReference id="com.seizia.chromite.core.keyword.chromite"/>
+            <keywordReference id="com.seizia.chromite.ext.cubrid.ui.keyword.pref.general"/>
+        </page>
+    </extension>
+
+    <extension point="org.eclipse.ui.keywords">
+        <keyword id="com.seizia.chromite.ext.cubrid.ui.keyword.pref.general" label="%keyword.com.seizia.chromite.ext.cubrid.ui.keyword.pref.general.label"/>
+    </extension>
+
+    <extension point="com.seizia.chromite.resultset.panel">
+         <panel
+                id="cubridResult"
+                label="%controls.CubridInfoPanel.label"
+                description="%controls.CubridInfoPanel.description"
+                icon="platform:/plugin/com.seizia.chromite.model/icons/tree/table.svg"
+                default="true"
+                class="com.seizia.chromite.ext.cubrid.ui.controls.CubridInfoPanel">
+             <datasource id="cubrid"/>
+        </panel>
+    </extension>
+
+    <extension point="com.seizia.chromite.sql.plan.view">
+        <view id="fulltext"
+              priority="101"
+              label="%sql.plan.view.fulltext.name"
+              icon="platform:/plugin/com.seizia.chromite.ui/icons/sql/page_explain_plan.svg"
+              description="%sql.plan.view.fulltext.tip"
+              class="com.seizia.chromite.ext.cubrid.ui.editors.CubridSQLPlanViewProvider">
+            <datasource id="cubrid"/>
+        </view>
+    </extension>
+
+    <extension point="org.eclipse.ui.commands">
+        <command id="com.seizia.chromite.cubrid.OIDNavigator" name="%views.CubridOIDSearchDiaglog.name" description="views.CubridOIDSearchDiaglog.description" categoryId="com.seizia.chromite.core.navigator"/>
+    </extension>
+
+    <extension point="org.eclipse.ui.commandImages">
+        <image commandId="com.seizia.chromite.cubrid.OIDNavigator" icon="platform:/plugin/com.seizia.chromite.ext.cubrid/icons/cubrid_icon.png"/>
+    </extension>
+
+    <extension point="org.eclipse.ui.handlers">
+        <handler commandId="com.seizia.chromite.cubrid.OIDNavigator" class="com.seizia.chromite.ext.cubrid.ui.config.CubridOIDHandler">
+            <enabledWhen>
+                <with variable="selection">
+                    <count value="+"/>
+                    <iterate operator="and">
+                        <adapt type="com.seizia.chromite.model.struct.DBSObject">
+                            <instanceof value="com.seizia.chromite.ext.cubrid.model.CubridDataSource"/>
+                        </adapt>
+                    </iterate>
+                </with>
+            </enabledWhen>
+        </handler>
+    </extension>
+
+    <extension point="org.eclipse.ui.menus">
+        <menuContribution allPopups="false" locationURI="popup:org.eclipse.ui.popup.any?after=object">
+            <command commandId="com.seizia.chromite.cubrid.OIDNavigator">
+                <visibleWhen checkEnabled="true"/>
+            </command>
+        </menuContribution>
+    </extension>
+</plugin>

@@ -18,13 +18,13 @@ package com.seizia.chromite.model.admin;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.DBDatabaseException;
+import com.seizia.chromite.DBDatabaseException;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.model.DBPDataSource;
-import org.jkiss.dbeaver.model.admin.locks.DBAServerLockManager;
-import org.jkiss.dbeaver.model.exec.DBCSession;
-import org.jkiss.dbeaver.model.exec.jdbc.JDBCSession;
-import org.jkiss.dbeaver.model.impl.admin.locks.LockGraphManager;
+import com.seizia.chromite.model.DBPDataSource;
+import com.seizia.chromite.model.admin.locks.DBAServerLockManager;
+import com.seizia.chromite.model.exec.DBCSession;
+import com.seizia.chromite.model.exec.jdbc.JDBCSession;
+import com.seizia.chromite.model.impl.admin.locks.LockGraphManager;
 
 import java.sql.SQLException;
 import java.util.Collection;

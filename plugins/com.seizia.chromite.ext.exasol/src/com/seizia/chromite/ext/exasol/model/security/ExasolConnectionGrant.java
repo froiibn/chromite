@@ -1,0 +1,100 @@
+/*
+ * DBeaver - Universal Database Manager
+ * Copyright (C) 2010-2025 DBeaver Corp and others
+ * Modifications Copyright (C) 2026 Chromite contributors
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package com.seizia.chromite.ext.exasol.model.security;
+
+import org.jkiss.code.NotNull;
+import org.jkiss.dbeaver.DBException;
+import com.seizia.chromite.ext.exasol.model.ExasolConnection;
+import com.seizia.chromite.ext.exasol.model.ExasolDataSource;
+import com.seizia.chromite.model.DBPDataSource;
+import com.seizia.chromite.model.access.DBAPrivilege;
+import com.seizia.chromite.model.impl.jdbc.JDBCUtils;
+import com.seizia.chromite.model.meta.Property;
+import com.seizia.chromite.model.meta.PropertyLength;
+import com.seizia.chromite.model.runtime.VoidProgressMonitor;
+import com.seizia.chromite.model.struct.DBSObject;
+
+import java.sql.ResultSet;
+
+public class ExasolConnectionGrant 
+		implements DBAPrivilege {
+
+	private Boolean adminOption;
+	private String connection;
+	private ExasolDataSource dataSource;
+	private String grantee;
+	private Boolean isPersisted;
+	public ExasolConnectionGrant(ExasolDataSource dataSource,
+			ResultSet dbResult) 
+	{
+		this.adminOption = JDBCUtils.safeGetBoolean(dbResult, "ADMIN_OPTION");
+		this.connection = JDBCUtils.safeGetString(dbResult, "CONNECTION_NAME");
+		this.grantee = JDBCUtils.safeGetString(dbResult, "GRANTEE");
+		this.dataSource = dataSource;
+		this.isPersisted = true;
+	}
+	
+	@Property(viewable = true, order = 10)
+	public ExasolConnection getConnection() throws DBException
+	{
+		return dataSource.getConnection(new VoidProgressMonitor(), connection);
+	}
+	
+	@Property(viewable = true, order = 90)
+	public Boolean getAdminOption()
+	{
+		return this.adminOption;
+	}
+
+	@Override
+	@Property(hidden = true, length = PropertyLength.MULTILINE)
+	public String getDescription()
+	{
+		return null;
+	}
+
+	@Override
+	public DBSObject getParentObject()
+	{
+		return dataSource.getContainer();
+	}
+
+	@Override
+	public DBPDataSource getDataSource()
+	{
+		return this.dataSource;
+	}
+
+	@NotNull
+    @Override
+	public String getName()
+	{
+		return grantee;
+	}
+
+	@Override
+	public boolean isPersisted()
+	{
+		return isPersisted;
+	}
+
+	public Object getGrantee() {
+		return grantee+"|"+connection+"|"+adminOption.toString();
+	}
+
+}

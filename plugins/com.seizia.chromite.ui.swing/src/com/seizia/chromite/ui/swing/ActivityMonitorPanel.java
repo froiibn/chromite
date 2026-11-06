@@ -21,7 +21,7 @@ import com.seizia.chromite.ui.swing.internal.ConnectionMessages;
 import com.seizia.chromite.ui.swing.internal.DashboardMessages;
 import org.eclipse.osgi.util.NLS;
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.model.DBPDataSourceContainer;
+import com.seizia.chromite.model.DBPDataSourceContainer;
 
 import javax.swing.*;
 import java.awt.*;

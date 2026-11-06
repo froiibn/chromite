@@ -59,7 +59,7 @@ DBeaver 모델 (그대로 재사용)
 
 ## Activity Monitor — Processes (세션)
 
-SWT `SessionManagerViewer`(`plugins/org.jkiss.dbeaver.ui.editors.session/.../SessionManagerViewer.java:111-239` 화면 구성,
+SWT `SessionManagerViewer`(`plugins/com.seizia.chromite.ui.editors.session/.../SessionManagerViewer.java:111-239` 화면 구성,
 `:376-383` 새로 고침과 끝내기, `:512-568` 검색)와 `SessionTable`(`.../SessionTable.java:131-209` 읽기·끝내기 서비스)을 옮겼다.
 
 | 항목 | 동작 | SWT 대응 |
@@ -106,7 +106,7 @@ SWT는 읽을 때마다 격리된 실행 컨텍스트를 열고 닫는다(`Sessi
 
 ## Activity Monitor — Locks (잠금)
 
-SWT `LockManagerViewer`(`plugins/org.jkiss.dbeaver.ui.editors.locks/.../LockManagerViewer.java`: 잠금 표, 그래프, 대기·보유 상세 표,
+SWT `LockManagerViewer`(`plugins/com.seizia.chromite.ui.editors.locks/.../LockManagerViewer.java`: 잠금 표, 그래프, 대기·보유 상세 표,
 "Kill waiting session")와 `PostgreLockEditor`/`OracleLockEditor`(상세 표 옵션)를 옮겼다.
 
 - **Blocking chains(나무)**: GEF 그래프 대신 나무다. 뿌리는 남을 막기만 하는 세션, 자식은 그 세션을 기다리는 세션이다.
@@ -129,7 +129,7 @@ MySQL/MariaDB는 InnoDB 행 잠금만 보인다. 메타데이터 잠금(ALTER TA
 
 ## Find Objects
 
-SWT 메타데이터 검색(`plugins/org.jkiss.dbeaver.ui.search/.../SearchMetadataPage.java:427-485` 조건, `SearchMetadataQuery.java` 실행)과
+SWT 메타데이터 검색(`plugins/com.seizia.chromite.ui.search/.../SearchMetadataPage.java:427-485` 조건, `SearchMetadataQuery.java` 실행)과
 같은 모델 API를 쓴다: 연결마다 `DBSStructureAssistant#findObjectsByMask` → `DBSObjectReference#resolveObject` → `DBNModel#getNodeByObject`.
 
 - 이름 조건: Contains(`%이름%`), Starts with(`이름%`), Like pattern(그대로). Case sensitive. SWT와 같다.
@@ -146,8 +146,8 @@ SWT 메타데이터 검색(`plugins/org.jkiss.dbeaver.ui.search/.../SearchMetada
 
 ## 미룬 것
 
-- **서버 대시보드**: 모델(`org.jkiss.dbeaver.model.dashboard`)에는 대시보드 정의와 질의 등록만 있고, 값을 주기적으로 읽어 누적·차분하는
-  부분(`DashboardUpdater`, `DashboardUpdateJob`)과 차트가 SWT 플러그인(`org.jkiss.dbeaver.ui.dashboard`, SWT 차트)에 있다.
+- **서버 대시보드**: 모델(`com.seizia.chromite.model.dashboard`)에는 대시보드 정의와 질의 등록만 있고, 값을 주기적으로 읽어 누적·차분하는
+  부분(`DashboardUpdater`, `DashboardUpdateJob`)과 차트가 SWT 플러그인(`com.seizia.chromite.ui.dashboard`, SWT 차트)에 있다.
   옮기려면 갱신 로직을 모델로 옮기고 Swing 차트 라이브러리를 새로 들여야 해서 이번 범위에서 뺐다.
   2026-11-07 개요 탭으로 옮김: 갱신 로직은 이 번들의 `dashboard` 패키지, 차트는 Java2D로 직접 그림([swing-dashboard.md](swing-dashboard.md)).
 - 세션의 실행 계획 탭(SWT `ExplainPlanViewer`): Swing 실행 계획 보기가 아직 없다.
@@ -157,7 +157,7 @@ SWT 메타데이터 검색(`plugins/org.jkiss.dbeaver.ui.search/.../SearchMetada
 
 ## 확인 (2026-11-06)
 
-빌드: `mvn -B clean package -f product/aggregate/pom.xml -T1C -Pproduct-dbeaver-ce,product-chromite-swing` → BUILD SUCCESS.
+빌드: `mvn -B clean package -f product/aggregate/pom.xml -T1C -Pproduct-chromite-swt,product-chromite-swing` → BUILD SUCCESS.
 Swing 제품을 별도 작업 공간으로 띄우고 로컬 Docker DB(PostgreSQL 17, SQL Server 2022, MariaDB 11.8)의 `chr_admin_tools`에서 확인했다.
 잠금 대기는 `docker exec`로 한 세션이 행을 갱신한 채 트랜잭션을 열어 두고(`pg_sleep`, `WAITFOR DELAY`, `SLEEP`), 다른 세션이 같은 행을 갱신·조회해 만들었다.
 

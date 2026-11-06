@@ -21,7 +21,7 @@ import com.seizia.chromite.ui.swing.internal.EditorMessages;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
+import com.seizia.chromite.runtime.DBWorkbench;
 
 import javax.swing.*;
 import javax.swing.event.DocumentEvent;
