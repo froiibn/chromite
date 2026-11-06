@@ -39,9 +39,9 @@ DBA가 자주 쓰는 상태 확인 쿼리(세션 수, 대기, 디스크 사용�
 
 | 파일 | 바꾼 것 |
 |---|---|
-| `MainFrame` | Query Library 도구 창(오른쪽 열에서 Properties 위, `ToolWindow.stackBelow`, 처음에는 숨김, View > Query Library, Ctrl+Alt+T), Query > Save to Query Library…, `QueryLibraryPanel.Host` 구현(창 열기·찾기, 현재 연결), 확장이 붙은 쿼리 창의 저장을 확장에 넘김 |
+| `MainFrame` | Query Library 도구 창(오른쪽 열에서 Properties 위, `ToolWindow.stackBelow`(2026-11-06부터 도킹 기본 자리), 처음에는 숨김, View > Query Library, Ctrl+Alt+T), Query > Save to Query Library…, `QueryLibraryPanel.Host` 구현(창 열기·찾기, 현재 연결), 확장이 붙은 쿼리 창의 저장을 확장에 넘김 |
 | `SqlEditorPanel` | `setExtension`(머리말을 도구 막대 아래에), `markModified`, 탭 아이콘, 실행 전 `prepareExecution`, 준비 Job에서 `SqlParameterBinding.prepare`, 엔진 핸들러의 바인딩 메서드 |
-| `ToolWindow` | `setDefaultShown(false)`: 처음에는 숨긴 도구 창(Reset Window Layout도 숨김으로 되돌림) |
+| `ToolWindow` | ~~`setDefaultShown(false)`~~: 처음에는 숨긴 도구 창(Reset Window Layout도 숨김으로 되돌림). 2026-11-06부터 `ToolWindowDocking.addToolWindow(..., false, ...)` |
 | `SQLQueryExecuteHandler`, `SQLQueryExecuteJob` (model.sql, Chromite 실행 엔진) | `hasBoundParameters`/`bindParameters`: 핸들러가 값을 바인딩하는 쿼리는 스크립트 문장 대신 prepared statement로 만들고 바인딩. 기본값은 바인딩 없음이라 SWT 편집기 동작은 같다 |
 | `tools/branding/gen_ui_icons.py` | 아이콘 `library`(Tabler books), `library-query`(문서 + 실행 배지), `new-folder`(폴더 + 더하기 배지), ③ `schedule`(Tabler clock), 두 팩·두 테마. History…는 SQL 편집기 확장의 `history` 아이콘(Tabler history)을 함께 쓴다 |
 | `OptionsDialog` (③) | Tools > Options의 "Query Library" 절: 기록 보존 실행 수·일수 |
@@ -60,7 +60,7 @@ DBA가 자주 쓰는 상태 확인 쿼리(세션 수, 대기, 디스크 사용�
 │                    ││               │├ Properties ──────────────── ┤
 ```
 
-- **열기:** View > Query Library(Ctrl+Alt+T). 오른쪽 열에서 Properties 위에 쌓는다(`ToolWindow.stackBelow`, SSMS의 Template Browser처럼 오른쪽 도킹).
+- **열기:** View > Query Library(Ctrl+Alt+T). 오른쪽 열에서 Properties 위에 쌓는다(`ToolWindow.stackBelow`, SSMS의 Template Browser처럼 오른쪽 도킹. 2026-11-06부터 도킹의 기본 자리이고 끌어서 옮길 수 있다: [swing-frontend.md](swing-frontend.md) "도구 창 도킹").
   처음에는 숨김이고 Window > Reset Window Layout도 숨김으로 되돌린다. 처음 설계는 Object Explorer와 문서 사이의 자기 열이었으나, 1920px 창에서도
   문서 영역이 좁아져 시작 화면 글자가 잘려 합칠 때 오른쪽 열로 옮겼다(되돌리기: `MainFrame`에서 `propertiesWindow.stackBelow(libraryWindow)` 대신
   예전처럼 가로 분할 열을 만든다).

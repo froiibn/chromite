@@ -11,7 +11,8 @@ Bundle-ClassPath: .,
  lib/flatlaf.jar,
  lib/flatlaf-fonts-inter.jar,
  lib/flatlaf-fonts-jetbrains-mono.jar,
- lib/rsyntaxtextarea.jar
+ lib/rsyntaxtextarea.jar,
+ lib/modern-docking-api.jar
 Require-Bundle: org.eclipse.equinox.app,
  org.eclipse.core.resources,
  org.jkiss.dbeaver.model,

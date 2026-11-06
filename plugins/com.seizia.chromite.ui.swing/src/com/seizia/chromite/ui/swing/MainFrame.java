@@ -21,6 +21,7 @@ import com.formdev.flatlaf.ui.FlatTabbedPaneUI;
 import com.formdev.flatlaf.util.UIScale;
 import com.seizia.chromite.ui.swing.internal.CoreMessages;
 import com.seizia.chromite.ui.swing.internal.ToolbarMessages;
+import io.github.andrewauclair.moderndocking.DockingRegion;
 import org.eclipse.osgi.util.NLS;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
@@ -69,22 +70,24 @@ import java.util.function.IntConsumer;
 /**
  * Chromite Swing 메인 창 (SSMS식 배치).
  *
- * 설계: 왼쪽 Object Explorer, 가운데 문서 탭, 문서 아래 Results / Messages, 오른쪽 Properties를 {@link JSplitPane}으로
- * 나눈다(도구 창 처리는 {@link ToolWindow}). 분할 구조는 바깥부터 Object Explorer | (문서·결과 | Properties)이고,
- * Properties가 SSMS처럼 문서와 결과 옆에 세로로 길게 붙는다.
+ * 설계: 가운데 문서 영역(문서 탭, 그 아래 Results / Messages)은 고정이고, 도구 창(Object Explorer, Registered Servers, Properties,
+ * Query Library)은 도킹 배치({@link ToolWindowDocking})에 놓인다. 기본 배치는 왼쪽 열에 Object Explorer(위)와 Registered Servers(아래),
+ * 오른쪽 열에 Properties(Query Library는 처음에 숨김, 보이면 Properties 위)이고, Properties가 SSMS처럼 문서와 결과 옆에 세로로 길게 붙는다.
+ * 도구 창은 머리말을 끌어 옮기거나 탭으로 합치거나 떠 있는 창으로 띄울 수 있다. Results는 쿼리 창 안에 있으므로 도킹하지 않고
+ * 문서 영역의 분할 창 아래쪽이다({@link ToolWindow.SplitHost}).
  * <ul>
- *     <li>창 위치·크기·최대화 여부와 도구 창 크기·표시 여부는 이 번들의 설정 저장소에 저장한다({@link ChromiteTheme} 참고).
- *     저장은 창을 닫을 때({@link #dispose()}) 한 번 한다.</li>
- *     <li>도구 창 크기는 창이 실제 크기를 가진 뒤(windowOpened 이후) 바깥 분할부터 차례로 적용한다.</li>
- *     <li>모양은 DataGrip Islands다: 메인 창 바탕은 캔버스({@code Chromite.island.canvas})이고 Object Explorer, 문서 탭·편집기, Results, Properties가
- *     각각 둥근 카드({@link IslandPanel})다. 카드 사이 틈은 분할선(6px, 선 없음)과 좌우 바깥 여백이다. 주 도구 막대와 상태 표시줄은 캔버스 위에 있다.</li>
+ *     <li>창 위치·크기·최대화 여부와 Results 크기·표시 여부는 이 번들의 설정 저장소에, 도킹 배치는 작업 공간의 배치 파일에 저장한다
+ *     ({@link ChromiteTheme}, {@link ToolWindowDocking} 참고). 저장은 창을 닫을 때({@link #dispose()}) 한 번 한다.</li>
+ *     <li>Results 크기는 창이 실제 크기를 가진 뒤(windowOpened 이후) 적용하고, 떠 있는 도구 창도 그때 연다.</li>
+ *     <li>모양은 DataGrip Islands다: 메인 창 바탕은 캔버스({@code Chromite.island.canvas})이고 문서 탭·편집기와 Results는 각각 둥근 카드({@link IslandPanel}),
+ *     도구 창(탭 묶음 포함)은 도킹 루트가 그리는 둥근 카드다. 카드 사이 틈은 분할선(6px, 선 없음)과 좌우 바깥 여백이다. 주 도구 막대와 상태 표시줄은 캔버스 위에 있다.</li>
  *     <li>메뉴는 SSMS 순서로 File(새 연결·쿼리, 파일, Exit), Edit({@link EditMenu}), View(도구 창 토글, Theme), Query(실행, 취소, 자동완성),
  *     Tools(Activity Monitor, Locks, Find Objects, Options {@link OptionsDialog}), Window(Reset Window Layout, 열린 문서 탭 목록), Help(About)이다. FlatLaf의 통합 제목 표시줄(Windows)에서
  *     메뉴 막대는 A단계처럼 제목 표시줄 안에 들어간다. Tools &gt; Options와 같은 설정을 보이는 메뉴 항목(Theme, Icon Style, Auto-Complete While Typing)은
  *     메뉴를 열 때 현재 값으로 맞춘다.
  *     도구 창 단축키는 SSMS와 같다(Object Explorer F8, Registered Servers Ctrl+Alt+G, Properties F4, Results Ctrl+R).</li>
- *     <li>Registered Servers({@link RegisteredServersPanel})는 SSMS처럼 왼쪽 열에서 Object Explorer 위에 있다({@link ToolWindow#stackBelow}).
- *     그 창의 "Object Explorer" 명령은 Object Explorer를 보이고 서버를 넣으며, "New Query"는 SQL 편집기만 연다.</li>
+ *     <li>Registered Servers({@link RegisteredServersPanel})의 "Object Explorer" 명령은 Object Explorer를 보이고 서버를 넣으며,
+ *     "New Query"는 SQL 편집기만 연다.</li>
  *     <li>문서 탭: 시작 탭과 SQL 편집기 탭({@link SqlEditorPanel}). 편집기는 Object Explorer의 "New Query", File > New Query(Ctrl+N),
  *     도구 막대의 New Query로 연다. 제목은 SSMS처럼 {@code SQLQueryN.sql - 연결 이름}이고, 도구 설명은 전체 파일 경로와 연결·서버다.
  *     닫기 단추는 DataGrip처럼 선택한 탭과 마우스를 올린 탭에만 보이고({@link IslandTabbedPaneUI}), 가운데 단추로 눌러도 닫는다.</li>
@@ -152,12 +155,20 @@ import java.util.function.IntConsumer;
  * - 2026-11-06 개체 정의 편집: Modify·New View 등의 스크립트 창(실행 뒤 Object Explorer 노드를 다시 읽음) (docs/chromite/swing-source-editor.md)
  * - 2026-11-06 주 도구 막대를 SSMS Standard 배치로 확장(Save All, Undo/Redo, Activity Monitor, 도구 창 켜고 끄기, Find, 넘침 메뉴),
  *   File &gt; Save All, Activity Monitor 단축키 Ctrl+Alt+A, 쿼리 창 도구 막대의 Query History (docs/chromite/swing-frontend.md "도구 막대")
+ * - 2026-11-06 도구 창 도킹: 분할 창 배치를 {@link ToolWindowDocking}(ModernDocking)으로 바꿈, 기본 배치에서 Object Explorer를
+ *   Registered Servers 위로, Reset Window Layout은 기본 도킹 배치 (docs/chromite/swing-frontend.md "도구 창 도킹")
  */
 final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplorerPanel.QueryWindows, TableDesignerPanel.Host, QueryLibraryPanel.Host {
 
     private static final String PREF_BOUNDS = "mainWindow.bounds"; //$NON-NLS-1$
     private static final String PREF_MAXIMIZED = "mainWindow.maximized"; //$NON-NLS-1$
     private static final Dimension DEFAULT_SIZE = new Dimension(1280, 800);
+    /**
+     * Default shares of the main window width for the left and right tool window columns: the documents keep 60% (a
+     * query window stays usable at 1280 px with both columns shown).
+     */
+    private static final double DEFAULT_LEFT_SHARE = 0.22;
+    private static final double DEFAULT_RIGHT_SHARE = 0.18;
     private static final String UPDATED_LAF_KEY = "chromite.updatedLookAndFeel"; //$NON-NLS-1$
     private static final int RESULTS_TAB = 0;
     private static final int MESSAGES_TAB = 1;
@@ -191,6 +202,8 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
     @Nullable
     private JComponent attachedStatusLine;
     private final ToolWindow resultsWindow;
+    private final ToolWindow.SplitHost resultsSplit;
+    private final ToolWindowDocking toolWindowDocking;
     private final Action newQueryAction;
     private final Action openFileAction;
     private final Action saveAction;
@@ -210,7 +223,7 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
     @Nullable
     private Path lastDirectory;
     private boolean switchingResults;
-    // Outer split first: inner split panes are sized from the outer layout
+    // View menu order; Object Explorer first
     private final List<ToolWindow> toolWindows;
     @Nullable
     private Rectangle normalBounds;
@@ -258,15 +271,14 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
         });
         resultsStatusHolder.setVisible(false);
         documentStatusHolder.setVisible(false);
-        JSplitPane propertiesSplit = createSplitPane(JSplitPane.HORIZONTAL_SPLIT);
-        propertiesSplit.setLeftComponent(documentSplit);
-        JSplitPane explorerSplit = createSplitPane(JSplitPane.HORIZONTAL_SPLIT);
-        explorerSplit.setRightComponent(propertiesSplit);
+        // The document area (document card + results card) is the fixed center of the docking layout
+        toolWindowDocking = new ToolWindowDocking(this, documentSplit);
 
-        ToolWindow explorerWindow = new ToolWindow("objectExplorer", CoreMessages.main_object_explorer, true, //$NON-NLS-1$
-            explorerPanel, explorerSplit, true, 300,
+        ToolWindow explorerWindow = new ToolWindow("objectExplorer", CoreMessages.main_object_explorer, //$NON-NLS-1$
             KeyStroke.getKeyStroke(KeyEvent.VK_F8, 0));
-        // Registered Servers above Object Explorer in the left column, as SSMS docks it
+        // Default layout: Object Explorer above Registered Servers in the left column (user decision 2026-11-06)
+        toolWindowDocking.addToolWindow(explorerWindow, explorerPanel, true,
+            ToolWindowDocking.Place.edge(DockingRegion.WEST, DEFAULT_LEFT_SHARE));
         registeredServersPanel = new RegisteredServersPanel(new RegisteredServersPanel.Host() {
             @Override
             public void openQuery(@NotNull DBPDataSourceContainer dataSource) {
@@ -279,17 +291,20 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
                 explorerPanel.showServer(dataSource, true);
             }
         });
-        ToolWindow registeredServersWindow = new ToolWindow("registeredServers", CoreMessages.main_registered_servers, true, //$NON-NLS-1$
-            registeredServersPanel, createSplitPane(JSplitPane.VERTICAL_SPLIT), true, 320,
+        ToolWindow registeredServersWindow = new ToolWindow("registeredServers", CoreMessages.main_registered_servers, //$NON-NLS-1$
             KeyStroke.getKeyStroke(KeyEvent.VK_G, InputEvent.CTRL_DOWN_MASK | InputEvent.ALT_DOWN_MASK));
-        explorerWindow.stackBelow(registeredServersWindow);
-        ToolWindow propertiesWindow = new ToolWindow("properties", CoreMessages.main_properties, true, //$NON-NLS-1$
-            propertiesPanel, propertiesSplit, false, 300,
+        toolWindowDocking.addToolWindow(registeredServersWindow, registeredServersPanel, true,
+            ToolWindowDocking.Place.next(explorerWindow.getId(), DockingRegion.SOUTH, 0.4),
+            ToolWindowDocking.Place.edge(DockingRegion.WEST, DEFAULT_LEFT_SHARE));
+        ToolWindow propertiesWindow = new ToolWindow("properties", CoreMessages.main_properties, //$NON-NLS-1$
             KeyStroke.getKeyStroke(KeyEvent.VK_F4, 0));
-        // The Results/Messages tabs are their own header; the hide button sits next to the tabs
-        resultsWindow = new ToolWindow("results", CoreMessages.main_results, false, //$NON-NLS-1$
-            resultsArea, documentSplit, false, 220,
+        toolWindowDocking.addToolWindow(propertiesWindow, propertiesPanel, true,
+            ToolWindowDocking.Place.edge(DockingRegion.EAST, DEFAULT_RIGHT_SHARE));
+        // The Results/Messages tabs are their own header; the hide button sits next to the tabs. The results stay in the
+        // query window (below the documents), so they are not dockable
+        resultsWindow = new ToolWindow("results", CoreMessages.main_results, //$NON-NLS-1$
             KeyStroke.getKeyStroke(KeyEvent.VK_R, InputEvent.CTRL_DOWN_MASK));
+        resultsSplit = new ToolWindow.SplitHost(resultsWindow, resultsArea, documentSplit, 220);
         // The trailing component fills the rest of the tab row; keep the button at its right end
         JPanel resultTabsTrailing = new JPanel(new FlowLayout(FlowLayout.RIGHT, 2, 0));
         resultTabsTrailing.setOpaque(false);
@@ -298,11 +313,11 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
         queryLibraryPanel = new QueryLibraryPanel(this);
         // Query Library above Properties in the right column (SSMS docks its Template Browser on the right), hidden until opened;
         // a column of its own would narrow the documents
-        ToolWindow libraryWindow = new ToolWindow("queryLibrary", CoreMessages.main_query_library, true, //$NON-NLS-1$
-            queryLibraryPanel, createSplitPane(JSplitPane.VERTICAL_SPLIT), true, 280,
+        ToolWindow libraryWindow = new ToolWindow("queryLibrary", CoreMessages.main_query_library, //$NON-NLS-1$
             KeyStroke.getKeyStroke(KeyEvent.VK_T, InputEvent.CTRL_DOWN_MASK | InputEvent.ALT_DOWN_MASK));
-        libraryWindow.setDefaultShown(false);
-        propertiesWindow.stackBelow(libraryWindow);
+        toolWindowDocking.addToolWindow(libraryWindow, queryLibraryPanel, false,
+            ToolWindowDocking.Place.next(propertiesWindow.getId(), DockingRegion.NORTH, 0.5),
+            ToolWindowDocking.Place.edge(DockingRegion.EAST, DEFAULT_RIGHT_SHARE));
         queryLibraryPanel.setShowWindow(() -> libraryWindow.setShown(true));
         toolWindows = List.of(explorerWindow, registeredServersWindow, propertiesWindow, libraryWindow, resultsWindow);
 
@@ -382,17 +397,7 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
 
         JPanel content = new CanvasPanel(new BorderLayout());
         content.add(createToolBar(registeredServersWindow, explorerWindow, libraryWindow, propertiesWindow), BorderLayout.NORTH);
-        // Islands: the canvas shows as a gap (Chromite.island.gap) left and right of the outer cards
-        JPanel islands = new CanvasPanel(new BorderLayout()) {
-            @Override
-            public void updateUI() {
-                super.updateUI();
-                int gap = UIScale.scale(Math.max(0, UIManager.getInt("Chromite.island.gap"))); //$NON-NLS-1$
-                setBorder(BorderFactory.createEmptyBorder(0, gap, 0, gap));
-            }
-        };
-        islands.add(explorerSplit, BorderLayout.CENTER);
-        content.add(islands, BorderLayout.CENTER);
+        content.add(toolWindowDocking.getComponent(), BorderLayout.CENTER);
         statusBar = new StatusBar(statusText);
         content.add(statusBar, BorderLayout.SOUTH);
         setContentPane(content);
@@ -424,7 +429,9 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
             public void windowOpened(WindowEvent e) {
                 // Split panes have their real size only after the window is shown and laid out
                 SwingUtilities.invokeLater(() -> {
-                    toolWindows.forEach(ToolWindow::applySize);
+                    resultsSplit.applySize();
+                    // Floating tool windows open after the main window, so they stay in front of it
+                    toolWindowDocking.restoreFloatingWindows();
                     explorerPanel.focusTree();
                 });
             }
@@ -443,6 +450,8 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
         if (!layoutSaved && isDisplayable()) {
             layoutSaved = true;
             saveLayout();
+            // Also closes the floating tool windows
+            toolWindowDocking.dispose();
         }
         explorerPanel.dispose();
         registeredServersPanel.dispose();
@@ -1460,13 +1469,12 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
     }
 
     /**
-     * Window &gt; Reset Window Layout: every tool window shown again with its default size.
+     * Window &gt; Reset Window Layout: the default docking layout (floating tool windows docked again, Query Library
+     * hidden) and the results shown with their default height.
      */
     private void resetWindowLayout() {
-        // Outer split first: the inner split panes are sized from its new layout
-        for (ToolWindow toolWindow : toolWindows) {
-            toolWindow.reset();
-        }
+        toolWindowDocking.resetLayout();
+        resultsSplit.reset();
     }
 
     private static void onMenuSelected(@NotNull JMenu menu, @NotNull Runnable task) {
@@ -1558,9 +1566,8 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
         if (preferences.getBoolean(PREF_MAXIMIZED)) {
             setExtendedState(Frame.MAXIMIZED_BOTH);
         }
-        for (ToolWindow toolWindow : toolWindows) {
-            toolWindow.load(preferences);
-        }
+        toolWindowDocking.restoreLayout(preferences);
+        resultsSplit.load(preferences);
     }
 
     private void saveLayout() {
@@ -1568,9 +1575,8 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
         Rectangle bounds = normalBounds != null ? normalBounds : getBounds();
         preferences.setValue(PREF_BOUNDS, bounds.x + "," + bounds.y + "," + bounds.width + "," + bounds.height); //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$
         preferences.setValue(PREF_MAXIMIZED, (getExtendedState() & Frame.MAXIMIZED_BOTH) != 0);
-        for (ToolWindow toolWindow : toolWindows) {
-            toolWindow.save(preferences);
-        }
+        toolWindowDocking.saveLayout(preferences);
+        resultsSplit.save(preferences);
         PrefUtils.savePreferenceStore(preferences);
     }
 

@@ -78,6 +78,13 @@ The Chromite Swing frontend (plugins/com.seizia.chromite.ui.swing) includes:
   META-INF/LICENSE).
   Downloaded from Maven Central at build time; not stored in this repository.
 
+  ModernDocking 1.4.9 (io.github.andrewauclair:modern-docking-api)
+  https://github.com/andrewauclair/ModernDocking
+  Copyright (c) 2022 Andrew Auclair
+  Licensed under the MIT License (included in the bundle as
+  META-INF/LICENSE-ModernDocking.txt).
+  Downloaded from Maven Central at build time; not stored in this repository.
+
   Inter 4.1 font (com.formdev:flatlaf-fonts-inter 4.1)
   https://github.com/rsms/inter
   Copyright (c) 2016 The Inter Project Authors
