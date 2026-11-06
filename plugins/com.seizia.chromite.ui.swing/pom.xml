@@ -10,8 +10,9 @@
   </parent>
   <groupId>com.seizia.chromite</groupId>
   <artifactId>com.seizia.chromite.ui.swing</artifactId>
-  <!-- Product-defining bundle: its version is the product version shown in About (GeneralUtils.getProductVersion) -->
-  <version>26.2.5-SNAPSHOT</version>
+  <!-- Product-defining bundle: its version is the product version shown in About (GeneralUtils.getProductVersion).
+       Set it only with tools/release/bump-version.ps1 (docs/chromite/versioning.md) -->
+  <version>0.1.0-SNAPSHOT</version>
   <packaging>eclipse-plugin</packaging>
 
   <properties>

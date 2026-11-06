@@ -31,6 +31,7 @@ Chromite가 무엇을 만들고, 누구를 위한 제품이며, 어떤 원칙으
 | SWT 버전 | Swing MVP가 나올 때까지 유지한 뒤 삭제 | 2026-11-06 |
 | SWT 삭제 | 기능이 다 옮겨지기를 기다리지 않고 내부 이름 변경 직후 SWT 프런트엔드를 삭제. Swing 제품 하나만 빌드. 아직 옮기지 않은 기능 목록은 [swt-removal.md](swt-removal.md) | 2026-11-07 |
 | 내부 이름 | DBeaver 내부 이름(패키지·번들·ID·실행 식별자)을 `com.seizia.chromite`로 한 번에 변경, 데이터는 새로 시작([internal-rename.md](internal-rename.md)) | 2026-11-07 |
+| 버전 체계 | Chromite 자체 버전 `major.minor.dev`, 0.1.0부터. 셋째 수는 사용자에게 주는 빌드마다 손으로 올림, 태그 `v<버전>`, 1.0.0은 사용자가 정함([versioning.md](versioning.md)) | 2026-11-07 |
 | 제품 구성 | SWT 제품과 Swing 제품만 빌드. Microsoft Store, Eclipse 플러그인, Snap 제품은 삭제([build.md](build.md) "빌드하는 제품"). 같은 날 SWT 제품도 삭제("SWT 삭제") | 2026-11-07 |
 
 ## 개발 원칙
@@ -54,7 +55,6 @@ Chromite가 무엇을 만들고, 누구를 위한 제품이며, 어떤 원칙으
 ## 미결정 사항
 
 - AI 기능의 구체적인 범위
-- 버전 체계 (DBeaver 버전 26.2.5를 이어 쓸지, Chromite 자체 버전을 쓸지)
 - 업데이트 방식 (GitHub Releases 기반 버전 확인 등)
 - Windows 코드 서명 인증서, Apple Developer 계정과 공증
 - GitHub 포크 연결 해제 여부 (저장소 소유자가 직접 처리)
@@ -66,3 +66,4 @@ Chromite가 무엇을 만들고, 누구를 위한 제품이며, 어떤 원칙으
 - 2026-11-07 결정 사항에 "제품 구성" 추가: 쓰지 않는 제품(Microsoft Store, Eclipse 플러그인, Snap) 삭제.
 - 2026-11-07 미결정 사항 "내부 이름을 바꿀지와 그 시점"을 결정 사항 "내부 이름"으로 옮김.
 - 2026-11-07 결정 사항에 "SWT 삭제" 추가, 진행 단계 6(SWT 버전 삭제) 완료 표시([swt-removal.md](swt-removal.md)).
+- 2026-11-07 미결정 사항 "버전 체계"를 결정 사항 "버전 체계"로 옮김([versioning.md](versioning.md)).
