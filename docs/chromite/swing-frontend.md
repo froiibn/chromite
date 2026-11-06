@@ -1468,6 +1468,23 @@ Swing 제품에는 그 번들이 없다. 그래서 범용 칸(Login, Password)�
 - 브라우저 로그인 인증 방식(ClickHouse SSO·OIDC, Azure 등 외부 공급자), 셸 명령 비밀번호, 인증 방식별 추가 칸(`AuthModelSelector`의 SWT 설정 화면 몫).
 - 연결 실패 시 대화상자 다시 열기(SSMS), 비밀번호 보기 단추, 연결 폴더·설명, 격리 수준·초기화 SQL.
 
+## Islands 적용 (2026-11-06)
+
+사용자 의견("아직 딱딱하고 DBeaver 같다, DataGrip은 둥글다")에 따라 모양 기준을 DataGrip 2025.3부터의 기본 테마 **Islands**로 바꿨다.
+값과 근거는 [design-spec.md](design-spec.md) "적용 현황 — Islands 적용"에 있다.
+
+| 파일 | 바뀐 것 |
+|---|---|
+| `IslandPanel`(새 파일) | 둥근 카드: 자식을 그린 뒤 모서리 바깥을 캔버스 색으로 앤티에일리어싱해 덮음, 카드가 그리기 시작점 |
+| `ToolWindow` | 도구 창(머리말 + 내용)을 카드로 감쌈 |
+| `MainFrame` | 문서 탭 카드, 캔버스 바탕(내용 패널·분할 창·상태 표시줄, 좌우 6 틈), 분할선 = 6px 틈(선 없음), 주 도구 막대 투명, 문서 탭 `IslandTabbedPaneUI`(알약 선택, 밑줄 없음) |
+| `ChromiteLightLaf.properties`, `ChromiteDarkLaf.properties` | Islands 팔레트(캔버스, 카드, 선택, 글자, 테두리, 강조색 `#3871E1`)와 `Chromite.island.*` 토큰, 제목 표시줄 캔버스색 |
+| `SqlEditorDark.xml` | 편집기 바탕·거터 `#191A1C`, 현재 줄 `#212326` |
+
+- 확인: `-Pproduct-dbeaver-ce,product-chromite-swing` BUILD SUCCESS, 작업 공간 사본(`D:\Tools\_smoke\swing-p1`)으로 실행해 라이트·다크 × 아이콘 팩 A 캡처
+  (`D:\Tools\_scratch\swing-p1\islands-light.png`, `islands-dark.png`), 실행 중 테마 전환. 회귀 테스트는 실행하지 않았다(요청 없음).
+  영향받을 수 있는 기능: 도구 창 숨기기·크기 저장(카드 단위로 바뀜), 분할선 끌기(6px 틈), 테마 전환.
+
 ## 변경 이력
 
 - 2026-11-06 최초 작성. Swing 전환 결정, 구조, 재사용 분석, MVP 범위, F5 실행 사양을 정리.
@@ -1500,3 +1517,5 @@ Swing 제품에는 그 번들이 없다. 그래서 범용 칸(Login, Password)�
 - 2026-11-06 SSMS식 Connect 대화상자: 2단계 마법사 → 한 화면(Database type 콤보와 More database types…, Server name 한 칸과 드라이버별 서버 기록,
   Authentication 콤보(범용 칸만으로 되는 인증 방식), Options >> 탭(Connection Properties, Driver·Provider Properties, Additional Connection Parameters),
   새 연결 Connect = 저장 + 연결). "Connect 대화상자 (SSMS식)" 절 추가, D단계 절에 바뀐 곳 표시.
+- 2026-11-06 Islands 적용: 모양 기준을 DataGrip Islands로 바꿈(캔버스 위 둥근 카드, 카드 사이 6px 틈의 분할선, 알약 모양 문서 탭, Islands 팔레트).
+  "Islands 적용" 절 추가.

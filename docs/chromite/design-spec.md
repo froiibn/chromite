@@ -18,8 +18,9 @@ Swing 프런트엔드(`com.seizia.chromite.ui.swing`)의 화면을 **배치와 �
     이전 결정("다크는 DataGrip풍, 라이트는 SSMS풍")을 바꾼다. 라이트도 DataGrip New UI Light(밝은 머리말, "Light with Light Header")를 따른다.
   - **아이콘**: 오픈 라이선스 세트(Fluent UI System Icons, Lucide, Tabler 중 하나, 별도로 고른다)를 쓴다.
     이 문서는 세트를 고르지 않고, 어느 세트에도 적용할 수 있는 요구 사항(크기, 선 굵기, 색 규칙, 필요한 개념 목록)만 정한다.
-- DataGrip 2025.3부터 기본 테마는 "Islands"(New UI의 변형, 둥근 패널)다. 이 사양의 기준은 New UI 기본 팔레트(Dark, Light with Light Header)이고,
-  Islands의 둥근 패널은 P2 선택 사항으로 둔다(아래 "Islands" 항목).
+- DataGrip 2025.3부터 기본 테마는 "Islands"(New UI의 변형, 둥근 패널)다. 처음 사양은 New UI 기본 팔레트(Dark, Light with Light Header)를 기준으로 하고
+  Islands를 P2로 두었으나, 2026-11-06 사용자 의견("아직 딱딱하고 DBeaver 같다, DataGrip은 둥글다")에 따라 **Islands를 기본 모양으로 바꿨다**
+  (아래 "적용 현황 — Islands 적용"). 아래 요소별 표와 토큰 표의 New UI 값 중 Islands가 바꾼 값은 그 절의 표가 우선한다.
 
 ## 근거 자료와 표기
 
@@ -202,7 +203,7 @@ Swing 프런트엔드(`com.seizia.chromite.ui.swing`)의 화면을 **배치와 �
 | UI 글꼴 | Segoe UI | Inter 13(모든 OS) [JetBrains New UI 도움말], 한글은 운영체제 글꼴로 대체 | Segoe UI 12 | `font.ui` Inter 13, 한글 대체 Malgun Gothic(Windows)·Apple SD Gothic Neo(macOS). FlatLaf 합성 글꼴(`defaultFont`가 대체 글꼴을 갖는 composite font)이어야 한글이 □로 나오지 않음 | P0 |
 | 간격 단위 | — | 2·4·6·8·12·16·20 [J `SpacingConfiguration`, `Tree.border`, `List.border`] | 화면마다 다름(2, 3, 8, 14 등) [C] | "디자인 토큰"의 `space.*`만 씀 | P1 |
 | 시작 탭(Welcome) | 시작 화면 | Welcome 화면(로고, 큰 단추) | 큰 로고 + 안내 글 [S] | 로고 64, 제목 `font.title`, "New Connection", "New Query", "Open File" 링크 단추, 최근 파일 목록 | P2 |
-| Islands | — | 2025.3부터 기본: 패널 사이 6px 틈, 패널 모서리 arc 20 [T `ManyIslands*`] | — | 선택 테마로 나중에 검토 | P2 |
+| Islands | — | 2025.3부터 기본: 패널 사이 6px 틈, 패널 모서리 arc 20 [T `ManyIslands*`] | — | 기본 모양으로 적용("적용 현황 — Islands 적용") | 완료 |
 | 촘촘한 모드 | — | Compact: 트리 22, 머리말 낮춤, 트리 여백 2,8 [T `*.compact`] | — | 설정으로 제공(SSMS 사용자 밀도 요구) | P2 |
 
 ## P0 상위 15개
@@ -338,7 +339,7 @@ DataGrip의 SQL 전용 색은 공개되지 않은 데이터베이스 플러그�
 | `radius.action` | 6 | 아이콘 단추 hover | ≈[S] | 도구 막대 단추 스타일 `arc: 6`(`FlatClientProperties.STYLE`), `ToolBar.hoverButtonGroupArc = 6` |
 | `radius.control` | 8 | 입력, 단추, 콤보, 트리·목록·메뉴 선택 | [T `Component.arc`, `Button.arc`][J `Tree.Selection.arc`, `Popup.Selection.arc`] | `Component.arc`, `Button.arc`, `TextComponent.arc`, `Tree.selectionArc`, `List.selectionArc`, `MenuItem.selectionArc`, `ComboBox.selectionArc` |
 | `radius.popup` | 반지름 8 | 팝업, 메뉴 (Windows 11 둥근 창) | Windows 11 | `Popup.borderCornerRadius = 8`, `PopupMenu.borderCornerRadius = 8` |
-| `radius.island` | 20 | Islands 패널(P2) | [T `Island.arc`] | — |
+| `radius.island` | 20 | Islands 카드 | [T `Island.arc`] | `Chromite.island.arc` |
 
 ### 간격 토큰
 
@@ -514,6 +515,50 @@ P0 전체와 P1 일부를 `com.seizia.chromite.ui.swing`에 적용했다. 동작
 측정 방법: Windows 11, 화면 배율 150%, JBR 25, 창 1280×900(물리 1920×1350). 창만 캡처한 화면(`shot.ps1`)에서 픽셀을 읽고 1.5로 나눴다.
 캡처는 `D:\Tools\_scratch\swing-design\`에 있다(`m-<light|dark>-<A|B>-1`: 트리에서 Album 선택, `-2`: 결과 그리드 셀 선택. A = duo-tone, B = SSMS color).
 
+### Islands 적용 (2026-11-06)
+
+근거: IntelliJ Platform의 `ManyIslandsLight.theme.json`, `ManyIslandsDark.theme.json`(Apache 2.0, 공부용 사본 `D:\Tools\_scratch\design-spec\ref\`, 저장소에는 넣지 않음).
+테마 파일의 이름 색(`main-window-bg` 등)을 같은 파일의 팔레트(`gray-20` 등)까지 풀어서 값만 옮겼다. 화면 이미지는 받지 않았다(테마 파일의 값으로 충분했고, 공급사 이미지는 저장소에 넣지 않는다).
+
+구조: 메인 창 바탕은 **캔버스**이고, Object Explorer, 문서 탭과 편집기, Results/Messages, Properties가 각각 **둥근 카드(island)**다.
+제목 표시줄·메뉴 막대·주 도구 막대·상태 표시줄은 캔버스 위에 있고 선이 없다. 카드 사이 틈은 분할선(끌 수 있음, 선 없음)이고 바깥 왼쪽·오른쪽에도 같은 틈을 둔다.
+
+| 토큰 (`Chromite.island.*` 또는 FlatLaf 키) | Light | Dark | Islands 근거 |
+|---|---|---|---|
+| `Chromite.island.canvas`(`MenuBar.background`, `TitlePane.background`) | `#E9EAEE` | `#26282C` | `MainWindow.background`, `MainToolbar.background`, `StatusBar.background` = `main-window-bg` |
+| `Chromite.island.background` = `@background`(트리, 패널, 편집기, 그리드) | `#FFFFFF` | `#191A1C` | `ToolWindow.background` = `tool-window-bg`, `EditorTabs.background` = `editor-bg` |
+| `Chromite.island.arc` | 20(반지름 10) | 20 | `Island.arc` |
+| `Chromite.island.gap`, `SplitPane.dividerSize` | 6 | 6 | `Island.borderWidth`(카드 테두리 색 `Island.borderColor` = 카드 바탕이라 테두리는 보이지 않음) |
+| 탭 알약 선택(포커스) `tabSelectedBackground` / `tabSelectedBorderColor` | `#E3EBFE` / `#A7C5FF` | `#233558` / `#2E4D89` | `EditorTabs.underlinedTabBackground` / `underlinedBorderColor` |
+| 탭 알약 선택(포커스 없음) `tabInactiveBackground` / `tabInactiveBorderColor` | `#E9EAEE` / `#D1D3D9` | `#26282C` / `#40434A` | `EditorTabs.inactiveUnderlinedTabBackground` / `inactiveUnderlinedTabBorderColor` |
+| 탭 마우스 올림 `tabHoverBackground` | `#00000012` | `#FFFFFF17` | `EditorTabs.hoverBackground` = `tab-bg-hovered` |
+| `tabArc`, 알약 위아래 여백 | 12, 6 | 12, 6 | arc는 Chromite 결정(테마 파일에 탭 arc 없음), 여백은 `EditorTabs.tabInsets` -6 |
+| `@foreground` | `#000000` | `#D1D3D9` | `text-default` |
+| `Chromite.secondaryForeground`, 메뉴 단축키 | `#73767C` | `#73767C` | `text-secondary` |
+| `@selectionBackground` / `@selectionInactiveBackground` | `#D0DFFE` / `#E9EAEE` | `#2A4371` / `#33353B` | `selectionBackground` = `selection-bg-active`, `selection-bg-inactive` |
+| `Chromite.Tree.hoverBackground` | `#00000008` | `#FFFFFF10` | `Tree.hoverBackground` = `selection-bg-hovered` |
+| `@accentColor`, 포커스, 기본 단추 | `#3871E1` | `#3871E1` | `control-brand-border`, `accent-brand-bg` |
+| `Component.borderColor` | `#D1D3D9` | `#40434A` | `control-border` |
+| `Separator.foreground`, `Chromite.dividerColor`, 탭 줄 아래 선, 그리드 세로선 | `#E9EAEE` | `#26282C` | `dialog-border`, `editor-border`, `Table.gridColor` |
+| `Chromite.Table.horizontalLineColor` | `#F7F8F9` | `#212326` | `Table.stripeColor` = `dialog-bg-inline` |
+| `PopupMenu.borderColor`, `Popup.borderColor` | `#D1D3D9` | `#33353B` | `Popup.borderColor` |
+| `@menuBackground`(팝업) | `#FFFFFF` | `#26282C` | `popup-bg` |
+| `ComboBox.background`(다크) | — | `#26282C` | `ComboBox.background` |
+| `Button.toolbar.hoverBackground` / `pressedBackground` | `#00000012` / `#00000020` | `#FFFFFF17` / `#FFFFFF29` | `ActionButton.hoverBackground` / `pressedBackground` |
+| 편집기 바탕·거터 / 현재 줄(다크, `SqlEditorDark.xml`) | (흰색 그대로) | `#191A1C` / `#212326` | `editor-bg`, `layer-0-bg-inline` |
+
+그대로 둔 것: 컨트롤 arc 8(`Component.arc`, `Button.arc` 같은 값), 트리·목록·메뉴 선택 arc 8과 안쪽 여백, 행 높이 24, 트리 여백 4,12,4,12(모두 Islands와 같은 값), 결과 탭의 밑줄 모양.
+
+구현:
+- `IslandPanel`: 카드. 자식을 그린 뒤 네 모서리 바깥을 캔버스 색으로 앤티에일리어싱해 덮는다(불투명한 사각형 자식도 모서리가 매끈하다). 모양 클립은 앤티에일리어싱이 없어 쓰지 않았다.
+  자식 하나만 다시 그릴 때도 모서리를 덮도록 카드를 그리기 시작점으로 둔다(`isPaintingOrigin`).
+- `ToolWindow`가 도구 창(머리말 + 내용)을 카드로 감싸고, `MainFrame`이 문서 탭을 카드로 감싼다. 캔버스 색은 내용 패널·분할 창·상태 표시줄이 테마가 바뀔 때마다 다시 읽는다.
+- 문서 탭 `IslandTabbedPaneUI`: 선택 탭은 알약(채움 + 1px 테두리, 포커스가 없으면 회색 알약), 마우스 올린 탭은 옅은 알약, 밑줄 없음. FlatLaf가 닫기 단추와 제목보다 먼저 그리는 탭 테두리 자리에서 그린다.
+- 제목 표시줄: FlatLaf `TitlePane.unifiedBackground`를 끄고 `TitlePane.background`를 캔버스로 둔다(켜 두면 루트 패널 색 = 카드 색이 된다).
+
+확인(Windows 11, 150%, 아이콘 팩 A): `D:\Tools\_scratch\swing-p1\islands-light.png`, `islands-dark.png`. 픽셀: 캔버스 `#E9EAEE`/`#26282C`(제목 표시줄·도구 막대·틈),
+카드 `#FFFFFF`/`#191A1C`, 카드 사이 틈 6(9px), 모서리 반지름 10(15px)으로 매끈함, 선택 탭 알약 파랑 채움·테두리. 실행 중 라이트↔다크 전환 뒤에도 카드·캔버스·탭 색이 바뀌었다.
+
 ### P0 결과
 
 | # | 항목 | 목표 | 측정 (라이트 / 다크) | 상태 |
@@ -629,7 +674,7 @@ P0 전체와 P1 일부를 `com.seizia.chromite.ui.swing`에 적용했다. 동작
 - ~~아이콘 세트 선정~~: 2026-11-06 Tabler Icons(MIT) 모양을 바탕으로 한 Chromite 그림 2팩(duo-tone 기본, SSMS color 선택)으로 결정·적용("적용 현황 — 아이콘 팩").
 - ~~Inter·JetBrains Mono 글꼴 jar~~: 2026-11-06 넣음("적용 현황 — 글꼴").
 - 공급자 로고의 상표 사용 검토(공개 배포 전).
-- Islands 테마, 촘촘한 모드, 연결별 색(SSMS Color, DataGrip 데이터 소스 색).
+- 촘촘한 모드, 연결별 색(SSMS Color, DataGrip 데이터 소스 색). (Islands는 2026-11-06 적용)
 
 ## 참고 자료
 
@@ -656,3 +701,5 @@ P0 전체와 P1 일부를 `com.seizia.chromite.ui.swing`에 적용했다. 동작
   SQL 구문 색, 아이콘 요구 사항(100개 개념, 색 규칙, 공급자 로고 정책)을 정리.
 - 2026-11-06 적용: P0 전체와 P1 일부를 Swing 프런트엔드에 적용하고 "적용 현황"(측정값, 아이콘 팩 2종과 모델 아이콘 대응, 글꼴과 한글 대체,
   Swing/FlatLaf로 못 한 것)을 추가. 결정한 아이콘 세트·글꼴을 "미룬 결정"에서 뺌.
+- 2026-11-06 Islands 적용: 사용자 의견에 따라 기본 모양을 DataGrip Islands로 바꿈(캔버스 위 둥근 카드, 알약 탭, Islands 팔레트).
+  "적용 현황 — Islands 적용" 절 추가, 배경과 결정·Islands 항목·`radius.island`·미룬 결정 갱신.

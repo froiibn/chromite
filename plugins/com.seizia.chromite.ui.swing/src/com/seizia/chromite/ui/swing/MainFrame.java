@@ -17,6 +17,7 @@
 package com.seizia.chromite.ui.swing;
 
 import com.formdev.flatlaf.FlatClientProperties;
+import com.formdev.flatlaf.ui.FlatTabbedPaneUI;
 import com.formdev.flatlaf.util.UIScale;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
@@ -33,7 +34,6 @@ import org.jkiss.dbeaver.utils.PrefUtils;
 import org.jkiss.utils.CommonUtils;
 
 import javax.swing.*;
-import javax.swing.border.AbstractBorder;
 import javax.swing.event.MenuEvent;
 import javax.swing.event.MenuListener;
 import javax.swing.filechooser.FileNameExtensionFilter;
@@ -46,6 +46,7 @@ import java.awt.event.InputEvent;
 import java.awt.event.KeyEvent;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
+import java.awt.geom.RoundRectangle2D;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -64,6 +65,8 @@ import java.util.function.IntConsumer;
  *     <li>창 위치·크기·최대화 여부와 도구 창 크기·표시 여부는 이 번들의 설정 저장소에 저장한다({@link ChromiteTheme} 참고).
  *     저장은 창을 닫을 때({@link #dispose()}) 한 번 한다.</li>
  *     <li>도구 창 크기는 창이 실제 크기를 가진 뒤(windowOpened 이후) 바깥 분할부터 차례로 적용한다.</li>
+ *     <li>모양은 DataGrip Islands다: 메인 창 바탕은 캔버스({@code Chromite.island.canvas})이고 Object Explorer, 문서 탭·편집기, Results, Properties가
+ *     각각 둥근 카드({@link IslandPanel})다. 카드 사이 틈은 분할선(6px, 선 없음)과 좌우 바깥 여백이다. 주 도구 막대와 상태 표시줄은 캔버스 위에 있다.</li>
  *     <li>메뉴는 File(새 연결·쿼리, 파일, Exit), View(도구 창 토글, Theme), Query(실행, 취소), Help(About)이다. FlatLaf의 통합 제목 표시줄(Windows)에서
  *     메뉴 막대는 A단계처럼 제목 표시줄 안에 들어간다.
  *     도구 창 단축키는 SSMS와 같다(Object Explorer F8, Properties F4, Results Ctrl+R).</li>
@@ -102,6 +105,8 @@ import java.util.function.IntConsumer;
  * - 2026-11-06 G단계: 닫을 때·끝낼 때 결과 표의 저장하지 않은 변경도 묻기 (docs/chromite/swing-frontend.md "구현 현황 — G단계")
  * - 2026-11-06 디자인 적용: 아이콘 도구 막대(New Query만 글자), 문서 탭 40·밑줄 4·아이콘, 결과 탭 32·아이콘, 1px 분할선,
  *   상태 표시줄 28, View > Theme > Icon Style (docs/chromite/design-spec.md "적용 현황")
+ * - 2026-11-06 Islands: 캔버스 위 둥근 카드(Object Explorer, 문서, Results, Properties), 카드 사이 6px 틈의 분할선, 문서 탭 알약 모양 선택,
+ *   주 도구 막대·상태 표시줄은 캔버스 (docs/chromite/design-spec.md "Islands 적용")
  */
 final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplorerPanel.QueryWindows {
 
@@ -167,7 +172,8 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
         documentTabs = createDocumentTabs();
 
         JSplitPane documentSplit = createSplitPane(JSplitPane.VERTICAL_SPLIT);
-        documentSplit.setTopComponent(documentTabs);
+        // Islands: the document tabs and their editors are one card
+        documentSplit.setTopComponent(new IslandPanel(documentTabs));
         JSplitPane propertiesSplit = createSplitPane(JSplitPane.HORIZONTAL_SPLIT);
         propertiesSplit.setLeftComponent(documentSplit);
         JSplitPane explorerSplit = createSplitPane(JSplitPane.HORIZONTAL_SPLIT);
@@ -239,9 +245,19 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
 
         setJMenuBar(createMenuBar());
 
-        JPanel content = new JPanel(new BorderLayout());
+        JPanel content = new CanvasPanel(new BorderLayout());
         content.add(createToolBar(), BorderLayout.NORTH);
-        content.add(explorerSplit, BorderLayout.CENTER);
+        // Islands: the canvas shows as a gap (Chromite.island.gap) left and right of the outer cards
+        JPanel islands = new CanvasPanel(new BorderLayout()) {
+            @Override
+            public void updateUI() {
+                super.updateUI();
+                int gap = UIScale.scale(Math.max(0, UIManager.getInt("Chromite.island.gap"))); //$NON-NLS-1$
+                setBorder(BorderFactory.createEmptyBorder(0, gap, 0, gap));
+            }
+        };
+        islands.add(explorerSplit, BorderLayout.CENTER);
+        content.add(islands, BorderLayout.CENTER);
         statusBar = new StatusBar(statusText);
         content.add(statusBar, BorderLayout.SOUTH);
         setContentPane(content);
@@ -348,6 +364,8 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
     private JComponent createToolBar() {
         JToolBar toolBar = new JToolBar();
         toolBar.setFloatable(false);
+        // On the Islands canvas (MainToolbar.background = main-window-bg)
+        toolBar.setOpaque(false);
         toolBar.setBorder(BorderFactory.createEmptyBorder(UIScale.scale(5), UIScale.scale(8), UIScale.scale(5), UIScale.scale(8)));
         toolBar.add(UiIcons.createActionButton(explorerPanel.getNewConnectionAction(), "new-connection")); //$NON-NLS-1$
         toolBar.add(UiIcons.createToolButton(newQueryAction, "new-query")); //$NON-NLS-1$
@@ -783,9 +801,8 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
         JTabbedPane tabs = new EditorTabbedPane();
         // One row that scrolls, like SSMS; wrapped rows would move the selected tab's row around
         tabs.setTabLayoutPolicy(JTabbedPane.SCROLL_TAB_LAYOUT);
-        // DataGrip editor tabs: size.tab.editor 40, 4px underline with round ends
-        tabs.putClientProperty(FlatClientProperties.STYLE, "tabHeight: 40; tabSelectionHeight: 4; tabSelectionArc: 4; " //$NON-NLS-1$
-            + "focusColor: $Chromite.editorBackground"); //$NON-NLS-1$
+        // DataGrip editor tabs: size.tab.editor 40; the selected tab is an Islands pill (IslandTabbedPaneUI), no underline
+        tabs.putClientProperty(FlatClientProperties.STYLE, "tabHeight: 40; tabSelectionHeight: 0"); //$NON-NLS-1$
         tabs.addTab("Welcome", welcome);
         tabs.putClientProperty(FlatClientProperties.TABBED_PANE_TAB_CLOSE_CALLBACK, (IntConsumer) this::closeDocumentTab);
         return tabs;
@@ -979,6 +996,7 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
      *     tab row copies it only from a background change event, which a FlatLaf style value does not always fire when
      *     the theme is switched at runtime (the tabs then kept the panel color).</li>
      *     <li>Opaque, because FlatLaf tabbed panes are not: the empty part of the tab row would show the parent's panel color.</li>
+     *     <li>The UI is {@link IslandTabbedPaneUI} (Islands pill tabs).</li>
      * </ul>
      */
     private static final class EditorTabbedPane extends JTabbedPane {
@@ -988,7 +1006,7 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
 
         @Override
         public void updateUI() {
-            super.updateUI();
+            setUI(new IslandTabbedPaneUI());
             Color background = UIManager.getColor("Chromite.editorBackground"); //$NON-NLS-1$
             if (background != null) {
                 setBackground(new Color(background.getRGB()));
@@ -997,9 +1015,81 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
     }
 
     /**
-     * Split pane whose divider is a 1px border.subtle line in the middle of its 5px drag area (size.divider), without
-     * FlatLaf's grip dots ({@code SplitPaneDivider.style = plain} paints nothing). The divider is recreated with the
-     * UI delegate, so the line border is set again on every look and feel change.
+     * Islands editor tabs (EditorTabs.* of ManyIslands*.theme.json): the selected tab is a rounded pill with a 1px
+     * border (Chromite.island.tabSelected*, or tabInactive* when the tabs don't have the focus), 6px below and above the
+     * tab row edges (tabInsets -6); a hovered tab gets a pill of tab-bg-hovered. No underline.
+     * The pill is painted as the tab border, which FlatLaf paints before the close button and the title.
+     */
+    private static final class IslandTabbedPaneUI extends FlatTabbedPaneUI {
+        @Override
+        protected void paintTabBackground(Graphics g, int tabPlacement, int tabIndex, int x, int y, int w, int h, boolean isSelected) {
+            // The tab row background is the tabbed pane's own (opaque) background; pills are painted in paintTabBorder
+        }
+
+        @Override
+        protected void paintTabBorder(Graphics g, int tabPlacement, int tabIndex, int x, int y, int w, int h, boolean isSelected) {
+            boolean focused = isTabbedPaneOrChildFocused();
+            Color fill;
+            Color border = null;
+            if (isSelected) {
+                fill = UIManager.getColor(focused ? "Chromite.island.tabSelectedBackground" : "Chromite.island.tabInactiveBackground"); //$NON-NLS-1$ //$NON-NLS-2$
+                border = UIManager.getColor(focused ? "Chromite.island.tabSelectedBorderColor" : "Chromite.island.tabInactiveBorderColor"); //$NON-NLS-1$ //$NON-NLS-2$
+            } else if (tabIndex == getRolloverTab()) {
+                fill = UIManager.getColor("Chromite.island.tabHoverBackground"); //$NON-NLS-1$
+            } else {
+                return;
+            }
+            int arc = UIScale.scale(UIManager.getInt("Chromite.island.tabArc")); //$NON-NLS-1$
+            int insetY = UIScale.scale(6);
+            int insetX = UIScale.scale(2);
+            Graphics2D g2 = (Graphics2D) g.create();
+            try {
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                float px = x + insetX;
+                float py = y + insetY;
+                float pw = w - 2 * insetX;
+                float ph = h - 2 * insetY;
+                if (fill != null) {
+                    g2.setColor(fill);
+                    g2.fill(new RoundRectangle2D.Float(px, py, pw, ph, arc, arc));
+                }
+                if (border != null) {
+                    g2.setColor(border);
+                    g2.draw(new RoundRectangle2D.Float(px + 0.5f, py + 0.5f, pw - 1, ph - 1, arc, arc));
+                }
+            } finally {
+                g2.dispose();
+            }
+        }
+
+        @Override
+        protected void paintTabSelection(Graphics g, int tabPlacement, int tabIndex, int x, int y, int w, int h) {
+            // No underline in Islands: the pill shows the selection
+        }
+    }
+
+    /**
+     * Islands canvas (main-window-bg): the background around the cards, under the main tool bar and the status bar.
+     */
+    private static class CanvasPanel extends JPanel {
+        CanvasPanel(@NotNull LayoutManager layout) {
+            super(layout);
+        }
+
+        @Override
+        public void updateUI() {
+            super.updateUI();
+            Color canvas = UIManager.getColor("Chromite.island.canvas"); //$NON-NLS-1$
+            if (canvas != null) {
+                setBackground(canvas);
+            }
+        }
+    }
+
+    /**
+     * Split pane between islands: its divider is the 6px canvas gap between two cards (size.divider, Island.borderWidth),
+     * draggable but without a line or FlatLaf's grip dots ({@code SplitPaneDivider.style = plain} paints nothing).
+     * The split pane paints the canvas color, so the gap shows the canvas; set again on every look and feel change.
      */
     private static final class LineSplitPane extends JSplitPane {
         LineSplitPane(int orientation) {
@@ -1009,29 +1099,19 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
         @Override
         public void updateUI() {
             super.updateUI();
+            Color canvas = UIManager.getColor("Chromite.island.canvas"); //$NON-NLS-1$
+            if (canvas != null) {
+                setBackground(canvas);
+            }
             if (getUI() instanceof BasicSplitPaneUI splitPaneUI && splitPaneUI.getDivider() != null) {
-                splitPaneUI.getDivider().setBorder(new AbstractBorder() {
-                    @Override
-                    public void paintBorder(Component c, Graphics g, int x, int y, int width, int height) {
-                        Color color = UIManager.getColor("Chromite.dividerColor"); //$NON-NLS-1$
-                        if (color == null) {
-                            return;
-                        }
-                        g.setColor(color);
-                        if (width <= height) {
-                            g.fillRect(x + width / 2, y, 1, height);
-                        } else {
-                            g.fillRect(x, y + height / 2, width, 1);
-                        }
-                    }
-                });
+                splitPaneUI.getDivider().setBorder(BorderFactory.createEmptyBorder());
             }
         }
     }
 
     /**
-     * Status bar (size.statusBar 28) with a top separator line; the border is recreated on theme changes, because its
-     * color comes from the look and feel.
+     * Status bar (size.statusBar 28) on the Islands canvas, without a separator line (StatusBar.background =
+     * main-window-bg, topBorderWidth 0); the background is set again on theme changes.
      */
     private static final class StatusBar extends JPanel {
         private static final int HEIGHT = 28;
@@ -1048,7 +1128,7 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
         @Override
         public Dimension getPreferredSize() {
             Dimension size = super.getPreferredSize();
-            return new Dimension(size.width, UIScale.scale(HEIGHT) + 1);
+            return new Dimension(size.width, UIScale.scale(HEIGHT));
         }
 
         void setText(@NotNull String text) {
@@ -1058,8 +1138,10 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
         @Override
         public void updateUI() {
             super.updateUI();
-            Color separatorColor = UIManager.getColor("Separator.foreground"); //$NON-NLS-1$
-            setBorder(BorderFactory.createMatteBorder(1, 0, 0, 0, separatorColor != null ? separatorColor : Color.GRAY));
+            Color canvas = UIManager.getColor("Chromite.island.canvas"); //$NON-NLS-1$
+            if (canvas != null) {
+                setBackground(canvas);
+            }
         }
     }
 }
