@@ -117,6 +117,8 @@ import java.util.function.Consumer;
  *     Collapse All은 펼친 노드를 모두 접는다.</li>
  *     <li>관리 도구: 오른쪽 클릭 메뉴의 Activity Monitor, Locks(선택한 노드의 연결), Find Objects…(선택한 노드의 연결과 스키마를 범위로).
  *     Find Objects 결과는 {@link #revealNode}로 트리를 펼쳐 고른다.</li>
+ *     <li>Tasks &gt; Import Data… / Export Data…(SSMS 데이터베이스 Tasks 메뉴): 테이블에서 가져오기({@link DataImportWizard}),
+ *     테이블·뷰 또는 그것들을 담은 스키마·폴더에서 내보내기({@link DataExportWizard}).</li>
  * </ul>
  *
  * 변경 이력:
@@ -132,6 +134,7 @@ import java.util.function.Consumer;
  *   New Connection으로 만든 서버 넣기 (docs/chromite/swing-registered-servers.md)
  * - 2026-11-06 관리 도구: Activity Monitor·Locks·Find Objects 메뉴, 노드까지 펼쳐 고르기(revealNode) (docs/chromite/swing-admin-tools.md)
  * - 2026-11-06 revealNode: 결과의 서버가 이 창에 없으면 먼저 넣고 서버 목록을 다시 읽은 뒤 펼침(연 서버만 보이는 목록) (docs/chromite/swing-admin-tools.md)
+ * - 2026-11-06 데이터 전송: Tasks &gt; Import Data… / Export Data… 메뉴 (docs/chromite/swing-data-transfer.md)
  */
 final class ObjectExplorerPanel extends JPanel {
 
@@ -208,6 +211,9 @@ final class ObjectExplorerPanel extends JPanel {
     private final JMenu scriptAsMenu;
     private final JMenu createToMenu;
     private final JMenu selectToMenu;
+    private final JMenu tasksMenu;
+    private final Action importDataAction;
+    private final Action exportDataAction;
     private final INavigatorListener navigatorListener = this::navigatorNodeChanged;
     /**
      * A connection to select once the connection list has been read again (a connection created in this window).
@@ -320,6 +326,21 @@ final class ObjectExplorerPanel extends JPanel {
         scriptAsMenu = new JMenu("Script as");
         scriptAsMenu.add(createToMenu);
         scriptAsMenu.add(selectToMenu);
+        importDataAction = createAction("Import Data…", () -> {
+            DBSObject object = getSelectedObject();
+            if (object != null) {
+                DataImportWizard.open(this, object);
+            }
+        });
+        exportDataAction = createAction("Export Data…", () -> {
+            DBSObject object = getSelectedObject();
+            if (object != null) {
+                DataExportWizard.openForObject(this, object);
+            }
+        });
+        tasksMenu = new JMenu("Tasks");
+        tasksMenu.add(importDataAction);
+        tasksMenu.add(exportDataAction);
         newConnectionAction = createAction("New Connection…", () -> {
             DBPDataSourceContainer created = ConnectionCommands.newConnection(this, null);
             if (created != null) {
@@ -388,6 +409,7 @@ final class ObjectExplorerPanel extends JPanel {
         popupMenu.add(selectTopAction);
         popupMenu.add(scriptAsMenu);
         popupMenu.add(viewDdlAction);
+        popupMenu.add(tasksMenu);
         popupMenu.addSeparator();
         popupMenu.add(connectAction);
         popupMenu.add(disconnectAction);
@@ -573,6 +595,9 @@ final class ObjectExplorerPanel extends JPanel {
         selectToMenu.setEnabled(canSelect);
         scriptAsMenu.setEnabled(canScript || canSelect);
         viewDdlAction.setEnabled(canScript);
+        importDataAction.setEnabled(DataImportWizard.canImport(object));
+        exportDataAction.setEnabled(DataExportWizard.canExport(object));
+        tasksMenu.setEnabled(importDataAction.isEnabled() || exportDataAction.isEnabled());
         connectAction.setEnabled(dataSource != null && !connected);
         // Also for a server that is no longer connected: Disconnect removes it from this window
         disconnectAction.setEnabled(dataSource != null);
