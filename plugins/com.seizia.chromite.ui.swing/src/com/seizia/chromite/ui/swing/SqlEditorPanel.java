@@ -173,6 +173,7 @@ import java.util.concurrent.atomic.AtomicLong;
  *   값 없이 {@code ?}를 보내 실패하던 것) (docs/chromite/swing-query-library.md "매개변수 바인딩")
  * - 2026-11-06 매개변수 대화상자의 Cancel 뒤 상태 줄이 "Query executed successfully"이던 문제: 엔진이 알리는
  *   {@code SQLQueryExecuteJob#isCanceledByUser}로 취소 상태를 보임 (docs/chromite/swing-sql-editor-plus.md "매개변수")
+ * - 2026-11-06 결과 표를 필터·정렬·다음 페이지로 다시 읽은 뒤 상태 줄 행 수를 지금 보이는 행으로 바꿈 (docs/chromite/swing-result-viewer.md)
  */
 final class SqlEditorPanel extends JPanel {
 
@@ -238,6 +239,15 @@ final class SqlEditorPanel extends JPanel {
         @Override
         public void resultsEditStateChanged() {
             updateActions();
+        }
+
+        @Override
+        public void resultsRowsChanged() {
+            // A grid was read again after the run (filter, sort, more rows): the rows it shows now, as the grid's own status
+            if (execution == null) {
+                long rows = resultsView.getRowCount();
+                statusLine.setRows(rows + (rows == 1 ? " row" : " rows"));
+            }
         }
     });
     private final Action executeAction;

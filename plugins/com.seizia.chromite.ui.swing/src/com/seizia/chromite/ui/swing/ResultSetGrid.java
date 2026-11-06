@@ -91,6 +91,7 @@ import java.util.Map;
  *   ({@link #getTable}, {@link #setCellText}). 정렬·필터·값 패널 등은 이 표를 감싸는 {@link ResultSetViewerPanel}에 있다
  *   (docs/chromite/swing-result-viewer.md)
  * - 2026-11-06 Export Data…를 {@link Host#exportData}로 열어 결과 뷰어가 필터·정렬을 넘김 (docs/chromite/swing-data-transfer.md)
+ * - 2026-11-06 {@link Host#rowsChanged}: 결과 뷰어가 다시 읽은 행 수를 쿼리 상태 줄에 알림 (docs/chromite/swing-result-viewer.md)
  */
 final class ResultSetGrid extends JPanel {
 
@@ -170,6 +171,13 @@ final class ResultSetGrid extends JPanel {
          * Pending changes or the saving state changed.
          */
         void editStateChanged();
+
+        /**
+         * The rows of a result changed after its query ran: the result viewer read it again (filter, server-side sort) or
+         * read more rows.
+         */
+        default void rowsChanged() {
+        }
 
         /**
          * "Export Data…": runs the result's query again to export all rows. The result viewer overrides it to apply

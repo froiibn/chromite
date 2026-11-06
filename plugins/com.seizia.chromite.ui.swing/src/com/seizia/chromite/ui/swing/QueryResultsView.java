@@ -50,6 +50,8 @@ import java.util.List;
  * - 2026-11-06 디자인 적용: Messages 글꼴 font.code, 오류 색 status.error (docs/chromite/design-spec.md "적용 현황")
  * - 2026-11-06 결과 뷰어: 결과 표마다 {@link ResultSetViewerPanel}(필터 줄, 값 패널, 레코드 보기, 상태 줄)로 감싸고, 지울 때 값 패널용 LOB 값을 놓아 줌
  *   (docs/chromite/swing-result-viewer.md)
+ * - 2026-11-06 결과 뷰어가 다시 읽은 뒤의 행 수({@link #getRowCount()}, {@link Listener#resultsRowsChanged()}): 쿼리 상태 줄이 실행 때 행 수에
+ *   머물던 문제 (docs/chromite/swing-result-viewer.md)
  */
 final class QueryResultsView {
 
@@ -66,6 +68,11 @@ final class QueryResultsView {
          * Pending changes or the saving state of a grid changed.
          */
         void resultsEditStateChanged();
+
+        /**
+         * A result viewer read its rows again (filter, sort, more rows): {@link #getRowCount()} changed.
+         */
+        void resultsRowsChanged();
     }
 
     // A result viewer adds a filter bar and a status line around its grid (ResultSetViewerPanel)
@@ -97,6 +104,11 @@ final class QueryResultsView {
         @Override
         public void editStateChanged() {
             listener.resultsEditStateChanged();
+        }
+
+        @Override
+        public void rowsChanged() {
+            listener.resultsRowsChanged();
         }
     };
 
@@ -161,6 +173,19 @@ final class QueryResultsView {
         gridStack.add(new ResultSetViewerPanel(fetched, gridHost));
         gridStack.revalidate();
         gridStack.repaint();
+    }
+
+    /**
+     * Rows shown in all result grids now (after filters and fetching more rows).
+     */
+    long getRowCount() {
+        long rows = 0;
+        for (Component component : gridStack.getComponents()) {
+            if (component instanceof ResultSetViewerPanel viewer) {
+                rows += viewer.getRowCount();
+            }
+        }
+        return rows;
     }
 
     @NotNull

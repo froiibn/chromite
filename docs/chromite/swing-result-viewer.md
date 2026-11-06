@@ -113,6 +113,9 @@ SWT: `ResultSetViewer.readNextSegment`(:4422), `readAllData`(:4471), `ResultSetD
 - 편집할 수 있는 결과에 저장하지 않은 변경이 있으면 자동 읽기는 건너뛰고 상태 줄에 "Save or cancel the changes to fetch more rows."를 쓴다. 링크로 읽을 때는 같은 이유를 알린다.
 - "Fetch all"은 확인한 뒤 나머지를 모두 읽는다(SWT `CONFIRM_RS_FETCH_ALL`과 같은 확인).
 - 표 안에서 정렬한 상태면 붙인 뒤 같은 정렬을 다시 적용한다.
+- 다시 읽거나(필터, 서버 정렬) 다음 행을 붙이면 뷰어가 `ResultSetGrid.Host.rowsChanged()`로 알리고, 쿼리 창이 쿼리 상태 줄의 행 수를
+  모든 결과 표에 지금 보이는 행의 합(`QueryResultsView.getRowCount()`)으로 바꾼다. 처음에는 실행 때 받은 행 수만 세어 필터·다음 페이지 뒤에도 그대로였다.
+  실행 중에는 실행이 세는 값을 그대로 쓴다.
 
 ### 레코드 보기
 
@@ -176,3 +179,4 @@ SWT: 결과 뷰어의 레코드 모드(`ResultSetViewer.toggleMode`).
 
 - 2026-11-06 최초 작성: 값 패널, 정렬·필터·기록·칸 값 거르기, 다음 페이지·모두 읽기, 레코드 보기, 열 너비 맞춤, Copy As, 선택 집계.
 - 2026-11-06 데이터 전송과 합침: `ResultSetGrid.Fetched`에 두 기능의 항목(`source`, `exportQuery`)을 함께 두고, 다시 읽은 결과도 Export Data…의 쿼리를 이어받음.
+- 2026-11-06 필터·다음 페이지 뒤 쿼리 상태 줄의 행 수가 바뀌지 않던 문제: 뷰어가 행 수 변경을 알리고 쿼리 창이 지금 보이는 행 수로 바꿈.

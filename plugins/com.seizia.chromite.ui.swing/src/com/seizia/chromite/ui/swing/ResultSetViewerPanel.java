@@ -94,6 +94,8 @@ import java.util.function.Consumer;
  *   (docs/chromite/swing-result-viewer.md)
  * - 2026-11-06 Export Data…에 서버에서 읽은 필터·정렬({@code serverFilter})을 넘기고, 표 안에서만 한 정렬은 마법사에 알림
  *   (docs/chromite/swing-data-transfer.md)
+ * - 2026-11-06 다시 읽기·다음 페이지 뒤 행 수를 알림({@link ResultSetGrid.Host#rowsChanged}): 쿼리 상태 줄이 실행 때 행 수에 머물던 문제
+ *   (docs/chromite/swing-result-viewer.md)
  */
 final class ResultSetViewerPanel extends JPanel {
 
@@ -789,12 +791,16 @@ final class ResultSetViewerPanel extends JPanel {
     //////////////////////////////////////////////////////////
     // Status
 
-    private void updateStatus() {
-        int rows = fetched.data().rows().size();
+    /**
+     * Rows of the grid now (with inserted and deleted rows of an editable result).
+     */
+    int getRowCount() {
         ResultSetEditModel editModel = fetched.editModel();
-        if (editModel != null) {
-            rows = editModel.getRowCount();
-        }
+        return editModel != null ? editModel.getRowCount() : fetched.data().rows().size();
+    }
+
+    private void updateStatus() {
+        int rows = getRowCount();
         String text;
         if (reading) {
             text = "Reading…";
@@ -1125,6 +1131,7 @@ final class ResultSetViewerPanel extends JPanel {
         clientOrdered = false;
         installGrid(new ResultSetGrid(newFetched, gridHost), false);
         host.editStateChanged();
+        host.rowsChanged();
     }
 
     private void verticalScrolled(@NotNull AdjustmentEvent e) {
@@ -1320,6 +1327,8 @@ final class ResultSetViewerPanel extends JPanel {
         ordinals = newOrdinals;
         installGrid(new ResultSetGrid(fetched, gridHost), keepView);
         host.editStateChanged();
+        // More rows, or the same rows in another order (sorted in the grid)
+        host.rowsChanged();
     }
 
     /**
