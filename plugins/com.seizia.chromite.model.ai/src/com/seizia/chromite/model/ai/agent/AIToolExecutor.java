@@ -17,7 +17,9 @@
 package com.seizia.chromite.model.ai.agent;
 
 import com.google.gson.Gson;
+import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
@@ -47,13 +49,17 @@ import java.util.Map;
  *     <li>읽기 전용 연결 + DB를 바꾸는 도구 → READ_ONLY. 정책으로 바꿀 수 없게 정책보다 먼저 본다.</li>
  *     <li>{@link AIToolPolicy#resolve}: BLOCKED면 끝, CONFIRM이면 미리 보기를 만들어 확인 처리기에 묻는다. 처리기가 없으면 거부.</li>
  *     <li>트랜잭션 안전(사용자 규칙 2026-11-07): {@link AIToolTransactionGuard}가 이 호출로 끝날 커밋 안 된 트랜잭션을 찾으면, AUTO여도
- *     Commit / Roll back / Cancel을 묻고 답대로 처리한 뒤에만 실행한다.</li>
+ *     Commit / Roll back / Cancel을 묻고 답대로 처리한 뒤에만 실행한다. 처리한 내용은 결과 JSON의
+ *     {@value #RESULT_TRANSACTIONS_BEFORE_CALL}로 덧붙인다. 도구는 답과 상관없이 실행되므로(1단계 계약) 이것이 없으면 모델과 채팅 카드가
+ *     커밋인지 롤백인지 알 수 없다.</li>
  *     <li>실행, 결과 크기 한도, 감사 기록. 거부·막힘도 기록한다.</li>
  * </ol>
  * 실패는 예외가 아니라 {@link AIToolCallResult}의 오류 JSON으로 돌려준다. 모델이 오류를 읽고 다른 방법을 고를 수 있어야 하기 때문이다.
  *
  * 변경 이력:
  * - 2026-11-07 최초 작성
+ * - 2026-11-07 트랜잭션 질문의 Commit/Roll back 답을 결과에 남김({@value #RESULT_TRANSACTIONS_BEFORE_CALL}): 롤백으로 답한
+ *   {@code commitTransaction}이 커밋과 같은 "완료"로만 보이던 것(docs/chromite/ai-agent.md "트랜잭션 안전")
  */
 public final class AIToolExecutor {
 
@@ -64,6 +70,12 @@ public final class AIToolExecutor {
      * Upper bound of a result text; tools cap their own output earlier and report what they cut.
      */
     public static final int MAX_RESULT_CHARS = 1024 * 1024;
+
+    /**
+     * Result member describing a Commit / Roll back answer carried out before the tool ran:
+     * {@code {"action": "COMMITTED"|"ROLLED_BACK", "count": n, "note": "..."}}.
+     */
+    public static final String RESULT_TRANSACTIONS_BEFORE_CALL = "transactionsBeforeCall"; //$NON-NLS-1$
 
     private AIToolExecutor() {
     }
@@ -93,6 +105,8 @@ public final class AIToolExecutor {
         DBPDataSourceContainer connection = null;
         AIToolAccess access = tool.getAccess();
         AIToolDecision decision = null;
+        // What the user's answer to a transaction question did before the call (null when there was no such question)
+        Resolution resolution = null;
         try {
             connection = resolveConnection(tool, args, chatContext);
             checkRequired(tool, args);
@@ -117,36 +131,83 @@ public final class AIToolExecutor {
                 ? guard.findPendingTransactions(context, args)
                 : List.of();
             if (!pending.isEmpty() || decision.permission() == AIToolPermission.CONFIRM) {
-                String denial = confirm(monitor, context, tool, access, connection, args, decision, instance, pending);
-                if (denial != null) {
+                Confirmation confirmation = confirm(monitor, context, tool, access, connection, args, decision, instance, pending);
+                if (confirmation.denial() != null) {
                     return finish(client, tool.getId(), access, connection, args, decision, AIToolOutcome.DENIED, start,
-                        denial, null);
+                        confirmation.denial(), null);
+                }
+                if (confirmation.resolved() != null) {
+                    resolution = new Resolution(confirmation.resolved(), pending.size());
                 }
             }
             if (monitor.isCanceled()) {
-                return finish(client, tool.getId(), access, connection, args, decision, AIToolOutcome.CANCELED, start,
-                    "Canceled", null);
+                return withResolution(finish(client, tool.getId(), access, connection, args, decision, AIToolOutcome.CANCELED,
+                    start, "Canceled", null), resolution);
             }
             AIFunctionResult result = instance.callFunction(context, args);
             String text = String.valueOf(result.getValue());
             if (result.getException() != null) {
-                return finish(client, tool.getId(), access, connection, args, decision, AIToolOutcome.ERROR, start,
-                    text, null);
+                return withResolution(finish(client, tool.getId(), access, connection, args, decision, AIToolOutcome.ERROR,
+                    start, text, null), resolution);
             }
-            return finish(client, tool.getId(), access, connection, args, decision, AIToolOutcome.SUCCESS, start,
-                null, text);
+            return withResolution(finish(client, tool.getId(), access, connection, args, decision, AIToolOutcome.SUCCESS,
+                start, null, text), resolution);
         } catch (AIToolArgumentException e) {
-            return finish(client, tool.getId(), access, connection, args, decision, AIToolOutcome.INVALID, start,
-                e.getMessage(), null);
+            return withResolution(finish(client, tool.getId(), access, connection, args, decision, AIToolOutcome.INVALID,
+                start, e.getMessage(), null), resolution);
         } catch (Throwable e) {
             if (monitor.isCanceled()) {
-                return finish(client, tool.getId(), access, connection, args, decision, AIToolOutcome.CANCELED, start,
-                    "Canceled", null);
+                return withResolution(finish(client, tool.getId(), access, connection, args, decision, AIToolOutcome.CANCELED,
+                    start, "Canceled", null), resolution);
             }
             log.debug("AI tool " + tool.getId() + " failed", e);
-            return finish(client, tool.getId(), access, connection, args, decision, AIToolOutcome.ERROR, start,
-                describe(e), null);
+            return withResolution(finish(client, tool.getId(), access, connection, args, decision, AIToolOutcome.ERROR,
+                start, describe(e), null), resolution);
         }
+    }
+
+    /**
+     * The user's answer to a transaction question, already carried out before the tool ran.
+     *
+     * @param answer {@link AIToolConfirmationAnswer#COMMIT} or {@link AIToolConfirmationAnswer#ROLLBACK}
+     * @param count  number of uncommitted transactions the answer ended
+     */
+    private record Resolution(@NotNull AIToolConfirmationAnswer answer, int count) {
+    }
+
+    /**
+     * Adds what happened to the uncommitted transactions before the call to the result
+     * ({@value #RESULT_TRANSACTIONS_BEFORE_CALL}). The tool runs after a Commit or Roll back answer (phase 1 contract), so
+     * without this a "Roll back" answer to {@code commitTransaction} returned the same status as a commit: the model could
+     * report a commit and the chat card only said "done".
+     */
+    @NotNull
+    private static AIToolCallResult withResolution(@NotNull AIToolCallResult result, @Nullable Resolution resolution) {
+        if (resolution == null) {
+            return result;
+        }
+        JsonObject note = new JsonObject();
+        boolean commit = resolution.answer() == AIToolConfirmationAnswer.COMMIT;
+        note.addProperty("action", commit ? "COMMITTED" : "ROLLED_BACK");
+        note.addProperty("count", resolution.count());
+        note.addProperty("note", "Before this call the user chose " + (commit ? "Commit" : "Roll back") + ": " +
+            resolution.count() + " uncommitted transaction(s) were " + (commit ? "committed" : "rolled back") +
+            ". The rest of this result is what the tool did afterwards.");
+        JsonObject json;
+        try {
+            JsonElement parsed = JsonParser.parseString(result.text());
+            if (parsed.isJsonObject()) {
+                json = parsed.getAsJsonObject();
+            } else {
+                json = new JsonObject();
+                json.add("result", parsed);
+            }
+        } catch (RuntimeException e) {
+            json = new JsonObject();
+            json.addProperty("result", result.text());
+        }
+        json.add(RESULT_TRANSACTIONS_BEFORE_CALL, note);
+        return new AIToolCallResult(result.outcome(), GSON.toJson(json));
     }
 
     /**
@@ -203,9 +264,17 @@ public final class AIToolExecutor {
         }
     }
 
-    // Returns the denial text, or null when the user allowed the call
-    @Nullable
-    private static String confirm(
+    /**
+     * Answer of {@link #confirm}.
+     *
+     * @param denial   why the call does not run, or null when it runs
+     * @param resolved COMMIT or ROLLBACK when the pending transactions were ended as the user answered, otherwise null
+     */
+    private record Confirmation(@Nullable String denial, @Nullable AIToolConfirmationAnswer resolved) {
+    }
+
+    @NotNull
+    private static Confirmation confirm(
         @NotNull DBRProgressMonitor monitor,
         @NotNull AIToolCallContext context,
         @NotNull AIFunctionDescriptor tool,
@@ -221,8 +290,8 @@ public final class AIToolExecutor {
             : "the call would end " + pending.size() + " uncommitted transaction(s): commit, roll back or cancel";
         AIToolConfirmationHandler handler = AIAgentServices.getConfirmationHandler();
         if (handler == null) {
-            return "Denied: this call needs the user's confirmation (" + reason +
-                ") and no confirmation UI is available";
+            return new Confirmation("Denied: this call needs the user's confirmation (" + reason +
+                ") and no confirmation UI is available", null);
         }
         String preview = instance instanceof AIToolPreviewProvider provider ? provider.getPreview(context, args) : null;
         AIToolConfirmationRequest request = new AIToolConfirmationRequest(
@@ -238,15 +307,15 @@ public final class AIToolExecutor {
         );
         AIToolConfirmationAnswer answer = handler.confirm(monitor, request);
         if (pending.isEmpty()) {
-            return answer == AIToolConfirmationAnswer.ALLOW ? null : "Denied by the user";
+            return new Confirmation(answer == AIToolConfirmationAnswer.ALLOW ? null : "Denied by the user", null);
         }
         boolean canCommit = pending.stream().allMatch(AIPendingTransaction::canCommit);
         if (answer == AIToolConfirmationAnswer.ROLLBACK || answer == AIToolConfirmationAnswer.COMMIT && canCommit) {
             ((AIToolTransactionGuard) instance).resolvePendingTransactions(context, args, answer);
-            return null;
+            return new Confirmation(null, answer);
         }
         // ALLOW is not an answer to a transaction question: never commit or roll back silently
-        return "Canceled by the user (uncommitted transaction left as it is)";
+        return new Confirmation("Canceled by the user (uncommitted transaction left as it is)", null);
     }
 
     @NotNull

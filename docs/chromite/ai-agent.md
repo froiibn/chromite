@@ -315,6 +315,10 @@ Chromite는 연결 종류(`DBPConnectionConfiguration.getConnectionType()`)로 �
 - **실행기가 막는다**: 도구가 `AIToolTransactionGuard`를 구현하면 실행기가 실행 전에 `findPendingTransactions`를 부른다. 하나라도 있으면
   정책이 AUTO여도 확인 처리기에 묻는다(`AIToolConfirmationRequest.pendingTransactions`). 답이 COMMIT/ROLLBACK이면 `resolvePendingTransactions`로
   처리한 뒤 실행하고, DENY(또는 이 질문에 대한 ALLOW)는 취소다. 처리기가 없으면 거부한다. 정책의 BLOCKED는 그보다 먼저 막는다.
+- **답을 결과에 남긴다**(2026-11-07): 도구는 Commit이든 Roll back이든 실행되므로, 실행기가 결과 JSON에
+  `transactionsBeforeCall`(`action` COMMITTED/ROLLED_BACK, `count`, `note`)을 덧붙인다. 결과가 JSON 객체가 아니면 `{"result": …}`로 감싼다.
+  오류·취소 결과에도 붙인다. 이것이 없으면 롤백으로 답한 `commitTransaction`이 커밋과 같은 상태 결과("agentTransactionOpen": false)를 돌려주어
+  모델은 커밋으로 알고, 채팅 카드는 "완료"만 보였다. 채팅 카드는 상태 앞에 "열린 트랜잭션 n개 롤백 → 완료"처럼 보인다(`AiToolCard`).
 - **이 규칙이 걸리는 도구**:
 
   | 도구 | 찾는 트랜잭션 | Commit 가능 |
@@ -695,7 +699,9 @@ Oracle 진단 결과의 대문자 열 이름(소문자로 맞춤), PostgreSQL에
   다시 감, 잘라 내기 없음), OpenAI Responses·Ollama 스트림의 도구 호출 흐름은 확인하지 못했다. 대화가 길어지면 제공자의 문맥 한도에 걸릴 수 있다.
 - **열린 에이전트 트랜잭션과 앱 종료**: 2026-11-07 확인 결과 `ExitTransactionCheck`는 쿼리 관리자만 보아 에이전트 격리 문맥의 트랜잭션을 찾지 못했다
   (에이전트는 JDBC 연결을 직접 쓴다). 이제 `AgentSql.hasPendingTransaction`도 보고 같은 질문으로 끝낸다([auto-update.md](auto-update.md) "끝낼 때 트랜잭션").
-- **트랜잭션 질문에 롤백으로 답하면 원래 도구는 실행된다**: 1단계 실행기 규칙이다(롤백 후 `commitTransaction`은 커밋할 것이 없어 "완료"). 카드가 "완료"로 보여 헷갈릴 수 있다.
+- **트랜잭션 질문에 롤백으로 답하면 원래 도구는 실행된다**: 1단계 실행기 규칙이다(롤백 후 `commitTransaction`은 커밋할 것이 없어 "완료"). 이 계약은 그대로 두고
+  결과와 카드에 답을 남긴다(위 "트랜잭션 안전"의 `transactionsBeforeCall`). `commitTransaction`에 Roll back을 고를 수 있는 것 자체(질문이 Commit / Roll back /
+  Cancel 셋으로 고정)는 계약의 문제로 남긴다: 도구별로 답을 줄이거나(commitTransaction은 Commit / Cancel), 도구가 답과 다르면 실행하지 않게 하려면 계약을 바꿔야 한다.
 - **분류기는 보수적이다**: JSQLParser가 해석하지 못하는 읽기 문장(예: PostgreSQL `make_interval(secs => …)`)은 WRITE로 본다. 모델은 `runReadOnlySql` 대신 `runSql`을 써야 하고
   사용자가 확인한다. SQL Server는 읽기 전용 트랜잭션이 없어 두 번째 겹이 롤백뿐이다.
 - **Query Library 읽기 코드 중복**: `LibraryReader`는 Swing `QueryLibraryFile`의 머리말 형식을 따로 읽는다. 저장소가 모델 번들로 옮겨지면 지운다.
@@ -704,6 +710,9 @@ Oracle 진단 결과의 대문자 열 이름(소문자로 맞춤), PostgreSQL에
 
 ## 변경 이력
 
+- 2026-11-07 후속 과제 #77: 트랜잭션 질문의 Commit/Roll back 답을 결과(`transactionsBeforeCall`)와 채팅 카드에 남김.
+  확인: PostgreSQL 수동 커밋 연결, 가짜 Messages API로 scenario-tx(INSERT → commitTransaction)에 롤백 → 카드 "열린 트랜잭션 1개 롤백 → 완료, …"
+  (영어 "Rolled back 1 open transaction(s) → Done, …", 한국어 라이트·다크), 모델에 간 결과에 `"action":"ROLLED_BACK"`, 테이블에 행 없음(psql).
 - 2026-11-07 후속 과제 #78: 앱 종료 질문(`ExitTransactionCheck`)이 에이전트 격리 문맥의 트랜잭션도 찾음([auto-update.md](auto-update.md) "끝낼 때 트랜잭션").
 - 2026-11-07 2단계 구현과 확인: AI Assistant 도구 창(대화, 제공자·모델·연결·데이터베이스, 스트리밍 Markdown, 도구 카드, 중지, 플레이북, Ask AI), 확인 대화상자
   (Allow/Deny, Commit/Roll back/Cancel, WRITE "항상 허용"), 편집기 연결, Options > AI Assistant(Providers, Tool Policy, MCP Server, Audit Log), Query Library 기준값 편집.
