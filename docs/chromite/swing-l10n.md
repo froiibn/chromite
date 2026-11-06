@@ -260,6 +260,11 @@ Swing과 SWT가 같은 탐색기 모델(`plugin.xml`의 `<folder>`/`<items>`)을
 라벨·단추·메뉴는 짧은 명사구, 메시지는 합니다체("연결하지 못했습니다.")로 쓴다. SQL, JDBC, SSH, SSL, TNS, SID, PK, FK, CSV, JSON,
 XML, XLSX, BOM, host:port 같은 기술 토큰은 번역하지 않는다. "…"는 영어와 같이 둔다.
 
+조사: `{0}을(를)`, `{0}이(가)`, `{0}은(는)` 같은 겸용 조사는 `{0}`에 사용자가 정한 이름(연결·파일·작업 이름, 세션 ID 등)이
+들어갈 때만 쓴다. `{0}`에 번역된 고정 문구(작업 이름 "쿼리 취소", 디자이너 구역 "인덱스" 등)가 들어가면 받침을 번역할 때 알 수 있으므로
+겸용 조사를 쓰지 않고, 받침이 있는 명사("작업", "항목", "유형")를 뒤에 붙여 조사를 고정한다("{0} 작업을"). 겸용 조사 대신
+받침으로 조사를 고르는 도우미는 만들지 않았다: 문장을 바꾸면 번역 파일만으로 끝나고, 영문자·숫자로 끝나는 이름은 받침을 정할 수 없다.
+
 | English | 한국어 |
 |---|---|
 | File / Edit / View / Query / Tools / Window / Help | 파일 / 편집 / 보기 / 쿼리 / 도구 / 창 / 도움말 |
@@ -380,3 +385,6 @@ XML, XLSX, BOM, host:port 같은 기술 토큰은 번역하지 않는다. "…"�
 - 2026-11-07 UI 글꼴 Pretendard: semibold 확인을 테마의 `semibold.font`로 바꿈. 한국어 화면의 굵은 대체 글꼴 처리는 Pretendard SemiBold가 한글을 가져 꺼짐.
 - 2026-11-07 남은 영어 문구: 진행 대화상자의 "Canceling…"(`CoreMessages.progress_canceling`), FlatLaf 탭 넘침 단추의 "Show Hidden Tabs"
   (FlatLaf 묶음에 한국어가 없어 `UIManager.put`으로 넣음). [swing-followup-fixes.md](swing-followup-fixes.md) "남은 영어 문구".
+- 2026-11-07 조사 규칙("용어집" 절): 고정 문구 뒤의 겸용 조사 때문에 "쿼리 취소을(를)"처럼 나오던 메시지 6개를 고침
+  (`ConnectionMessages_ko` `sessions_action_confirm_*`·`sessions_action_error_*`, `ToolsMessages_ko` `designer_error_section_not_supported`·
+  `designer_error_key_not_supported`). 나머지 겸용 조사 메시지는 `{0}`이 사용자 이름이라 그대로 둠.
