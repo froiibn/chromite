@@ -627,7 +627,7 @@ P0 전체와 P1 일부를 `com.seizia.chromite.ui.swing`에 적용했다. 동작
 - 두 팩을 넣고 View > Theme > Icon Style에서 고른다(실행 중 바로 바뀌고 저장됨, 설정 키 `ui.iconStyle`).
   - **A "Duo-tone"(기본, DataGrip풍)**: 1px 윤곽 + 옅은 채움, 중립 회색, 폴더·DB·루틴·외래 키는 파랑, 기본 키는 주황.
   - **B "Full color"(SSMS풍)**: Visual Studio 이미지 라이브러리풍 진한 색(갈색 폴더, 파란 원통, 금·은 키).
-- 파일: `plugins/com.seizia.chromite.ui.swing/icons/ui/{duotone,color}/{light,dark}/<id>.svg` 50개씩(P1에서 Properties 도구 막대의 `categorized`, `sort-alpha` 추가, Registered Servers 도구 막대의 `new-group` 추가). 생성기 `tools/branding/gen_ui_icons.py`(Python 표준 라이브러리만, 다시 만드는 방법은 파일 머리말).
+- 파일: `plugins/com.seizia.chromite.ui.swing/icons/ui/{duotone,color}/{light,dark}/<id>.svg` 52개씩(P1에서 Properties 도구 막대의 `categorized`, `sort-alpha`, Registered Servers 도구 막대의 `new-group`, SQL 편집기 확장에서 실행 계획 `plan`·쿼리 기록 `history` 추가, [swing-sql-editor-plus.md](swing-sql-editor-plus.md)). 생성기 `tools/branding/gen_ui_icons.py`(Python 표준 라이브러리만, 다시 만드는 방법은 파일 머리말).
   사용자가 고른 38개(색 토큰은 생성기의 `PAL`)에 도구 창·편집기용 9개(`new-connection`, `connect`, `disconnect`, `collapse-all`, `hide`, `close`, `results`, `messages`, `file-sql`)를 같은 규칙으로 더했다.
   원래 38개는 후보 파일과 바이트 단위로 같다.
 - 모양은 Tabler Icons(MIT)를 16px 격자에 다시 그린 Chromite 그림이다. JetBrains·Microsoft 그림은 쓰지 않았다. Tabler 라이선스는 번들의 `icons/ui/LICENSE-tabler.txt`와 `NOTICE`에 있다.
