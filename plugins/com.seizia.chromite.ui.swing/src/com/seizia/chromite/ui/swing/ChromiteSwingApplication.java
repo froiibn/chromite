@@ -75,6 +75,9 @@ import java.util.concurrent.CountDownLatch;
  *   (docs/chromite/swing-frontend.md "구현 현황 — D단계")
  * - 2026-11-06 화면 문구를 CoreMessages로 옮김(OS 언어를 따름)
  * - 2026-11-07 오류 문구를 {@link ErrorText}로 만듦(클래스 이름이 화면에 나오지 않게, docs/chromite/swing-frontend.md "오류 문구")
+ * - 2026-11-07 {@code -data}가 없으면 현재 폴더와 관계없이 기본 작업 공간을 씀: 번들 설정 저장소를 작업 공간을 잠근 뒤에 만들고
+ *   ({@link ChromiteSwingActivator#initPreferences}), 그 전에 고치기 전 빌드의 작업 공간을 복사함({@link WorkspaceLocationMigration},
+ *   docs/chromite/workspace-location.md)
  * - 2026-11-07 자동 업데이트: 사용자가 창을 닫아 끝날 때 확인한 업데이트를 적용({@link UpdateService#applyAtExit}),
  *   업데이트 도우미가 설치하는 동안에는 시작하지 않음 (docs/chromite/auto-update.md)
  */
@@ -108,10 +111,15 @@ public class ChromiteSwingApplication extends DesktopApplicationImpl {
         }
 
         Location instanceLoc = Platform.getInstanceLocation();
+        // Set at launch only by -data: nothing has read the instance preferences yet (see ChromiteSwingActivator)
+        boolean defaultWorkspace = !instanceLoc.isSet();
         if (!lockWorkspace(instanceLoc)) {
             return EXIT_OK;
         }
         setWorkspacePath(RuntimeUtils.getLocalPathFromURL(instanceLoc.getURL()));
+        // Before the first read of the instance preferences, which are loaded from the copied files
+        String migrationResult = defaultWorkspace ? WorkspaceLocationMigration.migrate(getWorkspacePath()) : null;
+        ChromiteSwingActivator.getInstance().initPreferences();
 
         initializeApplicationServices();
         initDebugWriter();
@@ -120,6 +128,9 @@ public class ChromiteSwingApplication extends DesktopApplicationImpl {
             log.debug("Java version: " + System.getProperty(StandardConstants.ENV_JAVA_VERSION) +
                 " by " + System.getProperty(StandardConstants.ENV_JAVA_VENDOR));
             log.debug("Instance path: '" + instanceLoc.getURL() + "'");
+            if (migrationResult != null) {
+                log.info(migrationResult);
+            }
 
             ChromiteSwingPlatform platform;
             try {
@@ -175,7 +186,8 @@ public class ChromiteSwingApplication extends DesktopApplicationImpl {
 
     /**
      * Locks the workspace like the SWT application does. Without {@code -data} the default workspace
-     * (shared with the SWT frontend) is used.
+     * ({@code ChromiteData/workspace6} in the user's application data folder, the SWT frontend's default) is used,
+     * whatever the current folder is.
      */
     private boolean lockWorkspace(@NotNull Location instanceLoc) {
         Path workspacePath = getWorkspacePath();

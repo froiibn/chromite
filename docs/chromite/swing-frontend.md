@@ -270,8 +270,9 @@ mvn package -f product/aggregate/pom.xml -T1C -Pproduct-chromite-swing
 
 1. Equinox가 `ChromiteSwingApplication.start()`를 애플리케이션 스레드(main)에서 호출한다.
 2. EDT에서 FlatLaf(`FlatLightLaf.setup()`)를 적용한다.
-3. 작업 공간을 잠근다. `-data`가 없으면 SWT 버전과 같은 기본 작업 공간(`ChromiteData/workspace6`)을 쓴다.
-   잠글 수 없으면 오류 대화상자를 띄우고 끝낸다.
+3. 작업 공간을 잠근다. `-data`가 없으면 SWT 버전과 같은 기본 작업 공간(`ChromiteData/workspace6`)을 쓴다(현재 폴더와 무관).
+   잠글 수 없으면 오류 대화상자를 띄우고 끝낸다. `-data`가 없었으면 위치를 고치기 전 빌드의 작업 공간을 한 번 복사하고, 그 뒤에 처음 설정 저장소를
+   만든다(`ChromiteSwingActivator.initPreferences`, [workspace-location.md](workspace-location.md)).
 4. `initializeApplicationServices()` → 디버그 로그(`.metadata/dbeaver-debug.log`, 표준 출력/오류를 함께 기록) →
    `DBWorkbench.getPlatform()`으로 플랫폼을 초기화한다(인증서 저장소 → `DesktopWorkspaceImpl` → 프로젝트 → Query Manager → 탐색기 모델).
    작업 공간 형식, 기본 프로젝트 이름(`General`), 탐색기 모델(`DesktopNavigatorModel`)은 SWT 버전과 같아서 연결 목록을 공유한다.
@@ -2464,5 +2465,6 @@ SQL Editor 도구 막대다. 쿼리 창마다 있던 도구 막대는 없앴다(
 - 2026-11-07 테마를 바꾼 뒤 문서 탭을 모두 닫고 새로 열면 문서 탭이 `ArrayIndexOutOfBoundsException`으로 깨지던 문제 수정:
   빈 화면 전환을 컨테이너 리스너 대신 탭 추가·삭제가 끝난 뒤에. "빈 문서 영역" 절에 원인과 설계.
 - 2026-11-07 주 창 제목 표시줄 가운데의 "Chromite"를 그리지 않음(사용자 결정). "제목 표시줄" 절.
+- 2026-11-07 작업 공간 위치: `-data`가 없으면 현재 폴더가 아니라 기본 작업 공간을 씀(시작 순서 3번, [workspace-location.md](workspace-location.md)).
 - 2026-11-07 SQL Server 에이전트 관리: 개체 탐색기의 에이전트 노드, 작업·작업 활동 모니터·경고·운영자·오류 로그. [swing-sqlserver-agent.md](swing-sqlserver-agent.md).
 - 2026-11-07 실행 계획 세 보기: 계획 탭에 그래픽(연산자 그림)·트리·원본 보기 전환. [swing-sql-editor-plus.md](swing-sql-editor-plus.md) "실행 계획 세 보기".
