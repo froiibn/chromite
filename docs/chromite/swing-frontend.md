@@ -1953,7 +1953,8 @@ EDT 에이전트로 단추를 누르고(`doClick`) 결과를 읽었다. 캡처�
 - **쿼리 창마다 기억:** Ctrl+R, View 메뉴, 탭 줄의 — 단추로 숨긴 것은 그 쿼리 창에만 남는다. 쿼리 A에서 숨기고 쿼리 B로 가면 B는 보이고, A로 돌아오면 다시 숨김이다.
   실행(F5)·예상 실행 계획(Ctrl+L)·실제 계획과 함께 실행은 지금처럼 그 쿼리 창의 Results를 다시 보인다(`showResults`/`showPlan`이 사용자 선택을 "보임"으로 바꿈).
 - **크기:** Results 높이는 하나(전역)이고, 숨길 때 기억해 다시 보일 때 쓴다. 문서를 바꿔 숨겼다가 돌아와도, 다시 시작해도(`results.size`) 같은 높이다.
-- **Window > Reset Window Layout:** 기본 도킹 배치, Results 기본 높이(220), 열린 모든 쿼리 창의 "숨김"을 지운다(기본 = 보임). 쿼리 창이 활성이 아니면 숨긴 채로 둔다.
+  사용자가 높이를 바꾸지 않았으면 기본 높이를 쓴다. 설정 저장소는 기본값과 같은 값을 저장하지 않으므로(`SplitHost.load`), 기본 높이를 바꾸면 높이를 바꾼 적 없는 사용자에게도 새 기본값이 적용된다.
+- **Window > Reset Window Layout:** 기본 도킹 배치, Results 기본 높이(280. 2026-11-07 사용자 결정으로 220에서 바꿈, `MainFrame.DEFAULT_RESULTS_HEIGHT`), 열린 모든 쿼리 창의 "숨김"을 지운다(기본 = 보임). 쿼리 창이 활성이 아니면 숨긴 채로 둔다.
 - **쿼리 상태 줄:** 지금처럼 Results가 보이면 Results 카드 아래, 숨겨져 있으면 문서 카드 아래(편집기 아래)다. 쿼리 창이 아니면 상태 줄이 없다.
   활성 문서가 바뀔 때 먼저 Results를 보이거나 숨기고(`SplitHost.update`) 그다음 상태 줄을 끼우므로 두 위치가 항상 맞다.
 
@@ -2274,3 +2275,4 @@ EDT 에이전트로 단추를 누르고(`doClick`) 결과를 읽었다. 캡처�
   도구 창 도구 막대를 `OverflowToolBar`로. "도구 창 도킹 — 도구 창 최소 폭" 절.
 - 2026-11-07 Query Library 자리: 한 열의 두 도구 창(Query Library·Properties, Object Explorer·Registered Servers)이 서로를 기본 이웃으로 두고,
   문서 영역 옆 열로 돌아가는 도구 창은 이웃이 같은 쪽에 있으면 이웃의 열로. "도구 창 도킹 — Query Library 자리" 절.
+- 2026-11-07 Results 기본 높이 220 → 280(사용자 결정, 밀도 B 때 결정 대기였던 것). "Results 자동 숨김" 절의 크기·Reset Window Layout.
