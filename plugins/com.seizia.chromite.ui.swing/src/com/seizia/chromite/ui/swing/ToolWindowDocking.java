@@ -84,11 +84,16 @@ import java.util.StringJoiner;
  *     <li>Islands 모양: 라이브러리 패널은 투명하게 하고 테두리를 지운다({@link #decorate()}). 루트({@link Root})가 캔버스와 카드 바탕을
  *     칠하고, 자식을 그린 뒤 카드 모서리를 캔버스 색으로 덮는다({@link IslandPanel#paintCorners}). 카드 사이 틈은 라이브러리 분할 창의
  *     분할선({@code SplitPane.dividerSize} 6)이다. 끌어 놓을 자리 표시는 강조색({@code ModernDocking.overlayBackground})이다.</li>
+ *     <li>최소 폭: 라이브러리의 분할 창(JSplitPane)은 카드를 최소 폭보다 좁히지 않는다. 내용의 최소 폭(긴 개체 이름 레이블, 도구 막대 전체,
+ *     줄 바꿈 텍스트 영역의 현재 폭)을 따르면 카드가 데이터에 따라 넓어지거나 아예 줄지 않으므로, 카드의 최소 폭은 머리말({@link Header})이
+ *     정하고 내용({@link ToolWindowDockable})은 최소 폭을 갖지 않는다. 내용은 좁게 배치되어 레이블은 말줄임표로, 도구 막대는 넘침 메뉴로 줄어든다.</li>
  * </ul>
  *
  * 변경 이력:
  * - 2026-11-06 최초 작성: ModernDocking 도입, 분할 창 배치 대체 (docs/chromite/swing-frontend.md "도구 창 도킹")
  * - 2026-11-07 밀도 B: 치수를 테마의 Chromite.size.* 키({@link UiSizes})에서 읽음 (docs/chromite/design-spec.md "치수 토큰")
+ * - 2026-11-07 도구 창 최소 폭: 카드 최소 폭을 머리말(아이콘 단추 + 제목 첫 글자와 말줄임표)로 정함. Properties가 일정 폭 이하로
+ *   줄지 않던 문제 (docs/chromite/swing-frontend.md "도구 창 최소 폭")
  */
 final class ToolWindowDocking {
 
@@ -108,6 +113,10 @@ final class ToolWindowDocking {
     private static final double MIN_PROPORTION = 0.05;
     private static final double MAX_PROPORTION = 0.95;
     private static final int PLACES_DELAY_MS = 500;
+    /**
+     * The text a clipped {@link JLabel} ends with (the label's UI draws it).
+     */
+    private static final String CLIPPED_TEXT_END = "..."; //$NON-NLS-1$
 
     private final JFrame frame;
     private final Docking docking;
@@ -939,6 +948,17 @@ final class ToolWindowDocking {
             return false;
         }
 
+        /**
+         * No minimum width of its own: the {@link Header} sets the card's minimum width. The library's split panes
+         * never make a card narrower than its minimum, and the content's minimum width is the full width of its labels
+         * (a long object name in Properties), tool bars, or a wrapping text area's current width (so a card could only
+         * grow). The content is laid out narrower instead: labels end with an ellipsis, tool bars overflow.
+         */
+        @Override
+        public Dimension getMinimumSize() {
+            return new Dimension(0, super.getMinimumSize().height);
+        }
+
         @Override
         public DockingHeaderUI createHeaderUI(HeaderController headerController, HeaderModel headerModel) {
             return new Header(dock);
@@ -955,6 +975,7 @@ final class ToolWindowDocking {
         private final Dock dock;
         private final JLabel titleLabel;
         private final JButton optionsButton;
+        private final JPanel tools;
 
         Header(@NotNull Dock dock) {
             super(new BorderLayout(UIScale.scale(8), 0));
@@ -969,7 +990,7 @@ final class ToolWindowDocking {
             };
             optionsButton = UiIcons.createActionButton(optionsAction, "more"); //$NON-NLS-1$
             // Icon buttons are centered vertically in the header (GridBagLayout centers its row)
-            JPanel tools = new JPanel(new GridBagLayout());
+            tools = new JPanel(new GridBagLayout());
             tools.setOpaque(false);
             tools.add(optionsButton);
             tools.add(dock.toolWindow.createHideButton());
@@ -997,12 +1018,32 @@ final class ToolWindowDocking {
         }
 
         /**
+         * The minimum width of the tool window card ({@link ToolWindowDockable} has none): the icon buttons at full
+         * size and the title's first character with the ellipsis, so a narrow card still shows which tool window it is
+         * and keeps its options and hide buttons (the title is in the center of the layout, so it gets narrower first).
+         * Not the title's full width: a long title (English, larger fonts) would keep the card wide.
+         * <p>
          * Same height as preferred: a short card lays its header out at the minimum size (the library's GridBagLayout),
          * which would make it lower than in other cards.
          */
         @Override
         public Dimension getMinimumSize() {
-            return new Dimension(super.getMinimumSize().width, getPreferredSize().height);
+            Insets insets = getInsets();
+            int gap = ((BorderLayout) getLayout()).getHgap();
+            int width = insets.left + getMinimumTitleWidth() + gap + tools.getPreferredSize().width + insets.right;
+            return new Dimension(width, getPreferredSize().height);
+        }
+
+        private int getMinimumTitleWidth() {
+            String title = titleLabel.getText();
+            if (CommonUtils.isEmpty(title)) {
+                return 0;
+            }
+            Insets insets = titleLabel.getInsets();
+            String firstCharacter = title.substring(0, title.offsetByCodePoints(0, 1));
+            int clippedWidth = titleLabel.getFontMetrics(titleLabel.getFont()).stringWidth(firstCharacter + CLIPPED_TEXT_END)
+                + insets.left + insets.right;
+            return Math.min(clippedWidth, titleLabel.getPreferredSize().width);
         }
 
         @Override
