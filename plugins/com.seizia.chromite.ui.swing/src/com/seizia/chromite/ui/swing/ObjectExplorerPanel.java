@@ -117,6 +117,8 @@ import java.util.function.Consumer;
  *     모델에서 다시 읽는다(DB는 다시 읽지 않고 펼친 상태는 유지).</li>
  *     <li>테이블 디자이너({@link TableDesignerPanel}): 테이블의 "Design", Tables 폴더의 "New Table…".</li>
  *     <li>ER 다이어그램({@link ErdDiagramPanel}): 스키마·테이블의 "View Diagram".</li>
+ *     <li>개체 정의 편집({@link SourceEditCommands}): 프로시저·함수·뷰·트리거·패키지의 "Modify"와 "Script as &gt; ALTER To",
+ *     뷰·프로시저·함수 폴더의 "New View… / New Procedure… / New Function…".</li>
  *     <li>모양(docs/chromite/design-spec.md "트리"): 머리말 아래 아이콘 도구 막대({@link #createToolBar}, SSMS Object Explorer 도구 막대 순서),
  *     아이콘 팩 아이콘({@link NodeIcons#getNodeIcon}), 이름 뒤 보조 글자(열 형식, 읽은 폴더의 객체 수, 연결 호스트),
  *     마우스를 올린 행의 둥근 바탕({@link ExplorerTree}). 행 높이·들여쓰기·선택 모양은 테마 properties의 FlatLaf 키다.</li>
@@ -150,6 +152,7 @@ import java.util.function.Consumer;
  *   고를 서버를 연결로 기억해 ADD 이벤트에서 고름 (docs/chromite/swing-registered-servers.md)
  * - 2026-11-06 화면 문구를 CoreMessages로 옮김(OS 언어를 따름)
  * - 2026-11-06 ER 다이어그램: View Diagram 메뉴, Select Top 행 수를 다이어그램 메뉴와 같이 씀 (docs/chromite/swing-erd.md)
+ * - 2026-11-06 개체 정의 편집: Modify, Script as &gt; ALTER To, New View/Procedure/Function 메뉴 (docs/chromite/swing-source-editor.md)
  */
 final class ObjectExplorerPanel extends JPanel {
 
@@ -209,6 +212,13 @@ final class ObjectExplorerPanel extends JPanel {
          * Opens the ER diagram of a schema (its tables) or of a table (with the related tables) ("View Diagram").
          */
         void viewDiagram(@NotNull DBSObject root);
+
+        /**
+         * Opens a query window with an object's ALTER script or a new object's template ("Modify", "New View").
+         *
+         * @param refreshNode node read again from the database after each run of the window (the object, or the folder)
+         */
+        void openSourceScript(@NotNull DBPDataSourceContainer dataSource, @NotNull String script, @NotNull DBNDatabaseNode refreshNode);
     }
 
     private final DefaultTreeModel treeModel;
@@ -247,6 +257,7 @@ final class ObjectExplorerPanel extends JPanel {
     private final JMenu tasksMenu;
     private final Action importDataAction;
     private final Action exportDataAction;
+    private final SourceEditCommands sourceEditCommands;
     private final INavigatorListener navigatorListener = this::navigatorNodeChanged;
     /**
      * A connection to select once the connection list has been read again (a connection created in this window). The
@@ -376,8 +387,10 @@ final class ObjectExplorerPanel extends JPanel {
         selectToMenu = new JMenu(CoreMessages.explorer_select_to);
         selectToMenu.add(createAction(CoreMessages.explorer_new_query_window, () -> scriptSelected(queryWindows, true, false)));
         selectToMenu.add(createAction(CoreMessages.explorer_clipboard, () -> scriptSelected(queryWindows, true, true)));
+        sourceEditCommands = new SourceEditCommands(this::getSelectedNavigatorNode, queryWindows);
         scriptAsMenu = new JMenu(CoreMessages.explorer_script_as);
         scriptAsMenu.add(createToMenu);
+        scriptAsMenu.add(sourceEditCommands.getAlterToMenu());
         scriptAsMenu.add(selectToMenu);
         importDataAction = createAction(CoreMessages.explorer_import_data, () -> {
             DBSObject object = getSelectedObject();
@@ -460,7 +473,11 @@ final class ObjectExplorerPanel extends JPanel {
         popupMenu.addSeparator();
         popupMenu.add(newQueryAction);
         popupMenu.add(newTableAction);
+        popupMenu.add(sourceEditCommands.getNewViewAction());
+        popupMenu.add(sourceEditCommands.getNewProcedureAction());
+        popupMenu.add(sourceEditCommands.getNewFunctionAction());
         popupMenu.add(designAction);
+        popupMenu.add(sourceEditCommands.getModifyAction());
         popupMenu.add(selectTopAction);
         popupMenu.add(scriptAsMenu);
         popupMenu.add(viewDdlAction);
@@ -657,6 +674,7 @@ final class ObjectExplorerPanel extends JPanel {
         tasksMenu.setEnabled(importDataAction.isEnabled() || exportDataAction.isEnabled());
         designAction.setEnabled(TableDesignSession.canDesign(object));
         newTableAction.setEnabled(getSelectedNavigatorNode() instanceof DBNDatabaseFolder folder && TableDesignSession.canCreateTable(folder));
+        sourceEditCommands.update(getSelectedNavigatorNode());
         connectAction.setEnabled(dataSource != null && !connected);
         // Also for a server that is no longer connected: Disconnect removes it from this window
         disconnectAction.setEnabled(dataSource != null);

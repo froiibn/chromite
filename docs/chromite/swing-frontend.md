@@ -1709,3 +1709,4 @@ Windows 11, 화면 배율 150%, JBR 25, 작업 공간 사본 `D:\Tools\_smoke\sw
 - 2026-11-06 DBeaver 모델 번들 한국어 보충: 개체 탐색기 폴더·속성 이름·세션/잠금/계획 열·데이터 전송 속성·인증 방식 이름이 한국어로 나옴. [swing-l10n.md](swing-l10n.md) "DBeaver 플러그인 한국어 보충".
 - 2026-11-06 창 아이콘 `icons/chromite<크기>.png`를 사용자가 고른 새 아이콘으로 교체(`tools/branding/gen_app_icons.py`로 생성). [branding.md](branding.md) "아이콘".
 - 2026-11-06 ER 다이어그램: Object Explorer의 View Diagram(스키마·테이블), Java2D 다이어그램 탭(자동 배치, 까마귀발 관계선, 확대·이동, PNG·SVG·.erd 내보내기, 배치 저장). [swing-erd.md](swing-erd.md).
+- 2026-11-06 개체 정의 편집: Object Explorer의 Modify, Script as ▸ ALTER To, New View… / New Procedure… / New Function…. [swing-source-editor.md](swing-source-editor.md).

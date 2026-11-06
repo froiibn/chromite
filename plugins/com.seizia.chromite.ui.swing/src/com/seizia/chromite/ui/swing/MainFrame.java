@@ -30,6 +30,7 @@ import org.jkiss.dbeaver.model.app.DBPDataSourceRegistry;
 import org.jkiss.dbeaver.model.app.DBPProject;
 import org.jkiss.dbeaver.model.app.DBPWorkspace;
 import org.jkiss.dbeaver.model.navigator.DBNDatabaseFolder;
+import org.jkiss.dbeaver.model.navigator.DBNDatabaseNode;
 import org.jkiss.dbeaver.model.navigator.DBNNode;
 import org.jkiss.dbeaver.model.preferences.DBPPreferenceStore;
 import org.jkiss.dbeaver.model.struct.DBSEntity;
@@ -142,6 +143,7 @@ import java.util.function.IntConsumer;
  * - 2026-11-06 연결이 바뀌면(이름) 그 연결의 테이블 디자이너 탭 제목도 다시 씀(제목에 연결 이름) (docs/chromite/swing-table-designer.md)
  * - 2026-11-06 화면 문구를 CoreMessages로 옮김(OS 언어를 따름)
  * - 2026-11-06 ER 다이어그램: Object Explorer View Diagram의 도구 문서 탭({@link ErdDiagramPanel}) (docs/chromite/swing-erd.md)
+ * - 2026-11-06 개체 정의 편집: Modify·New View 등의 스크립트 창(실행 뒤 Object Explorer 노드를 다시 읽음) (docs/chromite/swing-source-editor.md)
  */
 final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplorerPanel.QueryWindows, TableDesignerPanel.Host, QueryLibraryPanel.Host {
 
@@ -530,6 +532,13 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
         if (execute) {
             editor.execute();
         }
+    }
+
+    @Override
+    public void openSourceScript(@NotNull DBPDataSourceContainer dataSource, @NotNull String script, @NotNull DBNDatabaseNode refreshNode) {
+        SqlEditorPanel editor = openQueryEditor(dataSource, null);
+        editor.setContent(SqlFileContent.newFile(script), null);
+        editor.setExecutionFinishedListener(() -> SourceScripts.refreshAfterRun(refreshNode));
     }
 
     @Override
