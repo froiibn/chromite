@@ -1705,3 +1705,4 @@ Windows 11, 화면 배율 150%, JBR 25, 작업 공간 사본 `D:\Tools\_smoke\sw
   선호 높이를 재어 줄바꿈 글 상자가 너비 없이 줄을 나눴다. 토스트를 그 너비로 먼저 배치(`validate`)한 뒤 높이를 잰다.
 - 2026-11-06 연결 색 알약: Registered Servers와 Object Explorer의 서버 이름을 연결 색 알약으로 감쌈(줄 전체·노드 바탕 대신), 색 규칙 통일, 보조 글자 기준선 고침.
   [swing-registered-servers.md](swing-registered-servers.md) "연결 색 알약".
+- 2026-11-06 화면 언어: 화면 문구를 NLS 묶음(영어 기본, 한국어 `_ko`)으로 옮겨 OS 언어를 따르게 함, 한국어 semibold 한글을 굵은 대체 글꼴로 그림. [swing-l10n.md](swing-l10n.md).
