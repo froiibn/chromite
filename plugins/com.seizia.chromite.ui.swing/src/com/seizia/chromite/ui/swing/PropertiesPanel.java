@@ -79,6 +79,7 @@ import java.util.stream.Stream;
  * - 2026-11-06 P1: 머리글 있는 표 → SSMS식 속성 그리드(분류별·이름순, 분류 접기, 설명 칸) (docs/chromite/swing-frontend.md "P1 디자인 적용")
  * - 2026-11-06 화면 문구를 CoreMessages로 옮김(OS 언어를 따름)
  * - 2026-11-07 오류 문구를 {@link ErrorText}로 만듦(클래스 이름이 화면에 나오지 않게, docs/chromite/swing-frontend.md "오류 문구")
+ * - 2026-11-07 제목을 Object Explorer와 같은 노드 글자로(이름 없는 반환 값 매개 변수, docs/chromite/swing-frontend.md "Object Explorer 탐색 불가 항목")
  */
 final class PropertiesPanel extends JPanel {
 
@@ -189,7 +190,7 @@ final class PropertiesPanel extends JPanel {
             setContent(List.of(), null);
             return;
         }
-        nameLabel.setText(CommonUtils.notEmpty(node.getNodeDisplayName()));
+        nameLabel.setText(ObjectExplorerPanel.getNodeText(node));
         typeLabel.setText(CommonUtils.notEmpty(node.getNodeTypeLabel()));
         String description = node.getNodeDescription();
         descriptionLabel.setText(CommonUtils.isEmpty(description) ? " " : description);

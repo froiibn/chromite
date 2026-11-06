@@ -436,9 +436,10 @@ B단계는 `JSplitPane`만 쓴다. (2026-11-06 사용자가 끌어서 옮기기�
 
 1. 트리 뿌리(보이지 않음)는 활성 프로젝트의 `DBNProject`다. 첫 단계에 `DBNProject.getDatabases()`의 자식(연결 폴더 `DBNLocalFolder`, 연결 `DBNDataSource`)을 읽는다.
    탐색기 모델은 SWT 버전과 같은 `DBWorkbench.getPlatform().getNavigatorModel()`(`DesktopNavigatorModel`)이다.
-2. 자식이 있을 수 있는 노드(`DBNNode.hasChildren(true)`, 메타데이터만 보고 DB를 읽지 않음)에는 "Loading…" 자식을 미리 넣어 펼칠 수 있게 한다.
-3. 노드를 펼치면(`TreeWillExpandListener`) `AbstractJob`을 예약하고, Job 스레드에서 `DBNUtils.getNodeChildrenFiltered(monitor, node, true)`
-   (SWT `DatabaseNavigatorContentProvider`와 같은 걸러내기: 숨은 객체, 트리에 보이지 않는 메타 노드 제외, 정렬)를 부른다. EDT에서는 모델을 읽지 않는다.
+2. 자식이 있을 수 있는 노드(메타데이터만 보고 DB를 읽지 않음)에는 "Loading…" 자식을 미리 넣어 펼칠 수 있게 한다.
+   SWT 트리와 달리 탐색 불가 항목도 자식으로 친다("Object Explorer 후속 수정" 절).
+3. 노드를 펼치면(`TreeWillExpandListener`) `AbstractJob`을 예약하고, Job 스레드에서 `DBNNode.getChildren`을 부른 뒤 숨은 객체를 빼고 정렬한다.
+   EDT에서는 모델을 읽지 않는다.
 4. 결과는 `SwingUtilities.invokeLater`로 EDT에서 트리 모델에 반영한다(`nodeStructureChanged`, 펼친 상태 유지). 노드마다 읽기 번호를 두어
    새로 고침으로 더 새 읽기가 시작되었으면 늦게 끝난 이전 결과를 버린다.
 5. **연결:** 연결 노드의 자식을 읽으면 `DBNDatabaseNode.getChildren` → `initializeNode` → `DBUtils.initDataSource` →
@@ -2037,6 +2038,42 @@ EDT 에이전트로 단추를 누르고(`doClick`) 결과를 읽었다. 캡처�
 - 시험 중 본 범위 밖 문제(보고만): 테이블 디자이너가 문자열 열을 `int`로 바꿀 때 `COLLATE`를 남긴 `ALTER COLUMN`을 만든다(위 e의 서버 오류).
   도킹 탭 넘침 단추의 도구 설명 "Show Hidden Tabs"(ModernDocking 라이브러리 문구)가 번역되지 않았다.
 
+## Object Explorer 후속 수정 (2026-11-07)
+
+통합 중 모은 후속 과제 중 탐색기 항목 #31, #34, #35, #36을 고쳤다(번호는 2026-11-06 통합 후속 목록). #2·#25(보조 글자 기준선)는
+이미 고쳐져 있어 건너뛰었다: Object Explorer(`ExplorerCellRenderer.paint`)와 Registered Servers(`RegisteredServersPanel.java:913`)가 모두
+레이블의 실제 기준선(`getBaseline`)에 보조 글자를 그린다(연결 색 알약 커밋 `1099b00c3b`).
+화면 확인은 Swing 제품을 개인 작업 공간으로 실행해(`-vm` JBR 25) EDT 시험 에이전트로 했고, 이전 동작은 같은 순서를 수정 전 빌드
+(`mssql-functions-folder` 작업 트리 제품)에서 돌려 확인했다. 스크린숏은 `D:\Tools\_scratch\fixes-navigator\run\shots\`에 있다.
+회귀 테스트는 실행하지 않았다(요청 없음).
+
+### Object Explorer 탐색 불가 항목
+
+- 증상: 프로시저·함수 아래에 매개 변수가 없었다(#34). MySQL/MariaDB "시스템 정보" 아래 세션·전역 상태, 세션·전역 변수, 엔진,
+  문자 집합의 데이터 정렬, 사용자 권한, 플러그인 폴더가 펼쳐지지 않았다(#31). MySQL 프로시저의 "프로시저 매개 변수" 폴더도 펼쳐지지 않았다.
+- 근본 원인: 이 항목들은 `plugin.xml`에서 `navigable="false"`다(예: `ext.mssql/plugin.xml:130,135`, `ext.mysql/plugin.xml:91,129-152`,
+  `ext.postgresql/plugin.xml:260`). Object Explorer는 SWT 트리처럼 `DBNNode.hasChildren(true)`(→ `DBXTreeNode.hasChildren(context, true)`,
+  `DBXTreeNode.java:197-213`)로 펼칠 수 있는지 정하고 `DBNUtils.getNodeChildrenFiltered(monitor, node, true)`(`DBNUtils.java:101-136`)로
+  탐색 불가 항목을 뺐다. SWT도 트리에서는 똑같이 빼지만(`DatabaseNavigatorContentProvider.java:91,108`, `TreeLoadService.java:50`)
+  그 목록을 객체 편집기의 탭(`ItemListControl.java:286`, `forTree=false`)에서 보여 준다. Swing에는 객체 편집기가 없어 볼 곳이 없었다.
+  같은 원인으로 인덱스·키·외래 키의 열, PostgreSQL 역할의 구성원 폴더도 보이지 않았다.
+- 수정(`ObjectExplorerPanel`): `hasTreeChildren`이 탐색 가능 조건만 뺀 `DBXTreeNode.hasChildren(node, false)`로 펼침을 정하고,
+  `readChildren`이 `DBNNode.getChildren` 뒤 숨김 노드(`DBPHiddenObject`)만 빼고 `DBNUtils.filterNavigableChildren(…, false)`로 정렬한다.
+  `DBNNode.hasChildren(false)`를 그대로 쓰지 않은 것은 구조체 형식 열·매개 변수의 동적 속성(`DBNDatabaseNode.hasDynamicStructChildren`)까지
+  찾아 EDT에서 데이터 형식을 읽기 때문이다(이전에도 이 트리에 없던 항목).
+- 매개 변수 뒤 보조 글자는 형식이다(열처럼 길이 포함: `DBSTypedObject`이면 그 형식, 아니면 `DBSParameter.getParameterType()`).
+- SQL Server 스칼라 함수의 반환 값은 이름 없는 매개 변수(`sys.parameters.parameter_id` 0)라 탐색기 이름이 `toString`(클래스 이름)이었다.
+  이름이 없고 종류가 `RETURN`이거나 순서가 0인 매개 변수는 트리와 속성 창 제목에 "Returns"/"반환 값"으로 보인다
+  (`ObjectExplorerPanel.getNodeText`, 새 묶음 `internal/NavigatorMessages`). MySQL·generic 모델은 이런 매개 변수에 모델에서 "RETURN" 이름을 붙인다
+  (`MySQLCatalog.java:1007`, `GenericProcedure.java:179`).
+- SWT 화면은 바뀌지 않는다(Swing 번들만 고침).
+- 확인(SQL Server 2022, MariaDB 11, PostgreSQL 17, 한국어·영어, 라이트·다크): 수정 전에는 프로시저·함수가 펼쳐지지 않고 MariaDB 시스템 정보 폴더들이 잎 노드였다
+  (`before-ko-light-maria-system-info.png`). 수정 뒤 SQL Server `get_orders` 아래 `@customer nvarchar(100)`, `@min_amount decimal(10,2)`, `@total int`,
+  `order_count` 아래 "반환 값 int"/"Returns int"와 `@customer`, MariaDB 프로시저의 "프로시저 매개 변수" 아래 `p_customer`, `p_total`(함수는 `RETURN` 포함),
+  시스템 정보의 세션·전역 상태, 세션·전역 변수(수백 개), 엔진 8개, 문자 집합별 데이터 정렬이 보인다. 변수를 고르면 속성 창에 값이 나온다
+  (`ko-light-maria-session-variable.png`: `autocommit` = ON). PostgreSQL 함수·프로시저의 "함수 매개 변수" 폴더 아래 `p_customer varchar`,
+  `p_min numeric` 등이 보인다. 인덱스 노드는 이제 열을 펼친다.
+
 ## 변경 이력
 
 - 2026-11-06 최초 작성. Swing 전환 결정, 구조, 재사용 분석, MVP 범위, F5 실행 사양을 정리.
@@ -2112,3 +2149,5 @@ EDT 에이전트로 단추를 누르고(`doClick`) 결과를 읽었다. 캡처�
   인라인 오류 영역에 "자세히…", Swing `UIServiceSystemAgent`(`SwingSystemAgent`) 등록으로 백업·복원 메시지의 "Service … not found" 줄 제거,
   연결·연결 끊기 오류 제목 지역화. "오류 문구" 절 추가.
 - 2026-11-07 XLSX 내보내기 설명: Office 확장 피처의 설치 원본(CE 업데이트 저장소)을 삭제한 것을 반영.
+- 2026-11-07 Object Explorer 후속 수정: 탐색 불가 항목(프로시저·함수 매개 변수, MySQL/MariaDB 시스템 정보의 변수·상태·엔진 등)을 트리에 보여 줌,
+  반환 값 매개 변수 이름. "Object Explorer 후속 수정" 절 추가, B단계 데이터 흐름 2·3 갱신.
