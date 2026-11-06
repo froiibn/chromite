@@ -268,6 +268,9 @@ CONCEPTS = [
     ("results", "결과", "Results", "table"),
     ("messages", "메시지", "Messages", "message"),
     ("file-sql", "SQL 파일", "SQL file", "file-text"),
+    # Properties tool window tool bar (SSMS property grid)
+    ("categorized", "분류별", "Categorized", "list-tree"),
+    ("sort-alpha", "이름순", "Alphabetical", "sort-ascending-letters"),
 ]
 
 
@@ -291,6 +294,20 @@ def bubble(f, s):
             + path("M5 5.5H11M5 8.5H9", None, s, cap="butt"))
 
 
+def list_tree(s, dot, sw=1):
+    # Tabler "list-tree": three lines indented one step each, a dot before each
+    return (circle(3, 3.5, 1, dot) + path("M5.5 3.5H13.5", None, s, sw, cap="butt")
+            + circle(5, 8, 1, dot) + path("M7.5 8H13.5", None, s, sw, cap="butt")
+            + circle(7, 12.5, 1, dot) + path("M9.5 12.5H13.5", None, s, sw, cap="butt"))
+
+
+def sort_letters(s, arrow, sw=1):
+    # Tabler "sort-ascending-letters": a down arrow, "A" above "Z"
+    return (path("M4.5 2.5V13.5M2.5 11.5L4.5 13.5L6.5 11.5", None, arrow, sw)
+            + path("M9.5 7.5V4A1.5 1.5 0 0 1 12.5 4V7.5M9.5 5.5H12.5", None, s, sw)
+            + path("M9.5 9.5H12.5L9.5 13.5H12.5", None, s, sw))
+
+
 def extra_icons(I, P, n, nf, blue, blue_fill, green, green_fill, red, red_fill, sw, server_fill, doc_fill, table):
     """Icons shared by both packs; colours come from the pack."""
     server = (rect(1.5, 1.5, 13, 6, 1.5, server_fill, n) + rect(1.5, 8.5, 13, 6, 1.5, server_fill, n)
@@ -306,6 +323,8 @@ def extra_icons(I, P, n, nf, blue, blue_fill, green, green_fill, red, red_fill, 
     I["results"] = svg(table)
     I["messages"] = svg(bubble(blue_fill, blue))
     I["file-sql"] = svg(doc_shape(doc_fill, n) + path("M5.5 8H10.5M5.5 10.5H9", None, blue, sw, cap="butt"))
+    I["categorized"] = svg(list_tree(n, blue, sw))
+    I["sort-alpha"] = svg(sort_letters(n, blue, sw))
 
 
 # ----------------------------------------------------------------- SET A: duo-tone

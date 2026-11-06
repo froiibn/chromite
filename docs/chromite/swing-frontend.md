@@ -1501,6 +1501,8 @@ Swing 제품에는 그 번들이 없다. 그래서 범용 칸(Login, Password)�
 | `SqlEditorPanel`, `DdlViewerPanel` | 편집기 찾기 키, 상태 줄 `QueryStatusLine`, 탭 도구 설명(전체 경로, 연결·서버) |
 | `QueryStatusLine`(새 파일) | SSMS 쿼리 상태 줄: 상태 아이콘, 문구, 서버, 사용자, DB/스키마, 시간, 행 수 |
 | `ObjectExplorerPanel` | 트리에 초점이 있을 때 F5 = 새로 고침 |
+| `PropertiesPanel` | SSMS 속성 그리드(분류별·이름순, 분류 접기, 설명 칸) |
+| `icons/ui/**/categorized.svg`, `sort-alpha.svg`, `tools/branding/gen_ui_icons.py` | Properties 도구 막대 아이콘 2개 × 2팩 × 2테마(생성기에 추가, 기존 SVG는 바이트 단위로 같음) |
 
 ### 결과 그리드 머리글이 잘려 보이던 것 (근본 원인)
 
@@ -1548,6 +1550,14 @@ Object Explorer 오른쪽 클릭 메뉴의 Refresh에 F5를 보인다.
 - 서버는 호스트[:포트], 파일 DB는 파일 이름이고, 도구 설명에 전체 URL·경로와 DB 제품 버전(SSMS의 "서버 (버전)")을 둔다. 사용자는 연결의 사용자 이름, DB/스키마는 편집기 도구 막대의 기본 DB/스키마 콤보 값이다. 빈 칸은 숨긴다.
 - 위치: SSMS처럼 쿼리 창 맨 아래 = Results 카드의 아래쪽. Results를 숨기면(Ctrl+R) 문서 카드의 아래쪽(편집기 아래)으로 옮긴다. 시작 탭·DDL 탭에는 없다.
   상태 줄은 편집기마다 있고 메인 창이 활성 편집기의 것을 끼운다(결과 탭과 같은 방식, 탭에서 빠져 있던 동안의 테마 전환을 끼울 때 맞춤).
+
+### Properties (SSMS 속성 그리드)
+
+- 머리말 아래 도구 막대: 분류별·이름순 아이콘 토글(새 아이콘 `categorized`, `sort-alpha`). 열 머리글 없는 이름 | 값 두 열, 행 24.
+- 분류 줄: 셰브런 + semibold 이름, 바탕 `Chromite.PropertyGrid.categoryBackground`(카드 바탕 위의 띠). 누르기, ←/→, Enter로 접고 편다. 분류 아래 속성 이름은 분류 이름 위치에 맞춰 들여 쓴다.
+  분류 없는 속성은 SWT 속성 보기처럼 제목 없이 맨 앞이다.
+- 가로선 `grid.lineSubtle`, 이름과 값 사이 1px `border.subtle`(속성 줄만). 아래 설명 칸: 고른 속성의 이름과 `DBPPropertyDescriptor.getDescription()`.
+- 읽기 전용 그대로. 접은 분류와 정렬 방식은 실행 중에 기억한다.
 
 ## 변경 이력
 
