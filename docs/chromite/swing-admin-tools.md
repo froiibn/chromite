@@ -162,6 +162,10 @@ Swing 제품을 별도 작업 공간으로 띄우고 로컬 Docker DB(PostgreSQL
 | Find Objects: 이름 찾기, 결과 두 번 눌러 Object Explorer에서 고르기 | 됨(`orders` → Tables 아래 노드까지 펼침) | — | — |
 | 연결 전 열기: 인증 창 → 연결 → 목록 | 됨 | 됨 | 됨 |
 
+확인하지 못한 것: 다크 테마 화면, Processes 탭의 끝내기 단추(MariaDB Kill Query 등)와 여러 연결 Find Objects.
+확인 도중 다른 프로그램의 Windows 보안(방화벽) 창이 화면 맨 앞을 차지해 앱에 키·마우스 입력을 보낼 수 없었다(그 창은 건드리지 않았다).
+끝내기 단추는 잠금 탭의 Kill Session과 같은 `alterSession` 경로이고, 테마 전환은 Look and Feel 갱신에 맡겼다(표·나무의 렌더러는 `updateUI`에서 다시 만든다).
+
 확인 중 고친 것: 연결에 실패한 뒤 자동 새로 고침이 간격마다 다시 연결(비밀번호 창)하던 것, 필터와 명령이 한 줄에 넘치던 도구 막대,
 세션 표가 너무 낮던 분할, 잠금 상세 표를 넓게 쓰도록 바꾼 배치, PostgreSQL 뷰가 검색 종류("Table")로 보이던 결과 종류(노드 종류로 바꿈).
 
