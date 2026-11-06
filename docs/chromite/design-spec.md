@@ -145,7 +145,7 @@ Swing 프런트엔드(`com.seizia.chromite.ui.swing`)의 화면을 **배치와 �
 | 탭 | 작은 탭, 아이콘(표, 메시지) + 글자 | 머리말 탭: 밑줄 3 [J `ToolWindow.HeaderTab.underlineHeight` 기본 3], 마우스 올림 L `#EBECF0` / D `#393B40` | FlatLaf 탭 32, 아이콘 없음 [S] | 높이 `size.tab.tool` 32, 아이콘 16(`results.grid`, `results.messages`) + 글자, 밑줄 3 `tab.underline` | P1 |
 | 그리드 바탕 | 흰색(다크: 어두움) | 편집기 바탕(L `#FFFFFF` / D `#1E1F22`) [S][E] | L `#FFFFFF` / D `#36383A` [S] | `bg.editor` | P0 |
 | 행 높이 | ≈20 | ≈27 [S](편집기 글꼴 13 + 위아래 여백) | 20(FlatLaf `Table.rowHeight`) [F] | `size.row.grid` 27 | P0 |
-| 글꼴 | 비례 글꼴(설정 가능) | 편집기 글꼴(JetBrains Mono 13) [S] | `font.ui`(Segoe UI 12) | `font.code`(설정으로 바꿀 수 있게는 P2) | P0 |
+| 글꼴 | 비례 글꼴(설정 가능) | 편집기 글꼴(JetBrains Mono 13) [S] | `font.ui`(Segoe UI 12) | `font.grid` = `font.ui` Pretendard 12(2026-11-07 사용자 요청, "적용 현황 — 그리드 글꼴 Pretendard". 그전 목표는 `font.code`). 설정으로 바꿀 수 있게는 P2 | P0 |
 | 머리글 | 이름 왼쪽 정렬 [M 결과 캡처] | 높이 ≈28, 바탕 = 그리드 바탕, 열 종류 아이콘 16(키 표시 포함) + 이름(왼쪽 정렬), 마우스 올리면 필터·정렬 아이콘 [S] | 높이 25, 이름 가운데 정렬, 아이콘 없음 [F][S] | `size.header.grid` 28, 왼쪽 정렬(숫자 열도 머리글은 왼쪽), 열 아이콘(PK/FK 배지 포함), 아래 1px `grid.line` | P0 |
 | 격자선 | 세로·가로 옅은 선 | 세로선이 가로선보다 조금 진함 [S] | FlatLaf 기본(표시 안 함) | 세로선 `grid.line`, 가로선 `grid.lineSubtle` 둘 다 표시 | P0 |
 | 줄무늬 | 없음 | 없음(기본) [S] | 없음 | 없음 | — |
@@ -390,7 +390,8 @@ FlatLaf 키와, Chromite 컴포넌트가 `UiSizes`로 읽는 `Chromite.size.*` �
 | `font.ui.semibold` | Pretendard 12 SemiBold | 도구 창 제목, 섹션 제목, Properties 분류 | `semibold.font = "Pretendard SemiBold"`, 스타일 클래스 `semibold` |
 | `font.ui.small` | Pretendard 10 | 팝업 안내 줄, 배지 | 스타일 클래스 `small`: FlatLaf 기본 `small.font = -2`(`font.ui` − 2px; 13일 때 11로 측정. 이전에 적은 "−1px로 맞춤"은 구현과 달랐다) |
 | `font.title` | Pretendard 15 semibold | 대화상자 머리말, 시작 탭 제목 | 스타일 클래스 `h3`: FlatLaf 기본 `h3.font = +3 $semibold.font`(`font.ui` + 3px; 13일 때 16) |
-| `font.code` | JetBrains Mono 12, 줄 간격 1.2 | 결과 그리드, 메시지 | `monospaced.font`(크기를 적지 않아 `defaultFont` 크기를 따른다: 2026-11-07 12) |
+| `font.grid` | Pretendard 12(= `font.ui`) | 결과 그리드 칸·행 번호, 레코드 보기, 테이블 디자이너 표 | `Table.font`(FlatLaf 기본 = `defaultFont`). 2026-11-07 사용자 요청으로 `font.code`에서 바꿈("적용 현황 — 그리드 글꼴 Pretendard") |
+| `font.code` | JetBrains Mono 12, 줄 간격 1.2 | 메시지, 필터 막대, 값 패널, 오류 상세, DDL·스크립트 미리 보기 | `monospaced.font`(크기를 적지 않아 `defaultFont` 크기를 따른다: 2026-11-07 12), 스타일 클래스 `monospaced` |
 | `font.editor` | Cascadia Mono 13(Options에서 바꿀 수 있음) | SQL 편집기, 줄 번호, DDL 탭 | `EditorFont`(2026-11-06, "편집기 글꼴과 SQL 색") |
 
 Pretendard(1.3.9, 번들 `fonts/pretendard`), Inter, JetBrains Mono는 SIL Open Font License 1.1이다. FlatLaf가 Inter와 JetBrains Mono를 별도 jar(`flatlaf-fonts-inter`, `flatlaf-fonts-jetbrains-mono`)로 낸다.
@@ -695,7 +696,7 @@ P0 전체와 P1 일부를 `com.seizia.chromite.ui.swing`에 적용했다. 동작
   - `flatlaf-fonts-jetbrains-mono-2.304.jar`: SHA-1 `68c779e849aec16c69f69d4405fb1edea04e9b8f`(Central `.sha1`과 같음), SHA-256 `bc8e93479960b2a5e3b45fe724e16439a69f28cc43cac3a2b87b7f7f325fd3a5`
 - 테마 properties: `defaultFont = 13 Inter`, `semibold.font = "Inter SemiBold"`, `monospaced.font = "JetBrains Mono"`. (2026-11-07 UI 글꼴은 Pretendard로 바뀜: "적용 현황 — Pretendard와 밀도 B") `ChromiteTheme`가 Look and Feel을 설치하기 전에 `installLazy()`로 등록한다.
   FlatLaf는 글꼴 이름을 `StyleContext.getFont`(합성 글꼴)로 만들기 때문에, Inter·JetBrains Mono에 없는 한글은 운영체제 글꼴(Windows: 맑은 고딕)로 대체된다.
-- 그리드·Messages는 `monospaced.font`(JetBrains Mono 합성 글꼴)를 쓴다. 편집기(RSyntaxTextArea)는 2026-11-06부터 `font.editor`(Cascadia Mono, "편집기 글꼴과 SQL 색")다.
+- 그리드·Messages는 `monospaced.font`(JetBrains Mono 합성 글꼴)를 쓴다(2026-11-07부터 그리드는 UI 글꼴: "적용 현황 — 그리드 글꼴 Pretendard"). 편집기(RSyntaxTextArea)는 2026-11-06부터 `font.editor`(Cascadia Mono, "편집기 글꼴과 SQL 색")다.
   테마 XML에 `baseFont`를 쓰지 않은 이유: XML의 글꼴 이름은 합성 글꼴이 아니어서 한글이 □로 나온다.
 - 확인: 트리 폴더 이름(`테이블`, `컬럼`, `인덱스`), 한글 테이블(`앨범_한글`), Properties 속성 이름, 메뉴, 대화상자, 편집기 글(`"앨범_한글" -- 한글 주석`), 그리드 머리글·값에 □ 없음(`x-korean-*.png`).
   macOS(Apple SD Gothic Neo)는 확인하지 못했다.
@@ -723,7 +724,7 @@ P0 전체와 P1 일부를 `com.seizia.chromite.ui.swing`에 적용했다. 동작
 | 대체 순서 | 저장한 글꼴(이 컴퓨터에 있으면) → Cascadia Mono(번들) → JetBrains Mono(번들). 운영체제에 같은 이름의 글꼴이 있으면 Java가 등록을 거절하고 운영체제 글꼴을 쓴다(Windows 11은 가변 글꼴 `C:\Windows\Fonts\CascadiaMono.ttf`를 가지고 있어 그 글꼴의 기본 인스턴스를 쓰고, 기울임은 합성 기울임이다) |
 | 한글 | `FontUtils.getCompositeFont`(= `StyleContext.getFont`, 합성 글꼴). 이 PC(JBR 25, 한국어 Windows 11)에서 합성 글꼴의 대체 칸은 Arial, **Malgun Gothic**, Wingdings, Symbol, … 순이다(`sun.font.CompositeFont` 칸 확인). macOS는 JDK의 대체 목록(Apple SD Gothic Neo)이며 확인하지 못했다 |
 | 행 높이 | RSyntaxTextArea는 행 높이를 글꼴에서 한 번 정하고 모든 줄에 같게 쓴다. 한글이 있는 줄도 높이가 같다(확인 아래) |
-| 쓰는 곳 | SQL 편집기, 줄 번호, DDL 탭, Options 미리 보기. 결과 그리드·Messages는 `font.code`(JetBrains Mono) 그대로 |
+| 쓰는 곳 | SQL 편집기, 줄 번호, DDL 탭, Options 미리 보기. 결과 그리드·Messages는 `font.code`(JetBrains Mono) 그대로(2026-11-07부터 결과 그리드는 `font.grid` = UI 글꼴) |
 | 설정 | Tools > Options > Editor: Family(설치된 고정폭 글꼴 + 번들 글꼴, 기본 Cascadia Mono), Size(6–72, 기본 13), 한글이 든 미리 보기. 키 `sqlEditor.font.family`, `sqlEditor.font.size` |
 
 #### 단어 분류 (`SqlTokenClassifier`)
@@ -784,7 +785,7 @@ Windows 11, 화면 배율 150%, JBR 25, 작업 공간 사본 `D:\Tools\_smoke\sw
 ### 적용 현황 — Pretendard와 밀도 B (2026-11-07)
 
 사용자 결정(2026-11-07): UI 글꼴을 **Pretendard 13**으로(시안 `D:\Tools\_scratch\ui-font-mock\`), 기본 밀도를 **B "조금 촘촘"**으로
-(시안 `D:\Tools\_scratch\density-mock\`). 결과 창 기본 높이(220)는 결정 대기라 바꾸지 않았다.
+(시안 `D:\Tools\_scratch\density-mock\`). 결과 창 기본 높이(220)는 그때 결정 대기라 바꾸지 않았고, 2026-11-07 사용자 결정으로 **280**이 되었다(아래 "결과 창 기본 높이").
 
 | 파일 | 변경 |
 |---|---|
@@ -878,6 +879,57 @@ SQL 편집기 글꼴(`font.editor`, `EditorFont` 기본 13)은 따로 정해진 
 - 캡처: `D:\Tools\_scratch\ui-font-12\run\shots\`(before-·after- × ko·en × light·dark: main, menu-file, menu-tree, connect, options, designer),
   전후 비교 `D:\Tools\_scratch\ui-font-12\pairs\`.
 
+### 적용 현황 — 그리드 글꼴 Pretendard (2026-11-07)
+
+사용자 요청(2026-11-07): "쿼리결과 그리드의 폰트와 사이즈도 pretendard 12로 맞춘다". 결과 그리드의 칸과 행 번호를 고정폭 `font.code`(JetBrains Mono 12)에서
+UI 글꼴 `font.grid` = `font.ui`(Pretendard 12)로 바꿨다. 열 머리글은 전부터 UI 글꼴(`TableHeader.font`)이었다.
+
+| 파일 | 변경 |
+|---|---|
+| `ResultSetGrid` | 표와 행 번호 열에서 스타일 클래스 `monospaced`를 뺐다. 글꼴은 Look and Feel의 `Table.font`(= `defaultFont`)를 그대로 쓴다(글꼴을 코드에 적지 않음). 행 번호 열 폭은 자릿수 × 가장 넓은 숫자 폭 |
+| `ResultSetRecordView` | 레코드 보기 표도 그리드와 같이 `monospaced`를 뺐다(같은 값을 다른 모양으로 보는 화면이라 글꼴을 맞춤) |
+| `ChromiteLightLaf.properties`, `ChromiteDarkLaf.properties` | 그리드 절에 `font.grid` 주석 |
+| `EditorFont` | 설계 설명(결과 그리드는 UI 글꼴) |
+
+같은 글꼴을 따를지 정한 것:
+- **필터 막대 입력: 고정폭 그대로.** SQL `WHERE` 조건을 쓰는 칸이라 편집기·Messages와 같이 코드 글꼴이 맞다. 필터 막대는 열 머리글 필터로 바뀔 예정이다(사용자 요청 10).
+- **값 패널 글자 보기: 고정폭 그대로.** 여러 줄 글, JSON·XML을 구문 색과 들여쓰기로 보여 주는 편집기(RSyntaxTextArea)라 칸 정렬이 고정폭에 기대고 있다.
+- **테이블 디자이너 표: 바꿀 것 없음.** 전부터 UI 글꼴이었다(측정 `DesignerTable` Pretendard).
+- **레코드 보기: UI 글꼴로.** 그리드의 한 행을 세로로 보여 주는 화면이라 그리드와 같게 했다.
+
+숫자 정렬:
+- 숫자 열은 그대로 오른쪽 정렬이다(`CellRenderer`, 바꾸지 않음). 화면에서 끝이 한 세로줄에 맞는다(확대 `D:\Tools\_scratch\ui-font-12\pairs\zoom-gridp-ko-light-grid.png`).
+- **Pretendard의 기본 숫자는 비례 폭**이다. `Pretendard-Regular.otf`의 advance(2048 단위): 0 1220, 1 898, 2 1202, 3 1264, 4 1278, 5 1222, 6 1256, 7 1130, 8 1242, 9 1256.
+  글꼴에 고정폭 숫자 기능 `tnum`이 있지만, 표준 Java 2D에는 OpenType 기능을 켜는 API가 없다. JBR에는 `java.awt.Font`의 비공개 `deriveFont(Font, Font.Features)`가 있고
+  JetBrains Runtime API(`jbr-api`의 `FontExtensions`)로만 쓸 수 있다. 새 의존성이고 JBR 전용이라 넣지 않았다(확인하지 않음, "미룬 결정").
+- 그래서 같은 자릿수의 숫자도 폭이 조금 다르다. 캡처(150%)에서 `1,111`은 34px, `8,888`은 46px(논리 약 8px 차이), `10,231`과 `10,232`의 첫 숫자는 3px(논리 2px) 어긋난다.
+  고정폭(JetBrains Mono 12)에서는 둘 다 같았다. 오른쪽 끝이 맞아 자릿수(크기)는 바로 읽히지만, 세로로 같은 자리 숫자를 견주는 데는 고정폭보다 덜 가지런하다.
+  사용자 요청대로 두고, 불편하면 `tnum`(JBR API)이나 숫자 열만 고정폭으로 하는 방법이 있다.
+- 행 번호 열 폭은 전에는 가장 큰 번호 문자열의 폭이었는데, 비례 숫자에서는 `111`이 `108`보다 좁아 잘릴 수 있다. 자릿수 × 가장 넓은 숫자 폭으로 바꿨다(120행 결과에서 100–120 잘림 없음, `rows120-en-dark.png`).
+
+측정(Windows 11, 150%, EDT 에이전트; 한국어·`-nl en`, 라이트·다크에서 같음):
+
+| 항목 | 전(JetBrains Mono 12) | 후(Pretendard 12) | 토큰 |
+|---|---|---|---|
+| 그리드 칸 글꼴 한 줄 | 17 | 15 | — |
+| 그리드 행 / 머리글 | 24 / 26 | 24 / 26 | 24 / 26 |
+| 레코드 보기 행 / 머리글 | (고정폭) | 24 / 26 | 24 / 26 |
+| 필터 막대(고정폭, 바꾸지 않음) | 34(30) | 34(30) | 시안 32 |
+
+- 같은 내용에서 그리드 폭이 1176px → 1023px(150% 캡처)로 13% 좁아졌다(한 화면에 보이는 열이 늘어남).
+- 확인한 값: 숫자(정수·소수·음수·0), 날짜·날짜 시간, NULL(보조 글자색), 한글·영문 섞인 글. □ 없음, 잘림 없음.
+- 캡처: `D:\Tools\_scratch\ui-font-12\run\shots\`의 `after-{ko,en}-{light,dark}-grid.png`(전, UI 글꼴 12 브랜치)와 `gridp-{ko,en}-{light,dark}-{grid,main,value,record}.png`(후),
+  전후 비교 `D:\Tools\_scratch\ui-font-12\pairs\grid-*.png`.
+### 결과 창 기본 높이 (2026-11-07 결정)
+
+사용자 결정(2026-11-07): Results 카드의 기본 높이를 220에서 **280**으로 바꾼다(밀도 B 적용 때 결정 대기였던 것).
+
+- 위치: `MainFrame.DEFAULT_RESULTS_HEIGHT`. 창 기본 크기(`DEFAULT_SIZE` 1280×800)·도구 창 열 비율과 같은 **배치 기본값**이라 밀도 토큰(`Chromite.size.*`, `UiSizes`)에 넣지 않았다.
+  밀도 토큰은 컨트롤 치수이고 촘촘한 모드(C)가 덮어쓰는 값인데, 결과 창 높이는 사용자가 끌어 바꾸고 저장되는 값이다.
+- 배율: 창 기본 크기(`setSize(DEFAULT_SIZE)`)처럼 `UIScale`을 곱하지 않는다(바꾸기 전 220도 곱하지 않았다). Windows 화면 배율(150% 등)은 Java 런타임이 처리한다.
+- 저장된 높이: 사용자가 높이를 바꿨으면 저장된 값(`results.size`)이 이긴다. 설정 저장소는 기본값과 같은 값을 저장하지 않으므로(`ToolWindow.SplitHost.load`)
+  높이를 바꾼 적 없는 사용자는 새 기본값 280을 받는다. Window > Reset Window Layout도 280으로 돌린다.
+
 ### Swing/FlatLaf로 못 한 것과 이유
 
 | 항목 | 이유 | 대신 한 것 |
@@ -938,6 +990,7 @@ SQL 편집기 글꼴(`font.editor`, `EditorFont` 기본 13)은 따로 정해진 
 - ~~아이콘 세트 선정~~: 2026-11-06 Tabler Icons(MIT) 모양을 바탕으로 한 Chromite 그림 2팩(duo-tone 기본, SSMS color 선택)으로 결정·적용("적용 현황 — 아이콘 팩").
 - ~~Inter·JetBrains Mono 글꼴 jar~~: 2026-11-06 넣음("적용 현황 — 글꼴").
 - 공급자 로고의 상표 사용 검토(공개 배포 전).
+- 그리드 숫자의 고정폭 숫자(`tnum`): JBR API(`jbr-api` `FontExtensions`) 의존성을 넣을지, 숫자 열만 고정폭으로 할지(2026-11-07 "적용 현황 — 그리드 글꼴 Pretendard").
 - 촘촘한 모드 C(보기 메뉴 전환, P2). 연결별 색(SSMS Color, DataGrip 데이터 소스 색). (Islands는 2026-11-06, 기본 밀도 B는 2026-11-07 적용)
 
 ## 참고 자료
@@ -982,4 +1035,7 @@ SQL 편집기 글꼴(`font.editor`, `EditorFont` 기본 13)은 따로 정해진 
 - 2026-11-07 UI 글꼴 12(사용자 요청 "앱 기본 폰트 사이즈를 한단계 줄인다"): `font.ui` 13 → 12, 컨트롤·메뉴 여백을 다시 맞춤(밀도 B 높이 유지).
   글꼴 토큰(`font.ui.small`·`font.title`을 FlatLaf 상대 크기 실측으로 고침, `font.code`가 `defaultFont` 크기를 따름), 치수 토큰, 14절 표, 설계 결정 갱신.
   "적용 현황 — UI 글꼴 12" 절(전후 측정, 1px 차이 항목) 추가.
+- 2026-11-07 그리드 글꼴 Pretendard(사용자 요청 "쿼리결과 그리드의 폰트와 사이즈도 pretendard 12로 맞춘다"): `font.grid` 토큰 추가, `font.code`의 쓰는 곳 갱신,
+  8절 표 갱신, "적용 현황 — 그리드 글꼴 Pretendard" 절(따를지 정한 것, 비례 숫자와 `tnum`, 측정) 추가.
+- 2026-11-07 결과 창 기본 높이 280(사용자 결정): "결과 창 기본 높이" 절 추가, 밀도 B 절의 결정 대기 문장 갱신.
 - 2026-11-07 Islands 색 표에 테이블 저장 방식 글자색 토큰(`Chromite.Tree.storage*Foreground`) 추가([altibase.md](altibase.md)).

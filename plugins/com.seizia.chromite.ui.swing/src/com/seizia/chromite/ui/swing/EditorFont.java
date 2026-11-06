@@ -49,11 +49,12 @@ import java.util.TreeSet;
  *     <li>글꼴은 합성 글꼴({@link FontUtils#getCompositeFont})로 만든다. 고정폭 글꼴에 없는 한글은 운영체제 글꼴
  *     (Windows: 맑은 고딕, macOS: Apple SD Gothic Neo)로 그린다. 편집기 행 높이는 글꼴에서 한 번 정해지므로 한글이 있는 줄도 높이가 같다.</li>
  *     <li>설정은 테마와 같은 번들 설정 저장소에 둔다({@link ChromiteSwingActivator#getPreferences()}).
- *     결과 그리드와 Messages는 Look and Feel의 {@code monospaced.font}(JetBrains Mono)를 그대로 쓴다(design-spec "글꼴 토큰").</li>
+ *     Messages·필터 막대·값 패널은 Look and Feel의 {@code monospaced.font}(JetBrains Mono)를, 결과 그리드는 UI 글꼴을 쓴다(design-spec "글꼴 토큰").</li>
  * </ul>
  *
  * 변경 이력:
  * - 2026-11-06 최초 작성: 편집기 글꼴 Cascadia Mono 13(번들), Options의 글꼴·크기 설정 (docs/chromite/design-spec.md "편집기 글꼴과 SQL 색")
+ * - 2026-11-07 결과 그리드가 UI 글꼴을 쓰게 되어 설계 설명을 고침 (docs/chromite/design-spec.md "적용 현황 — 그리드 글꼴 Pretendard")
  */
 final class EditorFont {
 
