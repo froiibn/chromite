@@ -16,6 +16,8 @@
  */
 package com.seizia.chromite.ui.swing;
 
+import com.seizia.chromite.ui.swing.internal.ConnectionMessages;
+import org.eclipse.osgi.util.NLS;
 import org.jkiss.code.NotNull;
 import org.jkiss.dbeaver.DBException;
 import org.jkiss.dbeaver.Log;
@@ -56,6 +58,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
  *
  * 변경 이력:
  * - 2026-11-06 D단계: 최초 작성 (docs/chromite/swing-frontend.md "구현 현황 — D단계")
+ * - 2026-11-06 화면 문구를 ConnectionMessages로 옮김(OS 언어를 따름)
  */
 public class SwingDriversService implements UIServiceDrivers {
 
@@ -78,13 +81,13 @@ public class SwingDriversService implements UIServiceDrivers {
             }
             try {
                 Boolean downloaded = ProgressDialog.runTask(
-                    "Download driver files",
+                    ConnectionMessages.drivers_download_title,
                     downloadMonitor -> DriverUtils.downloadDriverFiles(downloadMonitor, driverDescriptor, dependencies)
                         && !downloadMonitor.isCanceled());
                 result.set(Boolean.TRUE.equals(downloaded));
             } catch (DBException e) {
-                DBWorkbench.getPlatformUI().showError("Download driver files",
-                    "Can't download the files of driver '" + driverDescriptor.getFullName() + "'", e);
+                DBWorkbench.getPlatformUI().showError(ConnectionMessages.drivers_download_title,
+                    NLS.bind(ConnectionMessages.drivers_download_error, driverDescriptor.getFullName()), e);
             }
         };
         if (SwingUtilities.isEventDispatchThread()) {
@@ -105,7 +108,7 @@ public class SwingDriversService implements UIServiceDrivers {
 
     private static boolean confirmDownload(@NotNull DriverDescriptor driver) {
         StringBuilder message = new StringBuilder()
-            .append("Driver files for '").append(driver.getFullName()).append("' are missing.\n");
+            .append(NLS.bind(ConnectionMessages.drivers_download_missing, driver.getFullName())).append('\n');
         List<String> missing = getMissingLibraries(driver);
         if (!missing.isEmpty()) {
             message.append('\n');
@@ -113,13 +116,13 @@ public class SwingDriversService implements UIServiceDrivers {
                 message.append("  ").append(library).append('\n');
             }
         }
-        message.append("\nDownload them now?");
-        Object[] options = {"Download", "Cancel"};
+        message.append('\n').append(ConnectionMessages.drivers_download_question);
+        Object[] options = {ConnectionMessages.drivers_download_button, ConnectionMessages.common_cancel};
         // Parent: the focused window, so that the question appears over the dialog that started the download
         int choice = JOptionPane.showOptionDialog(
             KeyboardFocusManager.getCurrentKeyboardFocusManager().getActiveWindow(),
             message.toString(),
-            "Download driver files",
+            ConnectionMessages.drivers_download_title,
             JOptionPane.DEFAULT_OPTION,
             JOptionPane.QUESTION_MESSAGE,
             null,

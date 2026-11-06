@@ -16,6 +16,8 @@
  */
 package com.seizia.chromite.ui.swing;
 
+import com.seizia.chromite.ui.swing.internal.ToolsMessages;
+import org.eclipse.osgi.util.NLS;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.utils.CommonUtils;
@@ -41,6 +43,7 @@ import java.util.Locale;
  *
  * 변경 이력:
  * - 2026-11-06 Query Library: 최초 작성 (docs/chromite/swing-query-library.md "매개변수")
+ * - 2026-11-06 화면 문구를 ToolsMessages로 옮김(OS 언어를 따름)
  */
 final class QueryLibraryParameter {
 
@@ -48,13 +51,13 @@ final class QueryLibraryParameter {
      * Value type; the id is the value of {@code type:} in the file.
      */
     enum Type {
-        TEXT("text", "Text"), //$NON-NLS-1$
-        NUMBER("number", "Number"), //$NON-NLS-1$
-        DATE("date", "Date"), //$NON-NLS-1$
-        DATETIME("datetime", "Date and time"), //$NON-NLS-1$
-        BOOLEAN("boolean", "Boolean"), //$NON-NLS-1$
-        CHOICE("choice", "Choice list"), //$NON-NLS-1$
-        LOOKUP("lookup", "Lookup query"); //$NON-NLS-1$
+        TEXT("text", ToolsMessages.param_type_text), //$NON-NLS-1$
+        NUMBER("number", ToolsMessages.param_type_number), //$NON-NLS-1$
+        DATE("date", ToolsMessages.param_type_date), //$NON-NLS-1$
+        DATETIME("datetime", ToolsMessages.param_type_datetime), //$NON-NLS-1$
+        BOOLEAN("boolean", ToolsMessages.param_type_boolean), //$NON-NLS-1$
+        CHOICE("choice", ToolsMessages.param_type_choice), //$NON-NLS-1$
+        LOOKUP("lookup", ToolsMessages.param_type_lookup); //$NON-NLS-1$
 
         private final String id;
         private final String label;
@@ -200,7 +203,7 @@ final class QueryLibraryParameter {
     @Nullable
     String validate(@Nullable String value) {
         if (CommonUtils.isEmpty(value)) {
-            return required ? getDisplayLabel() + " is required." : null;
+            return required ? NLS.bind(ToolsMessages.param_error_required, getDisplayLabel()) : null;
         }
         try {
             toJdbcValue(value);
@@ -228,7 +231,7 @@ final class QueryLibraryParameter {
                 try {
                     number = new BigDecimal(text);
                 } catch (NumberFormatException e) {
-                    throw new IllegalArgumentException("'" + value + "' is not a number");
+                    throw new IllegalArgumentException(NLS.bind(ToolsMessages.param_error_number, value));
                 }
                 // Integers bind as INTEGER/BIGINT so that integer-only server functions accept them
                 if (number.scale() <= 0 || number.stripTrailingZeros().scale() <= 0) {
@@ -245,20 +248,20 @@ final class QueryLibraryParameter {
                 try {
                     yield java.sql.Date.valueOf(LocalDate.parse(text));
                 } catch (DateTimeParseException e) {
-                    throw new IllegalArgumentException("'" + value + "' is not a date (yyyy-mm-dd)");
+                    throw new IllegalArgumentException(NLS.bind(ToolsMessages.param_error_date, value));
                 }
             }
             case DATETIME -> {
                 try {
                     yield java.sql.Timestamp.valueOf(LocalDateTime.parse(text, DATE_TIME_FORMAT));
                 } catch (DateTimeParseException e) {
-                    throw new IllegalArgumentException("'" + value + "' is not a date and time (yyyy-mm-dd hh:mm[:ss])");
+                    throw new IllegalArgumentException(NLS.bind(ToolsMessages.param_error_datetime, value));
                 }
             }
             case BOOLEAN -> switch (text.toLowerCase(Locale.ROOT)) {
                 case "true", "1", "yes", "y" -> Boolean.TRUE; //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$ //$NON-NLS-4$
                 case "false", "0", "no", "n" -> Boolean.FALSE; //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$ //$NON-NLS-4$
-                default -> throw new IllegalArgumentException("'" + value + "' is not true or false");
+                default -> throw new IllegalArgumentException(NLS.bind(ToolsMessages.param_error_boolean, value));
             };
             default -> value;
         };

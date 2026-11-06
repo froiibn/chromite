@@ -16,6 +16,8 @@
  */
 package com.seizia.chromite.ui.swing;
 
+import com.seizia.chromite.ui.swing.internal.ToolsMessages;
+import org.eclipse.osgi.util.NLS;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.utils.CommonUtils;
@@ -47,6 +49,7 @@ import java.util.regex.Pattern;
  *
  * 변경 이력:
  * - 2026-11-06 Query Library ③: 최초 작성 (docs/chromite/swing-query-library.md "예약 실행")
+ * - 2026-11-06 화면 문구를 ToolsMessages로 옮김(OS 언어를 따름)
  */
 final class QueryLibrarySchedule {
 
@@ -130,7 +133,7 @@ final class QueryLibrarySchedule {
          */
         @NotNull
         String describe() {
-            return (isRows() ? "row count " : "first value ") + operator + " " + value;
+            return NLS.bind(isRows() ? ToolsMessages.schedule_condition_rows : ToolsMessages.schedule_condition_first, operator, value);
         }
     }
 
@@ -250,10 +253,10 @@ final class QueryLibrarySchedule {
     String describe() {
         return switch (kind) {
             case INTERVAL -> intervalMinutes % 60 == 0
-                ? "every " + (intervalMinutes == 60 ? "hour" : intervalMinutes / 60 + " hours")
-                : "every " + (intervalMinutes == 1 ? "minute" : intervalMinutes + " minutes");
-            case DAILY -> "daily at " + time;
-            case WEEKDAYS -> "weekdays at " + time;
+                ? (intervalMinutes == 60 ? ToolsMessages.schedule_every_hour : NLS.bind(ToolsMessages.schedule_every_hours, intervalMinutes / 60))
+                : (intervalMinutes == 1 ? ToolsMessages.schedule_every_minute : NLS.bind(ToolsMessages.schedule_every_minutes, intervalMinutes));
+            case DAILY -> NLS.bind(ToolsMessages.schedule_daily_at, time);
+            case WEEKDAYS -> NLS.bind(ToolsMessages.schedule_weekdays_at, time);
         };
     }
 

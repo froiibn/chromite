@@ -18,6 +18,8 @@ package com.seizia.chromite.ui.swing;
 
 import com.formdev.flatlaf.FlatClientProperties;
 import com.formdev.flatlaf.util.UIScale;
+import com.seizia.chromite.ui.swing.internal.EditorMessages;
+import org.eclipse.osgi.util.NLS;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.model.DBPDataSourceContainer;
@@ -52,11 +54,12 @@ import java.util.TreeSet;
  *
  * 변경 이력:
  * - 2026-11-06 최초 작성 (docs/chromite/swing-sql-editor-plus.md)
+ * - 2026-11-06 화면 문구를 EditorMessages로 옮김(OS 언어를 따름)
  */
 final class QueryHistoryDialog extends JDialog {
 
     private static final DateTimeFormatter TIME_FORMAT = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"); //$NON-NLS-1$
-    private static final String ALL_CONNECTIONS = "All connections";
+    private static final String ALL_CONNECTIONS = EditorMessages.editor_history_all_connections;
 
     /**
      * Opens a statement in a new query window (main window).
@@ -69,7 +72,8 @@ final class QueryHistoryDialog extends JDialog {
     }
 
     private enum Period {
-        TODAY("Today", 0), WEEK("Last 7 days", 7), MONTH("Last 30 days", 30), ALL("All", -1);
+        TODAY(EditorMessages.editor_history_period_today, 0), WEEK(EditorMessages.editor_history_period_week, 7),
+        MONTH(EditorMessages.editor_history_period_month, 30), ALL(EditorMessages.editor_history_period_all, -1);
 
         private final String label;
         private final int days;
@@ -96,17 +100,17 @@ final class QueryHistoryDialog extends JDialog {
     private final JTable table = new JTable(model);
     private final SqlEditorPanel.SqlTextArea preview = new SqlEditorPanel.SqlTextArea();
     private final JLabel countLabel = new JLabel();
-    private final JButton openButton = new JButton("Open in Editor");
-    private final JButton executeButton = new JButton("Execute");
+    private final JButton openButton = new JButton(EditorMessages.editor_history_open);
+    private final JButton executeButton = new JButton(EditorMessages.editor_common_execute);
     private final Runnable historyListener = () -> SwingUtilities.invokeLater(this::reload);
     private boolean updatingCombo;
 
     private QueryHistoryDialog(@NotNull Frame owner, @NotNull Opener opener) {
-        super(owner, "Query History", false);
+        super(owner, EditorMessages.editor_history_title, false);
         this.opener = opener;
         setDefaultCloseOperation(DISPOSE_ON_CLOSE);
 
-        searchField.putClientProperty(FlatClientProperties.PLACEHOLDER_TEXT, "Search statements, connections, databases");
+        searchField.putClientProperty(FlatClientProperties.PLACEHOLDER_TEXT, EditorMessages.editor_history_search);
         searchField.putClientProperty(FlatClientProperties.TEXT_FIELD_LEADING_ICON, UiIcons.get("search")); //$NON-NLS-1$
         searchField.putClientProperty(FlatClientProperties.TEXT_FIELD_SHOW_CLEAR_BUTTON, true);
         searchField.getDocument().addDocumentListener(new DocumentListener() {
@@ -131,7 +135,7 @@ final class QueryHistoryDialog extends JDialog {
         });
         periodCombo.setSelectedItem(Period.ALL);
         periodCombo.addActionListener(e -> applyFilter());
-        JButton clearButton = new JButton("Clear History…");
+        JButton clearButton = new JButton(EditorMessages.editor_history_clear);
         clearButton.addActionListener(e -> clearHistory());
 
         JPanel filters = new JPanel(new FlowLayout(FlowLayout.LEFT, 6, 0));
@@ -185,11 +189,11 @@ final class QueryHistoryDialog extends JDialog {
         split.setResizeWeight(0.7);
         split.setContinuousLayout(true);
 
-        openButton.setToolTipText("Open the statement in a new query window (Enter, double-click)");
+        openButton.setToolTipText(EditorMessages.editor_history_open_tip);
         openButton.addActionListener(e -> openSelected(false));
-        executeButton.setToolTipText("Open the statement in a new query window and execute it");
+        executeButton.setToolTipText(EditorMessages.editor_history_execute_tip);
         executeButton.addActionListener(e -> openSelected(true));
-        JButton closeButton = new JButton("Close");
+        JButton closeButton = new JButton(EditorMessages.editor_common_close);
         closeButton.addActionListener(e -> dispose());
         countLabel.putClientProperty(FlatClientProperties.STYLE, "foreground: $Chromite.secondaryForeground"); //$NON-NLS-1$
         JPanel buttons = new JPanel(new FlowLayout(FlowLayout.RIGHT, 6, 0));
@@ -290,8 +294,8 @@ final class QueryHistoryDialog extends JDialog {
             table.getSelectionModel().setSelectionInterval(index, index);
         }
         selectionChanged();
-        countLabel.setText(visible.size() + " of " + model.all.size() + (model.all.size() == 1 ? " statement" : " statements")
-            + " - kept for " + QueryHistory.getRetentionDays() + " days (Tools > Options)");
+        countLabel.setText(NLS.bind(model.all.size() == 1 ? EditorMessages.editor_history_count_one : EditorMessages.editor_history_count_many,
+            new Object[]{visible.size(), model.all.size(), QueryHistory.getRetentionDays()}));
     }
 
     private static boolean contains(@Nullable String text, @NotNull String search) {
@@ -323,7 +327,7 @@ final class QueryHistoryDialog extends JDialog {
     }
 
     private void clearHistory() {
-        if (JOptionPane.showConfirmDialog(this, "Remove all statements from the query history?", "Clear History",
+        if (JOptionPane.showConfirmDialog(this, EditorMessages.editor_history_clear_confirm, EditorMessages.editor_history_clear_title,
             JOptionPane.OK_CANCEL_OPTION, JOptionPane.WARNING_MESSAGE) == JOptionPane.OK_OPTION) {
             QueryHistory.clear();
         }
@@ -355,7 +359,9 @@ final class QueryHistoryDialog extends JDialog {
     }
 
     private static final class HistoryModel extends AbstractTableModel {
-        private static final String[] COLUMNS = {"Time", "Connection", "Database", "Duration", "Rows", "Status", "Statement"};
+        private static final String[] COLUMNS = {EditorMessages.editor_history_column_time, EditorMessages.editor_history_column_connection,
+            EditorMessages.editor_history_column_database, EditorMessages.editor_history_column_duration, EditorMessages.editor_history_column_rows,
+            EditorMessages.editor_history_column_status, EditorMessages.editor_history_column_statement};
         private List<QueryHistory.Entry> all = List.of();
         private List<QueryHistory.Entry> visible = List.of();
 
@@ -409,9 +415,9 @@ final class QueryHistoryDialog extends JDialog {
             setHorizontalAlignment(column == 3 || column == 4 ? RIGHT : LEFT);
             if (value instanceof QueryHistory.Status status) {
                 setText(switch (status) {
-                    case SUCCESS -> "Succeeded";
-                    case ERROR -> "Failed";
-                    case CANCELED -> "Canceled";
+                    case SUCCESS -> EditorMessages.editor_history_status_success;
+                    case ERROR -> EditorMessages.editor_history_status_error;
+                    case CANCELED -> EditorMessages.editor_history_status_canceled;
                 });
                 setIcon(UiIcons.get(switch (status) {
                     case SUCCESS -> "check"; //$NON-NLS-1$

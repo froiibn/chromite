@@ -16,6 +16,7 @@
  */
 package com.seizia.chromite.ui.swing;
 
+import com.seizia.chromite.ui.swing.internal.ToolsMessages;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.utils.CommonUtils;
@@ -45,6 +46,7 @@ import java.util.UUID;
  * 변경 이력:
  * - 2026-11-06 Query Library: 최초 작성 (docs/chromite/swing-query-library.md "저장 형식")
  * - 2026-11-06 Query Library ③: 예약 실행 정의({@link QueryLibrarySchedule}) (docs/chromite/swing-query-library.md "예약 실행")
+ * - 2026-11-06 화면 문구를 ToolsMessages로 옮김(OS 언어를 따름)
  */
 final class QueryLibraryItem {
 
@@ -52,9 +54,9 @@ final class QueryLibraryItem {
      * Default target of a run; the id is the value of {@code @target:} in the file.
      */
     enum TargetMode {
-        ASK("ask", "Ask when run"), //$NON-NLS-1$
-        CURRENT("current", "Current connection"), //$NON-NLS-1$
-        CONNECTION("connection", "Connection"); //$NON-NLS-1$
+        ASK("ask", ToolsMessages.library_target_ask), //$NON-NLS-1$
+        CURRENT("current", ToolsMessages.library_target_current), //$NON-NLS-1$
+        CONNECTION("connection", ToolsMessages.library_target_connection); //$NON-NLS-1$
 
         private final String id;
         private final String label;

@@ -16,6 +16,7 @@
  */
 package com.seizia.chromite.ui.swing;
 
+import com.seizia.chromite.ui.swing.internal.ConnectionMessages;
 import org.jkiss.code.NotNull;
 import org.jkiss.dbeaver.ext.mssql.SQLServerConstants;
 import org.jkiss.dbeaver.ext.mysql.MySQLConstants;
@@ -49,6 +50,7 @@ import javax.swing.*;
  *
  * 변경 이력:
  * - 2026-11-06 최초 작성: 고급 연결 설정 (docs/chromite/swing-conn-advanced.md)
+ * - 2026-11-06 화면 문구를 ConnectionMessages로 옮김(OS 언어를 따름)
  */
 final class SslHandlerPanel extends NetworkHandlerPanel {
 
@@ -73,31 +75,32 @@ final class SslHandlerPanel extends NetworkHandlerPanel {
     private final JComboBox<String> sslModeCombo = new JComboBox<>(POSTGRE_SSL_MODES);
     private final JTextField sslFactoryField = new JTextField();
     private final JTextField cipherSuitesField = new JTextField();
-    private final JCheckBox requireSslCheck = new JCheckBox("Require SSL");
-    private final JCheckBox verifyServerCertCheck = new JCheckBox("Verify server certificate");
-    private final JCheckBox publicKeyRetrievalCheck = new JCheckBox("Allow public key retrieval");
+    private final JCheckBox requireSslCheck = new JCheckBox(ConnectionMessages.ssl_require);
+    private final JCheckBox verifyServerCertCheck = new JCheckBox(ConnectionMessages.ssl_verify_certificate);
+    private final JCheckBox publicKeyRetrievalCheck = new JCheckBox(ConnectionMessages.ssl_public_key_retrieval);
 
     SslHandlerPanel(@NotNull Kind kind, @NotNull Runnable changeListener) {
         super(changeListener);
         this.kind = kind;
         ConnectionSettingsPanel.FormBuilder form = new ConnectionSettingsPanel.FormBuilder();
         if (kind == Kind.SQLSERVER) {
-            form.addRow("Keystore", createPathField(keyStoreField, "Keystore file", false));
-            keyStoreField.setToolTipText("Java keystore (*.jks, *.pfx) with the certificates to trust");
-            form.addRow("Keystore password", keyStorePasswordField);
-            form.addRow("Certificate host name", keyStoreHostnameField);
-            keyStoreHostnameField.setToolTipText("Host name in the server certificate, when it differs from the server name");
+            form.addRow(ConnectionMessages.ssl_keystore, createPathField(keyStoreField, ConnectionMessages.ssl_keystore_file, false));
+            keyStoreField.setToolTipText(ConnectionMessages.ssl_keystore_tip);
+            form.addRow(ConnectionMessages.ssl_keystore_password, keyStorePasswordField);
+            form.addRow(ConnectionMessages.ssl_certificate_host, keyStoreHostnameField);
+            keyStoreHostnameField.setToolTipText(ConnectionMessages.ssl_certificate_host_tip);
         } else {
-            form.addRow("CA certificate", createPathField(caCertField, "CA certificate file", false));
-            form.addRow("Client certificate", createPathField(clientCertField, "Client certificate file", false));
-            form.addRow("Client private key", createPathField(clientKeyField, "Client private key file", false));
+            form.addRow(ConnectionMessages.ssl_ca_certificate, createPathField(caCertField, ConnectionMessages.ssl_ca_certificate_file, false));
+            form.addRow(ConnectionMessages.ssl_client_certificate,
+                createPathField(clientCertField, ConnectionMessages.ssl_client_certificate_file, false));
+            form.addRow(ConnectionMessages.ssl_client_key, createPathField(clientKeyField, ConnectionMessages.ssl_client_key_file, false));
             if (kind == Kind.MYSQL) {
-                cipherSuitesField.setToolTipText("Comma-separated list of cipher suites (optional)");
-                form.addRow("Cipher suites", cipherSuitesField);
+                cipherSuitesField.setToolTipText(ConnectionMessages.ssl_cipher_suites_tip);
+                form.addRow(ConnectionMessages.ssl_cipher_suites, cipherSuitesField);
                 form.addGroupGap();
-                requireSslCheck.setToolTipText("Fail when the server does not support SSL");
-                verifyServerCertCheck.setToolTipText("Check the server certificate against the CA certificate");
-                publicKeyRetrievalCheck.setToolTipText("Allow the client to request the server's RSA public key");
+                requireSslCheck.setToolTipText(ConnectionMessages.ssl_require_tip);
+                verifyServerCertCheck.setToolTipText(ConnectionMessages.ssl_verify_certificate_tip);
+                publicKeyRetrievalCheck.setToolTipText(ConnectionMessages.ssl_public_key_retrieval_tip);
                 form.addRow((JLabel) null, requireSslCheck);
                 form.addRow((JLabel) null, verifyServerCertCheck);
                 form.addRow((JLabel) null, publicKeyRetrievalCheck);
@@ -108,14 +111,14 @@ final class SslHandlerPanel extends NetworkHandlerPanel {
                     public java.awt.Component getListCellRendererComponent(JList<?> list, Object value, int index, boolean isSelected, boolean cellHasFocus) {
                         super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
                         if (CommonUtils.isEmpty((String) value)) {
-                            setText("Driver default");
+                            setText(ConnectionMessages.ssl_mode_driver_default);
                         }
                         return this;
                     }
                 });
-                form.addRow("SSL mode", ConnectionSettingsPanel.leftAligned(sslModeCombo));
-                sslFactoryField.setToolTipText("Class name of an SSLSocketFactory in the driver (optional)");
-                form.addRow("SSL factory", sslFactoryField);
+                form.addRow(ConnectionMessages.ssl_mode, ConnectionSettingsPanel.leftAligned(sslModeCombo));
+                sslFactoryField.setToolTipText(ConnectionMessages.ssl_factory_tip);
+                form.addRow(ConnectionMessages.ssl_factory, sslFactoryField);
             }
         }
         component = createPage(form);

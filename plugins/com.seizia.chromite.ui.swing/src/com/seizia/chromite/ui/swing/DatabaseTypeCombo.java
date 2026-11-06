@@ -16,6 +16,7 @@
  */
 package com.seizia.chromite.ui.swing;
 
+import com.seizia.chromite.ui.swing.internal.ConnectionMessages;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.model.connection.DBPDriver;
@@ -47,6 +48,7 @@ import java.util.function.Consumer;
  *
  * 변경 이력:
  * - 2026-11-06 최초 작성: SSMS식 Connect 대화상자 (docs/chromite/swing-frontend.md "Connect 대화상자 (SSMS식)")
+ * - 2026-11-06 화면 문구를 ConnectionMessages로 옮김(OS 언어를 따름)
  */
 final class DatabaseTypeCombo extends JComboBox<Object> {
 
@@ -64,7 +66,7 @@ final class DatabaseTypeCombo extends JComboBox<Object> {
     private static final Object MORE_ITEM = new Object() {
         @Override
         public String toString() {
-            return "More database types…";
+            return ConnectionMessages.database_type_more;
         }
     };
 
@@ -186,10 +188,11 @@ final class DatabaseTypeCombo extends JComboBox<Object> {
      */
     @Nullable
     private DBPDriver chooseDriver() {
-        JDialog dialog = new JDialog(SwingUtilities.getWindowAncestor(this), "Database Type", Dialog.ModalityType.APPLICATION_MODAL);
+        JDialog dialog = new JDialog(SwingUtilities.getWindowAncestor(this), ConnectionMessages.database_type_dialog_title,
+            Dialog.ModalityType.APPLICATION_MODAL);
         DBPDriver[] result = new DBPDriver[1];
-        JButton okButton = new JButton("OK");
-        JButton cancelButton = new JButton("Cancel");
+        JButton okButton = new JButton(ConnectionMessages.common_ok);
+        JButton cancelButton = new JButton(ConnectionMessages.common_cancel);
         DriverSelectionPanel[] panel = new DriverSelectionPanel[1];
         Runnable choose = () -> {
             result[0] = panel[0].getSelectedDriver();
@@ -265,7 +268,7 @@ final class DatabaseTypeCombo extends JComboBox<Object> {
             } else {
                 setIcon(null);
                 setText(String.valueOf(value));
-                setToolTipText("Search all database types and drivers");
+                setToolTipText(ConnectionMessages.database_type_more_tip);
             }
             setIconTextGap(6);
             boolean divider = index > 0 && (index == favoriteCount || value == MORE_ITEM);

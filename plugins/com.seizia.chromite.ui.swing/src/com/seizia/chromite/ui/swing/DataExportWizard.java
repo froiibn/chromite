@@ -17,6 +17,8 @@
 package com.seizia.chromite.ui.swing;
 
 import com.formdev.flatlaf.FlatClientProperties;
+import com.seizia.chromite.ui.swing.internal.ToolsMessages;
+import org.eclipse.osgi.util.NLS;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
@@ -96,6 +98,7 @@ import java.util.Set;
  * - 2026-11-06 데이터 전송: 최초 작성 (docs/chromite/swing-data-transfer.md)
  * - 2026-11-06 필터·정렬한 결과 표의 Export Data…가 원래 쿼리(모든 행, 원래 순서)를 내보내던 문제: 뷰어의 서버 필터를 producer에 넘김,
  *   표 안에서만 한 정렬은 알림 (docs/chromite/swing-data-transfer.md)
+ * - 2026-11-06 화면 문구를 ToolsMessages로 옮김(OS 언어를 따름)
  */
 final class DataExportWizard extends DataTransferWizard {
 
@@ -155,14 +158,14 @@ final class DataExportWizard extends DataTransferWizard {
     private final JTextField folderField = new JTextField(30);
     private final JTextField patternField = new JTextField(30);
     private final JComboBox<String> encodingCombo = new JComboBox<>();
-    private final JCheckBox bomCheck = new JCheckBox("Insert BOM (byte order mark)");
-    private final JCheckBox singleFileCheck = new JCheckBox("Write all objects to a single file");
-    private final JCheckBox compressCheck = new JCheckBox("Compress (ZIP)");
-    private final JCheckBox clipboardCheck = new JCheckBox("Copy to the clipboard instead of a file");
+    private final JCheckBox bomCheck = new JCheckBox(ToolsMessages.export_output_bom);
+    private final JCheckBox singleFileCheck = new JCheckBox(ToolsMessages.export_output_single_file);
+    private final JCheckBox compressCheck = new JCheckBox(ToolsMessages.export_output_compress);
+    private final JCheckBox clipboardCheck = new JCheckBox(ToolsMessages.export_output_clipboard);
     private final JComboBox<StreamConsumerSettings.DataFileConflictBehavior> conflictCombo =
         new JComboBox<>(StreamConsumerSettings.DataFileConflictBehavior.values());
-    private final JCheckBox openFolderCheck = new JCheckBox("Open the folder when done");
-    private final JCheckBox deleteOnFailureCheck = new JCheckBox("Delete the file if the export fails", true);
+    private final JCheckBox openFolderCheck = new JCheckBox(ToolsMessages.export_output_open_folder);
+    private final JCheckBox deleteOnFailureCheck = new JCheckBox(ToolsMessages.export_output_delete_on_failure, true);
 
     private DataExportWizard(
         @Nullable Window owner,
@@ -172,7 +175,7 @@ final class DataExportWizard extends DataTransferWizard {
         @Nullable DBDDataFilter queryFilter,
         @Nullable String orderNote
     ) {
-        super(owner, "Export Data");
+        super(owner, ToolsMessages.export_title);
         this.query = query;
         this.queryFilter = queryFilter;
         this.orderNote = orderNote;
@@ -226,11 +229,12 @@ final class DataExportWizard extends DataTransferWizard {
         List<DBSDataContainer> containers;
         try {
             containers = container == null ? new ArrayList<>(selected)
-                : ProgressDialog.runTask("Export Data", monitor -> DataTransferObjects.readDataContainers(monitor, container));
+                : ProgressDialog.runTask(ToolsMessages.export_title, monitor -> DataTransferObjects.readDataContainers(monitor, container));
         } catch (DBInterruptedException e) {
             return;
         } catch (DBException e) {
-            DBWorkbench.getPlatformUI().showError("Export Data", "Can't read the tables of " + DBUtils.getObjectFullName(object, DBPEvaluationContext.UI), e);
+            DBWorkbench.getPlatformUI().showError(ToolsMessages.export_title,
+                NLS.bind(ToolsMessages.export_error_read_tables, DBUtils.getObjectFullName(object, DBPEvaluationContext.UI)), e);
             return;
         }
         for (DBSDataContainer dataContainer : selected) {
@@ -239,7 +243,7 @@ final class DataExportWizard extends DataTransferWizard {
             }
         }
         if (containers.isEmpty()) {
-            JOptionPane.showMessageDialog(parent, "There are no tables or views to export here.", "Export Data", JOptionPane.INFORMATION_MESSAGE);
+            JOptionPane.showMessageDialog(parent, ToolsMessages.export_error_nothing, ToolsMessages.export_title, JOptionPane.INFORMATION_MESSAGE);
             return;
         }
         new DataExportWizard(SwingUtilities.getWindowAncestor(parent), containers, selected, null, null, null).open();
@@ -306,7 +310,7 @@ final class DataExportWizard extends DataTransferWizard {
                 lines.add("ORDER BY " + order);
             }
         } catch (DBException e) {
-            lines.add("Filter: " + CommonUtils.notEmpty(queryFilter.getWhere()));
+            lines.add(NLS.bind(ToolsMessages.export_filter_line, CommonUtils.notEmpty(queryFilter.getWhere())));
         }
         return lines;
     }
@@ -355,7 +359,7 @@ final class DataExportWizard extends DataTransferWizard {
                 producerSettings.setQueryRowCount(true);
             }
         } catch (DBException e) {
-            DBWorkbench.getPlatformUI().showError("Export Data", "Can't configure the source", e);
+            DBWorkbench.getPlatformUI().showError(ToolsMessages.export_title, ToolsMessages.export_error_configure, e);
             return null;
         }
         if (!(settings.getNodeSettings(consumerNode) instanceof StreamConsumerSettings output)) {
@@ -393,7 +397,7 @@ final class DataExportWizard extends DataTransferWizard {
     @Override
     protected String describeTarget(@NotNull DataTransferPipe pipe) {
         if (isClipboardOutput()) {
-            return "Clipboard";
+            return ToolsMessages.export_target_clipboard;
         }
         return folderField.getText().trim();
     }
@@ -463,14 +467,14 @@ final class DataExportWizard extends DataTransferWizard {
                 text.setLineWrap(true);
                 text.putClientProperty(FlatClientProperties.STYLE_CLASS, "monospaced"); //$NON-NLS-1$
                 JLabel note = DataTransferObjects.createNote(
-                    "The query runs again on a separate connection, so all rows are exported, not only the rows fetched in the grid.");
+                    ToolsMessages.export_source_query_note);
                 panel.add(note, BorderLayout.NORTH);
                 panel.add(new JScrollPane(text), BorderLayout.CENTER);
                 List<String> filterLines = describeQueryFilter();
                 if (!filterLines.isEmpty() || orderNote != null) {
                     JPanel notes = new JPanel(new GridLayout(0, 1, 0, 4));
                     if (!filterLines.isEmpty()) {
-                        notes.add(DataTransferObjects.createNote("The grid's filter and sort are applied: " + String.join(" ", filterLines)));
+                        notes.add(DataTransferObjects.createNote(NLS.bind(ToolsMessages.export_source_filter_note, String.join(" ", filterLines))));
                     }
                     if (orderNote != null) {
                         notes.add(DataTransferObjects.createNote(orderNote));
@@ -485,9 +489,9 @@ final class DataExportWizard extends DataTransferWizard {
             table.getColumnModel().getColumn(0).setMaxWidth(40);
             table.getColumnModel().getColumn(1).setPreferredWidth(320);
             table.getColumnModel().getColumn(1).setCellRenderer(new DataTransferObjects.ObjectRenderer());
-            JButton selectAll = new JButton("Select All");
+            JButton selectAll = new JButton(ToolsMessages.export_source_select_all);
             selectAll.addActionListener(e -> model.setAll(true));
-            JButton deselectAll = new JButton("Deselect All");
+            JButton deselectAll = new JButton(ToolsMessages.export_source_deselect_all);
             deselectAll.addActionListener(e -> model.setAll(false));
             JPanel buttons = new JPanel(new FlowLayout(FlowLayout.LEFT, 6, 0));
             buttons.add(selectAll);
@@ -499,14 +503,14 @@ final class DataExportWizard extends DataTransferWizard {
         @NotNull
         @Override
         public String getTitle() {
-            return query != null ? "Source Query" : "Select Source Tables";
+            return query != null ? ToolsMessages.export_source_query_title : ToolsMessages.export_source_tables_title;
         }
 
         @NotNull
         @Override
         public String getDescription() {
-            return query != null ? "The query of the result grid is the source of the data."
-                : "Choose the tables and views to export. All rows of each one are read from the database.";
+            return query != null ? ToolsMessages.export_source_query_description
+                : ToolsMessages.export_source_tables_description;
         }
 
         @NotNull
@@ -518,12 +522,12 @@ final class DataExportWizard extends DataTransferWizard {
         @Nullable
         @Override
         public String leave() {
-            return getSelectedCount() == 0 ? "Select at least one table or view." : null;
+            return getSelectedCount() == 0 ? ToolsMessages.export_source_error_none : null;
         }
     }
 
     private final class SourceTableModel extends AbstractTableModel {
-        private final String[] columns = {"", "Source", "Type"};
+        private final String[] columns = {"", ToolsMessages.export_source_column_source, ToolsMessages.export_source_column_type};
 
         void setAll(boolean selected) {
             for (SourceItem item : sources) {
@@ -609,13 +613,13 @@ final class DataExportWizard extends DataTransferWizard {
         @NotNull
         @Override
         public String getTitle() {
-            return "Choose a Format";
+            return ToolsMessages.export_format_title;
         }
 
         @NotNull
         @Override
         public String getDescription() {
-            return "Choose the file format of the exported data.";
+            return ToolsMessages.export_format_description;
         }
 
         @NotNull
@@ -627,7 +631,7 @@ final class DataExportWizard extends DataTransferWizard {
         @Nullable
         @Override
         public String leave() {
-            return processor == null ? "Choose a format." : null;
+            return processor == null ? ToolsMessages.export_format_error_none : null;
         }
     }
 
@@ -673,9 +677,9 @@ final class DataExportWizard extends DataTransferWizard {
                     super.getListCellRendererComponent(l, value, index, isSelected, cellHasFocus);
                     if (value instanceof StreamConsumerSettings.LobExtractType type) {
                         setText(switch (type) {
-                            case SKIP -> "Set to NULL";
-                            case FILES -> "Save to separate files";
-                            case INLINE -> "Inline";
+                            case SKIP -> ToolsMessages.export_lob_skip;
+                            case FILES -> ToolsMessages.export_lob_files;
+                            case INLINE -> ToolsMessages.export_lob_inline;
                         });
                     }
                     return this;
@@ -688,10 +692,10 @@ final class DataExportWizard extends DataTransferWizard {
                     super.getListCellRendererComponent(l, value, index, isSelected, cellHasFocus);
                     if (value instanceof StreamConsumerSettings.LobEncoding encoding) {
                         setText(switch (encoding) {
-                            case BASE64 -> "Base64";
-                            case HEX -> "Hex";
-                            case BINARY -> "Binary";
-                            case NATIVE -> "Native";
+                            case BASE64 -> ToolsMessages.export_encoding_base64;
+                            case HEX -> ToolsMessages.export_encoding_hex;
+                            case BINARY -> ToolsMessages.export_encoding_binary;
+                            case NATIVE -> ToolsMessages.export_encoding_native;
                         });
                     }
                     return this;
@@ -703,9 +707,11 @@ final class DataExportWizard extends DataTransferWizard {
 
             JPanel form = new JPanel(new GridBagLayout());
             int row = 0;
-            row = DataTransferObjects.addRow(form, row, "Value format", valueFormatCombo, "how numbers and dates are written");
-            row = DataTransferObjects.addRow(form, row, "Binary values", lobExtractCombo, "BLOB and CLOB columns");
-            DataTransferObjects.addRow(form, row, "Binary encoding", lobEncodingCombo, "for inline binary values");
+            row = DataTransferObjects.addRow(form, row, ToolsMessages.export_settings_value_format, valueFormatCombo,
+                ToolsMessages.export_settings_value_format_note);
+            row = DataTransferObjects.addRow(form, row, ToolsMessages.export_settings_lob, lobExtractCombo, ToolsMessages.export_settings_lob_note);
+            DataTransferObjects.addRow(form, row, ToolsMessages.export_settings_lob_encoding, lobEncodingCombo,
+                ToolsMessages.export_settings_lob_encoding_note);
             panel.add(propertiesTable, BorderLayout.CENTER);
             panel.add(form, BorderLayout.SOUTH);
         }
@@ -713,13 +719,14 @@ final class DataExportWizard extends DataTransferWizard {
         @NotNull
         @Override
         public String getTitle() {
-            return "Format Settings";
+            return ToolsMessages.export_settings_title;
         }
 
         @NotNull
         @Override
         public String getDescription() {
-            return processor == null ? "Settings of the export format." : "Settings of the " + processor.getName() + " format. Bold values differ from the defaults.";
+            return processor == null ? ToolsMessages.export_settings_description
+                : NLS.bind(ToolsMessages.export_settings_description_format, processor.getName());
         }
 
         @NotNull
@@ -776,7 +783,7 @@ final class DataExportWizard extends DataTransferWizard {
                 public Component getListCellRendererComponent(JList<?> l, Object value, int index, boolean isSelected, boolean cellHasFocus) {
                     super.getListCellRendererComponent(l, value, index, isSelected, cellHasFocus);
                     if (value instanceof StreamConsumerSettings.DataFileConflictBehavior behavior) {
-                        setText(behavior == StreamConsumerSettings.DataFileConflictBehavior.ASK ? "Ask" : behavior.title);
+                        setText(behavior == StreamConsumerSettings.DataFileConflictBehavior.ASK ? ToolsMessages.export_output_conflict_ask : behavior.title);
                     }
                     return this;
                 }
@@ -784,7 +791,7 @@ final class DataExportWizard extends DataTransferWizard {
             conflictCombo.setSelectedItem(StreamConsumerSettings.DataFileConflictBehavior.ASK);
             clipboardCheck.addActionListener(e -> updateEnablement());
 
-            JButton browse = new JButton("Browse…");
+            JButton browse = new JButton(ToolsMessages.button_browse);
             browse.addActionListener(e -> chooseFolder());
             JPanel folderPanel = new JPanel(new BorderLayout(6, 0));
             folderPanel.add(folderField, BorderLayout.CENTER);
@@ -796,12 +803,13 @@ final class DataExportWizard extends DataTransferWizard {
 
             JPanel form = new JPanel(new GridBagLayout());
             int row = 0;
-            row = DataTransferObjects.addRow(form, row, "Directory", folderPanel, null);
-            row = DataTransferObjects.addRow(form, row, "File name pattern", patternField, null);
-            row = DataTransferObjects.addRow(form, row, null, DataTransferObjects.createNote("Variables: " + variables), null);
-            row = DataTransferObjects.addRow(form, row, "Encoding", encodingCombo, null);
+            row = DataTransferObjects.addRow(form, row, ToolsMessages.export_output_directory, folderPanel, null);
+            row = DataTransferObjects.addRow(form, row, ToolsMessages.export_output_pattern, patternField, null);
+            row = DataTransferObjects.addRow(form, row, null,
+                DataTransferObjects.createNote(NLS.bind(ToolsMessages.export_output_variables, variables)), null);
+            row = DataTransferObjects.addRow(form, row, ToolsMessages.export_output_encoding, encodingCombo, null);
             row = DataTransferObjects.addRow(form, row, null, bomCheck, null);
-            row = DataTransferObjects.addRow(form, row, "If the file exists", conflictCombo, null);
+            row = DataTransferObjects.addRow(form, row, ToolsMessages.export_output_conflict, conflictCombo, null);
             row = DataTransferObjects.addRow(form, row, null, singleFileCheck, null);
             row = DataTransferObjects.addRow(form, row, null, compressCheck, null);
             row = DataTransferObjects.addRow(form, row, null, clipboardCheck, null);
@@ -813,8 +821,8 @@ final class DataExportWizard extends DataTransferWizard {
         private void chooseFolder() {
             JFileChooser chooser = new JFileChooser(folderField.getText().trim());
             chooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
-            chooser.setDialogTitle("Output Directory");
-            if (chooser.showDialog(DataExportWizard.this, "Select") == JFileChooser.APPROVE_OPTION) {
+            chooser.setDialogTitle(ToolsMessages.export_output_choose_title);
+            if (chooser.showDialog(DataExportWizard.this, ToolsMessages.export_output_choose_button) == JFileChooser.APPROVE_OPTION) {
                 File folder = chooser.getSelectedFile();
                 folderField.setText(folder.getAbsolutePath());
             }
@@ -839,13 +847,13 @@ final class DataExportWizard extends DataTransferWizard {
         @NotNull
         @Override
         public String getTitle() {
-            return "Output";
+            return ToolsMessages.export_output_title;
         }
 
         @NotNull
         @Override
         public String getDescription() {
-            return "Where and how the files are written.";
+            return ToolsMessages.export_output_description;
         }
 
         @NotNull
@@ -864,15 +872,15 @@ final class DataExportWizard extends DataTransferWizard {
         public String leave() {
             if (!isClipboardOutput()) {
                 if (folderField.getText().isBlank()) {
-                    return "Enter the output directory.";
+                    return ToolsMessages.export_output_error_directory;
                 }
                 if (patternField.getText().isBlank()) {
-                    return "Enter the file name pattern.";
+                    return ToolsMessages.export_output_error_pattern;
                 }
             }
             String encoding = getEncoding();
             if (!Charset.isSupported(encoding)) {
-                return "The encoding '" + encoding + "' is not supported.";
+                return NLS.bind(ToolsMessages.export_output_error_encoding, encoding);
             }
             return null;
         }
@@ -895,13 +903,13 @@ final class DataExportWizard extends DataTransferWizard {
         @NotNull
         @Override
         public String getTitle() {
-            return "Complete the Wizard";
+            return ToolsMessages.wizard_summary_title;
         }
 
         @NotNull
         @Override
         public String getDescription() {
-            return "Check the choices and click Finish to export.";
+            return ToolsMessages.export_summary_description;
         }
 
         @NotNull
@@ -913,14 +921,14 @@ final class DataExportWizard extends DataTransferWizard {
         @Override
         public void activate() {
             StringBuilder summary = new StringBuilder();
-            summary.append("Source:\n");
+            summary.append(ToolsMessages.export_summary_source).append('\n');
             for (SourceItem item : sources) {
                 if (item.selected()[0]) {
                     summary.append("    ").append(CommonUtils.truncateString(DBUtils.getObjectFullName(item.container(), DBPEvaluationContext.UI), 300)).append('\n');
                 }
             }
             if (query != null) {
-                summary.append("    (the query runs again to read all rows)\n");
+                summary.append("    ").append(ToolsMessages.export_summary_query_rerun).append('\n');
                 for (String line : describeQueryFilter()) {
                     summary.append("    ").append(line).append('\n');
                 }
@@ -928,31 +936,33 @@ final class DataExportWizard extends DataTransferWizard {
                     summary.append("    ").append(orderNote).append('\n');
                 }
             }
-            summary.append("\nFormat: ").append(processor == null ? "?" : processor.getName()).append('\n');
+            summary.append('\n').append(NLS.bind(ToolsMessages.export_summary_format, processor == null ? "?" : processor.getName())).append('\n');
             Map<String, Object> changed = getProcessorProperties().getPropertyValues();
             for (Map.Entry<String, Object> entry : changed.entrySet()) {
                 summary.append("    ").append(entry.getKey()).append(" = ").append(entry.getValue()).append('\n');
             }
             if (valueFormatCombo.getSelectedItem() instanceof DBDDisplayFormat format) {
-                summary.append("Value format: ").append(getValueFormatLabel(format)).append('\n');
+                summary.append(NLS.bind(ToolsMessages.export_summary_value_format, getValueFormatLabel(format))).append('\n');
             }
-            summary.append("\nOutput: ");
+            summary.append('\n').append(ToolsMessages.export_summary_output).append(' ');
             if (isClipboardOutput()) {
-                summary.append("clipboard\n");
+                summary.append(ToolsMessages.export_summary_clipboard).append('\n');
             } else {
                 summary.append(Path.of(folderField.getText().trim()).resolve(patternField.getText().trim()))
                     .append(processor == null ? "" : "." + CommonUtils.notEmpty(CommonUtils.toString(
                         getProcessorProperties().getPropertiesWithDefaults().get(StreamConsumerSettings.PROP_FILE_EXTENSION))))
                     .append('\n');
-                summary.append("Encoding: ").append(getEncoding()).append(bomCheck.isSelected() && bomCheck.isEnabled() ? " with BOM" : "").append('\n');
+                summary.append(NLS.bind(bomCheck.isSelected() && bomCheck.isEnabled()
+                        ? ToolsMessages.export_summary_encoding_bom : ToolsMessages.export_summary_encoding,
+                    getEncoding())).append('\n');
                 if (singleFileCheck.isSelected() && singleFileCheck.isEnabled()) {
-                    summary.append("All objects in a single file\n");
+                    summary.append(ToolsMessages.export_summary_single_file).append('\n');
                 }
                 if (compressCheck.isSelected()) {
-                    summary.append("Compressed (ZIP)\n");
+                    summary.append(ToolsMessages.export_summary_compress).append('\n');
                 }
                 if (openFolderCheck.isSelected()) {
-                    summary.append("The folder opens when done\n");
+                    summary.append(ToolsMessages.export_summary_open_folder).append('\n');
                 }
             }
             text.setText(summary.toString());
@@ -963,9 +973,9 @@ final class DataExportWizard extends DataTransferWizard {
     @NotNull
     private static String getValueFormatLabel(@NotNull DBDDisplayFormat format) {
         return switch (format) {
-            case UI -> "Display (as shown in grids)";
-            case EDIT -> "Editable (full precision)";
-            case NATIVE -> "Database native";
+            case UI -> ToolsMessages.export_value_format_display;
+            case EDIT -> ToolsMessages.export_value_format_edit;
+            case NATIVE -> ToolsMessages.export_value_format_native;
         };
     }
 

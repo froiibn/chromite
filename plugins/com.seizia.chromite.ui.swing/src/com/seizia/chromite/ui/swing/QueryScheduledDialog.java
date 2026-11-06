@@ -17,6 +17,8 @@
 package com.seizia.chromite.ui.swing;
 
 import com.formdev.flatlaf.FlatClientProperties;
+import com.seizia.chromite.ui.swing.internal.ToolsMessages;
+import org.eclipse.osgi.util.NLS;
 import org.jkiss.code.NotNull;
 
 import javax.swing.*;
@@ -37,11 +39,14 @@ import java.util.stream.Collectors;
  *
  * 변경 이력:
  * - 2026-11-06 Query Library ③: 최초 작성 (docs/chromite/swing-query-library.md "예약 실행")
+ * - 2026-11-06 화면 문구를 ToolsMessages로 옮김(OS 언어를 따름)
  */
 final class QueryScheduledDialog extends JDialog {
 
     private static final DateTimeFormatter TIME_FORMAT = DateTimeFormatter.ofPattern("MM-dd HH:mm:ss"); //$NON-NLS-1$
-    private static final String[] COLUMNS = {"Query", "Schedule", "Connections", "Active here", "Next run", "Last run", "Last status"};
+    private static final String[] COLUMNS = {ToolsMessages.scheduled_column_query, ToolsMessages.scheduled_column_schedule,
+        ToolsMessages.scheduled_column_connections, ToolsMessages.scheduled_column_active, ToolsMessages.scheduled_column_next_run,
+        ToolsMessages.scheduled_column_last_run, ToolsMessages.scheduled_column_last_status};
 
     private static QueryScheduledDialog instance;
 
@@ -52,7 +57,7 @@ final class QueryScheduledDialog extends JDialog {
     private List<QueryScheduler.Entry> entries = new ArrayList<>();
 
     private QueryScheduledDialog(@NotNull Window owner) {
-        super(owner, "Scheduled Queries", ModalityType.MODELESS);
+        super(owner, ToolsMessages.scheduled_title, ModalityType.MODELESS);
         setDefaultCloseOperation(DISPOSE_ON_CLOSE);
         table.setRowHeight(Math.max(table.getRowHeight(), 26));
         table.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
@@ -61,24 +66,24 @@ final class QueryScheduledDialog extends JDialog {
             table.getColumnModel().getColumn(i).setPreferredWidth(widths[i]);
         }
 
-        JLabel hint = new JLabel("Schedules run while Chromite is running. Runs missed while it was closed are not made up.");
+        JLabel hint = new JLabel(ToolsMessages.scheduled_hint);
         hint.putClientProperty(FlatClientProperties.STYLE, "foreground: $Chromite.secondaryForeground"); //$NON-NLS-1$
 
-        JButton runNowButton = new JButton("Run Now");
+        JButton runNowButton = new JButton(ToolsMessages.scheduled_run_now);
         runNowButton.addActionListener(e -> {
             QueryScheduler.Entry entry = getSelected();
             if (entry != null) {
                 QueryScheduler.getInstance().runNow(entry);
             }
         });
-        JButton historyButton = new JButton("History…");
+        JButton historyButton = new JButton(ToolsMessages.library_action_history);
         historyButton.addActionListener(e -> {
             QueryScheduler.Entry entry = getSelected();
             if (entry != null) {
                 QueryRunHistoryDialog.open(this, entry.item);
             }
         });
-        JButton closeButton = new JButton("Close");
+        JButton closeButton = new JButton(ToolsMessages.button_close);
         closeButton.addActionListener(e -> dispose());
         JPanel left = new JPanel(new FlowLayout(FlowLayout.LEFT, 6, 0));
         left.add(runNowButton);
@@ -168,14 +173,15 @@ final class QueryScheduledDialog extends JDialog {
             boolean active = QueryLibraryState.isScheduleActive(entry.item);
             return switch (column) {
                 case 0 -> entry.item.getName();
-                case 1 -> schedule == null ? "" : schedule.describe() + (schedule.isEnabled() ? "" : " (disabled)"); //$NON-NLS-1$ //$NON-NLS-2$
+                case 1 -> schedule == null ? "" : schedule.isEnabled() ? schedule.describe() //$NON-NLS-1$
+                    : NLS.bind(ToolsMessages.scheduled_disabled, schedule.describe());
                 case 2 -> schedule == null ? "" : schedule.getTargets().stream() //$NON-NLS-1$
                     .map(QueryLibrarySchedule.Target::name).collect(Collectors.joining(", ")); //$NON-NLS-1$
                 case 3 -> active;
-                case 4 -> entry.isRunning() ? "running…" : !active || schedule == null || !schedule.isEnabled() || entry.nextRun == null
+                case 4 -> entry.isRunning() ? ToolsMessages.scheduled_running : !active || schedule == null || !schedule.isEnabled() || entry.nextRun == null
                     ? "—" : formatNext(entry.nextRun); //$NON-NLS-1$
                 case 5 -> entry.lastRun != null ? entry.lastRun.format(TIME_FORMAT) : "—"; //$NON-NLS-1$
-                default -> entry.lastStatus == null ? "" : entry.lastStatus + ": " + entry.lastMessage; //$NON-NLS-1$ //$NON-NLS-2$
+                default -> entry.lastStatus == null ? "" : entry.lastStatus.getLabel() + ": " + entry.lastMessage; //$NON-NLS-1$ //$NON-NLS-2$
             };
         }
 
@@ -189,7 +195,9 @@ final class QueryScheduledDialog extends JDialog {
         @NotNull
         private static String formatNext(@NotNull LocalDateTime next) {
             long seconds = Math.max(0, java.time.Duration.between(LocalDateTime.now(), next).getSeconds());
-            String remaining = seconds < 60 ? "in " + seconds + " s" : seconds < 3600 ? "in " + seconds / 60 + " min" : "in " + seconds / 3600 + " h";
+            String remaining = seconds < 60 ? NLS.bind(ToolsMessages.scheduled_in_seconds, seconds)
+                : seconds < 3600 ? NLS.bind(ToolsMessages.scheduled_in_minutes, seconds / 60)
+                : NLS.bind(ToolsMessages.scheduled_in_hours, seconds / 3600);
             return next.format(TIME_FORMAT) + " (" + remaining + ")"; //$NON-NLS-1$ //$NON-NLS-2$
         }
     }

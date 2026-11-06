@@ -16,6 +16,7 @@
  */
 package com.seizia.chromite.model.sql.exec;
 
+import org.eclipse.osgi.util.NLS;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.model.data.DBDDataReceiver;
@@ -23,6 +24,7 @@ import org.jkiss.dbeaver.model.exec.DBCException;
 import org.jkiss.dbeaver.model.exec.DBCStatement;
 import org.jkiss.dbeaver.model.exec.DBCStatistics;
 import org.jkiss.dbeaver.model.sql.SQLQuery;
+import org.jkiss.dbeaver.model.sql.messages.ModelSQLMessages;
 import org.jkiss.dbeaver.runtime.DBWorkbench;
 import org.jkiss.dbeaver.runtime.ui.DBPPlatformUI;
 
@@ -44,6 +46,7 @@ import org.jkiss.dbeaver.runtime.ui.DBPPlatformUI;
  *   {@link #bindParameters} 추가. 모델의 매개변수 처리({@code SQLScriptContext.fillQueryParameters})는 값을 텍스트로 치환하므로
  *   안전한 바인딩은 문장을 만드는 이 지점에서만 할 수 있다. 기본값은 바인딩 없음(SWT 동작 그대로)
  *   (docs/chromite/swing-query-library.md "매개변수 바인딩").
+ * - 2026-11-06 기본 확인 대화상자 문구를 {@link ModelSQLMessages}로 옮김(OS 언어를 따름)
  */
 public interface SQLQueryExecuteHandler {
 
@@ -116,8 +119,8 @@ public interface SQLQueryExecuteHandler {
     @NotNull
     default QueryConfirmation confirmQueryExecution(@NotNull SQLQuery query, boolean scriptMode) {
         boolean confirmed = DBWorkbench.getPlatformUI().confirmAction(
-            "Confirm query execution",
-            "Do you confirm query execution?\n\n" + query.getText(),
+            ModelSQLMessages.model_sql_exec_confirm_title,
+            NLS.bind(ModelSQLMessages.model_sql_exec_confirm_message, query.getText()),
             true);
         return confirmed ? QueryConfirmation.YES : QueryConfirmation.CANCEL;
     }
@@ -138,8 +141,8 @@ public interface SQLQueryExecuteHandler {
      */
     default boolean confirmFetchManyResultSets(int resultSetLimit) {
         return DBWorkbench.getPlatformUI().confirmAction(
-            "Query execution returned too many result sets",
-            "Query had returned more than " + resultSetLimit + " result sets. Are you sure you want to open more?",
+            ModelSQLMessages.model_sql_exec_many_results_title,
+            NLS.bind(ModelSQLMessages.model_sql_exec_many_results_message, resultSetLimit),
             true);
     }
 

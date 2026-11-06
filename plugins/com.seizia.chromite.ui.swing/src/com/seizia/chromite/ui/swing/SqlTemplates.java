@@ -16,6 +16,7 @@
  */
 package com.seizia.chromite.ui.swing;
 
+import com.seizia.chromite.ui.swing.internal.EditorMessages;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
@@ -56,6 +57,7 @@ import java.util.regex.Pattern;
  *
  * 변경 이력:
  * - 2026-11-06 최초 작성 (docs/chromite/swing-sql-editor-plus.md)
+ * - 2026-11-06 화면 문구를 EditorMessages로 옮김(OS 언어를 따름)
  */
 final class SqlTemplates {
 
@@ -79,23 +81,24 @@ final class SqlTemplates {
     }
 
     /**
-     * Built-in templates. The first five are the defaults of the SWT SQL editor (same ids and text).
+     * Built-in templates. The first five are the defaults of the SWT SQL editor (same ids and English text).
+     * Descriptions follow the UI language; only a built-in template the user changed is saved, with its text as shown.
      */
     static final List<Template> DEFAULTS = List.of(
-        new Template("org.jkiss.dbeaver.templates.scount", "scount", "select row count", "select count(*) from ${table};", true), //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-4$
-        new Template("org.jkiss.dbeaver.templates.swhere", "swhere", "select with condition", //$NON-NLS-1$ //$NON-NLS-2$
+        new Template("org.jkiss.dbeaver.templates.scount", "scount", EditorMessages.editor_templates_default_scount, "select count(*) from ${table};", true), //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$
+        new Template("org.jkiss.dbeaver.templates.swhere", "swhere", EditorMessages.editor_templates_default_swhere, //$NON-NLS-1$ //$NON-NLS-2$
             "select * from ${table} where ${column}='${value}';", true), //$NON-NLS-1$
-        new Template("org.jkiss.dbeaver.templates.scgb", "scgb", "select count with group by", //$NON-NLS-1$ //$NON-NLS-2$
+        new Template("org.jkiss.dbeaver.templates.scgb", "scgb", EditorMessages.editor_templates_default_scgb, //$NON-NLS-1$ //$NON-NLS-2$
             "select ${col:column(table)},count(*)\n    from ${table} t group by ${col};", true), //$NON-NLS-1$
-        new Template("org.jkiss.dbeaver.templates.scob", "sob", "select with order by", //$NON-NLS-1$ //$NON-NLS-2$
+        new Template("org.jkiss.dbeaver.templates.scob", "sob", EditorMessages.editor_templates_default_sob, //$NON-NLS-1$ //$NON-NLS-2$
             "select * from ${table} t order by ${column};", true), //$NON-NLS-1$
         new Template("org.jkiss.dbeaver.templates.sf", "sf", "select * from ", "select * from ${table};", true), //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-4$
-        new Template("com.seizia.chromite.templates.sel", "sel", "select all columns", "select * from ${table};", true), //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-4$
-        new Template("com.seizia.chromite.templates.ins", "ins", "insert a row", //$NON-NLS-1$ //$NON-NLS-2$
+        new Template("com.seizia.chromite.templates.sel", "sel", EditorMessages.editor_templates_default_sel, "select * from ${table};", true), //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$
+        new Template("com.seizia.chromite.templates.ins", "ins", EditorMessages.editor_templates_default_ins, //$NON-NLS-1$ //$NON-NLS-2$
             "insert into ${table} (${columns})\nvalues (${values});", true), //$NON-NLS-1$
-        new Template("com.seizia.chromite.templates.upd", "upd", "update rows", //$NON-NLS-1$ //$NON-NLS-2$
+        new Template("com.seizia.chromite.templates.upd", "upd", EditorMessages.editor_templates_default_upd, //$NON-NLS-1$ //$NON-NLS-2$
             "update ${table}\nset ${column} = ${value}\nwhere ${condition};", true), //$NON-NLS-1$
-        new Template("com.seizia.chromite.templates.del", "del", "delete rows", //$NON-NLS-1$ //$NON-NLS-2$
+        new Template("com.seizia.chromite.templates.del", "del", EditorMessages.editor_templates_default_del, //$NON-NLS-1$ //$NON-NLS-2$
             "delete from ${table}\nwhere ${condition};", true) //$NON-NLS-1$
     );
 

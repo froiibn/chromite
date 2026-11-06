@@ -17,6 +17,7 @@
 package com.seizia.chromite.ui.swing;
 
 import com.formdev.flatlaf.FlatClientProperties;
+import com.seizia.chromite.ui.swing.internal.ConnectionMessages;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 
@@ -40,16 +41,17 @@ import java.util.List;
  *
  * 변경 이력:
  * - 2026-11-06 최초 작성: 고급 연결 설정 (docs/chromite/swing-conn-advanced.md)
+ * - 2026-11-06 화면 문구를 ConnectionMessages로 옮김(OS 언어를 따름)
  */
 final class BootstrapQueriesDialog extends JDialog {
 
     private final DefaultListModel<String> queriesModel = new DefaultListModel<>();
     private final JList<String> queriesList = new JList<>(queriesModel);
-    private final JCheckBox ignoreErrorsCheck = new JCheckBox("Ignore SQL errors");
+    private final JCheckBox ignoreErrorsCheck = new JCheckBox(ConnectionMessages.bootstrap_ignore_errors);
     private boolean accepted;
 
     private BootstrapQueriesDialog(@Nullable Window owner, @NotNull List<String> queries, boolean ignoreErrors) {
-        super(owner, "Bootstrap Queries", ModalityType.APPLICATION_MODAL);
+        super(owner, ConnectionMessages.bootstrap_title, ModalityType.APPLICATION_MODAL);
         for (String query : queries) {
             queriesModel.addElement(query);
         }
@@ -73,9 +75,9 @@ final class BootstrapQueriesDialog extends JDialog {
             }
         });
 
-        JButton addButton = new JButton("Add…");
-        JButton editButton = new JButton("Edit…");
-        JButton removeButton = new JButton("Remove");
+        JButton addButton = new JButton(ConnectionMessages.common_add);
+        JButton editButton = new JButton(ConnectionMessages.common_edit);
+        JButton removeButton = new JButton(ConnectionMessages.common_remove);
         addButton.addActionListener(e -> addQuery());
         editButton.addActionListener(e -> editQuery());
         removeButton.addActionListener(e -> {
@@ -99,7 +101,7 @@ final class BootstrapQueriesDialog extends JDialog {
         JPanel listButtonsHolder = new JPanel(new BorderLayout());
         listButtonsHolder.add(listButtons, BorderLayout.NORTH);
 
-        JLabel hint = new JLabel("SQL queries executed right after the connection is opened");
+        JLabel hint = new JLabel(ConnectionMessages.bootstrap_hint);
         JPanel center = new JPanel(new BorderLayout(12, 6));
         center.add(hint, BorderLayout.NORTH);
         JScrollPane scrollPane = new JScrollPane(queriesList);
@@ -108,8 +110,8 @@ final class BootstrapQueriesDialog extends JDialog {
         center.add(listButtonsHolder, BorderLayout.EAST);
         center.add(ignoreErrorsCheck, BorderLayout.SOUTH);
 
-        JButton okButton = new JButton("OK");
-        JButton cancelButton = new JButton("Cancel");
+        JButton okButton = new JButton(ConnectionMessages.common_ok);
+        JButton cancelButton = new JButton(ConnectionMessages.common_cancel);
         okButton.addActionListener(e -> {
             accepted = true;
             dispose();
@@ -199,7 +201,8 @@ final class BootstrapQueriesDialog extends JDialog {
             public void ancestorMoved(AncestorEvent event) {
             }
         });
-        int result = JOptionPane.showConfirmDialog(this, scrollPane, "Bootstrap Query", JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
+        int result = JOptionPane.showConfirmDialog(this, scrollPane, ConnectionMessages.bootstrap_query_title, JOptionPane.OK_CANCEL_OPTION,
+            JOptionPane.PLAIN_MESSAGE);
         if (result != JOptionPane.OK_OPTION || textArea.getText().isBlank()) {
             return null;
         }

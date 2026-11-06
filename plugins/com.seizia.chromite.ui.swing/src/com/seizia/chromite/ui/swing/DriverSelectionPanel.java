@@ -17,6 +17,7 @@
 package com.seizia.chromite.ui.swing;
 
 import com.formdev.flatlaf.FlatClientProperties;
+import com.seizia.chromite.ui.swing.internal.ConnectionMessages;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.model.connection.DBPDriver;
@@ -58,10 +59,11 @@ import java.util.TreeSet;
  * - 2026-11-06 D단계: 최초 작성 (docs/chromite/swing-frontend.md "구현 현황 — D단계")
  * - 2026-11-06 SSMS식 Connect 대화상자: 새 연결의 1단계 화면에서 "Database type" 콤보의 전체 드라이버 검색 창으로 바꿈.
  *   콤보도 같은 드라이버 목록을 쓰도록 {@link #getConnectableDrivers()}를 패키지에 공개
+ * - 2026-11-06 화면 문구를 ConnectionMessages로 옮김(OS 언어를 따름)
  */
 final class DriverSelectionPanel extends JPanel {
 
-    private static final String ALL_CATEGORIES = "All categories";
+    private static final String ALL_CATEGORIES = ConnectionMessages.driver_select_all_categories;
 
     private final List<DBPDriver> allDrivers;
     private final DefaultListModel<DBPDriver> listModel = new DefaultListModel<>();
@@ -91,7 +93,7 @@ final class DriverSelectionPanel extends JPanel {
         categoryCombo = new JComboBox<>(categoryItems.toArray(new String[0]));
         categoryCombo.addActionListener(e -> applyFilter());
 
-        searchField.putClientProperty(FlatClientProperties.PLACEHOLDER_TEXT, "Search drivers"); //$NON-NLS-1$
+        searchField.putClientProperty(FlatClientProperties.PLACEHOLDER_TEXT, ConnectionMessages.driver_select_search);
         searchField.putClientProperty(FlatClientProperties.TEXT_FIELD_SHOW_CLEAR_BUTTON, true);
         searchField.getDocument().addDocumentListener(new DocumentListener() {
             @Override
@@ -159,7 +161,7 @@ final class DriverSelectionPanel extends JPanel {
         filterPanel.add(searchField, BorderLayout.CENTER);
         filterPanel.add(categoryCombo, BorderLayout.EAST);
 
-        JLabel title = new JLabel("Select the database driver:");
+        JLabel title = new JLabel(ConnectionMessages.driver_select_title);
         JPanel top = new JPanel(new BorderLayout(0, 6));
         top.add(title, BorderLayout.NORTH);
         top.add(filterPanel, BorderLayout.CENTER);

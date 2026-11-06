@@ -16,6 +16,8 @@
  */
 package com.seizia.chromite.ui.swing;
 
+import com.seizia.chromite.ui.swing.internal.ConnectionMessages;
+import org.eclipse.osgi.util.NLS;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
@@ -62,12 +64,14 @@ import java.util.List;
  *
  * 변경 이력:
  * - 2026-11-06 최초 작성: 고급 연결 설정 (docs/chromite/swing-conn-advanced.md)
+ * - 2026-11-06 화면 문구를 ConnectionMessages로 옮김(OS 언어를 따름)
  */
 final class SshTunnelPanel extends NetworkHandlerPanel {
 
     private static final Log log = Log.getLog(SshTunnelPanel.class);
 
-    private static final String[] AUTH_TYPE_NAMES = {"Password", "Public key", "Agent"};
+    private static final String[] AUTH_TYPE_NAMES = {
+        ConnectionMessages.settings_password, ConnectionMessages.ssh_auth_public_key, ConnectionMessages.ssh_auth_agent};
 
     private final JComponent component;
 
@@ -75,13 +79,13 @@ final class SshTunnelPanel extends NetworkHandlerPanel {
     private final JSpinner portSpinner = createNumberSpinner(SSHConstants.DEFAULT_PORT, 1, 65535);
     private final JTextField userField = new JTextField();
     private final JComboBox<String> authTypeCombo = new JComboBox<>(AUTH_TYPE_NAMES);
-    private final JLabel privateKeyLabel = new JLabel("Private key");
+    private final JLabel privateKeyLabel = new JLabel(ConnectionMessages.ssh_private_key);
     private final JTextField privateKeyField = new JTextField();
     private final JComponent privateKeyRow;
-    private final JLabel passwordLabel = new JLabel("Password");
+    private final JLabel passwordLabel = new JLabel(ConnectionMessages.settings_password);
     private final JPasswordField passwordField = new JPasswordField();
-    private final JCheckBox savePasswordCheck = new JCheckBox("Remember password");
-    private final JLabel agentSocketLabel = new JLabel("Agent socket");
+    private final JCheckBox savePasswordCheck = new JCheckBox(ConnectionMessages.settings_remember_password);
+    private final JLabel agentSocketLabel = new JLabel(ConnectionMessages.ssh_agent_socket);
     private final JTextField agentSocketField = new JTextField();
     private final JLabel jumpHostsLabel = new JLabel();
 
@@ -92,9 +96,9 @@ final class SshTunnelPanel extends NetworkHandlerPanel {
     private final JSpinner localPortSpinner = createNumberSpinner(0, 0, 65535);
     private final JTextField remoteHostField = new JTextField();
     private final JSpinner remotePortSpinner = createNumberSpinner(0, 0, 65535);
-    private final JCheckBox bypassVerificationCheck = new JCheckBox("Bypass host key verification");
-    private final JCheckBox shareTunnelsCheck = new JCheckBox("Share this tunnel with other connections");
-    private final JButton testButton = new JButton("Test Tunnel");
+    private final JCheckBox bypassVerificationCheck = new JCheckBox(ConnectionMessages.ssh_bypass_verification);
+    private final JCheckBox shareTunnelsCheck = new JCheckBox(ConnectionMessages.ssh_share_tunnel);
+    private final JButton testButton = new JButton(ConnectionMessages.ssh_test);
 
     /**
      * Jump servers read from the configuration: saved again as they are.
@@ -127,26 +131,26 @@ final class SshTunnelPanel extends NetworkHandlerPanel {
             updateAuthTypeFields();
             changeListener.run();
         });
-        privateKeyRow = createPathField(privateKeyField, "Private key file", false);
-        agentSocketField.setToolTipText("Path to the SSH agent socket; empty uses the default");
-        localHostField.setToolTipText("Local host of the tunnel; 127.0.0.1 when empty");
-        localPortSpinner.setToolTipText("Local port of the tunnel; 0 picks a free port");
-        remoteHostField.setToolTipText("Database host as seen from the SSH server; the server name of the connection when empty");
-        remotePortSpinner.setToolTipText("Database port as seen from the SSH server; the port of the connection when 0");
-        bypassVerificationCheck.setToolTipText("Skipping the host key check allows man-in-the-middle attacks");
-        shareTunnelsCheck.setToolTipText("Reuse one SSH session for the connections with the same tunnel settings");
+        privateKeyRow = createPathField(privateKeyField, ConnectionMessages.ssh_private_key_file, false);
+        agentSocketField.setToolTipText(ConnectionMessages.ssh_agent_socket_tip);
+        localHostField.setToolTipText(ConnectionMessages.ssh_local_host_tip);
+        localPortSpinner.setToolTipText(ConnectionMessages.ssh_local_port_tip);
+        remoteHostField.setToolTipText(ConnectionMessages.ssh_remote_host_tip);
+        remotePortSpinner.setToolTipText(ConnectionMessages.ssh_remote_port_tip);
+        bypassVerificationCheck.setToolTipText(ConnectionMessages.ssh_bypass_verification_tip);
+        shareTunnelsCheck.setToolTipText(ConnectionMessages.ssh_share_tunnel_tip);
         testButton.addActionListener(e -> testTunnel());
 
         ConnectionSettingsPanel.FormBuilder form = new ConnectionSettingsPanel.FormBuilder();
         JPanel hostPanel = new JPanel(new BorderLayout(12, 0));
         hostPanel.add(hostField, BorderLayout.CENTER);
         JPanel portPanel = new JPanel(new BorderLayout(6, 0));
-        portPanel.add(new JLabel("Port"), BorderLayout.WEST);
+        portPanel.add(new JLabel(ConnectionMessages.common_port), BorderLayout.WEST);
         portPanel.add(portSpinner, BorderLayout.CENTER);
         hostPanel.add(portPanel, BorderLayout.EAST);
-        form.addRow("SSH host", hostPanel);
-        form.addRow("User name", userField);
-        form.addRow("Authentication", ConnectionSettingsPanel.leftAligned(authTypeCombo));
+        form.addRow(ConnectionMessages.ssh_host, hostPanel);
+        form.addRow(ConnectionMessages.common_user_name, userField);
+        form.addRow(ConnectionMessages.settings_authentication, ConnectionSettingsPanel.leftAligned(authTypeCombo));
         form.addRow(privateKeyLabel, privateKeyRow);
         form.addRow(passwordLabel, passwordField);
         form.addRow((JLabel) null, savePasswordCheck);
@@ -155,13 +159,13 @@ final class SshTunnelPanel extends NetworkHandlerPanel {
         jumpHostsLabel.setForeground(ConnectionDialog.getThemeColor("Chromite.secondaryForeground", "Label.disabledForeground", Color.GRAY)); //$NON-NLS-1$ //$NON-NLS-2$
 
         form.addGroupGap();
-        form.addRow("Implementation", ConnectionSettingsPanel.leftAligned(implementationCombo));
-        form.addRow("Keep-alive interval (ms)", ConnectionSettingsPanel.leftAligned(keepAliveSpinner));
-        form.addRow("Connect timeout (ms)", ConnectionSettingsPanel.leftAligned(timeoutSpinner));
-        form.addRow("Local host", localHostField);
-        form.addRow("Local port", ConnectionSettingsPanel.leftAligned(localPortSpinner));
-        form.addRow("Remote host", remoteHostField);
-        form.addRow("Remote port", ConnectionSettingsPanel.leftAligned(remotePortSpinner));
+        form.addRow(ConnectionMessages.ssh_implementation, ConnectionSettingsPanel.leftAligned(implementationCombo));
+        form.addRow(ConnectionMessages.ssh_keep_alive, ConnectionSettingsPanel.leftAligned(keepAliveSpinner));
+        form.addRow(ConnectionMessages.ssh_connect_timeout, ConnectionSettingsPanel.leftAligned(timeoutSpinner));
+        form.addRow(ConnectionMessages.ssh_local_host, localHostField);
+        form.addRow(ConnectionMessages.ssh_local_port, ConnectionSettingsPanel.leftAligned(localPortSpinner));
+        form.addRow(ConnectionMessages.ssh_remote_host, remoteHostField);
+        form.addRow(ConnectionMessages.ssh_remote_port, ConnectionSettingsPanel.leftAligned(remotePortSpinner));
         form.addRow((JLabel) null, bypassVerificationCheck);
         form.addRow((JLabel) null, shareTunnelsCheck);
         form.addGroupGap();
@@ -188,7 +192,7 @@ final class SshTunnelPanel extends NetworkHandlerPanel {
                 SSHConstants.DEFAULT_PORT, new SSHAuthConfiguration.Password("", true))};
         }
         jumpHosts = new ArrayList<>(Arrays.asList(hosts).subList(0, hosts.length - 1));
-        jumpHostsLabel.setText(jumpHosts.isEmpty() ? "" : jumpHosts.size() + " jump server(s) configured; they are kept as they are");
+        jumpHostsLabel.setText(jumpHosts.isEmpty() ? "" : NLS.bind(ConnectionMessages.ssh_jump_hosts, jumpHosts.size())); //$NON-NLS-1$
         jumpHostsLabel.setVisible(!jumpHosts.isEmpty());
 
         SSHHostConfiguration target = hosts[hosts.length - 1];
@@ -274,10 +278,10 @@ final class SshTunnelPanel extends NetworkHandlerPanel {
     String getErrorMessage() {
         // SSHTunnelDefaultConfiguratorUI.validateConfiguration
         if (hostField.getText().isBlank()) {
-            return "Enter the SSH host.";
+            return ConnectionMessages.ssh_enter_host;
         }
         if (getAuthType() == SSHConstants.AuthType.PUBLIC_KEY && privateKeyField.getText().isBlank()) {
-            return "Choose the SSH private key file.";
+            return ConnectionMessages.ssh_choose_private_key;
         }
         return null;
     }
@@ -306,7 +310,7 @@ final class SshTunnelPanel extends NetworkHandlerPanel {
         boolean agentSocket = type == SSHConstants.AuthType.AGENT && !RuntimeUtils.isWindows();
         privateKeyLabel.setVisible(key);
         privateKeyRow.setVisible(key);
-        passwordLabel.setText(key ? "Passphrase" : "Password");
+        passwordLabel.setText(key ? ConnectionMessages.ssh_passphrase : ConnectionMessages.settings_password);
         passwordLabel.setVisible(password);
         passwordField.setVisible(password);
         savePasswordCheck.setVisible(password);
@@ -337,7 +341,7 @@ final class SshTunnelPanel extends NetworkHandlerPanel {
     private void testTunnel() {
         String problem = getErrorMessage();
         if (problem != null) {
-            DBWorkbench.getPlatformUI().showError("SSH Tunnel", problem);
+            DBWorkbench.getPlatformUI().showError(ConnectionMessages.ssh_tunnel_title, problem);
             return;
         }
         if (loadedConfiguration == null) {
@@ -358,8 +362,8 @@ final class SshTunnelPanel extends NetworkHandlerPanel {
         configuration.setDataSource(null);
         long start = System.currentTimeMillis();
         try {
-            String[] versions = ProgressDialog.runTask("Test SSH Tunnel", monitor -> {
-                monitor.beginTask("Open SSH tunnel", 2);
+            String[] versions = ProgressDialog.runTask(ConnectionMessages.ssh_test_task, monitor -> {
+                monitor.beginTask(ConnectionMessages.ssh_test_open, 2);
                 SSHTunnelImpl tunnel = new SSHTunnelImpl();
                 DBPConnectionConfiguration connectionConfiguration = new DBPConnectionConfiguration();
                 connectionConfiguration.setHostName("localhost"); //$NON-NLS-1$
@@ -373,7 +377,7 @@ final class SshTunnelPanel extends NetworkHandlerPanel {
                             tunnel.getImplementation().getServerVersion()
                         };
                     } finally {
-                        monitor.subTask("Close SSH tunnel");
+                        monitor.subTask(ConnectionMessages.ssh_test_close);
                         tunnel.closeTunnel(monitor);
                     }
                 } finally {
@@ -381,13 +385,12 @@ final class SshTunnelPanel extends NetworkHandlerPanel {
                 }
             });
             JOptionPane.showMessageDialog(component,
-                "SSH tunnel opened (" + (System.currentTimeMillis() - start) + " ms)\n\n"
-                    + "Client: " + CommonUtils.notEmpty(versions[0]) + "\n"
-                    + "Server: " + CommonUtils.notEmpty(versions[1]),
-                "SSH Tunnel",
+                NLS.bind(ConnectionMessages.ssh_test_result, new Object[] {
+                    System.currentTimeMillis() - start, CommonUtils.notEmpty(versions[0]), CommonUtils.notEmpty(versions[1])}),
+                ConnectionMessages.ssh_tunnel_title,
                 JOptionPane.INFORMATION_MESSAGE);
         } catch (DBException e) {
-            DBWorkbench.getPlatformUI().showError("SSH Tunnel", "Can't open the SSH tunnel", e);
+            DBWorkbench.getPlatformUI().showError(ConnectionMessages.ssh_tunnel_title, ConnectionMessages.ssh_test_error, e);
         }
     }
 

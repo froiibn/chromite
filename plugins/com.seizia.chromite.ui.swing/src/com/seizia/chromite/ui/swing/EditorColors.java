@@ -16,6 +16,7 @@
  */
 package com.seizia.chromite.ui.swing;
 
+import com.seizia.chromite.ui.swing.internal.CoreMessages;
 import org.fife.ui.rsyntaxtextarea.Style;
 import org.fife.ui.rsyntaxtextarea.Theme;
 import org.fife.ui.rsyntaxtextarea.TokenTypes;
@@ -48,6 +49,7 @@ import java.util.Map;
  *
  * 변경 이력:
  * - 2026-11-06 최초 작성: 사용자 편집기 색(SWT의 Colors and Fonts &gt; SQL Editor에 해당) (docs/chromite/design-spec.md "편집기 글꼴과 SQL 색")
+ * - 2026-11-06 화면 문구를 CoreMessages로 옮김(OS 언어를 따름)
  */
 final class EditorColors {
 
@@ -61,24 +63,24 @@ final class EditorColors {
      * A customizable color. Token items list the token types they color; the first one holds the default.
      */
     enum Item {
-        TEXT("Text (identifiers)", TokenTypes.IDENTIFIER, TokenTypes.LITERAL_BACKQUOTE, TokenTypes.PREPROCESSOR,
+        TEXT(CoreMessages.editor_colors_text, TokenTypes.IDENTIFIER, TokenTypes.LITERAL_BACKQUOTE, TokenTypes.PREPROCESSOR,
             TokenTypes.ANNOTATION, TokenTypes.ERROR_IDENTIFIER, TokenTypes.ERROR_NUMBER_FORMAT, TokenTypes.ERROR_STRING_DOUBLE,
             TokenTypes.ERROR_CHAR),
-        KEYWORD("Keyword", TokenTypes.RESERVED_WORD, TokenTypes.RESERVED_WORD_2, TokenTypes.LITERAL_BOOLEAN),
-        OPERATOR("Operator (AND, OR, IS, NULL, punctuation)", TokenTypes.OPERATOR, TokenTypes.SEPARATOR),
-        FUNCTION("Function (incl. date parts, @@ variables)", TokenTypes.FUNCTION),
-        STRING("String", TokenTypes.LITERAL_CHAR, TokenTypes.LITERAL_STRING_DOUBLE_QUOTE),
-        NUMBER("Number", TokenTypes.LITERAL_NUMBER_DECIMAL_INT, TokenTypes.LITERAL_NUMBER_FLOAT,
+        KEYWORD(CoreMessages.editor_colors_keyword, TokenTypes.RESERVED_WORD, TokenTypes.RESERVED_WORD_2, TokenTypes.LITERAL_BOOLEAN),
+        OPERATOR(CoreMessages.editor_colors_operator, TokenTypes.OPERATOR, TokenTypes.SEPARATOR),
+        FUNCTION(CoreMessages.editor_colors_function, TokenTypes.FUNCTION),
+        STRING(CoreMessages.editor_colors_string, TokenTypes.LITERAL_CHAR, TokenTypes.LITERAL_STRING_DOUBLE_QUOTE),
+        NUMBER(CoreMessages.editor_colors_number, TokenTypes.LITERAL_NUMBER_DECIMAL_INT, TokenTypes.LITERAL_NUMBER_FLOAT,
             TokenTypes.LITERAL_NUMBER_HEXADECIMAL),
-        COMMENT("Comment", TokenTypes.COMMENT_EOL, TokenTypes.COMMENT_MULTILINE, TokenTypes.COMMENT_DOCUMENTATION,
+        COMMENT(CoreMessages.editor_colors_comment, TokenTypes.COMMENT_EOL, TokenTypes.COMMENT_MULTILINE, TokenTypes.COMMENT_DOCUMENTATION,
             TokenTypes.COMMENT_KEYWORD, TokenTypes.COMMENT_MARKUP),
-        DATA_TYPE("Data type", TokenTypes.DATA_TYPE),
-        VARIABLE("Variable / parameter (@x, :x, ?)", TokenTypes.VARIABLE),
-        BACKGROUND("Background"),
-        CURRENT_LINE("Current line"),
-        SELECTION("Selection"),
-        LINE_NUMBER("Line numbers"),
-        CURRENT_LINE_NUMBER("Current line number");
+        DATA_TYPE(CoreMessages.editor_colors_data_type, TokenTypes.DATA_TYPE),
+        VARIABLE(CoreMessages.editor_colors_variable, TokenTypes.VARIABLE),
+        BACKGROUND(CoreMessages.editor_colors_background),
+        CURRENT_LINE(CoreMessages.editor_colors_current_line),
+        SELECTION(CoreMessages.editor_colors_selection),
+        LINE_NUMBER(CoreMessages.editor_colors_line_numbers),
+        CURRENT_LINE_NUMBER(CoreMessages.editor_colors_current_line_number);
 
         private final String label;
         private final int[] tokenTypes;

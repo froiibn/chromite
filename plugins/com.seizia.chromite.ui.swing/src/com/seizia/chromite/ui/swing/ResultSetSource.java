@@ -16,6 +16,7 @@
  */
 package com.seizia.chromite.ui.swing;
 
+import com.seizia.chromite.ui.swing.internal.EditorMessages;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.model.exec.DBCExecutionContext;
@@ -38,6 +39,7 @@ import java.util.List;
  *
  * 변경 이력:
  * - 2026-11-06 최초 작성: 값 패널, 정렬·필터, 다음 페이지 (docs/chromite/swing-result-viewer.md)
+ * - 2026-11-06 화면 문구를 EditorMessages로 옮김(OS 언어를 따름)
  *
  * @param dataContainer     the query of the result (re-read with filters, next pages)
  * @param context           execution context of the fetch, or null if unknown
@@ -61,15 +63,15 @@ record ResultSetSource(
     @Nullable
     static String getRequeryBlocker(@NotNull DBSDataContainer dataContainer, @Nullable DBCExecutionContext context) {
         if (context == null || !context.isConnected()) {
-            return "not connected";
+            return EditorMessages.editor_common_not_connected;
         }
         if (!dataContainer.isFeatureSupported(DBSDataContainer.FEATURE_DATA_FILTER)) {
-            return "the result doesn't support filters";
+            return EditorMessages.editor_source_no_filters;
         }
         if (dataContainer instanceof SQLQueryContainer queryContainer) {
             SQLScriptElement element = queryContainer.getQuery();
             if (!(element instanceof SQLQuery query) || query.getType() != SQLQueryType.SELECT || query.isModifying()) {
-                return "not a single SELECT query";
+                return EditorMessages.editor_source_not_single_select;
             }
         }
         return null;

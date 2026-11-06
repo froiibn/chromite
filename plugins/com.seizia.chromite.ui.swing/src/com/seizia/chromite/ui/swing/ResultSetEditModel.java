@@ -16,6 +16,8 @@
  */
 package com.seizia.chromite.ui.swing;
 
+import com.seizia.chromite.ui.swing.internal.EditorMessages;
+import org.eclipse.osgi.util.NLS;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
@@ -71,6 +73,7 @@ import java.util.Objects;
  *
  * 변경 이력:
  * - 2026-11-06 G단계: 최초 작성 (docs/chromite/swing-frontend.md "구현 현황 — G단계")
+ * - 2026-11-06 화면 문구를 EditorMessages로 옮김(OS 언어를 따름)
  */
 final class ResultSetEditModel implements DBDResultSetModel {
 
@@ -203,39 +206,39 @@ final class ResultSetEditModel implements DBDResultSetModel {
             return containerStatus;
         }
         if (DBExecUtils.isResultSetReadOnly(executionContext)) {
-            return "no connection to database";
+            return EditorMessages.editor_grid_reason_no_connection;
         }
         if (bindError != null) {
-            return "can't read table metadata (" + bindError.getMessage() + ")";
+            return NLS.bind(EditorMessages.editor_grid_reason_metadata, bindError.getMessage());
         }
         DBSEntity source = DBExecUtils.detectSingleSourceTable(bindings);
         if (source == null) {
             for (DBDAttributeBinding binding : bindings) {
                 if (binding.getRowIdentifier() != null) {
-                    return "columns of several tables";
+                    return EditorMessages.editor_grid_reason_several_tables;
                 }
             }
-            return "no table columns";
+            return EditorMessages.editor_grid_reason_no_table_columns;
         }
         DBDRowIdentifier identifier = findDefaultRowIdentifier(bindings);
         if (identifier == null || identifier.isIncomplete() || !identifier.isValidIdentifier()) {
-            return "no unique key";
+            return EditorMessages.editor_grid_reason_no_unique_key;
         }
         for (DBDAttributeBinding keyAttribute : identifier.getAttributes()) {
             int position = keyAttribute.getOrdinalPosition();
             if (position < 0 || position >= unreadableColumns.length || unreadableColumns[position]) {
-                return "key values can't be read";
+                return EditorMessages.editor_grid_reason_key_unreadable;
             }
         }
         if (!isFeatureSupported(source, DBSDataManipulator.FEATURE_DATA_UPDATE)) {
-            return "the table doesn't support data changes";
+            return EditorMessages.editor_grid_reason_no_data_changes;
         }
         for (int i = 0; i < bindings.length; i++) {
             if (isEditableColumn(bindings[i], source, unreadableColumns[i])) {
                 return null;
             }
         }
-        return "no editable columns";
+        return EditorMessages.editor_grid_reason_no_editable_columns;
     }
 
     /**
@@ -329,7 +332,7 @@ final class ResultSetEditModel implements DBDResultSetModel {
     @Override
     public String getReadOnlyStatus(@Nullable DBPDataSourceContainer dataSourceContainer) {
         if (saving) {
-            return "Update in progress";
+            return EditorMessages.editor_grid_update_in_progress;
         }
         return DBExecUtils.getResultSetReadOnlyStatus(dataSourceContainer);
     }

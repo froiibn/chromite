@@ -17,6 +17,7 @@
 package com.seizia.chromite.ui.swing;
 
 import com.formdev.flatlaf.util.UIScale;
+import com.seizia.chromite.ui.swing.internal.ToolsMessages;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.Log;
@@ -55,6 +56,7 @@ import java.util.stream.Stream;
  *
  * 변경 이력:
  * - 2026-11-06 테이블 디자이너: 최초 작성 (docs/chromite/swing-table-designer.md)
+ * - 2026-11-06 화면 문구를 ToolsMessages로 옮김(OS 언어를 따름)
  */
 final class DesignerTable extends JTable {
 
@@ -441,7 +443,7 @@ final class DesignerTable extends JTable {
 
         @Override
         public String getColumnName(int column) {
-            return column == 0 ? "Property" : "Value";
+            return column == 0 ? ToolsMessages.designer_sheet_column_property : ToolsMessages.designer_sheet_column_value;
         }
 
         @Override

@@ -19,6 +19,8 @@ package com.seizia.chromite.ui.swing;
 import com.formdev.flatlaf.FlatLaf;
 import com.formdev.flatlaf.fonts.inter.FlatInterFont;
 import com.formdev.flatlaf.fonts.jetbrains_mono.FlatJetBrainsMonoFont;
+import com.formdev.flatlaf.util.FontUtils;
+import com.seizia.chromite.ui.swing.internal.CoreMessages;
 import org.jkiss.code.NotNull;
 import org.jkiss.dbeaver.Log;
 import org.jkiss.dbeaver.model.preferences.DBPPreferenceStore;
@@ -26,6 +28,8 @@ import org.jkiss.dbeaver.utils.PrefUtils;
 import org.jkiss.utils.CommonUtils;
 
 import javax.swing.*;
+import java.awt.*;
+import java.util.Map;
 import java.util.function.Supplier;
 
 /**
@@ -38,20 +42,31 @@ import java.util.function.Supplier;
  * 실행 중 전환은 {@link FlatLaf#updateUI()}로 열린 모든 창을 다시 그린다.
  * 글꼴(Inter, JetBrains Mono)은 번들에 넣은 FlatLaf 글꼴 jar를 Look and Feel을 설치하기 전에 등록한다
  * (테마 properties의 {@code defaultFont}, {@code monospaced.font}가 이 이름을 쓴다). SQL 편집기 글꼴(Cascadia Mono)도 같은 때 등록한다({@link EditorFont}).
+ * 한글 같은, Inter에 없는 글자는 Java 합성 글꼴이 운영체제 글꼴(맑은 고딕, Apple SD Gothic Neo)로 그린다. 합성 글꼴의 대체 글꼴은
+ * 글꼴 객체의 스타일(PLAIN/BOLD)을 따르고 Java에는 semibold 스타일이 없다. 그래서 {@code semibold.font = "Inter SemiBold"}(PLAIN)의
+ * 한글은 보통 굵기로 그려져 라틴 글자보다 가늘게 보였다. 화면 언어의 글자가 Inter SemiBold에 없으면 semibold를 기본 글꼴의 BOLD로 바꿔
+ * 대체 글꼴도 굵은 글꼴(맑은 고딕 Bold)이 되게 한다. 영어 화면은 지금처럼 Inter SemiBold를 쓴다(docs/chromite/swing-l10n.md "한글 굵은 글꼴").
  *
  * 변경 이력:
  * - 2026-11-06 B단계: 최초 작성 (docs/chromite/swing-frontend.md "구현 현황 — B단계")
  * - 2026-11-06 디자인 적용: Inter·JetBrains Mono 글꼴 등록 (docs/chromite/design-spec.md "적용 현황")
  * - 2026-11-06 편집기 글꼴 Cascadia Mono 등록 (docs/chromite/design-spec.md "편집기 글꼴과 SQL 색")
+ * - 2026-11-06 화면 문구를 CoreMessages로 옮김(OS 언어를 따름)
+ * - 2026-11-06 화면 언어의 글자가 Inter SemiBold에 없으면 semibold를 BOLD로 만들어 한글도 굵은 대체 글꼴로 그림
  */
 enum ChromiteTheme {
 
-    LIGHT("Light", ChromiteLightLaf::new),
-    DARK("Dark", ChromiteDarkLaf::new);
+    LIGHT(CoreMessages.theme_light, ChromiteLightLaf::new),
+    DARK(CoreMessages.theme_dark, ChromiteDarkLaf::new);
 
     private static final Log log = Log.getLog(ChromiteTheme.class);
 
     private static final String PREF_THEME = "ui.theme"; //$NON-NLS-1$
+    private static final String SEMIBOLD_FONT_KEY = "semibold.font"; //$NON-NLS-1$
+    /**
+     * FlatLaf font value: the default font (Inter) in the BOLD style, a composite font whose fallback fonts are bold too.
+     */
+    private static final String BOLD_FONT_VALUE = "bold"; //$NON-NLS-1$
 
     private final String label;
     private final Supplier<FlatLaf> lafFactory;
@@ -78,7 +93,13 @@ enum ChromiteTheme {
         FlatJetBrainsMonoFont.installLazy();
         // SQL editor font (Cascadia Mono, bundled)
         EditorFont.installLazy();
-        if (!FlatLaf.setup(lafFactory.get())) {
+        FlatLaf laf = lafFactory.get();
+        if (!isInSemiboldFont(CoreMessages.main_object_explorer)) {
+            // The semibold text of this UI language comes from the fallback font, which has the style of the font object:
+            // "Inter SemiBold" is PLAIN, so it would be the regular weight (lighter than the Latin letters beside it)
+            laf.setExtraDefaults(Map.of(SEMIBOLD_FONT_KEY, BOLD_FONT_VALUE));
+        }
+        if (!FlatLaf.setup(laf)) {
             log.warn("Can't install look and feel of theme " + name());
             return;
         }
@@ -87,6 +108,18 @@ enum ChromiteTheme {
             // Parentless dialogs are owned by the shared root frame, which is not a visible window
             SwingUtilities.updateComponentTreeUI(JOptionPane.getRootFrame());
         }
+    }
+
+    /**
+     * Whether the theme's semibold family ({@code semibold.font} in the theme properties) has glyphs for all characters
+     * of the text, i.e. the text needs no fallback font.
+     *
+     * @param text a semibold text of the UI language (a tool window title)
+     */
+    private static boolean isInSemiboldFont(@NotNull String text) {
+        FontUtils.loadFontFamily(FlatInterFont.FAMILY_SEMIBOLD);
+        // A physical font (not a composite one): canDisplayUpTo() sees only its own glyphs
+        return new Font(FlatInterFont.FAMILY_SEMIBOLD, Font.PLAIN, 1).canDisplayUpTo(text) < 0;
     }
 
     /**

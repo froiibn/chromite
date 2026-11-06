@@ -18,8 +18,10 @@ package com.seizia.chromite.ui.swing;
 
 import com.formdev.flatlaf.FlatClientProperties;
 import com.formdev.flatlaf.util.UIScale;
+import com.seizia.chromite.ui.swing.internal.ConnectionMessages;
 import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.Status;
+import org.eclipse.osgi.util.NLS;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
@@ -84,6 +86,7 @@ import java.util.function.Consumer;
  *
  * 변경 이력:
  * - 2026-11-06 최초 작성 (docs/chromite/swing-admin-tools.md)
+ * - 2026-11-06 화면 문구를 ConnectionMessages로 옮김(OS 언어를 따름)
  */
 final class ObjectSearchPanel extends JPanel implements ToolDocument {
 
@@ -94,11 +97,11 @@ final class ObjectSearchPanel extends JPanel implements ToolDocument {
      * Object type groups shown as check boxes; a database type belongs to the first group whose class it is.
      */
     enum TypeGroup {
-        VIEWS("Views"),
-        TABLES("Tables"),
-        PROCEDURES("Procedures and functions"),
-        COLUMNS("Columns"),
-        OTHER("Other objects");
+        VIEWS(ConnectionMessages.search_type_views),
+        TABLES(ConnectionMessages.search_type_tables),
+        PROCEDURES(ConnectionMessages.search_type_procedures),
+        COLUMNS(ConnectionMessages.search_type_columns),
+        OTHER(ConnectionMessages.search_type_other);
 
         private final String label;
 
@@ -129,9 +132,9 @@ final class ObjectSearchPanel extends JPanel implements ToolDocument {
     }
 
     private enum MatchType {
-        CONTAINS("Contains"),
-        STARTS_WITH("Starts with"),
-        LIKE("Like pattern (% and _)");
+        CONTAINS(ConnectionMessages.search_match_contains),
+        STARTS_WITH(ConnectionMessages.search_match_starts_with),
+        LIKE(ConnectionMessages.search_match_like);
 
         private final String label;
 
@@ -151,13 +154,13 @@ final class ObjectSearchPanel extends JPanel implements ToolDocument {
     private final Consumer<DBNNode> revealer;
     private final JTextField nameField = new JTextField(18);
     private final JComboBox<MatchType> matchCombo = new JComboBox<>(MatchType.values());
-    private final JCheckBox caseSensitiveCheck = new JCheckBox("Case sensitive");
+    private final JCheckBox caseSensitiveCheck = new JCheckBox(ConnectionMessages.search_case_sensitive);
     private final Map<TypeGroup, JCheckBox> typeChecks = new LinkedHashMap<>();
     private final Map<DBPDataSourceContainer, JCheckBox> connectionChecks = new LinkedHashMap<>();
     private final JCheckBox scopeCheck = new JCheckBox();
     @Nullable
     private final DBSObject scopeObject;
-    private final JButton searchButton = new JButton("Search");
+    private final JButton searchButton = new JButton(ConnectionMessages.search_button);
     private final JLabel statusLabel = new JLabel(" ");
     private final ResultModel resultModel = new ResultModel();
     private final JTable resultTable = new JTable(resultModel) {
@@ -183,7 +186,7 @@ final class ObjectSearchPanel extends JPanel implements ToolDocument {
         DBPDataSourceContainer selectedContainer = selectedNode instanceof DBNDatabaseNode databaseNode ? databaseNode.getDataSourceContainer() : null;
         scopeObject = findScope(selectedNode);
 
-        nameField.putClientProperty(FlatClientProperties.PLACEHOLDER_TEXT, "Object name");
+        nameField.putClientProperty(FlatClientProperties.PLACEHOLDER_TEXT, ConnectionMessages.search_name_placeholder);
         nameField.addActionListener(e -> startSearch());
         searchButton.addActionListener(e -> {
             if (searchJob != null) {
@@ -214,7 +217,7 @@ final class ObjectSearchPanel extends JPanel implements ToolDocument {
         nameRow.add(matchCombo);
         nameRow.add(caseSensitiveCheck);
         nameRow.add(searchButton);
-        form.add(new JLabel("Name:"), labelConstraints);
+        form.add(new JLabel(ConnectionMessages.search_label_name), labelConstraints);
         form.add(nameRow, fieldConstraints);
 
         JPanel typesRow = new JPanel(new FlowLayout(FlowLayout.LEFT, UIScale.scale(10), 0));
@@ -228,7 +231,7 @@ final class ObjectSearchPanel extends JPanel implements ToolDocument {
         for (TypeGroup group : List.of(TypeGroup.TABLES, TypeGroup.VIEWS, TypeGroup.PROCEDURES, TypeGroup.COLUMNS, TypeGroup.OTHER)) {
             typesRow.add(typeChecks.get(group));
         }
-        form.add(new JLabel("Object types:"), labelConstraints);
+        form.add(new JLabel(ConnectionMessages.search_label_types), labelConstraints);
         form.add(typesRow, fieldConstraints);
 
         JPanel connectionsRow = new JPanel(new FlowLayout(FlowLayout.LEFT, UIScale.scale(10), 0));
@@ -240,20 +243,21 @@ final class ObjectSearchPanel extends JPanel implements ToolDocument {
                 JCheckBox check = new JCheckBox(container.getName(),
                     selectedContainer == null ? container.isConnected() : container == selectedContainer);
                 check.setOpaque(false);
-                check.setToolTipText(container.getDriver().getName() + (container.isConnected() ? "" : " (connects when searching)"));
+                check.setToolTipText(container.isConnected() ? container.getDriver().getName()
+                    : NLS.bind(ConnectionMessages.search_connects_when_searching, container.getDriver().getName()));
                 connectionChecks.put(container, check);
                 connectionsRow.add(check);
             }
         }
-        form.add(new JLabel("Connections:"), labelConstraints);
+        form.add(new JLabel(ConnectionMessages.search_label_connections), labelConstraints);
         form.add(connectionsRow, fieldConstraints);
 
         if (scopeObject != null) {
-            scopeCheck.setText("Only in " + DBUtils.getObjectFullName(scopeObject, DBPEvaluationContext.UI)
-                + " (" + scopeObject.getDataSource().getContainer().getName() + ")");
+            scopeCheck.setText(NLS.bind(ConnectionMessages.search_only_in, DBUtils.getObjectFullName(scopeObject, DBPEvaluationContext.UI),
+                scopeObject.getDataSource().getContainer().getName()));
             scopeCheck.setSelected(true);
             scopeCheck.setOpaque(false);
-            form.add(new JLabel("Scope:"), labelConstraints);
+            form.add(new JLabel(ConnectionMessages.search_label_scope), labelConstraints);
             form.add(scopeCheck, fieldConstraints);
         }
 
@@ -266,7 +270,7 @@ final class ObjectSearchPanel extends JPanel implements ToolDocument {
         resultTable.getColumnModel().getColumn(1).setPreferredWidth(UIScale.scale(120));
         resultTable.getColumnModel().getColumn(2).setPreferredWidth(UIScale.scale(360));
         resultTable.getColumnModel().getColumn(3).setPreferredWidth(UIScale.scale(160));
-        resultTable.setToolTipText("Double-click to select the object in Object Explorer");
+        resultTable.setToolTipText(ConnectionMessages.search_result_tip);
         resultTable.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
@@ -327,7 +331,7 @@ final class ObjectSearchPanel extends JPanel implements ToolDocument {
             }
         });
         if (groups.isEmpty() || containers.isEmpty()) {
-            statusLabel.setText(groups.isEmpty() ? "Select at least one object type." : "Select at least one connection.");
+            statusLabel.setText(groups.isEmpty() ? ConnectionMessages.search_select_type : ConnectionMessages.search_select_connection);
             return;
         }
         MatchType matchType = (MatchType) matchCombo.getSelectedItem();
@@ -341,8 +345,8 @@ final class ObjectSearchPanel extends JPanel implements ToolDocument {
 
         int serial = ++searchSerial;
         resultModel.clear();
-        searchButton.setText("Stop");
-        statusLabel.setText("Searching…");
+        searchButton.setText(ConnectionMessages.search_button_stop);
+        statusLabel.setText(ConnectionMessages.search_searching);
         searchJob = new AbstractJob("Find objects") {
             @NotNull
             @Override
@@ -358,7 +362,7 @@ final class ObjectSearchPanel extends JPanel implements ToolDocument {
                         SwingUtilities.invokeLater(() -> {
                             if (serial == searchSerial) {
                                 resultModel.add(results);
-                                statusLabel.setText("Searching… " + resultModel.getRowCount() + " found");
+                                statusLabel.setText(NLS.bind(ConnectionMessages.search_searching_count, resultModel.getRowCount()));
                             }
                         });
                     } catch (Throwable e) {
@@ -393,11 +397,12 @@ final class ObjectSearchPanel extends JPanel implements ToolDocument {
         }
         DBPDataSource dataSource = container.getDataSource();
         if (dataSource == null || !container.isConnected()) {
-            throw new DBException("Not connected");
+            // Shown in the status line, like the next one
+            throw new DBException(ConnectionMessages.search_not_connected);
         }
         DBSStructureAssistant<?> assistant = DBUtils.getAdapter(DBSStructureAssistant.class, dataSource);
         if (assistant == null) {
-            throw new DBException("Object search is not supported for " + container.getDriver().getName());
+            throw new DBException(NLS.bind(ConnectionMessages.search_not_supported, container.getDriver().getName()));
         }
         List<DBSObjectType> types = new ArrayList<>();
         for (DBSObjectType type : assistant.getSupportedObjectTypes()) {
@@ -449,11 +454,12 @@ final class ObjectSearchPanel extends JPanel implements ToolDocument {
 
     private void searchFinished(boolean canceled, @NotNull List<String> problems) {
         searchJob = null;
-        searchButton.setText("Search");
+        searchButton.setText(ConnectionMessages.search_button);
         int count = resultModel.getRowCount();
-        String text = count == 0 ? "No objects found" : count + (count == 1 ? " object found" : " objects found");
+        String text = count == 0 ? ConnectionMessages.search_none_found
+            : NLS.bind(count == 1 ? ConnectionMessages.search_found_one : ConnectionMessages.search_found_many, count);
         if (canceled) {
-            text += " (stopped)";
+            text = NLS.bind(ConnectionMessages.search_stopped, text);
         }
         if (!problems.isEmpty()) {
             text += " · " + String.join("; ", problems);
@@ -472,13 +478,13 @@ final class ObjectSearchPanel extends JPanel implements ToolDocument {
     @NotNull
     @Override
     public String getTitle() {
-        return "Find Objects";
+        return ConnectionMessages.search_title;
     }
 
     @NotNull
     @Override
     public String getToolTip() {
-        return "Find database objects by name";
+        return ConnectionMessages.search_tooltip;
     }
 
     @NotNull
@@ -494,7 +500,8 @@ final class ObjectSearchPanel extends JPanel implements ToolDocument {
     }
 
     private static final class ResultModel extends AbstractTableModel {
-        private static final String[] COLUMNS = {"Name", "Type", "Full Name", "Connection"};
+        private static final String[] COLUMNS = {ConnectionMessages.search_column_name, ConnectionMessages.search_column_type,
+            ConnectionMessages.search_column_full_name, ConnectionMessages.search_column_connection};
         private final List<Result> results = new ArrayList<>();
 
         void clear() {

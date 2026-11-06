@@ -17,8 +17,10 @@
 package com.seizia.chromite.ui.swing;
 
 import com.seizia.chromite.model.admin.ServerAdminProfile;
+import com.seizia.chromite.ui.swing.internal.ConnectionMessages;
 import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.Status;
+import org.eclipse.osgi.util.NLS;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
@@ -50,6 +52,7 @@ import java.util.function.Consumer;
  *
  * 변경 이력:
  * - 2026-11-06 최초 작성 (docs/chromite/swing-admin-tools.md)
+ * - 2026-11-06 화면 문구를 ConnectionMessages로 옮김(OS 언어를 따름)
  */
 final class AdminConnection {
 
@@ -131,7 +134,8 @@ final class AdminConnection {
             }
             DBPDataSource dataSource = container.getDataSource();
             if (dataSource == null || !container.isConnected()) {
-                throw new DBException("Not connected to '" + container.getName() + "'");
+                // Shown in the status line of the Activity Monitor tabs
+                throw new DBException(NLS.bind(ConnectionMessages.activity_not_connected, container.getName()));
             }
             if (profile == null || profileDataSource != dataSource) {
                 // First task, or the connection was reopened (a new data source object)

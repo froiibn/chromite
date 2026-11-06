@@ -16,6 +16,7 @@
  */
 package com.seizia.chromite.ui.swing;
 
+import com.seizia.chromite.ui.swing.internal.ConnectionMessages;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.Log;
@@ -58,6 +59,7 @@ import java.util.Set;
  *
  * 변경 이력:
  * - 2026-11-06 최초 작성: SSMS식 Connect 대화상자 (docs/chromite/swing-frontend.md "Connect 대화상자 (SSMS식)")
+ * - 2026-11-06 화면 문구를 ConnectionMessages로 옮김(OS 언어를 따름)
  */
 final class ConnectionAuthModels {
 
@@ -137,9 +139,9 @@ final class ConnectionAuthModels {
         }
         DBPPropertyDescriptor[] visible = model.createCredentialsSource(null, null).getProperties();
         String userLabel = nativeModel.isUserNameApplicable()
-            ? getLabel(visible, AuthModelDatabaseNativeCredentials.PROP_USER_NAME, "Login") : null;
+            ? getLabel(visible, AuthModelDatabaseNativeCredentials.PROP_USER_NAME, ConnectionMessages.settings_login) : null;
         String passwordLabel = nativeModel.isUserPasswordApplicable()
-            ? getLabel(visible, AuthModelDatabaseNativeCredentials.PROP_USER_PASSWORD, "Password") : null;
+            ? getLabel(visible, AuthModelDatabaseNativeCredentials.PROP_USER_PASSWORD, ConnectionMessages.settings_password) : null;
         return new Fields(userLabel, passwordLabel, true);
     }
 

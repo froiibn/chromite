@@ -19,8 +19,10 @@ package com.seizia.chromite.ui.swing;
 import com.formdev.flatlaf.FlatClientProperties;
 import com.formdev.flatlaf.ui.FlatUIUtils;
 import com.formdev.flatlaf.util.UIScale;
+import com.seizia.chromite.ui.swing.internal.CoreMessages;
 import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.Status;
+import org.eclipse.osgi.util.NLS;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
@@ -144,12 +146,13 @@ import java.util.function.Consumer;
  * - 2026-11-06 테이블 디자이너: Design·New Table… 메뉴, 다른 곳에서 추가·새로 읽은 DB 객체 노드 반영 (docs/chromite/swing-table-designer.md)
  * - 2026-11-06 New Connection으로 만든 서버가 들어오지 않던 문제: 탐색기 노드가 생기기 전(레지스트리 이벤트 지연)에도 목록에 넣고,
  *   고를 서버를 연결로 기억해 ADD 이벤트에서 고름 (docs/chromite/swing-registered-servers.md)
+ * - 2026-11-06 화면 문구를 CoreMessages로 옮김(OS 언어를 따름)
  */
 final class ObjectExplorerPanel extends JPanel {
 
     private static final Log log = Log.getLog(ObjectExplorerPanel.class);
 
-    private static final String LOADING_TEXT = "Loading…"; //$NON-NLS-1$
+    private static final String LOADING_TEXT = CoreMessages.common_loading;
     /**
      * Rows of "Select Top N Rows", as SSMS.
      */
@@ -265,7 +268,7 @@ final class ObjectExplorerPanel extends JPanel {
         projectNode = project == null ? null :
             DBWorkbench.getPlatform().getNavigatorModel().getRoot().getProjectNode(project);
         servers = projectNode == null ? null : new ObjectExplorerServers(project.getDataSourceRegistry());
-        rootNode = new ExplorerNode(projectNode != null ? projectNode : "No active project");
+        rootNode = new ExplorerNode(projectNode != null ? projectNode : CoreMessages.common_no_active_project);
         treeModel = new DefaultTreeModel(rootNode);
 
         tree = new ExplorerTree(treeModel);
@@ -289,22 +292,22 @@ final class ObjectExplorerPanel extends JPanel {
         });
         tree.addTreeSelectionListener(e -> selectionListener.accept(getSelectedNavigatorNode()));
 
-        refreshAction = new AbstractAction("Refresh") {
+        refreshAction = new AbstractAction(CoreMessages.explorer_refresh) {
             @Override
             public void actionPerformed(ActionEvent e) {
                 refreshSelection();
             }
         };
-        refreshAction.putValue(Action.SHORT_DESCRIPTION, "Refresh the selected node, or all connections (F5)");
+        refreshAction.putValue(Action.SHORT_DESCRIPTION, CoreMessages.explorer_refresh_tip);
         refreshAction.putValue(Action.ACCELERATOR_KEY, KeyStroke.getKeyStroke(KeyEvent.VK_F5, 0));
-        collapseAllAction = createAction("Collapse All", () -> {
+        collapseAllAction = createAction(CoreMessages.explorer_collapse_all, () -> {
             for (int row = tree.getRowCount() - 1; row >= 0; row--) {
                 tree.collapseRow(row);
             }
         });
-        filterAction = createAction("Filter…", this::filterSelectedFolder);
-        filterAction.putValue(Action.SHORT_DESCRIPTION, "Show only the objects of the selected folder whose names match");
-        newQueryAction = new AbstractAction("New Query") {
+        filterAction = createAction(CoreMessages.explorer_filter, this::filterSelectedFolder);
+        filterAction.putValue(Action.SHORT_DESCRIPTION, CoreMessages.explorer_filter_tip);
+        newQueryAction = new AbstractAction(CoreMessages.main_new_query) {
             @Override
             public void actionPerformed(ActionEvent e) {
                 DBPDataSourceContainer dataSource = getSelectedDataSource();
@@ -313,101 +316,101 @@ final class ObjectExplorerPanel extends JPanel {
                 }
             }
         };
-        selectTopAction = createAction("Select Top " + SELECT_TOP_ROWS + " Rows", () -> {
+        selectTopAction = createAction(NLS.bind(CoreMessages.explorer_select_top, SELECT_TOP_ROWS), () -> {
             DBPDataSourceContainer dataSource = getSelectedDataSource();
             if (getSelectedObject() instanceof DBSEntity entity && dataSource != null) {
-                String script = generate("Select Top " + SELECT_TOP_ROWS + " Rows",
+                String script = generate(NLS.bind(CoreMessages.explorer_select_top, SELECT_TOP_ROWS),
                     monitor -> ObjectScripts.generateSelect(monitor, entity, SELECT_TOP_ROWS));
                 if (script != null) {
                     queryWindows.openScript(dataSource, script, SELECT_TOP_ROWS, true);
                 }
             }
         });
-        viewDdlAction = createAction("View DDL", () -> {
+        viewDdlAction = createAction(CoreMessages.explorer_view_ddl, () -> {
             DBSObject object = getSelectedObject();
             if (object != null) {
-                String ddl = generate("View DDL", monitor -> ObjectScripts.generateCreate(monitor, object));
+                String ddl = generate(CoreMessages.explorer_view_ddl, monitor -> ObjectScripts.generateCreate(monitor, object));
                 if (ddl != null) {
                     queryWindows.showDdl(getSelectedDataSource(), DBUtils.getObjectFullName(object, DBPEvaluationContext.UI), ddl);
                 }
             }
         });
-        activityMonitorAction = createAction("Activity Monitor", () -> runOnSelectedDataSource(
+        activityMonitorAction = createAction(CoreMessages.main_activity_monitor, () -> runOnSelectedDataSource(
             dataSource -> queryWindows.openActivityMonitor(dataSource, ActivityMonitorPanel.PROCESSES_TAB)));
-        activityMonitorAction.putValue(Action.SHORT_DESCRIPTION, "Show the sessions of the server and end them");
-        locksAction = createAction("Locks", () -> runOnSelectedDataSource(
+        activityMonitorAction.putValue(Action.SHORT_DESCRIPTION, CoreMessages.explorer_activity_monitor_tip);
+        locksAction = createAction(CoreMessages.main_locks, () -> runOnSelectedDataSource(
             dataSource -> queryWindows.openActivityMonitor(dataSource, ActivityMonitorPanel.LOCKS_TAB)));
-        locksAction.putValue(Action.SHORT_DESCRIPTION, "Show the sessions that wait for locks and the sessions that block them");
-        findObjectsAction = createAction("Find Objects…", () -> queryWindows.openObjectSearch(getSelectedNavigatorNode()));
-        findObjectsAction.putValue(Action.SHORT_DESCRIPTION, "Find tables, views, procedures and columns by name");
-        designAction = createAction("Design", () -> {
+        locksAction.putValue(Action.SHORT_DESCRIPTION, CoreMessages.explorer_locks_tip);
+        findObjectsAction = createAction(CoreMessages.main_find_objects, () -> queryWindows.openObjectSearch(getSelectedNavigatorNode()));
+        findObjectsAction.putValue(Action.SHORT_DESCRIPTION, CoreMessages.explorer_find_objects_tip);
+        designAction = createAction(CoreMessages.explorer_design, () -> {
             if (getSelectedObject() instanceof DBSEntity table) {
                 queryWindows.designTable(table);
             }
         });
-        designAction.putValue(Action.SHORT_DESCRIPTION, "Edit the columns, keys and indexes of the table");
-        newTableAction = createAction("New Table…", () -> {
+        designAction.putValue(Action.SHORT_DESCRIPTION, CoreMessages.explorer_design_tip);
+        newTableAction = createAction(CoreMessages.explorer_new_table, () -> {
             if (getSelectedNavigatorNode() instanceof DBNDatabaseFolder folder) {
                 queryWindows.newTable(folder);
             }
         });
-        createToMenu = new JMenu("CREATE To");
-        createToMenu.add(createAction("New Query Editor Window", () -> scriptSelected(queryWindows, false, false)));
-        createToMenu.add(createAction("Clipboard", () -> scriptSelected(queryWindows, false, true)));
-        selectToMenu = new JMenu("SELECT To");
-        selectToMenu.add(createAction("New Query Editor Window", () -> scriptSelected(queryWindows, true, false)));
-        selectToMenu.add(createAction("Clipboard", () -> scriptSelected(queryWindows, true, true)));
-        scriptAsMenu = new JMenu("Script as");
+        createToMenu = new JMenu(CoreMessages.explorer_create_to);
+        createToMenu.add(createAction(CoreMessages.explorer_new_query_window, () -> scriptSelected(queryWindows, false, false)));
+        createToMenu.add(createAction(CoreMessages.explorer_clipboard, () -> scriptSelected(queryWindows, false, true)));
+        selectToMenu = new JMenu(CoreMessages.explorer_select_to);
+        selectToMenu.add(createAction(CoreMessages.explorer_new_query_window, () -> scriptSelected(queryWindows, true, false)));
+        selectToMenu.add(createAction(CoreMessages.explorer_clipboard, () -> scriptSelected(queryWindows, true, true)));
+        scriptAsMenu = new JMenu(CoreMessages.explorer_script_as);
         scriptAsMenu.add(createToMenu);
         scriptAsMenu.add(selectToMenu);
-        importDataAction = createAction("Import Data…", () -> {
+        importDataAction = createAction(CoreMessages.explorer_import_data, () -> {
             DBSObject object = getSelectedObject();
             if (object != null) {
                 DataImportWizard.open(this, object);
             }
         });
-        exportDataAction = createAction("Export Data…", () -> {
+        exportDataAction = createAction(CoreMessages.explorer_export_data, () -> {
             DBSObject object = getSelectedObject();
             if (object != null) {
                 DataExportWizard.openForObject(this, object);
             }
         });
-        tasksMenu = new JMenu("Tasks");
+        tasksMenu = new JMenu(CoreMessages.explorer_tasks);
         tasksMenu.add(importDataAction);
         tasksMenu.add(exportDataAction);
-        newConnectionAction = createAction("New Connection…", () -> {
+        newConnectionAction = createAction(CoreMessages.explorer_new_connection, () -> {
             DBPDataSourceContainer created = ConnectionCommands.newConnection(this, null);
             if (created != null) {
                 // The dialog connects it; only add and select it here
                 showServer(created, false);
             }
         });
-        newConnectionAction.putValue(Action.SHORT_DESCRIPTION, "Create a connection in the active project");
-        connectServerAction = createAction("Connect…", () -> {
+        newConnectionAction.putValue(Action.SHORT_DESCRIPTION, CoreMessages.explorer_new_connection_tip);
+        connectServerAction = createAction(CoreMessages.explorer_connect_server, () -> {
             DBPDataSourceContainer chosen = projectNode == null ? null
                 : RegisteredServerCommands.chooseServer(this, projectNode.getDatabases().getDataSourceRegistry());
             if (chosen != null) {
                 showServer(chosen, true);
             }
         });
-        connectServerAction.putValue(Action.SHORT_DESCRIPTION, "Connect to a registered server and show it here");
-        connectAction = createAction("Connect", () -> runOnSelectedDataSource(ConnectionCommands::connect));
-        disconnectAction = createAction("Disconnect", () -> runOnSelectedDataSource(this::disconnectServer));
-        disconnectAction.putValue(Action.SHORT_DESCRIPTION, "Disconnect the selected server and remove it from Object Explorer");
-        reconnectAction = createAction("Reconnect", () -> runOnSelectedDataSource(ConnectionCommands::reconnect));
-        editConnectionAction = createAction("Edit Connection…", () -> {
+        connectServerAction.putValue(Action.SHORT_DESCRIPTION, CoreMessages.explorer_connect_server_tip);
+        connectAction = createAction(CoreMessages.explorer_connect, () -> runOnSelectedDataSource(ConnectionCommands::connect));
+        disconnectAction = createAction(CoreMessages.explorer_disconnect, () -> runOnSelectedDataSource(this::disconnectServer));
+        disconnectAction.putValue(Action.SHORT_DESCRIPTION, CoreMessages.explorer_disconnect_tip);
+        reconnectAction = createAction(CoreMessages.explorer_reconnect, () -> runOnSelectedDataSource(ConnectionCommands::reconnect));
+        editConnectionAction = createAction(CoreMessages.explorer_edit_connection, () -> {
             if (getSelectedNavigatorNode() instanceof DBNDataSource node) {
                 ConnectionCommands.edit(this, node.getDataSourceContainer());
             }
         });
         editConnectionAction.putValue(Action.ACCELERATOR_KEY, KeyStroke.getKeyStroke(KeyEvent.VK_ENTER, 0));
-        renameAction = createAction("Rename", () -> {
+        renameAction = createAction(CoreMessages.explorer_rename, () -> {
             if (getSelectedNavigatorNode() instanceof DBNDataSource node) {
                 ConnectionCommands.rename(this, node);
             }
         });
         renameAction.putValue(Action.ACCELERATOR_KEY, KeyStroke.getKeyStroke(KeyEvent.VK_F2, 0));
-        deleteAction = createAction("Delete", () -> {
+        deleteAction = createAction(CoreMessages.explorer_delete, () -> {
             if (getSelectedNavigatorNode() instanceof DBNDataSource node) {
                 ConnectionCommands.delete(this, node.getDataSourceContainer());
             }
@@ -572,8 +575,8 @@ final class ObjectExplorerPanel extends JPanel {
             return;
         }
         String script = select
-            ? (object instanceof DBSEntity entity ? generate("Script as SELECT", monitor -> ObjectScripts.generateSelect(monitor, entity, 0)) : null)
-            : generate("Script as CREATE", monitor -> ObjectScripts.generateCreate(monitor, object));
+            ? (object instanceof DBSEntity entity ? generate(CoreMessages.explorer_script_select, monitor -> ObjectScripts.generateSelect(monitor, entity, 0)) : null)
+            : generate(CoreMessages.explorer_script_create, monitor -> ObjectScripts.generateCreate(monitor, object));
         if (script == null) {
             return;
         }
@@ -595,7 +598,7 @@ final class ObjectExplorerPanel extends JPanel {
         } catch (DBInterruptedException e) {
             return null;
         } catch (DBException e) {
-            DBWorkbench.getPlatformUI().showError(title, "Can't generate the script", e);
+            DBWorkbench.getPlatformUI().showError(title, CoreMessages.explorer_cant_generate, e);
             return null;
         }
     }
@@ -688,8 +691,8 @@ final class ObjectExplorerPanel extends JPanel {
         DBSObjectFilter current = folder.getNodeFilter(itemsMeta, true);
         String currentMask = current != null && current.isEnabled() && current.hasSingleMask() ? current.getSingleMask() : "";
         Object input = JOptionPane.showInputDialog(this,
-            "Show the objects of " + folder.getNodeDisplayName() + " whose names contain:\n(% is a wildcard; leave empty to show all)",
-            "Filter", JOptionPane.PLAIN_MESSAGE, null, null, currentMask);
+            NLS.bind(CoreMessages.explorer_filter_prompt, folder.getNodeDisplayName()),
+            CoreMessages.explorer_filter_title, JOptionPane.PLAIN_MESSAGE, null, null, currentMask);
         if (input == null) {
             return;
         }
@@ -916,8 +919,8 @@ final class ObjectExplorerPanel extends JPanel {
             return;
         }
         DBWorkbench.getPlatformUI().showError(
-            "Object Explorer",
-            "Can't read the contents of '" + navigatorNode.getNodeDisplayName() + "'",
+            CoreMessages.main_object_explorer,
+            NLS.bind(CoreMessages.explorer_cant_read, navigatorNode.getNodeDisplayName()),
             error);
     }
 

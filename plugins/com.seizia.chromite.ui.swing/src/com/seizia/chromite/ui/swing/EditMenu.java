@@ -16,6 +16,7 @@
  */
 package com.seizia.chromite.ui.swing;
 
+import com.seizia.chromite.ui.swing.internal.CoreMessages;
 import org.fife.ui.rtextarea.RTextArea;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
@@ -48,6 +49,7 @@ import java.util.function.Supplier;
  *
  * 변경 이력:
  * - 2026-11-06 P1: 최초 작성 (docs/chromite/swing-frontend.md "P1 디자인 적용")
+ * - 2026-11-06 화면 문구를 CoreMessages로 옮김(OS 언어를 따름)
  */
 final class EditMenu {
 
@@ -56,7 +58,7 @@ final class EditMenu {
     }
 
     private final Supplier<RTextArea> activeTextArea;
-    private final JMenu menu = new JMenu("Edit");
+    private final JMenu menu = new JMenu(CoreMessages.edit_menu);
     private final Action undoAction;
     private final Action redoAction;
     private final Action cutAction;
@@ -74,16 +76,16 @@ final class EditMenu {
      */
     EditMenu(@NotNull Supplier<RTextArea> activeTextArea) {
         this.activeTextArea = activeTextArea;
-        undoAction = createCommand("Undo", KeyEvent.VK_Z, InputEvent.CTRL_DOWN_MASK, Command.UNDO);
-        redoAction = createCommand("Redo", KeyEvent.VK_Y, InputEvent.CTRL_DOWN_MASK, Command.REDO);
-        cutAction = createCommand("Cut", KeyEvent.VK_X, InputEvent.CTRL_DOWN_MASK, Command.CUT);
-        copyAction = createCommand("Copy", KeyEvent.VK_C, InputEvent.CTRL_DOWN_MASK, Command.COPY);
-        pasteAction = createCommand("Paste", KeyEvent.VK_V, InputEvent.CTRL_DOWN_MASK, Command.PASTE);
-        selectAllAction = createCommand("Select All", KeyEvent.VK_A, InputEvent.CTRL_DOWN_MASK, Command.SELECT_ALL);
-        findAction = createAction("Find…", KeyEvent.VK_F, InputEvent.CTRL_DOWN_MASK, () -> withTextArea(textArea -> FindReplaceDialog.open(textArea, false)));
-        replaceAction = createAction("Replace…", KeyEvent.VK_H, InputEvent.CTRL_DOWN_MASK, () -> withTextArea(textArea -> FindReplaceDialog.open(textArea, true)));
-        findNextAction = createAction("Find Next", KeyEvent.VK_F3, 0, () -> withTextArea(textArea -> FindReplaceDialog.findAgain(textArea, true)));
-        findPreviousAction = createAction("Find Previous", KeyEvent.VK_F3, InputEvent.SHIFT_DOWN_MASK,
+        undoAction = createCommand(CoreMessages.edit_undo, KeyEvent.VK_Z, InputEvent.CTRL_DOWN_MASK, Command.UNDO);
+        redoAction = createCommand(CoreMessages.edit_redo, KeyEvent.VK_Y, InputEvent.CTRL_DOWN_MASK, Command.REDO);
+        cutAction = createCommand(CoreMessages.edit_cut, KeyEvent.VK_X, InputEvent.CTRL_DOWN_MASK, Command.CUT);
+        copyAction = createCommand(CoreMessages.edit_copy, KeyEvent.VK_C, InputEvent.CTRL_DOWN_MASK, Command.COPY);
+        pasteAction = createCommand(CoreMessages.edit_paste, KeyEvent.VK_V, InputEvent.CTRL_DOWN_MASK, Command.PASTE);
+        selectAllAction = createCommand(CoreMessages.edit_select_all, KeyEvent.VK_A, InputEvent.CTRL_DOWN_MASK, Command.SELECT_ALL);
+        findAction = createAction(CoreMessages.edit_find, KeyEvent.VK_F, InputEvent.CTRL_DOWN_MASK, () -> withTextArea(textArea -> FindReplaceDialog.open(textArea, false)));
+        replaceAction = createAction(CoreMessages.edit_replace, KeyEvent.VK_H, InputEvent.CTRL_DOWN_MASK, () -> withTextArea(textArea -> FindReplaceDialog.open(textArea, true)));
+        findNextAction = createAction(CoreMessages.find_find_next, KeyEvent.VK_F3, 0, () -> withTextArea(textArea -> FindReplaceDialog.findAgain(textArea, true)));
+        findPreviousAction = createAction(CoreMessages.find_find_previous, KeyEvent.VK_F3, InputEvent.SHIFT_DOWN_MASK,
             () -> withTextArea(textArea -> FindReplaceDialog.findAgain(textArea, false)));
 
         menu.setMnemonic(KeyEvent.VK_E);

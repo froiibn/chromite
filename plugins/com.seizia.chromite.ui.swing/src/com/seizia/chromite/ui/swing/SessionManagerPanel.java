@@ -20,6 +20,8 @@ import com.formdev.flatlaf.FlatClientProperties;
 import com.formdev.flatlaf.util.UIScale;
 import com.seizia.chromite.model.admin.ServerAdminMessages;
 import com.seizia.chromite.model.admin.ServerAdminProfile;
+import com.seizia.chromite.ui.swing.internal.ConnectionMessages;
+import org.eclipse.osgi.util.NLS;
 import org.fife.ui.rtextarea.RTextScrollPane;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
@@ -76,6 +78,7 @@ import java.util.Map;
  * - 2026-11-06 최초 작성 (docs/chromite/swing-admin-tools.md)
  * - 2026-11-06 찾기 칸과 "Only my sessions"가 테마 전환을 놓치던 문제: 패널과 함께 만들고 첫 읽기 뒤에야 붙이므로(createTools),
  *   붙일 때 현재 Look and Feel로 다시 설치함 (docs/chromite/swing-admin-tools.md)
+ * - 2026-11-06 화면 문구를 ConnectionMessages로 옮김(OS 언어를 따름)
  */
 final class SessionManagerPanel extends JPanel {
 
@@ -93,7 +96,8 @@ final class SessionManagerPanel extends JPanel {
     private final JPanel filterBar = new JPanel(new FlowLayout(FlowLayout.LEFT, UIScale.scale(12), 0));
     private final JLabel statusLabel = new JLabel(" ");
     private final SqlEditorPanel.SqlTextArea sqlText = new SqlEditorPanel.SqlTextArea();
-    private final DefaultTableModel detailsModel = new DefaultTableModel(new Object[] {"Property", "Value"}, 0) {
+    private final DefaultTableModel detailsModel = new DefaultTableModel(
+        new Object[] {ConnectionMessages.properties_column_property, ConnectionMessages.properties_column_value}, 0) {
         @Override
         public boolean isCellEditable(int row, int column) {
             return false;
@@ -101,7 +105,7 @@ final class SessionManagerPanel extends JPanel {
     };
     private final JTabbedPane detailTabs = new JTabbedPane();
     private final AutoRefreshBox autoRefresh;
-    private final JCheckBox onlyMineCheck = new JCheckBox("Only my sessions");
+    private final JCheckBox onlyMineCheck = new JCheckBox(ConnectionMessages.sessions_only_mine);
     private final JTextField searchField = new JTextField(16);
     private final List<JButton> actionButtons = new ArrayList<>();
     private final List<ServerAdminProfile.SessionAction> actions = new ArrayList<>();
@@ -126,13 +130,13 @@ final class SessionManagerPanel extends JPanel {
         toolBar.setFloatable(false);
         toolBar.setOpaque(false);
         toolBar.setBorder(BorderFactory.createEmptyBorder(UIScale.scale(3), UIScale.scale(8), UIScale.scale(3), UIScale.scale(8)));
-        Action refreshAction = new AbstractAction("Refresh") {
+        Action refreshAction = new AbstractAction(ConnectionMessages.common_refresh) {
             @Override
             public void actionPerformed(java.awt.event.ActionEvent e) {
                 refresh();
             }
         };
-        refreshAction.putValue(Action.SHORT_DESCRIPTION, "Read the sessions again");
+        refreshAction.putValue(Action.SHORT_DESCRIPTION, ConnectionMessages.sessions_refresh_tip);
         toolBar.add(UiIcons.createActionButton(refreshAction, "refresh")); //$NON-NLS-1$
         autoRefresh = new AutoRefreshBox(PREF_REFRESH, this, () -> {
             // Not after a failed connect: that would ask for the password again at each interval
@@ -144,7 +148,7 @@ final class SessionManagerPanel extends JPanel {
         toolBar.add(autoRefresh);
         toolBar.addSeparator();
 
-        searchField.putClientProperty(FlatClientProperties.PLACEHOLDER_TEXT, "Find in sessions");
+        searchField.putClientProperty(FlatClientProperties.PLACEHOLDER_TEXT, ConnectionMessages.sessions_search_placeholder);
         searchField.putClientProperty(FlatClientProperties.TEXT_FIELD_LEADING_ICON, UiIcons.get("search")); //$NON-NLS-1$
         searchField.putClientProperty(FlatClientProperties.TEXT_FIELD_SHOW_CLEAR_BUTTON, true);
         searchField.setMaximumSize(searchField.getPreferredSize());
@@ -180,8 +184,8 @@ final class SessionManagerPanel extends JPanel {
         JScrollPane detailsScroll = new JScrollPane(detailsTable);
         detailsScroll.setBorder(BorderFactory.createEmptyBorder());
         detailTabs.putClientProperty(FlatClientProperties.STYLE, "tabHeight: 32; tabSelectionHeight: 3"); //$NON-NLS-1$
-        detailTabs.addTab("Current SQL", UiIcons.get("file-sql"), sqlScroll); //$NON-NLS-2$
-        detailTabs.addTab("Details", UiIcons.get("info"), detailsScroll); //$NON-NLS-2$
+        detailTabs.addTab(ConnectionMessages.sessions_tab_sql, UiIcons.get("file-sql"), sqlScroll); //$NON-NLS-1$
+        detailTabs.addTab(ConnectionMessages.sessions_tab_details, UiIcons.get("info"), detailsScroll); //$NON-NLS-1$
         detailTabs.addChangeListener(e -> loadSelectedDetails());
 
         JScrollPane tableScroll = new JScrollPane(sessionTable);
@@ -214,11 +218,12 @@ final class SessionManagerPanel extends JPanel {
      */
     void refresh() {
         loading = true;
-        statusLabel.setText(connection.getContainer().isConnected() ? "Reading sessions…" : "Connecting…");
+        statusLabel.setText(connection.getContainer().isConnected() ? ConnectionMessages.sessions_reading : ConnectionMessages.common_connecting);
         connection.run("Read server sessions", (monitor, session, profile) -> {
             DBAServerSessionManager<DBAServerSession> manager = profile.getSessionManager();
             if (manager == null) {
-                throw new DBException("Sessions of " + session.getDataSource().getContainer().getDriver().getName() + " are not supported");
+                // Shown in the status line
+                throw new DBException(NLS.bind(ConnectionMessages.sessions_not_supported, session.getDataSource().getContainer().getDriver().getName()));
             }
             Map<String, Object> options = new LinkedHashMap<>();
             for (ServerAdminProfile.FilterOption option : profile.getFilterOptions()) {
@@ -286,8 +291,8 @@ final class SessionManagerPanel extends JPanel {
             String user = connection.getContainer().getActualConnectionConfiguration().getUserName();
             onlyMineCheck.setEnabled(!CommonUtils.isEmpty(user));
             onlyMineCheck.setToolTipText(CommonUtils.isEmpty(user)
-                ? "The connection has no user name to compare with"
-                : "Show only the sessions of " + user);
+                ? ConnectionMessages.sessions_only_mine_no_user
+                : NLS.bind(ConnectionMessages.sessions_only_mine_tip, user));
             filterBar.add(onlyMineCheck);
         }
         filterBar.setVisible(filterBar.getComponentCount() > 0);
@@ -307,7 +312,7 @@ final class SessionManagerPanel extends JPanel {
         DBAServerSessionManager<DBAServerSession> manager = profile.getSessionManager();
         if (manager instanceof DBAServerSessionManagerSQL sqlManager && sqlManager.canGenerateSessionReadQuery()) {
             toolBar.addSeparator();
-            Action scriptAction = new AbstractAction("Open Session Query") {
+            Action scriptAction = new AbstractAction(ConnectionMessages.sessions_open_query) {
                 @Override
                 public void actionPerformed(java.awt.event.ActionEvent e) {
                     Map<String, Object> options = new LinkedHashMap<>();
@@ -317,7 +322,7 @@ final class SessionManagerPanel extends JPanel {
                     queryWindows.openScript(connection.getContainer(), sqlManager.generateSessionReadQuery(options), 0, true);
                 }
             };
-            scriptAction.putValue(Action.SHORT_DESCRIPTION, "Open the query that reads the sessions in a new query window and run it");
+            scriptAction.putValue(Action.SHORT_DESCRIPTION, ConnectionMessages.sessions_open_query_tip);
             toolBar.add(UiIcons.createActionButton(scriptAction, "new-query")); //$NON-NLS-1$
         }
         toolBar.add(Box.createHorizontalGlue());
@@ -398,12 +403,13 @@ final class SessionManagerPanel extends JPanel {
         for (DBAServerSession session : sessions) {
             ids.add(session.getSessionId());
         }
-        String what = (sessions.size() == 1 ? "session " : "sessions ") + String.join(", ", ids);
+        String idList = String.join(", ", ids); //$NON-NLS-1$
+        boolean single = sessions.size() == 1;
         JCheckBox immediateCheck = action.immediateOptionKey() == null ? null : new JCheckBox(
             ServerAdminMessages.action_immediate);
-        Object message = immediateCheck == null
-            ? action.label() + " for " + what + "?\n\n" + action.toolTip() + "."
-            : new Object[] {action.label() + " for " + what + "?\n\n" + action.toolTip() + ".", immediateCheck};
+        String question = NLS.bind(single ? ConnectionMessages.sessions_action_confirm_one : ConnectionMessages.sessions_action_confirm_many,
+            new Object[] {action.label(), idList, action.toolTip()});
+        Object message = immediateCheck == null ? question : new Object[] {question, immediateCheck};
         int answer = JOptionPane.showConfirmDialog(this, message, action.label(), JOptionPane.YES_NO_OPTION,
             JOptionPane.WARNING_MESSAGE);
         if (answer != JOptionPane.YES_OPTION) {
@@ -433,7 +439,8 @@ final class SessionManagerPanel extends JPanel {
             }
             return null;
         }, result -> refresh(), error -> {
-            DBWorkbench.getPlatformUI().showError(action.label(), "Can't complete '" + action.label() + "' for " + what, error);
+            DBWorkbench.getPlatformUI().showError(action.label(), NLS.bind(
+                single ? ConnectionMessages.sessions_action_error_one : ConnectionMessages.sessions_action_error_many, action.label(), idList), error);
             refresh();
         });
     }
@@ -498,12 +505,13 @@ final class SessionManagerPanel extends JPanel {
                 text.setText(builder.toString());
                 text.setCaretPosition(0);
             }
-        }, error -> DBWorkbench.getPlatformUI().showError(details.getDetailsTitle(), "Can't read the session details", error));
+        }, error -> DBWorkbench.getPlatformUI().showError(details.getDetailsTitle(), ConnectionMessages.sessions_details_error, error));
     }
 
     private void updateStatus(@Nullable Throwable error) {
         if (error != null) {
-            statusLabel.setText("Error: " + CommonUtils.notEmpty(error.getMessage()).replaceAll("\\s+", " ")); //$NON-NLS-1$ //$NON-NLS-2$
+            statusLabel.setText(NLS.bind(ConnectionMessages.common_status_error,
+                CommonUtils.notEmpty(error.getMessage()).replaceAll("\\s+", " "))); //$NON-NLS-1$ //$NON-NLS-2$
             statusLabel.setToolTipText(error.getMessage());
             log.debug("Error reading sessions", error);
             return;
@@ -513,11 +521,11 @@ final class SessionManagerPanel extends JPanel {
         }
         Collection<DBAServerSession> sessions = sessionTable.getObjects();
         int shown = sessionTable.getRowCount();
-        String text = sessions.size() + (sessions.size() == 1 ? " session" : " sessions");
+        String text = NLS.bind(sessions.size() == 1 ? ConnectionMessages.sessions_count_one : ConnectionMessages.sessions_count_many, sessions.size());
         if (shown != sessions.size()) {
-            text += ", " + shown + " shown";
+            text = NLS.bind(ConnectionMessages.sessions_count_shown, text, shown);
         }
-        statusLabel.setText(text + " · Updated " + DateFormat.getTimeInstance(DateFormat.MEDIUM).format(new Date()));
+        statusLabel.setText(NLS.bind(ConnectionMessages.common_status_updated, text, DateFormat.getTimeInstance(DateFormat.MEDIUM).format(new Date())));
         statusLabel.setToolTipText(null);
     }
 }

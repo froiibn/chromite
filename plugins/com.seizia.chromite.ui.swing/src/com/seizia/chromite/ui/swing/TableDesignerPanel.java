@@ -18,6 +18,8 @@ package com.seizia.chromite.ui.swing;
 
 import com.formdev.flatlaf.FlatClientProperties;
 import com.formdev.flatlaf.util.UIScale;
+import com.seizia.chromite.ui.swing.internal.ToolsMessages;
+import org.eclipse.osgi.util.NLS;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
@@ -76,6 +78,7 @@ import java.util.Set;
  * - 2026-11-06 테이블 디자이너: 최초 작성 (docs/chromite/swing-table-designer.md)
  * - 2026-11-06 탭 제목에 연결 이름(쿼리 창과 같은 "이름 - 연결" 형식): 여러 연결의 같은 이름 테이블이 구별되지 않던 문제
  *   (docs/chromite/swing-table-designer.md)
+ * - 2026-11-06 화면 문구를 ToolsMessages로 옮김(OS 언어를 따름)
  */
 final class TableDesignerPanel extends JPanel {
 
@@ -93,8 +96,6 @@ final class TableDesignerPanel extends JPanel {
          */
         void openScript(@NotNull DBPDataSourceContainer dataSource, @NotNull String script, long maxRows, boolean execute);
     }
-
-    private static final String TABLE_TAB = "Table"; //$NON-NLS-1$
 
     private final TableDesignSession session;
     private final Host host;
@@ -144,9 +145,9 @@ final class TableDesignerPanel extends JPanel {
         DesignerTable.EditHandler editHandler = this::edit;
         tableSheetModel = new DesignerTable.SheetModel(session, editHandler);
 
-        saveAction = createAction("Save", "Show the change script and apply it to the database (Ctrl+S)", this::save);
-        scriptAction = createAction("Generate Script", "Show the script of the pending changes without applying it", this::showScript);
-        revertAction = createAction("Revert", "Discard the pending changes", this::revert);
+        saveAction = createAction(ToolsMessages.designer_save, ToolsMessages.designer_save_tip, this::save);
+        scriptAction = createAction(ToolsMessages.designer_generate_script, ToolsMessages.designer_generate_script_tip, this::showScript);
+        revertAction = createAction(ToolsMessages.designer_revert, ToolsMessages.designer_revert_tip, this::revert);
 
         for (TableDesignSession.Section section : TableDesignSession.Section.values()) {
             SectionView view = new SectionView(section, editHandler);
@@ -156,7 +157,7 @@ final class TableDesignerPanel extends JPanel {
         DesignerTable tableSheet = createSheetTable(tableSheetModel);
         JScrollPane tableSheetScroll = new JScrollPane(tableSheet);
         tableSheetScroll.setBorder(BorderFactory.createEmptyBorder());
-        sectionTabs.addTab(TABLE_TAB, UiIcons.get("table"), tableSheetScroll); //$NON-NLS-1$
+        sectionTabs.addTab(ToolsMessages.designer_section_table, UiIcons.get("table"), tableSheetScroll); //$NON-NLS-1$
         sectionTabs.putClientProperty(FlatClientProperties.STYLE, "tabHeight: 32; tabSelectionHeight: 3"); //$NON-NLS-1$
 
         nameField.addActionListener(e -> renameTable());
@@ -177,7 +178,7 @@ final class TableDesignerPanel extends JPanel {
      */
     @Nullable
     static TableDesignerPanel open(@NotNull Host host, @NotNull DBSEntity table) {
-        return create(host, "Design " + table.getName(), monitor -> TableDesignSession.open(table));
+        return create(host, NLS.bind(ToolsMessages.designer_progress_open, table.getName()), monitor -> TableDesignSession.open(table));
     }
 
     /**
@@ -185,7 +186,7 @@ final class TableDesignerPanel extends JPanel {
      */
     @Nullable
     static TableDesignerPanel createTable(@NotNull Host host, @NotNull DBNDatabaseFolder folder) {
-        return create(host, "New Table", monitor -> TableDesignSession.createTable(monitor, folder));
+        return create(host, ToolsMessages.designer_new_table, monitor -> TableDesignSession.createTable(monitor, folder));
     }
 
     @Nullable
@@ -200,7 +201,7 @@ final class TableDesignerPanel extends JPanel {
         } catch (DBInterruptedException e) {
             return null;
         } catch (DBException e) {
-            DBWorkbench.getPlatformUI().showError(title, "Can't open the table designer", e);
+            DBWorkbench.getPlatformUI().showError(title, ToolsMessages.designer_error_open, e);
             return null;
         }
     }
@@ -238,7 +239,7 @@ final class TableDesignerPanel extends JPanel {
         toolBar.add(UiIcons.createToolButton(scriptAction, "file-sql")); //$NON-NLS-1$
         toolBar.add(UiIcons.createActionButton(revertAction, "rollback")); //$NON-NLS-1$
         toolBar.addSeparator();
-        toolBar.add(new JLabel("Name:"));
+        toolBar.add(new JLabel(ToolsMessages.designer_label_name));
         toolBar.add(Box.createHorizontalStrut(UIScale.scale(6)));
         nameField.setMaximumSize(new Dimension(UIScale.scale(260), nameField.getPreferredSize().height));
         toolBar.add(nameField);
@@ -276,7 +277,8 @@ final class TableDesignerPanel extends JPanel {
     @NotNull
     String getTitle() {
         DBSEntity table = session.getTable();
-        return table.getName() + " [Design] - " + table.getDataSource().getContainer().getName() + (isDirty() ? "*" : ""); //$NON-NLS-1$ //$NON-NLS-2$
+        return NLS.bind(ToolsMessages.designer_tab_title, table.getName(), table.getDataSource().getContainer().getName())
+            + (isDirty() ? "*" : ""); //$NON-NLS-1$ //$NON-NLS-2$
     }
 
     @NotNull
@@ -284,7 +286,7 @@ final class TableDesignerPanel extends JPanel {
         DBSEntity table = session.getTable();
         String name = DBUtils.getObjectFullName(table, DBPEvaluationContext.UI);
         String connection = table.getDataSource().getContainer().getName();
-        return name + " - " + connection + (session.isNewTable() ? " (new table, not saved)" : ""); //$NON-NLS-1$
+        return session.isNewTable() ? NLS.bind(ToolsMessages.designer_tab_tooltip_new, name, connection) : name + " - " + connection; //$NON-NLS-1$
     }
 
     //////////////////////////////////////////////////////////
@@ -300,7 +302,7 @@ final class TableDesignerPanel extends JPanel {
             keyColumns.addAll(TableDesignSession.readKeyColumns(monitor, primaryKey));
         }
         for (TableDesignSession.Section section : TableDesignSession.Section.values()) {
-            monitor.subTask("Read " + section.title.toLowerCase());
+            monitor.subTask(NLS.bind(ToolsMessages.designer_progress_read, section.title.toLowerCase()));
             List<DBSObject> objects = session.readObjects(monitor, section);
             List<ObjectPropertyDescriptor> properties = new ArrayList<>(session.getGridProperties(section, objects));
             Map<DBSObject, Object[]> values = new LinkedHashMap<>();
@@ -374,9 +376,9 @@ final class TableDesignerPanel extends JPanel {
         saveAction.setEnabled(dirty && !session.isReadOnly());
         scriptAction.setEnabled(dirty);
         revertAction.setEnabled(dirty && !session.isNewTable());
-        stateLabel.setText(session.isReadOnly() ? "Read-only connection"
-            : session.isNewTable() ? "New table — not saved yet"
-            : dirty ? "Pending changes — not applied yet" : " ");
+        stateLabel.setText(session.isReadOnly() ? ToolsMessages.designer_state_read_only
+            : session.isNewTable() ? ToolsMessages.designer_state_new
+            : dirty ? ToolsMessages.designer_state_dirty : " ");
         host.designerChanged(this);
     }
 
@@ -414,11 +416,12 @@ final class TableDesignerPanel extends JPanel {
      */
     void reload() {
         try {
-            apply(ProgressDialog.runTask("Read " + session.getTable().getName(), monitor -> readSnapshot(monitor, session)));
+            apply(ProgressDialog.runTask(NLS.bind(ToolsMessages.designer_progress_read, session.getTable().getName()),
+                monitor -> readSnapshot(monitor, session)));
         } catch (DBInterruptedException e) {
             // Canceled: keep what is shown
         } catch (DBException e) {
-            DBWorkbench.getPlatformUI().showError("Table Designer", "Can't read " + session.getTable().getName(), e);
+            DBWorkbench.getPlatformUI().showError(ToolsMessages.designer_title, NLS.bind(ToolsMessages.designer_error_read, session.getTable().getName()), e);
         }
     }
 
@@ -436,11 +439,11 @@ final class TableDesignerPanel extends JPanel {
     private void applyEdit(@NotNull DBSObject object, @Nullable ObjectPropertyDescriptor property, @Nullable Object value) {
         if (property == null) {
             if (object instanceof DBSEntityAttribute column) {
-                run("Set Primary Key", monitor -> session.setPrimaryKeyColumn(monitor, column, Boolean.TRUE.equals(value)));
+                run(ToolsMessages.designer_progress_set_primary_key, monitor -> session.setPrimaryKeyColumn(monitor, column, Boolean.TRUE.equals(value)));
             }
             return;
         }
-        run("Edit " + property.getDisplayName(), monitor -> session.setValue(monitor, object, property, value));
+        run(NLS.bind(ToolsMessages.designer_progress_edit, property.getDisplayName()), monitor -> session.setValue(monitor, object, property, value));
     }
 
     private void renameTable() {
@@ -454,12 +457,12 @@ final class TableDesignerPanel extends JPanel {
             return;
         }
         ObjectPropertyDescriptor nameProperty = current.nameProperty();
-        run("Rename", monitor -> session.setValue(monitor, session.getTable(), nameProperty, newName));
+        run(ToolsMessages.designer_progress_rename, monitor -> session.setValue(monitor, session.getTable(), nameProperty, newName));
     }
 
     private void addObject(@NotNull TableDesignSession.Section section) {
         switch (section) {
-            case COLUMNS -> run("New Column", monitor -> views.get(section).select(session.createColumn(monitor)));
+            case COLUMNS -> run(ToolsMessages.designer_new_column, monitor -> views.get(section).select(session.createColumn(monitor)));
             case KEYS -> addKey();
             case FOREIGN_KEYS -> addForeignKey();
             case INDEXES -> addIndex();
@@ -483,7 +486,7 @@ final class TableDesignerPanel extends JPanel {
         List<DBSEntityConstraintType> types = session.getKeyTypes();
         Map<DBSEntityConstraintType, String> names;
         try {
-            names = ProgressDialog.runTask("Add Key", monitor -> {
+            names = ProgressDialog.runTask(ToolsMessages.designer_add_key, monitor -> {
                 Map<DBSEntityConstraintType, String> result = new HashMap<>();
                 for (DBSEntityConstraintType type : types) {
                     result.put(type, session.suggestKeyName(monitor, type));
@@ -492,13 +495,13 @@ final class TableDesignerPanel extends JPanel {
             });
         } catch (DBException e) {
             if (!(e instanceof DBInterruptedException)) {
-                DBWorkbench.getPlatformUI().showError("Add Key", null, e);
+                DBWorkbench.getPlatformUI().showError(ToolsMessages.designer_add_key, null, e);
             }
             return;
         }
         TableDesignSession.KeySpec spec = DesignerDialogs.editKey(this, getColumns(), types, names);
         if (spec != null) {
-            run("Add Key", monitor -> views.get(TableDesignSession.Section.KEYS).select(session.createKey(monitor, spec)));
+            run(ToolsMessages.designer_add_key, monitor -> views.get(TableDesignSession.Section.KEYS).select(session.createKey(monitor, spec)));
         }
     }
 
@@ -506,7 +509,7 @@ final class TableDesignerPanel extends JPanel {
         List<DBSEntityAttribute> columns = getColumns();
         Map<DBSEntityAttribute, String> names;
         try {
-            names = ProgressDialog.runTask("Add Index", monitor -> {
+            names = ProgressDialog.runTask(ToolsMessages.designer_add_index, monitor -> {
                 Map<DBSEntityAttribute, String> result = new HashMap<>();
                 result.put(null, session.suggestIndexName(monitor, null));
                 for (DBSEntityAttribute column : columns) {
@@ -516,13 +519,13 @@ final class TableDesignerPanel extends JPanel {
             });
         } catch (DBException e) {
             if (!(e instanceof DBInterruptedException)) {
-                DBWorkbench.getPlatformUI().showError("Add Index", null, e);
+                DBWorkbench.getPlatformUI().showError(ToolsMessages.designer_add_index, null, e);
             }
             return;
         }
         DesignerDialogs.IndexSpec spec = DesignerDialogs.editIndex(this, columns, names);
         if (spec != null) {
-            run("Add Index", monitor -> views.get(TableDesignSession.Section.INDEXES)
+            run(ToolsMessages.designer_add_index, monitor -> views.get(TableDesignSession.Section.INDEXES)
                 .select(session.createIndex(monitor, spec.name(), spec.unique(), spec.columns())));
         }
     }
@@ -530,16 +533,16 @@ final class TableDesignerPanel extends JPanel {
     private void addForeignKey() {
         List<DBSEntity> referenceTables;
         try {
-            referenceTables = ProgressDialog.runTask("Add Foreign Key", session::readReferenceTables);
+            referenceTables = ProgressDialog.runTask(ToolsMessages.designer_add_foreign_key, session::readReferenceTables);
         } catch (DBException e) {
             if (!(e instanceof DBInterruptedException)) {
-                DBWorkbench.getPlatformUI().showError("Add Foreign Key", null, e);
+                DBWorkbench.getPlatformUI().showError(ToolsMessages.designer_add_foreign_key, null, e);
             }
             return;
         }
         DesignerDialogs.ForeignKeySpec spec = DesignerDialogs.editForeignKey(this, session.getTable(), getColumns(), referenceTables);
         if (spec != null) {
-            run("Add Foreign Key", monitor -> views.get(TableDesignSession.Section.FOREIGN_KEYS).select(session.createForeignKey(
+            run(ToolsMessages.designer_add_foreign_key, monitor -> views.get(TableDesignSession.Section.FOREIGN_KEYS).select(session.createForeignKey(
                 monitor, spec.name(), spec.referencedKey(), spec.deleteRule(), spec.updateRule(), spec.columns())));
         }
     }
@@ -549,7 +552,7 @@ final class TableDesignerPanel extends JPanel {
         if (object == null || !session.canDelete(object)) {
             return;
         }
-        run("Delete " + object.getName(), monitor -> session.delete(object));
+        run(NLS.bind(ToolsMessages.designer_progress_delete, object.getName()), monitor -> session.delete(object));
     }
 
     //////////////////////////////////////////////////////////
@@ -562,21 +565,21 @@ final class TableDesignerPanel extends JPanel {
         } catch (DBInterruptedException e) {
             return null;
         } catch (DBException e) {
-            DBWorkbench.getPlatformUI().showError(title, "Can't generate the change script", e);
+            DBWorkbench.getPlatformUI().showError(title, ToolsMessages.designer_error_script, e);
             return null;
         }
     }
 
     private void showScript() {
-        String script = generateScript("Generate Script");
+        String script = generateScript(ToolsMessages.designer_generate_script);
         if (script == null) {
             return;
         }
         if (script.isBlank()) {
-            JOptionPane.showMessageDialog(this, "There are no changes to script.", "Generate Script", JOptionPane.INFORMATION_MESSAGE);
+            JOptionPane.showMessageDialog(this, ToolsMessages.designer_script_none, ToolsMessages.designer_generate_script, JOptionPane.INFORMATION_MESSAGE);
             return;
         }
-        if (ScriptPreviewDialog.show(this, "Change Script - " + session.getTable().getName(), script, false)
+        if (ScriptPreviewDialog.show(this, NLS.bind(ToolsMessages.designer_change_script_title, session.getTable().getName()), script, false)
             == ScriptPreviewDialog.Result.OPEN_IN_EDITOR) {
             host.openScript(session.getTable().getDataSource().getContainer(), script, 0, false);
         }
@@ -594,12 +597,13 @@ final class TableDesignerPanel extends JPanel {
         if (nameField.isFocusOwner()) {
             renameTable();
         }
-        String script = generateScript("Save");
+        String script = generateScript(ToolsMessages.designer_save);
         if (script == null) {
             return false;
         }
         if (!script.isBlank()) {
-            ScriptPreviewDialog.Result result = ScriptPreviewDialog.show(this, "Save Changes - " + session.getTable().getName(), script, true);
+            ScriptPreviewDialog.Result result = ScriptPreviewDialog.show(this,
+                NLS.bind(ToolsMessages.designer_save_changes_title, session.getTable().getName()), script, true);
             if (result == ScriptPreviewDialog.Result.OPEN_IN_EDITOR) {
                 host.openScript(session.getTable().getDataSource().getContainer(), script, 0, false);
                 return false;
@@ -609,7 +613,7 @@ final class TableDesignerPanel extends JPanel {
             }
         }
         try {
-            apply(ProgressDialog.runTask("Save " + session.getTable().getName(), monitor -> {
+            apply(ProgressDialog.runTask(NLS.bind(ToolsMessages.designer_progress_save, session.getTable().getName()), monitor -> {
                 session.save(monitor);
                 return readSnapshot(monitor, session);
             }));
@@ -618,18 +622,18 @@ final class TableDesignerPanel extends JPanel {
             reload();
             return false;
         } catch (DBException e) {
-            DBWorkbench.getPlatformUI().showError("Save", "Can't save '" + session.getTable().getName() + "'", e);
+            DBWorkbench.getPlatformUI().showError(ToolsMessages.designer_save, NLS.bind(ToolsMessages.designer_error_save, session.getTable().getName()), e);
             reload();
             return false;
         }
     }
 
     private void revert() {
-        if (!isDirty() || JOptionPane.showConfirmDialog(this, "Discard the pending changes of " + session.getTable().getName() + "?",
-            "Revert", JOptionPane.OK_CANCEL_OPTION, JOptionPane.WARNING_MESSAGE) != JOptionPane.OK_OPTION) {
+        if (!isDirty() || JOptionPane.showConfirmDialog(this, NLS.bind(ToolsMessages.designer_confirm_revert, session.getTable().getName()),
+            ToolsMessages.designer_revert, JOptionPane.OK_CANCEL_OPTION, JOptionPane.WARNING_MESSAGE) != JOptionPane.OK_OPTION) {
             return;
         }
-        run("Revert", monitor -> session.revert());
+        run(ToolsMessages.designer_revert, monitor -> session.revert());
     }
 
     /**
@@ -641,9 +645,9 @@ final class TableDesignerPanel extends JPanel {
         if (!isDirty()) {
             return true;
         }
-        String[] options = {"Save", "Don't Save", "Cancel"};
-        int answer = JOptionPane.showOptionDialog(this, "Save changes to " + session.getTable().getName() + "?",
-            "Table Designer", JOptionPane.YES_NO_CANCEL_OPTION, JOptionPane.WARNING_MESSAGE, null, options, options[0]);
+        String[] options = {ToolsMessages.designer_save, ToolsMessages.designer_dont_save, ToolsMessages.button_cancel};
+        int answer = JOptionPane.showOptionDialog(this, NLS.bind(ToolsMessages.designer_confirm_close, session.getTable().getName()),
+            ToolsMessages.designer_title, JOptionPane.YES_NO_CANCEL_OPTION, JOptionPane.WARNING_MESSAGE, null, options, options[0]);
         return switch (answer) {
             case 0 -> save();
             case 1 -> true;
@@ -661,12 +665,12 @@ final class TableDesignerPanel extends JPanel {
         disposed = true;
         if (session.isDirty()) {
             try {
-                ProgressDialog.runTask("Discard changes", monitor -> {
+                ProgressDialog.runTask(ToolsMessages.designer_progress_discard, monitor -> {
                     session.revert();
                     return null;
                 });
             } catch (DBException e) {
-                DBWorkbench.getPlatformUI().showError("Table Designer", "Can't discard the changes", e);
+                DBWorkbench.getPlatformUI().showError(ToolsMessages.designer_title, ToolsMessages.designer_error_discard, e);
             }
         }
     }
@@ -698,17 +702,17 @@ final class TableDesignerPanel extends JPanel {
             sheetModel = new DesignerTable.SheetModel(session, editHandler);
 
             addAction = createAction(switch (section) {
-                case COLUMNS -> "New Column";
-                case KEYS -> "Add Key…";
-                case FOREIGN_KEYS -> "Add Foreign Key…";
-                case INDEXES -> "Add Index…";
-            }, "Add to the table; applied when the table is saved", () -> addObject(section));
-            deleteAction = createAction("Delete", "Delete the selected row; applied when the table is saved (Delete)",
+                case COLUMNS -> ToolsMessages.designer_new_column;
+                case KEYS -> ToolsMessages.designer_action_add_key;
+                case FOREIGN_KEYS -> ToolsMessages.designer_action_add_foreign_key;
+                case INDEXES -> ToolsMessages.designer_action_add_index;
+            }, ToolsMessages.designer_action_add_tip, () -> addObject(section));
+            deleteAction = createAction(ToolsMessages.designer_action_delete, ToolsMessages.designer_action_delete_tip,
                 () -> deleteObject(section));
             if (!session.canCreate(section)) {
                 addAction.setEnabled(false);
                 addAction.putValue(Action.SHORT_DESCRIPTION, session.isReadOnly()
-                    ? "The connection is read-only" : "Not supported for this database yet");
+                    ? ToolsMessages.designer_action_read_only : ToolsMessages.designer_action_not_supported);
             }
 
             JToolBar toolBar = new JToolBar();
@@ -795,7 +799,7 @@ final class TableDesignerPanel extends JPanel {
             SheetData data = object == null || snapshot == null ? null : snapshot.sheets().get(object);
             if (data == null) {
                 sheetModel.setContent(null, List.of(), new Object[0]);
-                sheetTitle.setText("Properties");
+                sheetTitle.setText(ToolsMessages.designer_sheet_properties);
             } else {
                 sheetModel.setContent(object, data.properties(), data.values());
                 sheetTitle.setText(getSheetTitle() + " - " + object.getName());
@@ -806,10 +810,10 @@ final class TableDesignerPanel extends JPanel {
         @NotNull
         private String getSheetTitle() {
             return switch (section) {
-                case COLUMNS -> "Column Properties";
-                case KEYS -> "Key Properties";
-                case FOREIGN_KEYS -> "Foreign Key Properties";
-                case INDEXES -> "Index Properties";
+                case COLUMNS -> ToolsMessages.designer_sheet_column;
+                case KEYS -> ToolsMessages.designer_sheet_key;
+                case FOREIGN_KEYS -> ToolsMessages.designer_sheet_foreign_key;
+                case INDEXES -> ToolsMessages.designer_sheet_index;
             };
         }
     }

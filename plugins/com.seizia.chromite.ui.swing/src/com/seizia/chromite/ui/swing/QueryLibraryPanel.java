@@ -19,8 +19,10 @@ package com.seizia.chromite.ui.swing;
 import com.formdev.flatlaf.FlatClientProperties;
 import com.formdev.flatlaf.ui.FlatUIUtils;
 import com.formdev.flatlaf.util.UIScale;
+import com.seizia.chromite.ui.swing.internal.ToolsMessages;
 import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.Status;
+import org.eclipse.osgi.util.NLS;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.Log;
@@ -80,6 +82,7 @@ import java.util.Set;
  * - 2026-11-06 Query Library: 최초 작성 (docs/chromite/swing-query-library.md)
  * - 2026-11-06 Query Library ③: Schedule…, History…, Scheduled Queries…, 알림 배지와 예약 보조 글자, 예약 실행기 시작·정지
  *   (docs/chromite/swing-query-library.md "예약 실행")
+ * - 2026-11-06 화면 문구를 ToolsMessages로 옮김(OS 언어를 따름)
  */
 final class QueryLibraryPanel extends JPanel {
 
@@ -148,22 +151,22 @@ final class QueryLibraryPanel extends JPanel {
         super(new BorderLayout());
         this.host = host;
 
-        runAction = createAction("Run", "Run the selected query on its default connection (Enter)", this::runSelected);
-        runOnAction = createAction("Run on…", "Run the selected query on a connection you choose", this::runSelectedOn);
-        editAction = createAction("Edit", "Open the selected query in a query window (double-click)", this::editSelected);
-        newQueryAction = createAction("New Query…", "Add a query to the selected folder", this::newQuery);
-        newFolderAction = createAction("New Folder…", "Add a folder to the selected folder", this::newFolder);
-        duplicateAction = createAction("Duplicate", "Copy the selected query", this::duplicateSelected);
-        renameAction = createAction("Rename…", "Rename the selected query or folder (F2)", this::renameSelected);
-        deleteAction = createAction("Delete", "Move the selected query or folder to the trash (Delete)", this::deleteSelected);
-        openFolderAction = createAction("Open Folder", "Show the folder of the selection in the file manager", this::openFolder);
-        refreshAction = createAction("Refresh", "Read the library folders again (F5)", this::reload);
-        rootsAction = createAction("Library Roots…", "Choose the folders of the Query Library (personal, shared, Git)", this::editRoots);
-        saveToLibraryAction = createAction("Save to Query Library…",
-            "Save the selection of the active query window (or all of its text) as a library query", this::saveActiveWindow);
-        scheduleAction = createAction("Schedule…", "Run the selected query on a schedule while Chromite is running", this::scheduleSelected);
-        historyAction = createAction("History…", "Results of the scheduled runs of the selected query", this::showHistory);
-        scheduledAction = createAction("Scheduled Queries…", "All scheduled queries: next run, last status, pause and resume",
+        runAction = createAction(ToolsMessages.library_action_run, ToolsMessages.library_action_run_tip, this::runSelected);
+        runOnAction = createAction(ToolsMessages.library_action_run_on, ToolsMessages.library_action_run_on_tip, this::runSelectedOn);
+        editAction = createAction(ToolsMessages.library_action_edit, ToolsMessages.library_action_edit_tip, this::editSelected);
+        newQueryAction = createAction(ToolsMessages.library_action_new_query, ToolsMessages.library_action_new_query_tip, this::newQuery);
+        newFolderAction = createAction(ToolsMessages.library_action_new_folder, ToolsMessages.library_action_new_folder_tip, this::newFolder);
+        duplicateAction = createAction(ToolsMessages.library_duplicate, ToolsMessages.library_action_duplicate_tip, this::duplicateSelected);
+        renameAction = createAction(ToolsMessages.library_action_rename, ToolsMessages.library_action_rename_tip, this::renameSelected);
+        deleteAction = createAction(ToolsMessages.library_delete, ToolsMessages.library_action_delete_tip, this::deleteSelected);
+        openFolderAction = createAction(ToolsMessages.library_open_folder, ToolsMessages.library_action_open_folder_tip, this::openFolder);
+        refreshAction = createAction(ToolsMessages.library_action_refresh, ToolsMessages.library_action_refresh_tip, this::reload);
+        rootsAction = createAction(ToolsMessages.library_action_roots, ToolsMessages.library_action_roots_tip, this::editRoots);
+        saveToLibraryAction = createAction(ToolsMessages.library_action_save,
+            ToolsMessages.library_action_save_tip, this::saveActiveWindow);
+        scheduleAction = createAction(ToolsMessages.library_action_schedule, ToolsMessages.library_action_schedule_tip, this::scheduleSelected);
+        historyAction = createAction(ToolsMessages.library_action_history, ToolsMessages.library_action_history_tip, this::showHistory);
+        scheduledAction = createAction(ToolsMessages.library_action_scheduled, ToolsMessages.library_action_scheduled_tip,
             () -> QueryScheduledDialog.open(host.getComponent()));
 
         tree.setRootVisible(false);
@@ -214,7 +217,7 @@ final class QueryLibraryPanel extends JPanel {
         bindKey(KeyStroke.getKeyStroke(KeyEvent.VK_F5, 0), "chromite.refresh", this::reload); //$NON-NLS-1$
         bindKey(KeyStroke.getKeyStroke(KeyEvent.VK_D, InputEvent.CTRL_DOWN_MASK), "chromite.duplicate", this::duplicateSelected); //$NON-NLS-1$
 
-        searchField.putClientProperty(FlatClientProperties.PLACEHOLDER_TEXT, "Search queries");
+        searchField.putClientProperty(FlatClientProperties.PLACEHOLDER_TEXT, ToolsMessages.library_search_placeholder);
         searchField.putClientProperty(FlatClientProperties.TEXT_FIELD_LEADING_ICON, UiIcons.get("search")); //$NON-NLS-1$
         searchField.putClientProperty(FlatClientProperties.TEXT_FIELD_SHOW_CLEAR_BUTTON, true);
         searchField.getDocument().addDocumentListener(new DocumentListener() {
@@ -569,7 +572,8 @@ final class QueryLibraryPanel extends JPanel {
         if (item == null) {
             return;
         }
-        DBPDataSourceContainer container = QueryLibraryEditor.chooseConnection(host.getComponent(), "Run " + item.getName() + " on",
+        DBPDataSourceContainer container = QueryLibraryEditor.chooseConnection(host.getComponent(),
+            NLS.bind(ToolsMessages.library_run_on_title, item.getName()),
             null, host.getCurrentConnection());
         if (container != null) {
             QueryLibraryEditor.run(host, readCurrent(item), container);
@@ -626,7 +630,8 @@ final class QueryLibraryPanel extends JPanel {
         try {
             library.save(item);
         } catch (IOException e) {
-            DBWorkbench.getPlatformUI().showError("Schedule", "Can't save the schedule of " + item.getName(), e);
+            DBWorkbench.getPlatformUI().showError(ToolsMessages.library_schedule_title,
+                NLS.bind(ToolsMessages.library_error_save_schedule, item.getName()), e);
             return;
         }
         QueryLibraryState.setScheduleActive(item, result.active() && result.schedule() != null);
@@ -645,7 +650,7 @@ final class QueryLibraryPanel extends JPanel {
         if (folder == null || folder.root.readOnly()) {
             return;
         }
-        String name = askName("New Query", "Name of the new query:", "New Query");
+        String name = askName(ToolsMessages.library_new_query, ToolsMessages.library_new_query_prompt, ToolsMessages.library_new_query);
         if (name == null) {
             return;
         }
@@ -658,7 +663,7 @@ final class QueryLibraryPanel extends JPanel {
         try {
             library.createQuery(folder.path, item);
         } catch (IOException e) {
-            DBWorkbench.getPlatformUI().showError("New Query", "Can't create the query", e);
+            DBWorkbench.getPlatformUI().showError(ToolsMessages.library_new_query, ToolsMessages.library_error_create_query, e);
             return;
         }
         selectAfterReload(item.getFile());
@@ -670,14 +675,14 @@ final class QueryLibraryPanel extends JPanel {
         if (folder == null || folder.root.readOnly()) {
             return;
         }
-        String name = askName("New Folder", "Name of the new folder:", "New Folder");
+        String name = askName(ToolsMessages.library_new_folder, ToolsMessages.library_new_folder_prompt, ToolsMessages.library_new_folder);
         if (name == null) {
             return;
         }
         try {
             selectAfterReload(library.createFolder(folder.path, name));
         } catch (IOException e) {
-            DBWorkbench.getPlatformUI().showError("New Folder", "Can't create the folder", e);
+            DBWorkbench.getPlatformUI().showError(ToolsMessages.library_new_folder, ToolsMessages.library_error_create_folder, e);
         }
     }
 
@@ -704,7 +709,7 @@ final class QueryLibraryPanel extends JPanel {
             QueryLibraryItem copy = library.duplicate(readCurrent(item), target);
             selectAfterReload(copy.getFile());
         } catch (IOException e) {
-            DBWorkbench.getPlatformUI().showError("Duplicate", "Can't copy the query", e);
+            DBWorkbench.getPlatformUI().showError(ToolsMessages.library_duplicate, ToolsMessages.library_error_duplicate, e);
         }
     }
 
@@ -716,19 +721,19 @@ final class QueryLibraryPanel extends JPanel {
         }
         try {
             if (node.getUserObject() instanceof QueryLibraryItem item) {
-                String name = askName("Rename", "New name of the query:", item.getName());
+                String name = askName(ToolsMessages.library_rename, ToolsMessages.library_rename_query_prompt, item.getName());
                 if (name != null && !name.equals(item.getName())) {
                     library.renameQuery(item, name);
                     selectAfterReload(library.resolveFile(readCurrent(item)));
                 }
             } else if (node.getUserObject() instanceof QueryLibrary.Folder folder) {
-                String name = askName("Rename", "New name of the folder:", folder.getName());
+                String name = askName(ToolsMessages.library_rename, ToolsMessages.library_rename_folder_prompt, folder.getName());
                 if (name != null && !name.equals(folder.getName())) {
                     selectAfterReload(library.renameFolder(folder.path, name));
                 }
             }
         } catch (IOException e) {
-            DBWorkbench.getPlatformUI().showError("Rename", "Can't rename " + path.getFileName(), e);
+            DBWorkbench.getPlatformUI().showError(ToolsMessages.library_rename, NLS.bind(ToolsMessages.library_error_rename, path.getFileName()), e);
         }
     }
 
@@ -738,16 +743,17 @@ final class QueryLibraryPanel extends JPanel {
         if (node == null || path == null || library.isReadOnly(path) || node.getParent() == rootNode) {
             return;
         }
-        String what = node.getUserObject() instanceof QueryLibraryItem item ? "the query '" + item.getName() + "'"
-            : "the folder '" + path.getFileName() + "' and everything in it";
-        if (JOptionPane.showConfirmDialog(host.getComponent(), "Delete " + what + "?\nIt is moved to the trash if the system has one.",
-            "Delete", JOptionPane.OK_CANCEL_OPTION, JOptionPane.WARNING_MESSAGE) != JOptionPane.OK_OPTION) {
+        String question = node.getUserObject() instanceof QueryLibraryItem item
+            ? NLS.bind(ToolsMessages.library_confirm_delete_query, item.getName())
+            : NLS.bind(ToolsMessages.library_confirm_delete_folder, path.getFileName());
+        if (JOptionPane.showConfirmDialog(host.getComponent(), question,
+            ToolsMessages.library_delete, JOptionPane.OK_CANCEL_OPTION, JOptionPane.WARNING_MESSAGE) != JOptionPane.OK_OPTION) {
             return;
         }
         try {
             library.delete(path);
         } catch (IOException e) {
-            DBWorkbench.getPlatformUI().showError("Delete", "Can't delete " + path.getFileName(), e);
+            DBWorkbench.getPlatformUI().showError(ToolsMessages.library_delete, NLS.bind(ToolsMessages.library_error_delete, path.getFileName()), e);
         }
     }
 
@@ -760,7 +766,7 @@ final class QueryLibraryPanel extends JPanel {
         try {
             Desktop.getDesktop().open(folder.toFile());
         } catch (IOException | RuntimeException e) {
-            DBWorkbench.getPlatformUI().showError("Open Folder", "Can't open " + folder, e);
+            DBWorkbench.getPlatformUI().showError(ToolsMessages.library_open_folder, NLS.bind(ToolsMessages.library_error_open_folder, folder), e);
         }
     }
 
@@ -778,13 +784,15 @@ final class QueryLibraryPanel extends JPanel {
     private void saveActiveWindow() {
         SqlEditorPanel editor = host.getActiveQueryWindow();
         if (editor == null) {
-            JOptionPane.showMessageDialog(host.getComponent(), "Open a query window first.", "Save to Query Library", JOptionPane.INFORMATION_MESSAGE);
+            JOptionPane.showMessageDialog(host.getComponent(), ToolsMessages.library_save_error_no_window, ToolsMessages.library_save_title,
+                JOptionPane.INFORMATION_MESSAGE);
             return;
         }
         String selection = editor.getTextArea().getSelectedText();
         String sql = !CommonUtils.isEmpty(selection) && !selection.isBlank() ? selection : editor.getContent().text();
         if (sql.isBlank()) {
-            JOptionPane.showMessageDialog(host.getComponent(), "The query window is empty.", "Save to Query Library", JOptionPane.INFORMATION_MESSAGE);
+            JOptionPane.showMessageDialog(host.getComponent(), ToolsMessages.library_save_error_empty, ToolsMessages.library_save_title,
+                JOptionPane.INFORMATION_MESSAGE);
             return;
         }
         List<QueryLibrary.Folder> writableFolders = new ArrayList<>();
@@ -792,7 +800,8 @@ final class QueryLibraryPanel extends JPanel {
             collectWritableFolders(folder, writableFolders);
         }
         if (writableFolders.isEmpty()) {
-            JOptionPane.showMessageDialog(host.getComponent(), "There is no editable library root.", "Save to Query Library", JOptionPane.INFORMATION_MESSAGE);
+            JOptionPane.showMessageDialog(host.getComponent(), ToolsMessages.library_save_error_no_root, ToolsMessages.library_save_title,
+                JOptionPane.INFORMATION_MESSAGE);
             return;
         }
         String fileName = editor.getFileName();
@@ -817,24 +826,26 @@ final class QueryLibraryPanel extends JPanel {
             folderCombo.setSelectedItem(selectedFolder);
         }
         DBPDataSourceContainer connection = editor.getDataSourceContainer();
-        JCheckBox targetBox = new JCheckBox(connection != null ? "Run on " + connection.getName() + " by default" : "Run on the current connection",
+        JCheckBox targetBox = new JCheckBox(connection != null ? NLS.bind(ToolsMessages.library_save_run_on_default, connection.getName())
+            : ToolsMessages.library_save_run_on_current,
             connection != null);
         targetBox.setEnabled(connection != null);
 
         JPanel form = new JPanel(new GridBagLayout());
-        addFormRow(form, 0, "Name", nameField);
-        addFormRow(form, 1, "Description", descriptionField);
-        addFormRow(form, 2, "Folder", folderCombo);
+        addFormRow(form, 0, ToolsMessages.library_field_name, nameField);
+        addFormRow(form, 1, ToolsMessages.library_field_description, descriptionField);
+        addFormRow(form, 2, ToolsMessages.library_field_folder, folderCombo);
         addFormRow(form, 3, null, targetBox);
         while (true) {
-            if (JOptionPane.showConfirmDialog(host.getComponent(), form, "Save to Query Library", JOptionPane.OK_CANCEL_OPTION,
+            if (JOptionPane.showConfirmDialog(host.getComponent(), form, ToolsMessages.library_save_title, JOptionPane.OK_CANCEL_OPTION,
                 JOptionPane.PLAIN_MESSAGE) != JOptionPane.OK_OPTION) {
                 return;
             }
             if (!nameField.getText().isBlank()) {
                 break;
             }
-            JOptionPane.showMessageDialog(host.getComponent(), "Enter a name for the query.", "Save to Query Library", JOptionPane.INFORMATION_MESSAGE);
+            JOptionPane.showMessageDialog(host.getComponent(), ToolsMessages.library_error_enter_name, ToolsMessages.library_save_title,
+                JOptionPane.INFORMATION_MESSAGE);
         }
         QueryLibraryItem item = QueryLibraryItem.create(nameField.getText().strip(), sql);
         item.setDescription(descriptionField.getText().strip());
@@ -847,7 +858,7 @@ final class QueryLibraryPanel extends JPanel {
         try {
             library.createQuery(folder != null ? folder.path : writableFolders.getFirst().path, item);
         } catch (IOException e) {
-            DBWorkbench.getPlatformUI().showError("Save to Query Library", "Can't save the query", e);
+            DBWorkbench.getPlatformUI().showError(ToolsMessages.library_save_title, ToolsMessages.library_error_save, e);
             return;
         }
         if (showWindow != null) {
@@ -1020,7 +1031,7 @@ final class QueryLibraryPanel extends JPanel {
                 library.fireChanged();
                 return true;
             } catch (UnsupportedFlavorException | IOException e) {
-                DBWorkbench.getPlatformUI().showError("Move", "Can't move the item", e);
+                DBWorkbench.getPlatformUI().showError(ToolsMessages.library_move_title, ToolsMessages.library_error_move, e);
                 return false;
             }
         }
@@ -1142,9 +1153,9 @@ final class QueryLibraryPanel extends JPanel {
                 setIcon(!expanded && hasAlert((DefaultMutableTreeNode) value) ? UiIcons.withStatusDot(icon, UiIcons.Status.ERROR) : icon);
                 setToolTipText(folder.path.toString());
                 if (root && folder.missing) {
-                    secondaryText = "folder not found";
+                    secondaryText = ToolsMessages.library_tree_folder_missing;
                 } else if (root && folder.root.readOnly()) {
-                    secondaryText = "read-only";
+                    secondaryText = ToolsMessages.library_tree_read_only;
                 }
             } else if (userObject instanceof QueryLibraryItem item) {
                 setText(item.getName());
@@ -1157,7 +1168,7 @@ final class QueryLibraryPanel extends JPanel {
                 if (item.getTargetMode() == QueryLibraryItem.TargetMode.CONNECTION) {
                     secondaryText = item.getTargetName();
                 } else if (item.getTargetMode() == QueryLibraryItem.TargetMode.ASK) {
-                    secondaryText = "ask";
+                    secondaryText = ToolsMessages.library_tree_ask;
                 }
                 QueryLibrarySchedule schedule = item.getSchedule();
                 if (schedule != null && schedule.isEnabled() && item.getId() != null && QueryLibraryState.isScheduleActive(item)) {

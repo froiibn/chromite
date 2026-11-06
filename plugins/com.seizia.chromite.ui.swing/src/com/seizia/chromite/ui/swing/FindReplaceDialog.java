@@ -17,6 +17,8 @@
 package com.seizia.chromite.ui.swing;
 
 import com.formdev.flatlaf.FlatClientProperties;
+import com.seizia.chromite.ui.swing.internal.CoreMessages;
+import org.eclipse.osgi.util.NLS;
 import org.fife.ui.rtextarea.RTextArea;
 import org.fife.ui.rtextarea.SearchContext;
 import org.fife.ui.rtextarea.SearchEngine;
@@ -49,6 +51,7 @@ import java.util.regex.PatternSyntaxException;
  *
  * 변경 이력:
  * - 2026-11-06 P1: 최초 작성 (docs/chromite/swing-frontend.md "P1 디자인 적용")
+ * - 2026-11-06 화면 문구를 CoreMessages로 옮김(OS 언어를 따름)
  */
 final class FindReplaceDialog extends JDialog {
 
@@ -66,20 +69,20 @@ final class FindReplaceDialog extends JDialog {
 
     private final JTextField findField = new JTextField(28);
     private final JTextField replaceField = new JTextField(28);
-    private final JLabel replaceLabel = new JLabel("Replace with");
-    private final JCheckBox matchCaseBox = new JCheckBox("Match case");
-    private final JCheckBox wholeWordBox = new JCheckBox("Match whole word");
-    private final JCheckBox regexBox = new JCheckBox("Use regular expressions");
-    private final JButton findNextButton = new JButton("Find Next");
-    private final JButton findPreviousButton = new JButton("Find Previous");
-    private final JButton replaceButton = new JButton("Replace");
-    private final JButton replaceAllButton = new JButton("Replace All");
+    private final JLabel replaceLabel = new JLabel(CoreMessages.find_replace_with);
+    private final JCheckBox matchCaseBox = new JCheckBox(CoreMessages.find_match_case);
+    private final JCheckBox wholeWordBox = new JCheckBox(CoreMessages.find_whole_word);
+    private final JCheckBox regexBox = new JCheckBox(CoreMessages.find_regex);
+    private final JButton findNextButton = new JButton(CoreMessages.find_find_next);
+    private final JButton findPreviousButton = new JButton(CoreMessages.find_find_previous);
+    private final JButton replaceButton = new JButton(CoreMessages.find_replace);
+    private final JButton replaceAllButton = new JButton(CoreMessages.find_replace_all);
     private final JLabel statusLabel = new JLabel(" ");
     @Nullable
     private RTextArea target;
 
     private FindReplaceDialog(@NotNull Window owner) {
-        super(owner, "Find and Replace", ModalityType.MODELESS);
+        super(owner, CoreMessages.find_title, ModalityType.MODELESS);
         setDefaultCloseOperation(HIDE_ON_CLOSE);
 
         statusLabel.putClientProperty(FlatClientProperties.STYLE, "foreground: $Chromite.secondaryForeground"); //$NON-NLS-1$
@@ -87,7 +90,7 @@ final class FindReplaceDialog extends JDialog {
         findPreviousButton.addActionListener(e -> find(false));
         replaceButton.addActionListener(e -> replace());
         replaceAllButton.addActionListener(e -> replaceAll());
-        JButton closeButton = new JButton("Close");
+        JButton closeButton = new JButton(CoreMessages.find_close);
         closeButton.addActionListener(e -> setVisible(false));
         findField.getDocument().addDocumentListener(new DocumentListener() {
             @Override
@@ -112,7 +115,7 @@ final class FindReplaceDialog extends JDialog {
         c.insets = new Insets(0, 0, 6, 6);
         c.gridx = 0;
         c.gridy = 0;
-        form.add(new JLabel("Find what"), c);
+        form.add(new JLabel(CoreMessages.find_find_what), c);
         c.gridx = 1;
         c.fill = GridBagConstraints.HORIZONTAL;
         c.weightx = 1;
@@ -235,7 +238,7 @@ final class FindReplaceDialog extends JDialog {
         matchCaseBox.setSelected(lastSearch.getMatchCase());
         wholeWordBox.setSelected(lastSearch.getWholeWord());
         regexBox.setSelected(lastSearch.isRegularExpression());
-        setTitle(replace ? "Replace" : "Find");
+        setTitle(replace ? CoreMessages.find_replace : CoreMessages.find_find);
         replaceLabel.setVisible(replace);
         replaceField.setVisible(replace);
         replaceButton.setVisible(replace);
@@ -277,14 +280,14 @@ final class FindReplaceDialog extends JDialog {
         try {
             SearchResult result = SearchEngine.find(target, lastSearch);
             if (!result.wasFound()) {
-                statusLabel.setText("The text was not found.");
+                statusLabel.setText(CoreMessages.find_not_found);
             } else if (result.isWrapped()) {
-                statusLabel.setText(forward ? "Continued from the beginning." : "Continued from the end.");
+                statusLabel.setText(forward ? CoreMessages.find_wrapped_beginning : CoreMessages.find_wrapped_end);
             } else {
-                statusLabel.setText(result.getMarkedCount() + (result.getMarkedCount() == 1 ? " match" : " matches"));
+                statusLabel.setText(NLS.bind(result.getMarkedCount() == 1 ? CoreMessages.find_match : CoreMessages.find_matches, result.getMarkedCount()));
             }
         } catch (PatternSyntaxException e) {
-            statusLabel.setText("Invalid regular expression: " + e.getDescription());
+            statusLabel.setText(NLS.bind(CoreMessages.find_invalid_regex, e.getDescription()));
         }
         lastSearch.setSearchForward(true);
     }
@@ -297,9 +300,9 @@ final class FindReplaceDialog extends JDialog {
         lastSearch.setSearchForward(true);
         try {
             SearchResult result = SearchEngine.replace(target, lastSearch);
-            statusLabel.setText(result.wasFound() ? " " : "The text was not found.");
+            statusLabel.setText(result.wasFound() ? " " : CoreMessages.find_not_found);
         } catch (PatternSyntaxException e) {
-            statusLabel.setText("Invalid regular expression: " + e.getDescription());
+            statusLabel.setText(NLS.bind(CoreMessages.find_invalid_regex, e.getDescription()));
         }
     }
 
@@ -311,9 +314,9 @@ final class FindReplaceDialog extends JDialog {
         try {
             SearchResult result = SearchEngine.replaceAll(target, lastSearch);
             int count = result.getCount();
-            statusLabel.setText(count + (count == 1 ? " occurrence replaced." : " occurrences replaced."));
+            statusLabel.setText(NLS.bind(count == 1 ? CoreMessages.find_replaced_one : CoreMessages.find_replaced_many, count));
         } catch (PatternSyntaxException e) {
-            statusLabel.setText("Invalid regular expression: " + e.getDescription());
+            statusLabel.setText(NLS.bind(CoreMessages.find_invalid_regex, e.getDescription()));
         }
     }
 }

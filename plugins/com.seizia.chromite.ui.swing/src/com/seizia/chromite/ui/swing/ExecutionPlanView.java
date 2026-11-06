@@ -18,6 +18,8 @@ package com.seizia.chromite.ui.swing;
 
 import com.formdev.flatlaf.FlatClientProperties;
 import com.formdev.flatlaf.util.UIScale;
+import com.seizia.chromite.ui.swing.internal.EditorMessages;
+import org.eclipse.osgi.util.NLS;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.Log;
@@ -78,6 +80,7 @@ import java.util.Set;
  * 변경 이력:
  * - 2026-11-06 최초 작성 (docs/chromite/swing-sql-editor-plus.md)
  * - 2026-11-06 열이 너무 좁아 연산 이름이 잘리던 문제: 고정 비율로 보기에 맞추던 열을 내용에 맞추고, 넘치면 가로 스크롤 (docs/chromite/swing-sql-editor-plus.md)
+ * - 2026-11-06 화면 문구를 EditorMessages로 옮김(OS 언어를 따름)
  */
 final class ExecutionPlanView {
 
@@ -206,7 +209,7 @@ final class ExecutionPlanView {
     }
 
     void clear() {
-        clear("No execution plan. Display the estimated plan (Ctrl+L) or include the actual plan (Ctrl+M) and execute.");
+        clear(EditorMessages.editor_plan_empty);
     }
 
     void addEntry(@NotNull Entry entry) {
@@ -232,10 +235,11 @@ final class ExecutionPlanView {
                 statements += Math.max(1, getRootNodes(entry.plan()).size());
             }
         }
-        String text = (actual ? "Actual execution plan" : "Estimated execution plan") + " - "
-            + statements + (statements == 1 ? " statement" : " statements");
+        String text = NLS.bind(actual
+            ? statements == 1 ? EditorMessages.editor_plan_header_actual_one : EditorMessages.editor_plan_header_actual_many
+            : statements == 1 ? EditorMessages.editor_plan_header_estimated_one : EditorMessages.editor_plan_header_estimated_many, statements);
         if (failed > 0) {
-            text += ", " + failed + " without a plan";
+            text = NLS.bind(EditorMessages.editor_plan_header_failed, text, failed);
         }
         headerLabel.setText(text);
     }
@@ -366,7 +370,7 @@ final class ExecutionPlanView {
     private String getTreeText(@NotNull Row row) {
         if (row.item instanceof Entry entry) {
             String firstLine = entry.query().strip().lines().findFirst().orElse("");
-            String text = "Query " + row.number + ": " + CommonUtils.truncateString(firstLine, 200);
+            String text = NLS.bind(EditorMessages.editor_plan_query, row.number, CommonUtils.truncateString(firstLine, 200));
             return entry.error() != null ? text + " - " + entry.error() : text;
         }
         DBCPlanNode node = (DBCPlanNode) row.item;
@@ -421,7 +425,7 @@ final class ExecutionPlanView {
 
         @Override
         public String getColumnName(int column) {
-            return column == 0 ? "Operation" : columns.get(column - 1).getDisplayName();
+            return column == 0 ? EditorMessages.editor_plan_operation : columns.get(column - 1).getDisplayName();
         }
 
         @Override
@@ -534,20 +538,20 @@ final class ExecutionPlanView {
         if (index >= 0 && index < rows.size()) {
             Object item = rows.get(index).item;
             if (item instanceof Entry entry) {
-                properties.add(new String[]{"Statement", entry.query().strip()});
+                properties.add(new String[]{EditorMessages.editor_plan_statement, entry.query().strip()});
                 if (entry.plan() != null) {
                     try {
                         String planQuery = entry.plan().getPlanQueryString();
                         if (!planQuery.equals(entry.query()) && !planQuery.equals(entry.query().strip())) {
-                            properties.add(new String[]{"Plan query", planQuery});
+                            properties.add(new String[]{EditorMessages.editor_plan_plan_query, planQuery});
                         }
                     } catch (Exception e) {
                         log.debug("Can't read the plan query", e);
                     }
                 }
-                properties.add(new String[]{"Plan", entry.actual() ? "Actual" : "Estimated"});
+                properties.add(new String[]{EditorMessages.editor_plan_plan, entry.actual() ? EditorMessages.editor_plan_actual : EditorMessages.editor_plan_estimated});
                 if (entry.error() != null) {
-                    properties.add(new String[]{"Error", entry.error()});
+                    properties.add(new String[]{EditorMessages.editor_plan_error, entry.error()});
                 }
             } else if (item instanceof DBCPlanNode node) {
                 readNodeProperties(node, properties);
@@ -581,7 +585,7 @@ final class ExecutionPlanView {
         }
         if (!CommonUtils.isEmpty(node.getNodeDescription())
             && properties.stream().noneMatch(p -> p[1].equals(node.getNodeDescription()))) {
-            properties.add(new String[]{"Description", node.getNodeDescription()});
+            properties.add(new String[]{EditorMessages.editor_common_description, node.getNodeDescription()});
         }
     }
 
@@ -605,7 +609,7 @@ final class ExecutionPlanView {
 
         @Override
         public String getColumnName(int column) {
-            return column == 0 ? "Property" : "Value";
+            return column == 0 ? EditorMessages.editor_plan_property : EditorMessages.editor_common_value;
         }
 
         @Override

@@ -23,8 +23,10 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonParser;
 import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonToken;
+import com.seizia.chromite.ui.swing.internal.EditorMessages;
 import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.Status;
+import org.eclipse.osgi.util.NLS;
 import org.fife.ui.rsyntaxtextarea.RSyntaxTextArea;
 import org.fife.ui.rsyntaxtextarea.SyntaxConstants;
 import org.fife.ui.rsyntaxtextarea.Theme;
@@ -88,6 +90,7 @@ import java.util.Locale;
  *
  * 변경 이력:
  * - 2026-11-06 최초 작성 (docs/chromite/swing-result-viewer.md "값 패널")
+ * - 2026-11-06 화면 문구를 EditorMessages로 옮김(OS 언어를 따름)
  */
 final class ResultSetValuePanel extends JPanel {
 
@@ -129,12 +132,12 @@ final class ResultSetValuePanel extends JPanel {
     }
 
     enum Mode {
-        AUTO("Auto"),
-        TEXT("Text"),
+        AUTO(EditorMessages.editor_value_mode_auto),
+        TEXT(EditorMessages.editor_value_mode_text),
         JSON("JSON"),
         XML("XML"),
-        IMAGE("Image"),
-        HEX("Hex");
+        IMAGE(EditorMessages.editor_value_mode_image),
+        HEX(EditorMessages.editor_value_mode_hex);
 
         private final String label;
 
@@ -175,7 +178,7 @@ final class ResultSetValuePanel extends JPanel {
 
     private final JLabel titleLabel = new JLabel(" ");
     private final JComboBox<Mode> modeCombo = new JComboBox<>(Mode.values());
-    private final JCheckBox wrapCheck = new JCheckBox("Wrap");
+    private final JCheckBox wrapCheck = new JCheckBox(EditorMessages.editor_value_wrap);
     private final JPanel cards = new JPanel(new CardLayout());
     private final ValueTextArea textArea = new ValueTextArea();
     private final ImageView imageView = new ImageView();
@@ -202,7 +205,7 @@ final class ResultSetValuePanel extends JPanel {
         titleLabel.putClientProperty(FlatClientProperties.STYLE, "font: bold"); //$NON-NLS-1$
         JPanel tools = new JPanel(new FlowLayout(FlowLayout.RIGHT, 4, 0));
         tools.setOpaque(false);
-        modeCombo.setToolTipText("How to show the value");
+        modeCombo.setToolTipText(EditorMessages.editor_value_mode_tip);
         modeCombo.addActionListener(e -> rerender());
         wrapCheck.setSelected(true);
         wrapCheck.setFocusable(false);
@@ -242,11 +245,11 @@ final class ResultSetValuePanel extends JPanel {
         cards.add(imageScroll, CARD_IMAGE);
         cards.add(messageLabel, CARD_MESSAGE);
 
-        Action applyAction = ResultSetViewerPanel.createAction("Apply",
+        Action applyAction = ResultSetViewerPanel.createAction(EditorMessages.editor_value_apply,
             KeyStroke.getKeyStroke(KeyEvent.VK_ENTER, InputEvent.CTRL_DOWN_MASK), this::applyText);
-        applyAction.putValue(Action.SHORT_DESCRIPTION, "Put the text into the cell (Ctrl+Enter)");
-        Action revertAction = ResultSetViewerPanel.createAction("Revert", null, this::rerender);
-        revertAction.putValue(Action.SHORT_DESCRIPTION, "Discard the text changes");
+        applyAction.putValue(Action.SHORT_DESCRIPTION, EditorMessages.editor_value_apply_tip);
+        Action revertAction = ResultSetViewerPanel.createAction(EditorMessages.editor_value_revert, null, this::rerender);
+        revertAction.putValue(Action.SHORT_DESCRIPTION, EditorMessages.editor_value_revert_tip);
         textArea.getInputMap().put((KeyStroke) applyAction.getValue(Action.ACCELERATOR_KEY), "chromite.applyValue"); //$NON-NLS-1$
         textArea.getActionMap().put("chromite.applyValue", applyAction); //$NON-NLS-1$
         applyButton = new JButton(applyAction);
@@ -268,7 +271,7 @@ final class ResultSetValuePanel extends JPanel {
         add(header, BorderLayout.NORTH);
         add(cards, BorderLayout.CENTER);
         add(footer, BorderLayout.SOUTH);
-        showMessage("Select a cell to see its value.");
+        showMessage(EditorMessages.editor_value_select_cell);
         updateEditButtons();
     }
 
@@ -302,7 +305,7 @@ final class ResultSetValuePanel extends JPanel {
         Cell shown = cell;
         if (shown == null) {
             titleLabel.setText(" ");
-            showMessage("Select a cell to see its value.");
+            showMessage(EditorMessages.editor_value_select_cell);
             infoLabel.setText(" ");
             rendered = null;
             updateEditButtons();
@@ -311,7 +314,7 @@ final class ResultSetValuePanel extends JPanel {
         titleLabel.setText(shown.binding().getName() + "  " + CommonUtils.notEmpty(shown.binding().getTypeName()).toLowerCase(Locale.ROOT));
         Mode mode = (Mode) modeCombo.getSelectedItem();
         Mode requested = mode == null ? Mode.AUTO : mode;
-        infoLabel.setText("Reading…");
+        infoLabel.setText(EditorMessages.editor_common_reading);
         new AbstractJob("Show cell value") {
             {
                 setUser(false);
@@ -326,7 +329,7 @@ final class ResultSetValuePanel extends JPanel {
                     result = render(shown, requested, monitor);
                 } catch (Throwable e) {
                     log.debug("Can't show the cell value", e);
-                    result = new Rendered(Kind.MESSAGE, "Can't read the value: " + CommonUtils.getAllExceptionMessages(e),
+                    result = new Rendered(Kind.MESSAGE, NLS.bind(EditorMessages.editor_value_cant_read, CommonUtils.getAllExceptionMessages(e)),
                         SyntaxConstants.SYNTAX_STYLE_NONE, null, "", false, null);
                 }
                 Rendered done = result;
@@ -423,10 +426,10 @@ final class ResultSetValuePanel extends JPanel {
         boolean textValue = bytes == null;
         boolean editable = cell.editable() && textValue && !(value instanceof ResultSetCellContent);
         String size = bytes != null
-            ? String.format("%,d bytes", length >= 0 ? length : bytes.length)
-            : String.format("%,d chars", length >= 0 ? length : text.length());
+            ? NLS.bind(EditorMessages.editor_value_bytes, String.format("%,d", length >= 0 ? length : bytes.length)) //$NON-NLS-1$
+            : NLS.bind(EditorMessages.editor_value_chars, String.format("%,d", length >= 0 ? length : text.length())); //$NON-NLS-1$
         String info = size + (contentType.isEmpty() ? "" : " · " + contentType);
-        String warning = truncated ? "showing the first " + String.format("%,d", ResultSetCellContent.MAX_LOAD_SIZE) : null;
+        String warning = truncated ? NLS.bind(EditorMessages.editor_value_showing_first, String.format("%,d", ResultSetCellContent.MAX_LOAD_SIZE)) : null; //$NON-NLS-1$
 
         Mode effective = mode;
         if (mode == Mode.AUTO) {
@@ -436,7 +439,7 @@ final class ResultSetValuePanel extends JPanel {
             case IMAGE -> {
                 BufferedImage image = bytes == null ? null : decodeImage(bytes);
                 if (image == null) {
-                    return new Rendered(Kind.MESSAGE, "The value is not an image in a known format (PNG, JPEG, GIF, BMP, TIFF).",
+                    return new Rendered(Kind.MESSAGE, EditorMessages.editor_value_not_image,
                         SyntaxConstants.SYNTAX_STYLE_NONE, null, info, false, warning);
                 }
                 return new Rendered(Kind.IMAGE, "", SyntaxConstants.SYNTAX_STYLE_NONE, image,
@@ -444,7 +447,8 @@ final class ResultSetValuePanel extends JPanel {
             }
             case HEX -> {
                 byte[] data = bytes != null ? bytes : text.getBytes(StandardCharsets.UTF_8);
-                String hexWarning = data.length > MAX_HEX_BYTES ? "showing the first " + String.format("%,d", MAX_HEX_BYTES) + " bytes" : warning;
+                String hexWarning = data.length > MAX_HEX_BYTES
+                    ? NLS.bind(EditorMessages.editor_value_showing_first_bytes, String.format("%,d", MAX_HEX_BYTES)) : warning; //$NON-NLS-1$
                 return new Rendered(Kind.TEXT, hexDump(data, MAX_HEX_BYTES), SyntaxConstants.SYNTAX_STYLE_NONE, null, info, false, hexWarning, false);
             }
             case JSON -> {
@@ -453,7 +457,7 @@ final class ResultSetValuePanel extends JPanel {
                     return new Rendered(Kind.TEXT, formatJson(source), SyntaxConstants.SYNTAX_STYLE_JSON, null, info, editable, warning);
                 } catch (Exception e) {
                     return new Rendered(Kind.TEXT, source, SyntaxConstants.SYNTAX_STYLE_JSON, null, info, editable,
-                        "not valid JSON: " + firstLine(e.getMessage()));
+                        NLS.bind(EditorMessages.editor_value_invalid_json, firstLine(e.getMessage())));
                 }
             }
             case XML -> {
@@ -462,7 +466,7 @@ final class ResultSetValuePanel extends JPanel {
                     return new Rendered(Kind.TEXT, formatXml(source), SyntaxConstants.SYNTAX_STYLE_XML, null, info, editable, warning);
                 } catch (Exception e) {
                     return new Rendered(Kind.TEXT, source, SyntaxConstants.SYNTAX_STYLE_XML, null, info, editable,
-                        "not well-formed XML: " + firstLine(e.getMessage()));
+                        NLS.bind(EditorMessages.editor_value_invalid_xml, firstLine(e.getMessage())));
                 }
             }
             default -> {
@@ -499,7 +503,7 @@ final class ResultSetValuePanel extends JPanel {
             reader.setLenient(false);
             JsonElement element = JsonParser.parseReader(reader);
             if (reader.peek() != JsonToken.END_DOCUMENT) {
-                throw new IOException("Text after the JSON value");
+                throw new IOException(EditorMessages.editor_value_text_after_json);
             }
             return element;
         }
@@ -659,7 +663,7 @@ final class ResultSetValuePanel extends JPanel {
         }
         String error = editor.apply(textArea.getText());
         if (error != null) {
-            setInfo("", "Not applied: " + error, true);
+            setInfo("", NLS.bind(EditorMessages.editor_value_not_applied, error), true); //$NON-NLS-1$
             UIManager.getLookAndFeel().provideErrorFeedback(textArea);
             return;
         }

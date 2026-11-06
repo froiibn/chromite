@@ -16,6 +16,8 @@
  */
 package com.seizia.chromite.ui.swing;
 
+import com.seizia.chromite.ui.swing.internal.EditorMessages;
+import org.eclipse.osgi.util.NLS;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.model.data.aggregate.FunctionAvg;
@@ -38,10 +40,12 @@ import java.math.MathContext;
  *
  * 변경 이력:
  * - 2026-11-06 최초 작성 (docs/chromite/swing-result-viewer.md "표 편의 기능")
+ * - 2026-11-06 화면 문구를 EditorMessages로 옮김(OS 언어를 따름)
  */
 final class ResultSetAggregates {
 
     private static final int MAX_CELLS = 1_000_000;
+    private static final String SEPARATOR = "   "; //$NON-NLS-1$
     private static final MathContext DISPLAY_PRECISION = new MathContext(15);
 
     /**
@@ -91,15 +95,13 @@ final class ResultSetAggregates {
                 }
             }
         }
-        StringBuilder text = new StringBuilder("Count: ").append(String.format("%,d", cells));
+        StringBuilder text = new StringBuilder(NLS.bind(EditorMessages.editor_aggregate_count, String.format("%,d", cells))); //$NON-NLS-1$
         if (numbers > 0) {
-            text.append("   Sum: ").append(format(sum.getResult(numbers)))
-                .append("   Avg: ").append(format(avg.getResult(numbers)))
-                .append("   Min: ").append(format(min.getResult(numbers)))
-                .append("   Max: ").append(format(max.getResult(numbers)));
+            text.append(SEPARATOR).append(NLS.bind(EditorMessages.editor_aggregate_numbers, new Object[]{
+                format(sum.getResult(numbers)), format(avg.getResult(numbers)), format(min.getResult(numbers)), format(max.getResult(numbers))}));
         }
         if (capped) {
-            text.append("   (first ").append(String.format("%,d", MAX_CELLS)).append(" cells)");
+            text.append(SEPARATOR).append(NLS.bind(EditorMessages.editor_aggregate_capped, String.format("%,d", MAX_CELLS))); //$NON-NLS-1$
         }
         return text.toString();
     }

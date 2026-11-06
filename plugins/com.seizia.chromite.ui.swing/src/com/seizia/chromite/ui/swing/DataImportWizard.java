@@ -17,6 +17,8 @@
 package com.seizia.chromite.ui.swing;
 
 import com.formdev.flatlaf.FlatClientProperties;
+import com.seizia.chromite.ui.swing.internal.ToolsMessages;
+import org.eclipse.osgi.util.NLS;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
@@ -83,6 +85,7 @@ import java.util.Set;
  *
  * 변경 이력:
  * - 2026-11-06 데이터 전송: 최초 작성 (docs/chromite/swing-data-transfer.md)
+ * - 2026-11-06 화면 문구를 ToolsMessages로 옮김(OS 언어를 따름)
  */
 final class DataImportWizard extends DataTransferWizard {
 
@@ -128,13 +131,13 @@ final class DataImportWizard extends DataTransferWizard {
     private final JTextArea previewArea = new JTextArea(8, 40);
 
     // Load settings
-    private final JCheckBox truncateCheck = new JCheckBox("Delete all rows of the table before the import (truncate)");
-    private final JCheckBox newConnectionCheck = new JCheckBox("Use a separate connection", true);
-    private final JCheckBox transactionsCheck = new JCheckBox("Use transactions", true);
+    private final JCheckBox truncateCheck = new JCheckBox(ToolsMessages.import_load_truncate);
+    private final JCheckBox newConnectionCheck = new JCheckBox(ToolsMessages.import_load_new_connection, true);
+    private final JCheckBox transactionsCheck = new JCheckBox(ToolsMessages.import_load_transactions, true);
     private final JSpinner commitSpinner = new JSpinner(new SpinnerNumberModel(10000, 1, Integer.MAX_VALUE, 1000));
-    private final JCheckBox multiRowCheck = new JCheckBox("Use multi-row INSERT statements");
+    private final JCheckBox multiRowCheck = new JCheckBox(ToolsMessages.import_load_multi_row);
     private final JSpinner multiRowSpinner = new JSpinner(new SpinnerNumberModel(500, 2, 100000, 100));
-    private final JCheckBox disableBatchesCheck = new JCheckBox("Insert rows one by one (no JDBC batches)");
+    private final JCheckBox disableBatchesCheck = new JCheckBox(ToolsMessages.import_load_disable_batches);
 
     private DataImportWizard(
         @Nullable Window owner,
@@ -142,7 +145,7 @@ final class DataImportWizard extends DataTransferWizard {
         @NotNull DataTransferNodeDescriptor producerNode,
         @NotNull List<DataTransferProcessorDescriptor> importers
     ) throws DBException {
-        super(owner, "Import Data");
+        super(owner, ToolsMessages.import_title);
         this.table = table;
         this.producerNode = producerNode;
         this.importers = importers;
@@ -182,13 +185,13 @@ final class DataImportWizard extends DataTransferWizard {
             }
         }
         if (producerNode == null || importers.isEmpty()) {
-            DBWorkbench.getPlatformUI().showError("Import Data", "No file importers are installed");
+            DBWorkbench.getPlatformUI().showError(ToolsMessages.import_title, ToolsMessages.import_error_no_importers);
             return;
         }
         try {
             new DataImportWizard(SwingUtilities.getWindowAncestor(parent), table, producerNode, importers).open();
         } catch (DBException e) {
-            DBWorkbench.getPlatformUI().showError("Import Data", "Can't start the import", e);
+            DBWorkbench.getPlatformUI().showError(ToolsMessages.import_title, ToolsMessages.import_error_start, e);
         }
     }
 
@@ -220,7 +223,7 @@ final class DataImportWizard extends DataTransferWizard {
             return null;
         }
         if (truncateCheck.isSelected() && JOptionPane.showConfirmDialog(this,
-            "All rows of " + getTableName() + " will be deleted before the import.\nDo you want to continue?",
+            NLS.bind(ToolsMessages.import_confirm_truncate, getTableName()),
             getTitle(), JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE) != JOptionPane.YES_OPTION) {
             return null;
         }
@@ -256,13 +259,13 @@ final class DataImportWizard extends DataTransferWizard {
         Path file = Path.of(fileField.getText().trim());
         Map<String, Object> properties = importerProperties.getPropertiesWithDefaults();
         try {
-            LoadedMapping loaded = ProgressDialog.runTask("Read " + file.getFileName(), monitor -> {
+            LoadedMapping loaded = ProgressDialog.runTask(NLS.bind(ToolsMessages.import_progress_read, file.getFileName()), monitor -> {
                 StreamEntityMapping entityMapping = new StreamEntityMapping(file);
                 StreamTransferProducer producer = new StreamTransferProducer(entityMapping, importer);
                 producerSettings.setProcessorProperties(properties);
                 producerSettings.updateProducerSettingsFromStream(monitor, producer, importer.getInstance(), properties);
                 if (entityMapping.getStreamColumns().isEmpty()) {
-                    throw new DBException("No columns were found in " + file.getFileName());
+                    throw new DBException(NLS.bind(ToolsMessages.import_error_no_columns, file.getFileName()));
                 }
 
                 consumerSettings.getDataMappings().clear();
@@ -295,10 +298,10 @@ final class DataImportWizard extends DataTransferWizard {
             targetAttributes.clear();
             targetAttributes.addAll(loaded.columns());
         } catch (DBInterruptedException e) {
-            return "Reading the file was canceled.";
+            return ToolsMessages.import_error_read_canceled;
         } catch (DBException e) {
-            DBWorkbench.getPlatformUI().showError("Import Data", "Can't read the columns of " + file, e);
-            return "Can't read the columns of the file.";
+            DBWorkbench.getPlatformUI().showError(ToolsMessages.import_title, NLS.bind(ToolsMessages.import_error_read_columns_of, file), e);
+            return ToolsMessages.import_error_read_columns;
         }
         return null;
     }
@@ -334,24 +337,24 @@ final class DataImportWizard extends DataTransferWizard {
                     propertiesTable.setSource(importerProperties, null);
                 }
             });
-            JButton browse = new JButton("Browse…");
+            JButton browse = new JButton(ToolsMessages.button_browse);
             browse.addActionListener(e -> chooseFile());
             JPanel filePanel = new JPanel(new BorderLayout(6, 0));
             filePanel.add(fileField, BorderLayout.CENTER);
             filePanel.add(browse, BorderLayout.EAST);
-            JButton refresh = new JButton("Refresh Preview");
+            JButton refresh = new JButton(ToolsMessages.import_source_refresh_preview);
             refresh.addActionListener(e -> updatePreview());
 
             JPanel form = new JPanel(new GridBagLayout());
             int row = 0;
-            row = DataTransferObjects.addRow(form, row, "File", filePanel, null);
-            DataTransferObjects.addRow(form, row, "Format", importerCombo, null);
+            row = DataTransferObjects.addRow(form, row, ToolsMessages.import_source_file, filePanel, null);
+            DataTransferObjects.addRow(form, row, ToolsMessages.import_source_format, importerCombo, null);
 
             previewArea.setEditable(false);
             previewArea.putClientProperty(FlatClientProperties.STYLE_CLASS, "monospaced"); //$NON-NLS-1$
             JPanel previewPanel = new JPanel(new BorderLayout(0, 4));
             JPanel previewHeader = new JPanel(new BorderLayout());
-            previewHeader.add(new JLabel("First " + PREVIEW_LINES + " lines of the file"), BorderLayout.CENTER);
+            previewHeader.add(new JLabel(NLS.bind(ToolsMessages.import_source_preview, PREVIEW_LINES)), BorderLayout.CENTER);
             previewHeader.add(refresh, BorderLayout.EAST);
             previewPanel.add(previewHeader, BorderLayout.NORTH);
             previewPanel.add(new JScrollPane(previewArea), BorderLayout.CENTER);
@@ -365,7 +368,7 @@ final class DataImportWizard extends DataTransferWizard {
 
         private void chooseFile() {
             JFileChooser chooser = new JFileChooser(lastDirectory == null ? null : lastDirectory.toFile());
-            chooser.setDialogTitle("Import From");
+            chooser.setDialogTitle(ToolsMessages.import_source_choose_title);
             String extensions = CommonUtils.toString(importerProperties.getPropertiesWithDefaults().get(PROP_EXTENSION));
             String[] extensionList = CommonUtils.isEmpty(extensions) ? new String[0] : extensions.split(","); //$NON-NLS-1$
             if (extensionList.length > 0) {
@@ -395,7 +398,7 @@ final class DataImportWizard extends DataTransferWizard {
                     text.append(line).append('\n');
                 }
             } catch (IOException | RuntimeException e) {
-                text.append("Can't read the file: ").append(e.getMessage());
+                text.append(NLS.bind(ToolsMessages.import_source_preview_error, e.getMessage()));
             }
             previewArea.setText(text.toString());
             previewArea.setCaretPosition(0);
@@ -404,13 +407,13 @@ final class DataImportWizard extends DataTransferWizard {
         @NotNull
         @Override
         public String getTitle() {
-            return "Choose a Data Source";
+            return ToolsMessages.import_source_title;
         }
 
         @NotNull
         @Override
         public String getDescription() {
-            return "Choose the file to import into " + getTableName() + " and how it is read.";
+            return NLS.bind(ToolsMessages.import_source_description, getTableName());
         }
 
         @NotNull
@@ -430,10 +433,10 @@ final class DataImportWizard extends DataTransferWizard {
             propertiesTable.stopEditing();
             String path = fileField.getText().trim();
             if (path.isEmpty()) {
-                return "Choose the file to import.";
+                return ToolsMessages.import_source_error_none;
             }
             if (!Files.isRegularFile(Path.of(path))) {
-                return "The file " + path + " doesn't exist.";
+                return NLS.bind(ToolsMessages.import_source_error_missing, path);
             }
             return loadMapping();
         }
@@ -453,21 +456,20 @@ final class DataImportWizard extends DataTransferWizard {
             mappingTable.setRowHeight(Math.max(mappingTable.getRowHeight(), new JComboBox<>().getPreferredSize().height));
             mappingTable.putClientProperty("terminateEditOnFocusLost", Boolean.TRUE); //$NON-NLS-1$
             panel.add(DataTransferObjects.createNote(
-                "Columns are matched by name (by position when the file has no header). Columns without a match are skipped;"
-                    + " the table structure is not changed."), BorderLayout.NORTH);
+                ToolsMessages.import_mapping_note), BorderLayout.NORTH);
             panel.add(new JScrollPane(mappingTable), BorderLayout.CENTER);
         }
 
         @NotNull
         @Override
         public String getTitle() {
-            return "Column Mappings";
+            return ToolsMessages.import_mapping_title;
         }
 
         @NotNull
         @Override
         public String getDescription() {
-            return "Choose the column of " + getTableName() + " for each column of the file.";
+            return NLS.bind(ToolsMessages.import_mapping_description, getTableName());
         }
 
         @NotNull
@@ -507,15 +509,16 @@ final class DataImportWizard extends DataTransferWizard {
             for (DatabaseMappingAttribute attribute : attributeMappings) {
                 if (attribute.getMappingType() == DatabaseMappingType.existing && attribute.getTarget() != null
                     && !used.add(attribute.getTarget())) {
-                    return "The column " + attribute.getTarget().getName() + " is the target of more than one file column.";
+                    return NLS.bind(ToolsMessages.import_mapping_error_duplicate, attribute.getTarget().getName());
                 }
             }
-            return used.isEmpty() ? "Map at least one column of the file to a column of the table." : null;
+            return used.isEmpty() ? ToolsMessages.import_mapping_error_none : null;
         }
     }
 
     private final class MappingTableModel extends AbstractTableModel {
-        private final String[] columns = {"Source column", "Source type", "Destination column", "Destination type"};
+        private final String[] columns = {ToolsMessages.import_mapping_column_source, ToolsMessages.import_mapping_column_source_type,
+            ToolsMessages.import_mapping_column_target, ToolsMessages.import_mapping_column_target_type};
 
         @Override
         public int getRowCount() {
@@ -580,14 +583,14 @@ final class DataImportWizard extends DataTransferWizard {
             row = DataTransferObjects.addRow(form, row, null, truncateCheck, null);
             row = DataTransferObjects.addRow(form, row, null, newConnectionCheck, null);
             row = DataTransferObjects.addRow(form, row, null, transactionsCheck, null);
-            row = DataTransferObjects.addRow(form, row, "Commit every", commitSpinner, "rows (batch size)");
+            row = DataTransferObjects.addRow(form, row, ToolsMessages.import_load_commit, commitSpinner, ToolsMessages.import_load_commit_note);
             row = DataTransferObjects.addRow(form, row, null, multiRowCheck, null);
-            row = DataTransferObjects.addRow(form, row, "Rows per INSERT", multiRowSpinner, null);
+            row = DataTransferObjects.addRow(form, row, ToolsMessages.import_load_rows_per_insert, multiRowSpinner, null);
             DataTransferObjects.addRow(form, row, null, disableBatchesCheck, null);
             JPanel content = new JPanel(new BorderLayout(0, 12));
             content.add(form, BorderLayout.NORTH);
             content.add(DataTransferObjects.createNote(
-                "If inserting rows fails, you are asked whether to stop, retry, or skip the failed rows."), BorderLayout.CENTER);
+                ToolsMessages.import_load_note), BorderLayout.CENTER);
             panel.add(content, BorderLayout.NORTH);
             updateEnablement();
         }
@@ -601,13 +604,13 @@ final class DataImportWizard extends DataTransferWizard {
         @NotNull
         @Override
         public String getTitle() {
-            return "Load Settings";
+            return ToolsMessages.import_load_title;
         }
 
         @NotNull
         @Override
         public String getDescription() {
-            return "How the rows are written to " + getTableName() + ".";
+            return NLS.bind(ToolsMessages.import_load_description, getTableName());
         }
 
         @NotNull
@@ -634,13 +637,13 @@ final class DataImportWizard extends DataTransferWizard {
         @NotNull
         @Override
         public String getTitle() {
-            return "Complete the Wizard";
+            return ToolsMessages.wizard_summary_title;
         }
 
         @NotNull
         @Override
         public String getDescription() {
-            return "Check the choices and click Finish to import.";
+            return ToolsMessages.import_summary_description;
         }
 
         @NotNull
@@ -652,11 +655,11 @@ final class DataImportWizard extends DataTransferWizard {
         @Override
         public void activate() {
             StringBuilder summary = new StringBuilder();
-            summary.append("Source: ").append(fileField.getText().trim()).append(" (").append(importer.getName()).append(")\n");
+            summary.append(NLS.bind(ToolsMessages.import_summary_source, fileField.getText().trim(), importer.getName())).append('\n');
             for (Map.Entry<String, Object> entry : importerProperties.getPropertyValues().entrySet()) {
                 summary.append("    ").append(entry.getKey()).append(" = ").append(entry.getValue()).append('\n');
             }
-            summary.append("\nDestination: ").append(getTableName()).append('\n');
+            summary.append('\n').append(NLS.bind(ToolsMessages.import_summary_destination, getTableName())).append('\n');
             for (DatabaseMappingAttribute attribute : attributeMappings) {
                 DBSAttributeBase source = attribute.getSource();
                 summary.append("    ").append(source == null ? "?" : source.getName()).append(" -> ")
@@ -666,14 +669,15 @@ final class DataImportWizard extends DataTransferWizard {
             }
             summary.append('\n');
             if (truncateCheck.isSelected()) {
-                summary.append("All rows of the table are deleted first.\n");
+                summary.append(ToolsMessages.import_summary_truncate).append('\n');
             }
-            summary.append(transactionsCheck.isSelected() ? "Commit every " + commitSpinner.getValue() + " rows\n" : "No transactions (auto-commit)\n");
+            summary.append(transactionsCheck.isSelected() ? NLS.bind(ToolsMessages.import_summary_commit, commitSpinner.getValue())
+                : ToolsMessages.import_summary_no_transactions).append('\n');
             if (multiRowCheck.isSelected() && multiRowCheck.isEnabled()) {
-                summary.append("Multi-row INSERT, " + multiRowSpinner.getValue() + " rows per statement\n");
+                summary.append(NLS.bind(ToolsMessages.import_summary_multi_row, multiRowSpinner.getValue())).append('\n');
             }
             if (disableBatchesCheck.isSelected()) {
-                summary.append("Rows are inserted one by one\n");
+                summary.append(ToolsMessages.import_summary_one_by_one).append('\n');
             }
             text.setText(summary.toString());
             text.setCaretPosition(0);

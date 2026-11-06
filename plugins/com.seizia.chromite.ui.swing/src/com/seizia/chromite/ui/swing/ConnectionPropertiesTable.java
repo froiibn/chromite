@@ -17,6 +17,7 @@
 package com.seizia.chromite.ui.swing;
 
 import com.formdev.flatlaf.FlatClientProperties;
+import com.seizia.chromite.ui.swing.internal.ConnectionMessages;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.model.impl.PropertyDescriptor;
@@ -45,7 +46,7 @@ import java.util.Locale;
  * <ul>
  *     <li>값 편집기: 가능한 값 목록이 있으면 편집 가능한 콤보, 불리언이면 true/false 콤보, 나머지는 글자 입력.
  *     값을 지우면 기본값으로 되돌린다.</li>
- *     <li>사용자 속성: Add로 이름을 받아 {@value #USER_PROPERTIES_CATEGORY} 범주에 더하고, 그 범주의 속성만 Remove로 지울 수 있다
+ *     <li>사용자 속성: Add로 이름을 받아 사용자 속성({@link #USER_PROPERTIES_CATEGORY}) 범주에 더하고, 그 범주의 속성만 Remove로 지울 수 있다
  *     (SWT와 같은 규칙). 사용자 속성을 받지 않는 표(공급자 속성)에는 두 단추가 없다.</li>
  *     <li>이름에 password·token이 들어간 글자 속성은 값을 가린다(SWT {@code isHidePropertyValue}와 같은 규칙).</li>
  * </ul>
@@ -55,12 +56,17 @@ import java.util.Locale;
  * 변경 이력:
  * - 2026-11-06 D단계: 최초 작성 (docs/chromite/swing-frontend.md "구현 현황 — D단계")
  * - 2026-11-06 데이터 전송: 처리기 속성 편집에도 씀 (docs/chromite/swing-data-transfer.md)
+ * - 2026-11-06 화면 문구를 ConnectionMessages로 옮김(OS 언어를 따름)
  */
 final class ConnectionPropertiesTable extends JPanel {
 
-    static final String USER_PROPERTIES_CATEGORY = "User Properties";
+    /**
+     * Category of the properties the user added; shown in the table only, never saved (SWT: a localized message too).
+     */
+    static final String USER_PROPERTIES_CATEGORY = ConnectionMessages.properties_user_category;
 
-    private static final String[] COLUMNS = {"Category", "Property", "Value"};
+    private static final String[] COLUMNS = {
+        ConnectionMessages.properties_column_category, ConnectionMessages.properties_column_property, ConnectionMessages.properties_column_value};
     private static final int VALUE_COLUMN = 2;
 
     private final boolean userPropertiesAllowed;
@@ -148,12 +154,12 @@ final class ConnectionPropertiesTable extends JPanel {
         JToolBar toolBar = new JToolBar();
         toolBar.setFloatable(false);
         if (userPropertiesAllowed) {
-            addAction = createAction("Add…", "Add a user property", this::addUserProperty);
-            removeAction = createAction("Remove", "Remove the selected user property", this::removeUserProperty);
+            addAction = createAction(ConnectionMessages.common_add, ConnectionMessages.properties_add_tip, this::addUserProperty);
+            removeAction = createAction(ConnectionMessages.common_remove, ConnectionMessages.properties_remove_tip, this::removeUserProperty);
             toolBar.add(addAction);
             toolBar.add(removeAction);
         }
-        resetAction = createAction("Reset", "Reset the selected property to its default value", this::resetProperty);
+        resetAction = createAction(ConnectionMessages.properties_reset, ConnectionMessages.properties_reset_tip, this::resetProperty);
         toolBar.add(resetAction);
         bar.add(toolBar, BorderLayout.WEST);
         statusLabel.putClientProperty(FlatClientProperties.STYLE, "foreground: $Label.disabledForeground"); //$NON-NLS-1$
@@ -194,7 +200,8 @@ final class ConnectionPropertiesTable extends JPanel {
             return;
         }
         stopEditing();
-        String name = JOptionPane.showInputDialog(this, "Property name:", "Add property", JOptionPane.PLAIN_MESSAGE);
+        String name = JOptionPane.showInputDialog(this, ConnectionMessages.properties_add_prompt, ConnectionMessages.properties_add_title,
+            JOptionPane.PLAIN_MESSAGE);
         if (name == null || name.isBlank()) {
             return;
         }

@@ -19,6 +19,7 @@ package com.seizia.chromite.ui.swing;
 import com.formdev.flatlaf.FlatClientProperties;
 import com.formdev.flatlaf.ui.FlatUIUtils;
 import com.formdev.flatlaf.util.UIScale;
+import com.seizia.chromite.ui.swing.internal.CoreMessages;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.model.DBPDataSourceContainer;
@@ -93,6 +94,7 @@ import java.util.Set;
  * - 2026-11-06 Registered Servers: 최초 작성 (docs/chromite/swing-registered-servers.md)
  * - 2026-11-06 연결 색을 줄 바탕 대신 이름 알약({@link ConnectionPill})으로, 색은 연결에 정한 색 우선({@link ConnectionColors}),
  *   호스트 글자를 이름의 실제 기준선(JLabel baseline)에 맞춤 (docs/chromite/swing-registered-servers.md "연결 색 알약")
+ * - 2026-11-06 화면 문구를 CoreMessages로 옮김(OS 언어를 따름)
  */
 final class RegisteredServersPanel extends JPanel {
 
@@ -160,7 +162,7 @@ final class RegisteredServersPanel extends JPanel {
         DBPProject project = DBWorkbench.getPlatform().getWorkspace().getActiveProject();
         registry = project == null ? null : project.getDataSourceRegistry();
 
-        treeModel = new DefaultTreeModel(new DefaultMutableTreeNode(project != null ? project.getName() : "No active project"));
+        treeModel = new DefaultTreeModel(new DefaultMutableTreeNode(project != null ? project.getName() : CoreMessages.common_no_active_project));
         tree = new ServersTree(treeModel);
         tree.setRootVisible(false);
         tree.setShowsRootHandles(true);
@@ -184,11 +186,11 @@ final class RegisteredServersPanel extends JPanel {
             }
         });
 
-        newServerAction = createAction("New Server Registration…", () -> newServer(getSelectedGroup()));
-        newServerAction.putValue(Action.SHORT_DESCRIPTION, "Register a server in the selected group");
-        newGroupAction = createAction("New Server Group…", () -> newGroup(getSelectedGroup()));
-        newGroupAction.putValue(Action.SHORT_DESCRIPTION, "Create a server group in the selected group");
-        collapseAllAction = createAction("Collapse All", () -> setSubtreeExpanded(null, false));
+        newServerAction = createAction(CoreMessages.servers_new_registration, () -> newServer(getSelectedGroup()));
+        newServerAction.putValue(Action.SHORT_DESCRIPTION, CoreMessages.servers_new_registration_tip);
+        newGroupAction = createAction(CoreMessages.servers_new_group, () -> newGroup(getSelectedGroup()));
+        newGroupAction.putValue(Action.SHORT_DESCRIPTION, CoreMessages.servers_new_group_tip);
+        collapseAllAction = createAction(CoreMessages.explorer_collapse_all, () -> setSubtreeExpanded(null, false));
         newServerAction.setEnabled(registry != null);
         newGroupAction.setEnabled(registry != null);
 
@@ -341,36 +343,36 @@ final class RegisteredServersPanel extends JPanel {
         Object selected = getSelectedObject();
         if (selected instanceof DBPDataSourceContainer container) {
             boolean connected = container.isConnected();
-            popupMenu.add(menuItem("New Query", null, () -> {
+            popupMenu.add(menuItem(CoreMessages.main_new_query, null, () -> {
                 ConnectionCommands.connect(container);
                 host.openQuery(container);
             }));
-            popupMenu.add(menuItem("Object Explorer", KeyStroke.getKeyStroke(KeyEvent.VK_ENTER, 0), () -> host.showInObjectExplorer(container)));
+            popupMenu.add(menuItem(CoreMessages.main_object_explorer, KeyStroke.getKeyStroke(KeyEvent.VK_ENTER, 0), () -> host.showInObjectExplorer(container)));
             popupMenu.addSeparator();
-            popupMenu.add(menuItem("Connect", null, () -> ConnectionCommands.connect(container))).setEnabled(!connected);
-            popupMenu.add(menuItem("Disconnect", null, () -> ConnectionCommands.disconnect(container))).setEnabled(connected);
+            popupMenu.add(menuItem(CoreMessages.explorer_connect, null, () -> ConnectionCommands.connect(container))).setEnabled(!connected);
+            popupMenu.add(menuItem(CoreMessages.explorer_disconnect, null, () -> ConnectionCommands.disconnect(container))).setEnabled(connected);
             popupMenu.addSeparator();
             popupMenu.add(createMoveToMenu(container));
             popupMenu.addSeparator();
-            popupMenu.add(menuItem("Properties…", null, () -> ConnectionCommands.edit(this, container)));
-            popupMenu.add(menuItem("Rename", KeyStroke.getKeyStroke(KeyEvent.VK_F2, 0), this::renameSelected));
-            popupMenu.add(menuItem("Delete", KeyStroke.getKeyStroke(KeyEvent.VK_DELETE, 0), this::deleteSelected));
+            popupMenu.add(menuItem(CoreMessages.servers_properties, null, () -> ConnectionCommands.edit(this, container)));
+            popupMenu.add(menuItem(CoreMessages.explorer_rename, KeyStroke.getKeyStroke(KeyEvent.VK_F2, 0), this::renameSelected));
+            popupMenu.add(menuItem(CoreMessages.explorer_delete, KeyStroke.getKeyStroke(KeyEvent.VK_DELETE, 0), this::deleteSelected));
         } else if (selected instanceof DBPDataSourceFolder folder) {
-            popupMenu.add(menuItem("New Server Registration…", null, () -> newServer(folder)));
-            popupMenu.add(menuItem("New Server Group…", null, () -> newGroup(folder)));
+            popupMenu.add(menuItem(CoreMessages.servers_new_registration, null, () -> newServer(folder)));
+            popupMenu.add(menuItem(CoreMessages.servers_new_group, null, () -> newGroup(folder)));
             popupMenu.addSeparator();
-            popupMenu.add(menuItem("Expand All", null, () -> setSubtreeExpanded(folder, true)));
-            popupMenu.add(menuItem("Collapse All", null, () -> setSubtreeExpanded(folder, false)));
+            popupMenu.add(menuItem(CoreMessages.servers_expand_all, null, () -> setSubtreeExpanded(folder, true)));
+            popupMenu.add(menuItem(CoreMessages.explorer_collapse_all, null, () -> setSubtreeExpanded(folder, false)));
             popupMenu.addSeparator();
             popupMenu.add(createMoveToMenu(folder));
             popupMenu.addSeparator();
-            popupMenu.add(menuItem("Rename", KeyStroke.getKeyStroke(KeyEvent.VK_F2, 0), this::renameSelected));
-            popupMenu.add(menuItem("Delete", KeyStroke.getKeyStroke(KeyEvent.VK_DELETE, 0), this::deleteSelected));
+            popupMenu.add(menuItem(CoreMessages.explorer_rename, KeyStroke.getKeyStroke(KeyEvent.VK_F2, 0), this::renameSelected));
+            popupMenu.add(menuItem(CoreMessages.explorer_delete, KeyStroke.getKeyStroke(KeyEvent.VK_DELETE, 0), this::deleteSelected));
         } else {
             popupMenu.add(new JMenuItem(newServerAction));
             popupMenu.add(new JMenuItem(newGroupAction));
             popupMenu.addSeparator();
-            popupMenu.add(menuItem("Expand All", null, () -> setSubtreeExpanded(null, true)));
+            popupMenu.add(menuItem(CoreMessages.servers_expand_all, null, () -> setSubtreeExpanded(null, true)));
             popupMenu.add(new JMenuItem(collapseAllAction));
         }
     }
@@ -389,7 +391,7 @@ final class RegisteredServersPanel extends JPanel {
      */
     @NotNull
     private JMenu createMoveToMenu(@NotNull Object item) {
-        JMenu menu = new JMenu("Move To");
+        JMenu menu = new JMenu(CoreMessages.servers_move_to);
         if (registry == null) {
             menu.setEnabled(false);
             return menu;
@@ -408,7 +410,7 @@ final class RegisteredServersPanel extends JPanel {
 
     @NotNull
     private JMenuItem createMoveToItem(@NotNull Object item, @Nullable DBPDataSourceFolder target, int depth) {
-        JMenuItem menuItem = new JMenuItem(target == null ? "(Top Level)" : target.getName(), target == null ? null : UiIcons.get("folder")); //$NON-NLS-1$
+        JMenuItem menuItem = new JMenuItem(target == null ? CoreMessages.servers_top_level : target.getName(), target == null ? null : UiIcons.get("folder")); //$NON-NLS-1$
         menuItem.setBorder(BorderFactory.createEmptyBorder(0, UIScale.scale(16 * depth), 0, 0));
         menuItem.setEnabled(canMove(item, target));
         menuItem.addActionListener(e -> move(item, target));

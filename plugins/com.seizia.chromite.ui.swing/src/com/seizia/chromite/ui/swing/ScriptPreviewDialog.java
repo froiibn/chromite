@@ -16,6 +16,7 @@
  */
 package com.seizia.chromite.ui.swing;
 
+import com.seizia.chromite.ui.swing.internal.ToolsMessages;
 import org.fife.ui.rtextarea.RTextScrollPane;
 import org.jkiss.code.NotNull;
 import org.jkiss.dbeaver.runtime.DBWorkbench;
@@ -33,6 +34,7 @@ import java.awt.event.KeyEvent;
  *
  * 변경 이력:
  * - 2026-11-06 테이블 디자이너: 최초 작성 (docs/chromite/swing-table-designer.md)
+ * - 2026-11-06 화면 문구를 ToolsMessages로 옮김(OS 언어를 따름)
  */
 final class ScriptPreviewDialog extends JDialog {
 
@@ -57,18 +59,18 @@ final class ScriptPreviewDialog extends JDialog {
         textArea.applyTheme();
 
         JLabel header = new JLabel(allowExecute
-            ? "The following script applies the changes. Execute it now?"
-            : "Script of the pending changes:");
+            ? ToolsMessages.script_preview_execute_question
+            : ToolsMessages.script_preview_header);
         header.setBorder(BorderFactory.createEmptyBorder(0, 0, 8, 0));
 
-        JButton executeButton = new JButton("Execute");
+        JButton executeButton = new JButton(ToolsMessages.script_preview_execute);
         executeButton.addActionListener(e -> close(Result.EXECUTE));
-        JButton openButton = new JButton("Open in Query Window");
-        openButton.setToolTipText("Copy the script to a new query window without executing it");
+        JButton openButton = new JButton(ToolsMessages.script_preview_open);
+        openButton.setToolTipText(ToolsMessages.script_preview_open_tip);
         openButton.addActionListener(e -> close(Result.OPEN_IN_EDITOR));
-        JButton copyButton = new JButton("Copy");
+        JButton copyButton = new JButton(ToolsMessages.script_preview_copy);
         copyButton.addActionListener(e -> DBWorkbench.getPlatformUI().copyTextToClipboard(script, false));
-        JButton cancelButton = new JButton(allowExecute ? "Cancel" : "Close");
+        JButton cancelButton = new JButton(allowExecute ? ToolsMessages.button_cancel : ToolsMessages.button_close);
         cancelButton.addActionListener(e -> close(Result.CLOSE));
 
         JPanel buttons = new JPanel(new FlowLayout(FlowLayout.RIGHT, 6, 0));

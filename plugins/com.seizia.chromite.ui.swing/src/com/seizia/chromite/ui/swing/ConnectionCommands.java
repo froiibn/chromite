@@ -16,10 +16,12 @@
  */
 package com.seizia.chromite.ui.swing;
 
+import com.seizia.chromite.ui.swing.internal.ConnectionMessages;
 import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.jobs.IJobChangeEvent;
 import org.eclipse.core.runtime.jobs.Job;
 import org.eclipse.core.runtime.jobs.JobChangeAdapter;
+import org.eclipse.osgi.util.NLS;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
@@ -57,6 +59,7 @@ import java.awt.*;
  * 변경 이력:
  * - 2026-11-06 D단계: 최초 작성 (docs/chromite/swing-frontend.md "구현 현황 — D단계")
  * - 2026-11-06 Registered Servers: 새 연결 명령이 만든 연결을 돌려준다(docs/chromite/swing-registered-servers.md)
+ * - 2026-11-06 화면 문구를 ConnectionMessages로 옮김(OS 언어를 따름)
  */
 final class ConnectionCommands {
 
@@ -71,7 +74,7 @@ final class ConnectionCommands {
     static DBPDataSourceContainer newConnection(@Nullable Component parent, @Nullable DBPDataSourceFolder folder) {
         DBPProject project = DBWorkbench.getPlatform().getWorkspace().getActiveProject();
         if (project == null) {
-            DBWorkbench.getPlatformUI().showError("New Connection", "There is no active project.");
+            DBWorkbench.getPlatformUI().showError(ConnectionMessages.dialog_new_connection, ConnectionMessages.commands_no_project);
             return null;
         }
         return ConnectionDialog.openNew(getWindow(parent), project, folder);
@@ -93,7 +96,8 @@ final class ConnectionCommands {
                 // Schedules a connect job; its errors are shown by the service
                 service.initConnection(null, dataSource, null);
             } catch (DBException e) {
-                DBWorkbench.getPlatformUI().showError("Connect", "Can't connect to '" + dataSource.getName() + "'", e);
+                DBWorkbench.getPlatformUI().showError(ConnectionMessages.commands_connect_title,
+                    NLS.bind(ConnectionMessages.commands_connect_error, dataSource.getName()), e);
             }
         }
     }
@@ -116,8 +120,8 @@ final class ConnectionCommands {
     static void delete(@Nullable Component parent, @NotNull DBPDataSourceContainer dataSource) {
         int answer = JOptionPane.showConfirmDialog(
             getWindow(parent),
-            "Delete connection '" + dataSource.getName() + "'?",
-            "Delete Connection",
+            NLS.bind(ConnectionMessages.commands_delete_confirm, dataSource.getName()),
+            ConnectionMessages.commands_delete_title,
             JOptionPane.YES_NO_OPTION,
             JOptionPane.WARNING_MESSAGE);
         if (answer != JOptionPane.YES_OPTION) {
@@ -135,8 +139,8 @@ final class ConnectionCommands {
         DBPDataSourceContainer dataSource = node.getDataSourceContainer();
         Object input = JOptionPane.showInputDialog(
             getWindow(parent),
-            "New name:",
-            "Rename Connection",
+            ConnectionMessages.commands_rename_prompt,
+            ConnectionMessages.commands_rename_title,
             JOptionPane.PLAIN_MESSAGE,
             null,
             null,
@@ -149,7 +153,8 @@ final class ConnectionCommands {
             // Only changes and saves the connection configuration: no database access
             node.rename(new VoidProgressMonitor(), newName);
         } catch (DBException e) {
-            DBWorkbench.getPlatformUI().showError("Rename Connection", "Can't rename connection '" + dataSource.getName() + "'", e);
+            DBWorkbench.getPlatformUI().showError(ConnectionMessages.commands_rename_title,
+                NLS.bind(ConnectionMessages.commands_rename_error, dataSource.getName()), e);
         }
     }
 

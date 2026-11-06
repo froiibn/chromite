@@ -18,6 +18,7 @@ package com.seizia.chromite.ui.swing;
 
 import com.formdev.flatlaf.FlatClientProperties;
 import com.formdev.flatlaf.ui.FlatLineBorder;
+import com.seizia.chromite.ui.swing.internal.CoreMessages;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.utils.CommonUtils;
@@ -43,6 +44,7 @@ import java.util.List;
  * - 2026-11-06 B단계: 최초 작성 (docs/chromite/swing-frontend.md "구현 현황 — B단계")
  * - 2026-11-06 새 토스트가 창 높이만큼 크게 그려지던 문제: 줄 바꿈 글 상자의 너비가 정해지기 전에 선호 높이를 재던 것을
  *   토스트를 먼저 배치한 뒤 재도록 고침 (docs/chromite/swing-frontend.md)
+ * - 2026-11-06 화면 문구를 CoreMessages로 옮김(OS 언어를 따름)
  */
 final class NotificationToast extends JPanel {
 
@@ -117,7 +119,7 @@ final class NotificationToast extends JPanel {
         add(text, BorderLayout.CENTER);
         if (feedback != null) {
             setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-            setToolTipText("Click for details");
+            setToolTipText(CoreMessages.toast_click_details);
             addMouseListener(createFeedbackListener(feedback));
         }
 

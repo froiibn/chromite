@@ -16,6 +16,8 @@
  */
 package com.seizia.chromite.ui.swing;
 
+import com.seizia.chromite.ui.swing.internal.CoreMessages;
+import org.eclipse.osgi.util.NLS;
 import org.jkiss.code.NotNull;
 
 import java.io.IOException;
@@ -46,6 +48,7 @@ import java.nio.file.Path;
  * @param charset       character set of the file
  * @param bom           whether the file starts with a byte order mark
  * @param lineSeparator line separator of the file
+ * - 2026-11-06 화면 문구를 CoreMessages로 옮김(OS 언어를 따름)
  */
 record SqlFileContent(@NotNull String text, @NotNull Charset charset, boolean bom, @NotNull String lineSeparator) {
 
@@ -84,14 +87,14 @@ record SqlFileContent(@NotNull String text, @NotNull Charset charset, boolean bo
             text = decode(bytes, bomLength, charset);
         } catch (CharacterCodingException e) {
             if (bomLength > 0) {
-                throw new IOException("The file is not valid " + charset.displayName() + " text", e);
+                throw new IOException(NLS.bind(CoreMessages.sql_file_invalid_text, charset.displayName()), e);
             }
             // No BOM and not UTF-8: a legacy file in the system's native encoding
             charset = getNativeCharset();
             try {
                 text = decode(bytes, 0, charset);
             } catch (CharacterCodingException e2) {
-                throw new IOException("The file is neither UTF-8 nor " + charset.displayName() + " text", e2);
+                throw new IOException(NLS.bind(CoreMessages.sql_file_neither, charset.displayName()), e2);
             }
         }
         String lineSeparator = System.lineSeparator();
@@ -122,7 +125,7 @@ record SqlFileContent(@NotNull String text, @NotNull Charset charset, boolean bo
         try {
             encoded = encoder.encode(CharBuffer.wrap(text.replace("\n", lineSeparator)));
         } catch (CharacterCodingException e) {
-            throw new IOException("The text contains characters that can't be saved as " + charset.displayName(), e);
+            throw new IOException(NLS.bind(CoreMessages.sql_file_unmappable, charset.displayName()), e);
         }
         byte[] bomBytes = !bom ? new byte[0]
             : charset == StandardCharsets.UTF_16LE ? UTF16LE_BOM

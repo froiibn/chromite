@@ -16,6 +16,8 @@
  */
 package com.seizia.chromite.ui.swing;
 
+import com.seizia.chromite.ui.swing.internal.EditorMessages;
+import org.eclipse.osgi.util.NLS;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
@@ -77,6 +79,7 @@ import java.util.function.Consumer;
  *   (docs/chromite/swing-result-viewer.md)
  * - 2026-11-06 Query Library와 합침: 쿼리로는 다시 읽을 수 있어 보여도 다시 읽으면 안 되는 결과(이번 실행에만 바인딩한 매개변수 값)의 이유를
  *   받는 생성자 (docs/chromite/swing-query-library.md "매개변수 바인딩")
+ * - 2026-11-06 화면 문구를 EditorMessages로 옮김(OS 언어를 따름)
  */
 final class ResultSetGridReceiver implements DBDDataReceiver {
 
@@ -154,7 +157,7 @@ final class ResultSetGridReceiver implements DBDDataReceiver {
         }
         if (segmentBindings != null) {
             if (metaData.getAttributes().size() != segmentBindings.length) {
-                throw new DBException("The columns of the result changed; run the query again");
+                throw new DBException(EditorMessages.editor_grid_columns_changed);
             }
             this.bindings = segmentBindings;
         } else {
@@ -205,7 +208,7 @@ final class ResultSetGridReceiver implements DBDDataReceiver {
                     cells[i] = value;
                 }
             } catch (Throwable e) {
-                row[i] = "[error: " + e.getMessage() + "]";
+                row[i] = NLS.bind(EditorMessages.editor_grid_cell_error, e.getMessage());
                 unreadableColumns[i] = true;
                 if (failedColumns.add(i)) {
                     log.warn("Can't read column '" + binding.getName() + "' value", e);
@@ -260,7 +263,7 @@ final class ResultSetGridReceiver implements DBDDataReceiver {
     @Override
     public void close() {
         // fetchEnd is not called when the statement fails after fetchStart; show what was fetched
-        deliver(null, null, "fetching did not complete");
+        deliver(null, null, EditorMessages.editor_grid_fetch_incomplete);
     }
 
     /**
@@ -314,7 +317,7 @@ final class ResultSetGridReceiver implements DBDDataReceiver {
             : new ResultSetEditModel(editContext, dataContainer, bindings, unreadableColumns, rawValues, rows);
         rawValues.clear();
         String blocker = requeryBlocker != null ? requeryBlocker
-            : context == null ? "fetching did not complete" : ResultSetSource.getRequeryBlocker(dataContainer, context);
+            : context == null ? EditorMessages.editor_grid_fetch_incomplete : ResultSetSource.getRequeryBlocker(dataContainer, context);
         ResultSetSource source = new ResultSetSource(dataContainer, context, Math.max(maxRows, 0), blocker,
             unreadableColumns.clone(), List.copyOf(cellValues));
         cellValues.clear();

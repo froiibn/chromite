@@ -16,6 +16,7 @@
  */
 package com.seizia.chromite.ui.swing;
 
+import com.seizia.chromite.ui.swing.internal.EditorMessages;
 import org.fife.ui.rsyntaxtextarea.RSyntaxTextAreaEditorKit;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
@@ -67,6 +68,7 @@ import java.util.function.UnaryOperator;
  *
  * 변경 이력:
  * - 2026-11-06 최초 작성 (docs/chromite/swing-sql-editor-plus.md)
+ * - 2026-11-06 화면 문구를 EditorMessages로 옮김(OS 언어를 따름)
  */
 final class SqlEditCommands {
 
@@ -331,26 +333,26 @@ final class SqlEditCommands {
      */
     @NotNull
     static JMenu createAdvancedMenu(@NotNull Supplier<SqlEditorPanel.SqlTextArea> activeTextArea) {
-        JMenu menu = new JMenu("Advanced");
+        JMenu menu = new JMenu(EditorMessages.editor_edit_advanced);
         menu.setMnemonic(KeyEvent.VK_V);
         List<JMenuItem> items = new ArrayList<>();
-        addItem(menu, items, activeTextArea, "Format SQL", "Ctrl+K, Ctrl+D", //$NON-NLS-2$
+        addItem(menu, items, activeTextArea, EditorMessages.editor_edit_format_sql, "Ctrl+K, Ctrl+D", //$NON-NLS-1$
             KeyStroke.getKeyStroke(KeyEvent.VK_F, InputEvent.CTRL_DOWN_MASK | InputEvent.SHIFT_DOWN_MASK), SqlEditorPanel.SqlTextArea.Command.FORMAT);
         menu.addSeparator();
-        addItem(menu, items, activeTextArea, "Make Uppercase", null,
+        addItem(menu, items, activeTextArea, EditorMessages.editor_edit_upper_case, null,
             KeyStroke.getKeyStroke(KeyEvent.VK_U, InputEvent.CTRL_DOWN_MASK | InputEvent.SHIFT_DOWN_MASK), SqlEditorPanel.SqlTextArea.Command.UPPER_CASE);
-        addItem(menu, items, activeTextArea, "Make Lowercase", null,
+        addItem(menu, items, activeTextArea, EditorMessages.editor_edit_lower_case, null,
             KeyStroke.getKeyStroke(KeyEvent.VK_L, InputEvent.CTRL_DOWN_MASK | InputEvent.SHIFT_DOWN_MASK), SqlEditorPanel.SqlTextArea.Command.LOWER_CASE);
         menu.addSeparator();
-        addItem(menu, items, activeTextArea, "Comment Selection", "Ctrl+K, Ctrl+C", null, SqlEditorPanel.SqlTextArea.Command.COMMENT); //$NON-NLS-2$
-        addItem(menu, items, activeTextArea, "Uncomment Selection", "Ctrl+K, Ctrl+U", null, SqlEditorPanel.SqlTextArea.Command.UNCOMMENT); //$NON-NLS-2$
+        addItem(menu, items, activeTextArea, EditorMessages.editor_edit_comment, "Ctrl+K, Ctrl+C", null, SqlEditorPanel.SqlTextArea.Command.COMMENT); //$NON-NLS-1$
+        addItem(menu, items, activeTextArea, EditorMessages.editor_edit_uncomment, "Ctrl+K, Ctrl+U", null, SqlEditorPanel.SqlTextArea.Command.UNCOMMENT); //$NON-NLS-1$
         menu.addSeparator();
-        addItem(menu, items, activeTextArea, "Increase Indent", null,
+        addItem(menu, items, activeTextArea, EditorMessages.editor_edit_indent, null,
             KeyStroke.getKeyStroke(KeyEvent.VK_TAB, 0), SqlEditorPanel.SqlTextArea.Command.INDENT);
-        addItem(menu, items, activeTextArea, "Decrease Indent", null,
+        addItem(menu, items, activeTextArea, EditorMessages.editor_edit_outdent, null,
             KeyStroke.getKeyStroke(KeyEvent.VK_TAB, InputEvent.SHIFT_DOWN_MASK), SqlEditorPanel.SqlTextArea.Command.OUTDENT);
         menu.addSeparator();
-        addItem(menu, items, activeTextArea, "Insert Template…", "Ctrl+K, Ctrl+X", null, SqlEditorPanel.SqlTextArea.Command.INSERT_TEMPLATE); //$NON-NLS-2$
+        addItem(menu, items, activeTextArea, EditorMessages.editor_edit_insert_template, "Ctrl+K, Ctrl+X", null, SqlEditorPanel.SqlTextArea.Command.INSERT_TEMPLATE); //$NON-NLS-1$
         menu.addMenuListener(new MenuListener() {
             @Override
             public void menuSelected(MenuEvent e) {

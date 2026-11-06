@@ -18,6 +18,8 @@ package com.seizia.chromite.ui.swing;
 
 import com.formdev.flatlaf.FlatClientProperties;
 import com.formdev.flatlaf.util.UIScale;
+import com.seizia.chromite.ui.swing.internal.ConnectionMessages;
+import org.eclipse.osgi.util.NLS;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
@@ -59,6 +61,7 @@ import java.util.Set;
  *
  * 변경 이력:
  * - 2026-11-06 최초 작성 (docs/chromite/swing-admin-tools.md)
+ * - 2026-11-06 화면 문구를 ConnectionMessages로 옮김(OS 언어를 따름)
  */
 final class LockManagerPanel extends JPanel {
 
@@ -109,13 +112,13 @@ final class LockManagerPanel extends JPanel {
         toolBar.setFloatable(false);
         toolBar.setOpaque(false);
         toolBar.setBorder(BorderFactory.createEmptyBorder(UIScale.scale(3), UIScale.scale(8), UIScale.scale(3), UIScale.scale(8)));
-        Action refreshAction = new AbstractAction("Refresh") {
+        Action refreshAction = new AbstractAction(ConnectionMessages.common_refresh) {
             @Override
             public void actionPerformed(java.awt.event.ActionEvent e) {
                 refresh();
             }
         };
-        refreshAction.putValue(Action.SHORT_DESCRIPTION, "Read the locks again");
+        refreshAction.putValue(Action.SHORT_DESCRIPTION, ConnectionMessages.locks_refresh_tip);
         toolBar.add(UiIcons.createActionButton(refreshAction, "refresh")); //$NON-NLS-1$
         autoRefresh = new AutoRefreshBox(PREF_REFRESH, this, () -> {
             // Not after a failed connect: that would ask for the password again at each interval
@@ -126,13 +129,13 @@ final class LockManagerPanel extends JPanel {
         autoRefresh.setMaximumSize(autoRefresh.getPreferredSize());
         toolBar.add(autoRefresh);
         toolBar.addSeparator();
-        killAction = new AbstractAction("Kill Session") {
+        killAction = new AbstractAction(ConnectionMessages.locks_kill) {
             @Override
             public void actionPerformed(java.awt.event.ActionEvent e) {
                 killSelectedSession();
             }
         };
-        killAction.putValue(Action.SHORT_DESCRIPTION, "End the session of the selected row (at the top of a tree: the blocking session)");
+        killAction.putValue(Action.SHORT_DESCRIPTION, ConnectionMessages.locks_kill_tip);
         killAction.setEnabled(false);
         toolBar.add(UiIcons.createToolButton(killAction, "disconnect")); //$NON-NLS-1$
 
@@ -154,7 +157,7 @@ final class LockManagerPanel extends JPanel {
         JScrollPane treeScroll = new JScrollPane(lockTree);
         treeScroll.setBorder(BorderFactory.createEmptyBorder());
         JPanel treePanel = new JPanel(new BorderLayout());
-        treePanel.add(createHeader("Blocking chains"), BorderLayout.NORTH);
+        treePanel.add(createHeader(ConnectionMessages.locks_blocking_chains), BorderLayout.NORTH);
         treePanel.add(treeScroll, BorderLayout.CENTER);
 
         JScrollPane tableScroll = new JScrollPane(lockTable);
@@ -207,7 +210,7 @@ final class LockManagerPanel extends JPanel {
      */
     void refresh() {
         loading = true;
-        statusLabel.setText(connection.getContainer().isConnected() ? "Reading locks…" : "Connecting…");
+        statusLabel.setText(connection.getContainer().isConnected() ? ConnectionMessages.locks_reading : ConnectionMessages.common_connecting);
         connection.run("Read server locks", (monitor, session, profile) -> {
             DBAServerLockManager<DBAServerLock, DBAServerLockItem> manager = profile.getLockManager();
             if (manager == null) {
@@ -217,7 +220,8 @@ final class LockManagerPanel extends JPanel {
             return new LockList(new ArrayList<>(locks.values()), manager.getLocksType());
         }, this::showLocks, error -> {
             loading = false;
-            statusLabel.setText("Error: " + CommonUtils.notEmpty(error.getMessage()).replaceAll("\\s+", " ")); //$NON-NLS-1$ //$NON-NLS-2$
+            statusLabel.setText(NLS.bind(ConnectionMessages.common_status_error,
+                CommonUtils.notEmpty(error.getMessage()).replaceAll("\\s+", " "))); //$NON-NLS-1$ //$NON-NLS-2$
             statusLabel.setToolTipText(error.getMessage());
             log.debug("Error reading locks", error);
         });
@@ -236,7 +240,7 @@ final class LockManagerPanel extends JPanel {
             autoRefresh.dispose();
             autoRefresh.setEnabled(false);
             killAction.setEnabled(false);
-            statusLabel.setText("Lock information is not available for " + connection.getContainer().getDriver().getName() + ".");
+            statusLabel.setText(NLS.bind(ConnectionMessages.locks_not_available, connection.getContainer().getDriver().getName()));
             return;
         }
         Object selectedId = currentLock != null ? currentLock.getId() : null;
@@ -260,9 +264,9 @@ final class LockManagerPanel extends JPanel {
                 waiting++;
             }
         }
-        String text = lockList.locks().isEmpty() ? "No sessions wait for locks"
-            : waiting + (waiting == 1 ? " session waits" : " sessions wait") + " for locks";
-        statusLabel.setText(text + " · Updated " + DateFormat.getTimeInstance(DateFormat.MEDIUM).format(new Date()));
+        String text = lockList.locks().isEmpty() ? ConnectionMessages.locks_none_waiting
+            : NLS.bind(waiting == 1 ? ConnectionMessages.locks_waiting_one : ConnectionMessages.locks_waiting_many, waiting);
+        statusLabel.setText(NLS.bind(ConnectionMessages.common_status_updated, text, DateFormat.getTimeInstance(DateFormat.MEDIUM).format(new Date())));
         statusLabel.setToolTipText(null);
     }
 
@@ -349,8 +353,9 @@ final class LockManagerPanel extends JPanel {
             return;
         }
         DBAServerLock holder = lock.getHoldBy();
-        waitingLabel.setText("Locks of session " + lock.getTitle() + (holder != null ? " (waiting)" : " (blocking)"));
-        holdingLabel.setText(holder != null ? "Locks of blocking session " + holder.getTitle() : " ");
+        waitingLabel.setText(NLS.bind(holder != null ? ConnectionMessages.locks_of_session_waiting : ConnectionMessages.locks_of_session_blocking,
+            lock.getTitle()));
+        holdingLabel.setText(holder != null ? NLS.bind(ConnectionMessages.locks_of_blocking_session, holder.getTitle()) : " "); //$NON-NLS-1$
         connection.run("Read session locks", (monitor, session, profile) -> {
             DBAServerLockManager<DBAServerLock, DBAServerLockItem> manager = profile.getLockManager();
             if (manager == null) {
@@ -368,7 +373,8 @@ final class LockManagerPanel extends JPanel {
             showItems(holdingItems, items.get(1));
         }, error -> {
             if (serial == detailSerial) {
-                statusLabel.setText("Error: " + CommonUtils.notEmpty(error.getMessage()).replaceAll("\\s+", " ")); //$NON-NLS-1$ //$NON-NLS-2$
+                statusLabel.setText(NLS.bind(ConnectionMessages.common_status_error,
+                    CommonUtils.notEmpty(error.getMessage()).replaceAll("\\s+", " "))); //$NON-NLS-1$ //$NON-NLS-2$
                 log.debug("Error reading lock items", error);
             }
         });
@@ -388,20 +394,20 @@ final class LockManagerPanel extends JPanel {
             return;
         }
         int answer = JOptionPane.showConfirmDialog(this,
-            "Kill session " + lock.getTitle() + "?\n\nIts connection is closed and its open transaction is rolled back.",
-            "Kill Session", JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE);
+            NLS.bind(ConnectionMessages.locks_kill_confirm, lock.getTitle()),
+            ConnectionMessages.locks_kill, JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE);
         if (answer != JOptionPane.YES_OPTION) {
             return;
         }
         connection.run("Kill session", (monitor, session, profile) -> {
             DBAServerLockManager<DBAServerLock, DBAServerLockItem> manager = profile.getLockManager();
             if (manager == null) {
-                throw new DBException("No lock manager");
+                throw new DBException("No lock manager"); //$NON-NLS-1$
             }
             manager.alterSession(session, lock, null);
             return null;
         }, result -> refresh(), error -> {
-            DBWorkbench.getPlatformUI().showError("Kill Session", "Can't kill session " + lock.getTitle(), error);
+            DBWorkbench.getPlatformUI().showError(ConnectionMessages.locks_kill, NLS.bind(ConnectionMessages.locks_kill_error, lock.getTitle()), error);
             refresh();
         });
     }
@@ -415,8 +421,8 @@ final class LockManagerPanel extends JPanel {
             super.getTreeCellRendererComponent(tree, value, selected, expanded, leaf, row, hasFocus);
             if (value instanceof DefaultMutableTreeNode node && node.getUserObject() instanceof DBAServerLock lock) {
                 DBAServerLock holder = lock.getHoldBy();
-                setText("Session " + lock.getTitle() + (holder == null ? "  · blocking " + lock.waitThis().size()
-                    : "  · waits for " + holder.getTitle()));
+                setText(holder == null ? NLS.bind(ConnectionMessages.locks_tree_blocking, lock.getTitle(), lock.waitThis().size())
+                    : NLS.bind(ConnectionMessages.locks_tree_waiting, lock.getTitle(), holder.getTitle()));
                 setIcon(UiIcons.get(holder == null ? "warning" : "user")); //$NON-NLS-1$ //$NON-NLS-2$
             }
             return this;

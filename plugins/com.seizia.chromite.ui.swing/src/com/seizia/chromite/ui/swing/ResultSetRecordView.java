@@ -17,6 +17,8 @@
 package com.seizia.chromite.ui.swing;
 
 import com.formdev.flatlaf.FlatClientProperties;
+import com.seizia.chromite.ui.swing.internal.EditorMessages;
+import org.eclipse.osgi.util.NLS;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.model.DBPDataKind;
@@ -44,6 +46,7 @@ import java.util.Locale;
  *
  * 변경 이력:
  * - 2026-11-06 최초 작성 (docs/chromite/swing-result-viewer.md "레코드 보기")
+ * - 2026-11-06 화면 문구를 EditorMessages로 옮김(OS 언어를 따름)
  */
 final class ResultSetRecordView extends JPanel {
 
@@ -119,13 +122,13 @@ final class ResultSetRecordView extends JPanel {
             }
         });
 
-        previousAction = ResultSetViewerPanel.createAction("Previous Row",
+        previousAction = ResultSetViewerPanel.createAction(EditorMessages.editor_record_previous,
             KeyStroke.getKeyStroke(KeyEvent.VK_LEFT, InputEvent.ALT_DOWN_MASK), () -> move(-1));
-        nextAction = ResultSetViewerPanel.createAction("Next Row",
+        nextAction = ResultSetViewerPanel.createAction(EditorMessages.editor_record_next,
             KeyStroke.getKeyStroke(KeyEvent.VK_RIGHT, InputEvent.ALT_DOWN_MASK), () -> move(1));
-        previousAction.putValue(Action.SHORT_DESCRIPTION, "Previous row (Alt+Left)");
-        nextAction.putValue(Action.SHORT_DESCRIPTION, "Next row (Alt+Right)");
-        Action saveAction = ResultSetViewerPanel.createAction("Save", KeyStroke.getKeyStroke(KeyEvent.VK_S, InputEvent.CTRL_DOWN_MASK), source::save);
+        previousAction.putValue(Action.SHORT_DESCRIPTION, EditorMessages.editor_record_previous_tip);
+        nextAction.putValue(Action.SHORT_DESCRIPTION, EditorMessages.editor_record_next_tip);
+        Action saveAction = ResultSetViewerPanel.createAction(EditorMessages.editor_common_save, KeyStroke.getKeyStroke(KeyEvent.VK_S, InputEvent.CTRL_DOWN_MASK), source::save);
         for (Action action : new Action[]{previousAction, nextAction, saveAction}) {
             KeyStroke key = (KeyStroke) action.getValue(Action.ACCELERATOR_KEY);
             getInputMap(WHEN_ANCESTOR_OF_FOCUSED_COMPONENT).put(key, action.getValue(Action.NAME));
@@ -175,7 +178,7 @@ final class ResultSetRecordView extends JPanel {
                 table.setRowSelectionInterval(selected, selected);
             }
         }
-        positionLabel.setText(count == 0 ? "No rows" : "Row " + (row + 1) + " of " + count);
+        positionLabel.setText(count == 0 ? EditorMessages.editor_record_no_rows : NLS.bind(EditorMessages.editor_record_position, row + 1, count));
         previousAction.setEnabled(row > 0);
         nextAction.setEnabled(row >= 0 && row < count - 1);
     }
@@ -224,9 +227,9 @@ final class ResultSetRecordView extends JPanel {
         @Override
         public String getColumnName(int column) {
             return switch (column) {
-                case COLUMN_NAME -> "Column";
-                case COLUMN_TYPE -> "Type";
-                default -> "Value";
+                case COLUMN_NAME -> EditorMessages.editor_common_column;
+                case COLUMN_TYPE -> EditorMessages.editor_record_type;
+                default -> EditorMessages.editor_common_value;
             };
         }
 

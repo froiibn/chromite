@@ -17,6 +17,7 @@
 package com.seizia.chromite.ui.swing;
 
 import com.formdev.flatlaf.FlatClientProperties;
+import com.seizia.chromite.ui.swing.internal.ToolsMessages;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.utils.CommonUtils;
@@ -40,17 +41,19 @@ import java.util.List;
  *
  * 변경 이력:
  * - 2026-11-06 Query Library: 최초 작성 (docs/chromite/swing-query-library.md "저장 위치와 루트")
+ * - 2026-11-06 화면 문구를 ToolsMessages로 옮김(OS 언어를 따름)
  */
 final class QueryLibraryRootsDialog extends JDialog {
 
-    private static final String[] COLUMNS = {"Name", "Folder", "Read-only"};
+    private static final String[] COLUMNS = {ToolsMessages.library_field_name, ToolsMessages.library_field_folder,
+        ToolsMessages.library_roots_column_read_only};
 
     private final List<QueryLibrary.Root> roots;
     private final JTable table;
     private boolean accepted;
 
     private QueryLibraryRootsDialog(@NotNull Window owner, @NotNull List<QueryLibrary.Root> current) {
-        super(owner, "Query Library Roots", ModalityType.APPLICATION_MODAL);
+        super(owner, ToolsMessages.library_roots_title, ModalityType.APPLICATION_MODAL);
         setDefaultCloseOperation(DISPOSE_ON_CLOSE);
         roots = new ArrayList<>(current);
         RootsModel model = new RootsModel();
@@ -61,10 +64,10 @@ final class QueryLibraryRootsDialog extends JDialog {
         table.getColumnModel().getColumn(1).setPreferredWidth(420);
         table.getColumnModel().getColumn(2).setPreferredWidth(80);
 
-        JButton addButton = new JButton("Add…");
+        JButton addButton = new JButton(ToolsMessages.library_roots_add);
         addButton.addActionListener(e -> {
             JFileChooser chooser = new JFileChooser();
-            chooser.setDialogTitle("Library Folder");
+            chooser.setDialogTitle(ToolsMessages.library_roots_choose_title);
             chooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
             if (chooser.showOpenDialog(this) == JFileChooser.APPROVE_OPTION) {
                 File folder = chooser.getSelectedFile();
@@ -72,8 +75,8 @@ final class QueryLibraryRootsDialog extends JDialog {
                 model.fireTableDataChanged();
             }
         });
-        JButton removeButton = new JButton("Remove");
-        removeButton.setToolTipText("Remove the root from the list (its files are kept)");
+        JButton removeButton = new JButton(ToolsMessages.library_roots_remove);
+        removeButton.setToolTipText(ToolsMessages.library_roots_remove_tip);
         removeButton.addActionListener(e -> {
             int row = table.getSelectedRow();
             if (row >= 0) {
@@ -84,8 +87,8 @@ final class QueryLibraryRootsDialog extends JDialog {
                 model.fireTableDataChanged();
             }
         });
-        JButton defaultButton = new JButton("Add My Queries");
-        defaultButton.setToolTipText("Add the personal library folder of the workspace again");
+        JButton defaultButton = new JButton(ToolsMessages.library_roots_add_default);
+        defaultButton.setToolTipText(ToolsMessages.library_roots_add_default_tip);
         defaultButton.addActionListener(e -> {
             QueryLibrary.Root defaultRoot = QueryLibrary.getDefaultRoot();
             if (roots.stream().noneMatch(r -> r.path().equals(defaultRoot.path()))) {
@@ -98,11 +101,10 @@ final class QueryLibraryRootsDialog extends JDialog {
         tableButtons.add(removeButton);
         tableButtons.add(defaultButton);
 
-        JLabel hint = new JLabel("<html>Each root is a folder of .sql files: the personal folder, a shared network folder or a Git working copy.<br>"
-            + "Read-only roots can be run and copied, but not changed here.</html>");
+        JLabel hint = new JLabel(ToolsMessages.library_roots_hint);
         hint.putClientProperty(FlatClientProperties.STYLE, "foreground: $Chromite.secondaryForeground"); //$NON-NLS-1$
 
-        JButton okButton = new JButton("OK");
+        JButton okButton = new JButton(ToolsMessages.button_ok);
         okButton.addActionListener(e -> {
             if (table.isEditing()) {
                 table.getCellEditor().stopCellEditing();
@@ -110,7 +112,7 @@ final class QueryLibraryRootsDialog extends JDialog {
             accepted = true;
             dispose();
         });
-        JButton cancelButton = new JButton("Cancel");
+        JButton cancelButton = new JButton(ToolsMessages.button_cancel);
         cancelButton.addActionListener(e -> dispose());
         JPanel buttons = new JPanel(new FlowLayout(FlowLayout.RIGHT, 6, 0));
         buttons.add(okButton);

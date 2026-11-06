@@ -16,9 +16,11 @@
  */
 package com.seizia.chromite.ui.swing;
 
+import com.seizia.chromite.ui.swing.internal.CoreMessages;
 import org.eclipse.core.runtime.Platform;
 import org.eclipse.equinox.app.IApplicationContext;
 import org.eclipse.osgi.service.datalocation.Location;
+import org.eclipse.osgi.util.NLS;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.Log;
@@ -70,6 +72,7 @@ import java.util.concurrent.CountDownLatch;
  * - 2026-11-06 B단계: Chromite 테마 설치와 저장된 테마 적용 (docs/chromite/swing-frontend.md "구현 현황 — B단계")
  * - 2026-11-06 D단계: 연결 수 문구를 {@link MainFrame#describeWorkspace}로 옮김(메인 창이 연결 추가·삭제 때 다시 셈)
  *   (docs/chromite/swing-frontend.md "구현 현황 — D단계")
+ * - 2026-11-06 화면 문구를 CoreMessages로 옮김(OS 언어를 따름)
  */
 public class ChromiteSwingApplication extends DesktopApplicationImpl {
 
@@ -109,7 +112,7 @@ public class ChromiteSwingApplication extends DesktopApplicationImpl {
                 platform = DBWorkbench.getPlatform(ChromiteSwingPlatform.class);
             } catch (Throwable e) {
                 log.error("Error initializing platform", e);
-                showStartupError("Error initializing platform", CommonUtils.getAllExceptionMessages(e));
+                showStartupError(CoreMessages.app_error_init, CommonUtils.getAllExceptionMessages(e));
                 return EXIT_OK;
             }
             // Activates plugin services and the connection monitor; the SWT workbench window advisor does the same
@@ -173,9 +176,8 @@ public class ChromiteSwingApplication extends DesktopApplicationImpl {
         }
         // Phase B: offer "ignore lock" / workspace switching like DBeaverApplication.setDefaultWorkspacePath
         showStartupError(
-            "Can't lock workspace",
-            "Can't lock workspace at " + workspacePath + ".\n" +
-                "It seems that another " + GeneralUtils.getProductName() + " instance is running.");
+            CoreMessages.app_cant_lock_title,
+            NLS.bind(CoreMessages.app_cant_lock_message, workspacePath, GeneralUtils.getProductName()));
         return false;
     }
 

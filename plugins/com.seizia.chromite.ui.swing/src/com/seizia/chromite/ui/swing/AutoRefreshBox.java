@@ -16,6 +16,8 @@
  */
 package com.seizia.chromite.ui.swing;
 
+import com.seizia.chromite.ui.swing.internal.ConnectionMessages;
+import org.eclipse.osgi.util.NLS;
 import org.jkiss.code.NotNull;
 import org.jkiss.dbeaver.model.preferences.DBPPreferenceStore;
 import org.jkiss.dbeaver.utils.PrefUtils;
@@ -31,6 +33,7 @@ import javax.swing.*;
  *
  * 변경 이력:
  * - 2026-11-06 최초 작성 (docs/chromite/swing-admin-tools.md)
+ * - 2026-11-06 화면 문구를 ConnectionMessages로 옮김(OS 언어를 따름)
  */
 final class AutoRefreshBox extends JComboBox<AutoRefreshBox.Interval> {
 
@@ -39,7 +42,9 @@ final class AutoRefreshBox extends JComboBox<AutoRefreshBox.Interval> {
     record Interval(int seconds) {
         @Override
         public String toString() {
-            return seconds == 0 ? "Off" : seconds < 60 ? "Every " + seconds + " s" : "Every " + seconds / 60 + " min";
+            return seconds == 0 ? ConnectionMessages.auto_refresh_off
+                : seconds < 60 ? NLS.bind(ConnectionMessages.auto_refresh_seconds, seconds)
+                : NLS.bind(ConnectionMessages.auto_refresh_minutes, seconds / 60);
         }
     }
 
@@ -52,7 +57,7 @@ final class AutoRefreshBox extends JComboBox<AutoRefreshBox.Interval> {
      */
     AutoRefreshBox(@NotNull String preferenceKey, @NotNull JComponent owner, @NotNull Runnable refresh) {
         super(new Interval[] {new Interval(0), new Interval(2), new Interval(5), new Interval(10), new Interval(30), new Interval(60)});
-        setToolTipText("Refresh automatically");
+        setToolTipText(ConnectionMessages.auto_refresh_tip);
         DBPPreferenceStore preferences = ChromiteSwingActivator.getInstance().getPreferences();
         int seconds = preferences.contains(preferenceKey) ? preferences.getInt(preferenceKey) : DEFAULT_SECONDS;
         setSelectedItem(new Interval(seconds));

@@ -16,6 +16,7 @@
  */
 package com.seizia.chromite.ui.swing;
 
+import com.seizia.chromite.ui.swing.internal.CoreMessages;
 import org.jkiss.code.NotNull;
 import org.jkiss.dbeaver.model.preferences.DBPPreferenceStore;
 import org.jkiss.dbeaver.utils.PrefUtils;
@@ -33,12 +34,13 @@ import java.awt.*;
  * 변경 이력:
  * - 2026-11-06 디자인 적용: 최초 작성 (docs/chromite/design-spec.md "적용 현황")
  * - 2026-11-06 화면 이름에서 다른 제품 이름을 뺌: "Duo-tone", "Full color" (docs/chromite/design-spec.md "적용 현황 — 아이콘 팩")
+ * - 2026-11-06 화면 문구를 CoreMessages로 옮김(OS 언어를 따름)
  */
 enum UiIconStyle {
 
     // Labels name no other product (DataGrip-like duo-tone, SSMS-like color): they are shown in menus and Options
-    DUOTONE("Duo-tone", "duotone"), //$NON-NLS-2$
-    COLOR("Full color", "color"); //$NON-NLS-2$
+    DUOTONE(CoreMessages.icon_style_duotone, "duotone"), //$NON-NLS-1$
+    COLOR(CoreMessages.icon_style_color, "color"); //$NON-NLS-1$
 
     private static final String PREF_ICON_STYLE = "ui.iconStyle"; //$NON-NLS-1$
 
