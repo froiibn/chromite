@@ -1,0 +1,14 @@
+Manifest-Version: 1.0
+Bundle-ManifestVersion: 2
+Bundle-Vendor: Chromite contributors
+Bundle-Name: Chromite Tasks - Native Tools
+Bundle-SymbolicName: com.seizia.chromite.tasks.native;singleton:=true
+Bundle-Version: 1.0.169.qualifier
+Bundle-Release-Date: 20261116
+Bundle-RequiredExecutionEnvironment: JavaSE-21
+Bundle-ActivationPolicy: lazy
+Require-Bundle: com.seizia.chromite.model;visibility:=reexport,
+ com.seizia.chromite.model.sql,
+ com.seizia.chromite.registry
+Export-Package: com.seizia.chromite.tasks.nativetool
+Automatic-Module-Name: com.seizia.chromite.tasks.native

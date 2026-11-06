@@ -1,0 +1,17 @@
+Manifest-Version: 1.0
+Bundle-ManifestVersion: 2
+Bundle-Name: Chromite Altibase Support
+Bundle-SymbolicName: com.seizia.chromite.ext.altibase;singleton:=true
+Bundle-Version: 1.0.52.qualifier
+Bundle-Release-Date: 20261116
+Require-Bundle: com.seizia.chromite.ext.generic,
+ com.seizia.chromite.data.gis,
+ com.seizia.chromite.tasks.native
+Bundle-ActivationPolicy: lazy
+Bundle-RequiredExecutionEnvironment: JavaSE-21
+Bundle-Vendor: Chromite contributors
+Automatic-Module-Name: com.seizia.chromite.ext.altibase
+Export-Package: com.seizia.chromite.ext.altibase,
+ com.seizia.chromite.ext.altibase.model,
+ com.seizia.chromite.ext.altibase.model.lock,
+ com.seizia.chromite.ext.altibase.model.session

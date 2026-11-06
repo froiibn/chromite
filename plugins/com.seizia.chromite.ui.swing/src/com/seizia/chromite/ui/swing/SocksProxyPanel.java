@@ -19,8 +19,8 @@ package com.seizia.chromite.ui.swing;
 import com.seizia.chromite.ui.swing.internal.ConnectionMessages;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.model.impl.net.SocksConstants;
-import org.jkiss.dbeaver.model.net.DBWHandlerConfiguration;
+import com.seizia.chromite.model.impl.net.SocksConstants;
+import com.seizia.chromite.model.net.DBWHandlerConfiguration;
 import org.jkiss.utils.CommonUtils;
 
 import javax.swing.*;

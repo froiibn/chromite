@@ -1,0 +1,19 @@
+Manifest-Version: 1.0
+Bundle-ManifestVersion: 2
+Bundle-Vendor: Chromite contributors
+Bundle-Name: Chromite Data GIS UI
+Bundle-SymbolicName: com.seizia.chromite.data.gis.view;singleton:=true
+Bundle-Version: 1.0.186.qualifier
+Bundle-Release-Date: 20261116
+Bundle-RequiredExecutionEnvironment: JavaSE-21
+Bundle-ActivationPolicy: lazy
+Bundle-Activator: com.seizia.chromite.ui.gis.internal.GISViewerActivator
+Require-Bundle: org.eclipse.e4.ui.css.core,
+ com.seizia.chromite.data.gis,
+ com.seizia.chromite.registry,
+ com.seizia.chromite.ui,
+ com.seizia.chromite.ui.editors.data,
+ com.sun.jna,
+ com.sun.jna.platform
+Export-Package: com.seizia.chromite.ui.gis
+Automatic-Module-Name: com.seizia.chromite.data.gis.view

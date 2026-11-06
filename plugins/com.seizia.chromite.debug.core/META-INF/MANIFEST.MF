@@ -1,0 +1,20 @@
+Manifest-Version: 1.0
+Bundle-ManifestVersion: 2
+Bundle-Name: Chromite Debug Model
+Bundle-SymbolicName: com.seizia.chromite.debug.core;singleton:=true
+Bundle-Version: 1.0.220.qualifier
+Bundle-Release-Date: 20261116
+Bundle-Vendor: Chromite contributors
+Bundle-RequiredExecutionEnvironment: JavaSE-21
+Require-Bundle: org.eclipse.e4.core.services,
+ org.eclipse.e4.core.contexts,
+ org.eclipse.debug.core;visibility:=reexport,
+ com.seizia.chromite.model;visibility:=reexport,
+ com.seizia.chromite.model.jdbc
+Export-Package: com.seizia.chromite.debug,
+ com.seizia.chromite.debug.core,
+ com.seizia.chromite.debug.core.breakpoints,
+ com.seizia.chromite.debug.core.model,
+ com.seizia.chromite.debug.jdbc
+Bundle-ActivationPolicy: lazy
+Automatic-Module-Name: com.seizia.chromite.debug.core

@@ -4,7 +4,7 @@
 osgi-cache/
 bin/
 tmp/
-dbeaver-workspace
+chromite-workspace
 *.tmp
 *.bak
 *.swp

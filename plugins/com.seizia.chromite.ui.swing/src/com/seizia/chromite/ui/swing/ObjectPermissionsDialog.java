@@ -24,7 +24,7 @@ import com.seizia.chromite.ui.swing.internal.ToolsMessages;
 import org.eclipse.osgi.util.NLS;
 import org.jkiss.code.NotNull;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
+import com.seizia.chromite.runtime.DBWorkbench;
 
 import javax.swing.*;
 import java.awt.*;

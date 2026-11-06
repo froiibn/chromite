@@ -1,0 +1,16 @@
+Manifest-Version: 1.0
+Bundle-ManifestVersion: 2
+Bundle-Vendor: Chromite contributors
+Bundle-Name: Chromite UI Forms Toolkit
+Bundle-SymbolicName: com.seizia.chromite.ui.forms;singleton:=true
+Bundle-Version: 1.0.19.qualifier
+Bundle-Release-Date: 20261116
+Bundle-RequiredExecutionEnvironment: JavaSE-21
+Bundle-ActivationPolicy: lazy
+Import-Package: org.jkiss.code
+Require-Bundle: org.eclipse.core.databinding,
+ org.eclipse.core.databinding.property,
+ org.eclipse.jface.databinding,
+ com.seizia.chromite.ui
+Export-Package: com.seizia.chromite.ui.forms
+Automatic-Module-Name: com.seizia.chromite.ui.forms

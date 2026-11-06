@@ -1,0 +1,13 @@
+Manifest-Version: 1.0
+Bundle-ManifestVersion: 2
+Bundle-Name: Chromite Cloudflare D1 UI
+Bundle-SymbolicName: com.seizia.chromite.ext.cloudflare.d1.ui;singleton:=true
+Bundle-Version: 1.0.0.qualifier
+Bundle-Release-Date: 20261027
+Require-Bundle: com.seizia.chromite.ui.editors.connection,
+ com.seizia.chromite.ext.cloudflare.d1
+Bundle-ActivationPolicy: lazy
+Bundle-Localization: plugin
+Bundle-RequiredExecutionEnvironment: JavaSE-21
+Bundle-Vendor: Chromite contributors
+Automatic-Module-Name: com.seizia.chromite.ext.cloudflare.d1.ui

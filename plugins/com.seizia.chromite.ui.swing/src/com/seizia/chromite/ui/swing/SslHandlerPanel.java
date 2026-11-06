@@ -18,12 +18,12 @@ package com.seizia.chromite.ui.swing;
 
 import com.seizia.chromite.ui.swing.internal.ConnectionMessages;
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.ext.mssql.SQLServerConstants;
-import org.jkiss.dbeaver.ext.mysql.MySQLConstants;
-import org.jkiss.dbeaver.ext.postgresql.PostgreConstants;
-import org.jkiss.dbeaver.model.impl.net.SSLConfigurationMethod;
-import org.jkiss.dbeaver.model.impl.net.SSLHandlerTrustStoreImpl;
-import org.jkiss.dbeaver.model.net.DBWHandlerConfiguration;
+import com.seizia.chromite.ext.mssql.SQLServerConstants;
+import com.seizia.chromite.ext.mysql.MySQLConstants;
+import com.seizia.chromite.ext.postgresql.PostgreConstants;
+import com.seizia.chromite.model.impl.net.SSLConfigurationMethod;
+import com.seizia.chromite.model.impl.net.SSLHandlerTrustStoreImpl;
+import com.seizia.chromite.model.net.DBWHandlerConfiguration;
 import org.jkiss.utils.CommonUtils;
 
 import javax.swing.*;

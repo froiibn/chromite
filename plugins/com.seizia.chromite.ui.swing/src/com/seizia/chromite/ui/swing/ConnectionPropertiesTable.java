@@ -20,10 +20,10 @@ import com.formdev.flatlaf.FlatClientProperties;
 import com.seizia.chromite.ui.swing.internal.ConnectionMessages;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.model.impl.PropertyDescriptor;
-import org.jkiss.dbeaver.model.meta.IPropertyValueListProvider;
-import org.jkiss.dbeaver.model.preferences.DBPPropertyDescriptor;
-import org.jkiss.dbeaver.runtime.properties.PropertySourceCustom;
+import com.seizia.chromite.model.impl.PropertyDescriptor;
+import com.seizia.chromite.model.meta.IPropertyValueListProvider;
+import com.seizia.chromite.model.preferences.DBPPropertyDescriptor;
+import com.seizia.chromite.runtime.properties.PropertySourceCustom;
 import org.jkiss.utils.ArrayUtils;
 import org.jkiss.utils.CommonUtils;
 

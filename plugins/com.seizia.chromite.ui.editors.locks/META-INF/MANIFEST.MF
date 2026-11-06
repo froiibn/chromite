@@ -1,0 +1,17 @@
+Manifest-Version: 1.0
+Bundle-ManifestVersion: 2
+Bundle-Name: Chromite Transaction Locks Monitor UI
+Bundle-SymbolicName: com.seizia.chromite.ui.editors.locks;singleton:=true
+Bundle-Version: 1.0.236.qualifier
+Bundle-Release-Date: 20261116
+Bundle-Vendor: Chromite contributors
+Bundle-RequiredExecutionEnvironment: JavaSE-21
+Require-Bundle: org.eclipse.gef,
+ com.seizia.chromite.model,
+ com.seizia.chromite.ui,
+ com.seizia.chromite.ui.navigator,
+ com.seizia.chromite.ui.editors.base
+Export-Package: com.seizia.chromite.ui.editors.locks.edit,
+ com.seizia.chromite.ui.editors.locks.manage
+Bundle-ActivationPolicy: lazy
+Automatic-Module-Name: com.seizia.chromite.ui.editors.locks

@@ -17,13 +17,13 @@
 package com.seizia.chromite.ui.swing;
 
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.model.DBPDataSourceContainer;
-import org.jkiss.dbeaver.model.app.DBPDataSourceRegistry;
-import org.jkiss.dbeaver.model.navigator.DBNDataSource;
-import org.jkiss.dbeaver.model.navigator.DBNNode;
-import org.jkiss.dbeaver.model.navigator.DBNProjectDatabases;
-import org.jkiss.dbeaver.model.preferences.DBPPreferenceStore;
-import org.jkiss.dbeaver.utils.PrefUtils;
+import com.seizia.chromite.model.DBPDataSourceContainer;
+import com.seizia.chromite.model.app.DBPDataSourceRegistry;
+import com.seizia.chromite.model.navigator.DBNDataSource;
+import com.seizia.chromite.model.navigator.DBNNode;
+import com.seizia.chromite.model.navigator.DBNProjectDatabases;
+import com.seizia.chromite.model.preferences.DBPPreferenceStore;
+import com.seizia.chromite.utils.PrefUtils;
 import org.jkiss.utils.AlphanumericComparator;
 import org.jkiss.utils.CommonUtils;
 

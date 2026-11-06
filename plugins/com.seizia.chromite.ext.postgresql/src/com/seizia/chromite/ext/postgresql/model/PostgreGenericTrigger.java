@@ -1,0 +1,75 @@
+/*
+ * DBeaver - Universal Database Manager
+ * Copyright (C) 2010-2025 DBeaver Corp and others
+ * Modifications Copyright (C) 2026 Chromite contributors
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package com.seizia.chromite.ext.postgresql.model;
+
+import org.jkiss.code.NotNull;
+import org.jkiss.code.Nullable;
+import org.jkiss.dbeaver.DBException;
+import com.seizia.chromite.ext.generic.model.GenericTableBase;
+import com.seizia.chromite.ext.generic.model.GenericTableTrigger;
+import com.seizia.chromite.model.meta.Property;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+
+import java.util.Map;
+
+/**
+ * PostgreGenericTrigger
+ */
+@Deprecated
+public class PostgreGenericTrigger extends GenericTableTrigger {
+
+    private String manipulation;
+    private String orientation;
+    private String timing;
+    private String source;
+
+    public PostgreGenericTrigger(GenericTableBase table, String name, String description, String manipulation, String orientation, @Nullable String timing, String statement) {
+        super(table, name, description);
+        this.manipulation = manipulation;
+        this.orientation = orientation;
+        this.timing = timing;
+        this.source = statement;
+    }
+
+    @Nullable
+    @Property(viewable = true, editable = true, updatable = false, order = 20)
+    public String getTiming() {
+        return timing;
+    }
+
+    @Property(viewable = true, editable = true, updatable = false, order = 21)
+    public String getManipulation() {
+        return manipulation;
+    }
+
+    @Property(viewable = true, editable = true, updatable = false, order = 22)
+    public String getOrientation() {
+        return orientation;
+    }
+
+    @NotNull
+    @Override
+    @Property(hidden = true, editable = true, updatable = true, order = -1)
+    public String getObjectDefinitionText(@NotNull DBRProgressMonitor monitor, @NotNull Map<String, Object> options) throws DBException {
+        return source;
+    }
+
+    public void addManipulation(String manipulation) {
+        this.manipulation += " OR " + manipulation;
+    }
+}

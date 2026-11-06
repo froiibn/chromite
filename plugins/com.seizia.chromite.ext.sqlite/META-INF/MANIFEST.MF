@@ -1,0 +1,18 @@
+Manifest-Version: 1.0
+Bundle-ManifestVersion: 2
+Bundle-Name: Chromite SQLite Model
+Bundle-SymbolicName: com.seizia.chromite.ext.sqlite;singleton:=true
+Bundle-Version: 1.0.240.qualifier
+Bundle-Release-Date: 20261116
+Require-Bundle: com.seizia.chromite.ext.generic;visibility:=reexport,
+ com.seizia.chromite.data.gis;visibility:=reexport,
+ com.seizia.chromite.model.lsm;visibility:=reexport,
+ com.dbeaver.jdbc.api;visibility:=reexport
+Export-Package: com.seizia.chromite.ext.sqlite,
+ com.seizia.chromite.ext.sqlite.model,
+ com.seizia.chromite.ext.sqlite.model.data
+Import-Package: org.jkiss.code
+Bundle-ActivationPolicy: lazy
+Bundle-RequiredExecutionEnvironment: JavaSE-21
+Bundle-Vendor: Chromite contributors
+Automatic-Module-Name: com.seizia.chromite.ext.sqlite

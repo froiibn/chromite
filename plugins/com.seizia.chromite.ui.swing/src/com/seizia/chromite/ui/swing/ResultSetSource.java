@@ -19,12 +19,12 @@ package com.seizia.chromite.ui.swing;
 import com.seizia.chromite.ui.swing.internal.EditorMessages;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.model.exec.DBCExecutionContext;
-import org.jkiss.dbeaver.model.sql.SQLQuery;
-import org.jkiss.dbeaver.model.sql.SQLQueryContainer;
-import org.jkiss.dbeaver.model.sql.SQLQueryType;
-import org.jkiss.dbeaver.model.sql.SQLScriptElement;
-import org.jkiss.dbeaver.model.struct.DBSDataContainer;
+import com.seizia.chromite.model.exec.DBCExecutionContext;
+import com.seizia.chromite.model.sql.SQLQuery;
+import com.seizia.chromite.model.sql.SQLQueryContainer;
+import com.seizia.chromite.model.sql.SQLQueryType;
+import com.seizia.chromite.model.sql.SQLScriptElement;
+import com.seizia.chromite.model.struct.DBSDataContainer;
 
 import java.util.List;
 

@@ -1,0 +1,12 @@
+Manifest-Version: 1.0
+Bundle-ManifestVersion: 2
+Bundle-Vendor: Chromite contributors
+Bundle-Name: Chromite Schema Compare (Simple)
+Bundle-SymbolicName: com.seizia.chromite.cmp.simple;singleton:=true
+Bundle-Version: 6.0.187.qualifier
+Bundle-Release-Date: 20261116
+Bundle-ActivationPolicy: lazy
+Bundle-RequiredExecutionEnvironment: JavaSE-21
+Export-Package: com.seizia.chromite.tools.compare.simple
+Require-Bundle: com.seizia.chromite.registry;visibility:=reexport
+Automatic-Module-Name: com.seizia.chromite.cmp.simple

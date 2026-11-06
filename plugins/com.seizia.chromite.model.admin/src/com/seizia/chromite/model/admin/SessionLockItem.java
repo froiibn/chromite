@@ -17,8 +17,8 @@
 package com.seizia.chromite.model.admin;
 
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.model.admin.locks.DBAServerLockItem;
-import org.jkiss.dbeaver.model.meta.Property;
+import com.seizia.chromite.model.admin.locks.DBAServerLockItem;
+import com.seizia.chromite.model.meta.Property;
 
 /**
  * 세션 하나가 가진(또는 기다리는) 잠금 한 건.

@@ -21,20 +21,20 @@ import org.eclipse.osgi.util.NLS;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.ModelPreferences;
-import org.jkiss.dbeaver.model.DBPDataSourceContainer;
-import org.jkiss.dbeaver.model.DBPDataSourceFolder;
-import org.jkiss.dbeaver.model.app.DBPDataSourceRegistry;
-import org.jkiss.dbeaver.model.app.DBPProject;
-import org.jkiss.dbeaver.model.connection.DBPConnectionConfiguration;
-import org.jkiss.dbeaver.model.connection.DBPConnectionType;
-import org.jkiss.dbeaver.model.connection.DBPDriver;
-import org.jkiss.dbeaver.model.connection.DBPNativeClientLocation;
-import org.jkiss.dbeaver.registry.DataSourceDescriptor;
-import org.jkiss.dbeaver.registry.driver.DriverDescriptor;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.runtime.jobs.ConnectionTestJob;
-import org.jkiss.dbeaver.utils.DataSourceUtils;
+import com.seizia.chromite.ModelPreferences;
+import com.seizia.chromite.model.DBPDataSourceContainer;
+import com.seizia.chromite.model.DBPDataSourceFolder;
+import com.seizia.chromite.model.app.DBPDataSourceRegistry;
+import com.seizia.chromite.model.app.DBPProject;
+import com.seizia.chromite.model.connection.DBPConnectionConfiguration;
+import com.seizia.chromite.model.connection.DBPConnectionType;
+import com.seizia.chromite.model.connection.DBPDriver;
+import com.seizia.chromite.model.connection.DBPNativeClientLocation;
+import com.seizia.chromite.registry.DataSourceDescriptor;
+import com.seizia.chromite.registry.driver.DriverDescriptor;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.runtime.jobs.ConnectionTestJob;
+import com.seizia.chromite.utils.DataSourceUtils;
 import org.jkiss.utils.CommonUtils;
 
 import javax.swing.*;
@@ -56,7 +56,7 @@ import java.util.StringTokenizer;
  *     활성 프로젝트의 레지스트리로 아직 등록하지 않은 {@link DataSourceDescriptor}를 만들고(기본 연결 종류, 기본 클라이언트,
  *     비밀번호 저장 켬), Connect에서 폼 값을 쓴 뒤 {@code DBPDataSourceRegistry.addDataSource}로 등록하고 SSMS처럼 바로 연결한다
  *     ({@link ConnectionCommands#connect}, 연결 Job. 실패하면 연결 서비스가 오류를 보이고 연결 설정은 남는다).
- *     {@code addDataSource}가 설정 파일({@code .dbeaver/data-sources.json})을 바로 저장하고 {@code OBJECT_ADD} 이벤트를 보내므로
+ *     {@code addDataSource}가 설정 파일({@code .chromite/data-sources.json})을 바로 저장하고 {@code OBJECT_ADD} 이벤트를 보내므로
  *     Object Explorer가 이벤트로 새 연결을 보여 준다. 드라이버를 바꾸면 이전 드라이버로 만든 연결은 버린다.</li>
  *     <li>편집(SWT {@code EditConnectionWizard}): 원본의 사본(ID 같음)에서 폼을 채우고(Database type은 바꿀 수 없음), Save에서 바뀐 것이
  *     있을 때만 원본에 쓰고 {@code persistConfiguration}으로 저장한다. 연결 중이면 다시 연결할지 묻는다.</li>

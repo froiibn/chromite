@@ -18,7 +18,7 @@ package com.seizia.chromite.ui.swing;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.Log;
+import com.seizia.chromite.Log;
 
 import javax.imageio.ImageIO;
 import javax.swing.*;

@@ -1,0 +1,22 @@
+fManifest-Version: 1.0
+Bundle-ManifestVersion: 2
+Bundle-Vendor: Chromite contributors
+Bundle-Name: Chromite JDBC Model
+Bundle-SymbolicName: com.seizia.chromite.model.jdbc;singleton:=true
+Bundle-Version: 1.0.84.qualifier
+Bundle-Release-Date: 20261116
+Bundle-RequiredExecutionEnvironment: JavaSE-21
+Bundle-ActivationPolicy: lazy
+Export-Package: com.seizia.chromite.model.exec.jdbc,
+ com.seizia.chromite.model.impl.jdbc,
+ com.seizia.chromite.model.impl.jdbc.cache,
+ com.seizia.chromite.model.impl.jdbc.data,
+ com.seizia.chromite.model.impl.jdbc.data.handlers,
+ com.seizia.chromite.model.impl.jdbc.exec,
+ com.seizia.chromite.model.impl.jdbc.struct,
+ com.seizia.chromite.model.sql.backup
+Require-Bundle: com.seizia.chromite.model;visibility:=reexport,
+ com.seizia.chromite.model.sql;visibility:=reexport
+Bundle-Localization: OSGI-INF/l10n/bundle
+Automatic-Module-Name: com.seizia.chromite.model.jdbc
+

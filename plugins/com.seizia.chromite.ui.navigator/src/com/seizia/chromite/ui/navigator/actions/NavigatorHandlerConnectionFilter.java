@@ -1,0 +1,71 @@
+/*
+ * DBeaver - Universal Database Manager
+ * Copyright (C) 2010-2025 DBeaver Corp and others
+ * Modifications Copyright (C) 2026 Chromite contributors
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package com.seizia.chromite.ui.navigator.actions;
+
+import org.eclipse.core.commands.AbstractHandler;
+import org.eclipse.core.commands.ExecutionEvent;
+import org.eclipse.core.commands.ExecutionException;
+import org.eclipse.ui.commands.IElementUpdater;
+import org.eclipse.ui.menus.UIElement;
+import com.seizia.chromite.model.DBIcon;
+import com.seizia.chromite.ui.ActionUtils;
+import com.seizia.chromite.ui.SwtIcons;
+import com.seizia.chromite.ui.UIIcon;
+import com.seizia.chromite.ui.internal.UINavigatorMessages;
+import com.seizia.chromite.ui.navigator.NavigatorCommands;
+import com.seizia.chromite.ui.navigator.NavigatorUtils;
+import com.seizia.chromite.ui.navigator.database.DatabaseNavigatorTree;
+
+import java.util.Map;
+
+public class NavigatorHandlerConnectionFilter extends AbstractHandler implements IElementUpdater {
+
+    @Override
+    public Object execute(ExecutionEvent event) throws ExecutionException {
+        DatabaseNavigatorTree navigatorTree = NavigatorUtils.getNavigatorTree(event);
+        if (navigatorTree != null) {
+            navigatorTree.setFilterShowConnected(!navigatorTree.isFilterShowConnected());
+            navigatorTree.getViewer().getControl().setRedraw(false);
+            try {
+                navigatorTree.getViewer().refresh();
+            } finally {
+                navigatorTree.getViewer().getControl().setRedraw(true);
+            }
+        }
+        ActionUtils.fireCommandRefresh(NavigatorCommands.CMD_FILTER_CONNECTED);
+        return null;
+    }
+
+    @Override
+    public void updateElement(UIElement element, Map parameters) {
+        DatabaseNavigatorTree navigatorTree = NavigatorUtils.getNavigatorTree(element.getServiceLocator());
+        if (navigatorTree != null) {
+            DBIcon actionIcon = navigatorTree.isFilterShowConnected()
+                ? UIIcon.FILTER_CONNECTED
+                : UIIcon.FILTER_ALL;
+            element.setIcon(SwtIcons.getImageDescriptor(actionIcon));
+            String actionName = navigatorTree.isFilterShowConnected()
+                ? UINavigatorMessages.navigator_handler_connections_filter_show_connected_text
+                : UINavigatorMessages.navigator_handler_connections_filter_show_all_text;
+            element.setText(actionName);
+            element.setTooltip(actionName);
+        }
+
+    }
+
+}
