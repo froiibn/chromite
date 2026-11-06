@@ -61,6 +61,21 @@
   열의 소수 초 자릿수(`timestamp(6)`, `datetime2(7)`)에 맞춰 서식을 바꾸는 방법은 모델의 서식기·처리기 여러 곳을 고쳐야 해서(java.time 경로의 `n` 패턴은
   소수 자릿수가 아니라 나노초 값이다) 하지 않았다("남긴 것").
 
+## 남은 영어 문구
+
+- 증상: 한국어 화면에서 진행 대화상자의 취소 중 표시가 "Canceling…", 탭 줄이 넘칠 때 나오는 단추의 도구 설명이 "Show Hidden Tabs"로 나옴(#44).
+- 원인:
+  - `ProgressDialog.cancel`이 글자를 코드에 적어 두었다(`ProgressDialog.java:156`, `//$NON-NLS-1$`). Swing 번들에서 화면 문구를 코드에 적은 곳은 여기뿐이었다
+    (`setText("…")`, `setToolTipText("…")`, `new JLabel/JButton/JMenuItem("…")` 검색).
+  - "Show Hidden Tabs"는 ModernDocking이 아니라 FlatLaf의 문구다. `modern-docking-api-1.4.9.jar`에는 없고, `flatlaf.jar`의
+    `com/formdev/flatlaf/resources/Bundle.properties`에 `TabbedPane.moreTabsButtonToolTipText`로 있다. FlatLaf는 `FlatLaf.initResourceBundle`에서 이 묶음을
+    UI 기본값에 넣는데 번역은 독일어·스페인어·프랑스어뿐이라 한국어에서는 영어가 남는다. 문서 탭(`MainFrame`의 `SCROLL_TAB_LAYOUT`), 도구 창 탭
+    (ModernDocking `DockedTabbedPanel`의 `JTabbedPane`), 연결 설정 탭이 넘치면 이 단추가 나온다. 같은 묶음의 `SplitPaneDivider.*` 여덟 개는 한 번 눌러
+    펼치는 분할 막대(`setOneTouchExpandable`)에만 쓰이는데 Swing 화면에는 그런 막대가 없어 옮기지 않았다.
+- 고친 것: `CoreMessages.progress_canceling`(취소하는 중…)과 `CoreMessages.main_show_hidden_tabs`(숨겨진 탭 표시)를 더하고, `ChromiteTheme.install`이
+  Look and Feel을 설치한 뒤 `UIManager.put("TabbedPane.moreTabsButtonToolTipText", …)`으로 넣는다. `UIManager.put`은 개발자 기본값이라 Look and Feel
+  기본값보다 앞서고 테마를 바꿔도 남는다.
+
 ## 확인 (2026-11-07)
 
 Swing 제품(`-vm D:\Tools\jbrsdk-25\bin\server\jvm.dll`, 비공개 작업 공간)을 실행하고 같은 프로세스에 붙인 EDT 시험 에이전트로 조작했다(OS 입력 없음).
@@ -75,6 +90,8 @@ Swing 제품(`-vm D:\Tools\jbrsdk-25\bin\server\jvm.dll`, 비공개 작업 공�
   psql·sqlcmd·mariadb로 그대로 확인됨(PostgreSQL `timestamp(6)`·`timestamptz` 마이크로초, SQL Server `datetime2(7)`·`datetimeoffset(7)` 100ns, MariaDB `datetime(6)`).
   `datetimeoffset`은 고치기 전에는 NULL로 저장됨을 확인했고(위 원인), 고친 뒤에는 `2026-11-06 10:00:01.7654321 +09:00`으로 저장. 설정을 끈 상태에서
   ISO 글자 `2026-11-06T12:30:00.5+09:00`도 `12:30:00.5000000 +09:00`으로 저장.
+- 문구: SQL Server 연결 테스트를 닿지 않는 주소(10.255.255.1)로 걸고 취소 → "취소하는 중…" / "Canceling…". 문서 탭 14개로 넘치게 한 뒤 넘침 단추의
+  도구 설명이 "숨겨진 탭 표시" / "Show Hidden Tabs", 목록 열기 확인.
 - 회귀 테스트는 실행하지 않았다(CLAUDE.md 7번). 영향받을 수 있는 기능은 각 항목의 "고친 것"에 적은 곳이다.
 
 ## 남긴 것
@@ -82,8 +99,11 @@ Swing 제품(`-vm D:\Tools\jbrsdk-25\bin\server\jvm.dll`, 비공개 작업 공�
 - 새 완성 엔진의 `EXEC`/`CALL` 뒤 프로시저 제안(SWT도 기본 설정에서는 없음).
 - PostgreSQL: 기본이 아닌 정렬 규칙을 가진 열을 복사해 만든 새 열의 형식을 정렬 규칙이 없는 형식으로 바꾸면 `COLLATE`가 남는다.
 - 열의 소수 초 자릿수에 맞춘 표시(`datetime2(7)`은 일곱 자리처럼). 데이터베이스 형식 설정을 켠 채 Oracle로 복사하면 문자열 바인딩이 `NLS_TIMESTAMP_FORMAT`에 달려 있다.
+- 테마를 실행 중에 바꾸면 이미 있는 탭 창의 넘침 단추 도구 설명이 사라진다. FlatLaf가 단추를 `installComponents`에서 만들 때는 아직 문구를 읽기 전이라
+  번역과 상관없이 영어 문구도 같다. 다시 시작하면 나온다.
 
 ## 변경 이력
 - 2026-11-07 최초 작성: 자동완성 프로시저·함수 제안 설정(#33).
 - 2026-11-07 SQL Server 열 정의가 문자형이 아닌 형식에 COLLATE를 붙이던 것(#44).
 - 2026-11-07 날짜/시간 값을 데이터베이스 형식으로 보이는 설정(#43), SQL Server `datetimeoffset` 편집이 NULL로 저장되던 것.
+- 2026-11-07 진행 대화상자의 "Canceling…"과 탭 넘침 단추의 "Show Hidden Tabs"를 화면 언어로(#44).
