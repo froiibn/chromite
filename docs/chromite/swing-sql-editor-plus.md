@@ -43,8 +43,8 @@ Swing 프런트엔드([swing-frontend.md](swing-frontend.md))의 SQL 편집기(�
 
 | 기능 | 키 | 메뉴 |
 |---|---|---|
-| 예상 실행 계획 | Ctrl+L | Query > Display Estimated Execution Plan, 쿼리 창 도구 막대의 계획 단추 |
-| 실제 실행 계획 포함 | Ctrl+M (쿼리 창마다 켜고 끔) | Query > Include Actual Execution Plan, 도구 막대의 Actual Plan 토글 |
+| 예상 실행 계획 | Ctrl+L | Query > Display Estimated Execution Plan, 메인 창 SQL Editor 도구 막대의 계획 단추 |
+| 실제 실행 계획 포함 | Ctrl+M (쿼리 창마다 켜고 끔) | Query > Include Actual Execution Plan, SQL Editor 도구 막대의 Actual Plan 토글(메뉴와 같은 동작, 활성 쿼리 창의 값을 보임) |
 | 쿼리 기록 | - | Query > Query History… |
 | SQL 서식 | Ctrl+K Ctrl+D, Ctrl+Shift+F | Edit > Advanced > Format SQL |
 | 대문자 / 소문자 | Ctrl+Shift+U / Ctrl+Shift+L | Edit > Advanced > Make Uppercase / Make Lowercase |
@@ -321,5 +321,6 @@ PostgreSQL(ko 라이트·다크 그래픽·트리·원본, en 다크 그래픽),
 - 2026-11-06 최초 작성: 실행 계획(예상·실제, SQL Server 계획기), 쿼리 기록, SQL 서식·편집 명령, 템플릿, 매개변수 대화상자, 상태 줄 Ln/Col.
 - 2026-11-06 실행 계획 표: 열이 너무 좁아 연산 이름이 잘리던 문제. 열을 내용에 맞추고 넘치면 가로 스크롤.
 - 2026-11-06 매개변수 대화상자 Cancel 뒤 "Query executed successfully"가 보이던 문제: 엔진이 사용자 취소를 `isCanceledByUser()`로 알림.
+- 2026-11-07 계획 단추와 Actual Plan 토글이 메인 창 둘째 줄의 SQL Editor 도구 막대로 옮겨짐(사용자 결정). [swing-frontend.md](swing-frontend.md) "SQL Editor 도구 막대".
 - 2026-11-07 실행 계획 세 보기(사용자 결정): 그래픽(연산자 그림, 비용·행·경고·예상 어긋남), 트리, 원본(복사·저장) 보기 전환과 마지막 보기 기억.
   SQL Server 계획 모델이 경고·누락 인덱스·예상 실행 수를 읽고 키 조회를 Key Lookup으로, Oracle 계획 원문을 DBMS_XPLAN 글자로. "미룬 일"의 그래픽 계획 도면 항목을 닫음.

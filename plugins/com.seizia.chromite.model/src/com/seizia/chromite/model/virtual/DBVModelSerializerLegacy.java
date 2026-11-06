@@ -18,33 +18,26 @@
 package com.seizia.chromite.model.virtual;
 
 import org.jkiss.code.NotNull;
-import org.jkiss.code.Nullable;
-import com.seizia.chromite.Log;
 import com.seizia.chromite.model.DBUtils;
-import com.seizia.chromite.model.data.DBDAttributeTransformerDescriptor;
-import com.seizia.chromite.model.exec.DBCLogicalOperator;
 import com.seizia.chromite.model.struct.DBSEntity;
 import com.seizia.chromite.model.struct.DBSEntityConstraint;
-import com.seizia.chromite.model.struct.DBSEntityConstraintType;
-import com.seizia.chromite.runtime.DBWorkbench;
 import com.seizia.chromite.utils.GeneralUtils;
 import org.jkiss.utils.ArrayUtils;
 import org.jkiss.utils.CommonUtils;
-import org.jkiss.utils.xml.SAXListener;
-import org.jkiss.utils.xml.SAXReader;
 import org.jkiss.utils.xml.XMLBuilder;
-import org.jkiss.utils.xml.XMLException;
-import org.xml.sax.Attributes;
 
 import java.io.IOException;
 import java.util.Map;
 
 /**
  * DBVModelSerializerLegacy
+ *
+ * 변경 이력:
+ * - 2026-11-07 옛 XML 연결 설정 읽기({@code DataSourceSerializerLegacy})만 쓰던 가상 모델 XML 파서를 지움
+ *   (docs/chromite/internal-rename.md "사용자 데이터 이전")
  */
 @Deprecated
 class DBVModelSerializerLegacy implements DBVModelSerializer {
-    private static final Log log = Log.getLog(DBVModelSerializerLegacy.class);
 
     static void serializeContainer(@NotNull XMLBuilder xml, @NotNull DBVContainer object) throws IOException {
         if (!object.hasValuableData()) {
@@ -197,172 +190,6 @@ class DBVModelSerializerLegacy implements DBVModelSerializer {
                     }
                 }
             }
-        }
-    }
-
-    static class ModelParser implements SAXListener {
-        private final DBVContainer rootContainer;
-        private DBVContainer curContainer = null;
-        private DBVEntity curEntity = null;
-        private DBVEntityAttribute curAttribute = null;
-        private DBVTransformSettings curTransformSettings = null;
-        private DBVEntityConstraint curConstraint;
-        private DBVColorOverride curColor;
-        private boolean colorValue = false;
-
-        public ModelParser(@NotNull DBVContainer rootContainer) {
-            this.rootContainer = rootContainer;
-        }
-
-        @Override
-        public void saxStartElement(@NotNull SAXReader reader, @Nullable String namespaceURI, @NotNull String localName, @NotNull Attributes attributes) throws XMLException {
-            switch (localName) {
-                case TAG_CONTAINER:
-                    if (curContainer == null) {
-                        curContainer = rootContainer;
-                    } else {
-                        DBVContainer container = new DBVContainer(
-                            curContainer,
-                            attributes.getValue(ATTR_NAME)
-                        );
-                        curContainer.addContainer(container);
-                        curContainer = container;
-                    }
-                    break;
-                case TAG_ENTITY:
-                    curEntity = new DBVEntity(
-                        curContainer,
-                        attributes.getValue(ATTR_NAME),
-                        attributes.getValue(ATTR_DESCRIPTION)
-                    );
-                    curContainer.addEntity(curEntity);
-                    break;
-                case TAG_PROPERTY:
-                    if (curTransformSettings != null) {
-                        curTransformSettings.setTransformOption(
-                            attributes.getValue(ATTR_NAME),
-                            attributes.getValue(ATTR_VALUE)
-                        );
-                    } else if (curAttribute != null) {
-                        curAttribute.setProperty(
-                            attributes.getValue(ATTR_NAME),
-                            attributes.getValue(ATTR_VALUE)
-                        );
-                    } else if (curEntity != null) {
-                        curEntity.setProperty(
-                            attributes.getValue(ATTR_NAME),
-                            attributes.getValue(ATTR_VALUE)
-                        );
-                    }
-                    break;
-                case TAG_CONSTRAINT:
-                    if (curEntity != null) {
-                        curConstraint = new DBVEntityConstraint(
-                            curEntity,
-                            DBSEntityConstraintType.VIRTUAL_KEY,
-                            attributes.getValue(ATTR_NAME)
-                        );
-                        curEntity.addConstraint(curConstraint, false);
-                    }
-                    break;
-                case TAG_ATTRIBUTE:
-                    if (curConstraint != null) {
-                        curConstraint.addAttribute(attributes.getValue(ATTR_NAME));
-                    } else if (curAttribute != null) {
-                        DBVEntityAttribute childAttribute = new DBVEntityAttribute(curEntity, curAttribute, attributes.getValue(ATTR_NAME));
-                        curAttribute.addChild(childAttribute);
-                        curAttribute = childAttribute;
-                    } else if (curEntity != null) {
-                        curAttribute = new DBVEntityAttribute(curEntity, null, attributes.getValue(ATTR_NAME));
-                        curEntity.addVirtualAttribute(curAttribute, false);
-                    }
-                    break;
-                case TAG_TRANSFORM:
-                    curTransformSettings = new DBVTransformSettings();
-                    curTransformSettings.setCustomTransformer(attributes.getValue(ATTR_CUSTOM));
-                    if (curAttribute != null) {
-                        curAttribute.setTransformSettings(curTransformSettings);
-                    } else if (curEntity != null) {
-                        curEntity.setTransformSettings(curTransformSettings);
-                    }
-                    break;
-                case TAG_INCLUDE:
-                case TAG_EXCLUDE:
-                    String transformerId = attributes.getValue(ATTR_ID);
-                    if (curTransformSettings != null && !CommonUtils.isEmpty(transformerId)) {
-                        DBDAttributeTransformerDescriptor transformer = DBWorkbench.getPlatform().getValueHandlerRegistry()
-                            .getTransformer(transformerId);
-                        if (transformer == null) {
-                            log.warn("Transformer '" + transformerId + "' not found");
-                        } else {
-                            curTransformSettings.enableTransformer(transformer, TAG_INCLUDE.equals(localName));
-                        }
-                    }
-                    break;
-                case TAG_COLOR:
-                    if (curEntity != null) {
-                        try {
-                            curColor = new DBVColorOverride(
-                                attributes.getValue(ATTR_NAME),
-                                DBCLogicalOperator.valueOf(attributes.getValue(ATTR_OPERATOR)),
-                                null,
-                                attributes.getValue(ATTR_FOREGROUND),
-                                attributes.getValue(ATTR_BACKGROUND)
-                            );
-                            curColor.setRange(CommonUtils.getBoolean(attributes.getValue(ATTR_RANGE), false));
-                            curColor.setSingleColumn(CommonUtils.getBoolean(attributes.getValue(ATTR_SINGLE_COLUMN), false));
-                            curColor.setColorForeground2(attributes.getValue(ATTR_FOREGROUND2));
-                            curColor.setColorBackground2(attributes.getValue(ATTR_BACKGROUND2));
-                            curEntity.addColorOverride(curColor);
-                        } catch (Throwable e) {
-                            log.warn("Error reading color settings", e);
-                        }
-                    }
-                    break;
-                case TAG_VALUE:
-                    if (curColor != null) {
-                        colorValue = true;
-                    }
-                    break;
-            }
-        }
-
-        @Override
-        public void saxText(@NotNull SAXReader reader, @NotNull String data) {
-            if (colorValue) {
-                curColor.addAttributeValue(GeneralUtils.deserializeObject(data));
-            }
-        }
-
-        @Override
-        public void saxEndElement(@NotNull SAXReader reader, @Nullable String namespaceURI, @NotNull String localName) {
-            switch (localName) {
-                case TAG_CONTAINER:
-                    curContainer = curContainer.getParentObject();
-                    break;
-                case TAG_ENTITY:
-                    curEntity = null;
-                    break;
-                case TAG_CONSTRAINT:
-                    curConstraint = null;
-                    break;
-                case TAG_ATTRIBUTE:
-                    if (curAttribute != null) {
-                        curAttribute = curAttribute.getParent();
-                    }
-                    break;
-                case TAG_TRANSFORM:
-                    curTransformSettings = null;
-                case TAG_COLOR:
-                    curColor = null;
-                    break;
-                case TAG_VALUE:
-                    if (curColor != null) {
-                        colorValue = false;
-                    }
-                    break;
-            }
-
         }
     }
 

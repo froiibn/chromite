@@ -10,12 +10,16 @@
 #     azure/artifact-signing-action for our launcher (chromite-swing.exe;
 #     Tycho re-brands it, which breaks the Eclipse signature they came with) -> verify (Valid,
 #     timestamp, Azure issuer; no third-party binary carries our signature) -> zip, same layout as build.yml.
+#     The NSIS installer Chromite-<version>-x64-setup.exe (tools/installer, pinned NSIS) is built from the signed
+#     product in two passes so its uninstaller is signed too; setup and uninstaller are verified (exact
+#     publisher subject, ProductVersion) and installed and uninstalled silently once (docs/chromite/distribution.md).
 #     Third-party binaries (Equinox launcher library, JNA, the Eclipse-signed console launcher
 #     chromite-swingc.exe) are not signed.
 #   * macOS: the app is built on Linux like build.yml (macOS arm64 runner capacity, docs/chromite/ci.md)
 #     and handed over as an intermediate artifact that is never released; the job macos-sign signs
 #     every Mach-O inside out (also inside jars), the app with the hardened runtime and
-#     tools/release/entitlements.mac.plist, notarizes and staples the app, makes zip and dmg, signs,
+#     tools/release/entitlements.mac.plist, notarizes and staples the app, makes zip (the update payload,
+#     Chromite-<version>-arm64.zip) and dmg (Chromite-<version>-arm64.dmg), signs,
 #     notarizes and staples the dmg, and checks everything (tools/release/release-macos.sh).
 #   * Missing credentials: none of the six -> an UNSIGNED build (file and artifact names say so,
 #     never released); some but not all -> the job fails.
@@ -154,6 +158,22 @@ jobs:
           java tools/jre/BundleJre.java windows-x64
           if ($LASTEXITCODE) { exit $LASTEXITCODE }
 
+      # NSIS for the installer (tools/installer, docs/chromite/distribution.md): the official 3.12 zip, pinned by
+      # its SHA-256 (not the runner's preinstalled NSIS, whose version changes with the image).
+      - name: Install NSIS 3.12 (pinned)
+        shell: pwsh
+        run: |
+          $zip = Join-Path $env:RUNNER_TEMP 'nsis-3.12.zip'
+          curl.exe -sSfL --retry 5 --retry-all-errors -o $zip 'https://downloads.sourceforge.net/project/nsis/NSIS%203/3.12/nsis-3.12.zip'
+          if ($LASTEXITCODE) { throw 'NSIS download failed' }
+          $sha = (Get-FileHash $zip -Algorithm SHA256).Hash
+          if ($sha -ne '56581F90DB321581C5381193D796FFFCF2D24B2F8FED2160A6C6A3BAA67F2C4F') { throw "nsis-3.12.zip SHA-256 $sha is not the pinned one" }
+          Expand-Archive $zip -DestinationPath $env:RUNNER_TEMP
+          $home_ = Join-Path $env:RUNNER_TEMP 'nsis-3.12'
+          & (Join-Path $home_ 'makensis.exe') -VERSION
+          if ($LASTEXITCODE) { throw 'makensis does not run' }
+          "NSIS_HOME=$home_" >> $env:GITHUB_ENV
+
       - name: Binaries before signing
         shell: pwsh
         run: |
@@ -184,11 +204,51 @@ jobs:
           timestamp-rfc3161: http://timestamp.acs.microsoft.com
           timestamp-digest: SHA256
 
-      - name: Verify signatures (Valid, timestamped, Azure issuer; third-party binaries not ours)
+      # The installer (tools/installer/build-installer.ps1) holds the product folder as it is now, so it is built
+      # after the launcher is signed. Pass 1 writes the uninstaller, which is signed before pass 2 embeds it.
+      - name: Installer pass 1 (the uninstaller)
+        shell: pwsh
+        run: |
+          pwsh -NoProfile -File tools/installer/build-installer.ps1 -Stage uninstaller -Version $env:VERSION -OutDir installer
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+      - name: Sign uninstall.exe (ours)
+        if: steps.azure.outputs.signed == 'true'
+        uses: azure/artifact-signing-action@v2
+        with:
+          endpoint: ${{ vars.ARTIFACT_SIGNING_ENDPOINT }}
+          signing-account-name: ${{ vars.ARTIFACT_SIGNING_ACCOUNT }}
+          certificate-profile-name: ${{ vars.ARTIFACT_SIGNING_PROFILE }}
+          files: ${{ github.workspace }}\installer\installer-work\uninstall.exe
+          file-digest: SHA256
+          timestamp-rfc3161: http://timestamp.acs.microsoft.com
+          timestamp-digest: SHA256
+      - name: Installer pass 2 (the setup)
+        shell: pwsh
+        run: |
+          pwsh -NoProfile -File tools/installer/build-installer.ps1 -Stage setup -Version $env:VERSION -OutDir installer -Uninstaller installer/installer-work/uninstall.exe
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+      - name: Sign the setup (ours)
+        if: steps.azure.outputs.signed == 'true'
+        uses: azure/artifact-signing-action@v2
+        with:
+          endpoint: ${{ vars.ARTIFACT_SIGNING_ENDPOINT }}
+          signing-account-name: ${{ vars.ARTIFACT_SIGNING_ACCOUNT }}
+          certificate-profile-name: ${{ vars.ARTIFACT_SIGNING_PROFILE }}
+          files: ${{ github.workspace }}\installer\Chromite-${{ needs.version.outputs.version }}-x64-setup.exe
+          file-digest: SHA256
+          timestamp-rfc3161: http://timestamp.acs.microsoft.com
+          timestamp-digest: SHA256
+
+      # The publisher subject is fixed forever (docs/chromite/signing.md "Publisher"); the updater and the deploy
+      # script check the same exact string.
+      - name: Verify signatures (Valid, timestamped, Azure issuer, our subject; third-party binaries not ours)
         if: steps.azure.outputs.signed == 'true'
         shell: pwsh
         run: |
-          $ours = @((Resolve-Path "$env:SWING_PRODUCTS_DIR/win32/win32/x86_64/chromite-swing/chromite-swing.exe").Path)
+          $publisher = 'CN=Seizia, O=Seizia, L=Cheongju-si, S=North Chungcheong, C=KR'
+          $ours = @((Resolve-Path "$env:SWING_PRODUCTS_DIR/win32/win32/x86_64/chromite-swing/chromite-swing.exe").Path,
+                    (Resolve-Path 'installer/installer-work/uninstall.exe').Path,
+                    (Resolve-Path "installer/Chromite-$env:VERSION-x64-setup.exe").Path)
           $thumbprints = @()
           foreach ($path in $ours) {
             $sig = Get-AuthenticodeSignature $path
@@ -197,8 +257,11 @@ jobs:
             if (-not $sig.TimeStamperCertificate) { throw "$path signature has no timestamp" }
             # Azure Artifact Signing certificates are issued by "Microsoft ID Verified CS ..." (not Eclipse's)
             if ($sig.SignerCertificate.Issuer -notmatch 'Microsoft ID Verified CS') { throw "$path is not signed through Azure Artifact Signing" }
+            if ($sig.SignerCertificate.Subject -ne $publisher) { throw "$path signer is '$($sig.SignerCertificate.Subject)', not '$publisher'" }
             $thumbprints += $sig.SignerCertificate.Thumbprint
           }
+          $setup = (Get-Item "installer/Chromite-$env:VERSION-x64-setup.exe").VersionInfo
+          if ($setup.ProductVersion -ne $env:VERSION -or $setup.FileVersion -ne $env:VERSION) { throw "setup ProductVersion/FileVersion $($setup.ProductVersion)/$($setup.FileVersion) is not $env:VERSION" }
           foreach ($dir in "$env:SWING_PRODUCTS_DIR/win32/win32/x86_64/chromite-swing") {
             Get-ChildItem $dir -Recurse -File -Include *.exe, *.dll | Where-Object { $ours -notcontains $_.FullName } | ForEach-Object {
               $sig = Get-AuthenticodeSignature $_.FullName
@@ -207,7 +270,31 @@ jobs:
             }
           }
 
-      # The zip holds the product's root folder (chromite-swing/), as the build.yml artifact.
+      # The updater's path: a silent install into an empty folder must put the (signed) product there byte for
+      # byte, register the version, and a silent uninstall must take it away again.
+      - name: Silent install and uninstall check
+        shell: pwsh
+        run: |
+          $dir = Join-Path $env:RUNNER_TEMP 'install-check\Chromite'
+          $p = Start-Process "installer/Chromite-$env:VERSION-x64-setup.exe" -ArgumentList '/S', "/D=$dir" -Wait -PassThru
+          if ($p.ExitCode) { throw "silent install exit code $($p.ExitCode)" }
+          $src = (Resolve-Path "$env:SWING_PRODUCTS_DIR/win32/win32/x86_64/chromite-swing").Path
+          $files = @(Get-ChildItem -Recurse -File -Force $src)
+          foreach ($f in $files) {
+            $copy = Join-Path $dir $f.FullName.Substring($src.Length + 1)
+            if (-not (Test-Path $copy) -or (Get-FileHash $copy).Hash -ne (Get-FileHash $f.FullName).Hash) { throw "installed $copy differs from the product" }
+          }
+          if ((Get-FileHash "$dir/uninstall.exe").Hash -ne (Get-FileHash 'installer/installer-work/uninstall.exe').Hash) { throw 'installed uninstall.exe differs' }
+          $key = Get-ItemProperty 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\Chromite'
+          if ($key.DisplayVersion -ne $env:VERSION -or $key.Publisher -ne 'Seizia') { throw "Apps entry: $($key.DisplayVersion) / $($key.Publisher)" }
+          "installed: $($files.Count) product files, Apps entry $($key.DisplayName) $($key.DisplayVersion) $($key.Publisher)"
+          $p = Start-Process "$dir/uninstall.exe" -ArgumentList '/S', "_?=$dir" -Wait -PassThru
+          if ($p.ExitCode) { throw "silent uninstall exit code $($p.ExitCode)" }
+          if (Test-Path "$dir/chromite-swing.exe") { throw 'the uninstaller left the launcher' }
+          if (Test-Path 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\Chromite') { throw 'the uninstaller left the Apps entry' }
+          'uninstalled'
+
+      # The zip holds the product's root folder (chromite-swing/), as the build.yml artifact. The setup goes beside it.
       - name: Package (zip)
         shell: pwsh
         env:
@@ -237,13 +324,19 @@ jobs:
             if ((Get-FileHash $out).Hash -ne (Get-FileHash (Join-Path $p.dir "$($p.root)/$($p.exe)")).Hash) { throw "$zip holds a different $($p.exe)" }
             "$(Split-Path $zip -Leaf): $((Get-Item $zip).Length) bytes, $($files.Count) files, sha256 $((Get-FileHash $zip).Hash.ToLowerInvariant())"
           }
+          # the release name (docs/chromite/distribution.md "File names"); an unsigned one says so
+          $setup = Join-Path $dist.FullName "Chromite-$env:VERSION-x64-setup$suffix.exe"
+          Copy-Item "installer/Chromite-$env:VERSION-x64-setup.exe" $setup
+          "$(Split-Path $setup -Leaf): $((Get-Item $setup).Length) bytes, sha256 $((Get-FileHash $setup).Hash.ToLowerInvariant())"
 
       - name: Upload signed Windows files
         if: steps.azure.outputs.signed == 'true'
         uses: actions/upload-artifact@v7
         with:
           name: chromite-${{ needs.version.outputs.version }}-windows-x64
-          path: dist/*.zip
+          path: |
+            dist/*.zip
+            dist/*.exe
           if-no-files-found: error
           retention-days: 7
           compression-level: 0
@@ -252,7 +345,9 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: UNSIGNED-chromite-${{ needs.version.outputs.version }}-windows-x64-not-for-release
-          path: dist/*.zip
+          path: |
+            dist/*.zip
+            dist/*.exe
           if-no-files-found: error
           retention-days: 3
           compression-level: 0
@@ -434,6 +529,8 @@ jobs:
           set -euo pipefail
           bash tools/release/release-macos.sh notarize "$APPS/ChromiteSwing.app"
 
+      # Release names (docs/chromite/distribution.md "File names"): the zip is the macOS update payload (the
+      # notarized, stapled app, zipped with ditto), the disk image is for the download page.
       - name: Zip and disk image of each app
         shell: bash
         env:
@@ -441,7 +538,7 @@ jobs:
         run: |
           set -euo pipefail
           if [ "$SIGNED" = true ]; then suffix=; else suffix=-UNSIGNED; fi
-          bash tools/release/release-macos.sh package "$APPS/ChromiteSwing.app" "chromite-swing-$VERSION-macos-aarch64$suffix" dist
+          bash tools/release/release-macos.sh package "$APPS/ChromiteSwing.app" "Chromite-$VERSION-arm64$suffix" dist
 
       - name: Sign, notarize and staple the disk images
         if: steps.apple.outputs.signed == 'true'
@@ -452,10 +549,8 @@ jobs:
           NOTARY_ISSUER: ${{ secrets.APPLE_API_ISSUER_ID }}
         run: |
           set -euo pipefail
-          for name in chromite-swing; do
-            bash tools/release/release-macos.sh sign-dmg "dist/$name-$VERSION-macos-aarch64.dmg"
-            bash tools/release/release-macos.sh notarize "dist/$name-$VERSION-macos-aarch64.dmg"
-          done
+          bash tools/release/release-macos.sh sign-dmg "dist/Chromite-$VERSION-arm64.dmg"
+          bash tools/release/release-macos.sh notarize "dist/Chromite-$VERSION-arm64.dmg"
 
       - name: Verify (signed) - codesign, every Mach-O, tickets, Gatekeeper (exec, open)
         if: steps.apple.outputs.signed == 'true'
@@ -464,14 +559,14 @@ jobs:
           MAC_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
         run: |
           set -euo pipefail
-          bash tools/release/release-macos.sh verify signed "$APPS/ChromiteSwing.app" "dist/chromite-swing-$VERSION-macos-aarch64.dmg" "dist/chromite-swing-$VERSION-macos-aarch64.zip"
+          bash tools/release/release-macos.sh verify signed "$APPS/ChromiteSwing.app" "dist/Chromite-$VERSION-arm64.dmg" "dist/Chromite-$VERSION-arm64.zip"
 
       - name: Verify (unsigned) - contents only
         if: steps.apple.outputs.signed != 'true'
         shell: bash
         run: |
           set -euo pipefail
-          bash tools/release/release-macos.sh verify unsigned "$APPS/ChromiteSwing.app" "dist/chromite-swing-$VERSION-macos-aarch64-UNSIGNED.dmg" "dist/chromite-swing-$VERSION-macos-aarch64-UNSIGNED.zip"
+          bash tools/release/release-macos.sh verify unsigned "$APPS/ChromiteSwing.app" "dist/Chromite-$VERSION-arm64-UNSIGNED.dmg" "dist/Chromite-$VERSION-arm64-UNSIGNED.zip"
 
       - name: Delete the temporary keychain and the key files
         if: always()

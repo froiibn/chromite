@@ -32,19 +32,23 @@ com.seizia.chromite.ui.swing (Swing, SWT 없음)
   ObjectSearchPanel (ToolDocument) ── Find Objects 탭
   ObjectListTable ── @Property 열로 모델 객체 목록을 보이는 표
   AutoRefreshBox ─── 자동 새로 고침 간격 콤보
+  AccessNoticeBar ── Processes·Locks 탭 위의 권한 안내 줄
         │
         ▼
 com.seizia.chromite.model.admin (새 모델 번들, UI 없음)
   ServerAdminProfile ── DB별 세션 관리자·필터·명령·잠금 관리자
   ServerAdminMessages ─ 필터·명령 이름(NLS)
+  ServerAdminAccess, ActivityAccessMessages ─ 로그인 권한 확인 결과와 안내 문구(NLS)
   AbstractBlockingLockManager, BlockingSessionLock, SessionLockItem
   mssql/SQLServerLockManager, mysql/MySQLLockManager
+  postgresql/PostgreActivitySessionManager(+PostgreActivitySession), postgresql/PostgreBlockingLockManager
+  oracle/OracleActivitySessionManager(+OracleActivitySession), oracle/OracleBlockingLockManager(+OracleBlockingLock)
         │
         ▼
 DBeaver 모델 (그대로 재사용)
   DBAServerSessionManager(+SQL, +DetailsProvider), DBAServerLockManager, LockGraphManager,
   PostgreSessionManager, SQLServerSessionManager, MySQLSessionManager, OracleServerSessionManager,
-  PostgreLockManager, OracleLockManager, DBSStructureAssistant, DBNModel
+  PostgreLockManager, OracleLockManager(PostgreSQL 계열 다른 서버·9.6 이전, Oracle 10g 이전만), DBSStructureAssistant, DBNModel
 ```
 
 ### 새 모델 번들을 만든 이유 (`com.seizia.chromite.model.admin`)
@@ -88,10 +92,10 @@ SWT `SessionManagerViewer`(`plugins/com.seizia.chromite.ui.editors.session/.../S
 
 | DB | 세션 관리자 | 필터(기본값) | 명령 | 사용자 속성 |
 |---|---|---|---|---|
-| PostgreSQL | 데이터 소스 어댑터(`PostgreSessionManager`) | Show idle connections(켜짐) | Terminate Session(`pg_terminate_backend`), Cancel Query(`OPTION_QUERY_CANCEL`, `pg_cancel_backend`) | `usename` |
+| PostgreSQL | `PostgreActivitySessionManager`(9.6+, 서버 종류 PostgreSQL), 그 밖은 데이터 소스 어댑터(`PostgreSessionManager`) | Show idle connections(켜짐) | Terminate Session(`pg_terminate_backend`), Cancel Query(`OPTION_QUERY_CANCEL`, `pg_cancel_backend`) | `usename` |
 | SQL Server | `SQLServerSessionManager` | Only connections(켜짐) | Terminate Session(`KILL`) | `login_name` |
 | MySQL·MariaDB | `MySQLSessionManager` | Hide sleeping(꺼짐), Show performance info(꺼짐, sys 스키마가 있을 때) | Kill Session(`KILL CONNECTION`), Kill Query(`KILL QUERY`, 쿼리가 있는 세션만) | `User` |
-| Oracle | `OracleServerSessionManager` | Show background, Show inactive(꺼짐) | Kill Session, Disconnect Session(확인 창의 Immediate 체크) | `USERNAME` |
+| Oracle | `OracleActivitySessionManager`(10g+), 그 전은 `OracleServerSessionManager` | Show background, Show inactive(꺼짐) | Kill Session, Disconnect Session(확인 창의 Immediate 체크) | `USERNAME` |
 | 그 밖 | 데이터 소스 어댑터 | 없음 | Terminate Session(관리자의 `getTerminateOptions()`) | 없음 |
 
 필터 값은 드라이버마다 이 번들의 설정 저장소(`activityMonitor.sessions.filter.<드라이버>.<옵션>`)에, 자동 새로 고침 간격은
@@ -117,8 +121,8 @@ SWT `LockManagerViewer`(`plugins/com.seizia.chromite.ui.editors.locks/.../LockMa
 
 | DB | 잠금 관리자 | 대기 목록 | 세션의 잠금 |
 |---|---|---|---|
-| PostgreSQL | `PostgreLockManager`(DBeaver) | `pg_locks` 충돌 표 | `pg_locks` |
-| Oracle | `OracleLockManager`(DBeaver) | DBeaver 질의 | DBeaver 질의 |
+| PostgreSQL | `PostgreBlockingLockManager`(새로 만듦, 9.6+), 그 밖은 `PostgreLockManager`(DBeaver) | `pg_blocking_pids` | `pg_locks`(relation은 `regclass`로 이름) |
+| Oracle | `OracleBlockingLockManager`(새로 만듦, 10g+), 그 전은 `OracleLockManager`(DBeaver) | `V$SESSION.BLOCKING_SESSION` + 요청 중인 `V$LOCK` | `V$LOCK`(TM은 ID1, 대기 중인 TX는 `ROW_WAIT_OBJ#`을 `DBA_OBJECTS`로 이름) |
 | SQL Server | `SQLServerLockManager`(새로 만듦) | `sys.dm_exec_requests.blocking_session_id` | `sys.dm_tran_locks`(OBJECT 잠금은 객체 이름) |
 | MySQL·MariaDB | `MySQLLockManager`(새로 만듦) | `sys.innodb_lock_waits`(sys 스키마 없으면 `INNODB_LOCK_WAITS`) | MariaDB·MySQL 5.7: `INNODB_LOCKS`, MySQL 8: `performance_schema.data_locks` |
 
@@ -126,6 +130,57 @@ SWT `LockManagerViewer`(`plugins/com.seizia.chromite.ui.editors.locks/.../LockMa
 행 모양(`BlockingSessionLock`: 세션, 사용자, Blocked By, 대기 자원·모드·시간, 문장)은 `PostgreLock`과 같은 방식이고,
 열 이름은 `OSGI-INF/l10n/bundle.properties`의 `meta.*` 키다(DBeaver 모델 규칙).
 MySQL/MariaDB는 InnoDB 행 잠금만 보인다. 메타데이터 잠금(ALTER TABLE 대기 등)은 세션 목록의 State에서 본다.
+
+## PostgreSQL·Oracle 세션과 잠금 (2026-11-07)
+
+DB 관리 기능 축 2(세션·잠금): PostgreSQL과 Oracle을 SQL Server 수준으로 맞췄다. 메뉴(Tools 메뉴, Object Explorer 오른쪽 클릭의
+Activity Monitor·Locks)는 원래부터 연결된 모든 DB에서 켜져 있었다(`ObjectExplorerPanel#updateActions`의 `activityMonitorAction.setEnabled(dataSource != null)`,
+`MainFrame#updateActivityMonitorAction`). 그래서 메뉴 코드는 고치지 않았다.
+
+### DB별 지원 (전 → 후)
+
+| 항목 | SQL Server | MySQL·MariaDB | PostgreSQL 전 | PostgreSQL 후 | Oracle 전 | Oracle 후 |
+|---|---|---|---|---|---|---|
+| 세션 목록: SQL, 상태 | 됨 | 됨 | 됨 | 됨 | 됨 | 됨 |
+| 대기 | 세션 목록 Status, 잠금 탭 Wait Mode(wait type) | State | 없음(열 없음) | Wait(`wait_event_type: wait_event`) | Event, Seconds In Wait | 그대로 |
+| 막는 세션 | 잠금 탭 Blocked By | 잠금 탭 Blocked By | 없음 | Blocked By(`pg_blocking_pids`) | 없음 | Blocked By(`BLOCKING_SESSION`) |
+| 트랜잭션 경과 | — | Trx Latency(Show performance info) | 없음(Xact Start는 숨은 속성) | Transaction Age (s)(`now() - xact_start`) | 없음 | Transaction Age (s)(`GV$TRANSACTION.START_DATE`) |
+| 클라이언트·호스트·프로그램 | 됨 | 됨 | App Name만(Client Host는 숨은 속성) | Client Host, App Name | Remote Host, Remote Program | 그대로 |
+| 쿼리 취소 / 세션 끝내기 | — / Terminate(KILL) | KILL QUERY / KILL CONNECTION | 있음(결과 확인 안 함) | 있음, 결과가 false면 오류로 알림 | Kill / Disconnect | 그대로(권한 없으면 끔) |
+| 확인 창 | 됨 | 됨 | 됨 | 됨 | 됨 | 됨 |
+| 잠금: 머리 차단 세션(뿌리) | 됨 | 됨 | 충돌 표로 추정, 행 잠금 대상 객체 없음 | `pg_blocking_pids`, 대상 = 테이블(행 page,tuple) | 뿌리의 "막는 세션"이 0, TM 대기 객체 없음 | `BLOCKING_SESSION`, 대상 = 객체(파일·블록·행) |
+| 잠금 상세 | `sys.dm_tran_locks` | INNODB_LOCKS / data_locks | `pg_locks` | `pg_locks`(이름, page·row·xid) | `DBA_LOCK` | `V$LOCK`(모드 이름, 객체, GRANTED/WAITING/BLOCKING) |
+| 권한 확인 | — | — | 없음 | pg_monitor·superuser 아니면 자기 세션만 + 안내 | 없음(ORA-00942) | 뷰·ALTER SYSTEM 확인 + 안내, 명령 끔 |
+
+### 설계 결정
+
+- **DBeaver 파일은 고치지 않는다**: `PostgreSession`, `OracleServerSession`, 두 세션 관리자를 이 번들에서 상속했다(SQL Server·MySQL 잠금 관리자와 같은 이유).
+  잠금 관리자는 `AbstractBlockingLockManager`를 따라 새로 만들어 네 DB가 같은 행 모양(`BlockingSessionLock`, `SessionLockItem`)을 쓴다.
+- **서버가 판단한 대기 관계를 쓴다**: DBeaver `PostgreLockManager`는 `pg_locks`끼리 모드 충돌 표로 짝을 지어, 행 잠금 대기(transactionid)에서 객체가 보이지 않고
+  표에 없는 잠금(advisory 등)을 놓친다. `pg_blocking_pids`와 `V$SESSION.BLOCKING_SESSION`은 서버의 잠금 관리자가 내린 판단이다.
+- **잠금 대상 → 객체**: PostgreSQL은 기다리는 잠금의 relation, 없으면(transactionid 대기) 기다리는 세션이 잡은 tuple 잠금의 테이블과 행이다.
+  Oracle은 요청 중인 잠금이 TM이면 ID1, 아니면 `ROW_WAIT_OBJ#`과 `ROW_WAIT_FILE#/BLOCK#/ROW#`이다.
+- **Oracle 세션 끝내기는 'SID,SERIAL#'**: 목록을 읽을 때의 SERIAL#을 잠금 행(`OracleBlockingLock`)에 담아 둔다. 확인 창을 보는 사이 SID가 다른 세션에 다시 쓰여도
+  엉뚱한 세션을 끝내지 않는다. 그래서 `AbstractBlockingLockManager#killSession`이 세션 번호 대신 행을 받고, 뿌리 행 만들기(`createRootLock`)를 하위 클래스가 바꿀 수 있게 했다.
+  잠금 탭의 Kill Session은 기다리던 세션이 바로 이어 가도록 `IMMEDIATE`다(SWT 잠금 편집기와 같음).
+- **적용 범위**: PostgreSQL은 서버 종류가 PostgreSQL(`PostgreServerPostgreSQL` 계열: PostgreSQL, Google Cloud, Timescale)이고 9.6 이상일 때만,
+  Oracle은 10g 이상일 때만 새 관리자를 쓴다. Greenplum·Redshift 같은 PostgreSQL 계열 서버와 오래된 버전은 함수·열이 없어 DBeaver 관리자를 그대로 쓴다.
+- **ORACLE LICENSE GUARD**: Diagnostics/Tuning Pack이 필요한 ASH·AWR(`V$ACTIVE_SESSION_HISTORY`, `DBA_HIST_*`), SQL Monitor, SQL Tuning Advisor 뷰는 쓰지 않는다.
+  쓰는 뷰는 `GV$SESSION`, `GV$SQL`, `GV$SESS_IO`, `GV$TRANSACTION`, `V$SESSION`, `V$LOCK`, `V$SQL`, `DBA_OBJECTS`/`ALL_OBJECTS`, `SESSION_PRIVS`와
+  DBeaver 세부 정보 탭의 `GV$SESSION_LONGOPS`, `DBMS_XPLAN.DISPLAY_CURSOR`(팩 라이선스가 필요 없음)뿐이다. 그래서 라이선스 설정은 두지 않았다.
+- **잠금은 현재 인스턴스(`V$`)만**: RAC에서 다른 인스턴스의 세션이 막으면 막는 세션 행이 비어 있다. 세션 목록은 `GV$`라 모든 인스턴스가 보인다.
+
+### 권한 확인
+
+연결마다 첫 작업에서 한 번 확인한다(`AdminConnection` → `ServerAdminProfile#checkAccess`). 결과(`ServerAdminAccess`)는 안내 문구,
+세션 읽기·잠금 읽기·세션 끝내기 가능 여부다. 안내는 Processes·Locks 탭의 도구 막대 아래 안내 줄(`AccessNoticeBar`, 테마의 경고 색을 옅게 섞은 배경)에 계속 보인다.
+
+| DB | 확인 | 모자랄 때 |
+|---|---|---|
+| PostgreSQL | `rolsuper OR pg_has_role(.., 'pg_read_all_stats', 'USAGE')`(10+; pg_monitor가 포함), 9.6은 `rolsuper` | 자기 세션만 읽고(`sa.usename = current_user`) 안내한다. 남의 세션은 SQL·상태가 "insufficient privilege"로만 보이기 때문이다. 잠금은 그대로 읽는다. 끝내기는 서버가 판단한다(자기 세션은 됨, 남의 세션은 `pg_signal_backend` 필요) |
+| Oracle | 뷰마다 `SELECT 1 FROM <뷰> WHERE 1 = 0`(SELECT_CATALOG_ROLE, SELECT ANY DICTIONARY, 개별 GRANT 어느 쪽이든 실제로 읽히는지), `SESSION_PRIVS`의 ALTER SYSTEM | 못 읽는 뷰 이름과 "SELECT_CATALOG_ROLE을 부여하라"를 안내한다. 세션 뷰를 못 읽으면 세션 목록, 잠금 뷰를 못 읽으면 잠금을 읽지 않고 상태 줄에도 같은 안내를 보인다. `DBA_OBJECTS`만 없으면 `ALL_OBJECTS`로 객체 이름을 찾는다. ALTER SYSTEM이 없으면 Kill/Disconnect 단추를 끈다 |
+
+확인 질의가 실패하면(권한과 상관없는 오류) 모두 허용으로 두고 서버가 거부하는 오류를 그대로 보인다(지금까지와 같음).
 
 ## Find Objects
 
@@ -153,7 +208,9 @@ SWT 메타데이터 검색(`plugins/com.seizia.chromite.ui.search/.../SearchMeta
 - 세션의 실행 계획 탭(SWT `ExplainPlanViewer`): Swing 실행 계획 보기가 아직 없다.
 - 잠금 그래프 그림(GEF): 나무로 대신했다.
 - Find Objects의 "주석·정의에서도 찾기"(`setSearchInComments`, `setSearchInDefinitions`)와 검색 기록.
-- Oracle은 시험 DB가 없어 실제로 확인하지 못했다(코드 경로는 SWT와 같은 모델 API).
+- Oracle은 시험 DB가 없어 실제로 확인하지 못했다(코드 경로는 SWT와 같은 모델 API). 2026-11-07 Oracle Free 23ai로 확인함(아래 "확인 (2026-11-07, PostgreSQL·Oracle 세션과 잠금)").
+- Oracle 쿼리 취소(`ALTER SYSTEM CANCEL SQL`, 18c+): 요청 범위(Kill Session)에 없어 넣지 않았다.
+- 권한이 없을 때 메뉴 자체를 끄는 것: 권한은 연결한 뒤에야 알 수 있어, 메뉴는 그대로 두고 탭 안의 명령 단추를 끈다.
 
 ## 확인 (2026-11-06)
 
@@ -177,6 +234,25 @@ Swing 제품을 별도 작업 공간으로 띄우고 로컬 Docker DB(PostgreSQL
 확인 중 고친 것: 연결에 실패한 뒤 자동 새로 고침이 간격마다 다시 연결(비밀번호 창)하던 것, 필터와 명령이 한 줄에 넘치던 도구 막대,
 세션 표가 너무 낮던 분할, 잠금 상세 표를 넓게 쓰도록 바꾼 배치, PostgreSQL 뷰가 검색 종류("Table")로 보이던 결과 종류(노드 종류로 바꿈).
 
+## 확인 (2026-11-07, PostgreSQL·Oracle 세션과 잠금)
+
+빌드: `mvn -B clean package -f product/aggregate/pom.xml -T1C -Pproduct-chromite-swing` → BUILD SUCCESS, 이어서 `java tools/jre/BundleJre.java windows-x64`.
+Swing 제품을 별도 작업 공간으로 띄워(한국어 기본, `-nl en`, 라이트·다크) EDT 테스트 에이전트로 조작했다. 시험 DB는 PostgreSQL 17(`chr_sessions_locks`)과
+Oracle Free 23ai(FREEPDB1, `CHR_LOCKS_APP.CHR_LOCKS_ITEMS`)다. 잠금 대기는 `docker exec`의 두(세) 세션으로 만들었다: 한 세션이 행을 갱신한 채
+`pg_sleep`/`DBMS_SESSION.SLEEP`로 트랜잭션을 열어 두고, 다른 세션이 같은 행을 갱신한다.
+
+| 항목 | PostgreSQL | Oracle |
+|---|---|---|
+| Locks: 나무에 머리 차단 세션 → 대기 세션(PostgreSQL은 3단 체인 holder → waiter → waiter2) | 됨 | 됨 |
+| Locks: 대기 리소스가 객체로 풀림 | `chr_locks_items (row 0,15)`, `ShareLock (transactionid)` | `CHR_LOCKS_APP.CHR_LOCKS_ITEMS (file 24, block 1901, row 0)`, `enq: TX - row lock contention (TX Exclusive (X))` |
+| Locks: 두 세션의 잠금 상세 | tuple WAITING/GRANTED, relation, transactionid | TX WAITING / TX BLOCKING, TM Row-X (SX) + 객체 이름 |
+| Locks: 머리 차단 세션 Kill Session(확인 창) → 기다리던 문장이 끝남 | 됨(holder "terminating connection due to administrator command", waiter `UPDATE 1`) | 됨(holder ORA-03113, waiter `1 row updated`) |
+| Processes: Wait, Blocked By, Transaction Age, Client Host | 됨 | Blocked By, Transaction Age 됨(Event, Remote Host·Program은 그대로) |
+| Processes: Cancel Query(대기 문장 취소) → Terminate Session(차단 세션) | 됨(waiter "canceling statement due to user request", holder 끝남) | — |
+| 권한 안내: 일반 로그인 | `chr_locks_viewer`: 자기 세션만 + 안내 | `chr_locks_nopriv`(CREATE SESSION만): 못 읽는 뷰 8개와 ALTER SYSTEM 없음 안내, 세션·잠금을 읽지 않고 Kill/Disconnect 꺼짐 |
+
+화면: `D:\Tools\_scratch\sessions-locks\run\shots\`(작업 공간 밖의 확인용 파일).
+
 ## 변경 이력
 
 - 2026-11-06 최초 작성: Activity Monitor(Processes, Locks), Find Objects, `com.seizia.chromite.model.admin` 번들(SQL Server·MySQL 잠금 관리자).
@@ -184,3 +260,5 @@ Swing 제품을 별도 작업 공간으로 띄우고 로컬 Docker DB(PostgreSQL
 - 2026-11-06 테마 전환 뒤 Processes의 찾기 칸이 흰색, Only my sessions 글자가 어두운 색으로 남던 문제: 첫 읽기 뒤에 붙이는 두 컴포넌트를
   붙일 때 현재 Look and Feel로 다시 설치함.
 - 2026-11-07 서버 대시보드를 Activity Monitor의 첫 탭(개요)으로 더함, 탭 번호가 바뀜(개요 0, Processes 1, Locks 2) ([swing-dashboard.md](swing-dashboard.md)).
+- 2026-11-07 PostgreSQL·Oracle 세션·잠금(DB 관리 축 2): 세션에 대기·막는 세션·트랜잭션 경과, 잠금에 `pg_blocking_pids`/`BLOCKING_SESSION` 기반 관리자와 객체로 풀린 대상,
+  로그인 권한 확인과 안내 줄, Oracle 끝내기의 SERIAL# 보존, PostgreSQL 끝내기 결과 확인.

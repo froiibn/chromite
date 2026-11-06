@@ -57,6 +57,7 @@ import java.util.Map;
  * - 2026-11-06 Query Library: 최초 작성 (docs/chromite/swing-query-library.md "실행 흐름")
  * - 2026-11-06 Query Library ③: 저장할 때 파일의 예약 정의와 모르는 머리말을 유지 (docs/chromite/swing-query-library.md "예약 실행")
  * - 2026-11-06 화면 문구를 ToolsMessages로 옮김(OS 언어를 따름)
+ * - 2026-11-07 쿼리 창 도구 막대가 메인 창으로 옮겨져 머리말 위치 설명을 고침 (docs/chromite/swing-frontend.md "SQL Editor 도구 막대")
  */
 final class QueryLibraryEditor implements SqlEditorExtension {
 
@@ -352,7 +353,7 @@ final class QueryLibraryEditor implements SqlEditorExtension {
     // Header (EDT)
 
     /**
-     * Two rows below the query tool bar: Name, Description | Target, Database, Schema, Parameters….
+     * Two rows above the editor of the query window: Name, Description | Target, Database, Schema, Parameters….
      */
     @NotNull
     private JPanel createHeader() {

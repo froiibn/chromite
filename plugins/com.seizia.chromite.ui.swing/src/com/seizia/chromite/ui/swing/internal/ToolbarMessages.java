@@ -19,7 +19,7 @@ package com.seizia.chromite.ui.swing.internal;
 import org.eclipse.osgi.util.NLS;
 
 /**
- * Swing 주 도구 막대와 쿼리 창 도구 막대의 화면 문구(도구 설명, Save All, 넘침 메뉴).
+ * Swing 메인 창 도구 막대 두 줄(Standard, SQL Editor)의 화면 문구(도구 설명, Save All, 넘침 메뉴).
  *
  * 설계: 기능별 묶음 규칙(docs/chromite/swing-l10n.md)에 따라 도구 막대만의 {@link NLS} 묶음을 둔다. 영어가 기본
  * ({@code ToolbarMessages.properties}), 한국어는 {@code ToolbarMessages_ko.properties}이고 OS 언어를 따른다. 키 접두사는 {@code toolbar_}다.
@@ -27,6 +27,7 @@ import org.eclipse.osgi.util.NLS;
  *
  * 변경 이력:
  * - 2026-11-06 최초 작성 (docs/chromite/swing-frontend.md "도구 막대")
+ * - 2026-11-07 쿼리 창 도구 막대가 메인 창 둘째 줄(SQL Editor)로 옮겨져 설명을 고침 (docs/chromite/swing-frontend.md "SQL Editor 도구 막대")
  */
 public class ToolbarMessages extends NLS {
     private static final String BUNDLE_NAME = "com.seizia.chromite.ui.swing.internal.ToolbarMessages"; //$NON-NLS-1$

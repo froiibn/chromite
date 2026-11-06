@@ -1,2 +1,5 @@
 # Shipped driver license/README/SOURCE texts: always LF so the product drivers/ bytes do not depend on core.autocrlf.
 /features/com.seizia.chromite.drivers.public.feature/drivers-root/**/*.txt text eol=lf
+# Shell scripts that run on Linux/macOS (the release server, the macOS runner, the rehearsal container): always LF.
+/tools/release/*.sh text eol=lf
+/tools/release/rehearsal/*.sh text eol=lf

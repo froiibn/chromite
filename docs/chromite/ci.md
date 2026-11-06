@@ -16,7 +16,7 @@ Chromite의 CI를 DBeaver 조직의 워크플로, 액션, 시크릿 없이 이 �
 |---|---|---|
 | `.github/workflows/build.yml` | `devel` push, `devel` 대상 PR, 수동 실행(`workflow_dispatch`) | 작업 `build`를 행렬(matrix)로 두 번 실행: `windows-x64`(`windows-latest`), `macos-aarch64-on-linux`(`ubuntu-latest`). 제품 빌드 후 결과물 업로드. 작업 `rename-gate`(`ubuntu-latest`)가 `tools/rename/gate.py`로 옛 DBeaver 내부 이름 재유입과 깨진 참조를 검사([internal-rename.md](internal-rename.md)) |
 | `.github/workflows/codeql.yml` | `devel` push, `devel` 대상 PR, 매주 화요일 03:30 UTC | 작업 `analyze`를 `actions`, `java-kotlin` 두 언어로 실행(`ubuntu-latest`) |
-| `.github/workflows/release.yml` | `v*` 태그 push, `devel`에서 수동 실행 | 제품을 빌드·서명·확인하고 태그면 초안 Release에 올림([signing.md](signing.md)) |
+| `.github/workflows/release.yml` | `v*` 태그 push, `devel`에서 수동 실행 | 제품을 빌드·서명·확인하고 Windows 설치 프로그램(NSIS)을 만들어 서명·확인한 뒤 태그면 초안 Release에 올림([signing.md](signing.md), [distribution.md](distribution.md)) |
 | `.github/codeql/codeql-config.yml` | `codeql.yml`이 읽음 | `paths-ignore: deps` |
 
 ### build.yml 단계
@@ -217,3 +217,4 @@ CI에서 checkstyle을 돌리지 않기로 했다. 깔끔하게 유지할 방법
   `tools/jre/BundleJre.java`로 두 제품에 넣은 뒤(SWT 삭제 뒤에는 Swing 제품 하나) 구조를 확인한다([runtime.md](runtime.md)). "알려진 제약"의 JRE 설치 필요 항목을 고쳤다.
   브랜치 `chromite/jbr-runtime`에서 수동 실행(실행 42267311710)으로 두 작업 성공과 macOS 결과물의 런타임 구조를 확인했다. `release.yml`은 실행하지 않았다.
 - 2026-11-07 SWT 프런트엔드 삭제([swt-removal.md](swt-removal.md)): `build.yml`·`release.yml`에서 SWT 제품 빌드·업로드·서명·패키징 단계 삭제, 프로파일은 `product-chromite-swing`만. 결과물 표와 설명 갱신.
+- 2026-11-07 `release.yml` Windows 작업에 NSIS 설치 프로그램(고정한 NSIS 3.12, 2단계 빌드·서명, 조용한 설치·제거 확인)을 넣고 macOS 결과 파일 이름을 계약 이름으로 바꿨다([distribution.md](distribution.md)). `build.yml`은 바꾸지 않았다.

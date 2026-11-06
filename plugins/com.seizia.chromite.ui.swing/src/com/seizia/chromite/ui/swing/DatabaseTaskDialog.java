@@ -43,7 +43,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * 데이터베이스 작업 대화상자(백업·복원)의 공통 틀.
+ * 데이터베이스 작업 대화상자(백업·복원, SQL Server 에이전트의 작업·경고·운영자 속성)의 공통 틀.
  *
  * 설계: SSMS의 데이터베이스 작업 대화상자(Back Up Database, Restore Database) 배치를 따른다. 왼쪽에 "페이지 선택" 목록,
  * 그 아래 연결 정보와 진행 상태(상태 글자와 진행 막대), 오른쪽에 고른 페이지, 아래에 스크립트 단추(메뉴)와 확인·취소다.
@@ -58,6 +58,7 @@ import java.util.List;
  * 변경 이력:
  * - 2026-11-06 최초 작성: 백업·복원 (docs/chromite/swing-backup-restore.md)
  * - 2026-11-07 오류 문구를 {@link ErrorText}로 만들고, 실패하면 스택 추적을 여는 "자세히…" 단추를 보여 줌 (docs/chromite/swing-frontend.md "오류 문구")
+ * - 2026-11-07 실행 전 확인 단계 {@link #confirmRun}(SQL Server 에이전트 창이 실행할 스크립트를 먼저 보여 줌) (docs/chromite/swing-sqlserver-agent.md)
  */
 abstract class DatabaseTaskDialog extends JDialog {
 
@@ -238,6 +239,16 @@ abstract class DatabaseTaskDialog extends JDialog {
     protected abstract String validateInput();
 
     /**
+     * Called on the EDT after the input was checked and before the run is prepared, e.g. to show the script that will
+     * run (SQL Server Agent dialogs).
+     *
+     * @return false to not run
+     */
+    protected boolean confirmRun() {
+        return true;
+    }
+
+    /**
      * Prepares the run on the EDT (reads the controls); the returned runnable runs in the background job.
      */
     @NotNull
@@ -379,6 +390,9 @@ abstract class DatabaseTaskDialog extends JDialog {
         String problem = validateInput();
         if (problem != null) {
             JOptionPane.showMessageDialog(this, problem, getTitle(), JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+        if (!confirmRun()) {
             return;
         }
         TaskRun run;

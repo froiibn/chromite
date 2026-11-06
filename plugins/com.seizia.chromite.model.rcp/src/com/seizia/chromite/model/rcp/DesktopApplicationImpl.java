@@ -34,6 +34,10 @@ import java.nio.file.Path;
 
 /**
  * DesktopApplicationImpl
+ *
+ * 변경 이력:
+ * - 2026-11-07 작업 공간을 읽기 전에 이름 변경 전 빌드의 사용자 데이터를 복사함({@link LegacyNameMigration},
+ *   docs/chromite/internal-rename.md "사용자 데이터 이전")
  */
 public abstract class DesktopApplicationImpl extends BaseApplicationImpl implements DBPApplicationDesktop, DBPLockManagerProvider {
 
@@ -49,6 +53,16 @@ public abstract class DesktopApplicationImpl extends BaseApplicationImpl impleme
 
     public DesktopApplicationImpl(@NotNull String defaultWorkspaceLocation, @NotNull String defaultAppWorkspaceName) {
         super(defaultWorkspaceLocation, defaultAppWorkspaceName);
+    }
+
+    /**
+     * Runs before the platform creates the workspace, so projects, their connection registries and the preferences
+     * of renamed bundles are read only after the data of builds before the internal rename was copied.
+     * The application has locked the workspace at this point, so no other instance copies at the same time.
+     */
+    @Override
+    public void beforeWorkspaceInitialization() {
+        LegacyNameMigration.migrate(getWorkspacePath(), ResourcesPlugin.getWorkspace());
     }
 
     @NotNull

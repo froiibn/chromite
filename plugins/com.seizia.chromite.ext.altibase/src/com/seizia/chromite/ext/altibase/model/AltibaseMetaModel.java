@@ -38,8 +38,10 @@ import com.seizia.chromite.model.exec.jdbc.JDBCStatement;
 import com.seizia.chromite.model.impl.jdbc.JDBCConstants;
 import com.seizia.chromite.model.impl.jdbc.JDBCUtils;
 import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.model.sql.SQLUtils;
 import com.seizia.chromite.model.struct.DBSEntityConstraintType;
 import com.seizia.chromite.model.struct.DBSObject;
+import com.seizia.chromite.model.struct.DBSObjectFilter;
 import com.seizia.chromite.model.struct.rdb.DBSIndexType;
 import com.seizia.chromite.model.struct.rdb.DBSProcedureType;
 import org.jkiss.utils.CommonUtils;
@@ -50,6 +52,10 @@ import java.util.Map;
 
 /**
  * Altibase DataSource
+ *
+ * 변경 이력:
+ * - 2026-11-07 테이블 목록을 카탈로그 질의로 읽음({@link #prepareTableLoadStatement}): 테이블 저장 방식을 같은
+ *   질의에서 받기 위해서다(docs/chromite/altibase.md)
  */
 public class AltibaseMetaModel extends GenericMetaModel {
 
@@ -78,6 +84,68 @@ public class AltibaseMetaModel extends GenericMetaModel {
     @Override
     public AltibaseDataTypeCache createDataTypeCache(@NotNull GenericStructContainer container) {
         return new AltibaseDataTypeCache(container);
+    }
+
+    /**
+     * Reads the table list from the catalog instead of {@code DatabaseMetaData.getTables}, so the tablespace of each
+     * table and its storage kind (V$TABLESPACES.TYPE: memory, disk or volatile) come in the same query and the
+     * navigator needs no query per table ({@link AltibaseTable}).
+     * The JDBC columns and table types are the ones of the Altibase JDBC driver's getTables. Synonyms, sequences and
+     * the system objects other than tables and views, which the driver adds too, are left out because
+     * {@link #createTableImpl} drops them anyway.
+     * A partitioned table gets the lowest and highest type of its partitions' tablespaces (hybrid partitioned tables).
+     */
+    @Override
+    public JDBCStatement prepareTableLoadStatement(
+        @NotNull JDBCSession session,
+        @NotNull GenericStructContainer owner,
+        @Nullable GenericTableBase object,
+        @Nullable String objectName
+    ) throws SQLException {
+        String tableName = object != null ? object.getName() : objectName;
+        String tableMask = null;
+        if (tableName == null) {
+            DBSObjectFilter tableFilters = session.getDataSource().getContainer().getObjectFilter(GenericTable.class, owner, false);
+            if (tableFilters != null && tableFilters.hasSingleMask() && !CommonUtils.isEmpty(tableFilters.getSingleMask())) {
+                tableMask = SQLUtils.makeSQLLike(tableFilters.getSingleMask());
+            }
+        }
+        String partitionTypes = "SELECT %s(pts.TYPE) FROM SYSTEM_.SYS_TABLE_PARTITIONS_ p"
+            + " JOIN V$TABLESPACES pts ON pts.ID = p.TBS_ID WHERE p.TABLE_ID = t.TABLE_ID";
+        StringBuilder sql = new StringBuilder()
+            .append("SELECT (SELECT DB_NAME FROM V$DATABASE) AS ").append(JDBCConstants.TABLE_CAT)
+            .append(", u.USER_NAME AS ").append(JDBCConstants.TABLE_SCHEM)
+            .append(", t.TABLE_NAME AS ").append(JDBCConstants.TABLE_NAME)
+            .append(", DECODE(u.USER_NAME, 'SYSTEM_', 'SYSTEM ', '') || DECODE(t.TABLE_TYPE, 'T', 'TABLE', 'V', 'VIEW',")
+            .append(" 'Q', 'QUEUE', 'M', 'MATERIALIZED VIEW') AS ").append(JDBCConstants.TABLE_TYPE)
+            .append(", c.COMMENTS AS ").append(JDBCConstants.REMARKS)
+            .append(", t.TBS_NAME AS ").append(AltibaseTable.COLUMN_TBS_NAME)
+            .append(", t.IS_PARTITIONED AS ").append(AltibaseTable.COLUMN_IS_PARTITIONED)
+            .append(", ts.TYPE AS ").append(AltibaseTable.COLUMN_TBS_TYPE)
+            .append(", CASE WHEN t.IS_PARTITIONED = 'T' THEN (").append(String.format(partitionTypes, "MIN"))
+            .append(") END AS ").append(AltibaseTable.COLUMN_PARTITION_TBS_TYPE_MIN)
+            .append(", CASE WHEN t.IS_PARTITIONED = 'T' THEN (").append(String.format(partitionTypes, "MAX"))
+            .append(") END AS ").append(AltibaseTable.COLUMN_PARTITION_TBS_TYPE_MAX)
+            .append(" FROM SYSTEM_.SYS_TABLES_ t")
+            .append(" JOIN SYSTEM_.SYS_USERS_ u ON u.USER_ID = t.USER_ID")
+            .append(" LEFT OUTER JOIN SYSTEM_.SYS_COMMENTS_ c ON c.USER_NAME = u.USER_NAME AND c.TABLE_NAME = t.TABLE_NAME")
+            .append(" AND c.COLUMN_NAME IS NULL")
+            .append(" LEFT OUTER JOIN V$TABLESPACES ts ON ts.ID = t.TBS_ID")
+            .append(" WHERE u.USER_NAME = ?")
+            .append(" AND (t.TABLE_TYPE IN ('T', 'V') OR (u.USER_NAME <> 'SYSTEM_' AND t.TABLE_TYPE IN ('M', 'Q')))");
+        if (tableName != null) {
+            sql.append(" AND t.TABLE_NAME = ?");
+        } else if (tableMask != null) {
+            sql.append(" AND t.TABLE_NAME LIKE ?");
+        }
+        JDBCPreparedStatement dbStat = session.prepareStatement(sql.toString());
+        dbStat.setString(1, owner.getName());
+        if (tableName != null) {
+            dbStat.setString(2, tableName);
+        } else if (tableMask != null) {
+            dbStat.setString(2, tableMask);
+        }
+        return dbStat;
     }
 
     @Override
