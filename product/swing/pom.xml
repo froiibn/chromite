@@ -11,7 +11,7 @@
     </parent>
     <groupId>com.seizia.chromite</groupId>
     <artifactId>com.seizia.chromite.swing.product</artifactId>
-    <version>26.2.5-SNAPSHOT</version>
+    <version>0.1.0-SNAPSHOT</version>
     <packaging>eclipse-repository</packaging>
     <name>Chromite Swing</name>
 
@@ -25,7 +25,7 @@
                     <products>
                         <product>
                             <id>com.seizia.chromite.swing.product</id>
-                            <archiveFileName>chromite-swing-${dbeaver-version}</archiveFileName>
+                            <archiveFileName>chromite-swing-${unqualifiedVersion}</archiveFileName>
                             <rootFolders>
                                 <!-- for MacOSX, make sure you use a folder ending with .app , see bug 463670 -->
                                 <macosx>ChromiteSwing.app</macosx>
