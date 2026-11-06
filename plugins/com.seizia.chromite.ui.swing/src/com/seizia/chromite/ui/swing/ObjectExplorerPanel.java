@@ -20,6 +20,7 @@ import com.formdev.flatlaf.FlatClientProperties;
 import com.formdev.flatlaf.ui.FlatUIUtils;
 import com.formdev.flatlaf.util.UIScale;
 import com.seizia.chromite.ui.swing.internal.CoreMessages;
+import com.seizia.chromite.ui.swing.internal.ErdMessages;
 import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.Status;
 import org.eclipse.osgi.util.NLS;
@@ -115,6 +116,7 @@ import java.util.function.Consumer;
  *     다른 곳에서 새로 읽은 노드({@code UPDATE}·{@code REFRESH}, 디자이너의 저장 뒤)는 그 노드와 펼쳐 둔 하위 노드의 자식을
  *     모델에서 다시 읽는다(DB는 다시 읽지 않고 펼친 상태는 유지).</li>
  *     <li>테이블 디자이너({@link TableDesignerPanel}): 테이블의 "Design", Tables 폴더의 "New Table…".</li>
+ *     <li>ER 다이어그램({@link ErdDiagramPanel}): 스키마·테이블의 "View Diagram".</li>
  *     <li>모양(docs/chromite/design-spec.md "트리"): 머리말 아래 아이콘 도구 막대({@link #createToolBar}, SSMS Object Explorer 도구 막대 순서),
  *     아이콘 팩 아이콘({@link NodeIcons#getNodeIcon}), 이름 뒤 보조 글자(열 형식, 읽은 폴더의 객체 수, 연결 호스트),
  *     마우스를 올린 행의 둥근 바탕({@link ExplorerTree}). 행 높이·들여쓰기·선택 모양은 테마 properties의 FlatLaf 키다.</li>
@@ -147,6 +149,7 @@ import java.util.function.Consumer;
  * - 2026-11-06 New Connection으로 만든 서버가 들어오지 않던 문제: 탐색기 노드가 생기기 전(레지스트리 이벤트 지연)에도 목록에 넣고,
  *   고를 서버를 연결로 기억해 ADD 이벤트에서 고름 (docs/chromite/swing-registered-servers.md)
  * - 2026-11-06 화면 문구를 CoreMessages로 옮김(OS 언어를 따름)
+ * - 2026-11-06 ER 다이어그램: View Diagram 메뉴, Select Top 행 수를 다이어그램 메뉴와 같이 씀 (docs/chromite/swing-erd.md)
  */
 final class ObjectExplorerPanel extends JPanel {
 
@@ -156,7 +159,7 @@ final class ObjectExplorerPanel extends JPanel {
     /**
      * Rows of "Select Top N Rows", as SSMS.
      */
-    private static final int SELECT_TOP_ROWS = 1000;
+    static final int SELECT_TOP_ROWS = 1000;
 
     /**
      * The main window side: document tabs for queries, scripts and tools.
@@ -201,6 +204,11 @@ final class ObjectExplorerPanel extends JPanel {
          * Opens the table designer for a new table in a "Tables" folder ("New Table").
          */
         void newTable(@NotNull DBNDatabaseFolder folder);
+
+        /**
+         * Opens the ER diagram of a schema (its tables) or of a table (with the related tables) ("View Diagram").
+         */
+        void viewDiagram(@NotNull DBSObject root);
     }
 
     private final DefaultTreeModel treeModel;
@@ -232,6 +240,7 @@ final class ObjectExplorerPanel extends JPanel {
     private final Action findObjectsAction;
     private final Action designAction;
     private final Action newTableAction;
+    private final Action viewDiagramAction;
     private final JMenu scriptAsMenu;
     private final JMenu createToMenu;
     private final JMenu selectToMenu;
@@ -354,6 +363,13 @@ final class ObjectExplorerPanel extends JPanel {
                 queryWindows.newTable(folder);
             }
         });
+        viewDiagramAction = createAction(ErdMessages.erd_view_diagram, () -> {
+            DBSObject object = getSelectedObject();
+            if (object != null) {
+                queryWindows.viewDiagram(object);
+            }
+        });
+        viewDiagramAction.putValue(Action.SHORT_DESCRIPTION, ErdMessages.erd_view_diagram_tip);
         createToMenu = new JMenu(CoreMessages.explorer_create_to);
         createToMenu.add(createAction(CoreMessages.explorer_new_query_window, () -> scriptSelected(queryWindows, false, false)));
         createToMenu.add(createAction(CoreMessages.explorer_clipboard, () -> scriptSelected(queryWindows, false, true)));
@@ -448,6 +464,7 @@ final class ObjectExplorerPanel extends JPanel {
         popupMenu.add(selectTopAction);
         popupMenu.add(scriptAsMenu);
         popupMenu.add(viewDdlAction);
+        popupMenu.add(viewDiagramAction);
         popupMenu.add(tasksMenu);
         popupMenu.addSeparator();
         popupMenu.add(connectAction);
@@ -634,6 +651,7 @@ final class ObjectExplorerPanel extends JPanel {
         selectToMenu.setEnabled(canSelect);
         scriptAsMenu.setEnabled(canScript || canSelect);
         viewDdlAction.setEnabled(canScript);
+        viewDiagramAction.setEnabled(ErdDiagramModel.canShow(object));
         importDataAction.setEnabled(DataImportWizard.canImport(object));
         exportDataAction.setEnabled(DataExportWizard.canExport(object));
         tasksMenu.setEnabled(importDataAction.isEnabled() || exportDataAction.isEnabled());
