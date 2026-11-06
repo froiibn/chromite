@@ -502,7 +502,7 @@ B단계는 `JSplitPane`만 쓴다. (2026-11-06 사용자가 끌어서 옮기기�
 | `sqlEditor.font.family`, `sqlEditor.font.size` | 편집기 글꼴 이름(없으면·설치되지 않았으면 Cascadia Mono), 크기(기본 13) (2026-11-06) |
 | `sqlEditor.color.<light\|dark>.<항목>` | 바꾼 편집기 색만: `rrggbb[,bold][,italic]`. 항목은 `text`, `keyword`, `operator`, `function`, `string`, `number`, `comment`, `data_type`, `variable`, `background`, `current_line`, `selection`, `line_number`, `current_line_number` (2026-11-06) |
 | `mainWindow.bounds`, `mainWindow.maximized` | `x,y,너비,높이`(최대화 전 크기), 최대화 여부 |
-| `results.visible`, `results.size` | Results 표시 여부, 높이. 도구 창 배치는 2026-11-06부터 배치 파일과 `<id>.restorePlace`("도구 창 도킹") |
+| `results.size` | Results 높이. 도구 창 배치는 2026-11-06부터 배치 파일과 `<id>.restorePlace`("도구 창 도킹"). 표시 여부(`results.visible`)는 2026-11-07부터 저장하지 않는다("Results 자동 숨김") |
 
 - Java Preferences 대신 이 저장소를 고른 이유: SWT 버전도 화면 설정을 작업 공간 설정에 둔다. Windows에서 Java Preferences는 레지스트리에 쓰므로
   작업 공간을 복사해 하는 스모크 테스트가 사용자 설정을 바꾸게 되고, 작업 공간과 함께 옮겨지지도 않는다. 기본 작업 공간은 사용자별 폴더에 있어 "사용자별 저장"도 된다.
@@ -629,7 +629,7 @@ C단계의 목표는 SSMS식 SQL 편집기와 결과 창이다: 편집기 탭을
 
 ### Results / Messages
 
-- SSMS처럼 결과는 쿼리 창마다 따로 있다. 메인 창 아래의 Results / Messages 탭에는 활성 편집기의 두 컴포넌트를 끼운다(편집기가 없으면 자리 표시).
+- SSMS처럼 결과는 쿼리 창마다 따로 있다. 메인 창 아래의 Results / Messages 탭에는 활성 편집기의 두 컴포넌트를 끼운다(편집기가 없으면 자리 표시. 2026-11-07부터는 Results 카드를 숨김, "Results 자동 숨김").
   탭에서 빠져 있던 컴포넌트는 테마 전환을 받지 못했을 수 있어 끼울 때 Look and Feel을 맞춘다(`updateComponentTreeUI`, 마지막으로 맞춘 Look and Feel을 기억).
 - **Results:** 결과 집합마다 표 하나를 위아래로 쌓는다. 모두 최소 높이(140px) 이상으로 들어가면 높이를 똑같이 나눠 채우고, 아니면 바깥 세로 스크롤.
   - 값은 `ResultSetGridReceiver`가 Job 스레드에서 결과 집합이 열려 있는 동안 읽어(`DBUtils.getAttributeBindings`, `fetchValueObject`) 표시 문자열(`DBDDisplayFormat.UI`)로 바꾸고
@@ -1749,7 +1749,7 @@ EDT 에이전트로 단추를 누르고(`doClick`) 결과를 읽었다. 캡처�
   이전 배치는 Registered Servers가 Object Explorer 위였다(사용자 결정으로 바꿈).
 - **너비:** 기본 열 너비는 픽셀이 아니라 비율이다(왼쪽 22%, 오른쪽 18%). 1280px 창에서 두 열이 300px이면 쿼리 창이 좁아(합친 뒤 약 215px) 문서 영역이 60%를 갖게 했다.
 - **가운데:** 문서 영역(문서 탭 카드 + 그 아래 Results 카드)은 움직이지 않는 도킹 대상 하나다. Results/Messages/실행 계획은 SSMS처럼 쿼리 창 안이라 도킹하지 않고
-  지금처럼 문서 영역의 분할 창 아래쪽이다(`ToolWindow.SplitHost`, Ctrl+R, 크기·표시는 `results.visible`, `results.size`).
+  지금처럼 문서 영역의 분할 창 아래쪽이다(`ToolWindow.SplitHost`, Ctrl+R, 크기는 `results.size`. 표시 여부는 활성 쿼리 창이 정한다: "Results 자동 숨김").
 - **도구 창 = 도킹 대상:** Object Explorer, Registered Servers, Properties, Query Library. 머리말(높이 40)이 끌기 손잡이이고 오른쪽에 [⋮ 옵션] [— 숨기기]가 있다.
   옵션 메뉴: Float(떠 있는 창), Dock(떠 있는 창·자동 숨기기에서 메인 창의 마지막 자리로), Auto Hide(창 가장자리 막대로 접기), Hide.
 - **끌어 놓기:** 머리말을 끌면 놓을 자리가 강조색으로 칠해지고(창 가장자리 손잡이, 도구 창 손잡이: 위·아래·왼쪽·오른쪽·가운데=탭), 메인 창 밖에 놓으면 떠 있는 창이 된다.
@@ -1796,7 +1796,7 @@ EDT 에이전트로 단추를 누르고(`doClick`) 결과를 읽었다. 캡처�
 |---|---|
 | 도킹 배치(메인 창 트리, 탭 묶음, 자동 숨긴 도구 창, 떠 있는 창의 위치·크기·내용) | 작업 공간 `.metadata/chromite-window-layout-1.xml`(라이브러리 XML 형식) |
 | 숨긴 도구 창의 마지막 자리 | 번들 설정 `<id>.restorePlace` = `이웃 id|방향|비율`(창 가장자리면 이웃 id 비움) |
-| 메인 창 위치·크기·최대화, Results 크기·표시 | 그대로(`mainWindow.*`, `results.*`). 배치 파일의 메인 창 크기는 쓰지 않는다 |
+| 메인 창 위치·크기·최대화, Results 크기 | 그대로(`mainWindow.*`, `results.size`). 배치 파일의 메인 창 크기는 쓰지 않는다. Results 표시 여부는 2026-11-07부터 저장하지 않는다("Results 자동 숨김") |
 
 - 창을 닫을 때 한 번 저장한다(지금까지와 같음). 떠 있는 창은 메인 창이 보인 뒤에 연다(메인 창 뒤로 숨지 않게).
 - **맞지 않는 파일:** 파일이 없거나, XML을 읽을 수 없거나, 모르는 도구 창 id·같은 id 두 번·문서 영역 없음·떠 있는 창의 문서 영역·최대화·지원하지 않는 노드가 있으면 경고 로그를 남기고 기본 배치로 시작한다.
@@ -1857,13 +1857,76 @@ EDT 에이전트로 단추를 누르고(`doClick`) 결과를 읽었다. 캡처�
 - **크기:** 가운데 정렬, 최대 너비 420(논리 픽셀), 문서 영역이 좁으면 양쪽 여백 32를 남기고 줄인다(최소 80).
 - **글자:** 안내 두 줄(영어 "Expand a connection in Object Explorer…", "Right-click a connection and choose New Query (Ctrl+N)…", 한국어 그대로)과 단축키 이름은 `text.secondary`(`Chromite.secondaryForeground`), 작은 글꼴(FlatLaf `small`).
   단축키 줄은 메뉴와 같은 `Action`의 이름·단축키에서 만들고, 이름 끝의 "…"는 뺀다.
-- **결과 카드:** 그대로 문서 카드 아래에 있다(편집기가 없으면 "결과가 없습니다" 자리 표시).
+- **결과 카드:** 문서가 없으면 숨기므로 빈 화면이 문서 영역을 다 쓴다(2026-11-07 "Results 자동 숨김". 그 전에는 "결과가 없습니다" 자리 표시가 아래에 있었다).
 - 이전 시작 탭의 정사각 아이콘 로고(128)와 큰 제품명 글자는 없앴다(가로 로고에 제품명이 있음).
 
 ### 확인 (2026-11-06)
 
 "도구 창 도킹 — 확인"과 같은 실행에서 캡처했다(`D:\Tools\_scratch\docking\welcome-*.png`): 한국어(OS 기본)·영어(`-nl en`) × 라이트·다크 × 1920·1280.
 문서 탭이 없을 때 빈 화면, New Query로 탭이 생기면 문서 탭, 탭을 모두 닫으면 다시 빈 화면(카드 전환을 에이전트로 확인).
+
+## Results 자동 숨김 (2026-11-07)
+
+사용자 결정(2026-11-06, "DataGrip도 이렇게 동작한다"): 아래 Results 카드(Results / Messages / Execution plan 탭과 쿼리 상태 줄)는 **활성 문서 탭이 쿼리 창일 때만** 보인다.
+
+| 활성 문서 | Results 카드 | Ctrl+R, View > Results |
+|---|---|---|
+| 없음(빈 문서 영역) | 숨김. 빈 화면(로고)이 문서 영역을 다 쓴다 | 꺼짐, 도구 설명 "Results (Ctrl+R): open or activate a query window first" / "결과(Ctrl+R): 먼저 쿼리 창을 열거나 활성화하십시오" |
+| 쿼리 창(새 쿼리, 파일, 스크립트·개체 정의 편집 창) | 그 쿼리 창에서 숨기지 않았으면 보임 | 켜짐. 그 쿼리 창의 Results를 숨기고 보임 |
+| 다른 문서(테이블 디자이너, ER 다이어그램, Activity Monitor·Find Objects 같은 도구 문서, DDL 탭) | 숨김 | 꺼짐 |
+
+- **쿼리 창마다 기억:** Ctrl+R, View 메뉴, 탭 줄의 — 단추로 숨긴 것은 그 쿼리 창에만 남는다. 쿼리 A에서 숨기고 쿼리 B로 가면 B는 보이고, A로 돌아오면 다시 숨김이다.
+  실행(F5)·예상 실행 계획(Ctrl+L)·실제 계획과 함께 실행은 지금처럼 그 쿼리 창의 Results를 다시 보인다(`showResults`/`showPlan`이 사용자 선택을 "보임"으로 바꿈).
+- **크기:** Results 높이는 하나(전역)이고, 숨길 때 기억해 다시 보일 때 쓴다. 문서를 바꿔 숨겼다가 돌아와도, 다시 시작해도(`results.size`) 같은 높이다.
+- **Window > Reset Window Layout:** 기본 도킹 배치, Results 기본 높이(220), 열린 모든 쿼리 창의 "숨김"을 지운다(기본 = 보임). 쿼리 창이 활성이 아니면 숨긴 채로 둔다.
+- **쿼리 상태 줄:** 지금처럼 Results가 보이면 Results 카드 아래, 숨겨져 있으면 문서 카드 아래(편집기 아래)다. 쿼리 창이 아니면 상태 줄이 없다.
+  활성 문서가 바뀔 때 먼저 Results를 보이거나 숨기고(`SplitHost.update`) 그다음 상태 줄을 끼우므로 두 위치가 항상 맞다.
+
+### 설계
+
+- **근본 원인:** 지금까지 Results 표시 여부는 `ToolWindow.SplitHost`가 가진 전역 상태 하나(카드의 `isVisible`, 설정 `results.visible`)였다. 그래서 문서를 바꿔도 그대로였고
+  빈 문서 영역·다른 문서에서도 자리 표시 내용이 있는 Results 카드가 공간을 차지했다. 표시 여부를 문서별 규칙으로 바꾸기 위해 상태의 주인을 바꿨다.
+- **`ToolWindow.SplitHost.Context`(새 인터페이스):** "지금 보일지"(`isShown`)와 "사용자가 고른 것 기억"(`setShown`). `SplitHost`는 자기 상태를 갖지 않고
+  `setShown`(View 메뉴, — 단추, 명령)을 Context에 넘긴 뒤 `update()`로 Context가 말하는 대로 카드를 보이거나 숨긴다. 크기 기억·분할선 0·테마 전환을 위해 카드를 빼지 않고 감추는 방식은 그대로다.
+- **`MainFrame`의 Context:** 활성 문서가 `SqlEditorPanel`이고 그 편집기에 숨김 표시(클라이언트 속성 `chromite.resultsHidden`)가 없으면 보임. 사용자 선택은 활성 쿼리 창의 클라이언트 속성에 쓴다.
+  표시를 편집기 객체에 두어 편집기를 닫으면 같이 사라진다(따로 지울 목록이 없고, 동시 작업 중인 `SqlEditorPanel`을 고치지 않는다).
+- **적용 시점:** 문서 탭이 바뀔 때(`activeEditorChanged`, 마지막 탭을 닫을 때 포함) `resultsSplit.update()`. 활성 문서가 정하는 값이라 저장하지 않는다.
+- **토글 끄기:** `updateQueryActions`가 Results 토글 `Action`을 쿼리 창이 없으면 끄고 도구 설명을 넣는다(Activity Monitor 단추와 같은 방식). 꺼진 메뉴 항목의 단축키(Ctrl+R)는 동작하지 않는다.
+- **도킹 배치와 충돌 없음:** Results는 도킹 대상이 아니라 배치 파일에 없다. 배치 파일·`<id>.restorePlace`는 그대로다.
+
+### 바뀐 파일
+
+| 파일 | 바뀐 것 |
+|---|---|
+| `ToolWindow` | `SplitHost.Context` 추가, `SplitHost`가 표시 여부를 Context에서 읽음(`update`), `reset`은 크기만, `load`/`save`는 크기만 |
+| `MainFrame` | Results Context(활성 쿼리 창마다 숨김 기억), 문서 탭이 바뀔 때 `update`, 쿼리 창이 없으면 Results 토글 끔, Reset Window Layout이 쿼리 창들의 숨김을 지움, 클래스 Javadoc |
+| `internal/CoreMessages`(`_ko`) | 꺼진 Results 토글의 도구 설명 `main_results_unavailable_tip` 추가 |
+
+지운 코드(규칙 4): 설정 `results.visible`(`PREF_VISIBLE_SUFFIX`, 읽기·쓰기), 쿼리 창이 없을 때 Results / Messages / Execution plan 탭의 자리 표시
+(`resultsPlaceholder`·`messagesPlaceholder`·`planPlaceholder`, `createPlaceholder`, 문구 `main_no_results`·`main_no_messages`·`main_no_plan`). 쿼리 창이 없으면 탭은 내용 없이(`null`) 숨겨진다.
+예전 작업 공간에 남은 `results.visible` 값은 읽지 않는다(지우지는 않음).
+
+### 확인 (2026-11-07)
+
+빌드 `-Pproduct-dbeaver-ce,product-chromite-swing` BUILD SUCCESS. Windows 11, 150%, JBR 25(`-vm ...\server\jvm.dll`), 개인 작업 공간 `D:\Tools\_scratch\results-autohide\ws-ko`, `ws-en`(`-nl en`).
+프로세스 안 EDT 시험 에이전트(OS 입력 없음, 리플렉션으로 상태 읽기)로 조작했다. SQL Server 2022 시험 DB `chr_results_autohide`(Customer, Orders). 캡처는 `D:\Tools\_scratch\results-autohide\shots\`.
+
+| 경우 | 결과 |
+|---|---|
+| 빈 문서 영역 | 카드 숨김, 분할선 0, 빈 화면 높이 = 문서 영역 높이(686). Results 토글·View 메뉴 항목 꺼짐과 도구 설명, Ctrl+R 눌러도 그대로 |
+| 쿼리 창 열고 F5 | 보임(높이 220), 상태 줄은 Results 아래 |
+| 테이블 디자이너, ER 다이어그램, DDL 탭, Activity Monitor | 숨김, 토글 꺼짐, 상태 줄 없음. 쿼리 창으로 돌아오면 보임(같은 높이) |
+| 쿼리 A에서 Ctrl+R → 새 쿼리 B → A → B | A 숨김(상태 줄은 편집기 아래) → B 보임 → A 숨김 → B 보임 |
+| B의 — 단추 → View > Results | 숨김 → 보임 |
+| 숨긴 A에서 F5 / 숨긴 A에서 Ctrl+L | 다시 보임(Results·Messages 탭) / 다시 보임(Execution plan 탭) |
+| 모두 닫기 | 숨김, 빈 화면이 문서 영역을 다 씀 |
+| 높이 기억 | 320으로 바꾸고 디자이너로 갔다가 돌아옴 → 320. 300으로 바꾸고 끝냄 → 다시 시작 뒤 쿼리 창 높이 300(`results.size=300`), `results.visible` 저장 안 함 |
+| Reset Window Layout | 숨긴 쿼리 창이 활성일 때 → 보임, 높이 220. 디자이너가 활성일 때 → 숨김 유지, 쿼리 창으로 가면 보임 |
+| 다시 시작 | 빈 문서 영역에서 숨김으로 시작, 다크 테마 유지 |
+
+- 한국어(OS 기본)와 영어(`-nl en`), 라이트·다크로 캡처했다(`ko-light-*`, `ko-dark-*`, `en-light-*`, `en-dark-*`).
+- 회귀 테스트는 실행하지 않았다(요청 없음). 영향받을 수 있는 기능: Results 숨기기·보이기(Ctrl+R, View 메뉴, — 단추), 실행·실행 계획 뒤 Results 표시, 쿼리 상태 줄 위치,
+  Reset Window Layout, 창을 닫을 때 Results 높이 저장, 테마 전환 뒤 숨겨져 있던 결과 컴포넌트 모양.
 
 ## 변경 이력
 
@@ -1934,3 +1997,5 @@ EDT 에이전트로 단추를 누르고(`doClick`) 결과를 읽었다. 캡처�
 - 2026-11-06 도구 창 도킹: ModernDocking 1.4.9 도입, 분할 창 배치(`stackBelow`, `setDefaultShown`)를 대체, 끌어 옮기기·탭·떠 있는 창·자동 숨기기, 배치 파일 저장,
   기본 배치 Object Explorer 위·Registered Servers 아래, 기본 열 너비 비율(22%·18%). "도구 창 도킹" 절 추가, B단계 배치·설정 절에 표시.
 - 2026-11-06 빈 문서 영역: Welcome 탭을 없애고 문서가 없을 때 문서 영역에 가로 로고(SVG, 테마별)·안내·단축키. "빈 문서 영역" 절 추가.
+- 2026-11-07 Results 자동 숨김(사용자 결정): Results 카드는 활성 문서가 쿼리 창일 때만 보이고, 숨김은 쿼리 창마다 기억, 쿼리 창이 없으면 Ctrl+R·View > Results를 끔.
+  표시 여부 설정 `results.visible`과 Results 자리 표시 삭제. "Results 자동 숨김" 절 추가, B단계 설정 표·C단계 Results 절·도구 창 도킹·빈 문서 영역 절에 표시.
