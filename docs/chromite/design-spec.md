@@ -567,6 +567,7 @@ P0 전체와 P1 일부를 `com.seizia.chromite.ui.swing`에 적용했다. 동작
 | `Chromite.secondaryForeground`, 메뉴 단축키 | `#73767C` | `#73767C` | `text-secondary` |
 | `@selectionBackground` / `@selectionInactiveBackground` | `#D0DFFE` / `#E9EAEE` | `#2A4371` / `#33353B` | `selectionBackground` = `selection-bg-active`, `selection-bg-inactive` |
 | `Chromite.Tree.hoverBackground` | `#00000008` | `#FFFFFF10` | `Tree.hoverBackground` = `selection-bg-hovered` |
+| `Chromite.Tree.storageMemoryForeground` / `storageDiskForeground` / `storageVolatileForeground` | `#B3261E` / `#1A4FB0` / `#8F4F00` | `#FF9999` / `#94B8FF` / `#F0A858` | Chromite 결정: Object Explorer 테이블 저장 방식 글자색, 바탕·선택 바탕에서 4.5:1 이상([altibase.md](altibase.md)) |
 | `@accentColor`, 포커스, 기본 단추 | `#3871E1` | `#3871E1` | `control-brand-border`, `accent-brand-bg` |
 | `Component.borderColor` | `#D1D3D9` | `#40434A` | `control-border` |
 | `Separator.foreground`, `Chromite.dividerColor`, 탭 줄 아래 선, 그리드 세로선 | `#E9EAEE` | `#26282C` | `dialog-border`, `editor-border`, `Table.gridColor` |
@@ -927,3 +928,4 @@ Windows 11, 화면 배율 150%, JBR 25, 작업 공간 사본 `D:\Tools\_smoke\sw
 - 2026-11-06 도구 막대 확장(사용자 결정 "가"): 주 도구 막대(2절)와 쿼리 창 도구 막대(7절)의 목표 구성을 SSMS Standard·SQL Editor 배치로 바꾸고 적용 현황 9·11행, 아이콘 팩 파일 수(61 → 74) 갱신.
 - 2026-11-07 UI 글꼴 Pretendard 13과 기본 밀도 B(사용자 결정): 글꼴 토큰, 치수 토큰(B 값, 처음 값, 촘촘한 모드 C 값과 바꾸는 방법),
   14절 표, 설계 결정, 미룬 결정 갱신. "적용 현황 — Pretendard와 밀도 B" 절(바뀐 파일, 전후 측정) 추가.
+- 2026-11-07 Islands 색 표에 테이블 저장 방식 글자색 토큰(`Chromite.Tree.storage*Foreground`) 추가([altibase.md](altibase.md)).

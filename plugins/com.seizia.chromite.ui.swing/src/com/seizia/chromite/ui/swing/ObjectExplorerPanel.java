@@ -183,6 +183,7 @@ import java.util.function.Consumer;
  * - 2026-11-07 탐색 불가 항목(프로시저·함수 매개 변수, MySQL/MariaDB 시스템 정보 폴더의 변수·상태·엔진 등)을 트리에 보여 줌,
  *   매개 변수 뒤 보조 글자는 형식 (docs/chromite/swing-frontend.md "Object Explorer 탐색 불가 항목")
  * - 2026-11-07 서버 대시보드: Server Dashboard 메뉴(Activity Monitor의 개요 탭) (docs/chromite/swing-dashboard.md)
+ * - 2026-11-07 테이블 저장 방식(메모리/디스크/휘발성) 글자색과 툴팁({@link TableStorageStyle}) (docs/chromite/altibase.md)
  */
 final class ObjectExplorerPanel extends JPanel {
 
@@ -1510,7 +1511,8 @@ final class ObjectExplorerPanel extends JPanel {
      * Icon (icon pack, {@link NodeIcons#getNodeIcon}), name and a secondary text in text.secondary after it: the data
      * type of a column, the number of objects of a read folder, the host of a connection. A connection with a color
      * (custom or connection type, like SWT's navigator) gets it as a pill around its name ({@link ConnectionPill}, the
-     * same as in Registered Servers), also when it is selected or under the mouse.
+     * same as in Registered Servers), also when it is selected or under the mouse. A table whose model knows its storage
+     * kind gets the color and tooltip of {@link TableStorageStyle}.
      */
     private static final class ExplorerCellRenderer extends DefaultTreeCellRenderer {
         @Nullable
@@ -1543,6 +1545,7 @@ final class ObjectExplorerPanel extends JPanel {
                 }
                 setIcon(NodeIcons.getNodeIcon(navigatorNode, expanded));
                 setToolTipText(navigatorNode.getNodeDescription());
+                TableStorageStyle.apply(this, navigatorNode);
                 secondaryText = getSecondaryText(node, navigatorNode);
             } else {
                 // Placeholder text
