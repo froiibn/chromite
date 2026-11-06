@@ -171,6 +171,7 @@ import java.util.function.IntConsumer;
  * - 2026-11-07 밀도 B: 치수를 테마의 Chromite.size.* 키({@link UiSizes})에서 읽음 (docs/chromite/design-spec.md "치수 토큰")
  * - 2026-11-07 서버 대시보드: Tools &gt; Server Dashboard(Activity Monitor의 개요 탭) (docs/chromite/swing-dashboard.md)
  * - 2026-11-07 Tools &gt; Driver Manager… ({@link DriverManagerDialog}) (docs/chromite/swing-driver-manager.md)
+ * - 2026-11-07 Object Explorer·Properties의 기본 위치에 같은 열의 이웃(Registered Servers 위, Query Library 아래)을 둠 (docs/chromite/swing-frontend.md "Query Library 자리")
  */
 final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplorerPanel.QueryWindows, TableDesignerPanel.Host, QueryLibraryPanel.Host {
 
@@ -299,6 +300,7 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
             KeyStroke.getKeyStroke(KeyEvent.VK_F8, 0));
         // Default layout: Object Explorer above Registered Servers in the left column (user decision 2026-11-06)
         toolWindowDocking.addToolWindow(explorerWindow, explorerPanel, true,
+            ToolWindowDocking.Place.next("registeredServers", DockingRegion.NORTH, 0.6), //$NON-NLS-1$
             ToolWindowDocking.Place.edge(DockingRegion.WEST, DEFAULT_LEFT_SHARE));
         registeredServersPanel = new RegisteredServersPanel(new RegisteredServersPanel.Host() {
             @Override
@@ -320,6 +322,7 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
         ToolWindow propertiesWindow = new ToolWindow("properties", CoreMessages.main_properties, //$NON-NLS-1$
             KeyStroke.getKeyStroke(KeyEvent.VK_F4, 0));
         toolWindowDocking.addToolWindow(propertiesWindow, propertiesPanel, true,
+            ToolWindowDocking.Place.next("queryLibrary", DockingRegion.SOUTH, 0.5), //$NON-NLS-1$
             ToolWindowDocking.Place.edge(DockingRegion.EAST, DEFAULT_RIGHT_SHARE));
         // The Results/Messages tabs are their own header; the hide button sits next to the tabs. The results stay in the
         // query window (below the documents), so they are not dockable
