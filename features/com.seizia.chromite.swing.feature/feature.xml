@@ -19,6 +19,8 @@
 
     <!-- Swing UI -->
     <plugin id="com.seizia.chromite.ui.swing" version="0.0.0"/>
+    <!-- Server administration model of the Swing tools: session filters/commands per database, SQL Server and MySQL lock managers -->
+    <plugin id="com.seizia.chromite.model.admin" version="0.0.0"/>
     <!-- SVG rendering of navigator icons (MIT, from the Eclipse release repository) -->
     <plugin id="com.github.weisj.jsvg" version="0.0.0"/>
     <!-- Desktop workspace (DesktopApplicationImpl, DesktopWorkspaceImpl); not part of runtime.feature -->
