@@ -1503,6 +1503,7 @@ Swing 제품에는 그 번들이 없다. 그래서 범용 칸(Login, Password)�
 | `ObjectExplorerPanel` | 트리에 초점이 있을 때 F5 = 새로 고침 |
 | `PropertiesPanel` | SSMS 속성 그리드(분류별·이름순, 분류 접기, 설명 칸) |
 | `SqlCompletionPopup` | 행 24, 오른쪽 형식 글자, 둥근 선택, 지연 설정 접근자 |
+| `ChromiteScrollBarUI`(새 파일), `ChromiteLightLaf`, `ChromiteDarkLaf` | 스크롤바: 보이지 않는 트랙, 막대 7(마우스 올리면 9) |
 | `icons/ui/**/categorized.svg`, `sort-alpha.svg`, `tools/branding/gen_ui_icons.py` | Properties 도구 막대 아이콘 2개 × 2팩 × 2테마(생성기에 추가, 기존 SVG는 바이트 단위로 같음) |
 
 ### 결과 그리드 머리글이 잘려 보이던 것 (근본 원인)
@@ -1565,6 +1566,33 @@ Object Explorer 오른쪽 클릭 메뉴의 Refresh에 F5를 보인다.
 - 행 24(고정 높이라 목록이 제안마다 렌더러 높이를 묻지 않음), 아이콘 16과 이름 사이 6, 오른쪽 형식·테이블 글자 `text.secondary`, 최대 12행, 폭은 내용에 맞추고 280~640.
 - 선택은 테마 목록 선택과 같은 둥근 사각형(arc 8, 좌우 4)이고 글자색을 바꾸지 않는다. 목록은 초점을 갖지 않으므로(편집기가 초점 유지) 초점 있는 선택색을 테마에서 직접 읽는다.
 
+### 스크롤바
+
+`ChromiteScrollBarUI`(FlatLaf `FlatScrollBarUI` 상속, Look and Feel의 `ScrollBarUI`로 등록): 트랙은 스크롤하는 내용의 바탕색으로 칠해 보이지 않고, 막대는 폭 11 안의 둥근 7,
+마우스를 스크롤바에 올리면 9로 넓어진다. 막대 색은 Islands `ScrollBar.thumbColor` `#80808059`, 마우스 올림 `#8080808C`(라이트도 같은 값).
+
+### 확인 (2026-11-06)
+
+- 빌드: `-Pproduct-dbeaver-ce,product-chromite-swing` BUILD SUCCESS. Swing 제품의 `plugins/`에 `swt`·`jface`·`org.eclipse.ui`·`e4.ui` 번들 0개.
+- 실행(작업 공간 사본 `D:\Tools\_smoke\swing-p1`, Windows 11, 150%, in-process JVM), 캡처는 `D:\Tools\_scratch\swing-p1\`:
+  - 그리드 머리글 라이트·다크(`grid-light.png`, `grid-dark-0.png`): `AlbumId` 머리글 전체 보임, 행 번호 5를 눌러도 가로 스크롤 막대가 왼쪽 그대로.
+  - 메뉴(`menu-edit2-0.png`, `menu-tools-0.png`, `menu-window2-0.png`, 팝업은 별도 창으로 캡처), Options(`options-0.png`): 테마 Dark·최대 행 500으로 OK →
+    창이 다크로 바뀌고 설정 파일에 `ui.theme=DARK`, `resultset.maxrows=500`.
+  - 탭(`tab-hover-crop.png`): 마우스를 올린 탭에만 ×와 옅은 알약, 도구 설명에 경로·연결·`SQLite 3.54.1`. 가운데 단추로 두 번째 탭이 닫힘(`tab-middle-crop.png`).
+  - F5: 사본 DB에 다른 프로그램(sqlite3)으로 테이블을 하나 만든 뒤 트리의 테이블 폴더에서 F5 → 다시 읽어 `테이블 14`와 `P1RefreshCheck`가 보임(`f5-expanded-crop.png`), 쿼리는 실행되지 않음.
+  - 쿼리 상태 줄(`grid-dark-0.png`): 체크 아이콘, `Query executed successfully.` │ `chinook-copy.db` │ 시간 │ `39 rows`(SQLite라 사용자·DB 칸은 숨김).
+  - Properties(`props-crop.png`, `props2-crop.png`): 연결 노드의 Driver·Server 분류, Driver 접기, 고른 속성의 설명 칸.
+  - 자동완성(`completion2-0.png`), 찾기·바꾸기(`find-0.png`: `ar.Name` 찾기, 끝에서 처음으로 이어 찾기).
+- 회귀 테스트는 실행하지 않았다(요청 없음). 영향받을 수 있는 기능: 결과 그리드 열 너비·행 번호 클릭, 메뉴 단축키(Ctrl+Z/Y/X/C/V/A가 초점 컴포넌트에서 처리되지 않을 때),
+  편집기 Ctrl+H(이제 바꾸기), Object Explorer F5, 상태 줄 위치(Results 숨김·보임), Properties 키 조작, 자동완성 목록 모양, 모든 스크롤 영역.
+
+### 남긴 것
+
+- 주 상태 표시줄 오른쪽 위젯(Ln/Col, 인코딩, 줄바꿈), 연결별 상태 줄 색(SSMS), 상태 줄의 사용자 spid.
+- 자동완성 맞는 글자 강조(`completion.match`), 팝업 창 둥근 모서리(자동완성은 `JWindow`라 Windows 11 둥근 창이 아님).
+- Properties 열 경계 끌기, 이름순·접힌 분류의 저장(지금은 실행 중에만 기억).
+- Options의 다른 설정(편집기 글꼴 등)은 설정 자체가 아직 없어 넣지 않았다.
+
 ## 변경 이력
 
 - 2026-11-06 최초 작성. Swing 전환 결정, 구조, 재사용 분석, MVP 범위, F5 실행 사양을 정리.
@@ -1599,3 +1627,5 @@ Object Explorer 오른쪽 클릭 메뉴의 Refresh에 F5를 보인다.
   새 연결 Connect = 저장 + 연결). "Connect 대화상자 (SSMS식)" 절 추가, D단계 절에 바뀐 곳 표시.
 - 2026-11-06 Islands 적용: 모양 기준을 DataGrip Islands로 바꿈(캔버스 위 둥근 카드, 카드 사이 6px 틈의 분할선, 알약 모양 문서 탭, Islands 팔레트).
   "Islands 적용" 절 추가.
+- 2026-11-06 P1 디자인 적용: 결과 그리드 머리글(가로 스크롤 원인, 행 번호 클릭 스크롤, 열 너비 여백), 제목 표시줄 40·메뉴 24, Edit·Tools·Window 메뉴(찾기·바꾸기, Options),
+  문서 탭 닫기 단추·가운데 단추·도구 설명, F5 포커스 분기, SSMS 쿼리 상태 줄, SSMS 속성 그리드, 자동완성 목록, 스크롤바. "P1 디자인 적용" 절 추가.
