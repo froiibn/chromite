@@ -1649,6 +1649,83 @@ Windows 11, 화면 배율 150%, JBR 25, 작업 공간 사본 `D:\Tools\_smoke\sw
 - `@set` 같은 클라이언트 명령 색(SWT command), `[이름]`·`"이름"` 구분(지금 `"이름"`은 문자열 색, RSTA 토크나이저 그대로).
 - 편집기 줄 간격 1.2(RSTA에 설정 없음), macOS의 Cascadia Mono·한글 대체 확인.
 
+## 도구 막대 (2026-11-06)
+
+사용자 결정("가")에 따라 주 도구 막대와 쿼리 창 도구 막대를 SSMS 배치로 늘렸다. 메뉴로만 갈 수 있던 기능을 단추로 꺼낸 것이고,
+새 동작은 Save All 하나다. 나머지 단추는 메뉴와 같은 `Action`이라 켜고 끄기·단축키·동작이 메뉴와 같다.
+
+### 구성
+
+| 도구 막대 | 순서 (│ = 구분선) |
+|---|---|
+| 주 도구 막대 (SSMS Standard) | New Query(아이콘 + 글자), New Connection │ Open, Save, **Save All** │ **Undo**, **Redo** │ **Activity Monitor** │ **Registered Servers**, **Object Explorer**, **Query Library**, **Properties** │ **Find** |
+| 쿼리 창 도구 막대 (SSMS SQL Editor) | Execute, Stop │ Estimated Plan, Actual Plan │ 연결 ▾ │ DB/스키마 ▾ │ **Comment**, **Uncomment** │ **Decrease Indent**, **Increase Indent** │ **Format SQL** │ **Query History** |
+
+| 단추 | 쓰는 동작 (다시 쓴 것) | 단축키 |
+|---|---|---|
+| Save All | 새 `MainFrame#saveAll` (File > Save All에도 추가) | Ctrl+Shift+S (SSMS) |
+| Undo / Redo / Find | `EditMenu`의 Undo·Redo·Find… 동작(`getUndoAction` 등으로 내줌) | Ctrl+Z / Ctrl+Y / Ctrl+F |
+| Activity Monitor | Tools > Activity Monitor를 `Action`으로 바꿔 같이 씀(`openActivityMonitor`) | Ctrl+Alt+A (새로 붙임, SSMS) |
+| 도구 창 4개 | `ToolWindow#getToggleAction`(View 메뉴 체크 항목과 같은 동작, `SELECTED_KEY`로 눌린 모양이 따라감) | Ctrl+Alt+G, F8, Ctrl+Alt+T, F4 |
+| Comment ~ Format SQL | `SqlTextArea#runCommand`(Edit > Advanced와 같은 `SqlEditCommands`) | Ctrl+K Ctrl+C, Ctrl+K Ctrl+U, Shift+Tab, Tab, Ctrl+K Ctrl+D |
+| Query History | Query > Query History…와 같은 `MainFrame#openQueryHistory`(`SqlEditorPanel.Host`에 추가) | 없음(메뉴에도 없음) |
+
+도구 설명은 `ToolbarMessages`(영어 + `_ko`)에 있고 끝에 메뉴와 같은 단축키를 적는다. 아이콘은 생성기로 13개를 새로 만들었고(`save-all`, `undo`, `redo`, `activity-monitor`,
+`registered-servers`, `object-explorer`, `properties`, `comment`, `uncomment`, `indent`, `outdent`, `format`, `overflow`), Find·Query Library·Query History는 기존
+`search`·`library`·`history`를 쓴다([design-spec.md](design-spec.md) "아이콘 팩").
+
+### 설계 결정
+
+- **Save All**: 고친 쿼리 창은 Save와 같은 `saveEditor`(파일이 없으면 저장 대화상자, Query Library 쿼리는 확장의 저장), 변경이 있는 테이블 디자이너는 디자이너의 Save
+  (변경 스크립트 미리 보기)로 저장한다. 저장하는 문서를 앞으로 가져오고, 취소하거나 실패하면 거기서 멈추며(끝내기 때의 저장과 같은 규칙), 끝나면 원래 탭으로 돌아온다.
+  결과 표의 저장하지 않은 변경은 문서가 아니라서 넣지 않았다(닫을 때 묻기는 그대로). 고친 문서가 없으면 꺼진다(`titleChanged`, `designerChanged`에서 다시 셈).
+- **Undo / Redo**: Edit 메뉴처럼 키보드 초점이 있는 편집기에 적용한다. 도구 막대 단추는 초점을 가져가지 않으므로 누르기 전의 편집기가 대상이다.
+  단추가 늘 켜져 보이지 않도록 Undo·Redo의 켜고 끄기를 실행 취소 기록(`canUndo`/`canRedo`)에 맞췄다. 초점 편집기의 문서 변경을 듣고 다음 이벤트에서 다시 정한다
+  (실행 취소 관리자는 문서 이벤트 뒤에 기록을 바꾸기 때문). 메뉴 단축키도 같은 상태를 따르지만 편집기가 Ctrl+Z/Ctrl+Y를 직접 받으므로 동작은 같다.
+- **Activity Monitor**: Object Explorer에서 고른 연결, 없으면 활성 쿼리 창의 연결(`getCurrentConnection`). 둘 다 없으면 단추와 Tools 메뉴 항목이 꺼지고
+  도구 설명이 "개체 탐색기에서 연결을 선택하거나…"로 바뀐다. Object Explorer 선택 이벤트(생성자 인자의 선택 리스너)와 활성 문서·연결 변경에서 다시 정한다.
+  Locks 메뉴 항목은 이전처럼 안내 메시지를 띄운다.
+- **넘침(`OverflowToolBar`)**: JToolBar 기본 배치는 넘치는 단추를 오른쪽에서 잘라 누를 수 없었다. 새 배치 관리자가 먼저 줄일 수 있다고 표시한 컴포넌트
+  (쿼리 창의 연결·DB 콤보, 최소 100·100)를 기본 폭과의 차이에 비례해 줄이고, 그래도 넘치는 뒤쪽 단추는 크기 0으로 두고 오른쪽 끝 » 단추의 메뉴로 보인다(아이콘·이름,
+  켜고 끄는 단추는 체크 항목, 꺼진 단추는 꺼진 항목). 넘친 자리 바로 앞의 구분선은 그리지 않는다. 배치 중에 보임 상태를 바꾸면 배치가 반복될 수 있어 크기 0으로 숨긴다.
+  주 도구 막대는 1280px·150%(논리 폭 853)에서도 다 들어가므로 넘침은 그보다 좁을 때만 생긴다. 글자는 New Query만 보인다(SSMS).
+- **높이**: 쿼리 창 도구 막대는 `size.toolbar.editor` 36(콤보 28 + 위아래 4), 주 도구 막대는 `size.toolbar.main` 36 그대로다. 새 배치 관리자도 높이는 가장 큰 컴포넌트로 정한다.
+- **Increase Indent**: 기존 Edit > Advanced와 같이 RSyntaxTextArea의 Tab 동작이라, 선택이 없으면 커서 자리에 탭을 넣는다(여러 줄 선택은 줄마다 들여씀). 메뉴와 같게 두었다.
+
+### 바뀐 파일
+
+| 파일 | 바뀐 것 |
+|---|---|
+| `OverflowToolBar`(새 파일) | 줄일 수 있는 콤보와 넘침 메뉴가 있는 가로 도구 막대 |
+| `internal/ToolbarMessages`(새 파일) + `.properties`, `_ko.properties` | 도구 설명, Save All, 편집 명령 이름, 넘침 단추 |
+| `MainFrame` | 주 도구 막대 구성, Save All(메뉴·단축키), Activity Monitor 동작·켜고 끄기, Query History 진입점(`openQueryHistory`) |
+| `EditMenu` | Undo·Redo·Find 동작을 내줌, Undo·Redo를 실행 취소 기록에 맞춰 켜고 끔 |
+| `SqlEditorPanel` | 쿼리 창 도구 막대 단추, `Host#openQueryHistory`, 콤보 최소 폭 |
+| `tools/branding/gen_ui_icons.py`, `icons/ui/**` | 아이콘 13개 × 2팩 × 2테마 |
+| `ChromiteDarkLaf.properties` | `ToggleButton.toolbar.selectedBackground = #ffffff29`(눌린 단추와 같은 값). FlatLaf 기본값 `#2A2C2F`는 캔버스 `#26282C`·패널 `#2B2D30`과 거의 같아 눌린 도구 창 단추(기존 Properties의 범주별·Actual Plan도)가 안 보였다 |
+
+### 확인 (2026-11-06)
+
+Windows 11, 150%, JBR 25(`-vm D:\Tools\jbrsdk-25\bin\server\jvm.dll`), 개인 작업 공간 `D:\Tools\_scratch\toolbars\ws`, SQL Server 2022 테스트 DB `chr_toolbars`.
+EDT 에이전트로 단추를 누르고(`doClick`) 결과를 읽었다. 캡처는 창만(`shot.ps1`) `D:\Tools\_scratch\toolbars\`.
+
+- 처음(연결 없음): Activity Monitor 꺼짐, 도구 설명 = 이유. Save·Save All·Undo·Redo·Find 꺼짐. 보이는 도구 창 3개의 단추가 눌린 모양.
+- Activity Monitor: Object Explorer에서 `TB MSSQL`을 고른 뒤 켜지고, 누르면 "작업 모니터 - TB MSSQL" 탭(프로세스·잠금)이 열림. Ctrl+Alt+A는 열린 탭을 앞으로.
+- Save All: 새 쿼리 창 2개에 글을 넣고 누르면 저장 대화상자가 차례로 2번 → `q1.sql`, `q2.sql`이 디스크에 생기고 탭 제목의 `*`가 없어지며 Save All이 꺼짐.
+  두 파일을 다시 고치고 누르면 대화상자 없이 둘 다 저장(파일 내용 확인). 원래 선택한 탭으로 돌아옴. Ctrl+Shift+S도 저장.
+- Undo/Redo: 편집기에 `\nWHERE id = 1`을 넣고 Undo → 글이 없어짐, Redo → 다시 생김.
+- Comment/Uncomment: 두 줄 선택 → `--SELECT…`/`--WHERE…` → 원래대로. Increase/Decrease Indent: 두 줄 앞에 탭 → 원래대로. Format SQL(선택 없음): 문서 전체가
+  `SELECT\n    *\nFROM\n    dbo.items\nWHERE\n    id = 1`로 바뀜.
+- Query History: "쿼리 기록" 창이 열림. Find: "찾기" 창이 열림.
+- 도구 창 단추 4개: 누를 때마다 Object Explorer·Registered Servers·Query Library·Properties가 숨었다 나타나고, 단추의 눌린 모양이 따라감.
+- 넘침(캡처 `{ko,en}-{light,dark}-{1920,1280}*.png`, `ko-light-main-overflow-*.png`): 1920px(논리 1280)에서 주 도구 막대는 460(영어 487)만 써서 넘침 없음.
+  1280px(논리 853)에서도 주 도구 막대는 839 안에 다 들어감(잘림 없음). 600px까지 좁히면 뒤쪽 4개(개체 탐색기·쿼리 라이브러리·속성·찾기)가 » 메뉴로 감.
+  쿼리 창 도구 막대(기본 배치: Registered Servers·Object Explorer와 Properties가 열린 상태): 1920px에서 642 폭이라 콤보가 최소(100·100)로 줄고, 한국어는 모두 보이며
+  영어는 글자가 길어 Format SQL·Query History가 » 메뉴로 감. 1280px에서는 215 폭이라 Execute·Stop·Estimated Plan 뒤가 모두 » 메뉴(Actual Plan ~ Query History)로 가고,
+  연결·DB 콤보는 메뉴에 넣을 수 없어 보이지 않는다(도구 창을 닫으면 다시 보임).
+- 다크 테마에서 눌린 도구 창 단추 바탕이 `#494B4E`로 보임(바꾸기 전 `#2A2C2F`, 캔버스 `#26282C`).
+- 회귀 테스트는 실행하지 않았다(요청 없음). 영향받을 수 있는 기능: Edit 메뉴 Undo/Redo의 켜고 끄기, Tools > Activity Monitor, File 메뉴, 쿼리 창 도구 막대 배치.
+
 ## 변경 이력
 
 - 2026-11-06 최초 작성. Swing 전환 결정, 구조, 재사용 분석, MVP 범위, F5 실행 사양을 정리.
@@ -1713,3 +1790,4 @@ Windows 11, 화면 배율 150%, JBR 25, 작업 공간 사본 `D:\Tools\_smoke\sw
 - 2026-11-06 백업·복원: Object Explorer의 데이터베이스 Tasks ▸ Back Up… / Restore…(SQL Server T-SQL, PostgreSQL·MySQL 로컬 클라이언트 도구). [swing-backup-restore.md](swing-backup-restore.md).
 - 2026-11-06 테이블 복사: Object Explorer Tasks > Copy Tables…, Export Data…의 "Database" 대상(다른 연결·DB로 테이블 복사, 매핑·대상 DDL 미리 보기). [swing-data-transfer.md](swing-data-transfer.md) "테이블 복사".
 - 2026-11-06 보안 편집기: 로그인·사용자·역할 속성과 새로 만들기·삭제, 테이블·뷰·루틴의 사용 권한(SQL Server, PostgreSQL, MySQL/MariaDB). [swing-security.md](swing-security.md).
+- 2026-11-06 도구 막대 확장(사용자 결정 "가"): 주 도구 막대를 SSMS Standard 배치로(Save All, Undo/Redo, Activity Monitor, 도구 창 켜고 끄기, Find), 쿼리 창 도구 막대에 Comment·Uncomment·들여쓰기·Format SQL·Query History, 좁은 창의 넘침 메뉴. "도구 막대" 절 추가.

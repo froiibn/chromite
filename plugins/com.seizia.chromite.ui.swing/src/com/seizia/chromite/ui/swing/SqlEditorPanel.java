@@ -23,6 +23,7 @@ import com.seizia.chromite.model.sql.exec.SQLQueryExecuteHandler;
 import com.seizia.chromite.model.sql.exec.SQLQueryExecuteJob;
 import com.seizia.chromite.model.sql.exec.SQLScriptBatches;
 import com.seizia.chromite.ui.swing.internal.EditorMessages;
+import com.seizia.chromite.ui.swing.internal.ToolbarMessages;
 import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.Status;
 import org.eclipse.core.runtime.jobs.IJobChangeEvent;
@@ -149,7 +150,8 @@ import java.util.concurrent.atomic.AtomicLong;
  *     <li>매개변수: {@code :name}, {@code ${var}}에 값이 없으면 엔진이 {@link SqlParameterDialog}로 묻는다.</li>
  *     <li>편집 명령: SQL 서식(Ctrl+K Ctrl+D, Ctrl+Shift+F), 대문자·소문자(Ctrl+Shift+U/L), 주석 넣기·빼기(Ctrl+K Ctrl+C / Ctrl+K Ctrl+U),
  *     들여쓰기({@link SqlEditCommands}), 템플릿(이름 + Tab, Ctrl+K Ctrl+X 목록, {@link SqlTemplates})은 편집 영역({@link SqlTextArea})이 직접 키를 받는다.
- *     Ctrl+K로 시작하는 두 번 누르는 키는 편집 영역의 키 리스너가 두 번째 키를 받아 처리한다(키 바인딩보다 먼저 불려 Ctrl+C 복사 등을 막는다).</li>
+ *     Ctrl+K로 시작하는 두 번 누르는 키는 편집 영역의 키 리스너가 두 번째 키를 받아 처리한다(키 바인딩보다 먼저 불려 Ctrl+C 복사 등을 막는다).
+ *     도구 막대의 주석·들여쓰기·서식 단추도 같은 명령({@link SqlTextArea#runCommand})을 부른다.</li>
  * </ul>
  *
  * 변경 이력:
@@ -180,6 +182,8 @@ import java.util.concurrent.atomic.AtomicLong;
  * - 2026-11-06 화면 문구를 EditorMessages로 옮김(OS 언어를 따름)
  * - 2026-11-06 실행이 끝날 때 부르는 연결 지점({@link #setExecutionFinishedListener}, Modify 창이 Object Explorer 노드를 다시 읽음)
  *   (docs/chromite/swing-source-editor.md)
+ * - 2026-11-06 도구 막대에 SSMS SQL Editor 단추 추가(Comment, Uncomment, Decrease/Increase Indent, Format SQL, Query History),
+ *   좁은 창에서는 콤보를 줄이고 넘치는 단추를 넘침 메뉴로 ({@link OverflowToolBar}) (docs/chromite/swing-frontend.md "도구 막대")
  */
 final class SqlEditorPanel extends JPanel {
 
@@ -210,6 +214,11 @@ final class SqlEditorPanel extends JPanel {
          * Brings the Execution plan tab of the editor to the front.
          */
         void showPlan(@NotNull SqlEditorPanel editor);
+
+        /**
+         * Query &gt; Query History (the tool bar's Query History button).
+         */
+        void openQueryHistory();
     }
 
     private static final String NOT_AVAILABLE = "< N/A >"; //$NON-NLS-1$
@@ -628,12 +637,14 @@ final class SqlEditorPanel extends JPanel {
     }
 
     /**
-     * SSMS query tool bar in DataGrip style: [▶ Execute] (green icon and text) [■] (icon only) | [connection ▾] [database/schema ▾].
+     * SSMS query tool bar in DataGrip style: [▶ Execute] (green icon and text) [■] (icon only) | [plans] | [connection ▾] |
+     * [database/schema ▾] | [Comment] [Uncomment] | [Decrease Indent] [Increase Indent] | [Format SQL] | [Query History].
+     * The editing buttons run the Edit &gt; Advanced commands on this window's text; in a narrow window the combos get
+     * narrower first, then the last buttons go into the overflow menu ({@link OverflowToolBar}).
      */
     @NotNull
     private JComponent createToolBar() {
-        JToolBar toolBar = new JToolBar();
-        toolBar.setFloatable(false);
+        JToolBar toolBar = new OverflowToolBar();
         toolBar.add(UiIcons.createToolButton(executeAction, "run")); //$NON-NLS-1$
         toolBar.add(UiIcons.createActionButton(cancelAction, "stop")); //$NON-NLS-1$
         toolBar.addSeparator();
@@ -680,9 +691,45 @@ final class SqlEditorPanel extends JPanel {
             }
         });
         toolBar.add(schemaCombo);
+        // At 1920px and 150% with Object Explorer and Properties open the query window is about 640 wide: the combos give way first
+        OverflowToolBar.setShrinkable(connectionCombo, 100);
+        OverflowToolBar.setShrinkable(schemaCombo, 100);
+        toolBar.addSeparator();
+        toolBar.add(createCommandButton(ToolbarMessages.toolbar_comment, ToolbarMessages.toolbar_comment_tip, "comment", SqlTextArea.Command.COMMENT)); //$NON-NLS-1$
+        toolBar.add(createCommandButton(ToolbarMessages.toolbar_uncomment, ToolbarMessages.toolbar_uncomment_tip, "uncomment", SqlTextArea.Command.UNCOMMENT)); //$NON-NLS-1$
+        toolBar.addSeparator();
+        toolBar.add(createCommandButton(ToolbarMessages.toolbar_outdent, ToolbarMessages.toolbar_outdent_tip, "outdent", SqlTextArea.Command.OUTDENT)); //$NON-NLS-1$
+        toolBar.add(createCommandButton(ToolbarMessages.toolbar_indent, ToolbarMessages.toolbar_indent_tip, "indent", SqlTextArea.Command.INDENT)); //$NON-NLS-1$
+        toolBar.addSeparator();
+        toolBar.add(createCommandButton(ToolbarMessages.toolbar_format, ToolbarMessages.toolbar_format_tip, "format", SqlTextArea.Command.FORMAT)); //$NON-NLS-1$
+        toolBar.addSeparator();
+        Action historyAction = new AbstractAction(ToolbarMessages.toolbar_query_history) {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                host.openQueryHistory();
+            }
+        };
+        historyAction.putValue(Action.SHORT_DESCRIPTION, ToolbarMessages.toolbar_query_history_tip);
+        toolBar.add(UiIcons.createActionButton(historyAction, "history")); //$NON-NLS-1$
         // size.toolbar.editor 36 with size.control 28 combos
         toolBar.setBorder(BorderFactory.createEmptyBorder(UIScale.scale(4), UIScale.scale(8), UIScale.scale(4), UIScale.scale(8)));
         return toolBar;
+    }
+
+    /**
+     * Icon button of an editing command: the same command as Edit &gt; Advanced (the text area keeps the focus).
+     */
+    @NotNull
+    private JButton createCommandButton(@NotNull String name, @NotNull String toolTip, @NotNull String iconId, @NotNull SqlTextArea.Command command) {
+        Action action = new AbstractAction(name) {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                textArea.requestFocusInWindow();
+                textArea.runCommand(command);
+            }
+        };
+        action.putValue(Action.SHORT_DESCRIPTION, toolTip);
+        return UiIcons.createActionButton(action, iconId);
     }
 
     private static void setFixedWidth(@NotNull JComponent component, int width) {

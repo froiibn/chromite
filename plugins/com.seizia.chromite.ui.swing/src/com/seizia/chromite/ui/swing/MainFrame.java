@@ -20,6 +20,7 @@ import com.formdev.flatlaf.FlatClientProperties;
 import com.formdev.flatlaf.ui.FlatTabbedPaneUI;
 import com.formdev.flatlaf.util.UIScale;
 import com.seizia.chromite.ui.swing.internal.CoreMessages;
+import com.seizia.chromite.ui.swing.internal.ToolbarMessages;
 import org.eclipse.osgi.util.NLS;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
@@ -108,6 +109,11 @@ import java.util.function.IntConsumer;
  *     Find Objects({@link ObjectSearchPanel}). Tools 메뉴와 Object Explorer 오른쪽 클릭 메뉴에서 연다. 탭을 닫거나 창을 닫으면 정리한다(타이머, 서버 연결).</li>
  *     <li>테이블 디자이너 탭({@link TableDesignerPanel}): Object Explorer의 Design·New Table…. 같은 테이블은 열린 탭을 보여 준다.
  *     Ctrl+S는 디자이너의 Save(스크립트 미리 보기 후 적용), 닫을 때·끝낼 때 저장하지 않은 변경을 디자이너마다 묻는다.</li>
+ *     <li>주 도구 막대는 SSMS Standard 도구 막대 순서다: New Query(아이콘 + 글자), New Connection │ Open, Save, Save All │ Undo, Redo │
+ *     Activity Monitor │ Registered Servers, Object Explorer, Query Library, Properties(도구 창 켜고 끄기, 보이면 눌린 모양) │ Find.
+ *     단추는 메뉴와 같은 동작({@link Action})을 써서 켜고 끄기와 단축키가 메뉴와 같다. 좁은 창에서는 넘치는 단추가 넘침 메뉴로 간다({@link OverflowToolBar}).
+ *     Save All(Ctrl+Shift+S)은 고친 쿼리 창을 Save와 같은 방법으로, 변경이 있는 테이블 디자이너를 디자이너의 Save로 저장한다.
+ *     Activity Monitor(Ctrl+Alt+A)는 Object Explorer에서 고른 연결(없으면 활성 쿼리 창의 연결)에 열고, 둘 다 없으면 꺼지며 도구 설명이 이유를 알린다.</li>
  * </ul>
  * 창을 닫으면 dispose되고, {@link ChromiteSwingApplication}이 windowClosed 이벤트로 앱을 종료한다.
  * 창 아이콘은 Java 런타임(JBR) 기본 아이콘 대신 Chromite 아이콘을 쓴다({@link ChromiteIcons}).
@@ -144,6 +150,8 @@ import java.util.function.IntConsumer;
  * - 2026-11-06 화면 문구를 CoreMessages로 옮김(OS 언어를 따름)
  * - 2026-11-06 ER 다이어그램: Object Explorer View Diagram의 도구 문서 탭({@link ErdDiagramPanel}) (docs/chromite/swing-erd.md)
  * - 2026-11-06 개체 정의 편집: Modify·New View 등의 스크립트 창(실행 뒤 Object Explorer 노드를 다시 읽음) (docs/chromite/swing-source-editor.md)
+ * - 2026-11-06 주 도구 막대를 SSMS Standard 배치로 확장(Save All, Undo/Redo, Activity Monitor, 도구 창 켜고 끄기, Find, 넘침 메뉴),
+ *   File &gt; Save All, Activity Monitor 단축키 Ctrl+Alt+A, 쿼리 창 도구 막대의 Query History (docs/chromite/swing-frontend.md "도구 막대")
  */
 final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplorerPanel.QueryWindows, TableDesignerPanel.Host, QueryLibraryPanel.Host {
 
@@ -187,6 +195,8 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
     private final Action openFileAction;
     private final Action saveAction;
     private final Action saveAsAction;
+    private final Action saveAllAction;
+    private final Action activityMonitorAction;
     private final Action executeQueryAction;
     private final Action cancelQueryAction;
     private final Action completeAction;
@@ -213,7 +223,11 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
         setDefaultCloseOperation(WindowConstants.DO_NOTHING_ON_CLOSE);
 
         PropertiesPanel propertiesPanel = new PropertiesPanel();
-        explorerPanel = new ObjectExplorerPanel(propertiesPanel::showNode, this);
+        explorerPanel = new ObjectExplorerPanel(node -> {
+            propertiesPanel.showNode(node);
+            // Activity Monitor opens for the selected connection
+            updateActivityMonitorAction();
+        }, this);
         resultsPlaceholder = createPlaceholder(CoreMessages.main_no_results);
         messagesPlaceholder = createPlaceholder(CoreMessages.main_no_messages);
         planPlaceholder = createPlaceholder(CoreMessages.main_no_plan);
@@ -311,6 +325,11 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
                 saveEditor(editor, true);
             }
         });
+        saveAllAction = createAction(ToolbarMessages.toolbar_save_all, ToolbarMessages.toolbar_save_all_tip,
+            KeyStroke.getKeyStroke(KeyEvent.VK_S, InputEvent.CTRL_DOWN_MASK | InputEvent.SHIFT_DOWN_MASK), this::saveAll);
+        activityMonitorAction = createAction(CoreMessages.main_activity_monitor, ToolbarMessages.toolbar_activity_monitor_tip,
+            KeyStroke.getKeyStroke(KeyEvent.VK_A, InputEvent.CTRL_DOWN_MASK | InputEvent.ALT_DOWN_MASK),
+            () -> openActivityMonitor(ActivityMonitorPanel.PROCESSES_TAB));
         executeQueryAction = createAction(CoreMessages.main_execute, CoreMessages.main_execute_tip,
             KeyStroke.getKeyStroke(KeyEvent.VK_F5, 0), () -> {
                 SqlEditorPanel editor = getActiveEditor();
@@ -362,7 +381,7 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
         setJMenuBar(createMenuBar());
 
         JPanel content = new CanvasPanel(new BorderLayout());
-        content.add(createToolBar(), BorderLayout.NORTH);
+        content.add(createToolBar(registeredServersWindow, explorerWindow, libraryWindow, propertiesWindow), BorderLayout.NORTH);
         // Islands: the canvas shows as a gap (Chromite.island.gap) left and right of the outer cards
         JPanel islands = new CanvasPanel(new BorderLayout()) {
             @Override
@@ -481,22 +500,66 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
     }
 
     /**
-     * SSMS standard tool bar: [New Connection] [New Query (icon and text)] | [Open File] [Save]; the other buttons
-     * are icons with tool tips (size.toolbar.main 36 = 26px buttons + 5px above and below).
+     * SSMS standard tool bar: [New Query (icon and text)] [New Connection] | [Open File] [Save] [Save All] | [Undo] [Redo] |
+     * [Activity Monitor] | [Registered Servers] [Object Explorer] [Query Library] [Properties] | [Find]; the other buttons
+     * are icons with tool tips that name the menu shortcut (size.toolbar.main 36 = 26px buttons + 5px above and below).
      */
     @NotNull
-    private JComponent createToolBar() {
-        JToolBar toolBar = new JToolBar();
-        toolBar.setFloatable(false);
+    private JComponent createToolBar(
+        @NotNull ToolWindow registeredServersWindow,
+        @NotNull ToolWindow explorerWindow,
+        @NotNull ToolWindow libraryWindow,
+        @NotNull ToolWindow propertiesWindow
+    ) {
+        JToolBar toolBar = new OverflowToolBar();
         // On the Islands canvas (MainToolbar.background = main-window-bg)
         toolBar.setOpaque(false);
         toolBar.setBorder(BorderFactory.createEmptyBorder(UIScale.scale(5), UIScale.scale(8), UIScale.scale(5), UIScale.scale(8)));
-        toolBar.add(UiIcons.createActionButton(explorerPanel.getNewConnectionAction(), "new-connection")); //$NON-NLS-1$
         toolBar.add(UiIcons.createToolButton(newQueryAction, "new-query")); //$NON-NLS-1$
+        toolBar.add(UiIcons.createActionButton(explorerPanel.getNewConnectionAction(), "new-connection")); //$NON-NLS-1$
         toolBar.addSeparator();
         toolBar.add(UiIcons.createActionButton(openFileAction, "open")); //$NON-NLS-1$
         toolBar.add(UiIcons.createActionButton(saveAction, "save")); //$NON-NLS-1$
+        toolBar.add(UiIcons.createActionButton(saveAllAction, "save-all")); //$NON-NLS-1$
+        toolBar.addSeparator();
+        // Edit menu actions: they act on the focused component, which keeps the focus (tool bar buttons don't take it)
+        toolBar.add(createIconButton(editMenu.getUndoAction(), "undo", ToolbarMessages.toolbar_undo_tip)); //$NON-NLS-1$
+        toolBar.add(createIconButton(editMenu.getRedoAction(), "redo", ToolbarMessages.toolbar_redo_tip)); //$NON-NLS-1$
+        toolBar.addSeparator();
+        toolBar.add(UiIcons.createActionButton(activityMonitorAction, "activity-monitor")); //$NON-NLS-1$
+        toolBar.addSeparator();
+        toolBar.add(createToolWindowButton(registeredServersWindow, "registered-servers", ToolbarMessages.toolbar_registered_servers_tip)); //$NON-NLS-1$
+        toolBar.add(createToolWindowButton(explorerWindow, "object-explorer", ToolbarMessages.toolbar_object_explorer_tip)); //$NON-NLS-1$
+        toolBar.add(createToolWindowButton(libraryWindow, "library", ToolbarMessages.toolbar_query_library_tip)); //$NON-NLS-1$
+        toolBar.add(createToolWindowButton(propertiesWindow, "properties", ToolbarMessages.toolbar_properties_tip)); //$NON-NLS-1$
+        toolBar.addSeparator();
+        toolBar.add(createIconButton(editMenu.getFindAction(), "search", ToolbarMessages.toolbar_find_tip)); //$NON-NLS-1$
         return toolBar;
+    }
+
+    /**
+     * Icon button for an action without a tool tip of its own (the Edit menu actions); the tool tip names the shortcut.
+     */
+    @NotNull
+    private static JButton createIconButton(@NotNull Action action, @NotNull String iconId, @NotNull String toolTip) {
+        JButton button = UiIcons.createActionButton(action, iconId);
+        button.setToolTipText(toolTip);
+        return button;
+    }
+
+    /**
+     * Toggle button of a tool window: pressed while the window is shown, like its View menu item (same action).
+     */
+    @NotNull
+    private static JToggleButton createToolWindowButton(@NotNull ToolWindow toolWindow, @NotNull String iconId, @NotNull String toolTip) {
+        JToggleButton button = new JToggleButton(toolWindow.getToggleAction());
+        button.setHideActionText(true);
+        button.setIcon(UiIcons.get(iconId));
+        button.setToolTipText(toolTip);
+        button.putClientProperty(FlatClientProperties.BUTTON_TYPE, FlatClientProperties.BUTTON_TYPE_TOOLBAR_BUTTON);
+        button.putClientProperty(FlatClientProperties.STYLE, "arc: 6"); //$NON-NLS-1$
+        button.setFocusable(false);
+        return button;
     }
 
     //////////////////////////////////////////////////////////
@@ -599,7 +662,7 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
     }
 
     /**
-     * Tools menu: the Activity Monitor of the connection selected in Object Explorer (or of the active editor).
+     * Tools menu and the tool bar: the Activity Monitor of the connection selected in Object Explorer (or of the active editor).
      */
     private void openActivityMonitor(int tab) {
         DBPDataSourceContainer dataSource = explorerPanel.getSelectedDataSource();
@@ -649,6 +712,8 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
             documentTabs.setTitleAt(index, designer.getTitle());
             documentTabs.setToolTipTextAt(index, designer.getToolTip());
         }
+        // Modified or saved: Save All
+        saveAllAction.setEnabled(hasModifiedDocuments());
     }
 
     /**
@@ -807,6 +872,43 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
         lastDirectory = file.getParent();
         RecentFiles.add(file);
         return true;
+    }
+
+    /**
+     * File &gt; Save All and the tool bar: every modified query window is saved like Save (a query that was never saved
+     * asks for its file), every table designer with changes with its own Save (change script preview). Each document is
+     * brought to the front while it is saved; the first one that is not saved (canceled or failed) stops the others.
+     */
+    private void saveAll() {
+        Component selected = documentTabs.getSelectedComponent();
+        for (int i = 0; i < documentTabs.getTabCount(); i++) {
+            Component component = documentTabs.getComponentAt(i);
+            if (component instanceof SqlEditorPanel editor && editor.isDirty()) {
+                documentTabs.setSelectedComponent(editor);
+                if (!saveEditor(editor, false)) {
+                    return;
+                }
+            } else if (component instanceof TableDesignerPanel designer && designer.isDirty()) {
+                documentTabs.setSelectedComponent(designer);
+                if (!designer.save()) {
+                    return;
+                }
+            }
+        }
+        if (selected != null && documentTabs.indexOfComponent(selected) >= 0) {
+            documentTabs.setSelectedComponent(selected);
+        }
+    }
+
+    private boolean hasModifiedDocuments() {
+        for (int i = 0; i < documentTabs.getTabCount(); i++) {
+            Component component = documentTabs.getComponentAt(i);
+            if (component instanceof SqlEditorPanel editor && editor.isDirty()
+                || component instanceof TableDesignerPanel designer && designer.isDirty()) {
+                return true;
+            }
+        }
+        return false;
     }
 
     @NotNull
@@ -1096,7 +1198,24 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
         actualPlanItem.setSelected(editor != null && editor.isIncludeActualPlan());
         saveAction.setEnabled(editor != null || documentTabs.getSelectedComponent() instanceof TableDesignerPanel);
         saveAsAction.setEnabled(editor != null);
+        saveAllAction.setEnabled(hasModifiedDocuments());
+        updateActivityMonitorAction();
         editMenu.activeDocumentChanged();
+    }
+
+    /**
+     * Activity Monitor needs a connection: the one selected in Object Explorer, or the active query window's. Without one
+     * it is disabled and its tool tip says what to do.
+     */
+    private void updateActivityMonitorAction() {
+        // The Object Explorer selection listener may run while the window is being built
+        if (activityMonitorAction == null) {
+            return;
+        }
+        boolean enabled = getCurrentConnection() != null;
+        activityMonitorAction.setEnabled(enabled);
+        activityMonitorAction.putValue(Action.SHORT_DESCRIPTION,
+            enabled ? ToolbarMessages.toolbar_activity_monitor_tip : ToolbarMessages.toolbar_activity_monitor_disabled_tip);
     }
 
     @Override
@@ -1147,6 +1266,14 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
             documentTabs.setToolTipTextAt(index, editor.getToolTip());
             documentTabs.setIconAt(index, editor.getTabIcon());
         }
+        // Modified or saved (Save All), or another connection (Activity Monitor)
+        saveAllAction.setEnabled(hasModifiedDocuments());
+        updateActivityMonitorAction();
+    }
+
+    @Override
+    public void openQueryHistory() {
+        QueryHistoryDialog.open(this, this::openHistoryQuery);
     }
 
     @NotNull
@@ -1220,6 +1347,7 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
         fileMenu.addSeparator();
         fileMenu.add(new JMenuItem(saveAction));
         fileMenu.add(new JMenuItem(saveAsAction));
+        fileMenu.add(new JMenuItem(saveAllAction));
         fileMenu.addSeparator();
         fileMenu.add(exitItem);
         onMenuSelected(fileMenu, () -> fillRecentFilesMenu(recentMenu));
@@ -1241,7 +1369,7 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
         queryMenu.addSeparator();
         JMenuItem historyItem = new JMenuItem(CoreMessages.main_query_history, UiIcons.get("history")); //$NON-NLS-1$
         historyItem.setToolTipText(CoreMessages.main_query_history_tip);
-        historyItem.addActionListener(e -> QueryHistoryDialog.open(this, this::openHistoryQuery));
+        historyItem.addActionListener(e -> openQueryHistory());
         queryMenu.add(historyItem);
         queryMenu.add(new JMenuItem(queryLibraryPanel.getSaveToLibraryAction()));
         // Tools > Options changes the same setting
@@ -1266,9 +1394,8 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
         JMenuItem optionsItem = new JMenuItem(CoreMessages.main_options);
         optionsItem.setMnemonic(KeyEvent.VK_O);
         optionsItem.addActionListener(e -> OptionsDialog.open(this));
-        JMenuItem activityMonitorItem = new JMenuItem(CoreMessages.main_activity_monitor);
+        JMenuItem activityMonitorItem = new JMenuItem(activityMonitorAction);
         activityMonitorItem.setMnemonic(KeyEvent.VK_A);
-        activityMonitorItem.addActionListener(e -> openActivityMonitor(ActivityMonitorPanel.PROCESSES_TAB));
         JMenuItem locksItem = new JMenuItem(CoreMessages.main_locks);
         locksItem.setMnemonic(KeyEvent.VK_L);
         locksItem.addActionListener(e -> openActivityMonitor(ActivityMonitorPanel.LOCKS_TAB));
