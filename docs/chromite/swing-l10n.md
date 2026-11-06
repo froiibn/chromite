@@ -193,10 +193,26 @@ Swing 제품을 개인 작업 공간으로 실행해 SQL Server, PostgreSQL, Mar
   (`DriverSelectionPanel`). 별도 작업으로 남긴다.
 - 의도적으로 영어로 둔 값: `ID`, `URL`, `PID`, `TID`, `SSL`, `#` 같은 기술 토큰, 제품 이름이 들어간 드라이버 설명.
 
-### 미해결 질문: SQL Server "Procedures" 폴더
+### SQL Server 폴더 이름: "저장 프로시저", "제약 조건"
 
-SQL Server 개체 탐색기의 `Procedures` 폴더(`ext.mssql` `tree.procedures.node.name`)는 지금 "프로시저"다(용어집 Procedure → 프로시저).
-한국어 SSMS의 폴더 이름은 "저장 프로시저"다. 사용자가 아직 정하지 않아 "프로시저"로 두었다. 바꾸려면 이 키 한 줄만 고치면 된다.
+사용자 결정(2026-11-06): SQL Server 개체 탐색기의 폴더 이름은 한국어 SSMS와 같게 한다. **이름만** 맞추고 트리 구조는 바꾸지 않는다
+(SSMS의 Programmability 폴더 같은 묶음은 만들지 않고, DBeaver 모델의 폴더 구성을 그대로 쓴다).
+`ext.mssql`의 `OSGI-INF/l10n/bundle_ko.properties`에서 고친 키는 다음과 같다.
+
+| 키 | 이전 | 지금 |
+|---|---|---|
+| `tree.procedures.node.name`(폴더) | 프로시저 | 저장 프로시저 |
+| `tree.procedure.node.name`(개체) | 프로시저 | 저장 프로시저 |
+| `tree.procedure_columns.node.name` | 프로시저 매개 변수 | 저장 프로시저 매개 변수 |
+| `tree.check_constraints.node.name`(테이블 아래 폴더) | CHECK 제약 조건 | 제약 조건 |
+
+- 개체 하나를 가리키는 `tree.check_constraint.node.name`은 "CHECK 제약 조건"으로 둔다. 그 제약 조건의 종류를 나타내는 이름이기 때문이다.
+- 용어집의 Procedure → 프로시저는 그대로다. 다른 데이터베이스(PostgreSQL, Oracle, MySQL, generic 등)의 번들은 "프로시저"를 쓴다.
+- `ext.mssql`의 다른 `_ko` 문구(속성 이름·설명, `SQLServerMessages_ko.properties`)에는 저장 프로시저를 개체 종류로 부르는 "프로시저"가 없었다.
+  폴더 설명 `description="Procedures"`는 `plugin.xml`에 영어로 박혀 있어(`%키` 아님) 번역 대상이 아니다.
+- 주의: 이 폴더에는 모델이 함수도 함께 담는다(`SQLServerSchema.ProcedureCache`가 `type IN ('P','PC','X','TF','FN','IF')`를 읽음).
+  구조는 바꾸지 않기로 했으므로 함수도 "저장 프로시저" 폴더 아래에 보인다.
+- SSMS에도 데이터베이스마다 스키마 폴더(보안 > 스키마)가 있다. Chromite는 DBeaver 모델대로 데이터베이스 > 스키마 > 개체 순서로 보여 준다.
 
 ## 용어집
 
@@ -315,3 +331,5 @@ XML, XLSX, BOM, host:port 같은 기술 토큰은 번역하지 않는다. "…"�
 - 2026-11-06 DBeaver 플러그인 한국어 보충(사용자 결정 안 "가"): model·registry·data.transfer·model.sql·model.jdbc·generic·sqlite·PostgreSQL·
   SQL Server·Oracle·MySQL 모델 번들의 `_ko` 키 2,745개 추가, 기존 값 156개를 용어집에 맞춤, 번들 사이 용어 통일(행 수, 최소값/최대값, 형식/유형 등),
   기본 인증 방식 이름을 `plugin.xml` `%키`로. 용어집에 모델 용어 추가. SQL Server "저장 프로시저"는 미해결 질문으로 남김.
+- 2026-11-06 SQL Server 폴더 이름을 한국어 SSMS에 맞춤(사용자 결정, SQL Server만, 이름만 바꾸고 구조는 그대로): "프로시저" → "저장 프로시저"
+  (폴더·개체·매개 변수), 테이블 아래 "CHECK 제약 조건" 폴더 → "제약 조건". 미해결 질문을 닫음.
