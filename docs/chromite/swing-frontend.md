@@ -1502,6 +1502,7 @@ Swing 제품에는 그 번들이 없다. 그래서 범용 칸(Login, Password)�
 | `QueryStatusLine`(새 파일) | SSMS 쿼리 상태 줄: 상태 아이콘, 문구, 서버, 사용자, DB/스키마, 시간, 행 수 |
 | `ObjectExplorerPanel` | 트리에 초점이 있을 때 F5 = 새로 고침 |
 | `PropertiesPanel` | SSMS 속성 그리드(분류별·이름순, 분류 접기, 설명 칸) |
+| `SqlCompletionPopup` | 행 24, 오른쪽 형식 글자, 둥근 선택, 지연 설정 접근자 |
 | `icons/ui/**/categorized.svg`, `sort-alpha.svg`, `tools/branding/gen_ui_icons.py` | Properties 도구 막대 아이콘 2개 × 2팩 × 2테마(생성기에 추가, 기존 SVG는 바이트 단위로 같음) |
 
 ### 결과 그리드 머리글이 잘려 보이던 것 (근본 원인)
@@ -1558,6 +1559,11 @@ Object Explorer 오른쪽 클릭 메뉴의 Refresh에 F5를 보인다.
   분류 없는 속성은 SWT 속성 보기처럼 제목 없이 맨 앞이다.
 - 가로선 `grid.lineSubtle`, 이름과 값 사이 1px `border.subtle`(속성 줄만). 아래 설명 칸: 고른 속성의 이름과 `DBPPropertyDescriptor.getDescription()`.
 - 읽기 전용 그대로. 접은 분류와 정렬 방식은 실행 중에 기억한다.
+
+### 자동완성 목록
+
+- 행 24(고정 높이라 목록이 제안마다 렌더러 높이를 묻지 않음), 아이콘 16과 이름 사이 6, 오른쪽 형식·테이블 글자 `text.secondary`, 최대 12행, 폭은 내용에 맞추고 280~640.
+- 선택은 테마 목록 선택과 같은 둥근 사각형(arc 8, 좌우 4)이고 글자색을 바꾸지 않는다. 목록은 초점을 갖지 않으므로(편집기가 초점 유지) 초점 있는 선택색을 테마에서 직접 읽는다.
 
 ## 변경 이력
 

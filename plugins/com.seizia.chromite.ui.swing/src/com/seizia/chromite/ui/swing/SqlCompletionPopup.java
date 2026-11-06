@@ -16,6 +16,7 @@
  */
 package com.seizia.chromite.ui.swing;
 
+import com.formdev.flatlaf.util.UIScale;
 import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.Status;
 import org.eclipse.jface.text.Document;
@@ -79,6 +80,7 @@ import java.util.function.Supplier;
  * 변경 이력:
  * - 2026-11-06 F단계: 최초 작성 (docs/chromite/swing-frontend.md "구현 현황 — F단계")
  * - 2026-11-06 P1: 자동완성 지연 설정 접근자와 처음 쓸 때 기본값 선언(Tools &gt; Options) (docs/chromite/swing-frontend.md "P1 디자인 적용")
+ * - 2026-11-06 P1: 행 24, 오른쪽 형식 글자 text.secondary, 둥근 선택(arc 8, 좌우 4)과 글자색 유지 (docs/chromite/swing-frontend.md "P1 디자인 적용")
  */
 final class SqlCompletionPopup {
 
@@ -95,6 +97,8 @@ final class SqlCompletionPopup {
     static final int DEFAULT_ACTIVATION_DELAY = 200;
 
     private static final int MAX_VISIBLE_ROWS = 12;
+    // size.row.list
+    private static final int ROW_HEIGHT = 24;
     // EDT only
     private static boolean defaultsSet;
     private static final int MIN_WIDTH = 280;
@@ -149,6 +153,8 @@ final class SqlCompletionPopup {
 
         list.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
         list.setCellRenderer(new ProposalRenderer());
+        // A fixed height also spares the list from asking the renderer of every proposal for its height
+        list.setFixedCellHeight(UIScale.scale(ROW_HEIGHT));
         list.setFocusable(false);
         list.addMouseListener(new MouseAdapter() {
             @Override
@@ -605,18 +611,44 @@ final class SqlCompletionPopup {
     }
 
     /**
-     * Icon of the object kind (navigator icons), the name, and the engine's decoration (e.g. the column's table) in gray.
+     * DataGrip completion row (size.row.list 24): icon of the object kind (navigator icons) 6px before the name, and the
+     * engine's decoration (e.g. the column's type or table) right-aligned in text.secondary. The selection is the
+     * rounded selection.bg of the theme's lists (List.selectionArc, List.selectionInsets), painted here because the list
+     * draws it only for its default renderers; the text keeps its color on it.
      */
     private static final class ProposalRenderer extends JPanel implements ListCellRenderer<SqlCompletionAnalysis.Proposal> {
         private final JLabel nameLabel = new JLabel();
         private final JLabel decorationLabel = new JLabel();
+        @Nullable
+        private Color selectionColor;
 
         ProposalRenderer() {
-            super(new BorderLayout(12, 0));
-            nameLabel.setIconTextGap(6);
+            super(new BorderLayout(UIScale.scale(16), 0));
+            setOpaque(false);
+            nameLabel.setIconTextGap(UIScale.scale(6));
             add(nameLabel, BorderLayout.CENTER);
             add(decorationLabel, BorderLayout.EAST);
-            setBorder(BorderFactory.createEmptyBorder(1, 4, 1, 6));
+            // List.selectionInsets (4) + space.8 inside the selection
+            setBorder(BorderFactory.createEmptyBorder(0, UIScale.scale(12), 0, UIScale.scale(12)));
+        }
+
+        @Override
+        protected void paintComponent(Graphics g) {
+            if (selectionColor != null) {
+                Insets insets = UIManager.getInsets("List.selectionInsets"); //$NON-NLS-1$
+                int arc = UIScale.scale(UIManager.getInt("List.selectionArc")); //$NON-NLS-1$
+                int left = insets != null ? UIScale.scale(insets.left) : 0;
+                int right = insets != null ? UIScale.scale(insets.right) : 0;
+                Graphics2D g2 = (Graphics2D) g.create();
+                try {
+                    g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                    g2.setColor(selectionColor);
+                    g2.fillRoundRect(left, 0, getWidth() - left - right, getHeight(), arc, arc);
+                } finally {
+                    g2.dispose();
+                }
+            }
+            super.paintComponent(g);
         }
 
         @Override
@@ -627,10 +659,12 @@ final class SqlCompletionPopup {
             boolean isSelected,
             boolean cellHasFocus
         ) {
-            setBackground(isSelected ? list.getSelectionBackground() : list.getBackground());
-            nameLabel.setForeground(isSelected ? list.getSelectionForeground() : list.getForeground());
-            Color decorationColor = UIManager.getColor("Label.disabledForeground"); //$NON-NLS-1$
-            decorationLabel.setForeground(isSelected ? list.getSelectionForeground() : decorationColor);
+            // The list never has the focus (the editor keeps it), so the focused selection color is taken from the
+            // theme: FlatLaf would show its inactive selection color
+            selectionColor = isSelected ? UIManager.getColor("List.selectionBackground") : null; //$NON-NLS-1$
+            nameLabel.setForeground(list.getForeground());
+            Color decorationColor = UIManager.getColor("Chromite.secondaryForeground"); //$NON-NLS-1$
+            decorationLabel.setForeground(decorationColor != null ? decorationColor : list.getForeground());
             nameLabel.setFont(list.getFont());
             decorationLabel.setFont(list.getFont());
             nameLabel.setText(value.getDisplayString());
