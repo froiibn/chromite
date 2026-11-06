@@ -116,6 +116,8 @@
                 <module>com.seizia.chromite.ui.swing</module>
                 <!-- Server administration model of the Swing tools (sessions, locks), docs/chromite/swing-admin-tools.md -->
                 <module>com.seizia.chromite.model.admin</module>
+                <!-- AI agent tools and the local MCP server, docs/chromite/ai-agent.md -->
+                <module>com.seizia.chromite.model.ai.tools</module>
             </modules>
         </profile>
     </profiles>

@@ -1,0 +1,21 @@
+Manifest-Version: 1.0
+Bundle-ManifestVersion: 2
+Bundle-Vendor: Chromite contributors
+Bundle-Name: Chromite AI Agent Tools
+Bundle-SymbolicName: com.seizia.chromite.model.ai.tools;singleton:=true
+Bundle-Version: 1.0.0.qualifier
+Bundle-RequiredExecutionEnvironment: JavaSE-21
+Bundle-ActivationPolicy: lazy
+Export-Package: com.seizia.chromite.model.ai.tools,
+ com.seizia.chromite.model.ai.tools.mcp
+Require-Bundle: com.seizia.chromite.model,
+ com.seizia.chromite.model.ai,
+ com.seizia.chromite.model.jdbc,
+ com.seizia.chromite.model.sql,
+ com.seizia.chromite.model.admin,
+ com.seizia.chromite.registry,
+ com.seizia.chromite.ext.mssql,
+ com.github.jsqlparser,
+ org.jkiss.bundle.apache.poi,
+ org.eclipse.equinox.common
+Automatic-Module-Name: com.seizia.chromite.model.ai.tools

@@ -1,0 +1,67 @@
+-- getRoutineStats: runtime statistics of a routine and of each statement inside it (with line numbers)
+-- @family: sqlserver
+-- @requires: VIEW SERVER STATE
+-- @statement: routine
+SELECT 'PROCEDURE' AS kind, ps.execution_count, ps.total_worker_time / 1000 AS total_cpu_ms, ps.total_elapsed_time / 1000 AS total_duration_ms,
+       ps.total_elapsed_time / 1000 / NULLIF(ps.execution_count, 0) AS avg_duration_ms, ps.total_logical_reads, ps.total_logical_writes,
+       ps.cached_time, ps.last_execution_time
+FROM sys.dm_exec_procedure_stats ps
+WHERE ps.object_id = OBJECT_ID(${name}) AND ps.database_id = DB_ID()
+UNION ALL
+SELECT 'TRIGGER', ts.execution_count, ts.total_worker_time / 1000, ts.total_elapsed_time / 1000,
+       ts.total_elapsed_time / 1000 / NULLIF(ts.execution_count, 0), ts.total_logical_reads, ts.total_logical_writes, ts.cached_time, ts.last_execution_time
+FROM sys.dm_exec_trigger_stats ts
+WHERE ts.object_id = OBJECT_ID(${name}) AND ts.database_id = DB_ID()
+UNION ALL
+SELECT 'FUNCTION', fs.execution_count, fs.total_worker_time / 1000, fs.total_elapsed_time / 1000,
+       fs.total_elapsed_time / 1000 / NULLIF(fs.execution_count, 0), fs.total_logical_reads, fs.total_logical_writes, fs.cached_time, fs.last_execution_time
+FROM sys.dm_exec_function_stats fs
+WHERE fs.object_id = OBJECT_ID(${name}) AND fs.database_id = DB_ID()
+-- @statement: statements
+SELECT
+    (DATALENGTH(LEFT(st.text, qs.statement_start_offset / 2)) - DATALENGTH(REPLACE(LEFT(st.text, qs.statement_start_offset / 2), NCHAR(10), N''))) / 2 + 1 AS start_line,
+    qs.execution_count,
+    qs.total_worker_time / 1000 AS total_cpu_ms,
+    qs.total_worker_time / 1000 / NULLIF(qs.execution_count, 0) AS avg_cpu_ms,
+    qs.total_elapsed_time / 1000 AS total_duration_ms,
+    qs.total_logical_reads,
+    qs.total_logical_reads / NULLIF(qs.execution_count, 0) AS avg_logical_reads,
+    qs.total_rows,
+    qs.total_rows / NULLIF(qs.execution_count, 0) AS avg_rows,
+    qs.min_rows,
+    qs.max_rows,
+    qs.plan_generation_num,
+    qs.last_execution_time,
+    SUBSTRING(st.text, qs.statement_start_offset / 2 + 1,
+        (CASE WHEN qs.statement_end_offset = -1 THEN DATALENGTH(st.text) ELSE qs.statement_end_offset END - qs.statement_start_offset) / 2 + 1) AS sql_text
+FROM sys.dm_exec_query_stats qs
+CROSS APPLY sys.dm_exec_sql_text(qs.sql_handle) st
+WHERE st.objectid = OBJECT_ID(${name}) AND st.dbid = DB_ID()
+ORDER BY qs.statement_start_offset
+
+-- @family: postgresql
+-- @requires: track_functions = pl or all (routine); pg_stat_statements with pg_stat_statements.track = all (statements)
+-- @note: pg_stat_statements does not link nested statements to their function; the statements are the top non-top-level ones of this database. Match them against the source (getRoutineSource).
+-- @statement: routine
+SELECT schemaname || '.' || funcname AS routine, calls AS execution_count, round(total_time::numeric, 1) AS total_duration_ms,
+       round(self_time::numeric, 1) AS self_duration_ms, round((total_time / nullif(calls, 0))::numeric, 2) AS avg_duration_ms
+FROM pg_stat_user_functions
+WHERE funcname = ${name} OR schemaname || '.' || funcname = ${name}
+-- @statement: statements
+SELECT calls AS execution_count, round(total_exec_time::numeric, 1) AS total_duration_ms, round(mean_exec_time::numeric, 2) AS avg_duration_ms,
+       rows AS total_rows, shared_blks_hit, shared_blks_read, left(query, 2000) AS sql_text
+FROM pg_stat_statements
+WHERE NOT toplevel AND dbid = (SELECT oid FROM pg_database WHERE datname = current_database())
+ORDER BY total_exec_time DESC
+LIMIT ${limit}
+
+-- @family: mysql
+-- @requires: performance_schema enabled
+-- @statement: routine
+SELECT CONCAT(OBJECT_SCHEMA, '.', OBJECT_NAME) AS routine, OBJECT_TYPE AS kind, COUNT_STAR AS execution_count,
+       ROUND(SUM_TIMER_WAIT / 1000000000, 1) AS total_duration_ms, ROUND(AVG_TIMER_WAIT / 1000000000, 2) AS avg_duration_ms,
+       COUNT_STATEMENTS AS statements_executed, ROUND(SUM_STATEMENTS_WAIT / 1000000000, 1) AS statements_duration_ms,
+       SUM_ROWS_EXAMINED AS rows_examined, SUM_NO_INDEX_USED AS no_index_used
+FROM performance_schema.events_statements_summary_by_program
+WHERE OBJECT_NAME = SUBSTRING_INDEX(${name}, '.', -1)
+  AND OBJECT_SCHEMA = IF(LOCATE('.', ${name}) > 0, SUBSTRING_INDEX(${name}, '.', 1), DATABASE())
