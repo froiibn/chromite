@@ -39,7 +39,9 @@ SWT 버전의 객체 편집기(`EntityEditor`)가 하는 일을 Swing 프런트�
 - 진입점: `ObjectExplorerPanel`의 오른쪽 클릭 메뉴 Design(테이블, 뷰 제외)·New Table…(Tables 폴더) → `QueryWindows.designTable/newTable` → `MainFrame`이 탭을 연다.
   같은 테이블의 디자이너가 열려 있으면 그 탭을 보여 준다.
 - `MainFrame`: 디자이너 탭 닫기 확인, Ctrl+S(File > Save)를 활성 디자이너의 Save로, 끝낼 때 확인.
-- MANIFEST: `org.jkiss.dbeaver.model.jdbc`(외래 키 규칙 설정이 `JDBCTableForeignKey`에 있음)와 세 드라이버 번들을 선택 의존(`resolution:=optional`)으로 추가.
+- MANIFEST: `org.jkiss.dbeaver.model.jdbc`(외래 키 규칙 설정이 `JDBCTableForeignKey`에 있음)를 추가. 세 드라이버 번들(`ext.postgresql`, `ext.mssql`, `ext.mysql`)은
+  처음에 선택 의존(`resolution:=optional`)으로 넣었으나, 고급 연결 설정([swing-conn-advanced.md](swing-conn-advanced.md))이 같은 번들을 필수 의존으로 넣어
+  합칠 때 선택 의존 줄을 뺐다(한 번들은 `Require-Bundle`에 한 번만 적는다).
   SWT·JFace 번들은 추가하지 않았다.
 
 ## SWT에서 옮긴 것 (근거)
@@ -115,3 +117,4 @@ PostgreSQL 17(`chr_table_designer`)에서 화면으로 확인했다(빌드한 Sw
 
 - 2026-11-06 최초 작성: 테이블 디자이너(Design), New Table…, 스크립트 미리 보기와 저장, PostgreSQL·SQL Server·MySQL/MariaDB 드라이버 구현.
 - 2026-11-06 확인 중 수정: 명령 묶음의 새 객체·삭제 객체를 목록에 반영(PostgreSQL 외래 키), 소유 테이블 열 숨김. "확인" 절 추가.
+- 2026-11-06 다른 Swing 기능과 합침: 드라이버 번들 선택 의존을 고급 연결 설정의 필수 의존으로 대신함, Object Explorer 메뉴·`QueryWindows`·`MainFrame` 탭 처리를 관리 도구·데이터 전송과 함께 둠.
