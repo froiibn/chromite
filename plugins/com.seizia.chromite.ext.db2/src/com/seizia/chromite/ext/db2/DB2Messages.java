@@ -20,10 +20,13 @@ package com.seizia.chromite.ext.db2;
 
 import org.eclipse.osgi.util.NLS;
 
+/**
+ * 변경 이력:
+ * - 2026-11-07 SWT 프런트엔드 삭제로 쓰는 곳이 없어진 문구 삭제(docs/chromite/swt-removal.md)
+ */
 public class DB2Messages extends NLS {
     static final String BUNDLE_NAME = "com.seizia.chromite.ext.db2.DB2Resources"; //$NON-NLS-1$
 
-    public static String dialog_explain_no_tables;
     public static String dialog_explain_no_tables_found_ex;
 
     public static String no_ddl_for_system_tables;
