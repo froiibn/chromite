@@ -106,7 +106,7 @@ CLAUDE.md의 클래스 Javadoc "변경 이력" 규칙은 이름만 바뀐 파일
 | `.project` 성질 | `org.jkiss.dbeaver.DBeaverNature` | `com.seizia.chromite.ChromiteNature` | 연결이 있으면 새 빌드가 새 성질을 덧붙임(`updateProjectNature`). 옛 성질은 남지만 기능에 영향 없음 | 하지 않음(두 빌드가 같은 파일을 씀) |
 | `.metadata/.config/*`(drivers.xml, connection-types.xml, network-profiles 등) | 경로 같음. `drivers.xml`의 드라이버 매개변수 `@dbeaver-default-…` | `@chromite-default-…` | 파일은 읽음. 사용자가 바꾼 그 매개변수만 무시 | 하지 않음(두 빌드가 같은 파일을 씀). 이름 변경 전 Swing 제품에는 드라이버 편집 화면이 없어 이 파일을 만들지 않았다 |
 | 전역 데이터 폴더 `%APPDATA%\DBeaverData` → `ChromiteData` | `drivers/`(내려받은 드라이버 캐시) | `ChromiteData\drivers` | 다시 내려받기를 물음(데이터 손실 아님) | 하지 않음: 설치된 DBeaver와 같이 쓰던 캐시이고, 제품에 들어 있는 드라이버는 내려받지 않는다 |
-| 전역 작업 공간 `DBeaverData\workspace6` | SWT 제품의 기본 작업 공간 | `ChromiteData\workspace6` | Swing 제품은 원래 이 폴더를 쓰지 않음(`-data`나 실행 폴더의 `workspace`) | 하지 않음: 설치된 DBeaver의 작업 공간과 같은 폴더라 Chromite로 가져오면 안 된다 |
+| 전역 작업 공간 `DBeaverData\workspace6` | SWT 제품의 기본 작업 공간 | `ChromiteData\workspace6` | 이름 변경 전 Swing 제품은 이 폴더를 쓰지 않음(`-data`나 실행 폴더의 `workspace`) | 하지 않음: 설치된 DBeaver의 작업 공간과 같은 폴더라 Chromite로 가져오면 안 된다. 실행 폴더의 `workspace`는 위치 이전이 `ChromiteData\workspace6`으로 복사한 뒤 이 이전이 이름을 바꾼다(아래 "위치 이전과의 순서") |
 | Equinox 보안 저장소 루트 노드, macOS 키체인 모듈 ID | `dbeaver`, `org.jkiss.dbeaver.model.security.MacOSSecureStorageKeychain` | `chromite`, `com.seizia.chromite.…` | 이름 변경 전 Swing 제품은 쓰지 않음(AI 계정 토큰만 씀, 이름 변경 뒤 기능) | 하지 않음 |
 | Java 환경 설정 노드 `DeploymentId` | `org/jkiss/dbeaver` | `com/seizia/chromite` | 설치 ID 새로 생성(DataDam 연결에만 쓰임). 설치된 DBeaver와 나눠 쓰지 않게 하려는 의도된 변화 | 하지 않음 |
 | 환경 변수·시스템 속성 | `DBEAVER_DATA`, `DBEAVER_WORKSPACE`, `dbeaver.drivers.configuration-file` 등 | `CHROMITE_*`, `chromite.*` | 사용자가 설정해 둔 값이 무시됨 | 하지 않음(사용자 환경). 릴리스 노트에 적을 것 |
@@ -120,6 +120,10 @@ CLAUDE.md의 클래스 Javadoc "변경 이력" 규칙은 이름만 바뀐 파일
   레지스트리, 이름이 바뀐 번들의 설정은 이 뒤에 처음 읽힌다. 모델 계층(`model.rcp`)에 두어 UI와 무관하고, 프로젝트 목록은 Eclipse
   작업 공간에서 얻어 작업 공간 밖에 연결한 프로젝트도 포함한다. 예전 가져오기 코드(`ChromiteSettingsImporter`)는 SWT 제품과 함께
   지워졌고(#68) 남은 곳이 없어 새 클래스로 만들었다.
+- **위치 이전과의 순서.** `-data` 없이 실행하면 앱이 기본 작업 공간(`ChromiteData\workspace6`)을 잠근 직후, 설정을 읽기 전에
+  `WorkspaceLocationMigration`이 설치 폴더나 실행 폴더의 `workspace`(위치를 고치기 전 빌드의 작업 공간)를 그대로 복사한다. 이 이전은 그 뒤
+  플랫폼 초기화에서 새 위치를 대상으로 돈다. 그래서 설치 폴더에 남은 이름 변경 전 작업 공간은 "복사 → 이름 바꿔 복사" 순서로 옮겨지고
+  옛 폴더는 고쳐지지 않는다([workspace-location.md](workspace-location.md)).
 - **복사만 한다.** 옛 파일·폴더·설정 노드는 고치거나 지우지 않는다. 이름 변경 전 빌드로 돌아가도 그대로 쓸 수 있다. 같은 이유로 두 빌드가
   같은 경로를 쓰는 파일(`.metadata/.config`, `.project`, Swing 설정)은 고치지 않고, 같은 노드 안에서 키 이름만 바뀐 설정은 새 키를 옆에
   더한다.
@@ -208,7 +212,6 @@ DBeaver 6.1.3 이전 형식(`<프로젝트>/.dbeaver-data-sources*.xml`)을 읽�
   `.chromite-data-sources*` 읽기는 2026-11-07에 지웠다("사용자 데이터 이전"). 옛 이름은 `LegacyNameMigration`에만 남는다.
 - import 순서: `com.seizia.chromite.*` import가 예전 `org.jkiss.dbeaver.*` 자리(`org.jkiss.code`와 `org.jkiss.utils` 사이)에 남아
   알파벳 순서가 아니다. 7,000여 파일을 더 고치지 않으려고 그대로 두었다(동작 영향 없음, 파일을 고칠 때 정리).
-- Swing 제품은 `-data`가 없으면 작업 공간을 현재 폴더의 `workspace`에 만든다(이름 변경과 무관한 기존 동작, `ChromiteData`에는 드라이버만 둔다).
 
 ## 진행 중이던 브랜치 옮기기
 
@@ -257,3 +260,5 @@ git apply -3 chromite.patch
 - 2026-11-07 진행 중이던 브랜치 옮기기(`rename.py convert`)와 시험 결과, 검증 결과, 남은 옛 이름을 추가.
 - 2026-11-07 "호환성: 새로 시작"을 "사용자 데이터 이전"으로 바꿈: 바뀐 사용자 데이터 이름 목록, 시작 시 한 번 복사하는
   `LegacyNameMigration`, 실행되지 않던 옛 XML 연결 설정 읽기 삭제, 검증 결과.
+- 2026-11-07 작업 공간 위치 수정과의 관계: 기본 작업 공간 행, 설계 "위치 이전과의 순서" 추가, 남은 옛 이름에서 현재 폴더 `workspace` 항목 삭제
+  ([workspace-location.md](workspace-location.md)).
