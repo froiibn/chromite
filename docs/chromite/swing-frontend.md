@@ -702,9 +702,9 @@ D단계의 목표는 Swing 앱에서 연결을 만들고, 고치고, 지우고, 
 
 | 클래스 | 역할 |
 |---|---|
-| `ConnectionDialog` | 연결 만들기(드라이버 고르기 → 설정 2단계)·편집 대화상자. Test Connection, Save, 이름 만들기 |
-| `DriverSelectionPanel` | 1단계: 검색 칸, 범주 콤보, 아이콘이 있는 드라이버 목록 |
-| `ConnectionSettingsPanel` | 2단계: 드라이버 정의로 구성하는 범용 설정 화면(Main / Driver Properties / Provider Properties 탭) |
+| `ConnectionDialog` | 연결 만들기(드라이버 고르기 → 설정 2단계)·편집 대화상자. Test Connection, Save, 이름 만들기 (→ 한 화면으로 바뀜: "Connect 대화상자 (SSMS식)") |
+| `DriverSelectionPanel` | 1단계: 검색 칸, 범주 콤보, 아이콘이 있는 드라이버 목록 (→ "More database types…" 창으로 바뀜) |
+| `ConnectionSettingsPanel` | 2단계: 드라이버 정의로 구성하는 범용 설정 화면(Main / Driver Properties / Provider Properties 탭) (→ 주 양식 + Options 탭으로 바뀜) |
 | `ConnectionPropertiesTable` | 드라이버 속성·공급자 속성 표(범주·이름·값, 값 편집, 사용자 속성 추가·삭제, 기본값으로 되돌리기) |
 | `ConnectionCommands` | 새로 만들기, 편집, 이름 바꾸기, 삭제, 연결, 연결 끊기, 다시 연결 |
 | `SwingDriversService` | `UIServiceDrivers` 구현: 드라이버 파일이 없으면 내려받을지 묻고 진행 대화상자에서 내려받기 |
@@ -813,6 +813,7 @@ SWT의 DB별 연결 화면(`ext.*.ui`, 32개 번들)에만 있는 설정은 범�
 
 - 연결 편집에서 위 설정은 원래 값이 그대로 남는다(폼이 쓰지 않는다). 다만 Driver Properties 탭을 열고 저장하면 SWT처럼 연결의 드라이버 속성 전체를 표의 값으로 바꾼다.
 - 인증 방식 선택은 인증 방식별 입력 화면(`promptAuthModelCredentials`와 같은 문제)이 필요해 다음 단계로 남긴다.
+- (2026-11-06) "Connect 대화상자 (SSMS식)"에서 범용 칸(Login·Password)만으로 끝나는 인증 방식 선택과 연결 종류·읽기 전용·자동 커밋·기본 DB/스키마·keep-alive·유휴 연결 닫기를 추가했다.
 
 ### 확인 (2026-11-06)
 
@@ -1274,6 +1275,155 @@ G단계의 목표는 쿼리 결과를 표에서 고치고 DB에 저장하는 것
 - 원본 테이블이 `FEATURE_DATA_REFRESH_AFTER_UPDATE`를 지원하면 SWT는 저장 뒤 결과 전체를 다시 읽는다(관계형 DB에는 해당 없음). Swing은 행 다시 읽기만 한다.
 - 편집기별 별도 연결: 저장은 연결의 기본 문맥에서 자동 커밋을 잠시 끄므로, 같은 연결의 다른 편집기가 그 사이에 실행한 문장도 저장 트랜잭션에 들어갈 수 있다(SWT도 같은 문맥을 쓰면 같은 문제).
 
+## Connect 대화상자 (SSMS식)
+
+D단계의 2단계 마법사(드라이버 고르기 → 설정, `< Back`/`Next >`)를 SSMS "Connect to Server"처럼 한 화면으로 바꿨다. 모양은 DataGrip New UI 기준의
+[design-spec.md](design-spec.md) "11. 대화상자 (연결)"을 따르고, 드라이버 정의로 칸을 만드는 범용 구조(D단계)는 그대로 쓴다.
+D단계 절의 "새 연결: 드라이버 고르기", 탭 구성(Main / Driver Properties / Provider Properties), "인증 방식은 고를 수 없음"은 이 절로 바뀌었다.
+
+### 구성
+
+| 클래스 | 역할 |
+|---|---|
+| `ConnectionDialog` (변경) | 한 화면 대화상자. 제목 `Connect to Server`(편집은 `Edit Connection - 이름`). 단추: 왼쪽 Test Connection, 오른쪽 **Connect**(편집은 Save) / Cancel / `Options >>` |
+| `DatabaseTypeCombo` (새로) | 첫 줄 "Database type" 콤보: 주요 DB, 최근 드라이버, "More database types…"(전체 드라이버 검색 창) |
+| `DriverSelectionPanel` (변경) | 1단계 화면 → "More database types…" 창의 내용(검색, 범주, 전체 드라이버 목록) |
+| `ConnectionSettingsPanel` (변경) | 주 양식 + 접었다 펴는 Options 탭(Connection Properties, Driver Properties, Provider Properties, Additional Connection Parameters) |
+| `ConnectionAuthModels` (새로) | Authentication 콤보에 넣을 인증 방식과 방식별 칸(Login, Password) 판단 |
+| `ConnectionHistory` (새로) | 드라이버별 최근 서버 이름 10개, 최근 드라이버 10개(이 번들의 설정 저장소) |
+
+`ConnectionPropertiesTable`, `ConnectionCommands`, `SwingDriversService`는 바꾸지 않았다.
+
+### 화면 배치
+
+```
+Database type    [SQL Server ▾]            ← 공급자 아이콘
+Server name      [localhost        ▾]      ← {host}·{port}: 호스트[:포트], 서버 기록
+Database         [master          ]        ← {database} (파일 DB는 File + Browse…, 폴더 DB는 Folder)
+                                            (묶음 사이 20)
+Authentication   [SQL Server Authentication ▾]   ← 고를 방식이 둘 이상일 때만
+Login            [                ]
+Password         [                ]
+                 [x] Remember password
+
+Connection name  [비우면 DB·서버 이름으로]
+[Test Connection]  (빠진 값 안내)          [Connect] [Cancel] [Options >>]
+── Options >> 를 누르면 아래에 탭이 펼쳐짐 ──
+Connection Properties | Driver Properties | Provider Properties | Additional Connection Parameters
+```
+
+- 라벨 끝에 `:`를 붙이지 않는다(SSMS). 간격은 design-spec 토큰: 라벨–입력 6, 줄 사이 6, 묶음 사이 20, 대화상자 안쪽 여백 10/12.
+- 색은 코드에 쓰지 않고 테마 키에서 읽는다: 오류 글자 `Chromite.status.error`(없으면 `Component.error.focusedBorderColor`), 보조 글자
+  `Chromite.secondaryForeground`(없으면 `Label.disabledForeground`), 콤보 목록 구분선 `Chromite.dividerColor`(없으면 `Separator.foreground`).
+  다른 작업의 테마 파일이 이 키를 넣으면 그대로 적용된다.
+- 대화상자 높이는 내용에 맞춘다(`pack`). 인증 방식을 바꿔 칸이 숨거나 보이면, Options를 펼치거나 접으면 다시 맞춘다. 폭은 최소 640이고 사용자가 넓힌 폭은 유지한다.
+- 포커스는 처음 열 때 첫 입력 칸(Server name, File 등)에 둔다. 드라이버를 바꾸면 포커스는 Database type 콤보에 남는다(글자로 고르는 중에 칸이 바뀌어도 입력이 엉뚱한 칸에 들어가지 않게).
+
+### Database type 콤보 (`DatabaseTypeCombo`)
+
+- 순서: 공개판에 드라이버가 내장된 주요 DB(SQL Server `sqlserver:microsoft`, PostgreSQL `postgresql:postgres-jdbc`, MySQL `mysql:mysql8`,
+  MariaDB `mysql:mariaDB`, Oracle `oracle:oracle_thin`, SQLite `sqlite:sqlite_jdbc`) → 최근에 연결을 만든 다른 드라이버 → "More database types…".
+  새 연결은 첫 항목(SQL Server)으로 시작한다(SSMS의 기본 서버 종류와 같음).
+- "More database types…"는 D단계의 드라이버 고르기 화면(`DriverSelectionPanel`: 검색, 범주, 전체 드라이버)을 작은 창으로 연다. 고른 드라이버는 콤보의 주요 DB 다음에 들어간다.
+- 콤보에 포커스가 있을 때 글자를 치면 이름이 그 글자들로 시작하는 항목으로 간다(1초 안에 친 글자를 이어 붙임. 예: `sqli` → SQLite).
+- 목록을 연 채 화살표로 움직이는 동안에는 드라이버를 바꾸지 않고, 목록이 닫힐 때 고른 것으로 바꾼다(화살표마다 설정 화면을 다시 만들지 않게).
+- 편집에서는 콤보를 끈다(드라이버를 바꾸는 것은 SWT도 별도 기능이다).
+- 결정: 모든 드라이버(100개 이상)를 편집 가능한 콤보에 넣고 글자로 거르는 방식은 쓰지 않았다. Swing의 편집 가능한 콤보는 편집 칸에 공급자 아이콘을 보일 수 없고,
+  목록이 길어 찾기 어렵다. design-spec의 "고급 드라이버 목록은 콤보의 More…"와 같은 결정이다.
+
+### 서버 이름과 기록
+
+- 드라이버의 URL 템플릿에 `{host}`가 있으면 Host·Port 두 칸 대신 "Server name" 한 칸이다. `호스트`, `호스트:포트`, SSMS식 `호스트,포트`, `[IPv6]:포트`를 받는다.
+  포트를 적지 않으면 드라이버의 기본 포트로 저장하고, 기본 포트와 같은 포트는 칸에 보이지 않는다. 포트 자리가 숫자가 아니면 Connect·Test를 끈다.
+  템플릿에 `{port}`가 없으면 칸 전체가 호스트다. `{server}`는 `{host}`와 함께 있으면 "Server instance", 혼자면 "Server name"이다.
+- 기록(`ConnectionHistory`): Connect(새 연결)나 Save(편집)가 끝나면 그때의 서버 이름을 드라이버 전체 ID별 목록 맨 앞에 넣는다(최대 10개). 저장 위치는
+  이 번들의 설정 저장소(작업 공간 `.metadata`, 키 `connectDialog.serverHistory.<공급자:드라이버>`, 줄바꿈으로 구분)로, 최근 파일 목록(`RecentFiles`)과 같다.
+  연결 설정 파일이 아니라 UI 설정에 두므로 연결을 지워도 서버 이름은 남는다(SSMS와 같음). 최근 드라이버는 `connectDialog.recentDrivers`.
+- Server name은 편집 가능한 콤보로 기록을 목록에 보인다. 새 연결은 그 드라이버의 마지막 서버 이름으로 시작한다(없으면 드라이버의 기본 호스트, 그것도 없으면 localhost. SSMS는 마지막 서버로 시작).
+- JDBC URL로 연결하는 경우(Additional Connection Parameters)는 기록하지 않는다.
+
+### 인증 방식 (`ConnectionAuthModels`)
+
+근거: 인증 방식은 `org.jkiss.dbeaver.dataSourceAuth` 확장(`DataSourceAuthModelDescriptor`)이고, 드라이버에 맞는 목록은 모델 계층의
+`DBPDataSourceProviderRegistry.getApplicableAuthModels`가 준다(데스크톱에서는 서버 앱 전용 제외, `replace`로 대체된 방식 제외,
+[DataSourceProviderRegistry.java:857-875](../../plugins/org.jkiss.dbeaver.registry/src/org/jkiss/dbeaver/registry/DataSourceProviderRegistry.java)).
+SWT는 방식마다 SWT 설정 화면(`propertyConfigurator`의 `uiClass`, 예: `DatabaseNativeAuthModelConfigurator`, `PostgreAuthPgPassConfigurator`)을 쓰는데,
+Swing 제품에는 그 번들이 없다. 그래서 범용 칸(Login, Password)만으로 끝나는 방식만 고를 수 있게 했다. 판단은 모델 코드만으로 한다.
+
+- 구현이 `AuthModelDatabaseNative`다(사용자·비밀번호를 연결의 `userName`·`userPassword`에 두고 `isUserNameApplicable`·`isUserPasswordApplicable`로 칸이 필요한지 알림.
+  SWT 범용 화면 `DatabaseNativeAuthModelConfigurator.createControl`도 이 두 값만 본다).
+- 자격 증명 객체의 보이는 속성(`createCredentialsSource`, 숨김 제외)이 `userName`·`userPassword`뿐이다.
+- 보일 칸이 하나 이상이거나 자격 증명이 필요 없는 방식(`isCredentialsPromptRequired() == false`)이다.
+- 외부 인증 공급자가 필요 없다(`getRequiredAuthProviderId`).
+- 연결이 지금 쓰는 방식(`detectConnectionAuthModel` + `getReplacedBy`, SWT `ConnectionPageWithAuth.loadSettings`와 같음)은 조건과 관계없이 넣는다. 다른 화면에서 고른 방식을 편집에서 지우지 않기 위해서다.
+- 칸 이름은 SSMS식 Login·Password이고, 자격 증명이 속성 이름을 바꾸면 그 이름을 쓴다(LibSQL의 `Token`). 순서는 SWT `AuthModelSelector`와 같다(기본 방식 먼저, 그다음 이름순).
+  고를 방식이 하나뿐이면 Authentication 줄을 숨긴다(SWT도 둘 이상일 때만 콤보를 보임).
+- 저장: 고른 방식의 ID를 `setAuthModelId`로 쓰고, 그 방식이 쓰는 칸만 쓴다(`DatabaseNativeAuthModelConfigurator.saveSettings`와 같음: 비밀번호 칸이 없는 방식은 비밀번호를 지움).
+  `AuthModelDatabaseNative`가 아닌 방식은 사용자·비밀번호를 건드리지 않는다. 인증 속성(`authProperties`)은 어느 방식에서도 건드리지 않는다.
+
+드라이버별로 고를 수 있는 방식(코드의 `plugin.xml` 선언과 위 규칙에서 나온 것. SQL Server·PostgreSQL은 실행해서 확인):
+
+| 드라이버 | Authentication 콤보 | 칸 | 빠진 방식과 이유 |
+|---|---|---|---|
+| SQL Server (`microsoft`) | SQL Server Authentication(기본), Active Directory - Integrated, Active Directory - MFA, Active Directory - MSI, Active Directory - Password, Custom, NTLM, Windows Authentication | 기본·AD Password·Custom·NTLM: Login+Password. MFA·MSI: Login만(MSI는 클라이언트 ID). Integrated·Windows: 칸 없음 | 없음 |
+| SQL Server jTDS (`jtds`) | SQL Server Authentication, Custom, Windows Authentication | 위와 같음 | NTLM·AD 방식은 jTDS에서 쓰지 않도록 선언되어 있다(`if="object.getDriverParameter('jtds') == null"`) |
+| PostgreSQL 계열 | Username/password(기본), PostgreSQL PgPass | PgPass: Login만(비밀번호는 pgpass 파일) | 없음 |
+| Oracle | Username/password(`oracle_native`), OS Authentication | OS: 칸 없음 | 없음 |
+| MySQL, MariaDB 등 대부분 | 줄 없음(Username/password 하나) | Login+Password | 셸 명령 비밀번호(`shell_command`)는 명령·작업 폴더 칸이 필요해 뺐다(설정 `connection.shellAuthModelEnabled`를 켜야 보이는 방식) |
+| ClickHouse (`com_clickhouse`) | 줄 없음(Username/password 하나) | Login+Password | ClickHouse Cloud SSO, SSO/OpenID Connect: 브라우저 로그인·클라이언트 ID 설정이 필요하다(자격 증명 속성을 모두 숨김) |
+| SQLite, DuckDB 등 익명 접속 | 인증 칸 없음 | — | — |
+| LibSQL, MotherDuck | 줄 없음(토큰 방식 하나) | LibSQL: Token. MotherDuck: Password(토큰) | — |
+| BigQuery, Snowflake, Spanner, Cloudflare D1, OceanBase | 줄 없음(그 드라이버 전용 방식 하나, 지금 방식이라 넣음) | 전용 방식의 Login·Password | 전용 방식의 다른 설정(키 파일, 역할 등)은 Provider Properties에 있는 것만 고칠 수 있다(D단계와 같음) |
+
+### Options 탭
+
+- **Connection Properties**: 연결 종류(`DataSourceProviderRegistry.getConnectionTypes`), 자동 커밋(Default / Auto-commit / Manual commit → `bootstrap.defaultAutoCommit` null/true/false),
+  Default database·Default schema(`bootstrap.defaultCatalogName`·`defaultSchemaName`, 비우면 설정 안 함), Read-only connection(`setConnectionReadOnly`),
+  Keep-alive(초, `keepAliveInterval`), Close idle connection after(초, `closeIdleConnection`·`closeIdleInterval`).
+  값과 저장 규칙은 SWT `ConnectionPageGeneral.saveSettings`(종류, 읽기 전용)와 `ConnectionPageInitialization.saveSettings`(나머지)를 따른다.
+  연결 종류를 바꾸면 그 종류의 유휴 연결 닫기 기본값으로 바꾸고, 유휴 시간은 켜져 있고 종류의 기본값과 다를 때만 저장한다.
+  `DBPConnectionConfiguration`에 연결 시간 초과 값은 없다(드라이버 속성으로 정함).
+- **Driver Properties**, **Provider Properties**: D단계의 표 그대로. Driver Properties는 그 탭이 보일 때 처음 읽는다(Options를 펼쳤을 때 그 탭이 선택되어 있으면 그때).
+- **Additional Connection Parameters**: 연결 방식(Server name and database fields / JDBC URL)과 JDBC URL 칸. 칸으로 연결하면 드라이버 템플릿으로 만든 URL을 읽기 전용으로 보인다.
+  다른 드라이버 매개변수는 Driver Properties의 Add…로 넣는다. URL만 받는 드라이버는 이 탭 대신 주 양식에 JDBC URL 줄이 있다.
+- 탭은 한 줄로 두고 넘치면 스크롤한다(여러 줄로 감으면 고른 탭 줄이 아래로 옮겨져 탭 위치가 바뀌기 때문이다).
+
+### Connect, Test, Save
+
+- **Connect**(새 연결): D단계의 저장(`addDataSource`)을 한 뒤 대화상자를 닫고 `ConnectionCommands.connect`로 연결한다. Object Explorer는 `ADD` + `SELECT` 이벤트로 새 연결을
+  고르고, 연결되면 연결 표시를 그린다. 연결에 실패하면 연결 서비스가 오류를 보이고 연결 설정은 남는다(SSMS는 실패하면 대화상자를 다시 보이지만, 여기서는 연결 Job이 대화상자를 닫은 뒤 돈다).
+- **Save**(편집), **Test Connection**: D단계와 같다. Test는 폼의 비밀번호를 저장 여부와 관계없이 쓴다.
+- **Help**: 열 사용자 도움말 문서가 아직 없어 두지 않았다(지시대로).
+- 드라이버 파일이 없거나 오프라인 모드: D단계의 흐름 그대로다(Test·Connect·Driver Properties 읽기 때 `SwingDriversService`가 내려받기를 묻고, 오프라인이면 모델 오류).
+
+### 확인 (2026-11-06)
+
+- 빌드: `-Pproduct-dbeaver-ce,product-chromite-swing` BUILD SUCCESS. Swing 결과물 `bundles.info`의 번들 수는 Windows x64 137개, macOS arm64 138개이고,
+  `swt`·`jface`·`org.eclipse.ui`·`org.eclipse.e4.ui` 번들은 둘 다 0개다.
+- Windows에서 in-process JVM(`-vm …\bin\server\jvm.dll`)으로 G단계 작업 공간 사본(SQLite 연결 2개, 연결 파일 경로를 사본으로 바꿈)을 열어 키보드·마우스로 확인했다:
+  - **새 연결 기본 화면:** New Connection → `Connect to Server`, Database type SQL Server, Server name `localhost`, Database `master`,
+    Authentication `SQL Server Authentication`, Login, Password, Remember password, Connection name. Authentication 목록은 SQL Server Authentication,
+    Active Directory - Integrated / MFA / MSI / Password, Custom, NTLM, Windows Authentication 8개이고, Windows Authentication을 고르면 Login·Password 줄이 사라지고 대화상자 높이가 줄었다.
+  - **SQLite:** Database type에서 `sqli`를 쳐서 SQLite → File + Browse만 남음(인증 칸 없음), 비어 있으면 "Enter the file." → 경로 붙여 넣기 → Connect →
+    대화상자가 닫히고 Object Explorer에 `new-test.db`가 생겨 선택되고 연결 표시가 붙음 → New Query에서 `select count(*) from Album` → `347`.
+  - **PostgreSQL + Options:** Server name `pg-test.local:5433` → Options >> → Connection Properties(연결 종류 Development, 자동 커밋, 기본 DB·스키마, 읽기 전용, keep-alive 0, 유휴 연결 닫기 14400),
+    Additional Connection Parameters의 URL `jdbc:postgresql://pg-test.local:5433/postgres`, Driver Properties에 pgjdbc 속성(adaptiveFetch 등).
+    Authentication 목록은 Username/password, PostgreSQL PgPass. Connect → 연결 서비스가 "Unknown host pg-test.local" 오류를 보이고 연결 설정은 남음
+    (`host` pg-test.local, `port` 5433, `auth-model` native).
+  - **서버 기록:** 다시 New Connection → PostgreSQL → Server name이 `pg-test.local:5433`으로 시작하고 목록에 그 서버가 보임.
+  - **편집:** `new-test.db`에서 Enter → `Edit Connection - new-test.db`(Database type 꺼짐, 단추 Save) → 이름 `Chinook New Test`, Options의 Read-only connection 켬 → Save →
+    트리 이름이 바로 바뀌고 정렬 위치가 바뀜, 설정 파일에 `"name": "Chinook New Test"`, `"read-only": true`.
+  - **More database types…:** 콤보 끝 항목 → 드라이버 검색 창 → `duck` → Enter → DuckDB가 콤보에 들어가고 File 칸으로 바뀜.
+- 디버그 로그에 이 기능의 오류·예외는 없다(있는 오류는 입력 도구가 잘못 친 SQL 한 건의 구문 오류).
+- 확인하지 못한 것: 실제 SQL Server·PostgreSQL 서버 연결(서버 없음), Windows·AD 인증의 실제 연결, 드라이버 파일 내려받기와 오프라인 모드(D단계 흐름을 바꾸지 않음), macOS 실행,
+  다크 테마 화면, 다른 작업이 넣을 `Chromite.*` 색 키가 있을 때의 모양.
+
+### 남긴 것
+
+- SSMS의 History(즐겨찾기, 최근 연결 목록 창), 연결 색(Color), Encrypt·Trust Server Certificate를 주 양식에 꺼내 두기(지금은 SQL Server의 Provider Properties·Driver Properties에 있음).
+- 브라우저 로그인 인증 방식(ClickHouse SSO·OIDC, Azure 등 외부 공급자), 셸 명령 비밀번호, 인증 방식별 추가 칸(`AuthModelSelector`의 SWT 설정 화면 몫).
+- 연결 실패 시 대화상자 다시 열기(SSMS), 비밀번호 보기 단추, 연결 폴더·설명, 격리 수준·초기화 SQL.
+
 ## 변경 이력
 
 - 2026-11-06 최초 작성. Swing 전환 결정, 구조, 재사용 분석, MVP 범위, F5 실행 사양을 정리.
@@ -1300,3 +1450,6 @@ G단계의 목표는 쿼리 결과를 표에서 고치고 DB에 저장하는 것
   셀 편집·NULL·행 추가·삭제, 한 트랜잭션 저장과 저장 뒤 행 다시 읽기, 실패 시 Messages와 변경 유지, 닫기·끝내기·다시 실행 전 확인.
   "구현 현황 — G단계" 절 추가, 재사용 분석 표와 이전 단계의 남긴 항목에 구현 표시.
 - 2026-11-06 디자인 방향 변경: 배치·동작은 SSMS, 모양은 다크·라이트 모두 DataGrip New UI. 목표 사양을 [design-spec.md](design-spec.md)로 분리하고 목적·MVP·테마 절에 연결.
+- 2026-11-06 SSMS식 Connect 대화상자: 2단계 마법사 → 한 화면(Database type 콤보와 More database types…, Server name 한 칸과 드라이버별 서버 기록,
+  Authentication 콤보(범용 칸만으로 되는 인증 방식), Options >> 탭(Connection Properties, Driver·Provider Properties, Additional Connection Parameters),
+  새 연결 Connect = 저장 + 연결). "Connect 대화상자 (SSMS식)" 절 추가, D단계 절에 바뀐 곳 표시.

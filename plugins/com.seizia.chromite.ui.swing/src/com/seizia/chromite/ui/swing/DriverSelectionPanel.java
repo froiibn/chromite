@@ -38,7 +38,8 @@ import java.util.Locale;
 import java.util.TreeSet;
 
 /**
- * 새 연결 1단계: 드라이버 고르기. 검색 칸, 범주 선택, 아이콘이 있는 드라이버 목록.
+ * 드라이버 고르기: 검색 칸, 범주 선택, 아이콘이 있는 드라이버 목록. Connect 대화상자의 "Database type" 콤보에서
+ * "More database types…"를 고르면 열리는 창의 내용이다({@link DatabaseTypeCombo}).
  *
  * 설계: 목록은 모델 계층의 {@link DriverUtils#getAllDrivers()}(활성 공급자의 사용 가능한 드라이버: 꺼짐·대체됨·이 OS 미지원 제외,
  * 이름순)에서 연결을 만들 수 없는 것을 뺀다.
@@ -51,10 +52,12 @@ import java.util.TreeSet;
  *     <li>범주는 드라이버의 {@code getCategories()}를 모은 것이다({@code getCategory()}는 폐기 예정 API라 쓰지 않는다). SWT의 범주 탭 대신 콤보 하나로 거른다.</li>
  *     <li>아이콘은 탐색기와 같은 {@link NodeIcons}로 그린다(드라이버 아이콘도 {@code DBPImage}).</li>
  * </ul>
- * 두 번 누르거나 Enter를 누르면 다음 단계로 간다({@code onChoose}).
+ * 두 번 누르거나 Enter를 누르면 고른 것으로 한다({@code onChoose}).
  *
  * 변경 이력:
  * - 2026-11-06 D단계: 최초 작성 (docs/chromite/swing-frontend.md "구현 현황 — D단계")
+ * - 2026-11-06 SSMS식 Connect 대화상자: 새 연결의 1단계 화면에서 "Database type" 콤보의 전체 드라이버 검색 창으로 바꿈.
+ *   콤보도 같은 드라이버 목록을 쓰도록 {@link #getConnectableDrivers()}를 패키지에 공개
  */
 final class DriverSelectionPanel extends JPanel {
 
@@ -68,7 +71,7 @@ final class DriverSelectionPanel extends JPanel {
 
     /**
      * @param onSelectionChanged called when the selected driver changes
-     * @param onChoose           called on double click or Enter (go to the next step)
+     * @param onChoose           called on double click or Enter (the driver is chosen)
      */
     DriverSelectionPanel(@NotNull Runnable onSelectionChanged, @NotNull Runnable onChoose) {
         super(new BorderLayout(0, 8));
@@ -179,7 +182,7 @@ final class DriverSelectionPanel extends JPanel {
      * Drivers a connection can be created with (see the class comment for what is left out).
      */
     @NotNull
-    private static List<DBPDriver> getConnectableDrivers() {
+    static List<DBPDriver> getConnectableDrivers() {
         List<DBPDriver> drivers = new ArrayList<>();
         for (DBPDriver driver : DriverUtils.getAllDrivers()) {
             if (driver.isTemporary() || driver.getDriverStub() != null || driver instanceof DBPDriverWithLicense || driver.isInternalDriver()) {
