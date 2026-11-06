@@ -16,7 +16,6 @@
  */
 package com.seizia.chromite.ui.swing;
 
-import com.formdev.flatlaf.FlatClientProperties;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
@@ -44,34 +43,36 @@ import java.awt.event.WindowEvent;
 import java.util.StringTokenizer;
 
 /**
- * 연결 만들기·편집 대화상자(SSMS "Connect to Server"에 해당).
+ * 연결 만들기·편집 대화상자(SSMS "Connect to Server"에 해당). 한 화면이다.
  *
- * 설계: 새 연결은 두 단계다. 1단계 드라이버 고르기({@link DriverSelectionPanel}), 2단계 범용 설정({@link ConnectionSettingsPanel}).
- * 편집은 2단계만 연다. 저장 방식은 SWT 마법사를 모델 코드로 따른다.
+ * 설계: SSMS처럼 새 연결도 한 화면에서 끝낸다. 맨 위 "Database type" 콤보({@link DatabaseTypeCombo})로 드라이버를 고르면 그 아래
+ * 설정 화면({@link ConnectionSettingsPanel})을 그 드라이버에 맞게 다시 만든다. "Options >>"는 설정 화면 아래의 탭(연결 속성, 드라이버·공급자 속성,
+ * 추가 연결 매개변수)을 펼치거나 접는다. 단추는 왼쪽에 Test Connection, 오른쪽에 Connect(편집은 Save) / Cancel / Options.
+ * Help는 열 문서(사용자용 도움말 주소)가 아직 없어 두지 않는다. 저장 방식은 SWT 마법사를 모델 코드로 따른다.
  * <ul>
  *     <li>새 연결(SWT {@code ConnectionWizard.getActiveDataSource}, {@code NewConnectionWizard.persistDataSource}):
  *     활성 프로젝트의 레지스트리로 아직 등록하지 않은 {@link DataSourceDescriptor}를 만들고(기본 연결 종류, 기본 클라이언트,
- *     비밀번호 저장 켬), Save에서 폼 값을 쓴 뒤 {@code DBPDataSourceRegistry.addDataSource}로 등록한다.
+ *     비밀번호 저장 켬), Connect에서 폼 값을 쓴 뒤 {@code DBPDataSourceRegistry.addDataSource}로 등록하고 SSMS처럼 바로 연결한다
+ *     ({@link ConnectionCommands#connect}, 연결 Job. 실패하면 연결 서비스가 오류를 보이고 연결 설정은 남는다).
  *     {@code addDataSource}가 설정 파일({@code .dbeaver/data-sources.json})을 바로 저장하고 {@code OBJECT_ADD} 이벤트를 보내므로
  *     Object Explorer가 이벤트로 새 연결을 보여 준다. 드라이버를 바꾸면 이전 드라이버로 만든 연결은 버린다.</li>
- *     <li>편집(SWT {@code EditConnectionWizard}): 원본의 사본(ID 같음)에서 폼을 채우고, Save에서 바뀐 것이 있을 때만
- *     원본에 쓰고 {@code persistConfiguration}으로 저장한다. 연결 중이면 다시 연결할지 묻는다.</li>
+ *     <li>편집(SWT {@code EditConnectionWizard}): 원본의 사본(ID 같음)에서 폼을 채우고(Database type은 바꿀 수 없음), Save에서 바뀐 것이
+ *     있을 때만 원본에 쓰고 {@code persistConfiguration}으로 저장한다. 연결 중이면 다시 연결할지 묻는다.</li>
  *     <li>Test Connection(SWT {@code ConnectionWizard.testConnection}): 폼 값을 쓴 임시 연결(새 ID, 임시, 메타데이터용
  *     별도 연결 없음)로 모델의 {@link ConnectionTestJob}을 돌리고, 진행 대화상자(취소 가능)에서 기다린 뒤 서버·드라이버 버전을 보여 준다.</li>
  *     <li>이름: 비워 두면 SWT 기본 이름 규칙({@code ${host_or_database}}, {@code ConnectionNameResolver}의 legacy 규칙: DB 이름 →
  *     호스트 → 서버 → 드라이버 이름)으로 만들고, 다른 연결과 겹치면 {@code DataSourceUtils.generateUniqueDataSourceName}으로 번호를 붙인다.
  *     사용자가 바꾼 이름 규칙 설정({@code navigator.settings.default.connectionPattern})은 아직 읽지 않는다.</li>
+ *     <li>기록: Connect·Save가 끝나면 서버 이름과 드라이버를 {@link ConnectionHistory}에 넣는다(Server name 목록, Database type 콤보의 최근 항목).</li>
  * </ul>
- * 연결 폴더, 연결 종류(개발·운영 등), 읽기 전용, 탐색기 설정, 필터, 초기화 SQL, 네트워크 핸들러(SSH 등)는 SWT의 다른 페이지 몫이라
- * 여기서 바꾸지 않는다(편집할 때는 원래 값이 그대로 남는다).
+ * 연결 폴더, 탐색기 설정, 필터, 초기화 SQL, 네트워크 핸들러(SSH 등)는 SWT의 다른 페이지 몫이라 여기서 바꾸지 않는다(편집할 때는 원래 값이 그대로 남는다).
  *
  * 변경 이력:
  * - 2026-11-06 D단계: 최초 작성 (docs/chromite/swing-frontend.md "구현 현황 — D단계")
+ * - 2026-11-06 SSMS식 Connect 대화상자: 2단계 마법사(드라이버 고르기 → 설정, Back/Next) → 한 화면(Database type 콤보, Options >>),
+ *   새 연결의 Save → Connect(저장하고 연결), 서버·드라이버 기록, 테마 키로 읽는 색 (docs/chromite/swing-frontend.md "Connect 대화상자 (SSMS식)")
  */
 final class ConnectionDialog extends JDialog {
-
-    private static final String DRIVER_PAGE = "driver"; //$NON-NLS-1$
-    private static final String SETTINGS_PAGE = "settings"; //$NON-NLS-1$
 
     private final DBPDataSourceRegistry registry;
     @Nullable
@@ -79,11 +80,8 @@ final class ConnectionDialog extends JDialog {
     @Nullable
     private final DBPDataSourceFolder folder;
 
-    private final CardLayout cards = new CardLayout();
-    private final JPanel cardPanel = new JPanel(cards);
     private final JPanel settingsHolder = new JPanel(new BorderLayout());
-    @Nullable
-    private final DriverSelectionPanel driverPanel;
+    private final DatabaseTypeCombo databaseTypeCombo;
     @Nullable
     private ConnectionSettingsPanel settingsPanel;
     /**
@@ -93,21 +91,20 @@ final class ConnectionDialog extends JDialog {
     private DataSourceDescriptor working;
     private boolean registered;
 
-    private final JLabel headerLabel = new JLabel();
     private final JLabel problemLabel = new JLabel(" ");
-    private final JButton backButton = new JButton("< Back");
-    private final JButton nextButton = new JButton("Next >");
     private final JButton testButton = new JButton("Test Connection");
-    private final JButton saveButton = new JButton("Save");
+    private final JButton connectButton;
     private final JButton cancelButton = new JButton("Cancel");
+    private final JButton optionsButton = new JButton("Options >>");
 
     private ConnectionDialog(
         @Nullable Window owner,
         @NotNull DBPDataSourceRegistry registry,
         @Nullable DataSourceDescriptor original,
-        @Nullable DBPDataSourceFolder folder
+        @Nullable DBPDataSourceFolder folder,
+        @NotNull DBPDriver driver
     ) {
-        super(owner, original == null ? "New Connection" : "Edit Connection - " + original.getName(), ModalityType.APPLICATION_MODAL);
+        super(owner, original == null ? "Connect to Server" : "Edit Connection - " + original.getName(), ModalityType.APPLICATION_MODAL);
         this.registry = registry;
         this.original = original;
         this.folder = folder;
@@ -120,51 +117,39 @@ final class ConnectionDialog extends JDialog {
             }
         });
 
-        headerLabel.putClientProperty(FlatClientProperties.STYLE_CLASS, "h3"); //$NON-NLS-1$
-        headerLabel.setBorder(BorderFactory.createEmptyBorder(12, 14, 6, 14));
+        databaseTypeCombo = new DatabaseTypeCombo(driver, this::driverSelected);
+        // The driver of an existing connection is not changed here (SWT: a separate "driver type" action)
+        databaseTypeCombo.setEnabled(original == null);
 
-        if (original == null) {
-            driverPanel = new DriverSelectionPanel(this::updateButtons, this::showSettingsPage);
-            driverPanel.setBorder(BorderFactory.createEmptyBorder(4, 14, 4, 14));
-            cardPanel.add(driverPanel, DRIVER_PAGE);
-        } else {
-            driverPanel = null;
-        }
-        cardPanel.add(settingsHolder, SETTINGS_PAGE);
-
-        backButton.addActionListener(e -> showDriverPage());
-        nextButton.addActionListener(e -> showSettingsPage());
+        connectButton = new JButton(original == null ? "Connect" : "Save");
         testButton.addActionListener(e -> testConnection());
-        saveButton.addActionListener(e -> save());
+        connectButton.addActionListener(e -> save());
         cancelButton.addActionListener(e -> close());
+        optionsButton.addActionListener(e -> toggleOptions());
+        optionsButton.setToolTipText("Connection properties, driver and provider properties, additional connection parameters");
 
-        problemLabel.putClientProperty(FlatClientProperties.STYLE, "foreground: $Component.error.focusedBorderColor"); //$NON-NLS-1$
+        problemLabel.setForeground(getThemeColor("Chromite.status.error", "Component.error.focusedBorderColor", Color.RED)); //$NON-NLS-1$ //$NON-NLS-2$
         JPanel buttons = new JPanel(new FlowLayout(FlowLayout.RIGHT, 6, 0));
-        if (original == null) {
-            buttons.add(backButton);
-            buttons.add(nextButton);
-        }
-        buttons.add(saveButton);
+        buttons.add(connectButton);
         buttons.add(cancelButton);
-        JPanel south = new JPanel(new BorderLayout(8, 0));
-        south.setBorder(BorderFactory.createEmptyBorder(8, 14, 12, 14));
-        JPanel left = new JPanel(new BorderLayout(10, 0));
+        buttons.add(optionsButton);
+        JPanel south = new JPanel(new BorderLayout(12, 0));
+        south.setBorder(BorderFactory.createEmptyBorder(20, 0, 0, 0));
+        JPanel left = new JPanel(new BorderLayout(12, 0));
         left.add(testButton, BorderLayout.WEST);
         left.add(problemLabel, BorderLayout.CENTER);
         south.add(left, BorderLayout.CENTER);
         south.add(buttons, BorderLayout.EAST);
 
         JPanel content = new JPanel(new BorderLayout());
-        content.add(headerLabel, BorderLayout.NORTH);
-        content.add(cardPanel, BorderLayout.CENTER);
+        // Dialog insets of docs/chromite/design-spec.md "11. 대화상자" (10, 12)
+        content.setBorder(BorderFactory.createEmptyBorder(10, 12, 10, 12));
+        content.add(settingsHolder, BorderLayout.CENTER);
         content.add(south, BorderLayout.SOUTH);
         setContentPane(content);
+        getRootPane().setDefaultButton(connectButton);
         getRootPane().registerKeyboardAction(e -> close(),
             KeyStroke.getKeyStroke(KeyEvent.VK_ESCAPE, 0), JComponent.WHEN_IN_FOCUSED_WINDOW);
-
-        setSize(new Dimension(720, 620));
-        setMinimumSize(new Dimension(560, 480));
-        setLocationRelativeTo(owner);
 
         if (original != null) {
             working = registry.createDataSource(original);
@@ -172,11 +157,18 @@ final class ConnectionDialog extends JDialog {
             if (!working.isSavePassword()) {
                 working.resetPassword();
             }
-            createSettingsPanel(false);
-            showCard(SETTINGS_PAGE);
         } else {
-            showCard(DRIVER_PAGE);
+            working = createNewDataSource(driver);
         }
+        createSettingsPanel(original == null);
+        fitToContent();
+        setLocationRelativeTo(owner);
+        // Only when the dialog opens: after a driver change the focus stays in the Database type combo
+        SwingUtilities.invokeLater(() -> {
+            if (settingsPanel != null) {
+                settingsPanel.focusFirstField();
+            }
+        });
     }
 
     /**
@@ -185,75 +177,91 @@ final class ConnectionDialog extends JDialog {
      * @param folder connection folder of the new connection (the folder selected in Object Explorer)
      */
     static void openNew(@Nullable Window owner, @NotNull DBPProject project, @Nullable DBPDataSourceFolder folder) {
-        new ConnectionDialog(owner, project.getDataSourceRegistry(), null, folder).setVisible(true);
+        DBPDriver driver = DatabaseTypeCombo.getDefaultDriver();
+        if (driver == null) {
+            DBWorkbench.getPlatformUI().showError("New Connection", "There are no database drivers.");
+            return;
+        }
+        new ConnectionDialog(owner, project.getDataSourceRegistry(), null, folder, driver).setVisible(true);
     }
 
     /**
      * Edits a connection ({@code DBPPlatformUI.openConnectionEditor}, Object Explorer). Blocks until the dialog is closed.
      */
     static void openEdit(@Nullable Window owner, @NotNull DataSourceDescriptor dataSource) {
-        new ConnectionDialog(owner, dataSource.getRegistry(), dataSource, null).setVisible(true);
+        new ConnectionDialog(owner, dataSource.getRegistry(), dataSource, null, dataSource.getDriver()).setVisible(true);
+    }
+
+    /**
+     * A theme color: the Chromite token key (docs/chromite/design-spec.md "색 토큰"), else the FlatLaf key, else the fallback.
+     */
+    @NotNull
+    static Color getThemeColor(@NotNull String chromiteKey, @NotNull String flatLafKey, @NotNull Color fallback) {
+        Color color = UIManager.getColor(chromiteKey);
+        if (color == null) {
+            color = UIManager.getColor(flatLafKey);
+        }
+        return color != null ? color : fallback;
     }
 
     //////////////////////////////////////////////////////////
-    // Pages
+    // Layout
 
-    private void showDriverPage() {
-        if (driverPanel == null) {
+    private void driverSelected(@NotNull DBPDriver driver) {
+        if (original != null || working == null || working.getDriver() == driver) {
             return;
         }
-        showCard(DRIVER_PAGE);
-        driverPanel.focusSearch();
-    }
-
-    private void showSettingsPage() {
-        DBPDriver driver = driverPanel == null ? null : driverPanel.getSelectedDriver();
-        if (driver == null) {
-            return;
-        }
-        if (working == null || working.getDriver() != driver) {
-            if (working != null) {
-                // Another driver: the connection made for the previous one is not needed any more
-                working.dispose();
-            }
-            working = createNewDataSource(driver);
-            createSettingsPanel(true);
-        }
-        showCard(SETTINGS_PAGE);
-        settingsPanel.focusFirstField();
-    }
-
-    private void showCard(@NotNull String card) {
-        cards.show(cardPanel, card);
-        boolean settings = SETTINGS_PAGE.equals(card);
-        if (original != null) {
-            headerLabel.setText("Edit connection settings");
-        } else {
-            headerLabel.setText(settings && working != null
-                ? "Connection settings: " + working.getDriver().getName()
-                : "Connect to a database");
-        }
-        getRootPane().setDefaultButton(settings ? saveButton : nextButton);
-        updateButtons();
+        // Another driver: the connection made for the previous one is not needed any more
+        working.dispose();
+        working = createNewDataSource(driver);
+        createSettingsPanel(true);
+        fitToContent();
     }
 
     private void createSettingsPanel(boolean isNew) {
+        boolean optionsVisible = settingsPanel != null && settingsPanel.isOptionsVisible();
         settingsHolder.removeAll();
-        settingsPanel = new ConnectionSettingsPanel(working, isNew, this::updateButtons);
+        settingsPanel = new ConnectionSettingsPanel(working, isNew, databaseTypeCombo, this::updateButtons);
+        settingsPanel.setOptionsVisible(optionsVisible);
         settingsHolder.add(settingsPanel, BorderLayout.CENTER);
         settingsHolder.revalidate();
         settingsHolder.repaint();
+        updateButtons();
+    }
+
+    private void toggleOptions() {
+        if (settingsPanel == null) {
+            return;
+        }
+        settingsPanel.setOptionsVisible(!settingsPanel.isOptionsVisible());
+        fitToContent();
+    }
+
+    /**
+     * Sizes the dialog to the form: as tall as the content (with the options tabs, a taller size the user made is kept),
+     * never narrower than now.
+     */
+    void fitToContent() {
+        boolean optionsVisible = settingsPanel != null && settingsPanel.isOptionsVisible();
+        optionsButton.setText(optionsVisible ? "Options <<" : "Options >>");
+        Dimension current = isShowing() ? getSize() : null;
+        setMinimumSize(null);
+        // pack: the preferred size includes the window frame only once the dialog is displayable
+        pack();
+        Dimension preferred = getSize();
+        int width = Math.max(Math.max(preferred.width, 640), current == null ? 0 : current.width);
+        int height = optionsVisible && current != null ? Math.max(preferred.height, current.height) : preferred.height;
+        setMinimumSize(new Dimension(520, optionsVisible ? Math.min(preferred.height, 480) : preferred.height));
+        setSize(width, height);
+        validate();
     }
 
     private void updateButtons() {
-        // CardLayout hides the cards that are not shown
-        boolean settings = settingsPanel != null && (original != null || settingsHolder.isVisible());
-        String problem = settings ? settingsPanel.validateSettings() : null;
-        backButton.setEnabled(settings && original == null);
-        nextButton.setEnabled(!settings && driverPanel != null && driverPanel.getSelectedDriver() != null);
-        testButton.setEnabled(settings && problem == null);
-        saveButton.setEnabled(settings && problem == null);
-        problemLabel.setText(problem == null ? " " : problem);
+        String problem = settingsPanel == null ? "" : settingsPanel.validateSettings();
+        testButton.setEnabled(problem == null);
+        connectButton.setEnabled(problem == null);
+        problemLabel.setText(CommonUtils.isEmpty(problem) ? " " : problem);
+        problemLabel.setToolTipText(CommonUtils.isEmpty(problem) ? null : problem);
     }
 
     /**
@@ -348,7 +356,10 @@ final class ConnectionDialog extends JDialog {
                 return;
             }
             registered = true;
+            rememberHistory();
             dispose();
+            // SSMS: Connect saves the connection and connects to it
+            ConnectionCommands.connect(working);
             return;
         }
 
@@ -374,10 +385,23 @@ final class ConnectionDialog extends JDialog {
                 return;
             }
         }
+        rememberHistory();
         close();
         if (changed && original.isConnected() && DBWorkbench.getPlatformUI().confirmAction("Connection changed",
             "Connection '" + original.getName() + "' has been changed. Do you want to reconnect?")) {
             ConnectionCommands.reconnect(original);
+        }
+    }
+
+    private void rememberHistory() {
+        if (settingsPanel == null) {
+            return;
+        }
+        DBPDriver driver = settingsPanel.getDriver();
+        ConnectionHistory.addRecentDriver(driver);
+        String server = settingsPanel.getServerHistoryEntry();
+        if (server != null) {
+            ConnectionHistory.addServer(driver, server);
         }
     }
 
