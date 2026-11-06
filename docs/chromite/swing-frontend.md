@@ -1712,3 +1712,4 @@ Windows 11, 화면 배율 150%, JBR 25, 작업 공간 사본 `D:\Tools\_smoke\sw
 - 2026-11-06 개체 정의 편집: Object Explorer의 Modify, Script as ▸ ALTER To, New View… / New Procedure… / New Function…. [swing-source-editor.md](swing-source-editor.md).
 - 2026-11-06 백업·복원: Object Explorer의 데이터베이스 Tasks ▸ Back Up… / Restore…(SQL Server T-SQL, PostgreSQL·MySQL 로컬 클라이언트 도구). [swing-backup-restore.md](swing-backup-restore.md).
 - 2026-11-06 테이블 복사: Object Explorer Tasks > Copy Tables…, Export Data…의 "Database" 대상(다른 연결·DB로 테이블 복사, 매핑·대상 DDL 미리 보기). [swing-data-transfer.md](swing-data-transfer.md) "테이블 복사".
+- 2026-11-06 보안 편집기: 로그인·사용자·역할 속성과 새로 만들기·삭제, 테이블·뷰·루틴의 사용 권한(SQL Server, PostgreSQL, MySQL/MariaDB). [swing-security.md](swing-security.md).

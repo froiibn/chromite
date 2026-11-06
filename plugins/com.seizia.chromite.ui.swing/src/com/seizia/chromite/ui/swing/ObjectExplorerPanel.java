@@ -19,10 +19,12 @@ package com.seizia.chromite.ui.swing;
 import com.formdev.flatlaf.FlatClientProperties;
 import com.formdev.flatlaf.ui.FlatUIUtils;
 import com.formdev.flatlaf.util.UIScale;
+import com.seizia.chromite.model.admin.security.SecurityPrincipal;
 import com.seizia.chromite.ui.swing.internal.BackupRestoreMessages;
 import com.seizia.chromite.ui.swing.internal.CoreMessages;
 import com.seizia.chromite.ui.swing.internal.DbCopyMessages;
 import com.seizia.chromite.ui.swing.internal.ErdMessages;
+import com.seizia.chromite.ui.swing.internal.SecurityMessages;
 import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.Status;
 import org.eclipse.osgi.util.NLS;
@@ -132,6 +134,8 @@ import java.util.function.Consumer;
  *     테이블·뷰 또는 그것들을 담은 스키마·폴더에서 내보내기({@link DataExportWizard}). Copy Tables…는 같은 원본을 다른 연결·데이터베이스로 복사한다
  *     ({@link DataExportWizard#openForCopy}).</li>
  *     <li>Tasks &gt; Back Up… / Restore…(SSMS 데이터베이스 Tasks 메뉴): 데이터베이스 백업·복원({@link BackupRestoreCommands}).</li>
+ *     <li>보안({@link SecurityCommands}): 로그인·사용자·역할의 Properties와 Delete, Logins·Roles·Users 폴더의 New Login/Role/User…,
+ *     테이블·뷰·시퀀스·루틴의 Permissions…</li>
  * </ul>
  *
  * 변경 이력:
@@ -159,6 +163,8 @@ import java.util.function.Consumer;
  * - 2026-11-06 개체 정의 편집: Modify, Script as &gt; ALTER To, New View/Procedure/Function 메뉴 (docs/chromite/swing-source-editor.md)
  * - 2026-11-06 백업·복원: Tasks &gt; Back Up… / Restore… 메뉴 (docs/chromite/swing-backup-restore.md)
  * - 2026-11-06 테이블 복사: Tasks &gt; Copy Tables… 메뉴, 내보내기 마법사에 쿼리 창 열기를 넘김 (docs/chromite/swing-data-transfer.md)
+ * - 2026-11-06 보안 편집기: Properties·New Login/Role/User…·Permissions… 메뉴, 주체 Delete, 실행 뒤 폴더 새로 고침(refreshNavigatorNode)
+ *   (docs/chromite/swing-security.md)
  */
 final class ObjectExplorerPanel extends JPanel {
 
@@ -257,6 +263,9 @@ final class ObjectExplorerPanel extends JPanel {
     private final Action designAction;
     private final Action newTableAction;
     private final Action viewDiagramAction;
+    private final Action principalPropertiesAction;
+    private final Action newPrincipalAction;
+    private final Action objectPermissionsAction;
     private final JMenu scriptAsMenu;
     private final JMenu createToMenu;
     private final JMenu selectToMenu;
@@ -390,6 +399,25 @@ final class ObjectExplorerPanel extends JPanel {
             }
         });
         viewDiagramAction.putValue(Action.SHORT_DESCRIPTION, ErdMessages.erd_view_diagram_tip);
+        principalPropertiesAction = createAction(SecurityMessages.security_properties, () -> {
+            DBSObject object = getSelectedObject();
+            if (object != null) {
+                SecurityCommands.openProperties(this, object, queryWindows);
+            }
+        });
+        principalPropertiesAction.putValue(Action.SHORT_DESCRIPTION, SecurityMessages.security_properties_tip);
+        newPrincipalAction = createAction(SecurityMessages.security_new_login, () -> {
+            if (getSelectedNavigatorNode() instanceof DBNDatabaseFolder folder) {
+                SecurityCommands.newPrincipal(this, folder, queryWindows);
+            }
+        });
+        objectPermissionsAction = createAction(SecurityMessages.security_permissions, () -> {
+            DBSObject object = getSelectedObject();
+            if (object != null) {
+                SecurityCommands.openObjectPermissions(this, object, queryWindows);
+            }
+        });
+        objectPermissionsAction.putValue(Action.SHORT_DESCRIPTION, SecurityMessages.security_permissions_tip);
         createToMenu = new JMenu(CoreMessages.explorer_create_to);
         createToMenu.add(createAction(CoreMessages.explorer_new_query_window, () -> scriptSelected(queryWindows, false, false)));
         createToMenu.add(createAction(CoreMessages.explorer_clipboard, () -> scriptSelected(queryWindows, false, true)));
@@ -473,6 +501,8 @@ final class ObjectExplorerPanel extends JPanel {
         deleteAction = createAction(CoreMessages.explorer_delete, () -> {
             if (getSelectedNavigatorNode() instanceof DBNDataSource node) {
                 ConnectionCommands.delete(this, node.getDataSourceContainer());
+            } else if (SecurityCommands.canOpenProperties(getSelectedObject())) {
+                SecurityCommands.deletePrincipal(this, getSelectedObject(), queryWindows);
             }
         });
         deleteAction.putValue(Action.ACCELERATOR_KEY, KeyStroke.getKeyStroke(KeyEvent.VK_DELETE, 0));
@@ -507,8 +537,10 @@ final class ObjectExplorerPanel extends JPanel {
         popupMenu.add(sourceEditCommands.getNewViewAction());
         popupMenu.add(sourceEditCommands.getNewProcedureAction());
         popupMenu.add(sourceEditCommands.getNewFunctionAction());
+        popupMenu.add(newPrincipalAction);
         popupMenu.add(designAction);
         popupMenu.add(sourceEditCommands.getModifyAction());
+        popupMenu.add(objectPermissionsAction);
         popupMenu.add(selectTopAction);
         popupMenu.add(scriptAsMenu);
         popupMenu.add(viewDdlAction);
@@ -529,6 +561,7 @@ final class ObjectExplorerPanel extends JPanel {
         popupMenu.addSeparator();
         popupMenu.add(filterAction);
         popupMenu.add(refreshAction);
+        popupMenu.add(principalPropertiesAction);
         popupMenu.addPopupMenuListener(new PopupMenuListener() {
             @Override
             public void popupMenuWillBecomeVisible(PopupMenuEvent e) {
@@ -718,7 +751,13 @@ final class ObjectExplorerPanel extends JPanel {
         findObjectsAction.setEnabled(projectNode != null);
         editConnectionAction.setEnabled(connectionNode);
         renameAction.setEnabled(connectionNode);
-        deleteAction.setEnabled(connectionNode);
+        boolean principal = SecurityCommands.canOpenProperties(object);
+        deleteAction.setEnabled(connectionNode || principal);
+        principalPropertiesAction.setEnabled(principal);
+        SecurityPrincipal.Kind newPrincipalKind = SecurityCommands.getNewPrincipalKind(getSelectedNavigatorNode());
+        newPrincipalAction.putValue(Action.NAME, SecurityCommands.getNewPrincipalLabel(newPrincipalKind));
+        newPrincipalAction.setEnabled(newPrincipalKind != null);
+        objectPermissionsAction.setEnabled(SecurityCommands.canEditPermissions(object));
         filterAction.setEnabled(getSelectedNavigatorNode() instanceof DBNDatabaseFolder folder && folder.getItemsMeta() != null);
     }
 
@@ -775,6 +814,21 @@ final class ObjectExplorerPanel extends JPanel {
             loadChildren(node, true);
             tree.expandPath(path);
         }
+    }
+
+    /**
+     * Reads a node again from the database as Refresh (F5) on it does, if the tree shows its children (security editors after
+     * executing a change: a new, renamed or dropped login appears in its folder).
+     *
+     * @return false if the tree has not read the node's children (the caller refreshes the navigator model itself)
+     */
+    boolean refreshNavigatorNode(@NotNull DBNNode node) {
+        ExplorerNode explorerNode = findExplorerNode(node);
+        if (explorerNode == null || explorerNode.state == LoadState.NOT_LOADED) {
+            return false;
+        }
+        loadChildren(explorerNode, true);
+        return true;
     }
 
     /**
