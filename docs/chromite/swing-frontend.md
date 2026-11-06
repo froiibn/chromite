@@ -488,6 +488,8 @@ B단계는 `JSplitPane`만 쓴다. (2026-11-06 사용자가 끌어서 옮기기�
   JetBrains·Microsoft의 테마 파일과 아이콘은 쓰지 않고 색감만 참고했다.
 - View > Theme에서 바꾸면 바로 `FlatLaf.setup()` + `FlatLaf.updateUI()`로 열린 모든 창을 다시 그리고, 설정에 저장해 다음 시작에도 쓴다.
   Look and Feel 색을 쓰는 직접 만든 테두리(상태 표시줄, 도구 창 머리말)는 `updateUI()`에서 다시 만든다.
+- 스크롤바 트랙은 스크롤하는 내용(뷰)의 바탕색으로 칠한다(`ChromiteScrollBarUI`). 편집기는 트리 갱신이 끝난 뒤 테마 색을 다시 적용하므로,
+  스크롤바 UI가 뷰·뷰포트의 `background`·`opaque` 변경을 듣고 스크롤바를 다시 그린다(2026-11-07, 그 전에는 트랙이 옛 테마 색으로 남았다).
 - 시작 순서: 작업 공간을 잠그기 전에는 설정을 읽을 수 없으므로(인스턴스 위치가 정해지기 전) 시작 오류 대화상자용으로 라이트 테마를 먼저 설치하고,
   메인 창을 열기 직전에 저장된 테마로 바꾼다.
 
@@ -2194,3 +2196,4 @@ EDT 에이전트로 단추를 누르고(`doClick`) 결과를 읽었다. 캡처�
 - 2026-11-07 후속 수정(편집기·결과·도구): 자동완성 프로시저 제안 설정, 날짜/시간 데이터베이스 형식 설정, 남은 영어 문구 등. [swing-followup-fixes.md](swing-followup-fixes.md).
 - 2026-11-07 서버 대시보드: Activity Monitor 첫 탭 "개요"(연결별 실시간 차트), Tools·Object Explorer의 Server Dashboard. [swing-dashboard.md](swing-dashboard.md).
 - 2026-11-07 드라이버 관리자: Tools > Driver Manager…, Connect 대화상자의 Edit Driver…(드라이버 만들기·편집, 로컬 jar·폴더 라이브러리, 오프라인 모드). [swing-driver-manager.md](swing-driver-manager.md).
+- 2026-11-07 테마 전환 뒤 SQL 편집기·값 패널 세로 스크롤바 트랙이 옛 테마 색으로 남던 문제: `ChromiteScrollBarUI`가 뷰 바탕색 변경을 듣고 다시 그린다. "테마" 절.
