@@ -113,6 +113,8 @@ import java.util.concurrent.atomic.AtomicLong;
  *     <li>파일: 편집기는 텍스트만 다루고, 파일의 문자 집합·BOM·줄바꿈은 {@link SqlFileContent}로 기억해 저장할 때 되살린다.
  *     파일 대화상자와 최근 파일 목록은 메인 창이 맡는다. 문서가 바뀌면 고침 표시를 켜고 탭 제목 끝에 {@code *}를 붙인다.</li>
  *     <li>자동완성: {@link SqlCompletionPopup}(Ctrl+Space, {@code .}·글자 입력 뒤 자동)이 편집기의 현재 연결로 제안을 계산한다.</li>
+ *     <li>결과 편집: 결과 표에 저장하지 않은 변경이 있으면 다시 실행하기 전에 버릴지 묻고(실행하면 결과 표를 새로 만든다), 저장 중에는 실행하지 않는다.
+ *     닫을 때·끝낼 때 묻기는 메인 창이 {@link #hasPendingResultChanges}, {@link #saveResultChanges}로 한다.</li>
  * </ul>
  *
  * 변경 이력:
@@ -120,6 +122,7 @@ import java.util.concurrent.atomic.AtomicLong;
  * - 2026-11-06 E단계: 연결 없는 편집기, 연결·기본 스키마 콤보, 파일 내용과 고침 표시, 편집기별 최대 행 수
  *   (docs/chromite/swing-frontend.md "구현 현황 — E단계")
  * - 2026-11-06 F단계: 자동완성 팝업 연결 (docs/chromite/swing-frontend.md "구현 현황 — F단계")
+ * - 2026-11-06 G단계: 결과 표 편집 상태(다시 실행 전 확인, 저장 중 실행 막기, 닫을 때 저장) (docs/chromite/swing-frontend.md "구현 현황 — G단계")
  */
 final class SqlEditorPanel extends JPanel {
 
@@ -171,7 +174,17 @@ final class SqlEditorPanel extends JPanel {
     private SchemaState schemaState;
     private final SqlTextArea textArea;
     private final SqlCompletionPopup completion;
-    private final QueryResultsView resultsView = new QueryResultsView();
+    private final QueryResultsView resultsView = new QueryResultsView(new QueryResultsView.Listener() {
+        @Override
+        public void showMessages() {
+            host.showResults(SqlEditorPanel.this, true);
+        }
+
+        @Override
+        public void resultsEditStateChanged() {
+            updateActions();
+        }
+    });
     private final Action executeAction;
     private final Action cancelAction;
     private final JLabel statusLabel = new JLabel();
@@ -355,6 +368,30 @@ final class SqlEditorPanel extends JPanel {
         return execution != null;
     }
 
+    /**
+     * Unsaved changes in the result grids (closing the window asks to save them).
+     */
+    boolean hasPendingResultChanges() {
+        return resultsView.getChangeCount() > 0;
+    }
+
+    int getPendingResultChangeCount() {
+        return resultsView.getChangeCount();
+    }
+
+    boolean isSavingResults() {
+        return resultsView.isSaving();
+    }
+
+    /**
+     * Saves the result grids' changes, waiting in a progress dialog.
+     *
+     * @return false if a save failed (the error is in the Messages tab)
+     */
+    boolean saveResultChanges() {
+        return resultsView.saveChanges();
+    }
+
     void focusEditor() {
         textArea.requestFocusInWindow();
     }
@@ -474,6 +511,10 @@ final class SqlEditorPanel extends JPanel {
         if (execution != null) {
             return;
         }
+        if (resultsView.isSaving()) {
+            statusLabel.setText("Saving result changes…");
+            return;
+        }
         String text = textArea.getText();
         int selectionStart = textArea.getSelectionStart();
         int selectionEnd = textArea.getSelectionEnd();
@@ -492,6 +533,16 @@ final class SqlEditorPanel extends JPanel {
             JOptionPane.showMessageDialog(this, "Choose a connection for this query window in its tool bar first.",
                 "Execute", JOptionPane.INFORMATION_MESSAGE);
             return;
+        }
+        int pendingChanges = resultsView.getChangeCount();
+        if (pendingChanges > 0) {
+            String[] options = {"Discard and Execute", "Cancel"};
+            if (JOptionPane.showOptionDialog(this,
+                "The results have " + pendingChanges + (pendingChanges == 1 ? " unsaved change" : " unsaved changes")
+                    + ".\nExecuting the query replaces them. Discard the changes?",
+                "Execute", JOptionPane.OK_CANCEL_OPTION, JOptionPane.WARNING_MESSAGE, null, options, options[1]) != 0) {
+                return;
+            }
         }
 
         long connectionMaxRows = container.getPreferenceStore().getInt(ModelPreferences.RESULT_SET_MAX_ROWS);
@@ -539,7 +590,7 @@ final class SqlEditorPanel extends JPanel {
     }
 
     private void updateActions() {
-        executeAction.setEnabled(execution == null);
+        executeAction.setEnabled(execution == null && !resultsView.isSaving());
         cancelAction.setEnabled(execution != null && !execution.cancelRequested);
         // The connection and its defaults stay as they are while a query runs on them
         connectionCombo.setEnabled(execution == null);
@@ -848,10 +899,10 @@ final class SqlEditorPanel extends JPanel {
         @Override
         public DBDDataReceiver getDataReceiver(@NotNull SQLQuery query, int resultSetNumber) {
             SQLQueryDataContainer dataContainer = new SQLQueryDataContainer(() -> context, query, scriptContext, log);
-            return new ResultSetGridReceiver(dataContainer, data -> {
-                run.rowsFetched.addAndGet(data.rows().size());
+            return new ResultSetGridReceiver(dataContainer, fetched -> {
+                run.rowsFetched.addAndGet(fetched.data().rows().size());
                 post(run, () -> {
-                    resultsView.addGrid(data);
+                    resultsView.addGrid(fetched);
                     rowsLabel.setText(run.rowsFetched.get() + " rows");
                     host.showResults(SqlEditorPanel.this, false);
                 });

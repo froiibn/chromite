@@ -18,6 +18,7 @@
       (docs/chromite/drivers.md).
     - 2026-11-06 Moved with the drivers/ root files into com.seizia.chromite.drivers.public.feature,
       which both the SWT and the Swing product include.
+    - 2026-11-06 Added drivers.mysql (MySQL Connector/J, GPLv2 with the Universal FOSS Exception).
 -->
 <plugin>
 
@@ -26,6 +27,7 @@
         <bundle id="drivers.oracle" label="Oracle JDBC driver" description="ojdbc11, orai18n, xdb6 and xmlparserv2 in drivers/oracle"/>
         <bundle id="drivers.postgresql" label="PostgreSQL JDBC driver" description="pgjdbc in drivers/postgresql, PostGIS in drivers/postgis"/>
         <bundle id="drivers.mariadb" label="MariaDB JDBC driver" description="MariaDB Connector/J in drivers/mariadb"/>
+        <bundle id="drivers.mysql" label="MySQL JDBC driver" description="MySQL Connector/J in drivers/mysql/mysql8"/>
     </extension>
 
 </plugin>
