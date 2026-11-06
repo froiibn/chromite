@@ -206,6 +206,8 @@
 
                 <!-- Chromite Swing frontend (no SWT), docs/chromite/swing-frontend.md -->
                 <module>com.seizia.chromite.ui.swing</module>
+                <!-- Server administration model of the Swing tools (sessions, locks), docs/chromite/swing-admin-tools.md -->
+                <module>com.seizia.chromite.model.admin</module>
             </modules>
         </profile>
     </profiles>

@@ -1,0 +1,18 @@
+Manifest-Version: 1.0
+Bundle-ManifestVersion: 2
+Bundle-Vendor: Chromite contributors
+Bundle-Name: Chromite Server Administration Model
+Bundle-SymbolicName: com.seizia.chromite.model.admin;singleton:=true
+Bundle-Version: 1.0.0.qualifier
+Bundle-RequiredExecutionEnvironment: JavaSE-21
+Bundle-Localization: OSGI-INF/l10n/bundle
+Require-Bundle: org.jkiss.dbeaver.model,
+ org.jkiss.dbeaver.model.jdbc,
+ org.jkiss.dbeaver.ext.postgresql,
+ org.jkiss.dbeaver.ext.mssql,
+ org.jkiss.dbeaver.ext.mysql,
+ org.jkiss.dbeaver.ext.oracle
+Export-Package: com.seizia.chromite.model.admin,
+ com.seizia.chromite.model.admin.mssql,
+ com.seizia.chromite.model.admin.mysql
+Automatic-Module-Name: com.seizia.chromite.model.admin

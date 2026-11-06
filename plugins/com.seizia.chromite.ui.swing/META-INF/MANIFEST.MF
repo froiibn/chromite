@@ -20,6 +20,7 @@ Require-Bundle: org.eclipse.equinox.app,
  org.jkiss.dbeaver.registry,
  org.jkiss.dbeaver.data.transfer,
  org.jkiss.dbeaver.data.office,
+ com.seizia.chromite.model.admin,
  com.github.weisj.jsvg
 Require-Capability: osgi.extender;filter:="(osgi.extender=osgi.serviceloader.registrar)"
 Provide-Capability: osgi.serviceloader;osgi.serviceloader="com.github.weisj.jsvg.logging.LogManager";register:="com.seizia.chromite.ui.swing.JsvgLogManager"
