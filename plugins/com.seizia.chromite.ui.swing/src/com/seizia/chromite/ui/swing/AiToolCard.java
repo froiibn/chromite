@@ -25,6 +25,7 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.seizia.chromite.model.ai.AIFunctionDescriptor;
 import com.seizia.chromite.model.ai.agent.AIToolCatalog;
+import com.seizia.chromite.model.ai.agent.AIToolExecutor;
 import com.seizia.chromite.model.ai.tools.chat.AIAgentChat;
 import com.seizia.chromite.ui.swing.internal.AiMessages;
 import org.eclipse.osgi.util.NLS;
@@ -49,6 +50,8 @@ import java.util.Map;
  *
  * 변경 이력:
  * - 2026-11-07 최초 작성 (docs/chromite/ai-agent.md "2단계")
+ * - 2026-11-07 트랜잭션 질문에 Commit/Roll back으로 답한 호출은 머리말 상태 앞에 "열린 트랜잭션 n개 롤백 →"을 보임(전에는 "완료"만 보여
+ *   롤백으로 답한 commitTransaction이 커밋처럼 보였음)
  */
 final class AiToolCard extends JPanel {
 
@@ -116,6 +119,12 @@ final class AiToolCard extends JPanel {
             stateLabel.putClientProperty(FlatClientProperties.STYLE, "foreground: $Chromite.secondaryForeground"); //$NON-NLS-1$
         } else {
             String state = describeOutcome(outcome);
+            // A Commit / Roll back answer to the transaction question was carried out before the tool ran: it comes first,
+            // so that it stays visible when a narrow tool window cuts the end of the line
+            String before = describeTransactionsBeforeCall(entry.getResult());
+            if (before != null) {
+                state = NLS.bind(AiMessages.ai_tool_state_after_transaction, before, state);
+            }
             String summary = outcome.equals("SUCCESS") ? summarize(entry.getResult()) : errorText(entry.getResult()); //$NON-NLS-1$
             stateLabel.setText(NLS.bind(AiMessages.ai_tool_state, new Object[]{state, formatDuration(entry.getDurationMs()),
                 summary == null ? "" : " - " + summary})); //$NON-NLS-1$ //$NON-NLS-2$
@@ -238,6 +247,29 @@ final class AiToolCard extends JPanel {
             }
             return parts.isEmpty() ? null : String.join(", ", parts); //$NON-NLS-1$
         } catch (RuntimeException e) {
+            return null;
+        }
+    }
+
+    /**
+     * What the user's Commit / Roll back answer did before the call ({@link AIToolExecutor#RESULT_TRANSACTIONS_BEFORE_CALL}).
+     */
+    @Nullable
+    static String describeTransactionsBeforeCall(@Nullable String result) {
+        if (result == null) {
+            return null;
+        }
+        try {
+            JsonElement before = JsonParser.parseString(result).getAsJsonObject().get(AIToolExecutor.RESULT_TRANSACTIONS_BEFORE_CALL);
+            if (before == null || !before.isJsonObject()) {
+                return null;
+            }
+            JsonObject object = before.getAsJsonObject();
+            String count = object.has("count") ? object.get("count").getAsString() : "1"; //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$
+            return NLS.bind("COMMITTED".equals(object.get("action").getAsString()) //$NON-NLS-1$ //$NON-NLS-2$
+                ? AiMessages.ai_tool_transaction_committed : AiMessages.ai_tool_transaction_rolled_back, count);
+        } catch (RuntimeException e) {
+            // Not a JSON object
             return null;
         }
     }

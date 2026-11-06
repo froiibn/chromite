@@ -28,6 +28,7 @@ import org.eclipse.osgi.util.NLS;
  *
  * 변경 이력:
  * - 2026-11-07 최초 작성 (docs/chromite/ai-agent.md "2단계")
+ * - 2026-11-07 {@code ai_tool_transaction_*}, {@code ai_tool_state_after_transaction}: 도구 카드의 트랜잭션 질문 결과
  */
 public class AiMessages extends NLS {
     private static final String BUNDLE_NAME = "com.seizia.chromite.ui.swing.internal.AiMessages"; //$NON-NLS-1$
@@ -83,6 +84,9 @@ public class AiMessages extends NLS {
     public static String ai_summary_truncated;
     public static String ai_summary_transaction_open;
     public static String ai_summary_update_count;
+    public static String ai_tool_transaction_committed;
+    public static String ai_tool_transaction_rolled_back;
+    public static String ai_tool_state_after_transaction;
     public static String ai_outcome_success;
     public static String ai_outcome_error;
     public static String ai_outcome_denied;

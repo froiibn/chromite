@@ -92,6 +92,24 @@
 빈 출력 파일 때문에 MySQL 백업을 다시 실행할 수 없던 것과, psql 일반 형식 복원이 SQL 오류에도 성공으로 보이던 것(#40)은
 [swing-backup-restore.md](swing-backup-restore.md) "실패한 백업과 psql 오류"에 적었다.
 
+## Oracle 프로그램 이름
+
+- 증상: Oracle 세션 목록(`v$session.program`)에 Chromite가 "Chromite 26?2?5 ? Activity Monitor"로 보임(후속 과제 #68).
+- 원인: 인코딩이 아니라 `OracleDataSource.getInternalConnectionProperties`(고치기 전 `OracleDataSource.java:462`)가 이름에서 영문자·숫자·공백이
+  아닌 글자를 모두 `?`로 바꿨다(upstream 그대로, 주석 "Oracle don't like them"). 그래서 `.`과 `-`가 `?`가 되었다. 버전 26.2.5는 #70(버전 0.1.0)
+  전에 본 값이다. 이름은 `DBUtils.getClientApplicationName` → `GeneralUtils.getProductTitle()`(애플리케이션 기여 번들 `com.seizia.chromite.ui.swing`의
+  버전)이라 지금은 `Chromite 0.1.0 - <용도>`다.
+- 드라이버가 받는 값(ojdbc11 23.2.0.0, 제품에 들어 있는 버전, Oracle Free 23ai에서 시험): `(`, `)`가 있거나 48자를 넘으면 연결이
+  ORA-17190으로 실패한다. `.`, `-`, `_`, `/`, `:`, `<>`, `[]`, `=`, `,`, 따옴표, `#`, `\`는 그대로 저장된다. 한글은 AL32UTF8 DB에서 그대로
+  저장되지만 열이 84바이트라 잘린다.
+- 고친 것: 출력 가능한 ASCII(0x20-0x7E)는 두고 `(`, `)`와 ASCII 밖 글자만 `?`로 바꾼다(48자 자르기는 그대로). ASCII 밖 글자를 바꾸는 것은
+  DB 문자 집합에 따라 결과가 달라지지 않게(유니코드가 아닌 DB에서는 어차피 `?`) 하기 위해서다. 연결 용도에 사용자 파일 이름(한글)이 들어갈 수 있다.
+- 같은 이름을 쓰는 다른 드라이버: PostgreSQL `application_name`(pgjdbc `ApplicationName`)과 SQL Server `program_name`(`applicationName`, 64자로 자름)은
+  이름을 바꾸지 않는다. 시험: 둘 다 ASCII 문장부호를 그대로 저장하고, SQL Server는 한글도 그대로, PostgreSQL 17은 ASCII 밖 글자를 서버가 `\xNN`으로
+  바꾼다(서버 동작, 고치지 않음).
+- 확인: 앱에서 FB Oracle·FB PG·FB MSSQL에 작업 모니터를 열고 서버를 따로 조회 → Oracle `Chromite 0.1.0 - Main`, `- Metadata`,
+  `- Activity Monitor`, PostgreSQL `Chromite 0.1.0 - Main <chr_followups_batch_1>`, SQL Server 같은 이름.
+
 ## 확인 (2026-11-07)
 
 Swing 제품(`-vm D:\Tools\jbrsdk-25\bin\server\jvm.dll`, 비공개 작업 공간)을 실행하고 같은 프로세스에 붙인 EDT 시험 에이전트로 조작했다(OS 입력 없음).
@@ -129,3 +147,4 @@ Swing 제품(`-vm D:\Tools\jbrsdk-25\bin\server\jvm.dll`, 비공개 작업 공�
 - 2026-11-07 진행 대화상자의 "Canceling…"과 탭 넘침 단추의 "Show Hidden Tabs"를 화면 언어로(#44).
 - 2026-11-07 데이터 전송 오류의 대상 이름이 `….null`로 나오던 것(#44).
 - 2026-11-07 네이티브 백업·복원 실패 항목을 swing-backup-restore.md로 연결(#40).
+- 2026-11-07 Oracle `v$session.program`에서 `.`·`-`까지 `?`로 바꾸던 것(#68), 위 "Oracle 프로그램 이름".

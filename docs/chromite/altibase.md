@@ -93,6 +93,23 @@ Altibase 테이블은 메모리 테이블스페이스(행을 메모리에 두고
 - 드라이버 jar(`Altibase.jar`)는 Altibase A+ Edition 사용권(비상업 용도, 재배포 조건 있음)이라 저장소와 제품에 넣지 않았다.
   Driver Manager에서 로컬 라이브러리로 추가해 썼다([driver-licenses.md](driver-licenses.md)의 분류 B와 같음).
 
+## 한국어 표시
+
+Altibase 번들의 `OSGI-INF/l10n/bundle_ko.properties`는 DBeaver에서 온 일부 키(영어 392개 중 114개)만 있다. 한국어 화면에서 영어로
+보이던 것 가운데 다음을 더했다(용어는 Oracle 번들과 용어집과 같음).
+
+| 키 | 영어 | 한국어 |
+|---|---|---|
+| `meta.….AltibaseTable.partitionedTable.name` | Partitioned | 분할됨 |
+| `tree.materialized_views.node.name`, `tree.materialized_view.node.name` | Materialized View(s) | 구체화된 뷰 |
+
+남은 것:
+- 속성 창의 범주 머리글 "Statistics"는 번역 파일로 고칠 수 없다. `@Property(category = DBConstants.CAT_STATISTICS)`의 글자를
+  `ObjectPropertyDescriptor.getCategory`가 그대로 돌려주고 번역을 찾지 않는다. 모든 DB에 같은 문제다(후속 과제 #29).
+- 나머지 빠진 키 278개(예: 폴더 `Global metadata`, 속성 `Database 이름`의 "Database"는 generic 번들)와 `plugin.xml`에 글자로 적은
+  폴더 설명(`Procedures`, `Functions`, `Synonyms` 등)은 이번에 고치지 않았다(후속 과제 #24, #26).
+
 ## 변경 이력
 
 - 2026-11-07 최초 작성: Object Explorer 테이블 저장 방식 표시(메모리 빨강, 디스크 파랑, 휘발성 호박색, 하이브리드), 목록 질의 변경.
+- 2026-11-07 한국어 표시: "Partitioned"(분할됨), "Materialized View(s)"(구체화된 뷰) 번역 추가(후속 과제 #61), 위 "한국어 표시".

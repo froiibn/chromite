@@ -71,6 +71,8 @@ SWT: `ValueViewerPanel`(panel/valueviewer/ValueViewerPanel.java:60), `ContentPan
     1,000,000바이트(SWT 기본 `content.cache.maxsize`)까지 읽고 넘으면 "showing the first …"로 알린다. 결과를 지우거나 다시 읽을 때 놓아 준다.
 - **편집:** 표가 편집할 수 있는 칸이고 글자 값이면 패널에서 고친 뒤 Apply(Ctrl+Enter)로 표에 넣는다. 값은 셀 편집기처럼 열의 값 처리기가 만들고(`ResultSetGrid.setCellText`),
   틀린 값이면 아래 줄에 빨간 글자로 이유를 쓴다. 저장은 표의 저장(Ctrl+S, Save)이다. LOB 열은 G단계처럼 읽기 전용이다.
+- **글꼴과 색:** 구문 색은 SQL 편집기 테마 파일(`SqlEditorLight/Dark.xml`), 글꼴은 Messages·오류 상세와 같은 코드 글꼴 `monospaced.font`
+  ([design-spec.md](design-spec.md) `font.code`)다. SQL 편집기 글꼴(`EditorFont`, Options에서 바꿈)은 따르지 않는다.
 - **열고 닫기:** F7, 상태 줄 오른쪽 "Value" 단추(2026-11-07 전에는 필터 줄 오른쪽), 오른쪽 클릭 "Value Panel". 연 상태는 이 실행 동안 다음 결과에도 이어진다.
 
 ### 정렬과 필터
@@ -185,3 +187,4 @@ SWT: 결과 뷰어의 레코드 모드(`ResultSetViewer.toggleMode`).
   SQL Server `datetimeoffset` 편집이 NULL로 저장되던 것. [swing-followup-fixes.md](swing-followup-fixes.md) "날짜/시간 소수 초".
 - 2026-11-07 WHERE 필터 줄(`ResultSetFilterBar`)과 기록을 없애고 열 머리글의 필터·정렬 아이콘과 열 필터 팝업으로 바꿈(사용자 요청). 값 패널·레코드 단추는 상태 줄로.
   [swing-grid-column-filters.md](swing-grid-column-filters.md).
+- 2026-11-07 값 패널 글꼴 설명을 코드에 맞춤: `ResultSetValuePanel` 설계 주석이 "SQL 편집기와 같은 글꼴"이라 했지만 코드와 design-spec.md는 `monospaced.font`(코드는 그대로).

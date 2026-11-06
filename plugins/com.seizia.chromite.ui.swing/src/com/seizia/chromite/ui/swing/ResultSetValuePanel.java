@@ -81,7 +81,9 @@ import java.util.Locale;
  *     <li>JSON은 Gson(모델 번들이 다시 내보내는 {@code com.google.gson})으로 다시 쓴다. 숫자는 원래 글자 그대로 남고(Gson의 지연 숫자), HTML 이스케이프는 끈다.
  *     XML은 JDK 파서로 읽어 들여쓴다. 외부 엔터티와 DTD는 막는다(XXE). 여러 뿌리 요소로 된 조각(SQL Server xml 열)은 감싸서 읽고 자식마다 쓴다.
  *     정리하지 못하면 원래 글자를 보이고 이유를 아래 줄에 쓴다.</li>
- *     <li>글자 보기는 RSyntaxTextArea로 하고(JSON·XML 구문 색), SQL 편집기와 같은 테마 파일·글꼴을 쓴다.</li>
+ *     <li>글자 보기는 RSyntaxTextArea로 하고(JSON·XML 구문 색), SQL 편집기와 같은 테마 파일을 쓴다. 글꼴은 SQL 편집기 글꼴({@link EditorFont})이
+ *     아니라 Messages·오류 상세와 같은 코드 글꼴 {@code monospaced.font}다(design-spec.md {@code font.code}): 값 패널은 결과 쪽 화면이라
+ *     Options의 편집기 글꼴 설정을 따르지 않는다.</li>
  *     <li>편집: 결과 표가 편집할 수 있는 칸이고 글자 값이면 패널에서 고친 뒤 Apply(Ctrl+Enter)로 표에 넣는다. 값은 표의 셀 편집기처럼
  *     열의 값 처리기가 만든다({@link ResultSetGrid#setCellText}). 고치는 중에는 같은 칸이 다시 보여도 글자를 덮어쓰지 않는다.
  *     LOB 열은 표에서도 읽기 전용이라 패널에서도 고치지 않는다.</li>
@@ -92,6 +94,7 @@ import java.util.Locale;
  * - 2026-11-06 최초 작성 (docs/chromite/swing-result-viewer.md "값 패널")
  * - 2026-11-06 화면 문구를 EditorMessages로 옮김(OS 언어를 따름)
  * - 2026-11-07 오류 문구를 {@link ErrorText}로 만듦(클래스 이름이 화면에 나오지 않게, docs/chromite/swing-frontend.md "오류 문구")
+ * - 2026-11-07 설계 설명의 글꼴을 코드와 맞춤: SQL 편집기 글꼴이 아니라 {@code monospaced.font}(docs/chromite/swing-result-viewer.md "값 패널")
  */
 final class ResultSetValuePanel extends JPanel {
 
