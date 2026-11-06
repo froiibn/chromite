@@ -39,6 +39,7 @@ import java.awt.*;
  * - 2026-11-06 화면 문구를 ConnectionMessages로 옮김(OS 언어를 따름)
  * - 2026-11-07 밀도 B: 치수를 테마의 Chromite.size.* 키({@link UiSizes})에서 읽음 (docs/chromite/design-spec.md "치수 토큰")
  * - 2026-11-07 개요 탭(서버 대시보드)을 첫 탭으로 더함 (docs/chromite/swing-dashboard.md)
+ * - 2026-11-07 탭 스타일을 밀도 B 값({@link UiSizes#TOOL_TABS_STYLE}) 하나로: 두 브랜치를 합칠 때 남은 옛 고정값(tabHeight 32) 줄 삭제
  */
 final class ActivityMonitorPanel extends JPanel implements ToolDocument {
 
@@ -62,7 +63,6 @@ final class ActivityMonitorPanel extends JPanel implements ToolDocument {
         lockPanel = new LockManagerPanel(connection);
         tabs.putClientProperty(FlatClientProperties.STYLE, UiSizes.TOOL_TABS_STYLE);
         dashboardPanel = new DashboardPanel(connection);
-        tabs.putClientProperty(FlatClientProperties.STYLE, "tabHeight: 32; tabSelectionHeight: 3"); //$NON-NLS-1$
         tabs.addTab(DashboardMessages.dashboard_tab, UiIcons.get("activity-monitor"), dashboardPanel); //$NON-NLS-1$
         tabs.addTab(ConnectionMessages.activity_tab_processes, UiIcons.get("user"), sessionPanel); //$NON-NLS-1$
         tabs.addTab(ConnectionMessages.activity_tab_locks, UiIcons.get("warning"), lockPanel); //$NON-NLS-1$

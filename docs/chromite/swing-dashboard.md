@@ -195,3 +195,4 @@ SQL Server 갱신·조회 루프 4개(150초)와 `WAITFOR DELAY` 차단 + 대기
 
 - 2026-11-07 최초 작성: Activity Monitor 개요 탭(서버 대시보드), Tools·Object Explorer의 Server Dashboard 명령, 모델 번들의 갱신 로직
   (`DashboardSampler`, `DashboardHistory`)과 SQL Server·PostgreSQL·MySQL 차트 정의, Java2D 차트.
+- 2026-11-07 Activity Monitor 탭 스타일: 밀도 B 브랜치와 합칠 때 옛 고정값(`tabHeight: 32`) 줄이 남아 밀도 B 값(`UiSizes.TOOL_TABS_STYLE`)을 덮던 것을 지움.
