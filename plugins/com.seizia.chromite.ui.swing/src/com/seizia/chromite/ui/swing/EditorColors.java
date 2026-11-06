@@ -40,7 +40,7 @@ import java.util.Map;
  * <ul>
  *     <li>기본값은 테마 XML({@code SqlEditorLight.xml}, {@code SqlEditorDark.xml}) 하나뿐이다. 라이트는 SSMS 기본 색, 다크는
  *     SSMS 다크를 맞춘 값이다(design-spec "SQL 구문 색"). 사용자가 바꾼 항목만 설정에 저장하고, 편집기에 적용할 때 XML을 읽은
- *     {@link Theme}에 덮어쓴다. "Reset to SSMS defaults"는 저장한 값을 지운다.</li>
+ *     {@link Theme}에 덮어쓴다. "Reset to Defaults"(SSMS 기본 색으로 되돌림)는 저장한 값을 지운다.</li>
  *     <li>항목은 {@link SqlTokenClassifier}와 RSyntaxTextArea SQL 토크나이저가 실제로 내는 토큰 종류만 묶는다. 표·열·스키마 이름 색은
  *     의미 분석이 필요해서(SWT 편집기의 semantic 색) 아직 없다.</li>
  *     <li>설정 키: {@code sqlEditor.color.<light|dark>.<항목>} = {@code rrggbb[,bold][,italic]}. 테마와 같은 번들 설정 저장소에 둔다.</li>

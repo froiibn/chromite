@@ -1637,7 +1637,7 @@ Windows 11, 화면 배율 150%, JBR 25, 작업 공간 사본 `D:\Tools\_smoke\sw
   다른 점: 사진에서 파란 `NOLOCK`(테이블 힌트)은 SQLite 연결의 방언에 없는 단어라 글자색이다.
 - Options(`opt-dark-editor-0.png`, `opt-dark-colors-0.png`, `opt-light-editor-0.png`, `opt-light-colors-0.png`): Editor 탭의 글꼴 목록에서 Lucida Sans Typewriter를
   고르면 미리 보기가 바로 바뀐다(`opt-light-editor-lucida-0.png`, 취소함). Editor Colors에서 Keyword를 Bold로 하고 OK → 열린 편집기의 키워드가 바로 굵게 바뀌고(`dark-editor-keyword-bold-crop.png`)
-  설정 파일에 `sqlEditor.color.dark.keyword=569cd6,bold`만 저장됨. Reset to SSMS Defaults + OK → 그 키가 지워짐. Options에서 테마를 Light로 바꾸면 편집기 색도 라이트 값으로 바뀐다.
+  설정 파일에 `sqlEditor.color.dark.keyword=569cd6,bold`만 저장됨. Reset to Defaults + OK → 그 키가 지워짐. Options에서 테마를 Light로 바꾸면 편집기 색도 라이트 값으로 바뀐다.
 - 빌드: `-Pproduct-dbeaver-ce,product-chromite-swing` BUILD SUCCESS, Swing 제품 `plugins/`에 `swt`·`jface`·`org.eclipse.ui`·`e4.ui` 번들 0개, 번들 jar에 `fonts/cascadia-mono/*` 포함.
 - 확인하지 못한 것: macOS(Cascadia Mono 등록, Apple SD Gothic Neo 대체), Windows 10(운영체제 Cascadia Mono 없음 → 번들 글꼴 등록 경로), DDL 탭의 방언 강조(화면 확인 안 함), 연결된 SQL Server 방언.
 - 회귀 테스트는 실행하지 않았다(요청 없음). 영향받을 수 있는 기능: SQL 편집기·DDL 탭의 구문 강조와 글꼴, 테마 전환 뒤 편집기 색, Tools > Options(탭 구성), View DDL.
@@ -1687,3 +1687,4 @@ Windows 11, 화면 배율 150%, JBR 25, 작업 공간 사본 `D:\Tools\_smoke\sw
   문서 탭 닫기 단추·가운데 단추·도구 설명, F5 포커스 분기, SSMS 쿼리 상태 줄, SSMS 속성 그리드, 자동완성 목록, 스크롤바. "P1 디자인 적용" 절 추가.
 - 2026-11-06 편집기 글꼴과 SQL 색: 편집기 글꼴 Cascadia Mono 13(번들, Options > Editor에서 변경), SSMS 구문 색, 방언 기반 단어 분류(`SqlTokenClassifier`),
   Options > Editor Colors(테마별 사용자 색), DDL 탭도 객체 연결의 방언. "편집기 글꼴과 SQL 색" 절 추가, 편집기·설정 키·P1 남긴 것 갱신.
+- 2026-11-06 화면 문구에서 다른 제품 이름 제거: 아이콘 팩 "Duo-tone"·"Full color", Options > Editor Colors의 "Reset to Defaults".

@@ -51,6 +51,7 @@ import java.util.Objects;
  * 변경 이력:
  * - 2026-11-06 P1: 최초 작성 (docs/chromite/swing-frontend.md "P1 디자인 적용")
  * - 2026-11-06 General·Editor·Editor Colors 탭: 편집기 글꼴·크기와 테마별 편집기 색, 미리 보기 (docs/chromite/design-spec.md "편집기 글꼴과 SQL 색")
+ * - 2026-11-06 화면 문구에 다른 제품 이름을 쓰지 않음: "Reset to Defaults" (docs/chromite/design-spec.md "편집기 글꼴과 SQL 색")
  */
 final class OptionsDialog extends JDialog {
 
@@ -182,7 +183,7 @@ final class OptionsDialog extends JDialog {
             updateColorControls();
             updatePreviews();
         });
-        JButton resetButton = new JButton("Reset to SSMS Defaults");
+        JButton resetButton = new JButton("Reset to Defaults");
         resetButton.setToolTipText("Restore the default colors of the selected theme");
         resetButton.addActionListener(e -> {
             colors.put(getColorTheme(), EditorColors.getDefaults(getColorTheme()));

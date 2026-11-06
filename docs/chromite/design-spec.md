@@ -625,8 +625,8 @@ P0 전체와 P1 일부를 `com.seizia.chromite.ui.swing`에 적용했다. 동작
 ### 아이콘 팩
 
 - 두 팩을 넣고 View > Theme > Icon Style에서 고른다(실행 중 바로 바뀌고 저장됨, 설정 키 `ui.iconStyle`).
-  - **A "DataGrip-style duo-tone"(기본)**: 1px 윤곽 + 옅은 채움, 중립 회색, 폴더·DB·루틴·외래 키는 파랑, 기본 키는 주황.
-  - **B "SSMS-style color"**: Visual Studio 이미지 라이브러리풍 진한 색(갈색 폴더, 파란 원통, 금·은 키).
+  - **A "Duo-tone"(기본, DataGrip풍)**: 1px 윤곽 + 옅은 채움, 중립 회색, 폴더·DB·루틴·외래 키는 파랑, 기본 키는 주황.
+  - **B "Full color"(SSMS풍)**: Visual Studio 이미지 라이브러리풍 진한 색(갈색 폴더, 파란 원통, 금·은 키).
 - 파일: `plugins/com.seizia.chromite.ui.swing/icons/ui/{duotone,color}/{light,dark}/<id>.svg` 49개씩(P1에서 Properties 도구 막대의 `categorized`, `sort-alpha` 추가). 생성기 `tools/branding/gen_ui_icons.py`(Python 표준 라이브러리만, 다시 만드는 방법은 파일 머리말).
   사용자가 고른 38개(색 토큰은 생성기의 `PAL`)에 도구 창·편집기용 9개(`new-connection`, `connect`, `disconnect`, `collapse-all`, `hide`, `close`, `results`, `messages`, `file-sql`)를 같은 규칙으로 더했다.
   원래 38개는 후보 파일과 바이트 단위로 같다.
@@ -699,7 +699,7 @@ RSyntaxTextArea의 SQL 토크나이저(`SQLTokenMaker`, 4.0.1)를 그대로 쓰�
 
 #### Editor Colors 탭
 
-Tools > Options > Editor Colors: 테마(Light/Dark) 선택, 항목 목록(색 견본), Color…(`JColorChooser`), Bold, Italic, Reset to SSMS Defaults, 미리 보기(한글·변수·날짜 부분 포함, 선택·현재 줄 보임).
+Tools > Options > Editor Colors: 테마(Light/Dark) 선택, 항목 목록(색 견본), Color…(`JColorChooser`), Bold, Italic, Reset to Defaults(SSMS 기본 색으로 되돌림), 미리 보기(한글·변수·날짜 부분 포함, 선택·현재 줄 보임).
 항목은 토크나이저가 실제로 내는 것만 둔다: Text, Keyword, Operator, Function, String, Number, Comment, Data type, Variable/parameter, Background, Current line, Selection,
 Line numbers, Current line number. 기본값은 테마 XML이고 바꾼 항목만 `sqlEditor.color.<light|dark>.<항목>` = `rrggbb[,bold][,italic]`로 저장한다.
 OK를 누르면 열린 모든 편집기·DDL 탭에 바로 적용한다(`SqlTextArea.applyThemeToAll`). 배경을 바꾸면 거터 바탕·테두리도 같은 색이다.
@@ -732,7 +732,7 @@ Windows 11, 화면 배율 150%, JBR 25, 작업 공간 사본 `D:\Tools\_smoke\sw
   다른 점: 사진에서 파란 `NOLOCK`(테이블 힌트)은 SQLite 연결의 방언에 없는 단어라 글자색이다.
 - Options(`opt-dark-editor-0.png`, `opt-dark-colors-0.png`, `opt-light-editor-0.png`, `opt-light-colors-0.png`): Editor 탭의 글꼴 목록에서 Lucida Sans Typewriter를
   고르면 미리 보기가 바로 바뀐다(`opt-light-editor-lucida-0.png`, 취소함). Editor Colors에서 Keyword를 Bold로 하고 OK → 열린 편집기의 키워드가 바로 굵게 바뀌고(`dark-editor-keyword-bold-crop.png`)
-  설정 파일에 `sqlEditor.color.dark.keyword=569cd6,bold`만 저장됨. Reset to SSMS Defaults + OK → 그 키가 지워짐. Options에서 테마를 Light로 바꾸면 편집기 색도 라이트 값으로 바뀐다.
+  설정 파일에 `sqlEditor.color.dark.keyword=569cd6,bold`만 저장됨. Reset to Defaults + OK → 그 키가 지워짐. Options에서 테마를 Light로 바꾸면 편집기 색도 라이트 값으로 바뀐다.
 - 빌드: `-Pproduct-dbeaver-ce,product-chromite-swing` BUILD SUCCESS, Swing 제품 `plugins/`에 `swt`·`jface`·`org.eclipse.ui`·`e4.ui` 번들 0개, 번들 jar에 `fonts/cascadia-mono/*` 포함.
 - 확인하지 못한 것: macOS(Cascadia Mono 등록, Apple SD Gothic Neo 대체), Windows 10(운영체제 Cascadia Mono 없음 → 번들 글꼴 등록 경로), DDL 탭의 방언 강조(화면 확인 안 함), 연결된 SQL Server 방언.
 
@@ -827,3 +827,4 @@ Windows 11, 화면 배율 150%, JBR 25, 작업 공간 사본 `D:\Tools\_smoke\sw
 - 2026-11-06 편집기 글꼴과 SQL 색: 사용자 결정에 따라 편집기 글꼴을 Cascadia Mono 13(번들, OFL)으로, 구문 색을 SSMS 기본 색(숫자는 연두색)으로 바꿈.
   "SQL 구문 색" 표를 SSMS 근거로 다시 쓰고 `font.editor` 토큰, "적용 현황 — 편집기 글꼴과 SQL 색" 절(글꼴 결정·라이선스·대체 순서, 방언 기반 단어 분류,
   Options의 Editor·Editor Colors 탭, 확인) 추가.
+- 2026-11-06 화면 문구 정리(사용자 요청): 사용자에게 보이는 문구에 다른 제품 이름(SSMS, DataGrip, Visual Studio)을 쓰지 않는다. 아이콘 팩 이름을 "Duo-tone", "Full color"로, Editor Colors 단추를 "Reset to Defaults"로 바꿈. 설계 근거로서의 제품 이름은 이 문서와 코드 주석에 남긴다.
