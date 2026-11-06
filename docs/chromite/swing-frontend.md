@@ -2266,6 +2266,14 @@ SQL Editor 도구 막대다. 쿼리 창마다 있던 도구 막대는 없앴다(
   같은 방법으로 넣은 저장 프로시저는 "저장 프로시저" 아래에 붙는다.
   Swing "새 함수…"(New Function…) 템플릿을 실행한 뒤에도 `NewFunction`은 "함수"(Functions) 아래에 "Returns int", `@Param1`과 함께 보인다(영어).
 
+## 제목 표시줄 (2026-11-07)
+
+사용자 결정(2026-11-07): "화면 제목표시줄 가운데 chromite 문구는 안보이게 제거하라". 주 창의 FlatLaf 제목 표시줄은 창 제목을 그리지 않는다
+(`JRootPane`의 `FlatClientProperties.TITLE_BAR_SHOW_TITLE = false`, `MainFrame` 생성자).
+
+- 창 제목 자체("Chromite")는 그대로 둔다. Windows 작업 표시줄, Alt+Tab, macOS 창 메뉴는 이 이름을 쓴다.
+- 주 창에만 건다. 테마 전체 설정(`TitlePane.showTitle`)으로 끄면 대화상자 제목까지 사라진다.
+
 ## 변경 이력
 
 - 2026-11-06 최초 작성. Swing 전환 결정, 구조, 재사용 분석, MVP 범위, F5 실행 사양을 정리.
@@ -2362,3 +2370,4 @@ SQL Editor 도구 막대다. 쿼리 창마다 있던 도구 막대는 없앴다(
 - 2026-11-07 Object Explorer 테이블 저장 방식 표시(Altibase 메모리 빨강, 디스크 파랑, 휘발성 호박색, 툴팁). [altibase.md](altibase.md).
 - 2026-11-07 도구 막대 두 줄(사용자 결정): 쿼리 창마다의 도구 막대를 없애고 메인 창 둘째 줄에 활성 쿼리 창을 따르는 SQL Editor 도구 막대.
   "SQL Editor 도구 막대" 절 추가, "도구 막대" 절에 안내, C단계 취소·E단계 연결 콤보 위치 갱신.
+- 2026-11-07 주 창 제목 표시줄 가운데의 "Chromite"를 그리지 않음(사용자 결정). "제목 표시줄" 절.

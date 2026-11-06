@@ -180,6 +180,8 @@ import java.util.function.IntConsumer;
  * - 2026-11-07 도구 막대 두 줄(사용자 결정): SQL Editor 도구 막대 {@link SqlEditorToolBar}를 Standard 아래에 두고 활성 쿼리 창을 따름,
  *   Include Actual Execution Plan을 선택 상태가 있는 동작으로(메뉴와 도구 막대 단추가 같이 씀), 실행·계획 켜짐을 쿼리 창의
  *   {@code canExecute}·{@code canCancel}·{@code canExplain}으로 (docs/chromite/swing-frontend.md "SQL Editor 도구 막대")
+ * - 2026-11-07 제목 표시줄 가운데의 창 제목("Chromite")을 그리지 않음(사용자 결정, 작업 표시줄·Alt+Tab 이름은 그대로)
+ *   (docs/chromite/swing-frontend.md "제목 표시줄")
  */
 final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplorerPanel.QueryWindows, TableDesignerPanel.Host, QueryLibraryPanel.Host {
 
@@ -273,6 +275,9 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
     MainFrame(@NotNull String title, @NotNull String statusText) {
         super(title);
         setIconImages(ChromiteIcons.getWindowIcons());
+        // The title stays the window's name for the taskbar and Alt+Tab, but the title bar does not paint it (user
+        // decision 2026-11-07); dialogs keep their titles because this is set on the main window only
+        getRootPane().putClientProperty(FlatClientProperties.TITLE_BAR_SHOW_TITLE, false);
         // Closing asks to save modified query windows first (requestExit)
         setDefaultCloseOperation(WindowConstants.DO_NOTHING_ON_CLOSE);
 
