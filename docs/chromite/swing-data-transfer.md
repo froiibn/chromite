@@ -9,6 +9,9 @@ DBeaver의 데이터 전송(`org.jkiss.dbeaver.data.transfer` 모델 + `.ui` SWT
 3. **Copy Tables…** — 테이블·뷰를 다른 연결·데이터베이스(같은 서버의 다른 스키마 포함)로 복사(`DatabaseTransferConsumer`, SWT "Database → Database").
    Object Explorer Tasks ▸ Copy Tables…, 또는 Export Data…의 형식 목록에서 "Database". 아래 "테이블 복사".
 
+세 명령은 테이블·뷰·스키마뿐 아니라 **데이터베이스 노드**(SQL Server·PostgreSQL·MariaDB 데이터베이스)와 데이터베이스가 하나인 연결 노드에서도 쓴다
+(SSMS 데이터베이스 ▸ Tasks ▸ Import/Export Data). 아래 "데이터베이스 노드".
+
 ## 구조
 
 | 클래스 (Swing 번들 `com.seizia.chromite.ui.swing`) | 역할 |
@@ -16,11 +19,12 @@ DBeaver의 데이터 전송(`org.jkiss.dbeaver.data.transfer` 모델 + `.ui` SWT
 | `DataTransferWizard` (새) | 마법사 공통 틀: 왼쪽 단계 목록, 머리글, Back/Next/Finish/Cancel, 진행 페이지, 모델 실행(`DTTaskHandlerTransfer.executeWithSettings`) |
 | `DataExportWizard` (새) | 내보내기 단계: 원본(테이블 목록 또는 결과 표의 쿼리) → 형식 → 형식 설정 → 출력 → 요약 |
 | `DataImportWizard` (새) | 가져오기 단계: 파일·형식·파일 설정과 미리 보기 → 열 매핑 → 넣기 설정 → 요약 |
-| `DataTransferObjects` (새) | 원본 객체 판단·읽기(테이블·뷰, 그 부모), 양식 줄, 안내 문구, 객체 칸 렌더러 |
-| `ObjectExplorerPanel` (변경) | 오른쪽 클릭 **Tasks ▸ Import Data… / Export Data… / Copy Tables…**, 내보내기 마법사에 쿼리 창 열기(`QueryWindows`)를 넘김 |
+| `DataTransferObjects` (새) | 원본 객체 판단·읽기(테이블·뷰, 그 부모, 스키마를 담는 데이터베이스, 연결의 유일한 데이터베이스, 스키마별 읽기), Tasks 메뉴 도구 설명, 양식 줄, 안내 문구, 객체 칸 렌더러 |
+| `DataImportTargetPage` (새) | 데이터베이스 노드에서 연 가져오기의 첫 단계: 스키마 + 기존 테이블 또는 새 테이블 이름 |
+| `ObjectExplorerPanel` (변경) | 오른쪽 클릭 **Tasks ▸ Import Data… / Export Data… / Copy Tables…**, 내보내기 마법사에 쿼리 창 열기(`QueryWindows`)를 넘김, 세 명령의 대상 객체(`getTransferObject`)와 도구 설명 |
 | `DatabaseCopyPages` (새) | 테이블 복사 단계: 대상(연결 → 데이터베이스 → 스키마) → 테이블·열 매핑과 대상 DDL 미리 보기 → 넣기 설정, 요약 줄, 실행 설정 |
 | `DatabaseCopyMappings` (새) | SWT 매핑 페이지의 모델 호출을 화면과 떼어 옮김: 대상 컨테이너 단계, 매핑 만들기·대상 테이블/열 정하기, 형식 목록, 대상 DDL |
-| `internal/DbCopyMessages` (새) | 테이블 복사 화면 문구(영어 기본 + `_ko`) |
+| `internal/DbCopyMessages` (새) | 테이블 복사 화면 문구(영어 기본 + `_ko`), 데이터베이스 노드 문구(`dbnode_`) |
 | `ResultSetGrid` (변경) | 오른쪽 클릭 **Export Data…**, `Fetched.exportQuery`(다시 실행할 쿼리) |
 | `SqlEditorPanel` (변경) | 쿼리의 첫 결과 표에 그 쿼리의 `SQLQueryDataContainer`를 넘김 |
 | `ConnectionPropertiesTable` (변경, Javadoc만) | 처리기 속성 편집에도 쓴다는 설명 |
@@ -51,6 +55,8 @@ DBeaver의 데이터 전송(`org.jkiss.dbeaver.data.transfer` 모델 + `.ui` SWT
 | `ConfigureMetadataStructureDialog.generateTableActions`(:495-528), `composeDdlText`(:468-492) | `DatabaseCopyMappings.generateTableDdl` | `DatabaseTransferUtils.generateTargetTableDDL(…, getChangedPropertiesMap(), settings)` → `SQLUtils.generateScript` |
 | `DatabaseConsumerPageLoadSettings.loadUISettingsForDisableReferentialIntegrityCheckbox`(:345-388), `activatePage`(:394-427) | `DatabaseCopyPages.LoadSettingsPage` | 기존 대상의 `DBPReferentialIntegrityController.supportsChangingReferentialIntegrity`와 문장(도구 설명), `DBSDataBulkLoader` 어댑터가 없으면 대량 로드 끔 |
 | `DataImportPropertyTester.supportsImport`(:42-44) | `DatabaseCopyPages.DestinationPage.leave` | `FEATURE_DATA_IMPORT`가 false인 연결은 대상으로 받지 않음 |
+| `DataImportHandler.adaptTransferNode`(:66-96), `isObjectContainerSupportsImport`(:132-142) | `DataImportWizard` 생성자 | 컨테이너에서 연 가져오기의 소비자 `new DatabaseTransferConsumer(컨테이너)` |
+| `StreamProducerPageSettings.updateSingleConsumer`(:338-359), `generateTableName`(:474-502) | `DataImportWizard.loadMapping`, `getTableNameFromFile` | 대상 테이블이 없으면 `setTarget(null)` + `setTargetName(파일 이름에서 만든 이름)`(매핑 create) |
 
 ## 설계 결정과 이유
 
@@ -136,6 +142,46 @@ DBeaver의 데이터 전송(`org.jkiss.dbeaver.data.transfer` 모델 + `.ui` SWT
 - 넣기 설정: 테이블 비우기(Finish 때 다시 확인), 새 연결, 트랜잭션과 커밋 간격(배치 크기), 여러 행 INSERT와 문장당 행 수, 한 행씩 넣기.
   오류 처리는 모델 그대로(넣기 오류마다 Stop / Retry / Skip / Skip All). 끝난 뒤 테이블 열기(`openTableOnFinish`)는 Swing에 객체 편집기가 없어 끈다.
 
+### 데이터베이스 노드 (2026-11-06)
+
+- **근본 원인:** 세 명령을 켜는 판단이 테이블·뷰, 또는 테이블을 바로 담은 부모만 받았다(이전 코드 `DataExportWizard.java:244-249` `canExport` →
+  `DataTransferObjects.java:64-78` `isDataContainerParent`: 컨테이너의 `getPrimaryChildType(null)`이 `DBSDataContainer`인지, 가져오기는 `DataImportWizard.java:172-174`
+  `canImport` = `DBSDataManipulator`인 테이블만). SQL Server·PostgreSQL 데이터베이스의 주 자식 형식은 스키마다(`SQLServerDatabase.java:572-574` → `SQLServerSchema`,
+  `PostgreDatabase.java:858-860` → `PostgreSchema`). 그래서 데이터베이스 노드에서는 꺼져 있었다. MariaDB 데이터베이스는 주 자식이 테이블이라
+  (`MySQLCatalog.java:419-423` → `MySQLTable`) 내보내기·복사는 이미 켜졌고 가져오기만 꺼져 있었다. 연결 노드는 `ObjectExplorerPanel.java:708-711`
+  `getSelectedObject`가 `DBNDataSource`에 `null`을 돌려주므로 늘 꺼졌다.
+- **판단:** `isSchemaContainer` = 주 자식 형식이 `DBSSchema`인 컨테이너(SQL Server·PostgreSQL 데이터베이스, 데이터베이스 단계가 없는 Oracle 연결).
+  `isDatabase` = 그것 또는 테이블을 담은 `DBSCatalog`(MariaDB·MySQL). 스키마 노드는 데이터베이스가 아니므로 그대로다(가져오기 꺼짐, 내보내기·복사는 그 스키마의 목록).
+  모두 형식만 보고 EDT에서 메타데이터를 읽지 않는다.
+- **연결 노드:** 연결이 스키마를 바로 담으면(Oracle) 연결 자체, 아니면 Object Explorer가 **이미 읽은** 노드(연결 → "데이터베이스" 폴더 → 데이터베이스, 시스템·숨김 제외)에
+  데이터베이스가 하나일 때 그 데이터베이스로 본다(`findConnectionDatabase`, 캐시만 쓰는 `LocalCacheProgressMonitor`). 데이터베이스가 여럿이면 어느 것인지 모르므로 끈다.
+  PostgreSQL 연결은 기본으로 연결의 데이터베이스 하나만 보이므로 켜지고, 모든 데이터베이스를 보이는 SQL Server·MariaDB 연결은 꺼진다. 연결 노드를 펼치기 전에는
+  꺼져 있다(메뉴를 열 때 다시 판단하므로 펼친 뒤에는 켜진다).
+- **내보내기·복사 원본:** 데이터베이스의 스키마를 이름순으로 읽고(모델의 스키마 목록이라 연결의 탐색기 필터가 적용됨, 숨김 제외) 스키마마다 테이블·뷰를 읽는다(`readSchemaTables`,
+  진행 대화상자에서, 취소 가능). 원본 표에는 스키마 머리 행(굵게, "n개 중 m개 선택") 아래에 그 스키마의 테이블·뷰를 들여 쓴다. 머리 행의 체크 상자가 그 스키마 전체를
+  고르고 끈다("스키마 안 모두 선택"). 트리 대신 같은 표에 머리 행을 둔 것은 체크 상자, 모두 선택, 요약, 복사 단계가 같은 원본 목록(`sources`)을 그대로 쓰게 하기 위해서다.
+  테이블·뷰가 없는 스키마(SQL Server의 `db_owner`·`guest` 등)는 보이지 않는다.
+- **시스템 스키마:** `DBPSystemObject.isSystem`인 스키마(SQL Server `sys`·`INFORMATION_SCHEMA`, PostgreSQL `pg_catalog`·`information_schema`)는 기본으로 숨기고
+  읽지도 않는다. "시스템 스키마 표시"를 켜면 그때 그 스키마들만 읽어 보이고, 끄면 숨기면서 체크를 푼다(숨은 원본이 내보내지지 않도록).
+- **producer:** 스키마와 관계없이 체크한 원본마다 `DatabaseTransferProducer`를 만든다(기존 `prepareTransfer`, `DatabaseCopyPages.prepareMappings` 그대로).
+  복사 매핑의 `cacheStructure`도 원본마다 부모 컨테이너를 모아 부르므로 여러 스키마에서 그대로 된다.
+- **같은 이름 파일:** 기본 파일 이름 패턴 `${table}_${timestamp}`의 `${table}`은 스키마 없는 이름이라(`DTUtils.getTableName(…, true)`) 여러 스키마의 같은 이름 테이블은
+  파일이 서로 덮어쓴다. 데이터베이스에서 연 마법사는 출력 단계에서 그런 테이블이 있고 패턴에 `${schema}`가 없으면 다음으로 가지 않고 넣으라고 알린다.
+- **복사 대상은 하나:** 모델의 `DatabaseConsumerSettings`는 대상 컨테이너를 하나만 가지므로 여러 스키마의 테이블이 대상 스키마 하나로 간다(SWT와 같음).
+  두 원본이 같은 대상 테이블로 가면(예: `dbo.orders`와 `sales.orders`) 매핑 단계 아래에 알리고 다음으로 가지 않는다. 대상 이름을 바꾸거나 건너뛰면 된다.
+  둘째 테이블의 CREATE가 실패하거나, TRUNCATE가 첫 테이블의 행을 지우기 때문이다.
+- **가져오기 대상 고르기:** 데이터베이스에서 연 가져오기는 첫 단계 "대상 테이블 선택"(`DataImportTargetPage`)이 붙는다. 데이터베이스(읽기 전용), 스키마(스키마 단계가
+  있을 때), "기존 테이블"(그 스키마의 테이블, `DBSEntityType.TABLE`만) 또는 "새 테이블"(이름, 비우면 파일 이름). 스키마 목록은 복사 대상 단계와 같은
+  `DatabaseCopyMappings.readChildContainers`(숨김·시스템 제외), 처음 고른 스키마는 연결의 기본 스키마(다른 데이터베이스면 같은 이름 dbo·public), 그 테이블은 마법사를 열기 전에
+  읽고 다른 스키마의 테이블은 고를 때 읽는다. 테이블이 없는 스키마에서는 "새 테이블"만 고를 수 있다.
+- **새 테이블로 가져오기:** 소비자는 SWT `DataImportHandler`가 컨테이너에 하듯 `new DatabaseTransferConsumer(데이터베이스)`이고, 파일의 열을 읽은 뒤 테이블 복사와 같은
+  `DatabaseCopyMappings.setTableTarget`으로 매핑을 만든다(이름 대소문자 변환, 그 이름의 테이블이 있으면 그 테이블에 넣기(existing), 다른 종류 객체가 이름을 쓰면 오류).
+  새 테이블이면 매핑이 `create`라 모델이 실행 때 테이블을 만든다(직접 DDL을 실행하지 않음). 열 단계는 "열" 탭에서 열 이름(`[skip]`으로 빼기)과 대상 형식
+  (`DatabaseCopyMappings.getTargetTypes`)을 고치고 "대상 DDL" 탭에서 실행 때와 같은 `generateTargetTableDDL` 결과를 본다. 넣기 설정의 테이블 비우기는 새 테이블이면 끈다.
+  기존 테이블을 고른 경우와 테이블 노드에서 연 경우는 전과 같다(맞는 열이 없는 원본 열은 건너뜀).
+- **도구 설명:** 세 메뉴 항목에 지금 노드에서 무엇을 하는지(테이블·데이터베이스), 꺼져 있으면 어느 노드에서 쓰는지를 보인다(`updateTaskTooltips`).
+  Tasks 하위 메뉴는 전과 같이 가져오기·내보내기·백업 중 하나라도 켜지면 켜진다(백업·복원과 같은 메뉴).
+
 ## upstream 대비 변경점
 
 - SWT `data.transfer.ui` 마법사 대신 Swing 마법사(SSMS 단계 구성). 작업(task) 저장·편집, 형식 프로필, 열 고르기(`StreamMappingContainer`),
@@ -144,6 +190,8 @@ DBeaver의 데이터 전송(`org.jkiss.dbeaver.data.transfer` 모델 + `.ui` SWT
   새 테이블 속성 편집, 기존 테이블 고르기 대화상자([browse]), 매핑 저장·불러오기, 중복 키 처리 방법은 없다.
 - 원본 테이블 자신을 대상으로 한 매핑을 막고, 건너뛴 테이블의 파이프는 실행하지 않는다.
 - 가져오기 자동 매핑에서 맞는 열이 없는 원본 열은 새 열 만들기가 아니라 건너뛰기.
+- 데이터베이스 노드의 원본 목록은 스키마별로 묶어 보이고(SWT는 데이터베이스에서 내보내기를 열 수 없음), 가져오기는 첫 단계에서 대상 테이블(기존 또는 새 테이블)을 고른다.
+  여러 스키마의 같은 이름 테이블이 같은 파일·같은 대상 테이블로 가는 것을 막는다.
 - 모델 코드 변경 없음.
 
 ## 확인 (2026-11-06)
@@ -182,11 +230,37 @@ DBeaver의 데이터 전송(`org.jkiss.dbeaver.data.transfer` 모델 + `.ui` SWT
   - **취소:** 30만 행 테이블을 SQL Server 새 테이블로 복사하던 중 Cancel → 모델의 Stop/Retry/Skip 질문 → Stop → "The transfer was canceled", 행 Canceled(커밋된 210,000행은 남음).
   - 한국어(OS 기본)·`-nl en`, 라이트·다크 화면(그림은 `D:\Tools\_scratch\db-copy\shots\`).
 
+### 데이터베이스 노드 (2026-11-06)
+
+- 같은 Docker DB 세 개에 `chr_db_node_transfer`를 만들었다. SQL Server `dbo.customers`(1,200행, 한글 이름 120개, NULL 이메일 300개), `dbo.orders`(2,500행),
+  `dbo.import_target`(빈 테이블), `sales.regions`(5행, `서울`), `sales.orders`(800행 — `dbo.orders`와 이름이 같음). PostgreSQL은 `public`·`sales`에 같은 테이블과 뷰
+  `sales.v_big_orders`(467행), 빈 스키마 `copy_target`. MariaDB는 `customers`·`orders`·`import_target`. 가져올 CSV는 300행(머리글, 쉼표·큰따옴표가 든 이름, 한글 이름 42개, 빈 금액 33개, 금액 합계 50126.25).
+  검사는 `docker exec`로 행 수·합계·NULL 수·한글 행.
+- **메뉴:** SQL Server·PostgreSQL·MariaDB 데이터베이스 노드에서 세 명령이 켜지고 도구 설명이 데이터베이스용, 백업·복원과 같은 작업 메뉴에 함께 있음.
+  데이터베이스가 하나인 PostgreSQL 연결 노드(펼친 뒤)는 켜짐, 데이터베이스가 여럿인 SQL Server 연결과 펼치지 않은 연결은 꺼지고 도구 설명이 쓸 노드를 알림.
+  PostgreSQL 스키마 노드는 전과 같음(가져오기 꺼짐, 내보내기·복사 켜짐).
+- **내보내기:** SQL Server 데이터베이스에서 `dbo` 2개 + `sales` 1개를 CSV(1201/2501/6줄), `dbo.orders`·`sales.orders`·`sales.regions`를 XLSX(2501/801/6행).
+  같은 이름 `orders` 두 개는 기본 패턴에서 출력 단계가 막히고 `${schema}_${table}_${timestamp}`로 바꾸자 `dbo_orders`·`sales_orders` 파일로 나감.
+  PostgreSQL 연결 노드에서 `public` 2개 + `sales.regions` + 뷰를 CSV, 데이터베이스 노드에서 3개를 XLSX, MariaDB 데이터베이스에서 3개를 CSV·XLSX(행 수 모두 원본과 같음).
+  시스템 스키마 표시를 켜면 SQL Server `INFORMATION_SCHEMA`·`sys`를 그때 읽어 보이고, 끄면 숨겨짐. 테이블이 없는 `db_owner`·`guest` 등은 보이지 않음.
+- **테이블 복사:** SQL Server `dbo.customers`·`dbo.orders`·`sales.orders`·`sales.regions` → PostgreSQL `copy_target`: `orders` 두 개가 같은 대상이라 매핑 단계에서 막히고,
+  `sales.orders`의 대상을 `sales_orders`로 바꾸자 4개 모두 성공(1200/2500/800/5행, 이메일 900, 합계 781562.50·961200.00, 한글 유지).
+  PostgreSQL `public.customers`·`sales.orders`·`sales.regions` → SQL Server `copy_target`: 1200/800/5행, 합계 같음.
+  PostgreSQL → MariaDB 새 테이블은 모델 형식 매핑이 `int4`를 `tinyint(4)`로 만들어 `id` 범위 오류가 났다(데이터베이스 노드와 관계없는 기존 모델 동작, 아래 "남긴 것").
+- **가져오기:** SQL Server 데이터베이스에서 대상 단계로 `dbo.import_target`(기존) → 300행, 금액 267개 합계 50126.25, 한글 42행. `sales`에 새 테이블 `products_new`, 열 탭에서
+  `name`을 `nvarchar(100)`, `amount`를 `price`로 바꿈 → DDL 미리 보기와 실제 테이블이 같고 300행. PostgreSQL 기존 `public.import_target` 300행, 이름을 비운 새 테이블은
+  `products_2026`으로 만들어짐(300행). MariaDB 기존 `import_target`, 새 `products_new`(금액 형식 `decimal(12,2)`로 바꿈) 모두 300행·합계 같음. 새 테이블이면 테이블 비우기가 꺼짐.
+- 한국어(OS 기본)·`-nl en`, 라이트·다크 화면(그림은 `D:\Tools\_scratch\db-node-transfer\shots\`).
+- 첫 실행에서 찾아 고친 것: 데이터베이스에서 연 가져오기 생성자가 대상 테이블이 없을 때 NPE, 영어 대상 단계 설명이 잘리던 것(문구를 줄임).
+
 ## 남긴 것
 
 - 결과 표의 쿼리를 다른 DB 테이블로 복사(모델은 지원, 이 마법사에서는 확인하지 않아 "Database"를 두지 않음).
 - 테이블 복사의 매핑 규칙·열 변환기·새 테이블 속성·중복 키 처리 방법·매핑 저장, 작업으로 저장, 외래 키 옮기기.
-- XLSX 가져오기(모델에 처리기 없음), 여러 파일 한 번에 가져오기, 새 테이블로 가져오기.
+- XLSX 가져오기(모델에 처리기 없음), 여러 파일 한 번에 가져오기. 새 테이블로 가져오기는 데이터베이스 노드에서만 된다(테이블·스키마 노드는 전과 같음).
+- 모델 형식 매핑 `DBStructUtils.mapTargetDataType`이 PostgreSQL `int4`를 MariaDB 새 테이블의 `tinyint(4)`로 만드는 문제(조사하지 않음, 열 탭에서 형식을 바꾸면 피할 수 있음).
+- 여러 스키마를 복사할 때 원본 스키마마다 같은 이름의 대상 스키마로 나눠 보내기(모델의 대상 컨테이너가 하나라 다루지 않음).
+- 데이터베이스가 여럿인 연결 노드에서 데이터베이스를 고르게 하기(지금은 꺼짐), 펼치지 않은 연결 노드에서 켜기(메타데이터를 EDT에서 읽지 않기 위해 꺼짐).
 - 내보내기 열 고르기, 형식 프로필(날짜·숫자 형식), 분할 파일, 작업으로 저장.
 - 결과 표의 "가져온 행만/선택한 행만" 내보내기를 마법사에서 고르기(지금은 CSV·XLSX 항목).
 
@@ -197,3 +271,5 @@ DBeaver의 데이터 전송(`org.jkiss.dbeaver.data.transfer` 모델 + `.ui` SWT
   표 안에서만 한 정렬은 마법사에 알린다.
 - 2026-11-06 꺼진 Export Data…의 도구 설명이 실제 이유(바인딩한 실행 등) 대신 늘 "SELECT 하나인 쿼리만"이던 문제.
 - 2026-11-06 테이블 복사: Tasks ▸ Copy Tables…와 Export Data…의 "Database" 대상(`DatabaseCopyPages`, `DatabaseCopyMappings`, `DbCopyMessages`).
+- 2026-11-06 데이터베이스 노드: Import Data… / Export Data… / Copy Tables…를 데이터베이스 노드와 데이터베이스가 하나인 연결 노드에서 켬. 스키마별 원본 목록과 시스템 스키마 표시,
+  같은 이름 파일·같은 대상 테이블 검사, 가져오기 대상 테이블 고르기와 새 테이블로 가져오기(`DataImportTargetPage`), 메뉴 도구 설명.

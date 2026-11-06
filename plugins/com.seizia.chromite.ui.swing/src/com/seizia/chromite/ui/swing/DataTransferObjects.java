@@ -17,20 +17,31 @@
 package com.seizia.chromite.ui.swing;
 
 import com.formdev.flatlaf.FlatClientProperties;
+import com.seizia.chromite.ui.swing.internal.DbCopyMessages;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
 import org.jkiss.dbeaver.Log;
+import org.jkiss.dbeaver.model.DBPDataSourceContainer;
 import org.jkiss.dbeaver.model.DBPEvaluationContext;
+import org.jkiss.dbeaver.model.DBPSystemObject;
 import org.jkiss.dbeaver.model.DBUtils;
 import org.jkiss.dbeaver.model.DBValueFormatting;
+import org.jkiss.dbeaver.model.navigator.DBNDataSource;
 import org.jkiss.dbeaver.model.navigator.DBNDatabaseFolder;
+import org.jkiss.dbeaver.model.navigator.DBNDatabaseNode;
 import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
+import org.jkiss.dbeaver.model.runtime.LocalCacheProgressMonitor;
+import org.jkiss.dbeaver.model.runtime.VoidProgressMonitor;
 import org.jkiss.dbeaver.model.struct.DBSDataContainer;
 import org.jkiss.dbeaver.model.struct.DBSEntity;
 import org.jkiss.dbeaver.model.struct.DBSFolder;
 import org.jkiss.dbeaver.model.struct.DBSObject;
 import org.jkiss.dbeaver.model.struct.DBSObjectContainer;
+import org.jkiss.dbeaver.model.struct.rdb.DBSCatalog;
+import org.jkiss.dbeaver.model.struct.rdb.DBSSchema;
+import org.jkiss.dbeaver.runtime.DBInterruptedException;
+import org.jkiss.utils.CommonUtils;
 
 import javax.swing.*;
 import javax.swing.table.DefaultTableCellRenderer;
@@ -46,9 +57,15 @@ import java.util.List;
  * (테이블·뷰 = {@link DBSDataContainer}이면서 {@link DBSEntity}, 그 부모 = 주 자식 형식이 {@link DBSDataContainer}인
  * {@link DBSObjectContainer}, 탐색기 폴더 = 자식 형식이 그런 {@link DBSFolder}). 양식 줄 모양은 {@link OptionsDialog}와 같다
  * (이름표에 쌍점 없음, 간격 6, 보조 설명은 text.secondary).
+ * 데이터베이스 노드: SQL Server·PostgreSQL 데이터베이스는 테이블이 아니라 스키마를 담으므로({@code getPrimaryChildType}이 {@link DBSSchema})
+ * 위 "테이블의 부모" 판단에 걸리지 않는다. 그래서 스키마를 담는 컨테이너({@link #isSchemaContainer})를 따로 알아보고, 원본은 스키마마다 읽는다
+ * ({@link #readSchemaTables}). 연결 노드는 이미 읽은 탐색기 노드에서 데이터베이스가 하나뿐일 때만 그 데이터베이스로 본다
+ * ({@link #findConnectionDatabase}). 메뉴를 켤지는 EDT에서 정하므로 메타데이터를 읽지 않기 위해서다.
  *
  * 변경 이력:
  * - 2026-11-06 데이터 전송: 최초 작성 (docs/chromite/swing-data-transfer.md)
+ * - 2026-11-06 데이터베이스 노드에서 가져오기·내보내기·테이블 복사: 스키마를 담는 컨테이너, 연결의 유일한 데이터베이스, 스키마별 원본 읽기
+ *   (docs/chromite/swing-data-transfer.md "데이터베이스 노드")
  */
 final class DataTransferObjects {
 
@@ -75,6 +92,130 @@ final class DataTransferObjects {
             log.debug("Can't get the child type of " + object.getName(), e);
         }
         return false;
+    }
+
+    /**
+     * A database whose children are schemas, not tables (SQL Server and PostgreSQL databases, the connection of a driver
+     * without databases such as Oracle): its primary child type is a {@link DBSSchema}. Called on the EDT: types only.
+     */
+    static boolean isSchemaContainer(@Nullable DBSObject object) {
+        if (object instanceof DBSObjectContainer container && !(object instanceof DBSEntity)) {
+            try {
+                Class<? extends DBSObject> childType = container.getPrimaryChildType(null);
+                return childType != null && DBSSchema.class.isAssignableFrom(childType);
+            } catch (DBException e) {
+                log.debug("Can't get the child type of " + object.getName(), e);
+            }
+        }
+        return false;
+    }
+
+    /**
+     * A database node: a catalog that holds tables (MySQL, MariaDB) or a container of schemas ({@link #isSchemaContainer}).
+     * A schema is not a database, so a schema node keeps its own behaviour. Called on the EDT: types only.
+     */
+    static boolean isDatabase(@Nullable DBSObject object) {
+        return isSchemaContainer(object) || object instanceof DBSCatalog && isDataContainerParent(object);
+    }
+
+    /**
+     * The database a connection node stands for: the connection itself when it holds schemas (no database level), or its
+     * only database among the nodes Object Explorer has already read (connection, "Databases" folder, database). Null when
+     * it is not connected, has several databases, or they are not read yet: metadata is never read here (called on the EDT).
+     */
+    @Nullable
+    static DBSObject findConnectionDatabase(@NotNull DBNDataSource node) {
+        DBPDataSourceContainer container = node.getDataSourceContainer();
+        if (!container.isConnected()) {
+            return null;
+        }
+        DBSObjectContainer root = DBUtils.getAdapter(DBSObjectContainer.class, container.getDataSource());
+        if (isSchemaContainer(root)) {
+            return root;
+        }
+        List<DBSObject> databases = new ArrayList<>();
+        collectLoadedDatabases(node, 2, databases);
+        return databases.size() == 1 ? databases.getFirst() : null;
+    }
+
+    private static void collectLoadedDatabases(@NotNull DBNDatabaseNode node, int depth, @NotNull List<DBSObject> result) {
+        DBNDatabaseNode[] children;
+        try {
+            // The cache-only monitor returns the children already read and never loads them
+            children = node.needsInitialization() ? null : node.getChildren(new LocalCacheProgressMonitor(new VoidProgressMonitor()));
+        } catch (DBException e) {
+            return;
+        }
+        if (children == null) {
+            return;
+        }
+        for (DBNDatabaseNode child : children) {
+            if (child instanceof DBNDatabaseFolder folder) {
+                if (depth > 1) {
+                    collectLoadedDatabases(folder, depth - 1, result);
+                }
+                continue;
+            }
+            DBSObject object = child.getObject();
+            if (object instanceof DBSCatalog && isDatabase(object) && !DBUtils.isHiddenObject(object)
+                && !(object instanceof DBPSystemObject system && system.isSystem())) {
+                result.add(object);
+            }
+        }
+    }
+
+    /**
+     * Tool tips of Tasks ▸ Import Data…, Export Data… and Copy Tables… for the object they act on: what they do with a
+     * database or a table, or which nodes they work on when they are off.
+     */
+    static void updateTaskTooltips(@Nullable DBSObject object, @NotNull Action importAction, @NotNull Action exportAction, @NotNull Action copyAction) {
+        boolean database = isDatabase(object);
+        importAction.putValue(Action.SHORT_DESCRIPTION, !importAction.isEnabled() ? DbCopyMessages.dbnode_tip_import_disabled
+            : database ? DbCopyMessages.dbnode_tip_import_database : DbCopyMessages.dbnode_tip_import_table);
+        exportAction.putValue(Action.SHORT_DESCRIPTION, !exportAction.isEnabled() ? DbCopyMessages.dbnode_tip_transfer_disabled
+            : database ? DbCopyMessages.dbnode_tip_export_database : DbCopyMessages.dbnode_tip_export);
+        copyAction.putValue(Action.SHORT_DESCRIPTION, !copyAction.isEnabled() ? DbCopyMessages.dbnode_tip_transfer_disabled
+            : database ? DbCopyMessages.dbnode_tip_copy_database : DbCopyMessages.dbnode_tip_copy);
+    }
+
+    /**
+     * A schema of a database with its tables and views; {@code tables} is null until they are read (system schemas are
+     * read only when they are shown).
+     */
+    record SchemaTables(@NotNull DBSObjectContainer schema, boolean system, @Nullable List<DBSDataContainer> tables) {
+    }
+
+    /**
+     * The schemas of a database by name, without hidden ones and those the connection's navigator filters leave out
+     * (the model's schema list applies them), with the tables and views of the schemas that are not system schemas.
+     */
+    @NotNull
+    static List<SchemaTables> readSchemaTables(@NotNull DBRProgressMonitor monitor, @NotNull DBSObjectContainer database) throws DBException {
+        List<DBSObjectContainer> schemas = new ArrayList<>();
+        for (DBSObject child : CommonUtils.safeCollection(database.getChildren(monitor))) {
+            if (child instanceof DBSObjectContainer schema && !(child instanceof DBSEntity) && !DBUtils.isHiddenObject(child)) {
+                schemas.add(schema);
+            }
+        }
+        schemas.sort((a, b) -> a.getName().compareToIgnoreCase(b.getName()));
+        List<SchemaTables> result = new ArrayList<>();
+        for (DBSObjectContainer schema : schemas) {
+            boolean system = schema instanceof DBPSystemObject systemObject && systemObject.isSystem();
+            result.add(new SchemaTables(schema, system, system ? null : readSchema(monitor, schema)));
+        }
+        return result;
+    }
+
+    /**
+     * The tables and views of one schema, with the schema name as the progress text; a cancel stops the reading.
+     */
+    @NotNull
+    static List<DBSDataContainer> readSchema(@NotNull DBRProgressMonitor monitor, @NotNull DBSObjectContainer schema) throws DBException {
+        if (monitor.isCanceled()) {
+            throw new DBInterruptedException("Canceled"); //$NON-NLS-1$
+        }
+        monitor.subTask(schema.getName());
+        return readDataContainers(monitor, schema);
     }
 
     /**

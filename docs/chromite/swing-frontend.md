@@ -1791,3 +1791,4 @@ EDT 에이전트로 단추를 누르고(`doClick`) 결과를 읽었다. 캡처�
 - 2026-11-06 테이블 복사: Object Explorer Tasks > Copy Tables…, Export Data…의 "Database" 대상(다른 연결·DB로 테이블 복사, 매핑·대상 DDL 미리 보기). [swing-data-transfer.md](swing-data-transfer.md) "테이블 복사".
 - 2026-11-06 보안 편집기: 로그인·사용자·역할 속성과 새로 만들기·삭제, 테이블·뷰·루틴의 사용 권한(SQL Server, PostgreSQL, MySQL/MariaDB). [swing-security.md](swing-security.md).
 - 2026-11-06 도구 막대 확장(사용자 결정 "가"): 주 도구 막대를 SSMS Standard 배치로(Save All, Undo/Redo, Activity Monitor, 도구 창 켜고 끄기, Find), 쿼리 창 도구 막대에 Comment·Uncomment·들여쓰기·Format SQL·Query History, 좁은 창의 넘침 메뉴. "도구 막대" 절 추가.
+- 2026-11-06 데이터베이스 노드의 Import Data… / Export Data… / Copy Tables…(스키마별 원본 목록, 가져오기 대상 테이블 고르기·새 테이블). [swing-data-transfer.md](swing-data-transfer.md) "데이터베이스 노드".

@@ -132,7 +132,7 @@ import java.util.function.Consumer;
  *     Find Objects 결과는 {@link #revealNode}로 트리를 펼쳐 고른다.</li>
  *     <li>Tasks &gt; Import Data… / Export Data…(SSMS 데이터베이스 Tasks 메뉴): 테이블에서 가져오기({@link DataImportWizard}),
  *     테이블·뷰 또는 그것들을 담은 스키마·폴더에서 내보내기({@link DataExportWizard}). Copy Tables…는 같은 원본을 다른 연결·데이터베이스로 복사한다
- *     ({@link DataExportWizard#openForCopy}).</li>
+ *     ({@link DataExportWizard#openForCopy}). 세 명령은 데이터베이스 노드와 데이터베이스가 하나뿐인 연결 노드에서도 켜진다({@link #getTransferObject}).</li>
  *     <li>Tasks &gt; Back Up… / Restore…(SSMS 데이터베이스 Tasks 메뉴): 데이터베이스 백업·복원({@link BackupRestoreCommands}).</li>
  *     <li>보안({@link SecurityCommands}): 로그인·사용자·역할의 Properties와 Delete, Logins·Roles·Users 폴더의 New Login/Role/User…,
  *     테이블·뷰·시퀀스·루틴의 Permissions…</li>
@@ -165,6 +165,8 @@ import java.util.function.Consumer;
  * - 2026-11-06 테이블 복사: Tasks &gt; Copy Tables… 메뉴, 내보내기 마법사에 쿼리 창 열기를 넘김 (docs/chromite/swing-data-transfer.md)
  * - 2026-11-06 보안 편집기: Properties·New Login/Role/User…·Permissions… 메뉴, 주체 Delete, 실행 뒤 폴더 새로 고침(refreshNavigatorNode)
  *   (docs/chromite/swing-security.md)
+ * - 2026-11-06 Import Data… / Export Data… / Copy Tables…를 데이터베이스 노드와 데이터베이스가 하나인 연결 노드에서도 켬, 도구 설명
+ *   (docs/chromite/swing-data-transfer.md "데이터베이스 노드")
  */
 final class ObjectExplorerPanel extends JPanel {
 
@@ -430,19 +432,19 @@ final class ObjectExplorerPanel extends JPanel {
         scriptAsMenu.add(sourceEditCommands.getAlterToMenu());
         scriptAsMenu.add(selectToMenu);
         importDataAction = createAction(CoreMessages.explorer_import_data, () -> {
-            DBSObject object = getSelectedObject();
+            DBSObject object = getTransferObject();
             if (object != null) {
                 DataImportWizard.open(this, object);
             }
         });
         exportDataAction = createAction(CoreMessages.explorer_export_data, () -> {
-            DBSObject object = getSelectedObject();
+            DBSObject object = getTransferObject();
             if (object != null) {
                 DataExportWizard.openForObject(this, object, queryWindows);
             }
         });
         copyTablesAction = createAction(DbCopyMessages.explorer_copy_tables, () -> {
-            DBSObject object = getSelectedObject();
+            DBSObject object = getTransferObject();
             if (object != null) {
                 DataExportWizard.openForCopy(this, object, queryWindows);
             }
@@ -710,6 +712,19 @@ final class ObjectExplorerPanel extends JPanel {
             ? databaseNode.getObject() : null;
     }
 
+    /**
+     * The object of Import Data…, Export Data… and Copy Tables…: the selected object, or the only database of a selected
+     * connection (null when it has several or they are not read yet, see {@link DataTransferObjects#findConnectionDatabase}).
+     */
+    @Nullable
+    private DBSObject getTransferObject() {
+        DBSObject object = getSelectedObject();
+        if (object == null && getSelectedNavigatorNode() instanceof DBNDataSource connection) {
+            return DataTransferObjects.findConnectionDatabase(connection);
+        }
+        return object;
+    }
+
     private void runOnSelectedDataSource(@NotNull Consumer<DBPDataSourceContainer> command) {
         DBPDataSourceContainer dataSource = getSelectedDataSource();
         if (dataSource != null) {
@@ -733,11 +748,13 @@ final class ObjectExplorerPanel extends JPanel {
         scriptAsMenu.setEnabled(canScript || canSelect);
         viewDdlAction.setEnabled(canScript);
         viewDiagramAction.setEnabled(ErdDiagramModel.canShow(object));
-        importDataAction.setEnabled(DataImportWizard.canImport(object));
-        exportDataAction.setEnabled(DataExportWizard.canExport(object));
+        DBSObject transferObject = getTransferObject();
+        importDataAction.setEnabled(DataImportWizard.canImport(transferObject));
+        exportDataAction.setEnabled(DataExportWizard.canExport(transferObject));
         backUpAction.setEnabled(BackupRestoreCommands.canBackUp(object));
         restoreAction.setEnabled(backUpAction.isEnabled());
         copyTablesAction.setEnabled(exportDataAction.isEnabled());
+        DataTransferObjects.updateTaskTooltips(transferObject, importDataAction, exportDataAction, copyTablesAction);
         tasksMenu.setEnabled(importDataAction.isEnabled() || exportDataAction.isEnabled() || backUpAction.isEnabled());
         designAction.setEnabled(TableDesignSession.canDesign(object));
         newTableAction.setEnabled(getSelectedNavigatorNode() instanceof DBNDatabaseFolder folder && TableDesignSession.canCreateTable(folder));
