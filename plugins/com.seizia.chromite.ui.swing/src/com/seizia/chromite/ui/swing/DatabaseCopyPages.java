@@ -60,8 +60,10 @@ import javax.swing.table.AbstractTableModel;
 import javax.swing.table.DefaultTableCellRenderer;
 import java.awt.*;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Set;
 import java.util.function.BooleanSupplier;
 import java.util.function.Supplier;
@@ -82,12 +84,15 @@ import java.util.function.Supplier;
  *     <li>매핑 단계 아래에는 고른 테이블의 열 매핑(대상 열 이름, 새 열의 형식)과 대상 DDL 미리 보기(SWT "Target DDL")를 둔다. 원본 테이블 자신을 대상으로
  *     고르면 다음으로 가지 않는다. 비우기·다시 만들기가 원본을 지우기 때문이다(SWT에는 이 검사가 없다).</li>
  *     <li>건너뛴 테이블의 파이프는 실행 전에 뺀다. 모델은 건너뛴 매핑의 파이프도 원본을 읽고 대상 연결을 열기 때문이다.</li>
+ *     <li>대상 컨테이너는 하나다(모델의 {@link DatabaseConsumerSettings}가 컨테이너를 하나만 가짐). 데이터베이스 노드에서 여러 스키마의 테이블을
+ *     복사하면 같은 대상 스키마로 가므로, 두 원본이 같은 대상 테이블로 가면 다음으로 가지 않는다.</li>
  *     <li>끝난 뒤 테이블 열기: Swing에는 객체 편집기가 없어 모델의 {@code openTableOnFinish}는 끄고, 성공하면 대상 테이블마다
  *     "상위 1000개 행 선택" 쿼리 창을 연다(최대 {@link #MAX_OPENED_TABLES}개).</li>
  * </ul>
  *
  * 변경 이력:
  * - 2026-11-06 테이블 복사: 최초 작성 (docs/chromite/swing-data-transfer.md)
+ * - 2026-11-06 데이터베이스 노드: 여러 스키마의 원본이 같은 대상 테이블로 가는 매핑을 막음 (docs/chromite/swing-data-transfer.md "데이터베이스 노드")
  */
 final class DatabaseCopyPages {
 
@@ -840,8 +845,33 @@ final class DatabaseCopyPages {
                 }
                 any = true;
             }
+            String duplicate = findDuplicateTarget();
+            if (duplicate != null) {
+                return NLS.bind(DbCopyMessages.dbnode_mapping_error_same_target, duplicate);
+            }
             return any ? null : DbCopyMessages.mapping_error_nothing;
         }
+    }
+
+    /**
+     * A destination table that two copied tables go to, or null. Tables of several schemas of a database go to one
+     * destination schema, so tables with the same name meet there (the second would fail to create it, or a TRUNCATE
+     * would remove the first one's rows).
+     */
+    @Nullable
+    private String findDuplicateTarget() {
+        Set<String> targets = new HashSet<>();
+        for (DatabaseMappingContainer mapping : mappings) {
+            if (mapping.getMappingType() == DatabaseMappingType.skip) {
+                continue;
+            }
+            String target = mapping.getTarget() != null ? DBUtils.getObjectFullName(mapping.getTarget(), DBPEvaluationContext.UI)
+                : mapping.getTargetName();
+            if (target != null && !targets.add(target.toLowerCase(Locale.ROOT))) {
+                return target;
+            }
+        }
+        return null;
     }
 
     /**
@@ -947,6 +977,10 @@ final class DatabaseCopyPages {
             if (mapping.getTarget() != null && mapping.getMappingType() != DatabaseMappingType.skip && mapping.getTarget().equals(mapping.getSource())) {
                 problems.add(NLS.bind(DbCopyMessages.mapping_error_same_table, DBUtils.getObjectFullName(mapping.getTarget(), DBPEvaluationContext.UI)));
             }
+        }
+        String duplicate = findDuplicateTarget();
+        if (duplicate != null) {
+            problems.add(NLS.bind(DbCopyMessages.dbnode_mapping_error_same_target, duplicate));
         }
         List<String> lines = new ArrayList<>();
         for (String problem : problems) {

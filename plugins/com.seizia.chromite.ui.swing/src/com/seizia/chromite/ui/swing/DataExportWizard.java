@@ -28,6 +28,7 @@ import org.jkiss.dbeaver.model.DBPEvaluationContext;
 import org.jkiss.dbeaver.model.DBPContextProvider;
 import org.jkiss.dbeaver.model.DBPDataSource;
 import org.jkiss.dbeaver.model.DBUtils;
+import org.jkiss.dbeaver.model.DBValueFormatting;
 import org.jkiss.dbeaver.model.data.DBDDataFilter;
 import org.jkiss.dbeaver.model.data.DBDDisplayFormat;
 import org.jkiss.dbeaver.model.exec.DBCExecutionContext;
@@ -63,6 +64,7 @@ import org.jkiss.utils.CommonUtils;
 
 import javax.swing.*;
 import javax.swing.table.AbstractTableModel;
+import javax.swing.table.DefaultTableCellRenderer;
 import java.awt.*;
 import java.io.File;
 import java.nio.charset.Charset;
@@ -70,8 +72,10 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
@@ -98,6 +102,10 @@ import java.util.Set;
  *     "Database"를 두고 고르면 파일 단계(형식 설정, 출력) 대신 {@link DatabaseCopyPages}의 대상·매핑·넣기 설정 단계를 보인다.
  *     Object Explorer의 Copy Tables…는 같은 마법사를 형식 단계 없이 연다({@link #openForCopy}). 원본 단계, 요약, 진행 페이지를 그대로 쓰기 위해서다.
  *     결과 표의 쿼리는 이 대상을 두지 않는다(쿼리 원본의 대상 테이블 만들기는 확인하지 않았다).</li>
+ *     <li>데이터베이스 노드(스키마를 담는 SQL Server·PostgreSQL 데이터베이스): 원본 단계에 모든 스키마의 테이블·뷰를 스키마 행 아래에 묶어 보인다.
+ *     스키마 행의 체크 상자가 그 스키마 전체를 고른다. 트리 대신 같은 표에 머리 행을 둔 것은 체크 상자·전체 선택·요약이 같은 원본 목록을 쓰게
+ *     하기 위해서다. 시스템 스키마는 기본으로 숨기고 체크 상자로 보일 때 그 스키마만 읽는다. producer는 스키마와 관계없이 고른 원본마다 만든다.
+ *     여러 스키마에 같은 이름의 테이블이 있으면 파일 이름 패턴에 {@code ${schema}}가 있어야 다음으로 간다(파일이 서로 덮어쓰지 않도록).</li>
  * </ul>
  *
  * 변경 이력:
@@ -106,6 +114,8 @@ import java.util.Set;
  *   표 안에서만 한 정렬은 알림 (docs/chromite/swing-data-transfer.md)
  * - 2026-11-06 화면 문구를 ToolsMessages로 옮김(OS 언어를 따름)
  * - 2026-11-06 테이블 복사: 형식 목록의 "Database"와 Copy Tables… 진입점, 복사 단계({@link DatabaseCopyPages}) (docs/chromite/swing-data-transfer.md)
+ * - 2026-11-06 데이터베이스 노드에서 Export Data…·Copy Tables…: 스키마별로 묶은 원본 목록, 시스템 스키마 보이기, 같은 이름 파일 검사
+ *   (docs/chromite/swing-data-transfer.md "데이터베이스 노드")
  */
 final class DataExportWizard extends DataTransferWizard {
 
@@ -130,11 +140,31 @@ final class DataExportWizard extends DataTransferWizard {
     }
 
     /**
+     * A schema of the source database and its rows in the source list ({@code items} is null until they are read).
+     */
+    private static final class SchemaGroup {
+        private final DBSObjectContainer schema;
+        private final boolean system;
+        @Nullable
+        private List<SourceItem> items;
+
+        SchemaGroup(@NotNull DBSObjectContainer schema, boolean system) {
+            this.schema = schema;
+            this.system = system;
+        }
+    }
+
+    /**
      * The "Database" entry of the format list (copy the tables into a database instead of files).
      */
     private static final Object DATABASE_TARGET = new Object();
 
     private final List<SourceItem> sources = new ArrayList<>();
+    /**
+     * Opened for a database: its schemas, whose tables and views are listed under them; empty otherwise.
+     */
+    private final List<SchemaGroup> schemaGroups = new ArrayList<>();
+    private boolean showSystemSchemas;
     /**
      * Opened as Copy Tables…: the destination is a database, the format page is not shown.
      */
@@ -197,15 +227,31 @@ final class DataExportWizard extends DataTransferWizard {
         @Nullable DBDDataFilter queryFilter,
         @Nullable String orderNote,
         boolean copyOnly,
-        @Nullable ObjectExplorerPanel.QueryWindows queryWindows
+        @Nullable ObjectExplorerPanel.QueryWindows queryWindows,
+        @Nullable List<DataTransferObjects.SchemaTables> schemas
     ) {
         super(owner, copyOnly ? DbCopyMessages.copy_title : ToolsMessages.export_title);
         this.query = query;
         this.queryFilter = queryFilter;
         this.orderNote = orderNote;
         this.copyOnly = copyOnly;
+        Map<DBSDataContainer, SourceItem> items = new HashMap<>();
         for (DBSDataContainer container : containers) {
-            sources.add(new SourceItem(container, new boolean[]{selected.contains(container)}));
+            SourceItem item = new SourceItem(container, new boolean[]{selected.contains(container)});
+            sources.add(item);
+            items.put(container, item);
+        }
+        if (schemas != null) {
+            for (DataTransferObjects.SchemaTables schema : schemas) {
+                SchemaGroup group = new SchemaGroup(schema.schema(), schema.system());
+                if (schema.tables() != null) {
+                    group.items = new ArrayList<>();
+                    for (DBSDataContainer table : schema.tables()) {
+                        group.items.add(items.get(table));
+                    }
+                }
+                schemaGroups.add(group);
+            }
         }
         DataTransferRegistry registry = DataTransferRegistry.getInstance();
         consumerNode = registry.getNodeByType(StreamTransferConsumer.class);
@@ -239,13 +285,14 @@ final class DataExportWizard extends DataTransferWizard {
     // Entry points
 
     /**
-     * Whether Object Explorer can export from this object: a table or view, or a container of them.
+     * Whether Object Explorer can export from this object: a table or view, a container of them, or a database that
+     * holds schemas (its tables and views are listed by schema).
      */
     static boolean canExport(@Nullable DBSObject object) {
         if (object instanceof DBSDataContainer && object instanceof DBSEntity) {
             return true;
         }
-        return DataTransferObjects.isDataContainerParent(object);
+        return DataTransferObjects.isDataContainerParent(object) || DataTransferObjects.isSchemaContainer(object);
     }
 
     /**
@@ -268,6 +315,10 @@ final class DataExportWizard extends DataTransferWizard {
 
     private static void open(@NotNull Component parent, @NotNull DBSObject object, boolean copyOnly, @Nullable ObjectExplorerPanel.QueryWindows queryWindows) {
         String title = copyOnly ? DbCopyMessages.copy_title : ToolsMessages.export_title;
+        if (DataTransferObjects.isSchemaContainer(object) && object instanceof DBSObjectContainer database) {
+            openForDatabase(parent, database, copyOnly, queryWindows, title);
+            return;
+        }
         DBSObject container;
         Set<DBSDataContainer> selected = new LinkedHashSet<>();
         if (object instanceof DBSDataContainer dataContainer && object instanceof DBSEntity) {
@@ -297,7 +348,42 @@ final class DataExportWizard extends DataTransferWizard {
                 JOptionPane.INFORMATION_MESSAGE);
             return;
         }
-        new DataExportWizard(SwingUtilities.getWindowAncestor(parent), containers, selected, null, null, null, copyOnly, queryWindows).open();
+        new DataExportWizard(SwingUtilities.getWindowAncestor(parent), containers, selected, null, null, null, copyOnly, queryWindows, null).open();
+    }
+
+    /**
+     * Opens the wizard for a database that holds schemas: the tables and views of its schemas, grouped by schema
+     * (system schemas are read when they are shown).
+     */
+    private static void openForDatabase(
+        @NotNull Component parent,
+        @NotNull DBSObjectContainer database,
+        boolean copyOnly,
+        @Nullable ObjectExplorerPanel.QueryWindows queryWindows,
+        @NotNull String title
+    ) {
+        List<DataTransferObjects.SchemaTables> schemas;
+        try {
+            schemas = ProgressDialog.runTask(title, monitor -> DataTransferObjects.readSchemaTables(monitor, database));
+        } catch (DBInterruptedException e) {
+            return;
+        } catch (DBException e) {
+            DBWorkbench.getPlatformUI().showError(title,
+                NLS.bind(ToolsMessages.export_error_read_tables, DBUtils.getObjectFullName(database, DBPEvaluationContext.UI)), e);
+            return;
+        }
+        List<DBSDataContainer> containers = new ArrayList<>();
+        for (DataTransferObjects.SchemaTables schema : schemas) {
+            if (schema.tables() != null) {
+                containers.addAll(schema.tables());
+            }
+        }
+        if (containers.isEmpty()) {
+            JOptionPane.showMessageDialog(parent, copyOnly ? DbCopyMessages.copy_error_nothing : ToolsMessages.export_error_nothing, title,
+                JOptionPane.INFORMATION_MESSAGE);
+            return;
+        }
+        new DataExportWizard(SwingUtilities.getWindowAncestor(parent), containers, Set.of(), null, null, null, copyOnly, queryWindows, schemas).open();
     }
 
     /**
@@ -336,7 +422,7 @@ final class DataExportWizard extends DataTransferWizard {
             return;
         }
         new DataExportWizard(SwingUtilities.getWindowAncestor(parent), List.of(container), Set.of(container), (SQLQueryContainer) container,
-            filter != null && filter.hasFilters() ? new DBDDataFilter(filter) : null, orderNote, false, null).open();
+            filter != null && filter.hasFilters() ? new DBDDataFilter(filter) : null, orderNote, false, null, null).open();
     }
 
     /**
@@ -567,7 +653,8 @@ final class DataExportWizard extends DataTransferWizard {
             table.getTableHeader().setReorderingAllowed(false);
             table.getColumnModel().getColumn(0).setMaxWidth(40);
             table.getColumnModel().getColumn(1).setPreferredWidth(320);
-            table.getColumnModel().getColumn(1).setCellRenderer(new DataTransferObjects.ObjectRenderer());
+            table.getColumnModel().getColumn(1).setCellRenderer(
+                schemaGroups.isEmpty() ? new DataTransferObjects.ObjectRenderer() : new GroupedObjectRenderer());
             JButton selectAll = new JButton(ToolsMessages.export_source_select_all);
             selectAll.addActionListener(e -> model.setAll(true));
             JButton deselectAll = new JButton(ToolsMessages.export_source_deselect_all);
@@ -576,6 +663,20 @@ final class DataExportWizard extends DataTransferWizard {
             buttons.add(selectAll);
             buttons.add(deselectAll);
             panel.add(new JScrollPane(table), BorderLayout.CENTER);
+            if (!schemaGroups.isEmpty()) {
+                panel.add(DataTransferObjects.createNote(DbCopyMessages.dbnode_source_note), BorderLayout.NORTH);
+                if (schemaGroups.stream().anyMatch(group -> group.system)) {
+                    JCheckBox systemCheck = new JCheckBox(DbCopyMessages.dbnode_source_show_system);
+                    systemCheck.addActionListener(e -> {
+                        if (!showSystemSchemas(systemCheck.isSelected())) {
+                            systemCheck.setSelected(false);
+                        }
+                        model.fireTableDataChanged();
+                    });
+                    buttons.add(Box.createHorizontalStrut(12));
+                    buttons.add(systemCheck);
+                }
+            }
             panel.add(buttons, BorderLayout.SOUTH);
         }
 
@@ -605,19 +706,105 @@ final class DataExportWizard extends DataTransferWizard {
         }
     }
 
+    /**
+     * The tables and views of a database's schemas are read when the system schemas are shown; they are hidden (and
+     * unchecked, so that they are not exported) again with the check box.
+     *
+     * @return false if the reading was canceled or failed
+     */
+    private boolean showSystemSchemas(boolean show) {
+        if (!show) {
+            for (SchemaGroup group : schemaGroups) {
+                if (group.system && group.items != null) {
+                    group.items.forEach(item -> item.selected()[0] = false);
+                }
+            }
+            showSystemSchemas = false;
+            return true;
+        }
+        List<SchemaGroup> unread = new ArrayList<>();
+        for (SchemaGroup group : schemaGroups) {
+            if (group.system && group.items == null) {
+                unread.add(group);
+            }
+        }
+        if (!unread.isEmpty()) {
+            List<List<DBSDataContainer>> tables;
+            try {
+                tables = ProgressDialog.runTask(getTitle(), monitor -> {
+                    List<List<DBSDataContainer>> result = new ArrayList<>();
+                    for (SchemaGroup group : unread) {
+                        result.add(DataTransferObjects.readSchema(monitor, group.schema));
+                    }
+                    return result;
+                });
+            } catch (DBInterruptedException e) {
+                return false;
+            } catch (DBException e) {
+                DBWorkbench.getPlatformUI().showError(getTitle(), DbCopyMessages.dbnode_error_read_system, e);
+                return false;
+            }
+            for (int i = 0; i < unread.size(); i++) {
+                List<SourceItem> items = new ArrayList<>();
+                for (DBSDataContainer table : tables.get(i)) {
+                    SourceItem item = new SourceItem(table, new boolean[]{false});
+                    sources.add(item);
+                    items.add(item);
+                }
+                unread.get(i).items = items;
+            }
+        }
+        showSystemSchemas = true;
+        return true;
+    }
+
+    /**
+     * The checked tables and views, or for a database its schemas, each followed by its tables and views (the
+     * schema's check box checks them all). Schemas without tables and hidden system schemas have no rows.
+     */
     private final class SourceTableModel extends AbstractTableModel {
         private final String[] columns = {"", ToolsMessages.export_source_column_source, ToolsMessages.export_source_column_type};
+        /**
+         * {@link SourceItem}s and, for a database, {@link SchemaGroup} headers.
+         */
+        private final List<Object> rows = new ArrayList<>();
+
+        SourceTableModel() {
+            updateRows();
+        }
+
+        private void updateRows() {
+            rows.clear();
+            if (schemaGroups.isEmpty()) {
+                rows.addAll(sources);
+                return;
+            }
+            for (SchemaGroup group : schemaGroups) {
+                if (group.items != null && !group.items.isEmpty() && (!group.system || showSystemSchemas)) {
+                    rows.add(group);
+                    rows.addAll(group.items);
+                }
+            }
+        }
+
+        @Override
+        public void fireTableDataChanged() {
+            updateRows();
+            super.fireTableDataChanged();
+        }
 
         void setAll(boolean selected) {
-            for (SourceItem item : sources) {
-                item.selected()[0] = selected;
+            for (Object row : rows) {
+                if (row instanceof SourceItem item) {
+                    item.selected()[0] = selected;
+                }
             }
             fireTableDataChanged();
         }
 
         @Override
         public int getRowCount() {
-            return sources.size();
+            return rows.size();
         }
 
         @Override
@@ -642,7 +829,16 @@ final class DataExportWizard extends DataTransferWizard {
 
         @Override
         public Object getValueAt(int rowIndex, int columnIndex) {
-            SourceItem item = sources.get(rowIndex);
+            if (rows.get(rowIndex) instanceof SchemaGroup group) {
+                List<SourceItem> items = group.items == null ? List.of() : group.items;
+                long checked = items.stream().filter(item -> item.selected()[0]).count();
+                return switch (columnIndex) {
+                    case 0 -> checked == items.size();
+                    case 1 -> group;
+                    default -> NLS.bind(DbCopyMessages.dbnode_source_checked, checked, items.size());
+                };
+            }
+            SourceItem item = (SourceItem) rows.get(rowIndex);
             return switch (columnIndex) {
                 case 0 -> item.selected()[0];
                 case 1 -> item.container();
@@ -652,9 +848,44 @@ final class DataExportWizard extends DataTransferWizard {
 
         @Override
         public void setValueAt(Object value, int rowIndex, int columnIndex) {
-            if (columnIndex == 0) {
-                sources.get(rowIndex).selected()[0] = Boolean.TRUE.equals(value);
+            if (columnIndex != 0) {
+                return;
             }
+            boolean checked = Boolean.TRUE.equals(value);
+            if (rows.get(rowIndex) instanceof SchemaGroup group) {
+                List<SourceItem> items = group.items == null ? List.of() : group.items;
+                items.forEach(item -> item.selected()[0] = checked);
+                fireTableRowsUpdated(rowIndex, rowIndex + items.size());
+                return;
+            }
+            ((SourceItem) rows.get(rowIndex)).selected()[0] = checked;
+            // The schema row above shows how many of its tables are checked
+            for (int header = rowIndex - 1; header >= 0; header--) {
+                if (rows.get(header) instanceof SchemaGroup) {
+                    fireTableRowsUpdated(header, rowIndex);
+                    break;
+                }
+            }
+        }
+    }
+
+    /**
+     * A schema row in bold, its tables and views indented under it with their own name (the schema is the row above).
+     */
+    private static final class GroupedObjectRenderer extends DefaultTableCellRenderer {
+        @Override
+        public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
+            super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
+            if (value instanceof SchemaGroup group) {
+                setText("<html><b>" + escape(group.schema.getName()) + "</b></html>"); //$NON-NLS-1$ //$NON-NLS-2$
+                setIcon(NodeIcons.getIcon(DBValueFormatting.getObjectImage(group.schema)));
+                setBorder(BorderFactory.createEmptyBorder(0, 4, 0, 0));
+            } else if (value instanceof DBSObject object) {
+                setText(object.getName());
+                setIcon(NodeIcons.getIcon(DBValueFormatting.getObjectImage(object)));
+                setBorder(BorderFactory.createEmptyBorder(0, 24, 0, 0));
+            }
+            return this;
         }
     }
 
@@ -997,8 +1228,28 @@ final class DataExportWizard extends DataTransferWizard {
             if (!Charset.isSupported(encoding)) {
                 return NLS.bind(ToolsMessages.export_output_error_encoding, encoding);
             }
+            return checkSameFileNames();
+        }
+    }
+
+    /**
+     * Tables and views of different schemas can have the same name: the default file name pattern uses the table name
+     * only, so their files would overwrite each other. Asks for {@code ${schema}} in the pattern then.
+     */
+    @Nullable
+    private String checkSameFileNames() {
+        String schemaVariable = "${" + StreamTransferConsumer.VARIABLE_SCHEMA + "}"; //$NON-NLS-1$ //$NON-NLS-2$
+        if (schemaGroups.isEmpty() || isClipboardOutput() || singleFileCheck.isSelected() && singleFileCheck.isEnabled()
+            || patternField.getText().contains(schemaVariable)) {
             return null;
         }
+        Set<String> names = new HashSet<>();
+        for (DBSDataContainer source : getSelectedSources()) {
+            if (!names.add(source.getName().toLowerCase(Locale.ROOT))) {
+                return NLS.bind(DbCopyMessages.dbnode_output_error_same_name, source.getName(), schemaVariable);
+            }
+        }
+        return null;
     }
 
     /**

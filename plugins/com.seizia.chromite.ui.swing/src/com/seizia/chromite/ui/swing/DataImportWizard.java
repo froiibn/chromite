@@ -17,6 +17,7 @@
 package com.seizia.chromite.ui.swing;
 
 import com.formdev.flatlaf.FlatClientProperties;
+import com.seizia.chromite.ui.swing.internal.DbCopyMessages;
 import com.seizia.chromite.ui.swing.internal.ToolsMessages;
 import org.eclipse.osgi.util.NLS;
 import org.jkiss.code.NotNull;
@@ -25,6 +26,7 @@ import org.jkiss.dbeaver.DBException;
 import org.jkiss.dbeaver.model.DBPEvaluationContext;
 import org.jkiss.dbeaver.model.DBUtils;
 import org.jkiss.dbeaver.model.runtime.MonitorRunnableContext;
+import org.jkiss.dbeaver.model.runtime.VoidProgressMonitor;
 import org.jkiss.dbeaver.model.struct.DBSAttributeBase;
 import org.jkiss.dbeaver.model.struct.DBSDataManipulator;
 import org.jkiss.dbeaver.model.struct.DBSEntity;
@@ -62,6 +64,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
@@ -81,11 +84,17 @@ import java.util.Set;
  *     <li>넣기 설정은 {@link DatabaseConsumerSettings}(테이블 비우기, 트랜잭션과 커밋 간격 = 배치 크기, 여러 행 INSERT, 배치 끄기, 새 연결)다.
  *     오류 처리는 모델 그대로: 넣다가 오류가 나면 Stop / Retry / Skip / Skip All을 묻는다({@link SwingPlatformUI#showErrorStopRetryIgnore}).</li>
  *     <li>Swing 제품에는 객체 편집기가 없어 끝난 뒤 테이블 열기({@code openTableOnFinish})는 끈다.</li>
+ *     <li>데이터베이스 노드에서 열면 첫 단계에서 대상(스키마와 기존 테이블, 또는 새 테이블 이름)을 고른다({@link DataImportTargetPage}).
+ *     소비자는 SWT {@code DataImportHandler}가 컨테이너에 하듯 {@code new DatabaseTransferConsumer(컨테이너)}다. 새 테이블은 파일의 열을 읽은 뒤
+ *     테이블 복사와 같은 {@link DatabaseCopyMappings#setTableTarget}으로 매핑(create)을 만들어 모델이 실행 때 테이블을 만든다(직접 DDL을 쓰지 않음).
+ *     새 테이블의 열 단계에서는 열 이름·형식을 고치고(형식 목록은 {@link DatabaseCopyMappings#getTargetTypes}) 대상 DDL을 미리 본다.
+ *     이름을 비워 두면 SWT {@code StreamProducerPageSettings.generateTableName}처럼 파일 이름에서 만든다.</li>
  * </ul>
  *
  * 변경 이력:
  * - 2026-11-06 데이터 전송: 최초 작성 (docs/chromite/swing-data-transfer.md)
  * - 2026-11-06 화면 문구를 ToolsMessages로 옮김(OS 언어를 따름)
+ * - 2026-11-06 데이터베이스 노드에서 Import Data…: 대상 테이블 고르기, 새 테이블로 가져오기 (docs/chromite/swing-data-transfer.md "데이터베이스 노드")
  */
 final class DataImportWizard extends DataTransferWizard {
 
@@ -111,7 +120,20 @@ final class DataImportWizard extends DataTransferWizard {
     ) {
     }
 
-    private final DBSDataManipulator table;
+    /**
+     * The table that receives the rows; null for a new table (opened for a database, see {@link DataImportTargetPage}).
+     */
+    @Nullable
+    private DBSDataManipulator table;
+    /**
+     * Opened for a database: the chosen schema (or database) of the destination table.
+     */
+    @Nullable
+    private DBSObjectContainer targetContainer;
+    /**
+     * Opened for a database: the typed name of a new table, empty for the file's name.
+     */
+    private String newTableName = ""; //$NON-NLS-1$
     private final DataTransferSettings settings;
     private final DataTransferNodeDescriptor producerNode;
     private final DatabaseConsumerSettings consumerSettings;
@@ -123,6 +145,10 @@ final class DataImportWizard extends DataTransferWizard {
     private DatabaseMappingContainer mapping;
     private final List<DBSEntityAttribute> targetAttributes = new ArrayList<>();
     private final List<DatabaseMappingAttribute> attributeMappings = new ArrayList<>();
+    /**
+     * Was the last read mapped to a table that exists (existing columns), or to a new table (create)?
+     */
+    private boolean creating;
 
     // Source
     private final JTextField fileField = new JTextField(30);
@@ -141,7 +167,8 @@ final class DataImportWizard extends DataTransferWizard {
 
     private DataImportWizard(
         @Nullable Window owner,
-        @NotNull DBSDataManipulator table,
+        @Nullable DBSDataManipulator table,
+        @Nullable DataImportTargetPage.Targets targets,
         @NotNull DataTransferNodeDescriptor producerNode,
         @NotNull List<DataTransferProcessorDescriptor> importers
     ) throws DBException {
@@ -149,7 +176,9 @@ final class DataImportWizard extends DataTransferWizard {
         this.table = table;
         this.producerNode = producerNode;
         this.importers = importers;
-        DatabaseTransferConsumer consumer = new DatabaseTransferConsumer(table);
+        // A container consumer as SWT DataImportHandler makes for a schema: the mapping gives the table (existing or new)
+        DatabaseTransferConsumer consumer = table != null ? new DatabaseTransferConsumer(table)
+            : new DatabaseTransferConsumer(targets == null ? null : targets.database());
         settings = createSettings(null, List.of(consumer), false);
         DataTransferNodeDescriptor consumerNode = DataTransferRegistry.getInstance().getNodeByType(DatabaseTransferConsumer.class);
         if (consumerNode == null || !(settings.getNodeSettings(consumerNode) instanceof DatabaseConsumerSettings dcs)
@@ -158,23 +187,30 @@ final class DataImportWizard extends DataTransferWizard {
         }
         consumerSettings = dcs;
         producerSettings = sps;
-        if (table.getParentObject() instanceof DBSObjectContainer container) {
+        if (table != null && table.getParentObject() instanceof DBSObjectContainer container) {
             consumerSettings.setContainer(container);
         }
         consumerSettings.setOpenTableOnFinish(false);
         setImporter(importers.getFirst());
-        initWizard(List.of(new SourcePage(), new MappingPage(), new LoadSettingsPage(), new SummaryPage()));
+        List<Page> pages = new ArrayList<>();
+        if (targets != null) {
+            pages.add(new DataImportTargetPage(this, targets, this::setTarget));
+        }
+        pages.addAll(List.of(new SourcePage(), new MappingPage(), new LoadSettingsPage(), new SummaryPage()));
+        initWizard(pages);
     }
 
     /**
-     * Whether a table can receive imported data (SWT {@code DataImportHandler}: a {@link DBSDataManipulator}).
+     * Whether a table can receive imported data (SWT {@code DataImportHandler}: a {@link DBSDataManipulator}), or a
+     * database whose tables (or a new table) can be chosen on the first page.
      */
     static boolean canImport(@Nullable DBSObject object) {
-        return object instanceof DBSDataManipulator && object instanceof DBSEntity;
+        return object instanceof DBSDataManipulator && object instanceof DBSEntity || DataTransferObjects.isDatabase(object);
     }
 
     static void open(@NotNull Component parent, @NotNull DBSObject object) {
-        if (!(object instanceof DBSDataManipulator table) || !(object instanceof DBSEntity)) {
+        DBSDataManipulator table = object instanceof DBSDataManipulator manipulator && object instanceof DBSEntity ? manipulator : null;
+        if (table == null && !(DataTransferObjects.isDatabase(object) && object instanceof DBSObjectContainer)) {
             return;
         }
         DataTransferNodeDescriptor producerNode = DataTransferRegistry.getInstance().getNodeByType(StreamTransferProducer.class);
@@ -188,8 +224,25 @@ final class DataImportWizard extends DataTransferWizard {
             DBWorkbench.getPlatformUI().showError(ToolsMessages.import_title, ToolsMessages.import_error_no_importers);
             return;
         }
+        DataImportTargetPage.Targets targets = null;
+        if (table == null) {
+            DBSObjectContainer database = (DBSObjectContainer) object;
+            try {
+                targets = ProgressDialog.runTask(ToolsMessages.import_title, monitor -> DataImportTargetPage.readTargets(monitor, database));
+            } catch (DBInterruptedException e) {
+                return;
+            } catch (DBException e) {
+                DBWorkbench.getPlatformUI().showError(ToolsMessages.import_title, NLS.bind(DbCopyMessages.error_read, database.getName()), e);
+                return;
+            }
+            if (targets.containers().isEmpty()) {
+                JOptionPane.showMessageDialog(parent, NLS.bind(DbCopyMessages.dbnode_import_error_no_schemas, database.getName()),
+                    ToolsMessages.import_title, JOptionPane.INFORMATION_MESSAGE);
+                return;
+            }
+        }
         try {
-            new DataImportWizard(SwingUtilities.getWindowAncestor(parent), table, producerNode, importers).open();
+            new DataImportWizard(SwingUtilities.getWindowAncestor(parent), table, targets, producerNode, importers).open();
         } catch (DBException e) {
             DBWorkbench.getPlatformUI().showError(ToolsMessages.import_title, ToolsMessages.import_error_start, e);
         }
@@ -208,9 +261,43 @@ final class DataImportWizard extends DataTransferWizard {
         mapping = null;
     }
 
+    /**
+     * The destination chosen on the first page (opened for a database); the file is read again for it.
+     */
+    private void setTarget(@NotNull DBSObjectContainer container, @Nullable DBSDataManipulator existingTable, @NotNull String name) {
+        targetContainer = container;
+        table = existingTable;
+        newTableName = name;
+        consumerSettings.setContainer(container);
+        mapping = null;
+    }
+
     @NotNull
     private String getTableName() {
-        return DBUtils.getObjectFullName(table, DBPEvaluationContext.UI);
+        if (table != null) {
+            return DBUtils.getObjectFullName(table, DBPEvaluationContext.UI);
+        }
+        if (mapping != null && mapping.getTarget() != null) {
+            return DBUtils.getObjectFullName(mapping.getTarget(), DBPEvaluationContext.UI);
+        }
+        String containerName = targetContainer == null ? "?" : DBUtils.getObjectFullName(targetContainer, DBPEvaluationContext.UI); //$NON-NLS-1$
+        String name = mapping != null ? mapping.getTargetName() : newTableName;
+        return CommonUtils.isEmpty(name) ? NLS.bind(DbCopyMessages.dbnode_import_new_table_in, containerName) : containerName + "." + name; //$NON-NLS-1$
+    }
+
+    /**
+     * A table name made of a file name without its extension, other characters than letters and digits replaced by
+     * {@code _} (SWT {@code StreamProducerPageSettings.generateTableName}).
+     */
+    @NotNull
+    private static String getTableNameFromFile(@NotNull Path file) {
+        String name = file.getFileName() == null ? "" : file.getFileName().toString(); //$NON-NLS-1$
+        int dot = name.lastIndexOf('.');
+        if (dot > 0) {
+            name = name.substring(0, dot);
+        }
+        name = name.replaceAll("[^\\p{L}\\p{Nd}]+", "_").replaceAll("^_+|_+$", ""); //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$ //$NON-NLS-4$
+        return name.isEmpty() ? "import" : name; //$NON-NLS-1$
     }
 
     //////////////////////////////////////////////////////////
@@ -270,19 +357,32 @@ final class DataImportWizard extends DataTransferWizard {
 
                 consumerSettings.getDataMappings().clear();
                 DatabaseMappingContainer newMapping = new DatabaseMappingContainer(consumerSettings, entityMapping);
-                newMapping.setTarget(table);
-                newMapping.refreshMappingType(monitor, DatabaseMappingType.existing, false, false);
-                List<DatabaseMappingAttribute> attributes = new ArrayList<>(newMapping.getAttributeMappings(monitor));
-                for (DatabaseMappingAttribute attribute : attributes) {
-                    if (attribute.getMappingType() != DatabaseMappingType.existing || attribute.getTarget() == null) {
-                        // Don't add columns to an existing table (the model would ALTER it): skip unmatched columns
-                        attribute.setMappingType(DatabaseMappingType.skip);
+                DBSDataManipulator target = table;
+                if (target == null) {
+                    // A new table: the same lookup as Copy Tables (a table of that name that exists receives the rows)
+                    String name = newTableName.isEmpty() ? getTableNameFromFile(file) : newTableName;
+                    String error = DatabaseCopyMappings.setTableTarget(monitor, consumerSettings, newMapping, name, true, false);
+                    if (error != null) {
+                        throw new DBException(error);
                     }
+                    target = newMapping.getMappingType() == DatabaseMappingType.existing ? newMapping.getTarget() : null;
+                } else {
+                    newMapping.setTarget(table);
+                    newMapping.refreshMappingType(monitor, DatabaseMappingType.existing, false, false);
                 }
+                List<DatabaseMappingAttribute> attributes = new ArrayList<>(newMapping.getAttributeMappings(monitor));
                 List<DBSEntityAttribute> columns = new ArrayList<>();
-                for (DBSEntityAttribute attribute : CommonUtils.safeCollection(((DBSEntity) table).getAttributes(monitor))) {
-                    if (!DBUtils.isHiddenObject(attribute) && !DBUtils.isPseudoAttribute(attribute)) {
-                        columns.add(attribute);
+                if (target != null) {
+                    for (DatabaseMappingAttribute attribute : attributes) {
+                        if (attribute.getMappingType() != DatabaseMappingType.existing || attribute.getTarget() == null) {
+                            // Don't add columns to an existing table (the model would ALTER it): skip unmatched columns
+                            attribute.setMappingType(DatabaseMappingType.skip);
+                        }
+                    }
+                    for (DBSEntityAttribute attribute : CommonUtils.safeCollection(((DBSEntity) target).getAttributes(monitor))) {
+                        if (!DBUtils.isHiddenObject(attribute) && !DBUtils.isPseudoAttribute(attribute)) {
+                            columns.add(attribute);
+                        }
                     }
                 }
                 consumerSettings.addDataMappings(new MonitorRunnableContext(monitor), entityMapping, newMapping);
@@ -293,6 +393,7 @@ final class DataImportWizard extends DataTransferWizard {
             }
             settings.setProcessorProperties(properties);
             mapping = loaded.mapping();
+            creating = mapping.getMappingType() == DatabaseMappingType.create;
             attributeMappings.clear();
             attributeMappings.addAll(loaded.attributes());
             targetAttributes.clear();
@@ -449,15 +550,76 @@ final class DataImportWizard extends DataTransferWizard {
         private final JPanel panel = new JPanel(new BorderLayout(0, 8));
         private final MappingTableModel model = new MappingTableModel();
         private final JTable mappingTable = new JTable(model);
+        private final JScrollPane tableScroll = new JScrollPane(mappingTable);
+        private final JLabel existingNote = DataTransferObjects.createNote(ToolsMessages.import_mapping_note);
+        private final JLabel newNote = DataTransferObjects.createNote(DbCopyMessages.dbnode_import_mapping_note_new);
+        /**
+         * A new table: its columns and the DDL that creates it (as the Copy Tables mapping page).
+         */
+        private final JTabbedPane tabs = new JTabbedPane();
+        private final JTextArea ddlArea = new JTextArea();
 
         MappingPage() {
             mappingTable.setFillsViewportHeight(true);
             mappingTable.getTableHeader().setReorderingAllowed(false);
             mappingTable.setRowHeight(Math.max(mappingTable.getRowHeight(), new JComboBox<>().getPreferredSize().height));
             mappingTable.putClientProperty("terminateEditOnFocusLost", Boolean.TRUE); //$NON-NLS-1$
-            panel.add(DataTransferObjects.createNote(
-                ToolsMessages.import_mapping_note), BorderLayout.NORTH);
-            panel.add(new JScrollPane(mappingTable), BorderLayout.CENTER);
+            ddlArea.setEditable(false);
+            ddlArea.putClientProperty(FlatClientProperties.STYLE_CLASS, "monospaced"); //$NON-NLS-1$
+            tabs.addChangeListener(e -> {
+                if (tabs.getSelectedIndex() == 1) {
+                    updateDdl();
+                }
+            });
+            panel.add(existingNote, BorderLayout.NORTH);
+            panel.add(tableScroll, BorderLayout.CENTER);
+        }
+
+        /**
+         * The DDL of the new table, generated when its tab is shown (the model makes the same statements when the import runs).
+         */
+        private void updateDdl() {
+            DatabaseMappingContainer newMapping = mapping;
+            if (newMapping == null) {
+                return;
+            }
+            if (mappingTable.isEditing()) {
+                mappingTable.getCellEditor().stopCellEditing();
+            }
+            String text;
+            try {
+                String ddl = ProgressDialog.runTask(DbCopyMessages.progress_ddl,
+                    monitor -> DatabaseCopyMappings.generateTableDdl(monitor, consumerSettings, newMapping));
+                text = ddl == null ? DbCopyMessages.ddl_no_changes : ddl;
+            } catch (DBException e) {
+                text = NLS.bind(DbCopyMessages.ddl_error, CommonUtils.getAllExceptionMessages(e));
+            }
+            ddlArea.setText(text);
+            ddlArea.setCaretPosition(0);
+        }
+
+        /**
+         * Shows the column table alone (an existing table) or with the DDL tab (a new table).
+         */
+        private void showLayout() {
+            BorderLayout layout = (BorderLayout) panel.getLayout();
+            for (Object constraint : new Object[]{BorderLayout.NORTH, BorderLayout.CENTER}) {
+                Component component = layout.getLayoutComponent(constraint);
+                if (component != null) {
+                    panel.remove(component);
+                }
+            }
+            panel.add(creating ? newNote : existingNote, BorderLayout.NORTH);
+            if (creating) {
+                tabs.removeAll();
+                tabs.addTab(DbCopyMessages.mapping_tab_columns, tableScroll);
+                tabs.addTab(DbCopyMessages.mapping_tab_ddl, new JScrollPane(ddlArea));
+                panel.add(tabs, BorderLayout.CENTER);
+            } else {
+                panel.add(tableScroll, BorderLayout.CENTER);
+            }
+            panel.revalidate();
+            panel.repaint();
         }
 
         @NotNull
@@ -469,7 +631,7 @@ final class DataImportWizard extends DataTransferWizard {
         @NotNull
         @Override
         public String getDescription() {
-            return NLS.bind(ToolsMessages.import_mapping_description, getTableName());
+            return NLS.bind(creating ? DbCopyMessages.dbnode_import_mapping_description_new : ToolsMessages.import_mapping_description, getTableName());
         }
 
         @NotNull
@@ -480,6 +642,25 @@ final class DataImportWizard extends DataTransferWizard {
 
         @Override
         public void activate() {
+            showLayout();
+            if (creating) {
+                mappingTable.getColumnModel().getColumn(2).setCellEditor(new DefaultCellEditor(new JTextField()));
+                JComboBox<String> typeCombo = new JComboBox<>();
+                typeCombo.setEditable(true);
+                mappingTable.getColumnModel().getColumn(3).setCellEditor(new DefaultCellEditor(typeCombo) {
+                    @Override
+                    public Component getTableCellEditorComponent(JTable table, Object value, boolean isSelected, int row, int column) {
+                        // The destination database's types (as the Copy Tables column editor)
+                        typeCombo.removeAllItems();
+                        for (String type : DatabaseCopyMappings.getTargetTypes(consumerSettings, attributeMappings.get(row))) {
+                            typeCombo.addItem(type);
+                        }
+                        return super.getTableCellEditorComponent(table, value, isSelected, row, column);
+                    }
+                });
+                model.fireTableDataChanged();
+                return;
+            }
             JComboBox<Object> targetCombo = new JComboBox<>();
             targetCombo.addItem(DatabaseMappingAttribute.TARGET_NAME_SKIP);
             for (DBSEntityAttribute attribute : targetAttributes) {
@@ -504,6 +685,19 @@ final class DataImportWizard extends DataTransferWizard {
         public String leave() {
             if (mappingTable.isEditing()) {
                 mappingTable.getCellEditor().stopCellEditing();
+            }
+            if (creating) {
+                Set<String> names = new HashSet<>();
+                for (DatabaseMappingAttribute attribute : attributeMappings) {
+                    if (attribute.getMappingType() == DatabaseMappingType.skip) {
+                        continue;
+                    }
+                    String name = CommonUtils.notEmpty(attribute.getTargetName());
+                    if (!names.add(name.toLowerCase(Locale.ROOT))) {
+                        return NLS.bind(DbCopyMessages.dbnode_import_mapping_error_same_column, name);
+                    }
+                }
+                return names.isEmpty() ? DbCopyMessages.dbnode_import_mapping_error_none : null;
             }
             Set<DBSEntityAttribute> used = new HashSet<>();
             for (DatabaseMappingAttribute attribute : attributeMappings) {
@@ -537,12 +731,24 @@ final class DataImportWizard extends DataTransferWizard {
 
         @Override
         public boolean isCellEditable(int rowIndex, int columnIndex) {
-            return columnIndex == 2;
+            return columnIndex == 2
+                || creating && columnIndex == 3 && attributeMappings.get(rowIndex).getMappingType() == DatabaseMappingType.create;
         }
 
         @Override
         public Object getValueAt(int rowIndex, int columnIndex) {
             DatabaseMappingAttribute attribute = attributeMappings.get(rowIndex);
+            if (creating) {
+                // A new table: the column name (or [skip]) and the destination type of the new column
+                DBSAttributeBase source = attribute.getSource();
+                boolean created = attribute.getMappingType() == DatabaseMappingType.create;
+                return switch (columnIndex) {
+                    case 0 -> source == null ? "" : source.getName();
+                    case 1 -> CommonUtils.notEmpty(attribute.getSourceType());
+                    case 2 -> created ? CommonUtils.notEmpty(attribute.getTargetName()) : DatabaseMappingAttribute.TARGET_NAME_SKIP;
+                    default -> created ? attribute.getTargetType(consumerSettings.getTargetDataSource(attribute), true) : "";
+                };
+            }
             boolean mapped = attribute.getMappingType() == DatabaseMappingType.existing && attribute.getTarget() != null;
             DBSAttributeBase source = attribute.getSource();
             return switch (columnIndex) {
@@ -556,6 +762,25 @@ final class DataImportWizard extends DataTransferWizard {
         @Override
         public void setValueAt(Object value, int rowIndex, int columnIndex) {
             DatabaseMappingAttribute attribute = attributeMappings.get(rowIndex);
+            if (creating) {
+                String text = CommonUtils.toString(value).trim();
+                if (text.isEmpty()) {
+                    return;
+                }
+                if (columnIndex == 2) {
+                    try {
+                        // No metadata is read for a new table (Copy Tables does the same for its new columns)
+                        DatabaseCopyMappings.setColumnTarget(new VoidProgressMonitor(), consumerSettings, attribute,
+                            DatabaseCopyMappings.normalizeTypedName(consumerSettings, attribute, text));
+                    } catch (DBException e) {
+                        DBWorkbench.getPlatformUI().showError(getTitle(), DbCopyMessages.error_map, e);
+                    }
+                } else if (columnIndex == 3) {
+                    attribute.setTargetType(text);
+                }
+                fireTableRowsUpdated(rowIndex, rowIndex);
+                return;
+            }
             if (value instanceof DBSEntityAttribute target) {
                 attribute.setTarget(target);
                 attribute.setTargetName(target.getName());
@@ -593,6 +818,15 @@ final class DataImportWizard extends DataTransferWizard {
                 ToolsMessages.import_load_note), BorderLayout.CENTER);
             panel.add(content, BorderLayout.NORTH);
             updateEnablement();
+        }
+
+        @Override
+        public void activate() {
+            // A new table is empty
+            truncateCheck.setEnabled(!creating);
+            if (creating) {
+                truncateCheck.setSelected(false);
+            }
         }
 
         private void updateEnablement() {
@@ -659,13 +893,19 @@ final class DataImportWizard extends DataTransferWizard {
             for (Map.Entry<String, Object> entry : importerProperties.getPropertyValues().entrySet()) {
                 summary.append("    ").append(entry.getKey()).append(" = ").append(entry.getValue()).append('\n');
             }
-            summary.append('\n').append(NLS.bind(ToolsMessages.import_summary_destination, getTableName())).append('\n');
+            summary.append('\n').append(NLS.bind(creating ? DbCopyMessages.dbnode_import_summary_new_table : ToolsMessages.import_summary_destination,
+                getTableName())).append('\n');
             for (DatabaseMappingAttribute attribute : attributeMappings) {
                 DBSAttributeBase source = attribute.getSource();
-                summary.append("    ").append(source == null ? "?" : source.getName()).append(" -> ")
-                    .append(attribute.getMappingType() == DatabaseMappingType.existing && attribute.getTarget() != null
-                        ? attribute.getTarget().getName() : DatabaseMappingAttribute.TARGET_NAME_SKIP)
-                    .append('\n');
+                summary.append("    ").append(source == null ? "?" : source.getName()).append(" -> ");
+                if (attribute.getMappingType() == DatabaseMappingType.create) {
+                    summary.append(attribute.getTargetName()).append(" (") //$NON-NLS-1$
+                        .append(attribute.getTargetType(consumerSettings.getTargetDataSource(attribute), true)).append(')');
+                } else {
+                    summary.append(attribute.getMappingType() == DatabaseMappingType.existing && attribute.getTarget() != null
+                        ? attribute.getTarget().getName() : DatabaseMappingAttribute.TARGET_NAME_SKIP);
+                }
+                summary.append('\n');
             }
             summary.append('\n');
             if (truncateCheck.isSelected()) {
