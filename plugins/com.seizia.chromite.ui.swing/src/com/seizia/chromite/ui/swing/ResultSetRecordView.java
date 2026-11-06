@@ -180,9 +180,14 @@ final class ResultSetRecordView extends JPanel {
         nextAction.setEnabled(row >= 0 && row < count - 1);
     }
 
-    void focusTable() {
+    /**
+     * @param line the line to select (a grid column), or -1 to keep the selection
+     */
+    void focusTable(int line) {
         table.requestFocusInWindow();
-        if (table.getSelectedRow() < 0 && model.getRowCount() > 0) {
+        if (line >= 0 && line < model.getRowCount()) {
+            table.setRowSelectionInterval(line, line);
+        } else if (table.getSelectedRow() < 0 && model.getRowCount() > 0) {
             table.setRowSelectionInterval(0, 0);
         }
     }

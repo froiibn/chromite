@@ -61,7 +61,17 @@ final class ResultSetFilterBar extends JPanel {
     }
 
     private final Listener listener;
-    private final JComboBox<String> combo = new JComboBox<>();
+    private final JComboBox<String> combo = new JComboBox<>() {
+        @Override
+        public void updateUI() {
+            super.updateUI();
+            // A look and feel switch makes a new editor: it gets the code font (font.code) again
+            if (getEditor() != null && getEditor().getEditorComponent() instanceof JComponent editor) {
+                editor.putClientProperty(FlatClientProperties.STYLE_CLASS, "monospaced"); //$NON-NLS-1$
+                editor.putClientProperty(FlatClientProperties.PLACEHOLDER_TEXT, HINT);
+            }
+        }
+    };
     private final JButton applyButton;
     private final JButton clearButton;
     private final JPanel trailing = new JPanel(new FlowLayout(FlowLayout.RIGHT, 2, 0));
@@ -75,7 +85,6 @@ final class ResultSetFilterBar extends JPanel {
         combo.setEditable(true);
         combo.putClientProperty(FlatClientProperties.PLACEHOLDER_TEXT, HINT);
         combo.putClientProperty(FlatClientProperties.STYLE_CLASS, "monospaced"); //$NON-NLS-1$
-        getEditorField().putClientProperty(FlatClientProperties.PLACEHOLDER_TEXT, HINT);
         combo.setPrototypeDisplayValue("x"); //$NON-NLS-1$
         combo.addActionListener(e -> {
             if ("comboBoxEdited".equals(e.getActionCommand())) { //$NON-NLS-1$

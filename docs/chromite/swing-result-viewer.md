@@ -39,7 +39,7 @@ QueryResultsView (결과 창, 결과마다 하나씩 쌓음)
 | `ResultSetColumnFit` | 새 | 열 너비를 내용에 맞추기 |
 | `ResultSetGridReceiver` | 변경 | 칸 값(원래 값, LOB 내용)과 `ResultSetSource`를 함께 넘김, 다음 페이지용 수신기(`forNextSegment`) |
 | `ResultSetGrid` | 변경(작은 연결점) | `Fetched`에 `source` 추가, `getTable()`, `setCellText()` |
-| `QueryResultsView` | 변경(작은 연결점) | 결과마다 `ResultSetViewerPanel`로 감쌈, 지울 때 `dispose()`(남긴 LOB 값 놓기) |
+| `QueryResultsView` | 변경(작은 연결점) | 결과마다 `ResultSetViewerPanel`로 감쌈, 지울 때 `dispose()`(남긴 LOB 값 놓기), 결과를 쌓을 때의 최소 높이 140 → 220px(필터 줄·상태 줄 몫) |
 
 ## 설계 결정과 이유
 
@@ -120,6 +120,7 @@ SWT: 결과 뷰어의 레코드 모드(`ResultSetViewer.toggleMode`).
 
 - 필터 줄 오른쪽 "Record" 단추나 오른쪽 클릭 "Record"로 바꾼다. 표의 선택 행을 "Column | Type | Value"로 보여 주고 ◀ ▶(Alt+←/→)로 행을 옮긴다(표의 선택도 옮겨 돌아와도 같은 행).
 - 편집할 수 있는 결과는 값 칸을 두 번 누르거나 F2로 고친다(표의 셀 편집기와 같은 값 처리기, 틀린 값은 빨간 테두리). 바뀐 칸은 표처럼 노란 바탕이고, Ctrl+S가 표의 변경을 저장한다.
+- 레코드 보기로 바꾸면 표에서 고른 열의 줄이 선택된다(값 패널이 같은 칸을 계속 보인다).
 - SWT의 Tab 단축키는 쓰지 않았다(표에서 Tab은 다음 칸으로 가는 키라서).
 
 ### 표 편의 기능
@@ -141,9 +142,26 @@ SWT: 결과 뷰어의 레코드 모드(`ResultSetViewer.toggleMode`).
 - SWT와 다른 동작: 머리글 클릭은 한 열 정렬(Ctrl로 더하기), 서버 정렬 확인 대화상자 없음, 표 안 정렬에서 열마다 그 열의 비교기, 다시 실행해도 안전한지 묻는 대신 SELECT 하나만 다시 읽음,
   선택 집계는 숫자 값만, 필터 기록은 메모리에만.
 
-## 확인
+## 확인 (2026-11-06)
 
-(아래 "확인 (2026-11-06)" 참고)
+- 빌드: `mvn -B clean package -f product/aggregate/pom.xml -T1C '-Pproduct-dbeaver-ce,product-chromite-swing'` → `BUILD SUCCESS`.
+  Swing 제품 `plugins/`에 `swt`·`jface`·`org.eclipse.ui`·`e4.ui` 번들 0개(새 번들 의존 없음).
+- 실행: 빌드한 Swing 제품을 따로 복사해 별도 작업 공간으로 열고, 로컬 Docker DB(PostgreSQL 17, SQL Server 2022, MariaDB 11)에 시험용 DB `chr_result_viewer`를 만들어 확인했다
+  (`items` 1,000행: 숫자·날짜·json·jsonb·xml·이미지·이진·여러 줄 글자 열). 같은 PC에서 다른 앱 창과 Windows 방화벽 알림이 앞 창을 잡고 있어,
+  키보드·마우스 대신 시험용 Java 에이전트(제품에 들어가지 않음)로 EDT에서 단추·메뉴·머리글을 눌렀고 화면은 창 캡처로 확인했다.
+  - **값 패널:** SQL Server `nvarchar(max)` JSON → JSON 들여쓰기, `xml`(뿌리 둘인 조각) → XML 들여쓰기, `image` → PNG 미리 보기(48×32, 1,871 bytes), `varbinary` → Hex.
+    PostgreSQL `json`·`jsonb`(`text/json`), `xml`(그리드에 `[XML]`로 보이는 메모리에 없는 LOB, 패널이 백그라운드에서 읽음), `bytea` 이미지·Hex. MariaDB `json`(longtext), `blob` 이미지.
+  - **값 패널 편집:** SQL Server 편집 결과에서 이름 칸을 패널에서 고쳐 Apply → `1 pending change` → Save → `sqlcmd`로 DB 값 확인(`Item 0998 edited in panel`).
+  - **정렬:** SQL Server 200행(더 있음)에서 `price` 머리글 두 번 → 서버 정렬(내림차순, 편집 가능 유지), PostgreSQL에서 모두 읽은 뒤 `name`·`note` 머리글 → 표 안 정렬, GO 배치 결과 → 표 안 정렬.
+  - **필터:** `qty > 45 and name like 'Item 09%'` → 8행, 칸 값으로 거르기 `name = 'Item 0998'` → 필터 줄에 `name = N'Item 0998'`, 1행. MariaDB `qty = 7 and id > 900` → 2행. 지우기 → 원래 결과.
+    `declare … GO` 배치 결과는 필터 줄이 꺼진다.
+  - **다음 페이지:** SQL Server 서버 정렬 상태에서 끝까지 내리기 → `400 rows fetched — more available`, 200·201번째 행이 정렬 순서대로 이어짐(Copy As CSV로 확인).
+    PostgreSQL "Fetch all" → 확인 대화상자 → `1,000 rows`.
+  - **레코드 보기, 선택 집계, Copy As(CSV), 라이트·다크 테마**를 화면으로 확인했다. CSV·TSV·Markdown·SQL IN 형식과 JSON·XML·Hex 정리, XXE 차단은 같은 클래스를 직접 부르는 시험 코드로도 확인했다.
+- 확인하면서 고친 것: 서버 정렬 뒤 편집할 수 없게 되던 것(다시 읽을 때 쿼리를 실행 원본 설명자로 넘기지 않아 SQL Server에서 열의 테이블을 찾지 못함),
+  값 패널을 열고 닫으면 표의 키보드 포커스가 빠지던 것, Hex가 줄 바꿈되던 것, Record 단추가 두 번 바뀌어 동작하지 않던 것, 새 결과에서 값 패널이 너무 좁게 열리던 것.
+- 확인하지 못한 것: 메모리에 없는 BLOB·CLOB(Oracle 등) 지연 읽기의 오류 경로, 수동 커밋 연결에서의 다음 페이지, macOS.
+- 회귀 테스트는 실행하지 않았다(요청 없음). 영향받을 수 있는 기능: 결과 그리드 편집·저장(G단계), 결과 복사·CSV·XLSX 내보내기, 결과가 여러 개인 실행의 결과 창 높이.
 
 ## 남긴 것
 

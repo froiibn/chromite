@@ -151,6 +151,8 @@ final class ResultSetViewerPanel extends JPanel {
     private String statusMessage;
     private int lastScrollValue;
     private boolean valuePanelShown;
+    // Kept apart from the toggle button: a click selects the button before its action runs
+    private boolean recordMode;
     private int valuePanelWidth = -1;
 
     ResultSetViewerPanel(@NotNull ResultSetGrid.Fetched fetched, @NotNull ResultSetGrid.Host host) {
@@ -299,15 +301,17 @@ final class ResultSetViewerPanel extends JPanel {
     }
 
     private boolean isRecordMode() {
-        return recordToggle.isSelected();
+        return recordMode;
     }
 
     private void setRecordMode(boolean recordMode) {
+        this.recordMode = recordMode;
         recordToggle.setSelected(recordMode);
         ((CardLayout) cards.getLayout()).show(cards, recordMode ? CARD_RECORD : CARD_GRID);
         if (recordMode) {
             recordView.refresh();
-            recordView.focusTable();
+            // The record line of the grid's selected column, so the value panel keeps showing the same cell
+            recordView.focusTable(grid != null ? grid.getTable().getColumnModel().getSelectionModel().getLeadSelectionIndex() : -1);
         } else if (grid != null) {
             grid.getTable().requestFocusInWindow();
         }
@@ -324,8 +328,7 @@ final class ResultSetViewerPanel extends JPanel {
         valuePanelToggle.setSelected(shown);
         if (shown) {
             valuePanel.setVisible(true);
-            int width = valuePanelWidth > 0 ? valuePanelWidth : Math.max(260, getWidth() * 35 / 100);
-            split.setDividerLocation(Math.max(120, split.getWidth() - width - split.getDividerSize()));
+            placeDivider();
         } else {
             valuePanelWidth = valuePanel.getWidth();
             valuePanel.setVisible(false);
@@ -333,6 +336,27 @@ final class ResultSetViewerPanel extends JPanel {
         split.revalidate();
         split.repaint();
         scheduleSelectionUpdate();
+    }
+
+    /**
+     * Puts the value panel at its last width, or at about a third of the viewer. A new viewer has no size yet (the
+     * panel opens with it): then the divider is placed at the first layout.
+     */
+    private void placeDivider() {
+        if (split.getWidth() <= 0) {
+            split.addComponentListener(new java.awt.event.ComponentAdapter() {
+                @Override
+                public void componentResized(java.awt.event.ComponentEvent e) {
+                    if (split.getWidth() > 0) {
+                        split.removeComponentListener(this);
+                        placeDivider();
+                    }
+                }
+            });
+            return;
+        }
+        int width = valuePanelWidth > 0 ? valuePanelWidth : Math.max(260, split.getWidth() * 35 / 100);
+        split.setDividerLocation(Math.max(120, split.getWidth() - width - split.getDividerSize()));
     }
 
     //////////////////////////////////////////////////////////
