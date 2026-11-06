@@ -79,6 +79,7 @@ import java.util.Set;
  * - 2026-11-06 탭 제목에 연결 이름(쿼리 창과 같은 "이름 - 연결" 형식): 여러 연결의 같은 이름 테이블이 구별되지 않던 문제
  *   (docs/chromite/swing-table-designer.md)
  * - 2026-11-06 화면 문구를 ToolsMessages로 옮김(OS 언어를 따름)
+ * - 2026-11-07 밀도 B: 치수를 테마의 Chromite.size.* 키({@link UiSizes})에서 읽음 (docs/chromite/design-spec.md "치수 토큰")
  */
 final class TableDesignerPanel extends JPanel {
 
@@ -158,7 +159,7 @@ final class TableDesignerPanel extends JPanel {
         JScrollPane tableSheetScroll = new JScrollPane(tableSheet);
         tableSheetScroll.setBorder(BorderFactory.createEmptyBorder());
         sectionTabs.addTab(ToolsMessages.designer_section_table, UiIcons.get("table"), tableSheetScroll); //$NON-NLS-1$
-        sectionTabs.putClientProperty(FlatClientProperties.STYLE, "tabHeight: 32; tabSelectionHeight: 3"); //$NON-NLS-1$
+        sectionTabs.putClientProperty(FlatClientProperties.STYLE, UiSizes.TOOL_TABS_STYLE);
 
         nameField.addActionListener(e -> renameTable());
         nameField.addFocusListener(new FocusAdapter() {
@@ -246,7 +247,7 @@ final class TableDesignerPanel extends JPanel {
         toolBar.add(Box.createHorizontalStrut(UIScale.scale(12)));
         stateLabel.putClientProperty(FlatClientProperties.STYLE, "foreground: $Label.disabledForeground"); //$NON-NLS-1$
         toolBar.add(stateLabel);
-        toolBar.setBorder(BorderFactory.createEmptyBorder(UIScale.scale(4), UIScale.scale(8), UIScale.scale(4), UIScale.scale(8)));
+        toolBar.setBorder(UiSizes.createPadding(UiSizes.EDITOR_TOOL_BAR_PADDING));
         return toolBar;
     }
 

@@ -2112,3 +2112,5 @@ EDT 에이전트로 단추를 누르고(`doClick`) 결과를 읽었다. 캡처�
   인라인 오류 영역에 "자세히…", Swing `UIServiceSystemAgent`(`SwingSystemAgent`) 등록으로 백업·복원 메시지의 "Service … not found" 줄 제거,
   연결·연결 끊기 오류 제목 지역화. "오류 문구" 절 추가.
 - 2026-11-07 XLSX 내보내기 설명: Office 확장 피처의 설치 원본(CE 업데이트 저장소)을 삭제한 것을 반영.
+- 2026-11-07 UI 글꼴 Pretendard 13(번들, `UiFont`)과 기본 밀도 B: 컴포넌트에 흩어져 있던 치수를 테마의 `Chromite.size.*` 키(`UiSizes`)로 모으고
+  트리 22·그리드 24·도구 창 머리말 34·주 도구 막대 32 등으로 낮춤. 결과 창 기본 높이는 그대로(결정 대기). design-spec.md "치수 토큰", "적용 현황 — Pretendard와 밀도 B".

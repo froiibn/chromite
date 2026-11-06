@@ -17,7 +17,6 @@
 package com.seizia.chromite.ui.swing;
 
 import com.formdev.flatlaf.FlatClientProperties;
-import com.formdev.flatlaf.util.UIScale;
 import com.seizia.chromite.model.sql.exec.SQLActualPlanProvider;
 import com.seizia.chromite.model.sql.exec.SQLQueryExecuteHandler;
 import com.seizia.chromite.model.sql.exec.SQLQueryExecuteJob;
@@ -185,6 +184,7 @@ import java.util.concurrent.atomic.AtomicLong;
  * - 2026-11-06 도구 막대에 SSMS SQL Editor 단추 추가(Comment, Uncomment, Decrease/Increase Indent, Format SQL, Query History),
  *   좁은 창에서는 콤보를 줄이고 넘치는 단추를 넘침 메뉴로 ({@link OverflowToolBar}) (docs/chromite/swing-frontend.md "도구 막대")
  * - 2026-11-07 오류 문구를 {@link ErrorText}로 만듦(클래스 이름이 화면에 나오지 않게, docs/chromite/swing-frontend.md "오류 문구")
+ * - 2026-11-07 밀도 B: 치수를 테마의 Chromite.size.* 키({@link UiSizes})에서 읽음 (docs/chromite/design-spec.md "치수 토큰")
  */
 final class SqlEditorPanel extends JPanel {
 
@@ -712,8 +712,8 @@ final class SqlEditorPanel extends JPanel {
         };
         historyAction.putValue(Action.SHORT_DESCRIPTION, ToolbarMessages.toolbar_query_history_tip);
         toolBar.add(UiIcons.createActionButton(historyAction, "history")); //$NON-NLS-1$
-        // size.toolbar.editor 36 with size.control 28 combos
-        toolBar.setBorder(BorderFactory.createEmptyBorder(UIScale.scale(4), UIScale.scale(8), UIScale.scale(4), UIScale.scale(8)));
+        // size.toolbar.editor with size.control 28 combos
+        toolBar.setBorder(UiSizes.createPadding(UiSizes.EDITOR_TOOL_BAR_PADDING));
         return toolBar;
     }
 

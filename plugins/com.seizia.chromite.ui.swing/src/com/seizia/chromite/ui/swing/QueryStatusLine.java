@@ -38,7 +38,7 @@ import java.awt.*;
  * 설계:
  * <ul>
  *     <li>내용은 SSMS 상태 줄(상태, 서버(버전), 사용자, DB, 시간, 행)이고 모양은 DataGrip 상태 표시줄 값(design-spec "9. 쿼리 상태 줄"):
- *     높이 28, 위 1px border.subtle, 글자 text.secondary, 칸 사이 1px 구분선. 바탕은 Islands 카드 바탕이다(카드 안에 있으므로 사양의 bg.chrome 대신). 상태 아이콘 16은 아이콘 팩의 메시지 아이콘이고,
+ *     높이 size.statusLine.query(밀도 B 26, {@link UiSizes}), 위 1px border.subtle, 글자 text.secondary, 칸 사이 1px 구분선. 바탕은 Islands 카드 바탕이다(카드 안에 있으므로 사양의 bg.chrome 대신). 상태 아이콘 16은 아이콘 팩의 메시지 아이콘이고,
  *     실행 전에는 연결 아이콘(연결되어 있으면 초록 상태 점)이라 연결 상태를 보인다.</li>
  *     <li>서버는 호스트[:포트], 호스트가 없는 파일 DB는 파일 이름이다. 전체 경로·URL과 DB 제품 버전은 도구 설명에 둔다(SSMS의 "서버 (버전)"을 줄이지 않고 보이면 칸이 길어진다).
  *     빈 칸(사용자가 없는 SQLite, 기본 DB/스키마를 모르는 연결)은 숨긴다.</li>
@@ -59,10 +59,9 @@ import java.awt.*;
  * - 2026-11-06 고급 연결 설정: 바탕을 연결 색으로 칠함 (docs/chromite/swing-conn-advanced.md)
  * - 2026-11-06 띠 위 글자가 읽히지 않으면 대비 색 (docs/chromite/swing-registered-servers.md "연결 색 알약")
  * - 2026-11-06 화면 문구를 EditorMessages로 옮김(OS 언어를 따름)
+ * - 2026-11-07 밀도 B: 치수를 테마의 Chromite.size.* 키({@link UiSizes})에서 읽음 (docs/chromite/design-spec.md "치수 토큰")
  */
 final class QueryStatusLine extends JPanel {
-
-    private static final int HEIGHT = 28;
 
     /**
      * Query state of the window; it picks the icon.
@@ -95,7 +94,7 @@ final class QueryStatusLine extends JPanel {
             @Override
             public Dimension getPreferredSize() {
                 Dimension size = super.getPreferredSize();
-                return new Dimension(size.width, UIScale.scale(HEIGHT));
+                return new Dimension(size.width, UiSizes.get(UiSizes.QUERY_STATUS_LINE_HEIGHT));
             }
         };
         segments.setOpaque(false);
@@ -115,7 +114,7 @@ final class QueryStatusLine extends JPanel {
     @Override
     public Dimension getPreferredSize() {
         Dimension size = super.getPreferredSize();
-        return new Dimension(size.width, UIScale.scale(HEIGHT) + 1);
+        return new Dimension(size.width, UiSizes.get(UiSizes.QUERY_STATUS_LINE_HEIGHT) + 1);
     }
 
     @Override
@@ -241,18 +240,23 @@ final class QueryStatusLine extends JPanel {
     @NotNull
     private JLabel createSegment() {
         JLabel label = new BandLabel(true);
-        label.setBorder(createSegmentBorder());
+        label.setBorder(createSegmentBorder(label.getFontMetrics(label.getFont()).getHeight()));
         return label;
     }
 
     /**
      * A 1px border.subtle line on the left of a segment (its color read when painting, so it follows theme changes),
-     * space.12 on both sides of the text.
+     * space.12 on both sides of the text. The segment is as high as the line: FlowLayout puts its row at the top.
+     *
+     * @param textHeight height of the segment's text line
      */
     @NotNull
-    private static Border createSegmentBorder() {
-        int height = UIScale.scale(HEIGHT);
-        int lineInset = UIScale.scale(7);
+    private static Border createSegmentBorder(int textHeight) {
+        int height = UiSizes.get(UiSizes.QUERY_STATUS_LINE_HEIGHT);
+        int top = Math.max(0, (height - textHeight) / 2);
+        int bottom = Math.max(0, height - textHeight - top);
+        // The separator is half the line high
+        int lineInset = height / 4;
         return BorderFactory.createCompoundBorder(
             new AbstractBorder() {
                 @Override
@@ -266,7 +270,7 @@ final class QueryStatusLine extends JPanel {
                     return new Insets(0, 1, 0, 0);
                 }
             },
-            BorderFactory.createEmptyBorder((height - UIScale.scale(16)) / 2, UIScale.scale(12), (height - UIScale.scale(16)) / 2, UIScale.scale(12)));
+            BorderFactory.createEmptyBorder(top, UIScale.scale(12), bottom, UIScale.scale(12)));
     }
 
     /**

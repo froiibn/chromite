@@ -166,6 +166,7 @@ import java.util.function.IntConsumer;
  * - 2026-11-06 빈 문서 영역: Welcome 탭 삭제, 문서가 없으면 문서 카드에 {@link WelcomePanel} (docs/chromite/swing-frontend.md "빈 문서 영역")
  * - 2026-11-07 Results 자동 숨김: Results는 활성 문서가 쿼리 창일 때만 보이고 숨김은 쿼리 창마다 기억, 쿼리 창이 없으면 Results 토글을 끔,
  *   쓰지 않게 된 Results 자리 표시 내용 삭제 (docs/chromite/swing-frontend.md "Results 자동 숨김")
+ * - 2026-11-07 밀도 B: 치수를 테마의 Chromite.size.* 키({@link UiSizes})에서 읽음 (docs/chromite/design-spec.md "치수 토큰")
  */
 final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplorerPanel.QueryWindows, TableDesignerPanel.Host, QueryLibraryPanel.Host {
 
@@ -258,8 +259,8 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
             updateActivityMonitorAction();
         }, this);
         resultTabs = new JTabbedPane();
-        // size.tab.tool 32 with a 3px underline (size.tabUnderline), icons results.grid / results.messages
-        resultTabs.putClientProperty(FlatClientProperties.STYLE, "tabHeight: 32; tabSelectionHeight: 3"); //$NON-NLS-1$
+        // size.tab.tool with a 3px underline (size.tabUnderline), icons results.grid / results.messages
+        resultTabs.putClientProperty(FlatClientProperties.STYLE, UiSizes.TOOL_TABS_STYLE);
         // The tabs get the active query window's components (activeEditorChanged); without one the Results card is hidden
         resultTabs.addTab(CoreMessages.main_results, UiIcons.get("results"), null); //$NON-NLS-1$
         resultTabs.addTab(CoreMessages.main_messages, UiIcons.get("messages"), null); //$NON-NLS-1$
@@ -568,7 +569,7 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
         JToolBar toolBar = new OverflowToolBar();
         // On the Islands canvas (MainToolbar.background = main-window-bg)
         toolBar.setOpaque(false);
-        toolBar.setBorder(BorderFactory.createEmptyBorder(UIScale.scale(5), UIScale.scale(8), UIScale.scale(5), UIScale.scale(8)));
+        toolBar.setBorder(UiSizes.createPadding(UiSizes.MAIN_TOOL_BAR_PADDING));
         toolBar.add(UiIcons.createToolButton(newQueryAction, "new-query")); //$NON-NLS-1$
         toolBar.add(UiIcons.createActionButton(explorerPanel.getNewConnectionAction(), "new-connection")); //$NON-NLS-1$
         toolBar.addSeparator();
@@ -1347,8 +1348,8 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
         JTabbedPane tabs = new EditorTabbedPane();
         // One row that scrolls, like SSMS; wrapped rows would move the selected tab's row around
         tabs.setTabLayoutPolicy(JTabbedPane.SCROLL_TAB_LAYOUT);
-        // DataGrip editor tabs: size.tab.editor 40; the selected tab is an Islands pill (IslandTabbedPaneUI), no underline
-        tabs.putClientProperty(FlatClientProperties.STYLE, "tabHeight: 40; tabSelectionHeight: 0"); //$NON-NLS-1$
+        // DataGrip editor tabs: size.tab.editor; the selected tab is an Islands pill (IslandTabbedPaneUI), no underline
+        tabs.putClientProperty(FlatClientProperties.STYLE, UiSizes.DOCUMENT_TABS_STYLE);
         tabs.putClientProperty(FlatClientProperties.TABBED_PANE_TAB_CLOSE_CALLBACK, (IntConsumer) this::closeDocumentTab);
         tabs.addMouseListener(new MouseAdapter() {
             @Override
@@ -1706,7 +1707,7 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
                 return;
             }
             int arc = UIScale.scale(UIManager.getInt("Chromite.island.tabArc")); //$NON-NLS-1$
-            int insetY = UIScale.scale(6);
+            int insetY = UiSizes.get(UiSizes.DOCUMENT_TAB_PILL_INSET);
             int insetX = UIScale.scale(2);
             Graphics2D g2 = (Graphics2D) g.create();
             try {
@@ -1788,11 +1789,10 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
     }
 
     /**
-     * Status bar (size.statusBar 28) on the Islands canvas, without a separator line (StatusBar.background =
+     * Status bar (size.statusBar) on the Islands canvas, without a separator line (StatusBar.background =
      * main-window-bg, topBorderWidth 0); the background is set again on theme changes.
      */
     private static final class StatusBar extends JPanel {
-        private static final int HEIGHT = 28;
         private final JLabel statusLabel;
 
         StatusBar(@NotNull String statusText) {
@@ -1806,7 +1806,7 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
         @Override
         public Dimension getPreferredSize() {
             Dimension size = super.getPreferredSize();
-            return new Dimension(size.width, UIScale.scale(HEIGHT));
+            return new Dimension(size.width, UiSizes.get(UiSizes.STATUS_BAR_HEIGHT));
         }
 
         void setText(@NotNull String text) {

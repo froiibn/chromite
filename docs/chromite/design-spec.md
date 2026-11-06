@@ -200,11 +200,11 @@ Swing 프런트엔드(`com.seizia.chromite.ui.swing`)의 화면을 **배치와 �
 
 | 요소 | SSMS | DataGrip New UI | 현재 Chromite | 목표 | 우선 |
 |---|---|---|---|---|---|
-| UI 글꼴 | Segoe UI | Inter 13(모든 OS) [JetBrains New UI 도움말], 한글은 운영체제 글꼴로 대체 | Segoe UI 12 | `font.ui` Inter 13, 한글 대체 Malgun Gothic(Windows)·Apple SD Gothic Neo(macOS). FlatLaf 합성 글꼴(`defaultFont`가 대체 글꼴을 갖는 composite font)이어야 한글이 □로 나오지 않음 | P0 |
+| UI 글꼴 | Segoe UI | Inter 13(모든 OS) [JetBrains New UI 도움말], 한글은 운영체제 글꼴로 대체 | Segoe UI 12 | `font.ui` Pretendard 13(2026-11-07 사용자 결정, 한글·라틴을 한 글꼴로, "적용 현황 — Pretendard와 밀도 B"). 처음 목표는 Inter 13 + 한글 대체 Malgun Gothic이었다. FlatLaf 합성 글꼴(`defaultFont`가 대체 글꼴을 갖는 composite font)이어야 Pretendard에 없는 글자(한자·가나)가 □로 나오지 않음 | P0 |
 | 간격 단위 | — | 2·4·6·8·12·16·20 [J `SpacingConfiguration`, `Tree.border`, `List.border`] | 화면마다 다름(2, 3, 8, 14 등) [C] | "디자인 토큰"의 `space.*`만 씀 | P1 |
 | 시작 탭(Welcome) | 시작 화면 | Welcome 화면(로고, 큰 단추) | 큰 로고 + 안내 글 [S] | 로고 64, 제목 `font.title`, "New Connection", "New Query", "Open File" 링크 단추, 최근 파일 목록 | P2 (2026-11-06 탭 대신 빈 문서 영역: "적용 현황 — 빈 문서 영역") |
 | Islands | — | 2025.3부터 기본: 패널 사이 6px 틈, 패널 모서리 arc 20 [T `ManyIslands*`] | — | 기본 모양으로 적용("적용 현황 — Islands 적용") | 완료 |
-| 촘촘한 모드 | — | Compact: 트리 22, 머리말 낮춤, 트리 여백 2,8 [T `*.compact`] | — | 설정으로 제공(SSMS 사용자 밀도 요구) | P2 |
+| 촘촘한 모드 | — | Compact: 트리 22, 머리말 낮춤, 트리 여백 2,8 [T `*.compact`] | — | 기본 밀도를 B("조금 촘촘")로 바꿈(2026-11-07, "치수 토큰"). 더 촘촘한 C는 보기 메뉴 전환으로 제공(P2): 치수가 테마 키에 모여 있어 값만 바꾸면 됨 | B 완료, C는 P2 |
 
 ## P0 상위 15개
 
@@ -318,30 +318,44 @@ IntelliJ 전용 키와 FlatLaf 키의 차이를 줄이기 위해서다(설계 �
 
 ### 치수 토큰
 
+기본 밀도는 **B "조금 촘촘"**이다(사용자 결정 2026-11-07, 비교 시안 `D:\Tools\_scratch\density-mock\`). 아래 값은 B이고, 괄호 안은 처음 값(A, DataGrip 기본)이다.
+밀도를 정하는 값은 모두 테마 properties(`ChromiteLightLaf.properties`, `ChromiteDarkLaf.properties`, 두 파일 같은 값)의 "Sizes" 절에 있다:
+FlatLaf 키와, Chromite 컴포넌트가 `UiSizes`로 읽는 `Chromite.size.*` 키. 컴포넌트 코드에는 밀도 값을 두지 않는다.
+
+**촘촘한 모드(C, P2)**: 보기 메뉴의 전환으로 넣을 때는 이 키들만 `FlatLaf.setExtraDefaults`로 덮어쓰면 된다. 시안의 C 값:
+트리 행 20(여백 2,8, 들여쓰기 5 + 10), 그리드 행 22·머리글 24(셀 여백 0,6,2,6), 도구 창 머리말 30(왼쪽 8), 주 도구 막대 28(단추 22 = 여백 3), 도구 창 도구 막대 26,
+편집기 도구 막대 28(콤보 24 = 여백 3,8,2,8), 문서 탭 32(알약 4), 도구 탭 26, 메뉴 항목 20(1,8,2,8), 상태 표시줄·쿼리 상태 줄 24, Properties 행 20, 필터 막대 여백 1, 결과 상태 막대 여백 0.
+`Chromite.size.*` 값은 컴포넌트를 만들 때 읽는다(크기를 계산할 때마다 읽는 곳도 있음). 실행 중에 바꾸려면 창을 다시 만들거나 다시 시작해야 한다.
+
 | 토큰 | 값 | 근거 | FlatLaf 키 / 구현 |
 |---|---|---|---|
-| `size.row.tree` | 24 | [T `Tree.rowHeight`][J] | `Tree.rowHeight = 24` |
+| `size.row.tree` | 22 (24) | [T `Tree.rowHeight`][J] compact 22 | `Tree.rowHeight = 22`, `Tree.border = empty(3,10,3,10)`, `Tree.selectionInsets = 0,6,0,6` |
 | `size.row.list` | 24 | [T `List.rowHeight`] | 목록 `setFixedCellHeight(24)` 또는 `List.cellMargins` |
-| `size.row.menu` | 24 | ≈ New UI 메뉴 | `MenuItem.margin = 4,8,4,8` |
-| `size.row.grid` | 27 | [S] DataGrip 그리드 | `Table.rowHeight = 27`, `Table.cellMargins = 2,8,2,8` |
-| `size.header.grid` | 28 | [S] | `TableHeader.height = 28`, `TableHeader.cellMargins = 2,8,2,8` |
-| `size.header.toolWindow` | 40 (+ 아래 선 1) | [J] 41 | `ToolWindow` 머리말 패널 높이 |
-| `size.tab.editor` | 40 | [T `TabbedPane.tabHeight`] | 문서 탭: `JTabbedPane` 스타일 `tabHeight: 40` |
-| `size.tab.tool` | 32 | Chromite 결정(쿼리 창 안 결과 탭은 낮게) | 결과 탭: 스타일 `tabHeight: 32` |
+| `size.row.menu` | 22 (24) | ≈ New UI 메뉴 | `@menuItemMargin = 2,8,3,8` (글자 줄 17 + 5) |
+| `size.row.grid` | 24 (27) | [S] DataGrip 그리드 | `Table.rowHeight = 24`, `Table.cellMargins = 0,8,2,8`(글자를 1px 위로: 한글·내림 글자가 가운데로 보임) |
+| `size.header.grid` | 26 (28) | [S] | `TableHeader.height = 26`, `TableHeader.cellMargins = 0,8,2,8` |
+| `size.row.properties` | 22 (24) | Chromite 결정(트리 행과 같음) | `Chromite.size.propertyRow.height` |
+| `size.header.toolWindow` | 34 (40) (+ 아래 선 1) | [J] 41 | `Chromite.size.toolWindowHeader.height`, 여백 `Chromite.size.toolWindowHeader.padding = 0,10,0,8` |
+| `size.toolbar.toolWindow` | 28 (32) | 단추 24 + 위아래 2 | `Chromite.size.toolWindowToolBar.padding = 2,8,2,8`(도구 창, 작업 모니터·잠금·ERD 도구 막대) |
+| `size.tab.editor` | 36 (40) | [T `TabbedPane.tabHeight`] | 문서 탭 스타일 `tabHeight: $Chromite.size.documentTab.height`, 선택 알약 위아래 `Chromite.size.documentTab.pillInset` 5 (6) |
+| `size.tab.tool` | 28 (32) | Chromite 결정(쿼리 창 안 결과 탭은 낮게) | 결과·도구 창·세부 탭 스타일 `tabHeight: $Chromite.size.toolTab.height`(`UiSizes.TOOL_TABS_STYLE`) |
 | `size.tabUnderline` | 4 (탭) / 3 (결과 탭) | [T `EditorTabs.underlineHeight`][J] | `TabbedPane.tabSelectionHeight`, `TabbedPane.tabSelectionArc = 4` |
 | `size.titleBar` | 40 | [J] 주 도구 막대 40 | `TitlePane.buttonSize = 46,40` |
-| `size.toolbar.main` | 36 | Chromite 결정(SSMS 두 줄 유지) | `ToolBar.borderMargins = 5,8,5,8` |
-| `size.toolbar.editor` | 36 | [S] ≈36 | 편집기 도구 막대 여백 |
-| `size.statusBar` | 28 | ≈ | 상태 표시줄 여백 |
-| `size.control` | 28 | [T `Button.minimumSize` 72,28, `TextField.minimumSize`, `ComboBox.minimumSize`] | `@componentMargin`, `Button.margin`, `ComboBox.padding = 1,9,1,6`로 28이 되게(또는 `JComponent.minimumHeight` 클라이언트 속성) |
+| `size.toolbar.main` | 32 (36) | Chromite 결정(SSMS 두 줄 유지) | `Chromite.size.mainToolBar.padding = 4,8,4,8` |
+| `size.toolbar.editor` | 32 (36) | [S] ≈36 | `Chromite.size.editorToolBar.padding = 2,8,2,8`(콤보 28 + 4; 쿼리 창, 테이블 디자이너) |
+| `size.statusBar` | 26 (28) | ≈ | `Chromite.size.statusBar.height` |
+| `size.statusLine.query` | 26 (28) (+ 위 선 1) | Chromite 결정 | `Chromite.size.queryStatusLine.height`. 칸의 위아래 여백은 글자 줄 높이로 계산한다(칸이 줄보다 높아지지 않게) |
+| `size.control` | 28 | [T `Button.minimumSize` 72,28, `TextField.minimumSize`, `ComboBox.minimumSize`] | 글자 줄 17 + 위 5·아래 4 + 테두리 2: `@componentMargin = 5,8,4,8`(입력·콤보·스피너), `Button.margin = 5,14,4,14` |
 | `size.button.minWidth` | 72 | [T] | `Button.minimumWidth = 72` |
-| `size.actionButton` | 26 | [S] | `Button.toolbar.margin = 5,5,5,5` (16 + 10) |
+| `size.actionButton` | 24 (26) | [S] | `Button.toolbar.margin = 4,4,4,4` (16 + 8). 글자 단추(새 쿼리, 실행)는 글자 줄(17)이 아이콘(16)보다 1 높아 위 여백을 1 줄인다(`UiIcons.createToolButton`) |
 | `size.arrowArea` | 28 | [T `Component.arrowAreaWidth`] | 콤보 화살표 단추 폭 |
 | `size.icon` | 16 | [I] | — |
 | `size.icon.large` | 20 | [J] New UI 주 도구 막대·띠 아이콘 20 | 나중(주 도구 막대 큰 아이콘) |
 | `size.statusDot` | 6 | [S] | 상태 점 지름 |
 | `size.badge` | 8 | 아이콘 지침 "6~9px" | 겹침 배지 |
-| `size.indent.tree` | 19 | [S] | `Tree.leftChildIndent = 7`, `Tree.rightChildIndent = 12` |
+| `size.indent.tree` | 17 (19) | [S] | `Tree.leftChildIndent = 6`, `Tree.rightChildIndent = 11` |
+| `size.gap.treeIcon` | 4 (6) | 시안 B | 트리 아이콘–글자 간격 `Chromite.size.tree.iconTextGap`. 보조 글자 앞과 연결 색 알약 앞뒤는 `Chromite.size.tree.secondaryGap` 6(알약 사양 그대로) |
+| `size.padding.filterBar`, `size.padding.viewerStatus` | 2,4,2,4 / 1,6,1,6 | 시안 B(그대로, C에서 줄임) | `Chromite.size.filterBar.padding`, `Chromite.size.viewerStatus.padding` |
 | `size.scrollbar` | 11 (막대 7) | [S] | `ScrollBar.width = 11`, `ScrollBar.thumbInsets = 2,2,2,2`, `ScrollBar.thumbArc = 999` |
 | `size.divider` | 끄는 영역 5, 선 1 | [T `OnePixelDivider`] | `SplitPane.dividerSize = 5`, `SplitPaneDivider.style = plain` + 1px 선 |
 | `size.focusWidth` | 2 (테두리 1 + 안쪽 1) | [T] | `Component.focusWidth = 0`, `Component.innerFocusWidth = 1`, `Component.borderWidth = 1` |
@@ -372,14 +386,14 @@ IntelliJ 전용 키와 FlatLaf 키의 차이를 줄이기 위해서다(설계 �
 
 | 토큰 | 값 | 쓰는 곳 | FlatLaf |
 |---|---|---|---|
-| `font.ui` | Inter 13 보통 | 모든 UI | `defaultFont = 13 Inter` (+ 한글 대체를 위해 합성 글꼴) |
-| `font.ui.semibold` | Inter 13 semibold | 도구 창 제목, 섹션 제목, Properties 분류 | 스타일 클래스 `semibold` |
-| `font.ui.small` | Inter 12 | 팝업 안내 줄, 배지 | 스타일 클래스 `small`(FlatLaf `@smallScale`이 아니라 −1px로 맞춤) |
-| `font.title` | Inter 15 semibold | 대화상자 머리말, 시작 탭 제목 | 스타일 클래스 `h3` 크기 조정 |
+| `font.ui` | Pretendard 13 보통 (2026-11-07 전: Inter 13) | 모든 UI | `defaultFont = 13 Pretendard` (+ Pretendard에 없는 글자를 위해 합성 글꼴) |
+| `font.ui.semibold` | Pretendard 13 SemiBold | 도구 창 제목, 섹션 제목, Properties 분류 | `semibold.font = "Pretendard SemiBold"`, 스타일 클래스 `semibold` |
+| `font.ui.small` | Pretendard 12 | 팝업 안내 줄, 배지 | 스타일 클래스 `small`(FlatLaf `@smallScale`이 아니라 −1px로 맞춤) |
+| `font.title` | Pretendard 15 semibold | 대화상자 머리말, 시작 탭 제목 | 스타일 클래스 `h3` 크기 조정 |
 | `font.code` | JetBrains Mono 13, 줄 간격 1.2 | 결과 그리드, 메시지 | `monospaced.font` |
 | `font.editor` | Cascadia Mono 13(Options에서 바꿀 수 있음) | SQL 편집기, 줄 번호, DDL 탭 | `EditorFont`(2026-11-06, "편집기 글꼴과 SQL 색") |
 
-Inter와 JetBrains Mono는 SIL Open Font License 1.1이다. FlatLaf가 두 글꼴을 별도 jar(`flatlaf-fonts-inter`, `flatlaf-fonts-jetbrains-mono`)로 낸다.
+Pretendard(1.3.9, 번들 `fonts/pretendard`), Inter, JetBrains Mono는 SIL Open Font License 1.1이다. FlatLaf가 Inter와 JetBrains Mono를 별도 jar(`flatlaf-fonts-inter`, `flatlaf-fonts-jetbrains-mono`)로 낸다.
 넣으려면 의존성 추가와 `NOTICE` 갱신이 필요하므로 구현 단계에서 따로 결정한다("미룬 결정").
 넣지 않으면 대체 값은 Segoe UI 13(Windows), 시스템 글꼴 13(macOS)이고 고정폭은 Cascadia Mono/Consolas, Menlo다.
 
@@ -678,7 +692,7 @@ P0 전체와 P1 일부를 `com.seizia.chromite.ui.swing`에 적용했다. 동작
   빌드할 때 Maven Central에서 받아 `lib/`에 복사(`pom.xml`), `Bundle-ClassPath`, 저장소에는 넣지 않음. 글꼴은 SIL OFL 1.1, jar 포장은 Apache 2.0. `NOTICE`에 적었다.
   - `flatlaf-fonts-inter-4.1.jar`: SHA-1 `5b22a28695d69d6865bceb206db1debb729e26ac`(Central `.sha1`과 같음), SHA-256 `053f7274d6489900e53d4ad397323440428733a41b7fe2f642daf3feb7c730e8`
   - `flatlaf-fonts-jetbrains-mono-2.304.jar`: SHA-1 `68c779e849aec16c69f69d4405fb1edea04e9b8f`(Central `.sha1`과 같음), SHA-256 `bc8e93479960b2a5e3b45fe724e16439a69f28cc43cac3a2b87b7f7f325fd3a5`
-- 테마 properties: `defaultFont = 13 Inter`, `semibold.font = "Inter SemiBold"`, `monospaced.font = "JetBrains Mono"`. `ChromiteTheme`가 Look and Feel을 설치하기 전에 `installLazy()`로 등록한다.
+- 테마 properties: `defaultFont = 13 Inter`, `semibold.font = "Inter SemiBold"`, `monospaced.font = "JetBrains Mono"`. (2026-11-07 UI 글꼴은 Pretendard로 바뀜: "적용 현황 — Pretendard와 밀도 B") `ChromiteTheme`가 Look and Feel을 설치하기 전에 `installLazy()`로 등록한다.
   FlatLaf는 글꼴 이름을 `StyleContext.getFont`(합성 글꼴)로 만들기 때문에, Inter·JetBrains Mono에 없는 한글은 운영체제 글꼴(Windows: 맑은 고딕)로 대체된다.
 - 그리드·Messages는 `monospaced.font`(JetBrains Mono 합성 글꼴)를 쓴다. 편집기(RSyntaxTextArea)는 2026-11-06부터 `font.editor`(Cascadia Mono, "편집기 글꼴과 SQL 색")다.
   테마 XML에 `baseFont`를 쓰지 않은 이유: XML의 글꼴 이름은 합성 글꼴이 아니어서 한글이 □로 나온다.
@@ -766,6 +780,54 @@ Windows 11, 화면 배율 150%, JBR 25, 작업 공간 사본 `D:\Tools\_smoke\sw
 - 빌드: `-Pproduct-dbeaver-ce,product-chromite-swing` BUILD SUCCESS, Swing 제품 `plugins/`에 `swt`·`jface`·`org.eclipse.ui`·`e4.ui` 번들 0개, 번들 jar에 `fonts/cascadia-mono/*` 포함.
 - 확인하지 못한 것: macOS(Cascadia Mono 등록, Apple SD Gothic Neo 대체), Windows 10(운영체제 Cascadia Mono 없음 → 번들 글꼴 등록 경로), DDL 탭의 방언 강조(화면 확인 안 함), 연결된 SQL Server 방언.
 
+### 적용 현황 — Pretendard와 밀도 B (2026-11-07)
+
+사용자 결정(2026-11-07): UI 글꼴을 **Pretendard 13**으로(시안 `D:\Tools\_scratch\ui-font-mock\`), 기본 밀도를 **B "조금 촘촘"**으로
+(시안 `D:\Tools\_scratch\density-mock\`). 결과 창 기본 높이(220)는 결정 대기라 바꾸지 않았다.
+
+| 파일 | 변경 |
+|---|---|
+| `fonts/pretendard/`(새) | Pretendard 1.3.9 정적 OTF Regular·SemiBold와 `OFL.txt`(릴리스 `Pretendard-1.3.9.zip`의 `public/static`, 고치지 않음). `build.properties`는 이미 `fonts/`를 넣는다 |
+| `UiFont`(새) | 패밀리 `Pretendard`, `Pretendard SemiBold`마다 지연 등록(`FontUtils.registerFontFamilyLoader`, `EditorFont`와 같은 방식) |
+| `UiSizes`(새) | `Chromite.size.*` 키 이름과 배율 적용 읽기, 탭 스타일 문자열(`$키` 참조) |
+| `ChromiteLightLaf.properties`, `ChromiteDarkLaf.properties` | `defaultFont = 13 Pretendard`, `semibold.font = "Pretendard SemiBold"`, Sizes 절의 B 값과 `Chromite.size.*` 키 |
+| `ChromiteTheme` | Inter 등록 대신 `UiFont`. semibold 확인은 설치한 테마의 `semibold.font`로(swing-l10n.md "한글 굵은 글꼴") |
+| `ToolWindowDocking`, `MainFrame`, `ObjectExplorerPanel`, `RegisteredServersPanel`, `QueryLibraryPanel`, `PropertiesPanel`, `QueryStatusLine`, `SqlEditorPanel`, `TableDesignerPanel`, `SessionManagerPanel`, `LockManagerPanel`, `ActivityMonitorPanel`, `ErdDiagramPanel`, `ResultSetFilterBar`, `ResultSetViewerPanel` | 하드코딩한 높이·여백·간격(머리말 40, 도구 막대 여백 3/4/5, 탭 32/40, 알약 6, 상태 줄 28, Properties 행 24, 트리 간격 6, 필터·결과 상태 막대 여백)을 `UiSizes`로 |
+| `UiIcons.createToolButton` | 글자 단추의 위 여백을 (글자 줄 − 아이콘) 만큼 줄임 |
+| `NOTICE` | Pretendard(OFL 1.1, Reserved Font Name "Pretendard") |
+
+측정(Windows 11, 150%, 창 1280×800 논리, 사설 작업 공간, EDT 에이전트로 컴포넌트 높이를 읽음; 한국어·`-nl en`, 라이트·다크에서 같음):
+
+| 항목 | 전(devel, Inter) | 후(Pretendard, B) | 토큰 |
+|---|---|---|---|
+| UI 글꼴 한 줄(`FontMetrics.getHeight`) | 17(Inter, 위 13 아래 4) | 17(Pretendard, 위 13 아래 4) | — |
+| semibold 글꼴(한국어 화면) | Inter BOLD(맑은 고딕 Bold 대체) | Pretendard SemiBold(PLAIN, 대체 없음) | `font.ui.semibold` |
+| 주 도구 막대 | 37(글자 단추 27) | 32(글자·아이콘 단추 24) | 32 |
+| 도구 창 머리말 | 41 | 35 | 34 + 1 |
+| 도구 창 도구 막대 | 32 | 28 | 28 |
+| 트리 행 / 여백 | 24 / 4,12,4,12 | 22 / 3,10,3,10 | 22 |
+| 문서 탭 | 40 | 36 | 36 |
+| 편집기 도구 막대(콤보) | 37(29) | 32(28) | 32 |
+| 결과 탭 | 32 | 28 | 28 |
+| 그리드 행 / 머리글 | 27 / 28 | 24 / 26 | 24 / 26 |
+| 쿼리 상태 줄(칸) | 29(29) | 27(26) | 26 + 1 |
+| Properties 행 | 24 | 22 | 22 |
+| 상태 표시줄 | 28 | 26 | 26 |
+| 메뉴 항목 | 24 | 22(팝업 캡처 33px ÷ 1.5) | 22 |
+| 입력·콤보·단추(연결 대화상자) | 29 | 28 | 28 |
+| 필터 막대(고정폭 콤보) | 34(30) | 33(29) | 시안 32 |
+
+- 전에도 Inter(JBR) 한 줄이 17이라 컨트롤이 토큰보다 1 높았다(29, 도구 막대 37). `@componentMargin`·`Button.margin`의 아래 여백을 4로,
+  글자 도구 막대 단추의 위 여백을 1 줄여 28·24에 맞췄다. 쿼리 상태 줄의 칸은 여백을 아이콘 크기(16)가 아니라 글자 줄 높이로 계산해 줄보다 높아지지 않게 했다.
+- 필터 막대의 콤보는 고정폭 글꼴(JetBrains Mono, 한 줄 18)이라 29다(시안은 UI 글꼴로 그려 28). 잘리지 않으므로 그대로 두었다.
+- 쿼리 창의 "실제 계획" 글자 토글 단추(`SqlEditorPanel`)는 `createToolButton`을 쓰지 않아 25다. 도구 막대 높이(콤보 28)에는 영향이 없다.
+- 연결 색 알약의 아이콘–알약 간격은 알약 사양(6)을 지키려고 `Chromite.size.tree.secondaryGap`을 쓴다. 알약이 없는 행은 아이콘–글자 4.
+- 굵기: Regular·SemiBold만 넣었다. `Font.BOLD`(실행 계획 항목, `h4`, 값 패널 제목 등)는 Java가 Regular를 굵게 만든다.
+- `flatlaf-fonts-inter`는 남겼다: UI는 더 쓰지 않지만 `tools/branding/gen_app_icons.py`(가로 로고의 `DATABASE WORKBENCH`)가 Swing 번들 빌드가 복사한
+  `lib/flatlaf-fonts-inter.jar`에서 Inter SemiBold를 읽는다(`find_inter`). 빼려면 그 스크립트의 글꼴 출처를 먼저 바꿔야 한다.
+- 캡처: `D:\Tools\_scratch\ui-pretendard-density\run\shots\`(before-·after- × ko·en × light·dark: 주 창, 파일 메뉴, 트리 메뉴, 연결 대화상자),
+  전후 비교 `D:\Tools\_scratch\ui-pretendard-density\pair-*.png`.
+
 ### Swing/FlatLaf로 못 한 것과 이유
 
 | 항목 | 이유 | 대신 한 것 |
@@ -796,8 +858,12 @@ Windows 11, 화면 배율 150%, JBR 25, 작업 공간 사본 `D:\Tools\_smoke\sw
 - **쿼리 창 도구 막대 위치**: SSMS는 주 창의 SQL Editor 도구 막대 하나를 쓰지만, Chromite는 편집기마다 연결·DB가 달라 보이는 자리에 두는 편이 낫고 이미 구현되어 있다.
   순서와 아이콘만 SSMS에 맞춘다. 되돌리기 쉬운 결정이다.
 - **라이트 머리말**: New UI Light의 기본은 어두운 주 도구 막대지만, SSMS 라이트와 이어지고 밝은 화면에서 덜 튀도록 "Light with Light Header" 값(`MainToolbar.background` `#F7F8FA`)을 쓴다.
-- **결과 탭 높이 32**: 결과가 쿼리 창 아래 붙는 SSMS 배치에서 40은 세로 공간을 많이 쓴다. 도구 창 머리말(40)과 구분되는 낮은 탭으로 둔다.
-- **그리드 행 27**: DataGrip 측정값을 따른다. SSMS(≈20)보다 성기지만 모양 기준이 DataGrip이다. 촘촘한 모드(P2)에서 낮춘다.
+- **결과 탭 높이 32**: 결과가 쿼리 창 아래 붙는 SSMS 배치에서 40은 세로 공간을 많이 쓴다. 도구 창 머리말(40)과 구분되는 낮은 탭으로 둔다. (2026-11-07 밀도 B로 28)
+- **그리드 행 27**: DataGrip 측정값을 따른다. SSMS(≈20)보다 성기지만 모양 기준이 DataGrip이다. 촘촘한 모드(P2)에서 낮춘다. (2026-11-07 밀도 B로 24)
+- **기본 밀도 B**(2026-11-07 사용자 결정): DataGrip 기본(A)은 SSMS 사용자에게 성기다. 같은 창 높이에서 트리 행이 약 10%, 그리드 행이 약 20% 더 보이는
+  B를 기본으로 하고, DataGrip Compact 수준(C)은 선택으로 남긴다. 치수를 테마 키 한곳에 모아 C가 값 교체로 끝나게 했다.
+- **UI 글꼴 Pretendard**(2026-11-07 사용자 결정): Inter + 맑은 고딕 대체는 한글과 라틴 글자의 굵기·크기·기준선이 달랐다. Pretendard는
+  한글과 라틴 글자를 한 글꼴로 맞춰 그린다(라틴 글자는 Inter 기반). 13px 한 줄 높이는 17로 Inter(JBR)와 같다.
 
 ## 적용 순서 (제안)
 
@@ -820,7 +886,7 @@ Windows 11, 화면 배율 150%, JBR 25, 작업 공간 사본 `D:\Tools\_smoke\sw
 - ~~아이콘 세트 선정~~: 2026-11-06 Tabler Icons(MIT) 모양을 바탕으로 한 Chromite 그림 2팩(duo-tone 기본, SSMS color 선택)으로 결정·적용("적용 현황 — 아이콘 팩").
 - ~~Inter·JetBrains Mono 글꼴 jar~~: 2026-11-06 넣음("적용 현황 — 글꼴").
 - 공급자 로고의 상표 사용 검토(공개 배포 전).
-- 촘촘한 모드, 연결별 색(SSMS Color, DataGrip 데이터 소스 색). (Islands는 2026-11-06 적용)
+- 촘촘한 모드 C(보기 메뉴 전환, P2). 연결별 색(SSMS Color, DataGrip 데이터 소스 색). (Islands는 2026-11-06, 기본 밀도 B는 2026-11-07 적용)
 
 ## 참고 자료
 
@@ -859,3 +925,5 @@ Windows 11, 화면 배율 150%, JBR 25, 작업 공간 사본 `D:\Tools\_smoke\sw
   Options의 Editor·Editor Colors 탭, 확인) 추가.
 - 2026-11-06 화면 문구 정리(사용자 요청): 사용자에게 보이는 문구에 다른 제품 이름(SSMS, DataGrip, Visual Studio)을 쓰지 않는다. 아이콘 팩 이름을 "Duo-tone", "Full color"로, Editor Colors 단추를 "Reset to Defaults"로 바꿈. 설계 근거로서의 제품 이름은 이 문서와 코드 주석에 남긴다.
 - 2026-11-06 도구 막대 확장(사용자 결정 "가"): 주 도구 막대(2절)와 쿼리 창 도구 막대(7절)의 목표 구성을 SSMS Standard·SQL Editor 배치로 바꾸고 적용 현황 9·11행, 아이콘 팩 파일 수(61 → 74) 갱신.
+- 2026-11-07 UI 글꼴 Pretendard 13과 기본 밀도 B(사용자 결정): 글꼴 토큰, 치수 토큰(B 값, 처음 값, 촘촘한 모드 C 값과 바꾸는 방법),
+  14절 표, 설계 결정, 미룬 결정 갱신. "적용 현황 — Pretendard와 밀도 B" 절(바뀐 파일, 전후 측정) 추가.

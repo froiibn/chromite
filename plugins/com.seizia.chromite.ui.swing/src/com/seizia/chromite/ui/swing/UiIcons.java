@@ -18,6 +18,7 @@ package com.seizia.chromite.ui.swing;
 
 import com.formdev.flatlaf.FlatClientProperties;
 import com.formdev.flatlaf.FlatLaf;
+import com.formdev.flatlaf.util.UIScale;
 import com.github.weisj.jsvg.SVGDocument;
 import com.github.weisj.jsvg.parser.SVGLoader;
 import com.github.weisj.jsvg.view.ViewBox;
@@ -51,6 +52,7 @@ import java.util.Map;
  *
  * 변경 이력:
  * - 2026-11-06 디자인 적용: 최초 작성 (docs/chromite/design-spec.md "적용 현황")
+ * - 2026-11-07 밀도 B: 글자 단추의 위 여백을 줄여 아이콘 단추와 높이를 맞춤 (docs/chromite/design-spec.md "치수 토큰")
  */
 final class UiIcons {
 
@@ -99,12 +101,12 @@ final class UiIcons {
     }
 
     /**
-     * Icon-only tool bar button (size.actionButton 26, radius.action 6, hover background). The tool tip is the action's
-     * description (which names the shortcut), or its name.
+     * Icon-only tool bar button (size.actionButton: 16 + Button.toolbar.margin, radius.action 6, hover background).
+     * The tool tip is the action's description (which names the shortcut), or its name.
      */
     @NotNull
     static JButton createActionButton(@NotNull Action action, @NotNull String iconId) {
-        JButton button = createToolButton(action, iconId);
+        JButton button = createButton(action, iconId);
         button.setHideActionText(true);
         if (action.getValue(Action.SHORT_DESCRIPTION) == null) {
             button.setToolTipText(String.valueOf(action.getValue(Action.NAME)));
@@ -113,10 +115,23 @@ final class UiIcons {
     }
 
     /**
-     * Tool bar button with icon and text (New Query, Execute).
+     * Tool bar button with icon and text (New Query, Execute), as high as the icon-only buttons.
      */
     @NotNull
     static JButton createToolButton(@NotNull Action action, @NotNull String iconId) {
+        JButton button = createButton(action, iconId);
+        // The text line (17 for the 13px UI font) is higher than the icon (16): take the difference off the top margin,
+        // or the button and its tool bar are 1px higher than size.actionButton (the margin is unscaled, like the theme value)
+        Insets margin = UIManager.getInsets("Button.toolbar.margin"); //$NON-NLS-1$
+        if (margin != null) {
+            int excess = Math.max(0, UIScale.unscale(button.getFontMetrics(button.getFont()).getHeight()) - SIZE);
+            button.setMargin(new Insets(Math.max(0, margin.top - excess), margin.left, margin.bottom, margin.right));
+        }
+        return button;
+    }
+
+    @NotNull
+    private static JButton createButton(@NotNull Action action, @NotNull String iconId) {
         JButton button = new JButton(action);
         button.setIcon(get(iconId));
         button.putClientProperty(FlatClientProperties.BUTTON_TYPE, FlatClientProperties.BUTTON_TYPE_TOOLBAR_BUTTON);
