@@ -85,14 +85,15 @@ JDBC 드라이버를 설치 파일에 미리 넣는다.
 | [features/com.seizia.chromite.drivers.public.feature/pom.xml](../../features/com.seizia.chromite.drivers.public.feature/pom.xml) | `maven-dependency-plugin:copy`(실행 ID `bundle-public-drivers`)로 Maven Central에서 정확한 버전의 jar를 `target/generated/drivers/<이름>/`에 받는다. jar 목록·버전은 이곳에만 있다. jar는 저장소에 커밋하지 않는다 |
 | [features/com.seizia.chromite.drivers.public.feature/drivers-root/drivers/](../../features/com.seizia.chromite.drivers.public.feature/drivers-root/drivers/) | 라이선스 원문, LGPL·GPL 소스 위치 안내(`SOURCE.txt`), 전체 목록(`README.txt`). 루트 [.gitattributes](../../.gitattributes)로 `core.autocrlf`와 상관없이 항상 LF로 체크아웃된다 |
 | [features/com.seizia.chromite.drivers.public.feature/build.properties](../../features/com.seizia.chromite.drivers.public.feature/build.properties) | `root = target/generated,drivers-root` — 두 폴더가 설치 폴더의 `drivers/`로 합쳐진다 |
-| [features/com.seizia.chromite.ce.feature/feature.xml](../../features/com.seizia.chromite.ce.feature/feature.xml), [features/com.seizia.chromite.swing.feature/feature.xml](../../features/com.seizia.chromite.swing.feature/feature.xml) | SWT 제품과 Swing 제품이 위 feature를 `<includes>`로 포함한다 |
+| [features/com.seizia.chromite.swing.feature/feature.xml](../../features/com.seizia.chromite.swing.feature/feature.xml) | Swing 제품이 위 feature를 `<includes>`로 포함한다(SWT 제품은 2026-11-07 삭제, [swt-removal.md](swt-removal.md)) |
 
 - **플러그인을 따로 만든 이유:** 묶음 선언을 `ui.app.standalone` 같은 다른 번들에 두면, 그 번들은 들어가고 jar는 없는 제품에서
   묶음 드라이버가 내려받을 곳도 잃는다. 선언(플러그인)과 파일(feature 루트 파일)을 같은 feature에 묶어
   함께만 배포되게 했다.
 - **feature를 따로 만든 이유:** 처음에는 플러그인과 루트 파일을 `ce.feature`에 두었는데, Swing 제품(`com.seizia.chromite.swing.feature`)은
   SWT 번들을 끌어오는 `ce.feature`를 포함할 수 없다. jar 목록을 두 곳에 적지 않도록 "선언 + 파일" 한 쌍을 전용 feature로 옮기고
-  두 제품이 모두 포함하게 했다. p2는 feature의 루트 파일을 그 feature와 함께 설치하므로(포함된 feature도 같다) 두 제품의 `drivers/`는 같은 원본에서 나온다.
+  두 제품이 모두 포함하게 했다. p2는 feature의 루트 파일을 그 feature와 함께 설치하므로(포함된 feature도 같다) 두 제품의 `drivers/`는 같은 원본에서 나왔다.
+  SWT 제품을 삭제한 뒤에도 내부판 feature로 바꿔 끼우는 단위가 되므로 그대로 둔다.
 - **설치 위치:** Windows는 `<설치폴더>/drivers/`, macOS는 `Chromite.app/Contents/Eclipse/drivers/`(Eclipse 설치 위치 =
   `Platform.getInstallLocation()`, 기존 `licenses/`와 같은 곳). Swing 제품은 Windows `chromite-swing/drivers/`,
   macOS `ChromiteSwing.app/Contents/Eclipse/drivers/`다.
@@ -147,8 +148,8 @@ JDBC 드라이버를 설치 파일에 미리 넣는다.
 - **조회 순서:** [MavenRegistry.findInRepositories](../../plugins/com.seizia.chromite.registry/src/com/seizia/chromite/registry/maven/MavenRegistry.java:240)는
   설치 폴더의 `maven-local`을 원격 저장소보다 먼저 찾는다(기존의 마지막 조회는 삭제).
 - **설정 키:** `ui.drivers.offline`([ModelPreferences.UI_DRIVERS_OFFLINE](../../plugins/com.seizia.chromite.model/src/com/seizia/chromite/ModelPreferences.java:282)),
-  저장 위치는 `com.seizia.chromite.core` 설정 노드, 기본값 `false`. 화면은 환경설정 > 연결 > 드라이버의 "오프라인 모드" 체크박스
-  ([PrefPageDrivers](../../plugins/com.seizia.chromite.ui.editors.connection/src/com/seizia/chromite/ui/preferences/PrefPageDrivers.java:97)).
+  저장 위치는 플랫폼 설정 저장소를 가진 제품 번들의 설정 노드(Swing 제품은 `com.seizia.chromite.ui.swing`), 기본값 `false`.
+  화면은 Swing Driver Manager의 "오프라인 모드" 체크 상자다([swing-driver-manager.md](swing-driver-manager.md)). SWT 환경설정의 드라이버 페이지는 SWT와 함께 삭제했다.
   판별은 [DriverUtils.isOfflineMode](../../plugins/com.seizia.chromite.registry/src/com/seizia/chromite/registry/driver/DriverUtils.java:69) 한곳이며,
   값을 매번 읽으므로 켜는 즉시 적용된다.
 - **막는 곳(네트워크 접근 지점):**
@@ -201,9 +202,9 @@ JDBC 드라이버를 설치 파일에 미리 넣는다.
 ### 내부판 계획 (미구현)
 
 - `com.seizia.chromite.drivers.internal` 플러그인(전체 묶음 선언)과 그 jar를 루트 파일로 넣는 전용 feature를 만들고,
-  제품(SWT·Swing)이 `com.seizia.chromite.drivers.public.feature` 대신 포함한다.
+  제품이 `com.seizia.chromite.drivers.public.feature` 대신 포함한다.
 - 묶음이 없는 드라이버는 빌드할 때 `maven-local`에 Maven 구조(POM, `maven-metadata.xml` 포함)로 넣는다. 조회 순서 변경으로 원격보다 먼저 쓰인다.
-- 제품의 `plugin_customization.ini`에 `com.seizia.chromite.core/ui.drivers.offline=true`를 넣어 오프라인 모드를 기본으로 켠다
+- 제품의 `plugin_customization.ini`에 `com.seizia.chromite.ui.swing/ui.drivers.offline=true`를 넣어 오프라인 모드를 기본으로 켠다
   (`PrefUtils.setDefaultPreferenceValue`는 이미 정해진 기본값을 덮어쓰지 않는다).
 - `mssql-jdbc_auth` DLL을 `drivers/mssql/new/auth/x64/`에 넣는다.
 
@@ -254,3 +255,4 @@ JDBC 드라이버를 설치 파일에 미리 넣는다.
   `drivers/mysql/`에 jar 안의 `LICENSE` 원문과 `SOURCE.txt`, `README.txt`·`NOTICE` 갱신. protobuf-java(X DevAPI 전용)는 넣지 않음.
   MySQL 5 (Legacy) 드라이버의 묶음 ID를 `ext.mysql/plugin.xml`에서 `drivers.mysql5`로 분리해 Maven 다운로드(5.1.49)를 유지.
 - 2026-11-07 Microsoft Store 제품 삭제([build.md](build.md) "빌드하는 제품")에 맞춰 "플러그인을 따로 만든 이유"에서 msstore 제품 언급을 뺌.
+- 2026-11-07 SWT 프런트엔드 삭제([swt-removal.md](swt-removal.md)): 드라이버 feature를 포함하는 제품은 Swing 하나, 오프라인 모드 설정 노드는 `com.seizia.chromite.ui.swing`, 설정 화면은 SWT와 함께 없어짐.

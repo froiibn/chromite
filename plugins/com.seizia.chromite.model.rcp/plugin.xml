@@ -26,7 +26,7 @@
         <type id="project">
             <resourceTypeBinding resourceType="org.eclipse.core.resources.IProject"/>
         </type>
-        <type id="bookmark" name="Navigator bookmarks" icon="platform:/plugin/com.seizia.chromite.ui/icons/bookmark_folder.svg" managable="true">
+        <type id="bookmark" name="Navigator bookmarks" icon="platform:/plugin/com.seizia.chromite.model/icons/bookmark_folder.svg" managable="true">
             <root folder="Bookmarks"/>
             <contentTypeBinding contentTypeId="com.seizia.chromite.bookmark"/>
         </type>

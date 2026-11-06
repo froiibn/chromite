@@ -82,11 +82,12 @@ import java.util.Set;
  * further: each catalog object type (table, sequence, domain, ...) has up to three classes, one
  * per concern. A read-only model class lives here in {@code model} (usually a {@code Generic*}
  * subclass, e.g. {@link MimerTable}); an object that supports create/alter/drop also gets a
- * {@code DBEObjectManager} in the sibling {@code edit} package (e.g. {@code MimerTableManager});
- * an object whose create dialog needs more than a bare name also gets a create-dialog page in the
- * separate {@code com.seizia.chromite.ext.mimer.ui} plugin's {@code config} package (e.g. {@code
- * MimerCreateSequencePage}). A purely read-only object simply has no {@code edit}/{@code ui}
- * counterpart.
+ * {@code DBEObjectManager} in the sibling {@code edit} package (e.g. {@code MimerTableManager}).
+ * Create-dialog pages (the third class) lived in the SWT UI plugin, which Chromite removed with the
+ * SWT frontend. A purely read-only object simply has no {@code edit} counterpart.
+ *
+ * 변경 이력:
+ * - 2026-11-07 SWT UI 플러그인 삭제에 맞춰 세 번째 클래스(생성 대화상자 페이지) 설명을 고침(docs/chromite/swt-removal.md)
  *
  * @author Mimer Information Technology
  */

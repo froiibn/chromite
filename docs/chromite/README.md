@@ -43,6 +43,7 @@ upstream의 전체 구조는 [AGENTS.md](../../AGENTS.md)와 [AGENTS-Architectur
 | [driver-licenses.md](driver-licenses.md) | JDBC 드라이버별 라이선스·버전·크기 목록, 공개판 내장 가능 여부 분류 |
 | [runtime.md](runtime.md) | 내장 런타임(JBR 25 + jlink, `tools/jre/`): 모듈 목록과 근거, 크기, 시작 시간 측정, 갱신 절차, 지원 플랫폼 |
 | [build.md](build.md) | 빌드 의존 저장소(`deps/dbeaver-common`, `deps/datadam-api`) 구성, 빌드 명령, 빌드하는 제품, 갱신 방법 |
+| [swt-removal.md](swt-removal.md) | SWT(Eclipse RCP) 프런트엔드 삭제: 남길 번들 판별, 삭제·이동한 것, Swing으로 옮길 때까지 없는 기능 목록 |
 | [internal-rename.md](internal-rename.md) | 내부 이름 변경(DBeaver 패키지·번들 이름 → `com.seizia.chromite`): 이름 규칙, 유지하는 이름, 도구(`tools/rename/`), 새로 시작(데이터 폴더), 검증 게이트 |
 | [ci.md](ci.md) | GitHub Actions CI: 플랫폼별 빌드와 결과물, CodeQL, `.github` 파일 정리, 린트를 뺀 이유 |
 | [signing.md](signing.md) | 릴리스 서명: Windows(Azure Artifact Signing)·macOS(Developer ID 서명·공증) 흐름, 서명 대상 파일, 제3자 정책, 사용자가 할 일 |

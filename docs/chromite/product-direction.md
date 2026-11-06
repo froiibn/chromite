@@ -29,8 +29,9 @@ Chromite가 무엇을 만들고, 누구를 위한 제품이며, 어떤 원칙으
 | 런타임 | JBR 25 LTS를 jlink로 줄여 내장. 사용자가 JRE를 따로 설치하지 않음 | 2026-11-06 |
 | 플랫폼 | Windows x64, macOS Apple Silicon(arm64). Linux, Intel Mac, Windows ARM은 지원하지 않음 | 2026-11-06 |
 | SWT 버전 | Swing MVP가 나올 때까지 유지한 뒤 삭제 | 2026-11-06 |
+| SWT 삭제 | 기능이 다 옮겨지기를 기다리지 않고 내부 이름 변경 직후 SWT 프런트엔드를 삭제. Swing 제품 하나만 빌드. 아직 옮기지 않은 기능 목록은 [swt-removal.md](swt-removal.md) | 2026-11-07 |
 | 내부 이름 | DBeaver 내부 이름(패키지·번들·ID·실행 식별자)을 `com.seizia.chromite`로 한 번에 변경, 데이터는 새로 시작([internal-rename.md](internal-rename.md)) | 2026-11-07 |
-| 제품 구성 | SWT 제품과 Swing 제품만 빌드. Microsoft Store, Eclipse 플러그인, Snap 제품은 삭제([build.md](build.md) "빌드하는 제품") | 2026-11-07 |
+| 제품 구성 | SWT 제품과 Swing 제품만 빌드. Microsoft Store, Eclipse 플러그인, Snap 제품은 삭제([build.md](build.md) "빌드하는 제품"). 같은 날 SWT 제품도 삭제("SWT 삭제") | 2026-11-07 |
 
 ## 개발 원칙
 
@@ -45,7 +46,7 @@ Chromite가 무엇을 만들고, 누구를 위한 제품이며, 어떤 원칙으
 3. **드라이버 내장:** 라이선스 목록 작성, 드라이버 묶음과 `maven-local` 구성, 오프라인 모드
 4. **런타임 내장:** JBR 25 + jlink, AOT 캐시, 설치 파일
 5. **Swing MVP:** [swing-frontend.md](swing-frontend.md)의 MVP 범위
-6. **SWT 버전 삭제**
+6. **SWT 버전 삭제** (2026-11-07 완료, [swt-removal.md](swt-removal.md))
 7. **AI 기능 강화 등 차별화 기능**
 
 순서와 세부 일정은 확정되지 않았다.
@@ -64,3 +65,4 @@ Chromite가 무엇을 만들고, 누구를 위한 제품이며, 어떤 원칙으
 - 2026-11-06 UX / 디자인 결정 변경: 라이트도 SSMS풍 대신 DataGrip New UI 모양을 따름(사용자 피드백). 아이콘은 오픈 라이선스 세트.
 - 2026-11-07 결정 사항에 "제품 구성" 추가: 쓰지 않는 제품(Microsoft Store, Eclipse 플러그인, Snap) 삭제.
 - 2026-11-07 미결정 사항 "내부 이름을 바꿀지와 그 시점"을 결정 사항 "내부 이름"으로 옮김.
+- 2026-11-07 결정 사항에 "SWT 삭제" 추가, 진행 단계 6(SWT 버전 삭제) 완료 표시([swt-removal.md](swt-removal.md)).

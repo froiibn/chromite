@@ -21,25 +21,12 @@
         <profile>
             <id>desktop</id>
             <activation><property><name>!headless-platform</name></property></activation>
-            <!-- Desktop (swt/jface) components -->
+            <!-- Desktop components (the Swing frontend; the SWT frontend was removed, docs/chromite/swt-removal.md) -->
             <modules>
-                <module>com.seizia.chromite.rcp.feature</module>
-                <module>com.seizia.chromite.ui.feature</module>
-                <module>com.seizia.chromite.ui.extra.feature</module>
-                <module>com.seizia.chromite.debug.feature</module>
-
-                <module>com.seizia.chromite.db.ui.feature</module>
-                <module>com.seizia.chromite.git.feature</module>
-                <module>com.seizia.chromite.ext.office.feature</module>
-
-                <module>com.seizia.chromite.app.base.feature</module>
-                <module>com.seizia.chromite.app.local.feature</module>
-                <module>com.seizia.chromite.standalone.feature</module>
                 <module>com.seizia.chromite.test.feature</module>
                 <module>com.seizia.chromite.test.base.feature</module>
-                <module>com.seizia.chromite.ce.feature</module>
 
-                <!-- Chromite public edition bundled JDBC drivers, included by the SWT and Swing products (docs/chromite/drivers.md) -->
+                <!-- Chromite public edition bundled JDBC drivers, included by the Swing product (docs/chromite/drivers.md) -->
                 <module>com.seizia.chromite.drivers.public.feature</module>
 
                 <!-- Chromite Swing frontend (no SWT), docs/chromite/swing-frontend.md -->

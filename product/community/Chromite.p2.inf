@@ -1,4 +1,0 @@
-instructions.configure=\
-  addRepository(type:0,location:https${#58}//download.eclipse.org/releases/2026-06/,name:Eclipse 2026-06,enabled:true);\
-  addRepository(type:1,location:https${#58}//download.eclipse.org/releases/2026-06/,name:Eclipse 2026-06,enabled:true);
-

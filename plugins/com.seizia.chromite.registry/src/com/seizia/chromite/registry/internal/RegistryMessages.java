@@ -22,6 +22,7 @@ import org.eclipse.osgi.util.NLS;
 /**
  * 변경 이력:
  * - 2026-11-06 드라이버 오프라인 모드 안내 문구(driver_offline_*) 추가, 한국어 번역 파일(_ko) 신설
+ * - 2026-11-07 SWT 프런트엔드 삭제로 쓰는 곳이 없어진 문구 삭제(docs/chromite/swt-removal.md)
  */
 public class RegistryMessages extends NLS {
     public static final String BUNDLE_NAME = "com.seizia.chromite.registry.internal.RegistryMessages"; //$NON-NLS-1$
@@ -45,7 +46,6 @@ public class RegistryMessages extends NLS {
     public static String navigator_settings_preset_advanced_view_description;
     public static String navigator_settings_preset_custom_view_name;
     public static String navigator_settings_preset_custom_view_description;
-    public static String navigator_settings_customize_view;
     public static String project_description_comment;
 
     public static String project_open_cannot_read_credentials_title;

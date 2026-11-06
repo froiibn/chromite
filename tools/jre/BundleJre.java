@@ -93,6 +93,7 @@ import java.util.zip.GZIPInputStream;
  * 변경 이력:
  * <ul>
  *   <li>2026-11-07 Created: bundled JBR 25 runtime for both products (docs/chromite/runtime.md).</li>
+ *   <li>2026-11-07 The SWT product was removed (docs/chromite/swt-removal.md): only the Swing product is listed.</li>
  * </ul>
  */
 public class BundleJre {
@@ -107,7 +108,6 @@ public class BundleJre {
      * ({@code <product><id>} and {@code <rootFolders>} of the module's pom.xml).
      */
     private static final String[][] PRODUCTS = {
-        {"product/community", "com.seizia.chromite.core.product", "chromite", "Chromite.app"},
         {"product/swing", "com.seizia.chromite.swing.product", "chromite-swing", "ChromiteSwing.app"},
     };
 

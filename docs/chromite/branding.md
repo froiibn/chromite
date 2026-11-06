@@ -45,7 +45,7 @@ DBeaver Community 포크를 **Chromite** 제품으로 배포하기 위해, 사�
 | tiny | 16, 20 | 원통(윗면 + 띠 2개) + 물결 하나. 이 크기에서 함선은 뭉개져서 뺐다 |
 | glyph | 16 | 원통 + 물결, `currentColor` 단색, 타일 없음 (단색 아이콘용, 아직 쓰는 곳 없음) |
 
-- Windows `.ico`, SWT·Swing 창 아이콘: 타일이 정사각형을 채운다.
+- Windows `.ico`, Swing 창 아이콘: 타일이 정사각형을 채운다.
 - macOS `.icns`: Apple 격자(1024 안에 824 둥근 사각형 타일, 여백 100, 그림자). 16·32·64px 항목은 여백 안 타일의 픽셀 격자에 맞춰 따로 그린다.
 - 가로 로고(워드마크): 새 타일 아이콘 + 얇은 세로 구분선 + 원래 로고의 글자. 글자는 1단계 로고(`chromite_full_*.png`, devel)의 배치와 모양을 따른다(2026-11-06 사용자 결정).
   - `CHROMITE`: 원래 로고를 따라 그린 굵은 기울임 기하 글자 8개를 도형으로 만들었다(글꼴 없음, `TITLE_GLYPHS`). 기울임을 펴고 재서
@@ -88,34 +88,28 @@ D:\Tools\_venvs\chromite-branding\Scripts\python tools/branding/gen_app_icons.py
 
 | 파일 | 크기 | 쓰이는 곳 |
 |---|---|---|
-| `product/community/icons/chromite.ico` | 256/48/32/16 32비트, 48/32/16 8비트 (BMP 7개) | Windows 실행 파일 아이콘. `chromite.exe`, `chromite-swing.exe` 둘 다 (`Chromite.product`, `chromite-swing.product`) |
-| `product/community/icons/chromite.icns` | 16~1024 (PNG 10개) | macOS 앱 아이콘. 두 제품 공통 |
-| `product/community/icons/chromite_back.bmp` | 165×314 | 설치 프로그램 측면 이미지 (저장소 안에서는 참조 없음) |
-| `product/community/icons-sources/icon_*.png` | 16~1024 | macOS 아이콘 세트 (빌드에서는 쓰지 않음) |
-| `plugins/com.seizia.chromite.ui.app.standalone/icons/chromite{16,32,48,64,256}.png` | 각 크기 | 창 아이콘 (`plugin.xml`의 `windowImages`), `about.ini`, 설정 가져오기 대화상자 |
-| `plugins/com.seizia.chromite.ui.app.standalone/icons/chromite_about.png` | 256×256 | About 대화상자 (`AboutBoxDialog`) |
-| `plugins/com.seizia.chromite.ui.app.standalone/splash.png` | 600×300 | 시작 화면 |
-| `plugins/com.seizia.chromite.ui/icons/dbeaver_logo_{medium,small,small@2x}.png` | 48, 16, 32 | `UIIcon.DBEAVER_LOGO*` (트레이 아이콘, 알림 팝업, 제품 설정 마법사) |
-| `plugins/com.seizia.chromite.ui/icons/dbeaver_perspective{,@2x}.png` | 16, 32 | 퍼스펙티브 아이콘 (`com.seizia.chromite.core/plugin.xml`) |
+| `product/swing/icons/chromite.ico` | 256/48/32/16 32비트, 48/32/16 8비트 (BMP 7개) | Windows 실행 파일 아이콘 `chromite-swing.exe` (`chromite-swing.product`) |
+| `product/swing/icons/chromite.icns` | 16~1024 (PNG 10개) | macOS 앱 아이콘 |
+| `product/swing/icons/chromite_back.bmp` | 165×314 | 설치 프로그램 측면 이미지 (저장소 안에서는 참조 없음) |
+| `product/swing/icons-sources/icon_*.png` | 16~1024 | macOS 아이콘 세트 (빌드에서는 쓰지 않음) |
 | `plugins/com.seizia.chromite.ui.swing/icons/chromite{16,20,24,32,40,48,64,128,256}.png` | 각 크기 | Swing 창·작업 표시줄 아이콘, 시작 탭 로고(128), About 로고(64) (`ChromiteIcons`) |
 
-- 스플래시: 타일 그라데이션 바탕에 어두운 판 가로 로고(폭 480px)를 (60,60)에 놓았다. 왼쪽 끝을 버전 표시(`versionInfoCoord` 60,225)와 맞췄다.
-  진행 메시지와 진행 막대 위치(`startupMessageRect`, `startupProgressRect`)는 upstream 값을 그대로 쓴다.
 - 설치 프로그램 측면 이미지: 타일 그라데이션 바탕 위쪽에 아이콘(112px).
+- SWT 제품의 창 아이콘·About 이미지·스플래시·`UIIcon` 로고는 SWT 프런트엔드와 함께 삭제했다([swt-removal.md](swt-removal.md)).
+  제품 아이콘(`.ico`, `.icns`, 아이콘 세트, 설치 이미지)은 `product/community/icons*`에서 `product/swing/icons*`로 옮겼다.
 
 ### 제품 정보 파일
 
 | 파일 | 바꾼 내용 |
 |---|---|
-| `product/community/product-branding.properties` | 패키지명, 앱 이름, 제품명, 설명, 상표 문구, 저작권, 회사, 웹사이트, 저장소. 이메일은 비움 |
-| `product/community/Chromite.product` | 제품 `name="Chromite"`, 실행 파일 `launcher name="chromite"` |
-| `product/community/pom.xml` | 배포 파일 이름 `chromite-${dbeaver-version}`, 루트 폴더 `Chromite.app` / `chromite` |
-| `product/community/Chromite.p2.inf` | DBeaver CE 업데이트 사이트와 dbeaver.io 확장(Office, Git, Debug) 업데이트 사이트 제거. Eclipse 릴리스 저장소만 남음 |
-| `product/community/category.xml`, `product/repositories/*/category.xml` | dbeaver.io 업데이트 사이트를 가리키던 `<description>` 제거 |
-| `plugins/com.seizia.chromite.ui.app.standalone/plugin.xml` | 제품 이름, `appName`, 저작권, 버전 표시 위치(`versionInfoCoord`), 업데이트 확인 URL 제거 |
-| `plugins/com.seizia.chromite.ui.app.standalone/about.properties` | About 문구와 출처 표기 |
-| `plugins/com.seizia.chromite.ui.app.standalone/OSGI-INF/l10n/bundle*.properties` (13개 언어) | `productName`, `aboutText`의 제품명, `productWebsite`, `productEmail`, 영어로 남아 있던 `productSubTitle` |
+| `product/swing/chromite-swing.product` | 제품 `name="Chromite"`, 실행 파일 `launcher name="chromite-swing"`, 아이콘 `icons/chromite.ico`·`icons/chromite.icns` |
+| `product/swing/pom.xml` | 배포 파일 이름 `chromite-swing-${dbeaver-version}`, 루트 폴더 `ChromiteSwing.app` / `chromite-swing` |
+| `plugins/com.seizia.chromite.ui.swing/plugin.xml` | 제품 확장: 이름 `Chromite`, `appName`, 부제 `Database Workbench`, 저작권 |
 | `NOTICE` | 출처, 원본 저작권, 상표 고지 (신규) |
+
+1단계 리브랜딩에서 바꾼 SWT 제품 파일(`product/community/product-branding.properties`, `Chromite.product`, `Chromite.p2.inf`,
+`category.xml`, `ui.app.standalone`의 `plugin.xml`·`about.properties`·`OSGI-INF/l10n/bundle*.properties`)은 2026-11-07 SWT 제품과 함께 삭제했다
+([swt-removal.md](swt-removal.md)). 아래 "업데이트 확인을 끈다", "p2 업데이트 사이트를 뺀다", "버전 표시 위치" 결정은 그 파일들에 대한 기록이다.
 | `README.md` | Chromite 소개, 빌드 방법, 라이선스 안내로 새로 작성 |
 
 ## 설계 결정과 이유
@@ -123,7 +117,7 @@ D:\Tools\_venvs\chromite-branding\Scripts\python tools/branding/gen_app_icons.py
 - **내부 이름은 별도 작업에서 한꺼번에 바꿨다.** 1단계에서는 패키지명, 번들 ID, 제품 ID, Maven 프로파일, 이미지 파일 이름을
   유지했다. 사용자 설정과 플러그인 참조가 이 이름에 묶여 있어 일부만 바꾸면 기능이 깨지기 때문이다.
   2026-11-07 [internal-rename.md](internal-rename.md)에서 모두 Chromite 이름으로 바꿨다(`com.seizia.chromite.*`,
-  제품 ID `com.seizia.chromite.core.product`, 프로파일 `product-chromite-swt`, 이미지 `chromite*.png/ico/icns`).
+  당시 SWT 제품 ID `com.seizia.chromite.core.product`, 프로파일 `product-chromite-swt`, 이미지 `chromite*.png/ico/icns`. SWT 제품은 이후 삭제).
 - **업데이트 확인을 끈다.** `versionUpdateURL`과 `earlyAccessURL`을 지웠다.
   `ChromiteVersionChecker`는 URL이 없으면 확인을 건너뛴다. 남겨 두면 DBeaver 새 버전을 안내한다.
 - **DBeaver CE p2 업데이트 사이트를 뺀다.** 남겨 두면 "업데이트 확인"에서 DBeaver 번들이 Chromite를 덮어쓴다.
@@ -198,3 +192,4 @@ D:\Tools\_venvs\chromite-branding\Scripts\python tools/branding/gen_app_icons.py
 - 2026-11-07 내부 이름 변경([internal-rename.md](internal-rename.md))에 맞춰 "내부 이름은 유지한다" 결정을 갱신.
   표와 경로의 파일 이름(`Chromite.product`, `chromite*.png` 등)은 이름 변경 도구가 함께 바꿨다.
 - 2026-11-07 Microsoft Store·Eclipse 플러그인 제품 삭제([build.md](build.md) "빌드하는 제품")로 `ui.app.eclipse` 아이콘과 `community-msstore` 미완료 항목을 지움.
+- 2026-11-07 SWT 프런트엔드 삭제([swt-removal.md](swt-removal.md)): 제품 아이콘을 `product/swing/icons*`로 옮기고, 파생 이미지·제품 정보 파일 표를 Swing 제품 기준으로 고침.

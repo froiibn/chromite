@@ -474,14 +474,14 @@
         <category id="mysqlTool" parent="mysql" name="%com.seizia.chromite.task.category.mysqlTool.name" description="%com.seizia.chromite.task.category.mysqlTool.description" icon="icons/mysql_icon.png"/>
 
         <task id="mysqlDatabaseBackup" name="%task.mysqlDatabaseBackup.name" description="%task.mysqlDatabaseBackup.description"
-              icon="platform:/plugin/com.seizia.chromite.ui/icons/file/export.svg" type="mysql"
+              icon="platform:/plugin/com.seizia.chromite.model/icons/file/export.svg" type="mysql"
               handler="com.seizia.chromite.ext.mysql.tasks.MySQLDatabaseExportHandler" requiresExportPrivileges="true">
             <datasource id="mysql"/>
             <objectType name="com.seizia.chromite.ext.mysql.model.MySQLCatalog" if="object.dataSource.supportsNativeClients()"/>
             <objectType name="com.seizia.chromite.ext.mysql.model.MySQLTableBase" if="object.dataSource.supportsNativeClients()"/>
         </task>
         <task id="mysqlDatabaseRestore" name="%task.mysqlDatabaseRestore.name" description="%task.mysqlDatabaseRestore.description"
-              icon="platform:/plugin/com.seizia.chromite.ui/icons/file/import.svg" type="mysql"
+              icon="platform:/plugin/com.seizia.chromite.model/icons/file/import.svg" type="mysql"
               handler="com.seizia.chromite.ext.mysql.tasks.MySQLScriptExecuteHandler" requiresMutability="true"
               confirmationMessage="%mysqlDatabaseRestore.confirmationMessage">
             <datasource id="mysql"/>

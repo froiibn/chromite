@@ -221,15 +221,15 @@
                     </folder>
                     
                     <folder type="com.seizia.chromite.ext.altibase.model.AltibaseReplication" label="%tree.replications.node.name" icon="#folder_link" description="Replications">
-                        <items label="%tree.replication.node.name" path="replication" property="replications" icon="platform:/plugin/com.seizia.chromite.ui/icons/sync_connection.svg">
+                        <items label="%tree.replication.node.name" path="replication" property="replications" icon="platform:/plugin/com.seizia.chromite.model/icons/sync_connection.svg">
                             <folder type="com.seizia.chromite.ext.altibase.model.AltibaseReplicationSender" navigable="false" 
                             label="%tree.replication_sender.node.name" description="%tree.replication_sender.node.name"
-                            icon="platform:/plugin/com.seizia.chromite.ui/icons/file/export.svg">
+                            icon="platform:/plugin/com.seizia.chromite.model/icons/file/export.svg">
                                 <items label="%tree.replication_sender.node.name" path="replicationSender" property="replicationSenders"/>
                             </folder>
                             <folder type="com.seizia.chromite.ext.altibase.model.AltibaseReplicationReceiver" navigable="false" 
                              label="%tree.replication_receiver.node.name"  description="%tree.replication_receiver.node.name"
-                             icon="platform:/plugin/com.seizia.chromite.ui/icons/file/import.svg">
+                             icon="platform:/plugin/com.seizia.chromite.model/icons/file/import.svg">
                                 <items label="%tree.replication_receiver.node.name" path="replicationReceiver" property="replicationReceivers"/>
                             </folder>
                             <folder type="com.seizia.chromite.ext.altibase.model.AltibaseReplicationItem" label="%tree.repl_items.node.name" icon="#folder_table" 

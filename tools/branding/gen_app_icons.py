@@ -24,7 +24,7 @@ gaps stay solid navy instead of grey anti-aliasing.
   tiny    16, 20 px       cylinder and one wave (a ship is mush at this size)
   glyph   16 px           cylinder and wave in currentColor, no tile (monochrome uses)
 
-The Windows .ico and the SWT/Swing window icons use the tile filling the square (corner
+The Windows .ico and the Swing window icons use the tile filling the square (corner
 radius 23.8 %, measured from the supplied image). macOS uses the Apple
 grid: an 824 px squircle tile centred in 1024 px with a soft drop shadow; its 16/32/64 px
 entries are drawn on the pixel grid of the tile inside that margin.
@@ -64,12 +64,8 @@ Outputs (file names are kept; only the contents are generated)
 ---------------------------------------------------------------
 chromite_logo_pack/            SVG sources (chromite_icon*.svg, chromite_glyph16.svg,
                                chromite_wordmark_{light,dark}.svg) and the 6 PNGs
-product/community/icons/       chromite.ico, chromite.icns, chromite_back.bmp (installer)
-product/community/icons-sources/icon_*.png   macOS iconset
-plugins/com.seizia.chromite.ui.app.standalone/ icons/chromite{16,32,48,64,256}.png,
-                               icons/chromite_about.png, splash.png
-plugins/com.seizia.chromite.ui/icons/          chromite_logo_{medium,small,small@2x}.png,
-                               chromite_perspective{,@2x}.png
+product/swing/icons/           chromite.ico, chromite.icns, chromite_back.bmp (installer)
+product/swing/icons-sources/icon_*.png   macOS iconset
 plugins/com.seizia.chromite.ui.swing/icons/  chromite{16,20,24,32,40,48,64,128,256}.png,
                                brand/lockup-{light,dark}.svg (empty document area, drawn by JSVG)
 
@@ -79,7 +75,7 @@ Usage
 
 Needs Python 3.10+ with the pip packages resvg-py (SVG renderer), Pillow and fonttools
 (see docs/chromite/branding.md for the venv). The horizontal lockup (chromite_wordmark_*.svg,
-chromite_full_*.png, splash) keeps the lettering of the original Chromite logo: "CHROMITE"
+chromite_full_*.png, Swing brand/lockup-*.svg) keeps the lettering of the original Chromite logo: "CHROMITE"
 is hand-built geometry traced from the phase-1 logo (TITLE_GLYPHS, no font), and the
 subtitle uses Inter SemiBold (SIL OFL 1.1) outlines placed on the original letter
 positions. Inter is read from the FlatLaf fonts jar that the Swing bundle
@@ -98,6 +94,8 @@ Change history:
   letter-spaced subtitle on the original letter positions (user decision).
 - 2026-11-06 Swing bundle gets the lockup as SVG (icons/brand/lockup-{light,dark}.svg) for the empty
   document area that replaces the Welcome tab.
+- 2026-11-07 SWT frontend removed (docs/chromite/swt-removal.md): no more SWT window/About/splash
+  images; the product icons moved from product/community to product/swing.
 """
 import argparse
 import io
@@ -827,10 +825,10 @@ def main():
         save_png(on_canvas(wm, 1275, 395, bg or (0, 0, 0, 0)), PACK / f"chromite_full_{name}.png")
 
     # Windows launcher icon, macOS app icon and iconset
-    icons = ROOT / "product" / "community" / "icons"
+    icons = ROOT / "product" / "swing" / "icons"
     (icons / "chromite.ico").write_bytes(build_ico(win))
     (icons / "chromite.icns").write_bytes(build_icns(mac))
-    srcs = ROOT / "product" / "community" / "icons-sources"
+    srcs = ROOT / "product" / "swing" / "icons-sources"
     for s in (16, 32, 48, 64, 128, 256, 512):
         save_png(mac[s] if s in mac else mac_png(s), srcs / f"icon_{s}x{s}.png")
     for s in (16, 32, 128, 256, 512):
@@ -842,25 +840,6 @@ def main():
                           f'<rect width="165" height="314" fill="url(#btile)"/>'), 165, 314)
     back.alpha_composite(win[128].resize((112, 112), Image.LANCZOS), (27, 56))
     back.convert("RGB").save(icons / "chromite_back.bmp", "BMP")
-
-    # SWT standalone application
-    app = ROOT / "plugins" / "com.seizia.chromite.ui.app.standalone"
-    for s in (16, 32, 48, 64, 256):
-        save_png(win[s], app / "icons" / f"chromite{s}.png")
-    save_png(win[256], app / "icons" / "chromite_about.png")
-    splash = render(svg_doc(600, 300, "0 0 600 300",
-                            f'<defs>{gradients("p", Xf(0.6, 0, -60))}</defs>'
-                            f'<rect width="600" height="300" fill="url(#ptile)"/>'), 600, 300)
-    # lockup left-aligned with the version text drawn by the splash handler (versionInfoCoord 60,225)
-    wm = render(lockup_svg(inter, True, pad=0), 480, None)
-    splash.alpha_composite(wm, (60, 60))
-    splash.convert("RGB").save(app / "splash.png", "PNG", optimize=True)
-    ui = ROOT / "plugins" / "com.seizia.chromite.ui" / "icons"
-    save_png(win[48], ui / "chromite_logo_medium.png")
-    save_png(win[16], ui / "chromite_logo_small.png")
-    save_png(win[32], ui / "chromite_logo_small@2x.png")
-    save_png(win[16], ui / "chromite_perspective.png")
-    save_png(win[32], ui / "chromite_perspective@2x.png")
 
     # Swing frontend window icons and logo
     swing = ROOT / "plugins" / "com.seizia.chromite.ui.swing" / "icons"
