@@ -134,6 +134,7 @@ import java.util.concurrent.atomic.AtomicLong;
  * - 2026-11-06 P1: 편집기의 찾기 키(Ctrl+F, Ctrl+H, F3, Shift+F3) (docs/chromite/swing-frontend.md "P1 디자인 적용")
  * - 2026-11-06 P1: 상태 줄을 {@link QueryStatusLine}(SSMS 내용: 상태 아이콘, 서버, 사용자, DB/스키마, 시간, 행)으로 바꾸고 메인 창이 결과 아래에 둠
  *   (docs/chromite/swing-frontend.md "P1 디자인 적용")
+ * - 2026-11-06 P1: 탭 도구 설명에 전체 경로와 연결·서버 (docs/chromite/swing-frontend.md "P1 디자인 적용")
  */
 final class SqlEditorPanel extends JPanel {
 
@@ -277,11 +278,14 @@ final class SqlEditorPanel extends JPanel {
     }
 
     /**
-     * Tab tool tip: the file path, or the name of a query that was never saved.
+     * Tab tool tip: the full file path (or the name of a query that was never saved) and the connection with its server.
      */
     @NotNull
     String getToolTip() {
-        return file != null ? file.toString() : fileName;
+        String location = file != null ? file.toString() : fileName + " (not saved)";
+        String connection = dataSourceContainer == null ? "Not connected"
+            : "Connection: " + dataSourceContainer.getName() + " - " + QueryStatusLine.describeServerDetails(dataSourceContainer);
+        return "<html>" + CommonUtils.escapeHtml(location) + "<br>" + CommonUtils.escapeHtml(connection) + "</html>"; //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$
     }
 
     @Nullable

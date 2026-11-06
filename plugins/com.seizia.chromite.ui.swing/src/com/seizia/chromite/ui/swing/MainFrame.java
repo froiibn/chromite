@@ -45,6 +45,8 @@ import java.awt.event.ComponentEvent;
 import java.awt.event.HierarchyEvent;
 import java.awt.event.InputEvent;
 import java.awt.event.KeyEvent;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.awt.geom.RoundRectangle2D;
@@ -74,7 +76,8 @@ import java.util.function.IntConsumer;
  *     메뉴를 열 때 현재 값으로 맞춘다.
  *     도구 창 단축키는 SSMS와 같다(Object Explorer F8, Properties F4, Results Ctrl+R).</li>
  *     <li>문서 탭: 시작 탭과 SQL 편집기 탭({@link SqlEditorPanel}). 편집기는 Object Explorer의 "New Query", File > New Query(Ctrl+N),
- *     도구 막대의 New Query로 연다. 제목은 SSMS처럼 {@code SQLQueryN.sql - 연결 이름}이고 닫기 단추가 있다.</li>
+ *     도구 막대의 New Query로 연다. 제목은 SSMS처럼 {@code SQLQueryN.sql - 연결 이름}이고, 도구 설명은 전체 파일 경로와 연결·서버다.
+ *     닫기 단추는 DataGrip처럼 선택한 탭과 마우스를 올린 탭에만 보이고({@link IslandTabbedPaneUI}), 가운데 단추로 눌러도 닫는다.</li>
  *     <li>Query 메뉴의 Execute(F5)와 Cancel Executing Query(Alt+Break)는 활성 편집기에 적용된다. 메뉴 단축키라 포커스가 결과 표에 있어도 동작한다.
  *     Complete(Ctrl+Space)는 활성 편집기의 자동완성을 띄우고, Auto-Complete While Typing은 글자 입력 뒤 자동완성 설정을 켜고 끈다({@link SqlCompletionPopup}).</li>
  *     <li>결과는 SSMS처럼 쿼리 창마다 따로 있다({@link QueryResultsView}). 아래 Results / Messages 탭에는 활성 편집기의 결과를 끼우고,
@@ -114,6 +117,7 @@ import java.util.function.IntConsumer;
  *   주 도구 막대·상태 표시줄은 캔버스 (docs/chromite/design-spec.md "Islands 적용")
  * - 2026-11-06 P1: Edit·Tools·Window 메뉴(SSMS 순서) (docs/chromite/swing-frontend.md "P1 디자인 적용")
  * - 2026-11-06 P1: 쿼리 상태 줄을 결과 아래에 둠 (docs/chromite/swing-frontend.md "P1 디자인 적용")
+ * - 2026-11-06 P1: 문서 탭 닫기 단추를 선택·마우스 올린 탭에만, 가운데 단추로 닫기 (docs/chromite/swing-frontend.md "P1 디자인 적용")
  */
 final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplorerPanel.QueryWindows {
 
@@ -891,6 +895,19 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
         tabs.putClientProperty(FlatClientProperties.STYLE, "tabHeight: 40; tabSelectionHeight: 0"); //$NON-NLS-1$
         tabs.addTab("Welcome", welcome);
         tabs.putClientProperty(FlatClientProperties.TABBED_PANE_TAB_CLOSE_CALLBACK, (IntConsumer) this::closeDocumentTab);
+        tabs.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseReleased(MouseEvent e) {
+                // Middle click closes a tab, as in DataGrip and SSMS
+                if (SwingUtilities.isMiddleMouseButton(e)) {
+                    int index = tabs.indexAtLocation(e.getX(), e.getY());
+                    if (index >= 0 && tabs.getComponentAt(index) instanceof JComponent component
+                        && Boolean.TRUE.equals(component.getClientProperty(FlatClientProperties.TABBED_PANE_TAB_CLOSABLE))) {
+                        closeDocumentTab(index);
+                    }
+                }
+            }
+        });
         return tabs;
     }
 
@@ -1157,7 +1174,7 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
      *     tab row copies it only from a background change event, which a FlatLaf style value does not always fire when
      *     the theme is switched at runtime (the tabs then kept the panel color).</li>
      *     <li>Opaque, because FlatLaf tabbed panes are not: the empty part of the tab row would show the parent's panel color.</li>
-     *     <li>The UI is {@link IslandTabbedPaneUI} (Islands pill tabs).</li>
+     *     <li>The UI is {@link IslandTabbedPaneUI} (Islands pill tabs, close buttons of the selected and the hovered tab only).</li>
      * </ul>
      */
     private static final class EditorTabbedPane extends JTabbedPane {
@@ -1226,6 +1243,18 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
         @Override
         protected void paintTabSelection(Graphics g, int tabPlacement, int tabIndex, int x, int y, int w, int h) {
             // No underline in Islands: the pill shows the selection
+        }
+
+        /**
+         * DataGrip: the close button (×) shows on the selected tab and on the tab under the mouse only. Its space stays
+         * reserved on every closable tab, so the tabs don't change width when the mouse moves over them. A click on a
+         * hidden button can't happen: the tab under the mouse is the hovered one, whose button is shown.
+         */
+        @Override
+        protected void paintTabCloseButton(Graphics g, int tabIndex, int x, int y, int w, int h) {
+            if (tabIndex == tabPane.getSelectedIndex() || tabIndex == getRolloverTab()) {
+                super.paintTabCloseButton(g, tabIndex, x, y, w, h);
+            }
         }
     }
 
