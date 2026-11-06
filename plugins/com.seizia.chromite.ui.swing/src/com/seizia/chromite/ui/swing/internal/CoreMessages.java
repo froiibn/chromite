@@ -85,7 +85,6 @@ public class CoreMessages extends NLS {
     public static String main_result_change;
     public static String main_result_changes;
     public static String main_save_following;
-    public static String main_welcome;
     public static String main_welcome_hint;
     public static String main_welcome_next;
     public static String main_menu_file;

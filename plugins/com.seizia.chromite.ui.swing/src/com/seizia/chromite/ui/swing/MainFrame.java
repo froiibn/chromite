@@ -51,6 +51,8 @@ import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ComponentAdapter;
 import java.awt.event.ComponentEvent;
+import java.awt.event.ContainerEvent;
+import java.awt.event.ContainerListener;
 import java.awt.event.HierarchyEvent;
 import java.awt.event.InputEvent;
 import java.awt.event.KeyEvent;
@@ -88,7 +90,7 @@ import java.util.function.IntConsumer;
  *     도구 창 단축키는 SSMS와 같다(Object Explorer F8, Registered Servers Ctrl+Alt+G, Properties F4, Results Ctrl+R).</li>
  *     <li>Registered Servers({@link RegisteredServersPanel})의 "Object Explorer" 명령은 Object Explorer를 보이고 서버를 넣으며,
  *     "New Query"는 SQL 편집기만 연다.</li>
- *     <li>문서 탭: 시작 탭과 SQL 편집기 탭({@link SqlEditorPanel}). 편집기는 Object Explorer의 "New Query", File > New Query(Ctrl+N),
+ *     <li>문서 탭: SQL 편집기 탭({@link SqlEditorPanel})과 도구 문서 탭. 문서가 하나도 없으면 문서 카드에 빈 화면({@link WelcomePanel})이 보인다. 편집기는 Object Explorer의 "New Query", File > New Query(Ctrl+N),
  *     도구 막대의 New Query로 연다. 제목은 SSMS처럼 {@code SQLQueryN.sql - 연결 이름}이고, 도구 설명은 전체 파일 경로와 연결·서버다.
  *     닫기 단추는 DataGrip처럼 선택한 탭과 마우스를 올린 탭에만 보이고({@link IslandTabbedPaneUI}), 가운데 단추로 눌러도 닫는다.</li>
  *     <li>Query 메뉴의 Execute(F5)와 Cancel Executing Query(Alt+Break)는 활성 편집기에 적용된다. 메뉴 단축키라 포커스가 결과 표에 있어도 동작한다.
@@ -96,7 +98,7 @@ import java.util.function.IntConsumer;
  *     <li>결과는 SSMS처럼 쿼리 창마다 따로 있다({@link QueryResultsView}). 아래 Results / Messages 탭에는 활성 편집기의 결과를 끼우고,
  *     편집기가 없으면 자리 표시 내용을 보여 준다. 편집기마다 마지막으로 본 탭(Results 또는 Messages)을 기억한다. 탭에서 빠져 있던 결과 컴포넌트는 테마 전환을 받지 못했을 수 있어, 끼울 때 Look and Feel을 맞춘다.
  *     쿼리 상태 줄({@link QueryStatusLine})도 같은 방식으로, 활성 편집기의 줄을 Results 카드의 아래쪽(SSMS 쿼리 창 맨 아래)에 끼운다.
- *     Results가 숨겨져 있으면 문서 카드의 아래쪽(편집기 아래)으로 옮긴다. 시작 탭과 DDL 탭에는 없다.</li>
+ *     Results가 숨겨져 있으면 문서 카드의 아래쪽(편집기 아래)으로 옮긴다. 빈 문서 영역과 DDL 탭에는 없다.</li>
  *     <li>File > New Connection과 도구 막대의 New Connection은 Object Explorer의 같은 명령으로 연결 대화상자({@link ConnectionDialog})를 연다.</li>
  *     <li>상태 표시줄의 연결 수는 모든 프로젝트의 연결 레지스트리 이벤트({@link DBPEventListener}, 연결 추가·삭제)를 받아 다시 센다.
  *     같은 이벤트의 연결 변경(이름 바꾸기, 연결, 끊기)은 그 연결을 쓰는 편집기의 탭 제목과 기본 스키마 콤보에 알린다.</li>
@@ -157,6 +159,7 @@ import java.util.function.IntConsumer;
  *   File &gt; Save All, Activity Monitor 단축키 Ctrl+Alt+A, 쿼리 창 도구 막대의 Query History (docs/chromite/swing-frontend.md "도구 막대")
  * - 2026-11-06 도구 창 도킹: 분할 창 배치를 {@link ToolWindowDocking}(ModernDocking)으로 바꿈, 기본 배치에서 Object Explorer를
  *   Registered Servers 위로, Reset Window Layout은 기본 도킹 배치 (docs/chromite/swing-frontend.md "도구 창 도킹")
+ * - 2026-11-06 빈 문서 영역: Welcome 탭 삭제, 문서가 없으면 문서 카드에 {@link WelcomePanel} (docs/chromite/swing-frontend.md "빈 문서 영역")
  */
 final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplorerPanel.QueryWindows, TableDesignerPanel.Host, QueryLibraryPanel.Host {
 
@@ -170,6 +173,8 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
     private static final double DEFAULT_LEFT_SHARE = 0.22;
     private static final double DEFAULT_RIGHT_SHARE = 0.18;
     private static final String UPDATED_LAF_KEY = "chromite.updatedLookAndFeel"; //$NON-NLS-1$
+    private static final String DOCUMENTS_CARD = "documents"; //$NON-NLS-1$
+    private static final String WELCOME_CARD = "welcome"; //$NON-NLS-1$
     private static final int RESULTS_TAB = 0;
     private static final int MESSAGES_TAB = 1;
     private static final int PLAN_TAB = 2;
@@ -189,6 +194,10 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
         }
     };
     private final JTabbedPane documentTabs;
+    /**
+     * The document tabs, or the welcome content while no document is open.
+     */
+    private final JPanel documentCards = new JPanel(new CardLayout());
     private final JTabbedPane resultTabs;
     private final JComponent resultsPlaceholder;
     private final JComponent messagesPlaceholder;
@@ -256,7 +265,9 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
         // Islands: the document tabs and their editors are one card; the query status line goes to its bottom only
         // while the Results card is hidden (attachStatusLine)
         JPanel documentArea = new JPanel(new BorderLayout());
-        documentArea.add(documentTabs, BorderLayout.CENTER);
+        // No open document: the document area shows the welcome content instead of the tabs (updateDocumentCard)
+        documentCards.add(documentTabs, DOCUMENTS_CARD);
+        documentArea.add(documentCards, BorderLayout.CENTER);
         documentArea.add(documentStatusHolder, BorderLayout.SOUTH);
         documentSplit.setTopComponent(new IslandPanel(documentArea));
         JPanel resultsArea = new JPanel(new BorderLayout());
@@ -392,6 +403,20 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
             }
         });
         updateQueryActions();
+        documentCards.add(new WelcomePanel(List.of(CoreMessages.main_welcome_hint, CoreMessages.main_welcome_next),
+            List.of(newQueryAction, openFileAction, registeredServersWindow.getToggleAction())), WELCOME_CARD);
+        documentTabs.addContainerListener(new ContainerListener() {
+            @Override
+            public void componentAdded(ContainerEvent e) {
+                updateDocumentCard();
+            }
+
+            @Override
+            public void componentRemoved(ContainerEvent e) {
+                updateDocumentCard();
+            }
+        });
+        updateDocumentCard();
 
         setJMenuBar(createMenuBar());
 
@@ -1164,7 +1189,7 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
     }
 
     /**
-     * Shows the active editor's query status line at the bottom of the query window; other documents (Welcome, DDL)
+     * Shows the active editor's query status line at the bottom of the query window; other documents (DDL) and the empty document area
      * have none.
      */
     private void attachStatusLine(@Nullable JComponent statusLine) {
@@ -1293,34 +1318,15 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
     }
 
     /**
-     * Center document area: the welcome tab and the SQL editor tabs (closable).
+     * Center document area: the document tabs (all closable). Without tabs the area shows {@link WelcomePanel}.
      */
     @NotNull
     private JTabbedPane createDocumentTabs() {
-        JLabel titleLabel = new JLabel(GeneralUtils.getProductName());
-        titleLabel.putClientProperty(FlatClientProperties.STYLE_CLASS, "h1"); //$NON-NLS-1$
-        JLabel hintLabel = new JLabel(CoreMessages.main_welcome_hint);
-        JLabel nextLabel = new JLabel(CoreMessages.main_welcome_next);
-        nextLabel.putClientProperty(FlatClientProperties.STYLE, "foreground: $Label.disabledForeground"); //$NON-NLS-1$
-
-        JPanel welcome = new JPanel(new GridBagLayout());
-        GridBagConstraints constraints = new GridBagConstraints();
-        constraints.gridx = 0;
-        constraints.insets = new Insets(4, 0, 4, 0);
-        Icon logo = ChromiteIcons.getLogoIcon(128);
-        if (logo != null) {
-            welcome.add(new JLabel(logo), constraints);
-        }
-        welcome.add(titleLabel, constraints);
-        welcome.add(hintLabel, constraints);
-        welcome.add(nextLabel, constraints);
-
         JTabbedPane tabs = new EditorTabbedPane();
         // One row that scrolls, like SSMS; wrapped rows would move the selected tab's row around
         tabs.setTabLayoutPolicy(JTabbedPane.SCROLL_TAB_LAYOUT);
         // DataGrip editor tabs: size.tab.editor 40; the selected tab is an Islands pill (IslandTabbedPaneUI), no underline
         tabs.putClientProperty(FlatClientProperties.STYLE, "tabHeight: 40; tabSelectionHeight: 0"); //$NON-NLS-1$
-        tabs.addTab(CoreMessages.main_welcome, welcome);
         tabs.putClientProperty(FlatClientProperties.TABBED_PANE_TAB_CLOSE_CALLBACK, (IntConsumer) this::closeDocumentTab);
         tabs.addMouseListener(new MouseAdapter() {
             @Override
@@ -1475,6 +1481,13 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
     private void resetWindowLayout() {
         toolWindowDocking.resetLayout();
         resultsSplit.reset();
+    }
+
+    /**
+     * The welcome content while no document tab is open (it comes back when the last one is closed).
+     */
+    private void updateDocumentCard() {
+        ((CardLayout) documentCards.getLayout()).show(documentCards, documentTabs.getTabCount() == 0 ? WELCOME_CARD : DOCUMENTS_CARD);
     }
 
     private static void onMenuSelected(@NotNull JMenu menu, @NotNull Runnable task) {

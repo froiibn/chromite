@@ -416,7 +416,7 @@ SQL 편집기, 결과 그리드, 연결 화면은 C단계에서 만든다.
 - **숨기기:** View 메뉴 토글(Object Explorer F8, Properties F4, Results Ctrl+R, SSMS와 같은 단축키) 또는 도구 창의 `×`.
   숨긴 컴포넌트는 분할 창에서 빼지 않고 `setVisible(false)`로 감추고 구분선 크기를 0으로 둔다(테마 전환이 숨은 창에도 적용되게).
 - **Results / Messages:** 지금은 자리 표시용 내용만 있다. 탭 줄 오른쪽에 숨기기 단추가 있다(FlatLaf `JTabbedPane.trailingComponent`).
-- **문서 탭:** Welcome 탭 하나. SQL 편집기 탭은 C단계에서 넣는다.
+- **문서 탭:** Welcome 탭 하나. SQL 편집기 탭은 C단계에서 넣는다. (2026-11-06 Welcome 탭을 없애고 빈 문서 영역으로 바꿈: "빈 문서 영역")
 - **메뉴:** File(Exit), View(도구 창 3개, Theme > Light/Dark), Help(About Chromite). F5는 쿼리 실행용으로 비워 둔다.
 - **About:** 제품명, 부제, 버전, 저작권("© 2026 Chromite contributors. Based on DBeaver Community © DBeaver Corp"), 웹사이트
   (https://github.com/froiibn/chromite, 누르면 브라우저로 연다). 제품명·부제·저작권은 `plugin.xml` 제품 확장의 속성에서 읽는다.
@@ -1554,7 +1554,7 @@ Object Explorer 오른쪽 클릭 메뉴의 Refresh에 F5를 보인다.
 - `QueryStatusLine`: 상태 아이콘 16 + 문구 │ 서버 │ 사용자 │ DB/스키마 │ 경과 시간 │ 행 수. 높이 28, 위 1px 선, 글자 `text.secondary`, 칸 사이 1px 구분선.
   상태 아이콘은 실행 전 연결 아이콘(연결되어 있으면 초록 상태 점), 실행 중 ▶, 성공 체크, 오류, 취소 경고다.
 - 서버는 호스트[:포트], 파일 DB는 파일 이름이고, 도구 설명에 전체 URL·경로와 DB 제품 버전(SSMS의 "서버 (버전)")을 둔다. 사용자는 연결의 사용자 이름, DB/스키마는 편집기 도구 막대의 기본 DB/스키마 콤보 값이다. 빈 칸은 숨긴다.
-- 위치: SSMS처럼 쿼리 창 맨 아래 = Results 카드의 아래쪽. Results를 숨기면(Ctrl+R) 문서 카드의 아래쪽(편집기 아래)으로 옮긴다. 시작 탭·DDL 탭에는 없다.
+- 위치: SSMS처럼 쿼리 창 맨 아래 = Results 카드의 아래쪽. Results를 숨기면(Ctrl+R) 문서 카드의 아래쪽(편집기 아래)으로 옮긴다. 빈 문서 영역(예전 시작 탭)·DDL 탭에는 없다.
   상태 줄은 편집기마다 있고 메인 창이 활성 편집기의 것을 끼운다(결과 탭과 같은 방식, 탭에서 빠져 있던 동안의 테마 전환을 끼울 때 맞춤).
 
 ### Properties (SSMS 속성 그리드)
@@ -1836,6 +1836,32 @@ EDT 에이전트로 단추를 누르고(`doClick`) 결과를 읽었다. 캡처�
 - 떠 있는 도구 창 안에서 메인 창 메뉴 단축키(F8 등)는 동작하지 않는다(메뉴 막대가 메인 창에만 있음).
 - 숨긴 도구 창을 다시 보일 때 떠 있던 창이면 떠 있는 창이 아니라 메인 창의 마지막 자리에 놓는다.
 
+## 빈 문서 영역 (2026-11-06)
+
+사용자 결정(2026-11-06): "Welcome"/"시작" 문서 탭을 없앤다. 문서가 하나도 열려 있지 않으면 가운데 문서 영역 자체가 시작 내용을 바탕으로 보인다(IDE의 빈 편집기 화면).
+첫 문서가 열리면 사라지고 마지막 문서를 닫으면 돌아온다. 탭이 아니므로 닫을 것도, Window 메뉴의 문서 목록에 나올 것도 없다.
+
+| 파일 | 바뀐 것 |
+|---|---|
+| `WelcomePanel`(새 파일) | 가로 로고(JSVG 벡터), 안내 두 줄, 단축키 세 줄(New Query Ctrl+N, Open File Ctrl+O, Registered Servers Ctrl+Alt+G) |
+| `MainFrame` | 문서 카드 안을 `CardLayout`(문서 탭 / 빈 화면)으로, 문서 탭이 추가·삭제될 때 전환(`updateDocumentCard`). Welcome 탭 만들기 코드 삭제 |
+| `icons/brand/lockup-light.svg`, `lockup-dark.svg`(새 파일), `tools/branding/gen_app_icons.py` | PR #41의 가로 잠금 로고(심볼 + "CHROMITE" + "DATABASE WORKBENCH", 원래 로고 글자)를 생성기가 Swing 번들에도 쓴다(여백 0, 바탕 없음). 손으로 복사하지 않는다 |
+| `CoreMessages`(`_ko`) | 쓰지 않게 된 `main_welcome`(탭 제목 "Welcome"/"시작") 삭제. 안내 문구 `main_welcome_hint`, `main_welcome_next`는 그대로 씀 |
+| `ChromiteIcons` | 주석만: 로고 아이콘(`getLogoIcon`)은 이제 About만 씀 |
+
+- **로고:** 라이트 테마는 남색 글자 판(`lockup-light.svg`), 다크 테마는 흰 글자·회색 부제 판(`lockup-dark.svg`). 그릴 때마다 현재 테마를 보고 JSVG로 화면 배율에 맞게 벡터로 그린다(150%에서 선명).
+  바탕 상자 없이 편집기 바탕(`Chromite.editorBackground`) 위다. 테마를 바꾸면 바로 바뀐다.
+- **크기:** 가운데 정렬, 최대 너비 420(논리 픽셀), 문서 영역이 좁으면 양쪽 여백 32를 남기고 줄인다(최소 80).
+- **글자:** 안내 두 줄(영어 "Expand a connection in Object Explorer…", "Right-click a connection and choose New Query (Ctrl+N)…", 한국어 그대로)과 단축키 이름은 `text.secondary`(`Chromite.secondaryForeground`), 작은 글꼴(FlatLaf `small`).
+  단축키 줄은 메뉴와 같은 `Action`의 이름·단축키에서 만들고, 이름 끝의 "…"는 뺀다.
+- **결과 카드:** 그대로 문서 카드 아래에 있다(편집기가 없으면 "결과가 없습니다" 자리 표시).
+- 이전 시작 탭의 정사각 아이콘 로고(128)와 큰 제품명 글자는 없앴다(가로 로고에 제품명이 있음).
+
+### 확인 (2026-11-06)
+
+"도구 창 도킹 — 확인"과 같은 실행에서 캡처했다(`D:\Tools\_scratch\docking\welcome-*.png`): 한국어(OS 기본)·영어(`-nl en`) × 라이트·다크 × 1920·1280.
+문서 탭이 없을 때 빈 화면, New Query로 탭이 생기면 문서 탭, 탭을 모두 닫으면 다시 빈 화면(카드 전환을 에이전트로 확인).
+
 ## 변경 이력
 
 - 2026-11-06 최초 작성. Swing 전환 결정, 구조, 재사용 분석, MVP 범위, F5 실행 사양을 정리.
@@ -1904,3 +1930,4 @@ EDT 에이전트로 단추를 누르고(`doClick`) 결과를 읽었다. 캡처�
 - 2026-11-06 데이터베이스 노드의 Import Data… / Export Data… / Copy Tables…(스키마별 원본 목록, 가져오기 대상 테이블 고르기·새 테이블). [swing-data-transfer.md](swing-data-transfer.md) "데이터베이스 노드".
 - 2026-11-06 도구 창 도킹: ModernDocking 1.4.9 도입, 분할 창 배치(`stackBelow`, `setDefaultShown`)를 대체, 끌어 옮기기·탭·떠 있는 창·자동 숨기기, 배치 파일 저장,
   기본 배치 Object Explorer 위·Registered Servers 아래, 기본 열 너비 비율(22%·18%). "도구 창 도킹" 절 추가, B단계 배치·설정 절에 표시.
+- 2026-11-06 빈 문서 영역: Welcome 탭을 없애고 문서가 없을 때 문서 영역에 가로 로고(SVG, 테마별)·안내·단축키. "빈 문서 영역" 절 추가.

@@ -70,7 +70,8 @@ plugins/org.jkiss.dbeaver.ui.app.standalone/ icons/dbeaver{16,32,48,64,256}.png,
                                icons/dbeaver_about.png, splash.png
 plugins/org.jkiss.dbeaver.ui/icons/          dbeaver_logo_{medium,small,small@2x}.png,
                                dbeaver_perspective{,@2x}.png
-plugins/com.seizia.chromite.ui.swing/icons/  chromite{16,20,24,32,40,48,64,128,256}.png
+plugins/com.seizia.chromite.ui.swing/icons/  chromite{16,20,24,32,40,48,64,128,256}.png,
+                               brand/lockup-{light,dark}.svg (empty document area, drawn by JSVG)
 
 Usage
 -----
@@ -95,6 +96,8 @@ Change history:
 - 2026-11-06 Lockup text taken from the original logo instead of Inter: "CHROMITE" rebuilt
   as italic geometric glyphs with the blue accent bar on the E, a thin divider, and the
   letter-spaced subtitle on the original letter positions (user decision).
+- 2026-11-06 Swing bundle gets the lockup as SVG (icons/brand/lockup-{light,dark}.svg) for the empty
+  document area that replaces the Welcome tab.
 """
 import argparse
 import io
@@ -863,6 +866,10 @@ def main():
     swing = ROOT / "plugins" / "com.seizia.chromite.ui.swing" / "icons"
     for s in (16, 20, 24, 32, 40, 48, 64, 128, 256):
         save_png(win[s], swing / f"chromite{s}.png")
+    # Horizontal lockup for the empty document area, tight to the artwork (the panel centres it) and without a
+    # background, so it sits on the editor background of either theme
+    write_text(swing / "brand" / "lockup-light.svg", lockup_svg(inter, False, pad=0))
+    write_text(swing / "brand" / "lockup-dark.svg", lockup_svg(inter, True, pad=0))
     print("ok")
 
 

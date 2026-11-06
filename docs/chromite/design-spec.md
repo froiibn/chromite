@@ -202,7 +202,7 @@ Swing 프런트엔드(`com.seizia.chromite.ui.swing`)의 화면을 **배치와 �
 |---|---|---|---|---|---|
 | UI 글꼴 | Segoe UI | Inter 13(모든 OS) [JetBrains New UI 도움말], 한글은 운영체제 글꼴로 대체 | Segoe UI 12 | `font.ui` Inter 13, 한글 대체 Malgun Gothic(Windows)·Apple SD Gothic Neo(macOS). FlatLaf 합성 글꼴(`defaultFont`가 대체 글꼴을 갖는 composite font)이어야 한글이 □로 나오지 않음 | P0 |
 | 간격 단위 | — | 2·4·6·8·12·16·20 [J `SpacingConfiguration`, `Tree.border`, `List.border`] | 화면마다 다름(2, 3, 8, 14 등) [C] | "디자인 토큰"의 `space.*`만 씀 | P1 |
-| 시작 탭(Welcome) | 시작 화면 | Welcome 화면(로고, 큰 단추) | 큰 로고 + 안내 글 [S] | 로고 64, 제목 `font.title`, "New Connection", "New Query", "Open File" 링크 단추, 최근 파일 목록 | P2 |
+| 시작 탭(Welcome) | 시작 화면 | Welcome 화면(로고, 큰 단추) | 큰 로고 + 안내 글 [S] | 로고 64, 제목 `font.title`, "New Connection", "New Query", "Open File" 링크 단추, 최근 파일 목록 | P2 (2026-11-06 탭 대신 빈 문서 영역: "적용 현황 — 빈 문서 영역") |
 | Islands | — | 2025.3부터 기본: 패널 사이 6px 틈, 패널 모서리 arc 20 [T `ManyIslands*`] | — | 기본 모양으로 적용("적용 현황 — Islands 적용") | 완료 |
 | 촘촘한 모드 | — | Compact: 트리 22, 머리말 낮춤, 트리 여백 2,8 [T `*.compact`] | — | 설정으로 제공(SSMS 사용자 밀도 요구) | P2 |
 
@@ -593,6 +593,17 @@ P0 전체와 P1 일부를 `com.seizia.chromite.ui.swing`에 적용했다. 동작
 | 문서 영역 | 그대로(문서 탭 카드 + Results 카드, `IslandPanel`) |
 
 확인: [swing-frontend.md](swing-frontend.md) "도구 창 도킹 — 확인"의 캡처(라이트·다크, 한국어·영어).
+
+### 적용 현황 — 빈 문서 영역 (2026-11-06)
+
+문서가 없을 때 문서 카드에 보이는 빈 화면(Welcome 탭 대체, [swing-frontend.md](swing-frontend.md) "빈 문서 영역").
+
+| 요소 | 값 |
+|---|---|
+| 바탕 | 편집기 바탕 `Chromite.editorBackground`(L `#FFFFFF` / D `#191A1C`), 로고 바탕 상자 없음 |
+| 로고 | 가로 잠금 로고 SVG, 라이트 = 남색 `#18253B` 글자, 다크 = 흰 글자·회색 부제 `#B9BCC6`. 가운데, 최대 너비 420, 좁으면 양쪽 32 여백을 두고 줄임 |
+| 안내 글 | 로고 아래 24, 줄 사이 4, `text.secondary` `#73767C`, FlatLaf `small` |
+| 단축키 | 안내 아래 20, 이름(보조 글자, 오른쪽 맞춤) │ 단축키(글자색, 왼쪽 맞춤), 사이 16 |
 
 ### P0 결과
 
