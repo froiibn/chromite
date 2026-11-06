@@ -22,6 +22,12 @@ import org.jkiss.code.Nullable;
 import javax.swing.*;
 import javax.swing.plaf.ComponentUI;
 import java.awt.*;
+import java.awt.event.ContainerEvent;
+import java.awt.event.ContainerListener;
+import java.awt.event.HierarchyEvent;
+import java.awt.event.HierarchyListener;
+import java.beans.PropertyChangeEvent;
+import java.beans.PropertyChangeListener;
 
 /**
  * DataGrip New UI 스크롤바(design-spec "13. 스크롤바"): 트랙은 보이지 않고(스크롤하는 내용의 바탕색), 막대는 폭 7의 둥근 반투명 막대이며
@@ -31,7 +37,11 @@ import java.awt.*;
  * {@code hoverThumbColor})다. FlatLaf에 없는 두 가지만 여기서 한다.
  * <ul>
  *     <li>보이지 않는 트랙: FlatLaf 트랙 색은 창 바탕(bg.panel)에서 만들어져, 바탕이 다른 편집기·결과 그리드(bg.editor) 옆에 띠가 생긴다.
- *     반투명 색은 불투명 컴포넌트의 바탕에 쓸 수 없으므로, 트랙을 스크롤하는 내용(뷰)의 바탕색으로 칠한다.</li>
+ *     반투명 색은 불투명 컴포넌트의 바탕에 쓸 수 없으므로, 트랙을 스크롤하는 내용(뷰)의 바탕색으로 칠한다.
+ *     뷰의 바탕색이 바뀌면(테마 전환 뒤 편집기가 색을 다시 적용할 때, 옵션 미리보기) 뷰만 다시 그려지고 스크롤바는 옛 색으로 남는다.
+ *     그래서 UI가 설치될 때 스크롤 창·뷰포트·뷰를 따라가며 뷰와 뷰포트의 {@code background}·{@code opaque} 변경을 듣고 스크롤바를 다시 그린다.
+ *     바탕색을 바꾸는 쪽(각 편집기)마다 스크롤바를 다시 그리게 하지 않고 색을 가져다 쓰는 이 UI에서 처리하므로, 뷰의 바탕색이 바뀌는
+ *     모든 스크롤 창에 적용된다.</li>
  *     <li>마우스 올림에 넓어지기: FlatLaf에는 마우스 올림 때의 막대 여백 키가 없어, 그릴 때 여백을 1씩 줄인다.</li>
  * </ul>
  * Look and Feel의 {@code ScrollBarUI}로 등록한다({@link ChromiteLightLaf#getDefaults()}, {@link ChromiteDarkLaf#getDefaults()}).
@@ -39,8 +49,12 @@ import java.awt.*;
  *
  * 변경 이력:
  * - 2026-11-06 P1: 최초 작성 (docs/chromite/swing-frontend.md "P1 디자인 적용")
+ * - 2026-11-07 테마 전환 뒤 SQL 편집기 세로 스크롤바 트랙이 옛 테마 색으로 남던 문제: 뷰 바탕색 변경을 듣고 스크롤바를 다시 그린다
  */
 public class ChromiteScrollBarUI extends FlatScrollBarUI {
+
+    @Nullable
+    private ViewBackgroundTracker viewBackgroundTracker;
 
     public static ComponentUI createUI(JComponent c) {
         return new ChromiteScrollBarUI();
@@ -53,6 +67,24 @@ public class ChromiteScrollBarUI extends FlatScrollBarUI {
     static void install(UIDefaults defaults) {
         defaults.put("ScrollBarUI", ChromiteScrollBarUI.class.getName()); //$NON-NLS-1$
         defaults.put(ChromiteScrollBarUI.class.getName(), ChromiteScrollBarUI.class);
+    }
+
+    @Override
+    protected void installListeners() {
+        super.installListeners();
+        viewBackgroundTracker = new ViewBackgroundTracker();
+        scrollbar.addHierarchyListener(viewBackgroundTracker);
+        viewBackgroundTracker.bind();
+    }
+
+    @Override
+    protected void uninstallListeners() {
+        if (viewBackgroundTracker != null) {
+            scrollbar.removeHierarchyListener(viewBackgroundTracker);
+            viewBackgroundTracker.unbind();
+            viewBackgroundTracker = null;
+        }
+        super.uninstallListeners();
     }
 
     @Override
@@ -92,5 +124,88 @@ public class ChromiteScrollBarUI extends FlatScrollBarUI {
             }
         }
         return null;
+    }
+
+    /**
+     * Repaints the scroll bar when the colors its track is painted with change. Changing the background of the view
+     * (an editor applying theme colors after a look and feel switch, the Options preview) repaints only the view, so
+     * without this the track keeps the previous color until something else repaints the scroll bar.
+     * Follows the scroll bar into a scroll pane (it is added only after the UI is installed), the scroll pane's
+     * viewport and the viewport's view.
+     */
+    private final class ViewBackgroundTracker implements HierarchyListener, PropertyChangeListener, ContainerListener {
+        @Nullable
+        private JScrollPane scrollPane;
+        @Nullable
+        private JViewport viewport;
+        @Nullable
+        private Component view;
+
+        void bind() {
+            if (scrollbar.getParent() instanceof JScrollPane pane) {
+                scrollPane = pane;
+                pane.addPropertyChangeListener("viewport", this); //$NON-NLS-1$
+                viewport = pane.getViewport();
+                if (viewport != null) {
+                    viewport.addPropertyChangeListener(this);
+                    viewport.addContainerListener(this);
+                    view = viewport.getView();
+                    if (view != null) {
+                        view.addPropertyChangeListener(this);
+                    }
+                }
+            }
+        }
+
+        void unbind() {
+            if (view != null) {
+                view.removePropertyChangeListener(this);
+                view = null;
+            }
+            if (viewport != null) {
+                viewport.removePropertyChangeListener(this);
+                viewport.removeContainerListener(this);
+                viewport = null;
+            }
+            if (scrollPane != null) {
+                scrollPane.removePropertyChangeListener("viewport", this); //$NON-NLS-1$
+                scrollPane = null;
+            }
+        }
+
+        private void rebind() {
+            unbind();
+            bind();
+            scrollbar.repaint();
+        }
+
+        @Override
+        public void hierarchyChanged(HierarchyEvent e) {
+            if ((e.getChangeFlags() & HierarchyEvent.PARENT_CHANGED) != 0 && e.getChanged() == scrollbar) {
+                rebind();
+            }
+        }
+
+        @Override
+        public void propertyChange(PropertyChangeEvent e) {
+            String name = e.getPropertyName();
+            if ("viewport".equals(name)) { //$NON-NLS-1$
+                rebind();
+            } else if ("background".equals(name) || "opaque".equals(name)) { //$NON-NLS-1$ //$NON-NLS-2$
+                // The track color comes from these (getViewBackground)
+                scrollbar.repaint();
+            }
+        }
+
+        @Override
+        public void componentAdded(ContainerEvent e) {
+            // JViewport.setView removes the old view and adds the new one
+            rebind();
+        }
+
+        @Override
+        public void componentRemoved(ContainerEvent e) {
+            rebind();
+        }
     }
 }
