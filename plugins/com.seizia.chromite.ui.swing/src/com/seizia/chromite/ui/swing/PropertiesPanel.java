@@ -80,6 +80,7 @@ import java.util.stream.Stream;
  * - 2026-11-06 화면 문구를 CoreMessages로 옮김(OS 언어를 따름)
  * - 2026-11-07 오류 문구를 {@link ErrorText}로 만듦(클래스 이름이 화면에 나오지 않게, docs/chromite/swing-frontend.md "오류 문구")
  * - 2026-11-07 밀도 B: 치수를 테마의 Chromite.size.* 키({@link UiSizes})에서 읽음 (docs/chromite/design-spec.md "치수 토큰")
+ * - 2026-11-07 제목을 Object Explorer와 같은 노드 글자로(이름 없는 반환 값 매개 변수, docs/chromite/swing-frontend.md "Object Explorer 탐색 불가 항목")
  */
 final class PropertiesPanel extends JPanel {
 
@@ -189,7 +190,7 @@ final class PropertiesPanel extends JPanel {
             setContent(List.of(), null);
             return;
         }
-        nameLabel.setText(CommonUtils.notEmpty(node.getNodeDisplayName()));
+        nameLabel.setText(ObjectExplorerPanel.getNodeText(node));
         typeLabel.setText(CommonUtils.notEmpty(node.getNodeTypeLabel()));
         String description = node.getNodeDescription();
         descriptionLabel.setText(CommonUtils.isEmpty(description) ? " " : description);

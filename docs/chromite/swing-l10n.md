@@ -244,8 +244,8 @@ Swing과 SWT가 같은 탐색기 모델(`plugin.xml`의 `<folder>`/`<items>`)을
   CLR 저장 프로시저(PC)는 원래 읽고 있었다. 테스트 DB에 CLR 어셈블리가 없어 FS/FT는 화면으로 확인하지 못했다.
 - 폴더 설명(도구 설명)을 `%키`로: `tree.procedures.node.tip`(Procedures / 저장 프로시저), `tree.functions.node.tip`(Functions / 함수),
   `tree.check_constraints.node.tip`(Table check constraints / 테이블 CHECK 제약 조건). 영어 문구는 이전과 같다.
-- 알려진 제약(upstream Oracle과 같음): 새로 만든 함수는 `DBNModel.getParentNode()`가 형식이 맞는 첫 폴더를 고르므로(`DBNModel.java:444-450`)
-  새로 고침 전까지 "저장 프로시저" 폴더에 보일 수 있다. 두 폴더가 같은 형식이라 폴더 필터 설정도 함께 쓴다.
+- 두 폴더가 같은 형식이라 폴더 필터 설정도 함께 쓴다. 새로 만든 함수가 `DBNModel.getParentNode()`(형식이 맞는 첫 폴더를 고름) 때문에
+  "저장 프로시저" 폴더에 붙던 제약은 2026-11-07에 고쳤다(swing-frontend.md "Object Explorer 후속 수정" > "새 객체의 부모 폴더").
   함수 노드 경로가 `.../procedure/<이름>`에서 `.../function/<이름>`으로 바뀌어, 이전에 열어 둔 함수 편집기는 복원되지 않을 수 있다.
 - 화면 확인(2026-11-06, Swing, SQL Server 2022 테스트 DB에 저장 프로시저 1개, 스칼라·인라인·다중 문 테이블 반환 함수 각 1개):
   한국어·영어, 라이트·다크에서 "저장 프로시저"(Procedures)에는 저장 프로시저만, "함수"(Functions)에는 함수 3개가 보인다.
