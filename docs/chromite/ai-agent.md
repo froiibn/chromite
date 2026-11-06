@@ -49,9 +49,9 @@ Chromite 안에서 AI 모델이 DBA처럼 일하게 한다. 사용자가 "이 �
 | 위치 | 내용 |
 |---|---|
 | `plugins/com.seizia.chromite.model.ai` (기존) | 확장점 `com.seizia.chromite.ai.function`에 속성 `access`, `writes` 추가(`schema/com.seizia.chromite.ai.function.exsd`). `AIFunctionDescriptor.getAccess()`, `getWrites()` |
-| `model.ai` 패키지 `com.seizia.chromite.model.ai.agent` (새) | 정책·감사·실행기·확인·편집기 연결 등 채팅과 MCP가 함께 쓰는 부분: `AIToolAccess`, `AIToolPermission`, `AIToolClient`, `AIToolOutcome`, `AIToolPolicy`, `AIToolDecision`, `AIToolConfirmationHandler`, `AIToolConfirmationRequest`, `AIEditorBridge`, `AIAgentServices`, `AIToolAuditLog`, `AIToolExecutor`, `AIToolCallContext`, `AIToolCallResult`, `AIToolAccessClassifier`, `AIToolPreviewProvider`, `AIToolCatalog`, `AIToolConnections` |
+| `model.ai` 패키지 `com.seizia.chromite.model.ai.agent` (새) | 정책·감사·실행기·확인·편집기 연결 등 채팅과 MCP가 함께 쓰는 부분: `AIToolAccess`, `AIToolWrites`, `AIToolPermission`, `AIToolClient`, `AIToolOutcome`, `AIToolPolicy`, `AIToolDecision`, `AIToolConfirmationHandler`, `AIToolConfirmationRequest`, `AIToolConfirmationAnswer`, `AIPendingTransaction`, `AIToolTransactionGuard`, `AIEditorBridge`, `AIAgentServices`, `AIToolAuditLog`, `AIToolExecutor`, `AIToolCallContext`, `AIToolCallResult`, `AIToolAccessClassifier`, `AIToolPreviewProvider`, `AIToolArgumentException`, `AIToolCatalog`, `AIToolConnections` |
 | `model.ai` 패키지 `com.seizia.chromite.model.ai.engine.anthropic` (새) | Anthropic 엔진(Messages API, 도구 사용) |
-| `plugins/com.seizia.chromite.model.ai.tools` (새 번들) | 도구 구현(`...model.ai.tools`), 진단 SQL 자원(`diag/`), MCP 서버(`...model.ai.tools.mcp`). 데이터 전송·관리 모델(`model.admin`)·SQL 모델에 의존하므로 `model.ai`와 나눴다 |
+| `plugins/com.seizia.chromite.model.ai.tools` (새 번들) | 도구 구현(`...model.ai.tools`: `ConnectionTools`, `MetadataTools`, `QueryTools`, `PlanTools`, `DataTools`, `DdlTools`, `TransferTools`, `AdminTools`, `LibraryTools`, `DiagnosticSqlTool`, 공통 `AgentTool`, `AgentSql`, `AgentSqlClassifier`, `AgentJson`, `AgentNames`, `AgentValues`, `PlanParser`, `DiagnosticScript`, `DiagnosticPostProcessor`, `PermissionProbe`, `LibraryReader`, `ThresholdEvaluator`), 진단 SQL 자원(`.../tools/diag/<도구>.sql` 29개), MCP 서버(`...model.ai.tools.mcp`: `AIMcpServer`, `AIMcpSettings`, `AIMcpPluginService`, `AIAgentPlaybooks` + `playbooks/*.md`). SQL Server 백업·복원 모델(`model.admin`)과 `ext.mssql`에 의존하므로 `model.ai`와 나눴다 |
 | `features/com.seizia.chromite.swing.feature` | 새 번들을 Swing 제품에 넣는다 |
 
 모델 번들이라 SWT·Swing에 의존하지 않는다(AGENTS-Architecture.md). 화면이 필요한 곳(확인 대화상자, 쿼리 창 열기)은 인터페이스만 두고
@@ -59,12 +59,14 @@ Chromite 안에서 AI 모델이 DBA처럼 일하게 한다. 사용자가 "이 �
 
 ### 실행 문맥
 
-- 도구는 사용자의 쿼리 창이나 탐색기 메타데이터 문맥을 쓰지 않는다. 연결(데이터베이스 인스턴스)마다 **에이전트 전용 격리 문맥**
-  (`DBSInstance.openIsolatedContext`, 이름 "Chromite AI agent")을 하나 열어 쓴다. 이유:
+- 도구는 사용자의 쿼리 창이나 탐색기 메타데이터 문맥을 쓰지 않는다. 연결(그리고 `database` 인수)마다 **에이전트 전용 격리 문맥**
+  (`DBSInstance.openIsolatedContext`, 이름 "Chromite AI agent", 서버 세션의 프로그램 이름에도 보임)의 작은 풀(최대 4개)을 쓴다. 이유:
   - 에이전트가 자동 커밋이나 읽기 전용 상태를 바꿔도 사용자의 트랜잭션에 영향이 없다.
   - 사용자의 열린 트랜잭션에 에이전트 문장이 섞이지 않는다.
   - 오래 걸리는 진단 쿼리가 탐색기의 메타데이터 읽기를 막지 않는다.
-- 한 문맥에서는 한 번에 한 문장만 실행한다(문맥별 잠금). MCP 클라이언트가 동시에 호출해도 JDBC 연결을 여러 스레드가 함께 쓰지 않는다.
+- 한 문맥에서는 한 번에 한 호출만 실행한다(문맥별 잠금). 바쁜 문맥이 있으면 풀에서 다른 문맥을 쓰거나 새로 연다. 문맥이 하나뿐이던 첫 구현에서는
+  잠금에 걸린 에이전트 DDL(블로킹된 `CREATE INDEX`) 하나가 그 연결의 진단·`cancelQuery`까지 막았다(아래 "확인"). 쓰기는 열린 에이전트 트랜잭션이 있는
+  문맥을 이어서 써야 하므로 그 문맥을 기다리고, 읽기는 그 문맥이 비어 있으면 그것을(커밋 전 변경이 보이게), 아니면 다른 문맥을 쓴다.
 - 연결이 "단일 연결 사용"(`isForceUseSingleConnection`)이면 격리 문맥을 열 수 없어 기본 문맥을 쓴다.
 - `setCurrentDatabase`는 에이전트 문맥의 기본 DB/스키마만 바꾼다. 사용자의 화면은 바뀌지 않는다.
 - PostgreSQL처럼 DB마다 인스턴스가 다른 드라이버는 `database` 인수로 그 DB의 인스턴스 문맥을 쓴다.
@@ -146,7 +148,7 @@ Chromite 안에서 AI 모델이 DBA처럼 일하게 한다. 사용자가 "이 �
 | `runScript` | 스크립트(여러 문장, 드라이버의 구분자 규칙). 커밋 방식은 `runSql`과 같다 | W (W/D) | `connection`, `script`, `stopOnError` | 문장별 결과, `transactionOpen` | G | 1 |
 | `getTransactionStatus` | 에이전트 문맥의 열린 트랜잭션(DB에 직접 확인: `@@TRANCOUNT`, `txid_current_if_assigned()`, `INNODB_TRX`, `DBMS_TRANSACTION`)과 이 연결의 쿼리 창 트랜잭션 | R | `connection` | 객체 | MS PG MY OR, G | 1 |
 | `commitTransaction` | 에이전트의 열린 트랜잭션 커밋. **자동 실행 설정과 상관없이 늘 확인** | W | `connection` | 결과 | G | 1 |
-| `rollbackTransaction` | 에이전트의 열린 트랜잭션 롤백. 늘 확인 | W | `connection` | 결과 | G | 1 |
+| `rollbackTransaction` | 에이전트의 열린 트랜잭션 롤백. 늘 확인. 운영 연결에서도 에이전트가 자기 일을 되돌릴 수 있어야 하므로 분류는 READ(막히지 않음)이고, 되돌릴 것이 있으면 트랜잭션 안전 규칙이 늘 묻는다 | R | `connection` | 결과 | G | 1 |
 | `cancelQuery` | 에이전트가 실행 중인 문장 취소 | R | `connection` | 취소한 수 | G | 1 |
 | `explainQuery` | 예상 실행 계획을 **구조화 JSON**으로(연산자, 비용, 예상 행, 경고, 누락 인덱스, 매개변수 컴파일 값) | R | `connection`, `sql`, `database` | `plan` | MS PG MY OR, G(계획기) | 1 |
 | `getActualPlan` | 실제 실행 계획과 실행 통계(실제 행, 반복, 시간, 논리 읽기·버퍼, SET STATISTICS IO/TIME, EXPLAIN ANALYZE BUFFERS) | R→W | `connection`, `sql`, `database` | `plan`, `runtime` | MS PG MY | 1 (OR 1b) |
@@ -253,7 +255,7 @@ DDL 도구는 실행 전 확인 요청에 만든 DDL을 그대로 보여 준다(
 |---|---|---|---|---|---|---|
 | `getToolPolicy` | 이 연결에서 각 도구의 실제 권한(AUTO/CONFIRM/BLOCKED)과 이유. 모델이 막힌 도구를 미리 알고 계획을 세우게 한다 | R | `connection` | `tools[]` | — | 1 |
 
-기존 3개 함수(`listSchemaNames`, `listTableNames`, `getTableDetails`)는 그대로 두고 READ로 분류된다.
+기존 3개 함수(`listSchemaNames`, `listTableNames`, `getTableDetails`)는 그대로 두고 READ로 분류된다. 이들은 채팅의 데이터베이스 문맥을 읽으므로 채팅에서만 쓰고 MCP 목록에서는 뺀다(`AIToolCatalog.getTools`).
 
 ## 권한 정책
 
@@ -359,7 +361,8 @@ Chromite는 연결 종류(`DBPConnectionConfiguration.getConnectionType()`)로 �
 | 세션 | `initialize` 응답에 `Mcp-Session-Id`(무작위). 이후 요청에 이 머리글이 있으면 확인하고, 모르는 ID면 404 |
 | 주소 | `127.0.0.1`에만 묶는다. 원격 주소가 루프백이 아니면 403 |
 | 포트 | 설정 `chromite.ai.mcp.port`, 기본 47821 |
-| 켜기 | 설정 `chromite.ai.mcp.enabled`, 기본 꺼짐. 앱 시작 때(`pluginService`) 켜져 있으면 시작하고, 설정이 바뀌면 시작·중지한다 |
+| 켜기 | 설정 `chromite.ai.mcp.enabled`, 기본 꺼짐. 앱 시작 때(`com.seizia.chromite.pluginService` 확장 `AIMcpPluginService`) 켜져 있으면 시작하고, `AIMcpSettings.setEnabled/setPort`가 시작·중지·재시작한다 |
+| 설정 저장 | 번들 `com.seizia.chromite.model.ai.tools`의 설정 저장소: `<작업 공간>/.metadata/.plugins/org.eclipse.core.runtime/.settings/com.seizia.chromite.model.ai.tools.prefs` |
 | 인증 | `Authorization: Bearer <토큰>`. 토큰은 32바이트 무작위(base64url), 작업 공간 `.metadata/chromite-ai/mcp-token`. 설정 화면에 보이고 다시 만들 수 있다(2단계). 비교는 상수 시간 |
 | DNS rebinding 방어 | `Origin` 머리글이 있으면 `http://127.0.0.1:<포트>`·`http://localhost:<포트>`만 허용, `Host`도 이 둘만 허용 |
 | 요청 크기 | 본문 최대 4 MB |
@@ -547,12 +550,50 @@ API 키는 `AIUtils.setSecretValue`(보안 저장소)에 두고 설정 파일(`a
 - `AIAssistantImpl.callFunction`이 도구 실행기를 거친다(정책·감사).
 - 새 패키지 `model.ai.agent`, `model.ai.engine.anthropic`, 새 번들 `model.ai.tools`.
 
-## 확인 (1단계)
+## 확인 (1단계, 2026-11-07)
 
-검증 결과는 "변경 이력"과 보고서에 적는다.
+빌드: `mvn -B clean package -f product/aggregate/pom.xml -T1C -Pproduct-chromite-swing`(SWT 제거 PR #68이 합쳐진 뒤) BUILD SUCCESS, 이어서
+`java tools/jre/BundleJre.java windows-x64`. 회귀 테스트는 요청되지 않아 실행하지 않았다.
+
+시험 방법: 빌드한 Swing 제품을 개인 작업 공간으로 띄우고(MCP 켬, 포트 47831), MCP 클라이언트 스크립트(`curl` 대신 Python `urllib`, 토큰은 작업 공간 파일에서 읽음)로
+`tools/call`을 불렀다. 연결 6개: PostgreSQL 17(일반, Production 종류, 읽기 전용), SQL Server 2022, MariaDB 11, Oracle 23ai. 시험 객체는 모두 `chr_ai_` 접두어
+(DB `chr_ai_agent_tools`, Oracle 스키마 `CHR_AI_AGENT`). 시험용 정책 파일: 일반 PG·MSSQL·MariaDB는 `@WRITE` AUTO, PG의 `dropTable`·`killSession` AUTO, MSSQL `@DANGEROUS` AUTO
+(규칙상 CONFIRM으로 낮아짐), Production PG는 `insertRows`·`runSql`만 AUTO.
+
+| 시험 | 결과 |
+|---|---|
+| 카탈로그 | `tools/list` 86개(READ 66, WRITE 16, DANGEROUS 4; 채팅 문맥이 필요한 기존 3개는 MCP에서 뺌), `prompts/list` 6개, `prompts/get` 인수 채움 |
+| 그룹별 READ·WRITE | 연결·메타데이터·쿼리·데이터·DDL·전송·상태·성능·라이브러리 모두 PG에서 READ와 WRITE 각각 성공(예: `describeTable`/`insertRows`, `explainQuery`/`createIndex`, `exportData` CSV·JSON·XLSX, `importCsv`, MariaDB→PG `copyTable` 1,000행). SQL Server 49단계 중 47, MariaDB·Oracle 38단계 중 37 성공(나머지는 아래 의도한 거부) |
+| 읽기 보호 | `runSelect "SELECT chr_ai_write_fn()"`(쓰는 함수): 분류기는 SELECT로 통과, PostgreSQL 읽기 전용 트랜잭션이 "cannot execute INSERT in a read-only transaction", MariaDB도 "Cannot execute statement in a READ ONLY transaction"으로 막음. `DELETE`, `SELECT INTO`는 분류기가 거부 |
+| 정책 | Production PG: `createIndex`·`dropTable`·`commitTransaction`·`disconnect` BLOCKED, 연결별 규칙을 둔 `runSql`·`insertRows`는 실행되고 `transactionOpen: true`. 읽기 전용 PG: `insertRows` READ_ONLY, `exportData`(파일)는 허용. 규칙 없는 Oracle `insertRows`, PG `dropView`, MSSQL `restoreDatabase`·`killSession`: CONFIRM → 확인 화면이 없어 DENIED |
+| 트랜잭션 안전 | Production PG에 열린 에이전트 트랜잭션이 있을 때 `rollbackTransaction`(READ라 막히지 않음)과 `setCurrentDatabase`(READ, AUTO)도 Commit/Roll back/Cancel 질문으로 바뀌어 DENIED. 열린 트랜잭션이 있는 서버 세션에 대한 `killSession`(PG, AUTO 규칙)도 질문으로 바뀌어 DENIED |
+| 감사 기록 | `.metadata/chromite-ai/audit.jsonl`에 386건(SUCCESS 336, ERROR 16, DENIED 13, INVALID 11, BLOCKED 8, READ_ONLY 2), 비밀번호 문자열 0건 |
+| 블로킹 RCA | psql·sqlcmd·mariadb로 "트랜잭션을 연 채 쉬는 세션 + 같은 행을 기다리는 세션"을 만들고 `getBlockingChain`: 세 DB 모두 머리 블로커(프로그램, 로그인, 트랜잭션 나이, 마지막 SQL), 대기자(대기 자원, SQL), 잠금(개체·인덱스), "idle with a transaction open … did not commit" 소견, MariaDB는 REPEATABLE READ 소견까지 |
+| 동시 호출과 취소 | 블로킹 중 에이전트의 `createIndex`가 잠금을 기다리는 동안 다른 클라이언트의 `getBlockingChain`이 28 ms에 돌아와 에이전트 세션을 대기자로 보여 주고, `cancelQuery`가 그 문장을 취소(`canceled: 1`, "canceling statement due to user request") |
+| 교착 상태 | SQL Server 교착 상태 2건을 만들고 `getDeadlocks`: 희생자, 프로세스(격리 수준, 대기 자원, inputbuf), 자원(키 잠금, 소유자·대기자) JSON. MariaDB는 InnoDB 최신 교착 상태 글 |
+| 튜닝 | PG `explainQuery` Seq Scan(cost 999) → `createIndex`(INCLUDE) → `comparePlans`(actual): Bitmap Index Scan cost 143.3, 0.156 ms vs 비SARG `customer_id + 0` Seq Scan 3.03 ms. MSSQL `explainQuery`가 누락 인덱스(영향 97%) 제안, `createIndex` 뒤 Index Seek |
+| 루틴 검토 | MSSQL `getRoutineSource`(줄 번호), `getRoutineStats`: 10행 문장 333회·논리 읽기 88,578(커서 안 집계), `getCachedPlans`: 10행 계획의 `PlanAffectingConvert`·`CONVERT_IMPLICIT(nvarchar(20), status)` 소견. `getObjectDependencies` depth 2 |
+| Query Library | `runMonitoringChecks Monitoring`: OK 1, WARN 1(`used_pct` 8.0 > 0.5), NO_THRESHOLDS 1, SKIPPED 1(쓰기 쿼리) |
+| 엔진 | API 키가 이 PC에 없어 유료 API는 부르지 않았다. 로컬 가짜 Messages API(`D:\Tools\_scratch\ai-agent-tools\engine\mock_anthropic.py`)와 제품 jar로 `AnthropicClient`를 실행: 모델 목록, `tool_use` 응답 → `AIFunctionCall`(+`tool_use_id`), SSE 스트림(글자 조각 + `input_json_delta` 모음 → 도구 호출 1개, usage), 요청 머리글 `x-api-key`, `anthropic-version: 2023-06-01`, `tool_use`/`tool_result` 짝. OpenAI Responses·Ollama 요청에 같은 도구가 `function` 도구로 들어감을 오프라인으로 확인 |
+
+시험 중에 찾아 고친 것: 문맥 하나가 막히면 연결 전체가 막힘(풀 도입), MySQL `SET TRANSACTION READ ONLY`가 다음 쓰기 트랜잭션에 남음(`START TRANSACTION READ ONLY`로),
+Oracle 진단 결과의 대문자 열 이름(소문자로 맞춤), PostgreSQL에서 NULL 정수 매개변수를 VARCHAR로 보냄(형식 있는 NULL), SQL Server 백업 집합 이름 누락,
+교착 상태 XML의 실행 스택 해석, 고유 키 중복 표시.
+
+## 위험과 남은 일
+
+- **확인 화면이 아직 없다**: 2단계 전까지 CONFIRM과 트랜잭션 질문은 모두 거부된다(안전한 쪽). Production에 연결별 규칙으로 쓰기를 허용하면 열린 트랜잭션이
+  남을 수 있고, 지금은 앱을 닫거나(연결이 닫히며 서버가 롤백) 2단계 화면으로 커밋·롤백해야 한다.
+- **분류기는 보수적이다**: JSQLParser가 해석하지 못하는 읽기 문장(예: PostgreSQL `make_interval(secs => …)`)은 WRITE로 본다. 모델은 `runReadOnlySql` 대신 `runSql`을 써야 하고
+  사용자가 확인한다. SQL Server는 읽기 전용 트랜잭션이 없어 두 번째 겹이 롤백뿐이다.
+- **Query Library 읽기 코드 중복**: `LibraryReader`는 Swing `QueryLibraryFile`의 머리말 형식을 따로 읽는다. 저장소가 모델 번들로 옮겨지면 지운다.
+- **에이전트 문맥 수**: 연결·DB마다 최대 4개의 서버 세션을 더 연다. 연결을 끊으면 닫힌다.
+- **진단 SQL은 버전에 따라 다르다**: 시험은 PG 17, SQL Server 2022, MariaDB 11, Oracle 23ai에서만 했다. MySQL 8 블록(`performance_schema.data_lock_waits`, `error_log`)은 MySQL 서버가 없어 실행해 보지 못했다.
 
 ## 변경 이력
 
+- 2026-11-07 구현과 확인: 도구 89개(카탈로그 86 + 기존 3), 진단 SQL 29개, MCP 서버, Anthropic 엔진. 에이전트 문맥 풀, `rollbackTransaction`을 READ로
+  (운영 연결에서도 막히지 않고 늘 확인), 위 "확인"과 "위험과 남은 일".
 - 2026-11-07 사용자 규칙 "트랜잭션 안전" 반영: `AIToolTransactionGuard`, 확인 답 Commit/Roll back/Cancel, 수동 커밋 연결에서 트랜잭션을 열어 두는 쓰기,
   `getTransactionStatus`·`commitTransaction`·`rollbackTransaction` 도구.
 - 2026-11-07 문서 작성(1단계 계약): 구조, 도구 카탈로그, 권한 정책, MCP 서버, 보안, 엔진, 플레이북 6개, Query Library 기준값, 2단계 인터페이스, 1b단계.

@@ -412,7 +412,12 @@ final class DiagnosticPostProcessor {
                 }
             }
             JsonArray frames = new JsonArray();
-            for (Element frame : PlanParser.descendants(process, "frame")) {
+            // Only the frames of the process's own execution stack (system_health events can carry other frame elements)
+            Element stack = PlanParser.child(process, "executionStack");
+            for (Element frame : stack == null ? List.<Element>of() : PlanParser.children(stack, "frame")) {
+                if (!frame.hasAttribute("procname") && frame.getTextContent().isBlank()) {
+                    continue;
+                }
                 JsonObject f = new JsonObject();
                 f.addProperty("procname", frame.getAttribute("procname"));
                 f.addProperty("line", frame.getAttribute("line"));

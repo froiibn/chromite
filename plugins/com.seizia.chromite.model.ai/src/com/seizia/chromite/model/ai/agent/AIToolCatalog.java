@@ -21,7 +21,6 @@ import org.jkiss.code.Nullable;
 import com.seizia.chromite.model.ai.AIConstants;
 import com.seizia.chromite.model.ai.AIFunctionDescriptor;
 import com.seizia.chromite.model.ai.AIFunctionPurpose;
-import com.seizia.chromite.model.ai.AIFunctionVerifier;
 import com.seizia.chromite.model.ai.registry.AIToolboxInternalDescriptor;
 
 import java.util.List;
@@ -53,13 +52,14 @@ public final class AIToolCatalog {
     }
 
     /**
-     * Tools for a purpose (MCP: {@link AIFunctionPurpose#MCP}), without UI-only functions (they need an editor).
+     * Tools for a purpose (MCP: {@link AIFunctionPurpose#MCP}), without UI-only functions (they need an editor) and without the
+     * original schema functions, which read the chat's database context (the agent tools take a connection argument instead).
      */
     @NotNull
     public static List<AIFunctionDescriptor> getTools(@NotNull AIFunctionPurpose purpose) {
         return getToolbox().getSupportedFunctions(purpose).stream()
             .filter(f -> !f.isUI())
-            .filter(f -> !(f.getInstance() instanceof AIFunctionVerifier) || isUsableWithoutChat(f))
+            .filter(AIToolCatalog::isUsableWithoutChat)
             .toList();
     }
 

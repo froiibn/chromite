@@ -58,7 +58,7 @@ SELECT
             THEN (SELECT i.name FROM sys.partitions p JOIN sys.indexes i ON i.object_id = p.object_id AND i.index_id = p.index_id
                   WHERE p.hobt_id = l.resource_associated_entity_id)
     END AS index_name,
-    MIN(l.resource_description) AS sample_resource,
+    RTRIM(MIN(l.resource_description)) AS sample_resource,
     COUNT(*) AS lock_count
 FROM sys.dm_tran_locks l
 WHERE l.resource_type <> 'DATABASE'

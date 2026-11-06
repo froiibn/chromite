@@ -129,7 +129,12 @@ public class DiagnosticSqlTool extends AgentTool {
                 if (savepoints && !connection.getAutoCommit()) {
                     savepoint = connection.setSavepoint();
                 }
-                result.add(statement.name(), runner.query(connection, statement.sql(), values, statementLimits, true));
+                JsonObject table = runner.query(connection, statement.sql(), values, statementLimits, true);
+                if (block.family() == DbFamily.ORACLE) {
+                    // Oracle upper-cases unquoted aliases; the post-processors and the other families use lower case
+                    AgentJson.lowerCaseColumns(table);
+                }
+                result.add(statement.name(), table);
                 if (savepoint != null) {
                     connection.releaseSavepoint(savepoint);
                 }
@@ -196,7 +201,9 @@ public class DiagnosticSqlTool extends AgentTool {
                 raw = parameter.getDefaultValue();
             }
             if (raw == null || raw.toString().isBlank()) {
-                values.add(null);
+                boolean numeric = parameter != null && (parameter.getType().equals("integer") || parameter.getType().equals("number")
+                    || parameter.getType().equals("boolean"));
+                values.add(numeric ? new AgentSql.NullValue(java.sql.Types.BIGINT) : null);
             } else if (parameter != null && (parameter.getType().equals("integer") || parameter.getType().equals("number"))) {
                 try {
                     values.add((long) Double.parseDouble(raw.toString().trim()));

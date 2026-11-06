@@ -40,6 +40,7 @@ import java.sql.Types;
 import java.time.temporal.TemporalAccessor;
 import java.util.Date;
 import java.util.HexFormat;
+import java.util.Map;
 
 /**
  * JSON results of agent tools: result sets, values and size limits.
@@ -256,6 +257,36 @@ public final class AgentJson {
         boolean cut = bytes.length > BINARY_PREVIEW_BYTES;
         byte[] shown = cut ? java.util.Arrays.copyOf(bytes, BINARY_PREVIEW_BYTES) : bytes;
         return new Value(new JsonPrimitive("0x" + HexFormat.of().formatHex(shown).toUpperCase() + (cut ? "..." : "")), cut);
+    }
+
+    /**
+     * Lower-cases the column names of a table read with objects=true (columns and row keys).
+     */
+    public static void lowerCaseColumns(@NotNull JsonObject table) {
+        JsonArray columns = table.getAsJsonArray("columns");
+        if (columns != null) {
+            JsonArray lower = new JsonArray();
+            for (JsonElement c : columns) {
+                lower.add(c.isJsonPrimitive() ? new JsonPrimitive(c.getAsString().toLowerCase(java.util.Locale.ROOT)) : c);
+            }
+            table.add("columns", lower);
+        }
+        JsonArray rows = table.getAsJsonArray("rows");
+        if (rows != null) {
+            JsonArray lowerRows = new JsonArray();
+            for (JsonElement r : rows) {
+                if (!r.isJsonObject()) {
+                    lowerRows.add(r);
+                    continue;
+                }
+                JsonObject row = new JsonObject();
+                for (Map.Entry<String, JsonElement> e : r.getAsJsonObject().entrySet()) {
+                    row.add(e.getKey().toLowerCase(java.util.Locale.ROOT), e.getValue());
+                }
+                lowerRows.add(row);
+            }
+            table.add("rows", lowerRows);
+        }
     }
 
     /**

@@ -81,7 +81,9 @@
             description="Commits the agent's open transaction on the connection. The user always confirms (commit, roll back or cancel). Call it only when the user asked to keep the changes.">
             <parameter name="connection" type="string" description="Connection id or name"/>
         </function>
-        <function id="rollbackTransaction" name="Roll back transaction" type="ACTION" access="WRITE" purpose="ALL" enabledByDefault="true"
+        <!-- READ class on purpose: undoing the agent's own work must not be blocked on production connections; the
+             transaction guard still asks the user every time there is something to roll back -->
+        <function id="rollbackTransaction" name="Roll back transaction" type="INFORMATION" access="READ" purpose="ALL" enabledByDefault="true"
             categoryId="agent.connections" class="com.seizia.chromite.model.ai.tools.ConnectionTools"
             description="Rolls back the agent's open transaction on the connection. The user always confirms.">
             <parameter name="connection" type="string" description="Connection id or name"/>

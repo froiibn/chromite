@@ -149,6 +149,7 @@ final class AgentValues {
     static List<Set<String>> uniqueKeys(@NotNull Connection connection, @NotNull AgentNames.QName table) throws SQLException {
         DatabaseMetaData meta = connection.getMetaData();
         List<Set<String>> keys = new ArrayList<>();
+        // The primary key also comes back as a unique index: keep each column set once
         Set<String> pk = new HashSet<>();
         try (ResultSet rs = meta.getPrimaryKeys(table.catalog(), table.schema(), table.name())) {
             while (rs.next()) {
@@ -168,7 +169,11 @@ final class AgentValues {
                 }
             }
         }
-        keys.addAll(unique.values());
+        for (Set<String> index : unique.values()) {
+            if (!keys.contains(index)) {
+                keys.add(index);
+            }
+        }
         return keys;
     }
 

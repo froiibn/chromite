@@ -88,7 +88,7 @@ public final class AgentSqlClassifier {
                 : "the statement is " + type.name());
         }
         if (query.isMutatingStatement()) {
-            return new Verdict(false, type, "the SELECT changes data (data-modifying CTE)");
+            return new Verdict(false, type, "the SELECT changes data (SELECT INTO, a data-modifying CTE or a locking clause)");
         }
         Statement statement = query.getStatement();
         if (statement instanceof PlainSelect plain) {

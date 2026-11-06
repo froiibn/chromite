@@ -47,7 +47,7 @@ LEFT JOIN pg_class c ON c.oid = l.relation
 LEFT JOIN pg_stat_activity a ON a.pid = l.pid
 WHERE (l.database IS NULL OR l.database = (SELECT oid FROM pg_database WHERE datname = current_database()))
   AND l.pid <> pg_backend_pid()
-  AND (${session}::bigint IS NULL OR l.pid = ${session})
+  AND (${session}::bigint IS NULL OR l.pid = ${session}::bigint)
   AND NOT (l.locktype = 'relation' AND c.relnamespace = 'pg_catalog'::regnamespace)
 GROUP BY 1, 2, 3, 4, 5, 6, 7, 8
 ORDER BY 4 DESC, 9 DESC

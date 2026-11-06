@@ -50,6 +50,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.locks.ReentrantLock;
 
 /**
  * SQL execution of agent tools: an isolated execution context per connection and database, read-only protection,
@@ -57,9 +58,12 @@ import java.util.concurrent.ConcurrentHashMap;
  *
  * 설계(docs/chromite/ai-agent.md "실행 문맥", "읽기 전용 보호"):
  * <ul>
- *     <li>문맥: 연결(그리고 {@code database} 인수)마다 {@code openIsolatedContext}로 연 에이전트 전용 문맥 하나. 사용자 쿼리 창과
- *     탐색기 문맥을 건드리지 않으므로 자동 커밋·읽기 전용 상태를 마음대로 바꾸고 되돌릴 수 있다. PostgreSQL처럼 DB마다 인스턴스가 다르면
- *     그 DB의 인스턴스에서 열고, SQL Server·MySQL처럼 한 인스턴스면 연 문맥의 기본 DB를 바꾼다. 한 문맥은 잠금으로 한 번에 한 호출만 쓴다.</li>
+ *     <li>문맥: 연결(그리고 {@code database} 인수)마다 {@code openIsolatedContext}로 연 에이전트 전용 문맥의 작은 풀(최대 {@value #MAX_CONTEXTS}개).
+ *     사용자 쿼리 창과 탐색기 문맥을 건드리지 않으므로 자동 커밋·읽기 전용 상태를 마음대로 바꾸고 되돌릴 수 있다. PostgreSQL처럼 DB마다 인스턴스가
+ *     다르면 그 DB의 인스턴스에서 열고, SQL Server·MySQL처럼 한 인스턴스면 연 문맥의 기본 DB를 바꾼다. 한 문맥은 잠금으로 한 번에 한 호출만 쓴다.
+ *     문맥이 하나뿐이면 잠금에 걸린 쓰기(예: 블로킹된 CREATE INDEX) 하나가 그 연결의 모든 진단과 취소 확인을 막는다(2026-11-07 시험에서 확인).
+ *     그래서 바쁜 문맥이 있으면 새 문맥을 연다. 쓰기는 열린 트랜잭션이 있는 문맥을 이어서 써야 하므로 그 문맥을 기다리고, 읽기는 그 문맥이 비어
+ *     있으면 그것을(아직 커밋하지 않은 변경이 보이게), 아니면 다른 문맥을 쓴다.</li>
  *     <li>연결이 다시 이어지면 데이터 소스 객체가 바뀐다. 문맥의 데이터 소스가 지금 연결의 것과 다르거나 끊겼으면 새로 연다.</li>
  *     <li>실행은 JDBC를 직접 쓴다({@link JDBCSession#getOriginal()}). 여러 결과 집합, 서버 메시지(SQLWarning: SQL Server PRINT,
  *     SET STATISTICS IO/TIME), 실행 중 취소를 DBeaver 문장 래퍼보다 직접 다루기 쉽다.</li>
@@ -111,7 +115,7 @@ public final class AgentSql {
     private static final class AgentContext {
         final DBCExecutionContext context;
         final boolean isolated;
-        final Object lock = new Object();
+        final ReentrantLock lock = new ReentrantLock();
         // The agent left an uncommitted transaction open (manual-commit connection)
         volatile boolean pending;
 
@@ -121,7 +125,9 @@ public final class AgentSql {
         }
     }
 
-    private static final Map<ContextKey, AgentContext> contexts = new ConcurrentHashMap<>();
+    private static final int MAX_CONTEXTS = 4;
+    // Pools of agent contexts; a pool list is guarded by synchronizing on it
+    private static final Map<ContextKey, List<AgentContext>> pools = new ConcurrentHashMap<>();
     private static final Map<String, Set<Statement>> running = new ConcurrentHashMap<>();
     // setCurrentDatabase: per connection, {database, schema}
     private static final Map<String, String[]> defaults = new ConcurrentHashMap<>();
@@ -184,9 +190,9 @@ public final class AgentSql {
             database = agentDefaults[0];
             schema = agentDefaults[1];
         }
-        AgentContext agentContext = getContext(monitor, container, dataSource, database, schema);
+        AgentContext agentContext = acquire(monitor, container, dataSource, database, schema, mode);
         DbFamily family = DbFamily.of(container);
-        synchronized (agentContext.lock) {
+        try {
             try (JDBCSession session = (JDBCSession) agentContext.context.openSession(
                 monitor, DBCExecutionPurpose.UTIL, CONTEXT_NAME)
             ) {
@@ -205,13 +211,7 @@ public final class AgentSql {
                         case ATOMIC -> connection.getAutoCommit()
                             ? runAtomic(connection, runner, work)
                             : work.run(connection, runner);
-                        case ROLLBACK -> {
-                            if (agentContext.pending) {
-                                throw new DBException("The agent has an uncommitted transaction on this connection; " +
-                                    "commit or roll it back first (commitTransaction / rollbackTransaction)");
-                            }
-                            yield runRolledBack(connection, runner, work);
-                        }
+                        case ROLLBACK -> runRolledBack(connection, runner, work);
                     };
                 } finally {
                     if ((mode == Mode.NATIVE || mode == Mode.ATOMIC) && !connection.getAutoCommit()) {
@@ -225,6 +225,8 @@ public final class AgentSql {
             } catch (Exception e) {
                 throw new DBException(CommonUtils.notEmpty(e.getMessage()), e);
             }
+        } finally {
+            agentContext.lock.unlock();
         }
     }
 
@@ -241,7 +243,15 @@ public final class AgentSql {
             switch (family) {
                 // pgjdbc starts the transaction with BEGIN READ ONLY
                 case POSTGRESQL -> connection.setReadOnly(true);
-                case MYSQL, MARIADB, ORACLE -> {
+                // MySQL/MariaDB: SET TRANSACTION would only apply to the NEXT transaction, and a call that starts none (SHOW)
+                // would leave it for a later write; START TRANSACTION begins the read-only transaction now
+                case MYSQL, MARIADB -> {
+                    try (Statement statement = connection.createStatement()) {
+                        statement.execute("START TRANSACTION READ ONLY"); //$NON-NLS-1$
+                    }
+                }
+                // Oracle: SET TRANSACTION begins the transaction
+                case ORACLE -> {
                     try (Statement statement = connection.createStatement()) {
                         statement.execute("SET TRANSACTION READ ONLY"); //$NON-NLS-1$
                     }
@@ -335,10 +345,15 @@ public final class AgentSql {
     @NotNull
     public static List<String> getPendingTransactions(@NotNull DBPDataSourceContainer container) {
         List<String> result = new ArrayList<>();
-        for (Map.Entry<ContextKey, AgentContext> e : contexts.entrySet()) {
-            if (e.getKey().containerId().equals(container.getId()) && e.getValue().pending) {
-                String database = e.getKey().database();
-                result.add(database.isEmpty() ? "default database" : "database " + database);
+        for (Map.Entry<ContextKey, List<AgentContext>> e : pools.entrySet()) {
+            if (!e.getKey().containerId().equals(container.getId())) {
+                continue;
+            }
+            for (AgentContext agentContext : snapshot(e.getValue())) {
+                if (agentContext.pending) {
+                    String database = e.getKey().database();
+                    result.add(database.isEmpty() ? "default database" : "database " + database);
+                }
             }
         }
         return result;
@@ -355,12 +370,15 @@ public final class AgentSql {
         boolean commit
     ) throws DBException {
         int count = 0;
-        for (Map.Entry<ContextKey, AgentContext> e : List.copyOf(contexts.entrySet())) {
-            AgentContext agentContext = e.getValue();
-            if (!e.getKey().containerId().equals(container.getId()) || !agentContext.pending) {
+        for (Map.Entry<ContextKey, List<AgentContext>> e : List.copyOf(pools.entrySet())) {
+            if (!e.getKey().containerId().equals(container.getId())) {
                 continue;
             }
-            synchronized (agentContext.lock) {
+            for (AgentContext agentContext : snapshot(e.getValue())) {
+                if (!agentContext.pending) {
+                    continue;
+                }
+                agentContext.lock.lock();
                 try (JDBCSession session = (JDBCSession) agentContext.context.openSession(
                     monitor, DBCExecutionPurpose.UTIL, CONTEXT_NAME)
                 ) {
@@ -374,6 +392,8 @@ public final class AgentSql {
                     count++;
                 } catch (SQLException ex) {
                     throw new DBException((commit ? "Commit" : "Rollback") + " failed: " + ex.getMessage(), ex);
+                } finally {
+                    agentContext.lock.unlock();
                 }
             }
         }
@@ -384,7 +404,14 @@ public final class AgentSql {
      * Whether a context is one of the agent's own (so that it is not counted as a query window).
      */
     public static boolean isAgentContext(@NotNull DBCExecutionContext context) {
-        return contexts.values().stream().anyMatch(a -> a.isolated && a.context == context);
+        for (List<AgentContext> pool : pools.values()) {
+            for (AgentContext agentContext : snapshot(pool)) {
+                if (agentContext.isolated && agentContext.context == context) {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 
     /**
@@ -394,26 +421,81 @@ public final class AgentSql {
         return !getPendingTransactions(container).isEmpty();
     }
 
+    /**
+     * Picks a context of the pool and locks it (see the class comment for the rules); the caller unlocks it.
+     */
     @NotNull
-    private static AgentContext getContext(
+    private static AgentContext acquire(
         @NotNull DBRProgressMonitor monitor,
         @NotNull DBPDataSourceContainer container,
         @NotNull DBPDataSource dataSource,
         @Nullable String database,
-        @Nullable String schema
+        @Nullable String schema,
+        @NotNull Mode mode
     ) throws DBException {
         ContextKey key = new ContextKey(container.getId(), database == null ? "" : database.toLowerCase());
-        AgentContext existing = contexts.get(key);
-        if (existing != null) {
-            if (existing.context.getDataSource() == dataSource && existing.context.isConnected()) {
-                applySchema(monitor, dataSource, existing.context, schema);
-                return existing;
+        List<AgentContext> pool = pools.computeIfAbsent(key, k -> new ArrayList<>());
+        AgentContext chosen = null;
+        boolean locked = false;
+        synchronized (pool) {
+            // A reconnect replaces the data source: contexts of the old one are gone (with any transaction they had)
+            for (AgentContext agentContext : List.copyOf(pool)) {
+                if (agentContext.context.getDataSource() != dataSource || !agentContext.context.isConnected()) {
+                    pool.remove(agentContext);
+                    if (agentContext.isolated) {
+                        closeQuietly(agentContext.context);
+                    }
+                }
             }
-            contexts.remove(key);
-            if (existing.isolated) {
-                closeQuietly(existing.context);
+            AgentContext pending = pool.stream().filter(c -> c.pending).findFirst().orElse(null);
+            if (pending != null && (mode == Mode.NATIVE || mode == Mode.ATOMIC)) {
+                // Writes continue the open transaction
+                chosen = pending;
+            } else {
+                if (pending != null && mode == Mode.READ_ONLY && pending.lock.tryLock()) {
+                    chosen = pending;
+                    locked = true;
+                }
+                for (AgentContext agentContext : pool) {
+                    if (chosen == null && !agentContext.pending && agentContext.lock.tryLock()) {
+                        chosen = agentContext;
+                        locked = true;
+                    }
+                }
+                if (chosen == null && pool.size() < MAX_CONTEXTS) {
+                    chosen = open(monitor, container, dataSource, database);
+                    chosen.lock.lock();
+                    locked = true;
+                    pool.add(chosen);
+                }
+                if (chosen == null) {
+                    chosen = pool.stream().filter(c -> !c.pending).findFirst().orElse(pool.getFirst());
+                }
             }
         }
+        if (!locked) {
+            chosen.lock.lock();
+        }
+        try {
+            if (mode == Mode.ROLLBACK && chosen.pending) {
+                throw new DBException("The agent has an uncommitted transaction on this connection; " +
+                    "commit or roll it back first (commitTransaction / rollbackTransaction)");
+            }
+            applySchema(monitor, dataSource, chosen.context, schema);
+        } catch (DBException e) {
+            chosen.lock.unlock();
+            throw e;
+        }
+        return chosen;
+    }
+
+    @NotNull
+    private static AgentContext open(
+        @NotNull DBRProgressMonitor monitor,
+        @NotNull DBPDataSourceContainer container,
+        @NotNull DBPDataSource dataSource,
+        @Nullable String database
+    ) throws DBException {
         DBSInstance instance = dataSource.getDefaultInstance();
         DBSCatalog catalog = null;
         if (database != null) {
@@ -439,12 +521,20 @@ public final class AgentSql {
             DBCExecutionContextDefaults<?, ?> contextDefaults = agentContext.context.getContextDefaults();
             if (contextDefaults != null && contextDefaults.supportsCatalogChange()
                 && !CommonUtils.equalObjects(contextDefaults.getDefaultCatalog(), catalog)) {
-                contextDefaults.setDefaultCatalog(monitor, catalog, null);
+                DBSObjectContainer root = DBUtils.getAdapter(DBSObjectContainer.class, dataSource);
+                if (root != null) {
+                    DBExecUtils.changeDefaultObject(monitor, root, contextDefaults, catalog.getName(), null, null);
+                }
             }
         }
-        applySchema(monitor, dataSource, agentContext.context, schema);
-        contexts.put(key, agentContext);
         return agentContext;
+    }
+
+    @NotNull
+    private static List<AgentContext> snapshot(@NotNull List<AgentContext> pool) {
+        synchronized (pool) {
+            return List.copyOf(pool);
+        }
     }
 
     private static void applySchema(
@@ -465,27 +555,6 @@ public final class AgentSql {
         }
         String catalog = contextDefaults.getDefaultCatalog() == null ? null : contextDefaults.getDefaultCatalog().getName();
         DBExecUtils.setExecutionContextDefaults(monitor, dataSource, context, catalog, catalog, schema);
-    }
-
-    /**
-     * The agent context's default catalog/schema names (for getCurrentDatabase), or null when none is open.
-     */
-    @Nullable
-    public static String[] describeContext(@NotNull DBPDataSourceContainer container) {
-        String[] agentDefaults = getAgentDefaults(container);
-        String database = agentDefaults == null || agentDefaults[0] == null ? "" : agentDefaults[0].toLowerCase();
-        AgentContext agentContext = contexts.get(new ContextKey(container.getId(), database));
-        if (agentContext == null) {
-            return null;
-        }
-        DBCExecutionContextDefaults<?, ?> contextDefaults = agentContext.context.getContextDefaults();
-        if (contextDefaults == null) {
-            return new String[] {null, null};
-        }
-        return new String[] {
-            contextDefaults.getDefaultCatalog() == null ? null : contextDefaults.getDefaultCatalog().getName(),
-            contextDefaults.getDefaultSchema() == null ? null : contextDefaults.getDefaultSchema().getName()
-        };
     }
 
     /**
@@ -515,11 +584,13 @@ public final class AgentSql {
      * tool confirmed first (docs/chromite/ai-agent.md "트랜잭션 안전").
      */
     public static void closeContexts(@NotNull DBPDataSourceContainer container) {
-        for (Map.Entry<ContextKey, AgentContext> e : List.copyOf(contexts.entrySet())) {
+        for (Map.Entry<ContextKey, List<AgentContext>> e : List.copyOf(pools.entrySet())) {
             if (e.getKey().containerId().equals(container.getId())) {
-                contexts.remove(e.getKey());
-                if (e.getValue().isolated) {
-                    closeQuietly(e.getValue().context);
+                pools.remove(e.getKey());
+                for (AgentContext agentContext : snapshot(e.getValue())) {
+                    if (agentContext.isolated) {
+                        closeQuietly(agentContext.context);
+                    }
                 }
             }
         }
@@ -698,7 +769,9 @@ public final class AgentSql {
             PreparedStatement statement = connection.prepareStatement(sql);
             for (int i = 0; i < parameters.size(); i++) {
                 Object value = parameters.get(i);
-                if (value == null) {
+                if (value instanceof NullValue typed) {
+                    statement.setNull(i + 1, typed.sqlType());
+                } else if (value == null) {
                     statement.setNull(i + 1, java.sql.Types.VARCHAR);
                 } else if (value instanceof Long l) {
                     statement.setLong(i + 1, l);
@@ -725,6 +798,13 @@ public final class AgentSql {
                 monitor.endBlock();
             }
         }
+    }
+
+    /**
+     * SQL NULL of a given JDBC type: PostgreSQL infers a parameter's type from its first use, so an integer parameter that is
+     * NULL must not be sent as VARCHAR ({@code pid = $1} would fail with "integer = character varying").
+     */
+    public record NullValue(int sqlType) {
     }
 
     static void collectWarnings(@Nullable SQLWarning warning, @NotNull List<String> messages) {

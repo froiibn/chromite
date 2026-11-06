@@ -85,7 +85,7 @@ public class AdminTools extends AgentTool implements AIToolTransactionGuard, AIT
     // ------------------------------------------------------------------ kill
 
     @NotNull
-    private static String killStatement(@NotNull DbFamily family, @NotNull String session) throws AIToolArgumentException {
+    private static String killStatement(@NotNull DbFamily family, @NotNull String session) throws DBException {
         String s = session.trim();
         return switch (family) {
             case SQLSERVER, MYSQL, MARIADB -> {
@@ -149,6 +149,10 @@ public class AdminTools extends AgentTool implements AIToolTransactionGuard, AIT
             }
         }
         settings.setCopyOnly(AgentArgs.getBoolean(args, "copyOnly", true));
+        // SSMS's default backup set name
+        settings.setBackupSetName(settings.getDatabaseName() + "-" +
+            settings.getBackupType().name().charAt(0) + settings.getBackupType().name().substring(1).toLowerCase(Locale.ROOT) +
+            " Database Backup");
         settings.setChecksum(true);
         String problem = settings.validate();
         if (problem != null) {
