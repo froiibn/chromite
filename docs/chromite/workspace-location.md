@@ -35,9 +35,9 @@
 - `workspace6`라는 이름은 DBeaver에서 온 것이지만 바꾸지 않았다. 바꾸면 SWT 제품 시절 이 폴더를 쓰던 작업 공간과 갈라지고, 내부 이름은
   계획한 작업에서만 바꾼다(CLAUDE.md "브랜딩").
 - macOS는 `~/Library/Application Support/ChromiteData`가 아니라 `~/Library/ChromiteData`다. `RuntimeUtils.getWorkingDirectory`의 기존 규칙
-  (DBeaver의 `~/Library/DBeaverData`와 같은 방식)이고 드라이버도 그곳에 있어 그대로 두었다. Application Support로 옮기려면 드라이버 폴더와
+  (DBeaver가 `~/Library` 아래에 데이터 폴더를 두는 것과 같은 방식)이고 드라이버도 그곳에 있어 그대로 두었다. Application Support로 옮기려면 드라이버 폴더와
   함께 별도 작업으로 한다.
-- 설치된 DBeaver의 `DBeaverData\workspace6`은 다른 폴더라 건드리지 않는다.
+- 설치된 DBeaver의 데이터 폴더 아래 `workspace6`은 다른 폴더라 건드리지 않는다.
 
 ## 원인
 
@@ -111,7 +111,7 @@
 
 ### 이름 변경 이전과의 순서
 
-위치 이전 → 이름 이전 순서다. 이름 변경 전 빌드(`.dbeaver`, `org.jkiss.dbeaver.*`)가 설치 폴더에 남긴 작업 공간은 먼저 그대로 기본 작업 공간으로
+위치 이전 → 이름 이전 순서다. 이름 변경 전 빌드(`.dbeaver` 폴더와 옛 번들 이름)가 설치 폴더에 남긴 작업 공간은 먼저 그대로 기본 작업 공간으로
 복사되고, 플랫폼 초기화의 `LegacyNameMigration`이 새 위치에서 이름을 바꿔 복사한다. 두 이전 모두 옛 파일을 고치지 않으므로 옛 폴더는 처음 그대로다.
 반대 순서(옛 폴더에서 이름을 바꾼 뒤 복사)는 옛 폴더를 고치게 되어 택하지 않았다.
 

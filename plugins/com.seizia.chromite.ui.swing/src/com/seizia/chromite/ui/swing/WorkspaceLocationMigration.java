@@ -52,7 +52,7 @@ import java.util.stream.Stream;
  *     <li><b>Chromite 작업 공간만.</b> {@code .metadata}에 Chromite만 쓰는 파일(작업 공간 정보 {@value #WORKSPACE_PROPS_FILE}
  *     또는 이 번들의 설정 파일)이 있어야 한다. 이름 변경 전 빌드는 작업 공간 정보 파일 이름이 DBeaver와 같지만 이 번들의 설정 파일은
  *     그때도 같은 이름이었다. 같은 폴더 이름을 쓰는 다른 Eclipse 기반 프로그램의 작업 공간은 가져오지 않는다.
- *     설치된 DBeaver의 {@code DBeaverData\workspace6}은 찾는 곳이 아니다.</li>
+ *     설치된 DBeaver의 데이터 폴더 아래 {@code workspace6}은 찾는 곳이 아니다.</li>
  *     <li><b>새 위치가 비었을 때만.</b> 잠금 파일과 로그 외에 아무것도 없을 때만 복사한다. 이미 쓰던 기본 작업 공간은 덮지 않는다.</li>
  *     <li><b>{@code LegacyNameMigration}과 같은 규칙.</b> 복사만 하고 옛 폴더는 읽기만 한다(고치기 전 빌드로 돌아가도 그대로다).
  *     있는 파일은 덮어쓰지 않는다. 파일은 임시 이름으로 쓴 뒤 옮긴다. 표시 파일({@value #MARKER_FILE})로 한 번만 한다.
