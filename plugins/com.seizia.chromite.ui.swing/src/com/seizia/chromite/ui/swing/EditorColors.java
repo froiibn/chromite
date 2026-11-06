@@ -22,9 +22,9 @@ import org.fife.ui.rsyntaxtextarea.Theme;
 import org.fife.ui.rsyntaxtextarea.TokenTypes;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.preferences.DBPPreferenceStore;
-import org.jkiss.dbeaver.utils.PrefUtils;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.preferences.DBPPreferenceStore;
+import com.seizia.chromite.utils.PrefUtils;
 import org.jkiss.utils.CommonUtils;
 
 import java.awt.*;

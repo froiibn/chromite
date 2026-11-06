@@ -21,9 +21,9 @@ import com.formdev.flatlaf.util.FontUtils;
 import com.formdev.flatlaf.util.UIScale;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.preferences.DBPPreferenceStore;
-import org.jkiss.dbeaver.utils.PrefUtils;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.preferences.DBPPreferenceStore;
+import com.seizia.chromite.utils.PrefUtils;
 import org.jkiss.utils.CommonUtils;
 
 import java.awt.*;

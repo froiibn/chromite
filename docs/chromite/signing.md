@@ -31,14 +31,14 @@ Chromite 릴리스 파일을 GitHub Actions에서 빌드하고 서명·확인한
   다른 브랜치에서 수동 실행하면 모든 작업이 건너뛰어진다.
 - 서명하는 작업(`windows`, `macos-sign`)은 GitHub 환경 `signing`을 쓰고 `permissions: { contents: read, id-token: write }`를 둔다.
   `signing` 환경은 `devel` 브랜치와 `v*` 태그에서만 쓸 수 있게 제한한다(사용자가 만든다, 아래 체크리스트).
-- 버전: `version` 작업이 `product/community/DBeaver.product`와 `product/swing/chromite-swing.product`의
+- 버전: `version` 작업이 `product/community/Chromite.product`와 `product/swing/chromite-swing.product`의
   `version="X.Y.Z.qualifier"`를 읽는다(현재 26.2.5). 두 값이 다르면 실패하고, 태그는 `v<버전>`이어야 한다(예: `v26.2.5`).
 - 동시 실행: 같은 ref의 릴리스는 하나씩 돈다(`cancel-in-progress: false`, 서명 도중 취소하지 않는다).
 
 ### Windows (작업 `windows`, `windows-latest`)
 
 1. Azure 변수 6개 확인: 모두 있으면 서명, 모두 없으면 서명 없는 빌드(`UNSIGNED`), 일부만 있으면 실패.
-2. 빌드: `build.yml`의 Windows 빌드와 같은 명령(`mvnw.cmd ... '-Pproduct-dbeaver-ce,product-chromite-swing'`).
+2. 빌드: `build.yml`의 Windows 빌드와 같은 명령(`mvnw.cmd ... '-Pproduct-chromite-swt,product-chromite-swing'`).
    Maven 캐시는 `build.yml`이 `devel`에서 저장한 것을 읽기만 한다(`actions/cache/restore`; 태그 실행은 캐시를 새로 저장하지 않는다).
    이어서 `build.yml`과 같은 내장 Java 런타임 단계(`tools/jre/BundleJre.java windows-x64`, JBR SDK 다운로드 캐시도 읽기만 함, [runtime.md](runtime.md)).
 3. 서명 전 상태를 로그에 남긴다(모든 exe·dll의 Authenticode 상태).

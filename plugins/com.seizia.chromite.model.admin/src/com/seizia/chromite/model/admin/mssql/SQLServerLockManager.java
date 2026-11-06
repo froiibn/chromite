@@ -20,11 +20,11 @@ import com.seizia.chromite.model.admin.AbstractBlockingLockManager;
 import com.seizia.chromite.model.admin.BlockingSessionLock;
 import com.seizia.chromite.model.admin.SessionLockItem;
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.ext.mssql.model.SQLServerDataSource;
-import org.jkiss.dbeaver.model.exec.jdbc.JDBCPreparedStatement;
-import org.jkiss.dbeaver.model.exec.jdbc.JDBCResultSet;
-import org.jkiss.dbeaver.model.exec.jdbc.JDBCSession;
-import org.jkiss.dbeaver.model.impl.jdbc.JDBCUtils;
+import com.seizia.chromite.ext.mssql.model.SQLServerDataSource;
+import com.seizia.chromite.model.exec.jdbc.JDBCPreparedStatement;
+import com.seizia.chromite.model.exec.jdbc.JDBCResultSet;
+import com.seizia.chromite.model.exec.jdbc.JDBCSession;
+import com.seizia.chromite.model.impl.jdbc.JDBCUtils;
 
 import java.sql.SQLException;
 import java.util.ArrayList;

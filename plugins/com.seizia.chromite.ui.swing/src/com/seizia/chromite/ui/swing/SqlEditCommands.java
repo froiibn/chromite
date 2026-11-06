@@ -20,19 +20,19 @@ import com.seizia.chromite.ui.swing.internal.EditorMessages;
 import org.fife.ui.rsyntaxtextarea.RSyntaxTextAreaEditorKit;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.ModelPreferences;
-import org.jkiss.dbeaver.model.DBPDataSource;
-import org.jkiss.dbeaver.model.DBPDataSourceContainer;
-import org.jkiss.dbeaver.model.DBPIdentifierCase;
-import org.jkiss.dbeaver.model.impl.sql.BasicSQLDialect;
-import org.jkiss.dbeaver.model.preferences.DBPPreferenceStore;
-import org.jkiss.dbeaver.model.sql.SQLDialect;
-import org.jkiss.dbeaver.model.sql.SQLModelPreferences;
-import org.jkiss.dbeaver.model.sql.SQLSyntaxManager;
-import org.jkiss.dbeaver.model.sql.format.SQLFormatUtils;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.utils.PrefUtils;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.ModelPreferences;
+import com.seizia.chromite.model.DBPDataSource;
+import com.seizia.chromite.model.DBPDataSourceContainer;
+import com.seizia.chromite.model.DBPIdentifierCase;
+import com.seizia.chromite.model.impl.sql.BasicSQLDialect;
+import com.seizia.chromite.model.preferences.DBPPreferenceStore;
+import com.seizia.chromite.model.sql.SQLDialect;
+import com.seizia.chromite.model.sql.SQLModelPreferences;
+import com.seizia.chromite.model.sql.SQLSyntaxManager;
+import com.seizia.chromite.model.sql.format.SQLFormatUtils;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.utils.PrefUtils;
 import org.jkiss.utils.CommonUtils;
 
 import javax.swing.*;
@@ -75,7 +75,7 @@ final class SqlEditCommands {
     private static final Log log = Log.getLog(SqlEditCommands.class);
 
     /**
-     * Formatter ids of {@code org.jkiss.dbeaver.sqlFormatter} offered in Options (the external formatter needs a command line).
+     * Formatter ids of {@code com.seizia.chromite.sqlFormatter} offered in Options (the external formatter needs a command line).
      */
     static final String FORMATTER_DEFAULT = "default"; //$NON-NLS-1$
     static final String FORMATTER_COMPACT = "compact"; //$NON-NLS-1$

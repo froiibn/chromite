@@ -1,0 +1,13 @@
+Manifest-Version: 1.0
+Bundle-ManifestVersion: 2
+Bundle-Name: Chromite StarRocks Support
+Bundle-SymbolicName: com.seizia.chromite.ext.starrocks;singleton:=true
+Bundle-Version: 1.0.12.qualifier
+Bundle-Vendor: Chromite contributors
+Require-Bundle: com.seizia.chromite.model,
+ com.seizia.chromite.model.jdbc,
+ com.seizia.chromite.ext.generic
+Bundle-ActivationPolicy: lazy
+Bundle-RequiredExecutionEnvironment: JavaSE-21
+Export-Package: com.seizia.chromite.ext.starrocks,
+ com.seizia.chromite.ext.starrocks.model

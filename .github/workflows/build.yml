@@ -34,7 +34,7 @@ jobs:
             os: ubuntu-latest
     env:
       MAVEN_OPTS: -Xmx3g
-      PRODUCTS_DIR: product/community/target/products/org.jkiss.dbeaver.core.product
+      PRODUCTS_DIR: product/community/target/products/com.seizia.chromite.core.product
       SWING_PRODUCTS_DIR: product/swing/target/products/com.seizia.chromite.swing.product
 
     steps:
@@ -64,17 +64,17 @@ jobs:
 
       # Same Maven arguments as the build command in docs/chromite/build.md, run through the Maven wrapper
       # in deps/dbeaver-common (pins Maven 3.9.16, same as local builds). Keep both steps in sync.
-      # One Maven run builds both products: SWT (product-dbeaver-ce) and Swing (product-chromite-swing).
+      # One Maven run builds both products: SWT (product-chromite-swt) and Swing (product-chromite-swing).
       # The profile list is quoted in pwsh so the comma is not parsed as an array separator.
       - name: Build (Windows)
         if: runner.os == 'Windows'
         shell: pwsh
-        run: .\deps\dbeaver-common\mvnw.cmd -B -ntp package -f product/aggregate/pom.xml -T1C '-Pproduct-dbeaver-ce,product-chromite-swing'
+        run: .\deps\dbeaver-common\mvnw.cmd -B -ntp package -f product/aggregate/pom.xml -T1C '-Pproduct-chromite-swt,product-chromite-swing'
 
       - name: Build (Linux)
         if: runner.os == 'Linux'
         shell: bash
-        run: ./deps/dbeaver-common/mvnw -B -ntp package -f product/aggregate/pom.xml -T1C -Pproduct-dbeaver-ce,product-chromite-swing
+        run: ./deps/dbeaver-common/mvnw -B -ntp package -f product/aggregate/pom.xml -T1C -Pproduct-chromite-swt,product-chromite-swing
 
       # Bundled Java runtime (docs/chromite/runtime.md): tools/jre/BundleJre.java downloads the pinned JBR SDK
       # of the job's platform into ~/.cache/chromite-jbr (checked against the SHA-256 in tools/jre/jbr.properties),

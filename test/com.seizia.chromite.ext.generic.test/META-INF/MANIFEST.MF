@@ -1,0 +1,19 @@
+Manifest-Version: 1.0
+Bundle-ManifestVersion: 2
+Bundle-Name: DBeaver PostgreSQL Tests
+Bundle-SymbolicName: com.seizia.chromite.ext.generic.test
+Bundle-Version: 1.0.82.qualifier
+Bundle-Release-Date: 20261116
+Bundle-RequiredExecutionEnvironment: JavaSE-21
+Bundle-Vendor: Chromite contributors
+Fragment-Host: com.seizia.chromite.ext.generic
+Bundle-ActivationPolicy: lazy
+Require-Bundle: junit-jupiter-api,
+ com.seizia.chromite.headless,
+ com.seizia.chromite.model,
+ com.seizia.chromite.model.sql,
+ com.seizia.chromite.registry,
+ com.seizia.chromite.ext.generic,
+ com.seizia.chromite.ext.vertica,
+ com.seizia.chromite.test.platform,
+ org.objenesis

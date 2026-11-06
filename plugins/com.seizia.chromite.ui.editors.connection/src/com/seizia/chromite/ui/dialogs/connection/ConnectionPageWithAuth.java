@@ -1,0 +1,152 @@
+/*
+ * DBeaver - Universal Database Manager
+ * Copyright (C) 2010-2026 DBeaver Corp and others
+ * Modifications Copyright (C) 2026 Chromite contributors
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package com.seizia.chromite.ui.dialogs.connection;
+
+import org.eclipse.jface.dialogs.Dialog;
+import org.eclipse.swt.layout.GridData;
+import org.eclipse.swt.widgets.Composite;
+import org.jkiss.code.NotNull;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.DBPDataSourceContainer;
+import com.seizia.chromite.model.connection.DBPAuthModelDescriptor;
+import com.seizia.chromite.model.connection.DBPConnectionConfiguration;
+import com.seizia.chromite.model.impl.auth.AuthModelDatabaseNative;
+import com.seizia.chromite.model.rm.RMConstants;
+import com.seizia.chromite.registry.DataSourceProviderRegistry;
+import com.seizia.chromite.registry.configurator.DBPConnectionEditIntention;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.ui.UIServiceConnectionEditor;
+import com.seizia.chromite.ui.UIUtils;
+import org.jkiss.utils.CommonUtils;
+
+/**
+ * ConnectionPageWithAuth
+ */
+
+public abstract class ConnectionPageWithAuth extends ConnectionPageAbstract {
+
+    private static final Log log = Log.getLog(DataSourceProviderRegistry.class);
+
+    private AuthModelSelector authModelSelector;
+    private UIServiceConnectionEditor serviceConnectionEditor;
+
+    protected void createAuthPanel(Composite parent, int hSpan) {
+        authModelSelector = new AuthModelSelector(parent, () -> {
+            // Apply font on auth mode change
+            Dialog.applyDialogFont(authModelSelector);
+        }, this::authModelPropertiesChanged, true, this.getIntention());
+        authModelSelector.setLayoutData(new GridData(GridData.FILL_HORIZONTAL));
+        UIUtils.setDefaultTextControlWidthHint(authModelSelector);
+        ((GridData)authModelSelector.getLayoutData()).horizontalSpan = hSpan;
+
+        if (site.getProject().hasRealmPermission(RMConstants.PERMISSION_PROJECT_DATASOURCES_EDIT)) {
+            // Additional auth controls
+            serviceConnectionEditor = DBWorkbench.getService(UIServiceConnectionEditor.class);
+            if (serviceConnectionEditor != null) {
+                serviceConnectionEditor.createControl(parent,
+                    getSite().getActiveDataSource(),
+                    () -> site.updateButtons());
+            }
+        }
+    }
+
+    protected void authModelPropertiesChanged() {
+        getSite().updateButtons();
+    }
+
+    protected Composite getAuthPanelComposite() {
+        return authModelSelector;
+    }
+
+    @Override
+    public void loadSettings() {
+        super.loadSettings();
+
+        DBPDataSourceContainer dataSource = getSite().getActiveDataSource();
+        if (isAuthEnabled()) {
+
+            DBPConnectionConfiguration configuration = dataSource.getConnectionConfiguration();
+
+            if (site.isNew() && CommonUtils.isEmpty(configuration.getUserName())) {
+                configuration.setUserName(dataSource.getDriver().getDefaultUser());
+            }
+
+            DBPAuthModelDescriptor selectedAuthModel = dataSource.getDriver().getDataSourceProvider().detectConnectionAuthModel(
+                dataSource.getDriver(), configuration);
+
+            if (selectedAuthModel != null) {
+                DBPAuthModelDescriptor amReplace = selectedAuthModel.getReplacedBy(dataSource.getDriver());
+                if (amReplace != null) {
+                    log.debug("Auth model '" + selectedAuthModel.getId() + "' was replaced by '" + amReplace.getId() + "'");
+                    selectedAuthModel = amReplace;
+                    configuration.setAuthModelId(selectedAuthModel.getId());
+                }
+            }
+
+            if (authModelSelector != null) {
+                authModelSelector.loadSettings(dataSource, selectedAuthModel, getDefaultAuthModelId(dataSource));
+            }
+        }
+
+        if (serviceConnectionEditor != null) {
+            serviceConnectionEditor.loadSettings(dataSource);
+        }
+    }
+
+    @NotNull
+    protected String getDefaultAuthModelId(DBPDataSourceContainer dataSource) {
+        return AuthModelDatabaseNative.ID;
+    }
+
+
+    @Override
+    public void saveSettings(@NotNull DBPDataSourceContainer dataSource) {
+        super.saveSettings(dataSource);
+
+        if (isAuthEnabled()) {
+            if (authModelSelector != null) {
+                DBPAuthModelDescriptor selectedAuthModel = authModelSelector.getSelectedAuthModel();
+                dataSource.getConnectionConfiguration().setAuthModelId(
+                    selectedAuthModel == null ? null : selectedAuthModel.getId());
+                authModelSelector.saveSettings(dataSource);
+            }
+        }
+
+        if (serviceConnectionEditor != null) {
+            serviceConnectionEditor.saveSettings(dataSource);
+        }
+    }
+
+    @Override
+    public boolean isComplete() {
+        return !isAuthEnabled() || (authModelSelector != null && authModelSelector.isComplete());
+    }
+
+    @Override
+    public boolean isExternalConfigurationProvided() {
+        return serviceConnectionEditor != null && serviceConnectionEditor.isExternalConfigurationProvided();
+    }
+
+    protected boolean isAuthEnabled() {
+        return !site.getDriver().isAnonymousAccess();
+    }
+
+    protected DBPConnectionEditIntention getIntention() {
+        return DBPConnectionEditIntention.DEFAULT;
+    }
+}

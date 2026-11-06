@@ -21,8 +21,8 @@ import com.seizia.chromite.ui.swing.internal.EditorMessages;
 import org.eclipse.osgi.util.NLS;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.model.DBPDataKind;
-import org.jkiss.dbeaver.model.data.DBDAttributeBinding;
+import com.seizia.chromite.model.DBPDataKind;
+import com.seizia.chromite.model.data.DBDAttributeBinding;
 import org.jkiss.utils.CommonUtils;
 
 import javax.swing.*;

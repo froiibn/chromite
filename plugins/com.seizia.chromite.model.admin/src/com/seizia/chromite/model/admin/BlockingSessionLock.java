@@ -18,8 +18,8 @@ package com.seizia.chromite.model.admin;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.model.admin.locks.DBAServerLock;
-import org.jkiss.dbeaver.model.meta.Property;
+import com.seizia.chromite.model.admin.locks.DBAServerLock;
+import com.seizia.chromite.model.meta.Property;
 
 import java.util.ArrayList;
 import java.util.List;

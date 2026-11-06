@@ -1,0 +1,153 @@
+/*
+ * DBeaver - Universal Database Manager
+ * Copyright (C) 2010-2026 DBeaver Corp and others
+ * Modifications Copyright (C) 2026 Chromite contributors
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package com.seizia.chromite.core;
+
+import org.eclipse.core.runtime.Platform;
+import org.eclipse.ui.plugin.AbstractUIPlugin;
+import org.jkiss.code.NotNull;
+import org.jkiss.code.Nullable;
+import org.jkiss.awt.injector.ProxyInjector;
+import com.seizia.chromite.ModelPreferences;
+import com.seizia.chromite.model.impl.preferences.BundlePreferenceStore;
+import com.seizia.chromite.model.preferences.DBPPreferenceStore;
+import com.seizia.chromite.ui.AWTUtils;
+import com.seizia.chromite.ui.ShellUtils;
+import com.seizia.chromite.ui.browser.BrowsePeerMethods;
+import com.seizia.chromite.ui.preferences.UIPreferences;
+import org.osgi.framework.Bundle;
+import org.osgi.framework.BundleContext;
+
+import java.awt.*;
+import java.io.PrintStream;
+import java.util.MissingResourceException;
+import java.util.ResourceBundle;
+
+/**
+ * The activator class controls the plug-in life cycle
+ */
+public class ChromiteActivator extends AbstractUIPlugin {
+
+    // The shared instance
+    @Nullable
+    private static ChromiteActivator instance;
+    @Nullable
+    private ResourceBundle pluginResourceBundle;
+    @Nullable
+    private PrintStream debugWriter;
+    @Nullable
+    private DBPPreferenceStore preferences;
+
+    public ChromiteActivator() {
+    }
+
+    @Nullable
+    public static ChromiteActivator getInstance() {
+        return instance;
+    }
+
+    @Override
+    public void start(@NotNull BundleContext context)
+        throws Exception {
+        super.start(context);
+
+        instance = this;
+
+        Bundle bundle = getBundle();
+        ModelPreferences.setMainBundle(bundle);
+        preferences = new BundlePreferenceStore(bundle);
+
+        try {
+            pluginResourceBundle = Platform.getResourceBundle(bundle);
+        } catch (MissingResourceException ignored) {
+        }
+        try {
+            injectProxyPeer();
+        } catch (Throwable e) {
+            getLog().warn(e.getMessage());
+            getPreferenceStore().setValue(UIPreferences.UI_USE_EMBEDDED_AUTH, false);
+        }
+    }
+
+    private void injectProxyPeer() throws NoSuchFieldException, IllegalAccessException {
+        if (!AWTUtils.isDesktopSupported()) {
+            getLog().warn("Desktop interface not available");
+            getPreferenceStore().setValue(UIPreferences.UI_USE_EMBEDDED_AUTH, false);
+            return;
+        }
+        ProxyInjector proxyInjector = new ProxyInjector();
+        if (getPreferenceStore().getBoolean(UIPreferences.UI_USE_EMBEDDED_AUTH)) {
+            // Redirect BROWSE requests to the embedded browser
+            proxyInjector.injectBrowseInteraction(
+                BrowsePeerMethods::canBrowseInSWTBrowser,
+                BrowsePeerMethods::browseInSWTBrowser
+            );
+        } else if (!Desktop.getDesktop().isSupported(Desktop.Action.BROWSE)) {
+            // Redirect BROWSE requests to the system browser if it's not supported by AWT
+            proxyInjector.injectBrowseInteraction(
+                () -> true,
+                uri -> ShellUtils.launchProgram(uri.toString())
+            );
+        }
+    }
+
+    @Override
+    public void stop(@NotNull BundleContext context)
+        throws Exception {
+        this.shutdownUI();
+        this.shutdownCore();
+
+        if (debugWriter != null) {
+            debugWriter.close();
+            debugWriter = null;
+        }
+        // Do not nullify instance as it can be used during shutdown by late-activating services
+        // code activator is needed to obtain main app preferences.
+        //instance = null;
+
+        super.stop(context);
+    }
+
+    private void shutdownUI() {
+        if (DesktopPlatform.instance != null) {
+            DesktopUI.disposeUI();
+        }
+    }
+
+    @Nullable
+    public static ResourceBundle getPluginResourceBundle() {
+        return getInstance().pluginResourceBundle;
+    }
+
+    @Nullable
+    public DBPPreferenceStore getPreferences() {
+        return preferences;
+    }
+
+    private void shutdownCore() {
+        try {
+            // Dispose core
+            if (DesktopPlatform.instance != null) {
+                DesktopPlatform.instance.dispose();
+            }
+        } catch (Throwable e) {
+            e.printStackTrace();
+            System.err.println("Internal error after shutdown process:" + e.getMessage()); //$NON-NLS-1$
+        }
+    }
+
+}

@@ -1,0 +1,13 @@
+Manifest-Version: 1.0
+Bundle-ManifestVersion: 2
+Bundle-Name: DBeaver AI Tests
+Bundle-SymbolicName: com.seizia.chromite.model.ai.test
+Bundle-Version: 1.0.0.qualifier
+Bundle-Release-Date: 20251006
+Bundle-RequiredExecutionEnvironment: JavaSE-21
+Bundle-Vendor: Chromite contributors
+Fragment-Host: com.seizia.chromite.model.ai
+Bundle-ActivationPolicy: lazy
+Require-Bundle: com.seizia.chromite.test.platform,
+ com.seizia.chromite.model.security,
+ com.seizia.chromite.model.ai

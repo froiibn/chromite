@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?eclipse version="3.2"?>
+
+<plugin>
+    <extension point="com.seizia.chromite.dataManager">
+        <streamManager class="com.seizia.chromite.ui.data.managers.image.ImageStreamValueManager" id="image" label="Image" primaryMime="octet/image"
+                       description="Image viewer" icon="platform:/plugin/com.seizia.chromite.model/icons/types/image.svg"/>
+    </extension>
+
+</plugin>

@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?eclipse version="3.2"?>
+
+<plugin>
+    <extension-point id="com.seizia.chromite.resourceHandler" name="Resource handlers" schema="schema/com.seizia.chromite.resourceHandler.exsd"/>
+
+    <extension point="com.seizia.chromite.navigator">
+        <extender id="dbvfs" root="true" nodeDisplayName="File systems" nodeType="com.seizia.chromite.model.navigator.fs.DBNFileSystems" class="com.seizia.chromite.model.navigator.RCPNavigatorExtender"/>
+    </extension>
+
+    <extension point="org.eclipse.core.resources.natures" id="com.seizia.chromite.ChromiteNature"
+               name="%extension.com.seizia.chromite.ChromiteNature.name">
+        <runtime>
+            <run class="com.seizia.chromite.model.rcp.ChromiteNature">
+            </run>
+        </runtime>
+    </extension>
+
+    <extension point="org.eclipse.core.filesystem.filesystems">
+        <filesystem scheme="dbvfs">
+            <run class="com.seizia.chromite.model.fs.nio.EFSNIOFileSystem"/>
+        </filesystem>
+    </extension>
+
+    <extension point="com.seizia.chromite.resourceType">
+        <type id="project">
+            <resourceTypeBinding resourceType="org.eclipse.core.resources.IProject"/>
+        </type>
+        <type id="bookmark" name="Navigator bookmarks" icon="platform:/plugin/com.seizia.chromite.ui/icons/bookmark_folder.svg" managable="true">
+            <root folder="Bookmarks"/>
+            <contentTypeBinding contentTypeId="com.seizia.chromite.bookmark"/>
+        </type>
+        <type id="shortcut">
+            <contentTypeBinding contentTypeId="com.seizia.chromite.shortcut"/>
+        </type>
+    </extension>
+
+</plugin>

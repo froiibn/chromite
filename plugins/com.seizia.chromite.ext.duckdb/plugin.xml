@@ -1,0 +1,119 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?eclipse version="3.2"?>
+
+<plugin>
+
+    <extension point="com.seizia.chromite.dataSourceProvider">
+        <dataSourceType
+            id="duckdb"
+            label="DuckDB"
+            description="DuckDB database"
+            dataSourceInformation="Lightweight embedded relational database"
+            icon="platform:/plugin/com.seizia.chromite.ext.generic/icons/duckdb_icon.png"
+            iconBig="platform:/plugin/com.seizia.chromite.ext.generic/icons/duckdb_icon_big.png"/>
+        <datasource
+                class="com.seizia.chromite.ext.duckdb.model.DuckDBDataSourceProvider"
+                description="DuckDB JDBC connector"
+                id="duckdb"
+                dataSourceType="duckdb"
+                parent="generic"
+                inheritProviderProperties="true"
+                label="DuckDB"
+                icon="platform:/plugin/com.seizia.chromite.ext.generic/icons/duckdb_icon.png"
+                dialect="duckdb">
+            <drivers managable="true">
+                <driver
+                        id="duckdb_jdbc"
+                        label="DuckDB"
+                        class="org.duckdb.DuckDBDriver"
+                        sampleURL="jdbc:duckdb:{file}"
+                        defaultPort=""
+                        webURL="https://duckdb.org/docs/api/java"
+                        embedded="true"
+                        anonymous="true"
+                        description="DuckDB JDBC driver"
+                        supportedConfigurationTypes="MANUAL,URL"
+                        categories="sql,embedded">
+                    <replace provider="generic" driver="duckdb_jdbc"/>
+                    <file type="jar" path="maven:/org.duckdb:duckdb_jdbc:windows_arm64:RELEASE" os="win32" arch="aarch64" bundle="!drivers.duckdb"/>
+                    <file type="jar" path="maven:/org.duckdb:duckdb_jdbc:RELEASE" os="win32" arch="aarch64" exclude="true" bundle="!drivers.duckdb"/>
+                    <file type="license" path="https://raw.githubusercontent.com/duckdb/duckdb/master/LICENSE" bundle="!drivers.duckdb"/>
+                    <file type="jar" path="drivers/duckdb" bundle="drivers.duckdb"/>
+                    <property name="@chromite-default-resultset.maxrows.sql" value="true"/>
+                </driver>
+                <driver
+                        id="motherduck_jdbc"
+                        label="MotherDuck"
+                        class="org.duckdb.DuckDBDriver"
+                        sampleURL="jdbc:duckdb:md:[{database}]"
+                        defaultPort=""
+                        webURL="https://motherduck.com/docs/integrations/sql-ides/dbeaver/"
+                        description="%driver.motherduck.description"
+                        supportedConfigurationTypes="MANUAL,URL"
+                        categories="sql,analytic">
+                    <file type="jar" path="maven:/org.duckdb:duckdb_jdbc:windows_arm64:RELEASE" os="win32" arch="aarch64" bundle="!drivers.duckdb"/>
+                    <file type="jar" path="maven:/org.duckdb:duckdb_jdbc:RELEASE" os="win32" arch="aarch64" exclude="true" bundle="!drivers.duckdb"/>
+                    <file type="license" path="https://raw.githubusercontent.com/duckdb/duckdb/master/LICENSE" bundle="!drivers.duckdb"/>
+                    <file type="jar" path="drivers/duckdb" bundle="drivers.duckdb"/>
+                    <property name="@chromite-default-resultset.maxrows.sql" value="true"/>
+                </driver>
+                <provider-properties>
+                    <propertyGroup label="SQL">
+                        <property id="duckdb.dd.plain.string" label="Show $$ quote as String" type="boolean" description="Show $$ quote as String"/>
+                        <property id="duckdb.dd.tag.string" label="Show $tagName$ quote as String" type="boolean" description="Show $tagName$ quote as String"/>
+                    </propertyGroup>
+                </provider-properties>
+            </drivers>
+        </datasource>
+    </extension>
+
+    <extension point="com.seizia.chromite.generic.meta">
+        <meta id="duckdb_jdbc"
+              class="com.seizia.chromite.ext.duckdb.model.DuckMetaModel"
+              driverClass="org.duckdb.DuckDBDriver"
+              dialect="duckdb"/>
+    </extension>
+
+    <extension point="com.seizia.chromite.sqlDialect">
+        <dialect id="duckdb"
+                 parent="generic"
+                 class="com.seizia.chromite.ext.duckdb.model.DuckDBSQLDialect"
+                 label="DuckDB"
+                 description="DuckDB dialect"
+                 icon="platform:/plugin/com.seizia.chromite.ext.generic/icons/duckdb_icon.png"/>
+    </extension>
+
+    <extension point="com.seizia.chromite.objectManager">
+        <manager class="com.seizia.chromite.ext.duckdb.edit.DuckDBSequenceManager"
+                 objectType="com.seizia.chromite.ext.duckdb.model.DuckDBSequence"/>
+    </extension>
+
+    <extension point="com.seizia.chromite.dataTypeProvider">
+        <provider
+                class="com.seizia.chromite.ext.duckdb.model.data.DuckDBValueHandlerProvider"
+                description="DuckDB data types provider"
+                id="DuckDBValueHandlerProvider"
+                parent="GenericValueHandlerProvider"
+                label="DuckDB data types provider">
+
+            <datasource class="com.seizia.chromite.ext.duckdb.model.DuckDBDataSource"/>
+            <type name="GEOMETRY*"/>
+            <type name="BLOB"/>
+            <type kind="STRUCT"/>
+        </provider>
+    </extension>
+
+    <extension point="com.seizia.chromite.dataSourceAuth">
+        <authModel
+                id="motherduck_token"
+                label="%auth.motherduck.token.label"
+                description="%auth.motherduck.token.description"
+                class="com.seizia.chromite.ext.duckdb.model.MotherDuckAuthModelToken"
+                default="true">
+            <datasource id="duckdb" driver="motherduck_jdbc"/>
+            <replace model="native"/>
+        </authModel>
+    </extension>
+
+
+</plugin>

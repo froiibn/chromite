@@ -52,9 +52,9 @@
 
     <!-- Distinct launcher name so the SWT product (launcher "chromite") is not overwritten -->
     <launcher name="chromite-swing">
-        <macosx icon="../community/icons/dbeaver.icns"/>
+        <macosx icon="../community/icons/chromite.icns"/>
         <win useIco="true">
-            <ico path="../community/icons/dbeaver.ico"/>
+            <ico path="../community/icons/chromite.ico"/>
         </win>
     </launcher>
 

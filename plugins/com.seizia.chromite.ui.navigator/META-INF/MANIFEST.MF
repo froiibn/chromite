@@ -1,0 +1,36 @@
+Manifest-Version: 1.0
+Bundle-ManifestVersion: 2
+Bundle-Vendor: Chromite contributors
+Bundle-Name: Chromite UI Navigator
+Bundle-SymbolicName: com.seizia.chromite.ui.navigator;singleton:=true
+Bundle-Version: 1.0.191.qualifier
+Bundle-Release-Date: 20261116
+Bundle-RequiredExecutionEnvironment: JavaSE-21
+Bundle-ActivationPolicy: lazy
+Bundle-Activator: com.seizia.chromite.ui.internal.UINavigatorActivator
+Require-Bundle: org.eclipse.e4.ui.model.workbench,
+ org.eclipse.e4.ui.workbench.swt,
+ org.eclipse.e4.ui.workbench.renderers.swt,
+ com.seizia.chromite.registry,
+ com.seizia.chromite.ui.editors.base;visibility:=reexport
+Export-Package: com.seizia.chromite.tools.project,
+ com.seizia.chromite.ui.actions,
+ com.seizia.chromite.ui.actions.datasource,
+ com.seizia.chromite.ui.actions.exec,
+ com.seizia.chromite.ui.controls,
+ com.seizia.chromite.ui.editors.entity,
+ com.seizia.chromite.ui.editors.entity.handlers,
+ com.seizia.chromite.ui.editors.entity.properties,
+ com.seizia.chromite.ui.internal,
+ com.seizia.chromite.ui.navigator,
+ com.seizia.chromite.ui.navigator.actions,
+ com.seizia.chromite.ui.navigator.breadcrumb,
+ com.seizia.chromite.ui.navigator.database,
+ com.seizia.chromite.ui.navigator.database.load,
+ com.seizia.chromite.ui.navigator.dialogs,
+ com.seizia.chromite.ui.navigator.itemlist,
+ com.seizia.chromite.ui.navigator.project,
+ com.seizia.chromite.ui.preferences,
+ com.seizia.chromite.ui.project,
+ com.seizia.chromite.ui.resources
+Automatic-Module-Name: com.seizia.chromite.ui.navigator

@@ -1,0 +1,29 @@
+Manifest-Version: 1.0
+Bundle-ManifestVersion: 2
+Bundle-Name: Chromite Oracle Model
+Bundle-SymbolicName: com.seizia.chromite.ext.oracle;singleton:=true
+Bundle-Version: 2.1.276.qualifier
+Bundle-Release-Date: 20261116
+Bundle-Activator: com.seizia.chromite.ext.oracle.internal.OracleActivator
+Require-Bundle: com.seizia.chromite.data.gis,
+ com.seizia.chromite.model;visibility:=reexport,
+ com.seizia.chromite.model.jdbc;visibility:=reexport,
+ com.seizia.chromite.registry,
+ com.seizia.chromite.tasks.native;visibility:=reexport
+Export-Package: com.seizia.chromite.ext.oracle,
+ com.seizia.chromite.ext.oracle.data,
+ com.seizia.chromite.ext.oracle.edit,
+ com.seizia.chromite.ext.oracle.model,
+ com.seizia.chromite.ext.oracle.model.auth,
+ com.seizia.chromite.ext.oracle.model.dict,
+ com.seizia.chromite.ext.oracle.model.lock,
+ com.seizia.chromite.ext.oracle.model.plan,
+ com.seizia.chromite.ext.oracle.model.session,
+ com.seizia.chromite.ext.oracle.model.source,
+ com.seizia.chromite.ext.oracle.oci,
+ com.seizia.chromite.ext.oracle.sql,
+ com.seizia.chromite.ext.oracle.tasks
+Bundle-ActivationPolicy: lazy
+Bundle-RequiredExecutionEnvironment: JavaSE-21
+Bundle-Vendor: Chromite contributors
+Automatic-Module-Name: com.seizia.chromite.ext.oracle

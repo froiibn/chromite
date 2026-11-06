@@ -1,0 +1,169 @@
+/*
+ * DBeaver - Universal Database Manager
+ * Copyright (C) 2010-2025 DBeaver Corp and others
+ * Modifications Copyright (C) 2026 Chromite contributors
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package com.seizia.chromite.ext.exasol.model;
+
+import org.jkiss.code.NotNull;
+import org.jkiss.code.Nullable;
+import org.jkiss.dbeaver.DBException;
+import com.seizia.chromite.ext.exasol.ExasolConstants;
+import com.seizia.chromite.ext.exasol.editors.ExasolSourceObject;
+import com.seizia.chromite.model.DBPEvaluationContext;
+import com.seizia.chromite.model.DBPRefreshableObject;
+import com.seizia.chromite.model.DBUtils;
+import com.seizia.chromite.model.impl.jdbc.JDBCUtils;
+import com.seizia.chromite.model.impl.struct.AbstractProcedure;
+import com.seizia.chromite.model.meta.Property;
+import com.seizia.chromite.model.meta.PropertyLength;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.model.struct.DBSObject;
+import com.seizia.chromite.model.struct.rdb.DBSProcedure;
+import com.seizia.chromite.model.struct.rdb.DBSProcedureParameter;
+import com.seizia.chromite.model.struct.rdb.DBSProcedureType;
+
+import java.sql.ResultSet;
+import java.sql.Timestamp;
+import java.util.Collection;
+import java.util.Map;
+
+public class ExasolFunction
+        extends AbstractProcedure<ExasolDataSource, ExasolSchema> implements DBSProcedure, DBPRefreshableObject, ExasolSourceObject {
+
+    
+    private String remarks;
+    private String owner;
+    private String sql;
+    private ExasolSchema exasolSchema;
+    private Timestamp createTime;
+    
+    public ExasolFunction(ExasolSchema schema, ResultSet dbResult)
+    {
+        super(schema,true);
+        this.owner = JDBCUtils.safeGetString(dbResult, "FUNCTION_OWNER");
+        this.remarks = JDBCUtils.safeGetString(dbResult, "FUNCTION_COMMENT");
+        this.name = JDBCUtils.safeGetString(dbResult, "FUNCTION_NAME");
+        this.sql = JDBCUtils.safeGetString(dbResult, "FUNCTION_TEXT");
+        this.createTime = JDBCUtils.safeGetTimestamp(dbResult, "CREATED");
+        this.exasolSchema = schema;
+    }
+    public ExasolFunction(ExasolSchema schema)
+    {
+        super(schema, false);
+        exasolSchema = schema;
+        sql = "";
+    }
+
+    @Override
+    public DBSObject refreshObject(@NotNull DBRProgressMonitor monitor)
+            throws DBException
+    {
+        getContainer().functionCache.clearCache();
+        getContainer().functionCache.getAllObjects(monitor, exasolSchema);
+        return getContainer().functionCache.getObject(monitor, exasolSchema, getName());
+    }
+
+    
+    @Override
+    public DBSProcedureType getProcedureType()
+    {
+        return DBSProcedureType.FUNCTION;
+    }
+
+    @Nullable
+    @Override
+    public Collection<? extends DBSProcedureParameter> getParameters(
+        @NotNull DBRProgressMonitor monitor) throws DBException
+    {
+        return null;
+    }
+
+    @NotNull
+    @Override
+    public String getFullyQualifiedName(@NotNull DBPEvaluationContext context)
+    {
+        return DBUtils.getFullQualifiedName(getDataSource(), getContainer(),this);
+    }
+
+    @NotNull
+    @Override
+    @Property(hidden = true, editable = true, updatable = true, order = -1)
+    public String getObjectDefinitionText(@NotNull DBRProgressMonitor monitor, @NotNull Map<String, Object> options)
+            throws DBException
+    {
+        return sql;
+    }
+
+    @Override
+    public void setObjectDefinitionText(String sourceText) throws DBException
+    {
+        sql = sourceText;
+        
+    }
+    
+    // -----------------------
+    // Properties
+    // -----------------------
+
+
+    @NotNull
+    @Override
+    @Property(viewable = true, order = 1)
+    public String getName() {
+        return this.name;
+    }
+
+    @Property(viewable = true, order = 2)
+    public ExasolSchema getSchema() {
+        return exasolSchema;
+    }
+
+
+    @Nullable
+    @Override
+    @Property(viewable = true, editable = true, updatable = true, length = PropertyLength.MULTILINE, order = 11)
+    public String getDescription() {
+        return this.remarks;
+    }
+    
+    @Override
+    public void setDescription(String description)
+    {
+        this.remarks = description;
+    }
+
+
+
+    @NotNull
+    @Property(hidden = true, editable = true, updatable = true)
+    public String getSql() {
+        return this.sql;
+    }
+
+    @NotNull
+    @Property(viewable = true, order = 6)
+    public Timestamp getCreationTime() {
+        return this.createTime;
+    }
+
+    @Property(viewable = false, category = ExasolConstants.CAT_OWNER)
+    public String getOwner() {
+        return owner;
+    }
+
+
+
+}

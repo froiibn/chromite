@@ -1,0 +1,162 @@
+/*
+ * DBeaver - Universal Database Manager
+ * Copyright (C) 2010-2026 DBeaver Corp and others
+ * Modifications Copyright (C) 2026 Chromite contributors
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package com.seizia.chromite.model.app;
+
+import org.jkiss.code.NotNull;
+import org.jkiss.code.Nullable;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.runtime.ui.DBPPlatformUI;
+
+import java.nio.file.Path;
+
+/**
+ * DB application.
+ * Application implementors may redefine core app behavior and/or settings.
+ *
+ * 설계: Chromite는 사용 통계를 수집하지 않으므로 통계 전송에만 쓰이던 애플리케이션 속성과
+ * 통계 수집 강제 여부를 이 인터페이스에 두지 않는다.
+ *
+ * 변경 이력:
+ * - 2026-11-06 사용 통계 기능 제거: getAdditionalApplicationProperties(), isStatisticsCollectionRequired() 삭제
+ *   (docs/chromite/telemetry.md)
+ */
+public interface DBPApplication {
+
+    default void beforeWorkspaceInitialization() {}
+
+    boolean isStandalone();
+
+    /**
+     * Primary instance if the first instance of application which locked the workspace.
+     * Other instances can be run over the same workspace but they can't lock it.
+     */
+    boolean isPrimaryInstance();
+
+    /**
+     * Headless mode - console interface or server-side mode
+     */
+    boolean isHeadlessMode();
+
+    /**
+     * Shared mode is enabled when chromite called thru CLI interface. It is a headless mode.
+     * Shared sessions are usually short-term, they launched to execute some particular command and quit.
+     * Many UI-specific functions are disabled
+     */
+    boolean isExclusiveMode();
+
+    /**
+     * Multiple users can login into the app at the same time
+     */
+    boolean isMultiuser();
+
+    /**
+     * Distributed application requires remote server.
+     */
+    boolean isDistributed();
+
+    boolean isDetachedProcess();
+
+    /**
+     * Application information details.
+     * Like license info or some custom produce info
+     */
+    @Nullable
+    String getInfoDetails();
+
+    /**
+     * Default project name, e.g. 'General'.
+     */
+    @Nullable
+    String getDefaultProjectName();
+
+    @Nullable
+    String getProductProperty(@NotNull String propName);
+
+    boolean hasProductFeature(@NotNull String featureName);
+
+    @NotNull
+    Path getGlobalDataPath();
+
+    @NotNull
+    Path getWorkspacePath();
+
+    /**
+     * Unique application instance identifier.
+     * Generated on every application launch.
+     */
+    @NotNull
+    String getApplicationRunId();
+
+    /**
+     * Application start time
+     */
+    long getApplicationStartTime();
+
+    /**
+     * Platform implementation class.
+     * Platform instance can be obtained thru {@link DBWorkbench#getPlatform()}.
+     * Platform is initialized in a lazy way during application startup.
+     */
+    @NotNull
+    Class<? extends DBPPlatform> getPlatformClass();
+
+    /**
+     * Platform UI implementation class.
+     * If not specified then base console UI is used.
+     */
+    @Nullable
+    default Class<? extends DBPPlatformUI> getPlatformUIClass() {
+        return null;
+    }
+
+    /**
+     * enables the use of environment variables while the application is in use
+     * for example, in a script template
+     */
+    boolean isEnvironmentVariablesAccessible();
+
+    /**
+     * The boolean flag in order identify community application
+     *
+     * @return - true if community application
+     */
+    default boolean isCommunity() {
+        return false;
+    }
+
+    /**
+     * Whether the user is allowed to switch workspaces or the default workspace is enforced
+     */
+    default boolean isWorkspaceSwitchingAllowed() {
+        return true;
+    }
+
+    /**
+     * Returns last user activity time
+     * @return -1 by default
+     */
+    default long getLastUserActivityTime() {
+        return -1;
+    }
+
+    @Nullable
+    default String defaultDistributedDriversFolderName() {
+        return null;
+    }
+}

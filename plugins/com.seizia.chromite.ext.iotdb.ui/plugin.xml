@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?eclipse version="3.2"?>
+<plugin>
+
+    <extension point="com.seizia.chromite.databaseEditor">
+        <editor
+                id="com.seizia.chromite.ext.iotdb.ui.editors.IoTDBUserEditorGeneral"
+                class="com.seizia.chromite.ext.iotdb.ui.editors.IoTDBUserEditorGeneral"
+                objectType="com.seizia.chromite.ext.iotdb.model.IoTDBRelationalUser"
+                main="true"
+                label="General"
+                description="General user settings"
+                icon="#user">
+        </editor>
+        <editor
+                id="com.seizia.chromite.ext.iotdb.ui.editors.IoTDBUserEditorPrivileges"
+                class="com.seizia.chromite.ext.iotdb.ui.editors.IoTDBUserEditorPrivileges"
+                objectType="com.seizia.chromite.ext.iotdb.model.IoTDBRelationalUser"
+                main="false"
+                label="Schema Privileges"
+                description="User schema privileges"
+                position="additions_start"
+                icon="#user">
+        </editor>
+    </extension>
+
+    <extension point="com.seizia.chromite.objectManager">
+        <manager class="com.seizia.chromite.ext.iotdb.ui.config.IoTDBUserManager" objectType="com.seizia.chromite.ext.iotdb.model.IoTDBRelationalUser"/>
+    </extension>
+
+    <extension point="com.seizia.chromite.dataSourceConfigurator">
+        <configurator dataSource="iotdb" class="com.seizia.chromite.ext.iotdb.ui.views.IoTDBConnectionPage"/>
+    </extension>
+
+</plugin>

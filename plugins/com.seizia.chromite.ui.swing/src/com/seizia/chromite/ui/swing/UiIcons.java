@@ -23,7 +23,7 @@ import com.github.weisj.jsvg.parser.SVGLoader;
 import com.github.weisj.jsvg.view.ViewBox;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.Log;
+import com.seizia.chromite.Log;
 
 import javax.swing.*;
 import java.awt.*;

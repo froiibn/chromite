@@ -21,7 +21,7 @@ import org.eclipse.osgi.util.NLS;
 import org.fife.ui.rtextarea.RTextScrollPane;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.model.DBPDataSourceContainer;
+import com.seizia.chromite.model.DBPDataSourceContainer;
 
 import javax.swing.*;
 import java.awt.*;

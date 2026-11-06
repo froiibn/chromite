@@ -1,0 +1,18 @@
+Manifest-Version: 1.0
+Bundle-ManifestVersion: 2
+Bundle-Name: DBeaver Timeplus Tests
+Bundle-SymbolicName: com.seizia.chromite.ext.timeplus.test
+Bundle-Version: 1.0.0.qualifier
+Bundle-Release-Date: 20260817
+Bundle-RequiredExecutionEnvironment: JavaSE-21
+Bundle-Vendor: Chromite contributors
+Fragment-Host: com.seizia.chromite.ext.timeplus
+Bundle-ActivationPolicy: lazy
+Require-Bundle: com.seizia.chromite.headless,
+ com.seizia.chromite.model,
+ com.seizia.chromite.model.sql,
+ com.seizia.chromite.registry,
+ com.seizia.chromite.ext.generic,
+ com.seizia.chromite.test.platform,
+ junit-jupiter-api,
+ org.objenesis

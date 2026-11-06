@@ -107,7 +107,7 @@ public class BundleJre {
      * ({@code <product><id>} and {@code <rootFolders>} of the module's pom.xml).
      */
     private static final String[][] PRODUCTS = {
-        {"product/community", "org.jkiss.dbeaver.core.product", "chromite", "Chromite.app"},
+        {"product/community", "com.seizia.chromite.core.product", "chromite", "Chromite.app"},
         {"product/swing", "com.seizia.chromite.swing.product", "chromite-swing", "ChromiteSwing.app"},
     };
 

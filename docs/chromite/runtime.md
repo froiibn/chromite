@@ -58,7 +58,7 @@ DataGrip처럼 사용자가 Java 런타임(JRE)을 따로 설치하지 않아도
 |---|---|
 | `tools/jre/jbr.properties` | 고정한 JBR 버전·빌드, 다운로드 주소, 플랫폼별 SHA-256, jlink 모듈 목록과 옵션 |
 | `tools/jre/BundleJre.java` | Maven 제품 빌드 뒤에 실행하는 Java 단일 파일 프로그램. JBR SDK를 받아(캐시, SHA-256 확인) `jmods`를 풀고, jlink로 런타임을 만들어 두 제품에 넣는다 |
-| `product/community/DBeaver.product`, `product/swing/chromite-swing.product` | macOS 실행 옵션 `-vm ../Eclipse/jre/lib/libjli.dylib` (`<programArgsMac>`) |
+| `product/community/Chromite.product`, `product/swing/chromite-swing.product` | macOS 실행 옵션 `-vm ../Eclipse/jre/lib/libjli.dylib` (`<programArgsMac>`) |
 | `.github/workflows/build.yml`, `release.yml` | Maven 빌드 뒤 `BundleJre.java` 실행, 다운로드 캐시, 구조 확인([ci.md](ci.md)) |
 | `NOTICE` | JBR 출처, 라이선스(GPLv2 + Classpath Exception), 소스 위치 |
 
@@ -67,7 +67,7 @@ DataGrip처럼 사용자가 Java 런타임(JRE)을 따로 설치하지 않아도
 저장소 최상위에서, 빌드에 쓴 JDK 25로 실행한다.
 
 ```bash
-mvn package -f product/aggregate/pom.xml -T1C -Pproduct-dbeaver-ce,product-chromite-swing
+mvn package -f product/aggregate/pom.xml -T1C -Pproduct-chromite-swt,product-chromite-swing
 java tools/jre/BundleJre.java windows-x64 osx-aarch64
 ```
 
@@ -113,7 +113,7 @@ Eclipse 제품에 JRE를 넣는 방법을 비교했다.
 - `BundleJre.java`를 Java 단일 파일 프로그램으로 만든 이유: 빌드에 어차피 필요한 JDK 25만으로 Windows·Linux·macOS에서 같게 돈다.
   tar.gz는 JDK에 API가 없어서 ustar 형식을 직접 읽는다. GNU 긴 이름과 pax `path`만 처리하고 `jmods/` 아래 `.jmod` 파일 이름만 쓰므로
   압축 파일 안의 경로가 작업 폴더 밖을 가리킬 수 없다. jlink는 `ToolProvider`로 같은 프로세스에서 부른다.
-- 출력은 표준 출력으로 한다. 제품 코드가 아니라 빌드 도구라서 `org.jkiss.dbeaver.Log`를 쓰지 않는다.
+- 출력은 표준 출력으로 한다. 제품 코드가 아니라 빌드 도구라서 `com.seizia.chromite.Log`를 쓰지 않는다.
 
 ## 실행 파일이 런타임을 찾는 방식
 
@@ -145,15 +145,15 @@ Eclipse 제품에 JRE를 넣는 방법을 비교했다.
 | `jdk.charsets` | `MS949`(`x-windows-949`), `EUC-KR`, `ISO-2022-KR`, `Shift_JIS`, `GBK` 같은 확장 문자 집합. `java.base`에는 표준 문자 집합만 있다. 서비스로 찾으므로 jdeps에 나오지 않는다. 한국어 DB·파일 인코딩에 필요하다 |
 | `jdk.localedata` | 한국어 등 영어 외 로케일의 날짜·숫자 형식(CLDR). `java.base`에는 영어만 있다. `--include-locales=en,ko`로 줄이면 10MB 작아지지만, 데이터 형식 설정에서 다른 로케일을 고르면 틀린 형식이 나오므로 모두 넣었다 |
 | `jdk.naming.dns` | JNDI DNS 공급자. Kerberos가 KDC·realm을 DNS SRV로 찾을 때, `mssql-jdbc`가 Kerberos SPN의 realm을 찾을 때 `InitialDirContext`로 쓴다. 클래스 이름(`com.sun.jndi.dns.DnsContextFactory`)으로 불러오므로 jdeps에 나오지 않는다 |
-| `jdk.security.auth` | jdeps: `org.jkiss.dbeaver.model`. JAAS `Krb5LoginModule` 등 |
+| `jdk.security.auth` | jdeps: `com.seizia.chromite.model`. JAAS `Krb5LoginModule` 등 |
 | `jdk.security.jgss` | jdeps: `ojdbc11`. Kerberos·GSS 확장 |
 | `jdk.net` | jdeps: `ojdbc11`, `mariadb`, Apache HttpClient 5(확장 소켓 옵션) |
-| `jdk.httpserver` | jdeps: `msal4j`(Azure AD 대화형 로그인의 로컬 콜백), `org.jkiss.dbeaver.model.cli`, `org.jkiss.dbeaver.ui`, `org.jkiss.utils` |
+| `jdk.httpserver` | jdeps: `msal4j`(Azure AD 대화형 로그인의 로컬 콜백), `com.seizia.chromite.model.cli`, `com.seizia.chromite.ui`, `org.jkiss.utils` |
 | `jdk.xml.dom` | jdeps: Eclipse e4 CSS·테마 번들(SWT 제품) |
 | `jdk.unsupported` | jdeps: Guava(`sun.misc.Unsafe`). 실행 옵션 `--sun-misc-unsafe-memory-access=allow`가 다루는 모듈이고, 내려받는 드라이버도 리플렉션으로 쓴다 |
-| `jdk.zipfs` | zip·jar 파일 시스템 공급자(`FileSystems.newFileSystem`). 서비스로 찾는다. 런처(`DBeaverLauncher.java` 2852행)가 "이전 내장 런타임에는 `jdk.zipfs`가 없었다"며 따로 처리할 만큼 쓰이는 경로다 |
+| `jdk.zipfs` | zip·jar 파일 시스템 공급자(`FileSystems.newFileSystem`). 서비스로 찾는다. 런처(`ChromiteLauncher.java` 2852행)가 "이전 내장 런타임에는 `jdk.zipfs`가 없었다"며 따로 처리할 만큼 쓰이는 경로다 |
 | `jdk.accessibility` | Windows Java Access Bridge(화면 낭독기가 Swing 화면을 읽음). Swing 제품의 접근성 |
-| `jdk.crypto.mscapi` (Windows만) | `WINDOWS-ROOT` 키 저장소. 설정 "Windows 신뢰 저장소 사용"(`ModelPreferences.PROP_USE_WIN_TRUST_STORE_TYPE`)이 켜져 있으면 `DBeaverApplication.java` 337행이 `javax.net.ssl.trustStoreType=WINDOWS-ROOT`로 둔다. 모듈이 없으면 모든 TLS 연결이 실패한다. macOS JBR에는 이 모듈이 없다(macOS 키체인은 `java.base`의 `KeychainStore`) |
+| `jdk.crypto.mscapi` (Windows만) | `WINDOWS-ROOT` 키 저장소. 설정 "Windows 신뢰 저장소 사용"(`ModelPreferences.PROP_USE_WIN_TRUST_STORE_TYPE`)이 켜져 있으면 `ChromiteApplication.java` 337행이 `javax.net.ssl.trustStoreType=WINDOWS-ROOT`로 둔다. 모듈이 없으면 모든 TLS 연결이 실패한다. macOS JBR에는 이 모듈이 없다(macOS 키체인은 `java.base`의 `KeychainStore`) |
 
 넣지 않은 모듈:
 
@@ -205,7 +205,7 @@ Swing 제품, 이 PC(논리 프로세서 12개). 프로세스 시작부터 주 �
 
 ## 확인한 것
 
-2026-11-07, 이 PC(Windows 11 x64). 빌드: `mvn -B clean package -f product/aggregate/pom.xml -T1C '-Pproduct-dbeaver-ce,product-chromite-swing'`
+2026-11-07, 이 PC(Windows 11 x64). 빌드: `mvn -B clean package -f product/aggregate/pom.xml -T1C '-Pproduct-chromite-swt,product-chromite-swing'`
 (BUILD SUCCESS, 6분 51초) 뒤 `java tools/jre/BundleJre.java windows-x64 osx-aarch64`.
 
 - `PATH`에 Oracle JDK 18을 먼저 두고 `JAVA_HOME`도 JDK 18로 둔 채 `-vm` 없이 실행했다.
@@ -254,18 +254,18 @@ Swing 제품, 이 PC(논리 프로세서 12개). 프로세스 시작부터 주 �
   - 루트 `pom.xml`의 `target-platform-configuration` `<environments>`: `win32/win32/x86_64`, `macosx/cocoa/aarch64`.
     Chromite의 모든 플러그인, 기능, 제품 모듈의 부모 POM이라 여기서 정하면 제품 빌드(`product/community`)에도 적용된다.
     `deps/dbeaver-common/root/pom.xml`에는 대상 환경 설정이 없다.
-  - 그래서 `product/community/target/products/org.jkiss.dbeaver.core.product/`에는 `win32/win32/x86_64`와
+  - 그래서 `product/community/target/products/com.seizia.chromite.core.product/`에는 `win32/win32/x86_64`와
     `macosx/cocoa/aarch64` 폴더만 생긴다.
-  - Linux·Solaris 전용 제품 설정(`DBeaver.product`의 `<linux icon>`, `<solaris/>`, `product/community/pom.xml`의
-    `<linux>`, `<solaris>` 루트 폴더, `features/org.jkiss.dbeaver.ce.feature/build.properties`의 `root.linux.*`)과
-    거기에만 쓰이던 아이콘(`product/community/icons/dbeaver.xpm`, `dbeaver.png`)은 삭제했다.
-  - Linux 전용 SWT 프래그먼트 플러그인 `org.jkiss.dbeaver.ui.swt.linux`도 삭제했다(`plugins/pom.xml` 모듈,
-    `org.jkiss.dbeaver.app.base.feature`의 `os="linux"` 항목 포함). `Eclipse-PlatformFilter`가 gtk/linux라 대상 환경에
+  - Linux·Solaris 전용 제품 설정(`Chromite.product`의 `<linux icon>`, `<solaris/>`, `product/community/pom.xml`의
+    `<linux>`, `<solaris>` 루트 폴더, `features/com.seizia.chromite.ce.feature/build.properties`의 `root.linux.*`)과
+    거기에만 쓰이던 아이콘(`product/community/icons/chromite.xpm`, `chromite.png`)은 삭제했다.
+  - Linux 전용 SWT 프래그먼트 플러그인 `com.seizia.chromite.ui.swt.linux`도 삭제했다(`plugins/pom.xml` 모듈,
+    `com.seizia.chromite.app.base.feature`의 `os="linux"` 항목 포함). `Eclipse-PlatformFilter`가 gtk/linux라 대상 환경에
     Linux가 없으면 Tycho가 의존성을 풀지 못하고("cannot be installed in this environment because its filter is not
     applicable"), 이 플러그인의 대상 환경만 Linux로 바꾸면 기능 패키징이 "was not found in the target platform"으로 실패한다.
-    이 플러그인의 `DBeaverBrowserHelper`는 `BrowserClearCookiesHandler`가 클래스 이름으로 찾는데, Windows·macOS에는
+    이 플러그인의 `ChromiteBrowserHelper`는 `BrowserClearCookiesHandler`가 클래스 이름으로 찾는데, Windows·macOS에는
     각각 `ui.swt.windows`, `ui.swt.macos`의 같은 이름 클래스가 있다.
-  - 기능(feature)의 외부 Eclipse 번들 `os="linux"` 항목(`org.jkiss.dbeaver.rcp.feature`의 `org.eclipse.equinox.security.linux`,
+  - 기능(feature)의 외부 Eclipse 번들 `os="linux"` 항목(`com.seizia.chromite.rcp.feature`의 `org.eclipse.equinox.security.linux`,
     `org.eclipse.core.filesystem.linux.*`)은 빌드에 문제가 없고 제품에 들어가지 않아 그대로 두었다.
 - Apple은 macOS 26 Tahoe가 Intel Mac을 지원하는 마지막 버전이라고 발표했다. 그래서 Apple Silicon만 지원한다.
 
@@ -282,7 +282,7 @@ Swing 제품, 이 PC(논리 프로세서 12개). 프로세스 시작부터 주 �
 - 2026-11-06 최초 작성. JBR 25 + jlink 내장, 플랫폼(Windows x64, macOS arm64) 결정을 정리.
 - 2026-11-06 빌드 대상 환경을 Windows x64, macOS aarch64 두 가지로 줄였다(루트 `pom.xml`). 그 전에는 Linux gtk
   x86_64/aarch64, Windows aarch64, macOS x86_64 제품도 함께 만들었다. Linux·Solaris 전용 제품 설정과 아이콘,
-  Linux 전용 플러그인 `org.jkiss.dbeaver.ui.swt.linux` 삭제.
+  Linux 전용 플러그인 `com.seizia.chromite.ui.swt.linux` 삭제.
 - 2026-11-06 플랫폼별 "서명" 항목을 CI 서명 릴리스(`release.yml`, [signing.md](signing.md))에 맞게 고쳤다.
 - 2026-11-07 내장 런타임 구현. JBR SDK 25.0.4.1 b508.41을 고정(SHA-256)하고 `tools/jre/BundleJre.java`가 jlink로 줄인 런타임을
   두 제품의 `jre/`(macOS `Contents/Eclipse/jre/`)에 넣는다. jdeps로 모듈 목록을 정하고 근거를 적었다. macOS `-vm`을

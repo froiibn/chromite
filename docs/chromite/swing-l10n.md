@@ -10,7 +10,7 @@
 
 ### NLS 메시지 클래스
 
-DBeaver의 NLS 관례(`plugins/org.jkiss.dbeaver.ui.editors.sql/.../internal/SQLEditorMessages*`)를 따른다.
+DBeaver의 NLS 관례(`plugins/com.seizia.chromite.ui.editors.sql/.../internal/SQLEditorMessages*`)를 따른다.
 패키지 `com.seizia.chromite.ui.swing.internal`(export하지 않음)에 기능 영역마다 클래스 하나를 둔다.
 영역을 나눈 이유는 네 사람이 동시에 옮기면서 같은 파일을 고치지 않게 하려는 것(병합 충돌 방지)이다.
 
@@ -41,9 +41,9 @@ DBeaver의 NLS 관례(`plugins/org.jkiss.dbeaver.ui.editors.sql/.../internal/SQL
 
 Swing 화면에 보이지만 모델 번들에 있는 Chromite 문구도 그 번들의 기존 지역화 방식으로 옮겼다.
 
-- `org.jkiss.dbeaver.model.sql`: `SQLQueryExecuteHandler`의 기본 확인 대화상자 두 개(운영 연결의 실행 확인, 결과 집합이 너무 많을 때)를
+- `com.seizia.chromite.model.sql`: `SQLQueryExecuteHandler`의 기본 확인 대화상자 두 개(운영 연결의 실행 확인, 결과 집합이 너무 많을 때)를
   `ModelSQLMessages`(`ModelSQLResources.properties` + 새 `ModelSQLResources_ko.properties`)로. 키 4개 `model_sql_exec_*`.
-- `org.jkiss.dbeaver.ext.mssql`: Chromite 실행 계획 노드 `SQLServerPlanNode`의 `@Property` 이름 15개를 DBeaver 속성 지역화 규칙
+- `com.seizia.chromite.ext.mssql`: Chromite 실행 계획 노드 `SQLServerPlanNode`의 `@Property` 이름 15개를 DBeaver 속성 지역화 규칙
   (`OSGI-INF/l10n/bundle.properties`의 `meta.<클래스>.<속성>.name`)으로, 한국어는 새 `bundle_ko.properties`.
   `ObjectPropertyDescriptor`는 `name`이 기본값일 때만 번들에서 찾으므로 애너테이션의 `name`을 지웠다.
 - `com.seizia.chromite.model.admin`: `ServerAdminMessages_ko.properties`(세션 필터·동작)와 `OSGI-INF/l10n/bundle_ko.properties`
@@ -98,15 +98,15 @@ Statistics…), 실행 계획·잠금·세션 열, 데이터 전송 속성, 인�
 
 | 플러그인 | 파일 | 추가한 키 | 고친 기존 값 |
 |---|---|---|---|
-| `org.jkiss.dbeaver.model` | `OSGI-INF/l10n/bundle_ko`, `ModelResources_ko`, 새 `DataMessages_ko` | 113 + 157 + 12 | 15 + 2 (키 1개 삭제) |
-| `org.jkiss.dbeaver.registry` | `OSGI-INF/l10n/bundle_ko`, `RegistryMessages_ko` (+ `plugin.xml`, `bundle.properties`) | 25 + 25 | 3 + 2 |
-| `org.jkiss.dbeaver.data.transfer` | `OSGI-INF/l10n/bundle_ko`, 새 `DTMessages_ko` | 89 + 141 | 67 |
-| `org.jkiss.dbeaver.model.sql` / `model.jdbc` | `bundle_ko`, `ModelSQLResources_ko` / `bundle_ko` | 28 + 19 / 8 | 6 / 15 |
-| `org.jkiss.dbeaver.ext.generic` / `ext.sqlite` | `bundle_ko`, 새 `GenericMessages_ko` / 새 `bundle_ko`, `SQLiteMessages_ko` | 3 + 1 / 8 + 1 | 46 / — |
-| `org.jkiss.dbeaver.ext.postgresql` | 새 `bundle_ko`, 새 `PostgreSQLMessages_ko` | 650 + 12 | — |
-| `org.jkiss.dbeaver.ext.mssql` | `bundle_ko`(Chromite 실행 계획 키 15개는 그대로), 새 `SQLServerMessages_ko` | 199 + 20 | — |
-| `org.jkiss.dbeaver.ext.oracle` | 새 `bundle_ko`, 새 `OracleMessages_ko` | 858 + 25 | — |
-| `org.jkiss.dbeaver.ext.mysql` (MariaDB 포함) | 새 `bundle_ko`, 새 `MySQLMessages_ko` | 348 + 3 | — |
+| `com.seizia.chromite.model` | `OSGI-INF/l10n/bundle_ko`, `ModelResources_ko`, 새 `DataMessages_ko` | 113 + 157 + 12 | 15 + 2 (키 1개 삭제) |
+| `com.seizia.chromite.registry` | `OSGI-INF/l10n/bundle_ko`, `RegistryMessages_ko` (+ `plugin.xml`, `bundle.properties`) | 25 + 25 | 3 + 2 |
+| `com.seizia.chromite.data.transfer` | `OSGI-INF/l10n/bundle_ko`, 새 `DTMessages_ko` | 89 + 141 | 67 |
+| `com.seizia.chromite.model.sql` / `model.jdbc` | `bundle_ko`, `ModelSQLResources_ko` / `bundle_ko` | 28 + 19 / 8 | 6 / 15 |
+| `com.seizia.chromite.ext.generic` / `ext.sqlite` | `bundle_ko`, 새 `GenericMessages_ko` / 새 `bundle_ko`, `SQLiteMessages_ko` | 3 + 1 / 8 + 1 | 46 / — |
+| `com.seizia.chromite.ext.postgresql` | 새 `bundle_ko`, 새 `PostgreSQLMessages_ko` | 650 + 12 | — |
+| `com.seizia.chromite.ext.mssql` | `bundle_ko`(Chromite 실행 계획 키 15개는 그대로), 새 `SQLServerMessages_ko` | 199 + 20 | — |
+| `com.seizia.chromite.ext.oracle` | 새 `bundle_ko`, 새 `OracleMessages_ko` | 858 + 25 | — |
+| `com.seizia.chromite.ext.mysql` (MariaDB 포함) | 새 `bundle_ko`, 새 `MySQLMessages_ko` | 348 + 3 | — |
 
 모두 2,745개 키를 더하고 기존 한국어 값 156개를 고쳤다. `# TODO ko`는 없다.
 
@@ -153,7 +153,7 @@ Comment(주석), Owner(소유자), Nullable(Null 허용), Created/Modify Date(�
 
 ### 영어 파일을 바꾼 곳: 인증 방식 이름
 
-`org.jkiss.dbeaver.registry/plugin.xml`의 기본 인증 방식 두 개(`native`, `shell_command`)는 `label`/`description`이 문자열로
+`com.seizia.chromite.registry/plugin.xml`의 기본 인증 방식 두 개(`native`, `shell_command`)는 `label`/`description`이 문자열로
 박혀 있어 번역할 수 없었다. `%auth.native.label`, `%auth.native.description`, `%auth.shell_command.label`,
 `%auth.shell_command.description`으로 바꾸고 `OSGI-INF/l10n/bundle.properties`에 **같은 영어 문구**를 넣었다(영어 화면은 그대로).
 서버에 연결 대화상자의 인증 목록이 한국어에서 "사용자 이름/암호"로 나온다(PostgreSQL·MariaDB처럼 기본 인증 방식을 쓰는 드라이버).
@@ -167,7 +167,7 @@ Swing 제품을 개인 작업 공간으로 실행해 SQL Server, PostgreSQL, Mar
 ### MySQL `nodeName` 키
 
 `MySQLPlanNodeJSON`의 게터는 `getNodeName()`인데 영어 파일의 키는 `…MySQLPlanNodeJSON.nodeDisplayName.name`이라 조회되지 않는다
-(`ObjectPropertyDescriptor`는 게터 이름으로 키를 만든다, `org.jkiss.dbeaver.model/.../runtime/properties/ObjectPropertyDescriptor.java:652-656`).
+(`ObjectPropertyDescriptor`는 게터 이름으로 키를 만든다, `com.seizia.chromite.model/.../runtime/properties/ObjectPropertyDescriptor.java:652-656`).
 영어 파일은 고치지 않는 원칙이라 `bundle_ko`에만 `…MySQLPlanNodeJSON.nodeName.name = 이름`을 주석과 함께 넣었다. 한국어 실행 계획의 열은
 "이름", 영어는 지금처럼 "Name"(애너테이션 기본값)이다. 영어 파일에는 게터가 없는 죽은 키가 더 있다(`MySQLProcedure.body`, `clientBody`,
 `MySQLEvent.eventDefinition`, `nodeDisplayName`) — 동작에 영향이 없어 두었다.
@@ -178,7 +178,7 @@ Swing 제품을 개인 작업 공간으로 실행해 SQL Server, PostgreSQL, Mar
 
 - **속성 범주**: 속성 창의 범주 머리글(Statistics, Properties, Flags, Settings, Constraints, Misc, Partitioning, Details, 연결 노드의
   Driver/Server 등)은 `@Property(category = "...")` 문자열이다. `ObjectPropertyDescriptor.getCategory()`가 번들을 찾지 않고 그대로 돌려준다
-  (`org.jkiss.dbeaver.model/src/org/jkiss/dbeaver/runtime/properties/ObjectPropertyDescriptor.java:363-366`).
+  (`com.seizia.chromite.model/src/com/seizia/chromite/runtime/properties/ObjectPropertyDescriptor.java:363-366`).
 - **`plugin.xml`에 박힌 라벨**: Oracle 폴더 `Java`, `Jobs`(`ext.oracle/plugin.xml`), SQL Server 폴더 설명(도구 설명. 저장 프로시저·함수·테이블 CHECK 제약 조건 폴더만 `%키`), 인증 방식 이름
   (SQL Server `dataSourceAuth`의 "SQL Server Authentication", "Windows Authentication" 등, Oracle의 "Username/password", "OS Authentication" —
   `ext.oracle/plugin.xml:463,472`; 기본 인증 방식처럼 `%키`로 바꾸면 번역할 수 있다), Oracle 역할 값 Normal/SYSDBA/SYSOPER, 드라이버 속성(Misc, Performance, Show all databases, Server Time Zone, SSL 설정 등), 작업 범주 이름.
@@ -355,7 +355,7 @@ XML, XLSX, BOM, host:port 같은 기술 토큰은 번역하지 않는다. "…"�
 - Swing 프런트엔드 자체가 Chromite 코드라 upstream에 대응하는 파일이 없다.
 - DBeaver 파일: `ModelSQLMessages.java`·`ModelSQLResources.properties`(키 4개 추가), `SQLQueryExecuteHandler.java`(Chromite가 만든 파일),
   `ext.mssql`의 `OSGI-INF/l10n/bundle.properties`(Chromite 실행 계획 노드 키 추가)와 새 `bundle_ko.properties`.
-- DBeaver 플러그인 한국어 보충: 위 표의 `_ko` 파일(새로 만들거나 키 추가·값 정렬), `org.jkiss.dbeaver.registry`의 `plugin.xml`(인증 방식 두 개의
+- DBeaver 플러그인 한국어 보충: 위 표의 `_ko` 파일(새로 만들거나 키 추가·값 정렬), `com.seizia.chromite.registry`의 `plugin.xml`(인증 방식 두 개의
   라벨·설명을 `%키`로)과 `OSGI-INF/l10n/bundle.properties`(같은 영어 문구 4개 추가). Java 파일은 바꾸지 않았다.
 - SQL Server 함수 폴더: `ext.mssql`의 `plugin.xml`(Functions 폴더 추가, 폴더 설명 3개를 `%키`로), `SQLServerSchema.java`
   (`getProceduresOnly`/`getFunctionsOnly` 추가, 캐시가 FS/FT도 읽음), `bundle.properties`·`bundle_ko.properties`(`*.node.tip` 3개).

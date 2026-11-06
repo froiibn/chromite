@@ -17,31 +17,31 @@
     </extension>
 
     <!-- Connects data sources for the model layer (navigator expansion); the SWT product registers UIServiceConnectionsImpl -->
-    <extension point="org.jkiss.dbeaver.service">
-        <service name="org.jkiss.dbeaver.runtime.DBServiceConnections" class="com.seizia.chromite.ui.swing.SwingConnectionService"/>
+    <extension point="com.seizia.chromite.service">
+        <service name="com.seizia.chromite.runtime.DBServiceConnections" class="com.seizia.chromite.ui.swing.SwingConnectionService"/>
         <!-- Asks before downloading missing driver files; the SWT product registers UIServiceDriversImpl -->
-        <service name="org.jkiss.dbeaver.runtime.ui.UIServiceDrivers" class="com.seizia.chromite.ui.swing.SwingDriversService"/>
+        <service name="com.seizia.chromite.runtime.ui.UIServiceDrivers" class="com.seizia.chromite.ui.swing.SwingDriversService"/>
         <!-- Notifies the end of long operations (native backup/restore tools); the SWT product registers UIServiceSystemAgentImpl.
              Without it DBWorkbench.getService logs "Service ... not found" into the task output. -->
-        <service name="org.jkiss.dbeaver.runtime.ui.UIServiceSystemAgent" class="com.seizia.chromite.ui.swing.SwingSystemAgent"/>
+        <service name="com.seizia.chromite.runtime.ui.UIServiceSystemAgent" class="com.seizia.chromite.ui.swing.SwingSystemAgent"/>
     </extension>
 
     <!-- Table designer: driver parts of new indexes, foreign keys and CHECK constraints (the SWT ext.*.ui configurators'
          non-UI part). Adapters of the driver's table class, so a driver class is loaded only for its own tables. -->
     <extension point="org.eclipse.core.runtime.adapters">
-        <factory adaptableType="org.jkiss.dbeaver.ext.postgresql.model.PostgreTableBase" class="com.seizia.chromite.ui.swing.design.PostgreTableDesignerDriver">
+        <factory adaptableType="com.seizia.chromite.ext.postgresql.model.PostgreTableBase" class="com.seizia.chromite.ui.swing.design.PostgreTableDesignerDriver">
             <adapter type="com.seizia.chromite.ui.swing.design.TableDesignerDriver"/>
         </factory>
-        <factory adaptableType="org.jkiss.dbeaver.ext.mssql.model.SQLServerTable" class="com.seizia.chromite.ui.swing.design.SQLServerTableDesignerDriver">
+        <factory adaptableType="com.seizia.chromite.ext.mssql.model.SQLServerTable" class="com.seizia.chromite.ui.swing.design.SQLServerTableDesignerDriver">
             <adapter type="com.seizia.chromite.ui.swing.design.TableDesignerDriver"/>
         </factory>
-        <factory adaptableType="org.jkiss.dbeaver.ext.mysql.model.MySQLTable" class="com.seizia.chromite.ui.swing.design.MySQLTableDesignerDriver">
+        <factory adaptableType="com.seizia.chromite.ext.mysql.model.MySQLTable" class="com.seizia.chromite.ui.swing.design.MySQLTableDesignerDriver">
             <adapter type="com.seizia.chromite.ui.swing.design.TableDesignerDriver"/>
         </factory>
     </extension>
 
     <!-- Product name for GeneralUtils.getProductName(). No class attribute: Equinox creates the application instance. -->
-    <extension point="org.jkiss.dbeaver.application">
+    <extension point="com.seizia.chromite.application">
         <application id="chromite-swing"
             family="DB"
             name="Chromite"

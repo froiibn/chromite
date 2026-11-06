@@ -15,14 +15,14 @@ DBeaver가 운영하는 카탈로그(`https://dbeaver.com/info/ai_models_api.jso
 
 | 구성 요소 | 위치 | 역할 |
 |---|---|---|
-| AI 엔진 등록 | `plugins/org.jkiss.dbeaver.model.ai/plugin.xml` | OpenAI(`OpenAIEngine`), GitHub Copilot(`CopilotCompletionEngine`), Ollama(`OllamaCompletionEngine`) |
-| 설정 화면 | `plugins/org.jkiss.dbeaver.ui.ai/plugin.xml` | 엔진별 `propertyConfigurator`(`OpenAiConfigurator`, `CopilotConfigurator`, `OllamaConfigurator`) |
+| AI 엔진 등록 | `plugins/com.seizia.chromite.model.ai/plugin.xml` | OpenAI(`OpenAIEngine`), GitHub Copilot(`CopilotCompletionEngine`), Ollama(`OllamaCompletionEngine`) |
+| 설정 화면 | `plugins/com.seizia.chromite.ui.ai/plugin.xml` | 엔진별 `propertyConfigurator`(`OpenAiConfigurator`, `CopilotConfigurator`, `OllamaConfigurator`) |
 | 엔진 공통 | `model.ai/.../engine/BaseCompletionEngine.java` | 컨텍스트 크기(설정값), 요청 temperature |
 | 모델 정보 | `model.ai/.../engine/AIModel.java`, `AIModelFeature.java` | 이름, 컨텍스트 크기, 입출력 한도, 기능(CHAT, STREAMING, TOOL_CALL, REASONING, VISION 등) |
 | 요청 조립 | `model.ai/.../impl/AIEngineRequestFactory.java` | 컨텍스트 크기를 모르면 `AIConstants.DEFAULT_CONTEXT_WINDOW_SIZE`(16384)를 쓴다(240~248행) |
 | 설정 화면 공통 | `ui.ai/.../preferences/AbstractAIEngineConfigurator.java`, `ui.ai/.../model/ModelSelectorField.java`, `ContextWindowSizeField.java` | 모델 콤보(직접 입력 가능), 컨텍스트 크기 입력 |
 
-DataDam AI 엔진(`DDAIEngine`, `plugins/org.jkiss.dbeaver.model.datadam`)도 OpenAI 엔진을 상속하지만 제품 피처에 포함되어 있지 않다
+DataDam AI 엔진(`DDAIEngine`, `plugins/com.seizia.chromite.model.datadam`)도 OpenAI 엔진을 상속하지만 제품 피처에 포함되어 있지 않다
 ([telemetry.md](telemetry.md) "DataDam").
 
 ## 엔진별 모델 목록과 모델 정보

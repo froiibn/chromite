@@ -1,0 +1,20 @@
+Manifest-Version: 1.0
+Bundle-ManifestVersion: 2
+Bundle-Vendor: Chromite contributors
+Bundle-Name: Chromite IBM DB2 Model
+Bundle-SymbolicName: com.seizia.chromite.ext.db2;singleton:=true
+Bundle-Version: 2.1.276.qualifier
+Bundle-Release-Date: 20261116
+Bundle-RequiredExecutionEnvironment: JavaSE-21
+Bundle-ActivationPolicy: lazy
+Require-Bundle: com.seizia.chromite.model;visibility:=reexport,
+ com.seizia.chromite.model.jdbc;visibility:=reexport,
+ com.seizia.chromite.registry
+Export-Package: com.seizia.chromite.ext.db2,
+ com.seizia.chromite.ext.db2.data,
+ com.seizia.chromite.ext.db2.editors,
+ com.seizia.chromite.ext.db2.model,
+ com.seizia.chromite.ext.db2.model.app,
+ com.seizia.chromite.ext.db2.model.dict,
+ com.seizia.chromite.ext.db2.tasks
+Automatic-Module-Name: com.seizia.chromite.ext.db2

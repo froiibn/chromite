@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?eclipse version="3.2"?>
+
+<plugin>
+
+    <extension point="com.seizia.chromite.dataSourceConfigurator">
+        <configurator dataSource="generic" class="com.seizia.chromite.ext.generic.views.GenericConnectionPage"/>
+    </extension>
+
+    <extension point="com.seizia.chromite.databaseEditor">
+        <editor
+                id="generic.table.ddl.view"
+                class="com.seizia.chromite.ui.editors.sql.SQLSourceViewer"
+                main="false"
+                label="DDL"
+                description="%tree.ddl.node.tip"
+                position="additions_end"
+                icon="#sql_text"
+                type="folder">
+            <objectType name="com.seizia.chromite.ext.generic.model.GenericTable" if="object.supportsDDL()"/>
+        </editor>
+        <editor
+                id="generic.view.source.view"
+                class="com.seizia.chromite.ext.generic.editors.GenericSourceViewEditor"
+                main="false"
+                label="Definition"
+                description="View definition"
+                position="additions_end"
+                icon="#sql_text"
+                type="folder"
+                embeddable="false">
+            <objectType name="com.seizia.chromite.ext.generic.model.GenericView" if="object.supportsDDL()"/>
+        </editor>
+        <editor id="generic.source.view" class="com.seizia.chromite.ext.generic.editors.GenericSourceViewEditor"
+                label="%editor.source.name" description="%editor.source.name" icon="#sql_text" position="additions_middle"
+                contributor="com.seizia.chromite.ui.editors.sql.SQLEditorContributorNested" type="folder" embeddable="false">
+            <objectType name="com.seizia.chromite.ext.generic.model.GenericScriptObject"/>
+        </editor>
+
+        <configurator class="com.seizia.chromite.ext.generic.views.GenericTableForeignKeyConfigurator">
+            <objectType name="com.seizia.chromite.ext.generic.model.GenericTableForeignKey"/>
+        </configurator>
+        <configurator class="com.seizia.chromite.ext.generic.views.GenericTableIndexConfigurator">
+            <objectType name="com.seizia.chromite.ext.generic.model.GenericTableIndex"/>
+        </configurator>
+        <configurator class="com.seizia.chromite.ext.generic.views.GenericTablePrimaryKeyConfigurator">
+            <objectType name="com.seizia.chromite.ext.generic.model.GenericUniqueKey"/>
+        </configurator>
+    </extension>
+
+    <extension point="com.seizia.chromite.fileTypeHandler">
+        <handler id="msaccess" class="com.seizia.chromite.ext.generic.file.MSAccessFileDatabaseHandler" remote="false" order="102">
+            <extension id="msaccess" extensions="accdb,mdb" icon="platform:/plugin/com.seizia.chromite.ext.generic/icons/msaccess_icon_big.png"/>
+        </handler>
+    </extension>
+
+</plugin>

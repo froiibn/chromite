@@ -1,0 +1,123 @@
+/*
+ * DBeaver - Universal Database Manager
+ * Copyright (C) 2010-2025 DBeaver Corp and others
+ * Modifications Copyright (C) 2026 Chromite contributors
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package com.seizia.chromite.tasks.ui.registry;
+
+import org.eclipse.core.runtime.IConfigurationElement;
+import org.eclipse.core.runtime.IExtensionRegistry;
+import org.eclipse.core.runtime.Platform;
+import org.jkiss.dbeaver.DBException;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.exec.DBCException;
+import com.seizia.chromite.model.task.DBTTaskHandler;
+import com.seizia.chromite.model.task.DBTTaskType;
+import com.seizia.chromite.registry.task.TaskRegistry;
+import com.seizia.chromite.registry.task.TaskTypeDescriptor;
+import com.seizia.chromite.tasks.ui.DBTTaskConfigurator;
+import org.jkiss.utils.CommonUtils;
+
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+
+public class TaskUIRegistry {
+    public static final String TASK_EXTENSION_ID = "com.seizia.chromite.task.ui"; //$NON-NLS-1$
+
+    private static final Log log = Log.getLog(TaskUIRegistry.class);
+
+    private static TaskUIRegistry instance = null;
+
+    public synchronized static TaskUIRegistry getInstance() {
+        if (instance == null) {
+            instance = new TaskUIRegistry(Platform.getExtensionRegistry());
+        }
+        return instance;
+    }
+
+    private final Map<DBTTaskType, TaskConfiguratorDescriptor> taskConfigurators = new LinkedHashMap<>();
+    private final List<TaskConfiguratorDescriptor> taskHandlerConfigurators = new ArrayList<>();
+
+    private TaskUIRegistry(IExtensionRegistry registry) {
+        IConfigurationElement[] extElements = registry.getConfigurationElementsFor(TASK_EXTENSION_ID);
+
+        for (IConfigurationElement ext : extElements) {
+            if ("configurator".equals(ext.getName())) {
+                String typeId = ext.getAttribute("type");
+                TaskTypeDescriptor taskType = TaskRegistry.getInstance().getTaskType(typeId);
+                if (taskType == null) {
+                    if (!CommonUtils.isEmpty(ext.getAttribute("handler"))) {
+                        TaskConfiguratorDescriptor configDescriptor = new TaskConfiguratorDescriptor(ext);
+                        taskHandlerConfigurators.add(configDescriptor);
+                    } else {
+                        log.debug("Task type '" + typeId + "' not found. Skip configurator.");
+                    }
+                } else {
+                    TaskConfiguratorDescriptor configDescriptor = new TaskConfiguratorDescriptor(taskType, ext);
+                    taskConfigurators.put(taskType, configDescriptor);
+                }
+            }
+        }
+    }
+
+    public boolean supportsConfigurator(DBTTaskType taskType) {
+        if (taskConfigurators.containsKey(taskType)) {
+            return true;
+        }
+        Class<? extends DBTTaskHandler> handlerClass = taskType.getHandlerClass();
+        if (handlerClass != null) {
+            for (TaskConfiguratorDescriptor tcd : taskHandlerConfigurators) {
+                if (tcd.getTaskHandlerType().matchesType(handlerClass)) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    public boolean supportsConfiguratorPage(DBTTaskType type) {
+        TaskConfiguratorDescriptor configuratorDescriptor = taskConfigurators.get(type);
+        if (configuratorDescriptor != null) {
+            return configuratorDescriptor.supportsPanel();
+        }
+        return false;
+    }
+
+    public DBTTaskConfigurator createConfigurator(DBTTaskType taskType) throws DBCException {
+        TaskConfiguratorDescriptor configuratorDescriptor = taskConfigurators.get(taskType);
+        if (configuratorDescriptor == null) {
+            Class<? extends DBTTaskHandler> handlerClass = taskType.getHandlerClass();
+            if (handlerClass != null) {
+                for (TaskConfiguratorDescriptor tcd : taskHandlerConfigurators) {
+                    if (tcd.getTaskHandlerType().matchesType(handlerClass)) {
+                        configuratorDescriptor = tcd;
+                        break;
+                    }
+                }
+            }
+            if (configuratorDescriptor == null) {
+                throw new DBCException("Task configurator not supported for " + taskType.getName());
+            }
+        }
+        try {
+            return configuratorDescriptor.createConfigurator();
+        } catch (DBException e) {
+            throw new DBCException("Task configurator create error", e);
+        }
+    }
+
+}

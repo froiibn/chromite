@@ -19,12 +19,12 @@ package com.seizia.chromite.ui.swing;
 import com.seizia.chromite.model.sql.exec.SQLQueryExecuteHandler;
 import org.jkiss.code.NotNull;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.model.exec.DBCException;
-import org.jkiss.dbeaver.model.exec.DBCExecutionContext;
-import org.jkiss.dbeaver.model.exec.DBCStatement;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.model.sql.SQLQuery;
-import org.jkiss.dbeaver.model.sql.SQLScriptElement;
+import com.seizia.chromite.model.exec.DBCException;
+import com.seizia.chromite.model.exec.DBCExecutionContext;
+import com.seizia.chromite.model.exec.DBCStatement;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.model.sql.SQLQuery;
+import com.seizia.chromite.model.sql.SQLScriptElement;
 
 import java.util.List;
 
