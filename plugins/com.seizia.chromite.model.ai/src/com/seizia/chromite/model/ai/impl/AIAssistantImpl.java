@@ -24,6 +24,9 @@ import com.seizia.chromite.Log;
 import com.seizia.chromite.model.DBPDataSourceContainer;
 import com.seizia.chromite.model.DBUtils;
 import com.seizia.chromite.model.ai.*;
+import com.seizia.chromite.model.ai.agent.AIToolCallResult;
+import com.seizia.chromite.model.ai.agent.AIToolClient;
+import com.seizia.chromite.model.ai.agent.AIToolExecutor;
 import com.seizia.chromite.model.ai.engine.*;
 import com.seizia.chromite.model.ai.internal.AIMessages;
 import com.seizia.chromite.model.ai.qm.AIChatStorage;
@@ -48,6 +51,13 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 
+/**
+ * Default AI assistant: chat completion and function calls.
+ *
+ * 변경 이력:
+ * - 2026-11-07 내부 도구 상자의 함수 호출이 {@link AIToolExecutor}(연결·도구별 권한 정책, 확인, 감사 기록)를 거친다
+ *   (docs/chromite/ai-agent.md "2단계(채팅 화면) 인터페이스")
+ */
 public class AIAssistantImpl implements AIAssistant {
     private static final Log log = Log.getLog(AIAssistantImpl.class);
 
@@ -476,6 +486,14 @@ public class AIAssistantImpl implements AIAssistant {
             )
         ));
         AIFunctionResult result;
+        if (AIConstants.INTERNAL_TOOLBOX_ID.equals(function.getToolbox().getToolboxId())) {
+            // Chromite tools: the same policy, confirmation and audit as the MCP server
+            AIToolCallResult toolResult = AIToolExecutor.execute(
+                context.getMonitor(), AIToolClient.CHAT, function.getId(), arguments, context);
+            return toolResult.isError()
+                ? new AIFunctionResult(function.getType(), toolResult.text(), null, new DBException(toolResult.text()))
+                : new AIFunctionResult(function.getType(), toolResult.text());
+        }
         try {
             result = function.getToolbox().callFunction(context, function, arguments);
         } catch (DBException e) {

@@ -20,9 +20,14 @@ package com.seizia.chromite.model.ai;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import com.seizia.chromite.model.DBPImage;
+import com.seizia.chromite.model.ai.agent.AIToolAccess;
+import com.seizia.chromite.model.ai.agent.AIToolWrites;
 
 /**
  * AI function metadata.
+ *
+ * 변경 이력:
+ * - 2026-11-07 {@link #getAccess()}, {@link #getWrites()} 추가: 에이전트 도구 권한 정책의 분류 (docs/chromite/ai-agent.md)
  */
 public interface AIFunctionDescriptor {
 
@@ -53,6 +58,22 @@ public interface AIFunctionDescriptor {
 
     @NotNull
     AIFunctionPurpose getPurpose();
+
+    /**
+     * Permission class used by the agent tool policy (docs/chromite/ai-agent.md "권한 정책").
+     */
+    @NotNull
+    default AIToolAccess getAccess() {
+        return getType() == AIFunctionType.ACTION ? AIToolAccess.WRITE : AIToolAccess.READ;
+    }
+
+    /**
+     * What a WRITE/DANGEROUS tool changes; read-only connections refuse only {@link AIToolWrites#DATABASE}.
+     */
+    @NotNull
+    default AIToolWrites getWrites() {
+        return AIToolWrites.DATABASE;
+    }
 
     @Nullable
     String getCategoryId();

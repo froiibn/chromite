@@ -142,8 +142,11 @@ Chromite 안에서 AI 모델이 DBA처럼 일하게 한다. 사용자가 "이 �
 |---|---|---|---|---|---|---|
 | `runSelect` | SELECT 실행, 행 한도와 페이지 | R | `connection`, `sql`, `limit`, `offset`, `format` | 표 | G | 1 |
 | `runReadOnlySql` | 모델이 쓴 진단 SQL(시스템 뷰, `SHOW`, 읽기 전용 `DBCC`·시스템 프로시저). 결과 집합 여러 개와 서버 메시지 | R | `connection`, `sql`, `database`, `limit` | `results[]`, `messages[]` | G | 1 |
-| `runSql` | 아무 문장 하나 실행(갱신 수 또는 결과) | W (R→W/D) | `connection`, `sql` | `updateCount` 또는 표 | G | 1 |
-| `runScript` | 스크립트(여러 문장, 드라이버의 구분자 규칙) | W (W/D) | `connection`, `script`, `stopOnError` | 문장별 결과 | G | 1 |
+| `runSql` | 아무 문장 하나 실행(갱신 수 또는 결과). 연결의 커밋 방식 그대로: 수동 커밋 연결이면 트랜잭션을 열어 둔 채 `transactionOpen: true`를 알린다 | W (R→W/D) | `connection`, `sql` | `updateCount` 또는 표, `transactionOpen` | G | 1 |
+| `runScript` | 스크립트(여러 문장, 드라이버의 구분자 규칙). 커밋 방식은 `runSql`과 같다 | W (W/D) | `connection`, `script`, `stopOnError` | 문장별 결과, `transactionOpen` | G | 1 |
+| `getTransactionStatus` | 에이전트 문맥의 열린 트랜잭션(DB에 직접 확인: `@@TRANCOUNT`, `txid_current_if_assigned()`, `INNODB_TRX`, `DBMS_TRANSACTION`)과 이 연결의 쿼리 창 트랜잭션 | R | `connection` | 객체 | MS PG MY OR, G | 1 |
+| `commitTransaction` | 에이전트의 열린 트랜잭션 커밋. **자동 실행 설정과 상관없이 늘 확인** | W | `connection` | 결과 | G | 1 |
+| `rollbackTransaction` | 에이전트의 열린 트랜잭션 롤백. 늘 확인 | W | `connection` | 결과 | G | 1 |
 | `cancelQuery` | 에이전트가 실행 중인 문장 취소 | R | `connection` | 취소한 수 | G | 1 |
 | `explainQuery` | 예상 실행 계획을 **구조화 JSON**으로(연산자, 비용, 예상 행, 경고, 누락 인덱스, 매개변수 컴파일 값) | R | `connection`, `sql`, `database` | `plan` | MS PG MY OR, G(계획기) | 1 |
 | `getActualPlan` | 실제 실행 계획과 실행 통계(실제 행, 반복, 시간, 논리 읽기·버퍼, SET STATISTICS IO/TIME, EXPLAIN ANALYZE BUFFERS) | R→W | `connection`, `sql`, `database` | `plan`, `runtime` | MS PG MY | 1 (OR 1b) |
@@ -296,11 +299,38 @@ Chromite는 연결 종류(`DBPConnectionConfiguration.getConnectionType()`)로 �
 
 ### 확인
 
-- CONFIRM이면 실행기가 `AIAgentServices.getConfirmationHandler()`의 `confirm(monitor, AIToolConfirmationRequest)`를 부른다. 이 호출은 작업 스레드에서
+- CONFIRM이면 실행기가 `AIAgentServices.getConfirmationHandler()`의 `confirm(monitor, AIToolConfirmationRequest)`를 부른다(답: `AIToolConfirmationAnswer`). 이 호출은 작업 스레드에서
   결과가 나올 때까지 막는다(화면 쪽이 EDT로 넘겨 대화상자를 띄우고 기다린다).
 - 요청에는 클라이언트(CHAT/MCP), 도구 ID·이름, 실제 분류, 연결, 비밀을 지운 인수, **미리 보기**(실행할 SQL·DDL 전체), 이유가 있다.
 - 처리기가 없으면(화면 없음, 헤드리스) **거부**한다(`DENIED`, "no confirmation UI"). MCP의 기본값도 같다: 실행 중인 앱의 대화상자, 없으면 거부.
 - 확인 대화상자의 "이 연결에서 항상 허용"은 2단계가 `AIToolPolicy.setPermission(연결 ID, 도구 ID, AUTO)`로 구현한다.
+
+### 트랜잭션 안전 (사용자 규칙, 2026-11-07)
+
+어떤 기능도 열린 트랜잭션을 조용히 커밋·롤백하지 않는다. 트랜잭션 방식 바꾸기, 연결 끊기·세션 닫기, 연결·DB 바꾸기 전에 커밋 안 된 트랜잭션을 찾고
+사용자에게 **Commit / Roll back / Cancel**을 묻는다. 에이전트 도구에는 이렇게 적용한다.
+
+- **실행기가 막는다**: 도구가 `AIToolTransactionGuard`를 구현하면 실행기가 실행 전에 `findPendingTransactions`를 부른다. 하나라도 있으면
+  정책이 AUTO여도 확인 처리기에 묻는다(`AIToolConfirmationRequest.pendingTransactions`). 답이 COMMIT/ROLLBACK이면 `resolvePendingTransactions`로
+  처리한 뒤 실행하고, DENY(또는 이 질문에 대한 ALLOW)는 취소다. 처리기가 없으면 거부한다. 정책의 BLOCKED는 그보다 먼저 막는다.
+- **이 규칙이 걸리는 도구**:
+
+  | 도구 | 찾는 트랜잭션 | Commit 가능 |
+  |---|---|---|
+  | `disconnect` | 이 연결의 모든 실행 문맥(쿼리 창은 QM `QMUtils.isTransactionActive`, 에이전트 문맥은 아래 표시) | 예 |
+  | `setCurrentDatabase` | 이 연결의 에이전트 문맥 | 예 |
+  | `commitTransaction`, `rollbackTransaction` | 에이전트 문맥(답이 곧 커밋·롤백 결정) | 예 |
+  | `runSql`, `runScript`, DDL 도구 (MySQL/MariaDB·Oracle) | DDL이 열린 에이전트 트랜잭션을 암묵적으로 커밋하므로 | 예 |
+  | `killSession` | 대상 서버 세션의 열린 트랜잭션(끝내면 서버가 롤백) | 아니요(Roll back / Cancel) |
+
+- **쓰기 도구의 커밋**: 에이전트 문맥은 연결의 기본 커밋 방식(`DBPDataSourceContainer.isDefaultAutoCommit()`, 연결 종류)을 그대로 쓴다.
+  - 자동 커밋 연결: 문장마다 커밋된다. 여러 행을 바꾸는 도구(`insertRows`, `importCsv`, `copyTable` 등)는 한 호출을 한 트랜잭션으로 묶어 끝에 커밋한다
+    (사용자가 정한 자동 커밋과 같은 결과이고, 중간 실패 시 반만 들어가는 일을 막는다).
+  - 수동 커밋 연결(운영 종류 기본값): DML·DDL을 실행하고 **트랜잭션을 열어 둔다**. 결과에 `transactionOpen: true`와 "commitTransaction 또는
+    rollbackTransaction을 부르라"는 안내가 들어간다. 커밋은 모델이 `commitTransaction`을 부르고 사용자가 확인했을 때만 한다.
+- **읽기 도구**: 에이전트 문맥에 열린 쓰기 트랜잭션이 없을 때만 읽기 전용 트랜잭션을 열고 끝에 롤백한다(쓰기가 없어 잃는 것이 없다).
+  열린 트랜잭션이 있으면 그 안에서 읽고(바뀐 내용이 보인다) 롤백하지 않는다. 이때 읽기 보호는 분류기만 한다.
+- 에이전트 문맥의 열린 트랜잭션은 쓰기 뒤에 DB에 직접 확인해(`getTransactionStatus`와 같은 쿼리) 기록한다.
 
 ### 감사 기록
 
@@ -471,7 +501,7 @@ API 키는 `AIUtils.setSecretValue`(보안 저장소)에 두고 설정 파일(`a
 |---|---|
 | 도구 목록 | `AIToolCatalog.getTools()` (`AIFunctionDescriptor`: `getId`, `getName`, `getAiDescription`, `getParameters`, `getAccess`, `getCategoryId`) |
 | 채팅의 도구 호출 | `AIAssistantImpl.callFunction`이 이미 `AIToolExecutor.execute(monitor, AIToolClient.CHAT, 도구, 인수, 채팅의 AIDatabaseContext)`로 간다. 채팅의 현재 연결이 `connection` 기본값 |
-| 확인 대화상자 | `AIToolConfirmationHandler` 구현 → `AIAgentServices.setConfirmationHandler`. 작업 스레드에서 불리므로 EDT에서 대화상자를 띄우고 결과를 기다려 `true`/`false`. `request.preview()`(SQL·DDL)를 고정폭 글꼴로 보여 준다. "이 연결에서 항상 허용" → `AIToolPolicy.getInstance().setPermission(...)` |
+| 확인 대화상자 | `AIToolConfirmationHandler` 구현 → `AIAgentServices.setConfirmationHandler`. 작업 스레드에서 불리므로 EDT에서 대화상자를 띄우고 결과를 기다려 `AIToolConfirmationAnswer`를 돌려준다. 보통은 Allow/Deny(ALLOW/DENY), `request.pendingTransactions()`가 있으면 Commit / Roll back / Cancel(COMMIT/ROLLBACK/DENY, 커밋할 수 없는 트랜잭션이 있으면 Commit 끔). `request.preview()`(SQL·DDL)를 고정폭 글꼴로 보여 준다. "이 연결에서 항상 허용" → `AIToolPolicy.getInstance().setPermission(...)`(트랜잭션 질문에는 없음) |
 | 쿼리 창 열기 | `AIEditorBridge` 구현 → `AIAgentServices.setEditorBridge` |
 | 권한 설정 화면 | `AIToolPolicy.getInstance()`: `getSettings()`(복사본), `setPermission(연결 ID 또는 null, 도구 ID 또는 "@분류", 권한 또는 null(상속))`, `resolve(...)`로 실제 값 표시, `isProduction(연결)` |
 | 감사 기록 화면 | `AIToolAuditLog.getInstance().readRecent(n)`, `getFile()` |
@@ -523,4 +553,6 @@ API 키는 `AIUtils.setSecretValue`(보안 저장소)에 두고 설정 파일(`a
 
 ## 변경 이력
 
+- 2026-11-07 사용자 규칙 "트랜잭션 안전" 반영: `AIToolTransactionGuard`, 확인 답 Commit/Roll back/Cancel, 수동 커밋 연결에서 트랜잭션을 열어 두는 쓰기,
+  `getTransactionStatus`·`commitTransaction`·`rollbackTransaction` 도구.
 - 2026-11-07 문서 작성(1단계 계약): 구조, 도구 카탈로그, 권한 정책, MCP 서버, 보안, 엔진, 플레이북 6개, Query Library 기준값, 2단계 인터페이스, 1b단계.

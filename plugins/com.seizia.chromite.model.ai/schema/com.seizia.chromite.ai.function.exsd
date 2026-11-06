@@ -117,6 +117,30 @@
                </restriction>
             </simpleType>
          </attribute>
+         <attribute name="access">
+            <annotation>
+               <documentation>Permission class of the tool (docs/chromite/ai-agent.md): READ (reads only), WRITE (changes data, schema, files or server state), DANGEROUS (destructive or disruptive). Defaults to READ for INFORMATION and WRITE for ACTION functions</documentation>
+            </annotation>
+            <simpleType>
+               <restriction base="string">
+                  <enumeration value="READ"/>
+                  <enumeration value="WRITE"/>
+                  <enumeration value="DANGEROUS"/>
+               </restriction>
+            </simpleType>
+         </attribute>
+         <attribute name="writes">
+            <annotation>
+               <documentation>What a WRITE or DANGEROUS tool changes: database (default; refused on read-only connections), file (local file system only), none (application state only)</documentation>
+            </annotation>
+            <simpleType>
+               <restriction base="string">
+                  <enumeration value="database"/>
+                  <enumeration value="file"/>
+                  <enumeration value="none"/>
+               </restriction>
+            </simpleType>
+         </attribute>
          <attribute name="system" type="boolean">
             <annotation>
                <documentation>If true, this is a system function</documentation>

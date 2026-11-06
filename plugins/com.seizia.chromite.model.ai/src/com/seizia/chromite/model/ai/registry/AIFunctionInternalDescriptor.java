@@ -24,6 +24,8 @@ import com.seizia.chromite.DBRuntimeException;
 import com.seizia.chromite.Log;
 import com.seizia.chromite.model.DBPImage;
 import com.seizia.chromite.model.ai.*;
+import com.seizia.chromite.model.ai.agent.AIToolAccess;
+import com.seizia.chromite.model.ai.agent.AIToolWrites;
 import com.seizia.chromite.model.exec.DBCFeatureNotSupportedException;
 import com.seizia.chromite.model.impl.AbstractDescriptor;
 import com.seizia.chromite.registry.RegistryConstants;
@@ -32,6 +34,12 @@ import org.jkiss.utils.CommonUtils;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * AI function declared in the {@value #EXTENSION_ID} extension point.
+ *
+ * 변경 이력:
+ * - 2026-11-07 {@code access}, {@code writes} 속성 읽기(에이전트 도구 권한 정책, docs/chromite/ai-agent.md)
+ */
 public class AIFunctionInternalDescriptor extends AbstractDescriptor implements AIFunctionDescriptor {
 
     public static final String EXTENSION_ID = "com.seizia.chromite.ai.function";
@@ -54,6 +62,8 @@ public class AIFunctionInternalDescriptor extends AbstractDescriptor implements 
     private final AIFunctionAllowMode defaultAllowMode;
     private final AIFunctionPurpose purpose;
     private final AIFunctionType type;
+    private final AIToolAccess access;
+    private final AIToolWrites writes;
     private final String[] dependsOn;
     private final String aiDescription;
     private final String userDescription;
@@ -100,6 +110,12 @@ public class AIFunctionInternalDescriptor extends AbstractDescriptor implements 
             config.getAttribute("type"),
             AIFunctionType.INFORMATION
         );
+        this.access = CommonUtils.valueOf(
+            AIToolAccess.class,
+            config.getAttribute("access"),
+            type == AIFunctionType.ACTION ? AIToolAccess.WRITE : AIToolAccess.READ
+        );
+        this.writes = AIToolWrites.fromId(config.getAttribute("writes"));
 
         List<AIFunctionInternalParameter> params = new ArrayList<>();
         for (IConfigurationElement pe : config.getChildren("parameter")) {
@@ -152,6 +168,18 @@ public class AIFunctionInternalDescriptor extends AbstractDescriptor implements 
     @NotNull
     public AIFunctionPurpose getPurpose() {
         return purpose;
+    }
+
+    @NotNull
+    @Override
+    public AIToolAccess getAccess() {
+        return access;
+    }
+
+    @NotNull
+    @Override
+    public AIToolWrites getWrites() {
+        return writes;
     }
 
     @Nullable
