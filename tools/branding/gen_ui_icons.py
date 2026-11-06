@@ -326,6 +326,8 @@ CONCEPTS = [
     ("plan-update", "계획: 수정", "Plan: update", "table + pencil"),
     ("plan-delete", "계획: 삭제", "Plan: delete", "table + x"),
     ("plan-operator", "계획: 기타 연산", "Plan: other operator", "square + point"),
+    # AI assistant tool window (main tool bar and View menu)
+    ("ai-assistant", "AI 도우미", "AI assistant", "message + sparkles"),
 ]
 
 
@@ -462,6 +464,10 @@ def extra_icons(I, P, n, nf, blue, blue_fill, green, green_fill, red, red_fill, 
                       + path("M4.5 6.5H13M4.5 9.5H11", None, n, sw, cap="butt"))
     # Tool bar overflow button: Tabler chevrons-right
     I["overflow"] = svg(path("M3.5 4.5L7 8L3.5 11.5M8.5 4.5L12 8L8.5 11.5", None, n, sw))
+    # AI assistant: the speech bubble of "messages" with a four-point sparkle instead of the text lines
+    I["ai-assistant"] = svg(path("M2.5 3.5A1 1 0 0 1 3.5 2.5H12.5A1 1 0 0 1 13.5 3.5V10.5A1 1 0 0 1 12.5 11.5H7L4.5 13.5V11.5H3.5"
+                                 "A1 1 0 0 1 2.5 10.5Z", blue_fill, blue, sw)
+                            + path("M8 3.75L8.9 6.1L11.25 7L8.9 7.9L8 10.25L7.1 7.9L4.75 7L7.1 6.1Z", P["ys"], None))
     # Copy: Tabler copy, a front sheet over the corner of a back sheet
     I["copy"] = svg(path("M10.5 4.5V3A1.5 1.5 0 0 0 9 1.5H3A1.5 1.5 0 0 0 1.5 3V9A1.5 1.5 0 0 0 3 10.5H4.5", None, n, sw)
                     + rect(5.5, 5.5, 9, 9, 1.5, doc_fill, n, sw))

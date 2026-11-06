@@ -27,6 +27,7 @@ import com.seizia.chromite.ui.swing.internal.DashboardMessages;
 import com.seizia.chromite.ui.swing.internal.DbCopyMessages;
 import com.seizia.chromite.ui.swing.internal.ErdMessages;
 import com.seizia.chromite.ui.swing.internal.NavigatorMessages;
+import com.seizia.chromite.ui.swing.internal.SchedulerMessages;
 import com.seizia.chromite.ui.swing.internal.SecurityMessages;
 import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.Status;
@@ -152,6 +153,8 @@ import java.util.function.Supplier;
  *     테이블·뷰·시퀀스·루틴의 Permissions…</li>
  *     <li>SQL Server 에이전트({@link AgentCommands}): 에이전트 노드·폴더·작업·경고·운영자의 명령(그 노드에서만 보임), 작업·경고·운영자의
  *     Properties와 Delete, 두 번 클릭으로 작업 활동 모니터·에이전트 로그·속성 열기, 에이전트 노드의 서비스 상태 보조 글자.</li>
+ *     <li>작업 스케줄러({@link SchedulerCommands}): Oracle 스케줄러·pg_cron·MySQL 이벤트의 명령(그 노드에서만 보임), 작업·이벤트의
+ *     Properties와 Delete, 두 번 클릭으로 실행 기록·실행 중인 작업·속성 열기, 스케줄러 상태·사용 안 함 보조 글자.</li>
  * </ul>
  *
  * 변경 이력:
@@ -193,6 +196,8 @@ import java.util.function.Supplier;
  * - 2026-11-07 SQL Server 에이전트: 에이전트 메뉴 항목, Properties·Delete 갈래, 두 번 클릭, 보조 글자, 도구 문서 열기
  *   ({@link QueryWindows#openToolDocument}) (docs/chromite/swing-sqlserver-agent.md)
  * - 2026-11-07 Maintenance… 명령(테이블·인덱스·스키마·데이터베이스, {@link MaintenanceCommands}) (docs/chromite/swing-admin-tools.md)
+ * - 2026-11-07 작업 스케줄러(Oracle 스케줄러, pg_cron, MySQL 이벤트): 메뉴 항목, Properties·Delete 갈래, 두 번 클릭, 보조 글자
+ *   (docs/chromite/swing-job-schedulers.md)
  */
 final class ObjectExplorerPanel extends JPanel {
 
@@ -314,6 +319,7 @@ final class ObjectExplorerPanel extends JPanel {
     private final Action exportDataAction;
     private final SourceEditCommands sourceEditCommands;
     private final AgentCommands agentCommands;
+    private final SchedulerCommands schedulerCommands;
     private final Action backUpAction;
     private final Action restoreAction;
     private final Action copyTablesAction;
@@ -445,10 +451,13 @@ final class ObjectExplorerPanel extends JPanel {
         });
         viewDiagramAction.putValue(Action.SHORT_DESCRIPTION, ErdMessages.erd_view_diagram_tip);
         agentCommands = new AgentCommands(this::getSelectedNavigatorNode, this, queryWindows);
+        schedulerCommands = new SchedulerCommands(this::getSelectedNavigatorNode, this, queryWindows);
         principalPropertiesAction = createAction(SecurityMessages.security_properties, () -> {
             DBSObject object = getSelectedObject();
             if (AgentCommands.canOpenProperties(getSelectedNavigatorNode())) {
                 agentCommands.openProperties(getSelectedNavigatorNode());
+            } else if (SchedulerCommands.canOpenProperties(getSelectedNavigatorNode())) {
+                schedulerCommands.openProperties(getSelectedNavigatorNode());
             } else if (object != null) {
                 SecurityCommands.openProperties(this, object, queryWindows);
             }
@@ -554,6 +563,8 @@ final class ObjectExplorerPanel extends JPanel {
                 SecurityCommands.deletePrincipal(this, getSelectedObject(), queryWindows);
             } else if (AgentCommands.canDelete(getSelectedNavigatorNode())) {
                 agentCommands.delete(getSelectedNavigatorNode());
+            } else if (SchedulerCommands.canDelete(getSelectedNavigatorNode())) {
+                schedulerCommands.delete(getSelectedNavigatorNode());
             }
         });
         deleteAction.putValue(Action.ACCELERATOR_KEY, KeyStroke.getKeyStroke(KeyEvent.VK_DELETE, 0));
@@ -590,6 +601,7 @@ final class ObjectExplorerPanel extends JPanel {
         popupMenu.add(sourceEditCommands.getNewFunctionAction());
         popupMenu.add(newPrincipalAction);
         agentCommands.addTo(popupMenu);
+        schedulerCommands.addTo(popupMenu);
         popupMenu.add(designAction);
         popupMenu.add(sourceEditCommands.getModifyAction());
         popupMenu.add(objectPermissionsAction);
@@ -652,6 +664,8 @@ final class ObjectExplorerPanel extends JPanel {
                 // SQL Server Agent leaves open on double click (job activity, agent log, job properties)
                 if (e.getClickCount() == 2 && SwingUtilities.isLeftMouseButton(e)) {
                     agentCommands.openDefault(getSelectedNavigatorNode());
+                    // Job scheduler leaves and objects (run history, running jobs, job and event properties)
+                    schedulerCommands.openDefault(getSelectedNavigatorNode());
                 }
             }
         });
@@ -834,10 +848,13 @@ final class ObjectExplorerPanel extends JPanel {
         renameAction.setEnabled(connectionNode);
         boolean principal = SecurityCommands.canOpenProperties(object);
         boolean agentObject = AgentCommands.canDelete(getSelectedNavigatorNode());
-        deleteAction.setEnabled(connectionNode || principal || agentObject);
-        principalPropertiesAction.setEnabled(principal || agentObject);
-        principalPropertiesAction.putValue(Action.SHORT_DESCRIPTION, agentObject ? AgentMessages.agent_properties_tip : SecurityMessages.security_properties_tip);
+        boolean schedulerObject = SchedulerCommands.canDelete(getSelectedNavigatorNode());
+        deleteAction.setEnabled(connectionNode || principal || agentObject || schedulerObject);
+        principalPropertiesAction.setEnabled(principal || agentObject || schedulerObject);
+        principalPropertiesAction.putValue(Action.SHORT_DESCRIPTION, agentObject ? AgentMessages.agent_properties_tip
+            : schedulerObject ? SchedulerMessages.scheduler_properties_tip : SecurityMessages.security_properties_tip);
         agentCommands.update(getSelectedNavigatorNode());
+        schedulerCommands.update(getSelectedNavigatorNode());
         SecurityPrincipal.Kind newPrincipalKind = SecurityCommands.getNewPrincipalKind(getSelectedNavigatorNode());
         newPrincipalAction.putValue(Action.NAME, SecurityCommands.getNewPrincipalLabel(newPrincipalKind));
         newPrincipalAction.setEnabled(newPrincipalKind != null);
@@ -1607,6 +1624,11 @@ final class ObjectExplorerPanel extends JPanel {
             if (agentText != null) {
                 // SQL Server Agent: the service state, or "disabled" for jobs, alerts and operators
                 return agentText;
+            }
+            String schedulerText = SchedulerCommands.getSecondaryText(navigatorNode);
+            if (schedulerText != null) {
+                // Job schedulers: the scheduler state, "disabled" for jobs and events, the cron schedule
+                return schedulerText;
             }
             if (navigatorNode instanceof DBNDataSource dataSourceNode) {
                 DBPConnectionConfiguration configuration = dataSourceNode.getDataSourceContainer().getConnectionConfiguration();

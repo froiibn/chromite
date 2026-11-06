@@ -51,6 +51,8 @@ import java.util.Map;
  *
  * 변경 이력:
  * - 2026-11-07 최초 작성
+ * - 2026-11-07 2단계 설정 화면: 저장 전 규칙으로 실제 권한을 계산하는 {@code resolve(Settings, ...)}, 편집한 사본을 한 번에 저장하는
+ *   {@link #setSettings} (docs/chromite/ai-agent.md "2단계")
  */
 public final class AIToolPolicy {
 
@@ -151,6 +153,15 @@ public final class AIToolPolicy {
     }
 
     /**
+     * Replaces all rules and saves the file (the settings page applies its edited copy on OK).
+     */
+    public synchronized void setSettings(@NotNull Settings newSettings) throws DBException {
+        Settings copy = newSettings.copy();
+        copy.getConnections().values().removeIf(Map::isEmpty);
+        save(copy);
+    }
+
+    /**
      * Re-reads the file on the next call (after an outside edit).
      */
     public synchronized void reload() {
@@ -178,7 +189,20 @@ public final class AIToolPolicy {
         @NotNull AIFunctionDescriptor tool,
         @NotNull AIToolAccess access
     ) {
-        Settings current = load();
+        return resolve(load(), container, tool, access);
+    }
+
+    /**
+     * The permission for one call under the given settings: the settings page shows the effective permission of rules the
+     * user has not saved yet with the same rules as the executor.
+     */
+    @NotNull
+    public static AIToolDecision resolve(
+        @NotNull Settings current,
+        @Nullable DBPDataSourceContainer container,
+        @NotNull AIFunctionDescriptor tool,
+        @NotNull AIToolAccess access
+    ) {
         String toolId = tool.getId();
         String classKey = CLASS_KEY_PREFIX + access.name();
         if (container != null) {
