@@ -1,6 +1,7 @@
 /*
  * DBeaver - Universal Database Manager
  * Copyright (C) 2010-2026 DBeaver Corp and others
+ * Modifications Copyright (C) 2026 Chromite contributors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -53,6 +54,11 @@ import java.util.stream.Collectors;
  * It's strongly recommended to not put the same DBSObject in tree model multiple times.
  * It will work but some actions will not work well
  * (e.g. TreeViewer sometimes update only first TreeItem corresponding to model certain model object).
+ *
+ * 변경 이력:
+ * - 2026-11-07 새 객체의 부모 폴더(getParentNode)와 걸러진 객체를 넣을 폴더(cacheNodeChildren)를 객체 클래스가 맞는 첫 폴더 대신
+ *   객체를 담는 폴더로 고름(findObjectFolder). 같은 클래스를 받는 폴더가 여럿이면(SQL Server·Oracle·generic의 프로시저/함수)
+ *   새 함수가 프로시저 폴더에 들어갔다 (docs/chromite/swing-frontend.md "새 객체의 부모 폴더")
  */
 public class DBNModel {
 
@@ -391,11 +397,20 @@ public class DBNModel {
         DBNDatabaseNode[] children = node.getChildren(monitor);
         boolean cached = false;
         if (!ArrayUtils.isEmpty(children)) {
+            DBNDatabaseFolder objectFolder = null;
+            if (addFiltered) {
+                // Only the object's own folder may take it in when it was filtered out: sibling folders of the same
+                // class list different objects (findObjectFolder). Read them first so that the choice sees their items.
+                for (DBNDatabaseFolder folder : getObjectFolders(children, objectToCache)) {
+                    folder.getChildren(monitor);
+                }
+                objectFolder = findObjectFolder(children, objectToCache);
+            }
             for (DBNDatabaseNode child : children) {
                 if (child instanceof DBNDatabaseFolder folder) {
                     Class<?> itemsClass = folder.getChildrenClass();
                     if (itemsClass != null && itemsClass.isAssignableFrom(objectToCache.getClass())) {
-                        cached = cacheNodeChildren(monitor, child, objectToCache, addFiltered);
+                        cached = cacheNodeChildren(monitor, child, objectToCache, addFiltered && folder == objectFolder);
                         if (cached) {
                             break;
                         }
@@ -442,13 +457,9 @@ public class DBNModel {
 
             if (item == DBUtils.getPublicObjectContainer(parentObject)) {
                 // Try to find parent node withing children
-                for (DBNDatabaseNode child : children) {
-                    if (child instanceof DBNDatabaseFolder folder) {
-                        Class<?> itemsClass = folder.getChildrenClass();
-                        if (itemsClass != null && itemsClass.isAssignableFrom(object.getClass())) {
-                            return child;
-                        }
-                    }
+                DBNDatabaseFolder folder = findObjectFolder(children, object);
+                if (folder != null) {
+                    return folder;
                 }
                 // It is actual parent and there are no folders
                 return node;
@@ -456,6 +467,51 @@ public class DBNModel {
         }
         // Not found
         return null;
+    }
+
+    /**
+     * The folders among a node's children whose items take the object's class.
+     */
+    @NotNull
+    private static List<DBNDatabaseFolder> getObjectFolders(@NotNull DBNDatabaseNode[] children, @NotNull DBSObject object) {
+        List<DBNDatabaseFolder> folders = new ArrayList<>(2);
+        for (DBNDatabaseNode child : children) {
+            if (child instanceof DBNDatabaseFolder folder) {
+                Class<?> itemsClass = folder.getChildrenClass();
+                if (itemsClass != null && itemsClass.isAssignableFrom(object.getClass())) {
+                    folders.add(folder);
+                }
+            }
+        }
+        return folders;
+    }
+
+    /**
+     * The folder among a node's children that holds the object, or null when no folder takes its class.
+     * <p>
+     * Several sibling folders may take the same class and split the objects by the property of their items
+     * (SQL Server, Oracle and generic "Procedures" and "Functions" both take procedure objects), so the class alone
+     * does not tell the folder. Then a read folder whose items list the object (in the model caches, which already
+     * hold a new object when its add event comes) is the one; else a folder not read yet, as a read folder that does
+     * not list the object cannot be it; else the first. Nothing is read when one folder takes the class.
+     */
+    @Nullable
+    private static DBNDatabaseFolder findObjectFolder(@NotNull DBNDatabaseNode[] children, @NotNull DBSObject object) {
+        List<DBNDatabaseFolder> folders = getObjectFolders(children, object);
+        if (folders.size() <= 1) {
+            return folders.isEmpty() ? null : folders.getFirst();
+        }
+        DBNDatabaseFolder notRead = null;
+        for (DBNDatabaseFolder folder : folders) {
+            if (folder.getChildNodes() == null) {
+                if (notRead == null) {
+                    notRead = folder;
+                }
+            } else if (folder.isCachedChildObject(object)) {
+                return folder;
+            }
+        }
+        return notRead != null ? notRead : folders.getFirst();
     }
 
     void addNode(@NotNull DBNDatabaseNode node, boolean reflect) {

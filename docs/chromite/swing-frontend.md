@@ -2088,6 +2088,26 @@ EDT 에이전트로 단추를 누르고(`doClick`) 결과를 읽었다. 캡처�
 - 확인(SQL Server 2022, 트리거 2개인 `orders`): 수정 전 빌드에서 `dbo`를 F5로 새로 고친 뒤 `orders` > 트리거가 비었다
   (`before-ko-light-mssql-triggers-after-schema-refresh.png`). 수정 뒤에는 `trg_orders_delete`, `trg_orders_insert`가 그대로 보인다(한국어·영어).
 
+### 새 객체의 부모 폴더
+
+- 증상(#35): SQL Server "저장 프로시저"와 "함수" 폴더를 나눈 뒤(swing-l10n.md "SQL Server 함수 폴더"), 탐색기에 아직 없는 함수가 모델 추가 이벤트
+  (`OBJECT_ADD`, 컨테이너 폴더 없이)로 들어오면 "저장 프로시저" 폴더 아래에 붙었다. Oracle·generic의 프로시저/함수 폴더도 같은 구조다.
+- 근본 원인: `DBNModel.getParentNode`(수정 전 `DBNModel.java:418-450`)가 객체 클래스를 받는 첫 폴더를 부모로 골랐다. 두 폴더가 같은 클래스
+  (`SQLServerProcedure`)를 받고 항목 속성(`proceduresOnly`/`functionsOnly`)으로 객체를 나누므로 클래스만으로는 폴더를 알 수 없다.
+  `DBNModel.cacheNodeChildren`(수정 전 `DBNModel.java:385-415`, 객체로 노드를 찾을 때)도 같은 원인으로, 필터가 걸린 첫 폴더에 다른 폴더의 객체를 넣을 수 있었다.
+- 수정: `DBNModel.findObjectFolder`는 클래스가 맞는 폴더가 여럿이면 읽은 폴더 중 항목 속성이 그 객체를 담는 폴더를 고른다
+  (`DBNDatabaseNode.isCachedChildObject`: 속성을 `LocalCacheProgressMonitor`로 읽어 캐시만 본다. 이벤트는 UI 스레드에서 올 수 있어 DB를 읽지 않는다.
+  객체 관리자는 이벤트 전에 객체를 캐시에 넣는다, `AbstractObjectManager.CreateObjectReflector`). 담는 폴더가 없으면 아직 읽지 않은 폴더,
+  그것도 없으면 첫 폴더다. 폴더가 하나면 이전과 같고 아무것도 읽지 않는다. `cacheNodeChildren`은 필터로 걸러진 객체를 이 폴더에만 넣는다.
+- 특정 드라이버를 분기하지 않았다. 같은 클래스를 받는 형제 폴더(SQL Server·Oracle·generic의 프로시저/함수) 모두에 적용되고, 모델 수정이라 SWT에도 적용된다.
+- Swing의 "새 함수…"는 실행 뒤 폴더를 새로 고치고(폴더의 새로 고침은 스키마를 다시 읽음) 폴더마다 자기 속성으로 다시 읽으므로 원래도 맞는 폴더에 보였다.
+  이 문제는 객체 관리자로 만든 객체(SWT의 스키마 노드에서 만들기 등)나 다른 곳에서 모델에 추가한 객체에서 생긴다.
+- 확인(SQL Server 2022): DB에 함수를 만든 뒤 시험 에이전트가 그 함수를 스키마의 루틴 캐시에 읽어 넣고 컨테이너 없이 `OBJECT_ADD`를 보냈다
+  (객체 관리자와 같은 순서). 수정 전 빌드는 `getParentNode`가 `.../schema/dbo_1/procedure`를 돌려주고 새 함수가 "저장 프로시저" 아래에 붙었다
+  (`before-ko-light-mssql-new-function-parent.png`). 수정 뒤에는 `.../function`을 돌려주고 "함수" 아래에 붙는다(`ko-light-mssql-new-function-parent.png`).
+  같은 방법으로 넣은 저장 프로시저는 "저장 프로시저" 아래에 붙는다.
+  Swing "새 함수…"(New Function…) 템플릿을 실행한 뒤에도 `NewFunction`은 "함수"(Functions) 아래에 "Returns int", `@Param1`과 함께 보인다(영어).
+
 ## 변경 이력
 
 - 2026-11-06 최초 작성. Swing 전환 결정, 구조, 재사용 분석, MVP 범위, F5 실행 사양을 정리.
@@ -2166,3 +2186,5 @@ EDT 에이전트로 단추를 누르고(`doClick`) 결과를 읽었다. 캡처�
 - 2026-11-07 Object Explorer 후속 수정: 탐색 불가 항목(프로시저·함수 매개 변수, MySQL/MariaDB 시스템 정보의 변수·상태·엔진 등)을 트리에 보여 줌,
   반환 값 매개 변수 이름. "Object Explorer 후속 수정" 절 추가, B단계 데이터 흐름 2·3 갱신.
 - 2026-11-07 SQL Server 스키마를 새로 고친 뒤 테이블 트리거가 비던 문제(트리거 캐시도 비움). "Object Explorer 후속 수정" 절.
+- 2026-11-07 새 객체의 부모 폴더: 같은 클래스를 받는 형제 폴더 중 객체를 담는 폴더를 고름(`DBNModel`, 새 함수가 "저장 프로시저"에 붙던 문제).
+  "Object Explorer 후속 수정" 절.

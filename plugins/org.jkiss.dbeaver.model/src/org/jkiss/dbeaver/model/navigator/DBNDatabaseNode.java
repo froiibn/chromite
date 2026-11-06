@@ -1,6 +1,7 @@
 /*
  * DBeaver - Universal Database Manager
  * Copyright (C) 2010-2026 DBeaver Corp and others
+ * Modifications Copyright (C) 2026 Chromite contributors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -33,6 +34,7 @@ import org.jkiss.dbeaver.model.navigator.meta.DBXTreeObject;
 import org.jkiss.dbeaver.model.runtime.DBRProgressListener;
 import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
 import org.jkiss.dbeaver.model.runtime.DBRRunnableParametrized;
+import org.jkiss.dbeaver.model.runtime.LocalCacheProgressMonitor;
 import org.jkiss.dbeaver.model.runtime.VoidProgressMonitor;
 import org.jkiss.dbeaver.model.struct.*;
 import org.jkiss.dbeaver.model.struct.rdb.DBSCatalog;
@@ -52,6 +54,10 @@ import java.util.function.Function;
 
 /**
  * DBNDatabaseNode
+ *
+ * 변경 이력:
+ * - 2026-11-07 isCachedChildObject: 같은 객체 클래스를 받는 형제 폴더 중 객체를 담는 폴더를 캐시만 읽어 가린다
+ *   (DBNModel#getParentNode, docs/chromite/swing-frontend.md "새 객체의 부모 폴더")
  */
 public abstract class DBNDatabaseNode extends DBNNode implements DBNLazyNode, DBSWrapper, DBPContextProvider, DBPDataSourceContainerProvider {
 
@@ -996,6 +1002,26 @@ public abstract class DBNDatabaseNode extends DBNNode implements DBNLazyNode, DB
             childrenClass = dbnContainer.getChildrenClass();
         }
         return childrenClass;
+    }
+
+    /**
+     * True when the property of this node's items lists the object, read from the model caches only
+     * ({@link LocalCacheProgressMonitor}: no database query runs on the caller's thread, which may be the UI thread).
+     * Tells apart sibling folders that take the same object class but list different objects ({@link DBNModel#getParentNode}).
+     */
+    boolean isCachedChildObject(@NotNull DBSObject object) {
+        DBXTreeItem itemsMeta = getItemsMeta();
+        Object valueObject = getValueObject();
+        if (itemsMeta == null || valueObject == null) {
+            return false;
+        }
+        try {
+            Object items = extractPropertyValue(new LocalCacheProgressMonitor(new VoidProgressMonitor()), valueObject, itemsMeta);
+            return items instanceof Collection<?> itemList && itemList.contains(object);
+        } catch (DBException e) {
+            log.debug("Can't read cached items of '" + getNodeDisplayName() + "'", e);
+            return false;
+        }
     }
 
     ////////////////////////////////////////////////////////////////////////////////////
