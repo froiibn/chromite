@@ -77,8 +77,11 @@ Usage
     python tools/branding/gen_app_icons.py [--inter-jar PATH]
 
 Needs Python 3.10+ with the pip packages resvg-py (SVG renderer), Pillow and fonttools
-(see docs/chromite/branding.md for the venv). The wordmark text is converted to outlines
-from Inter SemiBold (SIL OFL 1.1), read from the FlatLaf fonts jar that the Swing bundle
+(see docs/chromite/branding.md for the venv). The horizontal lockup (chromite_wordmark_*.svg,
+chromite_full_*.png, splash) keeps the lettering of the original Chromite logo: "CHROMITE"
+is hand-built geometry traced from the phase-1 logo (TITLE_GLYPHS, no font), and the
+subtitle uses Inter SemiBold (SIL OFL 1.1) outlines placed on the original letter
+positions. Inter is read from the FlatLaf fonts jar that the Swing bundle
 build copies to plugins/com.seizia.chromite.ui.swing/lib/flatlaf-fonts-inter.jar; pass
 --inter-jar to use another copy (e.g. from the local Maven repository).
 
@@ -89,6 +92,9 @@ Change history:
   is now the user-supplied design redrawn as vector geometry with size tiers, and every
   derived image (ico, icns, window icons, About, splash, installer, logo pack) is
   rendered from the generated SVG sources instead of the phase-1 raster logo.
+- 2026-11-06 Lockup text taken from the original logo instead of Inter: "CHROMITE" rebuilt
+  as italic geometric glyphs with the blue accent bar on the E, a thin divider, and the
+  letter-spaced subtitle on the original letter positions (user decision).
 """
 import argparse
 import io
@@ -99,6 +105,7 @@ import zipfile
 from pathlib import Path
 
 import resvg_py
+from fontTools.pens.boundsPen import BoundsPen
 from fontTools.pens.svgPathPen import SVGPathPen
 from fontTools.pens.transformPen import TransformPen
 from fontTools.ttLib import TTFont
@@ -119,11 +126,6 @@ WAKE_STOPS = [(0, "#00DDF9"), (0.40, "#06E4FD"), (0.56, "#4DEBFC"), (0.67, "#84F
 WAVE_STOPS = [(0, "#0A86F2"), (0.28, "#00B2FD"), (0.46, "#00D4FF"), (0.72, "#00A2FF"), (1, "#0866F0")]
 WHITE = "#FFFFFF"
 TILE_DARK = "#021B3C"
-LIGHT_BG = "#FFFFFF"
-DARK_BG = "#1E1F22"
-INK = "#1E1F22"
-INK_SUB = "#5A5D63"
-INK_DARK_SUB = "#A9B4C6"
 
 WIN_RADIUS = 0.238      # tile corner radius / tile size, measured from the supplied image
 MAC_TILE, MAC_OFF = 824, 100  # Apple icon grid (1024 canvas)
@@ -519,8 +521,10 @@ def glyph_svg(color="currentColor"):
     return svg_doc(16, 16, "0 0 16 16", body)
 
 
-# ---------------------------------------------------------------------------- wordmark
+# ---------------------------------------------------------------------------- lockup
 class Inter:
+    """Inter SemiBold (SIL OFL 1.1) from the FlatLaf fonts jar, for the lockup subtitle."""
+
     def __init__(self, jar):
         with zipfile.ZipFile(jar) as z:
             data = z.read("com/formdev/flatlaf/fonts/inter/Inter-SemiBold.otf")
@@ -530,42 +534,122 @@ class Inter:
         self.upm = self.font["head"].unitsPerEm
         self.hmtx = self.font["hmtx"]
 
-    def path(self, text, size, x, y, tracking=0.0):
-        """(svg path d, advance) of text with baseline y; tracking in em."""
+    def glyph(self, ch, size, cx, y):
+        """svg path d of one glyph with its ink centred on cx and its baseline on y."""
         s = size / self.upm
-        pen_x, ds = x, []
-        names = [self.cmap[ord(ch)] for ch in text]
-        for i, gn in enumerate(names):
-            sp = SVGPathPen(self.gs)
-            self.gs[gn].draw(TransformPen(sp, (s, 0, 0, -s, pen_x, y)))
-            if sp.getCommands():
-                ds.append(sp.getCommands())
-            pen_x += self.hmtx[gn][0] * s + (tracking * size if i < len(names) - 1 else 0)
-        return " ".join(ds), pen_x - x
+        gn = self.cmap[ord(ch)]
+        bp = BoundsPen(self.gs)
+        self.gs[gn].draw(bp)
+        x0, _, x1, _ = bp.bounds
+        sp = SVGPathPen(self.gs)
+        self.gs[gn].draw(TransformPen(sp, (s, 0, 0, -s, cx - (x0 + x1) / 2 * s, y)))
+        return sp.getCommands()
 
 
-def wordmark_svg(inter, dark, bg=None, scale=2, pad=30):
-    """Lockup: the full-tier tile icon, "CHROMITE" and "DATABASE WORKBENCH" set to the same
-    width (subtitle tracking is solved so both lines end together)."""
-    pid = "wd" if dark else "wl"
-    sym = 120
-    defs, body = art_full(pid, Xf(sym / 1000))
-    tile = f'<path d="{rrect_d(0, 0, sym, sym, WIN_RADIUS * sym)}" fill="url(#{pid}tile)"/>'
-    fg, sub = (WHITE, INK_DARK_SUB) if dark else (INK, INK_SUB)
-    tx, ts, ss, lead = sym + 34, 66, 22.5, 18
-    _, tw = inter.path("CHROMITE", ts, 0, 0, tracking=0.06)
-    _, w0 = inter.path("DATABASE WORKBENCH", ss, 0, 0)
-    trk = (tw - w0) / (len("DATABASE WORKBENCH") - 1) / ss
-    cap_t, cap_s = 0.727 * ts, 0.727 * ss       # Inter cap height = 0.727 em
-    bt = (sym - (cap_t + lead + cap_s)) / 2 + cap_t
-    bs = bt + lead + cap_s
-    td, _ = inter.path("CHROMITE", ts, tx, bt, tracking=0.06)
-    sd, _ = inter.path("DATABASE WORKBENCH", ss, tx, bs, tracking=trk)
-    w = tx + tw + 6
-    rect = f'<rect x="{-pad}" y="{-pad}" width="{n(w + 2 * pad)}" height="{sym + 2 * pad}" fill="{bg}"/>' if bg else ""
-    inner = f'<defs>{defs}</defs>{rect}{tile}{body}<path d="{td}" fill="{fg}"/><path d="{sd}" fill="{sub}"/>'
-    return svg_doc((w + 2 * pad) * scale, (sym + 2 * pad) * scale, f"{-pad} {-pad} {n(w + 2 * pad)} {sym + 2 * pad}",
-                   inner)
+def fillet_d(pts):
+    """Closed outline through (x, y, r) vertices; r > 0 rounds that corner with a circular arc."""
+    out = []
+    count = len(pts)
+    for i, (x, y, r) in enumerate(pts):
+        if r <= 0:
+            out.append((x, y, None))
+            continue
+        px, py, _ = pts[i - 1]
+        nx, ny, _ = pts[(i + 1) % count]
+        ax, ay = px - x, py - y
+        bx, by = nx - x, ny - y
+        la, lb = math.hypot(ax, ay), math.hypot(bx, by)
+        ang = math.acos(max(-1.0, min(1.0, (ax * bx + ay * by) / (la * lb))))
+        d = r / math.tan(ang / 2)
+        p1 = (x + ax / la * d, y + ay / la * d)
+        p2 = (x + bx / lb * d, y + by / lb * d)
+        sweep = 1 if (-ax) * by - (-ay) * bx > 0 else 0
+        out.append((p1[0], p1[1], None))
+        out.append((p2[0], p2[1], (r, sweep)))
+    d = f"M{n(out[0][0])},{n(out[0][1])}"
+    for x, y, arc in out[1:]:
+        d += f" A{n(arc[0])},{n(arc[0])} 0 0 {arc[1]} {n(x)},{n(y)}" if arc else f" L{n(x)},{n(y)}"
+    return d + " Z"
+
+
+# "CHROMITE" of the original Chromite logo (phase-1 chromite_full_*.png), rebuilt as geometry.
+# Traced from the 1275x395 original, measured upright (the italic slant removed) and cleaned
+# to one cap height (93), one stem width (20), one bar height (19), outer corner radius 23 and
+# counter radius 5-6. Coordinates: x as in the original image, h = height above the baseline
+# (y 218 in the original); the lockup slants them back by the original 0.17 (9.6 deg).
+# The E's white part is only the lower two bars; its top bar is the blue accent stroke.
+TITLE_GLYPHS = [
+    # C: rounded box with the right side open between h 35 and 62
+    [(529, 62, 0), (529, 93, 23), (431, 93, 23), (431, 0, 23), (529, 0, 23), (529, 35, 0), (510, 35, 0),
+     (510, 19, 5), (451, 19, 5), (451, 74, 5), (510, 74, 5), (510, 62, 0)],
+    # H
+    [(542, 0, 0), (542, 93, 0), (562, 93, 0), (562, 57, 0), (617, 57, 0), (617, 93, 0), (637, 93, 0), (637, 0, 0),
+     (617, 0, 0), (617, 38, 0), (562, 38, 0), (562, 0, 0)],
+    # R: stem, rounded bowl, straight leg; counter below
+    [(652, 0, 0), (652, 93, 0), (746, 93, 23), (746, 30, 22), (719, 30, 0), (753, 0, 0), (723, 0, 0), (689, 30, 0),
+     (672, 30, 0), (672, 0, 0)],
+    [(672, 50, 0), (725, 50, 5), (725, 74, 5), (672, 74, 0)],
+    # O
+    [(758, 0, 23), (758, 93, 23), (859, 93, 23), (859, 0, 23)],
+    [(779, 19, 6), (779, 74, 6), (839, 74, 6), (839, 19, 6)],
+    # M: the V stops 6 above the baseline
+    [(873, 0, 0), (873, 93, 0), (891, 93, 0), (932, 37, 0), (973, 93, 0), (991, 93, 0), (991, 0, 0), (971, 0, 0),
+     (971, 54, 0), (934.5, 6, 0), (929.5, 6, 0), (893, 54, 0), (893, 0, 0)],
+    # I
+    [(1007.5, 0, 0), (1007.5, 93, 0), (1027.5, 93, 0), (1027.5, 0, 0)],
+    # T
+    [(1040, 74, 0), (1040, 93, 0), (1121, 93, 0), (1121, 74, 0), (1090.5, 74, 0), (1090.5, 0, 0), (1070.5, 0, 0),
+     (1070.5, 74, 0)],
+    # E (white part): stem with the bottom and middle bars
+    [(1136, 0, 0), (1136, 57, 0), (1219.5, 57, 0), (1219.5, 38, 0), (1156, 38, 0), (1156, 19, 0), (1219.5, 19, 0),
+     (1219.5, 0, 0)],
+]
+TITLE_BASE, TITLE_SLANT = 218.0, 0.17
+# "DATABASE WORKBENCH": ink centre of each of the 17 letters in the original (cap 246-271).
+# The original letters are not a font on disk, so Inter SemiBold letters of the same cap
+# height and weight are placed on these centres, which keeps the original's spacing.
+SUB_TEXT = "DATABASEWORKBENCH"
+SUB_CENTERS = [451, 488.5, 522.5, 555.5, 593.5, 630.5, 666.5, 702, 767, 811.5, 852, 889.5, 926, 962, 999.5, 1039.5, 1079]
+# Accent stroke (the E's top bar) in original image coordinates; its ends lean 0.5, more
+# than the letters, as in the original.
+TITLE_ACCENT = [(1147, 143.5), (1231, 143.5), (1240.25, 125), (1156.25, 125)]
+ACCENT_STOPS = [(0, "#1D95FD"), (1, "#1478F5")]
+# Colours of the original lockup: dark = white title, grey subtitle and divider; light = navy.
+LOCKUP_INK = {True: ("#FFFFFF", "#B9BCC6", "#BDC3CF"), False: ("#18253B", "#18253B", "#18253B")}
+LOCKUP_DARK_BG = "#01041A"     # background of the original dark lockup
+LIGHT_BG = "#FFFFFF"
+
+
+def title_d():
+    return " ".join(fillet_d([(x, TITLE_BASE - h, r) for x, h, r in g]) for g in TITLE_GLYPHS)
+
+
+def lockup_svg(inter, dark, bg=None, scale=1.0, pad=30.0):
+    """Horizontal lockup in the layout of the original logo (its pixel coordinates): the tile
+    icon, a thin divider (x 384-387), "CHROMITE" (cap 125-218) and "DATABASE WORKBENCH"
+    (cap 246-271, Inter SemiBold letters on the original letter centres)."""
+    pid = "ld" if dark else "ll"
+    title, sub, rule = LOCKUP_INK[dark]
+    sym = 250
+    sx, sy = 355 - sym, 198 - sym / 2
+    defs, body = art_full(pid, Xf(sym / 1000, sx, sy))
+    tile = f'<path d="{rrect_d(sx, sy, sym, sym, WIN_RADIUS * sym)}" fill="url(#{pid}tile)"/>'
+    size = 25 / 0.727                               # Inter cap height = 0.727 em
+    sd = " ".join(inter.glyph(ch, size, cx, 271) for ch, cx in zip(SUB_TEXT, SUB_CENTERS))
+    defs += (f'<linearGradient id="{pid}acc" gradientUnits="userSpaceOnUse" x1="1147" y1="0" x2="1241" y2="0">'
+             f'{stops(ACCENT_STOPS)}</linearGradient>')
+    shear = (f"translate(0 {n(TITLE_BASE)}) skewX({n(-math.degrees(math.atan(TITLE_SLANT)))}) "
+             f"translate(0 {n(-TITLE_BASE)})")
+    accent = "M" + " L".join(f"{n(x)},{n(y)}" for x, y in TITLE_ACCENT) + " Z"
+    x0, y0, x1, y1 = sx - pad, sy - pad, 1241 + pad, sy + sym + pad
+    rect = f'<rect x="{n(x0)}" y="{n(y0)}" width="{n(x1 - x0)}" height="{n(y1 - y0)}" fill="{bg}"/>' if bg else ""
+    inner = (f"<defs>{defs}</defs>{rect}{tile}{body}"
+             f'<rect x="384.5" y="128" width="3" height="146" fill="{rule}"/>'
+             f'<path d="{title_d()}" fill="{title}" fill-rule="evenodd" transform="{shear}"/>'
+             f'<path d="{accent}" fill="url(#{pid}acc)"/>'
+             f'<path d="{sd}" fill="{sub}"/>')
+    w, h = x1 - x0, y1 - y0
+    return svg_doc(w * scale, h * scale, f"{n(x0)} {n(y0)} {n(w)} {n(h)}", inner)
 
 
 # ---------------------------------------------------------------------------- rendering
@@ -711,15 +795,15 @@ MAC_SIZES = [16, 32, 64, 128, 256, 512, 1024]
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
-    ap.add_argument("--inter-jar", help="flatlaf-fonts-inter jar for the wordmark text")
+    ap.add_argument("--inter-jar", help="flatlaf-fonts-inter jar for the lockup subtitle")
     args = ap.parse_args()
     inter = Inter(find_inter(args.inter_jar))
 
     # SVG sources
     svgs = {"chromite_icon.svg": windows_svg(1024), "chromite_icon_macos.svg": macos_svg(1024),
             "chromite_glyph16.svg": glyph_svg(),
-            "chromite_wordmark_light.svg": wordmark_svg(inter, False),
-            "chromite_wordmark_dark.svg": wordmark_svg(inter, True)}
+            "chromite_wordmark_light.svg": lockup_svg(inter, False),
+            "chromite_wordmark_dark.svg": lockup_svg(inter, True)}
     for s in (64, 48, 40, 32, 24, 20, 16):
         svgs[f"chromite_icon_{s}.svg"] = windows_svg(s)
     for s in (64, 32, 16):
@@ -732,12 +816,12 @@ def main():
 
     # logo pack PNGs (names kept from phase 1)
     sym = win[256]
-    for name, bg in (("dark", DARK_BG), ("light", LIGHT_BG), ("transparent", (0, 0, 0, 0))):
+    for name, bg in (("dark", LOCKUP_DARK_BG), ("light", LIGHT_BG), ("transparent", (0, 0, 0, 0))):
         save_png(on_canvas(sym.resize((320, 320), Image.LANCZOS), 360, 395, bg), PACK / f"chromite_symbol_{name}.png")
-    for name, dark, bg in (("dark", True, DARK_BG), ("light", False, LIGHT_BG), ("transparent", False, None)):
-        wm = render(wordmark_svg(inter, dark), 1195, None)
-        save_png(on_canvas(wm.resize((1195, round(wm.height * 1195 / wm.width)), Image.LANCZOS), 1275, 395,
-                           bg or (0, 0, 0, 0)), PACK / f"chromite_full_{name}.png")
+    # the transparent lockup keeps the original's light-on-dark ink, like the phase-1 file
+    for name, dark, bg in (("dark", True, LOCKUP_DARK_BG), ("light", False, LIGHT_BG), ("transparent", True, None)):
+        wm = render(lockup_svg(inter, dark), 1196, None)
+        save_png(on_canvas(wm, 1275, 395, bg or (0, 0, 0, 0)), PACK / f"chromite_full_{name}.png")
 
     # Windows launcher icon, macOS app icon and iconset
     icons = ROOT / "product" / "community" / "icons"
@@ -765,7 +849,7 @@ def main():
                             f'<defs>{gradients("p", Xf(0.6, 0, -60))}</defs>'
                             f'<rect width="600" height="300" fill="url(#ptile)"/>'), 600, 300)
     # lockup left-aligned with the version text drawn by the splash handler (versionInfoCoord 60,225)
-    wm = render(wordmark_svg(inter, True, pad=0), 470, None)
+    wm = render(lockup_svg(inter, True, pad=0), 480, None)
     splash.alpha_composite(wm, (60, 60))
     splash.convert("RGB").save(app / "splash.png", "PNG", optimize=True)
     ui = ROOT / "plugins" / "org.jkiss.dbeaver.ui" / "icons"

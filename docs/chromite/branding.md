@@ -47,7 +47,14 @@ DBeaver Community 포크를 **Chromite** 제품으로 배포하기 위해, 사�
 
 - Windows `.ico`, SWT·Swing 창 아이콘: 타일이 정사각형을 채운다.
 - macOS `.icns`: Apple 격자(1024 안에 824 둥근 사각형 타일, 여백 100, 그림자). 16·32·64px 항목은 여백 안 타일의 픽셀 격자에 맞춰 따로 그린다.
-- 워드마크: full 타일 아이콘 + `CHROMITE` + `DATABASE WORKBENCH`(두 줄 폭이 같게 자간 조정). 글자는 Inter SemiBold(SIL OFL 1.1, FlatLaf 글꼴 jar)를 윤곽선으로 바꿨다.
+- 가로 로고(워드마크): 새 타일 아이콘 + 얇은 세로 구분선 + 원래 로고의 글자. 글자는 1단계 로고(`chromite_full_*.png`, devel)의 배치와 모양을 따른다(2026-11-06 사용자 결정).
+  - `CHROMITE`: 원래 로고를 따라 그린 굵은 기울임 기하 글자 8개를 도형으로 만들었다(글꼴 없음, `TITLE_GLYPHS`). 기울임을 펴고 재서
+    대문자 높이 93, 세로획 20, 가로획 19, 바깥 모서리 반경 23으로 정리한 뒤 원래 기울기 0.17(9.6도)로 다시 기울인다.
+    E의 윗가로획은 원래처럼 오른쪽으로 더 나온 파란 강조 획(`#1D95FD`→`#1478F5`)이다.
+  - `DATABASE WORKBENCH`: 원래 글자는 디스크에 있는 글꼴이 아니라서, 같은 대문자 높이(25)와 굵기의 Inter SemiBold(SIL OFL 1.1, FlatLaf 글꼴 jar)
+    글자를 원래 글자 17개의 가운데 위치에 하나씩 놓았다. 그래서 넓은 자간이 원래와 같다.
+  - 색: 어두운 판은 흰 글자, 회색 부제(`#B9BCC6`)와 구분선(`#BDC3CF`). 밝은 판은 글자, 부제, 구분선 모두 남색(`#18253B`). 원래 로고와 같다.
+  - 원래 로고와 겹쳐 비교하면 글자 경계 차이는 1px 안팎이다.
 
 ### 원본(SVG)과 다시 만드는 방법
 
@@ -71,9 +78,9 @@ D:\Tools\_venvs\chromite-branding\Scripts\python tools/branding/gen_app_icons.py
 | `chromite_icon_{64,48,40}.svg`, `_{32,24}.svg`, `_{20,16}.svg` | simple, mark, tiny 단계 (각 크기의 픽셀 격자) |
 | `chromite_icon_macos.svg`, `chromite_icon_macos_{64,32,16}.svg` | macOS Apple 격자 |
 | `chromite_glyph16.svg` | 단색 글리프 |
-| `chromite_wordmark_{light,dark}.svg` | 워드마크 (투명 배경, 밝은 바탕용 / 어두운 바탕용) |
+| `chromite_wordmark_{light,dark}.svg` | 가로 로고 (투명 배경, 밝은 바탕용 남색 글자 / 어두운 바탕용 흰 글자) |
 | `chromite_symbol_{dark,light,transparent}.png` | 360×395, 아이콘을 어두운 바탕 / 흰 바탕 / 투명 위에 |
-| `chromite_full_{dark,light,transparent}.png` | 1275×395, 워드마크를 어두운 바탕 / 흰 바탕 / 투명(어두운 글자) 위에. `README.md`가 `chromite_full_dark.png`를 쓴다 |
+| `chromite_full_{dark,light,transparent}.png` | 1275×395, 가로 로고를 어두운 바탕(`#01041A`, 원래 로고 바탕) / 흰 바탕 / 투명 위에. 투명 판은 원래처럼 흰 글자. `README.md`가 `chromite_full_dark.png`를 쓴다 |
 
 ### 파생 이미지
 
@@ -92,7 +99,7 @@ D:\Tools\_venvs\chromite-branding\Scripts\python tools/branding/gen_app_icons.py
 | `plugins/org.jkiss.dbeaver.ui/icons/dbeaver_perspective{,@2x}.png` | 16, 32 | 퍼스펙티브 아이콘 (`org.jkiss.dbeaver.core/plugin.xml`) |
 | `plugins/com.seizia.chromite.ui.swing/icons/chromite{16,20,24,32,40,48,64,128,256}.png` | 각 크기 | Swing 창·작업 표시줄 아이콘, 시작 탭 로고(128), About 로고(64) (`ChromiteIcons`) |
 
-- 스플래시: 타일 그라데이션 바탕에 어두운 워드마크(폭 470px)를 (60,60)에 놓았다. 왼쪽 끝을 버전 표시(`versionInfoCoord` 60,225)와 맞췄다.
+- 스플래시: 타일 그라데이션 바탕에 어두운 판 가로 로고(폭 480px)를 (60,60)에 놓았다. 왼쪽 끝을 버전 표시(`versionInfoCoord` 60,225)와 맞췄다.
   진행 메시지와 진행 막대 위치(`startupMessageRect`, `startupProgressRect`)는 upstream 값을 그대로 쓴다.
 - 설치 프로그램 측면 이미지: 타일 그라데이션 바탕 위쪽에 아이콘(112px).
 - `plugins/org.jkiss.dbeaver.ui.app.eclipse/icons/{dbeaver-plugin,ce_plugin_icon}.png`는 아직 DBeaver 그림이다.
@@ -184,3 +191,5 @@ D:\Tools\_venvs\chromite-branding\Scripts\python tools/branding/gen_app_icons.py
   크기별 단계(full, simple, mark, tiny, 단색 글리프)와 워드마크를 만들었다. `chromite_logo_pack/`에 SVG 원본을 추가하고
   PNG 6개, `.ico`, `.icns`, 아이콘 세트, SWT 창 아이콘·About·스플래시·설치 이미지, `UIIcon` 로고, Swing 창 아이콘을 모두
   다시 만들었다. `tools/branding/gen_launcher_ico.py`를 `gen_app_icons.py`로 바꿔 이 전부를 만들게 했다.
+- 2026-11-06 가로 로고 글자를 Inter 워드마크에서 원래 로고의 글자로 바꿈(사용자 결정): 기울임 기하 글자 `CHROMITE`와 E의 파란 강조 획,
+  얇은 세로 구분선, 원래 위치에 놓은 넓은 자간 부제. `chromite_full_*.png`, `chromite_wordmark_*.svg`, `chromite_symbol_dark.png`(바탕색), 스플래시를 다시 만듦.
