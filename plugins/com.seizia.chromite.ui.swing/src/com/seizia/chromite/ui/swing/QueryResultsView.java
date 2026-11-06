@@ -54,6 +54,7 @@ import java.util.List;
  * - 2026-11-06 결과 뷰어가 다시 읽은 뒤의 행 수({@link #getRowCount()}, {@link Listener#resultsRowsChanged()}): 쿼리 상태 줄이 실행 때 행 수에
  *   머물던 문제 (docs/chromite/swing-result-viewer.md)
  * - 2026-11-06 화면 문구를 EditorMessages로 옮김(OS 언어를 따름)
+ * - 2026-11-07 결과 뷰어의 필터 줄이 없어져 최소 높이 주석을 고침(값은 그대로) (docs/chromite/swing-grid-column-filters.md)
  */
 final class QueryResultsView {
 
@@ -77,7 +78,7 @@ final class QueryResultsView {
         void resultsRowsChanged();
     }
 
-    // A result viewer adds a filter bar and a status line around its grid (ResultSetViewerPanel)
+    // A result viewer adds a status line below its grid (ResultSetViewerPanel)
     private static final int MIN_GRID_HEIGHT = 220;
 
     private final GridStack gridStack = new GridStack();

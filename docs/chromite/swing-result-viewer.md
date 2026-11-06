@@ -6,7 +6,7 @@ DBeaver SWT 결과 뷰어(`com.seizia.chromite.ui.editors.data`의 `ResultSetVie
 ([swing-frontend.md](swing-frontend.md) C·G단계의 `ResultSetGrid`)에 옮긴다. 우선순위는 다음과 같다.
 
 1. 값 패널: 고른 칸의 값을 표 옆에서 크게 보기(줄 바꿈 글자, JSON·XML 정리, 이진 이미지 미리 보기, 16진수), 편집할 수 있는 표에서는 고치기
-2. 정렬·필터: 머리글 눌러 정렬(서버 또는 표 안), WHERE 필터 줄과 기록, 칸 값으로 거르기
+2. 정렬·필터: 머리글 눌러 정렬(서버 또는 표 안), 칸 값으로 거르기. WHERE 필터 줄과 기록은 2026-11-07 열 머리글 필터로 바뀜([swing-grid-column-filters.md](swing-grid-column-filters.md))
 3. 다음 페이지: 끝까지 내리면 더 읽기, 모두 읽기, 읽은 행 수 표시
 4. 레코드 보기: 한 행을 세로로
 5. 표 편의 기능: 열 너비 맞춤, 복사 형식(CSV·TSV·SQL IN·Markdown), 선택 집계, NULL 표시, 날짜·숫자 형식
@@ -19,11 +19,11 @@ DBeaver SWT 결과 뷰어(`com.seizia.chromite.ui.editors.data`의 `ResultSetVie
 ```
 QueryResultsView (결과 창, 결과마다 하나씩 쌓음)
  └ ResultSetViewerPanel (결과 하나, SWT ResultSetViewer에 해당)
-    ├ ResultSetFilterBar      필터 줄: WHERE 입력·기록, 적용·지우기 | 값 패널·레코드 단추
     ├ JSplitPane
-    │  ├ CardLayout: ResultSetGrid (C·G단계 표, 그대로) | ResultSetRecordView (레코드 보기)
+    │  ├ CardLayout: ResultSetGrid (C·G단계 표, 머리글은 ResultSetHeaderRenderer) | ResultSetRecordView (레코드 보기)
     │  └ ResultSetValuePanel  값 패널 (F7)
-    └ 상태 줄                   읽은 행 수, Fetch next / Fetch all, 선택 집계(ResultSetAggregates)
+    └ 상태 줄                   읽은 행 수, Fetch next / Fetch all, 필터 요약 | 선택 집계(ResultSetAggregates), 값 패널·레코드 단추
+   (머리글 깔때기 → ResultSetColumnFilterPopup, 2026-11-07 swing-grid-column-filters.md)
 ```
 
 | 클래스 | 새/변경 | 역할 |
@@ -32,7 +32,7 @@ QueryResultsView (결과 창, 결과마다 하나씩 쌓음)
 | `ResultSetSource` | 새 | 결과를 어디서 읽었는지(데이터 컨테이너, 실행 문맥, 한 번에 읽는 행 수, 다시 읽을 수 없는 이유)와 값 패널용 칸 값 |
 | `ResultSetCellContent` | 새 | 칸 하나의 LOB 내용. 메모리에 있는 내용은 바로, 없는 LOB는 값 패널이 처음 볼 때 백그라운드에서 읽음 |
 | `ResultSetValuePanel` | 새 | 값 패널(Auto/Text/JSON/XML/Image/Hex, 줄 바꿈, Apply/Revert) |
-| `ResultSetFilterBar` | 새 | 필터 줄과 기록 |
+| `ResultSetFilterBar` | 삭제(2026-11-07) | 필터 줄과 기록. 열 머리글 필터로 바꿈([swing-grid-column-filters.md](swing-grid-column-filters.md)) |
 | `ResultSetRecordView` | 새 | 레코드 보기(열 이름 · 자료형 · 값, 이전·다음 행, 고치기) |
 | `ResultSetAggregates` | 새 | 고른 칸 집계(개수, 합계, 평균, 최솟값, 최댓값) |
 | `ResultSetCopyFormats` | 새 | "Copy As" 메뉴(CSV, TSV, Markdown 표, SQL IN 목록) |
@@ -71,7 +71,7 @@ SWT: `ValueViewerPanel`(panel/valueviewer/ValueViewerPanel.java:60), `ContentPan
     1,000,000바이트(SWT 기본 `content.cache.maxsize`)까지 읽고 넘으면 "showing the first …"로 알린다. 결과를 지우거나 다시 읽을 때 놓아 준다.
 - **편집:** 표가 편집할 수 있는 칸이고 글자 값이면 패널에서 고친 뒤 Apply(Ctrl+Enter)로 표에 넣는다. 값은 셀 편집기처럼 열의 값 처리기가 만들고(`ResultSetGrid.setCellText`),
   틀린 값이면 아래 줄에 빨간 글자로 이유를 쓴다. 저장은 표의 저장(Ctrl+S, Save)이다. LOB 열은 G단계처럼 읽기 전용이다.
-- **열고 닫기:** F7, 필터 줄 오른쪽 "Value" 단추, 오른쪽 클릭 "Value Panel". 연 상태는 이 실행 동안 다음 결과에도 이어진다.
+- **열고 닫기:** F7, 상태 줄 오른쪽 "Value" 단추(2026-11-07 전에는 필터 줄 오른쪽), 오른쪽 클릭 "Value Panel". 연 상태는 이 실행 동안 다음 결과에도 이어진다.
 
 ### 정렬과 필터
 
@@ -81,22 +81,23 @@ SWT: `ResultSetViewer.toggleSortOrder`(ResultSetViewer.java:2700), `reorderLocal
 
 - **정렬 순서:** 머리글을 누르면 오름차순 → 내림차순 → 정렬 없음. Ctrl을 누른 채 누르면 다른 열의 정렬을 두고 이 열을 더한다(여러 열 정렬).
   SWT는 그냥 눌러도 열을 더하지만, Swing은 한 열 정렬을 기본으로 했다(다른 데이터베이스 도구에서 흔한 방식). 머리글 오른쪽 클릭에 Sort Ascending / Sort Descending / Clear Sorting.
-  정렬한 열은 머리글에 Look and Feel의 정렬 화살표(`Table.ascendingSortIcon`/`descendingSortIcon`)를 그린다.
+  정렬 상태는 2026-11-07부터 머리글 오른쪽 끝의 정렬 아이콘(정렬 없음: 흐린 ⇅, 정렬: 강조색 화살표)이 보이고, 그 아이콘을 눌러도 같은 순서로 바뀐다
+  (전에는 Look and Feel의 정렬 화살표 `Table.ascendingSortIcon`/`descendingSortIcon`, [swing-grid-column-filters.md](swing-grid-column-filters.md)).
 - **서버 또는 표 안:** SWT 설정 `resultset.order.mode`(`OrderingStrategy`)를 그대로 따른다. SMART(기본)는 아직 읽지 않은 행이 있으면 서버, 다 읽었으면 표 안,
   CLIENT_SIDE는 항상 표 안, SERVER_SIDE는 항상 서버다. DB가 결과 정렬을 지원하지 않거나(`supportsResultSetOrdering`) 쿼리를 다시 읽을 수 없으면 표 안에서 정렬한다.
   서버 정렬은 `DBDDataFilter`의 열 정렬로 쿼리를 다시 읽는다(방언의 `addFiltersToQuery`가 ORDER BY를 넣음). SWT의 서버 정렬 확인 대화상자는 띄우지 않는다.
 - **표 안 정렬:** SWT처럼 먼저 읽은 순서로 되돌린 뒤 정렬 열마다 값 처리기의 비교기, 둘 다 문자열이면 대소문자 무시, 그 밖에는 `DBUtils.compareDataValues`(NULL은 뒤)로 비교한다.
   SWT는 모든 열에 누른 열의 비교기를 쓰지만 Swing은 열마다 그 열의 비교기를 쓴다. LOB처럼 표시 문자열만 아는 칸은 표시 문자열로 비교한다.
-- **필터 줄:** WHERE 조건(예: `price > 100 and name like 'Item 00%'`)을 쓰고 Enter(또는 ✓)로 적용한다. SWT처럼 적용한 글자가 열 조건을 대신하고(`setWhere`),
-  지금 적용된 조건은 `SQLUtils.appendConditionString`으로 만든 글자로 보인다. × 단추는 조건을 지운다(정렬은 남음).
-- **기록:** SWT 결과 뷰어의 기본 필터 관리자처럼 쿼리 글자마다 메모리에 둔다(최근 20개, 앱을 끝내면 사라짐). 입력란의 아래 화살표로 고른다.
+- **열 필터(2026-11-07, 필터 줄 대신):** 머리글의 깔때기로 열마다 값 목록(서버에서 읽은 서로 다른 값과 행 수)이나 조건(=, ≠, 포함, >, 범위, IS NULL 등)을 건다.
+  필터는 열 조건(`DBDAttributeConstraint`)으로 쿼리를 다시 읽는다. 지금 조건은 상태 줄 요약의 도구 설명(`SQLUtils.appendConditionString`)으로 보인다.
+  자세한 것은 [swing-grid-column-filters.md](swing-grid-column-filters.md). 예전 WHERE 필터 줄(`setWhere`, 쿼리별 기록 20개)은 없앴다.
 - **칸 값으로 거르기:** 오른쪽 클릭 "Filter by Value"에 SWT 필터 메뉴처럼 고른 칸의 값으로 `=`, `<>`, `>`, `<`와 `IS NULL`, `IS NOT NULL`(열의 값 처리기가 지원하는 연산자만),
   그 열의 필터 지우기가 있다. 열 조건(`DBDAttributeConstraint`의 연산자와 값)으로 넣으므로 별칭 열도 방언이 맞는 이름으로 바꾼다. LOB 칸 값으로는 거르지 않는다.
   "Clear Filter"는 모든 조건을 지운다.
 - **다시 읽을 수 있는 결과:** 컨테이너가 `FEATURE_DATA_FILTER`를 지원하고 쿼리가 SELECT 하나(`SQLQuery.getType() == SELECT`, `isModifying()` 거짓)일 때만
   필터·서버 정렬·다음 페이지를 한다(`ResultSetSource.getRequeryBlocker`). SWT는 쿼리를 다시 실행하기 전에 데이터가 바뀌는 쿼리인지 묻지만(`verifyQuerySafety`, :4463),
   Swing의 GO 배치·여러 문장·프로시저 호출은 다시 실행하면 다른 문장까지 실행되고 두 번째 이후 결과 집합은 `readData`로 다시 얻을 수 없으므로 막는다.
-  막힌 결과는 필터 줄이 꺼지고 도구 설명에 이유("not a single SELECT query")가 보인다. 정렬은 표 안에서 된다.
+  막힌 결과는 머리글의 깔때기가 흐려지고(2026-11-07 전에는 필터 줄이 꺼짐) 도구 설명에 이유("not a single SELECT query")가 보인다. 정렬은 표 안에서 된다.
 - **저장하지 않은 변경:** 정렬·필터 전에 "변경을 버릴까요?"를 묻는다(SWT `checkForChanges`). 저장 중에는 하지 않는다.
 - **다시 읽기:** 백그라운드 `DataSourceJob`에서 `DBSDataContainer.readData(…, FLAG_REFRESH, …)`로 한다. `FLAG_REFRESH`는 쿼리 매개변수를 다시 묻지 않고 지난 값을 쓰게 한다.
   실패하면 상태 줄에 "Read failed: …", Messages에 오류를 쓰고 표는 그대로 둔다.
@@ -121,7 +122,7 @@ SWT: `ResultSetViewer.readNextSegment`(:4422), `readAllData`(:4471), `ResultSetD
 
 SWT: 결과 뷰어의 레코드 모드(`ResultSetViewer.toggleMode`).
 
-- 필터 줄 오른쪽 "Record" 단추나 오른쪽 클릭 "Record"로 바꾼다. 표의 선택 행을 "Column | Type | Value"로 보여 주고 ◀ ▶(Alt+←/→)로 행을 옮긴다(표의 선택도 옮겨 돌아와도 같은 행).
+- 상태 줄 오른쪽 "Record" 단추(2026-11-07 전에는 필터 줄 오른쪽)나 오른쪽 클릭 "Record"로 바꾼다. 표의 선택 행을 "Column | Type | Value"로 보여 주고 ◀ ▶(Alt+←/→)로 행을 옮긴다(표의 선택도 옮겨 돌아와도 같은 행).
 - 편집할 수 있는 결과는 값 칸을 두 번 누르거나 F2로 고친다(표의 셀 편집기와 같은 값 처리기, 틀린 값은 빨간 테두리). 바뀐 칸은 표처럼 노란 바탕이고, Ctrl+S가 표의 변경을 저장한다.
 - 레코드 보기로 바꾸면 표에서 고른 열의 줄이 선택된다(값 패널이 같은 칸을 계속 보인다).
 - SWT의 Tab 단축키는 쓰지 않았다(표에서 Tab은 다음 칸으로 가는 키라서).
@@ -182,3 +183,5 @@ SWT: 결과 뷰어의 레코드 모드(`ResultSetViewer.toggleMode`).
 - 2026-11-06 필터·다음 페이지 뒤 쿼리 상태 줄의 행 수가 바뀌지 않던 문제: 뷰어가 행 수 변경을 알리고 쿼리 창이 지금 보이는 행 수로 바꿈.
 - 2026-11-07 날짜/시간 값을 소수 초까지 보이고 편집해도 남게 하는 Tools > Options 설정(SWT "Disable date/time formatting"과 같은 설정),
   SQL Server `datetimeoffset` 편집이 NULL로 저장되던 것. [swing-followup-fixes.md](swing-followup-fixes.md) "날짜/시간 소수 초".
+- 2026-11-07 WHERE 필터 줄(`ResultSetFilterBar`)과 기록을 없애고 열 머리글의 필터·정렬 아이콘과 열 필터 팝업으로 바꿈(사용자 요청). 값 패널·레코드 단추는 상태 줄로.
+  [swing-grid-column-filters.md](swing-grid-column-filters.md).

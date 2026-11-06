@@ -643,6 +643,8 @@ C단계의 목표는 SSMS식 SQL 편집기와 결과 창이다: 편집기 탭을
     값을 놓아 준다(`DBUtils.releaseValue`). EDT는 문자열만 다룬다. 행은 모아 두었다가 `fetchEnd`에서 한 번에 넘긴다(실패로 `fetchEnd`가 없으면 `close`에서).
   - 열 이름은 바인딩 이름(열 별칭), NULL은 흐린 기울임꼴 "NULL", 숫자 열(`DBPDataKind.NUMERIC`)은 오른쪽 정렬, 열 너비는 머리글과 앞 200행 글자 너비(40–320px),
     왼쪽에 행 번호 머리글(누르면 그 행 선택), 칸 선택과 Ctrl+C(탭으로 나눈 표시 문자열) 복사. 편집은 아직 없다(G단계에서 구현, "구현 현황 — G단계").
+  - 열 머리글(2026-11-07): 열 아이콘 + 이름 + 오른쪽 끝의 필터(깔때기)·정렬 아이콘. 깔때기는 그 열의 필터 팝업(서버에서 읽은 값 목록과 조건, 서버에서 다시 읽음),
+    정렬 아이콘과 이름은 정렬. 결과 위의 WHERE 필터 줄은 없앴다. [swing-grid-column-filters.md](swing-grid-column-filters.md).
 - **Messages:** 쿼리마다 경고(JDBC `SQLWarning` — SQL Server `PRINT`, PostgreSQL `NOTICE` 등), `(N rows affected)`(결과 집합은 읽은 행 수, 최대 행 수에 닿으면 그 사실도),
   `Execution time: N ms`를 쓴다. 오류는 빨간색으로 `Msg <오류 코드>, State <SQLSTATE>, Line L, Column C`와 예외 메시지를 쓴다.
   위치는 방언의 `DBPErrorAssistant.getErrorPosition`이 찾으면 그 위치(편집기 기준 줄·열), 못 찾으면 쿼리 시작 줄이다. 끝에 `Completion time`.
@@ -2468,3 +2470,4 @@ SQL Editor 도구 막대다. 쿼리 창마다 있던 도구 막대는 없앴다(
 - 2026-11-07 작업 공간 위치: `-data`가 없으면 현재 폴더가 아니라 기본 작업 공간을 씀(시작 순서 3번, [workspace-location.md](workspace-location.md)).
 - 2026-11-07 SQL Server 에이전트 관리: 개체 탐색기의 에이전트 노드, 작업·작업 활동 모니터·경고·운영자·오류 로그. [swing-sqlserver-agent.md](swing-sqlserver-agent.md).
 - 2026-11-07 실행 계획 세 보기: 계획 탭에 그래픽(연산자 그림)·트리·원본 보기 전환. [swing-sql-editor-plus.md](swing-sql-editor-plus.md) "실행 계획 세 보기".
+- 2026-11-07 결과 그리드 열 필터: WHERE 필터 줄 삭제, 열 머리글의 필터·정렬 아이콘과 열 필터 팝업, 상태 줄 필터 요약. "Results / Messages" 절, [swing-grid-column-filters.md](swing-grid-column-filters.md).

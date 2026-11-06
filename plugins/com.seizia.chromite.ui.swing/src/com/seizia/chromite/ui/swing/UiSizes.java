@@ -40,6 +40,7 @@ import java.awt.*;
  * 변경 이력:
  * - 2026-11-07 최초 작성: 하드코딩한 치수를 테마 키로 모으고 기본 밀도를 B("조금 촘촘")로 바꿈 (docs/chromite/design-spec.md "치수 토큰")
  * - 2026-11-07 size.toolbar.editor 설명: 쿼리 창 도구 막대가 메인 창 둘째 줄의 SQL Editor 도구 막대가 됨 (docs/chromite/swing-frontend.md "SQL Editor 도구 막대")
+ * - 2026-11-07 결과 필터 줄을 없애고 열 머리글 아이콘 치수(필터·정렬 아이콘, 간격)를 더함 (docs/chromite/swing-grid-column-filters.md)
  */
 final class UiSizes {
 
@@ -69,8 +70,10 @@ final class UiSizes {
     static final String TREE_ICON_TEXT_GAP = "Chromite.size.tree.iconTextGap"; //$NON-NLS-1$
     /** Tree rows: gap before the secondary text (and around a connection pill). */
     static final String TREE_SECONDARY_GAP = "Chromite.size.tree.secondaryGap"; //$NON-NLS-1$
-    /** Result grid filter bar padding. */
-    static final String FILTER_BAR_PADDING = "Chromite.size.filterBar.padding"; //$NON-NLS-1$
+    /** Result grid column header: the filter and sort icon boxes (each this wide and high). */
+    static final String GRID_HEADER_ACTION = "Chromite.size.gridHeader.action"; //$NON-NLS-1$
+    /** Result grid column header: gap after the column icon and before the filter icon. */
+    static final String GRID_HEADER_GAP = "Chromite.size.gridHeader.gap"; //$NON-NLS-1$
     /** Result viewer status bar (row count, fetch links) padding. */
     static final String VIEWER_STATUS_PADDING = "Chromite.size.viewerStatus.padding"; //$NON-NLS-1$
 

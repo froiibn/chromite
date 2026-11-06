@@ -146,7 +146,7 @@ Swing 프런트엔드(`com.seizia.chromite.ui.swing`)의 화면을 **배치와 �
 | 그리드 바탕 | 흰색(다크: 어두움) | 편집기 바탕(L `#FFFFFF` / D `#1E1F22`) [S][E] | L `#FFFFFF` / D `#36383A` [S] | `bg.editor` | P0 |
 | 행 높이 | ≈20 | ≈27 [S](편집기 글꼴 13 + 위아래 여백) | 20(FlatLaf `Table.rowHeight`) [F] | `size.row.grid` 27 | P0 |
 | 글꼴 | 비례 글꼴(설정 가능) | 편집기 글꼴(JetBrains Mono 13) [S] | `font.ui`(Segoe UI 12) | `font.grid` = `font.ui` Pretendard 12(2026-11-07 사용자 요청, "적용 현황 — 그리드 글꼴 Pretendard". 그전 목표는 `font.code`). 설정으로 바꿀 수 있게는 P2 | P0 |
-| 머리글 | 이름 왼쪽 정렬 [M 결과 캡처] | 높이 ≈28, 바탕 = 그리드 바탕, 열 종류 아이콘 16(키 표시 포함) + 이름(왼쪽 정렬), 마우스 올리면 필터·정렬 아이콘 [S] | 높이 25, 이름 가운데 정렬, 아이콘 없음 [F][S] | `size.header.grid` 28, 왼쪽 정렬(숫자 열도 머리글은 왼쪽), 열 아이콘(PK/FK 배지 포함), 아래 1px `grid.line` | P0 |
+| 머리글 | 이름 왼쪽 정렬 [M 결과 캡처] | 높이 ≈28, 바탕 = 그리드 바탕, 열 종류 아이콘 16(키 표시 포함) + 이름(왼쪽 정렬), 마우스 올리면 필터·정렬 아이콘 [S] | 높이 25, 이름 가운데 정렬, 아이콘 없음 [F][S] | `size.header.grid` 28, 왼쪽 정렬(숫자 열도 머리글은 왼쪽), 열 아이콘(PK/FK 배지 포함), 아래 1px `grid.line`. 2026-11-07 사용자 요청 10과 사용자 캡처(DataGrip, 아이콘이 늘 보임)로 바꿈: 열 아이콘 16 + 이름 + 오른쪽 끝에 필터(깔때기)·정렬 아이콘(각 `size.gridHeader.action` 16, 늘 보이는 흐린 `text.secondary`, 필터·정렬이 있으면 `accent`), 결과 위 WHERE 필터 줄은 없앰("적용 현황 — 열 필터", [swing-grid-column-filters.md](swing-grid-column-filters.md)) | P0 |
 | 격자선 | 세로·가로 옅은 선 | 세로선이 가로선보다 조금 진함 [S] | FlatLaf 기본(표시 안 함) | 세로선 `grid.line`, 가로선 `grid.lineSubtle` 둘 다 표시 | P0 |
 | 줄무늬 | 없음 | 없음(기본) [S] | 없음 | 없음 | — |
 | 행 번호 열 | 맨 왼쪽 열, 왼쪽 정렬 [M] | 바탕 = 그리드 바탕, 글자 `text.secondary`, 폭 ≈40 [S] | 머리글 바탕, 오른쪽 정렬 [C] `ResultSetGrid.java:194-205` | 바탕 `bg.editor`, 글자 `text.secondary`, 왼쪽 여백 8, 오른쪽 1px `grid.line` | P1 |
@@ -270,6 +270,7 @@ IntelliJ 전용 키와 FlatLaf 키의 차이를 줄이기 위해서다(설계 �
 | `tab.hover` | 탭 마우스 올림 | `#EBECF0` | `#43454A` | `TabbedPane.hoverColor`(L Gray12, D Gray4) | `TabbedPane.hoverColor` |
 | `grid.line` | 그리드 세로선, 머리글 아래 선 | `#EBECF0` | `#393B40` | `Table.gridColor`(L Gray12), 다크는 [S] 비율로 Gray3 | `Table.gridColor`, `TableHeader.separatorColor`, `TableHeader.bottomSeparatorColor` |
 | `grid.lineSubtle` | 그리드 가로선 | `#F7F8FA` | `#2B2D30` | [S] 가로선이 세로선보다 옅음 | `Chromite.Table.horizontalLineColor` |
+| `grid.headerIcon` / `grid.headerIconActive` | 그리드 머리글의 필터·정렬 아이콘(평소 / 필터·정렬 있음) | = `text.secondary` / = `accent` | = `text.secondary` / = `accent` | [S] 사용자 캡처: 늘 보이는 흐린 깔때기·정렬 아이콘(2026-11-07) | `Chromite.Table.headerIconForeground`(`$Chromite.secondaryForeground`), `Chromite.Table.headerIconActiveForeground`(`@accentColor`) |
 | `tooltip.bg` / `tooltip.fg` | 도구 설명 | `#27282E` / `#FFFFFF` | `#393B40` / `#F0F1F2` | `ToolTip.background`/`foreground` | `ToolTip.background`, `ToolTip.foreground` |
 | `status.success` | 연결됨 점, 성공 | `#208A3C` | `#5FAD65` | 팔레트 L Green4, D Green7, 실행 아이콘 [I] | `Chromite.status.success` |
 | `status.warning` | 경고, 연결 중 | `#A46704`(글자) / `#FFAF0F`(아이콘) | `#BA9752`(글자) / `#F2C55C`(아이콘) | `Label.warningForeground`(L Yellow1, D Yellow5), 팔레트 L Yellow4, D Yellow7 | `Chromite.status.warning`, `Component.warning.focusedBorderColor` |
@@ -355,7 +356,8 @@ FlatLaf 키와, Chromite 컴포넌트가 `UiSizes`로 읽는 `Chromite.size.*` �
 | `size.badge` | 8 | 아이콘 지침 "6~9px" | 겹침 배지 |
 | `size.indent.tree` | 17 (19) | [S] | `Tree.leftChildIndent = 6`, `Tree.rightChildIndent = 11` |
 | `size.gap.treeIcon` | 4 (6) | 시안 B | 트리 아이콘–글자 간격 `Chromite.size.tree.iconTextGap`. 보조 글자 앞과 연결 색 알약 앞뒤는 `Chromite.size.tree.secondaryGap` 6(알약 사양 그대로) |
-| `size.padding.filterBar`, `size.padding.viewerStatus` | 2,4,2,4 / 1,6,1,6 | 시안 B(그대로, C에서 줄임) | `Chromite.size.filterBar.padding`, `Chromite.size.viewerStatus.padding` |
+| `size.padding.viewerStatus` | 1,6,1,6 | 시안 B(그대로, C에서 줄임) | `Chromite.size.viewerStatus.padding`. 필터 막대 여백 `size.padding.filterBar`(2,4,2,4)는 2026-11-07 필터 막대와 함께 지움 |
+| `size.gridHeader.action`, `size.gridHeader.gap` | 16 / 4 | 아이콘 16, 아이콘–글자 간격(`size.gap.treeIcon`과 같은 4) | 결과 그리드 머리글의 필터·정렬 아이콘 칸(각 16×16), 열 아이콘–이름·이름–필터 아이콘 간격. `Chromite.size.gridHeader.action`, `Chromite.size.gridHeader.gap` |
 | `size.scrollbar` | 11 (막대 7) | [S] | `ScrollBar.width = 11`, `ScrollBar.thumbInsets = 2,2,2,2`, `ScrollBar.thumbArc = 999` |
 | `size.divider` | 끄는 영역 5, 선 1 | [T `OnePixelDivider`] | `SplitPane.dividerSize = 5`, `SplitPaneDivider.style = plain` + 1px 선 |
 | `size.focusWidth` | 2 (테두리 1 + 안쪽 1) | [T] | `Component.focusWidth = 0`, `Component.innerFocusWidth = 1`, `Component.borderWidth = 1` |
@@ -391,7 +393,7 @@ FlatLaf 키와, Chromite 컴포넌트가 `UiSizes`로 읽는 `Chromite.size.*` �
 | `font.ui.small` | Pretendard 10 | 팝업 안내 줄, 배지 | 스타일 클래스 `small`: FlatLaf 기본 `small.font = -2`(`font.ui` − 2px; 13일 때 11로 측정. 이전에 적은 "−1px로 맞춤"은 구현과 달랐다) |
 | `font.title` | Pretendard 15 semibold | 대화상자 머리말, 시작 탭 제목 | 스타일 클래스 `h3`: FlatLaf 기본 `h3.font = +3 $semibold.font`(`font.ui` + 3px; 13일 때 16) |
 | `font.grid` | Pretendard 12(= `font.ui`) | 결과 그리드 칸·행 번호, 레코드 보기, 테이블 디자이너 표 | `Table.font`(FlatLaf 기본 = `defaultFont`). 2026-11-07 사용자 요청으로 `font.code`에서 바꿈("적용 현황 — 그리드 글꼴 Pretendard") |
-| `font.code` | JetBrains Mono 12, 줄 간격 1.2 | 메시지, 필터 막대, 값 패널, 오류 상세, DDL·스크립트 미리 보기 | `monospaced.font`(크기를 적지 않아 `defaultFont` 크기를 따른다: 2026-11-07 12), 스타일 클래스 `monospaced` |
+| `font.code` | JetBrains Mono 12, 줄 간격 1.2 | 메시지, 값 패널, 오류 상세, DDL·스크립트 미리 보기(필터 막대는 2026-11-07 없앰) | `monospaced.font`(크기를 적지 않아 `defaultFont` 크기를 따른다: 2026-11-07 12), 스타일 클래스 `monospaced` |
 | `font.editor` | Cascadia Mono 13(Options에서 바꿀 수 있음) | SQL 편집기, 줄 번호, DDL 탭 | `EditorFont`(2026-11-06, "편집기 글꼴과 SQL 색") |
 
 Pretendard(1.3.9, 번들 `fonts/pretendard`), Inter, JetBrains Mono는 SIL Open Font License 1.1이다. FlatLaf가 Inter와 JetBrains Mono를 별도 jar(`flatlaf-fonts-inter`, `flatlaf-fonts-jetbrains-mono`)로 낸다.
@@ -950,6 +952,25 @@ UI 글꼴 `font.grid` = `font.ui`(Pretendard 12)로 바꿨다. 열 머리글은 
 
 새 아이콘 18개(연산자 `plan-*` 17개, `copy`)는 생성기 규칙 그대로다: 데이터 객체 중립색, 동작 파랑, 데이터 변경은 표 위 배지(삽입 초록, 수정 파랑, 삭제 빨강).
 
+### 적용 현황 — 열 필터 (2026-11-07)
+
+사용자 요청 10(2026-11-07): "쿼리결과의 필터 입력 항목을 제거하고 그리드의 각 컬럼에 필터 아이콘을 배치하여 컬럼별 필터를 설정할 수 있도록 수정한다."
+참고는 사용자의 DataGrip 결과 그리드 캡처(머리글마다 늘 보이는 흐린 깔때기·정렬 아이콘, WHERE 줄 없음). 기능 설계는 [swing-grid-column-filters.md](swing-grid-column-filters.md).
+
+| 요소 | 값 | 토큰 |
+|---|---|---|
+| 머리글 배치 | 열 아이콘 16(`column`, 기본 키 `column-pk`) – 4 – 이름 … 4 – 깔때기 16 – 정렬 16 – 셀 여백 8 | `size.gridHeader.gap`, `size.gridHeader.action`, `TableHeader.cellMargins` |
+| 머리글 높이 | 26(바뀌지 않음) | `size.header.grid` |
+| 아이콘 색 | 평소 `text.secondary`, 필터·정렬 있음 `accent`(깔때기는 채움), 다시 읽을 수 없으면 40% | `grid.headerIcon`, `grid.headerIconActive` |
+| 아이콘 마우스 올림 | 16×16 둥근 바탕(arc 4) `bg.actionHover` | `Button.toolbar.hoverBackground` |
+| 필터 팝업 | 폭 320, 안쪽 여백 8, 간격 6, 테두리 `border.popup`, 바탕 `bg.popup`, 값 목록 8행, 기본 단추 "적용" | `PopupMenu.border`, `PopupMenu.background` |
+| 필터 요약 | 결과 상태 줄(행 수 옆)에 강조색 깔때기 16 + "필터: 열1, 열2" + ✕(여백 1, 높이 18). 필터가 있을 때만 | `size.padding.viewerStatus` |
+| 값 패널·레코드 단추 | 필터 막대 오른쪽 → 결과 상태 줄 오른쪽 | — |
+
+- 측정(EDT 에이전트, Windows 11, 150%): 머리글 26, 결과 상태 줄 25(필터 요약이 보여도 25, ✕ 단추 18), 팝업 320×318(조건 값 칸이 보이면 352, 범위 397).
+- 필터 막대(34)가 없어진 만큼 결과 영역이 넓어졌다. 흐린 아이콘이라 머리글이 무거워 보이지 않고, 필터가 걸린 열은 강조색으로 바로 보인다.
+- 캡처: `D:\Tools\_scratch\grid-column-filters\run\shots\`(한국어·영어, 라이트·다크).
+
 ### Swing/FlatLaf로 못 한 것과 이유
 
 | 항목 | 이유 | 대신 한 것 |
@@ -1065,3 +1086,5 @@ UI 글꼴 `font.grid` = `font.ui`(Pretendard 12)로 바꿨다. 열 머리글은 
   "설계 결정"의 쿼리 창 도구 막대 위치, 적용 현황 11행, `size.toolbar.editor` 설명 갱신.
 - 2026-11-07 쿼리 상태 줄의 커밋 방식 칸(사용자 요청): 9절 쿼리 상태 줄 행 갱신.
 - 2026-11-07 실행 계획 세 보기(사용자 결정): "적용 현황 — 실행 계획 그림" 절(보기 전환, 연산자 상자·화살표·비싼 연산자·경고 배지·선택 색과 치수) 추가, 아이콘 팩 파일 수(74 → 92) 갱신.
+- 2026-11-07 열 필터(사용자 요청 10): 8절 머리글 목표(늘 보이는 흐린 깔때기·정렬 아이콘), 색 토큰 `grid.headerIcon`·`grid.headerIconActive`,
+  치수 토큰 `size.gridHeader.*`(필터 막대 여백 삭제), `font.code` 쓰는 곳 갱신, "적용 현황 — 열 필터" 절 추가.
