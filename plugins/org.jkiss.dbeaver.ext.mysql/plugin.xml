@@ -177,9 +177,11 @@
                         description="Driver for MySQL 5.x+"
                         categories="sql">
 
-                    <file type="jar" path="maven:/mysql:mysql-connector-java:RELEASE[5.1.49]" bundle="!drivers.mysql"/>
+                    <!-- Chromite: own bundle id, so declaring drivers.mysql (Connector/J 9.x, which requires
+                         CLIENT_PLUGIN_AUTH servers) keeps this legacy driver on its Maven 5.1.49 jar (docs/chromite/drivers.md) -->
+                    <file type="jar" path="maven:/mysql:mysql-connector-java:RELEASE[5.1.49]" bundle="!drivers.mysql5"/>
                     <file type="license" path="licenses/external/lgpl-2.0.txt"/>
-                    <file type="jar" path="drivers/mysql/mysql5" bundle="drivers.mysql"/>
+                    <file type="jar" path="drivers/mysql/mysql5" bundle="drivers.mysql5"/>
 
                     <property name="autoDeserialize" value="false"/>
                     <property name="allowLocalInfile" value="false"/>

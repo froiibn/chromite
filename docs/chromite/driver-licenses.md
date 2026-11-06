@@ -72,7 +72,7 @@
 |---|---|
 | 4종 전체(Azure용 msal4j, PostGIS, waffle 포함, Oracle 중복 제외) | 약 23.7MB |
 | 최소 구성(SQL Server jar, Oracle 4종, pgjdbc, MariaDB) | 약 14.7MB |
-| MySQL Connector/J 9.x 추가 시 | +약 4.5MB |
+| MySQL Connector/J 9.x 추가 시 | +약 4.5MB (protobuf-java 포함 조사값. 실제 공개판은 protobuf-java를 빼고 9.7.0 jar 2.6MB만 넣음) |
 
 ## MySQL Connector/J
 
@@ -98,7 +98,19 @@
   - 내부판에 비공개 코드가 들어가고 그 내부판을 고객사에 넘기면 Other FOSS 조건을 다시 확인해야 한다.
   - Connector/J 5.1.49(`mysql-connector-java`)는 예전 "MySQL FOSS License Exception"이 적용되며 2020년 이후 갱신이 없어 내장하지 않는다.
   - 지금 MySQL 드라이버는 8.2.0으로 고정돼 있다. 내장한다면 9.x(최신 9.7.0) 또는 26.x로 올린다.
-- **결론:** drivers.md의 "보류"는 "공개판 내장 가능(조건부)"로 바뀐다. 공개판에 넣을지는 결정이 필요하다(미결정 항목).
+- **결론:** drivers.md의 "보류"는 "공개판 내장 가능(조건부)"로 바뀐다.
+- **결정 (2026-11-06, 사용자):** 공개판에 MySQL Connector/J를 내장한다. 구현은 [drivers.md](drivers.md)의 "구현" 참고.
+  - 넣은 것: `mysql-connector-j` 9.7.0 jar 하나(Maven Central 원본, SHA-1 `4e6e3e8765e4a9d0609744b3e8fe75afe1b98cba`
+    = Maven Central `.sha1`, SHA-256 `0353648eaa1c91e0f4020c959abf756bc866ffd583df22ae6b6f6e0cbd43eb44`).
+    Oracle 소스 배포본(`mysql-connector-j-9.7.0.tar.gz`) 안의 jar와 SHA-256이 같다.
+  - 위 의무의 이행: jar 무수정. `drivers/mysql/LICENSE.txt`는 jar 안 `LICENSE`를 바꾸지 않고 넣었다(GPLv2, Universal FOSS Exception 1.0,
+    제3자 고지 포함. GitHub `9.7.0` 태그의 `LICENSE`와는 "Last updated" 날짜 한 줄만 다르다).
+    `drivers/mysql/SOURCE.txt`에 대응 소스 위치(Oracle 소스 배포본, GitHub 태그, Maven `-sources.jar`)와 소스 비공개 포크 주의를 적었고,
+    `NOTICE`에도 같은 주의를 적었다.
+  - 남은 것: GPLv2 3항을 문자 그대로 따르려면 소스를 설치 파일과 같은 곳에 함께 두거나 서면 제공 약속을 넣어야 한다.
+    지금은 Oracle이 공개한 위치만 안내한다(법률 검토 항목, [drivers.md](drivers.md) "미완료 항목").
+  - `mysql-connector-java` 5.1.49(MySQL 5 (Legacy))는 위 방침대로 내장하지 않는다. 묶음 ID를 `drivers.mysql5`로 분리해
+    공개판에서도 Maven 다운로드가 그대로 동작한다.
 
 ## 전체 목록
 
@@ -246,6 +258,7 @@ Oracle은 위 공개판 표에 있다.
 | 구성 | 파일 수 | 크기 |
 |---|---|---|
 | 공개판 4종 | 31 | 약 23.7MB |
+| 공개판 5종 실제 배포(MySQL 포함, 2026-11-06 빌드의 `drivers/`, 라이선스·안내 텍스트 포함) | 37 | 21,608,448 bytes |
 | 전체(Maven 고유 아티팩트 + URL·`repo:/` 파일) | 944 + 15 | 약 1,725MB (Maven 1,487MB + URL 238MB) |
 
 큰 드라이버는 다음과 같다(드라이버별 의존성 포함 크기라 서로 겹치는 jar가 있다).
@@ -275,3 +288,4 @@ Oracle은 위 공개판 표에 있다.
 ## 변경 이력
 
 - 2026-11-06 최초 작성. plugin.xml 전체 드라이버의 라이선스·버전·크기 조사, 공개판 4종 확인, MySQL Connector/J 재배포 조건 정리.
+- 2026-11-06 MySQL Connector/J 9.7.0 공개판 내장 결정과 의무 이행 내용 기록.
