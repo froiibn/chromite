@@ -57,6 +57,13 @@ import java.util.concurrent.ConcurrentHashMap;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
 
+/**
+ * Base project implementation.
+ *
+ * 변경 이력:
+ * - 2026-11-07 옛 XML 연결 설정({@code .chromite-data-sources*.xml}) 형식 값 {@code LEGACY}를 지움. 내부 이름 변경(#59)으로 찾는 이름이
+ *   어떤 빌드도 쓰지 않는 이름이 됐다(docs/chromite/internal-rename.md "사용자 데이터 이전")
+ */
 public abstract class BaseProjectImpl implements DBPProject, DBSSecretSubject {
 
     private static final Log log = Log.getLog(BaseProjectImpl.class);
@@ -84,7 +91,6 @@ public abstract class BaseProjectImpl implements DBPProject, DBSSecretSubject {
 
     public enum ProjectFormat {
         UNKNOWN,    // Project is not open or corrupted
-        LEGACY,     // Old format (before 6.1 version
         MODERN,     // 6.1+ version
     }
 

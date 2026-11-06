@@ -137,11 +137,6 @@ public class DesktopWorkspaceImpl extends EclipseWorkspaceImpl implements DBPWor
             // Skip not accessible hidden and phantom resources
             return null;
         }
-        if (resource.getParent() instanceof IProject && resource.getName().startsWith(DBPDataSourceRegistry.LEGACY_CONFIG_FILE_PREFIX)) {
-            // Skip connections settings file
-            // TODO: remove in some older version
-            return null;
-        }
         // Check resource is synced
 //        if (resource instanceof IFile && !resource.isSynchronized(IResource.DEPTH_ZERO)) {
 //            ContentUtils.syncFile(new VoidProgressMonitor(), resource);

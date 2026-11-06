@@ -17,10 +17,6 @@
  */
 package com.seizia.chromite.model.rcp;
 
-import org.eclipse.core.internal.localstore.Bucket;
-import org.eclipse.core.internal.localstore.BucketTree;
-import org.eclipse.core.internal.properties.PropertyBucket;
-import org.eclipse.core.internal.resources.Workspace;
 import org.eclipse.core.resources.*;
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.IPath;
@@ -30,7 +26,6 @@ import org.jkiss.code.Nullable;
 import com.seizia.chromite.Log;
 import com.seizia.chromite.model.app.DBPDataSourceRegistry;
 import com.seizia.chromite.model.app.DBPProject;
-import com.seizia.chromite.model.app.DBPWorkspaceEclipse;
 import com.seizia.chromite.model.auth.SMSessionContext;
 import com.seizia.chromite.model.fs.DBFResourceAdapter;
 import com.seizia.chromite.model.fs.DBFVirtualFileSystemRoot;
@@ -47,12 +42,17 @@ import org.jkiss.utils.ArrayUtils;
 import org.jkiss.utils.CommonUtils;
 
 import java.io.IOException;
-import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.TreeMap;
 
+/**
+ * Desktop (Eclipse resources) project.
+ *
+ * 변경 이력:
+ * - 2026-11-07 옛 XML 연결 설정({@code .chromite-data-sources*.xml}) 읽기를 지움. 내부 이름 변경(#59)으로 찾는 이름이
+ *   어떤 빌드도 쓰지 않는 이름이 됐다(docs/chromite/internal-rename.md "사용자 데이터 이전")
+ */
 public class DesktopProjectImpl extends BaseProjectImpl implements RCPProject, DBFResourceAdapter {
 
     private static final Log log = Log.getLog(DesktopProjectImpl.class);
@@ -139,27 +139,6 @@ public class DesktopProjectImpl extends BaseProjectImpl implements RCPProject, D
         }
         if (!projectInvalidated) {
             try {
-                if (isInMemory()) {
-                    setFormat(ProjectFormat.MODERN);
-                    return;
-                }
-
-                if (DBWorkbench.getPlatform().getApplication() instanceof DesktopApplicationImpl && !DBWorkbench.isDistributed()) {
-                    // Validate project structure only for local desktop apps
-                    Path mdFolder = getMetadataFolder(false);
-
-                    Path dsConfig = getAbsolutePath().resolve(DBPDataSourceRegistry.LEGACY_CONFIG_FILE_NAME);
-                    if (!Files.exists(mdFolder) && Files.exists(dsConfig)) {
-                        setFormat(ProjectFormat.LEGACY);
-                    } else {
-                        setFormat(ProjectFormat.MODERN);
-                    }
-
-                    // Check project structure and migrate
-                    checkAndUpdateProjectStructure();
-                }
-
-                // Now project is in modern format
                 setFormat(ProjectFormat.MODERN);
             } finally {
                 projectInvalidated = true;
@@ -221,73 +200,6 @@ public class DesktopProjectImpl extends BaseProjectImpl implements RCPProject, D
             this,
             getWorkspace().getMetadataFolder().resolve(TaskConstants.TASK_STATS_FOLDER)
         );
-    }
-
-    /**
-     * Validates project files structure.
-     * If project was created in older DBeaver version then converts it to newer format
-     */
-    private void checkAndUpdateProjectStructure() {
-        if (getFormat() == ProjectFormat.UNKNOWN || getFormat() == ProjectFormat.MODERN) {
-            return;
-        }
-
-        Path mdConfig = getMetadataPath().resolve(BaseProjectImpl.METADATA_STORAGE_FILE);
-        if (!Files.exists(mdConfig)) {
-            // Migrate
-            Map<String, Map<String, String>> projectResourceProperties = extractProjectResourceProperties();
-            synchronized (metadataSync) {
-                setResourceProperties(projectResourceProperties);
-            }
-            flushMetadata();
-        }
-    }
-
-    private Map<String, Map<String, String>> extractProjectResourceProperties() {
-        Map<String, Map<String, String>> result = new LinkedHashMap<>();
-
-        DBPWorkspaceEclipse workspaceEclipse;
-        if (getWorkspace() instanceof DBPWorkspaceEclipse) {
-            workspaceEclipse = (DBPWorkspaceEclipse) getWorkspace();
-        } else {
-            return result;
-        }
-        try {
-            BucketTree bucketTree = new BucketTree((Workspace) workspaceEclipse.getEclipseWorkspace(), new PropertyBucket());
-            try {
-                final IPath projectPath = project.getFullPath();
-                bucketTree.accept(new Bucket.Visitor() {
-                                      @Override
-                                      public int visit(Bucket.Entry entry) {
-                                          Object value = entry.getValue();
-                                          if (value instanceof String[][]) {
-                                              String[][] bucketProps = (String[][]) value;
-                                              for (String[] resProps : bucketProps) {
-                                                  if (resProps.length == 3) {
-                                                      if ("com.seizia.chromite".equals(resProps[0])) {
-                                                          if ("sql-editor-project-id".equals(resProps[1])) {
-                                                              continue;
-                                                          }
-                                                          Map<String, String> propsMap = result.computeIfAbsent(
-                                                              entry.getPath().makeRelativeTo(projectPath).toString(), s -> new LinkedHashMap<>());
-                                                          propsMap.put(resProps[1], resProps[2]);
-                                                      }
-                                                  }
-                                              }
-                                          }
-                                          return CONTINUE;
-                                      }
-                                  },
-                    projectPath,
-                    BucketTree.DEPTH_INFINITE);
-            } catch (CoreException e) {
-                log.error(e);
-            }
-        } catch (Throwable e) {
-            log.error("Error extracting project metadata", e);
-        }
-
-        return result;
     }
 
     public void hideConfigurationFiles() {
