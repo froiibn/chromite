@@ -59,13 +59,15 @@ import java.util.StringTokenizer;
  *     <li>편집(SWT {@code EditConnectionWizard}): 원본의 사본(ID 같음)에서 폼을 채우고(Database type은 바꿀 수 없음), Save에서 바뀐 것이
  *     있을 때만 원본에 쓰고 {@code persistConfiguration}으로 저장한다. 연결 중이면 다시 연결할지 묻는다.</li>
  *     <li>Test Connection(SWT {@code ConnectionWizard.testConnection}): 폼 값을 쓴 임시 연결(새 ID, 임시, 메타데이터용
- *     별도 연결 없음)로 모델의 {@link ConnectionTestJob}을 돌리고, 진행 대화상자(취소 가능)에서 기다린 뒤 서버·드라이버 버전을 보여 준다.</li>
+ *     별도 연결 없음)로 모델의 {@link ConnectionTestJob}을 돌리고, 진행 대화상자(취소 가능)에서 기다린 뒤 서버·드라이버 버전과
+ *     쓴 네트워크 핸들러(SSH 터널, 프록시, SSL)를 보여 준다. 임시 연결에도 폼의 핸들러 설정이 들어가므로 터널·SSL을 거쳐 연결해 본다.</li>
  *     <li>이름: 비워 두면 SWT 기본 이름 규칙({@code ${host_or_database}}, {@code ConnectionNameResolver}의 legacy 규칙: DB 이름 →
  *     호스트 → 서버 → 드라이버 이름)으로 만들고, 다른 연결과 겹치면 {@code DataSourceUtils.generateUniqueDataSourceName}으로 번호를 붙인다.
  *     사용자가 바꾼 이름 규칙 설정({@code navigator.settings.default.connectionPattern})은 아직 읽지 않는다.</li>
  *     <li>기록: Connect·Save가 끝나면 서버 이름과 드라이버를 {@link ConnectionHistory}에 넣는다(Server name 목록, Database type 콤보의 최근 항목).</li>
  * </ul>
- * 연결 폴더, 탐색기 설정, 필터, 초기화 SQL, 네트워크 핸들러(SSH 등)는 SWT의 다른 페이지 몫이라 여기서 바꾸지 않는다(편집할 때는 원래 값이 그대로 남는다).
+ * 연결 폴더, 탐색기 설정, 필터는 SWT의 다른 페이지 몫이라 여기서 바꾸지 않는다(편집할 때는 원래 값이 그대로 남는다).
+ * 연결 직후 SQL과 네트워크 핸들러(SSH, Proxy, SSL)는 설정 화면의 Options 탭이 고친다.
  *
  * 변경 이력:
  * - 2026-11-06 D단계: 최초 작성 (docs/chromite/swing-frontend.md "구현 현황 — D단계")
@@ -73,6 +75,7 @@ import java.util.StringTokenizer;
  *   새 연결의 Save → Connect(저장하고 연결), 서버·드라이버 기록, 테마 키로 읽는 색 (docs/chromite/swing-frontend.md "Connect 대화상자 (SSMS식)")
  * - 2026-11-06 Registered Servers: {@link #openNew}가 등록한 연결을 돌려준다(Object Explorer에 넣거나 Registered Servers에서 고르기 위해)
  *   (docs/chromite/swing-registered-servers.md)
+ * - 2026-11-06 고급 연결 설정: Test Connection 결과에 쓴 네트워크 핸들러 표시 (docs/chromite/swing-conn-advanced.md)
  */
 final class ConnectionDialog extends JDialog {
 
@@ -334,10 +337,12 @@ final class ConnectionDialog extends JDialog {
             if (error != null) {
                 DBWorkbench.getPlatformUI().showError("Connection Test", "Can't connect to the database", error);
             } else if (testJob.getConnectStatus() != null && testJob.getConnectStatus().isOK()) {
+                String network = settingsPanel.getNetworkSummary();
                 JOptionPane.showMessageDialog(this,
                     "Connected (" + testJob.getConnectTime() + " ms)\n\n" +
                         "Server: " + testJob.getServerVersion() + "\n" +
-                        "Driver: " + testJob.getClientVersion(),
+                        "Driver: " + testJob.getClientVersion() +
+                        (network == null ? "" : "\nNetwork: " + network),
                     "Connection Test",
                     JOptionPane.INFORMATION_MESSAGE);
             }
