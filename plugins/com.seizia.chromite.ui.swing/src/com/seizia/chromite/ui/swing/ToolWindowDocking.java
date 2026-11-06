@@ -74,7 +74,10 @@ import java.util.StringJoiner;
  *     마우스에서 가장 가까운 가장자리로 바꾼다({@link Docking#dock(Dockable, Dockable, DockingRegion, double)}).</li>
  *     <li>보이기·숨기기: 라이브러리의 닫기는 위치를 기억하지 않는다. 그래서 도구 창마다 마지막 위치({@link Place}: 이웃 도구 창이나
  *     창 가장자리, 방향, 비율)를 배치가 바뀔 때마다 배치 트리에서 다시 계산해 두고, 다시 보일 때 그 위치에 놓는다. 이웃이
- *     없으면 도구 창마다 정한 기본 위치를 차례로 쓴다.</li>
+ *     없으면 도구 창마다 정한 기본 위치를 차례로 쓴다. 한 열을 나누는 두 도구 창(Object Explorer와 Registered Servers, Query Library와
+ *     Properties)은 기본 위치에 서로를 이웃으로 둔다. 마지막 위치가 문서 영역 옆 열(창 가장자리나 문서 영역의 왼쪽·오른쪽)이고 기본 이웃이
+ *     지금 문서 영역의 같은 쪽에 있으면, 새 열을 만들지 않고 이웃의 열에 들어간다. 마지막 위치는 이웃이 숨어 있을 때 계산되어 이웃의 열을
+ *     모르기 때문이다(한쪽을 숨긴 사이에 다른 쪽을 보였다가 다시 보여도 같은 열).</li>
  *     <li>저장: 작업 공간 {@code .metadata}의 {@value #LAYOUT_FILE}(라이브러리의 XML 형식, 떠 있는 창 포함)와 이 번들 설정의
  *     {@code <id>.restorePlace}(숨긴 도구 창의 위치). 메인 창 위치·크기는 {@link MainFrame}이 따로 저장하므로 배치 파일의 메인 창 크기는
  *     쓰지 않는다. 파일이 없거나, 읽을 수 없거나, 모르는 도구 창·문서 영역 없음 같은 맞지 않는 배치면 기본 배치로 시작한다
@@ -94,6 +97,8 @@ import java.util.StringJoiner;
  * - 2026-11-07 밀도 B: 치수를 테마의 Chromite.size.* 키({@link UiSizes})에서 읽음 (docs/chromite/design-spec.md "치수 토큰")
  * - 2026-11-07 도구 창 최소 폭: 카드 최소 폭을 머리말(아이콘 단추 + 제목 첫 글자와 말줄임표)로 정함. Properties가 일정 폭 이하로
  *   줄지 않던 문제 (docs/chromite/swing-frontend.md "도구 창 최소 폭")
+ * - 2026-11-07 한 열의 두 도구 창: 문서 영역 옆 열로 돌아가는 도구 창은 기본 이웃이 문서 영역의 같은 쪽에 있으면 이웃의 열로. Properties를
+ *   숨긴 사이 Query Library를 보이면 둘이 따로 열을 만들던 문제 (docs/chromite/swing-frontend.md "Query Library 자리")
  */
 final class ToolWindowDocking {
 
@@ -218,7 +223,9 @@ final class ToolWindowDocking {
      *
      * @param shownByDefault whether the default layout shows it
      * @param defaultPlaces  where it goes when shown without a remembered place: the first place whose target is shown
-     *                       is used, so the list should end with a window edge
+     *                       is used, so the list should end with a window edge. Two tool windows that share a column
+     *                       name each other, so either one shown after the other joins its column (also when its
+     *                       remembered place is beside the documents, see {@link #getNeighbourColumnPlace})
      */
     void addToolWindow(@NotNull ToolWindow toolWindow, @NotNull JComponent content, boolean shownByDefault, @NotNull Place... defaultPlaces) {
         Dock dock = new Dock(toolWindow, shownByDefault, List.of(defaultPlaces));
@@ -478,6 +485,10 @@ final class ToolWindowDocking {
     private void show(@NotNull Dock dock) {
         List<Place> places = new ArrayList<>();
         if (dock.restorePlace != null) {
+            Place neighbourPlace = getNeighbourColumnPlace(dock, dock.restorePlace);
+            if (neighbourPlace != null) {
+                places.add(neighbourPlace);
+            }
             places.add(dock.restorePlace);
         }
         places.addAll(dock.defaultPlaces);
@@ -539,6 +550,63 @@ final class ToolWindowDocking {
         }
         Dock dock = docks.get(id);
         return dock != null ? dock.dockable : null;
+    }
+
+    /**
+     * The default place next to a neighbour tool window, when the tool window comes back to a column beside the
+     * documents (its last place is a window edge, or the documents, on the left or right) and that neighbour is now on
+     * the same side of the documents. The last place was taken while the neighbour was hidden, so it doesn't know the
+     * neighbour's column: without this, the tool window would open a column of its own next to it.
+     */
+    @Nullable
+    private Place getNeighbourColumnPlace(@NotNull Dock dock, @NotNull Place lastPlace) {
+        boolean beside = lastPlace.targetId() == null || DOCUMENTS_ID.equals(lastPlace.targetId());
+        if (!beside || !isHorizontal(lastPlace.region())) {
+            return null;
+        }
+        for (Place place : dock.defaultPlaces) {
+            if (place.targetId() != null && !DOCUMENTS_ID.equals(place.targetId())
+                && getSideOfDocuments(place.targetId()) == lastPlace.region()) {
+                return place;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * The side of the documents (WEST or EAST) that a tool window docked in the main window is on, or {@code null}
+     * (above or below the documents, or not in the main window). From the layout tree: the split that first has both.
+     */
+    @Nullable
+    private DockingRegion getSideOfDocuments(@NotNull String id) {
+        Dockable dockable = getDockable(id);
+        if (dockable == null || !isInMainWindow(dockable)) {
+            return null;
+        }
+        DockingLayoutNode rootNode = docking.getDockingState().getWindowLayout(frame).getRootNode();
+        DockingLayoutNode documentsNode = rootNode.findNode(DOCUMENTS_ID);
+        DockingLayoutNode node = rootNode.findNode(id);
+        if (documentsNode == null || node == null) {
+            return null;
+        }
+        for (; node.getParent() != null; node = node.getParent()) {
+            if (node.getParent() instanceof DockingSplitPanelNode split && isAncestor(split, documentsNode)) {
+                if (split.getOrientation() != JSplitPane.HORIZONTAL_SPLIT) {
+                    return null;
+                }
+                return split.getLeft() == node ? DockingRegion.WEST : DockingRegion.EAST;
+            }
+        }
+        return null;
+    }
+
+    private static boolean isAncestor(@NotNull DockingLayoutNode ancestor, @NotNull DockingLayoutNode node) {
+        for (DockingLayoutNode parent = node.getParent(); parent != null; parent = parent.getParent()) {
+            if (parent == ancestor) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**

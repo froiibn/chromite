@@ -1877,6 +1877,43 @@ EDT 에이전트로 단추를 누르고(`doClick`) 결과를 읽었다. 캡처�
 | Query Library를 보인 오른쪽 열 | 최소 200(도구 막대) | 98~99, 도구 막대는 실행 + », 검색 칸 말줄임 |
 | 한국어·영어(`-nl en`) × 라이트·다크 | | 위와 같음, 겹침·잘린 단추 없음 |
 
+### Query Library 자리 (2026-11-07)
+
+사용자 결정(2026-11-07): Query Library는 기본으로 숨기고, 보이면 오른쪽 위, Properties 위(같은 오른쪽 열을 위아래로 나눔)에 놓는다.
+
+- **이미 맞던 것:** 기본 배치에서 숨김(`addToolWindow(..., false, ...)`), 처음 보이면 `Place.next(properties, NORTH, 0.5)`로 Properties 위.
+  View 메뉴, 주 도구 막대 토글, Ctrl+Alt+T, Query Library의 "창 보이기"(Save to Query Library… 뒤)는 모두 같은 `ToolWindow.setShown(true)` → `ToolWindowDocking.show`를 거친다.
+- **틀리던 경우(고치기 전 확인):** 한쪽이 숨어 있을 때 다른 쪽을 보이면 두 도구 창이 따로 열을 만들었다.
+  - Properties를 숨기고 Query Library를 보인 뒤 Properties를 보이면 `[문서 | Query Library | Properties]` 두 열.
+  - 그 상태에서 Query Library를 숨겼다가(마지막 자리 = 오른쪽 가장자리) Properties가 보일 때 다시 보이면(메뉴·도구 막대·Ctrl+Alt+T 모두) `[문서 | Properties | Query Library]`.
+  - 분할 창 시절 설정(`properties.visible=false`, `queryLibrary.visible=true`)을 옮긴 첫 실행 뒤 Properties를 보일 때도 두 열(위 "확인"의 "이전 설정 옮기기" 줄).
+  - 왼쪽 열도 같았다: Registered Servers와 Object Explorer를 차례로 숨기고 차례로 보이면 Object Explorer가 문서 영역 옆에 따로 열.
+- **원인:** 숨긴 도구 창은 마지막 자리(`<id>.restorePlace`)로 돌아간다. 그 자리는 숨길 때 계산되므로, 이웃이 숨어 있던 때면 "오른쪽 가장자리"나 "문서 영역 왼쪽"처럼
+  이웃을 모르는 자리다. 또 이웃 관계가 한쪽에만 있었다(Query Library → Properties 위, Registered Servers → Object Explorer 아래). Properties와 Object Explorer의 기본 자리는 가장자리뿐이었다.
+- **고친 것:**
+  - `MainFrame`: Properties의 기본 자리 맨 앞에 `next(queryLibrary, SOUTH, 0.5)`, Object Explorer에 `next(registeredServers, NORTH, 0.6)`.
+    기본 배치는 그대로다(기본 배치는 앞에 놓인 이웃만 쓰고, Query Library는 숨김이며 Object Explorer가 Registered Servers보다 먼저 놓인다).
+  - `ToolWindowDocking.show`: 마지막 자리가 문서 영역 옆 열(창 가장자리, 또는 문서 영역의 왼쪽·오른쪽)이고 기본 이웃이 지금 문서 영역의 같은 쪽에 있으면,
+    마지막 자리보다 이웃 자리를 먼저 쓴다(`getNeighbourColumnPlace`). 쪽은 배치 트리에서 도구 창과 문서 영역을 함께 가진 첫 분할로 정한다(`getSideOfDocuments`,
+    창이 보이기 전에도 같음). 마지막 자리가 다른 도구 창 옆(탭, 위아래)이면 그대로 쓴다.
+- **저장된 배치는 옮기지 않는다(결정):** 배치 파일(`chromite-window-layout-1.xml`)은 사용자가 끌어서 만든 배치이고 형식도 같다. Query Library가 그 안에서 다른 곳에 보이면 사용자가
+  옮긴 것이므로 그대로 복원한다. 숨김 상태로 저장된 경우는 다음에 보일 때 위 규칙으로 Properties 위에 간다. 이전 형식(분할 창 설정)은 보이기 여부만 옮기는 지금 방식 그대로다.
+- **알려진 차이:** 오른쪽 가장자리에 `[Query Library | Properties]`를 일부러 두 열로 둔 뒤 Properties를 숨겼다가 보이면 Query Library 아래로 들어간다
+  (마지막 자리 "오른쪽 가장자리"로는 두 경우를 구별할 수 없다). 다시 끌어 놓으면 된다.
+
+확인(2026-11-07, 같은 빌드·환경, 새 작업 공간 `ws-q3`, `ws-old-after`). 캡처는 `D:\Tools\_scratch\toolwindow-min-width\run\shots\before-S*`, `after-S*`.
+
+| 경우 | 고치기 전 | 고친 뒤 |
+|---|---|---|
+| S1 새 작업 공간, View > Query Library | `V(queryLibrary / properties)` (이미 맞음) | 같음 |
+| S2 Properties 숨김 → Query Library 보임 → Properties 보임 | `H(... | queryLibrary) | properties` 두 열 | `V(queryLibrary / properties)` |
+| S3 Query Library 마지막 자리 = 오른쪽 가장자리, 도구 막대 토글로 보임 | `... | properties) | queryLibrary` 두 열 | `V(queryLibrary / properties)` |
+| S5 Ctrl+Alt+T 숨김·보임 | S3과 같음 | `V(queryLibrary / properties)` |
+| S4 Registered Servers·Object Explorer 숨김 → 차례로 보임 | `registeredServers | H(objectExplorer | documents ...)` | `V(objectExplorer / registeredServers)` |
+| S6 분할 창 설정을 옮긴 작업 공간 → Properties 보임 | `H(... | queryLibrary) | properties` | `V(queryLibrary / properties)` |
+| S7 닫고 다시 시작 | | 배치 파일에서 `V(queryLibrary / properties)` 그대로 |
+| 다크 테마 | | 카드·머리말 색 정상 |
+
 ## 빈 문서 영역 (2026-11-06)
 
 사용자 결정(2026-11-06): "Welcome"/"시작" 문서 탭을 없앤다. 문서가 하나도 열려 있지 않으면 가운데 문서 영역 자체가 시작 내용을 바탕으로 보인다(IDE의 빈 편집기 화면).
@@ -2235,3 +2272,5 @@ EDT 에이전트로 단추를 누르고(`doClick`) 결과를 읽었다. 캡처�
 - 2026-11-07 테마 전환 뒤 SQL 편집기·값 패널 세로 스크롤바 트랙이 옛 테마 색으로 남던 문제: `ChromiteScrollBarUI`가 뷰 바탕색 변경을 듣고 다시 그린다. "테마" 절.
 - 2026-11-07 도구 창 최소 폭: 카드 최소 폭을 머리말(단추 + 제목 첫 글자와 말줄임표)이 정하고 내용은 최소 폭을 갖지 않음(Properties가 일정 폭 이하로 줄지 않던 문제),
   도구 창 도구 막대를 `OverflowToolBar`로. "도구 창 도킹 — 도구 창 최소 폭" 절.
+- 2026-11-07 Query Library 자리: 한 열의 두 도구 창(Query Library·Properties, Object Explorer·Registered Servers)이 서로를 기본 이웃으로 두고,
+  문서 영역 옆 열로 돌아가는 도구 창은 이웃이 같은 쪽에 있으면 이웃의 열로. "도구 창 도킹 — Query Library 자리" 절.
