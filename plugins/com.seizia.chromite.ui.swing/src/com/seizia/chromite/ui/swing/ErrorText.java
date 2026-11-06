@@ -49,7 +49,7 @@ import java.util.regex.Pattern;
  * 예외({@link Throwable})와 상태({@link IStatus})를 화면에 보여 줄 문구로 바꾸는 유일한 곳.
  *
  * 설계: 예외를 {@code toString()}이나 {@code CommonUtils.getAllExceptionMessages}로 그대로 보여 주면 Java 클래스 이름
- * ({@code org.jkiss.dbeaver.DBRuntimeException: …})이 화면에 나온다. {@code Throwable(Throwable cause)} 생성자가 원인의
+ * ({@code com.seizia.chromite.DBRuntimeException: …})이 화면에 나온다. {@code Throwable(Throwable cause)} 생성자가 원인의
  * {@code toString()}을 메시지로 삼고, DBeaver의 {@code GeneralUtils.getExceptionMessage}도 {@code toString()}을 쓰기
  * 때문이다. 그래서 Swing 화면은 예외 문구를 모두 이 클래스로 만든다. 규칙:
  * <ul>

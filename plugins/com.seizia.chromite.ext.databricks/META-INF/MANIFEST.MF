@@ -1,0 +1,16 @@
+Manifest-Version: 1.0
+Bundle-ManifestVersion: 2
+Bundle-Vendor: Chromite contributors
+Bundle-Name: Chromite Databricks Model
+Bundle-SymbolicName: com.seizia.chromite.ext.databricks;singleton:=true
+Bundle-Version: 1.0.113.qualifier
+Bundle-Release-Date: 20261116
+Bundle-RequiredExecutionEnvironment: JavaSE-21
+Bundle-ActivationPolicy: lazy
+Require-Bundle: com.seizia.chromite.model,
+ com.seizia.chromite.model.sql,
+ com.seizia.chromite.ext.generic,
+ org.antlr.antlr4-runtime
+Export-Package: com.seizia.chromite.ext.databricks,
+ com.seizia.chromite.ext.databricks.model
+Automatic-Module-Name: com.seizia.chromite.ext.databricks

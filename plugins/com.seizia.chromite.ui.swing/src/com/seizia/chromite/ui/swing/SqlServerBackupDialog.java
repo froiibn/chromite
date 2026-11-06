@@ -22,8 +22,8 @@ import com.seizia.chromite.ui.swing.internal.BackupRestoreMessages;
 import org.eclipse.osgi.util.NLS;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.ext.mssql.model.SQLServerDatabase;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
+import com.seizia.chromite.ext.mssql.model.SQLServerDatabase;
+import com.seizia.chromite.runtime.DBWorkbench;
 import org.jkiss.utils.CommonUtils;
 
 import javax.swing.*;

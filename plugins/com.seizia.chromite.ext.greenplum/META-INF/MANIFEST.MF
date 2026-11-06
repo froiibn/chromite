@@ -1,0 +1,15 @@
+Manifest-Version: 1.0
+Bundle-ManifestVersion: 2
+Bundle-Name: Chromite Greenplum Model
+Bundle-SymbolicName: com.seizia.chromite.ext.greenplum;singleton:=true
+Bundle-Version: 1.0.192.qualifier
+Bundle-Release-Date: 20261116
+Require-Bundle: com.seizia.chromite.model,
+ com.seizia.chromite.model.sql,
+ com.seizia.chromite.ext.generic,
+ com.seizia.chromite.ext.postgresql
+Bundle-ActivationPolicy: lazy
+Bundle-RequiredExecutionEnvironment: JavaSE-21
+Bundle-Vendor: Chromite contributors
+Bundle-Localization: OSGI-INF/l10n/bundle
+Automatic-Module-Name: com.seizia.chromite.ext.greenplum

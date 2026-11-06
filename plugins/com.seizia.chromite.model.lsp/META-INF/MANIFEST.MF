@@ -1,0 +1,16 @@
+Manifest-Version: 1.0
+Bundle-ManifestVersion: 2
+Bundle-Name: Chromite LSP server implementation
+Bundle-Vendor: Chromite contributors
+Bundle-Version: 0.0.21.qualifier
+Bundle-Release-Date: 20261116
+Bundle-SymbolicName: com.seizia.chromite.model.lsp;singleton:=true
+Bundle-ActivationPolicy: lazy
+Bundle-RequiredExecutionEnvironment: JavaSE-21
+Require-Bundle: com.seizia.chromite.model,
+ com.seizia.chromite.model.sql,
+ org.eclipse.lsp4j,
+ org.eclipse.lsp4j.jsonrpc
+Automatic-Module-Name: com.seizia.chromite.model.lsp
+Export-Package: com.seizia.chromite.model.lsp,
+ com.seizia.chromite.model.lsp.context

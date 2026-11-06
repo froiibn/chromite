@@ -22,9 +22,9 @@ import com.formdev.flatlaf.fonts.jetbrains_mono.FlatJetBrainsMonoFont;
 import com.formdev.flatlaf.util.FontUtils;
 import com.seizia.chromite.ui.swing.internal.CoreMessages;
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.preferences.DBPPreferenceStore;
-import org.jkiss.dbeaver.utils.PrefUtils;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.preferences.DBPPreferenceStore;
+import com.seizia.chromite.utils.PrefUtils;
 import org.jkiss.utils.CommonUtils;
 
 import javax.swing.*;

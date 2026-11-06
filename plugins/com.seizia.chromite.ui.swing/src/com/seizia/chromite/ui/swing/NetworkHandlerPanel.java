@@ -19,13 +19,13 @@ package com.seizia.chromite.ui.swing;
 import com.seizia.chromite.ui.swing.internal.ConnectionMessages;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.ext.mssql.SQLServerConstants;
-import org.jkiss.dbeaver.ext.mysql.MySQLConstants;
-import org.jkiss.dbeaver.ext.postgresql.PostgreConstants;
-import org.jkiss.dbeaver.model.impl.net.SocksProxyImpl;
-import org.jkiss.dbeaver.model.net.DBWHandlerConfiguration;
-import org.jkiss.dbeaver.model.net.ssh.SSHTunnelImpl;
-import org.jkiss.dbeaver.registry.network.NetworkHandlerDescriptor;
+import com.seizia.chromite.ext.mssql.SQLServerConstants;
+import com.seizia.chromite.ext.mysql.MySQLConstants;
+import com.seizia.chromite.ext.postgresql.PostgreConstants;
+import com.seizia.chromite.model.impl.net.SocksProxyImpl;
+import com.seizia.chromite.model.net.DBWHandlerConfiguration;
+import com.seizia.chromite.model.net.ssh.SSHTunnelImpl;
+import com.seizia.chromite.registry.network.NetworkHandlerDescriptor;
 
 import javax.swing.*;
 import javax.swing.event.DocumentEvent;
@@ -36,7 +36,7 @@ import java.io.File;
 /**
  * 네트워크 핸들러(SSH 터널, 프록시, SSL) 하나의 설정 칸. Connect 대화상자의 핸들러 탭({@link ConnectionNetworkPage}) 안에 들어간다.
  *
- * 설계: SWT는 핸들러 구현 클래스마다 SWT 설정 화면을 {@code org.jkiss.dbeaver.ui.propertyConfigurator} 확장으로 등록하고
+ * 설계: SWT는 핸들러 구현 클래스마다 SWT 설정 화면을 {@code com.seizia.chromite.ui.propertyConfigurator} 확장으로 등록하고
  * ({@code UIPropertyConfiguratorRegistry}), 연결 화면({@code ConnectionPageNetworkHandler})이 그 화면의 {@code loadSettings}/
  * {@code saveSettings}/{@code getErrorMessage}를 부른다. Swing 제품에는 그 SWT 번들이 없으므로 같은 세 동작을 가진 Swing 칸을 이 번들에 두고
  * {@link #create}가 핸들러에 맞는 것을 고른다. 값을 읽고 쓰는 규칙(속성 키, 비밀번호와 비밀 속성의 저장 위치)은 각 SWT 화면을 그대로 따르므로,

@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<feature
+      id="com.seizia.chromite.db.feature"
+      label="Chromite Databases"
+      version="1.0.182.qualifier"
+      provider-name="Chromite contributors">
+
+   <copyright>DBeaver Corp and others</copyright>
+
+   <plugin id="com.seizia.chromite.ext.db2" version="0.0.0"/>
+   <plugin id="com.seizia.chromite.ext.mysql" version="0.0.0" />
+   <plugin id="com.seizia.chromite.ext.mssql" version="0.0.0" />
+   <plugin id="com.seizia.chromite.ext.oracle" version="0.0.0" />
+   <plugin id="com.seizia.chromite.ext.postgresql" version="0.0.0" />
+   <plugin id="com.seizia.chromite.ext.generic" version="0.0.0" />
+   <plugin id="com.seizia.chromite.ext.athena" version="0.0.0" />
+   <plugin id="com.seizia.chromite.ext.bigquery" version="0.0.0" />
+   <plugin id="com.seizia.chromite.ext.clickhouse" version="0.0.0" />
+   <plugin id="com.seizia.chromite.ext.cubrid" version="0.0.0" />
+   <plugin id="com.seizia.chromite.ext.db2.zos" version="0.0.0" />
+   <plugin id="com.seizia.chromite.ext.db2.i" version="0.0.0" />
+   <plugin id="com.seizia.chromite.ext.databend" version="0.0.0" />
+   <plugin id="com.seizia.chromite.ext.tidblake" version="0.0.0" />
+   <plugin id="com.seizia.chromite.ext.derby" version="0.0.0" />
+   <plugin id="com.seizia.chromite.ext.dameng" version="0.0.0"  />
+   <plugin id="com.seizia.chromite.ext.mimer" version="0.0.0" />
+   <plugin id="com.seizia.chromite.ext.duckdb" version="0.0.0" />
+   <plugin id="com.seizia.chromite.ext.exasol" version="0.0.0" />
+   <plugin id="com.seizia.chromite.ext.firebird" version="0.0.0" />
+   <plugin id="com.seizia.chromite.ext.gbase8s" version="0.0.0" />
+   <plugin id="com.seizia.chromite.ext.greenplum" version="0.0.0" />
+   <plugin id="com.seizia.chromite.ext.h2" version="0.0.0" />
+   <plugin id="com.seizia.chromite.ext.hana" version="0.0.0" />
+   <plugin id="com.seizia.chromite.ext.hive" version="0.0.0" />
+   <plugin id="com.seizia.chromite.ext.hsqldb" version="0.0.0" />
+   <plugin id="com.seizia.chromite.ext.informix" version="0.0.0" />
+   <plugin id="com.seizia.chromite.ext.iotdb" version="0.0.0" />
+   <plugin id="com.seizia.chromite.ext.netezza" version="0.0.0" />
+   <plugin id="com.seizia.chromite.ext.oceanbase" version="0.0.0" />
+   <plugin id="com.seizia.chromite.ext.tidb" version="0.0.0" />
+   <plugin id="com.seizia.chromite.ext.phoenix" version="0.0.0" />
+   <plugin id="com.seizia.chromite.ext.snowflake" version="0.0.0"/>
+   <plugin id="com.seizia.chromite.ext.spanner" version="0.0.0" />
+   <plugin id="com.seizia.chromite.ext.sqlite" version="0.0.0" />
+   <plugin id="com.seizia.chromite.ext.cloudflare.d1" version="0.0.0" />
+   <plugin id="com.seizia.chromite.ext.teradata" version="0.0.0" />
+   <plugin id="com.seizia.chromite.ext.timeplus" version="0.0.0" />
+   <plugin id="com.seizia.chromite.ext.trino" version="0.0.0"  />
+   <plugin id="com.seizia.chromite.ext.vertica" version="0.0.0" />
+   <plugin id="com.seizia.chromite.ext.ocient" version="0.0.0" />
+   <plugin id="com.seizia.chromite.ext.denodo" version="0.0.0"  />
+   <plugin id="com.seizia.chromite.ext.databricks" version="0.0.0"  />
+   <plugin id="com.seizia.chromite.ext.altibase" version="0.0.0" />
+   <plugin id="com.seizia.chromite.ext.gaussdb" version="0.0.0" />
+   <plugin id="com.seizia.chromite.ext.kingbase" version="0.0.0" />
+   <plugin id="com.seizia.chromite.ext.manticore" version="0.0.0" />
+   <plugin id="com.seizia.chromite.ext.doris" version="0.0.0" />
+   <plugin id="com.seizia.chromite.ext.starrocks" version="0.0.0" />
+   <plugin id="com.seizia.chromite.ext.greptime" version="0.0.0" />
+   <plugin id="com.seizia.chromite.ext.yashandb" version="0.0.0" />
+
+   <plugin id="com.dbeaver.jdbc.api" version="0.0.0"/>
+
+</feature>

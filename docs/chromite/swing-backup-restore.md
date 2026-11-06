@@ -26,7 +26,7 @@ Object Explorer의 데이터베이스 노드에서 SSMS처럼 **Tasks ▸ Back U
 | `ObjectExplorerPanel` (변경) | 같은 곳 | Tasks 메뉴에 Back Up… / Restore… 두 항목과 켜기 조건(작은 훅) |
 
 모델 클래스는 SWT·Swing에 기대지 않는다. `com.seizia.chromite.model.admin`은 이미 `ext.mssql`과 `model.jdbc`를 쓰고 `.mssql` 패키지를 내보내므로
-MANIFEST·feature·pom은 바꾸지 않았다. Swing 번들도 새 `Require-Bundle`이 없다. `org.jkiss.dbeaver.tasks.native`는 `ext.postgresql`이
+MANIFEST·feature·pom은 바꾸지 않았다. Swing 번들도 새 `Require-Bundle`이 없다. `com.seizia.chromite.tasks.native`는 `ext.postgresql`이
 `visibility:=reexport`로 다시 내보내고, `registry`(`TaskPreferenceStore`, `DriverDescriptor`)·`ext.postgresql`·`ext.mysql`은 이미 쓰고 있었다.
 `tasks.native`는 SWT에 기대지 않는다(`Require-Bundle: model, model.sql, registry`). 그래서 SWT에서 떼어 낼 모델 부분이 없었다.
 
@@ -153,7 +153,7 @@ MANIFEST·feature·pom은 바꾸지 않았다. Swing 번들도 새 `Require-Bund
 
 ## 확인 (2026-11-06)
 
-전체 빌드(`product-dbeaver-ce,product-chromite-swing`) 후 Swing 제품을 개인 작업 영역으로 띄워 EDT 테스트 에이전트로 조작했다. 화면은 한국어(OS 기본)와
+전체 빌드(`product-chromite-swt,product-chromite-swing`) 후 Swing 제품을 개인 작업 영역으로 띄워 EDT 테스트 에이전트로 조작했다. 화면은 한국어(OS 기본)와
 `-nl en`, 라이트·다크로 찍었다(`D:\Tools\_scratch\backup-restore\shots\`).
 
 - **SQL Server 2022(Linux 컨테이너), `chr_backup_restore`(약 67MB)**
@@ -186,7 +186,7 @@ MANIFEST·feature·pom은 바꾸지 않았다. Swing 번들도 새 `Require-Bund
     보였고(위 "pg_restore 종료 코드 1"), 고친 뒤 "실패"와 안내 문구를 보임. 정상 복원은 그대로 "완료".
   - 다시 시작한 뒤에도 클라이언트 폴더가 남고(`drivers.xml`의 `clientHome`, 연결의 `home`) 대화상자를 열면 바로 선택되어 있음.
   - 화면: 한국어(OS 기본)와 `-nl en`, 라이트(`D:\Tools\_scratch\native-client\shots\`).
-  - 남은 것: 실행이 끝날 때 메시지 페이지에 "Service 'org.jkiss.dbeaver.runtime.ui.UIServiceSystemAgent' not found" 한 줄이 나온다.
+  - 남은 것: 실행이 끝날 때 메시지 페이지에 "Service 'com.seizia.chromite.runtime.ui.UIServiceSystemAgent' not found" 한 줄이 나온다.
     처리기가 긴 작업 알림 서비스(SWT `core`의 `UIServiceSystemAgentImpl`, 트레이 알림)를 찾는데 Swing에는 없고, 작업 중에는 `Log`의 출력이
     작업 로그 스트림으로 가기 때문이다. 고치려면 Swing용 알림 서비스가 필요해 이번에는 남겼다.
     실패한 백업은 0바이트 출력 파일을 남기고(모델 처리기), MySQL 백업은 그 파일 때문에 같은 이름으로 다시 실행할 수 없다.

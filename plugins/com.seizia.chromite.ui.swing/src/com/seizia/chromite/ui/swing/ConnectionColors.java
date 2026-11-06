@@ -19,8 +19,8 @@ package com.seizia.chromite.ui.swing;
 import com.formdev.flatlaf.FlatLaf;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.model.connection.DBPConnectionConfiguration;
-import org.jkiss.dbeaver.model.connection.DBPConnectionType;
+import com.seizia.chromite.model.connection.DBPConnectionConfiguration;
+import com.seizia.chromite.model.connection.DBPConnectionType;
 import org.jkiss.utils.CommonUtils;
 
 import java.awt.*;
@@ -38,7 +38,7 @@ import java.awt.*;
  * 모든 곳이 이 클래스 하나로 색을 정하므로 같은 연결은 어디서나 같은 색(다크 테마면 같은 어두운 색)이다.
  * <p>
  * 이 색 위의 글자({@link #getTextColor}): 테마 글자 색이 바탕과 4.5:1(WCAG AA 본문 대비) 이상이면 그대로, 아니면 SWT
- * {@code UIStyles.getContrastColor}(org.jkiss.dbeaver.ui, UIStyles.java 159–168행; 탐색기는 {@code DatabaseNavigatorLabelProvider} 173–174행에서
+ * {@code UIStyles.getContrastColor}(com.seizia.chromite.ui, UIStyles.java 159–168행; 탐색기는 {@code DatabaseNavigatorLabelProvider} 173–174행에서
  * 연결 색 바탕의 글자에 씀)와 같은 규칙으로 검정·흰색을 고른다. 연결에 정한 색은 모델에 다크 값이 없어 다크 테마에서도 밝은 색이라, 테마 글자 색(밝은 색)이 읽히지 않기 때문이다.
  * SWT는 항상 대비 색을 쓰지만 여기서는 읽히지 않을 때만 바꿔, 테마별로 정해진 기본 연결 종류 색에서는 지금 모양(테마 글자 색)을 그대로 둔다.
  *

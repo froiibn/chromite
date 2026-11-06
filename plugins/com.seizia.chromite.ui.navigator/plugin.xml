@@ -1,0 +1,1129 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?eclipse version="3.2"?>
+
+<plugin>
+
+    <extension-point id="com.seizia.chromite.databaseEditor" name="Database editors" schema="schema/com.seizia.chromite.databaseEditor.exsd"/>
+    <extension-point id="com.seizia.chromite.navigator.nodeAction" name="Navigator actions" schema="schema/com.seizia.chromite.navigator.nodeAction.exsd"/>
+
+    <extension point="org.eclipse.core.runtime.adapters">
+        <factory adaptableType="com.seizia.chromite.model.DBPObject" class="com.seizia.chromite.ui.navigator.NavigatorAdapterFactory">
+            <adapter type="com.seizia.chromite.model.DBPNamedObject"/>
+            <adapter type="com.seizia.chromite.model.DBPQualifiedObject"/>
+            <adapter type="com.seizia.chromite.model.DBPObject"/>
+            <adapter type="com.seizia.chromite.model.struct.DBSObject"/>
+            <adapter type="com.seizia.chromite.model.struct.DBSEntity"/>
+            <adapter type="com.seizia.chromite.model.struct.DBSObjectContainer"/>
+            <adapter type="com.seizia.chromite.model.struct.DBSDataContainer"/>
+            <adapter type="com.seizia.chromite.model.struct.DBSDataManipulator"/>
+            <adapter type="com.seizia.chromite.model.struct.DBSStructContainer"/>
+            <adapter type="com.seizia.chromite.model.struct.rdb.DBSProcedure"/>
+            <adapter type="com.seizia.chromite.model.struct.rdb.DBSSchema"/>
+            <adapter type="com.seizia.chromite.model.DBPDataSourceContainer"/>
+            <adapter type="org.eclipse.ui.views.properties.IPropertySource"/>
+            <adapter type="org.eclipse.core.resources.IResource"/>
+            <adapter type="org.eclipse.core.resources.IProject"/>
+            <adapter type="org.eclipse.core.resources.IFile"/>
+            <adapter type="org.eclipse.core.resources.IFolder"/>
+            <adapter type="org.eclipse.ui.model.IWorkbenchAdapter"/>
+        </factory>
+
+        <factory adaptableType="com.seizia.chromite.model.DBPObject" class="com.seizia.chromite.ui.navigator.NavigatorConfiguratorFactory">
+            <adapter type="com.seizia.chromite.model.edit.DBEObjectConfigurator"/>
+        </factory>
+    </extension>
+
+    <extension point="org.eclipse.ui.views">
+        <category id="com.seizia.chromite.core.category" name="%category.com.seizia.chromite.core.category.name"/>
+        <view
+            id="com.seizia.chromite.core.databaseNavigator"
+            category="com.seizia.chromite.core.category"
+            class="com.seizia.chromite.ui.navigator.database.DatabaseNavigatorView"
+            allowMultiple="false"
+            icon="platform:/plugin/com.seizia.chromite.ui/icons/databases.svg"
+            name="%view.database.navigator.title">
+            <description>%view.database.navigator.description</description>
+        </view>
+        <view
+            id="com.seizia.chromite.core.databaseBrowser"
+            category="com.seizia.chromite.core.category"
+            class="com.seizia.chromite.ui.navigator.database.DatabaseBrowserView"
+            allowMultiple="true"
+            icon="platform:/plugin/com.seizia.chromite.ui/icons/database_navigator.svg"
+            name="%view.database.browser.title">
+            <description>%view.database.browser.description</description>
+        </view>
+        <view
+            id="com.seizia.chromite.core.projectNavigator"
+            category="com.seizia.chromite.core.category"
+            class="com.seizia.chromite.ui.navigator.project.ProjectNavigatorView"
+            allowMultiple="false"
+            icon="platform:/plugin/com.seizia.chromite.ui/icons/projects.svg"
+            name="%view.project.navigator.title">
+            <description>%view.project.navigator.description</description>
+        </view>
+        <view
+            id="com.seizia.chromite.core.projectExplorer"
+            category="com.seizia.chromite.core.category"
+            class="com.seizia.chromite.ui.navigator.project.ProjectExplorerView"
+            allowMultiple="false"
+            icon="platform:/plugin/com.seizia.chromite.model/icons/project.svg"
+            name="%view.project.explorer.title">
+            <description>%view.project.explorer.description</description>
+        </view>
+    </extension>
+
+    <extension point="org.eclipse.ui.newWizards">
+        <wizard
+                category="com.seizia.chromite.core.new.general"
+                class="com.seizia.chromite.tools.project.ProjectCreateWizard"
+                icon="platform:/plugin/com.seizia.chromite.model/icons/project.svg"
+                id="com.seizia.chromite.core.wizard.new.project"
+                name="%wizard.com.seizia.chromite.core.wizard.new.project.name">
+            <description>
+                %wizard.com.seizia.chromite.core.wizard.new.project.description
+            </description>
+        </wizard>
+    </extension>
+
+    <extension point="org.eclipse.ui.propertyPages">
+        <page class="com.seizia.chromite.ui.preferences.PrefPageDatabaseNavigator" id="com.seizia.chromite.preferences.navigator" name="%page.com.seizia.chromite.preferences.databaseNavigator.name">
+            <enabledWhen>
+                <instanceof value="com.seizia.chromite.ui.navigator.database.NavigatorViewBase"/>
+            </enabledWhen>
+        </page>
+        <page class="com.seizia.chromite.ui.project.PrefPageProjectResourceSettings" id="com.seizia.chromite.preferences.projectSettings" name="%page.com.seizia.chromite.preferences.projectSettings.name" >
+            <enabledWhen>
+                <adapt type="org.eclipse.core.resources.IProject">
+                    <test property="org.eclipse.core.resources.projectNature" value="com.seizia.chromite.ChromiteNature"/>
+                </adapt>
+            </enabledWhen>
+        </page>
+        <page class="com.seizia.chromite.ui.project.PrefPageProjectResourceDetails" id="com.seizia.chromite.preferences.resourceDetails"  name="%page.com.seizia.chromite.preferences.resourceDetails.name">
+            <enabledWhen>
+                <adapt type="com.seizia.chromite.model.navigator.fs.DBNPath"/>
+            </enabledWhen>
+        </page>
+    </extension>
+
+    <extension point="org.eclipse.core.runtime.preferences">
+        <initializer class="com.seizia.chromite.ui.internal.UINavigatorPreferencesInitializer"/>
+    </extension>
+
+    <extension point="org.eclipse.core.expressions.propertyTesters">
+        <propertyTester
+            class="com.seizia.chromite.ui.actions.GlobalUIPropertyTester"
+            id="com.seizia.chromite.ui.actions.GlobalUIPropertyTester"
+            namespace="com.seizia.chromite.core.global.ui"
+            properties="hasPermission,canCreateConnection,canCreateProject,hasActiveProject,hasMultipleProjects,canEditResource,currentProjectResourceEditable,currentProjectResourceViewable"
+            type="java.lang.Object"/>
+        <propertyTester
+            class="com.seizia.chromite.ui.actions.ObjectPropertyTester"
+            id="com.seizia.chromite.ui.actions.ObjectPropertyTester"
+            namespace="com.seizia.chromite.core.object"
+            properties="canOpen,canCreateSingle,canCreateMulti,canPaste,canDelete,canRename,canMoveUp,canMoveDown,canFilter,canFilterObject,hasFilter,supportsIndexCreate,supportsConstraintCreate,supportsNativeExecution,projectResourceEditable,projectResourceViewable"
+            type="com.seizia.chromite.model.DBPNamedObject"/>
+        <propertyTester
+                class="com.seizia.chromite.ui.actions.ModelPropertyTester"
+                id="com.seizia.chromite.ui.actions.ModelPropertyTester"
+                namespace="com.seizia.chromite.model"
+                properties="childOfType,isTableContainer"
+                type="com.seizia.chromite.model.struct.DBSObject"/>
+
+        <propertyTester
+            class="com.seizia.chromite.ui.navigator.ResourcePropertyTester"
+            id="com.seizia.chromite.ui.navigator.ResourcePropertyTester"
+            namespace="com.seizia.chromite.core.resource"
+            properties="canOpen,canDelete,canCreateFile,canCreateFolder,canCreateLink,canSetActive,isLocalFS,isFolder,type"
+            type="org.eclipse.core.resources.IResource"/>
+        <propertyTester
+            class="com.seizia.chromite.ui.editors.entity.EntityEditorPropertyTester"
+            id="com.seizia.chromite.ui.editors.entity.EntityEditorPropertyTester"
+            namespace="com.seizia.chromite.ui.editors.entity"
+            properties="dirty,canUndo,canRedo,hasSource,objectType"
+            type="com.seizia.chromite.ui.editors.entity.EntityEditor"/>
+        <propertyTester
+            class="com.seizia.chromite.ui.editors.entity.FolderEditorPropertyTester"
+            id="com.seizia.chromite.ui.editors.entity.FolderEditorPropertyTester"
+            namespace="com.seizia.chromite.ui.editors.folder"
+            properties="canNavigate"
+            type="com.seizia.chromite.ui.editors.entity.FolderEditor"/>
+        <propertyTester
+            class="com.seizia.chromite.ui.navigator.NavigatorPropertyTester"
+            id="com.seizia.chromite.ui.navigator.NavigatorPropertyTester"
+            namespace="com.seizia.chromite.core.navigator"
+            properties="active,focused"
+            type="org.eclipse.ui.IWorkbenchPart"/>
+    </extension>
+
+    <extension point="org.eclipse.ui.editors">
+        <editor
+                name="%editor.folder.name"
+                icon="platform:/plugin/com.seizia.chromite.ui/icons/properties.svg"
+                contributorClass="com.seizia.chromite.ui.editors.entity.FolderEditorContributor"
+                class="com.seizia.chromite.ui.editors.entity.FolderEditor"
+                id="com.seizia.chromite.ui.editors.entity.FolderEditor">
+        </editor>
+        <editor
+                name="%editor.entity.name"
+                icon="platform:/plugin/com.seizia.chromite.ui/icons/properties.svg"
+                contributorClass="com.seizia.chromite.ui.editors.EditorSearchActionsContributor"
+                class="com.seizia.chromite.ui.editors.entity.EntityEditor"
+                id="com.seizia.chromite.ui.editors.entity.EntityEditor">
+        </editor>
+    </extension>
+
+    <extension point="org.eclipse.core.expressions.definitions">
+        <definition id="com.seizia.chromite.core.ui.navigator.control">
+            <with variable="activeFocusControlId">
+                <equals value="com.seizia.chromite.ui.navigator"/>
+            </with>
+        </definition>
+        <definition id="com.seizia.chromite.core.ui.navigator.part">
+            <with variable="activePart">
+                <!--<instanceof value="com.seizia.chromite.ui.navigator.INavigatorModelView"/>-->
+                <test property="com.seizia.chromite.core.navigator.active" forcePluginActivation="true"/>
+            </with>
+        </definition>
+        <definition id="com.seizia.chromite.core.ui.navigator.part.active">
+            <with variable="activePart">
+                <test property="com.seizia.chromite.core.navigator.focused" forcePluginActivation="true"/>
+            </with>
+        </definition>
+        <definition id="com.seizia.chromite.core.ui.folder.editor">
+            <with variable="activeEditor">
+                <instanceof value="com.seizia.chromite.ui.editors.entity.FolderEditor"/>
+            </with>
+        </definition>
+
+        <definition id="com.seizia.chromite.core.ui.datasource.part">
+            <with variable="activePart">
+                <instanceof value="com.seizia.chromite.model.DBPContextProvider"/>
+            </with>
+        </definition>
+        <definition id="com.seizia.chromite.core.ui.datasource.editor">
+            <with variable="activeEditor">
+                <instanceof value="com.seizia.chromite.model.DBPContextProvider"/>
+            </with>
+        </definition>
+
+    </extension>
+
+    <extension point="org.eclipse.ui.contexts">
+        <context
+                id="com.seizia.chromite.ui.context.navigator"
+                parentId="org.eclipse.ui.contexts.window"
+                name="%context.com.seizia.chromite.ui.context.navigator.name"
+                description="%context.com.seizia.chromite.ui.context.navigator.description"/>
+        <context
+                id="com.seizia.chromite.ui.context.navigator.view"
+                parentId="com.seizia.chromite.ui.context.navigator"
+                name="%context.com.seizia.chromite.ui.context.navigator.view.name"
+                description="%context.com.seizia.chromite.ui.context.navigator.view.description"/>
+    </extension>
+
+    <extension point="org.eclipse.ui.commands">
+        <category id="com.seizia.chromite.core.navigator" name="%category.dbnavigator.name" description="%category.dbnavigator.description"/>
+
+        <command id="com.seizia.chromite.core.edit.save.resource" name="%command.com.seizia.chromite.core.edit.save.resource.name" description="%command.com.seizia.chromite.core.edit.save.resource.description" categoryId="com.seizia.chromite.core.util"/>
+        <command id="com.seizia.chromite.core.edit.load.resource" name="%command.com.seizia.chromite.core.edit.load.resource.name" description="%command.com.seizia.chromite.core.edit.load.resource.description" categoryId="com.seizia.chromite.core.util"/>
+        <command id="com.seizia.chromite.core.edit.copy.special" name="%command.com.seizia.chromite.core.edit.copy.special.name" description="%command.com.seizia.chromite.core.edit.copy.special.description" categoryId="com.seizia.chromite.core.util"/>
+        <command id="com.seizia.chromite.core.edit.copy.special.with.last.settings" name="%com.seizia.chromite.core.edit.copy.special.with.last.settings.name" description="%com.seizia.chromite.core.edit.copy.special.with.last.settings.description" categoryId="com.seizia.chromite.core.util"/>
+        <command id="com.seizia.chromite.core.edit.paste.special" name="%command.com.seizia.chromite.core.edit.paste.special.name" description="%command.com.seizia.chromite.core.edit.paste.special.description" categoryId="com.seizia.chromite.core.util"/>
+
+        <command id="com.seizia.chromite.core.object.open" name="%command.com.seizia.chromite.core.object.open.name" description="%command.com.seizia.chromite.core.object.open.description" categoryId="com.seizia.chromite.core.database">
+            <commandParameter id="activePage" name="Active page" optional="true"/>
+            <commandParameter id="activeFolder" name="Active folder" optional="true"/>
+        </command>
+        <command id="com.seizia.chromite.core.object.create" name="%command.com.seizia.chromite.core.object.create.name" description="%command.com.seizia.chromite.core.object.create.description" categoryId="com.seizia.chromite.core.database">
+            <commandParameter id="com.seizia.chromite.core.object.type" name="Object type" optional="true"/>
+            <commandParameter id="com.seizia.chromite.core.object.typeName" name="Object type name" optional="true"/>
+            <commandParameter id="com.seizia.chromite.core.object.typeIcon" name="Object type icon" optional="true"/>
+            <commandParameter id="com.seizia.chromite.core.object.folder" name="Object is folder" optional="true"/>
+        </command>
+        <command id="com.seizia.chromite.core.object.delete" name="%command.com.seizia.chromite.core.object.delete.name" description="%command.com.seizia.chromite.core.object.delete.description" categoryId="com.seizia.chromite.core.database"/>
+        <command id="com.seizia.chromite.core.object.move.top" name="%command.com.seizia.chromite.core.object.move.top.name" description="%command.com.seizia.chromite.core.object.move.top.description" categoryId="com.seizia.chromite.core.database"/>
+        <command id="com.seizia.chromite.core.object.move.bottom" name="%command.com.seizia.chromite.core.object.move.bottom.name" description="%command.com.seizia.chromite.core.object.move.bottom.description" categoryId="com.seizia.chromite.core.database"/>
+        <command id="com.seizia.chromite.core.object.move.up" name="%command.com.seizia.chromite.core.object.move.up.name" description="%command.com.seizia.chromite.core.object.move.up.description" categoryId="com.seizia.chromite.core.database"/>
+        <command id="com.seizia.chromite.core.object.move.down" name="%command.com.seizia.chromite.core.object.move.down.name" description="%command.com.seizia.chromite.core.object.move.down.description" categoryId="com.seizia.chromite.core.database"/>
+        <command id="com.seizia.chromite.core.object.goto" name="%command.com.seizia.chromite.core.object.goto.name" description="%command.com.seizia.chromite.core.object.goto.description" categoryId="com.seizia.chromite.core.database"/>
+
+        <command id="com.seizia.chromite.navigator.filter.connected" name="%command.com.seizia.chromite.navigator.filter.connected.name" description="%command.com.seizia.chromite.navigator.filter.connected.description" categoryId="com.seizia.chromite.core.database"/>
+        <command id="com.seizia.chromite.navigator.filter.object.type" name="%command.com.seizia.chromite.navigator.filter.object.type.name" description="%command.com.seizia.chromite.navigator.filter.object.type.description" categoryId="com.seizia.chromite.core.database">
+            <commandParameter id="type" name="Object type" optional="false"/>
+        </command>
+        <command id="com.seizia.chromite.core.object.filter.config" name="%command.com.seizia.chromite.core.object.filter.config.name" description="%command.com.seizia.chromite.core.object.filter.config.description" categoryId="com.seizia.chromite.core.database"/>
+        <command id="com.seizia.chromite.core.object.filter.add.exclude" name="%command.com.seizia.chromite.core.object.filter.add.exclude.name" description="%command.com.seizia.chromite.core.object.filter.add.exclude.description" categoryId="com.seizia.chromite.core.database"/>
+        <command id="com.seizia.chromite.core.object.filter.add.include" name="%command.com.seizia.chromite.core.object.filter.add.include.name" description="%command.com.seizia.chromite.core.object.filter.add.include.description" categoryId="com.seizia.chromite.core.database"/>
+        <command id="com.seizia.chromite.core.object.filter.clear" name="%command.com.seizia.chromite.core.object.filter.clear.name" description="%command.com.seizia.chromite.core.object.filter.clear.description" categoryId="com.seizia.chromite.core.database"/>
+        <command id="com.seizia.chromite.core.object.filter.toggle" name="%command.com.seizia.chromite.core.object.filter.toggle.name" description="%command.com.seizia.chromite.core.object.filter.toggle.description" categoryId="com.seizia.chromite.core.database"/>
+
+        <command id="com.seizia.chromite.core.project.create" name="%command.com.seizia.chromite.core.project.create.name" description="%command.com.seizia.chromite.core.project.create.description" categoryId="com.seizia.chromite.core.navigator"/>
+        <command id="com.seizia.chromite.core.project.refresh" name="%command.com.seizia.chromite.core.project.refresh.name" description="%command.com.seizia.chromite.core.project.refresh.description" categoryId="com.seizia.chromite.core.navigator">
+            <commandParameter id="singleProject" name="Refresh just active project" optional="true"/>
+        </command>
+        <command id="com.seizia.chromite.core.project.active" name="%command.com.seizia.chromite.core.project.active.name" description="%command.com.seizia.chromite.core.project.active.description" categoryId="com.seizia.chromite.core.navigator"/>
+        <command id="com.seizia.chromite.core.project.select" name="%command.com.seizia.chromite.core.project.select.name" description="%command.com.seizia.chromite.core.project.select.description" categoryId="com.seizia.chromite.core.navigator"/>
+        <command id="com.seizia.chromite.core.resource.create.file" name="%command.com.seizia.chromite.core.resource.create.file.name" description="%command.com.seizia.chromite.core.resource.create.file.description" categoryId="com.seizia.chromite.core.navigator"/>
+        <command id="com.seizia.chromite.core.resource.create.folder" name="%command.com.seizia.chromite.core.resource.create.folder.name" description="%command.com.seizia.chromite.core.resource.create.folder.description" categoryId="com.seizia.chromite.core.navigator"/>
+        <command id="com.seizia.chromite.core.resource.link.file" name="%command.com.seizia.chromite.core.resource.link.file.name" categoryId="com.seizia.chromite.core.navigator" description="%command.com.seizia.chromite.core.resource.link.file.description">
+            <commandParameter
+                    id="com.seizia.chromite.core.resource.link.file.contenttype"
+                    name="%commandParameter.com.seizia.chromite.core.resource.link.file.contenttype.name"
+                    optional="true"
+                    values="com.seizia.chromite.ui.actions.ContentTypeParameterValues">
+            </commandParameter>
+        </command>
+        <command id="com.seizia.chromite.core.resource.link.folder" name="%command.com.seizia.chromite.core.resource.link.folder.name" description="%command.com.seizia.chromite.core.resource.link.folder.description" categoryId="com.seizia.chromite.core.navigator"/>
+        <command id="com.seizia.chromite.core.view.toggle" name="Show/Hide view" categoryId="com.seizia.chromite.core.navigator" description="Toggle view">
+            <commandParameter id="viewId" name="View ID" optional="false" values="com.seizia.chromite.ui.navigator.actions.NavigatorHandlerToggleView$ViewValues">
+            </commandParameter>
+        </command>
+
+        <command id="com.seizia.chromite.core.new.folder" name="%command.com.seizia.chromite.core.new.folder.name" description="%command.com.seizia.chromite.core.new.folder.description" categoryId="com.seizia.chromite.core.navigator"/>
+        <command id="com.seizia.chromite.core.navigator.linkeditor" name="%command.com.seizia.chromite.core.navigator.linkeditor.name" description="%command.com.seizia.chromite.core.navigator.linkeditor.description" categoryId="com.seizia.chromite.core.navigator"/>
+        <command id="com.seizia.chromite.core.navigator.filter.focus" name="%command.com.seizia.chromite.core.navigator.filter.focus.name" description="%command.com.seizia.chromite.core.navigator.filter.focus.description" categoryId="com.seizia.chromite.core.navigator"/>
+        <command id="com.seizia.chromite.core.navigator.preferences" name="%command.com.seizia.chromite.core.navigator.preferences.name" description="%command.com.seizia.chromite.core.navigator.preferences.description" categoryId="com.seizia.chromite.core.navigator"/>
+        <command id="com.seizia.chromite.core.navigator.set.default" name="%command.com.seizia.chromite.core.navigator.set.default.name" description="%command.com.seizia.chromite.core.navigator.set.default.description" categoryId="com.seizia.chromite.core.navigator"/>
+        <command id="com.seizia.chromite.core.navigator.open.browser" name="%command.com.seizia.chromite.core.navigator.open.browser.name" description="%command.com.seizia.chromite.core.navigator.open.browser.description" categoryId="com.seizia.chromite.core.navigator"/>
+        <command id="com.seizia.chromite.core.sql.script.associate" name="%command.com.seizia.chromite.core.sql.script.associate.name" description="%command.com.seizia.chromite.core.sql.script.associate.description" categoryId="com.seizia.chromite.core.navigator"/>
+        <command id="com.seizia.chromite.core.sql.script.run.scriptNative" name="%command.com.seizia.chromite.core.sql.script.run.scriptNative.name" description="%command.com.seizia.chromite.core.sql.script.run.scriptNative.description" categoryId="com.seizia.chromite.core.sql"/>
+        <command id="com.seizia.chromite.core.show.in.explorer" name="%command.com.seizia.chromite.core.show.in.explorer.name" description="%command.com.seizia.chromite.core.show.in.explorer.description" categoryId="com.seizia.chromite.core.navigator"/>
+
+        <command id="com.seizia.chromite.ui.tools.select.connection" name="%command.com.seizia.chromite.ui.tools.select.connection.name" description="%command.com.seizia.chromite.ui.tools.select.connection.description" categoryId="com.seizia.chromite.core.database">
+            <commandParameter id="noCustomLabel" name="Show original command name" optional="true"/>
+        </command>
+        <command id="com.seizia.chromite.ui.tools.select.schema" name="%command.com.seizia.chromite.ui.tools.select.schema.name" description="%command.com.seizia.chromite.ui.tools.select.schema.description" categoryId="com.seizia.chromite.core.database">
+            <commandParameter id="noCustomLabel" name="Show original command name" optional="true"/>
+        </command>
+
+        <command id="com.seizia.chromite.navigator.create.column.index" name="%command.com.seizia.chromite.navigator.create.column.index.name" description="%command.com.seizia.chromite.navigator.create.column.index.description" categoryId="com.seizia.chromite.core.database" />
+        <command id="com.seizia.chromite.navigator.create.column.constraint" name="%command.com.seizia.chromite.navigator.create.column.constraint.name" description="%command.com.seizia.chromite.navigator.create.column.constraint.description" categoryId="com.seizia.chromite.core.database" />
+
+        <command id="com.seizia.chromite.ui.object.property.source.activate" name="%command.com.seizia.chromite.ui.context.object.property.source.switch.name" description="%command.com.seizia.chromite.ui.context.object.property.source.switch.description" categoryId="com.seizia.chromite.core.database"/>
+    </extension>
+
+    <extension point="org.eclipse.ui.commandImages">
+        <image commandId="com.seizia.chromite.core.object.open" icon="platform:/plugin/com.seizia.chromite.ui/icons/edit.svg"/>
+        <image commandId="com.seizia.chromite.core.object.create" icon="platform:/plugin/com.seizia.chromite.ui/icons/create.svg"/>
+        <image commandId="com.seizia.chromite.core.object.delete" icon="platform:/plugin/com.seizia.chromite.ui/icons/delete.svg"/>
+        <image commandId="com.seizia.chromite.core.object.move.top" icon="platform:/plugin/com.seizia.chromite.ui/icons/misc/arrow_top.svg"/>
+        <image commandId="com.seizia.chromite.core.object.move.bottom" icon="platform:/plugin/com.seizia.chromite.ui/icons/misc/arrow_bottom.svg"/>
+        <image commandId="com.seizia.chromite.core.object.move.up" icon="platform:/plugin/com.seizia.chromite.ui/icons/misc/arrow_up.svg"/>
+        <image commandId="com.seizia.chromite.core.object.move.down" icon="platform:/plugin/com.seizia.chromite.ui/icons/misc/arrow_down.svg"/>
+
+        <image commandId="com.seizia.chromite.navigator.filter.connected" icon="platform:/plugin/com.seizia.chromite.ui/icons/misc/filter_all.svg"/>
+        <image commandId="com.seizia.chromite.navigator.filter.object.type" icon="platform:/plugin/com.seizia.chromite.ui/icons/misc/filter_connections.svg"/>
+        <image commandId="com.seizia.chromite.core.object.filter.config" icon="platform:/plugin/com.seizia.chromite.ui/icons/misc/filter.svg"/>
+        <image commandId="com.seizia.chromite.core.object.filter.add.exclude" icon="platform:/plugin/com.seizia.chromite.ui/icons/misc/filter_add.svg"/>
+        <image commandId="com.seizia.chromite.core.object.filter.add.include" icon="platform:/plugin/com.seizia.chromite.ui/icons/misc/filter_add.svg"/>
+
+        <image commandId="com.seizia.chromite.core.edit.save.resource" icon="platform:/plugin/com.seizia.chromite.ui/icons/file/save_as.svg"/>
+        <image commandId="com.seizia.chromite.core.edit.load.resource" icon="platform:/plugin/com.seizia.chromite.ui/icons/file/load.png"/>
+
+        <image commandId="com.seizia.chromite.core.project.create" icon="platform:/plugin/com.seizia.chromite.ui/icons/project_add.svg"/>
+        <image commandId="com.seizia.chromite.core.project.refresh" icon="platform:/plugin/com.seizia.chromite.ui/icons/refresh.svg"/>
+        <image commandId="com.seizia.chromite.core.project.select" icon="platform:/plugin/com.seizia.chromite.model/icons/project.svg"/>
+        <image commandId="com.seizia.chromite.core.resource.create.folder" icon="platform:/plugin/com.seizia.chromite.ui/icons/file/folder_add.svg"/>
+        <image commandId="com.seizia.chromite.core.resource.link.file" icon="platform:/plugin/com.seizia.chromite.ui/icons/file/link.png"/>
+        <image commandId="com.seizia.chromite.core.resource.link.folder" icon="platform:/plugin/com.seizia.chromite.ui/icons/file/link.png"/>
+
+        <image commandId="com.seizia.chromite.core.new.folder" icon="platform:/plugin/com.seizia.chromite.ui/icons/file/folder_add.svg"/>
+        <image commandId="com.seizia.chromite.core.navigator.linkeditor" icon="platform:/plugin/com.seizia.chromite.ui/icons/link_to_editor.svg"/>
+        <image commandId="com.seizia.chromite.core.navigator.preferences" icon="platform:/plugin/com.seizia.chromite.ui/icons/configuration.svg"/>
+        <image commandId="com.seizia.chromite.core.navigator.open.browser" icon="platform:/plugin/com.seizia.chromite.ui/icons/database_navigator.svg"/>
+        <image commandId="com.seizia.chromite.core.sql.script.run.scriptNative" icon="platform:/plugin/com.seizia.chromite.ui/icons/sql/sql_exec_native.svg"/>
+        <image commandId="com.seizia.chromite.core.show.in.explorer" icon="platform:/plugin/com.seizia.chromite.model/icons/tree/link.svg"/>
+        <image commandId="com.seizia.chromite.ui.tools.select.connection" icon="platform:/plugin/com.seizia.chromite.model/icons/tree/database.svg"/>
+        <image commandId="com.seizia.chromite.ui.tools.select.schema" icon="platform:/plugin/com.seizia.chromite.model/icons/tree/schema.svg"/>
+
+        <image commandId="com.seizia.chromite.navigator.create.column.index" icon="platform:/plugin/com.seizia.chromite.model/icons/tree/index.svg"/>
+        <image commandId="com.seizia.chromite.navigator.create.column.constraint" icon="platform:/plugin/com.seizia.chromite.model/icons/tree/constraint.svg"/>
+    </extension>
+
+    <extension point="org.eclipse.ui.handlers">
+    	<handler commandId="com.seizia.chromite.ui.object.property.source.activate" class="com.seizia.chromite.ui.editors.entity.handlers.ObjectPropertySwitchToSourceHandler">
+            <enabledWhen>
+                <with variable="activeEditor">
+                    <adapt type="com.seizia.chromite.ui.editors.entity.EntityEditor">
+                        <test property="com.seizia.chromite.ui.editors.entity.hasSource"/>
+                    </adapt>
+                </with>
+            </enabledWhen>
+    	</handler>
+        <!-- Navigator handlers -->
+
+        <handler commandId="com.seizia.chromite.core.object.open" class="com.seizia.chromite.ui.navigator.actions.NavigatorHandlerObjectOpen">
+            <enabledWhen>
+                <with variable="selection">
+                    <count value="+"/>
+                    <iterate operator="and">
+                        <or>
+                            <instanceof value="com.seizia.chromite.model.navigator.fs.DBNPathBase"/>
+                            <adapt type="com.seizia.chromite.model.navigator.DBNNode">
+                                <test property="com.seizia.chromite.core.object.projectResourceViewable"/>
+                            </adapt>
+                            <adapt type="com.seizia.chromite.model.navigator.DBNNode">
+                                <not>
+                                    <adapt type="org.eclipse.core.resources.IResource"/>
+                                </not>
+                            </adapt>
+                        </or>
+                    </iterate>
+                </with>
+            </enabledWhen>
+        </handler>
+
+        <handler commandId="com.seizia.chromite.core.object.create" class="com.seizia.chromite.ui.navigator.actions.NavigatorHandlerObjectCreateNew"/>
+
+        <handler commandId="com.seizia.chromite.navigator.create.column.index" class="com.seizia.chromite.ui.navigator.actions.NavigatorHandlerCreateColumnIndex">
+            <enabledWhen>
+                <with variable="selection">
+                    <count value="+"/>
+                    <iterate operator="and">
+                        <adapt type="com.seizia.chromite.model.navigator.DBNNode">
+                            <test property="com.seizia.chromite.core.object.supportsIndexCreate" />
+                        </adapt>
+                    </iterate>
+                </with>
+            </enabledWhen>
+        </handler>
+        <handler commandId="com.seizia.chromite.navigator.create.column.constraint" class="com.seizia.chromite.ui.navigator.actions.NavigatorHandlerCreateColumnConstraint">
+            <enabledWhen>
+                <with variable="selection">
+                    <count value="+"/>
+                    <iterate operator="and">
+                        <adapt type="com.seizia.chromite.model.navigator.DBNNode">
+                            <test property="com.seizia.chromite.core.object.supportsConstraintCreate" />
+                        </adapt>
+                    </iterate>
+                </with>
+            </enabledWhen>
+        </handler>
+
+        <handler commandId="com.seizia.chromite.navigator.filter.connected" class="com.seizia.chromite.ui.navigator.actions.NavigatorHandlerConnectionFilter"/>
+        <handler commandId="com.seizia.chromite.navigator.filter.object.type" class="com.seizia.chromite.ui.navigator.actions.NavigatorHandlerFilterObjectType"/>
+        <handler commandId="com.seizia.chromite.core.object.filter.config" class="com.seizia.chromite.ui.navigator.actions.NavigatorHandlerFilterConfig">
+            <enabledWhen>
+                <with variable="selection">
+                    <count value="1"/>
+                    <iterate operator="and">
+                        <adapt type="com.seizia.chromite.model.navigator.DBNNode">
+                            <test property="com.seizia.chromite.core.object.canFilter"/>
+                        </adapt>
+                    </iterate>
+                </with>
+            </enabledWhen>
+        </handler>
+        <handler commandId="com.seizia.chromite.core.object.filter.clear" class="com.seizia.chromite.ui.navigator.actions.NavigatorHandlerFilterClear">
+            <enabledWhen>
+                <with variable="selection">
+                    <count value="1"/>
+                    <iterate operator="and">
+                        <adapt type="com.seizia.chromite.model.navigator.DBNNode">
+                            <test property="com.seizia.chromite.core.object.hasFilter"/>
+                        </adapt>
+                    </iterate>
+                </with>
+            </enabledWhen>
+        </handler>
+        <handler commandId="com.seizia.chromite.core.object.filter.toggle" class="com.seizia.chromite.ui.navigator.actions.NavigatorHandlerFilterToggle">
+            <enabledWhen>
+                <with variable="selection">
+                    <count value="1"/>
+                    <iterate operator="and">
+                        <adapt type="com.seizia.chromite.model.navigator.DBNNode">
+                            <test property="com.seizia.chromite.core.object.hasFilter" value="defined"/>
+                        </adapt>
+                    </iterate>
+                </with>
+            </enabledWhen>
+        </handler>
+        <handler commandId="com.seizia.chromite.core.object.filter.add.exclude" class="com.seizia.chromite.ui.navigator.actions.NavigatorHandlerFilterExclude">
+            <enabledWhen>
+                <with variable="selection">
+                    <iterate operator="and">
+                        <adapt type="com.seizia.chromite.model.navigator.DBNNode">
+                            <test property="com.seizia.chromite.core.object.canFilterObject"/>
+                        </adapt>
+                    </iterate>
+                </with>
+            </enabledWhen>
+        </handler>
+        <handler commandId="com.seizia.chromite.core.object.filter.add.include" class="com.seizia.chromite.ui.navigator.actions.NavigatorHandlerFilterInclude">
+            <enabledWhen>
+                <with variable="selection">
+                    <iterate operator="and">
+                        <adapt type="com.seizia.chromite.model.navigator.DBNNode">
+                            <test property="com.seizia.chromite.core.object.canFilterObject"/>
+                        </adapt>
+                    </iterate>
+                </with>
+            </enabledWhen>
+        </handler>
+
+        <handler commandId="org.eclipse.ui.edit.paste" class="com.seizia.chromite.ui.navigator.actions.NavigatorHandlerObjectCreateCopy">
+            <activeWhen><reference definitionId="com.seizia.chromite.core.ui.navigator.part.active"/></activeWhen>
+            <enabledWhen>
+                <with variable="selection">
+                    <count value="+"/>
+                    <iterate operator="and">
+                        <adapt type="com.seizia.chromite.model.navigator.DBNNode">
+                            <test property="com.seizia.chromite.core.object.canPaste"/>
+                        </adapt>
+                    </iterate>
+                </with>
+            </enabledWhen>
+        </handler>
+
+        <handler commandId="com.seizia.chromite.core.object.delete" class="com.seizia.chromite.ui.navigator.actions.NavigatorHandlerObjectDelete">
+            <activeWhen><reference definitionId="com.seizia.chromite.core.ui.navigator.part"/></activeWhen>
+            <enabledWhen>
+                <with variable="selection">
+                    <count value="+"/>
+                    <iterate operator="and">
+                        <adapt type="com.seizia.chromite.model.navigator.DBNNode">
+                            <test property="com.seizia.chromite.core.object.canDelete"/>
+                        </adapt>
+                    </iterate>
+                </with>
+            </enabledWhen>
+        </handler>
+
+        <handler commandId="org.eclipse.ui.edit.delete" class="com.seizia.chromite.ui.navigator.actions.NavigatorHandlerObjectDelete">
+            <activeWhen><reference definitionId="com.seizia.chromite.core.ui.navigator.part.active"/></activeWhen>
+            <enabledWhen>
+                <with variable="selection">
+                    <count value="+"/>
+                    <iterate operator="and">
+                        <and>
+                            <adapt type="com.seizia.chromite.model.navigator.DBNNode">
+                                <test property="com.seizia.chromite.core.object.canDelete"/>
+                            </adapt>
+                            <test property="com.seizia.chromite.core.object.projectResourceEditable"/>
+                        </and>
+                    </iterate>
+                </with>
+            </enabledWhen>
+        </handler>
+
+        <handler commandId="org.eclipse.ui.edit.rename" class="com.seizia.chromite.ui.navigator.actions.NavigatorHandlerObjectRename">
+            <activeWhen><reference definitionId="com.seizia.chromite.core.ui.navigator.part.active"/></activeWhen>
+            <enabledWhen>
+                <with variable="selection">
+                    <count value="1"/>
+                    <iterate operator="and">
+                        <adapt type="com.seizia.chromite.model.navigator.DBNNode">
+                            <test property="com.seizia.chromite.core.object.canRename"/>
+                        </adapt>
+                    </iterate>
+                </with>
+            </enabledWhen>
+        </handler>
+        <handler commandId="com.seizia.chromite.core.object.move.top" class="com.seizia.chromite.ui.navigator.actions.NavigatorHandlerObjectMove">
+            <activeWhen><reference definitionId="com.seizia.chromite.core.ui.navigator.part"/></activeWhen>
+            <enabledWhen>
+                <with variable="selection">
+                    <count value="+"/>
+                    <iterate operator="and">
+                        <adapt type="com.seizia.chromite.model.navigator.DBNNode">
+                            <test property="com.seizia.chromite.core.object.canMoveUp"/>
+                        </adapt>
+                    </iterate>
+                </with>
+            </enabledWhen>
+        </handler>
+        <handler commandId="com.seizia.chromite.core.object.move.bottom" class="com.seizia.chromite.ui.navigator.actions.NavigatorHandlerObjectMove">
+            <activeWhen><reference definitionId="com.seizia.chromite.core.ui.navigator.part"/></activeWhen>
+            <enabledWhen>
+                <with variable="selection">
+                    <count value="+"/>
+                    <iterate operator="and">
+                        <adapt type="com.seizia.chromite.model.navigator.DBNNode">
+                            <test property="com.seizia.chromite.core.object.canMoveDown"/>
+                        </adapt>
+                    </iterate>
+                </with>
+            </enabledWhen>
+        </handler>
+        <handler commandId="com.seizia.chromite.core.object.move.up" class="com.seizia.chromite.ui.navigator.actions.NavigatorHandlerObjectMove">
+            <activeWhen><reference definitionId="com.seizia.chromite.core.ui.navigator.part"/></activeWhen>
+            <enabledWhen>
+                <with variable="selection">
+                    <count value="+"/>
+                    <iterate operator="and">
+                        <adapt type="com.seizia.chromite.model.navigator.DBNNode">
+                            <test property="com.seizia.chromite.core.object.canMoveUp"/>
+                        </adapt>
+                    </iterate>
+                </with>
+            </enabledWhen>
+        </handler>
+        <handler commandId="com.seizia.chromite.core.object.move.down" class="com.seizia.chromite.ui.navigator.actions.NavigatorHandlerObjectMove">
+            <activeWhen><reference definitionId="com.seizia.chromite.core.ui.navigator.part"/></activeWhen>
+            <enabledWhen>
+                <with variable="selection">
+                    <count value="+"/>
+                    <iterate operator="and">
+                        <adapt type="com.seizia.chromite.model.navigator.DBNNode">
+                            <test property="com.seizia.chromite.core.object.canMoveDown"/>
+                        </adapt>
+                    </iterate>
+                </with>
+            </enabledWhen>
+        </handler>
+
+        <handler commandId="com.seizia.chromite.core.object.goto" class="com.seizia.chromite.ui.navigator.actions.NavigatorHandlerObjectGoto">
+            <activeWhen>
+                <or>
+                    <reference definitionId="com.seizia.chromite.core.ui.navigator.part"/>
+                    <reference definitionId="com.seizia.chromite.core.ui.datasource.editor"/>
+                </or>
+            </activeWhen>
+        </handler>
+
+
+        <!-- Entity editor handlers -->
+        <handler commandId="org.eclipse.ui.file.revert" class="com.seizia.chromite.ui.editors.entity.handlers.RevertChangesHandler">
+            <enabledWhen>
+                <with variable="activeEditor">
+                    <adapt type="com.seizia.chromite.ui.editors.entity.EntityEditor">
+                        <test property="com.seizia.chromite.ui.editors.entity.dirty"/>
+                    </adapt>
+                </with>
+            </enabledWhen>
+        </handler>
+        <!--
+                <handler commandId="org.eclipse.ui.edit.text.contentAssist.proposals" class="com.seizia.chromite.ui.editors.entity.handlers.PreviewChangesHandler">
+                    <activeWhen>
+                        <with variable="activeEditor">
+                            <adapt type="com.seizia.chromite.ui.editors.entity.EntityEditor">
+                                <test property="com.seizia.chromite.ui.editors.entity.dirty"/>
+                            </adapt>
+                        </with>
+                    </activeWhen>
+                </handler>
+        -->
+        <handler commandId="org.eclipse.ui.edit.undo" class="com.seizia.chromite.ui.editors.entity.handlers.UndoChangesHandler">
+            <enabledWhen>
+                <with variable="activeEditor">
+                    <adapt type="com.seizia.chromite.ui.editors.entity.EntityEditor">
+                        <test property="com.seizia.chromite.ui.editors.entity.canUndo"/>
+                    </adapt>
+                </with>
+            </enabledWhen>
+        </handler>
+        <handler commandId="org.eclipse.ui.edit.redo" class="com.seizia.chromite.ui.editors.entity.handlers.RedoChangesHandler">
+            <enabledWhen>
+                <with variable="activeEditor">
+                    <adapt type="com.seizia.chromite.ui.editors.entity.EntityEditor">
+                        <test property="com.seizia.chromite.ui.editors.entity.canRedo"/>
+                    </adapt>
+                </with>
+            </enabledWhen>
+        </handler>
+
+        <!-- Folder editor -->
+        <handler commandId="org.eclipse.ui.navigate.backwardHistory" class="com.seizia.chromite.ui.editors.entity.handlers.FolderNavigateHandler">
+            <activeWhen><reference definitionId="com.seizia.chromite.core.ui.folder.editor"/></activeWhen>
+            <enabledWhen>
+                <with variable="activeEditor">
+                    <adapt type="com.seizia.chromite.ui.editors.entity.FolderEditor">
+                        <test property="com.seizia.chromite.ui.editors.folder.canNavigate" value="-1"/>
+                    </adapt>
+                </with>
+            </enabledWhen>
+        </handler>
+        <handler commandId="org.eclipse.ui.navigate.forwardHistory" class="com.seizia.chromite.ui.editors.entity.handlers.FolderNavigateHandler">
+            <activeWhen><reference definitionId="com.seizia.chromite.core.ui.folder.editor"/></activeWhen>
+            <enabledWhen>
+                <with variable="activeEditor">
+                    <adapt type="com.seizia.chromite.ui.editors.entity.FolderEditor">
+                        <test property="com.seizia.chromite.ui.editors.folder.canNavigate" value="1"/>
+                    </adapt>
+                </with>
+            </enabledWhen>
+        </handler>
+
+        <handler commandId="org.eclipse.ui.edit.copy" class="com.seizia.chromite.ui.navigator.actions.NavigatorHandlerCopyObject">
+            <activeWhen><reference definitionId="com.seizia.chromite.core.ui.navigator.part.active"/></activeWhen>
+            <enabledWhen>
+                <with variable="selection">
+                    <iterate operator="and">
+                        <adapt type="com.seizia.chromite.model.DBPNamedObject"/>
+                    </iterate>
+                </with>
+            </enabledWhen>
+        </handler>
+        <handler commandId="com.seizia.chromite.core.edit.copy.special" class="com.seizia.chromite.ui.navigator.actions.NavigatorHandlerCopySpecial">
+            <activeWhen><reference definitionId="com.seizia.chromite.core.ui.navigator.part.active"/></activeWhen>
+            <enabledWhen>
+                <with variable="selection">
+                    <iterate operator="and">
+                        <adapt type="com.seizia.chromite.model.DBPNamedObject"/>
+                    </iterate>
+                </with>
+            </enabledWhen>
+        </handler>
+        <handler commandId="com.seizia.chromite.core.edit.save.resource" class="com.seizia.chromite.ui.navigator.actions.NavigatorHandlerSaveResource">
+            <activeWhen><reference definitionId="com.seizia.chromite.core.ui.navigator.part.active"/></activeWhen>
+            <enabledWhen>
+                <with variable="selection">
+                    <iterate operator="and">
+                        <instanceof value="com.seizia.chromite.model.navigator.fs.DBNPathBase"/>
+                    </iterate>
+                </with>
+            </enabledWhen>
+        </handler>
+        <handler commandId="com.seizia.chromite.core.edit.load.resource" class="com.seizia.chromite.ui.navigator.actions.NavigatorHandlerLoadResource">
+            <activeWhen><reference definitionId="com.seizia.chromite.core.ui.navigator.part.active"/></activeWhen>
+            <enabledWhen>
+                <with variable="selection">
+                    <count value="1"/>
+                    <iterate operator="and">
+                        <instanceof value="com.seizia.chromite.model.navigator.fs.DBNPathBase"/>
+                    </iterate>
+                </with>
+            </enabledWhen>
+        </handler>
+
+        <handler commandId="org.eclipse.ui.file.refresh" class="com.seizia.chromite.ui.navigator.actions.NavigatorHandlerRefresh">
+            <activeWhen>
+                <with variable="activePart">
+                    <or>
+                        <adapt type="com.seizia.chromite.ui.navigator.INavigatorModelView"/>
+                        <adapt type="com.seizia.chromite.ui.IRefreshablePart"/>
+                    </or>
+                </with>
+            </activeWhen>
+        </handler>
+
+        <handler commandId="com.seizia.chromite.core.project.create" class="com.seizia.chromite.ui.navigator.actions.NavigatorHandlerProjectCreate">
+            <enabledWhen>
+                <with variable="selection">
+                    <test property="com.seizia.chromite.core.global.ui.canCreateProject"/>
+                </with>
+            </enabledWhen>
+        </handler>
+        <handler commandId="com.seizia.chromite.core.project.refresh" class="com.seizia.chromite.ui.navigator.actions.NavigatorHandlerProjectRefresh"/>
+        <handler commandId="com.seizia.chromite.core.project.select" class="com.seizia.chromite.ui.navigator.actions.NavigatorHandlerProjectSelect">
+            <enabledWhen>
+                <with variable="selection">
+                    <test property="com.seizia.chromite.core.global.ui.hasMultipleProjects"/>
+                </with>
+            </enabledWhen>
+        </handler>
+        <handler commandId="com.seizia.chromite.core.project.active"
+                 class="com.seizia.chromite.ui.navigator.actions.NavigatorHandlerProjectSetActive">
+            <enabledWhen>
+                <and>
+                    <reference definitionId="com.seizia.chromite.core.ui.navigator.part"/>
+                    <with variable="selection">
+                        <count value="1"/>
+                        <iterate operator="and">
+                            <adapt type="org.eclipse.core.resources.IResource">
+                                <test property="com.seizia.chromite.core.resource.canSetActive"/>
+                            </adapt>
+                        </iterate>
+                    </with>
+                </and>
+            </enabledWhen>
+        </handler>
+        <handler commandId="com.seizia.chromite.core.resource.create.file" class="com.seizia.chromite.ui.navigator.actions.NavigatorHandlerCreateFile">
+            <enabledWhen>
+                <and>
+                    <reference definitionId="com.seizia.chromite.core.ui.navigator.part"/>
+                    <with variable="selection">
+                        <count value="1"/>
+                        <iterate operator="and">
+                            <and>
+                                <adapt type="org.eclipse.core.resources.IResource">
+                                    <test property="com.seizia.chromite.core.resource.canCreateFile"/>
+                                </adapt>
+                                <test property="com.seizia.chromite.core.object.projectResourceEditable"/>
+                            </and>
+                        </iterate>
+                    </with>
+                </and>
+            </enabledWhen>
+        </handler>
+        <handler commandId="com.seizia.chromite.core.resource.create.folder" class="com.seizia.chromite.ui.navigator.actions.NavigatorHandlerCreateFolder">
+            <enabledWhen>
+                <and>
+                    <reference definitionId="com.seizia.chromite.core.ui.navigator.part"/>
+                    <with variable="selection">
+                        <count value="1"/>
+                        <iterate operator="and">
+                            <and>
+                                <adapt type="org.eclipse.core.resources.IResource">
+                                    <test property="com.seizia.chromite.core.resource.canCreateFolder"/>
+                                </adapt>
+                                <test property="com.seizia.chromite.core.object.projectResourceEditable"/>
+                            </and>
+                        </iterate>
+                    </with>
+                </and>
+            </enabledWhen>
+        </handler>
+        <handler commandId="com.seizia.chromite.core.resource.link.file" class="com.seizia.chromite.ui.navigator.actions.links.LinkFileHandler">
+            <enabledWhen>
+                <and>
+                    <reference definitionId="com.seizia.chromite.core.ui.navigator.part"/>
+                    <not><test property="com.seizia.chromite.core.global.distributed"/></not>
+                    <with variable="selection">
+                        <count value="1"/>
+                        <iterate operator="and">
+                            <and>
+                                <adapt type="org.eclipse.core.resources.IResource">
+                                    <test property="com.seizia.chromite.core.resource.canCreateLink"/>
+                                </adapt>
+                                <test property="com.seizia.chromite.core.object.projectResourceEditable"/>
+                            </and>
+                        </iterate>
+                    </with>
+                </and>
+            </enabledWhen>
+        </handler>
+        <handler commandId="com.seizia.chromite.core.resource.link.folder" class="com.seizia.chromite.ui.navigator.actions.links.LinkFolderHandler">
+            <enabledWhen>
+                <and>
+                    <reference definitionId="com.seizia.chromite.core.ui.navigator.part"/>
+                    <not><test property="com.seizia.chromite.core.global.distributed"/></not>
+                    <with variable="selection">
+                        <count value="1"/>
+                        <iterate operator="and">
+                            <and>
+                                <adapt type="org.eclipse.core.resources.IResource">
+                                    <test property="com.seizia.chromite.core.resource.canCreateLink"/>
+                                </adapt>
+                                <test property="com.seizia.chromite.core.object.projectResourceEditable"/>
+                            </and>
+                        </iterate>
+                    </with>
+                </and>
+            </enabledWhen>
+        </handler>
+        <handler commandId="com.seizia.chromite.core.sql.script.run.scriptNative" class="com.seizia.chromite.ui.navigator.actions.NavigatorHandlerExec">
+            <activeWhen><reference definitionId="com.seizia.chromite.core.ui.navigator.part"/></activeWhen>
+            <enabledWhen>
+                <and>
+                    <reference definitionId="com.seizia.chromite.core.ui.navigator.part"/>
+                    <with variable="selection">
+                        <count value="1"/>
+                        <iterate operator="and">
+                            <and>
+                                <adapt type="org.eclipse.core.resources.IResource">
+                                    <test property="com.seizia.chromite.core.resource.type" value="script"/>
+                                </adapt>
+                                <test property="com.seizia.chromite.core.object.supportsNativeExecution"/>
+                            </and>
+                        </iterate>
+                    </with>
+                </and>
+            </enabledWhen>
+        </handler>
+
+        <handler commandId="com.seizia.chromite.core.sql.script.associate" class="com.seizia.chromite.ui.navigator.actions.NavigatorHandlerAssociateScript">
+            <enabledWhen>
+                <and>
+                    <reference definitionId="com.seizia.chromite.core.ui.navigator.part"/>
+                    <with variable="selection">
+                        <count value="+"/>
+                        <iterate operator="and">
+                            <and>
+                                <instanceof value="com.seizia.chromite.model.navigator.DBNResource"/>
+                                <adapt type="org.eclipse.core.resources.IResource">
+                                    <test property="com.seizia.chromite.core.resource.type" value="script"/>
+                                </adapt>
+                            </and>
+                        </iterate>
+                    </with>
+                </and>
+            </enabledWhen>
+        </handler>
+        <handler commandId="com.seizia.chromite.core.show.in.explorer" class="com.seizia.chromite.ui.navigator.actions.NavigatorHandlerShowInExplorer">
+            <enabledWhen>
+                <and>
+                    <reference definitionId="com.seizia.chromite.core.ui.navigator.part"/>
+                    <with variable="selection">
+                        <count value="1"/>
+                        <iterate operator="and">
+                            <adapt type="org.eclipse.core.resources.IResource">
+                                <test property="com.seizia.chromite.core.resource.isLocalFS"/>
+                            </adapt>
+                        </iterate>
+                    </with>
+                    <reference definitionId="LocalWorkspace"/>
+                </and>
+            </enabledWhen>
+        </handler>
+
+        <handler commandId="com.seizia.chromite.core.new.folder" class="com.seizia.chromite.ui.navigator.actions.NavigatorHandlerLocalFolderCreate">
+            <enabledWhen>
+                <with variable="selection">
+                    <iterate operator="and">
+                        <or>
+                            <instanceof value="com.seizia.chromite.model.navigator.DBNProjectDatabases"/>
+                            <instanceof value="com.seizia.chromite.model.navigator.DBNDataSource"/>
+                            <instanceof value="com.seizia.chromite.model.navigator.DBNLocalFolder"/>
+                        </or>
+                    </iterate>
+                </with>
+            </enabledWhen>
+        </handler>
+
+        <handler commandId="com.seizia.chromite.core.view.toggle" class="com.seizia.chromite.ui.navigator.actions.NavigatorHandlerToggleView"/>
+        <handler commandId="org.eclipse.ui.navigate.collapseAll" class="com.seizia.chromite.ui.navigator.actions.NavigatorHandlerCollapseAll"/>
+        <handler commandId="org.eclipse.ui.navigate.expandAll" class="com.seizia.chromite.ui.navigator.actions.NavigatorHandlerExpandAll"/>
+        <handler commandId="com.seizia.chromite.core.navigator.filter.focus" class="com.seizia.chromite.ui.navigator.actions.NavigatorHandlerFocusFilter"/>
+        <handler commandId="com.seizia.chromite.core.navigator.linkeditor" class="com.seizia.chromite.ui.navigator.actions.NavigatorHandlerLinkEditor">
+            <enabledWhen>
+                <with variable="activeEditor">
+                    <adapt type="org.eclipse.ui.IEditorPart"/>
+                </with>
+            </enabledWhen>
+        </handler>
+        <handler commandId="com.seizia.chromite.core.navigator.preferences" class="com.seizia.chromite.ui.navigator.actions.NavigatorHandlerPreferences"/>
+        <handler commandId="com.seizia.chromite.core.navigator.set.default" class="com.seizia.chromite.ui.navigator.actions.NavigatorHandlerSetDefaultObject">
+            <enabledWhen>
+                <with variable="selection">
+                    <count value="1"/>
+                    <iterate operator="and">
+                        <adapt type="com.seizia.chromite.model.navigator.DBNDatabaseNode"/>
+                    </iterate>
+                </with>
+            </enabledWhen>
+        </handler>
+
+        <handler commandId="com.seizia.chromite.core.navigator.open.browser" class="com.seizia.chromite.ui.navigator.actions.NavigatorHandlerOpenBrowser">
+            <enabledWhen>
+                <with variable="selection">
+                    <count value="1"/>
+                    <iterate operator="and">
+                        <or>
+                            <instanceof value="com.seizia.chromite.model.navigator.DBNLocalFolder"/>
+                            <instanceof value="com.seizia.chromite.model.navigator.DBNContainer"/>
+                            <adapt type="org.eclipse.core.resources.IResource">
+                                <test property="com.seizia.chromite.core.resource.isFolder"/>
+                            </adapt>
+                        </or>
+                    </iterate>
+                </with>
+            </enabledWhen>
+        </handler>
+
+        <handler commandId="com.seizia.chromite.ui.tools.select.connection" class="com.seizia.chromite.ui.actions.datasource.SelectActiveDataSourceHandler">
+            <activeWhen>
+                <with variable="activeEditor">
+                    <instanceof value="com.seizia.chromite.model.DBPDataSourceContainerProvider"/>
+                </with>
+            </activeWhen>
+        </handler>
+        <handler commandId="com.seizia.chromite.ui.tools.select.schema" class="com.seizia.chromite.ui.actions.datasource.SelectActiveSchemaHandler">
+            <activeWhen>
+                <with variable="activeEditor">
+                    <adapt type="com.seizia.chromite.model.DBPContextProvider">
+                        <instanceof value="com.seizia.chromite.model.DBPDataSourceContainerProvider"/>
+                    </adapt>
+                </with>
+            </activeWhen>
+        </handler>
+
+    </extension>
+
+    <extension point="org.eclipse.ui.menus">
+        <menuContribution allPopups="false" locationURI="toolbar:com.seizia.chromite.navigator.filter.toolbar.connected?after=additions">
+            <separator name="filters" visible="true"/>
+            <command commandId="com.seizia.chromite.navigator.filter.connected"/>
+        </menuContribution>
+
+        <menuContribution allPopups="false" locationURI="toolbar:com.seizia.chromite.navigator.filter.toolbar.type?after=additions">
+            <command commandId="com.seizia.chromite.navigator.filter.object.type" id="com.seizia.chromite.navigator.filter.object.type.menu" style="pulldown"/>
+        </menuContribution>
+
+        <menuContribution allPopups="false" locationURI="menu:com.seizia.chromite.navigator.filter.object.type.menu">
+            <dynamic id="com.seizia.chromite.navigator.filter.object.type.dynamic" class="com.seizia.chromite.ui.navigator.actions.NavigatorHandlerFilterObjectType$MenuContributor"/>
+        </menuContribution>
+
+        <!-- Tools toolbar -->
+        <menuContribution allPopups="false" locationURI="toolbar:org.eclipse.ui.main.toolbar?after=additions">
+            <toolbar id="chromite-tools" label="Database Tools Toolbar">
+                <separator name="additions" visible="false"/>
+            </toolbar>
+        </menuContribution>
+
+        <menuContribution allPopups="false" locationURI="popup:org.eclipse.ui.popup.any?after=tools">
+            <separator name="object" visible="true"/>
+            <command commandId="com.seizia.chromite.ui.editors.data.forSelection">
+                <visibleWhen checkEnabled="true"/>
+            </command>
+
+            <separator name="compare" visible="true"/>
+            <separator name="export_import" visible="false"/>
+            <separator name="generate" visible="true"/>
+        </menuContribution>
+
+        <menuContribution allPopups="false" locationURI="popup:org.eclipse.ui.popup.any?after=create">
+            <command commandId="com.seizia.chromite.core.object.create">
+                <visibleWhen>
+                    <with variable="selection">
+                        <count value="1"/>
+                        <iterate operator="and">
+                            <test property="com.seizia.chromite.core.object.canCreateSingle"/>
+                        </iterate>
+                    </with>
+                </visibleWhen>
+            </command>
+            <menu id="chromite-menu-create" label="%menu.create.label">
+                <visibleWhen>
+                    <with variable="selection">
+                        <count value="1"/>
+                        <iterate operator="and">
+                            <test property="com.seizia.chromite.core.object.canCreateMulti"/>
+                        </iterate>
+                    </with>
+                </visibleWhen>
+                <dynamic id="com.seizia.chromite.core.menu.create" class="com.seizia.chromite.ui.navigator.actions.NavigatorHandlerObjectCreateNew$MenuCreateContributor"/>
+            </menu>
+            <command commandId="com.seizia.chromite.navigator.create.column.index">
+                <visibleWhen checkEnabled="true"/>
+            </command>
+            <command commandId="com.seizia.chromite.navigator.create.column.constraint">
+                <visibleWhen checkEnabled="true"/>
+            </command>
+        </menuContribution>
+
+    </extension>
+
+    <extension point="org.eclipse.ui.bindings">
+
+        <key commandId="com.seizia.chromite.ui.tools.select.connection" schemeId="org.eclipse.ui.defaultAcceleratorConfiguration" sequence="CTRL+9"/>
+        <key commandId="com.seizia.chromite.ui.tools.select.schema" schemeId="org.eclipse.ui.defaultAcceleratorConfiguration" sequence="CTRL+0"/>
+
+        <key commandId="com.seizia.chromite.core.navigator.linkeditor" schemeId="org.eclipse.ui.defaultAcceleratorConfiguration" sequence="CTRL+SHIFT+,"/>
+        <key commandId="com.seizia.chromite.core.navigator.set.default" schemeId="org.eclipse.ui.defaultAcceleratorConfiguration" sequence="CTRL+SHIFT+A"/>
+        <key commandId="com.seizia.chromite.core.object.goto" contextId="org.eclipse.ui.contexts.window" schemeId="org.eclipse.ui.defaultAcceleratorConfiguration" sequence="CTRL+SHIFT+D"/>
+        <key commandId="com.seizia.chromite.core.object.open" contextId="com.seizia.chromite.ui.context.navigator" schemeId="org.eclipse.ui.defaultAcceleratorConfiguration" sequence="F4"/>
+
+        <key commandId="com.seizia.chromite.core.object.create" contextId="com.seizia.chromite.ui.context.navigator" schemeId="org.eclipse.ui.defaultAcceleratorConfiguration" platform="win32" sequence="ALT+INSERT"/>
+        <key commandId="com.seizia.chromite.core.object.create" contextId="com.seizia.chromite.ui.context.navigator" schemeId="org.eclipse.ui.defaultAcceleratorConfiguration" platform="gtk" sequence="ALT+INSERT"/>
+        <key commandId="com.seizia.chromite.core.object.create" contextId="com.seizia.chromite.ui.context.navigator" schemeId="org.eclipse.ui.defaultAcceleratorConfiguration" platform="cocoa" sequence="M1+N"/>
+    </extension>
+
+    <extension point="com.seizia.chromite.navigator.nodeAction">
+        <nodeAction class="com.seizia.chromite.ui.navigator.actions.node.NNAHDataSourceConfiguration" order="999">
+            <objectType name="com.seizia.chromite.model.navigator.DBNDataSource"/>
+        </nodeAction>
+        <nodeAction class="com.seizia.chromite.ui.navigator.actions.node.NNAHDataSourceTunnel" order="200">
+            <objectType name="com.seizia.chromite.model.navigator.DBNDataSource"/>
+        </nodeAction>
+        <nodeAction class="com.seizia.chromite.ui.navigator.actions.node.NNAHDataSourceReadOnly" order="100">
+            <objectType name="com.seizia.chromite.model.navigator.DBNDataSource"/>
+        </nodeAction>
+        <nodeAction class="com.seizia.chromite.ui.navigator.actions.node.NNAHDataSourceConnectionView" order="50">
+            <objectType name="com.seizia.chromite.model.navigator.DBNDataSource"/>
+        </nodeAction>
+    </extension>
+
+    <extension point="com.seizia.chromite.confirmations">
+        <confirmation
+                id="entity_revert"
+                title="%confirm.entity_revert.title"
+                description="%confirm.entity_revert.tip"
+                message="%confirm.entity_revert.message"
+                toggleMessage="%confirm.entity.toggleMessage"
+                group="%confirm.object.editor.group.name"/>
+        <confirmation
+                id="close_editor_edit"
+                title="%confirm.close_editor_edit.title"
+                message="%confirm.close_editor_edit.message"
+                group="%confirm.object.editor.group.name"/>
+        <confirmation
+                id="close_entity_edit"
+                title="%confirm.close_entity_edit.title"
+                message="%confirm.close_entity_edit.message"
+                group="%confirm.object.editor.group.name"/>
+        <confirmation
+                id="entity_reject"
+                title="%confirm.entity_reject.title"
+                description="%confirm.entity_reject.tip"
+                message="%confirm.entity_reject.message"
+                toggleMessage="%confirm.entity.toggleMessage"
+                group="%confirm.object.editor.group.name"/>
+    </extension>
+
+    <extension point="org.eclipse.ui.commands">
+        <category id="com.seizia.chromite.entity.propsTab" name="%category.com.seizia.chromite.entity.propsTab.name" description="%category.com.seizia.chromite.entity.propsTab.description"/>
+        <command id="com.seizia.chromite.entity.propsTab.nextPage" name="%command.com.seizia.chromite.entity.propsTab.nextPage.name" description="%command.com.seizia.chromite.entity.propsTab.nextPage.description" categoryId="com.seizia.chromite.entity.propsTab" />
+        <command id="com.seizia.chromite.entity.propsTab.prevPage" name="%command.com.seizia.chromite.entity.propsTab.prevPage.name" description="%command.com.seizia.chromite.entity.propsTab.prevPage.description" categoryId="com.seizia.chromite.entity.propsTab" />
+    </extension>
+
+    <extension point="org.eclipse.ui.bindings">
+        <key commandId="com.seizia.chromite.entity.propsTab.nextPage" schemeId="org.eclipse.ui.defaultAcceleratorConfiguration" sequence="ALT+SHIFT+ARROW_DOWN"/>
+        <key commandId="com.seizia.chromite.entity.propsTab.prevPage" schemeId="org.eclipse.ui.defaultAcceleratorConfiguration" sequence="ALT+SHIFT+ARROW_UP"/>
+    </extension>
+
+    <extension point="org.eclipse.ui.handlers">
+        <handler commandId="com.seizia.chromite.entity.propsTab.nextPage" class="com.seizia.chromite.ui.editors.entity.properties.ObjectPropertiesTabFolderSwitchCommandHandler">
+            <enabledWhen>
+                <with variable="activeEditor">
+                    <adapt type="com.seizia.chromite.ui.editors.entity.EntityEditor" />
+                </with>
+            </enabledWhen>
+        </handler>
+        <handler commandId="com.seizia.chromite.entity.propsTab.prevPage" class="com.seizia.chromite.ui.editors.entity.properties.ObjectPropertiesTabFolderSwitchCommandHandler">
+            <enabledWhen>
+                <with variable="activeEditor">
+                    <adapt type="com.seizia.chromite.ui.editors.entity.EntityEditor" />
+                </with>
+            </enabledWhen>
+        </handler>
+    </extension>
+
+    <extension point="org.eclipse.ui.themes">
+        <themeElementCategory label="%themeElementCategory.com.seizia.chromite.ui.navigator.label" id="com.seizia.chromite.ui.navigator">
+            <description>%themeElementCategory.com.seizia.chromite.ui.navigator.description</description>
+        </themeElementCategory>
+
+        <colorDefinition
+                label="%colorDefinition.com.seizia.chromite.ui.navigator.node.new.background.label"
+                categoryId="com.seizia.chromite.ui.navigator"
+                id="com.seizia.chromite.ui.navigator.node.new.background"
+               value="228, 255, 181">
+            <description>%colorDefinition.com.seizia.chromite.ui.navigator.node.new.background.description</description>
+        </colorDefinition>
+        <colorDefinition
+                label="%colorDefinition.com.seizia.chromite.ui.navigator.node.modified.background.label"
+                categoryId="com.seizia.chromite.ui.navigator"
+                id="com.seizia.chromite.ui.navigator.node.modified.background"
+                value="255, 228, 181">
+            <description>%colorDefinition.com.seizia.chromite.ui.navigator.node.modified.foreground.description</description>
+        </colorDefinition>
+        <colorDefinition
+                label="%colorDefinition.com.seizia.chromite.ui.navigator.node.transient.foreground.label"
+                categoryId="com.seizia.chromite.ui.navigator"
+                id="com.seizia.chromite.ui.navigator.node.transient.foreground"
+                value="38, 100, 36">
+            <description>%colorDefinition.com.seizia.chromite.ui.navigator.node.transient.foreground.description</description>
+        </colorDefinition>
+        <colorDefinition
+                label="%colorDefinition.com.seizia.chromite.ui.navigator.node.foreground.label"
+                categoryId="com.seizia.chromite.ui.navigator"
+                id="com.seizia.chromite.ui.navigator.node.foreground"
+                value="105, 105, 105">
+            <description>%colorDefinition.com.seizia.chromite.ui.navigator.node.foreground.description</description>
+        </colorDefinition>
+        <colorDefinition
+                label="%colorDefinition.com.seizia.chromite.ui.navigator.node.statistics.background.label"
+                categoryId="com.seizia.chromite.ui.navigator"
+                id="com.seizia.chromite.ui.navigator.node.statistics.background"
+                value="240, 240, 240">
+            <description>%colorDefinition.com.seizia.chromite.ui.navigator.node.statistics.background.description</description>
+        </colorDefinition>
+    </extension>
+
+    <extension point="org.eclipse.ui.keywords">
+        <keyword id="com.seizia.chromite.ui.navigator.keyword.pref.navigator" label="%keyword.com.seizia.chromite.ui.navigator.keyword.pref.navigator.label"/>
+    </extension>
+
+</plugin>

@@ -102,7 +102,7 @@
 - 사용자가 요청하면 다음과 같이 한다.
   - 모델 기능: `test/` 아래 테스트 플러그인에 JUnit 테스트로 작성한다(AGENTS.md "Creating unit tests" 참고).
   - 자동화하기 어려운 UI, 설치, 브랜딩 확인: `docs/chromite/regression-tests.md`에 확인 절차와 기대 결과를 체크리스트로 적는다.
-  - 자동 테스트 실행: `mvn verify -f product/aggregate/pom.xml -T1C -Pproduct-dbeaver-ce` (백그라운드에서 실행)
+  - 자동 테스트 실행: `mvn verify -f product/aggregate/pom.xml -T1C -Pproduct-chromite-swt` (백그라운드에서 실행)
   - 결과 보고: 실행한 테스트, 통과/실패 수, 실패 내용을 그대로 적는다.
     환경 문제(JDK 21이나 Maven 없음 등)로 실행하지 못했으면 실행하지 못했다고 밝히고, 사용자가 실행할 명령을 알려 준다.
 
@@ -111,13 +111,13 @@
 - 사용자에게 보이는 곳(제품명, 메뉴, 대화상자, About, 설치 파일, 스플래시, 아이콘)에는 "DBeaver" 이름이나 로고를 쓰지 않는다.
   제품명은 `Chromite`, 부제는 `Database Workbench`다. DBeaver는 DBeaver Corp의 상표다.
 - 로고와 아이콘 원본은 `chromite_logo_pack/`에 있다. 새 아이콘은 이 폴더의 이미지로 만든다.
-- 제품 정보는 `product/community/product-branding.properties`, `product/community/DBeaver.product`,
-  `plugins/org.jkiss.dbeaver.ui.app.standalone/plugin.xml`과 `OSGI-INF/l10n/bundle*.properties`에 있다.
+- 제품 정보는 `product/community/product-branding.properties`, `product/community/Chromite.product`,
+  `plugins/com.seizia.chromite.ui.app.standalone/plugin.xml`과 `OSGI-INF/l10n/bundle*.properties`에 있다.
 - 다음 내부 이름은 별도로 계획한 작업에서만 바꾼다. 다른 작업 중에 일부만 바꾸지 않는다.
   사용자 설정, 저장된 연결 정보, 플러그인 참조가 이 이름에 묶여 있어 일부만 바꾸면 기능이 깨진다.
-  - Java 패키지명, 번들 ID, 확장 포인트 ID (`org.jkiss.dbeaver.*`)
-  - 설정 키, 드라이버 ID, 내부 파일 이름(`dbeaver16.png` 같은 아이콘 파일명 포함)
-  - Maven 프로파일 이름(`product-dbeaver-ce` 등)
+  - Java 패키지명, 번들 ID, 확장 포인트 ID (`com.seizia.chromite.*`)
+  - 설정 키, 드라이버 ID, 내부 파일 이름(`chromite16.png` 같은 아이콘 파일명 포함)
+  - Maven 프로파일 이름(`product-chromite-swt` 등)
 - 화면 문구에서 "DBeaver"를 바꿀 때는 일괄 치환하지 않는다. 사용자에게 실제로 보이는 문자열만 골라서 바꾼다.
 - dbeaver.io의 버전 확인, 업데이트 사이트, 다운로드 링크를 새로 넣지 않는다. Chromite가 DBeaver 업데이트로 덮어써질 수 있다.
 
@@ -181,11 +181,11 @@ Chromite는 2026-11-06 포크 시점부터 DBeaver와 독립적으로 개발한�
   전체 빌드는 시간이 오래 걸리므로 백그라운드에서 실행한다.
 
   ```bash
-  mvn package -f product/aggregate/pom.xml -T1C -Pproduct-dbeaver-ce
+  mvn package -f product/aggregate/pom.xml -T1C -Pproduct-chromite-swt
   ```
 
-- Swing 제품까지 함께 빌드하려면 `-Pproduct-dbeaver-ce,product-chromite-swing`을 쓴다. PowerShell에서는 프로파일 목록을
-  작은따옴표로 묶는다(`'-Pproduct-dbeaver-ce,product-chromite-swing'`). CI는 JBR 25로 두 제품을 모두 빌드한다([docs/chromite/ci.md](docs/chromite/ci.md)).
+- Swing 제품까지 함께 빌드하려면 `-Pproduct-chromite-swt,product-chromite-swing`을 쓴다. PowerShell에서는 프로파일 목록을
+  작은따옴표로 묶는다(`'-Pproduct-chromite-swt,product-chromite-swing'`). CI는 JBR 25로 두 제품을 모두 빌드한다([docs/chromite/ci.md](docs/chromite/ci.md)).
 
 - 결과물은 `product/community/target/products/chromite-<버전>-<플랫폼>`이다.
 - 빌드에 필요한 `dbeaver-common`과 `datadam-api`는 이 저장소의 `deps/`에 들어 있다([docs/chromite/build.md](docs/chromite/build.md)).

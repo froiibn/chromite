@@ -17,8 +17,8 @@
 package com.seizia.chromite.ui.swing;
 
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.model.preferences.DBPPreferenceStore;
-import org.jkiss.dbeaver.utils.PrefUtils;
+import com.seizia.chromite.model.preferences.DBPPreferenceStore;
+import com.seizia.chromite.utils.PrefUtils;
 import org.jkiss.utils.CommonUtils;
 
 import java.util.LinkedHashMap;

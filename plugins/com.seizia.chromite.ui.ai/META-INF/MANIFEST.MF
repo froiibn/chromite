@@ -1,0 +1,36 @@
+Manifest-Version: 1.0
+Bundle-ManifestVersion: 2
+Bundle-Vendor: Chromite contributors
+Bundle-Name: Chromite AI UI
+Bundle-SymbolicName: com.seizia.chromite.ui.ai;singleton:=true
+Bundle-Version: 1.0.93.qualifier
+Import-Package: com.seizia.chromite.model.ai,
+ com.seizia.chromite.model.ai.internal
+Export-Package: com.seizia.chromite.ui.ai,
+ com.seizia.chromite.ui.ai.chat,
+ com.seizia.chromite.ui.ai.chat.controls,
+ com.seizia.chromite.ui.ai.controls,
+ com.seizia.chromite.ui.ai.engine.openai,
+ com.seizia.chromite.ui.ai.engine.copilot,
+ com.seizia.chromite.ui.ai.format,
+ com.seizia.chromite.ui.ai.preferences,
+ com.seizia.chromite.ui.ai.internal,
+ com.seizia.chromite.ui.ai.model
+Bundle-Release-Date: 20261116
+Bundle-RequiredExecutionEnvironment: JavaSE-21
+Bundle-ActivationPolicy: lazy
+Require-Bundle: com.seizia.chromite.model.ai,
+ com.seizia.chromite.ui.navigator,
+ org.eclipse.e4.ui.css.core,
+ org.eclipse.e4.ui.css.swt,
+ org.eclipse.ui.workbench,
+ com.seizia.chromite.core,
+ com.seizia.chromite.ui,
+ org.eclipse.ui.forms,
+ com.seizia.chromite.model.ai,
+ com.seizia.chromite.ui.editors.sql,
+ com.seizia.chromite.ui.editors.base,
+ com.seizia.chromite.ui.editors.connection
+Bundle-Activator: com.seizia.chromite.ui.ai.internal.AIUIActivator
+Automatic-Module-Name: com.seizia.chromite.ui.ai
+

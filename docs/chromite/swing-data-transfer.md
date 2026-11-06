@@ -2,7 +2,7 @@
 
 ## 목적
 
-DBeaver의 데이터 전송(`org.jkiss.dbeaver.data.transfer` 모델 + `.ui` SWT 마법사)을 Swing 제품에 SSMS "SQL Server Import and Export Wizard" 모양으로 옮긴다.
+DBeaver의 데이터 전송(`com.seizia.chromite.data.transfer` 모델 + `.ui` SWT 마법사)을 Swing 제품에 SSMS "SQL Server Import and Export Wizard" 모양으로 옮긴다.
 
 1. **Export Data…** — Object Explorer(테이블·뷰 여러 개, 스키마·폴더)와 결과 표에서 모델이 등록한 모든 파일 형식으로 내보내기.
 2. **Import Data…** — CSV 파일을 이미 있는 테이블에 넣기(열 매핑, 파일 설정, 넣기 설정).
@@ -29,7 +29,7 @@ DBeaver의 데이터 전송(`org.jkiss.dbeaver.data.transfer` 모델 + `.ui` SWT
 | `SqlEditorPanel` (변경) | 쿼리의 첫 결과 표에 그 쿼리의 `SQLQueryDataContainer`를 넘김 |
 | `ConnectionPropertiesTable` (변경, Javadoc만) | 처리기 속성 편집에도 쓴다는 설명 |
 
-마법사를 위해 모델을 고치지는 않았다(새 테이블 형식 매핑의 모델·방언 수정은 아래 "새 테이블의 형식 매핑"). Swing 번들은 이미 `org.jkiss.dbeaver.data.transfer`·`data.office`를 `Require-Bundle`로 쓰고 있었고(F단계), 새 번들 의존은 없다.
+마법사를 위해 모델을 고치지는 않았다(새 테이블 형식 매핑의 모델·방언 수정은 아래 "새 테이블의 형식 매핑"). Swing 번들은 이미 `com.seizia.chromite.data.transfer`·`data.office`를 `Require-Bundle`로 쓰고 있었고(F단계), 새 번들 의존은 없다.
 
 ## SWT에서 옮긴 것 (근거)
 
@@ -375,7 +375,7 @@ Copy Tables와 새 테이블로 가져오기는 대상 열 형식을 모델이 �
 
 ## 확인 (2026-11-06)
 
-- 빌드: `-Pproduct-dbeaver-ce,product-chromite-swing` BUILD SUCCESS. 새 번들 의존 없음(`MANIFEST.MF` 변경 없음).
+- 빌드: `-Pproduct-chromite-swt,product-chromite-swing` BUILD SUCCESS. 새 번들 의존 없음(`MANIFEST.MF` 변경 없음).
 - 로컬 Docker DB 세 개(PostgreSQL 17, SQL Server 2022, MariaDB 11)에 `chr_data_transfer` DB를 만들고 `orders`(1,500행: 숫자, 날짜시각, NULL,
   쉼표·큰따옴표·줄바꿈·`=`로 시작하는 글자), `products`(50행, 불리언), 뷰 `v_big_orders`(700행), 빈 `orders_import`를 넣어 Swing 제품에서 확인했다.
   여러 Swing 앱이 동시에 떠 있어 OS 입력으로는 창 활성화가 계속 빼앗겨, 시험용 에이전트(Attach API, 저장소 밖 임시 코드)가 EDT에서 공개 Swing API
@@ -434,7 +434,7 @@ Copy Tables와 새 테이블로 가져오기는 대상 열 형식을 모델이 �
 
 ### 새 테이블의 형식 매핑 (2026-11-07)
 
-- 빌드: `-Pproduct-dbeaver-ce,product-chromite-swing` BUILD SUCCESS(origin/devel `38b6e0c39d` 위).
+- 빌드: `-Pproduct-chromite-swt,product-chromite-swing` BUILD SUCCESS(origin/devel `38b6e0c39d` 위).
 - 네 Docker DB에 `chr_type_mapping`(PostgreSQL·SQL Server·MariaDB 데이터베이스, Oracle 사용자)과 대상 스키마(`from_pg` 등, MariaDB는 `chr_type_mapping_from_pg` 등,
   Oracle은 `CHR_TM_FROM_PG` 등)를 만들고 위 원본 `type_matrix`를 넣었다. 고치기 전 제품(같은 모델 코드의 이전 빌드)과 고친 빌드에서 같은 시험을 했다.
 - 각 쌍은 시험용 에이전트가 Swing 제품의 Tasks ▸ Copy Tables…를 EDT에서 눌러(대상 연결·데이터베이스·스키마 고르기 → 매핑 → "대상 DDL" 탭 읽기 → 마침) 실행했고,

@@ -41,7 +41,7 @@ SWT 버전의 객체 편집기(`EntityEditor`)가 하는 일을 Swing 프런트�
 - 진입점: `ObjectExplorerPanel`의 오른쪽 클릭 메뉴 Design(테이블, 뷰 제외)·New Table…(Tables 폴더) → `QueryWindows.designTable/newTable` → `MainFrame`이 탭을 연다.
   같은 테이블의 디자이너가 열려 있으면 그 탭을 보여 준다.
 - `MainFrame`: 디자이너 탭 닫기 확인, Ctrl+S(File > Save)를 활성 디자이너의 Save로, 끝낼 때 확인.
-- MANIFEST: `org.jkiss.dbeaver.model.jdbc`(외래 키 규칙 설정이 `JDBCTableForeignKey`에 있음)를 추가. 세 드라이버 번들(`ext.postgresql`, `ext.mssql`, `ext.mysql`)은
+- MANIFEST: `com.seizia.chromite.model.jdbc`(외래 키 규칙 설정이 `JDBCTableForeignKey`에 있음)를 추가. 세 드라이버 번들(`ext.postgresql`, `ext.mssql`, `ext.mysql`)은
   처음에 선택 의존(`resolution:=optional`)으로 넣었으나, 고급 연결 설정([swing-conn-advanced.md](swing-conn-advanced.md))이 같은 번들을 필수 의존으로 넣어
   합칠 때 선택 의존 줄을 뺐다(한 번들은 `Require-Bundle`에 한 번만 적는다).
   SWT·JFace 번들은 추가하지 않았다.

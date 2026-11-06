@@ -26,11 +26,11 @@ import org.eclipse.core.runtime.jobs.JobChangeAdapter;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.runtime.AbstractJob;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.model.runtime.DBRRunnableWithReturn;
-import org.jkiss.dbeaver.model.runtime.ProxyProgressMonitor;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.runtime.AbstractJob;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.model.runtime.DBRRunnableWithReturn;
+import com.seizia.chromite.model.runtime.ProxyProgressMonitor;
 import org.jkiss.utils.CommonUtils;
 
 import javax.swing.*;

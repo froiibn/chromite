@@ -1,0 +1,50 @@
+/*
+ * DBeaver - Universal Database Manager
+ * Copyright (C) 2010-2024 DBeaver Corp and others
+ * Modifications Copyright (C) 2026 Chromite contributors
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package com.seizia.chromite.model.websocket.event.session;
+
+import com.seizia.chromite.model.websocket.WSConstants;
+import com.seizia.chromite.model.websocket.event.WSOutputLogInfo;
+
+import java.util.List;
+
+public class WSOutputDBLogEvent extends WSAbstractSessionEvent {
+    private final String contextId;
+    private final List<WSOutputLogInfo> messages;
+    private final long eventTimestamp;
+
+    public WSOutputDBLogEvent(String contextId,
+                              List<WSOutputLogInfo> messages,
+                              long eventTimestamp) {
+        super("cb_database_output_log_updated", WSConstants.TOPIC_DATABASE_OUTPUT_LOG);
+        this.contextId = contextId;
+        this.messages = messages;
+        this.eventTimestamp = eventTimestamp;
+    }
+
+    public String getContextId() {
+        return contextId;
+    }
+
+    public List<WSOutputLogInfo> getMessages() {
+        return messages;
+    }
+
+    public long getEventTimestamp() {
+        return eventTimestamp;
+    }
+}

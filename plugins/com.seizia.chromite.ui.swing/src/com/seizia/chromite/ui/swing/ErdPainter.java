@@ -18,7 +18,7 @@ package com.seizia.chromite.ui.swing;
 
 import com.formdev.flatlaf.FlatLaf;
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.Log;
+import com.seizia.chromite.Log;
 
 import java.awt.*;
 import java.awt.geom.PathIterator;
