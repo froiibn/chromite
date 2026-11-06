@@ -169,7 +169,7 @@ WHERE state = :state
 4. 실행 직전(EDT) 확장의 `prepareExecution`이 매개변수를 묻는다(아래). 취소하면 실행하지 않는다.
 5. 준비 Job에서 `SqlParameterBinding.prepare`가 나눈 문장을 바꾸고(기본 DB/스키마 적용, `:name` → `?`), 엔진이 문장을 만들 때 `bindParameters`로 값을 바인딩한다.
 
-**Edit**(더블클릭)는 같은 창을 연다(실행하지 않음). 도구 막대 아래 머리말이 붙는다:
+**Edit**(더블클릭)는 같은 창을 연다(실행하지 않음). 편집기 위에 머리말이 붙는다(2026-11-07부터 쿼리 창 도구 막대는 메인 창 둘째 줄에 있다):
 
 ```
 [▶ Execute] [■] | [연결 ▾] [DB/스키마 ▾]
@@ -402,3 +402,4 @@ Schedule…·History…·Scheduled Queries… 대화상자, Save to Query Librar
 - 2026-11-06 바인딩한 실행이 Query History에 `… = ?`로 남던 문제: 값을 SQL 리터럴로 넣은 원래 문장을 기록.
 - 2026-11-06 Schedule… 대화상자의 Connections·Parameters 목록이 한 줄로 줄던 문제: 목록에 최소 높이와 세로 가중치.
 - 2026-11-07 Query Library와 Properties가 한쪽을 숨긴 사이 다른 쪽을 보이면 따로 열을 만들던 문제: 서로를 기본 이웃으로 둠([swing-frontend.md](swing-frontend.md) "Query Library 자리").
+- 2026-11-07 쿼리 창 도구 막대가 메인 창 둘째 줄(SQL Editor 도구 막대)로 옮겨져 머리말 위치를 "편집기 위"로 고침. [swing-frontend.md](swing-frontend.md) "SQL Editor 도구 막대".

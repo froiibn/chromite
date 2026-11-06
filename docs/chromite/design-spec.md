@@ -70,9 +70,9 @@ Swing 프런트엔드(`com.seizia.chromite.ui.swing`)의 화면을 **배치와 �
 
 | 요소 | SSMS | DataGrip New UI | 현재 Chromite | 목표 | 우선 |
 |---|---|---|---|---|---|
-| 구성 | 표준 도구 막대: **New Query**(아이콘 + 글자), 파일 열기·저장 아이콘 등. 아래에 SQL Editor 도구 막대 | 주 도구 막대(프로젝트·실행 위젯) | 글자 단추 4개 `New Connection…`, `New Query`, `Open File…`, `Save` [C] `MainFrame.java:335-344` | SSMS Standard 구성(2026-11-06 사용자 결정으로 확장): [New Query(아이콘 + 글자)] [새 연결] │ [열기] [저장] [모두 저장] │ [실행 취소] [다시 실행] │ [작업 모니터] │ [등록된 서버] [개체 탐색기] [쿼리 라이브러리] [속성](도구 창 켜고 끄기, 보이면 눌림) │ [찾기]. 글자는 New Query만 보이고 나머지는 아이콘 + 도구 설명(메뉴와 같은 단축키). 좁은 창에서는 넘치는 단추를 오른쪽 끝 » 메뉴로 | P0 |
+| 구성 | 표준 도구 막대: **New Query**(아이콘 + 글자), 파일 열기·저장 아이콘 등. 아래에 SQL Editor 도구 막대 | 주 도구 막대(프로젝트·실행 위젯) | 글자 단추 4개 `New Connection…`, `New Query`, `Open File…`, `Save` [C] `MainFrame.java:335-344` | SSMS Standard 구성(2026-11-06 사용자 결정으로 확장): [New Query(아이콘 + 글자)] [새 연결] │ [열기] [저장] [모두 저장] │ [실행 취소] [다시 실행] │ [작업 모니터] │ [등록된 서버] [개체 탐색기] [쿼리 라이브러리] [속성](도구 창 켜고 끄기, 보이면 눌림) │ [찾기]. 글자는 New Query만 보이고 나머지는 아이콘 + 도구 설명(메뉴와 같은 단축키). 좁은 창에서는 넘치는 단추를 오른쪽 끝 » 메뉴로. 그 아래 둘째 줄에 SQL Editor 도구 막대(7절, 2026-11-07 사용자 결정) | P0 |
 | 단추 모양 | — | 아이콘 16, 누를 수 있는 영역 ≈26×26, 마우스를 올리면 L `#00000012` / D `#FFFFFF16` 바탕, 누르면 L `#0000001D` / D `#FFFFFF26`, 모서리 arc ≈6 [T `ActionButton.*`][S] | FlatLaf 도구 막대 단추(글자, 여백 3) | `size.actionButton` 26, 아이콘 `size.icon` 16, 바탕 `bg.actionHover`/`bg.actionPressed`, arc 6, 단추 사이 2, 묶음 사이 구분선(높이 16, `border.subtle`) | P0 |
-| 높이 | — | 40 [J] | ≈30 [S] | 36(제목 표시줄 40과 합쳐 SSMS의 두 줄 구성을 유지하되 높이를 줄임) | P1 |
+| 높이 | — | 40 [J] | ≈30 [S] | 36(제목 표시줄 40과 합쳐 SSMS의 두 줄 구성을 유지하되 높이를 줄임). 2026-11-07부터 도구 막대도 두 줄(Standard, SQL Editor)이고 둘 다 밀도 B 32 | P1 |
 
 ### 3. 도구 창 머리말 (Object Explorer, Properties)
 
@@ -126,16 +126,16 @@ Swing 프런트엔드(`com.seizia.chromite.ui.swing`)의 화면을 **배치와 �
 | 같은 이름 강조 | — | L `#EDEBFC` / D `#373B39` [E `IDENTIFIER_UNDER_CARET_ATTRIBUTES`] | L `#D4D4D4` / D `#3B514D` [C] | `editor.identifierUnderCaret` | P1 |
 | 구문 색 | 키워드 파랑, 함수 자홍, 문자열 빨강, 주석 초록 | 아래 "SQL 구문 색" 표 [E] | 다크는 DataGrip 값, 라이트는 SSMS 값 [C] `SqlEditorLight.xml` | SSMS 색(2026-11-06 사용자 결정), 아래 표 | P0(라이트) |
 
-### 7. 쿼리 창 도구 막대
+### 7. SQL Editor 도구 막대 (쿼리 창 도구 막대)
 
 | 요소 | SSMS | DataGrip New UI | 현재 Chromite | 목표 | 우선 |
 |---|---|---|---|---|---|
-| 위치 | 주 창의 SQL Editor 도구 막대(활성 쿼리 창에 적용) | 콘솔마다 편집기 위 도구 막대 | 편집기마다 위 도구 막대 [C] | 편집기마다 유지(연결·DB가 창마다 다르므로 보이는 곳에 둠. "결정" 참고) | — |
+| 위치 | 주 창의 SQL Editor 도구 막대(활성 쿼리 창에 적용) | 콘솔마다 편집기 위 도구 막대 | 메인 창 둘째 줄의 SQL Editor 도구 막대(2026-11-07) [C] `SqlEditorToolBar` | **SSMS처럼 메인 창 둘째 줄 하나**(2026-11-07 사용자 결정, "결정" 참고). 활성 쿼리 창을 따르고(탭을 바꾸면 연결·DB 콤보와 단추 상태가 바뀜), 쿼리 창이 아니거나 문서가 없으면 보인 채 모두 꺼짐 | 완료 |
 | 순서 | [DB 목록 ▾] [▶ Execute] [■] [✓ Parse] … [M] | [▶] [기록] [설정] … [Tx: Auto ▾] [■] … [스키마 ▾](오른쪽) [S] | [Execute] [Cancel] │ [연결 ▾] │ [스키마 ▾] [C] `SqlEditorPanel.java:380-426` | [▶ Execute] [■] │ [예상 계획] [실제 계획] │ [연결 ▾] │ [DB/스키마 ▾] │ [주석 처리] [주석 처리 제거] │ [내어쓰기] [들여쓰기] │ [SQL 서식 지정] │ [쿼리 기록]. SSMS처럼 Execute는 글자를 보이고, 중지는 아이콘만. 좁으면 콤보가 먼저 줄고(최소 100·100) 넘치는 단추는 » 메뉴로 | P0 |
 | Execute 단추 | 초록 삼각형 + "Execute"(F5) | 실행 아이콘: L 선 `#208A3C` 채움 `#F2FCF3` / D 선 `#57965C` 채움 `#253627` [I `expui/run/run`] | 글자만 `Execute` [C] | 아이콘 `action.run`(초록) + 글자 `Execute`, 도구 설명 "Execute (F5)" | P0 |
 | 중지 단추 | 빨간 사각형(실행 중에만 켜짐) | L 선 `#DB3B4B` 채움 `#FFF7F7` / D 선 `#DB5C5C` 채움 `#5E3838` [I `expui/run/stop`] | 글자 `Cancel` [C] | 아이콘 `action.stop`만, 실행 중에만 켜짐(비활성은 `text.disabled`색) | P0 |
 | 콤보 | Available Databases ▾ | 높이 28, arc 8, 테두리 L `#C9CCD6` / D `#4E5157`, 안쪽 여백 1,9,1,6, 화살표 영역 28 [T `ComboBox.*`, `Component.arrowAreaWidth`] | FlatLaf 기본(arc 5) [F] | `size.control` 28, arc 8, 연결 콤보에 공급자 아이콘 16, DB/스키마 콤보에 스키마 아이콘 16 | P0 |
-| 높이 | — | ≈36 [S] | ≈32 [S] | `size.toolbar.editor` 36, 아래 1px `border.subtle` | P1 |
+| 높이 | — | ≈36 [S] | 32(밀도 B) [S] | `size.toolbar.editor` 32(콤보 28 + 위아래 2). 메인 창 캔버스 위에 주 도구 막대와 같은 모양(투명, 구분선 없음) | P1 |
 
 ### 8. 결과(Results) / 메시지(Messages)
 
@@ -342,7 +342,7 @@ FlatLaf 키와, Chromite 컴포넌트가 `UiSizes`로 읽는 `Chromite.size.*` �
 | `size.tabUnderline` | 4 (탭) / 3 (결과 탭) | [T `EditorTabs.underlineHeight`][J] | `TabbedPane.tabSelectionHeight`, `TabbedPane.tabSelectionArc = 4` |
 | `size.titleBar` | 40 | [J] 주 도구 막대 40 | `TitlePane.buttonSize = 46,40` |
 | `size.toolbar.main` | 32 (36) | Chromite 결정(SSMS 두 줄 유지) | `Chromite.size.mainToolBar.padding = 4,8,4,8` |
-| `size.toolbar.editor` | 32 (36) | [S] ≈36 | `Chromite.size.editorToolBar.padding = 2,8,2,8`(콤보 28 + 4; 쿼리 창, 테이블 디자이너) |
+| `size.toolbar.editor` | 32 (36) | [S] ≈36 | `Chromite.size.editorToolBar.padding = 2,8,2,8`(콤보 28 + 4; 메인 창 둘째 줄 SQL Editor 도구 막대, 테이블 디자이너) |
 | `size.statusBar` | 26 (28) | ≈ | `Chromite.size.statusBar.height` |
 | `size.statusLine.query` | 26 (28) (+ 위 선 1) | Chromite 결정 | `Chromite.size.queryStatusLine.height`. 칸의 위아래 여백은 글자 줄 높이로 계산한다(칸이 줄보다 높아지지 않게) |
 | `size.control` | 28 | [T `Button.minimumSize` 72,28, `TextField.minimumSize`, `ComboBox.minimumSize`] | 글자 줄 15(12px) + 위 6·아래 5 + 테두리 2: `@componentMargin = 6,8,5,8`(입력·콤보·스피너), `Button.margin = 6,14,5,14`. 13px일 때는 글자 줄 17 + 위 5·아래 4 |
@@ -634,7 +634,7 @@ P0 전체와 P1 일부를 `com.seizia.chromite.ui.swing`에 적용했다. 동작
 | 8 | 도구 창 머리말 | 40 + 1px 선, semibold, 아이콘 단추 | 40(+1, 61px), semibold 제목 왼쪽 12, 숨기기(—) 아이콘. Object Explorer는 머리말 아래 32 도구 막대(New Connection, Connect, Disconnect │ Filter, Refresh │ Collapse All) | 완료 |
 | 9 | 주 도구 막대 | 아이콘 16/26, hover 바탕, New Query만 글자 | 단추 26, 막대 36, hover `#00000012` / `#FFFFFF16`. 2026-11-06 SSMS Standard 배치로 확장(단추 15개, 넘침 메뉴, [swing-frontend.md](swing-frontend.md) "도구 막대") | 완료 |
 | 10 | 편집기 탭 | 40, 탭 줄 = 편집기 바탕, 밑줄 4 arc 4, 아이콘 16 | 40(60px), 탭 줄 `#FFFFFF` / `#1E1F22`, 밑줄 4(포커스 `#3574F0`, 아니면 `#A8ADBD`/`#5A5D63`), 아이콘: 저장한 파일은 SQL 파일, 새 쿼리는 공급자 로고 | 완료 |
-| 11 | 쿼리 도구 막대 | ▶ Execute(초록 + 글자), ■ 아이콘, 콤보 28 arc 8 + 공급자 아이콘 | 콤보 28(42px), 막대 36. 2026-11-06 주석·들여쓰기·서식·쿼리 기록 단추 추가(높이 그대로) | 완료 |
+| 11 | 쿼리 도구 막대 | ▶ Execute(초록 + 글자), ■ 아이콘, 콤보 28 arc 8 + 공급자 아이콘 | 콤보 28(42px), 막대 36. 2026-11-06 주석·들여쓰기·서식·쿼리 기록 단추 추가(높이 그대로). 2026-11-07 메인 창 둘째 줄의 SQL Editor 도구 막대로 옮김(사용자 결정) | 완료 |
 | 12 | 라이트 SQL 색 | DataGrip Light | "SQL 구문 색" 표 그대로, 줄 번호 `#AEB3C2`/`#767A8A`, 현재 줄 `#F5F8FE`, 선택 `#A6D2FF` | 완료. 오류 표시는 글자색 밑줄(아래 "못 한 것") |
 | 13 | 결과 그리드 | 편집기 바탕, 행 27, 머리글 28 왼쪽 정렬, 세로·가로 격자선, 옅은 선택 | 행 27(40.5px), 머리글 28(41px), 세로선 `#EBECF0`/`#393B40`, 가로선 `#F7F8FA`/`#2B2D30`, 선택 `#D4E2FF`/`#2E436E`, 편집기 글꼴 | 완료. 머리글 열 아이콘은 못 함 |
 | 14 | 분할선 | 1px, 손잡이 없음 | 1px `#EBECF0`/`#393B40`, 끄는 영역 5 | 완료 |
@@ -956,8 +956,10 @@ UI 글꼴 `font.grid` = `font.ui`(Pretendard 12)로 바꿨다. 열 머리글은 
 - **토큰 소유**: JetBrains 테마 JSON을 FlatLaf `IntelliJTheme`로 직접 읽지 않고, Chromite 토큰(이 문서)에 New UI 팔레트 값을 옮겨 FlatLaf 키에 연결한다.
   IntelliJ 전용 키 다수(`EditorTabs.*`, `ToolWindow.*`)는 FlatLaf가 읽지 않으므로 직접 읽어도 대응이 필요하고, 토큰을 소유해야 나중에 값을 바꿀 때 한곳만 고친다.
   값의 출처는 Apache 2.0 저장소(intellij-community)이지만 색값만 가져오고 파일은 복사하지 않는다.
-- **쿼리 창 도구 막대 위치**: SSMS는 주 창의 SQL Editor 도구 막대 하나를 쓰지만, Chromite는 편집기마다 연결·DB가 달라 보이는 자리에 두는 편이 낫고 이미 구현되어 있다.
-  순서와 아이콘만 SSMS에 맞춘다. 되돌리기 쉬운 결정이다.
+- **쿼리 창 도구 막대 위치**: 처음(2026-11-06)에는 연결·DB가 창마다 달라 편집기마다 위에 두었다.
+  **2026-11-07 사용자 결정으로 SSMS처럼 바꿨다**: 메인 창 위에 도구 막대 두 줄(1줄 Standard, 2줄 SQL Editor)을 두고, 2줄은 활성 쿼리 창에 적용하며
+  쿼리 창마다의 도구 막대는 없앴다. 편집기가 한 줄 높아지고 단추가 늘 같은 자리에 있다. 연결·DB 콤보는 2줄에서 활성 창의 것으로 바뀌므로 창마다 다른 연결이 그대로 보인다.
+  쿼리 창이 아닌 문서가 활성이거나 문서가 없으면 2줄은 보인 채 컨트롤이 모두 꺼진다(SSMS). 구현은 [swing-frontend.md](swing-frontend.md) "SQL Editor 도구 막대".
 - **라이트 머리말**: New UI Light의 기본은 어두운 주 도구 막대지만, SSMS 라이트와 이어지고 밝은 화면에서 덜 튀도록 "Light with Light Header" 값(`MainToolbar.background` `#F7F8FA`)을 쓴다.
 - **결과 탭 높이 32**: 결과가 쿼리 창 아래 붙는 SSMS 배치에서 40은 세로 공간을 많이 쓴다. 도구 창 머리말(40)과 구분되는 낮은 탭으로 둔다. (2026-11-07 밀도 B로 28)
 - **그리드 행 27**: DataGrip 측정값을 따른다. SSMS(≈20)보다 성기지만 모양 기준이 DataGrip이다. 촘촘한 모드(P2)에서 낮춘다. (2026-11-07 밀도 B로 24)
@@ -1037,3 +1039,5 @@ UI 글꼴 `font.grid` = `font.ui`(Pretendard 12)로 바꿨다. 열 머리글은 
 - 2026-11-07 그리드 글꼴 Pretendard(사용자 요청 "쿼리결과 그리드의 폰트와 사이즈도 pretendard 12로 맞춘다"): `font.grid` 토큰 추가, `font.code`의 쓰는 곳 갱신,
   8절 표 갱신, "적용 현황 — 그리드 글꼴 Pretendard" 절(따를지 정한 것, 비례 숫자와 `tnum`, 측정) 추가.
 - 2026-11-07 결과 창 기본 높이 280(사용자 결정): "결과 창 기본 높이" 절 추가, 밀도 B 절의 결정 대기 문장 갱신.
+- 2026-11-07 도구 막대 두 줄(사용자 결정): 쿼리 창 도구 막대를 메인 창 둘째 줄의 SQL Editor 도구 막대로 옮김. 2절 구성·높이, 7절 제목·위치·높이,
+  "설계 결정"의 쿼리 창 도구 막대 위치, 적용 현황 11행, `size.toolbar.editor` 설명 갱신.
