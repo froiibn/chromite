@@ -72,9 +72,17 @@ import java.util.regex.Pattern;
 
 /**
  * GenericDataSource
+ *
+ * 변경 이력:
+ * - 2026-11-07 Chromite: v$session.program keeps printable ASCII ('.', '-' and the like) and replaces only
+ *   '(' / ')' and non-ASCII characters with '?'. Before, every character except letters, digits and space became
+ *   '?' ("Chromite 0?1?0 ? Activity Monitor") (docs/chromite/swing-followup-fixes.md).
  */
 public class OracleDataSource extends JDBCDataSource implements DBPObjectStatisticsCollector, DBPAdaptable, DBDPseudoAttributeContainer {
     private static final Log log = Log.getLog(OracleDataSource.class);
+
+    /** Characters the client program name ({@code v$session.program}) must not carry, see getInternalConnectionProperties */
+    private static final Pattern PROGRAM_NAME_UNSAFE_CHARS = Pattern.compile("[^\\x20-\\x7E]|[()]");
 
     public static final DBDPseudoAttribute[] KNOWN_GLOBAL_PSEUDO_ATTRS = new DBDPseudoAttribute[] {
         new DBDPseudoAttribute(
@@ -459,7 +467,9 @@ public class OracleDataSource extends JDBCDataSource implements DBPObjectStatist
         if (!getContainer().getPreferenceStore().getBoolean(ModelPreferences.META_CLIENT_NAME_DISABLE)) {
             // Program name
             String appName = DBUtils.getClientApplicationName(getContainer(), context, purpose);
-            appName = appName.replaceAll("[^ a-zA-Z0-9]", "?"); // Replace any special characters - Oracle don't like them
+            // The thin driver rejects '(' and ')' and values over 48 characters (ORA-17190). Other characters
+            // outside printable ASCII would be stored per the database character set, so they become '?' too
+            appName = PROGRAM_NAME_UNSAFE_CHARS.matcher(appName).replaceAll("?");
             connectionsProps.put("v$session.program", CommonUtils.truncateString(appName, 48));
         }
         // FIXME: left for backward compatibility. Replaced by auth model. Remove in future.
