@@ -24,6 +24,7 @@ import org.jkiss.dbeaver.DBException;
 import org.jkiss.dbeaver.model.data.DBDAttributeBinding;
 import org.jkiss.dbeaver.model.data.resultset.DataUpdaterJob;
 import org.jkiss.dbeaver.model.exec.DBCException;
+import org.jkiss.dbeaver.model.struct.DBSDataContainer;
 import org.jkiss.dbeaver.runtime.DBWorkbench;
 import org.jkiss.utils.CommonUtils;
 
@@ -58,6 +59,8 @@ import java.util.Map;
  * 왼쪽에 SSMS처럼 행 번호 열을 둔다(행 머리글, 누르면 그 행 선택, 새 행은 {@code *}).
  * 복사(Ctrl+C)는 {@link JTable}의 기본 전송 처리기가 선택한 칸의 표시 문자열을 탭으로 나눠 복사한다.
  * 오른쪽 클릭 메뉴(SSMS 결과 그리드와 같은 항목): Copy, Copy with Headers(Ctrl+Shift+C), Export to CSV…, Export to Excel (XLSX)…({@link ResultSetExport}).
+ * Export Data…는 쿼리를 다시 실행해 모든 행을 모델의 모든 형식으로 내보내는 마법사({@link DataExportWizard})다. 다시 실행할 수 있는 결과
+ * (쿼리의 첫 결과 집합이면서 문장 하나뿐인, 바꾸지 않는 SELECT, {@link Fetched#exportQuery()}, {@link DataExportWizard#canExportQuery})에서만 켜진다. CSV·XLSX 항목은 그대로 표에 보이는 행(편집 중인 값 포함)을 쓴다.
  * 오른쪽 클릭한 칸이 선택 밖이면 그 칸을 선택한 뒤 메뉴를 연다.
  * <p>
  * 편집(G단계): 수신기가 편집할 수 있다고 정한 결과({@link Fetched#editModel()}, 판단은 {@link ResultSetEditModel#getReadOnlyReason})는
@@ -83,6 +86,7 @@ import java.util.Map;
  *   편집 색을 테마 키로) (docs/chromite/design-spec.md "적용 현황")
  * - 2026-11-06 P1: 열 너비의 여백을 고정값(18) 대신 Look and Feel의 머리글 렌더러·셀 테두리 여백으로 계산, 행 번호를 눌러 행을 고를 때
  *   표가 가로로 스크롤되지 않게 함 (docs/chromite/swing-frontend.md "P1 디자인 적용")
+ * - 2026-11-06 데이터 전송: "Export Data…" 메뉴, {@link Fetched#exportQuery()} (docs/chromite/swing-data-transfer.md)
  */
 final class ResultSetGrid extends JPanel {
 
@@ -123,12 +127,24 @@ final class ResultSetGrid extends JPanel {
 
     /**
      * What a receiver delivers: the data, and either the edit model of an editable result or why it is read-only.
+     *
+     * @param exportQuery the query container that reads this result again on its own (the first result set of a
+     *                    query; "Export Data…" runs it again for all rows), or null
      */
     record Fetched(
         @NotNull Data data,
         @Nullable ResultSetEditModel editModel,
-        @Nullable String readOnlyReason
+        @Nullable String readOnlyReason,
+        @Nullable DBSDataContainer exportQuery
     ) {
+        Fetched(@NotNull Data data, @Nullable ResultSetEditModel editModel, @Nullable String readOnlyReason) {
+            this(data, editModel, readOnlyReason, null);
+        }
+
+        @NotNull
+        Fetched withExportQuery(@NotNull DBSDataContainer query) {
+            return new Fetched(data, editModel, readOnlyReason, query);
+        }
     }
 
     /**
@@ -158,6 +174,8 @@ final class ResultSetGrid extends JPanel {
 
     private final Data data;
     @Nullable
+    private final DBSDataContainer exportQuery;
+    @Nullable
     private final ResultSetEditModel editModel;
     private final Host host;
     private final JTable table;
@@ -179,6 +197,7 @@ final class ResultSetGrid extends JPanel {
     ResultSetGrid(@NotNull Fetched fetched, @NotNull Host host) {
         super(new BorderLayout());
         this.data = fetched.data();
+        this.exportQuery = fetched.exportQuery();
         this.editModel = fetched.editModel();
         this.host = host;
         gridModel = new GridModel();
@@ -527,6 +546,16 @@ final class ResultSetGrid extends JPanel {
             () -> DBWorkbench.getPlatformUI().copyTextToClipboard(ResultSetExport.copySelection(table, getCurrentData(), true), false));
         Action exportCsvAction = createAction("Export to CSV…", null, () -> ResultSetExport.exportCsv(table, getCurrentData()));
         Action exportXlsxAction = createAction("Export to Excel (XLSX)…", null, () -> ResultSetExport.exportXlsx(table, getCurrentData()));
+        Action exportDataAction = createAction("Export Data…", null, () -> {
+            if (exportQuery != null) {
+                DataExportWizard.openForQuery(table, exportQuery);
+            }
+        });
+        boolean queryExportable = DataExportWizard.canExportQuery(exportQuery);
+        exportDataAction.setEnabled(queryExportable);
+        exportDataAction.putValue(Action.SHORT_DESCRIPTION, queryExportable
+            ? "Run the query again and export all its rows in any format"
+            : "Only the result of a query with one SELECT statement can be run again for export; use Export to CSV or Excel for the rows shown");
         // Ctrl+C stays with the table's transfer handler; the menu only shows it
         bindKey(table, JComponent.WHEN_FOCUSED, copyWithHeadersAction, "chromite.copyWithHeaders"); //$NON-NLS-1$
 
@@ -564,6 +593,7 @@ final class ResultSetGrid extends JPanel {
         popupMenu.add(copyAction);
         popupMenu.add(copyWithHeadersAction);
         popupMenu.addSeparator();
+        popupMenu.add(exportDataAction);
         popupMenu.add(exportCsvAction);
         popupMenu.add(exportXlsxAction);
         table.setComponentPopupMenu(popupMenu);

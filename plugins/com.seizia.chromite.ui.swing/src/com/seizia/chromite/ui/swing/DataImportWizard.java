@@ -1,0 +1,682 @@
+/*
+ * Chromite - Database Workbench
+ * Copyright (C) 2026 Chromite contributors
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package com.seizia.chromite.ui.swing;
+
+import com.formdev.flatlaf.FlatClientProperties;
+import org.jkiss.code.NotNull;
+import org.jkiss.code.Nullable;
+import org.jkiss.dbeaver.DBException;
+import org.jkiss.dbeaver.model.DBPEvaluationContext;
+import org.jkiss.dbeaver.model.DBUtils;
+import org.jkiss.dbeaver.model.runtime.MonitorRunnableContext;
+import org.jkiss.dbeaver.model.struct.DBSAttributeBase;
+import org.jkiss.dbeaver.model.struct.DBSDataManipulator;
+import org.jkiss.dbeaver.model.struct.DBSEntity;
+import org.jkiss.dbeaver.model.struct.DBSEntityAttribute;
+import org.jkiss.dbeaver.model.struct.DBSObject;
+import org.jkiss.dbeaver.model.struct.DBSObjectContainer;
+import org.jkiss.dbeaver.runtime.DBInterruptedException;
+import org.jkiss.dbeaver.runtime.DBWorkbench;
+import org.jkiss.dbeaver.runtime.properties.PropertySourceCustom;
+import org.jkiss.dbeaver.tools.transfer.DataTransferPipe;
+import org.jkiss.dbeaver.tools.transfer.DataTransferSettings;
+import org.jkiss.dbeaver.tools.transfer.database.DatabaseConsumerSettings;
+import org.jkiss.dbeaver.tools.transfer.database.DatabaseMappingAttribute;
+import org.jkiss.dbeaver.tools.transfer.database.DatabaseMappingContainer;
+import org.jkiss.dbeaver.tools.transfer.database.DatabaseMappingType;
+import org.jkiss.dbeaver.tools.transfer.database.DatabaseTransferConsumer;
+import org.jkiss.dbeaver.tools.transfer.registry.DataTransferNodeDescriptor;
+import org.jkiss.dbeaver.tools.transfer.registry.DataTransferProcessorDescriptor;
+import org.jkiss.dbeaver.tools.transfer.registry.DataTransferRegistry;
+import org.jkiss.dbeaver.tools.transfer.stream.StreamEntityMapping;
+import org.jkiss.dbeaver.tools.transfer.stream.StreamProducerSettings;
+import org.jkiss.dbeaver.tools.transfer.stream.StreamTransferProducer;
+import org.jkiss.utils.CommonUtils;
+
+import javax.swing.*;
+import javax.swing.filechooser.FileNameExtensionFilter;
+import javax.swing.table.AbstractTableModel;
+import java.awt.*;
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.nio.charset.Charset;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
+/**
+ * Import Data 마법사: CSV 파일을 이미 있는 테이블에 넣는다(SSMS Import Data / Import Flat File).
+ *
+ * 설계 (SWT {@code DataImportHandler} → {@code DataTransferWizard}의 가져오기 흐름):
+ * <ul>
+ *     <li>원본은 {@link StreamTransferProducer}(파일 하나, {@link StreamEntityMapping}), 대상은 테이블의 {@link DatabaseTransferConsumer}다.
+ *     형식은 모델이 등록한 가져오기 처리기(파일 producer 노드의 처리기, 지금은 CSV만)에서 고른다. XLSX 가져오기는 모델에 처리기가 없어 다루지 않는다.</li>
+ *     <li>파일 설정(문자 집합, 구분자, 머리글, 따옴표, NULL 문자열, 날짜 형식 등)은 처리기 속성이다. SWT {@code StreamProducerPageSettings}처럼
+ *     {@link PropertySourceCustom}에 담아 고친다. 파일 앞부분을 그 문자 집합으로 읽어 그대로 보여 준다.</li>
+ *     <li>열 매핑: 파일 단계를 떠날 때 SWT와 같이 {@link StreamProducerSettings#updateProducerSettingsFromStream}으로 파일의 열을 읽고,
+ *     {@link DatabaseMappingContainer}를 테이블에 묶어 {@code existing}으로 자동 매핑한다(이름, 머리글이 없으면 순서).
+ *     테이블에 맞는 열이 없는 원본 열은 모델 기본값(새 열 만들기 = ALTER TABLE)이 아니라 건너뛰기로 둔다. SSMS처럼 기존 테이블의 구조는 바꾸지 않기 위해서다.
+ *     사용자는 열마다 대상 열 또는 {@code [skip]}을 고른다.</li>
+ *     <li>넣기 설정은 {@link DatabaseConsumerSettings}(테이블 비우기, 트랜잭션과 커밋 간격 = 배치 크기, 여러 행 INSERT, 배치 끄기, 새 연결)다.
+ *     오류 처리는 모델 그대로: 넣다가 오류가 나면 Stop / Retry / Skip / Skip All을 묻는다({@link SwingPlatformUI#showErrorStopRetryIgnore}).</li>
+ *     <li>Swing 제품에는 객체 편집기가 없어 끝난 뒤 테이블 열기({@code openTableOnFinish})는 끈다.</li>
+ * </ul>
+ *
+ * 변경 이력:
+ * - 2026-11-06 데이터 전송: 최초 작성 (docs/chromite/swing-data-transfer.md)
+ */
+final class DataImportWizard extends DataTransferWizard {
+
+    private static final int PREVIEW_LINES = 20;
+    private static final String PROP_ENCODING = "encoding"; //$NON-NLS-1$
+    private static final String PROP_EXTENSION = "extension"; //$NON-NLS-1$
+
+    /**
+     * File format properties edited in this session, by processor id.
+     */
+    private static final Map<String, Map<String, Object>> processorPropertiesHistory = new HashMap<>();
+    @Nullable
+    private static Path lastDirectory;
+
+    /**
+     * Result of reading the file: its producer, the mapping to the table, and the table's columns.
+     */
+    private record LoadedMapping(
+        @NotNull StreamTransferProducer producer,
+        @NotNull DatabaseMappingContainer mapping,
+        @NotNull List<DatabaseMappingAttribute> attributes,
+        @NotNull List<DBSEntityAttribute> columns
+    ) {
+    }
+
+    private final DBSDataManipulator table;
+    private final DataTransferSettings settings;
+    private final DataTransferNodeDescriptor producerNode;
+    private final DatabaseConsumerSettings consumerSettings;
+    private final StreamProducerSettings producerSettings;
+    private final List<DataTransferProcessorDescriptor> importers;
+    private DataTransferProcessorDescriptor importer;
+    private PropertySourceCustom importerProperties;
+    @Nullable
+    private DatabaseMappingContainer mapping;
+    private final List<DBSEntityAttribute> targetAttributes = new ArrayList<>();
+    private final List<DatabaseMappingAttribute> attributeMappings = new ArrayList<>();
+
+    // Source
+    private final JTextField fileField = new JTextField(30);
+    private final JComboBox<DataTransferProcessorDescriptor> importerCombo = new JComboBox<>();
+    private final ConnectionPropertiesTable propertiesTable = new ConnectionPropertiesTable(false);
+    private final JTextArea previewArea = new JTextArea(8, 40);
+
+    // Load settings
+    private final JCheckBox truncateCheck = new JCheckBox("Delete all rows of the table before the import (truncate)");
+    private final JCheckBox newConnectionCheck = new JCheckBox("Use a separate connection", true);
+    private final JCheckBox transactionsCheck = new JCheckBox("Use transactions", true);
+    private final JSpinner commitSpinner = new JSpinner(new SpinnerNumberModel(10000, 1, Integer.MAX_VALUE, 1000));
+    private final JCheckBox multiRowCheck = new JCheckBox("Use multi-row INSERT statements");
+    private final JSpinner multiRowSpinner = new JSpinner(new SpinnerNumberModel(500, 2, 100000, 100));
+    private final JCheckBox disableBatchesCheck = new JCheckBox("Insert rows one by one (no JDBC batches)");
+
+    private DataImportWizard(
+        @Nullable Window owner,
+        @NotNull DBSDataManipulator table,
+        @NotNull DataTransferNodeDescriptor producerNode,
+        @NotNull List<DataTransferProcessorDescriptor> importers
+    ) throws DBException {
+        super(owner, "Import Data");
+        this.table = table;
+        this.producerNode = producerNode;
+        this.importers = importers;
+        DatabaseTransferConsumer consumer = new DatabaseTransferConsumer(table);
+        settings = createSettings(null, List.of(consumer), false);
+        DataTransferNodeDescriptor consumerNode = DataTransferRegistry.getInstance().getNodeByType(DatabaseTransferConsumer.class);
+        if (consumerNode == null || !(settings.getNodeSettings(consumerNode) instanceof DatabaseConsumerSettings dcs)
+            || !(settings.getNodeSettings(producerNode) instanceof StreamProducerSettings sps)) {
+            throw new DBException("Data import is not available");
+        }
+        consumerSettings = dcs;
+        producerSettings = sps;
+        if (table.getParentObject() instanceof DBSObjectContainer container) {
+            consumerSettings.setContainer(container);
+        }
+        consumerSettings.setOpenTableOnFinish(false);
+        setImporter(importers.getFirst());
+        initWizard(List.of(new SourcePage(), new MappingPage(), new LoadSettingsPage(), new SummaryPage()));
+    }
+
+    /**
+     * Whether a table can receive imported data (SWT {@code DataImportHandler}: a {@link DBSDataManipulator}).
+     */
+    static boolean canImport(@Nullable DBSObject object) {
+        return object instanceof DBSDataManipulator && object instanceof DBSEntity;
+    }
+
+    static void open(@NotNull Component parent, @NotNull DBSObject object) {
+        if (!(object instanceof DBSDataManipulator table) || !(object instanceof DBSEntity)) {
+            return;
+        }
+        DataTransferNodeDescriptor producerNode = DataTransferRegistry.getInstance().getNodeByType(StreamTransferProducer.class);
+        List<DataTransferProcessorDescriptor> importers = new ArrayList<>();
+        if (producerNode != null) {
+            for (DataTransferProcessorDescriptor descriptor : producerNode.getProcessors()) {
+                importers.add(descriptor);
+            }
+        }
+        if (producerNode == null || importers.isEmpty()) {
+            DBWorkbench.getPlatformUI().showError("Import Data", "No file importers are installed");
+            return;
+        }
+        try {
+            new DataImportWizard(SwingUtilities.getWindowAncestor(parent), table, producerNode, importers).open();
+        } catch (DBException e) {
+            DBWorkbench.getPlatformUI().showError("Import Data", "Can't start the import", e);
+        }
+    }
+
+    private void setImporter(@NotNull DataTransferProcessorDescriptor descriptor) {
+        if (importer != null && importerProperties != null) {
+            propertiesTable.stopEditing();
+            processorPropertiesHistory.put(importer.getId(), new HashMap<>(importerProperties.getPropertyValues()));
+        }
+        importer = descriptor;
+        importerProperties = new PropertySourceCustom(descriptor.getProperties(),
+            processorPropertiesHistory.getOrDefault(descriptor.getId(), Map.of()));
+        // Same as the SWT wizard's pipe page: the producer node and its processor
+        settings.selectProducer(producerNode, descriptor, true);
+        mapping = null;
+    }
+
+    @NotNull
+    private String getTableName() {
+        return DBUtils.getObjectFullName(table, DBPEvaluationContext.UI);
+    }
+
+    //////////////////////////////////////////////////////////
+    // Transfer
+
+    @Nullable
+    @Override
+    protected DataTransferSettings prepareTransfer() {
+        if (mapping == null) {
+            return null;
+        }
+        if (truncateCheck.isSelected() && JOptionPane.showConfirmDialog(this,
+            "All rows of " + getTableName() + " will be deleted before the import.\nDo you want to continue?",
+            getTitle(), JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE) != JOptionPane.YES_OPTION) {
+            return null;
+        }
+        consumerSettings.setTruncateBeforeLoad(truncateCheck.isSelected());
+        consumerSettings.setOpenNewConnections(newConnectionCheck.isSelected());
+        consumerSettings.setUseTransactions(transactionsCheck.isSelected());
+        consumerSettings.setCommitAfterRows(((Number) commitSpinner.getValue()).intValue());
+        consumerSettings.setUseMultiRowInsert(multiRowCheck.isSelected());
+        consumerSettings.setMultiRowInsertBatch(((Number) multiRowSpinner.getValue()).intValue());
+        consumerSettings.setDisableUsingBatches(disableBatchesCheck.isSelected());
+        processorPropertiesHistory.put(importer.getId(), new HashMap<>(importerProperties.getPropertyValues()));
+        return settings;
+    }
+
+    @NotNull
+    @Override
+    protected String describeSource(@NotNull DataTransferPipe pipe) {
+        return fileField.getText().trim();
+    }
+
+    @NotNull
+    @Override
+    protected String describeTarget(@NotNull DataTransferPipe pipe) {
+        return getTableName();
+    }
+
+    /**
+     * Reads the file's columns with the chosen settings and maps them to the table (in a job; SWT
+     * {@code StreamProducerPageSettings.updateSingleConsumer} and {@code DatabaseConsumerPageMapping}).
+     */
+    @Nullable
+    private String loadMapping() {
+        Path file = Path.of(fileField.getText().trim());
+        Map<String, Object> properties = importerProperties.getPropertiesWithDefaults();
+        try {
+            LoadedMapping loaded = ProgressDialog.runTask("Read " + file.getFileName(), monitor -> {
+                StreamEntityMapping entityMapping = new StreamEntityMapping(file);
+                StreamTransferProducer producer = new StreamTransferProducer(entityMapping, importer);
+                producerSettings.setProcessorProperties(properties);
+                producerSettings.updateProducerSettingsFromStream(monitor, producer, importer.getInstance(), properties);
+                if (entityMapping.getStreamColumns().isEmpty()) {
+                    throw new DBException("No columns were found in " + file.getFileName());
+                }
+
+                consumerSettings.getDataMappings().clear();
+                DatabaseMappingContainer newMapping = new DatabaseMappingContainer(consumerSettings, entityMapping);
+                newMapping.setTarget(table);
+                newMapping.refreshMappingType(monitor, DatabaseMappingType.existing, false, false);
+                List<DatabaseMappingAttribute> attributes = new ArrayList<>(newMapping.getAttributeMappings(monitor));
+                for (DatabaseMappingAttribute attribute : attributes) {
+                    if (attribute.getMappingType() != DatabaseMappingType.existing || attribute.getTarget() == null) {
+                        // Don't add columns to an existing table (the model would ALTER it): skip unmatched columns
+                        attribute.setMappingType(DatabaseMappingType.skip);
+                    }
+                }
+                List<DBSEntityAttribute> columns = new ArrayList<>();
+                for (DBSEntityAttribute attribute : CommonUtils.safeCollection(((DBSEntity) table).getAttributes(monitor))) {
+                    if (!DBUtils.isHiddenObject(attribute) && !DBUtils.isPseudoAttribute(attribute)) {
+                        columns.add(attribute);
+                    }
+                }
+                consumerSettings.addDataMappings(new MonitorRunnableContext(monitor), entityMapping, newMapping);
+                return new LoadedMapping(producer, newMapping, attributes, columns);
+            });
+            for (DataTransferPipe pipe : settings.getDataPipes()) {
+                pipe.setProducer(loaded.producer());
+            }
+            settings.setProcessorProperties(properties);
+            mapping = loaded.mapping();
+            attributeMappings.clear();
+            attributeMappings.addAll(loaded.attributes());
+            targetAttributes.clear();
+            targetAttributes.addAll(loaded.columns());
+        } catch (DBInterruptedException e) {
+            return "Reading the file was canceled.";
+        } catch (DBException e) {
+            DBWorkbench.getPlatformUI().showError("Import Data", "Can't read the columns of " + file, e);
+            return "Can't read the columns of the file.";
+        }
+        return null;
+    }
+
+    //////////////////////////////////////////////////////////
+    // Pages
+
+    /**
+     * File, its format and the format settings, with the first lines of the file (SSMS "Choose a Data Source").
+     */
+    private final class SourcePage implements Page {
+        private final JPanel panel = new JPanel(new BorderLayout(0, 10));
+
+        SourcePage() {
+            for (DataTransferProcessorDescriptor descriptor : importers) {
+                importerCombo.addItem(descriptor);
+            }
+            importerCombo.setSelectedItem(importer);
+            importerCombo.setRenderer(new DefaultListCellRenderer() {
+                @Override
+                public Component getListCellRendererComponent(JList<?> list, Object value, int index, boolean isSelected, boolean cellHasFocus) {
+                    super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
+                    if (value instanceof DataTransferProcessorDescriptor descriptor) {
+                        setText(descriptor.getName());
+                        setIcon(NodeIcons.getIcon(descriptor.getIcon()));
+                    }
+                    return this;
+                }
+            });
+            importerCombo.addActionListener(e -> {
+                if (importerCombo.getSelectedItem() instanceof DataTransferProcessorDescriptor descriptor && descriptor != importer) {
+                    setImporter(descriptor);
+                    propertiesTable.setSource(importerProperties, null);
+                }
+            });
+            JButton browse = new JButton("Browse…");
+            browse.addActionListener(e -> chooseFile());
+            JPanel filePanel = new JPanel(new BorderLayout(6, 0));
+            filePanel.add(fileField, BorderLayout.CENTER);
+            filePanel.add(browse, BorderLayout.EAST);
+            JButton refresh = new JButton("Refresh Preview");
+            refresh.addActionListener(e -> updatePreview());
+
+            JPanel form = new JPanel(new GridBagLayout());
+            int row = 0;
+            row = DataTransferObjects.addRow(form, row, "File", filePanel, null);
+            DataTransferObjects.addRow(form, row, "Format", importerCombo, null);
+
+            previewArea.setEditable(false);
+            previewArea.putClientProperty(FlatClientProperties.STYLE_CLASS, "monospaced"); //$NON-NLS-1$
+            JPanel previewPanel = new JPanel(new BorderLayout(0, 4));
+            JPanel previewHeader = new JPanel(new BorderLayout());
+            previewHeader.add(new JLabel("First " + PREVIEW_LINES + " lines of the file"), BorderLayout.CENTER);
+            previewHeader.add(refresh, BorderLayout.EAST);
+            previewPanel.add(previewHeader, BorderLayout.NORTH);
+            previewPanel.add(new JScrollPane(previewArea), BorderLayout.CENTER);
+
+            JSplitPane split = new JSplitPane(JSplitPane.VERTICAL_SPLIT, propertiesTable, previewPanel);
+            split.setResizeWeight(0.55);
+            split.setBorder(BorderFactory.createEmptyBorder());
+            panel.add(form, BorderLayout.NORTH);
+            panel.add(split, BorderLayout.CENTER);
+        }
+
+        private void chooseFile() {
+            JFileChooser chooser = new JFileChooser(lastDirectory == null ? null : lastDirectory.toFile());
+            chooser.setDialogTitle("Import From");
+            String extensions = CommonUtils.toString(importerProperties.getPropertiesWithDefaults().get(PROP_EXTENSION));
+            String[] extensionList = CommonUtils.isEmpty(extensions) ? new String[0] : extensions.split(","); //$NON-NLS-1$
+            if (extensionList.length > 0) {
+                chooser.setFileFilter(new FileNameExtensionFilter(importer.getName() + " (" + extensions + ")", extensionList));
+            }
+            if (chooser.showOpenDialog(DataImportWizard.this) == JFileChooser.APPROVE_OPTION) {
+                Path file = chooser.getSelectedFile().toPath();
+                lastDirectory = file.toAbsolutePath().getParent();
+                fileField.setText(file.toString());
+                updatePreview();
+            }
+        }
+
+        private void updatePreview() {
+            propertiesTable.stopEditing();
+            String path = fileField.getText().trim();
+            if (path.isEmpty()) {
+                previewArea.setText("");
+                return;
+            }
+            String encoding = CommonUtils.toString(importerProperties.getPropertiesWithDefaults().get(PROP_ENCODING), "UTF-8"); //$NON-NLS-1$
+            StringBuilder text = new StringBuilder();
+            try (BufferedReader reader = Files.newBufferedReader(Path.of(path),
+                Charset.isSupported(encoding) ? Charset.forName(encoding) : Charset.defaultCharset())) {
+                String line;
+                for (int i = 0; i < PREVIEW_LINES && (line = reader.readLine()) != null; i++) {
+                    text.append(line).append('\n');
+                }
+            } catch (IOException | RuntimeException e) {
+                text.append("Can't read the file: ").append(e.getMessage());
+            }
+            previewArea.setText(text.toString());
+            previewArea.setCaretPosition(0);
+        }
+
+        @NotNull
+        @Override
+        public String getTitle() {
+            return "Choose a Data Source";
+        }
+
+        @NotNull
+        @Override
+        public String getDescription() {
+            return "Choose the file to import into " + getTableName() + " and how it is read.";
+        }
+
+        @NotNull
+        @Override
+        public JComponent getComponent() {
+            return panel;
+        }
+
+        @Override
+        public void activate() {
+            propertiesTable.setSource(importerProperties, null);
+        }
+
+        @Nullable
+        @Override
+        public String leave() {
+            propertiesTable.stopEditing();
+            String path = fileField.getText().trim();
+            if (path.isEmpty()) {
+                return "Choose the file to import.";
+            }
+            if (!Files.isRegularFile(Path.of(path))) {
+                return "The file " + path + " doesn't exist.";
+            }
+            return loadMapping();
+        }
+    }
+
+    /**
+     * Source columns and the table columns they go to (SSMS "Column Mappings").
+     */
+    private final class MappingPage implements Page {
+        private final JPanel panel = new JPanel(new BorderLayout(0, 8));
+        private final MappingTableModel model = new MappingTableModel();
+        private final JTable mappingTable = new JTable(model);
+
+        MappingPage() {
+            mappingTable.setFillsViewportHeight(true);
+            mappingTable.getTableHeader().setReorderingAllowed(false);
+            mappingTable.setRowHeight(Math.max(mappingTable.getRowHeight(), new JComboBox<>().getPreferredSize().height));
+            mappingTable.putClientProperty("terminateEditOnFocusLost", Boolean.TRUE); //$NON-NLS-1$
+            panel.add(DataTransferObjects.createNote(
+                "Columns are matched by name (by position when the file has no header). Columns without a match are skipped;"
+                    + " the table structure is not changed."), BorderLayout.NORTH);
+            panel.add(new JScrollPane(mappingTable), BorderLayout.CENTER);
+        }
+
+        @NotNull
+        @Override
+        public String getTitle() {
+            return "Column Mappings";
+        }
+
+        @NotNull
+        @Override
+        public String getDescription() {
+            return "Choose the column of " + getTableName() + " for each column of the file.";
+        }
+
+        @NotNull
+        @Override
+        public JComponent getComponent() {
+            return panel;
+        }
+
+        @Override
+        public void activate() {
+            JComboBox<Object> targetCombo = new JComboBox<>();
+            targetCombo.addItem(DatabaseMappingAttribute.TARGET_NAME_SKIP);
+            for (DBSEntityAttribute attribute : targetAttributes) {
+                targetCombo.addItem(attribute);
+            }
+            targetCombo.setRenderer(new DefaultListCellRenderer() {
+                @Override
+                public Component getListCellRendererComponent(JList<?> list, Object value, int index, boolean isSelected, boolean cellHasFocus) {
+                    super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
+                    if (value instanceof DBSEntityAttribute attribute) {
+                        setText(attribute.getName() + "  (" + attribute.getFullTypeName() + ")");
+                    }
+                    return this;
+                }
+            });
+            mappingTable.getColumnModel().getColumn(2).setCellEditor(new DefaultCellEditor(targetCombo));
+            model.fireTableDataChanged();
+        }
+
+        @Nullable
+        @Override
+        public String leave() {
+            if (mappingTable.isEditing()) {
+                mappingTable.getCellEditor().stopCellEditing();
+            }
+            Set<DBSEntityAttribute> used = new HashSet<>();
+            for (DatabaseMappingAttribute attribute : attributeMappings) {
+                if (attribute.getMappingType() == DatabaseMappingType.existing && attribute.getTarget() != null
+                    && !used.add(attribute.getTarget())) {
+                    return "The column " + attribute.getTarget().getName() + " is the target of more than one file column.";
+                }
+            }
+            return used.isEmpty() ? "Map at least one column of the file to a column of the table." : null;
+        }
+    }
+
+    private final class MappingTableModel extends AbstractTableModel {
+        private final String[] columns = {"Source column", "Source type", "Destination column", "Destination type"};
+
+        @Override
+        public int getRowCount() {
+            return attributeMappings.size();
+        }
+
+        @Override
+        public int getColumnCount() {
+            return columns.length;
+        }
+
+        @Override
+        public String getColumnName(int column) {
+            return columns[column];
+        }
+
+        @Override
+        public boolean isCellEditable(int rowIndex, int columnIndex) {
+            return columnIndex == 2;
+        }
+
+        @Override
+        public Object getValueAt(int rowIndex, int columnIndex) {
+            DatabaseMappingAttribute attribute = attributeMappings.get(rowIndex);
+            boolean mapped = attribute.getMappingType() == DatabaseMappingType.existing && attribute.getTarget() != null;
+            DBSAttributeBase source = attribute.getSource();
+            return switch (columnIndex) {
+                case 0 -> source == null ? "" : source.getName();
+                case 1 -> CommonUtils.notEmpty(attribute.getSourceType());
+                case 2 -> mapped ? attribute.getTarget().getName() : DatabaseMappingAttribute.TARGET_NAME_SKIP;
+                default -> mapped ? attribute.getTarget().getFullTypeName() : "";
+            };
+        }
+
+        @Override
+        public void setValueAt(Object value, int rowIndex, int columnIndex) {
+            DatabaseMappingAttribute attribute = attributeMappings.get(rowIndex);
+            if (value instanceof DBSEntityAttribute target) {
+                attribute.setTarget(target);
+                attribute.setTargetName(target.getName());
+                attribute.setMappingType(DatabaseMappingType.existing);
+            } else {
+                attribute.setTarget(null);
+                attribute.setMappingType(DatabaseMappingType.skip);
+            }
+            fireTableRowsUpdated(rowIndex, rowIndex);
+        }
+    }
+
+    /**
+     * How rows are inserted (SWT "Data load settings").
+     */
+    private final class LoadSettingsPage implements Page {
+        private final JPanel panel = new JPanel(new BorderLayout());
+
+        LoadSettingsPage() {
+            transactionsCheck.addActionListener(e -> updateEnablement());
+            multiRowCheck.addActionListener(e -> updateEnablement());
+            disableBatchesCheck.addActionListener(e -> updateEnablement());
+            JPanel form = new JPanel(new GridBagLayout());
+            int row = 0;
+            row = DataTransferObjects.addRow(form, row, null, truncateCheck, null);
+            row = DataTransferObjects.addRow(form, row, null, newConnectionCheck, null);
+            row = DataTransferObjects.addRow(form, row, null, transactionsCheck, null);
+            row = DataTransferObjects.addRow(form, row, "Commit every", commitSpinner, "rows (batch size)");
+            row = DataTransferObjects.addRow(form, row, null, multiRowCheck, null);
+            row = DataTransferObjects.addRow(form, row, "Rows per INSERT", multiRowSpinner, null);
+            DataTransferObjects.addRow(form, row, null, disableBatchesCheck, null);
+            JPanel content = new JPanel(new BorderLayout(0, 12));
+            content.add(form, BorderLayout.NORTH);
+            content.add(DataTransferObjects.createNote(
+                "If inserting rows fails, you are asked whether to stop, retry, or skip the failed rows."), BorderLayout.CENTER);
+            panel.add(content, BorderLayout.NORTH);
+            updateEnablement();
+        }
+
+        private void updateEnablement() {
+            commitSpinner.setEnabled(transactionsCheck.isSelected());
+            multiRowSpinner.setEnabled(multiRowCheck.isSelected() && !disableBatchesCheck.isSelected());
+            multiRowCheck.setEnabled(!disableBatchesCheck.isSelected());
+        }
+
+        @NotNull
+        @Override
+        public String getTitle() {
+            return "Load Settings";
+        }
+
+        @NotNull
+        @Override
+        public String getDescription() {
+            return "How the rows are written to " + getTableName() + ".";
+        }
+
+        @NotNull
+        @Override
+        public JComponent getComponent() {
+            return panel;
+        }
+    }
+
+    /**
+     * What will be done (SSMS "Complete the Wizard").
+     */
+    private final class SummaryPage implements Page {
+        private final JTextArea text = new JTextArea();
+        private final JPanel panel = new JPanel(new BorderLayout());
+
+        SummaryPage() {
+            text.setEditable(false);
+            text.setLineWrap(true);
+            text.setWrapStyleWord(true);
+            panel.add(new JScrollPane(text), BorderLayout.CENTER);
+        }
+
+        @NotNull
+        @Override
+        public String getTitle() {
+            return "Complete the Wizard";
+        }
+
+        @NotNull
+        @Override
+        public String getDescription() {
+            return "Check the choices and click Finish to import.";
+        }
+
+        @NotNull
+        @Override
+        public JComponent getComponent() {
+            return panel;
+        }
+
+        @Override
+        public void activate() {
+            StringBuilder summary = new StringBuilder();
+            summary.append("Source: ").append(fileField.getText().trim()).append(" (").append(importer.getName()).append(")\n");
+            for (Map.Entry<String, Object> entry : importerProperties.getPropertyValues().entrySet()) {
+                summary.append("    ").append(entry.getKey()).append(" = ").append(entry.getValue()).append('\n');
+            }
+            summary.append("\nDestination: ").append(getTableName()).append('\n');
+            for (DatabaseMappingAttribute attribute : attributeMappings) {
+                DBSAttributeBase source = attribute.getSource();
+                summary.append("    ").append(source == null ? "?" : source.getName()).append(" -> ")
+                    .append(attribute.getMappingType() == DatabaseMappingType.existing && attribute.getTarget() != null
+                        ? attribute.getTarget().getName() : DatabaseMappingAttribute.TARGET_NAME_SKIP)
+                    .append('\n');
+            }
+            summary.append('\n');
+            if (truncateCheck.isSelected()) {
+                summary.append("All rows of the table are deleted first.\n");
+            }
+            summary.append(transactionsCheck.isSelected() ? "Commit every " + commitSpinner.getValue() + " rows\n" : "No transactions (auto-commit)\n");
+            if (multiRowCheck.isSelected() && multiRowCheck.isEnabled()) {
+                summary.append("Multi-row INSERT, " + multiRowSpinner.getValue() + " rows per statement\n");
+            }
+            if (disableBatchesCheck.isSelected()) {
+                summary.append("Rows are inserted one by one\n");
+            }
+            text.setText(summary.toString());
+            text.setCaretPosition(0);
+        }
+    }
+}

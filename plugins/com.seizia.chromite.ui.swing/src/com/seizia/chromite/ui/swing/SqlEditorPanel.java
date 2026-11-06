@@ -83,8 +83,11 @@ import java.time.OffsetDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Comparator;
+import java.util.IdentityHashMap;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -138,6 +141,7 @@ import java.util.concurrent.atomic.AtomicLong;
  * - 2026-11-06 P1: 탭 도구 설명에 전체 경로와 연결·서버 (docs/chromite/swing-frontend.md "P1 디자인 적용")
  * - 2026-11-06 편집기 글꼴(Cascadia Mono 13, Options에서 변경)과 SSMS 구문 색(사용자 색 설정), 방언 기반 단어 분류
  *   (docs/chromite/design-spec.md "편집기 글꼴과 SQL 색")
+ * - 2026-11-06 데이터 전송: 쿼리의 첫 결과 표에 다시 실행할 쿼리를 넘김(Export Data) (docs/chromite/swing-data-transfer.md)
  */
 final class SqlEditorPanel extends JPanel {
 
@@ -907,6 +911,7 @@ final class SqlEditorPanel extends JPanel {
         private final Execution run;
         private final DBCExecutionContext context;
         private final SQLScriptContext scriptContext;
+        private final Set<SQLQuery> gridQueries = Collections.newSetFromMap(new IdentityHashMap<>());
 
         QueryHandler(@NotNull Execution run, @NotNull DBCExecutionContext context, @NotNull SQLScriptContext scriptContext) {
             this.run = run;
@@ -920,8 +925,10 @@ final class SqlEditorPanel extends JPanel {
             SQLQueryDataContainer dataContainer = new SQLQueryDataContainer(() -> context, query, scriptContext, log);
             return new ResultSetGridReceiver(dataContainer, fetched -> {
                 run.rowsFetched.addAndGet(fetched.data().rows().size());
+                // Only a query's first result set can be read again on its own (Export Data); receivers are called in order
+                boolean exportable = gridQueries.add(query);
                 post(run, () -> {
-                    resultsView.addGrid(fetched);
+                    resultsView.addGrid(exportable ? fetched.withExportQuery(dataContainer) : fetched);
                     statusLine.setRows(run.rowsFetched.get() + " rows");
                     host.showResults(SqlEditorPanel.this, false);
                 });

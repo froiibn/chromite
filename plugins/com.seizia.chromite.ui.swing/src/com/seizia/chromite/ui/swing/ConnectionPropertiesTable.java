@@ -50,9 +50,11 @@ import java.util.Locale;
  *     <li>이름에 password·token이 들어간 글자 속성은 값을 가린다(SWT {@code isHidePropertyValue}와 같은 규칙).</li>
  * </ul>
  * 트리 대신 표를 쓴 것은 MVP 범위("간단한 편집 가능한 표")에 맞추기 위해서다. 범주는 첫 열로 보여 주고 범주 순으로 정렬한다.
+ * 데이터 내보내기·가져오기 마법사도 형식(처리기) 속성을 같은 {@link PropertySourceCustom}으로 이 표에서 고친다(SWT도 두 곳 모두 {@code PropertyTreeViewer}).
  *
  * 변경 이력:
  * - 2026-11-06 D단계: 최초 작성 (docs/chromite/swing-frontend.md "구현 현황 — D단계")
+ * - 2026-11-06 데이터 전송: 처리기 속성 편집에도 씀 (docs/chromite/swing-data-transfer.md)
  */
 final class ConnectionPropertiesTable extends JPanel {
 
