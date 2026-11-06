@@ -230,6 +230,12 @@ SELECT ...
   2. 엔진(`SQLQueryExecuteJob.executeStatement`)이 `handler.hasBoundParameters`가 참인 쿼리는 `DBCStatementType.QUERY`(JDBC `PreparedStatement`)로 만들고
      `handler.bindParameters` → `PreparedStatement.setObject/setNull`로 바인딩한다. 바꾼 쿼리는 매개변수 목록이 없으므로 엔진의 글자 치환(`fillQueryParameters`)은 아무것도 하지 않는다.
   - 정수는 `Integer`(범위를 넘으면 `Long`)로 바인딩한다. PostgreSQL의 `make_interval(mins => ?)`처럼 정수만 받는 함수에 `BigDecimal`(numeric)은 맞지 않기 때문이다.
+  - 값은 그 실행의 핸들러에만 있다. 결과 표의 데이터 컨테이너(`SQLQueryDataContainer`)로 쿼리를 다시 읽으면 `?`가 값 없이 나가므로
+    (합칠 때 확인: PostgreSQL "syntax error at end of input"), 바인딩한 쿼리의 결과는 다시 읽지 않는다: 결과 표의 Export Data…를 끄고
+    ([swing-data-transfer.md](swing-data-transfer.md)), 결과 뷰어의 필터·서버 정렬·다음 페이지를 막는다(이유 "parameter values bound for this run only",
+    [swing-result-viewer.md](swing-result-viewer.md)). CSV·XLSX로 내보내기와 표 안 정렬은 된다. 쿼리 창에서 같은 값으로 다시 실행하면 된다.
+  - 쿼리 창의 매개변수 대화상자(SQL 편집기 확장의 Bind Parameters, `SqlParameterDialog`)는 라이브러리 실행에서 뜨지 않는다. 바꾼 쿼리에 매개변수 목록이 없어
+    엔진의 `fillQueryParameters`가 제공자를 부르지 않기 때문이다. 두 대화상자를 하나로 합치는 것은 남긴 일이다.
   - SQL Server `GO` 배치는 배치 하나가 prepared statement 하나다(`DECLARE`한 변수와 `?`를 함께 쓸 수 있음). JDBC가 아닌 연결은 바인딩할 수 없어 오류로 끝난다.
 - **`${name}`·`{{name}}` 변수(표시: "SQL text"):** SWT에서도 텍스트 치환 변수이고 식별자·SQL 조각 자리(테이블 이름, `ORDER BY` 열 등)라 바인딩할 수 없다.
   값을 **그대로 SQL에 끼운다**. 대화상자와 정의 표에 "SQL text"로 표시하고, 쓰는 사람이 이 점을 알도록 도구 설명을 단다. 신뢰하지 않는 값에는 `:name`을 쓴다.
@@ -382,4 +388,4 @@ Schedule…·History…·Scheduled Queries… 대화상자, Save to Query Librar
 - 2026-11-06 ③ 예약 실행 구현(사용자 결정: 앱 실행 중에만, OS 스케줄러 기각): 예약 정의(파일), 이 PC 활성 여부(로컬), 스케줄러, 기록·보존, 조건 알림·배지, Scheduled Queries 개요.
 - 2026-11-06 다른 Swing 기능과 합침: 도구 창을 오른쪽 열의 Properties 위로 옮김, 실행 기록 창 이름을 `QueryRunHistoryDialog`로 바꿈(쿼리 창 기록과 겹침),
   `history` 아이콘은 SQL 편집기 확장의 것을 함께 씀, `new-folder`의 Full color 그림을 `new-group`과 같은 폴더 모양으로 맞춤(생성기의 같은 폴더 식),
-  Options의 기록 보존 칸을 쿼리 창 기록 칸과 따로 둠.
+  Options의 기록 보존 칸을 쿼리 창 기록 칸과 따로 둠. 바인딩한 쿼리의 결과는 다시 읽지 않음(Export Data·결과 뷰어 필터가 값 없는 `?`로 실패하던 것).

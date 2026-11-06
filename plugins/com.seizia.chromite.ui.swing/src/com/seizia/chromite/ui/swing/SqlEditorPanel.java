@@ -169,6 +169,8 @@ import java.util.concurrent.atomic.AtomicLong;
  *   (docs/chromite/swing-sql-editor-plus.md)
  * - 2026-11-06 Query Library: 편집기 확장({@link SqlEditorExtension}: 머리말, 저장, 탭 아이콘, 매개변수 바인딩 {@link SqlParameterBinding})
  *   (docs/chromite/swing-query-library.md)
+ * - 2026-11-06 Query Library와 데이터 전송·결과 뷰어를 합침: 값을 바인딩한 쿼리의 결과는 다시 읽지 않음(Export Data·필터·다음 페이지가
+ *   값 없이 {@code ?}를 보내 실패하던 것) (docs/chromite/swing-query-library.md "매개변수 바인딩")
  */
 final class SqlEditorPanel extends JPanel {
 
@@ -1296,10 +1298,13 @@ final class SqlEditorPanel extends JPanel {
         @NotNull
         private DBDDataReceiver createGridReceiver(@NotNull SQLQuery query) {
             SQLQueryDataContainer dataContainer = new SQLQueryDataContainer(() -> context, query, scriptContext, log);
-            return new ResultSetGridReceiver(dataContainer, fetched -> {
+            // Natively bound values (Query Library) exist only in this run's handler; the data container would send the
+            // query's "?" markers without them, so the result is not read again (Export Data, filters, next pages)
+            boolean boundParameters = run.binding.isBound(query);
+            return new ResultSetGridReceiver(dataContainer, boundParameters ? "parameter values bound for this run only" : null, fetched -> {
                 run.rowsFetched.addAndGet(fetched.data().rows().size());
                 // Only a query's first result set can be read again on its own (Export Data); receivers are called in order
-                boolean exportable = gridQueries.add(query);
+                boolean exportable = !boundParameters && gridQueries.add(query);
                 post(run, () -> {
                     resultsView.addGrid(exportable ? fetched.withExportQuery(dataContainer) : fetched);
                     statusLine.setRows(run.rowsFetched.get() + " rows");
