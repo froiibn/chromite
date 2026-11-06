@@ -84,8 +84,9 @@ import java.util.function.Supplier;
  *     <li>파서 문맥(방언 구문, 연결별 규칙, 주석·문자열 분할기)은 실행과 같은 {@link SQLScriptBatches#createParserContext}로 만든다.
  *     SWT처럼 커서 바로 앞이 한 줄 주석이나 제어 명령이면 제안하지 않고, 커서 위치가 일반 SQL·문자열·따옴표 이름일 때만 분석한다.</li>
  *     <li>완성 옵션({@link SQLCompletionContext})은 SWT 설정 화면의 기본값({@code SQLEditorPreferencesInitializer})과 같다.
- *     그 설정 키는 SWT 번들({@code SQLPreferenceConstants})에 있고 Swing 제품에는 설정 화면이 없어서 값을 그대로 옮겼다.
- *     짧은 이름/완전한 이름 형식만 모델 설정({@link SQLModelPreferences})을 연결 설정에서 읽는다(SWT와 같음).</li>
+ *     그 설정 키는 SWT 번들({@code SQLPreferenceConstants})에 있어 Swing 제품에서는 읽을 수 없으므로 값을 그대로 옮겼다.
+ *     짧은 이름/완전한 이름 형식만 모델 설정({@link SQLModelPreferences})을 연결 설정에서 읽는다(SWT와 같음).
+ *     프로시저·함수 제안({@code isSearchProcedures}, SWT {@code SHOW_COLUMN_PROCEDURES})은 Tools &gt; Options의 설정을 따른다(SWT처럼 기본 끔).</li>
  *     <li>분석은 SWT처럼 {@link DBExecUtils#tryExecuteRecover}로 감싸 연결이 끊긴 경우 복구를 시도한다.
  *     실행 문맥은 F5 실행과 같은 연결의 기본(주) 문맥이다.</li>
  *     <li>결과 제안({@link Proposal})은 넣을 글자(교체 문자열), 교체 시작 위치, 표시 문자열·꾸밈 글자·아이콘을 담는다.
@@ -94,6 +95,7 @@ import java.util.function.Supplier;
  *
  * 변경 이력:
  * - 2026-11-06 F단계: 최초 작성 (docs/chromite/swing-frontend.md "구현 현황 — F단계")
+ * - 2026-11-07 프로시저·함수 제안을 늘 끄던 것을 Tools &gt; Options 설정으로 바꿈 (docs/chromite/swing-followup-fixes.md "자동완성 프로시저")
  */
 final class SqlCompletionAnalysis {
 
@@ -350,7 +352,8 @@ final class SqlCompletionAnalysis {
     }
 
     /**
-     * Completion options with the defaults of the SWT editor's preference initializer.
+     * Completion options with the defaults of the SWT editor's preference initializer, except the procedure proposals,
+     * which follow the Tools &gt; Options setting ({@link SqlCompletionPopup#isShowProcedures()}).
      */
     private static final class SwingCompletionContext implements SQLCompletionContext {
         private final DBPDataSource dataSource;
@@ -359,6 +362,7 @@ final class SqlCompletionAnalysis {
         private final SQLRuleManager ruleManager;
         private final boolean useShortNames;
         private final boolean useFqNames;
+        private final boolean searchProcedures;
 
         SwingCompletionContext(
             @NotNull DBPDataSource dataSource,
@@ -374,6 +378,7 @@ final class SqlCompletionAnalysis {
             DBPPreferenceStore preferences = dataSource.getContainer().getPreferenceStore();
             this.useShortNames = preferences.getBoolean(SQLModelPreferences.SQL_EDITOR_PROPOSAL_SHORT_NAME);
             this.useFqNames = preferences.getBoolean(SQLModelPreferences.SQL_EDITOR_PROPOSAL_ALWAYS_FQ);
+            this.searchProcedures = SqlCompletionPopup.isShowProcedures();
         }
 
         @Override
@@ -424,7 +429,7 @@ final class SqlCompletionAnalysis {
 
         @Override
         public boolean isSearchProcedures() {
-            return false;
+            return searchProcedures;
         }
 
         @Override
