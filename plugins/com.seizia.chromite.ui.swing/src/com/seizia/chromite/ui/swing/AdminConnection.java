@@ -48,11 +48,14 @@ import java.util.function.Consumer;
  *     <li>작업은 {@link AbstractJob}에서 하고 결과와 오류는 EDT로 넘긴다. 같은 컨텍스트를 쓰는 작업은 차례로 실행한다(JDBC 연결은 동시에 쓸 수 없다).</li>
  *     <li>연결이 아직 안 되어 있으면 SQL 편집기처럼 작업 안에서 {@link DBUtils#initDataSource}로 연결한다.</li>
  *     <li>컨텍스트가 끊겼으면(서버가 끊음, 재연결) 다음 작업에서 다시 연다.</li>
+ *     <li>DB에 맞춘 도구({@link ServerAdminProfile})를 만든 뒤 첫 작업에서 로그인 권한을 확인한다({@link ServerAdminProfile#checkAccess}).
+ *     두 탭이 같은 결과를 쓰고, 첫 읽기 결과가 화면에 닿을 때는 이미 확인되어 있다.</li>
  * </ul>
  *
  * 변경 이력:
  * - 2026-11-06 최초 작성 (docs/chromite/swing-admin-tools.md)
  * - 2026-11-06 화면 문구를 ConnectionMessages로 옮김(OS 언어를 따름)
+ * - 2026-11-07 첫 작업에서 로그인 권한 확인(PostgreSQL·Oracle 세션·잠금, docs/chromite/swing-admin-tools.md)
  */
 final class AdminConnection {
 
@@ -145,6 +148,8 @@ final class AdminConnection {
             }
             DBCExecutionContext context = getContext(monitor, dataSource);
             try (DBCSession session = context.openSession(monitor, DBCExecutionPurpose.UTIL, title)) {
+                // Once per profile, before its first read: the tabs show what the login may do
+                profile.checkAccess(session);
                 return task.run(monitor, session, profile);
             } catch (DBException e) {
                 // The connection may be broken (e.g. its own session was killed): open a new one next time

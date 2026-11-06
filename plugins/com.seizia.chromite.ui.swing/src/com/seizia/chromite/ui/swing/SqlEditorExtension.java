@@ -32,11 +32,12 @@ import javax.swing.*;
  *
  * 변경 이력:
  * - 2026-11-06 Query Library: 최초 작성 (docs/chromite/swing-query-library.md)
+ * - 2026-11-07 쿼리 창 도구 막대가 메인 창으로 옮겨져 머리말 위치 설명을 "편집기 위"로 고침 (docs/chromite/swing-frontend.md "SQL Editor 도구 막대")
  */
 interface SqlEditorExtension {
 
     /**
-     * Component shown below the query window's tool bar, or null.
+     * Component shown above the query window's editor, or null.
      */
     @Nullable
     JComponent getHeader();

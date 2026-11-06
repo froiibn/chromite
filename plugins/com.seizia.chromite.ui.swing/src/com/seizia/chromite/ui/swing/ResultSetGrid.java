@@ -97,6 +97,8 @@ import java.util.Map;
  * - 2026-11-06 꺼진 Export Data…의 도구 설명에 수신기가 아는 실제 이유(예: 이번 실행에만 바인딩한 값)를 보임 (docs/chromite/swing-data-transfer.md)
  * - 2026-11-06 화면 문구를 EditorMessages로 옮김(OS 언어를 따름)
  * - 2026-11-07 오류 문구를 {@link ErrorText}로 만듦(클래스 이름이 화면에 나오지 않게, docs/chromite/swing-frontend.md "오류 문구")
+ * - 2026-11-07 칸과 행 번호를 고정폭 글꼴 대신 UI 글꼴(Pretendard 12)로(사용자 요청). 숫자 폭이 글자마다 달라 행 번호 열 폭을
+ *   가장 넓은 숫자로 계산 (docs/chromite/design-spec.md "적용 현황 — 그리드 글꼴 Pretendard")
  */
 final class ResultSetGrid extends JPanel {
 
@@ -235,9 +237,9 @@ final class ResultSetGrid extends JPanel {
                 paintHorizontalLines(this, g);
             }
         };
-        // DataGrip grid: font.code, vertical lines in grid.line, horizontal lines in the lighter grid.lineSubtle
-        // (one JTable grid color can't do both), column names left-aligned
-        table.putClientProperty(FlatClientProperties.STYLE_CLASS, "monospaced"); //$NON-NLS-1$
+        // DataGrip grid: vertical lines in grid.line, horizontal lines in the lighter grid.lineSubtle (one JTable grid
+        // color can't do both), column names left-aligned. The cells keep the look and feel's Table.font, the UI font
+        // like the column header (user decision 2026-11-07, design-spec "font.grid")
         table.setShowVerticalLines(true);
         table.setShowHorizontalLines(false);
         table.setIntercellSpacing(new Dimension(1, 0));
@@ -699,6 +701,20 @@ final class ResultSetGrid extends JPanel {
     // Layout
 
     /**
+     * Width of the row numbers up to {@code rowCount} (at least two digits). The digits of the UI font are
+     * proportional (Pretendard: "1" is narrower than "0"), so a number's own width is not enough for the numbers
+     * below it ("111" is narrower than "108"): the width is the digit count times the widest digit.
+     */
+    private static int getRowNumberWidth(@NotNull JTable header, int rowCount) {
+        FontMetrics metrics = header.getFontMetrics(header.getFont());
+        int digitWidth = 0;
+        for (char digit = '0'; digit <= '9'; digit++) {
+            digitWidth = Math.max(digitWidth, metrics.charWidth(digit));
+        }
+        return String.valueOf(Math.max(rowCount, 99)).length() * digitWidth;
+    }
+
+    /**
      * Column widths from the header and the first rows. The padding is not a constant: the header width is the
      * preferred width of the look and feel's header renderer (its cell margins, scaled), and the cells add the
      * insets of the cell border ({@code Table.cellMargins}, scaled) and the vertical grid line.
@@ -790,7 +806,6 @@ final class ResultSetGrid extends JPanel {
             }
         };
         gridModel.addTableModelListener(e -> ((AbstractTableModel) header.getModel()).fireTableDataChanged());
-        header.putClientProperty(FlatClientProperties.STYLE_CLASS, "monospaced"); //$NON-NLS-1$
         header.setFocusable(false);
         header.setRowSelectionAllowed(false);
         header.setShowGrid(false);
@@ -824,7 +839,7 @@ final class ResultSetGrid extends JPanel {
             }
         });
         int rowCount = gridModel.getRowCount();
-        int width = header.getFontMetrics(header.getFont()).stringWidth(String.valueOf(Math.max(rowCount, 99))) + getCellPadding(table);
+        int width = getRowNumberWidth(header, rowCount) + getCellPadding(table);
         header.getColumnModel().getColumn(0).setPreferredWidth(width);
         header.setPreferredScrollableViewportSize(new Dimension(width, 0));
         header.addMouseListener(new MouseAdapter() {

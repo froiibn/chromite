@@ -22,6 +22,7 @@ import org.eclipse.osgi.util.NLS;
 /**
  * 변경 이력:
  * - 2026-11-07 SWT 프런트엔드 삭제로 쓰는 곳이 없어진 문구 삭제(docs/chromite/swt-removal.md)
+ * - 2026-11-07 테이블 저장 방식 이름(model_struct_storage_*) 추가(docs/chromite/altibase.md)
  */
 public class ModelMessages extends NLS {
     static final String BUNDLE_NAME = "com.seizia.chromite.model.messages.ModelResources"; //$NON-NLS-1$
@@ -112,6 +113,10 @@ public class ModelMessages extends NLS {
     public static String model_struct_Virtual_Foreign_Key;
     public static String model_struct_Pseudo_Key;
     public static String model_struct_Unknown;
+    public static String model_struct_storage_Memory;
+    public static String model_struct_storage_Disk;
+    public static String model_struct_storage_Volatile;
+    public static String model_struct_storage_Hybrid;
 
 
     public static String dbp_connection_type_table_development;

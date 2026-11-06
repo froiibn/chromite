@@ -125,6 +125,10 @@ import java.util.function.IntConsumer;
  *     단추는 메뉴와 같은 동작({@link Action})을 써서 켜고 끄기와 단축키가 메뉴와 같다. 좁은 창에서는 넘치는 단추가 넘침 메뉴로 간다({@link OverflowToolBar}).
  *     Save All(Ctrl+Shift+S)은 고친 쿼리 창을 Save와 같은 방법으로, 변경이 있는 테이블 디자이너를 디자이너의 Save로 저장한다.
  *     Activity Monitor(Ctrl+Alt+A)는 Object Explorer에서 고른 연결(없으면 활성 쿼리 창의 연결)에 열고, 둘 다 없으면 꺼지며 도구 설명이 이유를 알린다.</li>
+ *     <li>도구 막대는 SSMS처럼 두 줄이다(2026-11-07 사용자 결정): 위는 Standard, 아래는 활성 쿼리 창에 적용하는 SQL Editor 도구 막대
+ *     ({@link SqlEditorToolBar}: 실행, 중지, 계획, 연결·DB 콤보, 편집 명령, Query History). 쿼리 창마다의 도구 막대는 없다.
+ *     실행·중지·계획 단추는 Query 메뉴와 같은 동작이고, 그 켜짐은 {@link #updateQueryActions()}가 활성 쿼리 창으로 정한다. 활성 문서가 바뀌면
+ *     그 창의 연결·DB 콤보를 끼우고, 쿼리 창이 아니면 막대는 보인 채 모두 꺼진다.</li>
  * </ul>
  * 창을 닫으면 dispose되고, {@link ChromiteSwingApplication}이 windowClosed 이벤트로 앱을 종료한다.
  * 창 아이콘은 Java 런타임(JBR) 기본 아이콘 대신 Chromite 아이콘을 쓴다({@link ChromiteIcons}).
@@ -171,6 +175,14 @@ import java.util.function.IntConsumer;
  * - 2026-11-07 밀도 B: 치수를 테마의 Chromite.size.* 키({@link UiSizes})에서 읽음 (docs/chromite/design-spec.md "치수 토큰")
  * - 2026-11-07 서버 대시보드: Tools &gt; Server Dashboard(Activity Monitor의 개요 탭) (docs/chromite/swing-dashboard.md)
  * - 2026-11-07 Tools &gt; Driver Manager… ({@link DriverManagerDialog}) (docs/chromite/swing-driver-manager.md)
+ * - 2026-11-07 Object Explorer·Properties의 기본 위치에 같은 열의 이웃(Registered Servers 위, Query Library 아래)을 둠 (docs/chromite/swing-frontend.md "Query Library 자리")
+ * - 2026-11-07 Results 기본 높이 220 → 280(사용자 결정), {@link #DEFAULT_RESULTS_HEIGHT} (docs/chromite/swing-frontend.md "Results 자동 숨김")
+ * - 2026-11-07 도구 막대 두 줄(사용자 결정): SQL Editor 도구 막대 {@link SqlEditorToolBar}를 Standard 아래에 두고 활성 쿼리 창을 따름,
+ *   Include Actual Execution Plan을 선택 상태가 있는 동작으로(메뉴와 도구 막대 단추가 같이 씀), 실행·계획 켜짐을 쿼리 창의
+ *   {@code canExecute}·{@code canCancel}·{@code canExplain}으로 (docs/chromite/swing-frontend.md "SQL Editor 도구 막대")
+ * - 2026-11-07 쿼리 창이 활성이 되면 쿼리 상태 줄의 커밋 방식을 다시 읽음 (docs/chromite/swing-frontend.md "자동 커밋 상태")
+ * - 2026-11-07 제목 표시줄 가운데의 창 제목("Chromite")을 그리지 않음(사용자 결정, 작업 표시줄·Alt+Tab 이름은 그대로)
+ *   (docs/chromite/swing-frontend.md "제목 표시줄")
  */
 final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplorerPanel.QueryWindows, TableDesignerPanel.Host, QueryLibraryPanel.Host {
 
@@ -183,6 +195,12 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
      */
     private static final double DEFAULT_LEFT_SHARE = 0.22;
     private static final double DEFAULT_RIGHT_SHARE = 0.18;
+    /**
+     * Height of the Results card until the user resizes it (user decision 2026-11-07: 280, before 220). A layout default
+     * like {@link #DEFAULT_SIZE}, not a density token ({@link UiSizes}): the user's own size is saved and wins, and
+     * Window &gt; Reset Window Layout returns to it.
+     */
+    private static final int DEFAULT_RESULTS_HEIGHT = 280;
     private static final String UPDATED_LAF_KEY = "chromite.updatedLookAndFeel"; //$NON-NLS-1$
     /**
      * Client property of a query window whose results the user hid; kept on the editor so the choice lives and dies with it.
@@ -235,7 +253,12 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
     private final Action cancelQueryAction;
     private final Action completeAction;
     private final Action estimatedPlanAction;
-    private final JCheckBoxMenuItem actualPlanItem = new JCheckBoxMenuItem(CoreMessages.main_actual_plan);
+    /**
+     * Query &gt; Include Actual Execution Plan and the SQL Editor tool bar's Actual Plan button: selected
+     * ({@link Action#SELECTED_KEY}) while the active query window includes the actual plan.
+     */
+    private final Action actualPlanAction;
+    private final SqlEditorToolBar sqlEditorToolBar;
     private final EditMenu editMenu;
     private int queryCounter;
     /**
@@ -253,6 +276,9 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
     MainFrame(@NotNull String title, @NotNull String statusText) {
         super(title);
         setIconImages(ChromiteIcons.getWindowIcons());
+        // The title stays the window's name for the taskbar and Alt+Tab, but the title bar does not paint it (user
+        // decision 2026-11-07); dialogs keep their titles because this is set on the main window only
+        getRootPane().putClientProperty(FlatClientProperties.TITLE_BAR_SHOW_TITLE, false);
         // Closing asks to save modified query windows first (requestExit)
         setDefaultCloseOperation(WindowConstants.DO_NOTHING_ON_CLOSE);
 
@@ -299,6 +325,7 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
             KeyStroke.getKeyStroke(KeyEvent.VK_F8, 0));
         // Default layout: Object Explorer above Registered Servers in the left column (user decision 2026-11-06)
         toolWindowDocking.addToolWindow(explorerWindow, explorerPanel, true,
+            ToolWindowDocking.Place.next("registeredServers", DockingRegion.NORTH, 0.6), //$NON-NLS-1$
             ToolWindowDocking.Place.edge(DockingRegion.WEST, DEFAULT_LEFT_SHARE));
         registeredServersPanel = new RegisteredServersPanel(new RegisteredServersPanel.Host() {
             @Override
@@ -320,13 +347,14 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
         ToolWindow propertiesWindow = new ToolWindow("properties", CoreMessages.main_properties, //$NON-NLS-1$
             KeyStroke.getKeyStroke(KeyEvent.VK_F4, 0));
         toolWindowDocking.addToolWindow(propertiesWindow, propertiesPanel, true,
+            ToolWindowDocking.Place.next("queryLibrary", DockingRegion.SOUTH, 0.5), //$NON-NLS-1$
             ToolWindowDocking.Place.edge(DockingRegion.EAST, DEFAULT_RIGHT_SHARE));
         // The Results/Messages tabs are their own header; the hide button sits next to the tabs. The results stay in the
         // query window (below the documents), so they are not dockable
         resultsWindow = new ToolWindow("results", CoreMessages.main_results, //$NON-NLS-1$
             KeyStroke.getKeyStroke(KeyEvent.VK_R, InputEvent.CTRL_DOWN_MASK));
         // Shown only for the active query window, unless the user hid them there (user decision 2026-11-06, as in DataGrip)
-        resultsSplit = new ToolWindow.SplitHost(resultsWindow, resultsArea, documentSplit, 220, new ToolWindow.SplitHost.Context() {
+        resultsSplit = new ToolWindow.SplitHost(resultsWindow, resultsArea, documentSplit, DEFAULT_RESULTS_HEIGHT, new ToolWindow.SplitHost.Context() {
             @Override
             public boolean isShown() {
                 SqlEditorPanel editor = getActiveEditor();
@@ -410,14 +438,19 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
                     editor.explainEstimatedPlan();
                 }
             });
-        actualPlanItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_M, InputEvent.CTRL_DOWN_MASK));
-        actualPlanItem.setToolTipText(CoreMessages.main_actual_plan_tip);
-        actualPlanItem.addActionListener(e -> {
-            SqlEditorPanel editor = getActiveEditor();
-            if (editor != null) {
-                editor.setIncludeActualPlan(actualPlanItem.isSelected());
-            }
-        });
+        actualPlanAction = createAction(CoreMessages.main_actual_plan, CoreMessages.main_actual_plan_tip,
+            KeyStroke.getKeyStroke(KeyEvent.VK_M, InputEvent.CTRL_DOWN_MASK), () -> {
+                SqlEditorPanel editor = getActiveEditor();
+                if (editor != null) {
+                    editor.setIncludeActualPlan(!editor.isIncludeActualPlan());
+                }
+                // The menu item and the tool bar button show the active window's state (updateQueryActions)
+                updateQueryActions();
+            });
+        // Menu items and toggle buttons write their state back to the action only if it has one
+        actualPlanAction.putValue(Action.SELECTED_KEY, Boolean.FALSE);
+        sqlEditorToolBar = new SqlEditorToolBar(executeQueryAction, cancelQueryAction, estimatedPlanAction, actualPlanAction,
+            this::openQueryHistory);
         editMenu = new EditMenu(this::getActiveTextArea);
         documentTabs.addChangeListener(e -> activeEditorChanged());
         resultTabs.addChangeListener(e -> {
@@ -446,7 +479,12 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
         setJMenuBar(createMenuBar());
 
         JPanel content = new CanvasPanel(new BorderLayout());
-        content.add(createToolBar(registeredServersWindow, explorerWindow, libraryWindow, propertiesWindow), BorderLayout.NORTH);
+        // Two tool bar rows as in SSMS: Standard, then SQL Editor (user decision 2026-11-07)
+        JPanel toolBars = new JPanel(new BorderLayout());
+        toolBars.setOpaque(false);
+        toolBars.add(createToolBar(registeredServersWindow, explorerWindow, libraryWindow, propertiesWindow), BorderLayout.NORTH);
+        toolBars.add(sqlEditorToolBar.getComponent(), BorderLayout.SOUTH);
+        content.add(toolBars, BorderLayout.NORTH);
         content.add(toolWindowDocking.getComponent(), BorderLayout.CENTER);
         statusBar = new StatusBar(statusText);
         content.add(statusBar, BorderLayout.SOUTH);
@@ -1193,6 +1231,11 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
         // Before the status line, which goes below the results only while they are shown
         resultsSplit.update();
         attachStatusLine(editor != null ? editor.getStatusLine() : null);
+        sqlEditorToolBar.setActiveEditor(editor);
+        if (editor != null) {
+            // Another window on the same connection shares its session and may have changed the commit mode
+            editor.refreshTransactionMode();
+        }
         updateQueryActions();
     }
 
@@ -1210,7 +1253,11 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
         resultTabs.setComponentAt(index, component);
     }
 
-    private static void updateLookAndFeel(@NotNull JComponent component) {
+    /**
+     * Brings a component that was out of the window (and missed theme switches) up to the current look and feel; also
+     * used by {@link SqlEditorToolBar} for the pickers it puts in.
+     */
+    static void updateLookAndFeel(@NotNull JComponent component) {
         LookAndFeel lookAndFeel = UIManager.getLookAndFeel();
         if (component.getClientProperty(UPDATED_LAF_KEY) != lookAndFeel) {
             SwingUtilities.updateComponentTreeUI(component);
@@ -1254,12 +1301,13 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
 
     private void updateQueryActions() {
         SqlEditorPanel editor = getActiveEditor();
-        executeQueryAction.setEnabled(editor != null && !editor.isExecuting());
-        cancelQueryAction.setEnabled(editor != null && editor.isExecuting());
+        // Also the SQL Editor tool bar's buttons
+        executeQueryAction.setEnabled(editor != null && editor.canExecute());
+        cancelQueryAction.setEnabled(editor != null && editor.canCancel());
         completeAction.setEnabled(editor != null);
-        estimatedPlanAction.setEnabled(editor != null && !editor.isExecuting() && !editor.isExplaining());
-        actualPlanItem.setEnabled(editor != null);
-        actualPlanItem.setSelected(editor != null && editor.isIncludeActualPlan());
+        estimatedPlanAction.setEnabled(editor != null && editor.canExplain());
+        actualPlanAction.setEnabled(editor != null);
+        actualPlanAction.putValue(Action.SELECTED_KEY, editor != null && editor.isIncludeActualPlan());
         saveAction.setEnabled(editor != null || documentTabs.getSelectedComponent() instanceof TableDesignerPanel);
         saveAsAction.setEnabled(editor != null);
         // Results belong to a query window: without one, Ctrl+R and the View menu item are disabled and say why
@@ -1339,8 +1387,10 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
         updateActivityMonitorAction();
     }
 
-    @Override
-    public void openQueryHistory() {
+    /**
+     * Query &gt; Query History and the SQL Editor tool bar's Query History button.
+     */
+    private void openQueryHistory() {
         QueryHistoryDialog.open(this, this::openHistoryQuery);
     }
 
@@ -1407,7 +1457,7 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
         queryMenu.add(autoCompleteItem);
         queryMenu.addSeparator();
         queryMenu.add(new JMenuItem(estimatedPlanAction));
-        queryMenu.add(actualPlanItem);
+        queryMenu.add(new JCheckBoxMenuItem(actualPlanAction));
         queryMenu.addSeparator();
         JMenuItem historyItem = new JMenuItem(CoreMessages.main_query_history, UiIcons.get("history")); //$NON-NLS-1$
         historyItem.setToolTipText(CoreMessages.main_query_history_tip);

@@ -18,8 +18,13 @@ package com.seizia.chromite.model.admin;
 
 import com.seizia.chromite.model.admin.mssql.SQLServerLockManager;
 import com.seizia.chromite.model.admin.mysql.MySQLLockManager;
+import com.seizia.chromite.model.admin.oracle.OracleActivitySessionManager;
+import com.seizia.chromite.model.admin.oracle.OracleBlockingLockManager;
+import com.seizia.chromite.model.admin.postgresql.PostgreActivitySessionManager;
+import com.seizia.chromite.model.admin.postgresql.PostgreBlockingLockManager;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
+import com.seizia.chromite.Log;
 import com.seizia.chromite.ext.mssql.model.SQLServerDataSource;
 import com.seizia.chromite.ext.mssql.model.session.SQLServerSession;
 import com.seizia.chromite.ext.mssql.model.session.SQLServerSessionManager;
@@ -32,6 +37,7 @@ import com.seizia.chromite.ext.oracle.model.lock.OracleLockManager;
 import com.seizia.chromite.ext.oracle.model.session.OracleServerSession;
 import com.seizia.chromite.ext.oracle.model.session.OracleServerSessionManager;
 import com.seizia.chromite.ext.postgresql.model.PostgreDataSource;
+import com.seizia.chromite.ext.postgresql.model.impls.PostgreServerPostgreSQL;
 import com.seizia.chromite.ext.postgresql.model.lock.PostgreLock;
 import com.seizia.chromite.ext.postgresql.model.lock.PostgreLockManager;
 import com.seizia.chromite.ext.postgresql.model.session.PostgreSession;
@@ -43,9 +49,12 @@ import com.seizia.chromite.model.admin.locks.DBAServerLockItem;
 import com.seizia.chromite.model.admin.locks.DBAServerLockManager;
 import com.seizia.chromite.model.admin.sessions.DBAServerSession;
 import com.seizia.chromite.model.admin.sessions.DBAServerSessionManager;
+import com.seizia.chromite.model.exec.DBCSession;
+import com.seizia.chromite.model.exec.jdbc.JDBCSession;
 import com.seizia.chromite.model.impl.admin.locks.LockGraphManager;
 import org.jkiss.utils.CommonUtils;
 
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.LinkedHashMap;
@@ -67,13 +76,21 @@ import java.util.function.Function;
  *     비교하는 화면 쪽 필터로 한다. 그래서 세션의 사용자를 읽는 방법({@link #getSessionUser})을 DB마다 둔다.</li>
  *     <li>잠금 관리자는 데이터 소스 어댑터로 제공되지 않아(SWT 잠금 편집기도 직접 만든다) 여기서 만든다.
  *     SQL Server와 MySQL/MariaDB는 DBeaver에 없어 이 번들의 관리자({@link SQLServerLockManager}, {@link MySQLLockManager})를 쓴다.</li>
+ *     <li>PostgreSQL(9.6+, 서버 종류 PostgreSQL)과 Oracle(10g+)은 SQL Server와 같은 수준(대기, 막는 세션, 트랜잭션 경과 시간, 객체로 풀린
+ *     잠금 대상, 권한 확인)이 되도록 이 번들의 관리자({@link PostgreActivitySessionManager}, {@link PostgreBlockingLockManager},
+ *     {@link OracleActivitySessionManager}, {@link OracleBlockingLockManager})를 쓴다. PostgreSQL 계열 다른 서버(Greenplum, Redshift 등)와
+ *     그보다 오래된 버전은 {@code pg_blocking_pids}, {@code BLOCKING_SESSION}이 없어 DBeaver 관리자를 그대로 쓴다.</li>
+ *     <li>권한 확인({@link #checkAccess})은 연결마다 첫 작업에서 한 번 한다. 결과({@link ServerAdminAccess})의 안내와 명령 사용 여부는 화면이 쓴다.</li>
  *     <li>그 밖의 DB는 데이터 소스 어댑터의 세션 관리자와 그 관리자가 정한 끝내기 옵션({@code getTerminateOptions})만 쓴다.</li>
  * </ul>
  *
  * 변경 이력:
  * - 2026-11-06 최초 작성: Swing Activity Monitor, 잠금 보기 (docs/chromite/swing-admin-tools.md)
+ * - 2026-11-07 PostgreSQL·Oracle 세션·잠금 관리자를 이 번들의 것으로 바꾸고 권한 확인을 더함 (docs/chromite/swing-admin-tools.md)
  */
 public final class ServerAdminProfile {
+
+    private static final Log log = Log.getLog(ServerAdminProfile.class);
 
     /**
      * A read option of the session manager shown as a check box.
@@ -108,6 +125,15 @@ public final class ServerAdminProfile {
         }
     }
 
+    /**
+     * Reads what the login may do (see {@link ServerAdminAccess}).
+     */
+    @FunctionalInterface
+    private interface AccessChecker {
+        @NotNull
+        ServerAdminAccess check(@NotNull JDBCSession session) throws SQLException;
+    }
+
     @Nullable
     private final DBAServerSessionManager<DBAServerSession> sessionManager;
     private final List<FilterOption> filterOptions = new ArrayList<>();
@@ -117,10 +143,15 @@ public final class ServerAdminProfile {
     @Nullable
     private DBAServerLockManager<DBAServerLock, DBAServerLockItem> lockManager;
     /**
-     * Session ids of a lock for its lock items, for the DBeaver lock managers (PostgreSQL, Oracle).
+     * Session ids of a lock for its lock items, for the DBeaver lock managers (PostgreSQL based servers and PostgreSQL
+     * before 9.6, Oracle before 10g).
      */
     @Nullable
     private Function<DBAServerLock, Map<String, Object>> lockSessionOptions;
+    @Nullable
+    private AccessChecker accessChecker;
+    private volatile ServerAdminAccess access = ServerAdminAccess.FULL;
+    private volatile boolean accessChecked;
 
     @SuppressWarnings("unchecked")
     private ServerAdminProfile(@Nullable DBAServerSessionManager<?> sessionManager) {
@@ -136,7 +167,16 @@ public final class ServerAdminProfile {
         ServerAdminProfile profile;
         if (dataSource instanceof PostgreDataSource postgreDataSource) {
             // PostgreSessionEditor, PostgreLockEditor
-            profile = new ServerAdminProfile(DBUtils.getAdapter(DBAServerSessionManager.class, dataSource));
+            // pg_blocking_pids and the wait columns of pg_stat_activity: PostgreSQL 9.6+, not the PostgreSQL based servers
+            boolean blockingPids = postgreDataSource.getServerType() instanceof PostgreServerPostgreSQL
+                && postgreDataSource.isServerVersionAtLeast(9, 6);
+            if (blockingPids) {
+                PostgreActivitySessionManager sessionManager = new PostgreActivitySessionManager(postgreDataSource);
+                profile = new ServerAdminProfile(sessionManager);
+                profile.accessChecker = sessionManager::checkAccess;
+            } else {
+                profile = new ServerAdminProfile(DBUtils.getAdapter(DBAServerSessionManager.class, dataSource));
+            }
             profile.filterOptions.add(new FilterOption(PostgreSessionManager.OPTION_SHOW_IDLE,
                 ServerAdminMessages.filter_show_idle, ServerAdminMessages.filter_show_idle_tip, true));
             profile.sessionActions.add(new SessionAction(ServerAdminMessages.action_terminate,
@@ -144,14 +184,18 @@ public final class ServerAdminProfile {
             profile.sessionActions.add(new SessionAction(ServerAdminMessages.action_cancel_query,
                 ServerAdminMessages.action_cancel_query_tip, Map.of(PostgreSessionManager.OPTION_QUERY_CANCEL, true), true, false, null));
             profile.sessionUserReader = session -> session instanceof PostgreSession postgreSession ? postgreSession.getUser() : null;
-            profile.lockManager = (DBAServerLockManager) new PostgreLockManager(postgreDataSource);
-            profile.lockSessionOptions = lock -> {
-                PostgreLock postgreLock = (PostgreLock) lock;
-                Map<String, Object> options = new LinkedHashMap<>();
-                options.put(PostgreLockManager.pidHold, postgreLock.getHold_pid());
-                options.put(PostgreLockManager.pidWait, postgreLock.getWait_pid());
-                return options;
-            };
+            if (blockingPids) {
+                profile.lockManager = (DBAServerLockManager) new PostgreBlockingLockManager(postgreDataSource);
+            } else {
+                profile.lockManager = (DBAServerLockManager) new PostgreLockManager(postgreDataSource);
+                profile.lockSessionOptions = lock -> {
+                    PostgreLock postgreLock = (PostgreLock) lock;
+                    Map<String, Object> options = new LinkedHashMap<>();
+                    options.put(PostgreLockManager.pidHold, postgreLock.getHold_pid());
+                    options.put(PostgreLockManager.pidWait, postgreLock.getWait_pid());
+                    return options;
+                };
+            }
         } else if (dataSource instanceof SQLServerDataSource sqlServerDataSource) {
             // SQLServerSessionEditor; DBeaver has no SQL Server lock editor
             profile = new ServerAdminProfile(new SQLServerSessionManager(sqlServerDataSource));
@@ -178,7 +222,24 @@ public final class ServerAdminProfile {
             profile.lockManager = (DBAServerLockManager) new MySQLLockManager(mySQLDataSource);
         } else if (dataSource instanceof OracleDataSource oracleDataSource) {
             // OracleSessionEditor, OracleLockEditor
-            profile = new ServerAdminProfile(new OracleServerSessionManager(oracleDataSource));
+            // V$SESSION.BLOCKING_SESSION and SQL_ID: Oracle 10g+
+            if (oracleDataSource.isAtLeastV10()) {
+                OracleActivitySessionManager sessionManager = new OracleActivitySessionManager(oracleDataSource);
+                OracleBlockingLockManager lockManager = new OracleBlockingLockManager(oracleDataSource);
+                profile = new ServerAdminProfile(sessionManager);
+                profile.lockManager = (DBAServerLockManager) lockManager;
+                profile.accessChecker = session -> sessionManager.checkAccess(session, lockManager);
+            } else {
+                profile = new ServerAdminProfile(new OracleServerSessionManager(oracleDataSource));
+                profile.lockManager = (DBAServerLockManager) new OracleLockManager(oracleDataSource);
+                profile.lockSessionOptions = lock -> {
+                    OracleLock oracleLock = (OracleLock) lock;
+                    Map<String, Object> options = new LinkedHashMap<>();
+                    options.put(OracleLockManager.sidHold, oracleLock.getHold_sid());
+                    options.put(OracleLockManager.sidWait, oracleLock.getWait_sid());
+                    return options;
+                };
+            }
             profile.filterOptions.add(new FilterOption(OracleServerSessionManager.OPTION_SHOW_BACKGROUND,
                 ServerAdminMessages.filter_show_background, ServerAdminMessages.filter_show_background_tip, false));
             profile.filterOptions.add(new FilterOption(OracleServerSessionManager.OPTION_SHOW_INACTIVE,
@@ -189,14 +250,6 @@ public final class ServerAdminProfile {
             profile.sessionActions.add(new SessionAction(ServerAdminMessages.action_disconnect_session,
                 ServerAdminMessages.action_disconnect_session_tip, Map.of(), false, false, OracleServerSessionManager.PROP_IMMEDIATE));
             profile.sessionUserReader = session -> session instanceof OracleServerSession oracleSession ? oracleSession.getUser() : null;
-            profile.lockManager = (DBAServerLockManager) new OracleLockManager(oracleDataSource);
-            profile.lockSessionOptions = lock -> {
-                OracleLock oracleLock = (OracleLock) lock;
-                Map<String, Object> options = new LinkedHashMap<>();
-                options.put(OracleLockManager.sidHold, oracleLock.getHold_sid());
-                options.put(OracleLockManager.sidWait, oracleLock.getWait_sid());
-                return options;
-            };
         } else {
             // Other databases: the session manager adapter and its own terminate options
             DBAServerSessionManager<?> manager = DBUtils.getAdapter(DBAServerSessionManager.class, dataSource);
@@ -240,6 +293,32 @@ public final class ServerAdminProfile {
     @Nullable
     public String getSessionUser(@NotNull DBAServerSession session) {
         return sessionUserReader == null ? null : sessionUserReader.apply(session);
+    }
+
+    /**
+     * Checks once what the login may do (the first task of a connection runs it). A failed check leaves everything
+     * allowed: the server then reports what it refuses.
+     */
+    public void checkAccess(@NotNull DBCSession session) {
+        if (accessChecked) {
+            return;
+        }
+        accessChecked = true;
+        if (accessChecker != null && session instanceof JDBCSession jdbcSession) {
+            try {
+                access = accessChecker.check(jdbcSession);
+            } catch (SQLException e) {
+                log.debug("Error checking the permissions of the login", e);
+            }
+        }
+    }
+
+    /**
+     * What the login may do: everything until {@link #checkAccess} has run, and for databases without a check.
+     */
+    @NotNull
+    public ServerAdminAccess getAccess() {
+        return access;
     }
 
     /**
