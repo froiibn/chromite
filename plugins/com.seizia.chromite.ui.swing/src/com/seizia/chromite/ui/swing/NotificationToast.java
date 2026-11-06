@@ -41,6 +41,8 @@ import java.util.List;
  *
  * 변경 이력:
  * - 2026-11-06 B단계: 최초 작성 (docs/chromite/swing-frontend.md "구현 현황 — B단계")
+ * - 2026-11-06 새 토스트가 창 높이만큼 크게 그려지던 문제: 줄 바꿈 글 상자의 너비가 정해지기 전에 선호 높이를 재던 것을
+ *   토스트를 먼저 배치한 뒤 재도록 고침 (docs/chromite/swing-frontend.md)
  */
 final class NotificationToast extends JPanel {
 
@@ -193,7 +195,11 @@ final class NotificationToast extends JPanel {
         int bottom = layeredPane.getHeight() - MARGIN - getStatusBarHeight(rootPane);
         for (int i = toasts.size() - 1; i >= 0; i--) {
             NotificationToast toast = toasts.get(i);
-            toast.setSize(WIDTH, Integer.MAX_VALUE);
+            // The wrapped message's preferred height follows its current width: lay the toast out at its width first.
+            // A new toast has never been laid out, and a message area without a width wraps after every few characters
+            // (a toast almost as tall as the window).
+            toast.setSize(WIDTH, Short.MAX_VALUE);
+            toast.validate();
             Dimension size = toast.getPreferredSize();
             toast.setBounds(layeredPane.getWidth() - WIDTH - MARGIN, bottom - size.height, WIDTH, size.height);
             toast.validate();

@@ -1701,3 +1701,5 @@ Windows 11, 화면 배율 150%, JBR 25, 작업 공간 사본 `D:\Tools\_smoke\sw
 - 2026-11-06 테이블 디자이너: Object Explorer의 Design·New Table…, 열·키·외래 키·인덱스 편집과 변경 스크립트 미리 보기·저장, 다른 곳에서 추가·새로 읽은 객체 노드를 트리에 반영. [swing-table-designer.md](swing-table-designer.md) 참고.
 - 2026-11-06 Query Library: 왼쪽 도구 창(Ctrl+Alt+T)에서 쿼리를 트리로 관리·실행, 매개변수 바인딩, 쿼리 창 확장 지점(`SqlEditorExtension`)과 실행 엔진의 네이티브 바인딩 지점.
   [swing-query-library.md](swing-query-library.md).
+- 2026-11-06 알림(`NotificationToast`): 메시지가 있는 새 알림이 창 높이만큼 크게 그려지던 문제. `layoutToasts`가 한 번도 배치되지 않은 토스트의
+  선호 높이를 재어 줄바꿈 글 상자가 너비 없이 줄을 나눴다. 토스트를 그 너비로 먼저 배치(`validate`)한 뒤 높이를 잰다.

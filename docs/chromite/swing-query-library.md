@@ -342,9 +342,9 @@ Next run(남은 시간), Last run, Last status. Run Now(바로 한 번), History
 - 파일 시스템 감시에 의한 자동 새로 고침(지금은 Refresh).
 - 트리 안에서 바로 이름 바꾸기(지금은 이름 입력 대화상자).
 - 예약 실행: 한 쿼리의 여러 서버를 차례로 실행한다(병렬 아님). 예약 실행마다 연결을 새로 열고 닫는다(자주 도는 예약이 많으면 연결 풀이 필요할 수 있음).
-- 범위 밖에서 발견한 문제(고치지 않음): 기존 `NotificationToast`가 메시지가 있는 새 알림을 창 높이만큼 크게 그린다.
-  `layoutToasts`가 `setSize(WIDTH, Integer.MAX_VALUE)` 직후 `getPreferredSize()`를 부르는데, 아직 배치되지 않은 줄바꿈 `JTextArea`는 폭 0으로 계산되어
-  높이가 커지는 것으로 보인다(새로 추가된 알림만 크고, 이미 배치된 알림은 정상). 예약 알림이 이 컴포넌트를 쓰므로 함께 보인다.
+- 범위 밖에서 발견한 문제: 기존 `NotificationToast`가 메시지가 있는 새 알림을 창 높이만큼 크게 그렸다. `layoutToasts`가 토스트를
+  배치하기 전에 `getPreferredSize()`를 불러 줄바꿈 `JTextArea`가 폭 없이 높이를 계산했다. 2026-11-06에 토스트를 먼저 배치한 뒤 재도록 고쳤다
+  ([swing-frontend.md](swing-frontend.md) 변경 이력).
 
 ## 확인 (2026-11-06)
 
