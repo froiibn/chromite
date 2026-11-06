@@ -1,6 +1,7 @@
 /*
  * DBeaver - Universal Database Manager
  * Copyright (C) 2010-2026 DBeaver Corp and others
+ * Modifications Copyright (C) 2026 Chromite contributors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -42,6 +43,7 @@ import org.jkiss.dbeaver.model.struct.*;
 import org.jkiss.dbeaver.model.struct.rdb.DBSForeignKeyModifyRule;
 import org.jkiss.dbeaver.model.struct.rdb.DBSIndexType;
 import org.jkiss.dbeaver.model.struct.rdb.DBSProcedureContainer;
+import org.jkiss.dbeaver.model.struct.rdb.DBSProcedureType;
 import org.jkiss.dbeaver.model.struct.rdb.DBSSchema;
 import org.jkiss.utils.CommonUtils;
 
@@ -54,6 +56,13 @@ import java.util.Map;
 
 /**
 * SQL Server schema
+*
+* 설계: 저장 프로시저와 함수는 한 캐시(ProcedureCache)와 한 쿼리로 읽고, 탐색기 폴더용으로만
+* getProceduresOnly()/getFunctionsOnly()가 종류별로 걸러 준다(Oracle·generic 드라이버와 같은 방식).
+* getProcedures()/getProcedure(name)은 둘 다 돌려줘야 SQL 자동 완성과 이름 조회가 함수를 찾는다.
+*
+* 변경 이력:
+* - 2026-11-06 탐색기에서 함수를 별도 "Functions" 폴더로 분리하고, CLR 함수(FS, FT)도 읽도록 함
 */
 public class SQLServerSchema implements DBSSchema, DBPSaveableObject, DBPQualifiedObject, DBPRefreshableObject, DBPSystemObject, SQLServerObject, DBSProcedureContainer, DBSObjectWithScript, DBPObjectStatisticsCollector {
 
@@ -910,6 +919,30 @@ public class SQLServerSchema implements DBSSchema, DBPSaveableObject, DBPQualifi
         return procedureCache.getObject(monitor, this, name);
     }
 
+    /**
+     * Stored procedures (P, PC, X) for the navigator "Procedures" folder.
+     * getProcedures() keeps returning functions too, because SQL completion, name lookup and
+     * DBSProcedureContainer callers must see both kinds.
+     */
+    @NotNull
+    @Association
+    public List<SQLServerProcedure> getProceduresOnly(@NotNull DBRProgressMonitor monitor) throws DBException {
+        return getProcedures(monitor).stream()
+            .filter(proc -> proc.getProcedureType() == DBSProcedureType.PROCEDURE)
+            .toList();
+    }
+
+    /**
+     * Functions (FN, IF, TF, FS, FT) for the navigator "Functions" folder.
+     */
+    @NotNull
+    @Association
+    public List<SQLServerProcedure> getFunctionsOnly(@NotNull DBRProgressMonitor monitor) throws DBException {
+        return getProcedures(monitor).stream()
+            .filter(proc -> proc.getProcedureType() == DBSProcedureType.FUNCTION)
+            .toList();
+    }
+
     static class ProcedureCache extends JDBCStructLookupCache<SQLServerSchema, SQLServerProcedure, SQLServerProcedureParameter> {
 
         public ProcedureCache() {
@@ -922,7 +955,7 @@ public class SQLServerSchema implements DBSSchema, DBPSaveableObject, DBPQualifi
             String sql = "SELECT p.*,ep.value as description" +
                 "\nFROM " + SQLServerUtils.getSystemTableName(schema.getDatabase(), "all_objects") + " p" +
                 "\nLEFT OUTER JOIN " + SQLServerUtils.getExtendedPropsTableName(schema.getDatabase()) + " ep ON ep.class=" + SQLServerObjectClass.OBJECT_OR_COLUMN.getClassId() + " AND ep.major_id=p.object_id AND ep.minor_id=0 AND ep.name='" + SQLServerConstants.PROP_MS_DESCRIPTION + "'" +
-                "\nWHERE p.type IN ('P','PC','X','TF','FN','IF') AND p.schema_id=?" +
+                "\nWHERE p.type IN ('P','PC','X','TF','FN','IF','FS','FT') AND p.schema_id=?" +
                 (object != null || objectName != null ? " AND p.name=?" : "") +
                 "\nORDER BY p.name";
 
@@ -944,7 +977,7 @@ public class SQLServerSchema implements DBSSchema, DBPSaveableObject, DBPQualifi
             sql.append("SELECT p.name as proc_name,pp.* FROM \n")
                 .append(SQLServerUtils.getSystemTableName(schema.getDatabase(), "all_objects")).append(" p, ")
                 .append(SQLServerUtils.getSystemTableName(schema.getDatabase(), "all_parameters")).append(" pp\n")
-                .append("\nWHERE p.type IN ('P','PC','X','TF','FN','IF') AND p.object_id = pp.object_id AND ");
+                .append("\nWHERE p.type IN ('P','PC','X','TF','FN','IF','FS','FT') AND p.object_id = pp.object_id AND ");
             if (forObject == null) {
                 sql.append("p.schema_id = ?");
             } else {
