@@ -34,6 +34,15 @@
             class="com.seizia.chromite.model.ai.engine.ollama.OllamaCompletionEngine"
             properties="com.seizia.chromite.model.ai.engine.ollama.OllamaProperties"
             supportsFunctions="true"/>
+        <!-- Claude: Messages API with tool use (docs/chromite/ai-agent.md "엔진") -->
+        <completionEngine
+            id="anthropic"
+            label="Anthropic"
+            icon="icons/ai.svg"
+            class="com.seizia.chromite.model.ai.engine.anthropic.AnthropicCompletionEngine"
+            properties="com.seizia.chromite.model.ai.engine.anthropic.AnthropicProperties"
+            promoted="true"
+            supportsFunctions="true"/>
     </extension>
 
     <extension point="com.seizia.chromite.ai.assistant">
