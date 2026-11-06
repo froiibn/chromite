@@ -1500,6 +1500,7 @@ Swing 제품에는 그 번들이 없다. 그래서 범용 칸(Login, Password)�
 | `ToolWindow` | 기본 크기로 되돌리기(`reset`) |
 | `SqlEditorPanel`, `DdlViewerPanel` | 편집기 찾기 키, 상태 줄 `QueryStatusLine`, 탭 도구 설명(전체 경로, 연결·서버) |
 | `QueryStatusLine`(새 파일) | SSMS 쿼리 상태 줄: 상태 아이콘, 문구, 서버, 사용자, DB/스키마, 시간, 행 수 |
+| `ObjectExplorerPanel` | 트리에 초점이 있을 때 F5 = 새로 고침 |
 
 ### 결과 그리드 머리글이 잘려 보이던 것 (근본 원인)
 
@@ -1534,6 +1535,11 @@ Swing 제품에는 그 번들이 없다. 그래서 범용 칸(Login, Password)�
 - 닫기 단추(×)는 선택한 탭과 마우스를 올린 탭에만 그린다(`IslandTabbedPaneUI.paintTabCloseButton`). 단추 자리는 모든 탭에 남겨 두어 마우스를 움직여도 탭 폭이 바뀌지 않는다.
 - 가운데 단추로 누르면 닫는다(닫을 수 있는 탭만, 저장 확인은 닫기 단추와 같음).
 - 도구 설명: 전체 파일 경로(저장 안 한 쿼리는 `SQLQueryN.sql (not saved)`)와 연결 이름·위치(URL 또는 파일)·DB 제품 버전.
+
+### F5 (SSMS)
+
+트리에 초점이 있으면 F5 = 새로 고침, 그 밖에서는 F5 = 실행이다. 트리의 키 바인딩(초점 컴포넌트)이 메인 창 Query 메뉴의 F5 단축키(창 전체)보다 먼저 처리되는 Swing 순서를 쓴다.
+Object Explorer 오른쪽 클릭 메뉴의 Refresh에 F5를 보인다.
 
 ### 쿼리 상태 줄 (SSMS)
 

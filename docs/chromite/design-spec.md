@@ -592,6 +592,7 @@ P0 전체와 P1 일부를 `com.seizia.chromite.ui.swing`에 적용했다. 동작
 | 주 메뉴 | File, Edit, View, Query, Tools, Window, Help | 그대로. Edit(실행 취소·다시 실행·잘라내기·복사·붙여넣기·모두 선택·찾기·바꾸기), Tools(Options), Window(Reset Window Layout, 탭 목록) | 완료 |
 | 메뉴 팝업 | 항목 24, 선택 arc 8·좌우 4, 모서리 8 | 항목 24(`@menuItemMargin` 3,8,4,8; Inter 13 한 줄이 17이라 4,8,4,8이면 25), 나머지는 디자인 적용 때 값 | 완료 |
 | 탭 닫기 단추 | 활성·마우스 올린 탭에만 | 그대로, 가운데 단추로 닫기, 도구 설명에 경로·연결 | 완료 |
+| F5 | Object Explorer = 새로 고침, 쿼리 창 = 실행 | 트리 초점에서 F5로 폴더를 다시 읽음, 쿼리는 실행되지 않음 | 완료 |
 | 쿼리 상태 줄 | SSMS 내용 + 상태 아이콘, 결과 아래, 높이 28 | 상태 아이콘·서버·사용자·DB·시간·행, Results 카드 아래쪽(숨기면 편집기 아래), 28 + 1px 선. 바탕은 카드 바탕(Islands에서는 쿼리 창이 카드라 `bg.chrome` 대신) | 완료 |
 
 ### P1·P2 중 함께 적용한 것
