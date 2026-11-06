@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?eclipse version="3.2"?>
+<plugin>
+    <extension point="org.eclipse.ui.importWizards">
+        <category id="com.seizia.chromite.config.migration.third-party" name="%category.com.seizia.chromite.config.migration.third-party.name"/>
+        <wizard
+            category="com.seizia.chromite.config.migration.third-party"
+            class="com.seizia.chromite.ui.config.migration.wizards.squirrel.ConfigImportWizardSquirrel"
+            id="com.seizia.chromite.config.migration.squirrel"
+            name="SQL Squirrel"
+            icon="icons/squirrel.png">
+            <description>SQL Squirrel Client</description>
+        </wizard>
+        <wizard
+            category="com.seizia.chromite.config.migration.third-party"
+            class="com.seizia.chromite.ui.config.migration.wizards.dbvis.ConfigImportWizardDbvis"
+            id="com.seizia.chromite.config.migration.dbvis"
+            name="DBVisualizer"
+            icon="icons/dbvis.png">
+            <description>DBVisualizer</description>
+        </wizard>
+        <wizard
+            category="com.seizia.chromite.config.migration.third-party"
+            class="com.seizia.chromite.ui.config.migration.wizards.navicat.ConfigImportWizardNavicat"
+            id="com.seizia.chromite.config.migration.navicat"
+            name="Navicat"
+            icon="icons/navicat.png">
+            <description>Navicat</description>
+        </wizard>
+        <wizard
+            category="com.seizia.chromite.config.migration.third-party"
+            class="com.seizia.chromite.ui.config.migration.wizards.custom.ConfigImportWizardCustom"
+            id="com.seizia.chromite.config.migration.custom"
+            name="Custom"
+            icon="icons/custom.png">
+            <description>Custom connections format (CSV, XML)</description>
+        </wizard>
+        <wizard
+            category="com.seizia.chromite.config.migration.third-party"
+            class="com.seizia.chromite.ui.config.migration.wizards.sqlworkbench.ConfigImportWizardSqlWorkbench"
+            id="com.seizia.chromite.config.migration.sqlworkbench"
+            name="MySQL Workbench"
+            icon="icons/mysql_workbench.png">
+            <description>MySQL Workbench</description>
+        </wizard>
+        <wizard
+            category="com.seizia.chromite.config.migration.third-party"
+            class="com.seizia.chromite.ui.config.migration.wizards.datagrip.ConfigImportWizardDataGrip"
+            id="com.seizia.chromite.config.migration.datagrip"
+            name="DataGrip and JetBrains IDEs"
+            icon="icons/idea.png">
+            <description>DataGrip and other JetBrains products</description>
+        </wizard>
+
+        <wizard
+            category="com.seizia.chromite.config.migration.third-party"
+            class="com.seizia.chromite.ui.config.migration.wizards.pgadmin.ConfigImportWizardPgAdmin"
+            id="com.seizia.chromite.config.migration.pgadmin"
+            name="pgAdmin 4"
+            icon="icons/pg_admin.svg">
+            <description>PgAdmin 4</description>
+        </wizard>
+
+    </extension>
+
+
+</plugin>

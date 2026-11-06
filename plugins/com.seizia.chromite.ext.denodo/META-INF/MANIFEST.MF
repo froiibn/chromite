@@ -1,0 +1,15 @@
+Manifest-Version: 1.0
+Bundle-Name: Chromite Denodo Model
+Bundle-SymbolicName: com.seizia.chromite.ext.denodo;singleton:=true
+Bundle-Version: 1.0.137.qualifier
+Bundle-Release-Date: 20261116
+Bundle-Vendor: Chromite contributors
+Bundle-RequiredExecutionEnvironment: JavaSE-21
+Bundle-ActivationPolicy: lazy
+Require-Bundle: com.seizia.chromite.model,
+ com.seizia.chromite.model.sql;visibility:=reexport,
+ com.seizia.chromite.ext.generic;visibility:=reexport
+Export-Package: com.seizia.chromite.ext.denodo,
+ com.seizia.chromite.ext.denodo.model
+Bundle-Localization: OSGI-INF/l10n/bundle
+Automatic-Module-Name: com.seizia.chromite.ext.denodo

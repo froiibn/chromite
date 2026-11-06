@@ -18,7 +18,7 @@ package com.seizia.chromite.ui.swing;
 
 import com.formdev.flatlaf.util.FontUtils;
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.Log;
+import com.seizia.chromite.Log;
 
 import java.net.URL;
 

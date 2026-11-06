@@ -1,0 +1,25 @@
+Manifest-Version: 1.0
+Bundle-ManifestVersion: 2
+Bundle-Name: Chromite SQL Server Model
+Bundle-SymbolicName: com.seizia.chromite.ext.mssql;singleton:=true
+Bundle-Version: 1.0.285.qualifier
+Bundle-Release-Date: 20261116
+Bundle-Activator: com.seizia.chromite.ext.mssql.internal.SQLServerActivator
+Require-Bundle: com.seizia.chromite.model;visibility:=reexport,
+ com.seizia.chromite.model.jdbc;visibility:=reexport,
+ com.seizia.chromite.model.sql,
+ com.seizia.chromite.ext.generic,
+ com.seizia.chromite.model.lsm,
+ com.seizia.chromite.registry
+Export-Package: com.seizia.chromite.ext.mssql,
+ com.seizia.chromite.ext.mssql.auth,
+ com.seizia.chromite.ext.mssql.edit.generic,
+ com.seizia.chromite.ext.mssql.model,
+ com.seizia.chromite.ext.mssql.model.data,
+ com.seizia.chromite.ext.mssql.model.generic,
+ com.seizia.chromite.ext.mssql.model.session
+Bundle-ActivationPolicy: lazy
+Bundle-RequiredExecutionEnvironment: JavaSE-21
+Bundle-Vendor: Chromite contributors
+Bundle-Localization: OSGI-INF/l10n/bundle
+Automatic-Module-Name: com.seizia.chromite.ext.mssql

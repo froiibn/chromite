@@ -1,0 +1,17 @@
+Manifest-Version: 1.0
+Bundle-ManifestVersion: 2
+Bundle-Name: Chromite Vertica UI
+Bundle-SymbolicName: com.seizia.chromite.ext.vertica.ui;singleton:=true
+Bundle-Version: 1.0.182.qualifier
+Bundle-Release-Date: 20261116
+Require-Bundle: com.seizia.chromite.ui,
+ com.seizia.chromite.ui.editors.base,
+ com.seizia.chromite.ui.editors.connection,
+ com.seizia.chromite.ext.vertica,
+ com.seizia.chromite.ext.generic,
+ com.seizia.chromite.ext.generic.ui
+Bundle-ActivationPolicy: lazy
+Bundle-RequiredExecutionEnvironment: JavaSE-21
+Bundle-Vendor: Chromite contributors
+Automatic-Module-Name: com.seizia.chromite.ext.vertica.ui
+Import-Package: com.seizia.chromite.ext.vertica.model

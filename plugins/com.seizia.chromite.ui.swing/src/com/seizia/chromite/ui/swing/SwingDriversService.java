@@ -20,15 +20,15 @@ import com.seizia.chromite.ui.swing.internal.ConnectionMessages;
 import org.eclipse.osgi.util.NLS;
 import org.jkiss.code.NotNull;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.connection.DBPDriver;
-import org.jkiss.dbeaver.model.connection.DBPDriverDependencies;
-import org.jkiss.dbeaver.model.connection.DBPDriverLibrary;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.registry.driver.DriverDescriptor;
-import org.jkiss.dbeaver.registry.driver.DriverUtils;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.runtime.ui.UIServiceDrivers;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.connection.DBPDriver;
+import com.seizia.chromite.model.connection.DBPDriverDependencies;
+import com.seizia.chromite.model.connection.DBPDriverLibrary;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.registry.driver.DriverDescriptor;
+import com.seizia.chromite.registry.driver.DriverUtils;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.runtime.ui.UIServiceDrivers;
 
 import javax.swing.*;
 import java.awt.KeyboardFocusManager;
@@ -43,9 +43,9 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * 드라이버 파일이 없을 때 내려받을지 묻고, 진행 대화상자에서 내려받는다({@link UIServiceDrivers}).
  *
  * 설계: 드라이버를 처음 쓸 때(연결, 연결 시험, 드라이버 속성 읽기) {@code DriverLoaderDescriptor.downloadDriverLibraries}가
- * 이 서비스를 부른다. SWT 제품은 {@code org.jkiss.dbeaver.core}의 {@code UIServiceDriversImpl}({@code DriverDownloadDialog})이
+ * 이 서비스를 부른다. SWT 제품은 {@code com.seizia.chromite.core}의 {@code UIServiceDriversImpl}({@code DriverDownloadDialog})이
  * 이 일을 하는데 Swing 제품에는 그 번들이 없어서, 서비스가 없으면 모델이 묻지 않고 바로 내려받았다.
- * 그래서 같은 서비스를 {@code plugin.xml}의 {@code org.jkiss.dbeaver.service} 확장으로 등록한다.
+ * 그래서 같은 서비스를 {@code plugin.xml}의 {@code com.seizia.chromite.service} 확장으로 등록한다.
  * <ul>
  *     <li>확인: 없는 라이브러리 이름을 보여 주고 Download / Cancel을 묻는다. Cancel이면 {@code false}를 돌려주고,
  *     모델은 드라이버 클래스를 찾지 못했다는 오류를 낸다(SWT에서 다운로드를 취소했을 때와 같음).</li>

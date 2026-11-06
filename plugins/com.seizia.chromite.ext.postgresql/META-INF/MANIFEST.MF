@@ -1,0 +1,37 @@
+Manifest-Version: 1.0
+Bundle-ManifestVersion: 2
+Bundle-Name: Chromite PostgreSQL Model
+Bundle-SymbolicName: com.seizia.chromite.ext.postgresql;singleton:=true
+Bundle-Version: 2.1.264.qualifier
+Bundle-Release-Date: 20261116
+Require-Bundle: com.seizia.chromite.model.sql,
+ com.seizia.chromite.model.sql.jdbc,
+ com.seizia.chromite.ext.generic,
+ com.seizia.chromite.data.gis;visibility:=reexport,
+ com.seizia.chromite.registry,
+ com.seizia.chromite.tasks.native;visibility:=reexport,
+ com.sun.jna,
+ com.sun.jna.platform
+Bundle-ActivationPolicy: lazy
+Bundle-RequiredExecutionEnvironment: JavaSE-21
+Bundle-Vendor: Chromite contributors
+Export-Package: com.seizia.chromite.ext.postgresql,
+ com.seizia.chromite.ext.postgresql.edit,
+ com.seizia.chromite.ext.postgresql.backup,
+ com.seizia.chromite.ext.postgresql.model,
+ com.seizia.chromite.ext.postgresql.model.data,
+ com.seizia.chromite.ext.postgresql.model.fdw,
+ com.seizia.chromite.ext.postgresql.model.impls,
+ com.seizia.chromite.ext.postgresql.model.jdbc,
+ com.seizia.chromite.ext.postgresql.model.lock,
+ com.seizia.chromite.ext.postgresql.model.net,
+ com.seizia.chromite.ext.postgresql.model.plan,
+ com.seizia.chromite.ext.postgresql.model.session,
+ com.seizia.chromite.ext.postgresql.model.impls.cockroach,
+ com.seizia.chromite.ext.postgresql.model.impls.materialize,
+ com.seizia.chromite.ext.postgresql.model.impls.redshift,
+ com.seizia.chromite.ext.postgresql.model.impls.yellowbrick,
+ com.seizia.chromite.ext.postgresql.tasks
+Bundle-Localization: OSGI-INF/l10n/bundle
+Automatic-Module-Name: com.seizia.chromite.ext.postgresql
+

@@ -1,0 +1,74 @@
+/*
+ * DBeaver - Universal Database Manager
+ * Copyright (C) 2010-2026 DBeaver Corp and others
+ * Modifications Copyright (C) 2026 Chromite contributors
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package com.seizia.chromite.ext.duckdb.model.data;
+
+import org.jkiss.code.NotNull;
+import org.jkiss.code.Nullable;
+import com.seizia.chromite.data.gis.handlers.GISGeometryValueHandler;
+import com.seizia.chromite.model.exec.DBCException;
+import com.seizia.chromite.model.exec.DBCSession;
+import com.seizia.chromite.model.exec.jdbc.JDBCResultSet;
+import com.seizia.chromite.model.struct.DBSTypedObject;
+import org.locationtech.jts.geom.Geometry;
+import org.locationtech.jts.geom.GeometryFactory;
+import org.locationtech.jts.geom.PrecisionModel;
+import org.osgi.framework.Version;
+
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
+import java.sql.SQLException;
+
+public class DuckDBGeometryValueHandler extends GISGeometryValueHandler {
+    public static final DuckDBGeometryValueHandler INSTANCE = new DuckDBGeometryValueHandler();
+    private static final Version STANDARD_WKB_STORAGE_VERSION = new Version(1, 5, 0);
+
+    @Override
+    protected Object fetchColumnValue(
+        @NotNull DBCSession session,
+        @NotNull JDBCResultSet resultSet,
+        @NotNull DBSTypedObject type,
+        int index
+    ) throws DBCException, SQLException {
+        try {
+            return getValueFromObject(session, type, resultSet.getBytes(index), false, false);
+        } catch (Exception e) {
+            return getValueFromObject(session, type, resultSet.getString(index), false, false);
+        }
+    }
+
+    @NotNull
+    @Override
+    protected Geometry convertGeometryFromBinaryFormat(@Nullable DBCSession session, @NotNull byte[] object) throws DBCException {
+        if (session != null && isStandardWkbStorage(session)) {
+            return super.convertGeometryFromBinaryFormat(session, object);
+        }
+
+        try {
+            var buffer = ByteBuffer.wrap(object).order(ByteOrder.LITTLE_ENDIAN);
+            var factory = new GeometryFactory(new PrecisionModel());
+            return DuckDBGeometryConverter.deserialize(buffer, factory);
+        } catch (Exception e) {
+            return super.convertGeometryFromBinaryFormat(session, object);
+        }
+    }
+
+    private boolean isStandardWkbStorage(@NotNull DBCSession session) {
+        Version version = session.getDataSource().getInfo().getDatabaseVersion();
+        return version != null && version.compareTo(STANDARD_WKB_STORAGE_VERSION) >= 0;
+    }
+}

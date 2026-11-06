@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?eclipse version="3.4"?>
+<plugin>
+
+    <!-- Deprecated extension point, must be replaced with tasks UI configurators -->
+    <extension-point id="com.seizia.chromite.tools" name="Tools" schema="schema/com.seizia.chromite.tools.exsd"/>
+    <extension-point id="com.seizia.chromite.task.ui" name="Tasks UI" schema="schema/com.seizia.chromite.task.ui.exsd"/>
+
+    <extension point="com.seizia.chromite.clearHistoryHandler">
+        <handler
+                id="taskRunHistory"
+                name="%handler.taskRunHistory.name"
+                description="%handler.taskRunHistory.description"
+                handler="com.seizia.chromite.tasks.ui.handlers.TaskClearHistoryHandler"/>
+    </extension>
+
+    <extension point="com.seizia.chromite.notifications">
+        <notification id="task.execute.success" name="Task execution success" soundEnabled="true"/>
+        <notification id="task.execute.failure" name="Task execution failure" soundEnabled="true"/>
+    </extension>
+
+</plugin>

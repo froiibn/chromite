@@ -1,0 +1,17 @@
+Manifest-Version: 1.0
+Bundle-ManifestVersion: 2
+Bundle-Name: Chromite Cloudflare D1 Model
+Bundle-SymbolicName: com.seizia.chromite.ext.cloudflare.d1;singleton:=true
+Bundle-Version: 1.0.0.qualifier
+Bundle-Release-Date: 20261027
+Bundle-Vendor: Chromite contributors
+Bundle-RequiredExecutionEnvironment: JavaSE-21
+Bundle-ActivationPolicy: lazy
+Bundle-Localization: OSGI-INF/l10n/bundle
+Require-Bundle: com.seizia.chromite.ext.sqlite;visibility:=reexport,
+ com.google.gson
+Export-Package: com.seizia.chromite.ext.cloudflare.d1,
+ com.seizia.chromite.ext.cloudflare.d1.auth,
+ com.seizia.chromite.ext.cloudflare.d1.model,
+ com.seizia.chromite.ext.cloudflare.d1.internal;x-internal:=true
+Automatic-Module-Name: com.seizia.chromite.ext.cloudflare.d1

@@ -1,0 +1,145 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?eclipse version="3.2"?>
+
+<plugin>
+    <extension-point id="com.seizia.chromite.pluginService" name="Plugin service" schema="schema/com.seizia.chromite.pluginService.exsd"/>
+
+    <!-- Non UI extensions -->
+    <extension-point id="com.seizia.chromite.objectManager" name="Database object managers" schema="schema/com.seizia.chromite.objectManager.exsd"/>
+    <extension-point id="com.seizia.chromite.mavenRepository" name="Maven repositories config" schema="schema/com.seizia.chromite.mavenRepository.exsd"/>
+    <extension-point id="com.seizia.chromite.dataSourceProvider" name="DataSource provider" schema="schema/com.seizia.chromite.dataSourceProvider.exsd"/>
+    <extension-point id="com.seizia.chromite.dataSourceStorage" name="DataSource configuration storage" schema="schema/com.seizia.chromite.dataSourceStorage.exsd"/>
+    <extension-point id="com.seizia.chromite.dataSourceAuth" name="DataSource authentication model" schema="schema/com.seizia.chromite.dataSourceAuth.exsd"/>
+    <extension-point id="com.seizia.chromite.dataSourceHandler" name="Datasource handler" schema="schema/com.seizia.chromite.dataSourceHandler.exsd"/>
+    <extension-point id="com.seizia.chromite.driverManager" name="Driver related decorations" schema="schema/com.seizia.chromite.driverManager.exsd"/>
+    <extension-point id="com.seizia.chromite.resourceType" name="Resource types" schema="schema/com.seizia.chromite.resourceType.exsd"/>
+    <extension-point id="com.seizia.chromite.networkHandler" name="Network handlers" schema="schema/com.seizia.chromite.networkHandler.exsd"/>
+    <extension-point id="com.seizia.chromite.resources" name="Resources" schema="schema/com.seizia.chromite.resources.exsd"/>
+    <extension-point id="com.seizia.chromite.product.bundles" name="Product bundles" schema="schema/com.seizia.chromite.product.bundles.exsd"/>
+    <extension-point id="com.seizia.chromite.language" name="Languages" schema="schema/com.seizia.chromite.language.exsd"/>
+    <extension-point id="com.seizia.chromite.task" name="Tasks and task types" schema="schema/com.seizia.chromite.task.exsd"/>
+    <extension-point id="com.seizia.chromite.projectImport" name="Project import transformers" schema="schema/com.seizia.chromite.projectImport.exsd"/>
+    <extension-point id="com.seizia.chromite.productFeature" name="Product feature" schema="schema/com.seizia.chromite.productFeature.exsd"/>
+
+    <extension point="com.seizia.chromite.projectImport">
+        <transformer path=".chromite/tasks.json" class="com.seizia.chromite.registry.task.TaskProjectImportTransformer"/>
+    </extension>
+
+    <!-- Language names should be written in their respective languages. Do not localize them -->
+    <extension point="com.seizia.chromite.language">
+        <language code="en" label="English"/>
+        <language code="fr" label="Français"/>
+        <language code="de" label="Deutsch"/>
+        <language code="it" label="Italiano"/>
+        <language code="pl" label="Polski"/>
+        <language code="ja" label="日本語"/>
+        <language code="ko" label="한국어"/>
+        <language code="pt_BR" label="Português (BR)"/>
+        <language code="ro" label="Română"/>
+        <language code="ru" label="Русский"/>
+        <language code="zh" label="简体中文"/>
+        <language code="es" label="Español"/>
+        <language code="tw" label="繁體中文"/>
+        <language code="uk" label="Українська"/>
+        <language code="ar" label="العربية"/>
+    </extension>
+
+    <extension point="com.seizia.chromite.driverManager">
+        <category id="sql" name="%driver.category.sql.name" description="%driver.category.sql.description" icon="#folder_database" rank="4" promoted="true"/>
+        <category id="nosql" name="%driver.category.nosql.name" description="%driver.category.nosql.description" icon="#folder_database" rank="5" promoted="true"/>
+        <category id="analytic" name="%driver.category.analytical.name" description="%driver.category.analytical.description" icon="#folder_database" rank="10" promoted="true"/>
+        <category id="file" name="%driver.category.file.name" description="%driver.category.file.description" icon="#folder_database" rank="11" promoted="true"/>
+        <category id="embedded" name="%driver.category.embedded.name" description="%driver.category.embedded.description" icon="#folder_database" rank="12" promoted="true"/>
+        <category id="timeseries" name="%driver.category.timeseries.name" description="%driver.category.timeseries.description" icon="#folder_database" rank="15" promoted="true"/>
+        <category id="hadoop" name="%driver.category.hadoop.name" description="%driver.category.hadoop.description" icon="#folder_database" rank="20" promoted="true"/>
+        <category id="fulltext" name="%driver.category.fulltext.name" description="%driver.category.fulltext.description" icon="#folder_database" rank="22" promoted="true"/>
+        <category id="graph" name="%driver.category.graph.name" description="%driver.category.graph.description" icon="#folder_database" rank="23" promoted="true"/>
+    </extension>
+
+    <extension point="com.seizia.chromite.networkHandler">
+        <handler
+            type="proxy"
+            id="socks_proxy"
+            codeName="Proxy"
+            prefix="proxy"
+            label="%handler.socks_proxy.label"
+            description="%handler.socks_proxy.description"
+            desktop="true"
+            secured="true"
+            order="3"
+            handlerClass="com.seizia.chromite.model.impl.net.SocksProxyImpl"/>
+    </extension>
+
+    <extension point="com.seizia.chromite.dataSourceProvider">
+        <datasourceOrigin id="local" label="Local configuration" class="com.seizia.chromite.registry.DataSourceOriginProviderLocal"/>
+    </extension>
+
+    <extension point="org.eclipse.core.runtime.adapters">
+        <factory adaptableType="com.seizia.chromite.model.app.DBPWorkspace" class="com.seizia.chromite.registry.NetworkProfileUsageAdapterFactory">
+            <adapter type="com.seizia.chromite.model.net.DBWNetworkProfileUsageProvider"/>
+        </factory>
+    </extension>
+
+    <extension point="com.seizia.chromite.dataSourceAuth">
+        <authModel
+            id="native"
+            label="%auth.native.label"
+            description="%auth.native.description"
+            class="com.seizia.chromite.model.impl.auth.AuthModelDatabaseNative"
+            default="true">
+
+            <propertyGroup label="Database user">
+                <property id="user" label="User" type="string"/>
+                <property id="password" label="Password" type="string" features="password"/>
+            </propertyGroup>
+
+        </authModel>
+        <authModel
+            id="shell_command"
+            label="%auth.shell_command.label"
+            description="%auth.shell_command.description"
+            class="com.seizia.chromite.model.impl.auth.AuthModelDatabaseShellCommand"
+            desktop="true">
+
+            <enabledWhen>
+                <test property="com.seizia.chromite.core.global.hasPreference" value="connection.shellAuthModelEnabled"/>
+            </enabledWhen>
+        </authModel>
+    </extension>
+
+    <extension point="org.eclipse.core.contenttype.contentTypes">
+        <content-type
+                file-extensions="bm"
+                id="com.seizia.chromite.bookmark"
+                name="Database Bookmarks"
+                priority="normal"
+                describer="com.seizia.chromite.ui.resources.bookmarks.BookmarkContentTypeDescriber"/>
+
+        <content-type file-extensions="lnk" id="com.seizia.chromite.shortcut" name="Windows shortcuts" priority="normal">
+            <describer class="org.eclipse.core.runtime.content.BinarySignatureDescriber">
+                <!-- http://msdn.microsoft.com/en-us/library/dd871305%28PROT.10%29.aspx -->
+                <parameter name="signature" value="4C,00,00,00,01,14,02,00,00,00,00,00,C0,00,00,00,00,00,00,46"/>
+                <parameter name="offset" value="0"/>
+            </describer>
+        </content-type>
+    </extension>
+
+    <extension point="com.seizia.chromite.resourceType">
+        <type id="default"/>
+    </extension>
+
+    <extension point="com.seizia.chromite.mavenRepository">
+        <repository id="maven-central" name="%maven.respository.central" url="https://repo1.maven.org/maven2/" order="0"/>
+        <repository id="oss.sonatype.org" snapshot="true" name="%maven.repository.sonatype" url="https://oss.sonatype.org/content/repositories/snapshots/" order="0"/>
+
+        <!-- Non-HTTPS Maven Central is no longer alive. Hooray. -->
+        <!--
+                <repository id="maven-central-unsecure" name="%maven.respository.central.unsecure" url="http://central.maven.org/maven2/" order="99999"/>
+        -->
+    </extension>
+
+    <extension point="com.seizia.chromite.syncUnit">
+        <unit class="com.seizia.chromite.registry.DataSourceSyncUnit"/>
+    </extension>
+
+</plugin>

@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?eclipse version="3.4"?>
+<plugin>
+
+    <extension point="com.seizia.chromite.task.ui">
+        <configurator handler="com.seizia.chromite.model.sql.task.SQLToolExecuteHandler" class="com.seizia.chromite.tasks.ui.sql.SQLToolTaskConfigurator"/>
+    </extension>
+
+</plugin>

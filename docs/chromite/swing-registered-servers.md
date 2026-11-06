@@ -100,7 +100,7 @@ Registered Servers와 Object Explorer의 서버 행이 같은 클래스(`Connect
 - 색 규칙을 한곳으로: 이전에는 Registered Servers가 연결 종류 색만(연결에 정한 색 무시), Object Explorer가 `ConnectionColors`를 썼다. 지금은 둘 다 `ConnectionColors`라 같은 서버가 두 창에서 같은 색이다.
 - 쿼리 창 상태 줄(`QueryStatusLine`)의 띠는 그대로다: 이미 같은 `ConnectionColors`(같은 다크 색)로 상태 줄 띠 전체를 칠하고, 테마를 바꾸면 `updateUI`에서 다시 칠한다(편집기를 다시 붙일 때도 `MainFrame.attachStatusLine` → `updateLookAndFeel`).
 - 연결 색 위의 글자(`ConnectionColors.getTextColor`): 연결에 정한 색은 모델에 다크 값이 없어 다크 테마에서도 밝은 색이고, 그 위의 테마 글자 색(#d1d3d9)은 대비가 1.0:1이라 읽히지 않았다.
-  그래서 테마 글자 색이 바탕과 4.5:1 이상이면 그대로 두고, 아니면 SWT `UIStyles.getContrastColor`(org.jkiss.dbeaver.ui, `UIStyles.java` 159–168행: Rec. 601 luma로 어두운 바탕이면 흰색(다크 테마 192,192,192), 밝은 바탕이면 검정)를 따른다.
+  그래서 테마 글자 색이 바탕과 4.5:1 이상이면 그대로 두고, 아니면 SWT `UIStyles.getContrastColor`(com.seizia.chromite.ui, `UIStyles.java` 159–168행: Rec. 601 luma로 어두운 바탕이면 흰색(다크 테마 192,192,192), 밝은 바탕이면 검정)를 따른다.
   SWT 탐색기도 연결 색 바탕의 글자에 이 함수를 쓴다(`DatabaseNavigatorLabelProvider.java` 173–174행). SWT는 항상 대비 색을 쓰지만 여기서는 읽히지 않을 때만 바꿔 기본 연결 종류 색은 지금 모양 그대로다
   (테마 글자 색 대비: 라이트 Test 18.4, Production 14.9 / 다크 Test 5.1, Production 6.2).
   - 알약: 렌더러가 알약이 있는 라벨만 `ConnectionPill.getTextColor`로 글자 색을 정한다(선택 줄이면 선택 글자 색을 기준으로).

@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?eclipse version="3.2"?>
+
+<plugin>
+
+    <extension point="com.seizia.chromite.generic.meta">
+        <meta id="informix" class="com.seizia.chromite.ext.informix.model.InformixMetaModel" driverClass="com.informix.jdbc.IfxDriver"/>
+    </extension>
+
+</plugin>

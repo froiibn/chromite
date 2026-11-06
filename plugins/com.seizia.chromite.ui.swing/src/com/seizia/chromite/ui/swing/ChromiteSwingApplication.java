@@ -23,18 +23,18 @@ import org.eclipse.osgi.service.datalocation.Location;
 import org.eclipse.osgi.util.NLS;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.LogOutputStream;
-import org.jkiss.dbeaver.ModelPreferences;
-import org.jkiss.dbeaver.model.DBConstants;
-import org.jkiss.dbeaver.model.app.DBPPlatform;
-import org.jkiss.dbeaver.model.preferences.DBPPreferenceStore;
-import org.jkiss.dbeaver.model.rcp.DesktopApplicationImpl;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.runtime.ui.DBPPlatformUI;
-import org.jkiss.dbeaver.utils.GeneralUtils;
-import org.jkiss.dbeaver.utils.PrefUtils;
-import org.jkiss.dbeaver.utils.RuntimeUtils;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.LogOutputStream;
+import com.seizia.chromite.ModelPreferences;
+import com.seizia.chromite.model.DBConstants;
+import com.seizia.chromite.model.app.DBPPlatform;
+import com.seizia.chromite.model.preferences.DBPPreferenceStore;
+import com.seizia.chromite.model.rcp.DesktopApplicationImpl;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.runtime.ui.DBPPlatformUI;
+import com.seizia.chromite.utils.GeneralUtils;
+import com.seizia.chromite.utils.PrefUtils;
+import com.seizia.chromite.utils.RuntimeUtils;
 import org.jkiss.utils.IOUtils;
 import org.jkiss.utils.StandardConstants;
 
@@ -52,8 +52,8 @@ import java.util.concurrent.CountDownLatch;
 /**
  * Chromite Swing 프런트엔드의 Equinox 애플리케이션 진입점.
  *
- * 설계: 헤드리스 앱({@code DBeaverHeadlessApplication})처럼 {@link DesktopApplicationImpl}을 상속해
- * SWT 없이 모델 계층을 띄운다. 작업 공간 잠금과 디버그 로그 처리는 SWT 앱({@code DBeaverApplication})의
+ * 설계: 헤드리스 앱({@code ChromiteHeadlessApplication})처럼 {@link DesktopApplicationImpl}을 상속해
+ * SWT 없이 모델 계층을 띄운다. 작업 공간 잠금과 디버그 로그 처리는 SWT 앱({@code ChromiteApplication})의
  * 핵심 동작만 옮겼다(작업 공간 선택·이전 버전 이전·인스턴스 서버·CLI 명령은 B단계 이후).
  * <ul>
  *     <li>{@link #start}는 Equinox 애플리케이션 스레드에서 플랫폼을 초기화한 뒤, Swing 창은 EDT에서 연다.
@@ -174,7 +174,7 @@ public class ChromiteSwingApplication extends DesktopApplicationImpl {
         } catch (Exception e) {
             log.error("Error locking workspace", e);
         }
-        // Phase B: offer "ignore lock" / workspace switching like DBeaverApplication.setDefaultWorkspacePath
+        // Phase B: offer "ignore lock" / workspace switching like ChromiteApplication.setDefaultWorkspacePath
         showStartupError(
             CoreMessages.app_cant_lock_title,
             NLS.bind(CoreMessages.app_cant_lock_message, workspacePath, GeneralUtils.getProductName()));
@@ -225,12 +225,12 @@ public class ChromiteSwingApplication extends DesktopApplicationImpl {
     }
 
     /**
-     * Copies stdout/stderr (where {@link Log} writes debug messages) to {@code .metadata/dbeaver-debug.log},
+     * Copies stdout/stderr (where {@link Log} writes debug messages) to {@code .metadata/chromite-debug.log},
      * as the SWT application does.
      */
     private void initDebugWriter() {
         // LogOutputStream reads its rotation limits from the main bundle preferences. The SWT product sets these
-        // defaults in DesktopPreferencesInitializer (org.jkiss.dbeaver.core), which the Swing product does not have;
+        // defaults in DesktopPreferencesInitializer (com.seizia.chromite.core), which the Swing product does not have;
         // without them the limits are 0 and the log is rotated away on every write.
         DBPPreferenceStore modelPreferences = ModelPreferences.getPreferences();
         PrefUtils.setDefaultPreferenceValue(modelPreferences, LogOutputStream.LOGS_MAX_FILE_SIZE, LogOutputStream.DEFAULT_MAX_LOG_SIZE);

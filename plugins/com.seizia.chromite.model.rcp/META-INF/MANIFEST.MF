@@ -1,0 +1,25 @@
+Manifest-Version: 1.0
+Bundle-ManifestVersion: 2
+Bundle-Vendor: Chromite contributors
+Bundle-Name: Chromite RCP Model
+Bundle-SymbolicName: com.seizia.chromite.model.rcp;singleton:=true
+Bundle-Version: 1.0.52.qualifier
+Bundle-Release-Date: 20261116
+Bundle-RequiredExecutionEnvironment: JavaSE-21
+Bundle-ActivationPolicy: lazy
+Export-Package: com.seizia.chromite.model.app,
+ com.seizia.chromite.model.fs,
+ com.seizia.chromite.model.fs.nio,
+ com.seizia.chromite.model.navigator,
+ com.seizia.chromite.model.rcp,
+ com.seizia.chromite.registry,
+ com.seizia.chromite.runtime,
+ com.seizia.chromite.utils
+Require-Bundle: org.eclipse.core.expressions,
+ org.eclipse.core.filesystem;visibility:=reexport,
+ com.seizia.chromite.model.nio,
+ org.eclipse.core.resources;visibility:=reexport,
+ com.seizia.chromite.model;visibility:=reexport,
+ com.seizia.chromite.registry
+Bundle-Localization: OSGI-INF/l10n/bundle
+Automatic-Module-Name: com.seizia.chromite.model.rcp

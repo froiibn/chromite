@@ -1,0 +1,82 @@
+/*
+ * DBeaver - Universal Database Manager
+ * Copyright (C) 2010-2026 DBeaver Corp and others
+ * Modifications Copyright (C) 2026 Chromite contributors
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package com.seizia.chromite.ext.mysql.data;
+
+import org.jkiss.code.NotNull;
+import org.jkiss.code.Nullable;
+import com.seizia.chromite.data.gis.handlers.GISGeometryValueHandler;
+import com.seizia.chromite.ext.mysql.model.MySQLTableColumn;
+import com.seizia.chromite.model.data.DBDAttributeBinding;
+import com.seizia.chromite.model.data.DBDDisplayFormat;
+import com.seizia.chromite.model.exec.DBCException;
+import com.seizia.chromite.model.exec.DBCSession;
+import com.seizia.chromite.model.gis.DBGeometry;
+import com.seizia.chromite.model.struct.DBSTypedObject;
+
+/**
+ * MySQLGeometryValueHandler
+ */
+public class MySQLGeometryValueHandler extends GISGeometryValueHandler {
+
+    static final MySQLGeometryValueHandler INSTANCE = new MySQLGeometryValueHandler();
+
+    public MySQLGeometryValueHandler() {
+        setInvertCoordinates(true);
+        setLeadingSRID(true);
+    }
+
+    @Nullable
+    @Override
+    public DBGeometry getValueFromObject(@NotNull DBCSession session, @NotNull DBSTypedObject type, @Nullable Object object, boolean copy, boolean validateValue) throws DBCException {
+        final DBGeometry geometry = super.getValueFromObject(session, type, object, copy, validateValue);
+        if (geometry.getSRID() == 0) {
+            if (type instanceof DBDAttributeBinding binding) {
+                type = binding.getEntityAttribute();
+            }
+            if (type instanceof MySQLTableColumn c && c.getSrid() != null) {
+                geometry.setSRID(c.getSrid());
+            }
+        }
+        return geometry;
+    }
+
+    @NotNull
+    @Override
+    public String getValueDisplayString(@NotNull DBSTypedObject column, Object value, @NotNull DBDDisplayFormat format) {
+        if (format == DBDDisplayFormat.NATIVE) {
+            int srid = 0;
+            if (value instanceof DBGeometry geometry) {
+                srid = geometry.getSRID();
+            }
+            if (srid == 0) {
+                if (column instanceof DBDAttributeBinding binding) {
+                    column = binding.getEntityAttribute();
+                }
+                if (column instanceof MySQLTableColumn c && c.getSrid() != null) {
+                    srid = c.getSrid();
+                }
+            }
+            if (srid != 0) {
+                return "ST_GeomFromText('" + value.toString() + "', " + srid + ")";
+            } else {
+                return "ST_GeomFromText('" + value.toString() + "')";
+            }
+        }
+        return super.getValueDisplayString(column, value, format);
+    }
+}

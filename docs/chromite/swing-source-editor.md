@@ -127,7 +127,7 @@ DB에 생긴 개체를 보여 준다. 본문은 모델·SWT 구성기에 있는 
 
 ## 확인 (2026-11-06)
 
-빌드 `-Pproduct-dbeaver-ce,product-chromite-swing` BUILD SUCCESS. Windows에서 in-process JVM(`-vm …\bin\server\jvm.dll`), 별도 작업 영역으로
+빌드 `-Pproduct-chromite-swt,product-chromite-swing` BUILD SUCCESS. Windows에서 in-process JVM(`-vm …\bin\server\jvm.dll`), 별도 작업 영역으로
 Swing 제품을 띄우고 EDT 테스트 에이전트로 조작했다(한국어 OS 기본, `-nl en`, 라이트·다크). 테스트 DB는 각 서버의 `chr_source_editor`
 (Oracle은 `CHR_SOURCE_EDITOR` 스키마, `system`으로 연결)에 표·뷰·프로시저·함수·트리거(Oracle 패키지, PostgreSQL 구체화된 뷰)를 만들어 썼다.
 

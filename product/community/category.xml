@@ -1,21 +1,21 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <site>
 
-    <category-def name="org.jkiss.dbeaver" label="Chromite">
+    <category-def name="com.seizia.chromite" label="Chromite">
         <description>Universal Database Manager</description>
     </category-def>
 
-    <feature id="org.jkiss.dbeaver.ui.feature">
-        <category name="org.jkiss.dbeaver"/>
+    <feature id="com.seizia.chromite.ui.feature">
+        <category name="com.seizia.chromite"/>
     </feature>
-    <feature id="org.jkiss.dbeaver.runtime.feature">
-        <category name="org.jkiss.dbeaver"/>
+    <feature id="com.seizia.chromite.runtime.feature">
+        <category name="com.seizia.chromite"/>
     </feature>
-    <feature id="org.jkiss.dbeaver.db.feature">
-        <category name="org.jkiss.dbeaver"/>
+    <feature id="com.seizia.chromite.db.feature">
+        <category name="com.seizia.chromite"/>
     </feature>
-    <feature id="org.jkiss.dbeaver.db.ui.feature">
-        <category name="org.jkiss.dbeaver"/>
+    <feature id="com.seizia.chromite.db.ui.feature">
+        <category name="com.seizia.chromite"/>
     </feature>
 
 </site>

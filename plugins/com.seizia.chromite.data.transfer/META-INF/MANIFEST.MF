@@ -1,0 +1,25 @@
+Manifest-Version: 1.0
+Bundle-ManifestVersion: 2
+Bundle-Vendor: Chromite contributors
+Bundle-Name: Chromite Data Transfer
+Bundle-SymbolicName: com.seizia.chromite.data.transfer;singleton:=true
+Bundle-Version: 2.0.175.qualifier
+Bundle-Release-Date: 20261116
+Bundle-Activator: com.seizia.chromite.tools.transfer.internal.DTActivator
+Bundle-ActivationPolicy: lazy
+Bundle-RequiredExecutionEnvironment: JavaSE-21
+Export-Package: com.seizia.chromite.tools.sql,
+ com.seizia.chromite.tools.transfer,
+ com.seizia.chromite.tools.transfer.database,
+ com.seizia.chromite.tools.transfer.internal,
+ com.seizia.chromite.tools.transfer.processor,
+ com.seizia.chromite.tools.transfer.registry,
+ com.seizia.chromite.tools.transfer.serialize,
+ com.seizia.chromite.tools.transfer.stream,
+ com.seizia.chromite.tools.transfer.stream.exporter,
+ com.seizia.chromite.tools.transfer.stream.importer,
+ com.seizia.chromite.tools.transfer.stream.model,
+ com.seizia.chromite.tools.transfer.task
+Require-Bundle: com.seizia.chromite.model.sql;visibility:=reexport,
+ com.seizia.chromite.registry;visibility:=reexport
+Automatic-Module-Name: com.seizia.chromite.data.transfer

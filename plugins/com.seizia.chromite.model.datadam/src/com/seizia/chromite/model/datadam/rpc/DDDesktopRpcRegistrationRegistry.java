@@ -1,0 +1,68 @@
+/*
+ * DBeaver - Universal Database Manager
+ * Copyright (C) 2010-2026 DBeaver Corp and others
+ * Modifications Copyright (C) 2026 Chromite contributors
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package com.seizia.chromite.model.datadam.rpc;
+
+import com.dbeaver.messaging.rpc.MessagingRpcEndpoint;
+import org.eclipse.core.runtime.CoreException;
+import org.eclipse.core.runtime.Platform;
+import org.jkiss.code.NotNull;
+import com.seizia.chromite.Log;
+
+import java.util.ArrayList;
+import java.util.List;
+
+public class DDDesktopRpcRegistrationRegistry {
+    private static final Log log = Log.getLog(DDDesktopRpcRegistrationRegistry.class);
+    private static final String EXTENSION_ID = "com.seizia.chromite.model.datadam.desktopRpcService";
+    private static DDDesktopRpcRegistrationRegistry instance;
+    private final List<DDDesktopRpcRegistration> registrations = new ArrayList<>();
+
+    private DDDesktopRpcRegistrationRegistry() {
+        for (var extension : Platform.getExtensionRegistry().getConfigurationElementsFor(EXTENSION_ID)) {
+            if (!"service".equals(extension.getName())) {
+                continue;
+            }
+            try {
+                registrations.add((DDDesktopRpcRegistration) extension.createExecutableExtension("class"));
+            } catch (CoreException e) {
+                throw new IllegalStateException("Cannot create desktop RPC service from "
+                    + extension.getContributor().getName(), e);
+            }
+        }
+        log.debug("Found " + registrations.size() + " DataDam desktop RPC registrations");
+    }
+
+    @NotNull
+    public static DDDesktopRpcRegistrationRegistry getInstance() {
+        if (instance == null) {
+            instance = new DDDesktopRpcRegistrationRegistry();
+        }
+        return instance;
+    }
+
+    public void registerAll(@NotNull MessagingRpcEndpoint endpoint) {
+        for (DDDesktopRpcRegistration registration : registrations) {
+            try {
+                registration.register(endpoint);
+            } catch (RuntimeException e) {
+                throw new IllegalStateException("Cannot register desktop RPC service "
+                    + registration.getClass().getName(), e);
+            }
+        }
+    }
+}

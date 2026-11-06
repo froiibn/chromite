@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<feature
+      id="com.seizia.chromite.ui.feature"
+      label="Chromite Desktop UI"
+      version="26.2.5.qualifier"
+      provider-name="Chromite contributors">
+
+   <copyright>DBeaver Corp and others</copyright>
+
+   <includes id="com.seizia.chromite.runtime.feature" version="0.0.0"/>
+
+   <requires>
+      <import plugin="org.eclipse.gef" version="0.0.0" match="greaterOrEqual"/>
+      <import plugin="org.eclipse.draw2d" version="0.0.0" match="greaterOrEqual"/>
+      <import plugin="org.eclipse.core.expressions" version="0.0.0" match="greaterOrEqual"/>
+      <import plugin="org.eclipse.ui" version="0.0.0" match="greaterOrEqual"/>
+      <import plugin="org.eclipse.ui.workbench" version="0.0.0" match="greaterOrEqual"/>
+      <import plugin="org.eclipse.ui.workbench.texteditor" version="0.0.0" match="greaterOrEqual"/>
+      <import plugin="org.eclipse.swt" version="0.0.0" match="greaterOrEqual"/>
+      <import plugin="org.eclipse.jface" version="0.0.0" match="greaterOrEqual"/>
+      <import plugin="org.eclipse.jface.text" version="0.0.0" match="greaterOrEqual"/>
+      <import plugin="org.eclipse.ui.views" version="0.0.0" match="greaterOrEqual"/>
+      <import plugin="org.eclipse.search" version="0.0.0" match="greaterOrEqual"/>
+   </requires>
+
+   <plugin id="com.seizia.chromite.model.rcp" version="0.0.0" />
+   <plugin id="com.seizia.chromite.core" version="0.0.0" />
+   <plugin id="com.seizia.chromite.net.ssh.ui" version="0.0.0" />
+   <plugin id="com.seizia.chromite.ui" version="0.0.0" />
+   <plugin id="com.seizia.chromite.ui.ai" version="0.0.0" />
+   <plugin id="com.seizia.chromite.ui.editors.acl" version="0.0.0" />
+   <plugin id="com.seizia.chromite.ui.editors.base" version="0.0.0" />
+   <plugin id="com.seizia.chromite.ui.editors.connection" version="0.0.0" />
+   <plugin id="com.seizia.chromite.ui.editors.data" version="0.0.0" />
+   <plugin id="com.seizia.chromite.ui.editors.entity" version="0.0.0" />
+   <plugin id="com.seizia.chromite.ui.editors.hex" version="0.0.0" />
+   <plugin id="com.seizia.chromite.ui.editors.image" version="0.0.0" />
+   <plugin id="com.seizia.chromite.ui.editors.json" version="0.0.0" />
+   <plugin id="com.seizia.chromite.ui.editors.sql" version="0.0.0" />
+   <plugin id="com.seizia.chromite.ui.editors.sql.terminal" version="0.0.0" />
+   <plugin id="com.seizia.chromite.ui.editors.session" version="0.0.0" />
+   <plugin id="com.seizia.chromite.ui.editors.xml" version="0.0.0" />
+   <plugin id="com.seizia.chromite.ui.forms" version="0.0.0" />
+   <plugin id="com.seizia.chromite.ui.navigator" version="0.0.0" />
+   <plugin id="com.seizia.chromite.ui.search" version="0.0.0" />
+   <plugin id="com.seizia.chromite.ui.editors.erd" version="0.0.0" />
+   <plugin id="com.seizia.chromite.data.transfer.ui" version="0.0.0" />
+   <plugin id="com.seizia.chromite.data.gis.view" version="0.0.0" />
+   <plugin id="org.jkiss.bundle.jfreechart" version="0.0.0" />
+   <plugin id="com.seizia.chromite.ui.charts" version="0.0.0" />
+
+</feature>

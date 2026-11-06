@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?eclipse version="3.2"?>
+
+<plugin>
+
+    <extension point="org.eclipse.ui.commands">
+        <command id="com.seizia.chromite.core.compare.simple" name="%command.com.seizia.chromite.core.compare.simple.name" description="%command.com.seizia.chromite.core.compare.simple.description" categoryId="com.seizia.chromite.core.util"/>
+    </extension>
+
+    <extension point="org.eclipse.ui.commandImages">
+        <image commandId="com.seizia.chromite.core.compare.simple" icon="platform:/plugin/com.seizia.chromite.model/icons/types/struct.svg"/>
+    </extension>
+
+    <extension point="org.eclipse.core.expressions.definitions">
+        <definition id="com.seizia.chromite.cmp.comparable">
+            <with variable="selection">
+                <count value="+"/>
+                <iterate operator="and">
+                    <adapt type="com.seizia.chromite.model.navigator.DBNDatabaseNode"/>
+                </iterate>
+            </with>
+        </definition>
+    </extension>
+
+    <extension point="org.eclipse.ui.handlers">
+        <handler commandId="com.seizia.chromite.core.compare.simple" class="com.seizia.chromite.tools.compare.simple.ui.CompareObjectsHandler">
+            <enabledWhen><reference definitionId="com.seizia.chromite.cmp.comparable"/></enabledWhen>
+        </handler>
+    </extension>
+
+    <extension point="org.eclipse.ui.menus">
+
+        <menuContribution allPopups="false" locationURI="popup:org.eclipse.ui.popup.any?after=compare">
+            <menu id="chromite-compare" label="%menu.compare.label" icon="platform:/plugin/com.seizia.chromite.ui/icons/file/compare.svg">
+                <separator name="additions" visible="true"/>
+                <command commandId="com.seizia.chromite.core.compare.simple">
+                    <visibleWhen checkEnabled="true"/>
+                </command>
+            </menu>
+        </menuContribution>
+
+        <menuContribution allPopups="false" locationURI="menu:dataSourceMenu?after=tools">
+            <menu id="chromite-compare-main" label="%menu.compare.label" icon="platform:/plugin/com.seizia.chromite.ui/icons/file/compare.svg">
+                <separator name="additions" visible="true"/>
+                <command commandId="com.seizia.chromite.core.compare.simple">
+                    <visibleWhen checkEnabled="true"/>
+                </command>
+            </menu>
+        </menuContribution>
+
+    </extension>
+
+
+</plugin>

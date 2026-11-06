@@ -437,7 +437,7 @@ DataGrip·IntelliJ New UI 아이콘 SVG를 직접 읽어 확인한 규칙이다.
 
 ### 필요한 아이콘 개념 (모두 100개)
 
-`DBIcon` 열은 지금 탐색기 모델이 주는 아이콘(`plugins/org.jkiss.dbeaver.model/src/org/jkiss/dbeaver/model/DBIcon.java`)이다.
+`DBIcon` 열은 지금 탐색기 모델이 주는 아이콘(`plugins/com.seizia.chromite.model/src/com/seizia/chromite/model/DBIcon.java`)이다.
 구현할 때 `NodeIcons`가 `DBIcon` 위치를 Chromite 아이콘 ID로 바꾸는 표를 갖는다. 드라이버 플러그인이 자체 아이콘을 쓰는 노드(예: PostgreSQL 전용 객체)는
 노드 종류(`DBXTreeNode`)로 대응시키고, 대응이 없으면 `object.unknown`을 쓴다.
 
@@ -705,7 +705,7 @@ P0 전체와 P1 일부를 `com.seizia.chromite.ui.swing`에 적용했다. 동작
 - **편집기 글꼴은 Cascadia Mono 13**이고 Chromite에 넣는다. 처음에는 Lucida Sans Typewriter를 골랐다가 견본을 보고 바꿨다.
   Lucida Sans Typewriter는 Microsoft Office 등과 함께 설치되는 상용 글꼴이라(Windows·macOS 기본 글꼴이 아님) 넣지 않고, 설치된 컴퓨터에서는 Options에서 고를 수 있다.
 - **구문 색은 SSMS 기본 색**(키워드 파랑, 시스템 함수 자홍, 문자열 빨강, 주석 초록, 연산자 회색), 숫자는 연두색. 다크는 사용자의 SSMS 다크 화면 사진에 맞춘다(위 "SQL 구문 색").
-- 사용자가 색을 바꿀 수 있어야 한다(SWT 제품의 설정 > Colors and Fonts > SQL Editor에 해당, `plugins/org.jkiss.dbeaver.ui.editors.sql/plugin.xml`의 `org.eclipse.ui.themes` 색 16개).
+- 사용자가 색을 바꿀 수 있어야 한다(SWT 제품의 설정 > Colors and Fonts > SQL Editor에 해당, `plugins/com.seizia.chromite.ui.editors.sql/plugin.xml`의 `org.eclipse.ui.themes` 색 16개).
 
 #### 글꼴
 
@@ -777,7 +777,7 @@ Windows 11, 화면 배율 150%, JBR 25, 작업 공간 사본 `D:\Tools\_smoke\sw
 - Options(`opt-dark-editor-0.png`, `opt-dark-colors-0.png`, `opt-light-editor-0.png`, `opt-light-colors-0.png`): Editor 탭의 글꼴 목록에서 Lucida Sans Typewriter를
   고르면 미리 보기가 바로 바뀐다(`opt-light-editor-lucida-0.png`, 취소함). Editor Colors에서 Keyword를 Bold로 하고 OK → 열린 편집기의 키워드가 바로 굵게 바뀌고(`dark-editor-keyword-bold-crop.png`)
   설정 파일에 `sqlEditor.color.dark.keyword=569cd6,bold`만 저장됨. Reset to Defaults + OK → 그 키가 지워짐. Options에서 테마를 Light로 바꾸면 편집기 색도 라이트 값으로 바뀐다.
-- 빌드: `-Pproduct-dbeaver-ce,product-chromite-swing` BUILD SUCCESS, Swing 제품 `plugins/`에 `swt`·`jface`·`org.eclipse.ui`·`e4.ui` 번들 0개, 번들 jar에 `fonts/cascadia-mono/*` 포함.
+- 빌드: `-Pproduct-chromite-swt,product-chromite-swing` BUILD SUCCESS, Swing 제품 `plugins/`에 `swt`·`jface`·`org.eclipse.ui`·`e4.ui` 번들 0개, 번들 jar에 `fonts/cascadia-mono/*` 포함.
 - 확인하지 못한 것: macOS(Cascadia Mono 등록, Apple SD Gothic Neo 대체), Windows 10(운영체제 Cascadia Mono 없음 → 번들 글꼴 등록 경로), DDL 탭의 방언 강조(화면 확인 안 함), 연결된 SQL Server 방언.
 
 ### 적용 현황 — Pretendard와 밀도 B (2026-11-07)

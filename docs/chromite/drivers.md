@@ -12,13 +12,13 @@ JDBC 드라이버를 설치 파일에 미리 넣는다.
   - 직접 다운로드 URL(`https:`, Athena·BigQuery zip 등) 11개
   - 앱 번들(`bundle:`) 7개, `repo:` 4개
 - **다운로드:** 파일이 없으면 Maven Central(`https://repo1.maven.org/maven2/`)에서 받아 사용자 폴더 캐시에 저장한다
-  ([registry/plugin.xml:132](../../plugins/org.jkiss.dbeaver.registry/plugin.xml:132)).
-- **메모리 로딩은 이미 지연 방식이다:** [DriverLoaderDescriptor.loadDriver](../../plugins/org.jkiss.dbeaver.registry/src/org/jkiss/dbeaver/registry/driver/DriverLoaderDescriptor.java:151)는
+  ([registry/plugin.xml:132](../../plugins/com.seizia.chromite.registry/plugin.xml:132)).
+- **메모리 로딩은 이미 지연 방식이다:** [DriverLoaderDescriptor.loadDriver](../../plugins/com.seizia.chromite.registry/src/com/seizia/chromite/registry/driver/DriverLoaderDescriptor.java:151)는
   처음 연결할 때만 해당 드라이버 jar로 전용 클래스로더를 만든다. jar를 모두 내장해도 쓰지 않는 드라이버는 메모리에 올라가지 않는다.
-- **로컬 Maven 저장소:** [MavenRegistry](../../plugins/org.jkiss.dbeaver.registry/src/org/jkiss/dbeaver/registry/maven/MavenRegistry.java)는
+- **로컬 Maven 저장소:** [MavenRegistry](../../plugins/com.seizia.chromite.registry/src/com/seizia/chromite/registry/maven/MavenRegistry.java)는
   설치 폴더의 `maven-local`을 로컬 저장소로 등록한다. upstream은 원격 저장소를 모두 시도한 뒤 **마지막에** 찾았다.
   Chromite는 2026-11-06부터 **가장 먼저** 찾는다(아래 "구현").
-- **상대 경로 파일:** [DriverLibraryLocal.detectLocalFile](../../plugins/org.jkiss.dbeaver.registry/src/org/jkiss/dbeaver/registry/driver/DriverLibraryLocal.java:175)는
+- **상대 경로 파일:** [DriverLibraryLocal.detectLocalFile](../../plugins/com.seizia.chromite.registry/src/com/seizia/chromite/registry/driver/DriverLibraryLocal.java:175)는
   `drivers/oracle` 같은 상대 경로를 설치 폴더에서 먼저 찾고, 없으면 사용자 드라이버 폴더에서 찾는다.
 - **드라이버 묶음(product bundles):** 많은 드라이버가 파일을 두 가지로 정의한다.
 
@@ -27,16 +27,16 @@ JDBC 드라이버를 설치 파일에 미리 넣는다.
   <file type="jar" path="drivers/oracle" bundle="drivers.oracle"/>
   ```
 
-  앱이 `org.jkiss.dbeaver.product.bundles` 확장 포인트로 `drivers.oracle` 묶음을 선언하면 설치 폴더의 `drivers/oracle`을 쓰고,
-  선언하지 않으면 Maven에서 받는다([ProductBundleRegistry](../../plugins/org.jkiss.dbeaver.registry/src/org/jkiss/dbeaver/registry/ProductBundleRegistry.java)).
+  앱이 `com.seizia.chromite.product.bundles` 확장 포인트로 `drivers.oracle` 묶음을 선언하면 설치 폴더의 `drivers/oracle`을 쓰고,
+  선언하지 않으면 Maven에서 받는다([ProductBundleRegistry](../../plugins/com.seizia.chromite.registry/src/com/seizia/chromite/registry/ProductBundleRegistry.java)).
   이런 대체 정의가 있는 묶음은 약 45개다(`drivers.mssql.new`, `drivers.oracle`, `drivers.postgresql`, `drivers.mariadb`, `drivers.mysql`, `drivers.db2` 등).
   upstream 저장소에는 묶음 선언이 없다. Chromite 공개판은 5개를 선언한다(아래 "구현").
 - **폴더 경로 해석:** `drivers/oracle` 같은 상대 경로는 설치 폴더 기준으로 먼저 찾는다
-  ([DriverLibraryLocal.detectLocalFile](../../plugins/org.jkiss.dbeaver.registry/src/org/jkiss/dbeaver/registry/driver/DriverLibraryLocal.java:175)).
+  ([DriverLibraryLocal.detectLocalFile](../../plugins/com.seizia.chromite.registry/src/com/seizia/chromite/registry/driver/DriverLibraryLocal.java:175)).
   경로가 폴더이면 그 폴더 **바로 아래의** `.jar`·`.zip` 파일만 클래스패스에 넣는다(하위 폴더는 보지 않음,
-  [DriverLoaderDescriptor.readJarsFromDir](../../plugins/org.jkiss.dbeaver.registry/src/org/jkiss/dbeaver/registry/driver/DriverLoaderDescriptor.java)).
+  [DriverLoaderDescriptor.readJarsFromDir](../../plugins/com.seizia.chromite.registry/src/com/seizia/chromite/registry/driver/DriverLoaderDescriptor.java)).
 - **묶음을 선언하면 Maven 대체 파일은 사라진다:** `bundle="!drivers.X"`인 파일은 목록에서 빠지므로
-  ([DriverUtils.matchesBundle](../../plugins/org.jkiss.dbeaver.registry/src/org/jkiss/dbeaver/registry/driver/DriverUtils.java)),
+  ([DriverUtils.matchesBundle](../../plugins/com.seizia.chromite.registry/src/com/seizia/chromite/registry/driver/DriverUtils.java)),
   묶음을 선언하고 폴더를 채우지 않으면 그 드라이버는 내려받을 곳도 없어진다. 묶음 선언과 폴더는 반드시 같은 feature로 배포한다.
 
 ## 설계
@@ -80,12 +80,12 @@ JDBC 드라이버를 설치 파일에 미리 넣는다.
 
 | 위치 | 역할 |
 |---|---|
-| [plugins/com.seizia.chromite.drivers.public/plugin.xml](../../plugins/com.seizia.chromite.drivers.public/plugin.xml) | `org.jkiss.dbeaver.product.bundles`로 `drivers.mssql.new`, `drivers.oracle`, `drivers.postgresql`, `drivers.mariadb`, `drivers.mysql` 선언. 코드 없음 |
+| [plugins/com.seizia.chromite.drivers.public/plugin.xml](../../plugins/com.seizia.chromite.drivers.public/plugin.xml) | `com.seizia.chromite.product.bundles`로 `drivers.mssql.new`, `drivers.oracle`, `drivers.postgresql`, `drivers.mariadb`, `drivers.mysql` 선언. 코드 없음 |
 | [features/com.seizia.chromite.drivers.public.feature/feature.xml](../../features/com.seizia.chromite.drivers.public.feature/feature.xml) | 공개판 드라이버 전용 feature `com.seizia.chromite.drivers.public.feature`. 위 플러그인 포함 |
 | [features/com.seizia.chromite.drivers.public.feature/pom.xml](../../features/com.seizia.chromite.drivers.public.feature/pom.xml) | `maven-dependency-plugin:copy`(실행 ID `bundle-public-drivers`)로 Maven Central에서 정확한 버전의 jar를 `target/generated/drivers/<이름>/`에 받는다. jar 목록·버전은 이곳에만 있다. jar는 저장소에 커밋하지 않는다 |
 | [features/com.seizia.chromite.drivers.public.feature/drivers-root/drivers/](../../features/com.seizia.chromite.drivers.public.feature/drivers-root/drivers/) | 라이선스 원문, LGPL·GPL 소스 위치 안내(`SOURCE.txt`), 전체 목록(`README.txt`). 루트 [.gitattributes](../../.gitattributes)로 `core.autocrlf`와 상관없이 항상 LF로 체크아웃된다 |
 | [features/com.seizia.chromite.drivers.public.feature/build.properties](../../features/com.seizia.chromite.drivers.public.feature/build.properties) | `root = target/generated,drivers-root` — 두 폴더가 설치 폴더의 `drivers/`로 합쳐진다 |
-| [features/org.jkiss.dbeaver.ce.feature/feature.xml](../../features/org.jkiss.dbeaver.ce.feature/feature.xml), [features/com.seizia.chromite.swing.feature/feature.xml](../../features/com.seizia.chromite.swing.feature/feature.xml) | SWT 제품과 Swing 제품이 위 feature를 `<includes>`로 포함한다 |
+| [features/com.seizia.chromite.ce.feature/feature.xml](../../features/com.seizia.chromite.ce.feature/feature.xml), [features/com.seizia.chromite.swing.feature/feature.xml](../../features/com.seizia.chromite.swing.feature/feature.xml) | SWT 제품과 Swing 제품이 위 feature를 `<includes>`로 포함한다 |
 
 - **플러그인을 따로 만든 이유:** 묶음 선언을 `ui.app.standalone` 같은 다른 번들에 두면, 그 번들은 들어가고 jar는 없는 제품에서
   묶음 드라이버가 내려받을 곳도 잃는다. 선언(플러그인)과 파일(feature 루트 파일)을 같은 feature에 묶어
@@ -137,30 +137,30 @@ JDBC 드라이버를 설치 파일에 미리 넣는다.
     9.7.0으로 대신할 수 없다. 9.7.0은 `CLIENT_PLUGIN_AUTH`가 없는 서버(MySQL 5.5.7 미만)를 거부하는데
     (`NativeAuthenticationProvider.java:145`의 "CLIENT_PLUGIN_AUTH is required", 8.2.0에도 같은 검사가 있다), Legacy 드라이버는 그런 예전 서버용이다.
     5.1.49는 예전 "MySQL FOSS License Exception"이 적용되고 2020년 이후 갱신이 없어 내장하지 않기로 했다([driver-licenses.md](driver-licenses.md)).
-    그래서 [ext.mysql/plugin.xml](../../plugins/org.jkiss.dbeaver.ext.mysql/plugin.xml)의 Legacy 드라이버 두 항목만 묶음 ID를
+    그래서 [ext.mysql/plugin.xml](../../plugins/com.seizia.chromite.ext.mysql/plugin.xml)의 Legacy 드라이버 두 항목만 묶음 ID를
     `drivers.mysql5`로 바꿨다. 공개판은 이 묶음을 선언하지 않으므로 Legacy 드라이버는 예전처럼 처음 쓸 때 Maven에서 5.1.49를 받는다.
     바꾸지 않으면 `drivers.mysql` 선언과 함께 Maven 항목이 빠지고 폴더도 없어 파일 출처가 사라진다. 내부판은 `drivers.mysql5`를 선언하고 5.1.49를 넣을 수 있다.
     StarRocks(`starrocks-connector-j`)와 "MySQL (Old)"(ext.generic)는 묶음 속성이 없어 영향이 없다.
 
 ### 오프라인 우선 조회와 오프라인 모드
 
-- **조회 순서:** [MavenRegistry.findInRepositories](../../plugins/org.jkiss.dbeaver.registry/src/org/jkiss/dbeaver/registry/maven/MavenRegistry.java:240)는
+- **조회 순서:** [MavenRegistry.findInRepositories](../../plugins/com.seizia.chromite.registry/src/com/seizia/chromite/registry/maven/MavenRegistry.java:240)는
   설치 폴더의 `maven-local`을 원격 저장소보다 먼저 찾는다(기존의 마지막 조회는 삭제).
-- **설정 키:** `ui.drivers.offline`([ModelPreferences.UI_DRIVERS_OFFLINE](../../plugins/org.jkiss.dbeaver.model/src/org/jkiss/dbeaver/ModelPreferences.java:282)),
-  저장 위치는 `org.jkiss.dbeaver.core` 설정 노드, 기본값 `false`. 화면은 환경설정 > 연결 > 드라이버의 "오프라인 모드" 체크박스
-  ([PrefPageDrivers](../../plugins/org.jkiss.dbeaver.ui.editors.connection/src/org/jkiss/dbeaver/ui/preferences/PrefPageDrivers.java:97)).
-  판별은 [DriverUtils.isOfflineMode](../../plugins/org.jkiss.dbeaver.registry/src/org/jkiss/dbeaver/registry/driver/DriverUtils.java:69) 한곳이며,
+- **설정 키:** `ui.drivers.offline`([ModelPreferences.UI_DRIVERS_OFFLINE](../../plugins/com.seizia.chromite.model/src/com/seizia/chromite/ModelPreferences.java:282)),
+  저장 위치는 `com.seizia.chromite.core` 설정 노드, 기본값 `false`. 화면은 환경설정 > 연결 > 드라이버의 "오프라인 모드" 체크박스
+  ([PrefPageDrivers](../../plugins/com.seizia.chromite.ui.editors.connection/src/com/seizia/chromite/ui/preferences/PrefPageDrivers.java:97)).
+  판별은 [DriverUtils.isOfflineMode](../../plugins/com.seizia.chromite.registry/src/com/seizia/chromite/registry/driver/DriverUtils.java:69) 한곳이며,
   값을 매번 읽으므로 켜는 즉시 적용된다.
 - **막는 곳(네트워크 접근 지점):**
-  - [DriverLibraryAbstract.downloadLibraryFile](../../plugins/org.jkiss.dbeaver.registry/src/org/jkiss/dbeaver/registry/driver/DriverLibraryAbstract.java:266):
+  - [DriverLibraryAbstract.downloadLibraryFile](../../plugins/com.seizia.chromite.registry/src/com/seizia/chromite/registry/driver/DriverLibraryAbstract.java:266):
     Maven·URL·`repo:` 파일을 실제로 내려받는 유일한 경로. `file:` 출처는 허용(네트워크 공유의 Maven 저장소 등).
-  - [MavenRepository.checkNetworkAccessAllowed](../../plugins/org.jkiss.dbeaver.registry/src/org/jkiss/dbeaver/registry/maven/MavenRepository.java:230):
-    원격 저장소의 `maven-metadata.xml`([MavenArtifact.java:105](../../plugins/org.jkiss.dbeaver.registry/src/org/jkiss/dbeaver/registry/maven/MavenArtifact.java:105))과
-    캐시에 없는 POM([MavenArtifactVersion.java:286](../../plugins/org.jkiss.dbeaver.registry/src/org/jkiss/dbeaver/registry/maven/MavenArtifactVersion.java:286)) 요청을 막는다.
+  - [MavenRepository.checkNetworkAccessAllowed](../../plugins/com.seizia.chromite.registry/src/com/seizia/chromite/registry/maven/MavenRepository.java:230):
+    원격 저장소의 `maven-metadata.xml`([MavenArtifact.java:105](../../plugins/com.seizia.chromite.registry/src/com/seizia/chromite/registry/maven/MavenArtifact.java:105))과
+    캐시에 없는 POM([MavenArtifactVersion.java:286](../../plugins/com.seizia.chromite.registry/src/com/seizia/chromite/registry/maven/MavenArtifactVersion.java:286)) 요청을 막는다.
     `maven-local`과 `file:` 저장소, 이미 받아 둔 캐시는 그대로 쓴다.
-  - [DriverLoaderDescriptor.downloadDriverLibraries](../../plugins/org.jkiss.dbeaver.registry/src/org/jkiss/dbeaver/registry/driver/DriverLoaderDescriptor.java:420):
+  - [DriverLoaderDescriptor.downloadDriverLibraries](../../plugins/com.seizia.chromite.registry/src/com/seizia/chromite/registry/driver/DriverLoaderDescriptor.java:420):
     다운로드 대화상자를 열지 않고 로컬 소스에서만 조용히 찾는다(내부판의 `maven-local` 해석도 이 경로).
-  - [DriverLoaderDescriptor.loadDriver](../../plugins/org.jkiss.dbeaver.registry/src/org/jkiss/dbeaver/registry/driver/DriverLoaderDescriptor.java:185):
+  - [DriverLoaderDescriptor.loadDriver](../../plugins/com.seizia.chromite.registry/src/com/seizia/chromite/registry/driver/DriverLoaderDescriptor.java:185):
     그래도 드라이버 클래스를 불러오지 못하고 필수 파일이 없으면 "드라이버 파일이 설치본에 포함되어 있지 않고 오프라인 모드가 켜져 있습니다.
     드라이버 설정에서 JAR 파일을 직접 추가하세요."로 연결이 실패한다(`RegistryMessages.driver_offline_files_missing`, 영어·한국어).
     직접 추가한 jar로 클래스를 불러오면 Maven 항목이 남아 있어도 연결된다.
@@ -178,7 +178,7 @@ JDBC 드라이버를 설치 파일에 미리 넣는다.
   위 첫 확인보다 1,351바이트 큰 것은 `core.autocrlf=true` 체크아웃에서 라이선스 텍스트 1,351줄이 CRLF로 들어갔기 때문이다.
   이후 `.gitattributes`로 이 텍스트를 항상 LF로 고정해 크기가 체크아웃 설정에 따라 달라지지 않는다), SWT 제품의 `drivers/`도 분리 전과 같다. Swing 제품에서 오프라인 모드를 끈 채 PostgreSQL의
   Driver Properties를 열면 내려받기 확인 없이 속성이 보이고, Test Connection은 pgjdbc의 "Connection refused"로 끝났다([swing-frontend.md](swing-frontend.md)).
-- MySQL 추가 후(2026-11-06, `-Pproduct-dbeaver-ce,product-chromite-swing` 빌드): 네 결과물(SWT·Swing × Windows·macOS)의 `drivers/`가
+- MySQL 추가 후(2026-11-06, `-Pproduct-chromite-swt,product-chromite-swing` 빌드): 네 결과물(SWT·Swing × Windows·macOS)의 `drivers/`가
   37개 파일, 21,608,448 bytes로 이름·크기·SHA-256이 모두 같다. 늘어난 파일은 `mysql/LICENSE.txt`(82,896), `mysql/SOURCE.txt`,
   `mysql/mysql8/mysql-connector-j-9.7.0.jar`(2,607,237, SHA-256 `0353648e…43eb44`)이고 protobuf-java는 없다.
   SWT Windows 제품을 오프라인 모드를 끈 새 작업 공간(공개판 기본값)으로 실행해 127.0.0.1:1에 연결했다. MySQL과 NDB Cluster
@@ -203,7 +203,7 @@ JDBC 드라이버를 설치 파일에 미리 넣는다.
 - `com.seizia.chromite.drivers.internal` 플러그인(전체 묶음 선언)과 그 jar를 루트 파일로 넣는 전용 feature를 만들고,
   제품(SWT·Swing)이 `com.seizia.chromite.drivers.public.feature` 대신 포함한다.
 - 묶음이 없는 드라이버는 빌드할 때 `maven-local`에 Maven 구조(POM, `maven-metadata.xml` 포함)로 넣는다. 조회 순서 변경으로 원격보다 먼저 쓰인다.
-- 제품의 `plugin_customization.ini`에 `org.jkiss.dbeaver.core/ui.drivers.offline=true`를 넣어 오프라인 모드를 기본으로 켠다
+- 제품의 `plugin_customization.ini`에 `com.seizia.chromite.core/ui.drivers.offline=true`를 넣어 오프라인 모드를 기본으로 켠다
   (`PrefUtils.setDefaultPreferenceValue`는 이미 정해진 기본값을 덮어쓰지 않는다).
 - `mssql-jdbc_auth` DLL을 `drivers/mssql/new/auth/x64/`에 넣는다.
 
