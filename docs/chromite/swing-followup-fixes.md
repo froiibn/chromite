@@ -87,6 +87,11 @@
   같은 메서드를 쓰는 다른 곳은 매핑 화면의 대상 이름(`DatabaseTransferConsumer.getTargetName` `:888`)뿐이고, 대상 개체가 있으면 그 앞에서 개체 이름을 쓴다.
 - 고친 것: `getTargetFullName()`이 두 경우 모두 `getTargetName()`을 쓴다.
 
+## 네이티브 백업·복원 실패
+
+빈 출력 파일 때문에 MySQL 백업을 다시 실행할 수 없던 것과, psql 일반 형식 복원이 SQL 오류에도 성공으로 보이던 것(#40)은
+[swing-backup-restore.md](swing-backup-restore.md) "실패한 백업과 psql 오류"에 적었다.
+
 ## 확인 (2026-11-07)
 
 Swing 제품(`-vm D:\Tools\jbrsdk-25\bin\server\jvm.dll`, 비공개 작업 공간)을 실행하고 같은 프로세스에 붙인 EDT 시험 에이전트로 조작했다(OS 입력 없음).
@@ -105,6 +110,7 @@ Swing 제품(`-vm D:\Tools\jbrsdk-25\bin\server\jvm.dll`, 비공개 작업 공�
   도구 설명이 "숨겨진 탭 표시" / "Show Hidden Tabs", 목록 열기 확인.
 - 전송: PostgreSQL `copy_src` → SQL Server 기존 테이블 `copy_dst`(기본 키 충돌)로 복사, 중지 → `Error while finishing result set fetching into 'chr_fixes_editor.dbo.copy_dst'`,
   진행 표의 대상 열도 `chr_fixes_editor.dbo.copy_dst`.
+- 백업·복원: [swing-backup-restore.md](swing-backup-restore.md) "실패한 백업과 psql 오류"의 확인.
 - 회귀 테스트는 실행하지 않았다(CLAUDE.md 7번). 영향받을 수 있는 기능은 각 항목의 "고친 것"에 적은 곳이다.
 
 ## 남긴 것
@@ -122,3 +128,4 @@ Swing 제품(`-vm D:\Tools\jbrsdk-25\bin\server\jvm.dll`, 비공개 작업 공�
 - 2026-11-07 날짜/시간 값을 데이터베이스 형식으로 보이는 설정(#43), SQL Server `datetimeoffset` 편집이 NULL로 저장되던 것.
 - 2026-11-07 진행 대화상자의 "Canceling…"과 탭 넘침 단추의 "Show Hidden Tabs"를 화면 언어로(#44).
 - 2026-11-07 데이터 전송 오류의 대상 이름이 `….null`로 나오던 것(#44).
+- 2026-11-07 네이티브 백업·복원 실패 항목을 swing-backup-restore.md로 연결(#40).

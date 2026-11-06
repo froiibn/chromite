@@ -100,7 +100,7 @@ MANIFEST·feature·pom은 바꾸지 않았다. Swing 번들도 새 `Require-Bund
   작업에 설정을 저장하고 처리기가 다시 읽는 흐름과 같다. 처리기의 로그 스트림(명령줄, 도구 출력)은 메시지 페이지에 줄 단위로 보인다.
 - 페이지: **일반**(데이터베이스, 출력 폴더·파일 이름 패턴 또는 입력 파일, PostgreSQL 형식·압축·인코딩, MySQL 덤프 방법), **옵션**(SWT 마법사의 주요 옵션:
   PostgreSQL `--no-owner`, `--no-privileges`, `--inserts`, `--clean`, `--create`; MySQL `--no-create-info`, `--add-drop-table`, `--disable-keys`,
-  `--extended-insert`, `--no-data`, `--routines`, `--events`, `--comments`, DEFINER 제거, `--hex-blob`; 복원 쪽 `--clean`, `--create`, 외래 키 검사 끄기, `-v`),
+  `--extended-insert`, `--no-data`, `--routines`, `--events`, `--comments`, DEFINER 제거, `--hex-blob`; 복원 쪽 `--clean`, `--create`, 첫 오류에서 멈춤(2026-11-07), 외래 키 검사 끄기, `-v`),
   **로컬 클라이언트**(클라이언트 폴더, 찾아보기, 상태, 명령줄 미리 보기). 스크립트 메뉴는 "명령줄 복사"다.
 - 파일은 **이 컴퓨터의 파일**이다(도구가 로컬에서 읽고 쓴다). 파일 이름 기본값은 SWT와 같은 `dump-${database}-${timestamp}` + 형식의 확장자.
 - **로컬 클라이언트**: 목록은 드라이버의 사용자 위치와 클라이언트 관리자가 찾은 설치(Windows 레지스트리 등)다. **내려받는 클라이언트**
@@ -118,9 +118,36 @@ MANIFEST·feature·pom은 바꾸지 않았다. Swing 번들도 새 `Require-Bund
 - **명령줄 미리 보기**: 처리기의 `getCommandLine`(보호 메서드)을 미리 보기용 하위 클래스로 불러, 실행할 명령을 그대로 보인다(MySQL은 출력·입력 리디렉션 `>`/`<`을 덧붙임).
   암호는 명령줄에 없다(`PGPASSWORD`, `MYSQL_PWD` 환경 변수). 도구가 그 폴더에 없으면 미리 보기 대신 "{도구}를 찾을 수 없습니다"를 보인다.
 
+### 실패한 백업과 psql 오류 (2026-11-07)
+
+- **빈 출력 파일**: 도구가 아무것도 출력하지 못하고 실패하면(로그인 실패, 잘못된 옵션) 0바이트 파일이 남았다. 출력을 파일로 옮기는 작업
+  (`AbstractNativeToolHandler.DumpCopierJob.runDump`, DEFINER를 지우는 `MySQLDatabaseExportHandler.DumpFilterJob.runDump`)이 첫 바이트를 받기 전에
+  파일을 만들고(`Files.newOutputStream`) 실패해도 그대로 두었기 때문이다. MySQL 백업은 덮어쓰기를 막으려고 시작할 때 파일이 있으면
+  "Output file already exists"로 멈추므로(`MySQLDatabaseExportHandler.startProcessHandler`, DBeaver #11532) 같은 이름으로 다시 실행할 수 없었다.
+  - 고친 것: 두 작업이 출력을 하나도 받지 못했으면 만든 파일을 지운다(`AbstractNativeToolHandler.deleteIfEmpty`). 그 파일은 시작할 때 없던 것을
+    이 실행이 만든 것이므로(있으면 위 검사에서 멈춤) 지워도 잃는 것이 없다. 내용이 조금이라도 있는 파일(중간에 실패한 덤프)은 지우지 않는다.
+    사용자가 확인할 수 있게 두고, 지우는 판단을 "내용이 없음" 하나로만 하려는 것이다. 그런 파일이 남으면 MySQL 재실행은 지금처럼 멈춘다.
+  - pg_dump는 로컬 파일을 `--file`로 직접 쓰고(`PostgreDatabaseBackupHandler.fillProcessParameters`) 같은 이름이 있으면 덮어쓰므로 재실행이 막히지 않는다.
+    원격 파일 시스템 경로일 때만 `DumpCopierJob`을 거치고 이 수정이 같이 적용된다. SWT 백업 마법사도 같은 처리기를 쓰므로 같이 고쳐진다.
+- **psql 일반 형식 복원의 오류**: psql은 스크립트를 끝까지 실행하고 SQL 오류가 있어도 종료 코드 0으로 끝나므로 복원이 성공으로 보였다(DBeaver도 같음.
+  `PostgreDatabaseRestoreHandler.getCommandLine`은 `ON_ERROR_STOP`을 넘기지 않고, 복원 처리기는 도구의 오류 출력을 작업 오류로 모으지 않는다 — `isLogInputStream() = false`).
+  - 고친 것: PostgreSQL 복원 옵션에 **첫 오류에서 멈춤**(Stop at the first error)을 더했다. 일반 형식이면 `-v ON_ERROR_STOP=1`(psql은 멈추고 종료 코드 3),
+    다른 형식이면 `pg_restore --exit-on-error`(종료 코드 1)를 설정의 추가 인수(`setExtraCommandArgs`, `PostgreNativeToolHandler`가 명령줄에 넣음)로 넘긴다.
+    종료 코드 3은 모델 처리기가, 1은 `CheckedPostgreRestore`가 실패로 보인다. 일반 형식 안내 문구도 이 옵션만 psql에 적용된다고 고쳤다.
+  - 결정: 기본값은 끔(DBeaver와 같음). `--clean`으로 만든 일반 스크립트(`--if-exists` 없이)는 아직 없는 개체를 지우는 첫 `DROP`에서 오류가 나므로
+    켜 두면 빈 데이터베이스로의 복원이 바로 멈춘다. psql의 오류 줄을 글자로 찾아 실패로 보이는 방법은 도구의 언어(한국어 OS에서는 메시지 일부가 한국어)에
+    따라 달라 쓰지 않았다.
+- 확인(MariaDB 11.8.9 mysqldump, PostgreSQL 17.11 psql·pg_restore, `chr_fixes_editor`):
+  - 백업 전용 로그인(`fx_bk`)으로 연결한 뒤 서버에서 그 로그인의 암호를 바꾸고 백업 → `Access denied`, "실패", 출력 폴더에 파일 없음.
+    암호를 되돌리고 같은 대화상자에서 같은 이름으로 다시 실행 → "완료", 2,350바이트 덤프. DEFINER 제거를 켠 백업도 실패 시 파일 없음.
+  - 일반 형식 복원(`CREATE TABLE fx_ok1; SELECT * FROM 없는 테이블; CREATE TABLE fx_ok2;`): 옵션을 켜면 명령줄에 `-v ON_ERROR_STOP=1`, 종료 코드 3으로 "실패",
+    `fx_ok2` 없음. 끄면 예전처럼 "완료"와 두 테이블. 사용자 지정 형식은 명령줄에 `--exit-on-error`.
+  - 화면: 한국어·영어(`ko-light-pg-restore-options.png`, `en-light-pg-restore-options.png` 등, `D:\Tools\_scratch\fixes-editor\run\shots\`).
+
 ## upstream 대비 변경점
 
 - DBeaver 코드는 고치지 않았다. Chromite 번들(`model.admin`, `ui.swing`)에 클래스를 더하고 `ObjectExplorerPanel`에 메뉴 훅을 넣었다.
+  예외: 2026-11-07에 빈 출력 파일을 지우도록 tasks.native `AbstractNativeToolHandler`와 ext.mysql `MySQLDatabaseExportHandler`를 고쳤다(SWT에도 적용, 위 "실패한 백업과 psql 오류").
 - DBeaver CE에 없는 SQL Server 백업·복원을 더했다.
 - PostgreSQL·MySQL은 DBeaver와 같은 처리기를 쓰되, 내려받는 클라이언트를 목록에서 뺐다(위 "로컬 클라이언트").
 
@@ -164,6 +191,7 @@ MANIFEST·feature·pom은 바꾸지 않았다. Swing 번들도 새 `Require-Bund
     작업 로그 스트림으로 가기 때문이다. 고치려면 Swing용 알림 서비스가 필요해 이번에는 남겼다.
     실패한 백업은 0바이트 출력 파일을 남기고(모델 처리기), MySQL 백업은 그 파일 때문에 같은 이름으로 다시 실행할 수 없다.
     psql(일반 형식 복원)은 SQL 오류가 나도 종료 코드 0이라 성공으로 보인다(`ON_ERROR_STOP`을 쓰지 않음, DBeaver와 같음).
+    → 2026-11-07 빈 파일은 지우고, 복원에 "첫 오류에서 멈춤" 옵션을 더함(위 "실패한 백업과 psql 오류").
 - 회귀 테스트는 실행하지 않았다(요청 없음).
 
 ## 남긴 것
@@ -181,3 +209,5 @@ MANIFEST·feature·pom은 바꾸지 않았다. Swing 번들도 새 `Require-Bund
   찾아보기로 더한 클라이언트 폴더가 다시 시작하면 사라지던 것(드라이버 수정됨 표시), 도구 로그의 스택 추적 줄.
 - 2026-11-06 PostgreSQL 17.11·MariaDB 11.8.9 실제 로컬 클라이언트(D: 드라이브에 푼 공식 zip)로 백업·복원을 끝까지 확인.
   확인 중 고친 것: pg_restore가 오류로 끝난 복원(종료 코드 1, 로그인 실패 포함)을 성공으로 보이던 것(`CheckedPostgreRestore`, 문구 `native_error_pg_restore_errors`).
+- 2026-11-07 실패한 백업이 0바이트 파일을 남겨 MySQL 재실행이 "Output file already exists"로 막히던 것(모델 처리기에서 빈 출력 파일을 지움),
+  PostgreSQL 복원 옵션 "첫 오류에서 멈춤"(psql `-v ON_ERROR_STOP=1`, pg_restore `--exit-on-error`, 기본 끔). "실패한 백업과 psql 오류" 절 추가.

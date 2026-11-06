@@ -1,6 +1,7 @@
 /*
  * DBeaver - Universal Database Manager
  * Copyright (C) 2010-2026 DBeaver Corp and others
+ * Modifications Copyright (C) 2026 Chromite contributors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -52,6 +53,13 @@ import java.nio.file.Path;
 import java.text.NumberFormat;
 import java.util.*;
 
+/**
+ * Runs a native database tool (dump, restore) for a task.
+ *
+ * 변경 이력:
+ * - 2026-11-07 Chromite: {@link DumpCopierJob}이 아무것도 받지 못한 출력 파일(0바이트)을 지움. 도구가 출력 없이 실패하면
+ *   빈 파일이 남아 MySQL 백업을 같은 이름으로 다시 실행할 수 없었다 (docs/chromite/swing-backup-restore.md "실패한 백업과 psql 오류")
+ */
 public abstract class AbstractNativeToolHandler<SETTINGS extends AbstractNativeToolSettings<BASE_OBJECT>, BASE_OBJECT extends DBSObject, PROCESS_ARG> implements DBTTaskHandler, DBTTaskImportTransformer {
 
     private String taskErrorMessage;
@@ -374,9 +382,25 @@ public abstract class AbstractNativeToolHandler<SETTINGS extends AbstractNativeT
                     }
                     output.flush();
                 }
+                deleteIfEmpty(outFile, totalBytesDumped, log);
             } finally {
                 monitor.done();
             }
+        }
+    }
+
+    /**
+     * A tool that fails before writing anything (bad login, bad option) leaves no empty file behind: it looks like a
+     * backup, and the MySQL backup refuses to write into an existing file, so the retry failed too.
+     */
+    protected static void deleteIfEmpty(@NotNull Path outFile, long bytesWritten, @NotNull Log log) {
+        if (bytesWritten > 0) {
+            return;
+        }
+        try {
+            Files.deleteIfExists(outFile);
+        } catch (IOException e) {
+            log.debug("Can't delete empty output file " + outFile, e);
         }
     }
 
