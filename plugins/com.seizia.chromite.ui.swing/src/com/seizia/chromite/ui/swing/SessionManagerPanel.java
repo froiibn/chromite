@@ -74,6 +74,8 @@ import java.util.Map;
  *
  * 변경 이력:
  * - 2026-11-06 최초 작성 (docs/chromite/swing-admin-tools.md)
+ * - 2026-11-06 찾기 칸과 "Only my sessions"가 테마 전환을 놓치던 문제: 패널과 함께 만들고 첫 읽기 뒤에야 붙이므로(createTools),
+ *   붙일 때 현재 Look and Feel로 다시 설치함 (docs/chromite/swing-admin-tools.md)
  */
 final class SessionManagerPanel extends JPanel {
 
@@ -264,6 +266,10 @@ final class SessionManagerPanel extends JPanel {
         }
         toolsCreated = true;
         profile = connectedProfile;
+        // Created with the panel but added to it only now: a theme switch since then (e.g. while the Locks tab was shown)
+        // did not reach them, as it updates only the components in a window
+        SwingUtilities.updateComponentTreeUI(searchField);
+        SwingUtilities.updateComponentTreeUI(onlyMineCheck);
         for (ServerAdminProfile.FilterOption option : profile.getFilterOptions()) {
             JCheckBox check = new JCheckBox(option.label(), getFilterValue(option));
             check.setToolTipText(option.toolTip());
