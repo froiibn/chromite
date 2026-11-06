@@ -19,6 +19,7 @@ package com.seizia.chromite.ui.swing;
 import com.formdev.flatlaf.FlatClientProperties;
 import com.formdev.flatlaf.ui.FlatTabbedPaneUI;
 import com.formdev.flatlaf.util.UIScale;
+import com.seizia.chromite.ui.swing.internal.AiMessages;
 import com.seizia.chromite.ui.swing.internal.CoreMessages;
 import com.seizia.chromite.ui.swing.internal.DashboardMessages;
 import com.seizia.chromite.ui.swing.internal.DriverManagerMessages;
@@ -30,6 +31,7 @@ import org.jkiss.code.Nullable;
 import com.seizia.chromite.model.DBPDataSourceContainer;
 import com.seizia.chromite.model.DBPEvent;
 import com.seizia.chromite.model.DBPEventListener;
+import com.seizia.chromite.model.ai.agent.AIAgentServices;
 import com.seizia.chromite.model.app.DBPDataSourceRegistry;
 import com.seizia.chromite.model.app.DBPProject;
 import com.seizia.chromite.model.app.DBPWorkspace;
@@ -188,6 +190,8 @@ import java.util.function.Supplier;
  * - 2026-11-07 제목 표시줄 가운데의 창 제목("Chromite")을 그리지 않음(사용자 결정, 작업 표시줄·Alt+Tab 이름은 그대로)
  *   (docs/chromite/swing-frontend.md "제목 표시줄")
  * - 2026-11-07 열쇠로 찾아 여는 도구 문서 탭 {@link #openToolDocument}(SQL Server 에이전트 작업 활동·기록·로그) (docs/chromite/swing-sqlserver-agent.md)
+ * - 2026-11-07 AI Assistant 도구 창(오른쪽 가장자리, 기본 숨김, View 메뉴·도구 막대 토글), AI 도구 확인 대화상자와 쿼리 창 연결 등록,
+ *   쿼리 창 편집기의 "Ask AI About This Query" ({@link AiAssistantPanel}, docs/chromite/ai-agent.md "2단계")
  */
 final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplorerPanel.QueryWindows, TableDesignerPanel.Host, QueryLibraryPanel.Host {
 
@@ -224,6 +228,8 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
     private final ObjectExplorerPanel explorerPanel;
     private final RegisteredServersPanel registeredServersPanel;
     private final QueryLibraryPanel queryLibraryPanel;
+    private final AiAssistantPanel aiAssistantPanel;
+    private final ToolWindow aiWindow;
     private final StatusBar statusBar;
     private final List<DBPDataSourceRegistry> listenedRegistries = new ArrayList<>();
     private final DBPEventListener registryListener = event -> {
@@ -392,7 +398,39 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
             ToolWindowDocking.Place.next(propertiesWindow.getId(), DockingRegion.NORTH, 0.5),
             ToolWindowDocking.Place.edge(DockingRegion.EAST, DEFAULT_RIGHT_SHARE));
         queryLibraryPanel.setShowWindow(() -> libraryWindow.setShown(true));
-        toolWindows = List.of(explorerWindow, registeredServersWindow, propertiesWindow, libraryWindow, resultsWindow);
+        aiWindow = new ToolWindow("aiAssistant", AiMessages.ai_title, //$NON-NLS-1$
+            KeyStroke.getKeyStroke(KeyEvent.VK_I, InputEvent.CTRL_DOWN_MASK | InputEvent.ALT_DOWN_MASK));
+        aiAssistantPanel = new AiAssistantPanel(new AiAssistantPanel.Host() {
+            @Nullable
+            @Override
+            public SqlEditorPanel getActiveEditor() {
+                return MainFrame.this.getActiveEditor();
+            }
+
+            @Override
+            public void openSqlEditor(@Nullable DBPDataSourceContainer connection, @NotNull String sql, @Nullable String title) {
+                SqlEditorPanel editor = openQueryEditor(connection, title == null || title.endsWith(".sql") ? title : title + ".sql"); //$NON-NLS-1$ //$NON-NLS-2$
+                editor.setContent(SqlFileContent.newFile(sql), null);
+            }
+
+            @Override
+            public void showAssistant() {
+                aiWindow.setShown(true);
+            }
+
+            @Override
+            public void openOptions() {
+                OptionsDialog.open(MainFrame.this);
+            }
+        });
+        // Its own column on the right edge, hidden until opened (a chat needs more width than the Properties column)
+        toolWindowDocking.addToolWindow(aiWindow, aiAssistantPanel, false,
+            ToolWindowDocking.Place.edge(DockingRegion.EAST, DEFAULT_RIGHT_SHARE + 0.07));
+        // Tool calls of the in-app chat and of the MCP server ask in this window; the openInEditor tool opens query windows here
+        AIAgentServices.setConfirmationHandler(new AiConfirmationDialog.Handler(() -> this));
+        AIAgentServices.setEditorBridge((connection, sql, windowTitle) ->
+            SwingUtilities.invokeLater(() -> aiAssistantPanel.openInEditor(connection, sql, windowTitle)));
+        toolWindows = List.of(explorerWindow, registeredServersWindow, propertiesWindow, libraryWindow, aiWindow, resultsWindow);
 
         newQueryAction = createAction(CoreMessages.main_new_query, CoreMessages.main_new_query_tip,
             KeyStroke.getKeyStroke(KeyEvent.VK_N, InputEvent.CTRL_DOWN_MASK), this::newQuery);
@@ -543,6 +581,9 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
         explorerPanel.dispose();
         registeredServersPanel.dispose();
         queryLibraryPanel.dispose();
+        aiAssistantPanel.dispose();
+        AIAgentServices.setConfirmationHandler(null);
+        AIAgentServices.setEditorBridge(null);
         editMenu.dispose();
         for (int i = 0; i < documentTabs.getTabCount(); i++) {
             if (documentTabs.getComponentAt(i) instanceof ToolDocument document) {
@@ -628,6 +669,7 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
         toolBar.add(createToolWindowButton(explorerWindow, "object-explorer", ToolbarMessages.toolbar_object_explorer_tip)); //$NON-NLS-1$
         toolBar.add(createToolWindowButton(libraryWindow, "library", ToolbarMessages.toolbar_query_library_tip)); //$NON-NLS-1$
         toolBar.add(createToolWindowButton(propertiesWindow, "properties", ToolbarMessages.toolbar_properties_tip)); //$NON-NLS-1$
+        toolBar.add(createToolWindowButton(aiWindow, "ai-assistant", AiMessages.ai_toolbar_tip)); //$NON-NLS-1$
         toolBar.addSeparator();
         toolBar.add(createIconButton(editMenu.getFindAction(), "search", ToolbarMessages.toolbar_find_tip)); //$NON-NLS-1$
         return toolBar;
@@ -841,6 +883,7 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
             fileName = "SQLQuery" + queryCounter + ".sql"; //$NON-NLS-1$ //$NON-NLS-2$
         }
         SqlEditorPanel editor = new SqlEditorPanel(dataSource, fileName, this);
+        aiAssistantPanel.installEditorActions(editor);
         editor.putClientProperty(FlatClientProperties.TABBED_PANE_TAB_CLOSABLE, true);
         documentTabs.addTab(editor.getTitle(), editor.getTabIcon(), editor);
         int index = documentTabs.indexOfComponent(editor);

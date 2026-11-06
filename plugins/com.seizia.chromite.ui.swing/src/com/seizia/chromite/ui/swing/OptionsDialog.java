@@ -18,6 +18,7 @@ package com.seizia.chromite.ui.swing;
 
 import com.formdev.flatlaf.FlatClientProperties;
 import com.formdev.flatlaf.util.UIScale;
+import com.seizia.chromite.ui.swing.internal.AiMessages;
 import com.seizia.chromite.ui.swing.internal.CoreMessages;
 import com.seizia.chromite.ui.swing.internal.UpdateMessages;
 import org.eclipse.osgi.util.NLS;
@@ -66,6 +67,7 @@ import java.util.Objects;
  * - 2026-11-07 자동완성에 프로시저·함수 제안 설정 (docs/chromite/swing-followup-fixes.md "자동완성 프로시저")
  * - 2026-11-07 날짜/시간 값을 데이터베이스 형식 그대로 보이는 설정(SWT "Disable date/time formatting") (docs/chromite/swing-followup-fixes.md "날짜/시간 소수 초")
  * - 2026-11-07 Updates 탭: 자동 업데이트 확인, 현재 버전, 지금 확인({@link UpdateOptionsPage}) (docs/chromite/auto-update.md)
+ * - 2026-11-07 AI Assistant 탭: 제공자, 도구 권한 정책, MCP 서버, 감사 기록({@link AiOptionsPage}) (docs/chromite/ai-agent.md "2단계")
  */
 final class OptionsDialog extends JDialog {
 
@@ -91,6 +93,7 @@ final class OptionsDialog extends JDialog {
         CoreMessages.options_case_database, CoreMessages.options_case_upper, CoreMessages.options_case_lower, CoreMessages.options_case_as_typed});
     private final SqlTemplatesPage templatesPage = new SqlTemplatesPage();
     private final UpdateOptionsPage updatesPage = new UpdateOptionsPage();
+    private final AiOptionsPage aiPage = new AiOptionsPage();
 
     // Editor tab
     private final JComboBox<String> fontFamilyCombo;
@@ -177,6 +180,7 @@ final class OptionsDialog extends JDialog {
         tabs.addTab(CoreMessages.options_editor_colors, createColorsPage());
         tabs.addTab(CoreMessages.options_templates, templatesPage);
         tabs.addTab(UpdateMessages.update_options_tab, updatesPage);
+        tabs.addTab(AiMessages.ai_options_tab, aiPage);
         content.add(tabs, BorderLayout.CENTER);
         content.add(buttons, BorderLayout.SOUTH);
         setContentPane(content);
@@ -433,6 +437,7 @@ final class OptionsDialog extends JDialog {
 
     private void apply() {
         updatesPage.apply();
+        aiPage.apply();
         if (autoCompleteBox.isSelected() != SqlCompletionPopup.isAutoActivateOnLetters()) {
             SqlCompletionPopup.setAutoActivateOnLetters(autoCompleteBox.isSelected());
         }

@@ -18,6 +18,7 @@ package com.seizia.chromite.ui.swing;
 
 import com.formdev.flatlaf.FlatClientProperties;
 import com.formdev.flatlaf.util.UIScale;
+import com.seizia.chromite.ui.swing.internal.AiMessages;
 import com.seizia.chromite.ui.swing.internal.ToolsMessages;
 import org.eclipse.osgi.util.NLS;
 import org.jkiss.code.NotNull;
@@ -58,6 +59,8 @@ import java.util.Map;
  * - 2026-11-06 Query Library ③: 저장할 때 파일의 예약 정의와 모르는 머리말을 유지 (docs/chromite/swing-query-library.md "예약 실행")
  * - 2026-11-06 화면 문구를 ToolsMessages로 옮김(OS 언어를 따름)
  * - 2026-11-07 쿼리 창 도구 막대가 메인 창으로 옮겨져 머리말 위치 설명을 고침 (docs/chromite/swing-frontend.md "SQL Editor 도구 막대")
+ * - 2026-11-07 Thresholds…: AI 에이전트 모니터링 판정용 {@code @threshold} 머리말 편집({@link QueryLibraryThresholdsDialog}). 저장할 때 파일의
+ *   모르는 머리말 줄에서 기준값 블록만 바꾼다 (docs/chromite/ai-agent.md "Query Library 기준값")
  */
 final class QueryLibraryEditor implements SqlEditorExtension {
 
@@ -73,6 +76,10 @@ final class QueryLibraryEditor implements SqlEditorExtension {
     private final JTextField databaseField = new JTextField(10);
     private final JTextField schemaField = new JTextField(10);
     private final JButton parametersButton = new JButton();
+    private final JButton thresholdsButton = new JButton();
+    // Edited thresholds; null while unchanged (the file's blocks are kept as they are)
+    @Nullable
+    private List<QueryLibraryThresholdsDialog.Threshold> thresholds;
     private List<QueryLibraryParameter> parameters = new ArrayList<>();
     private boolean updating;
 
@@ -292,7 +299,8 @@ final class QueryLibraryEditor implements SqlEditorExtension {
             QueryLibraryItem current = QueryLibraryFile.read(file);
             updated.setSchedule(current.getSchedule());
             updated.getExtraHeader().clear();
-            updated.getExtraHeader().addAll(current.getExtraHeader());
+            updated.getExtraHeader().addAll(thresholds == null ? current.getExtraHeader()
+                : QueryLibraryThresholdsDialog.replace(current.getExtraHeader(), thresholds));
         } catch (IOException e) {
             DBWorkbench.getPlatformUI().showError(ToolsMessages.library_editor_save, NLS.bind(ToolsMessages.library_error_read, file), e);
             return false;
@@ -370,6 +378,8 @@ final class QueryLibraryEditor implements SqlEditorExtension {
         schemaField.putClientProperty(FlatClientProperties.PLACEHOLDER_TEXT, ToolsMessages.library_editor_schema);
         parametersButton.setToolTipText(ToolsMessages.library_editor_parameters_tip);
         parametersButton.addActionListener(e -> editParameters());
+        thresholdsButton.setToolTipText(AiMessages.ai_thresholds_tip);
+        thresholdsButton.addActionListener(e -> editThresholds());
 
         // Only Name and Target have labels; the other fields show placeholders, so both rows fit a narrow document area
         addCell(panel, new JLabel(ToolsMessages.library_field_name), 0, 0, 0, 1);
@@ -380,6 +390,7 @@ final class QueryLibraryEditor implements SqlEditorExtension {
         addCell(panel, databaseField, 2, 1, 0.3, 1);
         addCell(panel, schemaField, 3, 1, 0.3, 1);
         addCell(panel, parametersButton, 4, 1, 0, 1);
+        addCell(panel, thresholdsButton, 5, 1, 0, 1);
 
         DocumentListener modified = new DocumentListener() {
             @Override
@@ -453,6 +464,7 @@ final class QueryLibraryEditor implements SqlEditorExtension {
             model.setSelectedItem(selected);
             targetCombo.setModel(model);
             updateParametersButton();
+            updateThresholdsButton();
         } finally {
             updating = false;
         }
@@ -478,6 +490,28 @@ final class QueryLibraryEditor implements SqlEditorExtension {
         if (edited != null) {
             parameters = edited;
             updateParametersButton();
+            editor.markModified();
+        }
+    }
+
+    @NotNull
+    private List<QueryLibraryThresholdsDialog.Threshold> getThresholds() {
+        return thresholds != null ? thresholds : QueryLibraryThresholdsDialog.parse(item.getExtraHeader());
+    }
+
+    private void updateThresholdsButton() {
+        int count = getThresholds().size();
+        thresholdsButton.setText(count > 0 ? NLS.bind(AiMessages.ai_thresholds_button_count, count) : AiMessages.ai_thresholds_button);
+    }
+
+    private void editThresholds() {
+        if (editor == null) {
+            return;
+        }
+        List<QueryLibraryThresholdsDialog.Threshold> edited = QueryLibraryThresholdsDialog.open(editor, nameField.getText().strip(), getThresholds());
+        if (edited != null) {
+            thresholds = edited;
+            updateThresholdsButton();
             editor.markModified();
         }
     }

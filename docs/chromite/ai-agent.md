@@ -1,4 +1,4 @@
-# AI 에이전트: 도구 카탈로그, 권한 정책, 로컬 MCP 서버, AI 엔진 (1단계)
+# AI 에이전트: 도구 카탈로그, 권한 정책, 로컬 MCP 서버, AI 엔진, 채팅 화면 (1·2단계)
 
 ## 목적
 
@@ -8,10 +8,10 @@ Chromite 안에서 AI 모델이 DBA처럼 일하게 한다. 사용자가 "이 �
 
 같은 도구 카탈로그를 두 곳에서 쓴다.
 
-- (a) 앱 안의 AI 채팅(2단계, 다른 에이전트가 만든다).
+- (a) 앱 안의 AI 채팅(2단계, 아래 "2단계 구현").
 - (b) 이 PC에서만 접속할 수 있는 로컬 MCP 서버. Claude Code 같은 외부 에이전트가 Chromite의 연결로 일한다.
 
-이 문서는 2단계(채팅 화면, 설정 화면, 확인 대화상자)를 만드는 에이전트가 따를 **계약**이다. 코드와 다르면 코드가 사실이고, 이 문서를 고친다.
+1단계(모델 계층)와 2단계(채팅 화면, 설정 화면, 확인 대화상자)의 **계약**이다. 코드와 다르면 코드가 사실이고, 이 문서를 고친다.
 
 ## 사용자 결정 (2026-11-07)
 
@@ -496,7 +496,7 @@ API 키는 `AIUtils.setSecretValue`(보안 저장소)에 두고 설정 파일(`a
 | `label` | 보고에 쓸 이름 |
 
 판정 결과(`evaluation`): 기준값마다 `status`(`OK`/`WARN`/`CRITICAL`/`NO_DATA`), 관측값, 맞은 행 번호. 쿼리 전체 상태는 가장 나쁜 것.
-기준값이 없으면 `status: "NO_THRESHOLDS"`. 기준값 편집 화면은 2단계(Swing Query Library 편집기)다.
+기준값이 없으면 `status: "NO_THRESHOLDS"`. 기준값 편집 화면은 Query Library 쿼리 창 머리말의 "Thresholds…"(2단계, 아래 "2단계 구현")다.
 
 ## 2단계(채팅 화면) 인터페이스
 
@@ -514,6 +514,116 @@ API 키는 `AIUtils.setSecretValue`(보안 저장소)에 두고 설정 파일(`a
 
 화면 문구는 Swing 쪽 NLS 묶음(`swing-l10n.md`)에 둔다. 모델의 도구 설명(`plugin.xml`의 `description`)은 모델에게 주는 글이라 영어로 둔다.
 
+## 2단계 구현 (2026-11-07)
+
+위 인터페이스 표대로 구현했다. 표와 다른 점은 아래 "계약과 다른 점"에 모았다.
+
+### 구성
+
+| 위치 | 클래스 | 역할 |
+|---|---|---|
+| `model.ai.tools` 패키지 `...model.ai.tools.chat` (새, 공개) | `AIAgentChat` | 대화 하나: 보이는 항목(사용자 글, 모델 글, 도구 호출과 결과, 오류)과 제공자·모델·연결·데이터베이스. 모델 메시지는 항목에서 다시 만든다(`toModelMessages`) |
+| | `AIAgentChatRunner` | 한 차례 실행: 스트림 요청 → 도구 호출을 `AIToolExecutor.execute(…, AIToolClient.CHAT, …, null)`로 실행 → 결과를 보내고 반복(최대 40번). `connection` 인수가 없으면 대화의 연결을 넣는다. 시스템 프롬프트 = MCP의 `AIAgentPlaybooks.INSTRUCTIONS` + 현재 연결(운영·읽기 전용 표시)·데이터베이스 |
+| | `AIAgentChatStore` | 대화 저장: 작업 공간 `.metadata/chromite-ai/chats/<id>.json`(임시 파일 + 이동) |
+| | `AIAgentProviders` | 제공자 3개(`anthropic`, `openai`, `ollama`)의 설정 프로필(프로필 ID = 엔진 ID), 설정 사본·저장(비밀은 보안 저장소), 엔진 만들기(대화의 모델로 사본을 만들어 기본 모델은 그대로), 모델 목록 |
+| `model.ai` `AIToolPolicy` | `resolve(Settings, …)`, `setSettings` | 설정 화면이 저장 전 규칙으로 실행기와 같은 판정을 보이고, OK에서 한 번에 저장한다 |
+| Swing `com.seizia.chromite.ui.swing` | `AiAssistantPanel` | 도구 창 "AI Assistant"/"AI 도우미" |
+| | `AiMarkdownView` | 모델 글의 Markdown(제목, 굵게·기울임, 인라인 코드, 목록, 인용, 표, 가로줄)과 코드 블록(복사, 쿼리 창에서 열기) |
+| | `AiToolCard` | 도구 호출 카드(접힘/펼침): 이름, 분류 배지, 상태(실행 중·완료·실패·거부·정책으로 막힘·읽기 전용 연결·취소·잘못된 호출), 시간, 결과 요약, 인수·결과 JSON |
+| | `AiConfirmationDialog` (+ `Handler`) | `AIToolConfirmationHandler` 구현. Allow/Deny 또는 Commit/Roll back/Cancel |
+| | `AiOptionsPage` | 옵션의 "AI Assistant" 탭: Providers, Tool Policy, MCP Server, Audit Log |
+| | `QueryLibraryThresholdsDialog` | Query Library 쿼리의 `@threshold` 편집 |
+| | `internal/AiMessages` (+ `_ko`) | 화면 문구 196개 |
+| | `MainFrame`, `OptionsDialog`, `QueryLibraryEditor` | 연결 지점만: 도구 창·도구 막대 단추·View 메뉴, 확인 처리기·편집기 연결 등록, 쿼리 창 편집기 메뉴 항목 / 옵션 탭 / Thresholds… 단추 |
+| `tools/branding/gen_ui_icons.py` | `ai-assistant` 아이콘 | 말풍선 + 반짝임, 두 팩·두 테마 |
+
+### 채팅 도구 창
+
+- 오른쪽 가장자리에 자기 열로 붙고 기본은 숨김이다. View > AI Assistant(Ctrl+Alt+I)와 주 도구 막대의 토글 단추(Properties 옆)로 연다. 채팅은 Properties 열보다 넓어야 해서
+  같은 열에 넣지 않았다(기본 폭 = 오른쪽 열 비율 + 7%).
+- 위에서 아래로: 대화 목록(최근 순) + 새 대화·대화 삭제·플레이북·AI 설정 단추 / 제공자(Anthropic Claude, OpenAI, Ollama)와 모델(편집 가능, 알려진 이름 +
+  Test로 받은 목록) / 연결과 데이터베이스(편집 가능, 연결된 연결이면 카탈로그·스키마 목록) / 대화 / 입력(Enter 보내기, Shift+Enter 줄 바꿈), 보내기·중지, 상태 줄.
+- 새 대화는 활성 쿼리 창의 연결과 현재 데이터베이스(그 연결의 기본 실행 문맥의 기본 카탈로그·스키마, 쿼리 창이 쓰는 문맥)로 시작한다. 마지막에 쓴 제공자·모델은
+  이 번들 설정(`ai.chat.engine`, `ai.chat.model.<엔진>`)에 남는다. 빈 대화는 새로 만들지 않고 다시 쓴다.
+- 모델 호출과 도구 실행은 작업(`AbstractJob`)에서 하고, 글 조각은 80 ms 타이머로 모아 다시 그린다. 바뀌지 않은 앞 블록은 다시 만들지 않는다.
+- 중지: 작업을 취소한다 → 실행기가 스트림 대기를 끝내고 엔진(HTTP 연결)을 닫는다. 실행 중인 도구는 같은 모니터로 취소되고, 열린 확인 대화상자는 닫히며 DENY다.
+  실행 중에는 대화·제공자·연결을 바꿀 수 없다.
+- 플레이북 6개: 이 쿼리 튜닝, DB 상태 점검, 이 쿼리가 느린 이유, 시스템 점검(쿼리 라이브러리), 블로킹 분석, 프로시저 검토. `AIAgentPlaybooks.getText`의 글에
+  `{connection}`(연결 이름), `{sql}`(활성 쿼리 창의 선택 또는 커서의 문장), `{folder}`(묻기, 기본 "Monitoring"), `{object}`(묻기)를 채워 보낸다. 대화에는 짧은 이름만 보이고
+  전체 글은 도구 설명에 있다.
+- 쿼리 창 편집기의 오른쪽 클릭 메뉴 "Ask AI About This Query"/"이 쿼리에 대해 AI에게 묻기": 선택한 글, 없으면 커서의 문장(자동완성과 같은
+  `SQLScriptParser.extractQueryAtPos`, 연결이 없으면 전체 글)을 쿼리 창의 연결로 보낸다. 지금 대화가 비어 있지 않으면 새 대화로 시작한다.
+- 대화 기록에는 도구 결과(DB 값)가 들어 있어 작업 공간 밖에 두지 않는다. 로그에는 대화 내용·인수·키를 쓰지 않는다.
+
+### 확인 대화상자
+
+- `MainFrame`이 시작할 때 `AIAgentServices.setConfirmationHandler(new AiConfirmationDialog.Handler(...))`를 등록하고 닫을 때 지운다. 채팅과 MCP 서버가 같은 처리기를 쓰므로
+  외부 에이전트의 쓰기 도구도 실행 중인 앱에 같은 대화상자를 띄운다(요청한 곳: "로컬 MCP 서버를 통한 외부 에이전트").
+- 처리기는 작업 스레드에서 EDT에 모달 대화상자를 띄우고 100 ms마다 모니터 취소를 본다. 공정 잠금으로 대화상자는 한 번에 하나다.
+- 보이는 것: 제목 줄(쓰기/위험, 채팅/MCP에 따라), 도구 이름·ID·분류 배지, 연결(운영이면 "Production" 배지), 요청한 곳, 묻는 이유(정책 이유를 화면 언어로), 실행할 SQL(읽기 전용
+  SQL 편집기, 쿼리 창과 같은 색), 인수 표(실행기가 비밀을 지운 값, 긴 값은 400자에서 자름).
+- WRITE: "\"도구\" 항상 허용(이 연결)" 확인란 → `AIToolPolicy.setPermission(연결 ID, 도구 ID, AUTO)`. DANGEROUS: 확인란 대신 "설정의 연결별·도구별 규칙으로만" 안내.
+  트랜잭션 질문(제목 "Open Transaction"/"열린 트랜잭션"): 열린 트랜잭션 목록과 Commit / Roll back / Cancel. 커밋할 수 없는 트랜잭션이 있으면 Commit을 끈다.
+- 기본 단추는 Deny / Cancel, Esc와 창 닫기도 거부다.
+
+### 편집기 연결
+
+`AIAgentServices.setEditorBridge`: `openInEditor` 도구가 부르면 EDT에서 새 쿼리 창을 연다(연결, 글, 제목 → 파일 이름 `제목.sql`). 실행하지 않는다.
+모델 글의 코드 블록 "쿼리 창에서 열기"도 같은 경로(대화의 연결)다.
+
+### 설정 (Tools > Options > AI Assistant)
+
+| 탭 | 내용 |
+|---|---|
+| Providers | 제공자마다 API 키(Ollama 제외), 기본 URL(OpenAI는 호환 엔드포인트, Ollama는 호스트), 기본 모델, Test. 키 입력란은 늘 비어 있고 "저장됨" 안내만 보인다(키를 화면에 다시 보이지 않음). 새 키를 넣을 때만 바꾸고, "제거"로 지운다. Test는 저장하지 않은 값으로 모델 목록을 받아 보고 받은 목록을 채팅 모델 선택에 남긴다. 저장은 OK에서 바뀐 제공자만 `AIAgentProviders.saveProperties`(설정 파일 `ai-configuration.json`에는 키가 없고 보안 저장소에만) |
+| Tool Policy | 맨 위에 늘 보이는 규칙 3개(운영 연결은 쓰기·위험 막힘, 읽기 전용 연결은 어떤 규칙으로도 바꿀 수 없음, 위험 도구 자동 실행은 연결 하나·도구 하나 규칙으로만). 규칙 대상(모든 연결 = 기본값, 또는 연결 하나, 운영 연결은 "(운영)" 표시), 분류별 규칙 3개, 도구 필터, 도구 표(도구, 그룹, 분류, 규칙: 상속/자동 실행/실행 전 확인/막음, 실제 권한). 실제 권한은 저장 전 규칙으로 `AIToolPolicy.resolve(Settings, …)` 판정(읽기 전용 연결이면 "실행 안 함"). OK에서 `setSettings` |
+| MCP Server | 사용 여부, 포트(OK에서 저장하면 서버가 바로 시작·중지·재시작), 상태(실행 중/중지/오류), 주소, 토큰(가림·보기·복사·다시 만들기는 묻고 즉시), Claude Code 명령(`<CHROMITE_MCP_TOKEN>` 자리 표시, 복사) |
+| Audit Log | `readRecent(2000)`을 작업에서 읽어 표(시각, 클라이언트, 도구, 분류, 연결, 정책, 결과, ms), 글자·클라이언트·결과로 거르기, 고른 기록의 JSON 전체, 파일 경로 |
+
+### Query Library 기준값 편집
+
+Query Library 쿼리 창 머리말의 Parameters… 옆 "Thresholds…"/"기준값…"(개수 표시). 표(열, 경고, 위험, 범위 any/all/max/min/sum/count, 표시 이름)를 고치고, 조건은
+평가기와 같은 문법(`<연산자> <값>`)만 받는다. 기준값은 Swing 파서가 모르는 머리말 줄(`QueryLibraryItem.getExtraHeader()`)로 보관되므로, 저장할 때 파일의 모르는 머리말에서
+`@threshold` 블록만 바꾸고 다른 줄은 그대로 둔다. Swing 파서·항목 클래스에 필드를 더하지 않았다(형식의 주인은 에이전트 도구 `LibraryReader`).
+
+### 계약과 다른 점
+
+- **채팅은 `AIAssistantImpl`/`AIChatSession`을 거치지 않는다.** 위 표의 "채팅의 도구 호출" 행은 기존 채팅 경로를 적었지만, 그 경로는 QM 대화 저장소, 할당량, DB 문맥 스냅숏
+  (`AIDatabaseContext`, 연결과 논리 데이터 소스를 만든다)을 함께 쓴다. 에이전트 채팅은 연결을 도구 인수로 넘기고 정책·확인·감사는 실행기가 하므로, 실행기를 직접 부르는
+  작은 실행기(`AIAgentChatRunner`)를 두었다. 실행기에 채팅 문맥(null)을 넘기지 않는 대신 `connection` 인수를 채운다. 기존 `AIAssistantImpl.callFunction` 경로는 그대로다.
+- **데이터베이스 문맥은 시스템 프롬프트로 알린다.** `database` 인수의 뜻이 도구마다 달라(인스턴스 선택, 필터) 자동으로 넣지 않았다.
+- **설정 화면은 탭 하나("AI Assistant") 안의 하위 탭 4개다.** 옵션의 위 탭 줄이 넘치지 않게 했다.
+- **Ollama**: 엔진이 응답의 첫 도구 호출만 돌려준다(1단계 "엔진"). 이 PC에 Ollama가 없어 실행해 보지 못했다.
+- `AIToolPolicy`에 공개 메서드 2개를 더했다(위 "구성").
+
+### 확인 (2단계, 2026-11-07)
+
+빌드: `mvn -B clean package -f product/aggregate/pom.xml -T1C -Pproduct-chromite-swing` BUILD SUCCESS, `java tools/jre/BundleJre.java windows-x64`, `python tools/rename/gate.py`
+ALL GATES PASSED. 회귀 테스트는 요청되지 않아 실행하지 않았다.
+
+유료 API 키가 이 PC에 없어 실제 LLM은 부르지 않았다. 로컬 가짜 Messages API(스크립트로 정한 응답: 도구 호출 → 결과 → 다음 도구, SSE 스트림, 조각마다 지연)를
+Anthropic 제공자의 기본 URL로 두고, 빌드한 Swing 제품을 개인 작업 공간으로 띄워 EDT 시험 에이전트(공개 Swing API로 단추·입력란 조작, 창만 그림)로 시험했다.
+연결: PostgreSQL 17의 시험 DB `chr_ai_agent_chat`에 개발용, 수동 커밋 종류(자동 커밋 끔), Production 종류 3개. Ollama는 설치되어 있지 않아 시험하지 않았다(설치하지 않음).
+
+| 시험 | 결과 |
+|---|---|
+| 제공자 설정 | Options > AI Assistant > Providers에 키·기본 URL 입력 → Test "Connected: 3 models available". `ai-configuration.json`에는 기본 URL·모델만 있고 키는 없다(작업 공간 전체 검색 0건). 앱을 다시 시작한 뒤에도 채팅이 동작(키를 보안 저장소에서 읽음), 입력란은 "저장됨" 안내만 |
+| 대화 + Allow | READ `getServerInfo`·`listTables`(자동 실행) → WRITE `runSql INSERT` 확인 대화상자(도구, 쓰기 배지, 연결, 요청한 곳, 이유, 실행할 SQL, 인수) → 허용 → 행 1개 들어감(DB 확인), 모델의 Markdown 답(제목, 목록, 표, SQL 코드 블록)과 도구 카드 3개 |
+| Deny | 같은 흐름에서 거부 → 카드 "거부됨 - Denied by the user", 모델이 거부를 받아 "nothing changed" 답, DB에 행 없음 |
+| 열린 트랜잭션 | 수동 커밋 연결에서 `runSql` 허용 → 카드 "트랜잭션 열림" → `commitTransaction`이 "열린 트랜잭션" 대화상자(Commit / Roll Back / Cancel, 기본 Cancel). 영어 실행에서 Commit → 행이 커밋됨, 한국어 다크 실행에서 롤백 → 행 없음(DB 확인) |
+| 항상 허용 | 확인 대화상자에서 "Always allow \"Run SQL\" on \"Chat PG\"" + 허용 → `tool-policy.json`에 `chr-chat-pg`의 `runSql: AUTO`. 다음 대화의 같은 `runSql`은 묻지 않고 실행 |
+| MCP | 설정에서 MCP 서버를 켜고 Python MCP 클라이언트(`urllib`, 토큰은 작업 공간 파일)로 `runSql INSERT` 호출 → 실행 중인 앱에 "외부 에이전트(MCP)" 확인 대화상자 → 허용 → 클라이언트가 `updateCounts [1]`을 받음 |
+| 편집기 연결 | MCP `openInEditor`(연결, SQL, 제목) → "AI suggestion.sql - Chat PG" 쿼리 창이 열림(실행 안 함) |
+| Ask AI | 그 쿼리 창 편집기 메뉴 "Ask AI About This Query" → 새 대화, 연결 Chat PG, 데이터베이스 `chr_ai_agent_chat`(쿼리 창 문맥), 문장이 SQL 코드 블록으로 감 |
+| 중지 | 긴 스트림 중 중지 → 상태 "Stopped.", 글이 멈추고 입력이 다시 가능 |
+| 기준값 | Query Library 쿼리 창의 "기준값(1)…" → 경고 값 고침 + 새 기준값(scope max, 한국어 표시 이름) → 저장. 파일의 `@threshold` 블록 2개, 다른 머리말 그대로. MCP `getLibraryQuery`가 두 기준값을 읽고 `runMonitoringChecks` 판정 |
+| 감사 기록 | 위 호출이 모두 보임(클라이언트 CHAT/MCP, 정책 AUTO/CONFIRM, 결과 완료/거부됨), 거르기 동작 |
+| 언어·테마 | `-nl en` 라이트, OS 기본(한국어) 라이트·다크. 글자 잘림 없음, 다크에서 Markdown·카드·대화상자 색이 테마를 따름 |
+
+시험 중에 찾아 고친 것: Markdown 가로줄 정규식이 클래스 초기화에서 실패(모델 글이 안 보임), 코드 블록이 좁은 창에서 가로 스크롤 막대에 가려짐(줄 바꿈으로),
+설정 후에도 "제공자를 설정하세요" 안내가 남음(AI 설정 변경 이벤트로 갱신), 연결을 고를 때 데이터베이스가 비어 있음(쿼리 창 문맥의 기본값으로), 테마를 바꿔도
+Markdown 글자색이 그대로(외형 값을 따르게).
+
 ## 1b단계 (미룬 것)
 
 | 항목 | 이유 |
@@ -523,7 +633,6 @@ API 키는 `AIUtils.setSecretValue`(보안 저장소)에 두고 설정 파일(`a
 | Oracle 실제 계획(`gather_plan_statistics` + `DBMS_XPLAN.DISPLAY_CURSOR`), Oracle 교착 상태(경고 로그·추적 파일), Oracle 루틴 문장 통계, 누락·미사용 인덱스 | 테스트 DB에서 권한(`SELECT_CATALOG_ROLE`) 확인과 출력 해석이 더 필요하다 |
 | `whatIfIndex` (PG hypopg, SQL Server는 없음) | 확장 설치가 필요하고 테스트 DB에 없다 |
 | SQL Server Query Store 기반 상위 쿼리·계획 회귀 | 1단계는 `dm_exec_query_stats`(플랜 캐시)만 쓴다 |
-| 채팅 화면, 설정 화면, 확인 대화상자, 감사 기록 화면, Query Library 기준값 편집 | 2단계 |
 
 ## 설계 결정과 이유
 
@@ -582,8 +691,11 @@ Oracle 진단 결과의 대문자 열 이름(소문자로 맞춤), PostgreSQL에
 
 ## 위험과 남은 일
 
-- **확인 화면이 아직 없다**: 2단계 전까지 CONFIRM과 트랜잭션 질문은 모두 거부된다(안전한 쪽). Production에 연결별 규칙으로 쓰기를 허용하면 열린 트랜잭션이
-  남을 수 있고, 지금은 앱을 닫거나(연결이 닫히며 서버가 롤백) 2단계 화면으로 커밋·롤백해야 한다.
+- **실제 LLM으로 시험하지 않았다(2단계)**: 유료 키가 없어 가짜 Messages API로만 시험했다. 실제 모델의 도구 선택, 긴 대화의 문맥 크기(도구 86개 정의 + 결과가 매번
+  다시 감, 잘라 내기 없음), OpenAI Responses·Ollama 스트림의 도구 호출 흐름은 확인하지 못했다. 대화가 길어지면 제공자의 문맥 한도에 걸릴 수 있다.
+- **열린 에이전트 트랜잭션과 앱 종료**: 채팅이 수동 커밋 연결에 남긴 에이전트 트랜잭션은 채팅 카드("트랜잭션 열림")로만 보인다. 앱 종료 시 묻는 열린 트랜잭션 확인
+  (`ExitTransactionCheck`)이 에이전트 격리 문맥을 찾는지는 확인하지 않았다.
+- **트랜잭션 질문에 롤백으로 답하면 원래 도구는 실행된다**: 1단계 실행기 규칙이다(롤백 후 `commitTransaction`은 커밋할 것이 없어 "완료"). 카드가 "완료"로 보여 헷갈릴 수 있다.
 - **분류기는 보수적이다**: JSQLParser가 해석하지 못하는 읽기 문장(예: PostgreSQL `make_interval(secs => …)`)은 WRITE로 본다. 모델은 `runReadOnlySql` 대신 `runSql`을 써야 하고
   사용자가 확인한다. SQL Server는 읽기 전용 트랜잭션이 없어 두 번째 겹이 롤백뿐이다.
 - **Query Library 읽기 코드 중복**: `LibraryReader`는 Swing `QueryLibraryFile`의 머리말 형식을 따로 읽는다. 저장소가 모델 번들로 옮겨지면 지운다.
@@ -592,6 +704,9 @@ Oracle 진단 결과의 대문자 열 이름(소문자로 맞춤), PostgreSQL에
 
 ## 변경 이력
 
+- 2026-11-07 2단계 구현과 확인: AI Assistant 도구 창(대화, 제공자·모델·연결·데이터베이스, 스트리밍 Markdown, 도구 카드, 중지, 플레이북, Ask AI), 확인 대화상자
+  (Allow/Deny, Commit/Roll back/Cancel, WRITE "항상 허용"), 편집기 연결, Options > AI Assistant(Providers, Tool Policy, MCP Server, Audit Log), Query Library 기준값 편집.
+  모델 쪽 `model.ai.tools.chat` 패키지, `AIToolPolicy.resolve(Settings, …)`·`setSettings`. 위 "2단계 구현", "위험과 남은 일".
 - 2026-11-07 구현과 확인: 도구 89개(카탈로그 86 + 기존 3), 진단 SQL 29개, MCP 서버, Anthropic 엔진. 에이전트 문맥 풀, `rollbackTransaction`을 READ로
   (운영 연결에서도 막히지 않고 늘 확인), 위 "확인"과 "위험과 남은 일".
 - 2026-11-07 사용자 규칙 "트랜잭션 안전" 반영: `AIToolTransactionGuard`, 확인 답 Commit/Roll back/Cancel, 수동 커밋 연결에서 트랜잭션을 열어 두는 쓰기,

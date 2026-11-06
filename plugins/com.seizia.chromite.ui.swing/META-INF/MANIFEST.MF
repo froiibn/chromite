@@ -30,6 +30,8 @@ Require-Bundle: org.eclipse.equinox.app,
  com.seizia.chromite.ext.oracle,
  com.seizia.chromite.ext.postgresql,
  com.seizia.chromite.model.jdbc,
+ com.seizia.chromite.model.ai,
+ com.seizia.chromite.model.ai.tools,
  com.seizia.chromite.model.update,
  com.github.weisj.jsvg,
  org.eclipse.osgi
