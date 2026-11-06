@@ -339,8 +339,8 @@ A단계에서는 디버그 로그 순환 한도(`logs.files.output.maxSize`, `lo
 JBR/JetBrains 브랜드가 화면에 보이지 않게 한다.
 
 - **창 아이콘:** 모든 최상위 창에 Chromite 아이콘을 지정한다(`ChromiteIcons`, `Window.setIconImages`).
-  크기는 16, 20, 24, 32, 40, 48, 64, 128, 256이다. 16·32·48·64·128·256은 `product/community/icons-sources`의 Chromite 아이콘을
-  그대로 복사했고, 20·24·40은 512px 원본을 축소해 만들었다(번들의 `icons/chromite<크기>.png`).
+  크기는 16, 20, 24, 32, 40, 48, 64, 128, 256이다(번들의 `icons/chromite<크기>.png`).
+  `tools/branding/gen_app_icons.py`가 크기마다 그 크기의 픽셀 격자에 맞춰 그린다([branding.md](branding.md) "아이콘").
   지정하지 않으면 JBR의 기본 아이콘(JetBrains "JB")이 제목 표시줄과 작업 표시줄에 나온다.
 - **대화상자:** `SwingPlatformUI`는 활성 창(없으면 보이는 프레임)을 부모로 넘겨 대화상자가 그 아이콘을 물려받는다.
   부모 없이 띄우는 대화상자(시작 오류 등)는 Swing의 공유 소유 프레임(`JOptionPane.getRootFrame()`)이 소유하므로,
@@ -1707,3 +1707,4 @@ Windows 11, 화면 배율 150%, JBR 25, 작업 공간 사본 `D:\Tools\_smoke\sw
   [swing-registered-servers.md](swing-registered-servers.md) "연결 색 알약".
 - 2026-11-06 화면 언어: 화면 문구를 NLS 묶음(영어 기본, 한국어 `_ko`)으로 옮겨 OS 언어를 따르게 함, 한국어 semibold 한글을 굵은 대체 글꼴로 그림. [swing-l10n.md](swing-l10n.md).
 - 2026-11-06 DBeaver 모델 번들 한국어 보충: 개체 탐색기 폴더·속성 이름·세션/잠금/계획 열·데이터 전송 속성·인증 방식 이름이 한국어로 나옴. [swing-l10n.md](swing-l10n.md) "DBeaver 플러그인 한국어 보충".
+- 2026-11-06 창 아이콘 `icons/chromite<크기>.png`를 사용자가 고른 새 아이콘으로 교체(`tools/branding/gen_app_icons.py`로 생성). [branding.md](branding.md) "아이콘".

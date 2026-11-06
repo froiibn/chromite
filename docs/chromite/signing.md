@@ -99,7 +99,7 @@ Windows는 `Get-AuthenticodeSignature`로 확인했다. 번들·드라이버 구
 
 | 파일 | 서명 | 이유 |
 |---|---|---|
-| `chromite/chromite.exe` | **서명** | Tycho(p2 BrandingIron, `IconExe`)가 Eclipse 런처에 Chromite 아이콘을 넣어 만든 파일이다([tools/branding/gen_launcher_ico.py](../../tools/branding/gen_launcher_ico.py)). 이때 원래 붙어 있던 Eclipse 서명이 깨진다(`HashMismatch`, 서명자 Eclipse.org Foundation) |
+| `chromite/chromite.exe` | **서명** | Tycho(p2 BrandingIron, `IconExe`)가 Eclipse 런처에 Chromite 아이콘을 넣어 만든 파일이다([tools/branding/gen_app_icons.py](../../tools/branding/gen_app_icons.py)). 이때 원래 붙어 있던 Eclipse 서명이 깨진다(`HashMismatch`, 서명자 Eclipse.org Foundation) |
 | `chromite-swing/chromite-swing.exe` | **서명** | 같은 이유(`HashMismatch`) |
 | `chromitec.exe`, `chromite-swingc.exe` (콘솔 런처) | 안 함 | 이름만 바뀐 Eclipse 파일이고 Eclipse 서명이 그대로 유효하다(`Valid`, Eclipse.org Foundation) |
 | `plugins/org.eclipse.equinox.launcher.win32.win32.x86_64_*/eclipse_11924.dll` | 안 함 | Eclipse 파일, Eclipse 서명 `Valid` |
@@ -266,3 +266,4 @@ DBeaver는 이 저장소에 릴리스·서명 설정이 없다(별도 빌드 저
 
 - 2026-11-06 최초 작성. Turbrix 서명 안내서(2026-11-06)를 따라 `release.yml`(Windows: Azure Artifact Signing, macOS: Developer ID 서명·공증·staple),
   macOS 서명 스크립트, jar 안 Mach-O 처리, 권한 plist를 추가했다. 로컬 빌드로 서명 대상 목록을 확인했다.
+- 2026-11-06 Windows 아이콘 생성 스크립트 이름 변경(`gen_launcher_ico.py` → `gen_app_icons.py`)에 맞춰 링크 수정.
