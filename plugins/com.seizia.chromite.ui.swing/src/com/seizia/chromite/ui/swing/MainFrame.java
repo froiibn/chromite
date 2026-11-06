@@ -173,6 +173,7 @@ import java.util.function.IntConsumer;
  * - 2026-11-07 Tools &gt; Driver Manager… ({@link DriverManagerDialog}) (docs/chromite/swing-driver-manager.md)
  * - 2026-11-07 Object Explorer·Properties의 기본 위치에 같은 열의 이웃(Registered Servers 위, Query Library 아래)을 둠 (docs/chromite/swing-frontend.md "Query Library 자리")
  * - 2026-11-07 Results 기본 높이 220 → 280(사용자 결정), {@link #DEFAULT_RESULTS_HEIGHT} (docs/chromite/swing-frontend.md "Results 자동 숨김")
+ * - 2026-11-07 Tools &gt; Disk Usage·Server Logs(Activity Monitor의 탭, {@link AdminViewCommands}) (docs/chromite/swing-admin-tools.md)
  */
 final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplorerPanel.QueryWindows, TableDesignerPanel.Host, QueryLibraryPanel.Host {
 
@@ -1465,6 +1466,7 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
         toolsMenu.add(activityMonitorItem);
         toolsMenu.add(locksItem);
         toolsMenu.add(dashboardItem);
+        AdminViewCommands.addMenuItems(toolsMenu, this::openActivityMonitor);
         toolsMenu.add(findObjectsItem);
         toolsMenu.addSeparator();
         toolsMenu.add(driverManagerItem);

@@ -15,9 +15,11 @@ Require-Bundle: com.seizia.chromite.model,
  com.seizia.chromite.model.dashboard
 Export-Package: com.seizia.chromite.model.admin,
  com.seizia.chromite.model.admin.dashboard,
+ com.seizia.chromite.model.admin.logs,
  com.seizia.chromite.model.admin.mssql,
  com.seizia.chromite.model.admin.mysql,
  com.seizia.chromite.model.admin.oracle,
  com.seizia.chromite.model.admin.postgresql,
- com.seizia.chromite.model.admin.security
+ com.seizia.chromite.model.admin.security,
+ com.seizia.chromite.model.admin.space
 Automatic-Module-Name: com.seizia.chromite.model.admin
