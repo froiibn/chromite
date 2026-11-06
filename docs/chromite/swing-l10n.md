@@ -156,7 +156,13 @@ Comment(주석), Owner(소유자), Nullable(Null 허용), Created/Modify Date(�
 `org.jkiss.dbeaver.registry/plugin.xml`의 기본 인증 방식 두 개(`native`, `shell_command`)는 `label`/`description`이 문자열로
 박혀 있어 번역할 수 없었다. `%auth.native.label`, `%auth.native.description`, `%auth.shell_command.label`,
 `%auth.shell_command.description`으로 바꾸고 `OSGI-INF/l10n/bundle.properties`에 **같은 영어 문구**를 넣었다(영어 화면은 그대로).
-서버에 연결 대화상자의 인증 목록이 한국어에서 "사용자 이름/암호"로 나온다.
+서버에 연결 대화상자의 인증 목록이 한국어에서 "사용자 이름/암호"로 나온다(PostgreSQL·MariaDB처럼 기본 인증 방식을 쓰는 드라이버).
+
+### 화면 확인 (2026-11-06, 통합 브랜치)
+
+Swing 제품을 개인 작업 공간으로 실행해 SQL Server, PostgreSQL, MariaDB, Oracle 테스트 DB에 연결하고 확인했다.
+서버에 연결(인증·연결 유형·자동 커밋), 개체 탐색기 폴더, 테이블·열 속성(행 수, 만든 날짜, NOT NULL, 데이터 형식 등), 데이터 내보내기 CSV 설정이
+한국어로 나오고, `-nl en`에서는 영어 문구가 그대로다(Username/password, Development/Test/Production, Total row count, CSV 속성 이름).
 
 ### MySQL `nodeName` 키
 
@@ -173,8 +179,9 @@ Comment(주석), Owner(소유자), Nullable(Null 허용), Created/Modify Date(�
 - **속성 범주**: 속성 창의 범주 머리글(Statistics, Properties, Flags, Settings, Constraints, Misc, Partitioning, Details, 연결 노드의
   Driver/Server 등)은 `@Property(category = "...")` 문자열이다. `ObjectPropertyDescriptor.getCategory()`가 번들을 찾지 않고 그대로 돌려준다
   (`org.jkiss.dbeaver.model/src/org/jkiss/dbeaver/runtime/properties/ObjectPropertyDescriptor.java:363-366`).
-- **`plugin.xml`에 박힌 라벨**: Oracle 폴더 `Java`, `Jobs`(`ext.oracle/plugin.xml`), SQL Server 폴더 설명(도구 설명), SQL Server
-  `dataSourceAuth` 라벨, 드라이버 속성(Misc, Performance, Show all databases, Server Time Zone, SSL 설정 등), 작업 범주 이름.
+- **`plugin.xml`에 박힌 라벨**: Oracle 폴더 `Java`, `Jobs`(`ext.oracle/plugin.xml`), SQL Server 폴더 설명(도구 설명), 인증 방식 이름
+  (SQL Server `dataSourceAuth`의 "SQL Server Authentication", "Windows Authentication" 등, Oracle의 "Username/password", "OS Authentication" —
+  `ext.oracle/plugin.xml:463,472`; 기본 인증 방식처럼 `%키`로 바꾸면 번역할 수 있다), Oracle 역할 값 Normal/SYSDBA/SYSOPER, 드라이버 속성(Misc, Performance, Show all databases, Server Time Zone, SSL 설정 등), 작업 범주 이름.
   SQL Server의 `description="tree.administer.node.description"`은 `%`가 빠져 키 이름이 그대로 보인다(upstream 버그).
 - **키 없는 `@Property`**: PostgreSQL 제약 조건의 "Type"(`PostgreTableConstraintBase.getConstraintType()`을 다시 선언했는데 키가 없음),
   권한·연산자 클래스 이름 등 일부, Oracle 사용자의 `infoLabel`.
