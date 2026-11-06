@@ -30,9 +30,14 @@
                 This is the only place the bundled jars and versions are listed: every product that ships
                 the public edition drivers (SWT and Swing) includes this feature.
                 Versions must match the Maven fallback versions in plugin.xml so both modes load the same driver.
+                Exception: drivers/mysql/mysql8 is shared by drivers whose Maven fallbacks pin different
+                Connector/J versions (8.2.0, 9.7.0, RELEASE); one folder can hold only one Connector/J jar,
+                so it ships 9.7.0 (docs/chromite/drivers.md).
                 Not bundled on purpose: mssql-jdbc_auth DLL (Microsoft license terms, internal edition only),
                 waffle-jna (PostgreSQL SSPI only; plugin.xml has no bundled alternative),
-                xmlparserv2 18.3.0.0 (pulled in by xdb6, duplicate of 23.2.0.0), checker-qual (annotations only).
+                xmlparserv2 18.3.0.0 (pulled in by xdb6, duplicate of 23.2.0.0), checker-qual (annotations only),
+                protobuf-java (Connector/J dependency used only by the X DevAPI, never by jdbc:mysql: connections),
+                mysql-connector-java 5.1.49 (MySQL 5 (Legacy) uses its own bundle id drivers.mysql5, not declared).
             -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
@@ -76,6 +81,8 @@
                                 <artifactItem><groupId>net.postgis</groupId><artifactId>postgis-jdbc-jtsparser</artifactId><version>2.5.0</version><outputDirectory>${drivers.dir}/postgis</outputDirectory></artifactItem>
                                 <!-- drivers.mariadb: MariaDB (also used for MySQL in the public edition) -->
                                 <artifactItem><groupId>org.mariadb.jdbc</groupId><artifactId>mariadb-java-client</artifactId><version>3.5.10</version><outputDirectory>${drivers.dir}/mariadb</outputDirectory></artifactItem>
+                                <!-- drivers.mysql: MySQL, NDB Cluster, Apache Doris, GreptimeDB, Manticore Search, TiDB -->
+                                <artifactItem><groupId>com.mysql</groupId><artifactId>mysql-connector-j</artifactId><version>9.7.0</version><outputDirectory>${drivers.dir}/mysql/mysql8</outputDirectory></artifactItem>
                             </artifactItems>
                         </configuration>
                     </execution>
