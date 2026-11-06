@@ -20,6 +20,7 @@ import com.formdev.flatlaf.FlatClientProperties;
 import com.seizia.chromite.ui.swing.internal.AdminViewMessages;
 import com.seizia.chromite.ui.swing.internal.ConnectionMessages;
 import com.seizia.chromite.ui.swing.internal.DashboardMessages;
+import com.seizia.chromite.ui.swing.internal.MaintenanceViewMessages;
 import org.eclipse.osgi.util.NLS;
 import org.jkiss.code.NotNull;
 import com.seizia.chromite.model.DBPDataSourceContainer;
@@ -29,14 +30,15 @@ import java.awt.*;
 
 /**
  * Activity Monitor 문서 탭: 연결 하나의 Overview(서버 대시보드), Processes(세션), Locks(잠금 대기), Disk Usage(공간 사용량),
- * Server Logs(서버 로그).
+ * Server Logs(서버 로그), Maintenance(유지 관리), Replication(복제).
  *
  * 설계: SSMS Activity Monitor처럼 서버 활동을 문서 탭 하나에 모은다. SWT에서는 세션 관리자({@code AbstractSessionEditor})와
  * 잠금 관리자({@code AbstractLockEditor})가 따로 여는 편집기다. 두 탭은 서버 연결({@link AdminConnection}, 격리된 실행 컨텍스트 하나)을
  * 함께 써서 창 하나가 서버에 연결 하나만 더한다. 각 탭은 처음 보일 때 읽고, 그 뒤로는 자기 자동 새로 고침 간격을 따른다.
  * SSMS처럼 서버 활동 차트(개요, {@link DashboardPanel})를 첫 탭에 둔다. SWT에서는 따로 여는 대시보드 보기({@code DataSourceDashboardView})다.
  * 공간 사용량({@link DiskUsagePanel})과 서버 로그({@link ServerLogPanel})도 같은 서버 연결을 쓰는 탭으로 둔다(새 문서 종류를 만들지 않고
- * Tools·Object Explorer 메뉴에서 이 문서를 그 탭으로 연다, {@link AdminViewCommands}).
+ * Tools·Object Explorer 메뉴에서 이 문서를 그 탭으로 연다, {@link AdminViewCommands}). 유지 관리({@link MaintenancePanel})와 복제 상태
+ * ({@link ReplicationPanel})도 같은 방식의 탭이다.
  *
  * 변경 이력:
  * - 2026-11-06 최초 작성 (docs/chromite/swing-admin-tools.md)
@@ -45,6 +47,7 @@ import java.awt.*;
  * - 2026-11-07 개요 탭(서버 대시보드)을 첫 탭으로 더함 (docs/chromite/swing-dashboard.md)
  * - 2026-11-07 탭 스타일을 밀도 B 값({@link UiSizes#TOOL_TABS_STYLE}) 하나로: 두 브랜치를 합칠 때 남은 옛 고정값(tabHeight 32) 줄 삭제
  * - 2026-11-07 Disk Usage·Server Logs 탭을 더함(DB 관리 축 3·5, docs/chromite/swing-admin-tools.md)
+ * - 2026-11-07 Maintenance·Replication 탭을 더함(DB 관리 축 4·6, docs/chromite/swing-admin-tools.md)
  */
 final class ActivityMonitorPanel extends JPanel implements ToolDocument {
 
@@ -53,6 +56,8 @@ final class ActivityMonitorPanel extends JPanel implements ToolDocument {
     static final int LOCKS_TAB = 2;
     static final int DISK_USAGE_TAB = 3;
     static final int SERVER_LOGS_TAB = 4;
+    static final int MAINTENANCE_TAB = 5;
+    static final int REPLICATION_TAB = 6;
 
     private final DBPDataSourceContainer container;
     private final AdminConnection connection;
@@ -61,8 +66,10 @@ final class ActivityMonitorPanel extends JPanel implements ToolDocument {
     private final DashboardPanel dashboardPanel;
     private final DiskUsagePanel diskUsagePanel;
     private final ServerLogPanel serverLogPanel;
+    private final MaintenancePanel maintenancePanel;
+    private final ReplicationPanel replicationPanel;
     private final JTabbedPane tabs = new JTabbedPane();
-    private final boolean[] loaded = new boolean[5];
+    private final boolean[] loaded = new boolean[7];
 
     ActivityMonitorPanel(@NotNull DBPDataSourceContainer container, @NotNull ObjectExplorerPanel.QueryWindows queryWindows) {
         super(new BorderLayout());
@@ -79,6 +86,10 @@ final class ActivityMonitorPanel extends JPanel implements ToolDocument {
         serverLogPanel = new ServerLogPanel(connection);
         tabs.addTab(AdminViewMessages.admin_space_tab, UiIcons.get("database"), diskUsagePanel); //$NON-NLS-1$
         tabs.addTab(AdminViewMessages.admin_logs_tab, UiIcons.get("messages"), serverLogPanel); //$NON-NLS-1$
+        maintenancePanel = new MaintenancePanel(connection);
+        replicationPanel = new ReplicationPanel(connection);
+        tabs.addTab(MaintenanceViewMessages.maintview_maint_tab, UiIcons.get("settings"), maintenancePanel); //$NON-NLS-1$
+        tabs.addTab(MaintenanceViewMessages.maintview_repl_tab, UiIcons.get("connection"), replicationPanel); //$NON-NLS-1$
         tabs.addChangeListener(e -> loadSelectedTab());
         add(tabs, BorderLayout.CENTER);
     }
@@ -107,8 +118,12 @@ final class ActivityMonitorPanel extends JPanel implements ToolDocument {
             lockPanel.refresh();
         } else if (index == DISK_USAGE_TAB) {
             diskUsagePanel.refresh();
-        } else {
+        } else if (index == SERVER_LOGS_TAB) {
             serverLogPanel.refresh();
+        } else if (index == MAINTENANCE_TAB) {
+            maintenancePanel.refresh();
+        } else {
+            replicationPanel.refresh();
         }
     }
 
@@ -140,6 +155,7 @@ final class ActivityMonitorPanel extends JPanel implements ToolDocument {
         sessionPanel.dispose();
         lockPanel.dispose();
         dashboardPanel.dispose();
+        replicationPanel.dispose();
         connection.close();
     }
 }

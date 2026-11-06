@@ -192,6 +192,7 @@ import java.util.function.Supplier;
  * - 2026-11-07 테이블 저장 방식(메모리/디스크/휘발성) 글자색과 툴팁({@link TableStorageStyle}) (docs/chromite/altibase.md)
  * - 2026-11-07 SQL Server 에이전트: 에이전트 메뉴 항목, Properties·Delete 갈래, 두 번 클릭, 보조 글자, 도구 문서 열기
  *   ({@link QueryWindows#openToolDocument}) (docs/chromite/swing-sqlserver-agent.md)
+ * - 2026-11-07 Maintenance… 명령(테이블·인덱스·스키마·데이터베이스, {@link MaintenanceCommands}) (docs/chromite/swing-admin-tools.md)
  */
 final class ObjectExplorerPanel extends JPanel {
 
@@ -297,6 +298,7 @@ final class ObjectExplorerPanel extends JPanel {
     private final Action locksAction;
     private final Action dashboardAction;
     private final List<Action> adminViewActions;
+    private final Action maintenanceAction;
     private final Action findObjectsAction;
     private final Action designAction;
     private final Action newTableAction;
@@ -505,6 +507,7 @@ final class ObjectExplorerPanel extends JPanel {
                 BackupRestoreCommands.restore(this, object, queryWindows);
             }
         });
+        maintenanceAction = MaintenanceCommands.createAction(this, this::getSelectedObject);
         tasksMenu = new JMenu(CoreMessages.explorer_tasks);
         tasksMenu.add(backUpAction);
         tasksMenu.add(restoreAction);
@@ -595,6 +598,7 @@ final class ObjectExplorerPanel extends JPanel {
         popupMenu.add(viewDdlAction);
         popupMenu.add(viewDiagramAction);
         popupMenu.add(tasksMenu);
+        popupMenu.add(maintenanceAction);
         popupMenu.addSeparator();
         popupMenu.add(connectAction);
         popupMenu.add(disconnectAction);
@@ -813,6 +817,7 @@ final class ObjectExplorerPanel extends JPanel {
         copyTablesAction.setEnabled(exportDataAction.isEnabled());
         DataTransferObjects.updateTaskTooltips(transferObject, importDataAction, exportDataAction, copyTablesAction);
         tasksMenu.setEnabled(importDataAction.isEnabled() || exportDataAction.isEnabled() || backUpAction.isEnabled());
+        maintenanceAction.setEnabled(MaintenanceCommands.canMaintain(object));
         designAction.setEnabled(TableDesignSession.canDesign(object));
         newTableAction.setEnabled(getSelectedNavigatorNode() instanceof DBNDatabaseFolder folder && TableDesignSession.canCreateTable(folder));
         sourceEditCommands.update(getSelectedNavigatorNode());
