@@ -188,6 +188,11 @@ def doc_shape(f, s):
             + path("M9.5 1.5V4.5H12.5", None, s))
 
 
+# save-all: the back floppy (its visible top and right edges) and a smaller front floppy (Tabler device-floppy)
+SAVE_ALL_BACK = "M4.5 4.5V2A.5 .5 0 0 1 5 1.5H12L14.5 4V11A.5 .5 0 0 1 14 11.5H11.5"
+SAVE_ALL_FRONT = "M1.5 5A.5 .5 0 0 1 2 4.5H9L11.5 7V14A.5 .5 0 0 1 11 14.5H2A.5 .5 0 0 1 1.5 14Z"
+
+
 def tile(f, s):
     return rect(1.5, 1.5, 13, 13, 2.5, f, s)
 
@@ -287,6 +292,20 @@ CONCEPTS = [
     ("zoom-out", "축소", "Zoom out", "zoom-out"),
     ("zoom-fit", "창에 맞추기", "Fit to window", "arrows-maximize"),
     ("layout", "자동 레이아웃", "Auto layout", "hierarchy-3"),
+    # Main tool bar (SSMS Standard arrangement) and SQL editor tool bar commands
+    ("save-all", "모두 저장", "Save all", "device-floppy (two)"),
+    ("undo", "실행 취소", "Undo", "arrow-back-up"),
+    ("redo", "다시 실행", "Redo", "arrow-forward-up"),
+    ("activity-monitor", "작업 모니터", "Activity monitor", "device-heart-monitor"),
+    ("registered-servers", "등록된 서버", "Registered servers", "server-2 + bookmark"),
+    ("object-explorer", "개체 탐색기", "Object explorer", "database + binary-tree"),
+    ("properties", "속성", "Properties", "adjustments-horizontal"),
+    ("comment", "주석 처리", "Comment", "align-left + dashes"),
+    ("uncomment", "주석 처리 제거", "Uncomment", "align-left + dashes + slash"),
+    ("indent", "들여쓰기", "Increase indent", "indent-increase"),
+    ("outdent", "내어쓰기", "Decrease indent", "indent-decrease"),
+    ("format", "SQL 서식 지정", "Format SQL", "align-left (indented lines)"),
+    ("overflow", "더 보기", "More (tool bar overflow)", "chevrons-right"),
 ]
 
 
@@ -389,6 +408,39 @@ def extra_icons(I, P, n, nf, blue, blue_fill, green, green_fill, red, red_fill, 
     I["layout"] = svg(path("M5.5 8H8M8 4.5V11.5M8 4.5H10.5M8 11.5H10.5", None, n, sw)
                       + rect(1.5, 6, 4, 4, 1, doc_fill, n) + rect(10.5, 2.5, 4, 4, 1, blue_fill, blue)
                       + rect(10.5, 9.5, 4, 4, 1, blue_fill, blue))
+    # Main tool bar: undo / redo (Tabler arrow-back-up / arrow-forward-up, neutral unlike the orange rollback)
+    I["undo"] = svg(path("M6 9.5L2.5 6L6 2.5", None, n, sw) + path("M3 6H10.5A3 3 0 0 1 10.5 12H9", None, n, sw))
+    I["redo"] = svg(path("M10 9.5L13.5 6L10 2.5", None, n, sw) + path("M13 6H5.5A3 3 0 0 0 5.5 12H7", None, n, sw))
+    # Activity monitor: Tabler device-heart-monitor, a screen with a green pulse line
+    I["activity-monitor"] = svg(rect(1.5, 2.5, 13, 11, 1.5, doc_fill, n)
+                                + path("M3.5 8.5H5.5L7 5.5L9 11L10.5 8.5H12.5", None, green, sw))
+    # Registered servers: the server of "connection" with a bookmark badge (a saved server)
+    body, defs = with_badge(server, path("M10.5 8.5H15.5V15.5L13 13.5L10.5 15.5Z", blue, blue),
+                            rect(9.5, 7.5, 6.5, 8.5, 0, "#000"))
+    I["registered-servers"] = svg(body, defs)
+    # Object explorer: a database with a tree of two child nodes (Tabler binary-tree idea)
+    I["object-explorer"] = svg(path("M4.5 7V13.5H8M4.5 9.5H8", None, n, sw)
+                               + path("M1.5 3V5.5C1.5 6.1 2.8 6.5 4.5 6.5S7.5 6.1 7.5 5.5V3", blue_fill, blue)
+                               + ellipse(4.5, 3, 3, 1.5, blue_fill, blue)
+                               + rect(8.5, 8, 6, 3, 0.75, doc_fill, n) + rect(8.5, 12, 6, 3, 0.75, doc_fill, n))
+    # Properties: Tabler adjustments-horizontal, three sliders
+    I["properties"] = svg(path("M2 4H14M2 8H14M2 12H14", None, n, sw, cap="butt")
+                          + circle(10, 4, 1.75, blue_fill, blue) + circle(5.5, 8, 1.75, blue_fill, blue)
+                          + circle(11, 12, 1.75, blue_fill, blue))
+    # Comment / uncomment: text lines behind green line-comment dashes; uncomment strikes the dashes out
+    text_lines = path("M6 4.5H14.5M6 8H12.5M6 11.5H13.5", None, n, sw, cap="butt")
+    dashes = path("M1.5 4.5H4M1.5 8H4M1.5 11.5H4", None, green, 1.5, cap="butt")
+    I["comment"] = svg(text_lines + dashes)
+    I["uncomment"] = svg(text_lines + dashes + path("M1.5 13.5L4.5 2.5", None, red, sw))
+    # Increase / decrease indent: Tabler indent-increase / indent-decrease
+    indent_lines = path("M7.5 3.5H14.5M9.5 8H14.5M7.5 12.5H14.5", None, n, sw, cap="butt")
+    I["indent"] = svg(indent_lines + path("M2 5.5L4.5 8L2 10.5", None, blue, sw))
+    I["outdent"] = svg(indent_lines + path("M4.5 5.5L2 8L4.5 10.5", None, blue, sw))
+    # Format SQL: keyword lines (blue) around indented lines, as formatted SQL looks
+    I["format"] = svg(path("M2 3.5H9M2 12.5H8", None, blue, sw, cap="butt")
+                      + path("M4.5 6.5H13M4.5 9.5H11", None, n, sw, cap="butt"))
+    # Tool bar overflow button: Tabler chevrons-right
+    I["overflow"] = svg(path("M3.5 4.5L7 8L3.5 11.5M8.5 4.5L12 8L8.5 11.5", None, n, sw))
 
 
 # ----------------------------------------------------------------- SET A: duo-tone
@@ -452,6 +504,9 @@ def set_a(P):
     I["open"] = svg(folder_open(nf, nf, n))
     I["save"] = svg(path("M2.5 3A.5 .5 0 0 1 3 2.5H11L13.5 5V13A.5 .5 0 0 1 13 13.5H3A.5 .5 0 0 1 2.5 13Z", nf, n)
                     + path("M5.5 2.5V5.5H10.5V2.5", None, n) + rect(5.5, 8.5, 5, 5, 0, None, b))
+    # save-all: a second floppy behind a smaller "save"
+    I["save-all"] = svg(path(SAVE_ALL_BACK, None, n) + path(SAVE_ALL_FRONT, nf, n)
+                        + path("M4 4.5V7H8.5V4.5", None, n) + rect(4, 10.5, 5, 4, 0, None, b))
     body, defs = with_badge(doc_shape(nf, n),
                             path("M9 11.5H15M12.5 9L15 11.5L12.5 14", None, b, 1.5),
                             rect(8, 7.5, 8, 8, 0, "#000"))
@@ -540,6 +595,8 @@ def set_b(P):
     I["open"] = svg(folder_open(P["fold"], P["fold_l"], P["fold_s"]))
     I["save"] = svg(path("M2.5 3A.5 .5 0 0 1 3 2.5H11L13.5 5V13A.5 .5 0 0 1 13 13.5H3A.5 .5 0 0 1 2.5 13Z", P["bf"], P["bs"])
                     + rect(5, 2.5, 5.5, 3.5, 0, P["w"], P["bs"]) + rect(4.5, 8.5, 7, 5, 0, P["w"], P["bs"]))
+    I["save-all"] = svg(path(SAVE_ALL_BACK, P["bl"], P["bs"]) + path(SAVE_ALL_FRONT, P["bf"], P["bs"])
+                        + rect(3.5, 4.5, 5, 2.5, 0, P["w"], P["bs"]) + rect(3.5, 10, 6, 4.5, 0, P["w"], P["bs"]))
     body, defs = with_badge(doc_shape(pg, n), path("M9 11.5H15M12.5 9L15 11.5L12.5 14", None, P["gs"], 1.75),
                             rect(8, 7.5, 8, 8, 0, "#000"))
     I["export"] = svg(body, defs)

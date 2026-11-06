@@ -70,7 +70,7 @@ Swing 프런트엔드(`com.seizia.chromite.ui.swing`)의 화면을 **배치와 �
 
 | 요소 | SSMS | DataGrip New UI | 현재 Chromite | 목표 | 우선 |
 |---|---|---|---|---|---|
-| 구성 | 표준 도구 막대: **New Query**(아이콘 + 글자), 파일 열기·저장 아이콘 등. 아래에 SQL Editor 도구 막대 | 주 도구 막대(프로젝트·실행 위젯) | 글자 단추 4개 `New Connection…`, `New Query`, `Open File…`, `Save` [C] `MainFrame.java:335-344` | SSMS 구성: [새 연결 아이콘] [New Query(아이콘 + 글자)] │ [열기] [저장] [모두 저장]. 글자는 New Query만 보이고 나머지는 아이콘 + 도구 설명(단축키 포함) | P0 |
+| 구성 | 표준 도구 막대: **New Query**(아이콘 + 글자), 파일 열기·저장 아이콘 등. 아래에 SQL Editor 도구 막대 | 주 도구 막대(프로젝트·실행 위젯) | 글자 단추 4개 `New Connection…`, `New Query`, `Open File…`, `Save` [C] `MainFrame.java:335-344` | SSMS Standard 구성(2026-11-06 사용자 결정으로 확장): [New Query(아이콘 + 글자)] [새 연결] │ [열기] [저장] [모두 저장] │ [실행 취소] [다시 실행] │ [작업 모니터] │ [등록된 서버] [개체 탐색기] [쿼리 라이브러리] [속성](도구 창 켜고 끄기, 보이면 눌림) │ [찾기]. 글자는 New Query만 보이고 나머지는 아이콘 + 도구 설명(메뉴와 같은 단축키). 좁은 창에서는 넘치는 단추를 오른쪽 끝 » 메뉴로 | P0 |
 | 단추 모양 | — | 아이콘 16, 누를 수 있는 영역 ≈26×26, 마우스를 올리면 L `#00000012` / D `#FFFFFF16` 바탕, 누르면 L `#0000001D` / D `#FFFFFF26`, 모서리 arc ≈6 [T `ActionButton.*`][S] | FlatLaf 도구 막대 단추(글자, 여백 3) | `size.actionButton` 26, 아이콘 `size.icon` 16, 바탕 `bg.actionHover`/`bg.actionPressed`, arc 6, 단추 사이 2, 묶음 사이 구분선(높이 16, `border.subtle`) | P0 |
 | 높이 | — | 40 [J] | ≈30 [S] | 36(제목 표시줄 40과 합쳐 SSMS의 두 줄 구성을 유지하되 높이를 줄임) | P1 |
 
@@ -131,7 +131,7 @@ Swing 프런트엔드(`com.seizia.chromite.ui.swing`)의 화면을 **배치와 �
 | 요소 | SSMS | DataGrip New UI | 현재 Chromite | 목표 | 우선 |
 |---|---|---|---|---|---|
 | 위치 | 주 창의 SQL Editor 도구 막대(활성 쿼리 창에 적용) | 콘솔마다 편집기 위 도구 막대 | 편집기마다 위 도구 막대 [C] | 편집기마다 유지(연결·DB가 창마다 다르므로 보이는 곳에 둠. "결정" 참고) | — |
-| 순서 | [DB 목록 ▾] [▶ Execute] [■] [✓ Parse] … [M] | [▶] [기록] [설정] … [Tx: Auto ▾] [■] … [스키마 ▾](오른쪽) [S] | [Execute] [Cancel] │ [연결 ▾] │ [스키마 ▾] [C] `SqlEditorPanel.java:380-426` | [▶ Execute] [■] │ [연결 ▾] [DB/스키마 ▾]. SSMS처럼 Execute는 글자를 보이고, 중지는 아이콘만 | P0 |
+| 순서 | [DB 목록 ▾] [▶ Execute] [■] [✓ Parse] … [M] | [▶] [기록] [설정] … [Tx: Auto ▾] [■] … [스키마 ▾](오른쪽) [S] | [Execute] [Cancel] │ [연결 ▾] │ [스키마 ▾] [C] `SqlEditorPanel.java:380-426` | [▶ Execute] [■] │ [예상 계획] [실제 계획] │ [연결 ▾] │ [DB/스키마 ▾] │ [주석 처리] [주석 처리 제거] │ [내어쓰기] [들여쓰기] │ [SQL 서식 지정] │ [쿼리 기록]. SSMS처럼 Execute는 글자를 보이고, 중지는 아이콘만. 좁으면 콤보가 먼저 줄고(최소 100·100) 넘치는 단추는 » 메뉴로 | P0 |
 | Execute 단추 | 초록 삼각형 + "Execute"(F5) | 실행 아이콘: L 선 `#208A3C` 채움 `#F2FCF3` / D 선 `#57965C` 채움 `#253627` [I `expui/run/run`] | 글자만 `Execute` [C] | 아이콘 `action.run`(초록) + 글자 `Execute`, 도구 설명 "Execute (F5)" | P0 |
 | 중지 단추 | 빨간 사각형(실행 중에만 켜짐) | L 선 `#DB3B4B` 채움 `#FFF7F7` / D 선 `#DB5C5C` 채움 `#5E3838` [I `expui/run/stop`] | 글자 `Cancel` [C] | 아이콘 `action.stop`만, 실행 중에만 켜짐(비활성은 `text.disabled`색) | P0 |
 | 콤보 | Available Databases ▾ | 높이 28, arc 8, 테두리 L `#C9CCD6` / D `#4E5157`, 안쪽 여백 1,9,1,6, 화살표 영역 28 [T `ComboBox.*`, `Component.arrowAreaWidth`] | FlatLaf 기본(arc 5) [F] | `size.control` 28, arc 8, 연결 콤보에 공급자 아이콘 16, DB/스키마 콤보에 스키마 아이콘 16 | P0 |
@@ -587,9 +587,9 @@ P0 전체와 P1 일부를 `com.seizia.chromite.ui.swing`에 적용했다. 동작
 | 6 | 연결 상태 점 | 지름 6, 초록·노랑·빨강 | 지름 6 + 행 바탕색 1px 테두리. 연결됨 초록, 연결 실패 빨강(없는 폴더의 SQLite 파일, `x-broken2`) 확인 | 완료. 연결 중(노랑)은 잠깐이라 화면 확인은 못 함 |
 | 7 | 글꼴 | Inter 13, JetBrains Mono 13, 한글 대체 | Inter·JetBrains Mono(번들). 트리·메뉴·Properties·대화상자·편집기·그리드의 한글이 맑은 고딕으로 대체되어 보임(□ 없음) | 완료. 편집기 줄 간격 1.2는 못 함 |
 | 8 | 도구 창 머리말 | 40 + 1px 선, semibold, 아이콘 단추 | 40(+1, 61px), semibold 제목 왼쪽 12, 숨기기(—) 아이콘. Object Explorer는 머리말 아래 32 도구 막대(New Connection, Connect, Disconnect │ Filter, Refresh │ Collapse All) | 완료 |
-| 9 | 주 도구 막대 | 아이콘 16/26, hover 바탕, New Query만 글자 | 단추 26, 막대 36, hover `#00000012` / `#FFFFFF16` | 완료 |
+| 9 | 주 도구 막대 | 아이콘 16/26, hover 바탕, New Query만 글자 | 단추 26, 막대 36, hover `#00000012` / `#FFFFFF16`. 2026-11-06 SSMS Standard 배치로 확장(단추 15개, 넘침 메뉴, [swing-frontend.md](swing-frontend.md) "도구 막대") | 완료 |
 | 10 | 편집기 탭 | 40, 탭 줄 = 편집기 바탕, 밑줄 4 arc 4, 아이콘 16 | 40(60px), 탭 줄 `#FFFFFF` / `#1E1F22`, 밑줄 4(포커스 `#3574F0`, 아니면 `#A8ADBD`/`#5A5D63`), 아이콘: 저장한 파일은 SQL 파일, 새 쿼리는 공급자 로고 | 완료 |
-| 11 | 쿼리 도구 막대 | ▶ Execute(초록 + 글자), ■ 아이콘, 콤보 28 arc 8 + 공급자 아이콘 | 콤보 28(42px), 막대 36 | 완료 |
+| 11 | 쿼리 도구 막대 | ▶ Execute(초록 + 글자), ■ 아이콘, 콤보 28 arc 8 + 공급자 아이콘 | 콤보 28(42px), 막대 36. 2026-11-06 주석·들여쓰기·서식·쿼리 기록 단추 추가(높이 그대로) | 완료 |
 | 12 | 라이트 SQL 색 | DataGrip Light | "SQL 구문 색" 표 그대로, 줄 번호 `#AEB3C2`/`#767A8A`, 현재 줄 `#F5F8FE`, 선택 `#A6D2FF` | 완료. 오류 표시는 글자색 밑줄(아래 "못 한 것") |
 | 13 | 결과 그리드 | 편집기 바탕, 행 27, 머리글 28 왼쪽 정렬, 세로·가로 격자선, 옅은 선택 | 행 27(40.5px), 머리글 28(41px), 세로선 `#EBECF0`/`#393B40`, 가로선 `#F7F8FA`/`#2B2D30`, 선택 `#D4E2FF`/`#2E436E`, 편집기 글꼴 | 완료. 머리글 열 아이콘은 못 함 |
 | 14 | 분할선 | 1px, 손잡이 없음 | 1px `#EBECF0`/`#393B40`, 끄는 영역 5 | 완료 |
@@ -627,7 +627,7 @@ P0 전체와 P1 일부를 `com.seizia.chromite.ui.swing`에 적용했다. 동작
 - 두 팩을 넣고 View > Theme > Icon Style에서 고른다(실행 중 바로 바뀌고 저장됨, 설정 키 `ui.iconStyle`).
   - **A "Duo-tone"(기본, DataGrip풍)**: 1px 윤곽 + 옅은 채움, 중립 회색, 폴더·DB·루틴·외래 키는 파랑, 기본 키는 주황.
   - **B "Full color"(SSMS풍)**: Visual Studio 이미지 라이브러리풍 진한 색(갈색 폴더, 파란 원통, 금·은 키).
-- 파일: `plugins/com.seizia.chromite.ui.swing/icons/ui/{duotone,color}/{light,dark}/<id>.svg` 61개씩(P1에서 Properties 도구 막대의 `categorized`, `sort-alpha`, Registered Servers 도구 막대의 `new-group`, SQL 편집기 확장에서 실행 계획 `plan`·쿼리 기록 `history`, Query Library에서 `library`·`library-query`·`new-folder`·`schedule`, ER 다이어그램에서 `diagram`·`zoom-in`·`zoom-out`·`zoom-fit`·`layout` 추가, [swing-sql-editor-plus.md](swing-sql-editor-plus.md), [swing-query-library.md](swing-query-library.md), [swing-erd.md](swing-erd.md)). 생성기 `tools/branding/gen_ui_icons.py`(Python 표준 라이브러리만, 다시 만드는 방법은 파일 머리말).
+- 파일: `plugins/com.seizia.chromite.ui.swing/icons/ui/{duotone,color}/{light,dark}/<id>.svg` 74개씩(P1에서 Properties 도구 막대의 `categorized`, `sort-alpha`, Registered Servers 도구 막대의 `new-group`, SQL 편집기 확장에서 실행 계획 `plan`·쿼리 기록 `history`, Query Library에서 `library`·`library-query`·`new-folder`·`schedule`, ER 다이어그램에서 `diagram`·`zoom-in`·`zoom-out`·`zoom-fit`·`layout`, 도구 막대 확장에서 `save-all`·`undo`·`redo`·`activity-monitor`·`registered-servers`·`object-explorer`·`properties`·`comment`·`uncomment`·`indent`·`outdent`·`format`·`overflow` 추가(찾기·쿼리 라이브러리·쿼리 기록은 기존 `search`·`library`·`history`를 씀), [swing-sql-editor-plus.md](swing-sql-editor-plus.md), [swing-query-library.md](swing-query-library.md), [swing-erd.md](swing-erd.md), [swing-frontend.md](swing-frontend.md) "도구 막대"). 생성기 `tools/branding/gen_ui_icons.py`(Python 표준 라이브러리만, 다시 만드는 방법은 파일 머리말).
   사용자가 고른 38개(색 토큰은 생성기의 `PAL`)에 도구 창·편집기용 9개(`new-connection`, `connect`, `disconnect`, `collapse-all`, `hide`, `close`, `results`, `messages`, `file-sql`)를 같은 규칙으로 더했다.
   원래 38개는 후보 파일과 바이트 단위로 같다.
 - 모양은 Tabler Icons(MIT)를 16px 격자에 다시 그린 Chromite 그림이다. JetBrains·Microsoft 그림은 쓰지 않았다. Tabler 라이선스는 번들의 `icons/ui/LICENSE-tabler.txt`와 `NOTICE`에 있다.
@@ -828,3 +828,4 @@ Windows 11, 화면 배율 150%, JBR 25, 작업 공간 사본 `D:\Tools\_smoke\sw
   "SQL 구문 색" 표를 SSMS 근거로 다시 쓰고 `font.editor` 토큰, "적용 현황 — 편집기 글꼴과 SQL 색" 절(글꼴 결정·라이선스·대체 순서, 방언 기반 단어 분류,
   Options의 Editor·Editor Colors 탭, 확인) 추가.
 - 2026-11-06 화면 문구 정리(사용자 요청): 사용자에게 보이는 문구에 다른 제품 이름(SSMS, DataGrip, Visual Studio)을 쓰지 않는다. 아이콘 팩 이름을 "Duo-tone", "Full color"로, Editor Colors 단추를 "Reset to Defaults"로 바꿈. 설계 근거로서의 제품 이름은 이 문서와 코드 주석에 남긴다.
+- 2026-11-06 도구 막대 확장(사용자 결정 "가"): 주 도구 막대(2절)와 쿼리 창 도구 막대(7절)의 목표 구성을 SSMS Standard·SQL Editor 배치로 바꾸고 적용 현황 9·11행, 아이콘 팩 파일 수(61 → 74) 갱신.
