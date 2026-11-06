@@ -48,6 +48,7 @@ import java.util.Objects;
  *     OK를 누르면 저장해서 열린 모든 편집기와 DDL 탭에 적용한다.</li>
  *     <li>Editor 탭의 Formatting: SQL 서식기 종류와 키워드 대소문자({@link SqlEditCommands}, SWT 서식 설정과 같은 플랫폼 설정 키).
  *     General 탭의 Query History: 쿼리 기록 보관 일수({@link QueryHistory}). Templates 탭: SQL 템플릿({@link SqlTemplatesPage}).</li>
+ *     <li>Query Library 기록 보존(실행 수, 일수): {@link QueryLibraryHistory}의 설정. 다음 기록을 덧붙일 때 줄인다.</li>
  * </ul>
  * OK를 누를 때 바뀐 값만 적용한다. 읽기는 열 때 한 번 한다.
  *
@@ -56,6 +57,7 @@ import java.util.Objects;
  * - 2026-11-06 General·Editor·Editor Colors 탭: 편집기 글꼴·크기와 테마별 편집기 색, 미리 보기 (docs/chromite/design-spec.md "편집기 글꼴과 SQL 색")
  * - 2026-11-06 화면 문구에 다른 제품 이름을 쓰지 않음: "Reset to Defaults" (docs/chromite/design-spec.md "편집기 글꼴과 SQL 색")
  * - 2026-11-06 SQL 서식(서식기, 키워드 대소문자), 쿼리 기록 보관 일수, Templates 탭 (docs/chromite/swing-sql-editor-plus.md)
+ * - 2026-11-06 Query Library ③: 예약 실행 기록 보존 설정 (docs/chromite/swing-query-library.md "예약 실행")
  */
 final class OptionsDialog extends JDialog {
 
@@ -92,6 +94,8 @@ final class OptionsDialog extends JDialog {
     private final JCheckBox italicBox = new JCheckBox("Italic");
     private final SqlEditorPanel.SqlTextArea colorPreview = createPreview();
     private boolean updatingColorControls;
+    private final JSpinner libraryHistoryRunsSpinner;
+    private final JSpinner libraryHistoryDaysSpinner;
 
     private OptionsDialog(@NotNull Frame owner) {
         super(owner, "Options", true);
@@ -113,6 +117,8 @@ final class OptionsDialog extends JDialog {
         for (ChromiteTheme theme : ChromiteTheme.values()) {
             colors.put(theme, EditorColors.getSaved(theme));
         }
+        libraryHistoryRunsSpinner = new JSpinner(new SpinnerNumberModel(QueryLibraryHistory.getMaxRuns(), 1, 100000, 10));
+        libraryHistoryDaysSpinner = new JSpinner(new SpinnerNumberModel(QueryLibraryHistory.getMaxDays(), 1, 3650, 1));
 
         JPanel form = new JPanel(new GridBagLayout());
         int row = 0;
@@ -125,7 +131,10 @@ final class OptionsDialog extends JDialog {
         row = addSection(form, row, "Query Results");
         row = addRow(form, row, "Maximum rows", maxRowsSpinner, "per result set, 0 = no limit");
         row = addSection(form, row, "Query History");
-        addRow(form, row, "Keep history", historyDaysSpinner, "days, 0 = do not record");
+        row = addRow(form, row, "Keep history", historyDaysSpinner, "days, 0 = do not record");
+        row = addSection(form, row, "Query Library");
+        row = addRow(form, row, "Keep history runs", libraryHistoryRunsSpinner, "latest runs per scheduled query");
+        addRow(form, row, "Keep history days", libraryHistoryDaysSpinner, "older runs are removed");
 
         JButton okButton = new JButton("OK");
         okButton.addActionListener(e -> {
@@ -444,6 +453,11 @@ final class OptionsDialog extends JDialog {
         }
         if (editorChanged) {
             SqlEditorPanel.SqlTextArea.applyThemeToAll();
+        }
+        int libraryHistoryRuns = ((Number) libraryHistoryRunsSpinner.getValue()).intValue();
+        int libraryHistoryDays = ((Number) libraryHistoryDaysSpinner.getValue()).intValue();
+        if (libraryHistoryRuns != QueryLibraryHistory.getMaxRuns() || libraryHistoryDays != QueryLibraryHistory.getMaxDays()) {
+            QueryLibraryHistory.setRetention(libraryHistoryRuns, libraryHistoryDays);
         }
         // Theme last: it updates every window, this dialog is about to close
         if (iconStyleCombo.getSelectedItem() instanceof UiIconStyle iconStyle && iconStyle != UiIconStyle.getCurrent()) {

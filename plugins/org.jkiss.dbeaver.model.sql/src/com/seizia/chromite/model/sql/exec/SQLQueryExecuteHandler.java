@@ -19,6 +19,8 @@ package com.seizia.chromite.model.sql.exec;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.model.data.DBDDataReceiver;
+import org.jkiss.dbeaver.model.exec.DBCException;
+import org.jkiss.dbeaver.model.exec.DBCStatement;
 import org.jkiss.dbeaver.model.exec.DBCStatistics;
 import org.jkiss.dbeaver.model.sql.SQLQuery;
 import org.jkiss.dbeaver.runtime.DBWorkbench;
@@ -38,6 +40,10 @@ import org.jkiss.dbeaver.runtime.ui.DBPPlatformUI;
  *
  * 변경 이력:
  * - 2026-11-06 최초 작성. SQLQueryJob의 UI 의존 부분을 분리(docs/chromite/swing-frontend.md "쿼리 실행 계층").
+ * - 2026-11-06 Query Library: 값을 SQL 글자로 끼우지 않고 prepared statement에 바인딩하는 {@link #hasBoundParameters},
+ *   {@link #bindParameters} 추가. 모델의 매개변수 처리({@code SQLScriptContext.fillQueryParameters})는 값을 텍스트로 치환하므로
+ *   안전한 바인딩은 문장을 만드는 이 지점에서만 할 수 있다. 기본값은 바인딩 없음(SWT 동작 그대로)
+ *   (docs/chromite/swing-query-library.md "매개변수 바인딩").
  */
 public interface SQLQueryExecuteHandler {
 
@@ -81,6 +87,23 @@ public interface SQLQueryExecuteHandler {
      */
     default boolean isSmartAutoCommit() {
         return false;
+    }
+
+    // Native parameter binding
+
+    /**
+     * Whether the {@code ?} markers of the query are bound natively by {@link #bindParameters}: the query is then
+     * prepared as a statement with parameters instead of being sent as a script.
+     */
+    default boolean hasBoundParameters(@NotNull SQLQuery query) {
+        return false;
+    }
+
+    /**
+     * Binds the values of the query's {@code ?} markers to the prepared statement (only called if
+     * {@link #hasBoundParameters} is true for the query).
+     */
+    default void bindParameters(@NotNull DBCStatement statement, @NotNull SQLQuery query) throws DBCException {
     }
 
     // User interaction (called from the job thread)

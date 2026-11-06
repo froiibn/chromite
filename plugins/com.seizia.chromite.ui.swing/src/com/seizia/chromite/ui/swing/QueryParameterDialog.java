@@ -1,0 +1,314 @@
+/*
+ * Chromite - Database Workbench
+ * Copyright (C) 2026 Chromite contributors
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package com.seizia.chromite.ui.swing;
+
+import com.formdev.flatlaf.FlatClientProperties;
+import org.eclipse.core.runtime.IStatus;
+import org.eclipse.core.runtime.Status;
+import org.jkiss.code.NotNull;
+import org.jkiss.code.Nullable;
+import org.jkiss.dbeaver.Log;
+import org.jkiss.dbeaver.model.DBPDataSource;
+import org.jkiss.dbeaver.model.DBPDataSourceContainer;
+import org.jkiss.dbeaver.model.DBUtils;
+import org.jkiss.dbeaver.model.exec.DBCExecutionContext;
+import org.jkiss.dbeaver.model.exec.DBCExecutionPurpose;
+import org.jkiss.dbeaver.model.exec.DBCResultSet;
+import org.jkiss.dbeaver.model.exec.DBCSession;
+import org.jkiss.dbeaver.model.exec.DBCStatement;
+import org.jkiss.dbeaver.model.exec.DBCStatementType;
+import org.jkiss.dbeaver.model.runtime.AbstractJob;
+import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
+import org.jkiss.utils.CommonUtils;
+
+import javax.swing.*;
+import java.awt.*;
+import java.awt.event.KeyEvent;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+
+/**
+ * 실행할 때 매개변수 값을 묻는 대화상자.
+ *
+ * 설계:
+ * <ul>
+ *     <li>매개변수마다 한 줄: 표시 이름(필수면 {@code *}), 형식에 맞는 입력(글자·숫자·날짜는 입력란, 참/거짓·선택 목록은 콤보,
+ *     조회 쿼리는 편집할 수 있는 콤보), 형식 힌트. {@code ${name}} 변수는 "SQL text"로 표시해 값이 바인딩되지 않고 SQL에 그대로 들어감을 알린다.</li>
+ *     <li>처음 값은 이 PC의 마지막 입력값({@link QueryLibraryState}), 없으면 정의의 기본값이다.</li>
+ *     <li>조회 쿼리 목록은 대상 연결에서 작업 스레드로 읽는다(필요하면 연결한다). 읽는 동안에도 값을 입력할 수 있다.</li>
+ *     <li>OK를 누르면 형식·필수 검사({@link QueryLibraryParameter#validate})를 하고, 틀리면 대화상자 안에 오류를 보여 준다.</li>
+ * </ul>
+ *
+ * 변경 이력:
+ * - 2026-11-06 Query Library: 최초 작성 (docs/chromite/swing-query-library.md "매개변수")
+ */
+final class QueryParameterDialog extends JDialog {
+
+    private static final Log log = Log.getLog(QueryParameterDialog.class);
+    private static final int MAX_LOOKUP_VALUES = 1000;
+    private static final int MAX_ROWS_WITHOUT_SCROLLING = 10;
+
+    private record Row(@NotNull QueryLibraryParameter parameter, @NotNull JComponent input) {
+        @NotNull
+        String getValue() {
+            if (input instanceof JComboBox<?> combo) {
+                Object value = combo.isEditable() ? combo.getEditor().getItem() : combo.getSelectedItem();
+                return CommonUtils.toString(value).trim();
+            }
+            return ((JTextField) input).getText().trim();
+        }
+    }
+
+    private final List<Row> rows = new ArrayList<>();
+    private final JLabel errorLabel = new JLabel(" ");
+    @Nullable
+    private Map<String, String> result;
+
+    private QueryParameterDialog(
+        @NotNull Window owner,
+        @NotNull String title,
+        @NotNull List<QueryLibraryParameter> parameters,
+        @NotNull Map<String, Boolean> kinds,
+        @NotNull Map<String, String> initialValues,
+        @Nullable DBPDataSourceContainer container
+    ) {
+        super(owner, title, ModalityType.APPLICATION_MODAL);
+        setDefaultCloseOperation(DISPOSE_ON_CLOSE);
+
+        JPanel form = new JPanel(new GridBagLayout());
+        int y = 0;
+        for (QueryLibraryParameter parameter : parameters) {
+            String initial = initialValues.getOrDefault(parameter.getName(), CommonUtils.notEmpty(parameter.getDefaultValue()));
+            JComponent input = createInput(parameter, initial);
+            rows.add(new Row(parameter, input));
+
+            JLabel label = new JLabel(parameter.getDisplayLabel() + (parameter.isRequired() ? " *" : ""));
+            boolean textSubstitution = Boolean.FALSE.equals(kinds.get(parameter.getName()));
+            label.setToolTipText(textSubstitution ? "${" + parameter.getName() + "}" : ":" + parameter.getName()); //$NON-NLS-1$ //$NON-NLS-2$
+            label.setLabelFor(input);
+            GridBagConstraints c = new GridBagConstraints();
+            c.gridy = y;
+            c.gridx = 0;
+            c.anchor = GridBagConstraints.WEST;
+            c.insets = new Insets(0, 0, 6, 8);
+            form.add(label, c);
+            c.gridx = 1;
+            c.fill = GridBagConstraints.HORIZONTAL;
+            c.weightx = 1;
+            form.add(input, c);
+            String hint = getHint(parameter, textSubstitution);
+            if (hint != null) {
+                JLabel hintLabel = new JLabel(hint);
+                hintLabel.putClientProperty(FlatClientProperties.STYLE, "foreground: $Chromite.secondaryForeground"); //$NON-NLS-1$
+                if (textSubstitution) {
+                    hintLabel.setToolTipText("The value is inserted into the SQL text as it is (not bound as a value).");
+                }
+                c.gridx = 2;
+                c.fill = GridBagConstraints.NONE;
+                c.weightx = 0;
+                form.add(hintLabel, c);
+            }
+            if (parameter.getType() == QueryLibraryParameter.Type.LOOKUP && parameter.getLookupSql() != null && container != null
+                && input instanceof JComboBox<?> combo) {
+                @SuppressWarnings("unchecked")
+                JComboBox<String> lookupCombo = (JComboBox<String>) combo;
+                loadLookupValues(container, parameter.getLookupSql(), lookupCombo, initial);
+            }
+            y++;
+        }
+        errorLabel.putClientProperty(FlatClientProperties.STYLE, "foreground: $Chromite.status.error"); //$NON-NLS-1$
+
+        JButton runButton = new JButton("Run");
+        runButton.addActionListener(e -> accept());
+        JButton cancelButton = new JButton("Cancel");
+        cancelButton.addActionListener(e -> dispose());
+        JPanel buttons = new JPanel(new FlowLayout(FlowLayout.RIGHT, 6, 0));
+        buttons.add(runButton);
+        buttons.add(cancelButton);
+        JPanel south = new JPanel(new BorderLayout(0, 10));
+        south.add(errorLabel, BorderLayout.NORTH);
+        south.add(buttons, BorderLayout.SOUTH);
+
+        JPanel content = new JPanel(new BorderLayout(0, 6));
+        content.setBorder(BorderFactory.createEmptyBorder(10, 12, 10, 12));
+        if (parameters.size() > MAX_ROWS_WITHOUT_SCROLLING) {
+            JScrollPane scrollPane = new JScrollPane(form);
+            scrollPane.setBorder(BorderFactory.createEmptyBorder());
+            scrollPane.setPreferredSize(new Dimension(form.getPreferredSize().width + 24, 420));
+            content.add(scrollPane, BorderLayout.CENTER);
+        } else {
+            content.add(form, BorderLayout.CENTER);
+        }
+        content.add(south, BorderLayout.SOUTH);
+        setContentPane(content);
+        getRootPane().setDefaultButton(runButton);
+        getRootPane().registerKeyboardAction(e -> dispose(),
+            KeyStroke.getKeyStroke(KeyEvent.VK_ESCAPE, 0), JComponent.WHEN_IN_FOCUSED_WINDOW);
+        pack();
+        setSize(Math.max(getWidth(), 460), getHeight());
+        setLocationRelativeTo(owner);
+    }
+
+    /**
+     * Asks for the values of the parameters.
+     *
+     * @param kinds     parameter name -> true if bound, false if inserted as SQL text ({@link QueryParameterBinder#detect})
+     * @param container connection for lookup queries, or null
+     * @return values by parameter name, or null if canceled
+     */
+    @Nullable
+    static Map<String, String> open(
+        @NotNull Component parent,
+        @NotNull String queryName,
+        @NotNull List<QueryLibraryParameter> parameters,
+        @NotNull Map<String, Boolean> kinds,
+        @NotNull Map<String, String> initialValues,
+        @Nullable DBPDataSourceContainer container
+    ) {
+        Window owner = SwingUtilities.getWindowAncestor(parent);
+        QueryParameterDialog dialog = new QueryParameterDialog(owner != null ? owner : JOptionPane.getRootFrame(),
+            "Parameters - " + queryName, parameters, kinds, initialValues, container);
+        dialog.setVisible(true);
+        return dialog.result;
+    }
+
+    @NotNull
+    private static JComponent createInput(@NotNull QueryLibraryParameter parameter, @NotNull String initial) {
+        switch (parameter.getType()) {
+            case BOOLEAN -> {
+                JComboBox<String> combo = new JComboBox<>(new String[]{"", "true", "false"}); //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$
+                combo.setSelectedItem(initial.toLowerCase());
+                return combo;
+            }
+            case CHOICE -> {
+                JComboBox<String> combo = new JComboBox<>();
+                if (!parameter.isRequired()) {
+                    combo.addItem(""); //$NON-NLS-1$
+                }
+                parameter.getChoices().forEach(combo::addItem);
+                if (!initial.isEmpty() && !parameter.getChoices().contains(initial)) {
+                    combo.addItem(initial);
+                }
+                combo.setSelectedItem(initial);
+                return combo;
+            }
+            case LOOKUP -> {
+                JComboBox<String> combo = new JComboBox<>();
+                combo.setEditable(true);
+                combo.setSelectedItem(initial);
+                return combo;
+            }
+            default -> {
+                JTextField field = new JTextField(initial, 24);
+                if (parameter.getType() == QueryLibraryParameter.Type.DATE) {
+                    field.putClientProperty(FlatClientProperties.PLACEHOLDER_TEXT, "yyyy-mm-dd"); //$NON-NLS-1$
+                } else if (parameter.getType() == QueryLibraryParameter.Type.DATETIME) {
+                    field.putClientProperty(FlatClientProperties.PLACEHOLDER_TEXT, "yyyy-mm-dd hh:mm:ss"); //$NON-NLS-1$
+                }
+                return field;
+            }
+        }
+    }
+
+    @Nullable
+    private static String getHint(@NotNull QueryLibraryParameter parameter, boolean textSubstitution) {
+        if (textSubstitution) {
+            return "SQL text";
+        }
+        return switch (parameter.getType()) {
+            case NUMBER -> "number";
+            case DATE -> "date";
+            case DATETIME -> "date and time";
+            default -> null;
+        };
+    }
+
+    private void accept() {
+        Map<String, String> values = new LinkedHashMap<>();
+        for (Row row : rows) {
+            String value = row.getValue();
+            String error = row.parameter().validate(value);
+            if (error != null) {
+                errorLabel.setText(error);
+                row.input().requestFocusInWindow();
+                return;
+            }
+            values.put(row.parameter().getName(), value);
+        }
+        result = values;
+        dispose();
+    }
+
+    /**
+     * Fills a lookup combo with the first column of the lookup query, read in a job (connects if needed).
+     */
+    private void loadLookupValues(
+        @NotNull DBPDataSourceContainer container,
+        @NotNull String lookupSql,
+        @NotNull JComboBox<String> combo,
+        @NotNull String initial
+    ) {
+        combo.setToolTipText("Loading values…");
+        new AbstractJob("Read parameter values") {
+            @NotNull
+            @Override
+            protected IStatus run(@NotNull DBRProgressMonitor monitor) {
+                List<String> values = new ArrayList<>();
+                String error = null;
+                try {
+                    if (!container.isConnected()) {
+                        DBUtils.initDataSource(monitor, container, null);
+                    }
+                    DBPDataSource dataSource = container.getDataSource();
+                    DBCExecutionContext context = dataSource == null ? null : DBUtils.getDefaultContext(dataSource.getDefaultInstance(), true);
+                    if (context == null) {
+                        error = "Not connected";
+                    } else {
+                        try (DBCSession session = context.openSession(monitor, DBCExecutionPurpose.UTIL, "Read parameter values");
+                             DBCStatement statement = session.prepareStatement(DBCStatementType.QUERY, lookupSql, false, false, false)) {
+                            if (statement.executeStatement()) {
+                                try (DBCResultSet resultSet = statement.openResultSet()) {
+                                    while (resultSet != null && resultSet.nextRow() && values.size() < MAX_LOOKUP_VALUES) {
+                                        values.add(CommonUtils.toString(resultSet.getAttributeValue(0)));
+                                    }
+                                }
+                            }
+                        }
+                    }
+                } catch (Throwable e) {
+                    log.debug("Lookup query failed", e);
+                    error = CommonUtils.getAllExceptionMessages(e);
+                }
+                String finalError = error;
+                SwingUtilities.invokeLater(() -> {
+                    if (finalError != null) {
+                        combo.setToolTipText("Can't read the values: " + finalError);
+                        return;
+                    }
+                    Object typed = combo.getEditor().getItem();
+                    combo.removeAllItems();
+                    values.forEach(combo::addItem);
+                    combo.setSelectedItem(typed != null && !CommonUtils.toString(typed).isEmpty() ? typed : initial);
+                    combo.setToolTipText(values.size() + " values");
+                });
+                return Status.OK_STATUS;
+            }
+        }.schedule();
+    }
+}

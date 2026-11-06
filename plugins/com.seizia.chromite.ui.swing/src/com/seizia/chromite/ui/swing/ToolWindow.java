@@ -51,6 +51,7 @@ import java.awt.event.ActionEvent;
  * - 2026-11-06 Islands: 도구 창을 둥근 카드({@link IslandPanel})로 감쌈 (docs/chromite/design-spec.md "Islands 적용")
  * - 2026-11-06 P1: 기본 크기로 되돌리기(Window &gt; Reset Window Layout) (docs/chromite/swing-frontend.md "P1 디자인 적용")
  * - 2026-11-06 Registered Servers: 한 열에 두 도구 창 쌓기 (docs/chromite/swing-registered-servers.md)
+ * - 2026-11-06 Query Library: 처음에는 숨긴 도구 창({@link #setDefaultShown}, Query Library) (docs/chromite/swing-query-library.md)
  */
 final class ToolWindow {
 
@@ -64,6 +65,7 @@ final class ToolWindow {
     private final JComponent component;
     private final Action toggleAction;
     private final int defaultSize;
+    private boolean defaultShown = true;
     private int size;
     /**
      * The tool window above this one in a shared column ({@link #stackBelow}); this one then owns the column's size.
@@ -226,12 +228,19 @@ final class ToolWindow {
     }
 
     /**
-     * Window &gt; Reset Window Layout: shown, with the default size. Call for the outer split pane first, as
+     * A tool window that is hidden until the user shows it (call before {@link #load}).
+     */
+    void setDefaultShown(boolean defaultShown) {
+        this.defaultShown = defaultShown;
+    }
+
+    /**
+     * Window &gt; Reset Window Layout: shown (unless hidden by default), with the default size. Call for the outer split pane first, as
      * {@link #applySize()} lays it out for the inner ones.
      */
     void reset() {
         size = defaultSize;
-        setShown(true);
+        setShown(defaultShown);
         applySize();
     }
 
@@ -240,9 +249,9 @@ final class ToolWindow {
      * the size is applied by {@link #applySize()} once the split pane has its real size.
      */
     void load(@NotNull DBPPreferenceStore preferences) {
-        // The store drops values equal to their default (BundlePreferenceStore.putBoolean/putInt), so a hidden
-        // tool window is only remembered if "shown" is the declared default
-        preferences.setDefault(id + PREF_VISIBLE_SUFFIX, true);
+        // The store drops values equal to their default (BundlePreferenceStore.putBoolean/putInt), so the visibility
+        // is only remembered if the declared default is the one the tool window has before the user changes it
+        preferences.setDefault(id + PREF_VISIBLE_SUFFIX, defaultShown);
         preferences.setDefault(id + PREF_SIZE_SUFFIX, size);
         size = Math.max(MIN_SIZE, preferences.getInt(id + PREF_SIZE_SUFFIX));
         setShown(preferences.getBoolean(id + PREF_VISIBLE_SUFFIX));
