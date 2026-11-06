@@ -1,0 +1,108 @@
+/*
+ * DBeaver - Universal Database Manager
+ * Copyright (C) 2010-2026 DBeaver Corp and others
+ * Modifications Copyright (C) 2026 Chromite contributors
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package com.seizia.chromite.ext.vertica.edit;
+
+import org.jkiss.code.NotNull;
+import org.jkiss.code.Nullable;
+import com.seizia.chromite.ext.vertica.model.VerticaProjection;
+import com.seizia.chromite.ext.vertica.model.VerticaProjectionColumn;
+import com.seizia.chromite.model.DBConstants;
+import com.seizia.chromite.model.DBPEvaluationContext;
+import com.seizia.chromite.model.DBUtils;
+import com.seizia.chromite.model.edit.DBECommandContext;
+import com.seizia.chromite.model.edit.DBEPersistAction;
+import com.seizia.chromite.model.exec.DBCExecutionContext;
+import com.seizia.chromite.model.impl.edit.SQLDatabasePersistAction;
+import com.seizia.chromite.model.impl.sql.edit.struct.SQLTableColumnManager;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.model.sql.SQLUtils;
+import com.seizia.chromite.model.struct.cache.DBSObjectCache;
+import org.jkiss.utils.CommonUtils;
+
+import java.util.List;
+import java.util.Map;
+
+/**
+ * Vertica table column manager
+ */
+public class VerticaProjectionColumnManager extends SQLTableColumnManager<VerticaProjectionColumn, VerticaProjection> {
+    @Override
+    public boolean canCreateObject(@NotNull Object container) {
+        return false;
+    }
+
+    @Override
+    public boolean canDeleteObject(@NotNull VerticaProjectionColumn object) {
+        return false;
+    }
+
+    @NotNull
+    @Override
+    protected ColumnModifier[] getSupportedModifiers(VerticaProjectionColumn column, Map<String, Object> options) {
+        // According to SQL92 DEFAULT comes before constraints
+        return new ColumnModifier[] {};
+    }
+
+    @Override
+    protected VerticaProjectionColumn createDatabaseObject(
+        @NotNull DBRProgressMonitor monitor,
+        @NotNull DBECommandContext context,
+        @NotNull Object container,
+        @Nullable Object copyFrom,
+        @NotNull Map<String, Object> options
+    ) {
+        return null;
+    }
+
+    /**
+     * Copy-pasted from PostgreSQL implementation.
+     * TODO: Vertica is originally based on PG. Maybe we should refactor this stuff somehow.
+     */
+    @Override
+    protected void addObjectModifyActions(@NotNull DBRProgressMonitor monitor, @NotNull DBCExecutionContext executionContext, @NotNull List<DBEPersistAction> actionList, @NotNull ObjectChangeCommand command, @NotNull Map<String, Object> options)
+    {
+        final VerticaProjectionColumn column = command.getObject();
+
+        String prefix = "ALTER TABLE " + DBUtils.getObjectFullName(column.getTable(), DBPEvaluationContext.DDL) + " ALTER COLUMN " + DBUtils.getQuotedIdentifier(column) + " ";
+        String typeClause = column.getFullTypeName();
+        if (command.getProperty(DBConstants.PROP_ID_TYPE_NAME) != null || command.getProperty("maxLength") != null || command.getProperty("precision") != null || command.getProperty("scale") != null) {
+            actionList.add(new SQLDatabasePersistAction("Set column type", prefix + "SET DATA TYPE " + typeClause));
+        }
+        if (command.getProperty(DBConstants.PROP_ID_REQUIRED) != null) {
+            actionList.add(new SQLDatabasePersistAction("Set column nullability", prefix + (column.isRequired() ? "SET" : "DROP") + " NOT NULL"));
+        }
+        if (command.getProperty(DBConstants.PROP_ID_DEFAULT_VALUE) != null) {
+            if (CommonUtils.isEmpty(column.getDefaultValue())) {
+                actionList.add(new SQLDatabasePersistAction("Drop column default", prefix + "DROP DEFAULT"));
+            } else {
+                actionList.add(new SQLDatabasePersistAction("Set column default", prefix + "SET DEFAULT " + column.getDefaultValue()));
+            }
+        }
+        if (command.getProperty(DBConstants.PROP_ID_DESCRIPTION) != null) {
+            actionList.add(new SQLDatabasePersistAction("Set column comment", "COMMENT ON COLUMN " +
+                DBUtils.getObjectFullName(column.getTable(), DBPEvaluationContext.DDL) + "." + DBUtils.getQuotedIdentifier(column) +
+                " IS " + SQLUtils.quoteString(column, CommonUtils.notEmpty(column.getDescription()))));
+        }
+    }
+
+    @Override
+    public DBSObjectCache<VerticaProjection, VerticaProjectionColumn> getObjectsCache(VerticaProjectionColumn object) {
+        return null;//object.getParentObject().getParentObject().getProjectionCache();
+    }
+}

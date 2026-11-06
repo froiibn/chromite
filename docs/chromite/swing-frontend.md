@@ -16,7 +16,7 @@ DBeaver의 SWT/Eclipse RCP UI를 Swing으로 새로 만든다.
 | 구분 | 규모 |
 |---|---|
 | 전체 Java 파일 | 6,949개, 플러그인 163개 |
-| UI 계층 (SWT·JFace·Eclipse UI·`org.jkiss.dbeaver.ui` 의존) | 약 2,050개 파일, 약 38.6만 줄 → 새로 작성 |
+| UI 계층 (SWT·JFace·Eclipse UI·`com.seizia.chromite.ui` 의존) | 약 2,050개 파일, 약 38.6만 줄 → 새로 작성 |
 | 모델 계층 (UI 무관) | 약 5,200개 파일 → 재사용 |
 
 UI는 SWT 위젯뿐 아니라 Eclipse RCP 워크벤치(뷰, 편집기, 퍼스펙티브, 명령, 단축키, 설정 화면, `plugin.xml` UI 확장)에 묶여 있어
@@ -37,13 +37,13 @@ UI는 SWT 위젯뿐 아니라 Eclipse RCP 워크벤치(뷰, 편집기, 퍼스펙
 └──────────────────────────────────────────┘
 ```
 
-- **출발점:** [org.jkiss.dbeaver.headless](../../plugins/org.jkiss.dbeaver.headless) 플러그인이 SWT 없이 모델 계층을 띄운다.
-  `DBeaverHeadlessApplication`(`DesktopApplicationImpl` 상속), `DBeaverTestPlatform`(`BasePlatformImpl` 상속),
-  `DBeaverTestPlatformUI`(`ConsoleUserInterface` 상속)로 구성되며, 의존하는 번들은
+- **출발점:** [com.seizia.chromite.headless](../../plugins/com.seizia.chromite.headless) 플러그인이 SWT 없이 모델 계층을 띄운다.
+  `ChromiteHeadlessApplication`(`DesktopApplicationImpl` 상속), `ChromiteTestPlatform`(`BasePlatformImpl` 상속),
+  `ChromiteTestPlatformUI`(`ConsoleUserInterface` 상속)로 구성되며, 의존하는 번들은
   `equinox.app`, `core.resources`, `model`, `model.rcp`, `registry`뿐이다.
 - **새 플러그인:** headless 앱과 같은 방식으로 `DesktopApplicationImpl`을 상속하고, 시작할 때 Swing 창을 연다.
 - **모델 → UI 호출:** 모델 계층은 오류 표시, 확인 질문, 비밀번호 입력 등을
-  [DBPPlatformUI](../../plugins/org.jkiss.dbeaver.model/src/org/jkiss/dbeaver/runtime/ui/DBPPlatformUI.java)(메서드 약 28개)로 요청한다.
+  [DBPPlatformUI](../../plugins/com.seizia.chromite.model/src/com/seizia/chromite/runtime/ui/DBPPlatformUI.java)(메서드 약 28개)로 요청한다.
   이것을 Swing으로 구현하면 모델 계층을 고치지 않고 쓸 수 있다.
 - **스레드:** 화면 작업은 Swing EDT에서 하고, DB 작업은 모델 계층의 Job으로 백그라운드에서 실행한다.
 - **제품 구성:** SWT UI 플러그인을 뺀 Swing 전용 `.product`를 새로 만든다.
@@ -93,7 +93,7 @@ MVP 이후: 테이블 디자이너, ER 다이어그램, 데이터 비교, AI 기
 |---|---|
 | F5 | 선택 영역이 있으면(1자 이상) 선택한 내용만 실행하고, 없으면 편집기 전체를 실행한다 |
 
-- SWT 버전의 "스크립트 실행" 명령([SQLEditor.java:2965](../../plugins/org.jkiss.dbeaver.ui.editors.sql/src/org/jkiss/dbeaver/ui/editors/sql/SQLEditor.java:2965))도
+- SWT 버전의 "스크립트 실행" 명령([SQLEditor.java:2965](../../plugins/com.seizia.chromite.ui.editors.sql/src/com/seizia/chromite/ui/editors/sql/SQLEditor.java:2965))도
   같은 방식이지만 선택 길이가 2자 이상일 때만 선택으로 본다. Swing 버전은 1자부터 선택으로 본다.
 - **SQL Server:** SSMS처럼 `GO`를 기준으로 배치를 나눠 배치 단위로 서버에 보낸다.
   같은 배치 안에서 `DECLARE`한 변수를 이어서 쓸 수 있어야 한다.
@@ -177,7 +177,7 @@ job.schedule();                                             // 또는 작업 스
 - **F5 선택/전체:** 편집기에서 선택 길이가 1자 이상이면 선택 범위, 아니면 전체 텍스트를 `SQLScriptParser.extractScriptQueries`로 나눠
   `List<SQLScriptElement>`를 만들고 위 Job 하나에 넘긴다. 문장이 1개여도 같은 경로를 쓴다(SWT처럼 단일 쿼리용 경로를 따로 두지 않는다).
 - **SQL Server `GO` 배치:** SQL Server 방언은 `getScriptDelimiters()`가 `;`와 `GO`, `getBatchDelimiters()`가 `GO`다
-  ([SQLServerDialectBase.java:121-129](../../plugins/org.jkiss.dbeaver.ext.mssql/src/org/jkiss/dbeaver/ext/mssql/model/SQLServerDialectBase.java)).
+  ([SQLServerDialectBase.java:121-129](../../plugins/com.seizia.chromite.ext.mssql/src/com/seizia/chromite/ext/mssql/model/SQLServerDialectBase.java)).
   `extractScriptQueries(..., includeBatchDelimiterElements = true)`로 나누면 `GO` 자리에 `SQLBatchDelimiterElement`가 들어온다.
   Swing 편집기는 두 `GO` 사이의 문장들을 원문 범위 그대로 하나의 `SQLQuery`로 합쳐 Job에 넘긴다
   (C단계에서 `SQLScriptBatches`로 구현, "구현 현황 — C단계").
@@ -192,7 +192,7 @@ job.schedule();                                             // 또는 작업 스
 
 | 클래스 | 막는 의존 (파일:줄) | 해결 방향 |
 |---|---|---|
-| `ResultSetModel` | `SearchQuickFilterInfo`(`org.jkiss.dbeaver.ui` 번들, :39, :74, :109-119) — 클래스 자체는 SWT 없음 | 모델 번들로 옮기거나 `Predicate<ResultSetRow>`로 바꾼다 |
+| `ResultSetModel` | `SearchQuickFilterInfo`(`com.seizia.chromite.ui` 번들, :39, :74, :109-119) — 클래스 자체는 SWT 없음 | 모델 번들로 옮기거나 `Predicate<ResultSetRow>`로 바꾼다 |
 | | `ResultSetRowColorHelper`(:101, :104, :818, :822, :852, :1207) — SWT `Color`/`RGB`, `UIUtils` 사용 | 색상 계산을 결과 모델 밖(표시 계층)으로 옮긴다 |
 | | `ResultSetRow.ColorInfo`(ResultSetRow.java:19, :41-49) — SWT `Color` 필드 | 색상을 문자열/RGB 값으로 저장하고 표시 계층이 변환한다 |
 | | `ResultSetPreferences` 상수(:174, :1227), `ResultSetCellLocation` | SWT 없음. 함께 옮기면 된다 |
@@ -228,14 +228,14 @@ SSMS 배치, Object Explorer 등 실제 화면은 B단계에서 만든다.
 
 ### 식별자
 
-새 Chromite 코드는 Java 패키지와 OSGi ID 모두 `com.seizia.chromite` 접두어를 쓴다(2026-11-06 결정). 기존 `org.jkiss.dbeaver.*`는 그대로 둔다.
+새 Chromite 코드는 Java 패키지와 OSGi ID 모두 `com.seizia.chromite` 접두어를 쓴다(2026-11-06 결정). 기존 `com.seizia.chromite.*`는 그대로 둔다.
 
 | 구분 | ID / 위치 |
 |---|---|
 | 번들 | `com.seizia.chromite.ui.swing` ([plugins/com.seizia.chromite.ui.swing](../../plugins/com.seizia.chromite.ui.swing)), 패키지 `com.seizia.chromite.ui.swing` |
 | Equinox 애플리케이션 | `com.seizia.chromite.ui.swing.application` |
 | 제품 확장 | `com.seizia.chromite.ui.swing.product` (`org.eclipse.core.runtime.products`) |
-| `org.jkiss.dbeaver.application` 확장 | `chromite-swing` (이름 `Chromite`, `GeneralUtils.getProductName()`이 읽음) |
+| `com.seizia.chromite.application` 확장 | `chromite-swing` (이름 `Chromite`, `GeneralUtils.getProductName()`이 읽음) |
 | 피처 | `com.seizia.chromite.swing.feature` ([features/com.seizia.chromite.swing.feature](../../features/com.seizia.chromite.swing.feature)). 공개판 내장 드라이버 피처 `com.seizia.chromite.drivers.public.feature`를 SWT 제품과 같이 포함한다([drivers.md](drivers.md)) |
 | 제품 정의 | uid `com.seizia.chromite.swing.product`, [product/swing/chromite-swing.product](../../product/swing/chromite-swing.product) |
 | 실행 파일 | `chromite-swing.exe` / `ChromiteSwing.app` (SWT 제품의 `chromite`를 덮어쓰지 않도록 이름을 나눔) |
@@ -243,7 +243,7 @@ SSMS 배치, Object Explorer 등 실제 화면은 B단계에서 만든다.
 | Maven groupId | `com.seizia.chromite` (번들, 피처, 제품 모듈) |
 
 번들과 피처는 `plugins/pom.xml`, `features/pom.xml`의 `desktop` 프로파일(헤드리스 빌드가 아닐 때 기본 활성)에 넣었다.
-그래서 `-Pproduct-dbeaver-ce` 빌드에서도 함께 컴파일된다(SWT 제품에는 들어가지 않는다).
+그래서 `-Pproduct-chromite-swt` 빌드에서도 함께 컴파일된다(SWT 제품에는 들어가지 않는다).
 
 ```bash
 mvn package -f product/aggregate/pom.xml -T1C -Pproduct-chromite-swing
@@ -254,7 +254,7 @@ mvn package -f product/aggregate/pom.xml -T1C -Pproduct-chromite-swing
 
 ### 시작 흐름
 
-헤드리스 앱([org.jkiss.dbeaver.headless](../../plugins/org.jkiss.dbeaver.headless))과 같은 구조로 만들었다.
+헤드리스 앱([com.seizia.chromite.headless](../../plugins/com.seizia.chromite.headless))과 같은 구조로 만들었다.
 
 | 클래스 | 역할 |
 |---|---|
@@ -267,7 +267,7 @@ mvn package -f product/aggregate/pom.xml -T1C -Pproduct-chromite-swing
 
 1. Equinox가 `ChromiteSwingApplication.start()`를 애플리케이션 스레드(main)에서 호출한다.
 2. EDT에서 FlatLaf(`FlatLightLaf.setup()`)를 적용한다.
-3. 작업 공간을 잠근다. `-data`가 없으면 SWT 버전과 같은 기본 작업 공간(`DBeaverData/workspace6`)을 쓴다.
+3. 작업 공간을 잠근다. `-data`가 없으면 SWT 버전과 같은 기본 작업 공간(`ChromiteData/workspace6`)을 쓴다.
    잠글 수 없으면 오류 대화상자를 띄우고 끝낸다.
 4. `initializeApplicationServices()` → 디버그 로그(`.metadata/dbeaver-debug.log`, 표준 출력/오류를 함께 기록) →
    `DBWorkbench.getPlatform()`으로 플랫폼을 초기화한다(인증서 저장소 → `DesktopWorkspaceImpl` → 프로젝트 → Query Manager → 탐색기 모델).
@@ -282,7 +282,7 @@ mvn package -f product/aggregate/pom.xml -T1C -Pproduct-chromite-swing
 제품 설정에서 `org.eclipse.core.runtime`을 시작 수준 4로 자동 시작한다. SWT 제품에서는 워크벤치 번들이 시작시키지만
 Swing 제품에는 그런 번들이 없어서, 빼면 `Unable to acquire application service` 오류로 실행되지 않는다(2026-11-06 확인).
 
-SWT 버전의 `DesktopPreferencesInitializer`(`org.jkiss.dbeaver.core`)가 정하던 기본 설정은 Swing 제품에 없다.
+SWT 버전의 `DesktopPreferencesInitializer`(`com.seizia.chromite.core`)가 정하던 기본 설정은 Swing 제품에 없다.
 A단계에서는 디버그 로그 순환 한도(`logs.files.output.maxSize`, `logs.files.output.maxCount`)만 같은 값으로 정한다.
 이 값이 없으면 한도가 0이 되어 로그가 쓸 때마다 순환되어 사라진다(2026-11-06 확인).
 
@@ -326,7 +326,7 @@ A단계에서는 디버그 로그 순환 한도(`logs.files.output.maxSize`, `lo
 | FlatLaf (`com.formdev:flatlaf`) | 3.8 | Apache 2.0 | Maven Central. SHA-1 `5e06f19b28ef1fa1543fa99ac632903aa2cede6b`, SHA-256 `8d8489dee6b9512a669be7670fd2d010f6a7dcfb23b622329ce3c61f8529e76b` 확인 |
 
 - FlatLaf jar에는 OSGi 매니페스트가 없다(`Bundle-SymbolicName` 없음). 그래서 번들 안에 넣고 `Bundle-ClassPath: ., lib/flatlaf.jar`로 쓴다.
-  이 방식은 기존 `org.jkiss.dbeaver.core`의 `lib/awt.injector-1.0.0.jar`와 같다.
+  이 방식은 기존 `com.seizia.chromite.core`의 `lib/awt.injector-1.0.0.jar`와 같다.
 - 바이너리를 커밋하지 않는다. 번들 `pom.xml`의 `maven-dependency-plugin:copy`가 `generate-resources` 단계(컴파일 전)에
   Maven Central에서 받아 `lib/flatlaf.jar`로 복사한다. 버전은 `pom.xml`의 `flatlaf.version` 한 곳에만 있다.
   `lib/`는 번들의 `.gitignore`로 제외한다.
@@ -368,14 +368,14 @@ JBR/JetBrains 브랜드가 화면에 보이지 않게 한다.
 ### SWT 미포함 확인 (2026-11-06)
 
 Windows x64 결과물의 `plugins/`에는 번들 128개가 있고, `swt`, `jface`, `org.eclipse.ui`, `org.eclipse.e4.ui`가 들어간 이름은 0개다
-(macOS arm64 결과물은 129개, 같은 검사 0개). 런타임 피처(`org.jkiss.dbeaver.runtime.feature`)와 DB 피처(`org.jkiss.dbeaver.db.feature`)를
+(macOS arm64 결과물은 129개, 같은 검사 0개). 런타임 피처(`com.seizia.chromite.runtime.feature`)와 DB 피처(`com.seizia.chromite.db.feature`)를
 그대로 포함하고, Equinox 번들은 필요한 것만 직접 넣었다.
 
 ### A단계에서 남긴 것 (B단계 이후)
 
-- 작업 공간 선택, 잠긴 작업 공간 무시하고 열기, 이전 버전 작업 공간 이전, 인스턴스 서버, CLI 명령 처리(SWT 앱의 `DBeaverApplication`에 있음)
+- 작업 공간 선택, 잠긴 작업 공간 무시하고 열기, 이전 버전 작업 공간 이전, 인스턴스 서버, CLI 명령 처리(SWT 앱의 `ChromiteApplication`에 있음)
 - SWT `DesktopPreferencesInitializer`의 나머지 기본 설정(Query Manager 기록 기간 등). Swing용 기본 설정 초기화가 필요하다.
-- 설정 저장 위치: 설정은 이 번들 ID(`com.seizia.chromite.ui.swing`) 기준으로 저장되어 SWT 버전(`org.jkiss.dbeaver.core`)과 공유되지 않는다.
+- 설정 저장 위치: 설정은 이 번들 ID(`com.seizia.chromite.ui.swing`) 기준으로 저장되어 SWT 버전(`com.seizia.chromite.core`)과 공유되지 않는다.
 - 테마 전환(DataGrip풍 다크), macOS 메뉴 막대 통합, Windows AppUserModelID(위 "창 아이콘과 JVM 실행 방식")
 - macOS arm64 실행은 확인하지 못했다(빌드 결과만 확인). AWT는 Equinox 런처가 만든 보조 스레드에서 시작된다.
 
@@ -421,7 +421,7 @@ SQL 편집기, 결과 그리드, 연결 화면은 C단계에서 만든다.
 - **About:** 제품명, 부제, 버전, 저작권("© 2026 Chromite contributors. Based on DBeaver Community © DBeaver Corp"), 웹사이트
   (https://github.com/froiibn/chromite, 누르면 브라우저로 연다). 제품명·부제·저작권은 `plugin.xml` 제품 확장의 속성에서 읽는다.
   버전은 SWT 버전과 같이 제품 번들 버전(`GeneralUtils.getPlainVersion()`)이라, Swing 번들 버전을 제품 버전과 같은 `26.2.5`로 바꿨다
-  (SWT의 제품 번들 `org.jkiss.dbeaver.ui.app.standalone`과 같은 방식. 이전 `1.0.0`은 About에 그대로 나왔다).
+  (SWT의 제품 번들 `com.seizia.chromite.ui.app.standalone`과 같은 방식. 이전 `1.0.0`은 About에 그대로 나왔다).
 
 ### 도킹 라이브러리 검토 (ModernDocking 대 `JSplitPane`)
 
@@ -444,10 +444,10 @@ B단계는 `JSplitPane`만 쓴다. (2026-11-06 사용자가 끌어서 옮기기�
    새로 고침으로 더 새 읽기가 시작되었으면 늦게 끝난 이전 결과를 버린다.
 5. **연결:** 연결 노드의 자식을 읽으면 `DBNDatabaseNode.getChildren` → `initializeNode` → `DBUtils.initDataSource` →
    `DBWorkbench.getService(DBServiceConnections.class).initConnection(monitor, …)`로 연결한다
-   ([DBNDatabaseNode.java:221-243](../../plugins/org.jkiss.dbeaver.model/src/org/jkiss/dbeaver/model/navigator/DBNDatabaseNode.java),
-   [DBUtils.java:2792-2808](../../plugins/org.jkiss.dbeaver.model/src/org/jkiss/dbeaver/model/DBUtils.java)).
-   SWT 제품에서는 `org.jkiss.dbeaver.core`의 `UIServiceConnectionsImpl`이 이 서비스인데 Swing 제품에는 없어서, 서비스가 없으면
-   연결하지 않고 "Connection was canceled"로 끝난다. 그래서 `SwingConnectionService`를 `org.jkiss.dbeaver.service` 확장으로 등록했다.
+   ([DBNDatabaseNode.java:221-243](../../plugins/com.seizia.chromite.model/src/com/seizia/chromite/model/navigator/DBNDatabaseNode.java),
+   [DBUtils.java:2792-2808](../../plugins/com.seizia.chromite.model/src/com/seizia/chromite/model/DBUtils.java)).
+   SWT 제품에서는 `com.seizia.chromite.core`의 `UIServiceConnectionsImpl`이 이 서비스인데 Swing 제품에는 없어서, 서비스가 없으면
+   연결하지 않고 "Connection was canceled"로 끝난다. 그래서 `SwingConnectionService`를 `com.seizia.chromite.service` 확장으로 등록했다.
    SWT `DataSourceHandler.connectToDataSource`의 UI 없는 부분(이미 연결 중이면 그 Job을 기다림, 모델 계층의 `ConnectJob`을 탐색기 Job 스레드에서 `runSync`)을 옮겼다.
    공유 자격 증명 확인(팀/클라우드 기능)과 기능 사용 통계는 옮기지 않았다.
 6. **오류:** Job에서 난 예외는 `DBWorkbench.getPlatformUI().showError`(`SwingPlatformUI`)로 보여 주고, 노드를 접고 "Loading…" 자식을 되돌려 다시 펼치면 다시 읽는다.
@@ -461,14 +461,14 @@ B단계는 `JSplitPane`만 쓴다. (2026-11-06 사용자가 끌어서 옮기기�
 
 - 머리말에 이름(`getNodeDisplayName`), 종류(`getNodeTypeLabel`), 설명(`getNodeDescription`)을 보여 준다.
 - 속성 표는 SWT 속성 보기와 같은 모델을 쓴다(`NavigatorAdapterFactory`의 변환): 노드가 감싼 객체(`DBSWrapper.getObject()`, 아니면 노드)가
-  `DBPPropertySource`면 그것을, 아니면 `PropertyCollector`로 `@Property` 게터를 모은다. 둘 다 `org.jkiss.dbeaver.model`에 있고 UI에 의존하지 않아 그대로 쓸 수 있었다.
+  `DBPPropertySource`면 그것을, 아니면 `PropertyCollector`로 `@Property` 게터를 모은다. 둘 다 `com.seizia.chromite.model`에 있고 UI에 의존하지 않아 그대로 쓸 수 있었다.
 - 값 읽기는 게으른 속성(DB 조회가 필요한 값)을 포함하므로 백그라운드 Job에서 모니터를 넘겨 읽는다. 선택이 바뀌면 이전 Job을 취소한다.
   범주가 있는 속성은 범주 이름 줄(굵게) 아래에 모은다. 읽기 전용이다.
 
 ### 노드 아이콘
 
-- `DBNNode.getNodeIcon()`은 `DBIcon`이고 위치는 `platform:/plugin/<번들>/<경로>`다. `Bundle.getEntry`로 번들 안의 파일을 직접 찾는다(SWT `DBeaverIcons`와 같은 위치 규칙).
-- DBeaver 트리 아이콘은 대부분 SVG다(예: `org.jkiss.dbeaver.model/icons/tree`에 SVG 73개, PNG 2개). 그래서 PNG만 읽는 방식으로는 부족하고,
+- `DBNNode.getNodeIcon()`은 `DBIcon`이고 위치는 `platform:/plugin/<번들>/<경로>`다. `Bundle.getEntry`로 번들 안의 파일을 직접 찾는다(SWT `SwtIcons`와 같은 위치 규칙).
+- DBeaver 트리 아이콘은 대부분 SVG다(예: `com.seizia.chromite.model/icons/tree`에 SVG 73개, PNG 2개). 그래서 PNG만 읽는 방식으로는 부족하고,
   SVG는 JSVG로 읽어 그릴 때마다 벡터로 그린다(HiDPI에서도 선명). PNG는 `@2x` 파일이 있으면 `BaseMultiResolutionImage`로 묶는다.
 - 상태 겹침 아이콘(`DBIconComposite`, 예: 연결됨 표시)은 기본 아이콘 네 모서리에 겹쳐 그린다(SWT `OverlayImageDescriptor`와 같음).
 - 읽을 수 없는 아이콘은 `DBIcon.TYPE_UNKNOWN`, 그것도 없으면 Look and Feel의 트리 잎 아이콘으로 대신한다. 위치별로 캐시한다(실패도 캐시).
@@ -544,7 +544,7 @@ B단계는 `JSplitPane`만 쓴다. (2026-11-06 사용자가 끌어서 옮기기�
 
 ### 확인 (2026-11-06)
 
-- 빌드: `-Pproduct-dbeaver-ce,product-chromite-swing` BUILD SUCCESS. Swing 결과물 번들 수는 Windows x64 129개, macOS arm64 130개(A단계 + JSVG)이고,
+- 빌드: `-Pproduct-chromite-swt,product-chromite-swing` BUILD SUCCESS. Swing 결과물 번들 수는 Windows x64 129개, macOS arm64 130개(A단계 + JSVG)이고,
   이름에 `swt`, `jface`, `org.eclipse.ui`, `org.eclipse.e4.ui`가 들어간 번들은 둘 다 0개다.
 - Windows에서 in-process JVM(`-vm …\bin\server\jvm.dll`)으로 샘플 SQLite 연결이 있는 작업 공간 사본을 열어 키보드로 확인했다:
   연결 펼치기(연결됨, 연결 아이콘에 연결 표시) → 폴더(테이블, 뷰, 인덱스, 시퀀스, 테이블 트리거, 데이터 타입) → 테이블 12개 → 테이블 선택 시 Properties 표.
@@ -670,11 +670,11 @@ Query 메뉴 항목은 활성 편집기에 적용되고, 메뉴 단축키라 포
 - jar에 OSGi 매니페스트가 있지만 모든 패키지가 `Private-Package`이고 `Export-Package`가 없어 `Require-Bundle`로 쓸 수 없다. 그래서 FlatLaf처럼
   `maven-dependency-plugin`으로 받아 `lib/rsyntaxtextarea.jar`로 넣고 `Bundle-ClassPath`에 더했다. 버전은 번들 `pom.xml`의 `rsyntaxtextarea.version` 한 곳에 있다.
 - 라이선스 본문은 jar 안 `META-INF/LICENSE`에 있다. `NOTICE`에 출처를 적었다.
-- Swing 번들의 `Require-Bundle`에 `org.jkiss.dbeaver.model.sql`(실행 엔진, 파서)을 더했다. 이미 런타임 피처에 들어 있는 번들이다.
+- Swing 번들의 `Require-Bundle`에 `com.seizia.chromite.model.sql`(실행 엔진, 파서)을 더했다. 이미 런타임 피처에 들어 있는 번들이다.
 
 ### 확인
 
-- 빌드: `-Pproduct-dbeaver-ce,product-chromite-swing` BUILD SUCCESS. Swing 결과물 번들 수는 Windows x64 129개, macOS arm64 130개(B단계와 같음,
+- 빌드: `-Pproduct-chromite-swt,product-chromite-swing` BUILD SUCCESS. Swing 결과물 번들 수는 Windows x64 129개, macOS arm64 130개(B단계와 같음,
   RSyntaxTextArea는 Swing 번들 안의 jar)이고, 이름에 `swt`, `jface`, `org.eclipse.ui`, `org.eclipse.e4.ui`가 들어간 번들은 둘 다 0개다.
   Swing 번들 jar에 `lib/rsyntaxtextarea.jar`(SHA-256 위와 같음)와 테마 XML 두 개가 들어 있다.
 - Windows에서 in-process JVM(`-vm …\bin\server\jvm.dll`)으로 샘플 SQLite 연결이 있는 작업 공간 사본을 열어 키보드·마우스로 확인했다:
@@ -689,8 +689,8 @@ Query 메뉴 항목은 활성 편집기에 적용되고, 메뉴 단축키라 포
 - 디버그 로그(`.metadata/dbeaver-debug.log`)에 ERROR/WARN 없음. Eclipse 로그(`.metadata/.log`)에는 일부러 낸 SQL 오류(엔진이 `log.error`로 남김, SWT와 같음)만 있다.
   첫 시험에서 SQLite는 경고가 없을 때 `SQLQueryResult.getWarnings()`가 `null`이라 Messages가 비는 문제를 찾아 고쳤다.
 - SQL Server `GO` 배치는 SQL Server가 없어 실행해 보지 못했다. 배치 묶기는 실제 SQL Server 방언으로 단위 테스트했다
-  (`test/org.jkiss.dbeaver.test.platform`의 `SQLScriptBatchesTest`: `GO` 사이 문장 합치기와 원문 범위, `GO 2` 반복, 빈 배치 건너뛰기, 배치 구분자 없는 방언).
-  `mvn verify -Pproduct-dbeaver-ce -Dtest=SQLScriptBatchesTest`로 실행해 3개 모두 통과했다.
+  (`test/com.seizia.chromite.test.platform`의 `SQLScriptBatchesTest`: `GO` 사이 문장 합치기와 원문 범위, `GO 2` 반복, 빈 배치 건너뛰기, 배치 구분자 없는 방언).
+  `mvn verify -Pproduct-chromite-swt -Dtest=SQLScriptBatchesTest`로 실행해 3개 모두 통과했다.
   SQL Server 방언은 `DECLARE`를 블록 머리로 보아 `DECLARE …; SELECT …;`를 파서가 이미 쿼리 하나로 돌려주고, 일반 문장 두 개(`SELECT 2; SELECT 3`)는 이 클래스가 합친다.
 - macOS 실행은 확인하지 못했다.
 
@@ -766,7 +766,7 @@ SWT 범용 화면(`GenericConnectionPage`)의 규칙을 모델 코드로 따랐�
 
 - **새 연결 Save** (SWT `NewConnectionWizard.persistDataSource`): 아직 등록하지 않은 `DataSourceDescriptor`(`registry.createDataSource(새 ID, 드라이버, 설정)`)에 폼을 쓰고
   `DBPDataSourceRegistry.addDataSource`로 등록한다. `addDataSource`가 설정 파일(`.dbeaver/data-sources.json`)을 바로 저장하고(`persistDataSourceCreate` → `saveDataSources`,
-  [DataSourceRegistry.java:558-566, 626-636](../../plugins/org.jkiss.dbeaver.registry/src/org/jkiss/dbeaver/registry/DataSourceRegistry.java)) `OBJECT_ADD` 이벤트를 보낸다.
+  [DataSourceRegistry.java:558-566, 626-636](../../plugins/com.seizia.chromite.registry/src/com/seizia/chromite/registry/DataSourceRegistry.java)) `OBJECT_ADD` 이벤트를 보낸다.
   그래서 `flushConfig`는 따로 부르지 않는다(SWT 마법사도 부르지 않음).
 - **이름:** 비워 두면 SWT 기본 이름 규칙(`${host_or_database}`의 legacy 규칙, `ConnectionNameResolver`: DB 이름의 마지막 부분 → 호스트 → 서버 → 드라이버 이름, 50자)으로 만든다.
   다른 연결과 겹치면 `DataSourceUtils.generateUniqueDataSourceName`으로 `이름 (1)`처럼 만든다. 사용자가 바꾼 이름 규칙 설정(`navigator.settings.default.connectionPattern`)은 아직 읽지 않는다
@@ -783,9 +783,9 @@ SWT 범용 화면(`GenericConnectionPage`)의 규칙을 모델 코드로 따랐�
 ### 드라이버 파일 내려받기 (`SwingDriversService`)
 
 - 드라이버를 처음 쓸 때(연결, Test Connection, Driver Properties 읽기) `DriverLoaderDescriptor.downloadDriverLibraries`가 `UIServiceDrivers`를 부른다
-  ([DriverLoaderDescriptor.java:414-428](../../plugins/org.jkiss.dbeaver.registry/src/org/jkiss/dbeaver/registry/driver/DriverLoaderDescriptor.java)).
-  지시서에는 `DBPPlatformUI`의 메서드로 적혀 있었지만 실제 호출 지점은 이 서비스라서, `SwingConnectionService`처럼 `org.jkiss.dbeaver.service` 확장으로 등록했다.
-  SWT 제품은 `org.jkiss.dbeaver.core`의 `UIServiceDriversImpl`(`DriverDownloadDialog`)이다. Swing 제품에는 이 서비스가 없어서 지금까지는 묻지 않고 바로 내려받았다.
+  ([DriverLoaderDescriptor.java:414-428](../../plugins/com.seizia.chromite.registry/src/com/seizia/chromite/registry/driver/DriverLoaderDescriptor.java)).
+  지시서에는 `DBPPlatformUI`의 메서드로 적혀 있었지만 실제 호출 지점은 이 서비스라서, `SwingConnectionService`처럼 `com.seizia.chromite.service` 확장으로 등록했다.
+  SWT 제품은 `com.seizia.chromite.core`의 `UIServiceDriversImpl`(`DriverDownloadDialog`)이다. Swing 제품에는 이 서비스가 없어서 지금까지는 묻지 않고 바로 내려받았다.
 - 없는 라이브러리 이름(이 OS용, 끄지 않은 필수 라이브러리 중 로컬 파일이 없는 것)을 보여 주고 Download / Cancel을 묻는다. Download면 모델의 `DriverUtils.downloadDriverFiles`를
   모달 진행 대화상자(Cancel 가능)에서 돌리고 호출한 Job은 기다린다. Cancel이면 모델이 드라이버 클래스를 찾지 못했다는 오류를 낸다.
 - 오프라인 모드(`ui.drivers.offline`, [drivers.md](drivers.md))에서는 모델이 이 서비스를 부르지 않고 로컬 파일만 찾은 뒤, 없으면 이유를 설명하는 오류를 낸다.
@@ -796,8 +796,8 @@ SWT 범용 화면(`GenericConnectionPage`)의 규칙을 모델 코드로 따랐�
 B단계에서 남겼던 "모델 이벤트로 트리 갱신"을 구현했다. 다른 곳(연결 대화상자, 모델 Job, 다른 창)에서 일어난 변경이 다시 시작하지 않아도 보인다.
 
 - `ObjectExplorerPanel`이 `DBNModel.addListener(INavigatorListener)`로 듣는다. 모델은 이벤트를 모아 약 100ms마다 `DBPPlatformUI.executeInMainThread`(= EDT)로 보낸다
-  ([DBNModel.java:602-636](../../plugins/org.jkiss.dbeaver.model/src/org/jkiss/dbeaver/model/navigator/DBNModel.java)). 연결 레지스트리 이벤트는 `DBNProjectDatabases`가
-  탐색기 이벤트로 바꿔 준다([DBNProjectDatabases.java:351-470](../../plugins/org.jkiss.dbeaver.model/src/org/jkiss/dbeaver/model/navigator/DBNProjectDatabases.java)).
+  ([DBNModel.java:602-636](../../plugins/com.seizia.chromite.model/src/com/seizia/chromite/model/navigator/DBNModel.java)). 연결 레지스트리 이벤트는 `DBNProjectDatabases`가
+  탐색기 이벤트로 바꿔 준다([DBNProjectDatabases.java:351-470](../../plugins/com.seizia.chromite.model/src/com/seizia/chromite/model/navigator/DBNProjectDatabases.java)).
 - **연결 목록**(활성 프로젝트의 `DBNDataSource`·`DBNLocalFolder`·`DBNProjectDatabases`): 추가·삭제·이름 변경(`REFRESH`)·목록 재구성(`STRUCT_REFRESH`)이면 목록을 백그라운드에서 다시 읽고,
   이미 있는 트리 노드(펼친 하위 트리와 펼침 상태 포함)와 선택은 그대로 둔다. 이 앱에서 만든 연결(`ADD` + `SELECT`)은 목록을 읽은 뒤 선택해 보여 준다.
 - **연결 상태:** 끊김(`UNLOAD`)이면 그 연결을 접고 자식을 버려 다시 펼칠 때 연결해서 읽게 한다(그 연결을 지금 읽는 중이면 그대로 둔다: 연결 실패 처리가 끝나야 하므로).
@@ -826,7 +826,7 @@ SWT의 DB별 연결 화면(`ext.*.ui`, 32개 번들)에만 있는 설정은 범�
 
 ### 확인 (2026-11-06)
 
-- 빌드: `-Pproduct-dbeaver-ce,product-chromite-swing` BUILD SUCCESS. Swing 결과물 번들 수는 Windows x64 129개, macOS arm64 130개(C단계와 같음)이고,
+- 빌드: `-Pproduct-chromite-swt,product-chromite-swing` BUILD SUCCESS. Swing 결과물 번들 수는 Windows x64 129개, macOS arm64 130개(C단계와 같음)이고,
   이름에 `swt`, `jface`, `org.eclipse.ui`, `org.eclipse.e4.ui`가 들어간 번들은 둘 다 0개다.
 - Windows에서 in-process JVM(`-vm …\bin\server\jvm.dll`)으로 C단계 작업 공간 사본(샘플 SQLite 연결 1개)을 열어 키보드·마우스로 확인했다:
   - **새 연결:** 도구 막대 New Connection → 드라이버 목록(아이콘, 범주) → "sqlite" 검색 → Enter → 범용 화면에 `{file}`용 "Database file" + Browse만 보임(인증 칸 없음, SQLite는 익명 접속)
@@ -848,12 +848,12 @@ SWT의 DB별 연결 화면(`ext.*.ui`, 32개 번들)에만 있는 설정은 범�
 ### 내장 드라이버 (2026-11-06)
 
 - D단계 결과물에는 공개판 내장 드라이버(묶음 선언 번들과 설치 폴더 `drivers/`)가 없어서, SWT 제품에서는 내장된 PostgreSQL 드라이버도 내려받기를 물었다.
-  둘을 `org.jkiss.dbeaver.ce.feature`에서 전용 피처 `com.seizia.chromite.drivers.public.feature`로 옮기고 Swing 피처도 포함하게 했다(jar 목록은 그 피처 한곳).
-- 확인: `-Pproduct-dbeaver-ce,product-chromite-swing` BUILD SUCCESS. Swing 결과물 Windows `chromite-swing/drivers/`, macOS `ChromiteSwing.app/Contents/Eclipse/drivers/`의
+  둘을 `com.seizia.chromite.ce.feature`에서 전용 피처 `com.seizia.chromite.drivers.public.feature`로 옮기고 Swing 피처도 포함하게 했다(jar 목록은 그 피처 한곳).
+- 확인: `-Pproduct-chromite-swt,product-chromite-swing` BUILD SUCCESS. Swing 결과물 Windows `chromite-swing/drivers/`, macOS `ChromiteSwing.app/Contents/Eclipse/drivers/`의
   파일 34개(18,917,823 bytes)가 SWT 제품의 `drivers/`와 이름·크기·SHA-256이 모두 같고, SWT 제품의 `drivers/`도 바꾸기 전과 같다.
   `com.seizia.chromite.drivers.public` 번들이 `bundles.info`에 들어가 번들 수는 Windows x64 130개, macOS arm64 131개이며, `swt`·`jface`·`org.eclipse.ui`·`org.eclipse.e4.ui` 번들은 여전히 0개다.
 - Windows in-process JVM 실행(C단계 작업 공간 사본): New Connection → PostgreSQL → Driver Properties 탭이 내려받기 확인 없이 pgjdbc 속성(adaptiveFetch 등)을 바로 보였고,
-  Test Connection은 pgjdbc의 "Connection refused"(localhost:5432, 서버 없음)로 끝났다. 사용자 드라이버 폴더(`DBeaverData/drivers`)에는 PostgreSQL jar가 없으므로 설치 폴더의 `drivers/postgresql`에서 불러온 것이다.
+  Test Connection은 pgjdbc의 "Connection refused"(localhost:5432, 서버 없음)로 끝났다. 사용자 드라이버 폴더(`ChromiteData/drivers`)에는 PostgreSQL jar가 없으므로 설치 폴더의 `drivers/postgresql`에서 불러온 것이다.
 
 ### D단계에서 남긴 것
 
@@ -926,7 +926,7 @@ E단계의 목표는 SSMS처럼 SQL 파일을 열고 저장하고, 편집기에�
   고르면 그 편집기의 연결이 바뀌고 탭 제목이 바뀐다. 연결은 C단계처럼 실행할 때 필요하면 연다. 목록은 콤보를 열 때마다 다시 채워 연결 추가·삭제·이름 변경을 반영한다.
   실행 중에는 콤보를 끈다(실행 중인 Job은 시작할 때의 연결을 쓴다).
 - **기본 DB/스키마 콤보 (SSMS "Available Databases"):** SWT의 활성 스키마 선택(`SelectActiveSchemaHandler`)과 같은 모델 API를 쓴다.
-  - 목록과 현재 값: 모델의 `ContextDefaultObjectsReader`(`org.jkiss.dbeaver.model.impl.struct`)를 작업 스레드에서 돌린다. 주 자식 형식이 카탈로그면 카탈로그 목록
+  - 목록과 현재 값: 모델의 `ContextDefaultObjectsReader`(`com.seizia.chromite.model.impl.struct`)를 작업 스레드에서 돌린다. 주 자식 형식이 카탈로그면 카탈로그 목록
     (카탈로그 아래 스키마가 있고 스키마를 바꿀 수 있으면 현재 카탈로그의 스키마 목록), 스키마면 스키마 목록이다. SWT처럼 `DBSObjectContainer`인 것만 보이고,
     기본 객체 또는 그 부모를 고른다.
   - 바꾸기: `DBExecUtils.setExecutionContextDefaults(monitor, 데이터 소스, 문맥, 새 카탈로그, 현재 카탈로그, 새 스키마)`를 SWT와 같은 인자로 부른다
@@ -940,7 +940,7 @@ E단계의 목표는 SSMS처럼 SQL 파일을 열고 저장하고, 편집기에�
 
 ### Script as, Select Top 1000 Rows, View DDL (`ObjectScripts`)
 
-SWT의 "Generate SQL" 메뉴가 쓰는 모델 계층 생성기(`org.jkiss.dbeaver.model.sql.generator`, UI 의존 없음)를 그대로 쓴다. 모두 DB 메타데이터를 읽으므로
+SWT의 "Generate SQL" 메뉴가 쓰는 모델 계층 생성기(`com.seizia.chromite.model.sql.generator`, UI 의존 없음)를 그대로 쓴다. 모두 DB 메타데이터를 읽으므로
 진행 대화상자(`ProgressDialog`, 300ms 뒤에 보임, Cancel)의 작업 스레드에서 만든다.
 
 | 메뉴 | 대상 (노드의 객체) | 만드는 방법 |
@@ -971,17 +971,17 @@ SWT의 "Generate SQL" 메뉴가 쓰는 모델 계층 생성기(`org.jkiss.dbeave
   - 쓰기는 진행 대화상자의 작업 스레드에서 한다(1000행마다 진행·취소 확인). 취소하거나 실패하면 쓰다 만 파일을 지운다.
   - 형식은 RFC 4180: 구분자·큰따옴표·CR·LF가 있는 값만 큰따옴표로 감싸고 안의 큰따옴표는 두 번 쓴다. 줄 끝은 CRLF, 문자 집합은 UTF-8. NULL은 빈 칸(`DataExporterCSV` 기본값과 같음).
   - 수식 이스케이프(기본 켬, `DataExporterCSV`의 기본 동작과 같은 규칙): `= + - @`, 탭, CR, LF(전각 포함)로 시작하는 값 앞에 `'`를 붙인다(CSV injection 방지). 숫자 열과 NULL은 건드리지 않는다.
-- **`DataExporterCSV`(data.transfer)를 쓰지 않은 이유:** `data.transfer` 번들은 Swing 제품에 들어 있지만(`org.jkiss.dbeaver.runtime.feature`), 이 내보내기는 원래 값(`Object[]`),
+- **`DataExporterCSV`(data.transfer)를 쓰지 않은 이유:** `data.transfer` 번들은 Swing 제품에 들어 있지만(`com.seizia.chromite.runtime.feature`), 이 내보내기는 원래 값(`Object[]`),
   열 바인딩(`DBDAttributeBinding[]`), LOB 읽기용 열린 세션(`exportRow(DBCSession, …)`)이 필요하다. Swing 결과 표는 C단계 설계대로 작업 스레드에서 값을 표시 문자열로 바꾸고
   원래 값을 놓아 주므로(`ResultSetGridReceiver`) 그 입력이 없다. 원래 값을 결과 표에 계속 들고 있게 바꾸는 것은 LOB·세션 수명 문제가 커서, 화면에 보이는 값을 그대로 쓰는 쪽을 골랐다.
   그래서 숫자·날짜는 화면 표시 형식이다(숫자 묶음 기호는 기본 설정에서 꺼져 있음, `DataFormatterProfile`).
-- **XLSX 내보내기: 보류(F단계에서 구현, "구현 현황 — F단계").** 모델의 XLSX 내보내기(`DataExporterXLSX`, `org.jkiss.dbeaver.data.office`)는 SWT 의존이 없지만, 그 번들과 Apache POI 번들(`org.jkiss.bundle.apache.poi`)은
-  `org.jkiss.dbeaver.ext.office.feature`에만 있고 Swing 피처(`com.seizia.chromite.swing.feature`)에는 없다. 피처를 바꾸는 작업은 이번 범위(Swing 플러그인) 밖이고,
+- **XLSX 내보내기: 보류(F단계에서 구현, "구현 현황 — F단계").** 모델의 XLSX 내보내기(`DataExporterXLSX`, `com.seizia.chromite.data.office`)는 SWT 의존이 없지만, 그 번들과 Apache POI 번들(`org.jkiss.bundle.apache.poi`)은
+  `com.seizia.chromite.ext.office.feature`에만 있고 Swing 피처(`com.seizia.chromite.swing.feature`)에는 없다. 피처를 바꾸는 작업은 이번 범위(Swing 플러그인) 밖이고,
   위와 같은 이유로 원래 값도 필요하다. 메뉴에 넣지 않았다.
 
 ### 확인
 
-- 빌드: `-Pproduct-dbeaver-ce,product-chromite-swing` BUILD SUCCESS. Swing 결과물 번들 수는 Windows x64 129개, macOS arm64 130개(D단계와 같음)이고,
+- 빌드: `-Pproduct-chromite-swt,product-chromite-swing` BUILD SUCCESS. Swing 결과물 번들 수는 Windows x64 129개, macOS arm64 130개(D단계와 같음)이고,
   이름에 `swt`, `jface`, `org.eclipse.ui`, `org.eclipse.e4.ui`가 들어간 번들은 둘 다 0개다. 새 번들 의존은 없다(`data.transfer`·`data.office`를 쓰지 않음).
 - Windows에서 in-process JVM(`-vm …\bin\server\jvm.dll`)으로 C단계 작업 공간 사본에 SQLite 연결 하나(`Chinook Copy`, Album 1번 제목을 `Copy: …`로 바꾼 사본)를 더해 열고
   키보드·마우스로 확인했다:
@@ -1027,11 +1027,11 @@ F단계의 목표는 DataGrip의 핵심 강점인 SQL 자동완성과, MVP 7번�
 | `ResultSetGridReceiver` (변경) | 숫자·불리언·날짜 원래 값과 열 바인딩을 표시 문자열과 함께 넘김 |
 | `ResultSetGrid` (변경) | `Data`에 원래 값·바인딩, 오른쪽 클릭 "Export to Excel (XLSX)…" |
 | `ResultSetExport` (변경) | XLSX 내보내기(`DataExporterXLSX`), CSV와 같은 파일 대화상자·안내 문구를 함께 씀 |
-| `com.seizia.chromite.swing.feature` (변경) | `org.jkiss.dbeaver.data.office`, `org.jkiss.bundle.apache.poi`와 Apache Commons 번들 6개 |
+| `com.seizia.chromite.swing.feature` (변경) | `com.seizia.chromite.data.office`, `org.jkiss.bundle.apache.poi`와 Apache Commons 번들 6개 |
 
 ### 자동완성: 분석기 선택 근거 (SWT 편집기 조사)
 
-- **SWT가 쓰는 분석기:** `SQLCompletionProcessor.computeCompletionProposals`([SQLCompletionProcessor.java:177-233](../../plugins/org.jkiss.dbeaver.ui.editors.sql/src/org/jkiss/dbeaver/ui/editors/sql/syntax/SQLCompletionProcessor.java))는
+- **SWT가 쓰는 분석기:** `SQLCompletionProcessor.computeCompletionProposals`([SQLCompletionProcessor.java:177-233](../../plugins/com.seizia.chromite.ui.editors.sql/src/com/seizia/chromite/ui/editors/sql/syntax/SQLCompletionProcessor.java))는
   설정 `SQLEditor.ContentAssistant.experimental.mode`(기본값 `NEW`, `SQLEditorPreferencesInitializer.java:86`)가 새 엔진을 켜고, 고급 강조·메타데이터 읽기 설정이 켜져 있고(둘 다 기본 켬, 같은 파일 :115-116),
   방언이 `BasicSQLDialect`이면 새 엔진 `SQLQueryCompletionAnalyzer`(model.sql `semantics.completion`)를 쓴다. 예전 엔진 `SQLCompletionAnalyzer`는 모드가 `DEFAULT`/`COMBINED`이거나 새 엔진 조건이 안 맞을 때만 쓴다.
   `SQLDialect`를 구현하는 유일한 추상 클래스 `AbstractSQLDialect`의 하위 클래스는 `BasicSQLDialect` 하나라 모든 방언이 조건을 만족한다. 그래서 **SWT 기본 설정은 새 엔진만 쓴다.** Swing 편집기도 새 엔진만 쓴다.
@@ -1088,10 +1088,10 @@ RSyntaxTextArea의 `com.fifesoft:autocomplete`(BSD-3) 3.3.2 소스를 확인했�
 
 ### XLSX 내보내기
 
-- **번들:** `org.jkiss.dbeaver.data.office`(`DataExporterXLSX`, SWT 의존 없음, `Require-Bundle`은 `data.transfer`와 POI뿐)와 `org.jkiss.bundle.apache.poi` 5.4.3
+- **번들:** `com.seizia.chromite.data.office`(`DataExporterXLSX`, SWT 의존 없음, `Require-Bundle`은 `data.transfer`와 POI뿐)와 `org.jkiss.bundle.apache.poi` 5.4.3
   (POI 5.4.0과 의존 jar를 담은 DBeaver 번들, `Require-Bundle`은 Apache Commons 6개, `Import-Package`는 `org.slf4j`)를 Swing 피처에 넣었다.
-  두 번들은 Office 확장 피처 `org.jkiss.dbeaver.ext.office.feature`에만 있고, 이 피처는 SWT 제품에 들어 있지 않다(설치 원본이던 CE 업데이트 저장소 `product/repositories`는 2026-11-07 삭제, [build.md](build.md) "빌드하는 제품").
-  피처의 나머지 번들 `org.jkiss.dbeaver.data.office.ui`(SWT)는 넣지 않았다. Swing 번들은 `data.transfer`·`data.office`를 `Require-Bundle`로 쓴다.
+  두 번들은 Office 확장 피처 `com.seizia.chromite.ext.office.feature`에만 있고, 이 피처는 SWT 제품에 들어 있지 않다(설치 원본이던 CE 업데이트 저장소 `product/repositories`는 2026-11-07 삭제, [build.md](build.md) "빌드하는 제품").
+  피처의 나머지 번들 `com.seizia.chromite.data.office.ui`(SWT)는 넣지 않았다. Swing 번들은 `data.transfer`·`data.office`를 `Require-Bundle`로 쓴다.
   B단계의 JSVG처럼 SWT만 제공하는 능력을 요구하는지 확인했다: 새 번들 매니페스트에 `Require-Capability`가 없고(POI 번들은 `osgi.ee`뿐), 빌드 결과에 SWT 계열 번들이 들어오지 않았다(아래 확인).
 - **원래 값을 남기기로 한 근거:** E단계 결과 표는 값을 표시 문자열로만 가지고 있다. 표시 문자열을 다시 숫자로 읽는 방법은 정확하지 않다.
   숫자 표시 형식은 지역 설정의 `NumberFormat`이고(소수점 기호가 지역마다 다름) 최대 소수 자릿수가 10 이상으로 잘린다(`NumberFormatSample` :56, `NumberDataFormatter` :69-80). 날짜도 표시 형식을 알아야 다시 읽을 수 있다.
@@ -1108,8 +1108,8 @@ RSyntaxTextArea의 `com.fifesoft:autocomplete`(BSD-3) 3.3.2 소스를 확인했�
 
 ### 확인 (2026-11-06)
 
-- 빌드: `-Pproduct-dbeaver-ce,product-chromite-swing` BUILD SUCCESS. Swing 결과물 번들 수는 Windows x64 137개, macOS arm64 138개(E단계 130/131 + 7)이고,
-  이름에 `swt`, `jface`, `org.eclipse.ui`, `org.eclipse.e4.ui`가 들어간 번들은 둘 다 0개다. 새 번들: `org.jkiss.dbeaver.data.office`, `org.jkiss.bundle.apache.poi` 5.4.3,
+- 빌드: `-Pproduct-chromite-swt,product-chromite-swing` BUILD SUCCESS. Swing 결과물 번들 수는 Windows x64 137개, macOS arm64 138개(E단계 130/131 + 7)이고,
+  이름에 `swt`, `jface`, `org.eclipse.ui`, `org.eclipse.e4.ui`가 들어간 번들은 둘 다 0개다. 새 번들: `com.seizia.chromite.data.office`, `org.jkiss.bundle.apache.poi` 5.4.3,
   `org.apache.commons.commons-collections4` 4.6.0, `commons-compress` 1.28.0, `commons-io` 2.22.0, `lang3` 3.20.0, `text` 1.15.0
   (`commons-codec`은 이미 있었음). `bundles.info`에 모두 들어 있다.
 - Windows에서 in-process JVM(`-vm …\bin\server\jvm.dll`)으로 E단계 작업 공간 사본(샘플 SQLite 연결 2개)을 열어 키보드·마우스로 확인했다. 팝업은 별도 창이라 창별로 찍어 확인했다.
@@ -1153,18 +1153,18 @@ G단계의 목표는 쿼리 결과를 표에서 고치고 DB에 저장하는 것
 | `SqlEditorPanel` (변경) | 다시 실행 전 저장하지 않은 변경 확인, 저장 중 실행 막기 |
 | `MainFrame` (변경) | 탭 닫기·앱 끝내기에서 결과 변경도 Save / Don't Save / Cancel로 묻기(E단계 확인 흐름 재사용) |
 
-새 번들 의존은 없다. 저장 엔진(`org.jkiss.dbeaver.model.data.resultset`), 행 다시 읽기(`RowDataReceiver`, `SQLQueryDataContainer`)는 이미 쓰던 `model`·`model.sql` 번들에 있다.
+새 번들 의존은 없다. 저장 엔진(`com.seizia.chromite.model.data.resultset`), 행 다시 읽기(`RowDataReceiver`, `SQLQueryDataContainer`)는 이미 쓰던 `model`·`model.sql` 번들에 있다.
 
 ### SWT 편집 구조 조사와 재사용 방식
 
 - **편집 가능 판단 (SWT):** `ResultSetDataReceiver.fetchEnd`가 `DBExecUtils.bindAttributes(session, entity, resultSet, bindings, rows)`를 부른다
-  ([ResultSetDataReceiver.java:163](../../plugins/org.jkiss.dbeaver.ui.editors.data/src/org/jkiss/dbeaver/ui/controls/resultset/ResultSetDataReceiver.java)).
+  ([ResultSetDataReceiver.java:163](../../plugins/com.seizia.chromite.ui.editors.data/src/com/seizia/chromite/ui/controls/resultset/ResultSetDataReceiver.java)).
   이 함수가 결과 열을 테이블 열(`setEntityAttribute`)에 묶고, `bindUniqueIdentifiers` → `getBestIdentifier`(기본 키 인덱스 → 고유 인덱스 → 제약 조건 → ROWID → 가상 키)로
-  테이블마다 `DBDRowIdentifier`를 만들어 각 열에 단다([DBExecUtils.java:759-1030](../../plugins/org.jkiss.dbeaver.model/src/org/jkiss/dbeaver/model/exec/DBExecUtils.java)).
+  테이블마다 `DBDRowIdentifier`를 만들어 각 열에 단다([DBExecUtils.java:759-1030](../../plugins/com.seizia.chromite.model/src/com/seizia/chromite/model/exec/DBExecUtils.java)).
   `ResultSetModel.setData`는 `DBExecUtils.detectSingleSourceTable`로 단일 원본 테이블을 정하고(열의 식별자 테이블이 둘 이상이면 없음),
   `ResultSetViewer.isReadOnly`/`getReadOnlyStatus`는 연결 상태(`DBExecUtils.getResultSetReadOnlyStatus`), 키(`isUniqueKeyUndefinedButRequired`)로,
   열 하나는 `DBExecUtils.isAttributeReadOnly`(메타 읽기 전용, 행 식별자, `DBSDataManipulator.FEATURE_DATA_UPDATE`)로 판단한다.
-  행 추가·삭제는 원본 테이블의 `FEATURE_DATA_INSERT`/`FEATURE_DATA_DELETE`다([ResultSetViewer.java:2918-2975](../../plugins/org.jkiss.dbeaver.ui.editors.data/src/org/jkiss/dbeaver/ui/controls/resultset/ResultSetViewer.java)).
+  행 추가·삭제는 원본 테이블의 `FEATURE_DATA_INSERT`/`FEATURE_DATA_DELETE`다([ResultSetViewer.java:2918-2975](../../plugins/com.seizia.chromite.ui.editors.data/src/com/seizia/chromite/ui/controls/resultset/ResultSetViewer.java)).
 - **저장 (SWT):** `ResultSetViewer.saveChanges` → `ResultSetPersister`(`DBDResultSetDataUpdater` 상속) → `prepareStatements` → `DataUpdaterJob`.
   엔진은 테이블의 `DBSDataManipulator.insertData/updateData/deleteData`로 문장을 만들고 실행한다(SQL을 직접 만들지 않음). 성공하면 설정 `resultset.edit.refreshAfterUpdate`(기본 켬)에 따라
   추가·수정한 행을 키로 다시 읽는다(`refreshInsertedRows`/`RowRefreshJob`).
@@ -1248,7 +1248,7 @@ G단계의 목표는 쿼리 결과를 표에서 고치고 DB에 저장하는 것
 
 ### 확인 (2026-11-06)
 
-- 빌드: `-Pproduct-dbeaver-ce,product-chromite-swing` BUILD SUCCESS. Swing 결과물 번들 수는 Windows x64 137개, macOS arm64 138개(F단계와 같음, 새 번들 없음)이고,
+- 빌드: `-Pproduct-chromite-swt,product-chromite-swing` BUILD SUCCESS. Swing 결과물 번들 수는 Windows x64 137개, macOS arm64 138개(F단계와 같음, 새 번들 없음)이고,
   이름에 `swt`, `jface`, `org.eclipse.ui`, `org.eclipse.e4.ui`가 들어간 번들은 둘 다 0개다.
 - Windows에서 in-process JVM(`-vm …\bin\server\jvm.dll`)으로 F단계 작업 공간 사본(연결 두 개를 사본 폴더의 DB 파일로 바꿈)을 열어 키보드·마우스로 확인했다.
   편집은 사본 DB(`chinook-copy.db`, `Chinook Copy (SQLite)` 연결)에만 했고, 저장 결과는 Python 표준 `sqlite3`로 DB 파일을 읽기 전용으로 열어 따로 확인했다.
@@ -1317,7 +1317,7 @@ G단계의 목표는 쿼리 결과를 표에서 고치고 DB에 저장하는 것
 
 ### 확인 (2026-11-06)
 
-- 빌드: `mvn -B clean package -f product/aggregate/pom.xml -T1C '-Pproduct-dbeaver-ce,product-chromite-swing'` → `BUILD SUCCESS`.
+- 빌드: `mvn -B clean package -f product/aggregate/pom.xml -T1C '-Pproduct-chromite-swt,product-chromite-swing'` → `BUILD SUCCESS`.
   Swing 제품의 `plugins/`에 `swt`·`jface`·`org.eclipse.ui`·`e4.ui` 번들 0개. Swing 번들 jar에 `lib/flatlaf-fonts-inter.jar`(1,988,916 bytes), `lib/flatlaf-fonts-jetbrains-mono.jar`(537,127 bytes), SVG 188개, `icons/ui/LICENSE-tabler.txt`가 들어 있다.
 - 실행(작업 공간 사본 `D:\Tools\_smoke\swing-design`, Windows 11, 150%): 라이트·다크 × 아이콘 팩 A·B 네 조합에서 트리(Tables → Album → 컬럼·Unique 키·인덱스, 뷰 폴더), SQL 편집기와 결과 그리드, Properties를 캡처해 사양 값과 비교했다(측정값은 design-spec.md "적용 현황").
   테마와 아이콘 팩은 실행 중 메뉴로 바뀌고, 다시 시작해도 저장된 값(`DARK`, `COLOR`)으로 열렸다. 연결 대화상자, 자동완성 목록, Filter(마스크 걸기·풀기와 `data-sources.json` 저장), 한글 트리·편집기·그리드, 연결 상태 점(연결됨 초록, 없는 폴더의 SQLite 파일로 연결 실패 빨강)도 확인했다.
@@ -1393,9 +1393,9 @@ Connection Properties | Driver Properties | Provider Properties | Additional Con
 
 ### 인증 방식 (`ConnectionAuthModels`)
 
-근거: 인증 방식은 `org.jkiss.dbeaver.dataSourceAuth` 확장(`DataSourceAuthModelDescriptor`)이고, 드라이버에 맞는 목록은 모델 계층의
+근거: 인증 방식은 `com.seizia.chromite.dataSourceAuth` 확장(`DataSourceAuthModelDescriptor`)이고, 드라이버에 맞는 목록은 모델 계층의
 `DBPDataSourceProviderRegistry.getApplicableAuthModels`가 준다(데스크톱에서는 서버 앱 전용 제외, `replace`로 대체된 방식 제외,
-[DataSourceProviderRegistry.java:857-875](../../plugins/org.jkiss.dbeaver.registry/src/org/jkiss/dbeaver/registry/DataSourceProviderRegistry.java)).
+[DataSourceProviderRegistry.java:857-875](../../plugins/com.seizia.chromite.registry/src/com/seizia/chromite/registry/DataSourceProviderRegistry.java)).
 SWT는 방식마다 SWT 설정 화면(`propertyConfigurator`의 `uiClass`, 예: `DatabaseNativeAuthModelConfigurator`, `PostgreAuthPgPassConfigurator`)을 쓰는데,
 Swing 제품에는 그 번들이 없다. 그래서 범용 칸(Login, Password)만으로 끝나는 방식만 고를 수 있게 했다. 판단은 모델 코드만으로 한다.
 
@@ -1447,7 +1447,7 @@ Swing 제품에는 그 번들이 없다. 그래서 범용 칸(Login, Password)�
 
 ### 확인 (2026-11-06)
 
-- 빌드: `-Pproduct-dbeaver-ce,product-chromite-swing` BUILD SUCCESS. Swing 결과물 `bundles.info`의 번들 수는 Windows x64 137개, macOS arm64 138개이고,
+- 빌드: `-Pproduct-chromite-swt,product-chromite-swing` BUILD SUCCESS. Swing 결과물 `bundles.info`의 번들 수는 Windows x64 137개, macOS arm64 138개이고,
   `swt`·`jface`·`org.eclipse.ui`·`org.eclipse.e4.ui` 번들은 둘 다 0개다.
 - Windows에서 in-process JVM(`-vm …\bin\server\jvm.dll`)으로 G단계 작업 공간 사본(SQLite 연결 2개, 연결 파일 경로를 사본으로 바꿈)을 열어 키보드·마우스로 확인했다:
   - **새 연결 기본 화면:** New Connection → `Connect to Server`, Database type SQL Server, Server name `localhost`, Database `master`,
@@ -1486,7 +1486,7 @@ Swing 제품에는 그 번들이 없다. 그래서 범용 칸(Login, Password)�
 | `ChromiteLightLaf.properties`, `ChromiteDarkLaf.properties` | Islands 팔레트(캔버스, 카드, 선택, 글자, 테두리, 강조색 `#3871E1`)와 `Chromite.island.*` 토큰, 제목 표시줄 캔버스색 |
 | `SqlEditorDark.xml` | 편집기 바탕·거터 `#191A1C`, 현재 줄 `#212326` |
 
-- 확인: `-Pproduct-dbeaver-ce,product-chromite-swing` BUILD SUCCESS, 작업 공간 사본(`D:\Tools\_smoke\swing-p1`)으로 실행해 라이트·다크 × 아이콘 팩 A 캡처
+- 확인: `-Pproduct-chromite-swt,product-chromite-swing` BUILD SUCCESS, 작업 공간 사본(`D:\Tools\_smoke\swing-p1`)으로 실행해 라이트·다크 × 아이콘 팩 A 캡처
   (`D:\Tools\_scratch\swing-p1\islands-light.png`, `islands-dark.png`), 실행 중 테마 전환. 회귀 테스트는 실행하지 않았다(요청 없음).
   영향받을 수 있는 기능: 도구 창 숨기기·크기 저장(카드 단위로 바뀜), 분할선 끌기(6px 틈), 테마 전환.
 
@@ -1578,7 +1578,7 @@ Object Explorer 오른쪽 클릭 메뉴의 Refresh에 F5를 보인다.
 
 ### 확인 (2026-11-06)
 
-- 빌드: `-Pproduct-dbeaver-ce,product-chromite-swing` BUILD SUCCESS. Swing 제품의 `plugins/`에 `swt`·`jface`·`org.eclipse.ui`·`e4.ui` 번들 0개.
+- 빌드: `-Pproduct-chromite-swt,product-chromite-swing` BUILD SUCCESS. Swing 제품의 `plugins/`에 `swt`·`jface`·`org.eclipse.ui`·`e4.ui` 번들 0개.
 - 실행(작업 공간 사본 `D:\Tools\_smoke\swing-p1`, Windows 11, 150%, in-process JVM), 캡처는 `D:\Tools\_scratch\swing-p1\`:
   - 그리드 머리글 라이트·다크(`grid-light.png`, `grid-dark-0.png`): `AlbumId` 머리글 전체 보임, 행 번호 5를 눌러도 가로 스크롤 막대가 왼쪽 그대로.
   - 메뉴(`menu-edit2-0.png`, `menu-tools-0.png`, `menu-window2-0.png`, 팝업은 별도 창으로 캡처), Options(`options-0.png`): 테마 Dark·최대 행 500으로 OK →
@@ -1639,7 +1639,7 @@ Windows 11, 화면 배율 150%, JBR 25, 작업 공간 사본 `D:\Tools\_smoke\sw
 - Options(`opt-dark-editor-0.png`, `opt-dark-colors-0.png`, `opt-light-editor-0.png`, `opt-light-colors-0.png`): Editor 탭의 글꼴 목록에서 Lucida Sans Typewriter를
   고르면 미리 보기가 바로 바뀐다(`opt-light-editor-lucida-0.png`, 취소함). Editor Colors에서 Keyword를 Bold로 하고 OK → 열린 편집기의 키워드가 바로 굵게 바뀌고(`dark-editor-keyword-bold-crop.png`)
   설정 파일에 `sqlEditor.color.dark.keyword=569cd6,bold`만 저장됨. Reset to Defaults + OK → 그 키가 지워짐. Options에서 테마를 Light로 바꾸면 편집기 색도 라이트 값으로 바뀐다.
-- 빌드: `-Pproduct-dbeaver-ce,product-chromite-swing` BUILD SUCCESS, Swing 제품 `plugins/`에 `swt`·`jface`·`org.eclipse.ui`·`e4.ui` 번들 0개, 번들 jar에 `fonts/cascadia-mono/*` 포함.
+- 빌드: `-Pproduct-chromite-swt,product-chromite-swing` BUILD SUCCESS, Swing 제품 `plugins/`에 `swt`·`jface`·`org.eclipse.ui`·`e4.ui` 번들 0개, 번들 jar에 `fonts/cascadia-mono/*` 포함.
 - 확인하지 못한 것: macOS(Cascadia Mono 등록, Apple SD Gothic Neo 대체), Windows 10(운영체제 Cascadia Mono 없음 → 번들 글꼴 등록 경로), DDL 탭의 방언 강조(화면 확인 안 함), 연결된 SQL Server 방언.
 - 회귀 테스트는 실행하지 않았다(요청 없음). 영향받을 수 있는 기능: SQL 편집기·DDL 탭의 구문 강조와 글꼴, 테마 전환 뒤 편집기 색, Tools > Options(탭 구성), View DDL.
 - 범위 밖 관찰: Options에서 라이트로 바꾼 직후 편집기 오른쪽(세로 스크롤 막대 자리)에 다크 바탕 띠가 한 번 남았고, 편집기를 누르니 다시 그려져 사라졌다(원인 미조사).
@@ -1813,7 +1813,7 @@ EDT 에이전트로 단추를 누르고(`doClick`) 결과를 읽었다. 캡처�
 
 ### 확인 (2026-11-06)
 
-빌드 `-Pproduct-dbeaver-ce,product-chromite-swing` BUILD SUCCESS. Windows 11, 150%, JBR 25(`-vm ...\server\jvm.dll`), 개인 작업 공간 `D:\Tools\_scratch\docking\ws`.
+빌드 `-Pproduct-chromite-swt,product-chromite-swing` BUILD SUCCESS. Windows 11, 150%, JBR 25(`-vm ...\server\jvm.dll`), 개인 작업 공간 `D:\Tools\_scratch\docking\ws`.
 프로세스 안 EDT 시험 에이전트(OS 입력 없음, `D:\Tools\_scratch\docking\agent`, 도킹 명령은 리플렉션으로 `ToolWindowDocking`·`DockingAPI` 호출)로 조작했다. 캡처는 `D:\Tools\_scratch\docking\`.
 
 | 경우 | 결과 |
@@ -1909,7 +1909,7 @@ EDT 에이전트로 단추를 누르고(`doClick`) 결과를 읽었다. 캡처�
 
 ### 확인 (2026-11-07)
 
-빌드 `-Pproduct-dbeaver-ce,product-chromite-swing` BUILD SUCCESS. Windows 11, 150%, JBR 25(`-vm ...\server\jvm.dll`), 개인 작업 공간 `D:\Tools\_scratch\results-autohide\ws-ko`, `ws-en`(`-nl en`).
+빌드 `-Pproduct-chromite-swt,product-chromite-swing` BUILD SUCCESS. Windows 11, 150%, JBR 25(`-vm ...\server\jvm.dll`), 개인 작업 공간 `D:\Tools\_scratch\results-autohide\ws-ko`, `ws-en`(`-nl en`).
 프로세스 안 EDT 시험 에이전트(OS 입력 없음, 리플렉션으로 상태 읽기)로 조작했다. SQL Server 2022 시험 DB `chr_results_autohide`(Customer, Orders). 캡처는 `D:\Tools\_scratch\results-autohide\shots\`.
 
 | 경우 | 결과 |
@@ -1931,9 +1931,9 @@ EDT 에이전트로 단추를 누르고(`doClick`) 결과를 읽었다. 캡처�
 
 ## 오류 문구 (2026-11-07)
 
-사용자 보고(2026-11-07, 테이블 복사 화면): 오류 문구가 `org.jkiss.dbeaver.DBRuntimeException: Error while finishing result set fetching into '…':`로 시작했다.
+사용자 보고(2026-11-07, 테이블 복사 화면): 오류 문구가 `com.seizia.chromite.DBRuntimeException: Error while finishing result set fetching into '…':`로 시작했다.
 화면 문구에 "dbeaver"와 Java 클래스 이름이 나오면 안 된다(브랜딩 규칙). 같은 날 보고된 백업·복원 메시지 끝의
-`Service 'org.jkiss.dbeaver.runtime.ui.UIServiceSystemAgent' not found`(followups #40)도 같은 묶음으로 고쳤다.
+`Service 'com.seizia.chromite.runtime.ui.UIServiceSystemAgent' not found`(followups #40)도 같은 묶음으로 고쳤다.
 
 ### 근본 원인
 
@@ -1942,11 +1942,11 @@ EDT 에이전트로 단추를 누르고(`doClick`) 결과를 읽었다. 캡처�
   `Throwable(Throwable cause)` 생성자로 만든 예외(메시지 = 원인의 `toString()` = `패키지.클래스: 메시지`)가 사슬에 있으면 클래스 이름이 그대로 나온다.
   모델 계층의 `GeneralUtils.getExceptionMessage`(작업 상태 `IStatus`의 메시지)도 클래스가 `toString()`을 선언하면 `toString()`을 쓴다.
   메시지가 없는 예외는 빈 문구가 되었고, JVM이 만든 NPE 문구(`Cannot invoke "org.jkiss…"`)는 패키지 이름을 담는다.
-- **`UIServiceSystemAgent`가 Swing 제품에 없었다.** 네이티브 도구 처리기(`AbstractNativeToolHandler.notifyToolFinish`, `org.jkiss.dbeaver.tasks.native`
+- **`UIServiceSystemAgent`가 Swing 제품에 없었다.** 네이티브 도구 처리기(`AbstractNativeToolHandler.notifyToolFinish`, `com.seizia.chromite.tasks.native`
   `AbstractNativeToolHandler.java:270`)가 작업이 끝나면 `DBWorkbench.getService(UIServiceSystemAgent.class)`를 부르고, 서비스가 없으면
-  `DBWorkbench.getService`(`org.jkiss.dbeaver.model` `DBWorkbench.java:86-92`)가 `log.debug("Service '…' not found")`를 남긴다. 작업 스레드의 로그는
-  작업 출력(`Log.setLogWriter`)으로 가므로 메시지 페이지에 그대로 찍혔다. SWT 제품은 `org.jkiss.dbeaver.core/plugin.xml:1112`의
-  `org.jkiss.dbeaver.service` 확장으로 `UIServiceSystemAgentImpl`(트레이 알림)을 등록하는데, Swing 제품에는 이 번들이 없다.
+  `DBWorkbench.getService`(`com.seizia.chromite.model` `DBWorkbench.java:86-92`)가 `log.debug("Service '…' not found")`를 남긴다. 작업 스레드의 로그는
+  작업 출력(`Log.setLogWriter`)으로 가므로 메시지 페이지에 그대로 찍혔다. SWT 제품은 `com.seizia.chromite.core/plugin.xml:1112`의
+  `com.seizia.chromite.service` 확장으로 `UIServiceSystemAgentImpl`(트레이 알림)을 등록하는데, Swing 제품에는 이 번들이 없다.
 
 ### 구조
 
@@ -1954,7 +1954,7 @@ EDT 에이전트로 단추를 누르고(`doClick`) 결과를 읽었다. 캡처�
 |---|---|
 | `ErrorText`(새) | 예외·`IStatus` → 화면 문구의 유일한 변환기. `describe`(여러 줄), `describeMessages`(SQL 머리말이 따로 있는 곳), `describeLine`(상태 줄·셀·도구 설명), `summary`(가장 안쪽 메시지, 표 셀), `describe(IStatus)`, `clean`(모델이 넘긴 문자열), `stackTrace`, `isStackTraceLine` |
 | `ErrorDialog`(새) | 오류 대화상자 본문: 문구 + 접힌 **자세히**(스택 추적) + **복사**. `JOptionPane`의 메시지 자리에 들어가므로 단추(확인, 중지/다시 시도/건너뛰기)는 호출하는 쪽이 정한다. 인라인 오류 영역용 `DetailsButton`("자세히…") |
-| `SwingSystemAgent`(새) | `UIServiceSystemAgent`의 Swing 구현. `plugin.xml`의 `org.jkiss.dbeaver.service` 확장으로 등록(SWT와 같은 방식). 오래 걸린 작업이 끝나면 알림 창(`NotificationToast`)으로 알린다 |
+| `SwingSystemAgent`(새) | `UIServiceSystemAgent`의 Swing 구현. `plugin.xml`의 `com.seizia.chromite.service` 확장으로 등록(SWT와 같은 방식). 오래 걸린 작업이 끝나면 알림 창(`NotificationToast`)으로 알린다 |
 | `internal/ErrorMessages`(새, `_ko`) | 위 문구. `CoreMessages`는 같은 날 PR #55가 고쳐 병합 충돌을 피하려고 따로 두었다 |
 
 ### 문구 규칙 (`ErrorText`)
@@ -1973,7 +1973,7 @@ EDT 에이전트로 단추를 누르고(`doClick`) 결과를 읽었다. 캡처�
    (`메시지 208, 상태 S0002`, `EditorMessages.editor_sql_error_*`와 같은 용어)로 마지막 줄에 붙인다. 쿼리 메시지 탭은 머리말에 이미 있으므로 붙이지 않는다(`describeMessages`).
 9. `IStatus`: 상태 메시지(정리한 것)와 상태의 예외 문구를 같은 중복 규칙으로 모은다. 대화상자의 자세히에는 상태 트리의 첫 예외 스택 추적을 넣는다.
 
-**설계 결정 — 스택 추적은 접힌 자세히에만:** 스택 추적에는 패키지 이름(`org.jkiss.dbeaver…`)이 그대로 있다. 버그 보고에 필요하므로 지우지 않고,
+**설계 결정 — 스택 추적은 접힌 자세히에만:** 스택 추적에는 패키지 이름(`com.seizia.chromite…`)이 그대로 있다. 버그 보고에 필요하므로 지우지 않고,
 처음 보이는 문구에는 넣지 않으며, 오류 대화상자의 접힌 "자세히"(펼치면 고정폭 글꼴, 14줄)와 "복사"(문구 + 스택 추적을 클립보드로)로만 볼 수 있게 했다.
 인라인 오류 영역(테이블 복사·데이터 전송의 진행 페이지, 백업·복원의 메시지 페이지)은 실패하면 "자세히…" 단추가 나타나 같은 대화상자를 연다.
 쿼리 메시지 탭, 상태 줄, 표 셀, 도구 설명에는 자세히를 두지 않았다(서버 오류는 스택 추적이 쓸모없고, 공간이 없다). 스택 추적은 지금처럼 디버그 로그에 남는다.
@@ -2003,16 +2003,16 @@ EDT 에이전트로 단추를 누르고(`doClick`) 결과를 읽었다. 캡처�
 
 ### 오래 걸린 작업 알림 (`SwingSystemAgent`)
 
-- 등록: Swing 번들 `plugin.xml`의 `org.jkiss.dbeaver.service` 확장(`UIServiceSystemAgent` → `SwingSystemAgent`). SWT의 `org.jkiss.dbeaver.core/plugin.xml:1112`와 같은 방식이고,
+- 등록: Swing 번들 `plugin.xml`의 `com.seizia.chromite.service` 확장(`UIServiceSystemAgent` → `SwingSystemAgent`). SWT의 `com.seizia.chromite.core/plugin.xml:1112`와 같은 방식이고,
   `ServiceRegistry`가 확장 지점에서 읽어 `DBWorkbench.getService`가 찾는다(`SwingConnectionService`, `SwingDriversService`와 같음).
-- 설정 키는 SWT와 같다(`agent.long.operation.notify`, `agent.long.operation.timeout`, `DBeaverPreferences`). Swing 제품에는 기본값을 넣는 `DesktopPreferencesInitializer`가 없어
+- 설정 키는 SWT와 같다(`agent.long.operation.notify`, `agent.long.operation.timeout`, `ChromitePreferences`). Swing 제품에는 기본값을 넣는 `DesktopPreferencesInitializer`가 없어
   값이 없으면 기본값(알림 켬, 30초)을 쓴다. SWT는 트레이가 있는 Windows만 기본으로 켜지만 Swing 알림 창은 모든 OS에 있어 켬으로 했다.
 - 알림: 제목 "오래 걸린 작업 완료", 내용은 모델이 넘긴 문자열(`<작업 유형> - <작업 이름> has finished`, 모델 영어 문구)이다.
 
 ### 남긴 것
 
 - 모델 계층의 영어 문구(오류 메시지 본문, 작업 이름, 진행 단계 이름, 위 알림 내용)는 번역하지 않았다. 사용자 보고의 `'chr_type_mapping_from_ora.null'`은
-  `DBDDataReceiver`(`org.jkiss.dbeaver.model`, `DBDDataReceiver.java:78`)가 대상 소비자의 `toString()`을 문구에 넣은 것으로, 모델 코드라 고치지 않았다.
+  `DBDDataReceiver`(`com.seizia.chromite.model`, `DBDDataReceiver.java:78`)가 대상 소비자의 `toString()`을 문구에 넣은 것으로, 모델 코드라 고치지 않았다.
 - 쿼리 메시지 탭의 경고(`SQLWarning`, PRINT·NOTICE)는 서버 문구라 그대로 둔다(`SqlEditorPanel.reportQueryResult`).
 - 이 변경 전에 저장된 쿼리 기록·예약 쿼리 기록의 오류 문구는 저장된 그대로 보인다.
 - `ProgressDialog`의 "Canceling…"은 지역화되지 않은 영어 문구다(오류 문구 범위 밖, 보고만).
@@ -2020,13 +2020,13 @@ EDT 에이전트로 단추를 누르고(`doClick`) 결과를 읽었다. 캡처�
 
 ### 확인 (2026-11-07)
 
-빌드 `-Pproduct-dbeaver-ce,product-chromite-swing` BUILD SUCCESS. Windows 11, JBR 25(`-vm ...\server\jvm.dll`), 개인 작업 공간 `D:\Tools\_scratch\error-text\ws`,
+빌드 `-Pproduct-chromite-swt,product-chromite-swing` BUILD SUCCESS. Windows 11, JBR 25(`-vm ...\server\jvm.dll`), 개인 작업 공간 `D:\Tools\_scratch\error-text\ws`,
 한국어(OS 기본)와 `-nl en`. 프로세스 안 EDT 시험 에이전트(OS 입력 없음)로 조작했다. 시험 DB: PostgreSQL 17·SQL Server 2022의 `chr_error_text`.
 캡처는 `D:\Tools\_scratch\error-text\shots\`(`ko-light-*`, `ko-dark-*`, `en-light-*`).
 
 | 경우 | 보이는 문구(클래스·패키지 이름 없음) | 자세히 |
 |---|---|---|
-| a. 테이블 복사 PostgreSQL `copy_src` → SQL Server 기존 `copy_src`(`varchar(3)`, 삽입 실패) | "실행 오류" 대화상자: `SQL 오류 [2628] [S0001]: String or binary data would be truncated …`. 진행 페이지 오류 영역: `Error while finishing result set fetching into '…'` / `Can't insert row` / `SQL 오류 [2628] …`(전에는 맨 앞에 `org.jkiss.dbeaver.DBRuntimeException: `), 표 메시지 열은 가장 안쪽 메시지 | 실행 오류 대화상자와 오류 영역의 "자세히…" 모두 스택 추적(`DBDatabaseException: org.jkiss.dbeaver.DBRuntimeException: …`이 원인이었음을 보여 줌) |
+| a. 테이블 복사 PostgreSQL `copy_src` → SQL Server 기존 `copy_src`(`varchar(3)`, 삽입 실패) | "실행 오류" 대화상자: `SQL 오류 [2628] [S0001]: String or binary data would be truncated …`. 진행 페이지 오류 영역: `Error while finishing result set fetching into '…'` / `Can't insert row` / `SQL 오류 [2628] …`(전에는 맨 앞에 `com.seizia.chromite.DBRuntimeException: `), 표 메시지 열은 가장 안쪽 메시지 | 실행 오류 대화상자와 오류 영역의 "자세히…" 모두 스택 추적(`DBDatabaseException: com.seizia.chromite.DBRuntimeException: …`이 원인이었음을 보여 줌) |
 | b. `SELECT * FROM no_such_table` | PostgreSQL `메시지 0, 상태 42P01, 줄 1, 열 15` / `SQL 오류 [42P01]: ERROR: relation "no_such_table" does not exist`, SQL Server `메시지 208, 상태 S0002, 줄 1` / `SQL 오류 [208] [S0002]: Invalid object name …` | (메시지 탭, 해당 없음) |
 | c. 잘못된 포트(55439) | 제목 "연결", `'ET Wrong Port'에 연결하지 못했습니다.` / 드라이버 메시지(전에는 제목 `Connect to 'ET Wrong Port'`) | 펼침, 고정폭 스택 추적, 복사 |
 | d. pg_dump 백업 | 메시지 페이지 끝이 `Task … finished …` / `데이터베이스 'chr_error_text'을(를) 백업했습니다.`, `UIServiceSystemAgent` 줄 없음(작업 공간 디버그 로그에도 0건). 잘못된 파일 복원(pg_restore 실패) | 실패 뒤 "자세히…" 단추 → 스택 추적 |

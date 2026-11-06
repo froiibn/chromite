@@ -1,0 +1,103 @@
+/*
+ * DBeaver - Universal Database Manager
+ * Copyright (C) 2010-2024 DBeaver Corp and others
+ * Modifications Copyright (C) 2026 Chromite contributors
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package com.seizia.chromite.ui.navigator.actions;
+
+import org.eclipse.core.commands.ExecutionEvent;
+import org.eclipse.core.commands.ExecutionException;
+import org.eclipse.core.resources.IFile;
+import org.eclipse.core.resources.IResource;
+import org.eclipse.jface.dialogs.IDialogConstants;
+import org.eclipse.jface.viewers.ISelection;
+import org.eclipse.jface.viewers.IStructuredSelection;
+import org.eclipse.swt.widgets.Shell;
+import org.eclipse.ui.IEditorPart;
+import org.eclipse.ui.IWorkbenchPage;
+import org.eclipse.ui.IWorkbenchWindow;
+import org.eclipse.ui.PlatformUI;
+import org.eclipse.ui.handlers.HandlerUtil;
+import org.eclipse.ui.ide.ResourceUtil;
+import com.seizia.chromite.model.DBPDataSourceContainer;
+import com.seizia.chromite.model.app.DBPPlatformDesktop;
+import com.seizia.chromite.model.app.DBPProject;
+import com.seizia.chromite.model.navigator.DBNNode;
+import com.seizia.chromite.model.navigator.DBNResource;
+import com.seizia.chromite.model.navigator.NavigatorResources;
+import com.seizia.chromite.ui.IDataSourceContainerUpdate;
+import com.seizia.chromite.ui.editors.EditorUtils;
+import com.seizia.chromite.ui.editors.SimpleDatabaseEditorContext;
+import com.seizia.chromite.ui.navigator.dialogs.SelectDataSourceDialog;
+import com.seizia.chromite.utils.RuntimeUtils;
+
+import java.util.ArrayList;
+import java.util.List;
+
+public class NavigatorHandlerAssociateScript extends NavigatorHandlerObjectBase {
+
+    @Override
+    public Object execute(ExecutionEvent event) throws ExecutionException {
+        final Shell activeShell = HandlerUtil.getActiveShell(event);
+        List<IFile> selectedScripts = new ArrayList<>();
+        final ISelection selection = HandlerUtil.getCurrentSelection(event);
+        if (!selection.isEmpty() && selection instanceof IStructuredSelection) {
+            for (Object o : (IStructuredSelection) selection) {
+                final DBNNode node = RuntimeUtils.getObjectAdapter(o, DBNNode.class);
+                if (node instanceof DBNResource) {
+                    IResource resource = ((DBNResource) node).getResource();
+                    if (resource instanceof IFile) {
+                        selectedScripts.add((IFile) resource);
+                    }
+                }
+            }
+        }
+        if (!selectedScripts.isEmpty()) {
+            SelectDataSourceDialog dialog = new SelectDataSourceDialog(
+                activeShell,
+                DBPPlatformDesktop.getInstance().getWorkspace().getProject(selectedScripts.get(0).getProject()),
+                null);
+            if (dialog.open() == IDialogConstants.CANCEL_ID) {
+                return null;
+            }
+            DBPDataSourceContainer dataSource = dialog.getDataSource();
+            for (IFile script : selectedScripts) {
+                EditorUtils.setFileDataSource(script, new SimpleDatabaseEditorContext(dataSource));
+                setEditorDataSource(script, dataSource);
+                DBPProject project;
+                if (dataSource != null) {
+                    project = dataSource.getProject();
+                } else  {
+                    project = DBPPlatformDesktop.getInstance().getWorkspace().getProject(script.getProject());
+                }
+                if (project != null) {
+                    NavigatorResources.refreshNavigatorResource(project, script, dataSource);
+                }
+            }
+        }
+        return null;
+    }
+
+    private static void setEditorDataSource(IFile script, DBPDataSourceContainer dataSource) {
+        for (IWorkbenchWindow window: PlatformUI.getWorkbench().getWorkbenchWindows()) {
+            for (IWorkbenchPage page: window.getPages()) {
+                IEditorPart editor = ResourceUtil.findEditor(page, script);
+                if (editor instanceof IDataSourceContainerUpdate) {
+                    ((IDataSourceContainerUpdate)editor).setDataSourceContainer(dataSource);
+                }
+            }
+        }
+    }
+}

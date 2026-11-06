@@ -4,7 +4,7 @@
 
 Object Explorer에서 스키마나 테이블을 골라 **View Diagram**(다이어그램 보기)을 누르면 테이블과 외래 키 관계를 ER 다이어그램으로 보여 준다.
 SSMS의 "Database Diagrams", SWT 버전의 "View Diagram"(ERD 편집기)에 해당한다. SWT의 ERD 편집기(`ui.editors.erd`)는 GEF/draw2d(SWT)로 만들어져
-Swing 제품에 넣을 수 없으므로, SWT 의존이 없는 모델 번들 `org.jkiss.dbeaver.model.erd` 위에 Java2D로 다시 만들었다.
+Swing 제품에 넣을 수 없으므로, SWT 의존이 없는 모델 번들 `com.seizia.chromite.model.erd` 위에 Java2D로 다시 만들었다.
 
 ## 기능
 
@@ -36,8 +36,8 @@ Swing 제품에 넣을 수 없으므로, SWT 의존이 없는 모델 번들 `org
 
 - 연결 고리: `ObjectExplorerPanel`의 View Diagram 동작(활성 조건 `ErdDiagramModel.canShow`)과 `QueryWindows.viewDiagram`,
   `MainFrame.viewDiagram`(같은 객체 탭 재사용, 개체 탐색기 표시 콜백). 탭 닫기는 기존 `ToolDocument` 처리를 그대로 쓴다.
-- `MANIFEST.MF`: `org.jkiss.dbeaver.model.erd`를 `Require-Bundle`에 더했다. 이 번들은 `model`, `model.sql`만 요구하고
-  이미 `org.jkiss.dbeaver.runtime.feature`에 들어 있어 Swing 제품에 SWT가 들어오지 않는다.
+- `MANIFEST.MF`: `com.seizia.chromite.model.erd`를 `Require-Bundle`에 더했다. 이 번들은 `model`, `model.sql`만 요구하고
+  이미 `com.seizia.chromite.runtime.feature`에 들어 있어 Swing 제품에 SWT가 들어오지 않는다.
 - 아이콘: `diagram`, `zoom-in`, `zoom-out`, `zoom-fit`, `layout`을 아이콘 생성기(`tools/branding/gen_ui_icons.py`)에 더했다(두 팩 × 두 테마).
 - 설정(이 번들 설정 저장소): `erd.columns`(ALL·KEYS·NONE), `erd.showTypes`. 모든 다이어그램의 기본값이다.
 
@@ -74,7 +74,7 @@ Swing 제품에 넣을 수 없으므로, SWT 의존이 없는 모델 번들 `org
 
 ## 확인 (2026-11-06)
 
-전체 빌드(`product-dbeaver-ce,product-chromite-swing`) 뒤 Swing 제품을 개인 작업 공간으로 띄워 EDT 테스트 에이전트로 확인했다.
+전체 빌드(`product-chromite-swt,product-chromite-swing`) 뒤 Swing 제품을 개인 작업 공간으로 띄워 EDT 테스트 에이전트로 확인했다.
 검증용 DB는 각 서버에 따로 만들었다: PostgreSQL `chr_erd`의 `shop`, SQL Server `chr_erd`의 `sales`(각 10개 테이블 + 뷰 1개,
 자기 참조 2, 복합 기본 키, 1:1(PK=FK, UNIQUE FK), NULL 허용 FK, 관계 없는 테이블), Oracle `CHR_ERD`(8개 테이블).
 

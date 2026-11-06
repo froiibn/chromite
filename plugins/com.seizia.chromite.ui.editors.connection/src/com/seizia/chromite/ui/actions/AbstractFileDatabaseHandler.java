@@ -1,0 +1,147 @@
+/*
+ * DBeaver - Universal Database Manager
+ * Copyright (C) 2010-2026 DBeaver Corp and others
+ * Modifications Copyright (C) 2026 Chromite contributors
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package com.seizia.chromite.ui.actions;
+
+import org.jkiss.api.CompositeObjectId;
+import org.jkiss.code.NotNull;
+import org.jkiss.code.Nullable;
+import org.jkiss.dbeaver.DBException;
+import com.seizia.chromite.model.DBPDataSource;
+import com.seizia.chromite.model.DBPDataSourceContainer;
+import com.seizia.chromite.model.app.DBPProject;
+import com.seizia.chromite.model.connection.DBPConnectionConfiguration;
+import com.seizia.chromite.model.connection.DBPDriver;
+import com.seizia.chromite.model.file.FileTypeAction;
+import com.seizia.chromite.model.fs.DBFUtils;
+import com.seizia.chromite.model.navigator.DBNDatabaseNode;
+import com.seizia.chromite.model.navigator.DBNUtils;
+import com.seizia.chromite.registry.DataSourceRegistry;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.editors.file.AbstractFileHandler;
+import com.seizia.chromite.ui.navigator.actions.NavigatorHandlerObjectOpen;
+import com.seizia.chromite.utils.RuntimeUtils;
+
+import java.nio.file.Path;
+import java.util.Collections;
+import java.util.List;
+import java.util.Set;
+
+/**
+ * Database file handler
+ */
+public abstract class AbstractFileDatabaseHandler extends AbstractFileHandler {
+
+    @Override
+    public void openFiles(
+        @NotNull List<Path> fileList,
+        @Nullable DBPDataSourceContainer dataSource,
+        @NotNull FileTypeAction action
+    ) throws DBException {
+        if (action != FileTypeAction.DATABASE) {
+            super.openFiles(fileList, dataSource, action);
+            return;
+        }
+        DBPProject project = DBWorkbench.getPlatform().getWorkspace().getActiveProject();
+        if (project == null) {
+            throw new DBException("No active project - cannot open file");
+        }
+        DBPDriver driver = DBWorkbench.getPlatform().getDataSourceProviderRegistry().findDriver(getDriverReference());
+        if (driver == null) {
+            throw new DBException("Driver '" + getDriverReference() + "' not found");
+        }
+
+        if (isSingleDatabaseConnection()) {
+            String databaseName = createDatabaseName(fileList);
+            String connectionName = createConnectionName(fileList);
+            createDatabaseConnection(connectionName, databaseName, project, driver);
+        } else {
+            for (Path dbFile : fileList) {
+                String databaseName = createDatabaseName(Collections.singletonList(dbFile));
+                String connectionName = createConnectionName(Collections.singletonList(dbFile));
+                createDatabaseConnection(connectionName, databaseName, project, driver);
+            }
+        }
+    }
+
+    private void createDatabaseConnection(
+        @NotNull String connectionName,
+        @NotNull String databaseName,
+        @NotNull DBPProject project,
+        @NotNull DBPDriver driver
+    ) throws DBException {
+        DBPConnectionConfiguration configuration = new DBPConnectionConfiguration();
+        configuration.setDatabaseName(databaseName);
+
+        DBPDataSourceContainer dsContainer = DBFUtils.createTemporaryDataSourceContainer(connectionName, project, driver, configuration);
+        if (dsContainer == null) {
+            return;
+        }
+
+        UIUtils.runWithMonitor(monitor -> {
+            if (dsContainer.isConnected() || dsContainer.connect(monitor, true, true)) {
+                if (dsContainer.getRegistry() instanceof DataSourceRegistry<?> registry) {
+                    // Ensure the node is created
+                    registry.flushDataSourceEvents();
+                }
+
+                DBPDataSource dataSource = dsContainer.getDataSource();
+                DBNDatabaseNode openNode = DBNUtils.getDefaultDatabaseNodeToOpen(monitor, dataSource);
+
+                // Try multiple times with a small delay in case the node is still not available
+                for (int i = 0; i < 10 && openNode == null; i++) {
+                    RuntimeUtils.pause(100);
+                    openNode = DBNUtils.getDefaultDatabaseNodeToOpen(monitor, dataSource);
+                }
+
+                if (openNode == null) {
+                    throw new DBException("Cannot determine target node for " + dsContainer.getName());
+                } else {
+                    DBNDatabaseNode openNode1 = openNode;
+                    UIUtils.syncExec(() -> NavigatorHandlerObjectOpen.openEntityEditor(
+                        openNode1,
+                        null,
+                        null,
+                        null,
+                        UIUtils.getActiveWorkbenchWindow(),
+                        true,
+                        false));
+                }
+            }
+            return null;
+        });
+    }
+
+    @NotNull
+    @Override
+    public Set<FileTypeAction> supportedActions() {
+        return Set.of(FileTypeAction.DATABASE, FileTypeAction.INTERNAL_EDITOR, FileTypeAction.EXTERNAL_EDITOR);
+    }
+
+    protected abstract String getDatabaseTerm();
+
+    protected abstract String createDatabaseName(@NotNull List<Path> fileList);
+
+    protected abstract String createConnectionName(@NotNull List<Path> fileList);
+
+    protected abstract CompositeObjectId getDriverReference();
+
+    protected boolean isSingleDatabaseConnection() {
+        return true;
+    }
+}

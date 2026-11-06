@@ -1,0 +1,13 @@
+Manifest-Version: 1.0
+Bundle-ManifestVersion: 2
+Bundle-Name: Chromite Dameng UI
+Bundle-SymbolicName: com.seizia.chromite.ext.dameng.ui;singleton:=true
+Bundle-Version: 1.0.75.qualifier
+Bundle-Release-Date: 20261116
+Require-Bundle: com.seizia.chromite.ui.editors.connection,
+ com.seizia.chromite.ext.dameng,
+ com.seizia.chromite.ext.generic.ui
+Bundle-ActivationPolicy: lazy
+Bundle-RequiredExecutionEnvironment: JavaSE-21
+Bundle-Vendor: Chromite contributors
+Automatic-Module-Name: com.seizia.chromite.ext.dameng.ui

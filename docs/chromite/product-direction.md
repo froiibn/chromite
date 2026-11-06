@@ -56,7 +56,7 @@ Chromite가 무엇을 만들고, 누구를 위한 제품이며, 어떤 원칙으
 - 업데이트 방식 (GitHub Releases 기반 버전 확인 등)
 - Windows 코드 서명 인증서, Apple Developer 계정과 공증
 - GitHub 포크 연결 해제 여부 (저장소 소유자가 직접 처리)
-- 내부 이름(`org.jkiss.dbeaver.*` 패키지 등)을 바꿀지와 그 시점
+- 내부 이름(`com.seizia.chromite.*` 패키지 등)을 바꿀지와 그 시점
 
 ## 변경 이력
 

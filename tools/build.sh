@@ -41,6 +41,6 @@ fi
 # Execute Maven build
 log "Starting Maven build..."
 
-"$DBEAVER_COMMON_DIR/mvnw" clean install -Pproduct-dbeaver-ce -T 1C -f "$AGGREGATE_DIR"
+"$DBEAVER_COMMON_DIR/mvnw" clean install -Pproduct-chromite-swt -T 1C -f "$AGGREGATE_DIR"
 
 log "Build completed successfully"

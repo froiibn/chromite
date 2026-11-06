@@ -1,0 +1,17 @@
+Manifest-Version: 1.0
+Bundle-ManifestVersion: 2
+Bundle-Name: Chromite TiDB UI
+Bundle-SymbolicName: com.seizia.chromite.ext.tidb.ui;singleton:=true
+Bundle-Version: 1.0.71.qualifier
+Bundle-Release-Date: 20261116
+Require-Bundle: com.seizia.chromite.model.sql,
+ com.seizia.chromite.ext.generic,
+ com.seizia.chromite.ext.mysql,
+ com.seizia.chromite.ext.mysql.ui,
+ com.seizia.chromite.ext.tidb,
+ com.seizia.chromite.ui.editors.base,
+ com.seizia.chromite.ui.editors.connection
+Bundle-ActivationPolicy: lazy
+Bundle-RequiredExecutionEnvironment: JavaSE-21
+Bundle-Vendor: Chromite contributors
+Automatic-Module-Name: com.seizia.chromite.ext.tidb.ui

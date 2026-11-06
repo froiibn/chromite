@@ -19,19 +19,19 @@ package com.seizia.chromite.ui.swing;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.DBPDataSource;
-import org.jkiss.dbeaver.model.DBPDataSourceContainer;
-import org.jkiss.dbeaver.model.DBPEvaluationContext;
-import org.jkiss.dbeaver.model.DBPQualifiedObject;
-import org.jkiss.dbeaver.model.DBUtils;
-import org.jkiss.dbeaver.model.erd.*;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.model.runtime.VoidProgressMonitor;
-import org.jkiss.dbeaver.model.struct.*;
-import org.jkiss.dbeaver.model.struct.rdb.DBSTable;
-import org.jkiss.dbeaver.model.virtual.DBVObject;
-import org.jkiss.dbeaver.model.virtual.DBVUtils;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.DBPDataSource;
+import com.seizia.chromite.model.DBPDataSourceContainer;
+import com.seizia.chromite.model.DBPEvaluationContext;
+import com.seizia.chromite.model.DBPQualifiedObject;
+import com.seizia.chromite.model.DBUtils;
+import com.seizia.chromite.model.erd.*;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.model.runtime.VoidProgressMonitor;
+import com.seizia.chromite.model.struct.*;
+import com.seizia.chromite.model.struct.rdb.DBSTable;
+import com.seizia.chromite.model.virtual.DBVObject;
+import com.seizia.chromite.model.virtual.DBVUtils;
 import org.jkiss.utils.CommonUtils;
 
 import java.util.*;
@@ -44,7 +44,7 @@ import java.util.*;
  *     <li>읽기는 SWT의 "View Diagram"(ERDEditorEmbedded.loadFromDatabase, ui.editors.erd)과 같은 모델 API를 쓴다:
  *     {@link ERDUtils#collectDatabaseTables}(스키마면 모든 테이블·뷰, 테이블이면 그 테이블과 외래 키로 이어진 테이블),
  *     {@link ERDDiagram#fillEntities}(열과 관계, {@link ERDContentProviderDefault}). 뷰는 SWT 기본값처럼 넣고 파티션은 뺀다.
- *     모델 번들 {@code org.jkiss.dbeaver.model.erd}는 SWT·GEF에 의존하지 않는다.</li>
+ *     모델 번들 {@code com.seizia.chromite.model.erd}는 SWT·GEF에 의존하지 않는다.</li>
  *     <li>그리는 데 필요한 것(제목, 열 이름·형식·NOT NULL·키 표시, 관계 끝의 카디널리티, 관계 설명)은 여기서 모두 문자열·값으로 복사해 둔다.
  *     화면(EDT)은 그릴 때 DB 메타데이터를 읽지 않는다(지연 로딩이 EDT를 막지 않게).</li>
  *     <li>관계 끝 표시는 SWT 까마귀발 표기(CrowsFootDiagramNotation)와 같은 규칙이다: 외래 키 쪽은 외래 키 열이 고유 인덱스면 1, 아니면 0..n,

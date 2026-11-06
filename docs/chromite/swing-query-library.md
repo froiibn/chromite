@@ -188,10 +188,10 @@ SELECT ...
 ### 찾기
 
 - **실행할 때(권위):** SWT 편집기와 같은 모델 파서. `SQLScriptBatches.extractQueries` → `SQLScriptParser.extractScriptQueries(..., parseParameters = true)` →
-  `SQLScriptParser.parseParametersAndVariables`([SQLScriptParser.java:914](../../plugins/org.jkiss.dbeaver.model.sql/src/org/jkiss/dbeaver/model/sql/parser/SQLScriptParser.java)) →
-  `DefaultSQLQueryParameterParser.parseParametersAndVariables`([DefaultSQLQueryParameterParser.java:60-133](../../plugins/org.jkiss.dbeaver.model.sql/src/org/jkiss/dbeaver/model/sql/parser/DefaultSQLQueryParameterParser.java)).
+  `SQLScriptParser.parseParametersAndVariables`([SQLScriptParser.java:914](../../plugins/com.seizia.chromite.model.sql/src/com/seizia/chromite/model/sql/parser/SQLScriptParser.java)) →
+  `DefaultSQLQueryParameterParser.parseParametersAndVariables`([DefaultSQLQueryParameterParser.java:60-133](../../plugins/com.seizia.chromite.model.sql/src/com/seizia/chromite/model/sql/parser/DefaultSQLQueryParameterParser.java)).
   규칙 기반 스캐너의 `T_PARAMETER` 토큰이 `:name`(접두어는 연결 설정 `sql.parameter.prefix`, 기본 `:`)이고, `${name}`·`{{name}}`·`$P{name}` 변수는
-  `SQLQueryParameter.getVariablePattern()`([SQLQueryParameter.java:32-33](../../plugins/org.jkiss.dbeaver.model/src/org/jkiss/dbeaver/model/sql/SQLQueryParameter.java))으로 찾는다.
+  `SQLQueryParameter.getVariablePattern()`([SQLQueryParameter.java:32-33](../../plugins/com.seizia.chromite.model/src/com/seizia/chromite/model/sql/SQLQueryParameter.java))으로 찾는다.
   문자열·주석 안, PostgreSQL `::type`, DDL 문장, `$$` 블록 안은 파서가 건너뛴다. GO 배치는 배치 전체 범위를 다시 파싱한다(`SQLScriptBatches.addBatch`).
 - **연결 없이(편집기의 Parameters…, 실행 대화상자 목록):** `QueryParameterBinder.detect`가 같은 규칙을 문자 단위로 따른다(작은따옴표·큰따옴표·백틱·`[]` 안, `--`·`/* */` 주석, `$tag$` 블록, `::`를 건너뜀).
   실행할 때 파서가 찾은 이름에 값이 없으면 실행하지 않고 "No value for parameter :x" 오류를 Messages에 쓴다.
@@ -215,14 +215,14 @@ SELECT ...
 - Lookup 목록은 대상 연결에서 작업 스레드로 읽는다(필요하면 연결, 최대 1000개). 읽는 동안에도 입력할 수 있다.
 - Run을 누르면 형식·필수를 검사하고(`QueryLibraryParameter.validate`), 틀리면 대화상자 안에 빨간 글자로 알리고 그 입력란으로 간다.
 - 입력값은 쿼리 파일이 아니라 이 PC의 설정(`queryLibrary.lastValues.<id>`)에 저장한다. 공유 쿼리에 개인 값이 섞이지 않게 하기 위해서다.
-  SWT 편집기의 `SQLQueryParameterRegistry`([SQLQueryParameterBindDialog.java:89-92, :327-332](../../plugins/org.jkiss.dbeaver.ui.editors.sql/src/org/jkiss/dbeaver/ui/editors/sql/dialogs/SQLQueryParameterBindDialog.java))는
+  SWT 편집기의 `SQLQueryParameterRegistry`([SQLQueryParameterBindDialog.java:89-92, :327-332](../../plugins/com.seizia.chromite.ui.editors.sql/src/com/seizia/chromite/ui/editors/sql/dialogs/SQLQueryParameterBindDialog.java))는
   이름 하나에 값 하나를 모든 쿼리가 함께 쓰므로 쿼리별 기억에 맞지 않아 쓰지 않았다.
 
 ### 매개변수 바인딩
 
-- **SWT 편집기의 방식:** `SQLEditor`가 `SQLEditorParametersProvider`([SQLEditor.java:2494](../../plugins/org.jkiss.dbeaver.ui.editors.sql/src/org/jkiss/dbeaver/ui/editors/sql/SQLEditor.java))로
-  `SQLQueryParameterBindDialog`를 띄우고, 엔진이 `SQLScriptContext.fillQueryParameters`([SQLScriptContext.java:299-353](../../plugins/org.jkiss.dbeaver.model.sql/src/org/jkiss/dbeaver/model/sql/SQLScriptContext.java))
-  → `SQLUtils.fillQueryParameters`([SQLUtils.java:1446-1461](../../plugins/org.jkiss.dbeaver.model/src/org/jkiss/dbeaver/model/sql/SQLUtils.java))로 **값을 SQL 글자로 치환**한다
+- **SWT 편집기의 방식:** `SQLEditor`가 `SQLEditorParametersProvider`([SQLEditor.java:2494](../../plugins/com.seizia.chromite.ui.editors.sql/src/com/seizia/chromite/ui/editors/sql/SQLEditor.java))로
+  `SQLQueryParameterBindDialog`를 띄우고, 엔진이 `SQLScriptContext.fillQueryParameters`([SQLScriptContext.java:299-353](../../plugins/com.seizia.chromite.model.sql/src/com/seizia/chromite/model/sql/SQLScriptContext.java))
+  → `SQLUtils.fillQueryParameters`([SQLUtils.java:1446-1461](../../plugins/com.seizia.chromite.model/src/com/seizia/chromite/model/sql/SQLUtils.java))로 **값을 SQL 글자로 치환**한다
   (사용자가 `'text'`처럼 따옴표까지 입력). 네이티브 바인딩은 Firebird `EXECUTE BLOCK`(`FireBirdStatementProducer`)뿐이다.
 - **Query Library의 방식:** 남이 만든 쿼리에 값만 넣는 용도라 글자 치환은 SQL 주입과 따옴표 실수를 부른다. 그래서
   1. 준비 Job에서 `QueryParameterBinder.prepare`가 파서가 찾은 `:name` 자리를 `?`로 바꾸고, 형식에 맞는 Java 값(`QueryLibraryParameter.toJdbcValue`: `String`, `Integer`/`Long`/`BigDecimal`,
@@ -357,7 +357,7 @@ Next run(남은 시간), Last run, Last status. Run Now(바로 한 번), History
 
 ## 확인 (2026-11-06)
 
-빌드: `mvn -B clean package -f product/aggregate/pom.xml -T1C -Pproduct-dbeaver-ce,product-chromite-swing` → BUILD SUCCESS.
+빌드: `mvn -B clean package -f product/aggregate/pom.xml -T1C -Pproduct-chromite-swt,product-chromite-swing` → BUILD SUCCESS.
 빌드한 Swing 제품을 개인 작업 공간(`-data D:\Tools\_scratch\query-library\ws`)으로 실행하고, 로컬 Docker DB(각 서버에 `chr_query_library` DB)로 확인했다.
 
 | 확인 | 결과 |

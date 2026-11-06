@@ -20,25 +20,25 @@ import com.seizia.chromite.ui.swing.internal.CoreMessages;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.DBPDataSource;
-import org.jkiss.dbeaver.model.DBPScriptObject;
-import org.jkiss.dbeaver.model.DBUtils;
-import org.jkiss.dbeaver.model.exec.DBCQueryTransformProvider;
-import org.jkiss.dbeaver.model.exec.DBCQueryTransformType;
-import org.jkiss.dbeaver.model.exec.DBCQueryTransformer;
-import org.jkiss.dbeaver.model.exec.DBCQueryTransformerExt;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.model.sql.SQLDialect;
-import org.jkiss.dbeaver.model.sql.SQLQuery;
-import org.jkiss.dbeaver.model.sql.SQLUtils;
-import org.jkiss.dbeaver.model.sql.generator.SQLGenerator;
-import org.jkiss.dbeaver.model.sql.generator.SQLGeneratorDDL;
-import org.jkiss.dbeaver.model.sql.generator.SQLGeneratorSelect;
-import org.jkiss.dbeaver.model.struct.DBSDataContainer;
-import org.jkiss.dbeaver.model.struct.DBSEntity;
-import org.jkiss.dbeaver.model.struct.DBSObject;
-import org.jkiss.dbeaver.runtime.DBInterruptedException;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.DBPDataSource;
+import com.seizia.chromite.model.DBPScriptObject;
+import com.seizia.chromite.model.DBUtils;
+import com.seizia.chromite.model.exec.DBCQueryTransformProvider;
+import com.seizia.chromite.model.exec.DBCQueryTransformType;
+import com.seizia.chromite.model.exec.DBCQueryTransformer;
+import com.seizia.chromite.model.exec.DBCQueryTransformerExt;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.model.sql.SQLDialect;
+import com.seizia.chromite.model.sql.SQLQuery;
+import com.seizia.chromite.model.sql.SQLUtils;
+import com.seizia.chromite.model.sql.generator.SQLGenerator;
+import com.seizia.chromite.model.sql.generator.SQLGeneratorDDL;
+import com.seizia.chromite.model.sql.generator.SQLGeneratorSelect;
+import com.seizia.chromite.model.struct.DBSDataContainer;
+import com.seizia.chromite.model.struct.DBSEntity;
+import com.seizia.chromite.model.struct.DBSObject;
+import com.seizia.chromite.runtime.DBInterruptedException;
 
 import java.lang.reflect.InvocationTargetException;
 import java.util.List;
@@ -46,7 +46,7 @@ import java.util.List;
 /**
  * Object Explorer의 "Script as", "Select Top 1000 Rows", "View DDL"이 쓰는 SQL 만들기.
  *
- * 설계: SWT의 "Generate SQL" 메뉴가 쓰는 모델 계층 생성기({@code org.jkiss.dbeaver.model.sql.generator}, UI 의존 없음)를 그대로 쓴다.
+ * 설계: SWT의 "Generate SQL" 메뉴가 쓰는 모델 계층 생성기({@code com.seizia.chromite.model.sql.generator}, UI 의존 없음)를 그대로 쓴다.
  * <ul>
  *     <li>CREATE(DDL): {@link SQLGeneratorDDL}("Generate SQL > DDL"). 테이블·뷰는 {@code DBStructUtils.generateTableListDDL},
  *     그 밖의 객체는 {@link DBPScriptObject#getObjectDefinitionText}로 만든다. 생성기 기본 옵션(완전한 이름, 주석 포함)을 쓴다.

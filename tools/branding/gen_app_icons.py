@@ -54,7 +54,7 @@ does not meet (Pillow stores every entry as 32-bit PNG):
    has the same size as the original one.
 
 The .ico therefore has exactly those 7 entries (the layout of upstream DBeaver's
-dbeaver.ico). 32-bit entries keep the alpha channel; 8-bit entries are quantised to
+chromite.ico). 32-bit entries keep the alpha channel; 8-bit entries are quantised to
 256 colours with the transparency in the AND mask (alpha < 128 = transparent).
 
 The macOS .icns is written directly as well, with PNG entries for every size including
@@ -64,12 +64,12 @@ Outputs (file names are kept; only the contents are generated)
 ---------------------------------------------------------------
 chromite_logo_pack/            SVG sources (chromite_icon*.svg, chromite_glyph16.svg,
                                chromite_wordmark_{light,dark}.svg) and the 6 PNGs
-product/community/icons/       dbeaver.ico, dbeaver.icns, dbeaver_back.bmp (installer)
+product/community/icons/       chromite.ico, chromite.icns, chromite_back.bmp (installer)
 product/community/icons-sources/icon_*.png   macOS iconset
-plugins/org.jkiss.dbeaver.ui.app.standalone/ icons/dbeaver{16,32,48,64,256}.png,
-                               icons/dbeaver_about.png, splash.png
-plugins/org.jkiss.dbeaver.ui/icons/          dbeaver_logo_{medium,small,small@2x}.png,
-                               dbeaver_perspective{,@2x}.png
+plugins/com.seizia.chromite.ui.app.standalone/ icons/chromite{16,32,48,64,256}.png,
+                               icons/chromite_about.png, splash.png
+plugins/com.seizia.chromite.ui/icons/          chromite_logo_{medium,small,small@2x}.png,
+                               chromite_perspective{,@2x}.png
 plugins/com.seizia.chromite.ui.swing/icons/  chromite{16,20,24,32,40,48,64,128,256}.png,
                                brand/lockup-{light,dark}.svg (empty document area, drawn by JSVG)
 
@@ -828,8 +828,8 @@ def main():
 
     # Windows launcher icon, macOS app icon and iconset
     icons = ROOT / "product" / "community" / "icons"
-    (icons / "dbeaver.ico").write_bytes(build_ico(win))
-    (icons / "dbeaver.icns").write_bytes(build_icns(mac))
+    (icons / "chromite.ico").write_bytes(build_ico(win))
+    (icons / "chromite.icns").write_bytes(build_icns(mac))
     srcs = ROOT / "product" / "community" / "icons-sources"
     for s in (16, 32, 48, 64, 128, 256, 512):
         save_png(mac[s] if s in mac else mac_png(s), srcs / f"icon_{s}x{s}.png")
@@ -841,13 +841,13 @@ def main():
                           f'<defs>{gradients("b", Xf(0.314, -76, 0))}</defs>'
                           f'<rect width="165" height="314" fill="url(#btile)"/>'), 165, 314)
     back.alpha_composite(win[128].resize((112, 112), Image.LANCZOS), (27, 56))
-    back.convert("RGB").save(icons / "dbeaver_back.bmp", "BMP")
+    back.convert("RGB").save(icons / "chromite_back.bmp", "BMP")
 
     # SWT standalone application
-    app = ROOT / "plugins" / "org.jkiss.dbeaver.ui.app.standalone"
+    app = ROOT / "plugins" / "com.seizia.chromite.ui.app.standalone"
     for s in (16, 32, 48, 64, 256):
-        save_png(win[s], app / "icons" / f"dbeaver{s}.png")
-    save_png(win[256], app / "icons" / "dbeaver_about.png")
+        save_png(win[s], app / "icons" / f"chromite{s}.png")
+    save_png(win[256], app / "icons" / "chromite_about.png")
     splash = render(svg_doc(600, 300, "0 0 600 300",
                             f'<defs>{gradients("p", Xf(0.6, 0, -60))}</defs>'
                             f'<rect width="600" height="300" fill="url(#ptile)"/>'), 600, 300)
@@ -855,12 +855,12 @@ def main():
     wm = render(lockup_svg(inter, True, pad=0), 480, None)
     splash.alpha_composite(wm, (60, 60))
     splash.convert("RGB").save(app / "splash.png", "PNG", optimize=True)
-    ui = ROOT / "plugins" / "org.jkiss.dbeaver.ui" / "icons"
-    save_png(win[48], ui / "dbeaver_logo_medium.png")
-    save_png(win[16], ui / "dbeaver_logo_small.png")
-    save_png(win[32], ui / "dbeaver_logo_small@2x.png")
-    save_png(win[16], ui / "dbeaver_perspective.png")
-    save_png(win[32], ui / "dbeaver_perspective@2x.png")
+    ui = ROOT / "plugins" / "com.seizia.chromite.ui" / "icons"
+    save_png(win[48], ui / "chromite_logo_medium.png")
+    save_png(win[16], ui / "chromite_logo_small.png")
+    save_png(win[32], ui / "chromite_logo_small@2x.png")
+    save_png(win[16], ui / "chromite_perspective.png")
+    save_png(win[32], ui / "chromite_perspective@2x.png")
 
     # Swing frontend window icons and logo
     swing = ROOT / "plugins" / "com.seizia.chromite.ui.swing" / "icons"

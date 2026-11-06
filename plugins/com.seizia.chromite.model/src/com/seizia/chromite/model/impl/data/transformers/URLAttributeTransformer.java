@@ -1,0 +1,114 @@
+/*
+ * DBeaver - Universal Database Manager
+ * Copyright (C) 2010-2024 DBeaver Corp and others
+ * Modifications Copyright (C) 2026 Chromite contributors
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package com.seizia.chromite.model.impl.data.transformers;
+
+import org.jkiss.code.NotNull;
+import org.jkiss.code.Nullable;
+import org.jkiss.dbeaver.DBException;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.DBPDataKind;
+import com.seizia.chromite.model.DBUtils;
+import com.seizia.chromite.model.DBValueFormatting;
+import com.seizia.chromite.model.data.DBDAttributeBinding;
+import com.seizia.chromite.model.data.DBDAttributeTransformer;
+import com.seizia.chromite.model.data.DBDDisplayFormat;
+import com.seizia.chromite.model.data.DBDValueHandler;
+import com.seizia.chromite.model.exec.DBCException;
+import com.seizia.chromite.model.exec.DBCSession;
+import com.seizia.chromite.model.impl.data.ProxyValueHandler;
+import com.seizia.chromite.model.struct.DBSTypedObject;
+import org.jkiss.utils.CommonUtils;
+
+import java.text.MessageFormat;
+import java.text.ParseException;
+import java.util.List;
+import java.util.Map;
+
+/**
+ * Transforms string/numeric value into URL
+ */
+public class URLAttributeTransformer implements DBDAttributeTransformer {
+
+    private static final Log log = Log.getLog(URLAttributeTransformer.class);
+
+    private static final String PROP_PATTERN = "pattern";
+    private static final String PROP_VIEW_INLINE = "view.inline";
+    private static final String PROP_VIEW_PANEL = "view.panel";
+
+    public static final String URL_TYPE_NAME = "URL.Preview";
+
+    @Override
+    public void transformAttribute(@NotNull DBCSession session, @NotNull DBDAttributeBinding attribute, @NotNull List<Object[]> rows, @NotNull Map<String, Object> options) throws DBException {
+        attribute.setPresentationAttribute(
+            new TransformerPresentationAttribute(attribute, URL_TYPE_NAME, -1, DBPDataKind.STRING));
+
+        String pattern = null;
+        if (options.containsKey(PROP_PATTERN)) {
+            try {
+                pattern = CommonUtils.toString(options.get(PROP_PATTERN));
+            } catch (IllegalArgumentException e) {
+                log.error("Bad unit option", e);
+            }
+        }
+        if (pattern == null) {
+            pattern = "http://${value}";
+        }
+        attribute.setTransformHandler(new URLValueHandler(attribute.getValueHandler(), pattern));
+    }
+
+    private class URLValueHandler extends ProxyValueHandler {
+        private final String pattern;
+        private final MessageFormat messageFormat;
+
+        public URLValueHandler(DBDValueHandler target, String pattern) {
+            super(target);
+            this.pattern = pattern.replace("${value}", "{0}");
+            this.messageFormat = new MessageFormat(this.pattern);
+        }
+
+        @NotNull
+        @Override
+        public String getValueDisplayString(@NotNull DBSTypedObject column, @Nullable Object value, @NotNull DBDDisplayFormat format) {
+            if (pattern != null && format == DBDDisplayFormat.UI) {
+                return messageFormat.format(new Object[] { value } );
+            } else {
+                return DBValueFormatting.getDefaultValueDisplayString(value, format);
+            }
+        }
+
+        @Nullable
+        @Override
+        public Object getValueFromObject(@NotNull DBCSession session, @NotNull DBSTypedObject type, @Nullable Object object, boolean copy, boolean validateValue) throws DBCException {
+            if (pattern == null) {
+                return super.getValueFromObject(session, type, object, copy, validateValue);
+            } else if (DBUtils.isNullValue(object)) {
+                return null;
+            } else {
+                try {
+                    Object[] parsedValues = messageFormat.parse(object.toString());
+                    if (parsedValues.length > 0) {
+                        return super.getValueFromObject(session, type, parsedValues[0], copy, validateValue);
+                    }
+                    return object;
+                } catch (ParseException e) {
+                    return object;
+                }
+            }
+        }
+    }
+}

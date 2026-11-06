@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<feature
+      id="com.seizia.chromite.ui.extra.feature"
+      label="Chromite Desktop UI Extras"
+      version="26.2.5.qualifier"
+      provider-name="Chromite contributors">
+
+   <copyright>DBeaver Corp and others</copyright>
+
+   <plugin id="com.seizia.chromite.tasks.ui" version="0.0.0" />
+   <plugin id="com.seizia.chromite.tasks.ui.view" version="0.0.0" />
+   <plugin id="com.seizia.chromite.tasks.native.ui" version="0.0.0" />
+   <plugin id="com.seizia.chromite.tasks.sql.ui" version="0.0.0" />
+   <plugin id="com.seizia.chromite.ui.config.migration" version="0.0.0" />
+   <plugin id="com.seizia.chromite.cmp.simple.ui" version="0.0.0" />
+   <plugin id="com.seizia.chromite.ui.dashboard" version="0.0.0" />
+   <plugin id="com.seizia.chromite.ui.editors.locks" version="0.0.0" />
+
+</feature>
