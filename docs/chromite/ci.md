@@ -218,3 +218,4 @@ CI에서 checkstyle을 돌리지 않기로 했다. 깔끔하게 유지할 방법
 - 2026-11-06 서명 릴리스 워크플로 `release.yml`을 추가했다(Turbrix 서명 안내서 기준, [signing.md](signing.md)). `build.yml`은 바꾸지 않았다.
 - 2026-11-07 내장 Java 런타임 단계를 넣었다(`build.yml`, `release.yml`의 `windows`·`macos-build` 작업). 고정한 JBR SDK를 받아 캐시하고
   `tools/jre/BundleJre.java`로 두 제품에 넣은 뒤 구조를 확인한다([runtime.md](runtime.md)). "알려진 제약"의 JRE 설치 필요 항목을 고쳤다.
+  브랜치 `chromite/jbr-runtime`에서 수동 실행(실행 42267311710)으로 두 작업 성공과 macOS 결과물의 런타임 구조를 확인했다. `release.yml`은 실행하지 않았다.

@@ -218,7 +218,13 @@ Swing 제품, 이 PC(논리 프로세서 12개). 프로세스 시작부터 주 �
   MariaDB 11.8 연결, `MS949`·`EUC-KR` 문자 집합, 한국어 날짜·통화 형식("1970년 1월 1일 목요일", "₩1,234,567"),
   `WINDOWS-ROOT` 키 저장소(인증서 74개), JNDI DNS, zip 파일 시스템, `Krb5LoginModule`, `com.sun.net.httpserver` 모두 통과.
 - macOS 런타임(이 PC에서 교차 링크): `lib/libjli.dylib`, `lib/server/libjvm.dylib`, `bin/java`가 arm64 Mach-O(`file`), 두 앱의 ini에
-  `-vm ../Eclipse/jre/lib/libjli.dylib`. CI Linux 작업의 결과물은 [ci.md](ci.md)의 확인 단계로 본다.
+  `-vm ../Eclipse/jre/lib/libjli.dylib`.
+- CI: 이 브랜치에서 `build.yml`을 수동 실행(실행 42267311710)해 두 작업이 모두 성공했다. 두 작업 모두 JBR SDK를 받아(캐시 없음) SHA-256 확인을 통과했고
+  구조 확인 단계도 통과했다. Linux 작업이 올린 `chromite-swing-macos-aarch64`를 받아 보니
+  `ChromiteSwing.app/Contents/Eclipse/jre/`에 파일 314개(79.3MB), `bin/*`와 `lib/jspawnhelper`가 `-rwxr-xr-x`, ini에 `-vm ../Eclipse/jre/lib/libjli.dylib`,
+  `libjvm.dylib`가 arm64 Mach-O이고 이 PC(Windows)에서 링크한 것과 바이트 단위로 같았다.
+  - Linux에서 링크하면 `legal/<모듈>/` 아래 같은 내용의 라이선스 파일 125개가 `../java.base/...`를 가리키는 상대 심볼릭 링크가 된다(jlink 동작,
+    Windows에서는 복사본). 링크가 모두 런타임 폴더 안을 가리키므로 앱 서명에 문제가 없다고 보지만 Mac에서 확인하지는 못했다.
 - 확인하지 못함: Mac에서 실행, 서명·공증된 앱의 실행.
 - 회귀 테스트는 실행하지 않았다.
 
