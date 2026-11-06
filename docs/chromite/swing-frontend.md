@@ -1698,3 +1698,4 @@ Windows 11, 화면 배율 150%, JBR 25, 작업 공간 사본 `D:\Tools\_smoke\sw
   [swing-sql-editor-plus.md](swing-sql-editor-plus.md)에 정리.
 - 2026-11-06 고급 연결 설정: 인증 방식별 칸, 네트워크 핸들러 탭(SSH, Proxy, SSL), SQL Server·Oracle 주 칸, 연결 색(쿼리 상태 줄, Object Explorer), 연결 직후 SQL.
   [swing-conn-advanced.md](swing-conn-advanced.md)로 분리. "Connect 대화상자 (SSMS식)"의 남긴 것 중 해당 항목은 그 문서에서 구현했다.
+- 2026-11-06 테이블 디자이너: Object Explorer의 Design·New Table…, 열·키·외래 키·인덱스 편집과 변경 스크립트 미리 보기·저장, 다른 곳에서 추가·새로 읽은 객체 노드를 트리에 반영. [swing-table-designer.md](swing-table-designer.md) 참고.

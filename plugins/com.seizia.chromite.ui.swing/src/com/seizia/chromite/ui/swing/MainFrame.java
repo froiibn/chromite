@@ -27,8 +27,10 @@ import org.jkiss.dbeaver.model.DBPEventListener;
 import org.jkiss.dbeaver.model.app.DBPDataSourceRegistry;
 import org.jkiss.dbeaver.model.app.DBPProject;
 import org.jkiss.dbeaver.model.app.DBPWorkspace;
+import org.jkiss.dbeaver.model.navigator.DBNDatabaseFolder;
 import org.jkiss.dbeaver.model.navigator.DBNNode;
 import org.jkiss.dbeaver.model.preferences.DBPPreferenceStore;
+import org.jkiss.dbeaver.model.struct.DBSEntity;
 import org.jkiss.dbeaver.runtime.DBWorkbench;
 import org.jkiss.dbeaver.utils.GeneralUtils;
 import org.jkiss.dbeaver.utils.PrefUtils;
@@ -100,6 +102,8 @@ import java.util.function.IntConsumer;
  *     <li>Object Explorer의 스크립트 명령({@link ObjectExplorerPanel.QueryWindows}): 스크립트를 담은 새 편집기, "View DDL"의 읽기 전용 탭({@link DdlViewerPanel}).</li>
  *     <li>관리 도구 문서 탭({@link ToolDocument}): Activity Monitor({@link ActivityMonitorPanel}, 연결마다 하나, 이미 열려 있으면 그 탭)와
  *     Find Objects({@link ObjectSearchPanel}). Tools 메뉴와 Object Explorer 오른쪽 클릭 메뉴에서 연다. 탭을 닫거나 창을 닫으면 정리한다(타이머, 서버 연결).</li>
+ *     <li>테이블 디자이너 탭({@link TableDesignerPanel}): Object Explorer의 Design·New Table…. 같은 테이블은 열린 탭을 보여 준다.
+ *     Ctrl+S는 디자이너의 Save(스크립트 미리 보기 후 적용), 닫을 때·끝낼 때 저장하지 않은 변경을 디자이너마다 묻는다.</li>
  * </ul>
  * 창을 닫으면 dispose되고, {@link ChromiteSwingApplication}이 windowClosed 이벤트로 앱을 종료한다.
  * 창 아이콘은 Java 런타임(JBR) 기본 아이콘 대신 Chromite 아이콘을 쓴다({@link ChromiteIcons}).
@@ -128,8 +132,9 @@ import java.util.function.IntConsumer;
  * - 2026-11-06 관리 도구: Tools &gt; Activity Monitor, Locks, Find Objects와 도구 문서 탭 (docs/chromite/swing-admin-tools.md)
  * - 2026-11-06 Execution plan 탭, Query 메뉴의 실행 계획(Ctrl+L, Ctrl+M)·Query History, Edit &gt; Advanced
  *   (docs/chromite/swing-sql-editor-plus.md)
+ * - 2026-11-06 테이블 디자이너: 디자이너 탭 열기·닫기·Ctrl+S·끝낼 때 확인 (docs/chromite/swing-table-designer.md)
  */
-final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplorerPanel.QueryWindows {
+final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplorerPanel.QueryWindows, TableDesignerPanel.Host {
 
     private static final String PREF_BOUNDS = "mainWindow.bounds"; //$NON-NLS-1$
     private static final String PREF_MAXIMIZED = "mainWindow.maximized"; //$NON-NLS-1$
@@ -275,6 +280,8 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
                 SqlEditorPanel editor = getActiveEditor();
                 if (editor != null) {
                     saveEditor(editor, false);
+                } else if (documentTabs.getSelectedComponent() instanceof TableDesignerPanel designer) {
+                    designer.save();
                 }
             });
         saveAsAction = createAction("Save As…", "Save the active query window to another file", null, () -> {
@@ -564,6 +571,42 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
         openActivityMonitor(dataSource, tab);
     }
 
+    @Override
+    public void designTable(@NotNull DBSEntity table) {
+        for (int i = 0; i < documentTabs.getTabCount(); i++) {
+            if (documentTabs.getComponentAt(i) instanceof TableDesignerPanel designer && designer.getSession().getTable() == table) {
+                documentTabs.setSelectedIndex(i);
+                return;
+            }
+        }
+        addDesigner(TableDesignerPanel.open(this, table));
+    }
+
+    @Override
+    public void newTable(@NotNull DBNDatabaseFolder folder) {
+        addDesigner(TableDesignerPanel.createTable(this, folder));
+    }
+
+    private void addDesigner(@Nullable TableDesignerPanel designer) {
+        if (designer == null) {
+            return;
+        }
+        designer.putClientProperty(FlatClientProperties.TABBED_PANE_TAB_CLOSABLE, true);
+        documentTabs.addTab(designer.getTitle(), UiIcons.get("table"), designer); //$NON-NLS-1$
+        int index = documentTabs.indexOfComponent(designer);
+        documentTabs.setToolTipTextAt(index, designer.getToolTip());
+        documentTabs.setSelectedIndex(index);
+    }
+
+    @Override
+    public void designerChanged(@NotNull TableDesignerPanel designer) {
+        int index = documentTabs.indexOfComponent(designer);
+        if (index >= 0) {
+            documentTabs.setTitleAt(index, designer.getTitle());
+            documentTabs.setToolTipTextAt(index, designer.getToolTip());
+        }
+    }
+
     /**
      * Adds a query window tab.
      *
@@ -599,6 +642,13 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
         } else if (component instanceof ToolDocument document) {
             document.dispose();
             documentTabs.removeTabAt(index);
+        } else if (component instanceof TableDesignerPanel designer) {
+            documentTabs.setSelectedComponent(designer);
+            if (!designer.confirmClose()) {
+                return;
+            }
+            designer.dispose();
+            documentTabs.remove(designer);
         }
     }
 
@@ -776,6 +826,15 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
      * result grids (SSMS lists them in one question), then closes the window.
      */
     private void requestExit() {
+        // Table designers ask one by one: saving shows each change script
+        for (int i = 0; i < documentTabs.getTabCount(); i++) {
+            if (documentTabs.getComponentAt(i) instanceof TableDesignerPanel designer && designer.isDirty()) {
+                documentTabs.setSelectedComponent(designer);
+                if (!designer.confirmClose()) {
+                    return;
+                }
+            }
+        }
         List<SqlEditorPanel> modified = new ArrayList<>();
         List<SqlEditorPanel> resultsModified = new ArrayList<>();
         for (SqlEditorPanel editor : getEditors()) {
@@ -940,7 +999,7 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
         estimatedPlanAction.setEnabled(editor != null && !editor.isExecuting() && !editor.isExplaining());
         actualPlanItem.setEnabled(editor != null);
         actualPlanItem.setSelected(editor != null && editor.isIncludeActualPlan());
-        saveAction.setEnabled(editor != null);
+        saveAction.setEnabled(editor != null || documentTabs.getSelectedComponent() instanceof TableDesignerPanel);
         saveAsAction.setEnabled(editor != null);
         editMenu.activeDocumentChanged();
     }
