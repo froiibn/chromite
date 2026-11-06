@@ -268,6 +268,10 @@ SELECT ...
 | Active on this computer | 이 PC에서 돌릴지(로컬 설정, 아래) |
 | Remove Schedule | 예약 블록을 파일에서 지움 |
 
+배치: 양식은 GridBagLayout이다. 화면 배율에서 창 크기가 반올림되어 선호 크기보다 1px만 작아도(측정: 창 459×549, 선호 459×550)
+GridBagLayout은 모든 칸을 최소 크기로 놓는데, 스크롤 창의 최소 높이는 한 줄이라 Connections·Parameters 목록이 한 줄로 줄고 아래에 빈 띠가 남았다.
+두 목록에 최소 높이(몇 줄)와 세로 가중치를 주어 줄지 않게 하고, 창을 키우면 두 목록이 늘어난다.
+
 파일 형식(`-- @schedule` 블록, 쿼리 머리말의 다른 항목과 같은 규칙):
 
 ```sql
@@ -395,3 +399,4 @@ Schedule…·History…·Scheduled Queries… 대화상자, Save to Query Librar
   `history` 아이콘은 SQL 편집기 확장의 것을 함께 씀, `new-folder`의 Full color 그림을 `new-group`과 같은 폴더 모양으로 맞춤(생성기의 같은 폴더 식),
   Options의 기록 보존 칸을 쿼리 창 기록 칸과 따로 둠. 바인딩한 쿼리의 결과는 다시 읽지 않음(Export Data·결과 뷰어 필터가 값 없는 `?`로 실패하던 것).
 - 2026-11-06 바인딩한 실행이 Query History에 `… = ?`로 남던 문제: 값을 SQL 리터럴로 넣은 원래 문장을 기록.
+- 2026-11-06 Schedule… 대화상자의 Connections·Parameters 목록이 한 줄로 줄던 문제: 목록에 최소 높이와 세로 가중치.
