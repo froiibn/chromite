@@ -17,6 +17,7 @@
 package com.seizia.chromite.ui.swing;
 
 import com.formdev.flatlaf.FlatClientProperties;
+import com.formdev.flatlaf.util.UIScale;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.model.DBPDataSourceContainer;
@@ -32,9 +33,11 @@ import org.jkiss.dbeaver.utils.PrefUtils;
 import org.jkiss.utils.CommonUtils;
 
 import javax.swing.*;
+import javax.swing.border.AbstractBorder;
 import javax.swing.event.MenuEvent;
 import javax.swing.event.MenuListener;
 import javax.swing.filechooser.FileNameExtensionFilter;
+import javax.swing.plaf.basic.BasicSplitPaneUI;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ComponentAdapter;
@@ -97,6 +100,8 @@ import java.util.function.IntConsumer;
  *   (docs/chromite/swing-frontend.md "구현 현황 — E단계")
  * - 2026-11-06 F단계: Query > Complete(Ctrl+Space), Auto-Complete While Typing (docs/chromite/swing-frontend.md "구현 현황 — F단계")
  * - 2026-11-06 G단계: 닫을 때·끝낼 때 결과 표의 저장하지 않은 변경도 묻기 (docs/chromite/swing-frontend.md "구현 현황 — G단계")
+ * - 2026-11-06 디자인 적용: 아이콘 도구 막대(New Query만 글자), 문서 탭 40·밑줄 4·아이콘, 결과 탭 32·아이콘, 1px 분할선,
+ *   상태 표시줄 28, View > Theme > Icon Style (docs/chromite/design-spec.md "적용 현황")
  */
 final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplorerPanel.QueryWindows {
 
@@ -155,8 +160,10 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
         resultsPlaceholder = createPlaceholder("No results. Query results will appear here.");
         messagesPlaceholder = createPlaceholder("No messages.");
         resultTabs = new JTabbedPane();
-        resultTabs.addTab("Results", resultsPlaceholder);
-        resultTabs.addTab("Messages", messagesPlaceholder);
+        // size.tab.tool 32 with a 3px underline (size.tabUnderline), icons results.grid / results.messages
+        resultTabs.putClientProperty(FlatClientProperties.STYLE, "tabHeight: 32; tabSelectionHeight: 3"); //$NON-NLS-1$
+        resultTabs.addTab("Results", UiIcons.get("results"), resultsPlaceholder); //$NON-NLS-2$
+        resultTabs.addTab("Messages", UiIcons.get("messages"), messagesPlaceholder); //$NON-NLS-2$
         documentTabs = createDocumentTabs();
 
         JSplitPane documentSplit = createSplitPane(JSplitPane.VERTICAL_SPLIT);
@@ -167,14 +174,14 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
         explorerSplit.setRightComponent(propertiesSplit);
 
         ToolWindow explorerWindow = new ToolWindow("objectExplorer", "Object Explorer", true, //$NON-NLS-1$
-            explorerPanel, explorerPanel.createRefreshButton(), explorerSplit, true, 300,
+            explorerPanel, explorerSplit, true, 300,
             KeyStroke.getKeyStroke(KeyEvent.VK_F8, 0));
         ToolWindow propertiesWindow = new ToolWindow("properties", "Properties", true, //$NON-NLS-1$
-            propertiesPanel, null, propertiesSplit, false, 300,
+            propertiesPanel, propertiesSplit, false, 300,
             KeyStroke.getKeyStroke(KeyEvent.VK_F4, 0));
         // The Results/Messages tabs are their own header; the hide button sits next to the tabs
         resultsWindow = new ToolWindow("results", "Results", false, //$NON-NLS-1$
-            resultTabs, null, documentSplit, false, 220,
+            resultTabs, documentSplit, false, 220,
             KeyStroke.getKeyStroke(KeyEvent.VK_R, InputEvent.CTRL_DOWN_MASK));
         // The trailing component fills the rest of the tab row; keep the button at its right end
         JPanel resultTabsTrailing = new JPanel(new FlowLayout(FlowLayout.RIGHT, 2, 0));
@@ -314,7 +321,7 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
 
     @NotNull
     private static JSplitPane createSplitPane(int orientation) {
-        JSplitPane splitPane = new JSplitPane(orientation);
+        JSplitPane splitPane = new LineSplitPane(orientation);
         splitPane.setContinuousLayout(true);
         splitPane.setBorder(BorderFactory.createEmptyBorder());
         return splitPane;
@@ -333,17 +340,20 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
         return action;
     }
 
+    /**
+     * SSMS standard tool bar: [New Connection] [New Query (icon and text)] | [Open File] [Save]; the other buttons
+     * are icons with tool tips (size.toolbar.main 36 = 26px buttons + 5px above and below).
+     */
     @NotNull
     private JComponent createToolBar() {
         JToolBar toolBar = new JToolBar();
         toolBar.setFloatable(false);
-        toolBar.setBorder(BorderFactory.createEmptyBorder(2, 4, 2, 4));
-        for (Action action : List.of(explorerPanel.getNewConnectionAction(), newQueryAction, openFileAction, saveAction)) {
-            JButton button = new JButton(action);
-            button.putClientProperty(FlatClientProperties.BUTTON_TYPE, FlatClientProperties.BUTTON_TYPE_TOOLBAR_BUTTON);
-            button.setFocusable(false);
-            toolBar.add(button);
-        }
+        toolBar.setBorder(BorderFactory.createEmptyBorder(UIScale.scale(5), UIScale.scale(8), UIScale.scale(5), UIScale.scale(8)));
+        toolBar.add(UiIcons.createActionButton(explorerPanel.getNewConnectionAction(), "new-connection")); //$NON-NLS-1$
+        toolBar.add(UiIcons.createToolButton(newQueryAction, "new-query")); //$NON-NLS-1$
+        toolBar.addSeparator();
+        toolBar.add(UiIcons.createActionButton(openFileAction, "open")); //$NON-NLS-1$
+        toolBar.add(UiIcons.createActionButton(saveAction, "save")); //$NON-NLS-1$
         return toolBar;
     }
 
@@ -386,7 +396,7 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
     public void showDdl(@NotNull String objectName, @NotNull String ddl) {
         DdlViewerPanel viewer = new DdlViewerPanel(objectName, ddl);
         viewer.putClientProperty(FlatClientProperties.TABBED_PANE_TAB_CLOSABLE, true);
-        documentTabs.addTab(viewer.getTitle(), viewer);
+        documentTabs.addTab(viewer.getTitle(), UiIcons.get("file-sql"), viewer); //$NON-NLS-1$
         int index = documentTabs.indexOfComponent(viewer);
         documentTabs.setToolTipTextAt(index, viewer.getTitle());
         documentTabs.setSelectedIndex(index);
@@ -406,7 +416,7 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
         }
         SqlEditorPanel editor = new SqlEditorPanel(dataSource, fileName, this);
         editor.putClientProperty(FlatClientProperties.TABBED_PANE_TAB_CLOSABLE, true);
-        documentTabs.addTab(editor.getTitle(), editor);
+        documentTabs.addTab(editor.getTitle(), editor.getTabIcon(), editor);
         int index = documentTabs.indexOfComponent(editor);
         documentTabs.setToolTipTextAt(index, editor.getToolTip());
         documentTabs.setSelectedIndex(index);
@@ -736,6 +746,7 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
         if (index >= 0) {
             documentTabs.setTitleAt(index, editor.getTitle());
             documentTabs.setToolTipTextAt(index, editor.getToolTip());
+            documentTabs.setIconAt(index, editor.getTabIcon());
         }
     }
 
@@ -769,9 +780,12 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
         welcome.add(hintLabel, constraints);
         welcome.add(nextLabel, constraints);
 
-        JTabbedPane tabs = new JTabbedPane();
+        JTabbedPane tabs = new EditorTabbedPane();
         // One row that scrolls, like SSMS; wrapped rows would move the selected tab's row around
         tabs.setTabLayoutPolicy(JTabbedPane.SCROLL_TAB_LAYOUT);
+        // DataGrip editor tabs: size.tab.editor 40, 4px underline with round ends
+        tabs.putClientProperty(FlatClientProperties.STYLE, "tabHeight: 40; tabSelectionHeight: 4; tabSelectionArc: 4; " //$NON-NLS-1$
+            + "focusColor: $Chromite.editorBackground"); //$NON-NLS-1$
         tabs.addTab("Welcome", welcome);
         tabs.putClientProperty(FlatClientProperties.TABBED_PANE_TAB_CLOSE_CALLBACK, (IntConsumer) this::closeDocumentTab);
         return tabs;
@@ -865,6 +879,22 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
             group.add(item);
             themeMenu.add(item);
         }
+        themeMenu.addSeparator();
+        JMenu iconStyleMenu = new JMenu("Icon Style");
+        iconStyleMenu.setMnemonic(KeyEvent.VK_I);
+        ButtonGroup iconStyleGroup = new ButtonGroup();
+        UiIconStyle currentIconStyle = UiIconStyle.getCurrent();
+        for (UiIconStyle iconStyle : UiIconStyle.values()) {
+            JRadioButtonMenuItem item = new JRadioButtonMenuItem(iconStyle.getLabel(), iconStyle == currentIconStyle);
+            item.addActionListener(e -> {
+                if (UiIconStyle.getCurrent() != iconStyle) {
+                    iconStyle.apply();
+                }
+            });
+            iconStyleGroup.add(item);
+            iconStyleMenu.add(item);
+        }
+        themeMenu.add(iconStyleMenu);
         return themeMenu;
     }
 
@@ -943,17 +973,82 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
     }
 
     /**
-     * Status bar with a top separator line; the border is recreated on theme changes, because its color comes
-     * from the look and feel.
+     * Document tabs whose tab row has the editor background (bg.editor), like the DataGrip editor tabs.
+     * <ul>
+     *     <li>The background is set after every look and feel change as a plain (non-UIResource) color: the scrolling
+     *     tab row copies it only from a background change event, which a FlatLaf style value does not always fire when
+     *     the theme is switched at runtime (the tabs then kept the panel color).</li>
+     *     <li>Opaque, because FlatLaf tabbed panes are not: the empty part of the tab row would show the parent's panel color.</li>
+     * </ul>
+     */
+    private static final class EditorTabbedPane extends JTabbedPane {
+        EditorTabbedPane() {
+            setOpaque(true);
+        }
+
+        @Override
+        public void updateUI() {
+            super.updateUI();
+            Color background = UIManager.getColor("Chromite.editorBackground"); //$NON-NLS-1$
+            if (background != null) {
+                setBackground(new Color(background.getRGB()));
+            }
+        }
+    }
+
+    /**
+     * Split pane whose divider is a 1px border.subtle line in the middle of its 5px drag area (size.divider), without
+     * FlatLaf's grip dots ({@code SplitPaneDivider.style = plain} paints nothing). The divider is recreated with the
+     * UI delegate, so the line border is set again on every look and feel change.
+     */
+    private static final class LineSplitPane extends JSplitPane {
+        LineSplitPane(int orientation) {
+            super(orientation);
+        }
+
+        @Override
+        public void updateUI() {
+            super.updateUI();
+            if (getUI() instanceof BasicSplitPaneUI splitPaneUI && splitPaneUI.getDivider() != null) {
+                splitPaneUI.getDivider().setBorder(new AbstractBorder() {
+                    @Override
+                    public void paintBorder(Component c, Graphics g, int x, int y, int width, int height) {
+                        Color color = UIManager.getColor("Chromite.dividerColor"); //$NON-NLS-1$
+                        if (color == null) {
+                            return;
+                        }
+                        g.setColor(color);
+                        if (width <= height) {
+                            g.fillRect(x + width / 2, y, 1, height);
+                        } else {
+                            g.fillRect(x, y + height / 2, width, 1);
+                        }
+                    }
+                });
+            }
+        }
+    }
+
+    /**
+     * Status bar (size.statusBar 28) with a top separator line; the border is recreated on theme changes, because its
+     * color comes from the look and feel.
      */
     private static final class StatusBar extends JPanel {
+        private static final int HEIGHT = 28;
         private final JLabel statusLabel;
 
         StatusBar(@NotNull String statusText) {
             super(new BorderLayout());
             statusLabel = new JLabel(statusText);
-            statusLabel.setBorder(BorderFactory.createEmptyBorder(3, 8, 3, 8));
+            statusLabel.setBorder(BorderFactory.createEmptyBorder(0, UIScale.scale(12), 0, UIScale.scale(12)));
+            statusLabel.putClientProperty(FlatClientProperties.STYLE, "foreground: $Chromite.secondaryForeground"); //$NON-NLS-1$
             add(statusLabel, BorderLayout.WEST);
+        }
+
+        @Override
+        public Dimension getPreferredSize() {
+            Dimension size = super.getPreferredSize();
+            return new Dimension(size.width, UIScale.scale(HEIGHT) + 1);
         }
 
         void setText(@NotNull String text) {

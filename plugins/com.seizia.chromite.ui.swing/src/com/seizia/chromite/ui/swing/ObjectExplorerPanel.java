@@ -17,6 +17,8 @@
 package com.seizia.chromite.ui.swing;
 
 import com.formdev.flatlaf.FlatClientProperties;
+import com.formdev.flatlaf.ui.FlatUIUtils;
+import com.formdev.flatlaf.util.UIScale;
 import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.Status;
 import org.jkiss.code.NotNull;
@@ -27,7 +29,9 @@ import org.jkiss.dbeaver.model.DBPDataSourceContainer;
 import org.jkiss.dbeaver.model.DBPEvaluationContext;
 import org.jkiss.dbeaver.model.DBUtils;
 import org.jkiss.dbeaver.model.app.DBPProject;
+import org.jkiss.dbeaver.model.connection.DBPConnectionConfiguration;
 import org.jkiss.dbeaver.model.navigator.DBNDataSource;
+import org.jkiss.dbeaver.model.navigator.DBNDatabaseFolder;
 import org.jkiss.dbeaver.model.navigator.DBNDatabaseNode;
 import org.jkiss.dbeaver.model.navigator.DBNEvent;
 import org.jkiss.dbeaver.model.navigator.DBNLocalFolder;
@@ -36,11 +40,14 @@ import org.jkiss.dbeaver.model.navigator.DBNProject;
 import org.jkiss.dbeaver.model.navigator.DBNProjectDatabases;
 import org.jkiss.dbeaver.model.navigator.DBNUtils;
 import org.jkiss.dbeaver.model.navigator.INavigatorListener;
+import org.jkiss.dbeaver.model.navigator.meta.DBXTreeItem;
 import org.jkiss.dbeaver.model.runtime.AbstractJob;
 import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
 import org.jkiss.dbeaver.model.runtime.DBRRunnableWithReturn;
 import org.jkiss.dbeaver.model.struct.DBSEntity;
+import org.jkiss.dbeaver.model.struct.DBSEntityAttribute;
 import org.jkiss.dbeaver.model.struct.DBSObject;
+import org.jkiss.dbeaver.model.struct.DBSObjectFilter;
 import org.jkiss.dbeaver.runtime.DBInterruptedException;
 import org.jkiss.dbeaver.runtime.DBWorkbench;
 import org.jkiss.utils.CommonUtils;
@@ -61,6 +68,7 @@ import java.awt.event.ActionEvent;
 import java.awt.event.KeyEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.awt.geom.RoundRectangle2D;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Enumeration;
@@ -99,6 +107,11 @@ import java.util.function.Consumer;
  *     연결이 끊기면({@code UNLOAD}) 그 연결을 접고 다시 펼칠 때 읽게 하고, 연결 상태가 바뀌면 아이콘을 다시 그린다.
  *     모델이 지운 DB 객체 노드는 트리에서 뺀다. 이 패널이 보낸 이벤트(새로 고침의 원천이 이 패널)는 이미 처리했으므로 무시한다.
  *     다른 곳에서 새로 만든 DB 객체({@code ADD})는 아직 반영하지 않는다(새로 고침으로 보임).</li>
+ *     <li>모양(docs/chromite/design-spec.md "트리"): 머리말 아래 아이콘 도구 막대({@link #createToolBar}, SSMS Object Explorer 도구 막대 순서),
+ *     아이콘 팩 아이콘({@link NodeIcons#getNodeIcon}), 이름 뒤 보조 글자(열 형식, 읽은 폴더의 객체 수, 연결 호스트),
+ *     마우스를 올린 행의 둥근 바탕({@link ExplorerTree}). 행 높이·들여쓰기·선택 모양은 테마 properties의 FlatLaf 키다.</li>
+ *     <li>Filter(SSMS): 고른 객체 폴더에 이름 마스크를 건다. DBeaver 탐색기 필터({@code DBSObjectFilter})를 그대로 써서 연결 설정에 저장된다.
+ *     Collapse All은 펼친 노드를 모두 접는다.</li>
  * </ul>
  *
  * 변경 이력:
@@ -106,6 +119,8 @@ import java.util.function.Consumer;
  * - 2026-11-06 C단계: "New Query" 메뉴, 선택한 연결 조회 (docs/chromite/swing-frontend.md "구현 현황 — C단계")
  * - 2026-11-06 D단계: 연결 명령 메뉴와 단축키, 탐색기 모델 이벤트로 트리 갱신 (docs/chromite/swing-frontend.md "구현 현황 — D단계")
  * - 2026-11-06 E단계: Select Top 1000 Rows, Script as(CREATE·SELECT), View DDL (docs/chromite/swing-frontend.md "구현 현황 — E단계")
+ * - 2026-11-06 디자인 적용: 아이콘 도구 막대(New Connection, Connect, Disconnect, Filter, Refresh, Collapse All), Filter·Collapse All 명령,
+ *   아이콘 팩 노드 아이콘과 연결 상태 점, 보조 글자, 마우스 올림 표시 (docs/chromite/design-spec.md "적용 현황")
  */
 final class ObjectExplorerPanel extends JPanel {
 
@@ -146,6 +161,8 @@ final class ObjectExplorerPanel extends JPanel {
     @Nullable
     private final DBNProject projectNode;
     private final Action refreshAction;
+    private final Action collapseAllAction;
+    private final Action filterAction;
     private final Action newQueryAction;
     private final Action newConnectionAction;
     private final Action connectAction;
@@ -180,7 +197,7 @@ final class ObjectExplorerPanel extends JPanel {
         rootNode = new ExplorerNode(projectNode != null ? projectNode : "No active project");
         treeModel = new DefaultTreeModel(rootNode);
 
-        tree = new JTree(treeModel);
+        tree = new ExplorerTree(treeModel);
         tree.setRootVisible(false);
         tree.setShowsRootHandles(true);
         tree.setCellRenderer(new ExplorerCellRenderer());
@@ -208,6 +225,13 @@ final class ObjectExplorerPanel extends JPanel {
             }
         };
         refreshAction.putValue(Action.SHORT_DESCRIPTION, "Refresh the selected node (or all connections)");
+        collapseAllAction = createAction("Collapse All", () -> {
+            for (int row = tree.getRowCount() - 1; row >= 0; row--) {
+                tree.collapseRow(row);
+            }
+        });
+        filterAction = createAction("Filter…", this::filterSelectedFolder);
+        filterAction.putValue(Action.SHORT_DESCRIPTION, "Show only the objects of the selected folder whose names match");
         newQueryAction = new AbstractAction("New Query") {
             @Override
             public void actionPerformed(ActionEvent e) {
@@ -306,6 +330,7 @@ final class ObjectExplorerPanel extends JPanel {
         popupMenu.add(renameAction);
         popupMenu.add(deleteAction);
         popupMenu.addSeparator();
+        popupMenu.add(filterAction);
         popupMenu.add(refreshAction);
         popupMenu.addPopupMenuListener(new PopupMenuListener() {
             @Override
@@ -340,6 +365,7 @@ final class ObjectExplorerPanel extends JPanel {
 
         JScrollPane scrollPane = new JScrollPane(tree);
         scrollPane.setBorder(BorderFactory.createEmptyBorder());
+        add(createToolBar(), BorderLayout.NORTH);
         add(scrollPane, BorderLayout.CENTER);
 
         if (projectNode != null) {
@@ -452,17 +478,62 @@ final class ObjectExplorerPanel extends JPanel {
         editConnectionAction.setEnabled(connectionNode);
         renameAction.setEnabled(connectionNode);
         deleteAction.setEnabled(connectionNode);
+        filterAction.setEnabled(getSelectedNavigatorNode() instanceof DBNDatabaseFolder folder && folder.getItemsMeta() != null);
     }
 
     /**
-     * Header button for the tool window.
+     * SSMS Object Explorer tool bar below the tool window header (32 high: 26px icon buttons + 3 above and below):
+     * New Connection, Connect, Disconnect | Filter, Refresh | Collapse All.
      */
     @NotNull
-    JComponent createRefreshButton() {
-        JButton button = new JButton(refreshAction);
-        button.putClientProperty(FlatClientProperties.BUTTON_TYPE, FlatClientProperties.BUTTON_TYPE_TOOLBAR_BUTTON);
-        button.setFocusable(false);
-        return button;
+    private JComponent createToolBar() {
+        JToolBar toolBar = new JToolBar();
+        toolBar.setFloatable(false);
+        toolBar.setOpaque(false);
+        toolBar.setBorder(BorderFactory.createEmptyBorder(UIScale.scale(3), UIScale.scale(8), UIScale.scale(3), UIScale.scale(8)));
+        toolBar.add(UiIcons.createActionButton(newConnectionAction, "new-connection")); //$NON-NLS-1$
+        toolBar.add(UiIcons.createActionButton(connectAction, "connect")); //$NON-NLS-1$
+        toolBar.add(UiIcons.createActionButton(disconnectAction, "disconnect")); //$NON-NLS-1$
+        toolBar.addSeparator();
+        toolBar.add(UiIcons.createActionButton(filterAction, "filter")); //$NON-NLS-1$
+        toolBar.add(UiIcons.createActionButton(refreshAction, "refresh")); //$NON-NLS-1$
+        toolBar.addSeparator();
+        toolBar.add(UiIcons.createActionButton(collapseAllAction, "collapse-all")); //$NON-NLS-1$
+        return toolBar;
+    }
+
+    /**
+     * Filter (SSMS Object Explorer filter): shows only the objects of the selected folder whose names match a mask.
+     * The filter is the connection's navigator filter of that object type (saved with the connection, like the SWT
+     * navigator filters); a text without {@code %} matches names that contain it, an empty text removes the filter.
+     */
+    private void filterSelectedFolder() {
+        TreePath path = tree.getSelectionPath();
+        if (path == null || !(path.getLastPathComponent() instanceof ExplorerNode node)
+            || !(node.getUserObject() instanceof DBNDatabaseFolder folder)) {
+            return;
+        }
+        DBXTreeItem itemsMeta = folder.getItemsMeta();
+        if (itemsMeta == null) {
+            return;
+        }
+        DBSObjectFilter current = folder.getNodeFilter(itemsMeta, true);
+        String currentMask = current != null && current.isEnabled() && current.hasSingleMask() ? current.getSingleMask() : "";
+        Object input = JOptionPane.showInputDialog(this,
+            "Show the objects of " + folder.getNodeDisplayName() + " whose names contain:\n(% is a wildcard; leave empty to show all)",
+            "Filter", JOptionPane.PLAIN_MESSAGE, null, null, currentMask);
+        if (input == null) {
+            return;
+        }
+        String mask = input.toString().trim();
+        DBSObjectFilter filter = null;
+        if (!mask.isEmpty()) {
+            filter = new DBSObjectFilter(mask.contains("%") ? mask : "%" + mask + "%", null); //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$
+        }
+        if (folder.setNodeFilter(itemsMeta, filter, true)) {
+            loadChildren(node, true);
+            tree.expandPath(path);
+        }
     }
 
     /**
@@ -859,7 +930,97 @@ final class ObjectExplorerPanel extends JPanel {
         }
     }
 
+    /**
+     * Tree with a hover highlight (bg.hover): the same rounded rectangle as the selection, painted between the
+     * background and the rows. FlatLaf has no hover for trees.
+     */
+    private static final class ExplorerTree extends JTree {
+        private int hoverRow = -1;
+
+        ExplorerTree(@NotNull DefaultTreeModel model) {
+            super(model);
+            MouseAdapter hoverListener = new MouseAdapter() {
+                @Override
+                public void mouseMoved(MouseEvent e) {
+                    setHoverRow(getRowAtY(e.getY()));
+                }
+
+                @Override
+                public void mouseExited(MouseEvent e) {
+                    setHoverRow(-1);
+                }
+            };
+            addMouseListener(hoverListener);
+            addMouseMotionListener(hoverListener);
+        }
+
+        private int getRowAtY(int y) {
+            int row = getClosestRowForLocation(0, y);
+            Rectangle bounds = row >= 0 ? getRowBounds(row) : null;
+            return bounds != null && y >= bounds.y && y < bounds.y + bounds.height ? row : -1;
+        }
+
+        private void setHoverRow(int row) {
+            if (row != hoverRow) {
+                repaintRow(hoverRow);
+                hoverRow = row;
+                repaintRow(row);
+            }
+        }
+
+        private void repaintRow(int row) {
+            Rectangle bounds = row >= 0 ? getRowBounds(row) : null;
+            if (bounds != null) {
+                repaint(0, bounds.y, getWidth(), bounds.height);
+            }
+        }
+
+        @Override
+        protected void paintComponent(Graphics g) {
+            if (ui == null) {
+                return;
+            }
+            Graphics2D g2 = (Graphics2D) g.create();
+            try {
+                if (isOpaque()) {
+                    g2.setColor(getBackground());
+                    g2.fillRect(0, 0, getWidth(), getHeight());
+                }
+                paintHover(g2);
+                ui.paint(g2, this);
+            } finally {
+                g2.dispose();
+            }
+        }
+
+        private void paintHover(@NotNull Graphics2D g) {
+            Rectangle bounds = hoverRow >= 0 && hoverRow < getRowCount() && !isRowSelected(hoverRow) ? getRowBounds(hoverRow) : null;
+            Color color = UIManager.getColor("Chromite.Tree.hoverBackground"); //$NON-NLS-1$
+            if (bounds == null || color == null) {
+                return;
+            }
+            Insets selectionInsets = UIManager.getInsets("Tree.selectionInsets"); //$NON-NLS-1$
+            Insets insets = UIScale.scale(selectionInsets != null ? selectionInsets : new Insets(0, 0, 0, 0));
+            float arc = UIScale.scale((float) UIManager.getInt("Tree.selectionArc")); //$NON-NLS-1$
+            Object[] oldHints = FlatUIUtils.setRenderingHints(g);
+            g.setColor(color);
+            g.fill(new RoundRectangle2D.Float(insets.left, bounds.y + insets.top, getWidth() - insets.left - insets.right,
+                bounds.height - insets.top - insets.bottom, arc, arc));
+            FlatUIUtils.resetRenderingHints(g, oldHints);
+        }
+    }
+
+    /**
+     * Icon (icon pack, {@link NodeIcons#getNodeIcon}), name and a secondary text in text.secondary after it: the data
+     * type of a column, the number of objects of a read folder, the host of a connection.
+     */
     private static final class ExplorerCellRenderer extends DefaultTreeCellRenderer {
+        // space.6: icon-text gap and gap before the secondary text
+        private static final int GAP = 6;
+
+        @Nullable
+        private String secondaryText;
+
         @Override
         public Component getTreeCellRendererComponent(
             JTree tree,
@@ -871,9 +1032,12 @@ final class ObjectExplorerPanel extends JPanel {
             boolean hasFocus
         ) {
             super.getTreeCellRendererComponent(tree, value, selected, expanded, leaf, row, hasFocus);
+            setIconTextGap(UIScale.scale(GAP));
+            secondaryText = null;
             if (value instanceof ExplorerNode node && node.getUserObject() instanceof DBNNode navigatorNode) {
-                setIcon(NodeIcons.getIcon(navigatorNode.getNodeIcon()));
+                setIcon(NodeIcons.getNodeIcon(navigatorNode, expanded));
                 setToolTipText(navigatorNode.getNodeDescription());
+                secondaryText = getSecondaryText(node, navigatorNode);
             } else {
                 // Placeholder text
                 setIcon(null);
@@ -883,6 +1047,53 @@ final class ObjectExplorerPanel extends JPanel {
                 }
             }
             return this;
+        }
+
+        @Nullable
+        private static String getSecondaryText(@NotNull ExplorerNode node, @NotNull DBNNode navigatorNode) {
+            if (navigatorNode instanceof DBNDataSource dataSourceNode) {
+                DBPConnectionConfiguration configuration = dataSourceNode.getDataSourceContainer().getConnectionConfiguration();
+                String host = configuration.getHostName();
+                if (CommonUtils.isEmpty(host)) {
+                    return null;
+                }
+                return CommonUtils.isEmpty(configuration.getHostPort()) ? host : host + ":" + configuration.getHostPort(); //$NON-NLS-1$
+            }
+            if (navigatorNode instanceof DBNDatabaseFolder) {
+                // Count of the objects read so far (not the "Loading…" placeholder)
+                return node.state == LoadState.LOADED && node.getChildCount() > 0 ? String.valueOf(node.getChildCount()) : null;
+            }
+            if (navigatorNode instanceof DBNDatabaseNode databaseNode && databaseNode.getObject() instanceof DBSEntityAttribute attribute) {
+                return CommonUtils.nullIfEmpty(attribute.getFullTypeName());
+            }
+            return null;
+        }
+
+        @Override
+        public Dimension getPreferredSize() {
+            Dimension size = super.getPreferredSize();
+            if (size != null && secondaryText != null) {
+                size.width += UIScale.scale(GAP) + getFontMetrics(getFont()).stringWidth(secondaryText);
+            }
+            return size;
+        }
+
+        @Override
+        public void paint(Graphics g) {
+            super.paint(g);
+            if (secondaryText == null) {
+                return;
+            }
+            FontMetrics metrics = getFontMetrics(getFont());
+            Icon icon = getIcon();
+            Insets insets = getInsets();
+            int x = insets.left + (icon != null ? icon.getIconWidth() + getIconTextGap() : 0)
+                + metrics.stringWidth(CommonUtils.notEmpty(getText())) + UIScale.scale(GAP);
+            int y = insets.top + (getHeight() - insets.top - insets.bottom - metrics.getHeight()) / 2 + metrics.getAscent();
+            Color color = UIManager.getColor("Chromite.secondaryForeground"); //$NON-NLS-1$
+            g.setColor(color != null ? color : getForeground());
+            g.setFont(getFont());
+            FlatUIUtils.drawString(this, g, secondaryText, x, y);
         }
     }
 }

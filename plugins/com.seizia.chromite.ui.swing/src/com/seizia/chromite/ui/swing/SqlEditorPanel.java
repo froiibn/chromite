@@ -16,7 +16,7 @@
  */
 package com.seizia.chromite.ui.swing;
 
-import com.formdev.flatlaf.FlatClientProperties;
+import com.formdev.flatlaf.util.UIScale;
 import com.seizia.chromite.model.sql.exec.SQLQueryExecuteHandler;
 import com.seizia.chromite.model.sql.exec.SQLQueryExecuteJob;
 import com.seizia.chromite.model.sql.exec.SQLScriptBatches;
@@ -26,8 +26,10 @@ import org.eclipse.core.runtime.jobs.IJobChangeEvent;
 import org.eclipse.core.runtime.jobs.Job;
 import org.eclipse.core.runtime.jobs.JobChangeAdapter;
 import org.fife.ui.rsyntaxtextarea.RSyntaxTextArea;
+import org.fife.ui.rsyntaxtextarea.RSyntaxUtilities;
 import org.fife.ui.rsyntaxtextarea.SyntaxConstants;
 import org.fife.ui.rsyntaxtextarea.Theme;
+import org.fife.ui.rtextarea.Gutter;
 import org.fife.ui.rtextarea.RTextScrollPane;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
@@ -123,6 +125,8 @@ import java.util.concurrent.atomic.AtomicLong;
  *   (docs/chromite/swing-frontend.md "구현 현황 — E단계")
  * - 2026-11-06 F단계: 자동완성 팝업 연결 (docs/chromite/swing-frontend.md "구현 현황 — F단계")
  * - 2026-11-06 G단계: 결과 표 편집 상태(다시 실행 전 확인, 저장 중 실행 막기, 닫을 때 저장) (docs/chromite/swing-frontend.md "구현 현황 — G단계")
+ * - 2026-11-06 디자인 적용: 도구 막대 아이콘(초록 ▶ Execute, ■ 중지), 문서 탭 아이콘, 편집기 글꼴 JetBrains Mono(합성 글꼴)
+ *   (docs/chromite/design-spec.md "적용 현황")
  */
 final class SqlEditorPanel extends JPanel {
 
@@ -413,12 +417,27 @@ final class SqlEditorPanel extends JPanel {
         elapsedTimer.stop();
     }
 
+    /**
+     * Document tab icon: an SQL file icon for a query saved to a file, otherwise the logo of the connection's driver
+     * (DataGrip console tabs).
+     */
+    @NotNull
+    Icon getTabIcon() {
+        if (file == null && dataSourceContainer != null) {
+            return NodeIcons.getIcon(dataSourceContainer.getDriver().getIcon());
+        }
+        return UiIcons.get("file-sql"); //$NON-NLS-1$
+    }
+
+    /**
+     * SSMS query tool bar in DataGrip style: [▶ Execute] (green icon and text) [■] (icon only) | [connection ▾] [database/schema ▾].
+     */
     @NotNull
     private JComponent createToolBar() {
         JToolBar toolBar = new JToolBar();
         toolBar.setFloatable(false);
-        toolBar.add(createToolBarButton(executeAction));
-        toolBar.add(createToolBarButton(cancelAction));
+        toolBar.add(UiIcons.createToolButton(executeAction, "run")); //$NON-NLS-1$
+        toolBar.add(UiIcons.createActionButton(cancelAction, "stop")); //$NON-NLS-1$
         toolBar.addSeparator();
 
         connectionCombo.setToolTipText("Connection of this query window");
@@ -459,7 +478,8 @@ final class SqlEditorPanel extends JPanel {
             }
         });
         toolBar.add(schemaCombo);
-        toolBar.setBorder(BorderFactory.createEmptyBorder(2, 4, 2, 4));
+        // size.toolbar.editor 36 with size.control 28 combos
+        toolBar.setBorder(BorderFactory.createEmptyBorder(UIScale.scale(4), UIScale.scale(8), UIScale.scale(4), UIScale.scale(8)));
         return toolBar;
     }
 
@@ -467,14 +487,6 @@ final class SqlEditorPanel extends JPanel {
         Dimension size = new Dimension(width, component.getPreferredSize().height);
         component.setPreferredSize(size);
         component.setMaximumSize(size);
-    }
-
-    @NotNull
-    private static JButton createToolBarButton(@NotNull Action action) {
-        JButton button = new JButton(action);
-        button.putClientProperty(FlatClientProperties.BUTTON_TYPE, FlatClientProperties.BUTTON_TYPE_TOOLBAR_BUTTON);
-        button.setFocusable(false);
-        return button;
     }
 
     /**
@@ -1177,6 +1189,16 @@ final class SqlEditorPanel extends JPanel {
                 Theme.load(in).apply(this);
             } catch (IOException e) {
                 log.warn("Can't load SQL editor theme " + resource, e);
+            }
+            // font.code: the theme files name no font (a font family there would not be a composite font, and Hangul
+            // would show as boxes), so the look and feel's JetBrains Mono composite font is set after the theme
+            Font codeFont = UIManager.getFont("monospaced.font"); //$NON-NLS-1$
+            if (codeFont != null) {
+                setFont(codeFont);
+                Gutter gutter = RSyntaxUtilities.getGutter(this);
+                if (gutter != null) {
+                    gutter.setLineNumberFont(codeFont);
+                }
             }
         }
     }

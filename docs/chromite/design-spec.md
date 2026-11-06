@@ -6,7 +6,7 @@ Swing 프런트엔드(`com.seizia.chromite.ui.swing`)의 화면을 **배치와 �
 맞추기 위한 목표 사양이다. 요소마다 SSMS의 배치·동작, DataGrip New UI의 실제 값, 현재 Chromite의 차이와 근거, 목표 값을 적고,
 그 값을 디자인 토큰과 FlatLaf 키로 옮기는 방법과 아이콘 요구 사항을 정한다.
 
-이 문서는 사양만 다룬다. 코드는 바꾸지 않았다. 구현 상태는 [swing-frontend.md](swing-frontend.md)를 본다.
+이 문서는 목표 사양과 그 적용 현황(아래 "적용 현황")을 다룬다. 단계별 구현 내용은 [swing-frontend.md](swing-frontend.md)를 본다.
 
 ## 배경과 결정 (2026-11-06)
 
@@ -507,6 +507,95 @@ DataGrip·IntelliJ New UI 아이콘 SVG를 직접 읽어 확인한 규칙이다.
 - 공급자 아이콘이 없는 드라이버와, 상표 검토 결과 쓰지 않기로 한 공급자는 `ds.generic`(중립) + 공급자 이름 첫 글자 배지로 대신한다.
 - 공개 배포 전에 주요 공급자(Oracle/MySQL, Microsoft SQL Server, IBM Db2 등)의 상표 사용 지침을 확인한다("미룬 결정").
 
+## 적용 현황 (2026-11-06)
+
+P0 전체와 P1 일부를 `com.seizia.chromite.ui.swing`에 적용했다. 동작(메뉴, 단축키, 실행 흐름)은 바꾸지 않았고, Object Explorer에 Filter와 Collapse All 명령만 더했다.
+
+측정 방법: Windows 11, 화면 배율 150%, JBR 25, 창 1280×900(물리 1920×1350). 창만 캡처한 화면(`shot.ps1`)에서 픽셀을 읽고 1.5로 나눴다.
+캡처는 `D:\Tools\_scratch\swing-design\`에 있다(`m-<light|dark>-<A|B>-1`: 트리에서 Album 선택, `-2`: 결과 그리드 셀 선택. A = duo-tone, B = SSMS color).
+
+### P0 결과
+
+| # | 항목 | 목표 | 측정 (라이트 / 다크) | 상태 |
+|---|---|---|---|---|
+| 1 | 바탕 계층 | chrome·panel `#F7F8FA`/`#2B2D30`, editor `#FFFFFF`/`#1E1F22` | 트리·도구 창·상태 표시줄 `#F7F8FA` / `#2B2D30`, 편집기·그리드·문서 탭 줄 `#FFFFFF` / `#1E1F22` | 완료. 다크 기반을 `FlatDarkLaf`로 바꿈 |
+| 2 | 라이트 팔레트, 강조색 | accent `#3574F0` | 탭 밑줄·포커스 테두리·기본 단추 `#3574F0` | 완료 |
+| 3 | 선택 | L `#D4E2FF`·비활성 `#DFE1E5`, D `#2E436E`·`#43454A`, 글자색 유지, arc 8, 여백 안쪽 | 트리 `#D4E2FF`·`#DFE1E5` / `#2E436E`·`#43454A`, 좌우 8 안쪽, 글자색 그대로 | 완료. 좌우 안쪽 여백은 12 대신 8(아래 "못 한 것") |
+| 4 | 트리 치수 | 행 24, 들여쓰기 19, 여백 4,12,4,12, 두 테마 셰브런 | 행 24.0(36px), 셰브런 두 테마, 화살표 색 `#818594` / `#B4B8BF` | 완료 |
+| 5 | 트리 아이콘 | 1px 선 16px, 중립 + 의미 강조색 | 아이콘 팩 2종(아래 "아이콘 팩"), 폴더는 펼치면 열린 폴더 | 완료 |
+| 6 | 연결 상태 점 | 지름 6, 초록·노랑·빨강 | 지름 6 + 행 바탕색 1px 테두리. 연결됨 초록, 연결 실패 빨강(없는 폴더의 SQLite 파일, `x-broken2`) 확인 | 완료. 연결 중(노랑)은 잠깐이라 화면 확인은 못 함 |
+| 7 | 글꼴 | Inter 13, JetBrains Mono 13, 한글 대체 | Inter·JetBrains Mono(번들). 트리·메뉴·Properties·대화상자·편집기·그리드의 한글이 맑은 고딕으로 대체되어 보임(□ 없음) | 완료. 편집기 줄 간격 1.2는 못 함 |
+| 8 | 도구 창 머리말 | 40 + 1px 선, semibold, 아이콘 단추 | 40(+1, 61px), semibold 제목 왼쪽 12, 숨기기(—) 아이콘. Object Explorer는 머리말 아래 32 도구 막대(New Connection, Connect, Disconnect │ Filter, Refresh │ Collapse All) | 완료 |
+| 9 | 주 도구 막대 | 아이콘 16/26, hover 바탕, New Query만 글자 | 단추 26, 막대 36, hover `#00000012` / `#FFFFFF16` | 완료 |
+| 10 | 편집기 탭 | 40, 탭 줄 = 편집기 바탕, 밑줄 4 arc 4, 아이콘 16 | 40(60px), 탭 줄 `#FFFFFF` / `#1E1F22`, 밑줄 4(포커스 `#3574F0`, 아니면 `#A8ADBD`/`#5A5D63`), 아이콘: 저장한 파일은 SQL 파일, 새 쿼리는 공급자 로고 | 완료 |
+| 11 | 쿼리 도구 막대 | ▶ Execute(초록 + 글자), ■ 아이콘, 콤보 28 arc 8 + 공급자 아이콘 | 콤보 28(42px), 막대 36 | 완료 |
+| 12 | 라이트 SQL 색 | DataGrip Light | "SQL 구문 색" 표 그대로, 줄 번호 `#AEB3C2`/`#767A8A`, 현재 줄 `#F5F8FE`, 선택 `#A6D2FF` | 완료. 오류 표시는 글자색 밑줄(아래 "못 한 것") |
+| 13 | 결과 그리드 | 편집기 바탕, 행 27, 머리글 28 왼쪽 정렬, 세로·가로 격자선, 옅은 선택 | 행 27(40.5px), 머리글 28(41px), 세로선 `#EBECF0`/`#393B40`, 가로선 `#F7F8FA`/`#2B2D30`, 선택 `#D4E2FF`/`#2E436E`, 편집기 글꼴 | 완료. 머리글 열 아이콘은 못 함 |
+| 14 | 분할선 | 1px, 손잡이 없음 | 1px `#EBECF0`/`#393B40`, 끄는 영역 5 | 완료 |
+| 15 | 컨트롤 모양 | arc 8, 높이 28, 포커스 2px | 입력·콤보·단추 28(42px), arc 8, 포커스 테두리 2px `#3574F0` | 완료 |
+
+그 밖의 측정: 결과 탭 32(≈49px), 상태 표시줄 28(+1px 선), 아이콘 단추 26.
+
+### P1·P2 중 함께 적용한 것
+
+- 트리: 이름 뒤 보조 글자(`text.secondary`: 열 형식, 읽은 폴더의 객체 수, 연결의 `호스트:포트`), 마우스 올림 바탕 `#EDF3FF`/`#393B40`(FlatLaf에 키가 없어 트리가 직접 그림).
+- 결과: 행 번호 열(그리드 바탕, 보조 글자, 왼쪽 정렬, 선택한 행의 번호도 선택색), NULL은 기울임 없이 보조 글자색, 편집 색(추가·삭제·변경)을 테마 키 `Chromite.Table.*Background`로 옮김, Messages 글꼴 `font.code`·오류 `status.error`.
+- 편집기: 여백(거터) 구분선 없음, 짝 괄호·같은 이름 강조 색.
+- 메뉴·목록·콤보 목록 선택 arc 8 + 좌우 4 안쪽, 팝업 모서리 8, 도구 설명 색, 메뉴 단축키 글자 `text.secondary`.
+- Object Explorer Filter(SSMS): 객체 폴더에 이름 마스크(`%`가 없으면 "포함")를 건다. DBeaver 탐색기 필터(`DBSObjectFilter`)라 연결 설정에 저장된다. 빈 글자는 필터 해제.
+
+### 아이콘 팩
+
+- 두 팩을 넣고 View > Theme > Icon Style에서 고른다(실행 중 바로 바뀌고 저장됨, 설정 키 `ui.iconStyle`).
+  - **A "DataGrip-style duo-tone"(기본)**: 1px 윤곽 + 옅은 채움, 중립 회색, 폴더·DB·루틴·외래 키는 파랑, 기본 키는 주황.
+  - **B "SSMS-style color"**: Visual Studio 이미지 라이브러리풍 진한 색(갈색 폴더, 파란 원통, 금·은 키).
+- 파일: `plugins/com.seizia.chromite.ui.swing/icons/ui/{duotone,color}/{light,dark}/<id>.svg` 47개씩. 생성기 `tools/branding/gen_ui_icons.py`(Python 표준 라이브러리만, 다시 만드는 방법은 파일 머리말).
+  사용자가 고른 38개(색 토큰은 생성기의 `PAL`)에 도구 창·편집기용 9개(`new-connection`, `connect`, `disconnect`, `collapse-all`, `hide`, `close`, `results`, `messages`, `file-sql`)를 같은 규칙으로 더했다.
+  원래 38개는 후보 파일과 바이트 단위로 같다.
+- 모양은 Tabler Icons(MIT)를 16px 격자에 다시 그린 Chromite 그림이다. JetBrains·Microsoft 그림은 쓰지 않았다. Tabler 라이선스는 번들의 `icons/ui/LICENSE-tabler.txt`와 `NOTICE`에 있다.
+- 배지 자리를 비우는 `<mask>`(view, mview, column-pk, column-fk, new-query, new-connection, export)는 JSVG 2.1이 그대로 그린다(JSVG로 따로 렌더링해 확인, 앱 화면의 기본 키 열 아이콘도 같음). 그래서 평평한 경로로 바꾸지 않았다.
+- 사양과 다른 점: "색 바꾸기" 규칙(`currentColor` 한 파일, 테마별 파일 없음) 대신 팩×테마마다 색을 넣은 파일을 쓴다. 고른 두 팩이 듀오톤(선 + 채움 두 색)과 여러 색이라 한 색 `currentColor`로 표현할 수 없고,
+  파일은 생성기 출력이라 색은 `PAL` 한곳에서 바뀐다. 비활성 아이콘은 `text.disabled`로 다시 칠하는 대신 투명도 0.4로 그린다(`FlatLaf.DisabledIconProvider`).
+- 모델 아이콘 대응(`NodeIcons.UI_ICON_IDS`, 아이콘 위치로 대응): `DATABASE_DEFAULT`·`TREE_SERVER(S)` → `connection`, `TREE_DATABASE*` → `database`, `TREE_SCHEMA*` → `schema`, `TREE_FOLDER*` → `folder`,
+  `TREE_TABLE*`·`TREE_PARTITION` → `table`, `TREE_VIEW*` → `view`, `TREE_COLUMN(S)`·`TREE_ATTRIBUTE`·`TREE_DERIVED_COLUMN`·`TYPE_*` → `column`(키 겹침 `OVER_KEY` → `column-pk`, `OVER_REFERENCE` → `column-fk`),
+  `TREE_FOREIGN_KEY_COLUMN` → `column-fk`, `TREE_UNIQUE_KEY`·`TREE_KEY` → `unique`, `TREE_FOREIGN_KEY`·`TREE_REFERENCE`·`TREE_ASSOCIATION` → `foreign-key`, `TREE_CONSTRAINT` → `check`, `TREE_INDEX` → `index`,
+  `TREE_FUNCTION` → `function`, `TREE_PROCEDURE` → `procedure`, `TREE_TRIGGER` → `trigger`, `TREE_SEQUENCE` → `sequence`, `TREE_DATA_TYPE` → `datatype`, `TREE_USER` → `user`, `TREE_USER_GROUP` → `role`, `STATUS_*` → `error`·`warning`·`info`.
+  Object Explorer는 객체 종류로 더 나눈다(`NodeIcons.getNodeIcon`): 기본 키 제약 → `primary-key`, 고유 키 → `unique`, 외래 키 → `foreign-key`, 검사 제약 → `check`, 인덱스 → `index`,
+  함수·프로시저(`DBSProcedureType`), 트리거, 시퀀스, 객체 폴더 → `folder`/`folder-open`(펼침).
+  연결은 드라이버 로고(위 "공급자(DB 제품) 아이콘 정책" 그대로, 로고가 없으면 `connection`)에 상태 점을 붙인다. 대응이 없는 아이콘은 지금처럼 DBeaver 아이콘을 쓴다. 자동완성 목록·콤보도 같은 대응을 쓴다.
+
+### 글꼴
+
+- FlatLaf가 낸 글꼴 jar `com.formdev:flatlaf-fonts-inter` 4.1(Inter 4.1)과 `flatlaf-fonts-jetbrains-mono` 2.304(JetBrains Mono 2.304)를 FlatLaf와 같은 방식으로 넣었다:
+  빌드할 때 Maven Central에서 받아 `lib/`에 복사(`pom.xml`), `Bundle-ClassPath`, 저장소에는 넣지 않음. 글꼴은 SIL OFL 1.1, jar 포장은 Apache 2.0. `NOTICE`에 적었다.
+  - `flatlaf-fonts-inter-4.1.jar`: SHA-1 `5b22a28695d69d6865bceb206db1debb729e26ac`(Central `.sha1`과 같음), SHA-256 `053f7274d6489900e53d4ad397323440428733a41b7fe2f642daf3feb7c730e8`
+  - `flatlaf-fonts-jetbrains-mono-2.304.jar`: SHA-1 `68c779e849aec16c69f69d4405fb1edea04e9b8f`(Central `.sha1`과 같음), SHA-256 `bc8e93479960b2a5e3b45fe724e16439a69f28cc43cac3a2b87b7f7f325fd3a5`
+- 테마 properties: `defaultFont = 13 Inter`, `semibold.font = "Inter SemiBold"`, `monospaced.font = "JetBrains Mono"`. `ChromiteTheme`가 Look and Feel을 설치하기 전에 `installLazy()`로 등록한다.
+  FlatLaf는 글꼴 이름을 `StyleContext.getFont`(합성 글꼴)로 만들기 때문에, Inter·JetBrains Mono에 없는 한글은 운영체제 글꼴(Windows: 맑은 고딕)로 대체된다.
+- 편집기(RSyntaxTextArea)·그리드·Messages는 `monospaced.font`(JetBrains Mono 합성 글꼴)를 쓴다. 테마 XML에 `baseFont`를 쓰지 않은 이유: XML의 글꼴 이름은 합성 글꼴이 아니어서 한글이 □로 나온다.
+- 확인: 트리 폴더 이름(`테이블`, `컬럼`, `인덱스`), 한글 테이블(`앨범_한글`), Properties 속성 이름, 메뉴, 대화상자, 편집기 글(`"앨범_한글" -- 한글 주석`), 그리드 머리글·값에 □ 없음(`x-korean-*.png`).
+  macOS(Apple SD Gothic Neo)는 확인하지 못했다.
+
+### Swing/FlatLaf로 못 한 것과 이유
+
+| 항목 | 이유 | 대신 한 것 |
+|---|---|---|
+| 편집기 줄 간격 1.2 | RSyntaxTextArea는 행 높이를 글꼴 크기로만 정하고 줄 간격 설정이 없다 | 기본 행 높이 |
+| 오류 빨간 물결 밑줄 | RSTA 토큰 스타일의 밑줄은 글자색 직선뿐이다 | 글자색 밑줄(바탕 칠 없음) |
+| 트리 선택 좌우 안쪽 12 | FlatLaf 넓은 선택은 트리 왼쪽 끝부터 재고, 1단계 노드의 셰브런이 왼쪽 12 근처라 12면 셰브런이 선택 사각형 경계에 걸린다 | 안쪽 8(DataGrip 캡처의 선택 왼쪽 끝 ≈12와 4 차이) |
+| 그리드 머리글 열 아이콘(PK/FK) | 결과 열이 키에 속하는지 알려면 원본 테이블 메타데이터를 읽어야 한다(결과 수신기에서 가능하지만 이번 범위가 아님) | 미룸 |
+| 세로·가로 격자선 색 구분 | `JTable` 격자선은 한 색이다 | 세로선은 `Table.gridColor`, 가로선은 표가 직접 그림(`Chromite.Table.horizontalLineColor`) |
+| 트리 hover | FlatLaf에 트리 hover 키가 없다 | 트리가 선택과 같은 둥근 사각형을 직접 그림 |
+| 문서 탭 줄 바탕 | FlatLaf 탭 패널은 불투명하지 않고, 실행 중 테마를 바꾸면 스타일 `background`가 스크롤 탭 줄에 전달되지 않았다(다크 전환 뒤 탭만 `#2B2D30`) | 탭 패널을 불투명하게 하고, Look and Feel이 바뀔 때마다 배경을 다시 설정 |
+
+### 남은 일 (P1·P2)
+
+- 제목 표시줄 40·창 단추 46×40, 메뉴 항목 높이 24, 주 메뉴 Edit·Tools·Window, 탭 닫기 단추를 활성·마우스 올린 탭에만, 스크롤바 모양.
+- 쿼리 상태 줄의 SSMS 내용(서버, 사용자, DB)과 위치, 주 상태 표시줄 오른쪽 위젯, Properties의 SSMS식 속성 그리드(지금은 머리글 있는 표, 바탕 `bg.editor`).
+- 연결 대화상자 SSMS 배치, 자동완성 목록 행 24·맞는 글자 강조(지금 행 ≈21), 결과를 쿼리 창 안에 배치, F5를 포커스에 따라 나누기.
+- 그리드 머리글 열 아이콘, 연결 중 상태 점의 화면 확인, macOS 한글 대체 확인.
+- Filter를 건 폴더는 새로 고침이 연결 노드로 올라가 다시 읽히므로 접힌다(기존 새로 고침과 같은 동작). 필터가 걸렸다는 표시("1 of 13")도 아직 없다.
+
 ## 설계 결정과 이유
 
 - **배치는 SSMS, 모양은 DataGrip**: 사용자 결정(2026-11-06). SSMS 사용자가 익숙한 흐름을 유지하면서, DBeaver/Eclipse 느낌의 주원인인 색·밀도·아이콘을 DataGrip New UI 값으로 바꾼다.
@@ -537,8 +626,8 @@ DataGrip·IntelliJ New UI 아이콘 SVG를 직접 읽어 확인한 규칙이다.
 
 ## 미룬 결정
 
-- 아이콘 세트 선정(Fluent UI System Icons / Lucide / Tabler): 별도 진행 중. 선정 뒤 `NOTICE`에 라이선스 표기.
-- Inter·JetBrains Mono 글꼴 jar를 넣을지(의존성 추가, `NOTICE` 갱신).
+- ~~아이콘 세트 선정~~: 2026-11-06 Tabler Icons(MIT) 모양을 바탕으로 한 Chromite 그림 2팩(duo-tone 기본, SSMS color 선택)으로 결정·적용("적용 현황 — 아이콘 팩").
+- ~~Inter·JetBrains Mono 글꼴 jar~~: 2026-11-06 넣음("적용 현황 — 글꼴").
 - 공급자 로고의 상표 사용 검토(공개 배포 전).
 - Islands 테마, 촘촘한 모드, 연결별 색(SSMS Color, DataGrip 데이터 소스 색).
 
@@ -565,3 +654,5 @@ DataGrip·IntelliJ New UI 아이콘 SVG를 직접 읽어 확인한 규칙이다.
 
 - 2026-11-06 최초 작성. 사용자 결정(배치·동작 = SSMS, 모양 = DataGrip New UI 다크·라이트)에 따라 요소별 비교, P0 목록, 디자인 토큰과 FlatLaf 키 대응,
   SQL 구문 색, 아이콘 요구 사항(100개 개념, 색 규칙, 공급자 로고 정책)을 정리.
+- 2026-11-06 적용: P0 전체와 P1 일부를 Swing 프런트엔드에 적용하고 "적용 현황"(측정값, 아이콘 팩 2종과 모델 아이콘 대응, 글꼴과 한글 대체,
+  Swing/FlatLaf로 못 한 것)을 추가. 결정한 아이콘 세트·글꼴을 "미룬 결정"에서 뺌.

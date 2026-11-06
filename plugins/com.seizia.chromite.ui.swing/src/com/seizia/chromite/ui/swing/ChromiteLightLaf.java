@@ -19,14 +19,15 @@ package com.seizia.chromite.ui.swing;
 import com.formdev.flatlaf.FlatLightLaf;
 
 /**
- * Chromite 라이트 테마 (SSMS풍: 밝은 바탕, 파란 강조색).
+ * Chromite 라이트 테마 (DataGrip New UI "Light with Light Header" 모양).
  *
- * 설계: FlatLaf 기본 라이트 테마를 상속하고, 색은 같은 패키지의 {@code ChromiteLightLaf.properties}에서 바꾼다.
+ * 설계: FlatLaf 기본 라이트 테마를 상속하고, 값은 같은 패키지의 {@code ChromiteLightLaf.properties}에서 바꾼다.
  * FlatLaf는 Look and Feel 클래스 계층마다 "클래스 이름.properties"를 읽어 덮어쓰므로, 별도 테마 파일(외부 자산) 없이
- * 몇 개의 색 변수만 바꿀 수 있다. SSMS나 Windows의 테마 파일·아이콘은 쓰지 않고 색감만 참고했다.
+ * 디자인 토큰(docs/chromite/design-spec.md)의 색·치수·글꼴만 바꿀 수 있다. JetBrains나 Microsoft의 테마 파일·아이콘은 쓰지 않고 값만 옮겼다.
  *
  * 변경 이력:
  * - 2026-11-06 B단계: 최초 작성 (docs/chromite/swing-frontend.md "구현 현황 — B단계")
+ * - 2026-11-06 디자인 적용: SSMS풍 색 대신 DataGrip New UI 라이트 P0 토큰 적용 (docs/chromite/design-spec.md "적용 현황")
  */
 public class ChromiteLightLaf extends FlatLightLaf {
 

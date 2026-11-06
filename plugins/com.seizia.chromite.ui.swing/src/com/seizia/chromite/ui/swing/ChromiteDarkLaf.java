@@ -16,18 +16,22 @@
  */
 package com.seizia.chromite.ui.swing;
 
-import com.formdev.flatlaf.FlatDarculaLaf;
+import com.formdev.flatlaf.FlatDarkLaf;
 
 /**
- * Chromite 다크 테마 (DataGrip풍: Darcula 기반).
+ * Chromite 다크 테마 (DataGrip New UI Dark 모양).
  *
- * 설계: FlatLaf의 Darcula 테마를 상속하고, 색은 같은 패키지의 {@code ChromiteDarkLaf.properties}에서 바꾼다
- * ({@link ChromiteLightLaf}와 같은 방식). JetBrains의 테마 파일·아이콘은 쓰지 않고 색감만 참고했다.
+ * 설계: FlatLaf의 기본 다크 테마({@link FlatDarkLaf})를 상속하고, 값은 같은 패키지의 {@code ChromiteDarkLaf.properties}에서
+ * 디자인 토큰(docs/chromite/design-spec.md)으로 바꾼다({@link ChromiteLightLaf}와 같은 방식).
+ * Darcula({@code FlatDarculaLaf})를 쓰지 않는 이유: 트리·콤보 화살표를 삼각형으로 그리고 트리·표 바탕을 창 바탕보다 밝게 덧칠해,
+ * New UI(셰브런, 트리 = 창 바탕, 편집기·결과 = 더 어두운 바탕)와 달라진다.
+ * JetBrains의 테마 파일·아이콘은 쓰지 않고 값만 옮겼다.
  *
  * 변경 이력:
  * - 2026-11-06 B단계: 최초 작성 (docs/chromite/swing-frontend.md "구현 현황 — B단계")
+ * - 2026-11-06 디자인 적용: 상위 클래스를 FlatDarculaLaf에서 FlatDarkLaf로 바꾸고 P0 토큰 적용 (docs/chromite/design-spec.md "적용 현황")
  */
-public class ChromiteDarkLaf extends FlatDarculaLaf {
+public class ChromiteDarkLaf extends FlatDarkLaf {
 
     public static final String NAME = "Chromite Dark"; //$NON-NLS-1$
 
