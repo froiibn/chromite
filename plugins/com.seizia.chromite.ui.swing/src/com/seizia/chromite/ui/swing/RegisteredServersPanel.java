@@ -96,6 +96,7 @@ import java.util.Set;
  *   호스트 글자를 이름의 실제 기준선(JLabel baseline)에 맞춤 (docs/chromite/swing-registered-servers.md "연결 색 알약")
  * - 2026-11-06 화면 문구를 CoreMessages로 옮김(OS 언어를 따름)
  * - 2026-11-07 밀도 B: 치수를 테마의 Chromite.size.* 키({@link UiSizes})에서 읽음 (docs/chromite/design-spec.md "치수 토큰")
+ * - 2026-11-07 도구 막대를 {@link OverflowToolBar}로: 좁힌 도구 창에서 들어가지 않는 단추는 넘침 메뉴로 (docs/chromite/swing-frontend.md "도구 창 최소 폭")
  */
 final class RegisteredServersPanel extends JPanel {
 
@@ -319,11 +320,11 @@ final class RegisteredServersPanel extends JPanel {
 
     /**
      * Tool bar below the header, as in Object Explorer: New Server Registration, New Server Group | Collapse All.
+     * The buttons that don't fit a narrow tool window go to the overflow menu.
      */
     @NotNull
     private JComponent createToolBar() {
-        JToolBar toolBar = new JToolBar();
-        toolBar.setFloatable(false);
+        JToolBar toolBar = new OverflowToolBar();
         toolBar.setOpaque(false);
         toolBar.setBorder(UiSizes.createPadding(UiSizes.TOOL_WINDOW_TOOL_BAR_PADDING));
         toolBar.add(UiIcons.createActionButton(newServerAction, "new-connection")); //$NON-NLS-1$
