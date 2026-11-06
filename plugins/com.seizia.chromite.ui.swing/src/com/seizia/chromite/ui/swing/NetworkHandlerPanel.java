@@ -16,6 +16,7 @@
  */
 package com.seizia.chromite.ui.swing;
 
+import com.seizia.chromite.ui.swing.internal.ConnectionMessages;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.ext.mssql.SQLServerConstants;
@@ -52,6 +53,7 @@ import java.io.File;
  *
  * 변경 이력:
  * - 2026-11-06 최초 작성: 고급 연결 설정 (docs/chromite/swing-conn-advanced.md)
+ * - 2026-11-06 화면 문구를 ConnectionMessages로 옮김(OS 언어를 따름)
  */
 abstract class NetworkHandlerPanel {
 
@@ -153,7 +155,7 @@ abstract class NetworkHandlerPanel {
      */
     @NotNull
     static JComponent createPathField(@NotNull JTextField field, @NotNull String chooserTitle, boolean folder) {
-        JButton browseButton = new JButton("Browse…");
+        JButton browseButton = new JButton(ConnectionMessages.common_browse);
         browseButton.addActionListener(e -> {
             JFileChooser chooser = new JFileChooser();
             chooser.setDialogTitle(chooserTitle);

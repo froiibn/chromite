@@ -16,6 +16,8 @@
  */
 package com.seizia.chromite.ui.swing;
 
+import com.seizia.chromite.ui.swing.internal.ConnectionMessages;
+import org.eclipse.osgi.util.NLS;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
@@ -76,6 +78,7 @@ import java.util.StringTokenizer;
  * - 2026-11-06 Registered Servers: {@link #openNew}가 등록한 연결을 돌려준다(Object Explorer에 넣거나 Registered Servers에서 고르기 위해)
  *   (docs/chromite/swing-registered-servers.md)
  * - 2026-11-06 고급 연결 설정: Test Connection 결과에 쓴 네트워크 핸들러 표시 (docs/chromite/swing-conn-advanced.md)
+ * - 2026-11-06 화면 문구를 ConnectionMessages로 옮김(OS 언어를 따름)
  */
 final class ConnectionDialog extends JDialog {
 
@@ -97,10 +100,10 @@ final class ConnectionDialog extends JDialog {
     private boolean registered;
 
     private final JLabel problemLabel = new JLabel(" ");
-    private final JButton testButton = new JButton("Test Connection");
+    private final JButton testButton = new JButton(ConnectionMessages.dialog_button_test);
     private final JButton connectButton;
-    private final JButton cancelButton = new JButton("Cancel");
-    private final JButton optionsButton = new JButton("Options >>");
+    private final JButton cancelButton = new JButton(ConnectionMessages.common_cancel);
+    private final JButton optionsButton = new JButton(ConnectionMessages.dialog_button_options_show);
 
     private ConnectionDialog(
         @Nullable Window owner,
@@ -109,7 +112,8 @@ final class ConnectionDialog extends JDialog {
         @Nullable DBPDataSourceFolder folder,
         @NotNull DBPDriver driver
     ) {
-        super(owner, original == null ? "Connect to Server" : "Edit Connection - " + original.getName(), ModalityType.APPLICATION_MODAL);
+        super(owner, original == null ? ConnectionMessages.dialog_title_connect : NLS.bind(ConnectionMessages.dialog_title_edit, original.getName()),
+            ModalityType.APPLICATION_MODAL);
         this.registry = registry;
         this.original = original;
         this.folder = folder;
@@ -126,12 +130,12 @@ final class ConnectionDialog extends JDialog {
         // The driver of an existing connection is not changed here (SWT: a separate "driver type" action)
         databaseTypeCombo.setEnabled(original == null);
 
-        connectButton = new JButton(original == null ? "Connect" : "Save");
+        connectButton = new JButton(original == null ? ConnectionMessages.dialog_button_connect : ConnectionMessages.dialog_button_save);
         testButton.addActionListener(e -> testConnection());
         connectButton.addActionListener(e -> save());
         cancelButton.addActionListener(e -> close());
         optionsButton.addActionListener(e -> toggleOptions());
-        optionsButton.setToolTipText("Connection properties, driver and provider properties, additional connection parameters");
+        optionsButton.setToolTipText(ConnectionMessages.dialog_button_options_tip);
 
         problemLabel.setForeground(getThemeColor("Chromite.status.error", "Component.error.focusedBorderColor", Color.RED)); //$NON-NLS-1$ //$NON-NLS-2$
         JPanel buttons = new JPanel(new FlowLayout(FlowLayout.RIGHT, 6, 0));
@@ -186,7 +190,7 @@ final class ConnectionDialog extends JDialog {
     static DataSourceDescriptor openNew(@Nullable Window owner, @NotNull DBPProject project, @Nullable DBPDataSourceFolder folder) {
         DBPDriver driver = DatabaseTypeCombo.getDefaultDriver();
         if (driver == null) {
-            DBWorkbench.getPlatformUI().showError("New Connection", "There are no database drivers.");
+            DBWorkbench.getPlatformUI().showError(ConnectionMessages.dialog_new_connection, ConnectionMessages.dialog_no_drivers);
             return null;
         }
         ConnectionDialog dialog = new ConnectionDialog(owner, project.getDataSourceRegistry(), null, folder, driver);
@@ -252,7 +256,7 @@ final class ConnectionDialog extends JDialog {
      */
     void fitToContent() {
         boolean optionsVisible = settingsPanel != null && settingsPanel.isOptionsVisible();
-        optionsButton.setText(optionsVisible ? "Options <<" : "Options >>");
+        optionsButton.setText(optionsVisible ? ConnectionMessages.dialog_button_options_hide : ConnectionMessages.dialog_button_options_show);
         Dimension current = isShowing() ? getSize() : null;
         setMinimumSize(null);
         // pack: the preferred size includes the window frame only once the dialog is displayable
@@ -318,7 +322,7 @@ final class ConnectionDialog extends JDialog {
             // No page-specific testers (SWT pages implementing IDataSourceConnectionTester)
         });
         try {
-            ProgressDialog.runTask("Test Connection", monitor -> {
+            ProgressDialog.runTask(ConnectionMessages.dialog_button_test, monitor -> {
                 testJob.setOwnerMonitor(monitor);
                 testJob.schedule();
                 try {
@@ -335,19 +339,17 @@ final class ConnectionDialog extends JDialog {
             });
             Throwable error = testJob.getConnectError();
             if (error != null) {
-                DBWorkbench.getPlatformUI().showError("Connection Test", "Can't connect to the database", error);
+                DBWorkbench.getPlatformUI().showError(ConnectionMessages.dialog_test_title, ConnectionMessages.dialog_test_connect_error, error);
             } else if (testJob.getConnectStatus() != null && testJob.getConnectStatus().isOK()) {
                 String network = settingsPanel.getNetworkSummary();
+                Object[] arguments = {testJob.getConnectTime(), testJob.getServerVersion(), testJob.getClientVersion(), network};
                 JOptionPane.showMessageDialog(this,
-                    "Connected (" + testJob.getConnectTime() + " ms)\n\n" +
-                        "Server: " + testJob.getServerVersion() + "\n" +
-                        "Driver: " + testJob.getClientVersion() +
-                        (network == null ? "" : "\nNetwork: " + network),
-                    "Connection Test",
+                    NLS.bind(network == null ? ConnectionMessages.dialog_test_result : ConnectionMessages.dialog_test_result_network, arguments),
+                    ConnectionMessages.dialog_test_title,
                     JOptionPane.INFORMATION_MESSAGE);
             }
         } catch (DBException e) {
-            DBWorkbench.getPlatformUI().showError("Connection Test", "Can't test the connection", e);
+            DBWorkbench.getPlatformUI().showError(ConnectionMessages.dialog_test_title, ConnectionMessages.dialog_test_error, e);
         } finally {
             testDataSource.dispose();
         }
@@ -363,7 +365,7 @@ final class ConnectionDialog extends JDialog {
             try {
                 registry.addDataSource(working);
             } catch (DBException e) {
-                DBWorkbench.getPlatformUI().showError("Create failed", "Error adding new connection", e);
+                DBWorkbench.getPlatformUI().showError(ConnectionMessages.dialog_create_failed_title, ConnectionMessages.dialog_create_failed, e);
                 return;
             }
             registered = true;
@@ -398,8 +400,8 @@ final class ConnectionDialog extends JDialog {
         }
         rememberHistory();
         close();
-        if (changed && original.isConnected() && DBWorkbench.getPlatformUI().confirmAction("Connection changed",
-            "Connection '" + original.getName() + "' has been changed. Do you want to reconnect?")) {
+        if (changed && original.isConnected() && DBWorkbench.getPlatformUI().confirmAction(ConnectionMessages.dialog_changed_title,
+            NLS.bind(ConnectionMessages.dialog_changed_reconnect, original.getName()))) {
             ConnectionCommands.reconnect(original);
         }
     }
@@ -462,7 +464,8 @@ final class ConnectionDialog extends JDialog {
             name = dataSource.getDriver().getName();
         }
         if (CommonUtils.isEmpty(name)) {
-            name = "New Connection";
+            // A saved connection name, not UI text: the same in every language
+            name = "New Connection"; //$NON-NLS-1$
         }
         StringTokenizer tokenizer = new StringTokenizer(name, "/\\"); //$NON-NLS-1$
         while (tokenizer.hasMoreTokens()) {

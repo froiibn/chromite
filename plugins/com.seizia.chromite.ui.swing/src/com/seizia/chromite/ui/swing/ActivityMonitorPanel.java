@@ -17,6 +17,8 @@
 package com.seizia.chromite.ui.swing;
 
 import com.formdev.flatlaf.FlatClientProperties;
+import com.seizia.chromite.ui.swing.internal.ConnectionMessages;
+import org.eclipse.osgi.util.NLS;
 import org.jkiss.code.NotNull;
 import org.jkiss.dbeaver.model.DBPDataSourceContainer;
 
@@ -32,6 +34,7 @@ import java.awt.*;
  *
  * 변경 이력:
  * - 2026-11-06 최초 작성 (docs/chromite/swing-admin-tools.md)
+ * - 2026-11-06 화면 문구를 ConnectionMessages로 옮김(OS 언어를 따름)
  */
 final class ActivityMonitorPanel extends JPanel implements ToolDocument {
 
@@ -52,8 +55,8 @@ final class ActivityMonitorPanel extends JPanel implements ToolDocument {
         sessionPanel = new SessionManagerPanel(connection, queryWindows);
         lockPanel = new LockManagerPanel(connection);
         tabs.putClientProperty(FlatClientProperties.STYLE, "tabHeight: 32; tabSelectionHeight: 3"); //$NON-NLS-1$
-        tabs.addTab("Processes", UiIcons.get("user"), sessionPanel); //$NON-NLS-2$
-        tabs.addTab("Locks", UiIcons.get("warning"), lockPanel); //$NON-NLS-2$
+        tabs.addTab(ConnectionMessages.activity_tab_processes, UiIcons.get("user"), sessionPanel); //$NON-NLS-1$
+        tabs.addTab(ConnectionMessages.activity_tab_locks, UiIcons.get("warning"), lockPanel); //$NON-NLS-1$
         tabs.addChangeListener(e -> loadSelectedTab());
         add(tabs, BorderLayout.CENTER);
     }
@@ -89,13 +92,13 @@ final class ActivityMonitorPanel extends JPanel implements ToolDocument {
     @NotNull
     @Override
     public String getTitle() {
-        return "Activity Monitor - " + container.getName();
+        return NLS.bind(ConnectionMessages.activity_title, container.getName());
     }
 
     @NotNull
     @Override
     public String getToolTip() {
-        return "Sessions and locks of " + container.getName();
+        return NLS.bind(ConnectionMessages.activity_tooltip, container.getName());
     }
 
     @NotNull

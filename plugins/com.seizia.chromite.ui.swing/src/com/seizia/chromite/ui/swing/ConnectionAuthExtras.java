@@ -16,6 +16,7 @@
  */
 package com.seizia.chromite.ui.swing;
 
+import com.seizia.chromite.ui.swing.internal.ConnectionMessages;
 import org.jkiss.code.NotNull;
 import org.jkiss.dbeaver.Log;
 import org.jkiss.dbeaver.ext.mssql.SQLServerConstants;
@@ -56,6 +57,7 @@ import java.util.Set;
  *
  * 변경 이력:
  * - 2026-11-06 최초 작성: 고급 연결 설정 (docs/chromite/swing-conn-advanced.md)
+ * - 2026-11-06 화면 문구를 ConnectionMessages로 옮김(OS 언어를 따름)
  */
 final class ConnectionAuthExtras {
 
@@ -137,11 +139,11 @@ final class ConnectionAuthExtras {
     }
 
     private static final class IntegratedSecurity extends Extra {
-        private final JCheckBox check = register(new JCheckBox("Use integrated security"));
+        private final JCheckBox check = register(new JCheckBox(ConnectionMessages.auth_integrated_security));
 
         IntegratedSecurity(@NotNull DBPAuthModelDescriptor model) {
             super(model);
-            check.setToolTipText("Enable integrated security (by default it is required for NTLM)");
+            check.setToolTipText(ConnectionMessages.auth_integrated_security_tip);
         }
 
         @Override
@@ -168,7 +170,7 @@ final class ConnectionAuthExtras {
     }
 
     private static final class OracleRole extends Extra {
-        private final JLabel label = register(new JLabel("Role"));
+        private final JLabel label = register(new JLabel(ConnectionMessages.auth_role));
         private final JComboBox<String> combo = register(new JComboBox<>());
 
         OracleRole(@NotNull DBPAuthModelDescriptor model) {
@@ -176,7 +178,7 @@ final class ConnectionAuthExtras {
             for (OracleConnectionRole role : OracleConnectionRole.values()) {
                 combo.addItem(role.getTitle());
             }
-            combo.setToolTipText("Connect as role");
+            combo.setToolTipText(ConnectionMessages.auth_role_tip);
         }
 
         @Override
@@ -228,12 +230,12 @@ final class ConnectionAuthExtras {
     }
 
     private static final class PgPassHostName extends Extra {
-        private final JCheckBox check = register(new JCheckBox("Override host name for pgpass"));
+        private final JCheckBox check = register(new JCheckBox(ConnectionMessages.auth_pgpass_override));
         private final JTextField field = register(new JTextField());
 
         PgPassHostName(@NotNull DBPAuthModelDescriptor model) {
             super(model);
-            check.setToolTipText("Look up the password in pgpass with this host name instead of the server name");
+            check.setToolTipText(ConnectionMessages.auth_pgpass_override_tip);
             check.addActionListener(e -> field.setEnabled(check.isSelected()));
         }
 

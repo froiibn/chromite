@@ -16,6 +16,7 @@
  */
 package com.seizia.chromite.ui.swing;
 
+import com.seizia.chromite.ui.swing.internal.ConnectionMessages;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.model.impl.net.SocksConstants;
@@ -34,6 +35,7 @@ import javax.swing.*;
  *
  * 변경 이력:
  * - 2026-11-06 최초 작성: 고급 연결 설정 (docs/chromite/swing-conn-advanced.md)
+ * - 2026-11-06 화면 문구를 ConnectionMessages로 옮김(OS 언어를 따름)
  */
 final class SocksProxyPanel extends NetworkHandlerPanel {
 
@@ -41,7 +43,7 @@ final class SocksProxyPanel extends NetworkHandlerPanel {
     private final JSpinner portSpinner = new JSpinner(new SpinnerNumberModel(SocksConstants.DEFAULT_SOCKS_PORT, 0, 65535, 1));
     private final JTextField userField = new JTextField();
     private final JPasswordField passwordField = new JPasswordField();
-    private final JCheckBox savePasswordCheck = new JCheckBox("Remember password");
+    private final JCheckBox savePasswordCheck = new JCheckBox(ConnectionMessages.settings_remember_password);
     private final JComponent component;
 
     SocksProxyPanel(@NotNull Runnable changeListener) {
@@ -54,11 +56,11 @@ final class SocksProxyPanel extends NetworkHandlerPanel {
         savePasswordCheck.addActionListener(e -> passwordField.setEnabled(savePasswordCheck.isSelected() && savePasswordCheck.isEnabled()));
 
         ConnectionSettingsPanel.FormBuilder form = new ConnectionSettingsPanel.FormBuilder();
-        form.addRow("Proxy host", hostField);
-        form.addRow("Port", ConnectionSettingsPanel.leftAligned(portSpinner));
+        form.addRow(ConnectionMessages.socks_host, hostField);
+        form.addRow(ConnectionMessages.common_port, ConnectionSettingsPanel.leftAligned(portSpinner));
         form.addGroupGap();
-        form.addRow("User name", userField);
-        form.addRow("Password", passwordField);
+        form.addRow(ConnectionMessages.common_user_name, userField);
+        form.addRow(ConnectionMessages.settings_password, passwordField);
         form.addRow((JLabel) null, savePasswordCheck);
         component = createPage(form);
     }
@@ -93,7 +95,7 @@ final class SocksProxyPanel extends NetworkHandlerPanel {
     @Override
     String getErrorMessage() {
         // SocksProxyConfiguratorUI.isComplete accepts anything; without a host the proxy can't be used
-        return hostField.getText().isBlank() ? "Enter the proxy host." : null;
+        return hostField.getText().isBlank() ? ConnectionMessages.socks_enter_host : null;
     }
 
     @Override

@@ -17,6 +17,7 @@
 package com.seizia.chromite.ui.swing;
 
 import com.formdev.flatlaf.FlatClientProperties;
+import com.seizia.chromite.ui.swing.internal.ConnectionMessages;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.ext.mssql.SQLServerConstants;
@@ -62,6 +63,7 @@ import java.util.Set;
  *
  * 변경 이력:
  * - 2026-11-06 최초 작성: 고급 연결 설정 (docs/chromite/swing-conn-advanced.md)
+ * - 2026-11-06 화면 문구를 ConnectionMessages로 옮김(OS 언어를 따름)
  */
 abstract class ConnectionDriverFields {
 
@@ -168,21 +170,22 @@ abstract class ConnectionDriverFields {
          */
         private static final String DRIVER_PROP_ENCRYPT = "encrypt"; //$NON-NLS-1$
         private static final String ENCRYPT_STRICT = "strict"; //$NON-NLS-1$
-        private static final String[] ENCRYPT_ITEMS = {"Optional", "Mandatory", "Strict (TDS 8.0)"};
+        private static final String[] ENCRYPT_ITEMS = {
+            ConnectionMessages.driver_encrypt_optional, ConnectionMessages.driver_encrypt_mandatory, ConnectionMessages.driver_encrypt_strict};
 
         private final JComboBox<String> encryptCombo = new JComboBox<>(ENCRYPT_ITEMS);
-        private final JCheckBox trustCertificateCheck = new JCheckBox("Trust server certificate");
+        private final JCheckBox trustCertificateCheck = new JCheckBox(ConnectionMessages.driver_trust_certificate);
 
         SqlServerFields(@NotNull Runnable changeListener) {
             super(changeListener);
-            encryptCombo.setToolTipText("Encrypt the connection (driver property \"encrypt\"); the SSL tab turns it on");
-            trustCertificateCheck.setToolTipText("Accept the server certificate without validating it");
+            encryptCombo.setToolTipText(ConnectionMessages.driver_encrypt_tip);
+            trustCertificateCheck.setToolTipText(ConnectionMessages.driver_trust_certificate_tip);
         }
 
         @Override
         void addSecurityRows(@NotNull ConnectionSettingsPanel.FormBuilder form) {
             form.addGroupGap();
-            form.addRow("Encrypt", ConnectionSettingsPanel.leftAligned(encryptCombo));
+            form.addRow(ConnectionMessages.driver_encrypt, ConnectionSettingsPanel.leftAligned(encryptCombo));
             form.addRow((JLabel) null, trustCertificateCheck);
         }
 
@@ -217,14 +220,14 @@ abstract class ConnectionDriverFields {
      * Oracle: Basic (server name + SID/service name) or TNS (network alias + tnsnames folder).
      */
     private static final class OracleFields extends ConnectionDriverFields {
-        private static final String[] CONNECTION_TYPE_ITEMS = {"Basic", "TNS"};
+        private static final String[] CONNECTION_TYPE_ITEMS = {ConnectionMessages.driver_oracle_basic, "TNS"}; //$NON-NLS-1$
 
         private final JComboBox<String> connectionTypeCombo = new JComboBox<>(CONNECTION_TYPE_ITEMS);
         private final JComboBox<String> sidServiceCombo = new JComboBox<>();
-        private final JLabel aliasLabel = new JLabel("Network alias");
+        private final JLabel aliasLabel = new JLabel(ConnectionMessages.driver_oracle_alias);
         private final JComboBox<String> aliasCombo = new JComboBox<>();
         private final JTextField aliasField;
-        private final JLabel tnsPathLabel = new JLabel("TNS names folder");
+        private final JLabel tnsPathLabel = new JLabel(ConnectionMessages.driver_oracle_tns_folder);
         private final JTextField tnsPathField = new JTextField();
         private final JComponent tnsPathRow;
         private boolean loading;
@@ -234,12 +237,12 @@ abstract class ConnectionDriverFields {
             for (OracleConnectionType type : OracleConnectionType.values()) {
                 sidServiceCombo.addItem(type.getTitle());
             }
-            sidServiceCombo.setToolTipText("The database name is a SID or a service name");
+            sidServiceCombo.setToolTipText(ConnectionMessages.driver_oracle_sid_service_tip);
             aliasCombo.setEditable(true);
             aliasField = (JTextField) aliasCombo.getEditor().getEditorComponent();
-            tnsPathField.putClientProperty(FlatClientProperties.PLACEHOLDER_TEXT, "TNS_ADMIN or the Oracle home when empty");
-            tnsPathField.setToolTipText("Folder with tnsnames.ora");
-            tnsPathRow = NetworkHandlerPanel.createPathField(tnsPathField, "Folder with tnsnames.ora", true);
+            tnsPathField.putClientProperty(FlatClientProperties.PLACEHOLDER_TEXT, ConnectionMessages.driver_oracle_tns_folder_placeholder);
+            tnsPathField.setToolTipText(ConnectionMessages.driver_oracle_tns_folder_tip);
+            tnsPathRow = NetworkHandlerPanel.createPathField(tnsPathField, ConnectionMessages.driver_oracle_tns_folder_tip, true);
             connectionTypeCombo.addActionListener(e -> {
                 updateVisibility();
                 if (!loading) {
@@ -283,8 +286,8 @@ abstract class ConnectionDriverFields {
 
         @Override
         void addLeadingRows(@NotNull ConnectionSettingsPanel.FormBuilder form) {
-            connectionTypeCombo.setToolTipText("Basic: server name and SID or service name; TNS: network alias from tnsnames.ora");
-            form.addRow("Connection type", ConnectionSettingsPanel.leftAligned(connectionTypeCombo));
+            connectionTypeCombo.setToolTipText(ConnectionMessages.driver_oracle_type_tip);
+            form.addRow(ConnectionMessages.settings_connection_type, ConnectionSettingsPanel.leftAligned(connectionTypeCombo));
         }
 
         @NotNull
@@ -345,7 +348,7 @@ abstract class ConnectionDriverFields {
         @Nullable
         @Override
         String validate() {
-            return isTns() && aliasField.getText().isBlank() ? "Enter the network alias." : null;
+            return isTns() && aliasField.getText().isBlank() ? ConnectionMessages.driver_oracle_enter_alias : null;
         }
 
         @NotNull

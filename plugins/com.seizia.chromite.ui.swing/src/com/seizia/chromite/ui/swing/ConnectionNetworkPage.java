@@ -16,6 +16,8 @@
  */
 package com.seizia.chromite.ui.swing;
 
+import com.seizia.chromite.ui.swing.internal.ConnectionMessages;
+import org.eclipse.osgi.util.NLS;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.model.DBConstants;
@@ -52,6 +54,7 @@ import java.util.List;
  *
  * 변경 이력:
  * - 2026-11-06 최초 작성: 고급 연결 설정 (docs/chromite/swing-conn-advanced.md)
+ * - 2026-11-06 화면 문구를 ConnectionMessages로 옮김(OS 언어를 따름)
  */
 final class ConnectionNetworkPage extends JPanel {
 
@@ -69,8 +72,8 @@ final class ConnectionNetworkPage extends JPanel {
         super(new BorderLayout());
         this.descriptor = descriptor;
         this.handlerPanel = handlerPanel;
-        // The short name: the handler's label is localized by the model bundles while the rest of the dialog is English
-        enableCheck = new JCheckBox("Use " + descriptor.getCodeName());
+        // The short name, as on the tab (SSH, Proxy, SSL)
+        enableCheck = new JCheckBox(NLS.bind(ConnectionMessages.network_use_handler, descriptor.getCodeName()));
         enableCheck.setToolTipText(descriptor.getDescription());
         enableCheck.addActionListener(e -> {
             handlerPanel.setFieldsEnabled(enableCheck.isSelected());
@@ -142,7 +145,7 @@ final class ConnectionNetworkPage extends JPanel {
         DBWHandlerConfiguration handlerConfiguration;
         if (profileProvided) {
             handlerConfiguration = new DBWHandlerConfiguration(profileConfiguration);
-            profileLabel.setText("Configured by the network profile '" + profile.getProfileName() + "'");
+            profileLabel.setText(NLS.bind(ConnectionMessages.network_profile, profile.getProfileName()));
         } else {
             handlerConfiguration = configuration.getHandler(descriptor.getId());
             if (handlerConfiguration == null) {
