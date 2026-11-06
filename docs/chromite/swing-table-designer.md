@@ -89,6 +89,20 @@ SWT 버전의 객체 편집기(`EntityEditor`)가 하는 일을 Swing 프런트�
 - 고친 파일: `ObjectExplorerPanel`(메뉴 2개, 모델 `ADD`·`REFRESH` 반영), `MainFrame`(디자이너 탭), Swing 번들 `MANIFEST.MF`·`plugin.xml`.
 - DBeaver 원본(모델·드라이버·SWT) 파일은 고치지 않았다.
 
+## 확인 (2026-11-06)
+
+PostgreSQL 17(`chr_table_designer`)에서 화면으로 확인했다(빌드한 Swing 제품, 개인 작업 공간).
+
+- Design: `orders` 열기 → 새 열 추가·이름·형식(`varchar(50)`) → 인덱스 추가 → 외래 키(`customer_id` → `customer.id`, 열 자동 선택) →
+  Generate Script → Save의 미리 보기 → Execute. DB에서 `status varchar(50)`, `orders_customer_id_idx`, `orders_customer_fk` 확인.
+- New Table…: Tables 폴더 → 이름 `product`, 열 2개, PK 확인란(NOT NULL 자동) → `CREATE TABLE ... CONSTRAINT product_pk PRIMARY KEY (id)` 실행, DB 확인.
+  저장 전 새 테이블·이름 변경이 Object Explorer에 바로 보였다.
+- 저장된 열 삭제와 새 열 추가의 스크립트(`DROP COLUMN`, `ADD`), Open in Query Window, 닫을 때 Save / Don't Save / Cancel(Don't Save 뒤 DB 그대로).
+- 확인 중 고친 것: PostgreSQL 새 외래 키가 표에 안 보이던 것(관리자가 다른 캐시에 넣음 → 명령 묶음의 새 객체를 함께 보여 줌),
+  인덱스 표의 Table 열(소유 테이블 열 숨김).
+- **확인하지 못한 것:** SQL Server·MariaDB 화면 확인, 다크 테마 화면, 저장된 열의 형식 바꾸기(PostgreSQL에서 편집기가 열리지 않은 적이 있으나,
+  같은 시간에 다른 에이전트의 자동 입력이 이 창에 들어왔다는 보고가 있어 원인을 확정하지 못함). Windows 방화벽 확인 창이 화면 앞을 막아 더 진행하지 못했다.
+
 ## 남긴 것
 
 - **New View…:** 뷰는 SQL 정의를 편집해야 해서 디자이너 표가 맞지 않는다. 다음에 "CREATE VIEW 틀을 쿼리 창으로 열기"로 만든다.
@@ -100,3 +114,4 @@ SWT 버전의 객체 편집기(`EntityEditor`)가 하는 일을 Swing 프런트�
 ## 변경 이력
 
 - 2026-11-06 최초 작성: 테이블 디자이너(Design), New Table…, 스크립트 미리 보기와 저장, PostgreSQL·SQL Server·MySQL/MariaDB 드라이버 구현.
+- 2026-11-06 확인 중 수정: 명령 묶음의 새 객체·삭제 객체를 목록에 반영(PostgreSQL 외래 키), 소유 테이블 열 숨김. "확인" 절 추가.
