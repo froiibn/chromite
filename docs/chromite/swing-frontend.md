@@ -2112,3 +2112,4 @@ EDT 에이전트로 단추를 누르고(`doClick`) 결과를 읽었다. 캡처�
   인라인 오류 영역에 "자세히…", Swing `UIServiceSystemAgent`(`SwingSystemAgent`) 등록으로 백업·복원 메시지의 "Service … not found" 줄 제거,
   연결·연결 끊기 오류 제목 지역화. "오류 문구" 절 추가.
 - 2026-11-07 XLSX 내보내기 설명: Office 확장 피처의 설치 원본(CE 업데이트 저장소)을 삭제한 것을 반영.
+- 2026-11-07 드라이버 관리자: Tools > Driver Manager…, Connect 대화상자의 Edit Driver…(드라이버 만들기·편집, 로컬 jar·폴더 라이브러리, 오프라인 모드). [swing-driver-manager.md](swing-driver-manager.md).
