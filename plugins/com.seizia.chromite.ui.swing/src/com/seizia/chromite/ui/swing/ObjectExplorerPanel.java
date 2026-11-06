@@ -140,6 +140,8 @@ import java.util.function.Consumer;
  * - 2026-11-06 데이터 전송: Tasks &gt; Import Data… / Export Data… 메뉴 (docs/chromite/swing-data-transfer.md)
  * - 2026-11-06 고급 연결 설정: 연결 노드 바탕에 연결 색 (docs/chromite/swing-conn-advanced.md)
  * - 2026-11-06 테이블 디자이너: Design·New Table… 메뉴, 다른 곳에서 추가·새로 읽은 DB 객체 노드 반영 (docs/chromite/swing-table-designer.md)
+ * - 2026-11-06 New Connection으로 만든 서버가 들어오지 않던 문제: 탐색기 노드가 생기기 전(레지스트리 이벤트 지연)에도 목록에 넣고,
+ *   고를 서버를 연결로 기억해 ADD 이벤트에서 고름 (docs/chromite/swing-registered-servers.md)
  */
 final class ObjectExplorerPanel extends JPanel {
 
@@ -233,10 +235,12 @@ final class ObjectExplorerPanel extends JPanel {
     private final Action exportDataAction;
     private final INavigatorListener navigatorListener = this::navigatorNodeChanged;
     /**
-     * A connection to select once the connection list has been read again (a connection created in this window).
+     * A connection to select once the connection list has been read again (a connection created in this window). The
+     * connection, not its navigator node: a just created connection has no node until the registry's delayed
+     * {@code OBJECT_ADD} event reaches the navigator model, and the {@code ADD} event then reads the list again.
      */
     @Nullable
-    private DBNNode pendingReveal;
+    private DBPDataSourceContainer pendingReveal;
     /**
      * Expand {@link #pendingReveal} too (it connects): a server opened from Registered Servers or the Connect chooser.
      */
@@ -515,18 +519,18 @@ final class ObjectExplorerPanel extends JPanel {
     /**
      * Adds a server to this window (at the end, as SSMS) if it is not there yet, then selects it.
      *
+     * A connection just created (New Connection) has no navigator node yet: the registry sends its {@code OBJECT_ADD}
+     * event from a delayed job ({@code DataSourceRegistry#notifyDataSourceListeners}), so it is listed and selected when
+     * the navigator's {@code ADD} event reads the list again ({@link #navigatorNodeChanged}).
+     *
      * @param expand also expand it, which connects it (Registered Servers "Object Explorer", Connect)
      */
     void showServer(@NotNull DBPDataSourceContainer dataSource, boolean expand) {
         if (projectNode == null || servers == null) {
             return;
         }
-        DBNDataSource node = projectNode.getDatabases().getDataSource(dataSource);
-        if (node == null) {
-            return;
-        }
         servers.add(dataSource);
-        pendingReveal = node;
+        pendingReveal = dataSource;
         expandReveal = expand;
         reloadConnectionList();
     }
@@ -947,7 +951,7 @@ final class ObjectExplorerPanel extends JPanel {
                 case ADD -> {
                     if (event.getNodeChange() == DBNEvent.NodeChange.SELECT) {
                         // Created by this application with "reveal" (DBPDataSourceRegistry.addDataSource)
-                        pendingReveal = node;
+                        pendingReveal = ((DBNDataSource) node).getDataSourceContainer();
                     }
                     reloadConnectionList();
                 }
@@ -1124,7 +1128,8 @@ final class ObjectExplorerPanel extends JPanel {
         }
         if (pendingReveal != null) {
             for (int i = 0; i < node.getChildCount(); i++) {
-                if (node.getChildAt(i) instanceof ExplorerNode child && child.getUserObject() == pendingReveal) {
+                if (node.getChildAt(i) instanceof ExplorerNode child && child.getUserObject() instanceof DBNDataSource dataSourceNode
+                    && dataSourceNode.getDataSourceContainer() == pendingReveal) {
                     pendingReveal = null;
                     TreePath path = new TreePath(child.getPath());
                     tree.setSelectionPath(path);
