@@ -23,6 +23,7 @@ import org.jkiss.dbeaver.Log;
 import org.jkiss.dbeaver.model.DBPDataKind;
 import org.jkiss.dbeaver.model.DBUtils;
 import org.jkiss.dbeaver.model.data.DBDAttributeBinding;
+import org.jkiss.dbeaver.model.data.DBDContent;
 import org.jkiss.dbeaver.model.data.DBDDataReceiver;
 import org.jkiss.dbeaver.model.data.DBDDisplayFormat;
 import org.jkiss.dbeaver.model.data.DBDValue;
@@ -62,11 +63,18 @@ import java.util.function.Consumer;
  * {@link DBExecUtils#bindAttributes}로 열을 테이블 열·행 식별자(기본 키)에 묶는다. 묶으면서 값 처리기가 바뀐 열은 표시 문자열을 다시 만든다.
  * 편집할 수 있는지는 {@link ResultSetEditModel#getReadOnlyReason}이 정하고, 편집할 수 있으면 원래 값을 {@link ResultSetEditModel}에 넘긴다.
  * 읽기 전용이면 원래 값은 위의 XLSX용 값만 남긴다. 값 객체로 온 열과 값을 읽지 못한 열은 편집하지 않는다.
+ * 값 패널·정렬·필터·다음 페이지(결과 뷰어): 값 패널이 칸의 원래 값을 보여 주도록 행마다 칸 값을 함께 넘긴다({@link ResultSetSource#cellValues()}).
+ * LOB({@link DBDContent})는 {@link ResultSetCellContent}로 바꿔 넘기고, 메모리에 없는 LOB는 패널이 나중에 읽도록 값 객체를 놓아 주지 않는다.
+ * 다음 페이지를 읽을 때는 첫 결과의 열 바인딩을 그대로 쓰는 수신기({@link #forNextSegment})를 만든다(SWT {@code ResultSetDataReceiver}의
+ * {@code nextSegmentRead}처럼 열 정보를 다시 만들지 않는다). 이 수신기는 테이블 메타데이터에 다시 묶지 않고 편집 모델도 만들지 않는다
+ * (첫 결과의 편집 모델에 행을 붙이는 일은 {@link ResultSetViewerPanel}이 한다).
  *
  * 변경 이력:
  * - 2026-11-06 C단계: 최초 작성 (docs/chromite/swing-frontend.md "구현 현황 — C단계")
  * - 2026-11-06 F단계: XLSX 내보내기용으로 숫자·불리언·날짜 원래 값과 열 바인딩을 함께 넘김 (docs/chromite/swing-frontend.md "구현 현황 — F단계")
  * - 2026-11-06 G단계: 열을 테이블 메타데이터에 묶고(bindAttributes) 편집 모델을 함께 넘김 (docs/chromite/swing-frontend.md "구현 현황 — G단계")
+ * - 2026-11-06 결과 뷰어: 값 패널용 칸 값과 LOB 내용, 다시 읽기 정보({@link ResultSetSource}), 다음 페이지 수신기
+ *   (docs/chromite/swing-result-viewer.md)
  */
 final class ResultSetGridReceiver implements DBDDataReceiver {
 
@@ -76,7 +84,10 @@ final class ResultSetGridReceiver implements DBDDataReceiver {
     private final Consumer<ResultSetGrid.Fetched> consumer;
     private final List<Object[]> rows = new ArrayList<>();
     private final List<Object[]> rawValues = new ArrayList<>();
+    private final List<Object[]> cellValues = new ArrayList<>();
     private final Set<Integer> failedColumns = new HashSet<>();
+    @Nullable
+    private final DBDAttributeBinding[] segmentBindings;
     private DBDAttributeBinding[] bindings;
     private DBDValueHandler[] fetchHandlers;
     private boolean[] unreadableColumns;
@@ -88,8 +99,30 @@ final class ResultSetGridReceiver implements DBDDataReceiver {
      * @param consumer      receives the fetched data in the job thread
      */
     ResultSetGridReceiver(@NotNull DBSDataContainer dataContainer, @NotNull Consumer<ResultSetGrid.Fetched> consumer) {
+        this(dataContainer, null, consumer);
+    }
+
+    private ResultSetGridReceiver(
+        @NotNull DBSDataContainer dataContainer,
+        @Nullable DBDAttributeBinding[] segmentBindings,
+        @NotNull Consumer<ResultSetGrid.Fetched> consumer
+    ) {
         this.dataContainer = dataContainer;
+        this.segmentBindings = segmentBindings;
         this.consumer = consumer;
+    }
+
+    /**
+     * A receiver of the next rows of a result: it reads them with the result's bound columns and delivers them
+     * without an edit model.
+     */
+    @NotNull
+    static ResultSetGridReceiver forNextSegment(
+        @NotNull DBSDataContainer dataContainer,
+        @NotNull DBDAttributeBinding[] bindings,
+        @NotNull Consumer<ResultSetGrid.Fetched> consumer
+    ) {
+        return new ResultSetGridReceiver(dataContainer, bindings, consumer);
     }
 
     @Override
@@ -98,7 +131,14 @@ final class ResultSetGridReceiver implements DBDDataReceiver {
         if (metaData == null) {
             throw new DBException("Null result set metadata");
         }
-        this.bindings = DBUtils.getAttributeBindings(session, dataContainer, metaData);
+        if (segmentBindings != null) {
+            if (metaData.getAttributes().size() != segmentBindings.length) {
+                throw new DBException("The columns of the result changed; run the query again");
+            }
+            this.bindings = segmentBindings;
+        } else {
+            this.bindings = DBUtils.getAttributeBindings(session, dataContainer, metaData);
+        }
         this.fetchHandlers = new DBDValueHandler[bindings.length];
         for (int i = 0; i < bindings.length; i++) {
             fetchHandlers[i] = bindings[i].getValueHandler();
@@ -107,12 +147,14 @@ final class ResultSetGridReceiver implements DBDDataReceiver {
         this.maxRows = maxRows;
         rows.clear();
         rawValues.clear();
+        cellValues.clear();
     }
 
     @Override
     public void fetchRow(@NotNull DBCSession session, @NotNull DBCResultSet resultSet) {
         Object[] row = new Object[bindings.length];
         Object[] raw = new Object[bindings.length];
+        Object[] cells = new Object[bindings.length];
         for (int i = 0; i < bindings.length; i++) {
             DBDAttributeBinding binding = bindings[i];
             DBSAttributeBase attribute = binding.getAttribute();
@@ -122,16 +164,24 @@ final class ResultSetGridReceiver implements DBDDataReceiver {
                 continue;
             }
             Object value = null;
+            boolean keepValue = false;
             try {
                 value = binding.getValueHandler().fetchValueObject(session, resultSet, attribute, binding.getOrdinalPosition());
-                row[i] = DBUtils.isNullValue(value)
+                boolean isNull = DBUtils.isNullValue(value);
+                row[i] = isNull
                     ? ResultSetGrid.NULL_VALUE
                     : binding.getValueRenderer().getValueDisplayString(binding, value, DBDDisplayFormat.UI);
                 if (value instanceof DBDValue) {
-                    // Released below; its content is in the display string only
+                    // Released below unless the value panel reads it later; the grid has its display string only
                     unreadableColumns[i] = true;
+                    if (value instanceof DBDContent content && !isNull) {
+                        ResultSetCellContent cellContent = ResultSetCellContent.capture(content);
+                        cells[i] = cellContent;
+                        keepValue = cellContent.isLive();
+                    }
                 } else {
                     raw[i] = value;
+                    cells[i] = value;
                 }
             } catch (Throwable e) {
                 row[i] = "[error: " + e.getMessage() + "]";
@@ -140,11 +190,14 @@ final class ResultSetGridReceiver implements DBDDataReceiver {
                     log.warn("Can't read column '" + binding.getName() + "' value", e);
                 }
             } finally {
-                DBUtils.releaseValue(value);
+                if (!keepValue) {
+                    DBUtils.releaseValue(value);
+                }
             }
         }
         rows.add(row);
         rawValues.add(raw);
+        cellValues.add(cells);
     }
 
     /**
@@ -164,6 +217,11 @@ final class ResultSetGridReceiver implements DBDDataReceiver {
         if (delivered || bindings == null) {
             return;
         }
+        if (segmentBindings != null) {
+            // The next rows of a result: its columns are bound already, and its viewer keeps the edit model
+            deliver(session.getExecutionContext(), null, null);
+            return;
+        }
         Throwable bindError = null;
         try {
             // Table columns, unique keys and value handlers of table columns, as SWT ResultSetDataReceiver.fetchEnd
@@ -175,13 +233,13 @@ final class ResultSetGridReceiver implements DBDDataReceiver {
         refreshDisplayOfRebound();
         DBCExecutionContext context = session.getExecutionContext();
         String readOnlyReason = ResultSetEditModel.getReadOnlyReason(context, bindings, unreadableColumns, bindError);
-        deliver(readOnlyReason == null ? context : null, readOnlyReason);
+        deliver(context, readOnlyReason == null ? context : null, readOnlyReason);
     }
 
     @Override
     public void close() {
         // fetchEnd is not called when the statement fails after fetchStart; show what was fetched
-        deliver(null, "fetching did not complete");
+        deliver(null, null, "fetching did not complete");
     }
 
     /**
@@ -204,10 +262,15 @@ final class ResultSetGridReceiver implements DBDDataReceiver {
     }
 
     /**
+     * @param context        context of the fetch, or null if it did not complete
      * @param editContext    context of an editable result, or null
      * @param readOnlyReason why the result is read-only, or null if it is editable
      */
-    private void deliver(@Nullable DBCExecutionContext editContext, @Nullable String readOnlyReason) {
+    private void deliver(
+        @Nullable DBCExecutionContext context,
+        @Nullable DBCExecutionContext editContext,
+        @Nullable String readOnlyReason
+    ) {
         if (delivered || bindings == null) {
             return;
         }
@@ -229,7 +292,11 @@ final class ResultSetGridReceiver implements DBDDataReceiver {
         ResultSetEditModel editModel = editContext == null ? null
             : new ResultSetEditModel(editContext, dataContainer, bindings, unreadableColumns, rawValues, rows);
         rawValues.clear();
-        consumer.accept(new ResultSetGrid.Fetched(data, editModel, readOnlyReason));
+        String requeryBlocker = context == null ? "fetching did not complete" : ResultSetSource.getRequeryBlocker(dataContainer, context);
+        ResultSetSource source = new ResultSetSource(dataContainer, context, Math.max(maxRows, 0), requeryBlocker,
+            unreadableColumns.clone(), List.copyOf(cellValues));
+        cellValues.clear();
+        consumer.accept(new ResultSetGrid.Fetched(data, editModel, readOnlyReason, source));
     }
 
     /**
