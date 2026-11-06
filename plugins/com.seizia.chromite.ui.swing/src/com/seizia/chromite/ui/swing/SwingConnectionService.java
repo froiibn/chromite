@@ -16,11 +16,13 @@
  */
 package com.seizia.chromite.ui.swing;
 
+import com.seizia.chromite.ui.swing.internal.ConnectionMessages;
 import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.Status;
 import org.eclipse.core.runtime.jobs.IJobChangeEvent;
 import org.eclipse.core.runtime.jobs.Job;
 import org.eclipse.core.runtime.jobs.JobChangeAdapter;
+import org.eclipse.osgi.util.NLS;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.Log;
@@ -47,6 +49,7 @@ import org.jkiss.dbeaver.runtime.jobs.ConnectJob;
  *
  * 변경 이력:
  * - 2026-11-06 B단계: 최초 작성 (docs/chromite/swing-frontend.md "구현 현황 — B단계")
+ * - 2026-11-07 연결 오류 대화상자 제목을 모델 Job 이름("Connect to '…'") 대신 지역화된 문구로 바꿈 (docs/chromite/swing-frontend.md "오류 문구")
  */
 public class SwingConnectionService implements DBServiceConnections {
 
@@ -85,12 +88,12 @@ public class SwingConnectionService implements DBServiceConnections {
         ConnectJob connectJob = new ConnectJob(dataSourceContainer);
         if (monitor != null) {
             connectJob.runSync(monitor);
-            notifyFinished(onFinish, connectJob.getConnectStatus(), connectJob.getName());
+            notifyFinished(onFinish, connectJob.getConnectStatus(), dataSourceContainer);
         } else {
             connectJob.addJobChangeListener(new JobChangeAdapter() {
                 @Override
                 public void done(IJobChangeEvent event) {
-                    notifyFinished(onFinish, connectJob.getConnectStatus(), connectJob.getName());
+                    notifyFinished(onFinish, connectJob.getConnectStatus(), dataSourceContainer);
                 }
             });
             connectJob.schedule();
@@ -100,12 +103,18 @@ public class SwingConnectionService implements DBServiceConnections {
     /**
      * Passes the result to the listener, or shows a connection error when nobody listens (as the SWT UI does).
      */
-    private static void notifyFinished(@Nullable DBRProgressListener onFinish, @Nullable IStatus status, @Nullable String taskName) {
+    private static void notifyFinished(
+        @Nullable DBRProgressListener onFinish,
+        @Nullable IStatus status,
+        @Nullable DBPDataSourceContainer container
+    ) {
         IStatus result = status != null ? status : Status.CANCEL_STATUS;
         if (onFinish != null) {
             onFinish.onTaskFinished(result);
-        } else if (!result.isOK() && result.getSeverity() != IStatus.CANCEL && taskName != null) {
-            DBWorkbench.getPlatformUI().showError(taskName, null, result);
+        } else if (!result.isOK() && result.getSeverity() != IStatus.CANCEL && container != null) {
+            // Localized title instead of the model job name ("Connect to '...'")
+            DBWorkbench.getPlatformUI().showError(ConnectionMessages.commands_connect_title,
+                NLS.bind(ConnectionMessages.commands_connect_error, container.getName()), result);
         }
     }
 }

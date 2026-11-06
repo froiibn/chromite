@@ -21,6 +21,9 @@
         <service name="org.jkiss.dbeaver.runtime.DBServiceConnections" class="com.seizia.chromite.ui.swing.SwingConnectionService"/>
         <!-- Asks before downloading missing driver files; the SWT product registers UIServiceDriversImpl -->
         <service name="org.jkiss.dbeaver.runtime.ui.UIServiceDrivers" class="com.seizia.chromite.ui.swing.SwingDriversService"/>
+        <!-- Notifies the end of long operations (native backup/restore tools); the SWT product registers UIServiceSystemAgentImpl.
+             Without it DBWorkbench.getService logs "Service ... not found" into the task output. -->
+        <service name="org.jkiss.dbeaver.runtime.ui.UIServiceSystemAgent" class="com.seizia.chromite.ui.swing.SwingSystemAgent"/>
     </extension>
 
     <!-- Table designer: driver parts of new indexes, foreign keys and CHECK constraints (the SWT ext.*.ui configurators'

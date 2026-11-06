@@ -28,7 +28,6 @@ import org.jkiss.dbeaver.model.admin.locks.DBAServerLock;
 import org.jkiss.dbeaver.model.admin.locks.DBAServerLockItem;
 import org.jkiss.dbeaver.model.admin.locks.DBAServerLockManager;
 import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.utils.CommonUtils;
 
 import javax.swing.*;
 import javax.swing.tree.DefaultMutableTreeNode;
@@ -62,6 +61,7 @@ import java.util.Set;
  * 변경 이력:
  * - 2026-11-06 최초 작성 (docs/chromite/swing-admin-tools.md)
  * - 2026-11-06 화면 문구를 ConnectionMessages로 옮김(OS 언어를 따름)
+ * - 2026-11-07 오류 문구를 {@link ErrorText}로 만듦(클래스 이름이 화면에 나오지 않게, docs/chromite/swing-frontend.md "오류 문구")
  */
 final class LockManagerPanel extends JPanel {
 
@@ -220,9 +220,8 @@ final class LockManagerPanel extends JPanel {
             return new LockList(new ArrayList<>(locks.values()), manager.getLocksType());
         }, this::showLocks, error -> {
             loading = false;
-            statusLabel.setText(NLS.bind(ConnectionMessages.common_status_error,
-                CommonUtils.notEmpty(error.getMessage()).replaceAll("\\s+", " "))); //$NON-NLS-1$ //$NON-NLS-2$
-            statusLabel.setToolTipText(error.getMessage());
+            statusLabel.setText(NLS.bind(ConnectionMessages.common_status_error, ErrorText.describeLine(error)));
+            statusLabel.setToolTipText(ErrorText.describeLine(error));
             log.debug("Error reading locks", error);
         });
     }
@@ -373,8 +372,7 @@ final class LockManagerPanel extends JPanel {
             showItems(holdingItems, items.get(1));
         }, error -> {
             if (serial == detailSerial) {
-                statusLabel.setText(NLS.bind(ConnectionMessages.common_status_error,
-                    CommonUtils.notEmpty(error.getMessage()).replaceAll("\\s+", " "))); //$NON-NLS-1$ //$NON-NLS-2$
+                statusLabel.setText(NLS.bind(ConnectionMessages.common_status_error, ErrorText.describeLine(error)));
                 log.debug("Error reading lock items", error);
             }
         });

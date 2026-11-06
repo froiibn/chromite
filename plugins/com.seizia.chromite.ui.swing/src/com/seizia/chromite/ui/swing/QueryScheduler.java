@@ -85,6 +85,7 @@ import java.util.concurrent.TimeUnit;
  * 변경 이력:
  * - 2026-11-06 Query Library ③: 최초 작성 (docs/chromite/swing-query-library.md "예약 실행")
  * - 2026-11-06 화면 문구를 ToolsMessages로 옮김(OS 언어를 따름)
+ * - 2026-11-07 오류 문구를 {@link ErrorText}로 만듦(클래스 이름이 화면에 나오지 않게, docs/chromite/swing-frontend.md "오류 문구")
  */
 final class QueryScheduler {
 
@@ -368,7 +369,7 @@ final class QueryScheduler {
             }
         } catch (Throwable e) {
             log.debug("Scheduled query failed", e);
-            return failed(start, server, System.currentTimeMillis() - startMillis, CommonUtils.getAllExceptionMessages(e));
+            return failed(start, server, System.currentTimeMillis() - startMillis, ErrorText.describe(e));
         }
     }
 
@@ -471,7 +472,7 @@ final class QueryScheduler {
         @Override
         public void onEndQuery(@NotNull DBCSession session, @NotNull SQLQueryResult result, @NotNull DBCStatistics statistics) {
             if (result.getError() != null && error == null) {
-                error = CommonUtils.getAllExceptionMessages(result.getError());
+                error = ErrorText.describe(result.getError());
             }
         }
 
@@ -556,7 +557,7 @@ final class QueryScheduler {
         @Override
         public DBPPlatformUI.UserResponse handleExecutionError(@NotNull String task, @NotNull Throwable error, boolean queue) {
             if (collector.error == null) {
-                collector.error = CommonUtils.getAllExceptionMessages(error);
+                collector.error = ErrorText.describe(error);
             }
             return DBPPlatformUI.UserResponse.STOP;
         }

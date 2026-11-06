@@ -93,6 +93,7 @@ import java.util.function.Supplier;
  * 변경 이력:
  * - 2026-11-06 테이블 복사: 최초 작성 (docs/chromite/swing-data-transfer.md)
  * - 2026-11-06 데이터베이스 노드: 여러 스키마의 원본이 같은 대상 테이블로 가는 매핑을 막음 (docs/chromite/swing-data-transfer.md "데이터베이스 노드")
+ * - 2026-11-07 오류 문구를 {@link ErrorText}로 만듦(클래스 이름이 화면에 나오지 않게, docs/chromite/swing-frontend.md "오류 문구")
  */
 final class DatabaseCopyPages {
 
@@ -961,7 +962,7 @@ final class DatabaseCopyPages {
                     monitor -> DatabaseCopyMappings.generateTableDdl(monitor, target, mapping));
                 text = ddl == null ? DbCopyMessages.ddl_no_changes : ddl;
             } catch (DBException e) {
-                text = NLS.bind(DbCopyMessages.ddl_error, CommonUtils.getAllExceptionMessages(e));
+                text = NLS.bind(DbCopyMessages.ddl_error, ErrorText.describe(e));
             }
         }
         ddlArea.setText(text);

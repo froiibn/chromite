@@ -95,6 +95,7 @@ import java.util.Set;
  * - 2026-11-06 고급 연결 설정: 인증 방식별 칸, 드라이버별 주 칸(SQL Server, Oracle), 네트워크 핸들러 탭(SSH, Proxy, SSL), 연결 색,
  *   연결 직후 SQL. 저장 순서에서 URL을 속성 표 뒤로 옮김 (docs/chromite/swing-conn-advanced.md)
  * - 2026-11-06 화면 문구를 ConnectionMessages로 옮김(OS 언어를 따름). 빠진 값 안내는 조각을 잇지 않고 칸마다 문장 하나
+ * - 2026-11-07 오류 문구를 {@link ErrorText}로 만듦(클래스 이름이 화면에 나오지 않게, docs/chromite/swing-frontend.md "오류 문구")
  */
 final class ConnectionSettingsPanel extends JPanel {
 
@@ -942,7 +943,7 @@ final class ConnectionSettingsPanel extends JPanel {
             url = driver.getConnectionURL(configuration);
         } catch (DBException e) {
             url = null;
-            problem = e.getMessage();
+            problem = ErrorText.describe(e);
         }
         loading = true;
         try {
@@ -1086,7 +1087,7 @@ final class ConnectionSettingsPanel extends JPanel {
                         }
                     } catch (DBException e) {
                         log.warn("Can't load driver properties", e);
-                        error[0] = CommonUtils.notEmpty(e.getMessage());
+                        error[0] = ErrorText.describe(e);
                     }
                 }
                 return result;
@@ -1105,7 +1106,7 @@ final class ConnectionSettingsPanel extends JPanel {
             source = new PropertySourceCustom(descriptors, values);
             problem = error[0] == null ? null : NLS.bind(ConnectionMessages.settings_driver_properties_error, error[0]);
         } catch (DBException e) {
-            problem = NLS.bind(ConnectionMessages.settings_driver_properties_error, e.getMessage());
+            problem = NLS.bind(ConnectionMessages.settings_driver_properties_error, ErrorText.describe(e));
         } finally {
             temporaryDataSource.dispose();
         }

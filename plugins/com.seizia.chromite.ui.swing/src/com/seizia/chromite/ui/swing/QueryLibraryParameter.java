@@ -44,6 +44,7 @@ import java.util.Locale;
  * 변경 이력:
  * - 2026-11-06 Query Library: 최초 작성 (docs/chromite/swing-query-library.md "매개변수")
  * - 2026-11-06 화면 문구를 ToolsMessages로 옮김(OS 언어를 따름)
+ * - 2026-11-07 오류 문구를 {@link ErrorText}로 만듦(클래스 이름이 화면에 나오지 않게, docs/chromite/swing-frontend.md "오류 문구")
  */
 final class QueryLibraryParameter {
 
@@ -209,7 +210,7 @@ final class QueryLibraryParameter {
             toJdbcValue(value);
             return null;
         } catch (IllegalArgumentException e) {
-            return getDisplayLabel() + ": " + e.getMessage();
+            return getDisplayLabel() + ": " + ErrorText.describeLine(e);
         }
     }
 

@@ -35,7 +35,6 @@ import org.jkiss.dbeaver.model.runtime.AbstractJob;
 import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
 import org.jkiss.dbeaver.model.sql.SQLQuery;
 import org.jkiss.dbeaver.model.sql.SQLQueryType;
-import org.jkiss.utils.CommonUtils;
 
 import javax.swing.*;
 import java.util.List;
@@ -59,6 +58,7 @@ import java.util.function.Consumer;
  * 변경 이력:
  * - 2026-11-06 최초 작성 (docs/chromite/swing-sql-editor-plus.md)
  * - 2026-11-06 화면 문구를 EditorMessages로 옮김(OS 언어를 따름)
+ * - 2026-11-07 오류 문구를 {@link ErrorText}로 만듦(클래스 이름이 화면에 나오지 않게, docs/chromite/swing-frontend.md "오류 문구")
  */
 final class SqlPlanExplainer {
 
@@ -134,7 +134,7 @@ final class SqlPlanExplainer {
             });
         } catch (Throwable e) {
             log.debug("Can't explain query", e);
-            return new ExecutionPlanView.Entry(query, null, CommonUtils.getAllExceptionMessages(e), analyze);
+            return new ExecutionPlanView.Entry(query, null, ErrorText.describe(e), analyze);
         }
         if (plan[0] == null) {
             // tryExecuteRecover returns without an error when it was interrupted

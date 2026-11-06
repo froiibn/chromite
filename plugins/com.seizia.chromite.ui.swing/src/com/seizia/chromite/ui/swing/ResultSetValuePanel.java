@@ -91,6 +91,7 @@ import java.util.Locale;
  * 변경 이력:
  * - 2026-11-06 최초 작성 (docs/chromite/swing-result-viewer.md "값 패널")
  * - 2026-11-06 화면 문구를 EditorMessages로 옮김(OS 언어를 따름)
+ * - 2026-11-07 오류 문구를 {@link ErrorText}로 만듦(클래스 이름이 화면에 나오지 않게, docs/chromite/swing-frontend.md "오류 문구")
  */
 final class ResultSetValuePanel extends JPanel {
 
@@ -329,7 +330,7 @@ final class ResultSetValuePanel extends JPanel {
                     result = render(shown, requested, monitor);
                 } catch (Throwable e) {
                     log.debug("Can't show the cell value", e);
-                    result = new Rendered(Kind.MESSAGE, NLS.bind(EditorMessages.editor_value_cant_read, CommonUtils.getAllExceptionMessages(e)),
+                    result = new Rendered(Kind.MESSAGE, NLS.bind(EditorMessages.editor_value_cant_read, ErrorText.describe(e)),
                         SyntaxConstants.SYNTAX_STYLE_NONE, null, "", false, null);
                 }
                 Rendered done = result;
@@ -457,7 +458,7 @@ final class ResultSetValuePanel extends JPanel {
                     return new Rendered(Kind.TEXT, formatJson(source), SyntaxConstants.SYNTAX_STYLE_JSON, null, info, editable, warning);
                 } catch (Exception e) {
                     return new Rendered(Kind.TEXT, source, SyntaxConstants.SYNTAX_STYLE_JSON, null, info, editable,
-                        NLS.bind(EditorMessages.editor_value_invalid_json, firstLine(e.getMessage())));
+                        NLS.bind(EditorMessages.editor_value_invalid_json, firstLine(ErrorText.describe(e))));
                 }
             }
             case XML -> {
@@ -466,7 +467,7 @@ final class ResultSetValuePanel extends JPanel {
                     return new Rendered(Kind.TEXT, formatXml(source), SyntaxConstants.SYNTAX_STYLE_XML, null, info, editable, warning);
                 } catch (Exception e) {
                     return new Rendered(Kind.TEXT, source, SyntaxConstants.SYNTAX_STYLE_XML, null, info, editable,
-                        NLS.bind(EditorMessages.editor_value_invalid_xml, firstLine(e.getMessage())));
+                        NLS.bind(EditorMessages.editor_value_invalid_xml, firstLine(ErrorText.describe(e))));
                 }
             }
             default -> {
@@ -622,7 +623,7 @@ final class ResultSetValuePanel extends JPanel {
     }
 
     /**
-     * The first line of a parser message (Gson adds a troubleshooting link on the next line).
+     * The first line of a parser error text (Gson adds a troubleshooting link on the next line).
      */
     @NotNull
     private static String firstLine(@Nullable String message) {

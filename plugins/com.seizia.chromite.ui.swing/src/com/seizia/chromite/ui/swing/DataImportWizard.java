@@ -95,6 +95,7 @@ import java.util.Set;
  * - 2026-11-06 데이터 전송: 최초 작성 (docs/chromite/swing-data-transfer.md)
  * - 2026-11-06 화면 문구를 ToolsMessages로 옮김(OS 언어를 따름)
  * - 2026-11-06 데이터베이스 노드에서 Import Data…: 대상 테이블 고르기, 새 테이블로 가져오기 (docs/chromite/swing-data-transfer.md "데이터베이스 노드")
+ * - 2026-11-07 오류 문구를 {@link ErrorText}로 만듦(클래스 이름이 화면에 나오지 않게, docs/chromite/swing-frontend.md "오류 문구")
  */
 final class DataImportWizard extends DataTransferWizard {
 
@@ -499,7 +500,7 @@ final class DataImportWizard extends DataTransferWizard {
                     text.append(line).append('\n');
                 }
             } catch (IOException | RuntimeException e) {
-                text.append(NLS.bind(ToolsMessages.import_source_preview_error, e.getMessage()));
+                text.append(NLS.bind(ToolsMessages.import_source_preview_error, ErrorText.describeLine(e)));
             }
             previewArea.setText(text.toString());
             previewArea.setCaretPosition(0);
@@ -592,7 +593,7 @@ final class DataImportWizard extends DataTransferWizard {
                     monitor -> DatabaseCopyMappings.generateTableDdl(monitor, consumerSettings, newMapping));
                 text = ddl == null ? DbCopyMessages.ddl_no_changes : ddl;
             } catch (DBException e) {
-                text = NLS.bind(DbCopyMessages.ddl_error, CommonUtils.getAllExceptionMessages(e));
+                text = NLS.bind(DbCopyMessages.ddl_error, ErrorText.describe(e));
             }
             ddlArea.setText(text);
             ddlArea.setCaretPosition(0);

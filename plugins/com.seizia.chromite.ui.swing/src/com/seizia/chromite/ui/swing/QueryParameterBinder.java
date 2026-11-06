@@ -72,6 +72,7 @@ import java.util.regex.Matcher;
  * - 2026-11-06 Query History용 글자({@link #getHistoryText}): 값을 SQL 리터럴로 넣은 원래 문장. 엔진이 보낸 {@code ?} 문장이 기록되어
  *   기록에서 다시 열거나 실행할 수 없던 문제 (docs/chromite/swing-query-library.md "매개변수 바인딩")
  * - 2026-11-06 화면 문구를 ToolsMessages로 옮김(OS 언어를 따름)
+ * - 2026-11-07 오류 문구를 {@link ErrorText}로 만듦(클래스 이름이 화면에 나오지 않게, docs/chromite/swing-frontend.md "오류 문구")
  */
 final class QueryParameterBinder implements SqlParameterBinding {
 
@@ -201,7 +202,7 @@ final class QueryParameterBinder implements SqlParameterBinding {
                 try {
                     boundValue = definition != null ? definition.toJdbcValue(value) : CommonUtils.nullIfEmpty(value);
                 } catch (IllegalArgumentException e) {
-                    throw new DBException(NLS.bind(ToolsMessages.param_error_value, originalName, e.getMessage()));
+                    throw new DBException(NLS.bind(ToolsMessages.param_error_value, originalName, ErrorText.describeLine(e)));
                 }
                 boundValues.add(boundValue);
                 boundTypes.add(type);

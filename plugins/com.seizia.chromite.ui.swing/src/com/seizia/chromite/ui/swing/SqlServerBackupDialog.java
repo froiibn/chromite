@@ -30,6 +30,7 @@ import javax.swing.*;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
 import java.awt.*;
+import java.sql.SQLException;
 import java.util.List;
 
 /**
@@ -47,6 +48,7 @@ import java.util.List;
  *
  * 변경 이력:
  * - 2026-11-06 최초 작성: 백업·복원 (docs/chromite/swing-backup-restore.md)
+ * - 2026-11-07 오류 문구를 {@link ErrorText}로 만듦(클래스 이름이 화면에 나오지 않게, docs/chromite/swing-frontend.md "오류 문구")
  */
 final class SqlServerBackupDialog extends DatabaseTaskDialog {
 
@@ -293,7 +295,9 @@ final class SqlServerBackupDialog extends DatabaseTaskDialog {
     @NotNull
     @Override
     protected String getErrorText(@NotNull Throwable error) {
-        return SQLServerBackupRestore.getErrorText(error);
+        // All server messages of a failed batch; other errors as everywhere else
+        return CommonUtils.getCauseOfType(error, SQLException.class) != null
+            ? SQLServerBackupRestore.getErrorText(error) : super.getErrorText(error);
     }
 
     @NotNull

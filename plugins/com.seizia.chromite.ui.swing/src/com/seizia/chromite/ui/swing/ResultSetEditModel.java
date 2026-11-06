@@ -74,6 +74,7 @@ import java.util.Objects;
  * 변경 이력:
  * - 2026-11-06 G단계: 최초 작성 (docs/chromite/swing-frontend.md "구현 현황 — G단계")
  * - 2026-11-06 화면 문구를 EditorMessages로 옮김(OS 언어를 따름)
+ * - 2026-11-07 오류 문구를 {@link ErrorText}로 만듦(클래스 이름이 화면에 나오지 않게, docs/chromite/swing-frontend.md "오류 문구")
  */
 final class ResultSetEditModel implements DBDResultSetModel {
 
@@ -209,7 +210,7 @@ final class ResultSetEditModel implements DBDResultSetModel {
             return EditorMessages.editor_grid_reason_no_connection;
         }
         if (bindError != null) {
-            return NLS.bind(EditorMessages.editor_grid_reason_metadata, bindError.getMessage());
+            return NLS.bind(EditorMessages.editor_grid_reason_metadata, ErrorText.describeLine(bindError));
         }
         DBSEntity source = DBExecUtils.detectSingleSourceTable(bindings);
         if (source == null) {

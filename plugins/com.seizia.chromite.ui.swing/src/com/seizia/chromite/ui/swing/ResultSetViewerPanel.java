@@ -99,6 +99,7 @@ import java.util.function.Consumer;
  * - 2026-11-06 다시 읽기·다음 페이지 뒤 행 수를 알림({@link ResultSetGrid.Host#rowsChanged}): 쿼리 상태 줄이 실행 때 행 수에 머물던 문제
  *   (docs/chromite/swing-result-viewer.md)
  * - 2026-11-06 화면 문구를 EditorMessages로 옮김(OS 언어를 따름)
+ * - 2026-11-07 오류 문구를 {@link ErrorText}로 만듦(클래스 이름이 화면에 나오지 않게, docs/chromite/swing-frontend.md "오류 문구")
  */
 final class ResultSetViewerPanel extends JPanel {
 
@@ -1373,7 +1374,7 @@ final class ResultSetViewerPanel extends JPanel {
             return;
         }
         if (error != null) {
-            String message = CommonUtils.getAllExceptionMessages(error);
+            String message = ErrorText.describe(error);
             statusMessage = NLS.bind(EditorMessages.editor_viewer_read_failed, CommonUtils.truncateString(message.replace('\n', ' '), 200));
             host.appendError(NLS.bind(EditorMessages.editor_viewer_cant_read_again, message));
             log.debug("Result read failed", error);

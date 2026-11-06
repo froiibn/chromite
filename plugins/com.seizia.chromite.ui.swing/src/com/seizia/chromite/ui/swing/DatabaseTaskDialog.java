@@ -57,6 +57,7 @@ import java.util.List;
  *
  * 변경 이력:
  * - 2026-11-06 최초 작성: 백업·복원 (docs/chromite/swing-backup-restore.md)
+ * - 2026-11-07 오류 문구를 {@link ErrorText}로 만들고, 실패하면 스택 추적을 여는 "자세히…" 단추를 보여 줌 (docs/chromite/swing-frontend.md "오류 문구")
  */
 abstract class DatabaseTaskDialog extends JDialog {
 
@@ -78,6 +79,7 @@ abstract class DatabaseTaskDialog extends JDialog {
     private final JLabel statusLabel = new JLabel(BackupRestoreMessages.task_status_ready);
     private final JProgressBar progressBar = new JProgressBar(0, 100);
     private final JButton scriptButton = new JButton(BackupRestoreMessages.task_button_script);
+    private final ErrorDialog.DetailsButton errorDetailsButton = new ErrorDialog.DetailsButton(this::getTitle);
     private final JButton okButton = new JButton(BackupRestoreMessages.task_button_ok);
     private final JButton cancelButton = new JButton(BackupRestoreMessages.task_button_cancel);
     private final List<Page> pages = new ArrayList<>();
@@ -170,6 +172,7 @@ abstract class DatabaseTaskDialog extends JDialog {
         cancelButton.addActionListener(e -> cancelOrClose());
         JPanel leftButtons = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
         leftButtons.add(scriptButton);
+        leftButtons.add(errorDetailsButton);
         JPanel rightButtons = new JPanel(new FlowLayout(FlowLayout.RIGHT, 6, 0));
         rightButtons.add(okButton);
         rightButtons.add(cancelButton);
@@ -317,7 +320,7 @@ abstract class DatabaseTaskDialog extends JDialog {
             return builder.build();
         } catch (Exception e) {
             log.debug("Can't build the script", e);
-            JOptionPane.showMessageDialog(this, getErrorText(e), getTitle(), JOptionPane.ERROR_MESSAGE);
+            ErrorDialog.show(this, getTitle(), getErrorText(e), e);
             return null;
         }
     }
@@ -327,7 +330,7 @@ abstract class DatabaseTaskDialog extends JDialog {
      */
     @NotNull
     protected String getErrorText(@NotNull Throwable error) {
-        return CommonUtils.getAllExceptionMessages(error);
+        return ErrorText.describe(error);
     }
 
     private void showScriptMenu() {
@@ -383,10 +386,11 @@ abstract class DatabaseTaskDialog extends JDialog {
             run = prepareRun();
         } catch (Exception e) {
             log.debug("Can't prepare the task", e);
-            JOptionPane.showMessageDialog(this, getErrorText(e), getTitle(), JOptionPane.ERROR_MESSAGE);
+            ErrorDialog.show(this, getTitle(), getErrorText(e), e);
             return;
         }
         messagesArea.setText(""); //$NON-NLS-1$
+        errorDetailsButton.setError(null, null);
         pageList.setSelectedIndex(pages.size() - 1);
         pageList.setEnabled(false);
         okButton.setEnabled(false);
@@ -438,7 +442,10 @@ abstract class DatabaseTaskDialog extends JDialog {
             } else {
                 log.debug("Database task failed", error);
                 statusLabel.setText(BackupRestoreMessages.task_status_failed);
-                appendMessage(getErrorText(error));
+                String errorText = getErrorText(error);
+                appendMessage(errorText);
+                // The stack trace (with class names) only on demand, for bug reports
+                errorDetailsButton.setError(errorText, error);
             }
             pageList.setEnabled(true);
             okButton.setEnabled(true);

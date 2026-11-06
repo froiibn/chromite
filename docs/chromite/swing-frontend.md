@@ -1928,6 +1928,115 @@ EDT 에이전트로 단추를 누르고(`doClick`) 결과를 읽었다. 캡처�
 - 회귀 테스트는 실행하지 않았다(요청 없음). 영향받을 수 있는 기능: Results 숨기기·보이기(Ctrl+R, View 메뉴, — 단추), 실행·실행 계획 뒤 Results 표시, 쿼리 상태 줄 위치,
   Reset Window Layout, 창을 닫을 때 Results 높이 저장, 테마 전환 뒤 숨겨져 있던 결과 컴포넌트 모양.
 
+## 오류 문구 (2026-11-07)
+
+사용자 보고(2026-11-07, 테이블 복사 화면): 오류 문구가 `org.jkiss.dbeaver.DBRuntimeException: Error while finishing result set fetching into '…':`로 시작했다.
+화면 문구에 "dbeaver"와 Java 클래스 이름이 나오면 안 된다(브랜딩 규칙). 같은 날 보고된 백업·복원 메시지 끝의
+`Service 'org.jkiss.dbeaver.runtime.ui.UIServiceSystemAgent' not found`(followups #40)도 같은 묶음으로 고쳤다.
+
+### 근본 원인
+
+- **예외 → 문구를 곳곳에서 따로 만들었다.** Swing 번들의 30여 곳이 `CommonUtils.getAllExceptionMessages(e)`, `e.getMessage()`,
+  `CommonUtils.getRootCause(e).getMessage()`로 문구를 만들었다. `getAllExceptionMessages`는 각 예외의 `getMessage()`를 이어 붙일 뿐이라
+  `Throwable(Throwable cause)` 생성자로 만든 예외(메시지 = 원인의 `toString()` = `패키지.클래스: 메시지`)가 사슬에 있으면 클래스 이름이 그대로 나온다.
+  모델 계층의 `GeneralUtils.getExceptionMessage`(작업 상태 `IStatus`의 메시지)도 클래스가 `toString()`을 선언하면 `toString()`을 쓴다.
+  메시지가 없는 예외는 빈 문구가 되었고, JVM이 만든 NPE 문구(`Cannot invoke "org.jkiss…"`)는 패키지 이름을 담는다.
+- **`UIServiceSystemAgent`가 Swing 제품에 없었다.** 네이티브 도구 처리기(`AbstractNativeToolHandler.notifyToolFinish`, `org.jkiss.dbeaver.tasks.native`
+  `AbstractNativeToolHandler.java:270`)가 작업이 끝나면 `DBWorkbench.getService(UIServiceSystemAgent.class)`를 부르고, 서비스가 없으면
+  `DBWorkbench.getService`(`org.jkiss.dbeaver.model` `DBWorkbench.java:86-92`)가 `log.debug("Service '…' not found")`를 남긴다. 작업 스레드의 로그는
+  작업 출력(`Log.setLogWriter`)으로 가므로 메시지 페이지에 그대로 찍혔다. SWT 제품은 `org.jkiss.dbeaver.core/plugin.xml:1112`의
+  `org.jkiss.dbeaver.service` 확장으로 `UIServiceSystemAgentImpl`(트레이 알림)을 등록하는데, Swing 제품에는 이 번들이 없다.
+
+### 구조
+
+| 클래스 | 역할 |
+|---|---|
+| `ErrorText`(새) | 예외·`IStatus` → 화면 문구의 유일한 변환기. `describe`(여러 줄), `describeMessages`(SQL 머리말이 따로 있는 곳), `describeLine`(상태 줄·셀·도구 설명), `summary`(가장 안쪽 메시지, 표 셀), `describe(IStatus)`, `clean`(모델이 넘긴 문자열), `stackTrace`, `isStackTraceLine` |
+| `ErrorDialog`(새) | 오류 대화상자 본문: 문구 + 접힌 **자세히**(스택 추적) + **복사**. `JOptionPane`의 메시지 자리에 들어가므로 단추(확인, 중지/다시 시도/건너뛰기)는 호출하는 쪽이 정한다. 인라인 오류 영역용 `DetailsButton`("자세히…") |
+| `SwingSystemAgent`(새) | `UIServiceSystemAgent`의 Swing 구현. `plugin.xml`의 `org.jkiss.dbeaver.service` 확장으로 등록(SWT와 같은 방식). 오래 걸린 작업이 끝나면 알림 창(`NotificationToast`)으로 알린다 |
+| `internal/ErrorMessages`(새, `_ko`) | 위 문구. `CoreMessages`는 같은 날 PR #55가 고쳐 병합 충돌을 피하려고 따로 두었다 |
+
+### 문구 규칙 (`ErrorText`)
+
+1. 원인 사슬을 따라(같은 예외는 한 번, `SQLException.getNextException()` 사슬 포함: 배치 오류의 실제 원인이 거기 있다) 각 예외의 `getLocalizedMessage()`를 한 줄씩 모은다.
+2. 메시지 앞의 예외 클래스 이름(`java.sql.SQLException: `, `Caused by: …`)을 떼고, 여러 겹이면 모두 뗀다. 클래스 이름뿐인 메시지는 버린다.
+   "클래스 이름"은 소문자로 시작하는 패키지 + 대문자로 시작하는 이름이고, 그 이름이 사슬에 있는 예외 클래스이거나 `Exception`/`Error`/`Throwable`/`Warning`/`Fault`로 끝날 때만이다
+   (`dbo.Table: …` 같은 DB 개체 이름은 건드리지 않는다).
+3. 문장 안의 제품·플랫폼 패키지 이름(`org.jkiss.`, `com.seizia.`, `org.eclipse.`, `java.`, `javax.`, `jdk.`, `sun.`, `/` 표기 포함)은 단순 이름만 남긴다.
+   다른 점 이름(`sales.dbo.Orders`, 드라이버 클래스 `org.postgresql.Driver`)은 사용자에게 필요한 정보라 그대로 둔다.
+4. 앞 줄에 이미 들어 있는 메시지는 버리고, 바로 앞 줄을 품은 더 긴 메시지는 앞 줄을 대신한다(DBeaver 래퍼가 원인 메시지를 반복하는 경우).
+5. 메시지가 인자뿐인 예외는 종류 이름을 붙인다: 알 수 없는 호스트, 파일을 찾을 수 없음(`NoSuchFileException`), 파일이 이미 있음, 액세스 거부, 폴더가 비어 있지 않음, 폴더가 아님, 클래스를 찾을 수 없음.
+6. JVM이 코드를 설명하는 예외(`NullPointerException`, `ClassCastException`, `IndexOutOfBoundsException`, `ArrayStoreException`)의 메시지는 보이지 않는다.
+7. 보여 줄 메시지가 하나도 없으면 "예기치 않은 오류가 발생했습니다(메모리 부족)"처럼 일반 문구 + 가장 안쪽 종류(메모리 부족, 스택 오버플로, 취소됨, 시간 초과, 입출력 오류, 내부 오류)만 보인다.
+8. DB 오류 번호·SQLSTATE: `DBDatabaseException`이 메시지에 이미 넣는다(`SQL 오류 [208] [S0002]: …`). 문구에 번호나 상태가 없을 때만 쿼리 메시지 머리말과 같은 꼴
+   (`메시지 208, 상태 S0002`, `EditorMessages.editor_sql_error_*`와 같은 용어)로 마지막 줄에 붙인다. 쿼리 메시지 탭은 머리말에 이미 있으므로 붙이지 않는다(`describeMessages`).
+9. `IStatus`: 상태 메시지(정리한 것)와 상태의 예외 문구를 같은 중복 규칙으로 모은다. 대화상자의 자세히에는 상태 트리의 첫 예외 스택 추적을 넣는다.
+
+**설계 결정 — 스택 추적은 접힌 자세히에만:** 스택 추적에는 패키지 이름(`org.jkiss.dbeaver…`)이 그대로 있다. 버그 보고에 필요하므로 지우지 않고,
+처음 보이는 문구에는 넣지 않으며, 오류 대화상자의 접힌 "자세히"(펼치면 고정폭 글꼴, 14줄)와 "복사"(문구 + 스택 추적을 클립보드로)로만 볼 수 있게 했다.
+인라인 오류 영역(테이블 복사·데이터 전송의 진행 페이지, 백업·복원의 메시지 페이지)은 실패하면 "자세히…" 단추가 나타나 같은 대화상자를 연다.
+쿼리 메시지 탭, 상태 줄, 표 셀, 도구 설명에는 자세히를 두지 않았다(서버 오류는 스택 추적이 쓸모없고, 공간이 없다). 스택 추적은 지금처럼 디버그 로그에 남는다.
+
+### 적용한 곳
+
+| 위치 | 전 | 후 |
+|---|---|---|
+| `SwingPlatformUI.showError(…, Throwable)`, `showError(…, IStatus)` | `getAllExceptionMessages`, 상태 메시지 그대로 | `ErrorText.describe` + `ErrorDialog`(자세히·복사) |
+| `SwingPlatformUI.showErrorStopRetryIgnore`(데이터 전송 중 "실행 오류") | `getAllExceptionMessages` | 같은 규칙 + 자세히·복사, 단추는 그대로 |
+| `SwingPlatformUI.showError(title, message)`, `showMessageBox(…, true)`, 알림 창 | 모델 문자열 그대로 | `ErrorText.clean` |
+| `DataTransferWizard` 진행 표 메시지 열 / 오류 영역 | `getRootCause().getMessage()` / `getAllExceptionMessages` | `summary` / `describe` + "자세히…" |
+| `DatabaseTaskDialog`(백업·복원) 메시지 페이지·스크립트·준비 오류 | `getAllExceptionMessages`, `JOptionPane` | `describe`, `ErrorDialog`, 실패 뒤 "자세히…" |
+| `SqlServerBackupDialog`·`SqlServerRestoreDialog` | `SQLServerBackupRestore.getErrorText`(SQL 아닌 오류는 가장 안쪽 메시지만) | SQL 오류는 서버 메시지 전부(그대로), 그 밖은 `describe` |
+| `NativeBackupRestoreDialog` 메시지 페이지 | `\tat`, `\t...` 줄만 뺌 | 스택 추적 머리줄(`…Exception: …`, `Caused by:`, `Suppressed:`)도 빼고 남은 줄은 `clean` |
+| `SqlEditorPanel` 메시지 탭(쿼리 오류 머리말 아래, 준비 오류, 실제 계획, 작업 상태 오류), 쿼리 기록 | `getAllExceptionMessages`, `status.getMessage()` | `describeMessages` / `describe` / `describe(IStatus)` |
+| `SqlPlanExplainer`, `ActualPlanReceiver`(실행 계획 탭) | `getAllExceptionMessages` | `describe` |
+| `ResultSetGrid`(저장 오류, 잘못된 값), `ResultSetGridReceiver`(셀 읽기 오류), `ResultSetEditModel`(읽기 전용 이유), `ResultSetViewerPanel`(다시 읽기 오류), `ResultSetValuePanel`(값 읽기, JSON·XML 오류) | `getMessage()`, `getAllExceptionMessages` | `describeLine` / `describe` |
+| `LockManagerPanel`, `SessionManagerPanel`(관리 도구 상태 줄·도구 설명), `ObjectSearchPanel`(개체 찾기 문제 목록) | `getMessage()` | `describeLine` |
+| `QueryScheduler`(예약 쿼리 실행 기록·알림), `QueryParameterDialog`(조회 값 오류), `QueryParameterBinder`·`QueryLibraryParameter`(매개 변수 값 오류) | `getAllExceptionMessages`, `getMessage()` | `describe` / `describeLine` |
+| `ConnectionSettingsPanel`(URL·드라이버 속성 오류), `RegisteredServerCommands`(그룹 이름 검사), `PropertiesPanel`, `DatabaseCopyPages`·`DataImportWizard`(DDL 미리 보기, 파일 미리 보기), `ChromiteSwingApplication`(시작 오류) | `getMessage()`, `getAllExceptionMessages` | `describe` / `describeLine` |
+| `ProgressDialog.runTask` | 감싼 오류 `"Internal error"`(영어) | `ErrorMessages.error_unexpected`(지역화) |
+| `SwingConnectionService`(연결 실패 대화상자) | 제목 = 모델 Job 이름 `Connect to 'X'`(영어) | 제목 "연결", 문구 "'X'에 연결하지 못했습니다." |
+| `ConnectionCommands.disconnect` | 제목 = `Disconnect from 'X'`(영어) | 제목 "연결 끊기", 문구 "'X'의 연결을 끊지 못했습니다." |
+
+그 밖의 오류 대화상자(테이블 디자이너, 개체 탐색기, ER 다이어그램, 쿼리 라이브러리, 연결 대화상자, 보안 편집기, 가져오기·내보내기 등)는 모두 `DBWorkbench.getPlatformUI().showError`를 거치므로 위 첫 줄로 함께 바뀐다.
+
+### 오래 걸린 작업 알림 (`SwingSystemAgent`)
+
+- 등록: Swing 번들 `plugin.xml`의 `org.jkiss.dbeaver.service` 확장(`UIServiceSystemAgent` → `SwingSystemAgent`). SWT의 `org.jkiss.dbeaver.core/plugin.xml:1112`와 같은 방식이고,
+  `ServiceRegistry`가 확장 지점에서 읽어 `DBWorkbench.getService`가 찾는다(`SwingConnectionService`, `SwingDriversService`와 같음).
+- 설정 키는 SWT와 같다(`agent.long.operation.notify`, `agent.long.operation.timeout`, `DBeaverPreferences`). Swing 제품에는 기본값을 넣는 `DesktopPreferencesInitializer`가 없어
+  값이 없으면 기본값(알림 켬, 30초)을 쓴다. SWT는 트레이가 있는 Windows만 기본으로 켜지만 Swing 알림 창은 모든 OS에 있어 켬으로 했다.
+- 알림: 제목 "오래 걸린 작업 완료", 내용은 모델이 넘긴 문자열(`<작업 유형> - <작업 이름> has finished`, 모델 영어 문구)이다.
+
+### 남긴 것
+
+- 모델 계층의 영어 문구(오류 메시지 본문, 작업 이름, 진행 단계 이름, 위 알림 내용)는 번역하지 않았다. 사용자 보고의 `'chr_type_mapping_from_ora.null'`은
+  `DBDDataReceiver`(`org.jkiss.dbeaver.model`, `DBDDataReceiver.java:78`)가 대상 소비자의 `toString()`을 문구에 넣은 것으로, 모델 코드라 고치지 않았다.
+- 쿼리 메시지 탭의 경고(`SQLWarning`, PRINT·NOTICE)는 서버 문구라 그대로 둔다(`SqlEditorPanel.reportQueryResult`).
+- 이 변경 전에 저장된 쿼리 기록·예약 쿼리 기록의 오류 문구는 저장된 그대로 보인다.
+- `ProgressDialog`의 "Canceling…"은 지역화되지 않은 영어 문구다(오류 문구 범위 밖, 보고만).
+- 내부 이름 `dbeaver-debug.log`(`DBConstants.DEBUG_LOG_FILE_NAME`), 격리 컨텍스트 이름 등은 화면에 나오지 않아 그대로 둔다(CLAUDE.md: 내부 이름은 별도 작업).
+
+### 확인 (2026-11-07)
+
+빌드 `-Pproduct-dbeaver-ce,product-chromite-swing` BUILD SUCCESS. Windows 11, JBR 25(`-vm ...\server\jvm.dll`), 개인 작업 공간 `D:\Tools\_scratch\error-text\ws`,
+한국어(OS 기본)와 `-nl en`. 프로세스 안 EDT 시험 에이전트(OS 입력 없음)로 조작했다. 시험 DB: PostgreSQL 17·SQL Server 2022의 `chr_error_text`.
+캡처는 `D:\Tools\_scratch\error-text\shots\`(`ko-light-*`, `ko-dark-*`, `en-light-*`).
+
+| 경우 | 보이는 문구(클래스·패키지 이름 없음) | 자세히 |
+|---|---|---|
+| a. 테이블 복사 PostgreSQL `copy_src` → SQL Server 기존 `copy_src`(`varchar(3)`, 삽입 실패) | "실행 오류" 대화상자: `SQL 오류 [2628] [S0001]: String or binary data would be truncated …`. 진행 페이지 오류 영역: `Error while finishing result set fetching into '…'` / `Can't insert row` / `SQL 오류 [2628] …`(전에는 맨 앞에 `org.jkiss.dbeaver.DBRuntimeException: `), 표 메시지 열은 가장 안쪽 메시지 | 실행 오류 대화상자와 오류 영역의 "자세히…" 모두 스택 추적(`DBDatabaseException: org.jkiss.dbeaver.DBRuntimeException: …`이 원인이었음을 보여 줌) |
+| b. `SELECT * FROM no_such_table` | PostgreSQL `메시지 0, 상태 42P01, 줄 1, 열 15` / `SQL 오류 [42P01]: ERROR: relation "no_such_table" does not exist`, SQL Server `메시지 208, 상태 S0002, 줄 1` / `SQL 오류 [208] [S0002]: Invalid object name …` | (메시지 탭, 해당 없음) |
+| c. 잘못된 포트(55439) | 제목 "연결", `'ET Wrong Port'에 연결하지 못했습니다.` / 드라이버 메시지(전에는 제목 `Connect to 'ET Wrong Port'`) | 펼침, 고정폭 스택 추적, 복사 |
+| d. pg_dump 백업 | 메시지 페이지 끝이 `Task … finished …` / `데이터베이스 'chr_error_text'을(를) 백업했습니다.`, `UIServiceSystemAgent` 줄 없음(작업 공간 디버그 로그에도 0건). 잘못된 파일 복원(pg_restore 실패) | 실패 뒤 "자세히…" 단추 → 스택 추적 |
+| e. 테이블 디자이너 저장 실패(SQL Server `dsg.txt`를 int로) | `'dsg'을(를) 저장하지 못했습니다.` / `SQL 오류 [447] [S0001]: Expression type int is invalid for COLLATE clause.` | 펼침, 복사 → 클립보드에 문구 + 스택 추적 |
+
+- 영어(`-nl en`)에서 a~d를 다시 확인했다(`Can't connect to 'ET Wrong Port'`, `Msg 208, State S0002, Line 1`, Details/Copy).
+- 회귀 테스트는 실행하지 않았다(요청 없음). 영향받을 수 있는 기능: 모든 오류 대화상자(`showError`, 실행 오류 중지·다시 시도), 데이터 전송·테이블 복사 진행 페이지,
+  백업·복원 메시지 페이지, 쿼리 메시지 탭·쿼리 기록·예약 쿼리 기록의 오류 문구, 관리 도구 상태 줄, 결과 그리드 편집 오류, 오래 걸린 네이티브 작업 뒤 알림 창.
+- 시험 중 본 범위 밖 문제(보고만): 테이블 디자이너가 문자열 열을 `int`로 바꿀 때 `COLLATE`를 남긴 `ALTER COLUMN`을 만든다(위 e의 서버 오류).
+  도킹 탭 넘침 단추의 도구 설명 "Show Hidden Tabs"(ModernDocking 라이브러리 문구)가 번역되지 않았다.
+
 ## 변경 이력
 
 - 2026-11-06 최초 작성. Swing 전환 결정, 구조, 재사용 분석, MVP 범위, F5 실행 사양을 정리.
@@ -1999,3 +2108,6 @@ EDT 에이전트로 단추를 누르고(`doClick`) 결과를 읽었다. 캡처�
 - 2026-11-06 빈 문서 영역: Welcome 탭을 없애고 문서가 없을 때 문서 영역에 가로 로고(SVG, 테마별)·안내·단축키. "빈 문서 영역" 절 추가.
 - 2026-11-07 Results 자동 숨김(사용자 결정): Results 카드는 활성 문서가 쿼리 창일 때만 보이고, 숨김은 쿼리 창마다 기억, 쿼리 창이 없으면 Ctrl+R·View > Results를 끔.
   표시 여부 설정 `results.visible`과 Results 자리 표시 삭제. "Results 자동 숨김" 절 추가, B단계 설정 표·C단계 Results 절·도구 창 도킹·빈 문서 영역 절에 표시.
+- 2026-11-07 오류 문구: 예외를 화면 문구로 바꾸는 곳을 `ErrorText` 하나로 모아 클래스·패키지 이름이 보이지 않게 함, 오류 대화상자에 접힌 자세히(스택 추적)·복사,
+  인라인 오류 영역에 "자세히…", Swing `UIServiceSystemAgent`(`SwingSystemAgent`) 등록으로 백업·복원 메시지의 "Service … not found" 줄 제거,
+  연결·연결 끊기 오류 제목 지역화. "오류 문구" 절 추가.

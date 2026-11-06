@@ -17,6 +17,7 @@
 package com.seizia.chromite.ui.swing;
 
 import com.seizia.chromite.ui.swing.internal.CoreMessages;
+import com.seizia.chromite.ui.swing.internal.ErrorMessages;
 import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.Status;
 import org.eclipse.core.runtime.jobs.IJobChangeEvent;
@@ -50,6 +51,7 @@ import java.awt.event.WindowEvent;
  * 변경 이력:
  * - 2026-11-06 B단계: 최초 작성 (docs/chromite/swing-frontend.md "구현 현황 — B단계")
  * - 2026-11-06 화면 문구를 CoreMessages로 옮김(OS 언어를 따름)
+ * - 2026-11-07 감싼 오류의 영어 문구("Internal error")를 지역화된 문구로 바꿈 (docs/chromite/swing-frontend.md "오류 문구")
  */
 final class ProgressDialog {
 
@@ -106,7 +108,7 @@ final class ProgressDialog {
         if (error[0] instanceof DBException dbe) {
             throw dbe;
         } else if (error[0] != null) {
-            throw new DBException("Internal error", error[0]);
+            throw new DBException(ErrorMessages.error_unexpected, error[0]);
         }
         @SuppressWarnings("unchecked")
         T typedResult = (T) result[0];

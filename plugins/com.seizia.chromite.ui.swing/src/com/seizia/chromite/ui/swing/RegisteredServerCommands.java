@@ -65,6 +65,7 @@ import java.util.Objects;
  * 변경 이력:
  * - 2026-11-06 Registered Servers: 최초 작성 (docs/chromite/swing-registered-servers.md)
  * - 2026-11-06 화면 문구를 CoreMessages로 옮김(OS 언어를 따름)
+ * - 2026-11-07 오류 문구를 {@link ErrorText}로 만듦(클래스 이름이 화면에 나오지 않게, docs/chromite/swing-frontend.md "오류 문구")
  */
 final class RegisteredServerCommands {
 
@@ -354,7 +355,7 @@ final class RegisteredServerCommands {
                 try {
                     GeneralUtils.validateResourceNameUnconditionally(value);
                 } catch (DBException e) {
-                    problem = e.getMessage();
+                    problem = ErrorText.describe(e);
                 }
                 DBPDataSourceFolder existing = findGroup(registry, parentGroup, value);
                 if (problem == null && existing != null && !Objects.equals(existing.getName(), initial)) {

@@ -101,6 +101,7 @@ import java.util.List;
  * 변경 이력:
  * - 2026-11-06 최초 작성: 백업·복원 (docs/chromite/swing-backup-restore.md)
  * - 2026-11-06 pg_restore가 오류로 끝난 복원(종료 코드 1)을 성공으로 보이던 것을 실패로 보이게 고침
+ * - 2026-11-07 메시지 페이지에서 로그의 스택 추적 머리줄("…Exception: …", "Caused by:")도 빼고 클래스 이름을 줄임 (docs/chromite/swing-frontend.md "오류 문구")
  */
 final class NativeBackupRestoreDialog extends DatabaseTaskDialog {
 
@@ -727,10 +728,11 @@ final class NativeBackupRestoreDialog extends DatabaseTaskDialog {
         private void flushLine() {
             String text = line.toString(StandardCharsets.UTF_8);
             line.reset();
-            // The handler also routes its log here; stack trace lines of a logged error are left out (the error
-            // message itself is shown)
-            if (!CommonUtils.isEmptyTrimmed(text) && !text.startsWith("\tat ") && !text.startsWith("\t...")) { //$NON-NLS-1$ //$NON-NLS-2$
-                appendMessage(text);
+            // The handler also routes its log here. Printed stack traces of a logged error (header, "at", "Caused by")
+            // are left out: the error itself is shown at the end, its stack trace behind Details. Class names in the
+            // remaining lines are shortened as in every other error text.
+            if (!CommonUtils.isEmptyTrimmed(text) && !ErrorText.isStackTraceLine(text)) {
+                appendMessage(ErrorText.clean(text));
             }
         }
     }

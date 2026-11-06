@@ -79,6 +79,7 @@ import java.util.Map;
  * - 2026-11-06 찾기 칸과 "Only my sessions"가 테마 전환을 놓치던 문제: 패널과 함께 만들고 첫 읽기 뒤에야 붙이므로(createTools),
  *   붙일 때 현재 Look and Feel로 다시 설치함 (docs/chromite/swing-admin-tools.md)
  * - 2026-11-06 화면 문구를 ConnectionMessages로 옮김(OS 언어를 따름)
+ * - 2026-11-07 오류 문구를 {@link ErrorText}로 만듦(클래스 이름이 화면에 나오지 않게, docs/chromite/swing-frontend.md "오류 문구")
  */
 final class SessionManagerPanel extends JPanel {
 
@@ -510,9 +511,8 @@ final class SessionManagerPanel extends JPanel {
 
     private void updateStatus(@Nullable Throwable error) {
         if (error != null) {
-            statusLabel.setText(NLS.bind(ConnectionMessages.common_status_error,
-                CommonUtils.notEmpty(error.getMessage()).replaceAll("\\s+", " "))); //$NON-NLS-1$ //$NON-NLS-2$
-            statusLabel.setToolTipText(error.getMessage());
+            statusLabel.setText(NLS.bind(ConnectionMessages.common_status_error, ErrorText.describeLine(error)));
+            statusLabel.setToolTipText(ErrorText.describeLine(error));
             log.debug("Error reading sessions", error);
             return;
         }

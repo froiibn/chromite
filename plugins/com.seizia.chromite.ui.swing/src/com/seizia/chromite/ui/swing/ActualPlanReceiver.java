@@ -46,6 +46,7 @@ import java.util.function.Supplier;
  *
  * 변경 이력:
  * - 2026-11-06 최초 작성 (docs/chromite/swing-sql-editor-plus.md)
+ * - 2026-11-07 오류 문구를 {@link ErrorText}로 만듦(클래스 이름이 화면에 나오지 않게, docs/chromite/swing-frontend.md "오류 문구")
  */
 final class ActualPlanReceiver implements DBDDataReceiver {
 
@@ -135,7 +136,7 @@ final class ActualPlanReceiver implements DBDDataReceiver {
                 DBCPlan plan = provider.parsePlan(query, data);
                 entry = new ExecutionPlanView.Entry(plan.getQueryString(), plan, null, true);
             } catch (DBException e) {
-                entry = new ExecutionPlanView.Entry(query, null, CommonUtils.getAllExceptionMessages(e), true);
+                entry = new ExecutionPlanView.Entry(query, null, ErrorText.describe(e), true);
             }
             planConsumer.accept(entry);
         }
