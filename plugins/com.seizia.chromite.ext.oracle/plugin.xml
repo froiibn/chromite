@@ -442,6 +442,8 @@
 
             <type name="XMLTYPE"/>
             <type name="JSON"/>
+            <type name="BINARY_FLOAT"/>
+            <type name="BINARY_DOUBLE"/>
             <type name="SYS.XMLTYPE"/>
             <type name="REFCURSOR"/>
             <type name="REF CURSOR"/>
