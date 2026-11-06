@@ -178,6 +178,8 @@ import java.util.concurrent.atomic.AtomicLong;
  * - 2026-11-06 결과 표를 필터·정렬·다음 페이지로 다시 읽은 뒤 상태 줄 행 수를 지금 보이는 행으로 바꿈 (docs/chromite/swing-result-viewer.md)
  * - 2026-11-06 Query Library의 바인딩한 실행을 Query History에 값을 넣은 글자로 기록 (docs/chromite/swing-query-library.md "매개변수 바인딩")
  * - 2026-11-06 화면 문구를 EditorMessages로 옮김(OS 언어를 따름)
+ * - 2026-11-06 실행이 끝날 때 부르는 연결 지점({@link #setExecutionFinishedListener}, Modify 창이 Object Explorer 노드를 다시 읽음)
+ *   (docs/chromite/swing-source-editor.md)
  */
 final class SqlEditorPanel extends JPanel {
 
@@ -270,6 +272,8 @@ final class SqlEditorPanel extends JPanel {
     private Execution execution;
     @Nullable
     private SqlEditorExtension extension;
+    @Nullable
+    private Runnable executionFinishedListener;
 
     /**
      * @param dataSourceContainer connection of the query window, or null to choose it later in the tool bar
@@ -446,6 +450,14 @@ final class SqlEditorPanel extends JPanel {
     @Nullable
     SqlEditorExtension getExtension() {
         return extension;
+    }
+
+    /**
+     * Called in the EDT whenever a run of this window has ended, also after errors and cancels (a Modify window reads its
+     * object again in Object Explorer).
+     */
+    void setExecutionFinishedListener(@Nullable Runnable listener) {
+        this.executionFinishedListener = listener;
     }
 
     /**
@@ -831,6 +843,9 @@ final class SqlEditorPanel extends JPanel {
         finishActualPlan(run, canceled);
         // The run may have connected, or changed the default database (USE)
         refreshSchemas();
+        if (executionFinishedListener != null) {
+            executionFinishedListener.run();
+        }
     }
 
     /**
