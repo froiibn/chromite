@@ -53,8 +53,6 @@ import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ComponentAdapter;
 import java.awt.event.ComponentEvent;
-import java.awt.event.ContainerEvent;
-import java.awt.event.ContainerListener;
 import java.awt.event.HierarchyEvent;
 import java.awt.event.InputEvent;
 import java.awt.event.KeyEvent;
@@ -181,6 +179,8 @@ import java.util.function.IntConsumer;
  *   Include Actual Execution Plan을 선택 상태가 있는 동작으로(메뉴와 도구 막대 단추가 같이 씀), 실행·계획 켜짐을 쿼리 창의
  *   {@code canExecute}·{@code canCancel}·{@code canExplain}으로 (docs/chromite/swing-frontend.md "SQL Editor 도구 막대")
  * - 2026-11-07 쿼리 창이 활성이 되면 쿼리 상태 줄의 커밋 방식을 다시 읽음 (docs/chromite/swing-frontend.md "자동 커밋 상태")
+ * - 2026-11-07 테마를 바꾼 뒤 문서 탭을 모두 닫고 새로 열면 탭 영역이 깨지던 문제: 빈 화면 전환을 컨테이너 리스너 대신
+ *   {@link EditorTabbedPane}의 탭 추가·삭제가 끝난 뒤에 함 (docs/chromite/swing-frontend.md "빈 문서 영역")
  */
 final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplorerPanel.QueryWindows, TableDesignerPanel.Host, QueryLibraryPanel.Host {
 
@@ -458,17 +458,6 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
         updateQueryActions();
         documentCards.add(new WelcomePanel(List.of(CoreMessages.main_welcome_hint, CoreMessages.main_welcome_next),
             List.of(newQueryAction, openFileAction, registeredServersWindow.getToggleAction())), WELCOME_CARD);
-        documentTabs.addContainerListener(new ContainerListener() {
-            @Override
-            public void componentAdded(ContainerEvent e) {
-                updateDocumentCard();
-            }
-
-            @Override
-            public void componentRemoved(ContainerEvent e) {
-                updateDocumentCard();
-            }
-        });
         updateDocumentCard();
 
         setJMenuBar(createMenuBar());
@@ -1394,7 +1383,7 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
      */
     @NotNull
     private JTabbedPane createDocumentTabs() {
-        JTabbedPane tabs = new EditorTabbedPane();
+        JTabbedPane tabs = new EditorTabbedPane(this::updateDocumentCard);
         // One row that scrolls, like SSMS; wrapped rows would move the selected tab's row around
         tabs.setTabLayoutPolicy(JTabbedPane.SCROLL_TAB_LAYOUT);
         // DataGrip editor tabs: size.tab.editor; the selected tab is an Islands pill (IslandTabbedPaneUI), no underline
@@ -1569,7 +1558,8 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
     }
 
     /**
-     * The welcome content while no document tab is open (it comes back when the last one is closed).
+     * The welcome content while no document tab is open (it comes back when the last one is closed). Called once a tab
+     * add or remove has finished ({@link EditorTabbedPane}), because the card switch lays out the tab pane at once.
      */
     private void updateDocumentCard() {
         ((CardLayout) documentCards.getLayout()).show(documentCards, documentTabs.getTabCount() == 0 ? WELCOME_CARD : DOCUMENTS_CARD);
@@ -1721,11 +1711,33 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
      *     the theme is switched at runtime (the tabs then kept the panel color).</li>
      *     <li>Opaque, because FlatLaf tabbed panes are not: the empty part of the tab row would show the parent's panel color.</li>
      *     <li>The UI is {@link IslandTabbedPaneUI} (Islands pill tabs, close buttons of the selected and the hovered tab only).</li>
+     *     <li>Tab adds and removes are reported ({@code tabsChanged}, the empty document area) after {@code insertTab} /
+     *     {@code removeTabAt} has finished, not from a {@code ContainerListener}. A container event comes in the middle of
+     *     the add, and {@code BasicTabbedPaneUI} keeps its per-tab title views in step from its own container listener,
+     *     which {@code updateUI} adds again behind every listener added before. After a theme switch, the card switch
+     *     (a synchronous layout) ran before the UI knew the new tab: {@code ArrayIndexOutOfBoundsException}, and the tab
+     *     pane stayed broken. All adds and removes ({@code addTab}, {@code add}, {@code remove}, {@code removeAll}) go
+     *     through these two methods.</li>
      * </ul>
      */
     private static final class EditorTabbedPane extends JTabbedPane {
-        EditorTabbedPane() {
+        private final Runnable tabsChanged;
+
+        EditorTabbedPane(@NotNull Runnable tabsChanged) {
+            this.tabsChanged = tabsChanged;
             setOpaque(true);
+        }
+
+        @Override
+        public void insertTab(String title, Icon icon, Component component, String tip, int index) {
+            super.insertTab(title, icon, component, tip, index);
+            tabsChanged.run();
+        }
+
+        @Override
+        public void removeTabAt(int index) {
+            super.removeTabAt(index);
+            tabsChanged.run();
         }
 
         @Override
