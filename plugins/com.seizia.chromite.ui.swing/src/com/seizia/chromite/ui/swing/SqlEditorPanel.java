@@ -54,6 +54,7 @@ import com.seizia.chromite.model.exec.DBCSession;
 import com.seizia.chromite.model.exec.DBCStatement;
 import com.seizia.chromite.model.exec.DBCStatementType;
 import com.seizia.chromite.model.exec.DBCStatistics;
+import com.seizia.chromite.model.exec.DBCTransactionManager;
 import com.seizia.chromite.model.exec.DBExecUtils;
 import com.seizia.chromite.model.exec.plan.DBCQueryPlanner;
 import com.seizia.chromite.model.impl.struct.ContextDefaultObjectsReader;
@@ -190,6 +191,8 @@ import java.util.concurrent.atomic.AtomicLong;
  * - 2026-11-07 쿼리 창 도구 막대 삭제(사용자 결정: SSMS처럼 메인 창 둘째 줄의 SQL Editor 도구 막대 {@link SqlEditorToolBar}).
  *   실행·중지·계획 동작과 실제 계획 토글 단추, {@code Host#openQueryHistory}를 지우고, 연결·DB 콤보는 메인 창이 끼우도록 내줌
  *   (docs/chromite/swing-frontend.md "SQL Editor 도구 막대")
+ * - 2026-11-07 상태 줄의 커밋 방식: 실행 컨텍스트의 실제 자동 커밋 상태를 작업 스레드에서 읽어 보임({@link #refreshTransactionMode}),
+ *   칸을 누르면 연결 설정의 Auto-commit으로 안내 (docs/chromite/swing-frontend.md "자동 커밋 상태")
  */
 final class SqlEditorPanel extends JPanel {
 
@@ -250,6 +253,8 @@ final class SqlEditorPanel extends JPanel {
     private boolean updatingCombos;
     private boolean schemaChangeSupported;
     private int schemaSerial;
+    // EDT only: a newer read of the auto-commit state replaces older ones still running
+    private int transactionSerial;
     @Nullable
     private SchemaState schemaState;
     private final SqlTextArea textArea;
@@ -318,6 +323,12 @@ final class SqlEditorPanel extends JPanel {
             }
         });
         statusLine.setConnection(dataSourceContainer);
+        // The commit mode segment only leads to the connection's Auto-commit setting (user decision 2026-11-07)
+        statusLine.setTransactionAction(() -> {
+            if (this.dataSourceContainer != null) {
+                ConnectionCommands.editAutoCommit(this, this.dataSourceContainer);
+            }
+        });
         textArea.addCaretListener(e -> updateCaretPosition());
         updateCaretPosition();
         textArea.getDocument().addDocumentListener(new DocumentListener() {
@@ -1520,8 +1531,10 @@ final class SqlEditorPanel extends JPanel {
     private void refreshSchemas() {
         int serial = ++schemaSerial;
         DBPDataSourceContainer container = dataSourceContainer;
-        // Every connection change ends here: the highlighting follows the connection's SQL dialect too
+        // Every connection change ends here (choosing a connection, connect, disconnect, the end of a run): the
+        // highlighting follows the connection's SQL dialect, and the status line its commit mode
         textArea.setDataSourceContainer(container);
+        refreshTransactionMode();
         DBPDataSource dataSource = container != null && container.isConnected() ? container.getDataSource() : null;
         if (dataSource == null) {
             showSchemas(serial, null);
@@ -1546,6 +1559,45 @@ final class SqlEditorPanel extends JPanel {
                 }
                 SchemaState finalState = state;
                 SwingUtilities.invokeLater(() -> showSchemas(serial, finalState));
+                return Status.OK_STATUS;
+            }
+        }.schedule();
+    }
+
+    /**
+     * Shows the commit mode (auto-commit or manual) of the execution context this window runs in, the connection's
+     * main context, as the SWT auto-commit tool bar item reads it ({@code DataSourceAutoCommitHandler#updateElement}).
+     * The context caches the mode, but its first read after connecting asks the driver, so it is read in a job. Hidden
+     * while not connected. Also called by the main window when this window becomes active: another window on the
+     * same connection shares the context.
+     */
+    void refreshTransactionMode() {
+        int serial = ++transactionSerial;
+        DBPDataSourceContainer container = dataSourceContainer;
+        DBPDataSource dataSource = container != null && container.isConnected() ? container.getDataSource() : null;
+        if (dataSource == null) {
+            statusLine.setAutoCommit(null);
+            return;
+        }
+        new AbstractJob("Read commit mode of " + container.getName()) {
+            @NotNull
+            @Override
+            protected IStatus run(@NotNull DBRProgressMonitor monitor) {
+                Boolean autoCommit = null;
+                DBCTransactionManager txnManager = DBUtils.getTransactionManager(DBUtils.getDefaultContext(dataSource.getDefaultInstance(), false));
+                if (txnManager != null) {
+                    try {
+                        autoCommit = txnManager.isAutoCommit();
+                    } catch (DBCException e) {
+                        log.debug("Can't read the auto-commit state of '" + container.getName() + "'", e);
+                    }
+                }
+                Boolean finalAutoCommit = autoCommit;
+                SwingUtilities.invokeLater(() -> {
+                    if (serial == transactionSerial) {
+                        statusLine.setAutoCommit(finalAutoCommit);
+                    }
+                });
                 return Status.OK_STATUS;
             }
         }.schedule();

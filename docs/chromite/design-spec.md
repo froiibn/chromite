@@ -159,7 +159,7 @@ Swing 프런트엔드(`com.seizia.chromite.ui.swing`)의 화면을 **배치와 �
 
 | 요소 | SSMS | DataGrip New UI | 현재 Chromite | 목표 | 우선 |
 |---|---|---|---|---|---|
-| 쿼리 상태 줄 | 쿼리 창 맨 아래: 상태 아이콘 + "Query executed successfully." │ 서버(버전) │ 사용자(spid) │ DB │ 00:00:00 │ N rows. 연결별 색 지정 가능 [M] | — | 편집기와 결과 사이: 상태, 경과 시간, 행 수 [C] `SqlEditorPanel.java:447-463` | SSMS 내용(서버, 사용자, DB 추가) + 상태 아이콘 16(`msg.*`), 위치는 결과 아래(쿼리 창 맨 아래). 높이 28, 바탕 `bg.chrome`, 위 1px `border.subtle`. 연결 색은 P2 | P1 |
+| 쿼리 상태 줄 | 쿼리 창 맨 아래: 상태 아이콘 + "Query executed successfully." │ 서버(버전) │ 사용자(spid) │ DB │ 00:00:00 │ N rows. 연결별 색 지정 가능 [M] | — | 편집기와 결과 사이: 상태, 경과 시간, 행 수 [C] `SqlEditorPanel.java:447-463` | SSMS 내용(서버, 사용자, DB 추가) + 상태 아이콘 16(`msg.*`), 위치는 결과 아래(쿼리 창 맨 아래). 높이 28, 바탕 `bg.chrome`, 위 1px `border.subtle`. 연결 색은 P2. 2026-11-07 커밋 방식 칸 추가(사용자 요청): DB 뒤에 점(`size.statusDot`, 자동 `status.success` / 수동 `status.error`) + 글자, 누르면 연결 설정의 Auto-commit으로 안내만 함([swing-frontend.md](swing-frontend.md) "자동 커밋 상태") | P1 |
 | 주 상태 표시줄 | 왼쪽 "Ready", 오른쪽 Ln/Col/Ch/INS [M] | 위젯 글자 L `#6C707E` / D `#9DA0A8`, 마우스 올림 바탕 [T `StatusBar.Widget.*`] | 왼쪽 `N connections in workspace`만 [C] | 왼쪽 상태 문구, 오른쪽 `Ln, Col` │ 인코딩 │ 줄바꿈. 글자 `text.secondary`, 높이 28 | P1 |
 
 ### 10. Properties 창
@@ -1043,3 +1043,4 @@ UI 글꼴 `font.grid` = `font.ui`(Pretendard 12)로 바꿨다. 열 머리글은 
 - 2026-11-07 Islands 색 표에 테이블 저장 방식 글자색 토큰(`Chromite.Tree.storage*Foreground`) 추가([altibase.md](altibase.md)).
 - 2026-11-07 도구 막대 두 줄(사용자 결정): 쿼리 창 도구 막대를 메인 창 둘째 줄의 SQL Editor 도구 막대로 옮김. 2절 구성·높이, 7절 제목·위치·높이,
   "설계 결정"의 쿼리 창 도구 막대 위치, 적용 현황 11행, `size.toolbar.editor` 설명 갱신.
+- 2026-11-07 쿼리 상태 줄의 커밋 방식 칸(사용자 요청): 9절 쿼리 상태 줄 행 갱신.

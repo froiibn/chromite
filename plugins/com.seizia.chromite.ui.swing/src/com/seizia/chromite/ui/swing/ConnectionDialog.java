@@ -82,6 +82,8 @@ import java.util.StringTokenizer;
  * - 2026-11-06 화면 문구를 ConnectionMessages로 옮김(OS 언어를 따름)
  * - 2026-11-07 Database type 옆 Edit Driver…: 드라이버 편집({@link DriverEditorDialog}) 뒤 입력한 값을 지키며 설정 화면을 다시 만듦
  *   (docs/chromite/swing-driver-manager.md)
+ * - 2026-11-07 {@link #openEditAutoCommit}: 쿼리 상태 줄의 커밋 방식 칸이 연결 설정의 Auto-commit으로 안내. 연결된 연결의 Auto-commit을 바꾸면
+ *   다시 연결하지 않고 열린 세션에 적용({@link AutoCommitApplier}), 다시 연결 질문은 그 밖의 설정이 바뀌었을 때만 (docs/chromite/swing-frontend.md "자동 커밋 상태")
  */
 final class ConnectionDialog extends JDialog {
 
@@ -215,6 +217,22 @@ final class ConnectionDialog extends JDialog {
      */
     static void openEdit(@Nullable Window owner, @NotNull DataSourceDescriptor dataSource) {
         new ConnectionDialog(owner, dataSource.getRegistry(), dataSource, null, dataSource.getDriver()).setVisible(true);
+    }
+
+    /**
+     * Edits a connection with the options shown and the Auto-commit field focused: the only place the commit mode is
+     * changed (the query status line's segment only leads here, user decision 2026-11-07). Blocks until the dialog is closed.
+     */
+    static void openEditAutoCommit(@Nullable Window owner, @NotNull DataSourceDescriptor dataSource) {
+        ConnectionDialog dialog = new ConnectionDialog(owner, dataSource.getRegistry(), dataSource, null, dataSource.getDriver());
+        // After the constructor's focusFirstField, which is queued first
+        SwingUtilities.invokeLater(() -> {
+            if (dialog.settingsPanel != null) {
+                dialog.settingsPanel.focusAutoCommit();
+                dialog.fitToContent();
+            }
+        });
+        dialog.setVisible(true);
     }
 
     /**
@@ -411,10 +429,17 @@ final class ConnectionDialog extends JDialog {
         DataSourceDescriptor after = registry.createDataSource(working);
         after.setId(working.getId());
         boolean changed;
+        boolean autoCommitChanged;
+        boolean otherChanged;
         try {
             settingsPanel.saveSettings(after, false);
             applyName(after);
             changed = !before.equalSettings(after);
+            // The commit mode is applied to the open sessions (AutoCommitApplier); anything else needs a reconnect
+            autoCommitChanged = before.isDefaultAutoCommit() != after.isDefaultAutoCommit();
+            after.getConnectionConfiguration().getBootstrap().setDefaultAutoCommit(
+                before.getConnectionConfiguration().getBootstrap().getDefaultAutoCommit());
+            otherChanged = !before.equalSettings(after);
         } finally {
             before.dispose();
             after.dispose();
@@ -429,9 +454,20 @@ final class ConnectionDialog extends JDialog {
         }
         rememberHistory();
         close();
-        if (changed && original.isConnected() && DBWorkbench.getPlatformUI().confirmAction(ConnectionMessages.dialog_changed_title,
-            NLS.bind(ConnectionMessages.dialog_changed_reconnect, original.getName()))) {
-            ConnectionCommands.reconnect(original);
+        if (!changed || !original.isConnected()) {
+            return;
+        }
+        Runnable askReconnect = () -> {
+            if (otherChanged && original.isConnected() && DBWorkbench.getPlatformUI().confirmAction(ConnectionMessages.dialog_changed_title,
+                NLS.bind(ConnectionMessages.dialog_changed_reconnect, original.getName()))) {
+                ConnectionCommands.reconnect(original);
+            }
+        };
+        if (autoCommitChanged) {
+            // User request 2026-11-07: the new commit mode also applies to the sessions that are open now
+            AutoCommitApplier.apply(getOwner(), original, askReconnect);
+        } else {
+            askReconnect.run();
         }
     }
 
