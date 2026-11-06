@@ -2195,4 +2195,5 @@ EDT 에이전트로 단추를 누르고(`doClick`) 결과를 읽었다. 캡처�
 - 2026-11-07 새 객체의 부모 폴더: 같은 클래스를 받는 형제 폴더 중 객체를 담는 폴더를 고름(`DBNModel`, 새 함수가 "저장 프로시저"에 붙던 문제).
   "Object Explorer 후속 수정" 절.
 - 2026-11-07 후속 수정(편집기·결과·도구): 자동완성 프로시저 제안 설정, 날짜/시간 데이터베이스 형식 설정, 남은 영어 문구 등. [swing-followup-fixes.md](swing-followup-fixes.md).
+- 2026-11-07 서버 대시보드: Activity Monitor 첫 탭 "개요"(연결별 실시간 차트), Tools·Object Explorer의 Server Dashboard. [swing-dashboard.md](swing-dashboard.md).
 - 2026-11-07 SWT 프런트엔드 삭제([swt-removal.md](swt-removal.md)): 목적 절에 안내, 식별자 표(피처가 `licenses/`를 넣음, 실행 파일 이름을 유지하는 이유), 기능 공백·설정 저장 위치 설명 갱신.
