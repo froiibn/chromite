@@ -7,6 +7,7 @@ Bundle-Version: 1.0.0.qualifier
 Bundle-RequiredExecutionEnvironment: JavaSE-21
 Bundle-ActivationPolicy: lazy
 Export-Package: com.seizia.chromite.model.ai.tools,
+ com.seizia.chromite.model.ai.tools.chat,
  com.seizia.chromite.model.ai.tools.mcp
 Require-Bundle: com.seizia.chromite.model,
  com.seizia.chromite.model.ai,
