@@ -93,10 +93,14 @@ import java.util.List;
  *     <li>명령줄 미리 보기: 처리기의 {@code getCommandLine}(보호 메서드)을 미리 보기용 하위 클래스로 불러 실제로 실행할 명령을
  *     보여 준다. 암호는 명령줄에 없다(PGPASSWORD·MYSQL_PWD 환경 변수로 넘김).</li>
  *     <li>도구 출력(명령줄, 진행 로그, 오류)은 처리기의 로그 스트림으로 받아 메시지 페이지에 줄 단위로 보인다.</li>
+ *     <li>PostgreSQL 복원은 작업 형식의 처리기를 상속한 {@code CheckedPostgreRestore}로 실행한다. pg_restore는 치명적인 오류
+ *     (로그인 실패 등)에도 종료 코드 1을 돌려주는데 모델 처리기는 이를 경고 알림만 띄우고 성공으로 끝내므로, 종료 코드 1을
+ *     기억해 두었다가 실패로 보인다. 모델 처리기(DBeaver 코드)는 SWT에서도 쓰므로 고치지 않았다.</li>
  * </ul>
  *
  * 변경 이력:
  * - 2026-11-06 최초 작성: 백업·복원 (docs/chromite/swing-backup-restore.md)
+ * - 2026-11-06 pg_restore가 오류로 끝난 복원(종료 코드 1)을 성공으로 보이던 것을 실패로 보이게 고침
  */
 final class NativeBackupRestoreDialog extends DatabaseTaskDialog {
 
@@ -656,7 +660,10 @@ final class NativeBackupRestoreDialog extends DatabaseTaskDialog {
             public void subTaskFinished(@Nullable DBTTask task, @Nullable Throwable e, @Nullable Object s) {
             }
         };
-        DBTTaskHandler handler = taskType.createHandler();
+        // pg_restore exits with 1 on any error, fatal ones too (a failed login, an unreadable file); the model handler
+        // only shows a warning toast for it and returns normally, which made a failed restore look successful here
+        DBTTaskHandler handler = PostgreSQLTasks.TASK_DATABASE_RESTORE.equals(taskTypeId)
+            ? new CheckedPostgreRestore() : taskType.createHandler();
         try (PrintStream logStream = new PrintStream(new MessagesStream(), true, StandardCharsets.UTF_8)) {
             handler.executeTask(context, task, Locale.getDefault(), log, logStream, listener);
         }
@@ -665,6 +672,9 @@ final class NativeBackupRestoreDialog extends DatabaseTaskDialog {
                 throw e;
             }
             throw new DBException("Native tool failed", error[0]); //$NON-NLS-1$
+        }
+        if (handler instanceof CheckedPostgreRestore restoreHandler && restoreHandler.errorsReported) {
+            throw new DBException(BackupRestoreMessages.native_error_pg_restore_errors);
         }
     }
 
@@ -721,6 +731,23 @@ final class NativeBackupRestoreDialog extends DatabaseTaskDialog {
             // message itself is shown)
             if (!CommonUtils.isEmptyTrimmed(text) && !text.startsWith("\tat ") && !text.startsWith("\t...")) { //$NON-NLS-1$ //$NON-NLS-2$
                 appendMessage(text);
+            }
+        }
+    }
+
+    /**
+     * The handler of the PostgreSQL restore task type that remembers an exit code 1 of pg_restore (errors occurred)
+     * instead of passing it to the model handler, which would only show a warning toast and report success.
+     */
+    private static final class CheckedPostgreRestore extends PostgreDatabaseRestoreHandler {
+        private volatile boolean errorsReported;
+
+        @Override
+        public void validateErrorCode(int exitCode) throws IOException {
+            if (exitCode == 1) {
+                errorsReported = true;
+            } else {
+                super.validateErrorCode(exitCode);
             }
         }
     }

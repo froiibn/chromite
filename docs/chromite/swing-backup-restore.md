@@ -109,6 +109,12 @@ MANIFEST·feature·pom은 바꾸지 않았다. Swing 번들도 새 `Require-Bund
   찾아보기로 더한 폴더는 드라이버를 "수정됨"(`setModified(true)`)으로 표시한 뒤 저장한다. `drivers.xml`에는 수정된 드라이버만 쓰이므로
   표시하지 않으면 다시 시작한 뒤 폴더가 사라진다(확인 중에 발견). SWT `ClientHomesPanel`(:300-318)도 표시하지 않아 같은 문제가 있을 수 있다(SWT라 고치지 않음).
   로컬 클라이언트가 없으면 "로컬 클라이언트가 설치되어 있지 않습니다… 찾아보기…로 폴더를 선택하십시오."를 보이고 실행하지 않는다.
+- **pg_restore 종료 코드 1**: pg_restore는 오류가 하나라도 나면 1로 끝난다. 로그인 실패나 읽을 수 없는 파일처럼 아무것도 복원하지 못한
+  경우도 같다. 모델 처리기 `PostgreDatabaseRestoreHandler.validateErrorCode`(:162-168)는 1을 "경고와 함께 끝남" 알림으로만 보내고 정상 종료하므로,
+  그대로 쓰면 이 대화상자가 "완료 / 복원했습니다"를 보였다(실제 클라이언트로 확인하다 발견). 그래서 PostgreSQL 복원은 처리기를 상속한
+  `CheckedPostgreRestore`로 실행해 종료 코드 1을 기억하고, 실행이 끝나면 "pg_restore가 오류를 보고했습니다(종료 코드 1)… 위의 메시지를 확인하십시오"로
+  실패를 보인다. `--clean`으로 아직 없는 개체를 지우다 난 오류처럼 무시해도 되는 경우도 1이므로 문구에 그 점을 적었다.
+  모델 처리기는 SWT에서도 쓰는 DBeaver 코드라 고치지 않았다. 다른 처리기(pg_dump, psql, mysqldump, mysql)는 기본 `validateErrorCode`(0이 아니면 실패)를 쓴다.
 - **명령줄 미리 보기**: 처리기의 `getCommandLine`(보호 메서드)을 미리 보기용 하위 클래스로 불러, 실행할 명령을 그대로 보인다(MySQL은 출력·입력 리디렉션 `>`/`<`을 덧붙임).
   암호는 명령줄에 없다(`PGPASSWORD`, `MYSQL_PWD` 환경 변수). 도구가 그 폴더에 없으면 미리 보기 대신 "{도구}를 찾을 수 없습니다"를 보인다.
 
@@ -135,14 +141,29 @@ MANIFEST·feature·pom은 바꾸지 않았다. Swing 번들도 새 `Require-Bund
     복원 뒤 Object Explorer의 데이터베이스 목록에 새 데이터베이스가 나타남.
   - 약 1GB 데이터베이스(`chr_backup_restore_big`, 단순 복구 모델): 트랜잭션 로그 항목이 꺼지고 안내가 나옴. 백업 중 "10 percent processed."가
     실행 중에 나오고 진행률이 "10% 처리됨"으로 바뀜(메시지가 끝까지 기다리지 않고 들어옴). 취소 → "취소됨", msdb에 백업 세트 없음, 실행 중인 BACKUP 요청 없음.
-- **PostgreSQL 17, MariaDB 11**: 이 컴퓨터에는 pg_dump·mysqldump 등 클라이언트 도구가 없다(설치하지 않음). 클라이언트 폴더 목록이 비어
-  "로컬 클라이언트가 설치되어 있지 않습니다…" 안내가 나오고, 확인을 누르면 같은 안내로 실행하지 않음을 확인했다.
-  명령줄은 빈 파일로 만든 가짜 클라이언트 폴더(`bin\pg_dump.exe` 등)를 찾아보기로 더해 미리 보기로 확인했다(실행하면 "올바른 Win32 응용 프로그램이 아닙니다"
-  오류가 메시지에 나옴 — 실패 표시 확인). 같은 인수를 컨테이너 안의 도구로 실행해 교차 확인했다:
-  `pg_dump --verbose --host --port --username --format=c --no-owner --create --file … chr_backup_restore`(pg_restore --list로 테이블·데이터 확인),
-  `mariadb-dump --single-transaction --routines --add-drop-table --disable-keys --extended-insert -u root … chr_backup_restore` →
-  `mariadb --no-beep -u root … "--init-command=SET SESSION FOREIGN_KEY_CHECKS=0;" chr_backup_restore < 파일`(복원 후 2행).
-  찾아보기로 더한 폴더가 다시 시작한 뒤에도 남는 것(`drivers.xml`)도 확인했다.
+- **PostgreSQL 17, MariaDB 11 — 실제 로컬 클라이언트로 확인(2026-11-06 밤)**. 클라이언트는 저장소에 넣지 않고 이 컴퓨터의 D: 드라이브에
+  공식 압축 파일을 풀어 썼다(설치 프로그램·PATH·레지스트리 변경 없음):
+  - PostgreSQL 17.11 — EDB "PostgreSQL Binaries" Windows x86-64 zip(`postgresql-17.11-5-windows-x64-binaries.zip`) → `D:\Tools\pgsql-17\pgsql`
+    (pg_dump·pg_restore·psql 17.11, 서버도 17.11).
+  - MariaDB 11.8.9 — downloads.mariadb.org `mariadb-11.8.9-winx64.zip`(공개 SHA-256과 일치) → `D:\Tools\mariadb-11.8`
+    (mysqldump·mariadb-dump·mysql·mariadb, 서버 11.8.9).
+  - 처음에는 클라이언트 폴더 목록이 비어 "로컬 클라이언트가 설치되어 있지 않습니다…"가 나오고, 찾아보기로 위 폴더를 고르면 `Local: <폴더>`가 선택되고
+    명령줄 미리 보기가 채워짐. PostgreSQL은 `<폴더>\bin\pg_dump.exe`, MariaDB는 `<폴더>\bin\mysqldump.exe`를 고름(`MySQLUtils`는 mysqldump를 먼저 찾음).
+  - PostgreSQL `chr_backup_restore`: 사용자 지정 형식 백업(`pg.backup`, `pg_restore --list`로 테이블·데이터·제약 조건 확인) → `docker exec psql`로 데이터를
+    바꿈(UPDATE·DELETE·INSERT) → 복원(--clean) → 원래 3행(한글 값 포함)으로 돌아옴. 일반(SQL 스크립트) 형식 백업(`--format=p --clean`)과 psql 복원도 성공.
+    pg_dump·pg_restore의 진행 로그(한국어 OS에서는 한국어)가 메시지 페이지에 줄 단위로 나옴.
+  - MariaDB `chr_backup_restore`: 백업(`maria.sql`, DROP/CREATE/INSERT 확인) → 데이터를 바꿈 → 복원 → 원래 3행으로 돌아옴.
+  - 같은 이름의 파일이 이미 있으면 MySQL 백업은 덮어쓰지 않고 "Output file already exists"로 실패함(모델 처리기의 의도된 동작).
+  - 잘못된 암호: 앱이 연결한 뒤 서버에서 시험용 로그인의 암호를 바꿔 확인. pg_dump·mysqldump·mysql은 도구의 인증 오류
+    (`password authentication failed`, `Access denied … (using password: YES)`)와 "실패" 상태를 보임. pg_restore는 고치기 전에는 "완료 / 복원했습니다"를
+    보였고(위 "pg_restore 종료 코드 1"), 고친 뒤 "실패"와 안내 문구를 보임. 정상 복원은 그대로 "완료".
+  - 다시 시작한 뒤에도 클라이언트 폴더가 남고(`drivers.xml`의 `clientHome`, 연결의 `home`) 대화상자를 열면 바로 선택되어 있음.
+  - 화면: 한국어(OS 기본)와 `-nl en`, 라이트(`D:\Tools\_scratch\native-client\shots\`).
+  - 남은 것: 실행이 끝날 때 메시지 페이지에 "Service 'org.jkiss.dbeaver.runtime.ui.UIServiceSystemAgent' not found" 한 줄이 나온다.
+    처리기가 긴 작업 알림 서비스(SWT `core`의 `UIServiceSystemAgentImpl`, 트레이 알림)를 찾는데 Swing에는 없고, 작업 중에는 `Log`의 출력이
+    작업 로그 스트림으로 가기 때문이다. 고치려면 Swing용 알림 서비스가 필요해 이번에는 남겼다.
+    실패한 백업은 0바이트 출력 파일을 남기고(모델 처리기), MySQL 백업은 그 파일 때문에 같은 이름으로 다시 실행할 수 없다.
+    psql(일반 형식 복원)은 SQL 오류가 나도 종료 코드 0이라 성공으로 보인다(`ON_ERROR_STOP`을 쓰지 않음, DBeaver와 같음).
 - 회귀 테스트는 실행하지 않았다(요청 없음).
 
 ## 남긴 것
@@ -158,3 +179,5 @@ MANIFEST·feature·pom은 바꾸지 않았다. Swing 번들도 새 `Require-Bund
   확인 중 고친 것: 단순 복구 모델 표시용 콤보 렌더러가 선택 항목(인덱스 -1)까지 흐리게 그리던 것, 복원 뒤 탐색기가 새 데이터베이스를 보이지 않던 것
   (연결 노드 새로 고침만으로는 탐색기가 자식을 다시 읽지 않음 → 데이터베이스 폴더에 REFRESH 이벤트), 긴 안내 글이 잘리던 것(줄 바꿈 글 상자),
   찾아보기로 더한 클라이언트 폴더가 다시 시작하면 사라지던 것(드라이버 수정됨 표시), 도구 로그의 스택 추적 줄.
+- 2026-11-06 PostgreSQL 17.11·MariaDB 11.8.9 실제 로컬 클라이언트(D: 드라이브에 푼 공식 zip)로 백업·복원을 끝까지 확인.
+  확인 중 고친 것: pg_restore가 오류로 끝난 복원(종료 코드 1, 로그인 실패 포함)을 성공으로 보이던 것(`CheckedPostgreRestore`, 문구 `native_error_pg_restore_errors`).
