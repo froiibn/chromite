@@ -3,32 +3,33 @@
 
 <!--
 	Chromite dark SQL editor colors: DataGrip New UI Dark (IntelliJ expUI_darkScheme DEFAULT_* attributes),
-	values from docs/chromite/design-spec.md "SQL 구문 색". RSyntaxTextArea draws an underline in the token's
+	values from docs/chromite/design-spec.md "SQL 구문 색"; background, gutter and current line are the Islands Dark editor
+	island (editor-bg #191A1C, layer-0-bg-inline #212326, design-spec "Islands 적용"). RSyntaxTextArea draws an underline in the token's
 	own color, so syntax errors are underlined in the text color (New UI: a red wave).
 	Loaded by SqlEditorPanel; see org.fife.ui.rsyntaxtextarea.Theme and theme.dtd for the format.
 -->
 <RSyntaxTheme version="1.0">
 
 	<!-- No baseFont: SqlEditorPanel sets the look and feel's JetBrains Mono composite font (font.code). -->
-	<background color="1e1f22"/>
+	<background color="191a1c"/>
 	<caret color="ced0d6"/>
 	<selection useFG="false" bg="214283" roundedEdges="false"/>
-	<currentLineHighlight color="26282e" fade="false"/>
+	<currentLineHighlight color="212326" fade="false"/>
 	<marginLine fg="393b40"/>
 	<markAllHighlight color="373b39"/>
 	<markOccurrencesHighlight color="373b39" border="false"/>
 	<matchedBracket fg="bcbec4" bg="43454a" highlightBoth="false" animate="false"/>
 	<hyperlinks fg="56a8f5"/>
 	<secondaryLanguages>
-		<language index="1" bg="26282e"/>
-		<language index="2" bg="26282e"/>
-		<language index="3" bg="26282e"/>
+		<language index="1" bg="212326"/>
+		<language index="2" bg="212326"/>
+		<language index="3" bg="212326"/>
 	</secondaryLanguages>
 
-	<gutterBackground color="1e1f22"/>
-	<gutterBorder color="1e1f22"/>
+	<gutterBackground color="191a1c"/>
+	<gutterBorder color="191a1c"/>
 	<lineNumbers fg="4b5059" currentFG="a1a3ab"/>
-	<foldIndicator fg="4b5059" iconBg="1e1f22"/>
+	<foldIndicator fg="4b5059" iconBg="191a1c"/>
 	<iconRowHeader activeLineRange="4b5059"/>
 
 	<tokenStyles>

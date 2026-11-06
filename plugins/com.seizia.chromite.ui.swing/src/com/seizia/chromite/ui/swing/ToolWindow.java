@@ -39,11 +39,14 @@ import java.awt.event.ActionEvent;
  *     도구 창 크기가 유지되도록 뒤쪽 도구 창의 분할 창은 늘어난 공간을 앞쪽(문서 영역)에 준다({@code resizeWeight = 1}).</li>
  *     <li>저장 위치는 테마와 같은 이 번들의 설정 저장소다({@link ChromiteTheme} 참고).</li>
  *     <li>머리말(DataGrip New UI): 높이 40 + 아래 1px 선, semibold 제목(왼쪽 12), 오른쪽에 숨기기(—) 아이콘 단추. 도구 창의 도구 막대는 내용 쪽에 둔다(Object Explorer, SSMS처럼 머리말 아래).</li>
+ *     <li>도구 창은 머리말과 내용을 함께 Islands 카드({@link IslandPanel})에 담아 분할 창에 넣는다(숨기기·크기 저장은 카드 단위).</li>
  * </ul>
  *
  * 변경 이력:
  * - 2026-11-06 B단계: 최초 작성 (docs/chromite/swing-frontend.md "구현 현황 — B단계")
  * - 2026-11-06 디자인 적용: 머리말 높이 40, 아이콘 숨기기 단추, 쓰지 않게 된 머리말 도구 인자 삭제 (docs/chromite/design-spec.md "적용 현황")
+ * - 2026-11-06 Islands: 도구 창을 둥근 카드({@link IslandPanel})로 감쌈 (docs/chromite/design-spec.md "Islands 적용")
+ * - 2026-11-06 P1: 기본 크기로 되돌리기(Window &gt; Reset Window Layout) (docs/chromite/swing-frontend.md "P1 디자인 적용")
  */
 final class ToolWindow {
 
@@ -56,6 +59,7 @@ final class ToolWindow {
     private final boolean leading;
     private final JComponent component;
     private final Action toggleAction;
+    private final int defaultSize;
     private int size;
 
     /**
@@ -81,6 +85,7 @@ final class ToolWindow {
         this.id = id;
         this.splitPane = splitPane;
         this.leading = leading;
+        this.defaultSize = defaultSize;
         this.size = defaultSize;
         this.toggleAction = new AbstractAction(title) {
             @Override
@@ -91,13 +96,14 @@ final class ToolWindow {
         toggleAction.putValue(Action.SELECTED_KEY, Boolean.TRUE);
         toggleAction.putValue(Action.ACCELERATOR_KEY, accelerator);
 
+        // Islands: every tool window is a rounded card on the main window canvas
         if (!showHeader) {
-            component = content;
+            component = new IslandPanel(content);
         } else {
             JPanel panel = new JPanel(new BorderLayout());
             panel.add(createHeader(title), BorderLayout.NORTH);
             panel.add(content, BorderLayout.CENTER);
-            component = panel;
+            component = new IslandPanel(panel);
         }
         if (leading) {
             splitPane.setLeftComponent(component);
@@ -152,6 +158,16 @@ final class ToolWindow {
             splitPane.setDividerSize(0);
         }
         splitPane.revalidate();
+    }
+
+    /**
+     * Window &gt; Reset Window Layout: shown, with the default size. Call for the outer split pane first, as
+     * {@link #applySize()} lays it out for the inner ones.
+     */
+    void reset() {
+        size = defaultSize;
+        setShown(true);
+        applySize();
     }
 
     /**

@@ -72,6 +72,8 @@ import javax.swing.event.PopupMenuEvent;
 import javax.swing.event.PopupMenuListener;
 import java.awt.*;
 import java.awt.event.ActionEvent;
+import java.awt.event.InputEvent;
+import java.awt.event.KeyEvent;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.Writer;
@@ -115,6 +117,8 @@ import java.util.concurrent.atomic.AtomicLong;
  *     <li>파일: 편집기는 텍스트만 다루고, 파일의 문자 집합·BOM·줄바꿈은 {@link SqlFileContent}로 기억해 저장할 때 되살린다.
  *     파일 대화상자와 최근 파일 목록은 메인 창이 맡는다. 문서가 바뀌면 고침 표시를 켜고 탭 제목 끝에 {@code *}를 붙인다.</li>
  *     <li>자동완성: {@link SqlCompletionPopup}(Ctrl+Space, {@code .}·글자 입력 뒤 자동)이 편집기의 현재 연결로 제안을 계산한다.</li>
+ *     <li>찾기·바꾸기: 편집기가 Ctrl+F, Ctrl+H, F3, Shift+F3을 직접 받아 {@link FindReplaceDialog}를 연다(Edit 메뉴와 같은 동작).</li>
+ *     <li>상태 줄({@link QueryStatusLine}): 편집기마다 하나이고 메인 창이 결과 아래에 보인다. 실행 상태, 연결의 서버·사용자, 기본 DB/스키마 콤보의 값, 시간, 행 수를 넣는다.</li>
  *     <li>결과 편집: 결과 표에 저장하지 않은 변경이 있으면 다시 실행하기 전에 버릴지 묻고(실행하면 결과 표를 새로 만든다), 저장 중에는 실행하지 않는다.
  *     닫을 때·끝낼 때 묻기는 메인 창이 {@link #hasPendingResultChanges}, {@link #saveResultChanges}로 한다.</li>
  * </ul>
@@ -127,6 +131,10 @@ import java.util.concurrent.atomic.AtomicLong;
  * - 2026-11-06 G단계: 결과 표 편집 상태(다시 실행 전 확인, 저장 중 실행 막기, 닫을 때 저장) (docs/chromite/swing-frontend.md "구현 현황 — G단계")
  * - 2026-11-06 디자인 적용: 도구 막대 아이콘(초록 ▶ Execute, ■ 중지), 문서 탭 아이콘, 편집기 글꼴 JetBrains Mono(합성 글꼴)
  *   (docs/chromite/design-spec.md "적용 현황")
+ * - 2026-11-06 P1: 편집기의 찾기 키(Ctrl+F, Ctrl+H, F3, Shift+F3) (docs/chromite/swing-frontend.md "P1 디자인 적용")
+ * - 2026-11-06 P1: 상태 줄을 {@link QueryStatusLine}(SSMS 내용: 상태 아이콘, 서버, 사용자, DB/스키마, 시간, 행)으로 바꾸고 메인 창이 결과 아래에 둠
+ *   (docs/chromite/swing-frontend.md "P1 디자인 적용")
+ * - 2026-11-06 P1: 탭 도구 설명에 전체 경로와 연결·서버 (docs/chromite/swing-frontend.md "P1 디자인 적용")
  */
 final class SqlEditorPanel extends JPanel {
 
@@ -191,9 +199,7 @@ final class SqlEditorPanel extends JPanel {
     });
     private final Action executeAction;
     private final Action cancelAction;
-    private final JLabel statusLabel = new JLabel();
-    private final JLabel elapsedLabel = new JLabel();
-    private final JLabel rowsLabel = new JLabel();
+    private final QueryStatusLine statusLine = new QueryStatusLine();
     private final Timer elapsedTimer;
     private final Object jobLock = new Object();
     // EDT only
@@ -236,14 +242,13 @@ final class SqlEditorPanel extends JPanel {
 
         add(createToolBar(), BorderLayout.NORTH);
         add(scrollPane, BorderLayout.CENTER);
-        add(createStatusBar(), BorderLayout.SOUTH);
 
         elapsedTimer = new Timer(250, e -> {
             if (execution != null) {
-                elapsedLabel.setText(formatElapsed(System.currentTimeMillis() - execution.startTime, false));
+                statusLine.setElapsed(formatElapsed(System.currentTimeMillis() - execution.startTime, false));
             }
         });
-        statusLabel.setText("Ready");
+        statusLine.setConnection(dataSourceContainer);
         textArea.getDocument().addDocumentListener(new DocumentListener() {
             @Override
             public void insertUpdate(DocumentEvent e) {
@@ -273,11 +278,14 @@ final class SqlEditorPanel extends JPanel {
     }
 
     /**
-     * Tab tool tip: the file path, or the name of a query that was never saved.
+     * Tab tool tip: the full file path (or the name of a query that was never saved) and the connection with its server.
      */
     @NotNull
     String getToolTip() {
-        return file != null ? file.toString() : fileName;
+        String location = file != null ? file.toString() : fileName + " (not saved)";
+        String connection = dataSourceContainer == null ? "Not connected"
+            : "Connection: " + dataSourceContainer.getName() + " - " + QueryStatusLine.describeServerDetails(dataSourceContainer);
+        return "<html>" + CommonUtils.escapeHtml(location) + "<br>" + CommonUtils.escapeHtml(connection) + "</html>"; //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$
     }
 
     @Nullable
@@ -360,12 +368,21 @@ final class SqlEditorPanel extends JPanel {
     void connectionChanged() {
         host.titleChanged(this);
         connectionCombo.repaint();
+        statusLine.setConnection(dataSourceContainer);
         refreshSchemas();
     }
 
     @NotNull
     QueryResultsView getResultsView() {
         return resultsView;
+    }
+
+    /**
+     * The query status line; the main window shows the active editor's line below the results (SSMS).
+     */
+    @NotNull
+    QueryStatusLine getStatusLine() {
+        return statusLine;
     }
 
     boolean isExecuting() {
@@ -398,6 +415,14 @@ final class SqlEditorPanel extends JPanel {
 
     void focusEditor() {
         textArea.requestFocusInWindow();
+    }
+
+    /**
+     * The editor text area, for Edit &gt; Find / Replace.
+     */
+    @NotNull
+    SqlTextArea getTextArea() {
+        return textArea;
     }
 
     /**
@@ -446,7 +471,8 @@ final class SqlEditorPanel extends JPanel {
         connectionCombo.addActionListener(e -> {
             if (!updatingCombos && connectionCombo.getSelectedItem() instanceof DBPDataSourceContainer selected && selected != dataSourceContainer) {
                 dataSourceContainer = selected;
-                statusLabel.setText("Ready");
+                statusLine.setState(QueryStatusLine.State.READY, "Ready");
+                statusLine.setConnection(selected);
                 host.titleChanged(this);
                 refreshSchemas();
             }
@@ -489,30 +515,6 @@ final class SqlEditorPanel extends JPanel {
         component.setMaximumSize(size);
     }
 
-    /**
-     * Query status strip at the bottom of the query window (SSMS): state, elapsed time, rows.
-     */
-    @NotNull
-    private JComponent createStatusBar() {
-        JPanel right = new JPanel(new FlowLayout(FlowLayout.RIGHT, 16, 0));
-        right.setOpaque(false);
-        right.add(elapsedLabel);
-        right.add(rowsLabel);
-        JPanel statusBar = new JPanel(new BorderLayout()) {
-            @Override
-            public void updateUI() {
-                super.updateUI();
-                Color separatorColor = UIManager.getColor("Separator.foreground"); //$NON-NLS-1$
-                setBorder(BorderFactory.createCompoundBorder(
-                    BorderFactory.createMatteBorder(1, 0, 0, 0, separatorColor != null ? separatorColor : Color.GRAY),
-                    BorderFactory.createEmptyBorder(2, 8, 2, 8)));
-            }
-        };
-        statusBar.add(statusLabel, BorderLayout.WEST);
-        statusBar.add(right, BorderLayout.EAST);
-        return statusBar;
-    }
-
     //////////////////////////////////////////////////////////
     // Execution (EDT)
 
@@ -524,7 +526,7 @@ final class SqlEditorPanel extends JPanel {
             return;
         }
         if (resultsView.isSaving()) {
-            statusLabel.setText("Saving result changes…");
+            statusLine.setState(QueryStatusLine.State.READY, "Saving result changes…");
             return;
         }
         String text = textArea.getText();
@@ -537,7 +539,7 @@ final class SqlEditorPanel extends JPanel {
             length = selectionEnd - selectionStart;
         }
         if (text.substring(offset, offset + length).isBlank()) {
-            statusLabel.setText("Nothing to execute");
+            statusLine.setState(QueryStatusLine.State.READY, "Nothing to execute");
             return;
         }
         DBPDataSourceContainer container = dataSourceContainer;
@@ -562,9 +564,9 @@ final class SqlEditorPanel extends JPanel {
             maxRows > 0 ? Math.max(maxRows, connectionMaxRows) : connectionMaxRows, maxRows > 0);
         execution = run;
         resultsView.clear();
-        statusLabel.setText(container.isConnected() ? "Executing query…" : "Connecting…");
-        elapsedLabel.setText(formatElapsed(0, false));
-        rowsLabel.setText("");
+        statusLine.setState(QueryStatusLine.State.EXECUTING, container.isConnected() ? "Executing query…" : "Connecting…");
+        statusLine.setElapsed(formatElapsed(0, false));
+        statusLine.setRows(null);
         elapsedTimer.start();
         updateActions();
         host.showResults(this, false);
@@ -597,7 +599,7 @@ final class SqlEditorPanel extends JPanel {
                 run.job.cancel();
             }
         }
-        statusLabel.setText("Canceling…");
+        statusLine.setState(QueryStatusLine.State.EXECUTING, "Canceling…");
         cancelAction.setEnabled(false);
     }
 
@@ -634,15 +636,17 @@ final class SqlEditorPanel extends JPanel {
         resultsView.appendMessage("Completion time: " + OffsetDateTime.now().format(COMPLETION_TIME_FORMAT));
 
         if (run.hasErrors) {
-            statusLabel.setText("Query completed with errors.");
+            statusLine.setState(QueryStatusLine.State.ERROR, "Query completed with errors.");
         } else if (canceled) {
-            statusLabel.setText("Query was canceled.");
+            statusLine.setState(QueryStatusLine.State.CANCELED, "Query was canceled.");
         } else {
-            statusLabel.setText("Query executed successfully.");
+            statusLine.setState(QueryStatusLine.State.SUCCESS, "Query executed successfully.");
         }
-        elapsedLabel.setText(formatElapsed(elapsed, true));
+        // The run may have connected: server version and the connected icon
+        statusLine.setConnection(run.dataSourceContainer);
+        statusLine.setElapsed(formatElapsed(elapsed, true));
         long rows = run.rowsFetched.get();
-        rowsLabel.setText(rows + (rows == 1 ? " row" : " rows"));
+        statusLine.setRows(rows + (rows == 1 ? " row" : " rows"));
         updateActions();
         // As in SSMS: errors (or no result grids at all) bring the Messages tab to the front
         host.showResults(this, run.hasErrors || resultsView.getGridCount() == 0);
@@ -698,7 +702,7 @@ final class SqlEditorPanel extends JPanel {
                 run.job = job;
                 job.schedule();
             }
-            post(run, () -> statusLabel.setText("Executing query…"));
+            post(run, () -> statusLine.setState(QueryStatusLine.State.EXECUTING, "Executing query…"));
         } catch (Throwable e) {
             log.debug("Query preparation failed", e);
             stopPreparation(run, errorStatus(CommonUtils.getAllExceptionMessages(e)));
@@ -915,7 +919,7 @@ final class SqlEditorPanel extends JPanel {
                 run.rowsFetched.addAndGet(fetched.data().rows().size());
                 post(run, () -> {
                     resultsView.addGrid(fetched);
-                    rowsLabel.setText(run.rowsFetched.get() + " rows");
+                    statusLine.setRows(run.rowsFetched.get() + " rows");
                     host.showResults(SqlEditorPanel.this, false);
                 });
             });
@@ -1081,6 +1085,7 @@ final class SqlEditorPanel extends JPanel {
         }
         schemaChangeSupported = supported;
         schemaCombo.setEnabled(execution == null && supported);
+        statusLine.setDatabase(selected instanceof DBSObject object ? object.getName() : null);
     }
 
     /**
@@ -1168,6 +1173,25 @@ final class SqlEditorPanel extends JPanel {
             setSyntaxEditingStyle(SyntaxConstants.SYNTAX_STYLE_SQL);
             setCodeFoldingEnabled(false);
             setTabSize(4);
+            // SSMS find keys (Edit menu); bound here so they win over the text area's own keys (Ctrl+H deletes backwards)
+            bindKey(KeyStroke.getKeyStroke(KeyEvent.VK_F, InputEvent.CTRL_DOWN_MASK), "chromite.find", //$NON-NLS-1$
+                () -> FindReplaceDialog.open(this, false));
+            bindKey(KeyStroke.getKeyStroke(KeyEvent.VK_H, InputEvent.CTRL_DOWN_MASK), "chromite.replace", //$NON-NLS-1$
+                () -> FindReplaceDialog.open(this, true));
+            bindKey(KeyStroke.getKeyStroke(KeyEvent.VK_F3, 0), "chromite.findNext", //$NON-NLS-1$
+                () -> FindReplaceDialog.findAgain(this, true));
+            bindKey(KeyStroke.getKeyStroke(KeyEvent.VK_F3, InputEvent.SHIFT_DOWN_MASK), "chromite.findPrevious", //$NON-NLS-1$
+                () -> FindReplaceDialog.findAgain(this, false));
+        }
+
+        private void bindKey(@NotNull KeyStroke keyStroke, @NotNull String actionKey, @NotNull Runnable task) {
+            getInputMap(JComponent.WHEN_FOCUSED).put(keyStroke, actionKey);
+            getActionMap().put(actionKey, new AbstractAction() {
+                @Override
+                public void actionPerformed(ActionEvent e) {
+                    task.run();
+                }
+            });
         }
 
         @Override

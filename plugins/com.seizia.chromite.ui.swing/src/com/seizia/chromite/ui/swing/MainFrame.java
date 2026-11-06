@@ -17,6 +17,7 @@
 package com.seizia.chromite.ui.swing;
 
 import com.formdev.flatlaf.FlatClientProperties;
+import com.formdev.flatlaf.ui.FlatTabbedPaneUI;
 import com.formdev.flatlaf.util.UIScale;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
@@ -33,7 +34,6 @@ import org.jkiss.dbeaver.utils.PrefUtils;
 import org.jkiss.utils.CommonUtils;
 
 import javax.swing.*;
-import javax.swing.border.AbstractBorder;
 import javax.swing.event.MenuEvent;
 import javax.swing.event.MenuListener;
 import javax.swing.filechooser.FileNameExtensionFilter;
@@ -42,10 +42,14 @@ import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ComponentAdapter;
 import java.awt.event.ComponentEvent;
+import java.awt.event.HierarchyEvent;
 import java.awt.event.InputEvent;
 import java.awt.event.KeyEvent;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
+import java.awt.geom.RoundRectangle2D;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -64,15 +68,22 @@ import java.util.function.IntConsumer;
  *     <li>창 위치·크기·최대화 여부와 도구 창 크기·표시 여부는 이 번들의 설정 저장소에 저장한다({@link ChromiteTheme} 참고).
  *     저장은 창을 닫을 때({@link #dispose()}) 한 번 한다.</li>
  *     <li>도구 창 크기는 창이 실제 크기를 가진 뒤(windowOpened 이후) 바깥 분할부터 차례로 적용한다.</li>
- *     <li>메뉴는 File(새 연결·쿼리, 파일, Exit), View(도구 창 토글, Theme), Query(실행, 취소), Help(About)이다. FlatLaf의 통합 제목 표시줄(Windows)에서
- *     메뉴 막대는 A단계처럼 제목 표시줄 안에 들어간다.
+ *     <li>모양은 DataGrip Islands다: 메인 창 바탕은 캔버스({@code Chromite.island.canvas})이고 Object Explorer, 문서 탭·편집기, Results, Properties가
+ *     각각 둥근 카드({@link IslandPanel})다. 카드 사이 틈은 분할선(6px, 선 없음)과 좌우 바깥 여백이다. 주 도구 막대와 상태 표시줄은 캔버스 위에 있다.</li>
+ *     <li>메뉴는 SSMS 순서로 File(새 연결·쿼리, 파일, Exit), Edit({@link EditMenu}), View(도구 창 토글, Theme), Query(실행, 취소, 자동완성),
+ *     Tools(Options, {@link OptionsDialog}), Window(Reset Window Layout, 열린 문서 탭 목록), Help(About)이다. FlatLaf의 통합 제목 표시줄(Windows)에서
+ *     메뉴 막대는 A단계처럼 제목 표시줄 안에 들어간다. Tools &gt; Options와 같은 설정을 보이는 메뉴 항목(Theme, Icon Style, Auto-Complete While Typing)은
+ *     메뉴를 열 때 현재 값으로 맞춘다.
  *     도구 창 단축키는 SSMS와 같다(Object Explorer F8, Properties F4, Results Ctrl+R).</li>
  *     <li>문서 탭: 시작 탭과 SQL 편집기 탭({@link SqlEditorPanel}). 편집기는 Object Explorer의 "New Query", File > New Query(Ctrl+N),
- *     도구 막대의 New Query로 연다. 제목은 SSMS처럼 {@code SQLQueryN.sql - 연결 이름}이고 닫기 단추가 있다.</li>
+ *     도구 막대의 New Query로 연다. 제목은 SSMS처럼 {@code SQLQueryN.sql - 연결 이름}이고, 도구 설명은 전체 파일 경로와 연결·서버다.
+ *     닫기 단추는 DataGrip처럼 선택한 탭과 마우스를 올린 탭에만 보이고({@link IslandTabbedPaneUI}), 가운데 단추로 눌러도 닫는다.</li>
  *     <li>Query 메뉴의 Execute(F5)와 Cancel Executing Query(Alt+Break)는 활성 편집기에 적용된다. 메뉴 단축키라 포커스가 결과 표에 있어도 동작한다.
  *     Complete(Ctrl+Space)는 활성 편집기의 자동완성을 띄우고, Auto-Complete While Typing은 글자 입력 뒤 자동완성 설정을 켜고 끈다({@link SqlCompletionPopup}).</li>
  *     <li>결과는 SSMS처럼 쿼리 창마다 따로 있다({@link QueryResultsView}). 아래 Results / Messages 탭에는 활성 편집기의 결과를 끼우고,
- *     편집기가 없으면 자리 표시 내용을 보여 준다. 편집기마다 마지막으로 본 탭(Results 또는 Messages)을 기억한다. 탭에서 빠져 있던 결과 컴포넌트는 테마 전환을 받지 못했을 수 있어, 끼울 때 Look and Feel을 맞춘다.</li>
+ *     편집기가 없으면 자리 표시 내용을 보여 준다. 편집기마다 마지막으로 본 탭(Results 또는 Messages)을 기억한다. 탭에서 빠져 있던 결과 컴포넌트는 테마 전환을 받지 못했을 수 있어, 끼울 때 Look and Feel을 맞춘다.
+ *     쿼리 상태 줄({@link QueryStatusLine})도 같은 방식으로, 활성 편집기의 줄을 Results 카드의 아래쪽(SSMS 쿼리 창 맨 아래)에 끼운다.
+ *     Results가 숨겨져 있으면 문서 카드의 아래쪽(편집기 아래)으로 옮긴다. 시작 탭과 DDL 탭에는 없다.</li>
  *     <li>File > New Connection과 도구 막대의 New Connection은 Object Explorer의 같은 명령으로 연결 대화상자({@link ConnectionDialog})를 연다.</li>
  *     <li>상태 표시줄의 연결 수는 모든 프로젝트의 연결 레지스트리 이벤트({@link DBPEventListener}, 연결 추가·삭제)를 받아 다시 센다.
  *     같은 이벤트의 연결 변경(이름 바꾸기, 연결, 끊기)은 그 연결을 쓰는 편집기의 탭 제목과 기본 스키마 콤보에 알린다.</li>
@@ -102,6 +113,11 @@ import java.util.function.IntConsumer;
  * - 2026-11-06 G단계: 닫을 때·끝낼 때 결과 표의 저장하지 않은 변경도 묻기 (docs/chromite/swing-frontend.md "구현 현황 — G단계")
  * - 2026-11-06 디자인 적용: 아이콘 도구 막대(New Query만 글자), 문서 탭 40·밑줄 4·아이콘, 결과 탭 32·아이콘, 1px 분할선,
  *   상태 표시줄 28, View > Theme > Icon Style (docs/chromite/design-spec.md "적용 현황")
+ * - 2026-11-06 Islands: 캔버스 위 둥근 카드(Object Explorer, 문서, Results, Properties), 카드 사이 6px 틈의 분할선, 문서 탭 알약 모양 선택,
+ *   주 도구 막대·상태 표시줄은 캔버스 (docs/chromite/design-spec.md "Islands 적용")
+ * - 2026-11-06 P1: Edit·Tools·Window 메뉴(SSMS 순서) (docs/chromite/swing-frontend.md "P1 디자인 적용")
+ * - 2026-11-06 P1: 쿼리 상태 줄을 결과 아래에 둠 (docs/chromite/swing-frontend.md "P1 디자인 적용")
+ * - 2026-11-06 P1: 문서 탭 닫기 단추를 선택·마우스 올린 탭에만, 가운데 단추로 닫기 (docs/chromite/swing-frontend.md "P1 디자인 적용")
  */
 final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplorerPanel.QueryWindows {
 
@@ -128,6 +144,14 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
     private final JTabbedPane resultTabs;
     private final JComponent resultsPlaceholder;
     private final JComponent messagesPlaceholder;
+    /**
+     * Hold the active editor's query status line at the bottom of the query window (SSMS): inside the Results card below
+     * the results, or at the bottom of the document card while the Results tool window is hidden.
+     */
+    private final JPanel resultsStatusHolder = new JPanel(new BorderLayout());
+    private final JPanel documentStatusHolder = new JPanel(new BorderLayout());
+    @Nullable
+    private JComponent attachedStatusLine;
     private final ToolWindow resultsWindow;
     private final Action newQueryAction;
     private final Action openFileAction;
@@ -136,6 +160,7 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
     private final Action executeQueryAction;
     private final Action cancelQueryAction;
     private final Action completeAction;
+    private final EditMenu editMenu;
     private int queryCounter;
     /**
      * Folder of the last file dialog, for this run of the application.
@@ -167,7 +192,24 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
         documentTabs = createDocumentTabs();
 
         JSplitPane documentSplit = createSplitPane(JSplitPane.VERTICAL_SPLIT);
-        documentSplit.setTopComponent(documentTabs);
+        // Islands: the document tabs and their editors are one card; the query status line goes to its bottom only
+        // while the Results card is hidden (attachStatusLine)
+        JPanel documentArea = new JPanel(new BorderLayout());
+        documentArea.add(documentTabs, BorderLayout.CENTER);
+        documentArea.add(documentStatusHolder, BorderLayout.SOUTH);
+        documentSplit.setTopComponent(new IslandPanel(documentArea));
+        JPanel resultsArea = new JPanel(new BorderLayout());
+        resultsArea.setOpaque(false);
+        resultsArea.add(resultTabs, BorderLayout.CENTER);
+        resultsArea.add(resultsStatusHolder, BorderLayout.SOUTH);
+        // The status line follows the Results card when it is hidden or shown again (Ctrl+R, hide button)
+        resultsArea.addHierarchyListener(e -> {
+            if ((e.getChangeFlags() & HierarchyEvent.SHOWING_CHANGED) != 0) {
+                placeStatusLine();
+            }
+        });
+        resultsStatusHolder.setVisible(false);
+        documentStatusHolder.setVisible(false);
         JSplitPane propertiesSplit = createSplitPane(JSplitPane.HORIZONTAL_SPLIT);
         propertiesSplit.setLeftComponent(documentSplit);
         JSplitPane explorerSplit = createSplitPane(JSplitPane.HORIZONTAL_SPLIT);
@@ -181,7 +223,7 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
             KeyStroke.getKeyStroke(KeyEvent.VK_F4, 0));
         // The Results/Messages tabs are their own header; the hide button sits next to the tabs
         resultsWindow = new ToolWindow("results", "Results", false, //$NON-NLS-1$
-            resultTabs, documentSplit, false, 220,
+            resultsArea, documentSplit, false, 220,
             KeyStroke.getKeyStroke(KeyEvent.VK_R, InputEvent.CTRL_DOWN_MASK));
         // The trailing component fills the rest of the tab row; keep the button at its right end
         JPanel resultTabsTrailing = new JPanel(new FlowLayout(FlowLayout.RIGHT, 2, 0));
@@ -228,6 +270,7 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
                     editor.complete();
                 }
             });
+        editMenu = new EditMenu(this::getActiveTextArea);
         documentTabs.addChangeListener(e -> activeEditorChanged());
         resultTabs.addChangeListener(e -> {
             SqlEditorPanel editor = getActiveEditor();
@@ -239,9 +282,19 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
 
         setJMenuBar(createMenuBar());
 
-        JPanel content = new JPanel(new BorderLayout());
+        JPanel content = new CanvasPanel(new BorderLayout());
         content.add(createToolBar(), BorderLayout.NORTH);
-        content.add(explorerSplit, BorderLayout.CENTER);
+        // Islands: the canvas shows as a gap (Chromite.island.gap) left and right of the outer cards
+        JPanel islands = new CanvasPanel(new BorderLayout()) {
+            @Override
+            public void updateUI() {
+                super.updateUI();
+                int gap = UIScale.scale(Math.max(0, UIManager.getInt("Chromite.island.gap"))); //$NON-NLS-1$
+                setBorder(BorderFactory.createEmptyBorder(0, gap, 0, gap));
+            }
+        };
+        islands.add(explorerSplit, BorderLayout.CENTER);
+        content.add(islands, BorderLayout.CENTER);
         statusBar = new StatusBar(statusText);
         content.add(statusBar, BorderLayout.SOUTH);
         setContentPane(content);
@@ -294,6 +347,7 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
             saveLayout();
         }
         explorerPanel.dispose();
+        editMenu.dispose();
         for (DBPDataSourceRegistry registry : listenedRegistries) {
             registry.removeDataSourceListener(registryListener);
         }
@@ -348,6 +402,8 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
     private JComponent createToolBar() {
         JToolBar toolBar = new JToolBar();
         toolBar.setFloatable(false);
+        // On the Islands canvas (MainToolbar.background = main-window-bg)
+        toolBar.setOpaque(false);
         toolBar.setBorder(BorderFactory.createEmptyBorder(UIScale.scale(5), UIScale.scale(8), UIScale.scale(5), UIScale.scale(8)));
         toolBar.add(UiIcons.createActionButton(explorerPanel.getNewConnectionAction(), "new-connection")); //$NON-NLS-1$
         toolBar.add(UiIcons.createToolButton(newQueryAction, "new-query")); //$NON-NLS-1$
@@ -685,6 +741,18 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
         return documentTabs.getSelectedComponent() instanceof SqlEditorPanel editor ? editor : null;
     }
 
+    /**
+     * Text of the active document tab (query window or DDL tab), for Edit &gt; Find / Replace.
+     */
+    @Nullable
+    private SqlEditorPanel.SqlTextArea getActiveTextArea() {
+        Component component = documentTabs.getSelectedComponent();
+        if (component instanceof SqlEditorPanel editor) {
+            return editor.getTextArea();
+        }
+        return component instanceof DdlViewerPanel viewer ? viewer.getTextArea() : null;
+    }
+
     private void activeEditorChanged() {
         SqlEditorPanel editor = getActiveEditor();
         switchingResults = true;
@@ -695,23 +763,62 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
         } finally {
             switchingResults = false;
         }
+        attachStatusLine(editor != null ? editor.getStatusLine() : null);
         updateQueryActions();
     }
 
     /**
      * Puts an editor's results component into the Results / Messages tab. Components of inactive editors are not in
-     * the window and miss theme switches, so their look and feel is brought up to date here.
+     * the window and miss theme switches, so their look and feel is brought up to date here (also for the status line).
      */
     private void attachResultTab(int index, @NotNull JComponent component) {
         if (resultTabs.getComponentAt(index) == component) {
             return;
         }
+        updateLookAndFeel(component);
+        resultTabs.setComponentAt(index, component);
+    }
+
+    private static void updateLookAndFeel(@NotNull JComponent component) {
         LookAndFeel lookAndFeel = UIManager.getLookAndFeel();
         if (component.getClientProperty(UPDATED_LAF_KEY) != lookAndFeel) {
             SwingUtilities.updateComponentTreeUI(component);
             component.putClientProperty(UPDATED_LAF_KEY, lookAndFeel);
         }
-        resultTabs.setComponentAt(index, component);
+    }
+
+    /**
+     * Shows the active editor's query status line at the bottom of the query window; other documents (Welcome, DDL)
+     * have none.
+     */
+    private void attachStatusLine(@Nullable JComponent statusLine) {
+        if (statusLine == attachedStatusLine) {
+            return;
+        }
+        attachedStatusLine = statusLine;
+        if (statusLine != null) {
+            updateLookAndFeel(statusLine);
+        }
+        placeStatusLine();
+    }
+
+    /**
+     * Puts the status line below the results (SSMS), or below the editor while the Results card is hidden.
+     */
+    private void placeStatusLine() {
+        JPanel target = resultsWindow != null && resultsWindow.isShown() ? resultsStatusHolder : documentStatusHolder;
+        for (JPanel holder : List.of(resultsStatusHolder, documentStatusHolder)) {
+            boolean show = holder == target && attachedStatusLine != null;
+            if (show && (holder.getComponentCount() == 0 || holder.getComponent(0) != attachedStatusLine)) {
+                holder.removeAll();
+                holder.add(attachedStatusLine, BorderLayout.CENTER);
+            } else if (!show) {
+                holder.removeAll();
+            }
+            holder.setVisible(show);
+            holder.revalidate();
+            holder.repaint();
+        }
     }
 
     private void updateQueryActions() {
@@ -721,6 +828,7 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
         completeAction.setEnabled(editor != null);
         saveAction.setEnabled(editor != null);
         saveAsAction.setEnabled(editor != null);
+        editMenu.activeDocumentChanged();
     }
 
     @Override
@@ -783,11 +891,23 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
         JTabbedPane tabs = new EditorTabbedPane();
         // One row that scrolls, like SSMS; wrapped rows would move the selected tab's row around
         tabs.setTabLayoutPolicy(JTabbedPane.SCROLL_TAB_LAYOUT);
-        // DataGrip editor tabs: size.tab.editor 40, 4px underline with round ends
-        tabs.putClientProperty(FlatClientProperties.STYLE, "tabHeight: 40; tabSelectionHeight: 4; tabSelectionArc: 4; " //$NON-NLS-1$
-            + "focusColor: $Chromite.editorBackground"); //$NON-NLS-1$
+        // DataGrip editor tabs: size.tab.editor 40; the selected tab is an Islands pill (IslandTabbedPaneUI), no underline
+        tabs.putClientProperty(FlatClientProperties.STYLE, "tabHeight: 40; tabSelectionHeight: 0"); //$NON-NLS-1$
         tabs.addTab("Welcome", welcome);
         tabs.putClientProperty(FlatClientProperties.TABBED_PANE_TAB_CLOSE_CALLBACK, (IntConsumer) this::closeDocumentTab);
+        tabs.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseReleased(MouseEvent e) {
+                // Middle click closes a tab, as in DataGrip and SSMS
+                if (SwingUtilities.isMiddleMouseButton(e)) {
+                    int index = tabs.indexAtLocation(e.getX(), e.getY());
+                    if (index >= 0 && tabs.getComponentAt(index) instanceof JComponent component
+                        && Boolean.TRUE.equals(component.getClientProperty(FlatClientProperties.TABBED_PANE_TAB_CLOSABLE))) {
+                        closeDocumentTab(index);
+                    }
+                }
+            }
+        });
         return tabs;
     }
 
@@ -811,20 +931,7 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
         fileMenu.add(new JMenuItem(saveAsAction));
         fileMenu.addSeparator();
         fileMenu.add(exitItem);
-        fileMenu.addMenuListener(new MenuListener() {
-            @Override
-            public void menuSelected(MenuEvent e) {
-                fillRecentFilesMenu(recentMenu);
-            }
-
-            @Override
-            public void menuDeselected(MenuEvent e) {
-            }
-
-            @Override
-            public void menuCanceled(MenuEvent e) {
-            }
-        });
+        onMenuSelected(fileMenu, () -> fillRecentFilesMenu(recentMenu));
         fillRecentFilesMenu(recentMenu);
 
         JMenu queryMenu = new JMenu("Query");
@@ -837,6 +944,8 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
         autoCompleteItem.setToolTipText("Show completion proposals after typing letters (they always appear after a period)");
         autoCompleteItem.addActionListener(e -> SqlCompletionPopup.setAutoActivateOnLetters(autoCompleteItem.isSelected()));
         queryMenu.add(autoCompleteItem);
+        // Tools > Options changes the same setting
+        onMenuSelected(queryMenu, () -> autoCompleteItem.setSelected(SqlCompletionPopup.isAutoActivateOnLetters()));
 
         JMenu viewMenu = new JMenu("View");
         viewMenu.setMnemonic(KeyEvent.VK_V);
@@ -854,12 +963,85 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
         helpMenu.setMnemonic(KeyEvent.VK_H);
         helpMenu.add(aboutItem);
 
+        JMenuItem optionsItem = new JMenuItem("Options…");
+        optionsItem.setMnemonic(KeyEvent.VK_O);
+        optionsItem.addActionListener(e -> OptionsDialog.open(this));
+        JMenu toolsMenu = new JMenu("Tools");
+        toolsMenu.setMnemonic(KeyEvent.VK_T);
+        toolsMenu.add(optionsItem);
+
+        JMenu windowMenu = new JMenu("Window");
+        windowMenu.setMnemonic(KeyEvent.VK_W);
+        onMenuSelected(windowMenu, () -> fillWindowMenu(windowMenu));
+        fillWindowMenu(windowMenu);
+
+        // SSMS order
         JMenuBar menuBar = new JMenuBar();
         menuBar.add(fileMenu);
+        menuBar.add(editMenu.getMenu());
         menuBar.add(viewMenu);
         menuBar.add(queryMenu);
+        menuBar.add(toolsMenu);
+        menuBar.add(windowMenu);
         menuBar.add(helpMenu);
         return menuBar;
+    }
+
+    /**
+     * Window menu (SSMS): Reset Window Layout, then the open document tabs (the active one checked), rebuilt each
+     * time the menu opens.
+     */
+    private void fillWindowMenu(@NotNull JMenu windowMenu) {
+        windowMenu.removeAll();
+        JMenuItem resetItem = new JMenuItem("Reset Window Layout");
+        resetItem.setMnemonic(KeyEvent.VK_R);
+        resetItem.addActionListener(e -> resetWindowLayout());
+        windowMenu.add(resetItem);
+        if (documentTabs.getTabCount() > 0) {
+            windowMenu.addSeparator();
+        }
+        for (int i = 0; i < documentTabs.getTabCount(); i++) {
+            int index = i;
+            // No tab icon: the radio mark shows the active tab
+            JRadioButtonMenuItem item = new JRadioButtonMenuItem((i + 1) + " " + documentTabs.getTitleAt(i), i == documentTabs.getSelectedIndex());
+            if (i < 9) {
+                item.setMnemonic(KeyEvent.VK_1 + i);
+            }
+            item.setToolTipText(documentTabs.getToolTipTextAt(i));
+            item.addActionListener(e -> {
+                if (index < documentTabs.getTabCount()) {
+                    documentTabs.setSelectedIndex(index);
+                }
+            });
+            windowMenu.add(item);
+        }
+    }
+
+    /**
+     * Window &gt; Reset Window Layout: every tool window shown again with its default size.
+     */
+    private void resetWindowLayout() {
+        // Outer split first: the inner split panes are sized from its new layout
+        for (ToolWindow toolWindow : toolWindows) {
+            toolWindow.reset();
+        }
+    }
+
+    private static void onMenuSelected(@NotNull JMenu menu, @NotNull Runnable task) {
+        menu.addMenuListener(new MenuListener() {
+            @Override
+            public void menuSelected(MenuEvent e) {
+                task.run();
+            }
+
+            @Override
+            public void menuDeselected(MenuEvent e) {
+            }
+
+            @Override
+            public void menuCanceled(MenuEvent e) {
+            }
+        });
     }
 
     @NotNull
@@ -868,6 +1050,7 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
         themeMenu.setMnemonic(KeyEvent.VK_T);
         ButtonGroup group = new ButtonGroup();
         ChromiteTheme current = ChromiteTheme.getCurrent();
+        List<JRadioButtonMenuItem> themeItems = new ArrayList<>();
         for (ChromiteTheme theme : ChromiteTheme.values()) {
             JRadioButtonMenuItem item = new JRadioButtonMenuItem(theme.getLabel(), theme == current);
             item.setMnemonic(theme.getLabel().charAt(0));
@@ -878,6 +1061,7 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
             });
             group.add(item);
             themeMenu.add(item);
+            themeItems.add(item);
         }
         themeMenu.addSeparator();
         JMenu iconStyleMenu = new JMenu("Icon Style");
@@ -895,6 +1079,17 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
             iconStyleMenu.add(item);
         }
         themeMenu.add(iconStyleMenu);
+        // Tools > Options changes the same settings
+        onMenuSelected(themeMenu, () -> {
+            ChromiteTheme theme = ChromiteTheme.getCurrent();
+            UiIconStyle iconStyle = UiIconStyle.getCurrent();
+            for (int i = 0; i < themeItems.size(); i++) {
+                themeItems.get(i).setSelected(ChromiteTheme.values()[i] == theme);
+            }
+            for (int i = 0; i < iconStyleMenu.getItemCount(); i++) {
+                iconStyleMenu.getItem(i).setSelected(UiIconStyle.values()[i] == iconStyle);
+            }
+        });
         return themeMenu;
     }
 
@@ -979,6 +1174,7 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
      *     tab row copies it only from a background change event, which a FlatLaf style value does not always fire when
      *     the theme is switched at runtime (the tabs then kept the panel color).</li>
      *     <li>Opaque, because FlatLaf tabbed panes are not: the empty part of the tab row would show the parent's panel color.</li>
+     *     <li>The UI is {@link IslandTabbedPaneUI} (Islands pill tabs, close buttons of the selected and the hovered tab only).</li>
      * </ul>
      */
     private static final class EditorTabbedPane extends JTabbedPane {
@@ -988,7 +1184,7 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
 
         @Override
         public void updateUI() {
-            super.updateUI();
+            setUI(new IslandTabbedPaneUI());
             Color background = UIManager.getColor("Chromite.editorBackground"); //$NON-NLS-1$
             if (background != null) {
                 setBackground(new Color(background.getRGB()));
@@ -997,9 +1193,93 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
     }
 
     /**
-     * Split pane whose divider is a 1px border.subtle line in the middle of its 5px drag area (size.divider), without
-     * FlatLaf's grip dots ({@code SplitPaneDivider.style = plain} paints nothing). The divider is recreated with the
-     * UI delegate, so the line border is set again on every look and feel change.
+     * Islands editor tabs (EditorTabs.* of ManyIslands*.theme.json): the selected tab is a rounded pill with a 1px
+     * border (Chromite.island.tabSelected*, or tabInactive* when the tabs don't have the focus), 6px below and above the
+     * tab row edges (tabInsets -6); a hovered tab gets a pill of tab-bg-hovered. No underline.
+     * The pill is painted as the tab border, which FlatLaf paints before the close button and the title.
+     */
+    private static final class IslandTabbedPaneUI extends FlatTabbedPaneUI {
+        @Override
+        protected void paintTabBackground(Graphics g, int tabPlacement, int tabIndex, int x, int y, int w, int h, boolean isSelected) {
+            // The tab row background is the tabbed pane's own (opaque) background; pills are painted in paintTabBorder
+        }
+
+        @Override
+        protected void paintTabBorder(Graphics g, int tabPlacement, int tabIndex, int x, int y, int w, int h, boolean isSelected) {
+            boolean focused = isTabbedPaneOrChildFocused();
+            Color fill;
+            Color border = null;
+            if (isSelected) {
+                fill = UIManager.getColor(focused ? "Chromite.island.tabSelectedBackground" : "Chromite.island.tabInactiveBackground"); //$NON-NLS-1$ //$NON-NLS-2$
+                border = UIManager.getColor(focused ? "Chromite.island.tabSelectedBorderColor" : "Chromite.island.tabInactiveBorderColor"); //$NON-NLS-1$ //$NON-NLS-2$
+            } else if (tabIndex == getRolloverTab()) {
+                fill = UIManager.getColor("Chromite.island.tabHoverBackground"); //$NON-NLS-1$
+            } else {
+                return;
+            }
+            int arc = UIScale.scale(UIManager.getInt("Chromite.island.tabArc")); //$NON-NLS-1$
+            int insetY = UIScale.scale(6);
+            int insetX = UIScale.scale(2);
+            Graphics2D g2 = (Graphics2D) g.create();
+            try {
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                float px = x + insetX;
+                float py = y + insetY;
+                float pw = w - 2 * insetX;
+                float ph = h - 2 * insetY;
+                if (fill != null) {
+                    g2.setColor(fill);
+                    g2.fill(new RoundRectangle2D.Float(px, py, pw, ph, arc, arc));
+                }
+                if (border != null) {
+                    g2.setColor(border);
+                    g2.draw(new RoundRectangle2D.Float(px + 0.5f, py + 0.5f, pw - 1, ph - 1, arc, arc));
+                }
+            } finally {
+                g2.dispose();
+            }
+        }
+
+        @Override
+        protected void paintTabSelection(Graphics g, int tabPlacement, int tabIndex, int x, int y, int w, int h) {
+            // No underline in Islands: the pill shows the selection
+        }
+
+        /**
+         * DataGrip: the close button (×) shows on the selected tab and on the tab under the mouse only. Its space stays
+         * reserved on every closable tab, so the tabs don't change width when the mouse moves over them. A click on a
+         * hidden button can't happen: the tab under the mouse is the hovered one, whose button is shown.
+         */
+        @Override
+        protected void paintTabCloseButton(Graphics g, int tabIndex, int x, int y, int w, int h) {
+            if (tabIndex == tabPane.getSelectedIndex() || tabIndex == getRolloverTab()) {
+                super.paintTabCloseButton(g, tabIndex, x, y, w, h);
+            }
+        }
+    }
+
+    /**
+     * Islands canvas (main-window-bg): the background around the cards, under the main tool bar and the status bar.
+     */
+    private static class CanvasPanel extends JPanel {
+        CanvasPanel(@NotNull LayoutManager layout) {
+            super(layout);
+        }
+
+        @Override
+        public void updateUI() {
+            super.updateUI();
+            Color canvas = UIManager.getColor("Chromite.island.canvas"); //$NON-NLS-1$
+            if (canvas != null) {
+                setBackground(canvas);
+            }
+        }
+    }
+
+    /**
+     * Split pane between islands: its divider is the 6px canvas gap between two cards (size.divider, Island.borderWidth),
+     * draggable but without a line or FlatLaf's grip dots ({@code SplitPaneDivider.style = plain} paints nothing).
+     * The split pane paints the canvas color, so the gap shows the canvas; set again on every look and feel change.
      */
     private static final class LineSplitPane extends JSplitPane {
         LineSplitPane(int orientation) {
@@ -1009,29 +1289,19 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
         @Override
         public void updateUI() {
             super.updateUI();
+            Color canvas = UIManager.getColor("Chromite.island.canvas"); //$NON-NLS-1$
+            if (canvas != null) {
+                setBackground(canvas);
+            }
             if (getUI() instanceof BasicSplitPaneUI splitPaneUI && splitPaneUI.getDivider() != null) {
-                splitPaneUI.getDivider().setBorder(new AbstractBorder() {
-                    @Override
-                    public void paintBorder(Component c, Graphics g, int x, int y, int width, int height) {
-                        Color color = UIManager.getColor("Chromite.dividerColor"); //$NON-NLS-1$
-                        if (color == null) {
-                            return;
-                        }
-                        g.setColor(color);
-                        if (width <= height) {
-                            g.fillRect(x + width / 2, y, 1, height);
-                        } else {
-                            g.fillRect(x, y + height / 2, width, 1);
-                        }
-                    }
-                });
+                splitPaneUI.getDivider().setBorder(BorderFactory.createEmptyBorder());
             }
         }
     }
 
     /**
-     * Status bar (size.statusBar 28) with a top separator line; the border is recreated on theme changes, because its
-     * color comes from the look and feel.
+     * Status bar (size.statusBar 28) on the Islands canvas, without a separator line (StatusBar.background =
+     * main-window-bg, topBorderWidth 0); the background is set again on theme changes.
      */
     private static final class StatusBar extends JPanel {
         private static final int HEIGHT = 28;
@@ -1048,7 +1318,7 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
         @Override
         public Dimension getPreferredSize() {
             Dimension size = super.getPreferredSize();
-            return new Dimension(size.width, UIScale.scale(HEIGHT) + 1);
+            return new Dimension(size.width, UIScale.scale(HEIGHT));
         }
 
         void setText(@NotNull String text) {
@@ -1058,8 +1328,10 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
         @Override
         public void updateUI() {
             super.updateUI();
-            Color separatorColor = UIManager.getColor("Separator.foreground"); //$NON-NLS-1$
-            setBorder(BorderFactory.createMatteBorder(1, 0, 0, 0, separatorColor != null ? separatorColor : Color.GRAY));
+            Color canvas = UIManager.getColor("Chromite.island.canvas"); //$NON-NLS-1$
+            if (canvas != null) {
+                setBackground(canvas);
+            }
         }
     }
 }

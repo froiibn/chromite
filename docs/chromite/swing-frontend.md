@@ -1468,6 +1468,131 @@ Swing 제품에는 그 번들이 없다. 그래서 범용 칸(Login, Password)�
 - 브라우저 로그인 인증 방식(ClickHouse SSO·OIDC, Azure 등 외부 공급자), 셸 명령 비밀번호, 인증 방식별 추가 칸(`AuthModelSelector`의 SWT 설정 화면 몫).
 - 연결 실패 시 대화상자 다시 열기(SSMS), 비밀번호 보기 단추, 연결 폴더·설명, 격리 수준·초기화 SQL.
 
+## Islands 적용 (2026-11-06)
+
+사용자 의견("아직 딱딱하고 DBeaver 같다, DataGrip은 둥글다")에 따라 모양 기준을 DataGrip 2025.3부터의 기본 테마 **Islands**로 바꿨다.
+값과 근거는 [design-spec.md](design-spec.md) "적용 현황 — Islands 적용"에 있다.
+
+| 파일 | 바뀐 것 |
+|---|---|
+| `IslandPanel`(새 파일) | 둥근 카드: 자식을 그린 뒤 모서리 바깥을 캔버스 색으로 앤티에일리어싱해 덮음, 카드가 그리기 시작점 |
+| `ToolWindow` | 도구 창(머리말 + 내용)을 카드로 감쌈 |
+| `MainFrame` | 문서 탭 카드, 캔버스 바탕(내용 패널·분할 창·상태 표시줄, 좌우 6 틈), 분할선 = 6px 틈(선 없음), 주 도구 막대 투명, 문서 탭 `IslandTabbedPaneUI`(알약 선택, 밑줄 없음) |
+| `ChromiteLightLaf.properties`, `ChromiteDarkLaf.properties` | Islands 팔레트(캔버스, 카드, 선택, 글자, 테두리, 강조색 `#3871E1`)와 `Chromite.island.*` 토큰, 제목 표시줄 캔버스색 |
+| `SqlEditorDark.xml` | 편집기 바탕·거터 `#191A1C`, 현재 줄 `#212326` |
+
+- 확인: `-Pproduct-dbeaver-ce,product-chromite-swing` BUILD SUCCESS, 작업 공간 사본(`D:\Tools\_smoke\swing-p1`)으로 실행해 라이트·다크 × 아이콘 팩 A 캡처
+  (`D:\Tools\_scratch\swing-p1\islands-light.png`, `islands-dark.png`), 실행 중 테마 전환. 회귀 테스트는 실행하지 않았다(요청 없음).
+  영향받을 수 있는 기능: 도구 창 숨기기·크기 저장(카드 단위로 바뀜), 분할선 끌기(6px 틈), 테마 전환.
+
+## P1 디자인 적용 (2026-11-06)
+
+[design-spec.md](design-spec.md)의 P1 항목 중 아래를 적용했다(Islands 적용 위에). 측정값은 그 문서의 "적용 현황 — P1 결과"에 있다.
+
+| 파일 | 바뀐 것 |
+|---|---|
+| `ResultSetGrid` | 열 너비 여백을 Look and Feel 렌더러·셀 테두리에서 계산, 행 번호를 눌러도 가로로 스크롤하지 않음 |
+| `ChromiteLightLaf.properties`, `ChromiteDarkLaf.properties` | 제목 표시줄 40(`TitlePane.buttonSize` 46,40, 제목 글자 `text.secondary`), 메뉴 항목 24(`@menuItemMargin`), 스크롤바, Properties 분류 띠 색 |
+| `EditMenu`(새 파일) | Edit 메뉴: Undo, Redo, Cut, Copy, Paste, Select All, Find…, Replace…, Find Next, Find Previous |
+| `FindReplaceDialog`(새 파일) | 찾기·바꾸기 대화상자(RSyntaxTextArea `SearchEngine`) |
+| `OptionsDialog`(새 파일) | Tools > Options: 테마, 아이콘 스타일, 입력 중 자동완성, 자동완성 지연, 최대 행 수 |
+| `MainFrame` | 메뉴 순서 File, Edit, View, Query, Tools, Window, Help, Window 메뉴(Reset Window Layout, 열린 문서 탭), 탭 닫기 단추·가운데 단추, 쿼리 상태 줄 자리 |
+| `ToolWindow` | 기본 크기로 되돌리기(`reset`) |
+| `SqlEditorPanel`, `DdlViewerPanel` | 편집기 찾기 키, 상태 줄 `QueryStatusLine`, 탭 도구 설명(전체 경로, 연결·서버) |
+| `QueryStatusLine`(새 파일) | SSMS 쿼리 상태 줄: 상태 아이콘, 문구, 서버, 사용자, DB/스키마, 시간, 행 수 |
+| `ObjectExplorerPanel` | 트리에 초점이 있을 때 F5 = 새로 고침 |
+| `PropertiesPanel` | SSMS 속성 그리드(분류별·이름순, 분류 접기, 설명 칸) |
+| `SqlCompletionPopup` | 행 24, 오른쪽 형식 글자, 둥근 선택, 지연 설정 접근자 |
+| `ChromiteScrollBarUI`(새 파일), `ChromiteLightLaf`, `ChromiteDarkLaf` | 스크롤바: 보이지 않는 트랙, 막대 7(마우스 올리면 9) |
+| `icons/ui/**/categorized.svg`, `sort-alpha.svg`, `tools/branding/gen_ui_icons.py` | Properties 도구 막대 아이콘 2개 × 2팩 × 2테마(생성기에 추가, 기존 SVG는 바이트 단위로 같음) |
+
+### 결과 그리드 머리글이 잘려 보이던 것 (근본 원인)
+
+- 보고: 첫 데이터 열 머리글이 `AlbumId` 대신 `ıld`처럼 보였다(`swing-design/m-light-A-1-0.png`).
+- 원인: 열 너비 계산이 아니라 **가로 스크롤**이다. 같은 결과를 스크롤하지 않은 캡처(`swing-design/w5-query-0.png`)에서는 `AlbumId` 열이 102px로 머리글이 다 보이고,
+  잘린 캡처는 가로 스크롤 막대가 오른쪽으로 옮겨져 있고(막대 시작 525 → 580px) 행 번호 열(행 머리글, 스크롤하지 않음) 옆의 첫 열이 그만큼 가려져 있다.
+  캡처 직전 단계(`scene.ps1`)가 Title 칸에서 Shift+→로 선택을 Artist 열까지 넓혔고, `JTable.changeSelection`이 선택한 칸 전체가 보이도록 표를 오른쪽으로 스크롤했다.
+  키보드로 칸을 고를 때의 이 스크롤은 표의 정상 동작이라 바꾸지 않았다.
+- 같은 원인으로 실제로 잘못된 경우: 행 번호를 누르면 `changeSelection`을 첫 열과 마지막 열에 두 번 불러, 표가 **마지막 열까지 가로로 스크롤**해 앞쪽 열이 가려졌다.
+  행 번호 클릭은 자동 스크롤을 잠시 끄고 행을 고르도록 고쳤다(누른 행은 이미 보임).
+- 함께 고친 것: 열 너비의 여백이 고정값 18(셀 여백 8 + 8 + 격자선 1을 가정)이었다. Look and Feel이 여백을 배율로 키우는 환경(FlatLaf 사용자 배율 > 1)이나 테마가
+  `TableHeader.cellMargins`를 바꾸면 머리글이 잘린다. 머리글 너비는 머리글 렌더러의 선호 너비, 셀은 셀 테두리(`Table.cellNoFocusBorder`)의 여백으로 계산한다(모든 열).
+
+### 제목 표시줄과 메뉴
+
+- 제목 표시줄 40(창 단추 46×40, `TitlePane.buttonSize`), 제목 글자 `text.secondary`. 메뉴 항목 높이 24(`@menuItemMargin` 3,8,4,8). 팝업 모서리 8, 선택 arc 8·좌우 4는 디자인 적용 때 그대로.
+- 주 메뉴는 SSMS 순서 File, Edit, View, Query, Tools, Window, Help.
+- **Edit**(`EditMenu`): Undo부터 Select All까지는 키보드 초점 컴포넌트에 적용한다(Swing 메뉴는 초점을 가져가지 않음). 편집기(RSyntaxTextArea)는 실행 취소 기록,
+  입력 칸은 `JTextComponent`, 표·트리의 복사는 그 컴포넌트의 전송 처리기다. 단축키는 메뉴 단축키라 초점 컴포넌트가 같은 키를 직접 처리하면 그쪽이 먼저다.
+  켜고 끄기는 초점이 바뀔 때(컴포넌트 종류) 정하고, 메뉴를 열 때 선택·실행 취소 기록까지 보고 다시 정한다.
+- **Find/Replace**(`FindReplaceDialog`): Ctrl+F, Ctrl+H(SSMS), F3·Shift+F3. 편집기가 이 키를 직접 받아(텍스트 영역의 Ctrl+H 뒤로 지우기보다 우선) 활성 문서 탭의 편집기를 대상으로 연다.
+  RSyntaxTextArea `SearchEngine`(대소문자, 단어 단위, 정규식, 끝에서 처음으로 이어 찾기, 맞는 곳 모두 표시)을 쓴다. 대화상자는 모달이 아니고 닫으면 표시를 지운다. DDL 탭에서는 바꾸기를 끈다.
+  RSTA의 찾기 대화상자(RSTAUI)는 별도 라이브러리라 넣지 않았다.
+- **Tools > Options**(`OptionsDialog`): 이미 있는 설정만 한곳에 모았다. 테마·아이콘 스타일(`ui.theme`, `ui.iconStyle`), 입력 중 자동완성·지연(`sqlEditor.completion.*`),
+  최대 행 수(`resultset.maxrows`, 실행 엔진이 연결 설정 저장소 → 플랫폼 설정 저장소 순으로 읽는 값, 0 = 제한 없음). OK를 누를 때 바뀐 값만 적용·저장한다.
+  같은 설정을 보이는 메뉴 항목(View > Theme, Icon Style, Query > Auto-Complete While Typing)은 메뉴를 열 때 현재 값으로 맞춘다.
+  자동완성 설정의 기본값은 처음 읽을 때 선언한다(편집기를 열기 전에 Options를 열어도 기본값이 보이게).
+- **Window**: Reset Window Layout(도구 창을 모두 보이고 기본 크기로), 열린 문서 탭 목록(활성 탭에 표시, 고르면 그 탭으로).
+
+### 문서 탭
+
+- 닫기 단추(×)는 선택한 탭과 마우스를 올린 탭에만 그린다(`IslandTabbedPaneUI.paintTabCloseButton`). 단추 자리는 모든 탭에 남겨 두어 마우스를 움직여도 탭 폭이 바뀌지 않는다.
+- 가운데 단추로 누르면 닫는다(닫을 수 있는 탭만, 저장 확인은 닫기 단추와 같음).
+- 도구 설명: 전체 파일 경로(저장 안 한 쿼리는 `SQLQueryN.sql (not saved)`)와 연결 이름·위치(URL 또는 파일)·DB 제품 버전.
+
+### F5 (SSMS)
+
+트리에 초점이 있으면 F5 = 새로 고침, 그 밖에서는 F5 = 실행이다. 트리의 키 바인딩(초점 컴포넌트)이 메인 창 Query 메뉴의 F5 단축키(창 전체)보다 먼저 처리되는 Swing 순서를 쓴다.
+Object Explorer 오른쪽 클릭 메뉴의 Refresh에 F5를 보인다.
+
+### 쿼리 상태 줄 (SSMS)
+
+- `QueryStatusLine`: 상태 아이콘 16 + 문구 │ 서버 │ 사용자 │ DB/스키마 │ 경과 시간 │ 행 수. 높이 28, 위 1px 선, 글자 `text.secondary`, 칸 사이 1px 구분선.
+  상태 아이콘은 실행 전 연결 아이콘(연결되어 있으면 초록 상태 점), 실행 중 ▶, 성공 체크, 오류, 취소 경고다.
+- 서버는 호스트[:포트], 파일 DB는 파일 이름이고, 도구 설명에 전체 URL·경로와 DB 제품 버전(SSMS의 "서버 (버전)")을 둔다. 사용자는 연결의 사용자 이름, DB/스키마는 편집기 도구 막대의 기본 DB/스키마 콤보 값이다. 빈 칸은 숨긴다.
+- 위치: SSMS처럼 쿼리 창 맨 아래 = Results 카드의 아래쪽. Results를 숨기면(Ctrl+R) 문서 카드의 아래쪽(편집기 아래)으로 옮긴다. 시작 탭·DDL 탭에는 없다.
+  상태 줄은 편집기마다 있고 메인 창이 활성 편집기의 것을 끼운다(결과 탭과 같은 방식, 탭에서 빠져 있던 동안의 테마 전환을 끼울 때 맞춤).
+
+### Properties (SSMS 속성 그리드)
+
+- 머리말 아래 도구 막대: 분류별·이름순 아이콘 토글(새 아이콘 `categorized`, `sort-alpha`). 열 머리글 없는 이름 | 값 두 열, 행 24.
+- 분류 줄: 셰브런 + semibold 이름, 바탕 `Chromite.PropertyGrid.categoryBackground`(카드 바탕 위의 띠). 누르기, ←/→, Enter로 접고 편다. 분류 아래 속성 이름은 분류 이름 위치에 맞춰 들여 쓴다.
+  분류 없는 속성은 SWT 속성 보기처럼 제목 없이 맨 앞이다.
+- 가로선 `grid.lineSubtle`, 이름과 값 사이 1px `border.subtle`(속성 줄만). 아래 설명 칸: 고른 속성의 이름과 `DBPPropertyDescriptor.getDescription()`.
+- 읽기 전용 그대로. 접은 분류와 정렬 방식은 실행 중에 기억한다.
+
+### 자동완성 목록
+
+- 행 24(고정 높이라 목록이 제안마다 렌더러 높이를 묻지 않음), 아이콘 16과 이름 사이 6, 오른쪽 형식·테이블 글자 `text.secondary`, 최대 12행, 폭은 내용에 맞추고 280~640.
+- 선택은 테마 목록 선택과 같은 둥근 사각형(arc 8, 좌우 4)이고 글자색을 바꾸지 않는다. 목록은 초점을 갖지 않으므로(편집기가 초점 유지) 초점 있는 선택색을 테마에서 직접 읽는다.
+
+### 스크롤바
+
+`ChromiteScrollBarUI`(FlatLaf `FlatScrollBarUI` 상속, Look and Feel의 `ScrollBarUI`로 등록): 트랙은 스크롤하는 내용의 바탕색으로 칠해 보이지 않고, 막대는 폭 11 안의 둥근 7,
+마우스를 스크롤바에 올리면 9로 넓어진다. 막대 색은 Islands `ScrollBar.thumbColor` `#80808059`, 마우스 올림 `#8080808C`(라이트도 같은 값).
+
+### 확인 (2026-11-06)
+
+- 빌드: `-Pproduct-dbeaver-ce,product-chromite-swing` BUILD SUCCESS. Swing 제품의 `plugins/`에 `swt`·`jface`·`org.eclipse.ui`·`e4.ui` 번들 0개.
+- 실행(작업 공간 사본 `D:\Tools\_smoke\swing-p1`, Windows 11, 150%, in-process JVM), 캡처는 `D:\Tools\_scratch\swing-p1\`:
+  - 그리드 머리글 라이트·다크(`grid-light.png`, `grid-dark-0.png`): `AlbumId` 머리글 전체 보임, 행 번호 5를 눌러도 가로 스크롤 막대가 왼쪽 그대로.
+  - 메뉴(`menu-edit2-0.png`, `menu-tools-0.png`, `menu-window2-0.png`, 팝업은 별도 창으로 캡처), Options(`options-0.png`): 테마 Dark·최대 행 500으로 OK →
+    창이 다크로 바뀌고 설정 파일에 `ui.theme=DARK`, `resultset.maxrows=500`.
+  - 탭(`tab-hover-crop.png`): 마우스를 올린 탭에만 ×와 옅은 알약, 도구 설명에 경로·연결·`SQLite 3.54.1`. 가운데 단추로 두 번째 탭이 닫힘(`tab-middle-crop.png`).
+  - F5: 사본 DB에 다른 프로그램(sqlite3)으로 테이블을 하나 만든 뒤 트리의 테이블 폴더에서 F5 → 다시 읽어 `테이블 14`와 `P1RefreshCheck`가 보임(`f5-expanded-crop.png`), 쿼리는 실행되지 않음.
+  - 쿼리 상태 줄(`grid-dark-0.png`): 체크 아이콘, `Query executed successfully.` │ `chinook-copy.db` │ 시간 │ `39 rows`(SQLite라 사용자·DB 칸은 숨김).
+  - Properties(`props-crop.png`, `props2-crop.png`): 연결 노드의 Driver·Server 분류, Driver 접기, 고른 속성의 설명 칸.
+  - 자동완성(`completion2-0.png`), 찾기·바꾸기(`find-0.png`: `ar.Name` 찾기, 끝에서 처음으로 이어 찾기).
+- 회귀 테스트는 실행하지 않았다(요청 없음). 영향받을 수 있는 기능: 결과 그리드 열 너비·행 번호 클릭, 메뉴 단축키(Ctrl+Z/Y/X/C/V/A가 초점 컴포넌트에서 처리되지 않을 때),
+  편집기 Ctrl+H(이제 바꾸기), Object Explorer F5, 상태 줄 위치(Results 숨김·보임), Properties 키 조작, 자동완성 목록 모양, 모든 스크롤 영역.
+
+### 남긴 것
+
+- 주 상태 표시줄 오른쪽 위젯(Ln/Col, 인코딩, 줄바꿈), 연결별 상태 줄 색(SSMS), 상태 줄의 사용자 spid.
+- 자동완성 맞는 글자 강조(`completion.match`), 팝업 창 둥근 모서리(자동완성은 `JWindow`라 Windows 11 둥근 창이 아님).
+- Properties 열 경계 끌기, 이름순·접힌 분류의 저장(지금은 실행 중에만 기억).
+- Options의 다른 설정(편집기 글꼴 등)은 설정 자체가 아직 없어 넣지 않았다.
+
 ## 변경 이력
 
 - 2026-11-06 최초 작성. Swing 전환 결정, 구조, 재사용 분석, MVP 범위, F5 실행 사양을 정리.
@@ -1500,3 +1625,7 @@ Swing 제품에는 그 번들이 없다. 그래서 범용 칸(Login, Password)�
 - 2026-11-06 SSMS식 Connect 대화상자: 2단계 마법사 → 한 화면(Database type 콤보와 More database types…, Server name 한 칸과 드라이버별 서버 기록,
   Authentication 콤보(범용 칸만으로 되는 인증 방식), Options >> 탭(Connection Properties, Driver·Provider Properties, Additional Connection Parameters),
   새 연결 Connect = 저장 + 연결). "Connect 대화상자 (SSMS식)" 절 추가, D단계 절에 바뀐 곳 표시.
+- 2026-11-06 Islands 적용: 모양 기준을 DataGrip Islands로 바꿈(캔버스 위 둥근 카드, 카드 사이 6px 틈의 분할선, 알약 모양 문서 탭, Islands 팔레트).
+  "Islands 적용" 절 추가.
+- 2026-11-06 P1 디자인 적용: 결과 그리드 머리글(가로 스크롤 원인, 행 번호 클릭 스크롤, 열 너비 여백), 제목 표시줄 40·메뉴 24, Edit·Tools·Window 메뉴(찾기·바꾸기, Options),
+  문서 탭 닫기 단추·가운데 단추·도구 설명, F5 포커스 분기, SSMS 쿼리 상태 줄, SSMS 속성 그리드, 자동완성 목록, 스크롤바. "P1 디자인 적용" 절 추가.

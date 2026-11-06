@@ -18,6 +18,8 @@ package com.seizia.chromite.ui.swing;
 
 import com.formdev.flatlaf.FlatDarkLaf;
 
+import javax.swing.*;
+
 /**
  * Chromite 다크 테마 (DataGrip New UI Dark 모양).
  *
@@ -30,6 +32,7 @@ import com.formdev.flatlaf.FlatDarkLaf;
  * 변경 이력:
  * - 2026-11-06 B단계: 최초 작성 (docs/chromite/swing-frontend.md "구현 현황 — B단계")
  * - 2026-11-06 디자인 적용: 상위 클래스를 FlatDarculaLaf에서 FlatDarkLaf로 바꾸고 P0 토큰 적용 (docs/chromite/design-spec.md "적용 현황")
+ * - 2026-11-06 P1: 스크롤바 UI({@link ChromiteScrollBarUI}) 등록 (docs/chromite/swing-frontend.md "P1 디자인 적용")
  */
 public class ChromiteDarkLaf extends FlatDarkLaf {
 
@@ -38,5 +41,12 @@ public class ChromiteDarkLaf extends FlatDarkLaf {
     @Override
     public String getName() {
         return NAME;
+    }
+
+    @Override
+    public UIDefaults getDefaults() {
+        UIDefaults defaults = super.getDefaults();
+        ChromiteScrollBarUI.install(defaults);
+        return defaults;
     }
 }

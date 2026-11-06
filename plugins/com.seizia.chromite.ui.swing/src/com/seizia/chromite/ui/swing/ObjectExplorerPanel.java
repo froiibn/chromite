@@ -92,8 +92,9 @@ import java.util.function.Consumer;
  *     새로 고침 등으로 더 새 읽기가 시작되었으면 이전 결과는 버린다.</li>
  *     <li>오류는 {@code DBWorkbench.getPlatformUI().showError}({@link SwingPlatformUI})로 보여 주고 노드를 접어 다시 펼치면 다시 읽게 한다.
  *     연결 취소({@link DBInterruptedException})는 연결 서비스가 이미 알렸으므로 다시 알리지 않는다.</li>
- *     <li>새로 고침(F5는 쿼리 실행용으로 남겨 두고 머리말 버튼과 오른쪽 클릭 메뉴로만 제공)은 {@code DBNNode#refreshNode} 뒤에
- *     자식을 다시 읽는다. 아직 펼친 적 없는 노드는 연결을 새로 열지 않도록 다시 그리기만 한다.</li>
+ *     <li>새로 고침(도구 막대 단추, 오른쪽 클릭 메뉴, 트리에 초점이 있을 때 F5)은 {@code DBNNode#refreshNode} 뒤에
+ *     자식을 다시 읽는다. 아직 펼친 적 없는 노드는 연결을 새로 열지 않도록 다시 그리기만 한다. F5는 SSMS처럼 초점에 따라 나뉜다:
+ *     트리의 키 바인딩(초점 컴포넌트)이 메인 창 Query 메뉴의 F5(Execute, 창 전체 단축키)보다 먼저 처리되므로, 트리에서는 새로 고침, 그 밖에서는 실행이다.</li>
  *     <li>더블클릭은 Swing 트리의 기본 동작(펼치기/접기)만 한다. 객체 편집기는 다음 단계에서 만든다.</li>
  *     <li>오른쪽 클릭 메뉴 "New Query"는 선택한 노드가 속한 연결({@link DBNDatabaseNode#getDataSourceContainer()})로
  *     SQL 편집기를 연다(SSMS처럼 연결 아래 어느 노드에서나). 연결은 편집기가 실행할 때 필요하면 연다.</li>
@@ -121,6 +122,7 @@ import java.util.function.Consumer;
  * - 2026-11-06 E단계: Select Top 1000 Rows, Script as(CREATE·SELECT), View DDL (docs/chromite/swing-frontend.md "구현 현황 — E단계")
  * - 2026-11-06 디자인 적용: 아이콘 도구 막대(New Connection, Connect, Disconnect, Filter, Refresh, Collapse All), Filter·Collapse All 명령,
  *   아이콘 팩 노드 아이콘과 연결 상태 점, 보조 글자, 마우스 올림 표시 (docs/chromite/design-spec.md "적용 현황")
+ * - 2026-11-06 P1: 트리에 초점이 있을 때 F5 = 새로 고침(SSMS) (docs/chromite/swing-frontend.md "P1 디자인 적용")
  */
 final class ObjectExplorerPanel extends JPanel {
 
@@ -224,7 +226,8 @@ final class ObjectExplorerPanel extends JPanel {
                 refreshSelection();
             }
         };
-        refreshAction.putValue(Action.SHORT_DESCRIPTION, "Refresh the selected node (or all connections)");
+        refreshAction.putValue(Action.SHORT_DESCRIPTION, "Refresh the selected node, or all connections (F5)");
+        refreshAction.putValue(Action.ACCELERATOR_KEY, KeyStroke.getKeyStroke(KeyEvent.VK_F5, 0));
         collapseAllAction = createAction("Collapse All", () -> {
             for (int row = tree.getRowCount() - 1; row >= 0; row--) {
                 tree.collapseRow(row);
@@ -313,6 +316,8 @@ final class ObjectExplorerPanel extends JPanel {
         });
         bindKey(KeyStroke.getKeyStroke(KeyEvent.VK_F2, 0), "chromite.rename", () -> renameAction.actionPerformed(null)); //$NON-NLS-1$
         bindKey(KeyStroke.getKeyStroke(KeyEvent.VK_DELETE, 0), "chromite.delete", () -> deleteAction.actionPerformed(null)); //$NON-NLS-1$
+        // SSMS: F5 in Object Explorer refreshes (elsewhere it executes the query, Query menu)
+        bindKey(KeyStroke.getKeyStroke(KeyEvent.VK_F5, 0), "chromite.refresh", this::refreshSelection); //$NON-NLS-1$
 
         JPopupMenu popupMenu = new JPopupMenu();
         popupMenu.add(newConnectionAction);

@@ -18,6 +18,8 @@ package com.seizia.chromite.ui.swing;
 
 import com.formdev.flatlaf.FlatLightLaf;
 
+import javax.swing.*;
+
 /**
  * Chromite 라이트 테마 (DataGrip New UI "Light with Light Header" 모양).
  *
@@ -28,6 +30,7 @@ import com.formdev.flatlaf.FlatLightLaf;
  * 변경 이력:
  * - 2026-11-06 B단계: 최초 작성 (docs/chromite/swing-frontend.md "구현 현황 — B단계")
  * - 2026-11-06 디자인 적용: SSMS풍 색 대신 DataGrip New UI 라이트 P0 토큰 적용 (docs/chromite/design-spec.md "적용 현황")
+ * - 2026-11-06 P1: 스크롤바 UI({@link ChromiteScrollBarUI}) 등록 (docs/chromite/swing-frontend.md "P1 디자인 적용")
  */
 public class ChromiteLightLaf extends FlatLightLaf {
 
@@ -36,5 +39,12 @@ public class ChromiteLightLaf extends FlatLightLaf {
     @Override
     public String getName() {
         return NAME;
+    }
+
+    @Override
+    public UIDefaults getDefaults() {
+        UIDefaults defaults = super.getDefaults();
+        ChromiteScrollBarUI.install(defaults);
+        return defaults;
     }
 }

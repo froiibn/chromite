@@ -30,6 +30,7 @@ import java.awt.*;
  *
  * 변경 이력:
  * - 2026-11-06 E단계: 최초 작성 (docs/chromite/swing-frontend.md "구현 현황 — E단계")
+ * - 2026-11-06 P1: Edit &gt; Find가 쓰는 편집기 접근자 (docs/chromite/swing-frontend.md "P1 디자인 적용")
  */
 final class DdlViewerPanel extends JPanel {
 
@@ -61,5 +62,13 @@ final class DdlViewerPanel extends JPanel {
     @NotNull
     String getTitle() {
         return title;
+    }
+
+    /**
+     * The read-only text, for Edit &gt; Find.
+     */
+    @NotNull
+    SqlEditorPanel.SqlTextArea getTextArea() {
+        return textArea;
     }
 }

@@ -17,6 +17,7 @@
 package com.seizia.chromite.ui.swing;
 
 import com.formdev.flatlaf.FlatClientProperties;
+import com.formdev.flatlaf.util.UIScale;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
@@ -31,6 +32,7 @@ import javax.swing.border.Border;
 import javax.swing.table.AbstractTableModel;
 import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.TableCellEditor;
+import javax.swing.table.TableCellRenderer;
 import javax.swing.table.TableColumn;
 import java.awt.*;
 import java.awt.event.ActionEvent;
@@ -79,6 +81,8 @@ import java.util.Map;
  * - 2026-11-06 G단계: 셀 편집·NULL·행 추가·삭제, 저장·취소, 편집 상태 줄 (docs/chromite/swing-frontend.md "구현 현황 — G단계")
  * - 2026-11-06 디자인 적용: DataGrip 그리드 모양(편집기 글꼴, 세로·가로 격자선, 왼쪽 정렬 머리글, 행 번호 열, NULL 보조 글자색,
  *   편집 색을 테마 키로) (docs/chromite/design-spec.md "적용 현황")
+ * - 2026-11-06 P1: 열 너비의 여백을 고정값(18) 대신 Look and Feel의 머리글 렌더러·셀 테두리 여백으로 계산, 행 번호를 눌러 행을 고를 때
+ *   표가 가로로 스크롤되지 않게 함 (docs/chromite/swing-frontend.md "P1 디자인 적용")
  */
 final class ResultSetGrid extends JPanel {
 
@@ -95,8 +99,6 @@ final class ResultSetGrid extends JPanel {
     private static final int MIN_COLUMN_WIDTH = 40;
     private static final int MAX_COLUMN_WIDTH = 320;
     private static final int MEASURED_ROWS = 200;
-    // Table.cellMargins (8 left, 8 right) and the 1px vertical grid line
-    private static final int CELL_PADDING = 18;
 
     /**
      * Fetched result set.
@@ -600,25 +602,36 @@ final class ResultSetGrid extends JPanel {
     //////////////////////////////////////////////////////////
     // Layout
 
+    /**
+     * Column widths from the header and the first rows. The padding is not a constant: the header width is the
+     * preferred width of the look and feel's header renderer (its cell margins, scaled), and the cells add the
+     * insets of the cell border ({@code Table.cellMargins}, scaled) and the vertical grid line.
+     */
     private static void fitColumnWidths(@NotNull JTable table, @NotNull Data data) {
         FontMetrics cellMetrics = table.getFontMetrics(table.getFont());
-        Font headerFont = table.getTableHeader().getFont();
-        FontMetrics headerMetrics = table.getFontMetrics(headerFont != null ? headerFont : table.getFont());
+        int cellPadding = getCellPadding(table);
+        TableCellRenderer headerRenderer = table.getTableHeader().getDefaultRenderer();
         int measuredRows = Math.min(MEASURED_ROWS, data.rows().size());
         for (int column = 0; column < data.columns().length; column++) {
-            int width = headerMetrics.stringWidth(data.columns()[column]);
+            int width = headerRenderer.getTableCellRendererComponent(table, data.columns()[column], false, false, -1, column)
+                .getPreferredSize().width + table.getIntercellSpacing().width;
             for (int row = 0; row < measuredRows; row++) {
-                width = Math.max(width, cellMetrics.stringWidth(toDisplayText(data.rows().get(row)[column])));
+                width = Math.max(width, cellMetrics.stringWidth(toDisplayText(data.rows().get(row)[column])) + cellPadding);
             }
             TableColumn tableColumn = table.getColumnModel().getColumn(column);
-            tableColumn.setPreferredWidth(Math.clamp(width + CELL_PADDING, MIN_COLUMN_WIDTH, MAX_COLUMN_WIDTH));
+            tableColumn.setPreferredWidth(Math.clamp(width, UIScale.scale(MIN_COLUMN_WIDTH), UIScale.scale(MAX_COLUMN_WIDTH)));
         }
     }
 
     /**
-     * Row numbers like SSMS ({@code *} for a new row). A one-column table keeps the row heights of the grid; clicking
-     * a number selects the row.
+     * Left and right insets of a cell (the look and feel's cell border) plus the vertical grid line.
      */
+    private static int getCellPadding(@NotNull JTable table) {
+        Border border = UIManager.getBorder("Table.cellNoFocusBorder"); //$NON-NLS-1$
+        Insets insets = border != null ? border.getBorderInsets(table) : new Insets(0, 0, 0, 0);
+        return insets.left + insets.right + table.getIntercellSpacing().width;
+    }
+
     /**
      * Horizontal grid lines (grid.lineSubtle) at the bottom of every visible row.
      */
@@ -643,6 +656,10 @@ final class ResultSetGrid extends JPanel {
         }
     }
 
+    /**
+     * Row numbers like SSMS ({@code *} for a new row). A one-column table keeps the row heights of the grid; clicking
+     * a number selects the row without scrolling the grid sideways.
+     */
     @NotNull
     private JTable createRowHeader() {
         JTable header = new JTable(new AbstractTableModel() {
@@ -711,7 +728,7 @@ final class ResultSetGrid extends JPanel {
             }
         });
         int rowCount = gridModel.getRowCount();
-        int width = header.getFontMetrics(header.getFont()).stringWidth(String.valueOf(Math.max(rowCount, 99))) + CELL_PADDING;
+        int width = header.getFontMetrics(header.getFont()).stringWidth(String.valueOf(Math.max(rowCount, 99))) + getCellPadding(table);
         header.getColumnModel().getColumn(0).setPreferredWidth(width);
         header.setPreferredScrollableViewportSize(new Dimension(width, 0));
         header.addMouseListener(new MouseAdapter() {
@@ -719,8 +736,16 @@ final class ResultSetGrid extends JPanel {
             public void mousePressed(MouseEvent e) {
                 int row = header.rowAtPoint(e.getPoint());
                 if (row >= 0 && table.getColumnCount() > 0) {
-                    table.changeSelection(row, 0, false, false);
-                    table.changeSelection(row, table.getColumnCount() - 1, false, true);
+                    // changeSelection scrolls to the cell it selects: to the first and then to the last column, so the
+                    // grid would jump to its right end and cut off the first columns. The clicked row is visible already.
+                    boolean autoscrolls = table.getAutoscrolls();
+                    table.setAutoscrolls(false);
+                    try {
+                        table.changeSelection(row, 0, false, false);
+                        table.changeSelection(row, table.getColumnCount() - 1, false, true);
+                    } finally {
+                        table.setAutoscrolls(autoscrolls);
+                    }
                     table.requestFocusInWindow();
                 }
             }
