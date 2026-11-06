@@ -262,6 +262,12 @@
                                     <items label="%tree.scheduler.program.arguments.node.name" itemLabel="%tree.scheduler.program.argument.node.name" path="argument" property="arguments" icon="#argument" navigable="false" inline="false"/>
                                 </items>
                             </folder>
+                            <!-- Chromite: schedules, job run details and running jobs (docs/chromite/swing-job-schedulers.md) -->
+                            <folder type="com.seizia.chromite.ext.oracle.model.scheduler.OracleSchedulerSchedule" label="%tree.scheduler.schedules.node.name" icon="#scheduler_folder" description="%tree.scheduler.schedules.node.tip">
+                                <items label="%tree.scheduler.schedule.node.name" path="schedulerSchedule" property="scheduler.schedules" icon="#job_schedule"/>
+                            </folder>
+                            <items label="%tree.scheduler.run_details.node.name" path="schedulerRunDetails" property="scheduler.runDetails" icon="#info"/>
+                            <items label="%tree.scheduler.running_jobs.node.name" path="schedulerRunningJobs" property="scheduler.runningJobs" icon="#sessions"/>
                         </folder>
                         <folder type="com.seizia.chromite.ext.oracle.model.OracleRecycledObject" label="%tree.recycle_bin.node.name" icon="#recycle_bin" description="Recycle Bin" visibleIf="object.dataSource.adminVisible &amp;&amp; object.dataSource.isAtLeastV10()">
                             <items label="%tree.recycled_object.node.name" path="object" property="recycledObjects" icon="#recycle_bin"/>
