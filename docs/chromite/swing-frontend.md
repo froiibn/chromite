@@ -2100,6 +2100,12 @@ SQL Editor 도구 막대다. 쿼리 창마다 있던 도구 막대는 없앴다(
   단축키 줄은 메뉴와 같은 `Action`의 이름·단축키에서 만들고, 이름 끝의 "…"는 뺀다.
 - **결과 카드:** 문서가 없으면 숨기므로 빈 화면이 문서 영역을 다 쓴다(2026-11-07 "Results 자동 숨김". 그 전에는 "결과가 없습니다" 자리 표시가 아래에 있었다).
 - 이전 시작 탭의 정사각 아이콘 로고(128)와 큰 제품명 글자는 없앴다(가로 로고에 제품명이 있음).
+- **전환 시점(2026-11-07 수정):** 빈 화면 ↔ 문서 탭 전환(`updateDocumentCard`)은 `EditorTabbedPane`의 `insertTab`·`removeTabAt`이 **끝난 뒤** 부른다.
+  처음에는 문서 탭의 `ContainerListener`에서 불렀는데, 컨테이너 이벤트는 탭 추가 도중에 오고 `BasicTabbedPaneUI`는 탭마다의 제목 뷰(`htmlViews`)를
+  자기 컨테이너 리스너에서 맞춘다. `updateUI`(테마 전환)가 그 리스너를 우리 리스너 뒤에 다시 붙이므로, 테마를 바꾼 뒤 탭을 모두 닫고 새로 열면
+  `CardLayout.show`의 즉시 레이아웃이 UI보다 먼저 돌아 `ArrayIndexOutOfBoundsException`(`BasicTabbedPaneUI.getTextViewForTab`)이 났고,
+  `insertTab`이 중간에 끊겨 탭 영역이 계속 깨졌다(선택 -1, 그릴 때마다 같은 예외). `invokeLater`로 미루지 않은 것은 전환이 늦으면 같은 이벤트 안의
+  코드가 아직 숨은 탭 창을 볼 수 있기 때문이다(포커스 요청, `isShowing`). 다른 탭 창(Results 탭, 도구 창 탭, 대화상자 탭)에는 컨테이너 리스너가 없고, 선택 변경 리스너는 `updateUI` 중에 불리지 않는다.
 
 ### 확인 (2026-11-06)
 
@@ -2445,6 +2451,7 @@ SQL Editor 도구 막대다. 쿼리 창마다 있던 도구 막대는 없앴다(
 - 2026-11-07 드라이버 관리자: Tools > Driver Manager…, Connect 대화상자의 Edit Driver…(드라이버 만들기·편집, 로컬 jar·폴더 라이브러리, 오프라인 모드). [swing-driver-manager.md](swing-driver-manager.md).
 - 2026-11-07 SWT 프런트엔드 삭제([swt-removal.md](swt-removal.md)): 목적 절에 안내, 식별자 표(피처가 `licenses/`를 넣음, 실행 파일 이름을 유지하는 이유), 기능 공백·설정 저장 위치 설명 갱신.
 - 2026-11-07 테마 전환 뒤 SQL 편집기·값 패널 세로 스크롤바 트랙이 옛 테마 색으로 남던 문제: `ChromiteScrollBarUI`가 뷰 바탕색 변경을 듣고 다시 그린다. "테마" 절.
+- 2026-11-07 자동 업데이트: 제목 표시줄의 "새 버전 X · 다시 시작" 단추, 상태 표시줄의 받기 진행, Tools > Options > Updates, 끝낼 때 커밋하지 않은 트랜잭션 질문. [auto-update.md](auto-update.md).
 - 2026-11-07 도구 창 최소 폭: 카드 최소 폭을 머리말(단추 + 제목 첫 글자와 말줄임표)이 정하고 내용은 최소 폭을 갖지 않음(Properties가 일정 폭 이하로 줄지 않던 문제),
   도구 창 도구 막대를 `OverflowToolBar`로. "도구 창 도킹 — 도구 창 최소 폭" 절.
 - 2026-11-07 Query Library 자리: 한 열의 두 도구 창(Query Library·Properties, Object Explorer·Registered Servers)이 서로를 기본 이웃으로 두고,
@@ -2455,5 +2462,9 @@ SQL Editor 도구 막대다. 쿼리 창마다 있던 도구 막대는 없앴다(
   "SQL Editor 도구 막대" 절 추가, "도구 막대" 절에 안내, C단계 취소·E단계 연결 콤보 위치 갱신.
 - 2026-11-07 자동 커밋 상태(사용자 요청·결정): 쿼리 상태 줄의 커밋 방식 칸(초록·빨간 점), 누르면 연결 설정의 Auto-commit으로 안내,
   설정을 바꾸면 열린 세션에도 적용(커밋하지 않은 변경은 커밋/롤백/취소를 물음). "자동 커밋 상태" 절 추가.
+- 2026-11-07 테마를 바꾼 뒤 문서 탭을 모두 닫고 새로 열면 문서 탭이 `ArrayIndexOutOfBoundsException`으로 깨지던 문제 수정:
+  빈 화면 전환을 컨테이너 리스너 대신 탭 추가·삭제가 끝난 뒤에. "빈 문서 영역" 절에 원인과 설계.
 - 2026-11-07 주 창 제목 표시줄 가운데의 "Chromite"를 그리지 않음(사용자 결정). "제목 표시줄" 절.
 - 2026-11-07 작업 공간 위치: `-data`가 없으면 현재 폴더가 아니라 기본 작업 공간을 씀(시작 순서 3번, [workspace-location.md](workspace-location.md)).
+- 2026-11-07 SQL Server 에이전트 관리: 개체 탐색기의 에이전트 노드, 작업·작업 활동 모니터·경고·운영자·오류 로그. [swing-sqlserver-agent.md](swing-sqlserver-agent.md).
+- 2026-11-07 실행 계획 세 보기: 계획 탭에 그래픽(연산자 그림)·트리·원본 보기 전환. [swing-sql-editor-plus.md](swing-sql-editor-plus.md) "실행 계획 세 보기".

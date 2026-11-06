@@ -28,6 +28,7 @@
         <module>com.seizia.chromite.model.sm</module>
         <module>com.seizia.chromite.model.sql</module>
         <module>com.seizia.chromite.model.sql.jdbc</module>
+        <module>com.seizia.chromite.model.update</module>
         <module>com.seizia.chromite.model.lsp</module>
         <module>com.seizia.chromite.registry</module>
 
@@ -116,6 +117,8 @@
                 <module>com.seizia.chromite.ui.swing</module>
                 <!-- Server administration model of the Swing tools (sessions, locks), docs/chromite/swing-admin-tools.md -->
                 <module>com.seizia.chromite.model.admin</module>
+                <!-- AI agent tools and the local MCP server, docs/chromite/ai-agent.md -->
+                <module>com.seizia.chromite.model.ai.tools</module>
             </modules>
         </profile>
     </profiles>

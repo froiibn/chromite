@@ -17,6 +17,7 @@
  */
 package com.seizia.chromite.ext.mssql.model;
 
+import com.seizia.chromite.ext.mssql.model.agent.SQLServerAgent;
 import com.seizia.chromite.ext.mssql.model.plan.SQLServerQueryPlanner;
 import com.seizia.chromite.model.sql.exec.SQLActualPlanProvider;
 import net.sf.jsqlparser.expression.NextValExpression;
@@ -71,8 +72,11 @@ import java.util.Properties;
  * 설계(Chromite): 실행 계획 어댑터({@link DBCQueryPlanner}, {@link SQLActualPlanProvider})를 다른 DB의 계획기처럼
  * {@link #getAdapter}에서 돌려준다. DBeaver CE에는 SQL Server 계획기가 없어 Chromite가 추가했다.
  *
+ * 탐색기의 "SQL Server 에이전트" 노드({@link SQLServerAgent})는 {@link #getAgent}가 만든다(Chromite, 에이전트 모델은 {@code model.agent} 패키지).
+ *
  * 변경 이력:
  * - 2026-11-06 SQL Server 실행 계획 어댑터 {@link SQLServerQueryPlanner} (docs/chromite/swing-sql-editor-plus.md)
+ * - 2026-11-07 SQL Server 에이전트 노드 {@link #getAgent}, 새로 고침 때 다시 만듦 (docs/chromite/swing-sqlserver-agent.md)
  */
 public class SQLServerDataSource
     extends JDBCDataSource
@@ -85,6 +89,8 @@ public class SQLServerDataSource
     private final SystemDataTypeCache dataTypeCache = new SystemDataTypeCache();
     private final DatabaseCache databaseCache = new DatabaseCache();
     private final ServerLoginCache serverLoginCache = new ServerLoginCache();
+    @Nullable
+    private volatile SQLServerAgent agent;
 
     private boolean supportsColumnProperty;
     private String serverVersion;
@@ -227,6 +233,22 @@ public class SQLServerDataSource
 
     public ServerLoginCache getServerLoginCache() {
         return serverLoginCache;
+    }
+
+    /**
+     * The "SQL Server Agent" node: a list of one (navigator tree items are lists), empty on servers without an agent
+     * (Azure SQL Database, Synapse, Babelfish).
+     */
+    @Association
+    @NotNull
+    public List<SQLServerAgent> getAgent(@NotNull DBRProgressMonitor monitor) {
+        SQLServerAgent current = agent;
+        if (current == null) {
+            current = new SQLServerAgent(this);
+            current.readState(monitor);
+            agent = current;
+        }
+        return current.isAvailable() ? List.of(current) : List.of();
     }
 
     @NotNull
@@ -576,6 +598,7 @@ public class SQLServerDataSource
     public DBSObject refreshObject(@NotNull DBRProgressMonitor monitor) throws DBException {
         databaseCache.clearCache();
         serverLoginCache.clearCache();
+        agent = null;
         hasStatistics = false;
         return super.refreshObject(monitor);
     }
