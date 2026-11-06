@@ -6,8 +6,10 @@ Bundle-Name: Chromite AI Model
 Bundle-SymbolicName: com.seizia.chromite.model.ai;singleton:=true
 Bundle-Version: 2.0.34.qualifier
 Export-Package: com.seizia.chromite.model.ai,
+ com.seizia.chromite.model.ai.agent,
  com.seizia.chromite.model.ai.commands,
  com.seizia.chromite.model.ai.engine,
+ com.seizia.chromite.model.ai.engine.anthropic,
  com.seizia.chromite.model.ai.engine.copilot,
  com.seizia.chromite.model.ai.engine.copilot.dto,
  com.seizia.chromite.model.ai.engine.ollama,

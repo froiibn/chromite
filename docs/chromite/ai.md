@@ -15,7 +15,7 @@ DBeaver가 운영하는 카탈로그(`https://dbeaver.com/info/ai_models_api.jso
 
 | 구성 요소 | 위치 | 역할 |
 |---|---|---|
-| AI 엔진 등록 | `plugins/com.seizia.chromite.model.ai/plugin.xml` | OpenAI(`OpenAIEngine`), GitHub Copilot(`CopilotCompletionEngine`), Ollama(`OllamaCompletionEngine`) |
+| AI 엔진 등록 | `plugins/com.seizia.chromite.model.ai/plugin.xml` | OpenAI(`OpenAIEngine`), GitHub Copilot(`CopilotCompletionEngine`), Ollama(`OllamaCompletionEngine`), Anthropic(`AnthropicCompletionEngine`, 2026-11-07, [ai-agent.md](ai-agent.md) "엔진") |
 | 설정 화면 | `plugins/com.seizia.chromite.ui.ai/plugin.xml` | 엔진별 `propertyConfigurator`(`OpenAiConfigurator`, `CopilotConfigurator`, `OllamaConfigurator`) |
 | 엔진 공통 | `model.ai/.../engine/BaseCompletionEngine.java` | 컨텍스트 크기(설정값), 요청 temperature |
 | 모델 정보 | `model.ai/.../engine/AIModel.java`, `AIModelFeature.java` | 이름, 컨텍스트 크기, 입출력 한도, 기능(CHAT, STREAMING, TOOL_CALL, REASONING, VISION 등) |
@@ -98,4 +98,5 @@ ChatGPT 계정 방식은 목록 API가 있으므로 내장 정적 모델 목록�
 
 ## 변경 이력
 
+- 2026-11-07 Anthropic 엔진 추가(모델 목록은 `GET /v1/models`, 이 문서의 원칙대로 정적 목록 없음). 도구 사용·에이전트는 [ai-agent.md](ai-agent.md).
 - 2026-11-06 문서 작성. dbeaver.com AI 모델 카탈로그를 제거하고 모델 목록과 메타데이터를 제공자에서만 받도록 바꿨다.
