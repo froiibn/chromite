@@ -140,6 +140,19 @@ jobs:
         shell: pwsh
         run: .\deps\dbeaver-common\mvnw.cmd -B -ntp package -f product/aggregate/pom.xml -T1C '-Pproduct-dbeaver-ce,product-chromite-swing'
 
+      # Bundled Java runtime, as build.yml "Bundle Java runtime (Windows x64)" (docs/chromite/runtime.md).
+      # Restore only, like the Maven cache: the download cache of build.yml's devel runs.
+      - name: Restore JBR SDK download
+        uses: actions/cache/restore@v6
+        with:
+          path: ~/.cache/chromite-jbr
+          key: jbr-windows-x64-${{ hashFiles('tools/jre/jbr.properties') }}
+      - name: Bundle Java runtime
+        shell: pwsh
+        run: |
+          java tools/jre/BundleJre.java windows-x64
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+
       - name: Binaries before signing
         shell: pwsh
         run: |
@@ -289,6 +302,17 @@ jobs:
       - name: Build
         shell: bash
         run: ./deps/dbeaver-common/mvnw -B -ntp package -f product/aggregate/pom.xml -T1C -Pproduct-dbeaver-ce,product-chromite-swing
+
+      # Bundled Java runtime, as build.yml "Bundle Java runtime (macOS arm64, linked on Linux)". Its Mach-O
+      # files are signed with the others in macos-sign (tools/release/macos_natives.py finds them).
+      - name: Restore JBR SDK download
+        uses: actions/cache/restore@v6
+        with:
+          path: ~/.cache/chromite-jbr
+          key: jbr-macos-aarch64-on-linux-${{ hashFiles('tools/jre/jbr.properties') }}
+      - name: Bundle Java runtime
+        shell: bash
+        run: java tools/jre/BundleJre.java osx-aarch64
 
       # tar keeps the launcher executable bits (upload-artifact does not); the bits are checked
       # first, as in build.yml.

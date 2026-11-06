@@ -40,6 +40,7 @@ Chromite 릴리스 파일을 GitHub Actions에서 빌드하고 서명·확인한
 1. Azure 변수 6개 확인: 모두 있으면 서명, 모두 없으면 서명 없는 빌드(`UNSIGNED`), 일부만 있으면 실패.
 2. 빌드: `build.yml`의 Windows 빌드와 같은 명령(`mvnw.cmd ... '-Pproduct-dbeaver-ce,product-chromite-swing'`).
    Maven 캐시는 `build.yml`이 `devel`에서 저장한 것을 읽기만 한다(`actions/cache/restore`; 태그 실행은 캐시를 새로 저장하지 않는다).
+   이어서 `build.yml`과 같은 내장 Java 런타임 단계(`tools/jre/BundleJre.java windows-x64`, JBR SDK 다운로드 캐시도 읽기만 함, [runtime.md](runtime.md)).
 3. 서명 전 상태를 로그에 남긴다(모든 exe·dll의 Authenticode 상태).
 4. `azure/login@v3`(OIDC, 비밀값 없음) → `azure/artifact-signing-action@v2`로 파일마다 한 단계씩 서명
    (`file-digest: SHA256`, `timestamp-rfc3161: http://timestamp.acs.microsoft.com`, `timestamp-digest: SHA256`).
@@ -54,7 +55,7 @@ Chromite 릴리스 파일을 GitHub Actions에서 빌드하고 서명·확인한
 
 ### macOS (작업 `macos-build` → `macos-sign`)
 
-- `macos-build`(`ubuntu-latest`): `build.yml`의 Linux 작업과 같은 빌드와 런처 실행 권한 확인 후 두 앱을 tar로 묶어
+- `macos-build`(`ubuntu-latest`): `build.yml`의 Linux 작업과 같은 빌드, 내장 Java 런타임 단계(`BundleJre.java osx-aarch64`), 런처 실행 권한 확인 후 두 앱을 tar로 묶어
   중간 결과물 `intermediate-macos-apps-unsigned`(보관 1일)로 올린다. 이 결과물은 Release에 올리지 않는다.
   Linux에서 만드는 이유는 macOS arm64 러너 용량 문제다([ci.md](ci.md) "macOS 제품을 Linux 러너에서 만드는 이유").
 - `macos-sign`(`macos-15`, arm64, 환경 `signing`): 저장소는 `tools/release`만 받는다(sparse checkout). 단계마다 `release-macos.sh` 하위 명령을 부른다.
@@ -105,8 +106,7 @@ Windows는 `Get-AuthenticodeSignature`로 확인했다. 번들·드라이버 구
 | `plugins/org.eclipse.equinox.launcher.win32.win32.x86_64_*/eclipse_11924.dll` | 안 함 | Eclipse 파일, Eclipse 서명 `Valid` |
 | `plugins/com.sun.jna_*/com/sun/jna/win32-*/jnidispatch.dll` (3개) | 안 함 | JNA 파일, 서명 없음(`NotSigned`) |
 | jar 안의 DLL(SWT 등), JDBC 드라이버 jar | 안 함 | Authenticode 대상이 아니다(jar 안의 항목) |
-
-JRE는 아직 들어 있지 않다([runtime.md](runtime.md)). JRE를 넣게 되면 그 파일도 제3자 바이너리다.
+| `jre/bin/**/*.exe`, `*.dll` (내장 런타임 88개, [runtime.md](runtime.md)) | 안 함 | 제3자 파일. JetBrains가 만든 JBR 파일 42개는 서명이 없고(`NotSigned`, JBR 배포본 그대로), Microsoft C 런타임 45개(`ucrtbase.dll`, `api-ms-win-*.dll`, `vcruntime140*.dll`, `msvcp140.dll`)와 NVDA 화면 낭독기 연결 DLL 1개는 각 회사 서명이 `Valid`다(2026-11-07 로컬 빌드, `Get-AuthenticodeSignature`) |
 
 ### macOS: 앱 안의 모든 Mach-O
 
@@ -114,6 +114,9 @@ JRE는 아직 들어 있지 않다([runtime.md](runtime.md)). JRE를 넣게 되�
 |---|---|---|---|
 | `Chromite.app` | 12 | 4 | 8 |
 | `ChromiteSwing.app` | 11 | 4 | 7 |
+
+2026-11-07부터 내장 런타임(`Contents/Eclipse/jre`, [runtime.md](runtime.md))의 Mach-O 39개(모두 낱개 파일, JBR 배포본의 ad-hoc 서명)가
+두 앱에 더해진다(`Chromite.app` 51개, `ChromiteSwing.app` 50개). `macos_natives.py scan`으로 런타임 폴더를 확인했다.
 
 낱개 파일(두 앱 같음): `Contents/MacOS/chromite`(Swing: `chromite-swing`, 주 실행 파일), `com.sun.jna_*/.../darwin-aarch64/libjnidispatch.jnilib`,
 `.../darwin-x86-64/libjnidispatch.jnilib`, `org.eclipse.equinox.launcher.cocoa.macosx.aarch64_*/eclipse_11924.so`(이름은 .so지만 Mach-O).
@@ -173,7 +176,7 @@ x86_64 조각(Intel용)은 Chromite가 쓰지 않지만 공증은 앱 안의 모
 |---|---|
 | `com.apple.security.cs.allow-jit` | HotSpot JIT가 실행 중에 기계어를 만든다 |
 | `com.apple.security.cs.allow-unsigned-executable-memory` | HotSpot과 JNI/JNA로 불러온 네이티브 코드(libffi 클로저)가 MAP_JIT 없이 쓰기·실행 메모리를 만든다(JDK jpackage의 기본 권한에도 들어 있다고 알려져 있으나 이 작업에서 확인하지 않음) |
-| `com.apple.security.cs.disable-library-validation` | 앱에 JRE가 없어서 사용자 Mac에 설치된 JDK(다른 팀 서명)의 `libjli`/`libjvm`을 불러온다. JDBC 드라이버·JNA가 실행 중에 풀어 쓰는 네이티브 라이브러리도 우리 서명이 아니다. library validation이 켜져 있으면 모두 거부된다 |
+| `com.apple.security.cs.disable-library-validation` | JDBC 드라이버·JNA가 실행 중에 풀어 쓰는 네이티브 라이브러리는 우리 서명이 아니다. library validation이 켜져 있으면 모두 거부된다. 내장 런타임(`Contents/Eclipse/jre`)의 `libjli`/`libjvm`은 앱과 함께 우리 서명이 되므로 이 권한이 필요 없다(2026-11-07 전에는 앱에 JRE가 없어 사용자가 설치한 JDK를 불러오는 것도 이유였다) |
 
 App Sandbox는 쓰지 않는다(사용자 파일, 네트워크, 드라이버를 제한 없이 쓴다). 낱개·jar 안의 라이브러리에는 권한을 주지 않는다(권한은 주 실행 파일의 것).
 
@@ -232,7 +235,10 @@ App Sandbox는 쓰지 않는다(사용자 파일, 네트워크, 드라이버를 
 - **비표준 위치의 코드**: Mach-O가 `Contents/Eclipse/plugins` 아래에 있다. Eclipse IDE의 macOS 판도 같은 `Contents/Eclipse` 구조로 서명·공증되어 배포되는 것으로 알고 있으나, 이 작업에서는 확인하지 않았고 실행으로도 확인하지 않았다.
 - **p2 캐시**: `p2/.../cache/binary/`의 런처 zip을 다시 쓰면 p2 메타데이터의 체크섬과 달라질 수 있다. Chromite는 p2 업데이트를 쓰지 않아 실행에는 영향이 없다고 보지만 확인하지 않았다.
 - **macOS 러너 배정**: `macos-15`도 arm64 러너라 배정이 늦을 수 있다([ci.md](ci.md)). 필요하면 Intel 러너(`macos-15-intel`)로 바꿔도 서명·공증은 같다.
-- **JRE 내장 뒤**: JRE를 앱에 넣으면 그 안의 Mach-O도 스크립트가 찾아 서명하지만, `bin/java` 같은 실행 파일에 권한이 필요한지 다시 봐야 한다.
+- **내장 런타임(2026-11-07)**: `Contents/Eclipse/jre`의 Mach-O(`lib/*.dylib`, `lib/server/libjvm.dylib`, `bin/java`, `bin/keytool` 등, `lib/jspawnhelper`)도
+  `macos_natives.py`가 첫 바이트로 찾아 다른 낱개 파일처럼 안쪽부터 서명한다(권한 없이). JVM은 런처 프로세스 안에서 돌기 때문에 JIT 권한(`allow-jit`)은
+  런처(주 실행 파일)의 권한으로 충분하다. 따로 실행되는 런타임 실행 파일은 `lib/jspawnhelper`(ProcessBuilder가 자식 프로세스를 띄울 때 거침)뿐이고
+  JIT를 쓰지 않으므로 권한이 필요 없다고 판단했다. `bin/java`는 Chromite가 실행하지 않는다. Mac에서 실행해 확인하지는 못했다.
 
 ## 미결정 사항 (사용자 확인)
 
@@ -267,3 +273,5 @@ DBeaver는 이 저장소에 릴리스·서명 설정이 없다(별도 빌드 저
 - 2026-11-06 최초 작성. Turbrix 서명 안내서(2026-11-06)를 따라 `release.yml`(Windows: Azure Artifact Signing, macOS: Developer ID 서명·공증·staple),
   macOS 서명 스크립트, jar 안 Mach-O 처리, 권한 plist를 추가했다. 로컬 빌드로 서명 대상 목록을 확인했다.
 - 2026-11-06 Windows 아이콘 생성 스크립트 이름 변경(`gen_launcher_ico.py` → `gen_app_icons.py`)에 맞춰 링크 수정.
+- 2026-11-07 내장 런타임 반영: Windows 런타임 exe·dll(제3자, 서명하지 않음), macOS 런타임 Mach-O 39개(기존 단계가 서명),
+  `disable-library-validation` 이유 갱신(`entitlements.mac.plist` 주석 포함), `release.yml`의 런타임 단계, "남은 위험"의 JRE 항목.
