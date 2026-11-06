@@ -25,6 +25,7 @@ import com.seizia.chromite.ui.swing.internal.CoreMessages;
 import com.seizia.chromite.ui.swing.internal.DashboardMessages;
 import com.seizia.chromite.ui.swing.internal.DbCopyMessages;
 import com.seizia.chromite.ui.swing.internal.ErdMessages;
+import com.seizia.chromite.ui.swing.internal.NavigatorMessages;
 import com.seizia.chromite.ui.swing.internal.SecurityMessages;
 import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.Status;
@@ -35,6 +36,7 @@ import org.jkiss.dbeaver.DBException;
 import com.seizia.chromite.Log;
 import com.seizia.chromite.model.DBPDataSourceContainer;
 import com.seizia.chromite.model.DBPEvaluationContext;
+import com.seizia.chromite.model.DBPHiddenObject;
 import com.seizia.chromite.model.DBUtils;
 import com.seizia.chromite.model.app.DBPProject;
 import com.seizia.chromite.model.connection.DBPConnectionConfiguration;
@@ -51,12 +53,18 @@ import com.seizia.chromite.model.navigator.meta.DBXTreeItem;
 import com.seizia.chromite.model.runtime.AbstractJob;
 import com.seizia.chromite.model.runtime.DBRProgressMonitor;
 import com.seizia.chromite.model.runtime.DBRRunnableWithReturn;
+import com.seizia.chromite.model.struct.DBSAttributeBase;
 import com.seizia.chromite.model.struct.DBSEntity;
 import com.seizia.chromite.model.struct.DBSEntityAttribute;
 import com.seizia.chromite.model.struct.DBSObject;
 import com.seizia.chromite.model.struct.DBSObjectFilter;
+import com.seizia.chromite.model.struct.DBSParameter;
+import com.seizia.chromite.model.struct.DBSTypedObject;
+import com.seizia.chromite.model.struct.rdb.DBSProcedureParameter;
+import com.seizia.chromite.model.struct.rdb.DBSProcedureParameterKind;
 import com.seizia.chromite.runtime.DBInterruptedException;
 import com.seizia.chromite.runtime.DBWorkbench;
+import org.jkiss.utils.ArrayUtils;
 import org.jkiss.utils.CommonUtils;
 
 import javax.swing.*;
@@ -93,9 +101,12 @@ import java.util.function.Consumer;
  * 서버는 Registered Servers의 "Object Explorer"({@link #showServer}), 도구 막대의 Connect(등록된 서버 고르기), New Connection으로 들어오고,
  * Disconnect로 연결을 끊으면 SSMS처럼 목록에서 빠진다. 다른 곳(Registered Servers, 편집기)에서 연결을 끊으면 노드는 접힌 채 남는다.
  * <ul>
- *     <li>자식은 처음 펼칠 때 읽는다. 읽는 동안 "Loading…" 자식을 보여 주고, {@link DBNUtils#getNodeChildrenFiltered}를
+ *     <li>자식은 처음 펼칠 때 읽는다. 읽는 동안 "Loading…" 자식을 보여 주고, {@code DBNNode#getChildren}을
  *     {@link AbstractJob}(백그라운드 Job, {@link DBRProgressMonitor} 사용)에서 호출한다. EDT에서는 모델을 읽지 않는다
  *     (연결 목록처럼 메모리에 있는 자식도 같은 경로를 써서 경로를 하나로 둔다).</li>
+ *     <li>SWT 탐색기 트리와 달리 탐색 불가 항목({@code navigable="false"}: 루틴 매개 변수, 인덱스·키 열, MySQL 변수·상태·엔진 등)도
+ *     보여 준다({@link #hasTreeChildren}). SWT는 그것을 객체 편집기의 탭에서 보여 주지만 이 앱에는 객체 편집기가 없어 트리가 유일한 자리다.
+ *     숨김 노드({@code DBPHiddenObject})는 SWT처럼 뺀다.</li>
  *     <li>연결 노드를 펼치면 {@code DBNDatabaseNode#getChildren} → {@code DBUtils.initDataSource} →
  *     {@code DBServiceConnections}({@link SwingConnectionService})로 연결한다. SWT 탐색기와 같은 흐름이다.</li>
  *     <li>결과는 {@link SwingUtilities#invokeLater}로 EDT에서 트리 모델에 반영한다. 노드마다 읽기 번호를 두어
@@ -125,7 +136,7 @@ import java.util.function.Consumer;
  *     <li>개체 정의 편집({@link SourceEditCommands}): 프로시저·함수·뷰·트리거·패키지의 "Modify"와 "Script as &gt; ALTER To",
  *     뷰·프로시저·함수 폴더의 "New View… / New Procedure… / New Function…".</li>
  *     <li>모양(docs/chromite/design-spec.md "트리"): 머리말 아래 아이콘 도구 막대({@link #createToolBar}, SSMS Object Explorer 도구 막대 순서),
- *     아이콘 팩 아이콘({@link NodeIcons#getNodeIcon}), 이름 뒤 보조 글자(열 형식, 읽은 폴더의 객체 수, 연결 호스트),
+ *     아이콘 팩 아이콘({@link NodeIcons#getNodeIcon}), 이름 뒤 보조 글자(열·매개 변수 형식, 읽은 폴더의 객체 수, 연결 호스트),
  *     마우스를 올린 행의 둥근 바탕({@link ExplorerTree}). 행 높이·들여쓰기·선택 모양은 테마 properties의 FlatLaf 키다.</li>
  *     <li>Filter(SSMS): 고른 객체 폴더에 이름 마스크를 건다. DBeaver 탐색기 필터({@code DBSObjectFilter})를 그대로 써서 연결 설정에 저장된다.
  *     Collapse All은 펼친 노드를 모두 접는다.</li>
@@ -168,6 +179,9 @@ import java.util.function.Consumer;
  *   (docs/chromite/swing-security.md)
  * - 2026-11-06 Import Data… / Export Data… / Copy Tables…를 데이터베이스 노드와 데이터베이스가 하나인 연결 노드에서도 켬, 도구 설명
  *   (docs/chromite/swing-data-transfer.md "데이터베이스 노드")
+ * - 2026-11-07 밀도 B: 치수를 테마의 Chromite.size.* 키({@link UiSizes})에서 읽음 (docs/chromite/design-spec.md "치수 토큰")
+ * - 2026-11-07 탐색 불가 항목(프로시저·함수 매개 변수, MySQL/MariaDB 시스템 정보 폴더의 변수·상태·엔진 등)을 트리에 보여 줌,
+ *   매개 변수 뒤 보조 글자는 형식 (docs/chromite/swing-frontend.md "Object Explorer 탐색 불가 항목")
  * - 2026-11-07 서버 대시보드: Server Dashboard 메뉴(Activity Monitor의 개요 탭) (docs/chromite/swing-dashboard.md)
  */
 final class ObjectExplorerPanel extends JPanel {
@@ -796,7 +810,7 @@ final class ObjectExplorerPanel extends JPanel {
         JToolBar toolBar = new JToolBar();
         toolBar.setFloatable(false);
         toolBar.setOpaque(false);
-        toolBar.setBorder(BorderFactory.createEmptyBorder(UIScale.scale(3), UIScale.scale(8), UIScale.scale(3), UIScale.scale(8)));
+        toolBar.setBorder(UiSizes.createPadding(UiSizes.TOOL_WINDOW_TOOL_BAR_PADDING));
         toolBar.add(UiIcons.createActionButton(newConnectionAction, "new-connection")); //$NON-NLS-1$
         toolBar.add(UiIcons.createActionButton(connectServerAction, "connect")); //$NON-NLS-1$
         toolBar.add(UiIcons.createActionButton(disconnectAction, "disconnect")); //$NON-NLS-1$
@@ -1018,7 +1032,61 @@ final class ObjectExplorerPanel extends JPanel {
             // Root: the servers opened in this window, without folders or the project's other resources (scripts, bookmarks)
             return servers.getNodes(project.getDatabases());
         }
-        return DBNUtils.getNodeChildrenFiltered(monitor, node, true);
+        DBNNode[] children = node.getChildren(monitor);
+        if (ArrayUtils.isEmpty(children)) {
+            return children;
+        }
+        // Non-navigable items stay (see hasTreeChildren); hidden nodes are left out as in the SWT tree
+        List<DBNNode> shown = new ArrayList<>(children.length);
+        for (DBNNode child : children) {
+            if (!(child instanceof DBPHiddenObject hiddenObject && hiddenObject.isHidden())) {
+                shown.add(child);
+            }
+        }
+        // Without the navigable filter this only sorts, as the SWT tree does
+        return DBNUtils.filterNavigableChildren(shown.toArray(new DBNNode[0]), false);
+    }
+
+    /**
+     * True when the node has children to show in this tree, including non-navigable items ({@code navigable="false"}
+     * in plugin.xml: routine parameters, index and key columns, MySQL system information such as variables, status
+     * and engines). The SWT navigator leaves those out of its tree ({@code DBNNode#hasChildren(true)},
+     * {@code DBNUtils#filterNavigableChildren}) because it shows them in the object editor's tabs; this application has
+     * no object editor, so the tree is the only place they can be seen.
+     * <p>
+     * Only the navigable condition differs from {@code hasChildren(true)} ({@code DBNDatabaseNode#allowsNavigableChildren}):
+     * {@code hasChildren(false)} would also look for the dynamic attributes of struct-typed columns and parameters,
+     * which reads data types on the EDT and was never part of this tree.
+     */
+    private static boolean hasTreeChildren(@NotNull DBNNode node) {
+        if (node instanceof DBNDatabaseNode databaseNode) {
+            return !databaseNode.isDisposed() && databaseNode.getMeta().hasChildren(databaseNode, false);
+        }
+        return node.hasChildren(true);
+    }
+
+    /**
+     * The text of a navigator node in this window (tree rows, the Properties title): its display name, except for an
+     * unnamed return value parameter, for which the navigator gives the object's {@code toString} (a class name).
+     */
+    @NotNull
+    static String getNodeText(@NotNull DBNNode node) {
+        if (node instanceof DBNDatabaseNode databaseNode && isReturnValue(databaseNode.getObject())) {
+            return NavigatorMessages.navigator_parameter_returns;
+        }
+        return CommonUtils.notEmpty(node.getNodeDisplayName());
+    }
+
+    /**
+     * SQL Server lists a scalar function's return value as an unnamed parameter with {@code parameter_id} 0
+     * (sys.parameters); other drivers name it "RETURN" in the model (MySQLCatalog, GenericProcedure).
+     */
+    private static boolean isReturnValue(@Nullable DBSObject object) {
+        if (!(object instanceof DBSParameter parameter) || !CommonUtils.isEmpty(parameter.getName())) {
+            return false;
+        }
+        return parameter instanceof DBSProcedureParameter procedureParameter && procedureParameter.getParameterKind() == DBSProcedureParameterKind.RETURN
+            || parameter instanceof DBSAttributeBase attribute && attribute.getOrdinalPosition() == 0;
     }
 
     private void showChildren(@NotNull ExplorerNode node, int serial, @NotNull DBNNode loadedNode, @Nullable DBNNode[] children) {
@@ -1210,7 +1278,7 @@ final class ObjectExplorerPanel extends JPanel {
         node.loadSerial++;
         node.state = LoadState.NOT_LOADED;
         node.removeAllChildren();
-        if (node.getUserObject() instanceof DBNNode navigatorNode && navigatorNode.hasChildren(true)) {
+        if (node.getUserObject() instanceof DBNNode navigatorNode && hasTreeChildren(navigatorNode)) {
             node.add(new ExplorerNode(LOADING_TEXT));
         }
         treeModel.nodeStructureChanged(node);
@@ -1339,7 +1407,7 @@ final class ObjectExplorerPanel extends JPanel {
 
         ExplorerNode(@NotNull Object userObject) {
             super(userObject);
-            if (userObject instanceof DBNNode navigatorNode && navigatorNode.hasChildren(true)) {
+            if (userObject instanceof DBNNode navigatorNode && hasTreeChildren(navigatorNode)) {
                 // Placeholder child: makes the node expandable; replaced when the children are read
                 add(new ExplorerNode(LOADING_TEXT));
             } else if (!(userObject instanceof DBNNode)) {
@@ -1353,7 +1421,7 @@ final class ObjectExplorerPanel extends JPanel {
         @Override
         public String toString() {
             return getUserObject() instanceof DBNNode navigatorNode
-                ? CommonUtils.notEmpty(navigatorNode.getNodeDisplayName())
+                ? getNodeText(navigatorNode)
                 : String.valueOf(getUserObject());
         }
     }
@@ -1445,9 +1513,6 @@ final class ObjectExplorerPanel extends JPanel {
      * same as in Registered Servers), also when it is selected or under the mouse.
      */
     private static final class ExplorerCellRenderer extends DefaultTreeCellRenderer {
-        // space.6: icon-text gap and gap before the secondary text
-        private static final int GAP = 6;
-
         @Nullable
         private String secondaryText;
         @Nullable
@@ -1464,14 +1529,15 @@ final class ObjectExplorerPanel extends JPanel {
             boolean hasFocus
         ) {
             super.getTreeCellRendererComponent(tree, value, selected, expanded, leaf, row, hasFocus);
-            setIconTextGap(UIScale.scale(GAP));
+            setIconTextGap(UiSizes.get(UiSizes.TREE_ICON_TEXT_GAP));
             secondaryText = null;
             pill = null;
             if (value instanceof ExplorerNode node && node.getUserObject() instanceof DBNNode navigatorNode) {
                 if (navigatorNode instanceof DBNDataSource dataSourceNode) {
                     pill = ConnectionPill.of(dataSourceNode.getDataSourceContainer());
                     if (pill != null) {
-                        setIconTextGap(UIScale.scale(GAP) + ConnectionPill.getPaddingX());
+                        // A pill keeps space.6 from the icon (connection color pill spec), not the denser icon-text gap
+                        setIconTextGap(UiSizes.get(UiSizes.TREE_SECONDARY_GAP) + ConnectionPill.getPaddingX());
                     setForeground(pill.getTextColor(getForeground()));
                     }
                 }
@@ -1506,6 +1572,11 @@ final class ObjectExplorerPanel extends JPanel {
             if (navigatorNode instanceof DBNDatabaseNode databaseNode && databaseNode.getObject() instanceof DBSEntityAttribute attribute) {
                 return CommonUtils.nullIfEmpty(attribute.getFullTypeName());
             }
+            if (navigatorNode instanceof DBNDatabaseNode databaseNode && databaseNode.getObject() instanceof DBSParameter parameter) {
+                // Routine parameter: its own type when it has one (with length, as columns), else its data type
+                DBSTypedObject type = parameter instanceof DBSTypedObject typedParameter ? typedParameter : parameter.getParameterType();
+                return CommonUtils.nullIfEmpty(type.getFullTypeName());
+            }
             return null;
         }
 
@@ -1517,7 +1588,7 @@ final class ObjectExplorerPanel extends JPanel {
                 size.width += ConnectionPill.getPaddingX();
             }
             if (size != null && secondaryText != null) {
-                size.width += UIScale.scale(GAP) + getFontMetrics(getFont()).stringWidth(secondaryText);
+                size.width += UiSizes.get(UiSizes.TREE_SECONDARY_GAP) + getFontMetrics(getFont()).stringWidth(secondaryText);
             }
             return size;
         }
@@ -1537,7 +1608,7 @@ final class ObjectExplorerPanel extends JPanel {
             if (secondaryText == null || baseline < 0) {
                 return;
             }
-            int x = textX + textWidth + (pill != null ? ConnectionPill.getPaddingX() : 0) + UIScale.scale(GAP);
+            int x = textX + textWidth + (pill != null ? ConnectionPill.getPaddingX() : 0) + UiSizes.get(UiSizes.TREE_SECONDARY_GAP);
             Color color = UIManager.getColor("Chromite.secondaryForeground"); //$NON-NLS-1$
             g.setColor(color != null ? color : getForeground());
             g.setFont(getFont());

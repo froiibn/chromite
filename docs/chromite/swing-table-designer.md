@@ -99,7 +99,7 @@ SWT 버전의 객체 편집기(`EntityEditor`)가 하는 일을 Swing 프런트�
 
 - 새 파일: `TableDesignSession`, `TableDesignerPanel`, `DesignerTable`, `DesignerDialogs`, `ScriptPreviewDialog`, `design/*`(Swing 번들).
 - 고친 파일: `ObjectExplorerPanel`(메뉴 2개, 모델 `ADD`·`REFRESH` 반영), `MainFrame`(디자이너 탭), Swing 번들 `MANIFEST.MF`·`plugin.xml`.
-- DBeaver 원본(모델·드라이버·SWT) 파일은 고치지 않았다.
+- DBeaver 원본(모델·드라이버·SWT) 파일은 고치지 않았다. 다만 2026-11-07에 SQL Server 열 정의의 `COLLATE` 조건을 모델 `SQLServerTableColumnManager`에서 고쳤다(SWT에도 적용).
 
 ## 확인 (2026-11-06)
 
@@ -132,3 +132,5 @@ PostgreSQL 17(`chr_table_designer`)에서 화면으로 확인했다(빌드한 Sw
 - 2026-11-06 탭 제목에 연결 이름(`<테이블> [Design] - <연결>`): 여러 연결의 같은 이름 테이블 탭이 구별되지 않던 것.
 - 2026-11-06 통합 스모크 테스트에서 수정: Views·Materialized Views 폴더에서도 New Table…이 켜지던 것. 뷰 클래스
   (`SQLServerView`, `PostgreViewBase` 등)도 `DBSTable`이라 `TableDesignSession.canCreateTable`이 `DBSView`를 뺀다.
+- 2026-11-07 SQL Server 열 형식을 varchar에서 int처럼 정렬 규칙이 없는 형식으로 바꾸면 변경 스크립트에 `COLLATE`가 남아 저장이 실패하던 것(오류 447).
+  모델 `SQLServerTableColumnManager`에서 고침. [swing-followup-fixes.md](swing-followup-fixes.md) "SQL Server 열 정렬 규칙".

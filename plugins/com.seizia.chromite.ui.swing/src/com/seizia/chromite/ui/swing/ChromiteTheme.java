@@ -17,7 +17,6 @@
 package com.seizia.chromite.ui.swing;
 
 import com.formdev.flatlaf.FlatLaf;
-import com.formdev.flatlaf.fonts.inter.FlatInterFont;
 import com.formdev.flatlaf.fonts.jetbrains_mono.FlatJetBrainsMonoFont;
 import com.formdev.flatlaf.util.FontUtils;
 import com.seizia.chromite.ui.swing.internal.CoreMessages;
@@ -40,12 +39,13 @@ import java.util.function.Supplier;
  * 인스턴스 설정)에 저장한다. SWT 버전의 테마 설정과 같은 위치 계열이고, 레지스트리(Java Preferences)를 건드리지 않으며,
  * 작업 공간을 복사한 스모크 테스트가 사용자 설정을 바꾸지 않는다.
  * 실행 중 전환은 {@link FlatLaf#updateUI()}로 열린 모든 창을 다시 그린다.
- * 글꼴(Inter, JetBrains Mono)은 번들에 넣은 FlatLaf 글꼴 jar를 Look and Feel을 설치하기 전에 등록한다
- * (테마 properties의 {@code defaultFont}, {@code monospaced.font}가 이 이름을 쓴다). SQL 편집기 글꼴(Cascadia Mono)도 같은 때 등록한다({@link EditorFont}).
- * 한글 같은, Inter에 없는 글자는 Java 합성 글꼴이 운영체제 글꼴(맑은 고딕, Apple SD Gothic Neo)로 그린다. 합성 글꼴의 대체 글꼴은
- * 글꼴 객체의 스타일(PLAIN/BOLD)을 따르고 Java에는 semibold 스타일이 없다. 그래서 {@code semibold.font = "Inter SemiBold"}(PLAIN)의
- * 한글은 보통 굵기로 그려져 라틴 글자보다 가늘게 보였다. 화면 언어의 글자가 Inter SemiBold에 없으면 semibold를 기본 글꼴의 BOLD로 바꿔
- * 대체 글꼴도 굵은 글꼴(맑은 고딕 Bold)이 되게 한다. 영어 화면은 지금처럼 Inter SemiBold를 쓴다(docs/chromite/swing-l10n.md "한글 굵은 글꼴").
+ * 글꼴은 Look and Feel을 설치하기 전에 등록한다: UI 글꼴 Pretendard({@link UiFont}, 번들), 고정폭 JetBrains Mono(번들에 넣은 FlatLaf 글꼴 jar),
+ * SQL 편집기 글꼴 Cascadia Mono({@link EditorFont}). 테마 properties의 {@code defaultFont}, {@code semibold.font}, {@code monospaced.font}가 이 이름을 쓴다.
+ * 테마 글꼴에 없는 글자는 Java 합성 글꼴이 운영체제 글꼴(맑은 고딕, Apple SD Gothic Neo)로 그린다. 합성 글꼴의 대체 글꼴은
+ * 글꼴 객체의 스타일(PLAIN/BOLD)을 따르고 Java에는 semibold 스타일이 없다. 그래서 semibold 글꼴(PLAIN 스타일의 별도 패밀리)에 없는 글자는
+ * 보통 굵기로 그려져 옆 글자보다 가늘게 보인다. 화면 언어의 글자가 테마의 semibold 글꼴에 없으면 semibold를 기본 글꼴의 BOLD로 바꿔
+ * 대체 글꼴도 굵은 글꼴이 되게 한다(docs/chromite/swing-l10n.md "한글 굵은 글꼴"). Pretendard SemiBold는 한글을 가지므로 영어·한국어 화면에서는
+ * 바꾸지 않고, Pretendard에 없는 한자·가나를 쓰는 화면 언어에서만 바꾼다.
  *
  * 변경 이력:
  * - 2026-11-06 B단계: 최초 작성 (docs/chromite/swing-frontend.md "구현 현황 — B단계")
@@ -53,6 +53,8 @@ import java.util.function.Supplier;
  * - 2026-11-06 편집기 글꼴 Cascadia Mono 등록 (docs/chromite/design-spec.md "편집기 글꼴과 SQL 색")
  * - 2026-11-06 화면 문구를 CoreMessages로 옮김(OS 언어를 따름)
  * - 2026-11-06 화면 언어의 글자가 Inter SemiBold에 없으면 semibold를 BOLD로 만들어 한글도 굵은 대체 글꼴로 그림
+ * - 2026-11-07 UI 글꼴을 Pretendard로 바꿈(Inter 등록 삭제). semibold 확인은 Inter 고정 이름 대신 설치한 테마의 {@code semibold.font}로 함
+ * - 2026-11-07 FlatLaf 탭 넘침 단추의 도구 설명("Show Hidden Tabs")을 화면 언어로 바꿈 (docs/chromite/swing-followup-fixes.md "남은 영어 문구")
  */
 enum ChromiteTheme {
 
@@ -64,9 +66,13 @@ enum ChromiteTheme {
     private static final String PREF_THEME = "ui.theme"; //$NON-NLS-1$
     private static final String SEMIBOLD_FONT_KEY = "semibold.font"; //$NON-NLS-1$
     /**
-     * FlatLaf font value: the default font (Inter) in the BOLD style, a composite font whose fallback fonts are bold too.
+     * FlatLaf font value: the default font in the BOLD style, a composite font whose fallback fonts are bold too.
      */
     private static final String BOLD_FONT_VALUE = "bold"; //$NON-NLS-1$
+    /**
+     * Tooltip of the button that lists the tabs scrolled out of a tab strip (documents, tool windows, settings pages).
+     */
+    private static final String MORE_TABS_TOOLTIP_KEY = "TabbedPane.moreTabsButtonToolTipText"; //$NON-NLS-1$
 
     private final String label;
     private final Supplier<FlatLaf> lafFactory;
@@ -87,22 +93,30 @@ enum ChromiteTheme {
      * @param updateWindows update all open windows (runtime switch); not needed before any window exists
      */
     void install(boolean updateWindows) {
-        // The theme properties name the bundled families (defaultFont = Inter, monospaced.font = JetBrains Mono);
-        // FlatLaf loads them on first use. Registering twice is harmless.
-        FlatInterFont.installLazy();
+        // The theme properties name the bundled families (defaultFont = Pretendard, semibold.font = Pretendard SemiBold,
+        // monospaced.font = JetBrains Mono); FlatLaf loads them on first use. Registering twice is harmless.
+        UiFont.installLazy();
         FlatJetBrainsMonoFont.installLazy();
         // SQL editor font (Cascadia Mono, bundled)
         EditorFont.installLazy();
-        FlatLaf laf = lafFactory.get();
-        if (!isInSemiboldFont(CoreMessages.main_object_explorer)) {
-            // The semibold text of this UI language comes from the fallback font, which has the style of the font object:
-            // "Inter SemiBold" is PLAIN, so it would be the regular weight (lighter than the Latin letters beside it)
-            laf.setExtraDefaults(Map.of(SEMIBOLD_FONT_KEY, BOLD_FONT_VALUE));
-        }
-        if (!FlatLaf.setup(laf)) {
+        if (!FlatLaf.setup(lafFactory.get())) {
             log.warn("Can't install look and feel of theme " + name());
             return;
         }
+        if (!isInSemiboldFont(CoreMessages.main_object_explorer)) {
+            // The semibold text of this UI language comes from the fallback font, which has the style of the font object:
+            // the semibold family is PLAIN, so it would be the regular weight (lighter than the letters beside it).
+            // Rare (no UI language needs it now), so the theme is simply set up again with the bold default font.
+            FlatLaf laf = lafFactory.get();
+            laf.setExtraDefaults(Map.of(SEMIBOLD_FONT_KEY, BOLD_FONT_VALUE));
+            if (!FlatLaf.setup(laf)) {
+                log.warn("Can't install look and feel of theme " + name());
+                return;
+            }
+        }
+        // FlatLaf's own texts come from its resource bundle, which has no Korean translation (de, es, fr only).
+        // UIManager.put sets the developer defaults, which win over the look and feel defaults; tab panes read it on install.
+        UIManager.put(MORE_TABS_TOOLTIP_KEY, CoreMessages.main_show_hidden_tabs);
         if (updateWindows) {
             FlatLaf.updateUI();
             // Parentless dialogs are owned by the shared root frame, which is not a visible window
@@ -111,15 +125,21 @@ enum ChromiteTheme {
     }
 
     /**
-     * Whether the theme's semibold family ({@code semibold.font} in the theme properties) has glyphs for all characters
-     * of the text, i.e. the text needs no fallback font.
+     * Whether the installed theme's semibold font ({@code semibold.font} in the theme properties) has glyphs for all
+     * characters of the text, i.e. the text needs no fallback font.
      *
      * @param text a semibold text of the UI language (a tool window title)
      */
     private static boolean isInSemiboldFont(@NotNull String text) {
-        FontUtils.loadFontFamily(FlatInterFont.FAMILY_SEMIBOLD);
+        Font semibold = UIManager.getFont(SEMIBOLD_FONT_KEY);
+        if (semibold == null) {
+            return true;
+        }
+        // The family name the theme asked for (getFamily() of the composite font may be a localized name)
+        String family = semibold.getName();
+        FontUtils.loadFontFamily(family);
         // A physical font (not a composite one): canDisplayUpTo() sees only its own glyphs
-        return new Font(FlatInterFont.FAMILY_SEMIBOLD, Font.PLAIN, 1).canDisplayUpTo(text) < 0;
+        return new Font(family, Font.PLAIN, 1).canDisplayUpTo(text) < 0;
     }
 
     /**

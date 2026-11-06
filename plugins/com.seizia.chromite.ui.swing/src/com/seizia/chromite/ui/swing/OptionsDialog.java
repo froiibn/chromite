@@ -61,6 +61,8 @@ import java.util.Objects;
  * - 2026-11-06 SQL 서식(서식기, 키워드 대소문자), 쿼리 기록 보관 일수, Templates 탭 (docs/chromite/swing-sql-editor-plus.md)
  * - 2026-11-06 Query Library ③: 예약 실행 기록 보존 설정 (docs/chromite/swing-query-library.md "예약 실행")
  * - 2026-11-06 화면 문구를 CoreMessages로 옮김(OS 언어를 따름)
+ * - 2026-11-07 자동완성에 프로시저·함수 제안 설정 (docs/chromite/swing-followup-fixes.md "자동완성 프로시저")
+ * - 2026-11-07 날짜/시간 값을 데이터베이스 형식 그대로 보이는 설정(SWT "Disable date/time formatting") (docs/chromite/swing-followup-fixes.md "날짜/시간 소수 초")
  */
 final class OptionsDialog extends JDialog {
 
@@ -75,8 +77,10 @@ final class OptionsDialog extends JDialog {
     private final JComboBox<ChromiteTheme> themeCombo = new JComboBox<>(ChromiteTheme.values());
     private final JComboBox<UiIconStyle> iconStyleCombo = new JComboBox<>(UiIconStyle.values());
     private final JCheckBox autoCompleteBox = new JCheckBox(CoreMessages.options_auto_complete);
+    private final JCheckBox showProceduresBox = new JCheckBox(CoreMessages.options_show_procedures);
     private final JSpinner delaySpinner;
     private final JSpinner maxRowsSpinner;
+    private final JCheckBox nativeDateTimeBox = new JCheckBox(CoreMessages.options_native_datetime);
     private final JSpinner historyDaysSpinner = new JSpinner(new SpinnerNumberModel(
         Math.min(QueryHistory.getRetentionDays(), QueryHistory.MAX_RETENTION_DAYS), 0, QueryHistory.MAX_RETENTION_DAYS, 1));
     private final JComboBox<String> formatterCombo = new JComboBox<>(new String[]{CoreMessages.options_formatter_default, CoreMessages.options_formatter_compact});
@@ -110,6 +114,8 @@ final class OptionsDialog extends JDialog {
         iconStyleCombo.setSelectedItem(UiIconStyle.getCurrent());
         iconStyleCombo.setRenderer(new LabelRenderer());
         autoCompleteBox.setSelected(SqlCompletionPopup.isAutoActivateOnLetters());
+        showProceduresBox.setSelected(SqlCompletionPopup.isShowProcedures());
+        showProceduresBox.setToolTipText(CoreMessages.options_show_procedures_tip);
         delaySpinner = new JSpinner(new SpinnerNumberModel(
             Math.clamp(SqlCompletionPopup.getAutoActivationDelay(), 0, MAX_DELAY), 0, MAX_DELAY, 50));
         maxRowsSpinner = new JSpinner(new SpinnerNumberModel(
@@ -132,8 +138,15 @@ final class OptionsDialog extends JDialog {
         row = addSection(form, row, CoreMessages.options_query_editor);
         row = addRow(form, row, null, autoCompleteBox, null);
         row = addRow(form, row, CoreMessages.options_completion_delay, delaySpinner, CoreMessages.options_completion_delay_hint);
+        row = addRow(form, row, null, showProceduresBox, null);
         row = addSection(form, row, CoreMessages.options_query_results);
         row = addRow(form, row, CoreMessages.options_max_rows, maxRowsSpinner, CoreMessages.options_max_rows_hint);
+        // The model setting of the SWT "Disable date/time formatting" (Data Formats page); connections without their own
+        // value inherit it. The default data formatter profile prints milliseconds only (yyyy-MM-dd HH:mm:ss.SSS), so the
+        // grid and the cell editor drop the micro- and nanoseconds of timestamp values unless the driver's text is used.
+        nativeDateTimeBox.setSelected(getPlatformPreferences().getBoolean(ModelPreferences.RESULT_NATIVE_DATETIME_FORMAT));
+        nativeDateTimeBox.setToolTipText(CoreMessages.options_native_datetime_tip);
+        row = addRow(form, row, null, nativeDateTimeBox, null);
         row = addSection(form, row, CoreMessages.options_query_history);
         row = addRow(form, row, CoreMessages.options_keep_history, historyDaysSpinner, CoreMessages.options_keep_history_hint);
         row = addSection(form, row, CoreMessages.options_query_library);
@@ -421,10 +434,17 @@ final class OptionsDialog extends JDialog {
         if (delay != SqlCompletionPopup.getAutoActivationDelay()) {
             SqlCompletionPopup.setAutoActivationDelay(delay);
         }
+        if (showProceduresBox.isSelected() != SqlCompletionPopup.isShowProcedures()) {
+            SqlCompletionPopup.setShowProcedures(showProceduresBox.isSelected());
+        }
         DBPPreferenceStore platformPreferences = getPlatformPreferences();
         int maxRows = ((Number) maxRowsSpinner.getValue()).intValue();
         if (maxRows != platformPreferences.getInt(ModelPreferences.RESULT_SET_MAX_ROWS)) {
             platformPreferences.setValue(ModelPreferences.RESULT_SET_MAX_ROWS, maxRows);
+            PrefUtils.savePreferenceStore(platformPreferences);
+        }
+        if (nativeDateTimeBox.isSelected() != platformPreferences.getBoolean(ModelPreferences.RESULT_NATIVE_DATETIME_FORMAT)) {
+            platformPreferences.setValue(ModelPreferences.RESULT_NATIVE_DATETIME_FORMAT, nativeDateTimeBox.isSelected());
             PrefUtils.savePreferenceStore(platformPreferences);
         }
         int historyDays = ((Number) historyDaysSpinner.getValue()).intValue();
