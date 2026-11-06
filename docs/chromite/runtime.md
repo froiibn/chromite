@@ -246,7 +246,7 @@ Swing 제품, 이 PC(논리 프로세서 12개). 프로세스 시작부터 주 �
 |---|---|---|
 | 내장 런타임 | JBR 25 windows-x64 | JBR 25 osx-aarch64 |
 | 런타임 위치 | `<설치폴더>/jre/` | `<앱>.app/Contents/Eclipse/jre/` |
-| 배포 형태 | 설치 프로그램(.exe/.msi) + zip (관리자 권한 없이 풀어 쓰는 폐쇄망 환경 고려) | .dmg |
+| 배포 형태 | NSIS 설치 프로그램(사용자별, 관리자 권한 없음) + zip (폐쇄망 환경 고려), [distribution.md](distribution.md) | .dmg (업데이트용 zip 별도) |
 | 서명 | Azure Artifact Signing으로 CI에서 서명 ([signing.md](signing.md)) | Developer ID 서명 + 공증, CI에서 실행 ([signing.md](signing.md)). 공증 결과를 붙여 두면(stapling) 폐쇄망에서도 실행 |
 | 기타 | | 화면 상단 메뉴 막대, Cmd 단축키, 제목 표시줄 통합 |
 
@@ -289,3 +289,4 @@ Swing 제품, 이 PC(논리 프로세서 12개). 프로세스 시작부터 주 �
   `../Eclipse/jre/lib/libjli.dylib`로 바꾸고 Swing 제품에도 넣었다. CI·릴리스 워크플로에 단계 추가. CDS·AOT 시작 시간을 측정해
   기본 CDS 아카이브는 넣지 않기로 했다. "jlink 모듈" 절을 "모듈"로 바꿨다.
 - 2026-11-07 SWT 프런트엔드 삭제([swt-removal.md](swt-removal.md)): 런타임을 넣는 제품은 Swing 하나. 빌드 명령, `BundleJre.java`의 제품 목록, 구조 표를 고침. 모듈 근거·크기·확인 기록의 SWT 제품 값은 조사 당시 기록으로 둔다.
+- 2026-11-07 "플랫폼별 사항"의 배포 형태를 실제 배포(NSIS 설치 프로그램, [distribution.md](distribution.md))에 맞췄다. 앱 업데이트는 설치 프로그램 전체를 바꾸므로 런타임도 함께 바뀐다.
