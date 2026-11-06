@@ -19,8 +19,10 @@ package com.seizia.chromite.ui.swing;
 import com.seizia.chromite.model.sql.exec.SQLQueryExecuteHandler;
 import com.seizia.chromite.model.sql.exec.SQLQueryExecuteJob;
 import com.seizia.chromite.model.sql.exec.SQLScriptBatches;
+import com.seizia.chromite.ui.swing.internal.ToolsMessages;
 import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.Status;
+import org.eclipse.osgi.util.NLS;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
@@ -82,6 +84,7 @@ import java.util.concurrent.TimeUnit;
  *
  * 변경 이력:
  * - 2026-11-06 Query Library ③: 최초 작성 (docs/chromite/swing-query-library.md "예약 실행")
+ * - 2026-11-06 화면 문구를 ToolsMessages로 옮김(OS 언어를 따름)
  */
 final class QueryScheduler {
 
@@ -276,7 +279,7 @@ final class QueryScheduler {
     private void startRun(@NotNull Entry entry, boolean manual) {
         synchronized (entry) {
             if (entry.job != null) {
-                String message = "Skipped: the previous run is still running";
+                String message = ToolsMessages.scheduler_skipped_running;
                 log.info("Scheduled query '" + entry.item.getName() + "': " + message);
                 QueryLibraryHistory.append(entry.item.getStateKey(), new QueryLibraryHistory.Run(LocalDateTime.now().withNano(0), "", 0, 0,
                     QueryLibraryHistory.Status.SKIPPED, message, List.of()));
@@ -317,7 +320,7 @@ final class QueryScheduler {
         List<QueryLibrarySchedule.Target> targets = schedule.getTargets();
         if (targets.isEmpty()) {
             record(entry, item, new QueryLibraryHistory.Run(LocalDateTime.now().withNano(0), "", 0, 0, QueryLibraryHistory.Status.ERROR,
-                "No target connection", List.of()), schedule);
+                ToolsMessages.scheduler_no_target, List.of()), schedule);
             return;
         }
         for (QueryLibrarySchedule.Target target : targets) {
@@ -340,20 +343,20 @@ final class QueryScheduler {
         long startMillis = System.currentTimeMillis();
         DBPDataSourceContainer container = QueryLibraryEditor.findConnection(target.id(), target.name());
         if (container == null) {
-            return failed(start, target.name(), 0, "Connection not found: " + target.name());
+            return failed(start, target.name(), 0, NLS.bind(ToolsMessages.scheduler_connection_not_found, target.name()));
         }
         String server = container.getName();
         try {
             if (!container.isConnected()) {
                 if (!container.isCredentialsSaved() && !CommonUtils.isEmpty(container.getConnectionConfiguration().getUserName())) {
                     return new QueryLibraryHistory.Run(start, server, 0, 0, QueryLibraryHistory.Status.SKIPPED,
-                        "Not connected, and the password of the connection is not saved", List.of());
+                        ToolsMessages.scheduler_password_not_saved, List.of());
                 }
                 DBUtils.initDataSource(monitor, container, null);
             }
             DBPDataSource dataSource = container.getDataSource();
             if (dataSource == null || !container.isConnected()) {
-                return failed(start, server, System.currentTimeMillis() - startMillis, "Not connected");
+                return failed(start, server, System.currentTimeMillis() - startMillis, ToolsMessages.library_not_connected);
             }
             // An own connection: a long scheduled query must not hold the query windows' connection, and its
             // default database/schema must not change theirs
@@ -392,7 +395,7 @@ final class QueryScheduler {
             List<SQLScriptElement> elements = binder.prepare(monitor, context,
                 SQLScriptBatches.extractQueries(dataSource, item.getSql(), 0, item.getSql().length()));
             if (elements.isEmpty()) {
-                return failed(start, server, 0, "The query is empty");
+                return failed(start, server, 0, ToolsMessages.scheduler_query_empty);
             }
             Collector collector = new Collector();
             SQLScriptContext scriptContext = new SQLScriptContext(null, () -> context, null, new StringWriter(), null);
@@ -412,18 +415,23 @@ final class QueryScheduler {
                 return failed(start, server, duration, collector.error);
             }
             if (monitor.isCanceled()) {
-                return new QueryLibraryHistory.Run(start, server, duration, collector.rows, QueryLibraryHistory.Status.SKIPPED, "Canceled", collector.snapshot);
+                return new QueryLibraryHistory.Run(start, server, duration, collector.rows, QueryLibraryHistory.Status.SKIPPED,
+                    ToolsMessages.scheduler_canceled, collector.snapshot);
             }
             QueryLibrarySchedule.Condition condition = schedule.getCondition();
             String firstValue = collector.snapshot.size() > 1 && !collector.snapshot.get(1).isEmpty() ? collector.snapshot.get(1).getFirst() : null;
             boolean alert = condition != null && collector.resultSets > 0 && condition.matches(collector.rows, firstValue);
-            String message = collector.rows + (collector.rows == 1 ? " row" : " rows")
-                + (condition != null ? (alert ? "; condition met: " : "; condition not met: ") + condition.describe() : "");
+            String message = NLS.bind(collector.rows == 1 ? ToolsMessages.scheduler_result_row : ToolsMessages.scheduler_result_rows, collector.rows);
+            if (condition != null) {
+                message = NLS.bind(alert ? ToolsMessages.scheduler_result_condition_met : ToolsMessages.scheduler_result_condition_not_met,
+                    message, condition.describe());
+            }
             return new QueryLibraryHistory.Run(start, server, duration, collector.rows,
                 alert ? QueryLibraryHistory.Status.ALERT : QueryLibraryHistory.Status.OK, message, collector.snapshot);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
-            return new QueryLibraryHistory.Run(start, server, System.currentTimeMillis() - startMillis, 0, QueryLibraryHistory.Status.SKIPPED, "Canceled", List.of());
+            return new QueryLibraryHistory.Run(start, server, System.currentTimeMillis() - startMillis, 0, QueryLibraryHistory.Status.SKIPPED,
+                ToolsMessages.scheduler_canceled, List.of());
         }
     }
 
@@ -539,7 +547,7 @@ final class QueryScheduler {
         @Override
         public QueryConfirmation confirmQueryExecution(@NotNull SQLQuery query, boolean scriptMode) {
             if (collector.error == null) {
-                collector.error = "The query needs a confirmation on this connection and was not run by the scheduler";
+                collector.error = ToolsMessages.scheduler_confirmation_needed;
             }
             return QueryConfirmation.CANCEL;
         }

@@ -17,10 +17,12 @@
 package com.seizia.chromite.ui.swing;
 
 import com.formdev.flatlaf.FlatClientProperties;
+import com.seizia.chromite.ui.swing.internal.ToolsMessages;
 import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.Status;
 import org.eclipse.core.runtime.jobs.IJobChangeEvent;
 import org.eclipse.core.runtime.jobs.JobChangeAdapter;
+import org.eclipse.osgi.util.NLS;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.Log;
@@ -79,6 +81,7 @@ import java.util.Locale;
  *
  * 변경 이력:
  * - 2026-11-06 데이터 전송: 최초 작성 (docs/chromite/swing-data-transfer.md)
+ * - 2026-11-06 화면 문구를 ToolsMessages로 옮김(OS 언어를 따름)
  */
 abstract class DataTransferWizard extends JDialog {
 
@@ -122,12 +125,12 @@ abstract class DataTransferWizard extends JDialog {
     }
 
     private enum PipeState {
-        WAITING("Waiting"),
-        RUNNING("Running…"),
-        SUCCESS("Success"),
-        ERROR("Error"),
-        CANCELED("Canceled"),
-        NOT_RUN("Not run");
+        WAITING(ToolsMessages.transfer_state_waiting),
+        RUNNING(ToolsMessages.transfer_state_running),
+        SUCCESS(ToolsMessages.transfer_state_success),
+        ERROR(ToolsMessages.transfer_state_error),
+        CANCELED(ToolsMessages.transfer_state_canceled),
+        NOT_RUN(ToolsMessages.transfer_state_not_run);
 
         private final String label;
 
@@ -157,10 +160,10 @@ abstract class DataTransferWizard extends JDialog {
     private final JLabel descriptionLabel = new JLabel();
     private final CardLayout cards = new CardLayout();
     private final JPanel cardPanel = new JPanel(cards);
-    private final JButton backButton = new JButton("< Back");
-    private final JButton nextButton = new JButton("Next >");
-    private final JButton finishButton = new JButton("Finish");
-    private final JButton cancelButton = new JButton("Cancel");
+    private final JButton backButton = new JButton(ToolsMessages.wizard_button_back);
+    private final JButton nextButton = new JButton(ToolsMessages.wizard_button_next);
+    private final JButton finishButton = new JButton(ToolsMessages.wizard_button_finish);
+    private final JButton cancelButton = new JButton(ToolsMessages.button_cancel);
     private final JLabel progressLabel = new JLabel(" ");
     private final JProgressBar progressBar = new JProgressBar();
     private final JTextArea errorArea = new JTextArea(4, 40);
@@ -344,7 +347,7 @@ abstract class DataTransferWizard extends JDialog {
         backButton.setEnabled(!progress && findPage(currentPage, -1) >= 0);
         nextButton.setEnabled(!progress && findPage(currentPage, 1) >= 0);
         finishButton.setEnabled(!progress);
-        cancelButton.setText(finished ? "Close" : "Cancel");
+        cancelButton.setText(finished ? ToolsMessages.button_close : ToolsMessages.button_cancel);
         cancelButton.setEnabled(!progress || runningJob != null || finished);
         getRootPane().setDefaultButton(progress ? cancelButton : nextButton.isEnabled() ? nextButton : finishButton);
     }
@@ -406,7 +409,7 @@ abstract class DataTransferWizard extends JDialog {
     private void cancelOrClose() {
         if (runningJob != null) {
             cancelButton.setEnabled(false);
-            progressLabel.setText("Canceling…");
+            progressLabel.setText(ToolsMessages.transfer_progress_canceling);
             runningJob.cancel();
             return;
         }
@@ -490,7 +493,7 @@ abstract class DataTransferWizard extends JDialog {
         });
         runningJob = job;
         showPage(pages.size() - 1);
-        progressLabel.setText("Starting…");
+        progressLabel.setText(ToolsMessages.transfer_progress_starting);
         job.schedule();
     }
 
@@ -634,12 +637,12 @@ abstract class DataTransferWizard extends JDialog {
         long succeeded = pipeRows.stream().filter(r -> r.state == PipeState.SUCCESS).count();
         progressBar.setValue((int) succeeded);
         if (error == null) {
-            progressLabel.setText("Success: " + succeeded + " of " + pipeRows.size() + (pipeRows.size() == 1 ? " object" : " objects")
-                + " transferred.");
+            progressLabel.setText(NLS.bind(pipeRows.size() == 1 ? ToolsMessages.transfer_progress_success_one : ToolsMessages.transfer_progress_success,
+                succeeded, pipeRows.size()));
         } else if (canceled) {
-            progressLabel.setText("The transfer was canceled. " + succeeded + " of " + pipeRows.size() + " completed.");
+            progressLabel.setText(NLS.bind(ToolsMessages.transfer_progress_canceled, succeeded, pipeRows.size()));
         } else {
-            progressLabel.setText("The transfer failed. " + succeeded + " of " + pipeRows.size() + " completed.");
+            progressLabel.setText(NLS.bind(ToolsMessages.transfer_progress_failed, succeeded, pipeRows.size()));
             errorArea.setText(CommonUtils.getAllExceptionMessages(error));
             errorArea.setCaretPosition(0);
             errorScroll.setVisible(true);
@@ -691,13 +694,13 @@ abstract class DataTransferWizard extends JDialog {
         @NotNull
         @Override
         public String getTitle() {
-            return "Progress";
+            return ToolsMessages.transfer_page_progress_title;
         }
 
         @NotNull
         @Override
         public String getDescription() {
-            return "The data is being transferred. Cancel stops the transfer.";
+            return ToolsMessages.transfer_page_progress_description;
         }
 
         @NotNull
@@ -708,7 +711,8 @@ abstract class DataTransferWizard extends JDialog {
     }
 
     private final class PipeTableModel extends AbstractTableModel {
-        private final String[] columns = {"Source", "Destination", "Status", "Rows", "Message"};
+        private final String[] columns = {ToolsMessages.transfer_column_source, ToolsMessages.transfer_column_destination,
+            ToolsMessages.transfer_column_status, ToolsMessages.transfer_column_rows, ToolsMessages.transfer_column_message};
 
         @Override
         public int getRowCount() {

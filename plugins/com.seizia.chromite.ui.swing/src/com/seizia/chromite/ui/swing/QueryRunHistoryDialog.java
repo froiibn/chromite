@@ -17,6 +17,8 @@
 package com.seizia.chromite.ui.swing;
 
 import com.formdev.flatlaf.FlatClientProperties;
+import com.seizia.chromite.ui.swing.internal.ToolsMessages;
+import org.eclipse.osgi.util.NLS;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 
@@ -40,11 +42,13 @@ import java.util.List;
  * - 2026-11-06 Query Library ③: 최초 작성 (docs/chromite/swing-query-library.md "예약 실행")
  * - 2026-11-06 SQL 편집기 확장의 쿼리 기록 창({@link QueryHistoryDialog})과 이름이 겹쳐 QueryHistoryDialog에서 이름을 바꿈
  *   (docs/chromite/swing-query-library.md)
+ * - 2026-11-06 화면 문구를 ToolsMessages로 옮김(OS 언어를 따름)
  */
 final class QueryRunHistoryDialog extends JDialog {
 
     private static final DateTimeFormatter TIME_FORMAT = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"); //$NON-NLS-1$
-    private static final String[] COLUMNS = {"Time", "Server", "Status", "Rows", "Duration", "Message"};
+    private static final String[] COLUMNS = {ToolsMessages.history_column_time, ToolsMessages.history_column_server, ToolsMessages.history_column_status,
+        ToolsMessages.history_column_rows, ToolsMessages.history_column_duration, ToolsMessages.history_column_message};
 
     private final QueryLibraryItem item;
     private final RunsModel runsModel = new RunsModel();
@@ -54,7 +58,7 @@ final class QueryRunHistoryDialog extends JDialog {
     private List<QueryLibraryHistory.Run> runs = new ArrayList<>();
 
     private QueryRunHistoryDialog(@NotNull Window owner, @NotNull QueryLibraryItem item) {
-        super(owner, "History - " + item.getName(), ModalityType.MODELESS);
+        super(owner, NLS.bind(ToolsMessages.history_title, item.getName()), ModalityType.MODELESS);
         this.item = item;
         setDefaultCloseOperation(DISPOSE_ON_CLOSE);
 
@@ -74,7 +78,7 @@ final class QueryRunHistoryDialog extends JDialog {
         snapshotTable.setEnabled(false);
         snapshotTable.setAutoResizeMode(JTable.AUTO_RESIZE_OFF);
 
-        JLabel snapshotLabel = new JLabel("First " + QueryScheduler.SNAPSHOT_ROWS + " rows of the selected run");
+        JLabel snapshotLabel = new JLabel(NLS.bind(ToolsMessages.history_snapshot_label, QueryScheduler.SNAPSHOT_ROWS));
         snapshotLabel.putClientProperty(FlatClientProperties.STYLE, "foreground: $Chromite.secondaryForeground"); //$NON-NLS-1$
         JPanel snapshotPanel = new JPanel(new BorderLayout(0, 4));
         snapshotPanel.add(snapshotLabel, BorderLayout.NORTH);
@@ -84,7 +88,7 @@ final class QueryRunHistoryDialog extends JDialog {
         split.setResizeWeight(0.55);
         split.setBorder(BorderFactory.createEmptyBorder());
 
-        JButton closeButton = new JButton("Close");
+        JButton closeButton = new JButton(ToolsMessages.button_close);
         closeButton.addActionListener(e -> dispose());
         JPanel buttons = new JPanel(new FlowLayout(FlowLayout.RIGHT, 6, 0));
         buttons.add(closeButton);
@@ -196,7 +200,8 @@ final class QueryRunHistoryDialog extends JDialog {
     private static final class StatusRenderer extends DefaultTableCellRenderer {
         @Override
         public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
-            super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
+            super.getTableCellRendererComponent(table, value instanceof QueryLibraryHistory.Status shown ? shown.getLabel() : value,
+                isSelected, hasFocus, row, column);
             if (!isSelected && value instanceof QueryLibraryHistory.Status status) {
                 Color color = UIManager.getColor(switch (status) {
                     case ALERT, ERROR -> "Chromite.status.error"; //$NON-NLS-1$

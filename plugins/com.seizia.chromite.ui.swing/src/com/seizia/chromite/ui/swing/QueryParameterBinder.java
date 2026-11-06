@@ -16,6 +16,8 @@
  */
 package com.seizia.chromite.ui.swing;
 
+import com.seizia.chromite.ui.swing.internal.ToolsMessages;
+import org.eclipse.osgi.util.NLS;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
@@ -69,6 +71,7 @@ import java.util.regex.Matcher;
  * - 2026-11-06 Query Library: 최초 작성 (docs/chromite/swing-query-library.md "매개변수 바인딩")
  * - 2026-11-06 Query History용 글자({@link #getHistoryText}): 값을 SQL 리터럴로 넣은 원래 문장. 엔진이 보낸 {@code ?} 문장이 기록되어
  *   기록에서 다시 열거나 실행할 수 없던 문제 (docs/chromite/swing-query-library.md "매개변수 바인딩")
+ * - 2026-11-06 화면 문구를 ToolsMessages로 옮김(OS 언어를 따름)
  */
 final class QueryParameterBinder implements SqlParameterBinding {
 
@@ -179,11 +182,11 @@ final class QueryParameterBinder implements SqlParameterBinding {
             }
             String originalName = CommonUtils.notEmpty(parameter.getOriginalName());
             if (!parameter.isNamed() && !isTextSubstitution(originalName)) {
-                throw new DBException("Unnamed parameter markers (" + originalName + ") are not supported in library queries; use :name");
+                throw new DBException(NLS.bind(ToolsMessages.param_error_unnamed, originalName));
             }
             String key = parameter.getName().toLowerCase(Locale.ROOT);
             if (!values.containsKey(key)) {
-                throw new DBException("No value for parameter " + originalName);
+                throw new DBException(NLS.bind(ToolsMessages.param_error_no_value, originalName));
             }
             String value = values.get(key);
             newText.append(text, position, start);
@@ -198,7 +201,7 @@ final class QueryParameterBinder implements SqlParameterBinding {
                 try {
                     boundValue = definition != null ? definition.toJdbcValue(value) : CommonUtils.nullIfEmpty(value);
                 } catch (IllegalArgumentException e) {
-                    throw new DBException("Parameter " + originalName + ": " + e.getMessage());
+                    throw new DBException(NLS.bind(ToolsMessages.param_error_value, originalName, e.getMessage()));
                 }
                 boundValues.add(boundValue);
                 boundTypes.add(type);

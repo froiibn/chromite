@@ -17,6 +17,8 @@
 package com.seizia.chromite.ui.swing;
 
 import com.seizia.chromite.ui.swing.design.TableDesignerDriver;
+import com.seizia.chromite.ui.swing.internal.ToolsMessages;
+import org.eclipse.osgi.util.NLS;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
@@ -111,6 +113,7 @@ import java.util.Set;
  *
  * 변경 이력:
  * - 2026-11-06 테이블 디자이너: 최초 작성 (docs/chromite/swing-table-designer.md)
+ * - 2026-11-06 화면 문구를 ToolsMessages로 옮김(OS 언어를 따름)
  */
 final class TableDesignSession {
 
@@ -125,10 +128,10 @@ final class TableDesignSession {
      * Grids of the designer, in tab order.
      */
     enum Section {
-        COLUMNS("Columns", DBSEntityAttribute.class),
-        KEYS("Keys", DBSEntityConstraint.class),
-        FOREIGN_KEYS("Foreign Keys", DBSTableForeignKey.class),
-        INDEXES("Indexes", DBSTableIndex.class);
+        COLUMNS(ToolsMessages.designer_section_columns, DBSEntityAttribute.class),
+        KEYS(ToolsMessages.designer_section_keys, DBSEntityConstraint.class),
+        FOREIGN_KEYS(ToolsMessages.designer_section_foreign_keys, DBSTableForeignKey.class),
+        INDEXES(ToolsMessages.designer_section_indexes, DBSTableIndex.class);
 
         final String title;
         final Class<?> type;
@@ -177,7 +180,7 @@ final class TableDesignSession {
         this.driver = GeneralUtils.adapt(table, TableDesignerDriver.class);
         DBEStructEditor<?> tableManager = DBWorkbench.getPlatform().getEditorsRegistry().getObjectManager(table.getClass(), DBEStructEditor.class);
         if (tableManager == null) {
-            throw new DBException("Table editing is not supported by " + getDriverName(table));
+            throw new DBException(NLS.bind(ToolsMessages.designer_error_edit_not_supported, getDriverName(table)));
         }
         this.childTypes = tableManager.getChildTypes();
     }
@@ -199,11 +202,11 @@ final class TableDesignSession {
     static TableDesignSession createTable(@NotNull DBRProgressMonitor monitor, @NotNull DBNDatabaseFolder folder) throws DBException {
         Class<? extends DBSObject> tableClass = folder.getChildrenClass();
         if (!(folder.getValueObject() instanceof DBSObject container) || tableClass == null) {
-            throw new DBException("Can't determine the table type of '" + folder.getNodeDisplayName() + "'");
+            throw new DBException(NLS.bind(ToolsMessages.designer_error_table_type, folder.getNodeDisplayName()));
         }
         DBEObjectMaker<DBSObject, Object> tableMaker = getObjectMaker(tableClass);
         if (tableMaker == null || !tableMaker.canCreateObject(container)) {
-            throw new DBException("Table creation is not supported by " + getDriverName(container));
+            throw new DBException(NLS.bind(ToolsMessages.designer_error_create_not_supported, getDriverName(container)));
         }
         if (folder.hasChildren(false)) {
             folder.getChildren(monitor);
@@ -248,7 +251,7 @@ final class TableDesignSession {
     private static DBCExecutionContext getExecutionContext(@NotNull DBSObject object) throws DBException {
         DBCExecutionContext executionContext = DBUtils.getDefaultContext(object, false);
         if (executionContext == null) {
-            throw new DBException("'" + object.getName() + "' is not connected");
+            throw new DBException(NLS.bind(ToolsMessages.designer_error_not_connected, object.getName()));
         }
         return executionContext;
     }
@@ -262,7 +265,7 @@ final class TableDesignSession {
     @NotNull
     private static String getDriverName(@NotNull DBSObject object) {
         DBPDataSourceContainer container = object.getDataSource() == null ? null : object.getDataSource().getContainer();
-        return container == null ? "this connection" : container.getDriver().getName();
+        return container == null ? ToolsMessages.designer_this_connection : container.getDriver().getName();
     }
 
     @Nullable
@@ -475,7 +478,7 @@ final class TableDesignSession {
     private Class<? extends DBSObject> getRequiredChildType(@NotNull Section section) throws DBException {
         Class<? extends DBSObject> childType = getChildType(section);
         if (childType == null) {
-            throw new DBException(section.title + " can't be created for " + getDriverName(table));
+            throw new DBException(NLS.bind(ToolsMessages.designer_error_section_not_supported, section.title, getDriverName(table)));
         }
         return childType;
     }
@@ -576,7 +579,7 @@ final class TableDesignSession {
                 .findFirst().orElse(null);
         }
         if (keyClass == null) {
-            throw new DBException(spec.type().getLocalizedName() + " is not supported for " + getDriverName(table));
+            throw new DBException(NLS.bind(ToolsMessages.designer_error_key_not_supported, spec.type().getLocalizedName(), getDriverName(table)));
         }
         DBSObject newObject = createChild(monitor, keyClass);
         if (!(newObject instanceof DBSEntityConstraint constraint)) {
@@ -587,7 +590,7 @@ final class TableDesignSession {
         }
         if (spec.type() == DBSEntityConstraintType.CHECK) {
             if (driver == null || CommonUtils.isEmpty(spec.expression())) {
-                throw new DBException("CHECK expression is empty");
+                throw new DBException(ToolsMessages.designer_error_check_empty);
             }
             driver.setCheckExpression(constraint, spec.expression());
         } else if (constraint instanceof AbstractTableConstraint<?, ?> tableConstraint) {
@@ -608,7 +611,7 @@ final class TableDesignSession {
     DBSTableIndex createIndex(@NotNull DBRProgressMonitor monitor, @NotNull String name, boolean unique,
                               @NotNull List<TableDesignerDriver.IndexColumn> columns) throws DBException {
         if (driver == null) {
-            throw new DBException("Index creation is not supported for " + getDriverName(table));
+            throw new DBException(NLS.bind(ToolsMessages.designer_error_index_not_supported, getDriverName(table)));
         }
         DBSObject newObject = createChild(monitor, getRequiredChildType(Section.INDEXES));
         if (!(newObject instanceof DBSTableIndex index)) {
@@ -636,7 +639,7 @@ final class TableDesignSession {
         @NotNull List<TableDesignerDriver.ForeignKeyColumn> columns
     ) throws DBException {
         if (driver == null) {
-            throw new DBException("Foreign key creation is not supported for " + getDriverName(table));
+            throw new DBException(NLS.bind(ToolsMessages.designer_error_foreign_key_not_supported, getDriverName(table)));
         }
         DBSObject newObject = createChild(monitor, getRequiredChildType(Section.FOREIGN_KEYS));
         if (!(newObject instanceof DBSTableForeignKey foreignKey)) {
@@ -798,7 +801,7 @@ final class TableDesignSession {
     String generateScript(@NotNull DBRProgressMonitor monitor) throws DBException {
         Collection<? extends DBECommand<?>> commands = commandContext.getFinalCommands();
         StringBuilder script = new StringBuilder();
-        monitor.beginTask("Generate SQL script", commands.size());
+        monitor.beginTask(ToolsMessages.designer_progress_generate_script, commands.size());
         Map<String, Object> validateOptions = new HashMap<>();
         for (DBECommand<?> command : commands) {
             monitor.subTask(command.getTitle());
@@ -818,7 +821,8 @@ final class TableDesignSession {
      */
     void save(@NotNull DBRProgressMonitor monitor) throws DBException {
         if (!table.getDataSource().getContainer().hasModifyPermission(DBPDataSourcePermission.PERMISSION_EDIT_METADATA)) {
-            throw new DBException("Metadata changes in '" + table.getDataSource().getContainer().getName() + "' are restricted by the connection settings");
+            throw new DBException(NLS.bind(ToolsMessages.designer_error_metadata_restricted,
+                table.getDataSource().getContainer().getName()));
         }
         boolean isNewObject = newTable || !table.isPersisted();
         if (!isNewObject) {

@@ -16,6 +16,7 @@
  */
 package com.seizia.chromite.ui.swing;
 
+import com.seizia.chromite.ui.swing.internal.ToolsMessages;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.Log;
@@ -48,6 +49,7 @@ import java.util.List;
  *
  * 변경 이력:
  * - 2026-11-06 Query Library ③: 최초 작성 (docs/chromite/swing-query-library.md "예약 실행")
+ * - 2026-11-06 화면 문구를 ToolsMessages로 옮김(OS 언어를 따름)
  */
 final class QueryLibraryHistory {
 
@@ -64,7 +66,20 @@ final class QueryLibraryHistory {
      * Result of a run.
      */
     enum Status {
-        OK, ALERT, ERROR, SKIPPED
+        OK, ALERT, ERROR, SKIPPED;
+
+        /**
+         * Text for people; the file keeps {@link #name()} so that histories read the same in every language.
+         */
+        @NotNull
+        String getLabel() {
+            return switch (this) {
+                case OK -> ToolsMessages.history_status_ok;
+                case ALERT -> ToolsMessages.history_status_alert;
+                case ERROR -> ToolsMessages.history_status_error;
+                case SKIPPED -> ToolsMessages.history_status_skipped;
+            };
+        }
     }
 
     /**

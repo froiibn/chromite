@@ -18,6 +18,8 @@ package com.seizia.chromite.ui.swing;
 
 import com.formdev.flatlaf.FlatClientProperties;
 import com.formdev.flatlaf.util.UIScale;
+import com.seizia.chromite.ui.swing.internal.ToolsMessages;
+import org.eclipse.osgi.util.NLS;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.model.DBPDataSourceContainer;
@@ -54,6 +56,7 @@ import java.util.Map;
  * 변경 이력:
  * - 2026-11-06 Query Library: 최초 작성 (docs/chromite/swing-query-library.md "실행 흐름")
  * - 2026-11-06 Query Library ③: 저장할 때 파일의 예약 정의와 모르는 머리말을 유지 (docs/chromite/swing-query-library.md "예약 실행")
+ * - 2026-11-06 화면 문구를 ToolsMessages로 옮김(OS 언어를 따름)
  */
 final class QueryLibraryEditor implements SqlEditorExtension {
 
@@ -159,11 +162,12 @@ final class QueryLibraryEditor implements SqlEditorExtension {
             return target;
         }
         String reason = switch (item.getTargetMode()) {
-            case CONNECTION -> "The connection '" + CommonUtils.notEmpty(item.getTargetName()) + "' of this query was not found.";
-            case CURRENT -> "No connection is selected in Object Explorer.";
+            case CONNECTION -> NLS.bind(ToolsMessages.library_editor_connection_missing, CommonUtils.notEmpty(item.getTargetName()));
+            case CURRENT -> ToolsMessages.library_editor_no_current;
             case ASK -> null;
         };
-        return chooseConnection(host.getComponent(), "Run " + item.getName(), reason, host.getCurrentConnection());
+        return chooseConnection(host.getComponent(), NLS.bind(ToolsMessages.library_editor_run_title, item.getName()), reason,
+            host.getCurrentConnection());
     }
 
     @Nullable
@@ -229,7 +233,7 @@ final class QueryLibraryEditor implements SqlEditorExtension {
     ) {
         List<DBPDataSourceContainer> connections = getConnections();
         if (connections.isEmpty()) {
-            JOptionPane.showMessageDialog(parent, "There are no connections. Create a connection first.", title, JOptionPane.INFORMATION_MESSAGE);
+            JOptionPane.showMessageDialog(parent, ToolsMessages.library_editor_no_connections, title, JOptionPane.INFORMATION_MESSAGE);
             return null;
         }
         JComboBox<DBPDataSourceContainer> combo = new JComboBox<>(connections.toArray(new DBPDataSourceContainer[0]));
@@ -242,7 +246,7 @@ final class QueryLibraryEditor implements SqlEditorExtension {
             panel.add(new JLabel(reason), BorderLayout.NORTH);
         }
         JPanel row = new JPanel(new BorderLayout(8, 0));
-        row.add(new JLabel("Connection"), BorderLayout.WEST);
+        row.add(new JLabel(ToolsMessages.library_editor_connection), BorderLayout.WEST);
         row.add(combo, BorderLayout.CENTER);
         panel.add(row, BorderLayout.CENTER);
         int answer = JOptionPane.showConfirmDialog(parent, panel, title, JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
@@ -269,14 +273,13 @@ final class QueryLibraryEditor implements SqlEditorExtension {
         QueryLibrary library = QueryLibrary.getInstance();
         Path file = library.resolveFile(item);
         if (file == null || library.isReadOnly(file)) {
-            JOptionPane.showMessageDialog(editor, "This query is in a read-only library root and can't be saved.\n"
-                    + "Use Duplicate in the Query Library to copy it to an editable root.",
-                "Save", JOptionPane.INFORMATION_MESSAGE);
+            JOptionPane.showMessageDialog(editor, ToolsMessages.library_editor_read_only,
+                ToolsMessages.library_editor_save, JOptionPane.INFORMATION_MESSAGE);
             return false;
         }
         String name = nameField.getText().strip();
         if (name.isEmpty()) {
-            JOptionPane.showMessageDialog(editor, "Enter a name for the query.", "Save", JOptionPane.INFORMATION_MESSAGE);
+            JOptionPane.showMessageDialog(editor, ToolsMessages.library_error_enter_name, ToolsMessages.library_editor_save, JOptionPane.INFORMATION_MESSAGE);
             nameField.requestFocusInWindow();
             return false;
         }
@@ -290,13 +293,13 @@ final class QueryLibraryEditor implements SqlEditorExtension {
             updated.getExtraHeader().clear();
             updated.getExtraHeader().addAll(current.getExtraHeader());
         } catch (IOException e) {
-            DBWorkbench.getPlatformUI().showError("Save", "Can't read " + file, e);
+            DBWorkbench.getPlatformUI().showError(ToolsMessages.library_editor_save, NLS.bind(ToolsMessages.library_error_read, file), e);
             return false;
         }
         try {
             library.save(updated);
         } catch (IOException e) {
-            DBWorkbench.getPlatformUI().showError("Save", "Can't save the query to " + file, e);
+            DBWorkbench.getPlatformUI().showError(ToolsMessages.library_editor_save, NLS.bind(ToolsMessages.library_error_save_to, file), e);
             return false;
         }
         item = updated;
@@ -356,22 +359,22 @@ final class QueryLibraryEditor implements SqlEditorExtension {
         JPanel panel = new JPanel(new GridBagLayout());
         panel.setBorder(BorderFactory.createEmptyBorder(UIScale.scale(2), UIScale.scale(10), UIScale.scale(6), UIScale.scale(10)));
         targetCombo.setRenderer(new ConnectionRenderer());
-        targetCombo.setToolTipText("Connection a run from the Query Library uses (an unavailable connection is asked for)");
-        nameField.setToolTipText("Name of the query in the Query Library (also its file name)");
-        descriptionField.setToolTipText("What the query shows");
-        descriptionField.putClientProperty(FlatClientProperties.PLACEHOLDER_TEXT, "Description");
-        databaseField.setToolTipText("Default database (catalog) to switch to before a run; empty keeps the connection's");
-        databaseField.putClientProperty(FlatClientProperties.PLACEHOLDER_TEXT, "Database");
-        schemaField.setToolTipText("Default schema to switch to before a run; empty keeps the connection's");
-        schemaField.putClientProperty(FlatClientProperties.PLACEHOLDER_TEXT, "Schema");
-        parametersButton.setToolTipText("Label, type, default value and choices of the parameters (:name, ${name}) of the SQL");
+        targetCombo.setToolTipText(ToolsMessages.library_editor_target_tip);
+        nameField.setToolTipText(ToolsMessages.library_editor_name_tip);
+        descriptionField.setToolTipText(ToolsMessages.library_editor_description_tip);
+        descriptionField.putClientProperty(FlatClientProperties.PLACEHOLDER_TEXT, ToolsMessages.library_field_description);
+        databaseField.setToolTipText(ToolsMessages.library_editor_database_tip);
+        databaseField.putClientProperty(FlatClientProperties.PLACEHOLDER_TEXT, ToolsMessages.library_editor_database);
+        schemaField.setToolTipText(ToolsMessages.library_editor_schema_tip);
+        schemaField.putClientProperty(FlatClientProperties.PLACEHOLDER_TEXT, ToolsMessages.library_editor_schema);
+        parametersButton.setToolTipText(ToolsMessages.library_editor_parameters_tip);
         parametersButton.addActionListener(e -> editParameters());
 
         // Only Name and Target have labels; the other fields show placeholders, so both rows fit a narrow document area
-        addCell(panel, new JLabel("Name"), 0, 0, 0, 1);
+        addCell(panel, new JLabel(ToolsMessages.library_field_name), 0, 0, 0, 1);
         addCell(panel, nameField, 1, 0, 0.35, 1);
         addCell(panel, descriptionField, 2, 0, 0.65, 3);
-        addCell(panel, new JLabel("Target"), 0, 1, 0, 1);
+        addCell(panel, new JLabel(ToolsMessages.library_editor_target), 0, 1, 0, 1);
         addCell(panel, targetCombo, 1, 1, 0.35, 1);
         addCell(panel, databaseField, 2, 1, 0.3, 1);
         addCell(panel, schemaField, 3, 1, 0.3, 1);
@@ -462,7 +465,7 @@ final class QueryLibraryEditor implements SqlEditorExtension {
 
     private void updateParametersButton() {
         long defined = parameters.stream().filter(p -> !p.isPlain()).count();
-        parametersButton.setText(defined > 0 ? "Parameters (" + defined + ")…" : "Parameters…");
+        parametersButton.setText(defined > 0 ? NLS.bind(ToolsMessages.library_editor_parameters_count, defined) : ToolsMessages.library_editor_parameters);
     }
 
     private void editParameters() {
@@ -526,7 +529,7 @@ final class QueryLibraryEditor implements SqlEditorExtension {
                 setText(mode.getLabel());
                 setIcon(null);
             } else if (value instanceof MissingConnection missing) {
-                setText(missing.name() + " (not found)");
+                setText(NLS.bind(ToolsMessages.library_connection_not_found, missing.name()));
                 setIcon(null);
             }
             return this;

@@ -17,6 +17,8 @@
 package com.seizia.chromite.ui.swing;
 
 import com.formdev.flatlaf.FlatClientProperties;
+import com.seizia.chromite.ui.swing.internal.ToolsMessages;
+import org.eclipse.osgi.util.NLS;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.model.DBPDataSourceContainer;
@@ -45,6 +47,7 @@ import java.util.Map;
  * - 2026-11-06 Connections·Parameters 목록이 한 줄로 줄고 빈 띠가 생기던 문제: 창이 선호 크기보다 1px만 작아도(화면 배율 반올림)
  *   GridBagLayout이 모든 칸을 최소 크기로 놓는데 스크롤 창의 최소 높이가 한 줄이었다. 두 목록에 최소 높이와 세로 가중치를 줌
  *   (docs/chromite/swing-query-library.md "예약 실행")
+ * - 2026-11-06 화면 문구를 ToolsMessages로 옮김(OS 언어를 따름)
  */
 final class QueryScheduleDialog extends JDialog {
 
@@ -59,16 +62,16 @@ final class QueryScheduleDialog extends JDialog {
     }
 
     private static final ConditionChoice[] CONDITIONS = {
-        new ConditionChoice("Always (no alert)", null, null),
-        new ConditionChoice("Row count >", "rows", ">"), //$NON-NLS-1$ //$NON-NLS-2$
-        new ConditionChoice("Row count >=", "rows", ">="), //$NON-NLS-1$ //$NON-NLS-2$
-        new ConditionChoice("Row count =", "rows", "="), //$NON-NLS-1$ //$NON-NLS-2$
-        new ConditionChoice("First value >", "first", ">"), //$NON-NLS-1$ //$NON-NLS-2$
-        new ConditionChoice("First value >=", "first", ">="), //$NON-NLS-1$ //$NON-NLS-2$
-        new ConditionChoice("First value <", "first", "<"), //$NON-NLS-1$ //$NON-NLS-2$
-        new ConditionChoice("First value <=", "first", "<="), //$NON-NLS-1$ //$NON-NLS-2$
-        new ConditionChoice("First value =", "first", "="), //$NON-NLS-1$ //$NON-NLS-2$
-        new ConditionChoice("First value !=", "first", "!="), //$NON-NLS-1$ //$NON-NLS-2$
+        new ConditionChoice(ToolsMessages.schedule_condition_always, null, null),
+        new ConditionChoice(NLS.bind(ToolsMessages.schedule_choice_rows, ">"), "rows", ">"), //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$
+        new ConditionChoice(NLS.bind(ToolsMessages.schedule_choice_rows, ">="), "rows", ">="), //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$
+        new ConditionChoice(NLS.bind(ToolsMessages.schedule_choice_rows, "="), "rows", "="), //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$
+        new ConditionChoice(NLS.bind(ToolsMessages.schedule_choice_first, ">"), "first", ">"), //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$
+        new ConditionChoice(NLS.bind(ToolsMessages.schedule_choice_first, ">="), "first", ">="), //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$
+        new ConditionChoice(NLS.bind(ToolsMessages.schedule_choice_first, "<"), "first", "<"), //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$
+        new ConditionChoice(NLS.bind(ToolsMessages.schedule_choice_first, "<="), "first", "<="), //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$
+        new ConditionChoice(NLS.bind(ToolsMessages.schedule_choice_first, "="), "first", "="), //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$
+        new ConditionChoice(NLS.bind(ToolsMessages.schedule_choice_first, "!="), "first", "!="), //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$
     };
 
     /**
@@ -77,21 +80,22 @@ final class QueryScheduleDialog extends JDialog {
     private record TargetChoice(@NotNull QueryLibrarySchedule.Target target, @Nullable DBPDataSourceContainer container) {
         @Override
         public String toString() {
-            return container != null ? container.getName() : target.name() + " (not found)";
+            return container != null ? container.getName() : NLS.bind(ToolsMessages.library_connection_not_found, target.name());
         }
     }
 
-    private final JCheckBox enabledBox = new JCheckBox("Run this query on a schedule");
-    private final JRadioButton intervalButton = new JRadioButton("Every");
-    private final JRadioButton dailyButton = new JRadioButton("Daily at");
-    private final JRadioButton weekdaysButton = new JRadioButton("Weekdays at");
+    private final JCheckBox enabledBox = new JCheckBox(ToolsMessages.schedule_enabled);
+    private final JRadioButton intervalButton = new JRadioButton(ToolsMessages.schedule_every);
+    private final JRadioButton dailyButton = new JRadioButton(ToolsMessages.schedule_daily);
+    private final JRadioButton weekdaysButton = new JRadioButton(ToolsMessages.schedule_weekdays);
     private final JSpinner intervalSpinner = new JSpinner(new SpinnerNumberModel(5, 1, 10000, 1));
-    private final JComboBox<String> unitCombo = new JComboBox<>(new String[]{"minutes", "hours"});
+    private final JComboBox<String> unitCombo = new JComboBox<>(new String[]{ToolsMessages.schedule_unit_minutes, ToolsMessages.schedule_unit_hours});
     private final JTextField dailyField = new JTextField(5);
     private final JTextField weekdaysField = new JTextField(5);
     private final List<JCheckBox> targetBoxes = new ArrayList<>();
     private final List<TargetChoice> targetChoices = new ArrayList<>();
-    private final DefaultTableModel parametersModel = new DefaultTableModel(new Object[]{"Parameter", "Value for scheduled runs"}, 0) {
+    private final DefaultTableModel parametersModel = new DefaultTableModel(
+        new Object[]{ToolsMessages.schedule_column_parameter, ToolsMessages.schedule_column_value}, 0) {
         @Override
         public boolean isCellEditable(int row, int column) {
             return column == 1;
@@ -99,7 +103,7 @@ final class QueryScheduleDialog extends JDialog {
     };
     private final JComboBox<ConditionChoice> conditionCombo = new JComboBox<>(CONDITIONS);
     private final JTextField conditionValueField = new JTextField(8);
-    private final JCheckBox activeBox = new JCheckBox("Active on this computer");
+    private final JCheckBox activeBox = new JCheckBox(ToolsMessages.schedule_active);
     private final JLabel errorLabel = new JLabel(" ");
     private final JTable parametersTable = new JTable(parametersModel);
     @Nullable
@@ -107,7 +111,7 @@ final class QueryScheduleDialog extends JDialog {
     private boolean removed;
 
     private QueryScheduleDialog(@NotNull Window owner, @NotNull QueryLibraryItem item, boolean active) {
-        super(owner, "Schedule - " + item.getName(), ModalityType.APPLICATION_MODAL);
+        super(owner, NLS.bind(ToolsMessages.schedule_title, item.getName()), ModalityType.APPLICATION_MODAL);
         setDefaultCloseOperation(DISPOSE_ON_CLOSE);
         QueryLibrarySchedule schedule = item.getSchedule() != null ? item.getSchedule() : new QueryLibrarySchedule();
 
@@ -129,7 +133,7 @@ final class QueryScheduleDialog extends JDialog {
         dailyField.putClientProperty(FlatClientProperties.PLACEHOLDER_TEXT, "hh:mm"); //$NON-NLS-1$
         weekdaysField.putClientProperty(FlatClientProperties.PLACEHOLDER_TEXT, "hh:mm"); //$NON-NLS-1$
         activeBox.setSelected(active || item.getSchedule() == null);
-        activeBox.setToolTipText("The schedule is saved in the query file; whether it runs is set on each computer");
+        activeBox.setToolTipText(ToolsMessages.schedule_active_tip);
 
         // Connections: those of this computer, plus targets of another computer that are not found here
         JPanel targetsPanel = new JPanel();
@@ -185,7 +189,7 @@ final class QueryScheduleDialog extends JDialog {
             conditionValueField.setText("0"); //$NON-NLS-1$
         }
         conditionCombo.addActionListener(e -> updateEnabled());
-        conditionCombo.setToolTipText("Show a notification and mark the query when a run meets the condition");
+        conditionCombo.setToolTipText(ToolsMessages.schedule_condition_tip);
 
         JPanel when = new JPanel(new GridBagLayout());
         addCell(when, intervalButton, 0, 0);
@@ -202,24 +206,24 @@ final class QueryScheduleDialog extends JDialog {
         JPanel form = new JPanel(new GridBagLayout());
         int row = 0;
         addRow(form, row++, null, enabledBox, 0);
-        addRow(form, row++, "When", when, 0);
+        addRow(form, row++, ToolsMessages.schedule_when, when, 0);
         // The two lists take the extra height of a larger dialog; the other rows keep theirs
-        addRow(form, row++, "Connections", targetsScroll, 1);
-        addRow(form, row++, "Parameters", parametersScroll, 1);
-        addRow(form, row++, "Alert when", conditionPanel, 0);
+        addRow(form, row++, ToolsMessages.schedule_connections, targetsScroll, 1);
+        addRow(form, row++, ToolsMessages.schedule_parameters, parametersScroll, 1);
+        addRow(form, row++, ToolsMessages.schedule_alert_when, conditionPanel, 0);
         addRow(form, row, null, activeBox, 0);
 
         errorLabel.putClientProperty(FlatClientProperties.STYLE, "foreground: $Chromite.status.error"); //$NON-NLS-1$
-        JButton okButton = new JButton("OK");
+        JButton okButton = new JButton(ToolsMessages.button_ok);
         okButton.addActionListener(e -> accept());
-        JButton removeButton = new JButton("Remove Schedule");
+        JButton removeButton = new JButton(ToolsMessages.schedule_remove);
         removeButton.setEnabled(item.getSchedule() != null);
         removeButton.addActionListener(e -> {
             result = null;
             removed = true;
             dispose();
         });
-        JButton cancelButton = new JButton("Cancel");
+        JButton cancelButton = new JButton(ToolsMessages.button_cancel);
         cancelButton.addActionListener(e -> dispose());
         JPanel buttons = new JPanel(new FlowLayout(FlowLayout.RIGHT, 6, 0));
         buttons.add(okButton);
@@ -325,7 +329,7 @@ final class QueryScheduleDialog extends JDialog {
                 schedule.setTime(LocalTime.parse(weekdaysField.getText().trim()));
             }
         } catch (DateTimeParseException e) {
-            errorLabel.setText("Enter the time as hh:mm, for example 08:30.");
+            errorLabel.setText(ToolsMessages.schedule_error_time);
             return;
         }
         for (int i = 0; i < targetBoxes.size(); i++) {
@@ -334,7 +338,7 @@ final class QueryScheduleDialog extends JDialog {
             }
         }
         if (schedule.getTargets().isEmpty()) {
-            errorLabel.setText("Choose at least one connection.");
+            errorLabel.setText(ToolsMessages.schedule_error_connections);
             return;
         }
         Map<String, String> values = new LinkedHashMap<>();
@@ -346,7 +350,7 @@ final class QueryScheduleDialog extends JDialog {
         if (choice != null && choice.subject() != null) {
             String value = conditionValueField.getText().trim();
             if (value.isEmpty()) {
-                errorLabel.setText("Enter the value of the condition.");
+                errorLabel.setText(ToolsMessages.schedule_error_condition);
                 return;
             }
             schedule.setCondition(new QueryLibrarySchedule.Condition(choice.subject(), choice.operator(), value));

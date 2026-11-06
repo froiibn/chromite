@@ -17,6 +17,8 @@
 package com.seizia.chromite.ui.swing;
 
 import com.seizia.chromite.ui.swing.design.TableDesignerDriver;
+import com.seizia.chromite.ui.swing.internal.ToolsMessages;
+import org.eclipse.osgi.util.NLS;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
@@ -52,6 +54,7 @@ import java.util.function.Supplier;
  *
  * 변경 이력:
  * - 2026-11-06 테이블 디자이너: 최초 작성 (docs/chromite/swing-table-designer.md)
+ * - 2026-11-06 화면 문구를 ToolsMessages로 옮김(OS 언어를 따름)
  */
 final class DesignerDialogs {
 
@@ -121,33 +124,33 @@ final class DesignerDialogs {
         typeChanged.run();
 
         JPanel form = new JPanel(new GridBagLayout());
-        addRow(form, 0, "Type:", typeCombo);
-        addRow(form, 1, "Name:", nameField);
+        addRow(form, 0, ToolsMessages.designer_dialog_type, typeCombo);
+        addRow(form, 1, ToolsMessages.designer_label_name, nameField);
         JPanel content = new JPanel(new BorderLayout(0, 8));
         content.add(form, BorderLayout.NORTH);
-        JLabel detailLabel = new JLabel("Columns (in key order) or CHECK expression:");
+        JLabel detailLabel = new JLabel(ToolsMessages.designer_dialog_key_columns);
         JPanel detailPanel = new JPanel(new BorderLayout(0, 4));
         detailPanel.add(detailLabel, BorderLayout.NORTH);
         detailPanel.add(detail, BorderLayout.CENTER);
         content.add(detailPanel, BorderLayout.CENTER);
         content.setPreferredSize(new Dimension(480, 360));
 
-        return showDialog(owner, "Add Key", content, () -> {
+        return showDialog(owner, ToolsMessages.designer_add_key, content, () -> {
             DBSEntityConstraintType type = (DBSEntityConstraintType) typeCombo.getSelectedItem();
             if (type == null) {
-                return error("Choose the key type.");
+                return error(ToolsMessages.designer_dialog_error_key_type);
             }
             if (nameField.getText().trim().isEmpty()) {
-                return error("Enter the key name.");
+                return error(ToolsMessages.designer_dialog_error_key_name);
             }
             if (type == DBSEntityConstraintType.CHECK) {
                 if (expressionArea.getText().trim().isEmpty()) {
-                    return error("Enter the CHECK expression.");
+                    return error(ToolsMessages.designer_dialog_error_check);
                 }
                 return new TableDesignSession.KeySpec(nameField.getText().trim(), type, List.of(), expressionArea.getText().trim());
             }
             if (columnModel.getChosen().isEmpty()) {
-                return error("Choose at least one column.");
+                return error(ToolsMessages.designer_dialog_error_columns);
             }
             return new TableDesignSession.KeySpec(nameField.getText().trim(), type, columnModel.getChosen(), null);
         });
@@ -162,7 +165,7 @@ final class DesignerDialogs {
     @Nullable
     static IndexSpec editIndex(@NotNull Component owner, @NotNull List<DBSEntityAttribute> columns, @NotNull Map<DBSEntityAttribute, String> names) {
         JTextField nameField = new JTextField(names.get(null), 24);
-        JCheckBox uniqueCheck = new JCheckBox("Unique");
+        JCheckBox uniqueCheck = new JCheckBox(ToolsMessages.designer_dialog_unique);
         ColumnChoiceModel columnModel = new ColumnChoiceModel(columns, true);
         columnModel.addTableModelListener(e -> {
             // The suggested name follows the first column until the user types another name
@@ -176,22 +179,22 @@ final class DesignerDialogs {
         columnTable.getColumnModel().getColumn(3).setCellEditor(new DefaultCellEditor(orderCombo));
 
         JPanel form = new JPanel(new GridBagLayout());
-        addRow(form, 0, "Name:", nameField);
+        addRow(form, 0, ToolsMessages.designer_label_name, nameField);
         addRow(form, 1, "", uniqueCheck);
         JPanel content = new JPanel(new BorderLayout(0, 8));
         content.add(form, BorderLayout.NORTH);
         JPanel columnsPanel = new JPanel(new BorderLayout(0, 4));
-        columnsPanel.add(new JLabel("Columns (in index order):"), BorderLayout.NORTH);
+        columnsPanel.add(new JLabel(ToolsMessages.designer_dialog_index_columns), BorderLayout.NORTH);
         columnsPanel.add(new JScrollPane(columnTable), BorderLayout.CENTER);
         content.add(columnsPanel, BorderLayout.CENTER);
         content.setPreferredSize(new Dimension(480, 360));
 
-        return showDialog(owner, "Add Index", content, () -> {
+        return showDialog(owner, ToolsMessages.designer_add_index, content, () -> {
             if (nameField.getText().trim().isEmpty()) {
-                return error("Enter the index name.");
+                return error(ToolsMessages.designer_dialog_error_index_name);
             }
             if (columnModel.getChosen().isEmpty()) {
-                return error("Choose at least one column.");
+                return error(ToolsMessages.designer_dialog_error_columns);
             }
             List<TableDesignerDriver.IndexColumn> indexColumns = new ArrayList<>();
             for (DBSEntityAttribute column : columnModel.getChosen()) {
@@ -208,7 +211,7 @@ final class DesignerDialogs {
     static ForeignKeySpec editForeignKey(@NotNull Component owner, @NotNull DBSEntity table, @NotNull List<DBSEntityAttribute> columns,
                                          @NotNull List<DBSEntity> referenceTables) {
         JTextField nameField = new JTextField(24);
-        nameField.setToolTipText("Leave empty to use a generated name");
+        nameField.setToolTipText(ToolsMessages.designer_dialog_generated_name_tip);
         JComboBox<DBSEntity> tableCombo = new JComboBox<>(referenceTables.toArray(new DBSEntity[0]));
         tableCombo.setRenderer(new DefaultListCellRenderer() {
             @Override
@@ -222,7 +225,8 @@ final class DesignerDialogs {
             @Override
             public Component getListCellRendererComponent(JList<?> list, Object value, int index, boolean isSelected, boolean cellHasFocus) {
                 return super.getListCellRendererComponent(list, value instanceof DBSEntityConstraint key
-                    ? key.getName() + " (" + key.getConstraintType().getLocalizedName() + ")" : "(no unique key)", index, isSelected, cellHasFocus);
+                    ? key.getName() + " (" + key.getConstraintType().getLocalizedName() + ")" : ToolsMessages.designer_dialog_no_unique_key,
+                    index, isSelected, cellHasFocus);
             }
         });
         JComboBox<DBSForeignKeyModifyRule> deleteCombo = createRuleCombo();
@@ -260,7 +264,7 @@ final class DesignerDialogs {
             List<DBSEntityConstraint> keys = keysByTable.get(refTable);
             if (keys == null) {
                 try {
-                    keys = ProgressDialog.runTask("Read keys of " + refTable.getName(), monitor -> {
+                    keys = ProgressDialog.runTask(NLS.bind(ToolsMessages.designer_dialog_progress_read_keys, refTable.getName()), monitor -> {
                         List<DBSEntityConstraint> found = TableDesignSession.readUniqueKeys(monitor, refTable);
                         for (DBSEntityConstraint key : found) {
                             columnsByKey.put(key, TableDesignSession.readKeyColumns(monitor, key));
@@ -270,7 +274,8 @@ final class DesignerDialogs {
                 } catch (DBInterruptedException ex) {
                     keys = List.of();
                 } catch (DBException ex) {
-                    DBWorkbench.getPlatformUI().showError("Add Foreign Key", "Can't read the keys of " + refTable.getName(), ex);
+                    DBWorkbench.getPlatformUI().showError(ToolsMessages.designer_add_foreign_key,
+                        NLS.bind(ToolsMessages.designer_dialog_error_read_keys, refTable.getName()), ex);
                     keys = List.of();
                 }
                 keysByTable.put(refTable, keys);
@@ -294,27 +299,27 @@ final class DesignerDialogs {
         }
 
         JPanel form = new JPanel(new GridBagLayout());
-        addRow(form, 0, "Name:", nameField);
-        addRow(form, 1, "Referenced table:", tableCombo);
-        addRow(form, 2, "Referenced key:", keyCombo);
-        addRow(form, 3, "On delete:", deleteCombo);
-        addRow(form, 4, "On update:", updateCombo);
+        addRow(form, 0, ToolsMessages.designer_label_name, nameField);
+        addRow(form, 1, ToolsMessages.designer_dialog_referenced_table, tableCombo);
+        addRow(form, 2, ToolsMessages.designer_dialog_referenced_key, keyCombo);
+        addRow(form, 3, ToolsMessages.designer_dialog_on_delete, deleteCombo);
+        addRow(form, 4, ToolsMessages.designer_dialog_on_update, updateCombo);
         JPanel content = new JPanel(new BorderLayout(0, 8));
         content.add(form, BorderLayout.NORTH);
         JPanel mappingPanel = new JPanel(new BorderLayout(0, 4));
-        mappingPanel.add(new JLabel("Columns:"), BorderLayout.NORTH);
+        mappingPanel.add(new JLabel(ToolsMessages.designer_dialog_columns), BorderLayout.NORTH);
         mappingPanel.add(new JScrollPane(mappingTable), BorderLayout.CENTER);
         content.add(mappingPanel, BorderLayout.CENTER);
         content.setPreferredSize(new Dimension(520, 420));
 
-        return showDialog(owner, "Add Foreign Key", content, () -> {
+        return showDialog(owner, ToolsMessages.designer_add_foreign_key, content, () -> {
             DBSEntityConstraint key = (DBSEntityConstraint) keyCombo.getSelectedItem();
             if (key == null) {
-                return error("The referenced table has no primary or unique key.");
+                return error(ToolsMessages.designer_dialog_error_no_key);
             }
             List<TableDesignerDriver.ForeignKeyColumn> pairs = mappingModel.getPairs();
             if (pairs == null) {
-                return error("Choose a column for every referenced column.");
+                return error(ToolsMessages.designer_dialog_error_mapping);
             }
             return new ForeignKeySpec(nameField.getText().trim(), key, (DBSForeignKeyModifyRule) deleteCombo.getSelectedItem(),
                 (DBSForeignKeyModifyRule) updateCombo.getSelectedItem(), pairs);
@@ -378,7 +383,7 @@ final class DesignerDialogs {
         if (errorColor != null) {
             errorLabel.setForeground(errorColor);
         }
-        JButton okButton = new JButton("OK");
+        JButton okButton = new JButton(ToolsMessages.button_ok);
         okButton.addActionListener(e -> {
             Object value = validator.get();
             if (value instanceof ValidationError validationError) {
@@ -388,7 +393,7 @@ final class DesignerDialogs {
             result[0] = value;
             dialog.dispose();
         });
-        JButton cancelButton = new JButton("Cancel");
+        JButton cancelButton = new JButton(ToolsMessages.button_cancel);
         cancelButton.addActionListener(e -> dialog.dispose());
         JPanel buttons = new JPanel(new FlowLayout(FlowLayout.RIGHT, 6, 0));
         buttons.add(okButton);
@@ -462,8 +467,8 @@ final class DesignerDialogs {
             return switch (column) {
                 case 0 -> "";
                 case 1 -> "#";
-                case 2 -> "Column";
-                default -> "Order";
+                case 2 -> ToolsMessages.designer_dialog_column;
+                default -> ToolsMessages.designer_dialog_order;
             };
         }
 
@@ -561,7 +566,7 @@ final class DesignerDialogs {
 
         @Override
         public String getColumnName(int column) {
-            return column == 0 ? "Referenced column" : "Column";
+            return column == 0 ? ToolsMessages.designer_dialog_referenced_column : ToolsMessages.designer_dialog_column;
         }
 
         @Override

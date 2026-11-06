@@ -16,6 +16,8 @@
  */
 package com.seizia.chromite.ui.swing;
 
+import com.seizia.chromite.ui.swing.internal.ToolsMessages;
+import org.eclipse.osgi.util.NLS;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.Log;
@@ -59,6 +61,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
  *
  * 변경 이력:
  * - 2026-11-06 Query Library: 최초 작성 (docs/chromite/swing-query-library.md "저장 위치와 루트")
+ * - 2026-11-06 화면 문구를 ToolsMessages로 옮김(OS 언어를 따름)
  */
 final class QueryLibrary {
 
@@ -66,7 +69,7 @@ final class QueryLibrary {
 
     private static final String PREF_ROOTS = "queryLibrary.roots"; //$NON-NLS-1$
     private static final String DEFAULT_ROOT_FOLDER = "QueryLibrary"; //$NON-NLS-1$
-    static final String DEFAULT_ROOT_NAME = "My Queries";
+    static final String DEFAULT_ROOT_NAME = ToolsMessages.library_root_default;
 
     /**
      * Compares names with their numbers by value ("2. a" before "10. b"), the rest without case.
@@ -362,7 +365,7 @@ final class QueryLibrary {
         checkWritable(source);
         checkWritable(targetFolder);
         if (targetFolder.toAbsolutePath().normalize().startsWith(source.toAbsolutePath().normalize())) {
-            throw new IOException("A folder can't be moved into itself");
+            throw new IOException(ToolsMessages.library_error_move_into_itself);
         }
         if (source.getParent() != null && source.getParent().equals(targetFolder)) {
             return source;
@@ -384,7 +387,7 @@ final class QueryLibrary {
         QueryLibraryItem copy = item.copy();
         copy.setId(null);
         copy.setFile(null);
-        copy.setName(item.getName() + " - Copy");
+        copy.setName(NLS.bind(ToolsMessages.library_copy_name, item.getName()));
         OffsetDateTime now = OffsetDateTime.now().withNano(0);
         copy.setCreated(now);
         copy.setUpdated(now);
@@ -398,7 +401,7 @@ final class QueryLibrary {
         checkWritable(path);
         Root root = findRoot(path);
         if (root != null && root.path().toAbsolutePath().normalize().equals(path.toAbsolutePath().normalize())) {
-            throw new IOException("A library root can't be deleted; remove it from the library roots instead");
+            throw new IOException(ToolsMessages.library_error_delete_root);
         }
         boolean trashed = false;
         try {
@@ -438,10 +441,10 @@ final class QueryLibrary {
     private void checkWritable(@NotNull Path path) throws IOException {
         Root root = findRoot(path);
         if (root == null) {
-            throw new IOException(path + " is not in a Query Library root");
+            throw new IOException(NLS.bind(ToolsMessages.library_error_not_in_root, path));
         }
         if (root.readOnly()) {
-            throw new IOException("'" + root.name() + "' is a read-only library root");
+            throw new IOException(NLS.bind(ToolsMessages.library_error_read_only_root, root.name()));
         }
     }
 

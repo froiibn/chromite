@@ -17,8 +17,10 @@
 package com.seizia.chromite.ui.swing;
 
 import com.formdev.flatlaf.FlatClientProperties;
+import com.seizia.chromite.ui.swing.internal.ToolsMessages;
 import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.Status;
+import org.eclipse.osgi.util.NLS;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.Log;
@@ -57,6 +59,7 @@ import java.util.Map;
  *
  * 변경 이력:
  * - 2026-11-06 Query Library: 최초 작성 (docs/chromite/swing-query-library.md "매개변수")
+ * - 2026-11-06 화면 문구를 ToolsMessages로 옮김(OS 언어를 따름)
  */
 final class QueryParameterDialog extends JDialog {
 
@@ -117,7 +120,7 @@ final class QueryParameterDialog extends JDialog {
                 JLabel hintLabel = new JLabel(hint);
                 hintLabel.putClientProperty(FlatClientProperties.STYLE, "foreground: $Chromite.secondaryForeground"); //$NON-NLS-1$
                 if (textSubstitution) {
-                    hintLabel.setToolTipText("The value is inserted into the SQL text as it is (not bound as a value).");
+                    hintLabel.setToolTipText(ToolsMessages.param_dialog_text_tip);
                 }
                 c.gridx = 2;
                 c.fill = GridBagConstraints.NONE;
@@ -134,9 +137,9 @@ final class QueryParameterDialog extends JDialog {
         }
         errorLabel.putClientProperty(FlatClientProperties.STYLE, "foreground: $Chromite.status.error"); //$NON-NLS-1$
 
-        JButton runButton = new JButton("Run");
+        JButton runButton = new JButton(ToolsMessages.library_action_run);
         runButton.addActionListener(e -> accept());
-        JButton cancelButton = new JButton("Cancel");
+        JButton cancelButton = new JButton(ToolsMessages.button_cancel);
         cancelButton.addActionListener(e -> dispose());
         JPanel buttons = new JPanel(new FlowLayout(FlowLayout.RIGHT, 6, 0));
         buttons.add(runButton);
@@ -183,7 +186,7 @@ final class QueryParameterDialog extends JDialog {
     ) {
         Window owner = SwingUtilities.getWindowAncestor(parent);
         QueryParameterDialog dialog = new QueryParameterDialog(owner != null ? owner : JOptionPane.getRootFrame(),
-            "Parameters - " + queryName, parameters, kinds, initialValues, container);
+            NLS.bind(ToolsMessages.param_dialog_title, queryName), parameters, kinds, initialValues, container);
         dialog.setVisible(true);
         return dialog.result;
     }
@@ -229,12 +232,12 @@ final class QueryParameterDialog extends JDialog {
     @Nullable
     private static String getHint(@NotNull QueryLibraryParameter parameter, boolean textSubstitution) {
         if (textSubstitution) {
-            return "SQL text";
+            return ToolsMessages.param_dialog_hint_text;
         }
         return switch (parameter.getType()) {
-            case NUMBER -> "number";
-            case DATE -> "date";
-            case DATETIME -> "date and time";
+            case NUMBER -> ToolsMessages.param_dialog_hint_number;
+            case DATE -> ToolsMessages.param_dialog_hint_date;
+            case DATETIME -> ToolsMessages.param_dialog_hint_datetime;
             default -> null;
         };
     }
@@ -264,7 +267,7 @@ final class QueryParameterDialog extends JDialog {
         @NotNull JComboBox<String> combo,
         @NotNull String initial
     ) {
-        combo.setToolTipText("Loading values…");
+        combo.setToolTipText(ToolsMessages.param_dialog_loading);
         new AbstractJob("Read parameter values") {
             @NotNull
             @Override
@@ -278,7 +281,7 @@ final class QueryParameterDialog extends JDialog {
                     DBPDataSource dataSource = container.getDataSource();
                     DBCExecutionContext context = dataSource == null ? null : DBUtils.getDefaultContext(dataSource.getDefaultInstance(), true);
                     if (context == null) {
-                        error = "Not connected";
+                        error = ToolsMessages.library_not_connected;
                     } else {
                         try (DBCSession session = context.openSession(monitor, DBCExecutionPurpose.UTIL, "Read parameter values");
                              DBCStatement statement = session.prepareStatement(DBCStatementType.QUERY, lookupSql, false, false, false)) {
@@ -298,14 +301,14 @@ final class QueryParameterDialog extends JDialog {
                 String finalError = error;
                 SwingUtilities.invokeLater(() -> {
                     if (finalError != null) {
-                        combo.setToolTipText("Can't read the values: " + finalError);
+                        combo.setToolTipText(NLS.bind(ToolsMessages.param_dialog_error_values, finalError));
                         return;
                     }
                     Object typed = combo.getEditor().getItem();
                     combo.removeAllItems();
                     values.forEach(combo::addItem);
                     combo.setSelectedItem(typed != null && !CommonUtils.toString(typed).isEmpty() ? typed : initial);
-                    combo.setToolTipText(values.size() + " values");
+                    combo.setToolTipText(NLS.bind(ToolsMessages.param_dialog_values, values.size()));
                 });
                 return Status.OK_STATUS;
             }

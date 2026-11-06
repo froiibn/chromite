@@ -17,6 +17,8 @@
 package com.seizia.chromite.ui.swing;
 
 import com.formdev.flatlaf.FlatClientProperties;
+import com.seizia.chromite.ui.swing.internal.ToolsMessages;
+import org.eclipse.osgi.util.NLS;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.utils.CommonUtils;
@@ -38,10 +40,13 @@ import java.util.Map;
  *
  * 변경 이력:
  * - 2026-11-06 Query Library: 최초 작성 (docs/chromite/swing-query-library.md "매개변수")
+ * - 2026-11-06 화면 문구를 ToolsMessages로 옮김(OS 언어를 따름)
  */
 final class QueryParameterDefinitionsDialog extends JDialog {
 
-    private static final String[] COLUMNS = {"Parameter", "Label", "Type", "Default", "Required", "Choices (a|b|c) or lookup query"};
+    private static final String[] COLUMNS = {ToolsMessages.param_definitions_column_parameter, ToolsMessages.param_definitions_column_label,
+        ToolsMessages.param_definitions_column_type, ToolsMessages.param_definitions_column_default, ToolsMessages.param_definitions_column_required,
+        ToolsMessages.param_definitions_column_choices};
 
     private final List<QueryLibraryParameter> parameters = new ArrayList<>();
     private final Map<String, Boolean> kinds;
@@ -49,7 +54,7 @@ final class QueryParameterDefinitionsDialog extends JDialog {
     private boolean accepted;
 
     private QueryParameterDefinitionsDialog(@NotNull Window owner, @NotNull List<QueryLibraryParameter> parameters, @NotNull Map<String, Boolean> kinds) {
-        super(owner, "Query Parameters", ModalityType.APPLICATION_MODAL);
+        super(owner, ToolsMessages.param_definitions_title, ModalityType.APPLICATION_MODAL);
         setDefaultCloseOperation(DISPOSE_ON_CLOSE);
         this.parameters.addAll(parameters);
         this.kinds = kinds;
@@ -69,11 +74,11 @@ final class QueryParameterDefinitionsDialog extends JDialog {
         }
 
         JLabel hint = new JLabel(parameters.isEmpty()
-            ? "The SQL has no parameters. Use :name for a value, ${name} for SQL text."
-            : ":name values are bound safely; ${name} values are inserted into the SQL text.");
+            ? ToolsMessages.param_definitions_hint_none
+            : ToolsMessages.param_definitions_hint);
         hint.putClientProperty(FlatClientProperties.STYLE, "foreground: $Chromite.secondaryForeground"); //$NON-NLS-1$
 
-        JButton okButton = new JButton("OK");
+        JButton okButton = new JButton(ToolsMessages.button_ok);
         okButton.addActionListener(e -> {
             if (table.isEditing()) {
                 table.getCellEditor().stopCellEditing();
@@ -81,7 +86,7 @@ final class QueryParameterDefinitionsDialog extends JDialog {
             accepted = true;
             dispose();
         });
-        JButton cancelButton = new JButton("Cancel");
+        JButton cancelButton = new JButton(ToolsMessages.button_cancel);
         cancelButton.addActionListener(e -> dispose());
         JPanel buttons = new JPanel(new FlowLayout(FlowLayout.RIGHT, 6, 0));
         buttons.add(okButton);
@@ -174,7 +179,8 @@ final class QueryParameterDefinitionsDialog extends JDialog {
             QueryLibraryParameter parameter = parameters.get(row);
             return switch (column) {
                 case 0 -> Boolean.FALSE.equals(kinds.get(parameter.getName()))
-                    ? "${" + parameter.getName() + "} (SQL text)" : ":" + parameter.getName(); //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$
+                    ? NLS.bind(ToolsMessages.param_definitions_text_parameter, "${" + parameter.getName() + "}") //$NON-NLS-1$ //$NON-NLS-2$
+                    : ":" + parameter.getName(); //$NON-NLS-1$
                 case 1 -> CommonUtils.notEmpty(parameter.getLabel());
                 case 2 -> parameter.getType();
                 case 3 -> CommonUtils.notEmpty(parameter.getDefaultValue());
