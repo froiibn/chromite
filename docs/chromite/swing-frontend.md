@@ -55,10 +55,10 @@ UI는 SWT 위젯뿐 아니라 Eclipse RCP 워크벤치(뷰, 편집기, 퍼스펙
 |---|---|---|
 | FlatLaf | IntelliJ/Darcula 계열 테마, JBR 사용자 정의 제목 표시줄 지원 | Apache 2.0 |
 | RSyntaxTextArea | SQL 편집기 (구문 강조, 자동완성 팝업, C단계 도입) | BSD |
-| ModernDocking | SSMS식 도킹 창 배치 | MIT |
+| ModernDocking | 도구 창 도킹 (2026-11-06 도입, "도구 창 도킹") | MIT |
 | JSVG | 탐색기 SVG 아이콘 그리기 (B단계 도입) | MIT |
 
-도입 전에 각 라이브러리의 최신 라이선스를 다시 확인한다. ModernDocking은 B단계에서 검토했고 아직 쓰지 않는다("구현 현황 — B단계").
+도입 전에 각 라이브러리의 최신 라이선스를 다시 확인한다. ModernDocking은 B단계에서 검토만 했고 2026-11-06에 도입했다("도구 창 도킹").
 
 ## 기존 코드 재사용 분석
 
@@ -416,7 +416,7 @@ SQL 편집기, 결과 그리드, 연결 화면은 C단계에서 만든다.
 - **숨기기:** View 메뉴 토글(Object Explorer F8, Properties F4, Results Ctrl+R, SSMS와 같은 단축키) 또는 도구 창의 `×`.
   숨긴 컴포넌트는 분할 창에서 빼지 않고 `setVisible(false)`로 감추고 구분선 크기를 0으로 둔다(테마 전환이 숨은 창에도 적용되게).
 - **Results / Messages:** 지금은 자리 표시용 내용만 있다. 탭 줄 오른쪽에 숨기기 단추가 있다(FlatLaf `JTabbedPane.trailingComponent`).
-- **문서 탭:** Welcome 탭 하나. SQL 편집기 탭은 C단계에서 넣는다.
+- **문서 탭:** Welcome 탭 하나. SQL 편집기 탭은 C단계에서 넣는다. (2026-11-06 Welcome 탭을 없애고 빈 문서 영역으로 바꿈: "빈 문서 영역")
 - **메뉴:** File(Exit), View(도구 창 3개, Theme > Light/Dark), Help(About Chromite). F5는 쿼리 실행용으로 비워 둔다.
 - **About:** 제품명, 부제, 버전, 저작권("© 2026 Chromite contributors. Based on DBeaver Community © DBeaver Corp"), 웹사이트
   (https://github.com/froiibn/chromite, 누르면 브라우저로 연다). 제품명·부제·저작권은 `plugin.xml` 제품 확장의 속성에서 읽는다.
@@ -425,7 +425,7 @@ SQL 편집기, 결과 그리드, 연결 화면은 C단계에서 만든다.
 
 ### 도킹 라이브러리 검토 (ModernDocking 대 `JSplitPane`)
 
-B단계는 `JSplitPane`만 쓴다.
+B단계는 `JSplitPane`만 쓴다. (2026-11-06 사용자가 끌어서 옮기기·떠 있는 창을 요청해 ModernDocking으로 바꿨다: "도구 창 도킹". 아래는 B단계 당시 판단이다.)
 
 - B단계 배치는 SSMS의 기본 배치 하나(고정 위치의 도구 창 3개 + 문서 탭)이고, 필요한 동작은 크기 조절·숨기기·저장뿐이라 분할 창으로 충분하다.
 - ModernDocking(MIT)을 쓰면 OSGi 매니페스트 없는 jar를 FlatLaf처럼 빌드 때 받아 `Bundle-ClassPath`에 넣고, `NOTICE`·체크섬을 관리하고,
@@ -502,7 +502,7 @@ B단계는 `JSplitPane`만 쓴다.
 | `sqlEditor.font.family`, `sqlEditor.font.size` | 편집기 글꼴 이름(없으면·설치되지 않았으면 Cascadia Mono), 크기(기본 13) (2026-11-06) |
 | `sqlEditor.color.<light\|dark>.<항목>` | 바꾼 편집기 색만: `rrggbb[,bold][,italic]`. 항목은 `text`, `keyword`, `operator`, `function`, `string`, `number`, `comment`, `data_type`, `variable`, `background`, `current_line`, `selection`, `line_number`, `current_line_number` (2026-11-06) |
 | `mainWindow.bounds`, `mainWindow.maximized` | `x,y,너비,높이`(최대화 전 크기), 최대화 여부 |
-| `objectExplorer.visible`, `objectExplorer.size` 등 (`properties.*`, `results.*`) | 표시 여부, 너비(위·아래 분할은 높이) |
+| `results.visible`, `results.size` | Results 표시 여부, 높이. 도구 창 배치는 2026-11-06부터 배치 파일과 `<id>.restorePlace`("도구 창 도킹") |
 
 - Java Preferences 대신 이 저장소를 고른 이유: SWT 버전도 화면 설정을 작업 공간 설정에 둔다. Windows에서 Java Preferences는 레지스트리에 쓰므로
   작업 공간을 복사해 하는 스모크 테스트가 사용자 설정을 바꾸게 되고, 작업 공간과 함께 옮겨지지도 않는다. 기본 작업 공간은 사용자별 폴더에 있어 "사용자별 저장"도 된다.
@@ -559,7 +559,7 @@ B단계는 `JSplitPane`만 쓴다.
 - 탐색기: 활성 프로젝트 전환, 객체 편집기, Script as, 필터. (Script as와 DDL 보기는 E단계에서 구현했다)
   (연결 화면·연결 명령과 모델 이벤트로 트리 갱신은 D단계에서 구현했다. "구현 현황 — D단계")
 - 위 "DBPPlatformUI B단계 구현"의 남은 항목.
-- 도킹(끌어다 놓기, 떠 있는 창)이 필요해지면 ModernDocking 재검토.
+- ~~도킹(끌어다 놓기, 떠 있는 창)이 필요해지면 ModernDocking 재검토.~~ 2026-11-06 도입("도구 창 도킹").
 
 ## 구현 현황 — C단계
 
@@ -1554,7 +1554,7 @@ Object Explorer 오른쪽 클릭 메뉴의 Refresh에 F5를 보인다.
 - `QueryStatusLine`: 상태 아이콘 16 + 문구 │ 서버 │ 사용자 │ DB/스키마 │ 경과 시간 │ 행 수. 높이 28, 위 1px 선, 글자 `text.secondary`, 칸 사이 1px 구분선.
   상태 아이콘은 실행 전 연결 아이콘(연결되어 있으면 초록 상태 점), 실행 중 ▶, 성공 체크, 오류, 취소 경고다.
 - 서버는 호스트[:포트], 파일 DB는 파일 이름이고, 도구 설명에 전체 URL·경로와 DB 제품 버전(SSMS의 "서버 (버전)")을 둔다. 사용자는 연결의 사용자 이름, DB/스키마는 편집기 도구 막대의 기본 DB/스키마 콤보 값이다. 빈 칸은 숨긴다.
-- 위치: SSMS처럼 쿼리 창 맨 아래 = Results 카드의 아래쪽. Results를 숨기면(Ctrl+R) 문서 카드의 아래쪽(편집기 아래)으로 옮긴다. 시작 탭·DDL 탭에는 없다.
+- 위치: SSMS처럼 쿼리 창 맨 아래 = Results 카드의 아래쪽. Results를 숨기면(Ctrl+R) 문서 카드의 아래쪽(편집기 아래)으로 옮긴다. 빈 문서 영역(예전 시작 탭)·DDL 탭에는 없다.
   상태 줄은 편집기마다 있고 메인 창이 활성 편집기의 것을 끼운다(결과 탭과 같은 방식, 탭에서 빠져 있던 동안의 테마 전환을 끼울 때 맞춤).
 
 ### Properties (SSMS 속성 그리드)
@@ -1726,6 +1726,145 @@ EDT 에이전트로 단추를 누르고(`doClick`) 결과를 읽었다. 캡처�
 - 다크 테마에서 눌린 도구 창 단추 바탕이 `#494B4E`로 보임(바꾸기 전 `#2A2C2F`, 캔버스 `#26282C`).
 - 회귀 테스트는 실행하지 않았다(요청 없음). 영향받을 수 있는 기능: Edit 메뉴 Undo/Redo의 켜고 끄기, Tools > Activity Monitor, File 메뉴, 쿼리 창 도구 막대 배치.
 
+## 도구 창 도킹 (2026-11-06)
+
+사용자 결정(2026-11-06): 도구 창을 익숙한 SQL Server 도구·IDE처럼 옮길 수 있게 한다. 머리말을 끌어 왼쪽·오른쪽·아래나 다른 도구 창 안(탭)에 놓고,
+떠 있는 창으로 띄우고, 배치를 다음 실행에도 쓰고, Window > Reset Window Layout으로 기본 배치로 되돌린다. 자동 숨기기는 선택 사항이었고 라이브러리에 있어 넣었다.
+
+### 배치
+
+```
+┌ 메뉴 · 주 도구 막대 (캔버스) ─────────────────────────────────────────────────────┐
+│ Object Explorer   │ 문서 탭 (편집기, 디자이너, 다이어그램, 도구 문서)    │ Properties       │
+│  (왼쪽 22%)        │                                                │  (오른쪽 18%)     │
+├───────────────────┤                                                │  Query Library는 │
+│ Registered Servers│────────────────────────────────────────────────│  보이면 이 위     │
+│                   │ Results | Messages | Execution plan (쿼리 창 안) │                  │
+├───────────────────┴────────────────────────────────────────────────┴──────────────────┤
+│ 상태 표시줄                                                                            │
+└────────────────────────────────────────────────────────────────────────────────────────┘
+```
+
+- **기본 배치:** 왼쪽 열 = Object Explorer(위 60%) + Registered Servers(아래 40%), 오른쪽 열 = Properties, Query Library는 숨김(Ctrl+Alt+T로 보이면 Properties 위 50%).
+  이전 배치는 Registered Servers가 Object Explorer 위였다(사용자 결정으로 바꿈).
+- **너비:** 기본 열 너비는 픽셀이 아니라 비율이다(왼쪽 22%, 오른쪽 18%). 1280px 창에서 두 열이 300px이면 쿼리 창이 좁아(합친 뒤 약 215px) 문서 영역이 60%를 갖게 했다.
+- **가운데:** 문서 영역(문서 탭 카드 + 그 아래 Results 카드)은 움직이지 않는 도킹 대상 하나다. Results/Messages/실행 계획은 SSMS처럼 쿼리 창 안이라 도킹하지 않고
+  지금처럼 문서 영역의 분할 창 아래쪽이다(`ToolWindow.SplitHost`, Ctrl+R, 크기·표시는 `results.visible`, `results.size`).
+- **도구 창 = 도킹 대상:** Object Explorer, Registered Servers, Properties, Query Library. 머리말(높이 40)이 끌기 손잡이이고 오른쪽에 [⋮ 옵션] [— 숨기기]가 있다.
+  옵션 메뉴: Float(떠 있는 창), Dock(떠 있는 창·자동 숨기기에서 메인 창의 마지막 자리로), Auto Hide(창 가장자리 막대로 접기), Hide.
+- **끌어 놓기:** 머리말을 끌면 놓을 자리가 강조색으로 칠해지고(창 가장자리 손잡이, 도구 창 손잡이: 위·아래·왼쪽·오른쪽·가운데=탭), 메인 창 밖에 놓으면 떠 있는 창이 된다.
+  같은 탭 묶음의 도구 창은 아래쪽 탭으로 바꾼다. 문서 영역 한가운데에 놓으면 문서 탭에 섞이지 않도록 마우스에서 가장 가까운 가장자리에 놓는다.
+- **View 메뉴와 단축키:** 그대로다(Object Explorer F8, Registered Servers Ctrl+Alt+G, Properties F4, Query Library Ctrl+Alt+T, Results Ctrl+R).
+  토글 상태는 실제 배치에서 다시 읽으므로 떠 있는 창을 닫거나 탭을 닫아도 맞다. 숨긴 도구 창을 다시 보이면 숨기기 전 자리(이웃 도구 창이나 창 가장자리, 방향, 비율)에 놓는다.
+
+### 라이브러리 선택: ModernDocking 1.4.9
+
+| 항목 | 확인한 것 (2026-11-06) |
+|---|---|
+| 버전 | Maven Central `io.github.andrewauclair:modern-docking-api` 최신 1.4.9(`maven-metadata.xml` latest/release, 2026-06-10), GitHub 릴리스 1.4.9(prerelease 아님) |
+| 라이선스 | MIT(POM `<licenses>`, GitHub 저장소 LICENSE `Copyright (c) 2022 Andrew Auclair`). jar 안에 LICENSE가 없어 전문을 `META-INF/LICENSE-ModernDocking.txt`로 번들에 넣었다 |
+| 의존성 | `modern-docking-api`는 의존성 없음(module-info: `java.desktop`, `java.logging`만). `modern-docking-single-app`(전역 정적 인스턴스)과 `modern-docking-ui`(FlatLaf 머리말, 실행 시 `flatlaf-extras` 필요)는 쓰지 않는다 |
+| SWT/OSGi | AWT/Swing만 쓰고 SWT 의존 없음. OSGi 매니페스트가 없어 FlatLaf처럼 `Bundle-ClassPath`에 넣었다(번들 안에서는 module-info를 무시). 바이트코드 Java 11(major 55) |
+| JBR 25 | `-vm ...\jbrsdk-25\bin\server\jvm.dll`로 실행해 끌기 인식기(`sun.awt.windows.WMouseDragGestureRecognizer`), 떠 있는 창, 자동 숨기기, 배치 저장·복원 확인 |
+| 체크섬 | jar SHA-1 `9228607916d1b696764c78c187039ca923cc2edf`(Central `.sha1`과 같음), SHA-256 `6897798a0f1f04c57c2d6916350e4dda37312675fda34fcbaa83f3deab76bb22` |
+| Islands 모양 | 머리말은 `Dockable.createHeaderUI`로 직접 만들고, 패널 테두리·바탕은 바꿀 수 있어(아래 "모양") 그대로 쓸 수 있었다. 다른 라이브러리 검토는 하지 않았다 |
+
+- jar는 FlatLaf와 같은 방식이다: 번들 `pom.xml`의 `maven-dependency-plugin:copy`가 `lib/modern-docking-api.jar`로 복사하고(버전은 `moderndocking.version` 한 곳),
+  `MANIFEST.MF`의 `Bundle-ClassPath`와 `build.properties`의 `bin.includes`에 넣었다. `NOTICE`에 출처를 적었다.
+- 라이브러리의 전역 설정 두 가지를 바꾼다: 마우스를 올린 도킹 패널의 테두리 강조를 끄고(Islands 카드가 이미 구분), AWT 전체의 끌기 문턱값(`awt.dnd.drag.threshold`)을
+  바꾸지 않게 한다(트리·표의 끌기 동작 유지).
+
+### 구성
+
+| 파일 | 역할 |
+|---|---|
+| `ToolWindowDocking`(새 파일) | 메인 창의 `DockingAPI` 하나, 도킹 루트(Islands 카드 그리기), 문서 영역 도킹 대상, 도구 창 도킹 대상과 머리말·옵션 메뉴, 보이기·숨기기와 마지막 자리, 기본 배치, 배치 파일 읽기·검사·저장, 이전 설정 옮기기 |
+| `ToolWindow` | 제목, View 메뉴 토글, 숨기기 단추, `isShown`/`setShown`(공개 API 그대로). 배치는 `ToolWindow.Host`: 도킹(`ToolWindowDocking`) 또는 분할 창(`SplitHost`, Results) |
+| `MainFrame` | 도구 창을 `ToolWindowDocking`에 등록(기본 자리), Results는 `SplitHost`, Reset Window Layout = 기본 도킹 배치 + Results 기본 크기, 창을 닫을 때 저장·떠 있는 창 닫기 |
+| `IslandPanel` | 모서리 덮기를 `paintCorners`로 떼어 냄(도킹 루트도 씀), 그리기 영역 밖의 모서리는 건너뜀 |
+| `internal/DockingMessages`(새 파일, `_ko`) | 옵션 메뉴 문구 |
+| `ChromiteLightLaf.properties`, `ChromiteDarkLaf.properties` | `ModernDocking.overlayBackground`(놓을 자리 강조색 30%), `handleBackground`·`handleForeground`(손잡이) |
+| `icons/ui/**/more.svg`, `tools/branding/gen_ui_icons.py` | 머리말 옵션 아이콘 ⋮(두 팩 × 두 테마, 생성기에 추가) |
+
+지운 코드(규칙 4): `ToolWindow.stackBelow`(한 열에 두 도구 창 쌓기)와 그 열 관리(`upper`/`lower`, `getSlot`, 열 숨기기), `setDefaultShown`,
+도구 창마다의 `load`/`save`/`applySize`/`reset`(도킹 도구 창), 도구 창 머리말 `createHeader`/`SeparatedPanel`(→ `ToolWindowDocking.Header`),
+`MainFrame`의 Object Explorer·Properties 분할 창(`explorerSplit`, `propertiesSplit`)과 바깥 여백 패널(`islands`, 여백은 도킹 루트가 그림).
+
+### 저장
+
+| 무엇 | 어디 |
+|---|---|
+| 도킹 배치(메인 창 트리, 탭 묶음, 자동 숨긴 도구 창, 떠 있는 창의 위치·크기·내용) | 작업 공간 `.metadata/chromite-window-layout-1.xml`(라이브러리 XML 형식) |
+| 숨긴 도구 창의 마지막 자리 | 번들 설정 `<id>.restorePlace` = `이웃 id|방향|비율`(창 가장자리면 이웃 id 비움) |
+| 메인 창 위치·크기·최대화, Results 크기·표시 | 그대로(`mainWindow.*`, `results.*`). 배치 파일의 메인 창 크기는 쓰지 않는다 |
+
+- 창을 닫을 때 한 번 저장한다(지금까지와 같음). 떠 있는 창은 메인 창이 보인 뒤에 연다(메인 창 뒤로 숨지 않게).
+- **맞지 않는 파일:** 파일이 없거나, XML을 읽을 수 없거나, 모르는 도구 창 id·같은 id 두 번·문서 영역 없음·떠 있는 창의 문서 영역·최대화·지원하지 않는 노드가 있으면 경고 로그를 남기고 기본 배치로 시작한다.
+  모르는 id를 라이브러리에 넘기면 저장된 클래스 이름으로 객체를 만들려 하므로 복원 전에 검사한다. 파일 이름의 `-1`은 형식 버전이라, 형식을 바꾸면 이름을 올려 예전 파일을 읽지 않는다.
+- **이전 설정 옮기기:** 배치 파일이 없는 첫 실행은 기본 배치로 시작하고, 분할 창 배치가 저장했던 보이기 여부(`objectExplorer.visible` 등, 기본값과 다를 때만 저장되어 있음)만 옮긴 뒤
+  `<id>.visible`·`<id>.size`를 지운다. 너비·높이와 Registered Servers가 위였던 순서는 옮기지 않는다(사용자 결정의 새 기본 배치를 쓰기 위해).
+
+### 모양 (Islands)
+
+[design-spec.md](design-spec.md) "적용 현황 — 도구 창 도킹"에 값이 있다. 요점: 라이브러리 패널(분할 창, 탭 묶음, 표시 패널)은 투명하게 하고 1px 테두리를 지운다.
+도킹 루트가 캔버스와 카드(도구 창 하나 또는 탭 묶음 하나) 바탕을 칠하고, 자식을 그린 뒤 카드 모서리를 캔버스 색으로 덮는다(`IslandPanel`과 같은 방식, 루트가 그리기 시작점).
+카드 사이 틈은 라이브러리 분할 창의 분할선(`SplitPane.dividerSize` 6)이다. 테마를 바꾸면 라이브러리가 테두리를 다시 넣으므로 그 뒤에 다시 꾸민다.
+
+### 확인 (2026-11-06)
+
+빌드 `-Pproduct-dbeaver-ce,product-chromite-swing` BUILD SUCCESS. Windows 11, 150%, JBR 25(`-vm ...\server\jvm.dll`), 개인 작업 공간 `D:\Tools\_scratch\docking\ws`.
+프로세스 안 EDT 시험 에이전트(OS 입력 없음, `D:\Tools\_scratch\docking\agent`, 도킹 명령은 리플렉션으로 `ToolWindowDocking`·`DockingAPI` 호출)로 조작했다. 캡처는 `D:\Tools\_scratch\docking\`.
+
+| 경우 | 결과 |
+|---|---|
+| 기본 배치 | `H(H(V(objectExplorer / registeredServers) | documents) | properties)`, Query Library 숨김, 토글 4개 상태 일치 |
+| Registered Servers를 오른쪽 열로 | `dock(registeredServers, properties, NORTH)` → `... | V(registeredServers / properties)` |
+| Properties와 Query Library 탭 | View 토글로 Query Library 보이기 → `dock(queryLibrary, properties, CENTER)` → `Tabs[properties queryLibrary]`, 아래쪽 탭 |
+| Object Explorer 떠 있는 창 → 다시 도킹 | 옵션 메뉴 Float → 떠 있는 창 "개체 탐색기", 메뉴 Float 비활성·Dock 활성 → Dock → 숨기기 전 자리(`documents` 왼쪽) |
+| 다시 시작 | 떠 있는 Object Explorer와 오른쪽 열·탭 묶음이 그대로 복원(배치 파일 내용 확인) |
+| Reset Window Layout | 떠 있는 창이 닫히고 기본 배치, Query Library 숨김 |
+| 자동 숨기기 | Properties Auto Hide → 오른쪽 가장자리 세로 막대, 다시 끄면 오른쪽 열로 |
+| 테마 | 라이트 ↔ 다크 전환 뒤 카드·캔버스·머리말·탭 묶음 색 |
+| 1280px | 기본 배치(창 1280×800, 도킹 영역 1266): Object Explorer 열 272, 문서 영역 745(59%), Properties 225. 1920에서 1280으로 줄이면 라이브러리 분할 창이 양쪽에서 줄여 문서 영역 728(57%) |
+| 이전 설정 옮기기 | `properties.visible=false`, `queryLibrary.visible=true`, `*.size`가 있는 작업 공간: 기본 배치에서 Properties 숨김, Query Library가 오른쪽 가장자리, 끝낸 뒤 `.visible`·`.size` 키 없음. Properties를 다시 보이면 오른쪽 가장자리 |
+| 끌기 | 실제 마우스 끌기는 OS 입력이 필요해 하지 않았다. 머리말에 라이브러리 끌기 인식기가 붙어 있음을 확인했고, 놓는 자리 처리(`DockingAPI.dock`)는 위 API 호출로 확인했다 |
+
+- 한국어(OS 기본)와 영어(`-nl en`) 둘 다 위 경우를 실행했다(옵션 메뉴 "부동 / 도킹 / 자동 숨기기 / 숨기기", "Float / Dock / Auto Hide / Hide"). 디버그 로그와 `.metadata/.log`에 오류 없음.
+- 메인 창이 보이기 전(이전 설정을 옮기며 숨길 때)에는 분할선이 배치되지 않아 비율이 맞지 않으므로 마지막 자리를 기록하지 않는다(처음 확인에서 Properties의 자리가 `EAST 0.83`으로 저장되던 것을 고침).
+- 회귀 테스트는 실행하지 않았다(요청 없음). 영향받을 수 있는 기능: 도구 창 보이기·숨기기와 단축키, 도구 막대의 도구 창 토글, Results 숨기기(Ctrl+R)와 쿼리 상태 줄 위치, 테마 전환, 창 닫을 때 저장.
+
+### 남긴 것
+
+- 문서 탭을 끌어 떠 있는 창으로 띄우기(선택 사항, 하지 않음). 떠 있는 창의 카드 둥근 모서리(떠 있는 창은 캔버스 바탕만 맞춤).
+- 떠 있는 도구 창 안에서 메인 창 메뉴 단축키(F8 등)는 동작하지 않는다(메뉴 막대가 메인 창에만 있음).
+- 숨긴 도구 창을 다시 보일 때 떠 있던 창이면 떠 있는 창이 아니라 메인 창의 마지막 자리에 놓는다.
+
+## 빈 문서 영역 (2026-11-06)
+
+사용자 결정(2026-11-06): "Welcome"/"시작" 문서 탭을 없앤다. 문서가 하나도 열려 있지 않으면 가운데 문서 영역 자체가 시작 내용을 바탕으로 보인다(IDE의 빈 편집기 화면).
+첫 문서가 열리면 사라지고 마지막 문서를 닫으면 돌아온다. 탭이 아니므로 닫을 것도, Window 메뉴의 문서 목록에 나올 것도 없다.
+
+| 파일 | 바뀐 것 |
+|---|---|
+| `WelcomePanel`(새 파일) | 가로 로고(JSVG 벡터), 안내 두 줄, 단축키 세 줄(New Query Ctrl+N, Open File Ctrl+O, Registered Servers Ctrl+Alt+G) |
+| `MainFrame` | 문서 카드 안을 `CardLayout`(문서 탭 / 빈 화면)으로, 문서 탭이 추가·삭제될 때 전환(`updateDocumentCard`). Welcome 탭 만들기 코드 삭제 |
+| `icons/brand/lockup-light.svg`, `lockup-dark.svg`(새 파일), `tools/branding/gen_app_icons.py` | PR #41의 가로 잠금 로고(심볼 + "CHROMITE" + "DATABASE WORKBENCH", 원래 로고 글자)를 생성기가 Swing 번들에도 쓴다(여백 0, 바탕 없음). 손으로 복사하지 않는다 |
+| `CoreMessages`(`_ko`) | 쓰지 않게 된 `main_welcome`(탭 제목 "Welcome"/"시작") 삭제. 안내 문구 `main_welcome_hint`, `main_welcome_next`는 그대로 씀 |
+| `ChromiteIcons` | 주석만: 로고 아이콘(`getLogoIcon`)은 이제 About만 씀 |
+
+- **로고:** 라이트 테마는 남색 글자 판(`lockup-light.svg`), 다크 테마는 흰 글자·회색 부제 판(`lockup-dark.svg`). 그릴 때마다 현재 테마를 보고 JSVG로 화면 배율에 맞게 벡터로 그린다(150%에서 선명).
+  바탕 상자 없이 편집기 바탕(`Chromite.editorBackground`) 위다. 테마를 바꾸면 바로 바뀐다.
+- **크기:** 가운데 정렬, 최대 너비 420(논리 픽셀), 문서 영역이 좁으면 양쪽 여백 32를 남기고 줄인다(최소 80).
+- **글자:** 안내 두 줄(영어 "Expand a connection in Object Explorer…", "Right-click a connection and choose New Query (Ctrl+N)…", 한국어 그대로)과 단축키 이름은 `text.secondary`(`Chromite.secondaryForeground`), 작은 글꼴(FlatLaf `small`).
+  단축키 줄은 메뉴와 같은 `Action`의 이름·단축키에서 만들고, 이름 끝의 "…"는 뺀다.
+- **결과 카드:** 그대로 문서 카드 아래에 있다(편집기가 없으면 "결과가 없습니다" 자리 표시).
+- 이전 시작 탭의 정사각 아이콘 로고(128)와 큰 제품명 글자는 없앴다(가로 로고에 제품명이 있음).
+
+### 확인 (2026-11-06)
+
+"도구 창 도킹 — 확인"과 같은 실행에서 캡처했다(`D:\Tools\_scratch\docking\welcome-*.png`): 한국어(OS 기본)·영어(`-nl en`) × 라이트·다크 × 1920·1280.
+문서 탭이 없을 때 빈 화면, New Query로 탭이 생기면 문서 탭, 탭을 모두 닫으면 다시 빈 화면(카드 전환을 에이전트로 확인).
+
 ## 변경 이력
 
 - 2026-11-06 최초 작성. Swing 전환 결정, 구조, 재사용 분석, MVP 범위, F5 실행 사양을 정리.
@@ -1792,3 +1931,6 @@ EDT 에이전트로 단추를 누르고(`doClick`) 결과를 읽었다. 캡처�
 - 2026-11-06 보안 편집기: 로그인·사용자·역할 속성과 새로 만들기·삭제, 테이블·뷰·루틴의 사용 권한(SQL Server, PostgreSQL, MySQL/MariaDB). [swing-security.md](swing-security.md).
 - 2026-11-06 도구 막대 확장(사용자 결정 "가"): 주 도구 막대를 SSMS Standard 배치로(Save All, Undo/Redo, Activity Monitor, 도구 창 켜고 끄기, Find), 쿼리 창 도구 막대에 Comment·Uncomment·들여쓰기·Format SQL·Query History, 좁은 창의 넘침 메뉴. "도구 막대" 절 추가.
 - 2026-11-06 데이터베이스 노드의 Import Data… / Export Data… / Copy Tables…(스키마별 원본 목록, 가져오기 대상 테이블 고르기·새 테이블). [swing-data-transfer.md](swing-data-transfer.md) "데이터베이스 노드".
+- 2026-11-06 도구 창 도킹: ModernDocking 1.4.9 도입, 분할 창 배치(`stackBelow`, `setDefaultShown`)를 대체, 끌어 옮기기·탭·떠 있는 창·자동 숨기기, 배치 파일 저장,
+  기본 배치 Object Explorer 위·Registered Servers 아래, 기본 열 너비 비율(22%·18%). "도구 창 도킹" 절 추가, B단계 배치·설정 절에 표시.
+- 2026-11-06 빈 문서 영역: Welcome 탭을 없애고 문서가 없을 때 문서 영역에 가로 로고(SVG, 테마별)·안내·단축키. "빈 문서 영역" 절 추가.

@@ -16,8 +16,6 @@
  */
 package com.seizia.chromite.ui.swing;
 
-import com.formdev.flatlaf.FlatClientProperties;
-import com.formdev.flatlaf.util.UIScale;
 import com.seizia.chromite.ui.swing.internal.CoreMessages;
 import org.eclipse.osgi.util.NLS;
 import org.jkiss.code.NotNull;
@@ -25,26 +23,21 @@ import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.model.preferences.DBPPreferenceStore;
 
 import javax.swing.*;
-import java.awt.*;
 import java.awt.event.ActionEvent;
 
 /**
- * 메인 창 가장자리의 도구 창(Object Explorer, Properties, Results)과 그 크기·표시 여부 저장.
+ * 메인 창의 도구 창 하나(Object Explorer, Registered Servers, Properties, Query Library, Results): 제목, View 메뉴 토글,
+ * 숨기기 단추, 보이기·숨기기.
  *
- * 설계: 도구 창마다 {@link JSplitPane} 하나의 한쪽(앞쪽 = 왼쪽/위, 뒤쪽 = 오른쪽/아래)을 차지한다.
- * 도킹 라이브러리 대신 분할 창을 쓴 이유는 docs/chromite/swing-frontend.md "구현 현황 — B단계"에 적었다.
+ * 설계:
  * <ul>
- *     <li>숨길 때는 컴포넌트를 분할 창에서 빼지 않고 {@code setVisible(false)}로 감춘다. 그래야 테마 전환
- *     ({@code FlatLaf.updateUI()})이 숨은 창에도 적용된다. {@link JSplitPane}은 숨은 쪽에 공간을 주지 않지만
- *     구분선은 남기므로, 숨기는 동안 구분선 크기를 0으로 둔다.</li>
- *     <li>저장하는 값은 구분선 위치가 아니라 도구 창의 크기(가로 분할은 너비, 세로 분할은 높이)다. 창 크기가 바뀌어도
- *     도구 창 크기가 유지되도록 뒤쪽 도구 창의 분할 창은 늘어난 공간을 앞쪽(문서 영역)에 준다({@code resizeWeight = 1}).</li>
- *     <li>저장 위치는 테마와 같은 이 번들의 설정 저장소다({@link ChromiteTheme} 참고).</li>
- *     <li>머리말(DataGrip New UI): 높이 40 + 아래 1px 선, semibold 제목(왼쪽 12), 오른쪽에 숨기기(—) 아이콘 단추. 도구 창의 도구 막대는 내용 쪽에 둔다(Object Explorer, SSMS처럼 머리말 아래).</li>
- *     <li>도구 창은 머리말과 내용을 함께 Islands 카드({@link IslandPanel})에 담아 분할 창에 넣는다(숨기기·크기 저장은 카드 단위).</li>
- *     <li>두 도구 창이 한 세로 열을 나눠 쓸 수 있다({@link #stackBelow}: SSMS처럼 Registered Servers가 Object Explorer 위).
- *     아래 창이 열의 너비를, 위 창이 열 안의 높이를 저장한다. 둘 다 숨기면 열 전체를 숨기고, 하나만 보이면 그 창이 열을 채운다.
- *     도킹 라이브러리 없이 지금의 분할 창 배치와 Reset Window Layout을 그대로 쓰려고 이렇게 했다.</li>
+ *     <li>도구 창이 어디에 어떻게 놓이는지는 {@link Host}가 맡는다. 다른 코드(View 메뉴, 도구 막대, 명령)는 이 클래스의
+ *     {@link #getToggleAction()}, {@link #setShown}, {@link #isShown()}, {@link #createHideButton()}만 쓰므로 배치 방식이 바뀌어도 고치지 않는다.</li>
+ *     <li>Object Explorer, Registered Servers, Properties, Query Library는 도킹 라이브러리 위의 {@link ToolWindowDocking}이 호스트다
+ *     (끌어서 옮기기, 탭으로 합치기, 떠 있는 창, 자동 숨기기, 배치 저장).</li>
+ *     <li>Results는 SSMS처럼 쿼리 창(문서 카드) 안에 있으므로 도킹하지 않고 문서 영역의 분할 창 아래쪽을 쓴다({@link SplitHost}).</li>
+ *     <li>토글의 선택 상태는 호스트가 실제 상태에서 다시 읽는다({@link #shownChanged()}). 떠 있는 창을 닫거나 끌어서 옮기는 것처럼
+ *     이 클래스를 거치지 않은 변경도 View 메뉴에 보인다.</li>
  * </ul>
  *
  * 변경 이력:
@@ -53,84 +46,65 @@ import java.awt.event.ActionEvent;
  * - 2026-11-06 Islands: 도구 창을 둥근 카드({@link IslandPanel})로 감쌈 (docs/chromite/design-spec.md "Islands 적용")
  * - 2026-11-06 P1: 기본 크기로 되돌리기(Window &gt; Reset Window Layout) (docs/chromite/swing-frontend.md "P1 디자인 적용")
  * - 2026-11-06 Registered Servers: 한 열에 두 도구 창 쌓기 (docs/chromite/swing-registered-servers.md)
- * - 2026-11-06 Query Library: 처음에는 숨긴 도구 창({@link #setDefaultShown}, Query Library) (docs/chromite/swing-query-library.md)
+ * - 2026-11-06 Query Library: 처음에는 숨긴 도구 창(Query Library) (docs/chromite/swing-query-library.md)
  * - 2026-11-06 화면 문구를 CoreMessages로 옮김(OS 언어를 따름)
+ * - 2026-11-06 도킹: 배치를 {@link Host}로 나눔. 분할 창 열 쌓기({@code stackBelow}), 처음 숨김({@code setDefaultShown}), 머리말을 지우고
+ *   도킹 도구 창은 {@link ToolWindowDocking}으로 옮김, 분할 창은 Results만 씀({@link SplitHost}) (docs/chromite/swing-frontend.md "도구 창 도킹")
  */
 final class ToolWindow {
 
-    private static final String PREF_VISIBLE_SUFFIX = ".visible"; //$NON-NLS-1$
-    private static final String PREF_SIZE_SUFFIX = ".size"; //$NON-NLS-1$
-    private static final int MIN_SIZE = 50;
+    /**
+     * Where the tool window lives: the docking layout or the document area split pane.
+     */
+    interface Host {
+        boolean isShown();
+
+        /**
+         * Shows or hides the tool window; showing a shown one brings it to front.
+         */
+        void setShown(boolean shown);
+    }
 
     private final String id;
-    private final JSplitPane splitPane;
-    private final boolean leading;
-    private final JComponent component;
+    private final String title;
     private final Action toggleAction;
-    private final int defaultSize;
-    private boolean defaultShown = true;
-    private int size;
-    /**
-     * The tool window above this one in a shared column ({@link #stackBelow}); this one then owns the column's size.
-     */
     @Nullable
-    private ToolWindow upper;
-    /**
-     * The tool window below this one in a shared column; this one is sized within the column (its height).
-     */
-    @Nullable
-    private ToolWindow lower;
+    private Host host;
 
     /**
-     * @param id          preference key prefix
+     * @param id          persistent id (layout file, preference key prefix)
      * @param title       header title and View menu label
-     * @param showHeader  {@code false} for content with its own header (it can embed {@link #createHideButton()})
-     * @param content     tool window content
-     * @param splitPane   split pane that hosts the tool window
-     * @param leading     {@code true} for the left/top side of the split pane, {@code false} for the right/bottom side
-     * @param defaultSize width or height used until the user resizes the tool window
      * @param accelerator shortcut of the View menu toggle
      */
-    ToolWindow(
-        @NotNull String id,
-        @NotNull String title,
-        boolean showHeader,
-        @NotNull JComponent content,
-        @NotNull JSplitPane splitPane,
-        boolean leading,
-        int defaultSize,
-        @Nullable KeyStroke accelerator
-    ) {
+    ToolWindow(@NotNull String id, @NotNull String title, @Nullable KeyStroke accelerator) {
         this.id = id;
-        this.splitPane = splitPane;
-        this.leading = leading;
-        this.defaultSize = defaultSize;
-        this.size = defaultSize;
+        this.title = title;
         this.toggleAction = new AbstractAction(title) {
             @Override
             public void actionPerformed(ActionEvent e) {
                 setShown(Boolean.TRUE.equals(getValue(SELECTED_KEY)));
             }
         };
-        toggleAction.putValue(Action.SELECTED_KEY, Boolean.TRUE);
+        toggleAction.putValue(Action.SELECTED_KEY, Boolean.FALSE);
         toggleAction.putValue(Action.ACCELERATOR_KEY, accelerator);
+    }
 
-        // Islands: every tool window is a rounded card on the main window canvas
-        if (!showHeader) {
-            component = new IslandPanel(content);
-        } else {
-            JPanel panel = new JPanel(new BorderLayout());
-            panel.add(createHeader(title), BorderLayout.NORTH);
-            panel.add(content, BorderLayout.CENTER);
-            component = new IslandPanel(panel);
-        }
-        if (leading) {
-            splitPane.setLeftComponent(component);
-        } else {
-            splitPane.setRightComponent(component);
-            // Extra space goes to the document area, so the tool window keeps its size when the main window grows
-            splitPane.setResizeWeight(1.0);
-        }
+    @NotNull
+    String getId() {
+        return id;
+    }
+
+    @NotNull
+    String getTitle() {
+        return title;
+    }
+
+    /**
+     * Called once by the host that places this tool window.
+     */
+    void setHost(@NotNull Host host) {
+        this.host = host;
+        shownChanged();
     }
 
     /**
@@ -146,7 +120,7 @@ final class ToolWindow {
      */
     @NotNull
     JButton createHideButton() {
-        Action hideAction = new AbstractAction(NLS.bind(CoreMessages.toolwindow_hide, toggleAction.getValue(Action.NAME))) {
+        Action hideAction = new AbstractAction(NLS.bind(CoreMessages.toolwindow_hide, title)) {
             @Override
             public void actionPerformed(ActionEvent e) {
                 setShown(false);
@@ -155,187 +129,149 @@ final class ToolWindow {
         return UiIcons.createActionButton(hideAction, "hide"); //$NON-NLS-1$
     }
 
-    /**
-     * Stacks another tool window above this one in one column (Registered Servers above Object Explorer). The upper
-     * tool window must have been created as the leading side of a vertical split pane (the column); this tool window's
-     * card moves to the bottom of the column and the column takes its place. This tool window keeps the column's size
-     * (width), the upper one its height in the column; the column is hidden only when both are.
-     */
-    void stackBelow(@NotNull ToolWindow upper) {
-        JSplitPane column = upper.splitPane;
-        // Adding the card to the column removes it from this split pane
-        column.setRightComponent(component);
-        if (leading) {
-            splitPane.setLeftComponent(column);
-        } else {
-            splitPane.setRightComponent(column);
-        }
-        this.upper = upper;
-        upper.lower = this;
-        updateDividers();
-    }
-
     boolean isShown() {
-        return component.isVisible();
+        return host != null && host.isShown();
     }
 
     /**
-     * Shows or hides the tool window. A shown tool window gets its last size back.
+     * Shows or hides the tool window. Showing a shown tool window brings it to front (its tab, if it shares a tab group).
      */
     void setShown(boolean shown) {
-        toggleAction.putValue(Action.SELECTED_KEY, shown);
-        if (shown == component.isVisible()) {
-            return;
+        if (host != null) {
+            host.setShown(shown);
         }
-        if (shown) {
-            boolean columnHidden = lower != null && !lower.getSlot().isVisible();
-            component.setVisible(true);
-            updateDividers();
-            if (columnHidden) {
-                // The column comes back with the lower tool window's width
-                lower.applySize();
+        shownChanged();
+    }
+
+    /**
+     * Updates the View menu toggle from the host's real state (also after changes the host made by itself).
+     */
+    void shownChanged() {
+        toggleAction.putValue(Action.SELECTED_KEY, isShown());
+    }
+
+    /**
+     * Results: the trailing (bottom) side of the document area split pane, as an Islands card, with its size and
+     * visibility in the preferences.
+     * <ul>
+     *     <li>Hiding keeps the card in the split pane and only makes it invisible, so theme changes ({@code FlatLaf.updateUI()})
+     *     still reach it. {@link JSplitPane} gives no space to an invisible side but keeps the divider, so the divider size is 0 while hidden.</li>
+     *     <li>The saved value is the card's height, not the divider location; the split pane gives extra space to the
+     *     documents ({@code resizeWeight = 1}), so the results keep their height when the window grows.</li>
+     * </ul>
+     */
+    static final class SplitHost implements Host {
+        private static final String PREF_VISIBLE_SUFFIX = ".visible"; //$NON-NLS-1$
+        private static final String PREF_SIZE_SUFFIX = ".size"; //$NON-NLS-1$
+        private static final int MIN_SIZE = 50;
+
+        private final ToolWindow toolWindow;
+        private final JSplitPane splitPane;
+        private final JComponent component;
+        private final int defaultSize;
+        private int size;
+
+        /**
+         * @param content     content with its own header (it can embed {@link ToolWindow#createHideButton()})
+         * @param splitPane   split pane whose trailing side hosts the tool window
+         * @param defaultSize height (or width) used until the user resizes the tool window
+         */
+        SplitHost(@NotNull ToolWindow toolWindow, @NotNull JComponent content, @NotNull JSplitPane splitPane, int defaultSize) {
+            this.toolWindow = toolWindow;
+            this.splitPane = splitPane;
+            this.defaultSize = defaultSize;
+            this.size = defaultSize;
+            // Islands: the tool window is a rounded card on the main window canvas
+            component = new IslandPanel(content);
+            splitPane.setRightComponent(component);
+            // Extra space goes to the document area, so the tool window keeps its size when the main window grows
+            splitPane.setResizeWeight(1.0);
+            toolWindow.setHost(this);
+        }
+
+        @Override
+        public boolean isShown() {
+            return component.isVisible();
+        }
+
+        @Override
+        public void setShown(boolean shown) {
+            if (shown == component.isVisible()) {
+                return;
             }
+            if (shown) {
+                component.setVisible(true);
+                updateDivider();
+                applySize();
+            } else {
+                size = getCurrentSize();
+                component.setVisible(false);
+                updateDivider();
+            }
+            splitPane.revalidate();
+        }
+
+        /**
+         * Window &gt; Reset Window Layout: shown, with the default size.
+         */
+        void reset() {
+            size = defaultSize;
+            toolWindow.setShown(true);
             applySize();
-        } else {
-            size = getCurrentSize();
-            component.setVisible(false);
-            updateDividers();
-        }
-        splitPane.revalidate();
-    }
-
-    /**
-     * What this tool window occupies in its split pane: its card, or the column it shares with an upper tool window.
-     */
-    @NotNull
-    private JComponent getSlot() {
-        return upper != null ? upper.splitPane : component;
-    }
-
-    /**
-     * Divider sizes (0 next to a hidden side) and, for a shared column, whether the column is shown at all.
-     */
-    private void updateDividers() {
-        int dividerSize = UIManager.getInt("SplitPane.dividerSize"); //$NON-NLS-1$
-        ToolWindow columnOwner = lower != null ? lower : this;
-        if (columnOwner.upper == null) {
-            splitPane.setDividerSize(component.isVisible() ? dividerSize : 0);
-            return;
-        }
-        boolean upperShown = columnOwner.upper.component.isVisible();
-        boolean lowerShown = columnOwner.component.isVisible();
-        JSplitPane column = columnOwner.upper.splitPane;
-        column.setDividerSize(upperShown && lowerShown ? dividerSize : 0);
-        column.setVisible(upperShown || lowerShown);
-        columnOwner.splitPane.setDividerSize(upperShown || lowerShown ? dividerSize : 0);
-    }
-
-    /**
-     * A tool window that is hidden until the user shows it (call before {@link #load}).
-     */
-    void setDefaultShown(boolean defaultShown) {
-        this.defaultShown = defaultShown;
-    }
-
-    /**
-     * Window &gt; Reset Window Layout: shown (unless hidden by default), with the default size. Call for the outer split pane first, as
-     * {@link #applySize()} lays it out for the inner ones.
-     */
-    void reset() {
-        size = defaultSize;
-        setShown(defaultShown);
-        applySize();
-    }
-
-    /**
-     * Reads visibility and size from the preferences. Call before the main window is shown;
-     * the size is applied by {@link #applySize()} once the split pane has its real size.
-     */
-    void load(@NotNull DBPPreferenceStore preferences) {
-        // The store drops values equal to their default (BundlePreferenceStore.putBoolean/putInt), so the visibility
-        // is only remembered if the declared default is the one the tool window has before the user changes it
-        preferences.setDefault(id + PREF_VISIBLE_SUFFIX, defaultShown);
-        preferences.setDefault(id + PREF_SIZE_SUFFIX, size);
-        size = Math.max(MIN_SIZE, preferences.getInt(id + PREF_SIZE_SUFFIX));
-        setShown(preferences.getBoolean(id + PREF_VISIBLE_SUFFIX));
-    }
-
-    void save(@NotNull DBPPreferenceStore preferences) {
-        if (getSlot().isVisible()) {
-            size = getCurrentSize();
-        }
-        preferences.setValue(id + PREF_VISIBLE_SUFFIX, component.isVisible());
-        preferences.setValue(id + PREF_SIZE_SUFFIX, size);
-    }
-
-    /**
-     * Moves the divider so that the tool window has its remembered size, and lays out the split pane at once
-     * (nested split panes are sized from the outer one, so they must see its new layout).
-     */
-    void applySize() {
-        if (!getSlot().isVisible()) {
-            return;
-        }
-        int total = isHorizontal() ? splitPane.getWidth() : splitPane.getHeight();
-        if (total <= 0) {
-            return;
-        }
-        int location = leading ? size : total - splitPane.getDividerSize() - size;
-        splitPane.setDividerLocation(Math.max(MIN_SIZE, Math.min(location, total - MIN_SIZE)));
-        splitPane.validate();
-    }
-
-    private int getCurrentSize() {
-        if (lower != null && !lower.component.isVisible()) {
-            // Alone in the column it fills it; that height is not its own size
-            return size;
-        }
-        JComponent slot = getSlot();
-        int current = isHorizontal() ? slot.getWidth() : slot.getHeight();
-        return current >= MIN_SIZE ? current : size;
-    }
-
-    private boolean isHorizontal() {
-        return splitPane.getOrientation() == JSplitPane.HORIZONTAL_SPLIT;
-    }
-
-    @NotNull
-    private JComponent createHeader(@NotNull String title) {
-        JLabel titleLabel = new JLabel(title);
-        titleLabel.putClientProperty(FlatClientProperties.STYLE_CLASS, "semibold"); //$NON-NLS-1$
-
-        // Icon buttons are centered vertically in the header (GridBagLayout centers its row)
-        JPanel tools = new JPanel(new GridBagLayout());
-        tools.setOpaque(false);
-        tools.add(createHideButton());
-
-        JPanel header = new SeparatedPanel();
-        header.setLayout(new BorderLayout(UIScale.scale(8), 0));
-        header.add(titleLabel, BorderLayout.CENTER);
-        header.add(tools, BorderLayout.EAST);
-        return header;
-    }
-
-    /**
-     * Header (size.header.toolWindow: 40 + a 1px border.subtle line below, title 12px from the left). The border is
-     * recreated on theme changes, because its color comes from the look and feel.
-     */
-    private static final class SeparatedPanel extends JPanel {
-        private static final int HEIGHT = 40;
-
-        @Override
-        public void updateUI() {
-            super.updateUI();
-            Color separatorColor = UIManager.getColor("Separator.foreground"); //$NON-NLS-1$
-            setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createMatteBorder(0, 0, 1, 0, separatorColor != null ? separatorColor : Color.GRAY),
-                BorderFactory.createEmptyBorder(0, UIScale.scale(12), 0, UIScale.scale(8))));
         }
 
-        @Override
-        public Dimension getPreferredSize() {
-            Dimension size = super.getPreferredSize();
-            return new Dimension(size.width, UIScale.scale(HEIGHT) + 1);
+        /**
+         * Reads visibility and size from the preferences. Call before the main window is shown;
+         * the size is applied by {@link #applySize()} once the split pane has its real size.
+         */
+        void load(@NotNull DBPPreferenceStore preferences) {
+            String id = toolWindow.getId();
+            // The store drops values equal to their default (BundlePreferenceStore.putBoolean/putInt), so the visibility
+            // is only remembered if the declared default is the one the tool window has before the user changes it
+            preferences.setDefault(id + PREF_VISIBLE_SUFFIX, true);
+            preferences.setDefault(id + PREF_SIZE_SUFFIX, size);
+            size = Math.max(MIN_SIZE, preferences.getInt(id + PREF_SIZE_SUFFIX));
+            toolWindow.setShown(preferences.getBoolean(id + PREF_VISIBLE_SUFFIX));
+        }
+
+        void save(@NotNull DBPPreferenceStore preferences) {
+            if (component.isVisible()) {
+                size = getCurrentSize();
+            }
+            preferences.setValue(toolWindow.getId() + PREF_VISIBLE_SUFFIX, component.isVisible());
+            preferences.setValue(toolWindow.getId() + PREF_SIZE_SUFFIX, size);
+        }
+
+        /**
+         * Moves the divider so that the tool window has its remembered size, and lays out the split pane at once.
+         */
+        void applySize() {
+            if (!component.isVisible()) {
+                return;
+            }
+            int total = isHorizontal() ? splitPane.getWidth() : splitPane.getHeight();
+            if (total <= 0) {
+                return;
+            }
+            int location = total - splitPane.getDividerSize() - size;
+            splitPane.setDividerLocation(Math.max(MIN_SIZE, Math.min(location, total - MIN_SIZE)));
+            splitPane.validate();
+        }
+
+        /**
+         * Divider size 0 next to the hidden card.
+         */
+        private void updateDivider() {
+            splitPane.setDividerSize(component.isVisible() ? UIManager.getInt("SplitPane.dividerSize") : 0); //$NON-NLS-1$
+        }
+
+        private int getCurrentSize() {
+            int current = isHorizontal() ? component.getWidth() : component.getHeight();
+            return current >= MIN_SIZE ? current : size;
+        }
+
+        private boolean isHorizontal() {
+            return splitPane.getOrientation() == JSplitPane.HORIZONTAL_SPLIT;
         }
     }
 }

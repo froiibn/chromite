@@ -22,13 +22,15 @@
     <!-- UI and editor fonts of the design spec (Inter, JetBrains Mono; SIL OFL 1.1), packaged by FlatLaf -->
     <flatlaf.fonts.inter.version>4.1</flatlaf.fonts.inter.version>
     <flatlaf.fonts.jetbrains.mono.version>2.304</flatlaf.fonts.jetbrains.mono.version>
+    <!-- Dockable tool windows (MIT). Only the core API jar: the single-app wrapper and the UI extension (needs flatlaf-extras) are not used -->
+    <moderndocking.version>1.4.9</moderndocking.version>
   </properties>
 
   <build>
     <plugins>
-      <!-- FlatLaf (and its font jars) has no OSGi manifest and RSyntaxTextArea exports no packages: embed them via
-           Bundle-ClassPath (lib/flatlaf.jar, lib/flatlaf-fonts-*.jar, lib/rsyntaxtextarea.jar). The jars are copied
-           from Maven Central before compilation instead of being committed. -->
+      <!-- FlatLaf (and its font jars) and ModernDocking have no OSGi manifest and RSyntaxTextArea exports no packages:
+           embed them via Bundle-ClassPath (lib/flatlaf.jar, lib/flatlaf-fonts-*.jar, lib/rsyntaxtextarea.jar,
+           lib/modern-docking-api.jar). The jars are copied from Maven Central before compilation instead of being committed. -->
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-dependency-plugin</artifactId>
@@ -64,6 +66,12 @@
                   <artifactId>flatlaf-fonts-jetbrains-mono</artifactId>
                   <version>${flatlaf.fonts.jetbrains.mono.version}</version>
                   <destFileName>flatlaf-fonts-jetbrains-mono.jar</destFileName>
+                </artifactItem>
+                <artifactItem>
+                  <groupId>io.github.andrewauclair</groupId>
+                  <artifactId>modern-docking-api</artifactId>
+                  <version>${moderndocking.version}</version>
+                  <destFileName>modern-docking-api.jar</destFileName>
                 </artifactItem>
               </artifactItems>
               <outputDirectory>${project.basedir}/lib</outputDirectory>

@@ -14,7 +14,7 @@ Object Explorer는 SSMS처럼 사용자가 연 서버만 평평한 목록으로 
 | `.../RegisteredServerCommands.java` | 그룹 만들기·이름 바꾸기·삭제, 서버·그룹 옮기기, 이름 자연 정렬, Object Explorer의 서버 고르기(Connect) |
 | `.../ObjectExplorerServers.java` | Object Explorer에 연 서버 ID 목록(순서 유지), 번들 설정 저장소에 저장 |
 | `.../ObjectExplorerPanel.java` | 최상위 = 연 서버 목록, `showServer`(넣고 고르고 펼치기), Disconnect = 목록에서 빼기, 도구 막대 Connect = 서버 고르기 |
-| `.../ToolWindow.java` | `stackBelow`: 한 세로 열에 두 도구 창(Registered Servers 위, Object Explorer 아래) |
+| `.../ToolWindow.java` | ~~`stackBelow`: 한 세로 열에 두 도구 창(Registered Servers 위, Object Explorer 아래)~~ 2026-11-06 도킹으로 대체([swing-frontend.md](swing-frontend.md) "도구 창 도킹") |
 | `.../MainFrame.java` | 도구 창 만들기(View > Registered Servers, Ctrl+Alt+G), 명령 연결(New Query, Object Explorer) |
 | `.../ConnectionDialog.java`, `ConnectionCommands.java` | 새 연결 명령이 만든 연결을 돌려준다 |
 | `icons/ui/{duotone,color}/{light,dark}/new-group.svg`, `tools/branding/gen_ui_icons.py` | 도구 막대 New Server Group 아이콘(Tabler `folder-plus`를 다시 그림, 두 팩 × 두 테마) |
@@ -48,7 +48,7 @@ Object Explorer는 SSMS처럼 사용자가 연 서버만 평평한 목록으로 
 
 ### Registered Servers 창
 
-- 위치: 왼쪽 열에서 Object Explorer 위(SSMS 기본 도킹). View > Registered Servers(Ctrl+Alt+G)로 보이고 숨긴다. Window > Reset Window Layout에 포함된다.
+- 위치: 왼쪽 열에서 Object Explorer 위(SSMS 기본 도킹). 2026-11-06부터 기본 배치는 Object Explorer 아래이고 끌어서 옮길 수 있다([swing-frontend.md](swing-frontend.md) "도구 창 도킹"). View > Registered Servers(Ctrl+Alt+G)로 보이고 숨긴다. Window > Reset Window Layout에 포함된다.
 - 트리: 그룹 다음 서버, 각각 이름의 자연 정렬("01. DEV" < "02. QAS" < "03. PRD", "2. Misc" < "10. Archive"). 숨김 연결(`isHidden`)은 탐색기처럼 뺀다.
 - 아이콘: 그룹은 아이콘 팩의 폴더(펼치면 열린 폴더). 서버는 Object Explorer 연결 노드와 같은 `NodeIcons.getDataSourceIcon`
   (드라이버가 주는 DB별 아이콘: SQL Server, PostgreSQL, MariaDB 등 + 연결 상태 점: 연결됨 녹색, 연결 중 주황, 실패 빨강).
@@ -118,7 +118,7 @@ Registered Servers와 Object Explorer의 서버 행이 같은 클래스(`Connect
 | 업그레이드 뒤 첫 실행: 저장된 값이 없으면 모든 연결을 보이고 그 목록을 저장 | 업그레이드로 Object Explorer의 서버가 갑자기 사라지지 않게 했다. 기본값을 `*`로 둬서 빈 목록과 구분한다(`BundlePreferenceStore`는 기본값과 같은 값을 지움). 되돌리기: `ObjectExplorerServers` 생성자에서 첫 실행 분기를 빈 목록으로. |
 | Object Explorer Disconnect = 목록에서 빼기 | SSMS와 같다. 다른 곳의 연결 끊기는 노드를 빼지 않는다(사용자가 Object Explorer에서 한 동작만 목록을 바꿈). |
 | 도구 막대 Connect = 서버 고르기 | SSMS의 Connect 단추처럼 대상을 묻는다. 고른 노드를 연결하는 명령은 오른쪽 클릭 메뉴에 남겼다. |
-| Registered Servers를 Object Explorer 위에 쌓기(`ToolWindow.stackBelow`) | SSMS 기본 도킹과 같고, 지금의 분할 창 배치·저장·Reset Window Layout을 그대로 쓴다. 아래 창(Object Explorer)이 열의 너비(기존 `objectExplorer.size` 그대로), 위 창이 높이(`registeredServers.size`, 기본 320)를 저장한다. |
+| ~~Registered Servers를 Object Explorer 위에 쌓기(`ToolWindow.stackBelow`)~~ (2026-11-06 도킹으로 대체, 기본 배치는 Object Explorer 아래) | SSMS 기본 도킹과 같고, 지금의 분할 창 배치·저장·Reset Window Layout을 그대로 쓴다. 아래 창(Object Explorer)이 열의 너비(기존 `objectExplorer.size` 그대로), 위 창이 높이(`registeredServers.size`, 기본 320)를 저장한다. |
 | Registered Servers 기본 표시 | 연 서버만 보이는 Object Explorer에서 다른 서버를 찾는 길이 이 창이라 처음부터 보인다. View 메뉴로 숨기면 그 상태가 저장된다. |
 | 처음에는 모든 그룹을 펼침 | 저장한 펼침 상태가 없을 때 서버가 모두 보이게. |
 | 서버 아이콘 = 드라이버의 DB별 아이콘 + 상태 점 | 사용자 결정(두 창이 같은 아이콘). 저장소에 있는 아이콘만 쓴다. |

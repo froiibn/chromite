@@ -36,11 +36,14 @@ import java.awt.geom.RoundRectangle2D;
  *     그래서 자식을 다 그린 뒤 네 모서리의 바깥 부분을 캔버스 색으로 앤티에일리어싱해 덮는다. 자식 색이 무엇이든 모서리가 매끈하다.</li>
  *     <li>자식 하나만 다시 그려도 모서리를 다시 덮도록 이 패널을 그리기 시작점으로 둔다({@link #isPaintingOrigin()}). 다시 그리는 영역은
  *     그대로 자식의 영역이라 비용은 거의 같다.</li>
- *     <li>카드 사이 틈(6, {@code Island.borderWidth})은 메인 창의 분할선과 바깥 여백이 만든다({@link MainFrame}).</li>
+ *     <li>카드 사이 틈(6, {@code Island.borderWidth})은 분할선과 바깥 여백이 만든다({@link MainFrame}, {@link ToolWindowDocking}).</li>
+ *     <li>도킹 도구 창은 머리말과 내용이 도킹 라이브러리의 패널에 따로 들어가 이 패널로 감쌀 수 없다. 그래서 모서리 덮기를
+ *     {@link #paintCorners}로 떼어 내 도킹 루트가 카드마다 같은 방식으로 그린다.</li>
  * </ul>
  *
  * 변경 이력:
  * - 2026-11-06 Islands: 최초 작성 (docs/chromite/design-spec.md "Islands 적용")
+ * - 2026-11-06 도킹: 모서리 덮기를 {@link #paintCorners}로 떼어 냄, 그리기 영역 밖의 모서리는 건너뜀 (docs/chromite/swing-frontend.md "도구 창 도킹")
  */
 final class IslandPanel extends JPanel {
 
@@ -68,13 +71,35 @@ final class IslandPanel extends JPanel {
     @Override
     public void paint(Graphics g) {
         super.paint(g);
+        paintCorners(g, new Rectangle(0, 0, getWidth(), getHeight()));
+    }
+
+    /**
+     * Card corner diameter ({@code Chromite.island.arc}, scaled).
+     */
+    static int getArc() {
+        int arc = UIManager.getInt("Chromite.island.arc"); //$NON-NLS-1$
+        return UIScale.scale(arc > 0 ? arc : DEFAULT_ARC);
+    }
+
+    /**
+     * Covers the four corners of a card outside its rounded shape with the canvas color, antialiased. Also used by the
+     * docking root for the tool window cards ({@link ToolWindowDocking}). Corners outside the clip are skipped, so
+     * small repaints (caret, hover) cost almost nothing.
+     */
+    static void paintCorners(@NotNull Graphics g, @NotNull Rectangle card) {
         Color canvas = UIManager.getColor("Chromite.island.canvas"); //$NON-NLS-1$
-        if (canvas == null) {
+        if (canvas == null || card.isEmpty()) {
             return;
         }
-        int arc = UIScale.scale(UIManager.getInt("Chromite.island.arc") > 0 ? UIManager.getInt("Chromite.island.arc") : DEFAULT_ARC); //$NON-NLS-1$ //$NON-NLS-2$
-        Area corners = new Area(new Rectangle2D.Float(0, 0, getWidth(), getHeight()));
-        corners.subtract(new Area(new RoundRectangle2D.Float(0, 0, getWidth(), getHeight(), arc, arc)));
+        int arc = getArc();
+        int radius = (arc + 1) / 2;
+        Rectangle clip = g.getClipBounds();
+        if (clip != null && !intersectsCorner(clip, card, radius)) {
+            return;
+        }
+        Area corners = new Area(new Rectangle2D.Float(card.x, card.y, card.width, card.height));
+        corners.subtract(new Area(new RoundRectangle2D.Float(card.x, card.y, card.width, card.height, arc, arc)));
         Graphics2D g2 = (Graphics2D) g.create();
         try {
             g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
@@ -83,5 +108,12 @@ final class IslandPanel extends JPanel {
         } finally {
             g2.dispose();
         }
+    }
+
+    private static boolean intersectsCorner(@NotNull Rectangle clip, @NotNull Rectangle card, int radius) {
+        int right = card.x + card.width - radius;
+        int bottom = card.y + card.height - radius;
+        return clip.intersects(card.x, card.y, radius, radius) || clip.intersects(right, card.y, radius, radius)
+            || clip.intersects(card.x, bottom, radius, radius) || clip.intersects(right, bottom, radius, radius);
     }
 }

@@ -202,7 +202,7 @@ Swing 프런트엔드(`com.seizia.chromite.ui.swing`)의 화면을 **배치와 �
 |---|---|---|---|---|---|
 | UI 글꼴 | Segoe UI | Inter 13(모든 OS) [JetBrains New UI 도움말], 한글은 운영체제 글꼴로 대체 | Segoe UI 12 | `font.ui` Inter 13, 한글 대체 Malgun Gothic(Windows)·Apple SD Gothic Neo(macOS). FlatLaf 합성 글꼴(`defaultFont`가 대체 글꼴을 갖는 composite font)이어야 한글이 □로 나오지 않음 | P0 |
 | 간격 단위 | — | 2·4·6·8·12·16·20 [J `SpacingConfiguration`, `Tree.border`, `List.border`] | 화면마다 다름(2, 3, 8, 14 등) [C] | "디자인 토큰"의 `space.*`만 씀 | P1 |
-| 시작 탭(Welcome) | 시작 화면 | Welcome 화면(로고, 큰 단추) | 큰 로고 + 안내 글 [S] | 로고 64, 제목 `font.title`, "New Connection", "New Query", "Open File" 링크 단추, 최근 파일 목록 | P2 |
+| 시작 탭(Welcome) | 시작 화면 | Welcome 화면(로고, 큰 단추) | 큰 로고 + 안내 글 [S] | 로고 64, 제목 `font.title`, "New Connection", "New Query", "Open File" 링크 단추, 최근 파일 목록 | P2 (2026-11-06 탭 대신 빈 문서 영역: "적용 현황 — 빈 문서 영역") |
 | Islands | — | 2025.3부터 기본: 패널 사이 6px 틈, 패널 모서리 arc 20 [T `ManyIslands*`] | — | 기본 모양으로 적용("적용 현황 — Islands 적용") | 완료 |
 | 촘촘한 모드 | — | Compact: 트리 22, 머리말 낮춤, 트리 여백 2,8 [T `*.compact`] | — | 설정으로 제공(SSMS 사용자 밀도 요구) | P2 |
 
@@ -568,12 +568,42 @@ P0 전체와 P1 일부를 `com.seizia.chromite.ui.swing`에 적용했다. 동작
 구현:
 - `IslandPanel`: 카드. 자식을 그린 뒤 네 모서리 바깥을 캔버스 색으로 앤티에일리어싱해 덮는다(불투명한 사각형 자식도 모서리가 매끈하다). 모양 클립은 앤티에일리어싱이 없어 쓰지 않았다.
   자식 하나만 다시 그릴 때도 모서리를 덮도록 카드를 그리기 시작점으로 둔다(`isPaintingOrigin`).
-- `ToolWindow`가 도구 창(머리말 + 내용)을 카드로 감싸고, `MainFrame`이 문서 탭을 카드로 감싼다. 캔버스 색은 내용 패널·분할 창·상태 표시줄이 테마가 바뀔 때마다 다시 읽는다.
+- `ToolWindow`가 도구 창(머리말 + 내용)을 카드로 감싸고, `MainFrame`이 문서 탭을 카드로 감싼다(2026-11-06 도킹 뒤 도구 창 카드는 도킹 루트가 그린다: "적용 현황 — 도구 창 도킹"). 캔버스 색은 내용 패널·분할 창·상태 표시줄이 테마가 바뀔 때마다 다시 읽는다.
 - 문서 탭 `IslandTabbedPaneUI`: 선택 탭은 알약(채움 + 1px 테두리, 포커스가 없으면 회색 알약), 마우스 올린 탭은 옅은 알약, 밑줄 없음. FlatLaf가 닫기 단추와 제목보다 먼저 그리는 탭 테두리 자리에서 그린다.
 - 제목 표시줄: FlatLaf `TitlePane.unifiedBackground`를 끄고 `TitlePane.background`를 캔버스로 둔다(켜 두면 루트 패널 색 = 카드 색이 된다).
 
 확인(Windows 11, 150%, 아이콘 팩 A): `D:\Tools\_scratch\swing-p1\islands-light.png`, `islands-dark.png`. 픽셀: 캔버스 `#E9EAEE`/`#26282C`(제목 표시줄·도구 막대·틈),
 카드 `#FFFFFF`/`#191A1C`, 카드 사이 틈 6(9px), 모서리 반지름 10(15px)으로 매끈함, 선택 탭 알약 파랑 채움·테두리. 실행 중 라이트↔다크 전환 뒤에도 카드·캔버스·탭 색이 바뀌었다.
+
+### 적용 현황 — 도구 창 도킹 (2026-11-06)
+
+도구 창을 도킹 라이브러리(ModernDocking, [swing-frontend.md](swing-frontend.md) "도구 창 도킹")에 올린 뒤의 모양이다. Islands 값은 그대로 쓴다.
+
+| 요소 | 값 |
+|---|---|
+| 카드 | 도구 창 하나 또는 탭 묶음 하나가 카드(`Chromite.island.background`, arc 20). 도킹 루트가 카드 바탕을 칠하고 모서리를 캔버스로 덮는다(`IslandPanel.paintCorners`) |
+| 카드 사이 틈 | 라이브러리 분할 창의 분할선 = `SplitPane.dividerSize` 6, 선·손잡이 없음. 바깥 왼쪽·오른쪽 틈 `Chromite.island.gap` 6. 라이브러리 패널의 1px 테두리(`Component.borderColor`)와 마우스 올림 강조 테두리는 지움 |
+| 머리말 | 높이 40 + 아래 1px `Separator.foreground`, semibold 제목 왼쪽 12, 오른쪽 [⋮ 옵션 `more`] [— 숨기기 `hide`] 아이콘 단추(26). 카드가 낮아도 높이 유지 |
+| 옵션 메뉴 | Float, Dock, Auto Hide(체크), ─, Hide. 테마 팝업 메뉴 그대로 |
+| 탭 묶음 | 아래쪽 탭(라이브러리 기본), `tabHeight 32`, 밑줄 3(Results 탭과 같음), 선택 탭의 머리말이 위에 보임 |
+| 놓을 자리 표시 | `ModernDocking.overlayBackground` = 강조색 `#3871E1` 30%(`#3871E14D`), 라이트·다크 같음 |
+| 도킹 손잡이 | 바탕 `ModernDocking.handleBackground` = 카드 바탕, 선·마우스 올림 `ModernDocking.handleForeground` = `@accentColor` |
+| 자동 숨기기 막대 | 창 가장자리 캔버스 위 세로·가로 막대(라이브러리 단추, 테마 단추 모양) |
+| 떠 있는 창 | 테마 제목 표시줄(제목 = 들어 있는 도구 창 이름), 바탕 캔버스. 카드 모서리는 둥글게 하지 않음 |
+| 문서 영역 | 그대로(문서 탭 카드 + Results 카드, `IslandPanel`) |
+
+확인: [swing-frontend.md](swing-frontend.md) "도구 창 도킹 — 확인"의 캡처(라이트·다크, 한국어·영어).
+
+### 적용 현황 — 빈 문서 영역 (2026-11-06)
+
+문서가 없을 때 문서 카드에 보이는 빈 화면(Welcome 탭 대체, [swing-frontend.md](swing-frontend.md) "빈 문서 영역").
+
+| 요소 | 값 |
+|---|---|
+| 바탕 | 편집기 바탕 `Chromite.editorBackground`(L `#FFFFFF` / D `#191A1C`), 로고 바탕 상자 없음 |
+| 로고 | 가로 잠금 로고 SVG, 라이트 = 남색 `#18253B` 글자, 다크 = 흰 글자·회색 부제 `#B9BCC6`. 가운데, 최대 너비 420, 좁으면 양쪽 32 여백을 두고 줄임 |
+| 안내 글 | 로고 아래 24, 줄 사이 4, `text.secondary` `#73767C`, FlatLaf `small` |
+| 단축키 | 안내 아래 20, 이름(보조 글자, 오른쪽 맞춤) │ 단축키(글자색, 왼쪽 맞춤), 사이 16 |
 
 ### P0 결과
 

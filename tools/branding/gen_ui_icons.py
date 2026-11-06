@@ -269,6 +269,7 @@ CONCEPTS = [
     ("disconnect", "연결 끊기", "Disconnect", "plug"),
     ("collapse-all", "모두 접기", "Collapse all", "fold"),
     ("hide", "숨기기", "Hide tool window", "minus"),
+    ("more", "더 보기", "More options", "dots-vertical"),
     ("close", "닫기", "Close", "x"),
     ("results", "결과", "Results", "table"),
     ("messages", "메시지", "Messages", "message"),
@@ -383,6 +384,7 @@ def extra_icons(I, P, n, nf, blue, blue_fill, green, green_fill, red, red_fill, 
     I["disconnect"] = svg(plug(red_fill, red))
     I["collapse-all"] = svg(collapse_arrows(n, sw))
     I["hide"] = svg(path("M3.5 8H12.5", None, n, sw))
+    I["more"] = svg(circle(8, 3.5, 1.25, n) + circle(8, 8, 1.25, n) + circle(8, 12.5, 1.25, n))
     I["close"] = svg(path("M4.5 4.5L11.5 11.5M11.5 4.5L4.5 11.5", None, n, sw))
     I["results"] = svg(table)
     I["messages"] = svg(bubble(blue_fill, blue))
