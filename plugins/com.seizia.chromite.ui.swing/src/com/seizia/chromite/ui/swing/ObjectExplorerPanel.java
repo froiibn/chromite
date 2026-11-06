@@ -139,6 +139,8 @@ import java.util.function.Consumer;
  * - 2026-11-06 revealNode: 결과의 서버가 이 창에 없으면 먼저 넣고 서버 목록을 다시 읽은 뒤 펼침(연 서버만 보이는 목록) (docs/chromite/swing-admin-tools.md)
  * - 2026-11-06 데이터 전송: Tasks &gt; Import Data… / Export Data… 메뉴 (docs/chromite/swing-data-transfer.md)
  * - 2026-11-06 고급 연결 설정: 연결 노드 바탕에 연결 색 (docs/chromite/swing-conn-advanced.md)
+ * - 2026-11-06 연결 색을 노드 바탕 대신 이름 알약({@link ConnectionPill}, Registered Servers와 같음), 보조 글자를 이름의 실제 기준선에 맞춤
+ *   (docs/chromite/swing-registered-servers.md "연결 색 알약")
  * - 2026-11-06 테이블 디자이너: Design·New Table… 메뉴, 다른 곳에서 추가·새로 읽은 DB 객체 노드 반영 (docs/chromite/swing-table-designer.md)
  * - 2026-11-06 New Connection으로 만든 서버가 들어오지 않던 문제: 탐색기 노드가 생기기 전(레지스트리 이벤트 지연)에도 목록에 넣고,
  *   고를 서버를 연결로 기억해 ADD 이벤트에서 고름 (docs/chromite/swing-registered-servers.md)
@@ -1286,7 +1288,8 @@ final class ObjectExplorerPanel extends JPanel {
     /**
      * Icon (icon pack, {@link NodeIcons#getNodeIcon}), name and a secondary text in text.secondary after it: the data
      * type of a column, the number of objects of a read folder, the host of a connection. A connection with a color
-     * (custom or connection type, like SWT's navigator) gets it as a rounded background when it is not selected.
+     * (custom or connection type, like SWT's navigator) gets it as a pill around its name ({@link ConnectionPill}, the
+     * same as in Registered Servers), also when it is selected or under the mouse.
      */
     private static final class ExplorerCellRenderer extends DefaultTreeCellRenderer {
         // space.6: icon-text gap and gap before the secondary text
@@ -1294,11 +1297,8 @@ final class ObjectExplorerPanel extends JPanel {
 
         @Nullable
         private String secondaryText;
-        /**
-         * Color of a connection node ({@link ConnectionColors}), painted behind the unselected node.
-         */
         @Nullable
-        private Color connectionColor;
+        private ConnectionPill pill;
 
         @Override
         public Component getTreeCellRendererComponent(
@@ -1313,10 +1313,13 @@ final class ObjectExplorerPanel extends JPanel {
             super.getTreeCellRendererComponent(tree, value, selected, expanded, leaf, row, hasFocus);
             setIconTextGap(UIScale.scale(GAP));
             secondaryText = null;
-            connectionColor = null;
+            pill = null;
             if (value instanceof ExplorerNode node && node.getUserObject() instanceof DBNNode navigatorNode) {
                 if (navigatorNode instanceof DBNDataSource dataSourceNode) {
-                    connectionColor = ConnectionColors.getColor(dataSourceNode.getDataSourceContainer().getConnectionConfiguration());
+                    pill = ConnectionPill.of(dataSourceNode.getDataSourceContainer());
+                    if (pill != null) {
+                        setIconTextGap(UIScale.scale(GAP) + ConnectionPill.getPaddingX());
+                    }
                 }
                 setIcon(NodeIcons.getNodeIcon(navigatorNode, expanded));
                 setToolTipText(navigatorNode.getNodeDescription());
@@ -1355,6 +1358,10 @@ final class ObjectExplorerPanel extends JPanel {
         @Override
         public Dimension getPreferredSize() {
             Dimension size = super.getPreferredSize();
+            if (size != null && pill != null) {
+                // The pill's padding after the name (the padding before it is in the icon-text gap)
+                size.width += ConnectionPill.getPaddingX();
+            }
             if (size != null && secondaryText != null) {
                 size.width += UIScale.scale(GAP) + getFontMetrics(getFont()).stringWidth(secondaryText);
             }
@@ -1363,25 +1370,24 @@ final class ObjectExplorerPanel extends JPanel {
 
         @Override
         public void paint(Graphics g) {
-            if (connectionColor != null && !selected) {
-                g.setColor(connectionColor);
-                int arc = UIScale.scale(GAP);
-                g.fillRoundRect(0, 0, getWidth(), getHeight(), arc, arc);
+            Icon icon = getIcon();
+            int textX = getInsets().left + (icon != null ? icon.getIconWidth() + getIconTextGap() : 0);
+            int textWidth = getFontMetrics(getFont()).stringWidth(CommonUtils.notEmpty(getText()));
+            // The label's own text baseline (its layout of icon and text), so the pill and the secondary text line up
+            // with the name; negative when there is no text
+            int baseline = getBaseline(getWidth(), getHeight());
+            if (pill != null && baseline >= 0) {
+                pill.paint(g, this, textX, textWidth, baseline);
             }
             super.paint(g);
-            if (secondaryText == null) {
+            if (secondaryText == null || baseline < 0) {
                 return;
             }
-            FontMetrics metrics = getFontMetrics(getFont());
-            Icon icon = getIcon();
-            Insets insets = getInsets();
-            int x = insets.left + (icon != null ? icon.getIconWidth() + getIconTextGap() : 0)
-                + metrics.stringWidth(CommonUtils.notEmpty(getText())) + UIScale.scale(GAP);
-            int y = insets.top + (getHeight() - insets.top - insets.bottom - metrics.getHeight()) / 2 + metrics.getAscent();
+            int x = textX + textWidth + (pill != null ? ConnectionPill.getPaddingX() : 0) + UIScale.scale(GAP);
             Color color = UIManager.getColor("Chromite.secondaryForeground"); //$NON-NLS-1$
             g.setColor(color != null ? color : getForeground());
             g.setFont(getFont());
-            FlatUIUtils.drawString(this, g, secondaryText, x, y);
+            FlatUIUtils.drawString(this, g, secondaryText, x, baseline);
         }
     }
 }

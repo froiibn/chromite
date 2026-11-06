@@ -34,10 +34,12 @@ import java.awt.*;
  *     <li>흰색(255,255,255, 기본 Development 종류)은 "색 없음"이다(SWT도 흰색이면 색을 칠하지 않는다. 다크 테마에서 흰 바탕이 되지 않게).</li>
  *     <li>SWT 테마 색 상수 이름(글자로 시작하는 값)은 Swing에 그 색 레지스트리가 없으므로 색 없음으로 본다.</li>
  * </ul>
- * 이 색은 쿼리 창 상태 줄({@link QueryStatusLine}) 바탕과 Object Explorer의 연결 노드 바탕에 쓴다.
+ * 이 색은 쿼리 창 상태 줄({@link QueryStatusLine}) 바탕과 Registered Servers·Object Explorer 서버 이름의 알약({@link ConnectionPill})에 쓴다.
+ * 모든 곳이 이 클래스 하나로 색을 정하므로 같은 연결은 어디서나 같은 색(다크 테마면 같은 어두운 색)이다.
  *
  * 변경 이력:
  * - 2026-11-06 최초 작성: 고급 연결 설정 (docs/chromite/swing-conn-advanced.md)
+ * - 2026-11-06 Registered Servers도 이 색을 씀, Object Explorer는 노드 바탕 대신 이름 알약 (docs/chromite/swing-registered-servers.md "연결 색 알약")
  */
 final class ConnectionColors {
 
