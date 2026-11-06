@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.hana.ui.internal;
+package com.seizia.chromite.ext.hana.ui.internal;
 
 public enum HANAEdition {
     GENERIC(HANAMessages.edition_generic),

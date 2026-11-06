@@ -1,15 +1,15 @@
 Manifest-Version: 1.0
 Bundle-ManifestVersion: 2
-Bundle-Vendor: DBeaver Corp
+Bundle-Vendor: Chromite contributors
 Bundle-Name: Chromite GIS Support
-Bundle-SymbolicName: org.jkiss.dbeaver.data.gis;singleton:=true
+Bundle-SymbolicName: com.seizia.chromite.data.gis;singleton:=true
 Bundle-Version: 1.0.215.qualifier
 Bundle-Release-Date: 20261116
 Bundle-RequiredExecutionEnvironment: JavaSE-21
 Bundle-ActivationPolicy: lazy
-Require-Bundle: org.jkiss.dbeaver.model;visibility:=reexport,
- org.jkiss.dbeaver.model.jdbc;visibility:=reexport,
+Require-Bundle: com.seizia.chromite.model;visibility:=reexport,
+ com.seizia.chromite.model.jdbc;visibility:=reexport,
  org.jkiss.bundle.gis;visibility:=reexport
-Export-Package: org.jkiss.dbeaver.data.gis.handlers,
- org.jkiss.dbeaver.model.gis
-Automatic-Module-Name: org.jkiss.dbeaver.data.gis
+Export-Package: com.seizia.chromite.data.gis.handlers,
+ com.seizia.chromite.model.gis
+Automatic-Module-Name: com.seizia.chromite.data.gis

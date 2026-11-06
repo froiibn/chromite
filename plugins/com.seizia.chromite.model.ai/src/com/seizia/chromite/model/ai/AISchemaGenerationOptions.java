@@ -14,11 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.ai;
+package com.seizia.chromite.model.ai;
 
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.model.preferences.DBPPreferenceStore;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
+import com.seizia.chromite.model.preferences.DBPPreferenceStore;
+import com.seizia.chromite.runtime.DBWorkbench;
 
 public record AISchemaGenerationOptions(
     boolean sendObjectComment,

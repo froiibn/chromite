@@ -14,20 +14,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.yashandb.ui.config;
+package com.seizia.chromite.ext.yashandb.ui.config;
 
 import org.eclipse.jface.dialogs.IDialogConstants;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.ext.oracle.ui.config.OracleSchemaConfigurator;
-import org.jkiss.dbeaver.ext.oracle.ui.config.OracleSchemaConfigurator.NewUserDialog;
-import org.jkiss.dbeaver.ext.yashandb.model.YashanDBDataSource;
-import org.jkiss.dbeaver.ext.yashandb.model.YashanDBSchema;
-import org.jkiss.dbeaver.model.edit.DBECommandContext;
-import org.jkiss.dbeaver.model.edit.DBEObjectConfigurator;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.ui.UITask;
-import org.jkiss.dbeaver.ui.UIUtils;
+import com.seizia.chromite.ext.oracle.ui.config.OracleSchemaConfigurator;
+import com.seizia.chromite.ext.oracle.ui.config.OracleSchemaConfigurator.NewUserDialog;
+import com.seizia.chromite.ext.yashandb.model.YashanDBDataSource;
+import com.seizia.chromite.ext.yashandb.model.YashanDBSchema;
+import com.seizia.chromite.model.edit.DBECommandContext;
+import com.seizia.chromite.model.edit.DBEObjectConfigurator;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.ui.UITask;
+import com.seizia.chromite.ui.UIUtils;
 
 import java.util.Map;
 

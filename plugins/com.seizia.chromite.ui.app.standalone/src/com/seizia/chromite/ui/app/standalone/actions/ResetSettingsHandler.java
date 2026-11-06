@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.app.standalone.actions;
+package com.seizia.chromite.ui.app.standalone.actions;
 
 import org.eclipse.core.commands.AbstractHandler;
 import org.eclipse.core.commands.ExecutionEvent;
@@ -30,10 +30,10 @@ import org.eclipse.ui.PlatformUI;
 import org.eclipse.ui.handlers.HandlerUtil;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.app.standalone.DBeaverApplication;
-import org.jkiss.dbeaver.ui.app.standalone.internal.CoreApplicationMessages;
-import org.jkiss.dbeaver.ui.dialogs.BaseDialog;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.app.standalone.ChromiteApplication;
+import com.seizia.chromite.ui.app.standalone.internal.CoreApplicationMessages;
+import com.seizia.chromite.ui.dialogs.BaseDialog;
 
 import java.util.HashSet;
 import java.util.Set;
@@ -68,7 +68,7 @@ public class ResetSettingsHandler extends AbstractHandler {
         final IWorkbench workbench = PlatformUI.getWorkbench();
 
         if (workbench.restart()) {
-            final DBeaverApplication instance = DBeaverApplication.getInstance();
+            final ChromiteApplication instance = ChromiteApplication.getInstance();
             instance.setResetUserPreferencesOnRestart(options.contains(RESET_USER_PREFERENCES));
             instance.setResetWorkspaceConfigurationOnRestart(options.contains(RESET_WORKSPACE_CONFIGURATION));
         }

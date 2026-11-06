@@ -14,9 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.wmi.model;
+package com.seizia.chromite.ext.wmi.model;
 
-import org.jkiss.dbeaver.model.struct.DBSEntityMethod;
+import com.seizia.chromite.model.struct.DBSEntityMethod;
 import org.jkiss.wmi.service.WMIObjectMethod;
 
 /**

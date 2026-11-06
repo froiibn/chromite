@@ -14,19 +14,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.tools.transfer.ui.handlers;
+package com.seizia.chromite.tools.transfer.ui.handlers;
 
 import org.eclipse.core.commands.ExecutionEvent;
 import org.eclipse.core.commands.ExecutionException;
 import org.eclipse.swt.SWT;
 import org.eclipse.ui.handlers.HandlerUtil;
-import org.jkiss.dbeaver.model.struct.DBSDataContainer;
-import org.jkiss.dbeaver.registry.ApplicationPolicyProvider;
-import org.jkiss.dbeaver.tools.transfer.IDataTransferNode;
-import org.jkiss.dbeaver.tools.transfer.database.DatabaseTransferProducer;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.internal.UIMessages;
-import org.jkiss.dbeaver.utils.RuntimeUtils;
+import com.seizia.chromite.model.struct.DBSDataContainer;
+import com.seizia.chromite.registry.ApplicationPolicyProvider;
+import com.seizia.chromite.tools.transfer.IDataTransferNode;
+import com.seizia.chromite.tools.transfer.database.DatabaseTransferProducer;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.internal.UIMessages;
+import com.seizia.chromite.utils.RuntimeUtils;
 
 public class DataExportHandler extends DataTransferHandler {
 

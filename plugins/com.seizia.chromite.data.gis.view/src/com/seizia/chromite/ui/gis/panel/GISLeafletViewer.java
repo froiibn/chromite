@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.gis.panel;
+package com.seizia.chromite.ui.gis.panel;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -36,38 +36,38 @@ import org.eclipse.swt.widgets.*;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.DBUtils;
-import org.jkiss.dbeaver.model.data.DBDAttributeBinding;
-import org.jkiss.dbeaver.model.data.DBDContent;
-import org.jkiss.dbeaver.model.exec.DBCException;
-import org.jkiss.dbeaver.model.gis.*;
-import org.jkiss.dbeaver.model.preferences.DBPPreferenceListener;
-import org.jkiss.dbeaver.model.preferences.DBPPreferenceStore;
-import org.jkiss.dbeaver.model.runtime.VoidProgressMonitor;
-import org.jkiss.dbeaver.model.virtual.DBVEntity;
-import org.jkiss.dbeaver.model.virtual.DBVEntityAttribute;
-import org.jkiss.dbeaver.model.virtual.DBVUtils;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.runtime.IVariableResolver;
-import org.jkiss.dbeaver.ui.*;
-import org.jkiss.dbeaver.ui.browser.LocalResourceHttpServer;
-import org.jkiss.dbeaver.ui.controls.lightgrid.GridPos;
-import org.jkiss.dbeaver.ui.controls.resultset.AbstractPresentation;
-import org.jkiss.dbeaver.ui.controls.resultset.IResultSetPresentation;
-import org.jkiss.dbeaver.ui.controls.resultset.spreadsheet.SpreadsheetPresentation;
-import org.jkiss.dbeaver.ui.css.CSSUtils;
-import org.jkiss.dbeaver.ui.dialogs.DialogUtils;
-import org.jkiss.dbeaver.ui.gis.GeometryDataUtils;
-import org.jkiss.dbeaver.ui.gis.GeometryViewerConstants;
-import org.jkiss.dbeaver.ui.gis.IGeometryValueEditor;
-import org.jkiss.dbeaver.ui.gis.internal.GISMessages;
-import org.jkiss.dbeaver.ui.gis.internal.GISViewerActivator;
-import org.jkiss.dbeaver.ui.gis.panel.actions.ToggleLabelsAction;
-import org.jkiss.dbeaver.ui.gis.registry.GeometryViewerRegistry;
-import org.jkiss.dbeaver.ui.gis.registry.LeafletTilesDescriptor;
-import org.jkiss.dbeaver.utils.GeneralUtils;
-import org.jkiss.dbeaver.utils.RuntimeUtils;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.DBUtils;
+import com.seizia.chromite.model.data.DBDAttributeBinding;
+import com.seizia.chromite.model.data.DBDContent;
+import com.seizia.chromite.model.exec.DBCException;
+import com.seizia.chromite.model.gis.*;
+import com.seizia.chromite.model.preferences.DBPPreferenceListener;
+import com.seizia.chromite.model.preferences.DBPPreferenceStore;
+import com.seizia.chromite.model.runtime.VoidProgressMonitor;
+import com.seizia.chromite.model.virtual.DBVEntity;
+import com.seizia.chromite.model.virtual.DBVEntityAttribute;
+import com.seizia.chromite.model.virtual.DBVUtils;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.runtime.IVariableResolver;
+import com.seizia.chromite.ui.*;
+import com.seizia.chromite.ui.browser.LocalResourceHttpServer;
+import com.seizia.chromite.ui.controls.lightgrid.GridPos;
+import com.seizia.chromite.ui.controls.resultset.AbstractPresentation;
+import com.seizia.chromite.ui.controls.resultset.IResultSetPresentation;
+import com.seizia.chromite.ui.controls.resultset.spreadsheet.SpreadsheetPresentation;
+import com.seizia.chromite.ui.css.CSSUtils;
+import com.seizia.chromite.ui.dialogs.DialogUtils;
+import com.seizia.chromite.ui.gis.GeometryDataUtils;
+import com.seizia.chromite.ui.gis.GeometryViewerConstants;
+import com.seizia.chromite.ui.gis.IGeometryValueEditor;
+import com.seizia.chromite.ui.gis.internal.GISMessages;
+import com.seizia.chromite.ui.gis.internal.GISViewerActivator;
+import com.seizia.chromite.ui.gis.panel.actions.ToggleLabelsAction;
+import com.seizia.chromite.ui.gis.registry.GeometryViewerRegistry;
+import com.seizia.chromite.ui.gis.registry.LeafletTilesDescriptor;
+import com.seizia.chromite.utils.GeneralUtils;
+import com.seizia.chromite.utils.RuntimeUtils;
 import org.jkiss.utils.ArrayUtils;
 import org.jkiss.utils.CommonUtils;
 import org.jkiss.utils.IOUtils;
@@ -496,13 +496,13 @@ public class GISLeafletViewer implements IGeometryValueEditor, DBPPreferenceList
             return;
         }
         toolBarManager.removeAll();
-        toolBarManager.add(new Action(GISMessages.panel_leaflet_viewer_tool_bar_action_text_open, DBeaverIcons.getImageDescriptor(UIIcon.BROWSER)) {
+        toolBarManager.add(new Action(GISMessages.panel_leaflet_viewer_tool_bar_action_text_open, SwtIcons.getImageDescriptor(UIIcon.BROWSER)) {
             @Override
             public void run() {
                 ShellUtils.launchProgram(server.getUrl("index.html"));
             }
         });
-        toolBarManager.add(new Action(GISMessages.panel_leaflet_viewer_tool_bar_action_text_copy_as, DBeaverIcons.getImageDescriptor(UIIcon.PICTURE)) {
+        toolBarManager.add(new Action(GISMessages.panel_leaflet_viewer_tool_bar_action_text_copy_as, SwtIcons.getImageDescriptor(UIIcon.PICTURE)) {
             @Override
             public void run() {
                 ImageTransfer imageTransfer = ImageTransfer.getInstance();
@@ -511,7 +511,7 @@ public class GISLeafletViewer implements IGeometryValueEditor, DBPPreferenceList
                 clipboard.setContents(new Object[] { imageData }, new Transfer[]{imageTransfer});
             }
         });
-        toolBarManager.add(new Action(GISMessages.panel_leaflet_viewer_tool_bar_action_text_save_as, DBeaverIcons.getImageDescriptor(UIIcon.PICTURE_SAVE)) {
+        toolBarManager.add(new Action(GISMessages.panel_leaflet_viewer_tool_bar_action_text_save_as, SwtIcons.getImageDescriptor(UIIcon.PICTURE_SAVE)) {
             @Override
             public void run() {
                 final Shell shell = browser.getShell();
@@ -551,7 +551,7 @@ public class GISLeafletViewer implements IGeometryValueEditor, DBPPreferenceList
             }
         });
 
-        toolBarManager.add(new Action(GISMessages.panel_leaflet_viewer_tool_bar_action_text_print, DBeaverIcons.getImageDescriptor(UIIcon.PRINT)) {
+        toolBarManager.add(new Action(GISMessages.panel_leaflet_viewer_tool_bar_action_text_print, SwtIcons.getImageDescriptor(UIIcon.PRINT)) {
             @Override
             public void run() {
                 GC gc = new GC(browser.getDisplay());
@@ -581,7 +581,7 @@ public class GISLeafletViewer implements IGeometryValueEditor, DBPPreferenceList
         toolBarManager.add(new Action(GISMessages.panel_leaflet_viewer_tool_bar_action_text_flip, Action.AS_CHECK_BOX) {
             {
                 setToolTipText(GISMessages.panel_leaflet_viewer_tool_bar_action_tool_tip_text_flip);
-                setImageDescriptor(DBeaverIcons.getImageDescriptor(UIIcon.LINK_TO_EDITOR));
+                setImageDescriptor(SwtIcons.getImageDescriptor(UIIcon.LINK_TO_EDITOR));
             }
 
             @Override
@@ -606,7 +606,7 @@ public class GISLeafletViewer implements IGeometryValueEditor, DBPPreferenceList
 
         toolBarManager.add(new Action(GISMessages.panel_leaflet_viewer_tool_bar_action_text_show_hide, Action.AS_CHECK_BOX) {
             {
-                setImageDescriptor(DBeaverIcons.getImageDescriptor(UIIcon.PALETTE));
+                setImageDescriptor(SwtIcons.getImageDescriptor(UIIcon.PALETTE));
             }
 
             @Override

@@ -14,17 +14,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.ai.chat.controls;
+package com.seizia.chromite.ui.ai.chat.controls;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.model.DBIcon;
-import org.jkiss.dbeaver.model.DBPImage;
-import org.jkiss.dbeaver.model.ai.AIMessage;
-import org.jkiss.dbeaver.model.ai.AIMessageType;
-import org.jkiss.dbeaver.model.file.*;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.ui.editors.EditorUtils;
+import com.seizia.chromite.model.DBIcon;
+import com.seizia.chromite.model.DBPImage;
+import com.seizia.chromite.model.ai.AIMessage;
+import com.seizia.chromite.model.ai.AIMessageType;
+import com.seizia.chromite.model.file.*;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.ui.editors.EditorUtils;
 import org.jkiss.utils.IOUtils;
 
 import java.nio.file.Path;

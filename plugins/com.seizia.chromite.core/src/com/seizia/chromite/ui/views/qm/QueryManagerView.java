@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.views.qm;
+package com.seizia.chromite.ui.views.qm;
 
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.layout.FillLayout;
@@ -24,15 +24,15 @@ import org.eclipse.ui.model.IWorkbenchAdapter;
 import org.eclipse.ui.model.WorkbenchAdapter;
 import org.eclipse.ui.part.ViewPart;
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.ui.ActionUtils;
-import org.jkiss.dbeaver.ui.IHelpContextIds;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.controls.CustomSashForm;
-import org.jkiss.dbeaver.ui.controls.querylog.QueryLogViewer;
-import org.jkiss.dbeaver.utils.GeneralUtils;
+import com.seizia.chromite.ui.ActionUtils;
+import com.seizia.chromite.ui.IHelpContextIds;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.controls.CustomSashForm;
+import com.seizia.chromite.ui.controls.querylog.QueryLogViewer;
+import com.seizia.chromite.utils.GeneralUtils;
 
 public class QueryManagerView extends ViewPart {
-    public static final String VIEW_ID = "org.jkiss.dbeaver.core.queryManager";
+    public static final String VIEW_ID = "com.seizia.chromite.core.queryManager";
 
     private CustomSashForm sash;
     private QueryLogViewer queryLogViewer;

@@ -14,26 +14,26 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.sql;
+package com.seizia.chromite.model.sql;
 
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.model.impl.sql.BasicSQLDialect;
-import org.jkiss.dbeaver.model.runtime.VoidProgressMonitor;
-import org.jkiss.dbeaver.model.sql.semantics.SQLQueryModelRecognizer;
-import org.jkiss.dbeaver.model.sql.semantics.SQLQueryRecognitionContext;
-import org.jkiss.dbeaver.model.sql.semantics.SQLQueryVariableInfo;
-import org.jkiss.dbeaver.model.sql.semantics.SQLQueryVariablesSubset;
-import org.jkiss.dbeaver.model.sql.semantics.model.SQLQueryModel;
-import org.jkiss.dbeaver.model.sql.semantics.model.SQLQueryVariableStatementModel;
-import org.jkiss.dbeaver.model.sql.semantics.tracking.SQLScriptVariablesTracker;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.junit.DBeaverUnitTest;
+import com.seizia.chromite.model.impl.sql.BasicSQLDialect;
+import com.seizia.chromite.model.runtime.VoidProgressMonitor;
+import com.seizia.chromite.model.sql.semantics.SQLQueryModelRecognizer;
+import com.seizia.chromite.model.sql.semantics.SQLQueryRecognitionContext;
+import com.seizia.chromite.model.sql.semantics.SQLQueryVariableInfo;
+import com.seizia.chromite.model.sql.semantics.SQLQueryVariablesSubset;
+import com.seizia.chromite.model.sql.semantics.model.SQLQueryModel;
+import com.seizia.chromite.model.sql.semantics.model.SQLQueryVariableStatementModel;
+import com.seizia.chromite.model.sql.semantics.tracking.SQLScriptVariablesTracker;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.junit.ChromiteUnitTest;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
 
-public class SQLScriptVariablesTrackerTest extends DBeaverUnitTest {
+public class SQLScriptVariablesTrackerTest extends ChromiteUnitTest {
     @Test
     public void orderedTrackerReportsInclusiveObservedPosition() {
         TrackerFixture fixture = createTracker(SQLScriptVariableScope.SCRIPT);

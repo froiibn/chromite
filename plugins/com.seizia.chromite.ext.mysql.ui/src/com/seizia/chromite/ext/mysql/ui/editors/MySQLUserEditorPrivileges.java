@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.mysql.ui.editors;
+package com.seizia.chromite.ext.mysql.ui.editors;
 
 import org.eclipse.jface.layout.GridLayoutFactory;
 import org.eclipse.swt.SWT;
@@ -26,21 +26,21 @@ import org.eclipse.swt.widgets.TableItem;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.ext.mysql.model.*;
-import org.jkiss.dbeaver.ext.mysql.ui.config.MySQLCommandGrantPrivilege;
-import org.jkiss.dbeaver.ext.mysql.ui.controls.PrivilegeTableControl;
-import org.jkiss.dbeaver.ext.mysql.ui.internal.MySQLUIMessages;
-import org.jkiss.dbeaver.model.DBIcon;
-import org.jkiss.dbeaver.model.edit.DBECommandReflector;
-import org.jkiss.dbeaver.model.navigator.DBNEvent;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.model.runtime.load.DatabaseLoadService;
-import org.jkiss.dbeaver.ui.BaseThemeSettings;
-import org.jkiss.dbeaver.ui.DBeaverIcons;
-import org.jkiss.dbeaver.ui.LoadingJob;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.controls.CustomSashForm;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.ext.mysql.model.*;
+import com.seizia.chromite.ext.mysql.ui.config.MySQLCommandGrantPrivilege;
+import com.seizia.chromite.ext.mysql.ui.controls.PrivilegeTableControl;
+import com.seizia.chromite.ext.mysql.ui.internal.MySQLUIMessages;
+import com.seizia.chromite.model.DBIcon;
+import com.seizia.chromite.model.edit.DBECommandReflector;
+import com.seizia.chromite.model.navigator.DBNEvent;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.model.runtime.load.DatabaseLoadService;
+import com.seizia.chromite.ui.BaseThemeSettings;
+import com.seizia.chromite.ui.SwtIcons;
+import com.seizia.chromite.ui.LoadingJob;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.controls.CustomSashForm;
 import org.jkiss.utils.ArrayUtils;
 
 import java.lang.reflect.InvocationTargetException;
@@ -101,12 +101,12 @@ public class MySQLUserEditorPrivileges extends MySQLUserEditorAbstract
             {
                 TableItem item = new TableItem(catalogsTable, SWT.NONE);
                 item.setText("% (All)"); //$NON-NLS-1$
-                item.setImage(DBeaverIcons.getImage(DBIcon.TREE_DATABASE));
+                item.setImage(SwtIcons.getImage(DBIcon.TREE_DATABASE));
             }
             for (MySQLCatalog catalog : getDatabaseObject().getDataSource().getCatalogs()) {
                 TableItem item = new TableItem(catalogsTable, SWT.NONE);
                 item.setText(catalog.getName());
-                item.setImage(DBeaverIcons.getImage(DBIcon.TREE_DATABASE));
+                item.setImage(SwtIcons.getImage(DBIcon.TREE_DATABASE));
                 item.setData(catalog);
             }
             UIUtils.packColumns(catalogsTable);
@@ -390,13 +390,13 @@ public class MySQLUserEditorPrivileges extends MySQLUserEditorAbstract
                     {
                         TableItem item = new TableItem(tablesTable, SWT.NONE);
                         item.setText("% (All)"); //$NON-NLS-1$
-                        item.setImage(DBeaverIcons.getImage(DBIcon.TREE_TABLE));
+                        item.setImage(SwtIcons.getImage(DBIcon.TREE_TABLE));
                     }
                     if (tables != null) {
                         for (MySQLTableBase table : tables) {
                             TableItem item = new TableItem(tablesTable, SWT.NONE);
                             item.setText(table.getName());
-                            item.setImage(DBeaverIcons.getImage(table.isView() ? DBIcon.TREE_VIEW : DBIcon.TREE_TABLE));
+                            item.setImage(SwtIcons.getImage(table.isView() ? DBIcon.TREE_VIEW : DBIcon.TREE_TABLE));
                             item.setData(table);
                         }
                         highlightTables();

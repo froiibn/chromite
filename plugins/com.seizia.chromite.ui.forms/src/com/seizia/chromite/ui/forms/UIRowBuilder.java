@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.forms;
+package com.seizia.chromite.ui.forms;
 
 import org.eclipse.core.databinding.conversion.text.NumberToStringConverter;
 import org.eclipse.core.databinding.conversion.text.StringToNumberConverter;
@@ -24,7 +24,7 @@ import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Control;
 import org.eclipse.ui.forms.widgets.ExpandableComposite;
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.ui.ShellUtils;
+import com.seizia.chromite.ui.ShellUtils;
 
 import java.text.NumberFormat;
 import java.util.List;

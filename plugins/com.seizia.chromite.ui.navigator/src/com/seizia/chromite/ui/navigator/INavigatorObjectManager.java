@@ -14,11 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.navigator;
+package com.seizia.chromite.ui.navigator;
 
 import org.eclipse.ui.IWorkbenchWindow;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.model.navigator.DBNObjectNode;
+import com.seizia.chromite.model.navigator.DBNObjectNode;
 
 /**
  * Manages navigator object. Support create/delete/open commands for any node type.

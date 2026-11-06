@@ -15,16 +15,16 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.model.gis;
+package com.seizia.chromite.model.gis;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.data.gis.handlers.WKGUtils;
-import org.jkiss.dbeaver.model.data.DBDValue;
-import org.jkiss.dbeaver.model.data.DBDValueCloneable;
-import org.jkiss.dbeaver.model.exec.DBCException;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.data.gis.handlers.WKGUtils;
+import com.seizia.chromite.model.data.DBDValue;
+import com.seizia.chromite.model.data.DBDValueCloneable;
+import com.seizia.chromite.model.exec.DBCException;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
 import org.locationtech.jts.geom.Coordinate;
 import org.locationtech.jts.geom.CoordinateFilter;
 import org.locationtech.jts.geom.Geometry;

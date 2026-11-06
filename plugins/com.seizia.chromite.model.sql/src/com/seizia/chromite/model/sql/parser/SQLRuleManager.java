@@ -14,27 +14,27 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.sql.parser;
+package com.seizia.chromite.model.sql.parser;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.DBPDataSource;
-import org.jkiss.dbeaver.model.DBPDataSourceContainer;
-import org.jkiss.dbeaver.model.DBPKeywordType;
-import org.jkiss.dbeaver.model.sql.SQLConstants;
-import org.jkiss.dbeaver.model.sql.SQLDialect;
-import org.jkiss.dbeaver.model.sql.SQLSyntaxManager;
-import org.jkiss.dbeaver.model.sql.parser.rules.*;
-import org.jkiss.dbeaver.model.sql.parser.tokens.*;
-import org.jkiss.dbeaver.model.sql.registry.SQLCommandHandlerDescriptor;
-import org.jkiss.dbeaver.model.sql.registry.SQLCommandsRegistry;
-import org.jkiss.dbeaver.model.text.parser.*;
-import org.jkiss.dbeaver.model.text.parser.rules.EndOfLineRule;
-import org.jkiss.dbeaver.model.text.parser.rules.MultiLineRule;
-import org.jkiss.dbeaver.model.text.parser.rules.NumberRule;
-import org.jkiss.dbeaver.model.text.parser.rules.WhitespaceRule;
-import org.jkiss.dbeaver.utils.GeneralUtils;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.DBPDataSource;
+import com.seizia.chromite.model.DBPDataSourceContainer;
+import com.seizia.chromite.model.DBPKeywordType;
+import com.seizia.chromite.model.sql.SQLConstants;
+import com.seizia.chromite.model.sql.SQLDialect;
+import com.seizia.chromite.model.sql.SQLSyntaxManager;
+import com.seizia.chromite.model.sql.parser.rules.*;
+import com.seizia.chromite.model.sql.parser.tokens.*;
+import com.seizia.chromite.model.sql.registry.SQLCommandHandlerDescriptor;
+import com.seizia.chromite.model.sql.registry.SQLCommandsRegistry;
+import com.seizia.chromite.model.text.parser.*;
+import com.seizia.chromite.model.text.parser.rules.EndOfLineRule;
+import com.seizia.chromite.model.text.parser.rules.MultiLineRule;
+import com.seizia.chromite.model.text.parser.rules.NumberRule;
+import com.seizia.chromite.model.text.parser.rules.WhitespaceRule;
+import com.seizia.chromite.utils.GeneralUtils;
 import org.jkiss.utils.ArrayUtils;
 import org.jkiss.utils.CommonUtils;
 import org.jkiss.utils.Pair;

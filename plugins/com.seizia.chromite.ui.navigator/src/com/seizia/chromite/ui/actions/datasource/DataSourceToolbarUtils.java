@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.actions.datasource;
+package com.seizia.chromite.ui.actions.datasource;
 
 import org.eclipse.e4.ui.model.application.ui.MElementContainer;
 import org.eclipse.e4.ui.model.application.ui.MUIElement;
@@ -29,19 +29,19 @@ import org.eclipse.ui.IWorkbenchWindow;
 import org.eclipse.ui.PlatformUI;
 import org.eclipse.ui.commands.ICommandService;
 import org.eclipse.ui.internal.WorkbenchWindow;
-import org.jkiss.dbeaver.model.DBPDataSourceContainer;
-import org.jkiss.dbeaver.model.DBPDataSourceContainerProvider;
-import org.jkiss.dbeaver.model.app.DBPProject;
-import org.jkiss.dbeaver.model.rm.RMConstants;
-import org.jkiss.dbeaver.model.struct.DBStructUtils;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.actions.ConnectionCommands;
-import org.jkiss.dbeaver.ui.editors.EditorUtils;
-import org.jkiss.dbeaver.utils.RuntimeUtils;
+import com.seizia.chromite.model.DBPDataSourceContainer;
+import com.seizia.chromite.model.DBPDataSourceContainerProvider;
+import com.seizia.chromite.model.app.DBPProject;
+import com.seizia.chromite.model.rm.RMConstants;
+import com.seizia.chromite.model.struct.DBStructUtils;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.actions.ConnectionCommands;
+import com.seizia.chromite.ui.editors.EditorUtils;
+import com.seizia.chromite.utils.RuntimeUtils;
 
 public class DataSourceToolbarUtils {
 
-    public static final String CONNECTION_SELECTOR_TOOLBAR_ID = "dbeaver-connection-selector";
+    public static final String CONNECTION_SELECTOR_TOOLBAR_ID = "chromite-connection-selector";
 
     public static DBPDataSourceContainer getCurrentDataSource(IWorkbenchWindow workbenchWindow) {
         if (workbenchWindow == null || workbenchWindow.getActivePage() == null) {
@@ -137,7 +137,7 @@ public class DataSourceToolbarUtils {
         if (commandService != null) {
             commandService.refreshElements(ConnectionCommands.CMD_SELECT_CONNECTION, null);
             commandService.refreshElements(ConnectionCommands.CMD_SELECT_SCHEMA, null);
-            //commandService.refreshElements("org.jkiss.dbeaver.ui.editors.sql.sync.connection", null);
+            //commandService.refreshElements("com.seizia.chromite.ui.editors.sql.sync.connection", null);
         }
     }
 

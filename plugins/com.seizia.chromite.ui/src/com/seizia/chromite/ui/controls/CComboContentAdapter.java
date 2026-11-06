@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.controls;
+package com.seizia.chromite.ui.controls;
 
 import org.eclipse.jface.fieldassist.IControlContentAdapter;
 import org.eclipse.jface.fieldassist.IControlContentAdapter2;
@@ -22,7 +22,7 @@ import org.eclipse.swt.custom.CCombo;
 import org.eclipse.swt.graphics.Point;
 import org.eclipse.swt.graphics.Rectangle;
 import org.eclipse.swt.widgets.Control;
-import org.jkiss.dbeaver.ui.UIUtils;
+import com.seizia.chromite.ui.UIUtils;
 
 public class CComboContentAdapter implements IControlContentAdapter, IControlContentAdapter2 {
 

@@ -14,20 +14,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.navigator.database;
+package com.seizia.chromite.ui.navigator.database;
 
 import org.eclipse.jface.viewers.IStructuredContentProvider;
 import org.eclipse.jface.viewers.ITreeContentProvider;
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.navigator.*;
-import org.jkiss.dbeaver.model.runtime.VoidProgressMonitor;
-import org.jkiss.dbeaver.model.struct.DBSEntity;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.internal.UINavigatorMessages;
-import org.jkiss.dbeaver.ui.navigator.NavigatorPreferences;
-import org.jkiss.dbeaver.ui.navigator.database.load.*;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.navigator.*;
+import com.seizia.chromite.model.runtime.VoidProgressMonitor;
+import com.seizia.chromite.model.struct.DBSEntity;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.internal.UINavigatorMessages;
+import com.seizia.chromite.ui.navigator.NavigatorPreferences;
+import com.seizia.chromite.ui.navigator.database.load.*;
 import org.jkiss.utils.CommonUtils;
 
 import java.util.ArrayList;

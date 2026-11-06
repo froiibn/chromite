@@ -14,12 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.cloudflare.d1.model;
+package com.seizia.chromite.ext.cloudflare.d1.model;
 
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.model.impl.jdbc.JDBCExecutionContext;
-import org.jkiss.dbeaver.model.impl.jdbc.JDBCRemoteInstance;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.model.impl.jdbc.JDBCExecutionContext;
+import com.seizia.chromite.model.impl.jdbc.JDBCRemoteInstance;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
 
 final class CloudflareD1Instance extends JDBCRemoteInstance {
     private final String databaseId;

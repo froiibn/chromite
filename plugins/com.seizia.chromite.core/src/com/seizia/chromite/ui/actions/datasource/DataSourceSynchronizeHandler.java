@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.actions.datasource;
+package com.seizia.chromite.ui.actions.datasource;
 
 import org.eclipse.core.commands.ExecutionEvent;
 import org.eclipse.core.commands.ExecutionException;
@@ -23,17 +23,17 @@ import org.eclipse.core.runtime.Status;
 import org.eclipse.osgi.util.NLS;
 import org.jkiss.code.NotNull;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.core.CoreMessages;
-import org.jkiss.dbeaver.model.DBIcon;
-import org.jkiss.dbeaver.model.DBPDataSourceProviderSynchronizable;
-import org.jkiss.dbeaver.model.exec.DBCExecutionContext;
-import org.jkiss.dbeaver.model.runtime.AbstractJob;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.actions.AbstractDataSourceHandler;
-import org.jkiss.dbeaver.ui.dialogs.MessageBoxBuilder;
-import org.jkiss.dbeaver.ui.dialogs.Reply;
-import org.jkiss.dbeaver.utils.GeneralUtils;
+import com.seizia.chromite.core.CoreMessages;
+import com.seizia.chromite.model.DBIcon;
+import com.seizia.chromite.model.DBPDataSourceProviderSynchronizable;
+import com.seizia.chromite.model.exec.DBCExecutionContext;
+import com.seizia.chromite.model.runtime.AbstractJob;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.actions.AbstractDataSourceHandler;
+import com.seizia.chromite.ui.dialogs.MessageBoxBuilder;
+import com.seizia.chromite.ui.dialogs.Reply;
+import com.seizia.chromite.utils.GeneralUtils;
 
 public class DataSourceSynchronizeHandler extends AbstractDataSourceHandler {
     private static final Reply REPLY_KEEP_LOCAL_CHANGES = new Reply(CoreMessages.dialog_data_source_synchronize_reply_keep_local_label);

@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.ui.controls;
+package com.seizia.chromite.ui.controls;
 
 import org.eclipse.jface.viewers.DialogCellEditor;
 import org.eclipse.swt.SWT;
@@ -25,11 +25,11 @@ import org.eclipse.swt.widgets.Button;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Control;
 import org.eclipse.swt.widgets.Text;
-import org.jkiss.dbeaver.ui.DBeaverIcons;
-import org.jkiss.dbeaver.ui.UIIcon;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.dialogs.EditTextDialog;
-import org.jkiss.dbeaver.ui.internal.UIMessages;
+import com.seizia.chromite.ui.SwtIcons;
+import com.seizia.chromite.ui.UIIcon;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.dialogs.EditTextDialog;
+import com.seizia.chromite.ui.internal.UIMessages;
 import org.jkiss.utils.CommonUtils;
 
 /**
@@ -80,7 +80,7 @@ public class AdvancedTextCellEditor extends DialogCellEditor {
     protected Button createButton(Composite parent) {
         Button result = new Button(parent, SWT.DOWN | SWT.NO_FOCUS);
         //result.setText("..."); //$NON-NLS-1$
-        result.setImage(DBeaverIcons.getImage(UIIcon.DOTS_BUTTON)); //$NON-NLS-1$
+        result.setImage(SwtIcons.getImage(UIIcon.DOTS_BUTTON)); //$NON-NLS-1$
         return result;
     }
 

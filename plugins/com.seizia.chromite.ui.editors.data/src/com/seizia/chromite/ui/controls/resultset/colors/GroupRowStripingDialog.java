@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.controls.resultset.colors;
+package com.seizia.chromite.ui.controls.resultset.colors;
 
 import org.eclipse.jface.dialogs.IDialogConstants;
 import org.eclipse.jface.preference.ColorSelector;
@@ -30,15 +30,15 @@ import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Label;
 import org.eclipse.swt.widgets.List;
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.model.data.DBDAttributeBinding;
-import org.jkiss.dbeaver.model.virtual.DBVEntity;
-import org.jkiss.dbeaver.model.virtual.DBVGroupRowStriping;
-import org.jkiss.dbeaver.ui.UIIcon;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.controls.resultset.ResultSetThemeSettings;
-import org.jkiss.dbeaver.ui.controls.resultset.ResultSetViewer;
-import org.jkiss.dbeaver.ui.controls.resultset.internal.ResultSetMessages;
-import org.jkiss.dbeaver.ui.dialogs.BaseDialog;
+import com.seizia.chromite.model.data.DBDAttributeBinding;
+import com.seizia.chromite.model.virtual.DBVEntity;
+import com.seizia.chromite.model.virtual.DBVGroupRowStriping;
+import com.seizia.chromite.ui.UIIcon;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.controls.resultset.ResultSetThemeSettings;
+import com.seizia.chromite.ui.controls.resultset.ResultSetViewer;
+import com.seizia.chromite.ui.controls.resultset.internal.ResultSetMessages;
+import com.seizia.chromite.ui.dialogs.BaseDialog;
 import org.jkiss.utils.CommonUtils;
 
 import java.util.Arrays;

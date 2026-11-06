@@ -14,26 +14,26 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.tools.transfer.stream;
+package com.seizia.chromite.tools.transfer.stream;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.DBUtils;
-import org.jkiss.dbeaver.model.data.DBDDataFormatterProfile;
-import org.jkiss.dbeaver.model.data.DBDDisplayFormat;
-import org.jkiss.dbeaver.model.data.json.JSONUtils;
-import org.jkiss.dbeaver.model.runtime.DBRRunnableContext;
-import org.jkiss.dbeaver.model.struct.DBSDataContainer;
-import org.jkiss.dbeaver.model.struct.DBSObject;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.tools.transfer.*;
-import org.jkiss.dbeaver.tools.transfer.internal.DTMessages;
-import org.jkiss.dbeaver.tools.transfer.processor.ExecuteCommandEventProcessor;
-import org.jkiss.dbeaver.tools.transfer.processor.FailedExportFileCleanerProcessor;
-import org.jkiss.dbeaver.tools.transfer.processor.ShowInExplorerEventProcessor;
-import org.jkiss.dbeaver.tools.transfer.registry.DataTransferEventProcessorDescriptor;
-import org.jkiss.dbeaver.utils.GeneralUtils;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.DBUtils;
+import com.seizia.chromite.model.data.DBDDataFormatterProfile;
+import com.seizia.chromite.model.data.DBDDisplayFormat;
+import com.seizia.chromite.model.data.json.JSONUtils;
+import com.seizia.chromite.model.runtime.DBRRunnableContext;
+import com.seizia.chromite.model.struct.DBSDataContainer;
+import com.seizia.chromite.model.struct.DBSObject;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.tools.transfer.*;
+import com.seizia.chromite.tools.transfer.internal.DTMessages;
+import com.seizia.chromite.tools.transfer.processor.ExecuteCommandEventProcessor;
+import com.seizia.chromite.tools.transfer.processor.FailedExportFileCleanerProcessor;
+import com.seizia.chromite.tools.transfer.processor.ShowInExplorerEventProcessor;
+import com.seizia.chromite.tools.transfer.registry.DataTransferEventProcessorDescriptor;
+import com.seizia.chromite.utils.GeneralUtils;
 import org.jkiss.utils.CommonUtils;
 import org.jkiss.utils.StandardConstants;
 

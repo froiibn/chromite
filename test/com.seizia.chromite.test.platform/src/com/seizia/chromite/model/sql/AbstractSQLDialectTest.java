@@ -14,14 +14,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.sql;
+package com.seizia.chromite.model.sql;
 
-import org.jkiss.dbeaver.model.impl.sql.BasicSQLDialect;
-import org.jkiss.junit.DBeaverUnitTest;
+import com.seizia.chromite.model.impl.sql.BasicSQLDialect;
+import com.seizia.chromite.junit.ChromiteUnitTest;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
-public class AbstractSQLDialectTest extends DBeaverUnitTest {
+public class AbstractSQLDialectTest extends ChromiteUnitTest {
 
     private static final SQLDialect dialect = BasicSQLDialect.INSTANCE;
 

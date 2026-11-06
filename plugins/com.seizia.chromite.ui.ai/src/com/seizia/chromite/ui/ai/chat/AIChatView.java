@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.ai.chat;
+package com.seizia.chromite.ui.ai.chat;
 
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.ui.*;
@@ -23,21 +23,21 @@ import org.eclipse.ui.part.ViewPart;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.DBPContextProvider;
-import org.jkiss.dbeaver.model.DBPDataSourceContainer;
-import org.jkiss.dbeaver.model.ai.AIContextSettings;
-import org.jkiss.dbeaver.model.ai.registry.AISettingsEventListener;
-import org.jkiss.dbeaver.model.ai.registry.AISettingsManager;
-import org.jkiss.dbeaver.model.exec.DBCExecutionContext;
-import org.jkiss.dbeaver.ui.IActionConstants;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.ai.chat.controls.AIChatControl;
-import org.jkiss.dbeaver.ui.ai.internal.AIUIFeatures;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.DBPContextProvider;
+import com.seizia.chromite.model.DBPDataSourceContainer;
+import com.seizia.chromite.model.ai.AIContextSettings;
+import com.seizia.chromite.model.ai.registry.AISettingsEventListener;
+import com.seizia.chromite.model.ai.registry.AISettingsManager;
+import com.seizia.chromite.model.exec.DBCExecutionContext;
+import com.seizia.chromite.ui.IActionConstants;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.ai.chat.controls.AIChatControl;
+import com.seizia.chromite.ui.ai.internal.AIUIFeatures;
 
 public class AIChatView extends ViewPart {
     private static final Log log = Log.getLog(AIChatView.class);
-    public static final String CONTEXT_ID = "com.dbeaver.ai.chat"; //$NON-NLS-1$
+    public static final String CONTEXT_ID = "com.seizia.chromite.ai.chat"; //$NON-NLS-1$
 
     private AIChatControl chat;
     private AIChatViewHandler handler;

@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.gis.panel;
+package com.seizia.chromite.ui.gis.panel;
 
 import org.eclipse.jface.action.IContributionManager;
 import org.eclipse.jface.action.ToolBarManager;
@@ -26,19 +26,19 @@ import org.eclipse.swt.widgets.Control;
 import org.eclipse.swt.widgets.ToolBar;
 import org.jkiss.code.NotNull;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.exec.DBCException;
-import org.jkiss.dbeaver.model.gis.DBGeometry;
-import org.jkiss.dbeaver.model.gis.GisAttribute;
-import org.jkiss.dbeaver.model.runtime.VoidProgressMonitor;
-import org.jkiss.dbeaver.model.struct.DBSTypedObject;
-import org.jkiss.dbeaver.ui.ActionUtils;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.css.CSSUtils;
-import org.jkiss.dbeaver.ui.data.IValueController;
-import org.jkiss.dbeaver.ui.data.editors.StringInlineEditor;
-import org.jkiss.dbeaver.ui.gis.IGeometryValueEditor;
-import org.jkiss.dbeaver.ui.gis.IGeometryViewer;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.exec.DBCException;
+import com.seizia.chromite.model.gis.DBGeometry;
+import com.seizia.chromite.model.gis.GisAttribute;
+import com.seizia.chromite.model.runtime.VoidProgressMonitor;
+import com.seizia.chromite.model.struct.DBSTypedObject;
+import com.seizia.chromite.ui.ActionUtils;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.css.CSSUtils;
+import com.seizia.chromite.ui.data.IValueController;
+import com.seizia.chromite.ui.data.editors.StringInlineEditor;
+import com.seizia.chromite.ui.gis.IGeometryValueEditor;
+import com.seizia.chromite.ui.gis.IGeometryViewer;
 import org.locationtech.jts.geom.Geometry;
 
 /**

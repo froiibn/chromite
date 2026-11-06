@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.editors.erd.part;
+package com.seizia.chromite.ui.editors.erd.part;
 
 import org.eclipse.draw2d.IFigure;
 import org.eclipse.draw2d.geometry.Dimension;
@@ -27,16 +27,16 @@ import org.eclipse.gef.editparts.AbstractGraphicalEditPart;
 import org.eclipse.ui.views.properties.IPropertySource;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.model.DBPNamedObject;
-import org.jkiss.dbeaver.model.edit.DBECommandContext;
-import org.jkiss.dbeaver.model.erd.ERDObject;
-import org.jkiss.dbeaver.model.struct.DBSObject;
-import org.jkiss.dbeaver.runtime.properties.PropertyCollector;
-import org.jkiss.dbeaver.runtime.properties.PropertySourceEditable;
-import org.jkiss.dbeaver.ui.editors.erd.editor.ERDEditorPart;
-import org.jkiss.dbeaver.ui.editors.erd.editor.ERDGraphicalViewer;
-import org.jkiss.dbeaver.ui.editors.erd.model.EntityDiagram;
-import org.jkiss.dbeaver.ui.properties.PropertySourceDelegate;
+import com.seizia.chromite.model.DBPNamedObject;
+import com.seizia.chromite.model.edit.DBECommandContext;
+import com.seizia.chromite.model.erd.ERDObject;
+import com.seizia.chromite.model.struct.DBSObject;
+import com.seizia.chromite.runtime.properties.PropertyCollector;
+import com.seizia.chromite.runtime.properties.PropertySourceEditable;
+import com.seizia.chromite.ui.editors.erd.editor.ERDEditorPart;
+import com.seizia.chromite.ui.editors.erd.editor.ERDGraphicalViewer;
+import com.seizia.chromite.ui.editors.erd.model.EntityDiagram;
+import com.seizia.chromite.ui.properties.PropertySourceDelegate;
 
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;

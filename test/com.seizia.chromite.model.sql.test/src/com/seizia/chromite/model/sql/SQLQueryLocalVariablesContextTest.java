@@ -14,30 +14,30 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.sql;
+package com.seizia.chromite.model.sql;
 
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.model.impl.sql.BasicSQLDialect;
-import org.jkiss.dbeaver.model.runtime.VoidProgressMonitor;
-import org.jkiss.dbeaver.model.sql.SQLDialect;
-import org.jkiss.dbeaver.model.sql.SQLDialectFeatures;
-import org.jkiss.dbeaver.model.sql.semantics.SQLQueryModelRecognizer;
-import org.jkiss.dbeaver.model.sql.semantics.SQLQueryRecognitionContext;
-import org.jkiss.dbeaver.model.sql.semantics.SQLQuerySymbolEntry;
-import org.jkiss.dbeaver.model.sql.semantics.context.SQLQueryExprType;
-import org.jkiss.dbeaver.model.sql.semantics.context.SQLQueryLocalVariableInfo;
-import org.jkiss.dbeaver.model.sql.semantics.context.SQLQueryLocalVariablesContext;
-import org.jkiss.dbeaver.model.sql.semantics.model.select.SQLQueryRowsLocalTableModel;
-import org.jkiss.dbeaver.model.stm.STMTreeNode;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.junit.DBeaverUnitTest;
+import com.seizia.chromite.model.impl.sql.BasicSQLDialect;
+import com.seizia.chromite.model.runtime.VoidProgressMonitor;
+import com.seizia.chromite.model.sql.SQLDialect;
+import com.seizia.chromite.model.sql.SQLDialectFeatures;
+import com.seizia.chromite.model.sql.semantics.SQLQueryModelRecognizer;
+import com.seizia.chromite.model.sql.semantics.SQLQueryRecognitionContext;
+import com.seizia.chromite.model.sql.semantics.SQLQuerySymbolEntry;
+import com.seizia.chromite.model.sql.semantics.context.SQLQueryExprType;
+import com.seizia.chromite.model.sql.semantics.context.SQLQueryLocalVariableInfo;
+import com.seizia.chromite.model.sql.semantics.context.SQLQueryLocalVariablesContext;
+import com.seizia.chromite.model.sql.semantics.model.select.SQLQueryRowsLocalTableModel;
+import com.seizia.chromite.model.stm.STMTreeNode;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.junit.ChromiteUnitTest;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import java.util.EnumSet;
 import java.util.List;
 
-public class SQLQueryLocalVariablesContextTest extends DBeaverUnitTest {
+public class SQLQueryLocalVariablesContextTest extends ChromiteUnitTest {
     @Test
     void namespacesSeparateCapabilitiesAndPreserveInnerMasking() {
         SQLSyntaxManager syntax = new SQLSyntaxManager();

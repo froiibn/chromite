@@ -14,14 +14,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.mysql.model.session;
+package com.seizia.chromite.ext.mysql.model.session;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.model.admin.sessions.AbstractServerSession;
-import org.jkiss.dbeaver.model.impl.jdbc.JDBCUtils;
-import org.jkiss.dbeaver.model.meta.IPropertyValueValidator;
-import org.jkiss.dbeaver.model.meta.Property;
+import com.seizia.chromite.model.admin.sessions.AbstractServerSession;
+import com.seizia.chromite.model.impl.jdbc.JDBCUtils;
+import com.seizia.chromite.model.meta.IPropertyValueValidator;
+import com.seizia.chromite.model.meta.Property;
 import org.jkiss.utils.CommonUtils;
 
 import java.sql.ResultSet;

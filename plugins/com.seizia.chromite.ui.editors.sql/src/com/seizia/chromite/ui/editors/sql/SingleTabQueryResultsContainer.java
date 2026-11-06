@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.editors.sql;
+package com.seizia.chromite.ui.editors.sql;
 
 import org.eclipse.jface.layout.GridDataFactory;
 import org.eclipse.swt.SWT;
@@ -28,15 +28,15 @@ import org.eclipse.swt.widgets.*;
 import org.eclipse.ui.forms.widgets.Section;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.model.exec.DBCExecutionResult;
-import org.jkiss.dbeaver.model.struct.DBSDataContainer;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.controls.VerticalButton;
-import org.jkiss.dbeaver.ui.controls.resultset.IResultSetDecorator;
-import org.jkiss.dbeaver.ui.controls.resultset.QueryResultsDecorator;
-import org.jkiss.dbeaver.ui.controls.resultset.ResultSetPreferences;
-import org.jkiss.dbeaver.ui.controls.resultset.ResultSetViewer;
-import org.jkiss.dbeaver.ui.controls.resultset.spreadsheet.Spreadsheet;
+import com.seizia.chromite.model.exec.DBCExecutionResult;
+import com.seizia.chromite.model.struct.DBSDataContainer;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.controls.VerticalButton;
+import com.seizia.chromite.ui.controls.resultset.IResultSetDecorator;
+import com.seizia.chromite.ui.controls.resultset.QueryResultsDecorator;
+import com.seizia.chromite.ui.controls.resultset.ResultSetPreferences;
+import com.seizia.chromite.ui.controls.resultset.ResultSetViewer;
+import com.seizia.chromite.ui.controls.resultset.spreadsheet.Spreadsheet;
 import org.jkiss.utils.CommonUtils;
 import org.jkiss.utils.Pair;
 

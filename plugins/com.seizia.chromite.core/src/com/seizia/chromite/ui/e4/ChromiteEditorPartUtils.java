@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.e4;
+package com.seizia.chromite.ui.e4;
 
 import org.eclipse.e4.ui.model.application.ui.basic.MPart;
 import org.eclipse.ui.IEditorInput;
@@ -24,20 +24,20 @@ import org.eclipse.ui.IWorkbenchPartReference;
 import org.eclipse.ui.internal.e4.compatibility.CompatibilityEditor;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.DBPDataSourceContainer;
-import org.jkiss.dbeaver.model.DBPDataSourceContainerProvider;
-import org.jkiss.dbeaver.ui.ConnectionLabelUtils;
-import org.jkiss.dbeaver.ui.UIExecutionQueue;
-import org.jkiss.dbeaver.ui.editors.EditorUtils;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.DBPDataSourceContainer;
+import com.seizia.chromite.model.DBPDataSourceContainerProvider;
+import com.seizia.chromite.ui.ConnectionLabelUtils;
+import com.seizia.chromite.ui.UIExecutionQueue;
+import com.seizia.chromite.ui.editors.EditorUtils;
 
 import java.util.WeakHashMap;
 
-public final class DBeaverEditorPartUtils {
-    private static final Log log = Log.getLog(DBeaverEditorPartUtils.class);
+public final class ChromiteEditorPartUtils {
+    private static final Log log = Log.getLog(ChromiteEditorPartUtils.class);
 
-    private static final String PART_SKIP_KEY = DBeaverEditorPartUtils.class.getName() + ".skipPart";
-    private static final String PART_INPUT_INITIALIZED = DBeaverEditorPartUtils.class.getName() + ".inputInitialized";
+    private static final String PART_SKIP_KEY = ChromiteEditorPartUtils.class.getName() + ".skipPart";
+    private static final String PART_INPUT_INITIALIZED = ChromiteEditorPartUtils.class.getName() + ".inputInitialized";
 
     // Avoids UI double entrance (e.g. master password dialog) when resolving editor input. SWT UI thread is single-threaded, so volatile is not needed.
     private static boolean isResolving;
@@ -45,7 +45,7 @@ public final class DBeaverEditorPartUtils {
     // Weak so that editor refs/parts can be GCed when no longer used. Caches container lookups for Ctrl+E popup and chevron list.
     private static final WeakHashMap<Object, DBPDataSourceContainer> cache = new WeakHashMap<>();
 
-    private DBeaverEditorPartUtils() {
+    private ChromiteEditorPartUtils() {
     }
 
     /**

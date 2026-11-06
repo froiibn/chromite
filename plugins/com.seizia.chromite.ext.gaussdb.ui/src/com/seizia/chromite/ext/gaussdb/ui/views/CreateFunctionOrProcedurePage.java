@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.ext.gaussdb.ui.views;
+package com.seizia.chromite.ext.gaussdb.ui.views;
 
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.layout.GridData;
@@ -26,19 +26,19 @@ import org.eclipse.swt.widgets.Control;
 import org.eclipse.swt.widgets.Text;
 import org.jkiss.code.NotNull;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.ext.gaussdb.model.GaussDBProcedure;
-import org.jkiss.dbeaver.ext.gaussdb.ui.internal.GaussDBMessages;
-import org.jkiss.dbeaver.ext.postgresql.model.PostgreDataType;
-import org.jkiss.dbeaver.ext.postgresql.model.PostgreLanguage;
-import org.jkiss.dbeaver.model.DBPEvaluationContext;
-import org.jkiss.dbeaver.model.DBUtils;
-import org.jkiss.dbeaver.model.impl.DBObjectNameCaseTransformer;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.model.struct.DBSObject;
-import org.jkiss.dbeaver.model.struct.rdb.DBSProcedureType;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.editors.object.struct.BaseObjectEditPage;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.ext.gaussdb.model.GaussDBProcedure;
+import com.seizia.chromite.ext.gaussdb.ui.internal.GaussDBMessages;
+import com.seizia.chromite.ext.postgresql.model.PostgreDataType;
+import com.seizia.chromite.ext.postgresql.model.PostgreLanguage;
+import com.seizia.chromite.model.DBPEvaluationContext;
+import com.seizia.chromite.model.DBUtils;
+import com.seizia.chromite.model.impl.DBObjectNameCaseTransformer;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.model.struct.DBSObject;
+import com.seizia.chromite.model.struct.rdb.DBSProcedureType;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.editors.object.struct.BaseObjectEditPage;
 import org.jkiss.utils.ArrayUtils;
 import org.jkiss.utils.CommonUtils;
 

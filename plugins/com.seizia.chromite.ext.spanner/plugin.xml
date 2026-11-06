@@ -3,7 +3,7 @@
 
 <plugin>
 
-    <extension point="org.jkiss.dbeaver.dataSourceProvider">
+    <extension point="com.seizia.chromite.dataSourceProvider">
 
         <dataSourceType
             id="google_cloud_spanner"
@@ -17,7 +17,7 @@
         <!-- Spanner -->
 
         <datasource
-                class="org.jkiss.dbeaver.ext.spanner.SpannerDataSourceProvider"
+                class="com.seizia.chromite.ext.spanner.SpannerDataSourceProvider"
                 description="Google Spanner datasource"
                 id="google_spanner"
                 dataSourceType="google_cloud_spanner"
@@ -75,17 +75,17 @@
         </datasource>
     </extension>
 
-    <extension point="org.jkiss.dbeaver.sqlDialect">
-        <dialect id="spanner" parent="generic" class="org.jkiss.dbeaver.ext.spanner.model.SpannerSQLDialect" label="Spanner" description="Google Cloud Spanner SQL dialect." icon="icons/spanner_icon.png">
+    <extension point="com.seizia.chromite.sqlDialect">
+        <dialect id="spanner" parent="generic" class="com.seizia.chromite.ext.spanner.model.SpannerSQLDialect" label="Spanner" description="Google Cloud Spanner SQL dialect." icon="icons/spanner_icon.png">
         </dialect>
     </extension>
 
-    <extension point="org.jkiss.dbeaver.dataSourceAuth">
+    <extension point="com.seizia.chromite.dataSourceAuth">
         <authModel
                 id="google_spanner"
                 label="Google Cloud Auth"
                 description="Spanner internal authentication"
-                class="org.jkiss.dbeaver.ext.spanner.auth.SpannerAuthModel"
+                class="com.seizia.chromite.ext.spanner.auth.SpannerAuthModel"
                 default="true">
             <replace model="native"/>
             <datasource id="google_spanner"/>

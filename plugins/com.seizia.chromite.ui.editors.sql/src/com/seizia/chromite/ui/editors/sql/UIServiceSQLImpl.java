@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.ui.editors.sql;
+package com.seizia.chromite.ui.editors.sql;
 
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.jface.dialogs.IDialogConstants;
@@ -31,30 +31,30 @@ import org.eclipse.ui.texteditor.ITextEditorActionConstants;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.ModelPreferences.SeparateConnectionBehavior;
-import org.jkiss.dbeaver.model.DBIcon;
-import org.jkiss.dbeaver.model.DBPContextProvider;
-import org.jkiss.dbeaver.model.DBPDataSourceContainer;
-import org.jkiss.dbeaver.model.DBPImage;
-import org.jkiss.dbeaver.model.exec.DBCExecutionContext;
-import org.jkiss.dbeaver.model.preferences.DBPPropertyDescriptor;
-import org.jkiss.dbeaver.model.runtime.DBRCreator;
-import org.jkiss.dbeaver.model.struct.DBSObject;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.runtime.ui.UIServiceSQL;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.dialogs.MessageBoxBuilder;
-import org.jkiss.dbeaver.ui.dialogs.Reply;
-import org.jkiss.dbeaver.ui.editors.StringEditorInput;
-import org.jkiss.dbeaver.ui.editors.SubEditorSite;
-import org.jkiss.dbeaver.ui.editors.TextEditorUtils;
-import org.jkiss.dbeaver.ui.editors.sql.dialogs.GenerateSQLParametrizedDialog;
-import org.jkiss.dbeaver.ui.editors.sql.dialogs.ViewSQLDialog;
-import org.jkiss.dbeaver.ui.editors.sql.handlers.SQLEditorHandlerOpenEditor;
-import org.jkiss.dbeaver.ui.editors.sql.handlers.SQLNavigatorContext;
-import org.jkiss.dbeaver.ui.internal.UIMessages;
-import org.jkiss.dbeaver.utils.GeneralUtils;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.ModelPreferences.SeparateConnectionBehavior;
+import com.seizia.chromite.model.DBIcon;
+import com.seizia.chromite.model.DBPContextProvider;
+import com.seizia.chromite.model.DBPDataSourceContainer;
+import com.seizia.chromite.model.DBPImage;
+import com.seizia.chromite.model.exec.DBCExecutionContext;
+import com.seizia.chromite.model.preferences.DBPPropertyDescriptor;
+import com.seizia.chromite.model.runtime.DBRCreator;
+import com.seizia.chromite.model.struct.DBSObject;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.runtime.ui.UIServiceSQL;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.dialogs.MessageBoxBuilder;
+import com.seizia.chromite.ui.dialogs.Reply;
+import com.seizia.chromite.ui.editors.StringEditorInput;
+import com.seizia.chromite.ui.editors.SubEditorSite;
+import com.seizia.chromite.ui.editors.TextEditorUtils;
+import com.seizia.chromite.ui.editors.sql.dialogs.GenerateSQLParametrizedDialog;
+import com.seizia.chromite.ui.editors.sql.dialogs.ViewSQLDialog;
+import com.seizia.chromite.ui.editors.sql.handlers.SQLEditorHandlerOpenEditor;
+import com.seizia.chromite.ui.editors.sql.handlers.SQLNavigatorContext;
+import com.seizia.chromite.ui.internal.UIMessages;
+import com.seizia.chromite.utils.GeneralUtils;
 import org.jkiss.utils.CommonUtils;
 
 import java.util.LinkedHashMap;

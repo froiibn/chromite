@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.cubrid.ui.views;
+package com.seizia.chromite.ext.cubrid.ui.views;
 
 import org.eclipse.jface.viewers.ISelection;
 import org.eclipse.jface.viewers.Viewer;
@@ -25,9 +25,9 @@ import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Control;
 import org.eclipse.swt.widgets.Text;
 import org.eclipse.ui.IWorkbenchPart;
-import org.jkiss.dbeaver.model.exec.plan.DBCPlan;
-import org.jkiss.dbeaver.model.sql.SQLQuery;
-import org.jkiss.dbeaver.ui.UIUtils;
+import com.seizia.chromite.model.exec.plan.DBCPlan;
+import com.seizia.chromite.model.sql.SQLQuery;
+import com.seizia.chromite.ui.UIUtils;
 
 public class CubridSQLPlanFullTextViewer extends Viewer {
 

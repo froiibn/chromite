@@ -14,14 +14,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.greenplum.model;
+package com.seizia.chromite.ext.greenplum.model;
 
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.ext.postgresql.model.PostgreMaterializedView;
-import org.jkiss.dbeaver.ext.postgresql.model.PostgreSchema;
-import org.jkiss.dbeaver.ext.postgresql.model.PostgreTableColumn;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.ext.postgresql.model.PostgreMaterializedView;
+import com.seizia.chromite.ext.postgresql.model.PostgreSchema;
+import com.seizia.chromite.ext.postgresql.model.PostgreTableColumn;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
 import org.jkiss.utils.CommonUtils;
 
 import java.sql.ResultSet;

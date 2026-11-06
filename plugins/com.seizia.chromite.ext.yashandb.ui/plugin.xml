@@ -2,41 +2,41 @@
 <?eclipse version="3.2"?>
 <plugin>
 
-    <extension point="org.jkiss.dbeaver.dataSourceConfigurator">
-        <configurator dataSource="yashandb" class="org.jkiss.dbeaver.ext.yashandb.ui.views.YashanDBConnectionPage"/>
+    <extension point="com.seizia.chromite.dataSourceConfigurator">
+        <configurator dataSource="yashandb" class="com.seizia.chromite.ext.yashandb.ui.views.YashanDBConnectionPage"/>
     </extension>
 
     <extension point="org.eclipse.ui.editors">
         <editor
             name="%editor.session_manager.name"
-            icon="platform:/plugin/org.jkiss.dbeaver.model/icons/tree/sessions.svg"
-            class="org.jkiss.dbeaver.ext.yashandb.ui.editors.YashanDBSessionEditor"
-            id="org.jkiss.dbeaver.ext.yashandb.ui.editors.YashanDBSessionEditor"
-            contributorClass="org.jkiss.dbeaver.ui.editors.EditorSearchActionsContributor">
+            icon="platform:/plugin/com.seizia.chromite.model/icons/tree/sessions.svg"
+            class="com.seizia.chromite.ext.yashandb.ui.editors.YashanDBSessionEditor"
+            id="com.seizia.chromite.ext.yashandb.ui.editors.YashanDBSessionEditor"
+            contributorClass="com.seizia.chromite.ui.editors.EditorSearchActionsContributor">
         </editor>
     </extension>
 
-    <extension point="org.jkiss.dbeaver.dataSourceProvider">
-        <editorContribution editorId="org.jkiss.dbeaver.ext.yashandb.ui.editors.YashanDBSessionEditor" category="connectionEditor" label="%editor.session_manager.name" icon="platform:/plugin/org.jkiss.dbeaver.model/icons/tree/sessions.svg">
+    <extension point="com.seizia.chromite.dataSourceProvider">
+        <editorContribution editorId="com.seizia.chromite.ext.yashandb.ui.editors.YashanDBSessionEditor" category="connectionEditor" label="%editor.session_manager.name" icon="platform:/plugin/com.seizia.chromite.model/icons/tree/sessions.svg">
             <supports dataSource="yashandb"/>
         </editorContribution>
     </extension>
 
-    <extension point="org.jkiss.dbeaver.databaseEditor">
-        <configurator class="org.jkiss.dbeaver.ext.yashandb.ui.config.YashanDBSchemaConfigurator">
-            <objectType name="org.jkiss.dbeaver.ext.yashandb.model.YashanDBSchema"/>
+    <extension point="com.seizia.chromite.databaseEditor">
+        <configurator class="com.seizia.chromite.ext.yashandb.ui.config.YashanDBSchemaConfigurator">
+            <objectType name="com.seizia.chromite.ext.yashandb.model.YashanDBSchema"/>
         </configurator>
-        <configurator class="org.jkiss.dbeaver.ext.yashandb.ui.config.YashanDBDataTypeConfigurator">
-            <objectType name="org.jkiss.dbeaver.ext.yashandb.model.YashanDBDataType"/>
+        <configurator class="com.seizia.chromite.ext.yashandb.ui.config.YashanDBDataTypeConfigurator">
+            <objectType name="com.seizia.chromite.ext.yashandb.model.YashanDBDataType"/>
         </configurator>
-        <configurator class="org.jkiss.dbeaver.ext.yashandb.ui.config.YashanDBPackageConfigurator">
-            <objectType name="org.jkiss.dbeaver.ext.yashandb.model.YashanDBPackage"/>
+        <configurator class="com.seizia.chromite.ext.yashandb.ui.config.YashanDBPackageConfigurator">
+            <objectType name="com.seizia.chromite.ext.yashandb.model.YashanDBPackage"/>
         </configurator>
-        <configurator class="org.jkiss.dbeaver.ext.yashandb.ui.config.YashanDBProcedureConfigurator">
-            <objectType name="org.jkiss.dbeaver.ext.yashandb.model.YashanDBProcedureStandalone"/>
+        <configurator class="com.seizia.chromite.ext.yashandb.ui.config.YashanDBProcedureConfigurator">
+            <objectType name="com.seizia.chromite.ext.yashandb.model.YashanDBProcedureStandalone"/>
         </configurator>
-        <configurator class="org.jkiss.dbeaver.ext.yashandb.ui.config.YashanDBTableTriggerConfigurator">
-            <objectType name="org.jkiss.dbeaver.ext.yashandb.model.YashanDBTableTrigger"/>
+        <configurator class="com.seizia.chromite.ext.yashandb.ui.config.YashanDBTableTriggerConfigurator">
+            <objectType name="com.seizia.chromite.ext.yashandb.model.YashanDBTableTrigger"/>
         </configurator>
     </extension>
 </plugin>

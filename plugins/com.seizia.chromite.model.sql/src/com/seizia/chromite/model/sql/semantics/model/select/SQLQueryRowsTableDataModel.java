@@ -14,26 +14,26 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.sql.semantics.model.select;
+package com.seizia.chromite.model.sql.semantics.model.select;
 
 
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.data.DBDPseudoAttributeContainer;
-import org.jkiss.dbeaver.model.impl.struct.RelationalObjectType;
-import org.jkiss.dbeaver.model.sql.SQLDialect;
-import org.jkiss.dbeaver.model.sql.semantics.*;
-import org.jkiss.dbeaver.model.sql.semantics.context.*;
-import org.jkiss.dbeaver.model.sql.semantics.model.SQLQueryNodeModel;
-import org.jkiss.dbeaver.model.sql.semantics.model.SQLQueryNodeModelVisitor;
-import org.jkiss.dbeaver.model.stm.STMTreeNode;
-import org.jkiss.dbeaver.model.struct.DBSEntity;
-import org.jkiss.dbeaver.model.struct.DBSEntityAttribute;
-import org.jkiss.dbeaver.model.struct.DBSObject;
-import org.jkiss.dbeaver.model.struct.rdb.DBSTable;
-import org.jkiss.dbeaver.model.struct.rdb.DBSView;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.data.DBDPseudoAttributeContainer;
+import com.seizia.chromite.model.impl.struct.RelationalObjectType;
+import com.seizia.chromite.model.sql.SQLDialect;
+import com.seizia.chromite.model.sql.semantics.*;
+import com.seizia.chromite.model.sql.semantics.context.*;
+import com.seizia.chromite.model.sql.semantics.model.SQLQueryNodeModel;
+import com.seizia.chromite.model.sql.semantics.model.SQLQueryNodeModelVisitor;
+import com.seizia.chromite.model.stm.STMTreeNode;
+import com.seizia.chromite.model.struct.DBSEntity;
+import com.seizia.chromite.model.struct.DBSEntityAttribute;
+import com.seizia.chromite.model.struct.DBSObject;
+import com.seizia.chromite.model.struct.rdb.DBSTable;
+import com.seizia.chromite.model.struct.rdb.DBSView;
 import org.jkiss.utils.Pair;
 
 import java.util.Collection;

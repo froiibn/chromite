@@ -14,27 +14,27 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.editors.sql.commands;
+package com.seizia.chromite.ui.editors.sql.commands;
 
 import org.eclipse.core.filesystem.EFS;
 import org.eclipse.core.filesystem.IFileStore;
 import org.eclipse.ui.*;
 import org.jkiss.code.NotNull;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.DBUtils;
-import org.jkiss.dbeaver.model.exec.DBCSession;
-import org.jkiss.dbeaver.model.exec.DBCStatistics;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.model.sql.*;
-import org.jkiss.dbeaver.model.sql.eval.ScriptVariablesResolver;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.editors.IncludedScriptFileEditorInput;
-import org.jkiss.dbeaver.ui.editors.sql.SQLEditor;
-import org.jkiss.dbeaver.ui.editors.sql.SQLPreferenceConstants;
-import org.jkiss.dbeaver.ui.editors.sql.handlers.SQLEditorHandlerOpenEditor;
-import org.jkiss.dbeaver.ui.editors.sql.handlers.SQLNavigatorContext;
-import org.jkiss.dbeaver.utils.GeneralUtils;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.DBUtils;
+import com.seizia.chromite.model.exec.DBCSession;
+import com.seizia.chromite.model.exec.DBCStatistics;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.model.sql.*;
+import com.seizia.chromite.model.sql.eval.ScriptVariablesResolver;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.editors.IncludedScriptFileEditorInput;
+import com.seizia.chromite.ui.editors.sql.SQLEditor;
+import com.seizia.chromite.ui.editors.sql.SQLPreferenceConstants;
+import com.seizia.chromite.ui.editors.sql.handlers.SQLEditorHandlerOpenEditor;
+import com.seizia.chromite.ui.editors.sql.handlers.SQLNavigatorContext;
+import com.seizia.chromite.utils.GeneralUtils;
 import org.jkiss.utils.CommonUtils;
 
 import java.nio.file.Files;

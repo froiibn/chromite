@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.ui.controls.resultset;
+package com.seizia.chromite.ui.controls.resultset;
 
 import org.eclipse.swt.widgets.Control;
 import org.jkiss.code.Nullable;

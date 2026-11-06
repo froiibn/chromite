@@ -14,23 +14,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.editors.file;
+package com.seizia.chromite.ui.editors.file;
 
 import org.eclipse.core.resources.IFile;
 import org.eclipse.core.resources.IResource;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.DBPDataSourceContainer;
-import org.jkiss.dbeaver.model.app.DBPPlatformDesktop;
-import org.jkiss.dbeaver.model.app.DBPResourceHandler;
-import org.jkiss.dbeaver.model.file.FileOpenHandler;
-import org.jkiss.dbeaver.model.file.FileTypeAction;
-import org.jkiss.dbeaver.model.navigator.fs.DBNPathBase;
-import org.jkiss.dbeaver.ui.ShellUtils;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.editors.EditorUtils;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.DBPDataSourceContainer;
+import com.seizia.chromite.model.app.DBPPlatformDesktop;
+import com.seizia.chromite.model.app.DBPResourceHandler;
+import com.seizia.chromite.model.file.FileOpenHandler;
+import com.seizia.chromite.model.file.FileTypeAction;
+import com.seizia.chromite.model.navigator.fs.DBNPathBase;
+import com.seizia.chromite.ui.ShellUtils;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.editors.EditorUtils;
 import org.jkiss.utils.IOUtils;
 
 import java.nio.file.Path;

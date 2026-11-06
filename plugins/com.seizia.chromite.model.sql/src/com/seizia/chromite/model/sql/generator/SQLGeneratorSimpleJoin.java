@@ -14,13 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.sql.generator;
+package com.seizia.chromite.model.sql.generator;
 
-import org.jkiss.dbeaver.model.DBUtils;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.model.sql.SQLDialect;
-import org.jkiss.dbeaver.model.sql.SQLUtils;
-import org.jkiss.dbeaver.model.struct.DBSEntity;
+import com.seizia.chromite.model.DBUtils;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.model.sql.SQLDialect;
+import com.seizia.chromite.model.sql.SQLUtils;
+import com.seizia.chromite.model.struct.DBSEntity;
 
 import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;

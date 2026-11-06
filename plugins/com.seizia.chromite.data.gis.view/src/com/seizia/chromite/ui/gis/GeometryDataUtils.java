@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.ui.gis;
+package com.seizia.chromite.ui.gis;
 
 import org.eclipse.e4.ui.css.core.css2.CSS2ColorHelper;
 import org.eclipse.swt.SWT;
@@ -23,22 +23,22 @@ import org.eclipse.swt.graphics.RGB;
 import org.eclipse.swt.widgets.Display;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.ModelPreferences;
-import org.jkiss.dbeaver.model.DBPEvaluationContext;
-import org.jkiss.dbeaver.model.DBUtils;
-import org.jkiss.dbeaver.model.data.DBDAttributeBinding;
-import org.jkiss.dbeaver.model.data.DBDDisplayFormat;
-import org.jkiss.dbeaver.model.gis.DBGeometry;
-import org.jkiss.dbeaver.model.gis.GisConstants;
-import org.jkiss.dbeaver.model.struct.DBSEntityAttribute;
-import org.jkiss.dbeaver.model.virtual.DBVEntity;
-import org.jkiss.dbeaver.model.virtual.DBVUtils;
-import org.jkiss.dbeaver.ui.UIColors;
-import org.jkiss.dbeaver.ui.controls.resultset.IResultSetController;
-import org.jkiss.dbeaver.ui.controls.resultset.ResultSetModel;
-import org.jkiss.dbeaver.ui.controls.resultset.ResultSetRow;
-import org.jkiss.dbeaver.ui.gis.internal.GISViewerActivator;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.ModelPreferences;
+import com.seizia.chromite.model.DBPEvaluationContext;
+import com.seizia.chromite.model.DBUtils;
+import com.seizia.chromite.model.data.DBDAttributeBinding;
+import com.seizia.chromite.model.data.DBDDisplayFormat;
+import com.seizia.chromite.model.gis.DBGeometry;
+import com.seizia.chromite.model.gis.GisConstants;
+import com.seizia.chromite.model.struct.DBSEntityAttribute;
+import com.seizia.chromite.model.virtual.DBVEntity;
+import com.seizia.chromite.model.virtual.DBVUtils;
+import com.seizia.chromite.ui.UIColors;
+import com.seizia.chromite.ui.controls.resultset.IResultSetController;
+import com.seizia.chromite.ui.controls.resultset.ResultSetModel;
+import com.seizia.chromite.ui.controls.resultset.ResultSetRow;
+import com.seizia.chromite.ui.gis.internal.GISViewerActivator;
 import org.jkiss.utils.CommonUtils;
 
 import java.util.*;

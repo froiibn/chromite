@@ -14,13 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.ai.engine.openai;
+package com.seizia.chromite.model.ai.engine.openai;
 
 import com.google.gson.JsonSyntaxException;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.model.ai.engine.AIEngineResponseChunk;
-import org.jkiss.dbeaver.model.ai.engine.AIEngineResponseConsumer;
-import org.jkiss.junit.DBeaverUnitTest;
+import com.seizia.chromite.model.ai.engine.AIEngineResponseChunk;
+import com.seizia.chromite.model.ai.engine.AIEngineResponseConsumer;
+import com.seizia.chromite.junit.ChromiteUnitTest;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -29,7 +29,7 @@ import org.mockito.Mockito;
 import java.util.List;
 import java.util.Map;
 
-public class OpenAiAPIStreamConsumerTest extends DBeaverUnitTest {
+public class OpenAiAPIStreamConsumerTest extends ChromiteUnitTest {
     private final AIEngineResponseConsumer listener = Mockito.mock(AIEngineResponseConsumer.class);
     private final OpenAiAPIStreamConsumer consumer = new OpenAiAPIStreamConsumer(listener);
 

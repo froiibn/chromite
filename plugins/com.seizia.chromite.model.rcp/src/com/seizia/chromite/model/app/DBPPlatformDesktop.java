@@ -15,11 +15,11 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.model.app;
+package com.seizia.chromite.model.app;
 
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.model.DBPExternalFileManager;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
+import com.seizia.chromite.model.DBPExternalFileManager;
+import com.seizia.chromite.runtime.DBWorkbench;
 
 /**
  * DBPPlatform

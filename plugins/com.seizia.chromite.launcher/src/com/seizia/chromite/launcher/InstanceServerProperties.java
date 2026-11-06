@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.launcher;
+package com.seizia.chromite.launcher;
 
 public record InstanceServerProperties(int port, String password) {
     public static final String PROPERTY_PORT = "port";

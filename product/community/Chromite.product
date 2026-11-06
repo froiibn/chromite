@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <?pde version="3.5"?>
 
-<product name="Chromite" uid="org.jkiss.dbeaver.core.product" id="org.jkiss.dbeaver.ui.app.standalone.product"
-    application="org.jkiss.dbeaver.ui.app.standalone.standalone" version="26.2.5.qualifier" useFeatures="true"
+<product name="Chromite" uid="com.seizia.chromite.core.product" id="com.seizia.chromite.ui.app.standalone.product"
+    application="com.seizia.chromite.ui.app.standalone.standalone" version="26.2.5.qualifier" useFeatures="true"
     includeLaunchers="true">
 
     <configIni use="default">
@@ -47,12 +47,12 @@
         <vmArgsMac>-XstartOnFirstThread -Dorg.eclipse.swt.internal.cocoa.useNativeItemHeight=false</vmArgsMac>
     </launcherArgs>
 
-    <splash location="org.jkiss.dbeaver.ui.app.standalone"/>
+    <splash location="com.seizia.chromite.ui.app.standalone"/>
 
     <launcher name="chromite">
-        <macosx icon="/icons/dbeaver.icns"/>
+        <macosx icon="/icons/chromite.icns"/>
         <win useIco="true">
-            <ico path="icons/dbeaver.ico"/>
+            <ico path="icons/chromite.ico"/>
         </win>
     </launcher>
 
@@ -83,7 +83,7 @@
     </plugins>
 
     <features>
-        <feature id="org.jkiss.dbeaver.ce.feature"/>
+        <feature id="com.seizia.chromite.ce.feature"/>
     </features>
 
     <configurations>

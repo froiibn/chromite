@@ -15,13 +15,13 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.model.impl.plan;
+package com.seizia.chromite.model.impl.plan;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.model.exec.plan.DBCPlan;
-import org.jkiss.dbeaver.model.exec.plan.DBCPlanCostNode;
-import org.jkiss.dbeaver.model.exec.plan.DBCPlanSourceFormat;
+import com.seizia.chromite.model.exec.plan.DBCPlan;
+import com.seizia.chromite.model.exec.plan.DBCPlanCostNode;
+import com.seizia.chromite.model.exec.plan.DBCPlanSourceFormat;
 
 /**
  * Abstract execution plan

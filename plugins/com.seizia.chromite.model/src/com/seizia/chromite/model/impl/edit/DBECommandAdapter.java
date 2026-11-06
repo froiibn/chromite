@@ -14,11 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.impl.edit;
+package com.seizia.chromite.model.impl.edit;
 
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.model.edit.DBECommand;
-import org.jkiss.dbeaver.model.edit.DBECommandListener;
+import com.seizia.chromite.model.edit.DBECommand;
+import com.seizia.chromite.model.edit.DBECommandListener;
 
 /**
  * Command adapter

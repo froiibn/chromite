@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.ai.engine.ollama;
+package com.seizia.chromite.model.ai.engine.ollama;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -23,14 +23,14 @@ import com.google.gson.Strictness;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.ai.AIUsage;
-import org.jkiss.dbeaver.model.ai.engine.AIEngineResponseChunk;
-import org.jkiss.dbeaver.model.ai.engine.AIEngineResponseConsumer;
-import org.jkiss.dbeaver.model.ai.engine.AbstractHttpAIClient;
-import org.jkiss.dbeaver.model.ai.engine.ollama.dto.*;
-import org.jkiss.dbeaver.model.ai.utils.AIHttpUtils;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.ai.AIUsage;
+import com.seizia.chromite.model.ai.engine.AIEngineResponseChunk;
+import com.seizia.chromite.model.ai.engine.AIEngineResponseConsumer;
+import com.seizia.chromite.model.ai.engine.AbstractHttpAIClient;
+import com.seizia.chromite.model.ai.engine.ollama.dto.*;
+import com.seizia.chromite.model.ai.utils.AIHttpUtils;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
 import org.jkiss.utils.CommonUtils;
 import org.jkiss.utils.GsonUtils;
 import org.jkiss.utils.HttpConstants;

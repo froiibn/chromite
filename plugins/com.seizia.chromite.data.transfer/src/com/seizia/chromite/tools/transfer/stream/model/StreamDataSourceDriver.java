@@ -14,11 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.tools.transfer.stream.model;
+package com.seizia.chromite.tools.transfer.stream.model;
 
-import org.jkiss.dbeaver.model.connection.DBPDriver;
-import org.jkiss.dbeaver.registry.DataSourceProviderRegistry;
-import org.jkiss.dbeaver.registry.driver.DriverDescriptor;
+import com.seizia.chromite.model.connection.DBPDriver;
+import com.seizia.chromite.registry.DataSourceProviderRegistry;
+import com.seizia.chromite.registry.driver.DriverDescriptor;
 
 /**
  * StreamDataSourceDialect

@@ -14,16 +14,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.net.ssh;
+package com.seizia.chromite.model.net.ssh;
 
 import net.schmizz.sshj.common.KeyType;
 import net.schmizz.sshj.common.SecurityUtils;
 import net.schmizz.sshj.transport.verification.OpenSSHKnownHosts;
 import org.eclipse.osgi.util.NLS;
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.model.DBConstants;
-import org.jkiss.dbeaver.model.net.ssh.config.SSHHostConfiguration;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
+import com.seizia.chromite.model.DBConstants;
+import com.seizia.chromite.model.net.ssh.config.SSHHostConfiguration;
+import com.seizia.chromite.runtime.DBWorkbench;
 
 import java.io.File;
 import java.io.IOException;

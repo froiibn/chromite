@@ -14,22 +14,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.net.ssh;
+package com.seizia.chromite.model.net.ssh;
 
 import com.jcraft.jsch.*;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.DBConstants;
-import org.jkiss.dbeaver.model.DBPDataSourceContainer;
-import org.jkiss.dbeaver.model.exec.DBCInvalidatePhase;
-import org.jkiss.dbeaver.model.meta.Property;
-import org.jkiss.dbeaver.model.net.DBWHandlerConfiguration;
-import org.jkiss.dbeaver.model.net.ssh.config.SSHHostConfiguration;
-import org.jkiss.dbeaver.model.net.ssh.config.SSHPortForwardConfiguration;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.utils.RuntimeUtils;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.DBConstants;
+import com.seizia.chromite.model.DBPDataSourceContainer;
+import com.seizia.chromite.model.exec.DBCInvalidatePhase;
+import com.seizia.chromite.model.meta.Property;
+import com.seizia.chromite.model.net.DBWHandlerConfiguration;
+import com.seizia.chromite.model.net.ssh.config.SSHHostConfiguration;
+import com.seizia.chromite.model.net.ssh.config.SSHPortForwardConfiguration;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.utils.RuntimeUtils;
 import org.jkiss.utils.CommonUtils;
 
 import java.io.IOException;

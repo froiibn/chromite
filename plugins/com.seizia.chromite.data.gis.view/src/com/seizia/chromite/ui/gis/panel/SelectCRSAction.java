@@ -14,23 +14,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.gis.panel;
+package com.seizia.chromite.ui.gis.panel;
 
 import org.eclipse.jface.action.Action;
 import org.eclipse.jface.action.IMenuCreator;
 import org.eclipse.jface.action.MenuManager;
 import org.eclipse.jface.action.Separator;
 import org.eclipse.jface.dialogs.IDialogConstants;
-import org.jkiss.dbeaver.model.gis.DBGeometry;
-import org.jkiss.dbeaver.model.gis.GisConstants;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.ui.DBeaverIcons;
-import org.jkiss.dbeaver.ui.MenuCreator;
-import org.jkiss.dbeaver.ui.UIIcon;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.gis.IGeometryValueEditor;
-import org.jkiss.dbeaver.ui.gis.internal.GISMessages;
-import org.jkiss.dbeaver.ui.gis.preferences.PrefPageGIS;
+import com.seizia.chromite.model.gis.DBGeometry;
+import com.seizia.chromite.model.gis.GisConstants;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.ui.SwtIcons;
+import com.seizia.chromite.ui.MenuCreator;
+import com.seizia.chromite.ui.UIIcon;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.gis.IGeometryValueEditor;
+import com.seizia.chromite.ui.gis.internal.GISMessages;
+import com.seizia.chromite.ui.gis.preferences.PrefPageGIS;
 
 import java.util.Arrays;
 import java.util.List;
@@ -41,7 +41,7 @@ class SelectCRSAction extends Action {
 
     SelectCRSAction(IGeometryValueEditor valueEditor) {
         super(valueEditor.getValueSRID() == GisConstants.SRID_SIMPLE ? GisConstants.LL_CRS_SIMPLE : "EPSG:" + valueEditor.getValueSRID(), Action.AS_DROP_DOWN_MENU);
-        setImageDescriptor(DBeaverIcons.getImageDescriptor(UIIcon.CHART_LINE));
+        setImageDescriptor(SwtIcons.getImageDescriptor(UIIcon.CHART_LINE));
         this.valueEditor = valueEditor;
     }
 

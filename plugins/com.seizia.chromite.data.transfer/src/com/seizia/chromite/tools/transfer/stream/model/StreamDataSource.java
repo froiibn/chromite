@@ -15,24 +15,24 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.tools.transfer.stream.model;
+package com.seizia.chromite.tools.transfer.stream.model;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.model.DBPDataSource;
-import org.jkiss.dbeaver.model.DBPDataSourceInfo;
-import org.jkiss.dbeaver.model.data.DBDFormatSettings;
-import org.jkiss.dbeaver.model.data.DBDValueHandler;
-import org.jkiss.dbeaver.model.data.DBDValueHandlerProvider;
-import org.jkiss.dbeaver.model.exec.DBCExecutionContext;
-import org.jkiss.dbeaver.model.impl.AbstractSimpleDataSource;
-import org.jkiss.dbeaver.model.impl.data.DefaultValueHandler;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.model.sql.SQLDialect;
-import org.jkiss.dbeaver.model.struct.DBSObject;
-import org.jkiss.dbeaver.model.struct.DBSTypedObject;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
+import com.seizia.chromite.model.DBPDataSource;
+import com.seizia.chromite.model.DBPDataSourceInfo;
+import com.seizia.chromite.model.data.DBDFormatSettings;
+import com.seizia.chromite.model.data.DBDValueHandler;
+import com.seizia.chromite.model.data.DBDValueHandlerProvider;
+import com.seizia.chromite.model.exec.DBCExecutionContext;
+import com.seizia.chromite.model.impl.AbstractSimpleDataSource;
+import com.seizia.chromite.model.impl.data.DefaultValueHandler;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.model.sql.SQLDialect;
+import com.seizia.chromite.model.struct.DBSObject;
+import com.seizia.chromite.model.struct.DBSTypedObject;
+import com.seizia.chromite.runtime.DBWorkbench;
 
 import java.util.Collection;
 

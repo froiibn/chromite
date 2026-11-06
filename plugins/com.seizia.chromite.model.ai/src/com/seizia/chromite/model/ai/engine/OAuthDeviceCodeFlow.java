@@ -14,11 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.ai.engine;
+package com.seizia.chromite.model.ai.engine;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.model.ai.engine.openai.AIAccountAuthenticator;
+import com.seizia.chromite.model.ai.engine.openai.AIAccountAuthenticator;
 import org.jkiss.utils.function.ThrowableConsumer;
 
 import java.time.Duration;

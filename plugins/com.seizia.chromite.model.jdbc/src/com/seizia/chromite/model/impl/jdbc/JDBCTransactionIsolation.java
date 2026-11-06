@@ -14,10 +14,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.impl.jdbc;
+package com.seizia.chromite.model.impl.jdbc;
 
-import org.jkiss.dbeaver.model.DBPTransactionIsolation;
-import org.jkiss.dbeaver.model.messages.ModelMessages;
+import com.seizia.chromite.model.DBPTransactionIsolation;
+import com.seizia.chromite.model.messages.ModelMessages;
 
 import java.sql.Connection;
 

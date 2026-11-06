@@ -14,20 +14,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.net.ssh;
+package com.seizia.chromite.model.net.ssh;
 
 import com.jcraft.jsch.*;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.DBPDataSourceContainer;
-import org.jkiss.dbeaver.model.net.DBWHandlerConfiguration;
-import org.jkiss.dbeaver.model.net.ssh.config.SSHAuthConfiguration;
-import org.jkiss.dbeaver.model.net.ssh.config.SSHHostConfiguration;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.utils.GeneralUtils;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.DBPDataSourceContainer;
+import com.seizia.chromite.model.net.DBWHandlerConfiguration;
+import com.seizia.chromite.model.net.ssh.config.SSHAuthConfiguration;
+import com.seizia.chromite.model.net.ssh.config.SSHHostConfiguration;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.utils.GeneralUtils;
 import org.jkiss.utils.CommonUtils;
 import org.jkiss.utils.SecurityUtils;
 

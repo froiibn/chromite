@@ -14,10 +14,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.struct.rdb;
+package com.seizia.chromite.model.struct.rdb;
 
-import org.jkiss.dbeaver.model.DBPQualifiedObject;
-import org.jkiss.dbeaver.model.struct.DBSEntity;
+import com.seizia.chromite.model.DBPQualifiedObject;
+import com.seizia.chromite.model.struct.DBSEntity;
 
 /**
  * Table

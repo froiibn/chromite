@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.qm;
+package com.seizia.chromite.model.qm;
 
 import org.jkiss.code.Nullable;
 

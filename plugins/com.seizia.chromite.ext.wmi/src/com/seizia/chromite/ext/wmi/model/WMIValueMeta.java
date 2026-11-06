@@ -14,9 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.wmi.model;
+package com.seizia.chromite.ext.wmi.model;
 
-import org.jkiss.dbeaver.model.data.DBDValueMeta;
+import com.seizia.chromite.model.data.DBDValueMeta;
 import org.jkiss.wmi.service.WMIQualifier;
 
 import java.util.Collection;

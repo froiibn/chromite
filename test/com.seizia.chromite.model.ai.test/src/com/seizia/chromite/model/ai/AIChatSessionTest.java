@@ -14,24 +14,24 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.ai;
+package com.seizia.chromite.model.ai;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.model.DBPDataSourceContainer;
-import org.jkiss.dbeaver.model.ai.engine.AIDatabaseContext;
-import org.jkiss.dbeaver.model.ai.qm.AIChatStorage;
-import org.jkiss.dbeaver.model.ai.qm.QMAIChatStorageInMemory;
-import org.jkiss.dbeaver.model.ai.qm.QMAIContext;
-import org.jkiss.dbeaver.model.ai.qm.QMAIConversationHistory;
-import org.jkiss.dbeaver.model.ai.quota.QuotaStatus;
-import org.jkiss.dbeaver.model.ai.quota.UserTokenQuotaService;
-import org.jkiss.dbeaver.model.app.DBPWorkspace;
-import org.jkiss.dbeaver.model.exec.DBCExecutionContext;
-import org.jkiss.dbeaver.model.qm.QMUnavailableException;
-import org.jkiss.dbeaver.model.runtime.VoidProgressMonitor;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.junit.DBeaverUnitTest;
+import com.seizia.chromite.model.DBPDataSourceContainer;
+import com.seizia.chromite.model.ai.engine.AIDatabaseContext;
+import com.seizia.chromite.model.ai.qm.AIChatStorage;
+import com.seizia.chromite.model.ai.qm.QMAIChatStorageInMemory;
+import com.seizia.chromite.model.ai.qm.QMAIContext;
+import com.seizia.chromite.model.ai.qm.QMAIConversationHistory;
+import com.seizia.chromite.model.ai.quota.QuotaStatus;
+import com.seizia.chromite.model.ai.quota.UserTokenQuotaService;
+import com.seizia.chromite.model.app.DBPWorkspace;
+import com.seizia.chromite.model.exec.DBCExecutionContext;
+import com.seizia.chromite.model.qm.QMUnavailableException;
+import com.seizia.chromite.model.runtime.VoidProgressMonitor;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.junit.ChromiteUnitTest;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -48,7 +48,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
 
-public class AIChatSessionTest extends DBeaverUnitTest {
+public class AIChatSessionTest extends ChromiteUnitTest {
     @Test
     public void removesUnsavedEmptyConversationFromInMemorySession() throws DBException {
         QMAIChatStorageInMemory storage = new QMAIChatStorageInMemory();

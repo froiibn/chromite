@@ -14,12 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.navigator.database;
+package com.seizia.chromite.ui.navigator.database;
 
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.model.DBIcon;
-import org.jkiss.dbeaver.ui.UIIcon;
-import org.jkiss.dbeaver.ui.internal.UINavigatorMessages;
+import com.seizia.chromite.model.DBIcon;
+import com.seizia.chromite.ui.UIIcon;
+import com.seizia.chromite.ui.internal.UINavigatorMessages;
 
 public enum DatabaseNavigatorTreeFilterObjectType {
     connection(

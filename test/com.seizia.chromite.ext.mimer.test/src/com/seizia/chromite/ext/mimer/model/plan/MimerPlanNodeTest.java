@@ -14,11 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.mimer.model.plan;
+package com.seizia.chromite.ext.mimer.model.plan;
 
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.model.exec.plan.DBCPlanNodeKind;
-import org.jkiss.junit.DBeaverUnitTest;
+import com.seizia.chromite.model.exec.plan.DBCPlanNodeKind;
+import com.seizia.chromite.junit.ChromiteUnitTest;
 import org.jkiss.utils.xml.XMLUtils;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
@@ -37,7 +37,7 @@ import java.util.Iterator;
  *
  * @author Mimer Information Technology
  */
-public class MimerPlanNodeTest extends DBeaverUnitTest {
+public class MimerPlanNodeTest extends ChromiteUnitTest {
 
     @Test
     public void correlatedSubselectIsSiblingOfOuterTable() throws Exception {

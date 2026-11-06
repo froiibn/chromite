@@ -15,12 +15,12 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.model.exec;
+package com.seizia.chromite.model.exec;
 
-import org.jkiss.dbeaver.model.data.DBDContent;
-import org.jkiss.dbeaver.model.data.DBDDocument;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.model.struct.DBSAttributeBase;
+import com.seizia.chromite.model.data.DBDContent;
+import com.seizia.chromite.model.data.DBDDocument;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.model.struct.DBSAttributeBase;
 
 /**
  * Document converter.

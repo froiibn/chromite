@@ -14,9 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.postgresql;
+package com.seizia.chromite.ext.postgresql;
 
-import org.jkiss.dbeaver.model.connection.LocalNativeClientLocation;
+import com.seizia.chromite.model.connection.LocalNativeClientLocation;
 
 /**
  * PostgreServerHome

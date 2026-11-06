@@ -14,16 +14,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.controls.resultset.colors;
+package com.seizia.chromite.ui.controls.resultset.colors;
 
 import org.eclipse.osgi.util.NLS;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.model.virtual.DBVColorOverride;
-import org.jkiss.dbeaver.model.virtual.DBVEntity;
-import org.jkiss.dbeaver.ui.UITextUtils;
-import org.jkiss.dbeaver.ui.controls.resultset.ResultSetViewer;
-import org.jkiss.dbeaver.ui.controls.resultset.internal.ResultSetMessages;
+import com.seizia.chromite.model.virtual.DBVColorOverride;
+import com.seizia.chromite.model.virtual.DBVEntity;
+import com.seizia.chromite.ui.UITextUtils;
+import com.seizia.chromite.ui.controls.resultset.ResultSetViewer;
+import com.seizia.chromite.ui.controls.resultset.internal.ResultSetMessages;
 import org.jkiss.utils.CommonUtils;
 
 public class ResetRowColorAction extends ColorAction {

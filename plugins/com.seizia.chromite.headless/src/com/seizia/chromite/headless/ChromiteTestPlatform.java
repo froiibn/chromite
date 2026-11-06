@@ -15,39 +15,39 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.headless;
+package com.seizia.chromite.headless;
 
 import org.eclipse.core.resources.ResourcesPlugin;
 import org.eclipse.core.runtime.Plugin;
 import org.jkiss.code.NotNull;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.DBConstants;
-import org.jkiss.dbeaver.model.DBPExternalFileManager;
-import org.jkiss.dbeaver.model.app.*;
-import org.jkiss.dbeaver.model.impl.app.BaseApplicationImpl;
-import org.jkiss.dbeaver.model.impl.app.DefaultCertificateStorage;
-import org.jkiss.dbeaver.model.preferences.DBPPreferenceStore;
-import org.jkiss.dbeaver.model.qm.QMUtils;
-import org.jkiss.dbeaver.registry.BasePlatformImpl;
-import org.jkiss.dbeaver.registry.DataSourceProviderRegistry;
-import org.jkiss.dbeaver.registry.GlobalEventManagerImpl;
-import org.jkiss.dbeaver.registry.language.PlatformLanguageRegistry;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.DBConstants;
+import com.seizia.chromite.model.DBPExternalFileManager;
+import com.seizia.chromite.model.app.*;
+import com.seizia.chromite.model.impl.app.BaseApplicationImpl;
+import com.seizia.chromite.model.impl.app.DefaultCertificateStorage;
+import com.seizia.chromite.model.preferences.DBPPreferenceStore;
+import com.seizia.chromite.model.qm.QMUtils;
+import com.seizia.chromite.registry.BasePlatformImpl;
+import com.seizia.chromite.registry.DataSourceProviderRegistry;
+import com.seizia.chromite.registry.GlobalEventManagerImpl;
+import com.seizia.chromite.registry.language.PlatformLanguageRegistry;
 import java.util.Locale;
 
 /**
- * DBeaverTestPlatform
+ * ChromiteTestPlatform
  */
-public class DBeaverTestPlatform extends BasePlatformImpl implements DBPPlatformDesktop {
+public class ChromiteTestPlatform extends BasePlatformImpl implements DBPPlatformDesktop {
 
-    public static final String PLUGIN_ID = "org.jkiss.dbeaver.headless"; //$NON-NLS-1$
-    private static final Log log = Log.getLog(DBeaverTestPlatform.class);
+    public static final String PLUGIN_ID = "com.seizia.chromite.headless"; //$NON-NLS-1$
+    private static final Log log = Log.getLog(ChromiteTestPlatform.class);
 
-    static DBeaverTestPlatform instance;
+    static ChromiteTestPlatform instance;
 
     private static volatile boolean isClosing = false;
 
-    private DBeaverTestWorkspace workspace;
+    private ChromiteTestWorkspace workspace;
 
     private static boolean disposed = false;
     private DefaultCertificateStorage defaultCertificateStorage;
@@ -68,7 +68,7 @@ public class DBeaverTestPlatform extends BasePlatformImpl implements DBPPlatform
         isClosing = closing;
     }
 
-    DBeaverTestPlatform() {
+    ChromiteTestPlatform() {
     }
 
     protected void initialize() throws DBException {
@@ -77,10 +77,10 @@ public class DBeaverTestPlatform extends BasePlatformImpl implements DBPPlatform
 
         this.defaultCertificateStorage = new DefaultCertificateStorage(
             this,
-            DBeaverTestActivator.getConfigurationFile(DBConstants.CERTIFICATE_STORAGE_FOLDER).toPath());
+            ChromiteTestActivator.getConfigurationFile(DBConstants.CERTIFICATE_STORAGE_FOLDER).toPath());
 
         // Register properties adapter
-        this.workspace = new DBeaverTestWorkspace(this, ResourcesPlugin.getWorkspace());
+        this.workspace = new ChromiteTestWorkspace(this, ResourcesPlugin.getWorkspace());
         this.workspace.initializeProjects();
 
         QMUtils.initPlatform(false);
@@ -94,7 +94,7 @@ public class DBeaverTestPlatform extends BasePlatformImpl implements DBPPlatform
         long startTime = System.currentTimeMillis();
         log.debug("Shutdown Core...");
 
-        DBeaverTestPlatform.setClosing(true);
+        ChromiteTestPlatform.setClosing(true);
 
         super.dispose();
 
@@ -103,8 +103,8 @@ public class DBeaverTestPlatform extends BasePlatformImpl implements DBPPlatform
         QMUtils.disposePlatform();
         DataSourceProviderRegistry.dispose();
 
-        DBeaverTestPlatform.instance = null;
-        DBeaverTestPlatform.disposed = true;
+        ChromiteTestPlatform.instance = null;
+        ChromiteTestPlatform.disposed = true;
         System.gc();
         log.debug("Test platform shutdown completed in " + (System.currentTimeMillis() - startTime) + "ms");
     }
@@ -123,8 +123,8 @@ public class DBeaverTestPlatform extends BasePlatformImpl implements DBPPlatform
 
     @NotNull
     @Override
-    public DBeaverHeadlessApplication getApplication() {
-        return (DBeaverHeadlessApplication) BaseApplicationImpl.getInstance();
+    public ChromiteHeadlessApplication getApplication() {
+        return (ChromiteHeadlessApplication) BaseApplicationImpl.getInstance();
     }
 
     @NotNull
@@ -158,7 +158,7 @@ public class DBeaverTestPlatform extends BasePlatformImpl implements DBPPlatform
 
     @Override
     protected Plugin getProductPlugin() {
-        return DBeaverTestActivator.getInstance();
+        return ChromiteTestActivator.getInstance();
     }
 
     @Override

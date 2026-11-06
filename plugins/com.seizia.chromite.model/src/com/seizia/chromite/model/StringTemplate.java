@@ -14,13 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model;
+package com.seizia.chromite.model;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.code.NotNullWhen;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.utils.ListNode;
+import com.seizia.chromite.utils.ListNode;
 import org.jkiss.utils.Pair;
 
 import java.io.Serial;

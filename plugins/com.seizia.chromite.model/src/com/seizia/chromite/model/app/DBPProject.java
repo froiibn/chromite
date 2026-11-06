@@ -15,19 +15,19 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.model.app;
+package com.seizia.chromite.model.app;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.model.access.DBAPermissionRealm;
-import org.jkiss.dbeaver.model.auth.SMAuthSpace;
-import org.jkiss.dbeaver.model.auth.SMSession;
-import org.jkiss.dbeaver.model.auth.SMSessionContext;
-import org.jkiss.dbeaver.model.fs.DBFFileSystemContainer;
-import org.jkiss.dbeaver.model.navigator.DBNModel;
-import org.jkiss.dbeaver.model.secret.DBSValueEncryptor;
-import org.jkiss.dbeaver.model.task.DBTTaskManager;
+import com.seizia.chromite.model.access.DBAPermissionRealm;
+import com.seizia.chromite.model.auth.SMAuthSpace;
+import com.seizia.chromite.model.auth.SMSession;
+import com.seizia.chromite.model.auth.SMSessionContext;
+import com.seizia.chromite.model.fs.DBFFileSystemContainer;
+import com.seizia.chromite.model.navigator.DBNModel;
+import com.seizia.chromite.model.secret.DBSValueEncryptor;
+import com.seizia.chromite.model.task.DBTTaskManager;
 
 import java.nio.file.Path;
 import java.util.Map;
@@ -37,7 +37,7 @@ import java.util.UUID;
  * Project meta information.
  */
 public interface DBPProject extends DBFFileSystemContainer, SMAuthSpace, DBAPermissionRealm {
-    String METADATA_FOLDER = ".dbeaver";
+    String METADATA_FOLDER = ".chromite";
 
     @NotNull
     DBPWorkspace getWorkspace();

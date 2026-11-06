@@ -14,25 +14,25 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.h2.model;
+package com.seizia.chromite.ext.h2.model;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.ext.generic.model.GenericDataSource;
-import org.jkiss.dbeaver.ext.generic.model.GenericExecutionContext;
-import org.jkiss.dbeaver.ext.h2.util.H2InitScriptValidator;
-import org.jkiss.dbeaver.model.DBPDataSourceContainer;
-import org.jkiss.dbeaver.model.connection.DBPConnectionConfiguration;
-import org.jkiss.dbeaver.model.exec.DBCException;
-import org.jkiss.dbeaver.model.exec.DBCExecutionPurpose;
-import org.jkiss.dbeaver.model.impl.jdbc.JDBCExecutionContext;
-import org.jkiss.dbeaver.model.impl.jdbc.JDBCRemoteInstance;
-import org.jkiss.dbeaver.model.impl.jdbc.exec.JDBCConnectionImpl;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.runtime.ui.UIServiceConnectionInit;
-import org.jkiss.dbeaver.utils.GeneralUtils;
+import com.seizia.chromite.ext.generic.model.GenericDataSource;
+import com.seizia.chromite.ext.generic.model.GenericExecutionContext;
+import com.seizia.chromite.ext.h2.util.H2InitScriptValidator;
+import com.seizia.chromite.model.DBPDataSourceContainer;
+import com.seizia.chromite.model.connection.DBPConnectionConfiguration;
+import com.seizia.chromite.model.exec.DBCException;
+import com.seizia.chromite.model.exec.DBCExecutionPurpose;
+import com.seizia.chromite.model.impl.jdbc.JDBCExecutionContext;
+import com.seizia.chromite.model.impl.jdbc.JDBCRemoteInstance;
+import com.seizia.chromite.model.impl.jdbc.exec.JDBCConnectionImpl;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.runtime.ui.UIServiceConnectionInit;
+import com.seizia.chromite.utils.GeneralUtils;
 
 import java.util.List;
 import java.util.Properties;

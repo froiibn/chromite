@@ -14,13 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.fs.nio;
+package com.seizia.chromite.model.fs.nio;
 
 import org.eclipse.core.resources.*;
 import org.eclipse.core.runtime.*;
 import org.eclipse.core.runtime.jobs.ISchedulingRule;
-import org.jkiss.dbeaver.model.fs.DBFFileStoreProvider;
-import org.jkiss.dbeaver.utils.GeneralUtils;
+import com.seizia.chromite.model.fs.DBFFileStoreProvider;
+import com.seizia.chromite.utils.GeneralUtils;
 import org.jkiss.utils.CommonUtils;
 
 import java.io.File;
@@ -39,7 +39,7 @@ import java.util.Map;
  * NIOResource
  */
 public abstract class EFSNIOResource extends PlatformObject implements DBFFileStoreProvider, IResource, IResourceProxy {
-    public static final QualifiedName NIO_RESOURCE_PROPERTY_NAME = new QualifiedName("org.jkiss.dbeaver.resources", "nioPath"); //$NON-NLS-1$ //$NON-NLS-2$
+    public static final QualifiedName NIO_RESOURCE_PROPERTY_NAME = new QualifiedName("com.seizia.chromite.resources", "nioPath"); //$NON-NLS-1$ //$NON-NLS-2$
 
     private final EFSNIOFileSystemRoot root;
     private final Path nioPath;

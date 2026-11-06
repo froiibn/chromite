@@ -14,18 +14,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.mssql.ui.config.generic;
+package com.seizia.chromite.ext.mssql.ui.config.generic;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.ext.mssql.model.generic.SQLServerGenericProcedure;
-import org.jkiss.dbeaver.ext.mssql.ui.SQLServerUIMessages;
-import org.jkiss.dbeaver.model.edit.DBECommandContext;
-import org.jkiss.dbeaver.model.edit.DBEObjectConfigurator;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.ui.UITask;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.dialogs.EnterNameDialog;
+import com.seizia.chromite.ext.mssql.model.generic.SQLServerGenericProcedure;
+import com.seizia.chromite.ext.mssql.ui.SQLServerUIMessages;
+import com.seizia.chromite.model.edit.DBECommandContext;
+import com.seizia.chromite.model.edit.DBEObjectConfigurator;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.ui.UITask;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.dialogs.EnterNameDialog;
 import org.jkiss.utils.CommonUtils;
 
 import java.util.Map;

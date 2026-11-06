@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.virtual;
+package com.seizia.chromite.model.virtual;
 
 import org.apache.commons.jexl3.JexlBuilder;
 import org.apache.commons.jexl3.JexlExpression;
@@ -23,25 +23,25 @@ import org.eclipse.core.runtime.IAdaptable;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.ModelPreferences;
-import org.jkiss.dbeaver.model.DBPDataKind;
-import org.jkiss.dbeaver.model.DBPDataSource;
-import org.jkiss.dbeaver.model.DBUtils;
-import org.jkiss.dbeaver.model.data.*;
-import org.jkiss.dbeaver.model.exec.DBCAttributeMetaData;
-import org.jkiss.dbeaver.model.exec.DBCException;
-import org.jkiss.dbeaver.model.exec.DBCResultSet;
-import org.jkiss.dbeaver.model.exec.DBCSession;
-import org.jkiss.dbeaver.model.navigator.DBNDatabaseNode;
-import org.jkiss.dbeaver.model.navigator.DBNUtils;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.model.runtime.VoidProgressMonitor;
-import org.jkiss.dbeaver.model.struct.*;
-import org.jkiss.dbeaver.registry.expressions.ExpressionNamespaceDescriptor;
-import org.jkiss.dbeaver.registry.expressions.ExpressionRegistry;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.utils.GeneralUtils;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.ModelPreferences;
+import com.seizia.chromite.model.DBPDataKind;
+import com.seizia.chromite.model.DBPDataSource;
+import com.seizia.chromite.model.DBUtils;
+import com.seizia.chromite.model.data.*;
+import com.seizia.chromite.model.exec.DBCAttributeMetaData;
+import com.seizia.chromite.model.exec.DBCException;
+import com.seizia.chromite.model.exec.DBCResultSet;
+import com.seizia.chromite.model.exec.DBCSession;
+import com.seizia.chromite.model.navigator.DBNDatabaseNode;
+import com.seizia.chromite.model.navigator.DBNUtils;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.model.runtime.VoidProgressMonitor;
+import com.seizia.chromite.model.struct.*;
+import com.seizia.chromite.registry.expressions.ExpressionNamespaceDescriptor;
+import com.seizia.chromite.registry.expressions.ExpressionRegistry;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.utils.GeneralUtils;
 import org.jkiss.utils.CommonUtils;
 
 import java.util.*;

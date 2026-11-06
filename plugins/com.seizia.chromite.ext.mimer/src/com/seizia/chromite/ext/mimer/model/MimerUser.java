@@ -14,28 +14,28 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.mimer.model;
+package com.seizia.chromite.ext.mimer.model;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.DBDatabaseException;
+import com.seizia.chromite.DBDatabaseException;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.model.DBPNamedObject2;
-import org.jkiss.dbeaver.model.DBPRefreshableObject;
-import org.jkiss.dbeaver.model.DBPSaveableObject;
-import org.jkiss.dbeaver.model.DBUtils;
-import org.jkiss.dbeaver.model.exec.jdbc.JDBCPreparedStatement;
-import org.jkiss.dbeaver.model.exec.jdbc.JDBCResultSet;
-import org.jkiss.dbeaver.model.exec.jdbc.JDBCSession;
-import org.jkiss.dbeaver.model.exec.jdbc.JDBCStatement;
-import org.jkiss.dbeaver.model.impl.jdbc.JDBCUtils;
-import org.jkiss.dbeaver.model.impl.jdbc.cache.JDBCObjectCache;
-import org.jkiss.dbeaver.model.meta.Association;
-import org.jkiss.dbeaver.model.meta.Property;
-import org.jkiss.dbeaver.model.meta.PropertyLength;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.model.struct.DBSObject;
-import org.jkiss.dbeaver.model.struct.cache.DBSObjectCache;
+import com.seizia.chromite.model.DBPNamedObject2;
+import com.seizia.chromite.model.DBPRefreshableObject;
+import com.seizia.chromite.model.DBPSaveableObject;
+import com.seizia.chromite.model.DBUtils;
+import com.seizia.chromite.model.exec.jdbc.JDBCPreparedStatement;
+import com.seizia.chromite.model.exec.jdbc.JDBCResultSet;
+import com.seizia.chromite.model.exec.jdbc.JDBCSession;
+import com.seizia.chromite.model.exec.jdbc.JDBCStatement;
+import com.seizia.chromite.model.impl.jdbc.JDBCUtils;
+import com.seizia.chromite.model.impl.jdbc.cache.JDBCObjectCache;
+import com.seizia.chromite.model.meta.Association;
+import com.seizia.chromite.model.meta.Property;
+import com.seizia.chromite.model.meta.PropertyLength;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.model.struct.DBSObject;
+import com.seizia.chromite.model.struct.cache.DBSObjectCache;
 import org.jkiss.utils.CommonUtils;
 
 import java.sql.SQLException;
@@ -49,7 +49,7 @@ import java.util.Set;
  * Mimer SQL USER/OS_USER ident, read from {@code INFORMATION_SCHEMA.EXT_IDENTS} ({@code
  * IDENT_TYPE IN ('USER', 'OS_USER')}, see {@link MimerDataSource.UserCache}). Carries the {@code
  * CREATE IDENT} password/schema-clause attributes for {@link
- * org.jkiss.dbeaver.ext.mimer.edit.MimerUserManager}, and lets the properties view change an
+ * com.seizia.chromite.ext.mimer.edit.MimerUserManager}, and lets the properties view change an
  * existing user's password ({@code ALTER IDENT SET PASSWORD}). OS login authorizations are a
  * separate, multi-row "Authorizations" folder - see {@link MimerUserAuthorization} - not a
  * single property here; a user can have several ({@code ALTER IDENT ADD OS_USER} once per
@@ -168,7 +168,7 @@ public class MimerUser implements DBSObject, DBPNamedObject2, DBPSaveableObject,
     /**
      * {@code COMMENT ON IDENT "name" IS '...'} - Users, Groups, and Programs are all {@code
      * IDENT}s in Mimer SQL's comment statement and in {@code EXT_OBJECT_IDENT_USAGE.OBJECT_TYPE},
-     * not each kind's own DDL keyword. See {@link org.jkiss.dbeaver.ext.mimer.edit.MimerUserManager}
+     * not each kind's own DDL keyword. See {@link com.seizia.chromite.ext.mimer.edit.MimerUserManager}
      * for the write side.
      */
     @Nullable

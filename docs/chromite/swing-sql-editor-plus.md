@@ -1,7 +1,7 @@
 # Swing SQL 편집기 확장: 실행 계획, 쿼리 기록, 서식, 템플릿, 매개변수
 
 Swing 프런트엔드([swing-frontend.md](swing-frontend.md))의 SQL 편집기(쿼리 창)에 DBeaver SWT SQL 편집기
-(`org.jkiss.dbeaver.ui.editors.sql`)의 기능을 SQL Server 편집기 사용 방식(SSMS 단축키·화면 배치)으로 옮긴 작업이다.
+(`com.seizia.chromite.ui.editors.sql`)의 기능을 SQL Server 편집기 사용 방식(SSMS 단축키·화면 배치)으로 옮긴 작업이다.
 화면 문구에는 다른 제품 이름을 쓰지 않는다.
 
 ## 목적
@@ -17,11 +17,11 @@ Swing 프런트엔드([swing-frontend.md](swing-frontend.md))의 SQL 편집기(�
 
 | 파일 | 역할 |
 |---|---|
-| `plugins/org.jkiss.dbeaver.model.sql/src/com/seizia/chromite/model/sql/exec/SQLActualPlanProvider.java` | 실행 중 실제 계획을 결과 집합으로 돌려주는 연결의 어댑터(켜는 문장, 끄는 문장, 계획 결과 집합 판별, 계획 해석) |
-| `plugins/org.jkiss.dbeaver.ext.mssql/src/com/seizia/chromite/ext/mssql/model/plan/SQLServerQueryPlanner.java` | SQL Server 계획기: `DBCQueryPlanner`(예상, `SET SHOWPLAN_XML`) + `SQLActualPlanProvider`(실제, `SET STATISTICS XML`) |
+| `plugins/com.seizia.chromite.model.sql/src/com/seizia/chromite/model/sql/exec/SQLActualPlanProvider.java` | 실행 중 실제 계획을 결과 집합으로 돌려주는 연결의 어댑터(켜는 문장, 끄는 문장, 계획 결과 집합 판별, 계획 해석) |
+| `plugins/com.seizia.chromite.ext.mssql/src/com/seizia/chromite/ext/mssql/model/plan/SQLServerQueryPlanner.java` | SQL Server 계획기: `DBCQueryPlanner`(예상, `SET SHOWPLAN_XML`) + `SQLActualPlanProvider`(실제, `SET STATISTICS XML`) |
 | `.../plan/SQLServerExecutionPlan.java`, `SQLServerPlanNode.java` | showplan XML을 DBeaver 계획 모델(`DBCPlan`, `DBCPlanCostNode`)로 바꿈 |
-| `plugins/org.jkiss.dbeaver.ext.mssql/.../model/SQLServerDataSource.java` | `getAdapter`에서 위 계획기를 돌려줌(Babelfish 제외) |
-| `plugins/org.jkiss.dbeaver.registry/.../BasePlatformImpl.java` | `getLocalConfigurationFile`이 작업 공간 설정 폴더를 만듦(매개변수 값 저장) |
+| `plugins/com.seizia.chromite.ext.mssql/.../model/SQLServerDataSource.java` | `getAdapter`에서 위 계획기를 돌려줌(Babelfish 제외) |
+| `plugins/com.seizia.chromite.registry/.../BasePlatformImpl.java` | `getLocalConfigurationFile`이 작업 공간 설정 폴더를 만듦(매개변수 값 저장) |
 | `plugins/com.seizia.chromite.ui.swing/.../ExecutionPlanView.java` | Execution plan 탭: 문장별 계획 트리 표 + 노드 속성 표 |
 | `.../SqlPlanExplainer.java` | 계획기로 문장들의 계획을 구하는 Job(예상, ANALYZE) |
 | `.../ActualPlanReceiver.java` | 실행 중 계획 결과 집합을 계획으로, 나머지는 결과 표로 보내는 수신기 |
@@ -165,7 +165,7 @@ Ctrl+K는 RSyntaxTextArea 기본값(다음 같은 단어로 이동)이었는데 
 
 ## 확인 (2026-11-06)
 
-빌드: `mvn -B clean package -f product/aggregate/pom.xml -T1C -Pproduct-dbeaver-ce,product-chromite-swing` → `BUILD SUCCESS`.
+빌드: `mvn -B clean package -f product/aggregate/pom.xml -T1C -Pproduct-chromite-swt,product-chromite-swing` → `BUILD SUCCESS`.
 빌드한 Swing 제품을 개인 작업 공간으로 띄우고, 로컬 테스트 DB(PostgreSQL 17, SQL Server 2022, MariaDB 11)에 `chr_sql_editor_plus` DB를 만들어
 `customers`(500행), `orders`(20,000행, `customer_id` 인덱스)로 확인했다. 다른 프로그램이 Windows 전경 창을 계속 잡고 있어 키 입력 대신
 시험용 Java 에이전트(제품에 넣지 않음, 작업 폴더에만 있음)가 EDT에서 메뉴·단추·키 이벤트를 보내는 방법으로 조작했다(키 이벤트는 편집 영역에 직접 보내 바인딩·리스너를 그대로 탄다).

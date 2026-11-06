@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.debug.ui.internal;
+package com.seizia.chromite.debug.ui.internal;
 
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.debug.core.DebugEvent;
@@ -23,8 +23,8 @@ import org.eclipse.debug.ui.IDebugUIConstants;
 import org.eclipse.ui.IViewPart;
 import org.eclipse.ui.IWorkbenchPage;
 import org.eclipse.ui.IWorkbenchWindow;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.ui.UIUtils;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.ui.UIUtils;
 
 public class DebugUIEventListener implements IDebugEventSetListener {
 

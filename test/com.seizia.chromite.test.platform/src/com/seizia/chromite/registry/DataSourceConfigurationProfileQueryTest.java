@@ -14,12 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.registry;
+package com.seizia.chromite.registry;
 
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.model.app.DBPDataSourceRegistry;
-import org.jkiss.dbeaver.model.app.DBPProject;
-import org.jkiss.dbeaver.model.secret.DBSValueEncryptor;
+import com.seizia.chromite.model.app.DBPDataSourceRegistry;
+import com.seizia.chromite.model.app.DBPProject;
+import com.seizia.chromite.model.secret.DBSValueEncryptor;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -37,7 +37,7 @@ class DataSourceConfigurationProfileQueryTest {
 
     @Test
     void readsPersistedProfilesAndConnectionsAcrossStorages() throws Exception {
-        Path metadata = Files.createDirectory(projectFolder.resolve(".dbeaver"));
+        Path metadata = Files.createDirectory(projectFolder.resolve(".chromite"));
         Files.writeString(
             metadata.resolve(DBPDataSourceRegistry.MODERN_CONFIG_FILE_NAME), """
                 {"network-profiles":{"local":{}},"connections":{
@@ -68,7 +68,7 @@ class DataSourceConfigurationProfileQueryTest {
 
     @Test
     void readsEncryptedConfigurationThroughSerializer() throws Exception {
-        Path metadata = Files.createDirectory(projectFolder.resolve(".dbeaver"));
+        Path metadata = Files.createDirectory(projectFolder.resolve(".chromite"));
         Files.write(metadata.resolve(DBPDataSourceRegistry.MODERN_CONFIG_FILE_NAME), new byte[] {1, 2, 3});
         DBPProject project = Mockito.mock(DBPProject.class);
         DBSValueEncryptor encryptor = Mockito.mock(DBSValueEncryptor.class);
@@ -87,10 +87,10 @@ class DataSourceConfigurationProfileQueryTest {
     @Test
     void skipsLegacyStoragesWithoutLoadingTheRegistry() throws Exception {
         Files.writeString(projectFolder.resolve(DBPDataSourceRegistry.LEGACY_CONFIG_FILE_NAME), "not JSON");
-        Files.writeString(projectFolder.resolve(".dbeaver-data-sources-extra.xml"), "not JSON");
+        Files.writeString(projectFolder.resolve(".chromite-data-sources-extra.xml"), "not JSON");
         DBPProject project = Mockito.mock(DBPProject.class);
         Mockito.when(project.getAbsolutePath()).thenReturn(projectFolder);
-        Mockito.when(project.getMetadataFolder(false)).thenReturn(projectFolder.resolve(".dbeaver"));
+        Mockito.when(project.getMetadataFolder(false)).thenReturn(projectFolder.resolve(".chromite"));
         Mockito.when(project.getName()).thenReturn("Legacy project");
 
         Assertions.assertFalse(DataSourceConfigurationProfileQuery.hasLocalProfile(project, "profile"));
@@ -100,7 +100,7 @@ class DataSourceConfigurationProfileQueryTest {
 
     @Test
     void doesNotSkipInvalidJson() throws Exception {
-        Path metadata = Files.createDirectory(projectFolder.resolve(".dbeaver"));
+        Path metadata = Files.createDirectory(projectFolder.resolve(".chromite"));
         Files.writeString(metadata.resolve(DBPDataSourceRegistry.MODERN_CONFIG_FILE_NAME), "{\"network-profiles\": ");
         DBPProject project = Mockito.mock(DBPProject.class);
         Mockito.when(project.getMetadataFolder(false)).thenReturn(metadata);

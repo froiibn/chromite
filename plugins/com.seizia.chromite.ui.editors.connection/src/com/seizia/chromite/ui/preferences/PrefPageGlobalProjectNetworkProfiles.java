@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.preferences;
+package com.seizia.chromite.ui.preferences;
 
 import org.eclipse.jface.layout.GridDataFactory;
 import org.eclipse.jface.layout.GridLayoutFactory;
@@ -30,19 +30,19 @@ import org.eclipse.ui.IWorkbenchPreferencePage;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.model.DBIcon;
-import org.jkiss.dbeaver.model.DBPDataSourceContainer;
-import org.jkiss.dbeaver.model.app.DBPProject;
-import org.jkiss.dbeaver.model.app.DBPWorkspace;
-import org.jkiss.dbeaver.model.net.DBWNetworkProfile;
-import org.jkiss.dbeaver.model.net.DBWNetworkProfileUsageProvider.ProjectConnections;
-import org.jkiss.dbeaver.model.rcp.RCPProject;
-import org.jkiss.dbeaver.model.secret.DBSSecretController;
-import org.jkiss.dbeaver.registry.GlobalNetworkProfileManager;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.ui.DBeaverIcons;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.internal.UIConnectionMessages;
+import com.seizia.chromite.model.DBIcon;
+import com.seizia.chromite.model.DBPDataSourceContainer;
+import com.seizia.chromite.model.app.DBPProject;
+import com.seizia.chromite.model.app.DBPWorkspace;
+import com.seizia.chromite.model.net.DBWNetworkProfile;
+import com.seizia.chromite.model.net.DBWNetworkProfileUsageProvider.ProjectConnections;
+import com.seizia.chromite.model.rcp.RCPProject;
+import com.seizia.chromite.model.secret.DBSSecretController;
+import com.seizia.chromite.registry.GlobalNetworkProfileManager;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.ui.SwtIcons;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.internal.UIConnectionMessages;
 
 import java.util.*;
 import java.util.List;
@@ -52,7 +52,7 @@ import java.util.stream.Collectors;
  * A preference page that shows network profiles for all projects.
  */
 public final class PrefPageGlobalProjectNetworkProfiles extends AbstractPrefPage implements IWorkbenchPreferencePage {
-    public static final String PAGE_ID = "org.jkiss.dbeaver.preferences.globalNetworkProfiles";
+    public static final String PAGE_ID = "com.seizia.chromite.preferences.globalNetworkProfiles";
 
     private PrefPageManagedNetworkProfiles networkProfilesPage;
     private Composite networkProfilesPageHolder;
@@ -274,7 +274,7 @@ public final class PrefPageGlobalProjectNetworkProfiles extends AbstractPrefPage
         @NotNull
         @Override
         protected Image getProfileImage(@NotNull DBWNetworkProfile profile) {
-            return DBeaverIcons.getImage(DBIcon.GLOBAL_PROFILE);
+            return SwtIcons.getImage(DBIcon.GLOBAL_PROFILE);
         }
 
         @NotNull

@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.navigator.actions;
+package com.seizia.chromite.ui.navigator.actions;
 
 import org.eclipse.core.commands.AbstractHandler;
 import org.eclipse.jface.dialogs.IDialogConstants;
@@ -22,28 +22,28 @@ import org.eclipse.ui.*;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.DBUtils;
-import org.jkiss.dbeaver.model.edit.DBECommand;
-import org.jkiss.dbeaver.model.edit.DBECommandContext;
-import org.jkiss.dbeaver.model.edit.DBEPersistAction;
-import org.jkiss.dbeaver.model.edit.DBEStructEditor;
-import org.jkiss.dbeaver.model.navigator.*;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.model.runtime.DBRRunnableWithProgress;
-import org.jkiss.dbeaver.model.sql.SQLUtils;
-import org.jkiss.dbeaver.model.struct.DBSObject;
-import org.jkiss.dbeaver.model.struct.DBSObjectReference;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.runtime.ui.UIServiceSQL;
-import org.jkiss.dbeaver.ui.UIIcon;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.controls.folders.ITabbedFolderContainer;
-import org.jkiss.dbeaver.ui.editors.IDatabaseEditor;
-import org.jkiss.dbeaver.ui.editors.IDatabaseEditorInput;
-import org.jkiss.dbeaver.ui.editors.IDatabaseModellerEditor;
-import org.jkiss.dbeaver.ui.editors.SimpleCommandContext;
-import org.jkiss.dbeaver.utils.RuntimeUtils;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.DBUtils;
+import com.seizia.chromite.model.edit.DBECommand;
+import com.seizia.chromite.model.edit.DBECommandContext;
+import com.seizia.chromite.model.edit.DBEPersistAction;
+import com.seizia.chromite.model.edit.DBEStructEditor;
+import com.seizia.chromite.model.navigator.*;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.model.runtime.DBRRunnableWithProgress;
+import com.seizia.chromite.model.sql.SQLUtils;
+import com.seizia.chromite.model.struct.DBSObject;
+import com.seizia.chromite.model.struct.DBSObjectReference;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.runtime.ui.UIServiceSQL;
+import com.seizia.chromite.ui.UIIcon;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.controls.folders.ITabbedFolderContainer;
+import com.seizia.chromite.ui.editors.IDatabaseEditor;
+import com.seizia.chromite.ui.editors.IDatabaseEditorInput;
+import com.seizia.chromite.ui.editors.IDatabaseModellerEditor;
+import com.seizia.chromite.ui.editors.SimpleCommandContext;
+import com.seizia.chromite.utils.RuntimeUtils;
 
 import java.lang.reflect.InvocationTargetException;
 import java.util.*;

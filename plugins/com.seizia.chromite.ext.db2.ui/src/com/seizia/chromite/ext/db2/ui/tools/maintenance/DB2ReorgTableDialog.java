@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.db2.ui.tools.maintenance;
+package com.seizia.chromite.ext.db2.ui.tools.maintenance;
 
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.events.SelectionListener;
@@ -25,17 +25,17 @@ import org.eclipse.swt.widgets.Button;
 import org.eclipse.swt.widgets.Combo;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.ui.IWorkbenchPartSite;
-import org.jkiss.dbeaver.ext.db2.model.DB2DataSource;
-import org.jkiss.dbeaver.ext.db2.model.DB2Index;
-import org.jkiss.dbeaver.ext.db2.model.DB2Table;
-import org.jkiss.dbeaver.ext.db2.model.DB2Tablespace;
-import org.jkiss.dbeaver.ext.db2.model.dict.DB2TablespaceDataType;
-import org.jkiss.dbeaver.ext.db2.ui.internal.DB2Messages;
-import org.jkiss.dbeaver.model.DBPEvaluationContext;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.model.runtime.DBRRunnableWithProgress;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.ui.UIUtils;
+import com.seizia.chromite.ext.db2.model.DB2DataSource;
+import com.seizia.chromite.ext.db2.model.DB2Index;
+import com.seizia.chromite.ext.db2.model.DB2Table;
+import com.seizia.chromite.ext.db2.model.DB2Tablespace;
+import com.seizia.chromite.ext.db2.model.dict.DB2TablespaceDataType;
+import com.seizia.chromite.ext.db2.ui.internal.DB2Messages;
+import com.seizia.chromite.model.DBPEvaluationContext;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.model.runtime.DBRRunnableWithProgress;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.ui.UIUtils;
 
 import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;

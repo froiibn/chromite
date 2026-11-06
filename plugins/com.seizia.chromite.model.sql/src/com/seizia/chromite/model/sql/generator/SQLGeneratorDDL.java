@@ -14,19 +14,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.sql.generator;
+package com.seizia.chromite.model.sql.generator;
 
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.model.DBPScriptObject;
-import org.jkiss.dbeaver.model.DBPScriptObjectExt;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.model.sql.SQLConstants;
-import org.jkiss.dbeaver.model.sql.SQLDialect;
-import org.jkiss.dbeaver.model.sql.SQLUtils;
-import org.jkiss.dbeaver.model.sql.format.SQLFormatUtils;
-import org.jkiss.dbeaver.model.struct.DBSObject;
-import org.jkiss.dbeaver.model.struct.DBStructUtils;
-import org.jkiss.dbeaver.model.struct.rdb.DBSTable;
+import com.seizia.chromite.model.DBPScriptObject;
+import com.seizia.chromite.model.DBPScriptObjectExt;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.model.sql.SQLConstants;
+import com.seizia.chromite.model.sql.SQLDialect;
+import com.seizia.chromite.model.sql.SQLUtils;
+import com.seizia.chromite.model.sql.format.SQLFormatUtils;
+import com.seizia.chromite.model.struct.DBSObject;
+import com.seizia.chromite.model.struct.DBStructUtils;
+import com.seizia.chromite.model.struct.rdb.DBSTable;
 import org.jkiss.utils.CommonUtils;
 
 import java.lang.reflect.InvocationTargetException;

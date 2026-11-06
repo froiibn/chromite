@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.editors.sql.syntax;
+package com.seizia.chromite.ui.editors.sql.syntax;
 
 import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.Status;
@@ -26,22 +26,22 @@ import org.eclipse.swt.widgets.Display;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.*;
-import org.jkiss.dbeaver.model.app.DBPDataSourceRegistry;
-import org.jkiss.dbeaver.model.exec.DBCExecutionContext;
-import org.jkiss.dbeaver.model.exec.DBCExecutionContextDefaults;
-import org.jkiss.dbeaver.model.exec.DBExecUtils;
-import org.jkiss.dbeaver.model.impl.DBObjectNameCaseTransformer;
-import org.jkiss.dbeaver.model.impl.struct.DirectObjectReference;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.model.sql.SQLDialect;
-import org.jkiss.dbeaver.model.sql.SQLSyntaxManager;
-import org.jkiss.dbeaver.model.sql.parser.SQLIdentifierDetector;
-import org.jkiss.dbeaver.model.sql.parser.SQLWordPartDetector;
-import org.jkiss.dbeaver.model.struct.*;
-import org.jkiss.dbeaver.runtime.jobs.DataSourceJob;
-import org.jkiss.dbeaver.ui.editors.sql.SQLEditorBase;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.*;
+import com.seizia.chromite.model.app.DBPDataSourceRegistry;
+import com.seizia.chromite.model.exec.DBCExecutionContext;
+import com.seizia.chromite.model.exec.DBCExecutionContextDefaults;
+import com.seizia.chromite.model.exec.DBExecUtils;
+import com.seizia.chromite.model.impl.DBObjectNameCaseTransformer;
+import com.seizia.chromite.model.impl.struct.DirectObjectReference;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.model.sql.SQLDialect;
+import com.seizia.chromite.model.sql.SQLSyntaxManager;
+import com.seizia.chromite.model.sql.parser.SQLIdentifierDetector;
+import com.seizia.chromite.model.sql.parser.SQLWordPartDetector;
+import com.seizia.chromite.model.struct.*;
+import com.seizia.chromite.runtime.jobs.DataSourceJob;
+import com.seizia.chromite.ui.editors.sql.SQLEditorBase;
 import org.jkiss.utils.ArrayUtils;
 import org.jkiss.utils.CommonUtils;
 

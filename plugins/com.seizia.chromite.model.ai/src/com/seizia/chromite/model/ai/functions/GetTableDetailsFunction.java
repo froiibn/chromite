@@ -14,21 +14,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.ai.functions;
+package com.seizia.chromite.model.ai.functions;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.DBPDataSource;
-import org.jkiss.dbeaver.model.DBUtils;
-import org.jkiss.dbeaver.model.ai.*;
-import org.jkiss.dbeaver.model.ai.engine.AIDatabaseContext;
-import org.jkiss.dbeaver.model.ai.impl.AISchemaGeneratorImpl;
-import org.jkiss.dbeaver.model.ai.utils.AIUtils;
-import org.jkiss.dbeaver.model.exec.DBCExecutionContext;
-import org.jkiss.dbeaver.model.struct.DBSEntity;
-import org.jkiss.dbeaver.model.struct.DBSObject;
-import org.jkiss.dbeaver.model.struct.DBSObjectContainer;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.DBPDataSource;
+import com.seizia.chromite.model.DBUtils;
+import com.seizia.chromite.model.ai.*;
+import com.seizia.chromite.model.ai.engine.AIDatabaseContext;
+import com.seizia.chromite.model.ai.impl.AISchemaGeneratorImpl;
+import com.seizia.chromite.model.ai.utils.AIUtils;
+import com.seizia.chromite.model.exec.DBCExecutionContext;
+import com.seizia.chromite.model.struct.DBSEntity;
+import com.seizia.chromite.model.struct.DBSObject;
+import com.seizia.chromite.model.struct.DBSObjectContainer;
 import org.jkiss.utils.CommonUtils;
 
 import java.util.*;

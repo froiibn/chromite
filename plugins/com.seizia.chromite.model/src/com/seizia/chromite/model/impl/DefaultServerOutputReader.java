@@ -14,17 +14,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.impl;
+package com.seizia.chromite.model.impl;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.model.exec.DBCException;
-import org.jkiss.dbeaver.model.exec.DBCExecutionContext;
-import org.jkiss.dbeaver.model.exec.DBCExecutionResult;
-import org.jkiss.dbeaver.model.exec.DBCStatement;
-import org.jkiss.dbeaver.model.exec.output.DBCOutputWriter;
-import org.jkiss.dbeaver.model.exec.output.DBCServerOutputReader;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.model.exec.DBCException;
+import com.seizia.chromite.model.exec.DBCExecutionContext;
+import com.seizia.chromite.model.exec.DBCExecutionResult;
+import com.seizia.chromite.model.exec.DBCStatement;
+import com.seizia.chromite.model.exec.output.DBCOutputWriter;
+import com.seizia.chromite.model.exec.output.DBCServerOutputReader;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
 
 import java.util.List;
 

@@ -15,12 +15,12 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.ui.actions.datasource;
+package com.seizia.chromite.ui.actions.datasource;
 
 import org.eclipse.jface.action.ActionContributionItem;
 import org.eclipse.jface.action.IContributionItem;
 import org.eclipse.ui.actions.CompoundContributionItem;
-import org.jkiss.dbeaver.ui.actions.EmptyListAction;
+import com.seizia.chromite.ui.actions.EmptyListAction;
 
 import java.util.ArrayList;
 import java.util.List;

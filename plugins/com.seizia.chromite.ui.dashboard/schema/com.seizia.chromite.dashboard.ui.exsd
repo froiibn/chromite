@@ -1,9 +1,9 @@
 <?xml version='1.0' encoding='UTF-8'?>
 <!-- Schema file written by PDE -->
-<schema targetNamespace="org.jkiss.dbeaver.ui.dashboard" xmlns="http://www.w3.org/2001/XMLSchema">
+<schema targetNamespace="com.seizia.chromite.ui.dashboard" xmlns="http://www.w3.org/2001/XMLSchema">
    <annotation>
       <appInfo>
-         <meta.schema plugin="org.jkiss.dbeaver.ui.dashboard" id="org.jkiss.dbeaver.dashboard.ui" name="Dashboards UI"/>
+         <meta.schema plugin="com.seizia.chromite.ui.dashboard" id="com.seizia.chromite.dashboard.ui" name="Dashboards UI"/>
       </appInfo>
       <documentation>DBeaver dashboard UI renderers</documentation>
    </annotation>
@@ -37,13 +37,13 @@
          <attribute name="dataTypes" type="string" use="required"/>
          <attribute name="native" type="boolean" use="default" value="false"/>
          <attribute name="renderer" type="string" use="required">
-            <annotation><appInfo><meta.attribute kind="java" basedOn=":org.jkiss.dbeaver.ui.dashboard.model.DashboardItemRenderer"/></appInfo></annotation>
+            <annotation><appInfo><meta.attribute kind="java" basedOn=":com.seizia.chromite.ui.dashboard.model.DashboardItemRenderer"/></appInfo></annotation>
          </attribute>
          <attribute name="configurationEditor" type="string">
-            <annotation><appInfo><meta.attribute kind="java" basedOn=":org.jkiss.dbeaver.ui.IObjectPropertyConfigurator"/></appInfo></annotation>
+            <annotation><appInfo><meta.attribute kind="java" basedOn=":com.seizia.chromite.ui.IObjectPropertyConfigurator"/></appInfo></annotation>
          </attribute>
          <attribute name="viewSettingsEditor" type="string">
-            <annotation><appInfo><meta.attribute kind="java" basedOn=":org.jkiss.dbeaver.ui.IObjectPropertyConfigurator"/></appInfo></annotation>
+            <annotation><appInfo><meta.attribute kind="java" basedOn=":com.seizia.chromite.ui.IObjectPropertyConfigurator"/></appInfo></annotation>
          </attribute>
       </complexType>
    </element>

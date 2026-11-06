@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model;
+package com.seizia.chromite.model;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -22,11 +22,11 @@ import com.google.gson.Strictness;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.model.data.DBDDisplayFormat;
-import org.jkiss.dbeaver.model.preferences.DBPPropertyDescriptor;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.model.struct.DBSObjectReference;
-import org.jkiss.dbeaver.runtime.properties.PropertyCollector;
+import com.seizia.chromite.model.data.DBDDisplayFormat;
+import com.seizia.chromite.model.preferences.DBPPropertyDescriptor;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.model.struct.DBSObjectReference;
+import com.seizia.chromite.runtime.properties.PropertyCollector;
 import org.jkiss.utils.CommonUtils;
 
 import java.io.PrintWriter;

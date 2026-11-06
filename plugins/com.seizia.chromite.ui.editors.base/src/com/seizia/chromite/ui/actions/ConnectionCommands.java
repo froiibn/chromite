@@ -14,23 +14,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.actions;
+package com.seizia.chromite.ui.actions;
 
 /**
  * Connection commands
  */
 public interface ConnectionCommands {
 
-    String CMD_CONNECT = "org.jkiss.dbeaver.core.connect";
-    String CMD_DISCONNECT = "org.jkiss.dbeaver.core.disconnect";
-    String CMD_DISCONNECT_ALL = "org.jkiss.dbeaver.core.disconnectAll";
-    String CMD_DISCONNECT_OTHER = "org.jkiss.dbeaver.core.disconnectOther";
-    String CMD_INVALIDATE = "org.jkiss.dbeaver.core.invalidate";
-    String CMD_READONLY = "org.jkiss.dbeaver.core.connection.readonly";
-    String CMD_COMMIT = "org.jkiss.dbeaver.core.commit";
-    String CMD_ROLLBACK = "org.jkiss.dbeaver.core.rollback";
-    String CMD_TOGGLE_AUTOCOMMIT = "org.jkiss.dbeaver.core.txn.autocommit"; //$NON-NLS-1$
-    String CMD_SELECT_CONNECTION = "org.jkiss.dbeaver.ui.tools.select.connection";
-    String CMD_SELECT_SCHEMA = "org.jkiss.dbeaver.ui.tools.select.schema";
+    String CMD_CONNECT = "com.seizia.chromite.core.connect";
+    String CMD_DISCONNECT = "com.seizia.chromite.core.disconnect";
+    String CMD_DISCONNECT_ALL = "com.seizia.chromite.core.disconnectAll";
+    String CMD_DISCONNECT_OTHER = "com.seizia.chromite.core.disconnectOther";
+    String CMD_INVALIDATE = "com.seizia.chromite.core.invalidate";
+    String CMD_READONLY = "com.seizia.chromite.core.connection.readonly";
+    String CMD_COMMIT = "com.seizia.chromite.core.commit";
+    String CMD_ROLLBACK = "com.seizia.chromite.core.rollback";
+    String CMD_TOGGLE_AUTOCOMMIT = "com.seizia.chromite.core.txn.autocommit"; //$NON-NLS-1$
+    String CMD_SELECT_CONNECTION = "com.seizia.chromite.ui.tools.select.connection";
+    String CMD_SELECT_SCHEMA = "com.seizia.chromite.ui.tools.select.schema";
 
 }

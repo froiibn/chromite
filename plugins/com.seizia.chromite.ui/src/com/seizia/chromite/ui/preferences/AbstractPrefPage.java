@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.preferences;
+package com.seizia.chromite.ui.preferences;
 
 import org.eclipse.jface.dialogs.Dialog;
 import org.eclipse.jface.preference.PreferencePage;
@@ -24,12 +24,12 @@ import org.eclipse.swt.widgets.Control;
 import org.eclipse.swt.widgets.Shell;
 import org.eclipse.ui.PlatformUI;
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.registry.configurator.UIPropertyConfiguratorDescriptor;
-import org.jkiss.dbeaver.registry.configurator.UIPropertyConfiguratorRegistry;
-import org.jkiss.dbeaver.ui.IObjectPropertyConfigurator;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.internal.UIMessages;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.registry.configurator.UIPropertyConfiguratorDescriptor;
+import com.seizia.chromite.registry.configurator.UIPropertyConfiguratorRegistry;
+import com.seizia.chromite.ui.IObjectPropertyConfigurator;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.internal.UIMessages;
 
 /**
  * AbstractPrefPage

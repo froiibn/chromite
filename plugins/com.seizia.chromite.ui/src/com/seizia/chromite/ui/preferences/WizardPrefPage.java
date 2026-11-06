@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.preferences;
+package com.seizia.chromite.ui.preferences;
 
 import org.eclipse.jface.preference.IPreferencePage;
 import org.eclipse.jface.preference.IPreferencePageContainer;
@@ -24,8 +24,8 @@ import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Control;
 import org.eclipse.ui.IWorkbenchPropertyPage;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.ui.IDialogPageProvider;
-import org.jkiss.dbeaver.utils.RuntimeUtils;
+import com.seizia.chromite.ui.IDialogPageProvider;
+import com.seizia.chromite.utils.RuntimeUtils;
 import org.jkiss.utils.CommonUtils;
 import org.osgi.framework.Bundle;
 import org.osgi.framework.FrameworkUtil;

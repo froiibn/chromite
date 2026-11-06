@@ -14,25 +14,25 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.app.standalone.update;
+package com.seizia.chromite.ui.app.standalone.update;
 
 import org.eclipse.core.runtime.IProduct;
 import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.Platform;
 import org.eclipse.core.runtime.Status;
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.DBeaverPreferences;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.core.CoreMessages;
-import org.jkiss.dbeaver.model.runtime.AbstractJob;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.registry.updater.VersionDescriptor;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.app.standalone.DBeaverApplication;
-import org.jkiss.dbeaver.ui.app.standalone.internal.CoreApplicationActivator;
-import org.jkiss.dbeaver.ui.services.UIServiceApplicationVersionUpdater;
-import org.jkiss.dbeaver.utils.GeneralUtils;
+import com.seizia.chromite.ChromitePreferences;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.core.CoreMessages;
+import com.seizia.chromite.model.runtime.AbstractJob;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.registry.updater.VersionDescriptor;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.app.standalone.ChromiteApplication;
+import com.seizia.chromite.ui.app.standalone.internal.CoreApplicationActivator;
+import com.seizia.chromite.ui.services.UIServiceApplicationVersionUpdater;
+import com.seizia.chromite.utils.GeneralUtils;
 import org.jkiss.utils.CommonUtils;
 import org.osgi.framework.Version;
 
@@ -44,13 +44,13 @@ import java.nio.file.Path;
 /**
  * Version checker job
  */
-public class DBeaverVersionChecker extends AbstractJob {
+public class ChromiteVersionChecker extends AbstractJob {
 
-    private static final Log log = Log.getLog(DBeaverVersionChecker.class);
-    private static final String PROP_OVERRIDE_PRODUCT_VERSION = "dbeaver.debug.override-product-version";
-    private static final String PROP_OVERRIDE_PRODUCT_PATCH = "dbeaver.debug.override-product-patch";
-    private static final String PROP_SKIP_VERSION_CHECK = "dbeaver.debug.skip-version-check";
-    private static final String PROP_VERSION_DESCRIPTOR = "dbeaver.debug.version-descriptor";
+    private static final Log log = Log.getLog(ChromiteVersionChecker.class);
+    private static final String PROP_OVERRIDE_PRODUCT_VERSION = "chromite.debug.override-product-version";
+    private static final String PROP_OVERRIDE_PRODUCT_PATCH = "chromite.debug.override-product-patch";
+    private static final String PROP_SKIP_VERSION_CHECK = "chromite.debug.skip-version-check";
+    private static final String PROP_VERSION_DESCRIPTOR = "chromite.debug.version-descriptor";
     private static final String PROP_VERSION_UPDATE_URL = "versionUpdateURL";
     private static final String PREF_SUPPRESS_UPDATE_CHECK_PREFIX = "suppressUpdateCheck.";
 
@@ -75,7 +75,7 @@ public class DBeaverVersionChecker extends AbstractJob {
 
     private final boolean showAlways;
 
-    public DBeaverVersionChecker(boolean force)
+    public ChromiteVersionChecker(boolean force)
     {
         super("DBeaver new version release checker");
         this.showAlways = force;
@@ -93,7 +93,7 @@ public class DBeaverVersionChecker extends AbstractJob {
         boolean showUpdateDialog = showAlways;
         if (!showUpdateDialog) {
             // Check for auto-update settings
-            showUpdateDialog = DBWorkbench.getPlatform().getPreferenceStore().getBoolean(DBeaverPreferences.UI_AUTO_UPDATE_CHECK);
+            showUpdateDialog = DBWorkbench.getPlatform().getPreferenceStore().getBoolean(ChromitePreferences.UI_AUTO_UPDATE_CHECK);
         }
         if (!showAlways && !showUpdateDialog) {
             return Status.OK_STATUS;
@@ -150,7 +150,7 @@ public class DBeaverVersionChecker extends AbstractJob {
     private void showUpdaterDialog(@NotNull Version currentVersion, @NotNull VersionDescriptor newVersion)
     {
         UIUtils.asyncExec(() -> {
-            DBeaverApplication.getInstance().notifyVersionUpgrade(currentVersion, newVersion, !showAlways);
+            ChromiteApplication.getInstance().notifyVersionUpgrade(currentVersion, newVersion, !showAlways);
         });
     }
 

@@ -3,8 +3,8 @@
 
 <plugin>
 
-    <extension point="org.jkiss.dbeaver.generic.meta">
-        <meta id="informix" class="org.jkiss.dbeaver.ext.informix.model.InformixMetaModel" driverClass="com.informix.jdbc.IfxDriver"/>
+    <extension point="com.seizia.chromite.generic.meta">
+        <meta id="informix" class="com.seizia.chromite.ext.informix.model.InformixMetaModel" driverClass="com.informix.jdbc.IfxDriver"/>
     </extension>
 
 </plugin>

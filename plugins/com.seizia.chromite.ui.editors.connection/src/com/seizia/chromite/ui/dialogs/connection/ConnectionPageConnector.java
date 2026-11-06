@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.dialogs.connection;
+package com.seizia.chromite.ui.dialogs.connection;
 
 import org.eclipse.jface.viewers.*;
 import org.eclipse.osgi.util.NLS;
@@ -27,22 +27,22 @@ import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.widgets.*;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.model.connection.DBPDataSourceType;
-import org.jkiss.dbeaver.model.connection.DBPDriver;
-import org.jkiss.dbeaver.model.connection.DBPDriverWithLazyIcon;
-import org.jkiss.dbeaver.model.connection.DBPDriverWithLicense;
-import org.jkiss.dbeaver.registry.DataSourceRegistry;
-import org.jkiss.dbeaver.registry.driver.DriverUtils;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.ui.BaseThemeSettings;
-import org.jkiss.dbeaver.ui.DBeaverIcons;
-import org.jkiss.dbeaver.ui.UIStyles;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.dialogs.ActiveWizardPage;
-import org.jkiss.dbeaver.ui.dialogs.driver.DataSourceTypeViewer;
-import org.jkiss.dbeaver.ui.internal.UIConnectionMessages;
-import org.jkiss.dbeaver.ui.preferences.UIPreferences;
-import org.jkiss.dbeaver.utils.PrefUtils;
+import com.seizia.chromite.model.connection.DBPDataSourceType;
+import com.seizia.chromite.model.connection.DBPDriver;
+import com.seizia.chromite.model.connection.DBPDriverWithLazyIcon;
+import com.seizia.chromite.model.connection.DBPDriverWithLicense;
+import com.seizia.chromite.registry.DataSourceRegistry;
+import com.seizia.chromite.registry.driver.DriverUtils;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.ui.BaseThemeSettings;
+import com.seizia.chromite.ui.SwtIcons;
+import com.seizia.chromite.ui.UIStyles;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.dialogs.ActiveWizardPage;
+import com.seizia.chromite.ui.dialogs.driver.DataSourceTypeViewer;
+import com.seizia.chromite.ui.internal.UIConnectionMessages;
+import com.seizia.chromite.ui.preferences.UIPreferences;
+import com.seizia.chromite.utils.PrefUtils;
 import org.jkiss.utils.CommonUtils;
 import org.jkiss.utils.StringUtils;
 
@@ -265,7 +265,7 @@ class ConnectionPageConnector extends ActiveWizardPage<NewConnectionWizard> {
                 event.gc.setAlpha(255);
             }
 
-            Image image = DBeaverIcons.getImage(driver.getIconBig());
+            Image image = SwtIcons.getImage(driver.getIconBig());
             Rectangle imageBounds = image.getBounds();
             double scale = Math.min(1, Math.min(
                 (double) IMAGE_MAX_WIDTH / imageBounds.width,

@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.editors.binary;
+package com.seizia.chromite.ui.editors.binary;
 
 import org.eclipse.jface.action.IMenuListener;
 import org.eclipse.jface.action.IMenuManager;
@@ -28,8 +28,8 @@ import org.eclipse.swt.graphics.FontData;
 import org.eclipse.swt.graphics.Rectangle;
 import org.eclipse.swt.widgets.*;
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.ui.editors.binary.dialogs.FindReplaceDialog;
-import org.jkiss.dbeaver.ui.editors.binary.dialogs.GoToDialog;
+import com.seizia.chromite.ui.editors.binary.dialogs.FindReplaceDialog;
+import com.seizia.chromite.ui.editors.binary.dialogs.GoToDialog;
 
 import java.io.File;
 import java.io.IOException;

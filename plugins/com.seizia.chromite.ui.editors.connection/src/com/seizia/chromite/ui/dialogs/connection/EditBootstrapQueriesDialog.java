@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.dialogs.connection;
+package com.seizia.chromite.ui.dialogs.connection;
 
 import org.eclipse.jface.dialogs.IDialogSettings;
 import org.eclipse.swt.SWT;
@@ -24,17 +24,17 @@ import org.eclipse.swt.events.SelectionListener;
 import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.widgets.*;
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.model.connection.DBPConnectionConfiguration;
-import org.jkiss.dbeaver.model.connection.DataSourceVariableResolver;
-import org.jkiss.dbeaver.registry.DataSourceDescriptor;
-import org.jkiss.dbeaver.ui.IHelpContextIds;
-import org.jkiss.dbeaver.ui.internal.UIConnectionMessages;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.controls.CustomTableEditor;
-import org.jkiss.dbeaver.ui.controls.VariablesHintLabel;
-import org.jkiss.dbeaver.ui.dialogs.EditTextDialog;
-import org.jkiss.dbeaver.ui.dialogs.HelpEnabledDialog;
-import org.jkiss.dbeaver.ui.internal.UIMessages;
+import com.seizia.chromite.model.connection.DBPConnectionConfiguration;
+import com.seizia.chromite.model.connection.DataSourceVariableResolver;
+import com.seizia.chromite.registry.DataSourceDescriptor;
+import com.seizia.chromite.ui.IHelpContextIds;
+import com.seizia.chromite.ui.internal.UIConnectionMessages;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.controls.CustomTableEditor;
+import com.seizia.chromite.ui.controls.VariablesHintLabel;
+import com.seizia.chromite.ui.dialogs.EditTextDialog;
+import com.seizia.chromite.ui.dialogs.HelpEnabledDialog;
+import com.seizia.chromite.ui.internal.UIMessages;
 
 import java.util.ArrayList;
 import java.util.Collection;

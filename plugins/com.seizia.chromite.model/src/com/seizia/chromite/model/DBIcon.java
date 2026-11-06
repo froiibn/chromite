@@ -15,14 +15,14 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.model;
+package com.seizia.chromite.model;
 
 import org.eclipse.core.runtime.FileLocator;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.utils.GeneralUtils;
-import org.jkiss.dbeaver.utils.RuntimeUtils;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.utils.GeneralUtils;
+import com.seizia.chromite.utils.RuntimeUtils;
 import org.jkiss.utils.CommonUtils;
 import org.osgi.framework.Bundle;
 import org.osgi.framework.FrameworkUtil;

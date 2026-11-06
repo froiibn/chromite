@@ -15,20 +15,20 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.model.sql.format.external;
+package com.seizia.chromite.model.sql.format.external;
 
 import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.Status;
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.ModelPreferences;
-import org.jkiss.dbeaver.model.preferences.DBPPreferenceStore;
-import org.jkiss.dbeaver.model.runtime.AbstractJob;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.model.sql.format.SQLFormatter;
-import org.jkiss.dbeaver.model.sql.format.SQLFormatterConfiguration;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.utils.GeneralUtils;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.ModelPreferences;
+import com.seizia.chromite.model.preferences.DBPPreferenceStore;
+import com.seizia.chromite.model.runtime.AbstractJob;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.model.sql.format.SQLFormatter;
+import com.seizia.chromite.model.sql.format.SQLFormatterConfiguration;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.utils.GeneralUtils;
 import org.jkiss.utils.ArgumentTokenizer;
 import org.jkiss.utils.CommonUtils;
 import org.jkiss.utils.IOUtils;
@@ -106,7 +106,7 @@ public class SQLFormatterExternal implements SQLFormatter {
                     throw new IOException("No command specified for external formatter");
                 }
                 if (useFile) {
-                    tmpFile = File.createTempFile("dbeaver-sql-format", "sql");
+                    tmpFile = File.createTempFile("chromite-sql-format", "sql");
                     try (final OutputStream os = new FileOutputStream(tmpFile)) {
                         try (final Writer out = new OutputStreamWriter(os, sourceEncoding)) {
                             IOUtils.copyText(new StringReader(source), out);

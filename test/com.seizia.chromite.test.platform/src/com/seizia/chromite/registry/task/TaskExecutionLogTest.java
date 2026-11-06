@@ -14,15 +14,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.registry.task;
+package com.seizia.chromite.registry.task;
 
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.runtime.DBRRunnableContext;
-import org.jkiss.dbeaver.model.runtime.VoidProgressMonitor;
-import org.jkiss.dbeaver.model.task.DBTTask;
-import org.jkiss.dbeaver.model.task.DBTTaskRun;
-import org.jkiss.junit.DBeaverUnitTest;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.runtime.DBRRunnableContext;
+import com.seizia.chromite.model.runtime.VoidProgressMonitor;
+import com.seizia.chromite.model.task.DBTTask;
+import com.seizia.chromite.model.task.DBTTaskRun;
+import com.seizia.chromite.junit.ChromiteUnitTest;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -35,7 +35,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
-public class TaskExecutionLogTest extends DBeaverUnitTest {
+public class TaskExecutionLogTest extends ChromiteUnitTest {
     @TempDir
     Path folder;
 

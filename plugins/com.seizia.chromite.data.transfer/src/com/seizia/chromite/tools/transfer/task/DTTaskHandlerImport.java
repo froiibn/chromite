@@ -14,16 +14,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.tools.transfer.task;
+package com.seizia.chromite.tools.transfer.task;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.runtime.DBRRunnableContext;
-import org.jkiss.dbeaver.model.task.DBTTask;
-import org.jkiss.dbeaver.model.task.DBTTaskExecutionListener;
-import org.jkiss.dbeaver.model.task.DBTTaskRunStatus;
-import org.jkiss.dbeaver.registry.ApplicationPolicyProvider;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.runtime.DBRRunnableContext;
+import com.seizia.chromite.model.task.DBTTask;
+import com.seizia.chromite.model.task.DBTTaskExecutionListener;
+import com.seizia.chromite.model.task.DBTTaskRunStatus;
+import com.seizia.chromite.registry.ApplicationPolicyProvider;
 
 import java.io.PrintStream;
 import java.util.Locale;

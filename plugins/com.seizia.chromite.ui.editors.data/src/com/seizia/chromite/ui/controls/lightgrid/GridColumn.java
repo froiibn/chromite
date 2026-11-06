@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.controls.lightgrid;
+package com.seizia.chromite.ui.controls.lightgrid;
 
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.graphics.GC;
@@ -22,8 +22,8 @@ import org.eclipse.swt.graphics.Image;
 import org.eclipse.swt.graphics.Point;
 import org.eclipse.swt.graphics.Rectangle;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.model.DBPImage;
-import org.jkiss.dbeaver.ui.DBeaverIcons;
+import com.seizia.chromite.model.DBPImage;
+import com.seizia.chromite.ui.SwtIcons;
 import org.jkiss.utils.CommonUtils;
 
 import java.util.ArrayList;
@@ -228,7 +228,7 @@ public class GridColumn implements IGridColumn {
         if (!hint.icons.isEmpty()) {
             int maxIconWidth = GridColumnRenderer.IMAGE_SPACING;
             for (DBPImage hi : hint.icons) {
-                maxIconWidth = Math.max(maxIconWidth, DBeaverIcons.getImage(hi).getBounds().width);
+                maxIconWidth = Math.max(maxIconWidth, SwtIcons.getImage(hi).getBounds().width);
             }
             x += maxIconWidth;
         }
@@ -337,7 +337,7 @@ public class GridColumn implements IGridColumn {
             imageBounds = GridCellRenderer.LINK_IMAGE_BOUNDS;
         } else {
             DBPImage image = cellInfo.image;
-            imageBounds = image == null ? null : DBeaverIcons.getImage(image).getBounds();
+            imageBounds = image == null ? null : SwtIcons.getImage(image).getBounds();
         }
         if (imageBounds != null) {
             x += imageBounds.width + insideMargin;

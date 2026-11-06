@@ -15,10 +15,10 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.runtime.encode;
+package com.seizia.chromite.runtime.encode;
 
-import org.jkiss.dbeaver.model.app.DBPProject;
-import org.jkiss.dbeaver.model.secret.DBSSecretController;
+import com.seizia.chromite.model.app.DBPProject;
+import com.seizia.chromite.model.secret.DBSSecretController;
 
 /**
  * Password encoder

@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.editors.sql.commands;
+package com.seizia.chromite.ui.editors.sql.commands;
 
 import org.eclipse.core.commands.AbstractHandler;
 import org.eclipse.core.commands.ExecutionEvent;
@@ -28,16 +28,16 @@ import org.eclipse.ui.handlers.HandlerUtil;
 import org.eclipse.ui.menus.UIElement;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.editors.sql.SQLEditor;
-import org.jkiss.dbeaver.ui.editors.sql.SQLEditorBase;
-import org.jkiss.dbeaver.ui.editors.sql.SQLEditorUtils;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.editors.sql.SQLEditor;
+import com.seizia.chromite.ui.editors.sql.SQLEditorBase;
+import com.seizia.chromite.ui.editors.sql.SQLEditorUtils;
 
 import java.util.Map;
 
 public class DisableSQLSyntaxParserHandler extends AbstractHandler implements IElementUpdater {
     
-    public static final String COMMAND_ID = "org.jkiss.dbeaver.ui.editors.sql.disableSQLSyntaxParser";
+    public static final String COMMAND_ID = "com.seizia.chromite.ui.editors.sql.disableSQLSyntaxParser";
 
     @Nullable
     @Override

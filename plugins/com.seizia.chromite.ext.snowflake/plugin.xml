@@ -3,11 +3,11 @@
 
 <plugin>
 
-    <extension point="org.jkiss.dbeaver.generic.meta">
-        <meta id="snowflake" class="org.jkiss.dbeaver.ext.snowflake.model.SnowflakeMetaModel" driverClass="net.snowflake.client.jdbc.SnowflakeDriver"/>
+    <extension point="com.seizia.chromite.generic.meta">
+        <meta id="snowflake" class="com.seizia.chromite.ext.snowflake.model.SnowflakeMetaModel" driverClass="net.snowflake.client.jdbc.SnowflakeDriver"/>
     </extension>
 
-    <extension point="org.jkiss.dbeaver.dataSourceProvider">
+    <extension point="com.seizia.chromite.dataSourceProvider">
 
         <dataSourceType
             id="snowflake"
@@ -21,7 +21,7 @@
         <!-- Snowflake -->
 
         <datasource
-                class="org.jkiss.dbeaver.ext.snowflake.SnowflakeDataSourceProvider"
+                class="com.seizia.chromite.ext.snowflake.SnowflakeDataSourceProvider"
                 description="%datasource.snowflake.description"
                 id="snowflake"
                 dataSourceType="snowflake"
@@ -52,7 +52,7 @@
                     <parameter name="query-set-active-db" value="USE DATABASE &quot;?&quot;"/>
                     <parameter name="active-entity-type" value="catalog"/>
 
-                    <property name="@dbeaver-default-resultset.maxrows.sql" value="true"/>
+                    <property name="@chromite-default-resultset.maxrows.sql" value="true"/>
                 </driver>
 
                 <provider-properties drivers="*">
@@ -70,21 +70,21 @@
         </datasource>
     </extension>
 
-    <extension point="org.jkiss.dbeaver.sqlDialect">
-        <dialect id="snowflake" parent="generic" class="org.jkiss.dbeaver.ext.snowflake.model.SnowflakeSQLDialect" label="Snowflake" description="Snowflake SQL dialect." icon="icons/snowflake_icon.png">
+    <extension point="com.seizia.chromite.sqlDialect">
+        <dialect id="snowflake" parent="generic" class="com.seizia.chromite.ext.snowflake.model.SnowflakeSQLDialect" label="Snowflake" description="Snowflake SQL dialect." icon="icons/snowflake_icon.png">
         </dialect>
     </extension>
 
     <extension point="org.eclipse.core.runtime.preferences">
-        <initializer class="org.jkiss.dbeaver.ext.snowflake.internal.SnowflakePreferencesInitializer"/>
+        <initializer class="com.seizia.chromite.ext.snowflake.internal.SnowflakePreferencesInitializer"/>
     </extension>
 
-    <extension point="org.jkiss.dbeaver.dataSourceAuth">
+    <extension point="com.seizia.chromite.dataSourceAuth">
         <authModel
             id="snowflake_snowflake"
             label="Snowflake username/password"
             description="Snowflake internal authentication (name/password)"
-            class="org.jkiss.dbeaver.ext.snowflake.model.auth.SnowflakeAuthModelSnowflake"
+            class="com.seizia.chromite.ext.snowflake.model.auth.SnowflakeAuthModelSnowflake"
             default="true">
             <replace model="native"/>
             <datasource id="snowflake"/>

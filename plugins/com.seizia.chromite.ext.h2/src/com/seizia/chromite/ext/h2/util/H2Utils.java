@@ -14,13 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.h2.util;
+package com.seizia.chromite.ext.h2.util;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.ModelPreferences;
-import org.jkiss.dbeaver.ext.h2.internal.H2Constants;
-import org.jkiss.dbeaver.utils.PrefUtils;
+import com.seizia.chromite.ModelPreferences;
+import com.seizia.chromite.ext.h2.internal.H2Constants;
+import com.seizia.chromite.utils.PrefUtils;
 import org.jkiss.utils.CommonUtils;
 
 import java.lang.reflect.Field;

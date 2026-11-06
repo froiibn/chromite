@@ -14,11 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.controls.resultset.panel.grouping.column.impl;
+package com.seizia.chromite.ui.controls.resultset.panel.grouping.column.impl;
 
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.model.sql.SQLGroupingAttribute;
-import org.jkiss.dbeaver.ui.controls.resultset.panel.grouping.column.GroupingColumn;
+import com.seizia.chromite.model.sql.SQLGroupingAttribute;
+import com.seizia.chromite.ui.controls.resultset.panel.grouping.column.GroupingColumn;
 
 public abstract class SQLGroupingAttributeGroupingColumn implements GroupingColumn {
 

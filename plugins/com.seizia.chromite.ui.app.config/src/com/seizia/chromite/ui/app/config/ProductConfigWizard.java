@@ -14,21 +14,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.app.config;
+package com.seizia.chromite.ui.app.config;
 
 import org.eclipse.jface.wizard.IWizardPage;
 import org.eclipse.jface.wizard.Wizard;
 import org.eclipse.osgi.util.NLS;
 import org.jkiss.code.NotNull;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.config.ProductConfigRegistry;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.app.config.nls.ProductConfigMessages;
-import org.jkiss.dbeaver.ui.app.config.pages.ProductConfigWizardPage;
-import org.jkiss.dbeaver.ui.app.config.registry.ProductConfigPageDescriptor;
-import org.jkiss.dbeaver.ui.app.config.registry.ProductConfigWizardRegistry;
-import org.jkiss.dbeaver.utils.GeneralUtils;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.config.ProductConfigRegistry;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.app.config.nls.ProductConfigMessages;
+import com.seizia.chromite.ui.app.config.pages.ProductConfigWizardPage;
+import com.seizia.chromite.ui.app.config.registry.ProductConfigPageDescriptor;
+import com.seizia.chromite.ui.app.config.registry.ProductConfigWizardRegistry;
+import com.seizia.chromite.utils.GeneralUtils;
 
 public final class ProductConfigWizard extends Wizard {
     public enum Origin {

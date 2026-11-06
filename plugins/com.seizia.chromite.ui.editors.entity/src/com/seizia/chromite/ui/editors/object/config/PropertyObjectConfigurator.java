@@ -15,16 +15,16 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.ui.editors.object.config;
+package com.seizia.chromite.ui.editors.object.config;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.model.edit.DBECommandContext;
-import org.jkiss.dbeaver.model.edit.DBEObjectConfigurator;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.model.struct.DBSObject;
-import org.jkiss.dbeaver.ui.UITask;
-import org.jkiss.dbeaver.ui.editors.object.struct.PropertyObjectEditPage;
+import com.seizia.chromite.model.edit.DBECommandContext;
+import com.seizia.chromite.model.edit.DBEObjectConfigurator;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.model.struct.DBSObject;
+import com.seizia.chromite.ui.UITask;
+import com.seizia.chromite.ui.editors.object.struct.PropertyObjectEditPage;
 
 import java.util.Map;
 

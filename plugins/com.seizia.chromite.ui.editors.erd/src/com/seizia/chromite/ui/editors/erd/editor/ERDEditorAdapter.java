@@ -14,12 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.editors.erd.editor;
+package com.seizia.chromite.ui.editors.erd.editor;
 
 import org.eclipse.core.runtime.IAdapterFactory;
 import org.eclipse.swt.widgets.Control;
 import org.eclipse.ui.IEditorPart;
-import org.jkiss.dbeaver.ui.editors.MultiPageAbstractEditor;
+import com.seizia.chromite.ui.editors.MultiPageAbstractEditor;
 
 import java.util.IdentityHashMap;
 import java.util.Map;

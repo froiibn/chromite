@@ -2,7 +2,7 @@
 
 ## 목적
 
-DBeaver SWT 결과 뷰어(`org.jkiss.dbeaver.ui.editors.data`의 `ResultSetViewer`, 패널, 값 보기)의 주요 기능을 Swing 결과 그리드
+DBeaver SWT 결과 뷰어(`com.seizia.chromite.ui.editors.data`의 `ResultSetViewer`, 패널, 값 보기)의 주요 기능을 Swing 결과 그리드
 ([swing-frontend.md](swing-frontend.md) C·G단계의 `ResultSetGrid`)에 옮긴다. 우선순위는 다음과 같다.
 
 1. 값 패널: 고른 칸의 값을 표 옆에서 크게 보기(줄 바꿈 글자, JSON·XML 정리, 이진 이미지 미리 보기, 16진수), 편집할 수 있는 표에서는 고치기
@@ -14,7 +14,7 @@ DBeaver SWT 결과 뷰어(`org.jkiss.dbeaver.ui.editors.data`의 `ResultSetViewe
 ## 구조
 
 모든 클래스는 `com.seizia.chromite.ui.swing` 번들(패키지 같음)에 있다. 새 번들·새 의존은 없다(JSON 정리에 쓰는 Gson은
-`org.jkiss.dbeaver.model` → `org.jkiss.utils`가 다시 내보내는 `com.google.gson`이다).
+`com.seizia.chromite.model` → `org.jkiss.utils`가 다시 내보내는 `com.google.gson`이다).
 
 ```
 QueryResultsView (결과 창, 결과마다 하나씩 쌓음)
@@ -150,7 +150,7 @@ SWT: 결과 뷰어의 레코드 모드(`ResultSetViewer.toggleMode`).
 
 ## 확인 (2026-11-06)
 
-- 빌드: `mvn -B clean package -f product/aggregate/pom.xml -T1C '-Pproduct-dbeaver-ce,product-chromite-swing'` → `BUILD SUCCESS`.
+- 빌드: `mvn -B clean package -f product/aggregate/pom.xml -T1C '-Pproduct-chromite-swt,product-chromite-swing'` → `BUILD SUCCESS`.
   Swing 제품 `plugins/`에 `swt`·`jface`·`org.eclipse.ui`·`e4.ui` 번들 0개(새 번들 의존 없음).
 - 실행: 빌드한 Swing 제품을 따로 복사해 별도 작업 공간으로 열고, 로컬 Docker DB(PostgreSQL 17, SQL Server 2022, MariaDB 11)에 시험용 DB `chr_result_viewer`를 만들어 확인했다
   (`items` 1,000행: 숫자·날짜·json·jsonb·xml·이미지·이진·여러 줄 글자 열). 같은 PC에서 다른 앱 창과 Windows 방화벽 알림이 앞 창을 잡고 있어,

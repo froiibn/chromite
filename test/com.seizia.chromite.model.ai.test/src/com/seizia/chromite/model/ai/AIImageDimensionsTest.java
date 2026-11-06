@@ -14,14 +14,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.ai;
+package com.seizia.chromite.model.ai;
 
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.model.ai.engine.copilot.CopilotCompletionEngine;
-import org.jkiss.dbeaver.model.ai.engine.copilot.CopilotProperties;
-import org.jkiss.dbeaver.model.ai.engine.openai.OpenAIEngine;
-import org.jkiss.dbeaver.model.ai.engine.openai.OpenAIProperties;
-import org.jkiss.dbeaver.model.ai.engine.openai.OpenAiUtils;
+import com.seizia.chromite.model.ai.engine.copilot.CopilotCompletionEngine;
+import com.seizia.chromite.model.ai.engine.copilot.CopilotProperties;
+import com.seizia.chromite.model.ai.engine.openai.OpenAIEngine;
+import com.seizia.chromite.model.ai.engine.openai.OpenAIProperties;
+import com.seizia.chromite.model.ai.engine.openai.OpenAiUtils;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 

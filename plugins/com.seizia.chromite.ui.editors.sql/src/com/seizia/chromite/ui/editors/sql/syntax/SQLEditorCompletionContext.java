@@ -14,24 +14,24 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.editors.sql.syntax;
+package com.seizia.chromite.ui.editors.sql.syntax;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.model.DBPDataSource;
-import org.jkiss.dbeaver.model.DBPImage;
-import org.jkiss.dbeaver.model.DBPKeywordType;
-import org.jkiss.dbeaver.model.DBPNamedObject;
-import org.jkiss.dbeaver.model.exec.DBCExecutionContext;
-import org.jkiss.dbeaver.model.preferences.DBPPreferenceStore;
-import org.jkiss.dbeaver.model.sql.SQLSyntaxManager;
-import org.jkiss.dbeaver.model.sql.completion.SQLCompletionContext;
-import org.jkiss.dbeaver.model.sql.completion.SQLCompletionProposalBase;
-import org.jkiss.dbeaver.model.sql.completion.SQLCompletionRequest;
-import org.jkiss.dbeaver.model.sql.parser.SQLRuleManager;
-import org.jkiss.dbeaver.ui.editors.sql.SQLEditorBase;
-import org.jkiss.dbeaver.ui.editors.sql.SQLPreferenceConstants;
-import org.jkiss.dbeaver.ui.editors.sql.SQLPreferenceConstants.*;
+import com.seizia.chromite.model.DBPDataSource;
+import com.seizia.chromite.model.DBPImage;
+import com.seizia.chromite.model.DBPKeywordType;
+import com.seizia.chromite.model.DBPNamedObject;
+import com.seizia.chromite.model.exec.DBCExecutionContext;
+import com.seizia.chromite.model.preferences.DBPPreferenceStore;
+import com.seizia.chromite.model.sql.SQLSyntaxManager;
+import com.seizia.chromite.model.sql.completion.SQLCompletionContext;
+import com.seizia.chromite.model.sql.completion.SQLCompletionProposalBase;
+import com.seizia.chromite.model.sql.completion.SQLCompletionRequest;
+import com.seizia.chromite.model.sql.parser.SQLRuleManager;
+import com.seizia.chromite.ui.editors.sql.SQLEditorBase;
+import com.seizia.chromite.ui.editors.sql.SQLPreferenceConstants;
+import com.seizia.chromite.ui.editors.sql.SQLPreferenceConstants.*;
 
 import java.util.Map;
 

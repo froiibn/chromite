@@ -15,12 +15,12 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.ext.gaussdb.model;
+package com.seizia.chromite.ext.gaussdb.model;
 
 import java.sql.ResultSet;
 
-import org.jkiss.dbeaver.ext.postgresql.model.PostgreSchema;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.ext.postgresql.model.PostgreSchema;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
 
 public class GaussDBFunction extends GaussDBProcedure {
 

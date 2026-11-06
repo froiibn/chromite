@@ -14,18 +14,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.sql.semantics.context;
+package com.seizia.chromite.model.sql.semantics.context;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.model.*;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.model.sql.SQLDialect;
-import org.jkiss.dbeaver.model.sql.semantics.SQLQueryVariablesSubset;
-import org.jkiss.dbeaver.model.sql.semantics.model.select.SQLQueryRowsSourceModel;
-import org.jkiss.dbeaver.model.struct.*;
-import org.jkiss.dbeaver.model.struct.rdb.*;
+import com.seizia.chromite.model.*;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.model.sql.SQLDialect;
+import com.seizia.chromite.model.sql.semantics.SQLQueryVariablesSubset;
+import com.seizia.chromite.model.sql.semantics.model.select.SQLQueryRowsSourceModel;
+import com.seizia.chromite.model.struct.*;
+import com.seizia.chromite.model.struct.rdb.*;
 
 import java.util.*;
 

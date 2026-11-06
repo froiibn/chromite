@@ -1,8 +1,8 @@
 <?xml version='1.0' encoding='UTF-8'?>
-<schema targetNamespace="org.jkiss.dbeaver.registry" xmlns="http://www.w3.org/2001/XMLSchema">
+<schema targetNamespace="com.seizia.chromite.registry" xmlns="http://www.w3.org/2001/XMLSchema">
     <annotation>
         <appInfo>
-            <meta.schema plugin="org.jkiss.dbeaver.registry" id="org.jkiss.dbeaver.projectImport" name="Project import transformers"/>
+            <meta.schema plugin="com.seizia.chromite.registry" id="com.seizia.chromite.projectImport" name="Project import transformers"/>
         </appInfo>
         <documentation>Transforms selected text resources before they are written to an imported project. The caller controls the character encoding; resources without a transformer are copied without decoding.</documentation>
     </annotation>
@@ -21,7 +21,7 @@
                 <annotation><documentation>Exact project-relative path of a text resource, using forward slashes.</documentation></annotation>
             </attribute>
             <attribute name="class" type="string" use="required">
-                <annotation><appInfo><meta.attribute kind="java" basedOn=":org.jkiss.dbeaver.model.app.DBPProjectImportTransformer"/></appInfo></annotation>
+                <annotation><appInfo><meta.attribute kind="java" basedOn=":com.seizia.chromite.model.app.DBPProjectImportTransformer"/></appInfo></annotation>
             </attribute>
         </complexType>
     </element>

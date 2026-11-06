@@ -14,23 +14,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.impl.data;
+package com.seizia.chromite.model.impl.data;
 
 import org.eclipse.core.runtime.Assert;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.model.DBPDataSource;
-import org.jkiss.dbeaver.model.DBUtils;
-import org.jkiss.dbeaver.model.data.*;
-import org.jkiss.dbeaver.model.exec.*;
-import org.jkiss.dbeaver.model.impl.sql.BaseInsertMethod;
-import org.jkiss.dbeaver.model.sql.SQLConstants;
-import org.jkiss.dbeaver.model.sql.SQLUtils;
-import org.jkiss.dbeaver.model.struct.DBSAttributeBase;
-import org.jkiss.dbeaver.model.struct.DBSDataManipulator;
-import org.jkiss.dbeaver.model.struct.DBSEntityAttribute;
-import org.jkiss.dbeaver.model.struct.DBStructUtils;
-import org.jkiss.dbeaver.model.struct.rdb.DBSTable;
+import com.seizia.chromite.model.DBPDataSource;
+import com.seizia.chromite.model.DBUtils;
+import com.seizia.chromite.model.data.*;
+import com.seizia.chromite.model.exec.*;
+import com.seizia.chromite.model.impl.sql.BaseInsertMethod;
+import com.seizia.chromite.model.sql.SQLConstants;
+import com.seizia.chromite.model.sql.SQLUtils;
+import com.seizia.chromite.model.struct.DBSAttributeBase;
+import com.seizia.chromite.model.struct.DBSDataManipulator;
+import com.seizia.chromite.model.struct.DBSEntityAttribute;
+import com.seizia.chromite.model.struct.DBStructUtils;
+import com.seizia.chromite.model.struct.rdb.DBSTable;
 import org.jkiss.utils.CommonUtils;
 
 import java.util.ArrayList;

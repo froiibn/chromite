@@ -14,18 +14,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.net;
+package com.seizia.chromite.model.net;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.model.DBPDataSourceContainer;
-import org.jkiss.dbeaver.model.connection.DBPDriver;
-import org.jkiss.dbeaver.model.data.json.JSONUtils;
-import org.jkiss.dbeaver.model.meta.SecureProperty;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.runtime.IVariableResolver;
-import org.jkiss.dbeaver.utils.GeneralUtils;
+import com.seizia.chromite.model.DBPDataSourceContainer;
+import com.seizia.chromite.model.connection.DBPDriver;
+import com.seizia.chromite.model.data.json.JSONUtils;
+import com.seizia.chromite.model.meta.SecureProperty;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.runtime.IVariableResolver;
+import com.seizia.chromite.utils.GeneralUtils;
 import org.jkiss.utils.CommonUtils;
 
 import java.util.LinkedHashMap;

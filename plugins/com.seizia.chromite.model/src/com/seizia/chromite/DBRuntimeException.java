@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver;
+package com.seizia.chromite;
 
 /**
  * DBRuntimeException

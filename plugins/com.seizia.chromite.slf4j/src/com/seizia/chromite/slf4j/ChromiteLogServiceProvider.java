@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.slf4j;
+package com.seizia.chromite.slf4j;
 
 import org.slf4j.ILoggerFactory;
 import org.slf4j.IMarkerFactory;
@@ -24,13 +24,13 @@ import org.slf4j.helpers.NOPMDCAdapter;
 import org.slf4j.spi.MDCAdapter;
 import org.slf4j.spi.SLF4JServiceProvider;
 
-public class DBeaverLogServiceProvider implements SLF4JServiceProvider {
+public class ChromiteLogServiceProvider implements SLF4JServiceProvider {
     public static String REQUESTED_API_VERSION = "2.0.99";
     private IMarkerFactory markerFactory;
     private MDCAdapter mdcAdapter;
     private ILoggerFactory defaultLoggerContext;
 
-    public DBeaverLogServiceProvider() {
+    public ChromiteLogServiceProvider() {
     }
 
     public void initialize() {

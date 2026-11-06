@@ -15,10 +15,10 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.model.exec.plan;
+package com.seizia.chromite.model.exec.plan;
 
-import org.jkiss.dbeaver.model.impl.struct.RelationalObjectType;
-import org.jkiss.dbeaver.model.struct.DBSObjectType;
+import com.seizia.chromite.model.impl.struct.RelationalObjectType;
+import com.seizia.chromite.model.struct.DBSObjectType;
 
 /**
  * Execution plan node kind

@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.ui.config.migration.wizards.navicat;
+package com.seizia.chromite.ui.config.migration.wizards.navicat;
 
 import org.jkiss.utils.CommonUtils;
 

@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.gis.preferences;
+package com.seizia.chromite.ui.gis.preferences;
 
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.widgets.Composite;
@@ -24,19 +24,19 @@ import org.eclipse.swt.widgets.Text;
 import org.eclipse.ui.IWorkbench;
 import org.eclipse.ui.IWorkbenchPreferencePage;
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.model.preferences.DBPPreferenceStore;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.gis.GeometryViewerConstants;
-import org.jkiss.dbeaver.ui.gis.internal.GISMessages;
-import org.jkiss.dbeaver.ui.gis.internal.GISViewerActivator;
-import org.jkiss.dbeaver.ui.preferences.AbstractPrefPage;
-import org.jkiss.dbeaver.utils.PrefUtils;
+import com.seizia.chromite.model.preferences.DBPPreferenceStore;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.gis.GeometryViewerConstants;
+import com.seizia.chromite.ui.gis.internal.GISMessages;
+import com.seizia.chromite.ui.gis.internal.GISViewerActivator;
+import com.seizia.chromite.ui.preferences.AbstractPrefPage;
+import com.seizia.chromite.utils.PrefUtils;
 import org.jkiss.utils.CommonUtils;
 
 import java.util.Locale;
 
 public class PrefPageGIS extends AbstractPrefPage implements IWorkbenchPreferencePage {
-    public static final String PAGE_ID = "org.jkiss.dbeaver.preferences.gis";
+    public static final String PAGE_ID = "com.seizia.chromite.preferences.gis";
 
     private Text defaultSridText;
     private Text maxObjectsText;

@@ -14,13 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.security;
+package com.seizia.chromite.model.security;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.model.auth.SMAuthInfo;
-import org.jkiss.dbeaver.model.auth.SMSessionType;
+import com.seizia.chromite.model.auth.SMAuthInfo;
+import com.seizia.chromite.model.auth.SMSessionType;
 
 import java.util.Map;
 

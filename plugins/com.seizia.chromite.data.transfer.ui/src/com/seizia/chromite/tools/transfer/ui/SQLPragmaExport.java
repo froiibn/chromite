@@ -14,29 +14,29 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.tools.transfer.ui;
+package com.seizia.chromite.tools.transfer.ui;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.data.json.JSONUtils;
-import org.jkiss.dbeaver.model.impl.PropertyDescriptor;
-import org.jkiss.dbeaver.model.preferences.DBPPropertyDescriptor;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.model.sql.SQLPragmaHandler;
-import org.jkiss.dbeaver.model.struct.DBSDataContainer;
-import org.jkiss.dbeaver.tasks.ui.wizard.TaskConfigurationWizardDialog;
-import org.jkiss.dbeaver.tools.transfer.DTConstants;
-import org.jkiss.dbeaver.tools.transfer.DataTransferSettings;
-import org.jkiss.dbeaver.tools.transfer.DataTransferState;
-import org.jkiss.dbeaver.tools.transfer.database.DatabaseTransferProducer;
-import org.jkiss.dbeaver.tools.transfer.registry.DataTransferNodeDescriptor;
-import org.jkiss.dbeaver.tools.transfer.registry.DataTransferProcessorDescriptor;
-import org.jkiss.dbeaver.tools.transfer.registry.DataTransferRegistry;
-import org.jkiss.dbeaver.tools.transfer.stream.StreamTransferConsumer;
-import org.jkiss.dbeaver.tools.transfer.ui.wizard.DataTransferWizard;
-import org.jkiss.dbeaver.ui.UIUtils;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.data.json.JSONUtils;
+import com.seizia.chromite.model.impl.PropertyDescriptor;
+import com.seizia.chromite.model.preferences.DBPPropertyDescriptor;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.model.sql.SQLPragmaHandler;
+import com.seizia.chromite.model.struct.DBSDataContainer;
+import com.seizia.chromite.tasks.ui.wizard.TaskConfigurationWizardDialog;
+import com.seizia.chromite.tools.transfer.DTConstants;
+import com.seizia.chromite.tools.transfer.DataTransferSettings;
+import com.seizia.chromite.tools.transfer.DataTransferState;
+import com.seizia.chromite.tools.transfer.database.DatabaseTransferProducer;
+import com.seizia.chromite.tools.transfer.registry.DataTransferNodeDescriptor;
+import com.seizia.chromite.tools.transfer.registry.DataTransferProcessorDescriptor;
+import com.seizia.chromite.tools.transfer.registry.DataTransferRegistry;
+import com.seizia.chromite.tools.transfer.stream.StreamTransferConsumer;
+import com.seizia.chromite.tools.transfer.ui.wizard.DataTransferWizard;
+import com.seizia.chromite.ui.UIUtils;
 import org.jkiss.utils.CommonUtils;
 
 import java.util.Collections;

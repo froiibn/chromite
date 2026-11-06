@@ -15,10 +15,10 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.model.access;
+package com.seizia.chromite.model.access;
 
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.model.DBPNamedObject;
+import com.seizia.chromite.model.DBPNamedObject;
 
 /**
  * Privilege type

@@ -15,12 +15,12 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.model.connection;
+package com.seizia.chromite.model.connection;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.model.app.DBPProject;
-import org.jkiss.dbeaver.model.secret.DBPSecretHolder;
+import com.seizia.chromite.model.app.DBPProject;
+import com.seizia.chromite.model.secret.DBPSecretHolder;
 import org.jkiss.utils.CommonUtils;
 
 import java.util.LinkedHashMap;

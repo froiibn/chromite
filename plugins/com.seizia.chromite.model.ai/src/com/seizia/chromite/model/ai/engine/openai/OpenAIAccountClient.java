@@ -14,14 +14,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.ai.engine.openai;
+package com.seizia.chromite.model.ai.engine.openai;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.model.ai.engine.openai.dto.OAIError;
-import org.jkiss.dbeaver.model.ai.engine.openai.dto.OAIResponsesChunk;
-import org.jkiss.dbeaver.model.ai.engine.openai.dto.OAIResponsesRequest;
-import org.jkiss.dbeaver.model.ai.engine.openai.dto.OAIResponsesResponse;
+import com.seizia.chromite.model.ai.engine.openai.dto.OAIError;
+import com.seizia.chromite.model.ai.engine.openai.dto.OAIResponsesChunk;
+import com.seizia.chromite.model.ai.engine.openai.dto.OAIResponsesRequest;
+import com.seizia.chromite.model.ai.engine.openai.dto.OAIResponsesResponse;
 import org.jkiss.utils.CommonUtils;
 
 import java.net.http.HttpRequest;

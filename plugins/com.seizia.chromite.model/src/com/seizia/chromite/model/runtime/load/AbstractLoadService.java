@@ -14,13 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.runtime.load;
+package com.seizia.chromite.model.runtime.load;
 
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.model.runtime.AbstractJob;
-import org.jkiss.dbeaver.model.runtime.BlockCanceler;
-import org.jkiss.dbeaver.model.runtime.DBRBlockingObject;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.model.runtime.AbstractJob;
+import com.seizia.chromite.model.runtime.BlockCanceler;
+import com.seizia.chromite.model.runtime.DBRBlockingObject;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
 import org.jkiss.utils.CommonUtils;
 
 import java.lang.reflect.InvocationTargetException;

@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.ui.editors.sql.handlers;
+package com.seizia.chromite.ui.editors.sql.handlers;
 
 import org.eclipse.core.commands.ExecutionEvent;
 import org.eclipse.core.commands.ExecutionException;
@@ -25,13 +25,13 @@ import org.eclipse.core.runtime.NullProgressMonitor;
 import org.eclipse.osgi.util.NLS;
 import org.eclipse.ui.IEditorPart;
 import org.eclipse.ui.handlers.HandlerUtil;
-import org.jkiss.dbeaver.model.DBIcon;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.actions.AbstractDataSourceHandler;
-import org.jkiss.dbeaver.ui.editors.EditorUtils;
-import org.jkiss.dbeaver.ui.editors.sql.internal.SQLEditorMessages;
-import org.jkiss.dbeaver.utils.RuntimeUtils;
+import com.seizia.chromite.model.DBIcon;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.actions.AbstractDataSourceHandler;
+import com.seizia.chromite.ui.editors.EditorUtils;
+import com.seizia.chromite.ui.editors.sql.internal.SQLEditorMessages;
+import com.seizia.chromite.utils.RuntimeUtils;
 
 import java.io.File;
 

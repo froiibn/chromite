@@ -14,13 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.oracle.model;
+package com.seizia.chromite.ext.oracle.model;
 
 import org.eclipse.core.runtime.IAdapterFactory;
-import org.jkiss.dbeaver.ext.oracle.model.source.OracleSourceObject;
-import org.jkiss.dbeaver.model.DBPScriptObjectExt;
-import org.jkiss.dbeaver.model.navigator.DBNDatabaseNode;
-import org.jkiss.dbeaver.model.struct.DBSObject;
+import com.seizia.chromite.ext.oracle.model.source.OracleSourceObject;
+import com.seizia.chromite.model.DBPScriptObjectExt;
+import com.seizia.chromite.model.navigator.DBNDatabaseNode;
+import com.seizia.chromite.model.struct.DBSObject;
 
 /**
  * Oracle object adapter

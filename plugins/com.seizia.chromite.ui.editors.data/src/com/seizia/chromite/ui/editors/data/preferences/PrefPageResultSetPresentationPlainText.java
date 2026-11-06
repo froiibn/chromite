@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.editors.data.preferences;
+package com.seizia.chromite.ui.editors.data.preferences;
 
 import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.widgets.Button;
@@ -22,17 +22,17 @@ import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Control;
 import org.eclipse.swt.widgets.Spinner;
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.DBPDataSourceContainer;
-import org.jkiss.dbeaver.model.data.DBDDisplayFormat;
-import org.jkiss.dbeaver.model.preferences.DBPPreferenceStore;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.controls.ValueFormatSelector;
-import org.jkiss.dbeaver.ui.controls.resultset.ResultSetPreferences;
-import org.jkiss.dbeaver.ui.editors.data.internal.DataEditorsMessages;
-import org.jkiss.dbeaver.ui.preferences.TargetPrefPage;
-import org.jkiss.dbeaver.utils.PrefUtils;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.DBPDataSourceContainer;
+import com.seizia.chromite.model.data.DBDDisplayFormat;
+import com.seizia.chromite.model.preferences.DBPPreferenceStore;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.controls.ValueFormatSelector;
+import com.seizia.chromite.ui.controls.resultset.ResultSetPreferences;
+import com.seizia.chromite.ui.editors.data.internal.DataEditorsMessages;
+import com.seizia.chromite.ui.preferences.TargetPrefPage;
+import com.seizia.chromite.utils.PrefUtils;
 import org.jkiss.utils.CommonUtils;
 
 /**
@@ -41,7 +41,7 @@ import org.jkiss.utils.CommonUtils;
 public class PrefPageResultSetPresentationPlainText extends TargetPrefPage {
     private static final Log log = Log.getLog(PrefPageResultSetPresentationPlainText.class);
 
-    public static final String PAGE_ID = "org.jkiss.dbeaver.preferences.main.resultset.plain.text"; //$NON-NLS-1$
+    public static final String PAGE_ID = "com.seizia.chromite.preferences.main.resultset.plain.text"; //$NON-NLS-1$
 
     private Spinner textTabSize;
     private Spinner textMaxColumnSize;

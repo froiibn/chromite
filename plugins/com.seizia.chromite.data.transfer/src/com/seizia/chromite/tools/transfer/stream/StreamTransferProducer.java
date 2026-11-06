@@ -15,33 +15,33 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.tools.transfer.stream;
+package com.seizia.chromite.tools.transfer.stream;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.DBIcon;
-import org.jkiss.dbeaver.model.DBPDataSourceContainer;
-import org.jkiss.dbeaver.model.DBPImage;
-import org.jkiss.dbeaver.model.app.DBPProject;
-import org.jkiss.dbeaver.model.fs.DBFUtils;
-import org.jkiss.dbeaver.model.meta.DBSerializable;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.model.runtime.DBRRunnableContext;
-import org.jkiss.dbeaver.model.runtime.VoidProgressMonitor;
-import org.jkiss.dbeaver.model.struct.DBSEntity;
-import org.jkiss.dbeaver.model.struct.DBSObject;
-import org.jkiss.dbeaver.model.task.DBTTask;
-import org.jkiss.dbeaver.tools.transfer.DTConstants;
-import org.jkiss.dbeaver.tools.transfer.IDataTransferConsumer;
-import org.jkiss.dbeaver.tools.transfer.IDataTransferProcessor;
-import org.jkiss.dbeaver.tools.transfer.IDataTransferProducer;
-import org.jkiss.dbeaver.tools.transfer.registry.DataTransferNodeDescriptor;
-import org.jkiss.dbeaver.tools.transfer.registry.DataTransferProcessorDescriptor;
-import org.jkiss.dbeaver.tools.transfer.registry.DataTransferRegistry;
-import org.jkiss.dbeaver.tools.transfer.serialize.DTObjectSerializer;
-import org.jkiss.dbeaver.tools.transfer.serialize.SerializerContext;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.DBIcon;
+import com.seizia.chromite.model.DBPDataSourceContainer;
+import com.seizia.chromite.model.DBPImage;
+import com.seizia.chromite.model.app.DBPProject;
+import com.seizia.chromite.model.fs.DBFUtils;
+import com.seizia.chromite.model.meta.DBSerializable;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.model.runtime.DBRRunnableContext;
+import com.seizia.chromite.model.runtime.VoidProgressMonitor;
+import com.seizia.chromite.model.struct.DBSEntity;
+import com.seizia.chromite.model.struct.DBSObject;
+import com.seizia.chromite.model.task.DBTTask;
+import com.seizia.chromite.tools.transfer.DTConstants;
+import com.seizia.chromite.tools.transfer.IDataTransferConsumer;
+import com.seizia.chromite.tools.transfer.IDataTransferProcessor;
+import com.seizia.chromite.tools.transfer.IDataTransferProducer;
+import com.seizia.chromite.tools.transfer.registry.DataTransferNodeDescriptor;
+import com.seizia.chromite.tools.transfer.registry.DataTransferProcessorDescriptor;
+import com.seizia.chromite.tools.transfer.registry.DataTransferRegistry;
+import com.seizia.chromite.tools.transfer.serialize.DTObjectSerializer;
+import com.seizia.chromite.tools.transfer.serialize.SerializerContext;
 import org.jkiss.utils.CommonUtils;
 
 import java.io.IOException;

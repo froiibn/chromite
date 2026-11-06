@@ -14,16 +14,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.postgresql.tasks;
+package com.seizia.chromite.ext.postgresql.tasks;
 
-import org.jkiss.dbeaver.ext.postgresql.PostgreConstants;
-import org.jkiss.dbeaver.model.DBPDataSourceContainer;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.model.struct.DBSObject;
-import org.jkiss.dbeaver.tasks.nativetool.AbstractNativeToolHandler;
-import org.jkiss.dbeaver.tasks.nativetool.AbstractNativeToolSettings;
-import org.jkiss.dbeaver.tasks.nativetool.NativeToolUtils;
-import org.jkiss.dbeaver.utils.RuntimeUtils;
+import com.seizia.chromite.ext.postgresql.PostgreConstants;
+import com.seizia.chromite.model.DBPDataSourceContainer;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.model.struct.DBSObject;
+import com.seizia.chromite.tasks.nativetool.AbstractNativeToolHandler;
+import com.seizia.chromite.tasks.nativetool.AbstractNativeToolSettings;
+import com.seizia.chromite.tasks.nativetool.NativeToolUtils;
+import com.seizia.chromite.utils.RuntimeUtils;
 import org.jkiss.utils.CommonUtils;
 import org.jkiss.utils.IOUtils;
 

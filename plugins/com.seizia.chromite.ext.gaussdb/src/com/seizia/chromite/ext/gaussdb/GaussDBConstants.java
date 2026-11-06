@@ -14,7 +14,7 @@
      * See the License for the specific language governing permissions and
      * limitations under the License.
      */
-package org.jkiss.dbeaver.ext.gaussdb;
+package com.seizia.chromite.ext.gaussdb;
 
 public class GaussDBConstants {
     public static final String GAUSSDB_M_COMPATIBLE_MODE = "M";

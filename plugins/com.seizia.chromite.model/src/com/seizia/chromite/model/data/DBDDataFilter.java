@@ -15,11 +15,11 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.model.data;
+package com.seizia.chromite.model.data;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.model.struct.DBSAttributeBase;
+import com.seizia.chromite.model.struct.DBSAttributeBase;
 import org.jkiss.utils.CommonUtils;
 
 import java.util.*;

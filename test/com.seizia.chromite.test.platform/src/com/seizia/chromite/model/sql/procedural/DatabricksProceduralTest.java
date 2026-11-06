@@ -14,17 +14,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.sql.procedural;
+package com.seizia.chromite.model.sql.procedural;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.model.sql.SQLDialect;
-import org.jkiss.dbeaver.model.sql.SQLDialectFeatures;
-import org.jkiss.dbeaver.model.sql.semantics.SQLQuerySymbolEntry;
-import org.jkiss.dbeaver.model.sql.semantics.context.SQLQueryExprType;
-import org.jkiss.dbeaver.model.sql.semantics.context.SQLQueryLocalVariableInfo;
-import org.jkiss.dbeaver.model.sql.semantics.context.SQLQueryLocalVariablesContext;
-import org.jkiss.dbeaver.model.sql.semantics.model.SQLQueryVariableStatementModel;
+import com.seizia.chromite.model.sql.SQLDialect;
+import com.seizia.chromite.model.sql.SQLDialectFeatures;
+import com.seizia.chromite.model.sql.semantics.SQLQuerySymbolEntry;
+import com.seizia.chromite.model.sql.semantics.context.SQLQueryExprType;
+import com.seizia.chromite.model.sql.semantics.context.SQLQueryLocalVariableInfo;
+import com.seizia.chromite.model.sql.semantics.context.SQLQueryLocalVariablesContext;
+import com.seizia.chromite.model.sql.semantics.model.SQLQueryVariableStatementModel;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -38,7 +38,7 @@ public class DatabricksProceduralTest extends ProceduralDialectTestBase {
     @NotNull
     @Override
     protected SQLDialect dialect() {
-        return dialectFromBundle("org.jkiss.dbeaver.ext.databricks", "org.jkiss.dbeaver.ext.databricks.DatabricksSQLDialect");
+        return dialectFromBundle("com.seizia.chromite.ext.databricks", "com.seizia.chromite.ext.databricks.DatabricksSQLDialect");
     }
 
     /**

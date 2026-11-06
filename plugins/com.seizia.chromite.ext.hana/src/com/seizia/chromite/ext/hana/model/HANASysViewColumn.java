@@ -14,12 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.hana.model;
+package com.seizia.chromite.ext.hana.model;
 
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.ext.generic.model.GenericTable;
-import org.jkiss.dbeaver.ext.generic.model.GenericTableBase;
-import org.jkiss.dbeaver.model.meta.Property;
+import com.seizia.chromite.ext.generic.model.GenericTable;
+import com.seizia.chromite.ext.generic.model.GenericTableBase;
+import com.seizia.chromite.model.meta.Property;
 
 public class HANASysViewColumn extends HANATableColumn {
 

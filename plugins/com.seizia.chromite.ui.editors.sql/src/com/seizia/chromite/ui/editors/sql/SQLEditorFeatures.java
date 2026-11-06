@@ -14,10 +14,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.editors.sql;
+package com.seizia.chromite.ui.editors.sql;
 
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.model.runtime.features.DBRFeature;
+import com.seizia.chromite.model.runtime.features.DBRFeature;
 
 /**
  * SQL editor features

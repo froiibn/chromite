@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.model.meta;
+package com.seizia.chromite.model.meta;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;

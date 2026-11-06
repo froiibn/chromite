@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.ai.registry;
+package com.seizia.chromite.model.ai.registry;
 
 import com.google.gson.*;
 import com.google.gson.stream.JsonReader;
@@ -22,18 +22,18 @@ import com.google.gson.stream.JsonWriter;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.WorkspaceConfigEventManager;
-import org.jkiss.dbeaver.model.ai.AIConfigurationProfile;
-import org.jkiss.dbeaver.model.ai.AISettings;
-import org.jkiss.dbeaver.model.ai.engine.AICredentialsProvider;
-import org.jkiss.dbeaver.model.ai.engine.AIEngineProperties;
-import org.jkiss.dbeaver.model.ai.engine.openai.OpenAIProperties;
-import org.jkiss.dbeaver.model.ai.internal.AIMessages;
-import org.jkiss.dbeaver.model.app.DBPApplication;
-import org.jkiss.dbeaver.model.rm.RMConstants;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.utils.PropertySerializationUtils;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.WorkspaceConfigEventManager;
+import com.seizia.chromite.model.ai.AIConfigurationProfile;
+import com.seizia.chromite.model.ai.AISettings;
+import com.seizia.chromite.model.ai.engine.AICredentialsProvider;
+import com.seizia.chromite.model.ai.engine.AIEngineProperties;
+import com.seizia.chromite.model.ai.engine.openai.OpenAIProperties;
+import com.seizia.chromite.model.ai.internal.AIMessages;
+import com.seizia.chromite.model.app.DBPApplication;
+import com.seizia.chromite.model.rm.RMConstants;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.utils.PropertySerializationUtils;
 import org.jkiss.utils.CommonUtils;
 
 import java.io.IOException;

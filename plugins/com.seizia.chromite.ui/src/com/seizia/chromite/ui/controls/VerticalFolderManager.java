@@ -14,13 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.controls;
+package com.seizia.chromite.ui.controls;
 
 import org.eclipse.jface.action.*;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.widgets.Label;
 import org.eclipse.ui.menus.CommandContributionItem;
-import org.jkiss.dbeaver.ui.UIUtils;
+import com.seizia.chromite.ui.UIUtils;
 
 public class VerticalFolderManager extends ContributionManager {
 

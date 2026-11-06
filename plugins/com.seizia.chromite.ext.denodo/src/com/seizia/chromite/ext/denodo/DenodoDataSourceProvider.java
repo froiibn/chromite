@@ -14,18 +14,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.denodo;
+package com.seizia.chromite.ext.denodo;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.ext.denodo.model.DenodoDataSource;
-import org.jkiss.dbeaver.ext.denodo.model.DenodoMetaModel;
-import org.jkiss.dbeaver.ext.generic.GenericDataSourceProvider;
-import org.jkiss.dbeaver.model.DBPDataSourceContainer;
-import org.jkiss.dbeaver.model.connection.DBPConnectionConfiguration;
-import org.jkiss.dbeaver.model.connection.DBPDriver;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.ext.denodo.model.DenodoDataSource;
+import com.seizia.chromite.ext.denodo.model.DenodoMetaModel;
+import com.seizia.chromite.ext.generic.GenericDataSourceProvider;
+import com.seizia.chromite.model.DBPDataSourceContainer;
+import com.seizia.chromite.model.connection.DBPConnectionConfiguration;
+import com.seizia.chromite.model.connection.DBPDriver;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
 import org.jkiss.utils.CommonUtils;
 
 public class DenodoDataSourceProvider extends GenericDataSourceProvider<DenodoDataSource> {

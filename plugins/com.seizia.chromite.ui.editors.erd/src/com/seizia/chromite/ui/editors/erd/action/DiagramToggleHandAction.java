@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.editors.erd.action;
+package com.seizia.chromite.ui.editors.erd.action;
 
 import org.eclipse.gef.Disposable;
 import org.eclipse.gef.palette.PaletteListener;
@@ -22,19 +22,19 @@ import org.eclipse.gef.palette.ToolEntry;
 import org.eclipse.gef.ui.palette.PaletteViewer;
 import org.eclipse.jface.action.Action;
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.ui.DBeaverIcons;
-import org.jkiss.dbeaver.ui.editors.erd.ERDIcon;
-import org.jkiss.dbeaver.ui.editors.erd.ERDUIUtils;
-import org.jkiss.dbeaver.ui.editors.erd.editor.tools.HandToolEntry;
-import org.jkiss.dbeaver.ui.editors.erd.internal.ERDUIMessages;
+import com.seizia.chromite.ui.SwtIcons;
+import com.seizia.chromite.ui.editors.erd.ERDIcon;
+import com.seizia.chromite.ui.editors.erd.ERDUIUtils;
+import com.seizia.chromite.ui.editors.erd.editor.tools.HandToolEntry;
+import com.seizia.chromite.ui.editors.erd.internal.ERDUIMessages;
 
 /**
  * Action to cycle between hand tool and previously selected tool
  *
- * @see org.jkiss.dbeaver.ui.editors.erd.editor.tools.HandToolEntry
+ * @see com.seizia.chromite.ui.editors.erd.editor.tools.HandToolEntry
  */
 public class DiagramToggleHandAction extends Action implements PaletteListener, Disposable {
-    public static final String CMD_TOGGLE_HAND = "org.jkiss.dbeaver.erd.toggleHand";
+    public static final String CMD_TOGGLE_HAND = "com.seizia.chromite.erd.toggleHand";
 
     private final PaletteViewer viewer;
     private final ToolEntry handTool;
@@ -48,7 +48,7 @@ public class DiagramToggleHandAction extends Action implements PaletteListener, 
 
         setId(CMD_TOGGLE_HAND);
         setActionDefinitionId(CMD_TOGGLE_HAND);
-        setImageDescriptor(DBeaverIcons.getImageDescriptor(ERDIcon.MOVE));
+        setImageDescriptor(SwtIcons.getImageDescriptor(ERDIcon.MOVE));
     }
 
     @Override

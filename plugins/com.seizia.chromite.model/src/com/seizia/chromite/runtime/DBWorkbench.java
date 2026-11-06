@@ -15,16 +15,16 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.runtime;
+package com.seizia.chromite.runtime;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.app.DBPPlatform;
-import org.jkiss.dbeaver.model.impl.app.AbstractApplication;
-import org.jkiss.dbeaver.model.runtime.DBRRunnableWithParam;
-import org.jkiss.dbeaver.runtime.ui.DBPPlatformUI;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.app.DBPPlatform;
+import com.seizia.chromite.model.impl.app.AbstractApplication;
+import com.seizia.chromite.model.runtime.DBRRunnableWithParam;
+import com.seizia.chromite.runtime.ui.DBPPlatformUI;
 
 import java.util.ArrayList;
 import java.util.List;

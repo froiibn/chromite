@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.data.managers.stream;
+package com.seizia.chromite.ui.data.managers.stream;
 
 import org.eclipse.core.resources.IStorage;
 import org.eclipse.core.runtime.CoreException;
@@ -28,16 +28,16 @@ import org.eclipse.ui.PartInitException;
 import org.eclipse.ui.part.EditorPart;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.DBIcon;
-import org.jkiss.dbeaver.model.preferences.DBPPreferenceStore;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.ui.DBeaverIcons;
-import org.jkiss.dbeaver.ui.IRefreshablePart;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.controls.resultset.ResultSetPreferences;
-import org.jkiss.dbeaver.ui.data.IValueController;
-import org.jkiss.dbeaver.ui.editors.content.ContentEditorInput;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.DBIcon;
+import com.seizia.chromite.model.preferences.DBPPreferenceStore;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.ui.SwtIcons;
+import com.seizia.chromite.ui.IRefreshablePart;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.controls.resultset.ResultSetPreferences;
+import com.seizia.chromite.ui.data.IValueController;
+import com.seizia.chromite.ui.editors.content.ContentEditorInput;
 
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -107,7 +107,7 @@ public class HtmlEditorPart extends EditorPart implements IRefreshablePart {
     @NotNull
     @Override
     public Image getTitleImage() {
-        return DBeaverIcons.getImage(DBIcon.TYPE_TEXT);
+        return SwtIcons.getImage(DBIcon.TYPE_TEXT);
     }
 
     @Override

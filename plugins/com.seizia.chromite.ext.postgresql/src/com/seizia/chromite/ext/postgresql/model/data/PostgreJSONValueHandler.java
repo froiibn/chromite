@@ -15,19 +15,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.postgresql.model.data;
+package com.seizia.chromite.ext.postgresql.model.data;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.ext.postgresql.PostgreUtils;
-import org.jkiss.dbeaver.ext.postgresql.model.PostgreDataSource;
-import org.jkiss.dbeaver.model.data.DBDContent;
-import org.jkiss.dbeaver.model.exec.DBCException;
-import org.jkiss.dbeaver.model.exec.DBCSession;
-import org.jkiss.dbeaver.model.exec.jdbc.JDBCResultSet;
-import org.jkiss.dbeaver.model.impl.jdbc.data.handlers.JDBCContentValueHandler;
-import org.jkiss.dbeaver.model.struct.DBSTypedObject;
-import org.jkiss.dbeaver.utils.ContentUtils;
+import com.seizia.chromite.ext.postgresql.PostgreUtils;
+import com.seizia.chromite.ext.postgresql.model.PostgreDataSource;
+import com.seizia.chromite.model.data.DBDContent;
+import com.seizia.chromite.model.exec.DBCException;
+import com.seizia.chromite.model.exec.DBCSession;
+import com.seizia.chromite.model.exec.jdbc.JDBCResultSet;
+import com.seizia.chromite.model.impl.jdbc.data.handlers.JDBCContentValueHandler;
+import com.seizia.chromite.model.struct.DBSTypedObject;
+import com.seizia.chromite.utils.ContentUtils;
 
 import java.sql.SQLException;
 

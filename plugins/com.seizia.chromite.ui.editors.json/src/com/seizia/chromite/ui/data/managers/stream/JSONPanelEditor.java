@@ -14,17 +14,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.data.managers.stream;
+package com.seizia.chromite.ui.data.managers.stream;
 
 import com.google.gson.*;
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.ui.IEditorInput;
 import org.eclipse.ui.IEditorSite;
 import org.eclipse.ui.PartInitException;
-import org.jkiss.dbeaver.ui.data.IValueController;
-import org.jkiss.dbeaver.ui.data.managers.AbstractTextPanelEditor;
-import org.jkiss.dbeaver.ui.editors.json.JSONFormattingStrategy;
-import org.jkiss.dbeaver.ui.editors.json.JSONTextEditor;
+import com.seizia.chromite.ui.data.IValueController;
+import com.seizia.chromite.ui.data.managers.AbstractTextPanelEditor;
+import com.seizia.chromite.ui.editors.json.JSONFormattingStrategy;
+import com.seizia.chromite.ui.editors.json.JSONTextEditor;
 
 /**
 * JSONPanelEditor
@@ -49,7 +49,7 @@ public class JSONPanelEditor extends AbstractTextPanelEditor<JSONTextEditor> {
 
     @Override
     protected String getFileFolderName() {
-        return "dbeaver-json";
+        return "chromite-json";
     }
 
     @Override

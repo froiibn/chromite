@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.editors.sql;
+package com.seizia.chromite.ui.editors.sql;
 
 
 import org.eclipse.core.resources.IFile;
@@ -62,40 +62,40 @@ import org.eclipse.ui.views.contentoutline.IContentOutlinePage;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.ModelPreferences;
-import org.jkiss.dbeaver.model.*;
-import org.jkiss.dbeaver.model.exec.DBCExecutionContext;
-import org.jkiss.dbeaver.model.impl.sql.BasicSQLDialect;
-import org.jkiss.dbeaver.model.preferences.DBPPreferenceListener;
-import org.jkiss.dbeaver.model.preferences.DBPPreferenceStore;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.model.sql.*;
-import org.jkiss.dbeaver.model.sql.completion.SQLCompletionContext;
-import org.jkiss.dbeaver.model.sql.parser.*;
-import org.jkiss.dbeaver.model.sql.semantics.SQLDocumentSyntaxContext;
-import org.jkiss.dbeaver.model.sql.semantics.completion.SQLQueryCompletionContext;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.ui.*;
-import org.jkiss.dbeaver.ui.controls.resultset.ThemeConstants;
-import org.jkiss.dbeaver.ui.editors.AbstractStorageEditorInput;
-import org.jkiss.dbeaver.ui.editors.BaseTextEditorCommands;
-import org.jkiss.dbeaver.ui.editors.EditorUtils;
-import org.jkiss.dbeaver.ui.editors.StringEditorInput;
-import org.jkiss.dbeaver.ui.editors.sql.internal.SQLEditorMessages;
-import org.jkiss.dbeaver.ui.editors.sql.preferences.*;
-import org.jkiss.dbeaver.ui.editors.sql.semantics.SQLBackgroundParsingJob;
-import org.jkiss.dbeaver.ui.editors.sql.semantics.SQLEditorOutlinePage;
-import org.jkiss.dbeaver.ui.editors.sql.semantics.SQLEditorSemanticMarkersManager;
-import org.jkiss.dbeaver.ui.editors.sql.semantics.SQLSemanticErrorAnnotation;
-import org.jkiss.dbeaver.ui.editors.sql.syntax.SQLCharacterPairMatcher;
-import org.jkiss.dbeaver.ui.editors.sql.syntax.SQLEditorCompletionContext;
-import org.jkiss.dbeaver.ui.editors.sql.syntax.SQLProblemAnnotation;
-import org.jkiss.dbeaver.ui.editors.sql.syntax.SQLRuleScanner;
-import org.jkiss.dbeaver.ui.editors.sql.templates.SQLTemplatesPage;
-import org.jkiss.dbeaver.ui.editors.sql.util.SQLSymbolInserter;
-import org.jkiss.dbeaver.ui.editors.text.BaseTextEditor;
-import org.jkiss.dbeaver.utils.GeneralUtils;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.ModelPreferences;
+import com.seizia.chromite.model.*;
+import com.seizia.chromite.model.exec.DBCExecutionContext;
+import com.seizia.chromite.model.impl.sql.BasicSQLDialect;
+import com.seizia.chromite.model.preferences.DBPPreferenceListener;
+import com.seizia.chromite.model.preferences.DBPPreferenceStore;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.model.sql.*;
+import com.seizia.chromite.model.sql.completion.SQLCompletionContext;
+import com.seizia.chromite.model.sql.parser.*;
+import com.seizia.chromite.model.sql.semantics.SQLDocumentSyntaxContext;
+import com.seizia.chromite.model.sql.semantics.completion.SQLQueryCompletionContext;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.ui.*;
+import com.seizia.chromite.ui.controls.resultset.ThemeConstants;
+import com.seizia.chromite.ui.editors.AbstractStorageEditorInput;
+import com.seizia.chromite.ui.editors.BaseTextEditorCommands;
+import com.seizia.chromite.ui.editors.EditorUtils;
+import com.seizia.chromite.ui.editors.StringEditorInput;
+import com.seizia.chromite.ui.editors.sql.internal.SQLEditorMessages;
+import com.seizia.chromite.ui.editors.sql.preferences.*;
+import com.seizia.chromite.ui.editors.sql.semantics.SQLBackgroundParsingJob;
+import com.seizia.chromite.ui.editors.sql.semantics.SQLEditorOutlinePage;
+import com.seizia.chromite.ui.editors.sql.semantics.SQLEditorSemanticMarkersManager;
+import com.seizia.chromite.ui.editors.sql.semantics.SQLSemanticErrorAnnotation;
+import com.seizia.chromite.ui.editors.sql.syntax.SQLCharacterPairMatcher;
+import com.seizia.chromite.ui.editors.sql.syntax.SQLEditorCompletionContext;
+import com.seizia.chromite.ui.editors.sql.syntax.SQLProblemAnnotation;
+import com.seizia.chromite.ui.editors.sql.syntax.SQLRuleScanner;
+import com.seizia.chromite.ui.editors.sql.templates.SQLTemplatesPage;
+import com.seizia.chromite.ui.editors.sql.util.SQLSymbolInserter;
+import com.seizia.chromite.ui.editors.text.BaseTextEditor;
+import com.seizia.chromite.utils.GeneralUtils;
 import org.jkiss.utils.ArrayUtils;
 import org.jkiss.utils.CommonUtils;
 import org.jkiss.utils.Pair;
@@ -182,7 +182,7 @@ public abstract class SQLEditorBase extends BaseTextEditor implements
             @Override
             public void propertyChange(PropertyChangeEvent event) {
                 if (event.getProperty().equals(IThemeManager.CHANGE_CURRENT_THEME) ||
-                    event.getProperty().startsWith("org.jkiss.dbeaver.sql.editor")) {
+                    event.getProperty().startsWith("com.seizia.chromite.sql.editor")) {
                     switch (themeUpdateJob.getState()) {
                         case Job.WAITING, Job.SLEEPING -> themeUpdateJob.cancel();
                     }
@@ -867,16 +867,16 @@ public abstract class SQLEditorBase extends BaseTextEditor implements
             if (formatAction != null) {
                 formatMenu.add(formatAction);
             }
-            formatMenu.add(ActionUtils.makeCommandContribution(getSite(), "org.jkiss.dbeaver.ui.editors.sql.morph.delimited.list"));
+            formatMenu.add(ActionUtils.makeCommandContribution(getSite(), "com.seizia.chromite.ui.editors.sql.morph.delimited.list"));
             formatMenu.add(getAction(ITextEditorActionConstants.UPPER_CASE));
             formatMenu.add(getAction(ITextEditorActionConstants.LOWER_CASE));
-            formatMenu.add(ActionUtils.makeCommandContribution(getSite(), "org.jkiss.dbeaver.ui.editors.sql.trim.spaces"));
-            formatMenu.add(ActionUtils.makeCommandContribution(getSite(), "org.jkiss.dbeaver.ui.editors.sql.trim.leading.spaces"));
-            formatMenu.add(ActionUtils.makeCommandContribution(getSite(), "org.jkiss.dbeaver.ui.editors.sql.trim.trailing.spaces"));
+            formatMenu.add(ActionUtils.makeCommandContribution(getSite(), "com.seizia.chromite.ui.editors.sql.trim.spaces"));
+            formatMenu.add(ActionUtils.makeCommandContribution(getSite(), "com.seizia.chromite.ui.editors.sql.trim.leading.spaces"));
+            formatMenu.add(ActionUtils.makeCommandContribution(getSite(), "com.seizia.chromite.ui.editors.sql.trim.trailing.spaces"));
             formatMenu.add(new Separator());
-            formatMenu.add(ActionUtils.makeCommandContribution(getSite(), "org.jkiss.dbeaver.ui.editors.sql.word.wrap"));
-            formatMenu.add(ActionUtils.makeCommandContribution(getSite(), "org.jkiss.dbeaver.ui.editors.sql.comment.single"));
-            formatMenu.add(ActionUtils.makeCommandContribution(getSite(), "org.jkiss.dbeaver.ui.editors.sql.comment.multi"));
+            formatMenu.add(ActionUtils.makeCommandContribution(getSite(), "com.seizia.chromite.ui.editors.sql.word.wrap"));
+            formatMenu.add(ActionUtils.makeCommandContribution(getSite(), "com.seizia.chromite.ui.editors.sql.comment.single"));
+            formatMenu.add(ActionUtils.makeCommandContribution(getSite(), "com.seizia.chromite.ui.editors.sql.comment.multi"));
             menu.insertAfter(GROUP_SQL_ADDITIONS, formatMenu);
         }
 
@@ -1465,7 +1465,7 @@ public abstract class SQLEditorBase extends BaseTextEditor implements
 
     protected class ShowPreferencesAction extends Action {
         ShowPreferencesAction() {
-            super(SQLEditorMessages.editor_sql_preference, DBeaverIcons.getImageDescriptor(UIIcon.CONFIGURATION));
+            super(SQLEditorMessages.editor_sql_preference, SwtIcons.getImageDescriptor(UIIcon.CONFIGURATION));
         }  //$NON-NLS-1$
 
         public void run() {

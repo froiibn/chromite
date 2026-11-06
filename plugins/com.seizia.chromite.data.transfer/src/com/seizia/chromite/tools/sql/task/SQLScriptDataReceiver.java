@@ -14,13 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.tools.sql.task;
+package com.seizia.chromite.tools.sql.task;
 
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.model.DBUtils;
-import org.jkiss.dbeaver.model.data.DBDDataReceiver;
-import org.jkiss.dbeaver.model.data.DBDValueHandler;
-import org.jkiss.dbeaver.model.exec.*;
+import com.seizia.chromite.model.DBUtils;
+import com.seizia.chromite.model.data.DBDDataReceiver;
+import com.seizia.chromite.model.data.DBDValueHandler;
+import com.seizia.chromite.model.exec.*;
 
 import java.io.IOException;
 import java.io.Writer;

@@ -14,16 +14,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.timeplus.model;
+package com.seizia.chromite.ext.timeplus.model;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.ext.generic.model.GenericSQLDialect;
-import org.jkiss.dbeaver.model.DBPDataKind;
-import org.jkiss.dbeaver.model.DBPDataTypeProvider;
-import org.jkiss.dbeaver.model.sql.SQLConstants;
-import org.jkiss.dbeaver.model.sql.SQLDialect;
-import org.jkiss.dbeaver.model.struct.DBSTypedObject;
+import com.seizia.chromite.ext.generic.model.GenericSQLDialect;
+import com.seizia.chromite.model.DBPDataKind;
+import com.seizia.chromite.model.DBPDataTypeProvider;
+import com.seizia.chromite.model.sql.SQLConstants;
+import com.seizia.chromite.model.sql.SQLDialect;
+import com.seizia.chromite.model.struct.DBSTypedObject;
 
 import java.sql.JDBCType;
 import java.util.Locale;

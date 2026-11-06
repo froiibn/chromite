@@ -14,23 +14,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.registry.fs;
+package com.seizia.chromite.registry.fs;
 
 import org.eclipse.core.runtime.IConfigurationElement;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.model.DBPImage;
-import org.jkiss.dbeaver.model.fs.DBFFileSystemDescriptor;
-import org.jkiss.dbeaver.model.fs.DBFFileSystemProvider;
-import org.jkiss.dbeaver.model.impl.AbstractDescriptor;
+import com.seizia.chromite.model.DBPImage;
+import com.seizia.chromite.model.fs.DBFFileSystemDescriptor;
+import com.seizia.chromite.model.fs.DBFFileSystemProvider;
+import com.seizia.chromite.model.impl.AbstractDescriptor;
 import org.jkiss.utils.CommonUtils;
 
 /**
  * PlatformLanguageDescriptor
  */
 public class FileSystemProviderDescriptor extends AbstractDescriptor implements DBFFileSystemDescriptor {
-    public static final String EXTENSION_ID = "org.jkiss.dbeaver.fileSystem"; //$NON-NLS-1$
+    public static final String EXTENSION_ID = "com.seizia.chromite.fileSystem"; //$NON-NLS-1$
 
     private final String id;
     private final String label;

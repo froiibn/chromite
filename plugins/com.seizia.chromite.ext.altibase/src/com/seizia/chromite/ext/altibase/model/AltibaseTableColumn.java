@@ -14,12 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.altibase.model;
+package com.seizia.chromite.ext.altibase.model;
 
-import org.jkiss.dbeaver.ext.generic.model.GenericTableBase;
-import org.jkiss.dbeaver.ext.generic.model.GenericTableColumn;
-import org.jkiss.dbeaver.model.DBPNamedObject2;
-import org.jkiss.dbeaver.model.meta.Property;
+import com.seizia.chromite.ext.generic.model.GenericTableBase;
+import com.seizia.chromite.ext.generic.model.GenericTableColumn;
+import com.seizia.chromite.model.DBPNamedObject2;
+import com.seizia.chromite.model.meta.Property;
 
 public class AltibaseTableColumn extends GenericTableColumn implements DBPNamedObject2 {
 

@@ -14,11 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.doris.model;
+package com.seizia.chromite.ext.doris.model;
 
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.ext.generic.model.GenericSQLDialect;
-import org.jkiss.dbeaver.model.sql.SQLDialect;
+import com.seizia.chromite.ext.generic.model.GenericSQLDialect;
+import com.seizia.chromite.model.sql.SQLDialect;
 
 /**
  * Doris SQL Dialect - extends Generic SQL dialect.

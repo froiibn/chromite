@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.editors.data.preferences;
+package com.seizia.chromite.ui.editors.data.preferences;
 
 import org.eclipse.jface.layout.GridDataFactory;
 import org.eclipse.swt.SWT;
@@ -22,19 +22,19 @@ import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.widgets.*;
 import org.eclipse.ui.preferences.IWorkbenchPreferenceContainer;
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.DBPDataSourceContainer;
-import org.jkiss.dbeaver.model.data.DBDDisplayFormat;
-import org.jkiss.dbeaver.model.preferences.DBPPreferenceStore;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.controls.ValueFormatSelector;
-import org.jkiss.dbeaver.ui.controls.resultset.ResultSetPreferences;
-import org.jkiss.dbeaver.ui.controls.resultset.spreadsheet.Spreadsheet;
-import org.jkiss.dbeaver.ui.editors.EditorUtils;
-import org.jkiss.dbeaver.ui.editors.data.internal.DataEditorsMessages;
-import org.jkiss.dbeaver.ui.preferences.TargetPrefPage;
-import org.jkiss.dbeaver.utils.PrefUtils;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.DBPDataSourceContainer;
+import com.seizia.chromite.model.data.DBDDisplayFormat;
+import com.seizia.chromite.model.preferences.DBPPreferenceStore;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.controls.ValueFormatSelector;
+import com.seizia.chromite.ui.controls.resultset.ResultSetPreferences;
+import com.seizia.chromite.ui.controls.resultset.spreadsheet.Spreadsheet;
+import com.seizia.chromite.ui.editors.EditorUtils;
+import com.seizia.chromite.ui.editors.data.internal.DataEditorsMessages;
+import com.seizia.chromite.ui.preferences.TargetPrefPage;
+import com.seizia.chromite.utils.PrefUtils;
 import org.jkiss.utils.CommonUtils;
 
 import java.util.Locale;
@@ -45,7 +45,7 @@ import java.util.Locale;
 public class PrefPageResultSetPresentationGrid extends TargetPrefPage {
     private static final Log log = Log.getLog(PrefPageResultSetPresentationGrid.class);
 
-    public static final String PAGE_ID = "org.jkiss.dbeaver.preferences.main.resultset.grid"; //$NON-NLS-1$
+    public static final String PAGE_ID = "com.seizia.chromite.preferences.main.resultset.grid"; //$NON-NLS-1$
 
     private Button gridShowOddRows;
     private Button gridHighlightRowsWithSelectedCells;
@@ -180,7 +180,7 @@ public class PrefPageResultSetPresentationGrid extends TargetPrefPage {
                 UIUtils.createPreferenceLink(
                     behaviorGroup,
                     "<a>" + DataEditorsMessages.pref_page_database_resultsets_label_show_boolean_config_link + "  - ''{0}''</a>",
-                    "org.jkiss.dbeaver.preferences.main.misc",
+                    "com.seizia.chromite.preferences.main.misc",
                     wpc,
                     null
                 ).setLayoutData(GridDataFactory.fillDefaults().span(2, 1).create());

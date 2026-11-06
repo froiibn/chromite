@@ -14,12 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.ai.engine.openai.dto;
+package com.seizia.chromite.model.ai.engine.openai.dto;
 
 import com.google.gson.annotations.SerializedName;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.model.ai.AIImageAttachment;
+import com.seizia.chromite.model.ai.AIImageAttachment;
 
 public class OAIMessageContent {
 

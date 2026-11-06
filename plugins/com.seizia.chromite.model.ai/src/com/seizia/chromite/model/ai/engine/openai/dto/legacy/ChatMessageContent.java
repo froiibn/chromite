@@ -14,12 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.ai.engine.openai.dto.legacy;
+package com.seizia.chromite.model.ai.engine.openai.dto.legacy;
 
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.model.ai.AIMessage;
-import org.jkiss.dbeaver.model.ai.engine.openai.dto.OAIMessage;
-import org.jkiss.dbeaver.model.ai.engine.openai.dto.OAIMessageContent;
+import com.seizia.chromite.model.ai.AIMessage;
+import com.seizia.chromite.model.ai.engine.openai.dto.OAIMessage;
+import com.seizia.chromite.model.ai.engine.openai.dto.OAIMessageContent;
 
 import java.util.ArrayList;
 import java.util.List;

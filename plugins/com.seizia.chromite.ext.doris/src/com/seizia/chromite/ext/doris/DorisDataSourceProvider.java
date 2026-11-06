@@ -14,10 +14,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.doris;
+package com.seizia.chromite.ext.doris;
 
-import org.jkiss.dbeaver.ext.doris.model.DorisDataSource;
-import org.jkiss.dbeaver.ext.generic.GenericDataSourceProvider;
+import com.seizia.chromite.ext.doris.model.DorisDataSource;
+import com.seizia.chromite.ext.generic.GenericDataSourceProvider;
 
 /**
  * Doris DataSource Provider - creates DorisDataSource instances.

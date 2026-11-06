@@ -14,22 +14,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.impl.struct;
+package com.seizia.chromite.model.impl.struct;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.model.DBPDataKind;
-import org.jkiss.dbeaver.model.DBPNamedObject2;
-import org.jkiss.dbeaver.model.DBPToolTipObject;
-import org.jkiss.dbeaver.model.DBUtils;
-import org.jkiss.dbeaver.model.impl.DBObjectNameCaseTransformer;
-import org.jkiss.dbeaver.model.impl.DBPositiveNumberTransformer;
-import org.jkiss.dbeaver.model.meta.Property;
-import org.jkiss.dbeaver.model.struct.DBSAttributeBase;
-import org.jkiss.dbeaver.model.struct.DBSTypedObject;
-import org.jkiss.dbeaver.model.struct.DBSTypedObjectExt2;
-import org.jkiss.dbeaver.model.struct.DBSTypedObjectExt3;
+import com.seizia.chromite.model.DBPDataKind;
+import com.seizia.chromite.model.DBPNamedObject2;
+import com.seizia.chromite.model.DBPToolTipObject;
+import com.seizia.chromite.model.DBUtils;
+import com.seizia.chromite.model.impl.DBObjectNameCaseTransformer;
+import com.seizia.chromite.model.impl.DBPositiveNumberTransformer;
+import com.seizia.chromite.model.meta.Property;
+import com.seizia.chromite.model.struct.DBSAttributeBase;
+import com.seizia.chromite.model.struct.DBSTypedObject;
+import com.seizia.chromite.model.struct.DBSTypedObjectExt2;
+import com.seizia.chromite.model.struct.DBSTypedObjectExt3;
 import org.jkiss.utils.CommonUtils;
 
 /**

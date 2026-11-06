@@ -14,20 +14,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.editors.acl;
+package com.seizia.chromite.ui.editors.acl;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.model.access.DBAPrivilege;
-import org.jkiss.dbeaver.model.access.DBAPrivilegeOwner;
-import org.jkiss.dbeaver.model.access.DBAPrivilegeType;
-import org.jkiss.dbeaver.model.edit.DBECommand;
-import org.jkiss.dbeaver.model.edit.DBEPersistAction;
-import org.jkiss.dbeaver.model.exec.DBCExecutionContext;
-import org.jkiss.dbeaver.model.impl.edit.DBECommandAbstract;
-import org.jkiss.dbeaver.model.impl.edit.SQLDatabasePersistAction;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.ui.editors.acl.internal.ACLMessages;
+import com.seizia.chromite.model.access.DBAPrivilege;
+import com.seizia.chromite.model.access.DBAPrivilegeOwner;
+import com.seizia.chromite.model.access.DBAPrivilegeType;
+import com.seizia.chromite.model.edit.DBECommand;
+import com.seizia.chromite.model.edit.DBEPersistAction;
+import com.seizia.chromite.model.exec.DBCExecutionContext;
+import com.seizia.chromite.model.impl.edit.DBECommandAbstract;
+import com.seizia.chromite.model.impl.edit.SQLDatabasePersistAction;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.ui.editors.acl.internal.ACLMessages;
 
 import java.util.Map;
 

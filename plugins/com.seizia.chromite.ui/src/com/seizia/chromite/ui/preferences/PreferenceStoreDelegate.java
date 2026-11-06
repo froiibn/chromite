@@ -14,12 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.preferences;
+package com.seizia.chromite.ui.preferences;
 
 import org.eclipse.jface.preference.IPersistentPreferenceStore;
 import org.eclipse.jface.preference.IPreferenceStore;
 import org.eclipse.jface.util.IPropertyChangeListener;
-import org.jkiss.dbeaver.model.preferences.DBPPreferenceStore;
+import com.seizia.chromite.model.preferences.DBPPreferenceStore;
 
 import java.io.IOException;
 

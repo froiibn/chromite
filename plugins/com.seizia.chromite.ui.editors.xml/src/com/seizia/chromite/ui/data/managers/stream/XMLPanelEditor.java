@@ -14,15 +14,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.data.managers.stream;
+package com.seizia.chromite.ui.data.managers.stream;
 
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.ui.IEditorInput;
 import org.eclipse.ui.IEditorSite;
 import org.eclipse.ui.PartInitException;
-import org.jkiss.dbeaver.ui.data.IValueController;
-import org.jkiss.dbeaver.ui.data.managers.AbstractTextPanelEditor;
-import org.jkiss.dbeaver.ui.editors.xml.XMLEditor;
+import com.seizia.chromite.ui.data.IValueController;
+import com.seizia.chromite.ui.data.managers.AbstractTextPanelEditor;
+import com.seizia.chromite.ui.editors.xml.XMLEditor;
 import org.jkiss.utils.CommonUtils;
 import org.jkiss.utils.xml.XMLUtils;
 import org.w3c.dom.Document;
@@ -62,7 +62,7 @@ public class XMLPanelEditor extends AbstractTextPanelEditor<XMLEditor> {
 
     @Override
     protected String getFileFolderName() {
-        return "dbeaver-xml";
+        return "chromite-xml";
     }
 
     @Override

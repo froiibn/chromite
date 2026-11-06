@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.databend.model;
+package com.seizia.chromite.ext.databend.model;
 
 public class DatabendConstants {
     public static final String JDBC_URL_PREFIX = "jdbc:databend://";

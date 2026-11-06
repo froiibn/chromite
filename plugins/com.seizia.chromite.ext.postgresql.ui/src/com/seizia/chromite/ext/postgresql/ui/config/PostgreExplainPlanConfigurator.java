@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.ext.postgresql.ui.config;
+package com.seizia.chromite.ext.postgresql.ui.config;
 
 
 import org.eclipse.jface.dialogs.IDialogConstants;
@@ -25,18 +25,18 @@ import org.eclipse.swt.widgets.Button;
 import org.eclipse.swt.widgets.Composite;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.ext.postgresql.PostgreMessages;
-import org.jkiss.dbeaver.ext.postgresql.model.PostgreDataSource;
-import org.jkiss.dbeaver.ext.postgresql.model.plan.PostgreQueryPlaner;
-import org.jkiss.dbeaver.model.DBPDataSource;
-import org.jkiss.dbeaver.model.edit.DBECommandContext;
-import org.jkiss.dbeaver.model.edit.DBEObjectConfigurator;
-import org.jkiss.dbeaver.model.exec.plan.DBCQueryPlanner;
-import org.jkiss.dbeaver.model.exec.plan.DBCQueryPlannerConfiguration;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.ui.UITask;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.dialogs.BaseDialog;
+import com.seizia.chromite.ext.postgresql.PostgreMessages;
+import com.seizia.chromite.ext.postgresql.model.PostgreDataSource;
+import com.seizia.chromite.ext.postgresql.model.plan.PostgreQueryPlaner;
+import com.seizia.chromite.model.DBPDataSource;
+import com.seizia.chromite.model.edit.DBECommandContext;
+import com.seizia.chromite.model.edit.DBEObjectConfigurator;
+import com.seizia.chromite.model.exec.plan.DBCQueryPlanner;
+import com.seizia.chromite.model.exec.plan.DBCQueryPlannerConfiguration;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.ui.UITask;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.dialogs.BaseDialog;
 
 import java.util.Map;
 

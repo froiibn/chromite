@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.dashboard.view;
+package com.seizia.chromite.ui.dashboard.view;
 
 import org.eclipse.jface.dialogs.IDialogConstants;
 import org.eclipse.jface.dialogs.IDialogSettings;
@@ -24,15 +24,15 @@ import org.eclipse.swt.widgets.Button;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Control;
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.dashboard.control.DashboardListControl;
-import org.jkiss.dbeaver.ui.dashboard.control.DashboardListViewer;
-import org.jkiss.dbeaver.ui.dashboard.control.DashboardViewItem;
-import org.jkiss.dbeaver.ui.dashboard.internal.UIDashboardActivator;
-import org.jkiss.dbeaver.ui.dashboard.internal.UIDashboardMessages;
-import org.jkiss.dbeaver.ui.dashboard.model.DashboardConfigurationList;
-import org.jkiss.dbeaver.ui.dashboard.model.DashboardContainer;
-import org.jkiss.dbeaver.ui.dialogs.AbstractPopupPanel;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.dashboard.control.DashboardListControl;
+import com.seizia.chromite.ui.dashboard.control.DashboardListViewer;
+import com.seizia.chromite.ui.dashboard.control.DashboardViewItem;
+import com.seizia.chromite.ui.dashboard.internal.UIDashboardActivator;
+import com.seizia.chromite.ui.dashboard.internal.UIDashboardMessages;
+import com.seizia.chromite.ui.dashboard.model.DashboardConfigurationList;
+import com.seizia.chromite.ui.dashboard.model.DashboardContainer;
+import com.seizia.chromite.ui.dialogs.AbstractPopupPanel;
 
 /**
  * Dashboard view dialog

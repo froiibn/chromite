@@ -14,17 +14,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.editors.entity;
+package com.seizia.chromite.ui.editors.entity;
 
 import org.eclipse.core.expressions.PropertyTester;
 import org.eclipse.jface.text.IUndoManager;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.edit.DBECommandContext;
-import org.jkiss.dbeaver.model.struct.DBSObject;
-import org.jkiss.dbeaver.ui.ActionUtils;
-import org.jkiss.dbeaver.ui.editors.entity.handlers.ObjectPropertySwitchToSourceHandler;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.edit.DBECommandContext;
+import com.seizia.chromite.model.struct.DBSObject;
+import com.seizia.chromite.ui.ActionUtils;
+import com.seizia.chromite.ui.editors.entity.handlers.ObjectPropertySwitchToSourceHandler;
 
 /**
  * EntityEditorPropertyTester
@@ -33,7 +33,7 @@ public class EntityEditorPropertyTester extends PropertyTester
 {
     private static final Log log = Log.getLog(EntityEditorPropertyTester.class);
 
-    public static final String NAMESPACE = "org.jkiss.dbeaver.ui.editors.entity";
+    public static final String NAMESPACE = "com.seizia.chromite.ui.editors.entity";
     public static final String PROP_DIRTY = "dirty";
     public static final String PROP_CAN_UNDO = "canUndo";
     public static final String PROP_CAN_REDO = "canRedo";

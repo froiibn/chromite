@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <?eclipse version="3.4"?>
 <plugin>
-    <extension point="org.jkiss.dbeaver.dataSourceProvider">
+    <extension point="com.seizia.chromite.dataSourceProvider">
         <dataSourceType
             id="exasol"
             label="%driver.exasol.label"
@@ -11,7 +11,7 @@
             iconBig="icons/exasol_icon_big.png"
             logoImage="icons/exasol.png"/>
         <datasource
-                class="org.jkiss.dbeaver.ext.exasol.ExasolDataSourceProvider"
+                class="com.seizia.chromite.ext.exasol.ExasolDataSourceProvider"
                 description="%datasource.exasol.description"
                 icon="icons/exasol_icon.png"
                 id="exasol"
@@ -19,19 +19,19 @@
                 label="%datasource.exasol.label"
                 dialect="exasol">
             <tree icon="icons/exasol_icon.png" label="Exasol data source" path="exasol">
-                <folder type="org.jkiss.dbeaver.ext.exasol.model.ExasolSchema" label="%tree.schemas.node.name"
+                <folder type="com.seizia.chromite.ext.exasol.model.ExasolSchema" label="%tree.schemas.node.name"
                         icon="#folder_schema" description="%tree.schemas.node.description">
                     <items label="%tree.schema.node.name" path="schema" property="schemas" icon="#schema">
-                        <folder type="org.jkiss.dbeaver.ext.exasol.model.ExasolTable" label="%tree.tables.node.name"
+                        <folder type="com.seizia.chromite.ext.exasol.model.ExasolTable" label="%tree.tables.node.name"
                                 icon="#folder_table" description="%tree.tables.node.description">
                             <items label="%tree.table.node.name" path="table" property="tables" icon="#table">
-                                <folder type="org.jkiss.dbeaver.ext.exasol.model.ExasolTableColumn"
+                                <folder type="com.seizia.chromite.ext.exasol.model.ExasolTableColumn"
                                         label="%tree.columns.node.name" icon="#columns" description="%tree.columns.node.description">
                                     <items label="%tree.column.node.name" path="attribute" property="attributes"
                                            icon="#column">
                                     </items>
                                 </folder>
-                                <folder type="org.jkiss.dbeaver.ext.exasol.model.ExasolTableUniqueKey"
+                                <folder type="com.seizia.chromite.ext.exasol.model.ExasolTableUniqueKey"
                                         label="%tree.constraints.node.name" icon="#constraints"
                                         description="%tree.constraints.node.description">
                                     <items label="%tree.constraint.node.name" path="constraint" property="constraints"
@@ -41,7 +41,7 @@
                                         </items>
                                     </items>
                                 </folder>
-                                <folder type="org.jkiss.dbeaver.ext.exasol.model.ExasolTableForeignKey"
+                                <folder type="com.seizia.chromite.ext.exasol.model.ExasolTableForeignKey"
                                         label="%tree.foreign_keys.node.name" icon="#foreign-keys"
                                         description="%tree.foreign_keys.node.description">
                                     <items label="%tree.foreign_key.node.name" path="association"
@@ -56,7 +56,7 @@
                                       description="%tree.partition_columns.node.description"
                                       icon="#folder_table"
                                       label="%tree.partition_columns.node.name"
-                                      type="org.jkiss.dbeaver.ext.exasol.model.ExasolTablePartitionColumn"
+                                      type="com.seizia.chromite.ext.exasol.model.ExasolTablePartitionColumn"
                                       visibleIf="connected &amp;&amp; dataSource.hasPartitionColumns"
                                       >
                                     <items
@@ -72,7 +72,7 @@
                                       description="%tree.indexes.node.description"
                                       icon="#indexes"
                                       label="%tree.indexes.node.name"
-                                      type="org.jkiss.dbeaver.ext.exasol.model.ExasolTableIndex">
+                                      type="com.seizia.chromite.ext.exasol.model.ExasolTableIndex">
                                    <items
                                          icon="#index"
                                          label="%tree.index.node.name"
@@ -92,7 +92,7 @@
                                 </folder>
                             </items>
                         </folder>
-                        <folder type="org.jkiss.dbeaver.ext.exasol.model.ExasolView" label="%tree.views.node.name"
+                        <folder type="com.seizia.chromite.ext.exasol.model.ExasolView" label="%tree.views.node.name"
                                 icon="#folder_view" description="%tree.views.node.description">
                             <items label="%tree.view.node.name" path="view" property="views" icon="#view">
                                 <items label="%tree.columns.node.name" itemLabel="%tree.column.node.name" path="column"
@@ -100,12 +100,12 @@
                                 </items>
                             </items>
                         </folder>
-                        <folder type="org.jkiss.dbeaver.ext.exasol.model.ExasolScript" label="%tree.scripts.node.name"
+                        <folder type="com.seizia.chromite.ext.exasol.model.ExasolScript" label="%tree.scripts.node.name"
                                 icon="#procedures" id="scripts" description="%tree.scripts.node.description">
                             <folder
                                   icon="#procedures"
                                   label="%tree.scripts.adapter.node.name"
-                                  type="org.jkiss.dbeaver.ext.exasol.model.ExasolScript">
+                                  type="com.seizia.chromite.ext.exasol.model.ExasolScript">
                                <items
                                      icon="#procedure"
                                      label="%tree.script.node.name"
@@ -116,7 +116,7 @@
                             <folder
                                   icon="#procedures"
                                   label="%tree.scripts.script.node.name"
-                                  type="org.jkiss.dbeaver.ext.exasol.model.ExasolScript">
+                                  type="com.seizia.chromite.ext.exasol.model.ExasolScript">
                                <items
                                      icon="#procedure"
                                      label="%tree.script.node.name"
@@ -127,7 +127,7 @@
                             <folder
                                   icon="#procedures"
                                   label="%tree.scripts.udf.node.name"
-                                  type="org.jkiss.dbeaver.ext.exasol.model.ExasolScript">
+                                  type="com.seizia.chromite.ext.exasol.model.ExasolScript">
                                <items
                                      icon="#procedure"
                                      label="%tree.script.node.name"
@@ -140,7 +140,7 @@
                               description="%tree.functions.node.description"
                               icon="#procedures"
                               label="%tree.functions.node.name"
-                              type="org.jkiss.dbeaver.ext.exasol.model.ExasolFunction">
+                              type="com.seizia.chromite.ext.exasol.model.ExasolFunction">
                            <items
                                  icon="#procedure"
                                  label="%tree.function.node.name"
@@ -154,7 +154,7 @@
                       description="%tree.virtualschemas.node.description"
                       icon="#folder_schema"
                       label="%tree.virtualschemas.node.name"
-                      type="org.jkiss.dbeaver.ext.exasol.model.ExasolVirtualSchema"
+                      type="com.seizia.chromite.ext.exasol.model.ExasolVirtualSchema"
                       visibleIf="connected &amp;&amp; dataSource.atLeastV6">
                    <items
                          icon="#schema"
@@ -165,7 +165,7 @@
                             description="%tree.tables.node.description"
                             icon="#folder_table"
                             label="%tree.tables.node.name"
-                            type="org.jkiss.dbeaver.ext.exasol.model.ExasolTable">
+                            type="com.seizia.chromite.ext.exasol.model.ExasolTable">
                          <items
                                icon="#table"
                                label="%tree.table.node.name"
@@ -175,7 +175,7 @@
                                   description="%tree.columns.node.description"
                                   icon="#columns"
                                   label="%tree.columns.node.name"
-                                  type="org.jkiss.dbeaver.ext.exasol.model.ExasolTableColumn">
+                                  type="com.seizia.chromite.ext.exasol.model.ExasolTableColumn">
                                <items
                                      icon="#column"
                                      label="%tree.column.node.name"
@@ -187,7 +187,7 @@
                                   description="%tree.constraints.node.description"
                                   icon="#constraints"
                                   label="%tree.constraints.node.name"
-                                  type="org.jkiss.dbeaver.ext.exasol.model.ExasolTableUniqueKey">
+                                  type="com.seizia.chromite.ext.exasol.model.ExasolTableUniqueKey">
                                <items
                                      icon="#unique-key"
                                      label="%tree.constraint.node.name"
@@ -206,7 +206,7 @@
                                   description="%tree.foreign_keys.node.description"
                                   icon="#foreign-keys"
                                   label="%tree.foreign_keys.node.name"
-                                  type="org.jkiss.dbeaver.ext.exasol.model.ExasolTableForeignKey">
+                                  type="com.seizia.chromite.ext.exasol.model.ExasolTableForeignKey">
                                <items
                                      icon="#foreign-key"
                                      label="%tree.foreign_key.node.name"
@@ -240,7 +240,7 @@
                       description="%tree.connections.node.description"
                       icon="#folder_connections"
                       label="%tree.connections.node.name"
-                      type="org.jkiss.dbeaver.ext.exasol.model.ExasolConnection">
+                      type="com.seizia.chromite.ext.exasol.model.ExasolConnection">
                    <items
                          icon="icons/remoteServer.gif"
                          label="%tree.connection.node.name"
@@ -252,7 +252,7 @@
                       description="%tree.users.node.description"
                       icon="#folder_user"
                       label="%tree.users.node.name"
-                      type="org.jkiss.dbeaver.ext.exasol.model.security.ExasolUser">
+                      type="com.seizia.chromite.ext.exasol.model.security.ExasolUser">
                    <items
                          icon="#user"
                          label="%tree.user.node.name"
@@ -319,7 +319,7 @@
                       description="%tree.roles.node.description"
                       icon="#folder_user"
                       label="%tree.roles.node.name"
-                      type="org.jkiss.dbeaver.ext.exasol.model.security.ExasolRole"
+                      type="com.seizia.chromite.ext.exasol.model.security.ExasolRole"
                       visibleIf="connected &amp;&amp; dataSource.authorizedForRolePrivs">
                    <items
                          icon="icons/role.gif"
@@ -387,7 +387,7 @@
                       description="%tree.prioritygroups.node.description"
                       icon="#folder_database"
                       label="%tree.prioritygroups.node.name"
-                      type="org.jkiss.dbeaver.ext.exasol.model.ExasolPriorityGroup"
+                      type="com.seizia.chromite.ext.exasol.model.ExasolPriorityGroup"
                       visibleIf="connected &amp;&amp; dataSource.hasPriorityGroups">
                    <items
                          icon="#database"
@@ -399,7 +399,7 @@
                 <folder
                       icon="#folder_database"
                       label="%tree.consumergroups.node.name"
-                      type="org.jkiss.dbeaver.ext.exasol.model.ExasolConsumerGroup"
+                      type="com.seizia.chromite.ext.exasol.model.ExasolConsumerGroup"
                       visibleIf="connected &amp;&amp; dataSource.hasConsumerGroups">
                    <items
                          icon="#database"
@@ -418,7 +418,7 @@
                          description="%tree.security_policy.node.description"
                          icon="#folder_info"
                          label="%tree.security_policy.node.name"
-                         type="org.jkiss.dbeaver.ext.exasol.model.security.ExasolSecurityPolicy">
+                         type="com.seizia.chromite.ext.exasol.model.security.ExasolSecurityPolicy">
                       <items
                             icon="#database"
                             label="%tree.security_policy.node.name"
@@ -445,13 +445,13 @@
 
                     <replace provider="generic" driver="exasol"/>
                     <property name="querytimeout" value="3600"/>
-                    <property name="@dbeaver-default-dataformat.type.timestamp.pattern"
+                    <property name="@chromite-default-dataformat.type.timestamp.pattern"
                               value="yyyy-MM-dd-HH.mm.ss.ffffff"/>
                 </driver>
                 <provider-properties drivers="*">
                     <propertyGroup label="Settings">
-                        <property id="@dbeaver-backupHostList" label="Use backup host list" type="boolean"/>
-                        <property id="@dbeaver-encrypt" label="Encrypt Communication" type="boolean"/>
+                        <property id="@chromite-backupHostList" label="Use backup host list" type="boolean"/>
+                        <property id="@chromite-encrypt" label="Encrypt Communication" type="boolean"/>
                         <property id="exasol.useLegacyEncryption" label="Use Legacy Encryption" type="boolean"
                                   description="All connections created using Exasol-provided 7.1 drivers will try to establish TLS connections to Exasol first, regardless of the database version."/>
                     </propertyGroup>
@@ -460,48 +460,48 @@
         </datasource>
     </extension>
 
-    <extension point="org.jkiss.dbeaver.objectManager">
-        <manager class="org.jkiss.dbeaver.ext.exasol.manager.ExasolTableManager" objectType="org.jkiss.dbeaver.ext.exasol.model.ExasolTable"/>
-        <manager class="org.jkiss.dbeaver.ext.exasol.manager.ExasolTableColumnManager" objectType="org.jkiss.dbeaver.ext.exasol.model.ExasolTableColumn"/>
-        <manager class="org.jkiss.dbeaver.ext.exasol.manager.ExasolScriptManager" objectType="org.jkiss.dbeaver.ext.exasol.model.ExasolScript"/>
-        <manager class="org.jkiss.dbeaver.ext.exasol.manager.ExasolViewManager" objectType="org.jkiss.dbeaver.ext.exasol.model.ExasolView"/>
-        <manager class="org.jkiss.dbeaver.ext.exasol.manager.ExasolFunctionManager" objectType="org.jkiss.dbeaver.ext.exasol.model.ExasolFunction"/>
-        <manager class="org.jkiss.dbeaver.ext.exasol.manager.ExasolSchemaManager" objectType="org.jkiss.dbeaver.ext.exasol.model.ExasolSchema"/>
-        <manager class="org.jkiss.dbeaver.ext.exasol.manager.ExasolConnectionManager" objectType="org.jkiss.dbeaver.ext.exasol.model.ExasolConnection"/>
-        <manager class="org.jkiss.dbeaver.ext.exasol.manager.ExasolForeignKeyManager" objectType="org.jkiss.dbeaver.ext.exasol.model.ExasolTableForeignKey"/>
-        <manager class="org.jkiss.dbeaver.ext.exasol.manager.ExasolPrimaryKeyManager" objectType="org.jkiss.dbeaver.ext.exasol.model.ExasolTableUniqueKey"/>
-        <manager class="org.jkiss.dbeaver.ext.exasol.manager.ExasolTableIndexManager" objectType="org.jkiss.dbeaver.ext.exasol.model.ExasolTableIndex"/>
-        <manager class="org.jkiss.dbeaver.ext.exasol.manager.ExasolUserManager" objectType="org.jkiss.dbeaver.ext.exasol.model.security.ExasolUser"/>
-        <manager class="org.jkiss.dbeaver.ext.exasol.manager.ExasolRoleManager" objectType="org.jkiss.dbeaver.ext.exasol.model.security.ExasolRole"/>
+    <extension point="com.seizia.chromite.objectManager">
+        <manager class="com.seizia.chromite.ext.exasol.manager.ExasolTableManager" objectType="com.seizia.chromite.ext.exasol.model.ExasolTable"/>
+        <manager class="com.seizia.chromite.ext.exasol.manager.ExasolTableColumnManager" objectType="com.seizia.chromite.ext.exasol.model.ExasolTableColumn"/>
+        <manager class="com.seizia.chromite.ext.exasol.manager.ExasolScriptManager" objectType="com.seizia.chromite.ext.exasol.model.ExasolScript"/>
+        <manager class="com.seizia.chromite.ext.exasol.manager.ExasolViewManager" objectType="com.seizia.chromite.ext.exasol.model.ExasolView"/>
+        <manager class="com.seizia.chromite.ext.exasol.manager.ExasolFunctionManager" objectType="com.seizia.chromite.ext.exasol.model.ExasolFunction"/>
+        <manager class="com.seizia.chromite.ext.exasol.manager.ExasolSchemaManager" objectType="com.seizia.chromite.ext.exasol.model.ExasolSchema"/>
+        <manager class="com.seizia.chromite.ext.exasol.manager.ExasolConnectionManager" objectType="com.seizia.chromite.ext.exasol.model.ExasolConnection"/>
+        <manager class="com.seizia.chromite.ext.exasol.manager.ExasolForeignKeyManager" objectType="com.seizia.chromite.ext.exasol.model.ExasolTableForeignKey"/>
+        <manager class="com.seizia.chromite.ext.exasol.manager.ExasolPrimaryKeyManager" objectType="com.seizia.chromite.ext.exasol.model.ExasolTableUniqueKey"/>
+        <manager class="com.seizia.chromite.ext.exasol.manager.ExasolTableIndexManager" objectType="com.seizia.chromite.ext.exasol.model.ExasolTableIndex"/>
+        <manager class="com.seizia.chromite.ext.exasol.manager.ExasolUserManager" objectType="com.seizia.chromite.ext.exasol.model.security.ExasolUser"/>
+        <manager class="com.seizia.chromite.ext.exasol.manager.ExasolRoleManager" objectType="com.seizia.chromite.ext.exasol.model.security.ExasolRole"/>
         <manager
-              class="org.jkiss.dbeaver.ext.exasol.manager.ExasolPriorityGroupManager"
-              objectType="org.jkiss.dbeaver.ext.exasol.model.ExasolPriorityGroup">
+              class="com.seizia.chromite.ext.exasol.manager.ExasolPriorityGroupManager"
+              objectType="com.seizia.chromite.ext.exasol.model.ExasolPriorityGroup">
         </manager>
         <manager
-              class="org.jkiss.dbeaver.ext.exasol.manager.ExasolConsumerGroupManager"
-              objectType="org.jkiss.dbeaver.ext.exasol.model.ExasolConsumerGroup">
+              class="com.seizia.chromite.ext.exasol.manager.ExasolConsumerGroupManager"
+              objectType="com.seizia.chromite.ext.exasol.model.ExasolConsumerGroup">
         </manager>
         <manager
-              class="org.jkiss.dbeaver.ext.exasol.manager.ExasolSecurityPolicyManager"
-              objectType="org.jkiss.dbeaver.ext.exasol.model.security.ExasolSecurityPolicy">
+              class="com.seizia.chromite.ext.exasol.manager.ExasolSecurityPolicyManager"
+              objectType="com.seizia.chromite.ext.exasol.model.security.ExasolSecurityPolicy">
         </manager>
         <manager
-              class="org.jkiss.dbeaver.ext.exasol.manager.ExasolTablePartitionColumnManager"
-              objectType="org.jkiss.dbeaver.ext.exasol.model.ExasolTablePartitionColumn">
+              class="com.seizia.chromite.ext.exasol.manager.ExasolTablePartitionColumnManager"
+              objectType="com.seizia.chromite.ext.exasol.model.ExasolTablePartitionColumn">
         </manager>
     </extension>
 
-    <extension point="org.jkiss.dbeaver.sqlCommand">
-        <command id="exasol.define" class="org.jkiss.dbeaver.model.sql.commands.SQLCommandSet" label="Define" description="Defines variable"/>
+    <extension point="com.seizia.chromite.sqlCommand">
+        <command id="exasol.define" class="com.seizia.chromite.model.sql.commands.SQLCommandSet" label="Define" description="Defines variable"/>
     </extension>
 
     <extension point="org.eclipse.core.runtime.adapters">
-        <factory adaptableType="org.jkiss.dbeaver.ext.exasol.ExasolSQLDialect" class="org.jkiss.dbeaver.ext.exasol.editors.ExasolDialectAdapterFactory">
-            <adapter type="org.jkiss.dbeaver.model.text.parser.TPRuleProvider"/>
+        <factory adaptableType="com.seizia.chromite.ext.exasol.ExasolSQLDialect" class="com.seizia.chromite.ext.exasol.editors.ExasolDialectAdapterFactory">
+            <adapter type="com.seizia.chromite.model.text.parser.TPRuleProvider"/>
         </factory>
     </extension>
 
-    <extension point="org.jkiss.dbeaver.dashboard">
+    <extension point="com.seizia.chromite.dashboard">
 
         <dashboard id="exasol.usageHourly" label="User activity" defaultView="timeseries" group="Standard" updatePeriod="3600000"
                    calc="value" value="integer" fetch="stats" interval="hour" maxItems="48" maxAge="172800000" showByDefault="true" description="Shows users activity statistics">
@@ -525,9 +525,9 @@
 
     </extension>
     <extension
-          point="org.jkiss.dbeaver.dataTypeProvider">
+          point="com.seizia.chromite.dataTypeProvider">
        <provider
-             class="org.jkiss.dbeaver.ext.exasol.ExasolValueHandlerProvider"
+             class="com.seizia.chromite.ext.exasol.ExasolValueHandlerProvider"
              description="Exasol data types provider"
              id="ExasolValueHandlerProvider"
              label="Exasol data types provider">
@@ -540,17 +540,17 @@
        </provider>
     </extension>
 
-    <extension point="org.jkiss.dbeaver.sqlDialect">
-        <dialect id="exasol" parent="basic" class="org.jkiss.dbeaver.ext.exasol.ExasolSQLDialect" label="Exasol" description="Exasol SQL dialect." icon="icons/exasol_icon.png">
+    <extension point="com.seizia.chromite.sqlDialect">
+        <dialect id="exasol" parent="basic" class="com.seizia.chromite.ext.exasol.ExasolSQLDialect" label="Exasol" description="Exasol SQL dialect." icon="icons/exasol_icon.png">
         </dialect>
     </extension>
 
-    <extension point="org.jkiss.dbeaver.task">
+    <extension point="com.seizia.chromite.task">
         <category id="exasol" name="Exasol" description="Exasol database task" icon="icons/exasol_icon.png"/>
         <category id="exasolTool" parent="exasol" name="Tools" description="Exasol database tools" icon="icons/exasol_icon.png"/>
-        <task id="exasolToolTruncateTable" name="Truncate table" description="Truncate table(s)" icon="platform:/plugin/org.jkiss.dbeaver.model/icons/tree/admin.svg" type="exasolTool" handler="org.jkiss.dbeaver.ext.exasol.tasks.ExasolToolTableTruncate">
+        <task id="exasolToolTruncateTable" name="Truncate table" description="Truncate table(s)" icon="platform:/plugin/com.seizia.chromite.model/icons/tree/admin.svg" type="exasolTool" handler="com.seizia.chromite.ext.exasol.tasks.ExasolToolTableTruncate">
             <datasource id="exasol"/>
-            <objectType name="org.jkiss.dbeaver.ext.exasol.model.ExasolTable"/>
+            <objectType name="com.seizia.chromite.ext.exasol.model.ExasolTable"/>
         </task>
     </extension>
 

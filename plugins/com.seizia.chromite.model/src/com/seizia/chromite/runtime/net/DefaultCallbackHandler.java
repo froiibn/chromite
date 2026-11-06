@@ -14,10 +14,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.runtime.net;
+package com.seizia.chromite.runtime.net;
 
-import org.jkiss.dbeaver.model.connection.DBPAuthInfo;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
+import com.seizia.chromite.model.connection.DBPAuthInfo;
+import com.seizia.chromite.runtime.DBWorkbench;
 
 import javax.security.auth.callback.*;
 import java.io.IOException;

@@ -14,14 +14,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.fs.efs;
+package com.seizia.chromite.model.fs.efs;
 
 import org.eclipse.core.filesystem.EFS;
 import org.eclipse.core.filesystem.IFileInfo;
 import org.eclipse.core.filesystem.IFileStore;
 import org.eclipse.core.runtime.CoreException;
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.model.nio.ByteArrayChannel;
+import com.seizia.chromite.model.nio.ByteArrayChannel;
 
 import java.io.IOException;
 import java.io.OutputStream;

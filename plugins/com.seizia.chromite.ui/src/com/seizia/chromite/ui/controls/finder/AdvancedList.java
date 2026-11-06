@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.controls.finder;
+package com.seizia.chromite.ui.controls.finder;
 
 import org.eclipse.jface.viewers.ILabelProvider;
 import org.eclipse.jface.viewers.IToolTipProvider;
@@ -33,11 +33,11 @@ import org.eclipse.swt.widgets.Event;
 import org.eclipse.swt.widgets.ScrollBar;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.ui.BaseThemeSettings;
-import org.jkiss.dbeaver.ui.UIStyles;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.controls.CustomToolTipHandler;
-import org.jkiss.dbeaver.ui.css.CSSUtils;
+import com.seizia.chromite.ui.BaseThemeSettings;
+import com.seizia.chromite.ui.UIStyles;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.controls.CustomToolTipHandler;
+import com.seizia.chromite.ui.css.CSSUtils;
 import org.jkiss.utils.CommonUtils;
 
 import java.util.ArrayList;

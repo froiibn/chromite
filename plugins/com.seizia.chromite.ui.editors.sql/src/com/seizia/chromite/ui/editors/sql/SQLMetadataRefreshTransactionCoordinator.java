@@ -14,20 +14,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.editors.sql;
+package com.seizia.chromite.ui.editors.sql;
 
 import org.eclipse.osgi.util.NLS;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.ModelPreferences;
-import org.jkiss.dbeaver.model.DBPMessageType;
-import org.jkiss.dbeaver.model.DBUtils;
-import org.jkiss.dbeaver.model.exec.*;
-import org.jkiss.dbeaver.model.preferences.DBPPreferenceStore;
-import org.jkiss.dbeaver.model.sql.SQLMetadataRefreshTargetResolver.RefreshTarget;
-import org.jkiss.dbeaver.runtime.DBeaverNotifications;
-import org.jkiss.dbeaver.ui.editors.sql.SQLPreferenceConstants.MetadataRefreshBehavior;
-import org.jkiss.dbeaver.ui.editors.sql.internal.SQLEditorMessages;
+import com.seizia.chromite.ModelPreferences;
+import com.seizia.chromite.model.DBPMessageType;
+import com.seizia.chromite.model.DBUtils;
+import com.seizia.chromite.model.exec.*;
+import com.seizia.chromite.model.preferences.DBPPreferenceStore;
+import com.seizia.chromite.model.sql.SQLMetadataRefreshTargetResolver.RefreshTarget;
+import com.seizia.chromite.runtime.ChromiteNotifications;
+import com.seizia.chromite.ui.editors.sql.SQLPreferenceConstants.MetadataRefreshBehavior;
+import com.seizia.chromite.ui.editors.sql.internal.SQLEditorMessages;
 
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
@@ -410,7 +410,7 @@ final class SQLMetadataRefreshTransactionCoordinator {
     }
 
     private static void showInformation(@NotNull DBCExecutionContext context, @NotNull String message) {
-        DBeaverNotifications.showNotification(
+        ChromiteNotifications.showNotification(
             SQLEditor.NOTIFICATION_SQL_METADATA_REFRESH,
             NLS.bind(
                 SQLEditorMessages.sql_editor_metadata_refresh_information_title,
@@ -451,7 +451,7 @@ final class SQLMetadataRefreshTransactionCoordinator {
         if (refreshBehavior == MetadataRefreshBehavior.NEVER) {
             return;
         }
-        DBeaverNotifications.showNotification(
+        ChromiteNotifications.showNotification(
             SQLEditor.NOTIFICATION_SQL_METADATA_REFRESH,
             NLS.bind(
                 SQLEditorMessages.sql_editor_metadata_refresh_notification_title,

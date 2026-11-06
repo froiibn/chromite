@@ -15,11 +15,11 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.ui.editors.entity;
+package com.seizia.chromite.ui.editors.entity;
 
-import org.jkiss.dbeaver.model.struct.DBSObject;
-import org.jkiss.dbeaver.model.struct.DBSObjectContainer;
-import org.jkiss.dbeaver.model.struct.DBSDocumentContainer;
+import com.seizia.chromite.model.struct.DBSObject;
+import com.seizia.chromite.model.struct.DBSObjectContainer;
+import com.seizia.chromite.model.struct.DBSDocumentContainer;
 
 /**
  * IEntityEditorContext.

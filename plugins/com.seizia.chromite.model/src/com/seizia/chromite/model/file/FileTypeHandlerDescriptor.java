@@ -15,15 +15,15 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.model.file;
+package com.seizia.chromite.model.file;
 
 import org.eclipse.core.runtime.IConfigurationElement;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.DBPImage;
-import org.jkiss.dbeaver.model.impl.AbstractDescriptor;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.DBPImage;
+import com.seizia.chromite.model.impl.AbstractDescriptor;
 import org.jkiss.utils.CommonUtils;
 
 import java.util.ArrayList;
@@ -35,7 +35,7 @@ import java.util.List;
 public class FileTypeHandlerDescriptor extends AbstractDescriptor {
     private static final Log log = Log.getLog(FileTypeHandlerDescriptor.class);
 
-    public static final String EXTENSION_ID = "org.jkiss.dbeaver.fileTypeHandler"; //$NON-NLS-1$
+    public static final String EXTENSION_ID = "com.seizia.chromite.fileTypeHandler"; //$NON-NLS-1$
 
     private final String id;
     private final ObjectType handlerType;

@@ -14,15 +14,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.editors.erd.editor.tools;
+package com.seizia.chromite.ui.editors.erd.editor.tools;
 
 import org.eclipse.gef.DefaultEditDomain;
 import org.eclipse.gef.GraphicalViewer;
 import org.eclipse.gef.SharedImages;
 import org.eclipse.gef.palette.ToolEntry;
 import org.eclipse.gef.tools.SelectionTool;
-import org.jkiss.dbeaver.ui.editors.erd.editor.ERDEditorPart;
-import org.jkiss.dbeaver.ui.editors.erd.part.NodePart;
+import com.seizia.chromite.ui.editors.erd.editor.ERDEditorPart;
+import com.seizia.chromite.ui.editors.erd.part.NodePart;
 
 public class BringToFrontToolEntry extends ToolEntry {
 

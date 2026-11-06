@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.editors.sql;
+package com.seizia.chromite.ui.editors.sql;
 
 import org.eclipse.core.filesystem.EFS;
 import org.eclipse.core.filesystem.IFileStore;
@@ -52,78 +52,78 @@ import org.eclipse.ui.texteditor.rulers.RulerColumnRegistry;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.ModelPreferences;
-import org.jkiss.dbeaver.ModelPreferences.SeparateConnectionBehavior;
-import org.jkiss.dbeaver.model.*;
-import org.jkiss.dbeaver.model.app.DBPPlatformDesktop;
-import org.jkiss.dbeaver.model.app.DBPProject;
-import org.jkiss.dbeaver.model.app.DBPWorkspaceDesktop;
-import org.jkiss.dbeaver.model.data.resultset.DBCSmartTransactionManager;
-import org.jkiss.dbeaver.model.exec.*;
-import org.jkiss.dbeaver.model.exec.output.DBCOutputSeverity;
-import org.jkiss.dbeaver.model.exec.output.DBCOutputWriter;
-import org.jkiss.dbeaver.model.exec.output.DBCServerOutputReader;
-import org.jkiss.dbeaver.model.exec.plan.DBCPlan;
-import org.jkiss.dbeaver.model.exec.plan.DBCQueryPlanner;
-import org.jkiss.dbeaver.model.exec.plan.DBCQueryPlannerConfiguration;
-import org.jkiss.dbeaver.model.impl.DefaultServerOutputReader;
-import org.jkiss.dbeaver.model.impl.sql.BasicSQLDialect;
-import org.jkiss.dbeaver.model.messages.ModelMessages;
-import org.jkiss.dbeaver.model.navigator.NavigatorResources;
-import org.jkiss.dbeaver.model.preferences.DBPPreferenceStore;
-import org.jkiss.dbeaver.model.qm.QMTransactionState;
-import org.jkiss.dbeaver.model.qm.QMUtils;
-import org.jkiss.dbeaver.model.rm.RMConstants;
-import org.jkiss.dbeaver.model.runtime.AbstractJob;
-import org.jkiss.dbeaver.model.runtime.DBRProgressListener;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.model.runtime.DBRRunnableWithProgress;
-import org.jkiss.dbeaver.model.sql.*;
-import org.jkiss.dbeaver.model.sql.semantics.SQLObjectOperationRecognizer;
-import org.jkiss.dbeaver.model.struct.DBSInstance;
-import org.jkiss.dbeaver.model.struct.DBSObject;
-import org.jkiss.dbeaver.model.struct.DBSObjectState;
-import org.jkiss.dbeaver.registry.ApplicationPolicyProvider;
-import org.jkiss.dbeaver.registry.confirmation.ConfirmationConstants;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.runtime.jobs.DataSourceMonitorJob;
-import org.jkiss.dbeaver.runtime.ui.DBPPlatformUI;
-import org.jkiss.dbeaver.runtime.ui.UIServiceConnections;
-import org.jkiss.dbeaver.runtime.ui.UIServiceSystemAgent;
-import org.jkiss.dbeaver.ui.*;
-import org.jkiss.dbeaver.ui.actions.datasource.DataSourceToolbarUtils;
-import org.jkiss.dbeaver.ui.contentassist.ContentAssistUtils.ProposalActivationKey;
-import org.jkiss.dbeaver.ui.controls.*;
-import org.jkiss.dbeaver.ui.controls.resultset.*;
-import org.jkiss.dbeaver.ui.controls.resultset.internal.ResultSetMessages;
-import org.jkiss.dbeaver.ui.css.CSSUtils;
-import org.jkiss.dbeaver.ui.dialogs.ConfirmationDialog;
-import org.jkiss.dbeaver.ui.dialogs.EnterNameDialog;
-import org.jkiss.dbeaver.ui.editors.*;
-import org.jkiss.dbeaver.ui.editors.sql.addins.SQLEditorAddIn;
-import org.jkiss.dbeaver.ui.editors.sql.addins.SQLEditorAddInDescriptor;
-import org.jkiss.dbeaver.ui.editors.sql.addins.SQLEditorAddInsRegistry;
-import org.jkiss.dbeaver.ui.editors.sql.commands.MultipleResultsPerTabMenuContribution;
-import org.jkiss.dbeaver.ui.editors.sql.execute.SQLQueryJob;
-import org.jkiss.dbeaver.ui.editors.sql.handlers.SQLEditorVariablesResolver;
-import org.jkiss.dbeaver.ui.editors.sql.handlers.SQLNavigatorContext;
-import org.jkiss.dbeaver.ui.editors.sql.internal.SQLEditorActivator;
-import org.jkiss.dbeaver.ui.editors.sql.internal.SQLEditorMessages;
-import org.jkiss.dbeaver.ui.editors.sql.log.SQLLogPanel;
-import org.jkiss.dbeaver.ui.editors.sql.plan.ExplainPlanViewer;
-import org.jkiss.dbeaver.ui.editors.sql.registry.SQLPresentationDescriptor;
-import org.jkiss.dbeaver.ui.editors.sql.registry.SQLPresentationPanelDescriptor;
-import org.jkiss.dbeaver.ui.editors.sql.registry.SQLPresentationRegistry;
-import org.jkiss.dbeaver.ui.editors.sql.scripts.ScriptsHandlerImpl;
-import org.jkiss.dbeaver.ui.editors.sql.suggestion.SQLSuggestionTextPainter;
-import org.jkiss.dbeaver.ui.editors.sql.syntax.SQLEditorCompletionContext;
-import org.jkiss.dbeaver.ui.editors.sql.variables.AssignVariableAction;
-import org.jkiss.dbeaver.ui.editors.sql.variables.SQLVariablesPanel;
-import org.jkiss.dbeaver.ui.editors.text.DynamicFindReplaceTarget;
-import org.jkiss.dbeaver.ui.editors.text.ScriptPositionColumn;
-import org.jkiss.dbeaver.ui.internal.UIMessages;
-import org.jkiss.dbeaver.ui.navigator.INavigatorModelView;
-import org.jkiss.dbeaver.utils.*;
+import com.seizia.chromite.ModelPreferences;
+import com.seizia.chromite.ModelPreferences.SeparateConnectionBehavior;
+import com.seizia.chromite.model.*;
+import com.seizia.chromite.model.app.DBPPlatformDesktop;
+import com.seizia.chromite.model.app.DBPProject;
+import com.seizia.chromite.model.app.DBPWorkspaceDesktop;
+import com.seizia.chromite.model.data.resultset.DBCSmartTransactionManager;
+import com.seizia.chromite.model.exec.*;
+import com.seizia.chromite.model.exec.output.DBCOutputSeverity;
+import com.seizia.chromite.model.exec.output.DBCOutputWriter;
+import com.seizia.chromite.model.exec.output.DBCServerOutputReader;
+import com.seizia.chromite.model.exec.plan.DBCPlan;
+import com.seizia.chromite.model.exec.plan.DBCQueryPlanner;
+import com.seizia.chromite.model.exec.plan.DBCQueryPlannerConfiguration;
+import com.seizia.chromite.model.impl.DefaultServerOutputReader;
+import com.seizia.chromite.model.impl.sql.BasicSQLDialect;
+import com.seizia.chromite.model.messages.ModelMessages;
+import com.seizia.chromite.model.navigator.NavigatorResources;
+import com.seizia.chromite.model.preferences.DBPPreferenceStore;
+import com.seizia.chromite.model.qm.QMTransactionState;
+import com.seizia.chromite.model.qm.QMUtils;
+import com.seizia.chromite.model.rm.RMConstants;
+import com.seizia.chromite.model.runtime.AbstractJob;
+import com.seizia.chromite.model.runtime.DBRProgressListener;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.model.runtime.DBRRunnableWithProgress;
+import com.seizia.chromite.model.sql.*;
+import com.seizia.chromite.model.sql.semantics.SQLObjectOperationRecognizer;
+import com.seizia.chromite.model.struct.DBSInstance;
+import com.seizia.chromite.model.struct.DBSObject;
+import com.seizia.chromite.model.struct.DBSObjectState;
+import com.seizia.chromite.registry.ApplicationPolicyProvider;
+import com.seizia.chromite.registry.confirmation.ConfirmationConstants;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.runtime.jobs.DataSourceMonitorJob;
+import com.seizia.chromite.runtime.ui.DBPPlatformUI;
+import com.seizia.chromite.runtime.ui.UIServiceConnections;
+import com.seizia.chromite.runtime.ui.UIServiceSystemAgent;
+import com.seizia.chromite.ui.*;
+import com.seizia.chromite.ui.actions.datasource.DataSourceToolbarUtils;
+import com.seizia.chromite.ui.contentassist.ContentAssistUtils.ProposalActivationKey;
+import com.seizia.chromite.ui.controls.*;
+import com.seizia.chromite.ui.controls.resultset.*;
+import com.seizia.chromite.ui.controls.resultset.internal.ResultSetMessages;
+import com.seizia.chromite.ui.css.CSSUtils;
+import com.seizia.chromite.ui.dialogs.ConfirmationDialog;
+import com.seizia.chromite.ui.dialogs.EnterNameDialog;
+import com.seizia.chromite.ui.editors.*;
+import com.seizia.chromite.ui.editors.sql.addins.SQLEditorAddIn;
+import com.seizia.chromite.ui.editors.sql.addins.SQLEditorAddInDescriptor;
+import com.seizia.chromite.ui.editors.sql.addins.SQLEditorAddInsRegistry;
+import com.seizia.chromite.ui.editors.sql.commands.MultipleResultsPerTabMenuContribution;
+import com.seizia.chromite.ui.editors.sql.execute.SQLQueryJob;
+import com.seizia.chromite.ui.editors.sql.handlers.SQLEditorVariablesResolver;
+import com.seizia.chromite.ui.editors.sql.handlers.SQLNavigatorContext;
+import com.seizia.chromite.ui.editors.sql.internal.SQLEditorActivator;
+import com.seizia.chromite.ui.editors.sql.internal.SQLEditorMessages;
+import com.seizia.chromite.ui.editors.sql.log.SQLLogPanel;
+import com.seizia.chromite.ui.editors.sql.plan.ExplainPlanViewer;
+import com.seizia.chromite.ui.editors.sql.registry.SQLPresentationDescriptor;
+import com.seizia.chromite.ui.editors.sql.registry.SQLPresentationPanelDescriptor;
+import com.seizia.chromite.ui.editors.sql.registry.SQLPresentationRegistry;
+import com.seizia.chromite.ui.editors.sql.scripts.ScriptsHandlerImpl;
+import com.seizia.chromite.ui.editors.sql.suggestion.SQLSuggestionTextPainter;
+import com.seizia.chromite.ui.editors.sql.syntax.SQLEditorCompletionContext;
+import com.seizia.chromite.ui.editors.sql.variables.AssignVariableAction;
+import com.seizia.chromite.ui.editors.sql.variables.SQLVariablesPanel;
+import com.seizia.chromite.ui.editors.text.DynamicFindReplaceTarget;
+import com.seizia.chromite.ui.editors.text.ScriptPositionColumn;
+import com.seizia.chromite.ui.internal.UIMessages;
+import com.seizia.chromite.ui.navigator.INavigatorModelView;
+import com.seizia.chromite.utils.*;
 import org.jkiss.utils.ArrayUtils;
 import org.jkiss.utils.CommonUtils;
 import org.jkiss.utils.IOUtils;
@@ -161,24 +161,24 @@ public class SQLEditor extends SQLEditorBase implements
     private static final String EMBEDDED_BINDING_PREFIX = "-- CONNECTION: ";
     private static final Pattern EMBEDDED_BINDING_PREFIX_PATTERN = Pattern.compile("--\\s*CONNECTION:\\s*(.+)", Pattern.CASE_INSENSITIVE);
 
-    static final Image IMG_DATA_GRID = DBeaverIcons.getImage(UIIcon.SQL_PAGE_DATA_GRID);
-    static final Image IMG_DATA_GRID_LOCKED = DBeaverIcons.getImage(UIIcon.SQL_PAGE_DATA_GRID_LOCKED);
-    private static final Image IMG_EXPLAIN_PLAN = DBeaverIcons.getImage(UIIcon.SQL_PAGE_EXPLAIN_PLAN);
-    private static final Image IMG_LOG = DBeaverIcons.getImage(UIIcon.SQL_PAGE_LOG);
-    private static final Image IMG_VARIABLES = DBeaverIcons.getImage(UIIcon.SQL_VARIABLE);
-    private static final Image IMG_OUTPUT = DBeaverIcons.getImage(UIIcon.SQL_PAGE_OUTPUT);
-    private static final Image IMG_OUTPUT_ALERT = DBeaverIcons.getImage(UIIcon.SQL_PAGE_OUTPUT_ALERT);
+    static final Image IMG_DATA_GRID = SwtIcons.getImage(UIIcon.SQL_PAGE_DATA_GRID);
+    static final Image IMG_DATA_GRID_LOCKED = SwtIcons.getImage(UIIcon.SQL_PAGE_DATA_GRID_LOCKED);
+    private static final Image IMG_EXPLAIN_PLAN = SwtIcons.getImage(UIIcon.SQL_PAGE_EXPLAIN_PLAN);
+    private static final Image IMG_LOG = SwtIcons.getImage(UIIcon.SQL_PAGE_LOG);
+    private static final Image IMG_VARIABLES = SwtIcons.getImage(UIIcon.SQL_VARIABLE);
+    private static final Image IMG_OUTPUT = SwtIcons.getImage(UIIcon.SQL_PAGE_OUTPUT);
+    private static final Image IMG_OUTPUT_ALERT = SwtIcons.getImage(UIIcon.SQL_PAGE_OUTPUT_ALERT);
 
-    private static final String SIDE_TOP_TOOLBAR_CONTRIBUTION_ID = "toolbar:org.jkiss.dbeaver.ui.editors.sql.toolbar.side.top";
-    private static final String SIDE_BOTTOM_TOOLBAR_CONTRIBUTION_ID = "toolbar:org.jkiss.dbeaver.ui.editors.sql.toolbar.side.bottom";
+    private static final String SIDE_TOP_TOOLBAR_CONTRIBUTION_ID = "toolbar:com.seizia.chromite.ui.editors.sql.toolbar.side.top";
+    private static final String SIDE_BOTTOM_TOOLBAR_CONTRIBUTION_ID = "toolbar:com.seizia.chromite.ui.editors.sql.toolbar.side.bottom";
 
-    private static final String MULTIPLE_RESULTS_PER_TAB_PROPERTY = "org.jkiss.dbeaver.ui.editors.sql.multipleResultsPerTab.isEnabled";
+    private static final String MULTIPLE_RESULTS_PER_TAB_PROPERTY = "com.seizia.chromite.ui.editors.sql.multipleResultsPerTab.isEnabled";
 
     private static final QualifiedName MULTIPLE_RESULTS_PER_TAB_PROP_NAME = new QualifiedName(
         SQLEditorActivator.PLUGIN_ID, MULTIPLE_RESULTS_PER_TAB_PROPERTY
     );
 
-    public static final String VIEW_PART_PROP_NAME = "org.jkiss.dbeaver.ui.editors.sql.SQLEditor";
+    public static final String VIEW_PART_PROP_NAME = "com.seizia.chromite.ui.editors.sql.SQLEditor";
 
     public static final String DEFAULT_TITLE_PATTERN = "<${" + SQLPreferenceConstants.VAR_CONNECTION_NAME + "}> ${"
         + SQLPreferenceConstants.VAR_FILE_NAME + "}";
@@ -1415,7 +1415,7 @@ public class SQLEditor extends SQLEditorBase implements
 
         switchPresentationSQLButton = new VerticalButton(presentationSwitchFolder, SWT.RIGHT | SWT.CHECK);
         switchPresentationSQLButton.setText(SQLEditorMessages.editors_sql_editor_presentation);
-        switchPresentationSQLButton.setImage(DBeaverIcons.getImage(DBIcon.TREE_SCRIPT));
+        switchPresentationSQLButton.setImage(SwtIcons.getImage(DBIcon.TREE_SCRIPT));
         switchPresentationSQLButton.setChecked(true);
         switchPresentationSQLButton.addSelectionListener(switchListener);
 
@@ -1461,7 +1461,7 @@ public class SQLEditor extends SQLEditorBase implements
 
                 if (CommonUtils.isNotEmpty(status)) {
                     field.setText(status);
-                    field.setImage(DBeaverIcons.getImage(DBIcon.SMALL_WARNING));
+                    field.setImage(SwtIcons.getImage(DBIcon.SMALL_WARNING));
                 } else {
                     field.setText(null);
                     field.setImage(null);
@@ -2007,7 +2007,7 @@ public class SQLEditor extends SQLEditorBase implements
         }
         sqlExtraPanelToolbar.add(ActionUtils.makeCommandContribution(
             getSite(),
-            "org.jkiss.dbeaver.ui.editors.sql.toggle.extraPanels",
+            "com.seizia.chromite.ui.editors.sql.toggle.extraPanels",
             CommandContributionItem.STYLE_CHECK,
             UIIcon.ARROW_DOWN
         ));
@@ -2403,7 +2403,7 @@ public class SQLEditor extends SQLEditorBase implements
             super(panel.getLabel(), Action.AS_CHECK_BOX);
             setId(PANEL_ITEM_PREFIX + panel.getId());
             if (panel.getIcon() != null) {
-                setImageDescriptor(DBeaverIcons.getImageDescriptor(panel.getIcon()));
+                setImageDescriptor(SwtIcons.getImageDescriptor(panel.getIcon()));
             }
             if (panel.getDescription() != null) {
                 setToolTipText(panel.getDescription());
@@ -2438,7 +2438,7 @@ public class SQLEditor extends SQLEditorBase implements
                 tabItem.setControl(panelControl);
                 tabItem.setText(panel.getLabel());
                 tabItem.setToolTipText(panel.getDescription());
-                tabItem.setImage(DBeaverIcons.getImage(panel.getIcon()));
+                tabItem.setImage(SwtIcons.getImage(panel.getIcon()));
                 tabItem.setData(panelInstance);
 
                 // De-select tool item on tab close
@@ -2603,7 +2603,7 @@ public class SQLEditor extends SQLEditorBase implements
 
         setPartName(getEditorName());
         if (isNonPersistentEditor() && isDetectTitleImageFromInput()) {
-            setTitleImage(DBeaverIcons.getImage(UIIcon.SQL_CONSOLE));
+            setTitleImage(SwtIcons.getImage(UIIcon.SQL_CONSOLE));
         }
         baseEditorImage = getTitleImage();
         editorImage = baseEditorImage;
@@ -3655,7 +3655,7 @@ public class SQLEditor extends SQLEditorBase implements
         }
         if (bottomLeft != null || bottomRight != null) {
             DBPImage image = new DBIconComposite(new DBIconBinary(null, baseEditorImage), false, null, null, bottomLeft, bottomRight);
-            editorImage = DBeaverIcons.getImage(image, false);
+            editorImage = SwtIcons.getImage(image, false);
             tmpImage = editorImage;
         } else {
             editorImage = baseEditorImage;
@@ -3726,7 +3726,7 @@ public class SQLEditor extends SQLEditorBase implements
                 if (pd == extraPresentationManager.activePresentationDescriptor) {
                     continue;
                 }
-                menu.insertAfter(GROUP_SQL_EXTRAS, new Action(pd.getDescription(), DBeaverIcons.getImageDescriptor(pd.getIcon())) {
+                menu.insertAfter(GROUP_SQL_EXTRAS, new Action(pd.getDescription(), SwtIcons.getImageDescriptor(pd.getIcon())) {
                     @Override
                     public void run() {
                         showExtraPresentation(pd);
@@ -4401,7 +4401,7 @@ public class SQLEditor extends SQLEditorBase implements
                 boolean isInExecute = owner.getTotalQueryRunning() > 0;
                 if (!isInExecute) {
                     UIUtils.asyncExec(() -> {
-                        owner.setTitleImage(DBeaverIcons.getImage(UIIcon.SQL_SCRIPT_EXECUTE));
+                        owner.setTitleImage(SwtIcons.getImage(UIIcon.SQL_SCRIPT_EXECUTE));
                         owner.updateDirtyFlag();
                         if (!scriptMode) {
                             owner.clearProblems(query);
@@ -5027,7 +5027,7 @@ public class SQLEditor extends SQLEditorBase implements
     private class OutputAutoShowToggleAction extends Action {
         OutputAutoShowToggleAction() {
             super(SQLEditorMessages.pref_page_sql_editor_label_auto_open_output_view, AS_CHECK_BOX);
-            setImageDescriptor(DBeaverIcons.getImageDescriptor(UIIcon.SHOW_ALL_DETAILS));
+            setImageDescriptor(SwtIcons.getImageDescriptor(UIIcon.SHOW_ALL_DETAILS));
             setChecked(getActivePreferenceStore().getBoolean(SQLPreferenceConstants.OUTPUT_PANEL_AUTO_SHOW));
         }
 
@@ -5189,7 +5189,7 @@ public class SQLEditor extends SQLEditorBase implements
             }
 
             if (!stopped) {
-                setTitleImage(DBeaverIcons.getImage(UIIcon.LOADING.get(tickCount % UIIcon.LOADING.size())));
+                setTitleImage(SwtIcons.getImage(UIIcon.LOADING.get(tickCount % UIIcon.LOADING.size())));
                 schedule(100);
             } else {
                 if (oldCursor != null) {

@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.internal;
+package com.seizia.chromite.ui.internal;
 
 import org.eclipse.osgi.util.NLS;
 
@@ -25,7 +25,7 @@ import org.eclipse.osgi.util.NLS;
  */
 public class UIConnectionMessages extends NLS {
 
-    static final String BUNDLE_NAME = "org.jkiss.dbeaver.ui.internal.UIConnectionMessages"; //$NON-NLS-1$
+    static final String BUNDLE_NAME = "com.seizia.chromite.ui.internal.UIConnectionMessages"; //$NON-NLS-1$
 
     public static String dialog_connection_edit_wizard_conn_conf_general_link;
     public static String dialog_connection_edit_connection_settings_variables_hint_label;

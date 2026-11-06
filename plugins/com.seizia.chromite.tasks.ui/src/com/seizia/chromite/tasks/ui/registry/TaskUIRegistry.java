@@ -14,19 +14,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.tasks.ui.registry;
+package com.seizia.chromite.tasks.ui.registry;
 
 import org.eclipse.core.runtime.IConfigurationElement;
 import org.eclipse.core.runtime.IExtensionRegistry;
 import org.eclipse.core.runtime.Platform;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.exec.DBCException;
-import org.jkiss.dbeaver.model.task.DBTTaskHandler;
-import org.jkiss.dbeaver.model.task.DBTTaskType;
-import org.jkiss.dbeaver.registry.task.TaskRegistry;
-import org.jkiss.dbeaver.registry.task.TaskTypeDescriptor;
-import org.jkiss.dbeaver.tasks.ui.DBTTaskConfigurator;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.exec.DBCException;
+import com.seizia.chromite.model.task.DBTTaskHandler;
+import com.seizia.chromite.model.task.DBTTaskType;
+import com.seizia.chromite.registry.task.TaskRegistry;
+import com.seizia.chromite.registry.task.TaskTypeDescriptor;
+import com.seizia.chromite.tasks.ui.DBTTaskConfigurator;
 import org.jkiss.utils.CommonUtils;
 
 import java.util.ArrayList;
@@ -35,7 +35,7 @@ import java.util.List;
 import java.util.Map;
 
 public class TaskUIRegistry {
-    public static final String TASK_EXTENSION_ID = "org.jkiss.dbeaver.task.ui"; //$NON-NLS-1$
+    public static final String TASK_EXTENSION_ID = "com.seizia.chromite.task.ui"; //$NON-NLS-1$
 
     private static final Log log = Log.getLog(TaskUIRegistry.class);
 

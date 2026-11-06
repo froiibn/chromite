@@ -3,34 +3,34 @@
 
 <plugin>
 
-    <extension point="org.jkiss.dbeaver.generic.meta">
-        <meta id="hive" class="org.jkiss.dbeaver.ext.hive.model.HiveMetaModel"
+    <extension point="com.seizia.chromite.generic.meta">
+        <meta id="hive" class="com.seizia.chromite.ext.hive.model.HiveMetaModel"
               driverClass="org.apache.hive.jdbc.HiveDriver" dialect="hive"/>
     </extension>
 
-    <extension point="org.jkiss.dbeaver.dataSourceProvider">
+    <extension point="com.seizia.chromite.dataSourceProvider">
         <dataSourceType
             id="hive"
             label="Apache Hive"
             description="Apache Hive data warehouse"
             dataSourceInformation="Relational database management system"
-            icon="platform:/plugin/org.jkiss.dbeaver.ext.generic/icons/hive_icon.png"
-            iconBig="platform:/plugin/org.jkiss.dbeaver.ext.generic/icons/hive_icon_big.png"/>
+            icon="platform:/plugin/com.seizia.chromite.ext.generic/icons/hive_icon.png"
+            iconBig="platform:/plugin/com.seizia.chromite.ext.generic/icons/hive_icon_big.png"/>
         <datasource
-                class="org.jkiss.dbeaver.ext.hive.model.HiveDataSourceProvider"
+                class="com.seizia.chromite.ext.hive.model.HiveDataSourceProvider"
                 description="Hive datasource"
                 id="hive"
                 dataSourceType="hive"
                 parent="generic"
                 label="Apache Hive"
-                icon="platform:/plugin/org.jkiss.dbeaver.ext.generic/icons/hive_icon.png"
+                icon="platform:/plugin/com.seizia.chromite.ext.generic/icons/hive_icon.png"
                 dialect="hive">
             <treeInjection path="generic/catalog/schema/table"
-                           changeFolderType="org.jkiss.dbeaver.ext.hive.model.HiveTable"/>
+                           changeFolderType="com.seizia.chromite.ext.hive.model.HiveTable"/>
             <treeInjection path="generic/catalog/schema/table/attribute"
-                           changeFolderType="org.jkiss.dbeaver.ext.hive.model.HiveTableColumn"/>
+                           changeFolderType="com.seizia.chromite.ext.hive.model.HiveTableColumn"/>
             <treeInjection path="generic/catalog/schema/table/index"
-                           changeFolderType="org.jkiss.dbeaver.ext.hive.model.HiveIndex"/>
+                           changeFolderType="com.seizia.chromite.ext.hive.model.HiveIndex"/>
             <drivers managable="true">
 
                 <driver
@@ -90,20 +90,20 @@
         </datasource>
     </extension>
 
-    <extension point="org.jkiss.dbeaver.sqlDialect">
-        <dialect id="hive" parent="generic" class="org.jkiss.dbeaver.ext.hive.model.HiveSQLDialect" label="Hive"
+    <extension point="com.seizia.chromite.sqlDialect">
+        <dialect id="hive" parent="generic" class="com.seizia.chromite.ext.hive.model.HiveSQLDialect" label="Hive"
                  description="Apache Hive SQL dialect."
-                 icon="platform:/plugin/org.jkiss.dbeaver.ext.generic/icons/hive_icon.png">
+                 icon="platform:/plugin/com.seizia.chromite.ext.generic/icons/hive_icon.png">
         </dialect>
     </extension>
 
-    <extension point="org.jkiss.dbeaver.objectManager">
-        <manager class="org.jkiss.dbeaver.ext.hive.model.edit.HiveTableManager"
-                 objectType="org.jkiss.dbeaver.ext.hive.model.HiveTable"/>
-        <manager class="org.jkiss.dbeaver.ext.hive.model.edit.HiveTableColumnManager"
-                 objectType="org.jkiss.dbeaver.ext.hive.model.HiveTableColumn"/>
-        <manager class="org.jkiss.dbeaver.ext.hive.model.edit.HiveIndexManager"
-                 objectType="org.jkiss.dbeaver.ext.hive.model.HiveIndex"/>
+    <extension point="com.seizia.chromite.objectManager">
+        <manager class="com.seizia.chromite.ext.hive.model.edit.HiveTableManager"
+                 objectType="com.seizia.chromite.ext.hive.model.HiveTable"/>
+        <manager class="com.seizia.chromite.ext.hive.model.edit.HiveTableColumnManager"
+                 objectType="com.seizia.chromite.ext.hive.model.HiveTableColumn"/>
+        <manager class="com.seizia.chromite.ext.hive.model.edit.HiveIndexManager"
+                 objectType="com.seizia.chromite.ext.hive.model.HiveIndex"/>
     </extension>
 
 </plugin>

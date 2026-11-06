@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.app.standalone.update;
+package com.seizia.chromite.ui.app.standalone.update;
 
 import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.Platform;
@@ -33,24 +33,24 @@ import org.eclipse.ui.*;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.core.CoreMessages;
-import org.jkiss.dbeaver.model.runtime.AbstractJob;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.registry.updater.VersionDescriptor;
-import org.jkiss.dbeaver.registry.updater.VersionDescriptor.PatchSeverity;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.runtime.WebUtils;
-import org.jkiss.dbeaver.ui.*;
-import org.jkiss.dbeaver.ui.app.standalone.DBeaverApplication;
-import org.jkiss.dbeaver.ui.app.standalone.internal.CoreApplicationActivator;
-import org.jkiss.dbeaver.ui.app.standalone.internal.CoreApplicationMessages;
-import org.jkiss.dbeaver.ui.app.standalone.update.install.MacDmgInstaller;
-import org.jkiss.dbeaver.ui.app.standalone.update.install.PlatformInstaller;
-import org.jkiss.dbeaver.ui.app.standalone.update.install.WinExeInstaller;
-import org.jkiss.dbeaver.ui.app.standalone.update.install.WinZipInstaller;
-import org.jkiss.dbeaver.utils.GeneralUtils;
-import org.jkiss.dbeaver.utils.RuntimeUtils;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.core.CoreMessages;
+import com.seizia.chromite.model.runtime.AbstractJob;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.registry.updater.VersionDescriptor;
+import com.seizia.chromite.registry.updater.VersionDescriptor.PatchSeverity;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.runtime.WebUtils;
+import com.seizia.chromite.ui.*;
+import com.seizia.chromite.ui.app.standalone.ChromiteApplication;
+import com.seizia.chromite.ui.app.standalone.internal.CoreApplicationActivator;
+import com.seizia.chromite.ui.app.standalone.internal.CoreApplicationMessages;
+import com.seizia.chromite.ui.app.standalone.update.install.MacDmgInstaller;
+import com.seizia.chromite.ui.app.standalone.update.install.PlatformInstaller;
+import com.seizia.chromite.ui.app.standalone.update.install.WinExeInstaller;
+import com.seizia.chromite.ui.app.standalone.update.install.WinZipInstaller;
+import com.seizia.chromite.utils.GeneralUtils;
+import com.seizia.chromite.utils.RuntimeUtils;
 import org.jkiss.utils.CommonUtils;
 import org.osgi.framework.Version;
 
@@ -69,7 +69,7 @@ public class VersionUpdateDialog extends Dialog {
     private static final String OS_LINUX = "linux";
     private static final String DISTRIBUTION_DEB = "deb";
     private static final String DISTRIBUTION_RPM = "rpm";
-    private static final String UPDATES_FOLDER = "dbeaver-updates";
+    private static final String UPDATES_FOLDER = "chromite-updates";
 
     private static final int INFO_ID = 1000;
     private static final int UPGRADE_ID = 1001;
@@ -87,7 +87,7 @@ public class VersionUpdateDialog extends Dialog {
     {
         super(parentShell);
         this.currentVersion = currentVersion;
-        this.currentPatch = DBeaverVersionChecker.getProductPatchNumber();
+        this.currentPatch = ChromiteVersionChecker.getProductPatchNumber();
         this.newVersion = newVersion;
         this.showConfig = showConfig;
 
@@ -213,7 +213,7 @@ public class VersionUpdateDialog extends Dialog {
             PatchSeverity severity = newVersion.getMaxSeverity(currentVersion, currentPatch);
             if (severity != PatchSeverity.NONE) {
                 // Native buttons may ignore custom colors; the icon and text also communicate severity.
-                upgradeButton.setImage(DBeaverIcons.getImage(VersionUpdatePresentation.getSeverityIcon(severity)));
+                upgradeButton.setImage(SwtIcons.getImage(VersionUpdatePresentation.getSeverityIcon(severity)));
                 upgradeButton.setToolTipText(NLS.bind(
                     CoreMessages.dialog_version_update_severity, VersionUpdatePresentation.getSeverityLabel(severity)));
                 upgradeButton.setForeground(switch (severity) {
@@ -248,7 +248,7 @@ public class VersionUpdateDialog extends Dialog {
     protected void buttonPressed(int buttonId)
     {
         if (dontShowAgainCheck != null && dontShowAgainCheck.getSelection()) {
-            CoreApplicationActivator.getDefault().getPreferenceStore().setValue(DBeaverVersionChecker.getSuppressionKey(newVersion), true);
+            CoreApplicationActivator.getDefault().getPreferenceStore().setValue(ChromiteVersionChecker.getSuppressionKey(newVersion), true);
         }
         if (buttonId == INFO_ID) {
             ShellUtils.launchProgram(newVersion.getBaseURL());
@@ -279,7 +279,7 @@ public class VersionUpdateDialog extends Dialog {
     }
 
     static boolean performUpdate(@NotNull VersionDescriptor version, @Nullable Consumer<IStatus> completion) {
-        var app = (DBeaverApplication) DBWorkbench.getPlatform().getApplication();
+        var app = (ChromiteApplication) DBWorkbench.getPlatform().getApplication();
         var installer = getPlatformInstaller();
         var downloadUrl = app.getLatestVersionDownloadUrl(version);
         if (installer != null && downloadUrl != null) {
@@ -403,7 +403,7 @@ public class VersionUpdateDialog extends Dialog {
 
     @Nullable
     private static PlatformInstaller getPlatformInstaller() {
-        var dist = System.getProperty(DBeaverApplication.PROP_DISTRIBUTION_TYPE);
+        var dist = System.getProperty(ChromiteApplication.PROP_DISTRIBUTION_TYPE);
         return switch (Platform.getOS()) {
             case Platform.OS_WIN32 -> switch (dist) {
                 case "zip" -> new WinZipInstaller();
@@ -424,7 +424,7 @@ public class VersionUpdateDialog extends Dialog {
         } else {
             os = OS_LINUX;
         }
-        String dist = System.getProperty(DBeaverApplication.PROP_DISTRIBUTION_TYPE);
+        String dist = System.getProperty(ChromiteApplication.PROP_DISTRIBUTION_TYPE);
         if (CommonUtils.isEmpty(dist) && RuntimeUtils.isLinux()) {
             // If distribution type was not set explicitly, then let's attempt a dumb guess.
             try {

@@ -15,20 +15,20 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.model.sql.registry;
+package com.seizia.chromite.model.sql.registry;
 
 import org.eclipse.core.runtime.IConfigurationElement;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.DBPImage;
-import org.jkiss.dbeaver.model.data.DBDInsertReplaceMethod;
-import org.jkiss.dbeaver.model.impl.AbstractContextDescriptor;
-import org.jkiss.dbeaver.model.sql.SQLDialect;
-import org.jkiss.dbeaver.model.sql.SQLDialectInsertReplaceMethod;
-import org.jkiss.dbeaver.model.sql.SQLDialectMetadata;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.DBPImage;
+import com.seizia.chromite.model.data.DBDInsertReplaceMethod;
+import com.seizia.chromite.model.impl.AbstractContextDescriptor;
+import com.seizia.chromite.model.sql.SQLDialect;
+import com.seizia.chromite.model.sql.SQLDialectInsertReplaceMethod;
+import com.seizia.chromite.model.sql.SQLDialectMetadata;
+import com.seizia.chromite.runtime.DBWorkbench;
 import org.jkiss.utils.ArrayUtils;
 import org.jkiss.utils.CommonUtils;
 
@@ -39,7 +39,7 @@ import java.util.*;
  */
 public class SQLDialectDescriptor extends AbstractContextDescriptor implements SQLDialectMetadata {
 
-    public static final String EXTENSION_ID = "org.jkiss.dbeaver.sqlDialect"; //$NON-NLS-1$
+    public static final String EXTENSION_ID = "com.seizia.chromite.sqlDialect"; //$NON-NLS-1$
 
     private static final Log log = Log.getLog(SQLDialectDescriptor.class);
 

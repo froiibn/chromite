@@ -14,22 +14,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.editors.sql.indent;
+package com.seizia.chromite.ui.editors.sql.indent;
 
 import org.eclipse.jface.text.*;
 import org.eclipse.jface.text.source.ISourceViewer;
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.DBPKeywordType;
-import org.jkiss.dbeaver.model.DBPMessageType;
-import org.jkiss.dbeaver.model.sql.SQLConstants;
-import org.jkiss.dbeaver.model.sql.SQLSyntaxManager;
-import org.jkiss.dbeaver.model.sql.SQLUtils;
-import org.jkiss.dbeaver.model.sql.parser.SQLParserPartitions;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.runtime.DBeaverNotifications;
-import org.jkiss.dbeaver.ui.editors.sql.SQLPreferenceConstants;
-import org.jkiss.dbeaver.utils.GeneralUtils;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.DBPKeywordType;
+import com.seizia.chromite.model.DBPMessageType;
+import com.seizia.chromite.model.sql.SQLConstants;
+import com.seizia.chromite.model.sql.SQLSyntaxManager;
+import com.seizia.chromite.model.sql.SQLUtils;
+import com.seizia.chromite.model.sql.parser.SQLParserPartitions;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.runtime.ChromiteNotifications;
+import com.seizia.chromite.ui.editors.sql.SQLPreferenceConstants;
+import com.seizia.chromite.utils.GeneralUtils;
 
 public class SQLAutoIndentStrategy extends DefaultIndentLineAutoEditStrategy {
 
@@ -85,8 +85,8 @@ public class SQLAutoIndentStrategy extends DefaultIndentLineAutoEditStrategy {
         if (command.text != null && command.text.length() > MINIMUM_SOUCE_CODE_LENGTH) {
             if (syntaxManager.getPreferenceStore().getBoolean(SQLPreferenceConstants.SQL_FORMAT_EXTRACT_FROM_SOURCE)) {
                 if (transformSourceCode(document, command)) {
-                    DBeaverNotifications.showNotification(
-                        DBeaverNotifications.NT_GENERIC,
+                    ChromiteNotifications.showNotification(
+                        ChromiteNotifications.NT_GENERIC,
                         "SQL transformation (click to undo)",
                         "SQL query was extracted from the source code",
                         DBPMessageType.INFORMATION,

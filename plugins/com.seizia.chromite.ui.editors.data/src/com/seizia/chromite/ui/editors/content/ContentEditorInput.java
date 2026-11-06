@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.editors.content;
+package com.seizia.chromite.ui.editors.content;
 
 import org.eclipse.core.resources.IStorage;
 import org.eclipse.core.runtime.CoreException;
@@ -27,33 +27,33 @@ import org.eclipse.ui.editors.text.IEncodingSupport;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.DBIcon;
-import org.jkiss.dbeaver.model.DBPContextProvider;
-import org.jkiss.dbeaver.model.DBValueFormatting;
-import org.jkiss.dbeaver.model.data.DBDContent;
-import org.jkiss.dbeaver.model.data.DBDContentCached;
-import org.jkiss.dbeaver.model.data.DBDContentStorage;
-import org.jkiss.dbeaver.model.data.storage.BytesContentStorage;
-import org.jkiss.dbeaver.model.data.storage.StringContentStorage;
-import org.jkiss.dbeaver.model.data.storage.TemporaryContentStorage;
-import org.jkiss.dbeaver.model.exec.DBCException;
-import org.jkiss.dbeaver.model.exec.DBCExecutionContext;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.model.runtime.DefaultProgressMonitor;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.runtime.LocalFileStorage;
-import org.jkiss.dbeaver.ui.DBeaverIcons;
-import org.jkiss.dbeaver.ui.IRefreshablePart;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.data.IAttributeController;
-import org.jkiss.dbeaver.ui.data.IValueController;
-import org.jkiss.dbeaver.ui.data.managers.ContentValueManager;
-import org.jkiss.dbeaver.ui.editors.IStatefulEditorInput;
-import org.jkiss.dbeaver.ui.editors.StringEditorInput;
-import org.jkiss.dbeaver.utils.ContentUtils;
-import org.jkiss.dbeaver.utils.GeneralUtils;
-import org.jkiss.dbeaver.utils.RuntimeUtils;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.DBIcon;
+import com.seizia.chromite.model.DBPContextProvider;
+import com.seizia.chromite.model.DBValueFormatting;
+import com.seizia.chromite.model.data.DBDContent;
+import com.seizia.chromite.model.data.DBDContentCached;
+import com.seizia.chromite.model.data.DBDContentStorage;
+import com.seizia.chromite.model.data.storage.BytesContentStorage;
+import com.seizia.chromite.model.data.storage.StringContentStorage;
+import com.seizia.chromite.model.data.storage.TemporaryContentStorage;
+import com.seizia.chromite.model.exec.DBCException;
+import com.seizia.chromite.model.exec.DBCExecutionContext;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.model.runtime.DefaultProgressMonitor;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.runtime.LocalFileStorage;
+import com.seizia.chromite.ui.SwtIcons;
+import com.seizia.chromite.ui.IRefreshablePart;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.data.IAttributeController;
+import com.seizia.chromite.ui.data.IValueController;
+import com.seizia.chromite.ui.data.managers.ContentValueManager;
+import com.seizia.chromite.ui.editors.IStatefulEditorInput;
+import com.seizia.chromite.ui.editors.StringEditorInput;
+import com.seizia.chromite.utils.ContentUtils;
+import com.seizia.chromite.utils.GeneralUtils;
+import com.seizia.chromite.utils.RuntimeUtils;
 import org.jkiss.utils.CommonUtils;
 import org.jkiss.utils.IOUtils;
 
@@ -138,7 +138,7 @@ public class ContentEditorInput implements IPathEditorInput, IStatefulEditorInpu
 
     @Override
     public ImageDescriptor getImageDescriptor() {
-        return DBeaverIcons.getImageDescriptor(DBIcon.TYPE_LOB);
+        return SwtIcons.getImageDescriptor(DBIcon.TYPE_LOB);
     }
 
     @Override

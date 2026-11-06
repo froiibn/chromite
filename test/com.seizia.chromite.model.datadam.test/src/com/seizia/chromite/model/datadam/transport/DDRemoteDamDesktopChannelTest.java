@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.datadam.transport;
+package com.seizia.chromite.model.datadam.transport;
 
 import com.dbeaver.datadam.dam.remote.api.DDRemoteDamProtocol;
 import com.dbeaver.datadam.dam.remote.api.model.DDRemoteDamHandshakeRequest;
@@ -29,9 +29,9 @@ import com.google.gson.JsonObject;
 import org.eclipse.core.runtime.jobs.Job;
 import org.jkiss.code.NotNull;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.model.runtime.AbstractJob;
-import org.jkiss.dbeaver.utils.GeneralUtils;
-import org.jkiss.junit.DBeaverUnitTest;
+import com.seizia.chromite.model.runtime.AbstractJob;
+import com.seizia.chromite.utils.GeneralUtils;
+import com.seizia.chromite.junit.ChromiteUnitTest;
 import org.jkiss.utils.BaseWebSocketClient;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
@@ -60,7 +60,7 @@ import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 @Timeout(20)
-class DDRemoteDamDesktopChannelTest extends DBeaverUnitTest {
+class DDRemoteDamDesktopChannelTest extends ChromiteUnitTest {
     private static final URI ENDPOINT = URI.create("wss://external.example/ws");
     private static final DDRemoteDamHandshakeRequest HELLO = new DDRemoteDamHandshakeRequest(
         "deployment", "app-instance", "workspace", "d29ya3NwYWNlOjAwMDEyMzQ1NjdhYg", "DBeaver", GeneralUtils.getProductVersion().toString());

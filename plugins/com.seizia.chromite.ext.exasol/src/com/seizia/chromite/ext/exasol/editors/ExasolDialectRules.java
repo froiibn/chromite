@@ -14,16 +14,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.exasol.editors;
+package com.seizia.chromite.ext.exasol.editors;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.ext.exasol.sql.ExasolSquareBracketsRule;
-import org.jkiss.dbeaver.model.DBPDataSourceContainer;
-import org.jkiss.dbeaver.model.sql.parser.rules.SQLFullLineRule;
-import org.jkiss.dbeaver.model.sql.parser.tokens.SQLControlToken;
-import org.jkiss.dbeaver.model.text.parser.TPRule;
-import org.jkiss.dbeaver.model.text.parser.TPRuleProvider;
+import com.seizia.chromite.ext.exasol.sql.ExasolSquareBracketsRule;
+import com.seizia.chromite.model.DBPDataSourceContainer;
+import com.seizia.chromite.model.sql.parser.rules.SQLFullLineRule;
+import com.seizia.chromite.model.sql.parser.tokens.SQLControlToken;
+import com.seizia.chromite.model.text.parser.TPRule;
+import com.seizia.chromite.model.text.parser.TPRuleProvider;
 
 /**
 * Exasol dialect rules

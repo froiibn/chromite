@@ -14,16 +14,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.editors.sql.plan.simple;
+package com.seizia.chromite.ui.editors.sql.plan.simple;
 
 import org.eclipse.jface.action.IContributionManager;
 import org.eclipse.jface.viewers.Viewer;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.ui.IWorkbenchPart;
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.model.exec.plan.DBCPlan;
-import org.jkiss.dbeaver.model.sql.SQLQuery;
-import org.jkiss.dbeaver.ui.editors.sql.SQLPlanSaveProvider;
+import com.seizia.chromite.model.exec.plan.DBCPlan;
+import com.seizia.chromite.model.sql.SQLQuery;
+import com.seizia.chromite.ui.editors.sql.SQLPlanSaveProvider;
 
 /**
  * SQLPlanViewProviderSimple

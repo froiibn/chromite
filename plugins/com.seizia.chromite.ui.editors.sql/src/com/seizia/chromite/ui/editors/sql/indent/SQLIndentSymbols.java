@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.ui.editors.sql.indent;
+package com.seizia.chromite.ui.editors.sql.indent;
 
 public interface SQLIndentSymbols {
     

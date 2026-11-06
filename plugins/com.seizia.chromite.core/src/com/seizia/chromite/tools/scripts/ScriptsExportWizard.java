@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.tools.scripts;
+package com.seizia.chromite.tools.scripts;
 
 import org.eclipse.core.resources.IContainer;
 import org.eclipse.core.resources.IFile;
@@ -25,14 +25,14 @@ import org.eclipse.jface.viewers.IStructuredSelection;
 import org.eclipse.jface.wizard.Wizard;
 import org.eclipse.ui.IExportWizard;
 import org.eclipse.ui.IWorkbench;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.core.CoreMessages;
-import org.jkiss.dbeaver.model.DBIcon;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.model.runtime.DBRRunnableWithProgress;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.ui.DBeaverIcons;
-import org.jkiss.dbeaver.ui.UIUtils;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.core.CoreMessages;
+import com.seizia.chromite.model.DBIcon;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.model.runtime.DBRRunnableWithProgress;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.ui.SwtIcons;
+import com.seizia.chromite.ui.UIUtils;
 import org.jkiss.utils.IOUtils;
 
 import java.io.File;
@@ -56,7 +56,7 @@ public class ScriptsExportWizard extends Wizard implements IExportWizard {
 	@Override
     public void init(IWorkbench workbench, IStructuredSelection selection) {
         setWindowTitle(CoreMessages.dialog_scripts_export_wizard_window_title); //NON-NLS-1
-        setDefaultPageImageDescriptor(DBeaverIcons.getImageDescriptor(DBIcon.TREE_SCRIPT));
+        setDefaultPageImageDescriptor(SwtIcons.getImageDescriptor(DBIcon.TREE_SCRIPT));
         setNeedsProgressMonitor(true);
         mainPage = new ScriptsExportWizardPage(CoreMessages.dialog_scripts_export_wizard_page_name); //NON-NLS-1
     }

@@ -14,29 +14,29 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.dashboard.view;
+package com.seizia.chromite.ui.dashboard.view;
 
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.ui.*;
 import org.eclipse.ui.part.ViewPart;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.*;
-import org.jkiss.dbeaver.model.app.DBPProject;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.ui.UIExecutionQueue;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.controls.ProgressPainter;
-import org.jkiss.dbeaver.ui.dashboard.control.DashboardListViewer;
-import org.jkiss.dbeaver.ui.dashboard.internal.UIDashboardMessages;
-import org.jkiss.dbeaver.ui.dashboard.model.*;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.*;
+import com.seizia.chromite.model.app.DBPProject;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.ui.UIExecutionQueue;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.controls.ProgressPainter;
+import com.seizia.chromite.ui.dashboard.control.DashboardListViewer;
+import com.seizia.chromite.ui.dashboard.internal.UIDashboardMessages;
+import com.seizia.chromite.ui.dashboard.model.*;
 import org.jkiss.utils.CommonUtils;
 
 import java.util.List;
 
 public class DataSourceDashboardView extends ViewPart implements DashboardViewer, DBPDataSourceContainerProvider, DBPEventListener {
-    public static final String VIEW_ID = "org.jkiss.dbeaver.ui.dashboardView";
+    public static final String VIEW_ID = "com.seizia.chromite.ui.dashboardView";
 
     static protected final Log log = Log.getLog(DataSourceDashboardView.class);
 

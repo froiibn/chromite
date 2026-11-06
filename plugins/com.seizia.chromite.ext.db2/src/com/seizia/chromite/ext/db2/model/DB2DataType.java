@@ -14,31 +14,31 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.db2.model;
+package com.seizia.chromite.ext.db2.model;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.ext.db2.DB2Constants;
-import org.jkiss.dbeaver.ext.db2.DB2Utils;
-import org.jkiss.dbeaver.ext.db2.model.dict.DB2DataTypeMetaType;
-import org.jkiss.dbeaver.ext.db2.model.dict.DB2OwnerType;
-import org.jkiss.dbeaver.ext.db2.model.module.DB2Module;
-import org.jkiss.dbeaver.model.DBPDataKind;
-import org.jkiss.dbeaver.model.DBPEvaluationContext;
-import org.jkiss.dbeaver.model.DBPQualifiedObject;
-import org.jkiss.dbeaver.model.DBUtils;
-import org.jkiss.dbeaver.model.exec.DBCLogicalOperator;
-import org.jkiss.dbeaver.model.impl.DBObjectNameCaseTransformer;
-import org.jkiss.dbeaver.model.impl.jdbc.JDBCUtils;
-import org.jkiss.dbeaver.model.meta.Property;
-import org.jkiss.dbeaver.model.meta.PropertyLength;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.model.runtime.VoidProgressMonitor;
-import org.jkiss.dbeaver.model.struct.DBSDataType;
-import org.jkiss.dbeaver.model.struct.DBSObject;
-import org.jkiss.dbeaver.model.struct.DBSTypedObject;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.ext.db2.DB2Constants;
+import com.seizia.chromite.ext.db2.DB2Utils;
+import com.seizia.chromite.ext.db2.model.dict.DB2DataTypeMetaType;
+import com.seizia.chromite.ext.db2.model.dict.DB2OwnerType;
+import com.seizia.chromite.ext.db2.model.module.DB2Module;
+import com.seizia.chromite.model.DBPDataKind;
+import com.seizia.chromite.model.DBPEvaluationContext;
+import com.seizia.chromite.model.DBPQualifiedObject;
+import com.seizia.chromite.model.DBUtils;
+import com.seizia.chromite.model.exec.DBCLogicalOperator;
+import com.seizia.chromite.model.impl.DBObjectNameCaseTransformer;
+import com.seizia.chromite.model.impl.jdbc.JDBCUtils;
+import com.seizia.chromite.model.meta.Property;
+import com.seizia.chromite.model.meta.PropertyLength;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.model.runtime.VoidProgressMonitor;
+import com.seizia.chromite.model.struct.DBSDataType;
+import com.seizia.chromite.model.struct.DBSObject;
+import com.seizia.chromite.model.struct.DBSTypedObject;
 import org.jkiss.utils.CommonUtils;
 
 import java.sql.ResultSet;
@@ -201,7 +201,7 @@ public class DB2DataType extends DB2Object<DBSObject> implements DBSDataType, DB
         // if the getParentObject() return the "real" parent ie DB2Schema or DB2DataSource,
         // when someone, as a first action, opens the table/column tab and then clicks on the datatype link,
         // nothing is displayed and the following message appears in the logs :
-        // !MESSAGE Can't find tree node for object <database name> (org.jkiss.dbeaver.ext.db2.model.DB2DataSource)
+        // !MESSAGE Can't find tree node for object <database name> (com.seizia.chromite.ext.db2.model.DB2DataSource)
         // With this code (copied from OracleDataType), it works.
         if ((parent instanceof DB2Schema) || (parent instanceof DB2Module)) {
             parentNode = parent;

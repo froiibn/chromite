@@ -14,19 +14,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.datadam.project.handler;
+package com.seizia.chromite.ui.datadam.project.handler;
 
 import org.eclipse.core.commands.ExecutionEvent;
 import org.jkiss.code.NotNull;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.model.app.DBPProject;
-import org.jkiss.dbeaver.model.datadam.sync.project.DDProjectManager.SyncResult;
-import org.jkiss.dbeaver.model.datadam.sync.project.ProjectStatus;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.datadam.internal.DDTrackingUIMessages;
-import org.jkiss.dbeaver.ui.datadam.project.DDProjectConflictResolver;
-import org.jkiss.dbeaver.ui.datadam.project.DDProjectConflictResolver.Choice;
-import org.jkiss.dbeaver.ui.datadam.project.job.DDProjectSynchronizationJob;
+import com.seizia.chromite.model.app.DBPProject;
+import com.seizia.chromite.model.datadam.sync.project.DDProjectManager.SyncResult;
+import com.seizia.chromite.model.datadam.sync.project.ProjectStatus;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.datadam.internal.DDTrackingUIMessages;
+import com.seizia.chromite.ui.datadam.project.DDProjectConflictResolver;
+import com.seizia.chromite.ui.datadam.project.DDProjectConflictResolver.Choice;
+import com.seizia.chromite.ui.datadam.project.job.DDProjectSynchronizationJob;
 
 public class DDProjectUpdateHandler extends DDProjectHandler<DDProjectSynchronizationJob> {
     private final DDProjectConflictResolver conflictResolver = new DDProjectConflictResolver(uiManager);

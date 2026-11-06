@@ -14,13 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.tools.sql.task;
+package com.seizia.chromite.tools.sql.task;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.model.data.json.JSONUtils;
-import org.jkiss.dbeaver.model.task.DBTTaskImportTransformer;
-import org.jkiss.junit.DBeaverUnitTest;
+import com.seizia.chromite.model.data.json.JSONUtils;
+import com.seizia.chromite.model.task.DBTTaskImportTransformer;
+import com.seizia.chromite.junit.ChromiteUnitTest;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -29,7 +29,7 @@ import org.junit.jupiter.params.provider.ValueSource;
 import java.io.StringReader;
 import java.util.Map;
 
-public class SQLScriptExecuteHandlerTest extends DBeaverUnitTest {
+public class SQLScriptExecuteHandlerTest extends ChromiteUnitTest {
     private final DBTTaskImportTransformer handler = new SQLScriptExecuteHandler();
 
     @Test

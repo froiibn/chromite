@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.net.ssh;
+package com.seizia.chromite.model.net.ssh;
 
 import com.jcraft.jsch.Identity;
 import net.schmizz.sshj.common.Buffer;
@@ -25,10 +25,10 @@ import net.schmizz.sshj.userauth.UserAuthException;
 import net.schmizz.sshj.userauth.method.AbstractAuthMethod;
 import org.jkiss.code.NotNull;
 
-public class DBeaverAuthAgent extends AbstractAuthMethod {
+public class ChromiteAuthAgent extends AbstractAuthMethod {
     private final Identity identity;
 
-    public DBeaverAuthAgent(@NotNull Identity identity) throws Buffer.BufferException {
+    public ChromiteAuthAgent(@NotNull Identity identity) throws Buffer.BufferException {
         super("publickey");
         this.identity = identity;
     }

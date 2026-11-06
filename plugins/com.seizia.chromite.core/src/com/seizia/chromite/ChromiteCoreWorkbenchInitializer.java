@@ -14,19 +14,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver;
+package com.seizia.chromite;
 
 import org.eclipse.ui.application.IWorkbenchWindowConfigurer;
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.model.rm.RMConstants;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.ui.IWorkbenchWindowInitializer;
-import org.jkiss.dbeaver.ui.preferences.PrefPageConnectionTypes;
-import org.jkiss.dbeaver.ui.preferences.PrefPageConnectionsGeneral;
-import org.jkiss.dbeaver.ui.preferences.PrefPageTransactions;
-import org.jkiss.dbeaver.ui.workbench.WorkbenchUtils;
+import com.seizia.chromite.model.rm.RMConstants;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.ui.IWorkbenchWindowInitializer;
+import com.seizia.chromite.ui.preferences.PrefPageConnectionTypes;
+import com.seizia.chromite.ui.preferences.PrefPageConnectionsGeneral;
+import com.seizia.chromite.ui.preferences.PrefPageTransactions;
+import com.seizia.chromite.ui.workbench.WorkbenchUtils;
 
-public class DBeaverCoreWorkbenchInitializer implements IWorkbenchWindowInitializer {
+public class ChromiteCoreWorkbenchInitializer implements IWorkbenchWindowInitializer {
     @Override
     public void initializeWorkbenchWindow(@NotNull IWorkbenchWindowConfigurer configurer) {
         if (!DBWorkbench.getPlatform().getWorkspace().hasRealmPermission(RMConstants.PERMISSION_CONFIGURATION_MANAGER)) {

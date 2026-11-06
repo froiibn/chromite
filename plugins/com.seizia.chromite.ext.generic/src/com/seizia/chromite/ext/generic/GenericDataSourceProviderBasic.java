@@ -14,14 +14,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.generic;
+package com.seizia.chromite.ext.generic;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.ext.generic.model.GenericDataSource;
-import org.jkiss.dbeaver.ext.generic.model.meta.GenericMetaModel;
-import org.jkiss.dbeaver.model.DBPDataSourceContainer;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.ext.generic.model.GenericDataSource;
+import com.seizia.chromite.ext.generic.model.meta.GenericMetaModel;
+import com.seizia.chromite.model.DBPDataSourceContainer;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
 
 public class GenericDataSourceProviderBasic extends GenericDataSourceProvider<GenericDataSource> {
 

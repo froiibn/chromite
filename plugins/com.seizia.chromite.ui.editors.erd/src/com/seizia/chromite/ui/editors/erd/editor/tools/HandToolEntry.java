@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.editors.erd.editor.tools;
+package com.seizia.chromite.ui.editors.erd.editor.tools;
 
 import org.eclipse.draw2d.Cursors;
 import org.eclipse.draw2d.FigureCanvas;
@@ -26,14 +26,14 @@ import org.eclipse.gef.ui.parts.ScrollingGraphicalViewer;
 import org.eclipse.swt.widgets.Control;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.ui.DBeaverIcons;
-import org.jkiss.dbeaver.ui.editors.erd.ERDIcon;
+import com.seizia.chromite.ui.SwtIcons;
+import com.seizia.chromite.ui.editors.erd.ERDIcon;
 
 public class HandToolEntry extends ToolEntry {
     public static final String ID = "hand-tool";
 
     public HandToolEntry() {
-        super("Pan Diagram", "Pan diagram view", DBeaverIcons.getImageDescriptor(ERDIcon.MOVE), DBeaverIcons.getImageDescriptor(ERDIcon.MOVE), ToolHand.class);
+        super("Pan Diagram", "Pan diagram view", SwtIcons.getImageDescriptor(ERDIcon.MOVE), SwtIcons.getImageDescriptor(ERDIcon.MOVE), ToolHand.class);
         setUserModificationPermission(PERMISSION_NO_MODIFICATION);
         setId(ID);
     }

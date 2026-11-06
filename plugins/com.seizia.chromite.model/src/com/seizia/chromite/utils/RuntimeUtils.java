@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.utils;
+package com.seizia.chromite.utils;
 
 import org.eclipse.core.internal.runtime.Activator;
 import org.eclipse.core.internal.runtime.CommonMessages;
@@ -27,11 +27,11 @@ import org.eclipse.osgi.service.localization.BundleLocalization;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.connection.DBPNativeClientLocation;
-import org.jkiss.dbeaver.model.meta.ComponentReference;
-import org.jkiss.dbeaver.model.runtime.*;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.connection.DBPNativeClientLocation;
+import com.seizia.chromite.model.meta.ComponentReference;
+import com.seizia.chromite.model.runtime.*;
+import com.seizia.chromite.runtime.DBWorkbench;
 import org.jkiss.utils.ArrayUtils;
 import org.jkiss.utils.BeanUtils;
 import org.jkiss.utils.CommonUtils;
@@ -57,8 +57,8 @@ import java.util.*;
  */
 public final class RuntimeUtils {
 
-    public static final String ENV_WORKSPACE_PATH = "DBEAVER_WORKSPACE";
-    public static final String ENV_DATA_PATH = "DBEAVER_DATA";
+    public static final String ENV_WORKSPACE_PATH = "CHROMITE_WORKSPACE";
+    public static final String ENV_DATA_PATH = "CHROMITE_DATA";
 
     private static final Log log = Log.getLog(RuntimeUtils.class);
 
@@ -611,9 +611,9 @@ public final class RuntimeUtils {
 
         // Detect default workspace location
         // Since 6.1.3 it is different for different OSes
-        // Windows: %AppData%/DBeaverData
-        // MacOS: ~/Library/DBeaverData
-        // Linux: $XDG_DATA_HOME/DBeaverData
+        // Windows: %AppData%/ChromiteData
+        // MacOS: ~/Library/ChromiteData
+        // Linux: $XDG_DATA_HOME/ChromiteData
         String workingDirectory;
         if (isWindows()) {
             String appData = System.getenv("AppData");

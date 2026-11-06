@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.editors.sql.handlers;
+package com.seizia.chromite.ui.editors.sql.handlers;
 
 import org.eclipse.core.commands.AbstractHandler;
 import org.eclipse.core.commands.ExecutionEvent;
@@ -25,10 +25,10 @@ import org.eclipse.jface.text.source.ISourceViewer;
 import org.eclipse.swt.custom.StyledText;
 import org.eclipse.swt.graphics.Point;
 import org.eclipse.ui.handlers.HandlerUtil;
-import org.jkiss.dbeaver.model.sql.SQLConstants;
-import org.jkiss.dbeaver.ui.editors.sql.SQLEditorBase;
-import org.jkiss.dbeaver.ui.editors.sql.SQLEditorCommands;
-import org.jkiss.dbeaver.utils.RuntimeUtils;
+import com.seizia.chromite.model.sql.SQLConstants;
+import com.seizia.chromite.ui.editors.sql.SQLEditorBase;
+import com.seizia.chromite.ui.editors.sql.SQLEditorCommands;
+import com.seizia.chromite.utils.RuntimeUtils;
 
 public class SQLEditorHandlerGoToMatchingBracket extends AbstractHandler {
 

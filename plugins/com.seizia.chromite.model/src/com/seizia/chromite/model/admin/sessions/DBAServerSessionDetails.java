@@ -15,13 +15,13 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.model.admin.sessions;
+package com.seizia.chromite.model.admin.sessions;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.model.DBPImage;
-import org.jkiss.dbeaver.model.DBPObject;
-import org.jkiss.dbeaver.model.exec.DBCSession;
+import com.seizia.chromite.model.DBPImage;
+import com.seizia.chromite.model.DBPObject;
+import com.seizia.chromite.model.exec.DBCSession;
 
 import java.util.List;
 

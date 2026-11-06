@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.mysql.ui.editors;
+package com.seizia.chromite.ext.mysql.ui.editors;
 
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.layout.GridData;
@@ -25,24 +25,24 @@ import org.eclipse.swt.widgets.Text;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.ext.mysql.model.MySQLGrant;
-import org.jkiss.dbeaver.ext.mysql.model.MySQLPrivilege;
-import org.jkiss.dbeaver.ext.mysql.model.MySQLUser;
-import org.jkiss.dbeaver.ext.mysql.ui.config.MySQLCommandGrantPrivilege;
-import org.jkiss.dbeaver.ext.mysql.ui.config.MySQLUserManager;
-import org.jkiss.dbeaver.ext.mysql.ui.config.UserPropertyHandler;
-import org.jkiss.dbeaver.ext.mysql.ui.controls.PrivilegeTableControl;
-import org.jkiss.dbeaver.ext.mysql.ui.internal.MySQLUIMessages;
-import org.jkiss.dbeaver.model.edit.DBECommand;
-import org.jkiss.dbeaver.model.edit.DBECommandContext;
-import org.jkiss.dbeaver.model.edit.DBECommandReflector;
-import org.jkiss.dbeaver.model.exec.DBCExecutionContext;
-import org.jkiss.dbeaver.model.impl.edit.DBECommandAdapter;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.model.runtime.load.DatabaseLoadService;
-import org.jkiss.dbeaver.ui.LoadingJob;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.editors.ControlPropertyCommandListener;
+import com.seizia.chromite.ext.mysql.model.MySQLGrant;
+import com.seizia.chromite.ext.mysql.model.MySQLPrivilege;
+import com.seizia.chromite.ext.mysql.model.MySQLUser;
+import com.seizia.chromite.ext.mysql.ui.config.MySQLCommandGrantPrivilege;
+import com.seizia.chromite.ext.mysql.ui.config.MySQLUserManager;
+import com.seizia.chromite.ext.mysql.ui.config.UserPropertyHandler;
+import com.seizia.chromite.ext.mysql.ui.controls.PrivilegeTableControl;
+import com.seizia.chromite.ext.mysql.ui.internal.MySQLUIMessages;
+import com.seizia.chromite.model.edit.DBECommand;
+import com.seizia.chromite.model.edit.DBECommandContext;
+import com.seizia.chromite.model.edit.DBECommandReflector;
+import com.seizia.chromite.model.exec.DBCExecutionContext;
+import com.seizia.chromite.model.impl.edit.DBECommandAdapter;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.model.runtime.load.DatabaseLoadService;
+import com.seizia.chromite.ui.LoadingJob;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.editors.ControlPropertyCommandListener;
 
 import java.lang.reflect.InvocationTargetException;
 import java.util.List;

@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.dashboard.view;
+package com.seizia.chromite.ui.dashboard.view;
 
 import org.eclipse.jface.dialogs.IDialogConstants;
 import org.eclipse.jface.dialogs.IDialogSettings;
@@ -24,20 +24,20 @@ import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Control;
 import org.eclipse.swt.widgets.Shell;
-import org.jkiss.dbeaver.model.DBPImage;
-import org.jkiss.dbeaver.model.DBPNamedObject;
-import org.jkiss.dbeaver.model.DBUtils;
-import org.jkiss.dbeaver.model.connection.DBPDataSourceProviderDescriptor;
-import org.jkiss.dbeaver.model.connection.DBPDriver;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.ui.DBeaverIcons;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.controls.NamedObjectPatternFilter;
-import org.jkiss.dbeaver.ui.controls.TreeContentProvider;
-import org.jkiss.dbeaver.ui.dashboard.internal.UIDashboardActivator;
-import org.jkiss.dbeaver.ui.dashboard.internal.UIDashboardMessages;
-import org.jkiss.dbeaver.ui.dialogs.BaseDialog;
-import org.jkiss.dbeaver.ui.dialogs.DialogUtils;
+import com.seizia.chromite.model.DBPImage;
+import com.seizia.chromite.model.DBPNamedObject;
+import com.seizia.chromite.model.DBUtils;
+import com.seizia.chromite.model.connection.DBPDataSourceProviderDescriptor;
+import com.seizia.chromite.model.connection.DBPDriver;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.ui.SwtIcons;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.controls.NamedObjectPatternFilter;
+import com.seizia.chromite.ui.controls.TreeContentProvider;
+import com.seizia.chromite.ui.dashboard.internal.UIDashboardActivator;
+import com.seizia.chromite.ui.dashboard.internal.UIDashboardMessages;
+import com.seizia.chromite.ui.dialogs.BaseDialog;
+import com.seizia.chromite.ui.dialogs.DialogUtils;
 import org.jkiss.utils.CommonUtils;
 
 import java.util.List;
@@ -115,7 +115,7 @@ public class DashboardDatabaseSelectDialog extends BaseDialog {
                             icon = ((DBPDataSourceProviderDescriptor) element).getIcon();
                         }
                         if (icon != null) {
-                            cell.setImage(DBeaverIcons.getImage(icon));
+                            cell.setImage(SwtIcons.getImage(icon));
                         }
                     } else {
                         if (element instanceof DBPDriver) {

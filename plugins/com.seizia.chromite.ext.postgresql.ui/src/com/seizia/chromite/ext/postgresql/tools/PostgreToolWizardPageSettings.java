@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.postgresql.tools;
+package com.seizia.chromite.ext.postgresql.tools;
 
 import org.eclipse.jface.dialogs.IDialogConstants;
 import org.eclipse.osgi.util.NLS;
@@ -24,13 +24,13 @@ import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.widgets.Button;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Label;
-import org.jkiss.dbeaver.ext.postgresql.PostgreMessages;
-import org.jkiss.dbeaver.model.DBConstants;
-import org.jkiss.dbeaver.model.connection.DBPConnectionConfiguration;
-import org.jkiss.dbeaver.tasks.ui.nativetool.AbstractNativeToolWizard;
-import org.jkiss.dbeaver.tasks.ui.nativetool.AbstractNativeToolWizardPage;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.dialogs.BaseAuthDialog;
+import com.seizia.chromite.ext.postgresql.PostgreMessages;
+import com.seizia.chromite.model.DBConstants;
+import com.seizia.chromite.model.connection.DBPConnectionConfiguration;
+import com.seizia.chromite.tasks.ui.nativetool.AbstractNativeToolWizard;
+import com.seizia.chromite.tasks.ui.nativetool.AbstractNativeToolWizardPage;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.dialogs.BaseAuthDialog;
 import org.jkiss.utils.CommonUtils;
 
 

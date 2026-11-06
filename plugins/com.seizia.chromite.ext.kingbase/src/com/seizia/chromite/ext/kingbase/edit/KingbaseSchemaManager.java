@@ -15,16 +15,16 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.ext.kingbase.edit;
+package com.seizia.chromite.ext.kingbase.edit;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.ext.kingbase.model.KingbaseDatabase;
-import org.jkiss.dbeaver.ext.kingbase.model.KingbaseSchema;
-import org.jkiss.dbeaver.ext.postgresql.edit.PostgreSchemaManager;
-import org.jkiss.dbeaver.ext.postgresql.model.PostgreRole;
-import org.jkiss.dbeaver.model.edit.DBECommandContext;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.ext.kingbase.model.KingbaseDatabase;
+import com.seizia.chromite.ext.kingbase.model.KingbaseSchema;
+import com.seizia.chromite.ext.postgresql.edit.PostgreSchemaManager;
+import com.seizia.chromite.ext.postgresql.model.PostgreRole;
+import com.seizia.chromite.model.edit.DBECommandContext;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
 
 import java.util.Map;
 

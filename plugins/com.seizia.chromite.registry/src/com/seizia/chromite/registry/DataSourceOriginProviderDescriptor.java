@@ -15,12 +15,12 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.registry;
+package com.seizia.chromite.registry;
 
 import org.eclipse.core.runtime.IConfigurationElement;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.DBPDataSourceOriginProvider;
-import org.jkiss.dbeaver.model.impl.AbstractDescriptor;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.DBPDataSourceOriginProvider;
+import com.seizia.chromite.model.impl.AbstractDescriptor;
 
 /**
  * DataSourceOriginProviderDescriptor

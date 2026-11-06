@@ -14,12 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.tools.transfer.ui.pages.database;
+package com.seizia.chromite.tools.transfer.ui.pages.database;
 
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.tools.transfer.database.DatabaseMappingContainer;
-import org.jkiss.dbeaver.tools.transfer.database.DatabaseTransferConsumer;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.tools.transfer.database.DatabaseMappingContainer;
+import com.seizia.chromite.tools.transfer.database.DatabaseTransferConsumer;
 
 import java.util.List;
 

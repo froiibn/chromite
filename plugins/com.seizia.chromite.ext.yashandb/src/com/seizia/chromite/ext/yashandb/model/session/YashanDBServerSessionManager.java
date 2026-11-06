@@ -14,23 +14,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.yashandb.model.session;
+package com.seizia.chromite.ext.yashandb.model.session;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.DBDatabaseException;
+import com.seizia.chromite.DBDatabaseException;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.ext.oracle.model.OracleDataSource;
-import org.jkiss.dbeaver.ext.oracle.model.session.OracleServerSessionManager;
-import org.jkiss.dbeaver.model.DBPDataSource;
-import org.jkiss.dbeaver.model.admin.sessions.DBAServerSessionDetails;
-import org.jkiss.dbeaver.model.admin.sessions.DBAServerSessionDetailsProvider;
-import org.jkiss.dbeaver.model.admin.sessions.DBAServerSessionManager;
-import org.jkiss.dbeaver.model.admin.sessions.DBAServerSessionManagerSQL;
-import org.jkiss.dbeaver.model.exec.DBCSession;
-import org.jkiss.dbeaver.model.exec.jdbc.JDBCPreparedStatement;
-import org.jkiss.dbeaver.model.exec.jdbc.JDBCResultSet;
-import org.jkiss.dbeaver.model.exec.jdbc.JDBCSession;
+import com.seizia.chromite.ext.oracle.model.OracleDataSource;
+import com.seizia.chromite.ext.oracle.model.session.OracleServerSessionManager;
+import com.seizia.chromite.model.DBPDataSource;
+import com.seizia.chromite.model.admin.sessions.DBAServerSessionDetails;
+import com.seizia.chromite.model.admin.sessions.DBAServerSessionDetailsProvider;
+import com.seizia.chromite.model.admin.sessions.DBAServerSessionManager;
+import com.seizia.chromite.model.admin.sessions.DBAServerSessionManagerSQL;
+import com.seizia.chromite.model.exec.DBCSession;
+import com.seizia.chromite.model.exec.jdbc.JDBCPreparedStatement;
+import com.seizia.chromite.model.exec.jdbc.JDBCResultSet;
+import com.seizia.chromite.model.exec.jdbc.JDBCSession;
 import org.jkiss.utils.CommonUtils;
 
 import java.sql.SQLException;

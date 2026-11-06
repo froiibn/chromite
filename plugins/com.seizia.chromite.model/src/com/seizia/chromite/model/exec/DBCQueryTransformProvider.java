@@ -15,14 +15,14 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.model.exec;
+package com.seizia.chromite.model.exec;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 
 /**
  * Query transform provider.
- * This interface could be implemented by {@link org.jkiss.dbeaver.model.DBPDataSource} implementor.
+ * This interface could be implemented by {@link com.seizia.chromite.model.DBPDataSource} implementor.
  */
 public interface DBCQueryTransformProvider {
 

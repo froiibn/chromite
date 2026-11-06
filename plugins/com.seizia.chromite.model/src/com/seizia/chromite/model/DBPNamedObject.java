@@ -15,10 +15,10 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.model;
+package com.seizia.chromite.model;
 
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.model.meta.Property;
+import com.seizia.chromite.model.meta.Property;
 
 /**
  * Abstract model object

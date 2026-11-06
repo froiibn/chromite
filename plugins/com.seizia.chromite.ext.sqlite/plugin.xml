@@ -3,12 +3,12 @@
 
 <plugin>
 
-    <extension point="org.jkiss.dbeaver.generic.meta">
-        <meta id="sqlite" class="org.jkiss.dbeaver.ext.sqlite.model.SQLiteMetaModel"
+    <extension point="com.seizia.chromite.generic.meta">
+        <meta id="sqlite" class="com.seizia.chromite.ext.sqlite.model.SQLiteMetaModel"
               driverClass="org.sqlite.JDBC,com.dbeaver.jdbc.driver.libsql.LibSqlDriver" dialect="sqlite"/>
     </extension>
 
-    <extension point="org.jkiss.dbeaver.dataSourceProvider">
+    <extension point="com.seizia.chromite.dataSourceProvider">
         <dataSourceType
             id="libsql"
             label="LibSQL"
@@ -24,7 +24,7 @@
             icon="icons/sqlite_icon.png"
             iconBig="icons/sqlite_icon_big.png"/>
         <datasource
-                class="org.jkiss.dbeaver.ext.sqlite.model.SQLiteDataSourceProvider"
+                class="com.seizia.chromite.ext.sqlite.model.SQLiteDataSourceProvider"
                 description="SQLite"
                 id="sqlite"
                 parent="generic"
@@ -33,15 +33,15 @@
                 dialect="sqlite">
 
             <treeInjection path="generic/catalog/schema/table"
-                changeFolderType="org.jkiss.dbeaver.ext.sqlite.model.SQLiteTable"/>
+                changeFolderType="com.seizia.chromite.ext.sqlite.model.SQLiteTable"/>
             <treeInjection path="generic/catalog/schema/table/attribute"
-                changeFolderType="org.jkiss.dbeaver.ext.sqlite.model.SQLiteTableColumn"/>
+                changeFolderType="com.seizia.chromite.ext.sqlite.model.SQLiteTableColumn"/>
             <treeInjection path="generic/catalog/schema/table/association"
-                changeFolderType="org.jkiss.dbeaver.ext.sqlite.model.SQLiteTableForeignKey"/>
+                changeFolderType="com.seizia.chromite.ext.sqlite.model.SQLiteTableForeignKey"/>
             <treeInjection path="generic/catalog/schema/view"
-                changeFolderType="org.jkiss.dbeaver.ext.sqlite.model.SQLiteView"/>
+                changeFolderType="com.seizia.chromite.ext.sqlite.model.SQLiteView"/>
             <treeInjection path="generic/catalog/schema/view/attribute"
-                changeFolderType="org.jkiss.dbeaver.ext.sqlite.model.SQLiteTableColumn"/>
+                changeFolderType="com.seizia.chromite.ext.sqlite.model.SQLiteTableColumn"/>
 
             <drivers managable="true">
                 <driver
@@ -112,16 +112,16 @@
         </datasource>
     </extension>
 
-    <extension point="org.jkiss.dbeaver.objectManager">
-        <manager class="org.jkiss.dbeaver.ext.sqlite.edit.SQLiteTableManager" objectType="org.jkiss.dbeaver.ext.sqlite.model.SQLiteTable"/>
-        <manager class="org.jkiss.dbeaver.ext.sqlite.edit.SQLiteTableColumnManager" objectType="org.jkiss.dbeaver.ext.sqlite.model.SQLiteTableColumn"/>
-        <manager class="org.jkiss.dbeaver.ext.sqlite.edit.SQLiteTableForeignKeyManager" objectType="org.jkiss.dbeaver.ext.sqlite.model.SQLiteTableForeignKey"/>
-        <manager class="org.jkiss.dbeaver.ext.sqlite.edit.SQLiteViewManager" objectType="org.jkiss.dbeaver.ext.sqlite.model.SQLiteView"/>
+    <extension point="com.seizia.chromite.objectManager">
+        <manager class="com.seizia.chromite.ext.sqlite.edit.SQLiteTableManager" objectType="com.seizia.chromite.ext.sqlite.model.SQLiteTable"/>
+        <manager class="com.seizia.chromite.ext.sqlite.edit.SQLiteTableColumnManager" objectType="com.seizia.chromite.ext.sqlite.model.SQLiteTableColumn"/>
+        <manager class="com.seizia.chromite.ext.sqlite.edit.SQLiteTableForeignKeyManager" objectType="com.seizia.chromite.ext.sqlite.model.SQLiteTableForeignKey"/>
+        <manager class="com.seizia.chromite.ext.sqlite.edit.SQLiteViewManager" objectType="com.seizia.chromite.ext.sqlite.model.SQLiteView"/>
     </extension>
 
-    <extension point="org.jkiss.dbeaver.dataTypeProvider">
+    <extension point="com.seizia.chromite.dataTypeProvider">
         <provider
-                class="org.jkiss.dbeaver.ext.sqlite.model.data.SQLiteValueHandlerProvider"
+                class="com.seizia.chromite.ext.sqlite.model.data.SQLiteValueHandlerProvider"
                 description="SQLite data types provider"
                 id="SQLiteValueHandlerProvider"
                 parent="GenericValueHandlerProvider"
@@ -132,26 +132,26 @@
         </provider>
     </extension>
 
-    <extension point="org.jkiss.dbeaver.sqlInsertMethod">
-        <method id="sqLiteInsertIgnore" class="org.jkiss.dbeaver.ext.sqlite.model.SQLiteInsertReplaceMethodIgnore"
+    <extension point="com.seizia.chromite.sqlInsertMethod">
+        <method id="sqLiteInsertIgnore" class="com.seizia.chromite.ext.sqlite.model.SQLiteInsertReplaceMethodIgnore"
                 label="INSERT OR IGNORE" description="Insert ignore duplicate key value"/>
-        <method id="sqLiteReplaceIgnore" class="org.jkiss.dbeaver.ext.sqlite.model.SQLiteInsertReplaceMethod"
+        <method id="sqLiteReplaceIgnore" class="com.seizia.chromite.ext.sqlite.model.SQLiteInsertReplaceMethod"
                 label="INSERT OR REPLACE" description="Insert replace duplicate key value"/>
     </extension>
 
-    <extension point="org.jkiss.dbeaver.sqlDialect">
-        <dialect id="sqlite" parent="generic" class="org.jkiss.dbeaver.ext.sqlite.model.SQLiteSQLDialect" label="SQLite"
+    <extension point="com.seizia.chromite.sqlDialect">
+        <dialect id="sqlite" parent="generic" class="com.seizia.chromite.ext.sqlite.model.SQLiteSQLDialect" label="SQLite"
                  description="SQLite dialect." icon="icons/sqlite_icon.png">
             <property name="insertMethods" value="sqLiteInsertIgnore,sqLiteReplaceIgnore"/>
         </dialect>
     </extension>
 
-    <extension point="org.jkiss.dbeaver.dataSourceAuth">
+    <extension point="com.seizia.chromite.dataSourceAuth">
         <authModel
                 id="libsql_token_jdbc"
                 label="LibSQL Authentication"
                 description="LibSQL token based authentication"
-                class="org.jkiss.dbeaver.ext.sqlite.auth.LibSQLAuthModelToken"
+                class="com.seizia.chromite.ext.sqlite.auth.LibSQLAuthModelToken"
                 default="true">
             <datasource driver="libsql_jdbc"/>
             <replace model="native"/>

@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.ai.internal;
+package com.seizia.chromite.ui.ai.internal;
 
 import org.eclipse.osgi.util.NLS;
 
@@ -29,7 +29,7 @@ public class AIUIMessages extends NLS {
     public static String ai_engine_configurator_use_env;
     public static String ai_engine_configurator_use_env_tip;
     public static String ai_engine_configurator_use_env_variables_tip;
-    static final String BUNDLE_NAME = "org.jkiss.dbeaver.ui.ai.internal.AIUIMessages"; //$NON-NLS-1$
+    static final String BUNDLE_NAME = "com.seizia.chromite.ui.ai.internal.AIUIMessages"; //$NON-NLS-1$
 
     public static String gpt_preference_page_checkbox_enable_ai_label;
     public static String gpt_preference_page_checkbox_enable_ai_tip;

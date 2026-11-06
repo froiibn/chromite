@@ -15,17 +15,17 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.ext.iotdb.ui.config;
+package com.seizia.chromite.ext.iotdb.ui.config;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.ext.iotdb.model.IoTDBPrivilege;
-import org.jkiss.dbeaver.ext.iotdb.model.IoTDBRelationalUser;
-import org.jkiss.dbeaver.model.edit.DBEPersistAction;
-import org.jkiss.dbeaver.model.exec.DBCExecutionContext;
-import org.jkiss.dbeaver.model.impl.edit.DBECommandAbstract;
-import org.jkiss.dbeaver.model.impl.edit.SQLDatabasePersistAction;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.ext.iotdb.model.IoTDBPrivilege;
+import com.seizia.chromite.ext.iotdb.model.IoTDBRelationalUser;
+import com.seizia.chromite.model.edit.DBEPersistAction;
+import com.seizia.chromite.model.exec.DBCExecutionContext;
+import com.seizia.chromite.model.impl.edit.DBECommandAbstract;
+import com.seizia.chromite.model.impl.edit.SQLDatabasePersistAction;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
 
 import java.util.Map;
 

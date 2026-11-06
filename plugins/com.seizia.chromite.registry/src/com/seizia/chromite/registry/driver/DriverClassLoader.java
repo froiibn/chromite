@@ -15,9 +15,9 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.registry.driver;
+package com.seizia.chromite.registry.driver;
 
-import org.jkiss.dbeaver.model.connection.DBPDriverLibrary;
+import com.seizia.chromite.model.connection.DBPDriverLibrary;
 import org.jkiss.utils.CommonUtils;
 
 import java.net.URL;

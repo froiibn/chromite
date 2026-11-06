@@ -14,23 +14,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.oracle.tasks;
+package com.seizia.chromite.ext.oracle.tasks;
 
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.ext.oracle.model.OracleConstants;
-import org.jkiss.dbeaver.ext.oracle.model.OracleDataSource;
-import org.jkiss.dbeaver.ext.oracle.model.dict.OracleConnectionType;
-import org.jkiss.dbeaver.ext.oracle.oci.OCIUtils;
-import org.jkiss.dbeaver.model.connection.DBPConnectionConfiguration;
-import org.jkiss.dbeaver.model.fs.DBFUtils;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.model.runtime.DBRRunnableContext;
-import org.jkiss.dbeaver.model.struct.DBSObject;
-import org.jkiss.dbeaver.model.task.DBTTask;
-import org.jkiss.dbeaver.registry.task.TaskPreferenceStore;
-import org.jkiss.dbeaver.tasks.nativetool.AbstractNativeToolHandler;
-import org.jkiss.dbeaver.utils.RuntimeUtils;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.ext.oracle.model.OracleConstants;
+import com.seizia.chromite.ext.oracle.model.OracleDataSource;
+import com.seizia.chromite.ext.oracle.model.dict.OracleConnectionType;
+import com.seizia.chromite.ext.oracle.oci.OCIUtils;
+import com.seizia.chromite.model.connection.DBPConnectionConfiguration;
+import com.seizia.chromite.model.fs.DBFUtils;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.model.runtime.DBRRunnableContext;
+import com.seizia.chromite.model.struct.DBSObject;
+import com.seizia.chromite.model.task.DBTTask;
+import com.seizia.chromite.registry.task.TaskPreferenceStore;
+import com.seizia.chromite.tasks.nativetool.AbstractNativeToolHandler;
+import com.seizia.chromite.utils.RuntimeUtils;
 
 import java.io.File;
 import java.io.IOException;

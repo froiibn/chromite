@@ -14,10 +14,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.postgresql.model;
+package com.seizia.chromite.ext.postgresql.model;
 
 /**
- * PostgreScriptObject child. Auxiliary class to display the DDL tab for those classes that are not in the org.jkiss.dbeaver.ext.postgresql bundle
+ * PostgreScriptObject child. Auxiliary class to display the DDL tab for those classes that are not in the com.seizia.chromite.ext.postgresql bundle
  */
 
 public interface PostgreScriptObjectExt extends PostgreScriptObject {

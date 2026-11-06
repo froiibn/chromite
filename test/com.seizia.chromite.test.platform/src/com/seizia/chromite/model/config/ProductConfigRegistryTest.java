@@ -14,13 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.config;
+package com.seizia.chromite.model.config;
 
 import org.eclipse.core.runtime.IConfigurationElement;
 import org.eclipse.core.runtime.IContributor;
 import org.eclipse.core.runtime.IExtensionRegistry;
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.model.data.json.JSONUtils;
+import com.seizia.chromite.model.data.json.JSONUtils;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
@@ -124,7 +124,7 @@ public class ProductConfigRegistryTest {
         @NotNull IConfigurationElement... features
     ) throws Exception {
         var extensions = Mockito.mock(IExtensionRegistry.class);
-        Mockito.when(extensions.getConfigurationElementsFor("org.jkiss.dbeaver.app.config")).thenReturn(features);
+        Mockito.when(extensions.getConfigurationElementsFor("com.seizia.chromite.app.config")).thenReturn(features);
         var constructor = ProductConfigRegistry.class.getDeclaredConstructor(IExtensionRegistry.class);
         constructor.setAccessible(true);
         var registry = constructor.newInstance(extensions);
@@ -142,7 +142,7 @@ public class ProductConfigRegistryTest {
     @NotNull
     private static IConfigurationElement feature(@NotNull String id) {
         var contributor = Mockito.mock(IContributor.class);
-        Mockito.when(contributor.getName()).thenReturn("org.jkiss.dbeaver.test.platform");
+        Mockito.when(contributor.getName()).thenReturn("com.seizia.chromite.test.platform");
         var element = Mockito.mock(IConfigurationElement.class);
         Mockito.when(element.getContributor()).thenReturn(contributor);
         Mockito.when(element.getName()).thenReturn("feature");

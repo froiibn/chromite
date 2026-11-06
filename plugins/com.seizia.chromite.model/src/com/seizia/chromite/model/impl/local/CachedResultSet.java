@@ -15,10 +15,10 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.model.impl.local;
+package com.seizia.chromite.model.impl.local;
 
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.Log;
+import com.seizia.chromite.Log;
 
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;

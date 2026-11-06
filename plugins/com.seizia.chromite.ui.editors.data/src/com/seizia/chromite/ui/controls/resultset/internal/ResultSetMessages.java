@@ -14,12 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.controls.resultset.internal;
+package com.seizia.chromite.ui.controls.resultset.internal;
 
 import org.eclipse.osgi.util.NLS;
 
 public class ResultSetMessages extends NLS {
-    public static final String BUNDLE_NAME = "org.jkiss.dbeaver.ui.controls.resultset.internal.ResultSetMessages"; //$NON-NLS-1$
+    public static final String BUNDLE_NAME = "com.seizia.chromite.ui.controls.resultset.internal.ResultSetMessages"; //$NON-NLS-1$
 
     public static String confirm_modifying_query_message;
     public static String confirm_modifying_query_title;

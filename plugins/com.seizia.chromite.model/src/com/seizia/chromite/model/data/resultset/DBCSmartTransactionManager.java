@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.model.data.resultset;
+package com.seizia.chromite.model.data.resultset;
 
 /**
  * Smart transaction manager

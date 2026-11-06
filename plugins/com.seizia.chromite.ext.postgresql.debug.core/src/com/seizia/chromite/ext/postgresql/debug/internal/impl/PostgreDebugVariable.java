@@ -17,10 +17,10 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.ext.postgresql.debug.internal.impl;
+package com.seizia.chromite.ext.postgresql.debug.internal.impl;
 
-import org.jkiss.dbeaver.debug.DBGVariable;
-import org.jkiss.dbeaver.debug.DBGVariableType;
+import com.seizia.chromite.debug.DBGVariable;
+import com.seizia.chromite.debug.DBGVariableType;
 
 public class PostgreDebugVariable implements DBGVariable<String> {
 

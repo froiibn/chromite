@@ -15,18 +15,18 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.ext.postgresql.model;
+package com.seizia.chromite.ext.postgresql.model;
 
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.model.DBPDataSourceContainer;
-import org.jkiss.junit.DBeaverUnitTest;
+import com.seizia.chromite.model.DBPDataSourceContainer;
+import com.seizia.chromite.junit.ChromiteUnitTest;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.util.Collections;
 
-public class PostgreRoleTest extends DBeaverUnitTest {
+public class PostgreRoleTest extends ChromiteUnitTest {
 
     private PostgreDatabase testDatabase;
 

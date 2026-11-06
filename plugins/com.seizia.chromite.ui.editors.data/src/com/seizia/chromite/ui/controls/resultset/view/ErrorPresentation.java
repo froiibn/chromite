@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.ui.controls.resultset.view;
+package com.seizia.chromite.ui.controls.resultset.view;
 
 import org.eclipse.core.runtime.IStatus;
 import org.eclipse.jface.dialogs.IDialogSettings;
@@ -34,17 +34,17 @@ import org.eclipse.swt.widgets.Text;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.model.DBIcon;
-import org.jkiss.dbeaver.model.data.DBDAttributeBinding;
-import org.jkiss.dbeaver.model.exec.DBCMessageException;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.runtime.ui.UIServiceSQL;
-import org.jkiss.dbeaver.ui.DBeaverIcons;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.controls.CustomSashForm;
-import org.jkiss.dbeaver.ui.controls.resultset.*;
-import org.jkiss.dbeaver.ui.editors.TextEditorUtils;
-import org.jkiss.dbeaver.utils.GeneralUtils;
+import com.seizia.chromite.model.DBIcon;
+import com.seizia.chromite.model.data.DBDAttributeBinding;
+import com.seizia.chromite.model.exec.DBCMessageException;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.runtime.ui.UIServiceSQL;
+import com.seizia.chromite.ui.SwtIcons;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.controls.CustomSashForm;
+import com.seizia.chromite.ui.controls.resultset.*;
+import com.seizia.chromite.ui.editors.TextEditorUtils;
+import com.seizia.chromite.utils.GeneralUtils;
 import org.jkiss.utils.CommonUtils;
 
 import java.util.Collections;
@@ -153,7 +153,7 @@ public class ErrorPresentation extends AbstractPresentation {
         msgComposite.setLayoutData(new GridData(GridData.FILL_BOTH));
 
         Label imageLabel = new Label(msgComposite, SWT.NONE);
-        imageLabel.setImage(DBeaverIcons.getImage(DBIcon.STATUS_INFO));
+        imageLabel.setImage(SwtIcons.getImage(DBIcon.STATUS_INFO));
         imageLabel.setLayoutData(new GridData(GridData.HORIZONTAL_ALIGN_CENTER | GridData.VERTICAL_ALIGN_BEGINNING));
 
         textWidget = new StyledText(msgComposite, SWT.READ_ONLY | SWT.BORDER | SWT.MULTI | SWT.WRAP);

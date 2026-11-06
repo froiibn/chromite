@@ -14,14 +14,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.data.managers.stream;
+package com.seizia.chromite.ui.data.managers.stream;
 
 import org.eclipse.jface.text.IDocument;
 import org.eclipse.jface.text.formatter.ContentFormatter;
 import org.eclipse.jface.text.formatter.IContentFormatter;
 import org.eclipse.jface.text.source.ISourceViewer;
 import org.eclipse.jface.text.source.SourceViewerConfiguration;
-import org.jkiss.dbeaver.ui.editors.text.BaseTextEditor;
+import com.seizia.chromite.ui.editors.text.BaseTextEditor;
 
 public class PlainTextViewerConfiguration extends SourceViewerConfiguration {
 

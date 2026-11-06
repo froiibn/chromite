@@ -15,9 +15,9 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.model.connection;
+package com.seizia.chromite.model.connection;
 
-import org.jkiss.dbeaver.model.messages.ModelMessages;
+import com.seizia.chromite.model.messages.ModelMessages;
 
 /**
 * Connection event type

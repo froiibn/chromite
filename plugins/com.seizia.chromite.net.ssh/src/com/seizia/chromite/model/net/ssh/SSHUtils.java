@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.net.ssh;
+package com.seizia.chromite.model.net.ssh;
 
 import com.jcraft.jsch.Identity;
 import com.jcraft.jsch.IdentityRepository;
@@ -28,16 +28,16 @@ import org.eclipse.jsch.internal.core.JSchCorePlugin;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.ModelPreferences;
-import org.jkiss.dbeaver.model.net.DBWHandlerConfiguration;
-import org.jkiss.dbeaver.model.net.ssh.config.SSHAuthConfiguration;
-import org.jkiss.dbeaver.model.net.ssh.config.SSHHostConfiguration;
-import org.jkiss.dbeaver.model.preferences.DBPPreferenceStore;
-import org.jkiss.dbeaver.registry.RegistryConstants;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.utils.DataSourceUtils;
-import org.jkiss.dbeaver.utils.RuntimeUtils;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.ModelPreferences;
+import com.seizia.chromite.model.net.DBWHandlerConfiguration;
+import com.seizia.chromite.model.net.ssh.config.SSHAuthConfiguration;
+import com.seizia.chromite.model.net.ssh.config.SSHHostConfiguration;
+import com.seizia.chromite.model.preferences.DBPPreferenceStore;
+import com.seizia.chromite.registry.RegistryConstants;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.utils.DataSourceUtils;
+import com.seizia.chromite.utils.RuntimeUtils;
 import org.jkiss.utils.CommonUtils;
 import org.jkiss.utils.SecurityUtils;
 
@@ -68,7 +68,7 @@ public class SSHUtils {
 
     private static final Log log = Log.getLog(SSHUtils.class);
 
-    public static final boolean DISABLE_SESSION_SHARING = Boolean.getBoolean("dbeaver.ssh.disableSessionSharing");
+    public static final boolean DISABLE_SESSION_SHARING = Boolean.getBoolean("chromite.ssh.disableSessionSharing");
 
     private static final String PLATFORM_SSH_PREFERENCES_NODE = "org.eclipse.jsch.core"; //$NON-NLS-1$
     private static final String PLATFORM_SSH_PREFERENCES_SSH2HOME_KEY = IConstants.KEY_SSH2HOME;

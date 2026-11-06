@@ -1,22 +1,22 @@
 fManifest-Version: 1.0
 Bundle-ManifestVersion: 2
-Bundle-Vendor: DBeaver Corp
+Bundle-Vendor: Chromite contributors
 Bundle-Name: Chromite JDBC Model
-Bundle-SymbolicName: org.jkiss.dbeaver.model.jdbc;singleton:=true
+Bundle-SymbolicName: com.seizia.chromite.model.jdbc;singleton:=true
 Bundle-Version: 1.0.84.qualifier
 Bundle-Release-Date: 20261116
 Bundle-RequiredExecutionEnvironment: JavaSE-21
 Bundle-ActivationPolicy: lazy
-Export-Package: org.jkiss.dbeaver.model.exec.jdbc,
- org.jkiss.dbeaver.model.impl.jdbc,
- org.jkiss.dbeaver.model.impl.jdbc.cache,
- org.jkiss.dbeaver.model.impl.jdbc.data,
- org.jkiss.dbeaver.model.impl.jdbc.data.handlers,
- org.jkiss.dbeaver.model.impl.jdbc.exec,
- org.jkiss.dbeaver.model.impl.jdbc.struct,
- org.jkiss.dbeaver.model.sql.backup
-Require-Bundle: org.jkiss.dbeaver.model;visibility:=reexport,
- org.jkiss.dbeaver.model.sql;visibility:=reexport
+Export-Package: com.seizia.chromite.model.exec.jdbc,
+ com.seizia.chromite.model.impl.jdbc,
+ com.seizia.chromite.model.impl.jdbc.cache,
+ com.seizia.chromite.model.impl.jdbc.data,
+ com.seizia.chromite.model.impl.jdbc.data.handlers,
+ com.seizia.chromite.model.impl.jdbc.exec,
+ com.seizia.chromite.model.impl.jdbc.struct,
+ com.seizia.chromite.model.sql.backup
+Require-Bundle: com.seizia.chromite.model;visibility:=reexport,
+ com.seizia.chromite.model.sql;visibility:=reexport
 Bundle-Localization: OSGI-INF/l10n/bundle
-Automatic-Module-Name: org.jkiss.dbeaver.model.jdbc
+Automatic-Module-Name: com.seizia.chromite.model.jdbc
 

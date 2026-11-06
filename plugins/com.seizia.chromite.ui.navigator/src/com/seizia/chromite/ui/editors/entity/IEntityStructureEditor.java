@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.ui.editors.entity;
+package com.seizia.chromite.ui.editors.entity;
 
 /**
  * Entity structure editor.

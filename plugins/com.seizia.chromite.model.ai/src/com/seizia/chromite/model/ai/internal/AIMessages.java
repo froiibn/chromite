@@ -14,12 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.ai.internal;
+package com.seizia.chromite.model.ai.internal;
 
 import org.eclipse.osgi.util.NLS;
 
 public class AIMessages extends NLS {
-    static final String BUNDLE_NAME = "org.jkiss.dbeaver.model.ai.internal.AIMessages"; //$NON-NLS-1$
+    static final String BUNDLE_NAME = "com.seizia.chromite.model.ai.internal.AIMessages"; //$NON-NLS-1$
 
     public static String ai_scope_current_schema;
     public static String ai_scope_current_database;

@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.postgresql.debug;
+package com.seizia.chromite.ext.postgresql.debug;
 
 public class PostgreDebugConstants {
 
@@ -29,6 +29,6 @@ public class PostgreDebugConstants {
     public static final String ATTACH_KIND_LOCAL = "LOCAL"; //$NON-NLS-1$
     public static final String ATTACH_KIND_GLOBAL = "GLOBAL"; //$NON-NLS-1$
 
-    public static final String DEBUG_TYPE_FUNCTION = "org.jkiss.dbeaver.ext.postgresql.debug.function";
+    public static final String DEBUG_TYPE_FUNCTION = "com.seizia.chromite.ext.postgresql.debug.function";
 
 }

@@ -14,10 +14,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.snowflake.model;
+package com.seizia.chromite.ext.snowflake.model;
 
-import org.jkiss.dbeaver.ext.snowflake.SnowflakeConstants;
-import org.jkiss.dbeaver.model.connection.DBPConnectionConfiguration;
+import com.seizia.chromite.ext.snowflake.SnowflakeConstants;
+import com.seizia.chromite.model.connection.DBPConnectionConfiguration;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;

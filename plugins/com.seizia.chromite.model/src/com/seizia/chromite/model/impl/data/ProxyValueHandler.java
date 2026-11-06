@@ -14,14 +14,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.impl.data;
+package com.seizia.chromite.model.impl.data;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.model.data.DBDDisplayFormat;
-import org.jkiss.dbeaver.model.data.DBDValueHandler;
-import org.jkiss.dbeaver.model.exec.*;
-import org.jkiss.dbeaver.model.struct.DBSTypedObject;
+import com.seizia.chromite.model.data.DBDDisplayFormat;
+import com.seizia.chromite.model.data.DBDValueHandler;
+import com.seizia.chromite.model.exec.*;
+import com.seizia.chromite.model.struct.DBSTypedObject;
 
 /**
  * Proxy value handler

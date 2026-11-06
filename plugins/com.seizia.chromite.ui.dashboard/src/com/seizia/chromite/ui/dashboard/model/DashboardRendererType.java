@@ -14,13 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.dashboard.model;
+package com.seizia.chromite.ui.dashboard.model;
 
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.model.DBPImage;
-import org.jkiss.dbeaver.model.dashboard.DBDashboardDataType;
-import org.jkiss.dbeaver.model.dashboard.registry.DashboardItemConfiguration;
-import org.jkiss.dbeaver.ui.IObjectPropertyConfigurator;
+import com.seizia.chromite.model.DBPImage;
+import com.seizia.chromite.model.dashboard.DBDashboardDataType;
+import com.seizia.chromite.model.dashboard.registry.DashboardItemConfiguration;
+import com.seizia.chromite.ui.IObjectPropertyConfigurator;
 
 /**
  * Dashboard renderer type.

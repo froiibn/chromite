@@ -14,9 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.websocket.event.session;
+package com.seizia.chromite.model.websocket.event.session;
 
-import org.jkiss.dbeaver.model.websocket.WSConstants;
+import com.seizia.chromite.model.websocket.WSConstants;
 
 public class WSAccessTokenExpiredEvent extends WSAbstractSessionEvent {
     public static final String ID = "cb_access_token_expired";

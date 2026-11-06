@@ -14,19 +14,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.erd;
+package com.seizia.chromite.model.erd;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.DBPObjectWithLazyDescription;
-import org.jkiss.dbeaver.model.DBUtils;
-import org.jkiss.dbeaver.model.exec.DBCException;
-import org.jkiss.dbeaver.model.navigator.DBNUtils;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.model.struct.*;
-import org.jkiss.dbeaver.model.virtual.DBVUtils;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.DBPObjectWithLazyDescription;
+import com.seizia.chromite.model.DBUtils;
+import com.seizia.chromite.model.exec.DBCException;
+import com.seizia.chromite.model.navigator.DBNUtils;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.model.struct.*;
+import com.seizia.chromite.model.virtual.DBVUtils;
 import org.jkiss.utils.CommonUtils;
 
 import java.util.*;

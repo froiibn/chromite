@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.datadam.project.handler;
+package com.seizia.chromite.ui.datadam.project.handler;
 
 import com.dbeaver.datadam.share.api.model.DDSharedProject;
 import org.eclipse.core.commands.AbstractHandler;
@@ -34,14 +34,14 @@ import org.eclipse.ui.handlers.HandlerUtil;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.model.runtime.DBRRunnableWithResult;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.datadam.internal.DDTrackingUIMessages;
-import org.jkiss.dbeaver.ui.datadam.project.DDProjectUIManager;
-import org.jkiss.dbeaver.ui.datadam.project.DDProjectUIManager.ProjectListing;
-import org.jkiss.dbeaver.ui.dialogs.BaseDialog;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.model.runtime.DBRRunnableWithResult;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.datadam.internal.DDTrackingUIMessages;
+import com.seizia.chromite.ui.datadam.project.DDProjectUIManager;
+import com.seizia.chromite.ui.datadam.project.DDProjectUIManager.ProjectListing;
+import com.seizia.chromite.ui.dialogs.BaseDialog;
 
 import java.lang.reflect.InvocationTargetException;
 import java.time.format.DateTimeFormatter;

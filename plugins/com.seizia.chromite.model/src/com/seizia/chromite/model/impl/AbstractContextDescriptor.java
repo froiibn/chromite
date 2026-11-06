@@ -15,14 +15,14 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.model.impl;
+package com.seizia.chromite.model.impl;
 
 import org.eclipse.core.runtime.IConfigurationElement;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.model.DBPObject;
-import org.jkiss.dbeaver.model.DBUtils;
-import org.jkiss.dbeaver.model.struct.DBSObject;
+import com.seizia.chromite.model.DBPObject;
+import com.seizia.chromite.model.DBUtils;
+import com.seizia.chromite.model.struct.DBSObject;
 
 import java.util.ArrayList;
 import java.util.List;

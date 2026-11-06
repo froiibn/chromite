@@ -15,10 +15,10 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.tools.scripts;
+package com.seizia.chromite.tools.scripts;
 
-import org.jkiss.dbeaver.model.DBPDataSourceContainer;
-import org.jkiss.dbeaver.model.navigator.DBNResource;
+import com.seizia.chromite.model.DBPDataSourceContainer;
+import com.seizia.chromite.model.navigator.DBNResource;
 
 import java.io.File;
 

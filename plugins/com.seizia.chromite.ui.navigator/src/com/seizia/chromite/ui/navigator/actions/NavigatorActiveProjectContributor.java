@@ -14,16 +14,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.navigator.actions;
+package com.seizia.chromite.ui.navigator.actions;
 
 import org.eclipse.jface.action.ContributionItem;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.events.SelectionListener;
 import org.eclipse.swt.widgets.Menu;
 import org.eclipse.swt.widgets.MenuItem;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.app.DBPProject;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.app.DBPProject;
+import com.seizia.chromite.runtime.DBWorkbench;
 
 import java.util.ArrayList;
 import java.util.List;

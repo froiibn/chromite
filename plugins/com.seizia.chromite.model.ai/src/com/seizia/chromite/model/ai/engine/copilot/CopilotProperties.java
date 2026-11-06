@@ -15,18 +15,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.ai.engine.copilot;
+package com.seizia.chromite.model.ai.engine.copilot;
 
 import com.google.gson.annotations.SerializedName;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.model.ai.AIConfigurationProfile;
-import org.jkiss.dbeaver.model.ai.engine.AIModel;
-import org.jkiss.dbeaver.model.ai.engine.BaseAIEngineProperties;
-import org.jkiss.dbeaver.model.ai.utils.AIUtils;
-import org.jkiss.dbeaver.model.meta.Property;
-import org.jkiss.dbeaver.model.meta.SecureProperty;
+import com.seizia.chromite.model.ai.AIConfigurationProfile;
+import com.seizia.chromite.model.ai.engine.AIModel;
+import com.seizia.chromite.model.ai.engine.BaseAIEngineProperties;
+import com.seizia.chromite.model.ai.utils.AIUtils;
+import com.seizia.chromite.model.meta.Property;
+import com.seizia.chromite.model.meta.SecureProperty;
 import org.jkiss.utils.CommonUtils;
 
 import java.util.List;
@@ -47,7 +47,7 @@ public class CopilotProperties extends BaseAIEngineProperties {
     public static final String ENV_GH_TOKEN = "GH_TOKEN";
     public static final String ENV_GITHUB_TOKEN = "GITHUB_TOKEN";
     public static final String ENV_MODEL = "COPILOT_MODEL";
-    public static final String ENV_AUTH_URL = "DBEAVER_AI_COPILOT_AUTH_URL";
+    public static final String ENV_AUTH_URL = "CHROMITE_AI_COPILOT_AUTH_URL";
 
     private static final String COPILOT_ACCESS_TOKEN = "copilot.access.token";
     private static final String GPT_MODEL = "gpt.model";

@@ -15,12 +15,12 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.model.secret;
+package com.seizia.chromite.model.secret;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.model.DBPNamedObject;
-import org.jkiss.dbeaver.model.DBPObjectWithDescription;
+import com.seizia.chromite.model.DBPNamedObject;
+import com.seizia.chromite.model.DBPObjectWithDescription;
 
 /**
  * Secret info

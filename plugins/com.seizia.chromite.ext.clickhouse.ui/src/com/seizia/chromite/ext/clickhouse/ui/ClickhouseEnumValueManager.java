@@ -14,12 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.clickhouse.ui;
+package com.seizia.chromite.ext.clickhouse.ui;
 
-import org.jkiss.dbeaver.ext.clickhouse.model.ClickhouseTableColumn;
-import org.jkiss.dbeaver.model.struct.DBSTypedObject;
-import org.jkiss.dbeaver.ui.data.IValueController;
-import org.jkiss.dbeaver.ui.data.managers.EnumValueManager;
+import com.seizia.chromite.ext.clickhouse.model.ClickhouseTableColumn;
+import com.seizia.chromite.model.struct.DBSTypedObject;
+import com.seizia.chromite.ui.data.IValueController;
+import com.seizia.chromite.ui.data.managers.EnumValueManager;
 
 import java.util.List;
 

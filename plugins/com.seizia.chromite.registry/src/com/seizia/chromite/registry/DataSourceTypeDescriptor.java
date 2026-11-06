@@ -14,16 +14,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.registry;
+package com.seizia.chromite.registry;
 
 import org.eclipse.core.runtime.IConfigurationElement;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.model.DBIcon;
-import org.jkiss.dbeaver.model.DBPImage;
-import org.jkiss.dbeaver.model.connection.DBPDataSourceType;
-import org.jkiss.dbeaver.model.connection.DBPDriver;
-import org.jkiss.dbeaver.model.impl.AbstractDescriptor;
+import com.seizia.chromite.model.DBIcon;
+import com.seizia.chromite.model.DBPImage;
+import com.seizia.chromite.model.connection.DBPDataSourceType;
+import com.seizia.chromite.model.connection.DBPDriver;
+import com.seizia.chromite.model.impl.AbstractDescriptor;
 import org.jkiss.utils.CommonUtils;
 
 import java.util.ArrayList;
@@ -47,7 +47,7 @@ public class DataSourceTypeDescriptor extends AbstractDescriptor implements DBPD
         @NotNull String dataSourceInformation,
         @NotNull DBPImage icon
     ) {
-        super("org.jkiss.dbeaver.registry");
+        super("com.seizia.chromite.registry");
         this.id = id;
         this.name = name;
         this.description = description;

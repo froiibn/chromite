@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.dialogs.connection;
+package com.seizia.chromite.ui.dialogs.connection;
 
 import org.eclipse.jface.dialogs.DialogPage;
 import org.eclipse.jface.fieldassist.ControlDecoration;
@@ -32,25 +32,25 @@ import org.eclipse.swt.widgets.*;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.ModelPreferences;
-import org.jkiss.dbeaver.model.DBPDataSourceContainer;
-import org.jkiss.dbeaver.model.connection.DBPConnectionConfiguration;
-import org.jkiss.dbeaver.model.connection.DBPDriver;
-import org.jkiss.dbeaver.model.connection.DBPDriverSubstitutionDescriptor;
-import org.jkiss.dbeaver.model.connection.DataSourceVariableResolver;
-import org.jkiss.dbeaver.model.rm.RMConstants;
-import org.jkiss.dbeaver.registry.DataSourceDescriptor;
-import org.jkiss.dbeaver.registry.DataSourceProviderRegistry;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.runtime.ui.UIServiceSecurity;
-import org.jkiss.dbeaver.ui.*;
-import org.jkiss.dbeaver.ui.controls.VariablesHintLabel;
-import org.jkiss.dbeaver.ui.css.CSSUtils;
-import org.jkiss.dbeaver.ui.dialogs.AcceptLicenseDialog;
-import org.jkiss.dbeaver.ui.dialogs.IConnectionWizard;
-import org.jkiss.dbeaver.ui.internal.UIConnectionMessages;
-import org.jkiss.dbeaver.utils.HelpUtils;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.ModelPreferences;
+import com.seizia.chromite.model.DBPDataSourceContainer;
+import com.seizia.chromite.model.connection.DBPConnectionConfiguration;
+import com.seizia.chromite.model.connection.DBPDriver;
+import com.seizia.chromite.model.connection.DBPDriverSubstitutionDescriptor;
+import com.seizia.chromite.model.connection.DataSourceVariableResolver;
+import com.seizia.chromite.model.rm.RMConstants;
+import com.seizia.chromite.registry.DataSourceDescriptor;
+import com.seizia.chromite.registry.DataSourceProviderRegistry;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.runtime.ui.UIServiceSecurity;
+import com.seizia.chromite.ui.*;
+import com.seizia.chromite.ui.controls.VariablesHintLabel;
+import com.seizia.chromite.ui.css.CSSUtils;
+import com.seizia.chromite.ui.dialogs.AcceptLicenseDialog;
+import com.seizia.chromite.ui.dialogs.IConnectionWizard;
+import com.seizia.chromite.ui.internal.UIConnectionMessages;
+import com.seizia.chromite.utils.HelpUtils;
 import org.jkiss.utils.ArrayUtils;
 import org.jkiss.utils.CommonUtils;
 
@@ -345,7 +345,7 @@ public abstract class ConnectionPageAbstract extends DialogPage implements IData
             userManagementToolbar = new ToolBar(panel, SWT.HORIZONTAL);
             ToolItem showPasswordLabel = new ToolItem(userManagementToolbar, SWT.NONE);
             showPasswordLabel.setToolTipText("Show password on screen");
-            showPasswordLabel.setImage(DBeaverIcons.getImage(UIIcon.SHOW_ALL_DETAILS));
+            showPasswordLabel.setImage(SwtIcons.getImage(UIIcon.SHOW_ALL_DETAILS));
             showPasswordLabel.addSelectionListener(SelectionListener.widgetSelectedAdapter(e -> showPasswordText(serviceSecurity)));
         }
 

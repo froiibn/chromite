@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.editors.erd.editor;
+package com.seizia.chromite.ui.editors.erd.editor;
 
 import org.eclipse.core.runtime.*;
 import org.eclipse.core.runtime.jobs.Job;
@@ -64,59 +64,59 @@ import org.eclipse.ui.views.properties.IPropertySheetPage;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.DBIcon;
-import org.jkiss.dbeaver.model.DBPDataSourceContainer;
-import org.jkiss.dbeaver.model.DBPDataSourceTask;
-import org.jkiss.dbeaver.model.DBPNamedObject;
-import org.jkiss.dbeaver.model.app.DBPProject;
-import org.jkiss.dbeaver.model.edit.DBECommandContext;
-import org.jkiss.dbeaver.model.erd.*;
-import org.jkiss.dbeaver.model.navigator.DBNNode;
-import org.jkiss.dbeaver.model.preferences.DBPPreferenceStore;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.model.runtime.load.ILoadService;
-import org.jkiss.dbeaver.model.sql.SQLUtils;
-import org.jkiss.dbeaver.model.struct.DBSEntity;
-import org.jkiss.dbeaver.model.struct.DBSObject;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.ui.*;
-import org.jkiss.dbeaver.ui.controls.ProgressLoaderVisualizer;
-import org.jkiss.dbeaver.ui.controls.ProgressPageControl;
-import org.jkiss.dbeaver.ui.controls.PropertyPageStandard;
-import org.jkiss.dbeaver.ui.css.CSSUtils;
-import org.jkiss.dbeaver.ui.dialogs.ConfirmationDialog;
-import org.jkiss.dbeaver.ui.dialogs.DialogUtils;
-import org.jkiss.dbeaver.ui.editors.IDatabaseEditorInput;
-import org.jkiss.dbeaver.ui.editors.IDatabaseModellerEditor;
-import org.jkiss.dbeaver.ui.editors.erd.ERDUIConstants;
-import org.jkiss.dbeaver.ui.editors.erd.action.DiagramLayoutAction;
-import org.jkiss.dbeaver.ui.editors.erd.action.DiagramToggleGridAction;
-import org.jkiss.dbeaver.ui.editors.erd.action.DiagramToggleHandAction;
-import org.jkiss.dbeaver.ui.editors.erd.action.ERDEditorPropertyTester;
-import org.jkiss.dbeaver.ui.editors.erd.directedit.StatusLineValidationMessageHandler;
-import org.jkiss.dbeaver.ui.editors.erd.dnd.DataEditDropTargetListener;
-import org.jkiss.dbeaver.ui.editors.erd.dnd.NodeDropTargetListener;
-import org.jkiss.dbeaver.ui.editors.erd.editor.tools.ChangeZOrderAction;
-import org.jkiss.dbeaver.ui.editors.erd.editor.tools.ResetPartColorAction;
-import org.jkiss.dbeaver.ui.editors.erd.editor.tools.SetPartColorAction;
-import org.jkiss.dbeaver.ui.editors.erd.editor.tools.SetPartSettingsAction;
-import org.jkiss.dbeaver.ui.editors.erd.export.ERDExportFormatHandler;
-import org.jkiss.dbeaver.ui.editors.erd.export.ERDExportFormatRegistry;
-import org.jkiss.dbeaver.ui.editors.erd.internal.ERDUIActivator;
-import org.jkiss.dbeaver.ui.editors.erd.internal.ERDUIMessages;
-import org.jkiss.dbeaver.ui.editors.erd.model.ERDContainerDecorated.NodeVisualInfo;
-import org.jkiss.dbeaver.ui.editors.erd.model.ERDContentProviderDecorated;
-import org.jkiss.dbeaver.ui.editors.erd.model.ERDDecorator;
-import org.jkiss.dbeaver.ui.editors.erd.model.ERDDecoratorDefault;
-import org.jkiss.dbeaver.ui.editors.erd.model.EntityDiagram;
-import org.jkiss.dbeaver.ui.editors.erd.notations.ERDNotationDescriptor;
-import org.jkiss.dbeaver.ui.editors.erd.notations.ERDNotationRegistry;
-import org.jkiss.dbeaver.ui.editors.erd.part.*;
-import org.jkiss.dbeaver.ui.editors.erd.router.ERDConnectionRouterDescriptor;
-import org.jkiss.dbeaver.ui.editors.erd.router.ERDConnectionRouterRegistry;
-import org.jkiss.dbeaver.ui.navigator.INavigatorModelView;
-import org.jkiss.dbeaver.ui.navigator.actions.ToggleViewAction;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.DBIcon;
+import com.seizia.chromite.model.DBPDataSourceContainer;
+import com.seizia.chromite.model.DBPDataSourceTask;
+import com.seizia.chromite.model.DBPNamedObject;
+import com.seizia.chromite.model.app.DBPProject;
+import com.seizia.chromite.model.edit.DBECommandContext;
+import com.seizia.chromite.model.erd.*;
+import com.seizia.chromite.model.navigator.DBNNode;
+import com.seizia.chromite.model.preferences.DBPPreferenceStore;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.model.runtime.load.ILoadService;
+import com.seizia.chromite.model.sql.SQLUtils;
+import com.seizia.chromite.model.struct.DBSEntity;
+import com.seizia.chromite.model.struct.DBSObject;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.ui.*;
+import com.seizia.chromite.ui.controls.ProgressLoaderVisualizer;
+import com.seizia.chromite.ui.controls.ProgressPageControl;
+import com.seizia.chromite.ui.controls.PropertyPageStandard;
+import com.seizia.chromite.ui.css.CSSUtils;
+import com.seizia.chromite.ui.dialogs.ConfirmationDialog;
+import com.seizia.chromite.ui.dialogs.DialogUtils;
+import com.seizia.chromite.ui.editors.IDatabaseEditorInput;
+import com.seizia.chromite.ui.editors.IDatabaseModellerEditor;
+import com.seizia.chromite.ui.editors.erd.ERDUIConstants;
+import com.seizia.chromite.ui.editors.erd.action.DiagramLayoutAction;
+import com.seizia.chromite.ui.editors.erd.action.DiagramToggleGridAction;
+import com.seizia.chromite.ui.editors.erd.action.DiagramToggleHandAction;
+import com.seizia.chromite.ui.editors.erd.action.ERDEditorPropertyTester;
+import com.seizia.chromite.ui.editors.erd.directedit.StatusLineValidationMessageHandler;
+import com.seizia.chromite.ui.editors.erd.dnd.DataEditDropTargetListener;
+import com.seizia.chromite.ui.editors.erd.dnd.NodeDropTargetListener;
+import com.seizia.chromite.ui.editors.erd.editor.tools.ChangeZOrderAction;
+import com.seizia.chromite.ui.editors.erd.editor.tools.ResetPartColorAction;
+import com.seizia.chromite.ui.editors.erd.editor.tools.SetPartColorAction;
+import com.seizia.chromite.ui.editors.erd.editor.tools.SetPartSettingsAction;
+import com.seizia.chromite.ui.editors.erd.export.ERDExportFormatHandler;
+import com.seizia.chromite.ui.editors.erd.export.ERDExportFormatRegistry;
+import com.seizia.chromite.ui.editors.erd.internal.ERDUIActivator;
+import com.seizia.chromite.ui.editors.erd.internal.ERDUIMessages;
+import com.seizia.chromite.ui.editors.erd.model.ERDContainerDecorated.NodeVisualInfo;
+import com.seizia.chromite.ui.editors.erd.model.ERDContentProviderDecorated;
+import com.seizia.chromite.ui.editors.erd.model.ERDDecorator;
+import com.seizia.chromite.ui.editors.erd.model.ERDDecoratorDefault;
+import com.seizia.chromite.ui.editors.erd.model.EntityDiagram;
+import com.seizia.chromite.ui.editors.erd.notations.ERDNotationDescriptor;
+import com.seizia.chromite.ui.editors.erd.notations.ERDNotationRegistry;
+import com.seizia.chromite.ui.editors.erd.part.*;
+import com.seizia.chromite.ui.editors.erd.router.ERDConnectionRouterDescriptor;
+import com.seizia.chromite.ui.editors.erd.router.ERDConnectionRouterRegistry;
+import com.seizia.chromite.ui.navigator.INavigatorModelView;
+import com.seizia.chromite.ui.navigator.actions.ToggleViewAction;
 import org.jkiss.utils.ArrayUtils;
 import org.jkiss.utils.BeanUtils;
 import org.jkiss.utils.CommonUtils;
@@ -571,7 +571,7 @@ public abstract class ERDEditorPart extends GraphicalEditorWithFlyoutPalette
     }
 
     protected void installKeyHandler(@NotNull GraphicalViewer viewer) {
-        viewer.setKeyHandler(new DBeaverNavigationKeyHandler(viewer));
+        viewer.setKeyHandler(new ChromiteNavigationKeyHandler(viewer));
     }
 
     protected void registerDropTargetListeners(@NotNull GraphicalViewer viewer) {
@@ -1126,9 +1126,9 @@ public abstract class ERDEditorPart extends GraphicalEditorWithFlyoutPalette
         //toolBarManager.add(new PrintAction(ERDEditorPart.this));
 
         ZoomInAction zoomInAction = new ZoomInAction(zoomManager);
-        zoomInAction.setImageDescriptor(DBeaverIcons.getImageDescriptor(UIIcon.ZOOM_IN));
+        zoomInAction.setImageDescriptor(SwtIcons.getImageDescriptor(UIIcon.ZOOM_IN));
         ZoomOutAction zoomOutAction = new ZoomOutAction(zoomManager);
-        zoomOutAction.setImageDescriptor(DBeaverIcons.getImageDescriptor(UIIcon.ZOOM_OUT));
+        zoomOutAction.setImageDescriptor(SwtIcons.getImageDescriptor(UIIcon.ZOOM_OUT));
         toolBarManager.add(zoomInAction);
         toolBarManager.add(zoomOutAction);
 
@@ -1170,7 +1170,7 @@ public abstract class ERDEditorPart extends GraphicalEditorWithFlyoutPalette
                 getDiagram().setAttributeStyles(ERDViewStyle.getDefaultStyles(ERDUIActivator.getDefault().getPreferences()));
             }
         };
-        configAction.setImageDescriptor(DBeaverIcons.getImageDescriptor(UIIcon.CONFIGURATION));
+        configAction.setImageDescriptor(SwtIcons.getImageDescriptor(UIIcon.CONFIGURATION));
         toolBarManager.add(configAction);
     }
 
@@ -1869,7 +1869,7 @@ public abstract class ERDEditorPart extends GraphicalEditorWithFlyoutPalette
             });
 
             label = new CLabel(this, SWT.LEFT);
-            label.setImage(DBeaverIcons.getImage(DBIcon.SMALL_WARNING));
+            label.setImage(SwtIcons.getImage(DBIcon.SMALL_WARNING));
             label.setText(ERDUIMessages.erd_editor_control_edit_mode_label);
 
             setEditMode(false);

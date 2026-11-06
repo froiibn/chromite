@@ -15,17 +15,17 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.ui.config.migration.wizards.datagrip;
+package com.seizia.chromite.ui.config.migration.wizards.datagrip;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.ui.config.migration.ImportConfigMessages;
-import org.jkiss.dbeaver.ui.config.migration.datagrip.api.DataGripDataSourceConfigXmlService;
-import org.jkiss.dbeaver.ui.config.migration.datagrip.impl.DataGripDataSourceConfigXmlServiceImpl;
-import org.jkiss.dbeaver.ui.config.migration.wizards.ConfigImportWizardPage;
-import org.jkiss.dbeaver.ui.config.migration.wizards.ImportConnectionInfo;
-import org.jkiss.dbeaver.ui.config.migration.wizards.ImportData;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.ui.config.migration.ImportConfigMessages;
+import com.seizia.chromite.ui.config.migration.datagrip.api.DataGripDataSourceConfigXmlService;
+import com.seizia.chromite.ui.config.migration.datagrip.impl.DataGripDataSourceConfigXmlServiceImpl;
+import com.seizia.chromite.ui.config.migration.wizards.ConfigImportWizardPage;
+import com.seizia.chromite.ui.config.migration.wizards.ImportConnectionInfo;
+import com.seizia.chromite.ui.config.migration.wizards.ImportData;
 
 import java.nio.file.Files;
 import java.nio.file.Path;

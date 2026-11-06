@@ -15,20 +15,20 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.ext.databricks;
+package com.seizia.chromite.ext.databricks;
 
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.ext.generic.model.GenericSQLDialect;
-import org.jkiss.dbeaver.model.DBPDataKind;
-import org.jkiss.dbeaver.model.DBPDataSource;
-import org.jkiss.dbeaver.model.exec.jdbc.JDBCDatabaseMetaData;
-import org.jkiss.dbeaver.model.exec.jdbc.JDBCSession;
-import org.jkiss.dbeaver.model.impl.jdbc.JDBCDataSource;
-import org.jkiss.dbeaver.model.sql.SQLConstants;
-import org.jkiss.dbeaver.model.sql.SQLDialectFeatures;
-import org.jkiss.dbeaver.model.sql.SQLScriptVariableScope;
-import org.jkiss.dbeaver.model.sql.SQLUtils;
-import org.jkiss.dbeaver.model.struct.DBSTypedObject;
+import com.seizia.chromite.ext.generic.model.GenericSQLDialect;
+import com.seizia.chromite.model.DBPDataKind;
+import com.seizia.chromite.model.DBPDataSource;
+import com.seizia.chromite.model.exec.jdbc.JDBCDatabaseMetaData;
+import com.seizia.chromite.model.exec.jdbc.JDBCSession;
+import com.seizia.chromite.model.impl.jdbc.JDBCDataSource;
+import com.seizia.chromite.model.sql.SQLConstants;
+import com.seizia.chromite.model.sql.SQLDialectFeatures;
+import com.seizia.chromite.model.sql.SQLScriptVariableScope;
+import com.seizia.chromite.model.sql.SQLUtils;
+import com.seizia.chromite.model.struct.DBSTypedObject;
 
 import java.util.Arrays;
 import java.util.EnumSet;

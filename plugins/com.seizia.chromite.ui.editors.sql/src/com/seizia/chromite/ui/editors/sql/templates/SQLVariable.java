@@ -8,7 +8,7 @@
  * Contributors:
  *     IBM Corporation - initial API and implementation
  *******************************************************************************/
-package org.jkiss.dbeaver.ui.editors.sql.templates;
+package com.seizia.chromite.ui.editors.sql.templates;
 
 import org.eclipse.core.runtime.Assert;
 import org.eclipse.jface.text.Position;
@@ -23,7 +23,7 @@ import java.util.Map;
 
 
 /**
- * {@link org.jkiss.dbeaver.ui.editors.sql.templates.SQLVariable}s can store multiple sets of data; the currently active set is determined
+ * {@link com.seizia.chromite.ui.editors.sql.templates.SQLVariable}s can store multiple sets of data; the currently active set is determined
  * by the active <em>key</em>. The key may be set via {@link #setKey(Object)}. Data sets are
  * opaque {@link Object} arrays that are converted to the {@link String} values expected by
  * {@link org.eclipse.jface.text.templates.TemplateVariable} using {@link Object#toString() toString}. The

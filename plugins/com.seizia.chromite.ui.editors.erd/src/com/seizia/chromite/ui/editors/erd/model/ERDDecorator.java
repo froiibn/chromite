@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.editors.erd.model;
+package com.seizia.chromite.ui.editors.erd.model;
 
 import org.eclipse.draw2d.geometry.Dimension;
 import org.eclipse.draw2d.geometry.Insets;
@@ -22,7 +22,7 @@ import org.eclipse.gef.EditPartFactory;
 import org.eclipse.gef.palette.PaletteRoot;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.ui.editors.erd.editor.ERDViewStyle;
+import com.seizia.chromite.ui.editors.erd.editor.ERDViewStyle;
 
 /**
  * ERD object adapter

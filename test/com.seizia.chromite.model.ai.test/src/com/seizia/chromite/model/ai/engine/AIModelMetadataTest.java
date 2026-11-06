@@ -15,13 +15,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.ai.engine;
+package com.seizia.chromite.model.ai.engine;
 
 import com.google.gson.Gson;
-import org.jkiss.dbeaver.model.ai.engine.copilot.dto.CopilotModel;
-import org.jkiss.dbeaver.model.ai.engine.openai.OpenAIModels;
-import org.jkiss.dbeaver.model.ai.engine.openai.dto.OAIModel;
-import org.jkiss.junit.DBeaverUnitTest;
+import com.seizia.chromite.model.ai.engine.copilot.dto.CopilotModel;
+import com.seizia.chromite.model.ai.engine.openai.OpenAIModels;
+import com.seizia.chromite.model.ai.engine.openai.dto.OAIModel;
+import com.seizia.chromite.junit.ChromiteUnitTest;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -36,7 +36,7 @@ import java.util.Set;
  * - 2026-11-06 dbeaver.com AI 모델 카탈로그 제거: 카탈로그 보강(AIModelCatalogEntry.enrich, CopilotModel.toAIModel(entry),
  *   OpenAIModels.fromApiModel(model, entry))을 검증하던 테스트 7개를 삭제했다.
  */
-class AIModelMetadataTest extends DBeaverUnitTest {
+class AIModelMetadataTest extends ChromiteUnitTest {
     private static final Gson GSON = new Gson();
 
     @Test

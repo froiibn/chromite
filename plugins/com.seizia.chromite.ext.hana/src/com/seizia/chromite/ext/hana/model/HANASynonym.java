@@ -14,16 +14,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.hana.model;
+package com.seizia.chromite.ext.hana.model;
 
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.ext.generic.model.GenericSchema;
-import org.jkiss.dbeaver.ext.generic.model.GenericStructContainer;
-import org.jkiss.dbeaver.ext.generic.model.GenericSynonym;
-import org.jkiss.dbeaver.model.DBPQualifiedObject;
-import org.jkiss.dbeaver.model.meta.Property;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.model.struct.DBSObject;
+import com.seizia.chromite.ext.generic.model.GenericSchema;
+import com.seizia.chromite.ext.generic.model.GenericStructContainer;
+import com.seizia.chromite.ext.generic.model.GenericSynonym;
+import com.seizia.chromite.model.DBPQualifiedObject;
+import com.seizia.chromite.model.meta.Property;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.model.struct.DBSObject;
 
 public class HANASynonym extends GenericSynonym implements DBPQualifiedObject {
 

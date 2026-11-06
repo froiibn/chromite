@@ -3,8 +3,8 @@
 
 <plugin>
 
-    <extension point="org.jkiss.dbeaver.net.ssh">
-        <implementation id="sshj" label="SSHJ" class="org.jkiss.dbeaver.model.net.ssh.SSHJSessionController"/>
+    <extension point="com.seizia.chromite.net.ssh">
+        <implementation id="sshj" label="SSHJ" class="com.seizia.chromite.model.net.ssh.SSHJSessionController"/>
     </extension>
 
 </plugin>

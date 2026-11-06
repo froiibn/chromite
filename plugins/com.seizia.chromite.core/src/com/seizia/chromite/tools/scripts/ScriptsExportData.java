@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.tools.scripts;
+package com.seizia.chromite.tools.scripts;
 
 import org.eclipse.core.resources.IResource;
 

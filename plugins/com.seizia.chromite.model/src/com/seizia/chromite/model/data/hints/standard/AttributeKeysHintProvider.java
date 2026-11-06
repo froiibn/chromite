@@ -14,23 +14,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.data.hints.standard;
+package com.seizia.chromite.model.data.hints.standard;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.model.DBIcon;
-import org.jkiss.dbeaver.model.DBPEvaluationContext;
-import org.jkiss.dbeaver.model.DBUtils;
-import org.jkiss.dbeaver.model.data.DBDAttributeBinding;
-import org.jkiss.dbeaver.model.data.DBDResultSetModel;
-import org.jkiss.dbeaver.model.data.DBDRowIdentifier;
-import org.jkiss.dbeaver.model.data.hints.DBDAttributeHintProvider;
-import org.jkiss.dbeaver.model.data.hints.DBDValueHint;
-import org.jkiss.dbeaver.model.data.hints.ValueHintText;
-import org.jkiss.dbeaver.model.data.messages.DataMessages;
-import org.jkiss.dbeaver.model.struct.DBSEntity;
-import org.jkiss.dbeaver.model.struct.DBSEntityAssociation;
-import org.jkiss.dbeaver.model.struct.DBSEntityReferrer;
+import com.seizia.chromite.model.DBIcon;
+import com.seizia.chromite.model.DBPEvaluationContext;
+import com.seizia.chromite.model.DBUtils;
+import com.seizia.chromite.model.data.DBDAttributeBinding;
+import com.seizia.chromite.model.data.DBDResultSetModel;
+import com.seizia.chromite.model.data.DBDRowIdentifier;
+import com.seizia.chromite.model.data.hints.DBDAttributeHintProvider;
+import com.seizia.chromite.model.data.hints.DBDValueHint;
+import com.seizia.chromite.model.data.hints.ValueHintText;
+import com.seizia.chromite.model.data.messages.DataMessages;
+import com.seizia.chromite.model.struct.DBSEntity;
+import com.seizia.chromite.model.struct.DBSEntityAssociation;
+import com.seizia.chromite.model.struct.DBSEntityReferrer;
 import org.jkiss.utils.CommonUtils;
 
 import java.util.ArrayList;

@@ -14,30 +14,30 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.generic.model;
+package com.seizia.chromite.ext.generic.model;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.ext.generic.GenericConstants;
-import org.jkiss.dbeaver.ext.generic.model.meta.GenericMetaModel;
-import org.jkiss.dbeaver.ext.generic.model.meta.GenericMetaModelForeignKeyFetcher;
-import org.jkiss.dbeaver.ext.generic.model.meta.GenericMetaObject;
-import org.jkiss.dbeaver.model.DBPEvaluationContext;
-import org.jkiss.dbeaver.model.DBUtils;
-import org.jkiss.dbeaver.model.exec.jdbc.JDBCResultSet;
-import org.jkiss.dbeaver.model.exec.jdbc.JDBCSession;
-import org.jkiss.dbeaver.model.exec.jdbc.JDBCStatement;
-import org.jkiss.dbeaver.model.impl.jdbc.JDBCConstants;
-import org.jkiss.dbeaver.model.impl.jdbc.JDBCUtils;
-import org.jkiss.dbeaver.model.impl.jdbc.cache.JDBCCompositeCache;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.model.struct.DBSEntityAttributeRef;
-import org.jkiss.dbeaver.model.struct.DBSEntityConstraintType;
-import org.jkiss.dbeaver.model.struct.DBSEntityReferrer;
-import org.jkiss.dbeaver.model.struct.rdb.DBSCatalog;
-import org.jkiss.dbeaver.model.struct.rdb.DBSForeignKeyDeferability;
-import org.jkiss.dbeaver.model.struct.rdb.DBSForeignKeyModifyRule;
+import com.seizia.chromite.ext.generic.GenericConstants;
+import com.seizia.chromite.ext.generic.model.meta.GenericMetaModel;
+import com.seizia.chromite.ext.generic.model.meta.GenericMetaModelForeignKeyFetcher;
+import com.seizia.chromite.ext.generic.model.meta.GenericMetaObject;
+import com.seizia.chromite.model.DBPEvaluationContext;
+import com.seizia.chromite.model.DBUtils;
+import com.seizia.chromite.model.exec.jdbc.JDBCResultSet;
+import com.seizia.chromite.model.exec.jdbc.JDBCSession;
+import com.seizia.chromite.model.exec.jdbc.JDBCStatement;
+import com.seizia.chromite.model.impl.jdbc.JDBCConstants;
+import com.seizia.chromite.model.impl.jdbc.JDBCUtils;
+import com.seizia.chromite.model.impl.jdbc.cache.JDBCCompositeCache;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.model.struct.DBSEntityAttributeRef;
+import com.seizia.chromite.model.struct.DBSEntityConstraintType;
+import com.seizia.chromite.model.struct.DBSEntityReferrer;
+import com.seizia.chromite.model.struct.rdb.DBSCatalog;
+import com.seizia.chromite.model.struct.rdb.DBSForeignKeyDeferability;
+import com.seizia.chromite.model.struct.rdb.DBSForeignKeyModifyRule;
 import org.jkiss.utils.CommonUtils;
 
 import java.sql.DatabaseMetaData;

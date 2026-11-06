@@ -14,19 +14,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.sql.backup;
+package com.seizia.chromite.model.sql.backup;
 
 import org.eclipse.core.runtime.IConfigurationElement;
 import org.eclipse.core.runtime.IExtensionRegistry;
 import org.eclipse.core.runtime.Platform;
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.model.sql.SQLDialect;
+import com.seizia.chromite.model.sql.SQLDialect;
 
 import java.util.ArrayList;
 import java.util.List;
 
 public class JDBCDatabaseBackupRegistry {
-    public static final String SQL_BACKUP_EXTENSION_ID = "org.jkiss.dbeaver.sqlBackup";
+    public static final String SQL_BACKUP_EXTENSION_ID = "com.seizia.chromite.sqlBackup";
     private static JDBCDatabaseBackupRegistry instance = null;
 
     private final List<JDBCDatabaseBackupDescriptor> descriptors = new ArrayList<>();

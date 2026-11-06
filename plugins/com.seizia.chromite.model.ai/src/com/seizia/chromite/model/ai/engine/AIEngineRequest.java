@@ -14,11 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.ai.engine;
+package com.seizia.chromite.model.ai.engine;
 
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.model.ai.AIFunctionDescriptor;
-import org.jkiss.dbeaver.model.ai.AIMessage;
+import com.seizia.chromite.model.ai.AIFunctionDescriptor;
+import com.seizia.chromite.model.ai.AIMessage;
 
 import java.util.ArrayList;
 import java.util.List;

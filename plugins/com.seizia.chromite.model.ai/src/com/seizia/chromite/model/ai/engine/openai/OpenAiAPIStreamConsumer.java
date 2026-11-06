@@ -14,19 +14,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.ai.engine.openai;
+package com.seizia.chromite.model.ai.engine.openai;
 
 import com.google.gson.Gson;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.ai.engine.AIEngineResponseChunk;
-import org.jkiss.dbeaver.model.ai.engine.AIEngineResponseConsumer;
-import org.jkiss.dbeaver.model.ai.engine.openai.dto.OAIMessage;
-import org.jkiss.dbeaver.model.ai.engine.openai.dto.OAIMessageContent;
-import org.jkiss.dbeaver.model.ai.engine.openai.dto.OAIResponsesChunk;
-import org.jkiss.dbeaver.model.data.json.JSONUtils;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.ai.engine.AIEngineResponseChunk;
+import com.seizia.chromite.model.ai.engine.AIEngineResponseConsumer;
+import com.seizia.chromite.model.ai.engine.openai.dto.OAIMessage;
+import com.seizia.chromite.model.ai.engine.openai.dto.OAIMessageContent;
+import com.seizia.chromite.model.ai.engine.openai.dto.OAIResponsesChunk;
+import com.seizia.chromite.model.data.json.JSONUtils;
 import org.jkiss.utils.CommonUtils;
 
 import java.util.ArrayList;

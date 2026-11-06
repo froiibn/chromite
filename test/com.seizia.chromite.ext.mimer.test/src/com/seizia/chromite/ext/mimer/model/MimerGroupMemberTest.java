@@ -14,10 +14,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.mimer.model;
+package com.seizia.chromite.ext.mimer.model;
 
-import org.jkiss.dbeaver.model.exec.jdbc.JDBCResultSet;
-import org.jkiss.junit.DBeaverUnitTest;
+import com.seizia.chromite.model.exec.jdbc.JDBCResultSet;
+import com.seizia.chromite.junit.ChromiteUnitTest;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -35,7 +35,7 @@ import java.sql.SQLException;
  *
  * @author Mimer Information Technology
  */
-public class MimerGroupMemberTest extends DBeaverUnitTest {
+public class MimerGroupMemberTest extends ChromiteUnitTest {
 
     @Mock
     private MimerGroup group;

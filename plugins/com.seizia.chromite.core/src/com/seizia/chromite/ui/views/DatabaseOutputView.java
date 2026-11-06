@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.views;
+package com.seizia.chromite.ui.views;
 
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.custom.StyledText;
@@ -27,7 +27,7 @@ import java.util.Map;
 
 public class DatabaseOutputView extends ViewPart
 {
-    public static final String VIEW_ID = "org.jkiss.dbeaver.core.databaseOutput";
+    public static final String VIEW_ID = "com.seizia.chromite.core.databaseOutput";
 
     private StyledText text;
     private PrintWriter writer;

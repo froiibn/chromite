@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.editors.sql.addins;
+package com.seizia.chromite.ui.editors.sql.addins;
 
 import org.eclipse.core.expressions.Expression;
 import org.eclipse.core.resources.IMarker;
@@ -27,8 +27,8 @@ import org.eclipse.ui.texteditor.MarkerAnnotation;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.impl.AbstractDescriptor;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.impl.AbstractDescriptor;
 import org.jkiss.utils.ArrayUtils;
 import org.jkiss.utils.CommonUtils;
 

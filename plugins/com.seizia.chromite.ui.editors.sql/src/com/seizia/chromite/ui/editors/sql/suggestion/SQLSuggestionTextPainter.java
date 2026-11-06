@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.editors.sql.suggestion;
+package com.seizia.chromite.ui.editors.sql.suggestion;
 
 import org.eclipse.jface.text.*;
 import org.eclipse.swt.custom.LineBackgroundEvent;
@@ -26,8 +26,8 @@ import org.eclipse.swt.graphics.Color;
 import org.eclipse.swt.graphics.GC;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.ui.UIUtils;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.ui.UIUtils;
 
 import java.util.Arrays;
 

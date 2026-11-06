@@ -15,31 +15,31 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.ext.gaussdb.edit;
+package com.seizia.chromite.ext.gaussdb.edit;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.ext.gaussdb.model.DBCompatibilityEnum;
-import org.jkiss.dbeaver.ext.gaussdb.model.GaussDBDataSource;
-import org.jkiss.dbeaver.ext.gaussdb.model.GaussDBDatabase;
-import org.jkiss.dbeaver.ext.postgresql.model.PostgreDatabase;
-import org.jkiss.dbeaver.model.DBConstants;
-import org.jkiss.dbeaver.model.DBPDataSource;
-import org.jkiss.dbeaver.model.DBUtils;
-import org.jkiss.dbeaver.model.edit.DBECommandContext;
-import org.jkiss.dbeaver.model.edit.DBEObjectRenamer;
-import org.jkiss.dbeaver.model.edit.DBEPersistAction;
-import org.jkiss.dbeaver.model.exec.DBCException;
-import org.jkiss.dbeaver.model.exec.DBCExecutionContext;
-import org.jkiss.dbeaver.model.exec.DBCSession;
-import org.jkiss.dbeaver.model.impl.edit.SQLDatabasePersistAction;
-import org.jkiss.dbeaver.model.impl.edit.SQLDatabasePersistActionAtomic;
-import org.jkiss.dbeaver.model.impl.sql.edit.SQLObjectEditor;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.model.sql.SQLUtils;
-import org.jkiss.dbeaver.model.struct.DBSObject;
-import org.jkiss.dbeaver.model.struct.cache.DBSObjectCache;
+import com.seizia.chromite.ext.gaussdb.model.DBCompatibilityEnum;
+import com.seizia.chromite.ext.gaussdb.model.GaussDBDataSource;
+import com.seizia.chromite.ext.gaussdb.model.GaussDBDatabase;
+import com.seizia.chromite.ext.postgresql.model.PostgreDatabase;
+import com.seizia.chromite.model.DBConstants;
+import com.seizia.chromite.model.DBPDataSource;
+import com.seizia.chromite.model.DBUtils;
+import com.seizia.chromite.model.edit.DBECommandContext;
+import com.seizia.chromite.model.edit.DBEObjectRenamer;
+import com.seizia.chromite.model.edit.DBEPersistAction;
+import com.seizia.chromite.model.exec.DBCException;
+import com.seizia.chromite.model.exec.DBCExecutionContext;
+import com.seizia.chromite.model.exec.DBCSession;
+import com.seizia.chromite.model.impl.edit.SQLDatabasePersistAction;
+import com.seizia.chromite.model.impl.edit.SQLDatabasePersistActionAtomic;
+import com.seizia.chromite.model.impl.sql.edit.SQLObjectEditor;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.model.sql.SQLUtils;
+import com.seizia.chromite.model.struct.DBSObject;
+import com.seizia.chromite.model.struct.cache.DBSObjectCache;
 import org.jkiss.utils.CommonUtils;
 
 import java.util.List;

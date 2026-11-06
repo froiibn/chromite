@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.utils;
+package com.seizia.chromite.utils;
 
 import org.eclipse.core.filesystem.EFS;
 import org.eclipse.core.filesystem.IFileInfo;
@@ -26,13 +26,13 @@ import org.eclipse.core.runtime.IPath;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.fs.DBFVirtualFileSystemRoot;
-import org.jkiss.dbeaver.model.fs.nio.EFSNIOFile;
-import org.jkiss.dbeaver.model.fs.nio.EFSNIOFileSystemRoot;
-import org.jkiss.dbeaver.model.fs.nio.EFSNIOFolder;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.model.runtime.VoidProgressMonitor;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.fs.DBFVirtualFileSystemRoot;
+import com.seizia.chromite.model.fs.nio.EFSNIOFile;
+import com.seizia.chromite.model.fs.nio.EFSNIOFileSystemRoot;
+import com.seizia.chromite.model.fs.nio.EFSNIOFolder;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.model.runtime.VoidProgressMonitor;
 import org.jkiss.utils.AlphanumericComparator;
 import org.jkiss.utils.ArrayUtils;
 

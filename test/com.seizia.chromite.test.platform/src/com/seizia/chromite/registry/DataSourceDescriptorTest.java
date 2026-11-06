@@ -14,23 +14,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.registry;
+package com.seizia.chromite.registry;
 
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.model.DBPDataSourceConfigurationStorage;
-import org.jkiss.dbeaver.model.app.DBPDataSourceRegistry;
-import org.jkiss.dbeaver.model.connection.DBPConnectionConfiguration;
-import org.jkiss.dbeaver.model.connection.DBPDriver;
-import org.jkiss.dbeaver.model.preferences.DBPPreferenceStore;
-import org.jkiss.dbeaver.model.secret.DBSSecretValue;
-import org.jkiss.junit.DBeaverUnitTest;
+import com.seizia.chromite.model.DBPDataSourceConfigurationStorage;
+import com.seizia.chromite.model.app.DBPDataSourceRegistry;
+import com.seizia.chromite.model.connection.DBPConnectionConfiguration;
+import com.seizia.chromite.model.connection.DBPDriver;
+import com.seizia.chromite.model.preferences.DBPPreferenceStore;
+import com.seizia.chromite.model.secret.DBSSecretValue;
+import com.seizia.chromite.junit.ChromiteUnitTest;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
 import java.util.Map;
 
-public class DataSourceDescriptorTest extends DBeaverUnitTest {
+public class DataSourceDescriptorTest extends ChromiteUnitTest {
     @Test
     public void testResetRevokedSharedCredentials() {
         DBPConnectionConfiguration connectionInfo = new DBPConnectionConfiguration();

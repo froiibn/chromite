@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.mysql.ui.controls;
+package com.seizia.chromite.ext.mysql.ui.controls;
 
 import org.eclipse.jface.viewers.*;
 import org.eclipse.swt.SWT;
@@ -25,15 +25,15 @@ import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Event;
 import org.eclipse.swt.widgets.Table;
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.ext.mysql.MySQLConstants;
-import org.jkiss.dbeaver.ext.mysql.model.MySQLDataSource;
-import org.jkiss.dbeaver.ext.mysql.model.MySQLGrant;
-import org.jkiss.dbeaver.ext.mysql.model.MySQLPrivilege;
-import org.jkiss.dbeaver.ext.mysql.ui.internal.MySQLUIMessages;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.controls.CustomCheckboxCellEditor;
-import org.jkiss.dbeaver.ui.controls.ListContentProvider;
-import org.jkiss.dbeaver.ui.controls.ViewerColumnController;
+import com.seizia.chromite.ext.mysql.MySQLConstants;
+import com.seizia.chromite.ext.mysql.model.MySQLDataSource;
+import com.seizia.chromite.ext.mysql.model.MySQLGrant;
+import com.seizia.chromite.ext.mysql.model.MySQLPrivilege;
+import com.seizia.chromite.ext.mysql.ui.internal.MySQLUIMessages;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.controls.CustomCheckboxCellEditor;
+import com.seizia.chromite.ui.controls.ListContentProvider;
+import com.seizia.chromite.ui.controls.ViewerColumnController;
 import org.jkiss.utils.ArrayUtils;
 import org.jkiss.utils.CommonUtils;
 

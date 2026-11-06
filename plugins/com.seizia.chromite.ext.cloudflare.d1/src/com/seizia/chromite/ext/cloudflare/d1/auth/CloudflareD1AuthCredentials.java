@@ -14,11 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.cloudflare.d1.auth;
+package com.seizia.chromite.ext.cloudflare.d1.auth;
 
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.model.impl.auth.AuthModelDatabaseNativeCredentials;
-import org.jkiss.dbeaver.model.meta.Property;
+import com.seizia.chromite.model.impl.auth.AuthModelDatabaseNativeCredentials;
+import com.seizia.chromite.model.meta.Property;
 
 /** Native credentials represented by Cloudflare's account ID and API token. */
 public class CloudflareD1AuthCredentials extends AuthModelDatabaseNativeCredentials {

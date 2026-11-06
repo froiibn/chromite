@@ -14,12 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.mysql;
+package com.seizia.chromite.ext.mysql;
 
 import org.eclipse.osgi.util.NLS;
 
 public class MySQLMessages extends NLS {
-    private static final String BUNDLE_NAME = "org.jkiss.dbeaver.ext.mysql.MySQLMessages";
+    private static final String BUNDLE_NAME = "com.seizia.chromite.ext.mysql.MySQLMessages";
 
     public static String exception_direct_database_rename;
     public static String table_column_length_tooltip;

@@ -2,36 +2,36 @@
 <?eclipse version="3.2"?>
 
 <plugin>
-    <extension-point id="org.jkiss.dbeaver.resourceHandler" name="Resource handlers" schema="schema/org.jkiss.dbeaver.resourceHandler.exsd"/>
+    <extension-point id="com.seizia.chromite.resourceHandler" name="Resource handlers" schema="schema/com.seizia.chromite.resourceHandler.exsd"/>
 
-    <extension point="org.jkiss.dbeaver.navigator">
-        <extender id="dbvfs" root="true" nodeDisplayName="File systems" nodeType="org.jkiss.dbeaver.model.navigator.fs.DBNFileSystems" class="org.jkiss.dbeaver.model.navigator.RCPNavigatorExtender"/>
+    <extension point="com.seizia.chromite.navigator">
+        <extender id="dbvfs" root="true" nodeDisplayName="File systems" nodeType="com.seizia.chromite.model.navigator.fs.DBNFileSystems" class="com.seizia.chromite.model.navigator.RCPNavigatorExtender"/>
     </extension>
 
-    <extension point="org.eclipse.core.resources.natures" id="org.jkiss.dbeaver.DBeaverNature"
-               name="%extension.org.jkiss.dbeaver.DBeaverNature.name">
+    <extension point="org.eclipse.core.resources.natures" id="com.seizia.chromite.ChromiteNature"
+               name="%extension.com.seizia.chromite.ChromiteNature.name">
         <runtime>
-            <run class="org.jkiss.dbeaver.model.rcp.DBeaverNature">
+            <run class="com.seizia.chromite.model.rcp.ChromiteNature">
             </run>
         </runtime>
     </extension>
 
     <extension point="org.eclipse.core.filesystem.filesystems">
         <filesystem scheme="dbvfs">
-            <run class="org.jkiss.dbeaver.model.fs.nio.EFSNIOFileSystem"/>
+            <run class="com.seizia.chromite.model.fs.nio.EFSNIOFileSystem"/>
         </filesystem>
     </extension>
 
-    <extension point="org.jkiss.dbeaver.resourceType">
+    <extension point="com.seizia.chromite.resourceType">
         <type id="project">
             <resourceTypeBinding resourceType="org.eclipse.core.resources.IProject"/>
         </type>
-        <type id="bookmark" name="Navigator bookmarks" icon="platform:/plugin/org.jkiss.dbeaver.ui/icons/bookmark_folder.svg" managable="true">
+        <type id="bookmark" name="Navigator bookmarks" icon="platform:/plugin/com.seizia.chromite.ui/icons/bookmark_folder.svg" managable="true">
             <root folder="Bookmarks"/>
-            <contentTypeBinding contentTypeId="org.jkiss.dbeaver.bookmark"/>
+            <contentTypeBinding contentTypeId="com.seizia.chromite.bookmark"/>
         </type>
         <type id="shortcut">
-            <contentTypeBinding contentTypeId="org.jkiss.dbeaver.shortcut"/>
+            <contentTypeBinding contentTypeId="com.seizia.chromite.shortcut"/>
         </type>
     </extension>
 

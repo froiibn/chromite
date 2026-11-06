@@ -15,12 +15,12 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.ext.postgresql.model;
+package com.seizia.chromite.ext.postgresql.model;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.model.access.DBAPrivilegeOwner;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.model.access.DBAPrivilegeOwner;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
 
 import java.util.Collection;
 import java.util.Map;

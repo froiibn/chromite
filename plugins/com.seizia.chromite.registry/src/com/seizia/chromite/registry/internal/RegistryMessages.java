@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.registry.internal;
+package com.seizia.chromite.registry.internal;
 
 import org.eclipse.osgi.util.NLS;
 
@@ -24,7 +24,7 @@ import org.eclipse.osgi.util.NLS;
  * - 2026-11-06 드라이버 오프라인 모드 안내 문구(driver_offline_*) 추가, 한국어 번역 파일(_ko) 신설
  */
 public class RegistryMessages extends NLS {
-    public static final String BUNDLE_NAME = "org.jkiss.dbeaver.registry.internal.RegistryMessages"; //$NON-NLS-1$
+    public static final String BUNDLE_NAME = "com.seizia.chromite.registry.internal.RegistryMessages"; //$NON-NLS-1$
 
     public static String dialog_connection_auth_title;
     public static String dialog_connection_auth_title_for_handler;

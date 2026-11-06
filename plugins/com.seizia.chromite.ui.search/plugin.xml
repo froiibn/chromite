@@ -6,7 +6,7 @@
 
     <extension point="org.eclipse.ui.actionSets">
         <actionSet
-            id="org.jkiss.dbeaver.search.searchActionSet"
+            id="com.seizia.chromite.search.searchActionSet"
             label="Chromite Search"
             visible="true">
             <!-- Some ancient Eclipse bug makes us to do this crazy things.
@@ -23,26 +23,26 @@
                 <separator name="extraSearchGroup"/> <!-- to be used by clients -->
             </menu>
 
-            <action id="org.jkiss.dbeaver.search.OpenDataSearchPage"
-                definitionId="org.jkiss.dbeaver.search.OpenDataSearchPage"
+            <action id="com.seizia.chromite.search.OpenDataSearchPage"
+                definitionId="com.seizia.chromite.search.OpenDataSearchPage"
                 menubarPath="org.eclipse.search.menu/dialogGroup"
                 label="%search.page.label.db.fulltext"
                 icon="icons/search/data.png"
-                class="org.jkiss.dbeaver.ui.search.data.OpenDataSearchPageAction"/>
-            <action id="org.jkiss.dbeaver.search.OpenMetadataSearchPage"
-                definitionId="org.jkiss.dbeaver.search.OpenMetadataSearchPage"
+                class="com.seizia.chromite.ui.search.data.OpenDataSearchPageAction"/>
+            <action id="com.seizia.chromite.search.OpenMetadataSearchPage"
+                definitionId="com.seizia.chromite.search.OpenMetadataSearchPage"
                 menubarPath="org.eclipse.search.menu/dialogGroup"
                 label="%search.page.label.db.metadata"
                 icon="icons/search/metadata.png"
-                class="org.jkiss.dbeaver.ui.search.metadata.OpenMetadataSearchPageAction"/>
+                class="com.seizia.chromite.ui.search.metadata.OpenMetadataSearchPageAction"/>
             <!-- This doesn't work anyway -->
 <!--
-            <action id="org.jkiss.dbeaver.search.OpenQuickSearch"
-                definitionId="org.jkiss.dbeaver.search.OpenQuickSearch"
+            <action id="com.seizia.chromite.search.OpenQuickSearch"
+                definitionId="com.seizia.chromite.search.OpenQuickSearch"
                 menubarPath="org.eclipse.search.menu/dialogGroup"
                 label="Quick Search"
                 icon="icons/search/quick.png"
-                class="org.jkiss.dbeaver.ui.search.OpenQuickSearchAction"/>
+                class="com.seizia.chromite.ui.search.OpenQuickSearchAction"/>
 -->
         </actionSet>
     </extension>
@@ -50,35 +50,35 @@
     <extension
         point="org.eclipse.search.searchPages">
         <page
-            class="org.jkiss.dbeaver.ui.search.metadata.SearchMetadataPage"
+            class="com.seizia.chromite.ui.search.metadata.SearchMetadataPage"
             enabled="true"
             icon="icons/search/metadata.png"
-            id="org.jkiss.dbeaver.ui.search.metadata.SearchMetadataPage"
+            id="com.seizia.chromite.ui.search.metadata.SearchMetadataPage"
             label="%search.page.label.db.metadata">
         </page>
         <page
-            class="org.jkiss.dbeaver.ui.search.data.SearchDataPage"
+            class="com.seizia.chromite.ui.search.data.SearchDataPage"
             enabled="true"
             icon="icons/search/data.png"
-            id="org.jkiss.dbeaver.ui.search.data.SearchDataPage"
+            id="com.seizia.chromite.ui.search.data.SearchDataPage"
             label="%search.page.label.db.fulltext">
         </page>
     </extension>
     <extension
         point="org.eclipse.search.searchResultViewPages">
         <viewPage
-            class="org.jkiss.dbeaver.ui.search.metadata.SearchMetadataResultsPage"
+            class="com.seizia.chromite.ui.search.metadata.SearchMetadataResultsPage"
             icon="icons/search/metadata.png"
-            id="org.jkiss.dbeaver.ui.search.metadata.SearchMetadataResultsPage"
+            id="com.seizia.chromite.ui.search.metadata.SearchMetadataResultsPage"
             label="%search.result.view.page.metadata.result.name"
-            searchResultClass="org.jkiss.dbeaver.ui.search.metadata.SearchMetadataResult">
+            searchResultClass="com.seizia.chromite.ui.search.metadata.SearchMetadataResult">
         </viewPage>
         <viewPage
-            class="org.jkiss.dbeaver.ui.search.data.SearchDataResultsPage"
+            class="com.seizia.chromite.ui.search.data.SearchDataResultsPage"
             icon="icons/search/data.png"
-            id="org.jkiss.dbeaver.ui.search.data.SearchDataResultsPage"
+            id="com.seizia.chromite.ui.search.data.SearchDataResultsPage"
             label="%search.result.view.page.data.result.name"
-            searchResultClass="org.jkiss.dbeaver.ui.search.data.SearchDataResult">
+            searchResultClass="com.seizia.chromite.ui.search.data.SearchDataResult">
         </viewPage>
     </extension>
 

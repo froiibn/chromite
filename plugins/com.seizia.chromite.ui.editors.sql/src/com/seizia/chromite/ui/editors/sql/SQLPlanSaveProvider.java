@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.editors.sql;
+package com.seizia.chromite.ui.editors.sql;
 
 import org.eclipse.jface.action.Action;
 import org.eclipse.jface.action.IContributionManager;
@@ -22,15 +22,15 @@ import org.eclipse.jface.action.Separator;
 import org.eclipse.jface.resource.ImageDescriptor;
 import org.eclipse.jface.viewers.Viewer;
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.model.exec.plan.DBCPlan;
-import org.jkiss.dbeaver.model.exec.plan.DBCQueryPlanner;
-import org.jkiss.dbeaver.model.exec.plan.DBCQueryPlannerSerializable;
-import org.jkiss.dbeaver.model.sql.SQLQuery;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.ui.DBeaverIcons;
-import org.jkiss.dbeaver.ui.UIIcon;
-import org.jkiss.dbeaver.ui.dialogs.DialogUtils;
-import org.jkiss.dbeaver.utils.GeneralUtils;
+import com.seizia.chromite.model.exec.plan.DBCPlan;
+import com.seizia.chromite.model.exec.plan.DBCQueryPlanner;
+import com.seizia.chromite.model.exec.plan.DBCQueryPlannerSerializable;
+import com.seizia.chromite.model.sql.SQLQuery;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.ui.SwtIcons;
+import com.seizia.chromite.ui.UIIcon;
+import com.seizia.chromite.ui.dialogs.DialogUtils;
+import com.seizia.chromite.utils.GeneralUtils;
 
 import java.io.IOException;
 import java.io.Writer;
@@ -54,7 +54,7 @@ public abstract class SQLPlanSaveProvider implements SQLPlanViewProvider {
     protected abstract void showPlan(Viewer viewer, SQLQuery query, DBCPlan plan);
     
     public SQLPlanSaveProvider() {
-       saveAction = new SaveAction("Save plan", DBeaverIcons.getImageDescriptor(UIIcon.SAVE_AS), this);
+       saveAction = new SaveAction("Save plan", SwtIcons.getImageDescriptor(UIIcon.SAVE_AS), this);
     }
 
     protected void doSave() {

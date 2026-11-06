@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.model.security;
+package com.seizia.chromite.model.security;
 
 public interface SMStandardMeta {
 

@@ -3,13 +3,13 @@
 
 <plugin>
 
-    <extension point="org.jkiss.dbeaver.dataSourceConfigurator">
-        <configurator dataSource="hana" class="org.jkiss.dbeaver.ext.hana.ui.views.HANAConnectionPage"/>
+    <extension point="com.seizia.chromite.dataSourceConfigurator">
+        <configurator dataSource="hana" class="com.seizia.chromite.ext.hana.ui.views.HANAConnectionPage"/>
     </extension>
 
-    <extension point="org.jkiss.dbeaver.databaseEditor">
-        <configurator class="org.jkiss.dbeaver.ext.hana.ui.config.HANASchemaConfigurator">
-            <objectType name="org.jkiss.dbeaver.ext.hana.model.HANASchema"/>
+    <extension point="com.seizia.chromite.databaseEditor">
+        <configurator class="com.seizia.chromite.ext.hana.ui.config.HANASchemaConfigurator">
+            <objectType name="com.seizia.chromite.ext.hana.model.HANASchema"/>
         </configurator>
     </extension>
 

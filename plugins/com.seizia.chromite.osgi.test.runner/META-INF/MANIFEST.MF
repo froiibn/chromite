@@ -1,16 +1,16 @@
 Manifest-Version: 1.0
 Bundle-ManifestVersion: 2
 Bundle-Name: Chromite Test Suite
-Bundle-SymbolicName: org.jkiss.dbeaver.osgi.test.runner
+Bundle-SymbolicName: com.seizia.chromite.osgi.test.runner
 Bundle-Version: 1.0.147.qualifier
 Bundle-Release-Date: 20261116
-Bundle-Vendor: DBeaver Corp
+Bundle-Vendor: Chromite contributors
 Bundle-RequiredExecutionEnvironment: JavaSE-21
 Bundle-ActivationPolicy: lazy
-Export-Package: org.jkiss.junit.osgi,
- org.jkiss.junit.osgi.annotation,
- org.jkiss.junit.osgi.behaviors,
- org.jkiss.junit.osgi.extension
+Export-Package: com.seizia.chromite.junit.osgi,
+ com.seizia.chromite.junit.osgi.annotation,
+ com.seizia.chromite.junit.osgi.behaviors,
+ com.seizia.chromite.junit.osgi.extension
 Require-Bundle:  org.opentest4j;visibility:=reexport,
  org.eclipse.core.resources,
  org.hamcrest;visibility:=reexport,
@@ -24,7 +24,7 @@ Require-Bundle:  org.opentest4j;visibility:=reexport,
  junit-platform-suite-engine;visibility:=reexport,
  org.mockito.mockito-core;visibility:=reexport,
  org.apache.felix.scr,
- org.jkiss.dbeaver.model,
+ com.seizia.chromite.model,
  org.objenesis;visibility:=reexport,
  net.bytebuddy.byte-buddy;visibility:=reexport,
  net.bytebuddy.byte-buddy-agent;visibility:=reexport

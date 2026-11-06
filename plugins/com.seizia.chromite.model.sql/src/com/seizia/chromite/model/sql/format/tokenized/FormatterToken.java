@@ -18,7 +18,7 @@
 /*
  * FormatterToken
  */
-package org.jkiss.dbeaver.model.sql.format.tokenized;
+package com.seizia.chromite.model.sql.format.tokenized;
 
 class FormatterToken {
 

@@ -15,14 +15,14 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.model.qm;
+package com.seizia.chromite.model.qm;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.model.DBPDataSource;
-import org.jkiss.dbeaver.model.DBPTransactionIsolation;
-import org.jkiss.dbeaver.model.exec.*;
-import org.jkiss.dbeaver.model.runtime.features.DBRFeature;
+import com.seizia.chromite.model.DBPDataSource;
+import com.seizia.chromite.model.DBPTransactionIsolation;
+import com.seizia.chromite.model.exec.*;
+import com.seizia.chromite.model.runtime.features.DBRFeature;
 
 import java.util.Map;
 

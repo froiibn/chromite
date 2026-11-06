@@ -15,12 +15,12 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.model.data;
+package com.seizia.chromite.model.data;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.model.exec.*;
-import org.jkiss.dbeaver.model.struct.DBSTypedObject;
+import com.seizia.chromite.model.exec.*;
+import com.seizia.chromite.model.struct.DBSTypedObject;
 
 import java.util.Comparator;
 
@@ -59,7 +59,7 @@ public interface DBDValueHandler extends DBDValueRenderer
      * @param type attribute type
      * @param index attribute index (zero based)
      * @return value or null
-     * @throws org.jkiss.dbeaver.model.exec.DBCException on error
+     * @throws com.seizia.chromite.model.exec.DBCException on error
      */
     @Nullable
     Object fetchValueObject(
@@ -77,7 +77,7 @@ public interface DBDValueHandler extends DBDValueRenderer
      * @param type attribute type
      * @param index parameter index (zero based)
      * @param value parameter value (can be null). Value is get from fetchValueObject function or from
-     * object set by editor (editValue function).  @throws org.jkiss.dbeaver.model.exec.DBCException on error
+     * object set by editor (editValue function).  @throws com.seizia.chromite.model.exec.DBCException on error
      */
     void bindValueObject(
         @NotNull DBCSession session,
@@ -99,7 +99,7 @@ public interface DBDValueHandler extends DBDValueRenderer
      * @param copy copy object
      * @param validateValue if true then input value will be validated and exception will be thrown on error (e.g. when number cannot be parsed). Otherwise invalid object value will be converted to null.
      * @return initial object value
-     * @throws org.jkiss.dbeaver.model.exec.DBCException on error
+     * @throws com.seizia.chromite.model.exec.DBCException on error
      */
     @Nullable
     Object getValueFromObject(

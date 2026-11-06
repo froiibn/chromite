@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.actions.datasource;
+package com.seizia.chromite.ui.actions.datasource;
 
 import org.eclipse.core.commands.ExecutionEvent;
 import org.eclipse.core.commands.ExecutionException;
@@ -30,13 +30,13 @@ import org.eclipse.swt.widgets.Shell;
 import org.eclipse.ui.IEditorPart;
 import org.eclipse.ui.IWorkbenchPart;
 import org.eclipse.ui.handlers.HandlerUtil;
-import org.jkiss.dbeaver.core.CoreMessages;
-import org.jkiss.dbeaver.core.DBeaverActivator;
-import org.jkiss.dbeaver.ui.ActionUtils;
-import org.jkiss.dbeaver.ui.actions.AbstractDataSourceHandler;
-import org.jkiss.dbeaver.ui.actions.ConnectionCommands;
-import org.jkiss.dbeaver.ui.actions.CoreCommandConstants;
-import org.jkiss.dbeaver.ui.editors.sql.SQLEditorCommands;
+import com.seizia.chromite.core.CoreMessages;
+import com.seizia.chromite.core.ChromiteActivator;
+import com.seizia.chromite.ui.ActionUtils;
+import com.seizia.chromite.ui.actions.AbstractDataSourceHandler;
+import com.seizia.chromite.ui.actions.ConnectionCommands;
+import com.seizia.chromite.ui.actions.CoreCommandConstants;
+import com.seizia.chromite.ui.editors.sql.SQLEditorCommands;
 import org.jkiss.utils.CommonUtils;
 
 public class ToolsContextMenuHandler extends AbstractDataSourceHandler
@@ -72,7 +72,7 @@ public class ToolsContextMenuHandler extends AbstractDataSourceHandler
             menuManager.add(ActionUtils.makeCommandContribution(part.getSite(), ConnectionCommands.CMD_ROLLBACK));
             {
                 final MenuManager txnMenu = new MenuManager(
-                    DBeaverActivator.getPluginResourceBundle().getString("command.org.jkiss.dbeaver.core.transaction_mode.name"));
+                    ChromiteActivator.getPluginResourceBundle().getString("command.com.seizia.chromite.core.transaction_mode.name"));
                 txnMenu.add(new DataSourceTransactionModeContributor());
                 menuManager.add(txnMenu);
             }
@@ -83,7 +83,7 @@ public class ToolsContextMenuHandler extends AbstractDataSourceHandler
             menuManager.add(ActionUtils.makeCommandContribution(part.getSite(), SQLEditorCommands.CMD_SQL_EDITOR_OPEN));
 /*
             final MenuManager toolsMenu = new MenuManager(
-                DBeaverActivator.getPluginResourceBundle().getString("menu.database.tools"));
+                ChromiteActivator.getPluginResourceBundle().getString("menu.database.tools"));
             toolsMenu.add(new DataSourceToolsContributor());
             menuManager.add(toolsMenu);
 */

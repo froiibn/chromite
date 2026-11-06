@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.ui.editors.sql.registry;
+package com.seizia.chromite.ui.editors.sql.registry;
 
 import org.eclipse.core.runtime.IConfigurationElement;
 import org.eclipse.core.runtime.IExtensionRegistry;
@@ -31,7 +31,7 @@ import java.util.List;
  */
 public class SQLConverterRegistry {
 
-    public static final String EXTENSION_ID = "org.jkiss.dbeaver.sql.covert"; //NON-NLS-1 //$NON-NLS-1$
+    public static final String EXTENSION_ID = "com.seizia.chromite.sql.covert"; //NON-NLS-1 //$NON-NLS-1$
 
     private static final String TAG_TARGET = "target"; //NON-NLS-1
 

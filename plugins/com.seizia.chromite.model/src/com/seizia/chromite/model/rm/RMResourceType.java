@@ -14,9 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.rm;
+package com.seizia.chromite.model.rm;
 
-import org.jkiss.dbeaver.model.app.DBPResourceTypeDescriptor;
+import com.seizia.chromite.model.app.DBPResourceTypeDescriptor;
 
 public class RMResourceType {
 

@@ -14,12 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.cloudflare.d1.internal;
+package com.seizia.chromite.ext.cloudflare.d1.internal;
 
 import org.eclipse.osgi.util.NLS;
 
 public class CloudflareD1ModelMessages extends NLS {
-    private static final String BUNDLE_NAME = "org.jkiss.dbeaver.ext.cloudflare.d1.internal.CloudflareD1ModelResources";
+    private static final String BUNDLE_NAME = "com.seizia.chromite.ext.cloudflare.d1.internal.CloudflareD1ModelResources";
     public static String task_administration;
     public static String value_none;
     public static String error_cancelled;

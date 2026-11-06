@@ -14,10 +14,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.sql.eval;
+package com.seizia.chromite.model.sql.eval;
 
 import org.apache.commons.jexl3.JexlContext;
-import org.jkiss.dbeaver.model.sql.SQLScriptContext;
+import com.seizia.chromite.model.sql.SQLScriptContext;
 
 /**
  * ScriptVariablesContext

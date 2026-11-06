@@ -14,14 +14,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.runtime;
+package com.seizia.chromite.model.runtime;
 
 import org.eclipse.core.runtime.IProgressMonitor;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.exec.DBCException;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.exec.DBCException;
+import com.seizia.chromite.runtime.DBWorkbench;
 
 import java.util.ArrayList;
 import java.util.List;

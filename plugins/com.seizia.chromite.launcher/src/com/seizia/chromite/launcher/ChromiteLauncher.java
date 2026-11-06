@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.launcher;
+package com.seizia.chromite.launcher;
 
 import org.eclipse.equinox.launcher.JNIBridge;
 
@@ -57,7 +57,7 @@ import javax.swing.*;
  * on this class are not API.
  */
 @SuppressWarnings("CheckStyle")
-public class DBeaverLauncher {
+public class ChromiteLauncher {
 
     public static final String PROP_ECLIPSE_NET_PROXY_ENABLE = "org.eclipse.net.core.enableProxyService";
     /**
@@ -283,17 +283,17 @@ public class DBeaverLauncher {
     private static final String KEY_CONFIGINI_TIMESTAMP = "configIniTimestamp"; //$NON-NLS-1$
     private static final String PROP_IGNORE_USER_CONFIGURATION = "eclipse.ignoreUserConfiguration"; //$NON-NLS-1$
 
-    public static final String DBEAVER_DATA_FOLDER = "DBeaverData";
-    private static final String DBEAVER_INSTALL_FOLDER = "install-data";
-    private static final String DBEAVER_SECURE_DIR = "secure"; //$NON-NLS-1$
-    private static final String DBEAVER_SECURE_FILE = "secure_storage"; //$NON-NLS-1$
+    public static final String CHROMITE_DATA_FOLDER = "ChromiteData";
+    private static final String CHROMITE_INSTALL_FOLDER = "install-data";
+    private static final String CHROMITE_SECURE_DIR = "secure"; //$NON-NLS-1$
+    private static final String CHROMITE_SECURE_FILE = "secure_storage"; //$NON-NLS-1$
     public static final String ARG_ECLIPSE_KEYRING = "-eclipse.keyring"; //$NON-NLS-1$
 
     private static final String DEFAULT_SECURE_STORAGE_FILENAME = ".eclipse/org.eclipse.equinox.security/secure_storage"; //$NON-NLS-1$
 
-    private static final String DBEAVER_CONFIG_FOLDER = "settings";
-    private static final String DBEAVER_CONFIG_FILE = "global-settings.ini";
-    private static final String DBEAVER_PROP_LANGUAGE = "nl";
+    private static final String CHROMITE_CONFIG_FOLDER = "settings";
+    private static final String CHROMITE_CONFIG_FILE = "global-settings.ini";
+    private static final String CHROMITE_PROP_LANGUAGE = "nl";
 
     // List of incompatible Windows versions for those which we want to show a warning dialog
     private static final Set<String> INCOMPATIBLE_WINDOWS_VERSIONS = Set.of(
@@ -336,12 +336,12 @@ public class DBeaverLauncher {
      */
     private static void patchJavaSecurity(String[] args) {
         // We need a way to disable this using a Java property just in case
-        if (!Boolean.parseBoolean(System.getProperty("dbeaver.security.enableLegacyAlgorithms", "false"))) {
+        if (!Boolean.parseBoolean(System.getProperty("chromite.security.enableLegacyAlgorithms", "false"))) {
             return;
         }
         // Let's detect a desktop DBeaver or dbvr using their product ID
         String productId = findProductIdInArgs(args);
-        if (!productId.startsWith(Constants.PRODUCT_DBEAVER_COMMUNITY_PREFIX) &&
+        if (!productId.startsWith(Constants.PRODUCT_CHROMITE_COMMUNITY_PREFIX) &&
             !productId.startsWith(Constants.PRODUCT_PROPRIETARY_DBEAVER_DESKTOP_PREFIX) &&
             !productId.startsWith(Constants.PRODUCT_DBVR_PREFIX)
         ) {
@@ -575,9 +575,9 @@ public class DBeaverLauncher {
         setupVMProperties();
         processConfiguration();
         processGlobalConfiguration();
-        Path dbeaverDataDir = getDataDirectory();
+        Path chromiteDataDir = getDataDirectory();
         try {
-            CommandLineExecuteResult commandLineExecuteResult = processCommandLineAsClient(passThruArgs, dbeaverDataDir);
+            CommandLineExecuteResult commandLineExecuteResult = processCommandLineAsClient(passThruArgs, chromiteDataDir);
             if (commandLineExecuteResult.shutdown()) {
                 System.setProperty(PROP_EXITCODE, Integer.toString(commandLineExecuteResult.exitCode()));
                 return;
@@ -591,7 +591,7 @@ public class DBeaverLauncher {
                 System.out.println("Error processing remote command line: " + e.getMessage());
             }
         }
-        Path secretStoragePath = useCustomSecretStorage(dbeaverDataDir);
+        Path secretStoragePath = useCustomSecretStorage(chromiteDataDir);
         if (secretStoragePath != null) {
             String[] keyringParams =  { ARG_ECLIPSE_KEYRING, secretStoragePath.toString() };
             passThruArgs = Stream.concat(Arrays.stream(passThruArgs), Arrays.stream(keyringParams)).toArray(String[]::new);
@@ -648,7 +648,7 @@ public class DBeaverLauncher {
 
     /**
      * Disable Eclipse proxy service activation
-     * We do it in {@link org.jkiss.dbeaver.ui.app.standalone.internal.CoreApplicationActivator#activateProxyService}
+     * We do it in {@link com.seizia.chromite.ui.app.standalone.internal.CoreApplicationActivator#activateProxyService}
      */
     private static void disableDefaultProxyServiceActivation() {
         if (System.getProperty(PROP_ECLIPSE_NET_PROXY_ENABLE) == null) {
@@ -710,7 +710,7 @@ public class DBeaverLauncher {
         return true;
     }
 
-    private CommandLineExecuteResult processCommandLineAsClient(String[] args, Path dbeaverDataDir) throws Exception {
+    private CommandLineExecuteResult processCommandLineAsClient(String[] args, Path chromiteDataDir) throws Exception {
         if (Boolean.parseBoolean(System.getProperty(Constants.DISABLE_REMOTE_CLI))) {
             if (debug) {
                 System.out.println("Remote CLI processing is disabled by system property.");
@@ -720,7 +720,7 @@ public class DBeaverLauncher {
         if (debug) {
             System.out.println("Executing remote command line: " + Arrays.toString(args));
         }
-        Path workspacePath = detectDefaultWorkspaceLocation(args, dbeaverDataDir);
+        Path workspacePath = detectDefaultWorkspaceLocation(args, chromiteDataDir);
         if (debug) {
             System.out.println("Detected workspace location: " + workspacePath);
         }
@@ -846,7 +846,7 @@ public class DBeaverLauncher {
         return ssl;
     }
 
-    private Path detectDefaultWorkspaceLocation(String[] args, Path dbeaverDataDir) {
+    private Path detectDefaultWorkspaceLocation(String[] args, Path chromiteDataDir) {
         String customWorkspacePath = System.getenv(Constants.ENV_WORKSPACE_PATH);
         if (customWorkspacePath != null && !customWorkspacePath.isBlank()) {
             // Custom location
@@ -880,25 +880,25 @@ public class DBeaverLauncher {
         } else if (productName.startsWith(Constants.PRODUCT_CLOUDBEAVER)) {
             return Path.of(Constants.WORKSPACE);
         } else if (productName.startsWith(Constants.PRODUCT_TEAM)) {
-            return dbeaverDataDir.resolve(Constants.TEAM_WORKSPACE);
+            return chromiteDataDir.resolve(Constants.TEAM_WORKSPACE);
         }
-        return dbeaverDataDir.resolve(Constants.WORKSPACE6);
+        return chromiteDataDir.resolve(Constants.WORKSPACE6);
     }
 
     private InstanceServerProperties readDBeaverServerInfo(Path workspacePath) {
-        Path dbeaverProperties = workspacePath
+        Path chromiteProperties = workspacePath
             .resolve(Constants.METADATA)
-            .resolve(Constants.DBEAVER_INSTANCE_PROPS);
+            .resolve(Constants.CHROMITE_INSTANCE_PROPS);
 
-        if (Files.notExists(dbeaverProperties)) {
+        if (Files.notExists(chromiteProperties)) {
             if (debug) {
-                System.out.println("DBeaver properties file not found: " + dbeaverProperties);
+                System.out.println("DBeaver properties file not found: " + chromiteProperties);
             }
             return null;
         }
 
         Properties properties = new Properties();
-        try (var is = Files.newInputStream(dbeaverProperties)) {
+        try (var is = Files.newInputStream(chromiteProperties)) {
             properties.load(is);
 
             String prefix = InstanceServerProperties.PROPERTY_INSTANCE + ".";
@@ -977,7 +977,7 @@ public class DBeaverLauncher {
     }
 
     private static Path getDataDirectory() {
-        return Path.of(getWorkingDirectory(DBEAVER_DATA_FOLDER));
+        return Path.of(getWorkingDirectory(CHROMITE_DATA_FOLDER));
     }
 
     protected void beforeFwkInvocation() {
@@ -1754,7 +1754,7 @@ public class DBeaverLauncher {
     public static void main(String[] args) {
         int result = 0;
         try {
-            result = new DBeaverLauncher().run(args);
+            result = new ChromiteLauncher().run(args);
         } catch (Throwable t) {
             // This is *really* unlikely to happen - run() takes care of exceptional situations.
             // In case something weird happens, just dump stack - logging is not available at this point
@@ -2141,10 +2141,10 @@ public class DBeaverLauncher {
                 System.out.println("Can not read product properties. " + e.getMessage()); //$NON-NLS-1$
             }
         }
-        String base = getWorkingDirectory(DBEAVER_DATA_FOLDER);
+        String base = getWorkingDirectory(CHROMITE_DATA_FOLDER);
         try {
             String productPath = getProductProperties();
-            Path basePath = Path.of(base, DBEAVER_INSTALL_FOLDER, productPath);
+            Path basePath = Path.of(base, CHROMITE_INSTALL_FOLDER, productPath);
             String productConfigurationLocation = basePath.toFile().getAbsolutePath();
             return buildURL(productConfigurationLocation, true);
         } catch (IOException e) {
@@ -2172,8 +2172,8 @@ public class DBeaverLauncher {
             if (Files.exists(localPath)) {
                 Path storagePath =
                     localPath
-                        .resolve(DBEAVER_SECURE_DIR)
-                        .resolve(DBEAVER_SECURE_FILE);
+                        .resolve(CHROMITE_SECURE_DIR)
+                        .resolve(CHROMITE_SECURE_FILE);
 
                 if (!Files.exists(storagePath)) {
                     Files.createDirectories(storagePath.getParent());
@@ -2273,7 +2273,7 @@ public class DBeaverLauncher {
     private void processGlobalConfiguration() {
         try {
             final Properties config = readGlobalConfiguration();
-            String nlProperty = config.getProperty(DBEAVER_PROP_LANGUAGE);
+            String nlProperty = config.getProperty(CHROMITE_PROP_LANGUAGE);
             if (nlProperty == null || nlProperty.isBlank()) {
                 // Make English the default language
                 nlProperty = "en";
@@ -2286,7 +2286,7 @@ public class DBeaverLauncher {
 
     private Properties readGlobalConfiguration() throws IOException {
         final Path root = getDataDirectory();
-        final Path file = root.resolve(DBEAVER_CONFIG_FOLDER).resolve(DBEAVER_CONFIG_FILE);
+        final Path file = root.resolve(CHROMITE_CONFIG_FOLDER).resolve(CHROMITE_CONFIG_FILE);
         final Properties properties = new Properties();
 
         if (Files.exists(file)) {
@@ -2513,7 +2513,7 @@ public class DBeaverLauncher {
             return installLocation;
         }
 
-        ProtectionDomain domain = DBeaverLauncher.class.getProtectionDomain();
+        ProtectionDomain domain = ChromiteLauncher.class.getProtectionDomain();
         CodeSource source = null;
         URL result = null;
         if (domain != null)

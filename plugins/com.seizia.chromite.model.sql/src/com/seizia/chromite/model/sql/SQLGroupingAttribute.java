@@ -14,22 +14,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.sql;
+package com.seizia.chromite.model.sql;
 
 import net.sf.jsqlparser.expression.Expression;
 import net.sf.jsqlparser.schema.Column;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.DBPDataSource;
-import org.jkiss.dbeaver.model.DBPEvaluationContext;
-import org.jkiss.dbeaver.model.DBUtils;
-import org.jkiss.dbeaver.model.data.DBDAttributeBinding;
-import org.jkiss.dbeaver.model.data.DBDAttributeBindingMeta;
-import org.jkiss.dbeaver.model.data.DBDAttributeConstraint;
-import org.jkiss.dbeaver.model.impl.sql.StandardSQLDialectQueryGenerator;
-import org.jkiss.dbeaver.model.sql.parser.SQLSemanticProcessor;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.DBPDataSource;
+import com.seizia.chromite.model.DBPEvaluationContext;
+import com.seizia.chromite.model.DBUtils;
+import com.seizia.chromite.model.data.DBDAttributeBinding;
+import com.seizia.chromite.model.data.DBDAttributeBindingMeta;
+import com.seizia.chromite.model.data.DBDAttributeConstraint;
+import com.seizia.chromite.model.impl.sql.StandardSQLDialectQueryGenerator;
+import com.seizia.chromite.model.sql.parser.SQLSemanticProcessor;
 
 import java.util.Objects;
 

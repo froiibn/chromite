@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.mimer.model;
+package com.seizia.chromite.ext.mimer.model;
 
 import org.jkiss.code.NotNull;
 
@@ -22,7 +22,7 @@ import org.jkiss.code.NotNull;
  * Implemented by every Mimer SQL privilege-grant model class - both {@link
  * AbstractMimerObjectPrivilege} (one fixed privilege type per class) and {@link
  * AbstractMimerMultiTypePrivilege} (a selectable privilege type per instance) - so a single
- * shared manager base ({@link org.jkiss.dbeaver.ext.mimer.edit.AbstractMimerPrivilegeManager})
+ * shared manager base ({@link com.seizia.chromite.ext.mimer.edit.AbstractMimerPrivilegeManager})
  * can drive create/drop for either family without needing to know which one it's working with.
  *
  * @author Mimer Information Technology

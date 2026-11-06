@@ -3,7 +3,7 @@
 
 <plugin>
 
-    <extension point="org.jkiss.dbeaver.dataSourceProvider">
+    <extension point="com.seizia.chromite.dataSourceProvider">
         <dataSourceType
             id="athena"
             label="Amazon Athena"
@@ -15,7 +15,7 @@
 
         <!-- Athena -->
         <datasource
-                class="org.jkiss.dbeaver.ext.athena.AthenaDataSourceProvider"
+                class="com.seizia.chromite.ext.athena.AthenaDataSourceProvider"
                 description="AWS Athena datasource"
                 id="athena"
                 dataSourceType="athena"
@@ -47,7 +47,7 @@
 
                     <parameter name="supports-references" value="false"/>
                     <parameter name="supports-indexes" value="false"/>
-                    <property name="@dbeaver-default-resultset.maxrows.sql" value="true"/>
+                    <property name="@chromite-default-resultset.maxrows.sql" value="true"/>
                     <parameter name="read-only-data" value="true"/>
                     <parameter name="read-only-meta-data" value="true"/>
                 </driver>
@@ -73,7 +73,7 @@
 
                     <parameter name="supports-references" value="false"/>
                     <parameter name="supports-indexes" value="false"/>
-                    <property name="@dbeaver-default-resultset.maxrows.sql" value="true"/>
+                    <property name="@chromite-default-resultset.maxrows.sql" value="true"/>
                     <parameter name="read-only-data" value="true"/>
                     <parameter name="read-only-meta-data" value="true"/>
                 </driver>
@@ -95,8 +95,8 @@
         </datasource>
     </extension>
 
-    <extension point="org.jkiss.dbeaver.sqlDialect">
-        <dialect id="aws_athena" parent="generic" class="org.jkiss.dbeaver.ext.athena.model.AthenaSQLDialect" label="Athena"
+    <extension point="com.seizia.chromite.sqlDialect">
+        <dialect id="aws_athena" parent="generic" class="com.seizia.chromite.ext.athena.model.AthenaSQLDialect" label="Athena"
                  description="AWS Athena dialect." icon="icons/athena_icon.svg">
         </dialect>
     </extension>

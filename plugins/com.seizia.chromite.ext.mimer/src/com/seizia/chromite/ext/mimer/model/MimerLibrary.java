@@ -14,22 +14,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.mimer.model;
+package com.seizia.chromite.ext.mimer.model;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.model.DBPSaveableObject;
-import org.jkiss.dbeaver.model.exec.jdbc.JDBCPreparedStatement;
-import org.jkiss.dbeaver.model.exec.jdbc.JDBCResultSet;
-import org.jkiss.dbeaver.model.exec.jdbc.JDBCSession;
-import org.jkiss.dbeaver.model.exec.jdbc.JDBCStatement;
-import org.jkiss.dbeaver.model.impl.jdbc.JDBCUtils;
-import org.jkiss.dbeaver.model.impl.jdbc.cache.JDBCObjectCache;
-import org.jkiss.dbeaver.model.meta.Association;
-import org.jkiss.dbeaver.model.meta.Property;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.model.struct.DBSObject;
+import com.seizia.chromite.model.DBPSaveableObject;
+import com.seizia.chromite.model.exec.jdbc.JDBCPreparedStatement;
+import com.seizia.chromite.model.exec.jdbc.JDBCResultSet;
+import com.seizia.chromite.model.exec.jdbc.JDBCSession;
+import com.seizia.chromite.model.exec.jdbc.JDBCStatement;
+import com.seizia.chromite.model.impl.jdbc.JDBCUtils;
+import com.seizia.chromite.model.impl.jdbc.cache.JDBCObjectCache;
+import com.seizia.chromite.model.meta.Association;
+import com.seizia.chromite.model.meta.Property;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.model.struct.DBSObject;
 
 import java.sql.SQLException;
 import java.util.Collection;
@@ -39,7 +39,7 @@ import java.util.Collection;
  * procedures/functions defined in an external file - a .NET DLL today, other languages besides
  * CLR may follow in a future server version - for use as a procedure/function body via {@code
  * LANGUAGE CLR EXTERNAL NAME '...' IN "n"} (see {@link MimerProcedure}/{@link
- * org.jkiss.dbeaver.ext.mimer.model.MimerMetaModel#getProcedureDDL}).
+ * com.seizia.chromite.ext.mimer.model.MimerMetaModel#getProcedureDDL}).
  * <p>
  * Read from {@code INFORMATION_SCHEMA.EXT_LIBRARIES} - a datasource-global object, no schema
  * (confirmed both by that view's own columns, which carry no schema, and {@code CREATE
@@ -77,7 +77,7 @@ public class MimerLibrary implements DBSObject, DBPSaveableObject {
 
     /**
      * For a brand-new, not-yet-created library - see {@link
-     * org.jkiss.dbeaver.ext.mimer.edit.MimerLibraryManager}.
+     * com.seizia.chromite.ext.mimer.edit.MimerLibraryManager}.
      */
     public MimerLibrary(@NotNull MimerDataSource dataSource, @NotNull String name) {
         this.dataSource = dataSource;

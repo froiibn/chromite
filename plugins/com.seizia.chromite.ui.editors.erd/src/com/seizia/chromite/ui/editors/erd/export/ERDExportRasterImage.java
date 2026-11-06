@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.editors.erd.export;
+package com.seizia.chromite.ui.editors.erd.export;
 
 import org.eclipse.draw2d.FreeformLayeredPane;
 import org.eclipse.draw2d.Graphics;
@@ -27,12 +27,12 @@ import org.eclipse.swt.graphics.Image;
 import org.eclipse.swt.graphics.ImageData;
 import org.eclipse.swt.graphics.ImageLoader;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.ui.ImageUtils;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.editors.erd.editor.ERDThemeSettings;
-import org.jkiss.dbeaver.ui.editors.erd.model.EntityDiagram;
-import org.jkiss.dbeaver.ui.editors.erd.part.DiagramPart;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.ui.ImageUtils;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.editors.erd.editor.ERDThemeSettings;
+import com.seizia.chromite.ui.editors.erd.model.EntityDiagram;
+import com.seizia.chromite.ui.editors.erd.part.DiagramPart;
 
 import java.io.File;
 import java.io.FileOutputStream;

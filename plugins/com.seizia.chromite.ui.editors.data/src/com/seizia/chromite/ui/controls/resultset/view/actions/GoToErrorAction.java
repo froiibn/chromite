@@ -14,13 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.controls.resultset.view.actions;
+package com.seizia.chromite.ui.controls.resultset.view.actions;
 
 import org.eclipse.core.runtime.IStatus;
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.ui.controls.resultset.IResultSetContainer;
-import org.jkiss.dbeaver.ui.controls.resultset.IResultSetContainerExt;
-import org.jkiss.dbeaver.ui.controls.resultset.IResultSetErrorAction;
+import com.seizia.chromite.ui.controls.resultset.IResultSetContainer;
+import com.seizia.chromite.ui.controls.resultset.IResultSetContainerExt;
+import com.seizia.chromite.ui.controls.resultset.IResultSetErrorAction;
 
 public final class GoToErrorAction implements IResultSetErrorAction {
     @Override

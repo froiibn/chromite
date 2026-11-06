@@ -14,14 +14,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.sync;
+package com.seizia.chromite.model.sync;
 
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.IConfigurationElement;
 import org.eclipse.core.runtime.Platform;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.Log;
+import com.seizia.chromite.Log;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -33,7 +33,7 @@ public class DBPSyncRegistry {
 
     private static final Log log = Log.getLog(DBPSyncRegistry.class);
 
-    private static final String EXTENSION_ID = "org.jkiss.dbeaver.syncUnit";
+    private static final String EXTENSION_ID = "com.seizia.chromite.syncUnit";
     private static final String TAG_UNIT = "unit";
     private static final String ATTR_CLASS = "class";
 

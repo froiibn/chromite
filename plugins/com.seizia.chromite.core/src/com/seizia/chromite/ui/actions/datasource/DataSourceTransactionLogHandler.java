@@ -14,17 +14,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.actions.datasource;
+package com.seizia.chromite.ui.actions.datasource;
 
 import org.eclipse.core.commands.ExecutionEvent;
 import org.eclipse.core.commands.ExecutionException;
 import org.eclipse.swt.widgets.Shell;
 import org.eclipse.ui.IEditorPart;
 import org.eclipse.ui.handlers.HandlerUtil;
-import org.jkiss.dbeaver.model.DBPContextProvider;
-import org.jkiss.dbeaver.model.exec.DBCExecutionContext;
-import org.jkiss.dbeaver.ui.actions.AbstractDataSourceHandler;
-import org.jkiss.dbeaver.ui.controls.txn.TransactionLogDialog;
+import com.seizia.chromite.model.DBPContextProvider;
+import com.seizia.chromite.model.exec.DBCExecutionContext;
+import com.seizia.chromite.ui.actions.AbstractDataSourceHandler;
+import com.seizia.chromite.ui.controls.txn.TransactionLogDialog;
 import org.jkiss.utils.CommonUtils;
 
 public class DataSourceTransactionLogHandler extends AbstractDataSourceHandler {

@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.mssql.ui.views;
+package com.seizia.chromite.ext.mssql.ui.views;
 
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.layout.GridData;
@@ -22,12 +22,12 @@ import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Text;
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.ext.mssql.SQLServerConstants;
-import org.jkiss.dbeaver.ext.mssql.ui.SQLServerUIMessages;
-import org.jkiss.dbeaver.model.impl.net.SSLHandlerTrustStoreImpl;
-import org.jkiss.dbeaver.model.net.DBWHandlerConfiguration;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.dialogs.net.SSLConfiguratorTrustStoreUI;
+import com.seizia.chromite.ext.mssql.SQLServerConstants;
+import com.seizia.chromite.ext.mssql.ui.SQLServerUIMessages;
+import com.seizia.chromite.model.impl.net.SSLHandlerTrustStoreImpl;
+import com.seizia.chromite.model.net.DBWHandlerConfiguration;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.dialogs.net.SSLConfiguratorTrustStoreUI;
 import org.jkiss.utils.CommonUtils;
 
 public class SQLServerSSLConfigurator extends SSLConfiguratorTrustStoreUI {

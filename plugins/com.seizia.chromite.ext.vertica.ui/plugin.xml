@@ -3,13 +3,13 @@
 
 <plugin>
 
-    <extension point="org.jkiss.dbeaver.dataSourceConfigurator">
-        <configurator dataSource="vertica" class="org.jkiss.dbeaver.ext.vertica.ui.views.VerticaConnectionPage"/>
+    <extension point="com.seizia.chromite.dataSourceConfigurator">
+        <configurator dataSource="vertica" class="com.seizia.chromite.ext.vertica.ui.views.VerticaConnectionPage"/>
     </extension>
 
-    <extension point="org.jkiss.dbeaver.databaseEditor">
-        <configurator class="org.jkiss.dbeaver.ext.vertica.ui.config.VerticaSequenceConfigurator">
-            <objectType name="org.jkiss.dbeaver.ext.vertica.model.VerticaSequence"/>
+    <extension point="com.seizia.chromite.databaseEditor">
+        <configurator class="com.seizia.chromite.ext.vertica.ui.config.VerticaSequenceConfigurator">
+            <objectType name="com.seizia.chromite.ext.vertica.model.VerticaSequence"/>
         </configurator>
     </extension>
 

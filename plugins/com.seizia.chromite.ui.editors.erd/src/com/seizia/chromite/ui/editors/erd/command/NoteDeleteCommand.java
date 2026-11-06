@@ -14,13 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.editors.erd.command;
+package com.seizia.chromite.ui.editors.erd.command;
 
 import org.eclipse.draw2d.geometry.Rectangle;
 import org.eclipse.gef.commands.Command;
-import org.jkiss.dbeaver.model.erd.ERDNote;
-import org.jkiss.dbeaver.ui.editors.erd.model.EntityDiagram;
-import org.jkiss.dbeaver.ui.editors.erd.part.NotePart;
+import com.seizia.chromite.model.erd.ERDNote;
+import com.seizia.chromite.ui.editors.erd.model.EntityDiagram;
+import com.seizia.chromite.ui.editors.erd.part.NotePart;
 
 /**
  * Command to delete tables from the schema

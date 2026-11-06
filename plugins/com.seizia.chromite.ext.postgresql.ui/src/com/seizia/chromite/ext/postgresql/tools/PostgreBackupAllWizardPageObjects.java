@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.postgresql.tools;
+package com.seizia.chromite.ext.postgresql.tools;
 
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.custom.CLabel;
@@ -24,15 +24,15 @@ import org.eclipse.swt.widgets.Label;
 import org.eclipse.swt.widgets.Table;
 import org.eclipse.swt.widgets.TableItem;
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.ext.postgresql.PostgreMessages;
-import org.jkiss.dbeaver.ext.postgresql.PostgreUIUtils;
-import org.jkiss.dbeaver.ext.postgresql.model.PostgreDataSource;
-import org.jkiss.dbeaver.ext.postgresql.model.PostgreDatabase;
-import org.jkiss.dbeaver.ext.postgresql.tasks.PostgreDatabaseBackupAllInfo;
-import org.jkiss.dbeaver.model.DBIcon;
-import org.jkiss.dbeaver.tasks.ui.nativetool.AbstractNativeToolWizardPage;
-import org.jkiss.dbeaver.ui.DBeaverIcons;
-import org.jkiss.dbeaver.ui.UIUtils;
+import com.seizia.chromite.ext.postgresql.PostgreMessages;
+import com.seizia.chromite.ext.postgresql.PostgreUIUtils;
+import com.seizia.chromite.ext.postgresql.model.PostgreDataSource;
+import com.seizia.chromite.ext.postgresql.model.PostgreDatabase;
+import com.seizia.chromite.ext.postgresql.tasks.PostgreDatabaseBackupAllInfo;
+import com.seizia.chromite.model.DBIcon;
+import com.seizia.chromite.tasks.ui.nativetool.AbstractNativeToolWizardPage;
+import com.seizia.chromite.ui.SwtIcons;
+import com.seizia.chromite.ui.UIUtils;
 import org.jkiss.utils.CommonUtils;
 
 import java.util.ArrayList;
@@ -66,7 +66,7 @@ public class PostgreBackupAllWizardPageObjects extends AbstractNativeToolWizardP
 
         connInfo = new CLabel(objectsGroup, SWT.WRAP);
         connInfo.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false));
-        connInfo.setImage(DBeaverIcons.getImage(DBIcon.DATABASE_DEFAULT));
+        connInfo.setImage(SwtIcons.getImage(DBIcon.DATABASE_DEFAULT));
 
 
         {
@@ -139,7 +139,7 @@ public class PostgreBackupAllWizardPageObjects extends AbstractNativeToolWizardP
             // Database list depends on connection setting
             for (PostgreDatabase database : dataSource.getDatabases()) {
                 TableItem item = new TableItem(databasesTable, SWT.NONE);
-                item.setImage(DBeaverIcons.getImage(DBIcon.TREE_DATABASE));
+                item.setImage(SwtIcons.getImage(DBIcon.TREE_DATABASE));
                 item.setText(0, database.getName());
                 item.setData(database);
                 if (activeDatabases.contains(database)) {

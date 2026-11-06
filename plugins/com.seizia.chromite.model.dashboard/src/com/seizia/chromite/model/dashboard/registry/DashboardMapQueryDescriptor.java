@@ -14,13 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.dashboard.registry;
+package com.seizia.chromite.model.dashboard.registry;
 
 import org.eclipse.core.runtime.IConfigurationElement;
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.model.dashboard.DBDashboardMapQuery;
-import org.jkiss.dbeaver.model.dashboard.DashboardConstants;
-import org.jkiss.dbeaver.model.impl.AbstractContextDescriptor;
+import com.seizia.chromite.model.dashboard.DBDashboardMapQuery;
+import com.seizia.chromite.model.dashboard.DashboardConstants;
+import com.seizia.chromite.model.impl.AbstractContextDescriptor;
 import org.jkiss.utils.CommonUtils;
 
 /**

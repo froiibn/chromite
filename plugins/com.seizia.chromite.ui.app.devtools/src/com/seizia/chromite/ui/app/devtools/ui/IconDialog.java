@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.app.devtools.ui;
+package com.seizia.chromite.ui.app.devtools.ui;
 
 import org.eclipse.core.runtime.FileLocator;
 import org.eclipse.jface.dialogs.IDialogConstants;
@@ -36,10 +36,10 @@ import org.eclipse.swt.layout.RowLayout;
 import org.eclipse.swt.widgets.*;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.ui.ShellUtils;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.app.devtools.handlers.ShowIconsHandler;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.ui.ShellUtils;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.app.devtools.handlers.ShowIconsHandler;
 import org.osgi.framework.Bundle;
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.FrameworkUtil;
@@ -184,7 +184,7 @@ public class IconDialog extends TrayDialog {
             if (name == null) {
                 continue;
             }
-            if (!name.startsWith("org.jkiss.dbeaver") && !name.startsWith("com.dbeaver")) {
+            if (!name.startsWith("com.seizia.chromite") && !name.startsWith("com.dbeaver")) {
                 continue;
             }
             collectIcons(bundle, path -> consumer.accept(bundle, path));

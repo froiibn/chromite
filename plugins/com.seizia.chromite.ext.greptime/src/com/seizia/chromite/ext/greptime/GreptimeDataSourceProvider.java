@@ -14,16 +14,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.greptime;
+package com.seizia.chromite.ext.greptime;
 
 import org.jkiss.code.DynamicCall;
 import org.jkiss.code.NotNull;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.ext.generic.GenericDataSourceProvider;
-import org.jkiss.dbeaver.ext.greptime.model.GreptimeDataSource;
-import org.jkiss.dbeaver.ext.greptime.model.GreptimeMetaModel;
-import org.jkiss.dbeaver.model.DBPDataSourceContainer;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.ext.generic.GenericDataSourceProvider;
+import com.seizia.chromite.ext.greptime.model.GreptimeDataSource;
+import com.seizia.chromite.ext.greptime.model.GreptimeMetaModel;
+import com.seizia.chromite.model.DBPDataSourceContainer;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
 
 public class GreptimeDataSourceProvider extends GenericDataSourceProvider<GreptimeDataSource> {
 

@@ -17,22 +17,22 @@
 /*
  * Created on Jul 13, 2004
  */
-package org.jkiss.dbeaver.model.erd;
+package com.seizia.chromite.model.erd;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.*;
-import org.jkiss.dbeaver.model.data.json.JSONUtils;
-import org.jkiss.dbeaver.model.exec.DBCException;
-import org.jkiss.dbeaver.model.navigator.DBNDatabaseNode;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.model.runtime.VoidProgressMonitor;
-import org.jkiss.dbeaver.model.struct.DBSEntity;
-import org.jkiss.dbeaver.model.struct.DBSEntityAssociation;
-import org.jkiss.dbeaver.model.struct.DBSEntityAttribute;
-import org.jkiss.dbeaver.model.struct.DBSEntityReferrer;
-import org.jkiss.dbeaver.model.virtual.DBVUtils;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.*;
+import com.seizia.chromite.model.data.json.JSONUtils;
+import com.seizia.chromite.model.exec.DBCException;
+import com.seizia.chromite.model.navigator.DBNDatabaseNode;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.model.runtime.VoidProgressMonitor;
+import com.seizia.chromite.model.struct.DBSEntity;
+import com.seizia.chromite.model.struct.DBSEntityAssociation;
+import com.seizia.chromite.model.struct.DBSEntityAttribute;
+import com.seizia.chromite.model.struct.DBSEntityReferrer;
+import com.seizia.chromite.model.virtual.DBVUtils;
 import org.jkiss.utils.CommonUtils;
 
 import java.util.*;

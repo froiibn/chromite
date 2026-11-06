@@ -14,25 +14,25 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.postgresql.edit;
+package com.seizia.chromite.ext.postgresql.edit;
 
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.ext.postgresql.PostgreTestUtils;
-import org.jkiss.dbeaver.ext.postgresql.model.PostgreDatabase;
-import org.jkiss.dbeaver.ext.postgresql.model.PostgreDataSource;
-import org.jkiss.dbeaver.ext.postgresql.model.PostgreExecutionContext;
-import org.jkiss.dbeaver.ext.postgresql.model.PostgreRole;
-import org.jkiss.dbeaver.ext.postgresql.model.PostgreSchema;
-import org.jkiss.dbeaver.ext.postgresql.model.PostgreTableColumn;
-import org.jkiss.dbeaver.ext.postgresql.model.PostgreTableForeign;
-import org.jkiss.dbeaver.ext.postgresql.model.PostgreTableRegular;
-import org.jkiss.dbeaver.model.DBPDataSourceContainer;
-import org.jkiss.dbeaver.model.edit.DBEPersistAction;
-import org.jkiss.dbeaver.model.exec.DBExecUtils;
-import org.jkiss.dbeaver.model.impl.edit.TestCommandContext;
-import org.jkiss.dbeaver.model.sql.SQLUtils;
-import org.jkiss.dbeaver.runtime.properties.PropertySourceEditable;
-import org.jkiss.junit.DBeaverUnitTest;
+import com.seizia.chromite.ext.postgresql.PostgreTestUtils;
+import com.seizia.chromite.ext.postgresql.model.PostgreDatabase;
+import com.seizia.chromite.ext.postgresql.model.PostgreDataSource;
+import com.seizia.chromite.ext.postgresql.model.PostgreExecutionContext;
+import com.seizia.chromite.ext.postgresql.model.PostgreRole;
+import com.seizia.chromite.ext.postgresql.model.PostgreSchema;
+import com.seizia.chromite.ext.postgresql.model.PostgreTableColumn;
+import com.seizia.chromite.ext.postgresql.model.PostgreTableForeign;
+import com.seizia.chromite.ext.postgresql.model.PostgreTableRegular;
+import com.seizia.chromite.model.DBPDataSourceContainer;
+import com.seizia.chromite.model.edit.DBEPersistAction;
+import com.seizia.chromite.model.exec.DBExecUtils;
+import com.seizia.chromite.model.impl.edit.TestCommandContext;
+import com.seizia.chromite.model.sql.SQLUtils;
+import com.seizia.chromite.runtime.properties.PropertySourceEditable;
+import com.seizia.chromite.junit.ChromiteUnitTest;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -40,7 +40,7 @@ import org.junit.jupiter.api.Test;
 import java.util.Collections;
 import java.util.List;
 
-public class PostgreTableColumnManagerTest extends DBeaverUnitTest {
+public class PostgreTableColumnManagerTest extends ChromiteUnitTest {
 
     private PostgreDataSource testDataSource;
     private PostgreSchema testSchema;

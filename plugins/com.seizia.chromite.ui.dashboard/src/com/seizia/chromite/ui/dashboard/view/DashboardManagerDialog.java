@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.dashboard.view;
+package com.seizia.chromite.ui.dashboard.view;
 
 import org.eclipse.jface.dialogs.IDialogConstants;
 import org.eclipse.jface.dialogs.IDialogSettings;
@@ -28,23 +28,23 @@ import org.eclipse.swt.widgets.Button;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Shell;
 import org.eclipse.ui.internal.WorkbenchMessages;
-import org.jkiss.dbeaver.model.DBIcon;
-import org.jkiss.dbeaver.model.DBPImage;
-import org.jkiss.dbeaver.model.DBPNamedObject;
-import org.jkiss.dbeaver.model.DBUtils;
-import org.jkiss.dbeaver.model.connection.DBPDataSourceProviderDescriptor;
-import org.jkiss.dbeaver.model.connection.DBPDriver;
-import org.jkiss.dbeaver.model.dashboard.registry.DashboardItemConfiguration;
-import org.jkiss.dbeaver.model.dashboard.registry.DashboardProviderDescriptor;
-import org.jkiss.dbeaver.model.dashboard.registry.DashboardRegistry;
-import org.jkiss.dbeaver.ui.DBeaverIcons;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.controls.TreeContentProvider;
-import org.jkiss.dbeaver.ui.dashboard.internal.UIDashboardActivator;
-import org.jkiss.dbeaver.ui.dashboard.internal.UIDashboardMessages;
-import org.jkiss.dbeaver.ui.dashboard.registry.DashboardRendererDescriptor;
-import org.jkiss.dbeaver.ui.dashboard.registry.DashboardUIRegistry;
-import org.jkiss.dbeaver.ui.dialogs.BaseDialog;
+import com.seizia.chromite.model.DBIcon;
+import com.seizia.chromite.model.DBPImage;
+import com.seizia.chromite.model.DBPNamedObject;
+import com.seizia.chromite.model.DBUtils;
+import com.seizia.chromite.model.connection.DBPDataSourceProviderDescriptor;
+import com.seizia.chromite.model.connection.DBPDriver;
+import com.seizia.chromite.model.dashboard.registry.DashboardItemConfiguration;
+import com.seizia.chromite.model.dashboard.registry.DashboardProviderDescriptor;
+import com.seizia.chromite.model.dashboard.registry.DashboardRegistry;
+import com.seizia.chromite.ui.SwtIcons;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.controls.TreeContentProvider;
+import com.seizia.chromite.ui.dashboard.internal.UIDashboardActivator;
+import com.seizia.chromite.ui.dashboard.internal.UIDashboardMessages;
+import com.seizia.chromite.ui.dashboard.registry.DashboardRendererDescriptor;
+import com.seizia.chromite.ui.dashboard.registry.DashboardUIRegistry;
+import com.seizia.chromite.ui.dialogs.BaseDialog;
 import org.jkiss.utils.CommonUtils;
 
 import java.util.ArrayList;
@@ -134,11 +134,11 @@ public class DashboardManagerDialog extends BaseDialog {
                     if (cell.getColumnIndex() == 0) {
                         cell.setText(element.getName());
                         if (element instanceof DBPDriver driver) {
-                            cell.setImage(DBeaverIcons.getImage(driver.getIcon()));
+                            cell.setImage(SwtIcons.getImage(driver.getIcon()));
                         } else if (element instanceof DashboardProviderDescriptor dpd) {
-                            cell.setImage(DBeaverIcons.getImage(dpd.getIcon()));
+                            cell.setImage(SwtIcons.getImage(dpd.getIcon()));
                         } else if (element instanceof DBPDataSourceProviderDescriptor dspd) {
-                            cell.setImage(DBeaverIcons.getImage(dspd.getIcon()));
+                            cell.setImage(SwtIcons.getImage(dspd.getIcon()));
                         } else if (element instanceof DashboardItemConfiguration dashboardDescriptor) {
                             DBPImage icon = null;
                             if (dashboardDescriptor.isCustom()) {
@@ -150,7 +150,7 @@ public class DashboardManagerDialog extends BaseDialog {
                                 }
                             }
                             if (icon != null) {
-                                cell.setImage(DBeaverIcons.getImage(icon));
+                                cell.setImage(SwtIcons.getImage(icon));
                             }
                         }
                     } else {

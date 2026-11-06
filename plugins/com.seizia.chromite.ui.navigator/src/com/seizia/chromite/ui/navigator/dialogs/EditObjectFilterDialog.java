@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.navigator.dialogs;
+package com.seizia.chromite.ui.navigator.dialogs;
 
 import org.eclipse.jface.dialogs.ControlEnableState;
 import org.eclipse.osgi.util.NLS;
@@ -25,14 +25,14 @@ import org.eclipse.swt.widgets.*;
 import org.eclipse.ui.internal.WorkbenchMessages;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.model.app.DBPDataSourceRegistry;
-import org.jkiss.dbeaver.model.struct.DBSObjectFilter;
-import org.jkiss.dbeaver.ui.IHelpContextIds;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.controls.StringEditorTableUtils;
-import org.jkiss.dbeaver.ui.dialogs.HelpEnabledDialog;
-import org.jkiss.dbeaver.ui.internal.UIMessages;
-import org.jkiss.dbeaver.ui.internal.UINavigatorMessages;
+import com.seizia.chromite.model.app.DBPDataSourceRegistry;
+import com.seizia.chromite.model.struct.DBSObjectFilter;
+import com.seizia.chromite.ui.IHelpContextIds;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.controls.StringEditorTableUtils;
+import com.seizia.chromite.ui.dialogs.HelpEnabledDialog;
+import com.seizia.chromite.ui.internal.UIMessages;
+import com.seizia.chromite.ui.internal.UINavigatorMessages;
 import org.jkiss.utils.CommonUtils;
 
 import java.util.ArrayList;

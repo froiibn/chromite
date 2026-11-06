@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.editors.sql.semantics;
+package com.seizia.chromite.ui.editors.sql.semantics;
 
 import org.antlr.v4.runtime.misc.Interval;
 import org.eclipse.core.runtime.IProgressMonitor;
@@ -25,25 +25,25 @@ import org.eclipse.jface.text.*;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.ModelPreferences;
-import org.jkiss.dbeaver.model.DBPDataSourceContainer;
-import org.jkiss.dbeaver.model.exec.DBCExecutionContext;
-import org.jkiss.dbeaver.model.impl.sql.BasicSQLDialect;
-import org.jkiss.dbeaver.model.preferences.DBPPreferenceStore;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.model.sql.*;
-import org.jkiss.dbeaver.model.sql.parser.SQLParserContext;
-import org.jkiss.dbeaver.model.sql.parser.SQLScriptParser;
-import org.jkiss.dbeaver.model.sql.semantics.*;
-import org.jkiss.dbeaver.model.sql.semantics.OffsetKeyedTreeMap.NodesIterator;
-import org.jkiss.dbeaver.model.sql.semantics.completion.SQLQueryCompletionContext;
-import org.jkiss.dbeaver.model.sql.semantics.model.SQLQueryModel;
-import org.jkiss.dbeaver.model.sql.semantics.tracking.SQLScriptVariablesTracker;
-import org.jkiss.dbeaver.ui.editors.sql.SQLEditor;
-import org.jkiss.dbeaver.ui.editors.sql.SQLEditorBase;
-import org.jkiss.dbeaver.ui.editors.sql.syntax.SQLReconcilingStrategy;
-import org.jkiss.dbeaver.utils.ListNode;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.ModelPreferences;
+import com.seizia.chromite.model.DBPDataSourceContainer;
+import com.seizia.chromite.model.exec.DBCExecutionContext;
+import com.seizia.chromite.model.impl.sql.BasicSQLDialect;
+import com.seizia.chromite.model.preferences.DBPPreferenceStore;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.model.sql.*;
+import com.seizia.chromite.model.sql.parser.SQLParserContext;
+import com.seizia.chromite.model.sql.parser.SQLScriptParser;
+import com.seizia.chromite.model.sql.semantics.*;
+import com.seizia.chromite.model.sql.semantics.OffsetKeyedTreeMap.NodesIterator;
+import com.seizia.chromite.model.sql.semantics.completion.SQLQueryCompletionContext;
+import com.seizia.chromite.model.sql.semantics.model.SQLQueryModel;
+import com.seizia.chromite.model.sql.semantics.tracking.SQLScriptVariablesTracker;
+import com.seizia.chromite.ui.editors.sql.SQLEditor;
+import com.seizia.chromite.ui.editors.sql.SQLEditorBase;
+import com.seizia.chromite.ui.editors.sql.syntax.SQLReconcilingStrategy;
+import com.seizia.chromite.utils.ListNode;
 
 import java.util.List;
 import java.util.concurrent.*;

@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.app.config.nls;
+package com.seizia.chromite.ui.app.config.nls;
 
 import org.eclipse.osgi.util.NLS;
 

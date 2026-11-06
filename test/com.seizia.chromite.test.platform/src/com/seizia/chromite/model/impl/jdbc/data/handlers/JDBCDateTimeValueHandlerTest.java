@@ -14,20 +14,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.impl.jdbc.data.handlers;
+package com.seizia.chromite.model.impl.jdbc.data.handlers;
 
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.model.DBConstants;
-import org.jkiss.dbeaver.model.DBPDataSource;
-import org.jkiss.dbeaver.model.data.DBDDataFormatter;
-import org.jkiss.dbeaver.model.data.DBDDataFormatterProfile;
-import org.jkiss.dbeaver.model.data.DBDDisplayFormat;
-import org.jkiss.dbeaver.model.data.DBDFormatSettings;
-import org.jkiss.dbeaver.model.impl.sql.BasicSQLDialect;
-import org.jkiss.dbeaver.model.sql.SQLDialect;
-import org.jkiss.dbeaver.model.struct.DBSEntityAttribute;
-import org.jkiss.dbeaver.model.struct.DBSTypedObject;
-import org.jkiss.junit.DBeaverUnitTest;
+import com.seizia.chromite.model.DBConstants;
+import com.seizia.chromite.model.DBPDataSource;
+import com.seizia.chromite.model.data.DBDDataFormatter;
+import com.seizia.chromite.model.data.DBDDataFormatterProfile;
+import com.seizia.chromite.model.data.DBDDisplayFormat;
+import com.seizia.chromite.model.data.DBDFormatSettings;
+import com.seizia.chromite.model.impl.sql.BasicSQLDialect;
+import com.seizia.chromite.model.sql.SQLDialect;
+import com.seizia.chromite.model.struct.DBSEntityAttribute;
+import com.seizia.chromite.model.struct.DBSTypedObject;
+import com.seizia.chromite.junit.ChromiteUnitTest;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -48,7 +48,7 @@ import java.util.stream.Stream;
 
 import static org.mockito.Mockito.*;
 
-public class JDBCDateTimeValueHandlerTest extends DBeaverUnitTest {
+public class JDBCDateTimeValueHandlerTest extends ChromiteUnitTest {
     private static final String DISPLAY_VALUE = "2007-05-08 12:35:29.123 +1215";
     private static final OffsetDateTime OFFSET_VALUE = OffsetDateTime.parse("2007-05-08T12:35:29.1234567+12:15");
 

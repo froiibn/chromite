@@ -14,12 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.messages;
+package com.seizia.chromite.model.messages;
 
 import org.eclipse.osgi.util.NLS;
 
 public class ModelMessages extends NLS {
-    static final String BUNDLE_NAME = "org.jkiss.dbeaver.model.messages.ModelResources"; //$NON-NLS-1$
+    static final String BUNDLE_NAME = "com.seizia.chromite.model.messages.ModelResources"; //$NON-NLS-1$
 
     public static String error_not_connected_to_database;
     public static String dialog_web_download_text_known;

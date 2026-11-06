@@ -1,9 +1,9 @@
 <?xml version='1.0' encoding='UTF-8'?>
 <!-- Schema file written by PDE -->
-<schema targetNamespace="org.jkiss.dbeaver.model.ai" xmlns="http://www.w3.org/2001/XMLSchema">
+<schema targetNamespace="com.seizia.chromite.model.ai" xmlns="http://www.w3.org/2001/XMLSchema">
    <annotation>
       <appInfo>
-         <meta.schema plugin="org.jkiss.dbeaver.model.ai" id="com.dbeaver.ai.function" name="AI functions"/>
+         <meta.schema plugin="com.seizia.chromite.model.ai" id="com.seizia.chromite.ai.function" name="AI functions"/>
       </appInfo>
       <documentation>AI functions for assistant functionality</documentation>
    </annotation>
@@ -64,7 +64,7 @@
             <annotation>
                <documentation>Class implementing the AIFunction interface</documentation>
                <appInfo>
-                  <meta.attribute kind="java" basedOn=":org.jkiss.dbeaver.model.ai.AIFunction"/>
+                  <meta.attribute kind="java" basedOn=":com.seizia.chromite.model.ai.AIFunction"/>
                </appInfo>
             </annotation>
          </attribute>
@@ -189,7 +189,7 @@
             <annotation>
                <documentation>Optional class implementing AIFunctionParameterValueProvider used to provide valid values dynamically</documentation>
                <appInfo>
-                  <meta.attribute kind="java" basedOn=":org.jkiss.dbeaver.model.ai.AIFunctionParameterValueProvider"/>
+                  <meta.attribute kind="java" basedOn=":com.seizia.chromite.model.ai.AIFunctionParameterValueProvider"/>
                </appInfo>
             </annotation>
          </attribute>
@@ -197,7 +197,7 @@
             <annotation>
                <documentation>Optional class implementing AIFunctionParameterTransformer used to transform the raw parameter value before passing it to the function</documentation>
                <appInfo>
-                  <meta.attribute kind="java" basedOn=":org.jkiss.dbeaver.model.ai.AIFunctionParameterTransformer"/>
+                  <meta.attribute kind="java" basedOn=":com.seizia.chromite.model.ai.AIFunctionParameterTransformer"/>
                </appInfo>
             </annotation>
          </attribute>

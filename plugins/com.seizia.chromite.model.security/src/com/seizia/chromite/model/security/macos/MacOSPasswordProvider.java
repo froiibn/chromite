@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.security.macos;
+package com.seizia.chromite.model.security.macos;
 
 import org.eclipse.core.runtime.Platform;
 import org.eclipse.equinox.internal.security.storage.provider.IValidatingPasswordProvider;

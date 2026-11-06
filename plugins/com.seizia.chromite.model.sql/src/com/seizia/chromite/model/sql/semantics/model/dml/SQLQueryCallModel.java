@@ -14,23 +14,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.sql.semantics.model.dml;
+package com.seizia.chromite.model.sql.semantics.model.dml;
 
 import org.antlr.v4.runtime.misc.Interval;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.model.impl.struct.RelationalObjectType;
-import org.jkiss.dbeaver.model.sql.semantics.*;
-import org.jkiss.dbeaver.model.sql.semantics.context.SQLQueryRowsDataContext;
-import org.jkiss.dbeaver.model.sql.semantics.context.SQLQueryRowsSourceContext;
-import org.jkiss.dbeaver.model.sql.semantics.model.SQLQueryModelContent;
-import org.jkiss.dbeaver.model.sql.semantics.model.SQLQueryNodeModel;
-import org.jkiss.dbeaver.model.sql.semantics.model.SQLQueryNodeModelVisitor;
-import org.jkiss.dbeaver.model.sql.semantics.model.ddl.SQLQueryObjectDataModel;
-import org.jkiss.dbeaver.model.sql.semantics.model.expressions.SQLQueryValueExpression;
-import org.jkiss.dbeaver.model.stm.STMKnownRuleNames;
-import org.jkiss.dbeaver.model.stm.STMTreeNode;
-import org.jkiss.dbeaver.model.stm.STMTreeTermNode;
+import com.seizia.chromite.model.impl.struct.RelationalObjectType;
+import com.seizia.chromite.model.sql.semantics.*;
+import com.seizia.chromite.model.sql.semantics.context.SQLQueryRowsDataContext;
+import com.seizia.chromite.model.sql.semantics.context.SQLQueryRowsSourceContext;
+import com.seizia.chromite.model.sql.semantics.model.SQLQueryModelContent;
+import com.seizia.chromite.model.sql.semantics.model.SQLQueryNodeModel;
+import com.seizia.chromite.model.sql.semantics.model.SQLQueryNodeModelVisitor;
+import com.seizia.chromite.model.sql.semantics.model.ddl.SQLQueryObjectDataModel;
+import com.seizia.chromite.model.sql.semantics.model.expressions.SQLQueryValueExpression;
+import com.seizia.chromite.model.stm.STMKnownRuleNames;
+import com.seizia.chromite.model.stm.STMTreeNode;
+import com.seizia.chromite.model.stm.STMTreeTermNode;
 
 import java.util.Collections;
 import java.util.List;

@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.editors.erd.action;
+package com.seizia.chromite.ui.editors.erd.action;
 
 import org.eclipse.core.commands.AbstractHandler;
 import org.eclipse.core.commands.ExecutionEvent;
@@ -28,15 +28,15 @@ import org.eclipse.ui.IWorkbenchPart;
 import org.eclipse.ui.commands.IElementUpdater;
 import org.eclipse.ui.handlers.HandlerUtil;
 import org.eclipse.ui.menus.UIElement;
-import org.jkiss.dbeaver.model.navigator.DBNNode;
-import org.jkiss.dbeaver.model.navigator.DBNUtils;
-import org.jkiss.dbeaver.model.runtime.VoidProgressMonitor;
-import org.jkiss.dbeaver.model.struct.DBSObject;
-import org.jkiss.dbeaver.ui.dialogs.Reply;
-import org.jkiss.dbeaver.ui.editors.erd.editor.ERDEditorAdapter;
-import org.jkiss.dbeaver.ui.editors.erd.editor.ERDEditorPart;
-import org.jkiss.dbeaver.ui.editors.erd.model.ERDDatabaseObjectModifyCommand;
-import org.jkiss.dbeaver.ui.navigator.dialogs.NavigatorNodesDeletionConfirmations;
+import com.seizia.chromite.model.navigator.DBNNode;
+import com.seizia.chromite.model.navigator.DBNUtils;
+import com.seizia.chromite.model.runtime.VoidProgressMonitor;
+import com.seizia.chromite.model.struct.DBSObject;
+import com.seizia.chromite.ui.dialogs.Reply;
+import com.seizia.chromite.ui.editors.erd.editor.ERDEditorAdapter;
+import com.seizia.chromite.ui.editors.erd.editor.ERDEditorPart;
+import com.seizia.chromite.ui.editors.erd.model.ERDDatabaseObjectModifyCommand;
+import com.seizia.chromite.ui.navigator.dialogs.NavigatorNodesDeletionConfirmations;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -105,10 +105,10 @@ public class ERDHandlerDelete extends AbstractHandler implements IElementUpdater
         if (editor != null) {
             if (editor.getDiagram().isEditEnabled()) {
                 element.setText(ERDUIMessages.erd_action_delete_text);
-                element.setIcon(DBeaverIcons.getImageDescriptor(UIIcon.DELETE));
+                element.setIcon(SwtIcons.getImageDescriptor(UIIcon.DELETE));
             } else {
                 element.setText(ERDUIMessages.erd_action_remove_text);
-                element.setIcon(DBeaverIcons.getImageDescriptor(UIIcon.OBJ_REMOVE));
+                element.setIcon(SwtIcons.getImageDescriptor(UIIcon.OBJ_REMOVE));
             }
         }*/
 

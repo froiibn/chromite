@@ -14,13 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.sql.procedural;
+package com.seizia.chromite.model.sql.procedural;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.model.sql.SQLDialect;
-import org.jkiss.dbeaver.model.sql.semantics.model.programmaticals.SQLQueryRoutineCreateModel;
-import org.jkiss.dbeaver.model.sql.semantics.model.programmaticals.SQLQueryRoutineReturn;
+import com.seizia.chromite.model.sql.SQLDialect;
+import com.seizia.chromite.model.sql.semantics.model.programmaticals.SQLQueryRoutineCreateModel;
+import com.seizia.chromite.model.sql.semantics.model.programmaticals.SQLQueryRoutineReturn;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -81,6 +81,6 @@ public class SnowflakeProceduralTest extends ProceduralDialectTestBase {
     @Test
     void anonymousDollarBodyMaintainsNestedStatementSequence() {
         root("DO $$ BEGIN SELECT 1; BEGIN SELECT 2; END; SELECT 3; END; $$",
-            org.jkiss.dbeaver.model.sql.semantics.model.programmaticals.SQLQueryAnonymousBlockModel.class);
+            com.seizia.chromite.model.sql.semantics.model.programmaticals.SQLQueryAnonymousBlockModel.class);
     }
 }

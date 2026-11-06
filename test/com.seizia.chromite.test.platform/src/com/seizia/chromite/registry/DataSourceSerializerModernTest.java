@@ -14,16 +14,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.registry;
+package com.seizia.chromite.registry;
 
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.model.app.DBPApplication;
-import org.jkiss.dbeaver.model.app.DBPProject;
-import org.jkiss.dbeaver.model.connection.DBPConfigurationProfile;
-import org.jkiss.dbeaver.model.connection.DBPConnectionConfiguration;
-import org.jkiss.dbeaver.model.connection.DBPConnectionType;
-import org.jkiss.dbeaver.model.connection.DBPDataSourceProviderRegistry;
-import org.jkiss.junit.DBeaverUnitTest;
+import com.seizia.chromite.model.app.DBPApplication;
+import com.seizia.chromite.model.app.DBPProject;
+import com.seizia.chromite.model.connection.DBPConfigurationProfile;
+import com.seizia.chromite.model.connection.DBPConnectionConfiguration;
+import com.seizia.chromite.model.connection.DBPConnectionType;
+import com.seizia.chromite.model.connection.DBPDataSourceProviderRegistry;
+import com.seizia.chromite.junit.ChromiteUnitTest;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -36,7 +36,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
-public class DataSourceSerializerModernTest extends DBeaverUnitTest {
+public class DataSourceSerializerModernTest extends ChromiteUnitTest {
     private static final String CONNECTION_TYPE_ID = "imported-type";
     private static final String PROJECT_CONFIGURATION = """
         {

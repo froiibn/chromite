@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.mimer.ui.views;
+package com.seizia.chromite.ext.mimer.ui.views;
 
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.layout.GridData;
@@ -23,12 +23,12 @@ import org.eclipse.swt.widgets.Combo;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Text;
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.ext.mimer.MimerConstants;
-import org.jkiss.dbeaver.ext.mimer.ui.internal.MimerUIMessages;
-import org.jkiss.dbeaver.model.DBPDataSourceContainer;
-import org.jkiss.dbeaver.model.connection.DBPConnectionConfiguration;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.dialogs.connection.ConnectionPageAbstract;
+import com.seizia.chromite.ext.mimer.MimerConstants;
+import com.seizia.chromite.ext.mimer.ui.internal.MimerUIMessages;
+import com.seizia.chromite.model.DBPDataSourceContainer;
+import com.seizia.chromite.model.connection.DBPConnectionConfiguration;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.dialogs.connection.ConnectionPageAbstract;
 import org.jkiss.utils.CommonUtils;
 
 /**
@@ -42,7 +42,7 @@ import org.jkiss.utils.CommonUtils;
  * password is a genuine secret, so it goes through {@link DBPConnectionConfiguration#setAuthProperty}
  * instead, which routes it into DBeaver's secure credential storage rather than the plaintext
  * connection configuration - auth properties are *not* auto-merged, so {@code
- * org.jkiss.dbeaver.ext.mimer.model.MimerDataSource} explicitly injects it back into the JDBC
+ * com.seizia.chromite.ext.mimer.model.MimerDataSource} explicitly injects it back into the JDBC
  * {@code Properties} at connect time.
  *
  * @author Mimer Information Technology

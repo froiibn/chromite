@@ -14,20 +14,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.mssql.tasks;
+package com.seizia.chromite.ext.mssql.tasks;
 
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.model.edit.DBEPersistAction;
-import org.jkiss.dbeaver.model.exec.DBCException;
-import org.jkiss.dbeaver.model.exec.DBCSession;
-import org.jkiss.dbeaver.model.exec.DBCStatement;
-import org.jkiss.dbeaver.model.exec.jdbc.JDBCStatement;
-import org.jkiss.dbeaver.model.meta.Property;
-import org.jkiss.dbeaver.model.sql.task.SQLToolExecuteHandler;
-import org.jkiss.dbeaver.model.sql.task.SQLToolExecuteSettings;
-import org.jkiss.dbeaver.model.sql.task.SQLToolRunStatisticsGenerator;
-import org.jkiss.dbeaver.model.sql.task.SQLToolStatistics;
-import org.jkiss.dbeaver.model.struct.DBSObject;
+import com.seizia.chromite.model.edit.DBEPersistAction;
+import com.seizia.chromite.model.exec.DBCException;
+import com.seizia.chromite.model.exec.DBCSession;
+import com.seizia.chromite.model.exec.DBCStatement;
+import com.seizia.chromite.model.exec.jdbc.JDBCStatement;
+import com.seizia.chromite.model.meta.Property;
+import com.seizia.chromite.model.sql.task.SQLToolExecuteHandler;
+import com.seizia.chromite.model.sql.task.SQLToolExecuteSettings;
+import com.seizia.chromite.model.sql.task.SQLToolRunStatisticsGenerator;
+import com.seizia.chromite.model.sql.task.SQLToolStatistics;
+import com.seizia.chromite.model.struct.DBSObject;
 
 import java.sql.SQLException;
 import java.sql.SQLWarning;

@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.datadam;
+package com.seizia.chromite.ui.datadam;
 
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.events.SelectionListener;
@@ -23,9 +23,9 @@ import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Label;
 import org.eclipse.swt.widgets.Link;
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.model.DBIcon;
-import org.jkiss.dbeaver.ui.DBeaverIcons;
-import org.jkiss.dbeaver.ui.UIUtils;
+import com.seizia.chromite.model.DBIcon;
+import com.seizia.chromite.ui.SwtIcons;
+import com.seizia.chromite.ui.UIUtils;
 
 public class DDUIUtils {
     private DDUIUtils() {
@@ -39,7 +39,7 @@ public class DDUIUtils {
         row.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false));
 
         Label icon = new Label(row, SWT.NONE);
-        icon.setImage(DBeaverIcons.getImage(DBIcon.SMALL_INFO));
+        icon.setImage(SwtIcons.getImage(DBIcon.SMALL_INFO));
         icon.setLayoutData(new GridData(SWT.BEGINNING, SWT.BEGINNING, false, false));
 
         Label label = new Label(row, SWT.WRAP);

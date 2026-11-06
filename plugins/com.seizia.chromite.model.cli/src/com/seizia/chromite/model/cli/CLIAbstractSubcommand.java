@@ -14,10 +14,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.cli;
+package com.seizia.chromite.model.cli;
 
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.model.cli.model.option.HiddenOptionsForSubcommands;
+import com.seizia.chromite.model.cli.model.option.HiddenOptionsForSubcommands;
 import picocli.CommandLine;
 
 public abstract class CLIAbstractSubcommand extends CLIAbstractCommand {

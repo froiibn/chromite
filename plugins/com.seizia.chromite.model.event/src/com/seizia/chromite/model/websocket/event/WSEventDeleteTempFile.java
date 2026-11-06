@@ -14,10 +14,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.websocket.event;
+package com.seizia.chromite.model.websocket.event;
 
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.model.websocket.WSConstants;
+import com.seizia.chromite.model.websocket.WSConstants;
 
 public class WSEventDeleteTempFile extends WSAbstractEvent {
     private final String sessionId;

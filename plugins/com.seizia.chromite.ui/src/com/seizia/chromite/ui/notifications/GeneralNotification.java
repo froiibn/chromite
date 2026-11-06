@@ -14,14 +14,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.notifications;
+package com.seizia.chromite.ui.notifications;
 
 import org.eclipse.swt.graphics.Image;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.model.DBIcon;
-import org.jkiss.dbeaver.model.DBPMessageType;
-import org.jkiss.dbeaver.ui.DBeaverIcons;
+import com.seizia.chromite.model.DBIcon;
+import com.seizia.chromite.model.DBPMessageType;
+import com.seizia.chromite.ui.SwtIcons;
 
 import java.util.Date;
 
@@ -40,7 +40,7 @@ public class GeneralNotification extends AbstractUiNotification {
         @Nullable DBPMessageType messageType,
         @Nullable Runnable feedback)
     {
-        super("org.jkiss.dbeaver.notifications.event." + id);
+        super("com.seizia.chromite.notifications.event." + id);
         this.label = title;
         this.description = description;
         this.messageType = messageType;
@@ -81,11 +81,11 @@ public class GeneralNotification extends AbstractUiNotification {
         }
         switch (messageType) {
             case ERROR:
-                return DBeaverIcons.getImage(DBIcon.STATUS_ERROR);
+                return SwtIcons.getImage(DBIcon.STATUS_ERROR);
             case WARNING:
-                return DBeaverIcons.getImage(DBIcon.STATUS_WARNING);
+                return SwtIcons.getImage(DBIcon.STATUS_WARNING);
             default:
-                return DBeaverIcons.getImage(DBIcon.STATUS_INFO);
+                return SwtIcons.getImage(DBIcon.STATUS_INFO);
         }
     }
 

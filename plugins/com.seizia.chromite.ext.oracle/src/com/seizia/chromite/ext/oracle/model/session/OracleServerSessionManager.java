@@ -14,21 +14,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.oracle.model.session;
+package com.seizia.chromite.ext.oracle.model.session;
 
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.DBDatabaseException;
+import com.seizia.chromite.DBDatabaseException;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.ext.oracle.internal.OracleMessages;
-import org.jkiss.dbeaver.ext.oracle.model.OracleDataSource;
-import org.jkiss.dbeaver.model.DBIcon;
-import org.jkiss.dbeaver.model.DBPDataSource;
-import org.jkiss.dbeaver.model.DBPObject;
-import org.jkiss.dbeaver.model.admin.sessions.*;
-import org.jkiss.dbeaver.model.exec.DBCSession;
-import org.jkiss.dbeaver.model.exec.jdbc.JDBCPreparedStatement;
-import org.jkiss.dbeaver.model.exec.jdbc.JDBCResultSet;
-import org.jkiss.dbeaver.model.exec.jdbc.JDBCSession;
+import com.seizia.chromite.ext.oracle.internal.OracleMessages;
+import com.seizia.chromite.ext.oracle.model.OracleDataSource;
+import com.seizia.chromite.model.DBIcon;
+import com.seizia.chromite.model.DBPDataSource;
+import com.seizia.chromite.model.DBPObject;
+import com.seizia.chromite.model.admin.sessions.*;
+import com.seizia.chromite.model.exec.DBCSession;
+import com.seizia.chromite.model.exec.jdbc.JDBCPreparedStatement;
+import com.seizia.chromite.model.exec.jdbc.JDBCResultSet;
+import com.seizia.chromite.model.exec.jdbc.JDBCSession;
 import org.jkiss.utils.CommonUtils;
 
 import java.sql.SQLException;

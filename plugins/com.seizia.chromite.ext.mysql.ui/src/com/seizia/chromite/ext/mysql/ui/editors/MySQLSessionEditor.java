@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.mysql.ui.editors;
+package com.seizia.chromite.ext.mysql.ui.editors;
 
 import org.eclipse.jface.action.Action;
 import org.eclipse.jface.action.IContributionManager;
@@ -25,19 +25,19 @@ import org.eclipse.swt.widgets.Composite;
 import org.eclipse.ui.ISharedImages;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.ext.mysql.model.MySQLDataSource;
-import org.jkiss.dbeaver.ext.mysql.model.session.MySQLSessionManager;
-import org.jkiss.dbeaver.ext.mysql.ui.internal.MySQLUIMessages;
-import org.jkiss.dbeaver.model.admin.sessions.DBAServerSession;
-import org.jkiss.dbeaver.model.admin.sessions.DBAServerSessionManager;
-import org.jkiss.dbeaver.model.exec.DBCExecutionContext;
-import org.jkiss.dbeaver.ui.ActionUtils;
-import org.jkiss.dbeaver.ui.DBeaverIcons;
-import org.jkiss.dbeaver.ui.UIIcon;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.views.session.AbstractSessionEditor;
-import org.jkiss.dbeaver.ui.views.session.SessionManagerViewer;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.ext.mysql.model.MySQLDataSource;
+import com.seizia.chromite.ext.mysql.model.session.MySQLSessionManager;
+import com.seizia.chromite.ext.mysql.ui.internal.MySQLUIMessages;
+import com.seizia.chromite.model.admin.sessions.DBAServerSession;
+import com.seizia.chromite.model.admin.sessions.DBAServerSessionManager;
+import com.seizia.chromite.model.exec.DBCExecutionContext;
+import com.seizia.chromite.ui.ActionUtils;
+import com.seizia.chromite.ui.SwtIcons;
+import com.seizia.chromite.ui.UIIcon;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.views.session.AbstractSessionEditor;
+import com.seizia.chromite.ui.views.session.SessionManagerViewer;
 import org.jkiss.utils.CommonUtils;
 
 import java.util.Collections;
@@ -80,7 +80,7 @@ public class MySQLSessionEditor extends AbstractSessionEditor
                     new Action(MySQLUIMessages.editors_session_hide_sleeping_text, Action.AS_CHECK_BOX) {
                         {
                             setToolTipText(MySQLUIMessages.editors_session_hide_sleeping_tip);
-                            setImageDescriptor(DBeaverIcons.getImageDescriptor(UIIcon.HIDE_ALL_DETAILS));
+                            setImageDescriptor(SwtIcons.getImageDescriptor(UIIcon.HIDE_ALL_DETAILS));
                             setChecked(hideSleeping);
                         }
 
@@ -96,7 +96,7 @@ public class MySQLSessionEditor extends AbstractSessionEditor
                         new Action(MySQLUIMessages.editors_session_show_performance_text, Action.AS_CHECK_BOX) {
                             {
                                 setToolTipText(MySQLUIMessages.editors_session_show_performance_tip);
-                                setImageDescriptor(DBeaverIcons.getImageDescriptor(UIIcon.SHOW_ALL_DETAILS));
+                                setImageDescriptor(SwtIcons.getImageDescriptor(UIIcon.SHOW_ALL_DETAILS));
                                 setChecked(showPerformance);
                             }
 
@@ -154,7 +154,7 @@ public class MySQLSessionEditor extends AbstractSessionEditor
                 killQuery ? MySQLUIMessages.editors_session_editor_action_terminate_Query : MySQLUIMessages.editors_session_editor_action_kill_Session,
                 killQuery ?
                     UIUtils.getShardImageDescriptor(ISharedImages.IMG_ELCL_STOP) :
-                    DBeaverIcons.getImageDescriptor(UIIcon.SQL_DISCONNECT));
+                    SwtIcons.getImageDescriptor(UIIcon.SQL_DISCONNECT));
             this.killQuery = killQuery;
         }
 

@@ -15,13 +15,13 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.model.sql.parser;
+package com.seizia.chromite.model.sql.parser;
 
 import org.eclipse.jface.text.BadLocationException;
 import org.eclipse.jface.text.IDocument;
 import org.eclipse.jface.text.TextUtilities;
-import org.jkiss.dbeaver.model.sql.SQLSyntaxManager;
-import org.jkiss.dbeaver.model.sql.SQLUtils;
+import com.seizia.chromite.model.sql.SQLSyntaxManager;
+import com.seizia.chromite.model.sql.SQLUtils;
 import org.jkiss.utils.CommonUtils;
 
 import java.util.ArrayList;

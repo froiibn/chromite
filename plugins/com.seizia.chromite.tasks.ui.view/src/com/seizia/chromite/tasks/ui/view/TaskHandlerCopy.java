@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.tasks.ui.view;
+package com.seizia.chromite.tasks.ui.view;
 
 import org.eclipse.core.commands.AbstractHandler;
 import org.eclipse.core.commands.ExecutionEvent;
@@ -26,13 +26,13 @@ import org.eclipse.swt.SWT;
 import org.eclipse.ui.IWorkbenchPart;
 import org.eclipse.ui.handlers.HandlerUtil;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.model.task.DBTTask;
-import org.jkiss.dbeaver.model.task.DBTTaskManager;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.tasks.ui.internal.TaskUIViewMessages;
-import org.jkiss.dbeaver.ui.ActionUtils;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.dialogs.EnterNameDialog;
+import com.seizia.chromite.model.task.DBTTask;
+import com.seizia.chromite.model.task.DBTTaskManager;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.tasks.ui.internal.TaskUIViewMessages;
+import com.seizia.chromite.ui.ActionUtils;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.dialogs.EnterNameDialog;
 import org.jkiss.utils.BeanUtils;
 
 public class TaskHandlerCopy extends AbstractHandler {

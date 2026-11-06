@@ -1,22 +1,22 @@
 Manifest-Version: 1.0
 Bundle-ManifestVersion: 2
-Bundle-Vendor: DBeaver Corp
+Bundle-Vendor: Chromite contributors
 Bundle-Name: Data Transfer UI
-Bundle-SymbolicName: org.jkiss.dbeaver.data.transfer.ui;singleton:=true
+Bundle-SymbolicName: com.seizia.chromite.data.transfer.ui;singleton:=true
 Bundle-Version: 1.0.175.qualifier
 Bundle-Release-Date: 20261116
 Bundle-RequiredExecutionEnvironment: JavaSE-21
 Bundle-ActivationPolicy: lazy
-Export-Package: org.jkiss.dbeaver.tools.transfer.ui,
- org.jkiss.dbeaver.tools.transfer.ui.internal,
- org.jkiss.dbeaver.tools.transfer.ui.wizard,
- org.jkiss.dbeaver.tools.transfer.ui.pages.database,
- org.jkiss.dbeaver.ui.controls
-Require-Bundle: org.jkiss.dbeaver.tasks.ui;visibility:=reexport,
- org.jkiss.dbeaver.data.transfer;visibility:=reexport,
- org.jkiss.dbeaver.ui.forms,
- org.jkiss.dbeaver.ui.navigator,
- org.jkiss.dbeaver.ui.editors.base,
- org.jkiss.dbeaver.ui.editors.connection,
+Export-Package: com.seizia.chromite.tools.transfer.ui,
+ com.seizia.chromite.tools.transfer.ui.internal,
+ com.seizia.chromite.tools.transfer.ui.wizard,
+ com.seizia.chromite.tools.transfer.ui.pages.database,
+ com.seizia.chromite.ui.controls
+Require-Bundle: com.seizia.chromite.tasks.ui;visibility:=reexport,
+ com.seizia.chromite.data.transfer;visibility:=reexport,
+ com.seizia.chromite.ui.forms,
+ com.seizia.chromite.ui.navigator,
+ com.seizia.chromite.ui.editors.base,
+ com.seizia.chromite.ui.editors.connection,
  org.eclipse.ui.console
-Automatic-Module-Name: org.jkiss.dbeaver.data.transfer.ui
+Automatic-Module-Name: com.seizia.chromite.data.transfer.ui

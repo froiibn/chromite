@@ -15,37 +15,37 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.model.sql.parser;
+package com.seizia.chromite.model.sql.parser;
 
 import org.antlr.v4.runtime.Token;
 import org.eclipse.jface.text.*;
 import org.eclipse.jface.text.rules.FastPartitioner;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.ModelPreferences;
-import org.jkiss.dbeaver.model.DBPDataSource;
-import org.jkiss.dbeaver.model.DBUtils;
-import org.jkiss.dbeaver.model.impl.sql.AbstractSQLDialect;
-import org.jkiss.dbeaver.model.lsm.LSMAnalyzerParameters;
-import org.jkiss.dbeaver.model.lsm.sql.dialect.SQLStandardAnalyzer;
-import org.jkiss.dbeaver.model.lsm.sql.impl.syntax.SQLStandardLexer;
-import org.jkiss.dbeaver.model.preferences.DBPPreferenceStore;
-import org.jkiss.dbeaver.model.sql.*;
-import org.jkiss.dbeaver.model.sql.parser.tokens.SQLBatchDelimiterToken;
-import org.jkiss.dbeaver.model.sql.parser.tokens.SQLControlToken;
-import org.jkiss.dbeaver.model.sql.parser.tokens.SQLTokenType;
-import org.jkiss.dbeaver.model.sql.parser.tokens.predicates.SQLTokenEntry;
-import org.jkiss.dbeaver.model.sql.parser.tokens.predicates.SQLTokenPredicateEvaluator;
-import org.jkiss.dbeaver.model.sql.registry.SQLCommandHandlerDescriptor;
-import org.jkiss.dbeaver.model.sql.registry.SQLCommandsRegistry;
-import org.jkiss.dbeaver.model.stm.LSMInspections;
-import org.jkiss.dbeaver.model.stm.STMSource;
-import org.jkiss.dbeaver.model.text.TextUtils;
-import org.jkiss.dbeaver.model.text.parser.TPRuleBasedScanner;
-import org.jkiss.dbeaver.model.text.parser.TPToken;
-import org.jkiss.dbeaver.model.text.parser.TPTokenAbstract;
-import org.jkiss.dbeaver.model.text.parser.TPTokenDefault;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.ModelPreferences;
+import com.seizia.chromite.model.DBPDataSource;
+import com.seizia.chromite.model.DBUtils;
+import com.seizia.chromite.model.impl.sql.AbstractSQLDialect;
+import com.seizia.chromite.model.lsm.LSMAnalyzerParameters;
+import com.seizia.chromite.model.lsm.sql.dialect.SQLStandardAnalyzer;
+import com.seizia.chromite.model.lsm.sql.impl.syntax.SQLStandardLexer;
+import com.seizia.chromite.model.preferences.DBPPreferenceStore;
+import com.seizia.chromite.model.sql.*;
+import com.seizia.chromite.model.sql.parser.tokens.SQLBatchDelimiterToken;
+import com.seizia.chromite.model.sql.parser.tokens.SQLControlToken;
+import com.seizia.chromite.model.sql.parser.tokens.SQLTokenType;
+import com.seizia.chromite.model.sql.parser.tokens.predicates.SQLTokenEntry;
+import com.seizia.chromite.model.sql.parser.tokens.predicates.SQLTokenPredicateEvaluator;
+import com.seizia.chromite.model.sql.registry.SQLCommandHandlerDescriptor;
+import com.seizia.chromite.model.sql.registry.SQLCommandsRegistry;
+import com.seizia.chromite.model.stm.LSMInspections;
+import com.seizia.chromite.model.stm.STMSource;
+import com.seizia.chromite.model.text.TextUtils;
+import com.seizia.chromite.model.text.parser.TPRuleBasedScanner;
+import com.seizia.chromite.model.text.parser.TPToken;
+import com.seizia.chromite.model.text.parser.TPTokenAbstract;
+import com.seizia.chromite.model.text.parser.TPTokenDefault;
 import org.jkiss.utils.ArrayUtils;
 import org.jkiss.utils.CommonUtils;
 
@@ -60,7 +60,7 @@ public class SQLScriptParser {
 
     static protected final Log log = Log.getLog(SQLScriptParser.class);
 
-    private static final String CLI_ARG_DEBUG_DISABLE_SKIP_TOKEN_EVALUATION = "dbeaver.debug.sql.disable-skip-token-evaluation";
+    private static final String CLI_ARG_DEBUG_DISABLE_SKIP_TOKEN_EVALUATION = "chromite.debug.sql.disable-skip-token-evaluation";
 
     private static boolean isPredicateEvaluationEnabled() {
         String property = System.getProperty(CLI_ARG_DEBUG_DISABLE_SKIP_TOKEN_EVALUATION); // Turn off processor settings save.

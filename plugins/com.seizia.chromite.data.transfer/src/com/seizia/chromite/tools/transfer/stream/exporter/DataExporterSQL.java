@@ -14,28 +14,28 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.tools.transfer.stream.exporter;
+package com.seizia.chromite.tools.transfer.stream.exporter;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.*;
-import org.jkiss.dbeaver.model.data.*;
-import org.jkiss.dbeaver.model.exec.DBCResultSet;
-import org.jkiss.dbeaver.model.exec.DBCSession;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.model.sql.SQLConstants;
-import org.jkiss.dbeaver.model.sql.SQLDialect;
-import org.jkiss.dbeaver.model.sql.SQLQueryContainer;
-import org.jkiss.dbeaver.model.sql.SQLUtils;
-import org.jkiss.dbeaver.model.sql.parser.SQLIdentifierDetector;
-import org.jkiss.dbeaver.model.struct.DBSDataManipulator;
-import org.jkiss.dbeaver.tools.transfer.DTConstants;
-import org.jkiss.dbeaver.tools.transfer.DTUtils;
-import org.jkiss.dbeaver.tools.transfer.stream.IAppendableDataExporter;
-import org.jkiss.dbeaver.tools.transfer.stream.IStreamDataExporterSite;
-import org.jkiss.dbeaver.utils.ContentUtils;
-import org.jkiss.dbeaver.utils.GeneralUtils;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.*;
+import com.seizia.chromite.model.data.*;
+import com.seizia.chromite.model.exec.DBCResultSet;
+import com.seizia.chromite.model.exec.DBCSession;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.model.sql.SQLConstants;
+import com.seizia.chromite.model.sql.SQLDialect;
+import com.seizia.chromite.model.sql.SQLQueryContainer;
+import com.seizia.chromite.model.sql.SQLUtils;
+import com.seizia.chromite.model.sql.parser.SQLIdentifierDetector;
+import com.seizia.chromite.model.struct.DBSDataManipulator;
+import com.seizia.chromite.tools.transfer.DTConstants;
+import com.seizia.chromite.tools.transfer.DTUtils;
+import com.seizia.chromite.tools.transfer.stream.IAppendableDataExporter;
+import com.seizia.chromite.tools.transfer.stream.IStreamDataExporterSite;
+import com.seizia.chromite.utils.ContentUtils;
+import com.seizia.chromite.utils.GeneralUtils;
 import org.jkiss.utils.CommonUtils;
 
 import java.io.File;

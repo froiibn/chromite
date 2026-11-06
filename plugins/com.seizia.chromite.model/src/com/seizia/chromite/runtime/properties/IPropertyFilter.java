@@ -14,9 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.runtime.properties;
+package com.seizia.chromite.runtime.properties;
 
-import org.jkiss.dbeaver.model.preferences.DBPPropertyDescriptor;
+import com.seizia.chromite.model.preferences.DBPPropertyDescriptor;
 
 /**
  * Interface for filters. Can accept or reject items.

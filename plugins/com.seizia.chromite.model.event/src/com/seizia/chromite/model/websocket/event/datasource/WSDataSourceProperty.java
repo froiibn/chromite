@@ -14,10 +14,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.websocket.event.datasource;
+package com.seizia.chromite.model.websocket.event.datasource;
 
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.registry.DataSourceDescriptor;
+import com.seizia.chromite.registry.DataSourceDescriptor;
 
 public enum WSDataSourceProperty {
     CONFIGURATION, // configuration like host, port, etc

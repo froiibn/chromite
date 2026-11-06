@@ -14,12 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.editors.data.internal;
+package com.seizia.chromite.ui.editors.data.internal;
 
 import org.eclipse.osgi.util.NLS;
 
 public class DataEditorsMessages extends NLS {
-	static final String BUNDLE_NAME = "org.jkiss.dbeaver.ui.editors.data.internal.DataEditorsResources"; //$NON-NLS-1$
+	static final String BUNDLE_NAME = "com.seizia.chromite.ui.editors.data.internal.DataEditorsResources"; //$NON-NLS-1$
 
 	public static String grid_tooltip_sort_by_column;
     public static String controls_column_info_panel_property_key;

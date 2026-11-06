@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.app.standalone.actions;
+package com.seizia.chromite.ui.app.standalone.actions;
 
 import org.eclipse.core.commands.AbstractHandler;
 import org.eclipse.core.commands.ExecutionEvent;
@@ -30,34 +30,34 @@ import org.eclipse.ui.handlers.HandlerUtil;
 import org.eclipse.ui.internal.ConfigurationInfo;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.DBeaverPreferences;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.LogOutputStream;
-import org.jkiss.dbeaver.model.DBConstants;
-import org.jkiss.dbeaver.model.DBIcon;
-import org.jkiss.dbeaver.model.app.DBPProject;
-import org.jkiss.dbeaver.model.impl.app.LocalSecretController;
-import org.jkiss.dbeaver.model.preferences.DBPPreferenceStore;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.model.task.DBTTask;
-import org.jkiss.dbeaver.model.task.DBTTaskManager;
-import org.jkiss.dbeaver.model.task.DBTTaskRun;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.ui.ShellUtils;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.app.standalone.internal.CoreApplicationMessages;
-import org.jkiss.dbeaver.ui.controls.TextWithOpen;
-import org.jkiss.dbeaver.ui.controls.TextWithOpenFolder;
-import org.jkiss.dbeaver.ui.dialogs.BaseDialog;
-import org.jkiss.dbeaver.ui.dialogs.MessageBoxBuilder;
-import org.jkiss.dbeaver.ui.dialogs.Reply;
-import org.jkiss.dbeaver.ui.forms.UIAlignX;
-import org.jkiss.dbeaver.ui.forms.UIObservable;
-import org.jkiss.dbeaver.ui.forms.UIPanelBuilder;
-import org.jkiss.dbeaver.utils.GeneralUtils;
-import org.jkiss.dbeaver.utils.HelpUtils;
-import org.jkiss.dbeaver.utils.PrefUtils;
-import org.jkiss.dbeaver.utils.SystemVariablesResolver;
+import com.seizia.chromite.ChromitePreferences;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.LogOutputStream;
+import com.seizia.chromite.model.DBConstants;
+import com.seizia.chromite.model.DBIcon;
+import com.seizia.chromite.model.app.DBPProject;
+import com.seizia.chromite.model.impl.app.LocalSecretController;
+import com.seizia.chromite.model.preferences.DBPPreferenceStore;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.model.task.DBTTask;
+import com.seizia.chromite.model.task.DBTTaskManager;
+import com.seizia.chromite.model.task.DBTTaskRun;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.ui.ShellUtils;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.app.standalone.internal.CoreApplicationMessages;
+import com.seizia.chromite.ui.controls.TextWithOpen;
+import com.seizia.chromite.ui.controls.TextWithOpenFolder;
+import com.seizia.chromite.ui.dialogs.BaseDialog;
+import com.seizia.chromite.ui.dialogs.MessageBoxBuilder;
+import com.seizia.chromite.ui.dialogs.Reply;
+import com.seizia.chromite.ui.forms.UIAlignX;
+import com.seizia.chromite.ui.forms.UIObservable;
+import com.seizia.chromite.ui.forms.UIPanelBuilder;
+import com.seizia.chromite.utils.GeneralUtils;
+import com.seizia.chromite.utils.HelpUtils;
+import com.seizia.chromite.utils.PrefUtils;
+import com.seizia.chromite.utils.SystemVariablesResolver;
 import org.jkiss.utils.CommonUtils;
 import org.jkiss.utils.StandardConstants;
 
@@ -97,7 +97,7 @@ public class CollectDiagnosticInfoHandler extends AbstractHandler {
         }
         boolean sanitizeLogs = dialog.sanitizeLogs.get();
         Path archive = dialog.getOutputFolder().resolve(
-            "dbeaver-diagnostic-info-%s%d.zip".formatted(sanitizeLogs ? "sanitized-" : "", System.currentTimeMillis())
+            "chromite-diagnostic-info-%s%d.zip".formatted(sanitizeLogs ? "sanitized-" : "", System.currentTimeMillis())
         );
         if (Files.exists(archive)) {
             // Happens once in a blue moon
@@ -332,7 +332,7 @@ public class CollectDiagnosticInfoHandler extends AbstractHandler {
     }
 
     private static void addDBeaverDebugLogs(@NotNull Collection<DiagnosticsEntry> diagnosticsEntries) {
-        String logLocation = DBWorkbench.getPlatform().getPreferenceStore().getString(DBeaverPreferences.LOGS_DEBUG_LOCATION);
+        String logLocation = DBWorkbench.getPlatform().getPreferenceStore().getString(ChromitePreferences.LOGS_DEBUG_LOCATION);
         if (CommonUtils.isEmpty(logLocation)) {
             logLocation = GeneralUtils.getMetadataFolder().resolve(DBConstants.DEBUG_LOG_FILE_NAME).toAbsolutePath().toString();
         }
@@ -398,7 +398,7 @@ public class CollectDiagnosticInfoHandler extends AbstractHandler {
     private static final class CollectDiagnosticInfoDialog extends BaseDialog {
         @NotNull
         private final UIObservable<Boolean> sanitizeLogs = UIObservable.of(
-            DBWorkbench.getPlatform().getPreferenceStore().getBoolean(DBeaverPreferences.DIAGNOSTIC_INFO_SANITIZE_LOGS));
+            DBWorkbench.getPlatform().getPreferenceStore().getBoolean(ChromitePreferences.DIAGNOSTIC_INFO_SANITIZE_LOGS));
         @Nullable
         private TextWithOpen textWithOpen;
         @Nullable
@@ -458,21 +458,21 @@ public class CollectDiagnosticInfoHandler extends AbstractHandler {
                 }
             }
             DBPPreferenceStore store = DBWorkbench.getPlatform().getPreferenceStore();
-            store.setValue(DBeaverPreferences.DIAGNOSTIC_INFO_SANITIZE_LOGS, sanitizeLogs.get());
+            store.setValue(ChromitePreferences.DIAGNOSTIC_INFO_SANITIZE_LOGS, sanitizeLogs.get());
             PrefUtils.savePreferenceStore(store);
             super.okPressed();
         }
 
         private void storeOutputFolderPath(@NotNull String outputFolderPathString) {
             DBPPreferenceStore store = DBWorkbench.getPlatform().getPreferenceStore();
-            store.setValue(DBeaverPreferences.DIAGNOSTIC_INFO_OUTPUT_FOLDER, outputFolderPathString);
+            store.setValue(ChromitePreferences.DIAGNOSTIC_INFO_OUTPUT_FOLDER, outputFolderPathString);
             PrefUtils.savePreferenceStore(store);
         }
 
         @Nullable
         private String getInitialOutputFolderPath() {
             DBPPreferenceStore store = DBWorkbench.getPlatform().getPreferenceStore();
-            String outputFolderPath = store.getString(DBeaverPreferences.DIAGNOSTIC_INFO_OUTPUT_FOLDER);
+            String outputFolderPath = store.getString(ChromitePreferences.DIAGNOSTIC_INFO_OUTPUT_FOLDER);
             if (!isOutputFolderPathValid(outputFolderPath)) {
                 return System.getProperty(StandardConstants.ENV_USER_HOME);
             }

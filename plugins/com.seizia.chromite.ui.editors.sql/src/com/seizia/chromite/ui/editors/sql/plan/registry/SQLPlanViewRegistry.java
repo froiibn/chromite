@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.ui.editors.sql.plan.registry;
+package com.seizia.chromite.ui.editors.sql.plan.registry;
 
 import org.eclipse.core.runtime.IConfigurationElement;
 import org.eclipse.core.runtime.IExtensionRegistry;
@@ -32,7 +32,7 @@ import java.util.List;
  */
 public class SQLPlanViewRegistry {
 
-    public static final String EXTENSION_ID = "org.jkiss.dbeaver.sql.plan.view"; //NON-NLS-1 //$NON-NLS-1$
+    public static final String EXTENSION_ID = "com.seizia.chromite.sql.plan.view"; //NON-NLS-1 //$NON-NLS-1$
 
     private static final String TAG_VIEW = "view"; //NON-NLS-1
     private static final String TAG_ACTION = "action"; //NON-NLS-1

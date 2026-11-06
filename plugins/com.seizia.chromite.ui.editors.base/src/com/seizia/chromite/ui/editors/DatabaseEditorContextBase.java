@@ -14,13 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.editors;
+package com.seizia.chromite.ui.editors;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.model.DBPDataSourceContainer;
-import org.jkiss.dbeaver.model.exec.DBCExecutionContext;
-import org.jkiss.dbeaver.model.struct.DBSObject;
+import com.seizia.chromite.model.DBPDataSourceContainer;
+import com.seizia.chromite.model.exec.DBCExecutionContext;
+import com.seizia.chromite.model.struct.DBSObject;
 
 public final class DatabaseEditorContextBase implements DatabaseEditorContext {
     private final DBPDataSourceContainer container;

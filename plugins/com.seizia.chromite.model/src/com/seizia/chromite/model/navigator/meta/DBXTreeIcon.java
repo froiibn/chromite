@@ -15,13 +15,13 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.model.navigator.meta;
+package com.seizia.chromite.model.navigator.meta;
 
 import org.apache.commons.jexl3.JexlExpression;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.DBPImage;
-import org.jkiss.dbeaver.model.impl.AbstractDescriptor;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.DBPImage;
+import com.seizia.chromite.model.impl.AbstractDescriptor;
 
 /**
  * DBXTreeIcon

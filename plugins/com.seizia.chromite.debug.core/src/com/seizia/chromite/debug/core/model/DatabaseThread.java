@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.debug.core.model;
+package com.seizia.chromite.debug.core.model;
 
 import org.eclipse.core.runtime.IStatus;
 import org.eclipse.debug.core.DebugEvent;
@@ -25,11 +25,11 @@ import org.eclipse.debug.core.model.IBreakpoint;
 import org.eclipse.debug.core.model.IStackFrame;
 import org.eclipse.debug.core.model.IThread;
 import org.eclipse.osgi.util.NLS;
-import org.jkiss.dbeaver.debug.DBGException;
-import org.jkiss.dbeaver.debug.DBGSession;
-import org.jkiss.dbeaver.debug.DBGStackFrame;
-import org.jkiss.dbeaver.debug.core.DebugUtils;
-import org.jkiss.dbeaver.debug.internal.core.DebugCoreMessages;
+import com.seizia.chromite.debug.DBGException;
+import com.seizia.chromite.debug.DBGSession;
+import com.seizia.chromite.debug.DBGStackFrame;
+import com.seizia.chromite.debug.core.DebugUtils;
+import com.seizia.chromite.debug.internal.core.DebugCoreMessages;
 
 import java.util.ArrayList;
 import java.util.List;

@@ -14,11 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.security;
+package com.seizia.chromite.model.security;
 
 /** Equinox secure-storage provider identifiers used by DBeaver. */
 public final class DBSecurityProviders {
-    public static final String MACOS_KEYCHAIN = "org.jkiss.dbeaver.model.security.MacOSSecureStorageKeychain";
+    public static final String MACOS_KEYCHAIN = "com.seizia.chromite.model.security.MacOSSecureStorageKeychain";
     public static final String LEGACY_MACOS_PROVIDER_EXTENSION_ID = ".osxkeystoreintegration";
     public static final String WINDOWS_INTEGRATION = "org.eclipse.equinox.security.WindowsPasswordProvider64bit";
     public static final String LINUX_INTEGRATION = "org.eclipse.equinox.security.LinuxKeystoreIntegrationJNA";

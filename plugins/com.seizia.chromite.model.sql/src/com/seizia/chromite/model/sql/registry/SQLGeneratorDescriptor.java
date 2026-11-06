@@ -15,13 +15,13 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.model.sql.registry;
+package com.seizia.chromite.model.sql.registry;
 
 import org.eclipse.core.runtime.IConfigurationElement;
 import org.jkiss.code.NotNull;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.model.impl.AbstractContextDescriptor;
-import org.jkiss.dbeaver.model.sql.generator.SQLGenerator;
+import com.seizia.chromite.model.impl.AbstractContextDescriptor;
+import com.seizia.chromite.model.sql.generator.SQLGenerator;
 import org.jkiss.utils.CommonUtils;
 
 import java.util.List;
@@ -31,7 +31,7 @@ import java.util.List;
  */
 public class SQLGeneratorDescriptor extends AbstractContextDescriptor {
 
-    public static final String EXTENSION_ID = "org.jkiss.dbeaver.sqlGenerator"; //$NON-NLS-1$
+    public static final String EXTENSION_ID = "com.seizia.chromite.sqlGenerator"; //$NON-NLS-1$
 
     private final String id;
     private final String label;

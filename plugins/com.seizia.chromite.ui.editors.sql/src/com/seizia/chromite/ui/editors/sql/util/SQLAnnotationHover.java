@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.editors.sql.util;
+package com.seizia.chromite.ui.editors.sql.util;
 
 import org.antlr.v4.runtime.misc.Interval;
 import org.eclipse.jface.text.*;
@@ -28,10 +28,10 @@ import org.eclipse.ui.IEditorPart;
 import org.eclipse.ui.texteditor.spelling.SpellingAnnotation;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.ui.editors.sql.SQLEditorBase;
-import org.jkiss.dbeaver.ui.editors.sql.semantics.SQLSemanticErrorAnnotation;
-import org.jkiss.dbeaver.ui.editors.sql.syntax.SQLProblemAnnotation;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.ui.editors.sql.SQLEditorBase;
+import com.seizia.chromite.ui.editors.sql.semantics.SQLSemanticErrorAnnotation;
+import com.seizia.chromite.ui.editors.sql.syntax.SQLProblemAnnotation;
 
 import java.util.*;
 

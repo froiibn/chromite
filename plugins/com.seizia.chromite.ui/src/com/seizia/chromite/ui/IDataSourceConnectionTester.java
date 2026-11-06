@@ -15,9 +15,9 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.ui;
+package com.seizia.chromite.ui;
 
-import org.jkiss.dbeaver.model.exec.DBCSession;
+import com.seizia.chromite.model.exec.DBCSession;
 
 /**
  * IDataSourceConnectionTester

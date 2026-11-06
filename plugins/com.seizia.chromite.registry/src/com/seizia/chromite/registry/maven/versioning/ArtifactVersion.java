@@ -1,4 +1,4 @@
-package org.jkiss.dbeaver.registry.maven.versioning;
+package com.seizia.chromite.registry.maven.versioning;
 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one

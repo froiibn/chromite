@@ -14,21 +14,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.mysql.tasks;
+package com.seizia.chromite.ext.mysql.tasks;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.ext.mysql.MySQLConstants;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.model.runtime.VoidProgressMonitor;
-import org.jkiss.dbeaver.model.struct.DBSObject;
-import org.jkiss.dbeaver.model.task.DBTTask;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.tasks.nativetool.AbstractNativeToolHandler;
-import org.jkiss.dbeaver.tasks.nativetool.AbstractNativeToolSettings;
-import org.jkiss.dbeaver.tasks.nativetool.NativeToolUtils;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.ext.mysql.MySQLConstants;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.model.runtime.VoidProgressMonitor;
+import com.seizia.chromite.model.struct.DBSObject;
+import com.seizia.chromite.model.task.DBTTask;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.tasks.nativetool.AbstractNativeToolHandler;
+import com.seizia.chromite.tasks.nativetool.AbstractNativeToolSettings;
+import com.seizia.chromite.tasks.nativetool.NativeToolUtils;
 import org.jkiss.utils.CommonUtils;
 
 import java.io.IOException;

@@ -17,13 +17,13 @@
 /*
  * Created on Jul 15, 2004
  */
-package org.jkiss.dbeaver.model.erd;
+package com.seizia.chromite.model.erd;
 
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.model.DBPAdaptable;
-import org.jkiss.dbeaver.model.DBPNamedObject;
-import org.jkiss.dbeaver.model.preferences.DBPPropertySource;
-import org.jkiss.dbeaver.runtime.properties.PropertyCollector;
+import com.seizia.chromite.model.DBPAdaptable;
+import com.seizia.chromite.model.DBPNamedObject;
+import com.seizia.chromite.model.preferences.DBPPropertySource;
+import com.seizia.chromite.runtime.properties.PropertyCollector;
 
 import java.beans.PropertyChangeListener;
 import java.beans.PropertyChangeSupport;

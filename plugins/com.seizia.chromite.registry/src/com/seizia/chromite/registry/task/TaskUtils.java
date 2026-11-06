@@ -14,13 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.registry.task;
+package com.seizia.chromite.registry.task;
 
 import com.google.gson.Gson;
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.task.DBTTaskRun;
-import org.jkiss.dbeaver.model.task.DBTTaskRunRecord;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.task.DBTTaskRun;
+import com.seizia.chromite.model.task.DBTTaskRunRecord;
 
 import java.io.Reader;
 import java.nio.file.Files;

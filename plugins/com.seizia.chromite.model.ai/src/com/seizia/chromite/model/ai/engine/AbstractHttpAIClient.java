@@ -14,12 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.ai.engine;
+package com.seizia.chromite.model.ai.engine;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.model.ai.utils.MonitoredHttpClient;
+import com.seizia.chromite.model.ai.utils.MonitoredHttpClient;
 
 import java.net.http.HttpClient;
 import java.net.http.HttpResponse;

@@ -14,21 +14,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.controls.resultset.panel.grouping.action;
+package com.seizia.chromite.ui.controls.resultset.panel.grouping.action;
 
 import org.eclipse.jface.viewers.SelectionChangedEvent;
 import org.jkiss.code.NotNull;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.model.data.DBDAttributeBinding;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.ui.DBeaverIcons;
-import org.jkiss.dbeaver.ui.UIIcon;
-import org.jkiss.dbeaver.ui.controls.resultset.IResultSetController;
-import org.jkiss.dbeaver.ui.controls.resultset.IResultSetSelection;
-import org.jkiss.dbeaver.ui.controls.resultset.ResultSetListenerAdapter;
-import org.jkiss.dbeaver.ui.controls.resultset.internal.ResultSetMessages;
-import org.jkiss.dbeaver.ui.controls.resultset.panel.grouping.GroupingColumnsContainer;
-import org.jkiss.dbeaver.ui.controls.resultset.panel.grouping.GroupingResultsContainer;
+import com.seizia.chromite.model.data.DBDAttributeBinding;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.ui.SwtIcons;
+import com.seizia.chromite.ui.UIIcon;
+import com.seizia.chromite.ui.controls.resultset.IResultSetController;
+import com.seizia.chromite.ui.controls.resultset.IResultSetSelection;
+import com.seizia.chromite.ui.controls.resultset.ResultSetListenerAdapter;
+import com.seizia.chromite.ui.controls.resultset.internal.ResultSetMessages;
+import com.seizia.chromite.ui.controls.resultset.panel.grouping.GroupingColumnsContainer;
+import com.seizia.chromite.ui.controls.resultset.panel.grouping.GroupingResultsContainer;
 import org.jkiss.utils.ArrayUtils;
 
 import java.util.Comparator;
@@ -43,7 +43,7 @@ public class DeleteColumnAction extends GroupingAction {
     private final SortedSet<Integer> readyToRemoveIndexes = new TreeSet<>(Comparator.reverseOrder());
 
     public DeleteColumnAction(@NotNull GroupingResultsContainer resultsContainer) {
-        super(resultsContainer, ResultSetMessages.controls_resultset_grouping_remove_column, DBeaverIcons.getImageDescriptor(UIIcon.CLOSE));
+        super(resultsContainer, ResultSetMessages.controls_resultset_grouping_remove_column, SwtIcons.getImageDescriptor(UIIcon.CLOSE));
         IResultSetController resultSetController = groupingResultsContainer.getResultSetController();
         resultSetController.addListener(new ResultSetListenerAdapter() {
             @Override

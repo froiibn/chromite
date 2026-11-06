@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.ui.data;
+package com.seizia.chromite.ui.data;
 
 /**
  * Standalone Value Editor.

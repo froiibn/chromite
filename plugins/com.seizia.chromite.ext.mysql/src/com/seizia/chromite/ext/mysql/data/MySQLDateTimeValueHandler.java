@@ -14,26 +14,26 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.mysql.data;
+package com.seizia.chromite.ext.mysql.data;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.ext.mysql.MySQLConstants;
-import org.jkiss.dbeaver.ext.mysql.MySQLUtils;
-import org.jkiss.dbeaver.model.data.DBDDisplayFormat;
-import org.jkiss.dbeaver.model.data.DBDFormatSettings;
-import org.jkiss.dbeaver.model.data.DBDZeroDateValue;
-import org.jkiss.dbeaver.model.data.DBDZeroTimestampValue;
-import org.jkiss.dbeaver.model.exec.DBCException;
-import org.jkiss.dbeaver.model.exec.DBCResultSet;
-import org.jkiss.dbeaver.model.exec.DBCSession;
-import org.jkiss.dbeaver.model.exec.DBCStatement;
-import org.jkiss.dbeaver.model.exec.jdbc.JDBCPreparedStatement;
-import org.jkiss.dbeaver.model.exec.jdbc.JDBCResultSet;
-import org.jkiss.dbeaver.model.impl.jdbc.data.handlers.JDBCDateTimeValueHandler;
-import org.jkiss.dbeaver.model.messages.ModelMessages;
-import org.jkiss.dbeaver.model.struct.DBSTypedObject;
-import org.jkiss.dbeaver.utils.ContentUtils;
+import com.seizia.chromite.ext.mysql.MySQLConstants;
+import com.seizia.chromite.ext.mysql.MySQLUtils;
+import com.seizia.chromite.model.data.DBDDisplayFormat;
+import com.seizia.chromite.model.data.DBDFormatSettings;
+import com.seizia.chromite.model.data.DBDZeroDateValue;
+import com.seizia.chromite.model.data.DBDZeroTimestampValue;
+import com.seizia.chromite.model.exec.DBCException;
+import com.seizia.chromite.model.exec.DBCResultSet;
+import com.seizia.chromite.model.exec.DBCSession;
+import com.seizia.chromite.model.exec.DBCStatement;
+import com.seizia.chromite.model.exec.jdbc.JDBCPreparedStatement;
+import com.seizia.chromite.model.exec.jdbc.JDBCResultSet;
+import com.seizia.chromite.model.impl.jdbc.data.handlers.JDBCDateTimeValueHandler;
+import com.seizia.chromite.model.messages.ModelMessages;
+import com.seizia.chromite.model.struct.DBSTypedObject;
+import com.seizia.chromite.utils.ContentUtils;
 
 import java.nio.charset.StandardCharsets;
 import java.sql.SQLException;

@@ -14,12 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.dashboard.browser;
+package com.seizia.chromite.ui.dashboard.browser;
 
 import org.eclipse.swt.widgets.Composite;
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.ui.IObjectPropertyConfigurator;
-import org.jkiss.dbeaver.ui.dashboard.model.DashboardItemViewSettings;
+import com.seizia.chromite.ui.IObjectPropertyConfigurator;
+import com.seizia.chromite.ui.dashboard.model.DashboardItemViewSettings;
 
 public class BrowserChartViewSettingsEditor implements IObjectPropertyConfigurator<DashboardItemViewSettings, DashboardItemViewSettings> {
     @Override

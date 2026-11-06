@@ -14,17 +14,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.connection;
+package com.seizia.chromite.model.connection;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.DBPDataSourceContainer;
-import org.jkiss.dbeaver.model.DBPDataSourceOrigin;
-import org.jkiss.dbeaver.model.net.DBWUtils;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.utils.RuntimeUtils;
-import org.jkiss.dbeaver.utils.SystemVariablesResolver;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.DBPDataSourceContainer;
+import com.seizia.chromite.model.DBPDataSourceOrigin;
+import com.seizia.chromite.model.net.DBWUtils;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.utils.RuntimeUtils;
+import com.seizia.chromite.utils.SystemVariablesResolver;
 import org.jkiss.utils.BeanUtils;
 
 public class DataSourceVariableResolver extends SystemVariablesResolver {

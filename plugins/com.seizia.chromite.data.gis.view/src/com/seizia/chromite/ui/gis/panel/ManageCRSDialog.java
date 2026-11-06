@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.gis.panel;
+package com.seizia.chromite.ui.gis.panel;
 
 import org.cts.CRSFactory;
 import org.cts.crs.CoordinateReferenceSystem;
@@ -30,15 +30,15 @@ import org.eclipse.swt.widgets.Shell;
 import org.eclipse.swt.widgets.Tree;
 import org.eclipse.ui.dialogs.PatternFilter;
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.gis.GisConstants;
-import org.jkiss.dbeaver.model.gis.GisTransformUtils;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.model.runtime.DBRRunnableWithProgress;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.dialogs.BaseDialog;
-import org.jkiss.dbeaver.ui.dialogs.DialogUtils;
-import org.jkiss.dbeaver.ui.gis.internal.GISMessages;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.gis.GisConstants;
+import com.seizia.chromite.model.gis.GisTransformUtils;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.model.runtime.DBRRunnableWithProgress;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.dialogs.BaseDialog;
+import com.seizia.chromite.ui.dialogs.DialogUtils;
+import com.seizia.chromite.ui.gis.internal.GISMessages;
 
 import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;

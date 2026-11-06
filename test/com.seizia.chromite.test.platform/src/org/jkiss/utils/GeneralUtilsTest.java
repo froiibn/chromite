@@ -17,8 +17,8 @@
 package org.jkiss.utils;
 
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.utils.GeneralUtils;
-import org.jkiss.junit.DBeaverUnitTest;
+import com.seizia.chromite.utils.GeneralUtils;
+import com.seizia.chromite.junit.ChromiteUnitTest;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -28,7 +28,7 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Map;
 
-public class GeneralUtilsTest extends DBeaverUnitTest {
+public class GeneralUtilsTest extends ChromiteUnitTest {
 
     public static final String VARIABLE_YEAR = "year";
     public static final String VARIABLE_MONTH = "month";

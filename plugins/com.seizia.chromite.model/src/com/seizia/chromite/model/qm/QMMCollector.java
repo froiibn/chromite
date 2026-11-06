@@ -14,10 +14,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.qm;
+package com.seizia.chromite.model.qm;
 
-import org.jkiss.dbeaver.model.exec.DBCExecutionContext;
-import org.jkiss.dbeaver.model.qm.meta.QMMConnectionInfo;
+import com.seizia.chromite.model.exec.DBCExecutionContext;
+import com.seizia.chromite.model.qm.meta.QMMConnectionInfo;
 
 /**
  * Query manager execution handler implementation

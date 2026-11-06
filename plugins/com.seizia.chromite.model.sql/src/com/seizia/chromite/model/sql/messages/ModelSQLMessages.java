@@ -15,12 +15,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.sql.messages;
+package com.seizia.chromite.model.sql.messages;
 
 import org.eclipse.osgi.util.NLS;
 
 public class ModelSQLMessages extends NLS {
-    static final String BUNDLE_NAME = "org.jkiss.dbeaver.model.sql.messages.ModelSQLResources"; //$NON-NLS-1$
+    static final String BUNDLE_NAME = "com.seizia.chromite.model.sql.messages.ModelSQLResources"; //$NON-NLS-1$
 
     public static String model_sql_semantic_symbolClass_UNKNOWN;
     public static String model_sql_semantic_symbolClass_QUOTED;
@@ -37,9 +37,9 @@ public class ModelSQLMessages extends NLS {
     public static String model_sql_semantic_symbolClass_COLUMN_DERIVED;
     public static String model_sql_semantic_symbolClass_COMPOSITE_FIELD;
     public static String model_sql_semantic_symbolClass_SQL_BATCH_VARIABLE;
-    public static String model_sql_semantic_symbolClass_DBEAVER_VARIABLE;
-    public static String model_sql_semantic_symbolClass_DBEAVER_PARAMETER;
-    public static String model_sql_semantic_symbolClass_DBEAVER_COMMAND;
+    public static String model_sql_semantic_symbolClass_CHROMITE_VARIABLE;
+    public static String model_sql_semantic_symbolClass_CHROMITE_PARAMETER;
+    public static String model_sql_semantic_symbolClass_CHROMITE_COMMAND;
     public static String model_sql_semantic_symbolClass_ERROR;
 
     // Query execution confirmations (com.seizia.chromite.model.sql.exec.SQLQueryExecuteHandler)

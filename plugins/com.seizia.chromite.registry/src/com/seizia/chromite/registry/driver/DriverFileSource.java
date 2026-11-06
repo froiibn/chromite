@@ -14,15 +14,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.registry.driver;
+package com.seizia.chromite.registry.driver;
 
 import org.eclipse.core.runtime.IConfigurationElement;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.connection.DBPDriverFileInfo;
-import org.jkiss.dbeaver.model.connection.DBPDriverFileSource;
-import org.jkiss.dbeaver.registry.RegistryConstants;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.connection.DBPDriverFileInfo;
+import com.seizia.chromite.model.connection.DBPDriverFileSource;
+import com.seizia.chromite.registry.RegistryConstants;
 import org.jkiss.utils.CommonUtils;
 
 import java.util.ArrayList;

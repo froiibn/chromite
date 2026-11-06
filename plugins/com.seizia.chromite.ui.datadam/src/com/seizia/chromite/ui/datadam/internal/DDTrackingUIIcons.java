@@ -14,9 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.datadam.internal;
+package com.seizia.chromite.ui.datadam.internal;
 
-import org.jkiss.dbeaver.model.DBIcon;
+import com.seizia.chromite.model.DBIcon;
 
 public class DDTrackingUIIcons {
     public static final DBIcon PROJECT_DATADAM = new DBIcon("datadam-project", "project_datadam.svg");

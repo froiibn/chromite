@@ -8,13 +8,13 @@
  * Contributors:
  *     Tasktop Technologies - initial API and implementation
  *******************************************************************************/
-package org.jkiss.dbeaver.ui.notifications;
+package com.seizia.chromite.ui.notifications;
 
 import org.eclipse.jface.notifications.AbstractNotificationPopup;
 import org.eclipse.swt.graphics.Image;
 import org.eclipse.swt.widgets.Display;
-import org.jkiss.dbeaver.ui.DBeaverIcons;
-import org.jkiss.dbeaver.ui.UIIcon;
+import com.seizia.chromite.ui.SwtIcons;
+import com.seizia.chromite.ui.UIIcon;
 
 /**
  * A popup window that uses the workbench shell image in the title.
@@ -33,7 +33,7 @@ public class AbstractWorkbenchNotificationPopup extends AbstractNotificationPopu
 
 	@Override
 	protected Image getPopupShellImage(int maximumHeight) {
-		return DBeaverIcons.getImage(UIIcon.DBEAVER_LOGO_SMALL);
+		return SwtIcons.getImage(UIIcon.CHROMITE_LOGO_SMALL);
 	}
 
 }

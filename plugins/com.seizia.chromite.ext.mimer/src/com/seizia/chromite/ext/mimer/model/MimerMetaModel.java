@@ -14,51 +14,51 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.mimer.model;
+package com.seizia.chromite.ext.mimer.model;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.DBDatabaseException;
+import com.seizia.chromite.DBDatabaseException;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.ext.generic.model.GenericCatalog;
-import org.jkiss.dbeaver.ext.generic.model.GenericContainerTrigger;
-import org.jkiss.dbeaver.ext.generic.model.GenericDataSource;
-import org.jkiss.dbeaver.ext.generic.model.GenericFunctionResultType;
-import org.jkiss.dbeaver.ext.generic.model.GenericObjectContainer;
-import org.jkiss.dbeaver.ext.generic.model.GenericProcedure;
-import org.jkiss.dbeaver.ext.generic.model.GenericSchema;
-import org.jkiss.dbeaver.ext.generic.model.GenericSequence;
-import org.jkiss.dbeaver.ext.generic.model.GenericStructContainer;
-import org.jkiss.dbeaver.ext.generic.model.GenericSynonym;
-import org.jkiss.dbeaver.ext.generic.model.GenericTableBase;
-import org.jkiss.dbeaver.ext.generic.model.GenericTableColumn;
-import org.jkiss.dbeaver.ext.generic.model.GenericTableIndex;
-import org.jkiss.dbeaver.ext.generic.model.GenericTableTrigger;
-import org.jkiss.dbeaver.ext.generic.model.GenericTrigger;
-import org.jkiss.dbeaver.ext.generic.model.GenericUniqueKey;
-import org.jkiss.dbeaver.ext.generic.model.GenericView;
-import org.jkiss.dbeaver.ext.generic.model.meta.GenericMetaModel;
-import org.jkiss.dbeaver.ext.generic.model.meta.GenericMetaModelForeignKeyFetcher;
-import org.jkiss.dbeaver.ext.generic.model.meta.GenericMetaObject;
-import org.jkiss.dbeaver.ext.mimer.MimerConstants;
-import org.jkiss.dbeaver.ext.mimer.model.plan.MimerQueryPlanner;
-import org.jkiss.dbeaver.model.DBPDataSourceContainer;
-import org.jkiss.dbeaver.model.DBUtils;
-import org.jkiss.dbeaver.model.exec.jdbc.JDBCPreparedStatement;
-import org.jkiss.dbeaver.model.exec.jdbc.JDBCResultSet;
-import org.jkiss.dbeaver.model.exec.jdbc.JDBCSession;
-import org.jkiss.dbeaver.model.exec.jdbc.JDBCStatement;
-import org.jkiss.dbeaver.model.exec.plan.DBCQueryPlanner;
-import org.jkiss.dbeaver.model.impl.jdbc.JDBCUtils;
-import org.jkiss.dbeaver.model.impl.jdbc.cache.JDBCBasicDataTypeCache;
-import org.jkiss.dbeaver.model.impl.jdbc.struct.JDBCDataType;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.model.runtime.VoidProgressMonitor;
-import org.jkiss.dbeaver.model.struct.DBSEntityConstraintType;
-import org.jkiss.dbeaver.model.struct.rdb.DBSForeignKeyDeferability;
-import org.jkiss.dbeaver.model.struct.rdb.DBSForeignKeyModifyRule;
-import org.jkiss.dbeaver.model.struct.rdb.DBSIndexType;
-import org.jkiss.dbeaver.model.struct.rdb.DBSProcedureType;
+import com.seizia.chromite.ext.generic.model.GenericCatalog;
+import com.seizia.chromite.ext.generic.model.GenericContainerTrigger;
+import com.seizia.chromite.ext.generic.model.GenericDataSource;
+import com.seizia.chromite.ext.generic.model.GenericFunctionResultType;
+import com.seizia.chromite.ext.generic.model.GenericObjectContainer;
+import com.seizia.chromite.ext.generic.model.GenericProcedure;
+import com.seizia.chromite.ext.generic.model.GenericSchema;
+import com.seizia.chromite.ext.generic.model.GenericSequence;
+import com.seizia.chromite.ext.generic.model.GenericStructContainer;
+import com.seizia.chromite.ext.generic.model.GenericSynonym;
+import com.seizia.chromite.ext.generic.model.GenericTableBase;
+import com.seizia.chromite.ext.generic.model.GenericTableColumn;
+import com.seizia.chromite.ext.generic.model.GenericTableIndex;
+import com.seizia.chromite.ext.generic.model.GenericTableTrigger;
+import com.seizia.chromite.ext.generic.model.GenericTrigger;
+import com.seizia.chromite.ext.generic.model.GenericUniqueKey;
+import com.seizia.chromite.ext.generic.model.GenericView;
+import com.seizia.chromite.ext.generic.model.meta.GenericMetaModel;
+import com.seizia.chromite.ext.generic.model.meta.GenericMetaModelForeignKeyFetcher;
+import com.seizia.chromite.ext.generic.model.meta.GenericMetaObject;
+import com.seizia.chromite.ext.mimer.MimerConstants;
+import com.seizia.chromite.ext.mimer.model.plan.MimerQueryPlanner;
+import com.seizia.chromite.model.DBPDataSourceContainer;
+import com.seizia.chromite.model.DBUtils;
+import com.seizia.chromite.model.exec.jdbc.JDBCPreparedStatement;
+import com.seizia.chromite.model.exec.jdbc.JDBCResultSet;
+import com.seizia.chromite.model.exec.jdbc.JDBCSession;
+import com.seizia.chromite.model.exec.jdbc.JDBCStatement;
+import com.seizia.chromite.model.exec.plan.DBCQueryPlanner;
+import com.seizia.chromite.model.impl.jdbc.JDBCUtils;
+import com.seizia.chromite.model.impl.jdbc.cache.JDBCBasicDataTypeCache;
+import com.seizia.chromite.model.impl.jdbc.struct.JDBCDataType;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.model.runtime.VoidProgressMonitor;
+import com.seizia.chromite.model.struct.DBSEntityConstraintType;
+import com.seizia.chromite.model.struct.rdb.DBSForeignKeyDeferability;
+import com.seizia.chromite.model.struct.rdb.DBSForeignKeyModifyRule;
+import com.seizia.chromite.model.struct.rdb.DBSIndexType;
+import com.seizia.chromite.model.struct.rdb.DBSProcedureType;
 import org.jkiss.utils.CommonUtils;
 
 import java.sql.SQLException;
@@ -83,7 +83,7 @@ import java.util.Set;
  * subclass, e.g. {@link MimerTable}); an object that supports create/alter/drop also gets a
  * {@code DBEObjectManager} in the sibling {@code edit} package (e.g. {@code MimerTableManager});
  * an object whose create dialog needs more than a bare name also gets a create-dialog page in the
- * separate {@code org.jkiss.dbeaver.ext.mimer.ui} plugin's {@code config} package (e.g. {@code
+ * separate {@code com.seizia.chromite.ext.mimer.ui} plugin's {@code config} package (e.g. {@code
  * MimerCreateSequencePage}). A purely read-only object simply has no {@code edit}/{@code ui}
  * counterpart.
  *

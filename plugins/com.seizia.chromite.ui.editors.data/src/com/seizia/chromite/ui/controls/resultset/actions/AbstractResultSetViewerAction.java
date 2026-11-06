@@ -14,12 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.controls.resultset.actions;
+package com.seizia.chromite.ui.controls.resultset.actions;
 
 import org.eclipse.jface.action.Action;
-import org.jkiss.dbeaver.model.DBPImage;
-import org.jkiss.dbeaver.ui.DBeaverIcons;
-import org.jkiss.dbeaver.ui.controls.resultset.ResultSetViewer;
+import com.seizia.chromite.model.DBPImage;
+import com.seizia.chromite.ui.SwtIcons;
+import com.seizia.chromite.ui.controls.resultset.ResultSetViewer;
 
 public abstract class AbstractResultSetViewerAction extends Action {
     private final ResultSetViewer resultSetViewer;
@@ -30,7 +30,7 @@ public abstract class AbstractResultSetViewerAction extends Action {
     }
 
     public AbstractResultSetViewerAction(ResultSetViewer resultSetViewer, String text, DBPImage icon) {
-        super(text, DBeaverIcons.getImageDescriptor(icon));
+        super(text, SwtIcons.getImageDescriptor(icon));
         this.resultSetViewer = resultSetViewer;
     }
 

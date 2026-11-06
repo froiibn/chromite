@@ -14,10 +14,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.exasol.tasks;
+package com.seizia.chromite.ext.exasol.tasks;
 
-import org.jkiss.dbeaver.ext.exasol.model.ExasolTable;
-import org.jkiss.dbeaver.model.sql.task.SQLToolExecuteSettings;
+import com.seizia.chromite.ext.exasol.model.ExasolTable;
+import com.seizia.chromite.model.sql.task.SQLToolExecuteSettings;
 
 class ExasolToolTableTruncateSettings extends SQLToolExecuteSettings<ExasolTable> {
 }

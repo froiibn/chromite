@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.model.auth;
+package com.seizia.chromite.model.auth;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;

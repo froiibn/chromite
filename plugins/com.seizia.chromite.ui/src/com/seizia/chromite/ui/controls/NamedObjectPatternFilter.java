@@ -15,11 +15,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.controls;
+package com.seizia.chromite.ui.controls;
 
 import org.eclipse.jface.viewers.Viewer;
 import org.eclipse.ui.dialogs.PatternFilter;
-import org.jkiss.dbeaver.model.DBPNamedObject;
+import com.seizia.chromite.model.DBPNamedObject;
 
 /**
  * Pattern filter which find named objects by mask

@@ -14,11 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.editors.erd.command;
+package com.seizia.chromite.ui.editors.erd.command;
 
 import org.eclipse.draw2d.Bendpoint;
 import org.eclipse.draw2d.geometry.Point;
-import org.jkiss.dbeaver.ui.editors.erd.part.AssociationPart;
+import com.seizia.chromite.ui.editors.erd.part.AssociationPart;
 
 public class BendpointMoveCommand extends BendpointCommand {
 

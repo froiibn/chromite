@@ -14,18 +14,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.hive.model.plan;
+package com.seizia.chromite.ext.hive.model.plan;
 
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.ext.hive.model.HiveDataSource;
-import org.jkiss.dbeaver.model.DBPDataSource;
-import org.jkiss.dbeaver.model.exec.DBCException;
-import org.jkiss.dbeaver.model.exec.DBCSession;
-import org.jkiss.dbeaver.model.exec.jdbc.JDBCSession;
-import org.jkiss.dbeaver.model.exec.plan.DBCPlan;
-import org.jkiss.dbeaver.model.exec.plan.DBCPlanStyle;
-import org.jkiss.dbeaver.model.exec.plan.DBCQueryPlanner;
-import org.jkiss.dbeaver.model.exec.plan.DBCQueryPlannerConfiguration;
+import com.seizia.chromite.ext.hive.model.HiveDataSource;
+import com.seizia.chromite.model.DBPDataSource;
+import com.seizia.chromite.model.exec.DBCException;
+import com.seizia.chromite.model.exec.DBCSession;
+import com.seizia.chromite.model.exec.jdbc.JDBCSession;
+import com.seizia.chromite.model.exec.plan.DBCPlan;
+import com.seizia.chromite.model.exec.plan.DBCPlanStyle;
+import com.seizia.chromite.model.exec.plan.DBCQueryPlanner;
+import com.seizia.chromite.model.exec.plan.DBCQueryPlannerConfiguration;
 
 public class HiveQueryPlanner implements DBCQueryPlanner {
     private static final HivePlanParser PLAN_PARSER = new HivePlanParser();

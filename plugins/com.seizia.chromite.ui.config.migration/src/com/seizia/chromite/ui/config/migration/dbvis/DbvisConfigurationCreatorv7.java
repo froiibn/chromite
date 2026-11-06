@@ -14,13 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.config.migration.dbvis;
+package com.seizia.chromite.ui.config.migration.dbvis;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.ui.config.migration.wizards.ImportConnectionInfo;
-import org.jkiss.dbeaver.ui.config.migration.wizards.ImportData;
-import org.jkiss.dbeaver.ui.config.migration.wizards.ImportDriverInfo;
+import com.seizia.chromite.ui.config.migration.wizards.ImportConnectionInfo;
+import com.seizia.chromite.ui.config.migration.wizards.ImportData;
+import com.seizia.chromite.ui.config.migration.wizards.ImportDriverInfo;
 import org.jkiss.utils.CommonUtils;
 import org.jkiss.utils.xml.XMLException;
 import org.jkiss.utils.xml.XMLUtils;

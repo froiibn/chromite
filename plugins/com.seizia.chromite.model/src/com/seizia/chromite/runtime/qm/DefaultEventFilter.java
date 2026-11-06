@@ -15,15 +15,15 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.runtime.qm;
+package com.seizia.chromite.runtime.qm;
 
-import org.jkiss.dbeaver.model.qm.QMEvent;
-import org.jkiss.dbeaver.model.qm.QMEventFilter;
-import org.jkiss.dbeaver.model.qm.QMObjectType;
-import org.jkiss.dbeaver.model.qm.QMUtils;
-import org.jkiss.dbeaver.model.qm.filters.QMEventCriteria;
-import org.jkiss.dbeaver.model.qm.meta.*;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
+import com.seizia.chromite.model.qm.QMEvent;
+import com.seizia.chromite.model.qm.QMEventFilter;
+import com.seizia.chromite.model.qm.QMObjectType;
+import com.seizia.chromite.model.qm.QMUtils;
+import com.seizia.chromite.model.qm.filters.QMEventCriteria;
+import com.seizia.chromite.model.qm.meta.*;
+import com.seizia.chromite.runtime.DBWorkbench;
 
 /**
  * Default event filter based on preference settings.

@@ -14,12 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.services;
+package com.seizia.chromite.ui.services;
 
 import org.eclipse.core.commands.Command;
 import org.eclipse.ui.commands.ICommandService;
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.registry.ApplicationPolicyProvider;
+import com.seizia.chromite.registry.ApplicationPolicyProvider;
 
 public class ApplicationPolicyService {
 

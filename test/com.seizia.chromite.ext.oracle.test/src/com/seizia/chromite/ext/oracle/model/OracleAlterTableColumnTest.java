@@ -15,19 +15,19 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.ext.oracle.model;
+package com.seizia.chromite.ext.oracle.model;
 
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.ext.oracle.edit.OracleTableColumnManager;
-import org.jkiss.dbeaver.model.DBPDataSourceContainer;
-import org.jkiss.dbeaver.model.edit.DBEObjectMaker;
-import org.jkiss.dbeaver.model.edit.DBEPersistAction;
-import org.jkiss.dbeaver.model.exec.DBExecUtils;
-import org.jkiss.dbeaver.model.impl.edit.TestCommandContext;
-import org.jkiss.dbeaver.model.impl.jdbc.JDBCRemoteInstance;
-import org.jkiss.dbeaver.model.sql.SQLUtils;
-import org.jkiss.dbeaver.runtime.properties.PropertySourceEditable;
-import org.jkiss.junit.DBeaverUnitTest;
+import com.seizia.chromite.ext.oracle.edit.OracleTableColumnManager;
+import com.seizia.chromite.model.DBPDataSourceContainer;
+import com.seizia.chromite.model.edit.DBEObjectMaker;
+import com.seizia.chromite.model.edit.DBEPersistAction;
+import com.seizia.chromite.model.exec.DBExecUtils;
+import com.seizia.chromite.model.impl.edit.TestCommandContext;
+import com.seizia.chromite.model.impl.jdbc.JDBCRemoteInstance;
+import com.seizia.chromite.model.sql.SQLUtils;
+import com.seizia.chromite.runtime.properties.PropertySourceEditable;
+import com.seizia.chromite.junit.ChromiteUnitTest;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -38,7 +38,7 @@ import java.sql.Types;
 import java.util.Collections;
 import java.util.List;
 
-public class OracleAlterTableColumnTest extends DBeaverUnitTest {
+public class OracleAlterTableColumnTest extends ChromiteUnitTest {
 
     private OracleDataSource testDataSource;
     private OracleTableBase oracleTableBase;

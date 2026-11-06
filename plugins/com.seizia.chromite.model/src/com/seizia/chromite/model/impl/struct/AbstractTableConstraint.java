@@ -14,21 +14,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.impl.struct;
+package com.seizia.chromite.model.impl.struct;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.model.DBPNamedObject2;
-import org.jkiss.dbeaver.model.exec.DBCFeatureNotSupportedException;
-import org.jkiss.dbeaver.model.meta.Property;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.model.struct.DBSEntityConstraint;
-import org.jkiss.dbeaver.model.struct.DBSEntityConstraintType;
-import org.jkiss.dbeaver.model.struct.rdb.DBSTable;
-import org.jkiss.dbeaver.model.struct.rdb.DBSTableColumn;
-import org.jkiss.dbeaver.model.struct.rdb.DBSTableConstraint;
-import org.jkiss.dbeaver.model.struct.rdb.DBSTableConstraintColumn;
+import com.seizia.chromite.model.DBPNamedObject2;
+import com.seizia.chromite.model.exec.DBCFeatureNotSupportedException;
+import com.seizia.chromite.model.meta.Property;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.model.struct.DBSEntityConstraint;
+import com.seizia.chromite.model.struct.DBSEntityConstraintType;
+import com.seizia.chromite.model.struct.rdb.DBSTable;
+import com.seizia.chromite.model.struct.rdb.DBSTableColumn;
+import com.seizia.chromite.model.struct.rdb.DBSTableConstraint;
+import com.seizia.chromite.model.struct.rdb.DBSTableConstraintColumn;
 
 import java.util.List;
 

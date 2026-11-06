@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.editors.data.preferences;
+package com.seizia.chromite.ui.editors.data.preferences;
 
 import org.eclipse.core.commands.Command;
 import org.eclipse.jface.layout.GridDataFactory;
@@ -27,21 +27,21 @@ import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.widgets.*;
 import org.eclipse.ui.commands.ICommandService;
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.ModelPreferences;
-import org.jkiss.dbeaver.model.DBPDataSourceContainer;
-import org.jkiss.dbeaver.model.data.order.OrderingPolicy;
-import org.jkiss.dbeaver.model.data.order.OrderingStrategy;
-import org.jkiss.dbeaver.model.preferences.DBPPreferenceStore;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.controls.resultset.IResultSetCommands;
-import org.jkiss.dbeaver.ui.controls.resultset.ResultSetPreferences;
-import org.jkiss.dbeaver.ui.controls.resultset.internal.ResultSetMessages;
-import org.jkiss.dbeaver.ui.editors.data.internal.DataEditorsMessages;
-import org.jkiss.dbeaver.ui.internal.UIMessages;
-import org.jkiss.dbeaver.ui.preferences.TargetPrefPage;
-import org.jkiss.dbeaver.utils.PrefUtils;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.ModelPreferences;
+import com.seizia.chromite.model.DBPDataSourceContainer;
+import com.seizia.chromite.model.data.order.OrderingPolicy;
+import com.seizia.chromite.model.data.order.OrderingStrategy;
+import com.seizia.chromite.model.preferences.DBPPreferenceStore;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.controls.resultset.IResultSetCommands;
+import com.seizia.chromite.ui.controls.resultset.ResultSetPreferences;
+import com.seizia.chromite.ui.controls.resultset.internal.ResultSetMessages;
+import com.seizia.chromite.ui.editors.data.internal.DataEditorsMessages;
+import com.seizia.chromite.ui.internal.UIMessages;
+import com.seizia.chromite.ui.preferences.TargetPrefPage;
+import com.seizia.chromite.utils.PrefUtils;
 import org.jkiss.utils.CommonUtils;
 
 import java.util.Locale;
@@ -52,7 +52,7 @@ import java.util.Locale;
 public class PrefPageResultSetMain extends TargetPrefPage {
     static final Log log = Log.getLog(PrefPageResultSetMain.class);
 
-    public static final String PAGE_ID = "org.jkiss.dbeaver.preferences.main.resultset"; //$NON-NLS-1$
+    public static final String PAGE_ID = "com.seizia.chromite.preferences.main.resultset"; //$NON-NLS-1$
 
     private Button autoFetchNextSegmentCheck;
     private Button automaticRowCountCheck;

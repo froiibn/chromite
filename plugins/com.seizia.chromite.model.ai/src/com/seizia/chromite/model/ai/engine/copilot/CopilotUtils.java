@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.ai.engine.copilot;
+package com.seizia.chromite.model.ai.engine.copilot;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -23,10 +23,10 @@ import com.google.gson.JsonSyntaxException;
 import com.google.gson.Strictness;
 import org.jkiss.code.NotNull;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.model.ai.AIFunctionCall;
-import org.jkiss.dbeaver.model.ai.engine.copilot.dto.CopilotChatRequest;
-import org.jkiss.dbeaver.model.ai.engine.copilot.dto.CopilotChatResponseLegacy;
-import org.jkiss.dbeaver.model.data.json.JSONUtils;
+import com.seizia.chromite.model.ai.AIFunctionCall;
+import com.seizia.chromite.model.ai.engine.copilot.dto.CopilotChatRequest;
+import com.seizia.chromite.model.ai.engine.copilot.dto.CopilotChatResponseLegacy;
+import com.seizia.chromite.model.data.json.JSONUtils;
 import org.jkiss.utils.CommonUtils;
 
 import java.util.Map;

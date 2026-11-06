@@ -17,20 +17,20 @@
 /*
  * Created on Jul 22, 2004
  */
-package org.jkiss.dbeaver.ui.editors.erd.editor;
+package com.seizia.chromite.ui.editors.erd.editor;
 
 import org.eclipse.jface.action.*;
 import org.eclipse.jface.viewers.ISelection;
 import org.eclipse.jface.viewers.IStructuredSelection;
 import org.eclipse.ui.IWorkbenchActionConstants;
 import org.eclipse.ui.IWorkbenchCommandConstants;
-import org.jkiss.dbeaver.ui.ActionUtils;
-import org.jkiss.dbeaver.ui.IActionConstants;
-import org.jkiss.dbeaver.ui.editors.erd.ERDUIConstants;
-import org.jkiss.dbeaver.ui.editors.erd.action.DiagramLayoutAction;
-import org.jkiss.dbeaver.ui.editors.erd.action.DiagramToggleGridAction;
-import org.jkiss.dbeaver.ui.editors.erd.action.DiagramTogglePersistAction;
-import org.jkiss.dbeaver.ui.navigator.NavigatorCommands;
+import com.seizia.chromite.ui.ActionUtils;
+import com.seizia.chromite.ui.IActionConstants;
+import com.seizia.chromite.ui.editors.erd.ERDUIConstants;
+import com.seizia.chromite.ui.editors.erd.action.DiagramLayoutAction;
+import com.seizia.chromite.ui.editors.erd.action.DiagramToggleGridAction;
+import com.seizia.chromite.ui.editors.erd.action.DiagramTogglePersistAction;
+import com.seizia.chromite.ui.navigator.NavigatorCommands;
 
 /**
  * Provides a context menu for the schema diagram editor. A virtual cut and paste from the flow example

@@ -14,14 +14,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.dashboard.navigator;
+package com.seizia.chromite.ui.dashboard.navigator;
 
 import org.eclipse.core.commands.ExecutionEvent;
 import org.eclipse.core.commands.ExecutionException;
-import org.jkiss.dbeaver.ui.dashboard.control.DashboardListViewer;
-import org.jkiss.dbeaver.ui.dashboard.model.DashboardViewer;
+import com.seizia.chromite.ui.dashboard.control.DashboardListViewer;
+import com.seizia.chromite.ui.dashboard.model.DashboardViewer;
 
-import static org.jkiss.dbeaver.ui.dashboard.DashboardUIConstants.PARAM_CATALOG_PANEL_TOGGLE;
+import static com.seizia.chromite.ui.dashboard.DashboardUIConstants.PARAM_CATALOG_PANEL_TOGGLE;
 
 public class HandlerDashboardShowCatalog extends HandlerDashboardAbstract {
 

@@ -15,12 +15,12 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.ext.db2.model;
+package com.seizia.chromite.ext.db2.model;
 
-import org.jkiss.dbeaver.ext.db2.editors.DB2ObjectType;
-import org.jkiss.dbeaver.model.exec.jdbc.JDBCDatabaseMetaData;
-import org.jkiss.dbeaver.model.impl.jdbc.JDBCDataSourceInfo;
-import org.jkiss.dbeaver.model.struct.DBSObjectType;
+import com.seizia.chromite.ext.db2.editors.DB2ObjectType;
+import com.seizia.chromite.model.exec.jdbc.JDBCDatabaseMetaData;
+import com.seizia.chromite.model.impl.jdbc.JDBCDataSourceInfo;
+import com.seizia.chromite.model.struct.DBSObjectType;
 
 /**
  * DB2 data source info

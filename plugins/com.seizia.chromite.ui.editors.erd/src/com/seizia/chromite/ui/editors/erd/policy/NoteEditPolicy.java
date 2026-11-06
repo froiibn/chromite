@@ -14,15 +14,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.editors.erd.policy;
+package com.seizia.chromite.ui.editors.erd.policy;
 
 import org.eclipse.draw2d.geometry.Rectangle;
 import org.eclipse.gef.commands.Command;
 import org.eclipse.gef.editpolicies.ComponentEditPolicy;
 import org.eclipse.gef.requests.GroupRequest;
-import org.jkiss.dbeaver.ui.editors.erd.command.NoteDeleteCommand;
-import org.jkiss.dbeaver.ui.editors.erd.model.EntityDiagram;
-import org.jkiss.dbeaver.ui.editors.erd.part.NotePart;
+import com.seizia.chromite.ui.editors.erd.command.NoteDeleteCommand;
+import com.seizia.chromite.ui.editors.erd.model.EntityDiagram;
+import com.seizia.chromite.ui.editors.erd.part.NotePart;
 
 /**
  * Handles deletion of tables

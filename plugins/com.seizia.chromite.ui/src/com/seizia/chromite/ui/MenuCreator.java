@@ -14,14 +14,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui;
+package com.seizia.chromite.ui;
 
 import org.eclipse.jface.action.IMenuCreator;
 import org.eclipse.jface.action.MenuManager;
 import org.eclipse.swt.widgets.Control;
 import org.eclipse.swt.widgets.Menu;
 import org.eclipse.swt.widgets.Widget;
-import org.jkiss.dbeaver.model.runtime.DBRCreator;
+import com.seizia.chromite.model.runtime.DBRCreator;
 
 public class MenuCreator implements IMenuCreator {
 

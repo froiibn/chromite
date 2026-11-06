@@ -14,15 +14,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.registry.storage;
+package com.seizia.chromite.registry.storage;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.DBConstants;
-import org.jkiss.dbeaver.model.connection.InternalDatabaseConfig;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.registry.DataSourceProviderRegistry;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.DBConstants;
+import com.seizia.chromite.model.connection.InternalDatabaseConfig;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.registry.DataSourceProviderRegistry;
 import org.jkiss.utils.CommonUtils;
 
 import java.io.IOException;

@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.ext.gaussdb.model;
+package com.seizia.chromite.ext.gaussdb.model;
 
 public enum DBCompatibilityEnum {
 

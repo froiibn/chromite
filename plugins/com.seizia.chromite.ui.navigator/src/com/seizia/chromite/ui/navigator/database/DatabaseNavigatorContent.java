@@ -15,10 +15,10 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.ui.navigator.database;
+package com.seizia.chromite.ui.navigator.database;
 
-import org.jkiss.dbeaver.model.navigator.DBNNode;
-import org.jkiss.dbeaver.ui.navigator.INavigatorNodeContainer;
+import com.seizia.chromite.model.navigator.DBNNode;
+import com.seizia.chromite.ui.navigator.INavigatorNodeContainer;
 
 /**
  * Tree content

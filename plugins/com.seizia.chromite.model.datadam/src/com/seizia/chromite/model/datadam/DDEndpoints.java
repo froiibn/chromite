@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.datadam;
+package com.seizia.chromite.model.datadam;
 
 import com.dbeaver.datadam.dam.remote.api.DDRemoteDamProtocol;
 import org.jkiss.code.NotNull;
@@ -28,11 +28,11 @@ import java.net.URI;
 public final class DDEndpoints {
     private static final String BASE_DD_HOST = /*<DD-PROD-URL*/"datadam.cloud"/*/>*/;
     private static final String ACCOUNT_URL = System.getProperty(
-        "dbeaver.datadam.account.url", "https://account." + BASE_DD_HOST);
+        "chromite.datadam.account.url", "https://account." + BASE_DD_HOST);
     private static final String STORAGE_URL = System.getProperty(
-        "dbeaver.datadam.storage.url", "https://dbeaver-storage." + BASE_DD_HOST);
+        "chromite.datadam.storage.url", "https://dbeaver-storage." + BASE_DD_HOST);
     private static final String REMOTE_DAM_URL = System.getProperty(
-        "dbeaver.datadam.remote.url", "wss://dam." + BASE_DD_HOST + DDRemoteDamProtocol.WEBSOCKET_PATH);
+        "chromite.datadam.remote.url", "wss://dam." + BASE_DD_HOST + DDRemoteDamProtocol.WEBSOCKET_PATH);
 
     private DDEndpoints() {
     }

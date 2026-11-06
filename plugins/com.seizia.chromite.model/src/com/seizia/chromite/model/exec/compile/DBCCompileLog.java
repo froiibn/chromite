@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.model.exec.compile;
+package com.seizia.chromite.model.exec.compile;
 
 import java.util.Collection;
 

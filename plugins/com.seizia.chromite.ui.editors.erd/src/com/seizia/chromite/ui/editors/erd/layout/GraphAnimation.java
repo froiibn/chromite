@@ -18,7 +18,7 @@
 /*
  * Created on Jul 16, 2004
  */
-package org.jkiss.dbeaver.ui.editors.erd.layout;
+package com.seizia.chromite.ui.editors.erd.layout;
 
 import org.eclipse.draw2d.Connection;
 import org.eclipse.draw2d.IFigure;

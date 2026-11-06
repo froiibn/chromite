@@ -14,20 +14,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.controls.resultset.panel.grouping.action;
+package com.seizia.chromite.ui.controls.resultset.panel.grouping.action;
 
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.ui.DBeaverIcons;
-import org.jkiss.dbeaver.ui.UIIcon;
-import org.jkiss.dbeaver.ui.controls.resultset.internal.ResultSetMessages;
-import org.jkiss.dbeaver.ui.controls.resultset.panel.grouping.GroupingResultsContainer;
+import com.seizia.chromite.ui.SwtIcons;
+import com.seizia.chromite.ui.UIIcon;
+import com.seizia.chromite.ui.controls.resultset.internal.ResultSetMessages;
+import com.seizia.chromite.ui.controls.resultset.panel.grouping.GroupingResultsContainer;
 
 public class ClearGroupingAction extends GroupingAction {
 
     public ClearGroupingAction(@NotNull GroupingResultsContainer resultsContainer) {
         super(
             resultsContainer, ResultSetMessages.controls_resultset_grouping_clear,
-            DBeaverIcons.getImageDescriptor(UIIcon.CLEAN)
+            SwtIcons.getImageDescriptor(UIIcon.CLEAN)
         );
     }
 

@@ -15,14 +15,14 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.ext.tidb.model.plan;
+package com.seizia.chromite.ext.tidb.model.plan;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.ext.mysql.model.plan.MySQLPlanNode;
-import org.jkiss.dbeaver.model.exec.plan.DBCPlanNode;
-import org.jkiss.dbeaver.model.impl.jdbc.JDBCUtils;
-import org.jkiss.dbeaver.model.meta.Property;
+import com.seizia.chromite.ext.mysql.model.plan.MySQLPlanNode;
+import com.seizia.chromite.model.exec.plan.DBCPlanNode;
+import com.seizia.chromite.model.impl.jdbc.JDBCUtils;
+import com.seizia.chromite.model.meta.Property;
 
 import java.sql.ResultSet;
 import java.util.ArrayList;

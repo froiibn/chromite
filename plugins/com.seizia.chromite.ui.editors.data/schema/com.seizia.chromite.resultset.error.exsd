@@ -1,9 +1,9 @@
 <?xml version='1.0' encoding='UTF-8'?>
 <!-- Schema file written by PDE -->
-<schema targetNamespace="org.jkiss.dbeaver.ui.editors.data" xmlns="http://www.w3.org/2001/XMLSchema">
+<schema targetNamespace="com.seizia.chromite.ui.editors.data" xmlns="http://www.w3.org/2001/XMLSchema">
 <annotation>
       <appInfo>
-         <meta.schema plugin="org.jkiss.dbeaver.ui.editors.data" id="org.jkiss.dbeaver.resultset.error" name="org.jkiss.dbeaver.resultset.error.name"/>
+         <meta.schema plugin="com.seizia.chromite.ui.editors.data" id="com.seizia.chromite.resultset.error" name="com.seizia.chromite.resultset.error.name"/>
       </appInfo>
    </annotation>
 
@@ -52,7 +52,7 @@
          <attribute name="class" type="string" use="required">
             <annotation>
                <appInfo>
-                  <meta.attribute kind="java" basedOn=":org.jkiss.dbeaver.ui.controls.resultset.IResultSetErrorAction"/>
+                  <meta.attribute kind="java" basedOn=":com.seizia.chromite.ui.controls.resultset.IResultSetErrorAction"/>
                </appInfo>
             </annotation>
          </attribute>

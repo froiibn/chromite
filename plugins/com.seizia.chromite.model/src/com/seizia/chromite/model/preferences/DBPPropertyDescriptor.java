@@ -14,11 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.preferences;
+package com.seizia.chromite.model.preferences;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.model.meta.PropertyLength;
+import com.seizia.chromite.model.meta.PropertyLength;
 
 /**
  * Property descriptor.

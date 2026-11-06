@@ -14,19 +14,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.tasks.ui.wizard;
+package com.seizia.chromite.tasks.ui.wizard;
 
 import org.eclipse.jface.wizard.IWizardPage;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Label;
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.model.runtime.DBRRunnableContext;
-import org.jkiss.dbeaver.model.task.DBTTask;
-import org.jkiss.dbeaver.tasks.ui.internal.TaskUIMessages;
-import org.jkiss.dbeaver.tasks.ui.registry.TaskUIRegistry;
-import org.jkiss.dbeaver.ui.dialogs.ActiveWizardPage;
-import org.jkiss.dbeaver.ui.dialogs.IWizardPageNavigable;
+import com.seizia.chromite.model.runtime.DBRRunnableContext;
+import com.seizia.chromite.model.task.DBTTask;
+import com.seizia.chromite.tasks.ui.internal.TaskUIMessages;
+import com.seizia.chromite.tasks.ui.registry.TaskUIRegistry;
+import com.seizia.chromite.ui.dialogs.ActiveWizardPage;
+import com.seizia.chromite.ui.dialogs.IWizardPageNavigable;
 
 import java.util.Map;
 

@@ -14,16 +14,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.snowflake.model;
+package com.seizia.chromite.ext.snowflake.model;
 
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.ext.generic.model.GenericDataType;
-import org.jkiss.dbeaver.ext.generic.model.GenericDataTypeCache;
-import org.jkiss.dbeaver.ext.generic.model.GenericStructContainer;
-import org.jkiss.dbeaver.ext.snowflake.SnowflakeConstants;
-import org.jkiss.dbeaver.model.DBUtils;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.model.sql.SQLConstants;
+import com.seizia.chromite.ext.generic.model.GenericDataType;
+import com.seizia.chromite.ext.generic.model.GenericDataTypeCache;
+import com.seizia.chromite.ext.generic.model.GenericStructContainer;
+import com.seizia.chromite.ext.snowflake.SnowflakeConstants;
+import com.seizia.chromite.model.DBUtils;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.model.sql.SQLConstants;
 
 import java.sql.Types;
 import java.util.List;

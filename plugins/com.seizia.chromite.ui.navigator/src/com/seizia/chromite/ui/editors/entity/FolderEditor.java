@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.editors.entity;
+package com.seizia.chromite.ui.editors.entity;
 
 import org.eclipse.core.resources.IFile;
 import org.eclipse.core.resources.IResource;
@@ -33,16 +33,16 @@ import org.eclipse.ui.part.EditorPart;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.DBUtils;
-import org.jkiss.dbeaver.model.navigator.*;
-import org.jkiss.dbeaver.model.runtime.VoidProgressMonitor;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.ui.*;
-import org.jkiss.dbeaver.ui.editors.INavigatorEditorInput;
-import org.jkiss.dbeaver.ui.editors.NodeEditorInput;
-import org.jkiss.dbeaver.ui.navigator.INavigatorModelView;
-import org.jkiss.dbeaver.ui.navigator.itemlist.ItemListControl;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.DBUtils;
+import com.seizia.chromite.model.navigator.*;
+import com.seizia.chromite.model.runtime.VoidProgressMonitor;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.ui.*;
+import com.seizia.chromite.ui.editors.INavigatorEditorInput;
+import com.seizia.chromite.ui.editors.NodeEditorInput;
+import com.seizia.chromite.ui.navigator.INavigatorModelView;
+import com.seizia.chromite.ui.navigator.itemlist.ItemListControl;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -72,7 +72,7 @@ public class FolderEditor extends EditorPart implements INavigatorModelView, IRe
                 return;
             }
 
-            setTitleImage(DBeaverIcons.getImage(navigatorNode.getNodeIconDefault()));
+            setTitleImage(SwtIcons.getImage(navigatorNode.getNodeIconDefault()));
             setPartName(navigatorNode.getNodeDisplayName());
 
             itemControl.setRootNode(navigatorNode);
@@ -261,7 +261,7 @@ public class FolderEditor extends EditorPart implements INavigatorModelView, IRe
             setRootNode(node);
             loadData();
             setPartName(node.getNodeDisplayName());
-            setTitleImage(DBeaverIcons.getImage(node.getNodeIconDefault()));
+            setTitleImage(SwtIcons.getImage(node.getNodeIconDefault()));
             updateActions();
 
             // Update editor input

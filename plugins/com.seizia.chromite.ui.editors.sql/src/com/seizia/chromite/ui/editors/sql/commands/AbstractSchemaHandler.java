@@ -14,21 +14,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.editors.sql.commands;
+package com.seizia.chromite.ui.editors.sql.commands;
 
 import org.eclipse.core.commands.AbstractHandler;
 import org.eclipse.core.commands.ExecutionEvent;
 import org.eclipse.ui.handlers.HandlerUtil;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.model.app.DBPProject;
-import org.jkiss.dbeaver.model.exec.DBCExecutionContext;
-import org.jkiss.dbeaver.model.navigator.DBNDatabaseNode;
-import org.jkiss.dbeaver.model.navigator.DBNModel;
-import org.jkiss.dbeaver.model.struct.DBSObject;
-import org.jkiss.dbeaver.ui.editors.sql.SQLEditor;
-import org.jkiss.dbeaver.ui.navigator.actions.NavigatorHandlerRefresh;
-import org.jkiss.dbeaver.utils.RuntimeUtils;
+import com.seizia.chromite.model.app.DBPProject;
+import com.seizia.chromite.model.exec.DBCExecutionContext;
+import com.seizia.chromite.model.navigator.DBNDatabaseNode;
+import com.seizia.chromite.model.navigator.DBNModel;
+import com.seizia.chromite.model.struct.DBSObject;
+import com.seizia.chromite.ui.editors.sql.SQLEditor;
+import com.seizia.chromite.ui.navigator.actions.NavigatorHandlerRefresh;
+import com.seizia.chromite.utils.RuntimeUtils;
 
 import java.util.List;
 

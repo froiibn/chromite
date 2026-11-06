@@ -14,23 +14,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.cubrid.edit;
+package com.seizia.chromite.ext.cubrid.edit;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.ext.cubrid.model.CubridDataSource;
-import org.jkiss.dbeaver.ext.cubrid.model.CubridProcedure;
-import org.jkiss.dbeaver.ext.cubrid.model.CubridUser;
-import org.jkiss.dbeaver.ext.generic.edit.GenericProcedureManager;
-import org.jkiss.dbeaver.ext.generic.model.GenericProcedure;
-import org.jkiss.dbeaver.ext.generic.model.GenericStructContainer;
-import org.jkiss.dbeaver.model.edit.DBECommandContext;
-import org.jkiss.dbeaver.model.edit.DBEPersistAction;
-import org.jkiss.dbeaver.model.exec.DBCException;
-import org.jkiss.dbeaver.model.exec.DBCExecutionContext;
-import org.jkiss.dbeaver.model.impl.edit.SQLDatabasePersistAction;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.model.struct.rdb.DBSProcedureType;
+import com.seizia.chromite.ext.cubrid.model.CubridDataSource;
+import com.seizia.chromite.ext.cubrid.model.CubridProcedure;
+import com.seizia.chromite.ext.cubrid.model.CubridUser;
+import com.seizia.chromite.ext.generic.edit.GenericProcedureManager;
+import com.seizia.chromite.ext.generic.model.GenericProcedure;
+import com.seizia.chromite.ext.generic.model.GenericStructContainer;
+import com.seizia.chromite.model.edit.DBECommandContext;
+import com.seizia.chromite.model.edit.DBEPersistAction;
+import com.seizia.chromite.model.exec.DBCException;
+import com.seizia.chromite.model.exec.DBCExecutionContext;
+import com.seizia.chromite.model.impl.edit.SQLDatabasePersistAction;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.model.struct.rdb.DBSProcedureType;
 
 import java.util.List;
 import java.util.Map;

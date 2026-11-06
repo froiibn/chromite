@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.lsm.sql.dialect;
+package com.seizia.chromite.model.lsm.sql.dialect;
 
 import org.antlr.v4.runtime.CommonTokenStream;
 import org.antlr.v4.runtime.Token;
@@ -22,11 +22,11 @@ import org.antlr.v4.runtime.TokenSource;
 import org.antlr.v4.runtime.TokenStream;
 import org.antlr.v4.runtime.tree.TerminalNode;
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.model.lsm.LSMAnalyzerImpl;
-import org.jkiss.dbeaver.model.lsm.LSMAnalyzerParameters;
-import org.jkiss.dbeaver.model.lsm.sql.impl.syntax.SQLStandardLexer;
-import org.jkiss.dbeaver.model.lsm.sql.impl.syntax.SQLStandardParser;
-import org.jkiss.dbeaver.model.stm.*;
+import com.seizia.chromite.model.lsm.LSMAnalyzerImpl;
+import com.seizia.chromite.model.lsm.LSMAnalyzerParameters;
+import com.seizia.chromite.model.lsm.sql.impl.syntax.SQLStandardLexer;
+import com.seizia.chromite.model.lsm.sql.impl.syntax.SQLStandardParser;
+import com.seizia.chromite.model.stm.*;
 import org.jkiss.utils.Pair;
 
 

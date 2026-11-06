@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.navigator.database;
+package com.seizia.chromite.ui.navigator.database;
 
 import org.eclipse.jface.util.IPropertyChangeListener;
 import org.eclipse.jface.viewers.*;
@@ -30,16 +30,16 @@ import org.eclipse.swt.widgets.Text;
 import org.eclipse.swt.widgets.Tree;
 import org.eclipse.ui.PlatformUI;
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.model.DBPDataSource;
-import org.jkiss.dbeaver.model.DBPDataSourceContainer;
-import org.jkiss.dbeaver.model.connection.DBPConnectionConfiguration;
-import org.jkiss.dbeaver.model.navigator.*;
-import org.jkiss.dbeaver.model.struct.DBSWrapper;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.ui.*;
-import org.jkiss.dbeaver.ui.internal.UINavigatorMessages;
-import org.jkiss.dbeaver.ui.navigator.NavigatorPreferences;
-import org.jkiss.dbeaver.ui.navigator.database.load.TreeNodeSpecial;
+import com.seizia.chromite.model.DBPDataSource;
+import com.seizia.chromite.model.DBPDataSourceContainer;
+import com.seizia.chromite.model.connection.DBPConnectionConfiguration;
+import com.seizia.chromite.model.navigator.*;
+import com.seizia.chromite.model.struct.DBSWrapper;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.ui.*;
+import com.seizia.chromite.ui.internal.UINavigatorMessages;
+import com.seizia.chromite.ui.navigator.NavigatorPreferences;
+import com.seizia.chromite.ui.navigator.database.load.TreeNodeSpecial;
 import org.jkiss.utils.CommonUtils;
 import org.osgi.framework.Version;
 
@@ -141,7 +141,7 @@ public class DatabaseNavigatorLabelProvider extends ColumnLabelProvider implemen
         if (obj instanceof ILabelProvider labelProvider) {
             image = labelProvider.getImage(obj);
         } else if (obj instanceof DBNNode) {
-            image = DBeaverIcons.getImage(((DBNNode) obj).getNodeIconDefault());
+            image = SwtIcons.getImage(((DBNNode) obj).getNodeIconDefault());
         }
 
         if (labelDecorator != null && (obj instanceof DBNResource || obj instanceof DBNProject)) {
@@ -286,7 +286,7 @@ public class DatabaseNavigatorLabelProvider extends ColumnLabelProvider implemen
             return null;
         }
         if (element instanceof DBNNode) {
-            return DBeaverIcons.getImage(((DBNNode) element).getNodeIconDefault());
+            return SwtIcons.getImage(((DBNNode) element).getNodeIconDefault());
         }
         return null;
     }

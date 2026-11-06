@@ -14,11 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.auth;
+package com.seizia.chromite.model.auth;
 
 import org.eclipse.core.runtime.IConfigurationElement;
-import org.jkiss.dbeaver.model.impl.LocalizedPropertyDescriptor;
-import org.jkiss.dbeaver.model.impl.PropertyDescriptor;
+import com.seizia.chromite.model.impl.LocalizedPropertyDescriptor;
+import com.seizia.chromite.model.impl.PropertyDescriptor;
 import org.jkiss.utils.CommonUtils;
 
 /**

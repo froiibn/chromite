@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.postgresql.ui.editors.privileges;
+package com.seizia.chromite.ext.postgresql.ui.editors.privileges;
 
 import org.eclipse.jface.action.IContributionManager;
 import org.eclipse.jface.action.Separator;
@@ -38,32 +38,32 @@ import org.eclipse.ui.IWorkbenchSite;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.ext.postgresql.PostgreMessages;
-import org.jkiss.dbeaver.ext.postgresql.edit.PostgreCommandGrantPrivilege;
-import org.jkiss.dbeaver.ext.postgresql.model.*;
-import org.jkiss.dbeaver.model.DBPEvaluationContext;
-import org.jkiss.dbeaver.model.DBUtils;
-import org.jkiss.dbeaver.model.edit.DBECommandReflector;
-import org.jkiss.dbeaver.model.navigator.DBNDatabaseFolder;
-import org.jkiss.dbeaver.model.navigator.DBNDatabaseNode;
-import org.jkiss.dbeaver.model.navigator.DBNEvent;
-import org.jkiss.dbeaver.model.navigator.DBNNode;
-import org.jkiss.dbeaver.model.navigator.meta.DBXTreeFolder;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.model.runtime.load.DatabaseLoadService;
-import org.jkiss.dbeaver.model.struct.DBSObject;
-import org.jkiss.dbeaver.model.struct.rdb.DBSProcedure;
-import org.jkiss.dbeaver.model.struct.rdb.DBSSequence;
-import org.jkiss.dbeaver.ui.BaseThemeSettings;
-import org.jkiss.dbeaver.ui.LoadingJob;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.controls.ProgressPageControl;
-import org.jkiss.dbeaver.ui.editors.AbstractDatabaseObjectEditor;
-import org.jkiss.dbeaver.ui.editors.DatabaseEditorUtils;
-import org.jkiss.dbeaver.ui.navigator.NavigatorUtils;
-import org.jkiss.dbeaver.ui.navigator.database.DatabaseNavigatorLabelProvider;
-import org.jkiss.dbeaver.ui.navigator.database.DatabaseNavigatorTree;
-import org.jkiss.dbeaver.ui.navigator.database.DatabaseNavigatorTreeFilter;
+import com.seizia.chromite.ext.postgresql.PostgreMessages;
+import com.seizia.chromite.ext.postgresql.edit.PostgreCommandGrantPrivilege;
+import com.seizia.chromite.ext.postgresql.model.*;
+import com.seizia.chromite.model.DBPEvaluationContext;
+import com.seizia.chromite.model.DBUtils;
+import com.seizia.chromite.model.edit.DBECommandReflector;
+import com.seizia.chromite.model.navigator.DBNDatabaseFolder;
+import com.seizia.chromite.model.navigator.DBNDatabaseNode;
+import com.seizia.chromite.model.navigator.DBNEvent;
+import com.seizia.chromite.model.navigator.DBNNode;
+import com.seizia.chromite.model.navigator.meta.DBXTreeFolder;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.model.runtime.load.DatabaseLoadService;
+import com.seizia.chromite.model.struct.DBSObject;
+import com.seizia.chromite.model.struct.rdb.DBSProcedure;
+import com.seizia.chromite.model.struct.rdb.DBSSequence;
+import com.seizia.chromite.ui.BaseThemeSettings;
+import com.seizia.chromite.ui.LoadingJob;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.controls.ProgressPageControl;
+import com.seizia.chromite.ui.editors.AbstractDatabaseObjectEditor;
+import com.seizia.chromite.ui.editors.DatabaseEditorUtils;
+import com.seizia.chromite.ui.navigator.NavigatorUtils;
+import com.seizia.chromite.ui.navigator.database.DatabaseNavigatorLabelProvider;
+import com.seizia.chromite.ui.navigator.database.DatabaseNavigatorTree;
+import com.seizia.chromite.ui.navigator.database.DatabaseNavigatorTreeFilter;
 
 import java.lang.reflect.InvocationTargetException;
 import java.util.*;

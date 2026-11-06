@@ -16,15 +16,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.debug;
+package com.seizia.chromite.debug;
 
 import org.eclipse.core.runtime.ListenerList;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.debug.jdbc.DBGJDBCSession;
-import org.jkiss.dbeaver.model.DBPDataSourceContainer;
-import org.jkiss.dbeaver.model.messages.ModelMessages;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.debug.jdbc.DBGJDBCSession;
+import com.seizia.chromite.model.DBPDataSourceContainer;
+import com.seizia.chromite.model.messages.ModelMessages;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
 
 import java.util.HashMap;
 import java.util.Map;

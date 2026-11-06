@@ -14,9 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.junit.osgi.annotation;
+package com.seizia.chromite.junit.osgi.annotation;
 
-import org.jkiss.junit.osgi.OSGIFrameworkHandler;
+import com.seizia.chromite.junit.osgi.OSGIFrameworkHandler;
 
 import java.lang.annotation.*;
 

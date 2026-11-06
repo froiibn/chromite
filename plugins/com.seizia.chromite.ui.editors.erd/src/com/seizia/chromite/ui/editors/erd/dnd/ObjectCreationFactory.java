@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.editors.erd.dnd;
+package com.seizia.chromite.ui.editors.erd.dnd;
 
 import org.eclipse.gef.requests.CreationFactory;
 

@@ -15,19 +15,19 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.registry.expressions;
+package com.seizia.chromite.registry.expressions;
 
 import org.eclipse.core.runtime.IConfigurationElement;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.model.impl.AbstractContextDescriptor;
+import com.seizia.chromite.model.impl.AbstractContextDescriptor;
 
 /**
  * ExpressionNamespaceDescriptor
  */
 public class ExpressionNamespaceDescriptor extends AbstractContextDescriptor {
 
-    public static final String EXP_EXTENSION_ID = "org.jkiss.dbeaver.expressions"; //$NON-NLS-1$
+    public static final String EXP_EXTENSION_ID = "com.seizia.chromite.expressions"; //$NON-NLS-1$
 
     private final String id;
     private final String description;

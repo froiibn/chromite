@@ -16,15 +16,15 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.debug.sourcelookup;
+package com.seizia.chromite.debug.sourcelookup;
 
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.debug.core.ILaunchConfiguration;
 import org.eclipse.debug.core.sourcelookup.ISourceContainer;
 import org.eclipse.debug.core.sourcelookup.ISourcePathComputerDelegate;
-import org.jkiss.dbeaver.debug.core.DebugUtils;
-import org.jkiss.dbeaver.model.DBPDataSourceContainer;
+import com.seizia.chromite.debug.core.DebugUtils;
+import com.seizia.chromite.model.DBPDataSourceContainer;
 
 public class DBGSourcePathComputer implements ISourcePathComputerDelegate {
 

@@ -14,23 +14,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.datadam.project;
+package com.seizia.chromite.ui.datadam.project;
 
 import org.eclipse.osgi.util.NLS;
 import org.eclipse.swt.widgets.Shell;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.model.app.DBPProject;
-import org.jkiss.dbeaver.model.datadam.sync.project.ConflictResolution;
-import org.jkiss.dbeaver.model.datadam.sync.project.DDProjectManager;
-import org.jkiss.dbeaver.model.datadam.sync.project.DDProjectManager.ProjectRevisions;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.model.runtime.DBRRunnableWithResult;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.datadam.DDDesktopTokenUIManager;
-import org.jkiss.dbeaver.ui.datadam.internal.DDTrackingUIMessages;
-import org.jkiss.dbeaver.ui.datadam.project.DDProjectUIManager.ProjectJobBatchResult;
+import com.seizia.chromite.model.app.DBPProject;
+import com.seizia.chromite.model.datadam.sync.project.ConflictResolution;
+import com.seizia.chromite.model.datadam.sync.project.DDProjectManager;
+import com.seizia.chromite.model.datadam.sync.project.DDProjectManager.ProjectRevisions;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.model.runtime.DBRRunnableWithResult;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.datadam.DDDesktopTokenUIManager;
+import com.seizia.chromite.ui.datadam.internal.DDTrackingUIMessages;
+import com.seizia.chromite.ui.datadam.project.DDProjectUIManager.ProjectJobBatchResult;
 
 import java.lang.reflect.InvocationTargetException;
 import java.time.LocalDateTime;

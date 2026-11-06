@@ -14,12 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.controls.imageview;
+package com.seizia.chromite.ui.controls.imageview;
 
 import org.eclipse.osgi.util.NLS;
 
 public class ImageViewMessages extends NLS {
-	static final String BUNDLE_NAME = "org.jkiss.dbeaver.ui.controls.imageview.ImageViewMessages"; //$NON-NLS-1$
+	static final String BUNDLE_NAME = "com.seizia.chromite.ui.controls.imageview.ImageViewMessages"; //$NON-NLS-1$
 
 	public static String controls_imageview_fit_window;
 	public static String controls_imageview_original_size;

@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.editors.text;
+package com.seizia.chromite.ui.editors.text;
 
 import org.eclipse.core.resources.*;
 import org.eclipse.core.runtime.*;
@@ -27,13 +27,13 @@ import org.eclipse.ui.IWorkbench;
 import org.eclipse.ui.IWorkbenchWindow;
 import org.eclipse.ui.PlatformUI;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.runtime.IPersistentStorage;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.editors.EditorUtils;
-import org.jkiss.dbeaver.ui.editors.ProjectFileEditorInput;
-import org.jkiss.dbeaver.utils.ContentUtils;
-import org.jkiss.dbeaver.utils.GeneralUtils;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.runtime.IPersistentStorage;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.editors.EditorUtils;
+import com.seizia.chromite.ui.editors.ProjectFileEditorInput;
+import com.seizia.chromite.utils.ContentUtils;
+import com.seizia.chromite.utils.GeneralUtils;
 import org.jkiss.utils.IOUtils;
 
 import java.io.*;

@@ -14,15 +14,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.sqlite.model;
+package com.seizia.chromite.ext.sqlite.model;
 
-import org.jkiss.dbeaver.model.struct.DBSTypedObject;
-import org.jkiss.junit.DBeaverUnitTest;
+import com.seizia.chromite.model.struct.DBSTypedObject;
+import com.seizia.chromite.junit.ChromiteUnitTest;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 
-public class SQLiteSQLDialectTest extends DBeaverUnitTest {
+public class SQLiteSQLDialectTest extends ChromiteUnitTest {
 
     @Mock
     DBSTypedObject mockAttribute;

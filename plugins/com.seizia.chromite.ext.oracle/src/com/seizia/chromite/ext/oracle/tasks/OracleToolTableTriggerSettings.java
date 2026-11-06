@@ -14,10 +14,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.oracle.tasks;
+package com.seizia.chromite.ext.oracle.tasks;
 
-import org.jkiss.dbeaver.ext.oracle.model.OracleTableTrigger;
-import org.jkiss.dbeaver.model.sql.task.SQLToolExecuteSettings;
+import com.seizia.chromite.ext.oracle.model.OracleTableTrigger;
+import com.seizia.chromite.model.sql.task.SQLToolExecuteSettings;
 
 public class OracleToolTableTriggerSettings extends SQLToolExecuteSettings<OracleTableTrigger> {
 

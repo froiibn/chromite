@@ -15,11 +15,11 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.model.sql.analyzer;
+package com.seizia.chromite.model.sql.analyzer;
 
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.model.sql.parser.tokens.SQLTokenType;
-import org.jkiss.dbeaver.model.text.parser.TPToken;
+import com.seizia.chromite.model.sql.parser.tokens.SQLTokenType;
+import com.seizia.chromite.model.text.parser.TPToken;
 
 import java.util.Map;
 

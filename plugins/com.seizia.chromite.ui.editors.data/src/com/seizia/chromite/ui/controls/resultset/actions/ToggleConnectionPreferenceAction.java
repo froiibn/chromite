@@ -14,10 +14,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.controls.resultset.actions;
+package com.seizia.chromite.ui.controls.resultset.actions;
 
-import org.jkiss.dbeaver.model.preferences.DBPPreferenceStore;
-import org.jkiss.dbeaver.ui.controls.resultset.ResultSetViewer;
+import com.seizia.chromite.model.preferences.DBPPreferenceStore;
+import com.seizia.chromite.ui.controls.resultset.ResultSetViewer;
 
 public abstract class ToggleConnectionPreferenceAction extends AbstractResultSetViewerAction {
     private final String prefId;

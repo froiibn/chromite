@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.postgresql.tools.fdw;
+package com.seizia.chromite.ext.postgresql.tools.fdw;
 
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.custom.SashForm;
@@ -22,21 +22,21 @@ import org.eclipse.swt.events.SelectionListener;
 import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.widgets.*;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.ext.postgresql.PostgreConstants;
-import org.jkiss.dbeaver.ext.postgresql.model.PostgreForeignDataWrapper;
-import org.jkiss.dbeaver.ext.postgresql.model.PostgreSchema;
-import org.jkiss.dbeaver.ext.postgresql.model.fdw.FDWConfigDescriptor;
-import org.jkiss.dbeaver.ext.postgresql.model.fdw.FDWConfigRegistry;
-import org.jkiss.dbeaver.model.DBPDataSourceContainer;
-import org.jkiss.dbeaver.model.DBUtils;
-import org.jkiss.dbeaver.model.impl.PropertyDescriptor;
-import org.jkiss.dbeaver.model.navigator.DBNDatabaseNode;
-import org.jkiss.dbeaver.runtime.properties.PropertySourceCustom;
-import org.jkiss.dbeaver.ui.DBeaverIcons;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.dialogs.ActiveWizardPage;
-import org.jkiss.dbeaver.ui.properties.PropertyTreeViewer;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.ext.postgresql.PostgreConstants;
+import com.seizia.chromite.ext.postgresql.model.PostgreForeignDataWrapper;
+import com.seizia.chromite.ext.postgresql.model.PostgreSchema;
+import com.seizia.chromite.ext.postgresql.model.fdw.FDWConfigDescriptor;
+import com.seizia.chromite.ext.postgresql.model.fdw.FDWConfigRegistry;
+import com.seizia.chromite.model.DBPDataSourceContainer;
+import com.seizia.chromite.model.DBUtils;
+import com.seizia.chromite.model.impl.PropertyDescriptor;
+import com.seizia.chromite.model.navigator.DBNDatabaseNode;
+import com.seizia.chromite.runtime.properties.PropertySourceCustom;
+import com.seizia.chromite.ui.SwtIcons;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.dialogs.ActiveWizardPage;
+import com.seizia.chromite.ui.properties.PropertyTreeViewer;
 import org.jkiss.utils.CommonUtils;
 
 import java.lang.reflect.InvocationTargetException;
@@ -276,7 +276,7 @@ class PostgreFDWConfigWizardPageConfig extends ActiveWizardPage<PostgreFDWConfig
         entityTable.removeAll();
         for (DBNDatabaseNode entityNode : getWizard().getSelectedEntities()) {
             TableItem item = new TableItem(entityTable, SWT.NONE);
-            item.setImage(0, DBeaverIcons.getImage(entityNode.getNodeIconDefault()));
+            item.setImage(0, SwtIcons.getImage(entityNode.getNodeIconDefault()));
             item.setText(0, entityNode.getNodeFullName());
         }
         UIUtils.packColumns(entityTable, false);

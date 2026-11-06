@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.datadam.rpc;
+package com.seizia.chromite.model.datadam.rpc;
 
 import org.jkiss.dbeaver.DBException;
 import org.junit.jupiter.api.Assertions;

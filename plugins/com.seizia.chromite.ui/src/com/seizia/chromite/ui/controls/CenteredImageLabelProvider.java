@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.controls;
+package com.seizia.chromite.ui.controls;
 
 import org.eclipse.jface.viewers.OwnerDrawLabelProvider;
 import org.eclipse.swt.graphics.Image;
@@ -23,7 +23,7 @@ import org.eclipse.swt.widgets.Event;
 import org.eclipse.swt.widgets.TableItem;
 import org.eclipse.swt.widgets.TreeItem;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.utils.RuntimeUtils;
+import com.seizia.chromite.utils.RuntimeUtils;
 
 public abstract class CenteredImageLabelProvider extends OwnerDrawLabelProvider {
     @Override

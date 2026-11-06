@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.controls.resultset.valuefilter;
+package com.seizia.chromite.ui.controls.resultset.valuefilter;
 
 import org.eclipse.jface.action.Action;
 import org.eclipse.jface.dialogs.IDialogConstants;
@@ -29,21 +29,21 @@ import org.eclipse.swt.widgets.Label;
 import org.eclipse.swt.widgets.TableItem;
 import org.eclipse.ui.internal.WorkbenchMessages;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.data.DBDAttributeBinding;
-import org.jkiss.dbeaver.model.data.DBDDisplayFormat;
-import org.jkiss.dbeaver.model.data.DBDLabelValuePair;
-import org.jkiss.dbeaver.model.exec.DBCLogicalOperator;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.ui.DBeaverIcons;
-import org.jkiss.dbeaver.ui.UIIcon;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.controls.ViewerColumnController;
-import org.jkiss.dbeaver.ui.controls.resultset.*;
-import org.jkiss.dbeaver.ui.data.IValueController;
-import org.jkiss.dbeaver.ui.data.IValueEditor;
-import org.jkiss.dbeaver.ui.data.editors.StringInlineEditor;
-import org.jkiss.dbeaver.ui.dialogs.BaseDialog;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.data.DBDAttributeBinding;
+import com.seizia.chromite.model.data.DBDDisplayFormat;
+import com.seizia.chromite.model.data.DBDLabelValuePair;
+import com.seizia.chromite.model.exec.DBCLogicalOperator;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.ui.SwtIcons;
+import com.seizia.chromite.ui.UIIcon;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.controls.ViewerColumnController;
+import com.seizia.chromite.ui.controls.resultset.*;
+import com.seizia.chromite.ui.data.IValueController;
+import com.seizia.chromite.ui.data.IValueEditor;
+import com.seizia.chromite.ui.data.editors.StringInlineEditor;
+import com.seizia.chromite.ui.dialogs.BaseDialog;
 
 public class FilterValueEditDialog extends BaseDialog{
 	
@@ -178,7 +178,7 @@ public class FilterValueEditDialog extends BaseDialog{
     {
         if (handler.getOperator().getArgumentCount() == 1) {
             Button copyButton = createButton(parent, IDialogConstants.DETAILS_ID, "Clipboard", false);
-            copyButton.setImage(DBeaverIcons.getImage(UIIcon.FILTER_CLIPBOARD));
+            copyButton.setImage(SwtIcons.getImage(UIIcon.FILTER_CLIPBOARD));
         }
 
         createButton(parent, IDialogConstants.OK_ID, IDialogConstants.OK_LABEL, true);

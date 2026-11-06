@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.controls.resultset.valuefilter;
+package com.seizia.chromite.ui.controls.resultset.valuefilter;
 
 import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.Status;
@@ -30,27 +30,27 @@ import org.eclipse.ui.internal.WorkbenchMessages;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.DBPDataKind;
-import org.jkiss.dbeaver.model.DBUtils;
-import org.jkiss.dbeaver.model.DBValueFormatting;
-import org.jkiss.dbeaver.model.data.*;
-import org.jkiss.dbeaver.model.exec.DBCExecutionContext;
-import org.jkiss.dbeaver.model.exec.DBCLogicalOperator;
-import org.jkiss.dbeaver.model.exec.DBCSession;
-import org.jkiss.dbeaver.model.exec.DBExecUtils;
-import org.jkiss.dbeaver.model.runtime.AbstractJob;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.model.sql.SQLUtils;
-import org.jkiss.dbeaver.model.struct.*;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.UIWidgets;
-import org.jkiss.dbeaver.ui.controls.ListContentProvider;
-import org.jkiss.dbeaver.ui.controls.ViewerColumnController;
-import org.jkiss.dbeaver.ui.controls.resultset.ResultSetRow;
-import org.jkiss.dbeaver.ui.controls.resultset.ResultSetUtils;
-import org.jkiss.dbeaver.ui.controls.resultset.ResultSetViewer;
-import org.jkiss.dbeaver.ui.data.IValueEditor;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.DBPDataKind;
+import com.seizia.chromite.model.DBUtils;
+import com.seizia.chromite.model.DBValueFormatting;
+import com.seizia.chromite.model.data.*;
+import com.seizia.chromite.model.exec.DBCExecutionContext;
+import com.seizia.chromite.model.exec.DBCLogicalOperator;
+import com.seizia.chromite.model.exec.DBCSession;
+import com.seizia.chromite.model.exec.DBExecUtils;
+import com.seizia.chromite.model.runtime.AbstractJob;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.model.sql.SQLUtils;
+import com.seizia.chromite.model.struct.*;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.UIWidgets;
+import com.seizia.chromite.ui.controls.ListContentProvider;
+import com.seizia.chromite.ui.controls.ViewerColumnController;
+import com.seizia.chromite.ui.controls.resultset.ResultSetRow;
+import com.seizia.chromite.ui.controls.resultset.ResultSetUtils;
+import com.seizia.chromite.ui.controls.resultset.ResultSetViewer;
+import com.seizia.chromite.ui.data.IValueEditor;
 import org.jkiss.utils.CommonUtils;
 
 import java.sql.Timestamp;

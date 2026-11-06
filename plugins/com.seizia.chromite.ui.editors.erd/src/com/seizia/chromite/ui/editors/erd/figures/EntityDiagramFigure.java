@@ -18,7 +18,7 @@
 /*
  * Created on Jul 13, 2004
  */
-package org.jkiss.dbeaver.ui.editors.erd.figures;
+package com.seizia.chromite.ui.editors.erd.figures;
 
 import org.eclipse.draw2d.*;
 import org.eclipse.draw2d.geometry.Dimension;
@@ -27,9 +27,9 @@ import org.eclipse.draw2d.geometry.Rectangle;
 import org.eclipse.draw2d.text.FlowPage;
 import org.eclipse.draw2d.text.TextFlow;
 import org.eclipse.jface.resource.JFaceResources;
-import org.jkiss.dbeaver.ui.editors.erd.editor.ERDGraphicalViewer;
-import org.jkiss.dbeaver.ui.editors.erd.editor.ERDThemeSettings;
-import org.jkiss.dbeaver.ui.editors.erd.part.DiagramPart;
+import com.seizia.chromite.ui.editors.erd.editor.ERDGraphicalViewer;
+import com.seizia.chromite.ui.editors.erd.editor.ERDThemeSettings;
+import com.seizia.chromite.ui.editors.erd.part.DiagramPart;
 import org.jkiss.utils.CommonUtils;
 
 /**

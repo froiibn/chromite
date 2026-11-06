@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.app.devtools.tools;
+package com.seizia.chromite.ui.app.devtools.tools;
 
 import java.io.File;
 import java.io.FilenameFilter;

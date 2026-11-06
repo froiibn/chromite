@@ -15,11 +15,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.exasol.ui.editors;
+package com.seizia.chromite.ext.exasol.ui.editors;
 
-import org.jkiss.dbeaver.ext.exasol.editors.ExasolSourceObject;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.ui.editors.sql.SQLSourceViewer;
+import com.seizia.chromite.ext.exasol.editors.ExasolSourceObject;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.ui.editors.sql.SQLSourceViewer;
 
 public class ExasolSourceViewEditor extends SQLSourceViewer<ExasolSourceObject> {
     public ExasolSourceViewEditor()

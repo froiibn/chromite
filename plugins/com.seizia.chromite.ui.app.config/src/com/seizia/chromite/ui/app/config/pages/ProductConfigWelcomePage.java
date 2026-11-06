@@ -14,20 +14,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.app.config.pages;
+package com.seizia.chromite.ui.app.config.pages;
 
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.widgets.Composite;
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.model.DBIcon;
-import org.jkiss.dbeaver.model.app.DBPPlatformDesktop;
-import org.jkiss.dbeaver.model.app.DBPPlatformLanguage;
-import org.jkiss.dbeaver.model.app.DBPPlatformLanguageManager;
-import org.jkiss.dbeaver.registry.language.PlatformLanguageRegistry;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.app.config.nls.ProductConfigMessages;
-import org.jkiss.dbeaver.ui.forms.*;
+import com.seizia.chromite.model.DBIcon;
+import com.seizia.chromite.model.app.DBPPlatformDesktop;
+import com.seizia.chromite.model.app.DBPPlatformLanguage;
+import com.seizia.chromite.model.app.DBPPlatformLanguageManager;
+import com.seizia.chromite.registry.language.PlatformLanguageRegistry;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.app.config.nls.ProductConfigMessages;
+import com.seizia.chromite.ui.forms.*;
 
 import java.util.function.Consumer;
 

@@ -14,15 +14,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.registry.expressions;
+package com.seizia.chromite.registry.expressions;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.Strictness;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.data.DBDContent;
-import org.jkiss.dbeaver.model.data.json.JSONUtils;
-import org.jkiss.dbeaver.utils.MimeTypes;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.data.DBDContent;
+import com.seizia.chromite.model.data.json.JSONUtils;
+import com.seizia.chromite.utils.MimeTypes;
 import org.jkiss.utils.CommonUtils;
 import org.jkiss.utils.xml.XMLException;
 import org.jkiss.utils.xml.XMLUtils;

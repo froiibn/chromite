@@ -15,11 +15,11 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.model.auth;
+package com.seizia.chromite.model.auth;
 
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.model.secret.DBSSecretController;
+import com.seizia.chromite.model.secret.DBSSecretController;
 
 /**
  * Provides access to secret controller

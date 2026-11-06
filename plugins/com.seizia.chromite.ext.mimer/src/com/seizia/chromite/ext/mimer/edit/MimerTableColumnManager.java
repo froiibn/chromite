@@ -14,32 +14,32 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.mimer.edit;
+package com.seizia.chromite.ext.mimer.edit;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.ext.generic.edit.GenericTableColumnManager;
-import org.jkiss.dbeaver.ext.generic.model.GenericSchema;
-import org.jkiss.dbeaver.ext.generic.model.GenericSequence;
-import org.jkiss.dbeaver.ext.generic.model.GenericTableBase;
-import org.jkiss.dbeaver.ext.generic.model.GenericTableColumn;
-import org.jkiss.dbeaver.ext.generic.model.GenericUniqueKey;
-import org.jkiss.dbeaver.ext.generic.model.meta.GenericMetaModel;
-import org.jkiss.dbeaver.ext.mimer.model.MimerDataSource;
-import org.jkiss.dbeaver.ext.mimer.model.MimerSequence;
-import org.jkiss.dbeaver.ext.mimer.model.MimerTableColumn;
-import org.jkiss.dbeaver.model.DBPDataKind;
-import org.jkiss.dbeaver.model.DBPEvaluationContext;
-import org.jkiss.dbeaver.model.DBUtils;
-import org.jkiss.dbeaver.model.edit.DBECommandContext;
-import org.jkiss.dbeaver.model.edit.DBEPersistAction;
-import org.jkiss.dbeaver.model.exec.DBCExecutionContext;
-import org.jkiss.dbeaver.model.impl.edit.SQLDatabasePersistAction;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.model.struct.DBSDataType;
-import org.jkiss.dbeaver.model.struct.DBSEntityAttributeRef;
-import org.jkiss.dbeaver.model.struct.DBSEntityConstraintType;
+import com.seizia.chromite.ext.generic.edit.GenericTableColumnManager;
+import com.seizia.chromite.ext.generic.model.GenericSchema;
+import com.seizia.chromite.ext.generic.model.GenericSequence;
+import com.seizia.chromite.ext.generic.model.GenericTableBase;
+import com.seizia.chromite.ext.generic.model.GenericTableColumn;
+import com.seizia.chromite.ext.generic.model.GenericUniqueKey;
+import com.seizia.chromite.ext.generic.model.meta.GenericMetaModel;
+import com.seizia.chromite.ext.mimer.model.MimerDataSource;
+import com.seizia.chromite.ext.mimer.model.MimerSequence;
+import com.seizia.chromite.ext.mimer.model.MimerTableColumn;
+import com.seizia.chromite.model.DBPDataKind;
+import com.seizia.chromite.model.DBPEvaluationContext;
+import com.seizia.chromite.model.DBUtils;
+import com.seizia.chromite.model.edit.DBECommandContext;
+import com.seizia.chromite.model.edit.DBEPersistAction;
+import com.seizia.chromite.model.exec.DBCExecutionContext;
+import com.seizia.chromite.model.impl.edit.SQLDatabasePersistAction;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.model.struct.DBSDataType;
+import com.seizia.chromite.model.struct.DBSEntityAttributeRef;
+import com.seizia.chromite.model.struct.DBSEntityConstraintType;
 import org.jkiss.utils.CommonUtils;
 
 import java.sql.Types;
@@ -154,7 +154,7 @@ public class MimerTableColumnManager extends GenericTableColumnManager {
 
     /**
      * A new column's default data type - {@link GenericTableColumnManager#createDatabaseObject}
-     * tries {@link org.jkiss.dbeaver.model.DBConstants#DEFAULT_DATATYPE_NAMES} ({@code varchar},
+     * tries {@link com.seizia.chromite.model.DBConstants#DEFAULT_DATATYPE_NAMES} ({@code varchar},
      * {@code varchar2}, {@code string}, {@code char}, {@code integer}), an exact-name match
      * against whatever the datasource's own type list reports - none of the first four match any
      * of Mimer SQL's own type names, so every new column silently defaulted to plain {@code

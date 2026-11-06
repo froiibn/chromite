@@ -16,11 +16,11 @@
  */
 package org.jkiss.utils;
 
-import org.jkiss.junit.DBeaverUnitTest;
+import com.seizia.chromite.junit.ChromiteUnitTest;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
-public class ByteNumberFormatTest extends DBeaverUnitTest {
+public class ByteNumberFormatTest extends ChromiteUnitTest {
 
     private static final long KB = 1024;
     private static final long MB = 1024 * KB;

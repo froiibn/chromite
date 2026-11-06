@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.ui.dialogs;
+package com.seizia.chromite.ui.dialogs;
 
 import org.eclipse.jface.dialogs.IDialogConstants;
 import org.eclipse.jface.dialogs.IDialogSettings;
@@ -32,17 +32,17 @@ import org.eclipse.swt.widgets.Shell;
 import org.eclipse.swt.widgets.Text;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.preferences.DBPPreferenceStore;
-import org.jkiss.dbeaver.registry.confirmation.ConfirmationConstants;
-import org.jkiss.dbeaver.registry.confirmation.ConfirmationDescriptor;
-import org.jkiss.dbeaver.registry.confirmation.ConfirmationRegistry;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.ui.UIStyles;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.internal.UIActivator;
-import org.jkiss.dbeaver.ui.preferences.PreferenceStoreDelegate;
-import org.jkiss.dbeaver.utils.RuntimeUtils;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.preferences.DBPPreferenceStore;
+import com.seizia.chromite.registry.confirmation.ConfirmationConstants;
+import com.seizia.chromite.registry.confirmation.ConfirmationDescriptor;
+import com.seizia.chromite.registry.confirmation.ConfirmationRegistry;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.ui.UIStyles;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.internal.UIActivator;
+import com.seizia.chromite.ui.preferences.PreferenceStoreDelegate;
+import com.seizia.chromite.utils.RuntimeUtils;
 import org.jkiss.utils.CommonUtils;
 
 import java.util.Locale;

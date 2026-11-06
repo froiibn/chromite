@@ -15,14 +15,14 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.model.sql.registry;
+package com.seizia.chromite.model.sql.registry;
 
 import org.eclipse.core.runtime.IConfigurationElement;
 import org.jkiss.code.NotNull;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.model.impl.AbstractContextDescriptor;
-import org.jkiss.dbeaver.model.impl.AbstractDescriptor;
-import org.jkiss.dbeaver.model.sql.format.SQLFormatter;
+import com.seizia.chromite.model.impl.AbstractContextDescriptor;
+import com.seizia.chromite.model.impl.AbstractDescriptor;
+import com.seizia.chromite.model.sql.format.SQLFormatter;
 import org.jkiss.utils.CommonUtils;
 
 /**
@@ -30,7 +30,7 @@ import org.jkiss.utils.CommonUtils;
  */
 public class SQLFormatterDescriptor extends AbstractContextDescriptor {
 
-    public static final String EXTENSION_ID = "org.jkiss.dbeaver.sqlFormatter"; //$NON-NLS-1$
+    public static final String EXTENSION_ID = "com.seizia.chromite.sqlFormatter"; //$NON-NLS-1$
 
     private final String id;
     private final String label;

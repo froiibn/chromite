@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <?eclipse version="3.2"?>
 <plugin>
-    <extension point="org.jkiss.dbeaver.dataSourceProvider">
+    <extension point="com.seizia.chromite.dataSourceProvider">
         <dataSourceType
             id="dameng"
             label="Dameng"
@@ -10,7 +10,7 @@
             icon="icons/dm_icon.png"
             iconBig="icons/dm_icon_big.png"/>
         <datasource
-                class="org.jkiss.dbeaver.ext.dameng.DamengDataSourceProvider"
+                class="com.seizia.chromite.ext.dameng.DamengDataSourceProvider"
                 description="Dameng connector"
                 id="dameng"
                 dataSourceType="dameng"
@@ -21,7 +21,7 @@
             <tree path="dameng"
                   label="Dameng data source"
                   icon="icons/dm_icon.png">
-                <folder type="org.jkiss.dbeaver.ext.dameng.model.DamengSchema"
+                <folder type="com.seizia.chromite.ext.dameng.model.DamengSchema"
                         label="%tree.schemas.node.name"
                         icon="#folder_schema"
                         description="Database schemas">
@@ -29,21 +29,21 @@
                            label="#schema"
                            property="schemas"
                            icon="#schema">
-                        <folder type="org.jkiss.dbeaver.ext.dameng.model.DamengTable" label="%tree.tables.node.name"
+                        <folder type="com.seizia.chromite.ext.dameng.model.DamengTable" label="%tree.tables.node.name"
                                 icon="#folder_table" description="%tree.tables.node.tip">
                             <items label="%tree.table.node.name" path="table" property="physicalTables" icon="#table">
                                 <icon if="object.externalTable" icon="#table_external"/>
                                 <icon if="object.abstractTable" icon="#table_alias"/>
                                 <icon if="object.sharedTable" icon="#table_shared"/>
 
-                                <folder type="org.jkiss.dbeaver.ext.dameng.model.DamengTableColumn"
+                                <folder type="com.seizia.chromite.ext.dameng.model.DamengTableColumn"
                                         label="%tree.columns.node.name" icon="#columns"
                                         description="%tree.columns.node.tip">
                                     <items label="%tree.column.node.name" path="attribute" property="attributes"
                                            icon="#column">
                                     </items>
                                 </folder>
-                                <folder type="org.jkiss.dbeaver.ext.dameng.model.DamengTableConstraint"
+                                <folder type="com.seizia.chromite.ext.dameng.model.DamengTableConstraint"
                                         label="%tree.constraints.node.name" icon="#constraints"
                                         description="%tree.constraints.node.tip"
                                         visibleIf="!object.view &amp;&amp; object.dataSource.info.supportsReferentialIntegrity()">
@@ -56,7 +56,7 @@
                                         </items>
                                     </items>
                                 </folder>
-                                <folder type="org.jkiss.dbeaver.ext.generic.model.GenericTableForeignKey"
+                                <folder type="com.seizia.chromite.ext.generic.model.GenericTableForeignKey"
                                         label="%tree.foreign_keys.node.name" icon="#foreign-keys"
                                         description="%tree.foreign_keys.node.tip"
                                         visibleIf="!object.view &amp;&amp; object.dataSource.info.supportsReferentialIntegrity()">
@@ -69,7 +69,7 @@
                                         </items>
                                     </items>
                                 </folder>
-                                <folder type="org.jkiss.dbeaver.ext.generic.model.GenericTableIndex"
+                                <folder type="com.seizia.chromite.ext.generic.model.GenericTableIndex"
                                         label="%tree.indexes.node.name" icon="#indexes"
                                         description="%tree.indexes.node.tip"
                                         visibleIf="object.dataSource.info.supportsIndexes()">
@@ -94,7 +94,7 @@
                                         </items>
                                     </items>
                                 </folder>
-                                <folder type="org.jkiss.dbeaver.ext.generic.model.GenericTableTrigger"
+                                <folder type="com.seizia.chromite.ext.generic.model.GenericTableTrigger"
                                         label="%tree.triggers.node.name" icon="#triggers"
                                         description="%tree.triggers.node.tip"
                                         visibleIf="object.dataSource.metaModel.supportsTriggers(object.dataSource)">
@@ -106,11 +106,11 @@
                                 </items>
                             </items>
                         </folder>
-                        <folder type="org.jkiss.dbeaver.ext.generic.model.GenericView" label="%tree.tviews.node.name"
+                        <folder type="com.seizia.chromite.ext.generic.model.GenericView" label="%tree.tviews.node.name"
                                 icon="#folder_view" description="%tree.tviews.node.tip"
                                 visibleIf="object.dataSource.metaModel.supportsViews(object.dataSource)">
                             <items label="%tree.tview.node.name" path="view" property="views" icon="#view">
-                                <folder type="org.jkiss.dbeaver.ext.dameng.model.DamengTableColumn"
+                                <folder type="com.seizia.chromite.ext.dameng.model.DamengTableColumn"
                                         label="%tree.columns.node.name" icon="#columns" description="View columns">
                                     <items label="%tree.column.node.name" path="attribute" property="attributes"
                                            icon="#column">
@@ -118,7 +118,7 @@
                                 </folder>
                             </items>
                         </folder>
-                        <folder type="org.jkiss.dbeaver.model.struct.rdb.DBSTableIndex" label="%tree.indexes.node.name"
+                        <folder type="com.seizia.chromite.model.struct.rdb.DBSTableIndex" label="%tree.indexes.node.name"
                                 icon="#indexes" description="%tree.indexes.node.tip"
                                 visibleIf="object.dataSource.info.supportsIndexes()">
                             <items icon="#index" label="%tree.index.node.name" path="index" property="indexes"
@@ -129,7 +129,7 @@
                                 </items>
                             </items>
                         </folder>
-                        <folder type="org.jkiss.dbeaver.ext.generic.model.GenericProcedure"
+                        <folder type="com.seizia.chromite.ext.generic.model.GenericProcedure"
                                 label="%tree.procedures.node.name" icon="#procedures" description="Procedures"
                                 visibleIf="object.dataSource.info.supportsStoredCode()">
                             <items label="%tree.procedures.node.name" itemLabel="%tree.procedure.node.name"
@@ -158,36 +158,36 @@
                                        path="column" property="parameters" navigable="false"/>
                             </items>
                         </folder>
-                        <folder type="org.jkiss.dbeaver.ext.dameng.model.DamengSequence"
+                        <folder type="com.seizia.chromite.ext.dameng.model.DamengSequence"
                                 label="%tree.sequences.node.name"
                                 icon="#sequences" description="%tree.sequences.node.tip">
                             <items label="%tree.sequence.node.name" path="sequence" property="sequences"
                                    icon="#sequence"/>
                         </folder>
-                        <folder id="databaseTrigger" type="org.jkiss.dbeaver.ext.generic.model.GenericContainerTrigger"
+                        <folder id="databaseTrigger" type="com.seizia.chromite.ext.generic.model.GenericContainerTrigger"
                                 label="%tree.triggers.node.name" icon="#triggers" description="Global triggers"
                                 visibleIf="object.dataSource.metaModel.supportsDatabaseTriggers(object.dataSource)">
                             <items label="%tree.trigger.node.name" path="trigger" property="triggers" icon="#trigger"/>
                         </folder>
-                        <folder id="tableTrigger" type="org.jkiss.dbeaver.ext.generic.model.GenericTableTrigger"
+                        <folder id="tableTrigger" type="com.seizia.chromite.ext.generic.model.GenericTableTrigger"
                                 label="%tree.tableTriggers.node.name" icon="#triggers"
                                 description="%tree.tableTriggers.node.tip"
                                 visibleIf="object.dataSource.metaModel.supportsTriggers(object.dataSource)">
                             <items label="%tree.trigger.node.name" path="tableTrigger" property="tableTriggers"
                                    icon="#trigger"/>
                         </folder>
-                        <folder type="org.jkiss.dbeaver.model.struct.DBSDataType" label="%tree.dataTypes.node.name"
+                        <folder type="com.seizia.chromite.model.struct.DBSDataType" label="%tree.dataTypes.node.name"
                                 icon="#data_types" description="%tree.dataTypes.node.tip">
                             <items label="%tree.dataType.node.name" path="dataType" property="dataTypes"
                                    icon="#data_type"/>
                         </folder>
                     </items>
                 </folder>
-                <folder type="org.jkiss.dbeaver.ext.dameng.model.DamengTablespace"
+                <folder type="com.seizia.chromite.ext.dameng.model.DamengTablespace"
                         label="%tree.tablespaces.node.name" icon="#tablespaces" description="Tablespaces">
                     <items label="%tree.tablespace.node.name" path="tablespace" property="tablespaces"
                            icon="#tablespace">
-                        <folder type="org.jkiss.dbeaver.ext.dameng.model.DamengDataFile"
+                        <folder type="com.seizia.chromite.ext.dameng.model.DamengDataFile"
                                 label="%tree.files.node.name" icon="#files" description="Data Files">
                             <items label="%tree.file.node.name" path="file" property="files" icon="#file"/>
                         </folder>
@@ -195,27 +195,27 @@
                 </folder>
                 <folder id="securityManagement" label="%tree.security.node.name" icon="#security"
                         description="Security management">
-                    <folder type="org.jkiss.dbeaver.ext.dameng.model.DamengUser" label="%tree.users.node.name"
+                    <folder type="com.seizia.chromite.ext.dameng.model.DamengUser" label="%tree.users.node.name"
                             icon="#folder_user" description="Users">
                         <items label="%tree.user.node.name" path="users" property="users" icon="#user"/>
                     </folder>
-                    <folder type="org.jkiss.dbeaver.ext.dameng.model.DamengRole" label="%tree.roles.node.name"
+                    <folder type="com.seizia.chromite.ext.dameng.model.DamengRole" label="%tree.roles.node.name"
                             icon="#folder_role" description="Roles">
                         <items label="%tree.role.node.name" path="roles" property="roles" icon="#user_group">
-                            <folder type="org.jkiss.dbeaver.ext.dameng.model.DamengPrivUser"
+                            <folder type="com.seizia.chromite.ext.dameng.model.DamengPrivUser"
                                     label="%tree.users.node.name" icon="#folder_user" description="Users"
                                     navigable="false">
                                 <items label="%tree.user.node.name" path="userPrivs" property="userPrivs" icon="#user">
                                 </items>
                             </folder>
-                            <folder type="org.jkiss.dbeaver.ext.dameng.model.DamengPrivSystem"
+                            <folder type="com.seizia.chromite.ext.dameng.model.DamengPrivSystem"
                                     label="%tree.system_privileges.node.name" icon="#permissions"
                                     description="System Privileges" navigable="false">
                                 <items label="%tree.privilege.node.name" path="sysPrivs" property="systemPrivs"
                                        icon="#privilege">
                                 </items>
                             </folder>
-                            <folder type="org.jkiss.dbeaver.ext.dameng.model.DamengPrivObject"
+                            <folder type="com.seizia.chromite.ext.dameng.model.DamengPrivObject"
                                     label="%tree.objects.node.name" icon="#permissions" description="Objects"
                                     navigable="false">
                                 <items label="%tree.privilege.node.name" path="objectPriv" property="objectPrivs"
@@ -248,25 +248,25 @@
 
         </datasource>
     </extension>
-    <extension point="org.jkiss.dbeaver.generic.meta">
-        <meta id="dameng" class="org.jkiss.dbeaver.ext.dameng.model.DamengMetaModel"
+    <extension point="com.seizia.chromite.generic.meta">
+        <meta id="dameng" class="com.seizia.chromite.ext.dameng.model.DamengMetaModel"
               driverClass="dm.jdbc.driver.DmDriver"/>
     </extension>
-    <extension point="org.jkiss.dbeaver.objectManager">
-        <manager class="org.jkiss.dbeaver.ext.dameng.edit.DamengSchemaManager"
-                 objectType="org.jkiss.dbeaver.ext.dameng.model.DamengSchema"/>
-        <manager class="org.jkiss.dbeaver.ext.dameng.edit.DamengTableManager"
-                 objectType="org.jkiss.dbeaver.ext.dameng.model.DamengTable"/>
-        <manager class="org.jkiss.dbeaver.ext.dameng.edit.DamengTableColumnManager"
-                 objectType="org.jkiss.dbeaver.ext.dameng.model.DamengTableColumn"/>
-        <manager class="org.jkiss.dbeaver.ext.dameng.edit.DamengSequenceManager"
-                 objectType="org.jkiss.dbeaver.ext.dameng.model.DamengSequence"/>
+    <extension point="com.seizia.chromite.objectManager">
+        <manager class="com.seizia.chromite.ext.dameng.edit.DamengSchemaManager"
+                 objectType="com.seizia.chromite.ext.dameng.model.DamengSchema"/>
+        <manager class="com.seizia.chromite.ext.dameng.edit.DamengTableManager"
+                 objectType="com.seizia.chromite.ext.dameng.model.DamengTable"/>
+        <manager class="com.seizia.chromite.ext.dameng.edit.DamengTableColumnManager"
+                 objectType="com.seizia.chromite.ext.dameng.model.DamengTableColumn"/>
+        <manager class="com.seizia.chromite.ext.dameng.edit.DamengSequenceManager"
+                 objectType="com.seizia.chromite.ext.dameng.model.DamengSequence"/>
 
     </extension>
-    <extension point="org.jkiss.dbeaver.sqlDialect">
+    <extension point="com.seizia.chromite.sqlDialect">
         <dialect id="dameng"
                  parent="generic"
-                 class="org.jkiss.dbeaver.ext.dameng.model.DamengSQLDialect"
+                 class="com.seizia.chromite.ext.dameng.model.DamengSQLDialect"
                  label="dameng"
                  description="Dameng JDBC dialect"
                  icon="icons/dm_icon.png">

@@ -14,10 +14,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.dashboard;
+package com.seizia.chromite.model.dashboard;
 
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.model.app.DBPProject;
+import com.seizia.chromite.model.app.DBPProject;
 
 import java.util.List;
 

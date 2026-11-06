@@ -14,13 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.vertica.ui.internal;
+package com.seizia.chromite.ext.vertica.ui.internal;
 
 import org.eclipse.osgi.util.NLS;
 
 public class VerticaUIMessages extends NLS {
 
-    static final String BUNDLE_NAME = "org.jkiss.dbeaver.ext.vertica.ui.internal.VerticaUIMessages"; //$NON-NLS-1$
+    static final String BUNDLE_NAME = "com.seizia.chromite.ext.vertica.ui.internal.VerticaUIMessages"; //$NON-NLS-1$
 
     static {
         // initialize resource bundle

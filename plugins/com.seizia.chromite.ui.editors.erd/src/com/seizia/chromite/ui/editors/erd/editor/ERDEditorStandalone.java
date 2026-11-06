@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.editors.erd.editor;
+package com.seizia.chromite.ui.editors.erd.editor;
 
 import org.eclipse.core.filesystem.URIUtil;
 import org.eclipse.core.resources.*;
@@ -32,24 +32,24 @@ import org.eclipse.ui.part.FileEditorInput;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.app.DBPPlatformDesktop;
-import org.jkiss.dbeaver.model.app.DBPProject;
-import org.jkiss.dbeaver.model.rm.RMConstants;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.model.runtime.load.AbstractLoadService;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.ui.LoadingJob;
-import org.jkiss.dbeaver.ui.UIExecutionQueue;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.dialogs.ConfirmationDialog;
-import org.jkiss.dbeaver.ui.editors.EditorUtils;
-import org.jkiss.dbeaver.ui.editors.erd.model.DiagramLoader;
-import org.jkiss.dbeaver.ui.editors.erd.model.EntityDiagram;
-import org.jkiss.dbeaver.ui.editors.erd.part.DiagramPart;
-import org.jkiss.dbeaver.ui.navigator.NavigatorPreferences;
-import org.jkiss.dbeaver.utils.GeneralUtils;
-import org.jkiss.dbeaver.utils.RuntimeUtils;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.app.DBPPlatformDesktop;
+import com.seizia.chromite.model.app.DBPProject;
+import com.seizia.chromite.model.rm.RMConstants;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.model.runtime.load.AbstractLoadService;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.ui.LoadingJob;
+import com.seizia.chromite.ui.UIExecutionQueue;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.dialogs.ConfirmationDialog;
+import com.seizia.chromite.ui.editors.EditorUtils;
+import com.seizia.chromite.ui.editors.erd.model.DiagramLoader;
+import com.seizia.chromite.ui.editors.erd.model.EntityDiagram;
+import com.seizia.chromite.ui.editors.erd.part.DiagramPart;
+import com.seizia.chromite.ui.navigator.NavigatorPreferences;
+import com.seizia.chromite.utils.GeneralUtils;
+import com.seizia.chromite.utils.RuntimeUtils;
 import org.jkiss.utils.CommonUtils;
 
 import java.io.ByteArrayInputStream;

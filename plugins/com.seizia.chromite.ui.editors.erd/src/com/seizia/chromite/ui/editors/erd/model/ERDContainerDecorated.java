@@ -14,20 +14,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.editors.erd.model;
+package com.seizia.chromite.ui.editors.erd.model;
 
 import org.eclipse.draw2d.IFigure;
 import org.eclipse.draw2d.geometry.Rectangle;
 import org.eclipse.swt.graphics.Color;
 import org.eclipse.swt.graphics.Font;
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.model.erd.ERDAttributeVisibility;
-import org.jkiss.dbeaver.model.erd.ERDContainer;
-import org.jkiss.dbeaver.model.struct.DBSEntity;
-import org.jkiss.dbeaver.ui.editors.erd.editor.ERDViewStyle;
-import org.jkiss.dbeaver.ui.editors.erd.part.EntityPart;
-import org.jkiss.dbeaver.ui.editors.erd.part.NodePart;
-import org.jkiss.dbeaver.ui.editors.erd.part.NotePart;
+import com.seizia.chromite.model.erd.ERDAttributeVisibility;
+import com.seizia.chromite.model.erd.ERDContainer;
+import com.seizia.chromite.model.struct.DBSEntity;
+import com.seizia.chromite.ui.editors.erd.editor.ERDViewStyle;
+import com.seizia.chromite.ui.editors.erd.part.EntityPart;
+import com.seizia.chromite.ui.editors.erd.part.NodePart;
+import com.seizia.chromite.ui.editors.erd.part.NotePart;
 
 /**
  * ERD object container (diagram)

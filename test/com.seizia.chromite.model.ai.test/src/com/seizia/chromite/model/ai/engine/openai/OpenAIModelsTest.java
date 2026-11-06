@@ -15,9 +15,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.ai.engine.openai;
+package com.seizia.chromite.model.ai.engine.openai;
 
-import org.jkiss.junit.DBeaverUnitTest;
+import com.seizia.chromite.junit.ChromiteUnitTest;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -28,7 +28,7 @@ import org.junit.jupiter.api.Test;
  * - 2026-11-06 dbeaver.com AI 모델 카탈로그 제거: 카탈로그에서 모델 메타데이터를 찾던 테스트
  *   (modelMetadataComesFromEachProvidersCache, copilotDoesNotFallBackToFirstPartyOpenAIMetadata)를 삭제했다.
  */
-public class OpenAIModelsTest extends DBeaverUnitTest {
+public class OpenAIModelsTest extends ChromiteUnitTest {
 
     @Test
     public void effectiveModelNameNullShouldReturnNull() {

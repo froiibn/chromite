@@ -15,14 +15,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.db2.ui.tools.maintenance;
+package com.seizia.chromite.ext.db2.ui.tools.maintenance;
 
 import org.eclipse.core.commands.AbstractHandler;
 import org.eclipse.core.commands.ExecutionEvent;
 import org.eclipse.ui.handlers.HandlerUtil;
-import org.jkiss.dbeaver.ext.db2.model.DB2Table;
-import org.jkiss.dbeaver.model.struct.DBSObject;
-import org.jkiss.dbeaver.ui.navigator.NavigatorUtils;
+import com.seizia.chromite.ext.db2.model.DB2Table;
+import com.seizia.chromite.model.struct.DBSObject;
+import com.seizia.chromite.ui.navigator.NavigatorUtils;
 import org.jkiss.utils.CommonUtils;
 
 import java.util.List;

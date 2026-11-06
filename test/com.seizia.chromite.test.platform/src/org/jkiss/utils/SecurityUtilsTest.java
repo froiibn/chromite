@@ -16,12 +16,12 @@
  */
 package org.jkiss.utils;
 
-import org.jkiss.junit.DBeaverUnitTest;
+import com.seizia.chromite.junit.ChromiteUnitTest;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 //@RunWith(PowerMockRunner.class)
-public class SecurityUtilsTest extends DBeaverUnitTest {
+public class SecurityUtilsTest extends ChromiteUnitTest {
 
     @Test
     public void dummyTest() throws Exception {

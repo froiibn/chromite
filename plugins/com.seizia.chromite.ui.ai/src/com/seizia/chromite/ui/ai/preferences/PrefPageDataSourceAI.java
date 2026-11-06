@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.ai.preferences;
+package com.seizia.chromite.ui.ai.preferences;
 
 import org.eclipse.core.runtime.IAdaptable;
 import org.eclipse.jface.wizard.IWizardContainer;
@@ -24,14 +24,14 @@ import org.eclipse.ui.IWorkbenchPropertyPage;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.DBPDataSourceContainer;
-import org.jkiss.dbeaver.model.ai.AIContextSettingsDataSource;
-import org.jkiss.dbeaver.registry.configurator.UIPropertyConfiguratorDescriptor;
-import org.jkiss.dbeaver.registry.configurator.UIPropertyConfiguratorRegistry;
-import org.jkiss.dbeaver.ui.IObjectPropertyConfigurator;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.preferences.AbstractPrefPage;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.DBPDataSourceContainer;
+import com.seizia.chromite.model.ai.AIContextSettingsDataSource;
+import com.seizia.chromite.registry.configurator.UIPropertyConfiguratorDescriptor;
+import com.seizia.chromite.registry.configurator.UIPropertyConfiguratorRegistry;
+import com.seizia.chromite.ui.IObjectPropertyConfigurator;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.preferences.AbstractPrefPage;
 
 public class PrefPageDataSourceAI extends AbstractPrefPage implements IWorkbenchPropertyPage {
     private static final Log log = Log.getLog(PrefPageDataSourceAI.class);

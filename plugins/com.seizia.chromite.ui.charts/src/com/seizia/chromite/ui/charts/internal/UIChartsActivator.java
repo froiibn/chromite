@@ -14,18 +14,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.charts.internal;
+package com.seizia.chromite.ui.charts.internal;
 
 import org.eclipse.jface.resource.ImageDescriptor;
 import org.eclipse.ui.plugin.AbstractUIPlugin;
-import org.jkiss.dbeaver.model.impl.preferences.BundlePreferenceStore;
-import org.jkiss.dbeaver.model.preferences.DBPPreferenceStore;
+import com.seizia.chromite.model.impl.preferences.BundlePreferenceStore;
+import com.seizia.chromite.model.preferences.DBPPreferenceStore;
 import org.osgi.framework.BundleContext;
 
 public class UIChartsActivator extends AbstractUIPlugin {
 
     // The plug-in ID
-    public static final String PLUGIN_ID = "org.jkiss.dbeaver.ui.charts";
+    public static final String PLUGIN_ID = "com.seizia.chromite.ui.charts";
 
     // The shared instance
     private static UIChartsActivator plugin;

@@ -14,10 +14,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.oracle.model.auth;
+package com.seizia.chromite.ext.oracle.model.auth;
 
-import org.jkiss.dbeaver.model.impl.auth.AuthModelDatabaseNativeCredentials;
-import org.jkiss.dbeaver.model.meta.Property;
+import com.seizia.chromite.model.impl.auth.AuthModelDatabaseNativeCredentials;
+import com.seizia.chromite.model.meta.Property;
 
 public class OracleDatabaseNativeCredentials extends AuthModelDatabaseNativeCredentials {
 

@@ -14,23 +14,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.hive.model.edit;
+package com.seizia.chromite.ext.hive.model.edit;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.ext.generic.edit.GenericIndexManager;
-import org.jkiss.dbeaver.ext.generic.model.GenericTableIndex;
-import org.jkiss.dbeaver.ext.generic.model.GenericTableIndexColumn;
-import org.jkiss.dbeaver.ext.hive.model.HiveIndex;
-import org.jkiss.dbeaver.ext.hive.model.HiveTable;
-import org.jkiss.dbeaver.model.DBPEvaluationContext;
-import org.jkiss.dbeaver.model.DBUtils;
-import org.jkiss.dbeaver.model.edit.DBECommandContext;
-import org.jkiss.dbeaver.model.edit.DBEPersistAction;
-import org.jkiss.dbeaver.model.exec.DBCExecutionContext;
-import org.jkiss.dbeaver.model.impl.edit.SQLDatabasePersistAction;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.model.struct.rdb.DBSIndexType;
+import com.seizia.chromite.ext.generic.edit.GenericIndexManager;
+import com.seizia.chromite.ext.generic.model.GenericTableIndex;
+import com.seizia.chromite.ext.generic.model.GenericTableIndexColumn;
+import com.seizia.chromite.ext.hive.model.HiveIndex;
+import com.seizia.chromite.ext.hive.model.HiveTable;
+import com.seizia.chromite.model.DBPEvaluationContext;
+import com.seizia.chromite.model.DBUtils;
+import com.seizia.chromite.model.edit.DBECommandContext;
+import com.seizia.chromite.model.edit.DBEPersistAction;
+import com.seizia.chromite.model.exec.DBCExecutionContext;
+import com.seizia.chromite.model.impl.edit.SQLDatabasePersistAction;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.model.struct.rdb.DBSIndexType;
 
 import java.util.List;
 import java.util.Map;

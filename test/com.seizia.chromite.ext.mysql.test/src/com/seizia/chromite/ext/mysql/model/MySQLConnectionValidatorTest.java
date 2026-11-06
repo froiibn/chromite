@@ -14,11 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.mysql.model;
+package com.seizia.chromite.ext.mysql.model;
 
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.model.exec.DBCException;
-import org.jkiss.junit.DBeaverUnitTest;
+import com.seizia.chromite.model.exec.DBCException;
+import com.seizia.chromite.junit.ChromiteUnitTest;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -28,7 +28,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Properties;
 
-public class MySQLConnectionValidatorTest extends DBeaverUnitTest {
+public class MySQLConnectionValidatorTest extends ChromiteUnitTest {
     private final MySQLConnectionValidator validator = new MySQLConnectionValidator();
     private static final List<String> BOOLEAN_PROPERTIES = List.of(
         "autoDeserialize", "allowLocalInfile", "allowLoadLocalInfile", "allowUrlInLocalInfile"

@@ -14,18 +14,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.ai.engine.openai;
+package com.seizia.chromite.model.ai.engine.openai;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.ai.engine.AIEngineResponseConsumer;
-import org.jkiss.dbeaver.model.ai.engine.openai.dto.OAIResponsesRequest;
-import org.jkiss.dbeaver.model.ai.engine.openai.dto.OAIResponsesResponse;
-import org.jkiss.dbeaver.model.ai.utils.AIHttpRequestFilter;
-import org.jkiss.dbeaver.model.ai.utils.MonitoredHttpClient;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.ai.engine.AIEngineResponseConsumer;
+import com.seizia.chromite.model.ai.engine.openai.dto.OAIResponsesRequest;
+import com.seizia.chromite.model.ai.engine.openai.dto.OAIResponsesResponse;
+import com.seizia.chromite.model.ai.utils.AIHttpRequestFilter;
+import com.seizia.chromite.model.ai.utils.MonitoredHttpClient;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
 
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;

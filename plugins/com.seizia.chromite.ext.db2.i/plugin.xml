@@ -3,10 +3,10 @@
 
 <plugin>
 
-    <extension point="org.jkiss.dbeaver.dataSourceProvider">
+    <extension point="com.seizia.chromite.dataSourceProvider">
         <!-- DB2 for IBM i -->
         <datasource
-                class="org.jkiss.dbeaver.ext.db2.i.DB2IDataSourceProvider"
+                class="com.seizia.chromite.ext.db2.i.DB2IDataSourceProvider"
                 description="%datasource.db2_i.description"
                 id="db2_i"
                 dataSourceType="db2"
@@ -15,9 +15,9 @@
                 icon="icons/db2_i_icon.svg"
                 dialect="db2_i">
             <treeInjection path="generic/catalog/schema/table"
-                           changeFolderType="org.jkiss.dbeaver.ext.db2.i.model.DB2ITable"/>
+                           changeFolderType="com.seizia.chromite.ext.db2.i.model.DB2ITable"/>
             <treeInjection path="generic/catalog/schema/table/uniqueKey"
-                           changeFolderType="org.jkiss.dbeaver.ext.db2.i.model.DB2IConstraint"/>
+                           changeFolderType="com.seizia.chromite.ext.db2.i.model.DB2IConstraint"/>
             <drivers managable="true">
 
                 <driver
@@ -56,18 +56,18 @@
         </datasource>
     </extension>
 
-    <extension point="org.jkiss.dbeaver.generic.meta">
-        <meta id="db2iseries" class="org.jkiss.dbeaver.ext.db2.i.model.DB2IMetaModel" driverClass="com.ibm.as400.access.AS400JDBCDriver"/>
+    <extension point="com.seizia.chromite.generic.meta">
+        <meta id="db2iseries" class="com.seizia.chromite.ext.db2.i.model.DB2IMetaModel" driverClass="com.ibm.as400.access.AS400JDBCDriver"/>
     </extension>
 
-    <extension point="org.jkiss.dbeaver.sqlDialect">
-        <dialect id="db2_i" parent="generic" class="org.jkiss.dbeaver.ext.db2.i.model.DB2ISQLDialect" label="Db2 i" description="IBM Db2 for i SQL dialect." icon="icons/db2_i_icon.svg">
+    <extension point="com.seizia.chromite.sqlDialect">
+        <dialect id="db2_i" parent="generic" class="com.seizia.chromite.ext.db2.i.model.DB2ISQLDialect" label="Db2 i" description="IBM Db2 for i SQL dialect." icon="icons/db2_i_icon.svg">
         </dialect>
     </extension>
 
-    <extension point="org.jkiss.dbeaver.objectManager">
-        <manager class="org.jkiss.dbeaver.ext.db2.i.edit.DB2ITableManager" objectType="org.jkiss.dbeaver.ext.db2.i.model.DB2ITable"/>
-        <manager class="org.jkiss.dbeaver.ext.db2.i.edit.DB2IConstraintManager" objectType="org.jkiss.dbeaver.ext.db2.i.model.DB2IConstraint"/>
+    <extension point="com.seizia.chromite.objectManager">
+        <manager class="com.seizia.chromite.ext.db2.i.edit.DB2ITableManager" objectType="com.seizia.chromite.ext.db2.i.model.DB2ITable"/>
+        <manager class="com.seizia.chromite.ext.db2.i.edit.DB2IConstraintManager" objectType="com.seizia.chromite.ext.db2.i.model.DB2IConstraint"/>
     </extension>
 
 </plugin>

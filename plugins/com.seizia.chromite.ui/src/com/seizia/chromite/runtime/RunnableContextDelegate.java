@@ -14,13 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.runtime;
+package com.seizia.chromite.runtime;
 
 import org.eclipse.jface.operation.IRunnableContext;
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.model.runtime.DBRRunnableContext;
-import org.jkiss.dbeaver.model.runtime.DBRRunnableWithProgress;
-import org.jkiss.dbeaver.utils.RuntimeUtils;
+import com.seizia.chromite.model.runtime.DBRRunnableContext;
+import com.seizia.chromite.model.runtime.DBRRunnableWithProgress;
+import com.seizia.chromite.utils.RuntimeUtils;
 
 import java.lang.reflect.InvocationTargetException;
 

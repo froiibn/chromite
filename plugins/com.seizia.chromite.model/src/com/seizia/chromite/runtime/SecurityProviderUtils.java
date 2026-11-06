@@ -14,10 +14,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.runtime;
+package com.seizia.chromite.runtime;
 
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
-import org.jkiss.dbeaver.Log;
+import com.seizia.chromite.Log;
 
 import java.security.Provider;
 import java.security.Security;

@@ -1,41 +1,41 @@
 Manifest-Version: 1.0
 Bundle-ManifestVersion: 2
-Bundle-Vendor: DBeaver Corp
+Bundle-Vendor: Chromite contributors
 Bundle-Name: Chromite UI
-Bundle-SymbolicName: org.jkiss.dbeaver.ui;singleton:=true
+Bundle-SymbolicName: com.seizia.chromite.ui;singleton:=true
 Bundle-Version: 5.1.206.qualifier
 Bundle-Release-Date: 20261116
 Bundle-RequiredExecutionEnvironment: JavaSE-21
-Bundle-Activator: org.jkiss.dbeaver.ui.internal.UIActivator
+Bundle-Activator: com.seizia.chromite.ui.internal.UIActivator
 Bundle-ActivationPolicy: lazy
-Export-Package: org.jkiss.dbeaver.runtime,
- org.jkiss.dbeaver.registry.configurator,
- org.jkiss.dbeaver.ui,
- org.jkiss.dbeaver.ui.browser,
- org.jkiss.dbeaver.ui.contentassist,
- org.jkiss.dbeaver.ui.controls,
- org.jkiss.dbeaver.ui.controls.autorefresh,
- org.jkiss.dbeaver.ui.controls.bool,
- org.jkiss.dbeaver.ui.controls.breadcrumb,
- org.jkiss.dbeaver.ui.controls.decorations,
- org.jkiss.dbeaver.ui.controls.finder,
- org.jkiss.dbeaver.ui.controls.finder.viewer,
- org.jkiss.dbeaver.ui.controls.folders,
- org.jkiss.dbeaver.ui.controls.findandreplace,
- org.jkiss.dbeaver.ui.css,
- org.jkiss.dbeaver.ui.dialogs,
- org.jkiss.dbeaver.ui.dialogs.exec,
- org.jkiss.dbeaver.ui.dnd,
- org.jkiss.dbeaver.ui.internal,
- org.jkiss.dbeaver.ui.notifications,
- org.jkiss.dbeaver.ui.oauth,
- org.jkiss.dbeaver.ui.preferences,
- org.jkiss.dbeaver.ui.properties,
- org.jkiss.dbeaver.ui.registry,
- org.jkiss.dbeaver.ui.screenreaders,
- org.jkiss.dbeaver.ui.swt,
- org.jkiss.dbeaver.ui.validator,
- org.jkiss.dbeaver.ui.workbench
+Export-Package: com.seizia.chromite.runtime,
+ com.seizia.chromite.registry.configurator,
+ com.seizia.chromite.ui,
+ com.seizia.chromite.ui.browser,
+ com.seizia.chromite.ui.contentassist,
+ com.seizia.chromite.ui.controls,
+ com.seizia.chromite.ui.controls.autorefresh,
+ com.seizia.chromite.ui.controls.bool,
+ com.seizia.chromite.ui.controls.breadcrumb,
+ com.seizia.chromite.ui.controls.decorations,
+ com.seizia.chromite.ui.controls.finder,
+ com.seizia.chromite.ui.controls.finder.viewer,
+ com.seizia.chromite.ui.controls.folders,
+ com.seizia.chromite.ui.controls.findandreplace,
+ com.seizia.chromite.ui.css,
+ com.seizia.chromite.ui.dialogs,
+ com.seizia.chromite.ui.dialogs.exec,
+ com.seizia.chromite.ui.dnd,
+ com.seizia.chromite.ui.internal,
+ com.seizia.chromite.ui.notifications,
+ com.seizia.chromite.ui.oauth,
+ com.seizia.chromite.ui.preferences,
+ com.seizia.chromite.ui.properties,
+ com.seizia.chromite.ui.registry,
+ com.seizia.chromite.ui.screenreaders,
+ com.seizia.chromite.ui.swt,
+ com.seizia.chromite.ui.validator,
+ com.seizia.chromite.ui.workbench
 Require-Bundle: org.eclipse.emf.common,
  org.eclipse.e4.core.services,
  org.eclipse.e4.ui.css.core;visibility:=reexport,
@@ -56,6 +56,6 @@ Require-Bundle: org.eclipse.emf.common,
  org.eclipse.ui.forms;visibility:=reexport,
  org.eclipse.ui.views;visibility:=reexport,
  org.eclipse.ui.workbench.texteditor;visibility:=reexport,
- org.jkiss.dbeaver.model.rcp;visibility:=reexport,
+ com.seizia.chromite.model.rcp;visibility:=reexport,
  org.osgi.service.event
-Automatic-Module-Name: org.jkiss.dbeaver.ui
+Automatic-Module-Name: com.seizia.chromite.ui

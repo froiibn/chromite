@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.editors.binary.pref;
+package com.seizia.chromite.ui.editors.binary.pref;
 
 import org.eclipse.swt.graphics.FontData;
 import org.eclipse.swt.widgets.Composite;
@@ -22,12 +22,12 @@ import org.eclipse.swt.widgets.Control;
 import org.eclipse.ui.IWorkbench;
 import org.eclipse.ui.IWorkbenchPreferencePage;
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.model.preferences.DBPPreferenceStore;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.ui.editors.binary.HexEditControl;
-import org.jkiss.dbeaver.ui.editors.binary.HexEditorPreferences;
-import org.jkiss.dbeaver.ui.preferences.AbstractPrefPage;
-import org.jkiss.dbeaver.utils.PrefUtils;
+import com.seizia.chromite.model.preferences.DBPPreferenceStore;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.ui.editors.binary.HexEditControl;
+import com.seizia.chromite.ui.editors.binary.HexEditorPreferences;
+import com.seizia.chromite.ui.preferences.AbstractPrefPage;
+import com.seizia.chromite.utils.PrefUtils;
 import org.jkiss.utils.CommonUtils;
 
 

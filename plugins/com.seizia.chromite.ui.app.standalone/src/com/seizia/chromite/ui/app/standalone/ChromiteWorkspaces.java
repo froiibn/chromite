@@ -14,12 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.app.standalone;
+package com.seizia.chromite.ui.app.standalone;
 
 import org.eclipse.osgi.service.datalocation.Location;
 import org.eclipse.ui.internal.ide.ChooseWorkspaceData;
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.Log;
+import com.seizia.chromite.Log;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -34,13 +34,13 @@ import java.util.stream.Stream;
 /**
  * A utility class that helps managing workspaces.
  */
-final class DBeaverWorkspaces {
-    private static final Log log = Log.getLog(DBeaverWorkspaces.class);
+final class ChromiteWorkspaces {
+    private static final Log log = Log.getLog(ChromiteWorkspaces.class);
 
     // See org.eclipse.ui.internal.ide.ChooseWorkspaceData.RECENT_MAX_LENGTH
     private static final int RECENT_MAX_LENGTH = 10;
 
-    private DBeaverWorkspaces() {
+    private ChromiteWorkspaces() {
     }
 
     /**
@@ -53,7 +53,7 @@ final class DBeaverWorkspaces {
      * @return a list of recent workspace paths
      */
     @NotNull
-    static List<String> fetchRecentWorkspaces(@NotNull DBeaverApplication application, @NotNull Location location) {
+    static List<String> fetchRecentWorkspaces(@NotNull ChromiteApplication application, @NotNull Location location) {
         ChooseWorkspaceData data = new ChooseWorkspaceData(location.getDefault());
 
         List<String> backedUpWorkspaces = getBackedUpWorkspaces(application);
@@ -101,7 +101,7 @@ final class DBeaverWorkspaces {
      * @param application application for which recent workspaces must be flushed
      * @param location    instance location of the application
      */
-    static void flushRecentWorkspaces(@NotNull DBeaverApplication application, @NotNull Location location) {
+    static void flushRecentWorkspaces(@NotNull ChromiteApplication application, @NotNull Location location) {
         var data = new ChooseWorkspaceData(location.getDefault());
         var workspaces = Stream.of(data.getRecentWorkspaces())
             .filter(Objects::nonNull)
@@ -110,7 +110,7 @@ final class DBeaverWorkspaces {
     }
 
     @NotNull
-    private static List<String> getBackedUpWorkspaces(@NotNull DBeaverApplication application) {
+    private static List<String> getBackedUpWorkspaces(@NotNull ChromiteApplication application) {
         Path path = application.getWorkspacesFile();
         if (!Files.exists(path) || Files.isDirectory(path)) {
             return Collections.emptyList();
@@ -123,7 +123,7 @@ final class DBeaverWorkspaces {
         }
     }
 
-    private static void saveWorkspacesToBackup(@NotNull DBeaverApplication application, @NotNull List<String> workspaces) {
+    private static void saveWorkspacesToBackup(@NotNull ChromiteApplication application, @NotNull List<String> workspaces) {
         try {
             Path path = application.getWorkspacesFile();
             if (!Files.exists(path.getParent())) {

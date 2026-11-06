@@ -15,21 +15,21 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.ext.generic.views;
+package com.seizia.chromite.ext.generic.views;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.ext.generic.model.GenericTableForeignKey;
-import org.jkiss.dbeaver.ext.generic.model.GenericTableForeignKeyColumnTable;
-import org.jkiss.dbeaver.model.edit.DBECommandContext;
-import org.jkiss.dbeaver.model.edit.DBEObjectConfigurator;
-import org.jkiss.dbeaver.model.impl.sql.edit.struct.SQLForeignKeyManager;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.model.struct.DBSEntityReferrer;
-import org.jkiss.dbeaver.model.struct.rdb.DBSForeignKeyDeferability;
-import org.jkiss.dbeaver.model.struct.rdb.DBSForeignKeyModifyRule;
-import org.jkiss.dbeaver.ui.UITask;
-import org.jkiss.dbeaver.ui.editors.object.struct.EditForeignKeyPage;
+import com.seizia.chromite.ext.generic.model.GenericTableForeignKey;
+import com.seizia.chromite.ext.generic.model.GenericTableForeignKeyColumnTable;
+import com.seizia.chromite.model.edit.DBECommandContext;
+import com.seizia.chromite.model.edit.DBEObjectConfigurator;
+import com.seizia.chromite.model.impl.sql.edit.struct.SQLForeignKeyManager;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.model.struct.DBSEntityReferrer;
+import com.seizia.chromite.model.struct.rdb.DBSForeignKeyDeferability;
+import com.seizia.chromite.model.struct.rdb.DBSForeignKeyModifyRule;
+import com.seizia.chromite.ui.UITask;
+import com.seizia.chromite.ui.editors.object.struct.EditForeignKeyPage;
 
 import java.util.Map;
 

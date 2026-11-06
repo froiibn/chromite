@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.cli;
+package com.seizia.chromite.model.cli;
 
 import org.eclipse.core.runtime.IConfigurationElement;
 import org.eclipse.core.runtime.IExtensionRegistry;
@@ -22,14 +22,14 @@ import org.eclipse.core.runtime.Platform;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.cli.command.AbstractTopLevelCommand;
-import org.jkiss.dbeaver.model.cli.command.CLIAutoComplete;
-import org.jkiss.dbeaver.model.cli.help.CLIHelpFactory;
-import org.jkiss.dbeaver.model.cli.model.NonExecutableOption;
-import org.jkiss.dbeaver.model.cli.registry.CLICommandDescriptor;
-import org.jkiss.dbeaver.model.cli.registry.CLITransformerDescriptor;
-import org.jkiss.dbeaver.utils.GeneralUtils;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.cli.command.AbstractTopLevelCommand;
+import com.seizia.chromite.model.cli.command.CLIAutoComplete;
+import com.seizia.chromite.model.cli.help.CLIHelpFactory;
+import com.seizia.chromite.model.cli.model.NonExecutableOption;
+import com.seizia.chromite.model.cli.registry.CLICommandDescriptor;
+import com.seizia.chromite.model.cli.registry.CLITransformerDescriptor;
+import com.seizia.chromite.utils.GeneralUtils;
 import org.jkiss.utils.ArrayUtils;
 import org.jkiss.utils.CommonUtils;
 import picocli.CommandLine;
@@ -41,7 +41,7 @@ import java.util.stream.Stream;
 public abstract class ApplicationCommandLine<T extends ApplicationInstanceController> {
     private static final Log log = Log.getLog(ApplicationCommandLine.class);
 
-    public static final String EXTENSION_ID = "org.jkiss.dbeaver.commandLine";
+    public static final String EXTENSION_ID = "com.seizia.chromite.commandLine";
 
     protected static final Map<Class<?>, CLICommandDescriptor> commands = new LinkedHashMap<>();
     //transformers for top level command

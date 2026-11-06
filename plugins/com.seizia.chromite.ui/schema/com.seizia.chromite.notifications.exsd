@@ -1,9 +1,9 @@
 <?xml version='1.0' encoding='UTF-8'?>
 <!-- Schema file written by PDE -->
-<schema targetNamespace="org.jkiss.dbeaver.ui" xmlns="http://www.w3.org/2001/XMLSchema">
+<schema targetNamespace="com.seizia.chromite.ui" xmlns="http://www.w3.org/2001/XMLSchema">
 <annotation>
       <appInfo>
-         <meta.schema plugin="org.jkiss.dbeaver.ui" id="org.jkiss.dbeaver.notifications" name="UI notifications"/>
+         <meta.schema plugin="com.seizia.chromite.ui" id="com.seizia.chromite.notifications" name="UI notifications"/>
       </appInfo>
    </annotation>
 

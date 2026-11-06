@@ -14,17 +14,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.navigator.actions;
+package com.seizia.chromite.ui.navigator.actions;
 
 import org.eclipse.core.commands.ExecutionEvent;
 import org.eclipse.core.commands.ExecutionException;
 import org.eclipse.ui.IWorkbenchWindow;
 import org.eclipse.ui.handlers.HandlerUtil;
-import org.jkiss.dbeaver.model.DBPMessageType;
-import org.jkiss.dbeaver.model.app.DBPPlatformDesktop;
-import org.jkiss.dbeaver.model.runtime.DefaultProgressMonitor;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.runtime.DBeaverNotifications;
+import com.seizia.chromite.model.DBPMessageType;
+import com.seizia.chromite.model.app.DBPPlatformDesktop;
+import com.seizia.chromite.model.runtime.DefaultProgressMonitor;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.runtime.ChromiteNotifications;
 import org.jkiss.utils.CommonUtils;
 
 import java.lang.reflect.InvocationTargetException;
@@ -48,8 +48,8 @@ public class NavigatorHandlerProjectRefresh extends NavigatorHandlerObjectBase {
                 } catch (Exception e) {
                     throw new InvocationTargetException(e);
                 }
-                DBeaverNotifications.showNotification(
-                    DBeaverNotifications.NT_GENERIC,
+                ChromiteNotifications.showNotification(
+                    ChromiteNotifications.NT_GENERIC,
                     "Projects refresh",
                     "Project list was synchronized with local file system",
                     DBPMessageType.INFORMATION,

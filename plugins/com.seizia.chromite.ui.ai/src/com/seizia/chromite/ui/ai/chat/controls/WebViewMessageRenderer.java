@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.ai.chat.controls;
+package com.seizia.chromite.ui.ai.chat.controls;
 
 import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.Status;
@@ -24,25 +24,25 @@ import org.eclipse.swt.SWTException;
 import org.eclipse.swt.browser.Browser;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.DBIcon;
-import org.jkiss.dbeaver.model.DBPDataSource;
-import org.jkiss.dbeaver.model.DBPImage;
-import org.jkiss.dbeaver.model.ai.*;
-import org.jkiss.dbeaver.model.ai.impl.MessageChunk;
-import org.jkiss.dbeaver.model.data.json.JSONUtils;
-import org.jkiss.dbeaver.model.runtime.AbstractJob;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.model.sql.SQLSyntaxManager;
-import org.jkiss.dbeaver.model.sql.parser.SQLRuleManager;
-import org.jkiss.dbeaver.ui.UIIcon;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.ai.chat.AIChatUtils;
-import org.jkiss.dbeaver.ui.ai.chat.internal.AIChatMessagesUI;
-import org.jkiss.dbeaver.ui.editors.sql.convert.impl.HTMLSQLConverter;
-import org.jkiss.dbeaver.ui.editors.sql.syntax.SQLRuleScanner;
-import org.jkiss.dbeaver.utils.DurationFormat;
-import org.jkiss.dbeaver.utils.DurationFormatter;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.DBIcon;
+import com.seizia.chromite.model.DBPDataSource;
+import com.seizia.chromite.model.DBPImage;
+import com.seizia.chromite.model.ai.*;
+import com.seizia.chromite.model.ai.impl.MessageChunk;
+import com.seizia.chromite.model.data.json.JSONUtils;
+import com.seizia.chromite.model.runtime.AbstractJob;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.model.sql.SQLSyntaxManager;
+import com.seizia.chromite.model.sql.parser.SQLRuleManager;
+import com.seizia.chromite.ui.UIIcon;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.ai.chat.AIChatUtils;
+import com.seizia.chromite.ui.ai.chat.internal.AIChatMessagesUI;
+import com.seizia.chromite.ui.editors.sql.convert.impl.HTMLSQLConverter;
+import com.seizia.chromite.ui.editors.sql.syntax.SQLRuleScanner;
+import com.seizia.chromite.utils.DurationFormat;
+import com.seizia.chromite.utils.DurationFormatter;
 import org.jkiss.utils.CommonUtils;
 
 import java.io.IOException;

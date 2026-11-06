@@ -15,20 +15,20 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.ui.config.migration.dbvis;
+package com.seizia.chromite.ui.config.migration.dbvis;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.connection.DBPDriver;
-import org.jkiss.dbeaver.model.net.DBWHandlerConfiguration;
-import org.jkiss.dbeaver.model.net.DBWUtils;
-import org.jkiss.dbeaver.model.net.ssh.SSHConstants;
-import org.jkiss.dbeaver.registry.network.NetworkHandlerDescriptor;
-import org.jkiss.dbeaver.registry.network.NetworkHandlerRegistry;
-import org.jkiss.dbeaver.ui.config.migration.wizards.ImportConnectionInfo;
-import org.jkiss.dbeaver.ui.config.migration.wizards.ImportData;
-import org.jkiss.dbeaver.ui.config.migration.wizards.ImportDriverInfo;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.connection.DBPDriver;
+import com.seizia.chromite.model.net.DBWHandlerConfiguration;
+import com.seizia.chromite.model.net.DBWUtils;
+import com.seizia.chromite.model.net.ssh.SSHConstants;
+import com.seizia.chromite.registry.network.NetworkHandlerDescriptor;
+import com.seizia.chromite.registry.network.NetworkHandlerRegistry;
+import com.seizia.chromite.ui.config.migration.wizards.ImportConnectionInfo;
+import com.seizia.chromite.ui.config.migration.wizards.ImportData;
+import com.seizia.chromite.ui.config.migration.wizards.ImportDriverInfo;
 import org.jkiss.utils.CommonUtils;
 import org.jkiss.utils.xml.XMLException;
 import org.jkiss.utils.xml.XMLUtils;
@@ -51,11 +51,11 @@ public class DbvisConfigurationCreatorv233 extends DbvisAbstractConfigurationCre
     public static final String SSH_CONFIG_FILE = "sshservers.xml"; //$NON-NLS-1$
 
     // substitution map for current version of DBvisualiser
-    public static final Map<String, String> dbvis2dbeaverDriverNames = new HashMap<>();
+    public static final Map<String, String> dbvis2chromiteDriverNames = new HashMap<>();
     static {
-        dbvis2dbeaverDriverNames.put("H2 2.x Embedded", "H2 Embedded V.2"); //$NON-NLS-1$ $NON-NLS-2$
-        dbvis2dbeaverDriverNames.put("Oracle 9i", "Oracle"); //$NON-NLS-1$ $NON-NLS-2$
-        dbvis2dbeaverDriverNames.put("Db2 LUW", "Db2 for LUW"); //$NON-NLS-1$ $NON-NLS-2$
+        dbvis2chromiteDriverNames.put("H2 2.x Embedded", "H2 Embedded V.2"); //$NON-NLS-1$ $NON-NLS-2$
+        dbvis2chromiteDriverNames.put("Oracle 9i", "Oracle"); //$NON-NLS-1$ $NON-NLS-2$
+        dbvis2chromiteDriverNames.put("Db2 LUW", "Db2 for LUW"); //$NON-NLS-1$ $NON-NLS-2$
     }
 
     @Override
@@ -231,7 +231,7 @@ public class DbvisConfigurationCreatorv233 extends DbvisAbstractConfigurationCre
 
     @Override
     protected String substituteDriverName(String driverName) {
-        String driversubstitutedName = dbvis2dbeaverDriverNames.get(driverName);
+        String driversubstitutedName = dbvis2chromiteDriverNames.get(driverName);
         if (driversubstitutedName == null) {
             driversubstitutedName = driverName;
         }

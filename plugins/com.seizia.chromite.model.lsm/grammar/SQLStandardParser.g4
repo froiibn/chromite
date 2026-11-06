@@ -18,8 +18,8 @@ parser grammar SQLStandardParser;
 
 options {
     tokenVocab=SQLStandardLexer;
-    superClass=org.jkiss.dbeaver.model.stm.STMParserOverrides;
-    contextSuperClass=org.jkiss.dbeaver.model.stm.STMTreeRuleNode;
+    superClass=com.seizia.chromite.model.stm.STMParserOverrides;
+    contextSuperClass=com.seizia.chromite.model.stm.STMTreeRuleNode;
 }
 
 @header {
@@ -39,11 +39,11 @@ options {
      * See the License for the specific language governing permissions and
      * limitations under the License.
      */
-    package org.jkiss.dbeaver.model.lsm.sql.impl.syntax;
+    package com.seizia.chromite.model.lsm.sql.impl.syntax;
 
     import java.util.*;
 
-    import org.jkiss.dbeaver.model.lsm.*;
+    import com.seizia.chromite.model.lsm.*;
 }
 
 @parser::members {
@@ -66,16 +66,16 @@ options {
     private Set<String> signatureModifierKeywords = Collections.emptySet();
     private Set<String> knownTypeNames = Collections.emptySet();
     private int maxKnownTypeWords = 1;
-    private org.jkiss.dbeaver.model.sql.SQLDialectFeatures.TrailingSelectIntoSupport trailingSelectIntoSupport =
-        org.jkiss.dbeaver.model.sql.SQLDialectFeatures.TrailingSelectIntoSupport.NONE;
+    private com.seizia.chromite.model.sql.SQLDialectFeatures.TrailingSelectIntoSupport trailingSelectIntoSupport =
+        com.seizia.chromite.model.sql.SQLDialectFeatures.TrailingSelectIntoSupport.NONE;
     private boolean trailingSelectIntoAllowed() {
         for (RuleContext current = this.getContext(); current != null; current = current.getParent()) {
             if (current.getRuleIndex() == RULE_proceduralStatement) {
-                return this.trailingSelectIntoSupport != org.jkiss.dbeaver.model.sql.SQLDialectFeatures.TrailingSelectIntoSupport.NONE;
+                return this.trailingSelectIntoSupport != com.seizia.chromite.model.sql.SQLDialectFeatures.TrailingSelectIntoSupport.NONE;
             }
         }
         // MySQL also permits session-variable targets outside stored programs.
-        return this.trailingSelectIntoSupport == org.jkiss.dbeaver.model.sql.SQLDialectFeatures.TrailingSelectIntoSupport.ANY &&
+        return this.trailingSelectIntoSupport == com.seizia.chromite.model.sql.SQLDialectFeatures.TrailingSelectIntoSupport.ANY &&
             this.getInputStream().LA(2) == SQLStandardLexer.BatchVariableName;
     }
     private boolean isUnquotedWord(int offset) {
@@ -140,8 +140,8 @@ options {
         int token = this.getInputStream().LA(1);
         return token == SQLStandardLexer.RETURN || token == SQLStandardLexer.RETURNS;
     }
-    private org.jkiss.dbeaver.model.sql.SQLDialectFeatures.ProceduralSyntaxFamily proceduralSyntaxFamily =
-        org.jkiss.dbeaver.model.sql.SQLDialectFeatures.ProceduralSyntaxFamily.GENERIC;
+    private com.seizia.chromite.model.sql.SQLDialectFeatures.ProceduralSyntaxFamily proceduralSyntaxFamily =
+        com.seizia.chromite.model.sql.SQLDialectFeatures.ProceduralSyntaxFamily.GENERIC;
 
     public SQLStandardParser(TokenStream input, LSMAnalyzerParameters parameters) {
         this(input);
@@ -156,15 +156,15 @@ options {
     }
 
     private boolean isGenericProceduralSyntax() {
-        return this.proceduralSyntaxFamily == org.jkiss.dbeaver.model.sql.SQLDialectFeatures.ProceduralSyntaxFamily.GENERIC;
+        return this.proceduralSyntaxFamily == com.seizia.chromite.model.sql.SQLDialectFeatures.ProceduralSyntaxFamily.GENERIC;
     }
 
     private boolean isTsqlProceduralSyntax() {
-        return this.proceduralSyntaxFamily == org.jkiss.dbeaver.model.sql.SQLDialectFeatures.ProceduralSyntaxFamily.TSQL;
+        return this.proceduralSyntaxFamily == com.seizia.chromite.model.sql.SQLDialectFeatures.ProceduralSyntaxFamily.TSQL;
     }
 
     private boolean isFirebirdProceduralSyntax() {
-        return this.proceduralSyntaxFamily == org.jkiss.dbeaver.model.sql.SQLDialectFeatures.ProceduralSyntaxFamily.FIREBIRD_PSQL;
+        return this.proceduralSyntaxFamily == com.seizia.chromite.model.sql.SQLDialectFeatures.ProceduralSyntaxFamily.FIREBIRD_PSQL;
     }
 
     private boolean validCorrelationNameFollows() {

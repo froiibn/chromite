@@ -14,11 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.editors.entity;
+package com.seizia.chromite.ui.editors.entity;
 
 import org.eclipse.core.expressions.PropertyTester;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.ui.ActionUtils;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.ui.ActionUtils;
 
 /**
  * FolderEditorPropertyTester
@@ -27,7 +27,7 @@ public class FolderEditorPropertyTester extends PropertyTester
 {
     private static final Log log = Log.getLog(FolderEditorPropertyTester.class);
 
-    public static final String NAMESPACE = "org.jkiss.dbeaver.ui.editors.folder";
+    public static final String NAMESPACE = "com.seizia.chromite.ui.editors.folder";
     public static final String PROP_CAN_NAVIGATE = "canNavigate";
 
     public FolderEditorPropertyTester() {

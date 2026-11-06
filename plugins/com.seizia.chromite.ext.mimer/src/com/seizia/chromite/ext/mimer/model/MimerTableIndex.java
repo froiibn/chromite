@@ -14,20 +14,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.mimer.model;
+package com.seizia.chromite.ext.mimer.model;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.ext.generic.model.GenericTableBase;
-import org.jkiss.dbeaver.ext.generic.model.GenericTableColumn;
-import org.jkiss.dbeaver.ext.generic.model.GenericTableIndex;
-import org.jkiss.dbeaver.ext.generic.model.GenericTableIndexColumn;
-import org.jkiss.dbeaver.model.meta.Property;
-import org.jkiss.dbeaver.model.meta.PropertyLength;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.model.runtime.VoidProgressMonitor;
-import org.jkiss.dbeaver.model.struct.rdb.DBSIndexType;
+import com.seizia.chromite.ext.generic.model.GenericTableBase;
+import com.seizia.chromite.ext.generic.model.GenericTableColumn;
+import com.seizia.chromite.ext.generic.model.GenericTableIndex;
+import com.seizia.chromite.ext.generic.model.GenericTableIndexColumn;
+import com.seizia.chromite.model.meta.Property;
+import com.seizia.chromite.model.meta.PropertyLength;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.model.runtime.VoidProgressMonitor;
+import com.seizia.chromite.model.struct.rdb.DBSIndexType;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -197,7 +197,7 @@ public class MimerTableIndex extends GenericTableIndex implements MimerCommentab
 
     /**
      * {@code COMMENT ON INDEX "schema"."name" IS '...'}. See {@link
-     * org.jkiss.dbeaver.ext.mimer.edit.MimerIndexManager} for the write side.
+     * com.seizia.chromite.ext.mimer.edit.MimerIndexManager} for the write side.
      */
     @Nullable
     @Property(viewable = true, editable = true, updatable = true, length = PropertyLength.MULTILINE, order = 12)

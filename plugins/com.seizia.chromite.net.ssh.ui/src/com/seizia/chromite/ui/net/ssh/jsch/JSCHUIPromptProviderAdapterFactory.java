@@ -15,12 +15,12 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.ui.net.ssh.jsch;
+package com.seizia.chromite.ui.net.ssh.jsch;
 
 import org.eclipse.core.runtime.IAdapterFactory;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.net.ssh.JSCHSessionController;
-import org.jkiss.dbeaver.model.net.ssh.JSCHUserInfoPromptProvider;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.net.ssh.JSCHSessionController;
+import com.seizia.chromite.model.net.ssh.JSCHUserInfoPromptProvider;
 
 public class JSCHUIPromptProviderAdapterFactory implements IAdapterFactory {
 

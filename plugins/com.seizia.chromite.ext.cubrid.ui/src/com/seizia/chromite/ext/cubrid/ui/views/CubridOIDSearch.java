@@ -14,16 +14,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.cubrid.ui.views;
+package com.seizia.chromite.ext.cubrid.ui.views;
 
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.Tree;
 import org.eclipse.swt.widgets.TreeItem;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.ext.cubrid.ui.internal.CubridMessages;
-import org.jkiss.dbeaver.model.exec.jdbc.JDBCSession;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
+import com.seizia.chromite.ext.cubrid.ui.internal.CubridMessages;
+import com.seizia.chromite.model.exec.jdbc.JDBCSession;
+import com.seizia.chromite.runtime.DBWorkbench;
 import org.jkiss.utils.BeanUtils;
 
 import java.sql.Connection;

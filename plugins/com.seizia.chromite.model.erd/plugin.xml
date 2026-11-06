@@ -7,18 +7,18 @@
                 base-type="org.eclipse.core.runtime.text"
                 default-charset="utf-8"
                 file-extensions="erd"
-                id="org.jkiss.dbeaver.erd"
+                id="com.seizia.chromite.erd"
                 name="ER diagram"
                 priority="normal"/>
     </extension>
 
-    <extension point="org.jkiss.dbeaver.resourceType">
+    <extension point="com.seizia.chromite.resourceType">
         <type id="er-diagram" name="ER Diagram"
               icon="icons/erd.svg"
               folderIcon="icons/erd_folder.svg"
               managable="true">
             <root folder="Diagrams"/>
-            <contentTypeBinding contentTypeId="org.jkiss.dbeaver.erd"/>
+            <contentTypeBinding contentTypeId="com.seizia.chromite.erd"/>
         </type>
     </extension>
 

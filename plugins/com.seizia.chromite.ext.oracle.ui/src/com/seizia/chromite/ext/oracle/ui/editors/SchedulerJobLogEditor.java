@@ -14,19 +14,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.oracle.ui.editors;
+package com.seizia.chromite.ext.oracle.ui.editors;
 
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.ext.oracle.model.*;
-import org.jkiss.dbeaver.model.data.DBDAttributeConstraint;
-import org.jkiss.dbeaver.model.data.DBDDataFilter;
-import org.jkiss.dbeaver.model.exec.DBCLogicalOperator;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.model.runtime.VoidProgressMonitor;
-import org.jkiss.dbeaver.model.struct.DBSDataContainer;
-import org.jkiss.dbeaver.ui.editors.data.AbstractDataEditor;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.ext.oracle.model.*;
+import com.seizia.chromite.model.data.DBDAttributeConstraint;
+import com.seizia.chromite.model.data.DBDDataFilter;
+import com.seizia.chromite.model.exec.DBCLogicalOperator;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.model.runtime.VoidProgressMonitor;
+import com.seizia.chromite.model.struct.DBSDataContainer;
+import com.seizia.chromite.ui.editors.data.AbstractDataEditor;
 
 import java.util.ArrayList;
 import java.util.List;

@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.datadam.mcp;
+package com.seizia.chromite.model.datadam.mcp;
 
 import com.dbeaver.datadam.mcp.api.exception.DDMcpFunctionException;
 import com.dbeaver.datadam.mcp.api.model.DDMcpFunctionCall;
@@ -26,17 +26,17 @@ import com.google.gson.JsonPrimitive;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.DBPDataSource;
-import org.jkiss.dbeaver.model.DBPDataSourceContainer;
-import org.jkiss.dbeaver.model.DBUtils;
-import org.jkiss.dbeaver.model.ai.*;
-import org.jkiss.dbeaver.model.ai.engine.AIDatabaseContext;
-import org.jkiss.dbeaver.model.datadam.mcp.function.DDMcpAiFunctionCatalog;
-import org.jkiss.dbeaver.model.exec.DBCExecutionContext;
-import org.jkiss.dbeaver.model.logical.DBSLogicalDataSource;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.model.runtime.VoidProgressMonitor;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.DBPDataSource;
+import com.seizia.chromite.model.DBPDataSourceContainer;
+import com.seizia.chromite.model.DBUtils;
+import com.seizia.chromite.model.ai.*;
+import com.seizia.chromite.model.ai.engine.AIDatabaseContext;
+import com.seizia.chromite.model.datadam.mcp.function.DDMcpAiFunctionCatalog;
+import com.seizia.chromite.model.exec.DBCExecutionContext;
+import com.seizia.chromite.model.logical.DBSLogicalDataSource;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.model.runtime.VoidProgressMonitor;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;

@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.mimer.ui.plan;
+package com.seizia.chromite.ext.mimer.ui.plan;
 
 import org.eclipse.jface.viewers.ISelection;
 import org.eclipse.jface.viewers.Viewer;
@@ -25,14 +25,14 @@ import org.eclipse.swt.widgets.Control;
 import org.eclipse.swt.widgets.Text;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.model.exec.plan.DBCPlan;
-import org.jkiss.dbeaver.ui.UIUtils;
+import com.seizia.chromite.model.exec.plan.DBCPlan;
+import com.seizia.chromite.ui.UIUtils;
 import org.jkiss.utils.CommonUtils;
 
 /**
  * Plain read-only view of {@link DBCPlan#getPlanSourceData()} - the raw {@code
  * getExplainText()} XML, unparsed. A fallback for whatever {@link
- * org.jkiss.dbeaver.ext.mimer.model.plan.MimerPlanNode} doesn't (yet, or ever) map onto a
+ * com.seizia.chromite.ext.mimer.model.plan.MimerPlanNode} doesn't (yet, or ever) map onto a
  * tree row.
  *
  * @author Mimer Information Technology

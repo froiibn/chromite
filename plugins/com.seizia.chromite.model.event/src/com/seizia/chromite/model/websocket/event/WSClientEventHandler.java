@@ -14,11 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.websocket.event;
+package com.seizia.chromite.model.websocket.event;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.model.auth.SMSession;
+import com.seizia.chromite.model.auth.SMSession;
 
 /**
  * WS event handler

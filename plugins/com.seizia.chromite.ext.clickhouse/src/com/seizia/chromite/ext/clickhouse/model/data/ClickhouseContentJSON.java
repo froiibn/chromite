@@ -14,13 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.clickhouse.model.data;
+package com.seizia.chromite.ext.clickhouse.model.data;
 
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.model.exec.DBCExecutionContext;
-import org.jkiss.dbeaver.model.impl.jdbc.data.JDBCContentChars;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.utils.MimeTypes;
+import com.seizia.chromite.model.exec.DBCExecutionContext;
+import com.seizia.chromite.model.impl.jdbc.data.JDBCContentChars;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.utils.MimeTypes;
 
 /**
  * ClickHouse JSON content: exposes the JSON text (produced by the driver's {@code getString()} when

@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.snowflake.ui;
+package com.seizia.chromite.ext.snowflake.ui;
 
 import org.eclipse.jface.dialogs.IDialogPage;
 import org.eclipse.swt.SWT;
@@ -29,22 +29,22 @@ import org.eclipse.swt.widgets.Text;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.ext.snowflake.SnowflakeConstants;
-import org.jkiss.dbeaver.ext.snowflake.SnowflakeUtils;
-import org.jkiss.dbeaver.ext.snowflake.model.auth.SnowflakeAuthModelSnowflake;
-import org.jkiss.dbeaver.ext.snowflake.ui.internal.SnowflakeMessages;
-import org.jkiss.dbeaver.model.DBPDataSourceContainer;
-import org.jkiss.dbeaver.model.connection.DBPConnectionConfiguration;
-import org.jkiss.dbeaver.model.exec.DBCResultSet;
-import org.jkiss.dbeaver.model.exec.DBCSession;
-import org.jkiss.dbeaver.model.exec.DBCStatement;
-import org.jkiss.dbeaver.model.exec.DBCStatementType;
-import org.jkiss.dbeaver.ui.IDataSourceConnectionTester;
-import org.jkiss.dbeaver.ui.IDialogPageProvider;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.dialogs.connection.ConnectionPageWithAuth;
-import org.jkiss.dbeaver.ui.dialogs.connection.DriverPropertiesDialogPage;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.ext.snowflake.SnowflakeConstants;
+import com.seizia.chromite.ext.snowflake.SnowflakeUtils;
+import com.seizia.chromite.ext.snowflake.model.auth.SnowflakeAuthModelSnowflake;
+import com.seizia.chromite.ext.snowflake.ui.internal.SnowflakeMessages;
+import com.seizia.chromite.model.DBPDataSourceContainer;
+import com.seizia.chromite.model.connection.DBPConnectionConfiguration;
+import com.seizia.chromite.model.exec.DBCResultSet;
+import com.seizia.chromite.model.exec.DBCSession;
+import com.seizia.chromite.model.exec.DBCStatement;
+import com.seizia.chromite.model.exec.DBCStatementType;
+import com.seizia.chromite.ui.IDataSourceConnectionTester;
+import com.seizia.chromite.ui.IDialogPageProvider;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.dialogs.connection.ConnectionPageWithAuth;
+import com.seizia.chromite.ui.dialogs.connection.DriverPropertiesDialogPage;
 import org.jkiss.utils.CommonUtils;
 
 import java.util.ArrayList;

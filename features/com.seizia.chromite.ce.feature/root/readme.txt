@@ -1,4 +1,4 @@
-${dbeaver-product}
+${chromite-product}
 
 ${dbeaver-version}
 
@@ -27,7 +27,7 @@ Command line parameters
 
   -data <path>
     Store all projects/configuration in folder <path>. By default Chromite
-	stores all its data in user's home "DBeaverData" folder.
+	stores all its data in user's home "ChromiteData" folder.
 	<path> can be an absolute or relative directory name.
 	If you want to use Chromite as redistributable program start it
 	with arguments like "chromite -data workspace".

@@ -14,11 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.mimer.model;
+package com.seizia.chromite.ext.mimer.model;
 
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.model.DBPNamedObject2;
-import org.jkiss.dbeaver.model.exec.jdbc.JDBCResultSet;
+import com.seizia.chromite.model.DBPNamedObject2;
+import com.seizia.chromite.model.exec.jdbc.JDBCResultSet;
 
 /**
  * An {@code EXECUTE} privilege grant on a Mimer SQL statement, read from {@code

@@ -14,10 +14,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.tools.compare.simple;
+package com.seizia.chromite.tools.compare.simple;
 
-import org.jkiss.dbeaver.model.DBPDataSourceContainer;
-import org.jkiss.dbeaver.model.struct.DBSObject;
+import com.seizia.chromite.model.DBPDataSourceContainer;
+import com.seizia.chromite.model.struct.DBSObject;
 import org.jkiss.utils.CommonUtils;
 
 /**

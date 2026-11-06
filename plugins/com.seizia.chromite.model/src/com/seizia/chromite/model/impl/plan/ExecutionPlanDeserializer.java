@@ -14,13 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.impl.plan;
+package com.seizia.chromite.model.impl.plan;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
-import org.jkiss.dbeaver.model.DBPDataSource;
-import org.jkiss.dbeaver.model.exec.plan.DBCPlanNode;
-import org.jkiss.dbeaver.model.exec.plan.DBCQueryPlannerDeSerialInfo;
+import com.seizia.chromite.model.DBPDataSource;
+import com.seizia.chromite.model.exec.plan.DBCPlanNode;
+import com.seizia.chromite.model.exec.plan.DBCQueryPlannerDeSerialInfo;
 
 import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;

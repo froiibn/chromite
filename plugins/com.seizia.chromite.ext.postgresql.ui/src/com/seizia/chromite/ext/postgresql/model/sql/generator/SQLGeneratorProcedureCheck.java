@@ -14,15 +14,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.postgresql.model.sql.generator;
+package com.seizia.chromite.ext.postgresql.model.sql.generator;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.model.DBPEvaluationContext;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.model.sql.generator.SQLGeneratorProcedure;
-import org.jkiss.dbeaver.model.struct.rdb.DBSProcedure;
-import org.jkiss.dbeaver.model.struct.rdb.DBSProcedureParameter;
+import com.seizia.chromite.model.DBPEvaluationContext;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.model.sql.generator.SQLGeneratorProcedure;
+import com.seizia.chromite.model.struct.rdb.DBSProcedure;
+import com.seizia.chromite.model.struct.rdb.DBSProcedureParameter;
 import org.jkiss.utils.CommonUtils;
 
 public class SQLGeneratorProcedureCheck extends SQLGeneratorProcedure {

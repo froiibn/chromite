@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.preferences;
+package com.seizia.chromite.ui.preferences;
 
 import org.eclipse.core.resources.IProject;
 import org.eclipse.core.runtime.IAdaptable;
@@ -34,22 +34,22 @@ import org.eclipse.ui.dialogs.PreferencesUtil;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.DBIcon;
-import org.jkiss.dbeaver.model.DBPDataSourceContainer;
-import org.jkiss.dbeaver.model.app.DBPPlatformDesktop;
-import org.jkiss.dbeaver.model.app.DBPProject;
-import org.jkiss.dbeaver.model.navigator.DBNNode;
-import org.jkiss.dbeaver.model.net.DBWNetworkProfile;
-import org.jkiss.dbeaver.model.net.DBWNetworkProfileManager;
-import org.jkiss.dbeaver.model.rcp.RCPProject;
-import org.jkiss.dbeaver.model.rm.RMConstants;
-import org.jkiss.dbeaver.model.secret.DBSSecretController;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.ui.DBeaverIcons;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.internal.UIConnectionMessages;
-import org.jkiss.dbeaver.utils.GeneralUtils;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.DBIcon;
+import com.seizia.chromite.model.DBPDataSourceContainer;
+import com.seizia.chromite.model.app.DBPPlatformDesktop;
+import com.seizia.chromite.model.app.DBPProject;
+import com.seizia.chromite.model.navigator.DBNNode;
+import com.seizia.chromite.model.net.DBWNetworkProfile;
+import com.seizia.chromite.model.net.DBWNetworkProfileManager;
+import com.seizia.chromite.model.rcp.RCPProject;
+import com.seizia.chromite.model.rm.RMConstants;
+import com.seizia.chromite.model.secret.DBSSecretController;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.ui.SwtIcons;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.internal.UIConnectionMessages;
+import com.seizia.chromite.utils.GeneralUtils;
 
 import java.util.Comparator;
 import java.util.List;
@@ -61,7 +61,7 @@ import java.util.stream.Collectors;
  */
 public class PrefPageProjectNetworkProfiles extends PrefPageManagedNetworkProfiles
     implements IWorkbenchPreferencePage, IWorkbenchPropertyPage {
-    public static final String PAGE_ID = "org.jkiss.dbeaver.project.settings.networkProfiles"; //$NON-NLS-1$
+    public static final String PAGE_ID = "com.seizia.chromite.project.settings.networkProfiles"; //$NON-NLS-1$
 
     private static final Log log = Log.getLog(PrefPageProjectNetworkProfiles.class);
 
@@ -263,7 +263,7 @@ public class PrefPageProjectNetworkProfiles extends PrefPageManagedNetworkProfil
     @NotNull
     @Override
     protected Image getProfileImage(@NotNull DBWNetworkProfile profile) {
-        return DBeaverIcons.getImage(DBIcon.CONNECTION_PROFILE);
+        return SwtIcons.getImage(DBIcon.CONNECTION_PROFILE);
     }
     @Override
     protected boolean hasAccessToPage() {

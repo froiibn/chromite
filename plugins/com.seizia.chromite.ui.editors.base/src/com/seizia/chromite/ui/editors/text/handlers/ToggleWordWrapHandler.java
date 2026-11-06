@@ -14,13 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.editors.text.handlers;
+package com.seizia.chromite.ui.editors.text.handlers;
 
 import org.eclipse.core.commands.ExecutionEvent;
 import org.eclipse.swt.custom.StyledText;
 import org.eclipse.swt.widgets.Control;
 import org.eclipse.ui.handlers.HandlerUtil;
-import org.jkiss.dbeaver.ui.editors.text.BaseTextEditor;
+import com.seizia.chromite.ui.editors.text.BaseTextEditor;
 
 public class ToggleWordWrapHandler extends AbstractTextHandler {
 

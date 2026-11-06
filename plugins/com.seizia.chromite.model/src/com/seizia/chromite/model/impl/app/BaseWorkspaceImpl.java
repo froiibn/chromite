@@ -15,27 +15,27 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.impl.app;
+package com.seizia.chromite.model.impl.app;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.DBConstants;
-import org.jkiss.dbeaver.model.DBPAdaptable;
-import org.jkiss.dbeaver.model.DBPImage;
-import org.jkiss.dbeaver.model.app.DBPPlatform;
-import org.jkiss.dbeaver.model.app.DBPProject;
-import org.jkiss.dbeaver.model.app.DBPWorkspace;
-import org.jkiss.dbeaver.model.auth.SMAuthSpace;
-import org.jkiss.dbeaver.model.auth.SMSession;
-import org.jkiss.dbeaver.model.auth.SMSessionContext;
-import org.jkiss.dbeaver.model.fs.DBFFileSystemManager;
-import org.jkiss.dbeaver.model.impl.auth.SessionContextImpl;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.model.runtime.VoidProgressMonitor;
-import org.jkiss.dbeaver.model.virtual.DBVModel;
-import org.jkiss.dbeaver.utils.RuntimeUtils;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.DBConstants;
+import com.seizia.chromite.model.DBPAdaptable;
+import com.seizia.chromite.model.DBPImage;
+import com.seizia.chromite.model.app.DBPPlatform;
+import com.seizia.chromite.model.app.DBPProject;
+import com.seizia.chromite.model.app.DBPWorkspace;
+import com.seizia.chromite.model.auth.SMAuthSpace;
+import com.seizia.chromite.model.auth.SMSession;
+import com.seizia.chromite.model.auth.SMSessionContext;
+import com.seizia.chromite.model.fs.DBFFileSystemManager;
+import com.seizia.chromite.model.impl.auth.SessionContextImpl;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.model.runtime.VoidProgressMonitor;
+import com.seizia.chromite.model.virtual.DBVModel;
+import com.seizia.chromite.utils.RuntimeUtils;
 import org.jkiss.utils.CommonUtils;
 import org.jkiss.utils.SecurityUtils;
 

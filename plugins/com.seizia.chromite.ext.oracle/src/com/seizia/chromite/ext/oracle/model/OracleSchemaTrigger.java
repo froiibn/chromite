@@ -14,9 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.oracle.model;
+package com.seizia.chromite.ext.oracle.model;
 
-import org.jkiss.dbeaver.model.struct.rdb.DBSTable;
+import com.seizia.chromite.model.struct.rdb.DBSTable;
 
 import java.sql.ResultSet;
 

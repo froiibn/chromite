@@ -14,15 +14,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.postgresql.tasks;
+package com.seizia.chromite.ext.postgresql.tasks;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.model.app.DBPProject;
-import org.jkiss.dbeaver.model.preferences.DBPPreferenceStore;
-import org.jkiss.dbeaver.model.runtime.DBRRunnableContext;
-import org.jkiss.dbeaver.model.struct.DBSObject;
-import org.jkiss.dbeaver.tasks.nativetool.AbstractImportExportSettings;
+import com.seizia.chromite.model.app.DBPProject;
+import com.seizia.chromite.model.preferences.DBPPreferenceStore;
+import com.seizia.chromite.model.runtime.DBRRunnableContext;
+import com.seizia.chromite.model.struct.DBSObject;
+import com.seizia.chromite.tasks.nativetool.AbstractImportExportSettings;
 import org.jkiss.utils.CommonUtils;
 
 public class PostgreBackupRestoreSettings extends AbstractImportExportSettings<DBSObject> {

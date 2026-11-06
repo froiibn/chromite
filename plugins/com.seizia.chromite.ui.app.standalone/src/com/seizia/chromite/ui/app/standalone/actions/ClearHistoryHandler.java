@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.app.standalone.actions;
+package com.seizia.chromite.ui.app.standalone.actions;
 
 import org.eclipse.core.commands.AbstractHandler;
 import org.eclipse.core.commands.ExecutionEvent;
@@ -33,12 +33,12 @@ import org.eclipse.ui.PlatformUI;
 import org.eclipse.ui.handlers.HandlerUtil;
 import org.jkiss.code.NotNull;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.model.impl.AbstractDescriptor;
-import org.jkiss.dbeaver.model.runtime.DBRRunnableWithProgress;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.app.standalone.internal.CoreApplicationMessages;
-import org.jkiss.dbeaver.ui.dialogs.BaseDialog;
+import com.seizia.chromite.model.impl.AbstractDescriptor;
+import com.seizia.chromite.model.runtime.DBRRunnableWithProgress;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.app.standalone.internal.CoreApplicationMessages;
+import com.seizia.chromite.ui.dialogs.BaseDialog;
 
 import java.lang.reflect.InvocationTargetException;
 import java.util.HashSet;
@@ -47,7 +47,7 @@ import java.util.Map;
 import java.util.Set;
 
 public class ClearHistoryHandler extends AbstractHandler {
-    private static final String EXTENSION_ID = "org.jkiss.dbeaver.clearHistoryHandler";
+    private static final String EXTENSION_ID = "com.seizia.chromite.clearHistoryHandler";
 
     private final Map<String, HandlerDescriptor> descriptors = new LinkedHashMap<>();
 

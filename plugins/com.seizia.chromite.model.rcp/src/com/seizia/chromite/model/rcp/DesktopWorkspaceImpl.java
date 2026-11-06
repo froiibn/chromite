@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.rcp;
+package com.seizia.chromite.model.rcp;
 
 import com.google.gson.reflect.TypeToken;
 import org.eclipse.core.resources.*;
@@ -22,24 +22,24 @@ import org.eclipse.core.runtime.*;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.DBPAdaptable;
-import org.jkiss.dbeaver.model.DBPExternalFileManager;
-import org.jkiss.dbeaver.model.DBPImage;
-import org.jkiss.dbeaver.model.app.*;
-import org.jkiss.dbeaver.model.data.json.JSONUtils;
-import org.jkiss.dbeaver.model.fs.DBFResourceAdapter;
-import org.jkiss.dbeaver.model.fs.DBFVirtualFileSystemRoot;
-import org.jkiss.dbeaver.model.impl.app.BaseWorkspaceImpl;
-import org.jkiss.dbeaver.model.runtime.AbstractJob;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.model.secret.DBSSecretController;
-import org.jkiss.dbeaver.registry.ResourceHandlerDescriptor;
-import org.jkiss.dbeaver.registry.ResourceTypeDescriptor;
-import org.jkiss.dbeaver.registry.ResourceTypeRegistry;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.utils.GeneralUtils;
-import org.jkiss.dbeaver.utils.ResourceUtils;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.DBPAdaptable;
+import com.seizia.chromite.model.DBPExternalFileManager;
+import com.seizia.chromite.model.DBPImage;
+import com.seizia.chromite.model.app.*;
+import com.seizia.chromite.model.data.json.JSONUtils;
+import com.seizia.chromite.model.fs.DBFResourceAdapter;
+import com.seizia.chromite.model.fs.DBFVirtualFileSystemRoot;
+import com.seizia.chromite.model.impl.app.BaseWorkspaceImpl;
+import com.seizia.chromite.model.runtime.AbstractJob;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.model.secret.DBSSecretController;
+import com.seizia.chromite.registry.ResourceHandlerDescriptor;
+import com.seizia.chromite.registry.ResourceTypeDescriptor;
+import com.seizia.chromite.registry.ResourceTypeRegistry;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.utils.GeneralUtils;
+import com.seizia.chromite.utils.ResourceUtils;
 import org.jkiss.utils.ArrayUtils;
 import org.jkiss.utils.CommonUtils;
 
@@ -55,8 +55,8 @@ public class DesktopWorkspaceImpl extends EclipseWorkspaceImpl implements DBPWor
 
     private static final Log log = Log.getLog(DesktopWorkspaceImpl.class);
 
-    private static final String EXT_FILES_PROPS_STORE_LEGACY = "dbeaver-external-files.data";
-    private static final String EXT_FILES_PROPS_STORE = "dbeaver-external-files.json";
+    private static final String EXT_FILES_PROPS_STORE_LEGACY = "chromite-external-files.data";
+    private static final String EXT_FILES_PROPS_STORE = "chromite-external-files.json";
 
     private final Map<String, Map<String, String>> externalFileProperties = new HashMap<>();
 
@@ -350,7 +350,7 @@ public class DesktopWorkspaceImpl extends EclipseWorkspaceImpl implements DBPWor
             if (!CommonUtils.isEmpty(description)) {
                 pDescription.setComment(description);
             }
-            pDescription.setNatureIds(new String[] {DBeaverNature.NATURE_ID});
+            pDescription.setNatureIds(new String[] {ChromiteNature.NATURE_ID});
             project.setDescription(pDescription, monitor);
             project.open(monitor);
         } catch (Exception e) {
@@ -408,7 +408,7 @@ public class DesktopWorkspaceImpl extends EclipseWorkspaceImpl implements DBPWor
                 description.setName(projectName);
             } else {
                 description = workspace.newProjectDescription(projectName);
-                description.setNatureIds(new String[] {DBeaverNature.NATURE_ID});
+                description.setNatureIds(new String[] {ChromiteNature.NATURE_ID});
             }
             IProject project = root.getProject(projectName);
 
@@ -429,8 +429,8 @@ public class DesktopWorkspaceImpl extends EclipseWorkspaceImpl implements DBPWor
 
             IProjectDescription openDescription = project.getDescription();
             String[] natureIds = openDescription.getNatureIds();
-            if (!ArrayUtils.contains(natureIds, DBeaverNature.NATURE_ID)) {
-                openDescription.setNatureIds(ArrayUtils.add(String.class, natureIds, DBeaverNature.NATURE_ID));
+            if (!ArrayUtils.contains(natureIds, ChromiteNature.NATURE_ID)) {
+                openDescription.setNatureIds(ArrayUtils.add(String.class, natureIds, ChromiteNature.NATURE_ID));
                 project.setDescription(openDescription, nestedMonitor);
             }
 

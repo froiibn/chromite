@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.dashboard.control;
+package com.seizia.chromite.ui.dashboard.control;
 
 import org.eclipse.jface.action.MenuManager;
 import org.eclipse.swt.SWT;
@@ -29,20 +29,20 @@ import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.Label;
 import org.eclipse.ui.IWorkbenchSite;
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.model.DBPDataSourceContainer;
-import org.jkiss.dbeaver.model.app.DBPProject;
-import org.jkiss.dbeaver.model.dashboard.registry.DashboardItemConfiguration;
-import org.jkiss.dbeaver.model.dashboard.registry.DashboardRegistry;
-import org.jkiss.dbeaver.ui.ActionUtils;
-import org.jkiss.dbeaver.ui.ShellUtils;
-import org.jkiss.dbeaver.ui.UIStyles;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.dashboard.DashboardUIConstants;
-import org.jkiss.dbeaver.ui.dashboard.model.*;
-import org.jkiss.dbeaver.ui.dashboard.view.DashboardItemConfigurationTransfer;
-import org.jkiss.dbeaver.ui.dashboard.view.DashboardItemTransfer;
-import org.jkiss.dbeaver.ui.dashboard.view.DashboardManagerDialog;
-import org.jkiss.dbeaver.utils.HelpUtils;
+import com.seizia.chromite.model.DBPDataSourceContainer;
+import com.seizia.chromite.model.app.DBPProject;
+import com.seizia.chromite.model.dashboard.registry.DashboardItemConfiguration;
+import com.seizia.chromite.model.dashboard.registry.DashboardRegistry;
+import com.seizia.chromite.ui.ActionUtils;
+import com.seizia.chromite.ui.ShellUtils;
+import com.seizia.chromite.ui.UIStyles;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.dashboard.DashboardUIConstants;
+import com.seizia.chromite.ui.dashboard.model.*;
+import com.seizia.chromite.ui.dashboard.view.DashboardItemConfigurationTransfer;
+import com.seizia.chromite.ui.dashboard.view.DashboardItemTransfer;
+import com.seizia.chromite.ui.dashboard.view.DashboardManagerDialog;
+import com.seizia.chromite.utils.HelpUtils;
 import org.jkiss.utils.CommonUtils;
 
 import java.util.ArrayList;
@@ -50,7 +50,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static org.jkiss.dbeaver.ui.dashboard.DashboardUIConstants.PARAM_CATALOG_PANEL_TOGGLE;
+import static com.seizia.chromite.ui.dashboard.DashboardUIConstants.PARAM_CATALOG_PANEL_TOGGLE;
 
 public class DashboardListControl extends Composite implements DashboardGroupContainer {
 

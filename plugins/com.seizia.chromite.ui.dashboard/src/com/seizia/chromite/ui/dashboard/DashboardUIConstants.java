@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.dashboard;
+package com.seizia.chromite.ui.dashboard;
 
 /**
  * Dashboard UI constants
@@ -22,12 +22,12 @@ package org.jkiss.dbeaver.ui.dashboard;
 public class DashboardUIConstants {
 
 
-    public static final String CMD_CREATE_DASHBOARD = "org.jkiss.dbeaver.ui.dashboard.create";
-    public static final String CMD_ADD_DASHBOARD = "org.jkiss.dbeaver.ui.dashboard.add";
-    public static final String CMD_CATALOG_SHOW_DASHBOARD = "org.jkiss.dbeaver.ui.dashboard.catalog.show";
-    public static final String CMD_REMOVE_DASHBOARD = "org.jkiss.dbeaver.ui.dashboard.remove";
-    public static final String CMD_REFRESH_CHART = "org.jkiss.dbeaver.ui.chart.refresh";
-    public static final String CMD_VIEW_DASHBOARD = "org.jkiss.dbeaver.ui.dashboard.view";
+    public static final String CMD_CREATE_DASHBOARD = "com.seizia.chromite.ui.dashboard.create";
+    public static final String CMD_ADD_DASHBOARD = "com.seizia.chromite.ui.dashboard.add";
+    public static final String CMD_CATALOG_SHOW_DASHBOARD = "com.seizia.chromite.ui.dashboard.catalog.show";
+    public static final String CMD_REMOVE_DASHBOARD = "com.seizia.chromite.ui.dashboard.remove";
+    public static final String CMD_REFRESH_CHART = "com.seizia.chromite.ui.chart.refresh";
+    public static final String CMD_VIEW_DASHBOARD = "com.seizia.chromite.ui.dashboard.view";
 
     public static final String DASHBOARD_DOCUMENTATION_URL_SUFFIX = "Dashboards/";
 

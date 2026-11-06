@@ -14,21 +14,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.editors.erd.action;
+package com.seizia.chromite.ui.editors.erd.action;
 
 import org.eclipse.core.expressions.PropertyTester;
 import org.eclipse.gef.ui.actions.DeleteAction;
 import org.eclipse.ui.IWorkbenchPart;
-import org.jkiss.dbeaver.model.rm.RMConstants;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.ui.editors.erd.editor.ERDEditorPart;
+import com.seizia.chromite.model.rm.RMConstants;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.ui.editors.erd.editor.ERDEditorPart;
 
 /**
  * DatabaseEditorPropertyTester
  */
 public class ERDEditorPropertyTester extends PropertyTester
 {
-    public static final String NAMESPACE = "org.jkiss.dbeaver.ui.editors.erd.editor";
+    public static final String NAMESPACE = "com.seizia.chromite.ui.editors.erd.editor";
     public static final String PROP_CAN_UNDO = "canUndo";
     public static final String PROP_CAN_REDO = "canRedo";
     public static final String PROP_CAN_DELETE = "canDelete";

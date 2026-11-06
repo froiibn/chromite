@@ -15,13 +15,13 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.ui.editors.sql.convert;
+package com.seizia.chromite.ui.editors.sql.convert;
 
 import org.eclipse.jface.text.IDocument;
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.model.sql.SQLDialect;
-import org.jkiss.dbeaver.model.sql.SQLSyntaxManager;
-import org.jkiss.dbeaver.ui.editors.sql.syntax.SQLRuleScanner;
+import com.seizia.chromite.model.sql.SQLDialect;
+import com.seizia.chromite.model.sql.SQLSyntaxManager;
+import com.seizia.chromite.ui.editors.sql.syntax.SQLRuleScanner;
 
 import java.util.Map;
 

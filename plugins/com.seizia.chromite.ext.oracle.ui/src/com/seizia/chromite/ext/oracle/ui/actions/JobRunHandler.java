@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.oracle.ui.actions;
+package com.seizia.chromite.ext.oracle.ui.actions;
 
 import org.eclipse.core.commands.ExecutionEvent;
 import org.eclipse.core.commands.ExecutionException;
@@ -27,28 +27,28 @@ import org.eclipse.ui.IWorkbenchPart;
 import org.eclipse.ui.handlers.HandlerUtil;
 import org.eclipse.ui.menus.UIElement;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.ext.oracle.model.OracleObjectPersistAction;
-import org.jkiss.dbeaver.ext.oracle.model.OracleSchedulerJob;
-import org.jkiss.dbeaver.ext.oracle.model.OracleUtils;
-import org.jkiss.dbeaver.ext.oracle.model.source.OracleSourceObject;
-import org.jkiss.dbeaver.model.DBPEvent;
-import org.jkiss.dbeaver.model.DBUtils;
-import org.jkiss.dbeaver.model.edit.DBEPersistAction;
-import org.jkiss.dbeaver.model.exec.DBCException;
-import org.jkiss.dbeaver.model.exec.DBCStatement;
-import org.jkiss.dbeaver.model.exec.DBCStatementType;
-import org.jkiss.dbeaver.model.exec.compile.DBCCompileError;
-import org.jkiss.dbeaver.model.exec.compile.DBCCompileLog;
-import org.jkiss.dbeaver.model.exec.compile.DBCCompileLogBase;
-import org.jkiss.dbeaver.model.exec.jdbc.JDBCSession;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.model.struct.DBSObjectState;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.editors.entity.EntityEditor;
-import org.jkiss.dbeaver.utils.GeneralUtils;
-import org.jkiss.dbeaver.utils.RuntimeUtils;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.ext.oracle.model.OracleObjectPersistAction;
+import com.seizia.chromite.ext.oracle.model.OracleSchedulerJob;
+import com.seizia.chromite.ext.oracle.model.OracleUtils;
+import com.seizia.chromite.ext.oracle.model.source.OracleSourceObject;
+import com.seizia.chromite.model.DBPEvent;
+import com.seizia.chromite.model.DBUtils;
+import com.seizia.chromite.model.edit.DBEPersistAction;
+import com.seizia.chromite.model.exec.DBCException;
+import com.seizia.chromite.model.exec.DBCStatement;
+import com.seizia.chromite.model.exec.DBCStatementType;
+import com.seizia.chromite.model.exec.compile.DBCCompileError;
+import com.seizia.chromite.model.exec.compile.DBCCompileLog;
+import com.seizia.chromite.model.exec.compile.DBCCompileLogBase;
+import com.seizia.chromite.model.exec.jdbc.JDBCSession;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.model.struct.DBSObjectState;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.editors.entity.EntityEditor;
+import com.seizia.chromite.utils.GeneralUtils;
+import com.seizia.chromite.utils.RuntimeUtils;
 import org.jkiss.utils.ArrayUtils;
 import org.jkiss.utils.CommonUtils;
 

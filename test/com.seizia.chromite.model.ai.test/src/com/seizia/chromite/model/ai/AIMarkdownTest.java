@@ -14,14 +14,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.ai;
+package com.seizia.chromite.model.ai;
 
-import org.jkiss.dbeaver.model.ai.impl.MessageChunk;
-import org.jkiss.junit.DBeaverUnitTest;
+import com.seizia.chromite.model.ai.impl.MessageChunk;
+import com.seizia.chromite.junit.ChromiteUnitTest;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
-public class AIMarkdownTest extends DBeaverUnitTest {
+public class AIMarkdownTest extends ChromiteUnitTest {
 
     @Test
     public void mdEmptyText() {

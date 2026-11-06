@@ -2,19 +2,19 @@
 <?eclipse version="3.4"?>
 
 <plugin>
-    <extension-point id="chatView" name="AI Chat View" schema="schema/org.jkiss.dbeaver.ui.ai.chatView.exsd"/>
+    <extension-point id="chatView" name="AI Chat View" schema="schema/com.seizia.chromite.ui.ai.chatView.exsd"/>
 
-    <extension point="org.jkiss.dbeaver.connectionPageConfigurator">
+    <extension point="com.seizia.chromite.connectionPageConfigurator">
         <page
-            id="com.dbeaver.preferences.datasource.ai"
-            after="org.jkiss.dbeaver.preferences.main.meta"
-            class="org.jkiss.dbeaver.ui.ai.preferences.PrefPageDataSourceAI"
+            id="com.seizia.chromite.preferences.datasource.ai"
+            after="com.seizia.chromite.preferences.main.meta"
+            class="com.seizia.chromite.ui.ai.preferences.PrefPageDataSourceAI"
             title="%pref.page.ai.connection.name"
             description="%pref.page.ai.connection.description">
             <enabledWhen>
                 <or>
-                    <test property="org.jkiss.dbeaver.ui.ai.hasConnectionSettings" forcePluginActivation="true"/>
-                    <test property="org.jkiss.dbeaver.ui.datadam.mcp.enabled" forcePluginActivation="true"/>
+                    <test property="com.seizia.chromite.ui.ai.hasConnectionSettings" forcePluginActivation="true"/>
+                    <test property="com.seizia.chromite.ui.datadam.mcp.enabled" forcePluginActivation="true"/>
                 </or>
             </enabledWhen>
         </page>
@@ -22,240 +22,240 @@
 
     <extension point="org.eclipse.core.expressions.propertyTesters">
         <propertyTester
-            class="org.jkiss.dbeaver.ui.ai.preferences.AIConnectionSettingsPropertyTester"
-            id="org.jkiss.dbeaver.ui.ai.preferences.AIConnectionSettingsPropertyTester"
-            namespace="org.jkiss.dbeaver.ui.ai"
+            class="com.seizia.chromite.ui.ai.preferences.AIConnectionSettingsPropertyTester"
+            id="com.seizia.chromite.ui.ai.preferences.AIConnectionSettingsPropertyTester"
+            namespace="com.seizia.chromite.ui.ai"
             properties="hasConnectionSettings"
-            type="org.jkiss.dbeaver.model.DBPDataSourceContainer"/>
+            type="com.seizia.chromite.model.DBPDataSourceContainer"/>
     </extension>
 
-    <extension point="org.jkiss.dbeaver.ui.propertyConfigurator">
-        <propertyConfigurator class="org.jkiss.dbeaver.model.ai.engine.openai.OpenAIEngine" uiClass="org.jkiss.dbeaver.ui.ai.engine.openai.OpenAiConfigurator"/>
-        <propertyConfigurator class="org.jkiss.dbeaver.model.ai.engine.copilot.CopilotCompletionEngine" uiClass="org.jkiss.dbeaver.ui.ai.engine.copilot.CopilotConfigurator"/>
-        <propertyConfigurator class="org.jkiss.dbeaver.model.ai.engine.ollama.OllamaCompletionEngine" uiClass="org.jkiss.dbeaver.ui.ai.engine.ollama.OllamaConfigurator"/>
+    <extension point="com.seizia.chromite.ui.propertyConfigurator">
+        <propertyConfigurator class="com.seizia.chromite.model.ai.engine.openai.OpenAIEngine" uiClass="com.seizia.chromite.ui.ai.engine.openai.OpenAiConfigurator"/>
+        <propertyConfigurator class="com.seizia.chromite.model.ai.engine.copilot.CopilotCompletionEngine" uiClass="com.seizia.chromite.ui.ai.engine.copilot.CopilotConfigurator"/>
+        <propertyConfigurator class="com.seizia.chromite.model.ai.engine.ollama.OllamaCompletionEngine" uiClass="com.seizia.chromite.ui.ai.engine.ollama.OllamaConfigurator"/>
     </extension>
 
     <extension point="org.eclipse.core.runtime.preferences">
-        <initializer class="org.jkiss.dbeaver.ui.ai.preferences.AIPreferencesInitializer"/>
+        <initializer class="com.seizia.chromite.ui.ai.preferences.AIPreferencesInitializer"/>
     </extension>
 
     <extension point="org.eclipse.core.expressions.definitions">
-        <definition id="org.jkiss.dbeaver.ai.preferences">
-            <instanceof value="org.jkiss.dbeaver.model.ai.AISettings"/>
+        <definition id="com.seizia.chromite.ai.preferences">
+            <instanceof value="com.seizia.chromite.model.ai.AISettings"/>
         </definition>
         <!-- Enabled by the user -->
-        <definition id="org.jkiss.dbeaver.core.ai.completion.enabled.by.user">
+        <definition id="com.seizia.chromite.core.ai.completion.enabled.by.user">
             <not>
-                <test property="org.jkiss.dbeaver.ui.ai.isDisabled" forcePluginActivation="false" />
+                <test property="com.seizia.chromite.ui.ai.isDisabled" forcePluginActivation="false" />
             </not>
         </definition>
     </extension>
 
     <extension point="org.eclipse.ui.preferencePages">
-        <page id="org.jkiss.dbeaver.preferences.ai" class="org.jkiss.dbeaver.ui.ai.preferences.AIPreferencePageMain" name="%pref.page.ai.main.name">
-            <keywordReference id="org.jkiss.dbeaver.core.keyword.dbeaver"/>
-            <keywordReference id="dbeaver.ai.pref"/>
-            <keywordReference id="dbeaver.ai.main"/>
+        <page id="com.seizia.chromite.preferences.ai" class="com.seizia.chromite.ui.ai.preferences.AIPreferencePageMain" name="%pref.page.ai.main.name">
+            <keywordReference id="com.seizia.chromite.core.keyword.chromite"/>
+            <keywordReference id="chromite.ai.pref"/>
+            <keywordReference id="chromite.ai.main"/>
         </page>
-        <page id="org.jkiss.dbeaver.preferences.ai.engines" category="org.jkiss.dbeaver.preferences.ai" class="org.jkiss.dbeaver.ui.ai.preferences.AIPreferencePageEngines" name="%pref.page.ai.engines.name">
-            <keywordReference id="org.jkiss.dbeaver.core.keyword.dbeaver"/>
-            <keywordReference id="dbeaver.ai.pref"/>
-            <keywordReference id="dbeaver.ai.engines"/>
+        <page id="com.seizia.chromite.preferences.ai.engines" category="com.seizia.chromite.preferences.ai" class="com.seizia.chromite.ui.ai.preferences.AIPreferencePageEngines" name="%pref.page.ai.engines.name">
+            <keywordReference id="com.seizia.chromite.core.keyword.chromite"/>
+            <keywordReference id="chromite.ai.pref"/>
+            <keywordReference id="chromite.ai.engines"/>
         </page>
-        <page id="org.jkiss.dbeaver.preferences.ai.config" category="org.jkiss.dbeaver.preferences.ai" class="org.jkiss.dbeaver.ui.ai.preferences.AIPreferencePageConfiguration" name="%pref.page.ai.config.name">
-            <keywordReference id="org.jkiss.dbeaver.core.keyword.dbeaver"/>
-            <keywordReference id="dbeaver.ai.pref"/>
-            <keywordReference id="dbeaver.ai.config"/>
+        <page id="com.seizia.chromite.preferences.ai.config" category="com.seizia.chromite.preferences.ai" class="com.seizia.chromite.ui.ai.preferences.AIPreferencePageConfiguration" name="%pref.page.ai.config.name">
+            <keywordReference id="com.seizia.chromite.core.keyword.chromite"/>
+            <keywordReference id="chromite.ai.pref"/>
+            <keywordReference id="chromite.ai.config"/>
         </page>
-        <page id="org.jkiss.dbeaver.preferences.ai.chat" category="org.jkiss.dbeaver.preferences.ai.config" class="org.jkiss.dbeaver.ui.ai.preferences.AIPreferencePageChat" name="%pref.page.ai.chat.name">
-            <keywordReference id="org.jkiss.dbeaver.core.keyword.dbeaver"/>
-            <keywordReference id="dbeaver.ai.pref"/>
-            <keywordReference id="dbeaver.ai.chat"/>
+        <page id="com.seizia.chromite.preferences.ai.chat" category="com.seizia.chromite.preferences.ai.config" class="com.seizia.chromite.ui.ai.preferences.AIPreferencePageChat" name="%pref.page.ai.chat.name">
+            <keywordReference id="com.seizia.chromite.core.keyword.chromite"/>
+            <keywordReference id="chromite.ai.pref"/>
+            <keywordReference id="chromite.ai.chat"/>
         </page>
-        <page id="org.jkiss.dbeaver.preferences.ai.prompts" category="org.jkiss.dbeaver.preferences.ai" class="org.jkiss.dbeaver.ui.ai.preferences.AIPreferencePagePrompts" name="%pref.page.ai.prompts.name">
-            <keywordReference id="org.jkiss.dbeaver.core.keyword.dbeaver"/>
-            <keywordReference id="dbeaver.ai.pref"/>
-            <keywordReference id="dbeaver.ai.prompts"/>
+        <page id="com.seizia.chromite.preferences.ai.prompts" category="com.seizia.chromite.preferences.ai" class="com.seizia.chromite.ui.ai.preferences.AIPreferencePagePrompts" name="%pref.page.ai.prompts.name">
+            <keywordReference id="com.seizia.chromite.core.keyword.chromite"/>
+            <keywordReference id="chromite.ai.pref"/>
+            <keywordReference id="chromite.ai.prompts"/>
         </page>
     </extension>
     <extension point="org.eclipse.ui.propertyPages">
-        <page id="org.jkiss.dbeaver.preferences.ai.engines" class="org.jkiss.dbeaver.ui.ai.preferences.AIPreferencePageEngines" name="%pref.page.ai.engines.name">
-            <enabledWhen><reference definitionId="org.jkiss.dbeaver.ai.preferences"/></enabledWhen>
+        <page id="com.seizia.chromite.preferences.ai.engines" class="com.seizia.chromite.ui.ai.preferences.AIPreferencePageEngines" name="%pref.page.ai.engines.name">
+            <enabledWhen><reference definitionId="com.seizia.chromite.ai.preferences"/></enabledWhen>
         </page>
-        <page id="org.jkiss.dbeaver.preferences.ai.config" class="org.jkiss.dbeaver.ui.ai.preferences.AIPreferencePageConfiguration" name="%prop.page.ai.config.name">
-            <enabledWhen><reference definitionId="org.jkiss.dbeaver.ai.preferences"/></enabledWhen>
+        <page id="com.seizia.chromite.preferences.ai.config" class="com.seizia.chromite.ui.ai.preferences.AIPreferencePageConfiguration" name="%prop.page.ai.config.name">
+            <enabledWhen><reference definitionId="com.seizia.chromite.ai.preferences"/></enabledWhen>
         </page>
-        <page id="org.jkiss.dbeaver.preferences.ai.chat" category="org.jkiss.dbeaver.preferences.ai.config" class="org.jkiss.dbeaver.ui.ai.preferences.AIPreferencePageChat" name="%pref.page.ai.chat.name">
-            <enabledWhen><reference definitionId="org.jkiss.dbeaver.ai.preferences"/></enabledWhen>
+        <page id="com.seizia.chromite.preferences.ai.chat" category="com.seizia.chromite.preferences.ai.config" class="com.seizia.chromite.ui.ai.preferences.AIPreferencePageChat" name="%pref.page.ai.chat.name">
+            <enabledWhen><reference definitionId="com.seizia.chromite.ai.preferences"/></enabledWhen>
         </page>
-        <page id="org.jkiss.dbeaver.preferences.ai.prompts" class="org.jkiss.dbeaver.ui.ai.preferences.AIPreferencePagePrompts" name="%pref.page.ai.prompts.name">
-            <enabledWhen><reference definitionId="org.jkiss.dbeaver.ai.preferences"/></enabledWhen>
+        <page id="com.seizia.chromite.preferences.ai.prompts" class="com.seizia.chromite.ui.ai.preferences.AIPreferencePagePrompts" name="%pref.page.ai.prompts.name">
+            <enabledWhen><reference definitionId="com.seizia.chromite.ai.preferences"/></enabledWhen>
         </page>
     </extension>
 
     <extension point="org.eclipse.core.expressions.propertyTesters">
-        <propertyTester class="org.jkiss.dbeaver.ui.ai.AIPropertyTester"
-                        id="org.jkiss.dbeaver.ui.ai.AIPropertyTester"
-                        namespace="org.jkiss.dbeaver.ui.ai"
+        <propertyTester class="com.seizia.chromite.ui.ai.AIPropertyTester"
+                        id="com.seizia.chromite.ui.ai.AIPropertyTester"
+                        namespace="com.seizia.chromite.ui.ai"
                         properties="isDisabled"
                         type="java.lang.Object"/>
     </extension>
 
     <extension point="org.eclipse.ui.startup">
-        <startup class="org.jkiss.dbeaver.ui.ai.internal.AIUIStartup"/>
+        <startup class="com.seizia.chromite.ui.ai.internal.AIUIStartup"/>
     </extension>
 
     <extension point="org.eclipse.ui.commands">
-        <category id="com.dbeaver.ai" name="AI commands" description="AI commands"/>
-        <command id="org.jkiss.dbeaver.ui.ai.showCompletion" name="%command.org.jkiss.dbeaver.ui.ai.showCompletion.name" description="%command.org.jkiss.dbeaver.ui.ai.showCompletion.description" categoryId="com.dbeaver.ai"/>
-        <command id="org.jkiss.dbeaver.ui.ai.configuration" name="%command.org.jkiss.dbeaver.ui.ai.configuration.name" description="%command.org.jkiss.dbeaver.ui.ai.configuration.description" categoryId="com.dbeaver.ai"/>
-        <command id="com.dbeaver.ai.chat.sendPrompt" name="Send" description="Send prompt to AI engine" categoryId="com.dbeaver.ai"/>
-        <command id="com.dbeaver.ai.chat.attach" name="Attach" description="Attach file" categoryId="com.dbeaver.ai"/>
-        <command id="com.dbeaver.ai.chat.toggle" name="AI Chat" description="Toggle AI Chat visibility" categoryId="com.dbeaver.ai"/>
-        <command id="com.dbeaver.ai.chat.focusPrompt" name="%command.com.dbeaver.ai.chat.focusPrompt.name" description="%command.com.dbeaver.ai.chat.focusPrompt.description" categoryId="com.dbeaver.ai"/>
-        <command id="com.dbeaver.ai.chat.focusChat" name="%command.com.dbeaver.ai.chat.focusChat.name" description="%command.com.dbeaver.ai.chat.focusChat.description" categoryId="com.dbeaver.ai"/>
-        <command id="com.dbeaver.ai.chat.newConversation" name="%command.com.dbeaver.ai.chat.newConversation.name" description="%command.com.dbeaver.ai.chat.newConversation.description" categoryId="com.dbeaver.ai"/>
-        <command id="com.dbeaver.ai.chat.deleteConversation" name="%command.com.dbeaver.ai.chat.deleteConversation.name" description="%command.com.dbeaver.ai.chat.deleteConversation.description" categoryId="com.dbeaver.ai"/>
-        <command id="com.dbeaver.ai.chat.openSettings" name="%command.com.dbeaver.ai.chat.openSettings.name" description="%command.com.dbeaver.ai.chat.openSettings.description" categoryId="com.dbeaver.ai"/>
-        <command id="com.dbeaver.ai.chat.openFilters" name="%command.com.dbeaver.ai.chat.openFilters.name" description="%command.com.dbeaver.ai.chat.openFilters.description" categoryId="com.dbeaver.ai"/>
+        <category id="com.seizia.chromite.ai" name="AI commands" description="AI commands"/>
+        <command id="com.seizia.chromite.ui.ai.showCompletion" name="%command.com.seizia.chromite.ui.ai.showCompletion.name" description="%command.com.seizia.chromite.ui.ai.showCompletion.description" categoryId="com.seizia.chromite.ai"/>
+        <command id="com.seizia.chromite.ui.ai.configuration" name="%command.com.seizia.chromite.ui.ai.configuration.name" description="%command.com.seizia.chromite.ui.ai.configuration.description" categoryId="com.seizia.chromite.ai"/>
+        <command id="com.seizia.chromite.ai.chat.sendPrompt" name="Send" description="Send prompt to AI engine" categoryId="com.seizia.chromite.ai"/>
+        <command id="com.seizia.chromite.ai.chat.attach" name="Attach" description="Attach file" categoryId="com.seizia.chromite.ai"/>
+        <command id="com.seizia.chromite.ai.chat.toggle" name="AI Chat" description="Toggle AI Chat visibility" categoryId="com.seizia.chromite.ai"/>
+        <command id="com.seizia.chromite.ai.chat.focusPrompt" name="%command.com.seizia.chromite.ai.chat.focusPrompt.name" description="%command.com.seizia.chromite.ai.chat.focusPrompt.description" categoryId="com.seizia.chromite.ai"/>
+        <command id="com.seizia.chromite.ai.chat.focusChat" name="%command.com.seizia.chromite.ai.chat.focusChat.name" description="%command.com.seizia.chromite.ai.chat.focusChat.description" categoryId="com.seizia.chromite.ai"/>
+        <command id="com.seizia.chromite.ai.chat.newConversation" name="%command.com.seizia.chromite.ai.chat.newConversation.name" description="%command.com.seizia.chromite.ai.chat.newConversation.description" categoryId="com.seizia.chromite.ai"/>
+        <command id="com.seizia.chromite.ai.chat.deleteConversation" name="%command.com.seizia.chromite.ai.chat.deleteConversation.name" description="%command.com.seizia.chromite.ai.chat.deleteConversation.description" categoryId="com.seizia.chromite.ai"/>
+        <command id="com.seizia.chromite.ai.chat.openSettings" name="%command.com.seizia.chromite.ai.chat.openSettings.name" description="%command.com.seizia.chromite.ai.chat.openSettings.description" categoryId="com.seizia.chromite.ai"/>
+        <command id="com.seizia.chromite.ai.chat.openFilters" name="%command.com.seizia.chromite.ai.chat.openFilters.name" description="%command.com.seizia.chromite.ai.chat.openFilters.description" categoryId="com.seizia.chromite.ai"/>
     </extension>
 
     <extension point="org.eclipse.ui.menus">
         <menuContribution allPopups="false" locationURI="menu:SQLEditorMenu?after=query">
-            <command commandId="org.jkiss.dbeaver.ui.ai.showCompletion">
+            <command commandId="com.seizia.chromite.ui.ai.showCompletion">
                 <visibleWhen checkEnabled="true"/>
             </command>
         </menuContribution>
-        <menuContribution allPopups="false" locationURI="toolbar:org.jkiss.dbeaver.ui.editors.sql.toolbar.side.top?after=tools" >
-            <command commandId="org.jkiss.dbeaver.ui.ai.showCompletion">
+        <menuContribution allPopups="false" locationURI="toolbar:com.seizia.chromite.ui.editors.sql.toolbar.side.top?after=tools" >
+            <command commandId="com.seizia.chromite.ui.ai.showCompletion">
                 <visibleWhen>
                     <and>
-                        <reference definitionId="org.jkiss.dbeaver.core.ai.completion.enabled.by.user"/>
-                        <reference definitionId="org.jkiss.dbeaver.core.ai.completion.enabled.by.policy"/>
-                        <test property="org.jkiss.dbeaver.ui.toolbar.configuration.visible" args="sqlEditor.side.top,org.jkiss.dbeaver.ui.ai.showCompletion"/>
+                        <reference definitionId="com.seizia.chromite.core.ai.completion.enabled.by.user"/>
+                        <reference definitionId="com.seizia.chromite.core.ai.completion.enabled.by.policy"/>
+                        <test property="com.seizia.chromite.ui.toolbar.configuration.visible" args="sqlEditor.side.top,com.seizia.chromite.ui.ai.showCompletion"/>
                     </and>
                 </visibleWhen>
             </command>
         </menuContribution>
         <menuContribution allPopups="false" locationURI="menu:window?before=primary.views">
-            <command commandId="com.dbeaver.ai.chat.toggle" style="toggle">
+            <command commandId="com.seizia.chromite.ai.chat.toggle" style="toggle">
                 <visibleWhen checkEnabled="true"/>
             </command>
         </menuContribution>
-        <menuContribution allPopups="false" locationURI="toolbar:dbeaver-general?after=sql_tools">
-            <command commandId="com.dbeaver.ai.chat.toggle" id="ai.dropdown.menu" style="pulldown">
+        <menuContribution allPopups="false" locationURI="toolbar:chromite-general?after=sql_tools">
+            <command commandId="com.seizia.chromite.ai.chat.toggle" id="ai.dropdown.menu" style="pulldown">
                 <visibleWhen checkEnabled="true"/>
             </command>
             <separator name="ai" visible="true"/>
         </menuContribution>
         <menuContribution allPopups="false" locationURI="menu:ai.dropdown.menu">
-            <command commandId="org.jkiss.dbeaver.ui.ai.showCompletion"/>
+            <command commandId="com.seizia.chromite.ui.ai.showCompletion"/>
             <separator name="configuration" visible="true"/>
-            <command commandId="org.jkiss.dbeaver.ui.ai.configuration"/>
-            <!--            <dynamic id="org.jkiss.dbeaver.core.menu.newConnection.select" class="org.jkiss.dbeaver.ui.actions.datasource.NewConnectionDriverSelectorContributor"/>-->
+            <command commandId="com.seizia.chromite.ui.ai.configuration"/>
+            <!--            <dynamic id="com.seizia.chromite.core.menu.newConnection.select" class="com.seizia.chromite.ui.actions.datasource.NewConnectionDriverSelectorContributor"/>-->
         </menuContribution>
 
     </extension>
 
     <extension point="org.eclipse.ui.activities">
-        <activity id="dbeaver.ai.activity.policy" name="AI Activity (Policy)">
+        <activity id="chromite.ai.activity.policy" name="AI Activity (Policy)">
             <enabledWhen>
-                <reference definitionId="org.jkiss.dbeaver.core.ai.completion.enabled.by.policy"/>
+                <reference definitionId="com.seizia.chromite.core.ai.completion.enabled.by.policy"/>
             </enabledWhen>
         </activity>
-        <activity id="dbeaver.ai.activity" name="AI Activity">
+        <activity id="chromite.ai.activity" name="AI Activity">
             <enabledWhen>
                 <and>
-                    <reference definitionId="org.jkiss.dbeaver.core.ai.completion.enabled.by.user"/>
-                    <reference definitionId="org.jkiss.dbeaver.core.ai.completion.enabled.by.policy"/>
+                    <reference definitionId="com.seizia.chromite.core.ai.completion.enabled.by.user"/>
+                    <reference definitionId="com.seizia.chromite.core.ai.completion.enabled.by.policy"/>
                 </and>
             </enabledWhen>
         </activity>
 
-        <activityPatternBinding activityId="dbeaver.ai.activity.policy" pattern="org.jkiss.dbeaver.ui.ai/org.jkiss.dbeaver.preferences.ai.*"/>
-        <activityPatternBinding activityId="dbeaver.ai.activity.policy" pattern="org.jkiss.dbeaver.preferences.ai"/>
-        <activityPatternBinding activityId="dbeaver.ai.activity" pattern="org.jkiss.dbeaver.ui.ai/(?!org\.jkiss\.dbeaver\.preferences\.ai).*"/>
+        <activityPatternBinding activityId="chromite.ai.activity.policy" pattern="com.seizia.chromite.ui.ai/com.seizia.chromite.preferences.ai.*"/>
+        <activityPatternBinding activityId="chromite.ai.activity.policy" pattern="com.seizia.chromite.preferences.ai"/>
+        <activityPatternBinding activityId="chromite.ai.activity" pattern="com.seizia.chromite.ui.ai/(?!com\.seizia\.chromite\.preferences\.ai).*"/>
     </extension>
 
     <extension point="org.eclipse.ui.commandImages">
-        <image commandId="org.jkiss.dbeaver.ui.ai.showCompletion" icon="platform:/plugin/org.jkiss.dbeaver.model.ai/icons/ai.svg"/>
-        <image commandId="com.dbeaver.ai.chat.sendPrompt" icon="platform:/plugin/org.jkiss.dbeaver.ui.ai/icons/ai-chat-send.svg"/>
-        <image commandId="com.dbeaver.ai.chat.attach" icon="platform:/plugin/org.jkiss.dbeaver.ui.ai/icons/attach.svg"/>
-        <image commandId="com.dbeaver.ai.chat.toggle" icon="platform:/plugin/org.jkiss.dbeaver.model.ai/icons/ai.svg"/>
+        <image commandId="com.seizia.chromite.ui.ai.showCompletion" icon="platform:/plugin/com.seizia.chromite.model.ai/icons/ai.svg"/>
+        <image commandId="com.seizia.chromite.ai.chat.sendPrompt" icon="platform:/plugin/com.seizia.chromite.ui.ai/icons/ai-chat-send.svg"/>
+        <image commandId="com.seizia.chromite.ai.chat.attach" icon="platform:/plugin/com.seizia.chromite.ui.ai/icons/attach.svg"/>
+        <image commandId="com.seizia.chromite.ai.chat.toggle" icon="platform:/plugin/com.seizia.chromite.model.ai/icons/ai.svg"/>
     </extension>
 
     <extension point="org.eclipse.ui.handlers">
-        <handler commandId="org.jkiss.dbeaver.ui.ai.showCompletion" class="org.jkiss.dbeaver.ui.ai.internal.AITranslateHandler"/>
-        <handler commandId="org.jkiss.dbeaver.ui.ai.configuration" class="org.jkiss.dbeaver.ui.ai.internal.AIConfigurationHandler"/>
-        <handler commandId="com.dbeaver.ai.chat.sendPrompt" class="org.jkiss.dbeaver.ui.ai.chat.commands.AIChatCommandHandler"/>
-        <handler commandId="com.dbeaver.ai.chat.attach" class="org.jkiss.dbeaver.ui.ai.chat.commands.AIChatCommandHandler"/>
-        <handler commandId="com.dbeaver.ai.chat.focusPrompt" class="org.jkiss.dbeaver.ui.ai.chat.commands.AIChatCommandHandler"/>
-        <handler commandId="com.dbeaver.ai.chat.focusChat" class="org.jkiss.dbeaver.ui.ai.chat.commands.AIChatCommandHandler"/>
-        <handler commandId="com.dbeaver.ai.chat.newConversation" class="org.jkiss.dbeaver.ui.ai.chat.commands.AIChatCommandHandler"/>
-        <handler commandId="com.dbeaver.ai.chat.deleteConversation" class="org.jkiss.dbeaver.ui.ai.chat.commands.AIChatCommandHandler"/>
-        <handler commandId="com.dbeaver.ai.chat.openSettings" class="org.jkiss.dbeaver.ui.ai.chat.commands.AIChatCommandHandler"/>
-        <handler commandId="com.dbeaver.ai.chat.openFilters" class="org.jkiss.dbeaver.ui.ai.chat.commands.AIChatCommandHandler"/>
-        <handler commandId="com.dbeaver.ai.chat.toggle" class="org.jkiss.dbeaver.ui.ai.chat.commands.AIChatToggleHandler">
+        <handler commandId="com.seizia.chromite.ui.ai.showCompletion" class="com.seizia.chromite.ui.ai.internal.AITranslateHandler"/>
+        <handler commandId="com.seizia.chromite.ui.ai.configuration" class="com.seizia.chromite.ui.ai.internal.AIConfigurationHandler"/>
+        <handler commandId="com.seizia.chromite.ai.chat.sendPrompt" class="com.seizia.chromite.ui.ai.chat.commands.AIChatCommandHandler"/>
+        <handler commandId="com.seizia.chromite.ai.chat.attach" class="com.seizia.chromite.ui.ai.chat.commands.AIChatCommandHandler"/>
+        <handler commandId="com.seizia.chromite.ai.chat.focusPrompt" class="com.seizia.chromite.ui.ai.chat.commands.AIChatCommandHandler"/>
+        <handler commandId="com.seizia.chromite.ai.chat.focusChat" class="com.seizia.chromite.ui.ai.chat.commands.AIChatCommandHandler"/>
+        <handler commandId="com.seizia.chromite.ai.chat.newConversation" class="com.seizia.chromite.ui.ai.chat.commands.AIChatCommandHandler"/>
+        <handler commandId="com.seizia.chromite.ai.chat.deleteConversation" class="com.seizia.chromite.ui.ai.chat.commands.AIChatCommandHandler"/>
+        <handler commandId="com.seizia.chromite.ai.chat.openSettings" class="com.seizia.chromite.ui.ai.chat.commands.AIChatCommandHandler"/>
+        <handler commandId="com.seizia.chromite.ai.chat.openFilters" class="com.seizia.chromite.ui.ai.chat.commands.AIChatCommandHandler"/>
+        <handler commandId="com.seizia.chromite.ai.chat.toggle" class="com.seizia.chromite.ui.ai.chat.commands.AIChatToggleHandler">
             <enabledWhen>
                 <and>
-                    <reference definitionId="org.jkiss.dbeaver.core.ai.completion.enabled.by.user"/>
-                    <reference definitionId="org.jkiss.dbeaver.core.ai.completion.enabled.by.policy"/>
+                    <reference definitionId="com.seizia.chromite.core.ai.completion.enabled.by.user"/>
+                    <reference definitionId="com.seizia.chromite.core.ai.completion.enabled.by.policy"/>
                 </and>
             </enabledWhen>
         </handler>
     </extension>
 
     <extension point="org.eclipse.ui.bindings">
-        <key commandId="org.jkiss.dbeaver.ui.ai.showCompletion" contextId="org.eclipse.ui.contexts.window" schemeId="org.eclipse.ui.defaultAcceleratorConfiguration" sequence="CTRL+I"/>
-        <key commandId="com.dbeaver.ai.chat.sendPrompt" contextId="com.dbeaver.ai.chat" schemeId="org.eclipse.ui.defaultAcceleratorConfiguration" sequence="M1+Enter"/>
-        <key commandId="com.dbeaver.ai.chat.attach" contextId="com.dbeaver.ai.chat" schemeId="org.eclipse.ui.defaultAcceleratorConfiguration" sequence="M1+U"/>
-        <key commandId="com.dbeaver.ai.chat.focusPrompt" contextId="com.dbeaver.ai.chat" schemeId="org.eclipse.ui.defaultAcceleratorConfiguration" sequence="M1+L"/>
-        <key commandId="com.dbeaver.ai.chat.focusChat" contextId="com.dbeaver.ai.chat" schemeId="org.eclipse.ui.defaultAcceleratorConfiguration" sequence="M1+M2+M"/>
-        <key commandId="com.dbeaver.ai.chat.newConversation" contextId="com.dbeaver.ai.chat" schemeId="org.eclipse.ui.defaultAcceleratorConfiguration" sequence="M1+N"/>
-        <key commandId="com.dbeaver.ai.chat.deleteConversation" contextId="com.dbeaver.ai.chat" schemeId="org.eclipse.ui.defaultAcceleratorConfiguration" sequence="M1+M2+DEL"/>
-        <key commandId="com.dbeaver.ai.chat.openSettings" contextId="com.dbeaver.ai.chat" schemeId="org.eclipse.ui.defaultAcceleratorConfiguration" sequence="M1+M2+S"/>
-        <key commandId="com.dbeaver.ai.chat.openFilters" contextId="com.dbeaver.ai.chat" schemeId="org.eclipse.ui.defaultAcceleratorConfiguration" sequence="M1+M2+F"/>
+        <key commandId="com.seizia.chromite.ui.ai.showCompletion" contextId="org.eclipse.ui.contexts.window" schemeId="org.eclipse.ui.defaultAcceleratorConfiguration" sequence="CTRL+I"/>
+        <key commandId="com.seizia.chromite.ai.chat.sendPrompt" contextId="com.seizia.chromite.ai.chat" schemeId="org.eclipse.ui.defaultAcceleratorConfiguration" sequence="M1+Enter"/>
+        <key commandId="com.seizia.chromite.ai.chat.attach" contextId="com.seizia.chromite.ai.chat" schemeId="org.eclipse.ui.defaultAcceleratorConfiguration" sequence="M1+U"/>
+        <key commandId="com.seizia.chromite.ai.chat.focusPrompt" contextId="com.seizia.chromite.ai.chat" schemeId="org.eclipse.ui.defaultAcceleratorConfiguration" sequence="M1+L"/>
+        <key commandId="com.seizia.chromite.ai.chat.focusChat" contextId="com.seizia.chromite.ai.chat" schemeId="org.eclipse.ui.defaultAcceleratorConfiguration" sequence="M1+M2+M"/>
+        <key commandId="com.seizia.chromite.ai.chat.newConversation" contextId="com.seizia.chromite.ai.chat" schemeId="org.eclipse.ui.defaultAcceleratorConfiguration" sequence="M1+N"/>
+        <key commandId="com.seizia.chromite.ai.chat.deleteConversation" contextId="com.seizia.chromite.ai.chat" schemeId="org.eclipse.ui.defaultAcceleratorConfiguration" sequence="M1+M2+DEL"/>
+        <key commandId="com.seizia.chromite.ai.chat.openSettings" contextId="com.seizia.chromite.ai.chat" schemeId="org.eclipse.ui.defaultAcceleratorConfiguration" sequence="M1+M2+S"/>
+        <key commandId="com.seizia.chromite.ai.chat.openFilters" contextId="com.seizia.chromite.ai.chat" schemeId="org.eclipse.ui.defaultAcceleratorConfiguration" sequence="M1+M2+F"/>
     </extension>
 
 
-    <extension point="org.jkiss.dbeaver.toolBarConfiguration">
+    <extension point="com.seizia.chromite.toolBarConfiguration">
         <toolBar key="sqlEditor.side.top">
-            <item commandId="org.jkiss.dbeaver.ui.ai.showCompletion" defaultVisibility="true"/>
+            <item commandId="com.seizia.chromite.ui.ai.showCompletion" defaultVisibility="true"/>
         </toolBar>
     </extension>
 
     <extension point="org.eclipse.ui.keywords">
-        <keyword id="dbeaver.ai.pref" label="%keyword.org.jkiss.dbeaver.ai.pref"/>
-        <keyword id="dbeaver.ai.main" label="%keyword.org.jkiss.dbeaver.ai.main"/>
-        <keyword id="dbeaver.ai.engines" label="%keyword.org.jkiss.dbeaver.ai.engines"/>
-        <keyword id="dbeaver.ai.config" label="%keyword.org.jkiss.dbeaver.ai.config"/>
-        <keyword id="dbeaver.ai.chat" label="%keyword.org.jkiss.dbeaver.ai.chat"/>
-        <keyword id="dbeaver.ai.prompts" label="%keyword.org.jkiss.dbeaver.ai.prompts"/>
+        <keyword id="chromite.ai.pref" label="%keyword.com.seizia.chromite.ai.pref"/>
+        <keyword id="chromite.ai.main" label="%keyword.com.seizia.chromite.ai.main"/>
+        <keyword id="chromite.ai.engines" label="%keyword.com.seizia.chromite.ai.engines"/>
+        <keyword id="chromite.ai.config" label="%keyword.com.seizia.chromite.ai.config"/>
+        <keyword id="chromite.ai.chat" label="%keyword.com.seizia.chromite.ai.chat"/>
+        <keyword id="chromite.ai.prompts" label="%keyword.com.seizia.chromite.ai.prompts"/>
     </extension>
-    <extension point="org.jkiss.dbeaver.workbenchHandler">
-        <workbenchWindowInitializer class="org.jkiss.dbeaver.ui.ai.AIWorkbenchInitializer" order="2"/>
+    <extension point="com.seizia.chromite.workbenchHandler">
+        <workbenchWindowInitializer class="com.seizia.chromite.ui.ai.AIWorkbenchInitializer" order="2"/>
     </extension>
 
 
     <extension point="org.eclipse.ui.themes">
-        <themeElementCategory label="%themeElementCategory.org.jkiss.dbeaver.ui.sqlPresentation.aiChat.label"
-                              id="org.jkiss.dbeaver.ui.sqlPresentation.aiChat">
-            <description>%themeElementCategory.org.jkiss.dbeaver.ui.sqlPresentation.aiChat.description</description>
+        <themeElementCategory label="%themeElementCategory.com.seizia.chromite.ui.sqlPresentation.aiChat.label"
+                              id="com.seizia.chromite.ui.sqlPresentation.aiChat">
+            <description>%themeElementCategory.com.seizia.chromite.ui.sqlPresentation.aiChat.description</description>
         </themeElementCategory>
 
         <colorDefinition
-            label="%colorDefinition.org.jkiss.dbeaver.ui.sqlPresentation.aiChat.color.prompt.background.label"
-            categoryId="org.jkiss.dbeaver.ui.sqlPresentation.aiChat"
-            id="org.jkiss.dbeaver.ui.sqlPresentation.aiChat.color.prompt.background"
+            label="%colorDefinition.com.seizia.chromite.ui.sqlPresentation.aiChat.color.prompt.background.label"
+            categoryId="com.seizia.chromite.ui.sqlPresentation.aiChat"
+            id="com.seizia.chromite.ui.sqlPresentation.aiChat.color.prompt.background"
             value="224,235,242">
-            <description>%colorDefinition.org.jkiss.dbeaver.ui.sqlPresentation.aiChat.color.prompt.background.description</description>
+            <description>%colorDefinition.com.seizia.chromite.ui.sqlPresentation.aiChat.color.prompt.background.description</description>
         </colorDefinition>
         <colorDefinition
-            label="%colorDefinition.org.jkiss.dbeaver.ui.sqlPresentation.aiChat.color.prompt.border.label"
-            categoryId="org.jkiss.dbeaver.ui.sqlPresentation.aiChat"
-            id="org.jkiss.dbeaver.ui.sqlPresentation.aiChat.color.prompt.border"
+            label="%colorDefinition.com.seizia.chromite.ui.sqlPresentation.aiChat.color.prompt.border.label"
+            categoryId="com.seizia.chromite.ui.sqlPresentation.aiChat"
+            id="com.seizia.chromite.ui.sqlPresentation.aiChat.color.prompt.border"
             value="189,220,240">
-            <description>%colorDefinition.org.jkiss.dbeaver.ui.sqlPresentation.aiChat.color.prompt.border.description</description>
+            <description>%colorDefinition.com.seizia.chromite.ui.sqlPresentation.aiChat.color.prompt.border.description</description>
         </colorDefinition>
     </extension>
 
@@ -266,27 +266,27 @@
     </extension>
 
     <extension point="org.eclipse.ui.contexts">
-        <context id="com.dbeaver.ai.chat" parentId="org.eclipse.ui.contexts.window" name="AI chat" description="AI chat window"/>
+        <context id="com.seizia.chromite.ai.chat" parentId="org.eclipse.ui.contexts.window" name="AI chat" description="AI chat window"/>
     </extension>
 
     <extension point="org.eclipse.ui.views">
-        <view id="com.dbeaver.ai.chat"
-              category="org.jkiss.dbeaver.core.category"
-              class="org.jkiss.dbeaver.ui.ai.chat.AIChatView"
-              icon="platform:/plugin/org.jkiss.dbeaver.model.ai/icons/ai.svg"
+        <view id="com.seizia.chromite.ai.chat"
+              category="com.seizia.chromite.core.category"
+              class="com.seizia.chromite.ui.ai.chat.AIChatView"
+              icon="platform:/plugin/com.seizia.chromite.model.ai/icons/ai.svg"
               name="Chat">
             <description>AI Chat</description>
         </view>
     </extension>
 
     <extension point="org.eclipse.ui.perspectiveExtensions">
-        <perspectiveExtension targetID="org.jkiss.dbeaver.core.perspective">
-            <view id="com.dbeaver.ai.chat" relative="org.eclipse.ui.views.ContentOutline" relationship="stack" visible="false" minimized="true"/>
-            <viewShortcut id="com.dbeaver.ai.chat"/>
+        <perspectiveExtension targetID="com.seizia.chromite.core.perspective">
+            <view id="com.seizia.chromite.ai.chat" relative="org.eclipse.ui.views.ContentOutline" relationship="stack" visible="false" minimized="true"/>
+            <viewShortcut id="com.seizia.chromite.ai.chat"/>
         </perspectiveExtension>
     </extension>
 
-    <extension point="org.jkiss.dbeaver.notifications">
+    <extension point="com.seizia.chromite.notifications">
         <notification id="ai.model.load" name="AI models loaded"/>
     </extension>
 

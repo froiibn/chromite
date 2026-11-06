@@ -15,10 +15,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.db2.model.dict;
+package com.seizia.chromite.ext.db2.model.dict;
 
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.model.DBPNamedObject;
+import com.seizia.chromite.model.DBPNamedObject;
 
 /**
  * DB2 Trigger Granularity

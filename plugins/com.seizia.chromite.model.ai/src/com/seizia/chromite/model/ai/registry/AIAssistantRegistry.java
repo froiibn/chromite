@@ -14,19 +14,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.ai.registry;
+package com.seizia.chromite.model.ai.registry;
 
 import org.eclipse.core.runtime.IConfigurationElement;
 import org.eclipse.core.runtime.IExtensionRegistry;
 import org.eclipse.core.runtime.Platform;
 import org.jkiss.code.NotNull;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.ai.AIAssistant;
-import org.jkiss.dbeaver.model.ai.impl.AIAssistantImpl;
-import org.jkiss.dbeaver.model.app.DBPWorkspace;
-import org.jkiss.dbeaver.model.auth.SMSession;
-import org.jkiss.dbeaver.model.auth.SMSessionPersistent;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.ai.AIAssistant;
+import com.seizia.chromite.model.ai.impl.AIAssistantImpl;
+import com.seizia.chromite.model.app.DBPWorkspace;
+import com.seizia.chromite.model.auth.SMSession;
+import com.seizia.chromite.model.auth.SMSessionPersistent;
 
 public class AIAssistantRegistry {
 

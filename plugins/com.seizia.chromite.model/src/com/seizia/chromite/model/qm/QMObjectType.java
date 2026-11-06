@@ -14,9 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.qm;
+package com.seizia.chromite.model.qm;
 
-import org.jkiss.dbeaver.model.qm.meta.QMMetaObjectType;
+import com.seizia.chromite.model.qm.meta.QMMetaObjectType;
 import org.jkiss.utils.CommonUtils;
 
 import java.util.ArrayList;

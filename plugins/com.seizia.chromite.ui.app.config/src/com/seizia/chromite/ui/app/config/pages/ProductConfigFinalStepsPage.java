@@ -14,17 +14,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.app.config.pages;
+package com.seizia.chromite.ui.app.config.pages;
 
 import org.eclipse.swt.widgets.Composite;
 import org.jkiss.code.NotNull;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.ui.app.config.nls.ProductConfigMessages;
-import org.jkiss.dbeaver.ui.app.config.registry.ProductConfigAction;
-import org.jkiss.dbeaver.ui.app.config.registry.ProductConfigActionDescriptor;
-import org.jkiss.dbeaver.ui.app.config.registry.ProductConfigWizardRegistry;
-import org.jkiss.dbeaver.ui.forms.*;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.ui.app.config.nls.ProductConfigMessages;
+import com.seizia.chromite.ui.app.config.registry.ProductConfigAction;
+import com.seizia.chromite.ui.app.config.registry.ProductConfigActionDescriptor;
+import com.seizia.chromite.ui.app.config.registry.ProductConfigWizardRegistry;
+import com.seizia.chromite.ui.forms.*;
 
 import java.util.ArrayList;
 import java.util.List;

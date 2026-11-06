@@ -14,17 +14,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.editors.sql.terminal.internal;
+package com.seizia.chromite.ui.editors.sql.terminal.internal;
 
 import org.eclipse.ui.plugin.AbstractUIPlugin;
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.model.impl.preferences.BundlePreferenceStore;
+import com.seizia.chromite.model.impl.preferences.BundlePreferenceStore;
 import org.osgi.framework.BundleContext;
 
 public class SQLTerminalActivator extends AbstractUIPlugin {
 
     // The plug-in ID
-    public static final String PLUGIN_ID = "org.jkiss.dbeaver.ui.editors.sql.terminal";
+    public static final String PLUGIN_ID = "com.seizia.chromite.ui.editors.sql.terminal";
 
     public SQLTerminalActivator() {
     }

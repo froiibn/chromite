@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.controls;
+package com.seizia.chromite.ui.controls;
 
 import org.eclipse.jface.fieldassist.IContentProposalProvider;
 import org.eclipse.swt.SWT;
@@ -25,13 +25,13 @@ import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.widgets.*;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.model.DBPImage;
-import org.jkiss.dbeaver.ui.DBeaverIcons;
-import org.jkiss.dbeaver.ui.UIIcon;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.contentassist.ContentAssistUtils;
-import org.jkiss.dbeaver.ui.contentassist.SmartTextContentAdapter;
-import org.jkiss.dbeaver.ui.internal.UIMessages;
+import com.seizia.chromite.model.DBPImage;
+import com.seizia.chromite.ui.SwtIcons;
+import com.seizia.chromite.ui.UIIcon;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.contentassist.ContentAssistUtils;
+import com.seizia.chromite.ui.contentassist.SmartTextContentAdapter;
+import com.seizia.chromite.ui.internal.UIMessages;
 import org.jkiss.utils.CommonUtils;
 
 import java.util.List;
@@ -221,7 +221,7 @@ public class StringEditorTableFactory<T> {
 
     protected void addTableItem(@NotNull TableItem newItem) {
         DBPImage icon = valuesManager.getIcon(null);
-        newItem.setImage(icon == null ? null : DBeaverIcons.getImage(icon));
+        newItem.setImage(icon == null ? null : SwtIcons.getImage(icon));
         selectTableItem(newItem);
         tableEditor.showEditor(newItem);
     }
@@ -236,7 +236,7 @@ public class StringEditorTableFactory<T> {
         item.setText(valuesManager.getString(value));
         item.setData(CUSTOM_EDITABLE_LIST_VALUE_KEY, value);
         DBPImage icon = valuesManager.getIcon(value);
-        item.setImage(icon == null ? null : DBeaverIcons.getImage(icon));
+        item.setImage(icon == null ? null : SwtIcons.getImage(icon));
     }
 
     @NotNull
@@ -272,7 +272,7 @@ public class StringEditorTableFactory<T> {
     @NotNull
     protected Control upButton(@NotNull Composite buttonsGroup) {
         final Button upButton = new Button(buttonsGroup, SWT.PUSH);
-        upButton.setImage(DBeaverIcons.getImage(UIIcon.ARROW_UP));
+        upButton.setImage(SwtIcons.getImage(UIIcon.ARROW_UP));
         upButton.setLayoutData(new GridData(GridData.FILL_HORIZONTAL));
         upButton.addSelectionListener(SelectionListener.widgetSelectedAdapter(e -> {
                 int selectionIndex = valueTable.getSelectionIndex();
@@ -292,7 +292,7 @@ public class StringEditorTableFactory<T> {
     @NotNull
     protected Control downButton(@NotNull Composite buttonsGroup) {
         final Button downButton = new Button(buttonsGroup, SWT.PUSH);
-        downButton.setImage(DBeaverIcons.getImage(UIIcon.ARROW_DOWN));
+        downButton.setImage(SwtIcons.getImage(UIIcon.ARROW_DOWN));
         downButton.setLayoutData(new GridData(GridData.FILL_HORIZONTAL));
         downButton.addSelectionListener(SelectionListener.widgetSelectedAdapter(e -> {
                 int selectionIndex = valueTable.getSelectionIndex();

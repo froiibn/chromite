@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.dialogs.driver;
+package com.seizia.chromite.ui.dialogs.driver;
 
 import org.eclipse.jface.resource.ImageDescriptor;
 import org.eclipse.jface.wizard.WizardPage;
@@ -22,11 +22,11 @@ import org.eclipse.swt.events.SelectionListener;
 import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Link;
-import org.jkiss.dbeaver.model.connection.DBPDriver;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.internal.UIConnectionMessages;
-import org.jkiss.dbeaver.ui.preferences.PrefPageDrivers;
-import org.jkiss.dbeaver.ui.preferences.PrefPageDriversMaven;
+import com.seizia.chromite.model.connection.DBPDriver;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.internal.UIConnectionMessages;
+import com.seizia.chromite.ui.preferences.PrefPageDrivers;
+import com.seizia.chromite.ui.preferences.PrefPageDriversMaven;
 import org.jkiss.utils.CommonUtils;
 
 abstract class DriverDownloadPage extends WizardPage {

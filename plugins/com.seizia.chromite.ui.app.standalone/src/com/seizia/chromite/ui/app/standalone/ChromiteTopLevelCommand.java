@@ -15,17 +15,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.app.standalone;
+package com.seizia.chromite.ui.app.standalone;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.cli.*;
-import org.jkiss.dbeaver.model.cli.command.AbstractTopLevelCommand;
-import org.jkiss.dbeaver.model.cli.model.NonExecutableOption;
-import org.jkiss.dbeaver.ui.actions.ConnectionCommands;
-import org.jkiss.dbeaver.ui.app.standalone.rpc.IInstanceController;
-import org.jkiss.dbeaver.utils.SystemVariablesResolver;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.cli.*;
+import com.seizia.chromite.model.cli.command.AbstractTopLevelCommand;
+import com.seizia.chromite.model.cli.model.NonExecutableOption;
+import com.seizia.chromite.ui.actions.ConnectionCommands;
+import com.seizia.chromite.ui.app.standalone.rpc.IInstanceController;
+import com.seizia.chromite.utils.SystemVariablesResolver;
 import org.jkiss.utils.CommonUtils;
 import picocli.CommandLine;
 
@@ -35,9 +35,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
 
-@CommandLine.Command(name = "dbeaver", description = "Chromite commands")
-public class DBeaverTopLevelCommand extends AbstractTopLevelCommand {
-    private static final Log log = Log.getLog(DBeaverTopLevelCommand.class);
+@CommandLine.Command(name = "chromite", description = "Chromite commands")
+public class ChromiteTopLevelCommand extends AbstractTopLevelCommand {
+    private static final Log log = Log.getLog(ChromiteTopLevelCommand.class);
 
     // Eclipse cmd for desktop
     @NonExecutableOption
@@ -89,7 +89,7 @@ public class DBeaverTopLevelCommand extends AbstractTopLevelCommand {
     @Nullable
     private final IInstanceController instanceController;
 
-    protected DBeaverTopLevelCommand(
+    protected ChromiteTopLevelCommand(
         @Nullable IInstanceController controller,
         @NotNull CLIContextImpl context,
         @NotNull CLIRunMeta meta

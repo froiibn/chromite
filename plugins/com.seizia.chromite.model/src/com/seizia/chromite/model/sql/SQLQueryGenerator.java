@@ -14,15 +14,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.sql;
+package com.seizia.chromite.model.sql;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.model.DBPDataSource;
-import org.jkiss.dbeaver.model.data.DBDAttributeConstraint;
-import org.jkiss.dbeaver.model.data.DBDDataFilter;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.model.DBPDataSource;
+import com.seizia.chromite.model.data.DBDAttributeConstraint;
+import com.seizia.chromite.model.data.DBDDataFilter;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
 
 import java.util.List;
 

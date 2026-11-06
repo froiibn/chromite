@@ -14,17 +14,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.exec;
+package com.seizia.chromite.model.exec;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.model.DBPCloseableObject;
-import org.jkiss.dbeaver.model.DBPContextWithAttributes;
-import org.jkiss.dbeaver.model.DBPDataSource;
-import org.jkiss.dbeaver.model.DBPObject;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.model.struct.DBSInstance;
+import com.seizia.chromite.model.DBPCloseableObject;
+import com.seizia.chromite.model.DBPContextWithAttributes;
+import com.seizia.chromite.model.DBPDataSource;
+import com.seizia.chromite.model.DBPObject;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.model.struct.DBSInstance;
 
 /**
  * Execution context.
@@ -102,7 +102,7 @@ public interface DBCExecutionContext extends DBPObject, DBPCloseableObject, DBPC
 
     /**
      * Invalidates the context by processing all phases. This method will invalidate just the context. For a "complete"
-     * invalidation involving network handlers invalidation, see {@link org.jkiss.dbeaver.runtime.jobs.InvalidateJob}.
+     * invalidation involving network handlers invalidation, see {@link com.seizia.chromite.runtime.jobs.InvalidateJob}.
      *
      * @see #invalidateContext(DBRProgressMonitor, DBCInvalidatePhase)
      */

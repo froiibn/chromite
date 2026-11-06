@@ -15,10 +15,10 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.ui;
+package com.seizia.chromite.ui;
 
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
 
 /**
  * IErrorVisualizer

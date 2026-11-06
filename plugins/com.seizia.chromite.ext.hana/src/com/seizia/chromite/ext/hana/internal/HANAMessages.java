@@ -15,12 +15,12 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.ext.hana.internal;
+package com.seizia.chromite.ext.hana.internal;
 
 import org.eclipse.osgi.util.NLS;
 
 public class HANAMessages extends NLS {
-    private static final String BUNDLE_NAME = "org.jkiss.dbeaver.ext.hana.internal.HANAMessages"; //$NON-NLS-1$
+    private static final String BUNDLE_NAME = "com.seizia.chromite.ext.hana.internal.HANAMessages"; //$NON-NLS-1$
 
     public static String dialog_user_expired_password_change_label;
     public static String dialog_user_expired_password_empty_input;

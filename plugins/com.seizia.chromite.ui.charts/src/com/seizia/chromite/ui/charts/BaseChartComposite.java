@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.ui.charts;
+package com.seizia.chromite.ui.charts;
 
 import org.eclipse.jface.action.Action;
 import org.eclipse.jface.action.IMenuManager;
@@ -36,11 +36,11 @@ import org.jfree.chart.plot.PlotRenderingInfo;
 import org.jfree.chart.plot.Zoomable;
 import org.jfree.chart.swt.ChartComposite;
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.ui.DBeaverIcons;
-import org.jkiss.dbeaver.ui.UIIcon;
-import org.jkiss.dbeaver.ui.charts.internal.UIChartsMessages;
-import org.jkiss.dbeaver.utils.GeneralUtils;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.ui.SwtIcons;
+import com.seizia.chromite.ui.UIIcon;
+import com.seizia.chromite.ui.charts.internal.UIChartsMessages;
+import com.seizia.chromite.utils.GeneralUtils;
 
 import java.awt.geom.Point2D;
 import java.io.IOException;
@@ -83,19 +83,19 @@ public class BaseChartComposite extends ChartComposite {
     protected void fillContextMenu(IMenuManager manager) {
         final Zoomable zoomable = GeneralUtils.adapt(getChart().getPlot(), Zoomable.class);
         if (zoomable != null) {
-            manager.add(new Action(UIChartsMessages.base_chart_composite_action_zoom_in, DBeaverIcons.getImageDescriptor(UIIcon.ZOOM_IN)) {
+            manager.add(new Action(UIChartsMessages.base_chart_composite_action_zoom_in, SwtIcons.getImageDescriptor(UIIcon.ZOOM_IN)) {
                 @Override
                 public void runWithEvent(Event e) {
                     doZoom(zoomable, getChartCanvas().toControl(getDisplay().getCursorLocation()), getZoomInFactor());
                 }
             });
-            manager.add(new Action(UIChartsMessages.base_chart_composite_action_zoom_out, DBeaverIcons.getImageDescriptor(UIIcon.ZOOM_OUT)) {
+            manager.add(new Action(UIChartsMessages.base_chart_composite_action_zoom_out, SwtIcons.getImageDescriptor(UIIcon.ZOOM_OUT)) {
                 @Override
                 public void runWithEvent(Event e) {
                     doZoom(zoomable, getChartCanvas().toControl(getDisplay().getCursorLocation()), getZoomOutFactor());
                 }
             });
-            manager.add(new Action(UIChartsMessages.base_chart_composite_action_zoom_reset, DBeaverIcons.getImageDescriptor(UIIcon.ZOOM)) {
+            manager.add(new Action(UIChartsMessages.base_chart_composite_action_zoom_reset, SwtIcons.getImageDescriptor(UIIcon.ZOOM)) {
                 @Override
                 public void runWithEvent(Event e) {
                     restoreAutoBounds();
@@ -130,7 +130,7 @@ public class BaseChartComposite extends ChartComposite {
         if (hasConfigurationDialog()) {
             manager.add(new Separator());
 
-            manager.add(new Action(UIChartsMessages.base_chart_composite_action_settings, DBeaverIcons.getImageDescriptor(UIIcon.CONFIGURATION)) {
+            manager.add(new Action(UIChartsMessages.base_chart_composite_action_settings, SwtIcons.getImageDescriptor(UIIcon.CONFIGURATION)) {
                 @Override
                 public void run() {
                     showChartConfigDialog();
@@ -138,7 +138,7 @@ public class BaseChartComposite extends ChartComposite {
             });
         }
         if (hasColorsConfiguration()) {
-            manager.add(new Action(UIChartsMessages.base_chart_composite_action_colors, DBeaverIcons.getImageDescriptor(UIIcon.PALETTE)) {
+            manager.add(new Action(UIChartsMessages.base_chart_composite_action_colors, SwtIcons.getImageDescriptor(UIIcon.PALETTE)) {
                 @Override
                 public void run() {
                     PreferenceDialog preferenceDialog = PreferencesUtil.createPreferenceDialogOn(getShell(), ExtensionFactory.COLORS_AND_FONTS_PREFERENCE_PAGE, null, null);

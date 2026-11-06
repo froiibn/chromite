@@ -14,9 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.exec.jdbc;
+package com.seizia.chromite.model.exec.jdbc;
 
-import org.jkiss.dbeaver.model.exec.DBCResultSetMetaData;
+import com.seizia.chromite.model.exec.DBCResultSetMetaData;
 
 import java.sql.ResultSetMetaData;
 

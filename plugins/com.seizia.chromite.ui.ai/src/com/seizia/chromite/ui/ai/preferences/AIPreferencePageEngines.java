@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.ai.preferences;
+package com.seizia.chromite.ui.ai.preferences;
 
 import org.eclipse.core.runtime.IAdaptable;
 import org.eclipse.jface.dialogs.Dialog;
@@ -36,26 +36,26 @@ import org.eclipse.ui.IWorkbenchPropertyPage;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.ai.AIConfigurationProfile;
-import org.jkiss.dbeaver.model.ai.AISettings;
-import org.jkiss.dbeaver.model.ai.engine.AIEngine;
-import org.jkiss.dbeaver.model.ai.engine.AIEngineProperties;
-import org.jkiss.dbeaver.model.ai.registry.AIEngineDescriptor;
-import org.jkiss.dbeaver.model.ai.registry.AISettingsManager;
-import org.jkiss.dbeaver.model.preferences.DBPPreferenceStore;
-import org.jkiss.dbeaver.model.rm.RMConstants;
-import org.jkiss.dbeaver.registry.configurator.UIPropertyConfiguratorDescriptor;
-import org.jkiss.dbeaver.registry.configurator.UIPropertyConfiguratorRegistry;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.ui.BaseThemeSettings;
-import org.jkiss.dbeaver.ui.DBeaverIcons;
-import org.jkiss.dbeaver.ui.UIIcon;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.ai.internal.AIUIMessages;
-import org.jkiss.dbeaver.ui.controls.CustomSashForm;
-import org.jkiss.dbeaver.ui.preferences.AbstractPrefPage;
-import org.jkiss.dbeaver.utils.RuntimeUtils;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.ai.AIConfigurationProfile;
+import com.seizia.chromite.model.ai.AISettings;
+import com.seizia.chromite.model.ai.engine.AIEngine;
+import com.seizia.chromite.model.ai.engine.AIEngineProperties;
+import com.seizia.chromite.model.ai.registry.AIEngineDescriptor;
+import com.seizia.chromite.model.ai.registry.AISettingsManager;
+import com.seizia.chromite.model.preferences.DBPPreferenceStore;
+import com.seizia.chromite.model.rm.RMConstants;
+import com.seizia.chromite.registry.configurator.UIPropertyConfiguratorDescriptor;
+import com.seizia.chromite.registry.configurator.UIPropertyConfiguratorRegistry;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.ui.BaseThemeSettings;
+import com.seizia.chromite.ui.SwtIcons;
+import com.seizia.chromite.ui.UIIcon;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.ai.internal.AIUIMessages;
+import com.seizia.chromite.ui.controls.CustomSashForm;
+import com.seizia.chromite.ui.preferences.AbstractPrefPage;
+import com.seizia.chromite.utils.RuntimeUtils;
 import org.jkiss.utils.CommonUtils;
 
 import java.io.IOException;
@@ -67,7 +67,7 @@ import java.util.Optional;
 
 public class AIPreferencePageEngines extends AbstractPrefPage implements IWorkbenchPreferencePage, IWorkbenchPropertyPage {
     private static final Log log = Log.getLog(AIPreferencePageEngines.class);
-    public static final String PAGE_ID = "org.jkiss.dbeaver.preferences.ai.engines";
+    public static final String PAGE_ID = "com.seizia.chromite.preferences.ai.engines";
     private final AISettings settings;
 
     private AIConfigurationProfile selectedProfile;
@@ -395,7 +395,7 @@ public class AIPreferencePageEngines extends AbstractPrefPage implements IWorkbe
                     return null;
                 }
                 try {
-                    return DBeaverIcons.getImage(profile.getEngineDescriptor().getIcon());
+                    return SwtIcons.getImage(profile.getEngineDescriptor().getIcon());
                 } catch (DBException e) {
                     log.debug("Error reading engine icon", e);
                     return null;

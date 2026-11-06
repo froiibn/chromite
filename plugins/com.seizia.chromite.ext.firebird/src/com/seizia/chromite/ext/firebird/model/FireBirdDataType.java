@@ -14,13 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.firebird.model;
+package com.seizia.chromite.ext.firebird.model;
 
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.ext.generic.model.GenericDataType;
-import org.jkiss.dbeaver.model.DBPDataKind;
-import org.jkiss.dbeaver.model.DBPSystemObject;
-import org.jkiss.dbeaver.model.meta.Property;
+import com.seizia.chromite.ext.generic.model.GenericDataType;
+import com.seizia.chromite.model.DBPDataKind;
+import com.seizia.chromite.model.DBPSystemObject;
+import com.seizia.chromite.model.meta.Property;
 
 public class FireBirdDataType extends GenericDataType implements DBPSystemObject {
 

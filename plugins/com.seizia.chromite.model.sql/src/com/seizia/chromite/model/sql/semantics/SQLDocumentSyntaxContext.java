@@ -14,17 +14,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.sql.semantics;
+package com.seizia.chromite.model.sql.semantics;
 
 import org.antlr.v4.runtime.misc.Interval;
 import org.eclipse.jface.text.IRegion;
 import org.eclipse.jface.text.Region;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.sql.semantics.OffsetKeyedTreeMap.NodesIterator;
-import org.jkiss.dbeaver.model.sql.semantics.model.SQLQueryModel;
-import org.jkiss.dbeaver.utils.ListNode;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.sql.semantics.OffsetKeyedTreeMap.NodesIterator;
+import com.seizia.chromite.model.sql.semantics.model.SQLQueryModel;
+import com.seizia.chromite.utils.ListNode;
 
 import java.util.ArrayList;
 import java.util.HashSet;

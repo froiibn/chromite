@@ -14,13 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.editors.sql;
+package com.seizia.chromite.ui.editors.sql;
 
 import org.eclipse.ui.IEditorInput;
 import org.eclipse.ui.IEditorMatchingStrategy;
 import org.eclipse.ui.IEditorReference;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.ui.editors.EditorUtils;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.ui.editors.EditorUtils;
 
 import java.io.File;
 

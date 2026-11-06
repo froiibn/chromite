@@ -17,17 +17,17 @@ DBeaver Community에는 DBeaver Corp의 상용판(PRO, Lite, Enterprise, Ultimat
 
 ### "Try DBeaver PRO" 명령 (Help 메뉴)
 
-`plugins/org.jkiss.dbeaver.ui.app.standalone`
+`plugins/com.seizia.chromite.ui.app.standalone`
 
-- `plugin.xml`: 명령 `org.jkiss.dbeaver.core.try.pro`, 핸들러, Help 메뉴 기여(`commercial` 구분선 포함),
-  이 메뉴의 `visibleWhen`에만 쓰던 property tester(`org.jkiss.dbeaver.ui.app.standalone.menu.configuration`,
+- `plugin.xml`: 명령 `com.seizia.chromite.core.try.pro`, 핸들러, Help 메뉴 기여(`commercial` 구분선 포함),
+  이 메뉴의 `visibleWhen`에만 쓰던 property tester(`com.seizia.chromite.ui.app.standalone.menu.configuration`,
   속성 `isCommunity`)를 지웠다.
 - 클래스 `actions.TryPROHandler`(https://dbeaver.com/download/ 를 여는 핸들러)와 `actions.MenuConfigurationPropertyTester`를 지웠다.
-- `OSGI-INF/l10n/bundle*.properties`의 `command.org.jkiss.dbeaver.ui.try.pro.name`/`.description`을 모든 로캘에서 지웠다.
+- `OSGI-INF/l10n/bundle*.properties`의 `command.com.seizia.chromite.ui.try.pro.name`/`.description`을 모든 로캘에서 지웠다.
 
 ### 오늘의 팁 (Tip of the Day)
 
-`plugins/org.jkiss.dbeaver.ui.app.standalone/src/org/jkiss/dbeaver/ui/app/standalone/tipoftheday/tips.xml`
+`plugins/com.seizia.chromite.ui.app.standalone/src/com/seizia/chromite/ui/app/standalone/tipoftheday/tips.xml`
 
 - `product` 속성이 붙은 팁 65개 중 64개를 지웠다. 모두 상용판(PRO, Lite, Enterprise, Ultimate, Team Edition,
   CloudBeaver)을 홍보하거나 상용판(`le`, `ee`, `ue`, `te`)에서만 보이던 팁이다.
@@ -38,7 +38,7 @@ DBeaver Community에는 DBeaver Corp의 상용판(PRO, Lite, Enterprise, Ultimat
 
 ### 상용판 홍보용 드라이버 스텁
 
-`plugins/org.jkiss.dbeaver.ext.generic/plugin.xml`의 "Drivers Teasers" 블록에 있던 드라이버 8개를 지웠다.
+`plugins/com.seizia.chromite.ext.generic/plugin.xml`의 "Drivers Teasers" 블록에 있던 드라이버 8개를 지웠다.
 모두 `<notAvailableDriver>`가 붙은 스텁이라 연결할 수 없고, 선택하면 상용판 구매를 권하는 안내만 보여 줬다.
 
 | 드라이버 ID | 이름 | 비고 |
@@ -76,10 +76,10 @@ DBeaver Community에는 DBeaver Corp의 상용판(PRO, Lite, Enterprise, Ultimat
 
 | 위치 | 키 | 새 영어 문구 |
 |---|---|---|
-| `org.jkiss.dbeaver.registry` `RegistryMessages*.properties` | `project_open_cannot_read_credentials_message` | You are about to open an encrypted project: ''{0}''\n\nWarning: if you proceed, your credentials will be permanently deleted. They were encrypted with a project password in another edition of the product and cannot be read in Chromite. |
+| `com.seizia.chromite.registry` `RegistryMessages*.properties` | `project_open_cannot_read_credentials_message` | You are about to open an encrypted project: ''{0}''\n\nWarning: if you proceed, your credentials will be permanently deleted. They were encrypted with a project password in another edition of the product and cannot be read in Chromite. |
 | 같은 파일 | `project_open_cannot_read_configuration_message` | The ''{0}'' project was protected with a password in another edition of the product. It cannot be opened in Chromite. |
-| `org.jkiss.dbeaver.registry` `MissingDataSourceProvider.java` | Java 문자열 | This error may occur if the configuration was created in a different edition of the product. |
-| `org.jkiss.dbeaver.ui.editors.connection` `UIConnectionMessages*.properties` | `pref_page_drivers_repo_info` | The default file repository is a remote server and may be unreachable from closed networks. |
+| `com.seizia.chromite.registry` `MissingDataSourceProvider.java` | Java 문자열 | This error may occur if the configuration was created in a different edition of the product. |
+| `com.seizia.chromite.ui.editors.connection` `UIConnectionMessages*.properties` | `pref_page_drivers_repo_info` | The default file repository is a remote server and may be unreachable from closed networks. |
 
 - 번역: `RegistryMessages`는 pl, pt_BR, tw, zh(이 키가 있는 로캘 전부), `pref_page_drivers_repo_info`는
   pl, pt_BR, ro, uk, zh(이 키가 있는 로캘 전부)를 같은 뜻으로 옮겼다.

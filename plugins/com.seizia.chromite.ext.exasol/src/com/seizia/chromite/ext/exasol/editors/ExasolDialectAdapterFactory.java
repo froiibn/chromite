@@ -15,11 +15,11 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.ext.exasol.editors;
+package com.seizia.chromite.ext.exasol.editors;
 
 import org.eclipse.core.runtime.IAdapterFactory;
-import org.jkiss.dbeaver.model.sql.SQLDialect;
-import org.jkiss.dbeaver.model.text.parser.TPRuleProvider;
+import com.seizia.chromite.model.sql.SQLDialect;
+import com.seizia.chromite.model.text.parser.TPRuleProvider;
 
 public class ExasolDialectAdapterFactory implements IAdapterFactory {
 

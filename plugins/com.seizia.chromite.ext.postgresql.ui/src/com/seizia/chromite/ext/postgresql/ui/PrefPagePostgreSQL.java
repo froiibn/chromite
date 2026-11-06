@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.postgresql.ui;
+package com.seizia.chromite.ext.postgresql.ui;
 
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.events.SelectionListener;
@@ -26,20 +26,20 @@ import org.eclipse.swt.widgets.Control;
 import org.eclipse.ui.IWorkbench;
 import org.eclipse.ui.IWorkbenchPreferencePage;
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.ext.postgresql.PostgreConstants;
-import org.jkiss.dbeaver.ext.postgresql.PostgreMessages;
-import org.jkiss.dbeaver.model.preferences.DBPPreferenceStore;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.preferences.AbstractPrefPage;
-import org.jkiss.dbeaver.ui.preferences.PreferenceStoreDelegate;
+import com.seizia.chromite.ext.postgresql.PostgreConstants;
+import com.seizia.chromite.ext.postgresql.PostgreMessages;
+import com.seizia.chromite.model.preferences.DBPPreferenceStore;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.preferences.AbstractPrefPage;
+import com.seizia.chromite.ui.preferences.PreferenceStoreDelegate;
 
 /**
  * PrefPagePostgreSQL
  */
 public class PrefPagePostgreSQL extends AbstractPrefPage implements IWorkbenchPreferencePage
 {
-    public static final String PAGE_ID = "org.jkiss.dbeaver.preferences.postgresql.general"; //$NON-NLS-1$
+    public static final String PAGE_ID = "com.seizia.chromite.preferences.postgresql.general"; //$NON-NLS-1$
 
     private Button showNonDefault;
     private Button showTemplates;

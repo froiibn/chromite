@@ -14,15 +14,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.oracle.tasks;
+package com.seizia.chromite.ext.oracle.tasks;
 
-import org.jkiss.dbeaver.ext.oracle.model.OracleTableBase;
-import org.jkiss.dbeaver.model.DBPEvaluationContext;
-import org.jkiss.dbeaver.model.edit.DBEPersistAction;
-import org.jkiss.dbeaver.model.exec.DBCException;
-import org.jkiss.dbeaver.model.exec.DBCSession;
-import org.jkiss.dbeaver.model.impl.edit.SQLDatabasePersistAction;
-import org.jkiss.dbeaver.model.sql.task.SQLToolExecuteHandler;
+import com.seizia.chromite.ext.oracle.model.OracleTableBase;
+import com.seizia.chromite.model.DBPEvaluationContext;
+import com.seizia.chromite.model.edit.DBEPersistAction;
+import com.seizia.chromite.model.exec.DBCException;
+import com.seizia.chromite.model.exec.DBCSession;
+import com.seizia.chromite.model.impl.edit.SQLDatabasePersistAction;
+import com.seizia.chromite.model.sql.task.SQLToolExecuteHandler;
 
 import java.util.List;
 

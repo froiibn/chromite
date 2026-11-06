@@ -14,14 +14,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.internal.registry;
+package com.seizia.chromite.ui.internal.registry;
 
 import org.eclipse.core.expressions.Expression;
 import org.eclipse.core.runtime.IConfigurationElement;
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.model.DBPObject;
-import org.jkiss.dbeaver.model.impl.AbstractContextDescriptor;
-import org.jkiss.dbeaver.ui.navigator.INavigatorNodeActionHandler;
+import com.seizia.chromite.model.DBPObject;
+import com.seizia.chromite.model.impl.AbstractContextDescriptor;
+import com.seizia.chromite.ui.navigator.INavigatorNodeActionHandler;
 import org.jkiss.utils.CommonUtils;
 
 /**
@@ -29,7 +29,7 @@ import org.jkiss.utils.CommonUtils;
  */
 public class NavigatorNodeActionDescriptor extends AbstractContextDescriptor {
 
-    public static final String EXTENSION_ID = "org.jkiss.dbeaver.navigator.nodeAction"; //NON-NLS-1 //$NON-NLS-1$
+    public static final String EXTENSION_ID = "com.seizia.chromite.navigator.nodeAction"; //NON-NLS-1 //$NON-NLS-1$
 
     private final ObjectType implType;
     private final int order;

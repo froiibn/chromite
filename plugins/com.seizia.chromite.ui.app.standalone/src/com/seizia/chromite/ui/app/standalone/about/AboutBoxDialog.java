@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.app.standalone.about;
+package com.seizia.chromite.ui.app.standalone.about;
 
 import org.eclipse.core.runtime.IProduct;
 import org.eclipse.core.runtime.Platform;
@@ -36,15 +36,15 @@ import org.eclipse.ui.PlatformUI;
 import org.eclipse.ui.handlers.IHandlerService;
 import org.eclipse.ui.plugin.AbstractUIPlugin;
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.core.CoreMessages;
-import org.jkiss.dbeaver.model.impl.app.ApplicationRegistry;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.ui.ShellUtils;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.controls.decorations.HolidayDecorations;
-import org.jkiss.dbeaver.ui.dialogs.InformationDialog;
-import org.jkiss.dbeaver.utils.GeneralUtils;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.core.CoreMessages;
+import com.seizia.chromite.model.impl.app.ApplicationRegistry;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.ui.ShellUtils;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.controls.decorations.HolidayDecorations;
+import com.seizia.chromite.ui.dialogs.InformationDialog;
+import com.seizia.chromite.utils.GeneralUtils;
 import org.jkiss.utils.CommonUtils;
 
 import java.io.InputStream;
@@ -187,7 +187,7 @@ public class AboutBoxDialog extends InformationDialog
         {
             Image aboutImage = AbstractUIPlugin.imageDescriptorFromPlugin(
                 Platform.getProduct().getDefiningBundle().getSymbolicName(),
-            "icons/dbeaver_about.png").createImage();
+            "icons/chromite_about.png").createImage();
             parent.addDisposeListener(e -> aboutImage.dispose());
 
             final Image image = splashImage != null ? splashImage : aboutImage;

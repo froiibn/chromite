@@ -17,7 +17,7 @@
 /*
  * Created on Aug 12, 2004
  */
-package org.jkiss.dbeaver.ui.editors.erd.editor;
+package com.seizia.chromite.ui.editors.erd.editor;
 
 import org.eclipse.gef.EditDomain;
 import org.eclipse.gef.GEFColorProvider;

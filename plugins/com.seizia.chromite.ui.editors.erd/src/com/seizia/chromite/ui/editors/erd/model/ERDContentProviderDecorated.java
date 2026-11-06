@@ -14,17 +14,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.editors.erd.model;
+package com.seizia.chromite.ui.editors.erd.model;
 
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.erd.*;
-import org.jkiss.dbeaver.model.exec.DBCException;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.model.preferences.DBPPreferenceStore;
-import org.jkiss.dbeaver.ui.editors.erd.ERDUIConstants;
-import org.jkiss.dbeaver.ui.editors.erd.editor.ERDViewStyle;
-import org.jkiss.dbeaver.ui.editors.erd.internal.ERDUIActivator;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.erd.*;
+import com.seizia.chromite.model.exec.DBCException;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.model.preferences.DBPPreferenceStore;
+import com.seizia.chromite.ui.editors.erd.ERDUIConstants;
+import com.seizia.chromite.ui.editors.erd.editor.ERDViewStyle;
+import com.seizia.chromite.ui.editors.erd.internal.ERDUIActivator;
 
 import java.util.List;
 

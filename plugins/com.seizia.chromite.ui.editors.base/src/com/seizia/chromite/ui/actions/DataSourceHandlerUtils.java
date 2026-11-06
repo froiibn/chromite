@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.actions;
+package com.seizia.chromite.ui.actions;
 
 import org.eclipse.core.runtime.Status;
 import org.eclipse.jface.dialogs.IDialogConstants;
@@ -27,14 +27,14 @@ import org.eclipse.swt.widgets.Table;
 import org.eclipse.swt.widgets.TableItem;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.model.DBPDataSourceContainer;
-import org.jkiss.dbeaver.model.runtime.DBRProgressListener;
-import org.jkiss.dbeaver.model.runtime.RunnableWithResult;
-import org.jkiss.dbeaver.model.secret.DBSSecretValue;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.dialogs.BaseDialog;
-import org.jkiss.dbeaver.utils.GeneralUtils;
+import com.seizia.chromite.model.DBPDataSourceContainer;
+import com.seizia.chromite.model.runtime.DBRProgressListener;
+import com.seizia.chromite.model.runtime.RunnableWithResult;
+import com.seizia.chromite.model.secret.DBSSecretValue;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.dialogs.BaseDialog;
+import com.seizia.chromite.utils.GeneralUtils;
 
 import java.util.List;
 

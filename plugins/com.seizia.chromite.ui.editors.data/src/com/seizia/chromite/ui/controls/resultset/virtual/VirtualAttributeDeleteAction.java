@@ -14,15 +14,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.controls.resultset.virtual;
+package com.seizia.chromite.ui.controls.resultset.virtual;
 
 import org.eclipse.jface.action.Action;
-import org.jkiss.dbeaver.model.data.DBDAttributeBinding;
-import org.jkiss.dbeaver.model.data.DBDAttributeBindingCustom;
-import org.jkiss.dbeaver.model.virtual.DBVEntity;
-import org.jkiss.dbeaver.model.virtual.DBVEntityAttribute;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.controls.resultset.ResultSetViewer;
+import com.seizia.chromite.model.data.DBDAttributeBinding;
+import com.seizia.chromite.model.data.DBDAttributeBindingCustom;
+import com.seizia.chromite.model.virtual.DBVEntity;
+import com.seizia.chromite.model.virtual.DBVEntityAttribute;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.controls.resultset.ResultSetViewer;
 
 public class VirtualAttributeDeleteAction extends Action {
     private ResultSetViewer resultSetViewer;

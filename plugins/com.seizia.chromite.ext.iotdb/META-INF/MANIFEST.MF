@@ -1,14 +1,14 @@
 Manifest-Version: 1.0
 Bundle-ManifestVersion: 2
 Bundle-Name: Chromite IoTDB Support
-Bundle-SymbolicName: org.jkiss.dbeaver.ext.iotdb;singleton:=true
+Bundle-SymbolicName: com.seizia.chromite.ext.iotdb;singleton:=true
 Bundle-Version: 1.0.29.qualifier
 Bundle-Release-Date: 20261116
-Require-Bundle: org.jkiss.dbeaver.model,
- org.jkiss.dbeaver.ext.generic
+Require-Bundle: com.seizia.chromite.model,
+ com.seizia.chromite.ext.generic
 Bundle-ActivationPolicy: lazy
 Bundle-RequiredExecutionEnvironment: JavaSE-21
-Bundle-Vendor: DBeaver Corp
+Bundle-Vendor: Chromite contributors
 Bundle-Localization: OSGI-INF/l10n/bundle
-Automatic-Module-Name: org.jkiss.dbeaver.ext.iotdb
-Export-Package: org.jkiss.dbeaver.ext.iotdb.model
+Automatic-Module-Name: com.seizia.chromite.ext.iotdb
+Export-Package: com.seizia.chromite.ext.iotdb.model

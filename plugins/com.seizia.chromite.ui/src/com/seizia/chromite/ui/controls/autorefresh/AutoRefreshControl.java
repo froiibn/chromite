@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.controls.autorefresh;
+package com.seizia.chromite.ui.controls.autorefresh;
 
 import org.eclipse.jface.action.ContributionItem;
 import org.eclipse.jface.action.IContributionManager;
@@ -27,12 +27,12 @@ import org.eclipse.swt.events.SelectionListener;
 import org.eclipse.swt.graphics.Point;
 import org.eclipse.swt.graphics.Rectangle;
 import org.eclipse.swt.widgets.*;
-import org.jkiss.dbeaver.model.DBPImage;
-import org.jkiss.dbeaver.model.runtime.DBRRunnableWithProgress;
-import org.jkiss.dbeaver.ui.DBeaverIcons;
-import org.jkiss.dbeaver.ui.UIIcon;
-import org.jkiss.dbeaver.ui.UIStyles;
-import org.jkiss.dbeaver.ui.internal.UIMessages;
+import com.seizia.chromite.model.DBPImage;
+import com.seizia.chromite.model.runtime.DBRRunnableWithProgress;
+import com.seizia.chromite.ui.SwtIcons;
+import com.seizia.chromite.ui.UIIcon;
+import com.seizia.chromite.ui.UIStyles;
+import com.seizia.chromite.ui.internal.UIMessages;
 import org.jkiss.utils.CommonUtils;
 
 import java.text.MessageFormat;
@@ -146,7 +146,7 @@ public class AutoRefreshControl {
         this.defRefreshText = defTooltip;
         this.defRefreshIcon = defImage;
         autoRefreshButton = new ToolItem(toolbar, SWT.DROP_DOWN | SWT.NO_FOCUS);
-        autoRefreshButton.setImage(DBeaverIcons.getImage(defRefreshIcon));
+        autoRefreshButton.setImage(SwtIcons.getImage(defRefreshIcon));
         if (itemText != null) {
             autoRefreshButton.setText(itemText);
         }
@@ -174,10 +174,10 @@ public class AutoRefreshControl {
     private void updateAutoRefreshToolbar() {
         if (autoRefreshButton != null && !autoRefreshButton.isDisposed()) {
             if (isAutoRefreshEnabled()) {
-                autoRefreshButton.setImage(DBeaverIcons.getImage(UIIcon.CLOCK_STOP));
+                autoRefreshButton.setImage(SwtIcons.getImage(UIIcon.CLOCK_STOP));
                 autoRefreshButton.setToolTipText(UIMessages.sql_editor_resultset_filter_panel_btn_stop_refresh);
             } else {
-                autoRefreshButton.setImage(DBeaverIcons.getImage(defRefreshIcon));
+                autoRefreshButton.setImage(SwtIcons.getImage(defRefreshIcon));
                 autoRefreshButton.setToolTipText(defRefreshText);
             }
         }

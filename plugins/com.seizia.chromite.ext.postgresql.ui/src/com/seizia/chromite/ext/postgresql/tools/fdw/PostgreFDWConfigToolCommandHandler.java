@@ -14,16 +14,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.postgresql.tools.fdw;
+package com.seizia.chromite.ext.postgresql.tools.fdw;
 
 import org.eclipse.core.commands.AbstractHandler;
 import org.eclipse.core.commands.ExecutionEvent;
 import org.eclipse.ui.handlers.HandlerUtil;
-import org.jkiss.dbeaver.ext.postgresql.model.PostgreDatabase;
-import org.jkiss.dbeaver.ext.postgresql.model.PostgreObject;
-import org.jkiss.dbeaver.model.struct.DBSObject;
-import org.jkiss.dbeaver.ui.dialogs.ActiveWizardDialog;
-import org.jkiss.dbeaver.ui.navigator.NavigatorUtils;
+import com.seizia.chromite.ext.postgresql.model.PostgreDatabase;
+import com.seizia.chromite.ext.postgresql.model.PostgreObject;
+import com.seizia.chromite.model.struct.DBSObject;
+import com.seizia.chromite.ui.dialogs.ActiveWizardDialog;
+import com.seizia.chromite.ui.navigator.NavigatorUtils;
 
 
 public class PostgreFDWConfigToolCommandHandler extends AbstractHandler {

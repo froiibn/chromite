@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.ui.editors.sql.variables;
+package com.seizia.chromite.ui.editors.sql.variables;
 
 import org.eclipse.jface.action.Action;
 import org.eclipse.jface.action.IContributionManager;
@@ -34,23 +34,23 @@ import org.eclipse.ui.dialogs.PatternFilter;
 import org.eclipse.ui.texteditor.ITextEditorActionConstants;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.exec.DBCExecutionContext;
-import org.jkiss.dbeaver.model.exec.DBCScriptContext;
-import org.jkiss.dbeaver.model.exec.DBCScriptContextListener;
-import org.jkiss.dbeaver.model.sql.SQLScriptContext;
-import org.jkiss.dbeaver.model.sql.registry.SQLQueryParameterRegistry;
-import org.jkiss.dbeaver.ui.*;
-import org.jkiss.dbeaver.ui.controls.ListContentProvider;
-import org.jkiss.dbeaver.ui.controls.ProgressPageControl;
-import org.jkiss.dbeaver.ui.controls.ViewerColumnController;
-import org.jkiss.dbeaver.ui.editors.StringEditorInput;
-import org.jkiss.dbeaver.ui.editors.SubEditorSite;
-import org.jkiss.dbeaver.ui.editors.TextEditorUtils;
-import org.jkiss.dbeaver.ui.editors.sql.SQLEditor;
-import org.jkiss.dbeaver.ui.editors.sql.SQLEditorBase;
-import org.jkiss.dbeaver.ui.navigator.NavigatorUtils;
-import org.jkiss.dbeaver.utils.GeneralUtils;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.exec.DBCExecutionContext;
+import com.seizia.chromite.model.exec.DBCScriptContext;
+import com.seizia.chromite.model.exec.DBCScriptContextListener;
+import com.seizia.chromite.model.sql.SQLScriptContext;
+import com.seizia.chromite.model.sql.registry.SQLQueryParameterRegistry;
+import com.seizia.chromite.ui.*;
+import com.seizia.chromite.ui.controls.ListContentProvider;
+import com.seizia.chromite.ui.controls.ProgressPageControl;
+import com.seizia.chromite.ui.controls.ViewerColumnController;
+import com.seizia.chromite.ui.editors.StringEditorInput;
+import com.seizia.chromite.ui.editors.SubEditorSite;
+import com.seizia.chromite.ui.editors.TextEditorUtils;
+import com.seizia.chromite.ui.editors.sql.SQLEditor;
+import com.seizia.chromite.ui.editors.sql.SQLEditorBase;
+import com.seizia.chromite.ui.navigator.NavigatorUtils;
+import com.seizia.chromite.utils.GeneralUtils;
 import org.jkiss.utils.CommonUtils;
 
 import java.util.Arrays;
@@ -331,7 +331,7 @@ public class SQLVariablesPanel extends Composite implements DBCScriptContextList
         }
 
         protected void addSearchAction(@NotNull IContributionManager contributionManager) {
-            contributionManager.add(new Action("Find variable", DBeaverIcons.getImageDescriptor(UIIcon.SEARCH)) {
+            contributionManager.add(new Action("Find variable", SwtIcons.getImageDescriptor(UIIcon.SEARCH)) {
                 @Override
                 public void run() {
                     performSearch(SearchType.NONE);
@@ -352,7 +352,7 @@ public class SQLVariablesPanel extends Composite implements DBCScriptContextList
         public void fillCustomActions(@NotNull IContributionManager contributionManager) {
             super.fillCustomActions(contributionManager);
 
-            addAction = new Action("Add variable", DBeaverIcons.getImageDescriptor(UIIcon.ADD)) {
+            addAction = new Action("Add variable", SwtIcons.getImageDescriptor(UIIcon.ADD)) {
                 @Override
                 public void run() {
                     AssignVariableAction action = new AssignVariableAction(mainEditor, "");
@@ -361,7 +361,7 @@ public class SQLVariablesPanel extends Composite implements DBCScriptContextList
                 }
             };
             contributionManager.add(addAction);
-            deleteAction = new Action("Delete variable", DBeaverIcons.getImageDescriptor(UIIcon.DELETE)) {
+            deleteAction = new Action("Delete variable", SwtIcons.getImageDescriptor(UIIcon.DELETE)) {
                 @Override
                 public void run() {
                     if (!varsTable.getSelection().isEmpty()) {
@@ -383,7 +383,7 @@ public class SQLVariablesPanel extends Composite implements DBCScriptContextList
                 }
             };
             showParamsAction.setChecked(showParameters);
-            showParamsAction.setImageDescriptor(DBeaverIcons.getImageDescriptor(UIIcon.SQL_PARAMETER));
+            showParamsAction.setImageDescriptor(SwtIcons.getImageDescriptor(UIIcon.SQL_PARAMETER));
             showParamsAction.setDescription("Show query parameters");
             contributionManager.add(ActionUtils.makeActionContribution(showParamsAction, true));
         }

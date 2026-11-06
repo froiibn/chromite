@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.gis.panel;
+package com.seizia.chromite.ui.gis.panel;
 
 import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.core.runtime.IStatus;
@@ -24,22 +24,22 @@ import org.eclipse.swt.browser.Browser;
 import org.eclipse.swt.widgets.Composite;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.data.DBDAttributeBinding;
-import org.jkiss.dbeaver.model.exec.DBCException;
-import org.jkiss.dbeaver.model.gis.DBGeometry;
-import org.jkiss.dbeaver.model.gis.GisTransformUtils;
-import org.jkiss.dbeaver.model.struct.DBSAttributeBase;
-import org.jkiss.dbeaver.model.struct.DBSTypedObject;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.controls.resultset.*;
-import org.jkiss.dbeaver.ui.data.IAttributeController;
-import org.jkiss.dbeaver.ui.data.IDataController;
-import org.jkiss.dbeaver.ui.data.IValueController;
-import org.jkiss.dbeaver.ui.data.editors.BaseValueEditor;
-import org.jkiss.dbeaver.ui.gis.GeometryDataUtils;
-import org.jkiss.dbeaver.ui.gis.IGeometryViewer;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.data.DBDAttributeBinding;
+import com.seizia.chromite.model.exec.DBCException;
+import com.seizia.chromite.model.gis.DBGeometry;
+import com.seizia.chromite.model.gis.GisTransformUtils;
+import com.seizia.chromite.model.struct.DBSAttributeBase;
+import com.seizia.chromite.model.struct.DBSTypedObject;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.controls.resultset.*;
+import com.seizia.chromite.ui.data.IAttributeController;
+import com.seizia.chromite.ui.data.IDataController;
+import com.seizia.chromite.ui.data.IValueController;
+import com.seizia.chromite.ui.data.editors.BaseValueEditor;
+import com.seizia.chromite.ui.gis.GeometryDataUtils;
+import com.seizia.chromite.ui.gis.IGeometryViewer;
 import org.jkiss.utils.ArrayUtils;
 
 import java.util.ArrayList;

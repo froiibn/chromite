@@ -14,17 +14,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.lsp;
+package com.seizia.chromite.model.lsp;
 
 import org.eclipse.jface.text.IDocument;
 import org.eclipse.jface.text.Region;
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.model.sql.SQLDialect;
-import org.jkiss.dbeaver.model.sql.parser.SQLRuleManager;
-import org.jkiss.dbeaver.model.text.parser.TPRuleBasedScanner;
-import org.jkiss.dbeaver.model.text.parser.TPToken;
-import org.jkiss.dbeaver.model.text.parser.TPTokenAbstract;
-import org.jkiss.dbeaver.model.text.parser.TPWordDetector;
+import com.seizia.chromite.model.sql.SQLDialect;
+import com.seizia.chromite.model.sql.parser.SQLRuleManager;
+import com.seizia.chromite.model.text.parser.TPRuleBasedScanner;
+import com.seizia.chromite.model.text.parser.TPToken;
+import com.seizia.chromite.model.text.parser.TPTokenAbstract;
+import com.seizia.chromite.model.text.parser.TPWordDetector;
 import org.jkiss.utils.Pair;
 
 import java.util.ArrayList;

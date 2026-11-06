@@ -14,10 +14,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.ai.chat.internal;
+package com.seizia.chromite.ui.ai.chat.internal;
 
 public interface AIChatColors {
-    String THEME_ELEMENT_ID = "org.jkiss.dbeaver.ui.sqlPresentation.aiChat";
+    String THEME_ELEMENT_ID = "com.seizia.chromite.ui.sqlPresentation.aiChat";
 
     String COLOR_PROMPT_BACKGROUND = THEME_ELEMENT_ID + ".color.prompt.background";
     String COLOR_PROMPT_BORDER = THEME_ELEMENT_ID + ".color.prompt.border";

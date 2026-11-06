@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.ui.views;
+package com.seizia.chromite.ui.views;
 
 import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.jface.action.Action;
@@ -28,9 +28,9 @@ import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.ui.*;
 import org.eclipse.ui.part.ViewPart;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.ui.DBeaverIcons;
-import org.jkiss.dbeaver.ui.UIIcon;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.ui.SwtIcons;
+import com.seizia.chromite.ui.UIIcon;
 
 
 /**
@@ -45,28 +45,28 @@ public class BaseBrowserView extends ViewPart {
     private Browser browser;
     private String initialUrl;
 
-    private Action backAction = new Action("Back", DBeaverIcons.getImageDescriptor(UIIcon.RS_BACK)) {
+    private Action backAction = new Action("Back", SwtIcons.getImageDescriptor(UIIcon.RS_BACK)) {
         @Override
         public void run() {
             browser.back();
         }
     };
 
-    private Action forwardAction = new Action("Forward", DBeaverIcons.getImageDescriptor(UIIcon.RS_FORWARD)) {
+    private Action forwardAction = new Action("Forward", SwtIcons.getImageDescriptor(UIIcon.RS_FORWARD)) {
         @Override
         public void run() {
             browser.forward();
         }
     };
 
-    private Action stopAction = new Action("Stop", DBeaverIcons.getImageDescriptor(UIIcon.REJECT)) {
+    private Action stopAction = new Action("Stop", SwtIcons.getImageDescriptor(UIIcon.REJECT)) {
         @Override
         public void run() {
             browser.stop();
         }
     };
 
-    private Action refreshAction = new Action("Refresh", DBeaverIcons.getImageDescriptor(UIIcon.REFRESH)) {
+    private Action refreshAction = new Action("Refresh", SwtIcons.getImageDescriptor(UIIcon.REFRESH)) {
         @Override
         public void run() {
             browser.refresh();

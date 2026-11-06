@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.cli;
+package com.seizia.chromite.model.cli;
 
 public interface CLIConstants {
     short EXIT_CODE_CONTINUE = -1;

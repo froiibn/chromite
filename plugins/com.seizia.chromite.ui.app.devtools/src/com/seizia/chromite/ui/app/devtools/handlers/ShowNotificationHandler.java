@@ -14,11 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.app.devtools.handlers;
+package com.seizia.chromite.ui.app.devtools.handlers;
 
 import org.eclipse.core.commands.AbstractHandler;
 import org.eclipse.core.commands.ExecutionEvent;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
+import com.seizia.chromite.runtime.DBWorkbench;
 
 public class ShowNotificationHandler extends AbstractHandler {
     private static String lastMessage = "This is a test message";

@@ -14,10 +14,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.stm;
+package com.seizia.chromite.model.stm;
 
-import org.jkiss.dbeaver.model.lsm.sql.impl.syntax.SQLStandardLexer;
-import org.jkiss.dbeaver.model.lsm.sql.impl.syntax.SQLStandardParser;
+import com.seizia.chromite.model.lsm.sql.impl.syntax.SQLStandardLexer;
+import com.seizia.chromite.model.lsm.sql.impl.syntax.SQLStandardParser;
 
 public class STMKnownRuleNames {
     // root rule for script

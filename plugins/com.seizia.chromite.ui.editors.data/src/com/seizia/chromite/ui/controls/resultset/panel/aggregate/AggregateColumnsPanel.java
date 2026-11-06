@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.controls.resultset.panel.aggregate;
+package com.seizia.chromite.ui.controls.resultset.panel.aggregate;
 
 import org.eclipse.jface.action.*;
 import org.eclipse.jface.dialogs.IDialogSettings;
@@ -29,26 +29,26 @@ import org.eclipse.swt.widgets.*;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.DBIcon;
-import org.jkiss.dbeaver.model.DBPImage;
-import org.jkiss.dbeaver.model.DBValueFormatting;
-import org.jkiss.dbeaver.model.data.DBDAttributeBinding;
-import org.jkiss.dbeaver.model.data.DBDDataFormatter;
-import org.jkiss.dbeaver.model.data.DBDDataFormatterProfile;
-import org.jkiss.dbeaver.model.data.DBDFormatSettings;
-import org.jkiss.dbeaver.model.data.aggregate.IAggregateFunction;
-import org.jkiss.dbeaver.model.impl.SimpleTypedObject;
-import org.jkiss.dbeaver.model.impl.data.formatters.DefaultDataFormatter;
-import org.jkiss.dbeaver.registry.formatter.DataFormatterRegistry;
-import org.jkiss.dbeaver.registry.functions.AggregateFunctionDescriptor;
-import org.jkiss.dbeaver.registry.functions.FunctionsRegistry;
-import org.jkiss.dbeaver.ui.*;
-import org.jkiss.dbeaver.ui.controls.ToolbarSeparatorContribution;
-import org.jkiss.dbeaver.ui.controls.resultset.*;
-import org.jkiss.dbeaver.ui.controls.resultset.internal.ResultSetMessages;
-import org.jkiss.dbeaver.ui.controls.resultset.panel.ResultSetPanelBase;
-import org.jkiss.dbeaver.ui.internal.UIMessages;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.DBIcon;
+import com.seizia.chromite.model.DBPImage;
+import com.seizia.chromite.model.DBValueFormatting;
+import com.seizia.chromite.model.data.DBDAttributeBinding;
+import com.seizia.chromite.model.data.DBDDataFormatter;
+import com.seizia.chromite.model.data.DBDDataFormatterProfile;
+import com.seizia.chromite.model.data.DBDFormatSettings;
+import com.seizia.chromite.model.data.aggregate.IAggregateFunction;
+import com.seizia.chromite.model.impl.SimpleTypedObject;
+import com.seizia.chromite.model.impl.data.formatters.DefaultDataFormatter;
+import com.seizia.chromite.registry.formatter.DataFormatterRegistry;
+import com.seizia.chromite.registry.functions.AggregateFunctionDescriptor;
+import com.seizia.chromite.registry.functions.FunctionsRegistry;
+import com.seizia.chromite.ui.*;
+import com.seizia.chromite.ui.controls.ToolbarSeparatorContribution;
+import com.seizia.chromite.ui.controls.resultset.*;
+import com.seizia.chromite.ui.controls.resultset.internal.ResultSetMessages;
+import com.seizia.chromite.ui.controls.resultset.panel.ResultSetPanelBase;
+import com.seizia.chromite.ui.internal.UIMessages;
 
 import java.util.List;
 import java.util.*;
@@ -245,7 +245,7 @@ public class AggregateColumnsPanel extends ResultSetPanelBase {
             for (Map.Entry<DBDAttributeBinding, List<Object>> entry : attrValues.entrySet()) {
                 TreeItem attrItem = new TreeItem(aggregateTable, SWT.NONE);
                 attrItem.setText(entry.getKey().getName());
-                attrItem.setImage(DBeaverIcons.getImage(DBValueFormatting.getObjectImage(entry.getKey())));
+                attrItem.setImage(SwtIcons.getImage(DBValueFormatting.getObjectImage(entry.getKey())));
                 aggregateValues(attrItem, entry.getValue());
                 attrItem.setExpanded(true);
             }
@@ -274,7 +274,7 @@ public class AggregateColumnsPanel extends ResultSetPanelBase {
             funcItem.setText(0, funcDesc.getLabel());
             DBPImage icon = funcDesc.getIcon();
             if (icon != null) {
-                funcItem.setImage(0, DBeaverIcons.getImage(icon));
+                funcItem.setImage(0, SwtIcons.getImage(icon));
             }
             try {
                 IAggregateFunction func = funcDesc.createFunction();
@@ -353,7 +353,7 @@ public class AggregateColumnsPanel extends ResultSetPanelBase {
     private class GroupByColumnsAction extends Action {
         public GroupByColumnsAction() {
             super(ResultSetMessages.aggreagate_columns_group_by_column_text, IAction.AS_CHECK_BOX);
-            setImageDescriptor(DBeaverIcons.getImageDescriptor(UIIcon.GROUP_BY_ATTR));
+            setImageDescriptor(SwtIcons.getImageDescriptor(UIIcon.GROUP_BY_ATTR));
             setChecked(groupByColumns);
         }
 
@@ -368,7 +368,7 @@ public class AggregateColumnsPanel extends ResultSetPanelBase {
     private class ValueTypeToggleAction extends Action {
         public ValueTypeToggleAction() {
             super(ResultSetMessages.aggreagate_columns_toggle_aggregation_text, IAction.AS_CHECK_BOX);
-            setImageDescriptor(DBeaverIcons.getImageDescriptor(
+            setImageDescriptor(SwtIcons.getImageDescriptor(
                 aggregateAsStrings ? DBIcon.TYPE_STRING : DBIcon.TYPE_NUMBER));
             setChecked(aggregateAsStrings);
         }
@@ -384,7 +384,7 @@ public class AggregateColumnsPanel extends ResultSetPanelBase {
 
     private class AddFunctionAction extends Action {
         public AddFunctionAction() {
-            super(UIMessages.button_add, DBeaverIcons.getImageDescriptor(UIIcon.ADD));
+            super(UIMessages.button_add, SwtIcons.getImageDescriptor(UIIcon.ADD));
 
             setMenuCreator(new MenuCreator(widget -> createMenuManager()));
         }
@@ -424,7 +424,7 @@ public class AggregateColumnsPanel extends ResultSetPanelBase {
         private final AggregateFunctionDescriptor func;
 
         public AddFunctionItemAction(AggregateFunctionDescriptor func) {
-            super(func.getLabel(), func.getIcon() == null ? null : DBeaverIcons.getImageDescriptor(func.getIcon()));
+            super(func.getLabel(), func.getIcon() == null ? null : SwtIcons.getImageDescriptor(func.getIcon()));
             this.func = func;
         }
 
@@ -437,7 +437,7 @@ public class AggregateColumnsPanel extends ResultSetPanelBase {
 
     private class RemoveFunctionAction extends Action {
         public RemoveFunctionAction() {
-            super(ResultSetMessages.aggregate_columns_remove_function_text, DBeaverIcons.getImageDescriptor(UIIcon.DELETE));
+            super(ResultSetMessages.aggregate_columns_remove_function_text, SwtIcons.getImageDescriptor(UIIcon.DELETE));
         }
 
         @Override
@@ -457,7 +457,7 @@ public class AggregateColumnsPanel extends ResultSetPanelBase {
 
     private class ResetFunctionsAction extends Action {
         public ResetFunctionsAction() {
-            super(ResultSetMessages.aggregate_columns_reset_text, DBeaverIcons.getImageDescriptor(UIIcon.CANCEL));
+            super(ResultSetMessages.aggregate_columns_reset_text, SwtIcons.getImageDescriptor(UIIcon.CANCEL));
         }
 
         @Override

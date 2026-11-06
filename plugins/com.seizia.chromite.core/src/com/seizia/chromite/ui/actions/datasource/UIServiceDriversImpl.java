@@ -15,15 +15,15 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.ui.actions.datasource;
+package com.seizia.chromite.ui.actions.datasource;
 
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.model.connection.DBPDriver;
-import org.jkiss.dbeaver.model.connection.DBPDriverDependencies;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.runtime.ui.UIServiceDrivers;
-import org.jkiss.dbeaver.ui.UITask;
-import org.jkiss.dbeaver.ui.dialogs.driver.DriverDownloadDialog;
+import com.seizia.chromite.model.connection.DBPDriver;
+import com.seizia.chromite.model.connection.DBPDriverDependencies;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.runtime.ui.UIServiceDrivers;
+import com.seizia.chromite.ui.UITask;
+import com.seizia.chromite.ui.dialogs.driver.DriverDownloadDialog;
 import org.jkiss.utils.CommonUtils;
 
 /**

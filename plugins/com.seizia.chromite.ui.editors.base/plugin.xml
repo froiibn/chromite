@@ -4,125 +4,125 @@
 <plugin>
     <extension point="org.eclipse.core.expressions.propertyTesters">
         <propertyTester
-                class="org.jkiss.dbeaver.ui.actions.DataSourcePropertyTester"
-                id="org.jkiss.dbeaver.ui.actions.DataSourcePropertyTester"
-                namespace="org.jkiss.dbeaver.core.datasource"
+                class="com.seizia.chromite.ui.actions.DataSourcePropertyTester"
+                id="com.seizia.chromite.ui.actions.DataSourcePropertyTester"
+                namespace="com.seizia.chromite.core.datasource"
                 properties="connected,connecting,transactional,synchronizable,transactionActive,supportsTransactions,editable,projectResourceEditable,projectResourceViewable"
-                type="org.jkiss.dbeaver.model.DBPContextProvider"/>
+                type="com.seizia.chromite.model.DBPContextProvider"/>
         <propertyTester
-                class="org.jkiss.dbeaver.ui.editors.DatabaseEditorPropertyTester"
-                id="org.jkiss.dbeaver.ui.editors.DatabaseEditorPropertyTester"
-                namespace="org.jkiss.dbeaver.database.editor"
+                class="com.seizia.chromite.ui.editors.DatabaseEditorPropertyTester"
+                id="com.seizia.chromite.ui.editors.DatabaseEditorPropertyTester"
+                namespace="com.seizia.chromite.database.editor"
                 properties="active"
-                type="org.jkiss.dbeaver.ui.editors.IDatabaseEditor"/>
+                type="com.seizia.chromite.ui.editors.IDatabaseEditor"/>
         <propertyTester
-                class="org.jkiss.dbeaver.ui.editors.text.TextEditorPropertyTester"
-                id="org.jkiss.dbeaver.ui.editors.text.TextEditorPropertyTester"
-                namespace="org.jkiss.dbeaver.ui.editors.text"
+                class="com.seizia.chromite.ui.editors.text.TextEditorPropertyTester"
+                id="com.seizia.chromite.ui.editors.text.TextEditorPropertyTester"
+                namespace="com.seizia.chromite.ui.editors.text"
                 properties="available,canComment,canLoad,canSave"
                 type="org.eclipse.ui.IEditorPart"/>
     </extension>
 
     <extension point="org.eclipse.ui.elementFactories">
-        <factory id="org.jkiss.dbeaver.ui.editors.DatabaseEditorInputFactory" class="org.jkiss.dbeaver.ui.editors.DatabaseEditorInputFactory"/>
-        <factory id="org.jkiss.dbeaver.ui.editors.NodeEditorInputFactory" class="org.jkiss.dbeaver.ui.editors.NodeEditorInputFactory"/>
+        <factory id="com.seizia.chromite.ui.editors.DatabaseEditorInputFactory" class="com.seizia.chromite.ui.editors.DatabaseEditorInputFactory"/>
+        <factory id="com.seizia.chromite.ui.editors.NodeEditorInputFactory" class="com.seizia.chromite.ui.editors.NodeEditorInputFactory"/>
     </extension>
 
     <extension point="org.eclipse.core.runtime.adapters">
-        <factory adaptableType="org.eclipse.ui.IEditorPart" class="org.jkiss.dbeaver.ui.editors.DatabaseEditorAdapterFactory">
-            <adapter type="org.jkiss.dbeaver.model.struct.DBSObject"/>
-            <adapter type="org.jkiss.dbeaver.model.DBPDataSourceContainer"/>
-            <adapter type="org.jkiss.dbeaver.model.struct.DBSObject"/>
-            <adapter type="org.jkiss.dbeaver.model.struct.DBSEntity"/>
-            <adapter type="org.jkiss.dbeaver.model.struct.DBSDataContainer"/>
-            <adapter type="org.jkiss.dbeaver.model.struct.DBSDataManipulator"/>
+        <factory adaptableType="org.eclipse.ui.IEditorPart" class="com.seizia.chromite.ui.editors.DatabaseEditorAdapterFactory">
+            <adapter type="com.seizia.chromite.model.struct.DBSObject"/>
+            <adapter type="com.seizia.chromite.model.DBPDataSourceContainer"/>
+            <adapter type="com.seizia.chromite.model.struct.DBSObject"/>
+            <adapter type="com.seizia.chromite.model.struct.DBSEntity"/>
+            <adapter type="com.seizia.chromite.model.struct.DBSDataContainer"/>
+            <adapter type="com.seizia.chromite.model.struct.DBSDataManipulator"/>
         </factory>
-        <factory adaptableType="org.eclipse.ui.IEditorInput" class="org.jkiss.dbeaver.ui.editors.DatabaseEditorAdapterFactory">
-            <adapter type="org.jkiss.dbeaver.model.struct.DBSObject"/>
-            <adapter type="org.jkiss.dbeaver.model.DBPDataSourceContainer"/>
-            <adapter type="org.jkiss.dbeaver.model.struct.DBSObject"/>
-            <adapter type="org.jkiss.dbeaver.model.struct.DBSEntity"/>
-            <adapter type="org.jkiss.dbeaver.model.struct.DBSDataContainer"/>
-            <adapter type="org.jkiss.dbeaver.model.struct.DBSDataManipulator"/>
+        <factory adaptableType="org.eclipse.ui.IEditorInput" class="com.seizia.chromite.ui.editors.DatabaseEditorAdapterFactory">
+            <adapter type="com.seizia.chromite.model.struct.DBSObject"/>
+            <adapter type="com.seizia.chromite.model.DBPDataSourceContainer"/>
+            <adapter type="com.seizia.chromite.model.struct.DBSObject"/>
+            <adapter type="com.seizia.chromite.model.struct.DBSEntity"/>
+            <adapter type="com.seizia.chromite.model.struct.DBSDataContainer"/>
+            <adapter type="com.seizia.chromite.model.struct.DBSDataManipulator"/>
         </factory>
     </extension>
 
     <extension point="org.eclipse.core.expressions.definitions">
-        <definition id="org.jkiss.dbeaver.core.transactionActive">
+        <definition id="com.seizia.chromite.core.transactionActive">
             <with variable="activeEditor">
-                <adapt type="org.jkiss.dbeaver.model.DBPContextProvider">
-                    <test property="org.jkiss.dbeaver.core.datasource.transactionActive" value="true"/>
+                <adapt type="com.seizia.chromite.model.DBPContextProvider">
+                    <test property="com.seizia.chromite.core.datasource.transactionActive" value="true"/>
                 </adapt>
             </with>
         </definition>
 
-        <definition id="org.jkiss.dbeaver.core.datasource.connected">
+        <definition id="com.seizia.chromite.core.datasource.connected">
             <or>
                 <with variable="selection">
                     <count value="1"/>
                     <iterate operator="and">
-                        <adapt type="org.jkiss.dbeaver.model.DBPContextProvider">
-                            <test property="org.jkiss.dbeaver.core.datasource.connected" value="true"/>
+                        <adapt type="com.seizia.chromite.model.DBPContextProvider">
+                            <test property="com.seizia.chromite.core.datasource.connected" value="true"/>
                         </adapt>
                     </iterate>
                 </with>
                 <with variable="activePart">
-                    <adapt type="org.jkiss.dbeaver.model.DBPContextProvider">
-                        <test property="org.jkiss.dbeaver.core.datasource.connected" value="true"/>
+                    <adapt type="com.seizia.chromite.model.DBPContextProvider">
+                        <test property="com.seizia.chromite.core.datasource.connected" value="true"/>
                     </adapt>
                 </with>
             </or>
         </definition>
 
-        <definition id="org.jkiss.dbeaver.core.datasource.connecting">
+        <definition id="com.seizia.chromite.core.datasource.connecting">
             <or>
                 <with variable="selection">
                     <count value="1"/>
                     <iterate operator="and">
-                        <adapt type="org.jkiss.dbeaver.model.DBPContextProvider">
-                            <test property="org.jkiss.dbeaver.core.datasource.connecting"/>
+                        <adapt type="com.seizia.chromite.model.DBPContextProvider">
+                            <test property="com.seizia.chromite.core.datasource.connecting"/>
                         </adapt>
                     </iterate>
                 </with>
                 <with variable="activePart">
-                    <adapt type="org.jkiss.dbeaver.model.DBPContextProvider">
-                        <test property="org.jkiss.dbeaver.core.datasource.connecting"/>
+                    <adapt type="com.seizia.chromite.model.DBPContextProvider">
+                        <test property="com.seizia.chromite.core.datasource.connecting"/>
                     </adapt>
                 </with>
             </or>
         </definition>
 
-        <definition id="org.jkiss.dbeaver.core.datasource.disconnected">
+        <definition id="com.seizia.chromite.core.datasource.disconnected">
             <or>
                 <with variable="selection">
                     <count value="1"/>
                     <iterate operator="and">
-                        <adapt type="org.jkiss.dbeaver.model.DBPContextProvider">
-                            <test property="org.jkiss.dbeaver.core.datasource.connected" value="false"/>
+                        <adapt type="com.seizia.chromite.model.DBPContextProvider">
+                            <test property="com.seizia.chromite.core.datasource.connected" value="false"/>
                         </adapt>
                     </iterate>
                 </with>
                 <with variable="activePart">
-                    <adapt type="org.jkiss.dbeaver.model.DBPContextProvider">
-                        <test property="org.jkiss.dbeaver.core.datasource.connected" value="false"/>
+                    <adapt type="com.seizia.chromite.model.DBPContextProvider">
+                        <test property="com.seizia.chromite.core.datasource.connected" value="false"/>
                     </adapt>
                 </with>
             </or>
         </definition>
 
-        <definition id="org.jkiss.dbeaver.core.datasource.synchronizable">
+        <definition id="com.seizia.chromite.core.datasource.synchronizable">
             <or>
                 <with variable="selection">
                     <count value="1"/>
                     <iterate operator="and">
-                        <adapt type="org.jkiss.dbeaver.model.DBPContextProvider">
-                            <test property="org.jkiss.dbeaver.core.datasource.synchronizable" value="true"/>
+                        <adapt type="com.seizia.chromite.model.DBPContextProvider">
+                            <test property="com.seizia.chromite.core.datasource.synchronizable" value="true"/>
                         </adapt>
                     </iterate>
                 </with>
                 <with variable="activePart">
-                    <adapt type="org.jkiss.dbeaver.model.DBPContextProvider">
-                        <test property="org.jkiss.dbeaver.core.datasource.synchronizable" value="true"/>
+                    <adapt type="com.seizia.chromite.model.DBPContextProvider">
+                        <test property="com.seizia.chromite.core.datasource.synchronizable" value="true"/>
                     </adapt>
                 </with>
             </or>
@@ -136,27 +136,27 @@
         <content-type
                 base-type="org.eclipse.core.runtime.text"
                 file-extensions="csv"
-                id="org.jkiss.dbeaver.csv"
+                id="com.seizia.chromite.csv"
                 name="CSV file"
                 priority="normal"/>
         <content-type
                 base-type="org.eclipse.core.runtime.text"
                 file-extensions="tsv"
-                id="org.jkiss.dbeaver.tsv"
+                id="com.seizia.chromite.tsv"
                 name="TSV file"
                 priority="normal"/>
         <content-type
                 base-type="org.eclipse.core.runtime.text"
                 file-extensions="log"
-                id="org.jkiss.dbeaver.log"
+                id="com.seizia.chromite.log"
                 name="Log file"
                 priority="normal"/>
     </extension>
 
 
-    <extension point="org.jkiss.dbeaver.fileTypeHandler">
-        <handler id="file" class="org.jkiss.dbeaver.ui.editors.file.AbstractFileHandler" databaseHandler="false" order="10000">
-            <extension id="file" extensions="*" icon="platform:/plugin/org.jkiss.dbeaver.ui/icons/misc/file.svg"/>
+    <extension point="com.seizia.chromite.fileTypeHandler">
+        <handler id="file" class="com.seizia.chromite.ui.editors.file.AbstractFileHandler" databaseHandler="false" order="10000">
+            <extension id="file" extensions="*" icon="platform:/plugin/com.seizia.chromite.ui/icons/misc/file.svg"/>
         </handler>
     </extension>
 </plugin>

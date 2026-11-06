@@ -14,11 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.oracle.model.lock;
+package com.seizia.chromite.ext.oracle.model.lock;
 
-import org.jkiss.dbeaver.model.admin.locks.DBAServerLockItem;
-import org.jkiss.dbeaver.model.impl.jdbc.JDBCUtils;
-import org.jkiss.dbeaver.model.meta.Property;
+import com.seizia.chromite.model.admin.locks.DBAServerLockItem;
+import com.seizia.chromite.model.impl.jdbc.JDBCUtils;
+import com.seizia.chromite.model.meta.Property;
 
 import java.sql.ResultSet;
 

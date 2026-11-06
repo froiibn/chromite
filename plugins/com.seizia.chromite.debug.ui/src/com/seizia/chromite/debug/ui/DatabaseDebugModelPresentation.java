@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.debug.ui;
+package com.seizia.chromite.debug.ui;
 
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.IStatus;
@@ -31,21 +31,21 @@ import org.eclipse.swt.graphics.Image;
 import org.eclipse.ui.IEditorInput;
 import org.eclipse.ui.IEditorPart;
 import org.eclipse.ui.model.WorkbenchLabelProvider;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.debug.core.DebugUtils;
-import org.jkiss.dbeaver.debug.core.breakpoints.DatabaseLineBreakpoint;
-import org.jkiss.dbeaver.debug.core.breakpoints.IDatabaseBreakpoint;
-import org.jkiss.dbeaver.debug.core.model.*;
-import org.jkiss.dbeaver.model.DBPScriptObject;
-import org.jkiss.dbeaver.model.navigator.DBNDatabaseNode;
-import org.jkiss.dbeaver.model.navigator.DBNModel;
-import org.jkiss.dbeaver.model.navigator.DBNNode;
-import org.jkiss.dbeaver.model.runtime.VoidProgressMonitor;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.ui.UITask;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.editors.entity.EntityEditor;
-import org.jkiss.dbeaver.ui.navigator.actions.NavigatorHandlerObjectOpen;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.debug.core.DebugUtils;
+import com.seizia.chromite.debug.core.breakpoints.DatabaseLineBreakpoint;
+import com.seizia.chromite.debug.core.breakpoints.IDatabaseBreakpoint;
+import com.seizia.chromite.debug.core.model.*;
+import com.seizia.chromite.model.DBPScriptObject;
+import com.seizia.chromite.model.navigator.DBNDatabaseNode;
+import com.seizia.chromite.model.navigator.DBNModel;
+import com.seizia.chromite.model.navigator.DBNNode;
+import com.seizia.chromite.model.runtime.VoidProgressMonitor;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.ui.UITask;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.editors.entity.EntityEditor;
+import com.seizia.chromite.ui.navigator.actions.NavigatorHandlerObjectOpen;
 
 import java.util.HashMap;
 import java.util.Map;

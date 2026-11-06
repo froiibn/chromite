@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.exasol.ui.tools;
+package com.seizia.chromite.ext.exasol.ui.tools;
 
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.events.ModifyEvent;
@@ -24,11 +24,11 @@ import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.*;
 import org.eclipse.ui.IWorkbenchPartSite;
-import org.jkiss.dbeaver.ext.exasol.model.ExasolTableBase;
-import org.jkiss.dbeaver.ext.exasol.ui.ExasolUIConstants;
-import org.jkiss.dbeaver.ext.exasol.ui.internal.ExasolMessages;
-import org.jkiss.dbeaver.model.DBPEvaluationContext;
-import org.jkiss.dbeaver.ui.UIUtils;
+import com.seizia.chromite.ext.exasol.model.ExasolTableBase;
+import com.seizia.chromite.ext.exasol.ui.ExasolUIConstants;
+import com.seizia.chromite.ext.exasol.ui.internal.ExasolMessages;
+import com.seizia.chromite.model.DBPEvaluationContext;
+import com.seizia.chromite.ui.UIUtils;
 
 import java.io.File;
 import java.util.Collection;

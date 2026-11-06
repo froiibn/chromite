@@ -14,21 +14,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.cubrid.data;
+package com.seizia.chromite.ext.cubrid.data;
 
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.ext.cubrid.CubridConstants;
-import org.jkiss.dbeaver.model.DBPDataSource;
-import org.jkiss.dbeaver.model.data.DBDFormatSettings;
-import org.jkiss.dbeaver.model.data.DBDValueHandler;
-import org.jkiss.dbeaver.model.data.DBDValueHandlerProvider;
-import org.jkiss.dbeaver.model.exec.DBCException;
-import org.jkiss.dbeaver.model.exec.DBCResultSet;
-import org.jkiss.dbeaver.model.exec.DBCSession;
-import org.jkiss.dbeaver.model.impl.data.DefaultValueHandler;
-import org.jkiss.dbeaver.model.impl.jdbc.exec.JDBCColumnMetaData;
-import org.jkiss.dbeaver.model.struct.DBSTypedObject;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
+import com.seizia.chromite.ext.cubrid.CubridConstants;
+import com.seizia.chromite.model.DBPDataSource;
+import com.seizia.chromite.model.data.DBDFormatSettings;
+import com.seizia.chromite.model.data.DBDValueHandler;
+import com.seizia.chromite.model.data.DBDValueHandlerProvider;
+import com.seizia.chromite.model.exec.DBCException;
+import com.seizia.chromite.model.exec.DBCResultSet;
+import com.seizia.chromite.model.exec.DBCSession;
+import com.seizia.chromite.model.impl.data.DefaultValueHandler;
+import com.seizia.chromite.model.impl.jdbc.exec.JDBCColumnMetaData;
+import com.seizia.chromite.model.struct.DBSTypedObject;
+import com.seizia.chromite.runtime.DBWorkbench;
 import org.jkiss.utils.BeanUtils;
 
 public class CubridValueHandlerProvider implements DBDValueHandlerProvider {

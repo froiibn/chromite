@@ -14,15 +14,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.yashandb.model;
+package com.seizia.chromite.ext.yashandb.model;
 
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.ext.oracle.model.OracleProcedureStandalone;
-import org.jkiss.dbeaver.ext.oracle.model.OracleSchema;
-import org.jkiss.dbeaver.model.exec.DBCException;
-import org.jkiss.dbeaver.model.meta.Property;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.model.struct.rdb.DBSProcedureType;
+import com.seizia.chromite.ext.oracle.model.OracleProcedureStandalone;
+import com.seizia.chromite.ext.oracle.model.OracleSchema;
+import com.seizia.chromite.model.exec.DBCException;
+import com.seizia.chromite.model.meta.Property;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.model.struct.rdb.DBSProcedureType;
 
 import java.sql.ResultSet;
 import java.util.Map;

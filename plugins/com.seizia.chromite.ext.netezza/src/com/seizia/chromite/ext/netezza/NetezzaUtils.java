@@ -15,9 +15,9 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.ext.netezza;
+package com.seizia.chromite.ext.netezza;
 
-import org.jkiss.dbeaver.Log;
+import com.seizia.chromite.Log;
 
 /**
  * NetezzaUtils

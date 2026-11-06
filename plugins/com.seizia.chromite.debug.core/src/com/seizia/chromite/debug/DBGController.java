@@ -16,10 +16,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.debug;
+package com.seizia.chromite.debug;
 
-import org.jkiss.dbeaver.model.DBPDataSourceContainer;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.model.DBPDataSourceContainer;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
 
 import java.util.Map;
 

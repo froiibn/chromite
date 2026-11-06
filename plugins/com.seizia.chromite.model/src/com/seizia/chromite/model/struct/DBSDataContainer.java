@@ -15,18 +15,18 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.model.struct;
+package com.seizia.chromite.model.struct;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.model.DBPDataSource;
-import org.jkiss.dbeaver.model.data.DBDDataFilter;
-import org.jkiss.dbeaver.model.data.DBDDataReceiver;
-import org.jkiss.dbeaver.model.exec.DBCException;
-import org.jkiss.dbeaver.model.exec.DBCExecutionSource;
-import org.jkiss.dbeaver.model.exec.DBCSession;
-import org.jkiss.dbeaver.model.exec.DBCStatistics;
+import com.seizia.chromite.model.DBPDataSource;
+import com.seizia.chromite.model.data.DBDDataFilter;
+import com.seizia.chromite.model.data.DBDDataReceiver;
+import com.seizia.chromite.model.exec.DBCException;
+import com.seizia.chromite.model.exec.DBCExecutionSource;
+import com.seizia.chromite.model.exec.DBCSession;
+import com.seizia.chromite.model.exec.DBCStatistics;
 import org.jkiss.utils.ArrayUtils;
 
 /**

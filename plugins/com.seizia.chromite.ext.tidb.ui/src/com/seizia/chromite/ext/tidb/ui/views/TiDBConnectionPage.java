@@ -15,9 +15,9 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.ext.tidb.ui.views;
+package com.seizia.chromite.ext.tidb.ui.views;
 
-import org.jkiss.dbeaver.ext.mysql.ui.views.MySQLConnectionPage;
+import com.seizia.chromite.ext.mysql.ui.views.MySQLConnectionPage;
 
 /**
  * TiDBConnectionPage

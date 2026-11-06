@@ -14,20 +14,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.editors.data;
+package com.seizia.chromite.ui.editors.data;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.ModelPreferences;
-import org.jkiss.dbeaver.model.DBPDataSource;
-import org.jkiss.dbeaver.model.DBPDataSourceContainer;
-import org.jkiss.dbeaver.model.data.DBDDataFilter;
-import org.jkiss.dbeaver.model.data.resultset.DBCSmartTransactionManager;
-import org.jkiss.dbeaver.model.preferences.DBPPreferenceStore;
-import org.jkiss.dbeaver.model.struct.DBSDataContainer;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.ui.controls.resultset.ResultSetViewer;
-import org.jkiss.dbeaver.ui.editors.IRevertableEditor;
+import com.seizia.chromite.ModelPreferences;
+import com.seizia.chromite.model.DBPDataSource;
+import com.seizia.chromite.model.DBPDataSourceContainer;
+import com.seizia.chromite.model.data.DBDDataFilter;
+import com.seizia.chromite.model.data.resultset.DBCSmartTransactionManager;
+import com.seizia.chromite.model.preferences.DBPPreferenceStore;
+import com.seizia.chromite.model.struct.DBSDataContainer;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.ui.controls.resultset.ResultSetViewer;
+import com.seizia.chromite.ui.editors.IRevertableEditor;
 import org.jkiss.utils.CommonUtils;
 
 import java.io.IOException;

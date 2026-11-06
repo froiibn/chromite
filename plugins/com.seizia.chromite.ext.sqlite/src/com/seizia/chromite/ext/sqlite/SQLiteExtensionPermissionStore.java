@@ -14,12 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.sqlite;
+package com.seizia.chromite.ext.sqlite;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.model.preferences.ConfirmedActionsStore;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
+import com.seizia.chromite.model.preferences.ConfirmedActionsStore;
+import com.seizia.chromite.runtime.DBWorkbench;
 
 import java.nio.file.Path;
 import java.util.LinkedHashMap;

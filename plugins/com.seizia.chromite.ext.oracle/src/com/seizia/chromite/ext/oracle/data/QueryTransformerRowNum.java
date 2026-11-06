@@ -14,17 +14,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.oracle.data;
+package com.seizia.chromite.ext.oracle.data;
 
 import net.sf.jsqlparser.statement.Statement;
 import net.sf.jsqlparser.statement.select.PlainSelect;
 import net.sf.jsqlparser.statement.select.Select;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.exec.DBCException;
-import org.jkiss.dbeaver.model.exec.DBCQueryTransformer;
-import org.jkiss.dbeaver.model.exec.DBCStatement;
-import org.jkiss.dbeaver.model.sql.SQLQuery;
-import org.jkiss.dbeaver.model.sql.parser.SQLSemanticProcessor;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.exec.DBCException;
+import com.seizia.chromite.model.exec.DBCQueryTransformer;
+import com.seizia.chromite.model.exec.DBCStatement;
+import com.seizia.chromite.model.sql.SQLQuery;
+import com.seizia.chromite.model.sql.parser.SQLSemanticProcessor;
 
 /**
 * Query transformer for ROWNUM

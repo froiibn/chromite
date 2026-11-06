@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.datadam.project;
+package com.seizia.chromite.ui.datadam.project;
 
 import com.dbeaver.datadam.share.api.model.DDSharedProject;
 import org.eclipse.core.runtime.IProgressMonitor;
@@ -37,31 +37,31 @@ import org.eclipse.ui.dialogs.ElementListSelectionDialog;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.model.DBIcon;
-import org.jkiss.dbeaver.model.DBPImage;
-import org.jkiss.dbeaver.model.app.DBPProject;
-import org.jkiss.dbeaver.model.datadam.auth.desktop.DDDesktopAccessService;
-import org.jkiss.dbeaver.model.datadam.sync.project.DDProjectManager.LocalProjectInfo;
-import org.jkiss.dbeaver.model.datadam.sync.project.DDProjectManager.SyncResult;
-import org.jkiss.dbeaver.model.datadam.sync.project.ProjectStatus;
-import org.jkiss.dbeaver.model.preferences.DBPPreferenceStore;
-import org.jkiss.dbeaver.model.runtime.AbstractJob;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.model.runtime.DBRRunnableWithResult;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.ui.DBeaverIcons;
-import org.jkiss.dbeaver.ui.UIIcon;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.datadam.DDImportKeyDialog;
-import org.jkiss.dbeaver.ui.datadam.DDUIConstants;
-import org.jkiss.dbeaver.ui.datadam.DDUIUtils;
-import org.jkiss.dbeaver.ui.datadam.internal.DDTrackingUIIcons;
-import org.jkiss.dbeaver.ui.datadam.internal.DDTrackingUIMessages;
-import org.jkiss.dbeaver.ui.datadam.project.DDProjectConflictResolver.Choice;
-import org.jkiss.dbeaver.ui.datadam.project.DDProjectUIManager.ProjectJobBatchResult;
-import org.jkiss.dbeaver.ui.dialogs.StandardErrorDialog;
-import org.jkiss.dbeaver.ui.preferences.AbstractPrefPage;
-import org.jkiss.dbeaver.utils.PrefUtils;
+import com.seizia.chromite.model.DBIcon;
+import com.seizia.chromite.model.DBPImage;
+import com.seizia.chromite.model.app.DBPProject;
+import com.seizia.chromite.model.datadam.auth.desktop.DDDesktopAccessService;
+import com.seizia.chromite.model.datadam.sync.project.DDProjectManager.LocalProjectInfo;
+import com.seizia.chromite.model.datadam.sync.project.DDProjectManager.SyncResult;
+import com.seizia.chromite.model.datadam.sync.project.ProjectStatus;
+import com.seizia.chromite.model.preferences.DBPPreferenceStore;
+import com.seizia.chromite.model.runtime.AbstractJob;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.model.runtime.DBRRunnableWithResult;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.ui.SwtIcons;
+import com.seizia.chromite.ui.UIIcon;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.datadam.DDImportKeyDialog;
+import com.seizia.chromite.ui.datadam.DDUIConstants;
+import com.seizia.chromite.ui.datadam.DDUIUtils;
+import com.seizia.chromite.ui.datadam.internal.DDTrackingUIIcons;
+import com.seizia.chromite.ui.datadam.internal.DDTrackingUIMessages;
+import com.seizia.chromite.ui.datadam.project.DDProjectConflictResolver.Choice;
+import com.seizia.chromite.ui.datadam.project.DDProjectUIManager.ProjectJobBatchResult;
+import com.seizia.chromite.ui.dialogs.StandardErrorDialog;
+import com.seizia.chromite.ui.preferences.AbstractPrefPage;
+import com.seizia.chromite.utils.PrefUtils;
 
 import java.lang.reflect.InvocationTargetException;
 import java.time.format.DateTimeFormatter;
@@ -72,8 +72,8 @@ import java.util.function.Predicate;
 import java.util.function.Supplier;
 
 public class DDProjectsPreferencePage extends AbstractPrefPage implements IWorkbenchPreferencePage {
-    public static final String PAGE_ID = "org.jkiss.dbeaver.preferences.synchronization.projects";
-    private static final String PLUGIN_ID = "org.jkiss.dbeaver.ui.datadam";
+    public static final String PAGE_ID = "com.seizia.chromite.preferences.synchronization.projects";
+    private static final String PLUGIN_ID = "com.seizia.chromite.ui.datadam";
     private static final String PREF_SHOW_REMOTE_PROJECTS = "datadam.projects.showRemoteProjects";
     private static final int MIN_VISIBLE_ROWS = 6;
     private static final int MAX_VISIBLE_ROWS = 12;
@@ -297,7 +297,7 @@ public class DDProjectsPreferencePage extends AbstractPrefPage implements IWorkb
             @Nullable
             public Image getImage(@NotNull Object element) {
                 DBPImage image = icon == null ? null : icon.apply((DDProjectView) element);
-                return image == null ? null : DBeaverIcons.getImage(image);
+                return image == null ? null : SwtIcons.getImage(image);
             }
         });
     }
@@ -318,7 +318,7 @@ public class DDProjectsPreferencePage extends AbstractPrefPage implements IWorkb
         @NotNull Runnable action
     ) {
         Button button = new Button(parent, SWT.PUSH);
-        button.setImage(DBeaverIcons.getImage(icon));
+        button.setImage(SwtIcons.getImage(icon));
         button.setToolTipText(tooltip);
         button.setLayoutData(new GridData(SWT.FILL, SWT.BEGINNING, false, false));
         button.addSelectionListener(SelectionListener.widgetSelectedAdapter(e -> action.run()));
@@ -333,7 +333,7 @@ public class DDProjectsPreferencePage extends AbstractPrefPage implements IWorkb
         editButton.setEnabled(available && selection.size() == 1 && selection.get(0).remoteProject() != null);
         syncButton.setEnabled(available && syncAction != SelectionSyncAction.NONE);
         boolean download = syncAction == SelectionSyncAction.DOWNLOAD;
-        syncButton.setImage(DBeaverIcons.getImage(download ? DDTrackingUIIcons.IMPORT_PROJECT : DDTrackingUIIcons.PROJECT_SYNC));
+        syncButton.setImage(SwtIcons.getImage(download ? DDTrackingUIIcons.IMPORT_PROJECT : DDTrackingUIIcons.PROJECT_SYNC));
         syncButton.setToolTipText(download ? DDTrackingUIMessages.projects_download : DDTrackingUIMessages.projects_sync);
         boolean selected = !selection.isEmpty();
         unbindButton.setEnabled(available && selected && selection.stream().allMatch(this::canUnbind));

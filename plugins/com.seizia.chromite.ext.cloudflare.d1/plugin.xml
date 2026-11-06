@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <?eclipse version="3.2"?>
 <plugin>
-    <extension point="org.jkiss.dbeaver.generic.meta">
-        <meta id="cloudflare_d1" class="org.jkiss.dbeaver.ext.cloudflare.d1.model.CloudflareD1MetaModel" dialect="sqlite"/>
+    <extension point="com.seizia.chromite.generic.meta">
+        <meta id="cloudflare_d1" class="com.seizia.chromite.ext.cloudflare.d1.model.CloudflareD1MetaModel" dialect="sqlite"/>
     </extension>
-    <extension point="org.jkiss.dbeaver.dataSourceProvider">
+    <extension point="com.seizia.chromite.dataSourceProvider">
         <dataSourceType
             id="cloudflare_d1"
             label="Cloudflare D1"
@@ -14,7 +14,7 @@
             iconBig="icons/cloudflare-d1-big.svg"
             logoImage="icons/cloudflare-d1-logo.svg"/>
         <datasource
-            class="org.jkiss.dbeaver.ext.cloudflare.d1.CloudflareD1DataSourceProvider"
+            class="com.seizia.chromite.ext.cloudflare.d1.CloudflareD1DataSourceProvider"
             description="Cloudflare D1"
             id="cloudflare_d1"
             dataSourceType="cloudflare_d1"
@@ -51,12 +51,12 @@
             </drivers>
         </datasource>
     </extension>
-    <extension point="org.jkiss.dbeaver.dataSourceAuth">
+    <extension point="com.seizia.chromite.dataSourceAuth">
         <authModel
             id="cloudflare_d1_native"
             label="Cloudflare D1"
             description="Cloudflare account ID and API token"
-            class="org.jkiss.dbeaver.ext.cloudflare.d1.auth.CloudflareD1AuthModel"
+            class="com.seizia.chromite.ext.cloudflare.d1.auth.CloudflareD1AuthModel"
             default="true"
             requiresLocalConfiguration="true">
             <replace model="native"/>

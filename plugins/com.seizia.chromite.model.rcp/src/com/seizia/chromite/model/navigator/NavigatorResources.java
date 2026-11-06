@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.navigator;
+package com.seizia.chromite.model.navigator;
 
 import org.eclipse.core.internal.resources.Resource;
 import org.eclipse.core.resources.IFolder;
@@ -25,15 +25,15 @@ import org.eclipse.core.runtime.IPath;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.app.DBPPlatformDesktop;
-import org.jkiss.dbeaver.model.app.DBPProject;
-import org.jkiss.dbeaver.model.app.DBPResourceHandler;
-import org.jkiss.dbeaver.model.fs.DBFRemoteFileStore;
-import org.jkiss.dbeaver.model.rcp.RCPProject;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.model.runtime.VoidProgressMonitor;
-import org.jkiss.dbeaver.utils.GeneralUtils;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.app.DBPPlatformDesktop;
+import com.seizia.chromite.model.app.DBPProject;
+import com.seizia.chromite.model.app.DBPResourceHandler;
+import com.seizia.chromite.model.fs.DBFRemoteFileStore;
+import com.seizia.chromite.model.rcp.RCPProject;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.model.runtime.VoidProgressMonitor;
+import com.seizia.chromite.utils.GeneralUtils;
 import org.jkiss.utils.AlphanumericComparator;
 import org.jkiss.utils.CommonUtils;
 

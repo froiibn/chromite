@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.model.edit;
+package com.seizia.chromite.model.edit;
 
 import org.jkiss.code.NotNull;
 

@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.ui.editors.binary;
+package com.seizia.chromite.ui.editors.binary;
 
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.graphics.FontMetrics;
@@ -24,7 +24,7 @@ import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Label;
-import org.jkiss.dbeaver.ui.editors.binary.internal.BinaryEditorMessages;
+import com.seizia.chromite.ui.editors.binary.internal.BinaryEditorMessages;
 
 /**
  * Status line component of the editor. Displays the current position and the insert/overwrite status.

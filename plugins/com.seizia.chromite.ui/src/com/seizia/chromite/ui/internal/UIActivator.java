@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.internal;
+package com.seizia.chromite.ui.internal;
 
 import org.eclipse.jface.resource.ImageDescriptor;
 import org.eclipse.ui.plugin.AbstractUIPlugin;
@@ -23,7 +23,7 @@ import org.osgi.framework.BundleContext;
 public class UIActivator extends AbstractUIPlugin {
 
     // The plug-in ID
-    public static final String PLUGIN_ID = "org.jkiss.dbeaver.ui";
+    public static final String PLUGIN_ID = "com.seizia.chromite.ui";
 
     // The shared instance
     private static UIActivator plugin;

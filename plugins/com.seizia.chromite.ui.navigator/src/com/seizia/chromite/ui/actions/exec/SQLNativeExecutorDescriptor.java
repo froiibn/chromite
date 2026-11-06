@@ -14,15 +14,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.actions.exec;
+package com.seizia.chromite.ui.actions.exec;
 
 import org.eclipse.core.runtime.IConfigurationElement;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.impl.AbstractContextDescriptor;
-import org.jkiss.dbeaver.model.struct.DBSObject;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.impl.AbstractContextDescriptor;
+import com.seizia.chromite.model.struct.DBSObject;
 
 public class SQLNativeExecutorDescriptor extends AbstractContextDescriptor {
 

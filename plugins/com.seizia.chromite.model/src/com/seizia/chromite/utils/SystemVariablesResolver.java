@@ -15,14 +15,14 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.utils;
+package com.seizia.chromite.utils;
 
 import org.eclipse.core.runtime.Platform;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.model.fs.DBFUtils;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.runtime.IVariableResolver;
+import com.seizia.chromite.model.fs.DBFUtils;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.runtime.IVariableResolver;
 import org.jkiss.utils.StandardConstants;
 
 import java.net.URL;
@@ -41,7 +41,7 @@ public class SystemVariablesResolver implements IVariableResolver {
     public static final String VAR_APP_PATH = "application.path";
     public static final String VAR_WORKSPACE = "workspace";
     public static final String VAR_HOME = "home";
-    public static final String VAR_DBEAVER_HOME = "dbeaver_home";
+    public static final String VAR_CHROMITE_HOME = "chromite_home";
     public static final String VAR_LOCAL_IP = "local.ip";
 
     private static Properties configuration;
@@ -68,7 +68,7 @@ public class SystemVariablesResolver implements IVariableResolver {
                 return getUserHome();
             case VAR_WORKSPACE:
                 return getWorkspacePath();
-            case VAR_DBEAVER_HOME:
+            case VAR_CHROMITE_HOME:
             case VAR_APP_PATH:
                 return getInstallPath();
             case VAR_LOCAL_IP:

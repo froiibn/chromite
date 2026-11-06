@@ -17,18 +17,18 @@
 /*
  * Created on Jul 13, 2004
  */
-package org.jkiss.dbeaver.ui.editors.erd.model;
+package com.seizia.chromite.ui.editors.erd.model;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.erd.*;
-import org.jkiss.dbeaver.model.preferences.DBPPreferenceStore;
-import org.jkiss.dbeaver.model.struct.DBSEntity;
-import org.jkiss.dbeaver.model.struct.DBSObject;
-import org.jkiss.dbeaver.ui.editors.erd.editor.ERDViewStyle;
-import org.jkiss.dbeaver.ui.editors.erd.internal.ERDUIActivator;
-import org.jkiss.dbeaver.utils.RuntimeUtils;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.erd.*;
+import com.seizia.chromite.model.preferences.DBPPreferenceStore;
+import com.seizia.chromite.model.struct.DBSEntity;
+import com.seizia.chromite.model.struct.DBSObject;
+import com.seizia.chromite.ui.editors.erd.editor.ERDViewStyle;
+import com.seizia.chromite.ui.editors.erd.internal.ERDUIActivator;
+import com.seizia.chromite.utils.RuntimeUtils;
 import org.jkiss.utils.ArrayUtils;
 
 import java.util.IdentityHashMap;

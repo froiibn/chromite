@@ -14,20 +14,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.registry.network;
+package com.seizia.chromite.registry.network;
 
 import org.eclipse.core.runtime.IConfigurationElement;
 import org.jkiss.code.NotNull;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.connection.DBPDriver;
-import org.jkiss.dbeaver.model.impl.AbstractContextDescriptor;
-import org.jkiss.dbeaver.model.impl.PropertyDescriptor;
-import org.jkiss.dbeaver.model.net.DBWHandlerDescriptor;
-import org.jkiss.dbeaver.model.net.DBWHandlerType;
-import org.jkiss.dbeaver.model.net.DBWNetworkHandler;
-import org.jkiss.dbeaver.model.preferences.DBPPropertyDescriptor;
-import org.jkiss.dbeaver.registry.RegistryConstants;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.connection.DBPDriver;
+import com.seizia.chromite.model.impl.AbstractContextDescriptor;
+import com.seizia.chromite.model.impl.PropertyDescriptor;
+import com.seizia.chromite.model.net.DBWHandlerDescriptor;
+import com.seizia.chromite.model.net.DBWHandlerType;
+import com.seizia.chromite.model.net.DBWNetworkHandler;
+import com.seizia.chromite.model.preferences.DBPPropertyDescriptor;
+import com.seizia.chromite.registry.RegistryConstants;
 import org.jkiss.utils.CommonUtils;
 
 import java.util.Arrays;
@@ -39,7 +39,7 @@ import java.util.stream.Collectors;
  * NetworkHandlerDescriptor
  */
 public class NetworkHandlerDescriptor extends AbstractContextDescriptor implements DBWHandlerDescriptor {
-    public static final String EXTENSION_ID = "org.jkiss.dbeaver.networkHandler"; //$NON-NLS-1$
+    public static final String EXTENSION_ID = "com.seizia.chromite.networkHandler"; //$NON-NLS-1$
     private static final Log log = Log.getLog(NetworkHandlerDescriptor.class);
 
     private final String id;

@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.mimer.ui.views;
+package com.seizia.chromite.ext.mimer.ui.views;
 
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.layout.GridData;
@@ -23,21 +23,21 @@ import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Control;
 import org.eclipse.swt.widgets.Label;
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.ext.mimer.MimerConstants;
-import org.jkiss.dbeaver.model.DBPDataSourceContainer;
-import org.jkiss.dbeaver.model.preferences.DBPPreferenceStore;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.preferences.PreferenceStoreDelegate;
-import org.jkiss.dbeaver.ui.preferences.TargetPrefPage;
-import org.jkiss.dbeaver.utils.PrefUtils;
+import com.seizia.chromite.ext.mimer.MimerConstants;
+import com.seizia.chromite.model.DBPDataSourceContainer;
+import com.seizia.chromite.model.preferences.DBPPreferenceStore;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.preferences.PreferenceStoreDelegate;
+import com.seizia.chromite.ui.preferences.TargetPrefPage;
+import com.seizia.chromite.utils.PrefUtils;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
 
 /**
  * Mimer SQL global preferences: the "Don't ask again" state for the extra CASCADE-drop
- * confirmation ({@code org.jkiss.dbeaver.ext.mimer.edit.MimerCascadeDropUtil}) - one checkbox per
+ * confirmation ({@code com.seizia.chromite.ext.mimer.edit.MimerCascadeDropUtil}) - one checkbox per
  * object type, each backed by {@link MimerConstants#PREF_DROP_CASCADE_CONFIRM_PREFIX}.
  * Unchecking one (or "Restore Defaults") makes that drop prompt again. Production connections
  * always prompt regardless of these. Also four GIS display toggles (see {@code model.gis} - one
@@ -48,7 +48,7 @@ import java.util.Map;
  */
 public class PrefPageMimer extends TargetPrefPage {
 
-    public static final String PAGE_ID = "org.jkiss.dbeaver.preferences.mimer.general";
+    public static final String PAGE_ID = "com.seizia.chromite.preferences.mimer.general";
 
     private final Map<String, Button> suppressChecks = new LinkedHashMap<>();
     private Button gisLocationAutoMapCheck;

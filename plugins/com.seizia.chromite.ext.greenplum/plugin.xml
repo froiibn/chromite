@@ -2,32 +2,32 @@
 <?eclipse version="3.2"?>
 
 <plugin>
-    <extension point="org.jkiss.dbeaver.postgresql.serverType">
+    <extension point="com.seizia.chromite.postgresql.serverType">
         <serverType id="greenplum"
                     name="Greenplum"
-                    class="org.jkiss.dbeaver.ext.greenplum.model.PostgreServerGreenplum"
+                    class="com.seizia.chromite.ext.greenplum.model.PostgreServerGreenplum"
                     logo="icons/greenplum_logo.png"
                     customURL="true" turnOffPreparedStatements="true"/>
     </extension>
 
-    <extension point="org.jkiss.dbeaver.postgresql.serverType">
+    <extension point="com.seizia.chromite.postgresql.serverType">
         <serverType id="cloudberry"
                     name="Cloudberry"
-                    class="org.jkiss.dbeaver.ext.greenplum.model.PostgreServerCloudberry"
+                    class="com.seizia.chromite.ext.greenplum.model.PostgreServerCloudberry"
                     logo="icons/cloudberry_logo.png"
                     customURL="true" turnOffPreparedStatements="true"/>
     </extension>
 
-    <extension point="org.jkiss.dbeaver.postgresql.serverType">
+    <extension point="com.seizia.chromite.postgresql.serverType">
         <serverType id="greengage"
                     name="Greengage"
-                    class="org.jkiss.dbeaver.ext.greenplum.model.PostgreServerGreengage"
+                    class="com.seizia.chromite.ext.greenplum.model.PostgreServerGreengage"
                     logo="icons/greengage_logo.svg"
                     customURL="true"
                     turnOffPreparedStatements="true"/>
     </extension>
 
-    <extension point="org.jkiss.dbeaver.dataSourceProvider">
+    <extension point="com.seizia.chromite.dataSourceProvider">
         <dataSourceType
             id="greengage"
             label="Greengage"
@@ -53,7 +53,7 @@
             iconBig="icons/greenplum_icon_big.png"
             logoImage="icons/greenplum_logo.png"/>
         <datasource
-                class="org.jkiss.dbeaver.ext.greenplum.GreenplumDataSourceProvider"
+                class="com.seizia.chromite.ext.greenplum.GreenplumDataSourceProvider"
                 description="%datasource.greenplum.description"
                 id="greenplum"
                 dataSourceType="greenplum"
@@ -65,14 +65,14 @@
                 inheritProviderProperties="true">
 
             <treeInjection path="postgresql/database/schema/table"
-                           changeFolderType="org.jkiss.dbeaver.ext.greenplum.model.GreenplumTable"/>
+                           changeFolderType="com.seizia.chromite.ext.greenplum.model.GreenplumTable"/>
             <treeInjection path="postgresql/database/schema" after="table">
-                <folder type="org.jkiss.dbeaver.ext.greenplum.model.GreenplumExternalTable"
+                <folder type="com.seizia.chromite.ext.greenplum.model.GreenplumExternalTable"
                         label="%tree.externaltables.node.name"
                         icon="#folder_table" visibleIf="object.dataSource.supportsExternalTables()">
                     <items label="%tree.externaltable.node.name" path="externalTable" property="externalTables"
                            icon="#table_external">
-                        <folder type="org.jkiss.dbeaver.ext.postgresql.model.PostgreTableColumn"
+                        <folder type="com.seizia.chromite.ext.postgresql.model.PostgreTableColumn"
                                 label="%tree.columns.node.name" icon="#columns" description="Table columns">
                             <items label="%tree.column.node.name" path="attribute" property="attributes" icon="#column">
                             </items>
@@ -115,7 +115,7 @@
             </drivers>
         </datasource>
         <datasource
-                class="org.jkiss.dbeaver.ext.greenplum.CloudberryDataSourceProvider"
+                class="com.seizia.chromite.ext.greenplum.CloudberryDataSourceProvider"
                 description="%datasource.cloudberry.description"
                 id="cloudberry"
                 dataSourceType="cloudberry"
@@ -159,7 +159,7 @@
             </drivers>
         </datasource>
         <datasource
-                class="org.jkiss.dbeaver.ext.greenplum.GreengageDataSourceProvider"
+                class="com.seizia.chromite.ext.greenplum.GreengageDataSourceProvider"
                 description="%datasource.greengage.description"
                 id="greengage"
                 dataSourceType="greengage"
@@ -204,20 +204,20 @@
         </datasource>
     </extension>
 
-    <extension point="org.jkiss.dbeaver.objectManager">
-        <manager class="org.jkiss.dbeaver.ext.greenplum.edit.GreenplumSchemaManager"
-                 objectType="org.jkiss.dbeaver.ext.greenplum.model.GreenplumSchema"/>
-        <manager class="org.jkiss.dbeaver.ext.greenplum.edit.GreenplumTableManager"
-                 objectType="org.jkiss.dbeaver.ext.greenplum.model.GreenplumTable"/>
-        <manager class="org.jkiss.dbeaver.ext.greenplum.edit.GreenplumExternalTableManager"
-                 containerType="org.jkiss.dbeaver.ext.greenplum.model.GreenplumSchema"
-                 objectType="org.jkiss.dbeaver.ext.greenplum.model.GreenplumExternalTable"/>
-        <manager class="org.jkiss.dbeaver.ext.greenplum.edit.GreenplumFunctionManager"
-                 objectType="org.jkiss.dbeaver.ext.greenplum.model.GreenplumFunction"/>
+    <extension point="com.seizia.chromite.objectManager">
+        <manager class="com.seizia.chromite.ext.greenplum.edit.GreenplumSchemaManager"
+                 objectType="com.seizia.chromite.ext.greenplum.model.GreenplumSchema"/>
+        <manager class="com.seizia.chromite.ext.greenplum.edit.GreenplumTableManager"
+                 objectType="com.seizia.chromite.ext.greenplum.model.GreenplumTable"/>
+        <manager class="com.seizia.chromite.ext.greenplum.edit.GreenplumExternalTableManager"
+                 containerType="com.seizia.chromite.ext.greenplum.model.GreenplumSchema"
+                 objectType="com.seizia.chromite.ext.greenplum.model.GreenplumExternalTable"/>
+        <manager class="com.seizia.chromite.ext.greenplum.edit.GreenplumFunctionManager"
+                 objectType="com.seizia.chromite.ext.greenplum.model.GreenplumFunction"/>
     </extension>
 
-    <extension point="org.jkiss.dbeaver.sqlDialect">
-        <dialect id="greenplum" parent="postgresql" class="org.jkiss.dbeaver.ext.postgresql.model.PostgreDialect" label="Greenplum" description="Greenplum dialect." icon="icons/greenplum_icon.png">
+    <extension point="com.seizia.chromite.sqlDialect">
+        <dialect id="greenplum" parent="postgresql" class="com.seizia.chromite.ext.postgresql.model.PostgreDialect" label="Greenplum" description="Greenplum dialect." icon="icons/greenplum_icon.png">
             <keywords value=""/>
             <execKeywords value=""/>
             <ddlKeywords value=""/>

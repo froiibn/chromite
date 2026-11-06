@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.ext.iotdb.ui.editors;
+package com.seizia.chromite.ext.iotdb.ui.editors;
 
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.layout.GridData;
@@ -23,19 +23,19 @@ import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Text;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.ext.iotdb.model.IoTDBGrant;
-import org.jkiss.dbeaver.ext.iotdb.model.IoTDBPrivilege;
-import org.jkiss.dbeaver.ext.iotdb.model.IoTDBRelationalUser;
-import org.jkiss.dbeaver.ext.iotdb.ui.config.IoTDBCommandGrantPrivilege;
-import org.jkiss.dbeaver.ext.iotdb.ui.controls.PrivilegeTableControl;
-import org.jkiss.dbeaver.ext.iotdb.ui.internal.IoTDBUiMessages;
-import org.jkiss.dbeaver.model.edit.DBECommandReflector;
-import org.jkiss.dbeaver.model.exec.DBCExecutionContext;
-import org.jkiss.dbeaver.model.navigator.DBNEvent;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.model.runtime.load.DatabaseLoadService;
-import org.jkiss.dbeaver.ui.LoadingJob;
-import org.jkiss.dbeaver.ui.UIUtils;
+import com.seizia.chromite.ext.iotdb.model.IoTDBGrant;
+import com.seizia.chromite.ext.iotdb.model.IoTDBPrivilege;
+import com.seizia.chromite.ext.iotdb.model.IoTDBRelationalUser;
+import com.seizia.chromite.ext.iotdb.ui.config.IoTDBCommandGrantPrivilege;
+import com.seizia.chromite.ext.iotdb.ui.controls.PrivilegeTableControl;
+import com.seizia.chromite.ext.iotdb.ui.internal.IoTDBUiMessages;
+import com.seizia.chromite.model.edit.DBECommandReflector;
+import com.seizia.chromite.model.exec.DBCExecutionContext;
+import com.seizia.chromite.model.navigator.DBNEvent;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.model.runtime.load.DatabaseLoadService;
+import com.seizia.chromite.ui.LoadingJob;
+import com.seizia.chromite.ui.UIUtils;
 
 import java.lang.reflect.InvocationTargetException;
 import java.util.List;

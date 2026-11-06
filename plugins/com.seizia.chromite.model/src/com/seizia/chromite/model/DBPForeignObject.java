@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.model;
+package com.seizia.chromite.model;
 
 /**
  * Foreign object is an object which is actually lives in some remote database.

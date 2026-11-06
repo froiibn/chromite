@@ -14,20 +14,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.bigquery.model;
+package com.seizia.chromite.ext.bigquery.model;
 
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.ext.generic.model.GenericSQLDialect;
-import org.jkiss.dbeaver.model.exec.jdbc.JDBCDatabaseMetaData;
-import org.jkiss.dbeaver.model.exec.jdbc.JDBCSession;
-import org.jkiss.dbeaver.model.impl.jdbc.JDBCDataSource;
-import org.jkiss.dbeaver.model.sql.SQLConstants;
-import org.jkiss.dbeaver.model.sql.SQLDialectFeatures;
-import org.jkiss.dbeaver.model.sql.SQLScriptVariableScope;
-import org.jkiss.dbeaver.model.sql.parser.SQLParserActionKind;
-import org.jkiss.dbeaver.model.sql.parser.tokens.predicates.TokenPredicateFactory;
-import org.jkiss.dbeaver.model.sql.parser.tokens.predicates.TokenPredicateSet;
-import org.jkiss.dbeaver.model.sql.parser.tokens.predicates.TokenPredicatesCondition;
+import com.seizia.chromite.ext.generic.model.GenericSQLDialect;
+import com.seizia.chromite.model.exec.jdbc.JDBCDatabaseMetaData;
+import com.seizia.chromite.model.exec.jdbc.JDBCSession;
+import com.seizia.chromite.model.impl.jdbc.JDBCDataSource;
+import com.seizia.chromite.model.sql.SQLConstants;
+import com.seizia.chromite.model.sql.SQLDialectFeatures;
+import com.seizia.chromite.model.sql.SQLScriptVariableScope;
+import com.seizia.chromite.model.sql.parser.SQLParserActionKind;
+import com.seizia.chromite.model.sql.parser.tokens.predicates.TokenPredicateFactory;
+import com.seizia.chromite.model.sql.parser.tokens.predicates.TokenPredicateSet;
+import com.seizia.chromite.model.sql.parser.tokens.predicates.TokenPredicatesCondition;
 
 import java.util.EnumSet;
 import java.util.Set;

@@ -14,12 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.websocket.event.resource;
+package com.seizia.chromite.model.websocket.event.resource;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.model.websocket.WSConstants;
-import org.jkiss.dbeaver.model.websocket.event.WSProjectResourceEvent;
+import com.seizia.chromite.model.websocket.WSConstants;
+import com.seizia.chromite.model.websocket.event.WSProjectResourceEvent;
 
 public class WSResourceUpdatedEvent extends WSProjectResourceEvent {
     public static final String CREATED = "cb_rm_resource_created";

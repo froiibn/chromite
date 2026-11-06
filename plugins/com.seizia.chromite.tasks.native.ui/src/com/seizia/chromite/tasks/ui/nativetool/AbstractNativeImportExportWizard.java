@@ -14,16 +14,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.tasks.ui.nativetool;
+package com.seizia.chromite.tasks.ui.nativetool;
 
 import org.eclipse.jface.viewers.IStructuredSelection;
 import org.eclipse.ui.IExportWizard;
 import org.eclipse.ui.IWorkbench;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.model.struct.DBSObject;
-import org.jkiss.dbeaver.model.task.DBTTask;
-import org.jkiss.dbeaver.tasks.nativetool.AbstractImportExportSettings;
+import com.seizia.chromite.model.struct.DBSObject;
+import com.seizia.chromite.model.task.DBTTask;
+import com.seizia.chromite.tasks.nativetool.AbstractImportExportSettings;
 
 import java.util.Collection;
 

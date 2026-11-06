@@ -14,24 +14,24 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.editors.sql.internal;
+package com.seizia.chromite.ui.editors.sql.internal;
 
 import org.eclipse.core.runtime.preferences.AbstractPreferenceInitializer;
 import org.eclipse.ui.texteditor.AbstractTextEditor;
-import org.jkiss.dbeaver.ModelPreferences.SeparateConnectionBehavior;
-import org.jkiss.dbeaver.model.preferences.DBPPreferenceStore;
-import org.jkiss.dbeaver.model.sql.SQLScriptCommitType;
-import org.jkiss.dbeaver.model.sql.SQLScriptErrorHandling;
-import org.jkiss.dbeaver.model.sql.SQLUtils;
-import org.jkiss.dbeaver.model.sql.completion.SQLCompletionContext;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.ui.contentassist.ContentAssistUtils.ProposalActivationKey;
-import org.jkiss.dbeaver.ui.editors.sql.SQLEditor;
-import org.jkiss.dbeaver.ui.editors.sql.SQLEditorCommands;
-import org.jkiss.dbeaver.ui.editors.sql.SQLPreferenceConstants;
-import org.jkiss.dbeaver.ui.editors.sql.SQLPreferenceConstants.SQLAutocompletionMode;
-import org.jkiss.dbeaver.ui.editors.sql.SQLScriptBindingType;
-import org.jkiss.dbeaver.utils.PrefUtils;
+import com.seizia.chromite.ModelPreferences.SeparateConnectionBehavior;
+import com.seizia.chromite.model.preferences.DBPPreferenceStore;
+import com.seizia.chromite.model.sql.SQLScriptCommitType;
+import com.seizia.chromite.model.sql.SQLScriptErrorHandling;
+import com.seizia.chromite.model.sql.SQLUtils;
+import com.seizia.chromite.model.sql.completion.SQLCompletionContext;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.ui.contentassist.ContentAssistUtils.ProposalActivationKey;
+import com.seizia.chromite.ui.editors.sql.SQLEditor;
+import com.seizia.chromite.ui.editors.sql.SQLEditorCommands;
+import com.seizia.chromite.ui.editors.sql.SQLPreferenceConstants;
+import com.seizia.chromite.ui.editors.sql.SQLPreferenceConstants.SQLAutocompletionMode;
+import com.seizia.chromite.ui.editors.sql.SQLScriptBindingType;
+import com.seizia.chromite.utils.PrefUtils;
 
 public class SQLEditorPreferencesInitializer extends AbstractPreferenceInitializer {
 

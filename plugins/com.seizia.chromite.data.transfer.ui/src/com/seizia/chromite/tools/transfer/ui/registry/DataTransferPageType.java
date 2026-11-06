@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.tools.transfer.ui.registry;
+package com.seizia.chromite.tools.transfer.ui.registry;
 
 /**
  * Page type.

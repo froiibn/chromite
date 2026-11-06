@@ -14,14 +14,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.sql.semantics.model.programmaticals;
+package com.seizia.chromite.model.sql.semantics.model.programmaticals;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.model.sql.semantics.SQLQueryModelRecognizer;
-import org.jkiss.dbeaver.model.sql.semantics.SQLQuerySymbolEntry;
-import org.jkiss.dbeaver.model.sql.semantics.context.SQLQueryExprType;
-import org.jkiss.dbeaver.model.stm.STMTreeNode;
+import com.seizia.chromite.model.sql.semantics.SQLQueryModelRecognizer;
+import com.seizia.chromite.model.sql.semantics.SQLQuerySymbolEntry;
+import com.seizia.chromite.model.sql.semantics.context.SQLQueryExprType;
+import com.seizia.chromite.model.stm.STMTreeNode;
 
 import java.util.List;
 

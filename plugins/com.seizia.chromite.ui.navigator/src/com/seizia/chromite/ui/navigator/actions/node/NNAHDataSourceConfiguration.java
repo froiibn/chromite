@@ -15,14 +15,14 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.ui.navigator.actions.node;
+package com.seizia.chromite.ui.navigator.actions.node;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.model.DBIcon;
-import org.jkiss.dbeaver.model.DBPImage;
-import org.jkiss.dbeaver.model.navigator.DBNNode;
-import org.jkiss.dbeaver.ui.navigator.actions.NavigatorNodeActionHandlerAbstract;
+import com.seizia.chromite.model.DBIcon;
+import com.seizia.chromite.model.DBPImage;
+import com.seizia.chromite.model.navigator.DBNNode;
+import com.seizia.chromite.ui.navigator.actions.NavigatorNodeActionHandlerAbstract;
 
 /**
  * Configuration action handler

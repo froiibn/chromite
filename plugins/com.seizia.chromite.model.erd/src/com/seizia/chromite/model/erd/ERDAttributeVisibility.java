@@ -14,11 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.erd;
+package com.seizia.chromite.model.erd;
 
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.erd.internal.ERDMessages;
-import org.jkiss.dbeaver.model.preferences.DBPPreferenceStore;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.erd.internal.ERDMessages;
+import com.seizia.chromite.model.preferences.DBPPreferenceStore;
 import org.jkiss.utils.CommonUtils;
 
 /**

@@ -1,14 +1,14 @@
 Manifest-Version: 1.0
 Bundle-ManifestVersion: 2
-Bundle-Vendor: DBeaver Corp
+Bundle-Vendor: Chromite contributors
 Bundle-Name: Chromite UI Editors - Hex
-Bundle-SymbolicName: org.jkiss.dbeaver.ui.editors.hex;singleton:=true
+Bundle-SymbolicName: com.seizia.chromite.ui.editors.hex;singleton:=true
 Bundle-Version: 1.0.191.qualifier
 Bundle-Release-Date: 20261116
 Bundle-RequiredExecutionEnvironment: JavaSE-21
 Bundle-ActivationPolicy: lazy
-Bundle-Activator: org.jkiss.dbeaver.ui.editors.binary.internal.HexEditorsActivator
-Require-Bundle: org.jkiss.dbeaver.ui.editors.data
-Export-Package: org.jkiss.dbeaver.ui.editors.binary,
- org.jkiss.dbeaver.ui.editors.binary.pref
-Automatic-Module-Name: org.jkiss.dbeaver.ui.editors.hex
+Bundle-Activator: com.seizia.chromite.ui.editors.binary.internal.HexEditorsActivator
+Require-Bundle: com.seizia.chromite.ui.editors.data
+Export-Package: com.seizia.chromite.ui.editors.binary,
+ com.seizia.chromite.ui.editors.binary.pref
+Automatic-Module-Name: com.seizia.chromite.ui.editors.hex

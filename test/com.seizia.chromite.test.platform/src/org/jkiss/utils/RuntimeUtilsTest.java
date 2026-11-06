@@ -16,21 +16,21 @@
  */
 package org.jkiss.utils;
 
-import org.jkiss.dbeaver.utils.RuntimeUtils;
-import org.jkiss.junit.DBeaverUnitTest;
+import com.seizia.chromite.utils.RuntimeUtils;
+import com.seizia.chromite.junit.ChromiteUnitTest;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import java.util.Arrays;
 import java.util.Collections;
 
-public class RuntimeUtilsTest extends DBeaverUnitTest {
+public class RuntimeUtilsTest extends ChromiteUnitTest {
 
     @Test
     public void testMakePlatformResourceUrl() {
         Assertions.assertEquals(
-            "platform:/plugin/org.jkiss.dbeaver.ui/icons/misc/search.svg",
-            RuntimeUtils.makePlatformResourceUrl("org.jkiss.dbeaver.ui", "icons/misc/search.svg")
+            "platform:/plugin/com.seizia.chromite.ui/icons/misc/search.svg",
+            RuntimeUtils.makePlatformResourceUrl("com.seizia.chromite.ui", "icons/misc/search.svg")
         );
     }
 

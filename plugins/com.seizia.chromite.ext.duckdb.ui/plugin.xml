@@ -3,17 +3,17 @@
 
 <plugin>
 
-    <extension point="org.jkiss.dbeaver.dataSourceConfigurator">
-        <configurator dataSource="duckdb" class="org.jkiss.dbeaver.ext.duckdb.ui.DuckDBConnectionPage"/>
+    <extension point="com.seizia.chromite.dataSourceConfigurator">
+        <configurator dataSource="duckdb" class="com.seizia.chromite.ext.duckdb.ui.DuckDBConnectionPage"/>
     </extension>
 
-    <extension point="org.jkiss.dbeaver.ui.propertyConfigurator">
-        <propertyConfigurator class="org.jkiss.dbeaver.ext.duckdb.model.MotherDuckAuthModelToken" uiClass="org.jkiss.dbeaver.ext.duckdb.ui.MotherDuckAuthModelConfigurator"/>
+    <extension point="com.seizia.chromite.ui.propertyConfigurator">
+        <propertyConfigurator class="com.seizia.chromite.ext.duckdb.model.MotherDuckAuthModelToken" uiClass="com.seizia.chromite.ext.duckdb.ui.MotherDuckAuthModelConfigurator"/>
     </extension>
 
-    <extension point="org.jkiss.dbeaver.fileTypeHandler">
-        <handler id="duckdb" class="org.jkiss.dbeaver.ext.duckdb.ui.DuckDBFileDatabaseHandler" remote="false" order="103">
-            <extension id="duckdb" extensions="duckdb,ddb" icon="platform:/plugin/org.jkiss.dbeaver.ext.generic/icons/duckdb_icon_big.png"/>
+    <extension point="com.seizia.chromite.fileTypeHandler">
+        <handler id="duckdb" class="com.seizia.chromite.ext.duckdb.ui.DuckDBFileDatabaseHandler" remote="false" order="103">
+            <extension id="duckdb" extensions="duckdb,ddb" icon="platform:/plugin/com.seizia.chromite.ext.generic/icons/duckdb_icon_big.png"/>
         </handler>
     </extension>
 </plugin>

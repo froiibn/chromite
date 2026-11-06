@@ -16,9 +16,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.debug;
+package com.seizia.chromite.debug;
 
-import org.jkiss.dbeaver.model.DBPDataSourceContainer;
+import com.seizia.chromite.model.DBPDataSourceContainer;
 
 import java.util.Map;
 

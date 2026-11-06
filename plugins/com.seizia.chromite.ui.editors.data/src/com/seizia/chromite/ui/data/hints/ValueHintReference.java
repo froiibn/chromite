@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.data.hints;
+package com.seizia.chromite.ui.data.hints;
 
 import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.Status;
@@ -28,20 +28,20 @@ import org.eclipse.swt.graphics.Point;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.model.DBPEvaluationContext;
-import org.jkiss.dbeaver.model.DBPImage;
-import org.jkiss.dbeaver.model.DBUtils;
-import org.jkiss.dbeaver.model.data.DBDValueRow;
-import org.jkiss.dbeaver.model.data.hints.DBDValueHint;
-import org.jkiss.dbeaver.model.runtime.AbstractJob;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.model.struct.DBSEntityAssociation;
-import org.jkiss.dbeaver.model.struct.DBSEntityType;
-import org.jkiss.dbeaver.ui.*;
-import org.jkiss.dbeaver.ui.controls.resultset.IResultSetController;
-import org.jkiss.dbeaver.ui.data.DBDValueHintActionHandler;
-import org.jkiss.dbeaver.ui.editors.object.struct.EditDictionaryPage;
-import org.jkiss.dbeaver.utils.GeneralUtils;
+import com.seizia.chromite.model.DBPEvaluationContext;
+import com.seizia.chromite.model.DBPImage;
+import com.seizia.chromite.model.DBUtils;
+import com.seizia.chromite.model.data.DBDValueRow;
+import com.seizia.chromite.model.data.hints.DBDValueHint;
+import com.seizia.chromite.model.runtime.AbstractJob;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.model.struct.DBSEntityAssociation;
+import com.seizia.chromite.model.struct.DBSEntityType;
+import com.seizia.chromite.ui.*;
+import com.seizia.chromite.ui.controls.resultset.IResultSetController;
+import com.seizia.chromite.ui.data.DBDValueHintActionHandler;
+import com.seizia.chromite.ui.editors.object.struct.EditDictionaryPage;
+import com.seizia.chromite.utils.GeneralUtils;
 import org.jkiss.utils.CommonUtils;
 
 import java.util.List;
@@ -154,7 +154,7 @@ record ValueHintReference(@NotNull List<Reference> references) implements DBDVal
                 for (int i = 0; i < references.size(); i++) {
                     var reference = references.get(i);
                     var label = ActionUtils.getLabelWithIndexMnemonic(reference.toDisplayString(), i);
-                    var image = DBeaverIcons.getImageDescriptor(DBSEntityType.TABLE.getIcon());
+                    var image = SwtIcons.getImageDescriptor(DBSEntityType.TABLE.getIcon());
                     manager.add(new Action(label, image) {
                         @Override
                         public void run() {

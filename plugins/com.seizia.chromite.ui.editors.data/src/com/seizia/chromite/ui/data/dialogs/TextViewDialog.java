@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.data.dialogs;
+package com.seizia.chromite.ui.data.dialogs;
 
 import org.eclipse.jface.dialogs.IDialogConstants;
 import org.eclipse.swt.SWT;
@@ -30,28 +30,28 @@ import org.eclipse.swt.widgets.Control;
 import org.eclipse.swt.widgets.Label;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.DBIcon;
-import org.jkiss.dbeaver.model.DBPDataKind;
-import org.jkiss.dbeaver.model.DBValueFormatting;
-import org.jkiss.dbeaver.model.data.DBDContent;
-import org.jkiss.dbeaver.model.data.DBDContentCached;
-import org.jkiss.dbeaver.model.data.DBDDisplayFormat;
-import org.jkiss.dbeaver.model.exec.DBCExecutionPurpose;
-import org.jkiss.dbeaver.model.exec.DBCSession;
-import org.jkiss.dbeaver.model.runtime.VoidProgressMonitor;
-import org.jkiss.dbeaver.model.struct.DBSTypedObject;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.ui.DBeaverIcons;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.controls.StyledTextUtils;
-import org.jkiss.dbeaver.ui.controls.resultset.internal.ResultSetMessages;
-import org.jkiss.dbeaver.ui.data.IHexEditorService;
-import org.jkiss.dbeaver.ui.data.IValueController;
-import org.jkiss.dbeaver.ui.data.editors.ReferenceValueEditor;
-import org.jkiss.dbeaver.ui.editors.content.ContentEditor;
-import org.jkiss.dbeaver.utils.ContentUtils;
-import org.jkiss.dbeaver.utils.GeneralUtils;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.DBIcon;
+import com.seizia.chromite.model.DBPDataKind;
+import com.seizia.chromite.model.DBValueFormatting;
+import com.seizia.chromite.model.data.DBDContent;
+import com.seizia.chromite.model.data.DBDContentCached;
+import com.seizia.chromite.model.data.DBDDisplayFormat;
+import com.seizia.chromite.model.exec.DBCExecutionPurpose;
+import com.seizia.chromite.model.exec.DBCSession;
+import com.seizia.chromite.model.runtime.VoidProgressMonitor;
+import com.seizia.chromite.model.struct.DBSTypedObject;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.ui.SwtIcons;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.controls.StyledTextUtils;
+import com.seizia.chromite.ui.controls.resultset.internal.ResultSetMessages;
+import com.seizia.chromite.ui.data.IHexEditorService;
+import com.seizia.chromite.ui.data.IValueController;
+import com.seizia.chromite.ui.data.editors.ReferenceValueEditor;
+import com.seizia.chromite.ui.editors.content.ContentEditor;
+import com.seizia.chromite.utils.ContentUtils;
+import com.seizia.chromite.utils.GeneralUtils;
 
 import java.io.UnsupportedEncodingException;
 import java.nio.charset.Charset;
@@ -147,7 +147,7 @@ public class TextViewDialog extends ValueViewDialog {
             if (hexEditorService != null) {
                 CTabItem item = new CTabItem(editorContainer, SWT.NO_FOCUS);
                 item.setText("Text");
-                item.setImage(DBeaverIcons.getImage(DBIcon.TYPE_TEXT));
+                item.setImage(SwtIcons.getImage(DBIcon.TYPE_TEXT));
                 item.setControl(textEdit);
                 editorContainer.setSelection(item);
             }
@@ -161,7 +161,7 @@ public class TextViewDialog extends ValueViewDialog {
             minSize.y += 50;
             CTabItem item = new CTabItem(editorContainer, SWT.NO_FOCUS);
             item.setText("Hex");
-            item.setImage(DBeaverIcons.getImage(DBIcon.TYPE_BINARY));
+            item.setImage(SwtIcons.getImage(DBIcon.TYPE_BINARY));
             item.setControl(hexEditControl);
 
             if (selectedType >= editorContainer.getItemCount()) {

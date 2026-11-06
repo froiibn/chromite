@@ -14,11 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.navigator;
+package com.seizia.chromite.model.navigator;
 
-import org.jkiss.dbeaver.model.DBPObjectWithLongId;
-import org.jkiss.dbeaver.model.DBPUniqueObject;
-import org.jkiss.dbeaver.model.struct.DBSObject;
+import com.seizia.chromite.model.DBPObjectWithLongId;
+import com.seizia.chromite.model.DBPUniqueObject;
+import com.seizia.chromite.model.struct.DBSObject;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;

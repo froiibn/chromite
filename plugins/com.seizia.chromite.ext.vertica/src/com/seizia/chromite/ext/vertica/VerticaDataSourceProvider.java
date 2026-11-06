@@ -14,11 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.vertica;
+package com.seizia.chromite.ext.vertica;
 
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.ext.generic.GenericDataSourceProvider;
-import org.jkiss.dbeaver.ext.vertica.model.VerticaDataSource;
+import com.seizia.chromite.ext.generic.GenericDataSourceProvider;
+import com.seizia.chromite.ext.vertica.model.VerticaDataSource;
 
 public class VerticaDataSourceProvider extends GenericDataSourceProvider<VerticaDataSource> {
 

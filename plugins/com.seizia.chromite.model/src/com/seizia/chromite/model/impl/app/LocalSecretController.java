@@ -14,17 +14,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.impl.app;
+package com.seizia.chromite.model.impl.app;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.ModelPreferences;
-import org.jkiss.dbeaver.model.exec.DBCFeatureNotSupportedException;
-import org.jkiss.dbeaver.model.preferences.DBPPreferenceStore;
-import org.jkiss.dbeaver.model.secret.DBSSecretController;
-import org.jkiss.dbeaver.model.secret.DBSSecretObject;
-import org.jkiss.dbeaver.model.secret.DBSSecretValue;
+import com.seizia.chromite.ModelPreferences;
+import com.seizia.chromite.model.exec.DBCFeatureNotSupportedException;
+import com.seizia.chromite.model.preferences.DBPPreferenceStore;
+import com.seizia.chromite.model.secret.DBSSecretController;
+import com.seizia.chromite.model.secret.DBSSecretObject;
+import com.seizia.chromite.model.secret.DBSSecretValue;
 import org.jkiss.utils.CommonUtils;
 
 import java.io.IOException;

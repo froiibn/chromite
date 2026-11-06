@@ -14,11 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.mimer.edit;
+package com.seizia.chromite.ext.mimer.edit;
 
-import org.jkiss.dbeaver.ext.mimer.model.MimerDataSource;
-import org.jkiss.dbeaver.ext.mimer.model.MimerDatabank;
-import org.jkiss.junit.DBeaverUnitTest;
+import com.seizia.chromite.ext.mimer.model.MimerDataSource;
+import com.seizia.chromite.ext.mimer.model.MimerDatabank;
+import com.seizia.chromite.junit.ChromiteUnitTest;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
@@ -30,7 +30,7 @@ import org.mockito.Mock;
  *
  * @author Mimer Information Technology
  */
-public class MimerDatabankPrivilegeManagerTest extends DBeaverUnitTest {
+public class MimerDatabankPrivilegeManagerTest extends ChromiteUnitTest {
 
     @Mock
     private MimerDataSource dataSource;

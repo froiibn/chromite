@@ -14,10 +14,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui;
+package com.seizia.chromite.ui;
 
-import org.jkiss.dbeaver.model.DBIcon;
-import org.jkiss.dbeaver.ui.controls.decorations.HolidayDecorations;
+import com.seizia.chromite.model.DBIcon;
+import com.seizia.chromite.ui.controls.decorations.HolidayDecorations;
 
 import java.util.List;
 
@@ -26,8 +26,8 @@ import java.util.List;
  */
 public class UIIcon {
 
-    public static final DBIcon DBEAVER_LOGO = new DBIcon("dbeaver_logo", "dbeaver_logo_medium.png"); //$NON-NLS-1$ //$NON-NLS-2$
-    public static final DBIcon DBEAVER_LOGO_SMALL = new DBIcon("dbeaver_logo_small", "dbeaver_logo_small.png"); //$NON-NLS-1$ //$NON-NLS-2$
+    public static final DBIcon CHROMITE_LOGO = new DBIcon("chromite_logo", "chromite_logo_medium.png"); //$NON-NLS-1$ //$NON-NLS-2$
+    public static final DBIcon CHROMITE_LOGO_SMALL = new DBIcon("chromite_logo_small", "chromite_logo_small.png"); //$NON-NLS-1$ //$NON-NLS-2$
 
     public static final DBIcon SEPARATOR_V = new DBIcon("separator_v", "misc/separator_v.png"); //$NON-NLS-1$ //$NON-NLS-2$
     public static final DBIcon SEPARATOR_H = new DBIcon("separator_h", "misc/separator_h.png"); //$NON-NLS-1$ //$NON-NLS-2$

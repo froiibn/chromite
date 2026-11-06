@@ -14,11 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.runtime.ui;
+package com.seizia.chromite.runtime.ui;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.model.runtime.DBRShellCommand;
+import com.seizia.chromite.model.runtime.DBRShellCommand;
 
 import java.util.Map;
 

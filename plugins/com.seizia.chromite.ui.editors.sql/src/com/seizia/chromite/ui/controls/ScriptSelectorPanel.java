@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.controls;
+package com.seizia.chromite.ui.controls;
 
 import org.eclipse.core.resources.IFile;
 import org.eclipse.core.resources.IFolder;
@@ -37,25 +37,25 @@ import org.eclipse.ui.IWorkbenchWindow;
 import org.eclipse.ui.progress.UIJob;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.DBConstants;
-import org.jkiss.dbeaver.model.DBIcon;
-import org.jkiss.dbeaver.model.DBPDataSourceContainer;
-import org.jkiss.dbeaver.model.app.DBPPlatformDesktop;
-import org.jkiss.dbeaver.model.preferences.DBPPreferenceStore;
-import org.jkiss.dbeaver.model.rcp.RCPProject;
-import org.jkiss.dbeaver.model.rm.RMConstants;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.ui.DBeaverIcons;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.dialogs.AbstractPopupPanel;
-import org.jkiss.dbeaver.ui.editors.sql.SQLEditorUtils;
-import org.jkiss.dbeaver.ui.editors.sql.SQLEditorUtils.ResourceInfo;
-import org.jkiss.dbeaver.ui.editors.sql.handlers.SQLEditorHandlerOpenEditor;
-import org.jkiss.dbeaver.ui.editors.sql.handlers.SQLNavigatorContext;
-import org.jkiss.dbeaver.ui.editors.sql.internal.SQLEditorMessages;
-import org.jkiss.dbeaver.ui.editors.sql.scripts.ScriptsHandlerImpl;
-import org.jkiss.dbeaver.utils.ResourceUtils;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.DBConstants;
+import com.seizia.chromite.model.DBIcon;
+import com.seizia.chromite.model.DBPDataSourceContainer;
+import com.seizia.chromite.model.app.DBPPlatformDesktop;
+import com.seizia.chromite.model.preferences.DBPPreferenceStore;
+import com.seizia.chromite.model.rcp.RCPProject;
+import com.seizia.chromite.model.rm.RMConstants;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.ui.SwtIcons;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.dialogs.AbstractPopupPanel;
+import com.seizia.chromite.ui.editors.sql.SQLEditorUtils;
+import com.seizia.chromite.ui.editors.sql.SQLEditorUtils.ResourceInfo;
+import com.seizia.chromite.ui.editors.sql.handlers.SQLEditorHandlerOpenEditor;
+import com.seizia.chromite.ui.editors.sql.handlers.SQLNavigatorContext;
+import com.seizia.chromite.ui.editors.sql.internal.SQLEditorMessages;
+import com.seizia.chromite.ui.editors.sql.scripts.ScriptsHandlerImpl;
+import com.seizia.chromite.utils.ResourceUtils;
 import org.jkiss.utils.CommonUtils;
 
 import java.text.SimpleDateFormat;
@@ -223,12 +223,12 @@ public class ScriptSelectorPanel extends AbstractPopupPanel {
                     final ResourceInfo ri = (ResourceInfo) element;
                     if (!ri.isDirectory()) {
                         if (ri.getDataSource() == null) {
-                            return DBeaverIcons.getImage(DBIcon.TREE_SCRIPT);
+                            return SwtIcons.getImage(DBIcon.TREE_SCRIPT);
                         } else {
-                            return DBeaverIcons.getImage(ri.getDataSource().getDriver().getIcon());
+                            return SwtIcons.getImage(ri.getDataSource().getDriver().getIcon());
                         }
                     } else {
-                        return DBeaverIcons.getImage(DBIcon.TREE_FOLDER);
+                        return SwtIcons.getImage(DBIcon.TREE_FOLDER);
                     }
                 }
 
@@ -246,7 +246,7 @@ public class ScriptSelectorPanel extends AbstractPopupPanel {
                 @Override
                 public Image getToolTipImage(Object element) {
                     final DBPDataSourceContainer dataSource = ((ResourceInfo) element).getDataSource();
-                    return dataSource == null ? null : DBeaverIcons.getImage(dataSource.getDriver().getIcon());
+                    return dataSource == null ? null : SwtIcons.getImage(dataSource.getDriver().getIcon());
                 }
             }
         );

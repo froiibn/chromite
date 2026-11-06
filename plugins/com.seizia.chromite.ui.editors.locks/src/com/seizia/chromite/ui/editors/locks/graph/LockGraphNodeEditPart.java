@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.editors.locks.graph;
+package com.seizia.chromite.ui.editors.locks.graph;
 
 import org.eclipse.draw2d.ConnectionAnchor;
 import org.eclipse.draw2d.GridData;
@@ -24,9 +24,9 @@ import org.eclipse.gef.EditPolicy;
 import org.eclipse.gef.Request;
 import org.eclipse.gef.editparts.AbstractGraphicalEditPart;
 import org.eclipse.gef.editpolicies.NonResizableEditPolicy;
-import org.jkiss.dbeaver.model.impl.admin.locks.LockGraph;
-import org.jkiss.dbeaver.model.impl.admin.locks.LockGraphEdge;
-import org.jkiss.dbeaver.model.impl.admin.locks.LockGraphNode;
+import com.seizia.chromite.model.impl.admin.locks.LockGraph;
+import com.seizia.chromite.model.impl.admin.locks.LockGraphEdge;
+import com.seizia.chromite.model.impl.admin.locks.LockGraphNode;
 
 import java.util.List;
 

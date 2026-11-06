@@ -14,21 +14,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.hive.model.plan;
+package com.seizia.chromite.ext.hive.model.plan;
 
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.model.exec.plan.DBCPlanCostNode;
-import org.jkiss.dbeaver.model.exec.plan.DBCPlanNodeKind;
-import org.jkiss.dbeaver.model.impl.PropertyDescriptor;
-import org.jkiss.dbeaver.model.impl.plan.AbstractExecutionPlanNode;
-import org.jkiss.dbeaver.model.meta.Property;
-import org.jkiss.dbeaver.model.preferences.DBPPropertyDescriptor;
-import org.jkiss.dbeaver.model.preferences.DBPPropertySource;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.model.exec.plan.DBCPlanCostNode;
+import com.seizia.chromite.model.exec.plan.DBCPlanNodeKind;
+import com.seizia.chromite.model.impl.PropertyDescriptor;
+import com.seizia.chromite.model.impl.plan.AbstractExecutionPlanNode;
+import com.seizia.chromite.model.meta.Property;
+import com.seizia.chromite.model.preferences.DBPPropertyDescriptor;
+import com.seizia.chromite.model.preferences.DBPPropertySource;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
 import org.jkiss.utils.ByteNumberFormat;
 
 import java.util.ArrayList;

@@ -14,11 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.sqlite;
+package com.seizia.chromite.ext.sqlite;
 
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.model.exec.DBCException;
-import org.jkiss.dbeaver.model.exec.DBCExecutionContext;
+import com.seizia.chromite.model.exec.DBCException;
+import com.seizia.chromite.model.exec.DBCExecutionContext;
 
 public class SQLiteExtensionLoadingException extends DBCException {
     public SQLiteExtensionLoadingException(@NotNull Throwable cause, @NotNull DBCExecutionContext context) {

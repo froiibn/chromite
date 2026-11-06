@@ -14,11 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.sql.completion;
+package com.seizia.chromite.model.sql.completion;
 
 import org.eclipse.jface.text.IDocument;
-import org.jkiss.dbeaver.model.sql.SQLScriptElement;
-import org.jkiss.dbeaver.model.sql.parser.SQLWordPartDetector;
+import com.seizia.chromite.model.sql.SQLScriptElement;
+import com.seizia.chromite.model.sql.parser.SQLWordPartDetector;
 
 public class SQLCompletionRequest {
 

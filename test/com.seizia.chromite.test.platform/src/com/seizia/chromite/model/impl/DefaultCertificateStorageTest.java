@@ -14,18 +14,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.impl;
+package com.seizia.chromite.model.impl;
 
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.model.impl.app.DefaultCertificateStorage;
-import org.jkiss.junit.DBeaverUnitTest;
+import com.seizia.chromite.model.impl.app.DefaultCertificateStorage;
+import com.seizia.chromite.junit.ChromiteUnitTest;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import java.io.StringReader;
 import java.security.SecureRandom;
 import java.util.Base64;
-public class DefaultCertificateStorageTest extends DBeaverUnitTest {
+public class DefaultCertificateStorageTest extends ChromiteUnitTest {
     @Test
     public void loadDerFromPem() throws Exception {
         final var derKey = makeKey();

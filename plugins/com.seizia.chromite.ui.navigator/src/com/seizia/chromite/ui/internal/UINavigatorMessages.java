@@ -14,12 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.internal;
+package com.seizia.chromite.ui.internal;
 
 import org.eclipse.osgi.util.NLS;
 
 public class UINavigatorMessages extends NLS {
-    public static final String BUNDLE_NAME = "org.jkiss.dbeaver.ui.internal.UINavigatorMessages"; //$NON-NLS-1$
+    public static final String BUNDLE_NAME = "com.seizia.chromite.ui.internal.UINavigatorMessages"; //$NON-NLS-1$
 
     //object properties editor
     public static String obj_editor_properties_control_action_filter_setting;

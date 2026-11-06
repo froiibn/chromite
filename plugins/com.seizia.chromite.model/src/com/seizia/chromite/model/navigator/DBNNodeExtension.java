@@ -15,15 +15,15 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.model.navigator;
+package com.seizia.chromite.model.navigator;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.model.DBPHiddenObject;
-import org.jkiss.dbeaver.model.DBPImage;
-import org.jkiss.dbeaver.model.navigator.registry.DBNModelExtenderDescriptor;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.model.DBPHiddenObject;
+import com.seizia.chromite.model.DBPImage;
+import com.seizia.chromite.model.navigator.registry.DBNModelExtenderDescriptor;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
 
 /**
  * Lazy node provided by extension point.

@@ -1,12 +1,12 @@
 Manifest-Version: 1.0
 Bundle-ManifestVersion: 2
-Bundle-Vendor: DBeaver Corp
+Bundle-Vendor: Chromite contributors
 Bundle-Name: Chromite UI Editors - Images
-Bundle-SymbolicName: org.jkiss.dbeaver.ui.editors.image;singleton:=true
+Bundle-SymbolicName: com.seizia.chromite.ui.editors.image;singleton:=true
 Bundle-Version: 1.0.191.qualifier
 Bundle-Release-Date: 20261116
 Bundle-RequiredExecutionEnvironment: JavaSE-21
 Bundle-ActivationPolicy: lazy
-Require-Bundle: org.jkiss.dbeaver.ui.editors.data
-Automatic-Module-Name: org.jkiss.dbeaver.ui.editors.image
+Require-Bundle: com.seizia.chromite.ui.editors.data
+Automatic-Module-Name: com.seizia.chromite.ui.editors.image
 

@@ -14,22 +14,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.exasol.ui.config;
+package com.seizia.chromite.ext.exasol.ui.config;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.ext.exasol.model.ExasolTable;
-import org.jkiss.dbeaver.ext.exasol.model.ExasolTableForeignKey;
-import org.jkiss.dbeaver.ext.exasol.model.ExasolTableForeignKeyColumn;
-import org.jkiss.dbeaver.ext.exasol.model.ExasolTableUniqueKey;
-import org.jkiss.dbeaver.ext.exasol.ui.internal.ExasolMessages;
-import org.jkiss.dbeaver.model.edit.DBECommandContext;
-import org.jkiss.dbeaver.model.edit.DBEObjectConfigurator;
-import org.jkiss.dbeaver.model.impl.sql.edit.struct.SQLForeignKeyManager;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.ui.UITask;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.ext.exasol.model.ExasolTable;
+import com.seizia.chromite.ext.exasol.model.ExasolTableForeignKey;
+import com.seizia.chromite.ext.exasol.model.ExasolTableForeignKeyColumn;
+import com.seizia.chromite.ext.exasol.model.ExasolTableUniqueKey;
+import com.seizia.chromite.ext.exasol.ui.internal.ExasolMessages;
+import com.seizia.chromite.model.edit.DBECommandContext;
+import com.seizia.chromite.model.edit.DBEObjectConfigurator;
+import com.seizia.chromite.model.impl.sql.edit.struct.SQLForeignKeyManager;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.ui.UITask;
 
 import java.util.ArrayList;
 import java.util.List;

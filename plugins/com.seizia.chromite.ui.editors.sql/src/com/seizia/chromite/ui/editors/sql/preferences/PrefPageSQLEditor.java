@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.editors.sql.preferences;
+package com.seizia.chromite.ui.editors.sql.preferences;
 
 import org.eclipse.osgi.util.NLS;
 import org.eclipse.swt.SWT;
@@ -24,21 +24,21 @@ import org.eclipse.ui.PlatformUI;
 import org.eclipse.ui.preferences.IWorkbenchPreferenceContainer;
 import org.eclipse.ui.services.IEvaluationService;
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.ModelPreferences.SeparateConnectionBehavior;
-import org.jkiss.dbeaver.model.DBPDataSourceContainer;
-import org.jkiss.dbeaver.model.preferences.DBPPreferenceStore;
-import org.jkiss.dbeaver.registry.driver.DriverUtils;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.editors.EditorUtils;
-import org.jkiss.dbeaver.ui.editors.sql.SQLEditor;
-import org.jkiss.dbeaver.ui.editors.sql.SQLPreferenceConstants;
-import org.jkiss.dbeaver.ui.editors.sql.internal.SQLEditorMessages;
-import org.jkiss.dbeaver.ui.editors.sql.registry.SQLPresentationDescriptor;
-import org.jkiss.dbeaver.ui.editors.sql.registry.SQLPresentationRegistry;
-import org.jkiss.dbeaver.ui.preferences.TargetPrefPage;
-import org.jkiss.dbeaver.utils.PrefUtils;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.ModelPreferences.SeparateConnectionBehavior;
+import com.seizia.chromite.model.DBPDataSourceContainer;
+import com.seizia.chromite.model.preferences.DBPPreferenceStore;
+import com.seizia.chromite.registry.driver.DriverUtils;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.editors.EditorUtils;
+import com.seizia.chromite.ui.editors.sql.SQLEditor;
+import com.seizia.chromite.ui.editors.sql.SQLPreferenceConstants;
+import com.seizia.chromite.ui.editors.sql.internal.SQLEditorMessages;
+import com.seizia.chromite.ui.editors.sql.registry.SQLPresentationDescriptor;
+import com.seizia.chromite.ui.editors.sql.registry.SQLPresentationRegistry;
+import com.seizia.chromite.ui.preferences.TargetPrefPage;
+import com.seizia.chromite.utils.PrefUtils;
 
 import java.util.List;
 
@@ -48,7 +48,7 @@ import java.util.List;
 public class PrefPageSQLEditor extends TargetPrefPage {
     private static final Log log = Log.getLog(PrefPageSQLEditor.class);
 
-    public static final String PAGE_ID = "org.jkiss.dbeaver.preferences.main.sqleditor"; //$NON-NLS-1$
+    public static final String PAGE_ID = "com.seizia.chromite.preferences.main.sqleditor"; //$NON-NLS-1$
 
     private static final String TEXT_EDITOR_PAGE_ID = "org.eclipse.ui.preferencePages.GeneralTextEditor"; //$NON-NLS-1$
 

@@ -14,15 +14,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.controls;
+package com.seizia.chromite.ui.controls;
 
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.widgets.Combo;
 import org.eclipse.swt.widgets.Composite;
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.model.data.DBDDisplayFormat;
-import org.jkiss.dbeaver.tools.transfer.ui.internal.DTUIMessages;
-import org.jkiss.dbeaver.ui.UIUtils;
+import com.seizia.chromite.model.data.DBDDisplayFormat;
+import com.seizia.chromite.tools.transfer.ui.internal.DTUIMessages;
+import com.seizia.chromite.ui.UIUtils;
 
 public class ValueFormatSelector {
     private final Combo formatCombo;

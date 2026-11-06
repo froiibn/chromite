@@ -14,32 +14,32 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.controls.resultset.panel.grouping;
+package com.seizia.chromite.ui.controls.resultset.panel.grouping;
 
 import org.eclipse.swt.widgets.Composite;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.DBPDataSource;
-import org.jkiss.dbeaver.model.DBUtils;
-import org.jkiss.dbeaver.model.app.DBPProject;
-import org.jkiss.dbeaver.model.data.DBDDataFilter;
-import org.jkiss.dbeaver.model.exec.DBCExecutionContext;
-import org.jkiss.dbeaver.model.exec.DBCStatistics;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.model.sql.*;
-import org.jkiss.dbeaver.model.struct.DBSDataContainer;
-import org.jkiss.dbeaver.model.struct.DBSEntity;
-import org.jkiss.dbeaver.ui.DataEditorFeatures;
-import org.jkiss.dbeaver.ui.controls.resultset.*;
-import org.jkiss.dbeaver.ui.controls.resultset.panel.grouping.column.GroupingFunctionColumn;
-import org.jkiss.dbeaver.ui.controls.resultset.panel.grouping.column.impl.BasicGroupingFunctionColumn;
-import org.jkiss.dbeaver.ui.controls.resultset.panel.grouping.column.impl.SQLGroupingAttributeGroupingColumn;
-import org.jkiss.dbeaver.ui.controls.resultset.panel.grouping.column.impl.TransformerGroupingFunctionColumn;
-import org.jkiss.dbeaver.ui.controls.resultset.panel.grouping.registry.GroupingActionDescriptor;
-import org.jkiss.dbeaver.ui.controls.resultset.panel.grouping.registry.GroupingRegistry;
-import org.jkiss.dbeaver.ui.controls.resultset.view.EmptyPresentation;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.DBPDataSource;
+import com.seizia.chromite.model.DBUtils;
+import com.seizia.chromite.model.app.DBPProject;
+import com.seizia.chromite.model.data.DBDDataFilter;
+import com.seizia.chromite.model.exec.DBCExecutionContext;
+import com.seizia.chromite.model.exec.DBCStatistics;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.model.sql.*;
+import com.seizia.chromite.model.struct.DBSDataContainer;
+import com.seizia.chromite.model.struct.DBSEntity;
+import com.seizia.chromite.ui.DataEditorFeatures;
+import com.seizia.chromite.ui.controls.resultset.*;
+import com.seizia.chromite.ui.controls.resultset.panel.grouping.column.GroupingFunctionColumn;
+import com.seizia.chromite.ui.controls.resultset.panel.grouping.column.impl.BasicGroupingFunctionColumn;
+import com.seizia.chromite.ui.controls.resultset.panel.grouping.column.impl.SQLGroupingAttributeGroupingColumn;
+import com.seizia.chromite.ui.controls.resultset.panel.grouping.column.impl.TransformerGroupingFunctionColumn;
+import com.seizia.chromite.ui.controls.resultset.panel.grouping.registry.GroupingActionDescriptor;
+import com.seizia.chromite.ui.controls.resultset.panel.grouping.registry.GroupingRegistry;
+import com.seizia.chromite.ui.controls.resultset.view.EmptyPresentation;
 import org.jkiss.utils.CommonUtils;
 
 import java.util.List;

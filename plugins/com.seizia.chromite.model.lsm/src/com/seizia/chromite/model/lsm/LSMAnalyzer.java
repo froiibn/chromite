@@ -14,13 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.lsm;
+package com.seizia.chromite.model.lsm;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.model.stm.STMErrorListener;
-import org.jkiss.dbeaver.model.stm.STMSource;
-import org.jkiss.dbeaver.model.stm.STMTreeRuleNode;
+import com.seizia.chromite.model.stm.STMErrorListener;
+import com.seizia.chromite.model.stm.STMSource;
+import com.seizia.chromite.model.stm.STMTreeRuleNode;
 
 public interface LSMAnalyzer {
 

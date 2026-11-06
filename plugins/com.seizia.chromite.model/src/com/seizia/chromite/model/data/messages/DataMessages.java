@@ -14,12 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.data.messages;
+package com.seizia.chromite.model.data.messages;
 
 import org.eclipse.osgi.util.NLS;
 
 public class DataMessages extends NLS {
-    static final String BUNDLE_NAME = "org.jkiss.dbeaver.model.data.messages.DataMessages"; //$NON-NLS-1$
+    static final String BUNDLE_NAME = "com.seizia.chromite.model.data.messages.DataMessages"; //$NON-NLS-1$
 
     public static String hint_attr_keys_unique_key;
     public static String hint_attr_keys_part_of;

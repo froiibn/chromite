@@ -14,10 +14,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui;
+package com.seizia.chromite.ui;
 
 import org.eclipse.jface.dialogs.IDialogSettings;
-import org.jkiss.dbeaver.model.preferences.DBPSettingsSection;
+import com.seizia.chromite.model.preferences.DBPSettingsSection;
 
 /**
  * DBPSettingsSection impl which delegates everything to IDialogSettings

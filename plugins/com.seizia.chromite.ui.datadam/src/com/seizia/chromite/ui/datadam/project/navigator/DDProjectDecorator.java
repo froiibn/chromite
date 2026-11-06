@@ -14,24 +14,24 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.datadam.project.navigator;
+package com.seizia.chromite.ui.datadam.project.navigator;
 
 import org.eclipse.jface.viewers.ILabelDecorator;
 import org.eclipse.jface.viewers.LabelProvider;
 import org.eclipse.swt.graphics.Image;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.datadam.DDProductConfig;
-import org.jkiss.dbeaver.model.datadam.sync.project.DDProjectManager.BindingStatus;
-import org.jkiss.dbeaver.model.navigator.DBNProject;
-import org.jkiss.dbeaver.ui.DBeaverIcons;
-import org.jkiss.dbeaver.ui.datadam.internal.DDTrackingUIIcons;
-import org.jkiss.dbeaver.ui.datadam.project.DDProjectUIManager;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.datadam.DDProductConfig;
+import com.seizia.chromite.model.datadam.sync.project.DDProjectManager.BindingStatus;
+import com.seizia.chromite.model.navigator.DBNProject;
+import com.seizia.chromite.ui.SwtIcons;
+import com.seizia.chromite.ui.datadam.internal.DDTrackingUIIcons;
+import com.seizia.chromite.ui.datadam.project.DDProjectUIManager;
 
 /** Replaces the icon of projects connected to the current DataDam account in the Project Navigator. */
 public class DDProjectDecorator extends LabelProvider implements ILabelDecorator {
-    public static final String DECORATOR_ID = "org.jkiss.dbeaver.ui.datadam.project.decorator";
+    public static final String DECORATOR_ID = "com.seizia.chromite.ui.datadam.project.decorator";
 
     private static final Log log = Log.getLog(DDProjectDecorator.class);
 
@@ -47,7 +47,7 @@ public class DDProjectDecorator extends LabelProvider implements ILabelDecorator
         }
         try {
             if (manager.getProjectManager().getBindingStatus(projectNode.getProject()) == BindingStatus.CURRENT_ACCOUNT) {
-                return DBeaverIcons.getImage(DDTrackingUIIcons.PROJECT_DATADAM);
+                return SwtIcons.getImage(DDTrackingUIIcons.PROJECT_DATADAM);
             }
         } catch (DBException | IllegalStateException e) {
             log.debug("Error checking DataDam project binding", e);

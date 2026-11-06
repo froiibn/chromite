@@ -14,11 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.postgresql.tasks;
+package com.seizia.chromite.ext.postgresql.tasks;
 
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.ext.postgresql.model.PostgreDataSource;
-import org.jkiss.dbeaver.ext.postgresql.model.PostgreDatabase;
+import com.seizia.chromite.ext.postgresql.model.PostgreDataSource;
+import com.seizia.chromite.ext.postgresql.model.PostgreDatabase;
 
 import java.util.List;
 

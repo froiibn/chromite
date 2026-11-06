@@ -14,11 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.registry;
+package com.seizia.chromite.registry;
 
 import org.eclipse.core.runtime.IConfigurationElement;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.impl.AbstractDescriptor;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.impl.AbstractDescriptor;
 
 import java.net.URL;
 
@@ -27,7 +27,7 @@ import java.net.URL;
  */
 public class ExternalResourceDescriptor extends AbstractDescriptor
 {
-    public static final String EXTENSION_ID = "org.jkiss.dbeaver.resources"; //$NON-NLS-1$
+    public static final String EXTENSION_ID = "com.seizia.chromite.resources"; //$NON-NLS-1$
 
     private static final Log log = Log.getLog(ExternalResourceDescriptor.class);
     private final String name;

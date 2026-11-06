@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.exasol;
+package com.seizia.chromite.ext.exasol;
 
 public enum ExasolSysTablePrefix {
 	SESSION("EXA_SESSION"),

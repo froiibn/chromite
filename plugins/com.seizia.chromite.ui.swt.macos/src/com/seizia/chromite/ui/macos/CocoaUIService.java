@@ -14,14 +14,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.macos;
+package com.seizia.chromite.ui.macos;
 
 import org.eclipse.swt.internal.cocoa.NSString;
 import org.eclipse.swt.internal.cocoa.NSUserDefaults;
-import org.jkiss.dbeaver.ModelPreferences;
-import org.jkiss.dbeaver.model.preferences.DBPPreferenceStore;
-import org.jkiss.dbeaver.runtime.IPluginService;
-import org.jkiss.dbeaver.utils.PrefUtils;
+import com.seizia.chromite.ModelPreferences;
+import com.seizia.chromite.model.preferences.DBPPreferenceStore;
+import com.seizia.chromite.runtime.IPluginService;
+import com.seizia.chromite.utils.PrefUtils;
 
 public class CocoaUIService implements IPluginService {
 

@@ -15,12 +15,12 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.registry;
+package com.seizia.chromite.registry;
 
 import com.sun.jna.platform.win32.Advapi32Util;
 import com.sun.jna.platform.win32.WinReg;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.utils.RuntimeUtils;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.utils.RuntimeUtils;
 
 import java.util.Collections;
 import java.util.Map;

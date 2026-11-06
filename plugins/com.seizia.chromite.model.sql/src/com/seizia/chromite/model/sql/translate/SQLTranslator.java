@@ -14,11 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.sql.translate;
+package com.seizia.chromite.model.sql.translate;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.model.sql.SQLScriptElement;
+import com.seizia.chromite.model.sql.SQLScriptElement;
 
 import java.util.List;
 

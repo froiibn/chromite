@@ -15,9 +15,9 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.model.sql.parser.tokens;
+package com.seizia.chromite.model.sql.parser.tokens;
 
-import org.jkiss.dbeaver.model.text.parser.TPTokenDefault;
+import com.seizia.chromite.model.text.parser.TPTokenDefault;
 
 /**
  * SQLDelimiterToken

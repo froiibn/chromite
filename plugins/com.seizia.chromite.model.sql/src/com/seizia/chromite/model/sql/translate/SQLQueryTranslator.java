@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.sql.translate;
+package com.seizia.chromite.model.sql.translate;
 
 import net.sf.jsqlparser.schema.Table;
 import net.sf.jsqlparser.statement.ReferentialAction;
@@ -28,11 +28,11 @@ import net.sf.jsqlparser.statement.create.table.ForeignKeyIndex;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.model.impl.preferences.SimplePreferenceStore;
-import org.jkiss.dbeaver.model.preferences.DBPPreferenceStore;
-import org.jkiss.dbeaver.model.sql.*;
-import org.jkiss.dbeaver.model.sql.format.SQLFormatUtils;
-import org.jkiss.dbeaver.model.sql.parser.SQLScriptParser;
+import com.seizia.chromite.model.impl.preferences.SimplePreferenceStore;
+import com.seizia.chromite.model.preferences.DBPPreferenceStore;
+import com.seizia.chromite.model.sql.*;
+import com.seizia.chromite.model.sql.format.SQLFormatUtils;
+import com.seizia.chromite.model.sql.parser.SQLScriptParser;
 import org.jkiss.utils.CommonUtils;
 
 import java.io.IOException;

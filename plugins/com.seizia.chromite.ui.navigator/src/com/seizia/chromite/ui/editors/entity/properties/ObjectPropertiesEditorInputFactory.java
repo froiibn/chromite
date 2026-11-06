@@ -14,11 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.editors.entity.properties;
+package com.seizia.chromite.ui.editors.entity.properties;
 
 import org.eclipse.ui.IEditorInput;
-import org.jkiss.dbeaver.ui.editors.IDatabaseEditorInput;
-import org.jkiss.dbeaver.ui.editors.IDatabaseEditorInputFactory;
+import com.seizia.chromite.ui.editors.IDatabaseEditorInput;
+import com.seizia.chromite.ui.editors.IDatabaseEditorInputFactory;
 
 /**
  * ObjectPropertiesEditorInputFactory

@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.sql.procedural;
+package com.seizia.chromite.model.sql.procedural;
 
 import org.antlr.v4.runtime.CharStreams;
 import org.antlr.v4.runtime.CommonTokenStream;
@@ -23,27 +23,27 @@ import org.antlr.v4.runtime.tree.Trees;
 import org.eclipse.core.runtime.Platform;
 import org.jkiss.code.NotNull;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.model.lsm.LSMAnalyzerParameters;
-import org.jkiss.dbeaver.model.lsm.sql.impl.syntax.SQLStandardLexer;
-import org.jkiss.dbeaver.model.lsm.sql.impl.syntax.SQLStandardParser;
-import org.jkiss.dbeaver.model.runtime.VoidProgressMonitor;
-import org.jkiss.dbeaver.model.sql.SQLDialect;
-import org.jkiss.dbeaver.model.sql.SQLSyntaxManager;
-import org.jkiss.dbeaver.model.sql.analyzer.builder.request.RequestBuilder;
-import org.jkiss.dbeaver.model.sql.analyzer.builder.request.RequestResult;
-import org.jkiss.dbeaver.model.sql.semantics.SQLQueryModelRecognizer;
-import org.jkiss.dbeaver.model.sql.semantics.SQLQueryRecognitionContext;
-import org.jkiss.dbeaver.model.sql.semantics.SQLQuerySymbolEntry;
-import org.jkiss.dbeaver.model.sql.semantics.model.SQLQueryModel;
-import org.jkiss.dbeaver.model.sql.semantics.model.SQLQueryNodeModel;
-import org.jkiss.dbeaver.model.sql.semantics.model.programmaticals.SQLQueryProgrammaticalBodyStatementModel;
-import org.jkiss.dbeaver.model.sql.semantics.model.statements.SQLQueryConditionalStatement;
-import org.jkiss.dbeaver.model.sql.semantics.model.statements.SQLQueryEmbeddedStatement;
-import org.jkiss.dbeaver.model.sql.semantics.model.statements.SQLQueryStatementBlock;
-import org.jkiss.dbeaver.model.sql.semantics.model.statements.SQLQueryStatementModel;
-import org.jkiss.dbeaver.model.sql.semantics.model.statements.SQLQueryStatementSequence;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.junit.DBeaverUnitTest;
+import com.seizia.chromite.model.lsm.LSMAnalyzerParameters;
+import com.seizia.chromite.model.lsm.sql.impl.syntax.SQLStandardLexer;
+import com.seizia.chromite.model.lsm.sql.impl.syntax.SQLStandardParser;
+import com.seizia.chromite.model.runtime.VoidProgressMonitor;
+import com.seizia.chromite.model.sql.SQLDialect;
+import com.seizia.chromite.model.sql.SQLSyntaxManager;
+import com.seizia.chromite.model.sql.analyzer.builder.request.RequestBuilder;
+import com.seizia.chromite.model.sql.analyzer.builder.request.RequestResult;
+import com.seizia.chromite.model.sql.semantics.SQLQueryModelRecognizer;
+import com.seizia.chromite.model.sql.semantics.SQLQueryRecognitionContext;
+import com.seizia.chromite.model.sql.semantics.SQLQuerySymbolEntry;
+import com.seizia.chromite.model.sql.semantics.model.SQLQueryModel;
+import com.seizia.chromite.model.sql.semantics.model.SQLQueryNodeModel;
+import com.seizia.chromite.model.sql.semantics.model.programmaticals.SQLQueryProgrammaticalBodyStatementModel;
+import com.seizia.chromite.model.sql.semantics.model.statements.SQLQueryConditionalStatement;
+import com.seizia.chromite.model.sql.semantics.model.statements.SQLQueryEmbeddedStatement;
+import com.seizia.chromite.model.sql.semantics.model.statements.SQLQueryStatementBlock;
+import com.seizia.chromite.model.sql.semantics.model.statements.SQLQueryStatementModel;
+import com.seizia.chromite.model.sql.semantics.model.statements.SQLQueryStatementSequence;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.junit.ChromiteUnitTest;
 import org.junit.jupiter.api.Assertions;
 
 import java.util.ArrayList;
@@ -52,7 +52,7 @@ import java.util.List;
 import java.util.Set;
 
 /** Shared fixture for supported procedural syntax and its semantic completion context. */
-abstract class ProceduralDialectTestBase extends DBeaverUnitTest {
+abstract class ProceduralDialectTestBase extends ChromiteUnitTest {
     @NotNull
     protected abstract SQLDialect dialect();
 

@@ -14,22 +14,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.oracle.ui.config;
+package com.seizia.chromite.ext.oracle.ui.config;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.ext.oracle.model.OracleTableColumn;
-import org.jkiss.dbeaver.ext.oracle.model.OracleTableIndex;
-import org.jkiss.dbeaver.ext.oracle.model.OracleTableIndexColumn;
-import org.jkiss.dbeaver.ext.oracle.ui.internal.OracleUIMessages;
-import org.jkiss.dbeaver.model.edit.DBECommandContext;
-import org.jkiss.dbeaver.model.edit.DBEObjectConfigurator;
-import org.jkiss.dbeaver.model.impl.DBObjectNameCaseTransformer;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.model.struct.DBSEntityAttribute;
-import org.jkiss.dbeaver.model.struct.rdb.DBSIndexType;
-import org.jkiss.dbeaver.ui.UITask;
-import org.jkiss.dbeaver.ui.editors.object.struct.EditIndexPage;
+import com.seizia.chromite.ext.oracle.model.OracleTableColumn;
+import com.seizia.chromite.ext.oracle.model.OracleTableIndex;
+import com.seizia.chromite.ext.oracle.model.OracleTableIndexColumn;
+import com.seizia.chromite.ext.oracle.ui.internal.OracleUIMessages;
+import com.seizia.chromite.model.edit.DBECommandContext;
+import com.seizia.chromite.model.edit.DBEObjectConfigurator;
+import com.seizia.chromite.model.impl.DBObjectNameCaseTransformer;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.model.struct.DBSEntityAttribute;
+import com.seizia.chromite.model.struct.rdb.DBSIndexType;
+import com.seizia.chromite.ui.UITask;
+import com.seizia.chromite.ui.editors.object.struct.EditIndexPage;
 import org.jkiss.utils.CommonUtils;
 
 import java.util.Collections;

@@ -14,20 +14,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.postgresql.model;
+package com.seizia.chromite.ext.postgresql.model;
 
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.ext.postgresql.PostgreConstants;
-import org.jkiss.dbeaver.ext.postgresql.PostgreTestUtils;
-import org.jkiss.dbeaver.model.DBPAttributeReferencePurpose;
-import org.jkiss.dbeaver.model.DBPDataSourceContainer;
-import org.jkiss.dbeaver.model.DBPEvaluationContext;
-import org.jkiss.dbeaver.model.data.DBDAttributeBinding;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.model.struct.DBSTypedObject;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.junit.DBeaverUnitTest;
+import com.seizia.chromite.ext.postgresql.PostgreConstants;
+import com.seizia.chromite.ext.postgresql.PostgreTestUtils;
+import com.seizia.chromite.model.DBPAttributeReferencePurpose;
+import com.seizia.chromite.model.DBPDataSourceContainer;
+import com.seizia.chromite.model.DBPEvaluationContext;
+import com.seizia.chromite.model.data.DBDAttributeBinding;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.model.struct.DBSTypedObject;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.junit.ChromiteUnitTest;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -36,7 +36,7 @@ import org.mockito.Mockito;
 
 import java.sql.Types;
 
-public class PostgreDialectFunctionsTest extends DBeaverUnitTest {
+public class PostgreDialectFunctionsTest extends ChromiteUnitTest {
 
     @Mock
     DBRProgressMonitor monitor;

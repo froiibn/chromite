@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.e4;
+package com.seizia.chromite.ui.e4;
 
 import org.eclipse.e4.ui.internal.workbench.renderers.swt.AbstractTableInformationControl;
 import org.eclipse.e4.ui.internal.workbench.renderers.swt.BasicPartList;
@@ -36,20 +36,20 @@ import org.eclipse.swt.widgets.Shell;
 import org.eclipse.swt.widgets.Table;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.DBPDataSourceContainer;
-import org.jkiss.dbeaver.ui.BaseThemeSettings;
-import org.jkiss.dbeaver.ui.ConnectionLabelUtils;
-import org.jkiss.dbeaver.ui.SearchCellLabelProvider;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.DBPDataSourceContainer;
+import com.seizia.chromite.ui.BaseThemeSettings;
+import com.seizia.chromite.ui.ConnectionLabelUtils;
+import com.seizia.chromite.ui.SearchCellLabelProvider;
 
 import java.lang.reflect.Method;
 
-public class DBeaverPartList extends BasicPartList {
-    private static final Log log = Log.getLog(DBeaverPartList.class);
+public class ChromitePartList extends BasicPartList {
+    private static final Log log = Log.getLog(ChromitePartList.class);
 
     private final StackRenderer renderer;
 
-    public DBeaverPartList(
+    public ChromitePartList(
         @Nullable Shell parent,
         int shellStyle,
         int treeStyler,
@@ -123,7 +123,7 @@ public class DBeaverPartList extends BasicPartList {
             if (!(element instanceof MPart part)) {
                 return null;
             }
-            return DBeaverEditorPartUtils.getDataSourceContainer(part);
+            return ChromiteEditorPartUtils.getDataSourceContainer(part);
         }
 
         @NotNull
@@ -134,7 +134,7 @@ public class DBeaverPartList extends BasicPartList {
         @Nullable
         @Override
         public String getPattern() {
-            return DBeaverPartList.this.getPattern();
+            return ChromitePartList.this.getPattern();
         }
 
         @NotNull

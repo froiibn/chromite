@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.ui.editors.entity.properties;
+package com.seizia.chromite.ui.editors.entity.properties;
 
 import org.eclipse.core.commands.AbstractHandler;
 import org.eclipse.core.commands.ExecutionEvent;
@@ -25,14 +25,14 @@ import org.eclipse.ui.handlers.HandlerUtil;
 import org.eclipse.ui.part.MultiPageEditorPart;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.ui.controls.folders.TabbedFolderInfo;
+import com.seizia.chromite.ui.controls.folders.TabbedFolderInfo;
 import org.jkiss.utils.ArrayUtils;
 
 
 public class ObjectPropertiesTabFolderSwitchCommandHandler extends AbstractHandler {
     
-    public static final String NEXT_PAGE_COMMAND_ID = "org.jkiss.dbeaver.entity.propsTab.nextPage";
-    public static final String PREV_PAGE_COMMAND_ID = "org.jkiss.dbeaver.entity.propsTab.prevPage";
+    public static final String NEXT_PAGE_COMMAND_ID = "com.seizia.chromite.entity.propsTab.nextPage";
+    public static final String PREV_PAGE_COMMAND_ID = "com.seizia.chromite.entity.propsTab.prevPage";
     
     @Nullable
     @Override

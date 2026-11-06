@@ -15,9 +15,9 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.debug;
+package com.seizia.chromite.debug;
 
-import org.jkiss.dbeaver.model.DBPObject;
+import com.seizia.chromite.model.DBPObject;
 
 /**
  * Object which can be debugged

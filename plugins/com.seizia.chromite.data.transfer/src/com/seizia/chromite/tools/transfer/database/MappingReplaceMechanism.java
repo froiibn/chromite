@@ -14,12 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.tools.transfer.database;
+package com.seizia.chromite.tools.transfer.database;
 
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.model.preferences.DBPPreferenceStore;
-import org.jkiss.dbeaver.tools.transfer.DTConstants;
-import org.jkiss.dbeaver.tools.transfer.internal.DTMessages;
+import com.seizia.chromite.model.preferences.DBPPreferenceStore;
+import com.seizia.chromite.tools.transfer.DTConstants;
+import com.seizia.chromite.tools.transfer.internal.DTMessages;
 
 public enum MappingReplaceMechanism {
 

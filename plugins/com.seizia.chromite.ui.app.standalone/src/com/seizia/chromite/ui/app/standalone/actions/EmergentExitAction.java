@@ -14,13 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.app.standalone.actions;
+package com.seizia.chromite.ui.app.standalone.actions;
 
 import org.eclipse.jface.action.Action;
 import org.eclipse.ui.IWorkbenchWindow;
-import org.jkiss.dbeaver.model.DBIcon;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.app.standalone.internal.CoreApplicationMessages;
+import com.seizia.chromite.model.DBIcon;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.app.standalone.internal.CoreApplicationMessages;
 
 public class EmergentExitAction extends Action {
 

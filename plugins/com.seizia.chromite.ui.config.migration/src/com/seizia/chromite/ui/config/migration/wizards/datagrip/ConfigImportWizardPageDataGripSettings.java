@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.ui.config.migration.wizards.datagrip;
+package com.seizia.chromite.ui.config.migration.wizards.datagrip;
 
 import org.eclipse.jface.wizard.WizardPage;
 import org.eclipse.osgi.util.NLS;
@@ -29,12 +29,12 @@ import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Text;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.ui.UIIcon;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.config.migration.ImportConfigMessages;
-import org.jkiss.dbeaver.ui.config.migration.datagrip.api.DataGripDataSourceConfigXmlService;
-import org.jkiss.dbeaver.ui.config.migration.datagrip.impl.DataGripDataSourceConfigXmlServiceImpl;
-import org.jkiss.dbeaver.ui.dialogs.DialogUtils;
+import com.seizia.chromite.ui.UIIcon;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.config.migration.ImportConfigMessages;
+import com.seizia.chromite.ui.config.migration.datagrip.api.DataGripDataSourceConfigXmlService;
+import com.seizia.chromite.ui.config.migration.datagrip.impl.DataGripDataSourceConfigXmlServiceImpl;
+import com.seizia.chromite.ui.dialogs.DialogUtils;
 
 import java.nio.file.Files;
 import java.nio.file.InvalidPathException;

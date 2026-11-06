@@ -14,15 +14,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.mimer.model.gis;
+package com.seizia.chromite.ext.mimer.model.gis;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.model.data.DBDAttributeBinding;
-import org.jkiss.dbeaver.model.data.DBDAttributeTransformer;
-import org.jkiss.dbeaver.model.exec.DBCSession;
-import org.jkiss.dbeaver.model.gis.GisConstants;
-import org.jkiss.dbeaver.model.impl.data.transformers.TransformerPresentationAttribute;
+import com.seizia.chromite.model.data.DBDAttributeBinding;
+import com.seizia.chromite.model.data.DBDAttributeTransformer;
+import com.seizia.chromite.model.exec.DBCSession;
+import com.seizia.chromite.model.gis.GisConstants;
+import com.seizia.chromite.model.impl.data.transformers.TransformerPresentationAttribute;
 
 import java.util.List;
 import java.util.Map;
@@ -34,7 +34,7 @@ import java.util.Map;
  * Manual</a>), with integer {@code X()}/{@code Y()} components. Unlike {@link
  * MimerGisLocationTransformer}'s {@code GIS_LOCATION}, this is a
  * bare local 2D point, not a geographic lat/long one, so it's registered with {@link
- * org.jkiss.dbeaver.model.gis.GisConstants#SRID_SIMPLE} (no real-world coordinate system) rather
+ * com.seizia.chromite.model.gis.GisConstants#SRID_SIMPLE} (no real-world coordinate system) rather
  * than {@code SRID_4326} - the geometry viewer still plots it fine, just without a real map
  * behind it.
  * <p>

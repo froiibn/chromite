@@ -14,26 +14,26 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.tasks.ui.wizard;
+package com.seizia.chromite.tasks.ui.wizard;
 
 import org.eclipse.jface.wizard.IWizard;
 import org.eclipse.osgi.util.NLS;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.layout.FillLayout;
 import org.eclipse.swt.widgets.Composite;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.exec.DBCException;
-import org.jkiss.dbeaver.model.task.DBTTask;
-import org.jkiss.dbeaver.model.task.DBTTaskType;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.tasks.ui.DBTTaskConfigPanel;
-import org.jkiss.dbeaver.tasks.ui.DBTTaskConfigPanelProvider;
-import org.jkiss.dbeaver.tasks.ui.DBTTaskConfigurator;
-import org.jkiss.dbeaver.tasks.ui.internal.TaskUIMessages;
-import org.jkiss.dbeaver.tasks.ui.registry.TaskUIRegistry;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.dialogs.ActiveWizardPage;
-import org.jkiss.dbeaver.ui.dialogs.IWizardPageNavigable;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.exec.DBCException;
+import com.seizia.chromite.model.task.DBTTask;
+import com.seizia.chromite.model.task.DBTTaskType;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.tasks.ui.DBTTaskConfigPanel;
+import com.seizia.chromite.tasks.ui.DBTTaskConfigPanelProvider;
+import com.seizia.chromite.tasks.ui.DBTTaskConfigurator;
+import com.seizia.chromite.tasks.ui.internal.TaskUIMessages;
+import com.seizia.chromite.tasks.ui.registry.TaskUIRegistry;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.dialogs.ActiveWizardPage;
+import com.seizia.chromite.ui.dialogs.IWizardPageNavigable;
 
 /**
  * Page for task initial settings

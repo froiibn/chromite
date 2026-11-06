@@ -14,27 +14,27 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.ai.engine.ollama;
+package com.seizia.chromite.model.ai.engine.ollama;
 
 import org.eclipse.core.runtime.Platform;
-import org.jkiss.dbeaver.model.ai.AISettings;
-import org.jkiss.dbeaver.model.ai.registry.AIEngineDescriptor;
-import org.jkiss.dbeaver.model.ai.registry.AIEngineRegistry;
-import org.jkiss.dbeaver.model.ai.registry.AISettingsManager;
-import org.jkiss.junit.DBeaverUnitTest;
+import com.seizia.chromite.model.ai.AISettings;
+import com.seizia.chromite.model.ai.registry.AIEngineDescriptor;
+import com.seizia.chromite.model.ai.registry.AIEngineRegistry;
+import com.seizia.chromite.model.ai.registry.AISettingsManager;
+import com.seizia.chromite.junit.ChromiteUnitTest;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import java.util.Arrays;
 
-public class OllamaConfigurationTest extends DBeaverUnitTest {
+public class OllamaConfigurationTest extends ChromiteUnitTest {
     @Test
     public void engineIsContributedByCommunityBundle() throws Exception {
         var contributions = Arrays.stream(Platform.getExtensionRegistry().getConfigurationElementsFor(AIEngineDescriptor.EXTENSION_ID))
             .filter(element -> "ollama".equals(element.getAttribute("id")))
             .toList();
         Assertions.assertEquals(1, contributions.size());
-        Assertions.assertEquals("org.jkiss.dbeaver.model.ai", contributions.getFirst().getContributor().getName());
+        Assertions.assertEquals("com.seizia.chromite.model.ai", contributions.getFirst().getContributor().getName());
         AIEngineDescriptor descriptor = AIEngineRegistry.getInstance().getEngineDescriptor("ollama");
         Assertions.assertNotNull(descriptor);
         Assertions.assertEquals(OllamaProperties.class, descriptor.getPropertiesType());

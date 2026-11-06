@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.ui.controls.lightgrid;
+package com.seizia.chromite.ui.controls.lightgrid;
 
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.graphics.Font;
@@ -23,10 +23,10 @@ import org.eclipse.swt.graphics.GC;
 import org.eclipse.swt.graphics.Image;
 import org.eclipse.swt.graphics.Rectangle;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.model.DBPImage;
-import org.jkiss.dbeaver.ui.DBeaverIcons;
-import org.jkiss.dbeaver.ui.UIIcon;
-import org.jkiss.dbeaver.ui.UITextUtils;
+import com.seizia.chromite.model.DBPImage;
+import com.seizia.chromite.ui.SwtIcons;
+import com.seizia.chromite.ui.UIIcon;
+import com.seizia.chromite.ui.UITextUtils;
 import org.jkiss.utils.CommonUtils;
 
 /**
@@ -40,10 +40,10 @@ class GridColumnRenderer extends AbstractRenderer {
     public static final int ARROW_MARGIN = 6;
     public static final int IMAGE_SPACING = 3;
 
-    public static final Image IMAGE_ASTERISK = DBeaverIcons.getImage(UIIcon.SORT_UNKNOWN);
-    public static final Image IMAGE_DESC = DBeaverIcons.getImage(UIIcon.SORT_INCREASE);
-    public static final Image IMAGE_ASC = DBeaverIcons.getImage(UIIcon.SORT_DECREASE);
-    public static final Image IMAGE_FILTER = DBeaverIcons.getImage(UIIcon.DROP_DOWN);
+    public static final Image IMAGE_ASTERISK = SwtIcons.getImage(UIIcon.SORT_UNKNOWN);
+    public static final Image IMAGE_DESC = SwtIcons.getImage(UIIcon.SORT_INCREASE);
+    public static final Image IMAGE_ASC = SwtIcons.getImage(UIIcon.SORT_DECREASE);
+    public static final Image IMAGE_FILTER = SwtIcons.getImage(UIIcon.DROP_DOWN);
 
     public static final int SORT_WIDTH = IMAGE_DESC.getBounds().width;
     public static final int SORT_HEIGHT = IMAGE_DESC.getBounds().height;
@@ -144,7 +144,7 @@ class GridColumnRenderer extends AbstractRenderer {
             }
             int maxWidth = 0;
             for (DBPImage hi : hintInfo.icons) {
-                Image hintImage = DBeaverIcons.getImage(hi);
+                Image hintImage = SwtIcons.getImage(hi);
                 Rectangle imageBounds = hintImage.getBounds();
 
                 if (hintInfo.icons.size() == 1) {

@@ -15,13 +15,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.ai.engine.openai;
+package com.seizia.chromite.model.ai.engine.openai;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.model.ai.engine.AIModel;
-import org.jkiss.dbeaver.model.ai.engine.AIModelFeature;
-import org.jkiss.dbeaver.model.ai.engine.openai.dto.OAIModel;
+import com.seizia.chromite.model.ai.engine.AIModel;
+import com.seizia.chromite.model.ai.engine.AIModelFeature;
+import com.seizia.chromite.model.ai.engine.openai.dto.OAIModel;
 import org.jkiss.utils.CommonUtils;
 
 import java.net.URI;

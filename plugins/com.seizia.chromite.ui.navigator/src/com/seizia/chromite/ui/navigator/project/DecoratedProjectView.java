@@ -14,11 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.navigator.project;
+package com.seizia.chromite.ui.navigator.project;
 
 import org.eclipse.jface.viewers.ILabelDecorator;
 import org.eclipse.ui.PlatformUI;
-import org.jkiss.dbeaver.ui.navigator.database.NavigatorViewBase;
+import com.seizia.chromite.ui.navigator.database.NavigatorViewBase;
 
 /**
  * DecoratedProjectView

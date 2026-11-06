@@ -14,14 +14,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.cubrid.ui.config;
+package com.seizia.chromite.ext.cubrid.ui.config;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.ext.cubrid.model.CubridPrivilage;
-import org.jkiss.dbeaver.model.edit.prop.DBECommandComposite;
-import org.jkiss.dbeaver.model.edit.prop.DBEPropertyHandler;
-import org.jkiss.dbeaver.model.edit.prop.DBEPropertyReflector;
+import com.seizia.chromite.ext.cubrid.model.CubridPrivilage;
+import com.seizia.chromite.model.edit.prop.DBECommandComposite;
+import com.seizia.chromite.model.edit.prop.DBEPropertyHandler;
+import com.seizia.chromite.model.edit.prop.DBEPropertyReflector;
 
 public enum CubridPrivilageHandler implements DBEPropertyHandler<CubridPrivilage>, DBEPropertyReflector<CubridPrivilage>
 {

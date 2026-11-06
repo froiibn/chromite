@@ -14,14 +14,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.hana.edit;
+package com.seizia.chromite.ext.hana.edit;
 
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.ext.generic.edit.GenericTableColumnManager;
-import org.jkiss.dbeaver.ext.generic.model.GenericTableBase;
-import org.jkiss.dbeaver.ext.generic.model.GenericTableColumn;
-import org.jkiss.dbeaver.model.impl.edit.DBECommandAbstract;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.ext.generic.edit.GenericTableColumnManager;
+import com.seizia.chromite.ext.generic.model.GenericTableBase;
+import com.seizia.chromite.ext.generic.model.GenericTableColumn;
+import com.seizia.chromite.model.impl.edit.DBECommandAbstract;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
 
 import java.util.Map;
 

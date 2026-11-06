@@ -14,17 +14,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.ai.registry;
+package com.seizia.chromite.model.ai.registry;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.model.WorkspaceConfigEventManager;
-import org.jkiss.dbeaver.model.app.DBPWorkspace;
-import org.jkiss.dbeaver.model.ai.internal.AIMessages;
-import org.jkiss.dbeaver.model.sync.DBPFileSyncUnit;
-import org.jkiss.dbeaver.model.sync.DBPSyncScope;
-import org.jkiss.dbeaver.model.sync.DBPSyncTarget;
-import org.jkiss.dbeaver.registry.BasePlatformImpl;
+import com.seizia.chromite.model.WorkspaceConfigEventManager;
+import com.seizia.chromite.model.app.DBPWorkspace;
+import com.seizia.chromite.model.ai.internal.AIMessages;
+import com.seizia.chromite.model.sync.DBPFileSyncUnit;
+import com.seizia.chromite.model.sync.DBPSyncScope;
+import com.seizia.chromite.model.sync.DBPSyncTarget;
+import com.seizia.chromite.registry.BasePlatformImpl;
 
 import java.util.Map;
 

@@ -14,11 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.search.metadata;
+package com.seizia.chromite.ui.search.metadata;
 
 import org.eclipse.search.ui.ISearchQuery;
-import org.jkiss.dbeaver.model.navigator.DBNNode;
-import org.jkiss.dbeaver.ui.search.AbstractSearchResult;
+import com.seizia.chromite.model.navigator.DBNNode;
+import com.seizia.chromite.ui.search.AbstractSearchResult;
 
 public class SearchMetadataResult extends AbstractSearchResult<DBNNode> {
 

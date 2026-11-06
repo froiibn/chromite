@@ -14,27 +14,27 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.sql.semantics;
+package com.seizia.chromite.model.sql.semantics;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.DBPUniqueObject;
-import org.jkiss.dbeaver.model.DBUtils;
-import org.jkiss.dbeaver.model.data.DBDPseudoAttribute;
-import org.jkiss.dbeaver.model.impl.struct.RelationalObjectType;
-import org.jkiss.dbeaver.model.sql.SQLDialect;
-import org.jkiss.dbeaver.model.sql.SQLUtils;
-import org.jkiss.dbeaver.model.sql.semantics.context.*;
-import org.jkiss.dbeaver.model.sql.semantics.model.select.SQLQueryRowsSourceModel;
-import org.jkiss.dbeaver.model.sql.semantics.model.select.SQLQueryRowsTableDataModel;
-import org.jkiss.dbeaver.model.stm.STMTreeNode;
-import org.jkiss.dbeaver.model.struct.*;
-import org.jkiss.dbeaver.model.struct.rdb.DBSCatalog;
-import org.jkiss.dbeaver.model.struct.rdb.DBSSchema;
-import org.jkiss.dbeaver.model.struct.rdb.DBSTable;
-import org.jkiss.dbeaver.model.struct.rdb.DBSView;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.DBPUniqueObject;
+import com.seizia.chromite.model.DBUtils;
+import com.seizia.chromite.model.data.DBDPseudoAttribute;
+import com.seizia.chromite.model.impl.struct.RelationalObjectType;
+import com.seizia.chromite.model.sql.SQLDialect;
+import com.seizia.chromite.model.sql.SQLUtils;
+import com.seizia.chromite.model.sql.semantics.context.*;
+import com.seizia.chromite.model.sql.semantics.model.select.SQLQueryRowsSourceModel;
+import com.seizia.chromite.model.sql.semantics.model.select.SQLQueryRowsTableDataModel;
+import com.seizia.chromite.model.stm.STMTreeNode;
+import com.seizia.chromite.model.struct.*;
+import com.seizia.chromite.model.struct.rdb.DBSCatalog;
+import com.seizia.chromite.model.struct.rdb.DBSSchema;
+import com.seizia.chromite.model.struct.rdb.DBSTable;
+import com.seizia.chromite.model.struct.rdb.DBSView;
 import org.jkiss.utils.Pair;
 
 import java.util.ArrayList;

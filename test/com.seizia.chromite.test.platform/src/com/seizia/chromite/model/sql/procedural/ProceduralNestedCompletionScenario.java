@@ -14,21 +14,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.sql.procedural;
+package com.seizia.chromite.model.sql.procedural;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.model.impl.sql.BasicSQLDialect;
-import org.jkiss.dbeaver.model.sql.SQLDialect;
-import org.jkiss.dbeaver.model.sql.SQLDialectFeatures;
-import org.jkiss.dbeaver.model.sql.analyzer.builder.request.RequestBuilder;
-import org.jkiss.dbeaver.model.sql.semantics.SQLQuerySymbolEntry;
-import org.jkiss.dbeaver.model.sql.semantics.completion.SQLQueryCompletionItemKind;
-import org.jkiss.dbeaver.model.sql.semantics.completion.SQLQueryCompletionProposal;
-import org.jkiss.dbeaver.model.sql.semantics.context.SQLQueryLocalVariableInfo;
-import org.jkiss.dbeaver.model.sql.semantics.model.SQLQueryModel;
-import org.jkiss.dbeaver.model.sql.semantics.model.programmaticals.SQLQueryProgrammaticalBodyStatementModel;
-import org.jkiss.dbeaver.model.sql.semantics.model.statements.SQLQueryConditionalStatement;
+import com.seizia.chromite.model.impl.sql.BasicSQLDialect;
+import com.seizia.chromite.model.sql.SQLDialect;
+import com.seizia.chromite.model.sql.SQLDialectFeatures;
+import com.seizia.chromite.model.sql.analyzer.builder.request.RequestBuilder;
+import com.seizia.chromite.model.sql.semantics.SQLQuerySymbolEntry;
+import com.seizia.chromite.model.sql.semantics.completion.SQLQueryCompletionItemKind;
+import com.seizia.chromite.model.sql.semantics.completion.SQLQueryCompletionProposal;
+import com.seizia.chromite.model.sql.semantics.context.SQLQueryLocalVariableInfo;
+import com.seizia.chromite.model.sql.semantics.model.SQLQueryModel;
+import com.seizia.chromite.model.sql.semantics.model.programmaticals.SQLQueryProgrammaticalBodyStatementModel;
+import com.seizia.chromite.model.sql.semantics.model.statements.SQLQueryConditionalStatement;
 import org.junit.jupiter.api.Assertions;
 
 import java.util.*;

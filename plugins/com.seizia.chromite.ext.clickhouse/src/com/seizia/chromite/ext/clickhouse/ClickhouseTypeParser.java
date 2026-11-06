@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.clickhouse;
+package com.seizia.chromite.ext.clickhouse;
 
 import com.google.gson.Gson;
 import org.antlr.v4.runtime.CharStreams;
@@ -22,21 +22,21 @@ import org.antlr.v4.runtime.CommonTokenStream;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.ext.clickhouse.ClickhouseDataTypesParser.ArrayTypeContext;
-import org.jkiss.dbeaver.ext.clickhouse.ClickhouseDataTypesParser.MapTypeContext;
-import org.jkiss.dbeaver.ext.clickhouse.ClickhouseDataTypesParser.TupleTypeContext;
-import org.jkiss.dbeaver.ext.clickhouse.model.*;
-import org.jkiss.dbeaver.ext.clickhouse.model.data.ClickhouseArrayValueHandler;
-import org.jkiss.dbeaver.ext.clickhouse.model.data.ClickhouseMapValue;
-import org.jkiss.dbeaver.ext.clickhouse.model.data.ClickhouseTupleValue;
-import org.jkiss.dbeaver.model.DBUtils;
-import org.jkiss.dbeaver.model.data.json.JSONUtils;
-import org.jkiss.dbeaver.model.exec.DBCSession;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.model.struct.DBSDataType;
-import org.jkiss.dbeaver.model.struct.DBSEntity;
-import org.jkiss.dbeaver.model.struct.DBSTypedObject;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.ext.clickhouse.ClickhouseDataTypesParser.ArrayTypeContext;
+import com.seizia.chromite.ext.clickhouse.ClickhouseDataTypesParser.MapTypeContext;
+import com.seizia.chromite.ext.clickhouse.ClickhouseDataTypesParser.TupleTypeContext;
+import com.seizia.chromite.ext.clickhouse.model.*;
+import com.seizia.chromite.ext.clickhouse.model.data.ClickhouseArrayValueHandler;
+import com.seizia.chromite.ext.clickhouse.model.data.ClickhouseMapValue;
+import com.seizia.chromite.ext.clickhouse.model.data.ClickhouseTupleValue;
+import com.seizia.chromite.model.DBUtils;
+import com.seizia.chromite.model.data.json.JSONUtils;
+import com.seizia.chromite.model.exec.DBCSession;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.model.struct.DBSDataType;
+import com.seizia.chromite.model.struct.DBSEntity;
+import com.seizia.chromite.model.struct.DBSTypedObject;
 import org.jkiss.utils.CommonUtils;
 import org.jkiss.utils.Pair;
 

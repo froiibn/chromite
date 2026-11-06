@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.dialogs.driver;
+package com.seizia.chromite.ui.dialogs.driver;
 
 import org.eclipse.core.runtime.Platform;
 import org.eclipse.jface.dialogs.IDialogConstants;
@@ -37,26 +37,26 @@ import org.eclipse.ui.internal.WorkbenchMessages;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.DBFileController;
-import org.jkiss.dbeaver.model.DBIcon;
-import org.jkiss.dbeaver.model.connection.DBPDriver;
-import org.jkiss.dbeaver.model.connection.DBPDriverLibrary;
-import org.jkiss.dbeaver.registry.DataSourceProviderDescriptor;
-import org.jkiss.dbeaver.registry.DataSourceProviderRegistry;
-import org.jkiss.dbeaver.registry.driver.*;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.runtime.properties.PropertySourceCustom;
-import org.jkiss.dbeaver.ui.*;
-import org.jkiss.dbeaver.ui.controls.CSmartCombo;
-import org.jkiss.dbeaver.ui.dialogs.BaseDialog;
-import org.jkiss.dbeaver.ui.dialogs.connection.ClientHomesPanel;
-import org.jkiss.dbeaver.ui.dialogs.connection.ConnectionPropertiesControl;
-import org.jkiss.dbeaver.ui.internal.UIConnectionMessages;
-import org.jkiss.dbeaver.ui.internal.UIMessages;
-import org.jkiss.dbeaver.ui.preferences.PrefPageDriversClasspath;
-import org.jkiss.dbeaver.ui.properties.PropertyTreeViewer;
-import org.jkiss.dbeaver.utils.RuntimeUtils;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.DBFileController;
+import com.seizia.chromite.model.DBIcon;
+import com.seizia.chromite.model.connection.DBPDriver;
+import com.seizia.chromite.model.connection.DBPDriverLibrary;
+import com.seizia.chromite.registry.DataSourceProviderDescriptor;
+import com.seizia.chromite.registry.DataSourceProviderRegistry;
+import com.seizia.chromite.registry.driver.*;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.runtime.properties.PropertySourceCustom;
+import com.seizia.chromite.ui.*;
+import com.seizia.chromite.ui.controls.CSmartCombo;
+import com.seizia.chromite.ui.dialogs.BaseDialog;
+import com.seizia.chromite.ui.dialogs.connection.ClientHomesPanel;
+import com.seizia.chromite.ui.dialogs.connection.ConnectionPropertiesControl;
+import com.seizia.chromite.ui.internal.UIConnectionMessages;
+import com.seizia.chromite.ui.internal.UIMessages;
+import com.seizia.chromite.ui.preferences.PrefPageDriversClasspath;
+import com.seizia.chromite.ui.properties.PropertyTreeViewer;
+import com.seizia.chromite.utils.RuntimeUtils;
 import org.jkiss.utils.ArrayUtils;
 import org.jkiss.utils.CommonUtils;
 import org.jkiss.utils.IOUtils;
@@ -260,7 +260,7 @@ public class DriverEditDialog extends BaseDialog {
                 new LabelProvider() {
                     @Override
                     public Image getImage(Object element) {
-                        return DBeaverIcons.getImage(((DataSourceProviderDescriptor) element).getIcon());
+                        return SwtIcons.getImage(((DataSourceProviderDescriptor) element).getIcon());
                     }
 
                     @Override
@@ -467,17 +467,17 @@ public class DriverEditDialog extends BaseDialog {
                         } else {
                             cell.setForeground(null);
                         }
-                        cell.setImage(DBeaverIcons.getImage(lib.getIcon()));
+                        cell.setImage(SwtIcons.getImage(lib.getIcon()));
                     } else {
                         cell.setText(element.toString());
                         if (element instanceof DriverFileInfo) {
                             if (((DriverFileInfo)element).getType() == DBPDriverLibrary.FileType.license) {
-                                cell.setImage(DBeaverIcons.getImage(DBIcon.TYPE_TEXT));
+                                cell.setImage(SwtIcons.getImage(DBIcon.TYPE_TEXT));
                             } else {
-                                cell.setImage(DBeaverIcons.getImage(DBIcon.JAR));
+                                cell.setImage(SwtIcons.getImage(DBIcon.JAR));
                             }
                         } else {
-                            cell.setImage(DBeaverIcons.getImage(DBIcon.JAR));
+                            cell.setImage(SwtIcons.getImage(DBIcon.JAR));
                         }
                     }
                 }

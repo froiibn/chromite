@@ -15,13 +15,13 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.ext.bigquery.model;
+package com.seizia.chromite.ext.bigquery.model;
 
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.ModelPreferences;
-import org.jkiss.dbeaver.ext.generic.model.GenericDataType;
-import org.jkiss.dbeaver.ext.generic.model.GenericStructContainer;
-import org.jkiss.dbeaver.model.DBPDataKind;
+import com.seizia.chromite.ModelPreferences;
+import com.seizia.chromite.ext.generic.model.GenericDataType;
+import com.seizia.chromite.ext.generic.model.GenericStructContainer;
+import com.seizia.chromite.model.DBPDataKind;
 
 public class BQDataType extends GenericDataType {
     public BQDataType(GenericStructContainer owner, int valueType, String name, String remarks, boolean unsigned, boolean searchable, int precision, int minScale, int maxScale) {

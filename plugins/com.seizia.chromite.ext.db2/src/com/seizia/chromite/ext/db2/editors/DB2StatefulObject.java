@@ -15,13 +15,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.db2.editors;
+package com.seizia.chromite.ext.db2.editors;
 
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.ext.db2.model.DB2DataSource;
-import org.jkiss.dbeaver.ext.db2.model.DB2Schema;
-import org.jkiss.dbeaver.model.DBPStatefulObject;
-import org.jkiss.dbeaver.model.struct.DBSObject;
+import com.seizia.chromite.ext.db2.model.DB2DataSource;
+import com.seizia.chromite.ext.db2.model.DB2Schema;
+import com.seizia.chromite.model.DBPStatefulObject;
+import com.seizia.chromite.model.struct.DBSObject;
 
 /**
  * DB2StatefulObject

@@ -16,17 +16,17 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.debug.core.breakpoints;
+package com.seizia.chromite.debug.core.breakpoints;
 
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.debug.core.DebugPlugin;
 import org.eclipse.debug.core.model.Breakpoint;
-import org.jkiss.dbeaver.debug.DBGBreakpointDescriptor;
-import org.jkiss.dbeaver.debug.DBGConstants;
-import org.jkiss.dbeaver.model.DBPEvaluationContext;
-import org.jkiss.dbeaver.model.DBUtils;
-import org.jkiss.dbeaver.model.navigator.DBNNode;
-import org.jkiss.dbeaver.model.struct.DBSObject;
+import com.seizia.chromite.debug.DBGBreakpointDescriptor;
+import com.seizia.chromite.debug.DBGConstants;
+import com.seizia.chromite.model.DBPEvaluationContext;
+import com.seizia.chromite.model.DBUtils;
+import com.seizia.chromite.model.navigator.DBNNode;
+import com.seizia.chromite.model.struct.DBSObject;
 
 import java.util.Map;
 

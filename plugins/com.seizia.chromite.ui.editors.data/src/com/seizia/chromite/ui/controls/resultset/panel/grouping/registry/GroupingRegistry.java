@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.controls.resultset.panel.grouping.registry;
+package com.seizia.chromite.ui.controls.resultset.panel.grouping.registry;
 
 import org.eclipse.core.runtime.IExtensionRegistry;
 import org.eclipse.core.runtime.Platform;
@@ -26,7 +26,7 @@ import java.util.List;
 
 public class GroupingRegistry {
 
-    public static final String EXTENSION_ID = "org.jkiss.dbeaver.resultset.grouping"; //$NON-NLS-1$
+    public static final String EXTENSION_ID = "com.seizia.chromite.resultset.grouping"; //$NON-NLS-1$
 
     private static GroupingRegistry instance;
 

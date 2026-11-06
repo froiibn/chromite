@@ -14,14 +14,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.ai.preferences;
+package com.seizia.chromite.ui.ai.preferences;
 
 import org.eclipse.core.expressions.PropertyTester;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.model.DBPDataSourceContainer;
-import org.jkiss.dbeaver.model.ai.AIContextSettingsDataSource;
-import org.jkiss.dbeaver.registry.configurator.UIPropertyConfiguratorRegistry;
+import com.seizia.chromite.model.DBPDataSourceContainer;
+import com.seizia.chromite.model.ai.AIContextSettingsDataSource;
+import com.seizia.chromite.registry.configurator.UIPropertyConfiguratorRegistry;
 
 public class AIConnectionSettingsPropertyTester extends PropertyTester {
     @Override

@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.ai.engine.ollama;
+package com.seizia.chromite.ui.ai.engine.ollama;
 
 import org.eclipse.jface.layout.GridDataFactory;
 import org.eclipse.swt.SWT;
@@ -23,17 +23,17 @@ import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Text;
 import org.jkiss.code.NotNull;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.model.ai.engine.AIEngineProperties;
-import org.jkiss.dbeaver.model.ai.engine.AIModel;
-import org.jkiss.dbeaver.model.ai.engine.ollama.OllamaCompletionEngine;
-import org.jkiss.dbeaver.model.ai.engine.ollama.OllamaProperties;
-import org.jkiss.dbeaver.model.ai.registry.AIEngineDescriptor;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.ai.internal.AIUIMessages;
-import org.jkiss.dbeaver.ui.ai.model.CachedValue;
-import org.jkiss.dbeaver.ui.ai.model.ModelSelectorField;
-import org.jkiss.dbeaver.ui.ai.preferences.AbstractAIEngineConfigurator;
+import com.seizia.chromite.model.ai.engine.AIEngineProperties;
+import com.seizia.chromite.model.ai.engine.AIModel;
+import com.seizia.chromite.model.ai.engine.ollama.OllamaCompletionEngine;
+import com.seizia.chromite.model.ai.engine.ollama.OllamaProperties;
+import com.seizia.chromite.model.ai.registry.AIEngineDescriptor;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.ai.internal.AIUIMessages;
+import com.seizia.chromite.ui.ai.model.CachedValue;
+import com.seizia.chromite.ui.ai.model.ModelSelectorField;
+import com.seizia.chromite.ui.ai.preferences.AbstractAIEngineConfigurator;
 import org.jkiss.utils.CommonUtils;
 
 import java.util.List;

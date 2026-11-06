@@ -15,20 +15,20 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.tools.transfer.registry;
+package com.seizia.chromite.tools.transfer.registry;
 
 import org.eclipse.core.runtime.IAdaptable;
 import org.eclipse.core.runtime.IConfigurationElement;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.model.DBIcon;
-import org.jkiss.dbeaver.model.DBPImage;
-import org.jkiss.dbeaver.model.impl.AbstractDescriptor;
-import org.jkiss.dbeaver.model.struct.DBSObject;
-import org.jkiss.dbeaver.tools.transfer.DTConstants;
-import org.jkiss.dbeaver.tools.transfer.IDataTransferNode;
-import org.jkiss.dbeaver.tools.transfer.IDataTransferSettings;
+import com.seizia.chromite.model.DBIcon;
+import com.seizia.chromite.model.DBPImage;
+import com.seizia.chromite.model.impl.AbstractDescriptor;
+import com.seizia.chromite.model.struct.DBSObject;
+import com.seizia.chromite.tools.transfer.DTConstants;
+import com.seizia.chromite.tools.transfer.IDataTransferNode;
+import com.seizia.chromite.tools.transfer.IDataTransferSettings;
 import org.jkiss.utils.ArrayUtils;
 import org.jkiss.utils.CommonUtils;
 

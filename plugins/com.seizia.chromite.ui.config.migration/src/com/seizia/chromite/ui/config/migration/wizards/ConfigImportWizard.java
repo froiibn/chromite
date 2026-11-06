@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.config.migration.wizards;
+package com.seizia.chromite.ui.config.migration.wizards;
 
 import org.eclipse.jface.viewers.IStructuredSelection;
 import org.eclipse.jface.wizard.Wizard;
@@ -23,24 +23,24 @@ import org.eclipse.ui.IImportWizard;
 import org.eclipse.ui.IWorkbench;
 import org.jkiss.code.NotNull;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.DatabaseURL;
-import org.jkiss.dbeaver.model.StringTemplate;
-import org.jkiss.dbeaver.model.app.DBPDataSourceRegistry;
-import org.jkiss.dbeaver.model.connection.DBPConnectionConfiguration;
-import org.jkiss.dbeaver.model.connection.DBPDriver;
-import org.jkiss.dbeaver.model.connection.DBPDriverConfigurationType;
-import org.jkiss.dbeaver.model.connection.DBPDriverLibrary;
-import org.jkiss.dbeaver.model.exec.DBCException;
-import org.jkiss.dbeaver.registry.DataSourceDescriptor;
-import org.jkiss.dbeaver.registry.DataSourceProviderDescriptor;
-import org.jkiss.dbeaver.registry.DataSourceProviderRegistry;
-import org.jkiss.dbeaver.registry.driver.DriverDescriptor;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.config.migration.ImportConfigMessages;
-import org.jkiss.dbeaver.ui.navigator.NavigatorUtils;
-import org.jkiss.dbeaver.utils.DataSourceUtils;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.DatabaseURL;
+import com.seizia.chromite.model.StringTemplate;
+import com.seizia.chromite.model.app.DBPDataSourceRegistry;
+import com.seizia.chromite.model.connection.DBPConnectionConfiguration;
+import com.seizia.chromite.model.connection.DBPDriver;
+import com.seizia.chromite.model.connection.DBPDriverConfigurationType;
+import com.seizia.chromite.model.connection.DBPDriverLibrary;
+import com.seizia.chromite.model.exec.DBCException;
+import com.seizia.chromite.registry.DataSourceDescriptor;
+import com.seizia.chromite.registry.DataSourceProviderDescriptor;
+import com.seizia.chromite.registry.DataSourceProviderRegistry;
+import com.seizia.chromite.registry.driver.DriverDescriptor;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.config.migration.ImportConfigMessages;
+import com.seizia.chromite.ui.navigator.NavigatorUtils;
+import com.seizia.chromite.utils.DataSourceUtils;
 import org.jkiss.utils.CommonUtils;
 
 import java.util.ArrayList;

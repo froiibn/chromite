@@ -14,12 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.mssql;
+package com.seizia.chromite.ext.mssql;
 
 import org.eclipse.osgi.util.NLS;
 
 public class SQLServerMessages extends NLS {
-    static final String BUNDLE_NAME = "org.jkiss.dbeaver.ext.mssql.SQLServerMessages"; //$NON-NLS-1$
+    static final String BUNDLE_NAME = "com.seizia.chromite.ext.mssql.SQLServerMessages"; //$NON-NLS-1$
 
     public static String authentication_sql_server_title;
     public static String authentication_sql_server_description;

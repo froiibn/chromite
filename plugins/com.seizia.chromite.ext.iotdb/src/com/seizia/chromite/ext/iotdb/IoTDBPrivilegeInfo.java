@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.ext.iotdb;
+package com.seizia.chromite.ext.iotdb;
 
 public class IoTDBPrivilegeInfo {
 

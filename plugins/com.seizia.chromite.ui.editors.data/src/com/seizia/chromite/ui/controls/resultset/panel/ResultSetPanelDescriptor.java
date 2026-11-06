@@ -15,20 +15,20 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.ui.controls.resultset.panel;
+package com.seizia.chromite.ui.controls.resultset.panel;
 
 import org.apache.commons.jexl3.JexlExpression;
 import org.eclipse.core.runtime.IConfigurationElement;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.DBPDataSource;
-import org.jkiss.dbeaver.model.DBPImage;
-import org.jkiss.dbeaver.model.connection.DBPDataSourceProviderDescriptor;
-import org.jkiss.dbeaver.model.impl.AbstractContextDescriptor;
-import org.jkiss.dbeaver.model.impl.AbstractDescriptor;
-import org.jkiss.dbeaver.ui.controls.resultset.IResultSetContext;
-import org.jkiss.dbeaver.ui.controls.resultset.IResultSetPanel;
-import org.jkiss.dbeaver.ui.controls.resultset.IResultSetPresentation;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.DBPDataSource;
+import com.seizia.chromite.model.DBPImage;
+import com.seizia.chromite.model.connection.DBPDataSourceProviderDescriptor;
+import com.seizia.chromite.model.impl.AbstractContextDescriptor;
+import com.seizia.chromite.model.impl.AbstractDescriptor;
+import com.seizia.chromite.ui.controls.resultset.IResultSetContext;
+import com.seizia.chromite.ui.controls.resultset.IResultSetPanel;
+import com.seizia.chromite.ui.controls.resultset.IResultSetPresentation;
 import org.jkiss.utils.CommonUtils;
 
 import java.util.ArrayList;
@@ -41,7 +41,7 @@ import java.util.Locale;
 public class ResultSetPanelDescriptor extends AbstractContextDescriptor {
     private static final Log log = Log.getLog(ResultSetPanelDescriptor.class);
 
-    public static final String EXTENSION_ID = "org.jkiss.dbeaver.resultset.panel"; //NON-NLS-1 //$NON-NLS-1$
+    public static final String EXTENSION_ID = "com.seizia.chromite.resultset.panel"; //NON-NLS-1 //$NON-NLS-1$
 
     public static final String TAG_SUPPORTS = "supports"; //$NON-NLS-1$
 

@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.navigator.dnd;
+package com.seizia.chromite.ui.navigator.dnd;
 
 import org.eclipse.core.filesystem.EFS;
 import org.eclipse.ui.IEditorDescriptor;
@@ -24,13 +24,13 @@ import org.eclipse.ui.ide.FileStoreEditorInput;
 import org.eclipse.ui.part.EditorInputTransfer;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.navigator.DBNDatabaseNode;
-import org.jkiss.dbeaver.model.navigator.DBNNode;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.editors.DatabaseNodeEditorInput;
-import org.jkiss.dbeaver.ui.editors.EditorUtils;
-import org.jkiss.dbeaver.ui.editors.entity.EntityEditor;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.navigator.DBNDatabaseNode;
+import com.seizia.chromite.model.navigator.DBNNode;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.editors.DatabaseNodeEditorInput;
+import com.seizia.chromite.ui.editors.EditorUtils;
+import com.seizia.chromite.ui.editors.entity.EntityEditor;
 
 import java.io.File;
 

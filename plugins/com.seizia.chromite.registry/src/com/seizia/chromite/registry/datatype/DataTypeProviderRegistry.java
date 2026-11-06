@@ -14,20 +14,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.registry.datatype;
+package com.seizia.chromite.registry.datatype;
 
 import org.eclipse.core.runtime.IConfigurationElement;
 import org.eclipse.core.runtime.IExtensionRegistry;
 import org.eclipse.core.runtime.Platform;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.DBPDataSource;
-import org.jkiss.dbeaver.model.data.DBDAttributeTransformerDescriptor;
-import org.jkiss.dbeaver.model.data.DBDRegistry;
-import org.jkiss.dbeaver.model.data.DBDValueHandlerProvider;
-import org.jkiss.dbeaver.model.struct.DBSTypedObject;
-import org.jkiss.dbeaver.registry.DataSourceProviderDescriptor;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.DBPDataSource;
+import com.seizia.chromite.model.data.DBDAttributeTransformerDescriptor;
+import com.seizia.chromite.model.data.DBDRegistry;
+import com.seizia.chromite.model.data.DBDValueHandlerProvider;
+import com.seizia.chromite.model.struct.DBSTypedObject;
+import com.seizia.chromite.registry.DataSourceProviderDescriptor;
 
 import java.util.*;
 
@@ -35,7 +35,7 @@ import java.util.*;
  * DataTypeProviderRegistry
  */
 public class DataTypeProviderRegistry implements DBDRegistry {
-    public static final String EXTENSION_ID = "org.jkiss.dbeaver.dataTypeProvider"; //$NON-NLS-1$
+    public static final String EXTENSION_ID = "com.seizia.chromite.dataTypeProvider"; //$NON-NLS-1$
     private static final Log log = Log.getLog(DataTypeProviderRegistry.class);
 
     private static DataTypeProviderRegistry instance = null;

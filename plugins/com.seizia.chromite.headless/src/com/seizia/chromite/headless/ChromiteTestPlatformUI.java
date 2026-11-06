@@ -14,16 +14,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.headless;
+package com.seizia.chromite.headless;
 
-import org.jkiss.dbeaver.runtime.ui.console.ConsoleUserInterface;
+import com.seizia.chromite.runtime.ui.console.ConsoleUserInterface;
 
 /**
- * DBeaverTestPlatformUI
+ * ChromiteTestPlatformUI
  */
-public class DBeaverTestPlatformUI extends ConsoleUserInterface {
+public class ChromiteTestPlatformUI extends ConsoleUserInterface {
 
-    public static final DBeaverTestPlatformUI INSTANCE = new DBeaverTestPlatformUI();
+    public static final ChromiteTestPlatformUI INSTANCE = new ChromiteTestPlatformUI();
 
     /**
      * Dummy method for injection

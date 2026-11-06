@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.tools.transfer.ui.wizard;
+package com.seizia.chromite.tools.transfer.ui.wizard;
 
 import org.eclipse.jface.dialogs.IDialogConstants;
 import org.eclipse.jface.viewers.CellLabelProvider;
@@ -28,19 +28,19 @@ import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Shell;
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.model.DBIcon;
-import org.jkiss.dbeaver.model.DBPNamedObject;
-import org.jkiss.dbeaver.model.DBValueFormatting;
-import org.jkiss.dbeaver.model.runtime.VoidProgressMonitor;
-import org.jkiss.dbeaver.tools.transfer.stream.StreamConsumerSettings;
-import org.jkiss.dbeaver.tools.transfer.stream.StreamMappingAttribute;
-import org.jkiss.dbeaver.tools.transfer.stream.StreamMappingContainer;
-import org.jkiss.dbeaver.tools.transfer.stream.StreamMappingType;
-import org.jkiss.dbeaver.tools.transfer.ui.internal.DTUIMessages;
-import org.jkiss.dbeaver.ui.DBeaverIcons;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.controls.TreeContentProvider;
-import org.jkiss.dbeaver.ui.dialogs.BaseDialog;
+import com.seizia.chromite.model.DBIcon;
+import com.seizia.chromite.model.DBPNamedObject;
+import com.seizia.chromite.model.DBValueFormatting;
+import com.seizia.chromite.model.runtime.VoidProgressMonitor;
+import com.seizia.chromite.tools.transfer.stream.StreamConsumerSettings;
+import com.seizia.chromite.tools.transfer.stream.StreamMappingAttribute;
+import com.seizia.chromite.tools.transfer.stream.StreamMappingContainer;
+import com.seizia.chromite.tools.transfer.stream.StreamMappingType;
+import com.seizia.chromite.tools.transfer.ui.internal.DTUIMessages;
+import com.seizia.chromite.ui.SwtIcons;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.controls.TreeContentProvider;
+import com.seizia.chromite.ui.dialogs.BaseDialog;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -115,7 +115,7 @@ class ConfigureColumnsDialog extends BaseDialog {
                     final Object element = cell.getElement();
                     final DBPNamedObject object = (DBPNamedObject) element;
                     cell.setText(object.getName());
-                    cell.setImage(DBeaverIcons.getImage(DBValueFormatting.getObjectImage(object)));
+                    cell.setImage(SwtIcons.getImage(DBValueFormatting.getObjectImage(object)));
                 }
             });
             column.getColumn().setText(DTUIMessages.stream_consumer_page_mapping_name_column_name);
@@ -135,7 +135,7 @@ class ConfigureColumnsDialog extends BaseDialog {
 
         errorLabel = new CLabel(group, SWT.NONE);
         errorLabel.setText(DTUIMessages.stream_consumer_page_mapping_label_error_no_columns_selected_text);
-        errorLabel.setImage(DBeaverIcons.getImage(DBIcon.SMALL_ERROR));
+        errorLabel.setImage(SwtIcons.getImage(DBIcon.SMALL_ERROR));
         errorLabel.setLayoutData(new GridData(SWT.LEFT, SWT.CENTER, true, false));
 
         UIUtils.asyncExec(() -> {

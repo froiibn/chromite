@@ -14,21 +14,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.mimer.model;
+package com.seizia.chromite.ext.mimer.model;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.ext.generic.model.GenericStructContainer;
-import org.jkiss.dbeaver.ext.generic.model.GenericSynonym;
-import org.jkiss.dbeaver.model.DBPSaveableObject;
-import org.jkiss.dbeaver.model.DBPScriptObject;
-import org.jkiss.dbeaver.model.exec.jdbc.JDBCResultSet;
-import org.jkiss.dbeaver.model.impl.jdbc.JDBCUtils;
-import org.jkiss.dbeaver.model.meta.Property;
-import org.jkiss.dbeaver.model.meta.PropertyLength;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.model.struct.DBSObject;
+import com.seizia.chromite.ext.generic.model.GenericStructContainer;
+import com.seizia.chromite.ext.generic.model.GenericSynonym;
+import com.seizia.chromite.model.DBPSaveableObject;
+import com.seizia.chromite.model.DBPScriptObject;
+import com.seizia.chromite.model.exec.jdbc.JDBCResultSet;
+import com.seizia.chromite.model.impl.jdbc.JDBCUtils;
+import com.seizia.chromite.model.meta.Property;
+import com.seizia.chromite.model.meta.PropertyLength;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.model.struct.DBSObject;
 
 import java.util.Map;
 
@@ -36,7 +36,7 @@ import java.util.Map;
  * Mimer SQL synonym - an alias for a table/view, possibly in another schema, read from
  * {@code INFORMATION_SCHEMA.EXT_SYNONYMS} (only table-like targets - that view has no column
  * for any other object kind). Adds create/drop support - see {@link
- * org.jkiss.dbeaver.ext.mimer.edit.MimerSynonymManager}.
+ * com.seizia.chromite.ext.mimer.edit.MimerSynonymManager}.
  *
  * @author Mimer Information Technology
  */
@@ -54,7 +54,7 @@ public class MimerSynonym extends GenericSynonym implements DBPScriptObject, DBP
     }
 
     /**
-     * For a brand-new, not-yet-created synonym - see {@link org.jkiss.dbeaver.ext.mimer.edit.MimerSynonymManager}.
+     * For a brand-new, not-yet-created synonym - see {@link com.seizia.chromite.ext.mimer.edit.MimerSynonymManager}.
      */
     public MimerSynonym(@NotNull GenericStructContainer container, @NotNull String name) {
         super(container, name, null);
@@ -106,7 +106,7 @@ public class MimerSynonym extends GenericSynonym implements DBPScriptObject, DBP
 
     /**
      * {@code COMMENT ON SYNONYM "schema"."name" IS '...'}. See {@link
-     * org.jkiss.dbeaver.ext.mimer.edit.MimerSynonymManager} for the write side.
+     * com.seizia.chromite.ext.mimer.edit.MimerSynonymManager} for the write side.
      */
     @Nullable
     @Property(viewable = true, editable = true, updatable = true, length = PropertyLength.MULTILINE, order = 10)

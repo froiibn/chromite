@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.dialogs.driver;
+package com.seizia.chromite.ui.dialogs.driver;
 
 import org.eclipse.osgi.util.NLS;
 import org.eclipse.swt.SWT;
@@ -27,23 +27,23 @@ import org.eclipse.swt.graphics.Point;
 import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.widgets.*;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.connection.DBPDriver;
-import org.jkiss.dbeaver.model.connection.DBPDriverDependencies;
-import org.jkiss.dbeaver.model.connection.DBPDriverLibrary;
-import org.jkiss.dbeaver.model.exec.DBExceptionWithHistory;
-import org.jkiss.dbeaver.model.runtime.DBRRunnableContext;
-import org.jkiss.dbeaver.model.runtime.ProgressMonitorWithExceptionContext;
-import org.jkiss.dbeaver.registry.DBConnectionConstants;
-import org.jkiss.dbeaver.registry.driver.DriverLibraryMavenArtifact;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.runtime.WebUtils;
-import org.jkiss.dbeaver.ui.BaseThemeSettings;
-import org.jkiss.dbeaver.ui.DBeaverIcons;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.internal.UIConnectionMessages;
-import org.jkiss.dbeaver.utils.GeneralUtils;
-import org.jkiss.dbeaver.utils.RuntimeUtils;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.connection.DBPDriver;
+import com.seizia.chromite.model.connection.DBPDriverDependencies;
+import com.seizia.chromite.model.connection.DBPDriverLibrary;
+import com.seizia.chromite.model.exec.DBExceptionWithHistory;
+import com.seizia.chromite.model.runtime.DBRRunnableContext;
+import com.seizia.chromite.model.runtime.ProgressMonitorWithExceptionContext;
+import com.seizia.chromite.registry.DBConnectionConstants;
+import com.seizia.chromite.registry.driver.DriverLibraryMavenArtifact;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.runtime.WebUtils;
+import com.seizia.chromite.ui.BaseThemeSettings;
+import com.seizia.chromite.ui.SwtIcons;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.internal.UIConnectionMessages;
+import com.seizia.chromite.utils.GeneralUtils;
+import com.seizia.chromite.utils.RuntimeUtils;
 import org.jkiss.utils.CommonUtils;
 
 import java.io.IOException;
@@ -155,7 +155,7 @@ class DriverDependenciesTree {
             TreeItem item = new TreeItem(filesTree, SWT.NONE);
             grayOutInstalledArtifact(node, item);
             item.setData(node);
-            item.setImage(DBeaverIcons.getImage(library.getIcon()));
+            item.setImage(SwtIcons.getImage(library.getIcon()));
             item.setText(0, library.getDisplayName());
             item.setText(1, CommonUtils.notEmpty(library.getVersion()));
             item.setText(2, CommonUtils.notEmpty(library.getDescription()));
@@ -254,7 +254,7 @@ class DriverDependenciesTree {
 
                 TreeItem item = new TreeItem(parent, SWT.NONE);
                 //item.setData(dep);
-                item.setImage(DBeaverIcons.getImage(dep.library.getIcon()));
+                item.setImage(SwtIcons.getImage(dep.library.getIcon()));
                 item.setText(0, dep.library.getDisplayName());
                 item.setText(1, CommonUtils.notEmpty(dep.library.getVersion()));
                 item.setText(2, CommonUtils.notEmpty(dep.library.getDescription()));

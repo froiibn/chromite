@@ -15,15 +15,15 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.ext.tidb.model.plan;
+package com.seizia.chromite.ext.tidb.model.plan;
 
-import org.jkiss.dbeaver.ext.mysql.model.plan.MySQLPlanAbstract;
-import org.jkiss.dbeaver.ext.mysql.model.plan.MySQLPlanAnalyser;
-import org.jkiss.dbeaver.ext.tidb.mysql.model.TiDBMySQLDataSource;
-import org.jkiss.dbeaver.model.exec.DBCException;
-import org.jkiss.dbeaver.model.exec.jdbc.JDBCSession;
-import org.jkiss.dbeaver.model.sql.SQLDialect;
-import org.jkiss.dbeaver.model.sql.SQLUtils;
+import com.seizia.chromite.ext.mysql.model.plan.MySQLPlanAbstract;
+import com.seizia.chromite.ext.mysql.model.plan.MySQLPlanAnalyser;
+import com.seizia.chromite.ext.tidb.mysql.model.TiDBMySQLDataSource;
+import com.seizia.chromite.model.exec.DBCException;
+import com.seizia.chromite.model.exec.jdbc.JDBCSession;
+import com.seizia.chromite.model.sql.SQLDialect;
+import com.seizia.chromite.model.sql.SQLUtils;
 
 public class TiDBPlanAnalyzer extends MySQLPlanAnalyser {
     private static final String[] FIRST_KEYWORD_BLOCK_LIST = new String[]{

@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.controls;
+package com.seizia.chromite.ui.controls;
 
 import org.eclipse.jface.dialogs.IDialogSettings;
 import org.eclipse.osgi.util.NLS;
@@ -31,23 +31,23 @@ import org.eclipse.swt.widgets.Label;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.model.DBIcon;
-import org.jkiss.dbeaver.model.DBPObject;
-import org.jkiss.dbeaver.model.DBUtils;
-import org.jkiss.dbeaver.model.app.DBPProject;
-import org.jkiss.dbeaver.model.navigator.DBNDatabaseNode;
-import org.jkiss.dbeaver.model.navigator.DBNModel;
-import org.jkiss.dbeaver.model.navigator.DBNNode;
-import org.jkiss.dbeaver.model.navigator.DBNProject;
-import org.jkiss.dbeaver.model.struct.DBSEntity;
-import org.jkiss.dbeaver.model.struct.DBSInstance;
-import org.jkiss.dbeaver.model.struct.DBSObjectContainer;
-import org.jkiss.dbeaver.model.struct.rdb.DBSSchema;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.ui.DBeaverIcons;
-import org.jkiss.dbeaver.ui.UIIcon;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.internal.UIMessages;
+import com.seizia.chromite.model.DBIcon;
+import com.seizia.chromite.model.DBPObject;
+import com.seizia.chromite.model.DBUtils;
+import com.seizia.chromite.model.app.DBPProject;
+import com.seizia.chromite.model.navigator.DBNDatabaseNode;
+import com.seizia.chromite.model.navigator.DBNModel;
+import com.seizia.chromite.model.navigator.DBNNode;
+import com.seizia.chromite.model.navigator.DBNProject;
+import com.seizia.chromite.model.struct.DBSEntity;
+import com.seizia.chromite.model.struct.DBSInstance;
+import com.seizia.chromite.model.struct.DBSObjectContainer;
+import com.seizia.chromite.model.struct.rdb.DBSSchema;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.ui.SwtIcons;
+import com.seizia.chromite.ui.UIIcon;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.internal.UIMessages;
 import org.jkiss.utils.CommonUtils;
 
 import java.lang.reflect.InvocationTargetException;
@@ -119,7 +119,7 @@ public abstract class ObjectContainerSelectorPanel extends Composite {
         UIUtils.createControlLabel(this, containerTitle);
 
         containerIcon = new Label(this, SWT.NONE);
-        containerIcon.setImage(DBeaverIcons.getImage(DBIcon.TYPE_UNKNOWN));
+        containerIcon.setImage(SwtIcons.getImage(DBIcon.TYPE_UNKNOWN));
 
         containerNameCombo = new Combo(this, SWT.BORDER | SWT.DROP_DOWN | SWT.READ_ONLY);
         containerNameCombo.setLayoutData(new GridData(GridData.FILL_HORIZONTAL));
@@ -328,12 +328,12 @@ public abstract class ObjectContainerSelectorPanel extends Composite {
     public void setContainerInfo(DBNDatabaseNode node) {
         setContainerText(null);
         if (node == null) {
-            containerIcon.setImage(DBeaverIcons.getImage(DBIcon.TYPE_UNKNOWN));
+            containerIcon.setImage(SwtIcons.getImage(DBIcon.TYPE_UNKNOWN));
             containerNameCombo.select(-1);
             return;
         }
         HistoryItem item = addNodeToHistory(node);
-        containerIcon.setImage(DBeaverIcons.getImage(node.getNodeIconDefault()));
+        containerIcon.setImage(SwtIcons.getImage(node.getNodeIconDefault()));
 
         moveHistoryItemToBeginning(item);
     }

@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.model.exec.plan;
+package com.seizia.chromite.model.exec.plan;
 
 /**
  * Execution plan node

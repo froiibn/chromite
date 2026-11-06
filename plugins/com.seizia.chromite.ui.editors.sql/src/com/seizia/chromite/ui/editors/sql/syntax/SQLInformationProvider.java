@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.editors.sql.syntax;
+package com.seizia.chromite.ui.editors.sql.syntax;
 
 import org.eclipse.jface.text.*;
 import org.eclipse.jface.text.information.IInformationProvider;
@@ -32,28 +32,28 @@ import org.eclipse.ui.*;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.model.DBPKeywordType;
-import org.jkiss.dbeaver.model.DBPNamedObject;
-import org.jkiss.dbeaver.model.navigator.DBNModel;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.model.runtime.VoidProgressMonitor;
-import org.jkiss.dbeaver.model.sql.completion.SQLCompletionHelper;
-import org.jkiss.dbeaver.model.sql.parser.SQLIdentifierDetector;
-import org.jkiss.dbeaver.model.sql.semantics.*;
-import org.jkiss.dbeaver.model.sql.semantics.context.SQLQueryExprType;
-import org.jkiss.dbeaver.model.sql.semantics.context.SQLQueryLocalVariableInfo;
-import org.jkiss.dbeaver.model.sql.semantics.context.SQLQueryResultPseudoColumn;
-import org.jkiss.dbeaver.model.sql.semantics.model.ddl.SQLQueryObjectDataModel;
-import org.jkiss.dbeaver.model.sql.semantics.model.select.SQLQueryRowsTableDataModel;
-import org.jkiss.dbeaver.model.struct.DBSObject;
-import org.jkiss.dbeaver.model.struct.DBSObjectReference;
-import org.jkiss.dbeaver.ui.AbstractPartListener;
-import org.jkiss.dbeaver.ui.editors.sql.SQLEditor;
-import org.jkiss.dbeaver.ui.editors.sql.SQLEditorBase;
-import org.jkiss.dbeaver.ui.editors.sql.internal.SQLEditorMessages;
-import org.jkiss.dbeaver.ui.editors.sql.util.AnnotationsInformationView;
-import org.jkiss.dbeaver.ui.editors.sql.util.ObjectInformationView;
-import org.jkiss.dbeaver.ui.editors.sql.util.SQLAnnotationHover;
+import com.seizia.chromite.model.DBPKeywordType;
+import com.seizia.chromite.model.DBPNamedObject;
+import com.seizia.chromite.model.navigator.DBNModel;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.model.runtime.VoidProgressMonitor;
+import com.seizia.chromite.model.sql.completion.SQLCompletionHelper;
+import com.seizia.chromite.model.sql.parser.SQLIdentifierDetector;
+import com.seizia.chromite.model.sql.semantics.*;
+import com.seizia.chromite.model.sql.semantics.context.SQLQueryExprType;
+import com.seizia.chromite.model.sql.semantics.context.SQLQueryLocalVariableInfo;
+import com.seizia.chromite.model.sql.semantics.context.SQLQueryResultPseudoColumn;
+import com.seizia.chromite.model.sql.semantics.model.ddl.SQLQueryObjectDataModel;
+import com.seizia.chromite.model.sql.semantics.model.select.SQLQueryRowsTableDataModel;
+import com.seizia.chromite.model.struct.DBSObject;
+import com.seizia.chromite.model.struct.DBSObjectReference;
+import com.seizia.chromite.ui.AbstractPartListener;
+import com.seizia.chromite.ui.editors.sql.SQLEditor;
+import com.seizia.chromite.ui.editors.sql.SQLEditorBase;
+import com.seizia.chromite.ui.editors.sql.internal.SQLEditorMessages;
+import com.seizia.chromite.ui.editors.sql.util.AnnotationsInformationView;
+import com.seizia.chromite.ui.editors.sql.util.ObjectInformationView;
+import com.seizia.chromite.ui.editors.sql.util.SQLAnnotationHover;
 import org.jkiss.utils.ArrayUtils;
 import org.jkiss.utils.CommonUtils;
 

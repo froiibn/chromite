@@ -14,13 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.editors.erd.notations;
+package com.seizia.chromite.ui.editors.erd.notations;
 
 import org.eclipse.draw2d.PolylineConnection;
 import org.eclipse.swt.graphics.Color;
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.model.erd.ERDAssociation;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.model.erd.ERDAssociation;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
 
 /**
  * Interface of ER Diagram style notation

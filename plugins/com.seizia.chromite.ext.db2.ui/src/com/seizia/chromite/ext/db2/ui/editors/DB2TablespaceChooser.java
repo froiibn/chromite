@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.db2.ui.editors;
+package com.seizia.chromite.ext.db2.ui.editors;
 
 import org.eclipse.jface.dialogs.Dialog;
 import org.eclipse.swt.SWT;
@@ -24,8 +24,8 @@ import org.eclipse.swt.widgets.Combo;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Control;
 import org.eclipse.swt.widgets.Shell;
-import org.jkiss.dbeaver.ext.db2.ui.internal.DB2Messages;
-import org.jkiss.dbeaver.ui.UIUtils;
+import com.seizia.chromite.ext.db2.ui.internal.DB2Messages;
+import com.seizia.chromite.ui.UIUtils;
 import org.jkiss.utils.CommonUtils;
 
 import java.util.List;

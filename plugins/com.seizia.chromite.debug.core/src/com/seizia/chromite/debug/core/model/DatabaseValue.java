@@ -16,12 +16,12 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.debug.core.model;
+package com.seizia.chromite.debug.core.model;
 
 import org.eclipse.debug.core.DebugException;
 import org.eclipse.debug.core.model.IValue;
 import org.eclipse.debug.core.model.IVariable;
-import org.jkiss.dbeaver.debug.DBGVariable;
+import com.seizia.chromite.debug.DBGVariable;
 
 public class DatabaseValue extends DatabaseDebugElement implements IValue {
 

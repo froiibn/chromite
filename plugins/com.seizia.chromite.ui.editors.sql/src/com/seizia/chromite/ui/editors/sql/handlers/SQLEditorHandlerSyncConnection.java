@@ -14,15 +14,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.editors.sql.handlers;
+package com.seizia.chromite.ui.editors.sql.handlers;
 
 import org.eclipse.core.commands.AbstractHandler;
 import org.eclipse.core.commands.ExecutionEvent;
 import org.eclipse.core.commands.ExecutionException;
 import org.eclipse.ui.IEditorPart;
 import org.eclipse.ui.handlers.HandlerUtil;
-import org.jkiss.dbeaver.ui.navigator.NavigatorUtils;
-import org.jkiss.dbeaver.ui.navigator.database.NavigatorViewBase;
+import com.seizia.chromite.ui.navigator.NavigatorUtils;
+import com.seizia.chromite.ui.navigator.database.NavigatorViewBase;
 
 public class SQLEditorHandlerSyncConnection extends AbstractHandler {
 

@@ -15,9 +15,9 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.ext.phoenix;
+package com.seizia.chromite.ext.phoenix;
 
-import org.jkiss.dbeaver.Log;
+import com.seizia.chromite.Log;
 
 /**
  * PhoenixUtils

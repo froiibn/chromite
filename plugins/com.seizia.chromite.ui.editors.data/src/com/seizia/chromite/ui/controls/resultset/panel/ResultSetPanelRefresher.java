@@ -14,14 +14,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.controls.resultset.panel;
+package com.seizia.chromite.ui.controls.resultset.panel;
 
 import org.eclipse.swt.widgets.Composite;
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.ui.controls.resultset.IResultSetListener;
-import org.jkiss.dbeaver.ui.controls.resultset.IResultSetPanel;
-import org.jkiss.dbeaver.ui.controls.resultset.IResultSetPresentation;
-import org.jkiss.dbeaver.ui.controls.resultset.ResultSetListenerAdapter;
+import com.seizia.chromite.ui.controls.resultset.IResultSetListener;
+import com.seizia.chromite.ui.controls.resultset.IResultSetPanel;
+import com.seizia.chromite.ui.controls.resultset.IResultSetPresentation;
+import com.seizia.chromite.ui.controls.resultset.ResultSetListenerAdapter;
 
 public final class ResultSetPanelRefresher extends ResultSetListenerAdapter {
     private final IResultSetPanel resultSetPanel;

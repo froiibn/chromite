@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.dashboard.editor;
+package com.seizia.chromite.ui.dashboard.editor;
 
 import org.eclipse.core.resources.*;
 import org.eclipse.core.runtime.IProgressMonitor;
@@ -25,21 +25,21 @@ import org.eclipse.ui.IEditorSite;
 import org.eclipse.ui.PartInitException;
 import org.eclipse.ui.part.FileEditorInput;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.DBPDataSourceContainer;
-import org.jkiss.dbeaver.model.app.DBPPlatformDesktop;
-import org.jkiss.dbeaver.model.app.DBPProject;
-import org.jkiss.dbeaver.model.dashboard.DashboardConstants;
-import org.jkiss.dbeaver.model.dashboard.DashboardIcons;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.ui.DBeaverIcons;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.dashboard.control.DashboardListViewer;
-import org.jkiss.dbeaver.ui.dashboard.model.DashboardConfiguration;
-import org.jkiss.dbeaver.ui.dashboard.model.DashboardConfigurationList;
-import org.jkiss.dbeaver.ui.dashboard.model.DashboardViewer;
-import org.jkiss.dbeaver.ui.editors.EditorUtils;
-import org.jkiss.dbeaver.ui.editors.SinglePageDatabaseEditor;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.DBPDataSourceContainer;
+import com.seizia.chromite.model.app.DBPPlatformDesktop;
+import com.seizia.chromite.model.app.DBPProject;
+import com.seizia.chromite.model.dashboard.DashboardConstants;
+import com.seizia.chromite.model.dashboard.DashboardIcons;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.ui.SwtIcons;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.dashboard.control.DashboardListViewer;
+import com.seizia.chromite.ui.dashboard.model.DashboardConfiguration;
+import com.seizia.chromite.ui.dashboard.model.DashboardConfigurationList;
+import com.seizia.chromite.ui.dashboard.model.DashboardViewer;
+import com.seizia.chromite.ui.editors.EditorUtils;
+import com.seizia.chromite.ui.editors.SinglePageDatabaseEditor;
 
 /**
  * Standalone dashboard editor
@@ -100,7 +100,7 @@ public class DashboardEditorStandalone extends SinglePageDatabaseEditor<IEditorI
         if (fileName.endsWith("." + DashboardConstants.DASHBOARD_EXT)) {
             fileName = fileName.substring(0, fileName.length() - 1 - DashboardConstants.DASHBOARD_EXT.length());
         }
-        setTitleImage(DBeaverIcons.getImage(DashboardIcons.DASHBOARD));
+        setTitleImage(SwtIcons.getImage(DashboardIcons.DASHBOARD));
         setPartName(fileName);
     }
 

@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.actions.datasource;
+package com.seizia.chromite.ui.actions.datasource;
 
 import org.eclipse.core.commands.ExecutionEvent;
 import org.eclipse.core.commands.ExecutionException;
@@ -27,18 +27,18 @@ import org.eclipse.ui.commands.IElementUpdater;
 import org.eclipse.ui.menus.UIElement;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.core.CoreMessages;
-import org.jkiss.dbeaver.model.DBIcon;
-import org.jkiss.dbeaver.model.DBPDataSource;
-import org.jkiss.dbeaver.model.DBPDataSourceContainer;
-import org.jkiss.dbeaver.model.rm.RMConstants;
-import org.jkiss.dbeaver.model.struct.DBSObject;
-import org.jkiss.dbeaver.registry.DataSourceDescriptor;
-import org.jkiss.dbeaver.ui.DBeaverIcons;
-import org.jkiss.dbeaver.ui.internal.UIConnectionMessages;
-import org.jkiss.dbeaver.ui.UIIcon;
-import org.jkiss.dbeaver.ui.actions.AbstractDataSourceHandler;
-import org.jkiss.dbeaver.ui.navigator.NavigatorUtils;
+import com.seizia.chromite.core.CoreMessages;
+import com.seizia.chromite.model.DBIcon;
+import com.seizia.chromite.model.DBPDataSource;
+import com.seizia.chromite.model.DBPDataSourceContainer;
+import com.seizia.chromite.model.rm.RMConstants;
+import com.seizia.chromite.model.struct.DBSObject;
+import com.seizia.chromite.registry.DataSourceDescriptor;
+import com.seizia.chromite.ui.SwtIcons;
+import com.seizia.chromite.ui.internal.UIConnectionMessages;
+import com.seizia.chromite.ui.UIIcon;
+import com.seizia.chromite.ui.actions.AbstractDataSourceHandler;
+import com.seizia.chromite.ui.navigator.NavigatorUtils;
 
 import java.util.Map;
 
@@ -77,16 +77,16 @@ public class DataSourceReadonlyHandler extends AbstractDataSourceHandler impleme
             boolean isReadonly = currentDescriptor.isConnectionReadOnly();
             if (isReadonly) {
                 element.setTooltip(NLS.bind(CoreMessages.toolbar_checkbox_connection_not_readonly_tooltip, currentDescriptor.getName()));
-                element.setIcon(DBeaverIcons.getImageDescriptor(UIIcon.SQL_READONLY));
+                element.setIcon(SwtIcons.getImageDescriptor(UIIcon.SQL_READONLY));
             } else {
                 element.setTooltip(NLS.bind(CoreMessages.toolbar_checkbox_connection_readonly_tooltip, currentDescriptor.getName()));
-                element.setIcon(DBeaverIcons.getImageDescriptor(DBIcon.TREE_UNLOCKED));
+                element.setIcon(SwtIcons.getImageDescriptor(DBIcon.TREE_UNLOCKED));
             }
             element.setChecked(isReadonly);
         } else {
             element.setChecked(false);
             element.setTooltip(UIConnectionMessages.dialog_connection_wizard_final_checkbox_connection_readonly);
-            element.setIcon(DBeaverIcons.getImageDescriptor(DBIcon.TREE_UNLOCKED));
+            element.setIcon(SwtIcons.getImageDescriptor(DBIcon.TREE_UNLOCKED));
         }
     }
 

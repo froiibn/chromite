@@ -14,12 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.editors.xml;
+package com.seizia.chromite.ui.editors.xml;
 
 import org.eclipse.jface.resource.ColorRegistry;
 import org.eclipse.jface.text.TextAttribute;
 import org.eclipse.jface.text.rules.*;
-import org.jkiss.dbeaver.ui.editors.text.TextWhiteSpaceDetector;
+import com.seizia.chromite.ui.editors.text.TextWhiteSpaceDetector;
 
 
 public class XMLScanner extends RuleBasedScanner {

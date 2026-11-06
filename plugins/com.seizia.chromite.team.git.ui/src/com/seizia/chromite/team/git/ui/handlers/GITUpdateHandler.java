@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.team.git.ui.handlers;
+package com.seizia.chromite.team.git.ui.handlers;
 
 
 import org.eclipse.core.commands.ExecutionEvent;
@@ -25,7 +25,7 @@ import org.eclipse.egit.ui.internal.pull.PullOperationUI;
 import org.eclipse.jgit.lib.Repository;
 import org.eclipse.ui.commands.IElementUpdater;
 import org.eclipse.ui.menus.UIElement;
-import org.jkiss.dbeaver.team.git.ui.utils.GitUIUtils;
+import com.seizia.chromite.team.git.ui.utils.GitUIUtils;
 import org.jkiss.utils.ArrayUtils;
 
 import java.util.Arrays;

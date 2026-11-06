@@ -14,20 +14,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.gis.registry;
+package com.seizia.chromite.ui.gis.registry;
 
 import org.eclipse.core.runtime.IConfigurationElement;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.model.DBPNamedObject;
-import org.jkiss.dbeaver.model.impl.AbstractDescriptor;
-import org.jkiss.dbeaver.registry.RegistryConstants;
-import org.jkiss.dbeaver.ui.gis.internal.GISViewerActivator;
+import com.seizia.chromite.model.DBPNamedObject;
+import com.seizia.chromite.model.impl.AbstractDescriptor;
+import com.seizia.chromite.registry.RegistryConstants;
+import com.seizia.chromite.ui.gis.internal.GISViewerActivator;
 
 import java.util.Objects;
 
 public final class LeafletTilesDescriptor extends AbstractDescriptor implements DBPNamedObject  {
-    public static final String EXTENSION_ID = "org.jkiss.dbeaver.data.gis.leaflet.tiles"; //$NON-NLS-1$
+    public static final String EXTENSION_ID = "com.seizia.chromite.data.gis.leaflet.tiles"; //$NON-NLS-1$
     private static final String USER_DEFINED_DESCRIPTOR_ID_PREFIX = EXTENSION_ID + ".userDefinedTiles.";
 
     private final String id;

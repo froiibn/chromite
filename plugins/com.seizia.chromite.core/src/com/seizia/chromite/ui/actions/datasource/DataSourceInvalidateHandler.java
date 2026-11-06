@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.actions.datasource;
+package com.seizia.chromite.ui.actions.datasource;
 
 import org.eclipse.core.commands.ExecutionEvent;
 import org.eclipse.core.commands.ExecutionException;
@@ -28,21 +28,21 @@ import org.eclipse.swt.widgets.Shell;
 import org.eclipse.ui.IEditorPart;
 import org.eclipse.ui.handlers.HandlerUtil;
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.DBDatabaseException;
+import com.seizia.chromite.DBDatabaseException;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.model.DBPDataSource;
-import org.jkiss.dbeaver.model.DBPDataSourceContainer;
-import org.jkiss.dbeaver.model.exec.DBCExecutionContext;
-import org.jkiss.dbeaver.runtime.jobs.DefaultInvalidationFeedbackHandler;
-import org.jkiss.dbeaver.runtime.jobs.DisconnectJob;
-import org.jkiss.dbeaver.runtime.jobs.InvalidateJob;
-import org.jkiss.dbeaver.ui.IDataSourceContainerUpdate;
-import org.jkiss.dbeaver.ui.UITask;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.actions.AbstractDataSourceHandler;
-import org.jkiss.dbeaver.ui.dialogs.ConnectionLostDialog;
-import org.jkiss.dbeaver.ui.dialogs.StandardErrorDialog;
-import org.jkiss.dbeaver.utils.GeneralUtils;
+import com.seizia.chromite.model.DBPDataSource;
+import com.seizia.chromite.model.DBPDataSourceContainer;
+import com.seizia.chromite.model.exec.DBCExecutionContext;
+import com.seizia.chromite.runtime.jobs.DefaultInvalidationFeedbackHandler;
+import com.seizia.chromite.runtime.jobs.DisconnectJob;
+import com.seizia.chromite.runtime.jobs.InvalidateJob;
+import com.seizia.chromite.ui.IDataSourceContainerUpdate;
+import com.seizia.chromite.ui.UITask;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.actions.AbstractDataSourceHandler;
+import com.seizia.chromite.ui.dialogs.ConnectionLostDialog;
+import com.seizia.chromite.ui.dialogs.StandardErrorDialog;
+import com.seizia.chromite.utils.GeneralUtils;
 import org.jkiss.utils.ArrayUtils;
 
 import java.util.Set;

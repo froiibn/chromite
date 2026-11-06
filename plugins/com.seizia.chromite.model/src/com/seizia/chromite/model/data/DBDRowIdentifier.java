@@ -14,19 +14,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.data;
+package com.seizia.chromite.model.data;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.model.DBPObject;
-import org.jkiss.dbeaver.model.DBUtils;
-import org.jkiss.dbeaver.model.meta.Property;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.model.struct.DBSEntity;
-import org.jkiss.dbeaver.model.struct.DBSEntityAttributeRef;
-import org.jkiss.dbeaver.model.struct.DBSEntityConstraint;
-import org.jkiss.dbeaver.model.struct.DBSEntityReferrer;
-import org.jkiss.dbeaver.model.virtual.DBVEntityConstraint;
+import com.seizia.chromite.model.DBPObject;
+import com.seizia.chromite.model.DBUtils;
+import com.seizia.chromite.model.meta.Property;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.model.struct.DBSEntity;
+import com.seizia.chromite.model.struct.DBSEntityAttributeRef;
+import com.seizia.chromite.model.struct.DBSEntityConstraint;
+import com.seizia.chromite.model.struct.DBSEntityReferrer;
+import com.seizia.chromite.model.virtual.DBVEntityConstraint;
 import org.jkiss.utils.CommonUtils;
 
 import java.util.ArrayList;

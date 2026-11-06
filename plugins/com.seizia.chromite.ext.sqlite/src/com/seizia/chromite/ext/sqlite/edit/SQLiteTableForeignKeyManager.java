@@ -14,19 +14,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.sqlite.edit;
+package com.seizia.chromite.ext.sqlite.edit;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.ext.generic.edit.GenericForeignKeyManager;
-import org.jkiss.dbeaver.ext.generic.model.GenericTableForeignKey;
-import org.jkiss.dbeaver.ext.sqlite.SQLiteUtils;
-import org.jkiss.dbeaver.ext.sqlite.model.SQLiteTable;
-import org.jkiss.dbeaver.model.edit.DBECommandContext;
-import org.jkiss.dbeaver.model.edit.DBEPersistAction;
-import org.jkiss.dbeaver.model.exec.DBCExecutionContext;
-import org.jkiss.dbeaver.model.messages.ModelMessages;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.ext.generic.edit.GenericForeignKeyManager;
+import com.seizia.chromite.ext.generic.model.GenericTableForeignKey;
+import com.seizia.chromite.ext.sqlite.SQLiteUtils;
+import com.seizia.chromite.ext.sqlite.model.SQLiteTable;
+import com.seizia.chromite.model.edit.DBECommandContext;
+import com.seizia.chromite.model.edit.DBEPersistAction;
+import com.seizia.chromite.model.exec.DBCExecutionContext;
+import com.seizia.chromite.model.messages.ModelMessages;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
 
 import java.util.List;
 import java.util.Map;

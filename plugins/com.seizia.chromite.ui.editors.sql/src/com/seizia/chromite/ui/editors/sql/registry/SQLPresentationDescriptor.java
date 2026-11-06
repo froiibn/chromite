@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.ui.editors.sql.registry;
+package com.seizia.chromite.ui.editors.sql.registry;
 
 import org.eclipse.core.expressions.Expression;
 import org.eclipse.core.runtime.IConfigurationElement;
@@ -23,10 +23,10 @@ import org.eclipse.ui.IWorkbenchSite;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.model.DBPImage;
-import org.jkiss.dbeaver.model.impl.AbstractContextDescriptor;
-import org.jkiss.dbeaver.registry.RegistryConstants;
-import org.jkiss.dbeaver.ui.editors.sql.SQLEditorPresentation;
+import com.seizia.chromite.model.DBPImage;
+import com.seizia.chromite.model.impl.AbstractContextDescriptor;
+import com.seizia.chromite.registry.RegistryConstants;
+import com.seizia.chromite.ui.editors.sql.SQLEditorPresentation;
 import org.jkiss.utils.CommonUtils;
 
 import java.util.ArrayList;
@@ -37,7 +37,7 @@ import java.util.List;
  */
 public class SQLPresentationDescriptor extends AbstractContextDescriptor {
 
-    public static final String EXTENSION_ID = "org.jkiss.dbeaver.sqlPresentation"; //$NON-NLS-1$
+    public static final String EXTENSION_ID = "com.seizia.chromite.sqlPresentation"; //$NON-NLS-1$
 
     public enum QueryMode {
         /** The presentation can work with a single statement */

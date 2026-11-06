@@ -14,20 +14,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.postgresql.tasks;
+package com.seizia.chromite.ext.postgresql.tasks;
 
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.ext.postgresql.model.PostgreServerExtension;
-import org.jkiss.dbeaver.ext.postgresql.model.PostgreTableBase;
-import org.jkiss.dbeaver.ext.postgresql.model.impls.PostgreServerExtensionBase;
-import org.jkiss.dbeaver.model.DBPEvaluationContext;
-import org.jkiss.dbeaver.model.DBUtils;
-import org.jkiss.dbeaver.model.edit.DBEPersistAction;
-import org.jkiss.dbeaver.model.exec.DBCException;
-import org.jkiss.dbeaver.model.exec.DBCSession;
-import org.jkiss.dbeaver.model.exec.DBCTransactionManager;
-import org.jkiss.dbeaver.model.impl.edit.SQLDatabasePersistAction;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.ext.postgresql.model.PostgreServerExtension;
+import com.seizia.chromite.ext.postgresql.model.PostgreTableBase;
+import com.seizia.chromite.ext.postgresql.model.impls.PostgreServerExtensionBase;
+import com.seizia.chromite.model.DBPEvaluationContext;
+import com.seizia.chromite.model.DBUtils;
+import com.seizia.chromite.model.edit.DBEPersistAction;
+import com.seizia.chromite.model.exec.DBCException;
+import com.seizia.chromite.model.exec.DBCSession;
+import com.seizia.chromite.model.exec.DBCTransactionManager;
+import com.seizia.chromite.model.impl.edit.SQLDatabasePersistAction;
 import org.jkiss.utils.CommonUtils;
 
 import java.util.List;

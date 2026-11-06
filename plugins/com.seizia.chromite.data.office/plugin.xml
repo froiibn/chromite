@@ -2,11 +2,11 @@
 <?eclipse version="3.4"?>
 <plugin>
 
-    <extension point="org.jkiss.dbeaver.dataTransfer">
+    <extension point="com.seizia.chromite.dataTransfer">
         <node ref="stream_consumer">
             <processor
                 id="stream.xlsx"
-                class="org.jkiss.dbeaver.data.office.export.DataExporterXLSX"
+                class="com.seizia.chromite.data.office.export.DataExporterXLSX"
                 description="%dataTransfer.processor.xlsx.description"
                 icon="icons/excel.svg"
                 label="%dataTransfer.processor.xlsx.name"

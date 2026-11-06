@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.ext.cubrid.ui.editors;
+package com.seizia.chromite.ext.cubrid.ui.editors;
 
 import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.Status;
@@ -30,20 +30,20 @@ import org.eclipse.swt.widgets.Text;
 import org.eclipse.ui.IWorkbenchSite;
 import org.jkiss.code.NotNull;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.ext.cubrid.model.CubridPrivilage;
-import org.jkiss.dbeaver.ext.cubrid.ui.config.CubridPrivilageHandler;
-import org.jkiss.dbeaver.model.DBIcon;
-import org.jkiss.dbeaver.model.edit.DBECommandReflector;
-import org.jkiss.dbeaver.model.edit.prop.DBECommandProperty;
-import org.jkiss.dbeaver.model.navigator.DBNEvent;
-import org.jkiss.dbeaver.model.runtime.AbstractJob;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.ui.DBeaverIcons;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.controls.ObjectEditorPageControl;
-import org.jkiss.dbeaver.ui.editors.AbstractDatabaseObjectEditor;
-import org.jkiss.dbeaver.ui.editors.ControlPropertyCommandListener;
-import org.jkiss.dbeaver.ui.editors.DatabaseEditorUtils;
+import com.seizia.chromite.ext.cubrid.model.CubridPrivilage;
+import com.seizia.chromite.ext.cubrid.ui.config.CubridPrivilageHandler;
+import com.seizia.chromite.model.DBIcon;
+import com.seizia.chromite.model.edit.DBECommandReflector;
+import com.seizia.chromite.model.edit.prop.DBECommandProperty;
+import com.seizia.chromite.model.navigator.DBNEvent;
+import com.seizia.chromite.model.runtime.AbstractJob;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.ui.SwtIcons;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.controls.ObjectEditorPageControl;
+import com.seizia.chromite.ui.editors.AbstractDatabaseObjectEditor;
+import com.seizia.chromite.ui.editors.ControlPropertyCommandListener;
+import com.seizia.chromite.ui.editors.DatabaseEditorUtils;
 import org.jkiss.utils.CommonUtils;
 
 import java.util.ArrayList;
@@ -156,7 +156,7 @@ public class CubridPrivilageEditor extends AbstractDatabaseObjectEditor<CubridPr
                                 for (CubridPrivilage privilage : cubridUsers) {
                                     if (privilage.isPersisted() && !privilage.getName().equals(user.getName())) {
                                         TableItem item = new TableItem(table, SWT.BREAK);
-                                        item.setImage(DBeaverIcons.getImage(DBIcon.TREE_USER_GROUP));
+                                        item.setImage(SwtIcons.getImage(DBIcon.TREE_USER_GROUP));
                                         item.setText(0, privilage.getName());
 
                                         if (user.getRoles().contains(privilage.getName())) {

@@ -14,23 +14,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.data.managers.image;
+package com.seizia.chromite.ui.data.managers.image;
 
 import org.eclipse.swt.graphics.ImageLoader;
 import org.eclipse.ui.IEditorPart;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.DBUtils;
-import org.jkiss.dbeaver.model.data.DBDContent;
-import org.jkiss.dbeaver.model.data.DBDContentStorage;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.model.runtime.DBRRunnableWithProgress;
-import org.jkiss.dbeaver.model.struct.DBSTypedObject;
-import org.jkiss.dbeaver.ui.data.IStreamValueEditor;
-import org.jkiss.dbeaver.ui.data.IStreamValueManager;
-import org.jkiss.dbeaver.ui.data.IValueController;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.DBUtils;
+import com.seizia.chromite.model.data.DBDContent;
+import com.seizia.chromite.model.data.DBDContentStorage;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.model.runtime.DBRRunnableWithProgress;
+import com.seizia.chromite.model.struct.DBSTypedObject;
+import com.seizia.chromite.ui.data.IStreamValueEditor;
+import com.seizia.chromite.ui.data.IStreamValueManager;
+import com.seizia.chromite.ui.data.IValueController;
 
 import java.io.InputStream;
 import java.lang.reflect.InvocationTargetException;

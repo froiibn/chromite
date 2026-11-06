@@ -14,17 +14,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.clickhouse.model.data;
+package com.seizia.chromite.ext.clickhouse.model.data;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.ext.clickhouse.model.ClickhouseTupleType;
-import org.jkiss.dbeaver.model.data.DBDComposite;
-import org.jkiss.dbeaver.model.data.DBDValueCloneable;
-import org.jkiss.dbeaver.model.exec.DBCException;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.model.struct.DBSAttributeBase;
-import org.jkiss.dbeaver.model.struct.DBSDataType;
+import com.seizia.chromite.ext.clickhouse.model.ClickhouseTupleType;
+import com.seizia.chromite.model.data.DBDComposite;
+import com.seizia.chromite.model.data.DBDValueCloneable;
+import com.seizia.chromite.model.exec.DBCException;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.model.struct.DBSAttributeBase;
+import com.seizia.chromite.model.struct.DBSDataType;
 
 import java.util.Arrays;
 import java.util.stream.Collectors;

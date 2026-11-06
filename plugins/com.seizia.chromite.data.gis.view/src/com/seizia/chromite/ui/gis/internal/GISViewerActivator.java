@@ -14,11 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.gis.internal;
+package com.seizia.chromite.ui.gis.internal;
 
 import org.eclipse.core.runtime.Plugin;
-import org.jkiss.dbeaver.model.impl.preferences.BundlePreferenceStore;
-import org.jkiss.dbeaver.model.preferences.DBPPreferenceStore;
+import com.seizia.chromite.model.impl.preferences.BundlePreferenceStore;
+import com.seizia.chromite.model.preferences.DBPPreferenceStore;
 import org.osgi.framework.BundleContext;
 
 import java.io.InputStream;
@@ -27,7 +27,7 @@ import java.io.InputStream;
  * The activator class controls the plug-in life cycle
  */
 public class GISViewerActivator extends Plugin {
-    public static final String PLUGIN_ID = "org.jkiss.dbeaver.data.gis.view";
+    public static final String PLUGIN_ID = "com.seizia.chromite.data.gis.view";
 
     // The shared instance
     private static GISViewerActivator plugin;

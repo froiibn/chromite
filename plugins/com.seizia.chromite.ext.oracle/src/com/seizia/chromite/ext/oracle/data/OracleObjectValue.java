@@ -14,10 +14,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.oracle.data;
+package com.seizia.chromite.ext.oracle.data;
 
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.model.data.DBDValue;
+import com.seizia.chromite.model.data.DBDValue;
 
 /**
  * Object value

@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.controls.findandreplace;
+package com.seizia.chromite.ui.controls.findandreplace;
 
 import org.eclipse.jface.action.IAction;
 import org.eclipse.jface.bindings.keys.KeyStroke;
@@ -52,11 +52,11 @@ import org.eclipse.ui.part.MultiPageEditorSite;
 import org.eclipse.ui.texteditor.*;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.ui.DBeaverIcons;
-import org.jkiss.dbeaver.ui.UIIcon;
-import org.jkiss.dbeaver.ui.UIStyles;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.contentassist.ContentAssistUtils;
+import com.seizia.chromite.ui.SwtIcons;
+import com.seizia.chromite.ui.UIIcon;
+import com.seizia.chromite.ui.UIStyles;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.contentassist.ContentAssistUtils;
 import org.jkiss.utils.CommonUtils;
 import org.osgi.framework.FrameworkUtil;
 
@@ -299,7 +299,7 @@ public class FindReplaceOverlay {
                 }
 
                 // looks like we are already doing this for all our text editors, where we are able to introduce this find&replace overlay
-                // see org.jkiss.dbeaver.ui.editors.TextEditorUtils.enableHostEditorKeyBindingsSupport(..)
+                // see com.seizia.chromite.ui.editors.TextEditorUtils.enableHostEditorKeyBindingsSupport(..)
                 // try {
                 //     Method method = AbstractTextEditor.class.getDeclaredMethod("setActionActivation", boolean.class); //$NON-NLS-1$
                 //     method.setAccessible(true);
@@ -639,7 +639,7 @@ public class FindReplaceOverlay {
 
             this.replaceToggle = new AccessibleToolItemBuilder(this.replaceToggleTools)
                 .withShortcuts(KeyboardShortcuts.TOGGLE_REPLACE)
-                .withImage(DBeaverIcons.getImage(UIIcon.FIND_REPLACE_OPEN_REPLACE))
+                .withImage(SwtIcons.getImage(UIIcon.FIND_REPLACE_OPEN_REPLACE))
                 .withToolTipText(FindReplaceMessages.FindReplaceOverlay_replaceToggle_toolTip)
                 .withOperation(() -> this.setReplaceVisible(!this.replaceBarOpen)).withShortcuts(KeyboardShortcuts.TOGGLE_REPLACE)
                 .build();
@@ -670,13 +670,13 @@ public class FindReplaceOverlay {
             this.searchTools.createToolItem(SWT.SEPARATOR);
 
             this.searchBackwardButton = new AccessibleToolItemBuilder(this.searchTools).withStyleBits(SWT.PUSH)
-                .withImage(DBeaverIcons.getImage(UIIcon.FIND_REPLACE_FIND_PREV))
+                .withImage(SwtIcons.getImage(UIIcon.FIND_REPLACE_FIND_PREV))
                 .withToolTipText(FindReplaceMessages.FindReplaceOverlay_upSearchButton_toolTip)
                 .withOperation(() -> this.performSearch(false))
                 .withShortcuts(KeyboardShortcuts.SEARCH_BACKWARD).build();
 
             this.searchForwardButton = new AccessibleToolItemBuilder(this.searchTools).withStyleBits(SWT.PUSH)
-                .withImage(DBeaverIcons.getImage(UIIcon.FIND_REPLACE_FIND_NEXT))
+                .withImage(SwtIcons.getImage(UIIcon.FIND_REPLACE_FIND_NEXT))
                 .withToolTipText(FindReplaceMessages.FindReplaceOverlay_downSearchButton_toolTip)
                 .withOperation(() -> this.performSearch(true))
                 .withShortcuts(KeyboardShortcuts.SEARCH_FORWARD).build();
@@ -691,7 +691,7 @@ public class FindReplaceOverlay {
 
         protected void configureSelectAllButton(@NotNull AccessibleToolItemBuilder buttonBuilder) {
             buttonBuilder.withStyleBits(SWT.PUSH)
-                .withImage(DBeaverIcons.getImage(UIIcon.FIND_REPLACE_FIND_ALL))
+                .withImage(SwtIcons.getImage(UIIcon.FIND_REPLACE_FIND_ALL))
                 .withToolTipText(FindReplaceMessages.FindReplaceOverlay_searchAllButton_toolTip)
                 .withOperation(this::performSelectAll).withShortcuts(KeyboardShortcuts.SEARCH_ALL);
         }
@@ -703,7 +703,7 @@ public class FindReplaceOverlay {
 
             // Close button
             new AccessibleToolItemBuilder(this.closeTools).withStyleBits(SWT.PUSH)
-                .withImage(DBeaverIcons.getImage(UIIcon.FIND_REPLACE_CLOSE))
+                .withImage(SwtIcons.getImage(UIIcon.FIND_REPLACE_CLOSE))
                 .withToolTipText(FindReplaceMessages.FindReplaceOverlay_closeButton_toolTip) //
                 .withOperation(this::close)
                 .withShortcuts(KeyboardShortcuts.CLOSE).build();
@@ -713,7 +713,7 @@ public class FindReplaceOverlay {
 
         private void createAreaSearchButton() {
             this.searchInSelectionButton = new AccessibleToolItemBuilder(this.searchTools).withStyleBits(SWT.CHECK)
-                .withImage(DBeaverIcons.getImage(UIIcon.FIND_REPLACE_MATCH_IN_SELECTION))
+                .withImage(SwtIcons.getImage(UIIcon.FIND_REPLACE_MATCH_IN_SELECTION))
                 .withToolTipText(FindReplaceMessages.FindReplaceOverlay_searchInSelectionButton_toolTip)
                 .withOperation(() -> {
                     this.activateInFindReplacerIf(SearchOptions.GLOBAL, !this.searchInSelectionButton.getSelection());
@@ -725,7 +725,7 @@ public class FindReplaceOverlay {
 
         private void createRegexSearchButton() {
             this.regexSearchButton = new AccessibleToolItemBuilder(this.searchTools).withStyleBits(SWT.CHECK)
-                .withImage(DBeaverIcons.getImage(UIIcon.FIND_REPLACE_MATCH_REGEX))
+                .withImage(SwtIcons.getImage(UIIcon.FIND_REPLACE_MATCH_REGEX))
                 .withToolTipText(FindReplaceMessages.FindReplaceOverlay_regexSearchButton_toolTip)
                 .withOperation(() -> {
                     this.activateInFindReplacerIf(SearchOptions.REGEX, this.regexSearchButton.getSelection());
@@ -739,7 +739,7 @@ public class FindReplaceOverlay {
 
         private void createCaseSensitiveButton() {
             this.caseSensitiveSearchButton = new AccessibleToolItemBuilder(this.searchTools).withStyleBits(SWT.CHECK)
-                .withImage(DBeaverIcons.getImage(UIIcon.FIND_REPLACE_MATCH_CASE))
+                .withImage(SwtIcons.getImage(UIIcon.FIND_REPLACE_MATCH_CASE))
                 .withToolTipText(FindReplaceMessages.FindReplaceOverlay_caseSensitiveButton_toolTip)
                 .withOperation(() -> {
                     this.activateInFindReplacerIf(SearchOptions.CASE_SENSITIVE, this.caseSensitiveSearchButton.getSelection());
@@ -750,7 +750,7 @@ public class FindReplaceOverlay {
 
         private void createWholeWordsButton() {
             this.wholeWordSearchButton = new AccessibleToolItemBuilder(this.searchTools).withStyleBits(SWT.CHECK)
-                .withImage(DBeaverIcons.getImage(UIIcon.FIND_REPLACE_MATCH_WORD))
+                .withImage(SwtIcons.getImage(UIIcon.FIND_REPLACE_MATCH_WORD))
                 .withToolTipText(FindReplaceMessages.FindReplaceOverlay_wholeWordsButton_toolTip)
                 .withOperation(() -> {
                     this.activateInFindReplacerIf(SearchOptions.WHOLE_WORD, this.wholeWordSearchButton.getSelection());
@@ -764,7 +764,7 @@ public class FindReplaceOverlay {
             this.replaceTools.createToolItem(SWT.SEPARATOR);
             GridDataFactory.fillDefaults().grab(false, true).align(GridData.CENTER, GridData.END).applyTo(this.replaceTools);
             this.replaceButton = new AccessibleToolItemBuilder(this.replaceTools).withStyleBits(SWT.PUSH)
-                .withImage(DBeaverIcons.getImage(UIIcon.FIND_REPLACE_REPLACE))
+                .withImage(SwtIcons.getImage(UIIcon.FIND_REPLACE_REPLACE))
                 .withToolTipText(FindReplaceMessages.FindReplaceOverlay_replaceButton_toolTip)
                 .withOperation(() -> {
                     if (this.getFindString().isEmpty()) {
@@ -775,7 +775,7 @@ public class FindReplaceOverlay {
                 }).withShortcuts(KeyboardShortcuts.SEARCH_FORWARD).build();
 
             this.replaceAllButton = new AccessibleToolItemBuilder(this.replaceTools).withStyleBits(SWT.PUSH)
-                .withImage(DBeaverIcons.getImage(UIIcon.FIND_REPLACE_REPLACE_ALL))
+                .withImage(SwtIcons.getImage(UIIcon.FIND_REPLACE_REPLACE_ALL))
                 .withToolTipText(FindReplaceMessages.FindReplaceOverlay_replaceAllButton_toolTip)
                 .withOperation(() -> {
                     if (this.getFindString().isEmpty()) {
@@ -916,10 +916,10 @@ public class FindReplaceOverlay {
         private void setReplaceVisible(boolean visible) {
             if (this.findReplaceLogic.getTarget().isEditable() && visible) {
                 this.createReplaceDialog();
-                this.replaceToggle.setImage(DBeaverIcons.getImage(UIIcon.FIND_REPLACE_CLOSE_REPLACE));
+                this.replaceToggle.setImage(SwtIcons.getImage(UIIcon.FIND_REPLACE_CLOSE_REPLACE));
             } else {
                 this.hideReplace();
-                this.replaceToggle.setImage(DBeaverIcons.getImage(UIIcon.FIND_REPLACE_OPEN_REPLACE));
+                this.replaceToggle.setImage(SwtIcons.getImage(UIIcon.FIND_REPLACE_OPEN_REPLACE));
             }
             this.updateContentAssistAvailability();
         }

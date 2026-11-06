@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.controls.resultset.spreadsheet;
+package com.seizia.chromite.ui.controls.resultset.spreadsheet;
 
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.custom.ControlEditor;
@@ -25,7 +25,7 @@ import org.eclipse.swt.events.SelectionListener;
 import org.eclipse.swt.graphics.Rectangle;
 import org.eclipse.swt.widgets.Control;
 import org.eclipse.swt.widgets.Listener;
-import org.jkiss.dbeaver.ui.controls.lightgrid.LightGrid;
+import com.seizia.chromite.ui.controls.lightgrid.LightGrid;
 
 /**
  * Spreadsheet cell editor

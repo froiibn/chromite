@@ -14,10 +14,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.mimer.model;
+package com.seizia.chromite.ext.mimer.model;
 
-import org.jkiss.dbeaver.ext.generic.model.GenericStructContainer;
-import org.jkiss.junit.DBeaverUnitTest;
+import com.seizia.chromite.ext.generic.model.GenericStructContainer;
+import com.seizia.chromite.junit.ChromiteUnitTest;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -34,7 +34,7 @@ import org.mockito.Mockito;
  *
  * @author Mimer Information Technology
  */
-public class MimerSequenceTest extends DBeaverUnitTest {
+public class MimerSequenceTest extends ChromiteUnitTest {
 
     @Mock
     private GenericStructContainer container;
@@ -145,7 +145,7 @@ public class MimerSequenceTest extends DBeaverUnitTest {
      */
     @Test
     public void persistedSequenceNeverPopulatesLastValueFromStartValue() throws Exception {
-        var dbResult = org.mockito.Mockito.mock(org.jkiss.dbeaver.model.exec.jdbc.JDBCResultSet.class);
+        var dbResult = org.mockito.Mockito.mock(com.seizia.chromite.model.exec.jdbc.JDBCResultSet.class);
         Mockito.when(dbResult.getString("SEQUENCE_NAME")).thenReturn("my_seq");
         Mockito.when(dbResult.getLong("START_VALUE")).thenReturn(1L);
         Mockito.when(dbResult.getLong("MINIMUM_VALUE")).thenReturn(1L);

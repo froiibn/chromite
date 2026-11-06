@@ -14,19 +14,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.sql;
+package com.seizia.chromite.model.sql;
 
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.model.DBPDataSource;
-import org.jkiss.dbeaver.model.impl.sql.BasicSQLDialect;
-import org.jkiss.junit.DBeaverUnitTest;
+import com.seizia.chromite.model.DBPDataSource;
+import com.seizia.chromite.model.impl.sql.BasicSQLDialect;
+import com.seizia.chromite.junit.ChromiteUnitTest;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
 import java.util.List;
 
-public class SQLQueryDangerousDetectionTest extends DBeaverUnitTest {
+public class SQLQueryDangerousDetectionTest extends ChromiteUnitTest {
 
     @Test
     public void noDropStatementShouldReturnNoneTypeDrop() {

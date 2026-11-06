@@ -15,13 +15,13 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.ext.postgresql.model.fdw;
+package com.seizia.chromite.ext.postgresql.model.fdw;
 
 import org.eclipse.core.runtime.IConfigurationElement;
 import org.eclipse.core.runtime.IExtensionRegistry;
 import org.eclipse.core.runtime.Platform;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.DBPDataSourceContainer;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.DBPDataSourceContainer;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -31,7 +31,7 @@ import java.util.List;
  */
 public class FDWConfigRegistry {
 
-    public static final String EXTENSION_ID = "org.jkiss.dbeaver.postgresql.fdw.config"; //$NON-NLS-1$
+    public static final String EXTENSION_ID = "com.seizia.chromite.postgresql.fdw.config"; //$NON-NLS-1$
 
     private static FDWConfigRegistry instance = null;
 

@@ -14,13 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.sql.semantics.tracking;
+package com.seizia.chromite.model.sql.semantics.tracking;
 
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.model.sql.SQLScriptElement;
-import org.jkiss.dbeaver.model.sql.semantics.SQLQueryRecognitionContext;
-import org.jkiss.dbeaver.model.sql.semantics.SQLQueryVariablesSubset;
-import org.jkiss.dbeaver.model.sql.semantics.model.SQLQueryModel;
+import com.seizia.chromite.model.sql.SQLScriptElement;
+import com.seizia.chromite.model.sql.semantics.SQLQueryRecognitionContext;
+import com.seizia.chromite.model.sql.semantics.SQLQueryVariablesSubset;
+import com.seizia.chromite.model.sql.semantics.model.SQLQueryModel;
 
 import java.util.Collection;
 

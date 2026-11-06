@@ -14,17 +14,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.ai.engine.copilot;
+package com.seizia.chromite.model.ai.engine.copilot;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.ai.engine.AIEngineResponseChunk;
-import org.jkiss.dbeaver.model.ai.engine.AIEngineResponseConsumer;
-import org.jkiss.dbeaver.model.ai.engine.copilot.dto.*;
-import org.jkiss.dbeaver.model.ai.utils.AIHttpUtils;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.ai.engine.AIEngineResponseChunk;
+import com.seizia.chromite.model.ai.engine.AIEngineResponseConsumer;
+import com.seizia.chromite.model.ai.engine.copilot.dto.*;
+import com.seizia.chromite.model.ai.utils.AIHttpUtils;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
 import org.jkiss.utils.CommonUtils;
 import org.jkiss.utils.HttpConstants;
 

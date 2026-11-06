@@ -15,10 +15,10 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.ui.app.standalone.rpc;
+package com.seizia.chromite.ui.app.standalone.rpc;
 
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.model.cli.ApplicationInstanceController;
+import com.seizia.chromite.model.cli.ApplicationInstanceController;
 import org.jkiss.utils.rest.RequestMapping;
 import org.jkiss.utils.rest.RequestParameter;
 

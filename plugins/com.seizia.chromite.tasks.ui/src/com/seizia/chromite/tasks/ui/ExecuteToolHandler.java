@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.tasks.ui;
+package com.seizia.chromite.tasks.ui;
 
 import org.eclipse.core.commands.Command;
 import org.eclipse.core.commands.ExecutionEvent;
@@ -27,18 +27,18 @@ import org.eclipse.osgi.util.NLS;
 import org.eclipse.ui.IActionDelegate;
 import org.eclipse.ui.ISources;
 import org.eclipse.ui.IWorkbenchWindow;
-import org.jkiss.dbeaver.model.DBPDataSource;
-import org.jkiss.dbeaver.model.DBUtils;
-import org.jkiss.dbeaver.model.app.DBPProject;
-import org.jkiss.dbeaver.model.struct.DBSObject;
-import org.jkiss.dbeaver.registry.ApplicationPolicyProvider;
-import org.jkiss.dbeaver.registry.task.TaskTypeDescriptor;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.tasks.ui.internal.TaskUIMessages;
-import org.jkiss.dbeaver.tasks.ui.wizard.TaskConfigurationWizardDialog;
-import org.jkiss.dbeaver.tools.registry.ToolDescriptor;
-import org.jkiss.dbeaver.ui.internal.UIMessages;
-import org.jkiss.dbeaver.ui.navigator.NavigatorUtils;
+import com.seizia.chromite.model.DBPDataSource;
+import com.seizia.chromite.model.DBUtils;
+import com.seizia.chromite.model.app.DBPProject;
+import com.seizia.chromite.model.struct.DBSObject;
+import com.seizia.chromite.registry.ApplicationPolicyProvider;
+import com.seizia.chromite.registry.task.TaskTypeDescriptor;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.tasks.ui.internal.TaskUIMessages;
+import com.seizia.chromite.tasks.ui.wizard.TaskConfigurationWizardDialog;
+import com.seizia.chromite.tools.registry.ToolDescriptor;
+import com.seizia.chromite.ui.internal.UIMessages;
+import com.seizia.chromite.ui.navigator.NavigatorUtils;
 
 import java.util.Collections;
 import java.util.List;

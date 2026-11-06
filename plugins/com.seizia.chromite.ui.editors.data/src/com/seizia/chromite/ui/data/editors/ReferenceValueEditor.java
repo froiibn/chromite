@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.data.editors;
+package com.seizia.chromite.ui.data.editors;
 
 import org.eclipse.jface.action.Action;
 import org.eclipse.jface.action.ContributionItem;
@@ -31,30 +31,30 @@ import org.eclipse.ui.IWorkbenchWindow;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.ModelPreferences;
-import org.jkiss.dbeaver.model.DBUtils;
-import org.jkiss.dbeaver.model.data.*;
-import org.jkiss.dbeaver.model.exec.DBCExecutionContext;
-import org.jkiss.dbeaver.model.exec.DBExecUtils;
-import org.jkiss.dbeaver.model.navigator.DBNDatabaseNode;
-import org.jkiss.dbeaver.model.navigator.DBNUtils;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.model.runtime.load.AbstractLoadService;
-import org.jkiss.dbeaver.model.struct.*;
-import org.jkiss.dbeaver.ui.*;
-import org.jkiss.dbeaver.ui.controls.ProgressLoaderVisualizer;
-import org.jkiss.dbeaver.ui.controls.resultset.IResultSetController;
-import org.jkiss.dbeaver.ui.controls.resultset.ResultSetThemeSettings;
-import org.jkiss.dbeaver.ui.controls.resultset.ResultSetUtils;
-import org.jkiss.dbeaver.ui.controls.resultset.ThemeConstants;
-import org.jkiss.dbeaver.ui.controls.resultset.internal.ResultSetMessages;
-import org.jkiss.dbeaver.ui.data.IAttributeController;
-import org.jkiss.dbeaver.ui.data.IValueController;
-import org.jkiss.dbeaver.ui.data.IValueEditor;
-import org.jkiss.dbeaver.ui.editors.data.DatabaseDataEditor;
-import org.jkiss.dbeaver.ui.editors.object.struct.EditDictionaryPage;
-import org.jkiss.dbeaver.ui.navigator.actions.NavigatorHandlerObjectOpen;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.ModelPreferences;
+import com.seizia.chromite.model.DBUtils;
+import com.seizia.chromite.model.data.*;
+import com.seizia.chromite.model.exec.DBCExecutionContext;
+import com.seizia.chromite.model.exec.DBExecUtils;
+import com.seizia.chromite.model.navigator.DBNDatabaseNode;
+import com.seizia.chromite.model.navigator.DBNUtils;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.model.runtime.load.AbstractLoadService;
+import com.seizia.chromite.model.struct.*;
+import com.seizia.chromite.ui.*;
+import com.seizia.chromite.ui.controls.ProgressLoaderVisualizer;
+import com.seizia.chromite.ui.controls.resultset.IResultSetController;
+import com.seizia.chromite.ui.controls.resultset.ResultSetThemeSettings;
+import com.seizia.chromite.ui.controls.resultset.ResultSetUtils;
+import com.seizia.chromite.ui.controls.resultset.ThemeConstants;
+import com.seizia.chromite.ui.controls.resultset.internal.ResultSetMessages;
+import com.seizia.chromite.ui.data.IAttributeController;
+import com.seizia.chromite.ui.data.IValueController;
+import com.seizia.chromite.ui.data.IValueEditor;
+import com.seizia.chromite.ui.editors.data.DatabaseDataEditor;
+import com.seizia.chromite.ui.editors.object.struct.EditDictionaryPage;
+import com.seizia.chromite.ui.navigator.actions.NavigatorHandlerObjectOpen;
 import org.jkiss.utils.CommonUtils;
 import org.jkiss.utils.ReaderWriterLock.ExceptableFunction;
 
@@ -512,13 +512,13 @@ public class ReferenceValueEditor {
         }
     }
     
-    private final Action actionGoBackward = new Action("Move Backward", DBeaverIcons.getImageDescriptor(UIIcon.ARROW_LEFT)) {
+    private final Action actionGoBackward = new Action("Move Backward", SwtIcons.getImageDescriptor(UIIcon.ARROW_LEFT)) {
         @Override
         public void run() {
             controller.goToPrevPage();
         }
     }; 
-    private final Action actionGoForward = new Action("Move Forward", DBeaverIcons.getImageDescriptor(UIIcon.ARROW_RIGHT)) {
+    private final Action actionGoForward = new Action("Move Forward", SwtIcons.getImageDescriptor(UIIcon.ARROW_RIGHT)) {
         @Override
         public void run() {
             controller.goToNextPage();

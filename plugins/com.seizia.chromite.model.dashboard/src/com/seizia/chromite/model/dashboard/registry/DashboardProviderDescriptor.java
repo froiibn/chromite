@@ -14,21 +14,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.dashboard.registry;
+package com.seizia.chromite.model.dashboard.registry;
 
 import org.eclipse.core.expressions.Expression;
 import org.eclipse.core.runtime.IConfigurationElement;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.DBPDataSourceContainer;
-import org.jkiss.dbeaver.model.DBPImage;
-import org.jkiss.dbeaver.model.DBPNamedObject;
-import org.jkiss.dbeaver.model.DBPObject;
-import org.jkiss.dbeaver.model.dashboard.DBDashboardDataType;
-import org.jkiss.dbeaver.model.dashboard.DBDashboardProvider;
-import org.jkiss.dbeaver.model.dashboard.DashboardConstants;
-import org.jkiss.dbeaver.model.impl.AbstractContextDescriptor;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.DBPDataSourceContainer;
+import com.seizia.chromite.model.DBPImage;
+import com.seizia.chromite.model.DBPNamedObject;
+import com.seizia.chromite.model.DBPObject;
+import com.seizia.chromite.model.dashboard.DBDashboardDataType;
+import com.seizia.chromite.model.dashboard.DBDashboardProvider;
+import com.seizia.chromite.model.dashboard.DashboardConstants;
+import com.seizia.chromite.model.impl.AbstractContextDescriptor;
 import org.jkiss.utils.CommonUtils;
 
 /**

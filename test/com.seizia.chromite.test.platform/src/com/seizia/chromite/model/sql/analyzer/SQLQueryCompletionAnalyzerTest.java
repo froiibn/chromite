@@ -14,26 +14,26 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.sql.analyzer;
+package com.seizia.chromite.model.sql.analyzer;
 
 import org.eclipse.core.runtime.Platform;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.model.DBPDataKind;
-import org.jkiss.dbeaver.model.DBPDataSource;
-import org.jkiss.dbeaver.model.impl.sql.BasicSQLDialect;
-import org.jkiss.dbeaver.model.impl.struct.RelationalObjectType;
-import org.jkiss.dbeaver.model.sql.analyzer.builder.TableAttributeContainerBuilder;
-import org.jkiss.dbeaver.model.sql.analyzer.builder.request.RequestBuilder;
-import org.jkiss.dbeaver.model.sql.analyzer.builder.request.RequestResult;
-import org.jkiss.dbeaver.model.sql.semantics.SQLQuerySymbolOrigin;
-import org.jkiss.dbeaver.model.sql.semantics.completion.SQLQueryCompletionItem;
-import org.jkiss.dbeaver.model.sql.semantics.completion.SQLQueryCompletionItemKind;
-import org.jkiss.dbeaver.model.sql.semantics.completion.SQLQueryWordEntry;
-import org.jkiss.dbeaver.model.struct.DBSDataType;
-import org.jkiss.dbeaver.model.struct.DBSNamespace;
-import org.jkiss.junit.DBeaverUnitTest;
+import com.seizia.chromite.model.DBPDataKind;
+import com.seizia.chromite.model.DBPDataSource;
+import com.seizia.chromite.model.impl.sql.BasicSQLDialect;
+import com.seizia.chromite.model.impl.struct.RelationalObjectType;
+import com.seizia.chromite.model.sql.analyzer.builder.TableAttributeContainerBuilder;
+import com.seizia.chromite.model.sql.analyzer.builder.request.RequestBuilder;
+import com.seizia.chromite.model.sql.analyzer.builder.request.RequestResult;
+import com.seizia.chromite.model.sql.semantics.SQLQuerySymbolOrigin;
+import com.seizia.chromite.model.sql.semantics.completion.SQLQueryCompletionItem;
+import com.seizia.chromite.model.sql.semantics.completion.SQLQueryCompletionItemKind;
+import com.seizia.chromite.model.sql.semantics.completion.SQLQueryWordEntry;
+import com.seizia.chromite.model.struct.DBSDataType;
+import com.seizia.chromite.model.struct.DBSNamespace;
+import com.seizia.chromite.junit.ChromiteUnitTest;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -43,9 +43,9 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Set;
 
-import static org.jkiss.dbeaver.model.sql.analyzer.builder.Builder.Consumer.empty;
+import static com.seizia.chromite.model.sql.analyzer.builder.Builder.Consumer.empty;
 
-public class SQLQueryCompletionAnalyzerTest extends DBeaverUnitTest {
+public class SQLQueryCompletionAnalyzerTest extends ChromiteUnitTest {
     private static RequestResult modelDataRequest;
 
     @BeforeEach

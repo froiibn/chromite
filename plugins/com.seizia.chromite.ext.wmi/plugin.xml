@@ -3,7 +3,7 @@
 <plugin>
 
     <extension
-        point="org.jkiss.dbeaver.dataSourceProvider">
+        point="com.seizia.chromite.dataSourceProvider">
         <dataSourceType
             id="wmi"
             label="WMI"
@@ -13,7 +13,7 @@
             iconBig="icons/wmi_icon_big.png"
             logoImage="icons/wmi_icon_big.png"/>
         <datasource
-            class="org.jkiss.dbeaver.ext.wmi.WMIDataSourceProvider"
+            class="com.seizia.chromite.ext.wmi.WMIDataSourceProvider"
             description="WMI connector"
             icon="icons/wmi_icon.png"
             id="wmi"
@@ -24,27 +24,27 @@
                   icon="icons/wmi_icon.png"
                   label="WMI data source"
                   path="wmi">
-                <!--folder type="org.jkiss.dbeaver.ext.wmi.model.WMIClass" label="Classes" description="WMI classes">
+                <!--folder type="com.seizia.chromite.ext.wmi.model.WMIClass" label="Classes" description="WMI classes">
                     <items label="Classes" itemLabel="Class" path="allClass" property="allClasses" icon="icons/class.svg">
-                        <folder type="org.jkiss.dbeaver.ext.wmi.model.WMIClassProperty" label="Properties" icon="#columns" description="Class properties" navigable="false" id="ClassAttributes">
+                        <folder type="com.seizia.chromite.ext.wmi.model.WMIClassProperty" label="Properties" icon="#columns" description="Class properties" navigable="false" id="ClassAttributes">
                             <items label="Properties" itemLabel="Property" path="property" property="attributes"/>
                         </folder>
                     </items>
                 </folder-->
-                <!--folder type="org.jkiss.dbeaver.ext.wmi.model.WMIContainer" label="Hierarchy" description="WMI namespace and class hierarchy"-->
+                <!--folder type="com.seizia.chromite.ext.wmi.model.WMIContainer" label="Hierarchy" description="WMI namespace and class hierarchy"-->
                     <items label="Namespaces" itemLabel="Namespace" path="namespace" property="namespaces" icon="icons/namespace.png" id="Namespace">
                         <items ref="Namespace"/>
-                        <folder type="org.jkiss.dbeaver.ext.wmi.model.WMIClass" label="Classes" icon="icons/classes.png" description="Classes">
+                        <folder type="com.seizia.chromite.ext.wmi.model.WMIClass" label="Classes" icon="icons/classes.png" description="Classes">
                             <items label="Classes" itemLabel="Class" path="class" property="classes" icon="icons/class.svg" id="Class">
-                                <folder type="org.jkiss.dbeaver.ext.wmi.model.WMIClassAttribute" label="Properties" icon="#columns" description="Class properties" navigable="false" id="ClassAttributes">
+                                <folder type="com.seizia.chromite.ext.wmi.model.WMIClassAttribute" label="Properties" icon="#columns" description="Class properties" navigable="false" id="ClassAttributes">
                                     <items label="Properties" itemLabel="Property" path="attribute" property="allAttributes"/>
                                 </folder>
-                                <folder type="org.jkiss.dbeaver.ext.wmi.model.WMIClassMethod" label="Methods" icon="#procedures" description="Class methods" navigable="false" id="ClassMethods">
+                                <folder type="com.seizia.chromite.ext.wmi.model.WMIClassMethod" label="Methods" icon="#procedures" description="Class methods" navigable="false" id="ClassMethods">
                                     <items label="Methods" itemLabel="Method" path="method" property="methods"/>
                                 </folder>
                             </items>
                         </folder>
-                        <folder type="org.jkiss.dbeaver.ext.wmi.model.WMIClass" label="Associations" icon="icons/associations.png" description="Class Associations">
+                        <folder type="com.seizia.chromite.ext.wmi.model.WMIClass" label="Associations" icon="icons/associations.png" description="Class Associations">
                             <items label="Associations" itemLabel="Association" path="association" property="associations" icon="icons/association.svg" id="Association">
                                 <items ref="ClassAttributes"/>
                             </items>
@@ -68,17 +68,17 @@
         </datasource>
     </extension>
 
-    <extension point="org.jkiss.dbeaver.dataSourceConfigurator">
-        <configurator dataSource="wmi" class="org.jkiss.dbeaver.ext.wmi.views.WMIConnectionPage"/>
+    <extension point="com.seizia.chromite.dataSourceConfigurator">
+        <configurator dataSource="wmi" class="com.seizia.chromite.ext.wmi.views.WMIConnectionPage"/>
     </extension>
 
-    <extension point="org.jkiss.dbeaver.objectManager">
-        <manager class="org.jkiss.dbeaver.ext.wmi.edit.WMINamespaceManager" objectType="org.jkiss.dbeaver.ext.wmi.model.WMINamespace" label="Namespace manager"/>
+    <extension point="com.seizia.chromite.objectManager">
+        <manager class="com.seizia.chromite.ext.wmi.edit.WMINamespaceManager" objectType="com.seizia.chromite.ext.wmi.model.WMINamespace" label="Namespace manager"/>
     </extension>
 
-    <extension point="org.jkiss.dbeaver.dataTypeProvider">
+    <extension point="com.seizia.chromite.dataTypeProvider">
         <provider
-            class="org.jkiss.dbeaver.ext.wmi.model.WMIValueHandlerProvider"
+            class="com.seizia.chromite.ext.wmi.model.WMIValueHandlerProvider"
             id="WMIValueHandlerProvider"
             label="WMI data types provider">
 
@@ -88,8 +88,8 @@
         </provider>
     </extension>
 
-    <extension point="org.jkiss.dbeaver.sqlDialect">
-        <dialect id="wmi" parent="basic" class="org.jkiss.dbeaver.ext.wmi.model.WMIDialect" label="WMI" description="WMI SQL dialect." icon="icons/wmi_icon.png">
+    <extension point="com.seizia.chromite.sqlDialect">
+        <dialect id="wmi" parent="basic" class="com.seizia.chromite.ext.wmi.model.WMIDialect" label="WMI" description="WMI SQL dialect." icon="icons/wmi_icon.png">
         </dialect>
     </extension>
 

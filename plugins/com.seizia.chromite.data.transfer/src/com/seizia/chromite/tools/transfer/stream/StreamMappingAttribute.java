@@ -14,13 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.tools.transfer.stream;
+package com.seizia.chromite.tools.transfer.stream;
 
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.model.*;
-import org.jkiss.dbeaver.model.data.json.JSONUtils;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.model.struct.DBSAttributeBase;
+import com.seizia.chromite.model.*;
+import com.seizia.chromite.model.data.json.JSONUtils;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.model.struct.DBSAttributeBase;
 import org.jkiss.utils.CommonUtils;
 
 import java.util.Map;

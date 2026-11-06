@@ -15,12 +15,12 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.model.data.hints;
+package com.seizia.chromite.model.data.hints;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.model.data.DBDResultSetModel;
-import org.jkiss.dbeaver.model.data.DBDValueRow;
+import com.seizia.chromite.model.data.DBDResultSetModel;
+import com.seizia.chromite.model.data.DBDValueRow;
 
 import java.util.EnumSet;
 

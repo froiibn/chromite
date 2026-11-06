@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.editors;
+package com.seizia.chromite.ui.editors;
 
 import org.eclipse.jface.dialogs.IDialogConstants;
 import org.eclipse.jface.resource.ImageDescriptor;
@@ -27,31 +27,31 @@ import org.eclipse.ui.IPersistableElement;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.ModelPreferences;
-import org.jkiss.dbeaver.model.*;
-import org.jkiss.dbeaver.model.app.DBPProject;
-import org.jkiss.dbeaver.model.edit.DBECommandContext;
-import org.jkiss.dbeaver.model.exec.DBCExecutionContext;
-import org.jkiss.dbeaver.model.exec.DBExecUtils;
-import org.jkiss.dbeaver.model.navigator.DBNDataSource;
-import org.jkiss.dbeaver.model.navigator.DBNDatabaseNode;
-import org.jkiss.dbeaver.model.navigator.DBNModel;
-import org.jkiss.dbeaver.model.navigator.DBNNode;
-import org.jkiss.dbeaver.model.preferences.DBPPropertySource;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.model.struct.DBSInstance;
-import org.jkiss.dbeaver.model.struct.DBSInstanceLazy;
-import org.jkiss.dbeaver.model.struct.DBSObject;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.runtime.properties.PropertySourceCustom;
-import org.jkiss.dbeaver.ui.DBeaverIcons;
-import org.jkiss.dbeaver.ui.UITask;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.dialogs.ConnectionLostDialog;
-import org.jkiss.dbeaver.ui.editors.internal.EditorsMessages;
-import org.jkiss.dbeaver.utils.GeneralUtils;
-import org.jkiss.dbeaver.utils.RuntimeUtils;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.ModelPreferences;
+import com.seizia.chromite.model.*;
+import com.seizia.chromite.model.app.DBPProject;
+import com.seizia.chromite.model.edit.DBECommandContext;
+import com.seizia.chromite.model.exec.DBCExecutionContext;
+import com.seizia.chromite.model.exec.DBExecUtils;
+import com.seizia.chromite.model.navigator.DBNDataSource;
+import com.seizia.chromite.model.navigator.DBNDatabaseNode;
+import com.seizia.chromite.model.navigator.DBNModel;
+import com.seizia.chromite.model.navigator.DBNNode;
+import com.seizia.chromite.model.preferences.DBPPropertySource;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.model.struct.DBSInstance;
+import com.seizia.chromite.model.struct.DBSInstanceLazy;
+import com.seizia.chromite.model.struct.DBSObject;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.runtime.properties.PropertySourceCustom;
+import com.seizia.chromite.ui.SwtIcons;
+import com.seizia.chromite.ui.UITask;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.dialogs.ConnectionLostDialog;
+import com.seizia.chromite.ui.editors.internal.EditorsMessages;
+import com.seizia.chromite.utils.GeneralUtils;
+import com.seizia.chromite.utils.RuntimeUtils;
 import org.jkiss.utils.CommonUtils;
 
 import java.util.Collection;
@@ -141,7 +141,7 @@ public class DatabaseLazyEditorInput implements IDatabaseEditorInput, ILazyEdito
     @Override
     public ImageDescriptor getImageDescriptor()
     {
-        return DBeaverIcons.getImageDescriptor(DBIcon.TYPE_OBJECT);
+        return SwtIcons.getImageDescriptor(DBIcon.TYPE_OBJECT);
     }
 
     @Override

@@ -15,20 +15,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.ai.engine.copilot;
+package com.seizia.chromite.model.ai.engine.copilot;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.model.ai.AIMessage;
-import org.jkiss.dbeaver.model.ai.engine.AIEngineRequest;
-import org.jkiss.dbeaver.model.ai.engine.AIEngineResponseConsumer;
-import org.jkiss.dbeaver.model.ai.engine.copilot.dto.CopilotChatRequest;
-import org.jkiss.dbeaver.model.ai.engine.copilot.dto.CopilotSessionToken;
-import org.jkiss.dbeaver.model.ai.engine.openai.dto.OAIResponsesResponse;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.junit.DBeaverUnitTest;
+import com.seizia.chromite.model.ai.AIMessage;
+import com.seizia.chromite.model.ai.engine.AIEngineRequest;
+import com.seizia.chromite.model.ai.engine.AIEngineResponseConsumer;
+import com.seizia.chromite.model.ai.engine.copilot.dto.CopilotChatRequest;
+import com.seizia.chromite.model.ai.engine.copilot.dto.CopilotSessionToken;
+import com.seizia.chromite.model.ai.engine.openai.dto.OAIResponsesResponse;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.junit.ChromiteUnitTest;
 import org.jkiss.utils.Pair;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -47,7 +47,7 @@ import java.util.stream.Stream;
  * 변경 이력:
  * - 2026-11-06 dbeaver.com AI 모델 카탈로그 제거: 카탈로그의 temperature 지원 여부 차원(supported)과 카탈로그 픽스처를 삭제했다.
  */
-class CopilotTemperatureTest extends DBeaverUnitTest {
+class CopilotTemperatureTest extends ChromiteUnitTest {
     @NotNull
     static Stream<Arguments> requestSettings() {
         return Stream.of("", "0.0", "0.7").flatMap(value -> Stream.of(false, true)

@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.data.editors;
+package com.seizia.chromite.ui.data.editors;
 
 import org.eclipse.core.runtime.IAdaptable;
 import org.eclipse.jface.action.*;
@@ -29,34 +29,34 @@ import org.eclipse.ui.menus.CommandContributionItemParameter;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.DBPEvaluationContext;
-import org.jkiss.dbeaver.model.DBPMessageType;
-import org.jkiss.dbeaver.model.DBUtils;
-import org.jkiss.dbeaver.model.data.DBDAttributeBinding;
-import org.jkiss.dbeaver.model.data.DBDContent;
-import org.jkiss.dbeaver.model.data.DBDContentCached;
-import org.jkiss.dbeaver.model.exec.DBCException;
-import org.jkiss.dbeaver.model.impl.data.StringContent;
-import org.jkiss.dbeaver.model.preferences.DBPPreferenceStore;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.model.runtime.VoidProgressMonitor;
-import org.jkiss.dbeaver.model.runtime.load.AbstractLoadService;
-import org.jkiss.dbeaver.model.struct.DBSObject;
-import org.jkiss.dbeaver.model.struct.DBSTypedObject;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.ui.*;
-import org.jkiss.dbeaver.ui.controls.ProgressLoaderVisualizer;
-import org.jkiss.dbeaver.ui.controls.resultset.handler.ResultSetHandlerSwitchContentViewer;
-import org.jkiss.dbeaver.ui.controls.resultset.internal.ResultSetMessages;
-import org.jkiss.dbeaver.ui.data.IStreamValueEditor;
-import org.jkiss.dbeaver.ui.data.IStreamValueManager;
-import org.jkiss.dbeaver.ui.data.IValueController;
-import org.jkiss.dbeaver.ui.data.managers.ContentValueManager;
-import org.jkiss.dbeaver.ui.data.registry.StreamValueManagerDescriptor;
-import org.jkiss.dbeaver.ui.data.registry.ValueManagerRegistry;
-import org.jkiss.dbeaver.utils.MimeTypes;
-import org.jkiss.dbeaver.utils.PrefUtils;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.DBPEvaluationContext;
+import com.seizia.chromite.model.DBPMessageType;
+import com.seizia.chromite.model.DBUtils;
+import com.seizia.chromite.model.data.DBDAttributeBinding;
+import com.seizia.chromite.model.data.DBDContent;
+import com.seizia.chromite.model.data.DBDContentCached;
+import com.seizia.chromite.model.exec.DBCException;
+import com.seizia.chromite.model.impl.data.StringContent;
+import com.seizia.chromite.model.preferences.DBPPreferenceStore;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.model.runtime.VoidProgressMonitor;
+import com.seizia.chromite.model.runtime.load.AbstractLoadService;
+import com.seizia.chromite.model.struct.DBSObject;
+import com.seizia.chromite.model.struct.DBSTypedObject;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.ui.*;
+import com.seizia.chromite.ui.controls.ProgressLoaderVisualizer;
+import com.seizia.chromite.ui.controls.resultset.handler.ResultSetHandlerSwitchContentViewer;
+import com.seizia.chromite.ui.controls.resultset.internal.ResultSetMessages;
+import com.seizia.chromite.ui.data.IStreamValueEditor;
+import com.seizia.chromite.ui.data.IStreamValueManager;
+import com.seizia.chromite.ui.data.IValueController;
+import com.seizia.chromite.ui.data.managers.ContentValueManager;
+import com.seizia.chromite.ui.data.registry.StreamValueManagerDescriptor;
+import com.seizia.chromite.ui.data.registry.ValueManagerRegistry;
+import com.seizia.chromite.utils.MimeTypes;
+import com.seizia.chromite.utils.PrefUtils;
 import org.jkiss.utils.CommonUtils;
 
 import java.util.*;
@@ -439,7 +439,7 @@ public class ContentPanelEditor extends BaseValueEditor<Control> implements IAda
             super(curStreamManager != null ?
                 curStreamManager.getLabel() : ResultSetMessages.controls_resultset_viewer_action_view_as,
                 Action.AS_DROP_DOWN_MENU);
-            setImageDescriptor(DBeaverIcons.getImageDescriptor(UIIcon.PAGES));
+            setImageDescriptor(SwtIcons.getImageDescriptor(UIIcon.PAGES));
             setToolTipText(EditorMessages.content_viewer_settings);
         }
 

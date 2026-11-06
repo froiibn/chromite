@@ -14,18 +14,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.spanner;
+package com.seizia.chromite.ext.spanner;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.ext.generic.GenericDataSourceProvider;
-import org.jkiss.dbeaver.ext.spanner.model.SpannerDataSource;
-import org.jkiss.dbeaver.ext.spanner.model.SpannerMetaModel;
-import org.jkiss.dbeaver.model.DBPDataSourceContainer;
-import org.jkiss.dbeaver.model.app.DBPPlatform;
-import org.jkiss.dbeaver.model.connection.DBPConnectionConfiguration;
-import org.jkiss.dbeaver.model.connection.DBPDriver;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.ext.generic.GenericDataSourceProvider;
+import com.seizia.chromite.ext.spanner.model.SpannerDataSource;
+import com.seizia.chromite.ext.spanner.model.SpannerMetaModel;
+import com.seizia.chromite.model.DBPDataSourceContainer;
+import com.seizia.chromite.model.app.DBPPlatform;
+import com.seizia.chromite.model.connection.DBPConnectionConfiguration;
+import com.seizia.chromite.model.connection.DBPDriver;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
 
 public class SpannerDataSourceProvider extends GenericDataSourceProvider<SpannerDataSource> {
     public static final String COMMUNITY_DRIVER_ID = "spanner_jdbc";

@@ -14,10 +14,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.snowflake.ui;
+package com.seizia.chromite.ext.snowflake.ui;
 
 public final class SnowflakeUIConstants {
-    public static final String PLUGIN_ID = "org.jkiss.dbeaver.ext.snowflake.ui";
+    public static final String PLUGIN_ID = "com.seizia.chromite.ext.snowflake.ui";
 
     private SnowflakeUIConstants() {
     }

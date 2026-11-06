@@ -14,20 +14,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.rcp;
+package com.seizia.chromite.model.rcp;
 
 import org.eclipse.core.resources.IWorkspace;
 import org.eclipse.core.resources.ResourcesPlugin;
 import org.jkiss.code.NotNull;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.model.app.DBPApplicationDesktop;
-import org.jkiss.dbeaver.model.app.DBPLockManagerProvider;
-import org.jkiss.dbeaver.model.app.DBPPlatform;
-import org.jkiss.dbeaver.model.app.DBPWorkspaceDesktop;
-import org.jkiss.dbeaver.model.fs.lock.LockManager;
-import org.jkiss.dbeaver.model.fs.lock.local.LocalFileLockManager;
-import org.jkiss.dbeaver.model.impl.app.BaseApplicationImpl;
-import org.jkiss.dbeaver.utils.GeneralUtils;
+import com.seizia.chromite.model.app.DBPApplicationDesktop;
+import com.seizia.chromite.model.app.DBPLockManagerProvider;
+import com.seizia.chromite.model.app.DBPPlatform;
+import com.seizia.chromite.model.app.DBPWorkspaceDesktop;
+import com.seizia.chromite.model.fs.lock.LockManager;
+import com.seizia.chromite.model.fs.lock.local.LocalFileLockManager;
+import com.seizia.chromite.model.impl.app.BaseApplicationImpl;
+import com.seizia.chromite.utils.GeneralUtils;
 
 import java.nio.file.Path;
 

@@ -14,21 +14,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.clickhouse.model.data;
+package com.seizia.chromite.ext.clickhouse.model.data;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.ext.clickhouse.ClickhouseTypeParser;
-import org.jkiss.dbeaver.model.DBValueFormatting;
-import org.jkiss.dbeaver.model.data.DBDDisplayFormat;
-import org.jkiss.dbeaver.model.data.DBDValue;
-import org.jkiss.dbeaver.model.exec.DBCException;
-import org.jkiss.dbeaver.model.exec.DBCSession;
-import org.jkiss.dbeaver.model.impl.jdbc.data.JDBCComposite;
-import org.jkiss.dbeaver.model.impl.jdbc.data.handlers.JDBCStructValueHandler;
-import org.jkiss.dbeaver.model.struct.DBSTypedObject;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.ext.clickhouse.ClickhouseTypeParser;
+import com.seizia.chromite.model.DBValueFormatting;
+import com.seizia.chromite.model.data.DBDDisplayFormat;
+import com.seizia.chromite.model.data.DBDValue;
+import com.seizia.chromite.model.exec.DBCException;
+import com.seizia.chromite.model.exec.DBCSession;
+import com.seizia.chromite.model.impl.jdbc.data.JDBCComposite;
+import com.seizia.chromite.model.impl.jdbc.data.handlers.JDBCStructValueHandler;
+import com.seizia.chromite.model.struct.DBSTypedObject;
 import org.jkiss.utils.ArrayUtils;
 
 public class ClickhouseStructValueHandler extends JDBCStructValueHandler {

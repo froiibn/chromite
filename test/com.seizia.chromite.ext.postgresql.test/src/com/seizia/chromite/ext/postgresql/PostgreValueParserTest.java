@@ -14,24 +14,24 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.postgresql;
+package com.seizia.chromite.ext.postgresql;
 
-import org.jkiss.dbeaver.ext.postgresql.model.PostgreDataSource;
-import org.jkiss.dbeaver.ext.postgresql.model.PostgreDataType;
-import org.jkiss.dbeaver.ext.postgresql.model.PostgreDialect;
-import org.jkiss.dbeaver.ext.postgresql.model.data.PostgreArrayValueHandler;
-import org.jkiss.dbeaver.model.DBPDataKind;
-import org.jkiss.dbeaver.model.data.DBDCollection;
-import org.jkiss.dbeaver.model.data.DBDDisplayFormat;
-import org.jkiss.dbeaver.model.data.DBDFormatSettings;
-import org.jkiss.dbeaver.model.exec.DBCException;
-import org.jkiss.dbeaver.model.exec.DBCSession;
-import org.jkiss.dbeaver.model.impl.data.formatters.NumberDataFormatter;
-import org.jkiss.dbeaver.model.impl.jdbc.data.JDBCCollection;
-import org.jkiss.dbeaver.model.impl.jdbc.data.handlers.JDBCNumberValueHandler;
-import org.jkiss.dbeaver.model.runtime.VoidProgressMonitor;
-import org.jkiss.dbeaver.registry.formatter.DataFormatterProfile;
-import org.jkiss.junit.DBeaverUnitTest;
+import com.seizia.chromite.ext.postgresql.model.PostgreDataSource;
+import com.seizia.chromite.ext.postgresql.model.PostgreDataType;
+import com.seizia.chromite.ext.postgresql.model.PostgreDialect;
+import com.seizia.chromite.ext.postgresql.model.data.PostgreArrayValueHandler;
+import com.seizia.chromite.model.DBPDataKind;
+import com.seizia.chromite.model.data.DBDCollection;
+import com.seizia.chromite.model.data.DBDDisplayFormat;
+import com.seizia.chromite.model.data.DBDFormatSettings;
+import com.seizia.chromite.model.exec.DBCException;
+import com.seizia.chromite.model.exec.DBCSession;
+import com.seizia.chromite.model.impl.data.formatters.NumberDataFormatter;
+import com.seizia.chromite.model.impl.jdbc.data.JDBCCollection;
+import com.seizia.chromite.model.impl.jdbc.data.handlers.JDBCNumberValueHandler;
+import com.seizia.chromite.model.runtime.VoidProgressMonitor;
+import com.seizia.chromite.registry.formatter.DataFormatterProfile;
+import com.seizia.chromite.junit.ChromiteUnitTest;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -43,7 +43,7 @@ import java.util.*;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
 
-public class PostgreValueParserTest extends DBeaverUnitTest {
+public class PostgreValueParserTest extends ChromiteUnitTest {
 
     private final PostgreDialect sqlDialect = new PostgreDialect();
 

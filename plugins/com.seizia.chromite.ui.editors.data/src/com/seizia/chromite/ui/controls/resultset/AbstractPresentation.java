@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.ui.controls.resultset;
+package com.seizia.chromite.ui.controls.resultset;
 
 import org.eclipse.jface.action.IMenuManager;
 import org.eclipse.jface.action.MenuManager;
@@ -34,9 +34,9 @@ import org.eclipse.ui.contexts.IContextService;
 import org.eclipse.ui.themes.ITheme;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.model.data.DBDAttributeBinding;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.editors.EditorUtils;
+import com.seizia.chromite.model.data.DBDAttributeBinding;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.editors.EditorUtils;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -46,11 +46,11 @@ import java.util.List;
  */
 public abstract class AbstractPresentation implements IResultSetPresentation, ISelectionProvider {
 
-    public static final String RESULT_SET_PRESENTATION_CONTEXT_MENU = "org.jkiss.dbeaver.ui.controls.resultset.conext.menu";
-    public static final String DATA_VALUE_CONTROLLER = "org.jkiss.dbeaver.resultset.value-controller";
+    public static final String RESULT_SET_PRESENTATION_CONTEXT_MENU = "com.seizia.chromite.ui.controls.resultset.conext.menu";
+    public static final String DATA_VALUE_CONTROLLER = "com.seizia.chromite.resultset.value-controller";
 
-    private static final String RESULTS_CONTROL_CONTEXT_ID = "org.jkiss.dbeaver.ui.context.resultset.focused";
-    private static final String PRESENTATION_CONTROL_ID = "org.jkiss.dbeaver.ui.resultset.presentation";
+    private static final String RESULTS_CONTROL_CONTEXT_ID = "com.seizia.chromite.ui.context.resultset.focused";
+    private static final String PRESENTATION_CONTROL_ID = "com.seizia.chromite.ui.resultset.presentation";
 
     private static final StructuredSelection EMPTY_SELECTION = new StructuredSelection();
 

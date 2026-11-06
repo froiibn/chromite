@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.ui.editors;
+package com.seizia.chromite.ui.editors;
 
 import org.eclipse.jface.resource.ImageDescriptor;
 import org.eclipse.ui.IMemento;
@@ -23,12 +23,12 @@ import org.eclipse.ui.IPersistableElement;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.navigator.DBNModel;
-import org.jkiss.dbeaver.model.navigator.DBNNode;
-import org.jkiss.dbeaver.model.runtime.VoidProgressMonitor;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.ui.DBeaverIcons;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.navigator.DBNModel;
+import com.seizia.chromite.model.navigator.DBNNode;
+import com.seizia.chromite.model.runtime.VoidProgressMonitor;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.ui.SwtIcons;
 
 /**
  * NodeEditorInput
@@ -84,7 +84,7 @@ public class NodeEditorInput implements INavigatorEditorInput, IPersistableEleme
     @Override
     public ImageDescriptor getImageDescriptor() {
         DBNNode node = getNavigatorNode();
-        return node == null ? null : DBeaverIcons.getImageDescriptor(node.getNodeIconDefault());
+        return node == null ? null : SwtIcons.getImageDescriptor(node.getNodeIconDefault());
     }
 
     @Override

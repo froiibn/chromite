@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.ext.postgresql.debug.internal.console;
+package com.seizia.chromite.ext.postgresql.debug.internal.console;
 
 @SuppressWarnings("nls")
 public class Debugger {

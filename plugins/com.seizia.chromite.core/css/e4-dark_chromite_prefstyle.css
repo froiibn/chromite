@@ -1,49 +1,49 @@
-ColorDefinition#org-jkiss-dbeaver-txn-color-committed-background {
+ColorDefinition#com-seizia-chromite-txn-color-committed-background {
     color: #0b3c00;
 }
 
-ColorDefinition#org-jkiss-dbeaver-txn-color-reverted-background {
+ColorDefinition#com-seizia-chromite-txn-color-reverted-background {
     color: #481305;
 }
 
-ColorDefinition#org-jkiss-dbeaver-txn-color-transaction-background {
+ColorDefinition#com-seizia-chromite-txn-color-transaction-background {
     color: #523400;
 }
 
-ColorDefinition#org-jkiss-dbeaver-hex-editor-color-caret {
+ColorDefinition#com-seizia-chromite-hex-editor-color-caret {
     color: #505050;
 }
 
-ColorDefinition#org-jkiss-dbeaver-hex-editor-color-text,
-ColorDefinition#org-jkiss-dbeaver-xml-editor-color-text {
+ColorDefinition#com-seizia-chromite-hex-editor-color-text,
+ColorDefinition#com-seizia-chromite-xml-editor-color-text {
     color: #ffffff;
 }
 
-ColorDefinition#org-jkiss-dbeaver-xml-editor-color-tag {
+ColorDefinition#com-seizia-chromite-xml-editor-color-tag {
     color: #008fcf;
 }
 
-ColorDefinition#org-jkiss-dbeaver-xml-editor-color-comment {
+ColorDefinition#com-seizia-chromite-xml-editor-color-comment {
     color: #ff0000;
 }
 
-ColorDefinition#org-jkiss-dbeaver-ui-navigator-node-transient-foreground {
+ColorDefinition#com-seizia-chromite-ui-navigator-node-transient-foreground {
     color: #47b441;
 }
 
-ColorDefinition#org-jkiss-dbeaver-ui-navigator-node-new-background {
+ColorDefinition#com-seizia-chromite-ui-navigator-node-new-background {
     color: #294200;
 }
 
-ColorDefinition#org-jkiss-dbeaver-ui-navigator-node-modified-background {
+ColorDefinition#com-seizia-chromite-ui-navigator-node-modified-background {
     color: #523400;
 }
 
-ColorDefinition#org-jkiss-dbeaver-ui-navigator-node-foreground {
+ColorDefinition#com-seizia-chromite-ui-navigator-node-foreground {
     color: #8c8c8c;
 }
 
-ColorDefinition#org-jkiss-dbeaver-ui-navigator-node-statistics-background {
+ColorDefinition#com-seizia-chromite-ui-navigator-node-statistics-background {
     color: #696969;
 }
 
@@ -100,11 +100,11 @@ IEclipsePreferences#org-eclipse-ui-editors:org-eclipse-ui-themes {
 }
 
 .EditorStack, .MPartStack {
-    swt-tab-renderer: url('bundleclass://org.jkiss.dbeaver.core/org.jkiss.dbeaver.ui.e4.DBeaverCTabFolderRenderer');
+    swt-tab-renderer: url('bundleclass://com.seizia.chromite.core/com.seizia.chromite.ui.e4.ChromiteCTabFolderRenderer');
 }
 
 #org-eclipse-ui-editorss CTabFolder.coloredByConnectionType {
-    swt-tab-renderer: url('bundleclass://org.jkiss.dbeaver.core/org.jkiss.dbeaver.ui.e4.DBeaverCTabFolderRenderer');
+    swt-tab-renderer: url('bundleclass://com.seizia.chromite.core/com.seizia.chromite.ui.e4.ChromiteCTabFolderRenderer');
 
     /* Workaround for org.eclipse.e4.ui.workbench.renderers.swt.CTabRendering.TAB_OUTLINE_WIDTH */
     padding: 0px -1px -1px -1px;

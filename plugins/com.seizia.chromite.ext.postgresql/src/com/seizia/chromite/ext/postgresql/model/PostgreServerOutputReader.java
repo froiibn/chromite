@@ -14,15 +14,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.postgresql.model;
+package com.seizia.chromite.ext.postgresql.model;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.model.exec.DBCExecutionContext;
-import org.jkiss.dbeaver.model.exec.output.DBCOutputSeverity;
-import org.jkiss.dbeaver.model.exec.output.DBCOutputWriter;
-import org.jkiss.dbeaver.model.exec.output.DBCServerOutputReaderExt;
-import org.jkiss.dbeaver.model.impl.AsyncServerOutputReader;
+import com.seizia.chromite.model.exec.DBCExecutionContext;
+import com.seizia.chromite.model.exec.output.DBCOutputSeverity;
+import com.seizia.chromite.model.exec.output.DBCOutputWriter;
+import com.seizia.chromite.model.exec.output.DBCServerOutputReaderExt;
+import com.seizia.chromite.model.impl.AsyncServerOutputReader;
 import org.jkiss.utils.BeanUtils;
 
 import java.util.Map;

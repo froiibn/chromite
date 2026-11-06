@@ -14,10 +14,10 @@
  * is strictly forbidden unless prior written permission is obtained
  * from DBeaver Corp.
  */
-package org.jkiss.dbeaver.ext.mssql.auth;
+package com.seizia.chromite.ext.mssql.auth;
 
-import org.jkiss.dbeaver.model.impl.auth.AuthModelDatabaseNativeCredentials;
-import org.jkiss.dbeaver.model.meta.Property;
+import com.seizia.chromite.model.impl.auth.AuthModelDatabaseNativeCredentials;
+import com.seizia.chromite.model.meta.Property;
 
 public class SQLServerAuthModelMSICredentials extends AuthModelDatabaseNativeCredentials {
 

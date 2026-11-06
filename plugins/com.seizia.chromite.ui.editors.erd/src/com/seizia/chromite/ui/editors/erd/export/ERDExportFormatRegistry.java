@@ -14,14 +14,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.editors.erd.export;
+package com.seizia.chromite.ui.editors.erd.export;
 
 import org.eclipse.core.runtime.IConfigurationElement;
 import org.eclipse.core.runtime.IExtensionRegistry;
 import org.eclipse.core.runtime.Platform;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.impl.AbstractDescriptor;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.impl.AbstractDescriptor;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -30,7 +30,7 @@ public class ERDExportFormatRegistry
 {
     private static final Log log = Log.getLog(ERDExportFormatRegistry.class);
 
-    public static final String EXTENSION_ID = "org.jkiss.dbeaver.ui.editors.erd.export.format"; //$NON-NLS-1$
+    public static final String EXTENSION_ID = "com.seizia.chromite.ui.editors.erd.export.format"; //$NON-NLS-1$
 
     private static ERDExportFormatRegistry instance = null;
 

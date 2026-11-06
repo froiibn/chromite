@@ -14,16 +14,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.postgresql.model;
+package com.seizia.chromite.ext.postgresql.model;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.ext.generic.model.GenericDataSource;
-import org.jkiss.dbeaver.ext.postgresql.model.generic.PostgreMetaModel;
-import org.jkiss.dbeaver.ext.postgresql.model.jdbc.PostgreJdbcFactory;
-import org.jkiss.dbeaver.model.DBPDataSourceContainer;
-import org.jkiss.dbeaver.model.exec.jdbc.JDBCFactory;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.ext.generic.model.GenericDataSource;
+import com.seizia.chromite.ext.postgresql.model.generic.PostgreMetaModel;
+import com.seizia.chromite.ext.postgresql.model.jdbc.PostgreJdbcFactory;
+import com.seizia.chromite.model.DBPDataSourceContainer;
+import com.seizia.chromite.model.exec.jdbc.JDBCFactory;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
 
 /**
  * PostgreGenericDataSource

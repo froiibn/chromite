@@ -16,11 +16,11 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.debug.ui.details;
+package com.seizia.chromite.debug.ui.details;
 
 import org.eclipse.swt.widgets.Composite;
-import org.jkiss.dbeaver.debug.ui.DebugUI;
-import org.jkiss.dbeaver.debug.ui.internal.DebugUIMessages;
+import com.seizia.chromite.debug.ui.DebugUI;
+import com.seizia.chromite.debug.ui.internal.DebugUIMessages;
 
 public class DatabaseStandardBreakpointPane extends DatabaseDebugDetailPane<DatabaseBreakpointEditor> {
 

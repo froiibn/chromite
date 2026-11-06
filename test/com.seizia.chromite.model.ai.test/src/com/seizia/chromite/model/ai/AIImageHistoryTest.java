@@ -14,15 +14,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.ai;
+package com.seizia.chromite.model.ai;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.model.ai.prompt.AIPromptGenerateSql;
-import org.jkiss.dbeaver.model.ai.qm.AIChatStorage;
-import org.jkiss.dbeaver.model.ai.quota.UserTokenQuotaService;
-import org.jkiss.dbeaver.model.app.DBPWorkspace;
-import org.jkiss.dbeaver.model.runtime.VoidProgressMonitor;
+import com.seizia.chromite.model.ai.prompt.AIPromptGenerateSql;
+import com.seizia.chromite.model.ai.qm.AIChatStorage;
+import com.seizia.chromite.model.ai.quota.UserTokenQuotaService;
+import com.seizia.chromite.model.app.DBPWorkspace;
+import com.seizia.chromite.model.runtime.VoidProgressMonitor;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;

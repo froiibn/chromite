@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.qm.meta;
+package com.seizia.chromite.model.qm.meta;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;

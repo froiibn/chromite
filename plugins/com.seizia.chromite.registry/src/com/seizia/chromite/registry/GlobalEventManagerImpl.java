@@ -14,12 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.registry;
+package com.seizia.chromite.registry;
 
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.app.DBPGlobalEventListener;
-import org.jkiss.dbeaver.model.app.DBPGlobalEventManager;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.app.DBPGlobalEventListener;
+import com.seizia.chromite.model.app.DBPGlobalEventManager;
 
 import java.util.ArrayList;
 import java.util.List;

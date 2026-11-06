@@ -15,11 +15,11 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.test.platform;
+package com.seizia.chromite.test.platform;
 
-import org.jkiss.dbeaver.model.runtime.VoidProgressMonitor;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.junit.DBeaverUnitTest;
+import com.seizia.chromite.model.runtime.VoidProgressMonitor;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.junit.ChromiteUnitTest;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -30,7 +30,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-public class PlatformTest extends DBeaverUnitTest {
+public class PlatformTest extends ChromiteUnitTest {
     @BeforeEach
     public void setUp() throws Exception {
     }
@@ -61,6 +61,6 @@ public class PlatformTest extends DBeaverUnitTest {
         assertNotEquals(first, second);
         assertEquals(first.getParent(), second.getParent());
         assertEquals(first, platform.getTempFolder(monitor, "platform-test-first"));
-        assertEquals(".dbeaver-temp", first.getParent().getParent().getFileName().toString());
+        assertEquals(".chromite-temp", first.getParent().getParent().getFileName().toString());
     }
 }

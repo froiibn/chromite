@@ -14,12 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.wmi;
+package com.seizia.chromite.ext.wmi;
 
 import org.eclipse.osgi.util.NLS;
 
 public class WMIMessages extends NLS {
-	private static final String BUNDLE_NAME = "org.jkiss.dbeaver.ext.wmi.WMIMessages"; //$NON-NLS-1$
+	private static final String BUNDLE_NAME = "com.seizia.chromite.ext.wmi.WMIMessages"; //$NON-NLS-1$
 	public static String wmi_connection_page_label_domain;
 	public static String wmi_connection_page_label_host;
 	public static String wmi_connection_page_label_namespace;

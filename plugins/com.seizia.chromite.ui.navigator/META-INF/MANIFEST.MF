@@ -1,36 +1,36 @@
 Manifest-Version: 1.0
 Bundle-ManifestVersion: 2
-Bundle-Vendor: DBeaver Corp
+Bundle-Vendor: Chromite contributors
 Bundle-Name: Chromite UI Navigator
-Bundle-SymbolicName: org.jkiss.dbeaver.ui.navigator;singleton:=true
+Bundle-SymbolicName: com.seizia.chromite.ui.navigator;singleton:=true
 Bundle-Version: 1.0.191.qualifier
 Bundle-Release-Date: 20261116
 Bundle-RequiredExecutionEnvironment: JavaSE-21
 Bundle-ActivationPolicy: lazy
-Bundle-Activator: org.jkiss.dbeaver.ui.internal.UINavigatorActivator
+Bundle-Activator: com.seizia.chromite.ui.internal.UINavigatorActivator
 Require-Bundle: org.eclipse.e4.ui.model.workbench,
  org.eclipse.e4.ui.workbench.swt,
  org.eclipse.e4.ui.workbench.renderers.swt,
- org.jkiss.dbeaver.registry,
- org.jkiss.dbeaver.ui.editors.base;visibility:=reexport
-Export-Package: org.jkiss.dbeaver.tools.project,
- org.jkiss.dbeaver.ui.actions,
- org.jkiss.dbeaver.ui.actions.datasource,
- org.jkiss.dbeaver.ui.actions.exec,
- org.jkiss.dbeaver.ui.controls,
- org.jkiss.dbeaver.ui.editors.entity,
- org.jkiss.dbeaver.ui.editors.entity.handlers,
- org.jkiss.dbeaver.ui.editors.entity.properties,
- org.jkiss.dbeaver.ui.internal,
- org.jkiss.dbeaver.ui.navigator,
- org.jkiss.dbeaver.ui.navigator.actions,
- org.jkiss.dbeaver.ui.navigator.breadcrumb,
- org.jkiss.dbeaver.ui.navigator.database,
- org.jkiss.dbeaver.ui.navigator.database.load,
- org.jkiss.dbeaver.ui.navigator.dialogs,
- org.jkiss.dbeaver.ui.navigator.itemlist,
- org.jkiss.dbeaver.ui.navigator.project,
- org.jkiss.dbeaver.ui.preferences,
- org.jkiss.dbeaver.ui.project,
- org.jkiss.dbeaver.ui.resources
-Automatic-Module-Name: org.jkiss.dbeaver.ui.navigator
+ com.seizia.chromite.registry,
+ com.seizia.chromite.ui.editors.base;visibility:=reexport
+Export-Package: com.seizia.chromite.tools.project,
+ com.seizia.chromite.ui.actions,
+ com.seizia.chromite.ui.actions.datasource,
+ com.seizia.chromite.ui.actions.exec,
+ com.seizia.chromite.ui.controls,
+ com.seizia.chromite.ui.editors.entity,
+ com.seizia.chromite.ui.editors.entity.handlers,
+ com.seizia.chromite.ui.editors.entity.properties,
+ com.seizia.chromite.ui.internal,
+ com.seizia.chromite.ui.navigator,
+ com.seizia.chromite.ui.navigator.actions,
+ com.seizia.chromite.ui.navigator.breadcrumb,
+ com.seizia.chromite.ui.navigator.database,
+ com.seizia.chromite.ui.navigator.database.load,
+ com.seizia.chromite.ui.navigator.dialogs,
+ com.seizia.chromite.ui.navigator.itemlist,
+ com.seizia.chromite.ui.navigator.project,
+ com.seizia.chromite.ui.preferences,
+ com.seizia.chromite.ui.project,
+ com.seizia.chromite.ui.resources
+Automatic-Module-Name: com.seizia.chromite.ui.navigator

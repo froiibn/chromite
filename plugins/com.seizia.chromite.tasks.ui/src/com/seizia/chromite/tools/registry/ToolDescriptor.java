@@ -15,22 +15,22 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.tools.registry;
+package com.seizia.chromite.tools.registry;
 
 import org.eclipse.core.commands.Command;
 import org.eclipse.core.runtime.IConfigurationElement;
 import org.eclipse.ui.IPluginContribution;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.model.DBPImage;
-import org.jkiss.dbeaver.model.DBPObject;
-import org.jkiss.dbeaver.model.impl.AbstractContextDescriptor;
-import org.jkiss.dbeaver.model.impl.AbstractDescriptor;
-import org.jkiss.dbeaver.model.struct.DBSObject;
-import org.jkiss.dbeaver.registry.RegistryConstants;
-import org.jkiss.dbeaver.registry.task.TaskRegistry;
-import org.jkiss.dbeaver.registry.task.TaskTypeDescriptor;
-import org.jkiss.dbeaver.ui.ActionUtils;
+import com.seizia.chromite.model.DBPImage;
+import com.seizia.chromite.model.DBPObject;
+import com.seizia.chromite.model.impl.AbstractContextDescriptor;
+import com.seizia.chromite.model.impl.AbstractDescriptor;
+import com.seizia.chromite.model.struct.DBSObject;
+import com.seizia.chromite.registry.RegistryConstants;
+import com.seizia.chromite.registry.task.TaskRegistry;
+import com.seizia.chromite.registry.task.TaskTypeDescriptor;
+import com.seizia.chromite.ui.ActionUtils;
 import org.jkiss.utils.CommonUtils;
 
 import java.util.Collection;

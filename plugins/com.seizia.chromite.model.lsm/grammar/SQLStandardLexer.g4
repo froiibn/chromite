@@ -33,11 +33,11 @@ lexer grammar SQLStandardLexer;
      * See the License for the specific language governing permissions and
      * limitations under the License.
      */
-    package org.jkiss.dbeaver.model.lsm.sql.impl.syntax;
+    package com.seizia.chromite.model.lsm.sql.impl.syntax;
 
     import java.util.*;
-    import org.jkiss.dbeaver.model.sql.*;
-    import org.jkiss.dbeaver.model.lsm.*;
+    import com.seizia.chromite.model.sql.*;
+    import com.seizia.chromite.model.lsm.*;
 }
 
 @lexer::members {

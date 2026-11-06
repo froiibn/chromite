@@ -14,11 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.oracle.internal;
+package com.seizia.chromite.ext.oracle.internal;
 
 import org.eclipse.core.runtime.Plugin;
-import org.jkiss.dbeaver.model.impl.preferences.BundlePreferenceStore;
-import org.jkiss.dbeaver.model.preferences.DBPPreferenceStore;
+import com.seizia.chromite.model.impl.preferences.BundlePreferenceStore;
+import com.seizia.chromite.model.preferences.DBPPreferenceStore;
 import org.osgi.framework.BundleContext;
 
 /**
@@ -27,7 +27,7 @@ import org.osgi.framework.BundleContext;
 public class OracleActivator extends Plugin {
 
     // The plug-in ID
-    public static final String PLUGIN_ID = "org.jkiss.dbeaver.ext.oracle";
+    public static final String PLUGIN_ID = "com.seizia.chromite.ext.oracle";
 
     // The shared instance
     private static OracleActivator plugin;

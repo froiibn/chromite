@@ -14,9 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.postgresql.model.plan;
+package com.seizia.chromite.ext.postgresql.model.plan;
 
-import org.jkiss.dbeaver.model.DBPDataSource;
+import com.seizia.chromite.model.DBPDataSource;
 import org.jkiss.utils.xml.XMLUtils;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;

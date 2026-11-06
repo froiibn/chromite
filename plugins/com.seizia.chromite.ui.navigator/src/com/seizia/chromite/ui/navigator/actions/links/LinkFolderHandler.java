@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.ui.navigator.actions.links;
+package com.seizia.chromite.ui.navigator.actions.links;
 
 import org.eclipse.core.commands.ExecutionEvent;
 import org.eclipse.core.resources.IContainer;
@@ -29,7 +29,7 @@ import org.eclipse.swt.SWT;
 import org.eclipse.swt.widgets.DirectoryDialog;
 import org.eclipse.swt.widgets.Shell;
 import org.eclipse.ui.handlers.HandlerUtil;
-import org.jkiss.dbeaver.utils.GeneralUtils;
+import com.seizia.chromite.utils.GeneralUtils;
 
 import java.nio.file.Path;
 import java.nio.file.Paths;

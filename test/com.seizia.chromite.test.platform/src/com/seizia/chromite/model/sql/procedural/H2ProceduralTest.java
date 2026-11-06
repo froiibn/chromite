@@ -14,13 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.sql.procedural;
+package com.seizia.chromite.model.sql.procedural;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.model.sql.SQLDialect;
-import org.jkiss.dbeaver.model.sql.semantics.model.programmaticals.SQLQueryRoutineCreateModel;
-import org.jkiss.dbeaver.model.sql.semantics.model.statements.SQLQueryVariableDeclarationStatement;
+import com.seizia.chromite.model.sql.SQLDialect;
+import com.seizia.chromite.model.sql.semantics.model.programmaticals.SQLQueryRoutineCreateModel;
+import com.seizia.chromite.model.sql.semantics.model.statements.SQLQueryVariableDeclarationStatement;
 import org.junit.jupiter.api.Test;
 
 public class H2ProceduralTest extends ProceduralDialectTestBase {

@@ -14,16 +14,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.mimer.model;
+package com.seizia.chromite.ext.mimer.model;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.model.DBPNamedObject2;
-import org.jkiss.dbeaver.model.DBPSaveableObject;
-import org.jkiss.dbeaver.model.exec.jdbc.JDBCResultSet;
-import org.jkiss.dbeaver.model.impl.jdbc.JDBCUtils;
-import org.jkiss.dbeaver.model.meta.Property;
-import org.jkiss.dbeaver.model.struct.DBSObject;
+import com.seizia.chromite.model.DBPNamedObject2;
+import com.seizia.chromite.model.DBPSaveableObject;
+import com.seizia.chromite.model.exec.jdbc.JDBCResultSet;
+import com.seizia.chromite.model.impl.jdbc.JDBCUtils;
+import com.seizia.chromite.model.meta.Property;
+import com.seizia.chromite.model.struct.DBSObject;
 
 /**
  * A system-level (not per-object) privilege granted to a Mimer SQL ident, read from {@code
@@ -33,7 +33,7 @@ import org.jkiss.dbeaver.model.struct.DBSObject;
  * serve three unrelated owner types, same reason every other per-ident privilege class in this
  * plugin is hand-duplicated per owner rather than sharing one cache).
  * <p>
- * Create/drop support (see {@link org.jkiss.dbeaver.ext.mimer.edit.MimerSystemPrivilegeManager}):
+ * Create/drop support (see {@link com.seizia.chromite.ext.mimer.edit.MimerSystemPrivilegeManager}):
  * {@code GRANT <privilege> TO "ident" [WITH GRANT OPTION]} / {@code REVOKE <privilege> FROM
  * "ident"}. The six grantable privilege types ({@code BACKUP}/{@code DATABANK}/
  * {@code IDENT}/{@code SCHEMA}/{@code SHADOW}/{@code STATISTICS}) come from Mimer SQL's own

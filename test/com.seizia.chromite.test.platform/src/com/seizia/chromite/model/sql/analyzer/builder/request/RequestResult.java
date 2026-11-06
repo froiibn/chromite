@@ -14,37 +14,37 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.sql.analyzer.builder.request;
+package com.seizia.chromite.model.sql.analyzer.builder.request;
 
 import org.eclipse.jface.text.BadLocationException;
 import org.eclipse.jface.text.Document;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.model.DBPDataSource;
-import org.jkiss.dbeaver.model.DBPImage;
-import org.jkiss.dbeaver.model.DBPKeywordType;
-import org.jkiss.dbeaver.model.DBPNamedObject;
-import org.jkiss.dbeaver.model.exec.DBCExecutionContext;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.model.runtime.VoidProgressMonitor;
-import org.jkiss.dbeaver.model.sql.SQLDialect;
-import org.jkiss.dbeaver.model.sql.SQLQuery;
-import org.jkiss.dbeaver.model.sql.SQLScriptElement;
-import org.jkiss.dbeaver.model.sql.SQLSyntaxManager;
-import org.jkiss.dbeaver.model.sql.completion.SQLCompletionAnalyzer;
-import org.jkiss.dbeaver.model.sql.completion.SQLCompletionContext;
-import org.jkiss.dbeaver.model.sql.completion.SQLCompletionProposalBase;
-import org.jkiss.dbeaver.model.sql.completion.SQLCompletionRequest;
-import org.jkiss.dbeaver.model.sql.parser.SQLParserContext;
-import org.jkiss.dbeaver.model.sql.parser.SQLRuleManager;
-import org.jkiss.dbeaver.model.sql.parser.SQLScriptParser;
-import org.jkiss.dbeaver.model.sql.semantics.*;
-import org.jkiss.dbeaver.model.sql.semantics.completion.SQLQueryCompletionAnalyzer;
-import org.jkiss.dbeaver.model.sql.semantics.completion.SQLQueryCompletionContext;
-import org.jkiss.dbeaver.model.sql.semantics.completion.SQLQueryCompletionProposal;
-import org.jkiss.dbeaver.model.sql.semantics.model.SQLQueryModel;
-import org.jkiss.dbeaver.model.sql.semantics.tracking.SQLScriptVariablesTracker;
+import com.seizia.chromite.model.DBPDataSource;
+import com.seizia.chromite.model.DBPImage;
+import com.seizia.chromite.model.DBPKeywordType;
+import com.seizia.chromite.model.DBPNamedObject;
+import com.seizia.chromite.model.exec.DBCExecutionContext;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.model.runtime.VoidProgressMonitor;
+import com.seizia.chromite.model.sql.SQLDialect;
+import com.seizia.chromite.model.sql.SQLQuery;
+import com.seizia.chromite.model.sql.SQLScriptElement;
+import com.seizia.chromite.model.sql.SQLSyntaxManager;
+import com.seizia.chromite.model.sql.completion.SQLCompletionAnalyzer;
+import com.seizia.chromite.model.sql.completion.SQLCompletionContext;
+import com.seizia.chromite.model.sql.completion.SQLCompletionProposalBase;
+import com.seizia.chromite.model.sql.completion.SQLCompletionRequest;
+import com.seizia.chromite.model.sql.parser.SQLParserContext;
+import com.seizia.chromite.model.sql.parser.SQLRuleManager;
+import com.seizia.chromite.model.sql.parser.SQLScriptParser;
+import com.seizia.chromite.model.sql.semantics.*;
+import com.seizia.chromite.model.sql.semantics.completion.SQLQueryCompletionAnalyzer;
+import com.seizia.chromite.model.sql.semantics.completion.SQLQueryCompletionContext;
+import com.seizia.chromite.model.sql.semantics.completion.SQLQueryCompletionProposal;
+import com.seizia.chromite.model.sql.semantics.model.SQLQueryModel;
+import com.seizia.chromite.model.sql.semantics.tracking.SQLScriptVariablesTracker;
 import org.jkiss.utils.Pair;
 import org.junit.jupiter.api.Assertions;
 

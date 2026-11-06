@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.model.navigator.meta;
+package com.seizia.chromite.model.navigator.meta;
 
 /**
  * DBXTreeNodeHandler

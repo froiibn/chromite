@@ -14,20 +14,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.datadam.ai;
+package com.seizia.chromite.model.datadam.ai;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.model.ai.engine.openai.OpenAIClientResponses;
-import org.jkiss.dbeaver.model.ai.engine.openai.OpenAIProperties;
+import com.seizia.chromite.model.ai.engine.openai.OpenAIClientResponses;
+import com.seizia.chromite.model.ai.engine.openai.OpenAIProperties;
 import org.jkiss.utils.CommonUtils;
 
 import java.util.List;
 
 public class DDAIEngineProperties extends OpenAIProperties {
-    public static final String ENV_API_KEY = "DBEAVER_AI_DATADAM_API_KEY";
-    public static final String ENV_BASE_URL = "DBEAVER_AI_DATADAM_BASE_URL";
-    public static final String ENV_MODEL = "DBEAVER_AI_DATADAM_MODEL";
+    public static final String ENV_API_KEY = "CHROMITE_AI_DATADAM_API_KEY";
+    public static final String ENV_BASE_URL = "CHROMITE_AI_DATADAM_BASE_URL";
+    public static final String ENV_MODEL = "CHROMITE_AI_DATADAM_MODEL";
 
     public static final String DEFAULT_ENDPOINT = "https://ai.datadam.cloud/v1/";
     public static final String DEFAULT_MODEL = "datadam-fast";

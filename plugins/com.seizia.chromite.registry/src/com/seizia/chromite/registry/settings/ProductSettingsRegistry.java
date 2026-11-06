@@ -14,14 +14,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.registry.settings;
+package com.seizia.chromite.registry.settings;
 
 import org.eclipse.core.runtime.IConfigurationElement;
 import org.eclipse.core.runtime.IExtensionRegistry;
 import org.eclipse.core.runtime.Platform;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.model.impl.PropertyDescriptor;
-import org.jkiss.dbeaver.model.impl.PropertyGroupDescriptor;
+import com.seizia.chromite.model.impl.PropertyDescriptor;
+import com.seizia.chromite.model.impl.PropertyGroupDescriptor;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -29,7 +29,7 @@ import java.util.List;
 import java.util.Map;
 
 public class ProductSettingsRegistry {
-    public static final String SETTINGS_EXTENSION_ID = "org.jkiss.dbeaver.settings"; //$NON-NLS-1$
+    public static final String SETTINGS_EXTENSION_ID = "com.seizia.chromite.settings"; //$NON-NLS-1$
     private static ProductSettingsRegistry instance = null;
 
     private final Map<String, PropertyGroupDescriptor<ProductSettingDescriptor>> settings = new LinkedHashMap<>();

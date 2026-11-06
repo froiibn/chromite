@@ -14,17 +14,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.app.standalone.cli;
+package com.seizia.chromite.ui.app.standalone.cli;
 
 
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.cli.CLIAbstractSubcommand;
-import org.jkiss.dbeaver.model.impl.preferences.SimplePreferenceStore;
-import org.jkiss.dbeaver.model.impl.sql.BasicSQLDialect;
-import org.jkiss.dbeaver.model.preferences.DBPPreferenceStore;
-import org.jkiss.dbeaver.model.sql.SQLDialect;
-import org.jkiss.dbeaver.model.sql.SQLModelPreferences;
-import org.jkiss.dbeaver.model.sql.translate.SQLQueryTranslator;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.cli.CLIAbstractSubcommand;
+import com.seizia.chromite.model.impl.preferences.SimplePreferenceStore;
+import com.seizia.chromite.model.impl.sql.BasicSQLDialect;
+import com.seizia.chromite.model.preferences.DBPPreferenceStore;
+import com.seizia.chromite.model.sql.SQLDialect;
+import com.seizia.chromite.model.sql.SQLModelPreferences;
+import com.seizia.chromite.model.sql.translate.SQLQueryTranslator;
 import org.jkiss.utils.CommonUtils;
 import org.jkiss.utils.IOUtils;
 import picocli.CommandLine;

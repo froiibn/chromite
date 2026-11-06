@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.controls.resultset.handler;
+package com.seizia.chromite.ui.controls.resultset.handler;
 
 import org.eclipse.core.commands.AbstractHandler;
 import org.eclipse.core.commands.ExecutionEvent;
@@ -34,35 +34,35 @@ import org.eclipse.ui.menus.CommandContributionItem;
 import org.eclipse.ui.menus.CommandContributionItemParameter;
 import org.eclipse.ui.menus.UIElement;
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.data.DBDAttributeBinding;
-import org.jkiss.dbeaver.model.data.DBDDataFilter;
-import org.jkiss.dbeaver.model.messages.ModelMessages;
-import org.jkiss.dbeaver.model.preferences.DBPPreferenceStore;
-import org.jkiss.dbeaver.model.preferences.DBPPropertyDescriptor;
-import org.jkiss.dbeaver.model.runtime.AbstractJob;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.registry.ApplicationPolicyProvider;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.tools.transfer.DTConstants;
-import org.jkiss.dbeaver.tools.transfer.IDataTransferConsumer;
-import org.jkiss.dbeaver.tools.transfer.IDataTransferProcessor;
-import org.jkiss.dbeaver.tools.transfer.database.DatabaseProducerSettings;
-import org.jkiss.dbeaver.tools.transfer.database.DatabaseProducerSettings.FetchedRowsPolicy;
-import org.jkiss.dbeaver.tools.transfer.database.DatabaseTransferProducer;
-import org.jkiss.dbeaver.tools.transfer.registry.DataTransferNodeDescriptor;
-import org.jkiss.dbeaver.tools.transfer.registry.DataTransferProcessorDescriptor;
-import org.jkiss.dbeaver.tools.transfer.registry.DataTransferRegistry;
-import org.jkiss.dbeaver.tools.transfer.stream.IStreamDataExporter;
-import org.jkiss.dbeaver.tools.transfer.stream.StreamConsumerSettings;
-import org.jkiss.dbeaver.tools.transfer.stream.StreamTransferConsumer;
-import org.jkiss.dbeaver.tools.transfer.ui.wizard.DataTransferWizard;
-import org.jkiss.dbeaver.ui.ActionUtils;
-import org.jkiss.dbeaver.ui.DBeaverIcons;
-import org.jkiss.dbeaver.ui.ShellUtils;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.controls.resultset.*;
-import org.jkiss.dbeaver.ui.internal.UIMessages;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.data.DBDAttributeBinding;
+import com.seizia.chromite.model.data.DBDDataFilter;
+import com.seizia.chromite.model.messages.ModelMessages;
+import com.seizia.chromite.model.preferences.DBPPreferenceStore;
+import com.seizia.chromite.model.preferences.DBPPropertyDescriptor;
+import com.seizia.chromite.model.runtime.AbstractJob;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.registry.ApplicationPolicyProvider;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.tools.transfer.DTConstants;
+import com.seizia.chromite.tools.transfer.IDataTransferConsumer;
+import com.seizia.chromite.tools.transfer.IDataTransferProcessor;
+import com.seizia.chromite.tools.transfer.database.DatabaseProducerSettings;
+import com.seizia.chromite.tools.transfer.database.DatabaseProducerSettings.FetchedRowsPolicy;
+import com.seizia.chromite.tools.transfer.database.DatabaseTransferProducer;
+import com.seizia.chromite.tools.transfer.registry.DataTransferNodeDescriptor;
+import com.seizia.chromite.tools.transfer.registry.DataTransferProcessorDescriptor;
+import com.seizia.chromite.tools.transfer.registry.DataTransferRegistry;
+import com.seizia.chromite.tools.transfer.stream.IStreamDataExporter;
+import com.seizia.chromite.tools.transfer.stream.StreamConsumerSettings;
+import com.seizia.chromite.tools.transfer.stream.StreamTransferConsumer;
+import com.seizia.chromite.tools.transfer.ui.wizard.DataTransferWizard;
+import com.seizia.chromite.ui.ActionUtils;
+import com.seizia.chromite.ui.SwtIcons;
+import com.seizia.chromite.ui.ShellUtils;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.controls.resultset.*;
+import com.seizia.chromite.ui.internal.UIMessages;
 import org.jkiss.utils.CommonUtils;
 
 import java.nio.file.Path;
@@ -76,11 +76,11 @@ public class ResultSetHandlerOpenWith extends AbstractHandler implements IElemen
 
     private static final Log log = Log.getLog(ResultSetHandlerOpenWith.class);
 
-    public static final String CMD_OPEN_WITH = "org.jkiss.dbeaver.core.resultset.openWith";
+    public static final String CMD_OPEN_WITH = "com.seizia.chromite.core.resultset.openWith";
     public static final String PARAM_PROCESSOR_ID = "processorId";
 
-    public static final String PARAM_ACTIVE_APP = "org.jkiss.dbeaver.core.resultset.openWith.currentApp";
-    public static final String PREF_OPEN_WITH_DEFAULT_PROCESSOR = "org.jkiss.dbeaver.core.resultset.openWith.defaultprocessor";
+    public static final String PARAM_ACTIVE_APP = "com.seizia.chromite.core.resultset.openWith.currentApp";
+    public static final String PREF_OPEN_WITH_DEFAULT_PROCESSOR = "com.seizia.chromite.core.resultset.openWith.defaultprocessor";
 
     @Override
     public Object execute(ExecutionEvent event) throws ExecutionException {
@@ -261,7 +261,7 @@ public class ResultSetHandlerOpenWith extends AbstractHandler implements IElemen
                 element.setTooltip(processor.getDescription());
             }
             if (processor.getIcon() != null) {
-                element.setIcon(DBeaverIcons.getImageDescriptor(processor.getIcon()));
+                element.setIcon(SwtIcons.getImageDescriptor(processor.getIcon()));
             }
         }
     }
@@ -343,7 +343,7 @@ public class ResultSetHandlerOpenWith extends AbstractHandler implements IElemen
             for (DataTransferProcessorDescriptor processor : getDataFileTransferProcessors(rsv)) {
                 Action setDefaultAction = new Action(processor.getAppName(), Action.AS_RADIO_BUTTON) {
                     {
-                        //setImageDescriptor(DBeaverIcons.getImageDescriptor(processor.getIcon()));
+                        //setImageDescriptor(SwtIcons.getImageDescriptor(processor.getIcon()));
                         if (!CommonUtils.isEmpty(processor.getDescription())) {
                             setToolTipText(processor.getDescription());
                         }
@@ -377,7 +377,7 @@ public class ResultSetHandlerOpenWith extends AbstractHandler implements IElemen
             );
             params.label = processor.getAppName();
             if (processor.getIcon() != null) {
-                params.icon = DBeaverIcons.getImageDescriptor(processor.getIcon());
+                params.icon = SwtIcons.getImageDescriptor(processor.getIcon());
             }
             Map<String, Object> parameters = new HashMap<>();
             parameters.put(ResultSetHandlerOpenWith.PARAM_PROCESSOR_ID, processor.getFullId());

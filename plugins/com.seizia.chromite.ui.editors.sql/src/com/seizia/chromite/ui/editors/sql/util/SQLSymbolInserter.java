@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.editors.sql.util;
+package com.seizia.chromite.ui.editors.sql.util;
 
 import org.eclipse.jface.text.*;
 import org.eclipse.jface.text.link.*;
@@ -31,11 +31,11 @@ import org.eclipse.ui.IEditorPart;
 import org.eclipse.ui.IWorkbenchPage;
 import org.eclipse.ui.IWorkbenchWindow;
 import org.eclipse.ui.PlatformUI;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.sql.parser.SQLParserPartitions;
-import org.jkiss.dbeaver.ui.editors.sql.SQLEditorBase;
-import org.jkiss.dbeaver.ui.editors.sql.SQLEditorUtils;
-import org.jkiss.dbeaver.ui.editors.sql.templates.SQLTemplatesPage;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.sql.parser.SQLParserPartitions;
+import com.seizia.chromite.ui.editors.sql.SQLEditorBase;
+import com.seizia.chromite.ui.editors.sql.SQLEditorUtils;
+import com.seizia.chromite.ui.editors.sql.templates.SQLTemplatesPage;
 
 import java.util.ArrayList;
 import java.util.List;

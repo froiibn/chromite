@@ -14,13 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.internal;
+package com.seizia.chromite.ui.internal;
 
 import org.eclipse.core.runtime.preferences.AbstractPreferenceInitializer;
-import org.jkiss.dbeaver.ModelPreferences;
-import org.jkiss.dbeaver.model.preferences.DBPPreferenceStore;
-import org.jkiss.dbeaver.ui.navigator.NavigatorPreferences;
-import org.jkiss.dbeaver.utils.PrefUtils;
+import com.seizia.chromite.ModelPreferences;
+import com.seizia.chromite.model.preferences.DBPPreferenceStore;
+import com.seizia.chromite.ui.navigator.NavigatorPreferences;
+import com.seizia.chromite.utils.PrefUtils;
 
 /**
  * Preference initializer.

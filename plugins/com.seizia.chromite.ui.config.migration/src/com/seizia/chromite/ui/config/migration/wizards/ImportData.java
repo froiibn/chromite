@@ -15,9 +15,9 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.ui.config.migration.wizards;
+package com.seizia.chromite.ui.config.migration.wizards;
 
-import org.jkiss.dbeaver.model.DBPDataSourceFolder;
+import com.seizia.chromite.model.DBPDataSourceFolder;
 
 import java.util.ArrayList;
 import java.util.List;

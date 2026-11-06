@@ -14,12 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.generic;
+package com.seizia.chromite.ext.generic;
 
 import org.eclipse.osgi.util.NLS;
 
 public class GenericMessages extends NLS {
-    private static final String BUNDLE_NAME = "org.jkiss.dbeaver.ext.generic.GenericMessages";
+    private static final String BUNDLE_NAME = "com.seizia.chromite.ext.generic.GenericMessages";
 
     public static String generic_object_container_none;
 

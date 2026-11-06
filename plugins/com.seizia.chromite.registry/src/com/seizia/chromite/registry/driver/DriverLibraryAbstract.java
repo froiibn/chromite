@@ -15,25 +15,25 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.registry.driver;
+package com.seizia.chromite.registry.driver;
 
 import org.eclipse.core.runtime.IConfigurationElement;
 import org.eclipse.osgi.util.NLS;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.DBFileController;
-import org.jkiss.dbeaver.model.connection.DBPAuthInfo;
-import org.jkiss.dbeaver.model.connection.DBPDriverLibrary;
-import org.jkiss.dbeaver.model.fs.DBFUtils;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.model.runtime.OSDescriptor;
-import org.jkiss.dbeaver.model.runtime.OSDescriptorMatch;
-import org.jkiss.dbeaver.registry.RegistryConstants;
-import org.jkiss.dbeaver.registry.internal.RegistryMessages;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.runtime.WebUtils;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.DBFileController;
+import com.seizia.chromite.model.connection.DBPAuthInfo;
+import com.seizia.chromite.model.connection.DBPDriverLibrary;
+import com.seizia.chromite.model.fs.DBFUtils;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.model.runtime.OSDescriptor;
+import com.seizia.chromite.model.runtime.OSDescriptorMatch;
+import com.seizia.chromite.registry.RegistryConstants;
+import com.seizia.chromite.registry.internal.RegistryMessages;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.runtime.WebUtils;
 import org.jkiss.utils.CommonUtils;
 import org.jkiss.utils.SecurityUtils;
 

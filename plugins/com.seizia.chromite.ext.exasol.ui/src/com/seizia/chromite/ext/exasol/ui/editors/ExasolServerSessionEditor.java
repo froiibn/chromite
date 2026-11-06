@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.exasol.ui.editors;
+package com.seizia.chromite.ext.exasol.ui.editors;
 
 import org.eclipse.jface.action.Action;
 import org.eclipse.jface.action.IContributionManager;
@@ -24,18 +24,18 @@ import org.eclipse.swt.widgets.Composite;
 import org.eclipse.ui.ISharedImages;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.ext.exasol.model.ExasolDataSource;
-import org.jkiss.dbeaver.ext.exasol.model.app.ExasolServerSession;
-import org.jkiss.dbeaver.ext.exasol.model.app.ExasolServerSessionManager;
-import org.jkiss.dbeaver.ext.exasol.ui.internal.ExasolMessages;
-import org.jkiss.dbeaver.model.admin.sessions.DBAServerSession;
-import org.jkiss.dbeaver.model.admin.sessions.DBAServerSessionManager;
-import org.jkiss.dbeaver.model.exec.DBCExecutionContext;
-import org.jkiss.dbeaver.ui.DBeaverIcons;
-import org.jkiss.dbeaver.ui.UIIcon;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.views.session.AbstractSessionEditor;
-import org.jkiss.dbeaver.ui.views.session.SessionManagerViewer;
+import com.seizia.chromite.ext.exasol.model.ExasolDataSource;
+import com.seizia.chromite.ext.exasol.model.app.ExasolServerSession;
+import com.seizia.chromite.ext.exasol.model.app.ExasolServerSessionManager;
+import com.seizia.chromite.ext.exasol.ui.internal.ExasolMessages;
+import com.seizia.chromite.model.admin.sessions.DBAServerSession;
+import com.seizia.chromite.model.admin.sessions.DBAServerSessionManager;
+import com.seizia.chromite.model.exec.DBCExecutionContext;
+import com.seizia.chromite.ui.SwtIcons;
+import com.seizia.chromite.ui.UIIcon;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.views.session.AbstractSessionEditor;
+import com.seizia.chromite.ui.views.session.SessionManagerViewer;
 import org.jkiss.utils.CommonUtils;
 
 import java.util.Collections;
@@ -85,7 +85,7 @@ public class ExasolServerSessionEditor extends AbstractSessionEditor {
             super(
                 killQuery ? ExasolMessages.editors_exasol_session_editor_title_kill_session_statement : ExasolMessages.editors_exasol_session_editor_title_kill_session,
                 killQuery ? UIUtils.getShardImageDescriptor(ISharedImages.IMG_ELCL_STOP) :
-                    DBeaverIcons.getImageDescriptor(UIIcon.SQL_DISCONNECT));
+                    SwtIcons.getImageDescriptor(UIIcon.SQL_DISCONNECT));
             this.killQuery = killQuery;
 
         }

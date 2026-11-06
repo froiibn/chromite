@@ -14,15 +14,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.mysql.data;
+package com.seizia.chromite.ext.mysql.data;
 
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.model.data.DBDContent;
-import org.jkiss.dbeaver.model.exec.DBCSession;
-import org.jkiss.dbeaver.model.exec.jdbc.JDBCResultSet;
-import org.jkiss.dbeaver.model.impl.jdbc.data.JDBCContentChars;
-import org.jkiss.dbeaver.model.impl.jdbc.data.handlers.JDBCContentValueHandler;
-import org.jkiss.dbeaver.model.struct.DBSTypedObject;
+import com.seizia.chromite.model.data.DBDContent;
+import com.seizia.chromite.model.exec.DBCSession;
+import com.seizia.chromite.model.exec.jdbc.JDBCResultSet;
+import com.seizia.chromite.model.impl.jdbc.data.JDBCContentChars;
+import com.seizia.chromite.model.impl.jdbc.data.handlers.JDBCContentValueHandler;
+import com.seizia.chromite.model.struct.DBSTypedObject;
 
 import java.sql.SQLException;
 

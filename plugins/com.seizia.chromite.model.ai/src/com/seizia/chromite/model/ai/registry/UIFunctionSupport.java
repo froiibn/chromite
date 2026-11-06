@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.ai.registry;
+package com.seizia.chromite.model.ai.registry;
 
 public enum UIFunctionSupport {
     ALL,

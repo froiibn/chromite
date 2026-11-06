@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.data.managers.stream;
+package com.seizia.chromite.ui.data.managers.stream;
 
 import org.eclipse.jface.text.source.CompositeRuler;
 import org.eclipse.jface.text.source.ISourceViewer;
@@ -25,10 +25,10 @@ import org.eclipse.swt.widgets.Composite;
 import org.eclipse.ui.IEditorPart;
 import org.eclipse.ui.texteditor.ITextEditorExtension3;
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.model.DBIcon;
-import org.jkiss.dbeaver.ui.DBeaverIcons;
-import org.jkiss.dbeaver.ui.editors.text.BaseTextEditor;
-import org.jkiss.dbeaver.ui.editors.text.FileRefDocumentProvider;
+import com.seizia.chromite.model.DBIcon;
+import com.seizia.chromite.ui.SwtIcons;
+import com.seizia.chromite.ui.editors.text.BaseTextEditor;
+import com.seizia.chromite.ui.editors.text.FileRefDocumentProvider;
 
 /**
  * CONTENT text editor
@@ -49,7 +49,7 @@ public class TextEditorPart extends BaseTextEditor implements IEditorPart {
     @Override
     public Image getTitleImage()
     {
-        return DBeaverIcons.getImage(DBIcon.TYPE_TEXT);
+        return SwtIcons.getImage(DBIcon.TYPE_TEXT);
     }
 
     @Override

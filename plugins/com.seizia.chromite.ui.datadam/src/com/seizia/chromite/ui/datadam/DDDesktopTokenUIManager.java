@@ -14,17 +14,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.datadam;
+package com.seizia.chromite.ui.datadam;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.datadam.DDProductConfig;
-import org.jkiss.dbeaver.model.datadam.auth.desktop.DDDesktopAccessService;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.model.runtime.RunnableWithResult;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.datadam.internal.DDTrackingUIMessages;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.datadam.DDProductConfig;
+import com.seizia.chromite.model.datadam.auth.desktop.DDDesktopAccessService;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.model.runtime.RunnableWithResult;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.datadam.internal.DDTrackingUIMessages;
 
 /**
  * Interactive access check performed before a user-requested network operation.

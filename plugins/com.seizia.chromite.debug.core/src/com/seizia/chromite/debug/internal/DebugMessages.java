@@ -15,13 +15,13 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.debug.internal;
+package com.seizia.chromite.debug.internal;
 
 import org.eclipse.osgi.util.NLS;
 
 public class DebugMessages extends NLS {
 
-    private static final String BUNDLE_NAME = "org.jkiss.dbeaver.debug.internal.DebugMessages"; //$NON-NLS-1$
+    private static final String BUNDLE_NAME = "com.seizia.chromite.debug.internal.DebugMessages"; //$NON-NLS-1$
 
     static {
         // initialize resource bundle

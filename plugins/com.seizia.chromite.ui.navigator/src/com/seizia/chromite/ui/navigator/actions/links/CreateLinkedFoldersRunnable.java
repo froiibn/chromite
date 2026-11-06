@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.ui.navigator.actions.links;
+package com.seizia.chromite.ui.navigator.actions.links;
 
 import org.eclipse.core.resources.IContainer;
 import org.eclipse.core.resources.IFolder;
@@ -24,7 +24,7 @@ import org.eclipse.core.resources.IResource;
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.osgi.util.NLS;
-import org.jkiss.dbeaver.model.messages.ModelMessages;
+import com.seizia.chromite.model.messages.ModelMessages;
 
 import java.nio.file.Path;
 

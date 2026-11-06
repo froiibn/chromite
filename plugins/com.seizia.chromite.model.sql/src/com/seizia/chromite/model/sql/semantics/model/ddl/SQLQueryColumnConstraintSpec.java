@@ -14,22 +14,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.sql.semantics.model.ddl;
+package com.seizia.chromite.model.sql.semantics.model.ddl;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.model.sql.semantics.*;
-import org.jkiss.dbeaver.model.sql.semantics.context.SQLQueryExprType;
-import org.jkiss.dbeaver.model.sql.semantics.context.SQLQueryResultColumn;
-import org.jkiss.dbeaver.model.sql.semantics.context.SQLQueryRowsDataContext;
-import org.jkiss.dbeaver.model.sql.semantics.context.SQLQueryRowsSourceContext;
-import org.jkiss.dbeaver.model.sql.semantics.model.SQLQueryNodeModel;
-import org.jkiss.dbeaver.model.sql.semantics.model.SQLQueryNodeModelVisitor;
-import org.jkiss.dbeaver.model.sql.semantics.model.expressions.SQLQueryValueExpression;
-import org.jkiss.dbeaver.model.sql.semantics.model.select.SQLQueryRowsTableDataModel;
-import org.jkiss.dbeaver.model.stm.STMTreeNode;
-import org.jkiss.dbeaver.model.struct.*;
+import com.seizia.chromite.model.sql.semantics.*;
+import com.seizia.chromite.model.sql.semantics.context.SQLQueryExprType;
+import com.seizia.chromite.model.sql.semantics.context.SQLQueryResultColumn;
+import com.seizia.chromite.model.sql.semantics.context.SQLQueryRowsDataContext;
+import com.seizia.chromite.model.sql.semantics.context.SQLQueryRowsSourceContext;
+import com.seizia.chromite.model.sql.semantics.model.SQLQueryNodeModel;
+import com.seizia.chromite.model.sql.semantics.model.SQLQueryNodeModelVisitor;
+import com.seizia.chromite.model.sql.semantics.model.expressions.SQLQueryValueExpression;
+import com.seizia.chromite.model.sql.semantics.model.select.SQLQueryRowsTableDataModel;
+import com.seizia.chromite.model.stm.STMTreeNode;
+import com.seizia.chromite.model.struct.*;
 
 import java.util.*;
 import java.util.stream.Collectors;

@@ -14,9 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.sql.semantics.completion;
+package com.seizia.chromite.model.sql.semantics.completion;
 
-import org.jkiss.dbeaver.model.text.TextUtils;
+import com.seizia.chromite.model.text.TextUtils;
 
 public class SQLQueryWordEntry {
     public final int offset;

@@ -14,13 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.sql.semantics;
+package com.seizia.chromite.model.sql.semantics;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.sql.semantics.OffsetKeyedTreeMap.NodesIterator;
-import org.jkiss.dbeaver.model.sql.semantics.model.SQLQueryModel;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.sql.semantics.OffsetKeyedTreeMap.NodesIterator;
+import com.seizia.chromite.model.sql.semantics.model.SQLQueryModel;
 
 import java.util.List;
 

@@ -14,13 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.editors.xml;
+package com.seizia.chromite.ui.editors.xml;
 
 import org.eclipse.jface.text.BadLocationException;
 import org.eclipse.jface.text.IDocument;
 import org.eclipse.jface.text.ITextDoubleClickStrategy;
 import org.eclipse.jface.text.ITextViewer;
-import org.jkiss.dbeaver.Log;
+import com.seizia.chromite.Log;
 
 
 public class XMLDoubleClickStrategy implements ITextDoubleClickStrategy {

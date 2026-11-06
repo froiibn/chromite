@@ -14,13 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.editors;
+package com.seizia.chromite.ui.editors;
 
 /**
  * BaseTextEditorCommands
  */
 public class BaseTextEditorCommands {
 
-    public static final String CMD_CONTENT_FORMAT = "org.jkiss.dbeaver.ui.editors.text.content.format"; //$NON-NLS-1$
+    public static final String CMD_CONTENT_FORMAT = "com.seizia.chromite.ui.editors.text.content.format"; //$NON-NLS-1$
 
 }

@@ -14,10 +14,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.exec.jdbc;
+package com.seizia.chromite.model.exec.jdbc;
 
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.model.exec.DBCResultSet;
+import com.seizia.chromite.model.exec.DBCResultSet;
 
 import java.sql.ResultSet;
 

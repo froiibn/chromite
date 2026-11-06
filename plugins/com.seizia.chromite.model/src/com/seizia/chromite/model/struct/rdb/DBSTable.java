@@ -14,14 +14,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.struct.rdb;
+package com.seizia.chromite.model.struct.rdb;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.model.DBPQualifiedObject;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.model.struct.DBSEntity;
+import com.seizia.chromite.model.DBPQualifiedObject;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.model.struct.DBSEntity;
 
 import java.util.Collection;
 import java.util.List;
@@ -44,7 +44,7 @@ public interface DBSTable extends DBSEntity, DBPQualifiedObject {
 
     /**
      * Keys are: primary keys and unique keys.
-     * Foreign keys can be obtained with {@link #getReferences(org.jkiss.dbeaver.model.runtime.DBRProgressMonitor)}
+     * Foreign keys can be obtained with {@link #getReferences(com.seizia.chromite.model.runtime.DBRProgressMonitor)}
      *
      * @param monitor progress monitor
      * @return list of constraints

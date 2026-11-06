@@ -14,20 +14,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.controls;
+package com.seizia.chromite.ui.controls;
 
 import org.eclipse.jface.viewers.IColorProvider;
 import org.eclipse.jface.viewers.LabelProvider;
 import org.eclipse.swt.graphics.Color;
 import org.eclipse.swt.graphics.Image;
-import org.jkiss.dbeaver.model.DBIcon;
-import org.jkiss.dbeaver.model.DBPDataSourceContainer;
-import org.jkiss.dbeaver.model.navigator.DBNDatabaseNode;
-import org.jkiss.dbeaver.model.navigator.DBNModel;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.ui.DBeaverIcons;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.internal.UINavigatorMessages;
+import com.seizia.chromite.model.DBIcon;
+import com.seizia.chromite.model.DBPDataSourceContainer;
+import com.seizia.chromite.model.navigator.DBNDatabaseNode;
+import com.seizia.chromite.model.navigator.DBNModel;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.ui.SwtIcons;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.internal.UINavigatorMessages;
 
 /**
  * Label providers
@@ -41,12 +41,12 @@ public class DatabaseLabelProviders {
         @Override
         public Image getImage(Object element) {
             if (element == null) {
-                return DBeaverIcons.getImage(DBIcon.DATABASE_DEFAULT);
+                return SwtIcons.getImage(DBIcon.DATABASE_DEFAULT);
             }
             DBNModel nm = DBWorkbench.getPlatform().getNavigatorModel();
             nm.ensureProjectLoaded(((DBPDataSourceContainer) element).getRegistry().getProject());
             final DBNDatabaseNode node = nm.findNode((DBPDataSourceContainer) element);
-            return node == null ? null : DBeaverIcons.getImage(node.getNodeIcon());
+            return node == null ? null : SwtIcons.getImage(node.getNodeIcon());
         }
 
         @Override
@@ -72,9 +72,9 @@ public class DatabaseLabelProviders {
         @Override
         public Image getImage(Object element) {
             if (element == null) {
-                return DBeaverIcons.getImage(DBIcon.DATABASE_DEFAULT);
+                return SwtIcons.getImage(DBIcon.DATABASE_DEFAULT);
             }
-            return DBeaverIcons.getImage(((DBNDatabaseNode)element).getNodeIconDefault());
+            return SwtIcons.getImage(((DBNDatabaseNode)element).getNodeIconDefault());
         }
 
         @Override

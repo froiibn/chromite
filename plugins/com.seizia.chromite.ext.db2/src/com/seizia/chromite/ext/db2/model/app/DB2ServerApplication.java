@@ -15,12 +15,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.db2.model.app;
+package com.seizia.chromite.ext.db2.model.app;
 
-import org.jkiss.dbeaver.ext.db2.DB2Constants;
-import org.jkiss.dbeaver.model.admin.sessions.AbstractServerSession;
-import org.jkiss.dbeaver.model.impl.jdbc.JDBCUtils;
-import org.jkiss.dbeaver.model.meta.Property;
+import com.seizia.chromite.ext.db2.DB2Constants;
+import com.seizia.chromite.model.admin.sessions.AbstractServerSession;
+import com.seizia.chromite.model.impl.jdbc.JDBCUtils;
+import com.seizia.chromite.model.meta.Property;
 
 import java.sql.ResultSet;
 import java.util.Objects;

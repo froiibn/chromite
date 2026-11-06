@@ -14,14 +14,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.data.gis.handlers;
+package com.seizia.chromite.data.gis.handlers;
 
 import org.cugos.wkg.*;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.model.exec.DBCException;
-import org.jkiss.dbeaver.model.gis.CircularArc;
-import org.jkiss.dbeaver.model.gis.DBGeometry;
+import com.seizia.chromite.model.exec.DBCException;
+import com.seizia.chromite.model.gis.CircularArc;
+import com.seizia.chromite.model.gis.DBGeometry;
 import org.jkiss.utils.CommonUtils;
 import org.locationtech.jts.io.WKTReader;
 

@@ -14,12 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.data.order;
+package com.seizia.chromite.model.data.order;
 
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.ModelPreferences;
-import org.jkiss.dbeaver.model.data.messages.DataMessages;
-import org.jkiss.dbeaver.model.preferences.DBPPreferenceStore;
+import com.seizia.chromite.ModelPreferences;
+import com.seizia.chromite.model.data.messages.DataMessages;
+import com.seizia.chromite.model.preferences.DBPPreferenceStore;
 import org.jkiss.utils.CommonUtils;
 
 public enum OrderingPolicy {

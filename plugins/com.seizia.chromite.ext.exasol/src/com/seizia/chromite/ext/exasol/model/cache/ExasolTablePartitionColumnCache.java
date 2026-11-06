@@ -15,16 +15,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.exasol.model.cache;
+package com.seizia.chromite.ext.exasol.model.cache;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.ext.exasol.model.ExasolTable;
-import org.jkiss.dbeaver.ext.exasol.model.ExasolTableColumn;
-import org.jkiss.dbeaver.ext.exasol.model.ExasolTablePartitionColumn;
-import org.jkiss.dbeaver.model.DBPDataKind;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.model.struct.cache.AbstractObjectCache;
+import com.seizia.chromite.ext.exasol.model.ExasolTable;
+import com.seizia.chromite.ext.exasol.model.ExasolTableColumn;
+import com.seizia.chromite.ext.exasol.model.ExasolTablePartitionColumn;
+import com.seizia.chromite.model.DBPDataKind;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.model.struct.cache.AbstractObjectCache;
 
 import java.util.ArrayList;
 import java.util.Collection;

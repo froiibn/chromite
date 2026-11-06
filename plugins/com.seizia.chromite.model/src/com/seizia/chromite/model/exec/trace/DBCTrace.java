@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.model.exec.trace;
+package com.seizia.chromite.model.exec.trace;
 
 /**
  * Execution trace

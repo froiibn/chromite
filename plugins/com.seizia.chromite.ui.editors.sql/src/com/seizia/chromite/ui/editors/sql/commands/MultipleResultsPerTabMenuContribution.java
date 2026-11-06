@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.editors.sql.commands;
+package com.seizia.chromite.ui.editors.sql.commands;
 
 
 import org.eclipse.core.commands.*;
@@ -32,12 +32,12 @@ import org.eclipse.ui.PlatformUI;
 import org.eclipse.ui.commands.ICommandImageService;
 import org.eclipse.ui.services.IServiceLocator;
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.ui.ActionUtils;
-import org.jkiss.dbeaver.ui.DBeaverIcons;
-import org.jkiss.dbeaver.ui.UIIcon;
-import org.jkiss.dbeaver.ui.editors.sql.SQLEditor;
-import org.jkiss.dbeaver.ui.editors.sql.SQLEditorCommands;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.ui.ActionUtils;
+import com.seizia.chromite.ui.SwtIcons;
+import com.seizia.chromite.ui.UIIcon;
+import com.seizia.chromite.ui.editors.sql.SQLEditor;
+import com.seizia.chromite.ui.editors.sql.SQLEditorCommands;
 
 import java.util.Collections;
 
@@ -45,9 +45,9 @@ import java.util.Collections;
 public class MultipleResultsPerTabMenuContribution extends ActionContributionItem {
 
     private static final ImageDescriptor multipleResultsPerTabImageFalse =
-        DBeaverIcons.getImageDescriptor(UIIcon.SQL_MULTIPLE_RESULTS_PER_TAB_FALSE);
+        SwtIcons.getImageDescriptor(UIIcon.SQL_MULTIPLE_RESULTS_PER_TAB_FALSE);
     private static final ImageDescriptor multipleResultsPerTabImageTrue =
-        DBeaverIcons.getImageDescriptor(UIIcon.SQL_MULTIPLE_RESULTS_PER_TAB_TRUE);
+        SwtIcons.getImageDescriptor(UIIcon.SQL_MULTIPLE_RESULTS_PER_TAB_TRUE);
 
     public static Image TRUE_IMAGE = multipleResultsPerTabImageFalse.createImage();
     public static Image FALSE_IMAGE = multipleResultsPerTabImageTrue.createImage();

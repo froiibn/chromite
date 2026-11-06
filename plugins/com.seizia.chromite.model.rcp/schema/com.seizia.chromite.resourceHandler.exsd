@@ -1,9 +1,9 @@
 <?xml version='1.0' encoding='UTF-8'?>
 <!-- Schema file written by PDE -->
-<schema targetNamespace="org.jkiss.dbeaver.model.rcp" xmlns="http://www.w3.org/2001/XMLSchema">
+<schema targetNamespace="com.seizia.chromite.model.rcp" xmlns="http://www.w3.org/2001/XMLSchema">
 <annotation>
       <appInfo>
-         <meta.schema plugin="org.jkiss.dbeaver.model.rcp" id="org.jkiss.dbeaver.resourceHandler" name="Resource Handlers"/>
+         <meta.schema plugin="com.seizia.chromite.model.rcp" id="com.seizia.chromite.resourceHandler" name="Resource Handlers"/>
       </appInfo>
    </annotation>
 
@@ -31,7 +31,7 @@
          <attribute name="class" type="string" use="required">
             <annotation>
                <appInfo>
-                  <meta.attribute kind="java" basedOn=":org.jkiss.dbeaver.model.app.DBPResourceHandler"/>
+                  <meta.attribute kind="java" basedOn=":com.seizia.chromite.model.app.DBPResourceHandler"/>
                </appInfo>
             </annotation>
          </attribute>

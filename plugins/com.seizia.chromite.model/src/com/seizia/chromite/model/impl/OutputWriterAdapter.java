@@ -14,12 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.impl;
+package com.seizia.chromite.model.impl;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.model.exec.output.DBCOutputSeverity;
-import org.jkiss.dbeaver.model.exec.output.DBCOutputWriter;
+import com.seizia.chromite.model.exec.output.DBCOutputSeverity;
+import com.seizia.chromite.model.exec.output.DBCOutputWriter;
 
 import java.io.PrintWriter;
 

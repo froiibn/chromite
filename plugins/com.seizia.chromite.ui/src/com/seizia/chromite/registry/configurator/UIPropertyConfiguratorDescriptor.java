@@ -14,20 +14,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.registry.configurator;
+package com.seizia.chromite.registry.configurator;
 
 import org.eclipse.core.runtime.IConfigurationElement;
 import org.jkiss.code.NotNull;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.model.impl.AbstractContextDescriptor;
-import org.jkiss.dbeaver.ui.IObjectPropertyConfigurator;
+import com.seizia.chromite.model.impl.AbstractContextDescriptor;
+import com.seizia.chromite.ui.IObjectPropertyConfigurator;
 
 /**
  * UIPropertyConfiguratorDescriptor
  */
 public class UIPropertyConfiguratorDescriptor extends AbstractContextDescriptor
 {
-    public static final String EXTENSION_ID = "org.jkiss.dbeaver.ui.propertyConfigurator"; //$NON-NLS-1$
+    public static final String EXTENSION_ID = "com.seizia.chromite.ui.propertyConfigurator"; //$NON-NLS-1$
 
     private final String objectType;
     private final ObjectType uiConfigType;

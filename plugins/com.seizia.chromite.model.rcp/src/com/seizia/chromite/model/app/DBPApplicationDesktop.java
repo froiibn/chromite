@@ -15,10 +15,10 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.model.app;
+package com.seizia.chromite.model.app;
 
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.model.preferences.DBPPreferenceStore;
+import com.seizia.chromite.model.preferences.DBPPreferenceStore;
 
 /**
  * DB desktop application.

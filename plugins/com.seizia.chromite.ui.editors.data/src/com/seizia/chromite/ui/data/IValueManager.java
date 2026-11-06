@@ -15,14 +15,14 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.ui.data;
+package com.seizia.chromite.ui.data;
 
 import org.eclipse.jface.action.IContributionManager;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.model.exec.DBCException;
-import org.jkiss.dbeaver.model.preferences.DBPPropertyManager;
+import com.seizia.chromite.model.exec.DBCException;
+import com.seizia.chromite.model.preferences.DBPPropertyManager;
 
 /**
  * UI Value Manager.

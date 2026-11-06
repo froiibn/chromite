@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.tasks.ui.view;
+package com.seizia.chromite.tasks.ui.view;
 
 import org.eclipse.core.commands.AbstractHandler;
 import org.eclipse.core.commands.ExecutionEvent;
@@ -31,15 +31,15 @@ import org.eclipse.swt.widgets.Shell;
 import org.eclipse.swt.widgets.Text;
 import org.eclipse.ui.handlers.HandlerUtil;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.app.DBPProject;
-import org.jkiss.dbeaver.model.task.DBTTaskFolder;
-import org.jkiss.dbeaver.model.task.DBTTaskManager;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.tasks.ui.internal.TaskUIViewMessages;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.dialogs.BaseDialog;
-import org.jkiss.dbeaver.ui.navigator.NavigatorUtils;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.app.DBPProject;
+import com.seizia.chromite.model.task.DBTTaskFolder;
+import com.seizia.chromite.model.task.DBTTaskManager;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.tasks.ui.internal.TaskUIViewMessages;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.dialogs.BaseDialog;
+import com.seizia.chromite.ui.navigator.NavigatorUtils;
 
 import java.util.List;
 

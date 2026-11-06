@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.tools.compare.simple.ui;
+package com.seizia.chromite.tools.compare.simple.ui;
 
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.events.ModifyEvent;
@@ -23,11 +23,11 @@ import org.eclipse.swt.events.SelectionListener;
 import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.*;
-import org.jkiss.dbeaver.tools.compare.simple.CompareObjectsSettings;
-import org.jkiss.dbeaver.tools.compare.simple.ui.internal.CompareUIMessages;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.dialogs.ActiveWizardPage;
-import org.jkiss.dbeaver.ui.dialogs.DialogUtils;
+import com.seizia.chromite.tools.compare.simple.CompareObjectsSettings;
+import com.seizia.chromite.tools.compare.simple.ui.internal.CompareUIMessages;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.dialogs.ActiveWizardPage;
+import com.seizia.chromite.ui.dialogs.DialogUtils;
 
 class CompareObjectsPageOutput extends ActiveWizardPage<CompareObjectsWizard> {
 

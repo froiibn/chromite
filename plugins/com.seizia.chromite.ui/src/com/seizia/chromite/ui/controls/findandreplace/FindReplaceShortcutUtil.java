@@ -8,7 +8,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  *******************************************************************************/
-package org.jkiss.dbeaver.ui.controls.findandreplace;
+package com.seizia.chromite.ui.controls.findandreplace;
 
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.events.KeyEvent;

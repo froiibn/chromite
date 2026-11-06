@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.launcher;
+package com.seizia.chromite.launcher;
 
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
@@ -26,7 +26,7 @@ import java.nio.file.Path;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
-class DBeaverLauncherTest {
+class ChromiteLauncherTest {
     @TempDir
     Path directory;
 
@@ -41,7 +41,7 @@ class DBeaverLauncherTest {
         String previous = System.getProperty("osgi.configuration.area");
         System.setProperty("osgi.configuration.area", directory.toUri().toString());
         try {
-            Assertions.assertNull(new DBeaverLauncher().extractFromJAR(archive.toString(), "splash.png"));
+            Assertions.assertNull(new ChromiteLauncher().extractFromJAR(archive.toString(), "splash.png"));
         } finally {
             restoreConfigurationArea(previous);
         }
@@ -60,7 +60,7 @@ class DBeaverLauncherTest {
         String previous = System.getProperty("osgi.configuration.area");
         System.setProperty("osgi.configuration.area", directory.toUri().toString());
         try {
-            DBeaverLauncher launcher = new DBeaverLauncher();
+            ChromiteLauncher launcher = new ChromiteLauncher();
             String extracted = launcher.extractFromJAR(archive.toString(), "splash.png");
             Assertions.assertNotNull(extracted);
             Assertions.assertArrayEquals(content, Files.readAllBytes(Path.of(extracted)));
@@ -83,7 +83,7 @@ class DBeaverLauncherTest {
         String previous = System.getProperty("osgi.configuration.area");
         System.setProperty("osgi.configuration.area", directory.toUri().toString());
         try {
-            Assertions.assertNull(new DBeaverLauncher().extractFromJAR(archive.toString(), "../../outside.png"));
+            Assertions.assertNull(new ChromiteLauncher().extractFromJAR(archive.toString(), "../../outside.png"));
             Assertions.assertFalse(Files.exists(directory.resolve("outside.png")));
         } finally {
             restoreConfigurationArea(previous);

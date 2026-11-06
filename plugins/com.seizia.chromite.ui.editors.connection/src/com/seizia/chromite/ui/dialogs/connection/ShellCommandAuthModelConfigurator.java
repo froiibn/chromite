@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.dialogs.connection;
+package com.seizia.chromite.ui.dialogs.connection;
 
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.layout.GridData;
@@ -24,13 +24,13 @@ import org.eclipse.swt.widgets.Spinner;
 import org.eclipse.swt.widgets.Text;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.model.DBPDataSourceContainer;
-import org.jkiss.dbeaver.model.access.DBAAuthModel;
-import org.jkiss.dbeaver.model.connection.DBPConnectionConfiguration;
-import org.jkiss.dbeaver.model.impl.auth.AuthModelDatabaseShellCommandCredentials;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.controls.TextWithOpenFolder;
-import org.jkiss.dbeaver.ui.internal.UIConnectionMessages;
+import com.seizia.chromite.model.DBPDataSourceContainer;
+import com.seizia.chromite.model.access.DBAAuthModel;
+import com.seizia.chromite.model.connection.DBPConnectionConfiguration;
+import com.seizia.chromite.model.impl.auth.AuthModelDatabaseShellCommandCredentials;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.controls.TextWithOpenFolder;
+import com.seizia.chromite.ui.internal.UIConnectionMessages;
 import org.jkiss.utils.CommonUtils;
 
 /**

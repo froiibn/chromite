@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.registry;
+package com.seizia.chromite.registry;
 
 import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.Platform;
@@ -24,36 +24,36 @@ import org.eclipse.core.runtime.Status;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.ModelPreferences;
-import org.jkiss.dbeaver.model.DBConfigurationController;
-import org.jkiss.dbeaver.model.DBFileController;
-import org.jkiss.dbeaver.model.DBPDataSourceContainer;
-import org.jkiss.dbeaver.model.app.*;
-import org.jkiss.dbeaver.model.connection.DBPDataSourceProviderRegistry;
-import org.jkiss.dbeaver.model.data.DBDRegistry;
-import org.jkiss.dbeaver.model.edit.DBERegistry;
-import org.jkiss.dbeaver.model.fs.DBFRegistry;
-import org.jkiss.dbeaver.model.impl.app.BaseApplicationImpl;
-import org.jkiss.dbeaver.model.impl.preferences.AbstractPreferenceStore;
-import org.jkiss.dbeaver.model.navigator.DBNModel;
-import org.jkiss.dbeaver.model.net.DBWHandlerRegistry;
-import org.jkiss.dbeaver.model.net.DBWNetworkProfileManager;
-import org.jkiss.dbeaver.model.preferences.DBPPreferenceStore;
-import org.jkiss.dbeaver.model.runtime.AbstractJob;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.model.runtime.OSDescriptor;
-import org.jkiss.dbeaver.model.sql.SQLDialectMetadataRegistry;
-import org.jkiss.dbeaver.model.task.DBTTaskController;
-import org.jkiss.dbeaver.registry.datatype.DataTypeProviderRegistry;
-import org.jkiss.dbeaver.registry.formatter.DataFormatterRegistry;
-import org.jkiss.dbeaver.registry.fs.FileSystemProviderRegistry;
-import org.jkiss.dbeaver.registry.language.PlatformLanguageRegistry;
-import org.jkiss.dbeaver.registry.network.NetworkHandlerRegistry;
-import org.jkiss.dbeaver.registry.settings.GlobalSettings;
-import org.jkiss.dbeaver.runtime.IPluginService;
-import org.jkiss.dbeaver.runtime.jobs.DataSourceMonitorJob;
-import org.jkiss.dbeaver.utils.*;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.ModelPreferences;
+import com.seizia.chromite.model.DBConfigurationController;
+import com.seizia.chromite.model.DBFileController;
+import com.seizia.chromite.model.DBPDataSourceContainer;
+import com.seizia.chromite.model.app.*;
+import com.seizia.chromite.model.connection.DBPDataSourceProviderRegistry;
+import com.seizia.chromite.model.data.DBDRegistry;
+import com.seizia.chromite.model.edit.DBERegistry;
+import com.seizia.chromite.model.fs.DBFRegistry;
+import com.seizia.chromite.model.impl.app.BaseApplicationImpl;
+import com.seizia.chromite.model.impl.preferences.AbstractPreferenceStore;
+import com.seizia.chromite.model.navigator.DBNModel;
+import com.seizia.chromite.model.net.DBWHandlerRegistry;
+import com.seizia.chromite.model.net.DBWNetworkProfileManager;
+import com.seizia.chromite.model.preferences.DBPPreferenceStore;
+import com.seizia.chromite.model.runtime.AbstractJob;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.model.runtime.OSDescriptor;
+import com.seizia.chromite.model.sql.SQLDialectMetadataRegistry;
+import com.seizia.chromite.model.task.DBTTaskController;
+import com.seizia.chromite.registry.datatype.DataTypeProviderRegistry;
+import com.seizia.chromite.registry.formatter.DataFormatterRegistry;
+import com.seizia.chromite.registry.fs.FileSystemProviderRegistry;
+import com.seizia.chromite.registry.language.PlatformLanguageRegistry;
+import com.seizia.chromite.registry.network.NetworkHandlerRegistry;
+import com.seizia.chromite.registry.settings.GlobalSettings;
+import com.seizia.chromite.runtime.IPluginService;
+import com.seizia.chromite.runtime.jobs.DataSourceMonitorJob;
+import com.seizia.chromite.utils.*;
 import org.jkiss.utils.CommonUtils;
 import org.jkiss.utils.StandardConstants;
 import org.osgi.framework.Bundle;
@@ -71,7 +71,7 @@ import java.util.*;
  * Base implementation of DBeaver platform for all products
  *
  * Change history:
- * - 2026-11-06 Chromite: resolve the launcher ini from the launcher name instead of a hardcoded "dbeaver.ini",
+ * - 2026-11-06 Chromite: resolve the launcher ini from the launcher name instead of a hardcoded "chromite.ini",
  *   because the Chromite launcher is "chromite" and reads "chromite.ini".
  * - 2026-11-06 Chromite: getLocalConfigurationFile creates the workspace configuration folder, because its callers write
  *   the file directly and the Swing product has no earlier save that creates it (docs/chromite/swing-sql-editor-plus.md).
@@ -87,7 +87,7 @@ public abstract class BasePlatformImpl implements DBPPlatform, DBPApplicationCon
     private static final String PROP_LAUNCHER = "eclipse.launcher";
     private static final String LAUNCHER_EXE_EXTENSION = ".exe";
     private static final String ECLIPSE_CONFIG_FILE = "eclipse.ini";
-    private static final String TEMP_PROJECT_NAME = ".dbeaver-temp"; //$NON-NLS-1$
+    private static final String TEMP_PROJECT_NAME = ".chromite-temp"; //$NON-NLS-1$
     private static final String TEMP_SESSION_PREFIX = "session-"; //$NON-NLS-1$
     private static final String TEMP_SESSION_LOCK = ".lock"; //$NON-NLS-1$
     private static final long TEMP_SESSION_CREATION_GRACE_PERIOD = 60_000;
@@ -96,7 +96,7 @@ public abstract class BasePlatformImpl implements DBPPlatform, DBPApplicationCon
     public static final String CONFIG_FOLDER = ".config";
     public static final String FILES_FOLDER = ".files";
 
-    private static final String DBEAVER_PROP_LANGUAGE = "nl";
+    private static final String CHROMITE_PROP_LANGUAGE = "nl";
 
     protected OSDescriptor localSystem;
 
@@ -386,7 +386,7 @@ public abstract class BasePlatformImpl implements DBPPlatform, DBPApplicationCon
     @NotNull
     @Override
     public Path getGlobalConfigurationFile(@NotNull String fileName) {
-        var root = RuntimeUtils.getWorkingDirectory(BaseApplicationImpl.DBEAVER_DATA_DIR);
+        var root = RuntimeUtils.getWorkingDirectory(BaseApplicationImpl.CHROMITE_DATA_DIR);
         return Path.of(root, SETTINGS_FOLDER, fileName);
     }
 
@@ -496,7 +496,7 @@ public abstract class BasePlatformImpl implements DBPPlatform, DBPApplicationCon
             return;
         }
 
-        GlobalSettings.getInstance().setGlobalProperty(DBEAVER_PROP_LANGUAGE, language.getCode());
+        GlobalSettings.getInstance().setGlobalProperty(CHROMITE_PROP_LANGUAGE, language.getCode());
         this.platformLanguage = language;
         // This property is fake. But we set it to trigger property change listener
         // which will ask to restart workbench.
@@ -515,7 +515,7 @@ public abstract class BasePlatformImpl implements DBPPlatform, DBPApplicationCon
 
     private void initializeTempFolder() throws IOException {
         var candidates = new LinkedHashSet<Path>();
-        String configuredPath = System.getProperty("dbeaver.io.tmpdir");
+        String configuredPath = System.getProperty("chromite.io.tmpdir");
         if (!CommonUtils.isEmpty(configuredPath)) {
             candidates.add(Paths.get(GeneralUtils.replaceVariables(configuredPath, new SystemVariablesResolver())));
         }

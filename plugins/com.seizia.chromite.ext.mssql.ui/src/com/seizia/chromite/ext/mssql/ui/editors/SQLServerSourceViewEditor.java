@@ -15,14 +15,14 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.ext.mssql.ui.editors;
+package com.seizia.chromite.ext.mssql.ui.editors;
 
-import org.jkiss.dbeaver.ext.mssql.model.SQLServerProcedure;
-import org.jkiss.dbeaver.ext.mssql.model.SQLServerTableTrigger;
-import org.jkiss.dbeaver.ext.mssql.model.SQLServerView;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.model.struct.DBSObjectWithScript;
-import org.jkiss.dbeaver.ui.editors.sql.SQLSourceViewer;
+import com.seizia.chromite.ext.mssql.model.SQLServerProcedure;
+import com.seizia.chromite.ext.mssql.model.SQLServerTableTrigger;
+import com.seizia.chromite.ext.mssql.model.SQLServerView;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.model.struct.DBSObjectWithScript;
+import com.seizia.chromite.ui.editors.sql.SQLSourceViewer;
 
 /**
  * SQLServerSourceViewEditor

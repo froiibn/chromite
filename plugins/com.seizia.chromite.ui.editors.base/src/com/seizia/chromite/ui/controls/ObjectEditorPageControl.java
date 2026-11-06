@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.ui.controls;
+package com.seizia.chromite.ui.controls;
 
 import org.eclipse.core.runtime.jobs.IJobChangeEvent;
 import org.eclipse.core.runtime.jobs.JobChangeAdapter;
@@ -31,17 +31,17 @@ import org.eclipse.ui.menus.IMenuService;
 import org.eclipse.ui.part.MultiPageEditorSite;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.edit.DBEObjectManager;
-import org.jkiss.dbeaver.model.exec.DBCExecutionContext;
-import org.jkiss.dbeaver.model.runtime.DBRRunnableParametrized;
-import org.jkiss.dbeaver.model.struct.DBSObject;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.ui.ISearchExecutor;
-import org.jkiss.dbeaver.ui.LoadingJob;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.editors.IDatabaseEditor;
-import org.jkiss.dbeaver.ui.editors.IDatabaseEditorInput;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.edit.DBEObjectManager;
+import com.seizia.chromite.model.exec.DBCExecutionContext;
+import com.seizia.chromite.model.runtime.DBRRunnableParametrized;
+import com.seizia.chromite.model.struct.DBSObject;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.ui.ISearchExecutor;
+import com.seizia.chromite.ui.LoadingJob;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.editors.IDatabaseEditor;
+import com.seizia.chromite.ui.editors.IDatabaseEditorInput;
 
 import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;

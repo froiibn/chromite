@@ -14,16 +14,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.mimer.edit;
+package com.seizia.chromite.ext.mimer.edit;
 
-import org.jkiss.dbeaver.ext.generic.model.GenericStructContainer;
-import org.jkiss.dbeaver.ext.mimer.model.MimerDataSource;
-import org.jkiss.dbeaver.ext.mimer.model.MimerSQLDialect;
-import org.jkiss.dbeaver.ext.mimer.model.MimerSequence;
-import org.jkiss.dbeaver.model.edit.DBEPersistAction;
-import org.jkiss.dbeaver.model.exec.DBCExecutionContext;
-import org.jkiss.dbeaver.model.impl.sql.edit.SQLObjectEditor;
-import org.jkiss.junit.DBeaverUnitTest;
+import com.seizia.chromite.ext.generic.model.GenericStructContainer;
+import com.seizia.chromite.ext.mimer.model.MimerDataSource;
+import com.seizia.chromite.ext.mimer.model.MimerSQLDialect;
+import com.seizia.chromite.ext.mimer.model.MimerSequence;
+import com.seizia.chromite.model.edit.DBEPersistAction;
+import com.seizia.chromite.model.exec.DBCExecutionContext;
+import com.seizia.chromite.model.impl.sql.edit.SQLObjectEditor;
+import com.seizia.chromite.junit.ChromiteUnitTest;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -48,7 +48,7 @@ import java.util.Map;
  *
  * @author Mimer Information Technology
  */
-public class MimerSequenceManagerTest extends DBeaverUnitTest {
+public class MimerSequenceManagerTest extends ChromiteUnitTest {
 
     @Mock
     private GenericStructContainer container;

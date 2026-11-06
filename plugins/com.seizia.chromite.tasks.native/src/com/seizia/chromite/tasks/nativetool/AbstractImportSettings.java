@@ -14,11 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.tasks.nativetool;
+package com.seizia.chromite.tasks.nativetool;
 
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.model.app.DBPProject;
-import org.jkiss.dbeaver.model.struct.DBSObject;
+import com.seizia.chromite.model.app.DBPProject;
+import com.seizia.chromite.model.struct.DBSObject;
 
 public abstract class AbstractImportSettings<BASE_OBJECT extends DBSObject>
     extends AbstractNativeToolSettings<BASE_OBJECT> {

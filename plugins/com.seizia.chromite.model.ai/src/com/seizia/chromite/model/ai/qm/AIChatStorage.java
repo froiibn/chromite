@@ -16,12 +16,12 @@
  */
 
 // Java
-package org.jkiss.dbeaver.model.ai.qm;
+package com.seizia.chromite.model.ai.qm;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.model.ai.AIImageAttachment;
+import com.seizia.chromite.model.ai.AIImageAttachment;
 
 import java.time.Instant;
 import java.util.List;

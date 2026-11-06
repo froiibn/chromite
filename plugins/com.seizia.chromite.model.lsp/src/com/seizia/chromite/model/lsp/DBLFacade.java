@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.lsp;
+package com.seizia.chromite.model.lsp;
 
 import org.eclipse.lsp4j.jsonrpc.Launcher;
 import org.eclipse.lsp4j.launch.LSPLauncher;
@@ -22,7 +22,7 @@ import org.eclipse.lsp4j.services.LanguageClient;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.Log;
+import com.seizia.chromite.Log;
 
 import java.io.InputStream;
 import java.io.OutputStream;

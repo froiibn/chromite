@@ -14,14 +14,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.mysql.tasks;
+package com.seizia.chromite.ext.mysql.tasks;
 
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.ext.mysql.model.MySQLTableBase;
-import org.jkiss.dbeaver.model.DBPEvaluationContext;
-import org.jkiss.dbeaver.model.edit.DBEPersistAction;
-import org.jkiss.dbeaver.model.exec.DBCSession;
-import org.jkiss.dbeaver.model.impl.edit.SQLDatabasePersistAction;
+import com.seizia.chromite.ext.mysql.model.MySQLTableBase;
+import com.seizia.chromite.model.DBPEvaluationContext;
+import com.seizia.chromite.model.edit.DBEPersistAction;
+import com.seizia.chromite.model.exec.DBCSession;
+import com.seizia.chromite.model.impl.edit.SQLDatabasePersistAction;
 import org.jkiss.utils.CommonUtils;
 
 import java.util.List;

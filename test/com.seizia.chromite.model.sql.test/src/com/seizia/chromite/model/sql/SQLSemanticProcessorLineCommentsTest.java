@@ -14,19 +14,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.sql;
+package com.seizia.chromite.model.sql;
 
 import net.sf.jsqlparser.schema.Table;
 import net.sf.jsqlparser.statement.Statement;
 import net.sf.jsqlparser.statement.select.PlainSelect;
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.model.impl.sql.BasicSQLDialect;
-import org.jkiss.dbeaver.model.sql.parser.SQLSemanticProcessor;
-import org.jkiss.junit.DBeaverUnitTest;
+import com.seizia.chromite.model.impl.sql.BasicSQLDialect;
+import com.seizia.chromite.model.sql.parser.SQLSemanticProcessor;
+import com.seizia.chromite.junit.ChromiteUnitTest;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
-public class SQLSemanticProcessorLineCommentsTest extends DBeaverUnitTest {
+public class SQLSemanticProcessorLineCommentsTest extends ChromiteUnitTest {
 
     private static final SQLDialect MYSQL_LIKE_DIALECT = new BasicSQLDialect() {
         @NotNull

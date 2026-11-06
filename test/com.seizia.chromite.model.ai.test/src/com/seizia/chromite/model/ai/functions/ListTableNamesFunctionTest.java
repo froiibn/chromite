@@ -14,18 +14,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.ai.functions;
+package com.seizia.chromite.model.ai.functions;
 
-import org.jkiss.dbeaver.model.ai.AIFunctionContext;
-import org.jkiss.dbeaver.model.ai.AIFunctionDescriptor;
-import org.jkiss.dbeaver.model.ai.AIFunctionVerifier.FunctionState;
-import org.jkiss.dbeaver.model.ai.engine.AIDatabaseContext;
-import org.jkiss.junit.DBeaverUnitTest;
+import com.seizia.chromite.model.ai.AIFunctionContext;
+import com.seizia.chromite.model.ai.AIFunctionDescriptor;
+import com.seizia.chromite.model.ai.AIFunctionVerifier.FunctionState;
+import com.seizia.chromite.model.ai.engine.AIDatabaseContext;
+import com.seizia.chromite.junit.ChromiteUnitTest;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
-public class ListTableNamesFunctionTest extends DBeaverUnitTest {
+public class ListTableNamesFunctionTest extends ChromiteUnitTest {
     @Test
     public void unavailableWithoutDatabaseConnection() {
         AIFunctionContext context = Mockito.mock(AIFunctionContext.class);

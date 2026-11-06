@@ -14,20 +14,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.datadam.rpc;
+package com.seizia.chromite.model.datadam.rpc;
 
 import com.dbeaver.messaging.rpc.MessagingRpcEndpoint;
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.Platform;
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.Log;
+import com.seizia.chromite.Log;
 
 import java.util.ArrayList;
 import java.util.List;
 
 public class DDDesktopRpcRegistrationRegistry {
     private static final Log log = Log.getLog(DDDesktopRpcRegistrationRegistry.class);
-    private static final String EXTENSION_ID = "org.jkiss.dbeaver.model.datadam.desktopRpcService";
+    private static final String EXTENSION_ID = "com.seizia.chromite.model.datadam.desktopRpcService";
     private static DDDesktopRpcRegistrationRegistry instance;
     private final List<DDDesktopRpcRegistration> registrations = new ArrayList<>();
 

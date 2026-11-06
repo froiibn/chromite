@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.databend.ui;
+package com.seizia.chromite.ext.databend.ui;
 
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.layout.GridData;
@@ -22,10 +22,10 @@ import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Label;
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.ext.databend.ui.internal.DatabendMessages;
-import org.jkiss.dbeaver.model.net.DBWHandlerConfiguration;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.dialogs.net.SSLConfiguratorAbstractUI;
+import com.seizia.chromite.ext.databend.ui.internal.DatabendMessages;
+import com.seizia.chromite.model.net.DBWHandlerConfiguration;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.dialogs.net.SSLConfiguratorAbstractUI;
 
 public class DatabendSSLConfigurator extends SSLConfiguratorAbstractUI {
     @Override

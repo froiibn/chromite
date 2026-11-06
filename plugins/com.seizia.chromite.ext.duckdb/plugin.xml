@@ -3,23 +3,23 @@
 
 <plugin>
 
-    <extension point="org.jkiss.dbeaver.dataSourceProvider">
+    <extension point="com.seizia.chromite.dataSourceProvider">
         <dataSourceType
             id="duckdb"
             label="DuckDB"
             description="DuckDB database"
             dataSourceInformation="Lightweight embedded relational database"
-            icon="platform:/plugin/org.jkiss.dbeaver.ext.generic/icons/duckdb_icon.png"
-            iconBig="platform:/plugin/org.jkiss.dbeaver.ext.generic/icons/duckdb_icon_big.png"/>
+            icon="platform:/plugin/com.seizia.chromite.ext.generic/icons/duckdb_icon.png"
+            iconBig="platform:/plugin/com.seizia.chromite.ext.generic/icons/duckdb_icon_big.png"/>
         <datasource
-                class="org.jkiss.dbeaver.ext.duckdb.model.DuckDBDataSourceProvider"
+                class="com.seizia.chromite.ext.duckdb.model.DuckDBDataSourceProvider"
                 description="DuckDB JDBC connector"
                 id="duckdb"
                 dataSourceType="duckdb"
                 parent="generic"
                 inheritProviderProperties="true"
                 label="DuckDB"
-                icon="platform:/plugin/org.jkiss.dbeaver.ext.generic/icons/duckdb_icon.png"
+                icon="platform:/plugin/com.seizia.chromite.ext.generic/icons/duckdb_icon.png"
                 dialect="duckdb">
             <drivers managable="true">
                 <driver
@@ -39,7 +39,7 @@
                     <file type="jar" path="maven:/org.duckdb:duckdb_jdbc:RELEASE" os="win32" arch="aarch64" exclude="true" bundle="!drivers.duckdb"/>
                     <file type="license" path="https://raw.githubusercontent.com/duckdb/duckdb/master/LICENSE" bundle="!drivers.duckdb"/>
                     <file type="jar" path="drivers/duckdb" bundle="drivers.duckdb"/>
-                    <property name="@dbeaver-default-resultset.maxrows.sql" value="true"/>
+                    <property name="@chromite-default-resultset.maxrows.sql" value="true"/>
                 </driver>
                 <driver
                         id="motherduck_jdbc"
@@ -55,7 +55,7 @@
                     <file type="jar" path="maven:/org.duckdb:duckdb_jdbc:RELEASE" os="win32" arch="aarch64" exclude="true" bundle="!drivers.duckdb"/>
                     <file type="license" path="https://raw.githubusercontent.com/duckdb/duckdb/master/LICENSE" bundle="!drivers.duckdb"/>
                     <file type="jar" path="drivers/duckdb" bundle="drivers.duckdb"/>
-                    <property name="@dbeaver-default-resultset.maxrows.sql" value="true"/>
+                    <property name="@chromite-default-resultset.maxrows.sql" value="true"/>
                 </driver>
                 <provider-properties>
                     <propertyGroup label="SQL">
@@ -67,48 +67,48 @@
         </datasource>
     </extension>
 
-    <extension point="org.jkiss.dbeaver.generic.meta">
+    <extension point="com.seizia.chromite.generic.meta">
         <meta id="duckdb_jdbc"
-              class="org.jkiss.dbeaver.ext.duckdb.model.DuckMetaModel"
+              class="com.seizia.chromite.ext.duckdb.model.DuckMetaModel"
               driverClass="org.duckdb.DuckDBDriver"
               dialect="duckdb"/>
     </extension>
 
-    <extension point="org.jkiss.dbeaver.sqlDialect">
+    <extension point="com.seizia.chromite.sqlDialect">
         <dialect id="duckdb"
                  parent="generic"
-                 class="org.jkiss.dbeaver.ext.duckdb.model.DuckDBSQLDialect"
+                 class="com.seizia.chromite.ext.duckdb.model.DuckDBSQLDialect"
                  label="DuckDB"
                  description="DuckDB dialect"
-                 icon="platform:/plugin/org.jkiss.dbeaver.ext.generic/icons/duckdb_icon.png"/>
+                 icon="platform:/plugin/com.seizia.chromite.ext.generic/icons/duckdb_icon.png"/>
     </extension>
 
-    <extension point="org.jkiss.dbeaver.objectManager">
-        <manager class="org.jkiss.dbeaver.ext.duckdb.edit.DuckDBSequenceManager"
-                 objectType="org.jkiss.dbeaver.ext.duckdb.model.DuckDBSequence"/>
+    <extension point="com.seizia.chromite.objectManager">
+        <manager class="com.seizia.chromite.ext.duckdb.edit.DuckDBSequenceManager"
+                 objectType="com.seizia.chromite.ext.duckdb.model.DuckDBSequence"/>
     </extension>
 
-    <extension point="org.jkiss.dbeaver.dataTypeProvider">
+    <extension point="com.seizia.chromite.dataTypeProvider">
         <provider
-                class="org.jkiss.dbeaver.ext.duckdb.model.data.DuckDBValueHandlerProvider"
+                class="com.seizia.chromite.ext.duckdb.model.data.DuckDBValueHandlerProvider"
                 description="DuckDB data types provider"
                 id="DuckDBValueHandlerProvider"
                 parent="GenericValueHandlerProvider"
                 label="DuckDB data types provider">
 
-            <datasource class="org.jkiss.dbeaver.ext.duckdb.model.DuckDBDataSource"/>
+            <datasource class="com.seizia.chromite.ext.duckdb.model.DuckDBDataSource"/>
             <type name="GEOMETRY*"/>
             <type name="BLOB"/>
             <type kind="STRUCT"/>
         </provider>
     </extension>
 
-    <extension point="org.jkiss.dbeaver.dataSourceAuth">
+    <extension point="com.seizia.chromite.dataSourceAuth">
         <authModel
                 id="motherduck_token"
                 label="%auth.motherduck.token.label"
                 description="%auth.motherduck.token.description"
-                class="org.jkiss.dbeaver.ext.duckdb.model.MotherDuckAuthModelToken"
+                class="com.seizia.chromite.ext.duckdb.model.MotherDuckAuthModelToken"
                 default="true">
             <datasource id="duckdb" driver="motherduck_jdbc"/>
             <replace model="native"/>

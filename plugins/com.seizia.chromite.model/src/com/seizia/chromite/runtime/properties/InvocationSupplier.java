@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.runtime.properties;
+package com.seizia.chromite.runtime.properties;
 
 import java.lang.reflect.InvocationTargetException;
 

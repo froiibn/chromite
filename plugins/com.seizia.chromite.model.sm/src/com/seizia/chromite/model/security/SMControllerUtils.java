@@ -14,12 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.security;
+package com.seizia.chromite.model.security;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.model.app.DBPProject;
-import org.jkiss.dbeaver.model.auth.SMObjectType;
+import com.seizia.chromite.model.app.DBPProject;
+import com.seizia.chromite.model.auth.SMObjectType;
 
 import java.util.LinkedHashMap;
 import java.util.List;

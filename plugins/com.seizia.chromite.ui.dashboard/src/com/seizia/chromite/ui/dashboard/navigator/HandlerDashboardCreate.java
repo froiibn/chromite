@@ -14,16 +14,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.dashboard.navigator;
+package com.seizia.chromite.ui.dashboard.navigator;
 
 import org.eclipse.core.commands.ExecutionEvent;
 import org.eclipse.ui.commands.IElementUpdater;
 import org.eclipse.ui.handlers.HandlerUtil;
 import org.eclipse.ui.menus.UIElement;
-import org.jkiss.dbeaver.model.DBPDataSourceContainer;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.actions.AbstractDataSourceHandler;
-import org.jkiss.dbeaver.ui.dialogs.ActiveWizardDialog;
+import com.seizia.chromite.model.DBPDataSourceContainer;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.actions.AbstractDataSourceHandler;
+import com.seizia.chromite.ui.dialogs.ActiveWizardDialog;
 import org.jkiss.utils.CommonUtils;
 
 import java.util.Map;

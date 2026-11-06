@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.h2.ui;
+package com.seizia.chromite.ext.h2.ui;
 
 import org.eclipse.jface.layout.GridDataFactory;
 import org.eclipse.osgi.util.NLS;
@@ -27,11 +27,11 @@ import org.eclipse.swt.widgets.Text;
 import org.eclipse.ui.IWorkbench;
 import org.eclipse.ui.IWorkbenchPreferencePage;
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.ext.h2.ui.internal.H2Messages;
-import org.jkiss.dbeaver.ext.h2.util.H2Utils;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.preferences.AbstractPrefPage;
-import org.jkiss.dbeaver.utils.GeneralUtils;
+import com.seizia.chromite.ext.h2.ui.internal.H2Messages;
+import com.seizia.chromite.ext.h2.util.H2Utils;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.preferences.AbstractPrefPage;
+import com.seizia.chromite.utils.GeneralUtils;
 
 import java.util.List;
 import java.util.function.Predicate;

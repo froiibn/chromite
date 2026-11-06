@@ -14,17 +14,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.controls.resultset.panel.grouping.action;
+package com.seizia.chromite.ui.controls.resultset.panel.grouping.action;
 
 import org.eclipse.jface.action.IAction;
 import org.jkiss.code.NotNull;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.model.DBPDataSource;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.ui.DBeaverIcons;
-import org.jkiss.dbeaver.ui.controls.resultset.internal.ResultSetMessages;
-import org.jkiss.dbeaver.ui.controls.resultset.panel.grouping.GroupingResultsContainer;
-import org.jkiss.dbeaver.ui.controls.resultset.panel.grouping.registry.GroupingActionDescriptor;
+import com.seizia.chromite.model.DBPDataSource;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.ui.SwtIcons;
+import com.seizia.chromite.ui.controls.resultset.internal.ResultSetMessages;
+import com.seizia.chromite.ui.controls.resultset.panel.grouping.GroupingResultsContainer;
+import com.seizia.chromite.ui.controls.resultset.panel.grouping.registry.GroupingActionDescriptor;
 
 public class ExtensionPointAction extends GroupingAction {
 
@@ -37,7 +37,7 @@ public class ExtensionPointAction extends GroupingAction {
     ) {
         super(groupingResultsContainer, groupingDescriptor.getLabel(), IAction.AS_CHECK_BOX);
         if (groupingDescriptor.getIcon() != null) {
-            setImageDescriptor(DBeaverIcons.getImageDescriptor(groupingDescriptor.getIcon()));
+            setImageDescriptor(SwtIcons.getImageDescriptor(groupingDescriptor.getIcon()));
         }
         setToolTipText(groupingDescriptor.getDescription());
         this.preferenceKey = groupingDescriptor.getPreferenceKey();

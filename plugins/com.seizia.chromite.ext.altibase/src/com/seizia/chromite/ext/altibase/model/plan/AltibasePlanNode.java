@@ -14,17 +14,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.altibase.model.plan;
+package com.seizia.chromite.ext.altibase.model.plan;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.ext.altibase.AltibaseConstants;
-import org.jkiss.dbeaver.ext.altibase.model.AltibaseDataSource;
-import org.jkiss.dbeaver.model.data.json.JSONUtils;
-import org.jkiss.dbeaver.model.exec.plan.DBCPlanNode;
-import org.jkiss.dbeaver.model.exec.plan.DBCPlanNodeKind;
-import org.jkiss.dbeaver.model.impl.plan.AbstractExecutionPlanNode;
-import org.jkiss.dbeaver.model.meta.Property;
+import com.seizia.chromite.ext.altibase.AltibaseConstants;
+import com.seizia.chromite.ext.altibase.model.AltibaseDataSource;
+import com.seizia.chromite.model.data.json.JSONUtils;
+import com.seizia.chromite.model.exec.plan.DBCPlanNode;
+import com.seizia.chromite.model.exec.plan.DBCPlanNodeKind;
+import com.seizia.chromite.model.impl.plan.AbstractExecutionPlanNode;
+import com.seizia.chromite.model.meta.Property;
 import org.jkiss.utils.IntKeyMap;
 
 import java.util.*;

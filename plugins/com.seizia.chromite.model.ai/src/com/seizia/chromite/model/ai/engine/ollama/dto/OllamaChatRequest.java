@@ -14,14 +14,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.ai.engine.ollama.dto;
+package com.seizia.chromite.model.ai.engine.ollama.dto;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.model.ai.AIFunctionCall;
-import org.jkiss.dbeaver.model.ai.AIFunctionDescriptor;
-import org.jkiss.dbeaver.model.ai.AIMessage;
-import org.jkiss.dbeaver.model.ai.AIMessageType;
+import com.seizia.chromite.model.ai.AIFunctionCall;
+import com.seizia.chromite.model.ai.AIFunctionDescriptor;
+import com.seizia.chromite.model.ai.AIMessage;
+import com.seizia.chromite.model.ai.AIMessageType;
 import org.jkiss.utils.CommonUtils;
 
 import java.util.ArrayList;

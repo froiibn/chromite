@@ -14,11 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.sql.parser;
+package com.seizia.chromite.model.sql.parser;
 
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.model.sql.Diff;
-import org.jkiss.junit.DBeaverUnitTest;
+import com.seizia.chromite.model.sql.Diff;
+import com.seizia.chromite.junit.ChromiteUnitTest;
 import org.jkiss.utils.Pair;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
@@ -30,7 +30,7 @@ import java.util.List;
 import java.util.ListIterator;
 import java.util.stream.IntStream;
 
-public class DiffTest  extends DBeaverUnitTest {
+public class DiffTest  extends ChromiteUnitTest {
 
     List<Pair<String, List<String>>> testCases = List.of(
         // insertions

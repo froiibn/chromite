@@ -14,15 +14,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.navigator.actions;
+package com.seizia.chromite.ui.navigator.actions;
 
 import org.eclipse.core.commands.ExecutionEvent;
 import org.eclipse.core.commands.ExecutionException;
 import org.eclipse.jface.dialogs.IDialogConstants;
 import org.eclipse.ui.IWorkbenchWindow;
 import org.eclipse.ui.handlers.HandlerUtil;
-import org.jkiss.dbeaver.tools.project.ProjectCreateWizard;
-import org.jkiss.dbeaver.ui.dialogs.ActiveWizardDialog;
+import com.seizia.chromite.tools.project.ProjectCreateWizard;
+import com.seizia.chromite.ui.dialogs.ActiveWizardDialog;
 
 public class NavigatorHandlerProjectCreate extends NavigatorHandlerObjectBase {
 

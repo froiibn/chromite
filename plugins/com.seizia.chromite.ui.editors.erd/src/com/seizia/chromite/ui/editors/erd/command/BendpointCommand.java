@@ -15,10 +15,10 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.ui.editors.erd.command;
+package com.seizia.chromite.ui.editors.erd.command;
 
 import org.eclipse.gef.commands.Command;
-import org.jkiss.dbeaver.ui.editors.erd.part.AssociationPart;
+import com.seizia.chromite.ui.editors.erd.part.AssociationPart;
 
 
 public abstract class BendpointCommand extends Command {

@@ -14,13 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.actions.datasource;
+package com.seizia.chromite.ui.actions.datasource;
 
 import org.eclipse.core.commands.ExecutionEvent;
 import org.eclipse.core.commands.ExecutionException;
-import org.jkiss.dbeaver.model.DBPDataSourceContainer;
-import org.jkiss.dbeaver.registry.DataSourceRegistry;
-import org.jkiss.dbeaver.ui.actions.AbstractDataSourceHandler;
+import com.seizia.chromite.model.DBPDataSourceContainer;
+import com.seizia.chromite.registry.DataSourceRegistry;
+import com.seizia.chromite.ui.actions.AbstractDataSourceHandler;
 
 public class DataSourceDisconnectAllHandler extends AbstractDataSourceHandler
 {

@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.editors.data;
+package com.seizia.chromite.ui.editors.data;
 
 import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.Status;
@@ -31,29 +31,29 @@ import org.eclipse.swt.widgets.*;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.*;
-import org.jkiss.dbeaver.model.data.DBDAttributeBinding;
-import org.jkiss.dbeaver.model.data.DBDAttributeTransformerDescriptor;
-import org.jkiss.dbeaver.model.runtime.AbstractJob;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.model.struct.DBSEntity;
-import org.jkiss.dbeaver.model.struct.DBSEntityConstraint;
-import org.jkiss.dbeaver.model.struct.DBSEntityConstraintType;
-import org.jkiss.dbeaver.model.virtual.*;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.ui.BaseThemeSettings;
-import org.jkiss.dbeaver.ui.ConComposite;
-import org.jkiss.dbeaver.ui.DBeaverIcons;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.controls.resultset.virtual.EditVirtualColumnsPage;
-import org.jkiss.dbeaver.ui.controls.resultset.virtual.EditVirtualEntityDialog;
-import org.jkiss.dbeaver.ui.css.CSSUtils;
-import org.jkiss.dbeaver.ui.editors.AbstractDatabaseObjectEditor;
-import org.jkiss.dbeaver.ui.editors.data.internal.DataEditorsMessages;
-import org.jkiss.dbeaver.ui.editors.object.struct.EditConstraintPage;
-import org.jkiss.dbeaver.ui.editors.object.struct.EditDictionaryPage;
-import org.jkiss.dbeaver.ui.editors.object.struct.EditForeignKeyPage;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.*;
+import com.seizia.chromite.model.data.DBDAttributeBinding;
+import com.seizia.chromite.model.data.DBDAttributeTransformerDescriptor;
+import com.seizia.chromite.model.runtime.AbstractJob;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.model.struct.DBSEntity;
+import com.seizia.chromite.model.struct.DBSEntityConstraint;
+import com.seizia.chromite.model.struct.DBSEntityConstraintType;
+import com.seizia.chromite.model.virtual.*;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.ui.BaseThemeSettings;
+import com.seizia.chromite.ui.ConComposite;
+import com.seizia.chromite.ui.SwtIcons;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.controls.resultset.virtual.EditVirtualColumnsPage;
+import com.seizia.chromite.ui.controls.resultset.virtual.EditVirtualEntityDialog;
+import com.seizia.chromite.ui.css.CSSUtils;
+import com.seizia.chromite.ui.editors.AbstractDatabaseObjectEditor;
+import com.seizia.chromite.ui.editors.data.internal.DataEditorsMessages;
+import com.seizia.chromite.ui.editors.object.struct.EditConstraintPage;
+import com.seizia.chromite.ui.editors.object.struct.EditDictionaryPage;
+import com.seizia.chromite.ui.editors.object.struct.EditForeignKeyPage;
 import org.jkiss.utils.CommonUtils;
 
 import java.util.ArrayList;
@@ -321,7 +321,7 @@ public class VirtualStructureEditor extends AbstractDatabaseObjectEditor<DBSEnti
     private void createUniqueKeyItem(@NotNull Table ukTable, @NotNull DBVEntityConstraint uk) {
         TableItem item = new TableItem(ukTable, SWT.NONE);
 
-        item.setImage(0, DBeaverIcons.getImage(DBIcon.TREE_UNIQUE_KEY));
+        item.setImage(0, SwtIcons.getImage(DBIcon.TREE_UNIQUE_KEY));
         item.setText(0, DBUtils.getObjectFullName(uk, DBPEvaluationContext.UI));
         String ownAttrNames = getConstraintAttrNames(uk);
         item.setText(1, ownAttrNames);
@@ -412,7 +412,7 @@ public class VirtualStructureEditor extends AbstractDatabaseObjectEditor<DBSEnti
 
     private void createForeignKeyItem(@NotNull Table fkTable, @NotNull DBVEntityForeignKey fk, boolean ref) {
         TableItem item = new TableItem(fkTable, SWT.NONE);
-        //item.setImage(0, DBeaverIcons.getImage(DBIcon.TREE_FOREIGN_KEY));
+        //item.setImage(0, SwtIcons.getImage(DBIcon.TREE_FOREIGN_KEY));
         DBSEntity refEntity;
         if (ref) {
             refEntity = fk.getEntity();
@@ -421,7 +421,7 @@ public class VirtualStructureEditor extends AbstractDatabaseObjectEditor<DBSEnti
             refEntity = refConstraint == null ? null : refConstraint.getParentObject();
         }
 
-        item.setImage(0, DBeaverIcons.getImage(DBIcon.TREE_FOREIGN_KEY));
+        item.setImage(0, SwtIcons.getImage(DBIcon.TREE_FOREIGN_KEY));
         item.setText(0, refEntity == null ? "?" : DBUtils.getObjectFullName(refEntity, DBPEvaluationContext.UI));
 
         String ownAttrNames = fk.getAttributes().stream().map(DBVEntityForeignKeyColumn::getAttributeName)
@@ -430,7 +430,7 @@ public class VirtualStructureEditor extends AbstractDatabaseObjectEditor<DBSEnti
             .collect(Collectors.joining(","));
         item.setText(1, "(" + ownAttrNames + ") -> (" + refAttrNames + ")");
         if (refEntity != null) {
-            item.setImage(2, DBeaverIcons.getImage(refEntity.getDataSource().getContainer().getDriver().getIcon()));
+            item.setImage(2, SwtIcons.getImage(refEntity.getDataSource().getContainer().getDriver().getIcon()));
             item.setText(2, refEntity.getDataSource().getContainer().getName());
         }
 

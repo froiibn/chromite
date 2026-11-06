@@ -14,11 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.tools.compare.simple;
+package com.seizia.chromite.tools.compare.simple;
 
-import org.jkiss.dbeaver.model.navigator.DBNDatabaseNode;
-import org.jkiss.dbeaver.model.preferences.DBPSettingsSection;
-import org.jkiss.dbeaver.tools.compare.simple.messages.CompareMessages;
+import com.seizia.chromite.model.navigator.DBNDatabaseNode;
+import com.seizia.chromite.model.preferences.DBPSettingsSection;
+import com.seizia.chromite.tools.compare.simple.messages.CompareMessages;
 
 import java.util.List;
 

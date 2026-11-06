@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.gis.panel;
+package com.seizia.chromite.ui.gis.panel;
 
 import org.eclipse.jface.action.*;
 import org.eclipse.swt.SWT;
@@ -25,17 +25,17 @@ import org.eclipse.swt.graphics.Rectangle;
 import org.eclipse.swt.widgets.*;
 import org.jkiss.code.NotNull;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.DBIcon;
-import org.jkiss.dbeaver.model.exec.DBCException;
-import org.jkiss.dbeaver.ui.ActionUtils;
-import org.jkiss.dbeaver.ui.DBeaverIcons;
-import org.jkiss.dbeaver.ui.data.IValueController;
-import org.jkiss.dbeaver.ui.data.editors.BaseValueEditor;
-import org.jkiss.dbeaver.ui.gis.IGeometryViewer;
-import org.jkiss.dbeaver.ui.gis.internal.GISMessages;
-import org.jkiss.dbeaver.ui.gis.registry.GeometryViewerDescriptor;
-import org.jkiss.dbeaver.ui.gis.registry.GeometryViewerRegistry;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.DBIcon;
+import com.seizia.chromite.model.exec.DBCException;
+import com.seizia.chromite.ui.ActionUtils;
+import com.seizia.chromite.ui.SwtIcons;
+import com.seizia.chromite.ui.data.IValueController;
+import com.seizia.chromite.ui.data.editors.BaseValueEditor;
+import com.seizia.chromite.ui.gis.IGeometryViewer;
+import com.seizia.chromite.ui.gis.internal.GISMessages;
+import com.seizia.chromite.ui.gis.registry.GeometryViewerDescriptor;
+import com.seizia.chromite.ui.gis.registry.GeometryViewerRegistry;
 import org.jkiss.utils.CommonUtils;
 
 import java.util.List;
@@ -107,7 +107,7 @@ public class GISPanelEditor extends BaseValueEditor<Control> {
 
         ViewerSwitchAction() {
             super(null, Action.AS_DROP_DOWN_MENU);
-            setImageDescriptor(DBeaverIcons.getImageDescriptor(DBIcon.TREE_SCRIPT_FOLDER));
+            setImageDescriptor(SwtIcons.getImageDescriptor(DBIcon.TREE_SCRIPT_FOLDER));
             setToolTipText(GISMessages.panel_gis_panel_editor_viewer_action_tool_tip_text_settings);
         }
 
@@ -213,7 +213,7 @@ public class GISPanelEditor extends BaseValueEditor<Control> {
             viewerDescriptor = vd;
             setToolTipText(viewerDescriptor.getDescription());
             if (viewerDescriptor.getIcon() != null) {
-                setImageDescriptor(DBeaverIcons.getImageDescriptor(viewerDescriptor.getIcon()));
+                setImageDescriptor(SwtIcons.getImageDescriptor(viewerDescriptor.getIcon()));
             }
 
         }

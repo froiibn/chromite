@@ -14,17 +14,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.sql.semantics.context;
+package com.seizia.chromite.model.sql.semantics.context;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.model.sql.semantics.SQLQueryComplexName;
-import org.jkiss.dbeaver.model.sql.semantics.SQLQuerySymbol;
-import org.jkiss.dbeaver.model.sql.semantics.model.programmaticals.SQLQueryTriggerStatementModel;
-import org.jkiss.dbeaver.model.sql.semantics.model.select.SQLQueryRowsCteSubqueryModel;
-import org.jkiss.dbeaver.model.sql.semantics.model.select.SQLQueryRowsLocalTableModel;
-import org.jkiss.dbeaver.model.sql.semantics.model.select.SQLQueryRowsSourceModel;
-import org.jkiss.dbeaver.model.struct.DBSEntity;
+import com.seizia.chromite.model.sql.semantics.SQLQueryComplexName;
+import com.seizia.chromite.model.sql.semantics.SQLQuerySymbol;
+import com.seizia.chromite.model.sql.semantics.model.programmaticals.SQLQueryTriggerStatementModel;
+import com.seizia.chromite.model.sql.semantics.model.select.SQLQueryRowsCteSubqueryModel;
+import com.seizia.chromite.model.sql.semantics.model.select.SQLQueryRowsLocalTableModel;
+import com.seizia.chromite.model.sql.semantics.model.select.SQLQueryRowsSourceModel;
+import com.seizia.chromite.model.struct.DBSEntity;
 
 /**
  * Describes the result of the query source resolution

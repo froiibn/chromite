@@ -14,12 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.config.migration.dbvis;
+package com.seizia.chromite.ui.config.migration.dbvis;
 
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.model.connection.DBPDriver;
-import org.jkiss.dbeaver.registry.DataSourceProviderRegistry;
-import org.jkiss.dbeaver.ui.config.migration.wizards.ImportDriverInfo;
+import com.seizia.chromite.model.connection.DBPDriver;
+import com.seizia.chromite.registry.DataSourceProviderRegistry;
+import com.seizia.chromite.ui.config.migration.wizards.ImportDriverInfo;
 import org.jkiss.utils.CommonUtils;
 
 import java.nio.file.Files;

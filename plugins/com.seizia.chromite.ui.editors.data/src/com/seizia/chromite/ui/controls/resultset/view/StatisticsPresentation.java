@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.ui.controls.resultset.view;
+package com.seizia.chromite.ui.controls.resultset.view;
 
 import org.eclipse.jface.viewers.StructuredSelection;
 import org.eclipse.swt.SWT;
@@ -28,16 +28,16 @@ import org.eclipse.swt.widgets.Table;
 import org.eclipse.swt.widgets.TableItem;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.model.DBValueFormatting;
-import org.jkiss.dbeaver.model.data.DBDAttributeBinding;
-import org.jkiss.dbeaver.model.data.DBDDisplayFormat;
-import org.jkiss.dbeaver.ui.UIStyles;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.UIWidgets;
-import org.jkiss.dbeaver.ui.controls.resultset.AbstractPresentation;
-import org.jkiss.dbeaver.ui.controls.resultset.IResultSetController;
-import org.jkiss.dbeaver.ui.controls.resultset.ResultSetCopySettings;
-import org.jkiss.dbeaver.ui.controls.resultset.ResultSetRow;
+import com.seizia.chromite.model.DBValueFormatting;
+import com.seizia.chromite.model.data.DBDAttributeBinding;
+import com.seizia.chromite.model.data.DBDDisplayFormat;
+import com.seizia.chromite.ui.UIStyles;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.UIWidgets;
+import com.seizia.chromite.ui.controls.resultset.AbstractPresentation;
+import com.seizia.chromite.ui.controls.resultset.IResultSetController;
+import com.seizia.chromite.ui.controls.resultset.ResultSetCopySettings;
+import com.seizia.chromite.ui.controls.resultset.ResultSetRow;
 import org.jkiss.utils.CommonUtils;
 
 import java.util.Collections;

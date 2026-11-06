@@ -14,16 +14,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.app.standalone.update;
+package com.seizia.chromite.ui.app.standalone.update;
 
 import org.eclipse.osgi.util.NLS;
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.core.CoreMessages;
-import org.jkiss.dbeaver.model.DBIcon;
-import org.jkiss.dbeaver.model.DBPImage;
-import org.jkiss.dbeaver.registry.updater.VersionDescriptor;
-import org.jkiss.dbeaver.registry.updater.VersionDescriptor.PatchSeverity;
-import org.jkiss.dbeaver.ui.UIIcon;
+import com.seizia.chromite.core.CoreMessages;
+import com.seizia.chromite.model.DBIcon;
+import com.seizia.chromite.model.DBPImage;
+import com.seizia.chromite.registry.updater.VersionDescriptor;
+import com.seizia.chromite.registry.updater.VersionDescriptor.PatchSeverity;
+import com.seizia.chromite.ui.UIIcon;
 import org.jkiss.utils.CommonUtils;
 import org.osgi.framework.Version;
 

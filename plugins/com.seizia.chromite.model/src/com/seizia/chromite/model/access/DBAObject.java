@@ -15,9 +15,9 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.model.access;
+package com.seizia.chromite.model.access;
 
-import org.jkiss.dbeaver.model.struct.DBSObject;
+import com.seizia.chromite.model.struct.DBSObject;
 
 /**
  * Access management object

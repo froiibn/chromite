@@ -14,12 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.editors.locks;
+package com.seizia.chromite.ui.editors.locks;
 
 import org.eclipse.osgi.util.NLS;
 
 public class LocksUIMessages extends NLS {
-    private static final String BUNDLE_NAME = "org.jkiss.dbeaver.ui.editors.locks.LocksUIResources"; //$NON-NLS-1$
+    private static final String BUNDLE_NAME = "com.seizia.chromite.ui.editors.locks.LocksUIResources"; //$NON-NLS-1$
     public static String actions_refresh_control_kill_waiting_session;
     public static String actions_refresh_control_refresh_locks;
     public static String create_editor_control_name_lock;

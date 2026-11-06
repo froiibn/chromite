@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.editors.sql.preferences;
+package com.seizia.chromite.ui.editors.sql.preferences;
 
 import org.eclipse.core.runtime.IAdaptable;
 import org.eclipse.jface.text.templates.Template;
@@ -25,12 +25,12 @@ import org.eclipse.ui.IWorkbenchPropertyPage;
 import org.eclipse.ui.texteditor.templates.TemplatePreferencePage;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.model.rm.RMConstants;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.ui.editors.sql.templates.SQLContextTypeBase;
-import org.jkiss.dbeaver.ui.editors.sql.templates.SQLTemplateStore;
-import org.jkiss.dbeaver.ui.editors.sql.templates.SQLTemplatesRegistry;
-import org.jkiss.dbeaver.ui.preferences.PreferenceStoreDelegate;
+import com.seizia.chromite.model.rm.RMConstants;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.ui.editors.sql.templates.SQLContextTypeBase;
+import com.seizia.chromite.ui.editors.sql.templates.SQLTemplateStore;
+import com.seizia.chromite.ui.editors.sql.templates.SQLTemplatesRegistry;
+import com.seizia.chromite.ui.preferences.PreferenceStoreDelegate;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -44,7 +44,7 @@ import java.util.stream.Stream;
  */
 public class PrefPageSQLTemplates extends TemplatePreferencePage implements IWorkbenchPropertyPage {
 
-    public static final String PAGE_ID = "org.jkiss.dbeaver.preferences.main.sql.templates";
+    public static final String PAGE_ID = "com.seizia.chromite.preferences.main.sql.templates";
 
     private static final int BTN_IDX_EXPORT = 0;
     private static final int BTN_IDX_IMPORT = 1;

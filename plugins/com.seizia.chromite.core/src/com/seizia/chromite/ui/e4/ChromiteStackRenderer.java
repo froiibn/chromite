@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.e4;
+package com.seizia.chromite.ui.e4;
 
 import org.eclipse.core.resources.IFile;
 import org.eclipse.core.resources.IFolder;
@@ -46,39 +46,39 @@ import org.eclipse.ui.internal.e4.compatibility.CompatibilityPart;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.core.CoreMessages;
-import org.jkiss.dbeaver.model.DBIcon;
-import org.jkiss.dbeaver.model.DBPEvaluationContext;
-import org.jkiss.dbeaver.model.DBUtils;
-import org.jkiss.dbeaver.model.navigator.DBNDatabaseNode;
-import org.jkiss.dbeaver.model.struct.DBSObject;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.ui.ActionUtils;
-import org.jkiss.dbeaver.ui.DBeaverIcons;
-import org.jkiss.dbeaver.ui.IActionConstants;
-import org.jkiss.dbeaver.ui.ShellUtils;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.actions.CoreCommandConstants;
-import org.jkiss.dbeaver.ui.actions.common.AddBookmarkHandler;
-import org.jkiss.dbeaver.ui.controls.decorations.HolidayDecorations;
-import org.jkiss.dbeaver.ui.editors.EditorUtils;
-import org.jkiss.dbeaver.ui.editors.IDatabaseEditorInput;
-import org.jkiss.dbeaver.ui.editors.entity.EntityEditor;
-import org.jkiss.dbeaver.ui.editors.sql.SQLEditor;
-import org.jkiss.dbeaver.ui.editors.sql.SQLEditorCommands;
-import org.jkiss.dbeaver.ui.editors.sql.SQLEditorUtils;
-import org.jkiss.dbeaver.ui.editors.sql.handlers.SQLEditorHandlerRenameFile;
-import org.jkiss.dbeaver.ui.editors.sql.internal.SQLEditorMessages;
-import org.jkiss.dbeaver.utils.RuntimeUtils;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.core.CoreMessages;
+import com.seizia.chromite.model.DBIcon;
+import com.seizia.chromite.model.DBPEvaluationContext;
+import com.seizia.chromite.model.DBUtils;
+import com.seizia.chromite.model.navigator.DBNDatabaseNode;
+import com.seizia.chromite.model.struct.DBSObject;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.ui.ActionUtils;
+import com.seizia.chromite.ui.SwtIcons;
+import com.seizia.chromite.ui.IActionConstants;
+import com.seizia.chromite.ui.ShellUtils;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.actions.CoreCommandConstants;
+import com.seizia.chromite.ui.actions.common.AddBookmarkHandler;
+import com.seizia.chromite.ui.controls.decorations.HolidayDecorations;
+import com.seizia.chromite.ui.editors.EditorUtils;
+import com.seizia.chromite.ui.editors.IDatabaseEditorInput;
+import com.seizia.chromite.ui.editors.entity.EntityEditor;
+import com.seizia.chromite.ui.editors.sql.SQLEditor;
+import com.seizia.chromite.ui.editors.sql.SQLEditorCommands;
+import com.seizia.chromite.ui.editors.sql.SQLEditorUtils;
+import com.seizia.chromite.ui.editors.sql.handlers.SQLEditorHandlerRenameFile;
+import com.seizia.chromite.ui.editors.sql.internal.SQLEditorMessages;
+import com.seizia.chromite.utils.RuntimeUtils;
 
 import java.io.File;
 import java.util.List;
 
 
-public class DBeaverStackRenderer extends StackRenderer {
+public class ChromiteStackRenderer extends StackRenderer {
 
-    private static final Log log = Log.getLog(DBeaverStackRenderer.class);
+    private static final Log log = Log.getLog(ChromiteStackRenderer.class);
     private static final String DEBUG_VIEW_ICON_URI = RuntimeUtils.makePlatformResourceUrl(
         IActionConstants.DEBUG_UI_PLUGIN_ID, "icons/debug_config.png");
 
@@ -87,7 +87,7 @@ public class DBeaverStackRenderer extends StackRenderer {
     private static final String EDITOR_STACK_ID = "EditorStack"; //$NON-NLS-1$
     private static final String ID = "id"; //$NON-NLS-1$
 
-    public DBeaverStackRenderer() {
+    public ChromiteStackRenderer() {
         try {
             subscribePerspectiveSwitched();
         } catch (Throwable e) {
@@ -101,7 +101,7 @@ public class DBeaverStackRenderer extends StackRenderer {
         if (element instanceof MPart part) {
             if (IActionConstants.LOG_VIEW_ID.equals(part.getElementId())) {
                 // The compatibility view can restore Eclipse's image when its title changes.
-                return DBeaverIcons.getImage(DBIcon.SMALL_ERROR);
+                return SwtIcons.getImage(DBIcon.SMALL_ERROR);
             }
             if (IActionConstants.DEBUG_VIEW_ID.equals(part.getElementId()) &&
                 Platform.getBundle(IActionConstants.DEBUG_UI_PLUGIN_ID) != null) {
@@ -114,7 +114,7 @@ public class DBeaverStackRenderer extends StackRenderer {
     @Override
     public void showAvailableItems(@NotNull MElementContainer<?> stack, @NotNull CTabFolder folder, boolean forceCenter) {
         final IEclipseContext ctx = getContext(stack);
-        final DBeaverPartList list = new DBeaverPartList(
+        final ChromitePartList list = new ChromitePartList(
             folder.getShell(),
             SWT.ON_TOP,
             SWT.V_SCROLL | SWT.H_SCROLL,

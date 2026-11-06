@@ -14,9 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.gis;
+package com.seizia.chromite.model.gis;
 
-import org.jkiss.dbeaver.Log;
+import com.seizia.chromite.Log;
 import org.jkiss.utils.CommonUtils;
 
 /**

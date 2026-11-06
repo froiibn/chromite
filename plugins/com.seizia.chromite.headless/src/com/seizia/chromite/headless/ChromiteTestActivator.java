@@ -14,14 +14,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.headless;
+package com.seizia.chromite.headless;
 
 import org.eclipse.core.resources.IWorkspace;
 import org.eclipse.core.resources.ResourcesPlugin;
 import org.eclipse.core.runtime.Plugin;
-import org.jkiss.dbeaver.ModelPreferences;
-import org.jkiss.dbeaver.model.impl.preferences.BundlePreferenceStore;
-import org.jkiss.dbeaver.model.preferences.DBPPreferenceStore;
+import com.seizia.chromite.ModelPreferences;
+import com.seizia.chromite.model.impl.preferences.BundlePreferenceStore;
+import com.seizia.chromite.model.preferences.DBPPreferenceStore;
 import org.osgi.framework.Bundle;
 import org.osgi.framework.BundleContext;
 
@@ -31,18 +31,18 @@ import java.io.PrintStream;
 /**
  * The activator class controls the plug-in life cycle
  */
-public class DBeaverTestActivator extends Plugin {
+public class ChromiteTestActivator extends Plugin {
 
     // The shared instance
-    private static DBeaverTestActivator instance;
+    private static ChromiteTestActivator instance;
     private static File configDir;
     private PrintStream debugWriter;
     private DBPPreferenceStore preferences;
 
-    public DBeaverTestActivator() {
+    public ChromiteTestActivator() {
     }
 
-    public static DBeaverTestActivator getInstance() {
+    public static ChromiteTestActivator getInstance() {
         return instance;
     }
 
@@ -98,8 +98,8 @@ public class DBeaverTestActivator extends Plugin {
     private void shutdownCore() {
         try {
             // Dispose core
-            if (DBeaverTestActivator.instance != null) {
-                DBeaverTestActivator.instance = null;
+            if (ChromiteTestActivator.instance != null) {
+                ChromiteTestActivator.instance = null;
             }
         } catch (Throwable e) {
             e.printStackTrace();

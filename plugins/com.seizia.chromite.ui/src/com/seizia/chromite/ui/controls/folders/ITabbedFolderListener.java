@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.ui.controls.folders;
+package com.seizia.chromite.ui.controls.folders;
 
 /**
  * ITabbedFolderListener

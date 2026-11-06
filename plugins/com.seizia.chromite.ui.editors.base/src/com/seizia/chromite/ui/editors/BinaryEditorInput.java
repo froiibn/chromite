@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.editors;
+package com.seizia.chromite.ui.editors;
 
 import org.eclipse.core.resources.IEncodedStorage;
 import org.eclipse.core.resources.IStorage;
@@ -25,10 +25,10 @@ import org.eclipse.jface.resource.ImageDescriptor;
 import org.eclipse.ui.IEditorInput;
 import org.eclipse.ui.IPersistableElement;
 import org.eclipse.ui.IStorageEditorInput;
-import org.jkiss.dbeaver.model.DBIcon;
-import org.jkiss.dbeaver.runtime.IPersistentStorage;
-import org.jkiss.dbeaver.ui.DBeaverIcons;
-import org.jkiss.dbeaver.utils.GeneralUtils;
+import com.seizia.chromite.model.DBIcon;
+import com.seizia.chromite.runtime.IPersistentStorage;
+import com.seizia.chromite.ui.SwtIcons;
+import com.seizia.chromite.utils.GeneralUtils;
 import org.jkiss.utils.IOUtils;
 
 import java.io.ByteArrayInputStream;
@@ -78,7 +78,7 @@ public class BinaryEditorInput implements IEditorInput, IStorageEditorInput {
 
 	@Override
     public ImageDescriptor getImageDescriptor() {
-		return DBeaverIcons.getImageDescriptor(DBIcon.TREE_INFO);
+		return SwtIcons.getImageDescriptor(DBIcon.TREE_INFO);
 	}
 
 	@Override

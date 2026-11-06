@@ -14,9 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.cli.model.option;
+package com.seizia.chromite.model.cli.model.option;
 
-import org.jkiss.dbeaver.model.cli.CLIConstants;
+import com.seizia.chromite.model.cli.CLIConstants;
 import picocli.CommandLine;
 
 /**

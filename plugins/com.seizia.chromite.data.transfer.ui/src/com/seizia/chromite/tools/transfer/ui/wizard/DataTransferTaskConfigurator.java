@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.tools.transfer.ui.wizard;
+package com.seizia.chromite.tools.transfer.ui.wizard;
 
 import org.eclipse.osgi.util.NLS;
 import org.eclipse.swt.SWT;
@@ -27,42 +27,42 @@ import org.eclipse.swt.widgets.Table;
 import org.eclipse.swt.widgets.TableItem;
 import org.jkiss.code.NotNull;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.*;
-import org.jkiss.dbeaver.model.app.DBPProject;
-import org.jkiss.dbeaver.model.exec.DBCExecutionContext;
-import org.jkiss.dbeaver.model.exec.DBCExecutionContextDefaults;
-import org.jkiss.dbeaver.model.exec.DBExecUtils;
-import org.jkiss.dbeaver.model.impl.DataSourceContextProvider;
-import org.jkiss.dbeaver.model.navigator.*;
-import org.jkiss.dbeaver.model.runtime.DBRRunnableContext;
-import org.jkiss.dbeaver.model.runtime.VoidProgressMonitor;
-import org.jkiss.dbeaver.model.sql.SQLQuery;
-import org.jkiss.dbeaver.model.sql.SQLScriptContext;
-import org.jkiss.dbeaver.model.sql.data.SQLQueryDataContainer;
-import org.jkiss.dbeaver.model.struct.*;
-import org.jkiss.dbeaver.model.struct.rdb.DBSCatalog;
-import org.jkiss.dbeaver.model.struct.rdb.DBSSchema;
-import org.jkiss.dbeaver.model.task.DBTTask;
-import org.jkiss.dbeaver.model.task.DBTTaskType;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.runtime.ui.UIServiceSQL;
-import org.jkiss.dbeaver.tasks.ui.DBTTaskConfigPanel;
-import org.jkiss.dbeaver.tasks.ui.DBTTaskConfigPanelProvider;
-import org.jkiss.dbeaver.tasks.ui.DBTTaskConfigurator;
-import org.jkiss.dbeaver.tasks.ui.wizard.TaskConfigurationWizard;
-import org.jkiss.dbeaver.tools.transfer.*;
-import org.jkiss.dbeaver.tools.transfer.database.DatabaseTransferConsumer;
-import org.jkiss.dbeaver.tools.transfer.database.DatabaseTransferProducer;
-import org.jkiss.dbeaver.tools.transfer.internal.DTMessages;
-import org.jkiss.dbeaver.tools.transfer.ui.handlers.DataImportPropertyTester;
-import org.jkiss.dbeaver.tools.transfer.ui.internal.DTUIMessages;
-import org.jkiss.dbeaver.ui.BaseThemeSettings;
-import org.jkiss.dbeaver.ui.DBeaverIcons;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.UIWidgets;
-import org.jkiss.dbeaver.ui.navigator.NavigatorUtils;
-import org.jkiss.dbeaver.ui.navigator.dialogs.ObjectBrowserDialog;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.*;
+import com.seizia.chromite.model.app.DBPProject;
+import com.seizia.chromite.model.exec.DBCExecutionContext;
+import com.seizia.chromite.model.exec.DBCExecutionContextDefaults;
+import com.seizia.chromite.model.exec.DBExecUtils;
+import com.seizia.chromite.model.impl.DataSourceContextProvider;
+import com.seizia.chromite.model.navigator.*;
+import com.seizia.chromite.model.runtime.DBRRunnableContext;
+import com.seizia.chromite.model.runtime.VoidProgressMonitor;
+import com.seizia.chromite.model.sql.SQLQuery;
+import com.seizia.chromite.model.sql.SQLScriptContext;
+import com.seizia.chromite.model.sql.data.SQLQueryDataContainer;
+import com.seizia.chromite.model.struct.*;
+import com.seizia.chromite.model.struct.rdb.DBSCatalog;
+import com.seizia.chromite.model.struct.rdb.DBSSchema;
+import com.seizia.chromite.model.task.DBTTask;
+import com.seizia.chromite.model.task.DBTTaskType;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.runtime.ui.UIServiceSQL;
+import com.seizia.chromite.tasks.ui.DBTTaskConfigPanel;
+import com.seizia.chromite.tasks.ui.DBTTaskConfigPanelProvider;
+import com.seizia.chromite.tasks.ui.DBTTaskConfigurator;
+import com.seizia.chromite.tasks.ui.wizard.TaskConfigurationWizard;
+import com.seizia.chromite.tools.transfer.*;
+import com.seizia.chromite.tools.transfer.database.DatabaseTransferConsumer;
+import com.seizia.chromite.tools.transfer.database.DatabaseTransferProducer;
+import com.seizia.chromite.tools.transfer.internal.DTMessages;
+import com.seizia.chromite.tools.transfer.ui.handlers.DataImportPropertyTester;
+import com.seizia.chromite.tools.transfer.ui.internal.DTUIMessages;
+import com.seizia.chromite.ui.BaseThemeSettings;
+import com.seizia.chromite.ui.SwtIcons;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.UIWidgets;
+import com.seizia.chromite.ui.navigator.NavigatorUtils;
+import com.seizia.chromite.ui.navigator.dialogs.ObjectBrowserDialog;
 import org.jkiss.utils.CommonUtils;
 
 import java.io.PrintWriter;
@@ -367,14 +367,14 @@ public class DataTransferTaskConfigurator implements DBTTaskConfigurator, DBTTas
             IDataTransferNode node = getTableNode(pipe);
             TableItem item = new TableItem(objectsTable, SWT.NONE);
             item.setData(pipe);
-            item.setImage(0, DBeaverIcons.getImage(node.getObjectIcon()));
+            item.setImage(0, SwtIcons.getImage(node.getObjectIcon()));
             item.setText(0, CommonUtils.getSingleLineString(CommonUtils.toString(node.getObjectName(), "?")));
 
             if (node.getDataSourceContainer() != null) {
                 item.setText(1, node.getDataSourceContainer().getName());
                 DBPImage dsIcon = node.getObjectContainerIcon();
                 if (dsIcon != null) {
-                    item.setImage(1, DBeaverIcons.getImage(dsIcon));
+                    item.setImage(1, SwtIcons.getImage(dsIcon));
                 }
             }
             if (node.getDatabaseObject() == null) {

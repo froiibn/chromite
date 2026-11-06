@@ -14,23 +14,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.mimer.edit;
+package com.seizia.chromite.ext.mimer.edit;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.ext.generic.model.GenericDataSource;
-import org.jkiss.dbeaver.ext.generic.model.GenericTableColumn;
-import org.jkiss.dbeaver.ext.generic.model.GenericTableForeignKey;
-import org.jkiss.dbeaver.ext.generic.model.GenericTableIndex;
-import org.jkiss.dbeaver.ext.generic.model.GenericUniqueKey;
-import org.jkiss.dbeaver.ext.mimer.model.MimerSQLDialect;
-import org.jkiss.dbeaver.ext.mimer.model.MimerTable;
-import org.jkiss.dbeaver.ext.mimer.model.MimerTableColumn;
-import org.jkiss.dbeaver.ext.mimer.model.MimerTableIndex;
-import org.jkiss.dbeaver.model.runtime.VoidProgressMonitor;
-import org.jkiss.dbeaver.model.struct.DBSObject;
-import org.jkiss.junit.DBeaverUnitTest;
+import com.seizia.chromite.ext.generic.model.GenericDataSource;
+import com.seizia.chromite.ext.generic.model.GenericTableColumn;
+import com.seizia.chromite.ext.generic.model.GenericTableForeignKey;
+import com.seizia.chromite.ext.generic.model.GenericTableIndex;
+import com.seizia.chromite.ext.generic.model.GenericUniqueKey;
+import com.seizia.chromite.ext.mimer.model.MimerSQLDialect;
+import com.seizia.chromite.ext.mimer.model.MimerTable;
+import com.seizia.chromite.ext.mimer.model.MimerTableColumn;
+import com.seizia.chromite.ext.mimer.model.MimerTableIndex;
+import com.seizia.chromite.model.runtime.VoidProgressMonitor;
+import com.seizia.chromite.model.struct.DBSObject;
+import com.seizia.chromite.junit.ChromiteUnitTest;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentMatchers;
@@ -50,7 +50,7 @@ import java.util.List;
  *
  * @author Mimer Information Technology
  */
-public class MimerTableManagerTest extends DBeaverUnitTest {
+public class MimerTableManagerTest extends ChromiteUnitTest {
 
     private final MimerTableManager manager = new MimerTableManager();
 

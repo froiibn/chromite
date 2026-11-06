@@ -15,9 +15,9 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.model.admin.locks;
+package com.seizia.chromite.model.admin.locks;
 
-import org.jkiss.dbeaver.model.DBPObject;
+import com.seizia.chromite.model.DBPObject;
 
 import java.util.List;
 

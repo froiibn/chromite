@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.tools.transfer.ui.dialog;
+package com.seizia.chromite.tools.transfer.ui.dialog;
 
 import org.eclipse.jface.dialogs.IDialogConstants;
 import org.eclipse.jface.viewers.IStructuredSelection;
@@ -22,9 +22,9 @@ import org.eclipse.jface.wizard.IWizardPage;
 import org.eclipse.swt.graphics.Point;
 import org.eclipse.ui.IWorkbenchWindow;
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.tasks.ui.wizard.TaskConfigurationWizard;
-import org.jkiss.dbeaver.tasks.ui.wizard.TaskConfigurationWizardDialog;
-import org.jkiss.dbeaver.tools.transfer.ui.wizard.DataTransferWizard;
+import com.seizia.chromite.tasks.ui.wizard.TaskConfigurationWizard;
+import com.seizia.chromite.tasks.ui.wizard.TaskConfigurationWizardDialog;
+import com.seizia.chromite.tools.transfer.ui.wizard.DataTransferWizard;
 
 import java.util.Map;
 

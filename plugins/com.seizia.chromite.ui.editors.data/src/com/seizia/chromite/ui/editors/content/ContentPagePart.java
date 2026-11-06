@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.editors.content;
+package com.seizia.chromite.ui.editors.content;
 
 import org.eclipse.core.runtime.IAdaptable;
 import org.eclipse.core.runtime.IProgressMonitor;
@@ -24,9 +24,9 @@ import org.eclipse.ui.*;
 import org.eclipse.ui.part.EditorPart;
 import org.eclipse.ui.part.MultiPageEditorPart;
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.ui.IActiveWorkbenchPart;
-import org.jkiss.dbeaver.ui.IRefreshablePart;
-import org.jkiss.dbeaver.ui.UIUtils;
+import com.seizia.chromite.ui.IActiveWorkbenchPart;
+import com.seizia.chromite.ui.IRefreshablePart;
+import com.seizia.chromite.ui.UIUtils;
 
 /**
  * A part that mimics the underlying editor part but lazily initializes it upon first activation.

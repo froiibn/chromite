@@ -14,18 +14,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.sql.registry;
+package com.seizia.chromite.model.sql.registry;
 
 import org.eclipse.core.runtime.IConfigurationElement;
 import org.eclipse.core.runtime.IExtensionRegistry;
 import org.eclipse.core.runtime.Platform;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.sql.format.SQLFormatter;
-import org.jkiss.dbeaver.model.sql.format.SQLFormatterConfiguration;
-import org.jkiss.dbeaver.model.sql.format.SQLFormatterRegistry;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.sql.format.SQLFormatter;
+import com.seizia.chromite.model.sql.format.SQLFormatterConfiguration;
+import com.seizia.chromite.model.sql.format.SQLFormatterRegistry;
+import com.seizia.chromite.runtime.DBWorkbench;
 
 import java.util.ArrayList;
 import java.util.List;

@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.editors.text;
+package com.seizia.chromite.ui.editors.text;
 
 import org.eclipse.core.resources.ResourcesPlugin;
 import org.eclipse.core.runtime.CoreException;
@@ -34,16 +34,16 @@ import org.eclipse.ui.texteditor.IDocumentProvider;
 import org.eclipse.ui.texteditor.ITextEditorActionConstants;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.ui.ActionUtils;
-import org.jkiss.dbeaver.ui.ICommentsSupport;
-import org.jkiss.dbeaver.ui.ISingleControlEditor;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.dialogs.DialogUtils;
-import org.jkiss.dbeaver.ui.editors.*;
-import org.jkiss.dbeaver.ui.editors.internal.EditorsMessages;
-import org.jkiss.dbeaver.utils.ContentUtils;
-import org.jkiss.dbeaver.utils.GeneralUtils;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.ui.ActionUtils;
+import com.seizia.chromite.ui.ICommentsSupport;
+import com.seizia.chromite.ui.ISingleControlEditor;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.dialogs.DialogUtils;
+import com.seizia.chromite.ui.editors.*;
+import com.seizia.chromite.ui.editors.internal.EditorsMessages;
+import com.seizia.chromite.utils.ContentUtils;
+import com.seizia.chromite.utils.GeneralUtils;
 import org.jkiss.utils.CommonUtils;
 
 import java.io.File;
@@ -57,7 +57,7 @@ import java.util.List;
 
 /**
  * Abstract text editor.
- * Contains some common dbeaver text editor adaptions.
+ * Contains some common chromite text editor adaptions.
  */
 public abstract class BaseTextEditor extends AbstractDecoratedTextEditor implements ISingleControlEditor {
 

@@ -14,10 +14,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.mysql.model.plan;
+package com.seizia.chromite.ext.mysql.model.plan;
 
-import org.jkiss.dbeaver.ext.mysql.model.MySQLDataSource;
-import org.jkiss.dbeaver.model.impl.plan.AbstractExecutionPlan;
+import com.seizia.chromite.ext.mysql.model.MySQLDataSource;
+import com.seizia.chromite.model.impl.plan.AbstractExecutionPlan;
 
 /**
  * MySQL execution plan analyser

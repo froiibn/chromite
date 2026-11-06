@@ -14,17 +14,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.editors.sql.scripts;
+package com.seizia.chromite.ui.editors.sql.scripts;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.model.DBPDataSourceContainer;
-import org.jkiss.dbeaver.model.file.FileTypeAction;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.editors.EditorUtils;
-import org.jkiss.dbeaver.ui.editors.file.AbstractFileHandler;
-import org.jkiss.dbeaver.ui.editors.sql.handlers.SQLNavigatorContext;
+import com.seizia.chromite.model.DBPDataSourceContainer;
+import com.seizia.chromite.model.file.FileTypeAction;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.editors.EditorUtils;
+import com.seizia.chromite.ui.editors.file.AbstractFileHandler;
+import com.seizia.chromite.ui.editors.sql.handlers.SQLNavigatorContext;
 import org.jkiss.utils.IOUtils;
 
 import java.io.File;

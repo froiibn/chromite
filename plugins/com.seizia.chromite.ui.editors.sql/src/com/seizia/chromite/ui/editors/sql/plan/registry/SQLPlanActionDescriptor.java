@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.ui.editors.sql.plan.registry;
+package com.seizia.chromite.ui.editors.sql.plan.registry;
 
 import org.eclipse.core.expressions.Expression;
 import org.eclipse.core.runtime.IConfigurationElement;
@@ -23,10 +23,10 @@ import org.eclipse.ui.IWorkbenchSite;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.model.DBPImage;
-import org.jkiss.dbeaver.model.impl.AbstractContextDescriptor;
-import org.jkiss.dbeaver.model.runtime.DBRRunnableWithParam;
-import org.jkiss.dbeaver.ui.editors.sql.plan.ExplainPlanParameters;
+import com.seizia.chromite.model.DBPImage;
+import com.seizia.chromite.model.impl.AbstractContextDescriptor;
+import com.seizia.chromite.model.runtime.DBRRunnableWithParam;
+import com.seizia.chromite.ui.editors.sql.plan.ExplainPlanParameters;
 
 /**
  * SQLPlanActionDescriptor

@@ -14,13 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.sql;
+package com.seizia.chromite.model.sql;
 
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.model.impl.sql.BasicSQLDialect;
-import org.jkiss.dbeaver.model.sql.parser.QueryReconstructor;
-import org.jkiss.dbeaver.model.sql.parser.SQLSemanticProcessor;
-import org.jkiss.junit.DBeaverUnitTest;
+import com.seizia.chromite.model.impl.sql.BasicSQLDialect;
+import com.seizia.chromite.model.sql.parser.QueryReconstructor;
+import com.seizia.chromite.model.sql.parser.SQLSemanticProcessor;
+import com.seizia.chromite.junit.ChromiteUnitTest;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -29,7 +29,7 @@ import java.util.Arrays;
 /**
  * A small, explicit set of token-diff and comment-recovery scenarios.
  */
-public class QueryReconstructorFocusedTest extends DBeaverUnitTest {
+public class QueryReconstructorFocusedTest extends ChromiteUnitTest {
 
     @Test
     public void unchangedQueryRetainsInternalComments() throws Exception {

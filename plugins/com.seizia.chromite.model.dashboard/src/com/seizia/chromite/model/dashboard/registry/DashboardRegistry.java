@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.dashboard.registry;
+package com.seizia.chromite.model.dashboard.registry;
 
 import org.eclipse.core.runtime.IConfigurationElement;
 import org.eclipse.core.runtime.IExtensionRegistry;
@@ -22,20 +22,20 @@ import org.eclipse.core.runtime.Platform;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.DBPDataSourceContainer;
-import org.jkiss.dbeaver.model.DBPNamedObject;
-import org.jkiss.dbeaver.model.WorkspaceConfigEventManager;
-import org.jkiss.dbeaver.model.connection.DBPDataSourceProviderDescriptor;
-import org.jkiss.dbeaver.model.connection.DBPDriver;
-import org.jkiss.dbeaver.model.dashboard.DBDashboardContext;
-import org.jkiss.dbeaver.model.dashboard.DBDashboardFolder;
-import org.jkiss.dbeaver.model.dashboard.DBDashboardProvider;
-import org.jkiss.dbeaver.model.dashboard.DashboardConstants;
-import org.jkiss.dbeaver.model.rm.RMConstants;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.utils.GeneralUtils;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.DBPDataSourceContainer;
+import com.seizia.chromite.model.DBPNamedObject;
+import com.seizia.chromite.model.WorkspaceConfigEventManager;
+import com.seizia.chromite.model.connection.DBPDataSourceProviderDescriptor;
+import com.seizia.chromite.model.connection.DBPDriver;
+import com.seizia.chromite.model.dashboard.DBDashboardContext;
+import com.seizia.chromite.model.dashboard.DBDashboardFolder;
+import com.seizia.chromite.model.dashboard.DBDashboardProvider;
+import com.seizia.chromite.model.dashboard.DashboardConstants;
+import com.seizia.chromite.model.rm.RMConstants;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.utils.GeneralUtils;
 import org.jkiss.utils.CommonUtils;
 import org.jkiss.utils.xml.XMLBuilder;
 import org.jkiss.utils.xml.XMLUtils;

@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.core;
+package com.seizia.chromite.core;
 
 import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.core.runtime.IStatus;
@@ -40,37 +40,37 @@ import org.eclipse.ui.PartInitException;
 import org.eclipse.ui.PlatformUI;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.DBDatabaseException;
+import com.seizia.chromite.DBDatabaseException;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.*;
-import org.jkiss.dbeaver.model.access.DBAPasswordChangeInfo;
-import org.jkiss.dbeaver.model.connection.DBPAuthInfo;
-import org.jkiss.dbeaver.model.exec.DBCDriverLicenseException;
-import org.jkiss.dbeaver.model.exec.DBExecUtils;
-import org.jkiss.dbeaver.model.navigator.DBNNode;
-import org.jkiss.dbeaver.model.navigator.fs.DBNPathBase;
-import org.jkiss.dbeaver.model.runtime.*;
-import org.jkiss.dbeaver.model.runtime.load.ILoadService;
-import org.jkiss.dbeaver.model.runtime.load.ILoadVisualizer;
-import org.jkiss.dbeaver.model.struct.DBSObject;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.runtime.DBeaverNotifications;
-import org.jkiss.dbeaver.runtime.ui.DBPPlatformUI;
-import org.jkiss.dbeaver.runtime.ui.console.ConsoleUserInterface;
-import org.jkiss.dbeaver.ui.*;
-import org.jkiss.dbeaver.ui.actions.datasource.DataSourceInvalidateHandler;
-import org.jkiss.dbeaver.ui.dialogs.*;
-import org.jkiss.dbeaver.ui.dialogs.connection.PasswordChangeDialog;
-import org.jkiss.dbeaver.ui.dialogs.driver.DriverEditHelpers;
-import org.jkiss.dbeaver.ui.dialogs.exec.ExecutionQueueErrorJob;
-import org.jkiss.dbeaver.ui.internal.UIConnectionMessages;
-import org.jkiss.dbeaver.ui.navigator.actions.NavigatorHandlerObjectOpen;
-import org.jkiss.dbeaver.ui.navigator.dialogs.ObjectBrowserDialog;
-import org.jkiss.dbeaver.ui.notifications.NotificationUtils;
-import org.jkiss.dbeaver.ui.views.process.ProcessPropertyTester;
-import org.jkiss.dbeaver.ui.views.process.ShellProcessView;
-import org.jkiss.dbeaver.utils.GeneralUtils;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.*;
+import com.seizia.chromite.model.access.DBAPasswordChangeInfo;
+import com.seizia.chromite.model.connection.DBPAuthInfo;
+import com.seizia.chromite.model.exec.DBCDriverLicenseException;
+import com.seizia.chromite.model.exec.DBExecUtils;
+import com.seizia.chromite.model.navigator.DBNNode;
+import com.seizia.chromite.model.navigator.fs.DBNPathBase;
+import com.seizia.chromite.model.runtime.*;
+import com.seizia.chromite.model.runtime.load.ILoadService;
+import com.seizia.chromite.model.runtime.load.ILoadVisualizer;
+import com.seizia.chromite.model.struct.DBSObject;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.runtime.ChromiteNotifications;
+import com.seizia.chromite.runtime.ui.DBPPlatformUI;
+import com.seizia.chromite.runtime.ui.console.ConsoleUserInterface;
+import com.seizia.chromite.ui.*;
+import com.seizia.chromite.ui.actions.datasource.DataSourceInvalidateHandler;
+import com.seizia.chromite.ui.dialogs.*;
+import com.seizia.chromite.ui.dialogs.connection.PasswordChangeDialog;
+import com.seizia.chromite.ui.dialogs.driver.DriverEditHelpers;
+import com.seizia.chromite.ui.dialogs.exec.ExecutionQueueErrorJob;
+import com.seizia.chromite.ui.internal.UIConnectionMessages;
+import com.seizia.chromite.ui.navigator.actions.NavigatorHandlerObjectOpen;
+import com.seizia.chromite.ui.navigator.dialogs.ObjectBrowserDialog;
+import com.seizia.chromite.ui.notifications.NotificationUtils;
+import com.seizia.chromite.ui.views.process.ProcessPropertyTester;
+import com.seizia.chromite.ui.views.process.ShellProcessView;
+import com.seizia.chromite.utils.GeneralUtils;
 import org.jkiss.utils.CommonUtils;
 
 import java.util.ArrayList;
@@ -238,7 +238,7 @@ public class DesktopUI extends ConsoleUserInterface {
     @Override
     public void showNotification(@NotNull String title, String message, boolean error, @Nullable Runnable feedback) {
         NotificationUtils.sendNotification(
-            DBeaverNotifications.NT_GENERIC,
+            ChromiteNotifications.NT_GENERIC,
             title,
             message,
             error ? DBPMessageType.ERROR : DBPMessageType.INFORMATION,
@@ -249,7 +249,7 @@ public class DesktopUI extends ConsoleUserInterface {
     @Override
     public void showWarningNotification(@NotNull String title, String message) {
         NotificationUtils.sendNotification(
-            DBeaverNotifications.NT_GENERIC,
+            ChromiteNotifications.NT_GENERIC,
             title,
             message,
             DBPMessageType.WARNING,

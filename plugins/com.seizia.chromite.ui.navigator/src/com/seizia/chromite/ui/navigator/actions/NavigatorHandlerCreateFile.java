@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.navigator.actions;
+package com.seizia.chromite.ui.navigator.actions;
 
 import org.eclipse.core.commands.ExecutionEvent;
 import org.eclipse.core.commands.ExecutionException;
@@ -23,11 +23,11 @@ import org.eclipse.core.resources.IResource;
 import org.eclipse.jface.viewers.ISelection;
 import org.eclipse.jface.viewers.IStructuredSelection;
 import org.eclipse.ui.handlers.HandlerUtil;
-import org.jkiss.dbeaver.model.app.DBPPlatformDesktop;
-import org.jkiss.dbeaver.model.app.DBPResourceCreator;
-import org.jkiss.dbeaver.model.app.DBPWorkspaceDesktop;
-import org.jkiss.dbeaver.model.navigator.DBNResource;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
+import com.seizia.chromite.model.app.DBPPlatformDesktop;
+import com.seizia.chromite.model.app.DBPResourceCreator;
+import com.seizia.chromite.model.app.DBPWorkspaceDesktop;
+import com.seizia.chromite.model.navigator.DBNResource;
+import com.seizia.chromite.runtime.DBWorkbench;
 
 public class NavigatorHandlerCreateFile extends NavigatorHandlerObjectBase {
 

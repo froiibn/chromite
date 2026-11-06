@@ -14,16 +14,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.ai.registry;
+package com.seizia.chromite.model.ai.registry;
 
 import org.eclipse.core.runtime.IConfigurationElement;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.model.DBPImage;
-import org.jkiss.dbeaver.model.ai.AIPromptGenerator;
-import org.jkiss.dbeaver.model.impl.AbstractDescriptor;
-import org.jkiss.dbeaver.registry.RegistryConstants;
+import com.seizia.chromite.model.DBPImage;
+import com.seizia.chromite.model.ai.AIPromptGenerator;
+import com.seizia.chromite.model.impl.AbstractDescriptor;
+import com.seizia.chromite.registry.RegistryConstants;
 import org.jkiss.utils.CommonUtils;
 
 import java.util.List;
@@ -32,7 +32,7 @@ import java.util.stream.Stream;
 
 public class AIPromptGeneratorDescriptor extends AbstractDescriptor {
 
-    public static final String EXTENSION_ID = "com.dbeaver.ai.prompt";
+    public static final String EXTENSION_ID = "com.seizia.chromite.ai.prompt";
 
     private final ObjectType objectType;
     private final String id;

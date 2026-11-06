@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.navigator.actions;
+package com.seizia.chromite.ui.navigator.actions;
 
 import org.eclipse.core.commands.AbstractHandler;
 import org.eclipse.core.commands.ExecutionEvent;
@@ -26,15 +26,15 @@ import org.eclipse.ui.actions.CompoundContributionItem;
 import org.eclipse.ui.commands.IElementUpdater;
 import org.eclipse.ui.menus.CommandContributionItem;
 import org.eclipse.ui.menus.UIElement;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.ui.ActionUtils;
-import org.jkiss.dbeaver.ui.DBeaverIcons;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.navigator.NavigatorCommands;
-import org.jkiss.dbeaver.ui.navigator.NavigatorUtils;
-import org.jkiss.dbeaver.ui.navigator.database.DatabaseNavigatorTree;
-import org.jkiss.dbeaver.ui.navigator.database.DatabaseNavigatorTreeFilter;
-import org.jkiss.dbeaver.ui.navigator.database.DatabaseNavigatorTreeFilterObjectType;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.ui.ActionUtils;
+import com.seizia.chromite.ui.SwtIcons;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.navigator.NavigatorCommands;
+import com.seizia.chromite.ui.navigator.NavigatorUtils;
+import com.seizia.chromite.ui.navigator.database.DatabaseNavigatorTree;
+import com.seizia.chromite.ui.navigator.database.DatabaseNavigatorTreeFilter;
+import com.seizia.chromite.ui.navigator.database.DatabaseNavigatorTreeFilterObjectType;
 import org.jkiss.utils.CommonUtils;
 
 import java.util.ArrayList;
@@ -102,7 +102,7 @@ public class NavigatorHandlerFilterObjectType extends AbstractHandler implements
         );
         if (objectType == null) {
             element.setTooltip(NLS.bind("{0} (click to cycle through)", curObjectType.getDescription()));
-            element.setIcon(DBeaverIcons.getImageDescriptor(curObjectType.getIcon()));
+            element.setIcon(SwtIcons.getImageDescriptor(curObjectType.getIcon()));
         } else {
             element.setText(objectType.getName());
             element.setTooltip(objectType.getDescription());

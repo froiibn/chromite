@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.preferences;
+package com.seizia.chromite.ui.preferences;
 
 import org.eclipse.core.runtime.IAdaptable;
 import org.eclipse.swt.layout.GridData;
@@ -26,20 +26,20 @@ import org.eclipse.ui.IWorkbenchPreferencePage;
 import org.eclipse.ui.IWorkbenchPropertyPage;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.DBeaverPreferences;
-import org.jkiss.dbeaver.core.CoreMessages;
-import org.jkiss.dbeaver.model.preferences.DBPPreferenceStore;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.navigator.NavigatorPreferences;
-import org.jkiss.dbeaver.utils.PrefUtils;
+import com.seizia.chromite.ChromitePreferences;
+import com.seizia.chromite.core.CoreMessages;
+import com.seizia.chromite.model.preferences.DBPPreferenceStore;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.navigator.NavigatorPreferences;
+import com.seizia.chromite.utils.PrefUtils;
 
 /**
  * PrefPageDatabaseEditors
  */
 public class PrefPageDatabaseEditors extends AbstractPrefPage implements IWorkbenchPreferencePage, IWorkbenchPropertyPage
 {
-    public static final String PAGE_ID = "org.jkiss.dbeaver.preferences.editors"; //$NON-NLS-1$
+    public static final String PAGE_ID = "com.seizia.chromite.preferences.editors"; //$NON-NLS-1$
 
     private Button keepEditorsOnRestart;
     private Button keepEditorsOnDisconnect;
@@ -78,14 +78,14 @@ public class PrefPageDatabaseEditors extends AbstractPrefPage implements IWorkbe
             keepEditorsOnRestart = UIUtils.createCheckbox(
                 groupEditors,
                 CoreMessages.pref_page_ui_general_keep_database_editors,
-                store.getBoolean(DBeaverPreferences.UI_KEEP_DATABASE_EDITORS));
+                store.getBoolean(ChromitePreferences.UI_KEEP_DATABASE_EDITORS));
             keepEditorsOnRestart.setToolTipText(CoreMessages.pref_page_ui_general_keep_database_editors_tip);
 
             keepEditorsOnDisconnect = UIUtils.createCheckbox(
                 groupEditors,
                 CoreMessages.pref_page_ui_general_keep_database_editors_on_disconnect,
                 CoreMessages.pref_page_ui_general_keep_database_editors_on_disconnect_tip,
-                store.getBoolean(DBeaverPreferences.UI_KEEP_DATABASE_EDITORS_ON_DISCONNECT),
+                store.getBoolean(ChromitePreferences.UI_KEEP_DATABASE_EDITORS_ON_DISCONNECT),
                 1
             );
 
@@ -93,7 +93,7 @@ public class PrefPageDatabaseEditors extends AbstractPrefPage implements IWorkbe
                 groupEditors,
                 CoreMessages.pref_page_ui_general_disconnect_on_editors_close,
                 CoreMessages.pref_page_ui_general_disconnect_on_editors_close_tip,
-                store.getBoolean(DBeaverPreferences.UI_DISCONNECT_ON_EDITORS_CLOSE),
+                store.getBoolean(ChromitePreferences.UI_DISCONNECT_ON_EDITORS_CLOSE),
                 1
             );
 
@@ -106,7 +106,7 @@ public class PrefPageDatabaseEditors extends AbstractPrefPage implements IWorkbe
             editorFullName = UIUtils.createCheckbox(
                 groupEditors,
                 CoreMessages.pref_page_ui_general_show_full_name_in_editor,
-                store.getBoolean(DBeaverPreferences.NAVIGATOR_EDITOR_FULL_NAME));
+                store.getBoolean(ChromitePreferences.NAVIGATOR_EDITOR_FULL_NAME));
             showPreviewOnSave = UIUtils.createCheckbox(
                 groupEditors,
                 CoreMessages.pref_page_ui_general_show_preview_on_save,
@@ -126,11 +126,11 @@ public class PrefPageDatabaseEditors extends AbstractPrefPage implements IWorkbe
     @Override
     protected void performDefaults() {
         DBPPreferenceStore store = DBWorkbench.getPlatform().getPreferenceStore();
-        keepEditorsOnRestart.setSelection(store.getDefaultBoolean(DBeaverPreferences.UI_KEEP_DATABASE_EDITORS));
-        keepEditorsOnDisconnect.setSelection(store.getDefaultBoolean(DBeaverPreferences.UI_KEEP_DATABASE_EDITORS_ON_DISCONNECT));
-        disconnectOnEditorsClose.setSelection(store.getDefaultBoolean(DBeaverPreferences.UI_DISCONNECT_ON_EDITORS_CLOSE));
+        keepEditorsOnRestart.setSelection(store.getDefaultBoolean(ChromitePreferences.UI_KEEP_DATABASE_EDITORS));
+        keepEditorsOnDisconnect.setSelection(store.getDefaultBoolean(ChromitePreferences.UI_KEEP_DATABASE_EDITORS_ON_DISCONNECT));
+        disconnectOnEditorsClose.setSelection(store.getDefaultBoolean(ChromitePreferences.UI_DISCONNECT_ON_EDITORS_CLOSE));
         refreshEditorOnOpen.setSelection(store.getDefaultBoolean(NavigatorPreferences.NAVIGATOR_REFRESH_EDITORS_ON_OPEN));
-        editorFullName.setSelection(store.getDefaultBoolean(DBeaverPreferences.NAVIGATOR_EDITOR_FULL_NAME));
+        editorFullName.setSelection(store.getDefaultBoolean(ChromitePreferences.NAVIGATOR_EDITOR_FULL_NAME));
         showPreviewOnSave.setSelection(store.getDefaultBoolean(NavigatorPreferences.NAVIGATOR_SHOW_SQL_PREVIEW));
         syncEditorDataSourceWithNavigator.setSelection(store.getDefaultBoolean(NavigatorPreferences.NAVIGATOR_SYNC_EDITOR_DATASOURCE));
     }
@@ -140,11 +140,11 @@ public class PrefPageDatabaseEditors extends AbstractPrefPage implements IWorkbe
     {
         DBPPreferenceStore store = DBWorkbench.getPlatform().getPreferenceStore();
 
-        store.setValue(DBeaverPreferences.UI_KEEP_DATABASE_EDITORS, keepEditorsOnRestart.getSelection());
-        store.setValue(DBeaverPreferences.UI_KEEP_DATABASE_EDITORS_ON_DISCONNECT, keepEditorsOnDisconnect.getSelection());
-        store.setValue(DBeaverPreferences.UI_DISCONNECT_ON_EDITORS_CLOSE, disconnectOnEditorsClose.getSelection());
+        store.setValue(ChromitePreferences.UI_KEEP_DATABASE_EDITORS, keepEditorsOnRestart.getSelection());
+        store.setValue(ChromitePreferences.UI_KEEP_DATABASE_EDITORS_ON_DISCONNECT, keepEditorsOnDisconnect.getSelection());
+        store.setValue(ChromitePreferences.UI_DISCONNECT_ON_EDITORS_CLOSE, disconnectOnEditorsClose.getSelection());
         store.setValue(NavigatorPreferences.NAVIGATOR_REFRESH_EDITORS_ON_OPEN, refreshEditorOnOpen.getSelection());
-        store.setValue(DBeaverPreferences.NAVIGATOR_EDITOR_FULL_NAME, editorFullName.getSelection());
+        store.setValue(ChromitePreferences.NAVIGATOR_EDITOR_FULL_NAME, editorFullName.getSelection());
         store.setValue(NavigatorPreferences.NAVIGATOR_SHOW_SQL_PREVIEW, showPreviewOnSave.getSelection());
         store.setValue(NavigatorPreferences.NAVIGATOR_SYNC_EDITOR_DATASOURCE, syncEditorDataSourceWithNavigator.getSelection());
 

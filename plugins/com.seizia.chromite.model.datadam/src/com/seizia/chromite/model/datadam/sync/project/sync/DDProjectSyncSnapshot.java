@@ -14,12 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.datadam.sync.project.sync;
+package com.seizia.chromite.model.datadam.sync.project.sync;
 
 import com.dbeaver.datadam.share.api.model.DDSharedProjectRevision;
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.model.datadam.sync.DDSyncChange;
-import org.jkiss.dbeaver.model.datadam.sync.core.PreparedFiles;
+import com.seizia.chromite.model.datadam.sync.DDSyncChange;
+import com.seizia.chromite.model.datadam.sync.core.PreparedFiles;
 
 /**
  * Consistent local and server state used by a project synchronization operation. Used to avoid recalculating fingerprints, since it's an expensive operation.

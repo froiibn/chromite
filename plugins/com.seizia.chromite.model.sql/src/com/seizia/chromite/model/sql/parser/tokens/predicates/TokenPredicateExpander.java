@@ -14,12 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.sql.parser.tokens.predicates;
+package com.seizia.chromite.model.sql.parser.tokens.predicates;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.model.sql.parser.TokenEntry;
-import org.jkiss.dbeaver.utils.ListNode;
+import com.seizia.chromite.model.sql.parser.TokenEntry;
+import com.seizia.chromite.utils.ListNode;
 
 import java.util.Collections;
 import java.util.List;

@@ -14,10 +14,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.impl.app;
+package com.seizia.chromite.model.impl.app;
 
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.utils.RuntimeUtils;
+import com.seizia.chromite.utils.RuntimeUtils;
 
 import java.nio.file.Path;
 
@@ -25,7 +25,7 @@ import java.nio.file.Path;
  * Base application implementation
  */
 public abstract class BaseApplicationImpl extends AbstractApplication {
-    public static final String DBEAVER_DATA_DIR = "DBeaverData";
+    public static final String CHROMITE_DATA_DIR = "ChromiteData";
     public static final String DEFAULT_WORKSPACE_FOLDER = "workspace6";
     public static final String SECURE_DATA_FOLDER = "secure";
 
@@ -35,7 +35,7 @@ public abstract class BaseApplicationImpl extends AbstractApplication {
     private Path workspacePath;
 
     protected BaseApplicationImpl() {
-        this(DBEAVER_DATA_DIR, DEFAULT_WORKSPACE_FOLDER);
+        this(CHROMITE_DATA_DIR, DEFAULT_WORKSPACE_FOLDER);
     }
 
     protected BaseApplicationImpl(

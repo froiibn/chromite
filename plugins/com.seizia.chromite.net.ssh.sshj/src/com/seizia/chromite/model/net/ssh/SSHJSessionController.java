@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.net.ssh;
+package com.seizia.chromite.model.net.ssh;
 
 import com.jcraft.jsch.Identity;
 import net.schmizz.sshj.SSHClient;
@@ -27,11 +27,11 @@ import net.schmizz.sshj.userauth.password.PasswordUtils;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.model.net.DBWHandlerConfiguration;
-import org.jkiss.dbeaver.model.net.ssh.config.SSHAuthConfiguration;
-import org.jkiss.dbeaver.model.net.ssh.config.SSHHostConfiguration;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
+import com.seizia.chromite.model.net.DBWHandlerConfiguration;
+import com.seizia.chromite.model.net.ssh.config.SSHAuthConfiguration;
+import com.seizia.chromite.model.net.ssh.config.SSHHostConfiguration;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.runtime.DBWorkbench;
 import org.jkiss.utils.CommonUtils;
 import org.slf4j.Logger;
 import org.slf4j.helpers.NOPLogger;
@@ -112,7 +112,7 @@ public class SSHJSessionController extends AbstractSessionController<SSHJSession
             final List<AuthMethod> methods = new ArrayList<>();
             try {
                 for (Object identity : createAgentIdentityRepository(authSockPath).getIdentities()) {
-                    methods.add(new DBeaverAuthAgent((Identity) identity));
+                    methods.add(new ChromiteAuthAgent((Identity) identity));
                 }
                 client.auth(host.username(), methods);
             } catch (Throwable e) {

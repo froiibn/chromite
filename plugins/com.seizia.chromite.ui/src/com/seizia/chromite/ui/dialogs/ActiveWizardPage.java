@@ -15,13 +15,13 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.ui.dialogs;
+package com.seizia.chromite.ui.dialogs;
 
 import org.eclipse.jface.wizard.IWizard;
 import org.eclipse.jface.wizard.IWizardContainer;
 import org.eclipse.jface.wizard.IWizardPage;
 import org.eclipse.jface.wizard.WizardPage;
-import org.jkiss.dbeaver.ui.ICompositeDialogPageContainer;
+import com.seizia.chromite.ui.ICompositeDialogPageContainer;
 
 /**
  * ActiveWizardPage

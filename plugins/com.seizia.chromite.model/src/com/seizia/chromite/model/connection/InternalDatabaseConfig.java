@@ -14,11 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.connection;
+package com.seizia.chromite.model.connection;
 
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.utils.GeneralUtils;
-import org.jkiss.dbeaver.utils.SystemVariablesResolver;
+import com.seizia.chromite.utils.GeneralUtils;
+import com.seizia.chromite.utils.SystemVariablesResolver;
 
 public interface InternalDatabaseConfig {
 

@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.editors.text;
+package com.seizia.chromite.ui.editors.text;
 
 
 import org.eclipse.core.runtime.IProgressMonitor;
@@ -27,9 +27,9 @@ import org.eclipse.ui.progress.UIJob;
 import org.eclipse.ui.texteditor.ITextEditor;
 import org.eclipse.ui.texteditor.rulers.IContributedRulerColumn;
 import org.eclipse.ui.texteditor.rulers.RulerColumnDescriptor;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.ui.DBeaverIcons;
-import org.jkiss.dbeaver.ui.UIIcon;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.ui.SwtIcons;
+import com.seizia.chromite.ui.UIIcon;
 import org.jkiss.utils.ArrayUtils;
 
 import java.util.Arrays;
@@ -39,7 +39,7 @@ import java.util.Arrays;
  */
 public class ScriptPositionColumn extends AbstractRulerColumn implements IContributedRulerColumn {
 
-    public static final String ID = "org.jkiss.dbeaver.ui.editors.columns.script.position"; //$NON-NLS-1$
+    public static final String ID = "com.seizia.chromite.ui.editors.columns.script.position"; //$NON-NLS-1$
 
     private RulerColumnDescriptor descriptor;
     private ITextEditor editor;
@@ -118,7 +118,7 @@ public class ScriptPositionColumn extends AbstractRulerColumn implements IContri
         gc.setBackground(computeBackground(modelLine));
         gc.fillRectangle(0, linePixel, getWidth(), lineHeight);
         if (ArrayUtils.contains(currentLines, modelLine)) {
-            gc.drawImage(DBeaverIcons.getImage(UIIcon.RULER_POSITION), 0, linePixel);
+            gc.drawImage(SwtIcons.getImage(UIIcon.RULER_POSITION), 0, linePixel);
         }
     }
 
@@ -140,7 +140,7 @@ public class ScriptPositionColumn extends AbstractRulerColumn implements IContri
             gc.setBackground(computeBackground(modelLine));
             gc.fillRectangle(0, linePixel, getWidth(), lineHeight);
             if (ArrayUtils.contains(currentLines, modelLine)) {
-                gc.drawImage(DBeaverIcons.getImage(UIIcon.RULER_POSITION), 0, linePixel);
+                gc.drawImage(SwtIcons.getImage(UIIcon.RULER_POSITION), 0, linePixel);
             }
         }
     }

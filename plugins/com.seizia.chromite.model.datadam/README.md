@@ -6,7 +6,7 @@ Imported project encryption keys are not prerequisites for the remote DAM sessio
 
 ## Remote DAM session lifecycle
 
-- Initialize the session service through the model plugin's `org.jkiss.dbeaver.pluginService` contribution.
+- Initialize the session service through the model plugin's `com.seizia.chromite.pluginService` contribution.
 - Open the channel only while the existing authorization service reports `SIGNED_IN`, after login or session restoration.
   Initialization while signed out only registers observers; it does not open a socket or restore credentials.
 - Request the current access token before every socket attempt.

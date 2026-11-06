@@ -14,12 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.firebird.model;
+package com.seizia.chromite.ext.firebird.model;
 
-import org.jkiss.dbeaver.ext.firebird.FireBirdUtils;
-import org.jkiss.dbeaver.ext.generic.model.GenericStructContainer;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.junit.DBeaverUnitTest;
+import com.seizia.chromite.ext.firebird.FireBirdUtils;
+import com.seizia.chromite.ext.generic.model.GenericStructContainer;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.junit.ChromiteUnitTest;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
@@ -27,7 +27,7 @@ import org.mockito.Mockito;
 import java.util.ArrayList;
 import java.util.List;
 
-public class FireBirdTriggerTypeTest extends DBeaverUnitTest {
+public class FireBirdTriggerTypeTest extends ChromiteUnitTest {
 
     private static final String[] PHASES = {"BEFORE", "AFTER"};
     private static final String[] ACTIONS = {null, "INSERT", "UPDATE", "DELETE"};

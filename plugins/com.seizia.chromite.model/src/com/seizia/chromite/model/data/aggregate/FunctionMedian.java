@@ -14,9 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.data.aggregate;
+package com.seizia.chromite.model.data.aggregate;
 
-import org.jkiss.dbeaver.Log;
+import com.seizia.chromite.Log;
 
 import java.util.ArrayList;
 import java.util.List;

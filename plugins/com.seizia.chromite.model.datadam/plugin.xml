@@ -5,27 +5,27 @@
     <extension-point id="desktopRpcService" name="Desktop DataDam RPC service"/>
     <extension-point id="desktopMcpFunction" name="Desktop DataDam MCP function"/>
 
-    <extension point="org.jkiss.dbeaver.model.datadam.desktopMcpFunction">
+    <extension point="com.seizia.chromite.model.datadam.desktopMcpFunction">
         <function
             id="listDatasources"
             name="List datasources"
             description="Lists database connections allowed for DataDam MCP calls. requires_manual_connection is an advisory hint that authentication may be needed if a database call fails; calls can still be attempted."
-            class="org.jkiss.dbeaver.model.datadam.mcp.function.DDMcpListDatasourcesFunction"/>
+            class="com.seizia.chromite.model.datadam.mcp.function.DDMcpListDatasourcesFunction"/>
     </extension>
 
-    <extension point="org.jkiss.dbeaver.model.datadam.desktopRpcService">
-        <service class="org.jkiss.dbeaver.model.datadam.mcp.DDMcpDesktopRpcRegistration"/>
+    <extension point="com.seizia.chromite.model.datadam.desktopRpcService">
+        <service class="com.seizia.chromite.model.datadam.mcp.DDMcpDesktopRpcRegistration"/>
     </extension>
 
-    <extension point="org.jkiss.dbeaver.pluginService">
-        <service class="org.jkiss.dbeaver.model.datadam.rpc.DDRemoteDamDesktopSessionPluginService"/>
+    <extension point="com.seizia.chromite.pluginService">
+        <service class="com.seizia.chromite.model.datadam.rpc.DDRemoteDamDesktopSessionPluginService"/>
     </extension>
 
-    <extension point="com.dbeaver.ai.engine">
+    <extension point="com.seizia.chromite.ai.engine">
         <completionEngine
             id="datadam" label="DataDam AI"
-            class="org.jkiss.dbeaver.model.datadam.ai.DDAIEngine"
+            class="com.seizia.chromite.model.datadam.ai.DDAIEngine"
             supportsFunctions="true"
-            properties="org.jkiss.dbeaver.model.datadam.ai.DDAIEngineProperties"/>
+            properties="com.seizia.chromite.model.datadam.ai.DDAIEngineProperties"/>
     </extension>
 </plugin>

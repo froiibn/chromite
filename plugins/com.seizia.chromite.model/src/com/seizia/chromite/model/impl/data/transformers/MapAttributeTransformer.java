@@ -14,17 +14,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.impl.data.transformers;
+package com.seizia.chromite.model.impl.data.transformers;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.ModelPreferences;
-import org.jkiss.dbeaver.model.DBPDataKind;
-import org.jkiss.dbeaver.model.DBUtils;
-import org.jkiss.dbeaver.model.data.*;
-import org.jkiss.dbeaver.model.exec.DBCSession;
-import org.jkiss.dbeaver.model.struct.DBSAttributeBase;
+import com.seizia.chromite.ModelPreferences;
+import com.seizia.chromite.model.DBPDataKind;
+import com.seizia.chromite.model.DBUtils;
+import com.seizia.chromite.model.data.*;
+import com.seizia.chromite.model.exec.DBCSession;
+import com.seizia.chromite.model.struct.DBSAttributeBase;
 import org.jkiss.utils.CommonUtils;
 import org.jkiss.utils.Pair;
 

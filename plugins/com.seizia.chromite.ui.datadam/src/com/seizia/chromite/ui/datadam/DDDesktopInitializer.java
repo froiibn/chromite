@@ -14,20 +14,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.datadam;
+package com.seizia.chromite.ui.datadam;
 
 import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.Status;
 import org.eclipse.ui.application.IWorkbenchWindowConfigurer;
 import org.jkiss.code.NotNull;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.datadam.DDProductConfig;
-import org.jkiss.dbeaver.model.runtime.AbstractJob;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.ui.IWorkbenchWindowInitializer;
-import org.jkiss.dbeaver.ui.datadam.internal.DDUIMessages;
-import org.jkiss.dbeaver.ui.datadam.project.DDProjectUIManager;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.datadam.DDProductConfig;
+import com.seizia.chromite.model.runtime.AbstractJob;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.ui.IWorkbenchWindowInitializer;
+import com.seizia.chromite.ui.datadam.internal.DDUIMessages;
+import com.seizia.chromite.ui.datadam.project.DDProjectUIManager;
 
 import java.util.concurrent.atomic.AtomicBoolean;
 

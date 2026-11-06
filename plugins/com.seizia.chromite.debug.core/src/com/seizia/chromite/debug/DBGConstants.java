@@ -14,13 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.debug;
+package com.seizia.chromite.debug;
 
-import org.jkiss.dbeaver.runtime.DBMarkers;
+import com.seizia.chromite.runtime.DBMarkers;
 
 public class DBGConstants {
 
-    public static final String BUNDLE_SYMBOLIC_NAME = "org.jkiss.dbeaver.debug.core"; //$NON-NLS-1$
+    public static final String BUNDLE_SYMBOLIC_NAME = "com.seizia.chromite.debug.core"; //$NON-NLS-1$
 
     public static final String ATTR_PROJECT_NAME = BUNDLE_SYMBOLIC_NAME +  ".ATTR_PROJECT_NAME"; //$NON-NLS-1$
     public static final String ATTR_DATASOURCE_ID = BUNDLE_SYMBOLIC_NAME +  ".ATTR_DATASOURCE_ID"; //$NON-NLS-1$

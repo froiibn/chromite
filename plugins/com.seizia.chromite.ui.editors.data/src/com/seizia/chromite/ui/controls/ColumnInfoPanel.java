@@ -14,26 +14,26 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.controls;
+package com.seizia.chromite.ui.controls;
 
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.layout.FillLayout;
 import org.eclipse.swt.widgets.Composite;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.model.DBConstants;
-import org.jkiss.dbeaver.model.DBPNamedObject;
-import org.jkiss.dbeaver.model.DBPObject;
-import org.jkiss.dbeaver.model.DBUtils;
-import org.jkiss.dbeaver.model.data.DBDAttributeBinding;
-import org.jkiss.dbeaver.model.data.DBDRowIdentifier;
-import org.jkiss.dbeaver.model.meta.Property;
-import org.jkiss.dbeaver.runtime.properties.PropertyCollector;
-import org.jkiss.dbeaver.ui.data.IAttributeController;
-import org.jkiss.dbeaver.ui.data.IRowController;
-import org.jkiss.dbeaver.ui.data.IValueController;
-import org.jkiss.dbeaver.ui.editors.data.internal.DataEditorsMessages;
-import org.jkiss.dbeaver.ui.properties.PropertyTreeViewer;
+import com.seizia.chromite.model.DBConstants;
+import com.seizia.chromite.model.DBPNamedObject;
+import com.seizia.chromite.model.DBPObject;
+import com.seizia.chromite.model.DBUtils;
+import com.seizia.chromite.model.data.DBDAttributeBinding;
+import com.seizia.chromite.model.data.DBDRowIdentifier;
+import com.seizia.chromite.model.meta.Property;
+import com.seizia.chromite.runtime.properties.PropertyCollector;
+import com.seizia.chromite.ui.data.IAttributeController;
+import com.seizia.chromite.ui.data.IRowController;
+import com.seizia.chromite.ui.data.IValueController;
+import com.seizia.chromite.ui.editors.data.internal.DataEditorsMessages;
+import com.seizia.chromite.ui.properties.PropertyTreeViewer;
 
 import java.util.ArrayList;
 import java.util.List;

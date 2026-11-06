@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.model.cli;
+package com.seizia.chromite.model.cli;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.utils.rest.RequestMapping;
@@ -25,7 +25,7 @@ import org.jkiss.utils.rest.RequestParameter;
  * DBeaver instance controller.
  */
 public interface ApplicationInstanceController {
-    String CONFIG_PROP_FILE = "dbeaver-instance.properties";
+    String CONFIG_PROP_FILE = "chromite-instance.properties";
 
     @NotNull
     @RequestMapping(value = "handleCommandLine")

@@ -14,12 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.impl.app;
+package com.seizia.chromite.model.impl.app;
 
 import org.eclipse.core.runtime.Platform;
 import org.eclipse.core.runtime.preferences.InstanceScope;
-import org.jkiss.dbeaver.ModelPreferences;
-import org.jkiss.junit.DBeaverUnitTest;
+import com.seizia.chromite.ModelPreferences;
+import com.seizia.chromite.junit.ChromiteUnitTest;
 import org.junit.jupiter.api.Test;
 
 import java.io.ByteArrayOutputStream;
@@ -29,7 +29,7 @@ import java.util.UUID;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-public class LocalSecretControllerTest extends DBeaverUnitTest {
+public class LocalSecretControllerTest extends ChromiteUnitTest {
 
     @Test
     public void testDiagnosticPreferenceExportExcludesLocalSecrets() throws Exception {

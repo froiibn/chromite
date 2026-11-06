@@ -14,19 +14,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.navigator.database.load;
+package com.seizia.chromite.ui.navigator.database.load;
 
 import org.eclipse.jface.action.Action;
 import org.eclipse.jface.action.MenuManager;
 import org.eclipse.jface.viewers.IToolTipProvider;
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.model.navigator.DBNDatabaseNode;
-import org.jkiss.dbeaver.model.navigator.DBNNode;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.ui.internal.UINavigatorMessages;
-import org.jkiss.dbeaver.ui.navigator.UIServiceFilterConfig;
-import org.jkiss.dbeaver.ui.navigator.actions.NavigatorHandlerFilterConfig;
-import org.jkiss.dbeaver.ui.navigator.database.DatabaseNavigatorTree;
+import com.seizia.chromite.model.navigator.DBNDatabaseNode;
+import com.seizia.chromite.model.navigator.DBNNode;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.ui.internal.UINavigatorMessages;
+import com.seizia.chromite.ui.navigator.UIServiceFilterConfig;
+import com.seizia.chromite.ui.navigator.actions.NavigatorHandlerFilterConfig;
+import com.seizia.chromite.ui.navigator.database.DatabaseNavigatorTree;
 
 /**
  * A special node shown when a filter is applied to a parent node

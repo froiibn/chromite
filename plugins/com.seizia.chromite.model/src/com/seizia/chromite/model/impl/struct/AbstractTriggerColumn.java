@@ -14,13 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.impl.struct;
+package com.seizia.chromite.model.impl.struct;
 
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.model.DBPImage;
-import org.jkiss.dbeaver.model.DBPImageProvider;
-import org.jkiss.dbeaver.model.DBValueFormatting;
-import org.jkiss.dbeaver.model.struct.rdb.DBSTriggerColumn;
+import com.seizia.chromite.model.DBPImage;
+import com.seizia.chromite.model.DBPImageProvider;
+import com.seizia.chromite.model.DBValueFormatting;
+import com.seizia.chromite.model.struct.rdb.DBSTriggerColumn;
 
 /**
  * AbstractTriggerColumn

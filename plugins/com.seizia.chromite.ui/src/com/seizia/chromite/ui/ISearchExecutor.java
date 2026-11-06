@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.ui;
+package com.seizia.chromite.ui;
 
 /**
  * ISearchExecutor

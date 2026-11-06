@@ -14,22 +14,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.sql.semantics.model.statements;
+package com.seizia.chromite.model.sql.semantics.model.statements;
 
 import org.antlr.v4.runtime.Token;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.model.lsm.sql.impl.syntax.SQLStandardLexer;
-import org.jkiss.dbeaver.model.lsm.sql.impl.syntax.SQLStandardParser;
-import org.jkiss.dbeaver.model.sql.SQLDialectFeatures;
-import org.jkiss.dbeaver.model.sql.semantics.*;
-import org.jkiss.dbeaver.model.sql.semantics.context.*;
-import org.jkiss.dbeaver.model.sql.semantics.model.SQLQueryModelContent;
-import org.jkiss.dbeaver.model.sql.semantics.model.SQLQueryNodeModelVisitor;
-import org.jkiss.dbeaver.model.sql.semantics.model.ddl.SQLQueryColumnSpec;
-import org.jkiss.dbeaver.model.sql.semantics.model.select.SQLQueryRowsLocalTableModel;
-import org.jkiss.dbeaver.model.stm.STMKnownRuleNames;
-import org.jkiss.dbeaver.model.stm.STMTreeNode;
+import com.seizia.chromite.model.lsm.sql.impl.syntax.SQLStandardLexer;
+import com.seizia.chromite.model.lsm.sql.impl.syntax.SQLStandardParser;
+import com.seizia.chromite.model.sql.SQLDialectFeatures;
+import com.seizia.chromite.model.sql.semantics.*;
+import com.seizia.chromite.model.sql.semantics.context.*;
+import com.seizia.chromite.model.sql.semantics.model.SQLQueryModelContent;
+import com.seizia.chromite.model.sql.semantics.model.SQLQueryNodeModelVisitor;
+import com.seizia.chromite.model.sql.semantics.model.ddl.SQLQueryColumnSpec;
+import com.seizia.chromite.model.sql.semantics.model.select.SQLQueryRowsLocalTableModel;
+import com.seizia.chromite.model.stm.STMKnownRuleNames;
+import com.seizia.chromite.model.stm.STMTreeNode;
 
 import java.util.ArrayList;
 import java.util.List;

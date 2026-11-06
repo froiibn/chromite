@@ -14,12 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.generic.model.meta;
+package com.seizia.chromite.ext.generic.model.meta;
 
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.model.exec.jdbc.JDBCResultSet;
-import org.jkiss.dbeaver.model.struct.rdb.DBSForeignKeyDeferability;
-import org.jkiss.dbeaver.model.struct.rdb.DBSForeignKeyModifyRule;
+import com.seizia.chromite.model.exec.jdbc.JDBCResultSet;
+import com.seizia.chromite.model.struct.rdb.DBSForeignKeyDeferability;
+import com.seizia.chromite.model.struct.rdb.DBSForeignKeyModifyRule;
 
 public interface GenericMetaModelForeignKeyFetcher {
 

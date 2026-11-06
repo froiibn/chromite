@@ -14,17 +14,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.lsm.sql.dialect;
+package com.seizia.chromite.model.lsm.sql.dialect;
 
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.IConfigurationElement;
 import org.eclipse.core.runtime.IExtensionRegistry;
 import org.eclipse.core.runtime.Platform;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.impl.AbstractDescriptor;
-import org.jkiss.dbeaver.model.lsm.LSMAnalyzer;
-import org.jkiss.dbeaver.model.lsm.LSMAnalyzerFactory;
-import org.jkiss.dbeaver.model.sql.SQLDialect;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.impl.AbstractDescriptor;
+import com.seizia.chromite.model.lsm.LSMAnalyzer;
+import com.seizia.chromite.model.lsm.LSMAnalyzerFactory;
+import com.seizia.chromite.model.sql.SQLDialect;
 import org.osgi.framework.Bundle;
 
 import java.util.HashMap;
@@ -34,7 +34,7 @@ import java.util.stream.Stream;
 
 public class LSMDialectRegistry {
     
-    static final String EXTENSION_ID = "org.jkiss.dbeaver.lsm.dialectSyntax"; //$NON-NLS-1$
+    static final String EXTENSION_ID = "com.seizia.chromite.lsm.dialectSyntax"; //$NON-NLS-1$
     
     private static final Log log = Log.getLog(LSMDialectRegistry.class);
 

@@ -15,11 +15,11 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.tools.transfer.serialize;
+package com.seizia.chromite.tools.transfer.serialize;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.model.runtime.DBRRunnableContext;
+import com.seizia.chromite.model.runtime.DBRRunnableContext;
 
 import java.util.Map;
 

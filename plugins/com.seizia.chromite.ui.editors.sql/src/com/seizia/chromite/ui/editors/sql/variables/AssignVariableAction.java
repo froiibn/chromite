@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.editors.sql.variables;
+package com.seizia.chromite.ui.editors.sql.variables;
 
 import org.eclipse.jface.action.Action;
 import org.eclipse.jface.dialogs.IDialogConstants;
@@ -26,19 +26,19 @@ import org.eclipse.swt.widgets.Button;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.ui.PartInitException;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.exec.DBCExecutionContext;
-import org.jkiss.dbeaver.model.sql.SQLDialect;
-import org.jkiss.dbeaver.model.sql.commands.SQLCommandSet;
-import org.jkiss.dbeaver.model.sql.parser.rules.ScriptParameterRule;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.dialogs.EnterNameDialog;
-import org.jkiss.dbeaver.ui.editors.StringEditorInput;
-import org.jkiss.dbeaver.ui.editors.SubEditorSite;
-import org.jkiss.dbeaver.ui.editors.sql.SQLEditor;
-import org.jkiss.dbeaver.ui.editors.sql.SQLEditorBase;
-import org.jkiss.dbeaver.ui.editors.sql.internal.SQLEditorMessages;
-import org.jkiss.dbeaver.utils.GeneralUtils;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.exec.DBCExecutionContext;
+import com.seizia.chromite.model.sql.SQLDialect;
+import com.seizia.chromite.model.sql.commands.SQLCommandSet;
+import com.seizia.chromite.model.sql.parser.rules.ScriptParameterRule;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.dialogs.EnterNameDialog;
+import com.seizia.chromite.ui.editors.StringEditorInput;
+import com.seizia.chromite.ui.editors.SubEditorSite;
+import com.seizia.chromite.ui.editors.sql.SQLEditor;
+import com.seizia.chromite.ui.editors.sql.SQLEditorBase;
+import com.seizia.chromite.ui.editors.sql.internal.SQLEditorMessages;
+import com.seizia.chromite.utils.GeneralUtils;
 
 public class AssignVariableAction extends Action {
     static protected final Log log = Log.getLog(AssignVariableAction.class);

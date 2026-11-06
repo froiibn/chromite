@@ -15,9 +15,9 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.model.ai;
+package com.seizia.chromite.model.ai;
 
-import org.jkiss.dbeaver.model.ai.internal.AIMessages;
+import com.seizia.chromite.model.ai.internal.AIMessages;
 
 /**
  * Completion scope

@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.editors.sql.semantics;
+package com.seizia.chromite.ui.editors.sql.semantics;
 
 import org.eclipse.jface.text.BadLocationException;
 import org.eclipse.jface.text.IDocument;
@@ -26,14 +26,14 @@ import org.eclipse.swt.graphics.Image;
 import org.eclipse.swt.graphics.Point;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.DBPImage;
-import org.jkiss.dbeaver.model.sql.semantics.completion.SQLQueryCompletionItemKind;
-import org.jkiss.dbeaver.model.sql.semantics.completion.SQLQueryCompletionProposal;
-import org.jkiss.dbeaver.model.sql.semantics.completion.SQLQueryWordEntry;
-import org.jkiss.dbeaver.model.struct.DBSObject;
-import org.jkiss.dbeaver.ui.DBeaverIcons;
-import org.jkiss.dbeaver.ui.editors.sql.dialogs.SuggestionInformationControlCreator;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.DBPImage;
+import com.seizia.chromite.model.sql.semantics.completion.SQLQueryCompletionItemKind;
+import com.seizia.chromite.model.sql.semantics.completion.SQLQueryCompletionProposal;
+import com.seizia.chromite.model.sql.semantics.completion.SQLQueryWordEntry;
+import com.seizia.chromite.model.struct.DBSObject;
+import com.seizia.chromite.ui.SwtIcons;
+import com.seizia.chromite.ui.editors.sql.dialogs.SuggestionInformationControlCreator;
 import org.jkiss.utils.CommonUtils;
 
 public class SQLEditorQueryCompletionProposal extends SQLQueryCompletionProposal
@@ -95,7 +95,7 @@ public class SQLEditorQueryCompletionProposal extends SQLQueryCompletionProposal
             ? null
             : this.cachedSwtImage != null
                 ? this.cachedSwtImage
-                : (this.cachedSwtImage = DBeaverIcons.getImage(this.image));
+                : (this.cachedSwtImage = SwtIcons.getImage(this.image));
     }
 
     @Override

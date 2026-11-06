@@ -15,12 +15,12 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.ui.controls.resultset;
+package com.seizia.chromite.ui.controls.resultset;
 
 import org.eclipse.jface.viewers.SelectionChangedEvent;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.model.impl.local.StatResultSet;
+import com.seizia.chromite.model.impl.local.StatResultSet;
 
 /**
  * Result set provider

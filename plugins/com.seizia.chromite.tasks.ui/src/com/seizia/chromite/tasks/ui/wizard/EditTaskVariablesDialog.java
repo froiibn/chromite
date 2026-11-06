@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.tasks.ui.wizard;
+package com.seizia.chromite.tasks.ui.wizard;
 
 import org.eclipse.jface.dialogs.IDialogSettings;
 import org.eclipse.jface.dialogs.StatusDialog;
@@ -25,16 +25,16 @@ import org.eclipse.swt.graphics.Image;
 import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.widgets.*;
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.model.impl.sql.BasicSQLDialect;
-import org.jkiss.dbeaver.model.sql.commands.SQLCommandSet;
-import org.jkiss.dbeaver.model.task.DBTTask;
-import org.jkiss.dbeaver.tasks.ui.internal.TaskUIMessages;
-import org.jkiss.dbeaver.ui.DBeaverIcons;
-import org.jkiss.dbeaver.ui.UIIcon;
-import org.jkiss.dbeaver.ui.UIStyles;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.controls.AdvancedTextCellEditor;
-import org.jkiss.dbeaver.ui.controls.TreeContentProvider;
+import com.seizia.chromite.model.impl.sql.BasicSQLDialect;
+import com.seizia.chromite.model.sql.commands.SQLCommandSet;
+import com.seizia.chromite.model.task.DBTTask;
+import com.seizia.chromite.tasks.ui.internal.TaskUIMessages;
+import com.seizia.chromite.ui.SwtIcons;
+import com.seizia.chromite.ui.UIIcon;
+import com.seizia.chromite.ui.UIStyles;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.controls.AdvancedTextCellEditor;
+import com.seizia.chromite.ui.controls.TreeContentProvider;
 import org.jkiss.utils.CommonUtils;
 
 import java.util.ArrayList;
@@ -125,7 +125,7 @@ public class EditTaskVariablesDialog extends StatusDialog {
             @Override
             public Image getImage(Object element) {
                 if (element instanceof TaskVariableList list && list.task.getType().getIcon() != null) {
-                    return DBeaverIcons.getImage(list.task.getType().getIcon());
+                    return SwtIcons.getImage(list.task.getType().getIcon());
                 }
                 return null;
             }

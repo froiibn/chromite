@@ -14,10 +14,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.sql.completion;
+package com.seizia.chromite.model.sql.completion;
 
-import org.jkiss.dbeaver.model.DBPImage;
-import org.jkiss.dbeaver.model.DBPKeywordType;
+import com.seizia.chromite.model.DBPImage;
+import com.seizia.chromite.model.DBPKeywordType;
 
 public abstract class CompletionProposalBase {
 

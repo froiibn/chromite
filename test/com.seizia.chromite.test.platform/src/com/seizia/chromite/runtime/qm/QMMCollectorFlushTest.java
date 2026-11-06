@@ -14,13 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.runtime.qm;
+package com.seizia.chromite.runtime.qm;
 
-import org.jkiss.dbeaver.model.qm.QMEventAction;
-import org.jkiss.dbeaver.model.qm.QMMetaEvent;
-import org.jkiss.dbeaver.model.qm.QMMetaListener;
-import org.jkiss.dbeaver.model.qm.meta.QMMObject;
-import org.jkiss.junit.DBeaverUnitTest;
+import com.seizia.chromite.model.qm.QMEventAction;
+import com.seizia.chromite.model.qm.QMMetaEvent;
+import com.seizia.chromite.model.qm.QMMetaListener;
+import com.seizia.chromite.model.qm.meta.QMMObject;
+import com.seizia.chromite.junit.ChromiteUnitTest;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
@@ -32,7 +32,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
-public class QMMCollectorFlushTest extends DBeaverUnitTest {
+public class QMMCollectorFlushTest extends ChromiteUnitTest {
 
     @Test
     public void testFlushWaitsForEventPersistence() throws Exception {

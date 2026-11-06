@@ -14,23 +14,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui;
+package com.seizia.chromite.ui;
 
 import org.eclipse.jface.resource.JFaceResources;
 
 
 public class UIFonts {
 
-    public static class DBeaver {
+    public static class Chromite {
         /**
          * Monospace font
          */
-        public static final String MONOSPACE_FONT = "org.jkiss.dbeaver.dbeaver.ui.fonts.monospace";
+        public static final String MONOSPACE_FONT = "com.seizia.chromite.chromite.ui.fonts.monospace";
 
         /**
          * Main font
          */
-        public static final String MAIN_FONT = "org.jkiss.dbeaver.dbeaver.ui.fonts.main";
+        public static final String MAIN_FONT = "com.seizia.chromite.chromite.ui.fonts.main";
     }
 
     public class Eclipse {

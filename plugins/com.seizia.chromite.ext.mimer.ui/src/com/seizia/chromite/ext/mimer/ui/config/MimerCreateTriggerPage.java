@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.mimer.ui.config;
+package com.seizia.chromite.ext.mimer.ui.config;
 
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.layout.GridData;
@@ -24,13 +24,13 @@ import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Control;
 import org.eclipse.swt.widgets.Text;
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.ext.generic.model.GenericView;
-import org.jkiss.dbeaver.ext.mimer.model.MimerTableTrigger;
-import org.jkiss.dbeaver.model.DBPEvaluationContext;
-import org.jkiss.dbeaver.model.DBUtils;
-import org.jkiss.dbeaver.model.struct.DBSObject;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.editors.object.struct.BaseObjectEditPage;
+import com.seizia.chromite.ext.generic.model.GenericView;
+import com.seizia.chromite.ext.mimer.model.MimerTableTrigger;
+import com.seizia.chromite.model.DBPEvaluationContext;
+import com.seizia.chromite.model.DBUtils;
+import com.seizia.chromite.model.struct.DBSObject;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.editors.object.struct.BaseObjectEditPage;
 import org.jkiss.utils.CommonUtils;
 
 /**

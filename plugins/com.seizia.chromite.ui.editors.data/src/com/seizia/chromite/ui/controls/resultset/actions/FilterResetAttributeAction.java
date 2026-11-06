@@ -14,15 +14,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.controls.resultset.actions;
+package com.seizia.chromite.ui.controls.resultset.actions;
 
 import org.eclipse.osgi.util.NLS;
-import org.jkiss.dbeaver.model.data.DBDAttributeBinding;
-import org.jkiss.dbeaver.model.data.DBDAttributeConstraint;
-import org.jkiss.dbeaver.model.data.DBDDataFilter;
-import org.jkiss.dbeaver.ui.UIIcon;
-import org.jkiss.dbeaver.ui.controls.resultset.ResultSetViewer;
-import org.jkiss.dbeaver.ui.controls.resultset.internal.ResultSetMessages;
+import com.seizia.chromite.model.data.DBDAttributeBinding;
+import com.seizia.chromite.model.data.DBDAttributeConstraint;
+import com.seizia.chromite.model.data.DBDDataFilter;
+import com.seizia.chromite.ui.UIIcon;
+import com.seizia.chromite.ui.controls.resultset.ResultSetViewer;
+import com.seizia.chromite.ui.controls.resultset.internal.ResultSetMessages;
 
 public class FilterResetAttributeAction extends AbstractResultSetViewerAction {
     private final DBDAttributeBinding attribute;

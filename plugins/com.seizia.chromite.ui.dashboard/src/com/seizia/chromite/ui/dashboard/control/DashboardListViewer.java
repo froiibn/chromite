@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.dashboard.control;
+package com.seizia.chromite.ui.dashboard.control;
 
 import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.Status;
@@ -29,20 +29,20 @@ import org.eclipse.ui.IWorkbenchSite;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.model.*;
-import org.jkiss.dbeaver.model.dashboard.registry.DashboardItemConfiguration;
-import org.jkiss.dbeaver.model.dashboard.registry.DashboardRegistry;
-import org.jkiss.dbeaver.model.dashboard.registry.DashboardRegistryListener;
-import org.jkiss.dbeaver.model.exec.DBCExecutionContext;
-import org.jkiss.dbeaver.model.runtime.AbstractJob;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.model.struct.DBSInstance;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.runtime.ui.UIServiceConnections;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.dashboard.model.*;
-import org.jkiss.dbeaver.ui.dashboard.view.catalogpanel.DashboardCatalogPanel;
-import org.jkiss.dbeaver.utils.GeneralUtils;
+import com.seizia.chromite.model.*;
+import com.seizia.chromite.model.dashboard.registry.DashboardItemConfiguration;
+import com.seizia.chromite.model.dashboard.registry.DashboardRegistry;
+import com.seizia.chromite.model.dashboard.registry.DashboardRegistryListener;
+import com.seizia.chromite.model.exec.DBCExecutionContext;
+import com.seizia.chromite.model.runtime.AbstractJob;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.model.struct.DBSInstance;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.runtime.ui.UIServiceConnections;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.dashboard.model.*;
+import com.seizia.chromite.ui.dashboard.view.catalogpanel.DashboardCatalogPanel;
+import com.seizia.chromite.utils.GeneralUtils;
 
 import java.io.IOException;
 import java.util.Collections;

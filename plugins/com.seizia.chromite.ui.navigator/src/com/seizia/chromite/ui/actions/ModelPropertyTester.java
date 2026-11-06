@@ -14,17 +14,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.actions;
+package com.seizia.chromite.ui.actions;
 
 import org.eclipse.core.expressions.PropertyTester;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.DBUtils;
-import org.jkiss.dbeaver.model.navigator.DBNContainer;
-import org.jkiss.dbeaver.model.struct.DBSDataContainer;
-import org.jkiss.dbeaver.model.struct.DBSObject;
-import org.jkiss.dbeaver.model.struct.DBSObjectContainer;
-import org.jkiss.dbeaver.model.struct.rdb.DBSSchema;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.DBUtils;
+import com.seizia.chromite.model.navigator.DBNContainer;
+import com.seizia.chromite.model.struct.DBSDataContainer;
+import com.seizia.chromite.model.struct.DBSObject;
+import com.seizia.chromite.model.struct.DBSObjectContainer;
+import com.seizia.chromite.model.struct.rdb.DBSSchema;
 
 /**
  * ModelPropertyTester
@@ -33,7 +33,7 @@ public class ModelPropertyTester extends PropertyTester
 {
     private static final Log log = Log.getLog(ModelPropertyTester.class);
 
-    public static final String NAMESPACE = "org.jkiss.dbeaver.model";
+    public static final String NAMESPACE = "com.seizia.chromite.model";
     public static final String PROP_CHILD_OF_TYPE = "childOfType";
     public static final String PROP_IS_TABLE_CONTAINER = "isTableContainer";
 

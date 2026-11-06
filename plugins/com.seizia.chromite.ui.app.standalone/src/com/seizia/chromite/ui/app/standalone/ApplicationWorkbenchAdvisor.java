@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.app.standalone;
+package com.seizia.chromite.ui.app.standalone;
 
 import org.eclipse.core.internal.net.ProxyManager;
 import org.eclipse.core.net.proxy.IProxyService;
@@ -45,46 +45,46 @@ import org.eclipse.ui.internal.wizards.AbstractExtensionWizardRegistry;
 import org.eclipse.ui.wizards.IWizardCategory;
 import org.eclipse.ui.wizards.IWizardDescriptor;
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.DBeaverPreferences;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.core.CoreFeatures;
-import org.jkiss.dbeaver.core.CoreMessages;
-import org.jkiss.dbeaver.core.DesktopPlatform;
-import org.jkiss.dbeaver.model.DBIcon;
-import org.jkiss.dbeaver.model.DBPDataSourceContainer;
-import org.jkiss.dbeaver.model.app.DBPApplication;
-import org.jkiss.dbeaver.model.app.DBPApplicationDesktop;
-import org.jkiss.dbeaver.model.app.DBPProject;
-import org.jkiss.dbeaver.model.impl.preferences.BundlePreferenceStore;
-import org.jkiss.dbeaver.model.preferences.DBPPreferenceStore;
-import org.jkiss.dbeaver.model.task.DBTTaskManager;
-import org.jkiss.dbeaver.registry.BasePlatformImpl;
-import org.jkiss.dbeaver.registry.DataSourceRegistry;
-import org.jkiss.dbeaver.runtime.DBInterruptedException;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.runtime.DBeaverNotifications;
-import org.jkiss.dbeaver.runtime.OperationSystemState;
-import org.jkiss.dbeaver.ui.AWTUtils;
-import org.jkiss.dbeaver.ui.DBeaverIcons;
-import org.jkiss.dbeaver.ui.IActionConstants;
-import org.jkiss.dbeaver.ui.UIExecutionQueue;
-import org.jkiss.dbeaver.ui.UIFonts;
-import org.jkiss.dbeaver.ui.actions.datasource.DataSourceHandler;
-import org.jkiss.dbeaver.ui.app.standalone.internal.CoreApplicationActivator;
-import org.jkiss.dbeaver.ui.app.standalone.internal.CoreApplicationMessages;
-import org.jkiss.dbeaver.ui.app.standalone.internal.WorkbenchPatcher;
-import org.jkiss.dbeaver.ui.app.standalone.rpc.IInstanceController;
-import org.jkiss.dbeaver.ui.dialogs.ConfirmationDialog;
-import org.jkiss.dbeaver.ui.editors.EditorUtils;
-import org.jkiss.dbeaver.ui.editors.content.ContentEditorInput;
-import org.jkiss.dbeaver.ui.perspective.DBeaverPerspective;
-import org.jkiss.dbeaver.ui.preferences.PrefPageConnectionsGeneral;
-import org.jkiss.dbeaver.ui.preferences.PrefPageConstants;
-import org.jkiss.dbeaver.ui.preferences.PrefPageDatabaseEditors;
-import org.jkiss.dbeaver.ui.preferences.PrefPageDatabaseUserInterface;
-import org.jkiss.dbeaver.ui.preferences.PrefPageGeneral;
-import org.jkiss.dbeaver.ui.workbench.WorkbenchUtils;
-import org.jkiss.dbeaver.utils.RuntimeUtils;
+import com.seizia.chromite.ChromitePreferences;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.core.CoreFeatures;
+import com.seizia.chromite.core.CoreMessages;
+import com.seizia.chromite.core.DesktopPlatform;
+import com.seizia.chromite.model.DBIcon;
+import com.seizia.chromite.model.DBPDataSourceContainer;
+import com.seizia.chromite.model.app.DBPApplication;
+import com.seizia.chromite.model.app.DBPApplicationDesktop;
+import com.seizia.chromite.model.app.DBPProject;
+import com.seizia.chromite.model.impl.preferences.BundlePreferenceStore;
+import com.seizia.chromite.model.preferences.DBPPreferenceStore;
+import com.seizia.chromite.model.task.DBTTaskManager;
+import com.seizia.chromite.registry.BasePlatformImpl;
+import com.seizia.chromite.registry.DataSourceRegistry;
+import com.seizia.chromite.runtime.DBInterruptedException;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.runtime.ChromiteNotifications;
+import com.seizia.chromite.runtime.OperationSystemState;
+import com.seizia.chromite.ui.AWTUtils;
+import com.seizia.chromite.ui.SwtIcons;
+import com.seizia.chromite.ui.IActionConstants;
+import com.seizia.chromite.ui.UIExecutionQueue;
+import com.seizia.chromite.ui.UIFonts;
+import com.seizia.chromite.ui.actions.datasource.DataSourceHandler;
+import com.seizia.chromite.ui.app.standalone.internal.CoreApplicationActivator;
+import com.seizia.chromite.ui.app.standalone.internal.CoreApplicationMessages;
+import com.seizia.chromite.ui.app.standalone.internal.WorkbenchPatcher;
+import com.seizia.chromite.ui.app.standalone.rpc.IInstanceController;
+import com.seizia.chromite.ui.dialogs.ConfirmationDialog;
+import com.seizia.chromite.ui.editors.EditorUtils;
+import com.seizia.chromite.ui.editors.content.ContentEditorInput;
+import com.seizia.chromite.ui.perspective.ChromitePerspective;
+import com.seizia.chromite.ui.preferences.PrefPageConnectionsGeneral;
+import com.seizia.chromite.ui.preferences.PrefPageConstants;
+import com.seizia.chromite.ui.preferences.PrefPageDatabaseEditors;
+import com.seizia.chromite.ui.preferences.PrefPageDatabaseUserInterface;
+import com.seizia.chromite.ui.preferences.PrefPageGeneral;
+import com.seizia.chromite.ui.workbench.WorkbenchUtils;
+import com.seizia.chromite.utils.RuntimeUtils;
 import org.jkiss.utils.CommonUtils;
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.ServiceRegistration;
@@ -104,13 +104,13 @@ import java.util.*;
 public class ApplicationWorkbenchAdvisor extends IDEWorkbenchAdvisor {
     private static final Log log = Log.getLog(ApplicationWorkbenchAdvisor.class);
 
-    private static final String PERSPECTIVE_ID = DBeaverPerspective.PERSPECTIVE_ID;
-    public static final String DBEAVER_SCHEME_NAME = "org.jkiss.dbeaver.defaultKeyScheme"; //$NON-NLS-1$
+    private static final String PERSPECTIVE_ID = ChromitePerspective.PERSPECTIVE_ID;
+    public static final String CHROMITE_SCHEME_NAME = "com.seizia.chromite.defaultKeyScheme"; //$NON-NLS-1$
 
     @Deprecated(since = "25.1.5")
-    private static final String PROP_PERSPECTIVE_VERSION = "dbeaver.perspectiveVersion"; //$NON-NLS-1$
+    private static final String PROP_PERSPECTIVE_VERSION = "chromite.perspectiveVersion"; //$NON-NLS-1$
     @Deprecated(since = "25.1.5")
-    private static final String PROP_WORKBENCH_VERSION = "dbeaver.workbenchVersion"; //$NON-NLS-1$
+    private static final String PROP_WORKBENCH_VERSION = "chromite.workbenchVersion"; //$NON-NLS-1$
 
     private static final String[] EXCLUDE_PREF_PAGES = {
         PrefPageConstants.WORKBENCH_PREF_PAGE_ID + "/org.eclipse.ui.preferencePages.Globalization",
@@ -197,7 +197,7 @@ public class ApplicationWorkbenchAdvisor extends IDEWorkbenchAdvisor {
     );
     
     private static final Map<String, List<String>> fontOverrides = Map.of(
-        UIFonts.DBeaver.MONOSPACE_FONT, List.of(
+        UIFonts.Chromite.MONOSPACE_FONT, List.of(
             UIFonts.Eclipse.TEXT_EDITOR_BLOCK_SELECTION_FONT,
             UIFonts.Eclipse.TEXT_FONT,
             UIFonts.Eclipse.CONSOLE_FONT,
@@ -205,7 +205,7 @@ public class ApplicationWorkbenchAdvisor extends IDEWorkbenchAdvisor {
             UIFonts.Eclipse.MEMORY_VIEW_TABLE_FONT,
             UIFonts.Eclipse.COMPARE_TEXT_FONT
         ),
-        UIFonts.DBeaver.MAIN_FONT, List.of(
+        UIFonts.Chromite.MAIN_FONT, List.of(
             UIFonts.Eclipse.DIALOG_FONT,
             UIFonts.Eclipse.VARIABLE_TEXT_FONT,
             UIFonts.Eclipse.PART_TITLE_FONT,
@@ -275,14 +275,14 @@ public class ApplicationWorkbenchAdvisor extends IDEWorkbenchAdvisor {
 
         // Replace Eclipse error icon shown in the "Problems" view with our own
         WorkbenchImages.getImageRegistry().remove(IDEInternalWorkbenchImages.IMG_OBJS_ERROR_PATH);
-        WorkbenchImages.getImageRegistry().put(IDEInternalWorkbenchImages.IMG_OBJS_ERROR_PATH, DBeaverIcons.getImageDescriptor(DBIcon.SMALL_ERROR));
-        WorkbenchImages.getDescriptors().put(IDEInternalWorkbenchImages.IMG_OBJS_ERROR_PATH, DBeaverIcons.getImageDescriptor(DBIcon.SMALL_ERROR));
+        WorkbenchImages.getImageRegistry().put(IDEInternalWorkbenchImages.IMG_OBJS_ERROR_PATH, SwtIcons.getImageDescriptor(DBIcon.SMALL_ERROR));
+        WorkbenchImages.getDescriptors().put(IDEInternalWorkbenchImages.IMG_OBJS_ERROR_PATH, SwtIcons.getImageDescriptor(DBIcon.SMALL_ERROR));
 
         FontPreferenceOverrides.overrideFontPrefValues(fontOverrides);
             
 /*
         // Set default resource encoding to UTF-8
-        String defEncoding = DBWorkbench.getPlatform().getPreferenceStore().getString(DBeaverPreferences.DEFAULT_RESOURCE_ENCODING);
+        String defEncoding = DBWorkbench.getPlatform().getPreferenceStore().getString(ChromitePreferences.DEFAULT_RESOURCE_ENCODING);
         if (CommonUtils.isEmpty(defEncoding)) {
             defEncoding = GeneralUtils.UTF8_ENCODING;
         }
@@ -350,7 +350,7 @@ public class ApplicationWorkbenchAdvisor extends IDEWorkbenchAdvisor {
         );
         WorkbenchUtils.movePreferencePages(
             SQL_EDITOR_PREF_PAGES,
-            PrefPageDatabaseEditors.PAGE_ID + "/org.jkiss.dbeaver.preferences.main.sqleditor"
+            PrefPageDatabaseEditors.PAGE_ID + "/com.seizia.chromite.preferences.main.sqleditor"
         );
         WorkbenchUtils.movePreferencePages(
             WORKSPACE_PREF_PAGES,
@@ -404,9 +404,9 @@ public class ApplicationWorkbenchAdvisor extends IDEWorkbenchAdvisor {
 
     private void patchJFaceIcons() {
         final Map<String, ImageDescriptor> icons = Map.of(
-            Dialog.DLG_IMG_MESSAGE_INFO, DBeaverIcons.getImageDescriptor(DBIcon.SMALL_INFO),
-            Dialog.DLG_IMG_MESSAGE_WARNING, DBeaverIcons.getImageDescriptor(DBIcon.SMALL_WARNING),
-            Dialog.DLG_IMG_MESSAGE_ERROR, DBeaverIcons.getImageDescriptor(DBIcon.SMALL_ERROR)
+            Dialog.DLG_IMG_MESSAGE_INFO, SwtIcons.getImageDescriptor(DBIcon.SMALL_INFO),
+            Dialog.DLG_IMG_MESSAGE_WARNING, SwtIcons.getImageDescriptor(DBIcon.SMALL_WARNING),
+            Dialog.DLG_IMG_MESSAGE_ERROR, SwtIcons.getImageDescriptor(DBIcon.SMALL_ERROR)
         );
 
         final ImageRegistry registry = JFaceResources.getImageRegistry();
@@ -487,10 +487,10 @@ public class ApplicationWorkbenchAdvisor extends IDEWorkbenchAdvisor {
 
     public static boolean closeOpenEditors(IWorkbenchWindow window, boolean forceRevert, boolean showConfirmation) {
         if (showConfirmation && !forceRevert &&
-                !MessageDialogWithToggle.NEVER.equals(ConfirmationDialog.getSavedPreference(DBeaverPreferences.CONFIRM_EXIT))
+                !MessageDialogWithToggle.NEVER.equals(ConfirmationDialog.getSavedPreference(ChromitePreferences.CONFIRM_EXIT))
         ) {
             // Workaround of #703 bug. NEVER doesn't make sense for Exit confirmation. It is the same as ALWAYS.
-            if (ConfirmationDialog.confirmAction(window.getShell(), DBeaverPreferences.CONFIRM_EXIT, ConfirmationDialog.QUESTION)
+            if (ConfirmationDialog.confirmAction(window.getShell(), ChromitePreferences.CONFIRM_EXIT, ConfirmationDialog.QUESTION)
                     != IDialogConstants.YES_ID) {
                 return false;
             }
@@ -597,7 +597,7 @@ public class ApplicationWorkbenchAdvisor extends IDEWorkbenchAdvisor {
         }
 
         IPerspectiveDescriptor perspective = page.getPerspective();
-        if (perspective != null && !perspective.getId().equals(DBeaverPerspective.PERSPECTIVE_ID)) {
+        if (perspective != null && !perspective.getId().equals(ChromitePerspective.PERSPECTIVE_ID)) {
             return;
         }
 
@@ -608,8 +608,8 @@ public class ApplicationWorkbenchAdvisor extends IDEWorkbenchAdvisor {
         log.debug("Resetting perspective due to missing view definitions in the workbench file");
         UIExecutionQueue.queueExec(page::resetPerspective);
 
-        DBeaverNotifications.showNotification(
-            DBeaverNotifications.NT_PERSPECTIVE_RESET,
+        ChromiteNotifications.showNotification(
+            ChromiteNotifications.NT_PERSPECTIVE_RESET,
             CoreApplicationMessages.notification_perspective_reset_title,
             CoreApplicationMessages.notification_perspective_reset_message,
             null,
@@ -662,7 +662,7 @@ public class ApplicationWorkbenchAdvisor extends IDEWorkbenchAdvisor {
             if (filesToOpen.isEmpty()) {
                 return;
             }
-            IInstanceController controller = DBeaverApplication.getInstance().getInstanceServer();
+            IInstanceController controller = ChromiteApplication.getInstance().getInstanceServer();
             if (controller != null) {
                 controller.openExternalFiles(filesToOpen.toArray(String[]::new));
                 filesToOpen.clear();

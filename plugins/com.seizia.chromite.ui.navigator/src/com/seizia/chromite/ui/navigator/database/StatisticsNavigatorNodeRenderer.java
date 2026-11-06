@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.ui.navigator.database;
+package com.seizia.chromite.ui.navigator.database;
 
 import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.Status;
@@ -28,31 +28,31 @@ import org.eclipse.swt.widgets.TreeItem;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.DBPEvaluationContext;
-import org.jkiss.dbeaver.model.DBPObjectStatistics;
-import org.jkiss.dbeaver.model.DBPObjectStatisticsCollector;
-import org.jkiss.dbeaver.model.DBUtils;
-import org.jkiss.dbeaver.model.data.DBDDataFormatter;
-import org.jkiss.dbeaver.model.data.DBDDataFormatterProfile;
-import org.jkiss.dbeaver.model.meta.Property;
-import org.jkiss.dbeaver.model.navigator.*;
-import org.jkiss.dbeaver.model.preferences.DBPPreferenceStore;
-import org.jkiss.dbeaver.model.runtime.AbstractJob;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.model.runtime.LocalCacheProgressMonitor;
-import org.jkiss.dbeaver.model.runtime.VoidProgressMonitor;
-import org.jkiss.dbeaver.model.struct.DBSObject;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.ui.BaseThemeSettings;
-import org.jkiss.dbeaver.ui.DBeaverIcons;
-import org.jkiss.dbeaver.ui.UIStyles;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.internal.registry.NavigatorExtensionsRegistry;
-import org.jkiss.dbeaver.ui.navigator.INavigatorModelView;
-import org.jkiss.dbeaver.ui.navigator.INavigatorNodeActionHandler;
-import org.jkiss.dbeaver.ui.navigator.NavigatorPreferences;
-import org.jkiss.dbeaver.utils.DataSourceUtils;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.DBPEvaluationContext;
+import com.seizia.chromite.model.DBPObjectStatistics;
+import com.seizia.chromite.model.DBPObjectStatisticsCollector;
+import com.seizia.chromite.model.DBUtils;
+import com.seizia.chromite.model.data.DBDDataFormatter;
+import com.seizia.chromite.model.data.DBDDataFormatterProfile;
+import com.seizia.chromite.model.meta.Property;
+import com.seizia.chromite.model.navigator.*;
+import com.seizia.chromite.model.preferences.DBPPreferenceStore;
+import com.seizia.chromite.model.runtime.AbstractJob;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.model.runtime.LocalCacheProgressMonitor;
+import com.seizia.chromite.model.runtime.VoidProgressMonitor;
+import com.seizia.chromite.model.struct.DBSObject;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.ui.BaseThemeSettings;
+import com.seizia.chromite.ui.SwtIcons;
+import com.seizia.chromite.ui.UIStyles;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.internal.registry.NavigatorExtensionsRegistry;
+import com.seizia.chromite.ui.navigator.INavigatorModelView;
+import com.seizia.chromite.ui.navigator.INavigatorNodeActionHandler;
+import com.seizia.chromite.ui.navigator.NavigatorPreferences;
+import com.seizia.chromite.utils.DataSourceUtils;
 import org.jkiss.utils.ByteNumberFormat;
 import org.jkiss.utils.CommonUtils;
 
@@ -148,7 +148,7 @@ public class StatisticsNavigatorNodeRenderer extends DefaultNavigatorNodeRendere
         // Compute width required to draw all actions
         int width = (actions.size() - 1) * ELEMENT_MARGIN;
         for (INavigatorNodeActionHandler action : actions) {
-            Image image = DBeaverIcons.getImage(action.getNodeActionIcon(node));
+            Image image = SwtIcons.getImage(action.getNodeActionIcon(node));
             Rectangle size = image.getBounds();
             width += size.width;
         }
@@ -163,7 +163,7 @@ public class StatisticsNavigatorNodeRenderer extends DefaultNavigatorNodeRendere
         // Draw actions
         for (int i = actions.size() - 1; i >= 0; i--) {
             INavigatorNodeActionHandler action = actions.get(i);
-            Image image = DBeaverIcons.getImage(action.getNodeActionIcon(node));
+            Image image = SwtIcons.getImage(action.getNodeActionIcon(node));
             Rectangle size = image.getBounds();
 
             if (bounds.width < size.width) {
@@ -420,7 +420,7 @@ public class StatisticsNavigatorNodeRenderer extends DefaultNavigatorNodeRendere
 
         for (int i = actions.size() - 1; i >= 0; i--) {
             INavigatorNodeActionHandler action = actions.get(i);
-            Image image = DBeaverIcons.getImage(action.getNodeActionIcon(node));
+            Image image = SwtIcons.getImage(action.getNodeActionIcon(node));
             Rectangle size = image.getBounds();
 
             if (client.width < size.width || event.y < client.y || event.y >= client.y + client.height) {

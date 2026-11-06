@@ -14,11 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.tools.transfer;
+package com.seizia.chromite.tools.transfer;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.model.runtime.DBRRunnableContext;
+import com.seizia.chromite.model.runtime.DBRRunnableContext;
 
 import java.util.Map;
 

@@ -15,11 +15,11 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.model.sql;
+package com.seizia.chromite.model.sql;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.model.data.DBDDataReceiver;
+import com.seizia.chromite.model.data.DBDDataReceiver;
 
 import java.util.List;
 import java.util.function.Supplier;

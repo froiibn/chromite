@@ -14,11 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.websocket.registry;
+package com.seizia.chromite.model.websocket.registry;
 
 import org.eclipse.core.runtime.IConfigurationElement;
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.model.websocket.event.WSEvent;
+import com.seizia.chromite.model.websocket.event.WSEvent;
 
 /**
  *  Event from the server to the client (browser or desktop)

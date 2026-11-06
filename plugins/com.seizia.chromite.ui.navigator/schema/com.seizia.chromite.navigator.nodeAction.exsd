@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='UTF-8'?>
 <!-- Schema file written by PDE -->
-<schema targetNamespace="org.jkiss.dbeaver.ui.navigator" xmlns="http://www.w3.org/2001/XMLSchema">
-   <annotation><appInfo><meta.schema plugin="org.jkiss.dbeaver.ui.navigator" id="org.jkiss.dbeaver.navigator.nodeAction" name="Navigator node actions"/></appInfo></annotation>
+<schema targetNamespace="com.seizia.chromite.ui.navigator" xmlns="http://www.w3.org/2001/XMLSchema">
+   <annotation><appInfo><meta.schema plugin="com.seizia.chromite.ui.navigator" id="com.seizia.chromite.navigator.nodeAction" name="Navigator node actions"/></appInfo></annotation>
    <element name="extension">
       <annotation><appInfo><meta.element/></appInfo></annotation>
       <complexType>
@@ -17,7 +17,7 @@
              <element ref="objectType"/>
              <element ref="enabledWhen"/>
           </choice>
-         <attribute name="class" type="string" use="required"><annotation><appInfo><meta.attribute kind="java" basedOn=":org.jkiss.dbeaver.ui.navigator.INavigatorNodeActionHandler"/></appInfo></annotation></attribute>
+         <attribute name="class" type="string" use="required"><annotation><appInfo><meta.attribute kind="java" basedOn=":com.seizia.chromite.ui.navigator.INavigatorNodeActionHandler"/></appInfo></annotation></attribute>
          <attribute name="order" type="int"/>
          <attribute name="alwaysEnabled" type="boolean" use="default" value="false"/>
          <attribute name="objectType" type="string"><annotation><appInfo><meta.attribute kind="java"/></appInfo></annotation></attribute>

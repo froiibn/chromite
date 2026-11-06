@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.db2.ui.editors;
+package com.seizia.chromite.ext.db2.ui.editors;
 
 import org.eclipse.jface.action.Action;
 import org.eclipse.jface.action.IContributionManager;
@@ -23,18 +23,18 @@ import org.eclipse.osgi.util.NLS;
 import org.eclipse.swt.widgets.Composite;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.ext.db2.model.DB2DataSource;
-import org.jkiss.dbeaver.ext.db2.model.app.DB2ServerApplication;
-import org.jkiss.dbeaver.ext.db2.model.app.DB2ServerApplicationManager;
-import org.jkiss.dbeaver.ext.db2.ui.internal.DB2Messages;
-import org.jkiss.dbeaver.model.admin.sessions.DBAServerSession;
-import org.jkiss.dbeaver.model.admin.sessions.DBAServerSessionManager;
-import org.jkiss.dbeaver.model.exec.DBCExecutionContext;
-import org.jkiss.dbeaver.ui.DBeaverIcons;
-import org.jkiss.dbeaver.ui.UIIcon;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.views.session.AbstractSessionEditor;
-import org.jkiss.dbeaver.ui.views.session.SessionManagerViewer;
+import com.seizia.chromite.ext.db2.model.DB2DataSource;
+import com.seizia.chromite.ext.db2.model.app.DB2ServerApplication;
+import com.seizia.chromite.ext.db2.model.app.DB2ServerApplicationManager;
+import com.seizia.chromite.ext.db2.ui.internal.DB2Messages;
+import com.seizia.chromite.model.admin.sessions.DBAServerSession;
+import com.seizia.chromite.model.admin.sessions.DBAServerSessionManager;
+import com.seizia.chromite.model.exec.DBCExecutionContext;
+import com.seizia.chromite.ui.SwtIcons;
+import com.seizia.chromite.ui.UIIcon;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.views.session.AbstractSessionEditor;
+import com.seizia.chromite.ui.views.session.SessionManagerViewer;
 
 import java.util.HashMap;
 import java.util.List;
@@ -81,7 +81,7 @@ public class DB2ServerApplicationEditor extends AbstractSessionEditor {
 
         public ForceApplicationAction()
         {
-            super(DB2Messages.editors_db2_application_editor_title_force_application, DBeaverIcons.getImageDescriptor(UIIcon.REJECT));
+            super(DB2Messages.editors_db2_application_editor_title_force_application, SwtIcons.getImageDescriptor(UIIcon.REJECT));
         }
 
         @Override

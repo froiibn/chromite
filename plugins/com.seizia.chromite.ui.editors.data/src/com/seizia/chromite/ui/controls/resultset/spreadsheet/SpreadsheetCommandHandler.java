@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.controls.resultset.spreadsheet;
+package com.seizia.chromite.ui.controls.resultset.spreadsheet;
 
 import org.eclipse.core.commands.AbstractHandler;
 import org.eclipse.core.commands.ExecutionEvent;
@@ -23,21 +23,21 @@ import org.eclipse.swt.SWT;
 import org.eclipse.swt.graphics.Point;
 import org.eclipse.swt.graphics.Rectangle;
 import org.eclipse.ui.handlers.HandlerUtil;
-import org.jkiss.dbeaver.model.DBUtils;
-import org.jkiss.dbeaver.model.data.DBDAttributeBinding;
-import org.jkiss.dbeaver.model.data.DBDAttributeConstraint;
-import org.jkiss.dbeaver.model.struct.DBSAttributeBase;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.controls.lightgrid.GridCell;
-import org.jkiss.dbeaver.ui.controls.lightgrid.GridPos;
-import org.jkiss.dbeaver.ui.controls.lightgrid.IGridColumn;
-import org.jkiss.dbeaver.ui.controls.lightgrid.IGridItem;
-import org.jkiss.dbeaver.ui.controls.resultset.IResultSetController;
-import org.jkiss.dbeaver.ui.controls.resultset.IResultSetPresentation;
-import org.jkiss.dbeaver.ui.controls.resultset.ResultSetModel;
-import org.jkiss.dbeaver.ui.controls.resultset.ResultSetRow;
-import org.jkiss.dbeaver.ui.controls.resultset.handler.ResultSetHandlerMain;
-import org.jkiss.dbeaver.ui.controls.resultset.internal.ResultSetMessages;
+import com.seizia.chromite.model.DBUtils;
+import com.seizia.chromite.model.data.DBDAttributeBinding;
+import com.seizia.chromite.model.data.DBDAttributeConstraint;
+import com.seizia.chromite.model.struct.DBSAttributeBase;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.controls.lightgrid.GridCell;
+import com.seizia.chromite.ui.controls.lightgrid.GridPos;
+import com.seizia.chromite.ui.controls.lightgrid.IGridColumn;
+import com.seizia.chromite.ui.controls.lightgrid.IGridItem;
+import com.seizia.chromite.ui.controls.resultset.IResultSetController;
+import com.seizia.chromite.ui.controls.resultset.IResultSetPresentation;
+import com.seizia.chromite.ui.controls.resultset.ResultSetModel;
+import com.seizia.chromite.ui.controls.resultset.ResultSetRow;
+import com.seizia.chromite.ui.controls.resultset.handler.ResultSetHandlerMain;
+import com.seizia.chromite.ui.controls.resultset.internal.ResultSetMessages;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -49,16 +49,16 @@ import java.util.stream.IntStream;
  */
 public class SpreadsheetCommandHandler extends AbstractHandler {
 
-    public static final String CMD_COLUMNS_FIT_VALUE = "org.jkiss.dbeaver.core.resultset.grid.columnsFitValue";
-    public static final String CMD_COLUMNS_FIT_SCREEN = "org.jkiss.dbeaver.core.resultset.grid.columnsFitScreen";
-    public static final String CMD_COLUMNS_HIDE_EMPTY = "org.jkiss.dbeaver.core.resultset.grid.columnsHideEmpty";
-    public static final String CMD_SELECT_COLUMNS = "org.jkiss.dbeaver.core.resultset.grid.selectColumn";
-    public static final String CMD_SELECT_ROWS = "org.jkiss.dbeaver.core.resultset.grid.selectRow";
-    public static final String CMD_MOVE_COLUMNS_RIGHT = "org.jkiss.dbeaver.core.resultset.grid.moveColumnRight";
-    public static final String CMD_MOVE_COLUMNS_LEFT = "org.jkiss.dbeaver.core.resultset.grid.moveColumnLeft";
-    public static final String CMD_HIDE_COLUMNS = "org.jkiss.dbeaver.core.resultset.grid.hideColumns";
-    public static final String CMD_SHOW_COLUMNS = "org.jkiss.dbeaver.core.resultset.grid.showColumns";
-    public static final String CMD_SHOW_COLUMN_CONTEXT_MENU = "org.jkiss.dbeaver.core.resultset.grid.showColumnContextMenu";
+    public static final String CMD_COLUMNS_FIT_VALUE = "com.seizia.chromite.core.resultset.grid.columnsFitValue";
+    public static final String CMD_COLUMNS_FIT_SCREEN = "com.seizia.chromite.core.resultset.grid.columnsFitScreen";
+    public static final String CMD_COLUMNS_HIDE_EMPTY = "com.seizia.chromite.core.resultset.grid.columnsHideEmpty";
+    public static final String CMD_SELECT_COLUMNS = "com.seizia.chromite.core.resultset.grid.selectColumn";
+    public static final String CMD_SELECT_ROWS = "com.seizia.chromite.core.resultset.grid.selectRow";
+    public static final String CMD_MOVE_COLUMNS_RIGHT = "com.seizia.chromite.core.resultset.grid.moveColumnRight";
+    public static final String CMD_MOVE_COLUMNS_LEFT = "com.seizia.chromite.core.resultset.grid.moveColumnLeft";
+    public static final String CMD_HIDE_COLUMNS = "com.seizia.chromite.core.resultset.grid.hideColumns";
+    public static final String CMD_SHOW_COLUMNS = "com.seizia.chromite.core.resultset.grid.showColumns";
+    public static final String CMD_SHOW_COLUMN_CONTEXT_MENU = "com.seizia.chromite.core.resultset.grid.showColumnContextMenu";
 
     public static SpreadsheetPresentation getActiveSpreadsheet(ExecutionEvent event)
     {

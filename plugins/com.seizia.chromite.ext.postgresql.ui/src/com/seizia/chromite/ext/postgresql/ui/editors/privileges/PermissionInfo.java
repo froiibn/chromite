@@ -14,10 +14,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.postgresql.ui.editors.privileges;
+package com.seizia.chromite.ext.postgresql.ui.editors.privileges;
 
-import org.jkiss.dbeaver.ext.postgresql.model.PostgrePrivilege;
-import org.jkiss.dbeaver.model.navigator.DBNDatabaseNode;
+import com.seizia.chromite.ext.postgresql.model.PostgrePrivilege;
+import com.seizia.chromite.model.navigator.DBNDatabaseNode;
 
 import java.util.Collection;
 

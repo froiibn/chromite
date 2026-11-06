@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.registry;
+package com.seizia.chromite.registry;
 
 import org.eclipse.core.runtime.IConfigurationElement;
 import org.eclipse.core.runtime.IExtensionRegistry;
@@ -25,7 +25,7 @@ import java.util.List;
 
 public class DriverManagerRegistry {
 
-    public static final String EXTENSION_ID = "org.jkiss.dbeaver.driverManager"; //$NON-NLS-1$
+    public static final String EXTENSION_ID = "com.seizia.chromite.driverManager"; //$NON-NLS-1$
 
     private static DriverManagerRegistry instance = null;
 

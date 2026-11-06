@@ -15,12 +15,12 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.runtime.ui;
+package com.seizia.chromite.runtime.ui;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.model.app.DBPProject;
+import com.seizia.chromite.model.app.DBPProject;
 
 /**
  * Security UI Service

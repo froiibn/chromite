@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.actions;
+package com.seizia.chromite.ui.actions;
 
 import org.eclipse.core.expressions.PropertyTester;
 import org.eclipse.jface.dialogs.IPageChangeProvider;
@@ -23,23 +23,23 @@ import org.eclipse.ui.IEditorReference;
 import org.eclipse.ui.IWorkbenchWindow;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.*;
-import org.jkiss.dbeaver.model.app.DBPProject;
-import org.jkiss.dbeaver.model.data.resultset.DBCSmartTransactionManager;
-import org.jkiss.dbeaver.model.exec.*;
-import org.jkiss.dbeaver.model.navigator.DBNDataSource;
-import org.jkiss.dbeaver.model.navigator.DBNDatabaseNode;
-import org.jkiss.dbeaver.model.qm.QMUtils;
-import org.jkiss.dbeaver.model.rm.RMConstants;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.runtime.IPluginService;
-import org.jkiss.dbeaver.runtime.qm.DefaultExecutionHandler;
-import org.jkiss.dbeaver.ui.ActionUtils;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.editors.EditorUtils;
-import org.jkiss.dbeaver.ui.editors.IStatefulEditor;
-import org.jkiss.dbeaver.utils.GeneralUtils;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.*;
+import com.seizia.chromite.model.app.DBPProject;
+import com.seizia.chromite.model.data.resultset.DBCSmartTransactionManager;
+import com.seizia.chromite.model.exec.*;
+import com.seizia.chromite.model.navigator.DBNDataSource;
+import com.seizia.chromite.model.navigator.DBNDatabaseNode;
+import com.seizia.chromite.model.qm.QMUtils;
+import com.seizia.chromite.model.rm.RMConstants;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.runtime.IPluginService;
+import com.seizia.chromite.runtime.qm.DefaultExecutionHandler;
+import com.seizia.chromite.ui.ActionUtils;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.editors.EditorUtils;
+import com.seizia.chromite.ui.editors.IStatefulEditor;
+import com.seizia.chromite.utils.GeneralUtils;
 
 /**
  * DatabaseEditorPropertyTester
@@ -48,7 +48,7 @@ public class DataSourcePropertyTester extends PropertyTester {
 
     static protected final Log log = Log.getLog(DataSourcePropertyTester.class);
 
-    public static final String NAMESPACE = "org.jkiss.dbeaver.core.datasource";
+    public static final String NAMESPACE = "com.seizia.chromite.core.datasource";
     public static final String PROP_CONNECTED = "connected";
     public static final String PROP_CONNECTING = "connecting";
     public static final String PROP_TRANSACTIONAL = "transactional";

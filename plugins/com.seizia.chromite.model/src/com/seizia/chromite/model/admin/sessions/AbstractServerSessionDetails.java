@@ -15,9 +15,9 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.model.admin.sessions;
+package com.seizia.chromite.model.admin.sessions;
 
-import org.jkiss.dbeaver.model.DBPImage;
+import com.seizia.chromite.model.DBPImage;
 
 /**
  * Server session additional details provider

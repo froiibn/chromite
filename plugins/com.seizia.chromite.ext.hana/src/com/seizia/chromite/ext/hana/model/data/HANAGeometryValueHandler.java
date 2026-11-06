@@ -14,24 +14,24 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.hana.model.data;
+package com.seizia.chromite.ext.hana.model.data;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.ext.hana.model.data.wkb.HANAWKBParser;
-import org.jkiss.dbeaver.ext.hana.model.data.wkb.HANAWKBParserException;
-import org.jkiss.dbeaver.ext.hana.model.data.wkb.HANAWKBWriter;
-import org.jkiss.dbeaver.ext.hana.model.data.wkb.HANAWKBWriterException;
-import org.jkiss.dbeaver.model.data.DBDDisplayFormat;
-import org.jkiss.dbeaver.model.exec.DBCException;
-import org.jkiss.dbeaver.model.exec.DBCSession;
-import org.jkiss.dbeaver.model.exec.jdbc.JDBCPreparedStatement;
-import org.jkiss.dbeaver.model.exec.jdbc.JDBCResultSet;
-import org.jkiss.dbeaver.model.exec.jdbc.JDBCSession;
-import org.jkiss.dbeaver.model.gis.DBGeometry;
-import org.jkiss.dbeaver.model.gis.GisAttribute;
-import org.jkiss.dbeaver.model.impl.jdbc.data.handlers.JDBCAbstractValueHandler;
-import org.jkiss.dbeaver.model.struct.DBSTypedObject;
+import com.seizia.chromite.ext.hana.model.data.wkb.HANAWKBParser;
+import com.seizia.chromite.ext.hana.model.data.wkb.HANAWKBParserException;
+import com.seizia.chromite.ext.hana.model.data.wkb.HANAWKBWriter;
+import com.seizia.chromite.ext.hana.model.data.wkb.HANAWKBWriterException;
+import com.seizia.chromite.model.data.DBDDisplayFormat;
+import com.seizia.chromite.model.exec.DBCException;
+import com.seizia.chromite.model.exec.DBCSession;
+import com.seizia.chromite.model.exec.jdbc.JDBCPreparedStatement;
+import com.seizia.chromite.model.exec.jdbc.JDBCResultSet;
+import com.seizia.chromite.model.exec.jdbc.JDBCSession;
+import com.seizia.chromite.model.gis.DBGeometry;
+import com.seizia.chromite.model.gis.GisAttribute;
+import com.seizia.chromite.model.impl.jdbc.data.handlers.JDBCAbstractValueHandler;
+import com.seizia.chromite.model.struct.DBSTypedObject;
 import org.locationtech.jts.geom.Geometry;
 
 import java.sql.SQLException;

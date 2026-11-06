@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.junit.osgi;
+package com.seizia.chromite.junit.osgi;
 
 import org.eclipse.equinox.internal.app.CommandLineArgs;
 import org.eclipse.osgi.internal.framework.EquinoxBundle;
@@ -25,11 +25,11 @@ import org.eclipse.osgi.service.runnable.ApplicationLauncher;
 import org.eclipse.osgi.util.ManifestElement;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.junit.osgi.annotation.RunWithApplication;
-import org.jkiss.junit.osgi.annotation.RunWithProduct;
-import org.jkiss.junit.osgi.behaviors.IAsyncApplication;
-import org.jkiss.junit.osgi.launcher.TestLauncher;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.junit.osgi.annotation.RunWithApplication;
+import com.seizia.chromite.junit.osgi.annotation.RunWithProduct;
+import com.seizia.chromite.junit.osgi.behaviors.IAsyncApplication;
+import com.seizia.chromite.junit.osgi.launcher.TestLauncher;
 import org.jkiss.utils.Pair;
 import org.osgi.framework.*;
 import org.osgi.framework.launch.Framework;
@@ -147,13 +147,13 @@ public class OSGIFrameworkHandler {
         Path workPath = Paths.get("").toAbsolutePath();
         Path currentPath = workPath.toAbsolutePath();
         while (currentPath != null) {
-            Path potentialWorkspaceDir = currentPath.resolve("dbeaver-workspace/products");
+            Path potentialWorkspaceDir = currentPath.resolve("chromite-workspace/products");
             if (Files.exists(potentialWorkspaceDir)) {
                 return workPath.relativize(potentialWorkspaceDir);
             }
             currentPath = currentPath.getParent();
         }
-        throw new IllegalStateException("dbeaver-workspace/products directory not found");
+        throw new IllegalStateException("chromite-workspace/products directory not found");
     }
 
     public void waitUntilReady() {

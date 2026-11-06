@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.data.managers;
+package com.seizia.chromite.ui.data.managers;
 
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.events.FocusAdapter;
@@ -26,15 +26,15 @@ import org.eclipse.swt.widgets.Listener;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.model.DBUtils;
-import org.jkiss.dbeaver.model.DBValueFormatting;
-import org.jkiss.dbeaver.model.data.DBDDisplayFormat;
-import org.jkiss.dbeaver.ui.data.IMultiController;
-import org.jkiss.dbeaver.ui.data.IValueController;
-import org.jkiss.dbeaver.ui.data.IValueEditor;
-import org.jkiss.dbeaver.ui.data.dialogs.DefaultValueViewDialog;
-import org.jkiss.dbeaver.ui.data.editors.BaseValueEditor;
-import org.jkiss.dbeaver.utils.RuntimeUtils;
+import com.seizia.chromite.model.DBUtils;
+import com.seizia.chromite.model.DBValueFormatting;
+import com.seizia.chromite.model.data.DBDDisplayFormat;
+import com.seizia.chromite.ui.data.IMultiController;
+import com.seizia.chromite.ui.data.IValueController;
+import com.seizia.chromite.ui.data.IValueEditor;
+import com.seizia.chromite.ui.data.dialogs.DefaultValueViewDialog;
+import com.seizia.chromite.ui.data.editors.BaseValueEditor;
+import com.seizia.chromite.utils.RuntimeUtils;
 import org.jkiss.utils.CommonUtils;
 
 import java.util.Collection;

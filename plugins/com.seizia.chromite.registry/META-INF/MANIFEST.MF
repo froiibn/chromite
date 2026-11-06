@@ -1,29 +1,29 @@
 Manifest-Version: 1.0
 Bundle-ManifestVersion: 2
-Bundle-Vendor: DBeaver Corp
+Bundle-Vendor: Chromite contributors
 Bundle-Name: Chromite Model Registry
-Bundle-SymbolicName: org.jkiss.dbeaver.registry;singleton:=true
+Bundle-SymbolicName: com.seizia.chromite.registry;singleton:=true
 Bundle-Version: 1.0.185.qualifier
 Bundle-Release-Date: 20261116
 Bundle-ActivationPolicy: lazy
-Bundle-Activator: org.jkiss.dbeaver.registry.internal.RegistryActivator
+Bundle-Activator: com.seizia.chromite.registry.internal.RegistryActivator
 Bundle-RequiredExecutionEnvironment: JavaSE-21
-Export-Package: org.jkiss.dbeaver.registry,
- org.jkiss.dbeaver.registry.datatype,
- org.jkiss.dbeaver.registry.driver,
- org.jkiss.dbeaver.registry.internal,
- org.jkiss.dbeaver.registry.language,
- org.jkiss.dbeaver.registry.maven,
- org.jkiss.dbeaver.registry.network,
- org.jkiss.dbeaver.registry.rm,
- org.jkiss.dbeaver.registry.project,
- org.jkiss.dbeaver.registry.settings,
- org.jkiss.dbeaver.registry.storage,
- org.jkiss.dbeaver.registry.task,
- org.jkiss.dbeaver.registry.updater
+Export-Package: com.seizia.chromite.registry,
+ com.seizia.chromite.registry.datatype,
+ com.seizia.chromite.registry.driver,
+ com.seizia.chromite.registry.internal,
+ com.seizia.chromite.registry.language,
+ com.seizia.chromite.registry.maven,
+ com.seizia.chromite.registry.network,
+ com.seizia.chromite.registry.rm,
+ com.seizia.chromite.registry.project,
+ com.seizia.chromite.registry.settings,
+ com.seizia.chromite.registry.storage,
+ com.seizia.chromite.registry.task,
+ com.seizia.chromite.registry.updater
 Require-Bundle: org.eclipse.core.expressions,
  org.objectweb.asm,
- org.jkiss.dbeaver.model;visibility:=reexport,
+ com.seizia.chromite.model;visibility:=reexport,
  com.sun.jna.platform
 Bundle-Localization: OSGI-INF/l10n/bundle
-Automatic-Module-Name: org.jkiss.dbeaver.registry
+Automatic-Module-Name: com.seizia.chromite.registry

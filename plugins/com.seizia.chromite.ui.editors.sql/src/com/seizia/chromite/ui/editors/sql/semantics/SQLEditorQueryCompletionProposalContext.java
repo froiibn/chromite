@@ -14,18 +14,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.editors.sql.semantics;
+package com.seizia.chromite.ui.editors.sql.semantics;
 
 import org.eclipse.jface.viewers.StyledString;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.model.exec.DBCExecutionContext;
-import org.jkiss.dbeaver.model.preferences.DBPPreferenceStore;
-import org.jkiss.dbeaver.model.sql.completion.SQLCompletionRequest;
-import org.jkiss.dbeaver.model.sql.semantics.completion.SQLQueryCompletionItemKind;
-import org.jkiss.dbeaver.model.sql.semantics.completion.SQLQueryCompletionProposalContext;
-import org.jkiss.dbeaver.ui.controls.resultset.ThemeConstants;
-import org.jkiss.dbeaver.ui.editors.sql.SQLPreferenceConstants;
+import com.seizia.chromite.model.exec.DBCExecutionContext;
+import com.seizia.chromite.model.preferences.DBPPreferenceStore;
+import com.seizia.chromite.model.sql.completion.SQLCompletionRequest;
+import com.seizia.chromite.model.sql.semantics.completion.SQLQueryCompletionItemKind;
+import com.seizia.chromite.model.sql.semantics.completion.SQLQueryCompletionProposalContext;
+import com.seizia.chromite.ui.controls.resultset.ThemeConstants;
+import com.seizia.chromite.ui.editors.sql.SQLPreferenceConstants;
 
 import java.util.EnumMap;
 

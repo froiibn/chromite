@@ -16,29 +16,29 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.core;
+package com.seizia.chromite.core;
 
 import org.eclipse.core.runtime.Plugin;
 import org.eclipse.ui.PlatformUI;
 import org.jkiss.code.NotNull;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.DBeaverPreferences;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.DBConstants;
-import org.jkiss.dbeaver.model.DBPExternalFileManager;
-import org.jkiss.dbeaver.model.app.*;
-import org.jkiss.dbeaver.model.impl.app.BaseApplicationImpl;
-import org.jkiss.dbeaver.model.impl.app.DefaultCertificateStorage;
-import org.jkiss.dbeaver.model.navigator.DBNModel;
-import org.jkiss.dbeaver.model.navigator.DesktopNavigatorModel;
-import org.jkiss.dbeaver.model.preferences.DBPPreferenceStore;
-import org.jkiss.dbeaver.model.qm.QMUtils;
-import org.jkiss.dbeaver.model.runtime.LoggingProgressMonitor;
-import org.jkiss.dbeaver.registry.BasePlatformImpl;
-import org.jkiss.dbeaver.registry.DataSourceProviderRegistry;
-import org.jkiss.dbeaver.registry.GlobalEventManagerImpl;
-import org.jkiss.dbeaver.runtime.SecurityProviderUtils;
-import org.jkiss.dbeaver.utils.RuntimeUtils;
+import com.seizia.chromite.ChromitePreferences;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.DBConstants;
+import com.seizia.chromite.model.DBPExternalFileManager;
+import com.seizia.chromite.model.app.*;
+import com.seizia.chromite.model.impl.app.BaseApplicationImpl;
+import com.seizia.chromite.model.impl.app.DefaultCertificateStorage;
+import com.seizia.chromite.model.navigator.DBNModel;
+import com.seizia.chromite.model.navigator.DesktopNavigatorModel;
+import com.seizia.chromite.model.preferences.DBPPreferenceStore;
+import com.seizia.chromite.model.qm.QMUtils;
+import com.seizia.chromite.model.runtime.LoggingProgressMonitor;
+import com.seizia.chromite.registry.BasePlatformImpl;
+import com.seizia.chromite.registry.DataSourceProviderRegistry;
+import com.seizia.chromite.registry.GlobalEventManagerImpl;
+import com.seizia.chromite.runtime.SecurityProviderUtils;
+import com.seizia.chromite.utils.RuntimeUtils;
 
 /**
  * DesktopPlatform
@@ -52,9 +52,9 @@ import org.jkiss.dbeaver.utils.RuntimeUtils;
 public class DesktopPlatform extends BasePlatformImpl implements DBPPlatformDesktop {
 
     // The plug-in ID
-    public static final String PLUGIN_ID = "org.jkiss.dbeaver.core"; //$NON-NLS-1$
+    public static final String PLUGIN_ID = "com.seizia.chromite.core"; //$NON-NLS-1$
 
-    private static final String DBEAVER_CONFIG_FOLDER = "settings";
+    private static final String CHROMITE_CONFIG_FOLDER = "settings";
 
     private static final Log log = Log.getLog(DesktopPlatform.class);
 
@@ -92,14 +92,14 @@ public class DesktopPlatform extends BasePlatformImpl implements DBPPlatformDesk
         long startTime = System.currentTimeMillis();
         log.debug("Initialize desktop platform...");
 
-        if (getPreferenceStore().getBoolean(DBeaverPreferences.SECURITY_USE_BOUNCY_CASTLE)) {
+        if (getPreferenceStore().getBoolean(ChromitePreferences.SECURITY_USE_BOUNCY_CASTLE)) {
             // Register BC security provider
             SecurityProviderUtils.registerSecurityProvider();
         }
 
         this.certificateStorage = new DefaultCertificateStorage(
             this,
-            RuntimeUtils.getPluginStateLocation(DBeaverActivator.getInstance())
+            RuntimeUtils.getPluginStateLocation(ChromiteActivator.getInstance())
                 .resolve(DBConstants.CERTIFICATE_STORAGE_FOLDER));
 
         // Create workspace
@@ -164,7 +164,7 @@ public class DesktopPlatform extends BasePlatformImpl implements DBPPlatformDesk
 
     @Override
     protected Plugin getProductPlugin() {
-        return DBeaverActivator.getInstance();
+        return ChromiteActivator.getInstance();
     }
 
     @NotNull

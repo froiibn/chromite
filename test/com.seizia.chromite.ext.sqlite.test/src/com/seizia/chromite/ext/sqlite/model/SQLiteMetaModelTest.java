@@ -14,12 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.sqlite.model;
+package com.seizia.chromite.ext.sqlite.model;
 
-import org.jkiss.dbeaver.ext.generic.model.GenericStructContainer;
-import org.jkiss.dbeaver.model.exec.jdbc.JDBCPreparedStatement;
-import org.jkiss.dbeaver.model.exec.jdbc.JDBCSession;
-import org.jkiss.junit.DBeaverUnitTest;
+import com.seizia.chromite.ext.generic.model.GenericStructContainer;
+import com.seizia.chromite.model.exec.jdbc.JDBCPreparedStatement;
+import com.seizia.chromite.model.exec.jdbc.JDBCSession;
+import com.seizia.chromite.junit.ChromiteUnitTest;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -27,7 +27,7 @@ import org.mockito.Mockito;
 
 import java.sql.SQLException;
 
-public class SQLiteMetaModelTest extends DBeaverUnitTest {
+public class SQLiteMetaModelTest extends ChromiteUnitTest {
 
     @Test
     public void tableListQueryUsesMainSchemaPragmaToAvoidTempTableShadowing() throws SQLException {

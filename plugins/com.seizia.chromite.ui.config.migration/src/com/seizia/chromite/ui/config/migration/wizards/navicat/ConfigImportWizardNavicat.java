@@ -15,10 +15,10 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.ui.config.migration.wizards.navicat;
+package com.seizia.chromite.ui.config.migration.wizards.navicat;
 
-import org.jkiss.dbeaver.model.connection.DBPDriver;
-import org.jkiss.dbeaver.ui.config.migration.wizards.ConfigImportWizard;
+import com.seizia.chromite.model.connection.DBPDriver;
+import com.seizia.chromite.ui.config.migration.wizards.ConfigImportWizard;
 
 import java.io.File;
 

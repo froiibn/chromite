@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.db2.model.plan;
+package com.seizia.chromite.ext.db2.model.plan;
 
 /**
  * Type of Plan Node

@@ -1,9 +1,9 @@
 <?xml version='1.0' encoding='UTF-8'?>
 <!-- Schema file written by PDE -->
-<schema targetNamespace="org.jkiss.dbeaver.registry" xmlns="http://www.w3.org/2001/XMLSchema">
+<schema targetNamespace="com.seizia.chromite.registry" xmlns="http://www.w3.org/2001/XMLSchema">
 <annotation>
       <appInfo>
-         <meta.schema plugin="org.jkiss.dbeaver.registry" id="org.jkiss.dbeaver.dataSourceHandler" name="Datasource handler"/>
+         <meta.schema plugin="com.seizia.chromite.registry" id="com.seizia.chromite.dataSourceHandler" name="Datasource handler"/>
       </appInfo>
       <documentation>DBeaver data source handler</documentation>
    </annotation>
@@ -28,7 +28,7 @@
          </choice>
          <attribute name="id" type="string" use="required"/>
          <attribute name="class" type="string" use="required">
-            <annotation><appInfo><meta.attribute kind="java" basedOn=":org.jkiss.dbeaver.model.DBPDataSourceHandler"/></appInfo></annotation>
+            <annotation><appInfo><meta.attribute kind="java" basedOn=":com.seizia.chromite.model.DBPDataSourceHandler"/></appInfo></annotation>
          </attribute>
       </complexType>
    </element>

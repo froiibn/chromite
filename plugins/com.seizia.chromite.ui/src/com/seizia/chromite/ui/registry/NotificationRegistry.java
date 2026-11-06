@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.registry;
+package com.seizia.chromite.ui.registry;
 
 import org.eclipse.core.runtime.IConfigurationElement;
 import org.eclipse.core.runtime.IExtensionRegistry;
@@ -27,7 +27,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class NotificationRegistry {
-    private static final String EXTENSION_ID = "org.jkiss.dbeaver.notifications";
+    private static final String EXTENSION_ID = "com.seizia.chromite.notifications";
 
     private static NotificationRegistry instance;
 

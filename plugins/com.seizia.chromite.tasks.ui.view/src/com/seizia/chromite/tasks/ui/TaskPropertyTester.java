@@ -14,16 +14,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.tasks.ui;
+package com.seizia.chromite.tasks.ui;
 
 import org.eclipse.core.expressions.PropertyTester;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.rm.RMConstants;
-import org.jkiss.dbeaver.model.task.DBTScheduler;
-import org.jkiss.dbeaver.model.task.DBTTask;
-import org.jkiss.dbeaver.model.task.DBTTaskFolder;
-import org.jkiss.dbeaver.registry.task.TaskRegistry;
-import org.jkiss.dbeaver.ui.ActionUtils;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.rm.RMConstants;
+import com.seizia.chromite.model.task.DBTScheduler;
+import com.seizia.chromite.model.task.DBTTask;
+import com.seizia.chromite.model.task.DBTTaskFolder;
+import com.seizia.chromite.registry.task.TaskRegistry;
+import com.seizia.chromite.ui.ActionUtils;
 import org.jkiss.utils.CommonUtils;
 
 /**
@@ -33,7 +33,7 @@ public class TaskPropertyTester extends PropertyTester
 {
     private static final Log log = Log.getLog(TaskPropertyTester.class);
 
-    public static final String NAMESPACE = "org.jkiss.dbeaver.task";
+    public static final String NAMESPACE = "com.seizia.chromite.task";
     public static final String PROP_SCHEDULED = "scheduled";
     public static final String PROP_EDITABLE = "editable";
     public static final String PROP_CAN_OPEN_SCHEDULER_SETTINGS = "canOpenSchedulerSettings";

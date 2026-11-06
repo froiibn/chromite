@@ -14,12 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.sqlite.internal;
+package com.seizia.chromite.ext.sqlite.internal;
 
 import org.eclipse.osgi.util.NLS;
 
 public class SQLiteMessages {
-    static final String BUNDLE_NAME = "org.jkiss.dbeaver.ext.sqlite.internal.SQLiteMessages"; //$NON-NLS-1$
+    static final String BUNDLE_NAME = "com.seizia.chromite.ext.sqlite.internal.SQLiteMessages"; //$NON-NLS-1$
 
     public static String pseudo_column_rowid_description;
 

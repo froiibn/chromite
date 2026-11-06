@@ -15,12 +15,12 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.tools.transfer.serialize;
+package com.seizia.chromite.tools.transfer.serialize;
 
 import org.eclipse.core.runtime.IConfigurationElement;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.impl.AbstractDescriptor;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.impl.AbstractDescriptor;
 import org.jkiss.utils.CommonUtils;
 
 /**
@@ -30,7 +30,7 @@ public class SerializerDescriptor extends AbstractDescriptor
 {
     private static final Log log = Log.getLog(SerializerDescriptor.class);
 
-    public static final String EXTENSION_ID = "org.jkiss.dbeaver.serialize"; //$NON-NLS-1$
+    public static final String EXTENSION_ID = "com.seizia.chromite.serialize"; //$NON-NLS-1$
 
     private String id;
     private ObjectType serializerType;

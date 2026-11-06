@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.ui.editors.object.struct;
+package com.seizia.chromite.ui.editors.object.struct;
 
 import org.eclipse.jface.layout.GridDataFactory;
 import org.eclipse.swt.SWT;
@@ -27,17 +27,17 @@ import org.eclipse.swt.widgets.Text;
 import org.eclipse.ui.PlatformUI;
 import org.jkiss.code.NotNull;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.ModelPreferences;
-import org.jkiss.dbeaver.model.DBUtils;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.model.struct.DBSEntity;
-import org.jkiss.dbeaver.model.struct.DBSEntityAttribute;
-import org.jkiss.dbeaver.model.struct.DBSObject;
-import org.jkiss.dbeaver.model.virtual.DBVEntity;
-import org.jkiss.dbeaver.model.virtual.DBVUtils;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.editors.object.internal.ObjectEditorMessages;
+import com.seizia.chromite.ModelPreferences;
+import com.seizia.chromite.model.DBUtils;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.model.struct.DBSEntity;
+import com.seizia.chromite.model.struct.DBSEntityAttribute;
+import com.seizia.chromite.model.struct.DBSObject;
+import com.seizia.chromite.model.virtual.DBVEntity;
+import com.seizia.chromite.model.virtual.DBVUtils;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.editors.object.internal.ObjectEditorMessages;
 import org.jkiss.utils.CommonUtils;
 
 import java.lang.reflect.InvocationTargetException;
@@ -85,7 +85,7 @@ public class EditDictionaryPage extends AttributesSelectorPage<DBSEntity, DBSEnt
     protected void createContentsBeforeColumns(@NotNull Composite panel) {
         // FIXME: Cannot use constant due to circular dependency.
         Link label = UIUtils.createLink(panel, ObjectEditorMessages.dialog_struct_edit_dictionary_tip, SelectionListener.widgetSelectedAdapter(
-            e -> UIUtils.showPreferencesFor(null, null, /*PrefPageDataViewer.PAGE_ID*/ "org.jkiss.dbeaver.preferences.main.dataviewer")));
+            e -> UIUtils.showPreferencesFor(null, null, /*PrefPageDataViewer.PAGE_ID*/ "com.seizia.chromite.preferences.main.dataviewer")));
         label.setLayoutData(GridDataFactory.create(GridData.FILL_HORIZONTAL).span(2, 1).create());
     }
 

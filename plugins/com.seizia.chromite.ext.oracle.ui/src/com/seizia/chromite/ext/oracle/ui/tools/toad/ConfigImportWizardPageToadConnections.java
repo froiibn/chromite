@@ -14,24 +14,24 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.oracle.ui.tools.toad;
+package com.seizia.chromite.ext.oracle.ui.tools.toad;
 
 import org.eclipse.ui.plugin.AbstractUIPlugin;
 import org.jkiss.code.NotNull;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.ext.oracle.model.OracleConstants;
-import org.jkiss.dbeaver.ext.oracle.model.dict.OracleConnectionRole;
-import org.jkiss.dbeaver.ext.oracle.model.dict.OracleConnectionType;
-import org.jkiss.dbeaver.ext.oracle.ui.OracleUIConstants;
-import org.jkiss.dbeaver.model.net.DBWHandlerConfiguration;
-import org.jkiss.dbeaver.model.net.DBWUtils;
-import org.jkiss.dbeaver.model.net.ssh.SSHConstants;
-import org.jkiss.dbeaver.registry.network.NetworkHandlerDescriptor;
-import org.jkiss.dbeaver.registry.network.NetworkHandlerRegistry;
-import org.jkiss.dbeaver.ui.config.migration.wizards.ConfigImportWizardPage;
-import org.jkiss.dbeaver.ui.config.migration.wizards.ImportConnectionInfo;
-import org.jkiss.dbeaver.ui.config.migration.wizards.ImportData;
-import org.jkiss.dbeaver.ui.config.migration.wizards.ImportDriverInfo;
+import com.seizia.chromite.ext.oracle.model.OracleConstants;
+import com.seizia.chromite.ext.oracle.model.dict.OracleConnectionRole;
+import com.seizia.chromite.ext.oracle.model.dict.OracleConnectionType;
+import com.seizia.chromite.ext.oracle.ui.OracleUIConstants;
+import com.seizia.chromite.model.net.DBWHandlerConfiguration;
+import com.seizia.chromite.model.net.DBWUtils;
+import com.seizia.chromite.model.net.ssh.SSHConstants;
+import com.seizia.chromite.registry.network.NetworkHandlerDescriptor;
+import com.seizia.chromite.registry.network.NetworkHandlerRegistry;
+import com.seizia.chromite.ui.config.migration.wizards.ConfigImportWizardPage;
+import com.seizia.chromite.ui.config.migration.wizards.ImportConnectionInfo;
+import com.seizia.chromite.ui.config.migration.wizards.ImportData;
+import com.seizia.chromite.ui.config.migration.wizards.ImportDriverInfo;
 import org.jkiss.utils.CommonUtils;
 import org.jkiss.utils.xml.XMLException;
 import org.jkiss.utils.xml.XMLUtils;

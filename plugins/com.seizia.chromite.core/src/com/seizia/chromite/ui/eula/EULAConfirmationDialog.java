@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.eula;
+package com.seizia.chromite.ui.eula;
 
 import org.eclipse.jface.dialogs.IDialogConstants;
 import org.eclipse.swt.SWT;
@@ -22,8 +22,8 @@ import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Shell;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.core.CoreMessages;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
+import com.seizia.chromite.core.CoreMessages;
+import com.seizia.chromite.runtime.DBWorkbench;
 
 import java.util.prefs.Preferences;
 
@@ -55,7 +55,7 @@ public class EULAConfirmationDialog extends EULABaseDialog {
                 break;
             case IDialogConstants.YES_ID:
                 Preferences preferences = Preferences.userNodeForPackage(DBWorkbench.getPlatform().getApplication().getClass());
-                preferences.put(EULAUtils.DBEAVER_EULA, EULAUtils.getEulaVersion());
+                preferences.put(EULAUtils.CHROMITE_EULA, EULAUtils.getEulaVersion());
                 close();
                 break;
             default:

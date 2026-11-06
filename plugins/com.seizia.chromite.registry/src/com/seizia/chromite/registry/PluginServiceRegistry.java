@@ -14,15 +14,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.registry;
+package com.seizia.chromite.registry;
 
 import org.eclipse.core.runtime.IConfigurationElement;
 import org.eclipse.core.runtime.IExtensionRegistry;
 import org.eclipse.core.runtime.Platform;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.impl.AbstractDescriptor;
-import org.jkiss.dbeaver.runtime.IPluginService;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.impl.AbstractDescriptor;
+import com.seizia.chromite.runtime.IPluginService;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -31,7 +31,7 @@ public class PluginServiceRegistry
 {
     private static final Log log = Log.getLog(PluginServiceRegistry.class);
 
-    public static final String EXTENSION_ID = "org.jkiss.dbeaver.pluginService"; //$NON-NLS-1$
+    public static final String EXTENSION_ID = "com.seizia.chromite.pluginService"; //$NON-NLS-1$
 
     private static PluginServiceRegistry instance = null;
 

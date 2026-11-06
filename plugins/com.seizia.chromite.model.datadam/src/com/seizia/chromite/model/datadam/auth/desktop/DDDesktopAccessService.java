@@ -14,18 +14,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.datadam.auth.desktop;
+package com.seizia.chromite.model.datadam.auth.desktop;
 
 import org.eclipse.core.runtime.jobs.Job;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.datadam.DDAccountClient;
-import org.jkiss.dbeaver.model.datadam.DDEndpoints;
-import org.jkiss.dbeaver.model.datadam.auth.DDKeyBundle;
-import org.jkiss.dbeaver.model.datadam.auth.DDKeyStore;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.datadam.DDAccountClient;
+import com.seizia.chromite.model.datadam.DDEndpoints;
+import com.seizia.chromite.model.datadam.auth.DDKeyBundle;
+import com.seizia.chromite.model.datadam.auth.DDKeyStore;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
 
 import java.net.URI;
 import java.time.Duration;

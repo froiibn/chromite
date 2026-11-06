@@ -14,10 +14,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.wmi.model;
+package com.seizia.chromite.ext.wmi.model;
 
-import org.jkiss.dbeaver.model.DBPTransactionIsolation;
-import org.jkiss.dbeaver.model.impl.AbstractDataSourceInfo;
+import com.seizia.chromite.model.DBPTransactionIsolation;
+import com.seizia.chromite.model.impl.AbstractDataSourceInfo;
 import org.osgi.framework.Version;
 
 import java.util.Collection;

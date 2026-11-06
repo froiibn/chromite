@@ -14,9 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.oracle.ui.tools.sqldeveloper;
+package com.seizia.chromite.ext.oracle.ui.tools.sqldeveloper;
 
-import org.jkiss.dbeaver.ui.config.migration.wizards.ConfigImportWizard;
+import com.seizia.chromite.ui.config.migration.wizards.ConfigImportWizard;
 
 public class ConfigImportWizardSqlDeveloper extends ConfigImportWizard {
 	

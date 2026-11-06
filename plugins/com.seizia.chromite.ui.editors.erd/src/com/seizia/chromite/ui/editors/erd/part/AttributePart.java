@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.editors.erd.part;
+package com.seizia.chromite.ui.editors.erd.part;
 
 import org.eclipse.draw2d.ChopboxAnchor;
 import org.eclipse.draw2d.ConnectionAnchor;
@@ -24,20 +24,20 @@ import org.eclipse.gef.tools.DragEditPartsTracker;
 import org.eclipse.osgi.util.NLS;
 import org.eclipse.swt.accessibility.AccessibleEvent;
 import org.eclipse.swt.graphics.Color;
-import org.jkiss.dbeaver.model.erd.*;
-import org.jkiss.dbeaver.ui.editors.erd.ERDUIUtils;
-import org.jkiss.dbeaver.ui.editors.erd.command.AttributeCheckCommand;
-import org.jkiss.dbeaver.ui.editors.erd.editor.ERDGraphicalViewer;
-import org.jkiss.dbeaver.ui.editors.erd.editor.ERDHighlightingHandle;
-import org.jkiss.dbeaver.ui.editors.erd.editor.ERDHighlightingManager;
-import org.jkiss.dbeaver.ui.editors.erd.editor.ERDThemeSettings;
-import org.jkiss.dbeaver.ui.editors.erd.figures.AttributeItemFigure;
-import org.jkiss.dbeaver.ui.editors.erd.figures.EditableLabel;
-import org.jkiss.dbeaver.ui.editors.erd.internal.ERDUIActivator;
-import org.jkiss.dbeaver.ui.editors.erd.internal.ERDUIMessages;
-import org.jkiss.dbeaver.ui.editors.erd.policy.AttributeConnectionEditPolicy;
-import org.jkiss.dbeaver.ui.editors.erd.policy.AttributeDragAndDropEditPolicy;
-import org.jkiss.dbeaver.utils.ListNode;
+import com.seizia.chromite.model.erd.*;
+import com.seizia.chromite.ui.editors.erd.ERDUIUtils;
+import com.seizia.chromite.ui.editors.erd.command.AttributeCheckCommand;
+import com.seizia.chromite.ui.editors.erd.editor.ERDGraphicalViewer;
+import com.seizia.chromite.ui.editors.erd.editor.ERDHighlightingHandle;
+import com.seizia.chromite.ui.editors.erd.editor.ERDHighlightingManager;
+import com.seizia.chromite.ui.editors.erd.editor.ERDThemeSettings;
+import com.seizia.chromite.ui.editors.erd.figures.AttributeItemFigure;
+import com.seizia.chromite.ui.editors.erd.figures.EditableLabel;
+import com.seizia.chromite.ui.editors.erd.internal.ERDUIActivator;
+import com.seizia.chromite.ui.editors.erd.internal.ERDUIMessages;
+import com.seizia.chromite.ui.editors.erd.policy.AttributeConnectionEditPolicy;
+import com.seizia.chromite.ui.editors.erd.policy.AttributeDragAndDropEditPolicy;
+import com.seizia.chromite.utils.ListNode;
 
 import java.beans.PropertyChangeEvent;
 import java.util.ArrayList;

@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.controls.resultset;
+package com.seizia.chromite.ui.controls.resultset;
 
 import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.core.runtime.IStatus;
@@ -23,16 +23,16 @@ import org.eclipse.osgi.util.NLS;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.ui.progress.UIJob;
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.ModelPreferences;
-import org.jkiss.dbeaver.model.data.DBDDataFilter;
-import org.jkiss.dbeaver.model.exec.*;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.model.runtime.LocalCacheProgressMonitor;
-import org.jkiss.dbeaver.model.runtime.load.ILoadService;
-import org.jkiss.dbeaver.model.struct.DBSDataContainer;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.controls.ProgressLoaderVisualizer;
-import org.jkiss.dbeaver.ui.controls.resultset.internal.ResultSetMessages;
+import com.seizia.chromite.ModelPreferences;
+import com.seizia.chromite.model.data.DBDDataFilter;
+import com.seizia.chromite.model.exec.*;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.model.runtime.LocalCacheProgressMonitor;
+import com.seizia.chromite.model.runtime.load.ILoadService;
+import com.seizia.chromite.model.struct.DBSDataContainer;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.controls.ProgressLoaderVisualizer;
+import com.seizia.chromite.ui.controls.resultset.internal.ResultSetMessages;
 
 import java.lang.reflect.InvocationTargetException;
 

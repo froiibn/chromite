@@ -14,10 +14,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.websocket.event;
+package com.seizia.chromite.model.websocket.event;
 
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.model.websocket.WSConstants;
+import com.seizia.chromite.model.websocket.WSConstants;
 
 public class WSUserDisabledEvent extends WSAbstractEvent {
     public static final String ID = "cb_user_disabled";

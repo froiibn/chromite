@@ -14,10 +14,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.db2.tasks;
+package com.seizia.chromite.ext.db2.tasks;
 
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.ext.db2.DB2Messages;
+import com.seizia.chromite.ext.db2.DB2Messages;
 
 public enum DB2TableTruncateOptions {
 

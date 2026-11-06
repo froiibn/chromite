@@ -15,14 +15,14 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.ui.editors.binary;
+package com.seizia.chromite.ui.editors.binary;
 
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Control;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.ui.data.IHexEditorService;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.ui.data.IHexEditorService;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;

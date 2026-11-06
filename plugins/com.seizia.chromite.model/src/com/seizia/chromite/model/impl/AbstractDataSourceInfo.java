@@ -14,11 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.impl;
+package com.seizia.chromite.model.impl;
 
-import org.jkiss.dbeaver.model.DBPDataSourceInfo;
-import org.jkiss.dbeaver.model.DBPTransactionIsolation;
-import org.jkiss.dbeaver.model.struct.DBSObjectType;
+import com.seizia.chromite.model.DBPDataSourceInfo;
+import com.seizia.chromite.model.DBPTransactionIsolation;
+import com.seizia.chromite.model.struct.DBSObjectType;
 
 import java.util.Collection;
 import java.util.Map;

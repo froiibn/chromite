@@ -14,19 +14,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.tasks.ui;
+package com.seizia.chromite.tasks.ui;
 
 import org.eclipse.jface.action.Action;
 import org.eclipse.jface.action.IContributionItem;
-import org.jkiss.dbeaver.model.DBIcon;
-import org.jkiss.dbeaver.model.DBPImage;
-import org.jkiss.dbeaver.model.app.DBPProject;
-import org.jkiss.dbeaver.model.task.DBTTask;
-import org.jkiss.dbeaver.tasks.ui.view.TaskHandlerRun;
-import org.jkiss.dbeaver.ui.ActionUtils;
-import org.jkiss.dbeaver.ui.DBeaverIcons;
-import org.jkiss.dbeaver.ui.actions.datasource.DataSourceMenuContributor;
-import org.jkiss.dbeaver.ui.navigator.NavigatorUtils;
+import com.seizia.chromite.model.DBIcon;
+import com.seizia.chromite.model.DBPImage;
+import com.seizia.chromite.model.app.DBPProject;
+import com.seizia.chromite.model.task.DBTTask;
+import com.seizia.chromite.tasks.ui.view.TaskHandlerRun;
+import com.seizia.chromite.ui.ActionUtils;
+import com.seizia.chromite.ui.SwtIcons;
+import com.seizia.chromite.ui.actions.datasource.DataSourceMenuContributor;
+import com.seizia.chromite.ui.navigator.NavigatorUtils;
 
 import java.util.Arrays;
 import java.util.Comparator;
@@ -51,7 +51,7 @@ public class RecentTasksMenuContributor extends DataSourceMenuContributor
         for (DBTTask task : tasks) {
             DBPImage taskIcon = task.getType().getIcon();
             if (taskIcon == null) taskIcon = DBIcon.TREE_TASK;
-            menuItems.add(ActionUtils.makeActionContribution(new Action(task.getName(), DBeaverIcons.getImageDescriptor(taskIcon)) {
+            menuItems.add(ActionUtils.makeActionContribution(new Action(task.getName(), SwtIcons.getImageDescriptor(taskIcon)) {
                 @Override
                 public void run() {
                     TaskHandlerRun.runTask(task);

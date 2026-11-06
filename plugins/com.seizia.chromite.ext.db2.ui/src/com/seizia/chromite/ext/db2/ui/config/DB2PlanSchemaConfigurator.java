@@ -15,26 +15,26 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.ext.db2.ui.config;
+package com.seizia.chromite.ext.db2.ui.config;
 
 import org.eclipse.jface.dialogs.IDialogConstants;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.ext.db2.DB2Utils;
-import org.jkiss.dbeaver.ext.db2.model.DB2DataSource;
-import org.jkiss.dbeaver.ext.db2.model.DB2PlanConfig;
-import org.jkiss.dbeaver.ext.db2.ui.editors.DB2TablespaceChooser;
-import org.jkiss.dbeaver.ext.db2.ui.internal.DB2Messages;
-import org.jkiss.dbeaver.model.DBUtils;
-import org.jkiss.dbeaver.model.edit.DBECommandContext;
-import org.jkiss.dbeaver.model.edit.DBEObjectConfigurator;
-import org.jkiss.dbeaver.model.exec.DBCException;
-import org.jkiss.dbeaver.model.exec.jdbc.JDBCSession;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.ui.UITask;
-import org.jkiss.dbeaver.ui.UIUtils;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.ext.db2.DB2Utils;
+import com.seizia.chromite.ext.db2.model.DB2DataSource;
+import com.seizia.chromite.ext.db2.model.DB2PlanConfig;
+import com.seizia.chromite.ext.db2.ui.editors.DB2TablespaceChooser;
+import com.seizia.chromite.ext.db2.ui.internal.DB2Messages;
+import com.seizia.chromite.model.DBUtils;
+import com.seizia.chromite.model.edit.DBECommandContext;
+import com.seizia.chromite.model.edit.DBEObjectConfigurator;
+import com.seizia.chromite.model.exec.DBCException;
+import com.seizia.chromite.model.exec.jdbc.JDBCSession;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.ui.UITask;
+import com.seizia.chromite.ui.UIUtils;
 
 import java.sql.SQLException;
 import java.util.List;

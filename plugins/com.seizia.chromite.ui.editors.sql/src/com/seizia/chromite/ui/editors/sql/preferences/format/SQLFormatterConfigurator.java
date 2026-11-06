@@ -14,11 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.editors.sql.preferences.format;
+package com.seizia.chromite.ui.editors.sql.preferences.format;
 
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.model.preferences.DBPPreferenceStore;
-import org.jkiss.dbeaver.model.sql.registry.SQLFormatterDescriptor;
+import com.seizia.chromite.model.preferences.DBPPreferenceStore;
+import com.seizia.chromite.model.sql.registry.SQLFormatterDescriptor;
 
 /**
  * SQL Formatter configurator

@@ -16,17 +16,17 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.ui.editors.text;
+package com.seizia.chromite.ui.editors.text;
 
 import org.eclipse.core.resources.IMarker;
 import org.eclipse.core.resources.IResource;
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.ui.texteditor.ResourceMarkerAnnotationModel;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.navigator.DBNDatabaseNode;
-import org.jkiss.dbeaver.model.navigator.DBNNode;
-import org.jkiss.dbeaver.model.struct.DBSObject;
-import org.jkiss.dbeaver.runtime.DBMarkers;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.navigator.DBNDatabaseNode;
+import com.seizia.chromite.model.navigator.DBNNode;
+import com.seizia.chromite.model.struct.DBSObject;
+import com.seizia.chromite.runtime.DBMarkers;
 
 public class DatabaseMarkerAnnotationModel extends ResourceMarkerAnnotationModel {
 

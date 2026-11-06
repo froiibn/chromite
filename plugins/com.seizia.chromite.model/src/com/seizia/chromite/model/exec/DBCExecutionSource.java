@@ -15,10 +15,10 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.model.exec;
+package com.seizia.chromite.model.exec;
 
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.model.struct.DBSDataContainer;
+import com.seizia.chromite.model.struct.DBSDataContainer;
 
 /**
  * Execution source.

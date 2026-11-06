@@ -14,12 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.fs.lock.shared;
+package com.seizia.chromite.model.fs.lock.shared;
 
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.model.fs.lock.FileLock;
-import org.jkiss.dbeaver.model.fs.lock.Lock;
-import org.jkiss.dbeaver.model.fs.lock.LockException;
+import com.seizia.chromite.model.fs.lock.FileLock;
+import com.seizia.chromite.model.fs.lock.Lock;
+import com.seizia.chromite.model.fs.lock.LockException;
 
 public class SharedFileLock implements Lock {
 

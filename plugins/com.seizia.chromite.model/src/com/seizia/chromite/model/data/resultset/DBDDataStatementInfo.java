@@ -14,12 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.data.resultset;
+package com.seizia.chromite.model.data.resultset;
 
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.model.DBUtils;
-import org.jkiss.dbeaver.model.data.DBDAttributeValue;
-import org.jkiss.dbeaver.model.struct.DBSEntity;
+import com.seizia.chromite.model.DBUtils;
+import com.seizia.chromite.model.data.DBDAttributeValue;
+import com.seizia.chromite.model.struct.DBSEntity;
 
 import java.util.ArrayList;
 import java.util.List;

@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.editors.erd.part;
+package com.seizia.chromite.ui.editors.erd.part;
 
 import org.eclipse.draw2d.ChopboxAnchor;
 import org.eclipse.draw2d.ConnectionAnchor;
@@ -27,19 +27,19 @@ import org.eclipse.gef.requests.DirectEditRequest;
 import org.eclipse.gef.tools.DirectEditManager;
 import org.eclipse.osgi.util.NLS;
 import org.eclipse.swt.accessibility.AccessibleEvent;
-import org.jkiss.dbeaver.model.DBPNamedObject;
-import org.jkiss.dbeaver.model.erd.ERDElement;
-import org.jkiss.dbeaver.model.erd.ERDNote;
-import org.jkiss.dbeaver.ui.controls.MultilineTextCellEditor;
-import org.jkiss.dbeaver.ui.editors.erd.ERDUIConstants;
-import org.jkiss.dbeaver.ui.editors.erd.directedit.ExtendedDirectEditManager;
-import org.jkiss.dbeaver.ui.editors.erd.directedit.FigureEditorLocator;
-import org.jkiss.dbeaver.ui.editors.erd.figures.NoteFigure;
-import org.jkiss.dbeaver.ui.editors.erd.internal.ERDUIMessages;
-import org.jkiss.dbeaver.ui.editors.erd.model.EntityDiagram;
-import org.jkiss.dbeaver.ui.editors.erd.policy.EntityConnectionEditPolicy;
-import org.jkiss.dbeaver.ui.editors.erd.policy.NoteDirectEditPolicy;
-import org.jkiss.dbeaver.ui.editors.erd.policy.NoteEditPolicy;
+import com.seizia.chromite.model.DBPNamedObject;
+import com.seizia.chromite.model.erd.ERDElement;
+import com.seizia.chromite.model.erd.ERDNote;
+import com.seizia.chromite.ui.controls.MultilineTextCellEditor;
+import com.seizia.chromite.ui.editors.erd.ERDUIConstants;
+import com.seizia.chromite.ui.editors.erd.directedit.ExtendedDirectEditManager;
+import com.seizia.chromite.ui.editors.erd.directedit.FigureEditorLocator;
+import com.seizia.chromite.ui.editors.erd.figures.NoteFigure;
+import com.seizia.chromite.ui.editors.erd.internal.ERDUIMessages;
+import com.seizia.chromite.ui.editors.erd.model.EntityDiagram;
+import com.seizia.chromite.ui.editors.erd.policy.EntityConnectionEditPolicy;
+import com.seizia.chromite.ui.editors.erd.policy.NoteDirectEditPolicy;
+import com.seizia.chromite.ui.editors.erd.policy.NoteEditPolicy;
 
 import java.beans.PropertyChangeEvent;
 

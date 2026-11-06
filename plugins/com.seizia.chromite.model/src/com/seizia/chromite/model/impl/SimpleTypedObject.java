@@ -14,12 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.impl;
+package com.seizia.chromite.model.impl;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.model.DBPDataKind;
-import org.jkiss.dbeaver.model.struct.DBSTypedObject;
+import com.seizia.chromite.model.DBPDataKind;
+import com.seizia.chromite.model.struct.DBSTypedObject;
 
 /**
  * SimpleTypedObject

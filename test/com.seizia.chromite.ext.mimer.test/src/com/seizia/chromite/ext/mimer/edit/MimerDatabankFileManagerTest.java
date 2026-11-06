@@ -14,13 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.mimer.edit;
+package com.seizia.chromite.ext.mimer.edit;
 
-import org.jkiss.dbeaver.ext.mimer.model.MimerDataSource;
-import org.jkiss.dbeaver.ext.mimer.model.MimerDatabank;
-import org.jkiss.dbeaver.ext.mimer.model.MimerDatabankFile;
-import org.jkiss.dbeaver.model.struct.cache.DBSObjectCache;
-import org.jkiss.junit.DBeaverUnitTest;
+import com.seizia.chromite.ext.mimer.model.MimerDataSource;
+import com.seizia.chromite.ext.mimer.model.MimerDatabank;
+import com.seizia.chromite.ext.mimer.model.MimerDatabankFile;
+import com.seizia.chromite.model.struct.cache.DBSObjectCache;
+import com.seizia.chromite.junit.ChromiteUnitTest;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
@@ -38,7 +38,7 @@ import java.util.List;
  *
  * @author Mimer Information Technology
  */
-public class MimerDatabankFileManagerTest extends DBeaverUnitTest {
+public class MimerDatabankFileManagerTest extends ChromiteUnitTest {
 
     @Mock
     private MimerDatabank databank;

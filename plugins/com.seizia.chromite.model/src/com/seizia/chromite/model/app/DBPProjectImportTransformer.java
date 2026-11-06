@@ -14,17 +14,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.app;
+package com.seizia.chromite.model.app;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
 
 import java.util.Map;
 
 /**
  * Transforms an archived text resource before it is written to an imported project.
- * Registered for an exact project-relative resource path through org.jkiss.dbeaver.projectImport.
+ * Registered for an exact project-relative resource path through com.seizia.chromite.projectImport.
  * The caller is responsible for decoding and encoding the resource contents.
  */
 public interface DBPProjectImportTransformer {

@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.mysql.tools;
+package com.seizia.chromite.ext.mysql.tools;
 
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.events.SelectionListener;
@@ -23,12 +23,12 @@ import org.eclipse.swt.widgets.Button;
 import org.eclipse.swt.widgets.Combo;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Text;
-import org.jkiss.dbeaver.ext.mysql.tasks.MySQLScriptExecuteSettings;
-import org.jkiss.dbeaver.ext.mysql.ui.internal.MySQLUIMessages;
-import org.jkiss.dbeaver.model.app.DBPProject;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.controls.TextWithOpenFile;
-import org.jkiss.dbeaver.ui.controls.TextWithOpenFileRemote;
+import com.seizia.chromite.ext.mysql.tasks.MySQLScriptExecuteSettings;
+import com.seizia.chromite.ext.mysql.ui.internal.MySQLUIMessages;
+import com.seizia.chromite.model.app.DBPProject;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.controls.TextWithOpenFile;
+import com.seizia.chromite.ui.controls.TextWithOpenFileRemote;
 import org.jkiss.utils.CommonUtils;
 
 

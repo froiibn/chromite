@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.ai.format;
+package com.seizia.chromite.ui.ai.format;
 
 import org.eclipse.jface.layout.GridDataFactory;
 import org.eclipse.swt.SWT;
@@ -23,16 +23,16 @@ import org.eclipse.swt.widgets.Button;
 import org.eclipse.swt.widgets.Combo;
 import org.eclipse.swt.widgets.Composite;
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.model.ai.AIConstants;
-import org.jkiss.dbeaver.model.ai.AIQueryConfirmationRule;
-import org.jkiss.dbeaver.model.ai.AISchemaGenerator;
-import org.jkiss.dbeaver.model.ai.AISettings;
-import org.jkiss.dbeaver.model.preferences.DBPPreferenceStore;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.ui.IObjectPropertyConfigurator;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.ai.internal.AIUIMessages;
-import org.jkiss.dbeaver.ui.internal.UIMessages;
+import com.seizia.chromite.model.ai.AIConstants;
+import com.seizia.chromite.model.ai.AIQueryConfirmationRule;
+import com.seizia.chromite.model.ai.AISchemaGenerator;
+import com.seizia.chromite.model.ai.AISettings;
+import com.seizia.chromite.model.preferences.DBPPreferenceStore;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.ui.IObjectPropertyConfigurator;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.ai.internal.AIUIMessages;
+import com.seizia.chromite.ui.internal.UIMessages;
 import org.jkiss.utils.CommonUtils;
 
 import java.util.Locale;

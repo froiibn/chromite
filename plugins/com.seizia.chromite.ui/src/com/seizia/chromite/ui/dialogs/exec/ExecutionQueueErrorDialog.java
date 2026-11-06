@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.dialogs.exec;
+package com.seizia.chromite.ui.dialogs.exec;
 
 import org.eclipse.core.runtime.IStatus;
 import org.eclipse.jface.dialogs.IDialogConstants;
@@ -22,8 +22,8 @@ import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Shell;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.ui.dialogs.StandardErrorDialog;
-import org.jkiss.dbeaver.ui.internal.UIMessages;
+import com.seizia.chromite.ui.dialogs.StandardErrorDialog;
+import com.seizia.chromite.ui.internal.UIMessages;
 
 /**
  * ExecutionQueueErrorDialog

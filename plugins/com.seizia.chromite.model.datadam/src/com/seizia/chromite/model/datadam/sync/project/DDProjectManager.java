@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.datadam.sync.project;
+package com.seizia.chromite.model.datadam.sync.project;
 
 import com.dbeaver.datadam.share.api.exception.DDShareException;
 import com.dbeaver.datadam.share.api.model.DDSharedProject;
@@ -22,17 +22,17 @@ import com.dbeaver.datadam.share.api.model.DDSharedProjectRevision;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.model.app.DBPProject;
-import org.jkiss.dbeaver.model.app.DBPWorkspace;
-import org.jkiss.dbeaver.model.datadam.DDEndpoints;
-import org.jkiss.dbeaver.model.datadam.auth.DDKeyBundle;
-import org.jkiss.dbeaver.model.datadam.auth.desktop.DDDesktopAccessService;
-import org.jkiss.dbeaver.model.datadam.sync.core.DDShareClient;
-import org.jkiss.dbeaver.model.datadam.sync.project.sync.DDProject;
-import org.jkiss.dbeaver.model.datadam.sync.project.sync.DDProjectSyncBindingStore;
-import org.jkiss.dbeaver.model.datadam.sync.project.sync.DDProjectSyncLocalBinding;
-import org.jkiss.dbeaver.model.datadam.sync.project.sync.DDProjectSyncService;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
+import com.seizia.chromite.model.app.DBPProject;
+import com.seizia.chromite.model.app.DBPWorkspace;
+import com.seizia.chromite.model.datadam.DDEndpoints;
+import com.seizia.chromite.model.datadam.auth.DDKeyBundle;
+import com.seizia.chromite.model.datadam.auth.desktop.DDDesktopAccessService;
+import com.seizia.chromite.model.datadam.sync.core.DDShareClient;
+import com.seizia.chromite.model.datadam.sync.project.sync.DDProject;
+import com.seizia.chromite.model.datadam.sync.project.sync.DDProjectSyncBindingStore;
+import com.seizia.chromite.model.datadam.sync.project.sync.DDProjectSyncLocalBinding;
+import com.seizia.chromite.model.datadam.sync.project.sync.DDProjectSyncService;
+import com.seizia.chromite.runtime.DBWorkbench;
 import org.jkiss.utils.CommonUtils;
 
 import java.nio.file.Path;

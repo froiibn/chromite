@@ -14,20 +14,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.resources.projects;
+package com.seizia.chromite.ui.resources.projects;
 
 import org.eclipse.core.resources.IProject;
 import org.eclipse.core.resources.IResource;
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.model.app.DBPPlatformDesktop;
-import org.jkiss.dbeaver.model.app.DBPProject;
-import org.jkiss.dbeaver.model.rcp.RCPProject;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.actions.GlobalUIPropertyTester;
-import org.jkiss.dbeaver.ui.dialogs.MultiPageWizardDialog;
-import org.jkiss.dbeaver.ui.project.EditProjectWizard;
-import org.jkiss.dbeaver.ui.resources.AbstractResourceHandler;
+import com.seizia.chromite.model.app.DBPPlatformDesktop;
+import com.seizia.chromite.model.app.DBPProject;
+import com.seizia.chromite.model.rcp.RCPProject;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.actions.GlobalUIPropertyTester;
+import com.seizia.chromite.ui.dialogs.MultiPageWizardDialog;
+import com.seizia.chromite.ui.project.EditProjectWizard;
+import com.seizia.chromite.ui.resources.AbstractResourceHandler;
 
 /**
  * Project handler

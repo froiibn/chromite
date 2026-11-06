@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.notifications;
+package com.seizia.chromite.ui.notifications;
 
 import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.Status;
@@ -23,18 +23,18 @@ import org.eclipse.core.runtime.jobs.JobChangeAdapter;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.ModelPreferences;
-import org.jkiss.dbeaver.model.DBPDataSource;
-import org.jkiss.dbeaver.model.DBPMessageType;
-import org.jkiss.dbeaver.model.preferences.DBPPreferenceStore;
-import org.jkiss.dbeaver.model.runtime.AbstractJob;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.ui.notifications.sounds.BeepSoundProvider;
-import org.jkiss.dbeaver.ui.notifications.sounds.FileSoundProvider;
-import org.jkiss.dbeaver.ui.registry.NotificationDescriptor;
-import org.jkiss.dbeaver.ui.registry.NotificationRegistry;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.ModelPreferences;
+import com.seizia.chromite.model.DBPDataSource;
+import com.seizia.chromite.model.DBPMessageType;
+import com.seizia.chromite.model.preferences.DBPPreferenceStore;
+import com.seizia.chromite.model.runtime.AbstractJob;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.ui.notifications.sounds.BeepSoundProvider;
+import com.seizia.chromite.ui.notifications.sounds.FileSoundProvider;
+import com.seizia.chromite.ui.registry.NotificationDescriptor;
+import com.seizia.chromite.ui.registry.NotificationRegistry;
 import org.jkiss.utils.CommonUtils;
 
 import java.io.File;

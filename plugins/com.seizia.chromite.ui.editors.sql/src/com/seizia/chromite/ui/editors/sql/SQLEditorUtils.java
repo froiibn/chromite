@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.editors.sql;
+package com.seizia.chromite.ui.editors.sql;
 
 import org.eclipse.core.resources.IFile;
 import org.eclipse.core.resources.IFolder;
@@ -29,35 +29,35 @@ import org.eclipse.ui.ide.ResourceUtil;
 import org.eclipse.ui.texteditor.ITextEditorExtension2;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.ModelPreferences.SeparateConnectionBehavior;
-import org.jkiss.dbeaver.model.DBConstants;
-import org.jkiss.dbeaver.model.DBPDataSourceContainer;
-import org.jkiss.dbeaver.model.DBPDataSourceFolder;
-import org.jkiss.dbeaver.model.DBPExternalFileManager;
-import org.jkiss.dbeaver.model.app.DBPPlatformDesktop;
-import org.jkiss.dbeaver.model.app.DBPProject;
-import org.jkiss.dbeaver.model.connection.DBPDriver;
-import org.jkiss.dbeaver.model.exec.DBCExecutionContext;
-import org.jkiss.dbeaver.model.preferences.DBPPreferenceListener;
-import org.jkiss.dbeaver.model.preferences.DBPPreferenceStore;
-import org.jkiss.dbeaver.model.rcp.RCPProject;
-import org.jkiss.dbeaver.model.sql.SQLConstants;
-import org.jkiss.dbeaver.model.sql.SQLUtils;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.runtime.ui.UIServiceSQL;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.editors.EditorUtils;
-import org.jkiss.dbeaver.ui.editors.sql.commands.DisableSQLSyntaxParserHandler;
-import org.jkiss.dbeaver.ui.editors.sql.handlers.SQLEditorVariablesResolver;
-import org.jkiss.dbeaver.ui.editors.sql.handlers.SQLNavigatorContext;
-import org.jkiss.dbeaver.ui.editors.sql.internal.SQLEditorActivator;
-import org.jkiss.dbeaver.ui.editors.sql.scripts.ScriptsHandlerImpl;
-import org.jkiss.dbeaver.ui.editors.sql.templates.SQLContextTypeBase;
-import org.jkiss.dbeaver.ui.editors.sql.templates.SQLContextTypeDriver;
-import org.jkiss.dbeaver.ui.editors.sql.templates.SQLContextTypeProvider;
-import org.jkiss.dbeaver.utils.GeneralUtils;
-import org.jkiss.dbeaver.utils.ResourceUtils;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.ModelPreferences.SeparateConnectionBehavior;
+import com.seizia.chromite.model.DBConstants;
+import com.seizia.chromite.model.DBPDataSourceContainer;
+import com.seizia.chromite.model.DBPDataSourceFolder;
+import com.seizia.chromite.model.DBPExternalFileManager;
+import com.seizia.chromite.model.app.DBPPlatformDesktop;
+import com.seizia.chromite.model.app.DBPProject;
+import com.seizia.chromite.model.connection.DBPDriver;
+import com.seizia.chromite.model.exec.DBCExecutionContext;
+import com.seizia.chromite.model.preferences.DBPPreferenceListener;
+import com.seizia.chromite.model.preferences.DBPPreferenceStore;
+import com.seizia.chromite.model.rcp.RCPProject;
+import com.seizia.chromite.model.sql.SQLConstants;
+import com.seizia.chromite.model.sql.SQLUtils;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.runtime.ui.UIServiceSQL;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.editors.EditorUtils;
+import com.seizia.chromite.ui.editors.sql.commands.DisableSQLSyntaxParserHandler;
+import com.seizia.chromite.ui.editors.sql.handlers.SQLEditorVariablesResolver;
+import com.seizia.chromite.ui.editors.sql.handlers.SQLNavigatorContext;
+import com.seizia.chromite.ui.editors.sql.internal.SQLEditorActivator;
+import com.seizia.chromite.ui.editors.sql.scripts.ScriptsHandlerImpl;
+import com.seizia.chromite.ui.editors.sql.templates.SQLContextTypeBase;
+import com.seizia.chromite.ui.editors.sql.templates.SQLContextTypeDriver;
+import com.seizia.chromite.ui.editors.sql.templates.SQLContextTypeProvider;
+import com.seizia.chromite.utils.GeneralUtils;
+import com.seizia.chromite.utils.ResourceUtils;
 import org.jkiss.utils.CommonUtils;
 import org.jkiss.utils.Pair;
 
@@ -309,7 +309,7 @@ public class SQLEditorUtils {
     }
 
     public static IContentType getSQLContentType() {
-        return Platform.getContentTypeManager().getContentType("org.jkiss.dbeaver.sql");
+        return Platform.getContentTypeManager().getContentType("com.seizia.chromite.sql");
     }
 
     @Nullable

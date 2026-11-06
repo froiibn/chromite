@@ -15,16 +15,16 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.ui.editors.erd.part;
+package com.seizia.chromite.ui.editors.erd.part;
 
 import org.eclipse.draw2d.*;
 import org.eclipse.draw2d.geometry.Rectangle;
 import org.eclipse.gef.NodeEditPart;
 import org.eclipse.swt.graphics.Color;
 import org.eclipse.swt.graphics.Font;
-import org.jkiss.dbeaver.model.erd.ERDAssociation;
-import org.jkiss.dbeaver.model.erd.ERDElement;
-import org.jkiss.dbeaver.ui.editors.erd.editor.ERDThemeSettings;
+import com.seizia.chromite.model.erd.ERDAssociation;
+import com.seizia.chromite.model.erd.ERDElement;
+import com.seizia.chromite.ui.editors.erd.editor.ERDThemeSettings;
 
 import java.util.List;
 

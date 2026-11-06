@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.ui;
+package com.seizia.chromite.ui;
 
 import org.eclipse.core.commands.Command;
 import org.eclipse.core.commands.IParameter;
@@ -50,10 +50,10 @@ import org.eclipse.ui.services.IEvaluationService;
 import org.eclipse.ui.services.IServiceLocator;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.DBIcon;
-import org.jkiss.dbeaver.model.DBPImage;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.DBIcon;
+import com.seizia.chromite.model.DBPImage;
+import com.seizia.chromite.runtime.DBWorkbench;
 import org.jkiss.utils.ArrayUtils;
 import org.jkiss.utils.CommonUtils;
 
@@ -66,7 +66,7 @@ import java.util.function.Consumer;
  */
 public class ActionUtils {
 
-    private static final String HOSTING_OBJECT_PROP_NAME = "org.jkiss.dbeaver.ui.hostingObject";
+    private static final String HOSTING_OBJECT_PROP_NAME = "com.seizia.chromite.ui.hostingObject";
 
     private static final Log log = Log.getLog(ActionUtils.class);
 
@@ -116,7 +116,7 @@ public class ActionUtils {
             null,
             commandId,
             style);
-        parameters.icon = icon == null ? null : DBeaverIcons.getImageDescriptor(icon);
+        parameters.icon = icon == null ? null : SwtIcons.getImageDescriptor(icon);
         return new CommandContributionItem(parameters);
     }
 
@@ -149,7 +149,7 @@ public class ActionUtils {
         @NotNull Consumer<Event> callback
     ) {
         var item = makeContribution(text, callback);
-        item.getAction().setImageDescriptor(DBeaverIcons.getImageDescriptor(image));
+        item.getAction().setImageDescriptor(SwtIcons.getImageDescriptor(image));
         return item;
     }
 
@@ -168,7 +168,7 @@ public class ActionUtils {
         DBPImage image) {
         ActionContributionItem item = new ActionContributionItem(action);
         if (image != null) {
-            action.setImageDescriptor(DBeaverIcons.getImageDescriptor(image));
+            action.setImageDescriptor(SwtIcons.getImageDescriptor(image));
         }
         return item;
     }
@@ -198,7 +198,7 @@ public class ActionUtils {
             null,
             commandId,
             null,
-            image == null ? null : DBeaverIcons.getImageDescriptor(image),
+            image == null ? null : SwtIcons.getImageDescriptor(image),
             null,
             null,
             name,
@@ -498,7 +498,7 @@ public class ActionUtils {
 
     @NotNull
     public static IAction makeAction(@NotNull String text, @NotNull DBIcon icon, @NotNull Consumer<IAction> callback) {
-        return new Action(text, DBeaverIcons.getImageDescriptor(icon)) {
+        return new Action(text, SwtIcons.getImageDescriptor(icon)) {
             @Override
             public void run() {
                 callback.accept(this);

@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.lsp.utils;
+package com.seizia.chromite.model.lsp.utils;
 
 import org.eclipse.lsp4j.Position;
 import org.jkiss.code.NotNull;

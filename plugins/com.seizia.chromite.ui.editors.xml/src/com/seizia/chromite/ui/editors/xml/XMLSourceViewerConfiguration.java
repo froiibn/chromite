@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.editors.xml;
+package com.seizia.chromite.ui.editors.xml;
 
 import org.eclipse.jface.resource.ColorRegistry;
 import org.eclipse.jface.text.IDocument;
@@ -33,13 +33,13 @@ import org.eclipse.jface.text.rules.DefaultDamagerRepairer;
 import org.eclipse.jface.text.rules.Token;
 import org.eclipse.jface.text.source.ISourceViewer;
 import org.eclipse.jface.text.source.SourceViewerConfiguration;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.editors.text.NonRuleBasedDamagerRepairer;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.editors.text.NonRuleBasedDamagerRepairer;
 
 public class XMLSourceViewerConfiguration extends SourceViewerConfiguration {
-    private static final String COLOR_XML_COMMENT = "org.jkiss.dbeaver.xml.editor.color.comment";
-    static final String COLOR_XML_STRING = "org.jkiss.dbeaver.xml.editor.color.text";
-    private static final String COLOR_XML_TAG = "org.jkiss.dbeaver.xml.editor.color.tag";
+    private static final String COLOR_XML_COMMENT = "com.seizia.chromite.xml.editor.color.comment";
+    static final String COLOR_XML_STRING = "com.seizia.chromite.xml.editor.color.text";
+    private static final String COLOR_XML_TAG = "com.seizia.chromite.xml.editor.color.tag";
 
     private final XMLEditor editor;
 

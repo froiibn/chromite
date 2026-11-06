@@ -14,12 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.controls.resultset.virtual;
+package com.seizia.chromite.ui.controls.resultset.virtual;
 
 import org.eclipse.jface.action.Action;
-import org.jkiss.dbeaver.ui.controls.resultset.ResultSetViewer;
-import org.jkiss.dbeaver.ui.controls.resultset.internal.ResultSetMessages;
-import org.jkiss.dbeaver.ui.editors.object.struct.EditForeignKeyPage;
+import com.seizia.chromite.ui.controls.resultset.ResultSetViewer;
+import com.seizia.chromite.ui.controls.resultset.internal.ResultSetMessages;
+import com.seizia.chromite.ui.editors.object.struct.EditForeignKeyPage;
 
 public class VirtualForeignKeyEditAction extends Action {
 

@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.impl;
+package com.seizia.chromite.model.impl;
 
 import org.apache.commons.jexl3.*;
 import org.apache.commons.jexl3.introspection.JexlPermissions;
@@ -27,10 +27,10 @@ import org.eclipse.core.runtime.Platform;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.DBIcon;
-import org.jkiss.dbeaver.model.DBPImage;
-import org.jkiss.dbeaver.utils.RuntimeUtils;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.DBIcon;
+import com.seizia.chromite.model.DBPImage;
+import com.seizia.chromite.utils.RuntimeUtils;
 import org.jkiss.utils.CommonUtils;
 import org.osgi.framework.Bundle;
 
@@ -80,7 +80,7 @@ public abstract class AbstractDescriptor {
         synchronized (AbstractDescriptor.class) {
             if (jexlEngine == null) {
                 jexlEngine = new JexlBuilder()
-                    .permissions(new DBeaverJexlPermissions())
+                    .permissions(new ChromiteJexlPermissions())
                     .cache(100)
                     .strategy(JEXL_STRATEGY)
                     .create();
@@ -490,15 +490,15 @@ public abstract class AbstractDescriptor {
         return (Class<T>) objectClass;
     }
 
-    public static final class DBeaverJexlPermissions implements JexlPermissions {
+    public static final class ChromiteJexlPermissions implements JexlPermissions {
 
         private static JexlPermissions BASE = JexlPermissions.RESTRICTED;
 
-        public DBeaverJexlPermissions() {
+        public ChromiteJexlPermissions() {
             BASE = JexlPermissions.RESTRICTED;
         }
 
-        public DBeaverJexlPermissions(@NotNull JexlPermissions base) {
+        public ChromiteJexlPermissions(@NotNull JexlPermissions base) {
             BASE = base;
         }
 
@@ -534,11 +534,11 @@ public abstract class AbstractDescriptor {
 
         @Override
         public JexlPermissions compose(@NotNull String... strings) {
-            return new DBeaverJexlPermissions(BASE.compose(strings));
+            return new ChromiteJexlPermissions(BASE.compose(strings));
         }
 
         private static boolean checkPackage(@NotNull String name) {
-            return name.startsWith("org.jkiss.dbeaver.") || name.startsWith("org.jkiss.utils.") || name.startsWith("com.dbeaver.");
+            return name.startsWith("com.seizia.chromite.") || name.startsWith("org.jkiss.utils.") || name.startsWith("com.dbeaver.");
         }
     }
 }

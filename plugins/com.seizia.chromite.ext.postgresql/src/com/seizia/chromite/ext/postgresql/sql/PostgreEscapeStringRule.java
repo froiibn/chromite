@@ -14,10 +14,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.postgresql.sql;
+package com.seizia.chromite.ext.postgresql.sql;
 
-import org.jkiss.dbeaver.model.sql.parser.tokens.SQLTokenType;
-import org.jkiss.dbeaver.model.text.parser.*;
+import com.seizia.chromite.model.sql.parser.tokens.SQLTokenType;
+import com.seizia.chromite.model.text.parser.*;
 
 /**
  * This rule matches string literals with C-Style escapes, as

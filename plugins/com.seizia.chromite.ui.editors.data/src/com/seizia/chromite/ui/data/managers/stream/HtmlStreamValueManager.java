@@ -14,19 +14,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.data.managers.stream;
+package com.seizia.chromite.ui.data.managers.stream;
 
 import org.eclipse.ui.IEditorPart;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.model.data.DBDContent;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.model.struct.DBSTypedObject;
-import org.jkiss.dbeaver.ui.data.IStreamValueEditor;
-import org.jkiss.dbeaver.ui.data.IStreamValueManager;
-import org.jkiss.dbeaver.ui.data.IValueController;
-import org.jkiss.dbeaver.utils.ContentUtils;
-import org.jkiss.dbeaver.utils.MimeTypes;
+import com.seizia.chromite.model.data.DBDContent;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.model.struct.DBSTypedObject;
+import com.seizia.chromite.ui.data.IStreamValueEditor;
+import com.seizia.chromite.ui.data.IStreamValueManager;
+import com.seizia.chromite.ui.data.IValueController;
+import com.seizia.chromite.utils.ContentUtils;
+import com.seizia.chromite.utils.MimeTypes;
 
 /**
  * HTML preview manager

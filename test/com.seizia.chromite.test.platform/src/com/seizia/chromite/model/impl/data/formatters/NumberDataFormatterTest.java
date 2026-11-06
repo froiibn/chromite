@@ -14,9 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.impl.data.formatters;
+package com.seizia.chromite.model.impl.data.formatters;
 
-import org.jkiss.junit.DBeaverUnitTest;
+import com.seizia.chromite.junit.ChromiteUnitTest;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -25,7 +25,7 @@ import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
 
-public class NumberDataFormatterTest extends DBeaverUnitTest {
+public class NumberDataFormatterTest extends ChromiteUnitTest {
 
     private static final BigDecimal SMALL_VALUE = new BigDecimal("0.0000000000015");
 

@@ -15,13 +15,13 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.ui.charts;
+package com.seizia.chromite.ui.charts;
 
 import org.eclipse.jface.resource.ColorRegistry;
 import org.eclipse.swt.graphics.Color;
 import org.jfree.chart.plot.DefaultDrawingSupplier;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.ui.UIUtils;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.ui.UIUtils;
 
 import java.awt.*;
 import java.util.ArrayList;
@@ -33,7 +33,7 @@ import java.util.List;
  */
 public class BaseChartDrawingSupplier extends DefaultDrawingSupplier {
 
-    public static final String COLOR_PREF_ID_PREFIX = "org.jkiss.dbeaver.ui.data.chart.color.";
+    public static final String COLOR_PREF_ID_PREFIX = "com.seizia.chromite.ui.data.chart.color.";
 
     private static final Log log = Log.getLog(BaseChartDrawingSupplier.class);
 
@@ -59,7 +59,7 @@ public class BaseChartDrawingSupplier extends DefaultDrawingSupplier {
         if (result.isEmpty()) {
             // Something went wrong - no color constants
             log.warn("Chart colors configuration not found");
-            Collections.addAll(result, BaseChartConstants.DBEAVER_DEFAULT_COLOR_SERIES);
+            Collections.addAll(result, BaseChartConstants.CHROMITE_DEFAULT_COLOR_SERIES);
         }
         return result.toArray(new Paint[0]);
     }

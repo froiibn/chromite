@@ -3,29 +3,29 @@
 
 <plugin>
 
-    <extension point="org.jkiss.dbeaver.generic.meta">
+    <extension point="com.seizia.chromite.generic.meta">
         <meta id="timeplus"
-              class="org.jkiss.dbeaver.ext.timeplus.model.TimeplusMetaModel"
+              class="com.seizia.chromite.ext.timeplus.model.TimeplusMetaModel"
               driverClass="com.timeplus.jdbc.TimeplusDriver,com.timeplus.proton.jdbc.ProtonDriver"
               dialect="generic"/>
     </extension>
 
-    <extension point="org.jkiss.dbeaver.dataSourceProvider">
+    <extension point="com.seizia.chromite.dataSourceProvider">
         <dataSourceType
             id="timeplus"
             label="Timeplus"
             description="Timeplus database"
             dataSourceInformation="High-performance analytical database platform"
-            icon="platform:/plugin/org.jkiss.dbeaver.ext.timeplus/icons/timeplus_icon.png"
-            iconBig="platform:/plugin/org.jkiss.dbeaver.ext.timeplus/icons/timeplus_icon_big.png"/>
+            icon="platform:/plugin/com.seizia.chromite.ext.timeplus/icons/timeplus_icon.png"
+            iconBig="platform:/plugin/com.seizia.chromite.ext.timeplus/icons/timeplus_icon_big.png"/>
         <datasource
-                class="org.jkiss.dbeaver.ext.timeplus.TimeplusDataSourceProvider"
+                class="com.seizia.chromite.ext.timeplus.TimeplusDataSourceProvider"
                 description="Timeplus"
                 id="timeplus"
                 dataSourceType="timeplus"
                 parent="generic"
                 label="Timeplus"
-                icon="platform:/plugin/org.jkiss.dbeaver.ext.timeplus/icons/timeplus_icon.png"
+                icon="platform:/plugin/com.seizia.chromite.ext.timeplus/icons/timeplus_icon.png"
                 dialect="generic">
             <drivers managable="true">
 
@@ -42,7 +42,7 @@
                     webURL="https://docs.timeplus.com/jdbc"
                     categories="sql,analytic,streaming"
                     allowsEmptyPassword="true">
-                    <property name="@dbeaver-default-resultset.maxrows.sql" value="true"/>
+                    <property name="@chromite-default-resultset.maxrows.sql" value="true"/>
                     <file type="jar" path="maven:/com.timeplus:timeplus-native-jdbc:2.0.9"/>
                     <file type="license" path="licenses/external/asl-2.0.txt"/>
                     <parameter name="supports-references" value="false"/>
@@ -66,7 +66,7 @@
                     webURL="https://docs.timeplus.com/jdbc"
                     categories="sql,analytic,streaming"
                     allowsEmptyPassword="true">
-                    <property name="@dbeaver-default-resultset.maxrows.sql" value="true"/>
+                    <property name="@chromite-default-resultset.maxrows.sql" value="true"/>
                     <file type="jar" path="maven:/com.timeplus:proton-jdbc:0.7.1"/>
                     <file type="license" path="licenses/external/asl-2.0.txt"/>
                     <parameter name="supports-references" value="false"/>
@@ -80,11 +80,11 @@
         </datasource>
     </extension>
 
-    <extension point="org.jkiss.dbeaver.objectManager">
-        <manager class="org.jkiss.dbeaver.ext.timeplus.edit.TimeplusTableManager"
-                 objectType="org.jkiss.dbeaver.ext.timeplus.model.TimeplusTable"/>
-        <manager class="org.jkiss.dbeaver.ext.timeplus.edit.TimeplusTableColumnManager"
-                 objectType="org.jkiss.dbeaver.ext.timeplus.model.TimeplusTableColumn"/>
+    <extension point="com.seizia.chromite.objectManager">
+        <manager class="com.seizia.chromite.ext.timeplus.edit.TimeplusTableManager"
+                 objectType="com.seizia.chromite.ext.timeplus.model.TimeplusTable"/>
+        <manager class="com.seizia.chromite.ext.timeplus.edit.TimeplusTableColumnManager"
+                 objectType="com.seizia.chromite.ext.timeplus.model.TimeplusTableColumn"/>
     </extension>
 
 </plugin>

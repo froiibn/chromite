@@ -14,24 +14,24 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.registry.task;
+package com.seizia.chromite.registry.task;
 
 import org.eclipse.core.runtime.IConfigurationElement;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.model.DBPImage;
-import org.jkiss.dbeaver.model.DBPNamedObjectLocalized;
-import org.jkiss.dbeaver.model.DBPObject;
-import org.jkiss.dbeaver.model.impl.AbstractDescriptor;
-import org.jkiss.dbeaver.model.impl.PropertyDescriptor;
-import org.jkiss.dbeaver.model.preferences.DBPPropertyDescriptor;
-import org.jkiss.dbeaver.model.struct.DBSEntityElement;
-import org.jkiss.dbeaver.model.task.DBTTaskCategory;
-import org.jkiss.dbeaver.model.task.DBTTaskHandler;
-import org.jkiss.dbeaver.model.task.DBTTaskType;
-import org.jkiss.dbeaver.registry.DataSourceBindingDescriptor;
-import org.jkiss.dbeaver.registry.RegistryConstants;
+import com.seizia.chromite.model.DBPImage;
+import com.seizia.chromite.model.DBPNamedObjectLocalized;
+import com.seizia.chromite.model.DBPObject;
+import com.seizia.chromite.model.impl.AbstractDescriptor;
+import com.seizia.chromite.model.impl.PropertyDescriptor;
+import com.seizia.chromite.model.preferences.DBPPropertyDescriptor;
+import com.seizia.chromite.model.struct.DBSEntityElement;
+import com.seizia.chromite.model.task.DBTTaskCategory;
+import com.seizia.chromite.model.task.DBTTaskHandler;
+import com.seizia.chromite.model.task.DBTTaskType;
+import com.seizia.chromite.registry.DataSourceBindingDescriptor;
+import com.seizia.chromite.registry.RegistryConstants;
 import org.jkiss.utils.CommonUtils;
 
 import java.util.ArrayList;

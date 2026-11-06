@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.editors.content;
+package com.seizia.chromite.ui.editors.content;
 
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.IProgressMonitor;
@@ -28,14 +28,14 @@ import org.eclipse.swt.widgets.Shell;
 import org.eclipse.ui.*;
 import org.eclipse.ui.part.MultiPageEditorActionBarContributor;
 import org.eclipse.ui.texteditor.BasicTextEditorActionContributor;
-import org.jkiss.dbeaver.model.DBIcon;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.ui.ActionUtils;
-import org.jkiss.dbeaver.ui.DBeaverIcons;
-import org.jkiss.dbeaver.ui.UIIcon;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.dialogs.DialogUtils;
-import org.jkiss.dbeaver.ui.editors.BaseTextEditorCommands;
+import com.seizia.chromite.model.DBIcon;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.ui.ActionUtils;
+import com.seizia.chromite.ui.SwtIcons;
+import com.seizia.chromite.ui.UIIcon;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.dialogs.DialogUtils;
+import com.seizia.chromite.ui.editors.BaseTextEditorCommands;
 
 import java.lang.reflect.InvocationTargetException;
 import java.nio.file.Path;
@@ -181,7 +181,7 @@ public class ContentEditorContributor extends MultiPageEditorActionBarContributo
     public abstract class SimpleAction extends Action {
 
         SimpleAction(String id, String text, String toolTip, DBIcon icon) {
-            super(text, DBeaverIcons.getImageDescriptor(icon));
+            super(text, SwtIcons.getImageDescriptor(icon));
             setId(id);
             //setActionDefinitionId(id);
             setToolTipText(toolTip);
@@ -246,7 +246,7 @@ public class ContentEditorContributor extends MultiPageEditorActionBarContributo
 
     private class InfoAction extends SimpleAction {
         InfoAction() {
-            super("org.jkiss.dbeaver.lob.actions.info", "Info", "Show column information", DBIcon.TREE_INFO);
+            super("com.seizia.chromite.lob.actions.info", "Info", "Show column information", DBIcon.TREE_INFO);
         }
 
         @Override

@@ -14,14 +14,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.oracle.data;
+package com.seizia.chromite.ext.oracle.data;
 
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.ext.oracle.model.OracleConstants;
-import org.jkiss.dbeaver.model.data.DBDDisplayFormat;
-import org.jkiss.dbeaver.model.data.DBDFormatSettings;
-import org.jkiss.dbeaver.model.struct.DBSTypedObject;
-import org.jkiss.junit.DBeaverUnitTest;
+import com.seizia.chromite.ext.oracle.model.OracleConstants;
+import com.seizia.chromite.model.data.DBDDisplayFormat;
+import com.seizia.chromite.model.data.DBDFormatSettings;
+import com.seizia.chromite.model.struct.DBSTypedObject;
+import com.seizia.chromite.junit.ChromiteUnitTest;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
@@ -30,7 +30,7 @@ import java.sql.Types;
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 
-class OracleTemporalAccessorValueHandlerTest extends DBeaverUnitTest {
+class OracleTemporalAccessorValueHandlerTest extends ChromiteUnitTest {
 
     private static final int ORACLE_TIMESTAMP_TZ = OracleConstants.DATA_TYPE_TIMESTAMP_WITH_TIMEZONE;
 

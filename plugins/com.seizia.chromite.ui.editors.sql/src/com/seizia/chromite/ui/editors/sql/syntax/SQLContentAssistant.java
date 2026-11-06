@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.editors.sql.syntax;
+package com.seizia.chromite.ui.editors.sql.syntax;
 
 import org.eclipse.jface.text.DocumentEvent;
 import org.eclipse.jface.text.IDocument;
@@ -28,10 +28,10 @@ import org.eclipse.jface.viewers.ISelectionChangedListener;
 import org.eclipse.jface.viewers.ISelectionProvider;
 import org.eclipse.swt.custom.VerifyKeyListener;
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.ui.contentassist.ContentAssistUtils.ProposalActivationKey;
-import org.jkiss.dbeaver.ui.editors.sql.SQLEditorBase;
-import org.jkiss.dbeaver.ui.editors.sql.SQLEditorUtils;
-import org.jkiss.dbeaver.ui.editors.sql.SQLPreferenceConstants;
+import com.seizia.chromite.ui.contentassist.ContentAssistUtils.ProposalActivationKey;
+import com.seizia.chromite.ui.editors.sql.SQLEditorBase;
+import com.seizia.chromite.ui.editors.sql.SQLEditorUtils;
+import com.seizia.chromite.ui.editors.sql.SQLPreferenceConstants;
 
 /**
  * SQL Completion proposal

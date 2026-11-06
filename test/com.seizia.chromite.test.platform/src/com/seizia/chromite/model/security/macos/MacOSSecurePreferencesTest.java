@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.security.macos;
+package com.seizia.chromite.model.security.macos;
 
 import org.eclipse.equinox.internal.security.storage.PasswordProviderSelector;
 import org.eclipse.equinox.internal.security.storage.friends.InternalExchangeUtils;
@@ -22,7 +22,7 @@ import org.eclipse.equinox.security.storage.ISecurePreferences;
 import org.eclipse.equinox.security.storage.SecurePreferencesFactory;
 import org.eclipse.equinox.security.storage.provider.IProviderHints;
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.model.security.DBSecurityProviders;
+import com.seizia.chromite.model.security.DBSecurityProviders;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
@@ -50,13 +50,13 @@ class MacOSSecurePreferencesTest {
     // Real Keychain access may require interactive authorization; never run it in headless CI by default.
     @Test
     @EnabledOnOs(OS.MAC)
-    @EnabledIfEnvironmentVariable(named = "DBEAVER_TEST_MACOS_KEYCHAIN", matches = "true")
+    @EnabledIfEnvironmentVariable(named = "CHROMITE_TEST_MACOS_KEYCHAIN", matches = "true")
     void newStorageUsesKeychain(@NotNull @TempDir Path directory) throws Exception {
         ISecurePreferences preferences = SecurePreferencesFactory.open(
             directory.resolve("secure_storage").toUri().toURL(),
             Map.of(IProviderHints.REQUIRED_MODULE_ID, DBSecurityProviders.MACOS_KEYCHAIN)
         );
-        ISecurePreferences node = preferences.node("dbeaver-test");
+        ISecurePreferences node = preferences.node("chromite-test");
         node.put("test", "secret", true);
         node.flush();
 
@@ -67,7 +67,7 @@ class MacOSSecurePreferencesTest {
             directory.resolve("other_secure_storage").toUri().toURL(),
             Map.of(IProviderHints.REQUIRED_MODULE_ID, DBSecurityProviders.MACOS_KEYCHAIN)
         );
-        ISecurePreferences anotherNode = anotherFile.node("dbeaver-test");
+        ISecurePreferences anotherNode = anotherFile.node("chromite-test");
         anotherNode.put("test", "another secret", true);
         anotherNode.flush();
         Assertions.assertTrue(anotherNode.isEncrypted("test"));

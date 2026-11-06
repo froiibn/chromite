@@ -14,15 +14,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.firebird.model;
+package com.seizia.chromite.ext.firebird.model;
 
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.model.DBPDataSourceInfo;
-import org.jkiss.dbeaver.model.DBUtils;
-import org.jkiss.dbeaver.model.exec.*;
-import org.jkiss.dbeaver.model.exec.jdbc.JDBCPreparedStatement;
-import org.jkiss.dbeaver.model.sql.*;
-import org.jkiss.junit.DBeaverUnitTest;
+import com.seizia.chromite.model.DBPDataSourceInfo;
+import com.seizia.chromite.model.DBUtils;
+import com.seizia.chromite.model.exec.*;
+import com.seizia.chromite.model.exec.jdbc.JDBCPreparedStatement;
+import com.seizia.chromite.model.sql.*;
+import com.seizia.chromite.junit.ChromiteUnitTest;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
@@ -31,7 +31,7 @@ import java.io.StringWriter;
 import java.sql.Types;
 import java.util.List;
 
-public class FireBirdStatementProducerTest extends DBeaverUnitTest {
+public class FireBirdStatementProducerTest extends ChromiteUnitTest {
 
     @Test
     public void usesScriptStatementWithoutNativeParameters() throws Exception {

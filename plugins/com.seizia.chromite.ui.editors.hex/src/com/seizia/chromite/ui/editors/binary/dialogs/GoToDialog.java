@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.editors.binary.dialogs;
+package com.seizia.chromite.ui.editors.binary.dialogs;
 
 import org.eclipse.osgi.util.NLS;
 import org.eclipse.swt.SWT;
@@ -26,8 +26,8 @@ import org.eclipse.swt.graphics.GC;
 import org.eclipse.swt.layout.*;
 import org.eclipse.swt.widgets.*;
 import org.eclipse.ui.internal.WorkbenchMessages;
-import org.jkiss.dbeaver.ui.editors.binary.HexManager;
-import org.jkiss.dbeaver.ui.editors.binary.internal.BinaryEditorMessages;
+import com.seizia.chromite.ui.editors.binary.HexManager;
+import com.seizia.chromite.ui.editors.binary.internal.BinaryEditorMessages;
 
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;

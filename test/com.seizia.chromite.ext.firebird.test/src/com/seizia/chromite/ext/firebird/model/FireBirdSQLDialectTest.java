@@ -14,9 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.firebird.model;
+package com.seizia.chromite.ext.firebird.model;
 
-import org.jkiss.junit.DBeaverUnitTest;
+import com.seizia.chromite.junit.ChromiteUnitTest;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -25,7 +25,7 @@ import java.lang.reflect.Field;
 import java.util.Arrays;
 import java.util.List;
 
-public class FireBirdSQLDialectTest extends DBeaverUnitTest {
+public class FireBirdSQLDialectTest extends ChromiteUnitTest {
 
     private FireBirdSQLDialect dialect;
 

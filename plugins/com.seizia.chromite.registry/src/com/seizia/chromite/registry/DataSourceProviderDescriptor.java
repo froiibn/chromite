@@ -15,30 +15,30 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.registry;
+package com.seizia.chromite.registry;
 
 import org.eclipse.core.runtime.IConfigurationElement;
 import org.eclipse.core.runtime.IContributor;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.DBIcon;
-import org.jkiss.dbeaver.model.DBPDataSourceProvider;
-import org.jkiss.dbeaver.model.DBPImage;
-import org.jkiss.dbeaver.model.connection.DBPDataSourceProviderDescriptor;
-import org.jkiss.dbeaver.model.connection.DBPDataSourceType;
-import org.jkiss.dbeaver.model.connection.DBPDriver;
-import org.jkiss.dbeaver.model.impl.AbstractDescriptor;
-import org.jkiss.dbeaver.model.impl.PropertyDescriptor;
-import org.jkiss.dbeaver.model.impl.ProviderPropertyDescriptor;
-import org.jkiss.dbeaver.model.impl.sql.BasicSQLDialect;
-import org.jkiss.dbeaver.model.navigator.meta.*;
-import org.jkiss.dbeaver.model.preferences.DBPPropertyDescriptor;
-import org.jkiss.dbeaver.model.sql.SQLDialectMetadata;
-import org.jkiss.dbeaver.model.sql.SQLDialectMetadataRegistry;
-import org.jkiss.dbeaver.registry.driver.DriverDescriptor;
-import org.jkiss.dbeaver.registry.driver.MissingDataSourceProvider;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.DBIcon;
+import com.seizia.chromite.model.DBPDataSourceProvider;
+import com.seizia.chromite.model.DBPImage;
+import com.seizia.chromite.model.connection.DBPDataSourceProviderDescriptor;
+import com.seizia.chromite.model.connection.DBPDataSourceType;
+import com.seizia.chromite.model.connection.DBPDriver;
+import com.seizia.chromite.model.impl.AbstractDescriptor;
+import com.seizia.chromite.model.impl.PropertyDescriptor;
+import com.seizia.chromite.model.impl.ProviderPropertyDescriptor;
+import com.seizia.chromite.model.impl.sql.BasicSQLDialect;
+import com.seizia.chromite.model.navigator.meta.*;
+import com.seizia.chromite.model.preferences.DBPPropertyDescriptor;
+import com.seizia.chromite.model.sql.SQLDialectMetadata;
+import com.seizia.chromite.model.sql.SQLDialectMetadataRegistry;
+import com.seizia.chromite.registry.driver.DriverDescriptor;
+import com.seizia.chromite.registry.driver.MissingDataSourceProvider;
+import com.seizia.chromite.runtime.DBWorkbench;
 import org.jkiss.utils.ArrayUtils;
 import org.jkiss.utils.CommonUtils;
 import org.jkiss.utils.SecurityUtils;
@@ -62,7 +62,7 @@ public class DataSourceProviderDescriptor extends AbstractDescriptor implements 
 
     private static final Log log = Log.getLog(DataSourceProviderDescriptor.class);
 
-    public static final String EXTENSION_ID = "org.jkiss.dbeaver.dataSourceProvider"; //$NON-NLS-1$
+    public static final String EXTENSION_ID = "com.seizia.chromite.dataSourceProvider"; //$NON-NLS-1$
 
     private static DataSourceProviderDescriptor nullProvider;
 
@@ -241,7 +241,7 @@ public class DataSourceProviderDescriptor extends AbstractDescriptor implements 
     }
 
     DataSourceProviderDescriptor(@NotNull DataSourceProviderRegistry registry, String id) {
-        super("org.jkiss.dbeaver.registry");
+        super("com.seizia.chromite.registry");
         this.registry = registry;
         this.id = id;
         this.name = id;

@@ -14,30 +14,30 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.dashboard.registry;
+package com.seizia.chromite.model.dashboard.registry;
 
 import org.apache.commons.jexl3.JexlExpression;
 import org.eclipse.core.runtime.IConfigurationElement;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.DBPDataSourceContainer;
-import org.jkiss.dbeaver.model.DBPNamedObject;
-import org.jkiss.dbeaver.model.app.DBPPlatform;
-import org.jkiss.dbeaver.model.app.DBPProject;
-import org.jkiss.dbeaver.model.connection.DBPDataSourceProviderDescriptor;
-import org.jkiss.dbeaver.model.connection.DBPDriver;
-import org.jkiss.dbeaver.model.connection.DataSourceVariableResolver;
-import org.jkiss.dbeaver.model.dashboard.*;
-import org.jkiss.dbeaver.model.impl.AbstractContextDescriptor;
-import org.jkiss.dbeaver.model.impl.AbstractDescriptor;
-import org.jkiss.dbeaver.model.runtime.OSDescriptor;
-import org.jkiss.dbeaver.registry.RegistryConstants;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.runtime.IVariableResolver;
-import org.jkiss.dbeaver.utils.GeneralUtils;
-import org.jkiss.dbeaver.utils.SystemVariablesResolver;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.DBPDataSourceContainer;
+import com.seizia.chromite.model.DBPNamedObject;
+import com.seizia.chromite.model.app.DBPPlatform;
+import com.seizia.chromite.model.app.DBPProject;
+import com.seizia.chromite.model.connection.DBPDataSourceProviderDescriptor;
+import com.seizia.chromite.model.connection.DBPDriver;
+import com.seizia.chromite.model.connection.DataSourceVariableResolver;
+import com.seizia.chromite.model.dashboard.*;
+import com.seizia.chromite.model.impl.AbstractContextDescriptor;
+import com.seizia.chromite.model.impl.AbstractDescriptor;
+import com.seizia.chromite.model.runtime.OSDescriptor;
+import com.seizia.chromite.registry.RegistryConstants;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.runtime.IVariableResolver;
+import com.seizia.chromite.utils.GeneralUtils;
+import com.seizia.chromite.utils.SystemVariablesResolver;
 import org.jkiss.utils.ArrayUtils;
 import org.jkiss.utils.CommonUtils;
 import org.jkiss.utils.xml.XMLBuilder;
@@ -57,7 +57,7 @@ public class DashboardItemConfiguration extends AbstractContextDescriptor implem
 
     private static final Log log = Log.getLog(DashboardItemConfiguration.class);
 
-    public static final String EXTENSION_ID = "org.jkiss.dbeaver.dashboard"; //$NON-NLS-1$
+    public static final String EXTENSION_ID = "com.seizia.chromite.dashboard"; //$NON-NLS-1$
 
     private final DashboardProviderDescriptor provider;
 

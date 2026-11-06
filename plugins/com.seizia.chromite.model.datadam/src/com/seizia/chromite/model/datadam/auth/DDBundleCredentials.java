@@ -14,11 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.datadam.auth;
+package com.seizia.chromite.model.datadam.auth;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.model.datadam.sync.core.DDSyncCredentials;
+import com.seizia.chromite.model.datadam.sync.core.DDSyncCredentials;
 
 import java.util.Base64;
 import javax.crypto.SecretKey;

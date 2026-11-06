@@ -15,9 +15,9 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.tools.transfer.stream;
+package com.seizia.chromite.tools.transfer.stream;
 
-import org.jkiss.dbeaver.Log;
+import com.seizia.chromite.Log;
 import org.jkiss.utils.CommonUtils;
 
 import java.util.Map;

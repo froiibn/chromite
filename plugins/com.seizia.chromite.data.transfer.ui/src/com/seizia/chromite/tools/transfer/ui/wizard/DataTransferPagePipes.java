@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.tools.transfer.ui.wizard;
+package com.seizia.chromite.tools.transfer.ui.wizard;
 
 import org.eclipse.jface.viewers.*;
 import org.eclipse.osgi.util.NLS;
@@ -34,57 +34,57 @@ import org.eclipse.swt.widgets.ToolItem;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.*;
-import org.jkiss.dbeaver.model.app.DBPProject;
-import org.jkiss.dbeaver.model.exec.DBCExecutionContext;
-import org.jkiss.dbeaver.model.exec.DBCExecutionContextDefaults;
-import org.jkiss.dbeaver.model.exec.DBExecUtils;
-import org.jkiss.dbeaver.model.impl.DataSourceContextProvider;
-import org.jkiss.dbeaver.model.navigator.DBNDatabaseItem;
-import org.jkiss.dbeaver.model.navigator.DBNDatabaseNode;
-import org.jkiss.dbeaver.model.navigator.DBNDataSource;
-import org.jkiss.dbeaver.model.navigator.DBNModel;
-import org.jkiss.dbeaver.model.navigator.DBNNode;
-import org.jkiss.dbeaver.model.navigator.DBNProjectDatabases;
-import org.jkiss.dbeaver.model.rm.RMConstants;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.model.runtime.VoidProgressMonitor;
-import org.jkiss.dbeaver.model.sql.SQLQuery;
-import org.jkiss.dbeaver.model.sql.SQLQueryContainer;
-import org.jkiss.dbeaver.model.sql.SQLScriptContext;
-import org.jkiss.dbeaver.model.sql.data.SQLQueryDataContainer;
-import org.jkiss.dbeaver.model.struct.DBSDataContainer;
-import org.jkiss.dbeaver.model.struct.DBSEntity;
-import org.jkiss.dbeaver.model.struct.DBSInstance;
-import org.jkiss.dbeaver.model.struct.DBSObject;
-import org.jkiss.dbeaver.model.struct.DBSObjectContainer;
-import org.jkiss.dbeaver.model.struct.rdb.DBSCatalog;
-import org.jkiss.dbeaver.model.struct.rdb.DBSSchema;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.runtime.ui.UIServiceSQL;
-import org.jkiss.dbeaver.tools.transfer.DTConstants;
-import org.jkiss.dbeaver.tools.transfer.DataTransferPipe;
-import org.jkiss.dbeaver.tools.transfer.DataTransferSettings;
-import org.jkiss.dbeaver.tools.transfer.database.DatabaseTransferConsumer;
-import org.jkiss.dbeaver.tools.transfer.database.DatabaseTransferProducer;
-import org.jkiss.dbeaver.tools.transfer.internal.DTMessages;
-import org.jkiss.dbeaver.tools.transfer.registry.DataTransferNodeDescriptor;
-import org.jkiss.dbeaver.tools.transfer.registry.DataTransferProcessorDescriptor;
-import org.jkiss.dbeaver.tools.transfer.registry.DataTransferRegistry;
-import org.jkiss.dbeaver.tools.transfer.stream.StreamConsumerSettings;
-import org.jkiss.dbeaver.tools.transfer.stream.StreamMappingAttribute;
-import org.jkiss.dbeaver.tools.transfer.stream.StreamMappingContainer;
-import org.jkiss.dbeaver.tools.transfer.stream.StreamMappingType;
-import org.jkiss.dbeaver.tools.transfer.ui.internal.DTUIMessages;
-import org.jkiss.dbeaver.tools.transfer.ui.pages.stream.StreamConsumerPageSettings;
-import org.jkiss.dbeaver.ui.DBeaverIcons;
-import org.jkiss.dbeaver.ui.UIIcon;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.UIWidgets;
-import org.jkiss.dbeaver.ui.controls.ListContentProvider;
-import org.jkiss.dbeaver.ui.dialogs.ActiveWizardPage;
-import org.jkiss.dbeaver.ui.navigator.dialogs.ObjectBrowserDialog;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.*;
+import com.seizia.chromite.model.app.DBPProject;
+import com.seizia.chromite.model.exec.DBCExecutionContext;
+import com.seizia.chromite.model.exec.DBCExecutionContextDefaults;
+import com.seizia.chromite.model.exec.DBExecUtils;
+import com.seizia.chromite.model.impl.DataSourceContextProvider;
+import com.seizia.chromite.model.navigator.DBNDatabaseItem;
+import com.seizia.chromite.model.navigator.DBNDatabaseNode;
+import com.seizia.chromite.model.navigator.DBNDataSource;
+import com.seizia.chromite.model.navigator.DBNModel;
+import com.seizia.chromite.model.navigator.DBNNode;
+import com.seizia.chromite.model.navigator.DBNProjectDatabases;
+import com.seizia.chromite.model.rm.RMConstants;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.model.runtime.VoidProgressMonitor;
+import com.seizia.chromite.model.sql.SQLQuery;
+import com.seizia.chromite.model.sql.SQLQueryContainer;
+import com.seizia.chromite.model.sql.SQLScriptContext;
+import com.seizia.chromite.model.sql.data.SQLQueryDataContainer;
+import com.seizia.chromite.model.struct.DBSDataContainer;
+import com.seizia.chromite.model.struct.DBSEntity;
+import com.seizia.chromite.model.struct.DBSInstance;
+import com.seizia.chromite.model.struct.DBSObject;
+import com.seizia.chromite.model.struct.DBSObjectContainer;
+import com.seizia.chromite.model.struct.rdb.DBSCatalog;
+import com.seizia.chromite.model.struct.rdb.DBSSchema;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.runtime.ui.UIServiceSQL;
+import com.seizia.chromite.tools.transfer.DTConstants;
+import com.seizia.chromite.tools.transfer.DataTransferPipe;
+import com.seizia.chromite.tools.transfer.DataTransferSettings;
+import com.seizia.chromite.tools.transfer.database.DatabaseTransferConsumer;
+import com.seizia.chromite.tools.transfer.database.DatabaseTransferProducer;
+import com.seizia.chromite.tools.transfer.internal.DTMessages;
+import com.seizia.chromite.tools.transfer.registry.DataTransferNodeDescriptor;
+import com.seizia.chromite.tools.transfer.registry.DataTransferProcessorDescriptor;
+import com.seizia.chromite.tools.transfer.registry.DataTransferRegistry;
+import com.seizia.chromite.tools.transfer.stream.StreamConsumerSettings;
+import com.seizia.chromite.tools.transfer.stream.StreamMappingAttribute;
+import com.seizia.chromite.tools.transfer.stream.StreamMappingContainer;
+import com.seizia.chromite.tools.transfer.stream.StreamMappingType;
+import com.seizia.chromite.tools.transfer.ui.internal.DTUIMessages;
+import com.seizia.chromite.tools.transfer.ui.pages.stream.StreamConsumerPageSettings;
+import com.seizia.chromite.ui.SwtIcons;
+import com.seizia.chromite.ui.UIIcon;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.UIWidgets;
+import com.seizia.chromite.ui.controls.ListContentProvider;
+import com.seizia.chromite.ui.dialogs.ActiveWizardPage;
+import com.seizia.chromite.ui.navigator.dialogs.ObjectBrowserDialog;
 import org.jkiss.utils.CommonUtils;
 
 import java.io.PrintWriter;
@@ -241,10 +241,10 @@ public class DataTransferPagePipes extends ActiveWizardPage<DataTransferWizard> 
                 String label;
                 if (cell.getColumnIndex() == 0) {
                     if (element.processor != null) {
-                        cell.setImage(DBeaverIcons.getImage(element.processor.getIcon()));
+                        cell.setImage(SwtIcons.getImage(element.processor.getIcon()));
                         label = element.processor.getName();
                     } else {
-                        cell.setImage(DBeaverIcons.getImage(element.node.getIcon()));
+                        cell.setImage(SwtIcons.getImage(element.node.getIcon()));
                         label = element.node.getName();
                     }
                 } else {
@@ -449,7 +449,7 @@ public class DataTransferPagePipes extends ActiveWizardPage<DataTransferWizard> 
                     } else {
                         icon = UIIcon.SQL_SCRIPT;
                     }
-                    cell.setImage(DBeaverIcons.getImage(icon));
+                    cell.setImage(SwtIcons.getImage(icon));
                     final SQLQueryContainer queryContainer = DBUtils.getAdapter(SQLQueryContainer.class, element);
                     if (queryContainer != null) {
                         cell.setText(
@@ -463,14 +463,14 @@ public class DataTransferPagePipes extends ActiveWizardPage<DataTransferWizard> 
                 } else if (cell.getColumnIndex() == 1) {
                     DBPDataSource dataSource = element.getDataSource();
                     DBPDataSourceContainer container = dataSource == null ? null : dataSource.getContainer();
-                    cell.setImage(container == null ? null : DBeaverIcons.getImage(container.getDriver().getIcon()));
+                    cell.setImage(container == null ? null : SwtIcons.getImage(container.getDriver().getIcon()));
                     cell.setText(container == null ? "" : container.getName());
                 } else if (cell.getColumnIndex() == 2) {
                     StreamConsumerSettings streamSettings = getStreamConsumerSettings();
                     StreamMappingContainer mapping = streamSettings == null || !(element instanceof DBSDataContainer source)
                         ? null : streamSettings.getDataMapping(source);
                     if (!isDatabaseMigrationSelected() && mapping != null && DBUtils.getAdapter(SQLQueryContainer.class, element) == null) {
-                        List<StreamMappingAttribute> attributes = mapping.getAttributes(new org.jkiss.dbeaver.model.runtime.VoidProgressMonitor());
+                        List<StreamMappingAttribute> attributes = mapping.getAttributes(new com.seizia.chromite.model.runtime.VoidProgressMonitor());
                         long selected = attributes.stream()
                             .filter(attribute -> attribute.getMappingType() == StreamMappingType.export).count();
                         cell.setText(selected + " / " + attributes.size());

@@ -14,11 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.tasks.ui.wizard;
+package com.seizia.chromite.tasks.ui.wizard;
 
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.model.task.DBTTaskSettings;
-import org.jkiss.dbeaver.ui.IObjectPropertyConfigurator;
+import com.seizia.chromite.model.task.DBTTaskSettings;
+import com.seizia.chromite.ui.IObjectPropertyConfigurator;
 
 public abstract class TaskConfigurationWIzardActionConfigurator<T extends DBTTaskSettings>
     implements IObjectPropertyConfigurator<TaskConfigurationWizard<T>, T> {

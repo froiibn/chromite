@@ -14,12 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.app.devtools.handlers;
+package com.seizia.chromite.ui.app.devtools.handlers;
 
 import org.eclipse.core.commands.AbstractHandler;
 import org.eclipse.core.commands.ExecutionEvent;
 import org.eclipse.ui.handlers.HandlerUtil;
-import org.jkiss.dbeaver.ui.app.devtools.ui.IconDialog;
+import com.seizia.chromite.ui.app.devtools.ui.IconDialog;
 
 public class ShowIconsHandler extends AbstractHandler {
     @Override

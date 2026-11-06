@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.ui.navigator.actions.links;
+package com.seizia.chromite.ui.navigator.actions.links;
 
 import org.eclipse.core.commands.AbstractHandler;
 import org.eclipse.core.commands.ExecutionEvent;
@@ -38,8 +38,8 @@ import org.eclipse.ui.handlers.HandlerUtil;
 import org.eclipse.ui.statushandlers.IStatusAdapterConstants;
 import org.eclipse.ui.statushandlers.StatusAdapter;
 import org.eclipse.ui.statushandlers.StatusManager;
-import org.jkiss.dbeaver.ui.internal.UINavigatorMessages;
-import org.jkiss.dbeaver.utils.GeneralUtils;
+import com.seizia.chromite.ui.internal.UINavigatorMessages;
+import com.seizia.chromite.utils.GeneralUtils;
 
 import java.lang.reflect.InvocationTargetException;
 import java.nio.file.Path;

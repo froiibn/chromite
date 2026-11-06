@@ -14,23 +14,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.tools.transfer;
+package com.seizia.chromite.tools.transfer;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.model.data.DBDAttributeBinding;
-import org.jkiss.dbeaver.model.data.DBDContent;
-import org.jkiss.dbeaver.model.data.DBDContentStorage;
-import org.jkiss.dbeaver.model.data.DBDValueHandler;
-import org.jkiss.dbeaver.model.exec.DBCException;
-import org.jkiss.dbeaver.model.exec.DBCResultSet;
-import org.jkiss.dbeaver.model.exec.DBCSession;
-import org.jkiss.dbeaver.model.impl.jdbc.data.handlers.JDBCStringValueHandler;
-import org.jkiss.dbeaver.tools.transfer.stream.IStreamDataExporterSite;
-import org.jkiss.dbeaver.tools.transfer.stream.exporter.DataExporterCSV;
-import org.jkiss.junit.DBeaverUnitTest;
-import org.jkiss.util.ParametrizedTestsUtil;
+import com.seizia.chromite.model.data.DBDAttributeBinding;
+import com.seizia.chromite.model.data.DBDContent;
+import com.seizia.chromite.model.data.DBDContentStorage;
+import com.seizia.chromite.model.data.DBDValueHandler;
+import com.seizia.chromite.model.exec.DBCException;
+import com.seizia.chromite.model.exec.DBCResultSet;
+import com.seizia.chromite.model.exec.DBCSession;
+import com.seizia.chromite.model.impl.jdbc.data.handlers.JDBCStringValueHandler;
+import com.seizia.chromite.tools.transfer.stream.IStreamDataExporterSite;
+import com.seizia.chromite.tools.transfer.stream.exporter.DataExporterCSV;
+import com.seizia.chromite.junit.ChromiteUnitTest;
+import com.seizia.chromite.test.util.ParametrizedTestsUtil;
 import org.jkiss.utils.ArrayUtils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -51,7 +51,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-public class DataExporterCSVTest extends DBeaverUnitTest {
+public class DataExporterCSVTest extends ChromiteUnitTest {
     // must be used in expectedTemplate as separator
     private static final String DEFAULT_VALUE_SEPARATOR = ",";
     // must be used in expectedTemplate as quote

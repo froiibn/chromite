@@ -14,10 +14,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.oracle.oci;
+package com.seizia.chromite.ext.oracle.oci;
 
 import org.jkiss.code.NotNull;
-import org.jkiss.junit.DBeaverUnitTest;
+import com.seizia.chromite.junit.ChromiteUnitTest;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -28,7 +28,7 @@ import java.nio.file.Path;
 import java.util.Map;
 import java.util.Set;
 
-class OCIUtilsTnsNamesTest extends DBeaverUnitTest {
+class OCIUtilsTnsNamesTest extends ChromiteUnitTest {
 
     @TempDir
     Path tnsDir;

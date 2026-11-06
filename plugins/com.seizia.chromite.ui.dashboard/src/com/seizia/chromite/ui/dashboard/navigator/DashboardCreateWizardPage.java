@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.dashboard.navigator;
+package com.seizia.chromite.ui.dashboard.navigator;
 
 import org.eclipse.jface.wizard.WizardPage;
 import org.eclipse.swt.events.SelectionListener;
@@ -23,11 +23,11 @@ import org.eclipse.swt.widgets.Button;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Text;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.model.DBPDataSourceContainer;
-import org.jkiss.dbeaver.model.app.DBPProject;
-import org.jkiss.dbeaver.model.rm.RMConstants;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.dashboard.internal.UIDashboardMessages;
+import com.seizia.chromite.model.DBPDataSourceContainer;
+import com.seizia.chromite.model.app.DBPProject;
+import com.seizia.chromite.model.rm.RMConstants;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.dashboard.internal.UIDashboardMessages;
 import org.jkiss.utils.CommonUtils;
 
 

@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.tools.transfer.ui.pages.stream;
+package com.seizia.chromite.tools.transfer.ui.pages.stream;
 
 import org.eclipse.jface.layout.GridDataFactory;
 import org.eclipse.jface.preference.PreferenceDialog;
@@ -29,23 +29,23 @@ import org.eclipse.ui.dialogs.PreferencesUtil;
 import org.eclipse.ui.forms.events.ExpansionAdapter;
 import org.eclipse.ui.forms.events.ExpansionEvent;
 import org.eclipse.ui.forms.widgets.ExpandableComposite;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.app.DBPDataFormatterRegistry;
-import org.jkiss.dbeaver.model.app.DBPPlatformDesktop;
-import org.jkiss.dbeaver.model.data.DBDDataFormatterProfile;
-import org.jkiss.dbeaver.runtime.properties.PropertySourceCustom;
-import org.jkiss.dbeaver.tools.transfer.internal.DTMessages;
-import org.jkiss.dbeaver.tools.transfer.registry.DataTransferProcessorDescriptor;
-import org.jkiss.dbeaver.tools.transfer.stream.StreamConsumerSettings;
-import org.jkiss.dbeaver.tools.transfer.stream.StreamTransferConsumer;
-import org.jkiss.dbeaver.tools.transfer.ui.internal.DTUIMessages;
-import org.jkiss.dbeaver.tools.transfer.ui.pages.DataTransferPageNodeSettings;
-import org.jkiss.dbeaver.ui.BaseThemeSettings;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.controls.ExpandableCompositeEx;
-import org.jkiss.dbeaver.ui.controls.ValueFormatSelector;
-import org.jkiss.dbeaver.ui.internal.UIConnectionMessages;
-import org.jkiss.dbeaver.ui.properties.PropertyTreeViewer;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.app.DBPDataFormatterRegistry;
+import com.seizia.chromite.model.app.DBPPlatformDesktop;
+import com.seizia.chromite.model.data.DBDDataFormatterProfile;
+import com.seizia.chromite.runtime.properties.PropertySourceCustom;
+import com.seizia.chromite.tools.transfer.internal.DTMessages;
+import com.seizia.chromite.tools.transfer.registry.DataTransferProcessorDescriptor;
+import com.seizia.chromite.tools.transfer.stream.StreamConsumerSettings;
+import com.seizia.chromite.tools.transfer.stream.StreamTransferConsumer;
+import com.seizia.chromite.tools.transfer.ui.internal.DTUIMessages;
+import com.seizia.chromite.tools.transfer.ui.pages.DataTransferPageNodeSettings;
+import com.seizia.chromite.ui.BaseThemeSettings;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.controls.ExpandableCompositeEx;
+import com.seizia.chromite.ui.controls.ValueFormatSelector;
+import com.seizia.chromite.ui.internal.UIConnectionMessages;
+import com.seizia.chromite.ui.properties.PropertyTreeViewer;
 
 public class StreamConsumerPageSettings extends DataTransferPageNodeSettings {
 
@@ -134,7 +134,7 @@ public class StreamConsumerPageSettings extends DataTransferPageNodeSettings {
                             PreferenceDialog propDialog = PreferencesUtil.createPropertyDialogOn(
                                 getShell(),
                                 dataFormatterRegistry,
-                                "org.jkiss.dbeaver.preferences.main.dataformat", // TODO: replace this hardcode with some model invocation
+                                "com.seizia.chromite.preferences.main.dataformat", // TODO: replace this hardcode with some model invocation
                                 null,
                                 getSelectedFormatterProfile(),
                                 PreferencesUtil.OPTION_NONE);

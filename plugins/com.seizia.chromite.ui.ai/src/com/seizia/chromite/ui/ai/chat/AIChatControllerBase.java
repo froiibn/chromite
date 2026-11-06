@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.ai.chat;
+package com.seizia.chromite.ui.ai.chat;
 
 import org.eclipse.jface.text.*;
 import org.eclipse.jface.text.source.IAnnotationModel;
@@ -26,30 +26,30 @@ import org.eclipse.ui.IWorkbenchWindow;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.DBPDataSource;
-import org.jkiss.dbeaver.model.DBPDataSourceContainer;
-import org.jkiss.dbeaver.model.DBUtils;
-import org.jkiss.dbeaver.model.ai.AIChatAnnotation;
-import org.jkiss.dbeaver.model.ai.AIChatConversation;
-import org.jkiss.dbeaver.model.ai.AIConstants;
-import org.jkiss.dbeaver.model.ai.AIContextSettings;
-import org.jkiss.dbeaver.model.ai.utils.AIUtils;
-import org.jkiss.dbeaver.model.exec.DBCSession;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.model.sql.SQLQueryListener;
-import org.jkiss.dbeaver.model.sql.SQLScriptElement;
-import org.jkiss.dbeaver.model.sql.SQLSyntaxManager;
-import org.jkiss.dbeaver.model.sql.SqlJobResult;
-import org.jkiss.dbeaver.model.sql.parser.SQLParserContext;
-import org.jkiss.dbeaver.model.sql.parser.SQLRuleManager;
-import org.jkiss.dbeaver.model.sql.parser.SQLScriptParser;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.actions.AbstractDataSourceHandler;
-import org.jkiss.dbeaver.ui.editors.sql.SQLEditor;
-import org.jkiss.dbeaver.ui.editors.sql.SQLEditorUtils;
-import org.jkiss.dbeaver.ui.editors.sql.registry.SQLPresentationDescriptor;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.DBPDataSource;
+import com.seizia.chromite.model.DBPDataSourceContainer;
+import com.seizia.chromite.model.DBUtils;
+import com.seizia.chromite.model.ai.AIChatAnnotation;
+import com.seizia.chromite.model.ai.AIChatConversation;
+import com.seizia.chromite.model.ai.AIConstants;
+import com.seizia.chromite.model.ai.AIContextSettings;
+import com.seizia.chromite.model.ai.utils.AIUtils;
+import com.seizia.chromite.model.exec.DBCSession;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.model.sql.SQLQueryListener;
+import com.seizia.chromite.model.sql.SQLScriptElement;
+import com.seizia.chromite.model.sql.SQLSyntaxManager;
+import com.seizia.chromite.model.sql.SqlJobResult;
+import com.seizia.chromite.model.sql.parser.SQLParserContext;
+import com.seizia.chromite.model.sql.parser.SQLRuleManager;
+import com.seizia.chromite.model.sql.parser.SQLScriptParser;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.actions.AbstractDataSourceHandler;
+import com.seizia.chromite.ui.editors.sql.SQLEditor;
+import com.seizia.chromite.ui.editors.sql.SQLEditorUtils;
+import com.seizia.chromite.ui.editors.sql.registry.SQLPresentationDescriptor;
 import org.jkiss.utils.CommonUtils;
 
 import java.util.List;
@@ -59,7 +59,7 @@ import java.util.function.Consumer;
 public abstract class AIChatControllerBase implements AIChatController {
     private static final Log log = Log.getLog(AIChatControllerBase.class);
 
-    private static final String CHAT_CONSOLE_PART_PROPERTY = "org.jkiss.dbeaver.ui.ai.chatConsole";
+    private static final String CHAT_CONSOLE_PART_PROPERTY = "com.seizia.chromite.ui.ai.chatConsole";
 
     @Override
     public void executeInEditor(@NotNull String text) {

@@ -14,10 +14,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.tools.transfer;
+package com.seizia.chromite.tools.transfer;
 
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.tools.transfer.registry.DataTransferEventProcessorDescriptor;
+import com.seizia.chromite.tools.transfer.registry.DataTransferEventProcessorDescriptor;
 
 public interface IDataTransferConsumerSettings extends IDataTransferSettings {
     void addEventProcessor(@NotNull DataTransferEventProcessorDescriptor descriptor);

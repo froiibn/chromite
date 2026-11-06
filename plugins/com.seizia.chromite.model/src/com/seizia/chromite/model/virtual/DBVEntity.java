@@ -14,22 +14,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.virtual;
+package com.seizia.chromite.model.virtual;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.ModelPreferences;
-import org.jkiss.dbeaver.model.*;
-import org.jkiss.dbeaver.model.data.DBDAttributeBinding;
-import org.jkiss.dbeaver.model.data.DBDAttributeValue;
-import org.jkiss.dbeaver.model.data.DBDLabelValuePair;
-import org.jkiss.dbeaver.model.data.json.JSONUtils;
-import org.jkiss.dbeaver.model.exec.DBCLogicalOperator;
-import org.jkiss.dbeaver.model.preferences.DBPPreferenceStore;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.model.runtime.VoidProgressMonitor;
-import org.jkiss.dbeaver.model.struct.*;
+import com.seizia.chromite.ModelPreferences;
+import com.seizia.chromite.model.*;
+import com.seizia.chromite.model.data.DBDAttributeBinding;
+import com.seizia.chromite.model.data.DBDAttributeValue;
+import com.seizia.chromite.model.data.DBDLabelValuePair;
+import com.seizia.chromite.model.data.json.JSONUtils;
+import com.seizia.chromite.model.exec.DBCLogicalOperator;
+import com.seizia.chromite.model.preferences.DBPPreferenceStore;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.model.runtime.VoidProgressMonitor;
+import com.seizia.chromite.model.struct.*;
 import org.jkiss.utils.CommonUtils;
 
 import java.util.*;
@@ -429,7 +429,7 @@ public class DBVEntity extends DBVObject implements DBSEntity, DBPQualifiedObjec
      * @param constraint the virtual entity constraint to check
      * @return {@code true} if the constraint is unique and structurally complete
      *
-     * @see org.jkiss.dbeaver.model.data.DBDRowIdentifier#isIncomplete()
+     * @see com.seizia.chromite.model.data.DBDRowIdentifier#isIncomplete()
      */
     public static boolean isComplete(@NotNull DBVEntityConstraint constraint) {
         return constraint.getConstraintType().isUnique()

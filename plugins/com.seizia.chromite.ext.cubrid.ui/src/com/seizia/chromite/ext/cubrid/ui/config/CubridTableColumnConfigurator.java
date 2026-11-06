@@ -14,18 +14,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.cubrid.ui.config;
+package com.seizia.chromite.ext.cubrid.ui.config;
 
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.ext.cubrid.model.CubridTableColumn;
-import org.jkiss.dbeaver.model.edit.DBECommandContext;
-import org.jkiss.dbeaver.model.edit.DBEObjectConfigurator;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.model.struct.DBSEntity;
-import org.jkiss.dbeaver.ui.UITask;
-import org.jkiss.dbeaver.ui.editors.object.struct.ConstraintNameGenerator;
-import org.jkiss.dbeaver.ui.editors.object.struct.EditAttributePage;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.ext.cubrid.model.CubridTableColumn;
+import com.seizia.chromite.model.edit.DBECommandContext;
+import com.seizia.chromite.model.edit.DBEObjectConfigurator;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.model.struct.DBSEntity;
+import com.seizia.chromite.ui.UITask;
+import com.seizia.chromite.ui.editors.object.struct.ConstraintNameGenerator;
+import com.seizia.chromite.ui.editors.object.struct.EditAttributePage;
 
 import java.lang.reflect.Field;
 import java.util.Map;

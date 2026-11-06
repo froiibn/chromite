@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.ai.preferences;
+package com.seizia.chromite.ui.ai.preferences;
 
 import org.eclipse.jface.layout.GridLayoutFactory;
 import org.eclipse.swt.SWT;
@@ -28,14 +28,14 @@ import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.widgets.*;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.model.ai.registry.AIEngineDescriptor;
-import org.jkiss.dbeaver.model.ai.registry.AIEngineRegistry;
-import org.jkiss.dbeaver.model.ai.registry.AISettingsManager;
-import org.jkiss.dbeaver.ui.CompositeBorderPainter;
-import org.jkiss.dbeaver.ui.DBeaverIcons;
-import org.jkiss.dbeaver.ui.UIIcon;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.dialogs.BaseDialog;
+import com.seizia.chromite.model.ai.registry.AIEngineDescriptor;
+import com.seizia.chromite.model.ai.registry.AIEngineRegistry;
+import com.seizia.chromite.model.ai.registry.AISettingsManager;
+import com.seizia.chromite.ui.CompositeBorderPainter;
+import com.seizia.chromite.ui.SwtIcons;
+import com.seizia.chromite.ui.UIIcon;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.dialogs.BaseDialog;
 
 import java.util.List;
 
@@ -73,12 +73,12 @@ public class AIProfileCreateDialog extends BaseDialog {
         new CompositeBorderPainter(engineSelector);
 
         Label engineIcon = new Label(engineSelector, SWT.NONE);
-        engineIcon.setImage(DBeaverIcons.getImage(selectedEngine.getIcon()));
+        engineIcon.setImage(SwtIcons.getImage(selectedEngine.getIcon()));
         Label engineName = new Label(engineSelector, SWT.NONE);
         engineName.setText(selectedEngine.getLabel());
         engineName.setLayoutData(new GridData(GridData.FILL_HORIZONTAL));
         Label engineArrow = new Label(engineSelector, SWT.NONE);
-        engineArrow.setImage(DBeaverIcons.getImage(UIIcon.TREE_COLLAPSE));
+        engineArrow.setImage(SwtIcons.getImage(UIIcon.TREE_COLLAPSE));
 
         Text nameText = UIUtils.createLabelText(enginePanel, "Name", genProfileName(selectedEngine.getLabel()));
         GridData ngd = new GridData(GridData.FILL_HORIZONTAL);
@@ -98,7 +98,7 @@ public class AIProfileCreateDialog extends BaseDialog {
             }
             MenuItem engineItem = new MenuItem(engineMenu, SWT.RADIO);
             engineItem.setText(engine.getLabel().replace("&", "&&"));
-            engineItem.setImage(DBeaverIcons.getImage(engine.getIcon()));
+            engineItem.setImage(SwtIcons.getImage(engine.getIcon()));
             engineItem.setSelection(engine == selectedEngine);
             engineItem.addSelectionListener(SelectionListener.widgetSelectedAdapter(e -> {
                 if (!engineItem.getSelection()) {
@@ -111,7 +111,7 @@ public class AIProfileCreateDialog extends BaseDialog {
                 }
                 String oldAutoId = genProfileId(selectedEngine);
                 selectedEngine = engine;
-                engineIcon.setImage(DBeaverIcons.getImage(engine.getIcon()));
+                engineIcon.setImage(SwtIcons.getImage(engine.getIcon()));
                 engineName.setText(engine.getLabel());
                 engineSelector.layout(true, true);
                 if (oldAutoId.equals(profileId)) {

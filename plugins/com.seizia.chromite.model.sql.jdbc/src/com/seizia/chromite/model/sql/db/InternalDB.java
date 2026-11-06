@@ -14,25 +14,25 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.sql.db;
+package com.seizia.chromite.model.sql.db;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.DBConstants;
-import org.jkiss.dbeaver.model.DBPConnectionInformation;
-import org.jkiss.dbeaver.model.connection.DBPDataSourceProviderRegistry;
-import org.jkiss.dbeaver.model.connection.DBPDriver;
-import org.jkiss.dbeaver.model.connection.InternalDatabaseConfig;
-import org.jkiss.dbeaver.model.exec.DBCException;
-import org.jkiss.dbeaver.model.impl.jdbc.JDBCUtils;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.model.sql.SQLDialect;
-import org.jkiss.dbeaver.model.sql.SQLDialectSchemaController;
-import org.jkiss.dbeaver.model.sql.schema.ClassLoaderScriptSource;
-import org.jkiss.dbeaver.model.sql.schema.SQLSchemaConfig;
-import org.jkiss.dbeaver.model.sql.schema.SQLSchemaManager;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.DBConstants;
+import com.seizia.chromite.model.DBPConnectionInformation;
+import com.seizia.chromite.model.connection.DBPDataSourceProviderRegistry;
+import com.seizia.chromite.model.connection.DBPDriver;
+import com.seizia.chromite.model.connection.InternalDatabaseConfig;
+import com.seizia.chromite.model.exec.DBCException;
+import com.seizia.chromite.model.impl.jdbc.JDBCUtils;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.model.sql.SQLDialect;
+import com.seizia.chromite.model.sql.SQLDialectSchemaController;
+import com.seizia.chromite.model.sql.schema.ClassLoaderScriptSource;
+import com.seizia.chromite.model.sql.schema.SQLSchemaConfig;
+import com.seizia.chromite.model.sql.schema.SQLSchemaManager;
 import org.jkiss.utils.CommonUtils;
 
 import java.sql.Connection;

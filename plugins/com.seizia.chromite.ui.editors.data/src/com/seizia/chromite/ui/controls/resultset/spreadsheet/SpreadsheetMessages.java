@@ -14,13 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.controls.resultset.spreadsheet;
+package com.seizia.chromite.ui.controls.resultset.spreadsheet;
 
 import org.eclipse.osgi.util.NLS;
 
 public class SpreadsheetMessages extends NLS {
 
-    private static final String BUNDLE_NAME = "org.jkiss.dbeaver.ui.controls.resultset.spreadsheet.SpreadsheetMessages";
+    private static final String BUNDLE_NAME = "com.seizia.chromite.ui.controls.resultset.spreadsheet.SpreadsheetMessages";
 
     public static String tooltip_column;
     public static String tooltip_attribute;

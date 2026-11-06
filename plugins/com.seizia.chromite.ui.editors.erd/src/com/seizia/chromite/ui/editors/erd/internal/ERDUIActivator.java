@@ -14,19 +14,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.editors.erd.internal;
+package com.seizia.chromite.ui.editors.erd.internal;
 
 import org.eclipse.gef.internal.InternalImages;
 import org.eclipse.jface.resource.ImageDescriptor;
 import org.eclipse.swt.graphics.Image;
 import org.eclipse.ui.plugin.AbstractUIPlugin;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.impl.preferences.BundlePreferenceStore;
-import org.jkiss.dbeaver.model.impl.preferences.RemoteUserBundlePreferenceStore;
-import org.jkiss.dbeaver.model.preferences.DBPPreferenceStore;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.ui.DBeaverIcons;
-import org.jkiss.dbeaver.ui.UIIcon;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.impl.preferences.BundlePreferenceStore;
+import com.seizia.chromite.model.impl.preferences.RemoteUserBundlePreferenceStore;
+import com.seizia.chromite.model.preferences.DBPPreferenceStore;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.ui.SwtIcons;
+import com.seizia.chromite.ui.UIIcon;
 import org.osgi.framework.BundleContext;
 
 /**
@@ -34,7 +34,7 @@ import org.osgi.framework.BundleContext;
  */
 public class ERDUIActivator extends AbstractUIPlugin {
 
-    public static final String PLUGIN_ID = "org.jkiss.dbeaver.ui.editors.erd"; // $NON-NLS-0$
+    public static final String PLUGIN_ID = "com.seizia.chromite.ui.editors.erd"; // $NON-NLS-0$
     private static final Log log = Log.getLog(ERDUIActivator.class);
     private static ERDUIActivator plugin;
     private DBPPreferenceStore preferences;
@@ -63,7 +63,7 @@ public class ERDUIActivator extends AbstractUIPlugin {
             InternalImages.class.getMethod(
                 "set",
                 String.class, Image.class)
-                .invoke(null, InternalImages.IMG_PALETTE, DBeaverIcons.getImage(UIIcon.PALETTE));
+                .invoke(null, InternalImages.IMG_PALETTE, SwtIcons.getImage(UIIcon.PALETTE));
         } catch (Throwable e) {
             log.debug(e);
         }

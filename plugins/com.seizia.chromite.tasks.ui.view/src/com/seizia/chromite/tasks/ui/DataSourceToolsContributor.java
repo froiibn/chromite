@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.tasks.ui;
+package com.seizia.chromite.tasks.ui;
 
 import org.eclipse.jface.action.*;
 import org.eclipse.jface.resource.ImageDescriptor;
@@ -24,25 +24,25 @@ import org.eclipse.jface.viewers.ISelectionProvider;
 import org.eclipse.jface.viewers.IStructuredSelection;
 import org.eclipse.ui.*;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.model.*;
-import org.jkiss.dbeaver.model.connection.DBPEditorContribution;
-import org.jkiss.dbeaver.model.exec.DBCExecutionContext;
-import org.jkiss.dbeaver.model.navigator.meta.DBXTreeNode;
-import org.jkiss.dbeaver.model.navigator.meta.DBXTreeObject;
-import org.jkiss.dbeaver.model.struct.DBSObject;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.tasks.ui.view.DatabaseTasksView;
-import org.jkiss.dbeaver.tools.registry.ToolDescriptor;
-import org.jkiss.dbeaver.tools.registry.ToolGroupDescriptor;
-import org.jkiss.dbeaver.tools.registry.ToolsRegistry;
-import org.jkiss.dbeaver.ui.ActionUtils;
-import org.jkiss.dbeaver.ui.DBeaverIcons;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.actions.EmptyListAction;
-import org.jkiss.dbeaver.ui.actions.datasource.DataSourceMenuContributor;
-import org.jkiss.dbeaver.ui.editors.IDatabaseEditorInput;
-import org.jkiss.dbeaver.ui.navigator.NavigatorUtils;
-import org.jkiss.dbeaver.utils.RuntimeUtils;
+import com.seizia.chromite.model.*;
+import com.seizia.chromite.model.connection.DBPEditorContribution;
+import com.seizia.chromite.model.exec.DBCExecutionContext;
+import com.seizia.chromite.model.navigator.meta.DBXTreeNode;
+import com.seizia.chromite.model.navigator.meta.DBXTreeObject;
+import com.seizia.chromite.model.struct.DBSObject;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.tasks.ui.view.DatabaseTasksView;
+import com.seizia.chromite.tools.registry.ToolDescriptor;
+import com.seizia.chromite.tools.registry.ToolGroupDescriptor;
+import com.seizia.chromite.tools.registry.ToolsRegistry;
+import com.seizia.chromite.ui.ActionUtils;
+import com.seizia.chromite.ui.SwtIcons;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.actions.EmptyListAction;
+import com.seizia.chromite.ui.actions.datasource.DataSourceMenuContributor;
+import com.seizia.chromite.ui.editors.IDatabaseEditorInput;
+import com.seizia.chromite.ui.navigator.NavigatorUtils;
+import com.seizia.chromite.utils.RuntimeUtils;
 import org.jkiss.utils.CommonUtils;
 
 import java.util.*;
@@ -178,7 +178,7 @@ public class DataSourceToolsContributor extends DataSourceMenuContributor
                             selection,
                             "execute-tool",
                             tool.getLabel(),
-                            tool.getIcon() == null ? null : DBeaverIcons.getImageDescriptor(tool.getIcon()),
+                            tool.getIcon() == null ? null : SwtIcons.getImageDescriptor(tool.getIcon()),
                             tool.getDescription());
                         if (parentMenu == null) {
                             menuItems.add(new ActionContributionItem(action));
@@ -214,7 +214,7 @@ public class DataSourceToolsContributor extends DataSourceMenuContributor
         private final DBPDataSource dataSource;
         private final DBPEditorContribution editor;
         public OpenToolsEditorAction(IWorkbenchPage workbenchPage, DBPDataSource dataSource, DBPEditorContribution editor) {
-            super(editor.getLabel(), DBeaverIcons.getImageDescriptor(editor.getIcon()));
+            super(editor.getLabel(), SwtIcons.getImageDescriptor(editor.getIcon()));
             this.workbenchPage = workbenchPage;
             this.dataSource = dataSource;
             this.editor = editor;
@@ -249,7 +249,7 @@ public class DataSourceToolsContributor extends DataSourceMenuContributor
 
         @Override
         public ImageDescriptor getImageDescriptor() {
-            return DBeaverIcons.getImageDescriptor(editor.getIcon());
+            return SwtIcons.getImageDescriptor(editor.getIcon());
         }
 
         @Override

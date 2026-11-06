@@ -15,9 +15,9 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.model.sql;
+package com.seizia.chromite.model.sql;
 
-import org.jkiss.dbeaver.model.exec.DBCException;
+import com.seizia.chromite.model.exec.DBCException;
 
 /**
  * Quota exceeded exception

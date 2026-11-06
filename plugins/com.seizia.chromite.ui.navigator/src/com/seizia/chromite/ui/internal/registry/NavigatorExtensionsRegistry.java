@@ -15,17 +15,17 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.ui.internal.registry;
+package com.seizia.chromite.ui.internal.registry;
 
 import org.eclipse.core.runtime.IConfigurationElement;
 import org.eclipse.core.runtime.IExtensionRegistry;
 import org.eclipse.core.runtime.Platform;
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.navigator.DBNDatabaseNode;
-import org.jkiss.dbeaver.model.navigator.DBNNode;
-import org.jkiss.dbeaver.ui.navigator.INavigatorModelView;
-import org.jkiss.dbeaver.ui.navigator.INavigatorNodeActionHandler;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.navigator.DBNDatabaseNode;
+import com.seizia.chromite.model.navigator.DBNNode;
+import com.seizia.chromite.ui.navigator.INavigatorModelView;
+import com.seizia.chromite.ui.navigator.INavigatorNodeActionHandler;
 
 import java.util.ArrayList;
 import java.util.Comparator;

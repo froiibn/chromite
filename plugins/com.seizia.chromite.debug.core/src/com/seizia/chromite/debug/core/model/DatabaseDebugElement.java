@@ -16,10 +16,10 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.debug.core.model;
+package com.seizia.chromite.debug.core.model;
 
 import org.eclipse.debug.core.model.DebugElement;
-import org.jkiss.dbeaver.debug.DBGController;
+import com.seizia.chromite.debug.DBGController;
 
 public class DatabaseDebugElement extends DebugElement {
 

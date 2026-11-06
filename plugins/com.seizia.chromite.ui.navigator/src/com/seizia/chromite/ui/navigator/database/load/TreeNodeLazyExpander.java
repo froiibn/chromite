@@ -14,24 +14,24 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.navigator.database.load;
+package com.seizia.chromite.ui.navigator.database.load;
 
 import org.eclipse.jface.viewers.TreeViewer;
 import org.eclipse.swt.graphics.Image;
 import org.eclipse.swt.widgets.Tree;
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.model.navigator.DBNNode;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.ui.DBeaverIcons;
-import org.jkiss.dbeaver.ui.UIIcon;
-import org.jkiss.dbeaver.ui.navigator.NavigatorPreferences;
-import org.jkiss.dbeaver.ui.navigator.database.DatabaseNavigatorContent;
-import org.jkiss.dbeaver.ui.navigator.database.DatabaseNavigatorTree;
+import com.seizia.chromite.model.navigator.DBNNode;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.ui.SwtIcons;
+import com.seizia.chromite.ui.UIIcon;
+import com.seizia.chromite.ui.navigator.NavigatorPreferences;
+import com.seizia.chromite.ui.navigator.database.DatabaseNavigatorContent;
+import com.seizia.chromite.ui.navigator.database.DatabaseNavigatorTree;
 
 
 public class TreeNodeLazyExpander extends TreeNodeSpecial {
 
-    private static Image IMG_MORE = DBeaverIcons.getImage(UIIcon.REFRESH);
+    private static Image IMG_MORE = SwtIcons.getImage(UIIcon.REFRESH);
 
     private DBNNode[] allChildren;
     private int visibleChildren;

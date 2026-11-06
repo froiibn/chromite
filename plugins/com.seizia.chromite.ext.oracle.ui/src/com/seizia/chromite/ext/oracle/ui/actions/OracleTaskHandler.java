@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.oracle.ui.actions;
+package com.seizia.chromite.ext.oracle.ui.actions;
 
 import org.eclipse.core.commands.AbstractHandler;
 import org.eclipse.jface.viewers.ISelection;
@@ -24,17 +24,17 @@ import org.eclipse.ui.IWorkbenchPart;
 import org.eclipse.ui.IWorkbenchPartSite;
 import org.eclipse.ui.commands.IElementUpdater;
 import org.eclipse.ui.menus.UIElement;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.ext.oracle.model.OracleObjectType;
-import org.jkiss.dbeaver.ext.oracle.model.OracleUtils;
-import org.jkiss.dbeaver.ext.oracle.model.source.OracleSourceObject;
-import org.jkiss.dbeaver.ext.oracle.model.source.OracleStatefulObject;
-import org.jkiss.dbeaver.model.exec.compile.DBCCompileError;
-import org.jkiss.dbeaver.model.exec.compile.DBCCompileLog;
-import org.jkiss.dbeaver.model.exec.jdbc.JDBCPreparedStatement;
-import org.jkiss.dbeaver.model.exec.jdbc.JDBCSession;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.utils.RuntimeUtils;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.ext.oracle.model.OracleObjectType;
+import com.seizia.chromite.ext.oracle.model.OracleUtils;
+import com.seizia.chromite.ext.oracle.model.source.OracleSourceObject;
+import com.seizia.chromite.ext.oracle.model.source.OracleStatefulObject;
+import com.seizia.chromite.model.exec.compile.DBCCompileError;
+import com.seizia.chromite.model.exec.compile.DBCCompileLog;
+import com.seizia.chromite.model.exec.jdbc.JDBCPreparedStatement;
+import com.seizia.chromite.model.exec.jdbc.JDBCSession;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.utils.RuntimeUtils;
 
 import java.sql.ResultSet;
 import java.util.ArrayList;

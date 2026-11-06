@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.ext.iotdb.ui.editors;
+package com.seizia.chromite.ext.iotdb.ui.editors;
 
 import org.eclipse.jface.layout.GridLayoutFactory;
 import org.eclipse.swt.SWT;
@@ -26,24 +26,24 @@ import org.eclipse.swt.widgets.Table;
 import org.eclipse.swt.widgets.TableItem;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.ext.iotdb.model.IoTDBGrant;
-import org.jkiss.dbeaver.ext.iotdb.model.IoTDBPrivilege;
-import org.jkiss.dbeaver.ext.iotdb.model.IoTDBRelationalUser;
-import org.jkiss.dbeaver.ext.iotdb.ui.config.IoTDBCommandGrantPrivilege;
-import org.jkiss.dbeaver.ext.iotdb.ui.controls.PrivilegeTableControl;
-import org.jkiss.dbeaver.ext.iotdb.ui.internal.IoTDBUiMessages;
-import org.jkiss.dbeaver.model.DBIcon;
-import org.jkiss.dbeaver.model.edit.DBECommandReflector;
-import org.jkiss.dbeaver.model.exec.DBCExecutionContext;
-import org.jkiss.dbeaver.model.navigator.DBNEvent;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.model.runtime.load.DatabaseLoadService;
-import org.jkiss.dbeaver.ui.BaseThemeSettings;
-import org.jkiss.dbeaver.ui.DBeaverIcons;
-import org.jkiss.dbeaver.ui.LoadingJob;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.controls.CustomSashForm;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.ext.iotdb.model.IoTDBGrant;
+import com.seizia.chromite.ext.iotdb.model.IoTDBPrivilege;
+import com.seizia.chromite.ext.iotdb.model.IoTDBRelationalUser;
+import com.seizia.chromite.ext.iotdb.ui.config.IoTDBCommandGrantPrivilege;
+import com.seizia.chromite.ext.iotdb.ui.controls.PrivilegeTableControl;
+import com.seizia.chromite.ext.iotdb.ui.internal.IoTDBUiMessages;
+import com.seizia.chromite.model.DBIcon;
+import com.seizia.chromite.model.edit.DBECommandReflector;
+import com.seizia.chromite.model.exec.DBCExecutionContext;
+import com.seizia.chromite.model.navigator.DBNEvent;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.model.runtime.load.DatabaseLoadService;
+import com.seizia.chromite.ui.BaseThemeSettings;
+import com.seizia.chromite.ui.SwtIcons;
+import com.seizia.chromite.ui.LoadingJob;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.controls.CustomSashForm;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -95,12 +95,12 @@ public class IoTDBUserEditorPrivileges extends IoTDBUserEditorAbstract {
             UIUtils.createTableColumn(databasesTable, SWT.LEFT, "Database");
             TableItem item = new TableItem(databasesTable, SWT.NONE);
             item.setText("(ALL)");
-            item.setImage(DBeaverIcons.getImage(DBIcon.TREE_DATABASE));
+            item.setImage(SwtIcons.getImage(DBIcon.TREE_DATABASE));
             item.setData(getDatabaseObject().getDatabaseAll());
             for (IoTDBRelationalUser.IoTDBDatabase db : getDatabaseObject().getDatabases()) {
                 item = new TableItem(databasesTable, SWT.NONE);
                 item.setText(db.name);
-                item.setImage(DBeaverIcons.getImage(DBIcon.TREE_DATABASE));
+                item.setImage(SwtIcons.getImage(DBIcon.TREE_DATABASE));
                 item.setData(db);
             }
             UIUtils.packColumns(databasesTable);
@@ -322,7 +322,7 @@ public class IoTDBUserEditorPrivileges extends IoTDBUserEditorAbstract {
                         for (String table : tables) {
                             TableItem item = new TableItem(tablesTable, SWT.NONE);
                             item.setText(table);
-                            item.setImage(DBeaverIcons.getImage(DBIcon.TREE_TABLE));
+                            item.setImage(SwtIcons.getImage(DBIcon.TREE_TABLE));
                             item.setData(table);
                         }
                         highlightTables();

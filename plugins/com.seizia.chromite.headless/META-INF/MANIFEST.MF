@@ -1,17 +1,17 @@
 Manifest-Version: 1.0
 Bundle-ManifestVersion: 2
-Bundle-Vendor: DBeaver Corp
+Bundle-Vendor: Chromite contributors
 Bundle-Name: Chromite Headless Application
-Bundle-SymbolicName: org.jkiss.dbeaver.headless;singleton:=true
+Bundle-SymbolicName: com.seizia.chromite.headless;singleton:=true
 Bundle-ActivationPolicy: lazy
 Bundle-Version: 1.0.124.qualifier
 Bundle-Release-Date: 20261116
 Bundle-RequiredExecutionEnvironment: JavaSE-21
-Bundle-Activator: org.jkiss.dbeaver.headless.DBeaverTestActivator
-Export-Package: org.jkiss.dbeaver.headless
+Bundle-Activator: com.seizia.chromite.headless.ChromiteTestActivator
+Export-Package: com.seizia.chromite.headless
 Require-Bundle: org.eclipse.equinox.app,
  org.eclipse.core.resources,
- org.jkiss.dbeaver.model,
- org.jkiss.dbeaver.model.rcp,
- org.jkiss.dbeaver.registry
-Automatic-Module-Name: org.jkiss.dbeaver.headless
+ com.seizia.chromite.model,
+ com.seizia.chromite.model.rcp,
+ com.seizia.chromite.registry
+Automatic-Module-Name: com.seizia.chromite.headless

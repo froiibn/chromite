@@ -14,19 +14,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.sql.semantics;
+package com.seizia.chromite.model.sql.semantics;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.model.impl.struct.RelationalObjectType;
-import org.jkiss.dbeaver.model.sql.semantics.context.SQLQueryExprType;
-import org.jkiss.dbeaver.model.sql.semantics.context.SQLQueryRowsDataContext;
-import org.jkiss.dbeaver.model.sql.semantics.context.SQLQueryRowsSourceContext;
-import org.jkiss.dbeaver.model.sql.semantics.context.SourceResolutionResult;
-import org.jkiss.dbeaver.model.stm.LSMInspections;
-import org.jkiss.dbeaver.model.stm.STMTreeNode;
-import org.jkiss.dbeaver.model.struct.DBSObject;
-import org.jkiss.dbeaver.model.struct.DBSObjectType;
+import com.seizia.chromite.model.impl.struct.RelationalObjectType;
+import com.seizia.chromite.model.sql.semantics.context.SQLQueryExprType;
+import com.seizia.chromite.model.sql.semantics.context.SQLQueryRowsDataContext;
+import com.seizia.chromite.model.sql.semantics.context.SQLQueryRowsSourceContext;
+import com.seizia.chromite.model.sql.semantics.context.SourceResolutionResult;
+import com.seizia.chromite.model.stm.LSMInspections;
+import com.seizia.chromite.model.stm.STMTreeNode;
+import com.seizia.chromite.model.struct.DBSObject;
+import com.seizia.chromite.model.struct.DBSObjectType;
 
 import java.util.Collections;
 import java.util.Set;

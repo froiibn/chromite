@@ -14,26 +14,26 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.ai.engine.copilot;
+package com.seizia.chromite.model.ai.engine.copilot;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.ai.engine.AIEngineResponseConsumer;
-import org.jkiss.dbeaver.model.ai.engine.copilot.dto.CopilotChatRequest;
-import org.jkiss.dbeaver.model.ai.engine.copilot.dto.CopilotSessionToken;
-import org.jkiss.dbeaver.model.ai.engine.openai.OpenAIConstants;
-import org.jkiss.dbeaver.model.ai.engine.openai.OpenAiAPIStreamConsumer;
-import org.jkiss.dbeaver.model.ai.engine.openai.OpenAiUtils;
-import org.jkiss.dbeaver.model.ai.engine.openai.dto.OAIMessageContent;
-import org.jkiss.dbeaver.model.ai.engine.openai.dto.OAIModel;
-import org.jkiss.dbeaver.model.ai.engine.openai.dto.OAIModelList;
-import org.jkiss.dbeaver.model.ai.engine.openai.dto.OAIResponsesRequest;
-import org.jkiss.dbeaver.model.ai.engine.openai.dto.OAIResponsesResponse;
-import org.jkiss.dbeaver.model.ai.utils.AIHttpUtils;
-import org.jkiss.dbeaver.model.ai.utils.MonitoredHttpClient;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.ai.engine.AIEngineResponseConsumer;
+import com.seizia.chromite.model.ai.engine.copilot.dto.CopilotChatRequest;
+import com.seizia.chromite.model.ai.engine.copilot.dto.CopilotSessionToken;
+import com.seizia.chromite.model.ai.engine.openai.OpenAIConstants;
+import com.seizia.chromite.model.ai.engine.openai.OpenAiAPIStreamConsumer;
+import com.seizia.chromite.model.ai.engine.openai.OpenAiUtils;
+import com.seizia.chromite.model.ai.engine.openai.dto.OAIMessageContent;
+import com.seizia.chromite.model.ai.engine.openai.dto.OAIModel;
+import com.seizia.chromite.model.ai.engine.openai.dto.OAIModelList;
+import com.seizia.chromite.model.ai.engine.openai.dto.OAIResponsesRequest;
+import com.seizia.chromite.model.ai.engine.openai.dto.OAIResponsesResponse;
+import com.seizia.chromite.model.ai.utils.AIHttpUtils;
+import com.seizia.chromite.model.ai.utils.MonitoredHttpClient;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
 import org.jkiss.utils.HttpConstants;
 import org.jkiss.utils.Pair;
 

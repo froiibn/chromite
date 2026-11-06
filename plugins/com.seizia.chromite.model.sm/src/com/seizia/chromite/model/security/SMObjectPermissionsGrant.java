@@ -14,9 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.security;
+package com.seizia.chromite.model.security;
 
-import org.jkiss.dbeaver.model.security.user.SMObjectPermissions;
+import com.seizia.chromite.model.security.user.SMObjectPermissions;
 
 import java.util.HashSet;
 import java.util.Set;

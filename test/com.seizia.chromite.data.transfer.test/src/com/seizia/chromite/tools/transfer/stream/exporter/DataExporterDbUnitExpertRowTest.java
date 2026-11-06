@@ -14,14 +14,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.tools.transfer.stream.exporter;
+package com.seizia.chromite.tools.transfer.stream.exporter;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.model.exec.DBCResultSet;
-import org.jkiss.dbeaver.model.exec.DBCSession;
-import org.jkiss.dbeaver.tools.transfer.stream.IStreamDataExporterSite;
-import org.jkiss.junit.DBeaverUnitTest;
+import com.seizia.chromite.model.exec.DBCResultSet;
+import com.seizia.chromite.model.exec.DBCSession;
+import com.seizia.chromite.tools.transfer.stream.IStreamDataExporterSite;
+import com.seizia.chromite.junit.ChromiteUnitTest;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -32,7 +32,7 @@ import java.io.IOException;
 import java.io.StringWriter;
 import java.util.stream.IntStream;
 
-public class DataExporterDbUnitExpertRowTest extends DBeaverUnitTest {
+public class DataExporterDbUnitExpertRowTest extends ChromiteUnitTest {
 
     private String outputEncoding = "UTF-8";
 

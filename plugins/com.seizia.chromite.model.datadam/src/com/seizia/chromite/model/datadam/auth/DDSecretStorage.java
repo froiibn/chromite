@@ -14,16 +14,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.datadam.auth;
+package com.seizia.chromite.model.datadam.auth;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.model.impl.app.SecurePreferencesSecretController;
-import org.jkiss.dbeaver.model.secret.DBSSecretController;
-import org.jkiss.dbeaver.model.secret.DBSSecretObject;
-import org.jkiss.dbeaver.model.secret.DBSSecretValue;
-import org.jkiss.dbeaver.model.security.DBSecurityUtils;
+import com.seizia.chromite.model.impl.app.SecurePreferencesSecretController;
+import com.seizia.chromite.model.secret.DBSSecretController;
+import com.seizia.chromite.model.secret.DBSSecretObject;
+import com.seizia.chromite.model.secret.DBSSecretValue;
+import com.seizia.chromite.model.security.DBSecurityUtils;
 
 import java.util.List;
 

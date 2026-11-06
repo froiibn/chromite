@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.controls.breadcrumb;
+package com.seizia.chromite.ui.controls.breadcrumb;
 
 import org.eclipse.jface.action.Action;
 import org.eclipse.jface.action.MenuManager;
@@ -33,10 +33,10 @@ import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.widgets.*;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.ui.DBeaverIcons;
-import org.jkiss.dbeaver.ui.EmptyAction;
-import org.jkiss.dbeaver.ui.UIIcon;
-import org.jkiss.dbeaver.ui.UIUtils;
+import com.seizia.chromite.ui.SwtIcons;
+import com.seizia.chromite.ui.EmptyAction;
+import com.seizia.chromite.ui.UIIcon;
+import com.seizia.chromite.ui.UIUtils;
 import org.jkiss.utils.CommonUtils;
 
 final class BreadcrumbItem extends Item {
@@ -69,7 +69,7 @@ final class BreadcrumbItem extends Item {
 
         elementArrow = new Label(container, SWT.NONE);
         elementArrow.setLayoutData(new GridData(SWT.END, SWT.CENTER, false, false));
-        elementArrow.setImage(DBeaverIcons.getImage(UIIcon.TREE_EXPAND));
+        elementArrow.setImage(SwtIcons.getImage(UIIcon.TREE_EXPAND));
 
         detailComposite = new Composite(container, SWT.NONE);
         detailComposite.setLayoutData(new GridData(SWT.BEGINNING, SWT.CENTER, false, false));

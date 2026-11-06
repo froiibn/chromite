@@ -14,15 +14,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.mysql.ui.editors;
+package com.seizia.chromite.ext.mysql.ui.editors;
 
-import org.jkiss.dbeaver.ext.mysql.MySQLConstants;
-import org.jkiss.dbeaver.ext.mysql.model.MySQLTableColumn;
-import org.jkiss.dbeaver.model.DBValueFormatting;
-import org.jkiss.dbeaver.model.data.DBDDisplayFormat;
-import org.jkiss.dbeaver.model.struct.DBSTypedObject;
-import org.jkiss.dbeaver.ui.data.IValueController;
-import org.jkiss.dbeaver.ui.data.managers.EnumValueManager;
+import com.seizia.chromite.ext.mysql.MySQLConstants;
+import com.seizia.chromite.ext.mysql.model.MySQLTableColumn;
+import com.seizia.chromite.model.DBValueFormatting;
+import com.seizia.chromite.model.data.DBDDisplayFormat;
+import com.seizia.chromite.model.struct.DBSTypedObject;
+import com.seizia.chromite.ui.data.IValueController;
+import com.seizia.chromite.ui.data.managers.EnumValueManager;
 import org.jkiss.utils.CommonUtils;
 
 import java.util.ArrayList;

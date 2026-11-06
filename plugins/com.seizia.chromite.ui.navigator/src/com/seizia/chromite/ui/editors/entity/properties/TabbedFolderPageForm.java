@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.editors.entity.properties;
+package com.seizia.chromite.ui.editors.entity.properties;
 
 import org.eclipse.core.runtime.jobs.IJobChangeEvent;
 import org.eclipse.core.runtime.jobs.JobChangeAdapter;
@@ -38,32 +38,32 @@ import org.eclipse.ui.part.MultiPageEditorPart;
 import org.eclipse.ui.part.MultiPageEditorSite;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.DBConstants;
-import org.jkiss.dbeaver.model.DBValueFormatting;
-import org.jkiss.dbeaver.model.data.DBDDisplayFormat;
-import org.jkiss.dbeaver.model.edit.DBECommand;
-import org.jkiss.dbeaver.model.edit.DBECommandContext;
-import org.jkiss.dbeaver.model.edit.prop.DBECommandProperty;
-import org.jkiss.dbeaver.model.impl.edit.DBECommandAdapter;
-import org.jkiss.dbeaver.model.preferences.DBPPropertyDescriptor;
-import org.jkiss.dbeaver.model.preferences.DBPPropertySource;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.model.runtime.load.DatabaseLoadService;
-import org.jkiss.dbeaver.model.struct.DBSObject;
-import org.jkiss.dbeaver.runtime.properties.ObjectPropertyDescriptor;
-import org.jkiss.dbeaver.ui.ICustomActionsProvider;
-import org.jkiss.dbeaver.ui.IRefreshablePart;
-import org.jkiss.dbeaver.ui.LoadingJob;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.controls.CustomFormEditor;
-import org.jkiss.dbeaver.ui.controls.ObjectEditorPageControl;
-import org.jkiss.dbeaver.ui.controls.folders.TabbedFolderPage;
-import org.jkiss.dbeaver.ui.css.CSSUtils;
-import org.jkiss.dbeaver.ui.editors.IDatabaseEditorInput;
-import org.jkiss.dbeaver.ui.editors.entity.EntityEditor;
-import org.jkiss.dbeaver.ui.internal.UINavigatorMessages;
-import org.jkiss.dbeaver.ui.navigator.actions.NavigatorHandlerObjectOpen;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.DBConstants;
+import com.seizia.chromite.model.DBValueFormatting;
+import com.seizia.chromite.model.data.DBDDisplayFormat;
+import com.seizia.chromite.model.edit.DBECommand;
+import com.seizia.chromite.model.edit.DBECommandContext;
+import com.seizia.chromite.model.edit.prop.DBECommandProperty;
+import com.seizia.chromite.model.impl.edit.DBECommandAdapter;
+import com.seizia.chromite.model.preferences.DBPPropertyDescriptor;
+import com.seizia.chromite.model.preferences.DBPPropertySource;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.model.runtime.load.DatabaseLoadService;
+import com.seizia.chromite.model.struct.DBSObject;
+import com.seizia.chromite.runtime.properties.ObjectPropertyDescriptor;
+import com.seizia.chromite.ui.ICustomActionsProvider;
+import com.seizia.chromite.ui.IRefreshablePart;
+import com.seizia.chromite.ui.LoadingJob;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.controls.CustomFormEditor;
+import com.seizia.chromite.ui.controls.ObjectEditorPageControl;
+import com.seizia.chromite.ui.controls.folders.TabbedFolderPage;
+import com.seizia.chromite.ui.css.CSSUtils;
+import com.seizia.chromite.ui.editors.IDatabaseEditorInput;
+import com.seizia.chromite.ui.editors.entity.EntityEditor;
+import com.seizia.chromite.ui.internal.UINavigatorMessages;
+import com.seizia.chromite.ui.navigator.actions.NavigatorHandlerObjectOpen;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -412,7 +412,7 @@ public class TabbedFolderPageForm extends TabbedFolderPage implements IRefreshab
     @Override
     public void fillCustomActions(@NotNull IContributionManager contributionManager) {
 /*
-        contributionManager.add(new Action(isAttached() ? "Detach properties to top panel" : "Move properties to tab", DBeaverIcons.getImageDescriptor(UIIcon.ASTERISK)) {
+        contributionManager.add(new Action(isAttached() ? "Detach properties to top panel" : "Move properties to tab", SwtIcons.getImageDescriptor(UIIcon.ASTERISK)) {
             @Override
             public void run() {
                 detachPropertiesPanel();

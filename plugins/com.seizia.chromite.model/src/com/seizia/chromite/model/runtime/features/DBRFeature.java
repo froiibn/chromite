@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.model.runtime.features;
+package com.seizia.chromite.model.runtime.features;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;

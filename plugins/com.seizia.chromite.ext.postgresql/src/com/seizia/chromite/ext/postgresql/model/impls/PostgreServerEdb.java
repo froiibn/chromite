@@ -14,13 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.postgresql.model.impls;
+package com.seizia.chromite.ext.postgresql.model.impls;
 
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.ext.postgresql.PostgreUtils;
-import org.jkiss.dbeaver.ext.postgresql.model.PostgreDataSource;
-import org.jkiss.dbeaver.ext.postgresql.model.PostgreDatabase;
-import org.jkiss.dbeaver.model.exec.jdbc.JDBCSession;
+import com.seizia.chromite.ext.postgresql.PostgreUtils;
+import com.seizia.chromite.ext.postgresql.model.PostgreDataSource;
+import com.seizia.chromite.ext.postgresql.model.PostgreDatabase;
+import com.seizia.chromite.model.exec.jdbc.JDBCSession;
 
 /**
  * PostgreServerPostgreSQL

@@ -17,13 +17,13 @@
 /*
  * Created on Jul 13, 2004
  */
-package org.jkiss.dbeaver.model.erd;
+package com.seizia.chromite.model.erd;
 
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.model.DBPImage;
-import org.jkiss.dbeaver.model.DBValueFormatting;
-import org.jkiss.dbeaver.model.data.json.JSONUtils;
-import org.jkiss.dbeaver.model.struct.DBSEntityAttribute;
+import com.seizia.chromite.model.DBPImage;
+import com.seizia.chromite.model.DBValueFormatting;
+import com.seizia.chromite.model.data.json.JSONUtils;
+import com.seizia.chromite.model.struct.DBSEntityAttribute;
 import org.jkiss.utils.CommonUtils;
 
 import java.util.LinkedHashMap;

@@ -14,13 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.cubrid.model.plan;
+package com.seizia.chromite.ext.cubrid.model.plan;
 
 import java.sql.SQLException;
 import java.sql.Statement;
 
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.Log;
+import com.seizia.chromite.Log;
 import org.jkiss.utils.BeanUtils;
 
 public class CubridStatementProxy {

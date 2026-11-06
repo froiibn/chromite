@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.net.ssh.config;
+package com.seizia.chromite.model.net.ssh.config;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;

@@ -14,13 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.notifications.sounds;
+package com.seizia.chromite.ui.notifications.sounds;
 
 import org.eclipse.swt.widgets.Display;
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.notifications.NotificationSound;
-import org.jkiss.dbeaver.ui.notifications.NotificationSoundProvider;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.notifications.NotificationSound;
+import com.seizia.chromite.ui.notifications.NotificationSoundProvider;
 
 public class BeepSoundProvider implements NotificationSoundProvider {
     public static final BeepSoundProvider INSTANCE = new BeepSoundProvider();

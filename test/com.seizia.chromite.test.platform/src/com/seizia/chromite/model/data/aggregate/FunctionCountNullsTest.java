@@ -15,11 +15,11 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.model.data.aggregate;
+package com.seizia.chromite.model.data.aggregate;
 
 import org.hamcrest.CoreMatchers;
 import org.hamcrest.MatcherAssert;
-import org.jkiss.junit.DBeaverUnitTest;
+import com.seizia.chromite.junit.ChromiteUnitTest;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -29,7 +29,7 @@ import java.util.List;
 import java.util.stream.Stream;
 
 
-public class FunctionCountNullsTest extends DBeaverUnitTest {
+public class FunctionCountNullsTest extends ChromiteUnitTest {
 
     public static Stream<Arguments> data() {
         return Stream.of(

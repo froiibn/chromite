@@ -14,10 +14,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.app.standalone.config;
+package com.seizia.chromite.ui.app.standalone.config;
 
-import org.jkiss.dbeaver.ui.app.config.registry.ProductConfigAction;
-import org.jkiss.dbeaver.ui.app.standalone.tipoftheday.ShowTipOfTheDayDialog;
+import com.seizia.chromite.ui.app.config.registry.ProductConfigAction;
+import com.seizia.chromite.ui.app.standalone.tipoftheday.ShowTipOfTheDayDialog;
 
 public class ProductConfigShowTipsAction implements ProductConfigAction.OfCheckbox {
     @Override

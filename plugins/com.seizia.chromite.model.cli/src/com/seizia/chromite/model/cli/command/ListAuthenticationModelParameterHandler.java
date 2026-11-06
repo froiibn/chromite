@@ -14,21 +14,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.cli.command;
+package com.seizia.chromite.model.cli.command;
 
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.model.DBPDataSourceContainer;
-import org.jkiss.dbeaver.model.access.DBAAuthCredentials;
-import org.jkiss.dbeaver.model.access.DBAAuthModel;
-import org.jkiss.dbeaver.model.cli.*;
-import org.jkiss.dbeaver.model.cli.model.option.ProjectOption;
-import org.jkiss.dbeaver.model.connection.DBPAuthModelDescriptor;
-import org.jkiss.dbeaver.model.connection.DBPDataSourceProviderDescriptor;
-import org.jkiss.dbeaver.model.connection.DBPDataSourceProviderRegistry;
-import org.jkiss.dbeaver.model.connection.DBPDriver;
-import org.jkiss.dbeaver.model.preferences.DBPPropertyDescriptor;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.runtime.properties.PropertyCollector;
+import com.seizia.chromite.model.DBPDataSourceContainer;
+import com.seizia.chromite.model.access.DBAAuthCredentials;
+import com.seizia.chromite.model.access.DBAAuthModel;
+import com.seizia.chromite.model.cli.*;
+import com.seizia.chromite.model.cli.model.option.ProjectOption;
+import com.seizia.chromite.model.connection.DBPAuthModelDescriptor;
+import com.seizia.chromite.model.connection.DBPDataSourceProviderDescriptor;
+import com.seizia.chromite.model.connection.DBPDataSourceProviderRegistry;
+import com.seizia.chromite.model.connection.DBPDriver;
+import com.seizia.chromite.model.preferences.DBPPropertyDescriptor;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.runtime.properties.PropertyCollector;
 import org.jkiss.utils.CommonUtils;
 import picocli.CommandLine;
 

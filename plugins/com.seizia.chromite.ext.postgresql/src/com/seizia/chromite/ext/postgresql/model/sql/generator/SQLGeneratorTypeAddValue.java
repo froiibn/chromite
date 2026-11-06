@@ -14,12 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.postgresql.model.sql.generator;
+package com.seizia.chromite.ext.postgresql.model.sql.generator;
 
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.model.sql.generator.SQLGenerator;
-import org.jkiss.dbeaver.model.struct.DBSEntity;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.model.sql.generator.SQLGenerator;
+import com.seizia.chromite.model.struct.DBSEntity;
 
 public class SQLGeneratorTypeAddValue extends SQLGenerator<Object> {
 

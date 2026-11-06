@@ -14,11 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model;
+package com.seizia.chromite.model;
 
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.runtime.DBRInvoker;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.runtime.DBRInvoker;
 
 import java.util.Collections;
 import java.util.Map;

@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.ext.generic;
+package com.seizia.chromite.ext.generic;
 
 /**
  * Generic provider constants

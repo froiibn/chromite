@@ -14,11 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui;
+package com.seizia.chromite.ui;
 
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.model.runtime.RunnableWithResult;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
+import com.seizia.chromite.model.runtime.RunnableWithResult;
+import com.seizia.chromite.runtime.DBWorkbench;
 
 public abstract class UITask<RESULT> extends RunnableWithResult<RESULT> {
 

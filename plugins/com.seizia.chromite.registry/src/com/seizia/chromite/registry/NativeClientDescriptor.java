@@ -16,15 +16,15 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.registry;
+package com.seizia.chromite.registry;
 
 import org.eclipse.core.runtime.IConfigurationElement;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.model.connection.DBPDriver;
-import org.jkiss.dbeaver.model.impl.AbstractDescriptor;
-import org.jkiss.dbeaver.model.runtime.OSDescriptor;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
+import com.seizia.chromite.model.connection.DBPDriver;
+import com.seizia.chromite.model.impl.AbstractDescriptor;
+import com.seizia.chromite.model.runtime.OSDescriptor;
+import com.seizia.chromite.runtime.DBWorkbench;
 
 import java.util.ArrayList;
 import java.util.List;

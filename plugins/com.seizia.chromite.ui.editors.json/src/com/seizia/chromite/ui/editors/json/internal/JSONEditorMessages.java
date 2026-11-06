@@ -14,12 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.editors.json.internal;
+package com.seizia.chromite.ui.editors.json.internal;
 
 import org.eclipse.osgi.util.NLS;
 
 public class JSONEditorMessages extends NLS {
-    private static final String BUNDLE_NAME = "org.jkiss.dbeaver.ui.editors.json.internal.JSONEditorMessages"; //$NON-NLS-1$
+    private static final String BUNDLE_NAME = "com.seizia.chromite.ui.editors.json.internal.JSONEditorMessages"; //$NON-NLS-1$
 
     public static String JSONEditorPart_title;
     static {

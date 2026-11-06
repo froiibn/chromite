@@ -14,15 +14,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.editors.erd.editor.tools;
+package com.seizia.chromite.ui.editors.erd.editor.tools;
 
 import org.eclipse.draw2d.IFigure;
 import org.eclipse.gef.commands.Command;
 import org.eclipse.gef.ui.actions.SelectionAction;
 import org.eclipse.jface.viewers.IStructuredSelection;
-import org.jkiss.dbeaver.ui.editors.erd.editor.ERDEditorPart;
-import org.jkiss.dbeaver.ui.editors.erd.internal.ERDUIMessages;
-import org.jkiss.dbeaver.ui.editors.erd.part.NodePart;
+import com.seizia.chromite.ui.editors.erd.editor.ERDEditorPart;
+import com.seizia.chromite.ui.editors.erd.internal.ERDUIMessages;
+import com.seizia.chromite.ui.editors.erd.part.NodePart;
 
 import java.util.List;
 

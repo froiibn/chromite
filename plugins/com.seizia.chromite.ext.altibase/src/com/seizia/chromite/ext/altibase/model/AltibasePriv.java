@@ -14,10 +14,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.altibase.model;
+package com.seizia.chromite.ext.altibase.model;
 
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.model.access.DBAPrivilege;
+import com.seizia.chromite.model.access.DBAPrivilege;
 
 public class AltibasePriv extends AltibaseObject<AltibaseGrantee> implements DBAPrivilege {
 

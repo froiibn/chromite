@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.postgresql.ui.config;
+package com.seizia.chromite.ext.postgresql.ui.config;
 
 import org.eclipse.jface.viewers.LabelProvider;
 import org.eclipse.swt.SWT;
@@ -23,22 +23,22 @@ import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Control;
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.ext.postgresql.PostgreMessages;
-import org.jkiss.dbeaver.ext.postgresql.model.PostgreProcedure;
-import org.jkiss.dbeaver.ext.postgresql.model.PostgreTriggerBase;
-import org.jkiss.dbeaver.model.DBIcon;
-import org.jkiss.dbeaver.model.navigator.DBNDatabaseNode;
-import org.jkiss.dbeaver.model.navigator.DBNModel;
-import org.jkiss.dbeaver.model.navigator.DBNNode;
-import org.jkiss.dbeaver.model.struct.DBSEntityType;
-import org.jkiss.dbeaver.model.struct.DBSInstance;
-import org.jkiss.dbeaver.model.struct.DBSObject;
-import org.jkiss.dbeaver.model.struct.DBSObjectContainer;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.ui.DBeaverIcons;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.controls.CSmartSelector;
-import org.jkiss.dbeaver.ui.editors.object.struct.EntityEditPage;
+import com.seizia.chromite.ext.postgresql.PostgreMessages;
+import com.seizia.chromite.ext.postgresql.model.PostgreProcedure;
+import com.seizia.chromite.ext.postgresql.model.PostgreTriggerBase;
+import com.seizia.chromite.model.DBIcon;
+import com.seizia.chromite.model.navigator.DBNDatabaseNode;
+import com.seizia.chromite.model.navigator.DBNModel;
+import com.seizia.chromite.model.navigator.DBNNode;
+import com.seizia.chromite.model.struct.DBSEntityType;
+import com.seizia.chromite.model.struct.DBSInstance;
+import com.seizia.chromite.model.struct.DBSObject;
+import com.seizia.chromite.model.struct.DBSObjectContainer;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.ui.SwtIcons;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.controls.CSmartSelector;
+import com.seizia.chromite.ui.editors.object.struct.EntityEditPage;
 
 public class PostgreTriggerEditPage extends EntityEditPage {
 
@@ -90,7 +90,7 @@ public class PostgreTriggerEditPage extends EntityEditPage {
             super(pageContents, SWT.BORDER | SWT.DROP_DOWN | SWT.READ_ONLY, new LabelProvider() {
                 @Override
                 public Image getImage(Object element) {
-                    return DBeaverIcons.getImage(DBIcon.TREE_PROCEDURE);
+                    return SwtIcons.getImage(DBIcon.TREE_PROCEDURE);
                 }
 
                 @Override

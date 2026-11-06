@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.h2.internal;
+package com.seizia.chromite.ext.h2.internal;
 
 import java.util.List;
 

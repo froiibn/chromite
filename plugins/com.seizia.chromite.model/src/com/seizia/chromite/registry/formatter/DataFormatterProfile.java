@@ -14,21 +14,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.registry.formatter;
+package com.seizia.chromite.registry.formatter;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.model.data.DBDDataFormatter;
-import org.jkiss.dbeaver.model.data.DBDDataFormatterProfile;
-import org.jkiss.dbeaver.model.impl.data.formatters.NumberFormatSample;
-import org.jkiss.dbeaver.model.impl.preferences.SimplePreferenceStore;
-import org.jkiss.dbeaver.model.preferences.DBPPreferenceListener;
-import org.jkiss.dbeaver.model.preferences.DBPPreferenceStore;
-import org.jkiss.dbeaver.model.preferences.DBPPropertyDescriptor;
-import org.jkiss.dbeaver.model.struct.DBSTypedObject;
-import org.jkiss.dbeaver.model.struct.DBStructUtils;
-import org.jkiss.dbeaver.model.struct.rdb.DBSTableColumn;
-import org.jkiss.dbeaver.utils.PrefUtils;
+import com.seizia.chromite.model.data.DBDDataFormatter;
+import com.seizia.chromite.model.data.DBDDataFormatterProfile;
+import com.seizia.chromite.model.impl.data.formatters.NumberFormatSample;
+import com.seizia.chromite.model.impl.preferences.SimplePreferenceStore;
+import com.seizia.chromite.model.preferences.DBPPreferenceListener;
+import com.seizia.chromite.model.preferences.DBPPreferenceStore;
+import com.seizia.chromite.model.preferences.DBPPropertyDescriptor;
+import com.seizia.chromite.model.struct.DBSTypedObject;
+import com.seizia.chromite.model.struct.DBStructUtils;
+import com.seizia.chromite.model.struct.rdb.DBSTableColumn;
+import com.seizia.chromite.utils.PrefUtils;
 import org.jkiss.utils.CommonUtils;
 
 import java.io.IOException;

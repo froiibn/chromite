@@ -14,9 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.vertica.model;
+package com.seizia.chromite.ext.vertica.model;
 
-import org.jkiss.dbeaver.model.exec.jdbc.JDBCResultSet;
+import com.seizia.chromite.model.exec.jdbc.JDBCResultSet;
 
 public class VerticaFlexTable extends VerticaTable {
 

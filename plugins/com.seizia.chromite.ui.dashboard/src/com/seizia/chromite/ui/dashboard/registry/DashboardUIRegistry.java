@@ -14,14 +14,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.dashboard.registry;
+package com.seizia.chromite.ui.dashboard.registry;
 
 import org.eclipse.core.runtime.IConfigurationElement;
 import org.eclipse.core.runtime.IExtensionRegistry;
 import org.eclipse.core.runtime.Platform;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.dashboard.DBDashboardDataType;
-import org.jkiss.dbeaver.ui.dashboard.model.DashboardRendererType;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.dashboard.DBDashboardDataType;
+import com.seizia.chromite.ui.dashboard.model.DashboardRendererType;
 import org.jkiss.utils.ArrayUtils;
 
 import java.util.ArrayList;

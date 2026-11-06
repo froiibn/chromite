@@ -15,11 +15,11 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.model.exec.plan;
+package com.seizia.chromite.model.exec.plan;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.model.exec.DBCSession;
+import com.seizia.chromite.model.exec.DBCSession;
 
 /**
  * Execution plan builder for saved (historical) queries

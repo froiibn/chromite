@@ -15,9 +15,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.db2.editors;
+package com.seizia.chromite.ext.db2.editors;
 
-import org.jkiss.dbeaver.model.DBPScriptObject;
+import com.seizia.chromite.model.DBPScriptObject;
 
 /**
  * Object that provide a DDL text

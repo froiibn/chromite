@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.editors;
+package com.seizia.chromite.ui.editors;
 
 import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.jface.layout.GridDataFactory;
@@ -29,13 +29,13 @@ import org.eclipse.swt.widgets.*;
 import org.eclipse.ui.*;
 import org.eclipse.ui.part.MultiPageEditorPart;
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.preferences.DBPPreferenceStore;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.ui.*;
-import org.jkiss.dbeaver.ui.css.CSSUtils;
-import org.jkiss.dbeaver.ui.screenreaders.ScreenReader;
-import org.jkiss.dbeaver.ui.screenreaders.ScreenReaderPreferences;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.preferences.DBPPreferenceStore;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.ui.*;
+import com.seizia.chromite.ui.css.CSSUtils;
+import com.seizia.chromite.ui.screenreaders.ScreenReader;
+import com.seizia.chromite.ui.screenreaders.ScreenReaderPreferences;
 import org.jkiss.utils.CommonUtils;
 
 import java.lang.reflect.Method;
@@ -164,7 +164,7 @@ public abstract class MultiPageAbstractEditor extends MultiPageEditorPart {
 
         // Add a dummy item as empty toolbars are considered {0, 0} on some platforms
         ToolItem item = new ToolItem(toolBar, SWT.PUSH);
-        item.setImage(DBeaverIcons.getImage(UIIcon.SEPARATOR_V));
+        item.setImage(SwtIcons.getImage(UIIcon.SEPARATOR_V));
 
         Point size = toolBar.computeSize(SWT.DEFAULT, SWT.DEFAULT);
         toolBar.dispose();

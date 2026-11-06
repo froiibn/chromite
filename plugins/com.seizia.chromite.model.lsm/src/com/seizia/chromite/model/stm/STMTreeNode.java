@@ -1,4 +1,4 @@
-package org.jkiss.dbeaver.model.stm;
+package com.seizia.chromite.model.stm;
 
 import org.antlr.v4.runtime.misc.Interval;
 import org.antlr.v4.runtime.tree.ErrorNode;

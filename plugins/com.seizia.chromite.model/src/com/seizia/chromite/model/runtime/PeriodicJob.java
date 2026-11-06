@@ -14,13 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.runtime;
+package com.seizia.chromite.model.runtime;
 
 import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.Status;
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.app.DBPPlatform;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.app.DBPPlatform;
 
 import java.time.Duration;
 

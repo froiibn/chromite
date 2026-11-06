@@ -15,11 +15,11 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.ui.editors;
+package com.seizia.chromite.ui.editors;
 
 import org.eclipse.ui.IEditorInput;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.model.navigator.DBNNode;
+import com.seizia.chromite.model.navigator.DBNNode;
 
 /**
  * INavigatorEditorInput

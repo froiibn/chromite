@@ -14,10 +14,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.athena.ui;
+package com.seizia.chromite.ext.athena.ui;
 
 public final class AthenaUIConstants {
-    public static final String PLUGIN_ID = "org.jkiss.dbeaver.ext.athena.ui";
+    public static final String PLUGIN_ID = "com.seizia.chromite.ext.athena.ui";
 
     private AthenaUIConstants() {
     }

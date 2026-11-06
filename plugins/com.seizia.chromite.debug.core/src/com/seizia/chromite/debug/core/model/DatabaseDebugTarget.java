@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.debug.core.model;
+package com.seizia.chromite.debug.core.model;
 
 import org.eclipse.core.resources.IMarkerDelta;
 import org.eclipse.core.runtime.CoreException;
@@ -25,14 +25,14 @@ import org.eclipse.core.runtime.IStatus;
 import org.eclipse.debug.core.*;
 import org.eclipse.debug.core.model.*;
 import org.eclipse.osgi.util.NLS;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.debug.*;
-import org.jkiss.dbeaver.debug.core.DebugUtils;
-import org.jkiss.dbeaver.debug.internal.core.DebugCoreMessages;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.model.runtime.DefaultProgressMonitor;
-import org.jkiss.dbeaver.utils.GeneralUtils;
-import org.jkiss.dbeaver.utils.RuntimeUtils;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.debug.*;
+import com.seizia.chromite.debug.core.DebugUtils;
+import com.seizia.chromite.debug.internal.core.DebugCoreMessages;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.model.runtime.DefaultProgressMonitor;
+import com.seizia.chromite.utils.GeneralUtils;
+import com.seizia.chromite.utils.RuntimeUtils;
 
 import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;

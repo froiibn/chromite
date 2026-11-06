@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.editors.binary;
+package com.seizia.chromite.ui.editors.binary;
 
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.custom.StyleRange;
@@ -26,11 +26,11 @@ import org.eclipse.swt.graphics.*;
 import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.*;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.ui.BaseThemeSettings;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.editors.binary.pref.HexPreferencesPage;
-import org.jkiss.dbeaver.utils.GeneralUtils;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.ui.BaseThemeSettings;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.editors.binary.pref.HexPreferencesPage;
+import com.seizia.chromite.utils.GeneralUtils;
 import org.jkiss.utils.CommonUtils;
 
 import java.io.IOException;
@@ -55,7 +55,7 @@ public class HexEditControl extends Composite {
 
     private static final Log log = Log.getLog(HexEditControl.class);
 
-    public static final String CONTROL_ID = "org.jkiss.dbeaver.ui.hexEditor";
+    public static final String CONTROL_ID = "com.seizia.chromite.ui.hexEditor";
     public static final String DEFAULT_FONT_NAME = "Courier New"; //$NON-NLS-1$"
     public static final FontData DEFAULT_FONT_DATA = new FontData(DEFAULT_FONT_NAME, 10, SWT.NORMAL);
 

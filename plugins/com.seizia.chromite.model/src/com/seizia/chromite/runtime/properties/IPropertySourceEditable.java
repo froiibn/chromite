@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.runtime.properties;
+package com.seizia.chromite.runtime.properties;
 
 /**
  * Editable property source

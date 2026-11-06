@@ -27,30 +27,30 @@ import org.eclipse.core.runtime.Status;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.ModelPreferences;
-import org.jkiss.dbeaver.model.*;
-import org.jkiss.dbeaver.model.data.DBDDataFilter;
-import org.jkiss.dbeaver.model.data.DBDDataReceiver;
-import org.jkiss.dbeaver.model.exec.*;
-import org.jkiss.dbeaver.model.impl.AbstractExecutionSource;
-import org.jkiss.dbeaver.model.impl.AbstractStatement;
-import org.jkiss.dbeaver.model.impl.local.LocalStatement;
-import org.jkiss.dbeaver.model.impl.local.StatResultSet;
-import org.jkiss.dbeaver.model.qm.QMUtils;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.model.runtime.DBRRunnableParametrized;
-import org.jkiss.dbeaver.model.sql.*;
-import org.jkiss.dbeaver.model.sql.data.SQLQueryDataContainer;
-import org.jkiss.dbeaver.model.sql.parser.SQLSemanticProcessor;
-import org.jkiss.dbeaver.model.sql.registry.SQLCommandHandlerDescriptor;
-import org.jkiss.dbeaver.model.sql.registry.SQLCommandsRegistry;
-import org.jkiss.dbeaver.model.sql.registry.SQLPragmaHandlerDescriptor;
-import org.jkiss.dbeaver.model.struct.DBSDataContainer;
-import org.jkiss.dbeaver.runtime.jobs.DataSourceJob;
-import org.jkiss.dbeaver.runtime.ui.DBPPlatformUI;
-import org.jkiss.dbeaver.utils.GeneralUtils;
-import org.jkiss.dbeaver.utils.RuntimeUtils;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.ModelPreferences;
+import com.seizia.chromite.model.*;
+import com.seizia.chromite.model.data.DBDDataFilter;
+import com.seizia.chromite.model.data.DBDDataReceiver;
+import com.seizia.chromite.model.exec.*;
+import com.seizia.chromite.model.impl.AbstractExecutionSource;
+import com.seizia.chromite.model.impl.AbstractStatement;
+import com.seizia.chromite.model.impl.local.LocalStatement;
+import com.seizia.chromite.model.impl.local.StatResultSet;
+import com.seizia.chromite.model.qm.QMUtils;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.model.runtime.DBRRunnableParametrized;
+import com.seizia.chromite.model.sql.*;
+import com.seizia.chromite.model.sql.data.SQLQueryDataContainer;
+import com.seizia.chromite.model.sql.parser.SQLSemanticProcessor;
+import com.seizia.chromite.model.sql.registry.SQLCommandHandlerDescriptor;
+import com.seizia.chromite.model.sql.registry.SQLCommandsRegistry;
+import com.seizia.chromite.model.sql.registry.SQLPragmaHandlerDescriptor;
+import com.seizia.chromite.model.struct.DBSDataContainer;
+import com.seizia.chromite.runtime.jobs.DataSourceJob;
+import com.seizia.chromite.runtime.ui.DBPPlatformUI;
+import com.seizia.chromite.utils.GeneralUtils;
+import com.seizia.chromite.utils.RuntimeUtils;
 import org.jkiss.utils.CommonUtils;
 
 import java.lang.reflect.InvocationTargetException;
@@ -82,7 +82,7 @@ import java.util.Map;
  *   OK 상태로 끝나서 Swing 편집기가 "성공"으로 보였다. Job 상태는 SWT 동작 그대로 둔다 (docs/chromite/swing-sql-editor-plus.md "매개변수").
  */
 public class SQLQueryExecuteJob extends DataSourceJob {
-    private static final String PLUGIN_ID = "org.jkiss.dbeaver.model.sql";
+    private static final String PLUGIN_ID = "com.seizia.chromite.model.sql";
 
     private final Log log = Log.getLog(getClass());
 

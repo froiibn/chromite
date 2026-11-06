@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.impl.net;
+package com.seizia.chromite.model.impl.net;
 
 import org.jkiss.code.NotNull;
 import org.junit.jupiter.api.Assertions;
@@ -237,7 +237,7 @@ public class SSLHandlerTrustStoreImplTest {
     private void assertNoStagingFiles() throws IOException {
         try (var entries = Files.list(tempDir)) {
             Assertions.assertFalse(entries.anyMatch(file ->
-                file.getFileName().toString().startsWith(".dbeaver-private-")
+                file.getFileName().toString().startsWith(".chromite-private-")
             ));
         }
     }

@@ -14,13 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.navigator;
+package com.seizia.chromite.ui.navigator;
 
 import org.eclipse.core.runtime.IAdapterFactory;
-import org.jkiss.dbeaver.model.DBPObject;
-import org.jkiss.dbeaver.model.edit.DBEObjectConfigurator;
-import org.jkiss.dbeaver.ui.editors.entity.EntityConfiguratorDescriptor;
-import org.jkiss.dbeaver.ui.editors.entity.EntityEditorsRegistry;
+import com.seizia.chromite.model.DBPObject;
+import com.seizia.chromite.model.edit.DBEObjectConfigurator;
+import com.seizia.chromite.ui.editors.entity.EntityConfiguratorDescriptor;
+import com.seizia.chromite.ui.editors.entity.EntityEditorsRegistry;
 
 /**
  * Adapts objects to their UI configurators

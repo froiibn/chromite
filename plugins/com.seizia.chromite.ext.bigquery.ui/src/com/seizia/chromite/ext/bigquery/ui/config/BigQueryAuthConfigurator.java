@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.bigquery.ui.config;
+package com.seizia.chromite.ext.bigquery.ui.config;
 
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.events.SelectionListener;
@@ -23,16 +23,16 @@ import org.eclipse.swt.widgets.Combo;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Label;
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.ext.bigquery.model.BQConstants;
-import org.jkiss.dbeaver.ext.bigquery.ui.internal.BigQueryMessages;
-import org.jkiss.dbeaver.model.DBPDataSourceContainer;
-import org.jkiss.dbeaver.model.access.DBAAuthModel;
-import org.jkiss.dbeaver.model.connection.DBPConnectionConfiguration;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.controls.ConfigurationFileSelector;
-import org.jkiss.dbeaver.ui.controls.TextWithOpenFile;
-import org.jkiss.dbeaver.ui.dialogs.connection.DatabaseNativeAuthModelConfigurator;
+import com.seizia.chromite.ext.bigquery.model.BQConstants;
+import com.seizia.chromite.ext.bigquery.ui.internal.BigQueryMessages;
+import com.seizia.chromite.model.DBPDataSourceContainer;
+import com.seizia.chromite.model.access.DBAAuthModel;
+import com.seizia.chromite.model.connection.DBPConnectionConfiguration;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.controls.ConfigurationFileSelector;
+import com.seizia.chromite.ui.controls.TextWithOpenFile;
+import com.seizia.chromite.ui.dialogs.connection.DatabaseNativeAuthModelConfigurator;
 import org.jkiss.utils.CommonUtils;
 
 public class BigQueryAuthConfigurator extends DatabaseNativeAuthModelConfigurator {

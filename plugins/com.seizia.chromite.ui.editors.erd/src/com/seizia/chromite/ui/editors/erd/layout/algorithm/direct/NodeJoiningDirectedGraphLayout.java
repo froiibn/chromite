@@ -17,7 +17,7 @@
 /*
  * Created on Jul 16, 2004
  */
-package org.jkiss.dbeaver.ui.editors.erd.layout.algorithm.direct;
+package com.seizia.chromite.ui.editors.erd.layout.algorithm.direct;
 
 import org.eclipse.draw2d.graph.DirectedGraph;
 import org.eclipse.draw2d.graph.DirectedGraphLayout;

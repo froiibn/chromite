@@ -14,10 +14,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.sql;
+package com.seizia.chromite.model.sql;
 
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.model.data.DBDInsertReplaceMethod;
+import com.seizia.chromite.model.data.DBDInsertReplaceMethod;
 
 public interface SQLDialectInsertReplaceMethod {
 

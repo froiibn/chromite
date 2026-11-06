@@ -1,16 +1,16 @@
 Manifest-Version: 1.0
 Bundle-ManifestVersion: 2
-Bundle-Vendor: DBeaver Corp
+Bundle-Vendor: Chromite contributors
 Bundle-Name: Chromite Application Standalone
-Bundle-SymbolicName: org.jkiss.dbeaver.ui.app.standalone;singleton:=true
-Bundle-Activator: org.jkiss.dbeaver.ui.app.standalone.internal.CoreApplicationActivator
+Bundle-SymbolicName: com.seizia.chromite.ui.app.standalone;singleton:=true
+Bundle-Activator: com.seizia.chromite.ui.app.standalone.internal.CoreApplicationActivator
 Bundle-ActivationPolicy: lazy
 Bundle-Version: 26.2.5.qualifier
 Bundle-Release-Date: 20261116
 Bundle-RequiredExecutionEnvironment: JavaSE-21
-Export-Package: org.jkiss.dbeaver.ui.app.standalone,
- org.jkiss.dbeaver.ui.app.standalone.rpc,
- org.jkiss.dbeaver.ui.app.standalone.update
+Export-Package: com.seizia.chromite.ui.app.standalone,
+ com.seizia.chromite.ui.app.standalone.rpc,
+ com.seizia.chromite.ui.app.standalone.update
 Require-Bundle: org.eclipse.e4.core.services,
  org.eclipse.e4.ui.css.core,
  org.eclipse.e4.ui.css.swt,
@@ -21,12 +21,12 @@ Require-Bundle: org.eclipse.e4.core.services,
  org.eclipse.search,
  org.eclipse.core.net,
  org.eclipse.ui.ide.application;visibility:=reexport,
- org.jkiss.dbeaver.model.cli;visibility:=reexport,
- org.jkiss.dbeaver.model.rcp,
- org.jkiss.dbeaver.core,
- org.jkiss.dbeaver.ui,
- org.jkiss.dbeaver.ui.forms,
- org.jkiss.dbeaver.ui.app.config,
+ com.seizia.chromite.model.cli;visibility:=reexport,
+ com.seizia.chromite.model.rcp,
+ com.seizia.chromite.core,
+ com.seizia.chromite.ui,
+ com.seizia.chromite.ui.forms,
+ com.seizia.chromite.ui.app.config,
  org.eclipse.ui.views.log,
  org.osgi.service.event
-Automatic-Module-Name: org.jkiss.dbeaver.ui.app.standalone
+Automatic-Module-Name: com.seizia.chromite.ui.app.standalone

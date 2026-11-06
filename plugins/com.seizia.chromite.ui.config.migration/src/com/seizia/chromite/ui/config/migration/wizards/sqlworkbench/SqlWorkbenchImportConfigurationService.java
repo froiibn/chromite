@@ -14,22 +14,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.config.migration.wizards.sqlworkbench;
+package com.seizia.chromite.ui.config.migration.wizards.sqlworkbench;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.impl.net.SSLHandlerTrustStoreImpl;
-import org.jkiss.dbeaver.model.net.DBWHandlerConfiguration;
-import org.jkiss.dbeaver.model.net.DBWUtils;
-import org.jkiss.dbeaver.model.net.ssh.SSHConstants;
-import org.jkiss.dbeaver.registry.driver.DriverUtils;
-import org.jkiss.dbeaver.registry.network.NetworkHandlerDescriptor;
-import org.jkiss.dbeaver.registry.network.NetworkHandlerRegistry;
-import org.jkiss.dbeaver.ui.config.migration.wizards.ImportConfigurationException;
-import org.jkiss.dbeaver.ui.config.migration.wizards.ImportConnectionInfo;
-import org.jkiss.dbeaver.ui.config.migration.wizards.ImportData;
-import org.jkiss.dbeaver.ui.config.migration.wizards.ImportDriverInfo;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.impl.net.SSLHandlerTrustStoreImpl;
+import com.seizia.chromite.model.net.DBWHandlerConfiguration;
+import com.seizia.chromite.model.net.DBWUtils;
+import com.seizia.chromite.model.net.ssh.SSHConstants;
+import com.seizia.chromite.registry.driver.DriverUtils;
+import com.seizia.chromite.registry.network.NetworkHandlerDescriptor;
+import com.seizia.chromite.registry.network.NetworkHandlerRegistry;
+import com.seizia.chromite.ui.config.migration.wizards.ImportConfigurationException;
+import com.seizia.chromite.ui.config.migration.wizards.ImportConnectionInfo;
+import com.seizia.chromite.ui.config.migration.wizards.ImportData;
+import com.seizia.chromite.ui.config.migration.wizards.ImportDriverInfo;
 import org.jkiss.utils.CommonUtils;
 import org.jkiss.utils.xml.XMLException;
 import org.jkiss.utils.xml.XMLUtils;

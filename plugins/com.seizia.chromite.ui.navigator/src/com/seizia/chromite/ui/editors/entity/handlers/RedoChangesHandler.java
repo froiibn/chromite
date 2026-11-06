@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.editors.entity.handlers;
+package com.seizia.chromite.ui.editors.entity.handlers;
 
 import org.eclipse.core.commands.AbstractHandler;
 import org.eclipse.core.commands.ExecutionEvent;
@@ -25,9 +25,9 @@ import org.eclipse.ui.commands.IElementUpdater;
 import org.eclipse.ui.handlers.HandlerUtil;
 import org.eclipse.ui.internal.WorkbenchMessages;
 import org.eclipse.ui.menus.UIElement;
-import org.jkiss.dbeaver.model.edit.DBECommandContext;
-import org.jkiss.dbeaver.ui.editors.entity.EntityEditor;
-import org.jkiss.dbeaver.utils.RuntimeUtils;
+import com.seizia.chromite.model.edit.DBECommandContext;
+import com.seizia.chromite.ui.editors.entity.EntityEditor;
+import com.seizia.chromite.utils.RuntimeUtils;
 
 import java.util.Map;
 

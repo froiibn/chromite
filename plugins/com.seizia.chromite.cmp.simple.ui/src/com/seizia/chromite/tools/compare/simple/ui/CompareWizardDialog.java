@@ -15,15 +15,15 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.tools.compare.simple.ui;
+package com.seizia.chromite.tools.compare.simple.ui;
 
 import org.eclipse.jface.dialogs.IDialogConstants;
 import org.eclipse.jface.wizard.IWizard;
 import org.eclipse.swt.widgets.Button;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.ui.IWorkbenchWindow;
-import org.jkiss.dbeaver.tools.compare.simple.ui.internal.CompareUIMessages;
-import org.jkiss.dbeaver.ui.dialogs.ActiveWizardDialog;
+import com.seizia.chromite.tools.compare.simple.ui.internal.CompareUIMessages;
+import com.seizia.chromite.ui.dialogs.ActiveWizardDialog;
 
 /**
  * Compare wizard dialog

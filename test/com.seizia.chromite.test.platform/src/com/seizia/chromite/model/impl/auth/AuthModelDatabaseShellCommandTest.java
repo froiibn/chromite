@@ -14,19 +14,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.impl.auth;
+package com.seizia.chromite.model.impl.auth;
 
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.model.DBConstants;
-import org.jkiss.dbeaver.model.DBPDataSource;
-import org.jkiss.dbeaver.model.DBPDataSourceContainer;
-import org.jkiss.dbeaver.model.app.DBPProject;
-import org.jkiss.dbeaver.model.connection.DBPConnectionConfiguration;
-import org.jkiss.dbeaver.model.connection.DBPDriver;
-import org.jkiss.dbeaver.runtime.ServiceRegistry;
-import org.jkiss.dbeaver.runtime.ui.UIServiceShellCommands;
-import org.jkiss.dbeaver.utils.RuntimeUtils;
-import org.jkiss.junit.DBeaverUnitTest;
+import com.seizia.chromite.model.DBConstants;
+import com.seizia.chromite.model.DBPDataSource;
+import com.seizia.chromite.model.DBPDataSourceContainer;
+import com.seizia.chromite.model.app.DBPProject;
+import com.seizia.chromite.model.connection.DBPConnectionConfiguration;
+import com.seizia.chromite.model.connection.DBPDriver;
+import com.seizia.chromite.runtime.ServiceRegistry;
+import com.seizia.chromite.runtime.ui.UIServiceShellCommands;
+import com.seizia.chromite.utils.RuntimeUtils;
+import com.seizia.chromite.junit.ChromiteUnitTest;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -42,7 +42,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
-public class AuthModelDatabaseShellCommandTest extends DBeaverUnitTest {
+public class AuthModelDatabaseShellCommandTest extends ChromiteUnitTest {
     @TempDir
     Path workingDirectory;
 

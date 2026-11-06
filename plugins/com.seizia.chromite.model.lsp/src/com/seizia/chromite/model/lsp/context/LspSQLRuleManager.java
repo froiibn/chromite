@@ -14,14 +14,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.lsp.context;
+package com.seizia.chromite.model.lsp.context;
 
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.model.sql.SQLSyntaxManager;
-import org.jkiss.dbeaver.model.sql.parser.SQLRuleManager;
-import org.jkiss.dbeaver.model.text.parser.TPRule;
-import org.jkiss.dbeaver.model.text.parser.TPTokenAbstract;
-import org.jkiss.dbeaver.model.text.parser.rules.NewLineRule;
+import com.seizia.chromite.model.sql.SQLSyntaxManager;
+import com.seizia.chromite.model.sql.parser.SQLRuleManager;
+import com.seizia.chromite.model.text.parser.TPRule;
+import com.seizia.chromite.model.text.parser.TPTokenAbstract;
+import com.seizia.chromite.model.text.parser.rules.NewLineRule;
 
 import java.util.ArrayList;
 import java.util.Arrays;

@@ -14,12 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.task;
+package com.seizia.chromite.model.task;
 
 import org.eclipse.osgi.util.NLS;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.model.exec.DBCStatistics;
-import org.jkiss.dbeaver.model.messages.ModelMessages;
+import com.seizia.chromite.model.exec.DBCStatistics;
+import com.seizia.chromite.model.messages.ModelMessages;
 
 import java.util.StringJoiner;
 

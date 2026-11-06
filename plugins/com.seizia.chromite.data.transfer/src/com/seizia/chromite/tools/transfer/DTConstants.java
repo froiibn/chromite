@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.tools.transfer;
+package com.seizia.chromite.tools.transfer;
 
 import org.jkiss.utils.StandardConstants;
 
@@ -23,7 +23,7 @@ import org.jkiss.utils.StandardConstants;
  */
 public class DTConstants {
 
-    public static final String PLUGIN_ID = "org.jkiss.dbeaver.data.transfer";
+    public static final String PLUGIN_ID = "com.seizia.chromite.data.transfer";
 
     public static final String TASK_IMPORT = "dataImport";
     public static final String TASK_EXPORT = "dataExport";

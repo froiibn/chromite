@@ -14,11 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.dnd;
+package com.seizia.chromite.ui.dnd;
 
 import org.eclipse.swt.dnd.Clipboard;
 import org.eclipse.swt.widgets.Display;
-import org.jkiss.dbeaver.model.DBPNamedObject;
+import com.seizia.chromite.model.DBPNamedObject;
 
 import java.util.Collection;
 

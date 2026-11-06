@@ -14,16 +14,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.actions;
+package com.seizia.chromite.ui.actions;
 
 import org.eclipse.core.expressions.PropertyTester;
 import org.eclipse.core.resources.*;
-import org.jkiss.dbeaver.model.app.DBPProject;
-import org.jkiss.dbeaver.model.rm.RMConstants;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.runtime.IPluginService;
-import org.jkiss.dbeaver.ui.ActionUtils;
-import org.jkiss.dbeaver.ui.navigator.NavigatorUtils;
+import com.seizia.chromite.model.app.DBPProject;
+import com.seizia.chromite.model.rm.RMConstants;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.runtime.IPluginService;
+import com.seizia.chromite.ui.ActionUtils;
+import com.seizia.chromite.ui.navigator.NavigatorUtils;
 import org.jkiss.utils.CommonUtils;
 
 /**
@@ -32,7 +32,7 @@ import org.jkiss.utils.CommonUtils;
 public class GlobalUIPropertyTester extends PropertyTester {
     //static final Log log = LogFactory.get vLog(ObjectPropertyTester.class);
 
-    public static final String NAMESPACE = "org.jkiss.dbeaver.core.global";
+    public static final String NAMESPACE = "com.seizia.chromite.core.global";
     public static final String PROP_HAS_PERMISSION = "hasPermission";
     public static final String PROP_CAN_CREATE_CONNECTION = "canCreateConnection";
     public static final String PROP_HAS_ACTIVE_PROJECT = "hasActiveProject";

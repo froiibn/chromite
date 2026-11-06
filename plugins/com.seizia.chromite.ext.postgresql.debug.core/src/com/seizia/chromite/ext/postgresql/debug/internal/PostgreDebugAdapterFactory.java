@@ -15,15 +15,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.postgresql.debug.internal;
+package com.seizia.chromite.ext.postgresql.debug.internal;
 
 import org.eclipse.core.runtime.IAdapterFactory;
-import org.jkiss.dbeaver.debug.DBGController;
-import org.jkiss.dbeaver.debug.DBGControllerFactory;
-import org.jkiss.dbeaver.debug.DBGResolver;
-import org.jkiss.dbeaver.ext.postgresql.PostgreDataSourceProvider;
-import org.jkiss.dbeaver.ext.postgresql.debug.internal.impl.PostgreDebugControllerFactory;
-import org.jkiss.dbeaver.model.DBPDataSourceContainer;
+import com.seizia.chromite.debug.DBGController;
+import com.seizia.chromite.debug.DBGControllerFactory;
+import com.seizia.chromite.debug.DBGResolver;
+import com.seizia.chromite.ext.postgresql.PostgreDataSourceProvider;
+import com.seizia.chromite.ext.postgresql.debug.internal.impl.PostgreDebugControllerFactory;
+import com.seizia.chromite.model.DBPDataSourceContainer;
 
 public class PostgreDebugAdapterFactory implements IAdapterFactory {
 

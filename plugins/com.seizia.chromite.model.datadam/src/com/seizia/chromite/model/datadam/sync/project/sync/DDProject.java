@@ -14,17 +14,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.datadam.sync.project.sync;
+package com.seizia.chromite.model.datadam.sync.project.sync;
 
 import com.dbeaver.datadam.share.api.model.DDSharedProject;
 import com.dbeaver.datadam.share.api.model.DDSharedProjectRevision;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.model.app.DBPProject;
-import org.jkiss.dbeaver.model.datadam.sync.DDSyncChange;
-import org.jkiss.dbeaver.model.datadam.sync.project.ConflictResolution;
-import org.jkiss.dbeaver.model.datadam.sync.project.ProjectStatus;
+import com.seizia.chromite.model.app.DBPProject;
+import com.seizia.chromite.model.datadam.sync.DDSyncChange;
+import com.seizia.chromite.model.datadam.sync.project.ConflictResolution;
+import com.seizia.chromite.model.datadam.sync.project.ProjectStatus;
 
 import java.nio.file.Path;
 

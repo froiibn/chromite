@@ -15,16 +15,16 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.registry;
+package com.seizia.chromite.registry;
 
 import org.apache.commons.jexl3.JexlExpression;
 import org.eclipse.core.runtime.IConfigurationElement;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.connection.DBPDriver;
-import org.jkiss.dbeaver.model.impl.AbstractContextDescriptor;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.connection.DBPDriver;
+import com.seizia.chromite.model.impl.AbstractContextDescriptor;
 import org.jkiss.utils.CommonUtils;
 
 import java.util.ArrayList;

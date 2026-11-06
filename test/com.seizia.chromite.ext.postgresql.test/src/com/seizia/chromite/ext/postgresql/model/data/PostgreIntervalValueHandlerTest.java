@@ -14,15 +14,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.postgresql.model.data;
+package com.seizia.chromite.ext.postgresql.model.data;
 
-import org.jkiss.junit.DBeaverUnitTest;
+import com.seizia.chromite.junit.ChromiteUnitTest;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import java.util.Comparator;
 
-public class PostgreIntervalValueHandlerTest extends DBeaverUnitTest {
+public class PostgreIntervalValueHandlerTest extends ChromiteUnitTest {
 
     PostgreIntervalValueHandler postgreIntervalValueHandler = new PostgreIntervalValueHandler();
 

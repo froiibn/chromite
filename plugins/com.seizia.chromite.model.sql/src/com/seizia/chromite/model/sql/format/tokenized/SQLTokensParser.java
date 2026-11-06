@@ -15,12 +15,12 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.model.sql.format.tokenized;
+package com.seizia.chromite.model.sql.format.tokenized;
 
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.model.DBPKeywordType;
-import org.jkiss.dbeaver.model.sql.format.SQLFormatterConfiguration;
-import org.jkiss.dbeaver.model.text.parser.rules.NumberRule;
+import com.seizia.chromite.model.DBPKeywordType;
+import com.seizia.chromite.model.sql.format.SQLFormatterConfiguration;
+import com.seizia.chromite.model.text.parser.rules.NumberRule;
 import org.jkiss.utils.ArrayUtils;
 import org.jkiss.utils.CommonUtils;
 

@@ -3,12 +3,12 @@
 
 <plugin>
 
-    <extension point="org.jkiss.dbeaver.generic.meta">
-        <meta id="netezza" class="org.jkiss.dbeaver.ext.netezza.model.NetezzaMetaModel" driverClass="org.netezza.Driver"/>
+    <extension point="com.seizia.chromite.generic.meta">
+        <meta id="netezza" class="com.seizia.chromite.ext.netezza.model.NetezzaMetaModel" driverClass="org.netezza.Driver"/>
     </extension>
 
-    <extension point="org.jkiss.dbeaver.sqlDialect">
-        <dialect id="netezza" parent="generic" class="org.jkiss.dbeaver.ext.netezza.model.NetezzaSQLDialect" label="Netezza" description="Netezza SQL dialect." icon="platform:/plugin/org.jkiss.dbeaver.ext.generic/icons/netezza_icon.png">
+    <extension point="com.seizia.chromite.sqlDialect">
+        <dialect id="netezza" parent="generic" class="com.seizia.chromite.ext.netezza.model.NetezzaSQLDialect" label="Netezza" description="Netezza SQL dialect." icon="platform:/plugin/com.seizia.chromite.ext.generic/icons/netezza_icon.png">
         </dialect>
     </extension>
 

@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.sql.semantics;
+package com.seizia.chromite.model.sql.semantics;
 
 
 import org.antlr.v4.runtime.Token;
@@ -22,37 +22,37 @@ import org.antlr.v4.runtime.misc.Interval;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.data.DBDPseudoAttribute;
-import org.jkiss.dbeaver.model.data.DBDPseudoAttributeContainer;
-import org.jkiss.dbeaver.model.exec.DBCExecutionContext;
-import org.jkiss.dbeaver.model.impl.sql.BasicSQLDialect;
-import org.jkiss.dbeaver.model.impl.struct.RelationalObjectType;
-import org.jkiss.dbeaver.model.lsm.LSMAnalyzer;
-import org.jkiss.dbeaver.model.lsm.LSMAnalyzerParameters;
-import org.jkiss.dbeaver.model.lsm.sql.dialect.LSMDialectRegistry;
-import org.jkiss.dbeaver.model.lsm.sql.impl.syntax.SQLStandardLexer;
-import org.jkiss.dbeaver.model.lsm.sql.impl.syntax.SQLStandardParser;
-import org.jkiss.dbeaver.model.sql.SQLConstants;
-import org.jkiss.dbeaver.model.sql.SQLDialect;
-import org.jkiss.dbeaver.model.sql.SQLUtils;
-import org.jkiss.dbeaver.model.sql.parser.SQLIdentifierDetector;
-import org.jkiss.dbeaver.model.sql.semantics.context.*;
-import org.jkiss.dbeaver.model.sql.semantics.model.*;
-import org.jkiss.dbeaver.model.sql.semantics.model.ddl.SQLQueryTableAlterModel;
-import org.jkiss.dbeaver.model.sql.semantics.model.ddl.SQLQueryTableCreateModel;
-import org.jkiss.dbeaver.model.sql.semantics.model.ddl.SQLQueryTableDropModel;
-import org.jkiss.dbeaver.model.sql.semantics.model.dml.SQLQueryCallModel;
-import org.jkiss.dbeaver.model.sql.semantics.model.dml.SQLQueryDeleteModel;
-import org.jkiss.dbeaver.model.sql.semantics.model.dml.SQLQueryInsertModel;
-import org.jkiss.dbeaver.model.sql.semantics.model.dml.SQLQueryUpdateModel;
-import org.jkiss.dbeaver.model.sql.semantics.model.expressions.*;
-import org.jkiss.dbeaver.model.sql.semantics.model.select.SQLQueryRowsSourceModel;
-import org.jkiss.dbeaver.model.sql.semantics.model.select.SQLQueryRowsTableDataModel;
-import org.jkiss.dbeaver.model.sql.semantics.model.programmaticals.SQLQueryProgrammaticalStatementModel;
-import org.jkiss.dbeaver.model.sql.semantics.model.statements.SQLQueryStatementModel;
-import org.jkiss.dbeaver.model.stm.*;
-import org.jkiss.dbeaver.model.struct.DBSObjectContainer;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.data.DBDPseudoAttribute;
+import com.seizia.chromite.model.data.DBDPseudoAttributeContainer;
+import com.seizia.chromite.model.exec.DBCExecutionContext;
+import com.seizia.chromite.model.impl.sql.BasicSQLDialect;
+import com.seizia.chromite.model.impl.struct.RelationalObjectType;
+import com.seizia.chromite.model.lsm.LSMAnalyzer;
+import com.seizia.chromite.model.lsm.LSMAnalyzerParameters;
+import com.seizia.chromite.model.lsm.sql.dialect.LSMDialectRegistry;
+import com.seizia.chromite.model.lsm.sql.impl.syntax.SQLStandardLexer;
+import com.seizia.chromite.model.lsm.sql.impl.syntax.SQLStandardParser;
+import com.seizia.chromite.model.sql.SQLConstants;
+import com.seizia.chromite.model.sql.SQLDialect;
+import com.seizia.chromite.model.sql.SQLUtils;
+import com.seizia.chromite.model.sql.parser.SQLIdentifierDetector;
+import com.seizia.chromite.model.sql.semantics.context.*;
+import com.seizia.chromite.model.sql.semantics.model.*;
+import com.seizia.chromite.model.sql.semantics.model.ddl.SQLQueryTableAlterModel;
+import com.seizia.chromite.model.sql.semantics.model.ddl.SQLQueryTableCreateModel;
+import com.seizia.chromite.model.sql.semantics.model.ddl.SQLQueryTableDropModel;
+import com.seizia.chromite.model.sql.semantics.model.dml.SQLQueryCallModel;
+import com.seizia.chromite.model.sql.semantics.model.dml.SQLQueryDeleteModel;
+import com.seizia.chromite.model.sql.semantics.model.dml.SQLQueryInsertModel;
+import com.seizia.chromite.model.sql.semantics.model.dml.SQLQueryUpdateModel;
+import com.seizia.chromite.model.sql.semantics.model.expressions.*;
+import com.seizia.chromite.model.sql.semantics.model.select.SQLQueryRowsSourceModel;
+import com.seizia.chromite.model.sql.semantics.model.select.SQLQueryRowsTableDataModel;
+import com.seizia.chromite.model.sql.semantics.model.programmaticals.SQLQueryProgrammaticalStatementModel;
+import com.seizia.chromite.model.sql.semantics.model.statements.SQLQueryStatementModel;
+import com.seizia.chromite.model.stm.*;
+import com.seizia.chromite.model.struct.DBSObjectContainer;
 
 import java.util.*;
 import java.util.function.Consumer;

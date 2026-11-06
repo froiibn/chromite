@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.preferences;
+package com.seizia.chromite.ui.preferences;
 
 import org.eclipse.osgi.util.NLS;
 import org.eclipse.swt.SWT;
@@ -25,20 +25,20 @@ import org.eclipse.swt.widgets.*;
 import org.eclipse.ui.IWorkbench;
 import org.eclipse.ui.IWorkbenchPreferencePage;
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.ModelPreferences;
-import org.jkiss.dbeaver.model.preferences.DBPPreferenceStore;
-import org.jkiss.dbeaver.registry.driver.DriverDescriptor;
-import org.jkiss.dbeaver.registry.driver.DriverLoaderDescriptor;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.ui.ShellUtils;
-import org.jkiss.dbeaver.ui.UIIcon;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.controls.DoubleClickMouseAdapter;
-import org.jkiss.dbeaver.ui.dialogs.DialogUtils;
-import org.jkiss.dbeaver.ui.internal.UIConnectionMessages;
-import org.jkiss.dbeaver.utils.GeneralUtils;
-import org.jkiss.dbeaver.utils.PrefUtils;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.ModelPreferences;
+import com.seizia.chromite.model.preferences.DBPPreferenceStore;
+import com.seizia.chromite.registry.driver.DriverDescriptor;
+import com.seizia.chromite.registry.driver.DriverLoaderDescriptor;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.ui.ShellUtils;
+import com.seizia.chromite.ui.UIIcon;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.controls.DoubleClickMouseAdapter;
+import com.seizia.chromite.ui.dialogs.DialogUtils;
+import com.seizia.chromite.ui.internal.UIConnectionMessages;
+import com.seizia.chromite.utils.GeneralUtils;
+import com.seizia.chromite.utils.PrefUtils;
 import org.jkiss.utils.CommonUtils;
 import org.jkiss.utils.StandardConstants;
 
@@ -49,7 +49,7 @@ import java.util.Arrays;
 import java.util.StringJoiner;
 
 public class PrefPageDriversClasspath extends AbstractPrefPage implements IWorkbenchPreferencePage {
-    public static final String PAGE_ID = "org.jkiss.dbeaver.preferences.drivers.classpath";
+    public static final String PAGE_ID = "com.seizia.chromite.preferences.drivers.classpath";
 
     private static final Log log = Log.getLog(PrefPageDriversClasspath.class);
 

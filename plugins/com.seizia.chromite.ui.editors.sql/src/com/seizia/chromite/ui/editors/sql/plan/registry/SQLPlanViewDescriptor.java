@@ -15,15 +15,15 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.ui.editors.sql.plan.registry;
+package com.seizia.chromite.ui.editors.sql.plan.registry;
 
 import org.eclipse.core.runtime.IConfigurationElement;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.model.DBPDataSource;
-import org.jkiss.dbeaver.model.DBPImage;
-import org.jkiss.dbeaver.model.impl.AbstractContextDescriptor;
-import org.jkiss.dbeaver.ui.editors.sql.SQLPlanViewProvider;
+import com.seizia.chromite.model.DBPDataSource;
+import com.seizia.chromite.model.DBPImage;
+import com.seizia.chromite.model.impl.AbstractContextDescriptor;
+import com.seizia.chromite.ui.editors.sql.SQLPlanViewProvider;
 import org.jkiss.utils.CommonUtils;
 
 import java.util.ArrayList;

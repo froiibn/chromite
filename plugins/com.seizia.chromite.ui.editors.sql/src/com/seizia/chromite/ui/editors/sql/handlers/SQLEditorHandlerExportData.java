@@ -14,22 +14,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.editors.sql.handlers;
+package com.seizia.chromite.ui.editors.sql.handlers;
 
 import org.eclipse.core.commands.AbstractHandler;
 import org.eclipse.core.commands.ExecutionEvent;
 import org.eclipse.core.commands.ExecutionException;
 import org.eclipse.swt.SWT;
 import org.eclipse.ui.handlers.HandlerUtil;
-import org.jkiss.dbeaver.model.impl.DataSourceContextProvider;
-import org.jkiss.dbeaver.model.sql.SQLScriptContext;
-import org.jkiss.dbeaver.registry.ApplicationPolicyProvider;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.editors.EditorUtils;
-import org.jkiss.dbeaver.ui.editors.sql.SQLEditor;
-import org.jkiss.dbeaver.ui.editors.sql.SQLEditorParametersProvider;
-import org.jkiss.dbeaver.ui.internal.UIMessages;
-import org.jkiss.dbeaver.utils.RuntimeUtils;
+import com.seizia.chromite.model.impl.DataSourceContextProvider;
+import com.seizia.chromite.model.sql.SQLScriptContext;
+import com.seizia.chromite.registry.ApplicationPolicyProvider;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.editors.EditorUtils;
+import com.seizia.chromite.ui.editors.sql.SQLEditor;
+import com.seizia.chromite.ui.editors.sql.SQLEditorParametersProvider;
+import com.seizia.chromite.ui.internal.UIMessages;
+import com.seizia.chromite.utils.RuntimeUtils;
 
 import java.io.StringWriter;
 

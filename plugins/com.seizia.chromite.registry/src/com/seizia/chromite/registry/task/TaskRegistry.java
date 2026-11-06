@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.registry.task;
+package com.seizia.chromite.registry.task;
 
 import org.eclipse.core.runtime.IConfigurationElement;
 import org.eclipse.core.runtime.IExtensionRegistry;
@@ -22,11 +22,11 @@ import org.eclipse.core.runtime.Platform;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.app.DBPPlatformEventManager;
-import org.jkiss.dbeaver.model.app.DBPProject;
-import org.jkiss.dbeaver.model.task.*;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.app.DBPPlatformEventManager;
+import com.seizia.chromite.model.app.DBPProject;
+import com.seizia.chromite.model.task.*;
+import com.seizia.chromite.runtime.DBWorkbench;
 import org.jkiss.utils.CommonUtils;
 
 import java.util.ArrayList;
@@ -36,7 +36,7 @@ import java.util.Map;
 
 public class TaskRegistry implements DBTTaskRegistry
 {
-    public static final String TASK_EXTENSION_ID = "org.jkiss.dbeaver.task"; //$NON-NLS-1$
+    public static final String TASK_EXTENSION_ID = "com.seizia.chromite.task"; //$NON-NLS-1$
 
     private static final Log log = Log.getLog(TaskRegistry.class);
 

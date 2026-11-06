@@ -3,27 +3,27 @@
 
 <plugin>
 
-    <extension point="org.jkiss.dbeaver.generic.meta">
-        <meta id="phoenixServer" class="org.jkiss.dbeaver.ext.phoenix.model.PhoenixMetaModel" driverClass="org.apache.phoenix.jdbc.PhoenixDriver" dialect="apache_phoenix"/>
+    <extension point="com.seizia.chromite.generic.meta">
+        <meta id="phoenixServer" class="com.seizia.chromite.ext.phoenix.model.PhoenixMetaModel" driverClass="org.apache.phoenix.jdbc.PhoenixDriver" dialect="apache_phoenix"/>
     </extension>
     
  
 
-    <extension point="org.jkiss.dbeaver.dataTypeProvider">
+    <extension point="com.seizia.chromite.dataTypeProvider">
         <provider
-                class="org.jkiss.dbeaver.ext.phoenix.model.data.PhoenixValueHandlerProvider"
+                class="com.seizia.chromite.ext.phoenix.model.data.PhoenixValueHandlerProvider"
                 description="phoenix data types provider"
                 id="PhoenixValueHandlerProvider"
                 parent="GenericValueHandlerProvider"
                 label="Phoenix data types provider">
 
-            <datasource class="org.jkiss.dbeaver.ext.phoenix.model.PhoenixDataSource"/>
+            <datasource class="com.seizia.chromite.ext.phoenix.model.PhoenixDataSource"/>
             <type standard="ARRAY"/>
         </provider>
     </extension>
 
-    <extension point="org.jkiss.dbeaver.sqlDialect">
-        <dialect id="apache_phoenix" parent="generic" class="org.jkiss.dbeaver.ext.phoenix.model.PhoenixSQLDialect" label="Phoenix" description="Apache Phoenix SQL dialect." icon="platform:/plugin/org.jkiss.dbeaver.ext.generic/icons/phoenix_icon.png">
+    <extension point="com.seizia.chromite.sqlDialect">
+        <dialect id="apache_phoenix" parent="generic" class="com.seizia.chromite.ext.phoenix.model.PhoenixSQLDialect" label="Phoenix" description="Apache Phoenix SQL dialect." icon="platform:/plugin/com.seizia.chromite.ext.generic/icons/phoenix_icon.png">
         </dialect>
     </extension>
 

@@ -1,19 +1,19 @@
 Manifest-Version: 1.0
 Bundle-ManifestVersion: 2
 Bundle-Name: Chromite Debug UI
-Bundle-SymbolicName: org.jkiss.dbeaver.debug.ui;singleton:=true
+Bundle-SymbolicName: com.seizia.chromite.debug.ui;singleton:=true
 Bundle-Version: 1.0.220.qualifier
 Bundle-Release-Date: 20261116
-Bundle-Vendor: DBeaver Corp
+Bundle-Vendor: Chromite contributors
 Bundle-RequiredExecutionEnvironment: JavaSE-21
-Bundle-Activator: org.jkiss.dbeaver.debug.ui.internal.DebugUIActivator
+Bundle-Activator: com.seizia.chromite.debug.ui.internal.DebugUIActivator
 Bundle-ActivationPolicy: lazy
 Require-Bundle: org.eclipse.ui.ide,
  org.eclipse.debug.ui;visibility:=reexport,
- org.jkiss.dbeaver.registry,
- org.jkiss.dbeaver.ui.editors.sql,
- org.jkiss.dbeaver.debug.core
-Export-Package: org.jkiss.dbeaver.debug.ui,
- org.jkiss.dbeaver.debug.ui.actions,
- org.jkiss.dbeaver.debug.ui.details
-Automatic-Module-Name: org.jkiss.dbeaver.debug.ui
+ com.seizia.chromite.registry,
+ com.seizia.chromite.ui.editors.sql,
+ com.seizia.chromite.debug.core
+Export-Package: com.seizia.chromite.debug.ui,
+ com.seizia.chromite.debug.ui.actions,
+ com.seizia.chromite.debug.ui.details
+Automatic-Module-Name: com.seizia.chromite.debug.ui

@@ -1,8 +1,8 @@
 Manifest-Version: 1.0
 Fragment-Host: org.eclipse.swt
 Bundle-Name: Chromite MacOS SWT extensions
-Bundle-Vendor: DBeaver Corp
-Bundle-SymbolicName: org.jkiss.dbeaver.ui.swt.macos;singleton:=true
+Bundle-Vendor: Chromite contributors
+Bundle-SymbolicName: com.seizia.chromite.ui.swt.macos;singleton:=true
 Bundle-Version: 1.0.56.qualifier
 Bundle-ManifestVersion: 2
 Bundle-Release-Date: 20261116
@@ -12,6 +12,6 @@ SWT-WS: cocoa
 SWT-OS: macosx
 Eclipse-PlatformFilter: (& (osgi.ws=cocoa) (osgi.os=macosx) )
 Export-Package: org.eclipse.swt.browser,
- org.jkiss.dbeaver.ui.swt.macos
-Require-Bundle: org.jkiss.dbeaver.ui
-Automatic-Module-Name: org.jkiss.dbeaver.ui.macos
+ com.seizia.chromite.ui.swt.macos
+Require-Bundle: com.seizia.chromite.ui
+Automatic-Module-Name: com.seizia.chromite.ui.macos

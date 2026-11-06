@@ -15,9 +15,9 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.model.struct.rdb;
+package com.seizia.chromite.model.struct.rdb;
 
-import org.jkiss.dbeaver.model.struct.DBSStructContainer;
+import com.seizia.chromite.model.struct.DBSStructContainer;
 
 /**
  * Schema is a simple entity container.

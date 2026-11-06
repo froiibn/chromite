@@ -14,22 +14,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.runtime.jobs;
+package com.seizia.chromite.runtime.jobs;
 
 import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.Status;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.DBPDataSource;
-import org.jkiss.dbeaver.model.DBPMessageType;
-import org.jkiss.dbeaver.model.exec.DBCExecutionContext;
-import org.jkiss.dbeaver.model.exec.DBCExecutionPurpose;
-import org.jkiss.dbeaver.model.exec.DBCSession;
-import org.jkiss.dbeaver.model.exec.DBCTransactionManager;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.runtime.DBeaverNotifications;
-import org.jkiss.dbeaver.runtime.ui.UIServiceConnections;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.DBPDataSource;
+import com.seizia.chromite.model.DBPMessageType;
+import com.seizia.chromite.model.exec.DBCExecutionContext;
+import com.seizia.chromite.model.exec.DBCExecutionPurpose;
+import com.seizia.chromite.model.exec.DBCSession;
+import com.seizia.chromite.model.exec.DBCTransactionManager;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.runtime.ChromiteNotifications;
+import com.seizia.chromite.runtime.ui.UIServiceConnections;
 
 import java.util.Map;
 
@@ -75,9 +75,9 @@ class EndIdleTransactionsJob extends DataSourceUpdaterJob {
                 log.error("Error ending idle transaction", e);
             }
         }
-        DBeaverNotifications.showNotification(
+        ChromiteNotifications.showNotification(
             dataSource,
-            DBeaverNotifications.NT_ROLLBACK_IDLE,
+            ChromiteNotifications.NT_ROLLBACK_IDLE,
             "Transactions have been rolled back after long idle period (" + dataSource.getContainer().getName() + ")",
             DBPMessageType.ERROR);
 

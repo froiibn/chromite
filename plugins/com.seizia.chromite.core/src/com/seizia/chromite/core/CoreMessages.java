@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.core;
+package com.seizia.chromite.core;
 
 import org.eclipse.osgi.util.NLS;
 
@@ -27,7 +27,7 @@ import org.eclipse.osgi.util.NLS;
  *   pref_page_eclipse_ui_general_group_label을 지웠다.
  */
 public class CoreMessages extends NLS {
-    public static final String BUNDLE_NAME = "org.jkiss.dbeaver.core.CoreResources"; //$NON-NLS-1$
+    public static final String BUNDLE_NAME = "com.seizia.chromite.core.CoreResources"; //$NON-NLS-1$
 
     public static String connection_init_confirmation_title;
     public static String connection_init_confirmation_message;

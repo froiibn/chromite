@@ -26,11 +26,11 @@ Chromite의 CI를 DBeaver 조직의 워크플로, 액션, 시크릿 없이 이 �
 3. `actions/cache@v6`: `~/.m2/repository`(Maven·Tycho·p2 결과물), `~/.m2/wrapper`(mvnw가 받은 Maven)
    - 키: `m2-<OS>-<arch>-<모든 pom.xml과 maven-wrapper.properties의 해시>`, 복원 키: `m2-<OS>-<arch>-`
    - `<OS>`, `<arch>`는 `runner.os`, `runner.arch`라서 러너가 바뀌면 키도 따라 바뀐다(macOS 제품 작업: `m2-Linux-X64-...`).
-4. 빌드: `deps/dbeaver-common/mvnw -B -ntp package -f product/aggregate/pom.xml -T1C -Pproduct-dbeaver-ce,product-chromite-swing`
-   - Maven 한 번으로 SWT 제품(`product-dbeaver-ce`)과 Swing 제품(`product-chromite-swing`, `product/pom.xml`의 프로파일)을 함께 만든다.
+4. 빌드: `deps/dbeaver-common/mvnw -B -ntp package -f product/aggregate/pom.xml -T1C -Pproduct-chromite-swt,product-chromite-swing`
+   - Maven 한 번으로 SWT 제품(`product-chromite-swt`)과 Swing 제품(`product-chromite-swing`, `product/pom.xml`의 프로파일)을 함께 만든다.
      두 제품은 같은 reactor의 번들을 쓰므로 따로 실행하면 같은 번들을 두 번 빌드한다.
    - Windows는 `pwsh`에서 `mvnw.cmd`, Linux는 `bash`에서 `mvnw`를 실행한다. 두 단계의 인수는 같게 유지한다.
-   - `pwsh`에서는 프로파일 목록을 작은따옴표로 묶는다(`'-Pproduct-dbeaver-ce,product-chromite-swing'`).
+   - `pwsh`에서는 프로파일 목록을 작은따옴표로 묶는다(`'-Pproduct-chromite-swt,product-chromite-swing'`).
      묶지 않으면 PowerShell이 쉼표를 배열 구분자로 읽어 인수를 나눌 수 있다.
    - `MAVEN_OPTS=-Xmx3g`
 5. 결과물 업로드(보관 7일). macOS 제품은 실행 파일의 실행 권한을 확인한 뒤 tar로 묶어 올린다. 제품마다 결과물을 따로 올린다.
@@ -42,8 +42,8 @@ Tycho는 `product/<community|swing>/target/products/<제품 ID>/<os>/<ws>/<arch>
 
 | 결과물 이름 | 만드는 러너 | 원본 경로 | 내용 |
 |---|---|---|---|
-| `chromite-windows-x64` | `windows-latest` | `product/community/target/products/org.jkiss.dbeaver.core.product/win32/win32/x86_64/` | zip 안에 `chromite/` 폴더(`chromite.exe` 포함) |
-| `chromite-macos-aarch64` | `ubuntu-latest`(작업 `macos-aarch64-on-linux`) | `product/community/target/products/org.jkiss.dbeaver.core.product/macosx/cocoa/aarch64/Chromite.app` | zip 안에 `chromite-macos-aarch64.tar.gz`(`Chromite.app`) |
+| `chromite-windows-x64` | `windows-latest` | `product/community/target/products/com.seizia.chromite.core.product/win32/win32/x86_64/` | zip 안에 `chromite/` 폴더(`chromite.exe` 포함) |
+| `chromite-macos-aarch64` | `ubuntu-latest`(작업 `macos-aarch64-on-linux`) | `product/community/target/products/com.seizia.chromite.core.product/macosx/cocoa/aarch64/Chromite.app` | zip 안에 `chromite-macos-aarch64.tar.gz`(`Chromite.app`) |
 | `chromite-swing-windows-x64` | `windows-latest` | `product/swing/target/products/com.seizia.chromite.swing.product/win32/win32/x86_64/` | zip 안에 `chromite-swing/` 폴더(`chromite-swing.exe` 포함) |
 | `chromite-swing-macos-aarch64` | `ubuntu-latest`(작업 `macos-aarch64-on-linux`) | `product/swing/target/products/com.seizia.chromite.swing.product/macosx/cocoa/aarch64/ChromiteSwing.app` | zip 안에 `chromite-swing-macos-aarch64.tar.gz`(`ChromiteSwing.app`, 런처 `Contents/MacOS/chromite-swing`) |
 
@@ -94,7 +94,7 @@ Swing 제품의 루트 폴더(`chromite-swing`, `ChromiteSwing.app`)는 `product
   `chmod` 동작으로 준다.
   - p2 publisher가 macOS 런처 IU에 `chmod(targetDir:${installFolder}/../MacOS/, targetFile:<런처 이름>, permissions:755)`를
     넣는다(`org.eclipse.equinox.p2.publisher.eclipse` 1.6.900 소스, `EquinoxExecutableAction.computeMacInstallActions` 209~213행).
-    런처 이름은 `product/community/DBeaver.product`의 `<launcher name="chromite">`다.
+    런처 이름은 `product/community/Chromite.product`의 `<launcher name="chromite">`다.
     Swing 제품도 같은 방식이며 런처 이름은 `product/swing/chromite-swing.product`의 `<launcher name="chromite-swing">`다.
   - `ChmodAction`(`org.eclipse.equinox.p2.touchpoint.natives` 1.5.900 소스)은 빌드하는 OS가 Windows일 때만
     (`File.separatorChar == '\\'`, 30·100행) 아무것도 하지 않고, 그 밖의 OS에서는 `chmod 755 <파일>` 명령을 실행한다(191~208행).
@@ -203,7 +203,7 @@ CI에서 checkstyle을 돌리지 않기로 했다. 깔끔하게 유지할 방법
 - 2026-11-06 macOS arm64 제품을 `macos-latest` 대신 `ubuntu-latest`에서 만든다(행렬 항목 `macos-aarch64-on-linux`).
   `macos-latest` 작업이 러너 용량 부족으로 한 번도 배정되지 않았다. 결과물 이름(`chromite-macos-aarch64`)과 tar 묶음은 그대로이고,
   묶기 전에 런처 실행 권한을 확인하는 단계를 넣었다. 루트 `pom.xml`의 환경 수(6개 → 2개)가 바뀐 것을 반영했다.
-- 2026-11-06 Swing 제품을 CI에 넣었다. 두 빌드 단계가 Maven 한 번으로 `-Pproduct-dbeaver-ce,product-chromite-swing`을 빌드하고,
+- 2026-11-06 Swing 제품을 CI에 넣었다. 두 빌드 단계가 Maven 한 번으로 `-Pproduct-chromite-swt,product-chromite-swing`을 빌드하고,
   결과물 `chromite-swing-windows-x64`(Windows 작업), `chromite-swing-macos-aarch64`(Linux 작업, 런처 실행 권한 확인 후 tar)를 더 올린다.
   "Swing 제품을 추가하는 방법" 절은 할 일을 마쳐 지웠다.
 - 2026-11-06 `SECURITY.md`를 Chromite 기준으로 고쳐(GitHub Security Advisories로 비공개 보고) 남은 문제 항목에서 지웠다.

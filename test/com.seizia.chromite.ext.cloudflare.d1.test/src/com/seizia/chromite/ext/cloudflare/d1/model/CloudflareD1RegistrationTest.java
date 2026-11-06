@@ -14,23 +14,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.cloudflare.d1.model;
+package com.seizia.chromite.ext.cloudflare.d1.model;
 
 import org.eclipse.core.runtime.Platform;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.ext.cloudflare.d1.CloudflareD1ConnectionSettings;
-import org.jkiss.dbeaver.ext.generic.model.GenericCatalog;
-import org.jkiss.dbeaver.ext.generic.model.GenericDataSource;
-import org.jkiss.dbeaver.ext.generic.model.meta.GenericMetaModel;
-import org.jkiss.dbeaver.model.DBPDataSourceContainer;
-import org.jkiss.dbeaver.model.DBPSaveableObject;
-import org.jkiss.dbeaver.model.connection.DBPConnectionConfiguration;
-import org.jkiss.dbeaver.model.meta.Property;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.registry.DataSourceProviderRegistry;
-import org.jkiss.dbeaver.registry.ObjectManagerRegistry;
+import com.seizia.chromite.ext.cloudflare.d1.CloudflareD1ConnectionSettings;
+import com.seizia.chromite.ext.generic.model.GenericCatalog;
+import com.seizia.chromite.ext.generic.model.GenericDataSource;
+import com.seizia.chromite.ext.generic.model.meta.GenericMetaModel;
+import com.seizia.chromite.model.DBPDataSourceContainer;
+import com.seizia.chromite.model.DBPSaveableObject;
+import com.seizia.chromite.model.connection.DBPConnectionConfiguration;
+import com.seizia.chromite.model.meta.Property;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.registry.DataSourceProviderRegistry;
+import com.seizia.chromite.registry.ObjectManagerRegistry;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
@@ -49,11 +49,11 @@ public class CloudflareD1RegistrationTest {
         Assertions.assertNotNull(bundle.getEntry("OSGI-INF/l10n/bundle.properties"));
         var resources = Platform.getResourceBundle(bundle);
         Assertions.assertEquals("Database UUID", resources.getString(
-            "meta.org.jkiss.dbeaver.ext.cloudflare.d1.model.CloudflareD1Catalog.databaseId.name"));
+            "meta.com.seizia.chromite.ext.cloudflare.d1.model.CloudflareD1Catalog.databaseId.name"));
         Assertions.assertEquals("Account ID", resources.getString(
-            "meta.org.jkiss.dbeaver.ext.cloudflare.d1.auth.CloudflareD1AuthCredentials.userName.name"));
+            "meta.com.seizia.chromite.ext.cloudflare.d1.auth.CloudflareD1AuthCredentials.userName.name"));
         Assertions.assertEquals("API token", resources.getString(
-            "meta.org.jkiss.dbeaver.ext.cloudflare.d1.auth.CloudflareD1AuthCredentials.userPassword.name"));
+            "meta.com.seizia.chromite.ext.cloudflare.d1.auth.CloudflareD1AuthCredentials.userPassword.name"));
     }
 
     @Test
@@ -113,7 +113,7 @@ public class CloudflareD1RegistrationTest {
     void driverKeepsConnectionIdsAndDeclaresMavenLibraries() throws Exception {
         var bundle = FrameworkUtil.getBundle(CloudflareD1DataSource.class);
         Assertions.assertNotNull(bundle);
-        Assertions.assertEquals("org.jkiss.dbeaver.ext.cloudflare.d1", bundle.getSymbolicName());
+        Assertions.assertEquals("com.seizia.chromite.ext.cloudflare.d1", bundle.getSymbolicName());
         try (var stream = bundle.getEntry("plugin.xml").openStream()) {
             var factory = DocumentBuilderFactory.newInstance();
             factory.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true);

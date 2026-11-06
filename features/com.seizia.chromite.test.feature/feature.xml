@@ -1,39 +1,39 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <feature
-        id="org.jkiss.dbeaver.test.feature"
+        id="com.seizia.chromite.test.feature"
         label="DBeaver test plugins"
         version="26.2.5.qualifier"
-        provider-name="DBeaver Corp"
-        plugin="org.jkiss.dbeaver.headless.application">
+        provider-name="Chromite contributors"
+        plugin="com.seizia.chromite.headless.application">
 
     <copyright>DBeaver Corp and others</copyright>
 
     <url>
         <update label="DBeaver Universal Database Manager" url="https://dbeaver.io/"/>
     </url>
-    <plugin id="org.jkiss.dbeaver.ext.snowflake.test" version = "0.0.0"/>
-    <plugin id="org.jkiss.dbeaver.ext.cubrid.test" version="0.0.0"/>
-    <plugin id="org.jkiss.dbeaver.ext.oracle.test" version = "0.0.0"/>
-    <plugin id="org.jkiss.dbeaver.model.lsm.test" version = "0.0.0"/>
-    <plugin id="org.jkiss.dbeaver.ext.postgresql.test" version = "0.0.0"/>
-    <plugin id="org.jkiss.dbeaver.ext.sqlite.test" version = "0.0.0"/>
-    <plugin id="org.jkiss.dbeaver.ext.cloudflare.d1.test" version="0.0.0"/>
-    <plugin id="org.jkiss.dbeaver.ext.mysql.test" version = "0.0.0"/>
-    <plugin id="org.jkiss.dbeaver.ext.mimer.test" version = "0.0.0"/>
-    <plugin id="org.jkiss.dbeaver.ext.hana.test" version = "0.0.0"/>
-    <plugin id="org.jkiss.dbeaver.ext.greenplum.test" version = "0.0.0"/>
-    <plugin id="org.jkiss.dbeaver.ext.hive.test" version="0.0.0"/>
-    <plugin id="org.jkiss.dbeaver.ext.altibase.test" version="0.0.0"/>
-    <plugin id="org.jkiss.dbeaver.ext.clickhouse.test" version="0.0.0"/>
-    <plugin id="org.jkiss.dbeaver.ext.firebird.test" version="0.0.0"/>
-    <plugin id="org.jkiss.dbeaver.ext.generic.test" version="0.0.0"/>
-    <plugin id="org.jkiss.dbeaver.ext.timeplus.test" version="0.0.0"/>
-    <plugin id="org.jkiss.dbeaver.model.ai.test" version="0.0.0"/>
-    <plugin id="org.jkiss.dbeaver.net.ssh.sshj.test" version="0.0.0"/>
-    <plugin id="org.jkiss.dbeaver.model.navigator.test" version="0.0.0"/>
-    <plugin id="org.jkiss.dbeaver.model.net.test" version="0.0.0"/>
-    <plugin id="org.jkiss.dbeaver.launcher.test" version="0.0.0"/>
-    <plugin id="org.jkiss.dbeaver.model.sql.test" version="0.0.0"/>
-    <plugin id="org.jkiss.dbeaver.data.transfer.test" version="0.0.0"/>
-    <plugin id="org.jkiss.dbeaver.model.datadam.test" version="0.0.0"/>
+    <plugin id="com.seizia.chromite.ext.snowflake.test" version = "0.0.0"/>
+    <plugin id="com.seizia.chromite.ext.cubrid.test" version="0.0.0"/>
+    <plugin id="com.seizia.chromite.ext.oracle.test" version = "0.0.0"/>
+    <plugin id="com.seizia.chromite.model.lsm.test" version = "0.0.0"/>
+    <plugin id="com.seizia.chromite.ext.postgresql.test" version = "0.0.0"/>
+    <plugin id="com.seizia.chromite.ext.sqlite.test" version = "0.0.0"/>
+    <plugin id="com.seizia.chromite.ext.cloudflare.d1.test" version="0.0.0"/>
+    <plugin id="com.seizia.chromite.ext.mysql.test" version = "0.0.0"/>
+    <plugin id="com.seizia.chromite.ext.mimer.test" version = "0.0.0"/>
+    <plugin id="com.seizia.chromite.ext.hana.test" version = "0.0.0"/>
+    <plugin id="com.seizia.chromite.ext.greenplum.test" version = "0.0.0"/>
+    <plugin id="com.seizia.chromite.ext.hive.test" version="0.0.0"/>
+    <plugin id="com.seizia.chromite.ext.altibase.test" version="0.0.0"/>
+    <plugin id="com.seizia.chromite.ext.clickhouse.test" version="0.0.0"/>
+    <plugin id="com.seizia.chromite.ext.firebird.test" version="0.0.0"/>
+    <plugin id="com.seizia.chromite.ext.generic.test" version="0.0.0"/>
+    <plugin id="com.seizia.chromite.ext.timeplus.test" version="0.0.0"/>
+    <plugin id="com.seizia.chromite.model.ai.test" version="0.0.0"/>
+    <plugin id="com.seizia.chromite.net.ssh.sshj.test" version="0.0.0"/>
+    <plugin id="com.seizia.chromite.model.navigator.test" version="0.0.0"/>
+    <plugin id="com.seizia.chromite.model.net.test" version="0.0.0"/>
+    <plugin id="com.seizia.chromite.launcher.test" version="0.0.0"/>
+    <plugin id="com.seizia.chromite.model.sql.test" version="0.0.0"/>
+    <plugin id="com.seizia.chromite.data.transfer.test" version="0.0.0"/>
+    <plugin id="com.seizia.chromite.model.datadam.test" version="0.0.0"/>
 </feature>

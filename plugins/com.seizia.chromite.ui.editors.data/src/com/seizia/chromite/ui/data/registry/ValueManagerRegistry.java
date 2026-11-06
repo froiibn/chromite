@@ -15,22 +15,22 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.ui.data.registry;
+package com.seizia.chromite.ui.data.registry;
 
 import org.eclipse.core.runtime.IConfigurationElement;
 import org.eclipse.core.runtime.IExtensionRegistry;
 import org.eclipse.core.runtime.Platform;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.model.DBPDataSource;
-import org.jkiss.dbeaver.model.data.DBDContent;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.model.struct.DBSTypedObject;
-import org.jkiss.dbeaver.registry.data.hints.AbstractValueBindingRegistry;
-import org.jkiss.dbeaver.ui.data.IStreamValueManager;
-import org.jkiss.dbeaver.ui.data.IValueManager;
-import org.jkiss.dbeaver.ui.data.managers.DefaultValueManager;
-import org.jkiss.dbeaver.utils.ContentUtils;
+import com.seizia.chromite.model.DBPDataSource;
+import com.seizia.chromite.model.data.DBDContent;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.model.struct.DBSTypedObject;
+import com.seizia.chromite.registry.data.hints.AbstractValueBindingRegistry;
+import com.seizia.chromite.ui.data.IStreamValueManager;
+import com.seizia.chromite.ui.data.IValueManager;
+import com.seizia.chromite.ui.data.managers.DefaultValueManager;
+import com.seizia.chromite.utils.ContentUtils;
 import org.jkiss.utils.CommonUtils;
 import org.jkiss.utils.MimeType;
 

@@ -14,16 +14,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.postgresql.model;
+package com.seizia.chromite.ext.postgresql.model;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.model.access.DBAPrivilege;
-import org.jkiss.dbeaver.model.access.DBAPrivilegeGrant;
-import org.jkiss.dbeaver.model.access.DBARole;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.model.struct.DBSObject;
+import com.seizia.chromite.model.access.DBAPrivilege;
+import com.seizia.chromite.model.access.DBAPrivilegeGrant;
+import com.seizia.chromite.model.access.DBARole;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.model.struct.DBSObject;
 
 import java.util.List;
 

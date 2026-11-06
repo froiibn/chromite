@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.editors.entity.properties;
+package com.seizia.chromite.ui.editors.entity.properties;
 
 import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.core.runtime.IStatus;
@@ -36,22 +36,22 @@ import org.eclipse.ui.*;
 import org.eclipse.ui.progress.UIJob;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.model.DBPEvent;
-import org.jkiss.dbeaver.model.DBPEventListener;
-import org.jkiss.dbeaver.model.DBUtils;
-import org.jkiss.dbeaver.model.preferences.DBPPropertyDescriptor;
-import org.jkiss.dbeaver.model.preferences.DBPPropertySource;
-import org.jkiss.dbeaver.model.struct.DBSObject;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.runtime.properties.ILazyPropertyLoadListener;
-import org.jkiss.dbeaver.runtime.properties.PropertiesContributor;
-import org.jkiss.dbeaver.ui.*;
-import org.jkiss.dbeaver.ui.controls.ProgressPageControl;
-import org.jkiss.dbeaver.ui.controls.folders.TabbedFolderPage;
-import org.jkiss.dbeaver.ui.editors.DatabaseEditorUtils;
-import org.jkiss.dbeaver.ui.editors.IDatabaseEditorInput;
-import org.jkiss.dbeaver.ui.navigator.NavigatorPreferences;
-import org.jkiss.dbeaver.ui.properties.PropertyTreeViewer;
+import com.seizia.chromite.model.DBPEvent;
+import com.seizia.chromite.model.DBPEventListener;
+import com.seizia.chromite.model.DBUtils;
+import com.seizia.chromite.model.preferences.DBPPropertyDescriptor;
+import com.seizia.chromite.model.preferences.DBPPropertySource;
+import com.seizia.chromite.model.struct.DBSObject;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.runtime.properties.ILazyPropertyLoadListener;
+import com.seizia.chromite.runtime.properties.PropertiesContributor;
+import com.seizia.chromite.ui.*;
+import com.seizia.chromite.ui.controls.ProgressPageControl;
+import com.seizia.chromite.ui.controls.folders.TabbedFolderPage;
+import com.seizia.chromite.ui.editors.DatabaseEditorUtils;
+import com.seizia.chromite.ui.editors.IDatabaseEditorInput;
+import com.seizia.chromite.ui.navigator.NavigatorPreferences;
+import com.seizia.chromite.ui.properties.PropertyTreeViewer;
 import org.jkiss.utils.CommonUtils;
 
 import java.util.ArrayList;

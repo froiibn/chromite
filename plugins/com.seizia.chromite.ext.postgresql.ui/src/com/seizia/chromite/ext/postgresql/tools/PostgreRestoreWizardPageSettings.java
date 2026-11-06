@@ -14,20 +14,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.postgresql.tools;
+package com.seizia.chromite.ext.postgresql.tools;
 
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.events.SelectionListener;
 import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.widgets.*;
-import org.jkiss.dbeaver.ext.postgresql.PostgreMessages;
-import org.jkiss.dbeaver.ext.postgresql.PostgreUIUtils;
-import org.jkiss.dbeaver.ext.postgresql.tasks.PostgreDatabaseBackupSettings;
-import org.jkiss.dbeaver.ext.postgresql.tasks.PostgreDatabaseRestoreSettings;
-import org.jkiss.dbeaver.model.DBIcon;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.controls.TextWithOpenFile;
-import org.jkiss.dbeaver.ui.controls.TextWithOpenFileRemote;
+import com.seizia.chromite.ext.postgresql.PostgreMessages;
+import com.seizia.chromite.ext.postgresql.PostgreUIUtils;
+import com.seizia.chromite.ext.postgresql.tasks.PostgreDatabaseBackupSettings;
+import com.seizia.chromite.ext.postgresql.tasks.PostgreDatabaseRestoreSettings;
+import com.seizia.chromite.model.DBIcon;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.controls.TextWithOpenFile;
+import com.seizia.chromite.ui.controls.TextWithOpenFileRemote;
 
 
 class PostgreRestoreWizardPageSettings extends PostgreToolWizardPageSettings<PostgreRestoreWizard> {

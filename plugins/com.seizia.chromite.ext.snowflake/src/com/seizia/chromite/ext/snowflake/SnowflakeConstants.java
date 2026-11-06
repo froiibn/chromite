@@ -14,9 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.snowflake;
+package com.seizia.chromite.ext.snowflake;
 
-import org.jkiss.dbeaver.model.DBConstants;
+import com.seizia.chromite.model.DBConstants;
 
 /**
  * Snowflake constants

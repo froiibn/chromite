@@ -15,12 +15,12 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.ui.editors.sql.format.sqlworkbenchj;
+package com.seizia.chromite.ui.editors.sql.format.sqlworkbenchj;
 
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.sql.format.SQLFormatter;
-import org.jkiss.dbeaver.model.sql.format.SQLFormatterConfiguration;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.sql.format.SQLFormatter;
+import com.seizia.chromite.model.sql.format.SQLFormatterConfiguration;
+import com.seizia.chromite.runtime.DBWorkbench;
 import org.jkiss.utils.CommonUtils;
 
 import java.io.File;

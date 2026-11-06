@@ -14,22 +14,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.navigator;
+package com.seizia.chromite.ui.navigator;
 
 import org.eclipse.core.expressions.PropertyTester;
 import org.eclipse.jface.viewers.Viewer;
 import org.eclipse.ui.IWorkbenchPart;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.ui.controls.folders.ITabbedFolderContainer;
-import org.jkiss.dbeaver.ui.editors.MultiPageAbstractEditor;
+import com.seizia.chromite.ui.controls.folders.ITabbedFolderContainer;
+import com.seizia.chromite.ui.editors.MultiPageAbstractEditor;
 
 /**
  * NavigatorPropertyTester
  */
 public class NavigatorPropertyTester extends PropertyTester
 {
-    public static final String NAMESPACE = "org.jkiss.dbeaver.core.navigator";
+    public static final String NAMESPACE = "com.seizia.chromite.core.navigator";
     public static final String PROP_ACTIVE = "active";
     public static final String PROP_FOCUSED = "focused";
 

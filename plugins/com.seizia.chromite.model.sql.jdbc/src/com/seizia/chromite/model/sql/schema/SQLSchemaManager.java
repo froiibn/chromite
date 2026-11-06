@@ -15,24 +15,24 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.model.sql.schema;
+package com.seizia.chromite.model.sql.schema;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.app.DBPApplication;
-import org.jkiss.dbeaver.model.connection.InternalDatabaseConfig;
-import org.jkiss.dbeaver.model.impl.jdbc.exec.JDBCTransaction;
-import org.jkiss.dbeaver.model.impl.sql.BasicSQLDialect;
-import org.jkiss.dbeaver.model.preferences.DBPPreferenceStore;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.model.sql.SQLDialect;
-import org.jkiss.dbeaver.model.sql.backup.JDBCDatabaseBackupDescriptor;
-import org.jkiss.dbeaver.model.sql.backup.JDBCDatabaseBackupRegistry;
-import org.jkiss.dbeaver.model.sql.translate.SQLQueryTranslator;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.utils.ContentUtils;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.app.DBPApplication;
+import com.seizia.chromite.model.connection.InternalDatabaseConfig;
+import com.seizia.chromite.model.impl.jdbc.exec.JDBCTransaction;
+import com.seizia.chromite.model.impl.sql.BasicSQLDialect;
+import com.seizia.chromite.model.preferences.DBPPreferenceStore;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.model.sql.SQLDialect;
+import com.seizia.chromite.model.sql.backup.JDBCDatabaseBackupDescriptor;
+import com.seizia.chromite.model.sql.backup.JDBCDatabaseBackupRegistry;
+import com.seizia.chromite.model.sql.translate.SQLQueryTranslator;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.utils.ContentUtils;
 import org.jkiss.utils.CommonUtils;
 import org.jkiss.utils.IOUtils;
 

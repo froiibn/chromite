@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.editors.erd.model;
+package com.seizia.chromite.ui.editors.erd.model;
 
 import org.eclipse.draw2d.geometry.Dimension;
 import org.eclipse.draw2d.geometry.Insets;
@@ -25,31 +25,31 @@ import org.eclipse.gef.requests.CreationFactory;
 import org.eclipse.jface.resource.ImageDescriptor;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.DBIcon;
-import org.jkiss.dbeaver.model.erd.ERDNote;
-import org.jkiss.dbeaver.model.preferences.DBPPreferenceStore;
-import org.jkiss.dbeaver.ui.DBeaverIcons;
-import org.jkiss.dbeaver.ui.UIIcon;
-import org.jkiss.dbeaver.ui.editors.erd.ERDIcon;
-import org.jkiss.dbeaver.ui.editors.erd.ERDUIConstants;
-import org.jkiss.dbeaver.ui.editors.erd.editor.ERDEditPartFactory;
-import org.jkiss.dbeaver.ui.editors.erd.editor.ERDViewStyle;
-import org.jkiss.dbeaver.ui.editors.erd.editor.tools.HandToolEntry;
-import org.jkiss.dbeaver.ui.editors.erd.editor.tools.SelectionToolEntry;
-import org.jkiss.dbeaver.ui.editors.erd.internal.ERDUIActivator;
-import org.jkiss.dbeaver.ui.editors.erd.internal.ERDUIMessages;
-import org.jkiss.dbeaver.ui.editors.erd.router.ERDConnectionRouterDescriptor;
-import org.jkiss.dbeaver.ui.editors.erd.router.ERDConnectionRouterRegistry;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.DBIcon;
+import com.seizia.chromite.model.erd.ERDNote;
+import com.seizia.chromite.model.preferences.DBPPreferenceStore;
+import com.seizia.chromite.ui.SwtIcons;
+import com.seizia.chromite.ui.UIIcon;
+import com.seizia.chromite.ui.editors.erd.ERDIcon;
+import com.seizia.chromite.ui.editors.erd.ERDUIConstants;
+import com.seizia.chromite.ui.editors.erd.editor.ERDEditPartFactory;
+import com.seizia.chromite.ui.editors.erd.editor.ERDViewStyle;
+import com.seizia.chromite.ui.editors.erd.editor.tools.HandToolEntry;
+import com.seizia.chromite.ui.editors.erd.editor.tools.SelectionToolEntry;
+import com.seizia.chromite.ui.editors.erd.internal.ERDUIActivator;
+import com.seizia.chromite.ui.editors.erd.internal.ERDUIMessages;
+import com.seizia.chromite.ui.editors.erd.router.ERDConnectionRouterDescriptor;
+import com.seizia.chromite.ui.editors.erd.router.ERDConnectionRouterRegistry;
 
 /**
  * ERD object adapter
  */
 public class ERDDecoratorDefault implements ERDDecorator {
 
-    public static final ImageDescriptor CONNECT_IMAGE = DBeaverIcons.getImageDescriptor(DBIcon.TREE_ASSOCIATION);
-    public static final ImageDescriptor FOREIGN_KEY_IMAGE = DBeaverIcons.getImageDescriptor(DBIcon.TREE_FOREIGN_KEY);
-    public static final ImageDescriptor NOTE_IMAGE = DBeaverIcons.getImageDescriptor(ERDIcon.NOTE);
+    public static final ImageDescriptor CONNECT_IMAGE = SwtIcons.getImageDescriptor(DBIcon.TREE_ASSOCIATION);
+    public static final ImageDescriptor FOREIGN_KEY_IMAGE = SwtIcons.getImageDescriptor(DBIcon.TREE_FOREIGN_KEY);
+    public static final ImageDescriptor NOTE_IMAGE = SwtIcons.getImageDescriptor(ERDIcon.NOTE);
     private DBPPreferenceStore store = ERDUIActivator.getDefault().getPreferences();
     private ERDConnectionRouterRegistry connectionRouterRegistry = ERDConnectionRouterRegistry.getInstance();
 
@@ -155,7 +155,7 @@ public class ERDDecoratorDefault implements ERDDecorator {
     }
 
     protected PaletteDrawer createToolsDrawer(PaletteRoot paletteRoot) {
-        PaletteDrawer controls = new PaletteDrawer("Tools", DBeaverIcons.getImageDescriptor(UIIcon.CONFIGURATION));
+        PaletteDrawer controls = new PaletteDrawer("Tools", SwtIcons.getImageDescriptor(UIIcon.CONFIGURATION));
 
         paletteRoot.add(controls);
 

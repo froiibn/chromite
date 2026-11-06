@@ -14,14 +14,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.mimer.model.gis;
+package com.seizia.chromite.ext.mimer.model.gis;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.model.data.DBDAttributeBinding;
-import org.jkiss.dbeaver.model.data.DBDAttributeTransformer;
-import org.jkiss.dbeaver.model.exec.DBCSession;
-import org.jkiss.dbeaver.model.impl.data.transformers.TransformerPresentationAttribute;
+import com.seizia.chromite.model.data.DBDAttributeBinding;
+import com.seizia.chromite.model.data.DBDAttributeTransformer;
+import com.seizia.chromite.model.exec.DBCSession;
+import com.seizia.chromite.model.impl.data.transformers.TransformerPresentationAttribute;
 
 import java.util.List;
 import java.util.Map;

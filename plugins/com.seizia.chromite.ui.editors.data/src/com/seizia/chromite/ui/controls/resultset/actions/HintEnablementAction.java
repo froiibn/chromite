@@ -14,15 +14,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.controls.resultset.actions;
+package com.seizia.chromite.ui.controls.resultset.actions;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.model.data.DBDAttributeBinding;
-import org.jkiss.dbeaver.registry.data.hints.ValueHintContextConfiguration;
-import org.jkiss.dbeaver.registry.data.hints.ValueHintProviderConfiguration;
-import org.jkiss.dbeaver.registry.data.hints.ValueHintProviderDescriptor;
-import org.jkiss.dbeaver.ui.controls.resultset.ResultSetViewer;
+import com.seizia.chromite.model.data.DBDAttributeBinding;
+import com.seizia.chromite.registry.data.hints.ValueHintContextConfiguration;
+import com.seizia.chromite.registry.data.hints.ValueHintProviderConfiguration;
+import com.seizia.chromite.registry.data.hints.ValueHintProviderDescriptor;
+import com.seizia.chromite.ui.controls.resultset.ResultSetViewer;
 
 public class HintEnablementAction extends AbstractResultSetViewerAction {
     private final ValueHintProviderDescriptor descriptor;

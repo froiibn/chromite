@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.project;
+package com.seizia.chromite.ui.project;
 
 import org.eclipse.core.runtime.IAdaptable;
 import org.eclipse.swt.SWT;
@@ -23,13 +23,13 @@ import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Control;
 import org.eclipse.ui.IWorkbenchPropertyPage;
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.DBUtils;
-import org.jkiss.dbeaver.model.fs.DBFUtils;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.navigator.project.FileSystemExplorerView;
-import org.jkiss.dbeaver.ui.preferences.AbstractPrefPage;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.DBUtils;
+import com.seizia.chromite.model.fs.DBFUtils;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.navigator.project.FileSystemExplorerView;
+import com.seizia.chromite.ui.preferences.AbstractPrefPage;
 import org.jkiss.utils.CommonUtils;
 
 import java.io.IOException;
@@ -43,7 +43,7 @@ import java.util.stream.Collectors;
  * PrefPageProjectResourceSettings
  */
 public class PrefPageProjectResourceDetails extends AbstractPrefPage implements IWorkbenchPropertyPage {
-    public static final String PAGE_ID = "org.jkiss.dbeaver.preferences.resourceDetails"; //$NON-NLS-1$
+    public static final String PAGE_ID = "com.seizia.chromite.preferences.resourceDetails"; //$NON-NLS-1$
 
     private static final Log log = Log.getLog(PrefPageProjectResourceDetails.class);
 

@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.dashboard.navigator;
+package com.seizia.chromite.ui.dashboard.navigator;
 
 import org.eclipse.jface.action.Action;
 import org.eclipse.jface.action.IContributionItem;
@@ -22,15 +22,15 @@ import org.eclipse.jface.action.Separator;
 import org.eclipse.jface.viewers.ISelection;
 import org.eclipse.ui.IWorkbenchPart;
 import org.eclipse.ui.IWorkbenchWindow;
-import org.jkiss.dbeaver.model.DBPDataSourceContainer;
-import org.jkiss.dbeaver.ui.ActionUtils;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.actions.AbstractDataSourceHandler;
-import org.jkiss.dbeaver.ui.actions.datasource.DataSourceMenuContributor;
-import org.jkiss.dbeaver.ui.dashboard.DashboardUIConstants;
-import org.jkiss.dbeaver.ui.dashboard.model.DashboardConfiguration;
-import org.jkiss.dbeaver.ui.dashboard.model.DashboardConfigurationList;
-import org.jkiss.dbeaver.ui.dashboard.view.DataSourceDashboardView;
+import com.seizia.chromite.model.DBPDataSourceContainer;
+import com.seizia.chromite.ui.ActionUtils;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.actions.AbstractDataSourceHandler;
+import com.seizia.chromite.ui.actions.datasource.DataSourceMenuContributor;
+import com.seizia.chromite.ui.dashboard.DashboardUIConstants;
+import com.seizia.chromite.ui.dashboard.model.DashboardConfiguration;
+import com.seizia.chromite.ui.dashboard.model.DashboardConfigurationList;
+import com.seizia.chromite.ui.dashboard.view.DataSourceDashboardView;
 
 import java.util.List;
 import java.util.Map;

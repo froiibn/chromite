@@ -14,13 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.generic.model;
+package com.seizia.chromite.ext.generic.model;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.model.impl.jdbc.struct.JDBCTableConstraint;
-import org.jkiss.dbeaver.model.impl.struct.AbstractTableConstraintColumn;
-import org.jkiss.dbeaver.model.meta.Property;
+import com.seizia.chromite.model.impl.jdbc.struct.JDBCTableConstraint;
+import com.seizia.chromite.model.impl.struct.AbstractTableConstraintColumn;
+import com.seizia.chromite.model.meta.Property;
 
 /**
  * GenericTableConstraintColumn

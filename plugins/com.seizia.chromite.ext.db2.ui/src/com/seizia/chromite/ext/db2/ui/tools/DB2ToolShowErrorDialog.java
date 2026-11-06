@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.db2.ui.tools;
+package com.seizia.chromite.ext.db2.ui.tools;
 
 import org.eclipse.jface.dialogs.Dialog;
 import org.eclipse.swt.SWT;
@@ -23,11 +23,11 @@ import org.eclipse.swt.events.SelectionListener;
 import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.widgets.*;
 import org.eclipse.ui.IWorkbenchWindow;
-import org.jkiss.dbeaver.ext.db2.DB2Utils;
-import org.jkiss.dbeaver.ext.db2.model.DB2DataSource;
-import org.jkiss.dbeaver.ext.db2.ui.internal.DB2Messages;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.ui.UIUtils;
+import com.seizia.chromite.ext.db2.DB2Utils;
+import com.seizia.chromite.ext.db2.model.DB2DataSource;
+import com.seizia.chromite.ext.db2.ui.internal.DB2Messages;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.ui.UIUtils;
 
 /**
  * Dialog to display the SQL message associated with an SQL Error Code

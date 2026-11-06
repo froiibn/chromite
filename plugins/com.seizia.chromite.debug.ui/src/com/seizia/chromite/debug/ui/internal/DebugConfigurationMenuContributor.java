@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.debug.ui.internal;
+package com.seizia.chromite.debug.ui.internal;
 
 import org.eclipse.debug.core.ILaunchConfiguration;
 import org.eclipse.debug.internal.ui.DebugUIPlugin;
@@ -25,9 +25,9 @@ import org.eclipse.debug.ui.actions.LaunchShortcutsAction;
 import org.eclipse.jface.action.ActionContributionItem;
 import org.eclipse.jface.action.IContributionItem;
 import org.eclipse.jface.action.Separator;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.debug.ui.DebugUI;
-import org.jkiss.dbeaver.ui.actions.datasource.DataSourceMenuContributor;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.debug.ui.DebugUI;
+import com.seizia.chromite.ui.actions.datasource.DataSourceMenuContributor;
 
 import java.util.List;
 

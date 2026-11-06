@@ -14,10 +14,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.cloudflare.d1.auth;
+package com.seizia.chromite.ext.cloudflare.d1.auth;
 
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.model.impl.auth.AuthModelDatabaseNative;
+import com.seizia.chromite.model.impl.auth.AuthModelDatabaseNative;
 
 public class CloudflareD1AuthModel extends AuthModelDatabaseNative<CloudflareD1AuthCredentials> {
     @NotNull

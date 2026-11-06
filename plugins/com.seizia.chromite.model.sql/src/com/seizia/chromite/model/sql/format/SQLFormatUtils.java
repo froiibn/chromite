@@ -14,13 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.sql.format;
+package com.seizia.chromite.model.sql.format;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.model.DBPDataSource;
-import org.jkiss.dbeaver.model.sql.SQLSyntaxManager;
-import org.jkiss.dbeaver.model.sql.registry.SQLFormatterConfigurationRegistry;
+import com.seizia.chromite.model.DBPDataSource;
+import com.seizia.chromite.model.sql.SQLSyntaxManager;
+import com.seizia.chromite.model.sql.registry.SQLFormatterConfigurationRegistry;
 
 /**
  * SQL Formatter

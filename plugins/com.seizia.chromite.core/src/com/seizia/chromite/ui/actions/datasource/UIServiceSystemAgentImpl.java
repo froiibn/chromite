@@ -15,17 +15,17 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.ui.actions.datasource;
+package com.seizia.chromite.ui.actions.datasource;
 
 import org.eclipse.core.runtime.IStatus;
 import org.eclipse.swt.widgets.Display;
-import org.jkiss.dbeaver.DBeaverPreferences;
-import org.jkiss.dbeaver.model.DBPMessageType;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.runtime.DBeaverNotifications;
-import org.jkiss.dbeaver.runtime.ui.UIServiceSystemAgent;
-import org.jkiss.dbeaver.ui.TrayIconHandler;
-import org.jkiss.dbeaver.ui.UIUtils;
+import com.seizia.chromite.ChromitePreferences;
+import com.seizia.chromite.model.DBPMessageType;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.runtime.ChromiteNotifications;
+import com.seizia.chromite.runtime.ui.UIServiceSystemAgent;
+import com.seizia.chromite.ui.TrayIconHandler;
+import com.seizia.chromite.ui.UIUtils;
 
 /**
  * UIServiceDriversImpl
@@ -40,12 +40,12 @@ public class UIServiceSystemAgentImpl implements UIServiceSystemAgent {
 
     @Override
     public long getLongOperationTimeout() {
-        return DBWorkbench.getPlatform().getPreferenceStore().getLong(DBeaverPreferences.AGENT_LONG_OPERATION_TIMEOUT);
+        return DBWorkbench.getPlatform().getPreferenceStore().getLong(ChromitePreferences.AGENT_LONG_OPERATION_TIMEOUT);
     }
 
     @Override
     public void notifyAgent(String message, int status) {
-        if (!DBWorkbench.getPlatform().getPreferenceStore().getBoolean(DBeaverPreferences.AGENT_LONG_OPERATION_NOTIFY)) {
+        if (!DBWorkbench.getPlatform().getPreferenceStore().getBoolean(ChromitePreferences.AGENT_LONG_OPERATION_NOTIFY)) {
             // Notifications disabled
             return;
         }
@@ -53,7 +53,7 @@ public class UIServiceSystemAgentImpl implements UIServiceSystemAgent {
             UIUtils.syncExec(() -> Display.getCurrent().beep());
             trayItem.notify(message, status);
         } else {
-            DBeaverNotifications.showNotification(
+            ChromiteNotifications.showNotification(
                 "agent.notify",
                 "Agent Notification",
                 message,

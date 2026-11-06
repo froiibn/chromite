@@ -14,10 +14,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.tasks.ui;
+package com.seizia.chromite.tasks.ui;
 
 import org.eclipse.swt.widgets.Composite;
-import org.jkiss.dbeaver.tasks.ui.wizard.TaskConfigurationWizard;
+import com.seizia.chromite.tasks.ui.wizard.TaskConfigurationWizard;
 
 /**
  * DBTTaskConfigPanel.

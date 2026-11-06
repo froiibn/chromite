@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.app.standalone.internal;
+package com.seizia.chromite.ui.app.standalone.internal;
 
 import org.eclipse.core.runtime.*;
 import org.eclipse.e4.core.services.events.IEventBroker;
@@ -37,12 +37,12 @@ import org.eclipse.ui.internal.menus.MenuHelper;
 import org.eclipse.ui.internal.registry.IWorkbenchRegistryConstants;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.DBIcon;
-import org.jkiss.dbeaver.ui.IActionConstants;
-import org.jkiss.dbeaver.ui.UIIcon;
-import org.jkiss.dbeaver.ui.app.standalone.update.CheckForUpdateAction;
-import org.jkiss.dbeaver.utils.RuntimeUtils;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.DBIcon;
+import com.seizia.chromite.ui.IActionConstants;
+import com.seizia.chromite.ui.UIIcon;
+import com.seizia.chromite.ui.app.standalone.update.CheckForUpdateAction;
+import com.seizia.chromite.utils.RuntimeUtils;
 import org.jkiss.utils.xml.XMLException;
 import org.jkiss.utils.xml.XMLUtils;
 import org.w3c.dom.Attr;
@@ -451,7 +451,7 @@ public final class WorkbenchPatcher {
 
     private static boolean isContributedByDBeaver(@NotNull IExtension extension) {
         String contributor = extension.getContributor().getName();
-        return contributor.startsWith("org.jkiss.dbeaver") || contributor.startsWith("com.dbeaver");
+        return contributor.startsWith("com.seizia.chromite") || contributor.startsWith("com.dbeaver");
     }
 
     private static final class PartDescriptor {

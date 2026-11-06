@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.editors.sql;
+package com.seizia.chromite.ui.editors.sql;
 
 import org.eclipse.jface.text.BadLocationException;
 import org.eclipse.jface.text.IDocument;
@@ -28,10 +28,10 @@ import org.eclipse.swt.custom.StyledText;
 import org.eclipse.swt.graphics.Point;
 import org.eclipse.ui.texteditor.ITextEditorActionDefinitionIds;
 import org.eclipse.ui.texteditor.TextNavigationAction;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.preferences.DBPPreferenceStore;
-import org.jkiss.dbeaver.ui.editors.sql.syntax.SQLDocumentCharacterIterator;
-import org.jkiss.dbeaver.ui.editors.sql.syntax.SQLWordBreakIterator;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.preferences.DBPPreferenceStore;
+import com.seizia.chromite.ui.editors.sql.syntax.SQLDocumentCharacterIterator;
+import com.seizia.chromite.ui.editors.sql.syntax.SQLWordBreakIterator;
 
 import java.text.BreakIterator;
 import java.text.CharacterIterator;

@@ -1,20 +1,20 @@
 Manifest-Version: 1.0
 Bundle-ManifestVersion: 2
 Bundle-Name: Chromite MySQL Support
-Bundle-SymbolicName: org.jkiss.dbeaver.ext.mysql;singleton:=true
+Bundle-SymbolicName: com.seizia.chromite.ext.mysql;singleton:=true
 Bundle-Version: 2.1.276.qualifier
 Bundle-Release-Date: 20261116
-Require-Bundle: org.jkiss.dbeaver.model;visibility:=reexport,
- org.jkiss.dbeaver.model.sql,
- org.jkiss.dbeaver.data.gis;visibility:=reexport,
- org.jkiss.dbeaver.registry,
- org.jkiss.dbeaver.tasks.native
+Require-Bundle: com.seizia.chromite.model;visibility:=reexport,
+ com.seizia.chromite.model.sql,
+ com.seizia.chromite.data.gis;visibility:=reexport,
+ com.seizia.chromite.registry,
+ com.seizia.chromite.tasks.native
 Bundle-ActivationPolicy: lazy
 Bundle-RequiredExecutionEnvironment: JavaSE-21
-Bundle-Vendor: DBeaver Corp
-Export-Package: org.jkiss.dbeaver.ext.mysql,
- org.jkiss.dbeaver.ext.mysql.model,
- org.jkiss.dbeaver.ext.mysql.model.plan,
- org.jkiss.dbeaver.ext.mysql.model.session,
- org.jkiss.dbeaver.ext.mysql.tasks
-Automatic-Module-Name: org.jkiss.dbeaver.ext.mysql
+Bundle-Vendor: Chromite contributors
+Export-Package: com.seizia.chromite.ext.mysql,
+ com.seizia.chromite.ext.mysql.model,
+ com.seizia.chromite.ext.mysql.model.plan,
+ com.seizia.chromite.ext.mysql.model.session,
+ com.seizia.chromite.ext.mysql.tasks
+Automatic-Module-Name: com.seizia.chromite.ext.mysql

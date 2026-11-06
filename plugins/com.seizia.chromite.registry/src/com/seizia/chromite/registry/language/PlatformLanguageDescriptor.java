@@ -14,20 +14,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.registry.language;
+package com.seizia.chromite.registry.language;
 
 import org.eclipse.core.runtime.IConfigurationElement;
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.model.DBPNamedObjectLocalized;
-import org.jkiss.dbeaver.model.app.DBPPlatformLanguage;
-import org.jkiss.dbeaver.model.impl.AbstractContextDescriptor;
-import org.jkiss.dbeaver.registry.RegistryConstants;
+import com.seizia.chromite.model.DBPNamedObjectLocalized;
+import com.seizia.chromite.model.app.DBPPlatformLanguage;
+import com.seizia.chromite.model.impl.AbstractContextDescriptor;
+import com.seizia.chromite.registry.RegistryConstants;
 
 /**
  * PlatformLanguageDescriptor
  */
 public class PlatformLanguageDescriptor extends AbstractContextDescriptor implements DBPPlatformLanguage, DBPNamedObjectLocalized {
-    public static final String EXTENSION_ID = "org.jkiss.dbeaver.language"; //$NON-NLS-1$
+    public static final String EXTENSION_ID = "com.seizia.chromite.language"; //$NON-NLS-1$
 
     private final IConfigurationElement config;
 

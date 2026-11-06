@@ -15,9 +15,9 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.model.qm.meta;
+package com.seizia.chromite.model.qm.meta;
 
-import org.jkiss.dbeaver.Log;
+import com.seizia.chromite.Log;
 
 /**
  * Abstract QM meta object

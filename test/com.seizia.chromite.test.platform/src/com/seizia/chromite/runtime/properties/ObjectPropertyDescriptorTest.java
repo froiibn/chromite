@@ -14,12 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.runtime.properties;
+package com.seizia.chromite.runtime.properties;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.model.meta.Property;
-import org.jkiss.dbeaver.utils.RuntimeUtils;
+import com.seizia.chromite.model.meta.Property;
+import com.seizia.chromite.utils.RuntimeUtils;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;

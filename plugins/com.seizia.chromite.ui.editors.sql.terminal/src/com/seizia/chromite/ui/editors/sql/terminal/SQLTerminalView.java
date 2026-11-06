@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.editors.sql.terminal;
+package com.seizia.chromite.ui.editors.sql.terminal;
 
 
 import org.eclipse.swt.custom.CTabFolder;
@@ -22,21 +22,21 @@ import org.eclipse.ui.IWorkbenchPartSite;
 import org.eclipse.ui.console.MessageConsole;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.model.preferences.DBPPreferenceStore;
-import org.jkiss.dbeaver.model.sql.SQLQueryResult;
-import org.jkiss.dbeaver.ui.DBeaverIcons;
-import org.jkiss.dbeaver.ui.UIIcon;
-import org.jkiss.dbeaver.ui.controls.resultset.ResultSetModel;
-import org.jkiss.dbeaver.ui.controls.resultset.plaintext.PlainTextFormatter;
-import org.jkiss.dbeaver.ui.editors.sql.SQLEditorOutputConsoleViewer;
-import org.jkiss.dbeaver.utils.GeneralUtils;
+import com.seizia.chromite.model.preferences.DBPPreferenceStore;
+import com.seizia.chromite.model.sql.SQLQueryResult;
+import com.seizia.chromite.ui.SwtIcons;
+import com.seizia.chromite.ui.UIIcon;
+import com.seizia.chromite.ui.controls.resultset.ResultSetModel;
+import com.seizia.chromite.ui.controls.resultset.plaintext.PlainTextFormatter;
+import com.seizia.chromite.ui.editors.sql.SQLEditorOutputConsoleViewer;
+import com.seizia.chromite.utils.GeneralUtils;
 import org.jkiss.utils.CommonUtils;
 
 
 public class SQLTerminalView extends SQLEditorOutputConsoleViewer {
 
     public SQLTerminalView(@NotNull IWorkbenchPartSite site, @NotNull CTabFolder tabsContainer, int styles) {
-        super(site, tabsContainer, new MessageConsole("sql-data-log-output", DBeaverIcons.getImageDescriptor(UIIcon.SQL_CONSOLE)));
+        super(site, tabsContainer, new MessageConsole("sql-data-log-output", SwtIcons.getImageDescriptor(UIIcon.SQL_CONSOLE)));
     }
 
     public void printQueryData(@NotNull DBPPreferenceStore prefs, @NotNull ResultSetModel model, @Nullable String name) {

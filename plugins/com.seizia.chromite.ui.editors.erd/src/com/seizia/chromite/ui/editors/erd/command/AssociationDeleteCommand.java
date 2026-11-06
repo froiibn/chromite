@@ -14,21 +14,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.editors.erd.command;
+package com.seizia.chromite.ui.editors.erd.command;
 
 import org.eclipse.gef.EditPart;
 import org.eclipse.gef.commands.Command;
 import org.eclipse.swt.SWT;
-import org.jkiss.dbeaver.model.erd.ERDAssociation;
-import org.jkiss.dbeaver.model.erd.ERDElement;
-import org.jkiss.dbeaver.model.struct.DBSEntityAssociation;
-import org.jkiss.dbeaver.model.virtual.DBVEntity;
-import org.jkiss.dbeaver.model.virtual.DBVEntityForeignKey;
-import org.jkiss.dbeaver.model.virtual.DBVUtils;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.editors.erd.part.AssociationPart;
-import org.jkiss.dbeaver.ui.editors.erd.part.AttributePart;
-import org.jkiss.dbeaver.ui.editors.erd.part.EntityPart;
+import com.seizia.chromite.model.erd.ERDAssociation;
+import com.seizia.chromite.model.erd.ERDElement;
+import com.seizia.chromite.model.struct.DBSEntityAssociation;
+import com.seizia.chromite.model.virtual.DBVEntity;
+import com.seizia.chromite.model.virtual.DBVEntityForeignKey;
+import com.seizia.chromite.model.virtual.DBVUtils;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.editors.erd.part.AssociationPart;
+import com.seizia.chromite.ui.editors.erd.part.AttributePart;
+import com.seizia.chromite.ui.editors.erd.part.EntityPart;
 
 /**
  * Command to delete relationship

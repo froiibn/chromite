@@ -14,13 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.dialogs.driver;
+package com.seizia.chromite.ui.dialogs.driver;
 
 import org.eclipse.jface.viewers.StructuredViewer;
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.model.connection.DBPDriver;
-import org.jkiss.dbeaver.model.connection.DBPDriverWithLazyIcon;
-import org.jkiss.dbeaver.ui.UIUtils;
+import com.seizia.chromite.model.connection.DBPDriver;
+import com.seizia.chromite.model.connection.DBPDriverWithLazyIcon;
+import com.seizia.chromite.ui.UIUtils;
 
 import java.lang.ref.WeakReference;
 

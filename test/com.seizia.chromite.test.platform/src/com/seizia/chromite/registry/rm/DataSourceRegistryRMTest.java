@@ -14,14 +14,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.registry.rm;
+package com.seizia.chromite.registry.rm;
 
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.model.app.DBPProject;
-import org.jkiss.dbeaver.model.preferences.DBPPreferenceStore;
-import org.jkiss.dbeaver.model.rm.RMController;
-import org.jkiss.dbeaver.registry.DataSourceDescriptor;
-import org.jkiss.dbeaver.registry.DataSourceFolder;
+import com.seizia.chromite.model.app.DBPProject;
+import com.seizia.chromite.model.preferences.DBPPreferenceStore;
+import com.seizia.chromite.model.rm.RMController;
+import com.seizia.chromite.registry.DataSourceDescriptor;
+import com.seizia.chromite.registry.DataSourceFolder;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 

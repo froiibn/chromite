@@ -1,17 +1,17 @@
 Manifest-Version: 1.0
 Bundle-ManifestVersion: 2
-Bundle-Vendor: DBeaver Corp
+Bundle-Vendor: Chromite contributors
 Bundle-Name: Chromite Security Manager Model
-Bundle-SymbolicName: org.jkiss.dbeaver.model.sm;singleton:=true
+Bundle-SymbolicName: com.seizia.chromite.model.sm;singleton:=true
 Bundle-Version: 1.0.98.qualifier
 Bundle-Release-Date: 20261116
 Bundle-RequiredExecutionEnvironment: JavaSE-21
 Bundle-ActivationPolicy: lazy
-Export-Package: org.jkiss.dbeaver.model.security,
- org.jkiss.dbeaver.model.security.user,
- org.jkiss.dbeaver.model.security.exception,
- org.jkiss.dbeaver.model.auth,
- org.jkiss.dbeaver.model.secret
-Require-Bundle: org.jkiss.dbeaver.model;visibility:=reexport
+Export-Package: com.seizia.chromite.model.security,
+ com.seizia.chromite.model.security.user,
+ com.seizia.chromite.model.security.exception,
+ com.seizia.chromite.model.auth,
+ com.seizia.chromite.model.secret
+Require-Bundle: com.seizia.chromite.model;visibility:=reexport
 Bundle-Localization: OSGI-INF/l10n/bundle
-Automatic-Module-Name: org.jkiss.dbeaver.model.sm
+Automatic-Module-Name: com.seizia.chromite.model.sm

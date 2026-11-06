@@ -14,13 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.data;
+package com.seizia.chromite.ui.data;
 
 import org.eclipse.swt.graphics.Image;
 import org.eclipse.ui.IEditorPart;
-import org.jkiss.dbeaver.model.DBIcon;
-import org.jkiss.dbeaver.ui.DBeaverIcons;
-import org.jkiss.dbeaver.ui.editors.binary.BinaryEditor;
+import com.seizia.chromite.model.DBIcon;
+import com.seizia.chromite.ui.SwtIcons;
+import com.seizia.chromite.ui.editors.binary.BinaryEditor;
 
 /**
  * CONTENT Binary Editor
@@ -40,7 +40,7 @@ public class BinaryEditorPart extends BinaryEditor implements IEditorPart {
     @Override
     public Image getTitleImage()
     {
-        return DBeaverIcons.getImage(DBIcon.TYPE_BINARY);
+        return SwtIcons.getImage(DBIcon.TYPE_BINARY);
     }
 
 }

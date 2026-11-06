@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.actions.common;
+package com.seizia.chromite.ui.actions.common;
 
 import org.eclipse.core.commands.ExecutionEvent;
 import org.eclipse.core.commands.ExecutionException;
@@ -23,21 +23,21 @@ import org.eclipse.ui.IWorkbenchPage;
 import org.eclipse.ui.PartInitException;
 import org.eclipse.ui.handlers.HandlerUtil;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.DBPDataSourceContainer;
-import org.jkiss.dbeaver.model.DBUtils;
-import org.jkiss.dbeaver.model.navigator.DBNDataSource;
-import org.jkiss.dbeaver.model.navigator.DBNNode;
-import org.jkiss.dbeaver.model.navigator.DBNUtils;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.navigator.NavigatorUtils;
-import org.jkiss.dbeaver.ui.navigator.actions.NavigatorHandlerObjectBase;
-import org.jkiss.dbeaver.ui.navigator.database.DatabaseNavigatorView;
-import org.jkiss.dbeaver.ui.navigator.database.NavigatorViewBase;
-import org.jkiss.dbeaver.ui.navigator.project.ProjectExplorerView;
-import org.jkiss.dbeaver.ui.resources.bookmarks.BookmarkStorage;
-import org.jkiss.dbeaver.ui.resources.bookmarks.BookmarksHandlerImpl;
-import org.jkiss.dbeaver.ui.resources.bookmarks.DBNBookmark;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.DBPDataSourceContainer;
+import com.seizia.chromite.model.DBUtils;
+import com.seizia.chromite.model.navigator.DBNDataSource;
+import com.seizia.chromite.model.navigator.DBNNode;
+import com.seizia.chromite.model.navigator.DBNUtils;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.navigator.NavigatorUtils;
+import com.seizia.chromite.ui.navigator.actions.NavigatorHandlerObjectBase;
+import com.seizia.chromite.ui.navigator.database.DatabaseNavigatorView;
+import com.seizia.chromite.ui.navigator.database.NavigatorViewBase;
+import com.seizia.chromite.ui.navigator.project.ProjectExplorerView;
+import com.seizia.chromite.ui.resources.bookmarks.BookmarkStorage;
+import com.seizia.chromite.ui.resources.bookmarks.BookmarksHandlerImpl;
+import com.seizia.chromite.ui.resources.bookmarks.DBNBookmark;
 
 public class NavigateBookmarkHandler extends NavigatorHandlerObjectBase {
 

@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.dialogs.connection;
+package com.seizia.chromite.ui.dialogs.connection;
 
 import org.eclipse.osgi.util.NLS;
 import org.eclipse.swt.SWT;
@@ -24,22 +24,22 @@ import org.eclipse.swt.widgets.*;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.model.DBPDataSourceContainer;
-import org.jkiss.dbeaver.model.connection.DBPConnectionConfiguration;
-import org.jkiss.dbeaver.model.connection.DBPConnectionEventType;
-import org.jkiss.dbeaver.model.connection.DataSourceVariableResolver;
-import org.jkiss.dbeaver.model.preferences.ConfirmedShellCommandsStore;
-import org.jkiss.dbeaver.model.runtime.DBRShellCommand;
-import org.jkiss.dbeaver.registry.DataSourceDescriptor;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.runtime.ui.UIServiceShellCommands;
-import org.jkiss.dbeaver.ui.DBeaverIcons;
-import org.jkiss.dbeaver.ui.internal.UIConnectionMessages;
-import org.jkiss.dbeaver.ui.UIIcon;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.controls.TextWithOpenFolder;
-import org.jkiss.dbeaver.ui.controls.VariablesHintLabel;
-import org.jkiss.dbeaver.ui.editors.EditorUtils;
+import com.seizia.chromite.model.DBPDataSourceContainer;
+import com.seizia.chromite.model.connection.DBPConnectionConfiguration;
+import com.seizia.chromite.model.connection.DBPConnectionEventType;
+import com.seizia.chromite.model.connection.DataSourceVariableResolver;
+import com.seizia.chromite.model.preferences.ConfirmedShellCommandsStore;
+import com.seizia.chromite.model.runtime.DBRShellCommand;
+import com.seizia.chromite.registry.DataSourceDescriptor;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.runtime.ui.UIServiceShellCommands;
+import com.seizia.chromite.ui.SwtIcons;
+import com.seizia.chromite.ui.internal.UIConnectionMessages;
+import com.seizia.chromite.ui.UIIcon;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.controls.TextWithOpenFolder;
+import com.seizia.chromite.ui.controls.VariablesHintLabel;
+import com.seizia.chromite.ui.editors.EditorUtils;
 import org.jkiss.utils.ArrayUtils;
 import org.jkiss.utils.CommonUtils;
 
@@ -79,7 +79,7 @@ public class ConnectionPageShellCommands extends ConnectionWizardPage {
         this.shellCommandsService = DBWorkbench.getService(UIServiceShellCommands.class);
         setTitle(UIConnectionMessages.dialog_connection_edit_wizard_shell_cmd);
         setDescription(UIConnectionMessages.dialog_connection_events_title);
-        setImageDescriptor(DBeaverIcons.getImageDescriptor(UIIcon.EVENT));
+        setImageDescriptor(SwtIcons.getImageDescriptor(UIIcon.EVENT));
         for (DBPConnectionEventType eventType : DBPConnectionEventType.values()) {
             DBRShellCommand command = dataSource.getConnectionConfiguration().getEvent(eventType);
             eventsCache.put(eventType, command == null ? null : new DBRShellCommand(command));
@@ -123,7 +123,7 @@ public class ConnectionPageShellCommands extends ConnectionWizardPage {
                 TableItem item = new TableItem(eventTypeTable, SWT.NONE);
                 item.setData(eventType);
                 item.setText(eventType.getTitle());
-                item.setImage(DBeaverIcons.getImage(UIIcon.EVENT));
+                item.setImage(SwtIcons.getImage(UIIcon.EVENT));
                 item.setChecked(command != null && command.isEnabled());
             }
 
@@ -213,7 +213,7 @@ public class ConnectionPageShellCommands extends ConnectionWizardPage {
         return UIUtils.createPushButton(
             parent,
             UIConnectionMessages.dialog_connection_edit_wizard_shell_cmd_clear_button_label,
-            DBeaverIcons.getImage(UIIcon.CLEAN),
+            SwtIcons.getImage(UIIcon.CLEAN),
             SelectionListener.widgetSelectedAdapter(e -> {
                 DBPConnectionEventType eventType = getSelectedEventType();
                 if (eventType != null) {

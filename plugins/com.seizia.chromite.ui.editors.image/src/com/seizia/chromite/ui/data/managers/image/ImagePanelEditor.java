@@ -14,26 +14,26 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.data.managers.image;
+package com.seizia.chromite.ui.data.managers.image;
 
 import org.eclipse.jface.action.IContributionManager;
 import org.eclipse.swt.SWT;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.model.data.DBDContent;
-import org.jkiss.dbeaver.model.data.DBDContentStorage;
-import org.jkiss.dbeaver.model.exec.DBCException;
-import org.jkiss.dbeaver.model.preferences.DBPPreferenceStore;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.ui.UITask;
-import org.jkiss.dbeaver.ui.controls.imageview.AbstractImageViewer;
-import org.jkiss.dbeaver.ui.controls.imageview.BrowserImageViewer;
-import org.jkiss.dbeaver.ui.controls.imageview.SWTImageViewer;
-import org.jkiss.dbeaver.ui.controls.resultset.ResultSetPreferences;
-import org.jkiss.dbeaver.ui.data.IStreamValueEditorPersistent;
-import org.jkiss.dbeaver.ui.data.IValueController;
+import com.seizia.chromite.model.data.DBDContent;
+import com.seizia.chromite.model.data.DBDContentStorage;
+import com.seizia.chromite.model.exec.DBCException;
+import com.seizia.chromite.model.preferences.DBPPreferenceStore;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.ui.UITask;
+import com.seizia.chromite.ui.controls.imageview.AbstractImageViewer;
+import com.seizia.chromite.ui.controls.imageview.BrowserImageViewer;
+import com.seizia.chromite.ui.controls.imageview.SWTImageViewer;
+import com.seizia.chromite.ui.controls.resultset.ResultSetPreferences;
+import com.seizia.chromite.ui.data.IStreamValueEditorPersistent;
+import com.seizia.chromite.ui.data.IValueController;
 
 import java.io.IOException;
 import java.io.InputStream;

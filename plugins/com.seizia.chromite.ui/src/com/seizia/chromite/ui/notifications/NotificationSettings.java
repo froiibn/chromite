@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.notifications;
+package com.seizia.chromite.ui.notifications;
 
 import org.jkiss.code.Nullable;
 

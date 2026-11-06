@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.postgresql.tools;
+package com.seizia.chromite.ext.postgresql.tools;
 
 import org.eclipse.jface.viewers.IStructuredSelection;
 import org.eclipse.jface.wizard.IWizardPage;
@@ -23,17 +23,17 @@ import org.eclipse.swt.SWT;
 import org.eclipse.ui.IWorkbench;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.ext.postgresql.PostgreMessages;
-import org.jkiss.dbeaver.ext.postgresql.tasks.PostgreBackupAllSettings;
-import org.jkiss.dbeaver.ext.postgresql.tasks.PostgreDatabaseBackupAllInfo;
-import org.jkiss.dbeaver.ext.postgresql.tasks.PostgreSQLTasks;
-import org.jkiss.dbeaver.model.runtime.DBRRunnableContext;
-import org.jkiss.dbeaver.model.struct.DBSObject;
-import org.jkiss.dbeaver.model.task.DBTTask;
-import org.jkiss.dbeaver.registry.task.TaskPreferenceStore;
-import org.jkiss.dbeaver.tasks.ui.nativetool.AbstractNativeExportWizard;
-import org.jkiss.dbeaver.ui.ShellUtils;
-import org.jkiss.dbeaver.ui.UIUtils;
+import com.seizia.chromite.ext.postgresql.PostgreMessages;
+import com.seizia.chromite.ext.postgresql.tasks.PostgreBackupAllSettings;
+import com.seizia.chromite.ext.postgresql.tasks.PostgreDatabaseBackupAllInfo;
+import com.seizia.chromite.ext.postgresql.tasks.PostgreSQLTasks;
+import com.seizia.chromite.model.runtime.DBRRunnableContext;
+import com.seizia.chromite.model.struct.DBSObject;
+import com.seizia.chromite.model.task.DBTTask;
+import com.seizia.chromite.registry.task.TaskPreferenceStore;
+import com.seizia.chromite.tasks.ui.nativetool.AbstractNativeExportWizard;
+import com.seizia.chromite.ui.ShellUtils;
+import com.seizia.chromite.ui.UIUtils;
 import org.jkiss.utils.CommonUtils;
 
 import java.util.Collection;

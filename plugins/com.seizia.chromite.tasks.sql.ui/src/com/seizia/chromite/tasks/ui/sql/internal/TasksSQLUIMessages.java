@@ -14,12 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.tasks.ui.sql.internal;
+package com.seizia.chromite.tasks.ui.sql.internal;
 
 import org.eclipse.osgi.util.NLS;
 
 public class TasksSQLUIMessages extends NLS {
-    static final String BUNDLE_NAME = "org.jkiss.dbeaver.tasks.ui.sql.internal.TasksSQLUIMessages"; //$NON-NLS-1$
+    static final String BUNDLE_NAME = "com.seizia.chromite.tasks.ui.sql.internal.TasksSQLUIMessages"; //$NON-NLS-1$
 
     public static String sql_tool_task_object_selector_dialog_title;
     public static String sql_tool_task_wizard_page_settings_name;

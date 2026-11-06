@@ -14,14 +14,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.gis.internal;
+package com.seizia.chromite.ui.gis.internal;
 
 import org.eclipse.core.runtime.preferences.AbstractPreferenceInitializer;
-import org.jkiss.dbeaver.model.gis.GisConstants;
-import org.jkiss.dbeaver.model.impl.preferences.BundlePreferenceStore;
-import org.jkiss.dbeaver.model.preferences.DBPPreferenceStore;
-import org.jkiss.dbeaver.ui.gis.GeometryViewerConstants;
-import org.jkiss.dbeaver.utils.PrefUtils;
+import com.seizia.chromite.model.gis.GisConstants;
+import com.seizia.chromite.model.impl.preferences.BundlePreferenceStore;
+import com.seizia.chromite.model.preferences.DBPPreferenceStore;
+import com.seizia.chromite.ui.gis.GeometryViewerConstants;
+import com.seizia.chromite.utils.PrefUtils;
 
 public class GISViewerPreferencesInitializer extends AbstractPreferenceInitializer {
 

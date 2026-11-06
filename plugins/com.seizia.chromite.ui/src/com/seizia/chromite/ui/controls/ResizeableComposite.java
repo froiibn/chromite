@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.controls;
+package com.seizia.chromite.ui.controls;
 
 import org.eclipse.jface.layout.GridLayoutFactory;
 import org.eclipse.swt.SWT;
@@ -25,8 +25,8 @@ import org.eclipse.swt.graphics.Rectangle;
 import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.widgets.*;
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.ui.DBeaverIcons;
-import org.jkiss.dbeaver.ui.UIIcon;
+import com.seizia.chromite.ui.SwtIcons;
+import com.seizia.chromite.ui.UIIcon;
 
 /**
  * A composite that can be resized by dragging its borders.
@@ -61,7 +61,7 @@ public final class ResizeableComposite extends Composite {
             Label dragger = new Label(this, SWT.NONE);
             dragger.setLayoutData(new GridData(SWT.BEGINNING, SWT.CENTER, false, false));
             dragger.setCursor(getDisplay().getSystemCursor(SWT.CURSOR_SIZEWE));
-            dragger.setImage(DBeaverIcons.getImage(UIIcon.SEPARATOR_V));
+            dragger.setImage(SwtIcons.getImage(UIIcon.SEPARATOR_V));
             dragger.addMouseListener(MouseListener.mouseDownAdapter(e -> update(e, true)));
         }
 
@@ -69,7 +69,7 @@ public final class ResizeableComposite extends Composite {
             Label dragger = new Label(this, SWT.NONE);
             dragger.setLayoutData(new GridData(SWT.CENTER, SWT.BEGINNING, false, false));
             dragger.setCursor(getDisplay().getSystemCursor(SWT.CURSOR_SIZENS));
-            dragger.setImage(DBeaverIcons.getImage(UIIcon.SEPARATOR_H));
+            dragger.setImage(SwtIcons.getImage(UIIcon.SEPARATOR_H));
             dragger.addMouseListener(MouseListener.mouseDownAdapter(e -> update(e, false)));
 
             if (horizontal) {

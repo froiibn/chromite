@@ -17,10 +17,10 @@
 /*
  * Created on Jul 13, 2004
  */
-package org.jkiss.dbeaver.model.erd;
+package com.seizia.chromite.model.erd;
 
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.Log;
+import com.seizia.chromite.Log;
 import org.jkiss.utils.CommonUtils;
 
 import java.util.ArrayList;

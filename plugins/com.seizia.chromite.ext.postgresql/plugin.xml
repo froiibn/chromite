@@ -3,24 +3,24 @@
 
 <plugin>
 
-    <extension-point id="org.jkiss.dbeaver.postgresql.serverType" name="PostgreSQL Server Type" schema="schema/org.jkiss.dbeaver.postgresql.serverType.exsd"/>
-    <extension-point id="org.jkiss.dbeaver.postgresql.fdw.config" name="PostgreSQL Foreign Data Wrappers Config" schema="schema/org.jkiss.dbeaver.postgresql.fdw.config.exsd"/>
+    <extension-point id="com.seizia.chromite.postgresql.serverType" name="PostgreSQL Server Type" schema="schema/com.seizia.chromite.postgresql.serverType.exsd"/>
+    <extension-point id="com.seizia.chromite.postgresql.fdw.config" name="PostgreSQL Foreign Data Wrappers Config" schema="schema/com.seizia.chromite.postgresql.fdw.config.exsd"/>
 
-    <extension point="org.jkiss.dbeaver.postgresql.serverType">
-        <serverType id="postgresql" name="PostgreSQL" class="org.jkiss.dbeaver.ext.postgresql.model.impls.PostgreServerPostgreSQL" logo="icons/postgresql_logo.png" customURL="true" turnOffPreparedStatements="true"/>
-        <serverType id="edb" name="EnterpriseDB" class="org.jkiss.dbeaver.ext.postgresql.model.impls.PostgreServerEdb" logo="icons/edb_logo.png" customURL="true"/>
-        <serverType id="redshift" name="Redshift" class="org.jkiss.dbeaver.ext.postgresql.model.impls.redshift.PostgreServerRedshift" logo="icons/redshift_logo.png" customURL="true" cloudServer="true" supportsClient="false"/>
-        <serverType id="timescale" name="TimescaleDB" class="org.jkiss.dbeaver.ext.postgresql.model.impls.PostgreServerTimescale" logo="icons/timescale_logo.png" customURL="true"/>
-        <serverType id="yellowbrick" name="Yellowbrick" class="org.jkiss.dbeaver.ext.postgresql.model.impls.yellowbrick.PostgreServerYellowBrick" logo="icons/yellowbrick_logo.png" customURL="true"/>
-        <serverType id="yugabytedb" name="YugabyteDB" class="org.jkiss.dbeaver.ext.postgresql.model.impls.PostgreServerYugabyteDB" logo="icons/yugabyte_logo.png" customURL="true"/>
-        <serverType id="cockroach" name="CockroachDB" class="org.jkiss.dbeaver.ext.postgresql.model.impls.cockroach.PostgreServerCockroachDB" logo="icons/cockroach_logo.png" customURL="true"/>
-        <serverType id="gcloudpg" name="Google Cloud SQL - PostgreSQL" class="org.jkiss.dbeaver.ext.postgresql.model.impls.PostgreServerGCloud" logo="icons/google_cloud_sql_logo.png" customURL="true" cloudServer="true" needsPort="false" supportsClient="false"/>
-        <serverType id="cratedb" name="CrateDB" class="org.jkiss.dbeaver.ext.postgresql.model.impls.PostgreServerCrateDB" logo="icons/cratedb_logo.png" customURL="true"/>
-        <serverType id="materialize" name="Materialize" class="org.jkiss.dbeaver.ext.postgresql.model.impls.materialize.PostgreServerMaterialize" logo="icons/materialize_logo.png" customURL="true"/>
-        <serverType id="risingwave" name="RisingWave" class="org.jkiss.dbeaver.ext.postgresql.model.impls.PostgreServerRisingWave" logo="icons/risingwave_logo.png" customURL="true" supportsClient="false"/>
+    <extension point="com.seizia.chromite.postgresql.serverType">
+        <serverType id="postgresql" name="PostgreSQL" class="com.seizia.chromite.ext.postgresql.model.impls.PostgreServerPostgreSQL" logo="icons/postgresql_logo.png" customURL="true" turnOffPreparedStatements="true"/>
+        <serverType id="edb" name="EnterpriseDB" class="com.seizia.chromite.ext.postgresql.model.impls.PostgreServerEdb" logo="icons/edb_logo.png" customURL="true"/>
+        <serverType id="redshift" name="Redshift" class="com.seizia.chromite.ext.postgresql.model.impls.redshift.PostgreServerRedshift" logo="icons/redshift_logo.png" customURL="true" cloudServer="true" supportsClient="false"/>
+        <serverType id="timescale" name="TimescaleDB" class="com.seizia.chromite.ext.postgresql.model.impls.PostgreServerTimescale" logo="icons/timescale_logo.png" customURL="true"/>
+        <serverType id="yellowbrick" name="Yellowbrick" class="com.seizia.chromite.ext.postgresql.model.impls.yellowbrick.PostgreServerYellowBrick" logo="icons/yellowbrick_logo.png" customURL="true"/>
+        <serverType id="yugabytedb" name="YugabyteDB" class="com.seizia.chromite.ext.postgresql.model.impls.PostgreServerYugabyteDB" logo="icons/yugabyte_logo.png" customURL="true"/>
+        <serverType id="cockroach" name="CockroachDB" class="com.seizia.chromite.ext.postgresql.model.impls.cockroach.PostgreServerCockroachDB" logo="icons/cockroach_logo.png" customURL="true"/>
+        <serverType id="gcloudpg" name="Google Cloud SQL - PostgreSQL" class="com.seizia.chromite.ext.postgresql.model.impls.PostgreServerGCloud" logo="icons/google_cloud_sql_logo.png" customURL="true" cloudServer="true" needsPort="false" supportsClient="false"/>
+        <serverType id="cratedb" name="CrateDB" class="com.seizia.chromite.ext.postgresql.model.impls.PostgreServerCrateDB" logo="icons/cratedb_logo.png" customURL="true"/>
+        <serverType id="materialize" name="Materialize" class="com.seizia.chromite.ext.postgresql.model.impls.materialize.PostgreServerMaterialize" logo="icons/materialize_logo.png" customURL="true"/>
+        <serverType id="risingwave" name="RisingWave" class="com.seizia.chromite.ext.postgresql.model.impls.PostgreServerRisingWave" logo="icons/risingwave_logo.png" customURL="true" supportsClient="false"/>
     </extension>
 
-    <extension point="org.jkiss.dbeaver.postgresql.fdw.config">
+    <extension point="com.seizia.chromite.postgresql.fdw.config">
         <fdw id="postgresql" fdwId="postgres_fdw" databases="postgresql" name="PostgreSQL" description="Default FDW for PostgreSQL servers" docURL="https://www.postgresql.org/docs/current/postgres-fdw.html">
             <propertyGroup label="Options">
                 <property id="host" description="Host name" defaultValue="${host}"/>
@@ -61,11 +61,11 @@
     <!--
         PostgreSQL extension
      -->
-    <extension point="org.jkiss.dbeaver.generic.meta">
-        <meta id="postgresql" class="org.jkiss.dbeaver.ext.postgresql.model.generic.PostgreMetaModel" driverClass="org.postgresql.Driver,com.edb.Driver,com.amazon.redshift.jdbc4.Driver,com.amazon.redshift.jdbc41.Driver,com.amazon.redshift.jdbc42.Driver"/>
+    <extension point="com.seizia.chromite.generic.meta">
+        <meta id="postgresql" class="com.seizia.chromite.ext.postgresql.model.generic.PostgreMetaModel" driverClass="org.postgresql.Driver,com.edb.Driver,com.amazon.redshift.jdbc4.Driver,com.amazon.redshift.jdbc41.Driver,com.amazon.redshift.jdbc42.Driver"/>
     </extension>
 
-    <extension point="org.jkiss.dbeaver.dataSourceProvider">
+    <extension point="com.seizia.chromite.dataSourceProvider">
         <dataSourceType
             id="risingwave"
             label="RisingWave"
@@ -131,38 +131,38 @@
             iconBig="icons/redshift_icon_big.svg"
             logoImage="icons/redshift_logo.png"/>
         <datasource
-                class="org.jkiss.dbeaver.ext.postgresql.PostgreDataSourceProvider"
+                class="com.seizia.chromite.ext.postgresql.PostgreDataSourceProvider"
                 description="%datasource.postgresql.description"
                 id="postgresql"
                 label="PostgreSQL"
                 icon="icons/postgresql_icon.png"
                 dialect="postgresql">
             <tree path="postgresql" label="PostgreSQL data source">
-                <folder type="org.jkiss.dbeaver.ext.postgresql.model.PostgreDatabase" label="%tree.databases.node.name" icon="#folder_database" description="%tree.databases.node.tip">
+                <folder type="com.seizia.chromite.ext.postgresql.model.PostgreDatabase" label="%tree.databases.node.name" icon="#folder_database" description="%tree.databases.node.tip">
                     <items label="%tree.database.node.name" path="database" property="databases" icon="#database">
-                        <folder type="org.jkiss.dbeaver.ext.postgresql.model.PostgreSchema" label="%tree.schemas.node.name" icon="#folder_schema" description="%tree.schemas.node.tip">
+                        <folder type="com.seizia.chromite.ext.postgresql.model.PostgreSchema" label="%tree.schemas.node.name" icon="#folder_schema" description="%tree.schemas.node.tip">
                             <items label="%tree.schema.node.name" path="schema" property="schemas" icon="#schema">
                                 <icon if="object.utility || object.external" icon="#schema_util"/>
                                 <icon if="object.system" icon="#schema_system"/>
-                                <folder type="org.jkiss.dbeaver.ext.postgresql.model.PostgreTable" label="%tree.tables.node.name" icon="#folder_table" description="%tree.tables.node.tip">
+                                <folder type="com.seizia.chromite.ext.postgresql.model.PostgreTable" label="%tree.tables.node.name" icon="#folder_table" description="%tree.tables.node.tip">
                                     <items label="%tree.table.node.name" path="table" property="tables" icon="#table">
-                                        <folder type="org.jkiss.dbeaver.ext.postgresql.model.PostgreTableColumn" label="%tree.columns.node.name" icon="#columns" description="%tree.columns.node.tip" visibleIf="!object.partition">
+                                        <folder type="com.seizia.chromite.ext.postgresql.model.PostgreTableColumn" label="%tree.columns.node.name" icon="#columns" description="%tree.columns.node.tip" visibleIf="!object.partition">
                                             <items label="%tree.column.node.name" path="attribute" property="attributes" icon="#column">
                                             </items>
                                         </folder>
-                                        <folder type="org.jkiss.dbeaver.ext.postgresql.model.PostgreTableConstraint" label="%tree.constraints.node.name" icon="#constraints" description="%tree.constraints.node.tip" visibleIf="!object.view">
+                                        <folder type="com.seizia.chromite.ext.postgresql.model.PostgreTableConstraint" label="%tree.constraints.node.name" icon="#constraints" description="%tree.constraints.node.tip" visibleIf="!object.view">
                                             <items label="%tree.constraint.node.name" path="uniqueKey" property="constraints" icon="#unique-key">
                                                 <items label="%tree.constraint.columns.node.name" itemLabel="%tree.column.node.name" path="column" property="attributeReferences" navigable="false" inline="true">
                                                 </items>
                                             </items>
                                         </folder>
-                                        <folder type="org.jkiss.dbeaver.ext.postgresql.model.PostgreTableForeignKey" label="%tree.foreign_keys.node.name" icon="#foreign-keys" description="%tree.foreign_key.node.tip" visibleIf="connected &amp;&amp; dataSource.serverType.supportsForeignKeys()">
+                                        <folder type="com.seizia.chromite.ext.postgresql.model.PostgreTableForeignKey" label="%tree.foreign_keys.node.name" icon="#foreign-keys" description="%tree.foreign_key.node.tip" visibleIf="connected &amp;&amp; dataSource.serverType.supportsForeignKeys()">
                                             <items label="%tree.foreign_key.node.name" path="association" property="foreignKeys" icon="#foreign-key">
                                                 <items label="%tree.foreign_key_columns.node.name" itemLabel="%tree.column.node.name" path="column" property="attributeReferences" navigable="false" inline="true">
                                                 </items>
                                             </items>
                                         </folder>
-                                        <folder type="org.jkiss.dbeaver.ext.postgresql.model.PostgreIndex" label="%tree.indexes.node.name" icon="#indexes" description="%tree.indexes.node.tip" visibleIf="connected &amp;&amp; dataSource.serverType.supportsIndexes()">
+                                        <folder type="com.seizia.chromite.ext.postgresql.model.PostgreIndex" label="%tree.indexes.node.name" icon="#indexes" description="%tree.indexes.node.tip" visibleIf="connected &amp;&amp; dataSource.serverType.supportsIndexes()">
                                             <items label="%tree.index.node.name" path="index" property="indexes" icon="#index">
                                                 <items label="%tree.index_columns.node.name" path="column" property="attributeReferences" icon="#column" navigable="false" inline="true">
                                                 </items>
@@ -177,33 +177,33 @@
                                                 </items>
                                             </items>
                                         </folder>
-                                        <folder type="org.jkiss.dbeaver.ext.postgresql.model.PostgreTableBase" label="%tree.partitions.node.name" icon="#folder_table" description="%tree.partitions.node.tip" visibleIf="connected &amp;&amp; dataSource.serverType.supportsPartitions()">
-                                            <itemType label="%tree.partition.node.name" icon="#partition" type="org.jkiss.dbeaver.ext.postgresql.model.PostgreTablePartition"/>
+                                        <folder type="com.seizia.chromite.ext.postgresql.model.PostgreTableBase" label="%tree.partitions.node.name" icon="#folder_table" description="%tree.partitions.node.tip" visibleIf="connected &amp;&amp; dataSource.serverType.supportsPartitions()">
+                                            <itemType label="%tree.partition.node.name" icon="#partition" type="com.seizia.chromite.ext.postgresql.model.PostgreTablePartition"/>
                                             <items label="%tree.partition.node.name" path="partition" property="partitions" icon="#partition" recursive="../..">
                                             </items>
                                         </folder>
-                                        <folder type="org.jkiss.dbeaver.ext.postgresql.model.PostgreTableReal" label="%tree.tablechildren.node.name" icon="#folder_table" description="Table children" virtual="true" visibleIf="object.hasSubClasses() &amp;&amp; !object.partition">
+                                        <folder type="com.seizia.chromite.ext.postgresql.model.PostgreTableReal" label="%tree.tablechildren.node.name" icon="#folder_table" description="Table children" virtual="true" visibleIf="object.hasSubClasses() &amp;&amp; !object.partition">
                                             <items label="%tree.tablechildren.node.name" path="subTables" property="subTables" icon="#table" virtual="true" recursive="../.." >
                                             </items>
                                         </folder>
-                                        <folder type="org.jkiss.dbeaver.ext.postgresql.model.PostgreTrigger" label="%tree.triggers.node.name" icon="#triggers" description="%tree.triggers.node.tip" visibleIf="connected &amp;&amp; dataSource.serverType.supportsTriggers()">
+                                        <folder type="com.seizia.chromite.ext.postgresql.model.PostgreTrigger" label="%tree.triggers.node.name" icon="#triggers" description="%tree.triggers.node.tip" visibleIf="connected &amp;&amp; dataSource.serverType.supportsTriggers()">
                                             <items label="%tree.trigger.node.name" path="trigger" property="triggers" icon="#trigger"/>
                                         </folder>
-                                        <folder type="org.jkiss.dbeaver.ext.postgresql.model.PostgreRule" label="%tree.rules.node.name" icon="#rules" description="%tree.rules.node.tip" visibleIf="connected &amp;&amp; dataSource.serverType.supportsRules()">
+                                        <folder type="com.seizia.chromite.ext.postgresql.model.PostgreRule" label="%tree.rules.node.name" icon="#rules" description="%tree.rules.node.tip" visibleIf="connected &amp;&amp; dataSource.serverType.supportsRules()">
                                             <items label="%tree.rule.node.name" path="rule" property="rules" icon="#rule"/>
                                         </folder>
-                                        <folder type="org.jkiss.dbeaver.ext.postgresql.model.PostgreTablePolicy" label="%tree.policies.node.name" description="%tree.policies.node.tip" visibleIf="connected &amp;&amp; dataSource.serverType.supportsRowLevelSecurity()">
+                                        <folder type="com.seizia.chromite.ext.postgresql.model.PostgreTablePolicy" label="%tree.policies.node.name" description="%tree.policies.node.tip" visibleIf="connected &amp;&amp; dataSource.serverType.supportsRowLevelSecurity()">
                                             <items label="%tree.policy.node.name" path="policy" property="policies" icon="#locked"/>
                                         </folder>
                                     </items>
                                 </folder>
-                                <folder type="org.jkiss.dbeaver.ext.postgresql.model.PostgreTableForeign" label="%tree.foreign.tables.node.name" icon="#folder_link" description="%tree.foreign.tables.node.tip" visibleIf="connected &amp;&amp; dataSource.serverType.supportsForeignServers()">
+                                <folder type="com.seizia.chromite.ext.postgresql.model.PostgreTableForeign" label="%tree.foreign.tables.node.name" icon="#folder_link" description="%tree.foreign.tables.node.tip" visibleIf="connected &amp;&amp; dataSource.serverType.supportsForeignServers()">
                                     <items label="%tree.foreign.table.node.name" path="foreignTable" property="foreignTables" icon="#table">
-                                        <folder type="org.jkiss.dbeaver.ext.postgresql.model.PostgreTableColumn" label="%tree.columns.node.name" icon="#columns" description="%tree.columns.node.tip" visibleIf="!object.isPartition()">
+                                        <folder type="com.seizia.chromite.ext.postgresql.model.PostgreTableColumn" label="%tree.columns.node.name" icon="#columns" description="%tree.columns.node.tip" visibleIf="!object.isPartition()">
                                             <items label="%tree.column.node.name" path="attribute" property="attributes" icon="#column">
                                             </items>
                                         </folder>
-                                        <folder type="org.jkiss.dbeaver.ext.postgresql.model.PostgreTableConstraint" label="%tree.constraints.node.name" icon="#constraints" description="%tree.constraints.node.tip">
+                                        <folder type="com.seizia.chromite.ext.postgresql.model.PostgreTableConstraint" label="%tree.constraints.node.name" icon="#constraints" description="%tree.constraints.node.tip">
                                             <items label="%tree.constraint.node.name" path="uniqueKey" property="constraints" icon="#unique-key">
                                                 <items label="%tree.constraint.columns.node.name" itemLabel="%tree.column.node.name" path="column" property="attributeReferences" navigable="false" inline="true">
                                                 </items>
@@ -214,30 +214,30 @@
                                         </folder>
                                     </items>
                                 </folder>
-                                <folder type="org.jkiss.dbeaver.ext.postgresql.model.PostgreView" label="%tree.tviews.node.name" id="folderView" icon="#folder_view" description="%tree.tviews.node.tip">
+                                <folder type="com.seizia.chromite.ext.postgresql.model.PostgreView" label="%tree.tviews.node.name" id="folderView" icon="#folder_view" description="%tree.tviews.node.tip">
                                     <items label="%tree.tview.node.name" path="view" property="views" icon="#view">
-                                        <folder type="org.jkiss.dbeaver.ext.postgresql.model.PostgreAttribute" label="%tree.columns.node.name" icon="#columns" description="View columns">
+                                        <folder type="com.seizia.chromite.ext.postgresql.model.PostgreAttribute" label="%tree.columns.node.name" icon="#columns" description="View columns">
                                             <items label="%tree.column.node.name" path="attribute" property="attributes" icon="#column">
                                             </items>
                                         </folder>
                                         <folder label="%tree.dependencies.node.name" icon="#references" description="%tree.dependencies.node.tip" virtual="true" visibleIf="connected &amp;&amp; dataSource.serverType.supportsDependencies()">
                                             <items label="%tree.dependency.node.name" path="dependency" property="dependencies" icon="#reference" virtual="true"/>
                                         </folder>
-                                        <folder type="org.jkiss.dbeaver.ext.postgresql.model.PostgreTrigger" label="%tree.triggers.node.name" icon="#triggers" description="View triggers" visibleIf="connected &amp;&amp; dataSource.serverType.supportsTriggers()">
+                                        <folder type="com.seizia.chromite.ext.postgresql.model.PostgreTrigger" label="%tree.triggers.node.name" icon="#triggers" description="View triggers" visibleIf="connected &amp;&amp; dataSource.serverType.supportsTriggers()">
                                             <items label="%tree.trigger.node.name" path="trigger" property="triggers" icon="#trigger"/>
                                         </folder>
-                                        <folder type="org.jkiss.dbeaver.ext.postgresql.model.PostgreRule" label="%tree.rules.node.name" icon="#rules" description="Table rules" visibleIf="connected &amp;&amp; dataSource.serverType.supportsRules()">
+                                        <folder type="com.seizia.chromite.ext.postgresql.model.PostgreRule" label="%tree.rules.node.name" icon="#rules" description="Table rules" visibleIf="connected &amp;&amp; dataSource.serverType.supportsRules()">
                                             <items label="%tree.rule.node.name" path="rule" property="rules" icon="#rule"/>
                                         </folder>
                                     </items>
                                 </folder>
-                                <folder type="org.jkiss.dbeaver.ext.postgresql.model.PostgreMaterializedView" label="%tree.mviews.node.name" icon="#folder_view" description="%tree.mviews.node.tip" visibleIf="connected &amp;&amp; dataSource.serverType.supportsMaterializedViews()">
+                                <folder type="com.seizia.chromite.ext.postgresql.model.PostgreMaterializedView" label="%tree.mviews.node.name" icon="#folder_view" description="%tree.mviews.node.tip" visibleIf="connected &amp;&amp; dataSource.serverType.supportsMaterializedViews()">
                                     <items label="%tree.mview.node.name" path="view" property="materializedViews" icon="#view">
-                                        <folder type="org.jkiss.dbeaver.ext.postgresql.model.PostgreAttribute" label="%tree.columns.node.name" icon="#columns" description="View columns">
+                                        <folder type="com.seizia.chromite.ext.postgresql.model.PostgreAttribute" label="%tree.columns.node.name" icon="#columns" description="View columns">
                                             <items label="%tree.column.node.name" path="attribute" property="attributes" icon="#column">
                                             </items>
                                         </folder>
-                                        <folder type="org.jkiss.dbeaver.ext.postgresql.model.PostgreIndex" label="%tree.indexes.node.name" icon="#indexes" description="%tree.indexes.node.tip">
+                                        <folder type="com.seizia.chromite.ext.postgresql.model.PostgreIndex" label="%tree.indexes.node.name" icon="#indexes" description="%tree.indexes.node.tip">
                                             <items label="%tree.index.node.name" path="index" property="indexes" icon="#index">
                                                 <items label="%tree.index_columns.node.name" path="column" property="attributeReferences" icon="#column" navigable="false" inline="true">
                                                 </items>
@@ -248,13 +248,13 @@
                                         </folder>
                                     </items>
                                 </folder>
-                                <folder type="org.jkiss.dbeaver.model.struct.rdb.DBSTableIndex" label="%tree.indexes.node.name" icon="#indexes" description="%tree.indexes.node.tip" visibleIf="connected &amp;&amp; dataSource.serverType.supportsIndexes()" virtual="true">
+                                <folder type="com.seizia.chromite.model.struct.rdb.DBSTableIndex" label="%tree.indexes.node.name" icon="#indexes" description="%tree.indexes.node.tip" visibleIf="connected &amp;&amp; dataSource.serverType.supportsIndexes()" virtual="true">
                                     <items icon="#index" label="%tree.index.node.name" path="index" property="indexes" virtual="true">
                                         <items icon="#column" label="%tree.index_columns.node.name" itemLabel="%tree.column.node.name" path="column" property="attributeReferences" inline="true" navigable="false" virtual="true">
                                         </items>
                                     </items>
                                 </folder>
-                                <folder type="org.jkiss.dbeaver.ext.postgresql.model.PostgreProcedure" label="%tree.procedures.node.name" icon="#procedures" description="%tree.procedures.node.tip">
+                                <folder type="com.seizia.chromite.ext.postgresql.model.PostgreProcedure" label="%tree.procedures.node.name" icon="#procedures" description="%tree.procedures.node.tip">
                                     <items label="%tree.procedure.node.name" itemLabel="%tree.procedure.node.name" path="procedure" property="procedures" icon="#procedure">
                                         <folder label="%tree.procedure_columns.node.name" icon="#columns" description="%tree.procedure_columns.node.name">
                                             <items label="%tree.procedure_columns.node.name" itemLabel="%tree.column.node.name" path="column" property="parameters" navigable="false"/>
@@ -264,58 +264,58 @@
                                         </folder>
                                     </items>
                                 </folder>
-                                <folder type="org.jkiss.dbeaver.ext.postgresql.model.PostgreSequence" label="%tree.sequences.node.name" icon="#sequences" description="%tree.sequences.node.tip" visibleIf="connected &amp;&amp; dataSource.serverType.supportsSequences()">
+                                <folder type="com.seizia.chromite.ext.postgresql.model.PostgreSequence" label="%tree.sequences.node.name" icon="#sequences" description="%tree.sequences.node.tip" visibleIf="connected &amp;&amp; dataSource.serverType.supportsSequences()">
                                     <items label="%tree.sequence.node.name" path="sequence" property="sequences" icon="#sequence"/>
                                 </folder>
-                                <folder type="org.jkiss.dbeaver.ext.postgresql.model.PostgreDataType" label="%tree.types.node.name" icon="#data_types" description="%tree.types.node.tip">
+                                <folder type="com.seizia.chromite.ext.postgresql.model.PostgreDataType" label="%tree.types.node.name" icon="#data_types" description="%tree.types.node.tip">
                                     <items label="%tree.type.node.name" path="dataType" property="dataTypes" icon="#data_type">
-                                        <folder type="org.jkiss.dbeaver.ext.postgresql.model.PostgreDataTypeAttribute" label="%tree.attributes.node.name" icon="#attributes" description="Type attributes" visibleIf="object.hasAttributes()">
+                                        <folder type="com.seizia.chromite.ext.postgresql.model.PostgreDataTypeAttribute" label="%tree.attributes.node.name" icon="#attributes" description="Type attributes" visibleIf="object.hasAttributes()">
                                             <items label="%tree.attribute.node.name" path="attribute" property="attributes" icon="#attribute"/>
                                         </folder>
                                     </items>
                                 </folder>
-                                <folder type="org.jkiss.dbeaver.ext.postgresql.model.PostgreAggregate" label="%tree.aggregates.node.name" icon="#functions" description="%tree.aggregates.node.tip" visibleIf="connected &amp;&amp; dataSource.serverType.supportsAggregates()">
+                                <folder type="com.seizia.chromite.ext.postgresql.model.PostgreAggregate" label="%tree.aggregates.node.name" icon="#functions" description="%tree.aggregates.node.tip" visibleIf="connected &amp;&amp; dataSource.serverType.supportsAggregates()">
                                     <items label="%tree.aggregate.node.name" path="aggregate" property="aggregateFunctions" icon="#function"/>
                                 </folder>
                             </items>
                         </folder>
 
-                        <folder type="org.jkiss.dbeaver.ext.postgresql.model.PostgreEventTrigger" label="%tree.event.triggers.node.name" icon="#triggers" description="%tree.event.triggers.node.tip" visibleIf="connected &amp;&amp; dataSource.serverType.supportsEventTriggers()">
+                        <folder type="com.seizia.chromite.ext.postgresql.model.PostgreEventTrigger" label="%tree.event.triggers.node.name" icon="#triggers" description="%tree.event.triggers.node.tip" visibleIf="connected &amp;&amp; dataSource.serverType.supportsEventTriggers()">
                             <items label="%tree.event.trigger.node.name" path="eventTrigger" property="eventTriggers" icon="#trigger"/>
                         </folder>
-                        <folder type="org.jkiss.dbeaver.ext.postgresql.model.PostgreExtension" label="%tree.extensions.node.name" icon="#folder_admin" description="%tree.extensions.node.tip" visibleIf="connected &amp;&amp; dataSource.serverType.supportsExtensions()">
+                        <folder type="com.seizia.chromite.ext.postgresql.model.PostgreExtension" label="%tree.extensions.node.name" icon="#folder_admin" description="%tree.extensions.node.tip" visibleIf="connected &amp;&amp; dataSource.serverType.supportsExtensions()">
                             <items label="%tree.extension.node.name" path="extension" property="extensions" icon="#package"/>
                         </folder>
                         <folder label="%tree.storage.node.name" icon="#folder_info" id="storage" description="%tree.storage.node.tip">
-                            <folder type="org.jkiss.dbeaver.ext.postgresql.model.PostgreTablespace" label="%tree.tablespaces.node.name" icon="#tablespaces" description="Tablespaces" visibleIf="connected &amp;&amp; dataSource.serverType.supportsTablespaces()">
+                            <folder type="com.seizia.chromite.ext.postgresql.model.PostgreTablespace" label="%tree.tablespaces.node.name" icon="#tablespaces" description="Tablespaces" visibleIf="connected &amp;&amp; dataSource.serverType.supportsTablespaces()">
                                 <items label="%tree.tablespace.node.name" path="tablespace" property="tablespaces" icon="#tablespace"/>
                             </folder>
                         </folder>
 
-                        <folder type="org.jkiss.dbeaver.ext.postgresql.model.PostgreInformation" label="%tree.information.node.name"
+                        <folder type="com.seizia.chromite.ext.postgresql.model.PostgreInformation" label="%tree.information.node.name"
                                 icon="#folder_info" id="information" description="%tree.information.node.tip" adminFolder="true">
-                            <folder type="org.jkiss.dbeaver.ext.postgresql.model.PostgreForeignDataWrapper" label="%tree.foreignDataWrappers.node.name" description="Foreign data wrappers" visibleIf="connected &amp;&amp; dataSource.serverType.supportsForeignServers()">
+                            <folder type="com.seizia.chromite.ext.postgresql.model.PostgreForeignDataWrapper" label="%tree.foreignDataWrappers.node.name" description="Foreign data wrappers" visibleIf="connected &amp;&amp; dataSource.serverType.supportsForeignServers()">
                                 <items label="%tree.foreignDataWrapper.node.name" path="foreignDataWrapper" property="foreignDataWrappers"/>
                             </folder>
-                            <folder type="org.jkiss.dbeaver.ext.postgresql.model.PostgreForeignServer" label="%tree.foreignServers.node.name" description="Foreign servers" visibleIf="connected &amp;&amp; dataSource.serverType.supportsForeignServers()">
+                            <folder type="com.seizia.chromite.ext.postgresql.model.PostgreForeignServer" label="%tree.foreignServers.node.name" description="Foreign servers" visibleIf="connected &amp;&amp; dataSource.serverType.supportsForeignServers()">
                                 <items label="%tree.foreignServer.node.name" path="foreignServer" property="foreignServers">
-                                    <folder type="org.jkiss.dbeaver.ext.postgresql.model.PostgreUserMapping" label="%tree.userMappings.node.name" icon="#folder_user"  description="User Mappings" >
+                                    <folder type="com.seizia.chromite.ext.postgresql.model.PostgreUserMapping" label="%tree.userMappings.node.name" icon="#folder_user"  description="User Mappings" >
                                         <items label="%tree.userMapping.node.name" path="userMapping" property="userMappings" icon="#user" />
                                     </folder>
                                 </items>
                             </folder>
-                            <folder type="org.jkiss.dbeaver.ext.postgresql.model.PostgreSetting" label="%tree.settings.node.name" icon="#settings" description="Settings">
+                            <folder type="com.seizia.chromite.ext.postgresql.model.PostgreSetting" label="%tree.settings.node.name" icon="#settings" description="Settings">
                                 <items label="%tree.setting.node.name" path="setting" property="settings" icon="#setting"/>
                             </folder>
                         </folder>
 
-                        <folder type="org.jkiss.dbeaver.ext.postgresql.model.PostgreRole" label="%tree.roles.node.name" icon="#folder_user" description="%tree.roles.node.tip" visibleIf="connected &amp;&amp; dataSource.serverType.supportsRoles()" adminFolder="true">
+                        <folder type="com.seizia.chromite.ext.postgresql.model.PostgreRole" label="%tree.roles.node.name" icon="#folder_user" description="%tree.roles.node.tip" visibleIf="connected &amp;&amp; dataSource.serverType.supportsRoles()" adminFolder="true">
                             <items label="%tree.role.node.name" path="users" property="authIds" icon="#user">
                                 <icon if="!object.canLogin" icon="#user_group"/>
-                                <folder id="members" type="org.jkiss.dbeaver.ext.postgresql.model.PostgreRoleMember" label="%tree.role.members.node.name" icon="#folder_user" description="%tree.role.members.node.tip" visibleIf="!object.canLogin"  navigable="false">
+                                <folder id="members" type="com.seizia.chromite.ext.postgresql.model.PostgreRoleMember" label="%tree.role.members.node.name" icon="#folder_user" description="%tree.role.members.node.tip" visibleIf="!object.canLogin"  navigable="false">
                                     <items label="%tree.role.members.node.name" itemLabel="%tree.role.member.node.name" path="members" property="members" visibleIf="!object.canLogin"/>
                                 </folder>
-                                <folder id="belongs" type="org.jkiss.dbeaver.ext.postgresql.model.PostgreRoleMember" label="%tree.role.belongs.node.name" icon="#folder_user" description="%tree.role.belongs.node.tip" navigable="false">
+                                <folder id="belongs" type="com.seizia.chromite.ext.postgresql.model.PostgreRoleMember" label="%tree.role.belongs.node.name" icon="#folder_user" description="%tree.role.belongs.node.tip" navigable="false">
                                     <items label="%tree.role.belongs.node.name" itemLabel="%tree.role.belongs.node.name" path="members" property="belongs" icon="#folder_user"/>
                                 </folder>
                             </items>
@@ -325,12 +325,12 @@
                 </folder>
 
                 <folder label="%tree.administer.node.name" icon="#folder_admin" id="folderAdmin" description="%tree.administer.node.tip" adminFolder="true">
-                    <folder type="org.jkiss.dbeaver.ext.postgresql.model.PostgreJob" label="%tree.jobs.node.name" description="%tree.jobs.node.description" visibleIf="connected &amp;&amp; dataSource.serverType.supportsJobs()">
+                    <folder type="com.seizia.chromite.ext.postgresql.model.PostgreJob" label="%tree.jobs.node.name" description="%tree.jobs.node.description" visibleIf="connected &amp;&amp; dataSource.serverType.supportsJobs()">
                         <items label="%tree.job.node.name" path="job" property="defaultInstance.jobs" icon="#job">
-                            <folder type="org.jkiss.dbeaver.ext.postgresql.model.PostgreJobStep" label="%tree.job.steps.node.name">
+                            <folder type="com.seizia.chromite.ext.postgresql.model.PostgreJobStep" label="%tree.job.steps.node.name">
                                 <items label="%tree.job.step.node.name" path="step" property="steps" icon="#job"/>
                             </folder>
-                            <folder type="org.jkiss.dbeaver.ext.postgresql.model.PostgreJobSchedule" label="%tree.job.schedules.node.name">
+                            <folder type="com.seizia.chromite.ext.postgresql.model.PostgreJobSchedule" label="%tree.job.schedules.node.name">
                                 <items label="%tree.job.schedule.node.name" path="schedule" property="schedules" icon="#job_schedule"/>
                             </folder>
                         </items>
@@ -338,28 +338,28 @@
                     <treeContribution category="connectionEditor"/>
                 </folder>
 
-                <folder type="org.jkiss.dbeaver.ext.postgresql.model.PostgreInformation" label="%tree.information.node.name"
+                <folder type="com.seizia.chromite.ext.postgresql.model.PostgreInformation" label="%tree.information.node.name"
                         icon="#folder_info" id="folder_info" description="%tree.information.node.tip" adminFolder="true">
-                    <folder type="org.jkiss.dbeaver.ext.postgresql.model.PostgreAccessMethod" label="%tree.accessMethods.node.name" icon="#languages" description="%tree.accessMethods.node.tip">
+                    <folder type="com.seizia.chromite.ext.postgresql.model.PostgreAccessMethod" label="%tree.accessMethods.node.name" icon="#languages" description="%tree.accessMethods.node.tip">
                         <items label="%tree.accessMethod.node.name" path="accessMethod" property="defaultInstance.accessMethods" icon="#accessMethod">
-                            <folder type="org.jkiss.dbeaver.ext.postgresql.model.PostgreOperatorClass" label="%tree.opClasses.node.name" icon="#operator" description="%tree.opClasses.node.tip">
+                            <folder type="com.seizia.chromite.ext.postgresql.model.PostgreOperatorClass" label="%tree.opClasses.node.name" icon="#operator" description="%tree.opClasses.node.tip">
                                 <items label="%tree.opClass.node.name" itemLabel="%tree.opClass.node.name" path="operatorClass" property="operatorClasses" icon="#operator"/>
                             </folder>
-                            <folder type="org.jkiss.dbeaver.ext.postgresql.model.PostgreOperatorFamily" label="%tree.opFamilies.node.name" icon="#family" description="%tree.opFamilies.node.tip" visibleIf="connected &amp;&amp; dataSource.serverType.supportsOpFamily()">
+                            <folder type="com.seizia.chromite.ext.postgresql.model.PostgreOperatorFamily" label="%tree.opFamilies.node.name" icon="#family" description="%tree.opFamilies.node.tip" visibleIf="connected &amp;&amp; dataSource.serverType.supportsOpFamily()">
                                 <items label="%tree.opFamily.node.name" itemLabel="%tree.opFamily.node.name" path="operatorFamily" property="operatorFamilies" icon="#family"/>
                             </folder>
                         </items>
                     </folder>
-                    <folder type="org.jkiss.dbeaver.ext.postgresql.model.PostgreCharset" label="%tree.encodings.node.name" icon="#encodings" description="Encodings" visibleIf="connected &amp;&amp; dataSource.serverType.supportsEncodings()">
+                    <folder type="com.seizia.chromite.ext.postgresql.model.PostgreCharset" label="%tree.encodings.node.name" icon="#encodings" description="Encodings" visibleIf="connected &amp;&amp; dataSource.serverType.supportsEncodings()">
                         <items label="%tree.encoding.node.name" path="encoding" property="defaultInstance.encodings" icon="#encoding"/>
                     </folder>
-                    <folder type="org.jkiss.dbeaver.ext.postgresql.model.PostgreCollation" label="%tree.collations.node.name" icon="#collations" description="Collations" visibleIf="connected &amp;&amp; dataSource.serverType.supportsCollations()">
+                    <folder type="com.seizia.chromite.ext.postgresql.model.PostgreCollation" label="%tree.collations.node.name" icon="#collations" description="Collations" visibleIf="connected &amp;&amp; dataSource.serverType.supportsCollations()">
                         <items label="%tree.collation.node.name" path="collation" property="defaultInstance.collations" icon="#collation"/>
                     </folder>
-                    <folder type="org.jkiss.dbeaver.ext.postgresql.model.PostgreLanguage" label="%tree.languages.node.name" icon="#languages" description="Languages" visibleIf="connected &amp;&amp; dataSource.serverType.supportsLanguages()">
+                    <folder type="com.seizia.chromite.ext.postgresql.model.PostgreLanguage" label="%tree.languages.node.name" icon="#languages" description="Languages" visibleIf="connected &amp;&amp; dataSource.serverType.supportsLanguages()">
                         <items label="%tree.language.node.name" path="language" property="defaultInstance.languages" icon="#language"/>
                     </folder>
-                    <folder type="org.jkiss.dbeaver.ext.postgresql.model.PostgreAvailableExtension" label="%tree.avalextensions.node.name" icon="#extensions" description="%tree.extensions.node.tip" visibleIf="connected &amp;&amp; dataSource.serverType.supportsExtensions()">
+                    <folder type="com.seizia.chromite.ext.postgresql.model.PostgreAvailableExtension" label="%tree.avalextensions.node.name" icon="#extensions" description="%tree.extensions.node.tip" visibleIf="connected &amp;&amp; dataSource.serverType.supportsExtensions()">
                         <items label="%tree.avalextension.node.name" path="extension" property="defaultInstance.availableExtensions" icon="#extension"/>
                     </folder>
                 </folder>
@@ -480,7 +480,7 @@
                     <parameter name="serverType" value="yellowbrick"/>
                     <property name="loginTimeout" value="20"/>
                     <property name="connectTimeout" value="20"/>
-                    <property name="@dbeaver-default-resultset.maxrows.sql" value="true"/>
+                    <property name="@chromite-default-resultset.maxrows.sql" value="true"/>
                 </driver>
                 <driver id="postgres-yellowbrick-jdbc" dataSourceType="yellowbrick"/>
 
@@ -585,7 +585,7 @@
                     <parameter name="serverType" value="redshift"/>
                     <property name="loginTimeout" value="20"/>
                     <property name="connectTimeout" value="20"/>
-                    <property name="@dbeaver-default-resultset.maxrows.sql" value="true"/>
+                    <property name="@chromite-default-resultset.maxrows.sql" value="true"/>
                 </driver>
 
                 <driver
@@ -688,13 +688,13 @@
 
                 <provider-properties drivers="*">
                     <propertyGroup label="Misc">
-                        <property id="@dbeaver-chosen-role@" label="User role" type="string" description="User role for connection"/>
+                        <property id="@chromite-chosen-role@" label="User role" type="string" description="User role for connection"/>
                     </propertyGroup>
                     <propertyGroup label="Database list">
-                        <property id="@dbeaver-show-non-default-db@" label="Show all databases" type="boolean" description="Show all databases on server. Otherwise show current database only."/>
-                        <property id="@dbeaver-show-template-db@" label="Show template databases" type="boolean" description="Show template databases."/>
-                        <property id="@dbeaver-show-unavailable-db@" label="Show unavailable databases" type="boolean" description="Show databases not unavailable for connection."/>
-                        <property id="@dbeaver-read-all-data-types-db@" label="Read all data types" type="boolean" description="Read all database data types. Including array types."/>
+                        <property id="@chromite-show-non-default-db@" label="Show all databases" type="boolean" description="Show all databases on server. Otherwise show current database only."/>
+                        <property id="@chromite-show-template-db@" label="Show template databases" type="boolean" description="Show template databases."/>
+                        <property id="@chromite-show-unavailable-db@" label="Show unavailable databases" type="boolean" description="Show databases not unavailable for connection."/>
+                        <property id="@chromite-read-all-data-types-db@" label="Read all data types" type="boolean" description="Read all database data types. Including array types."/>
                         <property id="read-keys-with-columns" label="Read table keys with columns" type="boolean" description="Read table constraints at the stage of reading columns for proper keys recognition. This setting may reduce metadata loading performance."/>
                         <property id="replace-legacy-timezone" label="Replace legacy timezone" type="boolean" description="Replace legacy timezone. Enable only if you need to connect with legacy timezone like Europe/Kyiv or Asia/Calcutta"/>
                     </propertyGroup>
@@ -729,39 +729,39 @@
     </extension>
 
     <!-- Unsecure (http) repository. We can't use it by default, sorry -->
-    <extension point="org.jkiss.dbeaver.mavenRepository">
+    <extension point="com.seizia.chromite.mavenRepository">
         <repository id="aws-redshift-maven-repo" name="AWS Redshift Repository" url="https://s3.amazonaws.com/redshift-maven-repository/release" order="20">
             <scope group="com.amazon.redshift"/>
         </repository>
     </extension>
-    <extension point="org.jkiss.dbeaver.objectManager">
-        <manager class="org.jkiss.dbeaver.ext.postgresql.edit.PostgreDatabaseManager" objectType="org.jkiss.dbeaver.ext.postgresql.model.PostgreDatabase"/>
-        <manager class="org.jkiss.dbeaver.ext.postgresql.edit.PostgreSchemaManager" objectType="org.jkiss.dbeaver.ext.postgresql.model.PostgreSchema"/>
-        <manager class="org.jkiss.dbeaver.ext.postgresql.edit.PostgrePartitionManager" objectType="org.jkiss.dbeaver.ext.postgresql.model.PostgreTablePartition"/>
-        <manager class="org.jkiss.dbeaver.ext.postgresql.edit.PostgreTableManager" objectType="org.jkiss.dbeaver.ext.postgresql.model.PostgreTable"/>
-        <manager class="org.jkiss.dbeaver.ext.postgresql.edit.PostgreTableColumnManager" objectType="org.jkiss.dbeaver.ext.postgresql.model.PostgreTableColumn"/>
-        <manager class="org.jkiss.dbeaver.ext.postgresql.edit.PostgreTablePolicyManager" objectType="org.jkiss.dbeaver.ext.postgresql.model.PostgreTablePolicy"/>
-        <manager class="org.jkiss.dbeaver.ext.postgresql.edit.PostgreSequenceManager" objectType="org.jkiss.dbeaver.ext.postgresql.model.PostgreSequence"/>
-        <manager class="org.jkiss.dbeaver.ext.postgresql.edit.PostgreConstraintManager" objectType="org.jkiss.dbeaver.ext.postgresql.model.PostgreTableConstraint"/>
-        <manager class="org.jkiss.dbeaver.ext.postgresql.edit.PostgreForeignKeyManager" objectType="org.jkiss.dbeaver.ext.postgresql.model.PostgreTableForeignKey"/>
-        <manager class="org.jkiss.dbeaver.ext.postgresql.edit.PostgreIndexManager" objectType="org.jkiss.dbeaver.ext.postgresql.model.PostgreIndex"/>
-        <manager class="org.jkiss.dbeaver.ext.postgresql.edit.PostgreViewManager" objectType="org.jkiss.dbeaver.ext.postgresql.model.PostgreView"/>
-        <manager class="org.jkiss.dbeaver.ext.postgresql.edit.PostgreMViewManager" objectType="org.jkiss.dbeaver.ext.postgresql.model.PostgreMaterializedView"/>
-        <manager class="org.jkiss.dbeaver.ext.postgresql.edit.PostgreTriggerManager" objectType="org.jkiss.dbeaver.ext.postgresql.model.PostgreTrigger"/>
-        <manager class="org.jkiss.dbeaver.ext.postgresql.edit.PostgreEventTriggerManager" objectType="org.jkiss.dbeaver.ext.postgresql.model.PostgreEventTrigger"/>
-        <manager class="org.jkiss.dbeaver.ext.postgresql.edit.PostgreProcedureManager" objectType="org.jkiss.dbeaver.ext.postgresql.model.PostgreProcedure"/>
-        <manager class="org.jkiss.dbeaver.ext.postgresql.edit.PostgreRoleManager" objectType="org.jkiss.dbeaver.ext.postgresql.model.PostgreRole"/>
-        <manager class="org.jkiss.dbeaver.ext.postgresql.edit.PostgreExtensionManager" objectType="org.jkiss.dbeaver.ext.postgresql.model.PostgreExtension"/>
-        <manager class="org.jkiss.dbeaver.ext.postgresql.edit.PostgreTablespaceManager" objectType="org.jkiss.dbeaver.ext.postgresql.model.PostgreTablespace"/>
-        <manager class="org.jkiss.dbeaver.ext.postgresql.edit.PostgreDataTypeManager" objectType="org.jkiss.dbeaver.ext.postgresql.model.PostgreDataType"/>
-        <manager class="org.jkiss.dbeaver.ext.postgresql.edit.PostgreJobManager" objectType="org.jkiss.dbeaver.ext.postgresql.model.PostgreJob"/>
-        <manager class="org.jkiss.dbeaver.ext.postgresql.edit.PostgreJobScheduleManager" objectType="org.jkiss.dbeaver.ext.postgresql.model.PostgreJobSchedule"/>
-        <manager class="org.jkiss.dbeaver.ext.postgresql.edit.PostgreJobStepManager" objectType="org.jkiss.dbeaver.ext.postgresql.model.PostgreJobStep"/>
+    <extension point="com.seizia.chromite.objectManager">
+        <manager class="com.seizia.chromite.ext.postgresql.edit.PostgreDatabaseManager" objectType="com.seizia.chromite.ext.postgresql.model.PostgreDatabase"/>
+        <manager class="com.seizia.chromite.ext.postgresql.edit.PostgreSchemaManager" objectType="com.seizia.chromite.ext.postgresql.model.PostgreSchema"/>
+        <manager class="com.seizia.chromite.ext.postgresql.edit.PostgrePartitionManager" objectType="com.seizia.chromite.ext.postgresql.model.PostgreTablePartition"/>
+        <manager class="com.seizia.chromite.ext.postgresql.edit.PostgreTableManager" objectType="com.seizia.chromite.ext.postgresql.model.PostgreTable"/>
+        <manager class="com.seizia.chromite.ext.postgresql.edit.PostgreTableColumnManager" objectType="com.seizia.chromite.ext.postgresql.model.PostgreTableColumn"/>
+        <manager class="com.seizia.chromite.ext.postgresql.edit.PostgreTablePolicyManager" objectType="com.seizia.chromite.ext.postgresql.model.PostgreTablePolicy"/>
+        <manager class="com.seizia.chromite.ext.postgresql.edit.PostgreSequenceManager" objectType="com.seizia.chromite.ext.postgresql.model.PostgreSequence"/>
+        <manager class="com.seizia.chromite.ext.postgresql.edit.PostgreConstraintManager" objectType="com.seizia.chromite.ext.postgresql.model.PostgreTableConstraint"/>
+        <manager class="com.seizia.chromite.ext.postgresql.edit.PostgreForeignKeyManager" objectType="com.seizia.chromite.ext.postgresql.model.PostgreTableForeignKey"/>
+        <manager class="com.seizia.chromite.ext.postgresql.edit.PostgreIndexManager" objectType="com.seizia.chromite.ext.postgresql.model.PostgreIndex"/>
+        <manager class="com.seizia.chromite.ext.postgresql.edit.PostgreViewManager" objectType="com.seizia.chromite.ext.postgresql.model.PostgreView"/>
+        <manager class="com.seizia.chromite.ext.postgresql.edit.PostgreMViewManager" objectType="com.seizia.chromite.ext.postgresql.model.PostgreMaterializedView"/>
+        <manager class="com.seizia.chromite.ext.postgresql.edit.PostgreTriggerManager" objectType="com.seizia.chromite.ext.postgresql.model.PostgreTrigger"/>
+        <manager class="com.seizia.chromite.ext.postgresql.edit.PostgreEventTriggerManager" objectType="com.seizia.chromite.ext.postgresql.model.PostgreEventTrigger"/>
+        <manager class="com.seizia.chromite.ext.postgresql.edit.PostgreProcedureManager" objectType="com.seizia.chromite.ext.postgresql.model.PostgreProcedure"/>
+        <manager class="com.seizia.chromite.ext.postgresql.edit.PostgreRoleManager" objectType="com.seizia.chromite.ext.postgresql.model.PostgreRole"/>
+        <manager class="com.seizia.chromite.ext.postgresql.edit.PostgreExtensionManager" objectType="com.seizia.chromite.ext.postgresql.model.PostgreExtension"/>
+        <manager class="com.seizia.chromite.ext.postgresql.edit.PostgreTablespaceManager" objectType="com.seizia.chromite.ext.postgresql.model.PostgreTablespace"/>
+        <manager class="com.seizia.chromite.ext.postgresql.edit.PostgreDataTypeManager" objectType="com.seizia.chromite.ext.postgresql.model.PostgreDataType"/>
+        <manager class="com.seizia.chromite.ext.postgresql.edit.PostgreJobManager" objectType="com.seizia.chromite.ext.postgresql.model.PostgreJob"/>
+        <manager class="com.seizia.chromite.ext.postgresql.edit.PostgreJobScheduleManager" objectType="com.seizia.chromite.ext.postgresql.model.PostgreJobSchedule"/>
+        <manager class="com.seizia.chromite.ext.postgresql.edit.PostgreJobStepManager" objectType="com.seizia.chromite.ext.postgresql.model.PostgreJobStep"/>
     </extension>
 
-    <extension point="org.jkiss.dbeaver.dataTypeProvider">
+    <extension point="com.seizia.chromite.dataTypeProvider">
         <provider
-                class="org.jkiss.dbeaver.ext.postgresql.model.data.PostgreValueHandlerProvider"
+                class="com.seizia.chromite.ext.postgresql.model.data.PostgreValueHandlerProvider"
                 description="%provider.data.type.postgresql.description"
                 id="PostgreValueHandlerProvider"
                 label="%provider.data.type.postgresql.name">
@@ -773,13 +773,13 @@
         </provider>
     </extension>
 
-    <extension point="org.jkiss.dbeaver.sqlInsertMethod">
-        <method id="pgInsertIgnore" class="org.jkiss.dbeaver.ext.postgresql.model.PostgreInsertReplaceMethodIgnore" label="ON CONFLICT DO NOTHING" description="Insert ignore duplicate key value"/>
-        <method id="pgReplaceIgnore" class="org.jkiss.dbeaver.ext.postgresql.model.PostgreInsertReplaceMethod" label="ON CONFLICT DO UPDATE SET" description="Insert replace duplicate key value"/>
+    <extension point="com.seizia.chromite.sqlInsertMethod">
+        <method id="pgInsertIgnore" class="com.seizia.chromite.ext.postgresql.model.PostgreInsertReplaceMethodIgnore" label="ON CONFLICT DO NOTHING" description="Insert ignore duplicate key value"/>
+        <method id="pgReplaceIgnore" class="com.seizia.chromite.ext.postgresql.model.PostgreInsertReplaceMethod" label="ON CONFLICT DO UPDATE SET" description="Insert replace duplicate key value"/>
     </extension>
 
-    <extension point="org.jkiss.dbeaver.sqlDialect">
-        <dialect id="postgresql" parent="basic" class="org.jkiss.dbeaver.ext.postgresql.model.PostgreDialect" label="PostgreSQL" description="PostgreSQL dialect." icon="icons/postgresql_icon.png">
+    <extension point="com.seizia.chromite.sqlDialect">
+        <dialect id="postgresql" parent="basic" class="com.seizia.chromite.ext.postgresql.model.PostgreDialect" label="PostgreSQL" description="PostgreSQL dialect." icon="icons/postgresql_icon.png">
             <property name="insertMethods" value="pgInsertIgnore,pgReplaceIgnore"/>
             <keywords value=""/>
             <execKeywords value=""/>
@@ -792,7 +792,7 @@
         </dialect>
     </extension>
 
-    <extension point="org.jkiss.dbeaver.networkHandler">
+    <extension point="com.seizia.chromite.networkHandler">
         <handler
                 type="config"
                 id="postgre_ssl"
@@ -803,7 +803,7 @@
                 desktop="false"
                 secured="false"
                 order="2"
-                handlerClass="org.jkiss.dbeaver.ext.postgresql.model.net.PostgreSSLHandlerImpl">
+                handlerClass="com.seizia.chromite.ext.postgresql.model.net.PostgreSSLHandlerImpl">
             <propertyGroup label="Method">
                 <property id="ssl.method" label="Method" type="string" validValues="CERTIFICATES" defaultValue="CERTIFICATES"
                           desktop="true" hidden="true"/>
@@ -823,88 +823,88 @@
                 <property id="sslMode" label="SSL Mode" type="string" description="SSL Mode" validValues="disable,allow,prefer,require,verify-ca,verify-full" defaultValue=""/>
                 <property id="sslFactory" label="SSL Factory" type="file" description="SSL Factory"/>
             </propertyGroup>
-            <objectType name="org.jkiss.dbeaver.ext.postgresql.PostgreDataSourceProvider"/>
+            <objectType name="com.seizia.chromite.ext.postgresql.PostgreDataSourceProvider"/>
         </handler>
     </extension>
 
-    <extension point="org.jkiss.dbeaver.dataSourceAuth">
+    <extension point="com.seizia.chromite.dataSourceAuth">
         <authModel
             id="postgres_pgpass"
             label="PostgreSQL PgPass"
             description="PostgreSQL PGPASS password"
-            class="org.jkiss.dbeaver.ext.postgresql.model.AuthModelPgPass"
+            class="com.seizia.chromite.ext.postgresql.model.AuthModelPgPass"
             requiresLocalConfiguration="true">
             <datasource id="postgresql"/>
         </authModel>
     </extension>
 
-    <extension point="org.jkiss.dbeaver.task">
-        <category id="postgresql" name="PostgreSQL" description="%org.jkiss.dbeaver.task.category.postgresql.description" icon="icons/postgresql_icon.png"/>
-        <category id="postgreTool" parent="postgresql" name="%org.jkiss.dbeaver.task.category.postgreTool.name" description="%org.jkiss.dbeaver.task.category.postgreTool.description" icon="icons/postgresql_icon.png"/>
+    <extension point="com.seizia.chromite.task">
+        <category id="postgresql" name="PostgreSQL" description="%com.seizia.chromite.task.category.postgresql.description" icon="icons/postgresql_icon.png"/>
+        <category id="postgreTool" parent="postgresql" name="%com.seizia.chromite.task.category.postgreTool.name" description="%com.seizia.chromite.task.category.postgreTool.description" icon="icons/postgresql_icon.png"/>
 
         <task id="pgDatabaseBackup" name="%task.pgDatabaseBackup.name" description="%task.pgDatabaseBackup.description"
-              icon="platform:/plugin/org.jkiss.dbeaver.ui/icons/file/export.svg" type="postgresql"
-              handler="org.jkiss.dbeaver.ext.postgresql.tasks.PostgreDatabaseBackupHandler" requiresExportPrivileges="true">
+              icon="platform:/plugin/com.seizia.chromite.ui/icons/file/export.svg" type="postgresql"
+              handler="com.seizia.chromite.ext.postgresql.tasks.PostgreDatabaseBackupHandler" requiresExportPrivileges="true">
             <datasource id="postgresql"/>
-            <objectType name="org.jkiss.dbeaver.ext.postgresql.model.PostgreObject" if="object.dataSource.serverType.supportsNativeClient()"/>
-            <objectType name="org.jkiss.dbeaver.ext.postgresql.model.PostgreSchema" if="object.dataSource.serverType.supportsNativeClient()"/>
-            <objectType name="org.jkiss.dbeaver.ext.postgresql.model.PostgreTableBase" if="object.dataSource.serverType.supportsNativeClient()"/>
+            <objectType name="com.seizia.chromite.ext.postgresql.model.PostgreObject" if="object.dataSource.serverType.supportsNativeClient()"/>
+            <objectType name="com.seizia.chromite.ext.postgresql.model.PostgreSchema" if="object.dataSource.serverType.supportsNativeClient()"/>
+            <objectType name="com.seizia.chromite.ext.postgresql.model.PostgreTableBase" if="object.dataSource.serverType.supportsNativeClient()"/>
         </task>
         <task id="pgDatabaseRestore" name="%task.pgDatabaseRestore.name" description="%task.pgDatabaseRestore.description"
-              icon="platform:/plugin/org.jkiss.dbeaver.ui/icons/file/import.svg" type="postgresql"
-              handler="org.jkiss.dbeaver.ext.postgresql.tasks.PostgreDatabaseRestoreHandler" requiresMutability="true"
+              icon="platform:/plugin/com.seizia.chromite.ui/icons/file/import.svg" type="postgresql"
+              handler="com.seizia.chromite.ext.postgresql.tasks.PostgreDatabaseRestoreHandler" requiresMutability="true"
               confirmationMessage="%pgDatabaseRestore.confirmationMessage">
             <datasource id="postgresql"/>
-            <objectType name="org.jkiss.dbeaver.ext.postgresql.model.PostgreDatabase" if="object.dataSource.serverType.supportsNativeClient()"/>
-            <objectType name="org.jkiss.dbeaver.ext.postgresql.model.PostgreSchema" if="object.dataSource.serverType.supportsNativeClient()"/>
+            <objectType name="com.seizia.chromite.ext.postgresql.model.PostgreDatabase" if="object.dataSource.serverType.supportsNativeClient()"/>
+            <objectType name="com.seizia.chromite.ext.postgresql.model.PostgreSchema" if="object.dataSource.serverType.supportsNativeClient()"/>
         </task>
         <task id="pgDatabaseBackupAll" name="%task.pgDatabaseBackupAll.name" description="%task.pgDatabaseBackupAll.description"
-              icon="platform:/plugin/org.jkiss.dbeaver.ui/icons/file/export.svg" type="postgresql"
-              handler="org.jkiss.dbeaver.ext.postgresql.tasks.PostgreDatabaseBackupAllHandler" requiresExportPrivileges="true">
+              icon="platform:/plugin/com.seizia.chromite.ui/icons/file/export.svg" type="postgresql"
+              handler="com.seizia.chromite.ext.postgresql.tasks.PostgreDatabaseBackupAllHandler" requiresExportPrivileges="true">
             <datasource id="postgresql"/>
-            <objectType name="org.jkiss.dbeaver.ext.postgresql.model.PostgreDatabase" if="object.dataSource.serverType.supportsNativeClient()"/>
+            <objectType name="com.seizia.chromite.ext.postgresql.model.PostgreDatabase" if="object.dataSource.serverType.supportsNativeClient()"/>
         </task>
-        <task id="pgScriptExecute" name="%task.pgScriptExecute.name" description="%task.pgScriptExecute.description" icon="platform:/plugin/org.jkiss.dbeaver.model/icons/tree/script.svg" type="postgresql" handler="org.jkiss.dbeaver.ext.postgresql.tasks.PostgreScriptExecuteHandler">
+        <task id="pgScriptExecute" name="%task.pgScriptExecute.name" description="%task.pgScriptExecute.description" icon="platform:/plugin/com.seizia.chromite.model/icons/tree/script.svg" type="postgresql" handler="com.seizia.chromite.ext.postgresql.tasks.PostgreScriptExecuteHandler">
             <datasource id="postgresql"/>
-            <objectType name="org.jkiss.dbeaver.ext.postgresql.model.PostgreDatabase" if="object.dataSource.serverType.supportsNativeClient()"/>
+            <objectType name="com.seizia.chromite.ext.postgresql.model.PostgreDatabase" if="object.dataSource.serverType.supportsNativeClient()"/>
         </task>
 
         <!-- SQL tools -->
-        <task id="pgToolRefreshMView" name="%tasks.mview.refresh.node.name" description="%tasks.mview.refresh.node.description" icon="platform:/plugin/org.jkiss.dbeaver.model/icons/tree/admin.svg" type="postgreTool" handler="org.jkiss.dbeaver.ext.postgresql.tasks.PostgreToolMViewRefresh">
+        <task id="pgToolRefreshMView" name="%tasks.mview.refresh.node.name" description="%tasks.mview.refresh.node.description" icon="platform:/plugin/com.seizia.chromite.model/icons/tree/admin.svg" type="postgreTool" handler="com.seizia.chromite.ext.postgresql.tasks.PostgreToolMViewRefresh">
             <datasource id="postgresql"/>
-            <objectType name="org.jkiss.dbeaver.ext.postgresql.model.PostgreMaterializedView"/>
+            <objectType name="com.seizia.chromite.ext.postgresql.model.PostgreMaterializedView"/>
         </task>
-        <task id="pgToolTableAnalyze" name="%tasks.analyze.table.node.name" description="%tasks.analyze.table.node.description" icon="platform:/plugin/org.jkiss.dbeaver.model/icons/tree/admin.svg" type="postgreTool" handler="org.jkiss.dbeaver.ext.postgresql.tasks.PostgreToolBaseAnalyze">
+        <task id="pgToolTableAnalyze" name="%tasks.analyze.table.node.name" description="%tasks.analyze.table.node.description" icon="platform:/plugin/com.seizia.chromite.model/icons/tree/admin.svg" type="postgreTool" handler="com.seizia.chromite.ext.postgresql.tasks.PostgreToolBaseAnalyze">
             <datasource id="postgresql"/>
-            <objectType name="org.jkiss.dbeaver.ext.postgresql.model.PostgreTableBase"/>
+            <objectType name="com.seizia.chromite.ext.postgresql.model.PostgreTableBase"/>
         </task>
-        <task id="pgToolDatabaseAnalyze" name="%tasks.analyze.database.node.name" description="%tasks.analyze.database.node.name" icon="platform:/plugin/org.jkiss.dbeaver.model/icons/tree/admin.svg" type="postgreTool" handler="org.jkiss.dbeaver.ext.postgresql.tasks.PostgreToolBaseAnalyze">
+        <task id="pgToolDatabaseAnalyze" name="%tasks.analyze.database.node.name" description="%tasks.analyze.database.node.name" icon="platform:/plugin/com.seizia.chromite.model/icons/tree/admin.svg" type="postgreTool" handler="com.seizia.chromite.ext.postgresql.tasks.PostgreToolBaseAnalyze">
             <datasource id="postgresql"/>
-            <objectType name="org.jkiss.dbeaver.ext.postgresql.model.PostgreDatabase"/>
+            <objectType name="com.seizia.chromite.ext.postgresql.model.PostgreDatabase"/>
         </task>
-        <task id="pgToolTableTruncate" name="%tasks.truncate.node.name" description="%tasks.truncate.node.description" icon="platform:/plugin/org.jkiss.dbeaver.model/icons/tree/admin.svg" type="postgreTool" handler="org.jkiss.dbeaver.ext.postgresql.tasks.PostgreToolTableTruncate">
+        <task id="pgToolTableTruncate" name="%tasks.truncate.node.name" description="%tasks.truncate.node.description" icon="platform:/plugin/com.seizia.chromite.model/icons/tree/admin.svg" type="postgreTool" handler="com.seizia.chromite.ext.postgresql.tasks.PostgreToolTableTruncate">
             <datasource id="postgresql"/>
-            <objectType name="org.jkiss.dbeaver.ext.postgresql.model.PostgreTableBase"/>
+            <objectType name="com.seizia.chromite.ext.postgresql.model.PostgreTableBase"/>
         </task>
-        <task id="pgToolTableVacuum" name="%tasks.vacuum.table.node.name" description="%tasks.vacuum.table.node.description" icon="platform:/plugin/org.jkiss.dbeaver.model/icons/tree/admin.svg" type="postgreTool" handler="org.jkiss.dbeaver.ext.postgresql.tasks.PostgreToolBaseVacuum">
+        <task id="pgToolTableVacuum" name="%tasks.vacuum.table.node.name" description="%tasks.vacuum.table.node.description" icon="platform:/plugin/com.seizia.chromite.model/icons/tree/admin.svg" type="postgreTool" handler="com.seizia.chromite.ext.postgresql.tasks.PostgreToolBaseVacuum">
             <datasource id="postgresql"/>
-            <objectType name="org.jkiss.dbeaver.ext.postgresql.model.PostgreTableBase"/>
+            <objectType name="com.seizia.chromite.ext.postgresql.model.PostgreTableBase"/>
         </task>
-        <task id="pgToolDatabaseVacuum" name="%tasks.vacuum.database.node.name" description="%tasks.vacuum.database.node.name" icon="platform:/plugin/org.jkiss.dbeaver.model/icons/tree/admin.svg" type="postgreTool" handler="org.jkiss.dbeaver.ext.postgresql.tasks.PostgreToolBaseVacuum">
+        <task id="pgToolDatabaseVacuum" name="%tasks.vacuum.database.node.name" description="%tasks.vacuum.database.node.name" icon="platform:/plugin/com.seizia.chromite.model/icons/tree/admin.svg" type="postgreTool" handler="com.seizia.chromite.ext.postgresql.tasks.PostgreToolBaseVacuum">
             <datasource id="postgresql"/>
-            <objectType name="org.jkiss.dbeaver.ext.postgresql.model.PostgreDatabase"/>
+            <objectType name="com.seizia.chromite.ext.postgresql.model.PostgreDatabase"/>
         </task>
-        <task id="pgToolTriggerEnable" name="%task.pgToolTriggerEnable.name" description="%task.pgToolTriggerEnable.name" icon="platform:/plugin/org.jkiss.dbeaver.model/icons/tree/admin.svg" type="postgreTool" handler="org.jkiss.dbeaver.ext.postgresql.tasks.PostgreToolTableTriggerEnable">
+        <task id="pgToolTriggerEnable" name="%task.pgToolTriggerEnable.name" description="%task.pgToolTriggerEnable.name" icon="platform:/plugin/com.seizia.chromite.model/icons/tree/admin.svg" type="postgreTool" handler="com.seizia.chromite.ext.postgresql.tasks.PostgreToolTableTriggerEnable">
             <datasource id="postgresql"/>
-            <objectType name="org.jkiss.dbeaver.ext.postgresql.model.PostgreTriggerBase" if="object.enabledState == 'D'"/>
+            <objectType name="com.seizia.chromite.ext.postgresql.model.PostgreTriggerBase" if="object.enabledState == 'D'"/>
         </task>
-        <task id="pgToolTriggerDisable" name="%task.pgToolTriggerDisable.name" description="%task.pgToolTriggerDisable.name" icon="platform:/plugin/org.jkiss.dbeaver.model/icons/tree/admin.svg" type="postgreTool" handler="org.jkiss.dbeaver.ext.postgresql.tasks.PostgreToolTableTriggerDisable">
+        <task id="pgToolTriggerDisable" name="%task.pgToolTriggerDisable.name" description="%task.pgToolTriggerDisable.name" icon="platform:/plugin/com.seizia.chromite.model/icons/tree/admin.svg" type="postgreTool" handler="com.seizia.chromite.ext.postgresql.tasks.PostgreToolTableTriggerDisable">
             <datasource id="postgresql"/>
-            <objectType name="org.jkiss.dbeaver.ext.postgresql.model.PostgreTriggerBase" if="object.enabledState != 'D'"/>
+            <objectType name="com.seizia.chromite.ext.postgresql.model.PostgreTriggerBase" if="object.enabledState != 'D'"/>
         </task>
     </extension>
 
-    <extension point="org.jkiss.dbeaver.dashboard">
+    <extension point="com.seizia.chromite.dashboard">
 
         <dashboard id="postgresql.sessionCount" label="Server sessions" defaultView="timeseries" group="Standard" updatePeriod="2000"
             calc="value" value="integer" fetch="columns" showByDefault="true" description="Shows active/idle server sessions">
@@ -939,23 +939,23 @@ SELECT
     </extension>
     
     <!-- SQL Generators -->
-    <extension point="org.jkiss.dbeaver.sqlGenerator">
-        <generator id="tableInsertOnConflict" class="org.jkiss.dbeaver.ext.postgresql.model.sql.generator.SQLGeneratorInsertOnConflict" label="INSERT ON CONFLICT" description="INSERT into table ON CONFLICT" order="7">
-            <objectType name="org.jkiss.dbeaver.ext.postgresql.model.PostgreTableBase"/>
+    <extension point="com.seizia.chromite.sqlGenerator">
+        <generator id="tableInsertOnConflict" class="com.seizia.chromite.ext.postgresql.model.sql.generator.SQLGeneratorInsertOnConflict" label="INSERT ON CONFLICT" description="INSERT into table ON CONFLICT" order="7">
+            <objectType name="com.seizia.chromite.ext.postgresql.model.PostgreTableBase"/>
         </generator>
-        <generator id="tableUpdateFrom" class="org.jkiss.dbeaver.ext.postgresql.model.sql.generator.SQLGeneratorUpdateFrom" label="UPDATE FROM" description="UPDATE FROM (UPDATE with JOIN)" order="8">
-            <objectType name="org.jkiss.dbeaver.ext.postgresql.model.PostgreTableBase"/>
+        <generator id="tableUpdateFrom" class="com.seizia.chromite.ext.postgresql.model.sql.generator.SQLGeneratorUpdateFrom" label="UPDATE FROM" description="UPDATE FROM (UPDATE with JOIN)" order="8">
+            <objectType name="com.seizia.chromite.ext.postgresql.model.PostgreTableBase"/>
         </generator>
-        <generator id="tableDeleteUsing" class="org.jkiss.dbeaver.ext.postgresql.model.sql.generator.SQLGeneratorDeleteUsing" label="DELETE USING" description="DELETE USING (DELETE with JOIN)" order="9">
-            <objectType name="org.jkiss.dbeaver.ext.postgresql.model.PostgreTableBase"/>
+        <generator id="tableDeleteUsing" class="com.seizia.chromite.ext.postgresql.model.sql.generator.SQLGeneratorDeleteUsing" label="DELETE USING" description="DELETE USING (DELETE with JOIN)" order="9">
+            <objectType name="com.seizia.chromite.ext.postgresql.model.PostgreTableBase"/>
         </generator>
-        <generator id="alterTypeAddValue" class="org.jkiss.dbeaver.ext.postgresql.model.sql.generator.SQLGeneratorTypeAddValue" label="ADD VALUE" description="ALTER TYPE ADD VALUE" order="1002">
-            <objectType name="org.jkiss.dbeaver.ext.postgresql.model.PostgreDataType"/>
+        <generator id="alterTypeAddValue" class="com.seizia.chromite.ext.postgresql.model.sql.generator.SQLGeneratorTypeAddValue" label="ADD VALUE" description="ALTER TYPE ADD VALUE" order="1002">
+            <objectType name="com.seizia.chromite.ext.postgresql.model.PostgreDataType"/>
         </generator>
     </extension>
 
-    <extension point="org.jkiss.dbeaver.sqlBackup">
-        <backup id="backupPostgre" class="org.jkiss.dbeaver.ext.postgresql.backup.JDBCDatabasePostgresBackupHandler" dialect="postgresql"
+    <extension point="com.seizia.chromite.sqlBackup">
+        <backup id="backupPostgre" class="com.seizia.chromite.ext.postgresql.backup.JDBCDatabasePostgresBackupHandler" dialect="postgresql"
                 label="backup" description="Backup database">
         </backup>
     </extension>

@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.editors.sql;
+package com.seizia.chromite.ui.editors.sql;
 
 import org.eclipse.jface.action.Action;
 import org.eclipse.jface.action.MenuManager;
@@ -27,19 +27,19 @@ import org.eclipse.swt.widgets.Text;
 import org.eclipse.ui.IWorkbenchPartSite;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.model.DBPDataSource;
-import org.jkiss.dbeaver.model.DBUtils;
-import org.jkiss.dbeaver.model.exec.DBCExecutionContext;
-import org.jkiss.dbeaver.model.exec.output.DBCOutputSeverity;
-import org.jkiss.dbeaver.model.exec.output.DBCOutputWriter;
-import org.jkiss.dbeaver.model.exec.output.DBCServerOutputReader;
-import org.jkiss.dbeaver.model.exec.output.DBCServerOutputReaderExt;
-import org.jkiss.dbeaver.ui.DBeaverIcons;
-import org.jkiss.dbeaver.ui.MenuCreator;
-import org.jkiss.dbeaver.ui.UIIcon;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.editors.TextEditorUtils;
-import org.jkiss.dbeaver.ui.editors.sql.internal.SQLEditorMessages;
+import com.seizia.chromite.model.DBPDataSource;
+import com.seizia.chromite.model.DBUtils;
+import com.seizia.chromite.model.exec.DBCExecutionContext;
+import com.seizia.chromite.model.exec.output.DBCOutputSeverity;
+import com.seizia.chromite.model.exec.output.DBCOutputWriter;
+import com.seizia.chromite.model.exec.output.DBCServerOutputReader;
+import com.seizia.chromite.model.exec.output.DBCServerOutputReaderExt;
+import com.seizia.chromite.ui.SwtIcons;
+import com.seizia.chromite.ui.MenuCreator;
+import com.seizia.chromite.ui.UIIcon;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.editors.TextEditorUtils;
+import com.seizia.chromite.ui.editors.sql.internal.SQLEditorMessages;
 
 import java.io.PrintWriter;
 import java.util.*;
@@ -194,7 +194,7 @@ public class SQLEditorOutputViewer extends Composite implements DBCOutputWriter 
                 }
             });
 
-            setImageDescriptor(DBeaverIcons.getImageDescriptor(UIIcon.FILTER));
+            setImageDescriptor(SwtIcons.getImageDescriptor(UIIcon.FILTER));
             setToolTipText(SQLEditorMessages.sql_editor_panel_output_filter_hint);
             setMenuCreator(new MenuCreator(control -> filterMenu));
         }

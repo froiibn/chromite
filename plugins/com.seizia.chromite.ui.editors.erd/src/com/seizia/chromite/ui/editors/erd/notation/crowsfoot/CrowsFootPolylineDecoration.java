@@ -14,13 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.editors.erd.notation.crowsfoot;
+package com.seizia.chromite.ui.editors.erd.notation.crowsfoot;
 
 import org.eclipse.draw2d.Graphics;
 import org.eclipse.draw2d.PolylineDecoration;
 import org.eclipse.draw2d.geometry.Point;
 import org.eclipse.draw2d.geometry.PointList;
-import org.jkiss.dbeaver.ui.editors.erd.notations.ERDAssociationType;
+import com.seizia.chromite.ui.editors.erd.notations.ERDAssociationType;
 
 public class CrowsFootPolylineDecoration extends PolylineDecoration {
     private static PointList geometryList = new PointList();

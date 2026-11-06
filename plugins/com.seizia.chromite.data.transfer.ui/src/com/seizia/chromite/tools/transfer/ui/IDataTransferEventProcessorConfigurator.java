@@ -14,11 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.tools.transfer.ui;
+package com.seizia.chromite.tools.transfer.ui;
 
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.tools.transfer.IDataTransferConsumerSettings;
-import org.jkiss.dbeaver.ui.IObjectPropertyConfigurator;
+import com.seizia.chromite.tools.transfer.IDataTransferConsumerSettings;
+import com.seizia.chromite.ui.IObjectPropertyConfigurator;
 
 import java.util.Map;
 

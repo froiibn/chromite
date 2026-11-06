@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.runtime.encode;
+package com.seizia.chromite.runtime.encode;
 
 /**
  * EncryptionException

@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.editors.sql;
+package com.seizia.chromite.ui.editors.sql;
 
 import org.eclipse.jface.action.Action;
 import org.eclipse.jface.action.MenuManager;
@@ -26,11 +26,11 @@ import org.eclipse.ui.IWorkbenchPartSite;
 import org.eclipse.ui.console.MessageConsole;
 import org.eclipse.ui.console.TextConsoleViewer;
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.ui.BaseThemeSettings;
-import org.jkiss.dbeaver.ui.UIStyles;
-import org.jkiss.dbeaver.ui.controls.StyledTextUtils;
-import org.jkiss.dbeaver.ui.editors.TextEditorUtils;
-import org.jkiss.dbeaver.ui.editors.sql.internal.SQLEditorMessages;
+import com.seizia.chromite.ui.BaseThemeSettings;
+import com.seizia.chromite.ui.UIStyles;
+import com.seizia.chromite.ui.controls.StyledTextUtils;
+import com.seizia.chromite.ui.editors.TextEditorUtils;
+import com.seizia.chromite.ui.editors.sql.internal.SQLEditorMessages;
 
 import java.io.IOException;
 import java.io.OutputStream;

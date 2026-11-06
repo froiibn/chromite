@@ -14,18 +14,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.impl.app;
+package com.seizia.chromite.model.impl.app;
 
 import com.sun.security.auth.module.NTSystem;
 import com.sun.security.auth.module.UnixSystem;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.model.DBConstants;
-import org.jkiss.dbeaver.model.app.DBPWorkspace;
-import org.jkiss.dbeaver.model.auth.*;
-import org.jkiss.dbeaver.model.auth.impl.AbstractSessionPersistent;
-import org.jkiss.dbeaver.model.secret.DBSSecretController;
-import org.jkiss.dbeaver.utils.RuntimeUtils;
+import com.seizia.chromite.model.DBConstants;
+import com.seizia.chromite.model.app.DBPWorkspace;
+import com.seizia.chromite.model.auth.*;
+import com.seizia.chromite.model.auth.impl.AbstractSessionPersistent;
+import com.seizia.chromite.model.secret.DBSSecretController;
+import com.seizia.chromite.utils.RuntimeUtils;
 import org.jkiss.utils.CommonUtils;
 import org.jkiss.utils.StandardConstants;
 

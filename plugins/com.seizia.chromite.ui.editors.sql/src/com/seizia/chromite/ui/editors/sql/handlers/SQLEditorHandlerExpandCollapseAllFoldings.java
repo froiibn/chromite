@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.editors.sql.handlers;
+package com.seizia.chromite.ui.editors.sql.handlers;
 
 import org.eclipse.core.commands.AbstractHandler;
 import org.eclipse.core.commands.ExecutionEvent;
@@ -22,10 +22,10 @@ import org.eclipse.jface.text.IDocument;
 import org.eclipse.jface.text.source.projection.ProjectionAnnotationModel;
 import org.eclipse.ui.IEditorPart;
 import org.eclipse.ui.handlers.HandlerUtil;
-import org.jkiss.dbeaver.ui.editors.sql.SQLEditorBase;
+import com.seizia.chromite.ui.editors.sql.SQLEditorBase;
 
 public class SQLEditorHandlerExpandCollapseAllFoldings extends AbstractHandler {
-    private static final String PREFIX = "org.jkiss.dbeaver.ui.editors.sql.";
+    private static final String PREFIX = "com.seizia.chromite.ui.editors.sql.";
     private static final String SUFFIX = "AllFoldings";
     private static final String EXPAND_COMMAND_ID = PREFIX + "Expand" + SUFFIX;
     private static final String COLLAPSE_COMMAND_ID = PREFIX + "Collapse" + SUFFIX;

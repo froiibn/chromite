@@ -14,15 +14,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.phoenix.model.data;
+package com.seizia.chromite.ext.phoenix.model.data;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.model.DBPDataSource;
-import org.jkiss.dbeaver.model.data.DBDFormatSettings;
-import org.jkiss.dbeaver.model.data.DBDValueHandler;
-import org.jkiss.dbeaver.model.data.DBDValueHandlerProvider;
-import org.jkiss.dbeaver.model.struct.DBSTypedObject;
+import com.seizia.chromite.model.DBPDataSource;
+import com.seizia.chromite.model.data.DBDFormatSettings;
+import com.seizia.chromite.model.data.DBDValueHandler;
+import com.seizia.chromite.model.data.DBDValueHandlerProvider;
+import com.seizia.chromite.model.struct.DBSTypedObject;
 
 import java.sql.Types;
 

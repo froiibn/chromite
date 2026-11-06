@@ -14,11 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.tasks.ui;
+package com.seizia.chromite.tasks.ui;
 
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.model.task.DBTTask;
-import org.jkiss.dbeaver.tasks.ui.wizard.TaskConfigurationWizard;
+import com.seizia.chromite.model.task.DBTTask;
+import com.seizia.chromite.tasks.ui.wizard.TaskConfigurationWizard;
 
 /**
  * Task configurator.

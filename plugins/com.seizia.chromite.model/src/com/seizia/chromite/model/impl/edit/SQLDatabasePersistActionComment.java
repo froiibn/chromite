@@ -14,10 +14,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.impl.edit;
+package com.seizia.chromite.model.impl.edit;
 
-import org.jkiss.dbeaver.model.DBPDataSource;
-import org.jkiss.dbeaver.model.sql.SQLUtils;
+import com.seizia.chromite.model.DBPDataSource;
+import com.seizia.chromite.model.sql.SQLUtils;
 
 /**
  * Comment action

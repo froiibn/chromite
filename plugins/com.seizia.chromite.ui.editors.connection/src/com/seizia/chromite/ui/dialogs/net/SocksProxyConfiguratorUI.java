@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.dialogs.net;
+package com.seizia.chromite.ui.dialogs.net;
 
 import org.eclipse.jface.preference.PreferenceDialog;
 import org.eclipse.swt.SWT;
@@ -24,13 +24,13 @@ import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.*;
 import org.eclipse.ui.dialogs.PreferencesUtil;
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.model.impl.net.SocksConstants;
-import org.jkiss.dbeaver.model.net.DBWHandlerConfiguration;
-import org.jkiss.dbeaver.registry.ApplicationPolicyProvider;
-import org.jkiss.dbeaver.registry.configurator.DBPConnectionEditIntention;
-import org.jkiss.dbeaver.ui.AbstractObjectPropertyConfigurator;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.internal.UIConnectionMessages;
+import com.seizia.chromite.model.impl.net.SocksConstants;
+import com.seizia.chromite.model.net.DBWHandlerConfiguration;
+import com.seizia.chromite.registry.ApplicationPolicyProvider;
+import com.seizia.chromite.registry.configurator.DBPConnectionEditIntention;
+import com.seizia.chromite.ui.AbstractObjectPropertyConfigurator;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.internal.UIConnectionMessages;
 import org.jkiss.utils.CommonUtils;
 
 /**

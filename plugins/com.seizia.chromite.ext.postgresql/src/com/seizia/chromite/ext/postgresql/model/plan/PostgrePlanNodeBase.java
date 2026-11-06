@@ -14,20 +14,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.postgresql.model.plan;
+package com.seizia.chromite.ext.postgresql.model.plan;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.model.DBPDataSource;
-import org.jkiss.dbeaver.model.exec.plan.DBCPlanCostNode;
-import org.jkiss.dbeaver.model.exec.plan.DBCPlanNodeKind;
-import org.jkiss.dbeaver.model.impl.PropertyDescriptor;
-import org.jkiss.dbeaver.model.impl.plan.AbstractExecutionPlanNode;
-import org.jkiss.dbeaver.model.meta.Property;
-import org.jkiss.dbeaver.model.preferences.DBPPropertyDescriptor;
-import org.jkiss.dbeaver.model.preferences.DBPPropertySource;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.model.sql.format.SQLFormatUtils;
+import com.seizia.chromite.model.DBPDataSource;
+import com.seizia.chromite.model.exec.plan.DBCPlanCostNode;
+import com.seizia.chromite.model.exec.plan.DBCPlanNodeKind;
+import com.seizia.chromite.model.impl.PropertyDescriptor;
+import com.seizia.chromite.model.impl.plan.AbstractExecutionPlanNode;
+import com.seizia.chromite.model.meta.Property;
+import com.seizia.chromite.model.preferences.DBPPropertyDescriptor;
+import com.seizia.chromite.model.preferences.DBPPropertySource;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.model.sql.format.SQLFormatUtils;
 import org.jkiss.utils.CommonUtils;
 
 import java.util.*;

@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.editors.erd.policy;
+package com.seizia.chromite.ui.editors.erd.policy;
 
 import org.eclipse.draw2d.Figure;
 import org.eclipse.draw2d.IFigure;
@@ -25,9 +25,9 @@ import org.eclipse.gef.Request;
 import org.eclipse.gef.commands.Command;
 import org.eclipse.gef.editpolicies.XYLayoutEditPolicy;
 import org.eclipse.gef.requests.CreateRequest;
-import org.jkiss.dbeaver.ui.editors.erd.command.NodeMoveCommand;
-import org.jkiss.dbeaver.ui.editors.erd.part.EntityPart;
-import org.jkiss.dbeaver.ui.editors.erd.part.NodePart;
+import com.seizia.chromite.ui.editors.erd.command.NodeMoveCommand;
+import com.seizia.chromite.ui.editors.erd.part.EntityPart;
+import com.seizia.chromite.ui.editors.erd.part.NodePart;
 
 /**
  * Handles manual layout editing for schema diagram. Only available for

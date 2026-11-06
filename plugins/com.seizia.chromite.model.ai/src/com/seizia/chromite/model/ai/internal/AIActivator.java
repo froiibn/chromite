@@ -14,11 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.ai.internal;
+package com.seizia.chromite.model.ai.internal;
 
 import org.eclipse.core.runtime.Plugin;
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.model.impl.preferences.BundlePreferenceStore;
+import com.seizia.chromite.model.impl.preferences.BundlePreferenceStore;
 import org.osgi.framework.BundleContext;
 
 public class AIActivator extends Plugin {

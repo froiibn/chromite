@@ -14,19 +14,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.dashboard.navigator;
+package com.seizia.chromite.ui.dashboard.navigator;
 
 import org.eclipse.core.commands.ExecutionEvent;
 import org.eclipse.core.commands.ExecutionException;
-import org.jkiss.dbeaver.ui.dashboard.control.DashboardViewItem;
-import org.jkiss.dbeaver.ui.dashboard.model.DashboardItemContainer;
-import org.jkiss.dbeaver.ui.dashboard.model.DashboardViewer;
-import org.jkiss.dbeaver.ui.dashboard.view.DashboardItemViewDialog;
-import org.jkiss.dbeaver.ui.dashboard.view.DataSourceDashboardView;
+import com.seizia.chromite.ui.dashboard.control.DashboardViewItem;
+import com.seizia.chromite.ui.dashboard.model.DashboardItemContainer;
+import com.seizia.chromite.ui.dashboard.model.DashboardViewer;
+import com.seizia.chromite.ui.dashboard.view.DashboardItemViewDialog;
+import com.seizia.chromite.ui.dashboard.view.DataSourceDashboardView;
 
 public class HandlerDashboardViewItem extends HandlerDashboardAbstract {
 
-    public static final String CMD_ID = "org.jkiss.dbeaver.ui.dashboard.view";
+    public static final String CMD_ID = "com.seizia.chromite.ui.dashboard.view";
 
     public static void openDashboardViewDialog(DashboardItemContainer itemContainer) {
         DashboardViewItem viewItem = (DashboardViewItem) itemContainer;

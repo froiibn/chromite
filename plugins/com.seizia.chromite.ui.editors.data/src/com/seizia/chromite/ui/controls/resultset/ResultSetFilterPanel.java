@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.ui.controls.resultset;
+package com.seizia.chromite.ui.controls.resultset;
 
 import org.eclipse.jface.action.MenuManager;
 import org.eclipse.jface.action.Separator;
@@ -47,42 +47,42 @@ import org.eclipse.ui.PartInitException;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.*;
-import org.jkiss.dbeaver.model.data.DBDAttributeBinding;
-import org.jkiss.dbeaver.model.data.DBDAttributeConstraint;
-import org.jkiss.dbeaver.model.data.DBDDataFilter;
-import org.jkiss.dbeaver.model.exec.DBCExecutionContext;
-import org.jkiss.dbeaver.model.navigator.DBNDatabaseNode;
-import org.jkiss.dbeaver.model.qm.QMQueryFilter;
-import org.jkiss.dbeaver.model.runtime.DBRRunnableWithProgress;
-import org.jkiss.dbeaver.model.runtime.SystemJob;
-import org.jkiss.dbeaver.model.sql.SQLConstants;
-import org.jkiss.dbeaver.model.sql.SQLSyntaxManager;
-import org.jkiss.dbeaver.model.sql.SQLUtils;
-import org.jkiss.dbeaver.model.sql.parser.SQLWordPartDetector;
-import org.jkiss.dbeaver.model.struct.DBSDataContainer;
-import org.jkiss.dbeaver.model.struct.DBSEntity;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.runtime.ui.UIServiceSQL;
-import org.jkiss.dbeaver.ui.*;
-import org.jkiss.dbeaver.ui.contentassist.ContentAssistUtils;
-import org.jkiss.dbeaver.ui.contentassist.ContentProposalExt;
-import org.jkiss.dbeaver.ui.controls.DoubleClickMouseAdapter;
-import org.jkiss.dbeaver.ui.controls.ListContentProvider;
-import org.jkiss.dbeaver.ui.controls.StyledTextUtils;
-import org.jkiss.dbeaver.ui.controls.findandreplace.FindReplaceOverlay;
-import org.jkiss.dbeaver.ui.controls.resultset.actions.FilterResetAllPinsAction;
-import org.jkiss.dbeaver.ui.controls.resultset.actions.FilterResetAllSettingsAction;
-import org.jkiss.dbeaver.ui.controls.resultset.actions.FilterResetAllTransformersAction;
-import org.jkiss.dbeaver.ui.controls.resultset.colors.ResetAllColorAction;
-import org.jkiss.dbeaver.ui.controls.resultset.internal.ResultSetMessages;
-import org.jkiss.dbeaver.ui.controls.resultset.spreadsheet.SpreadsheetCommandHandler;
-import org.jkiss.dbeaver.ui.controls.resultset.spreadsheet.SpreadsheetPresentation;
-import org.jkiss.dbeaver.ui.css.CSSUtils;
-import org.jkiss.dbeaver.ui.css.ICSSBackgroundMimicControl;
-import org.jkiss.dbeaver.ui.editors.TextEditorUtils;
-import org.jkiss.dbeaver.ui.navigator.database.NavigatorThemeSettings;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.*;
+import com.seizia.chromite.model.data.DBDAttributeBinding;
+import com.seizia.chromite.model.data.DBDAttributeConstraint;
+import com.seizia.chromite.model.data.DBDDataFilter;
+import com.seizia.chromite.model.exec.DBCExecutionContext;
+import com.seizia.chromite.model.navigator.DBNDatabaseNode;
+import com.seizia.chromite.model.qm.QMQueryFilter;
+import com.seizia.chromite.model.runtime.DBRRunnableWithProgress;
+import com.seizia.chromite.model.runtime.SystemJob;
+import com.seizia.chromite.model.sql.SQLConstants;
+import com.seizia.chromite.model.sql.SQLSyntaxManager;
+import com.seizia.chromite.model.sql.SQLUtils;
+import com.seizia.chromite.model.sql.parser.SQLWordPartDetector;
+import com.seizia.chromite.model.struct.DBSDataContainer;
+import com.seizia.chromite.model.struct.DBSEntity;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.runtime.ui.UIServiceSQL;
+import com.seizia.chromite.ui.*;
+import com.seizia.chromite.ui.contentassist.ContentAssistUtils;
+import com.seizia.chromite.ui.contentassist.ContentProposalExt;
+import com.seizia.chromite.ui.controls.DoubleClickMouseAdapter;
+import com.seizia.chromite.ui.controls.ListContentProvider;
+import com.seizia.chromite.ui.controls.StyledTextUtils;
+import com.seizia.chromite.ui.controls.findandreplace.FindReplaceOverlay;
+import com.seizia.chromite.ui.controls.resultset.actions.FilterResetAllPinsAction;
+import com.seizia.chromite.ui.controls.resultset.actions.FilterResetAllSettingsAction;
+import com.seizia.chromite.ui.controls.resultset.actions.FilterResetAllTransformersAction;
+import com.seizia.chromite.ui.controls.resultset.colors.ResetAllColorAction;
+import com.seizia.chromite.ui.controls.resultset.internal.ResultSetMessages;
+import com.seizia.chromite.ui.controls.resultset.spreadsheet.SpreadsheetCommandHandler;
+import com.seizia.chromite.ui.controls.resultset.spreadsheet.SpreadsheetPresentation;
+import com.seizia.chromite.ui.css.CSSUtils;
+import com.seizia.chromite.ui.css.ICSSBackgroundMimicControl;
+import com.seizia.chromite.ui.editors.TextEditorUtils;
+import com.seizia.chromite.ui.navigator.database.NavigatorThemeSettings;
 import org.jkiss.utils.CommonUtils;
 
 import java.time.Instant;
@@ -317,7 +317,7 @@ class ResultSetFilterPanel extends Composite implements IContentProposalProvider
             CSSUtils.markConnectionTypeColor(filterToolbar);
             if (!compactMode) {
                 filtersClearButton = new ToolItem(filterToolbar, SWT.NO_FOCUS | SWT.DROP_DOWN);
-                filtersClearButton.setImage(DBeaverIcons.getImage(UIIcon.ERASE));
+                filtersClearButton.setImage(SwtIcons.getImage(UIIcon.ERASE));
                 filtersClearButton.setToolTipText(ActionUtils.findCommandDescription(
                     IResultSetCommands.CMD_FILTER_CLEAR_SETTING,
                     viewer.getSite(),
@@ -328,7 +328,7 @@ class ResultSetFilterPanel extends Composite implements IContentProposalProvider
             }
 
             ToolItem filtersCustomButton = new ToolItem(filterToolbar, SWT.NO_FOCUS | SWT.DROP_DOWN);
-            filtersCustomButton.setImage(DBeaverIcons.getImage(UIIcon.FILTER));
+            filtersCustomButton.setImage(SwtIcons.getImage(UIIcon.FILTER));
             filtersCustomButton.setToolTipText(ActionUtils.findCommandDescription(
                 IResultSetCommands.CMD_FILTER_EDIT_SETTINGS,
                 viewer.getSite(),
@@ -341,12 +341,12 @@ class ResultSetFilterPanel extends Composite implements IContentProposalProvider
 
             if (!compactMode) {
                 historyBackButton = new ToolItem(filterToolbar, SWT.DROP_DOWN | SWT.NO_FOCUS);
-                historyBackButton.setImage(DBeaverIcons.getImage(UIIcon.RS_BACK));
+                historyBackButton.setImage(SwtIcons.getImage(UIIcon.RS_BACK));
                 historyBackButton.setEnabled(false);
                 historyBackButton.addSelectionListener(new HistoryMenuListener(historyBackButton, true));
 
                 historyForwardButton = new ToolItem(filterToolbar, SWT.DROP_DOWN | SWT.NO_FOCUS);
-                historyForwardButton.setImage(DBeaverIcons.getImage(UIIcon.RS_FORWARD));
+                historyForwardButton.setImage(SwtIcons.getImage(UIIcon.RS_FORWARD));
                 historyForwardButton.setEnabled(false);
                 historyForwardButton.addSelectionListener(new HistoryMenuListener(historyForwardButton, false));
             }
@@ -354,7 +354,7 @@ class ResultSetFilterPanel extends Composite implements IContentProposalProvider
             UIUtils.createToolBarSeparator(filterToolbar, SWT.NONE);
 
             this.openFindReplaceButton = new ToolItem(filterToolbar, SWT.CHECK | SWT.NO_FOCUS);
-            this.openFindReplaceButton.setImage(DBeaverIcons.getImage(UIIcon.FIND_REPLACE));
+            this.openFindReplaceButton.setImage(SwtIcons.getImage(UIIcon.FIND_REPLACE));
             this.openFindReplaceButton.setToolTipText(ActionUtils.findCommandDescription(
                 IWorkbenchCommandConstants.EDIT_FIND_AND_REPLACE, viewer.getSite(), false
             ));
@@ -736,7 +736,7 @@ class ResultSetFilterPanel extends Composite implements IContentProposalProvider
         Label iconLabel = new Label(panel, SWT.NONE);
         DBPImage activeObjectImage = getActiveObjectImage();
         if (activeObjectImage != null) {
-            iconLabel.setImage(DBeaverIcons.getImage(activeObjectImage));
+            iconLabel.setImage(SwtIcons.getImage(activeObjectImage));
         }
         iconLabel.setToolTipText(ResultSetMessages.sql_editor_resultset_filter_panel_label);
         iconLabel.setLayoutData(new GridData(GridData.VERTICAL_ALIGN_BEGINNING));
@@ -999,7 +999,7 @@ class ResultSetFilterPanel extends Composite implements IContentProposalProvider
             sizingGC.dispose();
             DBPImage activeObjectImage = getActiveObjectImage();
             if (activeObjectImage != null) {
-                Image image = DBeaverIcons.getImage(activeObjectImage);
+                Image image = SwtIcons.getImage(activeObjectImage);
                 textSize.x += image.getBounds().width + 4;
             }
             if (textSize.x < maxFilterTextWidth) {
@@ -1040,7 +1040,7 @@ class ResultSetFilterPanel extends Composite implements IContentProposalProvider
             int textOffset = 2;
             DBPImage activeObjectImage = getActiveObjectImage();
             if (activeObjectImage != null) {
-                Image icon = DBeaverIcons.getImage(activeObjectImage);
+                Image icon = SwtIcons.getImage(activeObjectImage);
                 Rectangle iconBounds = icon.getBounds();
                 e.gc.drawImage(icon, 2, (e.height - iconBounds.height) / 2);
                 textOffset += iconBounds.width + 2;
@@ -1060,7 +1060,7 @@ class ResultSetFilterPanel extends Composite implements IContentProposalProvider
         HistoryPanel(Composite addressBar) {
             super(addressBar, SWT.NONE);
             setToolTipText(ResultSetMessages.filter_panel_filters_history_text);
-            dropImageE = DBeaverIcons.getImage(UIIcon.DROP_DOWN);
+            dropImageE = SwtIcons.getImage(UIIcon.DROP_DOWN);
             dropImageD = new Image(dropImageE.getDevice(), dropImageE, SWT.IMAGE_GRAY);
 
             GridData gd = new GridData(GridData.HORIZONTAL_ALIGN_BEGINNING | GridData.FILL_VERTICAL);
@@ -1285,9 +1285,9 @@ class ResultSetFilterPanel extends Composite implements IContentProposalProvider
         FilterExpandPanel(Composite addressBar) {
             super(addressBar, SWT.NO_FOCUS);
             setToolTipText(ResultSetMessages.filter_panel_expand_panel_text);
-            enabledImageExpand = DBeaverIcons.getImage(UIIcon.FIT_WINDOW);
+            enabledImageExpand = SwtIcons.getImage(UIIcon.FIT_WINDOW);
             disabledImageExpand = new Image(enabledImageExpand.getDevice(), enabledImageExpand, SWT.IMAGE_GRAY);
-            enabledImageCollapse = DBeaverIcons.getImage(UIIcon.ORIGINAL_SIZE);
+            enabledImageCollapse = SwtIcons.getImage(UIIcon.ORIGINAL_SIZE);
             disabledImageCollapse = new Image(enabledImageCollapse.getDevice(), enabledImageCollapse, SWT.IMAGE_GRAY);
             addDisposeListener(e -> {
                 UIUtils.dispose(disabledImageExpand);
@@ -1335,7 +1335,7 @@ class ResultSetFilterPanel extends Composite implements IContentProposalProvider
             super(addressBar, SWT.NONE);
             this.style = style;
             setToolTipText(toolTip);
-            enabledImage = DBeaverIcons.getImage(image);
+            enabledImage = SwtIcons.getImage(image);
             disabledImage = new Image(enabledImage.getDevice(), enabledImage, SWT.IMAGE_GRAY);
             addDisposeListener(e -> UIUtils.dispose(disabledImage));
             addMouseListener(new MouseAdapter() {
@@ -1365,7 +1365,7 @@ class ResultSetFilterPanel extends Composite implements IContentProposalProvider
                 x += 6;
             }
             if (viewer.isRefreshInProgress()) {
-                e.gc.drawImage(DBeaverIcons.getImage(UIIcon.CLOSE), x, e.y + 2);
+                e.gc.drawImage(SwtIcons.getImage(UIIcon.CLOSE), x, e.y + 2);
             } else if (isItemEnabled()) {
                 e.gc.drawImage(enabledImage, x, e.y + 2);
             } else {

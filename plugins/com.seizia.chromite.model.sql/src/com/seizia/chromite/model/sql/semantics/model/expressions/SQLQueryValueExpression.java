@@ -14,16 +14,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.sql.semantics.model.expressions;
+package com.seizia.chromite.model.sql.semantics.model.expressions;
 
 import org.antlr.v4.runtime.misc.Interval;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.model.sql.semantics.SQLQueryRecognitionContext;
-import org.jkiss.dbeaver.model.sql.semantics.SQLQuerySymbol;
-import org.jkiss.dbeaver.model.sql.semantics.context.*;
-import org.jkiss.dbeaver.model.sql.semantics.model.SQLQueryNodeModel;
-import org.jkiss.dbeaver.model.stm.STMTreeNode;
+import com.seizia.chromite.model.sql.semantics.SQLQueryRecognitionContext;
+import com.seizia.chromite.model.sql.semantics.SQLQuerySymbol;
+import com.seizia.chromite.model.sql.semantics.context.*;
+import com.seizia.chromite.model.sql.semantics.model.SQLQueryNodeModel;
+import com.seizia.chromite.model.stm.STMTreeNode;
 
 public abstract class SQLQueryValueExpression extends SQLQueryNodeModel {
 

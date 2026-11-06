@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.ui.config.migration.wizards.custom;
+package com.seizia.chromite.ui.config.migration.wizards.custom;
 
 import org.eclipse.jface.wizard.WizardPage;
 import org.eclipse.osgi.util.NLS;
@@ -27,10 +27,10 @@ import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.Button;
 import org.eclipse.swt.widgets.Combo;
 import org.eclipse.swt.widgets.Composite;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.config.migration.ImportConfigMessages;
-import org.jkiss.dbeaver.ui.controls.TextWithOpenFile;
-import org.jkiss.dbeaver.utils.GeneralUtils;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.config.migration.ImportConfigMessages;
+import com.seizia.chromite.ui.controls.TextWithOpenFile;
+import com.seizia.chromite.utils.GeneralUtils;
 
 import java.io.File;
 

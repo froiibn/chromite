@@ -14,13 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.sql.parser.rules;
+package com.seizia.chromite.model.sql.parser.rules;
 
 
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.text.parser.TPCharacterScanner;
-import org.jkiss.dbeaver.model.text.parser.TPToken;
-import org.jkiss.dbeaver.model.text.parser.rules.MultiLineRule;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.text.parser.TPCharacterScanner;
+import com.seizia.chromite.model.text.parser.TPToken;
+import com.seizia.chromite.model.text.parser.rules.MultiLineRule;
 
 public class NestedMultiLineRule extends MultiLineRule {
     private static final Log log = Log.getLog(NestedMultiLineRule.class);

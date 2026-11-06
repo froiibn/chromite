@@ -15,14 +15,14 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.ui.controls.resultset;
+package com.seizia.chromite.ui.controls.resultset;
 
 import org.eclipse.core.runtime.IConfigurationElement;
 import org.eclipse.core.runtime.IExtensionRegistry;
 import org.eclipse.core.runtime.Platform;
-import org.jkiss.dbeaver.model.DBPDataSource;
-import org.jkiss.dbeaver.model.exec.DBCResultSet;
-import org.jkiss.dbeaver.ui.controls.resultset.panel.ResultSetPanelDescriptor;
+import com.seizia.chromite.model.DBPDataSource;
+import com.seizia.chromite.model.exec.DBCResultSet;
+import com.seizia.chromite.ui.controls.resultset.panel.ResultSetPanelDescriptor;
 
 import java.util.ArrayList;
 import java.util.Comparator;

@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.editors.sql.plan.simple;
+package com.seizia.chromite.ui.editors.sql.plan.simple;
 
 import org.eclipse.jface.viewers.ITreeContentProvider;
 import org.eclipse.jface.viewers.TreeViewer;
@@ -23,16 +23,16 @@ import org.eclipse.swt.widgets.Composite;
 import org.eclipse.ui.IWorkbenchSite;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.model.DBPDataSource;
-import org.jkiss.dbeaver.model.exec.plan.DBCPlan;
-import org.jkiss.dbeaver.model.exec.plan.DBCPlanNode;
-import org.jkiss.dbeaver.model.exec.plan.DBCPlanNodeKind;
-import org.jkiss.dbeaver.model.struct.DBSObject;
-import org.jkiss.dbeaver.ui.BaseThemeSettings;
-import org.jkiss.dbeaver.ui.LoadingJob;
-import org.jkiss.dbeaver.ui.controls.ObjectViewerRenderer;
-import org.jkiss.dbeaver.ui.navigator.actions.NavigatorHandlerObjectOpen;
-import org.jkiss.dbeaver.ui.navigator.itemlist.DatabaseObjectListControl;
+import com.seizia.chromite.model.DBPDataSource;
+import com.seizia.chromite.model.exec.plan.DBCPlan;
+import com.seizia.chromite.model.exec.plan.DBCPlanNode;
+import com.seizia.chromite.model.exec.plan.DBCPlanNodeKind;
+import com.seizia.chromite.model.struct.DBSObject;
+import com.seizia.chromite.ui.BaseThemeSettings;
+import com.seizia.chromite.ui.LoadingJob;
+import com.seizia.chromite.ui.controls.ObjectViewerRenderer;
+import com.seizia.chromite.ui.navigator.actions.NavigatorHandlerObjectOpen;
+import com.seizia.chromite.ui.navigator.itemlist.DatabaseObjectListControl;
 import org.jkiss.utils.CommonUtils;
 
 import java.util.ArrayList;

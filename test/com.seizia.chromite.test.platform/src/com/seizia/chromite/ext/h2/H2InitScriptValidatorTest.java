@@ -14,12 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.h2;
+package com.seizia.chromite.ext.h2;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.ext.h2.util.H2InitScriptValidator;
-import org.jkiss.dbeaver.model.exec.DBCException;
+import com.seizia.chromite.ext.h2.util.H2InitScriptValidator;
+import com.seizia.chromite.model.exec.DBCException;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 

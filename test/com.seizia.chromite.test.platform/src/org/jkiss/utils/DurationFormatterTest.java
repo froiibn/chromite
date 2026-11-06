@@ -17,9 +17,9 @@
 package org.jkiss.utils;
 
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.utils.DurationFormat;
-import org.jkiss.dbeaver.utils.DurationFormatter;
-import org.jkiss.junit.DBeaverUnitTest;
+import com.seizia.chromite.utils.DurationFormat;
+import com.seizia.chromite.utils.DurationFormatter;
+import com.seizia.chromite.junit.ChromiteUnitTest;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
@@ -28,7 +28,7 @@ import org.junit.jupiter.api.Test;
 import java.time.Duration;
 import java.util.Locale;
 
-public class DurationFormatterTest extends DBeaverUnitTest {
+public class DurationFormatterTest extends ChromiteUnitTest {
     private static Locale originalLocale;
 
     @BeforeAll

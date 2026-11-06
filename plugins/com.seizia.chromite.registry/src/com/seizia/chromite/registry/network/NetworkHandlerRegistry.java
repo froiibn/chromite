@@ -14,18 +14,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.registry.network;
+package com.seizia.chromite.registry.network;
 
 import org.eclipse.core.runtime.IConfigurationElement;
 import org.eclipse.core.runtime.IExtensionRegistry;
 import org.eclipse.core.runtime.Platform;
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.model.DBPDataSourceContainer;
-import org.jkiss.dbeaver.model.access.DBAPermissionRealm;
-import org.jkiss.dbeaver.model.connection.DBPDriver;
-import org.jkiss.dbeaver.model.net.DBWHandlerRegistry;
-import org.jkiss.dbeaver.model.net.DBWHandlerType;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
+import com.seizia.chromite.model.DBPDataSourceContainer;
+import com.seizia.chromite.model.access.DBAPermissionRealm;
+import com.seizia.chromite.model.connection.DBPDriver;
+import com.seizia.chromite.model.net.DBWHandlerRegistry;
+import com.seizia.chromite.model.net.DBWHandlerType;
+import com.seizia.chromite.runtime.DBWorkbench;
 
 import java.util.ArrayList;
 import java.util.Comparator;

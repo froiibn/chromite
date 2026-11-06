@@ -14,11 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.clickhouse.model.auth;
+package com.seizia.chromite.ext.clickhouse.model.auth;
 
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
-import org.jkiss.dbeaver.ext.clickhouse.model.auth.ClickhouseJWTProvider.DeviceCodePollResult;
+import com.seizia.chromite.ext.clickhouse.model.auth.ClickhouseJWTProvider.DeviceCodePollResult;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 

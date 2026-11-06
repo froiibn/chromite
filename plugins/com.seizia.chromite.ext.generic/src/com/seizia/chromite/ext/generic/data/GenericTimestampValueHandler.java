@@ -14,13 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.generic.data;
+package com.seizia.chromite.ext.generic.data;
 
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.ext.generic.model.GenericDataSource;
-import org.jkiss.dbeaver.model.data.DBDFormatSettings;
-import org.jkiss.dbeaver.model.impl.jdbc.data.handlers.JDBCDateTimeValueHandler;
-import org.jkiss.dbeaver.model.struct.DBSTypedObject;
+import com.seizia.chromite.ext.generic.model.GenericDataSource;
+import com.seizia.chromite.model.data.DBDFormatSettings;
+import com.seizia.chromite.model.impl.jdbc.data.handlers.JDBCDateTimeValueHandler;
+import com.seizia.chromite.model.struct.DBSTypedObject;
 
 import java.sql.Types;
 import java.text.Format;

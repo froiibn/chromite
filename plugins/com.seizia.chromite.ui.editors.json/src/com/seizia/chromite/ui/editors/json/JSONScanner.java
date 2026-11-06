@@ -14,11 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.editors.json;
+package com.seizia.chromite.ui.editors.json;
 
 import org.eclipse.jface.text.TextAttribute;
 import org.eclipse.jface.text.rules.*;
-import org.jkiss.dbeaver.ui.controls.SQLEditorThemeSettings;
+import com.seizia.chromite.ui.controls.SQLEditorThemeSettings;
 
 import java.util.LinkedList;
 import java.util.List;

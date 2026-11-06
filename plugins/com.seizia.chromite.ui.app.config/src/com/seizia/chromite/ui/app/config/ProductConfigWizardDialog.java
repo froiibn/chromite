@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.app.config;
+package com.seizia.chromite.ui.app.config;
 
 import org.eclipse.jface.dialogs.IDialogConstants;
 import org.eclipse.jface.util.Geometry;
@@ -29,11 +29,11 @@ import org.eclipse.swt.widgets.Shell;
 import org.eclipse.ui.IWorkbenchWindow;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.model.config.ProductConfigFeatureDescriptor;
-import org.jkiss.dbeaver.model.config.ProductConfigRegistry;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.app.config.nls.ProductConfigMessages;
-import org.jkiss.dbeaver.ui.dialogs.ActiveWizardDialog;
+import com.seizia.chromite.model.config.ProductConfigFeatureDescriptor;
+import com.seizia.chromite.model.config.ProductConfigRegistry;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.app.config.nls.ProductConfigMessages;
+import com.seizia.chromite.ui.dialogs.ActiveWizardDialog;
 
 import java.util.Map;
 import java.util.stream.Collectors;

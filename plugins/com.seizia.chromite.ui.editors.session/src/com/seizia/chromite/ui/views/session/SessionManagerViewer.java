@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.views.session;
+package com.seizia.chromite.ui.views.session;
 
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.jface.action.Action;
@@ -39,38 +39,38 @@ import org.eclipse.ui.IWorkbenchSite;
 import org.eclipse.ui.PartInitException;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.DBIcon;
-import org.jkiss.dbeaver.model.DBPObject;
-import org.jkiss.dbeaver.model.DBPObjectWithDescription;
-import org.jkiss.dbeaver.model.DBUtils;
-import org.jkiss.dbeaver.model.admin.sessions.*;
-import org.jkiss.dbeaver.model.exec.DBCExecutionContext;
-import org.jkiss.dbeaver.model.exec.DBCExecutionPurpose;
-import org.jkiss.dbeaver.model.exec.DBCSession;
-import org.jkiss.dbeaver.model.exec.plan.DBCQueryPlanner;
-import org.jkiss.dbeaver.model.preferences.DBPPropertyDescriptor;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.model.runtime.load.DatabaseLoadService;
-import org.jkiss.dbeaver.model.sql.SQLQuery;
-import org.jkiss.dbeaver.model.sql.SQLUtils;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.runtime.properties.ObjectPropertyDescriptor;
-import org.jkiss.dbeaver.runtime.properties.PropertyCollector;
-import org.jkiss.dbeaver.ui.*;
-import org.jkiss.dbeaver.ui.controls.ListContentProvider;
-import org.jkiss.dbeaver.ui.controls.ProgressLoaderVisualizer;
-import org.jkiss.dbeaver.ui.controls.autorefresh.AutoRefreshControl;
-import org.jkiss.dbeaver.ui.editors.StringEditorInput;
-import org.jkiss.dbeaver.ui.editors.SubEditorSite;
-import org.jkiss.dbeaver.ui.editors.sql.SQLEditorBase;
-import org.jkiss.dbeaver.ui.editors.sql.handlers.SQLEditorHandlerOpenObjectConsole;
-import org.jkiss.dbeaver.ui.editors.sql.handlers.SQLNavigatorContext;
-import org.jkiss.dbeaver.ui.editors.sql.plan.ExplainPlanViewer;
-import org.jkiss.dbeaver.ui.navigator.itemlist.DatabaseObjectListControl;
-import org.jkiss.dbeaver.ui.properties.PropertyTreeViewer;
-import org.jkiss.dbeaver.ui.views.session.internal.SessionEditorMessages;
-import org.jkiss.dbeaver.utils.GeneralUtils;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.DBIcon;
+import com.seizia.chromite.model.DBPObject;
+import com.seizia.chromite.model.DBPObjectWithDescription;
+import com.seizia.chromite.model.DBUtils;
+import com.seizia.chromite.model.admin.sessions.*;
+import com.seizia.chromite.model.exec.DBCExecutionContext;
+import com.seizia.chromite.model.exec.DBCExecutionPurpose;
+import com.seizia.chromite.model.exec.DBCSession;
+import com.seizia.chromite.model.exec.plan.DBCQueryPlanner;
+import com.seizia.chromite.model.preferences.DBPPropertyDescriptor;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.model.runtime.load.DatabaseLoadService;
+import com.seizia.chromite.model.sql.SQLQuery;
+import com.seizia.chromite.model.sql.SQLUtils;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.runtime.properties.ObjectPropertyDescriptor;
+import com.seizia.chromite.runtime.properties.PropertyCollector;
+import com.seizia.chromite.ui.*;
+import com.seizia.chromite.ui.controls.ListContentProvider;
+import com.seizia.chromite.ui.controls.ProgressLoaderVisualizer;
+import com.seizia.chromite.ui.controls.autorefresh.AutoRefreshControl;
+import com.seizia.chromite.ui.editors.StringEditorInput;
+import com.seizia.chromite.ui.editors.SubEditorSite;
+import com.seizia.chromite.ui.editors.sql.SQLEditorBase;
+import com.seizia.chromite.ui.editors.sql.handlers.SQLEditorHandlerOpenObjectConsole;
+import com.seizia.chromite.ui.editors.sql.handlers.SQLNavigatorContext;
+import com.seizia.chromite.ui.editors.sql.plan.ExplainPlanViewer;
+import com.seizia.chromite.ui.navigator.itemlist.DatabaseObjectListControl;
+import com.seizia.chromite.ui.properties.PropertyTreeViewer;
+import com.seizia.chromite.ui.views.session.internal.SessionEditorMessages;
+import com.seizia.chromite.utils.GeneralUtils;
 import org.jkiss.utils.CommonUtils;
 
 import java.lang.reflect.InvocationTargetException;
@@ -162,7 +162,7 @@ public class SessionManagerViewer<SESSION_TYPE extends DBAServerSession>
 
                 CTabItem sqlViewItem = new CTabItem(previewFolder, SWT.NONE);
                 sqlViewItem.setText(SessionEditorMessages.viewer_view_item_sql);
-                sqlViewItem.setImage(DBeaverIcons.getImage(DBIcon.SQL_TEXT));
+                sqlViewItem.setImage(SwtIcons.getImage(DBIcon.SQL_TEXT));
                 sqlViewItem.setControl(sqlViewer.getEditorControlWrapper());
 
                 previewFolder.setSelection(sqlViewItem);
@@ -180,7 +180,7 @@ public class SessionManagerViewer<SESSION_TYPE extends DBAServerSession>
 
                 detailsItem = new CTabItem(detailsFolder, SWT.NONE);
                 detailsItem.setText(SessionEditorMessages.viewer_details_item_details);
-                detailsItem.setImage(DBeaverIcons.getImage(UIIcon.PROPERTIES));
+                detailsItem.setImage(SwtIcons.getImage(UIIcon.PROPERTIES));
                 detailsItem.setControl(sessionProps.getControl());
 
                 if (sessionManager instanceof DBAServerSessionDetailsProvider sdp) {
@@ -191,7 +191,7 @@ public class SessionManagerViewer<SESSION_TYPE extends DBAServerSession>
                             extDetailsItem.setData(detailsInfo);
                             extDetailsItem.setText(detailsInfo.getDetailsTitle());
                             if (detailsInfo.getDetailsIcon() != null) {
-                                extDetailsItem.setImage(DBeaverIcons.getImage(detailsInfo.getDetailsIcon()));
+                                extDetailsItem.setImage(SwtIcons.getImage(detailsInfo.getDetailsIcon()));
                             }
                             if (detailsInfo.getDetailsTooltip() != null) {
                                 extDetailsItem.setToolTipText(detailsInfo.getDetailsTooltip());
@@ -303,7 +303,7 @@ public class SessionManagerViewer<SESSION_TYPE extends DBAServerSession>
 
         CTabItem sqlPlanItem = new CTabItem(previewFolder, SWT.NONE);
         sqlPlanItem.setText(SessionEditorMessages.viewer_sql_plan_item_execution_plan);
-        sqlPlanItem.setImage(DBeaverIcons.getImage(UIIcon.SQL_PAGE_EXPLAIN_PLAN));
+        sqlPlanItem.setImage(SwtIcons.getImage(UIIcon.SQL_PAGE_EXPLAIN_PLAN));
         sqlPlanItem.setControl(planViewer.getControl());
         sqlPlanItem.setData(planViewer);
     }
@@ -456,7 +456,7 @@ public class SessionManagerViewer<SESSION_TYPE extends DBAServerSession>
             {
                 contributionManager.add(ActionUtils.makeActionContribution(new Action(SessionEditorMessages.viewer_open_sql_editor_text, IAction.AS_PUSH_BUTTON) {
                     {
-                        setImageDescriptor(DBeaverIcons.getImageDescriptor(DBIcon.TREE_SCRIPT));
+                        setImageDescriptor(SwtIcons.getImageDescriptor(DBIcon.TREE_SCRIPT));
                         setToolTipText(SessionEditorMessages.viewer_open_sql_editor_tip);
                     }
                     @Override
@@ -488,7 +488,7 @@ public class SessionManagerViewer<SESSION_TYPE extends DBAServerSession>
             }
 
             refreshControl.populateRefreshButton(contributionManager);
-            contributionManager.add(new Action(SessionEditorMessages.viewer_session_manager_refresh_sessions_action, DBeaverIcons.getImageDescriptor(UIIcon.REFRESH)) {
+            contributionManager.add(new Action(SessionEditorMessages.viewer_session_manager_refresh_sessions_action, SwtIcons.getImageDescriptor(UIIcon.REFRESH)) {
                 @Override
                 public void run()
                 {

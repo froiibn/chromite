@@ -14,9 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.dashboard;
+package com.seizia.chromite.model.dashboard;
 
-import org.jkiss.dbeaver.model.DBIcon;
+import com.seizia.chromite.model.DBIcon;
 
 public class DashboardIcons {
     public static final DBIcon DASHBOARD = new DBIcon("dashboard", "dashboard.svg"); //$NON-NLS-1$ //$NON-NLS-2$

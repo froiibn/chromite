@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.tools.project;
+package com.seizia.chromite.tools.project;
 
 import org.eclipse.core.resources.IProject;
 import org.eclipse.core.resources.IProjectDescription;
@@ -27,18 +27,18 @@ import org.eclipse.ui.IWorkbench;
 import org.eclipse.ui.dialogs.WizardNewProjectCreationPage;
 import org.eclipse.ui.wizards.newresource.BasicNewProjectResourceWizard;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.model.app.DBPPlatformDesktop;
-import org.jkiss.dbeaver.model.app.DBPProject;
-import org.jkiss.dbeaver.model.rcp.DBeaverNature;
-import org.jkiss.dbeaver.model.rcp.RCPProject;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.model.runtime.DBRRunnableWithProgress;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.internal.UINavigatorMessages;
-import org.jkiss.dbeaver.ui.preferences.WizardPrefPage;
-import org.jkiss.dbeaver.ui.project.PrefPageProjectResourceSettings;
-import org.jkiss.dbeaver.utils.RuntimeUtils;
+import com.seizia.chromite.model.app.DBPPlatformDesktop;
+import com.seizia.chromite.model.app.DBPProject;
+import com.seizia.chromite.model.rcp.ChromiteNature;
+import com.seizia.chromite.model.rcp.RCPProject;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.model.runtime.DBRRunnableWithProgress;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.internal.UINavigatorMessages;
+import com.seizia.chromite.ui.preferences.WizardPrefPage;
+import com.seizia.chromite.ui.project.PrefPageProjectResourceSettings;
+import com.seizia.chromite.utils.RuntimeUtils;
 import org.jkiss.utils.CommonUtils;
 
 import java.lang.reflect.InvocationTargetException;
@@ -148,7 +148,7 @@ public class ProjectCreateWizard extends BasicNewProjectResourceWizard implement
         if (!CommonUtils.isEmpty(data.getDescription())) {
             description.setComment(data.getDescription());
         }
-        description.setNatureIds(new String[] {DBeaverNature.NATURE_ID});
+        description.setNatureIds(new String[] {ChromiteNature.NATURE_ID});
         project.setDescription(description, nestedMonitor);
 
         if (!project.isOpen()) {

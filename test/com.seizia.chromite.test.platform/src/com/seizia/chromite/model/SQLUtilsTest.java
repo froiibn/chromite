@@ -14,15 +14,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model;
+package com.seizia.chromite.model;
 
-import org.jkiss.dbeaver.ext.oracle.model.OracleSQLDialect;
-import org.jkiss.dbeaver.model.sql.SQLUtils;
-import org.jkiss.junit.DBeaverUnitTest;
+import com.seizia.chromite.ext.oracle.model.OracleSQLDialect;
+import com.seizia.chromite.model.sql.SQLUtils;
+import com.seizia.chromite.junit.ChromiteUnitTest;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
-public class SQLUtilsTest extends DBeaverUnitTest {
+public class SQLUtilsTest extends ChromiteUnitTest {
 
     private static final OracleSQLDialect ORACLE_SQL_DIALECT = new OracleSQLDialect();
 

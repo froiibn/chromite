@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.debug.ui.internal;
+package com.seizia.chromite.debug.ui.internal;
 
 import org.eclipse.core.expressions.Expression;
 import org.eclipse.core.expressions.IEvaluationContext;
@@ -34,7 +34,7 @@ import org.eclipse.jface.action.IAction;
 import org.eclipse.jface.resource.ImageDescriptor;
 import org.eclipse.ui.PlatformUI;
 import org.eclipse.ui.activities.WorkbenchActivityHelper;
-import org.jkiss.dbeaver.debug.core.DebugUtils;
+import com.seizia.chromite.debug.core.DebugUtils;
 
 import java.util.*;
 

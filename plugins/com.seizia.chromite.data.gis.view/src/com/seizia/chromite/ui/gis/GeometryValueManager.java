@@ -14,18 +14,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.gis;
+package com.seizia.chromite.ui.gis;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.DBPDataKind;
-import org.jkiss.dbeaver.ui.data.IValueController;
-import org.jkiss.dbeaver.ui.data.IValueEditor;
-import org.jkiss.dbeaver.ui.data.dialogs.DefaultValueViewDialog;
-import org.jkiss.dbeaver.ui.data.editors.StringInlineEditor;
-import org.jkiss.dbeaver.ui.data.managers.BaseValueManager;
-import org.jkiss.dbeaver.ui.gis.panel.GISPanelEditor;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.DBPDataKind;
+import com.seizia.chromite.ui.data.IValueController;
+import com.seizia.chromite.ui.data.IValueEditor;
+import com.seizia.chromite.ui.data.dialogs.DefaultValueViewDialog;
+import com.seizia.chromite.ui.data.editors.StringInlineEditor;
+import com.seizia.chromite.ui.data.managers.BaseValueManager;
+import com.seizia.chromite.ui.gis.panel.GISPanelEditor;
 
 /**
  * Geometry value manager

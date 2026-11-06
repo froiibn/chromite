@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.editors.sql;
+package com.seizia.chromite.ui.editors.sql;
 
 import org.eclipse.core.expressions.Expression;
 import org.eclipse.swt.SWT;
@@ -26,13 +26,13 @@ import org.eclipse.ui.services.IEvaluationService;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.ui.ActionUtils;
-import org.jkiss.dbeaver.ui.DBeaverIcons;
-import org.jkiss.dbeaver.ui.controls.VerticalButton;
-import org.jkiss.dbeaver.ui.editors.sql.handlers.SQLEditorHandlerSwitchPresentation;
-import org.jkiss.dbeaver.ui.editors.sql.registry.SQLPresentationDescriptor;
-import org.jkiss.dbeaver.ui.editors.sql.registry.SQLPresentationPanelDescriptor;
-import org.jkiss.dbeaver.ui.editors.sql.registry.SQLPresentationRegistry;
+import com.seizia.chromite.ui.ActionUtils;
+import com.seizia.chromite.ui.SwtIcons;
+import com.seizia.chromite.ui.controls.VerticalButton;
+import com.seizia.chromite.ui.editors.sql.handlers.SQLEditorHandlerSwitchPresentation;
+import com.seizia.chromite.ui.editors.sql.registry.SQLPresentationDescriptor;
+import com.seizia.chromite.ui.editors.sql.registry.SQLPresentationPanelDescriptor;
+import com.seizia.chromite.ui.editors.sql.registry.SQLPresentationRegistry;
 import org.jkiss.utils.CommonUtils;
 
 import java.util.HashMap;
@@ -141,7 +141,7 @@ class ExtraPresentationManager {
         final VerticalButton button = new VerticalButton(owner.getPresentationSwitchFolder(), SWT.RIGHT | SWT.CHECK);
         button.setData(presentation);
         button.setText(presentation.getLabel());
-        button.setImage(DBeaverIcons.getImage(presentation.getIcon()));
+        button.setImage(SwtIcons.getImage(presentation.getIcon()));
 
         final String toolTip = ActionUtils.findCommandDescription(
             SQLEditorHandlerSwitchPresentation.CMD_SWITCH_PRESENTATION_ID, this.owner.getSite(), true,

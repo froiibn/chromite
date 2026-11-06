@@ -14,10 +14,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.erd;
+package com.seizia.chromite.model.erd;
 
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.model.data.json.JSONUtils;
+import com.seizia.chromite.model.data.json.JSONUtils;
 import org.jkiss.utils.CommonUtils;
 
 import java.util.LinkedHashMap;

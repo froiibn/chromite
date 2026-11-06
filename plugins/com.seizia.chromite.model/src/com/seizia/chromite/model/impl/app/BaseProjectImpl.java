@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.impl.app;
+package com.seizia.chromite.model.impl.app;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -26,23 +26,23 @@ import org.eclipse.core.runtime.Status;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.DBRuntimeException;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.app.DBPDataSourceRegistry;
-import org.jkiss.dbeaver.model.app.DBPProject;
-import org.jkiss.dbeaver.model.app.DBPWorkspace;
-import org.jkiss.dbeaver.model.auth.SMSessionContext;
-import org.jkiss.dbeaver.model.data.json.JSONUtils;
-import org.jkiss.dbeaver.model.fs.DBFFileSystemManager;
-import org.jkiss.dbeaver.model.navigator.DBNModel;
-import org.jkiss.dbeaver.model.runtime.AbstractJob;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.model.runtime.VoidProgressMonitor;
-import org.jkiss.dbeaver.model.secret.DBSSecretSubject;
-import org.jkiss.dbeaver.model.secret.DBSValueEncryptor;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.utils.ContentUtils;
-import org.jkiss.dbeaver.utils.RuntimeUtils;
+import com.seizia.chromite.DBRuntimeException;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.app.DBPDataSourceRegistry;
+import com.seizia.chromite.model.app.DBPProject;
+import com.seizia.chromite.model.app.DBPWorkspace;
+import com.seizia.chromite.model.auth.SMSessionContext;
+import com.seizia.chromite.model.data.json.JSONUtils;
+import com.seizia.chromite.model.fs.DBFFileSystemManager;
+import com.seizia.chromite.model.navigator.DBNModel;
+import com.seizia.chromite.model.runtime.AbstractJob;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.model.runtime.VoidProgressMonitor;
+import com.seizia.chromite.model.secret.DBSSecretSubject;
+import com.seizia.chromite.model.secret.DBSValueEncryptor;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.utils.ContentUtils;
+import com.seizia.chromite.utils.RuntimeUtils;
 import org.jkiss.utils.CommonUtils;
 
 import java.io.IOException;
@@ -77,7 +77,7 @@ public abstract class BaseProjectImpl implements DBPProject, DBSSecretSubject {
         <buildSpec>
         </buildSpec>
         <natures>
-            <nature>org.jkiss.dbeaver.DBeaverNature</nature>
+            <nature>com.seizia.chromite.ChromiteNature</nature>
         </natures>
         </projectDescription>""";
 

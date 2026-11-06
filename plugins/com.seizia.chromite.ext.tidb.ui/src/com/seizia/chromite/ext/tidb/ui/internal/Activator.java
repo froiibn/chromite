@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.ext.tidb.ui.internal;
+package com.seizia.chromite.ext.tidb.ui.internal;
 
 import org.eclipse.jface.resource.ImageDescriptor;
 import org.eclipse.ui.plugin.AbstractUIPlugin;
@@ -27,7 +27,7 @@ import org.osgi.framework.BundleContext;
 public class Activator extends AbstractUIPlugin {
 
     // The plug-in ID
-    private static final String PLUGIN_ID = "org.jkiss.dbeaver.ext.tidb.ui";
+    private static final String PLUGIN_ID = "com.seizia.chromite.ext.tidb.ui";
 
     @Override
     public void start(BundleContext context) throws Exception {

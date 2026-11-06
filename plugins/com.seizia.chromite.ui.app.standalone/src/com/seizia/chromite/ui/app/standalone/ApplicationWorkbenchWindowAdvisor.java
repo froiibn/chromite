@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.app.standalone;
+package com.seizia.chromite.ui.app.standalone;
 
 import org.eclipse.core.resources.*;
 import org.eclipse.core.runtime.CoreException;
@@ -46,26 +46,26 @@ import org.eclipse.ui.part.MarkerTransfer;
 import org.eclipse.ui.part.ResourceTransfer;
 import org.jkiss.code.NotNull;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.DBeaverPreferences;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.core.DesktopPlatform;
-import org.jkiss.dbeaver.model.DBPDataSourceContainer;
-import org.jkiss.dbeaver.model.app.*;
-import org.jkiss.dbeaver.model.config.ProductConfigRegistry;
-import org.jkiss.dbeaver.model.impl.config.ProductConfigUtils;
-import org.jkiss.dbeaver.registry.DataSourceProviderRegistry;
-import org.jkiss.dbeaver.registry.WorkbenchHandlerRegistry;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.ui.NativeThemeUtils;
-import org.jkiss.dbeaver.ui.UIExecutionQueue;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.actions.datasource.DataSourceHandler;
-import org.jkiss.dbeaver.ui.app.config.ProductConfigWizard;
-import org.jkiss.dbeaver.ui.app.config.ProductConfigWizardDialog;
-import org.jkiss.dbeaver.ui.app.standalone.internal.WorkbenchPatcher;
-import org.jkiss.dbeaver.ui.editors.DatabaseEditorPreferences;
-import org.jkiss.dbeaver.ui.editors.EditorUtils;
-import org.jkiss.dbeaver.utils.GeneralUtils;
+import com.seizia.chromite.ChromitePreferences;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.core.DesktopPlatform;
+import com.seizia.chromite.model.DBPDataSourceContainer;
+import com.seizia.chromite.model.app.*;
+import com.seizia.chromite.model.config.ProductConfigRegistry;
+import com.seizia.chromite.model.impl.config.ProductConfigUtils;
+import com.seizia.chromite.registry.DataSourceProviderRegistry;
+import com.seizia.chromite.registry.WorkbenchHandlerRegistry;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.ui.NativeThemeUtils;
+import com.seizia.chromite.ui.UIExecutionQueue;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.actions.datasource.DataSourceHandler;
+import com.seizia.chromite.ui.app.config.ProductConfigWizard;
+import com.seizia.chromite.ui.app.config.ProductConfigWizardDialog;
+import com.seizia.chromite.ui.app.standalone.internal.WorkbenchPatcher;
+import com.seizia.chromite.ui.editors.DatabaseEditorPreferences;
+import com.seizia.chromite.ui.editors.EditorUtils;
+import com.seizia.chromite.utils.GeneralUtils;
 
 import java.util.StringJoiner;
 
@@ -101,7 +101,7 @@ public class ApplicationWorkbenchWindowAdvisor extends IDEWorkbenchWindowAdvisor
     ) {
         super(advisor, configurer);
 
-        if (DBeaverApplication.WORKSPACE_MIGRATED) {
+        if (ChromiteApplication.WORKSPACE_MIGRATED) {
             refreshProjects();
         }
 
@@ -348,8 +348,8 @@ public class ApplicationWorkbenchWindowAdvisor extends IDEWorkbenchWindowAdvisor
 
 
         try {
-            DBeaverCommandLine.getInstance().executeCommandLineCommands(
-                DBeaverApplication.getInstance().getInstanceServer(),
+            ChromiteCommandLine.getInstance().executeCommandLineCommands(
+                ChromiteApplication.getInstance().getInstanceServer(),
                 true,
                 false,
                 Platform.getApplicationArgs()
@@ -384,7 +384,7 @@ public class ApplicationWorkbenchWindowAdvisor extends IDEWorkbenchWindowAdvisor
             log.warn(e);
         }
 
-        if (!DBWorkbench.getPlatform().getPreferenceStore().getBoolean(DBeaverPreferences.UI_SHOW_ZOOM_RESTART_PROMPT)) {
+        if (!DBWorkbench.getPlatform().getPreferenceStore().getBoolean(ChromitePreferences.UI_SHOW_ZOOM_RESTART_PROMPT)) {
             Shell shell = getWindowConfigurer().getWindow().getShell();
             if (shell != null) {
                 WorkbenchPatcher.removeZoomRestartPrompt(shell);

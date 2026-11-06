@@ -14,16 +14,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.editors.sql.syntax;
+package com.seizia.chromite.ui.editors.sql.syntax;
 
 import org.eclipse.jface.text.IDocument;
 import org.eclipse.jface.text.formatter.ContextBasedFormattingStrategy;
 import org.eclipse.jface.text.source.ISourceViewer;
-import org.jkiss.dbeaver.model.sql.SQLSyntaxManager;
-import org.jkiss.dbeaver.model.sql.format.SQLFormatter;
-import org.jkiss.dbeaver.model.sql.format.SQLFormatterConfiguration;
-import org.jkiss.dbeaver.model.sql.registry.SQLFormatterConfigurationRegistry;
-import org.jkiss.dbeaver.ui.editors.sql.SQLEditorSourceViewerConfiguration;
+import com.seizia.chromite.model.sql.SQLSyntaxManager;
+import com.seizia.chromite.model.sql.format.SQLFormatter;
+import com.seizia.chromite.model.sql.format.SQLFormatterConfiguration;
+import com.seizia.chromite.model.sql.registry.SQLFormatterConfigurationRegistry;
+import com.seizia.chromite.ui.editors.sql.SQLEditorSourceViewerConfiguration;
 
 /**
  * The formatting strategy that transforms SQL keywords to upper case

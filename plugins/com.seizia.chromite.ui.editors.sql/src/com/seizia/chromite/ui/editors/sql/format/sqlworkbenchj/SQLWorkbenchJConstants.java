@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.ui.editors.sql.format.sqlworkbenchj;
+package com.seizia.chromite.ui.editors.sql.format.sqlworkbenchj;
 
 /**
  * External SQL formatter

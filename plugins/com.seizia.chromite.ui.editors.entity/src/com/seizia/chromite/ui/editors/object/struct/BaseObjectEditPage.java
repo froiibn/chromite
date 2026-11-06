@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.editors.object.struct;
+package com.seizia.chromite.ui.editors.object.struct;
 
 import org.eclipse.help.IContext;
 import org.eclipse.help.IHelpResource;
@@ -26,12 +26,12 @@ import org.eclipse.ui.help.IWorkbenchHelpSystem;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.model.DBIcon;
-import org.jkiss.dbeaver.model.struct.DBSObject;
-import org.jkiss.dbeaver.ui.DBeaverIcons;
-import org.jkiss.dbeaver.ui.IHelpContextIdProvider;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.dialogs.IDialogPageContainer;
+import com.seizia.chromite.model.DBIcon;
+import com.seizia.chromite.model.struct.DBSObject;
+import com.seizia.chromite.ui.SwtIcons;
+import com.seizia.chromite.ui.IHelpContextIdProvider;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.dialogs.IDialogPageContainer;
 
 public abstract class BaseObjectEditPage extends DialogPage {
 
@@ -43,7 +43,7 @@ public abstract class BaseObjectEditPage extends DialogPage {
     }
 
     public BaseObjectEditPage(String title, DBIcon icon) {
-        super(title, DBeaverIcons.getImageDescriptor(icon));
+        super(title, SwtIcons.getImageDescriptor(icon));
     }
 
     public abstract DBSObject getObject();

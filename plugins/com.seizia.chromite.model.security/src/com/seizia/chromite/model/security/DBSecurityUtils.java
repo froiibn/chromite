@@ -14,13 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.security;
+package com.seizia.chromite.model.security;
 
 import org.eclipse.core.runtime.Platform;
 import org.eclipse.equinox.internal.security.storage.PasswordProviderSelector;
 import org.eclipse.equinox.security.storage.StorageException;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.Log;
+import com.seizia.chromite.Log;
 
 public final class DBSecurityUtils {
     private static final Log log = Log.getLog(DBSecurityUtils.class);

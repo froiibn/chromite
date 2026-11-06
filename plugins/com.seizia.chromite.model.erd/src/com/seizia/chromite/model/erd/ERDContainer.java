@@ -14,9 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.erd;
+package com.seizia.chromite.model.erd;
 
-import org.jkiss.dbeaver.model.struct.DBSEntity;
+import com.seizia.chromite.model.struct.DBSEntity;
 
 import java.util.List;
 import java.util.Map;

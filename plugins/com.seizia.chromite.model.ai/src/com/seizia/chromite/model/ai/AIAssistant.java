@@ -14,12 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.ai;
+package com.seizia.chromite.model.ai;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.model.ai.qm.AIChatStorage;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.model.ai.qm.AIChatStorage;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
 
 import java.util.List;
 import java.util.concurrent.CompletableFuture;

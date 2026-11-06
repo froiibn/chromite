@@ -14,11 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.impl.struct;
+package com.seizia.chromite.model.impl.struct;
 
-import org.jkiss.dbeaver.model.DBPImage;
-import org.jkiss.dbeaver.model.struct.DBSObject;
-import org.jkiss.dbeaver.model.struct.DBSObjectType;
+import com.seizia.chromite.model.DBPImage;
+import com.seizia.chromite.model.struct.DBSObject;
+import com.seizia.chromite.model.struct.DBSObjectType;
 
 /**
  * Abstract database object type.

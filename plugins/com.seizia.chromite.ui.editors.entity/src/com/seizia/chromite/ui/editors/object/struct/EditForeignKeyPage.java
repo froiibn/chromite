@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.editors.object.struct;
+package com.seizia.chromite.ui.editors.object.struct;
 
 import org.eclipse.jface.action.Action;
 import org.eclipse.jface.dialogs.IDialogConstants;
@@ -36,38 +36,38 @@ import org.eclipse.swt.widgets.*;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.*;
-import org.jkiss.dbeaver.model.app.DBPProject;
-import org.jkiss.dbeaver.model.edit.DBECommandContext;
-import org.jkiss.dbeaver.model.edit.DBEObjectMaker;
-import org.jkiss.dbeaver.model.edit.DBEStructEditor;
-import org.jkiss.dbeaver.model.impl.sql.edit.SQLObjectEditor;
-import org.jkiss.dbeaver.model.impl.sql.edit.struct.SQLForeignKeyManager;
-import org.jkiss.dbeaver.model.navigator.DBNDatabaseFolder;
-import org.jkiss.dbeaver.model.navigator.DBNDatabaseNode;
-import org.jkiss.dbeaver.model.navigator.DBNModel;
-import org.jkiss.dbeaver.model.navigator.DBNNode;
-import org.jkiss.dbeaver.model.navigator.meta.DBXTreeItem;
-import org.jkiss.dbeaver.model.navigator.meta.DBXTreeNode;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.model.runtime.VoidProgressMonitor;
-import org.jkiss.dbeaver.model.struct.*;
-import org.jkiss.dbeaver.model.struct.rdb.*;
-import org.jkiss.dbeaver.model.virtual.*;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.ui.DBeaverIcons;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.controls.CSmartCombo;
-import org.jkiss.dbeaver.ui.controls.ObjectContainerSelectorPanel;
-import org.jkiss.dbeaver.ui.dialogs.BaseDialog;
-import org.jkiss.dbeaver.ui.editors.object.internal.ObjectEditorMessages;
-import org.jkiss.dbeaver.ui.internal.UIMessages;
-import org.jkiss.dbeaver.ui.navigator.NavigatorUtils;
-import org.jkiss.dbeaver.ui.navigator.database.DatabaseNavigatorContentProvider;
-import org.jkiss.dbeaver.ui.navigator.database.DatabaseNavigatorTree;
-import org.jkiss.dbeaver.ui.navigator.database.DatabaseNavigatorTreeFilter;
-import org.jkiss.dbeaver.ui.navigator.database.DatabaseNavigatorTreeFilterObjectType;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.*;
+import com.seizia.chromite.model.app.DBPProject;
+import com.seizia.chromite.model.edit.DBECommandContext;
+import com.seizia.chromite.model.edit.DBEObjectMaker;
+import com.seizia.chromite.model.edit.DBEStructEditor;
+import com.seizia.chromite.model.impl.sql.edit.SQLObjectEditor;
+import com.seizia.chromite.model.impl.sql.edit.struct.SQLForeignKeyManager;
+import com.seizia.chromite.model.navigator.DBNDatabaseFolder;
+import com.seizia.chromite.model.navigator.DBNDatabaseNode;
+import com.seizia.chromite.model.navigator.DBNModel;
+import com.seizia.chromite.model.navigator.DBNNode;
+import com.seizia.chromite.model.navigator.meta.DBXTreeItem;
+import com.seizia.chromite.model.navigator.meta.DBXTreeNode;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.model.runtime.VoidProgressMonitor;
+import com.seizia.chromite.model.struct.*;
+import com.seizia.chromite.model.struct.rdb.*;
+import com.seizia.chromite.model.virtual.*;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.ui.SwtIcons;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.controls.CSmartCombo;
+import com.seizia.chromite.ui.controls.ObjectContainerSelectorPanel;
+import com.seizia.chromite.ui.dialogs.BaseDialog;
+import com.seizia.chromite.ui.editors.object.internal.ObjectEditorMessages;
+import com.seizia.chromite.ui.internal.UIMessages;
+import com.seizia.chromite.ui.navigator.NavigatorUtils;
+import com.seizia.chromite.ui.navigator.database.DatabaseNavigatorContentProvider;
+import com.seizia.chromite.ui.navigator.database.DatabaseNavigatorTree;
+import com.seizia.chromite.ui.navigator.database.DatabaseNavigatorTreeFilter;
+import com.seizia.chromite.ui.navigator.database.DatabaseNavigatorTreeFilterObjectType;
 import org.jkiss.utils.ArrayUtils;
 import org.jkiss.utils.CommonUtils;
 
@@ -270,7 +270,7 @@ public class EditForeignKeyPage extends BaseObjectEditPage {
         }
 
         if (ownerTableNode != null) {
-            setImageDescriptor(DBeaverIcons.getImageDescriptor(ownerTableNode.getNodeIcon()));
+            setImageDescriptor(SwtIcons.getImageDescriptor(ownerTableNode.getNodeIcon()));
             setTitle(NLS.bind(ObjectEditorMessages.dialog_struct_edit_fk_title,
                 title,
                 ownerTableNode.getNodeDisplayName()));
@@ -619,7 +619,7 @@ public class EditForeignKeyPage extends BaseObjectEditPage {
             ILabelProvider labelProvider = new LabelProvider() {
                 @Override
                 public Image getImage(Object element) {
-                    return DBeaverIcons.getImage(((DBNDatabaseNode) element).getNodeIcon());
+                    return SwtIcons.getImage(((DBNDatabaseNode) element).getNodeIcon());
                 }
 
                 @Override
@@ -1034,7 +1034,7 @@ public class EditForeignKeyPage extends BaseObjectEditPage {
                     item.setImage(0, getColumnIcon(fkColumnInfo.ownColumn));
                     item.setText(1, fkColumnInfo.ownColumn.getFullTypeName());
                     item.setText(2, "");
-                    item.setImage(2, DBeaverIcons.getImage(DBIcon.TYPE_UNKNOWN));
+                    item.setImage(2, SwtIcons.getImage(DBIcon.TYPE_UNKNOWN));
                     item.setText(3, "");
                     item.setData(fkColumnInfo);
                 }
@@ -1077,7 +1077,7 @@ public class EditForeignKeyPage extends BaseObjectEditPage {
 
     @NotNull
     private Image getColumnIcon(@NotNull DBSEntityAttribute column) {
-        return DBeaverIcons.getImage(DBValueFormatting.getObjectImage(column));
+        return SwtIcons.getImage(DBValueFormatting.getObjectImage(column));
     }
 
     @Override

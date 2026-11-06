@@ -15,11 +15,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.exasol.editors;
+package com.seizia.chromite.ext.exasol.editors;
 
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.model.DBPScriptObject;
-import org.jkiss.dbeaver.model.struct.DBSObject;
+import com.seizia.chromite.model.DBPScriptObject;
+import com.seizia.chromite.model.struct.DBSObject;
 
 public interface ExasolSourceObject extends DBPScriptObject, DBSObject {
 

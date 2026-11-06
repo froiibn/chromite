@@ -14,14 +14,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.config.migration;
+package com.seizia.chromite.ui.config.migration;
 
 import org.eclipse.jface.resource.ImageDescriptor;
 import org.eclipse.ui.plugin.AbstractUIPlugin;
 
 public class ImportConfigImages {
 
-    public static final String PLUGIN_ID = "org.jkiss.dbeaver.ui.config.migration";
+    public static final String PLUGIN_ID = "com.seizia.chromite.ui.config.migration";
 
     public static ImageDescriptor getImageDescriptor(String path) {
         return AbstractUIPlugin.imageDescriptorFromPlugin(PLUGIN_ID, path);

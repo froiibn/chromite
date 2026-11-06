@@ -15,11 +15,11 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.ext.oracle.ui.editors;
+package com.seizia.chromite.ext.oracle.ui.editors;
 
 import org.eclipse.jface.action.IContributionManager;
-import org.jkiss.dbeaver.ext.oracle.model.OracleTable;
-import org.jkiss.dbeaver.ui.editors.sql.SQLSourceViewer;
+import com.seizia.chromite.ext.oracle.model.OracleTable;
+import com.seizia.chromite.ui.editors.sql.SQLSourceViewer;
 import org.jkiss.utils.CommonUtils;
 
 import java.util.HashMap;

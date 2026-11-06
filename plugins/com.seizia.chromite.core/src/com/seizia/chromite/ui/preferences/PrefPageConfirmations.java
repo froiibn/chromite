@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.preferences;
+package com.seizia.chromite.ui.preferences;
 
 import org.eclipse.jface.viewers.ColumnLabelProvider;
 import org.eclipse.jface.viewers.ColumnViewerEditorActivationEvent;
@@ -35,18 +35,18 @@ import org.eclipse.swt.widgets.Table;
 import org.eclipse.ui.IWorkbench;
 import org.eclipse.ui.IWorkbenchPreferencePage;
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.core.CoreMessages;
-import org.jkiss.dbeaver.model.preferences.DBPPreferenceStore;
-import org.jkiss.dbeaver.registry.confirmation.ConfirmationConstants;
-import org.jkiss.dbeaver.registry.confirmation.ConfirmationDescriptor;
-import org.jkiss.dbeaver.registry.confirmation.ConfirmationRegistry;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.ui.DefaultViewerToolTipSupport;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.controls.ListContentProvider;
-import org.jkiss.dbeaver.ui.controls.ViewerColumnController;
-import org.jkiss.dbeaver.ui.dialogs.ConfirmationDialog;
-import org.jkiss.dbeaver.utils.PrefUtils;
+import com.seizia.chromite.core.CoreMessages;
+import com.seizia.chromite.model.preferences.DBPPreferenceStore;
+import com.seizia.chromite.registry.confirmation.ConfirmationConstants;
+import com.seizia.chromite.registry.confirmation.ConfirmationDescriptor;
+import com.seizia.chromite.registry.confirmation.ConfirmationRegistry;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.ui.DefaultViewerToolTipSupport;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.controls.ListContentProvider;
+import com.seizia.chromite.ui.controls.ViewerColumnController;
+import com.seizia.chromite.ui.dialogs.ConfirmationDialog;
+import com.seizia.chromite.utils.PrefUtils;
 import org.jkiss.utils.CommonUtils;
 
 import java.util.*;
@@ -55,8 +55,8 @@ import java.util.*;
  * PrefPageConfirmations
  */
 public class PrefPageConfirmations extends AbstractPrefPage implements IWorkbenchPreferencePage {
-    public static final String PAGE_ID = "org.jkiss.dbeaver.preferences.main.confirmations"; //$NON-NLS-1$
-    private static final String DEFAULT_CONFIRM_PREF_KEY_PREFIX = "org.jkiss.dbeaver.core.confirmDefault."; //$NON-NLS-1$
+    public static final String PAGE_ID = "com.seizia.chromite.preferences.main.confirmations"; //$NON-NLS-1$
+    private static final String DEFAULT_CONFIRM_PREF_KEY_PREFIX = "com.seizia.chromite.core.confirmDefault."; //$NON-NLS-1$
 
     private TableViewer tableViewer;
     private Table confirmTable;

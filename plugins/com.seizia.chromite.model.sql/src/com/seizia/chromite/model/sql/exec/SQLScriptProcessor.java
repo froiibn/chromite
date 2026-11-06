@@ -14,23 +14,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.sql.exec;
+package com.seizia.chromite.model.sql.exec;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.DBFetchProgress;
-import org.jkiss.dbeaver.model.DBUtils;
-import org.jkiss.dbeaver.model.data.DBDDataReceiver;
-import org.jkiss.dbeaver.model.exec.*;
-import org.jkiss.dbeaver.model.impl.AbstractExecutionSource;
-import org.jkiss.dbeaver.model.qm.QMUtils;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.model.sql.*;
-import org.jkiss.dbeaver.model.sql.data.SQLQueryDataContainer;
-import org.jkiss.dbeaver.utils.DurationFormat;
-import org.jkiss.dbeaver.utils.DurationFormatter;
-import org.jkiss.dbeaver.utils.RuntimeUtils;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.DBFetchProgress;
+import com.seizia.chromite.model.DBUtils;
+import com.seizia.chromite.model.data.DBDDataReceiver;
+import com.seizia.chromite.model.exec.*;
+import com.seizia.chromite.model.impl.AbstractExecutionSource;
+import com.seizia.chromite.model.qm.QMUtils;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.model.sql.*;
+import com.seizia.chromite.model.sql.data.SQLQueryDataContainer;
+import com.seizia.chromite.utils.DurationFormat;
+import com.seizia.chromite.utils.DurationFormatter;
+import com.seizia.chromite.utils.RuntimeUtils;
 
 import java.time.Duration;
 import java.util.List;

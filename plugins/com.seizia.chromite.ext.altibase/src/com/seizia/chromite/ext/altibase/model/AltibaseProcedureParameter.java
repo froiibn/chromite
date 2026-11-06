@@ -14,14 +14,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.altibase.model;
+package com.seizia.chromite.ext.altibase.model;
 
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.ext.generic.model.GenericProcedure;
-import org.jkiss.dbeaver.ext.generic.model.GenericProcedureParameter;
-import org.jkiss.dbeaver.model.impl.DBPositiveNumberTransformer;
-import org.jkiss.dbeaver.model.meta.Property;
-import org.jkiss.dbeaver.model.struct.rdb.DBSProcedureParameterKind;
+import com.seizia.chromite.ext.generic.model.GenericProcedure;
+import com.seizia.chromite.ext.generic.model.GenericProcedureParameter;
+import com.seizia.chromite.model.impl.DBPositiveNumberTransformer;
+import com.seizia.chromite.model.meta.Property;
+import com.seizia.chromite.model.struct.rdb.DBSProcedureParameterKind;
 
 public class AltibaseProcedureParameter extends GenericProcedureParameter {
 

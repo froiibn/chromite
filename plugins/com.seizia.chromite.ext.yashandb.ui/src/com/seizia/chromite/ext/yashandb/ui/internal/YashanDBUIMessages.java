@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.yashandb.ui.internal;
+package com.seizia.chromite.ext.yashandb.ui.internal;
 
 import org.eclipse.osgi.util.NLS;
 
@@ -23,7 +23,7 @@ import org.eclipse.osgi.util.NLS;
  */
 public final class YashanDBUIMessages extends NLS {
 
-    private static final String BUNDLE_NAME = "org.jkiss.dbeaver.ext.yashandb.ui.internal.YashanDBUIMessages";
+    private static final String BUNDLE_NAME = "com.seizia.chromite.ext.yashandb.ui.internal.YashanDBUIMessages";
 
     public static String views_session_manager_viewer_show_background;
     public static String views_session_manager_viewer_show_background_tasks_tip;

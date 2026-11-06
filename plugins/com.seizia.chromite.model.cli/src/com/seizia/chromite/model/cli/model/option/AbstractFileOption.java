@@ -14,12 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.cli.model.option;
+package com.seizia.chromite.model.cli.model.option;
 
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.fs.DBFUtils;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.fs.DBFUtils;
 import org.jkiss.utils.CommonUtils;
 
 import java.nio.file.Path;

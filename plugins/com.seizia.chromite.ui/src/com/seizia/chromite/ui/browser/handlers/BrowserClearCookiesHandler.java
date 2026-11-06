@@ -14,20 +14,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.browser.handlers;
+package com.seizia.chromite.ui.browser.handlers;
 
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.browser.Browser;
 import org.eclipse.swt.widgets.Shell;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.model.runtime.DBRRunnableWithProgress;
-import org.jkiss.dbeaver.ui.UIUtils;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.model.runtime.DBRRunnableWithProgress;
+import com.seizia.chromite.ui.UIUtils;
 import org.jkiss.utils.BeanUtils;
 
 public class BrowserClearCookiesHandler implements DBRRunnableWithProgress {
     // BUG: Fragment can't be resolved correctly by our Intellij IDEA workspace generator
-    private static final String BROWSER_HELPER_CLASS_NAME = "org.eclipse.swt.browser.DBeaverBrowserHelper";
+    private static final String BROWSER_HELPER_CLASS_NAME = "org.eclipse.swt.browser.ChromiteBrowserHelper";
     private static final String BROWSER_HELPER_CLASS_CLEAR_COOKIES_NAME = "clearCookies";
 
     private static final Log log = Log.getLog(BrowserClearCookiesHandler.class);

@@ -14,14 +14,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.text.parser;
+package com.seizia.chromite.model.text.parser;
 
 
 import org.eclipse.core.runtime.Assert;
 import org.eclipse.jface.text.BadLocationException;
 import org.eclipse.jface.text.IDocument;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.sql.parser.rules.SQLDelimiterRule;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.sql.parser.rules.SQLDelimiterRule;
 
 
 /**

@@ -14,13 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.impl.jdbc;
+package com.seizia.chromite.model.impl.jdbc;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.model.DatabaseURL;
-import org.jkiss.dbeaver.model.connection.DBPDriver;
-import org.jkiss.junit.DBeaverUnitTest;
+import com.seizia.chromite.model.DatabaseURL;
+import com.seizia.chromite.model.connection.DBPDriver;
+import com.seizia.chromite.junit.ChromiteUnitTest;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
@@ -29,7 +29,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public class DatabaseURLTest extends DBeaverUnitTest {
+public class DatabaseURLTest extends ChromiteUnitTest {
     @Test
     public void replacesEndpointWithoutChangingEncodedDatabaseOrQuery() throws DBException {
         DBPDriver driver = driver("jdbc:postgresql://{host}[:{port}]/[{database}]");

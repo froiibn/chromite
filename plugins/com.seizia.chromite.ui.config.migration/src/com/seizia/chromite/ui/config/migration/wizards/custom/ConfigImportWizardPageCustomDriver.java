@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.ui.config.migration.wizards.custom;
+package com.seizia.chromite.ui.config.migration.wizards.custom;
 
 import org.eclipse.jface.viewers.*;
 import org.eclipse.jface.wizard.WizardPage;
@@ -23,11 +23,11 @@ import org.eclipse.swt.SWT;
 import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.Composite;
-import org.jkiss.dbeaver.model.connection.DBPDriver;
-import org.jkiss.dbeaver.registry.DataSourceProviderRegistry;
-import org.jkiss.dbeaver.registry.driver.DriverDescriptor;
-import org.jkiss.dbeaver.ui.config.migration.ImportConfigMessages;
-import org.jkiss.dbeaver.ui.dialogs.driver.DriverSelectViewer;
+import com.seizia.chromite.model.connection.DBPDriver;
+import com.seizia.chromite.registry.DataSourceProviderRegistry;
+import com.seizia.chromite.registry.driver.DriverDescriptor;
+import com.seizia.chromite.ui.config.migration.ImportConfigMessages;
+import com.seizia.chromite.ui.dialogs.driver.DriverSelectViewer;
 
 public class ConfigImportWizardPageCustomDriver extends WizardPage
         implements ISelectionChangedListener, IDoubleClickListener {

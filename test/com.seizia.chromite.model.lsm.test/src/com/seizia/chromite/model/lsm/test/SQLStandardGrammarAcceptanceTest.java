@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.lsm.test;
+package com.seizia.chromite.model.lsm.test;
 
 import org.antlr.v4.runtime.BaseErrorListener;
 import org.antlr.v4.runtime.CharStreams;
@@ -25,15 +25,15 @@ import org.antlr.v4.runtime.Token;
 import org.antlr.v4.runtime.tree.Trees;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.model.impl.preferences.SimplePreferenceStore;
-import org.jkiss.dbeaver.model.impl.sql.BasicSQLDialect;
-import org.jkiss.dbeaver.model.lsm.LSMAnalyzerParameters;
-import org.jkiss.dbeaver.model.lsm.sql.impl.syntax.SQLStandardLexer;
-import org.jkiss.dbeaver.model.lsm.sql.impl.syntax.SQLStandardParser;
-import org.jkiss.dbeaver.model.sql.SQLDialect;
-import org.jkiss.dbeaver.model.sql.SQLDialectFeatures;
-import org.jkiss.dbeaver.model.sql.SQLSyntaxManager;
-import org.jkiss.junit.DBeaverUnitTest;
+import com.seizia.chromite.model.impl.preferences.SimplePreferenceStore;
+import com.seizia.chromite.model.impl.sql.BasicSQLDialect;
+import com.seizia.chromite.model.lsm.LSMAnalyzerParameters;
+import com.seizia.chromite.model.lsm.sql.impl.syntax.SQLStandardLexer;
+import com.seizia.chromite.model.lsm.sql.impl.syntax.SQLStandardParser;
+import com.seizia.chromite.model.sql.SQLDialect;
+import com.seizia.chromite.model.sql.SQLDialectFeatures;
+import com.seizia.chromite.model.sql.SQLSyntaxManager;
+import com.seizia.chromite.junit.ChromiteUnitTest;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.DynamicTest;
 import org.junit.jupiter.api.Test;
@@ -47,7 +47,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Stream;
 
-public class SQLStandardGrammarAcceptanceTest extends DBeaverUnitTest {
+public class SQLStandardGrammarAcceptanceTest extends ChromiteUnitTest {
     private static final List<GrammarCase> CASES = List.of(
         new GrammarCase("dbeaver#37939 GENERATED identity with UNIQUE", """
             CREATE TABLE IF NOT EXISTS requirements (
@@ -832,7 +832,7 @@ public class SQLStandardGrammarAcceptanceTest extends DBeaverUnitTest {
     ) {
         var dialect = new BasicSQLDialect() {
             @Override
-            public Collection<String> getDataTypes(@Nullable org.jkiss.dbeaver.model.DBPDataSource dataSource) {
+            public Collection<String> getDataTypes(@Nullable com.seizia.chromite.model.DBPDataSource dataSource) {
                 return knownTypes;
             }
 

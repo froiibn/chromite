@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.dialogs.connection;
+package com.seizia.chromite.ui.dialogs.connection;
 
 import org.eclipse.jface.action.*;
 import org.eclipse.jface.dialogs.Dialog;
@@ -36,36 +36,36 @@ import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.widgets.*;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.*;
-import org.jkiss.dbeaver.model.app.DBPDataSourceRegistry;
-import org.jkiss.dbeaver.model.connection.DBPConnectionConfiguration;
-import org.jkiss.dbeaver.model.connection.DBPDriver;
-import org.jkiss.dbeaver.model.connection.DBPDriverSubstitutionDescriptor;
-import org.jkiss.dbeaver.model.connection.DBPDriverWithLazyLogo;
-import org.jkiss.dbeaver.model.exec.DBCSession;
-import org.jkiss.dbeaver.model.net.DBWHandlerConfiguration;
-import org.jkiss.dbeaver.model.net.DBWHandlerDescriptor;
-import org.jkiss.dbeaver.model.net.DBWNetworkProfile;
-import org.jkiss.dbeaver.model.net.DBWUtils;
-import org.jkiss.dbeaver.model.rcp.RCPProject;
-import org.jkiss.dbeaver.model.rm.RMConstants;
-import org.jkiss.dbeaver.model.runtime.DBRRunnableContext;
-import org.jkiss.dbeaver.registry.*;
-import org.jkiss.dbeaver.registry.driver.DriverDescriptor;
-import org.jkiss.dbeaver.registry.network.NetworkHandlerDescriptor;
-import org.jkiss.dbeaver.registry.network.NetworkHandlerRegistry;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.ui.*;
-import org.jkiss.dbeaver.ui.dialogs.ActiveWizardPage;
-import org.jkiss.dbeaver.ui.dialogs.MessageBoxBuilder;
-import org.jkiss.dbeaver.ui.dialogs.MultiPageWizardDialog;
-import org.jkiss.dbeaver.ui.dialogs.Reply;
-import org.jkiss.dbeaver.ui.dialogs.driver.DriverEditDialog;
-import org.jkiss.dbeaver.ui.internal.UIConnectionMessages;
-import org.jkiss.dbeaver.ui.preferences.PrefPageProjectNetworkProfiles;
-import org.jkiss.dbeaver.utils.GeneralUtils;
-import org.jkiss.dbeaver.utils.RuntimeUtils;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.*;
+import com.seizia.chromite.model.app.DBPDataSourceRegistry;
+import com.seizia.chromite.model.connection.DBPConnectionConfiguration;
+import com.seizia.chromite.model.connection.DBPDriver;
+import com.seizia.chromite.model.connection.DBPDriverSubstitutionDescriptor;
+import com.seizia.chromite.model.connection.DBPDriverWithLazyLogo;
+import com.seizia.chromite.model.exec.DBCSession;
+import com.seizia.chromite.model.net.DBWHandlerConfiguration;
+import com.seizia.chromite.model.net.DBWHandlerDescriptor;
+import com.seizia.chromite.model.net.DBWNetworkProfile;
+import com.seizia.chromite.model.net.DBWUtils;
+import com.seizia.chromite.model.rcp.RCPProject;
+import com.seizia.chromite.model.rm.RMConstants;
+import com.seizia.chromite.model.runtime.DBRRunnableContext;
+import com.seizia.chromite.registry.*;
+import com.seizia.chromite.registry.driver.DriverDescriptor;
+import com.seizia.chromite.registry.network.NetworkHandlerDescriptor;
+import com.seizia.chromite.registry.network.NetworkHandlerRegistry;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.ui.*;
+import com.seizia.chromite.ui.dialogs.ActiveWizardPage;
+import com.seizia.chromite.ui.dialogs.MessageBoxBuilder;
+import com.seizia.chromite.ui.dialogs.MultiPageWizardDialog;
+import com.seizia.chromite.ui.dialogs.Reply;
+import com.seizia.chromite.ui.dialogs.driver.DriverEditDialog;
+import com.seizia.chromite.ui.internal.UIConnectionMessages;
+import com.seizia.chromite.ui.preferences.PrefPageProjectNetworkProfiles;
+import com.seizia.chromite.utils.GeneralUtils;
+import com.seizia.chromite.utils.RuntimeUtils;
 import org.jkiss.utils.ArrayUtils;
 import org.jkiss.utils.CommonUtils;
 
@@ -75,7 +75,7 @@ import java.util.List;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
-import static org.jkiss.dbeaver.ui.UIUtils.getDisplay;
+import static com.seizia.chromite.ui.UIUtils.getDisplay;
 
 /**
  * Settings connection page. Hosts particular drivers' connection pages
@@ -238,7 +238,7 @@ class ConnectionPageSettings extends ActiveWizardPage<ConnectionWizard> implemen
         }
         DBPImage logoImage = driver.getLogoImage();
         if (logoImage != null) {
-            return DBeaverIcons.getImage(logoImage);
+            return SwtIcons.getImage(logoImage);
         }
         if (connectionEditor != null) {
             Image image = connectionEditor.getImage();
@@ -409,7 +409,7 @@ class ConnectionPageSettings extends ActiveWizardPage<ConnectionWizard> implemen
 
         var toolItem = new ToolItem(toolBar, SWT.DROP_DOWN);
         toolItem.setText(UIConnectionMessages.dialog_connection_network_add_tunnel_label);
-        toolItem.setImage(DBeaverIcons.getImage(UIIcon.ADD));
+        toolItem.setImage(SwtIcons.getImage(UIIcon.ADD));
         toolItem.addDisposeListener(e -> handlerManager.dispose());
         toolItem.addSelectionListener(SelectionListener.widgetSelectedAdapter(e -> {
             var bounds = toolItem.getBounds();
@@ -461,7 +461,7 @@ class ConnectionPageSettings extends ActiveWizardPage<ConnectionWizard> implemen
                 || (getProject().isPrivateProject() && DBWorkbench.getPlatform().getWorkspace()
                 .hasRealmPermission(RMConstants.PERMISSION_DATABASE_DEVELOPER))
             ) {
-                manager.add(new Action("Edit profiles...", DBeaverIcons.getImageDescriptor(UIIcon.RENAME)) {
+                manager.add(new Action("Edit profiles...", SwtIcons.getImageDescriptor(UIIcon.RENAME)) {
                     @Override
                     public void run() {
                         DBWNetworkProfile profile = getActiveProfile();
@@ -501,7 +501,7 @@ class ConnectionPageSettings extends ActiveWizardPage<ConnectionWizard> implemen
         var toolItem = new ToolItem(toolBar, SWT.DROP_DOWN);
         toolItem.setText("N/A");
         toolItem.setToolTipText("Active profile");
-        toolItem.setImage(DBeaverIcons.getImage(DBIcon.TYPE_DOCUMENT));
+        toolItem.setImage(SwtIcons.getImage(DBIcon.TYPE_DOCUMENT));
         toolItem.addDisposeListener(e -> profileManager.dispose());
         toolItem.addSelectionListener(SelectionListener.widgetSelectedAdapter(e -> {
             var bounds = toolItem.getBounds();
@@ -534,7 +534,7 @@ class ConnectionPageSettings extends ActiveWizardPage<ConnectionWizard> implemen
     private void updateHandlerItem(@NotNull List<IDialogPage> allPages) {
         if (hasHandlersToAdd(allPages)) {
             handlerItem.setText(computeChevronTitle(allPages));
-            handlerItem.setImage(DBeaverIcons.getImage(UIIcon.ADD));
+            handlerItem.setImage(SwtIcons.getImage(UIIcon.ADD));
             handlerItem.setEnabled(true);
         } else {
             handlerItem.setText("");
@@ -554,7 +554,7 @@ class ConnectionPageSettings extends ActiveWizardPage<ConnectionWizard> implemen
             profileItem.setText("No profile");
             profileItem.setToolTipText("No active profile is set");
         }
-        profileItem.setImage(DBeaverIcons.getImage(icon));
+        profileItem.setImage(SwtIcons.getImage(icon));
         updateFolderToolbar();
     }
 
@@ -890,7 +890,7 @@ class ConnectionPageSettings extends ActiveWizardPage<ConnectionWizard> implemen
                 item.setImage(null);
                 item.setToolTipText(page.getDescription());
             } else {
-                item.setImage(DBeaverIcons.getImage(DBIcon.SMALL_ERROR));
+                item.setImage(SwtIcons.getImage(DBIcon.SMALL_ERROR));
                 item.setToolTipText(Objects.requireNonNullElse(page.getErrorMessage(), "Page is incomplete"));
             }
         }
@@ -1193,7 +1193,7 @@ class ConnectionPageSettings extends ActiveWizardPage<ConnectionWizard> implemen
 
             setText(ActionUtils.getLabelWithIndexMnemonic(getProfileName(profile, origin), index));
             setChecked(isProfileSelected(profile, container));
-            setImageDescriptor(DBeaverIcons.getImageDescriptor(profile.isGlobal() ? DBIcon.GLOBAL_PROFILE : DBIcon.CONNECTION_PROFILE));
+            setImageDescriptor(SwtIcons.getImageDescriptor(profile.isGlobal() ? DBIcon.GLOBAL_PROFILE : DBIcon.CONNECTION_PROFILE));
         }
 
         @Override

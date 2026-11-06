@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.ai;
+package com.seizia.chromite.model.ai;
 
 /**
  * Type of the message
@@ -41,7 +41,7 @@ public enum AIMessageType {
     }
 
     /**
-     * Local messages are never sent to AI engine, they exist only on dbeaver side.
+     * Local messages are never sent to AI engine, they exist only on chromite side.
      */
     public boolean isLocal() {
         return isLocal;

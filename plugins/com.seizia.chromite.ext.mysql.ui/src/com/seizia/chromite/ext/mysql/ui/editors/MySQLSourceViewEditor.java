@@ -15,11 +15,11 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.ext.mysql.ui.editors;
+package com.seizia.chromite.ext.mysql.ui.editors;
 
-import org.jkiss.dbeaver.ext.mysql.model.MySQLSourceObject;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.ui.editors.sql.SQLSourceViewer;
+import com.seizia.chromite.ext.mysql.model.MySQLSourceObject;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.ui.editors.sql.SQLSourceViewer;
 
 /**
  * MySQLSourceViewEditor

@@ -14,19 +14,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.firebird.model;
+package com.seizia.chromite.ext.firebird.model;
 
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.model.DBPDataKind;
-import org.jkiss.dbeaver.model.struct.DBSDataType;
-import org.jkiss.junit.DBeaverUnitTest;
+import com.seizia.chromite.model.DBPDataKind;
+import com.seizia.chromite.model.struct.DBSDataType;
+import com.seizia.chromite.junit.ChromiteUnitTest;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
 import java.util.List;
 
-public class FireBirdColumnTypeNameListProviderTest extends DBeaverUnitTest {
+public class FireBirdColumnTypeNameListProviderTest extends ChromiteUnitTest {
 
     @Test
     public void excludesSystemAndImplicitDomainsFromColumnTypeNames() {

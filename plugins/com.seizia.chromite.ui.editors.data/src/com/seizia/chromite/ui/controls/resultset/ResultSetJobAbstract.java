@@ -14,11 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.controls.resultset;
+package com.seizia.chromite.ui.controls.resultset;
 
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.model.exec.DBCExecutionContext;
-import org.jkiss.dbeaver.runtime.jobs.DataSourceJob;
+import com.seizia.chromite.model.exec.DBCExecutionContext;
+import com.seizia.chromite.runtime.jobs.DataSourceJob;
 
 abstract class ResultSetJobAbstract extends DataSourceJob {
 

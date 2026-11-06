@@ -14,14 +14,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.data;
+package com.seizia.chromite.model.data;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.model.DBPDataSourceContainer;
-import org.jkiss.dbeaver.model.data.hints.DBDValueHintContext;
-import org.jkiss.dbeaver.model.struct.DBSEntity;
+import com.seizia.chromite.model.DBPDataSourceContainer;
+import com.seizia.chromite.model.data.hints.DBDValueHintContext;
+import com.seizia.chromite.model.struct.DBSEntity;
 
 import java.util.List;
 

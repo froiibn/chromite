@@ -14,15 +14,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.cli.command;
+package com.seizia.chromite.model.cli.command;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.cli.*;
-import org.jkiss.dbeaver.model.cli.help.CLIGlobalOption;
-import org.jkiss.dbeaver.model.cli.model.option.EclipseOptions;
-import org.jkiss.dbeaver.model.cli.model.option.HiddenOptions;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.cli.*;
+import com.seizia.chromite.model.cli.help.CLIGlobalOption;
+import com.seizia.chromite.model.cli.model.option.EclipseOptions;
+import com.seizia.chromite.model.cli.model.option.HiddenOptions;
 import org.jkiss.utils.CommonUtils;
 import picocli.CommandLine;
 

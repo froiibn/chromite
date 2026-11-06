@@ -14,18 +14,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.sqlite.ui.data.manager;
+package com.seizia.chromite.ext.sqlite.ui.data.manager;
 
 import org.eclipse.jface.action.IContributionManager;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.model.DBPDataKind;
-import org.jkiss.dbeaver.model.exec.DBCException;
-import org.jkiss.dbeaver.ui.data.IValueController;
-import org.jkiss.dbeaver.ui.data.IValueEditor;
-import org.jkiss.dbeaver.ui.data.managers.ContentValueManager;
-import org.jkiss.dbeaver.ui.data.managers.StringValueManager;
+import com.seizia.chromite.model.DBPDataKind;
+import com.seizia.chromite.model.exec.DBCException;
+import com.seizia.chromite.ui.data.IValueController;
+import com.seizia.chromite.ui.data.IValueEditor;
+import com.seizia.chromite.ui.data.managers.ContentValueManager;
+import com.seizia.chromite.ui.data.managers.StringValueManager;
 
 
 /**

@@ -14,25 +14,25 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.mimer.edit;
+package com.seizia.chromite.ext.mimer.edit;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.ext.generic.model.GenericTableBase;
-import org.jkiss.dbeaver.ext.generic.model.GenericTableColumn;
-import org.jkiss.dbeaver.ext.generic.model.GenericTableIndexColumn;
-import org.jkiss.dbeaver.ext.mimer.MimerConstants;
-import org.jkiss.dbeaver.ext.mimer.model.MimerDataSource;
-import org.jkiss.dbeaver.ext.mimer.model.MimerSQLDialect;
-import org.jkiss.dbeaver.ext.mimer.model.MimerTableIndex;
-import org.jkiss.dbeaver.ext.mimer.model.MimerTableIndexColumn;
-import org.jkiss.dbeaver.model.DBPEvaluationContext;
-import org.jkiss.dbeaver.model.edit.DBEPersistAction;
-import org.jkiss.dbeaver.model.exec.DBCExecutionContext;
-import org.jkiss.dbeaver.model.impl.sql.edit.SQLObjectEditor;
-import org.jkiss.dbeaver.model.struct.rdb.DBSIndexType;
-import org.jkiss.dbeaver.model.struct.rdb.DBSTableIndexColumn;
-import org.jkiss.junit.DBeaverUnitTest;
+import com.seizia.chromite.ext.generic.model.GenericTableBase;
+import com.seizia.chromite.ext.generic.model.GenericTableColumn;
+import com.seizia.chromite.ext.generic.model.GenericTableIndexColumn;
+import com.seizia.chromite.ext.mimer.MimerConstants;
+import com.seizia.chromite.ext.mimer.model.MimerDataSource;
+import com.seizia.chromite.ext.mimer.model.MimerSQLDialect;
+import com.seizia.chromite.ext.mimer.model.MimerTableIndex;
+import com.seizia.chromite.ext.mimer.model.MimerTableIndexColumn;
+import com.seizia.chromite.model.DBPEvaluationContext;
+import com.seizia.chromite.model.edit.DBEPersistAction;
+import com.seizia.chromite.model.exec.DBCExecutionContext;
+import com.seizia.chromite.model.impl.sql.edit.SQLObjectEditor;
+import com.seizia.chromite.model.struct.rdb.DBSIndexType;
+import com.seizia.chromite.model.struct.rdb.DBSTableIndexColumn;
+import com.seizia.chromite.junit.ChromiteUnitTest;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -54,7 +54,7 @@ import java.util.Map;
  *
  * @author Mimer Information Technology
  */
-public class MimerIndexManagerTest extends DBeaverUnitTest {
+public class MimerIndexManagerTest extends ChromiteUnitTest {
 
     @Mock
     private MimerDataSource dataSource;

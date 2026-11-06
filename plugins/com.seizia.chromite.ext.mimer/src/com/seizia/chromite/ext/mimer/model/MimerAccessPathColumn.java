@@ -14,19 +14,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.mimer.model;
+package com.seizia.chromite.ext.mimer.model;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.model.DBIcon;
-import org.jkiss.dbeaver.model.DBPStatefulObject;
-import org.jkiss.dbeaver.model.exec.DBCException;
-import org.jkiss.dbeaver.model.exec.jdbc.JDBCResultSet;
-import org.jkiss.dbeaver.model.impl.jdbc.JDBCUtils;
-import org.jkiss.dbeaver.model.meta.Property;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.model.struct.DBSObject;
-import org.jkiss.dbeaver.model.struct.DBSObjectState;
+import com.seizia.chromite.model.DBIcon;
+import com.seizia.chromite.model.DBPStatefulObject;
+import com.seizia.chromite.model.exec.DBCException;
+import com.seizia.chromite.model.exec.jdbc.JDBCResultSet;
+import com.seizia.chromite.model.impl.jdbc.JDBCUtils;
+import com.seizia.chromite.model.meta.Property;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.model.struct.DBSObject;
+import com.seizia.chromite.model.struct.DBSObjectState;
 import org.jkiss.utils.CommonUtils;
 
 /**
@@ -47,7 +47,7 @@ import org.jkiss.utils.CommonUtils;
  * {@link #algorithm} is Mimer SQL's per-column access-path algorithm: {@code SIMPLE} for an
  * ordinary column, or a word-search/PinYin algorithm for a column created with a {@code
  * CREATE INDEX ... "col" FOR <algorithm>} clause (see {@link
- * org.jkiss.dbeaver.ext.mimer.edit.MimerIndexManager}/{@link MimerTableIndexColumn} for the
+ * com.seizia.chromite.ext.mimer.edit.MimerIndexManager}/{@link MimerTableIndexColumn} for the
  * write side). This is genuinely a per-column property, not an index-wide one - a single index
  * can mix a special-algorithm column with ordinary ones (see {@link MimerAccessPath}'s own
  * Javadoc for why it isn't also exposed there).

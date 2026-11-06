@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.e4;
+package com.seizia.chromite.ui.e4;
 
 import org.eclipse.e4.ui.internal.css.swt.ICTabRendering;
 import org.eclipse.e4.ui.internal.workbench.PartStackUtil;
@@ -34,18 +34,18 @@ import org.eclipse.swt.widgets.ToolBar;
 import org.eclipse.swt.widgets.ToolItem;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.DBPDataSourceContainer;
-import org.jkiss.dbeaver.ui.UIColors;
-import org.jkiss.dbeaver.ui.UIStyles;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.css.CSSUtils;
-import org.jkiss.dbeaver.utils.RuntimeUtils;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.DBPDataSourceContainer;
+import com.seizia.chromite.ui.UIColors;
+import com.seizia.chromite.ui.UIStyles;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.css.CSSUtils;
+import com.seizia.chromite.utils.RuntimeUtils;
 
 import java.lang.reflect.Field;
 
-public final class DBeaverCTabFolderRenderer extends CTabRendering implements ICTabRendering {
-    private static final Log log = Log.getLog(DBeaverCTabFolderRenderer.class);
+public final class ChromiteCTabFolderRenderer extends CTabRendering implements ICTabRendering {
+    private static final Log log = Log.getLog(ChromiteCTabFolderRenderer.class);
 
     private static final Rectangle EMPTY_CLOSE_RECT = new Rectangle(0, 0, 0, 0);
 
@@ -70,7 +70,7 @@ public final class DBeaverCTabFolderRenderer extends CTabRendering implements IC
         minMaxToolBarField = FieldReflection.of(CTabFolder.class, "minMaxTb");
     }
 
-    public DBeaverCTabFolderRenderer(@NotNull CTabFolder parent) {
+    public ChromiteCTabFolderRenderer(@NotNull CTabFolder parent) {
         super(parent);
     }
 
@@ -240,7 +240,7 @@ public final class DBeaverCTabFolderRenderer extends CTabRendering implements IC
 
     @Nullable
     private static Color getConnectionColor(@NotNull CTabItem item, @NotNull MPart part) {
-        DBPDataSourceContainer container = DBeaverEditorPartUtils.getDataSourceContainer(
+        DBPDataSourceContainer container = ChromiteEditorPartUtils.getDataSourceContainer(
             part, () -> {
                 if (!item.isDisposed()) {
                     item.getParent().redraw();

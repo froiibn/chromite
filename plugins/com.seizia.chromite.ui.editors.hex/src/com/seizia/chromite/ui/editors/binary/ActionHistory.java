@@ -14,10 +14,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.editors.binary;
+package com.seizia.chromite.ui.editors.binary;
 
-import org.jkiss.dbeaver.ui.editors.binary.BinaryContent.Range;
-import org.jkiss.dbeaver.utils.ContentUtils;
+import com.seizia.chromite.ui.editors.binary.BinaryContent.Range;
+import com.seizia.chromite.utils.ContentUtils;
 
 import java.io.Closeable;
 import java.nio.ByteBuffer;

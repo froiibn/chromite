@@ -14,12 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui;
+package com.seizia.chromite.ui;
 
 import org.eclipse.swt.SWT;
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.model.DBIcon;
-import org.jkiss.dbeaver.ui.internal.UIMessages;
+import com.seizia.chromite.model.DBIcon;
+import com.seizia.chromite.ui.internal.UIMessages;
 
 public enum UIElementAlignment {
     LEFT(UIMessages.control_alignment_left, SWT.LEFT, UIIcon.ALIGN_TO_LEFT),

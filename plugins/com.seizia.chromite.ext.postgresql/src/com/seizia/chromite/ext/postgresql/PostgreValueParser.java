@@ -14,28 +14,28 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.postgresql;
+package com.seizia.chromite.ext.postgresql;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.ext.postgresql.model.PostgreDataType;
-import org.jkiss.dbeaver.ext.postgresql.model.PostgreDataTypeAttribute;
-import org.jkiss.dbeaver.ext.postgresql.model.PostgreTypeType;
-import org.jkiss.dbeaver.model.DBPDataKind;
-import org.jkiss.dbeaver.model.DBUtils;
-import org.jkiss.dbeaver.model.data.DBDCollection;
-import org.jkiss.dbeaver.model.data.DBDValueHandler;
-import org.jkiss.dbeaver.model.exec.DBCException;
-import org.jkiss.dbeaver.model.exec.DBCSession;
-import org.jkiss.dbeaver.model.impl.jdbc.JDBCStructImpl;
-import org.jkiss.dbeaver.model.impl.jdbc.data.JDBCCollection;
-import org.jkiss.dbeaver.model.impl.jdbc.data.JDBCComposite;
-import org.jkiss.dbeaver.model.impl.jdbc.data.JDBCCompositeStatic;
-import org.jkiss.dbeaver.model.sql.SQLConstants;
-import org.jkiss.dbeaver.model.struct.DBSDataType;
-import org.jkiss.dbeaver.model.struct.DBSTypedObject;
-import org.jkiss.dbeaver.model.struct.DBSTypedObjectEx;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.ext.postgresql.model.PostgreDataType;
+import com.seizia.chromite.ext.postgresql.model.PostgreDataTypeAttribute;
+import com.seizia.chromite.ext.postgresql.model.PostgreTypeType;
+import com.seizia.chromite.model.DBPDataKind;
+import com.seizia.chromite.model.DBUtils;
+import com.seizia.chromite.model.data.DBDCollection;
+import com.seizia.chromite.model.data.DBDValueHandler;
+import com.seizia.chromite.model.exec.DBCException;
+import com.seizia.chromite.model.exec.DBCSession;
+import com.seizia.chromite.model.impl.jdbc.JDBCStructImpl;
+import com.seizia.chromite.model.impl.jdbc.data.JDBCCollection;
+import com.seizia.chromite.model.impl.jdbc.data.JDBCComposite;
+import com.seizia.chromite.model.impl.jdbc.data.JDBCCompositeStatic;
+import com.seizia.chromite.model.sql.SQLConstants;
+import com.seizia.chromite.model.struct.DBSDataType;
+import com.seizia.chromite.model.struct.DBSTypedObject;
+import com.seizia.chromite.model.struct.DBSTypedObjectEx;
 import org.jkiss.utils.CommonUtils;
 import org.jkiss.utils.csv.CSVReaderBuilder;
 import org.jkiss.utils.csv.CSVReaderNullFieldIndicator;

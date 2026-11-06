@@ -14,20 +14,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.navigator.database;
+package com.seizia.chromite.ui.navigator.database;
 
 import org.eclipse.swt.graphics.Color;
-import org.jkiss.dbeaver.ui.ThemeColor;
-import org.jkiss.dbeaver.ui.ThemeListener;
+import com.seizia.chromite.ui.ThemeColor;
+import com.seizia.chromite.ui.ThemeListener;
 
 /**
  * Theme settings
  */
 public class NavigatorThemeSettings extends ThemeListener {
 
-    public static final String HINT_FOREGROUND_COLOR = "org.jkiss.dbeaver.ui.navigator.node.foreground";
-    public static final String TABLE_STATISTICS_BACKGROUND_COLOR = "org.jkiss.dbeaver.ui.navigator.node.statistics.background";
-    public static final String COLOR_NODE_TRANSIENT_FOREGROUND = "org.jkiss.dbeaver.ui.navigator.node.transient.foreground";
+    public static final String HINT_FOREGROUND_COLOR = "com.seizia.chromite.ui.navigator.node.foreground";
+    public static final String TABLE_STATISTICS_BACKGROUND_COLOR = "com.seizia.chromite.ui.navigator.node.statistics.background";
+    public static final String COLOR_NODE_TRANSIENT_FOREGROUND = "com.seizia.chromite.ui.navigator.node.transient.foreground";
 
     @ThemeColor(HINT_FOREGROUND_COLOR)
     public volatile Color hintColor;

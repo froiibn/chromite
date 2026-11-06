@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.app.config.registry;
+package com.seizia.chromite.ui.app.config.registry;
 
 import org.eclipse.core.runtime.IConfigurationElement;
 import org.eclipse.core.runtime.IExtensionRegistry;
@@ -26,7 +26,7 @@ import java.util.Comparator;
 import java.util.List;
 
 public final class ProductConfigWizardRegistry {
-    private static final String EXTENSION_ID = "org.jkiss.dbeaver.ui.app.config";
+    private static final String EXTENSION_ID = "com.seizia.chromite.ui.app.config";
 
     private static ProductConfigWizardRegistry instance;
 

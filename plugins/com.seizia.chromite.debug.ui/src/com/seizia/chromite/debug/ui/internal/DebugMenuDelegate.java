@@ -14,11 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.debug.ui.internal;
+package com.seizia.chromite.debug.ui.internal;
 
 import org.eclipse.debug.ui.actions.AbstractLaunchToolbarAction;
 import org.eclipse.jface.action.IAction;
-import org.jkiss.dbeaver.debug.ui.DebugUI;
+import com.seizia.chromite.debug.ui.DebugUI;
 
 public class DebugMenuDelegate extends AbstractLaunchToolbarAction {
 

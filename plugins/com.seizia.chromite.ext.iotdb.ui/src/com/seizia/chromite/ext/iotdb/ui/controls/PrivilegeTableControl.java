@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.ext.iotdb.ui.controls;
+package com.seizia.chromite.ext.iotdb.ui.controls;
 
 import org.eclipse.jface.viewers.*;
 import org.eclipse.swt.SWT;
@@ -26,13 +26,13 @@ import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Event;
 import org.eclipse.swt.widgets.Table;
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.ext.iotdb.model.IoTDBGrant;
-import org.jkiss.dbeaver.ext.iotdb.model.IoTDBPrivilege;
-import org.jkiss.dbeaver.ext.iotdb.ui.internal.IoTDBUiMessages;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.controls.CustomCheckboxCellEditor;
-import org.jkiss.dbeaver.ui.controls.ListContentProvider;
-import org.jkiss.dbeaver.ui.controls.ViewerColumnController;
+import com.seizia.chromite.ext.iotdb.model.IoTDBGrant;
+import com.seizia.chromite.ext.iotdb.model.IoTDBPrivilege;
+import com.seizia.chromite.ext.iotdb.ui.internal.IoTDBUiMessages;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.controls.CustomCheckboxCellEditor;
+import com.seizia.chromite.ui.controls.ListContentProvider;
+import com.seizia.chromite.ui.controls.ViewerColumnController;
 import org.jkiss.utils.ArrayUtils;
 import org.jkiss.utils.CommonUtils;
 

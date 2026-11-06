@@ -14,14 +14,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.controls.resultset.colors;
+package com.seizia.chromite.ui.controls.resultset.colors;
 
 import org.eclipse.jface.dialogs.IDialogConstants;
-import org.jkiss.dbeaver.model.data.DBDAttributeBinding;
-import org.jkiss.dbeaver.model.virtual.DBVEntity;
-import org.jkiss.dbeaver.ui.controls.resultset.ResultSetRow;
-import org.jkiss.dbeaver.ui.controls.resultset.ResultSetViewer;
-import org.jkiss.dbeaver.ui.controls.resultset.internal.ResultSetMessages;
+import com.seizia.chromite.model.data.DBDAttributeBinding;
+import com.seizia.chromite.model.virtual.DBVEntity;
+import com.seizia.chromite.ui.controls.resultset.ResultSetRow;
+import com.seizia.chromite.ui.controls.resultset.ResultSetViewer;
+import com.seizia.chromite.ui.controls.resultset.internal.ResultSetMessages;
 
 public class CustomizeColorsAction extends ColorAction {
     private ResultSetViewer resultSetViewer;

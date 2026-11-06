@@ -14,10 +14,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.editors.sql.syntax;
+package com.seizia.chromite.ui.editors.sql.syntax;
 
 import org.eclipse.jface.text.source.DefaultCharacterPairMatcher;
-import org.jkiss.dbeaver.ui.editors.sql.SQLEditorBase;
+import com.seizia.chromite.ui.editors.sql.SQLEditorBase;
 
 public class SQLCharacterPairMatcher extends DefaultCharacterPairMatcher {
 

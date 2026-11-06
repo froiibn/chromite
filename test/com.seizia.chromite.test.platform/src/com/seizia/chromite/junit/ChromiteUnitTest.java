@@ -14,23 +14,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.junit;
+package com.seizia.chromite.junit;
 
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.model.DBPDataSourceContainer;
-import org.jkiss.dbeaver.model.app.DBPProject;
-import org.jkiss.dbeaver.model.connection.DBPConnectionConfiguration;
-import org.jkiss.dbeaver.model.connection.DBPDriver;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.registry.DataSourceDescriptor;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.junit.osgi.annotation.RunWithProduct;
+import com.seizia.chromite.model.DBPDataSourceContainer;
+import com.seizia.chromite.model.app.DBPProject;
+import com.seizia.chromite.model.connection.DBPConnectionConfiguration;
+import com.seizia.chromite.model.connection.DBPDriver;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.registry.DataSourceDescriptor;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.junit.osgi.annotation.RunWithProduct;
 import org.junit.jupiter.api.Assertions;
 import org.mockito.Mock;
 
 
-@RunWithProduct("DBeaverUnitTest.product")
-public abstract class DBeaverUnitTest extends ApplicationUnitTest {
+@RunWithProduct("ChromiteUnitTest.product")
+public abstract class ChromiteUnitTest extends ApplicationUnitTest {
 
     @Mock
     protected DBRProgressMonitor monitor;

@@ -14,21 +14,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.editors.sql.generator;
+package com.seizia.chromite.ui.editors.sql.generator;
 
 import org.eclipse.core.expressions.PropertyTester;
 import org.eclipse.jface.viewers.IStructuredSelection;
 import org.eclipse.ui.IWorkbenchPart;
-import org.jkiss.dbeaver.ui.ActionUtils;
-import org.jkiss.dbeaver.ui.controls.resultset.IResultSetSelection;
-import org.jkiss.dbeaver.ui.navigator.NavigatorUtils;
+import com.seizia.chromite.ui.ActionUtils;
+import com.seizia.chromite.ui.controls.resultset.IResultSetSelection;
+import com.seizia.chromite.ui.navigator.NavigatorUtils;
 
 /**
  * SQLGeneratorPropertyTester
  */
 public class SQLGeneratorPropertyTester extends PropertyTester
 {
-    public static final String NAMESPACE = "org.jkiss.dbeaver.ui.editors.sql.util";
+    public static final String NAMESPACE = "com.seizia.chromite.ui.editors.sql.util";
     public static final String PROP_CAN_GENERATE = "canGenerate";
 
     public SQLGeneratorPropertyTester() {

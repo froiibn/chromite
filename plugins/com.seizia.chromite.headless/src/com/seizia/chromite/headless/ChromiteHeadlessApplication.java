@@ -14,30 +14,30 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.headless;
+package com.seizia.chromite.headless;
 
 import org.eclipse.equinox.app.IApplicationContext;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.ModelPreferences;
-import org.jkiss.dbeaver.model.app.DBPApplication;
-import org.jkiss.dbeaver.model.app.DBPPlatform;
-import org.jkiss.dbeaver.model.preferences.DBPPreferenceStore;
-import org.jkiss.dbeaver.model.rcp.DesktopApplicationImpl;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.runtime.ui.DBPPlatformUI;
-import org.jkiss.dbeaver.utils.GeneralUtils;
-import org.jkiss.dbeaver.utils.RuntimeUtils;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.ModelPreferences;
+import com.seizia.chromite.model.app.DBPApplication;
+import com.seizia.chromite.model.app.DBPPlatform;
+import com.seizia.chromite.model.preferences.DBPPreferenceStore;
+import com.seizia.chromite.model.rcp.DesktopApplicationImpl;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.runtime.ui.DBPPlatformUI;
+import com.seizia.chromite.utils.GeneralUtils;
+import com.seizia.chromite.utils.RuntimeUtils;
 
 /**
  * Headless application
  */
-public class DBeaverHeadlessApplication extends DesktopApplicationImpl {
+public class ChromiteHeadlessApplication extends DesktopApplicationImpl {
 
-    private static final Log log = Log.getLog(DBeaverHeadlessApplication.class);
+    private static final Log log = Log.getLog(ChromiteHeadlessApplication.class);
 
-    public DBeaverHeadlessApplication() {
+    public ChromiteHeadlessApplication() {
         // Initialize platform
         initializeApplicationServices();
     }
@@ -66,18 +66,18 @@ public class DBeaverHeadlessApplication extends DesktopApplicationImpl {
     @NotNull
     @Override
     public Class<? extends DBPPlatform> getPlatformClass() {
-        return DBeaverTestPlatform.class;
+        return ChromiteTestPlatform.class;
     }
 
     @Override
     public Class<? extends DBPPlatformUI> getPlatformUIClass() {
-        return DBeaverTestPlatformUI.class;
+        return ChromiteTestPlatformUI.class;
     }
 
     @Nullable
     @Override
     public String getDefaultProjectName() {
-        return "DBeaverTests";
+        return "ChromiteTests";
     }
 
     @Override
@@ -88,6 +88,6 @@ public class DBeaverHeadlessApplication extends DesktopApplicationImpl {
     @NotNull
     @Override
     public DBPPreferenceStore getPreferenceStore() {
-        return DBeaverTestActivator.getInstance().getPreferences();
+        return ChromiteTestActivator.getInstance().getPreferences();
     }
 }

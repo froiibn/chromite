@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.mysql.model.plan;
+package com.seizia.chromite.ext.mysql.model.plan;
 
 import java.util.ArrayList;
 

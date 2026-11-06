@@ -15,10 +15,10 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.ext.clickhouse;
+package com.seizia.chromite.ext.clickhouse;
 
-import org.jkiss.dbeaver.model.exec.jdbc.JDBCDatabaseMetaData;
-import org.jkiss.dbeaver.model.impl.jdbc.JDBCDataSourceInfo;
+import com.seizia.chromite.model.exec.jdbc.JDBCDatabaseMetaData;
+import com.seizia.chromite.model.impl.jdbc.JDBCDataSourceInfo;
 
 public class ClickhouseDataSourceInfo extends JDBCDataSourceInfo {
 

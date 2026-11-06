@@ -14,21 +14,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.controls.resultset.handler;
+package com.seizia.chromite.ui.controls.resultset.handler;
 
 import org.eclipse.core.expressions.PropertyTester;
 import org.eclipse.ui.IWorkbenchPart;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.DBUtils;
-import org.jkiss.dbeaver.model.data.DBDAttributeBinding;
-import org.jkiss.dbeaver.model.exec.DBCExecutionContext;
-import org.jkiss.dbeaver.model.struct.DBSDataContainer;
-import org.jkiss.dbeaver.model.struct.DBSEntity;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.ui.ActionUtils;
-import org.jkiss.dbeaver.ui.controls.resultset.IResultSetEditor;
-import org.jkiss.dbeaver.ui.controls.resultset.ResultSetRow;
-import org.jkiss.dbeaver.ui.controls.resultset.ResultSetViewer;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.DBUtils;
+import com.seizia.chromite.model.data.DBDAttributeBinding;
+import com.seizia.chromite.model.exec.DBCExecutionContext;
+import com.seizia.chromite.model.struct.DBSDataContainer;
+import com.seizia.chromite.model.struct.DBSEntity;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.ui.ActionUtils;
+import com.seizia.chromite.ui.controls.resultset.IResultSetEditor;
+import com.seizia.chromite.ui.controls.resultset.ResultSetRow;
+import com.seizia.chromite.ui.controls.resultset.ResultSetViewer;
 import org.jkiss.utils.CommonUtils;
 
 import java.util.List;
@@ -38,7 +38,7 @@ import java.util.List;
  */
 public class ResultSetPropertyTester extends PropertyTester
 {
-    public static final String NAMESPACE = "org.jkiss.dbeaver.core.resultset";
+    public static final String NAMESPACE = "com.seizia.chromite.core.resultset";
     public static final String PROP_ACTIVE = "active";
     public static final String PROP_HAS_DATA = "hasData";
     public static final String PROP_HAS_MORE_DATA = "hasMoreData";

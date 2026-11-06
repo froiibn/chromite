@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.editors.erd.notations;
+package com.seizia.chromite.ui.editors.erd.notations;
 
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.IConfigurationElement;
@@ -22,10 +22,10 @@ import org.eclipse.core.runtime.IExtensionRegistry;
 import org.eclipse.core.runtime.Platform;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.preferences.DBPPreferenceStore;
-import org.jkiss.dbeaver.ui.editors.erd.ERDUIConstants;
-import org.jkiss.dbeaver.ui.editors.erd.internal.ERDUIActivator;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.preferences.DBPPreferenceStore;
+import com.seizia.chromite.ui.editors.erd.ERDUIConstants;
+import com.seizia.chromite.ui.editors.erd.internal.ERDUIActivator;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -35,7 +35,7 @@ import java.util.Map;
 public class ERDNotationRegistry {
 
     private static final Log log = Log.getLog(ERDNotationRegistry.class);
-    private static final String EXTENSION_ID = "org.jkiss.dbeaver.ui.editors.erd.notation.style";
+    private static final String EXTENSION_ID = "com.seizia.chromite.ui.editors.erd.notation.style";
     private static ERDNotationRegistry instance;
     private final Map<String, ERDNotationDescriptor> notations = new LinkedHashMap<>();
     private ERDNotationDescriptor activeDescriptor;

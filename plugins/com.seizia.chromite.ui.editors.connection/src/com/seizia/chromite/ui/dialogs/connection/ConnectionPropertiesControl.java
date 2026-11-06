@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.dialogs.connection;
+package com.seizia.chromite.ui.dialogs.connection;
 
 import org.eclipse.jface.action.Action;
 import org.eclipse.jface.action.IMenuManager;
@@ -29,21 +29,21 @@ import org.eclipse.swt.widgets.ToolItem;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.DBPDataSourceContainer;
-import org.jkiss.dbeaver.model.connection.DBPConnectionConfiguration;
-import org.jkiss.dbeaver.model.connection.DBPDriver;
-import org.jkiss.dbeaver.model.connection.DBPDriverSubstitutionDescriptor;
-import org.jkiss.dbeaver.model.impl.PropertyDescriptor;
-import org.jkiss.dbeaver.model.preferences.DBPPropertyDescriptor;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.runtime.properties.PropertySourceCustom;
-import org.jkiss.dbeaver.ui.DBeaverIcons;
-import org.jkiss.dbeaver.ui.UIIcon;
-import org.jkiss.dbeaver.ui.dialogs.EnterNameDialog;
-import org.jkiss.dbeaver.ui.internal.UIConnectionMessages;
-import org.jkiss.dbeaver.ui.internal.UIMessages;
-import org.jkiss.dbeaver.ui.properties.PropertyTreeViewer;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.DBPDataSourceContainer;
+import com.seizia.chromite.model.connection.DBPConnectionConfiguration;
+import com.seizia.chromite.model.connection.DBPDriver;
+import com.seizia.chromite.model.connection.DBPDriverSubstitutionDescriptor;
+import com.seizia.chromite.model.impl.PropertyDescriptor;
+import com.seizia.chromite.model.preferences.DBPPropertyDescriptor;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.runtime.properties.PropertySourceCustom;
+import com.seizia.chromite.ui.SwtIcons;
+import com.seizia.chromite.ui.UIIcon;
+import com.seizia.chromite.ui.dialogs.EnterNameDialog;
+import com.seizia.chromite.ui.internal.UIConnectionMessages;
+import com.seizia.chromite.ui.internal.UIMessages;
+import com.seizia.chromite.ui.properties.PropertyTreeViewer;
 import org.jkiss.utils.CommonUtils;
 
 import java.util.*;
@@ -224,13 +224,13 @@ public class ConnectionPropertiesControl extends PropertyTreeViewer {
         toolBar.setLayoutData(gd);
 
         ToolItem addItem = new ToolItem(toolBar, SWT.NONE);
-        addItem.setImage(DBeaverIcons.getImage(UIIcon.ROW_ADD));
+        addItem.setImage(SwtIcons.getImage(UIIcon.ROW_ADD));
         addItem.setToolTipText("Add user property");
         addItem.addSelectionListener(SelectionListener.widgetSelectedAdapter(e ->
             createNewProperty(getCategoryNode(USER_PROPERTIES_CATEGORY), USER_PROPERTIES_CATEGORY)));
 
         ToolItem removeItem = new ToolItem(toolBar, SWT.NONE);
-        removeItem.setImage(DBeaverIcons.getImage(UIIcon.ROW_DELETE));
+        removeItem.setImage(SwtIcons.getImage(UIIcon.ROW_DELETE));
         removeItem.setToolTipText("Remove user property");
         removeItem.addSelectionListener(SelectionListener.widgetSelectedAdapter(e -> {
                 ISelection selection = getSelection();
@@ -241,7 +241,7 @@ public class ConnectionPropertiesControl extends PropertyTreeViewer {
         removeItem.setEnabled(false);
 
         ToolItem resetItem = new ToolItem(toolBar, SWT.NONE);
-        resetItem.setImage(DBeaverIcons.getImage(UIIcon.ERASE));
+        resetItem.setImage(SwtIcons.getImage(UIIcon.ERASE));
         resetItem.setToolTipText(
             UIMessages.ui_properties_tree_viewer_action_reset_value + UIMessages.ui_properties_tree_viewer__to_default);
         resetItem.addSelectionListener(SelectionListener.widgetSelectedAdapter(e -> resetSelectedPropertyToDefault()));

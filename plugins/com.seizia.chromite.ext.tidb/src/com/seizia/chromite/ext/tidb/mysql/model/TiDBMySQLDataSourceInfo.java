@@ -15,11 +15,11 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.ext.tidb.mysql.model;
+package com.seizia.chromite.ext.tidb.mysql.model;
 
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.exec.jdbc.JDBCDatabaseMetaData;
-import org.jkiss.dbeaver.model.impl.jdbc.JDBCDataSourceInfo;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.exec.jdbc.JDBCDatabaseMetaData;
+import com.seizia.chromite.model.impl.jdbc.JDBCDataSourceInfo;
 import org.osgi.framework.Version;
 
 public class TiDBMySQLDataSourceInfo extends JDBCDataSourceInfo {

@@ -1,9 +1,9 @@
 <?xml version='1.0' encoding='UTF-8'?>
 <!-- Schema file written by PDE -->
-<schema targetNamespace="org.jkiss.dbeaver.model" xmlns="http://www.w3.org/2001/XMLSchema">
+<schema targetNamespace="com.seizia.chromite.model" xmlns="http://www.w3.org/2001/XMLSchema">
 <annotation>
       <appInfo>
-         <meta.schema plugin="org.jkiss.dbeaver.model" id="org.jkiss.dbeaver.app.config" name="Application configuration"/>
+         <meta.schema plugin="com.seizia.chromite.model" id="com.seizia.chromite.app.config" name="Application configuration"/>
       </appInfo>
    </annotation>
 
@@ -34,14 +34,14 @@
          <attribute name="enablementTester" type="string">
             <annotation>
                <appInfo>
-                  <meta.attribute kind="java" basedOn="org.jkiss.dbeaver.model.config.ProductConfigFeatureTester:"/>
+                  <meta.attribute kind="java" basedOn="com.seizia.chromite.model.config.ProductConfigFeatureTester:"/>
                </appInfo>
             </annotation>
          </attribute>
          <attribute name="availabilityTester" type="string">
             <annotation>
                <appInfo>
-                  <meta.attribute kind="java" basedOn="org.jkiss.dbeaver.model.config.ProductConfigFeatureAvailabilityTester:"/>
+                  <meta.attribute kind="java" basedOn="com.seizia.chromite.model.config.ProductConfigFeatureAvailabilityTester:"/>
                </appInfo>
             </annotation>
          </attribute>

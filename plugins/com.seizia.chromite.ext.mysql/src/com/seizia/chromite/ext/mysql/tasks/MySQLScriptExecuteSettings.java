@@ -14,17 +14,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.mysql.tasks;
+package com.seizia.chromite.ext.mysql.tasks;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.ext.mysql.MySQLDataSourceProvider;
-import org.jkiss.dbeaver.ext.mysql.model.MySQLCatalog;
-import org.jkiss.dbeaver.model.app.DBPProject;
-import org.jkiss.dbeaver.model.connection.DBPNativeClientLocation;
-import org.jkiss.dbeaver.model.preferences.DBPPreferenceStore;
-import org.jkiss.dbeaver.model.runtime.DBRRunnableContext;
-import org.jkiss.dbeaver.tasks.nativetool.AbstractScriptExecuteSettings;
+import com.seizia.chromite.ext.mysql.MySQLDataSourceProvider;
+import com.seizia.chromite.ext.mysql.model.MySQLCatalog;
+import com.seizia.chromite.model.app.DBPProject;
+import com.seizia.chromite.model.connection.DBPNativeClientLocation;
+import com.seizia.chromite.model.preferences.DBPPreferenceStore;
+import com.seizia.chromite.model.runtime.DBRRunnableContext;
+import com.seizia.chromite.tasks.nativetool.AbstractScriptExecuteSettings;
 import org.jkiss.utils.CommonUtils;
 
 public class MySQLScriptExecuteSettings extends AbstractScriptExecuteSettings<MySQLCatalog> implements MySQLNativeCredentialsSettings {

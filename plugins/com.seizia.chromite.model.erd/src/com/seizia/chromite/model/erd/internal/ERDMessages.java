@@ -15,12 +15,12 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.model.erd.internal;
+package com.seizia.chromite.model.erd.internal;
 
 import org.eclipse.osgi.util.NLS;
 
 public class ERDMessages extends NLS {
-    static final String BUNDLE_NAME = "org.jkiss.dbeaver.model.erd.internal.ERDMessages"; //$NON-NLS-1$
+    static final String BUNDLE_NAME = "com.seizia.chromite.model.erd.internal.ERDMessages"; //$NON-NLS-1$
 
     static {
         // initialize resource bundle

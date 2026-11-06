@@ -14,15 +14,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.registry.project;
+package com.seizia.chromite.registry.project;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.model.app.DBPDataSourceRegistry;
-import org.jkiss.dbeaver.model.app.DBPWorkspace;
-import org.jkiss.dbeaver.model.auth.SMSessionContext;
-import org.jkiss.dbeaver.model.impl.app.BaseProjectImpl;
-import org.jkiss.dbeaver.registry.DataSourceRegistry;
+import com.seizia.chromite.model.app.DBPDataSourceRegistry;
+import com.seizia.chromite.model.app.DBPWorkspace;
+import com.seizia.chromite.model.auth.SMSessionContext;
+import com.seizia.chromite.model.impl.app.BaseProjectImpl;
+import com.seizia.chromite.registry.DataSourceRegistry;
 import org.jkiss.utils.CommonUtils;
 import org.jkiss.utils.Pair;
 

@@ -14,13 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.ai.internal;
+package com.seizia.chromite.model.ai.internal;
 
 import org.eclipse.core.runtime.preferences.AbstractPreferenceInitializer;
-import org.jkiss.dbeaver.ModelPreferences;
-import org.jkiss.dbeaver.model.ai.AIConstants;
-import org.jkiss.dbeaver.model.ai.AISqlJoinRule;
-import org.jkiss.dbeaver.model.preferences.DBPPreferenceStore;
+import com.seizia.chromite.ModelPreferences;
+import com.seizia.chromite.model.ai.AIConstants;
+import com.seizia.chromite.model.ai.AISqlJoinRule;
+import com.seizia.chromite.model.preferences.DBPPreferenceStore;
 
 public class AIPreferenceInitializer extends AbstractPreferenceInitializer {
     @Override

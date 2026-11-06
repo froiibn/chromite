@@ -14,10 +14,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.mssql.model;
+package com.seizia.chromite.ext.mssql.model;
 
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.ext.mssql.SQLServerUtils;
+import com.seizia.chromite.ext.mssql.SQLServerUtils;
 
 import java.sql.ResultSet;
 

@@ -14,19 +14,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.registry;
+package com.seizia.chromite.registry;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.app.DBPDataSourceRegistry;
-import org.jkiss.dbeaver.model.app.DBPProject;
-import org.jkiss.dbeaver.model.data.json.JSONUtils;
-import org.jkiss.dbeaver.model.impl.app.BaseProjectImpl;
-import org.jkiss.dbeaver.model.sync.DBPSyncScope;
-import org.jkiss.dbeaver.model.sync.DBPSyncTarget;
-import org.jkiss.dbeaver.model.sync.DBPSyncUnit;
-import org.jkiss.dbeaver.registry.internal.RegistryMessages;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.app.DBPDataSourceRegistry;
+import com.seizia.chromite.model.app.DBPProject;
+import com.seizia.chromite.model.data.json.JSONUtils;
+import com.seizia.chromite.model.impl.app.BaseProjectImpl;
+import com.seizia.chromite.model.sync.DBPSyncScope;
+import com.seizia.chromite.model.sync.DBPSyncTarget;
+import com.seizia.chromite.model.sync.DBPSyncUnit;
+import com.seizia.chromite.registry.internal.RegistryMessages;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;

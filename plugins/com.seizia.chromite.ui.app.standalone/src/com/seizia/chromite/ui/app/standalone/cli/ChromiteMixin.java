@@ -14,13 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.app.standalone.cli;
+package com.seizia.chromite.ui.app.standalone.cli;
 
 import picocli.CommandLine;
 
 import java.util.List;
 
-public class DBeaverMixin {
+public class ChromiteMixin {
     @CommandLine.Option(
         names = {"-followReferences"},
         hidden = true

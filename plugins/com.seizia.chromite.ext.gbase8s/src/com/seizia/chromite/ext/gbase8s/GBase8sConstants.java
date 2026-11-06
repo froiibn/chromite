@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.ext.gbase8s;
+package com.seizia.chromite.ext.gbase8s;
 
 /**
  * GBase8sConstants

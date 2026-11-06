@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.datadam.transport;
+package com.seizia.chromite.model.datadam.transport;
 
 import com.dbeaver.datadam.dam.remote.api.DDRemoteDamProtocol;
 import com.dbeaver.datadam.dam.remote.api.model.DDRemoteDamHandshakeRequest;
@@ -26,10 +26,10 @@ import org.eclipse.core.runtime.Status;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.datadam.DDEndpoints;
-import org.jkiss.dbeaver.model.runtime.AbstractJob;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.datadam.DDEndpoints;
+import com.seizia.chromite.model.runtime.AbstractJob;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
 import org.jkiss.utils.BaseWebSocketClient;
 import org.jkiss.utils.HttpConstants;
 

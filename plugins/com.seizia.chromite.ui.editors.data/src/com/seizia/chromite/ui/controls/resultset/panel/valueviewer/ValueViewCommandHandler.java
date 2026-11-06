@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.controls.resultset.panel.valueviewer;
+package com.seizia.chromite.ui.controls.resultset.panel.valueviewer;
 
 import org.eclipse.core.commands.AbstractHandler;
 import org.eclipse.core.commands.ExecutionEvent;
@@ -22,16 +22,16 @@ import org.eclipse.core.commands.ExecutionException;
 import org.eclipse.ui.handlers.HandlerUtil;
 import org.eclipse.ui.texteditor.ITextEditorActionDefinitionIds;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.ui.controls.resultset.IResultSetPanel;
-import org.jkiss.dbeaver.ui.controls.resultset.ResultSetViewer;
-import org.jkiss.dbeaver.ui.controls.resultset.handler.ResultSetHandlerMain;
+import com.seizia.chromite.ui.controls.resultset.IResultSetPanel;
+import com.seizia.chromite.ui.controls.resultset.ResultSetViewer;
+import com.seizia.chromite.ui.controls.resultset.handler.ResultSetHandlerMain;
 
 /**
  * ValueViewCommandHandler
  */
 public class ValueViewCommandHandler extends AbstractHandler {
 
-    public static final String CMD_SAVE_VALUE = "org.jkiss.dbeaver.core.resultset.cell.save";
+    public static final String CMD_SAVE_VALUE = "com.seizia.chromite.core.resultset.cell.save";
 
     @Nullable
     @Override

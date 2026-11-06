@@ -14,15 +14,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.editors.erd.command;
+package com.seizia.chromite.ui.editors.erd.command;
 
 import org.eclipse.draw2d.geometry.Dimension;
 import org.eclipse.draw2d.geometry.Point;
 import org.eclipse.draw2d.geometry.Rectangle;
 import org.eclipse.gef.commands.Command;
-import org.jkiss.dbeaver.model.erd.ERDNote;
-import org.jkiss.dbeaver.ui.editors.erd.part.DiagramPart;
-import org.jkiss.dbeaver.ui.editors.erd.part.NotePart;
+import com.seizia.chromite.model.erd.ERDNote;
+import com.seizia.chromite.ui.editors.erd.part.DiagramPart;
+import com.seizia.chromite.ui.editors.erd.part.NotePart;
 
 /**
  * Add entity to diagram

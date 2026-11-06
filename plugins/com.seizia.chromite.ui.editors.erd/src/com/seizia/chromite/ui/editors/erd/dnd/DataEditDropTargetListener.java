@@ -17,7 +17,7 @@
 /*
  * Created on Jul 14, 2004
  */
-package org.jkiss.dbeaver.ui.editors.erd.dnd;
+package com.seizia.chromite.ui.editors.erd.dnd;
 
 import org.eclipse.gef.EditPartViewer;
 import org.eclipse.gef.dnd.TemplateTransferDropTargetListener;

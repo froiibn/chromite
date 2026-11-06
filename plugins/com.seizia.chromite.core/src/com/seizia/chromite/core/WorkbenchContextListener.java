@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.core;
+package com.seizia.chromite.core;
 
 import org.eclipse.core.commands.ExecutionEvent;
 import org.eclipse.core.commands.ExecutionException;
@@ -26,17 +26,17 @@ import org.eclipse.ui.contexts.IContextActivation;
 import org.eclipse.ui.contexts.IContextService;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.model.app.DBPPlatformDesktop;
-import org.jkiss.dbeaver.model.app.DBPProject;
-import org.jkiss.dbeaver.model.app.DBPProjectListener;
-import org.jkiss.dbeaver.model.navigator.DBNNode;
-import org.jkiss.dbeaver.model.runtime.features.DBRFeature;
-import org.jkiss.dbeaver.model.runtime.features.DBRFeatureRegistry;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.actions.datasource.DataSourceToolbarHandler;
-import org.jkiss.dbeaver.ui.editors.EditorUtils;
-import org.jkiss.dbeaver.ui.editors.NodeEditorInput;
-import org.jkiss.dbeaver.ui.perspective.DBeaverPerspective;
+import com.seizia.chromite.model.app.DBPPlatformDesktop;
+import com.seizia.chromite.model.app.DBPProject;
+import com.seizia.chromite.model.app.DBPProjectListener;
+import com.seizia.chromite.model.navigator.DBNNode;
+import com.seizia.chromite.model.runtime.features.DBRFeature;
+import com.seizia.chromite.model.runtime.features.DBRFeatureRegistry;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.actions.datasource.DataSourceToolbarHandler;
+import com.seizia.chromite.ui.editors.EditorUtils;
+import com.seizia.chromite.ui.editors.NodeEditorInput;
+import com.seizia.chromite.ui.perspective.ChromitePerspective;
 
 import java.util.*;
 
@@ -48,7 +48,7 @@ import java.util.*;
  */
 public class WorkbenchContextListener implements IWindowListener, IPageListener, IPartListener {
 
-    public static final String PERSPECTIVE_CONTEXT_ID = "org.jkiss.dbeaver.ui.perspective";
+    public static final String PERSPECTIVE_CONTEXT_ID = "com.seizia.chromite.ui.perspective";
 
     private final Set<IWorkbenchWindow> registeredWindows = new HashSet<>();
     private final DBPProjectListener projectListener;
@@ -147,7 +147,7 @@ public class WorkbenchContextListener implements IWindowListener, IPageListener,
                 if (contextService == null) {
                     return;
                 }
-                if (perspective.getId().equals(DBeaverPerspective.PERSPECTIVE_ID)) {
+                if (perspective.getId().equals(ChromitePerspective.PERSPECTIVE_ID)) {
                     perspectiveActivation = contextService.activateContext(PERSPECTIVE_CONTEXT_ID);
                 } else if (perspectiveActivation != null) {
                     contextService.deactivateContext(perspectiveActivation);

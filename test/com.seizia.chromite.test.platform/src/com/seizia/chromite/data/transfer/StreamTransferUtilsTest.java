@@ -14,18 +14,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.data.transfer;
+package com.seizia.chromite.data.transfer;
 
 
-import org.jkiss.dbeaver.tools.transfer.stream.StreamTransferUtils;
-import org.jkiss.junit.DBeaverUnitTest;
+import com.seizia.chromite.tools.transfer.stream.StreamTransferUtils;
+import com.seizia.chromite.junit.ChromiteUnitTest;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import java.util.HashMap;
 import java.util.Map;
 
-public class StreamTransferUtilsTest extends DBeaverUnitTest {
+public class StreamTransferUtilsTest extends ChromiteUnitTest {
 
     @Test
     public void testDelimiterString() {

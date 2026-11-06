@@ -15,20 +15,20 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.ext.iotdb.ui.config;
+package com.seizia.chromite.ext.iotdb.ui.config;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.ext.iotdb.model.IoTDBDataSource;
-import org.jkiss.dbeaver.ext.iotdb.model.IoTDBRelationalUser;
-import org.jkiss.dbeaver.model.DBPDataSource;
-import org.jkiss.dbeaver.model.edit.DBECommandContext;
-import org.jkiss.dbeaver.model.edit.DBEObjectMaker;
-import org.jkiss.dbeaver.model.impl.edit.AbstractObjectManager;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.model.struct.DBSObject;
-import org.jkiss.dbeaver.model.struct.cache.DBSObjectCache;
+import com.seizia.chromite.ext.iotdb.model.IoTDBDataSource;
+import com.seizia.chromite.ext.iotdb.model.IoTDBRelationalUser;
+import com.seizia.chromite.model.DBPDataSource;
+import com.seizia.chromite.model.edit.DBECommandContext;
+import com.seizia.chromite.model.edit.DBEObjectMaker;
+import com.seizia.chromite.model.impl.edit.AbstractObjectManager;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.model.struct.DBSObject;
+import com.seizia.chromite.model.struct.cache.DBSObjectCache;
 
 import java.util.Map;
 

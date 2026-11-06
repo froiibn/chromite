@@ -3,12 +3,12 @@
     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
   <modelVersion>4.0.0</modelVersion>
   <parent>
-    <groupId>org.jkiss.dbeaver</groupId>
-    <artifactId>dbeaver</artifactId>
+    <groupId>com.seizia.chromite</groupId>
+    <artifactId>chromite</artifactId>
     <version>1.0.0-SNAPSHOT</version>
     <relativePath>../../</relativePath>
   </parent>
-  <artifactId>org.jkiss.dbeaver.ui.feature</artifactId>
+  <artifactId>com.seizia.chromite.ui.feature</artifactId>
   <version>26.2.5-SNAPSHOT</version>
   <packaging>eclipse-feature</packaging>
 </project>

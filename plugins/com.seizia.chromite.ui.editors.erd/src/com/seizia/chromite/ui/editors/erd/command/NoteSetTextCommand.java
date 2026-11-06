@@ -14,11 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.editors.erd.command;
+package com.seizia.chromite.ui.editors.erd.command;
 
 import org.eclipse.gef.commands.Command;
-import org.jkiss.dbeaver.ui.editors.erd.figures.NoteFigure;
-import org.jkiss.dbeaver.ui.editors.erd.part.NotePart;
+import com.seizia.chromite.ui.editors.erd.figures.NoteFigure;
+import com.seizia.chromite.ui.editors.erd.part.NotePart;
 
 /**
  * Change note text

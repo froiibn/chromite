@@ -14,31 +14,31 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.timeplus;
+package com.seizia.chromite.ext.timeplus;
 
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.ext.generic.model.GenericDataSourceObjectContainer;
-import org.jkiss.dbeaver.ext.generic.model.GenericExecutionContext;
-import org.jkiss.dbeaver.ext.generic.model.GenericStructContainer;
-import org.jkiss.dbeaver.ext.generic.model.GenericTableBase;
-import org.jkiss.dbeaver.ext.generic.model.GenericTableColumn;
-import org.jkiss.dbeaver.ext.timeplus.edit.TimeplusTableColumnManager;
-import org.jkiss.dbeaver.ext.timeplus.edit.TimeplusTableManager;
-import org.jkiss.dbeaver.ext.timeplus.model.TimeplusDataSource;
-import org.jkiss.dbeaver.ext.timeplus.model.TimeplusMetaModel;
-import org.jkiss.dbeaver.ext.timeplus.model.TimeplusTable;
-import org.jkiss.dbeaver.ext.timeplus.model.TimeplusTableColumn;
-import org.jkiss.dbeaver.model.DBPDataSourceContainer;
-import org.jkiss.dbeaver.model.edit.DBEObjectMaker;
-import org.jkiss.dbeaver.model.edit.DBEPersistAction;
-import org.jkiss.dbeaver.model.exec.DBExecUtils;
-import org.jkiss.dbeaver.model.impl.edit.TestCommandContext;
-import org.jkiss.dbeaver.model.impl.jdbc.JDBCRemoteInstance;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.model.sql.SQLUtils;
-import org.jkiss.dbeaver.model.struct.DBSObject;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.junit.DBeaverUnitTest;
+import com.seizia.chromite.ext.generic.model.GenericDataSourceObjectContainer;
+import com.seizia.chromite.ext.generic.model.GenericExecutionContext;
+import com.seizia.chromite.ext.generic.model.GenericStructContainer;
+import com.seizia.chromite.ext.generic.model.GenericTableBase;
+import com.seizia.chromite.ext.generic.model.GenericTableColumn;
+import com.seizia.chromite.ext.timeplus.edit.TimeplusTableColumnManager;
+import com.seizia.chromite.ext.timeplus.edit.TimeplusTableManager;
+import com.seizia.chromite.ext.timeplus.model.TimeplusDataSource;
+import com.seizia.chromite.ext.timeplus.model.TimeplusMetaModel;
+import com.seizia.chromite.ext.timeplus.model.TimeplusTable;
+import com.seizia.chromite.ext.timeplus.model.TimeplusTableColumn;
+import com.seizia.chromite.model.DBPDataSourceContainer;
+import com.seizia.chromite.model.edit.DBEObjectMaker;
+import com.seizia.chromite.model.edit.DBEPersistAction;
+import com.seizia.chromite.model.exec.DBExecUtils;
+import com.seizia.chromite.model.impl.edit.TestCommandContext;
+import com.seizia.chromite.model.impl.jdbc.JDBCRemoteInstance;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.model.sql.SQLUtils;
+import com.seizia.chromite.model.struct.DBSObject;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.junit.ChromiteUnitTest;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -47,7 +47,7 @@ import org.mockito.Mockito;
 import java.util.Collections;
 import java.util.List;
 
-public class TimeplusStreamDDLTest extends DBeaverUnitTest {
+public class TimeplusStreamDDLTest extends ChromiteUnitTest {
 
     private TimeplusDataSource dataSource;
     private GenericDataSourceObjectContainer structContainer;

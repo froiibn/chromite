@@ -14,13 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.editors.sql.log;
+package com.seizia.chromite.ui.editors.sql.log;
 
-import org.jkiss.dbeaver.model.exec.DBCExecutionContext;
-import org.jkiss.dbeaver.model.qm.QMEvent;
-import org.jkiss.dbeaver.model.qm.QMEventFilter;
-import org.jkiss.dbeaver.model.qm.meta.*;
-import org.jkiss.dbeaver.ui.editors.sql.SQLEditor;
+import com.seizia.chromite.model.exec.DBCExecutionContext;
+import com.seizia.chromite.model.qm.QMEvent;
+import com.seizia.chromite.model.qm.QMEventFilter;
+import com.seizia.chromite.model.qm.meta.*;
+import com.seizia.chromite.ui.editors.sql.SQLEditor;
 
 import java.util.Objects;
 

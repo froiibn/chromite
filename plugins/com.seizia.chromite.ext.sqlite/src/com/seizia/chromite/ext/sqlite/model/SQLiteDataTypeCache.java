@@ -14,12 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.sqlite.model;
+package com.seizia.chromite.ext.sqlite.model;
 
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.ext.generic.model.GenericStructContainer;
-import org.jkiss.dbeaver.model.impl.jdbc.cache.JDBCBasicDataTypeCache;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.ext.generic.model.GenericStructContainer;
+import com.seizia.chromite.model.impl.jdbc.cache.JDBCBasicDataTypeCache;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
 
 import java.util.ArrayList;
 import java.util.List;

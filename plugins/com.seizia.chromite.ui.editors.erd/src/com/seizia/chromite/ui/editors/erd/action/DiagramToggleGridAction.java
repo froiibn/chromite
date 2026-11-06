@@ -17,16 +17,16 @@
 /*
  * Created on Jul 23, 2004
  */
-package org.jkiss.dbeaver.ui.editors.erd.action;
+package com.seizia.chromite.ui.editors.erd.action;
 
 import org.eclipse.jface.action.Action;
-import org.jkiss.dbeaver.model.preferences.DBPPreferenceStore;
-import org.jkiss.dbeaver.ui.DBeaverIcons;
-import org.jkiss.dbeaver.ui.editors.erd.ERDIcon;
-import org.jkiss.dbeaver.ui.editors.erd.ERDUIConstants;
-import org.jkiss.dbeaver.ui.editors.erd.internal.ERDUIActivator;
-import org.jkiss.dbeaver.ui.editors.erd.internal.ERDUIMessages;
-import org.jkiss.dbeaver.utils.PrefUtils;
+import com.seizia.chromite.model.preferences.DBPPreferenceStore;
+import com.seizia.chromite.ui.SwtIcons;
+import com.seizia.chromite.ui.editors.erd.ERDIcon;
+import com.seizia.chromite.ui.editors.erd.ERDUIConstants;
+import com.seizia.chromite.ui.editors.erd.internal.ERDUIActivator;
+import com.seizia.chromite.ui.editors.erd.internal.ERDUIMessages;
+import com.seizia.chromite.utils.PrefUtils;
 
 /**
  * Action to toggle the layout between manual and automatic
@@ -37,7 +37,7 @@ public class DiagramToggleGridAction extends Action {
 
     public DiagramToggleGridAction() {
         super(ERDUIMessages.erd_editor_control_action_toggle_grid, AS_CHECK_BOX);
-        setImageDescriptor(DBeaverIcons.getImageDescriptor(ERDIcon.LAYER_GRID));
+        setImageDescriptor(SwtIcons.getImageDescriptor(ERDIcon.LAYER_GRID));
         setChecked(ERDUIActivator.getDefault().getPreferences().getBoolean(ERDUIConstants.PREF_GRID_ENABLED));
     }
 

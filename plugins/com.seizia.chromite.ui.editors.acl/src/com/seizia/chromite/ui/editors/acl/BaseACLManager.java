@@ -14,13 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.editors.acl;
+package com.seizia.chromite.ui.editors.acl;
 
-import org.jkiss.dbeaver.model.DBPEvaluationContext;
-import org.jkiss.dbeaver.model.DBUtils;
-import org.jkiss.dbeaver.model.access.DBAPrivilege;
-import org.jkiss.dbeaver.model.access.DBAPrivilegeType;
-import org.jkiss.dbeaver.model.struct.DBSObject;
+import com.seizia.chromite.model.DBPEvaluationContext;
+import com.seizia.chromite.model.DBUtils;
+import com.seizia.chromite.model.access.DBAPrivilege;
+import com.seizia.chromite.model.access.DBAPrivilegeType;
+import com.seizia.chromite.model.struct.DBSObject;
 
 /**
  * PostgresRolePrivilegesEditor

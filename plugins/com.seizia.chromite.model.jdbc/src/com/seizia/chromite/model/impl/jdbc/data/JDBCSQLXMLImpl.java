@@ -14,9 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.impl.jdbc.data;
+package com.seizia.chromite.model.impl.jdbc.data;
 
-import org.jkiss.dbeaver.model.data.DBDContentStorage;
+import com.seizia.chromite.model.data.DBDContentStorage;
 import org.jkiss.utils.IOUtils;
 
 import javax.xml.transform.Result;

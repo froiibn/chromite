@@ -14,10 +14,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.yashandb.model.session;
+package com.seizia.chromite.ext.yashandb.model.session;
 
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.ext.oracle.model.session.OracleServerSession;
+import com.seizia.chromite.ext.oracle.model.session.OracleServerSession;
 
 import java.sql.ResultSet;
 

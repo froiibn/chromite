@@ -15,14 +15,14 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.registry;
+package com.seizia.chromite.registry;
 
 import org.eclipse.core.runtime.IConfigurationElement;
 import org.eclipse.core.runtime.IExtensionRegistry;
 import org.eclipse.core.runtime.Platform;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.app.DBPProject;
-import org.jkiss.dbeaver.model.app.DBPResourceTypeDescriptor;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.app.DBPProject;
+import com.seizia.chromite.model.app.DBPResourceTypeDescriptor;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -34,7 +34,7 @@ public class ResourceTypeRegistry {
 
     private static final Log log = Log.getLog(ResourceTypeRegistry.class);
 
-    public static final String EXTENSION_ID = "org.jkiss.dbeaver.resourceType"; //NON-NLS-1
+    public static final String EXTENSION_ID = "com.seizia.chromite.resourceType"; //NON-NLS-1
 
     private final List<ResourceTypeDescriptor> resourceTypeDescriptors = new ArrayList<>();
 

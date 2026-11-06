@@ -18,12 +18,12 @@
  *    Stefan Uhrig - initial implementation
  *    Frederick Arand - moved code to separate file
  */
-package org.jkiss.dbeaver.ext.hana.model.data;
+package com.seizia.chromite.ext.hana.model.data;
 
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.model.exec.DBCException;
-import org.jkiss.dbeaver.model.exec.jdbc.JDBCPreparedStatement;
-import org.jkiss.dbeaver.model.impl.jdbc.data.JDBCCollection;
+import com.seizia.chromite.model.exec.DBCException;
+import com.seizia.chromite.model.exec.jdbc.JDBCPreparedStatement;
+import com.seizia.chromite.model.impl.jdbc.data.JDBCCollection;
 
 import java.sql.SQLException;
 import java.sql.Types;

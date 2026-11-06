@@ -14,10 +14,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.sqlite.auth;
+package com.seizia.chromite.ext.sqlite.auth;
 
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.model.impl.auth.AuthModelDatabaseNative;
+import com.seizia.chromite.model.impl.auth.AuthModelDatabaseNative;
 
 public class LibSQLAuthModelToken extends AuthModelDatabaseNative<LibSQLAuthModelTokenCredentials> {
 

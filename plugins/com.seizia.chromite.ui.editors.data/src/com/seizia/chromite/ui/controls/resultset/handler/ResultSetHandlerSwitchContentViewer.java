@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.controls.resultset.handler;
+package com.seizia.chromite.ui.controls.resultset.handler;
 
 import org.eclipse.core.commands.AbstractHandler;
 import org.eclipse.core.commands.ExecutionEvent;
@@ -26,19 +26,19 @@ import org.eclipse.ui.handlers.HandlerUtil;
 import org.eclipse.ui.menus.UIElement;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.ui.DBeaverIcons;
-import org.jkiss.dbeaver.ui.controls.resultset.ResultSetViewer;
-import org.jkiss.dbeaver.ui.controls.resultset.panel.valueviewer.ValueViewerPanel;
-import org.jkiss.dbeaver.ui.data.editors.ContentPanelEditor;
-import org.jkiss.dbeaver.ui.data.registry.StreamValueManagerDescriptor;
-import org.jkiss.dbeaver.ui.data.registry.ValueManagerRegistry;
-import org.jkiss.dbeaver.utils.GeneralUtils;
+import com.seizia.chromite.ui.SwtIcons;
+import com.seizia.chromite.ui.controls.resultset.ResultSetViewer;
+import com.seizia.chromite.ui.controls.resultset.panel.valueviewer.ValueViewerPanel;
+import com.seizia.chromite.ui.data.editors.ContentPanelEditor;
+import com.seizia.chromite.ui.data.registry.StreamValueManagerDescriptor;
+import com.seizia.chromite.ui.data.registry.ValueManagerRegistry;
+import com.seizia.chromite.utils.GeneralUtils;
 
 import java.util.Map;
 import java.util.stream.Collectors;
 
 public class ResultSetHandlerSwitchContentViewer extends AbstractHandler implements IElementUpdater {
-    public static final String COMMAND_ID = "org.jkiss.dbeaver.core.resultset.grid.switchContentViewer";
+    public static final String COMMAND_ID = "com.seizia.chromite.core.resultset.grid.switchContentViewer";
     public static final String PARAM_STREAM_MANAGER_ID = "managerId";
 
     @Override
@@ -63,7 +63,7 @@ public class ResultSetHandlerSwitchContentViewer extends AbstractHandler impleme
         if (manager != null) {
             element.setText(manager.getLabel());
             element.setTooltip(manager.getDescription());
-            element.setIcon(DBeaverIcons.getImageDescriptor(manager.getIcon()));
+            element.setIcon(SwtIcons.getImageDescriptor(manager.getIcon()));
             element.setChecked(editor != null && editor.getCurrentStreamManager() == manager);
         }
     }

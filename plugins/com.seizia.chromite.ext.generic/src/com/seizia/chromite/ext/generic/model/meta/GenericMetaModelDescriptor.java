@@ -14,15 +14,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.generic.model.meta;
+package com.seizia.chromite.ext.generic.model.meta;
 
 import org.eclipse.core.runtime.IConfigurationElement;
 import org.jkiss.code.NotNull;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.ext.generic.model.GenericSQLDialect;
-import org.jkiss.dbeaver.model.impl.AbstractDescriptor;
-import org.jkiss.dbeaver.model.sql.SQLDialectMetadata;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
+import com.seizia.chromite.ext.generic.model.GenericSQLDialect;
+import com.seizia.chromite.model.impl.AbstractDescriptor;
+import com.seizia.chromite.model.sql.SQLDialectMetadata;
+import com.seizia.chromite.runtime.DBWorkbench;
 import org.jkiss.utils.ArrayUtils;
 import org.jkiss.utils.CommonUtils;
 
@@ -44,7 +44,7 @@ public class GenericMetaModelDescriptor extends AbstractDescriptor {
     private List<String> modelReplacements;
 
     public GenericMetaModelDescriptor() {
-        super("org.jkiss.dbeaver.ext.generic");
+        super("com.seizia.chromite.ext.generic");
         implType = new ObjectType(GenericMetaModel.class.getName());
         instance = new GenericMetaModel();
         instance.descriptor = this;

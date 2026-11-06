@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.editors.sql.preferences;
+package com.seizia.chromite.ui.editors.sql.preferences;
 
 import org.eclipse.jface.dialogs.IDialogPage;
 import org.eclipse.jface.text.TextSelection;
@@ -32,32 +32,32 @@ import org.eclipse.ui.IEditorSite;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.DBPDataSource;
-import org.jkiss.dbeaver.model.DBPDataSourceContainer;
-import org.jkiss.dbeaver.model.DBPIdentifierCase;
-import org.jkiss.dbeaver.model.DBUtils;
-import org.jkiss.dbeaver.model.exec.DBCExecutionContext;
-import org.jkiss.dbeaver.model.preferences.DBPPreferenceStore;
-import org.jkiss.dbeaver.model.sql.SQLModelPreferences;
-import org.jkiss.dbeaver.model.sql.format.SQLFormatter;
-import org.jkiss.dbeaver.model.sql.format.external.SQLFormatterExternal;
-import org.jkiss.dbeaver.model.sql.format.tokenized.SQLFormatterTokenized;
-import org.jkiss.dbeaver.model.sql.registry.SQLFormatterConfigurationRegistry;
-import org.jkiss.dbeaver.model.sql.registry.SQLFormatterDescriptor;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.editors.StringEditorInput;
-import org.jkiss.dbeaver.ui.editors.SubEditorSite;
-import org.jkiss.dbeaver.ui.editors.sql.SQLEditorBase;
-import org.jkiss.dbeaver.ui.editors.sql.SQLPreferenceConstants;
-import org.jkiss.dbeaver.ui.editors.sql.internal.SQLEditorMessages;
-import org.jkiss.dbeaver.ui.editors.sql.preferences.format.SQLExternalFormatterConfigurationPage;
-import org.jkiss.dbeaver.ui.editors.sql.preferences.format.SQLFormatterConfigurator;
-import org.jkiss.dbeaver.ui.editors.sql.preferences.format.tokenized.SQLTokenizedFormatterConfigurationPage;
-import org.jkiss.dbeaver.ui.preferences.TargetPrefPage;
-import org.jkiss.dbeaver.utils.ContentUtils;
-import org.jkiss.dbeaver.utils.GeneralUtils;
-import org.jkiss.dbeaver.utils.PrefUtils;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.DBPDataSource;
+import com.seizia.chromite.model.DBPDataSourceContainer;
+import com.seizia.chromite.model.DBPIdentifierCase;
+import com.seizia.chromite.model.DBUtils;
+import com.seizia.chromite.model.exec.DBCExecutionContext;
+import com.seizia.chromite.model.preferences.DBPPreferenceStore;
+import com.seizia.chromite.model.sql.SQLModelPreferences;
+import com.seizia.chromite.model.sql.format.SQLFormatter;
+import com.seizia.chromite.model.sql.format.external.SQLFormatterExternal;
+import com.seizia.chromite.model.sql.format.tokenized.SQLFormatterTokenized;
+import com.seizia.chromite.model.sql.registry.SQLFormatterConfigurationRegistry;
+import com.seizia.chromite.model.sql.registry.SQLFormatterDescriptor;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.editors.StringEditorInput;
+import com.seizia.chromite.ui.editors.SubEditorSite;
+import com.seizia.chromite.ui.editors.sql.SQLEditorBase;
+import com.seizia.chromite.ui.editors.sql.SQLPreferenceConstants;
+import com.seizia.chromite.ui.editors.sql.internal.SQLEditorMessages;
+import com.seizia.chromite.ui.editors.sql.preferences.format.SQLExternalFormatterConfigurationPage;
+import com.seizia.chromite.ui.editors.sql.preferences.format.SQLFormatterConfigurator;
+import com.seizia.chromite.ui.editors.sql.preferences.format.tokenized.SQLTokenizedFormatterConfigurationPage;
+import com.seizia.chromite.ui.preferences.TargetPrefPage;
+import com.seizia.chromite.utils.ContentUtils;
+import com.seizia.chromite.utils.GeneralUtils;
+import com.seizia.chromite.utils.PrefUtils;
 import org.jkiss.utils.CommonUtils;
 
 import java.io.InputStream;
@@ -72,7 +72,7 @@ import java.util.Locale;
 public class PrefPageSQLFormat extends TargetPrefPage {
     private static final Log log = Log.getLog(PrefPageSQLFormat.class);
 
-    public static final String PAGE_ID = "org.jkiss.dbeaver.preferences.main.sql.format"; //$NON-NLS-1$
+    public static final String PAGE_ID = "com.seizia.chromite.preferences.main.sql.format"; //$NON-NLS-1$
 
     private final static String FORMAT_FILE_NAME = "format_preview.sql";
 

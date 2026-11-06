@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.tools.scripts;
+package com.seizia.chromite.tools.scripts;
 
 import org.eclipse.core.resources.IFolder;
 import org.eclipse.jface.viewers.*;
@@ -31,23 +31,23 @@ import org.eclipse.swt.widgets.Button;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.DirectoryDialog;
 import org.eclipse.swt.widgets.Text;
-import org.jkiss.dbeaver.core.CoreMessages;
-import org.jkiss.dbeaver.model.DBPDataSourceContainer;
-import org.jkiss.dbeaver.model.app.DBPPlatformDesktop;
-import org.jkiss.dbeaver.model.app.DBPProject;
-import org.jkiss.dbeaver.model.navigator.DBNDatabaseNode;
-import org.jkiss.dbeaver.model.navigator.DBNNode;
-import org.jkiss.dbeaver.model.navigator.DBNResource;
-import org.jkiss.dbeaver.registry.DataSourceDescriptor;
-import org.jkiss.dbeaver.registry.DataSourceRegistry;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.ui.DBeaverIcons;
-import org.jkiss.dbeaver.ui.UIIcon;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.controls.CSmartCombo;
-import org.jkiss.dbeaver.ui.editors.sql.scripts.ScriptsHandlerImpl;
-import org.jkiss.dbeaver.ui.navigator.database.DatabaseNavigatorTree;
-import org.jkiss.dbeaver.utils.RuntimeUtils;
+import com.seizia.chromite.core.CoreMessages;
+import com.seizia.chromite.model.DBPDataSourceContainer;
+import com.seizia.chromite.model.app.DBPPlatformDesktop;
+import com.seizia.chromite.model.app.DBPProject;
+import com.seizia.chromite.model.navigator.DBNDatabaseNode;
+import com.seizia.chromite.model.navigator.DBNNode;
+import com.seizia.chromite.model.navigator.DBNResource;
+import com.seizia.chromite.registry.DataSourceDescriptor;
+import com.seizia.chromite.registry.DataSourceRegistry;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.ui.SwtIcons;
+import com.seizia.chromite.ui.UIIcon;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.controls.CSmartCombo;
+import com.seizia.chromite.ui.editors.sql.scripts.ScriptsHandlerImpl;
+import com.seizia.chromite.ui.navigator.database.DatabaseNavigatorTree;
+import com.seizia.chromite.utils.RuntimeUtils;
 import org.jkiss.utils.CommonUtils;
 
 import java.io.File;
@@ -102,7 +102,7 @@ class ScriptsImportWizardPage extends WizardPage {
             });
 
             Button openFolder = new Button(generalSettings, SWT.PUSH);
-            openFolder.setImage(DBeaverIcons.getImage(UIIcon.OPEN));
+            openFolder.setImage(SwtIcons.getImage(UIIcon.OPEN));
             openFolder.addSelectionListener(SelectionListener.widgetSelectedAdapter(e -> {
                     DirectoryDialog dialog = new DirectoryDialog(getShell(), SWT.NONE);
                     dialog.setMessage(CoreMessages.dialog_scripts_import_wizard_dialog_choose_dir_message);
@@ -217,7 +217,7 @@ class ScriptsImportWizardPage extends WizardPage {
         @Override
         public Image getImage(Object element) {
             final DBNDatabaseNode node = DBWorkbench.getPlatform().getNavigatorModel().findNode((DataSourceDescriptor) element);
-            return node == null ? null : DBeaverIcons.getImage(node.getNodeIcon());
+            return node == null ? null : SwtIcons.getImage(node.getNodeIcon());
         }
 
         @Override

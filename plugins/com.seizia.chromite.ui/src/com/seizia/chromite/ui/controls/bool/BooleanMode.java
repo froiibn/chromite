@@ -14,10 +14,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.controls.bool;
+package com.seizia.chromite.ui.controls.bool;
 
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.ui.internal.UIMessages;
+import com.seizia.chromite.ui.internal.UIMessages;
 
 public enum BooleanMode {
     TEXT(UIMessages.control_boolean_mode_text, UIMessages.control_boolean_mode_text_tip),

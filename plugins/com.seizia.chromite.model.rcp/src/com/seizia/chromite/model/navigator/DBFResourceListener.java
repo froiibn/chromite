@@ -14,17 +14,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.navigator;
+package com.seizia.chromite.model.navigator;
 
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.fs.DBFVirtualFileSystemRoot;
-import org.jkiss.dbeaver.model.fs.nio.EFSNIOListener;
-import org.jkiss.dbeaver.model.fs.nio.EFSNIOResource;
-import org.jkiss.dbeaver.model.navigator.fs.DBNFileSystem;
-import org.jkiss.dbeaver.model.navigator.fs.DBNFileSystemRoot;
-import org.jkiss.dbeaver.model.navigator.fs.DBNFileSystems;
-import org.jkiss.dbeaver.model.navigator.fs.DBNPathBase;
-import org.jkiss.dbeaver.model.rcp.RCPProject;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.fs.DBFVirtualFileSystemRoot;
+import com.seizia.chromite.model.fs.nio.EFSNIOListener;
+import com.seizia.chromite.model.fs.nio.EFSNIOResource;
+import com.seizia.chromite.model.navigator.fs.DBNFileSystem;
+import com.seizia.chromite.model.navigator.fs.DBNFileSystemRoot;
+import com.seizia.chromite.model.navigator.fs.DBNFileSystems;
+import com.seizia.chromite.model.navigator.fs.DBNPathBase;
+import com.seizia.chromite.model.rcp.RCPProject;
 import org.jkiss.utils.CommonUtils;
 
 public class DBFResourceListener implements EFSNIOListener {

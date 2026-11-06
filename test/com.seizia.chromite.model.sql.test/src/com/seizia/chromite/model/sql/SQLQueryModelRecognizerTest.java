@@ -14,47 +14,47 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.sql;
+package com.seizia.chromite.model.sql;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.model.DBPDataKind;
-import org.jkiss.dbeaver.model.DBPDataSource;
-import org.jkiss.dbeaver.model.DBPDataSourceContainer;
-import org.jkiss.dbeaver.model.DBPDataTypeProvider;
-import org.jkiss.dbeaver.model.exec.DBCExecutionContext;
-import org.jkiss.dbeaver.model.exec.DBCExecutionContextDefaults;
-import org.jkiss.dbeaver.model.impl.sql.BasicSQLDialect;
-import org.jkiss.dbeaver.model.sql.SQLDialectFeatures;
-import org.jkiss.dbeaver.model.runtime.VoidProgressMonitor;
-import org.jkiss.dbeaver.model.sql.parser.SQLIdentifierDetector;
-import org.jkiss.dbeaver.model.sql.semantics.*;
-import org.jkiss.dbeaver.model.sql.semantics.context.SQLQueryConnectionDummyContext;
-import org.jkiss.dbeaver.model.sql.semantics.context.SQLQueryConnectionContext;
-import org.jkiss.dbeaver.model.sql.semantics.context.SQLQueryConnectionRealContext;
-import org.jkiss.dbeaver.model.sql.semantics.context.SQLQueryExprType;
-import org.jkiss.dbeaver.model.sql.semantics.context.SQLQueryLocalVariableInfo;
-import org.jkiss.dbeaver.model.sql.semantics.context.SQLQueryRowsSourceContext;
-import org.jkiss.dbeaver.model.sql.semantics.model.SQLQueryModel;
-import org.jkiss.dbeaver.model.sql.semantics.model.SQLQueryNodeModelVisitor;
-import org.jkiss.dbeaver.model.sql.semantics.model.SQLQueryVariableClause;
-import org.jkiss.dbeaver.model.sql.semantics.model.SQLQueryVariableStatementModel;
-import org.jkiss.dbeaver.model.sql.semantics.model.ddl.SQLQueryTableAlterModel;
-import org.jkiss.dbeaver.model.sql.semantics.model.ddl.SQLQueryTableCreateModel;
-import org.jkiss.dbeaver.model.sql.semantics.model.programmaticals.*;
-import org.jkiss.dbeaver.model.sql.semantics.model.select.SQLQueryRowsLocalTableModel;
-import org.jkiss.dbeaver.model.sql.semantics.model.select.SQLQueryRowsSourceModel;
-import org.jkiss.dbeaver.model.sql.semantics.model.statements.*;
-import org.jkiss.dbeaver.model.stm.STMKnownRuleNames;
-import org.jkiss.dbeaver.model.stm.STMTreeNode;
-import org.jkiss.dbeaver.model.struct.DBSDataType;
-import org.jkiss.dbeaver.model.struct.DBSObjectContainer;
-import org.jkiss.dbeaver.model.struct.DBSTypeDescriptor;
-import org.jkiss.dbeaver.model.struct.DBSTypedObjectEx2;
-import org.jkiss.dbeaver.model.struct.rdb.DBSCatalog;
-import org.jkiss.dbeaver.model.struct.rdb.DBSSchema;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.junit.DBeaverUnitTest;
+import com.seizia.chromite.model.DBPDataKind;
+import com.seizia.chromite.model.DBPDataSource;
+import com.seizia.chromite.model.DBPDataSourceContainer;
+import com.seizia.chromite.model.DBPDataTypeProvider;
+import com.seizia.chromite.model.exec.DBCExecutionContext;
+import com.seizia.chromite.model.exec.DBCExecutionContextDefaults;
+import com.seizia.chromite.model.impl.sql.BasicSQLDialect;
+import com.seizia.chromite.model.sql.SQLDialectFeatures;
+import com.seizia.chromite.model.runtime.VoidProgressMonitor;
+import com.seizia.chromite.model.sql.parser.SQLIdentifierDetector;
+import com.seizia.chromite.model.sql.semantics.*;
+import com.seizia.chromite.model.sql.semantics.context.SQLQueryConnectionDummyContext;
+import com.seizia.chromite.model.sql.semantics.context.SQLQueryConnectionContext;
+import com.seizia.chromite.model.sql.semantics.context.SQLQueryConnectionRealContext;
+import com.seizia.chromite.model.sql.semantics.context.SQLQueryExprType;
+import com.seizia.chromite.model.sql.semantics.context.SQLQueryLocalVariableInfo;
+import com.seizia.chromite.model.sql.semantics.context.SQLQueryRowsSourceContext;
+import com.seizia.chromite.model.sql.semantics.model.SQLQueryModel;
+import com.seizia.chromite.model.sql.semantics.model.SQLQueryNodeModelVisitor;
+import com.seizia.chromite.model.sql.semantics.model.SQLQueryVariableClause;
+import com.seizia.chromite.model.sql.semantics.model.SQLQueryVariableStatementModel;
+import com.seizia.chromite.model.sql.semantics.model.ddl.SQLQueryTableAlterModel;
+import com.seizia.chromite.model.sql.semantics.model.ddl.SQLQueryTableCreateModel;
+import com.seizia.chromite.model.sql.semantics.model.programmaticals.*;
+import com.seizia.chromite.model.sql.semantics.model.select.SQLQueryRowsLocalTableModel;
+import com.seizia.chromite.model.sql.semantics.model.select.SQLQueryRowsSourceModel;
+import com.seizia.chromite.model.sql.semantics.model.statements.*;
+import com.seizia.chromite.model.stm.STMKnownRuleNames;
+import com.seizia.chromite.model.stm.STMTreeNode;
+import com.seizia.chromite.model.struct.DBSDataType;
+import com.seizia.chromite.model.struct.DBSObjectContainer;
+import com.seizia.chromite.model.struct.DBSTypeDescriptor;
+import com.seizia.chromite.model.struct.DBSTypedObjectEx2;
+import com.seizia.chromite.model.struct.rdb.DBSCatalog;
+import com.seizia.chromite.model.struct.rdb.DBSSchema;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.junit.ChromiteUnitTest;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
@@ -62,7 +62,7 @@ import org.mockito.Mockito;
 import java.lang.reflect.Proxy;
 import java.util.*;
 
-public class SQLQueryModelRecognizerTest extends DBeaverUnitTest {
+public class SQLQueryModelRecognizerTest extends ChromiteUnitTest {
 
     @Test
     void capturedTypeLookupOrderAndDistinctBaseFallback() throws Exception {
@@ -449,7 +449,7 @@ public class SQLQueryModelRecognizerTest extends DBeaverUnitTest {
         var model = SQLQueryModelRecognizer.recognizeQuery(createContext(new VoidProgressMonitor()), sql);
         Assertions.assertNotNull(model);
         var cast = model.findNodeContaining(sql.indexOf("CAST") + 1);
-        var field = org.jkiss.dbeaver.model.sql.semantics.model.expressions.SQLQueryValueTypeCastExpression.class
+        var field = com.seizia.chromite.model.sql.semantics.model.expressions.SQLQueryValueTypeCastExpression.class
             .getDeclaredField("typeReference");
         field.setAccessible(true);
         return (SQLQueryModelRecognizer.TypeReference) field.get(cast);

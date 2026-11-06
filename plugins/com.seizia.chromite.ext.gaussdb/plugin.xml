@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <?eclipse version="3.2"?>
 <plugin>
-    <extension point="org.jkiss.dbeaver.postgresql.serverType">
-        <serverType id="gaussdb" name="GaussDB" class="org.jkiss.dbeaver.ext.gaussdb.model.PostgreServerGaussDB" logo="icons/gaussdb_logo.png" customURL="true" turnOffPreparedStatements="true"/>
+    <extension point="com.seizia.chromite.postgresql.serverType">
+        <serverType id="gaussdb" name="GaussDB" class="com.seizia.chromite.ext.gaussdb.model.PostgreServerGaussDB" logo="icons/gaussdb_logo.png" customURL="true" turnOffPreparedStatements="true"/>
     </extension>
 
-    <extension point="org.jkiss.dbeaver.sqlDialect">
-        <dialect id="gaussdb" parent="basic" class="org.jkiss.dbeaver.ext.gaussdb.model.GaussDBDialect" label="GaussDB" description="GaussDB dialect." icon="icons/gaussdb_icon.png">
+    <extension point="com.seizia.chromite.sqlDialect">
+        <dialect id="gaussdb" parent="basic" class="com.seizia.chromite.ext.gaussdb.model.GaussDBDialect" label="GaussDB" description="GaussDB dialect." icon="icons/gaussdb_icon.png">
             <property name="insertMethods" value="pgInsertIgnore,pgReplaceIgnore"/>
             <keywords value=""/>
             <execKeywords value=""/>
@@ -18,7 +18,7 @@
         </dialect>
     </extension>
 
-    <extension point="org.jkiss.dbeaver.dataSourceProvider">
+    <extension point="com.seizia.chromite.dataSourceProvider">
         <dataSourceType
             id="gaussdb"
             label="GaussDB"
@@ -27,7 +27,7 @@
             icon="icons/gaussdb_icon.png"
             iconBig="icons/gaussdb_icon_big.png"
             logoImage="icons/gaussdb_logo.png"/>
-        <datasource class="org.jkiss.dbeaver.ext.gaussdb.GaussDBDataSourceProvider"
+        <datasource class="com.seizia.chromite.ext.gaussdb.GaussDBDataSourceProvider"
                     description="%datasource.gaussdb.description" id="gaussdb"
                     dataSourceType="gaussdb" parent="postgresql" label="GaussDB"
                     icon="icons/gaussdb_icon.png" dialect="gaussdb" inheritClients="false">
@@ -51,7 +51,7 @@
 
             <treeInjection path="postgresql/database/schema/procedure" remove="true"/>
             <treeInjection path="postgresql/database/schema" after="index">
-                <folder type="org.jkiss.dbeaver.ext.gaussdb.model.GaussDBProcedure" label="%tree.procedures.node.name"
+                <folder type="com.seizia.chromite.ext.gaussdb.model.GaussDBProcedure" label="%tree.procedures.node.name"
                         icon="#procedures" description="%tree.procedures.node.tip">
                     <items label="%tree.procedure.node.name" itemLabel="%tree.procedure.node.name" path="procedure"
                            property="gaussDBProcedures" icon="#procedure">
@@ -64,7 +64,7 @@
                 </folder>
             </treeInjection>
             <treeInjection path="postgresql/database/schema" after="procedure">
-                <folder type="org.jkiss.dbeaver.ext.gaussdb.model.GaussDBFunction" label="%tree.functions.node.name"
+                <folder type="com.seizia.chromite.ext.gaussdb.model.GaussDBFunction" label="%tree.functions.node.name"
                         icon="#procedures" description="%tree.procedures.node.tip">
                     <items label="%tree.function.node.name" itemLabel="%tree.functions.node.name" path="function"
                            property="gaussDBFunctions" icon="#function">
@@ -78,17 +78,17 @@
             </treeInjection>
 
             <treeInjection path="postgresql/database/schema" after="aggregate">
-                <folder type="org.jkiss.dbeaver.ext.gaussdb.model.GaussDBPackage" label="%tree.package.node.name"
+                <folder type="com.seizia.chromite.ext.gaussdb.model.GaussDBPackage" label="%tree.package.node.name"
                         icon="#packages" description="%tree.package.node.tip"
                         visibleIf="connected &amp;&amp; object.database.isPackageSupported()">
                     <items label="%tree.package.node.name" path="package" property="packages" icon="#package">
-                        <folder type="org.jkiss.dbeaver.ext.gaussdb.model.GaussDBProcedure"
+                        <folder type="com.seizia.chromite.ext.gaussdb.model.GaussDBProcedure"
                                 label="%tree.procedures.node.name" icon="#procedures"
                                 description="%tree.procedures.node.tip">
                             <items label="%tree.procedure.node.name" itemLabel="%tree.procedure.node.name"
                                    path="packageProcedures" property="packageProcedures" icon="#procedure"/>
                         </folder>
-                        <folder type="org.jkiss.dbeaver.ext.gaussdb.model.GaussDBFunction"
+                        <folder type="com.seizia.chromite.ext.gaussdb.model.GaussDBFunction"
                                 label="%tree.functions.node.name" icon="#procedures"
                                 description="%tree.procedures.node.tip">
                             <items label="%tree.function.node.name" itemLabel="%tree.procedure.node.name"
@@ -100,16 +100,16 @@
         </datasource>
     </extension>
 
-    <extension point="org.jkiss.dbeaver.objectManager">
-        <manager class="org.jkiss.dbeaver.ext.gaussdb.edit.GaussDBDatabaseManager"
-                 objectType="org.jkiss.dbeaver.ext.gaussdb.model.GaussDBDatabase"/>
-        <manager class="org.jkiss.dbeaver.ext.gaussdb.edit.GaussDBSchemaManager"
-                 objectType="org.jkiss.dbeaver.ext.gaussdb.model.GaussDBSchema"/>
-        <manager class="org.jkiss.dbeaver.ext.gaussdb.edit.GaussDBPackageManager"
-                 objectType="org.jkiss.dbeaver.ext.gaussdb.model.GaussDBPackage"/>
-        <manager class="org.jkiss.dbeaver.ext.gaussdb.edit.GaussDBProcedureManager"
-                 objectType="org.jkiss.dbeaver.ext.gaussdb.model.GaussDBProcedure"/>
-        <manager class="org.jkiss.dbeaver.ext.gaussdb.edit.GaussDBFunctionManager"
-                 objectType="org.jkiss.dbeaver.ext.gaussdb.model.GaussDBFunction"/>
+    <extension point="com.seizia.chromite.objectManager">
+        <manager class="com.seizia.chromite.ext.gaussdb.edit.GaussDBDatabaseManager"
+                 objectType="com.seizia.chromite.ext.gaussdb.model.GaussDBDatabase"/>
+        <manager class="com.seizia.chromite.ext.gaussdb.edit.GaussDBSchemaManager"
+                 objectType="com.seizia.chromite.ext.gaussdb.model.GaussDBSchema"/>
+        <manager class="com.seizia.chromite.ext.gaussdb.edit.GaussDBPackageManager"
+                 objectType="com.seizia.chromite.ext.gaussdb.model.GaussDBPackage"/>
+        <manager class="com.seizia.chromite.ext.gaussdb.edit.GaussDBProcedureManager"
+                 objectType="com.seizia.chromite.ext.gaussdb.model.GaussDBProcedure"/>
+        <manager class="com.seizia.chromite.ext.gaussdb.edit.GaussDBFunctionManager"
+                 objectType="com.seizia.chromite.ext.gaussdb.model.GaussDBFunction"/>
     </extension>
 </plugin>

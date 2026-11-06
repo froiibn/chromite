@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.dashboard.browser;
+package com.seizia.chromite.ui.dashboard.browser;
 
 import org.eclipse.jface.action.Action;
 import org.eclipse.jface.action.IContributionManager;
@@ -23,16 +23,16 @@ import org.eclipse.swt.graphics.Point;
 import org.eclipse.swt.widgets.Composite;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.model.dashboard.data.DashboardDataset;
-import org.jkiss.dbeaver.model.dashboard.registry.DashboardItemConfiguration;
-import org.jkiss.dbeaver.ui.DBeaverIcons;
-import org.jkiss.dbeaver.ui.ShellUtils;
-import org.jkiss.dbeaver.ui.UIIcon;
-import org.jkiss.dbeaver.ui.dashboard.control.DashboardRendererAbstract;
-import org.jkiss.dbeaver.ui.dashboard.control.DashboardViewItem;
-import org.jkiss.dbeaver.ui.dashboard.model.DashboardContainer;
-import org.jkiss.dbeaver.ui.dashboard.model.DashboardItemContainer;
-import org.jkiss.dbeaver.ui.dashboard.model.DashboardItemViewSettings;
+import com.seizia.chromite.model.dashboard.data.DashboardDataset;
+import com.seizia.chromite.model.dashboard.registry.DashboardItemConfiguration;
+import com.seizia.chromite.ui.SwtIcons;
+import com.seizia.chromite.ui.ShellUtils;
+import com.seizia.chromite.ui.UIIcon;
+import com.seizia.chromite.ui.dashboard.control.DashboardRendererAbstract;
+import com.seizia.chromite.ui.dashboard.control.DashboardViewItem;
+import com.seizia.chromite.ui.dashboard.model.DashboardContainer;
+import com.seizia.chromite.ui.dashboard.model.DashboardItemContainer;
+import com.seizia.chromite.ui.dashboard.model.DashboardItemViewSettings;
 import org.jkiss.utils.CommonUtils;
 
 import java.util.Date;
@@ -55,7 +55,7 @@ public class DashboardRendererBrowser extends DashboardRendererAbstract {
         @NotNull Composite chartComposite,
         @NotNull DashboardItemViewSettings dashboardConfig
     ) {
-        manager.add(new Action("Open in external browser", DBeaverIcons.getImageDescriptor(UIIcon.LINK)) {
+        manager.add(new Action("Open in external browser", SwtIcons.getImageDescriptor(UIIcon.LINK)) {
             @Override
             public void run() {
                 DashboardItemConfiguration dashboard = dashboardConfig.getItemConfiguration();

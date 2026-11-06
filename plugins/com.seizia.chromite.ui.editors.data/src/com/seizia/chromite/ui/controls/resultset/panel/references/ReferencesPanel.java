@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.controls.resultset.panel.references;
+package com.seizia.chromite.ui.controls.resultset.panel.references;
 
 import org.eclipse.jface.action.IContributionManager;
 import org.eclipse.jface.dialogs.IDialogSettings;
@@ -25,15 +25,15 @@ import org.eclipse.swt.SWT;
 import org.eclipse.swt.layout.FillLayout;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Control;
-import org.jkiss.dbeaver.ui.DataEditorFeatures;
-import org.jkiss.dbeaver.ui.UIExecutionQueue;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.controls.resultset.IResultSetPresentation;
-import org.jkiss.dbeaver.ui.controls.resultset.IResultSetSelection;
-import org.jkiss.dbeaver.ui.controls.resultset.ResultSetRow;
-import org.jkiss.dbeaver.ui.controls.resultset.ResultSetUtils;
-import org.jkiss.dbeaver.ui.controls.resultset.panel.ResultSetPanelBase;
-import org.jkiss.dbeaver.ui.controls.resultset.panel.ResultSetPanelRefresher;
+import com.seizia.chromite.ui.DataEditorFeatures;
+import com.seizia.chromite.ui.UIExecutionQueue;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.controls.resultset.IResultSetPresentation;
+import com.seizia.chromite.ui.controls.resultset.IResultSetSelection;
+import com.seizia.chromite.ui.controls.resultset.ResultSetRow;
+import com.seizia.chromite.ui.controls.resultset.ResultSetUtils;
+import com.seizia.chromite.ui.controls.resultset.panel.ResultSetPanelBase;
+import com.seizia.chromite.ui.controls.resultset.panel.ResultSetPanelRefresher;
 import org.jkiss.utils.CommonUtils;
 
 import java.util.List;

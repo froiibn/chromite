@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='UTF-8'?>
 <!-- Schema file written by PDE -->
-<schema targetNamespace="org.jkiss.dbeaver.data.gis.view" xmlns="http://www.w3.org/2001/XMLSchema">
-   <annotation><appInfo><meta.schema plugin="org.jkiss.dbeaver.data.gis.view" id="org.jkiss.dbeaver.data.gis.leaflet.tiles" name="Leaflet tiles"/></appInfo></annotation>
+<schema targetNamespace="com.seizia.chromite.data.gis.view" xmlns="http://www.w3.org/2001/XMLSchema">
+   <annotation><appInfo><meta.schema plugin="com.seizia.chromite.data.gis.view" id="com.seizia.chromite.data.gis.leaflet.tiles" name="Leaflet tiles"/></appInfo></annotation>
    <element name="extension">
       <annotation><appInfo><meta.element/></appInfo></annotation>
       <complexType>

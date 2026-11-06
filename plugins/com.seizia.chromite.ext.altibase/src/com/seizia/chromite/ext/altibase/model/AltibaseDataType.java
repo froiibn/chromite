@@ -14,15 +14,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.altibase.model;
+package com.seizia.chromite.ext.altibase.model;
 
-import org.jkiss.dbeaver.ext.altibase.AltibaseConstants;
-import org.jkiss.dbeaver.ext.generic.model.GenericDataType;
-import org.jkiss.dbeaver.ext.generic.model.GenericStructContainer;
-import org.jkiss.dbeaver.model.DBIcon;
-import org.jkiss.dbeaver.model.DBPDataKind;
-import org.jkiss.dbeaver.model.DBPImage;
-import org.jkiss.dbeaver.model.DBPImageProvider;
+import com.seizia.chromite.ext.altibase.AltibaseConstants;
+import com.seizia.chromite.ext.generic.model.GenericDataType;
+import com.seizia.chromite.ext.generic.model.GenericStructContainer;
+import com.seizia.chromite.model.DBIcon;
+import com.seizia.chromite.model.DBPDataKind;
+import com.seizia.chromite.model.DBPImage;
+import com.seizia.chromite.model.DBPImageProvider;
 
 public class AltibaseDataType extends GenericDataType implements DBPImageProvider {
 

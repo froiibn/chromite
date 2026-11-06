@@ -14,19 +14,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.fs.nio;
+package com.seizia.chromite.model.fs.nio;
 
 import org.eclipse.core.filesystem.EFS;
 import org.eclipse.core.filesystem.IFileStore;
 import org.eclipse.core.filesystem.provider.FileSystem;
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.app.DBPProject;
-import org.jkiss.dbeaver.model.navigator.fs.DBNFileSystem;
-import org.jkiss.dbeaver.model.navigator.fs.DBNFileSystemRoot;
-import org.jkiss.dbeaver.model.navigator.fs.DBNFileSystems;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.app.DBPProject;
+import com.seizia.chromite.model.navigator.fs.DBNFileSystem;
+import com.seizia.chromite.model.navigator.fs.DBNFileSystemRoot;
+import com.seizia.chromite.model.navigator.fs.DBNFileSystems;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.runtime.DBWorkbench;
 import org.jkiss.utils.CommonUtils;
 
 import java.net.URI;

@@ -3,12 +3,12 @@
     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
   <modelVersion>4.0.0</modelVersion>
   <parent>
-    <groupId>org.jkiss.dbeaver</groupId>
+    <groupId>com.seizia.chromite</groupId>
     <artifactId>plugins</artifactId>
     <version>1.0.0-SNAPSHOT</version>
      <relativePath>../</relativePath>
   </parent>
-  <artifactId>org.jkiss.dbeaver.ext.databricks</artifactId>
+  <artifactId>com.seizia.chromite.ext.databricks</artifactId>
   <version>1.0.113-SNAPSHOT</version>
   <packaging>eclipse-plugin</packaging>
 
@@ -30,7 +30,7 @@
             </goals>
             <configuration>
               <sourceDirectory>grammar</sourceDirectory>
-              <outputDirectory>target/generated-sources/antlr4/org/jkiss/dbeaver/ext/databricks</outputDirectory>
+              <outputDirectory>target/generated-sources/antlr4/com/seizia/chromite/ext/databricks</outputDirectory>
             </configuration>
           </execution>
         </executions>

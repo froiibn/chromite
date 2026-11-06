@@ -14,13 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.registry.datatype;
+package com.seizia.chromite.registry.datatype;
 
 import org.eclipse.core.runtime.IConfigurationElement;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.model.data.DBDValueHandlerProvider;
-import org.jkiss.dbeaver.registry.RegistryConstants;
+import com.seizia.chromite.model.data.DBDValueHandlerProvider;
+import com.seizia.chromite.registry.RegistryConstants;
 
 /**
  * ValueHandlerDescriptor

@@ -14,15 +14,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.editors.erd.router;
+package com.seizia.chromite.ui.editors.erd.router;
 
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.IConfigurationElement;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.impl.AbstractDescriptor;
-import org.jkiss.dbeaver.registry.RegistryConstants;
-import org.jkiss.dbeaver.ui.editors.erd.ERDUIConstants;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.impl.AbstractDescriptor;
+import com.seizia.chromite.registry.RegistryConstants;
+import com.seizia.chromite.ui.editors.erd.ERDUIConstants;
 import org.jkiss.utils.CommonUtils;
 
 /**

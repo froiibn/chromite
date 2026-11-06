@@ -14,10 +14,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.manticore;
+package com.seizia.chromite.ext.manticore;
 
-import org.jkiss.dbeaver.ext.generic.GenericDataSourceProvider;
-import org.jkiss.dbeaver.ext.manticore.model.ManticoreDataSource;
+import com.seizia.chromite.ext.generic.GenericDataSourceProvider;
+import com.seizia.chromite.ext.manticore.model.ManticoreDataSource;
 
 public class ManticoreDataSourceProvider extends GenericDataSourceProvider<ManticoreDataSource> {
 

@@ -15,17 +15,17 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.registry.formatter;
+package com.seizia.chromite.registry.formatter;
 
 import org.eclipse.core.runtime.IConfigurationElement;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.data.DBDDataFormatter;
-import org.jkiss.dbeaver.model.data.DBDDataFormatterSample;
-import org.jkiss.dbeaver.model.impl.AbstractDescriptor;
-import org.jkiss.dbeaver.model.impl.PropertyDescriptor;
-import org.jkiss.dbeaver.model.preferences.DBPPropertyDescriptor;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.data.DBDDataFormatter;
+import com.seizia.chromite.model.data.DBDDataFormatterSample;
+import com.seizia.chromite.model.impl.AbstractDescriptor;
+import com.seizia.chromite.model.impl.PropertyDescriptor;
+import com.seizia.chromite.model.preferences.DBPPropertyDescriptor;
 
 /**
  * DataFormatterDescriptor
@@ -34,7 +34,7 @@ public class DataFormatterDescriptor extends AbstractDescriptor
 {
     private static final Log log = Log.getLog(DataFormatterDescriptor.class);
 
-    public static final String EXTENSION_ID = "org.jkiss.dbeaver.dataFormatter"; //$NON-NLS-1$
+    public static final String EXTENSION_ID = "com.seizia.chromite.dataFormatter"; //$NON-NLS-1$
 
     private final String id;
     private final String name;

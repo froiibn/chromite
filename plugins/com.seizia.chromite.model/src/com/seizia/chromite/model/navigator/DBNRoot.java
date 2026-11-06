@@ -14,20 +14,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.navigator;
+package com.seizia.chromite.model.navigator;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.model.DBPImage;
-import org.jkiss.dbeaver.model.app.DBPProject;
-import org.jkiss.dbeaver.model.app.DBPProjectListener;
-import org.jkiss.dbeaver.model.app.DBPProjectManager;
-import org.jkiss.dbeaver.model.messages.ModelMessages;
-import org.jkiss.dbeaver.model.meta.Property;
-import org.jkiss.dbeaver.model.navigator.registry.DBNRegistry;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
+import com.seizia.chromite.model.DBPImage;
+import com.seizia.chromite.model.app.DBPProject;
+import com.seizia.chromite.model.app.DBPProjectListener;
+import com.seizia.chromite.model.app.DBPProjectManager;
+import com.seizia.chromite.model.messages.ModelMessages;
+import com.seizia.chromite.model.meta.Property;
+import com.seizia.chromite.model.navigator.registry.DBNRegistry;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.runtime.DBWorkbench;
 import org.jkiss.utils.CommonUtils;
 
 import java.util.ArrayList;

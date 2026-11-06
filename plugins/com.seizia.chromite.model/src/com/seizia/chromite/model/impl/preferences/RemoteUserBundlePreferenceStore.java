@@ -14,11 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.impl.preferences;
+package com.seizia.chromite.model.impl.preferences;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.model.preferences.DBPPreferenceStore;
+import com.seizia.chromite.model.preferences.DBPPreferenceStore;
 import org.jkiss.utils.CommonUtils;
 import org.osgi.framework.Bundle;
 

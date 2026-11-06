@@ -9,10 +9,10 @@
  *     IBM Corporation - initial API and implementation
  *     Sebastian Davids: sdavids@gmx.de - see bug 25376
  *******************************************************************************/
-package org.jkiss.dbeaver.ui.editors.sql.templates;
+package com.seizia.chromite.ui.editors.sql.templates;
 
 
-import org.jkiss.dbeaver.model.connection.DBPDataSourceProviderDescriptor;
+import com.seizia.chromite.model.connection.DBPDataSourceProviderDescriptor;
 
 public class SQLContextTypeProvider extends SQLContextTypeAbstract {
 

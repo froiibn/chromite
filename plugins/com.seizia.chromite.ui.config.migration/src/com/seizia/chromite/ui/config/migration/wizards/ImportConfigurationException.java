@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.config.migration.wizards;
+package com.seizia.chromite.ui.config.migration.wizards;
 
 public class ImportConfigurationException extends RuntimeException{
 

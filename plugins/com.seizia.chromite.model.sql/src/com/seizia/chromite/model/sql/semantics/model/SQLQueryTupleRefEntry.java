@@ -14,13 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.sql.semantics.model;
+package com.seizia.chromite.model.sql.semantics.model;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.model.sql.semantics.SQLQueryLexicalScopeItem;
-import org.jkiss.dbeaver.model.sql.semantics.SQLQuerySymbolClass;
-import org.jkiss.dbeaver.model.stm.STMTreeNode;
+import com.seizia.chromite.model.sql.semantics.SQLQueryLexicalScopeItem;
+import com.seizia.chromite.model.sql.semantics.SQLQuerySymbolClass;
+import com.seizia.chromite.model.stm.STMTreeNode;
 
 public class SQLQueryTupleRefEntry extends SQLQueryLexicalScopeItem {
 

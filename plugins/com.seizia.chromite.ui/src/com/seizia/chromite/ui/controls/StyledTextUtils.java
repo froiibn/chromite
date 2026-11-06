@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.controls;
+package com.seizia.chromite.ui.controls;
 
 import org.eclipse.jface.action.*;
 import org.eclipse.jface.text.IFindReplaceTarget;
@@ -26,7 +26,7 @@ import org.eclipse.swt.widgets.Shell;
 import org.eclipse.ui.IWorkbenchCommandConstants;
 import org.eclipse.ui.texteditor.FindReplaceAction;
 import org.eclipse.ui.texteditor.ITextEditorActionDefinitionIds;
-import org.jkiss.dbeaver.ui.ActionUtils;
+import com.seizia.chromite.ui.ActionUtils;
 
 import java.util.ResourceBundle;
 

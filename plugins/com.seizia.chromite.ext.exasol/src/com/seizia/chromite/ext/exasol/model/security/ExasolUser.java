@@ -14,18 +14,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.exasol.model.security;
+package com.seizia.chromite.ext.exasol.model.security;
 
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.ext.exasol.ExasolUserType;
-import org.jkiss.dbeaver.ext.exasol.model.ExasolDataSource;
-import org.jkiss.dbeaver.model.DBPNamedObject2;
-import org.jkiss.dbeaver.model.DBPRefreshableObject;
-import org.jkiss.dbeaver.model.DBPSaveableObject;
-import org.jkiss.dbeaver.model.access.DBAUser;
-import org.jkiss.dbeaver.model.impl.jdbc.JDBCUtils;
-import org.jkiss.dbeaver.model.meta.Property;
-import org.jkiss.dbeaver.model.meta.PropertyLength;
+import com.seizia.chromite.ext.exasol.ExasolUserType;
+import com.seizia.chromite.ext.exasol.model.ExasolDataSource;
+import com.seizia.chromite.model.DBPNamedObject2;
+import com.seizia.chromite.model.DBPRefreshableObject;
+import com.seizia.chromite.model.DBPSaveableObject;
+import com.seizia.chromite.model.access.DBAUser;
+import com.seizia.chromite.model.impl.jdbc.JDBCUtils;
+import com.seizia.chromite.model.meta.Property;
+import com.seizia.chromite.model.meta.PropertyLength;
 import org.jkiss.utils.CommonUtils;
 
 import java.math.BigDecimal;

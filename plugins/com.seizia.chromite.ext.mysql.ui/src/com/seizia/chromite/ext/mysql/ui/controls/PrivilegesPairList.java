@@ -15,11 +15,11 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.ext.mysql.ui.controls;
+package com.seizia.chromite.ext.mysql.ui.controls;
 
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.widgets.Composite;
-import org.jkiss.dbeaver.ui.controls.PairListControl;
+import com.seizia.chromite.ui.controls.PairListControl;
 
 import java.util.ArrayList;
 import java.util.List;

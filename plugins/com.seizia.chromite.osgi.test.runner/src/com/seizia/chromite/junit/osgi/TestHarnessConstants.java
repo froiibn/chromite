@@ -14,12 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.junit.osgi;
+package com.seizia.chromite.junit.osgi;
 
 public final class TestHarnessConstants {
 
     // OSGi BundleContext published by the test runner once the framework is up
-    public static final String PROP_OSGI_CONTEXT = "dbeaver.osgi.context";
+    public static final String PROP_OSGI_CONTEXT = "chromite.osgi.context";
 
     private TestHarnessConstants() {
     }

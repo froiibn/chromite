@@ -2,11 +2,11 @@
 <?eclipse version="3.2"?>
 <plugin>
 
-    <extension point="org.jkiss.dbeaver.generic.meta">
-        <meta id="databricks" class="org.jkiss.dbeaver.ext.databricks.model.DatabricksMetaModel" driverClass="com.databricks.client.jdbc.Driver,com.simba.spark.jdbc.Driver" dialect="spark"/>
+    <extension point="com.seizia.chromite.generic.meta">
+        <meta id="databricks" class="com.seizia.chromite.ext.databricks.model.DatabricksMetaModel" driverClass="com.databricks.client.jdbc.Driver,com.simba.spark.jdbc.Driver" dialect="spark"/>
     </extension>
 
-    <extension point="org.jkiss.dbeaver.dataSourceProvider">
+    <extension point="com.seizia.chromite.dataSourceProvider">
 
         <dataSourceType
             id="databricks"
@@ -18,7 +18,7 @@
             logoImage="icons/databricks_logo.svg"/>
 
         <datasource
-                class="org.jkiss.dbeaver.ext.databricks.DatabricksDataSourceProvider"
+                class="com.seizia.chromite.ext.databricks.DatabricksDataSourceProvider"
                 description="Databricks Connector"
                 id="databricks"
                 dataSourceType="databricks"
@@ -54,7 +54,7 @@
 
                     <parameter name="supports-indexes" value="false"/>
                     <parameter name="supports-multi-insert" value="true"/>
-                    <property name="@dbeaver-default-resultset.maxrows.sql" value="true"/>
+                    <property name="@chromite-default-resultset.maxrows.sql" value="true"/>
                     <property name="EnableComplexDatatypeSupport" value="1"/>
                     <property name="EnableGeoSpatialSupport" value="1"/>
                 </driver>

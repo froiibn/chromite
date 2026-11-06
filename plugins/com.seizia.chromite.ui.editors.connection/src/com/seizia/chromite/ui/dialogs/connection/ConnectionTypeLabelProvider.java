@@ -14,13 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.dialogs.connection;
+package com.seizia.chromite.ui.dialogs.connection;
 
 import org.eclipse.jface.viewers.IColorProvider;
 import org.eclipse.jface.viewers.LabelProvider;
 import org.eclipse.swt.graphics.Color;
-import org.jkiss.dbeaver.model.connection.DBPConnectionType;
-import org.jkiss.dbeaver.ui.UIUtils;
+import com.seizia.chromite.model.connection.DBPConnectionType;
+import com.seizia.chromite.ui.UIUtils;
 
 public class ConnectionTypeLabelProvider extends LabelProvider implements IColorProvider {
     @Override

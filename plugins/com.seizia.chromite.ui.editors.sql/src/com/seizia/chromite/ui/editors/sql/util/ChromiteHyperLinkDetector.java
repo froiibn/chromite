@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.editors.sql.util;
+package com.seizia.chromite.ui.editors.sql.util;
 
 import org.eclipse.jface.text.BadLocationException;
 import org.eclipse.jface.text.IRegion;
@@ -23,12 +23,12 @@ import org.eclipse.jface.text.hyperlink.IHyperlink;
 import org.eclipse.jface.text.hyperlink.URLHyperlinkDetector;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.Log;
+import com.seizia.chromite.Log;
 
 import java.util.ArrayList;
 
-public class DBeaverHyperLinkDetector extends URLHyperlinkDetector {
-    private static final Log log = Log.getLog(DBeaverHyperLinkDetector.class);
+public class ChromiteHyperLinkDetector extends URLHyperlinkDetector {
+    private static final Log log = Log.getLog(ChromiteHyperLinkDetector.class);
 
     @Override
     @Nullable

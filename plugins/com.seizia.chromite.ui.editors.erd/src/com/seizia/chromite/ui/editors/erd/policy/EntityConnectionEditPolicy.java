@@ -14,17 +14,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.editors.erd.policy;
+package com.seizia.chromite.ui.editors.erd.policy;
 
 import org.eclipse.gef.commands.Command;
 import org.eclipse.gef.editpolicies.GraphicalNodeEditPolicy;
 import org.eclipse.gef.requests.CreateConnectionRequest;
 import org.eclipse.gef.requests.ReconnectRequest;
-import org.jkiss.dbeaver.model.erd.ERDAssociation;
-import org.jkiss.dbeaver.ui.editors.erd.command.AssociationCreateCommand;
-import org.jkiss.dbeaver.ui.editors.erd.command.AssociationReconnectSourceCommand;
-import org.jkiss.dbeaver.ui.editors.erd.command.AssociationReconnectTargetCommand;
-import org.jkiss.dbeaver.ui.editors.erd.part.NodePart;
+import com.seizia.chromite.model.erd.ERDAssociation;
+import com.seizia.chromite.ui.editors.erd.command.AssociationCreateCommand;
+import com.seizia.chromite.ui.editors.erd.command.AssociationReconnectSourceCommand;
+import com.seizia.chromite.ui.editors.erd.command.AssociationReconnectTargetCommand;
+import com.seizia.chromite.ui.editors.erd.part.NodePart;
 
 /**
  * Handles manipulation of relationships between tables

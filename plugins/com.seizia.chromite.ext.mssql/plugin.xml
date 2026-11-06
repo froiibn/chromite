@@ -2,12 +2,12 @@
 <?eclipse version="3.2"?>
 <plugin>
 
-    <extension point="org.jkiss.dbeaver.generic.meta">
-        <meta id="sqlserver" class="org.jkiss.dbeaver.ext.mssql.model.generic.SQLServerMetaModel"
+    <extension point="com.seizia.chromite.generic.meta">
+        <meta id="sqlserver" class="com.seizia.chromite.ext.mssql.model.generic.SQLServerMetaModel"
               driverClass="net.sourceforge.jtds.jdbc.Driver,com.microsoft.sqlserver.jdbc.SQLServerDriver,com.sybase.jdbc4.jdbc.SybDriver"/>
     </extension>
 
-    <extension point="org.jkiss.dbeaver.dataSourceProvider">
+    <extension point="com.seizia.chromite.dataSourceProvider">
 
         <dataSourceType
             id="sap_ase"
@@ -39,7 +39,7 @@
         <!-- SQL Server. New connector replaces all Generic-based SQL Server drivers -->
 
         <datasource
-            class="org.jkiss.dbeaver.ext.mssql.SQLServerDataSourceProvider"
+            class="com.seizia.chromite.ext.mssql.SQLServerDataSourceProvider"
             description="%datasource.mssql.description"
             id="sqlserver"
             label="MS SQL Server"
@@ -47,38 +47,38 @@
             dialect="sqlserver">
 
             <tree path="sqlserver" label="SQL Server data source">
-                <folder type="org.jkiss.dbeaver.ext.mssql.model.SQLServerDatabase" label="%tree.databases.node.name" icon="#folder_database" description="%tree.databases.node.tip">
+                <folder type="com.seizia.chromite.ext.mssql.model.SQLServerDatabase" label="%tree.databases.node.name" icon="#folder_database" description="%tree.databases.node.tip">
                     <items label="%tree.database.node.name" path="database" property="databases" icon="#database">
-                        <folder type="org.jkiss.dbeaver.ext.mssql.model.SQLServerSchema" label="%tree.schemas.node.name" icon="#folder_schema" description="Schemas">
+                        <folder type="com.seizia.chromite.ext.mssql.model.SQLServerSchema" label="%tree.schemas.node.name" icon="#folder_schema" description="Schemas">
                             <items label="%tree.schema.node.name" path="schema" property="schemas" icon="#schema">
                                 <icon if="object.system" icon="#schema_system"/>
-                                <folder type="org.jkiss.dbeaver.ext.mssql.model.SQLServerTable" label="%tree.tables.node.name" icon="#folder_table" description="Tables">
+                                <folder type="com.seizia.chromite.ext.mssql.model.SQLServerTable" label="%tree.tables.node.name" icon="#folder_table" description="Tables">
                                     <items label="%tree.table.node.name" path="table" property="tables" icon="#table">
                                         <icon if="object.system" icon="#table_system"/>
-                                        <folder type="org.jkiss.dbeaver.ext.mssql.model.SQLServerTableColumn" label="%tree.columns.node.name" icon="#columns" description="Table columns">
+                                        <folder type="com.seizia.chromite.ext.mssql.model.SQLServerTableColumn" label="%tree.columns.node.name" icon="#columns" description="Table columns">
                                             <items label="%tree.column.node.name" path="attribute" property="attributes" icon="#column">
-                                                <folder type="org.jkiss.dbeaver.ext.mssql.model.SQLServerExtendedProperty" label="%tree.extendedProperties.node.name" icon="#extended-properties" description="Table extended properties">
+                                                <folder type="com.seizia.chromite.ext.mssql.model.SQLServerExtendedProperty" label="%tree.extendedProperties.node.name" icon="#extended-properties" description="Table extended properties">
                                                     <items label="%tree.extendedProperty.node.name" path="extendedProperty" property="extendedProperties" icon="#extended-property"/>
                                                 </folder>
                                             </items>
                                         </folder>
-                                        <folder type="org.jkiss.dbeaver.ext.mssql.model.SQLServerTableUniqueKey" label="%tree.uni_keys.node.name" icon="#constraints" description="Table unique keys">
+                                        <folder type="com.seizia.chromite.ext.mssql.model.SQLServerTableUniqueKey" label="%tree.uni_keys.node.name" icon="#constraints" description="Table unique keys">
                                             <items label="%tree.uni_key.node.name" path="uniqueKey" property="constraints" icon="#unique-key">
                                                 <items label="%tree.uni_key.columns.node.name" itemLabel="%tree.column.node.name" path="column" property="attributeReferences" navigable="false" inline="true">
                                                 </items>
                                             </items>
                                         </folder>
-                                        <folder type="org.jkiss.dbeaver.ext.mssql.model.SQLServerTableCheckConstraint" label="%tree.check_constraints.node.name" icon="#constraints" description="%tree.check_constraints.node.tip">
+                                        <folder type="com.seizia.chromite.ext.mssql.model.SQLServerTableCheckConstraint" label="%tree.check_constraints.node.name" icon="#constraints" description="%tree.check_constraints.node.tip">
                                             <items label="%tree.check_constraint.node.name" path="checkConstraint" property="checkConstraints" icon="#constraint">
                                             </items>
                                         </folder>
-                                        <folder type="org.jkiss.dbeaver.ext.mssql.model.SQLServerTableForeignKey" label="%tree.foreign_keys.node.name" icon="#foreign-keys" description="Table foreign keys">
+                                        <folder type="com.seizia.chromite.ext.mssql.model.SQLServerTableForeignKey" label="%tree.foreign_keys.node.name" icon="#foreign-keys" description="Table foreign keys">
                                             <items label="%tree.foreign_key.node.name" path="association" property="associations" icon="#foreign-key">
                                                 <items label="%tree.foreign_key_columns.node.name" itemLabel="%tree.column.node.name" path="column" property="attributeReferences" navigable="false" inline="true">
                                                 </items>
                                             </items>
                                         </folder>
-                                        <folder type="org.jkiss.dbeaver.ext.mssql.model.SQLServerTableIndex" label="%tree.indexes.node.name" icon="#indexes" description="Table indexes">
+                                        <folder type="com.seizia.chromite.ext.mssql.model.SQLServerTableIndex" label="%tree.indexes.node.name" icon="#indexes" description="Table indexes">
                                             <items label="%tree.index.node.name" path="index" property="indexes" icon="#index">
                                                 <items label="%tree.index_columns.node.name" path="column" property="attributeReferences" icon="#column" navigable="false" inline="true">
                                                 </items>
@@ -90,63 +90,63 @@
                                                 </items>
                                             </items>
                                         </folder>
-                                        <folder type="org.jkiss.dbeaver.ext.mssql.model.SQLServerTableTrigger" label="%tree.triggers.node.name" icon="#triggers" description="Table triggers" visibleIf="object.dataSource.supportsTriggers()">
+                                        <folder type="com.seizia.chromite.ext.mssql.model.SQLServerTableTrigger" label="%tree.triggers.node.name" icon="#triggers" description="Table triggers" visibleIf="object.dataSource.supportsTriggers()">
                                             <items label="%tree.trigger.node.name" path="trigger" property="triggers" icon="#trigger"/>
                                         </folder>
-                                        <folder type="org.jkiss.dbeaver.ext.mssql.model.SQLServerExtendedProperty" label="%tree.extendedProperties.node.name" icon="#extended-properties" description="Table extended properties">
+                                        <folder type="com.seizia.chromite.ext.mssql.model.SQLServerExtendedProperty" label="%tree.extendedProperties.node.name" icon="#extended-properties" description="Table extended properties">
                                             <items label="%tree.extendedProperty.node.name" path="extendedProperty" property="extendedProperties" icon="#extended-property"/>
                                         </folder>
                                     </items>
                                 </folder>
-                                <folder type="org.jkiss.dbeaver.ext.mssql.model.SQLServerExternalTable" label="%tree.externalTables.node.name" icon="#folder_table" description="External tables" visibleIf="object.dataSource.supportsExternalTables()">
+                                <folder type="com.seizia.chromite.ext.mssql.model.SQLServerExternalTable" label="%tree.externalTables.node.name" icon="#folder_table" description="External tables" visibleIf="object.dataSource.supportsExternalTables()">
                                     <items label="%tree.externalTable.node.name" path="externalTable" property="externalTables" icon="#table_external">
-                                        <folder type="org.jkiss.dbeaver.ext.mssql.model.SQLServerTableColumn" label="%tree.columns.node.name" icon="#columns" description="Table columns">
+                                        <folder type="com.seizia.chromite.ext.mssql.model.SQLServerTableColumn" label="%tree.columns.node.name" icon="#columns" description="Table columns">
                                             <items label="%tree.column.node.name" path="attribute" property="attributes" icon="#column"/>
                                         </folder>
                                     </items>
                                 </folder>
-                                <folder type="org.jkiss.dbeaver.ext.mssql.model.SQLServerView" label="%tree.tviews.node.name" icon="#folder_view" description="Views">
+                                <folder type="com.seizia.chromite.ext.mssql.model.SQLServerView" label="%tree.tviews.node.name" icon="#folder_view" description="Views">
                                     <items label="%tree.tview.node.name" path="view" property="views" icon="#view">
-                                        <folder type="org.jkiss.dbeaver.ext.mssql.model.SQLServerTableColumn" label="%tree.columns.node.name" icon="#columns" description="View columns">
+                                        <folder type="com.seizia.chromite.ext.mssql.model.SQLServerTableColumn" label="%tree.columns.node.name" icon="#columns" description="View columns">
                                             <items label="%tree.column.node.name" path="attribute" property="attributes" icon="#column">
                                             </items>
                                         </folder>
-                                        <folder type="org.jkiss.dbeaver.ext.mssql.model.SQLServerTableTrigger" label="%tree.triggers.node.name" icon="#triggers" description="View triggers" visibleIf="object.dataSource.supportsTriggers()">
+                                        <folder type="com.seizia.chromite.ext.mssql.model.SQLServerTableTrigger" label="%tree.triggers.node.name" icon="#triggers" description="View triggers" visibleIf="object.dataSource.supportsTriggers()">
                                             <items label="%tree.trigger.node.name" path="trigger" property="triggers" icon="#trigger"/>
                                         </folder>
-                                        <folder type="org.jkiss.dbeaver.ext.mssql.model.SQLServerExtendedProperty" label="%tree.extendedProperties.node.name" icon="#extended-properties" description="View extended properties">
+                                        <folder type="com.seizia.chromite.ext.mssql.model.SQLServerExtendedProperty" label="%tree.extendedProperties.node.name" icon="#extended-properties" description="View extended properties">
                                             <items label="%tree.extendedProperty.node.name" path="extendedProperty" property="extendedProperties" icon="#extended-property"/>
                                         </folder>
                                     </items>
                                 </folder>
-                                <folder type="org.jkiss.dbeaver.ext.mssql.model.SQLServerTableIndex" label="%tree.indexes.node.name" icon="#indexes" description="Indexes" virtual="true">
+                                <folder type="com.seizia.chromite.ext.mssql.model.SQLServerTableIndex" label="%tree.indexes.node.name" icon="#indexes" description="Indexes" virtual="true">
                                     <items icon="#index" label="%tree.index.node.name" path="index" property="indexes" virtual="true">
                                         <items icon="#column" label="%tree.index_columns.node.name" itemLabel="%tree.column.node.name" path="column" property="attributeReferences" inline="true" navigable="false" virtual="true">
                                         </items>
                                     </items>
                                 </folder>
-                                <folder type="org.jkiss.dbeaver.ext.mssql.model.SQLServerProcedure" label="%tree.procedures.node.name" icon="#procedures" description="%tree.procedures.node.tip">
+                                <folder type="com.seizia.chromite.ext.mssql.model.SQLServerProcedure" label="%tree.procedures.node.name" icon="#procedures" description="%tree.procedures.node.tip">
                                     <items label="%tree.procedure.node.name" itemLabel="%tree.procedure.node.name" path="procedure" property="proceduresOnly" icon="#procedure">
                                         <items label="%tree.procedure_columns.node.name" itemLabel="%tree.column.node.name" path="column" property="parameters" navigable="false"/>
                                     </items>
                                 </folder>
-                                <folder type="org.jkiss.dbeaver.ext.mssql.model.SQLServerProcedure" label="%tree.functions.node.name" icon="#functions" description="%tree.functions.node.tip">
+                                <folder type="com.seizia.chromite.ext.mssql.model.SQLServerProcedure" label="%tree.functions.node.name" icon="#functions" description="%tree.functions.node.tip">
                                     <items label="%tree.function.node.name" itemLabel="%tree.function.node.name" path="function" property="functionsOnly" icon="#function">
                                         <items label="%tree.function_columns.node.name" itemLabel="%tree.column.node.name" path="column" property="parameters" navigable="false"/>
                                     </items>
                                 </folder>
-                                <folder type="org.jkiss.dbeaver.ext.mssql.model.SQLServerSequence" label="%tree.sequences.node.name" icon="#sequences" description="Sequences"  visibleIf="object.dataSource.supportsSequences()">
+                                <folder type="com.seizia.chromite.ext.mssql.model.SQLServerSequence" label="%tree.sequences.node.name" icon="#sequences" description="Sequences"  visibleIf="object.dataSource.supportsSequences()">
                                     <items label="%tree.sequence.node.name" path="sequence" property="sequences" icon="#sequence"/>
                                 </folder>
-                                <folder type="org.jkiss.dbeaver.ext.mssql.model.SQLServerSynonym" label="%tree.synonyms.node.name" icon="#synonyms" description="Synonyms" visibleIf="object.dataSource.supportsSynonyms()">
+                                <folder type="com.seizia.chromite.ext.mssql.model.SQLServerSynonym" label="%tree.synonyms.node.name" icon="#synonyms" description="Synonyms" visibleIf="object.dataSource.supportsSynonyms()">
                                     <items label="%tree.synonym.node.name" path="synonym" property="synonyms" icon="#synonym"/>
                                 </folder >
-                                <folder type="org.jkiss.dbeaver.model.struct.rdb.DBSTrigger" label="%tree.tableTriggers.node.name" icon="#triggers" description="All table triggers" virtual="true" visibleIf="object.dataSource.supportsTriggers()">
+                                <folder type="com.seizia.chromite.model.struct.rdb.DBSTrigger" label="%tree.tableTriggers.node.name" icon="#triggers" description="All table triggers" virtual="true" visibleIf="object.dataSource.supportsTriggers()">
                                     <items label="%tree.trigger.node.name" path="trigger" property="triggers" icon="#trigger" virtual="true"/>
                                 </folder>
-                                <folder type="org.jkiss.dbeaver.ext.mssql.model.SQLServerDataType" label="%tree.dataTypes.node.name" icon="#data_types" description="Global data types">
+                                <folder type="com.seizia.chromite.ext.mssql.model.SQLServerDataType" label="%tree.dataTypes.node.name" icon="#data_types" description="Global data types">
                                     <items label="%tree.dataType.node.name" path="dataType" property="dataTypes" icon="#data_type">
-                                        <folder type="org.jkiss.dbeaver.ext.mssql.model.SQLServerTableColumn" label="%tree.columns.node.name" icon="#columns" description="Table type columns" visibleIf="object.isTableType()">
+                                        <folder type="com.seizia.chromite.ext.mssql.model.SQLServerTableColumn" label="%tree.columns.node.name" icon="#columns" description="Table type columns" visibleIf="object.isTableType()">
                                             <items label="%tree.column.node.name" path="attribute" property="attributes" icon="#column">
                                             </items>
                                         </folder>
@@ -160,13 +160,13 @@
                                 </folder>
                             </items>
                         </folder>
-                        <folder type="org.jkiss.dbeaver.ext.mssql.model.SQLServerDatabaseTrigger" label="%tree.databaseTriggers.node.name" icon="#triggers" description="All database triggers" visibleIf="object.dataSource.supportsTriggers()">
+                        <folder type="com.seizia.chromite.ext.mssql.model.SQLServerDatabaseTrigger" label="%tree.databaseTriggers.node.name" icon="#triggers" description="All database triggers" visibleIf="object.dataSource.supportsTriggers()">
                             <items label="%tree.trigger.node.name" path="trigger" property="triggers" icon="#trigger"/>
                         </folder>
                     </items>
                 </folder>
                 <folder label="%tree.security.node.name" icon="#security" id="securityManagement" description="Security management">
-                    <folder type="org.jkiss.dbeaver.ext.mssql.model.SQLServerLogin" label="%tree.logins.node.name" icon="#folder_user" description="Logins">
+                    <folder type="com.seizia.chromite.ext.mssql.model.SQLServerLogin" label="%tree.logins.node.name" icon="#folder_user" description="Logins">
                         <items label="%tree.login.node.name" path="logins" property="logins" icon="#user"/>
                     </folder>
                 </folder>
@@ -208,7 +208,7 @@
 
                     <provider-properties>
                         <propertyGroup label="Advanced">
-                            <property id="@dbeaver-show-all-schemas@" label="Show all schemas" type="boolean" description="Shows all database schemas. If disabled shows only non-empty schemas."/>
+                            <property id="@chromite-show-all-schemas@" label="Show all schemas" type="boolean" description="Shows all database schemas. If disabled shows only non-empty schemas."/>
                             <property id="sslTrustServerCertificate" label="Trust Server Certificate" type="boolean" description="Trust Server Certificate"/>
                         </propertyGroup>
                     </provider-properties>
@@ -289,7 +289,7 @@
         <!-- Generic (Sybase + Legacy) -->
 
         <datasource
-                class="org.jkiss.dbeaver.ext.mssql.SQLServerGenericDataSourceProvider"
+                class="com.seizia.chromite.ext.mssql.SQLServerGenericDataSourceProvider"
                 description="%datasource.mssql.description"
                 id="mssql"
                 parent="generic"
@@ -523,34 +523,34 @@
         </datasource>
     </extension>
 
-    <extension point="org.jkiss.dbeaver.objectManager">
-        <manager class="org.jkiss.dbeaver.ext.mssql.edit.SQLServerDatabaseManager" objectType="org.jkiss.dbeaver.ext.mssql.model.SQLServerDatabase"/>
-        <manager class="org.jkiss.dbeaver.ext.mssql.edit.SQLServerExternalTableManager" objectType="org.jkiss.dbeaver.ext.mssql.model.SQLServerExternalTable"/>
-        <manager class="org.jkiss.dbeaver.ext.mssql.edit.SQLServerTableManager" objectType="org.jkiss.dbeaver.ext.mssql.model.SQLServerTable"/>
-        <manager class="org.jkiss.dbeaver.ext.mssql.edit.SQLServerTableTypeManager" objectType="org.jkiss.dbeaver.ext.mssql.model.SQLServerTableType"/>
-        <manager class="org.jkiss.dbeaver.ext.mssql.edit.SQLServerTableColumnManager" objectType="org.jkiss.dbeaver.ext.mssql.model.SQLServerTableColumn"/>
-        <manager class="org.jkiss.dbeaver.ext.mssql.edit.SQLServerUniqueKeyManager" objectType="org.jkiss.dbeaver.ext.mssql.model.SQLServerTableUniqueKey"/>
-        <manager class="org.jkiss.dbeaver.ext.mssql.edit.SQLServerForeignKeyManager" objectType="org.jkiss.dbeaver.ext.mssql.model.SQLServerTableForeignKey"/>
-        <manager class="org.jkiss.dbeaver.ext.mssql.edit.SQLServerIndexManager" objectType="org.jkiss.dbeaver.ext.mssql.model.SQLServerTableIndex"/>
-        <manager class="org.jkiss.dbeaver.ext.mssql.edit.SQLServerCheckConstraintManager" objectType="org.jkiss.dbeaver.ext.mssql.model.SQLServerTableCheckConstraint"/>
-        <manager class="org.jkiss.dbeaver.ext.mssql.edit.SQLServerTableTriggerManager" objectType="org.jkiss.dbeaver.ext.mssql.model.SQLServerTableTrigger"/>
-        <manager class="org.jkiss.dbeaver.ext.mssql.edit.SQLServerProcedureManager" objectType="org.jkiss.dbeaver.ext.mssql.model.SQLServerProcedure"/>
-        <manager class="org.jkiss.dbeaver.ext.mssql.edit.SQLServerSynonymManager" objectType="org.jkiss.dbeaver.ext.mssql.model.SQLServerSynonym"/>
-        <manager class="org.jkiss.dbeaver.ext.mssql.edit.SQLServerViewManager" objectType="org.jkiss.dbeaver.ext.mssql.model.SQLServerView"/>
-        <manager class="org.jkiss.dbeaver.ext.mssql.edit.SQLServerDataTypeManager" objectType="org.jkiss.dbeaver.ext.mssql.model.SQLServerDataType"/>
-        <manager class="org.jkiss.dbeaver.ext.mssql.edit.SQLServerExtendedPropertyManager" objectType="org.jkiss.dbeaver.ext.mssql.model.SQLServerExtendedProperty"/>
-        <manager class="org.jkiss.dbeaver.ext.mssql.edit.SQLServerLoginManager" objectType="org.jkiss.dbeaver.ext.mssql.model.SQLServerLogin"/>
+    <extension point="com.seizia.chromite.objectManager">
+        <manager class="com.seizia.chromite.ext.mssql.edit.SQLServerDatabaseManager" objectType="com.seizia.chromite.ext.mssql.model.SQLServerDatabase"/>
+        <manager class="com.seizia.chromite.ext.mssql.edit.SQLServerExternalTableManager" objectType="com.seizia.chromite.ext.mssql.model.SQLServerExternalTable"/>
+        <manager class="com.seizia.chromite.ext.mssql.edit.SQLServerTableManager" objectType="com.seizia.chromite.ext.mssql.model.SQLServerTable"/>
+        <manager class="com.seizia.chromite.ext.mssql.edit.SQLServerTableTypeManager" objectType="com.seizia.chromite.ext.mssql.model.SQLServerTableType"/>
+        <manager class="com.seizia.chromite.ext.mssql.edit.SQLServerTableColumnManager" objectType="com.seizia.chromite.ext.mssql.model.SQLServerTableColumn"/>
+        <manager class="com.seizia.chromite.ext.mssql.edit.SQLServerUniqueKeyManager" objectType="com.seizia.chromite.ext.mssql.model.SQLServerTableUniqueKey"/>
+        <manager class="com.seizia.chromite.ext.mssql.edit.SQLServerForeignKeyManager" objectType="com.seizia.chromite.ext.mssql.model.SQLServerTableForeignKey"/>
+        <manager class="com.seizia.chromite.ext.mssql.edit.SQLServerIndexManager" objectType="com.seizia.chromite.ext.mssql.model.SQLServerTableIndex"/>
+        <manager class="com.seizia.chromite.ext.mssql.edit.SQLServerCheckConstraintManager" objectType="com.seizia.chromite.ext.mssql.model.SQLServerTableCheckConstraint"/>
+        <manager class="com.seizia.chromite.ext.mssql.edit.SQLServerTableTriggerManager" objectType="com.seizia.chromite.ext.mssql.model.SQLServerTableTrigger"/>
+        <manager class="com.seizia.chromite.ext.mssql.edit.SQLServerProcedureManager" objectType="com.seizia.chromite.ext.mssql.model.SQLServerProcedure"/>
+        <manager class="com.seizia.chromite.ext.mssql.edit.SQLServerSynonymManager" objectType="com.seizia.chromite.ext.mssql.model.SQLServerSynonym"/>
+        <manager class="com.seizia.chromite.ext.mssql.edit.SQLServerViewManager" objectType="com.seizia.chromite.ext.mssql.model.SQLServerView"/>
+        <manager class="com.seizia.chromite.ext.mssql.edit.SQLServerDataTypeManager" objectType="com.seizia.chromite.ext.mssql.model.SQLServerDataType"/>
+        <manager class="com.seizia.chromite.ext.mssql.edit.SQLServerExtendedPropertyManager" objectType="com.seizia.chromite.ext.mssql.model.SQLServerExtendedProperty"/>
+        <manager class="com.seizia.chromite.ext.mssql.edit.SQLServerLoginManager" objectType="com.seizia.chromite.ext.mssql.model.SQLServerLogin"/>
 
-        <manager class="org.jkiss.dbeaver.ext.mssql.edit.generic.SQLServerGenericProcedureManager" objectType="org.jkiss.dbeaver.ext.mssql.model.generic.SQLServerGenericProcedure"/>
-        <manager class="org.jkiss.dbeaver.ext.mssql.edit.generic.SQLServerGenericTriggerManager" objectType="org.jkiss.dbeaver.ext.mssql.model.generic.SQLServerGenericTrigger"/>
-        <manager class="org.jkiss.dbeaver.ext.mssql.edit.generic.SQLServerGenericTableManager" objectType="org.jkiss.dbeaver.ext.mssql.model.generic.SQLServerGenericTable"/>
-        <manager class="org.jkiss.dbeaver.ext.mssql.edit.generic.SQLServerGenericViewManager" objectType="org.jkiss.dbeaver.ext.mssql.model.generic.SQLServerGenericView"/>
-        <manager class="org.jkiss.dbeaver.ext.mssql.edit.generic.SQLServerGenericTableColumnManager" objectType="org.jkiss.dbeaver.ext.mssql.model.generic.SQLServerGenericTableColumn"/>
+        <manager class="com.seizia.chromite.ext.mssql.edit.generic.SQLServerGenericProcedureManager" objectType="com.seizia.chromite.ext.mssql.model.generic.SQLServerGenericProcedure"/>
+        <manager class="com.seizia.chromite.ext.mssql.edit.generic.SQLServerGenericTriggerManager" objectType="com.seizia.chromite.ext.mssql.model.generic.SQLServerGenericTrigger"/>
+        <manager class="com.seizia.chromite.ext.mssql.edit.generic.SQLServerGenericTableManager" objectType="com.seizia.chromite.ext.mssql.model.generic.SQLServerGenericTable"/>
+        <manager class="com.seizia.chromite.ext.mssql.edit.generic.SQLServerGenericViewManager" objectType="com.seizia.chromite.ext.mssql.model.generic.SQLServerGenericView"/>
+        <manager class="com.seizia.chromite.ext.mssql.edit.generic.SQLServerGenericTableColumnManager" objectType="com.seizia.chromite.ext.mssql.model.generic.SQLServerGenericTableColumn"/>
     </extension>
 
-    <extension point="org.jkiss.dbeaver.dataTypeProvider">
+    <extension point="com.seizia.chromite.dataTypeProvider">
         <provider
-                class="org.jkiss.dbeaver.ext.mssql.model.data.SQLServerStandardValueHandlerProvider"
+                class="com.seizia.chromite.ext.mssql.model.data.SQLServerStandardValueHandlerProvider"
                 description="sql server data types provider"
                 id="SQLServerStandardValueHandlerProvider"
                 label="SQL Server data types provider">
@@ -563,31 +563,31 @@
         </provider>
     </extension>
 
-    <extension point="org.jkiss.dbeaver.sqlDialect">
-        <dialect id="sqlserver" parent="basic" class="org.jkiss.dbeaver.ext.mssql.model.SQLServerDialectMssql" label="SQL Server" description="SQL Server SQL dialect." icon="icons/mssql_icon.png"/>
-        <dialect id="sybase" parent="basic" class="org.jkiss.dbeaver.ext.mssql.model.SQLServerDialectSybase" label="Sybase" description="Sybase SQL dialect." icon="icons/sybase_icon.png"/>
+    <extension point="com.seizia.chromite.sqlDialect">
+        <dialect id="sqlserver" parent="basic" class="com.seizia.chromite.ext.mssql.model.SQLServerDialectMssql" label="SQL Server" description="SQL Server SQL dialect." icon="icons/mssql_icon.png"/>
+        <dialect id="sybase" parent="basic" class="com.seizia.chromite.ext.mssql.model.SQLServerDialectSybase" label="Sybase" description="Sybase SQL dialect." icon="icons/sybase_icon.png"/>
     </extension>
 
-    <extension point="org.jkiss.dbeaver.task">
+    <extension point="com.seizia.chromite.task">
         <category id="sqlserver" name="SQL Server" description="SQL Server database tasks" icon="icons/mssql_icon.png"/>
         <category id="sqlServerTool" parent="sqlserver" name="Tools" description="SQL Server database tools" icon="icons/mssql_icon.png"/>
 
         <!-- SQL tools -->
-        <task id="mssqlToolTableRebuild" name="%tasks.rebuild.table.node.name" description="%tasks.rebuild.table.node.description" icon="platform:/plugin/org.jkiss.dbeaver.model/icons/tree/admin.svg" type="sqlServerTool" handler="org.jkiss.dbeaver.ext.mssql.tasks.SQLServerToolTableRebuild">
+        <task id="mssqlToolTableRebuild" name="%tasks.rebuild.table.node.name" description="%tasks.rebuild.table.node.description" icon="platform:/plugin/com.seizia.chromite.model/icons/tree/admin.svg" type="sqlServerTool" handler="com.seizia.chromite.ext.mssql.tasks.SQLServerToolTableRebuild">
             <datasource id="sqlserver"/>
-            <objectType name="org.jkiss.dbeaver.ext.mssql.model.SQLServerTableBase"/>
+            <objectType name="com.seizia.chromite.ext.mssql.model.SQLServerTableBase"/>
         </task>
-        <task id="mssqlToolTriggerEnable" name="Enable trigger" description="Enable trigger(s)" icon="platform:/plugin/org.jkiss.dbeaver.model/icons/tree/admin.svg" type="sqlServerTool" handler="org.jkiss.dbeaver.ext.mssql.tasks.SQLServerToolTableTriggerEnable">
+        <task id="mssqlToolTriggerEnable" name="Enable trigger" description="Enable trigger(s)" icon="platform:/plugin/com.seizia.chromite.model/icons/tree/admin.svg" type="sqlServerTool" handler="com.seizia.chromite.ext.mssql.tasks.SQLServerToolTableTriggerEnable">
             <datasource id="sqlserver"/>
-            <objectType name="org.jkiss.dbeaver.ext.mssql.model.SQLServerTableTrigger" if="object.canEnable()"/>
+            <objectType name="com.seizia.chromite.ext.mssql.model.SQLServerTableTrigger" if="object.canEnable()"/>
         </task>
-        <task id="mssqlToolTriggerDisable" name="Disable trigger" description="Disable trigger(s)" icon="platform:/plugin/org.jkiss.dbeaver.model/icons/tree/admin.svg" type="sqlServerTool" handler="org.jkiss.dbeaver.ext.mssql.tasks.SQLServerToolTableTriggerDisable">
+        <task id="mssqlToolTriggerDisable" name="Disable trigger" description="Disable trigger(s)" icon="platform:/plugin/com.seizia.chromite.model/icons/tree/admin.svg" type="sqlServerTool" handler="com.seizia.chromite.ext.mssql.tasks.SQLServerToolTableTriggerDisable">
             <datasource id="sqlserver"/>
-            <objectType name="org.jkiss.dbeaver.ext.mssql.model.SQLServerTableTrigger" if="object.canDisable()"/>
+            <objectType name="com.seizia.chromite.ext.mssql.model.SQLServerTableTrigger" if="object.canDisable()"/>
         </task>
     </extension>
 
-    <extension point="org.jkiss.dbeaver.networkHandler">
+    <extension point="com.seizia.chromite.networkHandler">
         <handler
                 type="config"
                 id="mssql_ssl"
@@ -598,7 +598,7 @@
                 desktop="false"
                 secured="false"
                 order="2"
-                handlerClass="org.jkiss.dbeaver.ext.mssql.model.SQLServerSSLHandlerImpl">
+                handlerClass="com.seizia.chromite.ext.mssql.model.SQLServerSSLHandlerImpl">
             <propertyGroup label="Method">
                 <property id="ssl.method" label="Method" type="string" validValues="KEYSTORE" defaultValue="KEYSTORE"
                           desktop="true" hidden="true"/>
@@ -609,21 +609,21 @@
                 <property id="ssl.keystore.password" label="Keystore password" type="string" features="secured,password"/>
                 <property id="sslKeyStoreHostname" label="Certificate hostname" type="string"/>
             </propertyGroup>
-            <objectType name="org.jkiss.dbeaver.ext.mssql.SQLServerDataSourceProvider"/>
+            <objectType name="com.seizia.chromite.ext.mssql.SQLServerDataSourceProvider"/>
         </handler>
     </extension>
 
     <extension point="org.eclipse.core.runtime.preferences">
-        <initializer class="org.jkiss.dbeaver.ext.mssql.internal.SQLServerPreferencesInitializer"/>
+        <initializer class="com.seizia.chromite.ext.mssql.internal.SQLServerPreferencesInitializer"/>
     </extension>
 
 
-    <extension point="org.jkiss.dbeaver.dataSourceAuth">
+    <extension point="com.seizia.chromite.dataSourceAuth">
         <authModel
                 id="sqlserver_database"
                 label="SQL Server Authentication"
                 description="SQL Server password based authentication"
-                class="org.jkiss.dbeaver.ext.mssql.auth.SQLServerAuthModelDatabase"
+                class="com.seizia.chromite.ext.mssql.auth.SQLServerAuthModelDatabase"
                 default="true">
             <datasource id="sqlserver"/>
             <replace model="native"/>
@@ -633,28 +633,28 @@
                 desktop="true"
                 label="Windows Authentication"
                 description="Windows integrated authentication"
-                class="org.jkiss.dbeaver.ext.mssql.auth.SQLServerAuthModelWindows">
+                class="com.seizia.chromite.ext.mssql.auth.SQLServerAuthModelWindows">
             <datasource id="sqlserver"/>
         </authModel>
         <authModel
                 id="sqlserver_ntlm"
                 label="NTLM"
                 description="NTLM authentication"
-                class="org.jkiss.dbeaver.ext.mssql.auth.SQLServerAuthModelNTLM">
+                class="com.seizia.chromite.ext.mssql.auth.SQLServerAuthModelNTLM">
             <datasource id="sqlserver" if="object.getDriverParameter('jtds') == null"/>
         </authModel>
         <authModel
                 id="sqlserver_ad_password"
                 label="Active Directory - Password"
                 description="Active Directory password based authentication"
-                class="org.jkiss.dbeaver.ext.mssql.auth.SQLServerAuthModelADPassword">
+                class="com.seizia.chromite.ext.mssql.auth.SQLServerAuthModelADPassword">
             <datasource id="sqlserver" if="object.getDriverParameter('jtds') == null"/>
         </authModel>
         <authModel
                 id="sqlserver_msi"
                 label="Active Directory - MSI"
                 description="Active Directory MSI based authentication"
-                class="org.jkiss.dbeaver.ext.mssql.auth.SQLServerAuthModelMSI">
+                class="com.seizia.chromite.ext.mssql.auth.SQLServerAuthModelMSI">
             <datasource id="sqlserver" if="object.getDriverParameter('jtds') == null"/>
         </authModel>
         <authModel
@@ -662,7 +662,7 @@
                 desktop="true"
                 label="Active Directory - MFA"
                 description="Interactive authentication flow (multi-factor authentication)"
-                class="org.jkiss.dbeaver.ext.mssql.auth.SQLServerAuthModelMFA">
+                class="com.seizia.chromite.ext.mssql.auth.SQLServerAuthModelMFA">
             <datasource id="sqlserver" if="object.getDriverParameter('jtds') == null"/>
         </authModel>
         <authModel
@@ -670,14 +670,14 @@
                 desktop="true"
                 label="Active Directory - Integrated"
                 description="Active Directory integrated authentication"
-                class="org.jkiss.dbeaver.ext.mssql.auth.SQLServerAuthModelADIntegrated">
+                class="com.seizia.chromite.ext.mssql.auth.SQLServerAuthModelADIntegrated">
             <datasource id="sqlserver" if="object.getDriverParameter('jtds') == null"/>
         </authModel>
         <authModel
                 id="sqlserver_custom"
                 label="Custom"
                 description="Custom authentication schema"
-                class="org.jkiss.dbeaver.ext.mssql.auth.SQLServerAuthModelCustom">
+                class="com.seizia.chromite.ext.mssql.auth.SQLServerAuthModelCustom">
             <datasource id="sqlserver"/>
         </authModel>
     </extension>

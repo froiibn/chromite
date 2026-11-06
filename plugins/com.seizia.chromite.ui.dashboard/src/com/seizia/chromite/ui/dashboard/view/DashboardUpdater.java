@@ -14,29 +14,29 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.dashboard.view;
+package com.seizia.chromite.ui.dashboard.view;
 
 import org.apache.commons.jexl3.JexlContext;
 import org.eclipse.ui.*;
 import org.jkiss.code.NotNull;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.DBPDataSource;
-import org.jkiss.dbeaver.model.DBPDataSourceContainer;
-import org.jkiss.dbeaver.model.DBUtils;
-import org.jkiss.dbeaver.model.dashboard.DBDashboardDataType;
-import org.jkiss.dbeaver.model.dashboard.DBDashboardMapQuery;
-import org.jkiss.dbeaver.model.dashboard.DBDashboardQuery;
-import org.jkiss.dbeaver.model.dashboard.DashboardConstants;
-import org.jkiss.dbeaver.model.dashboard.data.DashboardDataset;
-import org.jkiss.dbeaver.model.dashboard.data.DashboardDatasetRow;
-import org.jkiss.dbeaver.model.exec.*;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.ui.dashboard.control.DashboardListViewer;
-import org.jkiss.dbeaver.ui.dashboard.model.DashboardContainer;
-import org.jkiss.dbeaver.ui.dashboard.model.DashboardGroupContainer;
-import org.jkiss.dbeaver.ui.dashboard.model.DashboardItemContainer;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.DBPDataSource;
+import com.seizia.chromite.model.DBPDataSourceContainer;
+import com.seizia.chromite.model.DBUtils;
+import com.seizia.chromite.model.dashboard.DBDashboardDataType;
+import com.seizia.chromite.model.dashboard.DBDashboardMapQuery;
+import com.seizia.chromite.model.dashboard.DBDashboardQuery;
+import com.seizia.chromite.model.dashboard.DashboardConstants;
+import com.seizia.chromite.model.dashboard.data.DashboardDataset;
+import com.seizia.chromite.model.dashboard.data.DashboardDatasetRow;
+import com.seizia.chromite.model.exec.*;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.ui.dashboard.control.DashboardListViewer;
+import com.seizia.chromite.ui.dashboard.model.DashboardContainer;
+import com.seizia.chromite.ui.dashboard.model.DashboardGroupContainer;
+import com.seizia.chromite.ui.dashboard.model.DashboardItemContainer;
 import org.jkiss.utils.ArrayUtils;
 import org.jkiss.utils.CommonUtils;
 

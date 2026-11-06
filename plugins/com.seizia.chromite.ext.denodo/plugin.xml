@@ -3,11 +3,11 @@
 
 <plugin>
 
-    <extension point="org.jkiss.dbeaver.generic.meta">
-        <meta id="denodo" class="org.jkiss.dbeaver.ext.denodo.model.DenodoMetaModel" driverClass="com.denodo.vdp.jdbc.Driver"/>
+    <extension point="com.seizia.chromite.generic.meta">
+        <meta id="denodo" class="com.seizia.chromite.ext.denodo.model.DenodoMetaModel" driverClass="com.denodo.vdp.jdbc.Driver"/>
     </extension>
 
-    <extension point="org.jkiss.dbeaver.dataSourceProvider">
+    <extension point="com.seizia.chromite.dataSourceProvider">
         <dataSourceType
             id="denodo"
             label="Denodo"
@@ -18,7 +18,7 @@
 
         <!-- Denodo Platform -->
         <datasource
-                class="org.jkiss.dbeaver.ext.denodo.DenodoDataSourceProvider"
+                class="com.seizia.chromite.ext.denodo.DenodoDataSourceProvider"
                 description="Denodo data source"
                 id="denodo"
                 dataSourceType="denodo"
@@ -45,8 +45,8 @@
         </datasource>
     </extension>
 
-    <extension point="org.jkiss.dbeaver.sqlDialect">
-        <dialect id="denodo" parent="generic" class="org.jkiss.dbeaver.ext.denodo.model.DenodoSQLDialect" label="Denodo" description="Denodo SQL dialect." icon="icons/denodo_icon.png">
+    <extension point="com.seizia.chromite.sqlDialect">
+        <dialect id="denodo" parent="generic" class="com.seizia.chromite.ext.denodo.model.DenodoSQLDialect" label="Denodo" description="Denodo SQL dialect." icon="icons/denodo_icon.png">
         </dialect>
     </extension>
 

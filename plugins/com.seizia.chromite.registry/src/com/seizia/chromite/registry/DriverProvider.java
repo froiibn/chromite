@@ -15,11 +15,11 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.registry;
+package com.seizia.chromite.registry;
 
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.model.connection.DBPDriver;
-import org.jkiss.dbeaver.registry.driver.DriverDescriptor;
+import com.seizia.chromite.model.connection.DBPDriver;
+import com.seizia.chromite.registry.driver.DriverDescriptor;
 
 import java.util.List;
 

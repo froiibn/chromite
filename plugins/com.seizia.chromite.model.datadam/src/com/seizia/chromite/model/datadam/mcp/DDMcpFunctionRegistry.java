@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.datadam.mcp;
+package com.seizia.chromite.model.datadam.mcp;
 
 import com.dbeaver.datadam.mcp.api.model.DDMcpFunctionDescriptor;
 import org.eclipse.core.runtime.Platform;
@@ -26,7 +26,7 @@ import java.util.List;
 import java.util.Map;
 
 public class DDMcpFunctionRegistry {
-    private static final String EXTENSION_ID = "org.jkiss.dbeaver.model.datadam.desktopMcpFunction";
+    private static final String EXTENSION_ID = "com.seizia.chromite.model.datadam.desktopMcpFunction";
     private static DDMcpFunctionRegistry instance;
 
     private final Map<String, DDMcpFunctionExtensionDescriptor> descriptors = new LinkedHashMap<>();

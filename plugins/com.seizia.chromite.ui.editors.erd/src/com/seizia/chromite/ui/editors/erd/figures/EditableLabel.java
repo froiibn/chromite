@@ -17,14 +17,14 @@
 /*
  * Created on Jul 13, 2004
  */
-package org.jkiss.dbeaver.ui.editors.erd.figures;
+package com.seizia.chromite.ui.editors.erd.figures;
 
 import org.eclipse.draw2d.Graphics;
 import org.eclipse.draw2d.Label;
 import org.eclipse.draw2d.geometry.Dimension;
 import org.eclipse.draw2d.geometry.Insets;
 import org.eclipse.draw2d.geometry.Rectangle;
-import org.jkiss.dbeaver.ui.editors.erd.editor.ERDThemeSettings;
+import com.seizia.chromite.ui.editors.erd.editor.ERDThemeSettings;
 
 /**
  * A customized Label based on the label used in the flow example. 

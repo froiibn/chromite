@@ -14,21 +14,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.net.ssh.registry;
+package com.seizia.chromite.model.net.ssh.registry;
 
 import org.eclipse.core.runtime.IConfigurationElement;
 import org.jkiss.code.NotNull;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.model.impl.AbstractContextDescriptor;
-import org.jkiss.dbeaver.model.impl.AbstractDescriptor;
-import org.jkiss.dbeaver.model.net.ssh.SSHSessionController;
-import org.jkiss.dbeaver.registry.RegistryConstants;
+import com.seizia.chromite.model.impl.AbstractContextDescriptor;
+import com.seizia.chromite.model.impl.AbstractDescriptor;
+import com.seizia.chromite.model.net.ssh.SSHSessionController;
+import com.seizia.chromite.registry.RegistryConstants;
 
 /**
  * SSHImplementationDescriptor
  */
 public class SSHSessionControllerDescriptor extends AbstractContextDescriptor {
-    static final String EXTENSION_ID = "org.jkiss.dbeaver.net.ssh"; //$NON-NLS-1$
+    static final String EXTENSION_ID = "com.seizia.chromite.net.ssh"; //$NON-NLS-1$
 
     private final AbstractDescriptor.ObjectType implClass;
     private final String id;

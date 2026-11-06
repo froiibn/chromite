@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.dialogs.connection;
+package com.seizia.chromite.ui.dialogs.connection;
 
 import org.eclipse.core.runtime.IAdaptable;
 import org.eclipse.jface.dialogs.Dialog;
@@ -29,29 +29,29 @@ import org.eclipse.ui.IWorkbench;
 import org.eclipse.ui.IWorkbenchPropertyPage;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.app.DBPDataSourceRegistry;
-import org.jkiss.dbeaver.model.app.DBPProject;
-import org.jkiss.dbeaver.model.connection.DBPDriver;
-import org.jkiss.dbeaver.model.connection.DBPDriverLibrary;
-import org.jkiss.dbeaver.model.connection.DBPDriverSubstitutionDescriptor;
-import org.jkiss.dbeaver.model.navigator.DBNBrowseSettings;
-import org.jkiss.dbeaver.model.secret.DBSSecretValue;
-import org.jkiss.dbeaver.registry.ConnectionPageDescriptor;
-import org.jkiss.dbeaver.registry.DataSourceConfiguratorDescriptor;
-import org.jkiss.dbeaver.registry.DataSourceConfiguratorRegistry;
-import org.jkiss.dbeaver.registry.DataSourceDescriptor;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.ui.IDialogPageProvider;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.actions.datasource.DataSourceHandler;
-import org.jkiss.dbeaver.ui.dialogs.BaseAuthDialog;
-import org.jkiss.dbeaver.ui.internal.UIConnectionMessages;
-import org.jkiss.dbeaver.ui.preferences.PrefPageErrorHandle;
-import org.jkiss.dbeaver.ui.preferences.PrefPageMetaData;
-import org.jkiss.dbeaver.ui.preferences.PrefPageTransactions;
-import org.jkiss.dbeaver.ui.preferences.WizardPrefPage;
-import org.jkiss.dbeaver.utils.GeneralUtils;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.app.DBPDataSourceRegistry;
+import com.seizia.chromite.model.app.DBPProject;
+import com.seizia.chromite.model.connection.DBPDriver;
+import com.seizia.chromite.model.connection.DBPDriverLibrary;
+import com.seizia.chromite.model.connection.DBPDriverSubstitutionDescriptor;
+import com.seizia.chromite.model.navigator.DBNBrowseSettings;
+import com.seizia.chromite.model.secret.DBSSecretValue;
+import com.seizia.chromite.registry.ConnectionPageDescriptor;
+import com.seizia.chromite.registry.DataSourceConfiguratorDescriptor;
+import com.seizia.chromite.registry.DataSourceConfiguratorRegistry;
+import com.seizia.chromite.registry.DataSourceDescriptor;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.ui.IDialogPageProvider;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.actions.datasource.DataSourceHandler;
+import com.seizia.chromite.ui.dialogs.BaseAuthDialog;
+import com.seizia.chromite.ui.internal.UIConnectionMessages;
+import com.seizia.chromite.ui.preferences.PrefPageErrorHandle;
+import com.seizia.chromite.ui.preferences.PrefPageMetaData;
+import com.seizia.chromite.ui.preferences.PrefPageTransactions;
+import com.seizia.chromite.ui.preferences.WizardPrefPage;
+import com.seizia.chromite.utils.GeneralUtils;
 import org.jkiss.utils.CommonUtils;
 
 import java.security.MessageDigest;

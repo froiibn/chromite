@@ -14,19 +14,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.data.hints;
+package com.seizia.chromite.ui.data.hints;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.model.DBUtils;
-import org.jkiss.dbeaver.model.data.DBDAttributeBinding;
-import org.jkiss.dbeaver.model.data.DBDResultSetModel;
-import org.jkiss.dbeaver.model.data.DBDValueRow;
-import org.jkiss.dbeaver.model.data.hints.DBDCellHintProvider;
-import org.jkiss.dbeaver.model.data.hints.DBDValueHint;
-import org.jkiss.dbeaver.model.struct.DBSEntityAssociation;
-import org.jkiss.dbeaver.model.struct.DBSEntityConstraint;
-import org.jkiss.dbeaver.model.struct.DBSEntityReferrer;
+import com.seizia.chromite.model.DBUtils;
+import com.seizia.chromite.model.data.DBDAttributeBinding;
+import com.seizia.chromite.model.data.DBDResultSetModel;
+import com.seizia.chromite.model.data.DBDValueRow;
+import com.seizia.chromite.model.data.hints.DBDCellHintProvider;
+import com.seizia.chromite.model.data.hints.DBDValueHint;
+import com.seizia.chromite.model.struct.DBSEntityAssociation;
+import com.seizia.chromite.model.struct.DBSEntityConstraint;
+import com.seizia.chromite.model.struct.DBSEntityReferrer;
 import org.jkiss.utils.CommonUtils;
 
 import java.util.ArrayList;

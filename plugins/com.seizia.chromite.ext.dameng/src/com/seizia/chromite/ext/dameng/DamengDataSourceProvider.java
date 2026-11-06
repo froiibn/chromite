@@ -15,10 +15,10 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.ext.dameng;
+package com.seizia.chromite.ext.dameng;
 
-import org.jkiss.dbeaver.ext.dameng.model.DamengDataSource;
-import org.jkiss.dbeaver.ext.generic.GenericDataSourceProvider;
+import com.seizia.chromite.ext.dameng.model.DamengDataSource;
+import com.seizia.chromite.ext.generic.GenericDataSourceProvider;
 
 /**
  * @author Shengkai Bai

@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <?eclipse version="3.2"?>
 <plugin>
-    <extension point="org.jkiss.dbeaver.dataSourceProvider">
+    <extension point="com.seizia.chromite.dataSourceProvider">
         <dataSourceType
             id="apache_doris"
             label="Apache Doris"
@@ -10,7 +10,7 @@
             icon="icons/doris_icon.svg"
             iconBig="icons/doris_icon_big.svg"/>
         <datasource
-                class="org.jkiss.dbeaver.ext.doris.DorisDataSourceProvider"
+                class="com.seizia.chromite.ext.doris.DorisDataSourceProvider"
                 description="Apache Doris Database"
                 id="doris"
                 dataSourceType="apache_doris"
@@ -20,7 +20,7 @@
                 icon="icons/doris_icon.svg">
 
             <treeInjection path="generic/catalog/schema/table"
-                changeFolderType="org.jkiss.dbeaver.ext.doris.model.DorisTable"/>
+                changeFolderType="com.seizia.chromite.ext.doris.model.DorisTable"/>
 
             <drivers managable="true">
                 <driver
@@ -41,9 +41,9 @@
                     <property name="rewriteBatchedStatements" value="true"/>
                     <property name="useSSL" value="false"/>
                     <property name="enabledTLSProtocols" value="TLSv1.2,TLSv1.3"/>
-                    <property name="@dbeaver-default-resultset.maxrows.sql" value="true"/>
-                    <property name="@dbeaver-default-resultset.format.datetime.native" value="true"/>
-                    <property name="@dbeaver-default-dataformat.type.timestamp.pattern" value="yyyy-MM-dd HH:mm:ss"/>
+                    <property name="@chromite-default-resultset.maxrows.sql" value="true"/>
+                    <property name="@chromite-default-resultset.format.datetime.native" value="true"/>
+                    <property name="@chromite-default-dataformat.type.timestamp.pattern" value="yyyy-MM-dd HH:mm:ss"/>
                     <parameter name="supports-partitions" value="false"/>
                     <parameter name="supports-references" value="false"/>
                     <parameter name="supports-triggers" value="false"/>
@@ -58,14 +58,14 @@
         </datasource>
     </extension>
 
-    <extension point="org.jkiss.dbeaver.generic.meta">
+    <extension point="com.seizia.chromite.generic.meta">
         <meta id="doris"
-              class="org.jkiss.dbeaver.ext.doris.model.DorisMetaModel"
+              class="com.seizia.chromite.ext.doris.model.DorisMetaModel"
               dialect="doris"/>
     </extension>
 
-    <extension point="org.jkiss.dbeaver.sqlDialect">
-        <dialect id="doris" parent="generic" class="org.jkiss.dbeaver.ext.doris.model.DorisDialect"
+    <extension point="com.seizia.chromite.sqlDialect">
+        <dialect id="doris" parent="generic" class="com.seizia.chromite.ext.doris.model.DorisDialect"
                  label="Apache Doris" description="Apache Doris SQL dialect" icon="icons/doris_icon.svg">
             <keywords value="CATALOG,CATALOGS,SWITCH,MATERIALIZED,REFRESH,ASYNC,DEFERRED,IMMEDIATE,BUCKETS,DISTRIBUTED,PROPERTIES,BROKER,ROUTINE,LOAD,STREAM,PAUSE,RESUME,STOP,SUBMIT,TASK,PIPE,PIPES,REPOSITORY,SNAPSHOT,RESTORE,ADMIN"/>
             <functions value="ARRAY_AGG,ARRAY_CONTAINS,ARRAY_SIZE,BITMAP_COUNT,BITMAP_UNION,HLL_UNION_AGG,NDV,PERCENTILE_APPROX,RETENTION,WINDOW_FUNNEL,APPROX_COUNT_DISTINCT,CURRENT_CATALOG"/>
@@ -73,8 +73,8 @@
         </dialect>
     </extension>
 
-    <extension point="org.jkiss.dbeaver.objectManager">
-        <manager class="org.jkiss.dbeaver.ext.doris.edit.DorisTableManager"
-            objectType="org.jkiss.dbeaver.ext.doris.model.DorisTable"/>
+    <extension point="com.seizia.chromite.objectManager">
+        <manager class="com.seizia.chromite.ext.doris.edit.DorisTableManager"
+            objectType="com.seizia.chromite.ext.doris.model.DorisTable"/>
     </extension>
 </plugin>

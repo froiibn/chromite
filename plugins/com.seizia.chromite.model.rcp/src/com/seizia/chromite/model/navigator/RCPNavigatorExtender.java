@@ -14,13 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.navigator;
+package com.seizia.chromite.model.navigator;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.model.fs.nio.EFSNIOMonitor;
-import org.jkiss.dbeaver.model.navigator.fs.DBNFileSystems;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
+import com.seizia.chromite.model.fs.nio.EFSNIOMonitor;
+import com.seizia.chromite.model.navigator.fs.DBNFileSystems;
+import com.seizia.chromite.runtime.DBWorkbench;
 import org.jkiss.utils.ArrayUtils;
 
 public class RCPNavigatorExtender implements DBNModelExtender {

@@ -14,20 +14,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.hive.model.plan;
+package com.seizia.chromite.ext.hive.model.plan;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.model.exec.plan.DBCPlanNodeKind;
-import org.jkiss.dbeaver.runtime.properties.PropertyCollector;
-import org.jkiss.junit.DBeaverUnitTest;
+import com.seizia.chromite.model.exec.plan.DBCPlanNodeKind;
+import com.seizia.chromite.runtime.properties.PropertyCollector;
+import com.seizia.chromite.junit.ChromiteUnitTest;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import java.util.Collection;
 import java.util.List;
 
-class HivePlanParserTest extends DBeaverUnitTest {
+class HivePlanParserTest extends ChromiteUnitTest {
     private static final String LEGACY_PLAN = """
         {
           "STAGE DEPENDENCIES": {

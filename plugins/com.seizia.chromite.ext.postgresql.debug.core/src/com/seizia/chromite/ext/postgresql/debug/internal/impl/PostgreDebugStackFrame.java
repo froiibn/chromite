@@ -17,9 +17,9 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.ext.postgresql.debug.internal.impl;
+package com.seizia.chromite.ext.postgresql.debug.internal.impl;
 
-import org.jkiss.dbeaver.debug.DBGStackFrame;
+import com.seizia.chromite.debug.DBGStackFrame;
 
 public class PostgreDebugStackFrame implements DBGStackFrame {
 

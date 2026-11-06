@@ -14,17 +14,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.registry.project;
+package com.seizia.chromite.registry.project;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.DBPObjectSettingsProvider;
-import org.jkiss.dbeaver.model.app.DBPProject;
-import org.jkiss.dbeaver.model.auth.SMObjectType;
-import org.jkiss.dbeaver.registry.DataSourceNavigatorSettingsUtils;
-import org.jkiss.dbeaver.registry.UserDBSObjectFilterUtils;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.DBPObjectSettingsProvider;
+import com.seizia.chromite.model.app.DBPProject;
+import com.seizia.chromite.model.auth.SMObjectType;
+import com.seizia.chromite.registry.DataSourceNavigatorSettingsUtils;
+import com.seizia.chromite.registry.UserDBSObjectFilterUtils;
 
 import java.util.Collection;
 import java.util.LinkedHashMap;

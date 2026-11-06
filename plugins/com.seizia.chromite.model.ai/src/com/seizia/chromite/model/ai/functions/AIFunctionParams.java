@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.ai.functions;
+package com.seizia.chromite.model.ai.functions;
 
 public final class AIFunctionParams {
     public static final String CATALOG_PARAM = "catalogName";

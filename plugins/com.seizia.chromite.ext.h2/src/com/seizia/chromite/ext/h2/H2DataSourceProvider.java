@@ -14,10 +14,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.h2;
+package com.seizia.chromite.ext.h2;
 
-import org.jkiss.dbeaver.ext.generic.GenericDataSourceProvider;
-import org.jkiss.dbeaver.ext.h2.model.H2DataSource;
+import com.seizia.chromite.ext.generic.GenericDataSourceProvider;
+import com.seizia.chromite.ext.h2.model.H2DataSource;
 
 public class H2DataSourceProvider extends GenericDataSourceProvider<H2DataSource> {
 

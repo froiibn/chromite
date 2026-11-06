@@ -14,16 +14,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.ai.impl;
+package com.seizia.chromite.model.ai.impl;
 
-import org.jkiss.dbeaver.model.ai.AIChatConversation;
-import org.jkiss.dbeaver.model.ai.AIChatResponseConsumer;
-import org.jkiss.dbeaver.model.ai.AIMessageMeta;
-import org.jkiss.dbeaver.model.ai.AIUsage;
-import org.jkiss.dbeaver.model.ai.engine.AIEngine;
-import org.jkiss.dbeaver.model.ai.engine.AIEngineResponseChunk;
-import org.jkiss.dbeaver.model.ai.registry.AIEngineDescriptor;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.model.ai.AIChatConversation;
+import com.seizia.chromite.model.ai.AIChatResponseConsumer;
+import com.seizia.chromite.model.ai.AIMessageMeta;
+import com.seizia.chromite.model.ai.AIUsage;
+import com.seizia.chromite.model.ai.engine.AIEngine;
+import com.seizia.chromite.model.ai.engine.AIEngineResponseChunk;
+import com.seizia.chromite.model.ai.registry.AIEngineDescriptor;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;

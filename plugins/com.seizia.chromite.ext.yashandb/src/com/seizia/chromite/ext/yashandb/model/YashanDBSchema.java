@@ -14,35 +14,35 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.yashandb.model;
+package com.seizia.chromite.ext.yashandb.model;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.ext.oracle.model.OracleConstants;
-import org.jkiss.dbeaver.ext.oracle.model.OracleDataSource;
-import org.jkiss.dbeaver.ext.oracle.model.OracleJavaClass;
-import org.jkiss.dbeaver.ext.oracle.model.OracleMaterializedView;
-import org.jkiss.dbeaver.ext.oracle.model.OracleProcedureStandalone;
-import org.jkiss.dbeaver.ext.oracle.model.OracleQueue;
-import org.jkiss.dbeaver.ext.oracle.model.OracleSchedulerProgram;
-import org.jkiss.dbeaver.ext.oracle.model.OracleSchema;
-import org.jkiss.dbeaver.ext.oracle.model.OracleSchemaTrigger;
-import org.jkiss.dbeaver.ext.oracle.model.OracleTable;
-import org.jkiss.dbeaver.ext.oracle.model.OracleTableBase;
-import org.jkiss.dbeaver.ext.oracle.model.OracleTableColumn;
-import org.jkiss.dbeaver.ext.oracle.model.OracleTableForeignKey;
-import org.jkiss.dbeaver.ext.oracle.model.OracleTableForeignKeyColumn;
-import org.jkiss.dbeaver.ext.oracle.model.OracleTableIndex;
-import org.jkiss.dbeaver.ext.oracle.model.OracleTableIndexColumn;
-import org.jkiss.dbeaver.ext.oracle.model.OracleUtils;
-import org.jkiss.dbeaver.ext.oracle.model.OracleView;
-import org.jkiss.dbeaver.model.exec.jdbc.JDBCPreparedStatement;
-import org.jkiss.dbeaver.model.exec.jdbc.JDBCResultSet;
-import org.jkiss.dbeaver.model.exec.jdbc.JDBCSession;
-import org.jkiss.dbeaver.model.exec.jdbc.JDBCStatement;
-import org.jkiss.dbeaver.model.impl.jdbc.JDBCUtils;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.ext.oracle.model.OracleConstants;
+import com.seizia.chromite.ext.oracle.model.OracleDataSource;
+import com.seizia.chromite.ext.oracle.model.OracleJavaClass;
+import com.seizia.chromite.ext.oracle.model.OracleMaterializedView;
+import com.seizia.chromite.ext.oracle.model.OracleProcedureStandalone;
+import com.seizia.chromite.ext.oracle.model.OracleQueue;
+import com.seizia.chromite.ext.oracle.model.OracleSchedulerProgram;
+import com.seizia.chromite.ext.oracle.model.OracleSchema;
+import com.seizia.chromite.ext.oracle.model.OracleSchemaTrigger;
+import com.seizia.chromite.ext.oracle.model.OracleTable;
+import com.seizia.chromite.ext.oracle.model.OracleTableBase;
+import com.seizia.chromite.ext.oracle.model.OracleTableColumn;
+import com.seizia.chromite.ext.oracle.model.OracleTableForeignKey;
+import com.seizia.chromite.ext.oracle.model.OracleTableForeignKeyColumn;
+import com.seizia.chromite.ext.oracle.model.OracleTableIndex;
+import com.seizia.chromite.ext.oracle.model.OracleTableIndexColumn;
+import com.seizia.chromite.ext.oracle.model.OracleUtils;
+import com.seizia.chromite.ext.oracle.model.OracleView;
+import com.seizia.chromite.model.exec.jdbc.JDBCPreparedStatement;
+import com.seizia.chromite.model.exec.jdbc.JDBCResultSet;
+import com.seizia.chromite.model.exec.jdbc.JDBCSession;
+import com.seizia.chromite.model.exec.jdbc.JDBCStatement;
+import com.seizia.chromite.model.impl.jdbc.JDBCUtils;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;

@@ -14,19 +14,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.sql.semantics.tracking;
+package com.seizia.chromite.model.sql.semantics.tracking;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.model.sql.SQLBatchDelimiterElement;
-import org.jkiss.dbeaver.model.sql.SQLQuery;
-import org.jkiss.dbeaver.model.sql.SQLScriptElement;
-import org.jkiss.dbeaver.model.sql.semantics.OffsetKeyedTreeMap;
-import org.jkiss.dbeaver.model.sql.semantics.OffsetKeyedTreeMap.NodesIterator;
-import org.jkiss.dbeaver.model.sql.semantics.SQLQueryVariableInfo;
-import org.jkiss.dbeaver.model.sql.semantics.model.SQLQueryModel;
-import org.jkiss.dbeaver.model.sql.semantics.model.SQLQueryVariableStatementModel;
-import org.jkiss.dbeaver.utils.ListNode;
+import com.seizia.chromite.model.sql.SQLBatchDelimiterElement;
+import com.seizia.chromite.model.sql.SQLQuery;
+import com.seizia.chromite.model.sql.SQLScriptElement;
+import com.seizia.chromite.model.sql.semantics.OffsetKeyedTreeMap;
+import com.seizia.chromite.model.sql.semantics.OffsetKeyedTreeMap.NodesIterator;
+import com.seizia.chromite.model.sql.semantics.SQLQueryVariableInfo;
+import com.seizia.chromite.model.sql.semantics.model.SQLQueryModel;
+import com.seizia.chromite.model.sql.semantics.model.SQLQueryVariableStatementModel;
+import com.seizia.chromite.utils.ListNode;
 
 import java.util.ArrayList;
 import java.util.Collection;

@@ -14,23 +14,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.registry;
+package com.seizia.chromite.registry;
 
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.ext.bigquery.auth.BQAuthModel;
-import org.jkiss.dbeaver.ext.mssql.auth.SQLServerAuthModelADIntegrated;
-import org.jkiss.dbeaver.ext.mssql.auth.SQLServerAuthModelADPassword;
-import org.jkiss.dbeaver.ext.mssql.auth.SQLServerAuthModelCustom;
-import org.jkiss.dbeaver.ext.mssql.auth.SQLServerAuthModelDatabase;
-import org.jkiss.dbeaver.ext.mssql.auth.SQLServerAuthModelMFA;
-import org.jkiss.dbeaver.ext.mssql.auth.SQLServerAuthModelMSI;
-import org.jkiss.dbeaver.ext.mssql.auth.SQLServerAuthModelNTLM;
-import org.jkiss.dbeaver.ext.mssql.auth.SQLServerAuthModelWindows;
-import org.jkiss.dbeaver.ext.oracle.model.auth.OracleAuthOS;
-import org.jkiss.dbeaver.model.access.DBAAuthModel;
-import org.jkiss.dbeaver.model.connection.DBPConnectionConfiguration;
-import org.jkiss.dbeaver.model.impl.auth.AuthModelDatabaseNative;
-import org.jkiss.dbeaver.model.net.DBWTunnel;
+import com.seizia.chromite.ext.bigquery.auth.BQAuthModel;
+import com.seizia.chromite.ext.mssql.auth.SQLServerAuthModelADIntegrated;
+import com.seizia.chromite.ext.mssql.auth.SQLServerAuthModelADPassword;
+import com.seizia.chromite.ext.mssql.auth.SQLServerAuthModelCustom;
+import com.seizia.chromite.ext.mssql.auth.SQLServerAuthModelDatabase;
+import com.seizia.chromite.ext.mssql.auth.SQLServerAuthModelMFA;
+import com.seizia.chromite.ext.mssql.auth.SQLServerAuthModelMSI;
+import com.seizia.chromite.ext.mssql.auth.SQLServerAuthModelNTLM;
+import com.seizia.chromite.ext.mssql.auth.SQLServerAuthModelWindows;
+import com.seizia.chromite.ext.oracle.model.auth.OracleAuthOS;
+import com.seizia.chromite.model.access.DBAAuthModel;
+import com.seizia.chromite.model.connection.DBPConnectionConfiguration;
+import com.seizia.chromite.model.impl.auth.AuthModelDatabaseNative;
+import com.seizia.chromite.model.net.DBWTunnel;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;

@@ -14,17 +14,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.sql.analyzer;
+package com.seizia.chromite.model.sql.analyzer;
 
 import org.eclipse.core.runtime.Platform;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.ext.generic.model.GenericSQLDialect;
-import org.jkiss.dbeaver.model.DBPKeywordType;
-import org.jkiss.dbeaver.model.sql.SQLUtils;
-import org.jkiss.dbeaver.model.sql.analyzer.builder.request.RequestBuilder;
-import org.jkiss.dbeaver.model.sql.analyzer.builder.request.RequestResult;
-import org.jkiss.dbeaver.model.sql.completion.SQLCompletionProposalBase;
-import org.jkiss.junit.DBeaverUnitTest;
+import com.seizia.chromite.ext.generic.model.GenericSQLDialect;
+import com.seizia.chromite.model.DBPKeywordType;
+import com.seizia.chromite.model.sql.SQLUtils;
+import com.seizia.chromite.model.sql.analyzer.builder.request.RequestBuilder;
+import com.seizia.chromite.model.sql.analyzer.builder.request.RequestResult;
+import com.seizia.chromite.model.sql.completion.SQLCompletionProposalBase;
+import com.seizia.chromite.junit.ChromiteUnitTest;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Disabled;
@@ -32,9 +32,9 @@ import org.junit.jupiter.api.Test;
 
 import java.util.List;
 
-import static org.jkiss.dbeaver.model.sql.analyzer.builder.Builder.Consumer.empty;
+import static com.seizia.chromite.model.sql.analyzer.builder.Builder.Consumer.empty;
 
-public class SQLCompletionAnalyzerTest extends DBeaverUnitTest {
+public class SQLCompletionAnalyzerTest extends ChromiteUnitTest {
     private static RequestResult modelDataRequest;
 
     @BeforeEach

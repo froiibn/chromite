@@ -14,11 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.websocket.gson;
+package com.seizia.chromite.model.websocket.gson;
 
-import org.jkiss.dbeaver.model.websocket.event.WSEvent;
-import org.jkiss.dbeaver.model.websocket.registry.WSEventRegistry;
-import org.jkiss.dbeaver.model.websocket.registry.WSServerEventDescriptor;
+import com.seizia.chromite.model.websocket.event.WSEvent;
+import com.seizia.chromite.model.websocket.registry.WSEventRegistry;
+import com.seizia.chromite.model.websocket.registry.WSServerEventDescriptor;
 
 import java.util.stream.Collectors;
 

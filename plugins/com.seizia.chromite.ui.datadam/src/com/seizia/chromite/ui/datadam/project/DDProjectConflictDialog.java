@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.datadam.project;
+package com.seizia.chromite.ui.datadam.project;
 
 import com.dbeaver.datadam.share.api.model.DDSharedProjectRevision;
 import org.eclipse.jface.dialogs.IDialogConstants;
@@ -23,12 +23,12 @@ import org.eclipse.swt.SWT;
 import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.widgets.*;
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.model.DBIcon;
-import org.jkiss.dbeaver.ui.DBeaverIcons;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.datadam.internal.DDTrackingUIMessages;
-import org.jkiss.dbeaver.ui.datadam.project.DDProjectConflictResolver.ConflictDetails;
-import org.jkiss.dbeaver.ui.dialogs.BaseDialog;
+import com.seizia.chromite.model.DBIcon;
+import com.seizia.chromite.ui.SwtIcons;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.datadam.internal.DDTrackingUIMessages;
+import com.seizia.chromite.ui.datadam.project.DDProjectConflictResolver.ConflictDetails;
+import com.seizia.chromite.ui.dialogs.BaseDialog;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -54,7 +54,7 @@ public class DDProjectConflictDialog extends BaseDialog {
 
         Composite heading = UIUtils.createComposite(area, 2);
         Label warning = new Label(heading, SWT.NONE);
-        warning.setImage(DBeaverIcons.getImage(DBIcon.SMALL_WARNING));
+        warning.setImage(SwtIcons.getImage(DBIcon.SMALL_WARNING));
         UIUtils.createLabel(heading, DDTrackingUIMessages.project_sync_conflict_heading);
         UIUtils.createLabel(
             area, NLS.bind(

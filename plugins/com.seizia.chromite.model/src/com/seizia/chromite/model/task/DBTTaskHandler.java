@@ -14,12 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.task;
+package com.seizia.chromite.model.task;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.runtime.DBRRunnableContext;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.runtime.DBRRunnableContext;
 
 import java.io.PrintStream;
 import java.util.Locale;

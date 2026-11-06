@@ -14,10 +14,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.cubrid;
+package com.seizia.chromite.ext.cubrid;
 
-import org.jkiss.dbeaver.ext.cubrid.model.CubridDataSource;
-import org.jkiss.dbeaver.ext.generic.GenericDataSourceProvider;
+import com.seizia.chromite.ext.cubrid.model.CubridDataSource;
+import com.seizia.chromite.ext.generic.GenericDataSourceProvider;
 
 public class CubridDataSourceProvider extends GenericDataSourceProvider<CubridDataSource> {
     public CubridDataSourceProvider() {

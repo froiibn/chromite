@@ -15,11 +15,11 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.ui.editors.erd.notations;
+package com.seizia.chromite.ui.editors.erd.notations;
 
 import org.eclipse.draw2d.Label;
 import org.eclipse.swt.graphics.Color;
-import org.jkiss.dbeaver.ui.editors.erd.editor.ERDThemeSettings;
+import com.seizia.chromite.ui.editors.erd.editor.ERDThemeSettings;
 
 public abstract class ERDNotationBase {
     protected static final String LABEL_0_TO_1 = "0..1";

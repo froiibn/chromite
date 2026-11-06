@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.editors.sql.indent;
+package com.seizia.chromite.ui.editors.sql.indent;
 
 import org.eclipse.jface.text.BadLocationException;
 import org.eclipse.jface.text.DefaultIndentLineAutoEditStrategy;
@@ -23,8 +23,8 @@ import org.eclipse.jface.text.IDocument;
 import org.eclipse.jface.text.ITypedRegion;
 import org.eclipse.jface.text.TextUtilities;
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.sql.parser.SQLParserPartitions;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.sql.parser.SQLParserPartitions;
 
 public class SQLStringAutoIndentStrategy extends DefaultIndentLineAutoEditStrategy {
 

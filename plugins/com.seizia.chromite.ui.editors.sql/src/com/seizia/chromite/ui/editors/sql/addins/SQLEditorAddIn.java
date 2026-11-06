@@ -14,11 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.editors.sql.addins;
+package com.seizia.chromite.ui.editors.sql.addins;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.ui.editors.sql.SQLEditor;
+import com.seizia.chromite.ui.editors.sql.SQLEditor;
 
 import java.io.PrintWriter;
 

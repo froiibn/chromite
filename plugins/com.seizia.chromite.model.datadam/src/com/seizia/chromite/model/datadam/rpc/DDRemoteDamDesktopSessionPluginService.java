@@ -14,12 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.datadam.rpc;
+package com.seizia.chromite.model.datadam.rpc;
 
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.runtime.IPluginService;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.runtime.IPluginService;
 
 public final class DDRemoteDamDesktopSessionPluginService implements IPluginService {
     private static final Log log = Log.getLog(DDRemoteDamDesktopSessionPluginService.class);

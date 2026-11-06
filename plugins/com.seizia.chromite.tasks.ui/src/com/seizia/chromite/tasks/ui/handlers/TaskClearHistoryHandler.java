@@ -14,20 +14,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.tasks.ui.handlers;
+package com.seizia.chromite.tasks.ui.handlers;
 
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.app.DBPWorkspace;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.model.runtime.DBRRunnableWithProgress;
-import org.jkiss.dbeaver.model.task.DBTTask;
-import org.jkiss.dbeaver.model.task.DBTTaskEvent;
-import org.jkiss.dbeaver.model.task.DBTTaskManager;
-import org.jkiss.dbeaver.model.task.DBTTaskRunStorage;
-import org.jkiss.dbeaver.registry.task.TaskConstants;
-import org.jkiss.dbeaver.registry.task.TaskRegistry;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.app.DBPWorkspace;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.model.runtime.DBRRunnableWithProgress;
+import com.seizia.chromite.model.task.DBTTask;
+import com.seizia.chromite.model.task.DBTTaskEvent;
+import com.seizia.chromite.model.task.DBTTaskManager;
+import com.seizia.chromite.model.task.DBTTaskRunStorage;
+import com.seizia.chromite.registry.task.TaskConstants;
+import com.seizia.chromite.registry.task.TaskRegistry;
+import com.seizia.chromite.runtime.DBWorkbench;
 
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;

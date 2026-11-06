@@ -14,12 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.editors.object.internal;
+package com.seizia.chromite.ui.editors.object.internal;
 
 import org.eclipse.osgi.util.NLS;
 
 public class ObjectEditorMessages extends NLS {
-    private static final String BUNDLE_NAME = "org.jkiss.dbeaver.ui.editors.object.internal.ObjectEditorMessages"; //$NON-NLS-1$
+    private static final String BUNDLE_NAME = "com.seizia.chromite.ui.editors.object.internal.ObjectEditorMessages"; //$NON-NLS-1$
 
     public static String dialog_struct_attribute_edit_page_header_edit_attribute;
     public static String dialog_struct_label_text_name;

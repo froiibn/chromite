@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.controls;
+package com.seizia.chromite.ui.controls;
 
 import org.eclipse.jface.viewers.ColumnViewer;
 import org.eclipse.jface.viewers.ComboBoxCellEditor;
@@ -23,9 +23,9 @@ import org.eclipse.swt.custom.CCombo;
 import org.eclipse.swt.events.SelectionListener;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Control;
-import org.jkiss.dbeaver.model.DBPNamedObject;
-import org.jkiss.dbeaver.ui.contentassist.ContentAssistUtils;
-import org.jkiss.dbeaver.ui.contentassist.StringContentProposalProvider;
+import com.seizia.chromite.model.DBPNamedObject;
+import com.seizia.chromite.ui.contentassist.ContentAssistUtils;
+import com.seizia.chromite.ui.contentassist.StringContentProposalProvider;
 import org.jkiss.utils.CommonUtils;
 
 /**

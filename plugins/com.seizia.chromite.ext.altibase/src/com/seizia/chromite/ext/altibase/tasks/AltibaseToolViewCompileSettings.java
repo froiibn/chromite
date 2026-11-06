@@ -14,10 +14,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.altibase.tasks;
+package com.seizia.chromite.ext.altibase.tasks;
 
-import org.jkiss.dbeaver.ext.altibase.model.AltibaseView;
-import org.jkiss.dbeaver.model.sql.task.SQLToolExecuteSettings;
+import com.seizia.chromite.ext.altibase.model.AltibaseView;
+import com.seizia.chromite.model.sql.task.SQLToolExecuteSettings;
 
 public class AltibaseToolViewCompileSettings extends SQLToolExecuteSettings<AltibaseView> {
 }

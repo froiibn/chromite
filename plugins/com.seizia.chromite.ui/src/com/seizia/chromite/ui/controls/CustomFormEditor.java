@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.ui.controls;
+package com.seizia.chromite.ui.controls;
 
 import org.eclipse.core.runtime.Adapters;
 import org.eclipse.jface.fieldassist.ComboContentAdapter;
@@ -31,28 +31,28 @@ import org.eclipse.swt.layout.RowLayout;
 import org.eclipse.swt.widgets.*;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.*;
-import org.jkiss.dbeaver.model.data.DBDDisplayFormat;
-import org.jkiss.dbeaver.model.edit.DBECommandContext;
-import org.jkiss.dbeaver.model.edit.DBEObjectManager;
-import org.jkiss.dbeaver.model.edit.DBEObjectRenamer;
-import org.jkiss.dbeaver.model.meta.IPropertyValueListProvider;
-import org.jkiss.dbeaver.model.meta.PropertyLength;
-import org.jkiss.dbeaver.model.preferences.DBPPropertyDescriptor;
-import org.jkiss.dbeaver.model.preferences.DBPPropertySource;
-import org.jkiss.dbeaver.model.struct.DBSObject;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.runtime.properties.ObjectPropertyDescriptor;
-import org.jkiss.dbeaver.ui.DBeaverIcons;
-import org.jkiss.dbeaver.ui.HoverControlSupport;
-import org.jkiss.dbeaver.ui.UIIcon;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.contentassist.ContentAssistUtils;
-import org.jkiss.dbeaver.ui.contentassist.StringContentProposalProvider;
-import org.jkiss.dbeaver.ui.css.CSSUtils;
-import org.jkiss.dbeaver.ui.dialogs.EditTextDialog;
-import org.jkiss.dbeaver.utils.GeneralUtils;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.*;
+import com.seizia.chromite.model.data.DBDDisplayFormat;
+import com.seizia.chromite.model.edit.DBECommandContext;
+import com.seizia.chromite.model.edit.DBEObjectManager;
+import com.seizia.chromite.model.edit.DBEObjectRenamer;
+import com.seizia.chromite.model.meta.IPropertyValueListProvider;
+import com.seizia.chromite.model.meta.PropertyLength;
+import com.seizia.chromite.model.preferences.DBPPropertyDescriptor;
+import com.seizia.chromite.model.preferences.DBPPropertySource;
+import com.seizia.chromite.model.struct.DBSObject;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.runtime.properties.ObjectPropertyDescriptor;
+import com.seizia.chromite.ui.SwtIcons;
+import com.seizia.chromite.ui.HoverControlSupport;
+import com.seizia.chromite.ui.UIIcon;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.contentassist.ContentAssistUtils;
+import com.seizia.chromite.ui.contentassist.StringContentProposalProvider;
+import com.seizia.chromite.ui.css.CSSUtils;
+import com.seizia.chromite.ui.dialogs.EditTextDialog;
+import com.seizia.chromite.utils.GeneralUtils;
 import org.jkiss.utils.BeanUtils;
 import org.jkiss.utils.CommonUtils;
 
@@ -303,7 +303,7 @@ public class CustomFormEditor {
             infoComposite.setLayout(layout);
 
             Label iconLabel = new Label(infoComposite, SWT.NONE);
-            iconLabel.setImage(DBeaverIcons.getImage(DBIcon.SMALL_INFO));
+            iconLabel.setImage(SwtIcons.getImage(DBIcon.SMALL_INFO));
             iconLabel.setLayoutData(new GridData(SWT.BEGINNING, SWT.TOP, false, false));
 
             Label textLabel = new Label(infoComposite, SWT.WRAP);
@@ -357,7 +357,7 @@ public class CustomFormEditor {
                 HoverControlSupport.install(editor, (parent1, editor1) -> {
                     ToolBar toolBar = new ToolBar(parent1, SWT.FLAT);
                     ToolItem toolItem = new ToolItem(toolBar, SWT.PUSH);
-                    toolItem.setImage(DBeaverIcons.getImage(UIIcon.EXPAND));
+                    toolItem.setImage(SwtIcons.getImage(UIIcon.EXPAND));
                     toolItem.setToolTipText("Show as multi-line...");
                     toolItem.addSelectionListener(SelectionListener.widgetSelectedAdapter(e -> {
                         if (readOnly) {

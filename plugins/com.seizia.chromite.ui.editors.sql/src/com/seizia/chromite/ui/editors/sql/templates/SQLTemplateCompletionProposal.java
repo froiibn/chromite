@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.editors.sql.templates;
+package com.seizia.chromite.ui.editors.sql.templates;
 
 import org.eclipse.jface.dialogs.MessageDialog;
 import org.eclipse.jface.text.*;
@@ -24,8 +24,8 @@ import org.eclipse.jface.text.templates.*;
 import org.eclipse.swt.graphics.Image;
 import org.eclipse.swt.graphics.Point;
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.ui.editors.sql.util.ExclusivePositionUpdater;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.ui.editors.sql.util.ExclusivePositionUpdater;
 
 
 /**

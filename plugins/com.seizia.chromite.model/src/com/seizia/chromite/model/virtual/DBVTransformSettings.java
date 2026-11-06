@@ -14,9 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.virtual;
+package com.seizia.chromite.model.virtual;
 
-import org.jkiss.dbeaver.model.data.DBDAttributeTransformerDescriptor;
+import com.seizia.chromite.model.data.DBDAttributeTransformerDescriptor;
 import org.jkiss.utils.CommonUtils;
 
 import java.util.*;

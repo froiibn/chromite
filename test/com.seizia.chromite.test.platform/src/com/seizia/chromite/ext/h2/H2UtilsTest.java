@@ -14,15 +14,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.h2;
+package com.seizia.chromite.ext.h2;
 
-import org.jkiss.dbeaver.ext.h2.util.H2Utils;
-import org.jkiss.junit.DBeaverUnitTest;
+import com.seizia.chromite.ext.h2.util.H2Utils;
+import com.seizia.chromite.junit.ChromiteUnitTest;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
-public class H2UtilsTest extends DBeaverUnitTest {
+public class H2UtilsTest extends ChromiteUnitTest {
     private final String originalAllowedClasses = System.getProperty("h2.allowedClasses");
 
     @AfterEach

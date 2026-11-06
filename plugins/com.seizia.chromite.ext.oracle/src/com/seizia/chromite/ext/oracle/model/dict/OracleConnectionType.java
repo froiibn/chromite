@@ -14,9 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.oracle.model.dict;
+package com.seizia.chromite.ext.oracle.model.dict;
 
-import org.jkiss.dbeaver.ext.oracle.internal.OracleMessages;
+import com.seizia.chromite.ext.oracle.internal.OracleMessages;
 
 /**
 * DB connection type

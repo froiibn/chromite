@@ -15,13 +15,13 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.model.app;
+package com.seizia.chromite.model.app;
 
 import org.eclipse.core.runtime.content.IContentType;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.model.DBPImage;
-import org.jkiss.dbeaver.model.impl.AbstractDescriptor;
+import com.seizia.chromite.model.DBPImage;
+import com.seizia.chromite.model.impl.AbstractDescriptor;
 
 import java.util.Collection;
 

@@ -15,14 +15,14 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.model.impl.local;
+package com.seizia.chromite.model.impl.local;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.model.DBPDataKind;
-import org.jkiss.dbeaver.model.exec.*;
-import org.jkiss.dbeaver.model.impl.AbstractResultSet;
-import org.jkiss.dbeaver.model.struct.DBSTypedObject;
+import com.seizia.chromite.model.DBPDataKind;
+import com.seizia.chromite.model.exec.*;
+import com.seizia.chromite.model.impl.AbstractResultSet;
+import com.seizia.chromite.model.struct.DBSTypedObject;
 
 import java.util.ArrayList;
 import java.util.List;

@@ -14,17 +14,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.datadam.mcp.function;
+package com.seizia.chromite.model.datadam.mcp.function;
 
 import com.dbeaver.datadam.mcp.api.exception.DDMcpFunctionException;
 import com.dbeaver.datadam.mcp.api.model.DDMcpFunctionDescriptor;
 import com.dbeaver.datadam.mcp.api.model.DDMcpFunctionParameter;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.model.ai.*;
-import org.jkiss.dbeaver.model.ai.registry.AIAssistantRegistry;
-import org.jkiss.dbeaver.model.datadam.mcp.DDMcpConnectionCatalog;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
+import com.seizia.chromite.model.ai.*;
+import com.seizia.chromite.model.ai.registry.AIAssistantRegistry;
+import com.seizia.chromite.model.datadam.mcp.DDMcpConnectionCatalog;
+import com.seizia.chromite.runtime.DBWorkbench;
 
 import java.util.*;
 

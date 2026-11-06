@@ -14,18 +14,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.ai.registry;
+package com.seizia.chromite.model.ai.registry;
 
 import org.eclipse.core.runtime.IConfigurationElement;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.ai.AIFunction;
-import org.jkiss.dbeaver.model.ai.AIFunctionParameterTransformer;
-import org.jkiss.dbeaver.model.ai.AIFunctionParameterValueProvider;
-import org.jkiss.dbeaver.model.impl.AbstractDescriptor;
-import org.jkiss.dbeaver.registry.RegistryConstants;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.ai.AIFunction;
+import com.seizia.chromite.model.ai.AIFunctionParameterTransformer;
+import com.seizia.chromite.model.ai.AIFunctionParameterValueProvider;
+import com.seizia.chromite.model.impl.AbstractDescriptor;
+import com.seizia.chromite.registry.RegistryConstants;
 import org.jkiss.utils.CommonUtils;
 
 import java.util.LinkedHashMap;
@@ -33,7 +33,7 @@ import java.util.Map;
 import java.util.Set;
 
 final class AIFunctionImplementationDescriptor extends AbstractDescriptor {
-    static final String EXTENSION_ID = "com.dbeaver.ai.functionImplementation";
+    static final String EXTENSION_ID = "com.seizia.chromite.ai.functionImplementation";
     private static final Log log = Log.getLog(AIFunctionImplementationDescriptor.class);
 
     private final String functionId;

@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.controls.resultset;
+package com.seizia.chromite.ui.controls.resultset;
 
 import org.eclipse.jface.dialogs.ControlEnableState;
 import org.eclipse.jface.dialogs.IDialogConstants;
@@ -32,23 +32,23 @@ import org.eclipse.ui.ISharedImages;
 import org.eclipse.ui.dialogs.FilteredTree;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.model.DBIcon;
-import org.jkiss.dbeaver.model.DBValueFormatting;
-import org.jkiss.dbeaver.model.data.DBDAttributeBinding;
-import org.jkiss.dbeaver.model.data.DBDAttributeConstraint;
-import org.jkiss.dbeaver.model.data.DBDAttributeConstraintBase;
-import org.jkiss.dbeaver.model.data.DBDDataFilter;
-import org.jkiss.dbeaver.model.exec.DBCExecutionContext;
-import org.jkiss.dbeaver.model.sql.SQLUtils;
-import org.jkiss.dbeaver.ui.DBeaverIcons;
-import org.jkiss.dbeaver.ui.IHelpContextIds;
-import org.jkiss.dbeaver.ui.UIIcon;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.controls.*;
-import org.jkiss.dbeaver.ui.controls.resultset.internal.ResultSetMessages;
-import org.jkiss.dbeaver.ui.controls.resultset.spreadsheet.SpreadsheetPresentation;
-import org.jkiss.dbeaver.ui.dialogs.HelpEnabledDialog;
-import org.jkiss.dbeaver.utils.RuntimeUtils;
+import com.seizia.chromite.model.DBIcon;
+import com.seizia.chromite.model.DBValueFormatting;
+import com.seizia.chromite.model.data.DBDAttributeBinding;
+import com.seizia.chromite.model.data.DBDAttributeConstraint;
+import com.seizia.chromite.model.data.DBDAttributeConstraintBase;
+import com.seizia.chromite.model.data.DBDDataFilter;
+import com.seizia.chromite.model.exec.DBCExecutionContext;
+import com.seizia.chromite.model.sql.SQLUtils;
+import com.seizia.chromite.ui.SwtIcons;
+import com.seizia.chromite.ui.IHelpContextIds;
+import com.seizia.chromite.ui.UIIcon;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.controls.*;
+import com.seizia.chromite.ui.controls.resultset.internal.ResultSetMessages;
+import com.seizia.chromite.ui.controls.resultset.spreadsheet.SpreadsheetPresentation;
+import com.seizia.chromite.ui.dialogs.HelpEnabledDialog;
+import com.seizia.chromite.utils.RuntimeUtils;
 import org.jkiss.utils.ArrayUtils;
 import org.jkiss.utils.CommonUtils;
 
@@ -103,7 +103,7 @@ class FilterSettingsDialog extends HelpEnabledDialog {
     protected Composite createDialogArea(Composite parent)
     {
         getShell().setText(ResultSetMessages.controls_resultset_filter_title);
-        getShell().setImage(DBeaverIcons.getImage(UIIcon.FILTER));
+        getShell().setImage(SwtIcons.getImage(UIIcon.FILTER));
 
         Composite composite = super.createDialogArea(parent);
 
@@ -132,7 +132,7 @@ class FilterSettingsDialog extends HelpEnabledDialog {
                     final DBDAttributeBinding binding = (DBDAttributeBinding) cell.getElement();
                     final DBDAttributeConstraint constraint = getBindingConstraint(binding);
                     cell.setText(constraint.getAttribute().getName());
-                    cell.setImage(DBeaverIcons.getImage(DBValueFormatting.getObjectImage(binding.getAttribute())));
+                    cell.setImage(SwtIcons.getImage(DBValueFormatting.getObjectImage(binding.getAttribute())));
                 }
             });
 
@@ -218,7 +218,7 @@ class FilterSettingsDialog extends HelpEnabledDialog {
                         final DBDAttributeConstraint constraint = getBindingConstraint(binding);
                         if (constraint.getOrderPosition() > 0) {
                             cell.setText(" " + constraint.getOrderPosition());
-                            cell.setImage(DBeaverIcons.getImage(constraint.isOrderDescending() ? UIIcon.SORT_INCREASE : UIIcon.SORT_DECREASE));
+                            cell.setImage(SwtIcons.getImage(constraint.isOrderDescending() ? UIIcon.SORT_INCREASE : UIIcon.SORT_DECREASE));
                         } else {
                             cell.setText(null);
                             cell.setImage(null);
@@ -557,13 +557,13 @@ class FilterSettingsDialog extends HelpEnabledDialog {
         {
             DBDAttributeBinding binding = (DBDAttributeBinding) element;
             if (columnIndex == 0) {
-                return DBeaverIcons.getImage(
+                return SwtIcons.getImage(
                     DBValueFormatting.getObjectImage(binding.getMetaAttribute()));
             }
             if (columnIndex == 2) {
                 DBDAttributeConstraint constraint = getBindingConstraint(binding);
                 if (constraint.getOrderPosition() > 0) {
-                    return DBeaverIcons.getImage(constraint.isOrderDescending() ? UIIcon.SORT_INCREASE : UIIcon.SORT_DECREASE);
+                    return SwtIcons.getImage(constraint.isOrderDescending() ? UIIcon.SORT_INCREASE : UIIcon.SORT_DECREASE);
                 }
             }
             return null;
@@ -629,7 +629,7 @@ class FilterSettingsDialog extends HelpEnabledDialog {
     {
         ToolItem item = new ToolItem(toolBar, SWT.PUSH);
         if (icon != null) {
-            item.setImage(DBeaverIcons.getImage(icon));
+            item.setImage(SwtIcons.getImage(icon));
         }
         if (text != null) {
             //item.setText(text);
@@ -644,7 +644,7 @@ class FilterSettingsDialog extends HelpEnabledDialog {
      * macos buttons not getting focus when dialog closes.
      *
      * See https://github.com/dbeaver/dbeaver/issues/10346
-     * See org.jkiss.dbeaver.ui.properties.PropertyTreeViewer.saveEditorValues()
+     * See com.seizia.chromite.ui.properties.PropertyTreeViewer.saveEditorValues()
      */
     private class FilterSettingsTreeEditor extends CustomTreeEditor {
         private static final int COLUMN_ORDER_INDEX = 4;

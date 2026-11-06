@@ -17,7 +17,7 @@
 /*
  * Created on Aug 13, 2004
  */
-package org.jkiss.dbeaver.ui.editors.erd.directedit;
+package com.seizia.chromite.ui.editors.erd.directedit;
 
 import org.eclipse.ui.IEditorSite;
 

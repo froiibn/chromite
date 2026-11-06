@@ -14,24 +14,24 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.editors.sql.syntax;
+package com.seizia.chromite.ui.editors.sql.syntax;
 
 import org.antlr.v4.runtime.misc.Interval;
 import org.eclipse.jface.text.*;
 import org.eclipse.jface.text.hyperlink.AbstractHyperlinkDetector;
 import org.eclipse.jface.text.hyperlink.IHyperlink;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.DBPKeywordType;
-import org.jkiss.dbeaver.model.impl.struct.DirectObjectReference;
-import org.jkiss.dbeaver.model.sql.parser.SQLIdentifierDetector;
-import org.jkiss.dbeaver.model.sql.semantics.SQLDocumentSyntaxContext;
-import org.jkiss.dbeaver.model.sql.semantics.SQLQuerySymbolByDbObjectDefinition;
-import org.jkiss.dbeaver.model.sql.semantics.SQLQuerySymbolEntry;
-import org.jkiss.dbeaver.model.sql.semantics.model.select.SQLQueryRowsTableDataModel;
-import org.jkiss.dbeaver.model.struct.DBSObjectReference;
-import org.jkiss.dbeaver.ui.editors.entity.EntityHyperlink;
-import org.jkiss.dbeaver.ui.editors.sql.SQLEditorBase;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.DBPKeywordType;
+import com.seizia.chromite.model.impl.struct.DirectObjectReference;
+import com.seizia.chromite.model.sql.parser.SQLIdentifierDetector;
+import com.seizia.chromite.model.sql.semantics.SQLDocumentSyntaxContext;
+import com.seizia.chromite.model.sql.semantics.SQLQuerySymbolByDbObjectDefinition;
+import com.seizia.chromite.model.sql.semantics.SQLQuerySymbolEntry;
+import com.seizia.chromite.model.sql.semantics.model.select.SQLQueryRowsTableDataModel;
+import com.seizia.chromite.model.struct.DBSObjectReference;
+import com.seizia.chromite.ui.editors.entity.EntityHyperlink;
+import com.seizia.chromite.ui.editors.sql.SQLEditorBase;
 
 import java.util.List;
 

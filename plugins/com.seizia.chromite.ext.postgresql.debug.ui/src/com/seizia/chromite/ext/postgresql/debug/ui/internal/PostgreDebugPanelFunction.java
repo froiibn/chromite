@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.ext.postgresql.debug.ui.internal;
+package com.seizia.chromite.ext.postgresql.debug.ui.internal;
 
 import org.eclipse.jface.viewers.LabelProvider;
 import org.eclipse.swt.SWT;
@@ -26,26 +26,26 @@ import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.widgets.*;
 import org.jkiss.code.NotNull;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.debug.ui.DBGConfigurationPanel;
-import org.jkiss.dbeaver.debug.ui.DBGConfigurationPanelContainer;
-import org.jkiss.dbeaver.ext.postgresql.debug.PostgreDebugConstants;
-import org.jkiss.dbeaver.ext.postgresql.debug.core.PostgreSqlDebugCore;
-import org.jkiss.dbeaver.ext.postgresql.model.PostgreProcedure;
-import org.jkiss.dbeaver.ext.postgresql.model.PostgreProcedureParameter;
-import org.jkiss.dbeaver.model.DBIcon;
-import org.jkiss.dbeaver.model.DBPDataSourceContainer;
-import org.jkiss.dbeaver.model.navigator.DBNDatabaseNode;
-import org.jkiss.dbeaver.model.navigator.DBNModel;
-import org.jkiss.dbeaver.model.navigator.DBNNode;
-import org.jkiss.dbeaver.model.struct.DBSInstance;
-import org.jkiss.dbeaver.model.struct.DBSObjectContainer;
-import org.jkiss.dbeaver.model.struct.rdb.DBSProcedureParameter;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.ui.DBeaverIcons;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.controls.CSmartCombo;
-import org.jkiss.dbeaver.ui.controls.CSmartSelector;
-import org.jkiss.dbeaver.ui.controls.CustomTableEditor;
+import com.seizia.chromite.debug.ui.DBGConfigurationPanel;
+import com.seizia.chromite.debug.ui.DBGConfigurationPanelContainer;
+import com.seizia.chromite.ext.postgresql.debug.PostgreDebugConstants;
+import com.seizia.chromite.ext.postgresql.debug.core.PostgreSqlDebugCore;
+import com.seizia.chromite.ext.postgresql.model.PostgreProcedure;
+import com.seizia.chromite.ext.postgresql.model.PostgreProcedureParameter;
+import com.seizia.chromite.model.DBIcon;
+import com.seizia.chromite.model.DBPDataSourceContainer;
+import com.seizia.chromite.model.navigator.DBNDatabaseNode;
+import com.seizia.chromite.model.navigator.DBNModel;
+import com.seizia.chromite.model.navigator.DBNNode;
+import com.seizia.chromite.model.struct.DBSInstance;
+import com.seizia.chromite.model.struct.DBSObjectContainer;
+import com.seizia.chromite.model.struct.rdb.DBSProcedureParameter;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.ui.SwtIcons;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.controls.CSmartCombo;
+import com.seizia.chromite.ui.controls.CSmartSelector;
+import com.seizia.chromite.ui.controls.CustomTableEditor;
 import org.jkiss.utils.CommonUtils;
 
 import java.lang.reflect.InvocationTargetException;
@@ -103,7 +103,7 @@ public class PostgreDebugPanelFunction implements DBGConfigurationPanel {
         functionCombo = new CSmartSelector<>(functionGroup, SWT.BORDER | SWT.DROP_DOWN | SWT.READ_ONLY, new LabelProvider() {
             @Override
             public Image getImage(Object element) {
-                return DBeaverIcons.getImage(DBIcon.TREE_PROCEDURE);
+                return SwtIcons.getImage(DBIcon.TREE_PROCEDURE);
             }
 
             @Override
@@ -268,7 +268,7 @@ public class PostgreDebugPanelFunction implements DBGConfigurationPanel {
         for (DBSProcedureParameter param : selectedFunction.getInputParameters()) {
             TableItem item = new TableItem(parametersTable, SWT.NONE);
             item.setData(param);
-            item.setImage(DBeaverIcons.getImage(DBIcon.TREE_ATTRIBUTE));
+            item.setImage(SwtIcons.getImage(DBIcon.TREE_ATTRIBUTE));
             item.setText(0, param.getName());
             Object value = parameterValues.get(param);
             item.setText(1, CommonUtils.toString(value, ""));

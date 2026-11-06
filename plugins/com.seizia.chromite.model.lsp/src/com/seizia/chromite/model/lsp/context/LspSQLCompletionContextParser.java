@@ -14,31 +14,31 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.lsp.context;
+package com.seizia.chromite.model.lsp.context;
 
 import org.eclipse.jface.text.Document;
 import org.eclipse.lsp4j.CompletionItem;
 import org.jkiss.code.NotNull;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.model.runtime.VoidProgressMonitor;
-import org.jkiss.dbeaver.model.sql.SQLBatchDelimiterElement;
-import org.jkiss.dbeaver.model.sql.SQLModelPreferences;
-import org.jkiss.dbeaver.model.sql.SQLScriptElement;
-import org.jkiss.dbeaver.model.sql.completion.CompletionProposalBase;
-import org.jkiss.dbeaver.model.sql.completion.SQLCompletionAnalyzer;
-import org.jkiss.dbeaver.model.sql.completion.SQLCompletionContext;
-import org.jkiss.dbeaver.model.sql.completion.SQLCompletionRequest;
-import org.jkiss.dbeaver.model.sql.parser.SQLParserContext;
-import org.jkiss.dbeaver.model.sql.parser.SQLScriptParser;
-import org.jkiss.dbeaver.model.sql.semantics.SQLDocumentSyntaxContext;
-import org.jkiss.dbeaver.model.sql.semantics.SQLQueryModelRecognizer;
-import org.jkiss.dbeaver.model.sql.semantics.SQLQueryRecognitionContext;
-import org.jkiss.dbeaver.model.sql.semantics.SQLScriptItemAtOffset;
-import org.jkiss.dbeaver.model.sql.semantics.completion.SQLQueryCompletionAnalyzer;
-import org.jkiss.dbeaver.model.sql.semantics.completion.SQLQueryCompletionContext;
-import org.jkiss.dbeaver.model.sql.semantics.tracking.SQLScriptVariablesTracker;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.model.runtime.VoidProgressMonitor;
+import com.seizia.chromite.model.sql.SQLBatchDelimiterElement;
+import com.seizia.chromite.model.sql.SQLModelPreferences;
+import com.seizia.chromite.model.sql.SQLScriptElement;
+import com.seizia.chromite.model.sql.completion.CompletionProposalBase;
+import com.seizia.chromite.model.sql.completion.SQLCompletionAnalyzer;
+import com.seizia.chromite.model.sql.completion.SQLCompletionContext;
+import com.seizia.chromite.model.sql.completion.SQLCompletionRequest;
+import com.seizia.chromite.model.sql.parser.SQLParserContext;
+import com.seizia.chromite.model.sql.parser.SQLScriptParser;
+import com.seizia.chromite.model.sql.semantics.SQLDocumentSyntaxContext;
+import com.seizia.chromite.model.sql.semantics.SQLQueryModelRecognizer;
+import com.seizia.chromite.model.sql.semantics.SQLQueryRecognitionContext;
+import com.seizia.chromite.model.sql.semantics.SQLScriptItemAtOffset;
+import com.seizia.chromite.model.sql.semantics.completion.SQLQueryCompletionAnalyzer;
+import com.seizia.chromite.model.sql.semantics.completion.SQLQueryCompletionContext;
+import com.seizia.chromite.model.sql.semantics.tracking.SQLScriptVariablesTracker;
+import com.seizia.chromite.runtime.DBWorkbench;
 
 import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;

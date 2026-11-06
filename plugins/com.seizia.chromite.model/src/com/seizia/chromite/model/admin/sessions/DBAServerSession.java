@@ -15,9 +15,9 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.model.admin.sessions;
+package com.seizia.chromite.model.admin.sessions;
 
-import org.jkiss.dbeaver.model.DBPObject;
+import com.seizia.chromite.model.DBPObject;
 
 /**
  * Server session

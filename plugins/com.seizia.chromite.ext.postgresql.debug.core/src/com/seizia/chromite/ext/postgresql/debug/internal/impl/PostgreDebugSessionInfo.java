@@ -17,9 +17,9 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.ext.postgresql.debug.internal.impl;
+package com.seizia.chromite.ext.postgresql.debug.internal.impl;
 
-import org.jkiss.dbeaver.debug.DBGSessionInfo;
+import com.seizia.chromite.debug.DBGSessionInfo;
 
 import java.util.HashMap;
 import java.util.Map;

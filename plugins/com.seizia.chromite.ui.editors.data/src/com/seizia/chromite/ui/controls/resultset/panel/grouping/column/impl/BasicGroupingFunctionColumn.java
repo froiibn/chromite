@@ -14,12 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.controls.resultset.panel.grouping.column.impl;
+package com.seizia.chromite.ui.controls.resultset.panel.grouping.column.impl;
 
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.model.DBPDataSource;
-import org.jkiss.dbeaver.ui.controls.resultset.panel.grouping.GroupingResultsContainer;
-import org.jkiss.dbeaver.ui.controls.resultset.panel.grouping.column.GroupingFunctionColumn;
+import com.seizia.chromite.model.DBPDataSource;
+import com.seizia.chromite.ui.controls.resultset.panel.grouping.GroupingResultsContainer;
+import com.seizia.chromite.ui.controls.resultset.panel.grouping.column.GroupingFunctionColumn;
 
 public abstract class BasicGroupingFunctionColumn implements GroupingFunctionColumn {
 

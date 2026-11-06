@@ -14,10 +14,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.editors.sql.format.sqlworkbenchj;
+package com.seizia.chromite.ui.editors.sql.format.sqlworkbenchj;
 
 import org.eclipse.core.runtime.IAdapterFactory;
-import org.jkiss.dbeaver.ui.editors.sql.preferences.format.SQLFormatterConfigurator;
+import com.seizia.chromite.ui.editors.sql.preferences.format.SQLFormatterConfigurator;
 
 /**
  * Adapts objects to their UI configurators

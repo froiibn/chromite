@@ -14,18 +14,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.tasks.ui.nativetool;
+package com.seizia.chromite.tasks.ui.nativetool;
 
 import org.eclipse.jface.dialogs.IMessageProvider;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.model.fs.DBFUtils;
-import org.jkiss.dbeaver.model.struct.DBSObject;
-import org.jkiss.dbeaver.model.task.DBTTask;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.tasks.nativetool.AbstractImportExportSettings;
-import org.jkiss.dbeaver.tasks.nativetool.ExportSettingsExtension;
-import org.jkiss.dbeaver.tasks.ui.nativetool.internal.TaskNativeUIMessages;
-import org.jkiss.dbeaver.ui.UIUtils;
+import com.seizia.chromite.model.fs.DBFUtils;
+import com.seizia.chromite.model.struct.DBSObject;
+import com.seizia.chromite.model.task.DBTTask;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.tasks.nativetool.AbstractImportExportSettings;
+import com.seizia.chromite.tasks.nativetool.ExportSettingsExtension;
+import com.seizia.chromite.tasks.ui.nativetool.internal.TaskNativeUIMessages;
+import com.seizia.chromite.ui.UIUtils;
 
 import java.io.IOException;
 import java.nio.file.Files;

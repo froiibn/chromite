@@ -14,15 +14,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.contentassist;
+package com.seizia.chromite.ui.contentassist;
 
 import org.eclipse.jface.fieldassist.IContentProposal;
 import org.eclipse.jface.viewers.BaseLabelProvider;
 import org.eclipse.jface.viewers.ILabelProvider;
 import org.eclipse.swt.graphics.Image;
-import org.jkiss.dbeaver.model.DBPImage;
-import org.jkiss.dbeaver.model.DBPImageProvider;
-import org.jkiss.dbeaver.ui.DBeaverIcons;
+import com.seizia.chromite.model.DBPImage;
+import com.seizia.chromite.model.DBPImageProvider;
+import com.seizia.chromite.ui.SwtIcons;
 import org.jkiss.utils.CommonUtils;
 
 public class ContentAssistLabelProvider extends BaseLabelProvider implements ILabelProvider {
@@ -31,7 +31,7 @@ public class ContentAssistLabelProvider extends BaseLabelProvider implements ILa
     public Image getImage(Object element) {
         if (element instanceof DBPImageProvider) {
             DBPImage image = ((DBPImageProvider) element).getObjectImage();
-            return image == null ? null : DBeaverIcons.getImage(image);
+            return image == null ? null : SwtIcons.getImage(image);
         }
         return null;
     }

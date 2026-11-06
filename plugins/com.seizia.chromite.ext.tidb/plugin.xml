@@ -2,7 +2,7 @@
 <?eclipse version="3.2"?>
 <plugin>
 
-    <extension point="org.jkiss.dbeaver.dataSourceProvider">
+    <extension point="com.seizia.chromite.dataSourceProvider">
         <dataSourceType
             id="tidb"
             label="TiDB"
@@ -12,7 +12,7 @@
             iconBig="icons/tidb_icon_big.png"
             logoImage="icons/tidb_logo.png"/>
         <datasource
-            class="org.jkiss.dbeaver.ext.tidb.TiDBDataSourceProvider"
+            class="com.seizia.chromite.ext.tidb.TiDBDataSourceProvider"
             description="TiDB"
             id="tidb"
             dataSourceType="tidb"
@@ -22,17 +22,17 @@
             inheritProviderProperties="true">
 
             <treeInjection path="mysql/database" replaceChildren="true">
-                 <folder type="org.jkiss.dbeaver.ext.mysql.model.MySQLTable" label="%tree.tables.node.name" icon="#folder_table" description="%tree.tables.node.tip">
+                 <folder type="com.seizia.chromite.ext.mysql.model.MySQLTable" label="%tree.tables.node.name" icon="#folder_table" description="%tree.tables.node.tip">
                     <items label="%tree.table.node.name" path="table" property="tables" icon="#table">
-                        <folder type="org.jkiss.dbeaver.ext.mysql.model.MySQLTableColumn" label="%tree.columns.node.name" icon="#columns" description="Table columns">
+                        <folder type="com.seizia.chromite.ext.mysql.model.MySQLTableColumn" label="%tree.columns.node.name" icon="#columns" description="Table columns">
                             <items label="%tree.column.node.name" path="attribute" property="attributes" icon="#column"/>
                         </folder>
-                        <folder type="org.jkiss.dbeaver.ext.mysql.model.MySQLTableConstraint" label="%tree.constraints.node.name" icon="#constraints" description="Table constraints">
+                        <folder type="com.seizia.chromite.ext.mysql.model.MySQLTableConstraint" label="%tree.constraints.node.name" icon="#constraints" description="Table constraints">
                             <items label="%tree.constraint.node.name" path="constraint" property="constraints" icon="#unique-key">
                                 <items label="%tree.constraint_columns.node.name" path="column" property="attributeReferences" navigable="false" inline="true" visibleIf="object.constraintType!='CHECK'"/>
                             </items>
                         </folder>
-                        <folder type="org.jkiss.dbeaver.ext.mysql.model.MySQLTableForeignKey" label="%tree.foreign_keys.node.name" icon="#foreign-keys" description="Table foreign keys" visibleIf="object.dataSource.isServerVersionAtLeast(6,6)">
+                        <folder type="com.seizia.chromite.ext.mysql.model.MySQLTableForeignKey" label="%tree.foreign_keys.node.name" icon="#foreign-keys" description="Table foreign keys" visibleIf="object.dataSource.isServerVersionAtLeast(6,6)">
                             <items label="%tree.foreign_key.node.name" path="association" property="associations" icon="#foreign-key">
                                 <items label="%tree.foreign_key_columns.node.name" itemLabel="%tree.column.node.name" path="column" property="attributeReferences" navigable="false" inline="true">
                                 </items>
@@ -43,29 +43,29 @@
                                 <items label="%tree.reference_key_columns.node.name" itemLabel="%tree.column.node.name" path="column" property="attributeReferences" navigable="false" inline="true" virtual="true"/>
                             </items>
                         </folder>
-                        <folder type="org.jkiss.dbeaver.ext.mysql.model.MySQLTableIndex" label="%tree.indexes.node.name" icon="#indexes" description="Table indexes">
+                        <folder type="com.seizia.chromite.ext.mysql.model.MySQLTableIndex" label="%tree.indexes.node.name" icon="#indexes" description="Table indexes">
                             <items label="%tree.index.node.name" path="index" property="indexes" icon="#index">
                                 <items label="Index columns" itemLabel="%tree.column.node.name" path="column" property="attributeReferences" navigable="false" inline="true"/>
                             </items>
                         </folder>
-                        <folder type="org.jkiss.dbeaver.ext.mysql.model.MySQLPartition" label="%tree.partitions.node.name" icon="#partitions" description="Table partitions">
+                        <folder type="com.seizia.chromite.ext.mysql.model.MySQLPartition" label="%tree.partitions.node.name" icon="#partitions" description="Table partitions">
                             <items label="%tree.partition.node.name" path="partition" property="partitions" icon="#partition">
                                 <items label="%tree.subpartitions.node.name" itemLabel="%tree.subpartition.node.name" path="subpartition" property="subPartitions" navigable="false" inline="true"/>
                             </items>
                         </folder>
                     </items>
                 </folder>
-                <folder type="org.jkiss.dbeaver.ext.mysql.model.MySQLView" label="%tree.views.node.name" icon="#folder_view" description="%tree.views.node.tip">
+                <folder type="com.seizia.chromite.ext.mysql.model.MySQLView" label="%tree.views.node.name" icon="#folder_view" description="%tree.views.node.tip">
                     <items label="%tree.view.node.name" path="view" property="views" icon="#view">
                         <items label="%tree.columns.node.name" itemLabel="%tree.column.node.name" path="column" property="attributes" icon="#column"/>
                     </items>
                 </folder>
-                <folder type="org.jkiss.dbeaver.model.struct.rdb.DBSTableIndex" label="%tree.indexes.node.name" icon="#indexes" description="%tree.indexes.node.tip" virtual="true">
+                <folder type="com.seizia.chromite.model.struct.rdb.DBSTableIndex" label="%tree.indexes.node.name" icon="#indexes" description="%tree.indexes.node.tip" virtual="true">
                     <items label="%tree.index.node.name" path="index" property="indexes" icon="#index" virtual="true">
                         <items label="Index columns" itemLabel="%tree.column.node.name" path="column" property="attributeReferences" navigable="false" inline="true" virtual="true"/>
                     </items>
                 </folder>
-                <folder type="org.jkiss.dbeaver.ext.mysql.model.MySQLSequence" label="%tree.sequences.node.name" icon="#sequences" description="%tree.sequences.node.tip" visibleIf="object.dataSource.supportsSequences()">
+                <folder type="com.seizia.chromite.ext.mysql.model.MySQLSequence" label="%tree.sequences.node.name" icon="#sequences" description="%tree.sequences.node.tip" visibleIf="object.dataSource.supportsSequences()">
                     <items label="%tree.sequences.node.name" path="sequence" property="sequences" icon="#sequence">
                     </items>
                 </folder>
@@ -96,18 +96,18 @@
                     <property name="connectTimeout" value="20000"/>
 
                     <property name="enabledTLSProtocols" value="TLSv1.2,TLSv1.3"/>
-                    <property name="@dbeaver-default-resultset.maxrows.sql" value="true"/>
-                    <property name="@dbeaver-default-resultset.format.datetime.native" value="true"/>
-                    <property name="@dbeaver-default-dataformat.type.timestamp.pattern" value="yyyy-MM-dd HH:mm:ss"/>
+                    <property name="@chromite-default-resultset.maxrows.sql" value="true"/>
+                    <property name="@chromite-default-resultset.format.datetime.native" value="true"/>
+                    <property name="@chromite-default-dataformat.type.timestamp.pattern" value="yyyy-MM-dd HH:mm:ss"/>
                 </driver>
 
             </drivers>
         </datasource>
     </extension>
 
-    <extension point="org.jkiss.dbeaver.dataTypeProvider">
+    <extension point="com.seizia.chromite.dataTypeProvider">
         <provider
-            class="org.jkiss.dbeaver.model.impl.jdbc.data.handlers.JDBCStandardValueHandlerProvider"
+            class="com.seizia.chromite.model.impl.jdbc.data.handlers.JDBCStandardValueHandlerProvider"
             description="TiDB data types provider"
             id="TiDBValueHandlerProvider"
             parent="GenericValueHandlerProvider"
@@ -117,8 +117,8 @@
         </provider>
     </extension>
 
-    <extension point="org.jkiss.dbeaver.sqlDialect">
-        <dialect id="tidb" parent="mysql" class="org.jkiss.dbeaver.ext.tidb.mysql.model.TiDBDialect" label="TiDB" description="TiDB dialect" icon="icons/tidb_icon.png">
+    <extension point="com.seizia.chromite.sqlDialect">
+        <dialect id="tidb" parent="mysql" class="com.seizia.chromite.ext.tidb.mysql.model.TiDBDialect" label="TiDB" description="TiDB dialect" icon="icons/tidb_icon.png">
         </dialect>
     </extension>
 </plugin>

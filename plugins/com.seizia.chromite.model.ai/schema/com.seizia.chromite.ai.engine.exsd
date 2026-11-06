@@ -1,9 +1,9 @@
 <?xml version='1.0' encoding='UTF-8'?>
 <!-- Schema file written by PDE -->
-<schema targetNamespace="org.jkiss.dbeaver.model.ai" xmlns="http://www.w3.org/2001/XMLSchema">
+<schema targetNamespace="com.seizia.chromite.model.ai" xmlns="http://www.w3.org/2001/XMLSchema">
 <annotation>
       <appInfo>
-         <meta.schema plugin="org.jkiss.dbeaver.model.ai" id="com.dbeaver.ai.engine" name="AI engines"/>
+         <meta.schema plugin="com.seizia.chromite.model.ai" id="com.seizia.chromite.ai.engine" name="AI engines"/>
       </appInfo>
       <documentation>AI engines</documentation>
    </annotation>
@@ -27,12 +27,12 @@
          <attribute name="class" type="string" use="required">
             <annotation>
                <appInfo>
-                  <meta.attribute kind="java" basedOn=":org.jkiss.dbeaver.model.ai.engine.AIEngine"/>
+                  <meta.attribute kind="java" basedOn=":com.seizia.chromite.model.ai.engine.AIEngine"/>
                </appInfo>
             </annotation>
          </attribute>
          <attribute name="properties" type="string" use="required">
-            <annotation><appInfo><meta.attribute kind="java" basedOn=":org.jkiss.dbeaver.model.ai.engine.AIEngineProperties"/></appInfo></annotation>
+            <annotation><appInfo><meta.attribute kind="java" basedOn=":com.seizia.chromite.model.ai.engine.AIEngineProperties"/></appInfo></annotation>
          </attribute>
          <attribute name="promoted" type="boolean">
              <annotation>

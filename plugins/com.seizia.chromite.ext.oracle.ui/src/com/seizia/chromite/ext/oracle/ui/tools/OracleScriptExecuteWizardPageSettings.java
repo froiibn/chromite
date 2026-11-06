@@ -14,18 +14,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.oracle.ui.tools;
+package com.seizia.chromite.ext.oracle.ui.tools;
 
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.widgets.Composite;
-import org.jkiss.dbeaver.ext.oracle.tasks.OracleScriptExecuteSettings;
-import org.jkiss.dbeaver.ext.oracle.ui.internal.OracleUIMessages;
-import org.jkiss.dbeaver.model.struct.DBSObject;
-import org.jkiss.dbeaver.tasks.ui.nativetool.AbstractNativeToolWizardPage;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.controls.TextWithOpenFile;
-import org.jkiss.dbeaver.ui.controls.TextWithOpenFileRemote;
+import com.seizia.chromite.ext.oracle.tasks.OracleScriptExecuteSettings;
+import com.seizia.chromite.ext.oracle.ui.internal.OracleUIMessages;
+import com.seizia.chromite.model.struct.DBSObject;
+import com.seizia.chromite.tasks.ui.nativetool.AbstractNativeToolWizardPage;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.controls.TextWithOpenFile;
+import com.seizia.chromite.ui.controls.TextWithOpenFileRemote;
 
 import java.util.List;
 

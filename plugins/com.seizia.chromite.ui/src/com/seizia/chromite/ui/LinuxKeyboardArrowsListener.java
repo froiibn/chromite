@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui;
+package com.seizia.chromite.ui;
 
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.events.KeyEvent;
@@ -22,7 +22,7 @@ import org.eclipse.swt.events.KeyListener;
 import org.eclipse.swt.widgets.Tree;
 import org.eclipse.swt.widgets.TreeItem;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.utils.RuntimeUtils;
+import com.seizia.chromite.utils.RuntimeUtils;
 
 //See #9872. Seems to be a bug in Eclipse, the other gtk app we tried works as expected.
 public class LinuxKeyboardArrowsListener implements KeyListener {

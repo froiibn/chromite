@@ -14,27 +14,27 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.sqlite.ui;
+package com.seizia.chromite.ext.sqlite.ui;
 
 import org.eclipse.core.runtime.IAdapterFactory;
 import org.eclipse.core.runtime.IStatus;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.ext.sqlite.SQLiteExtensionConfirmation;
-import org.jkiss.dbeaver.ext.sqlite.SQLiteExtensionLoading;
-import org.jkiss.dbeaver.ext.sqlite.SQLiteExtensionLoadingException;
-import org.jkiss.dbeaver.ext.sqlite.SQLiteExtensionPermissionStore;
-import org.jkiss.dbeaver.ext.sqlite.model.SQLiteDataSource;
-import org.jkiss.dbeaver.ext.sqlite.ui.internal.SQLiteUIMessages;
-import org.jkiss.dbeaver.model.DBPDataSourceContainer;
-import org.jkiss.dbeaver.model.exec.DBCExecutionContext;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.ui.IErrorAction;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.actions.datasource.DataSourceHandler;
-import org.jkiss.dbeaver.ui.controls.resultset.IResultSetContainer;
-import org.jkiss.dbeaver.ui.controls.resultset.IResultSetErrorAction;
+import com.seizia.chromite.ext.sqlite.SQLiteExtensionConfirmation;
+import com.seizia.chromite.ext.sqlite.SQLiteExtensionLoading;
+import com.seizia.chromite.ext.sqlite.SQLiteExtensionLoadingException;
+import com.seizia.chromite.ext.sqlite.SQLiteExtensionPermissionStore;
+import com.seizia.chromite.ext.sqlite.model.SQLiteDataSource;
+import com.seizia.chromite.ext.sqlite.ui.internal.SQLiteUIMessages;
+import com.seizia.chromite.model.DBPDataSourceContainer;
+import com.seizia.chromite.model.exec.DBCExecutionContext;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.ui.IErrorAction;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.actions.datasource.DataSourceHandler;
+import com.seizia.chromite.ui.controls.resultset.IResultSetContainer;
+import com.seizia.chromite.ui.controls.resultset.IResultSetErrorAction;
 
 public class SQLiteExtensionsErrorAction implements IResultSetErrorAction, IAdapterFactory {
     @Override

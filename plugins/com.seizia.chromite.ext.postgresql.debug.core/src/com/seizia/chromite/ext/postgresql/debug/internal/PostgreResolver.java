@@ -15,15 +15,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.postgresql.debug.internal;
+package com.seizia.chromite.ext.postgresql.debug.internal;
 
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.debug.DBGResolver;
-import org.jkiss.dbeaver.ext.postgresql.debug.core.PostgreSqlDebugCore;
-import org.jkiss.dbeaver.ext.postgresql.model.PostgreProcedure;
-import org.jkiss.dbeaver.model.DBPDataSourceContainer;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.model.struct.DBSObject;
+import com.seizia.chromite.debug.DBGResolver;
+import com.seizia.chromite.ext.postgresql.debug.core.PostgreSqlDebugCore;
+import com.seizia.chromite.ext.postgresql.model.PostgreProcedure;
+import com.seizia.chromite.model.DBPDataSourceContainer;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.model.struct.DBSObject;
 
 import java.util.HashMap;
 import java.util.Map;

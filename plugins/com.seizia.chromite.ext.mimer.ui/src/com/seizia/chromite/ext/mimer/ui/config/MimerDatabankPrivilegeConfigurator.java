@@ -14,11 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.mimer.ui.config;
+package com.seizia.chromite.ext.mimer.ui.config;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.ext.mimer.model.MimerDatabankPrivilege;
+import com.seizia.chromite.ext.mimer.model.MimerDatabankPrivilege;
 
 /**
  * Collects all attributes of a new Mimer SQL databank privilege grant before it is created.

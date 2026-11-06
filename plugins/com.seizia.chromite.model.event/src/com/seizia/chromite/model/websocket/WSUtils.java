@@ -14,16 +14,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.websocket;
+package com.seizia.chromite.model.websocket;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.model.websocket.event.WSClientEvent;
-import org.jkiss.dbeaver.model.websocket.event.WSEvent;
-import org.jkiss.dbeaver.model.websocket.gson.WSClientEventDeserializer;
-import org.jkiss.dbeaver.model.websocket.gson.WSClientSideExclusionStrategy;
-import org.jkiss.dbeaver.model.websocket.gson.WSEventDeserializer;
+import com.seizia.chromite.model.websocket.event.WSClientEvent;
+import com.seizia.chromite.model.websocket.event.WSEvent;
+import com.seizia.chromite.model.websocket.gson.WSClientEventDeserializer;
+import com.seizia.chromite.model.websocket.gson.WSClientSideExclusionStrategy;
+import com.seizia.chromite.model.websocket.gson.WSEventDeserializer;
 
 import java.net.URI;
 

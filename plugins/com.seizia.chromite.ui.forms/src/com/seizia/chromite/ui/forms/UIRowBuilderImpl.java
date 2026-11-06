@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.forms;
+package com.seizia.chromite.ui.forms;
 
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.events.SelectionEvent;
@@ -22,9 +22,9 @@ import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Control;
 import org.eclipse.ui.forms.widgets.ExpandableComposite;
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.ui.forms.UIControlBuilder.*;
-import org.jkiss.dbeaver.ui.forms.UIControlBuilderImpl.*;
-import org.jkiss.dbeaver.ui.forms.UIControlBuilderImpl.ButtonBuilderImpl.Kind;
+import com.seizia.chromite.ui.forms.UIControlBuilder.*;
+import com.seizia.chromite.ui.forms.UIControlBuilderImpl.*;
+import com.seizia.chromite.ui.forms.UIControlBuilderImpl.ButtonBuilderImpl.Kind;
 
 import java.util.ArrayList;
 import java.util.List;

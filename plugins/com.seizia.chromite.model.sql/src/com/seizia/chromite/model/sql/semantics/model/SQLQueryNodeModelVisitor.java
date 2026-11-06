@@ -14,16 +14,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.sql.semantics.model;
+package com.seizia.chromite.model.sql.semantics.model;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.model.sql.semantics.model.ddl.*;
-import org.jkiss.dbeaver.model.sql.semantics.model.dml.*;
-import org.jkiss.dbeaver.model.sql.semantics.model.expressions.*;
-import org.jkiss.dbeaver.model.sql.semantics.model.select.*;
-import org.jkiss.dbeaver.model.sql.semantics.model.programmaticals.*;
-import org.jkiss.dbeaver.model.sql.semantics.model.statements.*;
+import com.seizia.chromite.model.sql.semantics.model.ddl.*;
+import com.seizia.chromite.model.sql.semantics.model.dml.*;
+import com.seizia.chromite.model.sql.semantics.model.expressions.*;
+import com.seizia.chromite.model.sql.semantics.model.select.*;
+import com.seizia.chromite.model.sql.semantics.model.programmaticals.*;
+import com.seizia.chromite.model.sql.semantics.model.statements.*;
 
 /**
  * Query model visitor. Each new model class of a top-level of the query abstraction should have the corresponding method here.

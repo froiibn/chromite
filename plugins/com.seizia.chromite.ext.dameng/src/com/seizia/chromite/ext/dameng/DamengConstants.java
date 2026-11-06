@@ -14,9 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.dameng;
+package com.seizia.chromite.ext.dameng;
 
-import org.jkiss.dbeaver.model.struct.rdb.DBSIndexType;
+import com.seizia.chromite.model.struct.rdb.DBSIndexType;
 
 import java.util.ArrayList;
 import java.util.List;

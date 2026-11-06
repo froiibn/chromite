@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.navigator.itemlist;
+package com.seizia.chromite.ui.navigator.itemlist;
 
 import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.Status;
@@ -39,26 +39,26 @@ import org.eclipse.swt.widgets.*;
 import org.eclipse.ui.PlatformUI;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.*;
-import org.jkiss.dbeaver.model.data.DBDDisplayFormat;
-import org.jkiss.dbeaver.model.navigator.DBNNode;
-import org.jkiss.dbeaver.model.navigator.DBNNodeReference;
-import org.jkiss.dbeaver.model.preferences.DBPPropertyDescriptor;
-import org.jkiss.dbeaver.model.runtime.AbstractJob;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.model.runtime.VoidProgressMonitor;
-import org.jkiss.dbeaver.model.sql.SQLUtils;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.runtime.properties.*;
-import org.jkiss.dbeaver.ui.*;
-import org.jkiss.dbeaver.ui.controls.ObjectViewerRenderer;
-import org.jkiss.dbeaver.ui.controls.ProgressPageControl;
-import org.jkiss.dbeaver.ui.controls.TreeContentProvider;
-import org.jkiss.dbeaver.ui.controls.ViewerColumnController;
-import org.jkiss.dbeaver.ui.internal.UINavigatorMessages;
-import org.jkiss.dbeaver.ui.navigator.NavigatorPreferences;
-import org.jkiss.dbeaver.utils.GeneralUtils;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.*;
+import com.seizia.chromite.model.data.DBDDisplayFormat;
+import com.seizia.chromite.model.navigator.DBNNode;
+import com.seizia.chromite.model.navigator.DBNNodeReference;
+import com.seizia.chromite.model.preferences.DBPPropertyDescriptor;
+import com.seizia.chromite.model.runtime.AbstractJob;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.model.runtime.VoidProgressMonitor;
+import com.seizia.chromite.model.sql.SQLUtils;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.runtime.properties.*;
+import com.seizia.chromite.ui.*;
+import com.seizia.chromite.ui.controls.ObjectViewerRenderer;
+import com.seizia.chromite.ui.controls.ProgressPageControl;
+import com.seizia.chromite.ui.controls.TreeContentProvider;
+import com.seizia.chromite.ui.controls.ViewerColumnController;
+import com.seizia.chromite.ui.internal.UINavigatorMessages;
+import com.seizia.chromite.ui.navigator.NavigatorPreferences;
+import com.seizia.chromite.utils.GeneralUtils;
 import org.jkiss.utils.ArrayUtils;
 import org.jkiss.utils.CommonUtils;
 
@@ -1174,7 +1174,7 @@ public abstract class ObjectListControl<OBJECT_TYPE> extends ProgressPageControl
             final ObjectPropertyDescriptor prop = getPropertyByObject(objectColumn, objectValue);
             if (prop != null && prop.isNameProperty()) {
                 DBPImage objectImage = getObjectImage(object);
-                return objectImage == null ? null : DBeaverIcons.getImage(objectImage);
+                return objectImage == null ? null : SwtIcons.getImage(objectImage);
             }
             return null;
         }
@@ -1439,7 +1439,7 @@ public abstract class ObjectListControl<OBJECT_TYPE> extends ProgressPageControl
         // Create lazy action here because columnController might be not instantiated yet
         Action configColumnsAction = new Action(
             UINavigatorMessages.obj_editor_properties_control_action_configure_columns,
-            DBeaverIcons.getImageDescriptor(UIIcon.CONFIGURATION)) {
+            SwtIcons.getImageDescriptor(UIIcon.CONFIGURATION)) {
             @Override
             public void run() {
                 columnController.configureColumns();
@@ -1705,7 +1705,7 @@ public abstract class ObjectListControl<OBJECT_TYPE> extends ProgressPageControl
         @Override
         public void paintControl(PaintEvent e) {
             if (ObjectListControl.this.isLoading()) {
-                Image image = DBeaverIcons.getImage(UIIcon.LOADING.get(tickCount % UIIcon.LOADING.size()));
+                Image image = SwtIcons.getImage(UIIcon.LOADING.get(tickCount % UIIcon.LOADING.size()));
                 Rectangle bounds = getControl().getBounds();
                 Rectangle ext = image.getBounds();
 

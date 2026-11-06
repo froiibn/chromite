@@ -14,11 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.sql.parser;
+package com.seizia.chromite.model.sql.parser;
 
-import org.jkiss.dbeaver.model.sql.parser.tokens.predicates.TokenPredicateFactory;
-import org.jkiss.dbeaver.model.sql.parser.tokens.predicates.TokenPredicateNode;
-import org.jkiss.junit.DBeaverUnitTest;
+import com.seizia.chromite.model.sql.parser.tokens.predicates.TokenPredicateFactory;
+import com.seizia.chromite.model.sql.parser.tokens.predicates.TokenPredicateNode;
+import com.seizia.chromite.junit.ChromiteUnitTest;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -26,7 +26,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-public class TokenPredicatesConditionTest extends DBeaverUnitTest {
+public class TokenPredicatesConditionTest extends ChromiteUnitTest {
 
     private TokenPredicateNode makeTestPredicateTree() {
         TokenPredicateFactory tt = TokenPredicateFactory.makeDefaultFactory();

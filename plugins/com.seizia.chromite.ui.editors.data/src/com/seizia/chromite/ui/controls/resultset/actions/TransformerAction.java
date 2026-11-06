@@ -14,14 +14,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.controls.resultset.actions;
+package com.seizia.chromite.ui.controls.resultset.actions;
 
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.model.DBPEvaluationContext;
-import org.jkiss.dbeaver.model.data.DBDAttributeBinding;
-import org.jkiss.dbeaver.model.virtual.DBVTransformSettings;
-import org.jkiss.dbeaver.model.virtual.DBVUtils;
-import org.jkiss.dbeaver.ui.controls.resultset.ResultSetViewer;
+import com.seizia.chromite.model.DBPEvaluationContext;
+import com.seizia.chromite.model.data.DBDAttributeBinding;
+import com.seizia.chromite.model.virtual.DBVTransformSettings;
+import com.seizia.chromite.model.virtual.DBVUtils;
+import com.seizia.chromite.ui.controls.resultset.ResultSetViewer;
 
 public class TransformerAction extends AbstractResultSetViewerAction {
     private final DBDAttributeBinding attribute;

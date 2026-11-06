@@ -14,12 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.runtime;
+package com.seizia.chromite.model.runtime;
 
 import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.Status;
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.utils.GeneralUtils;
+import com.seizia.chromite.utils.GeneralUtils;
 
 import java.lang.reflect.InvocationTargetException;
 

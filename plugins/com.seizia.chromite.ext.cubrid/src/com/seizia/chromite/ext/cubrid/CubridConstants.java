@@ -14,10 +14,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.cubrid;
+package com.seizia.chromite.ext.cubrid;
 
 public class CubridConstants {
-    public static final String PLUGIN_ID = "org.jkiss.dbeaver.ext.cubrid";
+    public static final String PLUGIN_ID = "com.seizia.chromite.ext.cubrid";
 
     public static final String OWNER_NAME = "owner_name";
     public static final String CLASS_NAME = "class_name";

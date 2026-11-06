@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.postgresql.model.plan;
+package com.seizia.chromite.ext.postgresql.model.plan;
 
 
 import com.google.gson.JsonArray;
@@ -22,12 +22,12 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.google.gson.JsonPrimitive;
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.ext.postgresql.model.PostgreDataSource;
-import org.jkiss.dbeaver.model.exec.DBCException;
-import org.jkiss.dbeaver.model.exec.DBCSession;
-import org.jkiss.dbeaver.model.exec.plan.*;
-import org.jkiss.dbeaver.model.impl.plan.AbstractExecutionPlanSerializer;
-import org.jkiss.dbeaver.model.impl.plan.ExecutionPlanDeserializer;
+import com.seizia.chromite.ext.postgresql.model.PostgreDataSource;
+import com.seizia.chromite.model.exec.DBCException;
+import com.seizia.chromite.model.exec.DBCSession;
+import com.seizia.chromite.model.exec.plan.*;
+import com.seizia.chromite.model.impl.plan.AbstractExecutionPlanSerializer;
+import com.seizia.chromite.model.impl.plan.ExecutionPlanDeserializer;
 import org.jkiss.utils.CommonUtils;
 
 import java.io.IOException;

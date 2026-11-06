@@ -14,9 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.impl.app;
+package com.seizia.chromite.model.impl.app;
 
-import org.jkiss.dbeaver.Log;
+import com.seizia.chromite.Log;
 
 import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.SSLSession;

@@ -14,15 +14,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.editors.erd.part;
+package com.seizia.chromite.ui.editors.erd.part;
 
 import org.eclipse.gef.EditPart;
 import org.eclipse.gef.GraphicalEditPart;
 import org.eclipse.gef.RootEditPart;
 import org.eclipse.gef.editparts.AbstractConnectionEditPart;
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.model.DBPNamedObject;
-import org.jkiss.dbeaver.model.erd.ERDObject;
+import com.seizia.chromite.model.DBPNamedObject;
+import com.seizia.chromite.model.erd.ERDObject;
 
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;

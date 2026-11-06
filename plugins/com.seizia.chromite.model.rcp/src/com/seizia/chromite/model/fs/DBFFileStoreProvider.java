@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.model.fs;
+package com.seizia.chromite.model.fs;
 
 import org.eclipse.core.filesystem.IFileStore;
 

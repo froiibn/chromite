@@ -14,14 +14,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.dialogs;
+package com.seizia.chromite.ui.dialogs;
 
 import org.eclipse.core.runtime.IAdaptable;
 import org.eclipse.jface.preference.IPreferenceNode;
 import org.eclipse.jface.preference.IPreferencePage;
 import org.eclipse.jface.preference.IPreferencePageContainer;
 import org.eclipse.ui.IWorkbenchPropertyPage;
-import org.jkiss.dbeaver.ui.preferences.WizardPrefPage;
+import com.seizia.chromite.ui.preferences.WizardPrefPage;
 
 import java.util.ArrayList;
 import java.util.Arrays;

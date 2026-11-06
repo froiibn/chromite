@@ -16,15 +16,15 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.debug.ui.details;
+package com.seizia.chromite.debug.ui.details;
 
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.Status;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Control;
-import org.jkiss.dbeaver.debug.core.breakpoints.IDatabaseBreakpoint;
-import org.jkiss.dbeaver.debug.ui.Widgets;
+import com.seizia.chromite.debug.core.breakpoints.IDatabaseBreakpoint;
+import com.seizia.chromite.debug.ui.Widgets;
 
 public class DatabaseBreakpointEditor extends DatabaseDebugDetailEditor {
 

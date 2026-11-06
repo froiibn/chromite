@@ -14,17 +14,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.datadam.project.job;
+package com.seizia.chromite.ui.datadam.project.job;
 
 import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.Status;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.model.runtime.AbstractJob;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.ui.datadam.DDDesktopTokenUIManager;
-import org.jkiss.dbeaver.ui.datadam.project.DDProjectUIManager;
+import com.seizia.chromite.model.runtime.AbstractJob;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.ui.datadam.DDDesktopTokenUIManager;
+import com.seizia.chromite.ui.datadam.project.DDProjectUIManager;
 
 /** Runs a DataDam project operation off the UI thread. Callers handle completion and presentation. */
 public abstract class DDProjectOperationJob<T> extends AbstractJob {

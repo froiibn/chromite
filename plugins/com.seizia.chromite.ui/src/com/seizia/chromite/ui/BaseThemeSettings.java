@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui;
+package com.seizia.chromite.ui;
 
 import org.eclipse.swt.graphics.Color;
 import org.eclipse.swt.graphics.Font;
@@ -24,11 +24,11 @@ import org.eclipse.swt.graphics.Font;
  */
 public class BaseThemeSettings extends ThemeListener {
 
-    @ThemeFont(value = UIFonts.DBeaver.MAIN_FONT)
+    @ThemeFont(value = UIFonts.Chromite.MAIN_FONT)
     public volatile Font baseFont;
-    @ThemeFont(value = UIFonts.DBeaver.MAIN_FONT, bold = true)
+    @ThemeFont(value = UIFonts.Chromite.MAIN_FONT, bold = true)
     public volatile Font baseFontBold;
-    @ThemeFont(value = UIFonts.DBeaver.MAIN_FONT, italic = true)
+    @ThemeFont(value = UIFonts.Chromite.MAIN_FONT, italic = true)
     public volatile Font baseFontItalic;
 
     @ThemeFont(value = UIFonts.Eclipse.TREE_AND_TABLE_FONT_FOR_VIEWS)
@@ -43,7 +43,7 @@ public class BaseThemeSettings extends ThemeListener {
     @ThemeFont(value = UIFonts.Eclipse.PART_TITLE_FONT, bold = true)
     public volatile Font partTitleBoldFont;
 
-    @ThemeFont(UIFonts.DBeaver.MONOSPACE_FONT)
+    @ThemeFont(UIFonts.Chromite.MONOSPACE_FONT)
     public volatile Font monospaceFont;
 
     @ThemeColor(BaseEditorColors.COLOR_SUCCESS)

@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.registry;
+package com.seizia.chromite.registry;
 
 import org.eclipse.core.internal.preferences.AbstractScope;
 import org.eclipse.core.internal.preferences.EclipsePreferences;
@@ -28,11 +28,11 @@ import org.eclipse.core.runtime.preferences.IEclipsePreferences;
 import org.eclipse.core.runtime.preferences.IPreferencesService;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.DBPImage;
-import org.jkiss.dbeaver.model.app.DBPProject;
-import org.jkiss.dbeaver.model.app.DBPResourceTypeDescriptor;
-import org.jkiss.dbeaver.model.impl.AbstractDescriptor;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.DBPImage;
+import com.seizia.chromite.model.app.DBPProject;
+import com.seizia.chromite.model.app.DBPResourceTypeDescriptor;
+import com.seizia.chromite.model.impl.AbstractDescriptor;
 import org.jkiss.utils.ArrayUtils;
 import org.jkiss.utils.CommonUtils;
 import org.osgi.service.prefs.BackingStoreException;
@@ -46,7 +46,7 @@ import java.util.*;
 public class ResourceTypeDescriptor extends AbstractDescriptor implements DBPResourceTypeDescriptor {
     private static final Log log = Log.getLog(ResourceTypeDescriptor.class);
 
-    public static final String EXTENSION_ID = "org.jkiss.dbeaver.resourceType"; //$NON-NLS-1$
+    public static final String EXTENSION_ID = "com.seizia.chromite.resourceType"; //$NON-NLS-1$
 
     private final String id;
     private final String name;
@@ -213,7 +213,7 @@ public class ResourceTypeDescriptor extends AbstractDescriptor implements DBPRes
     }
 
     private static synchronized IEclipsePreferences getProjectPreferences(DBPProject project) {
-        return new ProjectScope(project).getNode("org.jkiss.dbeaver.project.resources");
+        return new ProjectScope(project).getNode("com.seizia.chromite.project.resources");
     }
 
     public static final class ProjectScope extends AbstractScope {

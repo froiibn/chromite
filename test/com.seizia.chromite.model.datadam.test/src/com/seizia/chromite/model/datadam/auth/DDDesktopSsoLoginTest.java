@@ -14,13 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.datadam.auth;
+package com.seizia.chromite.model.datadam.auth;
 
 import com.google.gson.Gson;
 import com.sun.net.httpserver.HttpServer;
 import org.jkiss.code.NotNull;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
 import org.junit.jupiter.api.*;
 import org.mockito.Mockito;
 

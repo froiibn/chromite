@@ -14,16 +14,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.greenplum.edit;
+package com.seizia.chromite.ext.greenplum.edit;
 
-import org.jkiss.dbeaver.ext.greenplum.model.GreenplumDataSource;
-import org.jkiss.dbeaver.ext.greenplum.model.GreenplumExternalTable;
-import org.jkiss.dbeaver.ext.greenplum.model.GreenplumSchema;
-import org.jkiss.dbeaver.ext.greenplum.model.PostgreServerGreenplum;
-import org.jkiss.dbeaver.ext.postgresql.model.PostgreDatabase;
-import org.jkiss.dbeaver.ext.postgresql.model.PostgreDialect;
-import org.jkiss.dbeaver.model.impl.edit.SQLDatabasePersistAction;
-import org.jkiss.junit.DBeaverUnitTest;
+import com.seizia.chromite.ext.greenplum.model.GreenplumDataSource;
+import com.seizia.chromite.ext.greenplum.model.GreenplumExternalTable;
+import com.seizia.chromite.ext.greenplum.model.GreenplumSchema;
+import com.seizia.chromite.ext.greenplum.model.PostgreServerGreenplum;
+import com.seizia.chromite.ext.postgresql.model.PostgreDatabase;
+import com.seizia.chromite.ext.postgresql.model.PostgreDialect;
+import com.seizia.chromite.model.impl.edit.SQLDatabasePersistAction;
+import com.seizia.chromite.junit.ChromiteUnitTest;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -35,7 +35,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Collections;
 
-public class GreenplumExternalTableManager2Test extends DBeaverUnitTest {
+public class GreenplumExternalTableManager2Test extends ChromiteUnitTest {
     @Mock
     private GreenplumSchema mockSchema;
 

@@ -14,12 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.charts.internal;
+package com.seizia.chromite.ui.charts.internal;
 
 import org.eclipse.osgi.util.NLS;
 
 public class UIChartsMessages extends NLS {
-    public static final String BUNDLE_NAME = "org.jkiss.dbeaver.ui.charts.internal.UIChartsMessages"; //$NON-NLS-1$
+    public static final String BUNDLE_NAME = "com.seizia.chromite.ui.charts.internal.UIChartsMessages"; //$NON-NLS-1$
 
     public static String base_chart_composite_action_zoom_in;
     public static String base_chart_composite_action_zoom_out;

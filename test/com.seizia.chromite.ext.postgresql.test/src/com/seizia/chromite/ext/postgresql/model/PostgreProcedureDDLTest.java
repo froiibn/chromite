@@ -14,10 +14,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.postgresql.model;
+package com.seizia.chromite.ext.postgresql.model;
 
-import org.jkiss.dbeaver.ext.postgresql.model.impls.PostgreServerPostgreSQL;
-import org.jkiss.dbeaver.ext.postgresql.model.impls.yellowbrick.PostgreServerYellowBrick;
+import com.seizia.chromite.ext.postgresql.model.impls.PostgreServerPostgreSQL;
+import com.seizia.chromite.ext.postgresql.model.impls.yellowbrick.PostgreServerYellowBrick;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;

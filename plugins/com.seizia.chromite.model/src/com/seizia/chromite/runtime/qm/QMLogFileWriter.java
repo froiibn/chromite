@@ -14,20 +14,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.runtime.qm;
+package com.seizia.chromite.runtime.qm;
 
 import org.eclipse.core.runtime.IStatus;
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.DBConstants;
-import org.jkiss.dbeaver.model.preferences.DBPPreferenceListener;
-import org.jkiss.dbeaver.model.preferences.DBPPreferenceStore;
-import org.jkiss.dbeaver.model.qm.*;
-import org.jkiss.dbeaver.model.qm.meta.*;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.utils.ContentUtils;
-import org.jkiss.dbeaver.utils.GeneralUtils;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.DBConstants;
+import com.seizia.chromite.model.preferences.DBPPreferenceListener;
+import com.seizia.chromite.model.preferences.DBPPreferenceStore;
+import com.seizia.chromite.model.qm.*;
+import com.seizia.chromite.model.qm.meta.*;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.utils.ContentUtils;
+import com.seizia.chromite.utils.GeneralUtils;
 import org.jkiss.utils.CommonUtils;
 
 import java.io.File;
@@ -51,7 +51,7 @@ public class QMLogFileWriter implements QMMetaListener, DBPPreferenceListener {
 
     private static final Log log = Log.getLog(QMLogFileWriter.class);
     private static final DateTimeFormatter LOG_FILENAME_FORMATTER = DateTimeFormatter
-        .ofPattern("'dbeaver_sql_'" + GeneralUtils.DEFAULT_DATE_PATTERN + "'.log'", Locale.ENGLISH);
+        .ofPattern("'chromite_sql_'" + GeneralUtils.DEFAULT_DATE_PATTERN + "'.log'", Locale.ENGLISH);
 
     private boolean enabled;
 

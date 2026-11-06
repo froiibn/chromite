@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.editors.binary;
+package com.seizia.chromite.ui.editors.binary;
 
 import org.eclipse.core.commands.AbstractHandler;
 import org.eclipse.core.commands.ExecutionEvent;
@@ -25,7 +25,7 @@ import org.eclipse.ui.ISources;
 import org.eclipse.ui.IWorkbenchCommandConstants;
 import org.eclipse.ui.handlers.HandlerUtil;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.ui.IActionConstants;
+import com.seizia.chromite.ui.IActionConstants;
 
 /**
  * HexCommandHandler

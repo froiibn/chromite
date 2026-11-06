@@ -14,11 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.impl.app;
+package com.seizia.chromite.model.impl.app;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.model.secret.DBSValueEncryptor;
+import com.seizia.chromite.model.secret.DBSValueEncryptor;
 import org.jkiss.utils.IOUtils;
 
 import javax.crypto.Cipher;

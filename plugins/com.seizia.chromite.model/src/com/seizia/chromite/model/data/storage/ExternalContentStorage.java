@@ -14,13 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.data.storage;
+package com.seizia.chromite.model.data.storage;
 
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.model.app.DBPPlatform;
-import org.jkiss.dbeaver.model.data.DBDContentStorage;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.utils.ContentUtils;
+import com.seizia.chromite.model.app.DBPPlatform;
+import com.seizia.chromite.model.data.DBDContentStorage;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.utils.ContentUtils;
 
 import java.io.IOException;
 import java.io.InputStream;

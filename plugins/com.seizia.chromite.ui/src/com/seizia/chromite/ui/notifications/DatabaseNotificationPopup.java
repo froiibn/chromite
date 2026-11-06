@@ -14,11 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.notifications;
+package com.seizia.chromite.ui.notifications;
 
 import org.eclipse.swt.widgets.Shell;
 
-class DatabaseNotificationPopup extends DBeaverNotificationPopup {
+class DatabaseNotificationPopup extends ChromiteNotificationPopup {
 
 
     public DatabaseNotificationPopup(Shell parent) {

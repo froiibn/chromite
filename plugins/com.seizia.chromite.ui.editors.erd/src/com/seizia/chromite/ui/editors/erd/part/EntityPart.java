@@ -17,7 +17,7 @@
 /*
  * Created on Jul 13, 2004
  */
-package org.jkiss.dbeaver.ui.editors.erd.part;
+package com.seizia.chromite.ui.editors.erd.part;
 
 import org.eclipse.draw2d.ChopboxAnchor;
 import org.eclipse.draw2d.ConnectionAnchor;
@@ -27,21 +27,21 @@ import org.eclipse.gef.*;
 import org.eclipse.gef.tools.DirectEditManager;
 import org.eclipse.osgi.util.NLS;
 import org.eclipse.swt.accessibility.AccessibleEvent;
-import org.jkiss.dbeaver.model.DBPEvaluationContext;
-import org.jkiss.dbeaver.model.DBUtils;
-import org.jkiss.dbeaver.model.erd.*;
-import org.jkiss.dbeaver.model.struct.DBSEntityConstraintType;
-import org.jkiss.dbeaver.ui.editors.erd.ERDUIUtils;
-import org.jkiss.dbeaver.ui.editors.erd.editor.ERDGraphicalViewer;
-import org.jkiss.dbeaver.ui.editors.erd.figures.AttributeItemFigure;
-import org.jkiss.dbeaver.ui.editors.erd.figures.EditableLabel;
-import org.jkiss.dbeaver.ui.editors.erd.figures.EntityFigure;
-import org.jkiss.dbeaver.ui.editors.erd.internal.ERDUIActivator;
-import org.jkiss.dbeaver.ui.editors.erd.internal.ERDUIMessages;
-import org.jkiss.dbeaver.ui.editors.erd.model.EntityDiagram;
-import org.jkiss.dbeaver.ui.editors.erd.policy.EntityConnectionEditPolicy;
-import org.jkiss.dbeaver.ui.editors.erd.policy.EntityContainerEditPolicy;
-import org.jkiss.dbeaver.ui.editors.erd.policy.EntityEditPolicy;
+import com.seizia.chromite.model.DBPEvaluationContext;
+import com.seizia.chromite.model.DBUtils;
+import com.seizia.chromite.model.erd.*;
+import com.seizia.chromite.model.struct.DBSEntityConstraintType;
+import com.seizia.chromite.ui.editors.erd.ERDUIUtils;
+import com.seizia.chromite.ui.editors.erd.editor.ERDGraphicalViewer;
+import com.seizia.chromite.ui.editors.erd.figures.AttributeItemFigure;
+import com.seizia.chromite.ui.editors.erd.figures.EditableLabel;
+import com.seizia.chromite.ui.editors.erd.figures.EntityFigure;
+import com.seizia.chromite.ui.editors.erd.internal.ERDUIActivator;
+import com.seizia.chromite.ui.editors.erd.internal.ERDUIMessages;
+import com.seizia.chromite.ui.editors.erd.model.EntityDiagram;
+import com.seizia.chromite.ui.editors.erd.policy.EntityConnectionEditPolicy;
+import com.seizia.chromite.ui.editors.erd.policy.EntityContainerEditPolicy;
+import com.seizia.chromite.ui.editors.erd.policy.EntityEditPolicy;
 
 import java.beans.PropertyChangeEvent;
 import java.util.ArrayList;

@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.data.editors;
+package com.seizia.chromite.ui.data.editors;
 
 import org.eclipse.jface.action.Action;
 import org.eclipse.jface.action.IContributionManager;
@@ -28,19 +28,19 @@ import org.eclipse.swt.widgets.Listener;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.ModelPreferences;
-import org.jkiss.dbeaver.model.DBIcon;
-import org.jkiss.dbeaver.model.data.DBDDisplayFormat;
-import org.jkiss.dbeaver.model.exec.DBCException;
-import org.jkiss.dbeaver.model.exec.DBCExecutionPurpose;
-import org.jkiss.dbeaver.model.exec.DBCSession;
-import org.jkiss.dbeaver.model.runtime.VoidProgressMonitor;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.ui.ActionUtils;
-import org.jkiss.dbeaver.ui.DBeaverIcons;
-import org.jkiss.dbeaver.ui.controls.CustomTimeEditor;
-import org.jkiss.dbeaver.ui.controls.resultset.internal.ResultSetMessages;
-import org.jkiss.dbeaver.ui.data.IValueController;
+import com.seizia.chromite.ModelPreferences;
+import com.seizia.chromite.model.DBIcon;
+import com.seizia.chromite.model.data.DBDDisplayFormat;
+import com.seizia.chromite.model.exec.DBCException;
+import com.seizia.chromite.model.exec.DBCExecutionPurpose;
+import com.seizia.chromite.model.exec.DBCSession;
+import com.seizia.chromite.model.runtime.VoidProgressMonitor;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.ui.ActionUtils;
+import com.seizia.chromite.ui.SwtIcons;
+import com.seizia.chromite.ui.controls.CustomTimeEditor;
+import com.seizia.chromite.ui.controls.resultset.internal.ResultSetMessages;
+import com.seizia.chromite.ui.data.IValueController;
 
 import java.util.Date;
 
@@ -67,7 +67,7 @@ public class DateTimeInlineEditor extends BaseValueEditor<Control> {
             this.valueController = valueController;
             this.parent = parent;
             super.setText("Text");
-            super.setImageDescriptor(DBeaverIcons.getImageDescriptor(DBIcon.SQL_TEXT));
+            super.setImageDescriptor(SwtIcons.getImageDescriptor(DBIcon.SQL_TEXT));
         }
 
         @Override
@@ -98,7 +98,7 @@ public class DateTimeInlineEditor extends BaseValueEditor<Control> {
             super("Calendar", Action.AS_RADIO_BUTTON);
             this.editor = editor;
             super.setText("Calendar");
-            super.setImageDescriptor(DBeaverIcons.getImageDescriptor(DBIcon.TYPE_DATETIME));
+            super.setImageDescriptor(SwtIcons.getImageDescriptor(DBIcon.TYPE_DATETIME));
             this.parent = parent;
         }
 

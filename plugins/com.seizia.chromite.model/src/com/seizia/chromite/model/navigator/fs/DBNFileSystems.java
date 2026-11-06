@@ -14,27 +14,27 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.navigator.fs;
+package com.seizia.chromite.model.navigator.fs;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.model.DBConstants;
-import org.jkiss.dbeaver.model.DBIcon;
-import org.jkiss.dbeaver.model.DBPHiddenObject;
-import org.jkiss.dbeaver.model.DBPImage;
-import org.jkiss.dbeaver.model.fs.DBFFileSystemContainer;
-import org.jkiss.dbeaver.model.fs.DBFFileSystemManager;
-import org.jkiss.dbeaver.model.fs.DBFUtils;
-import org.jkiss.dbeaver.model.fs.DBFVirtualFileSystem;
-import org.jkiss.dbeaver.model.messages.ModelMessages;
-import org.jkiss.dbeaver.model.meta.Property;
-import org.jkiss.dbeaver.model.navigator.DBNEvent;
-import org.jkiss.dbeaver.model.navigator.DBNNode;
-import org.jkiss.dbeaver.model.navigator.DBNNodeWithCache;
-import org.jkiss.dbeaver.model.navigator.DBNUtils;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
+import com.seizia.chromite.model.DBConstants;
+import com.seizia.chromite.model.DBIcon;
+import com.seizia.chromite.model.DBPHiddenObject;
+import com.seizia.chromite.model.DBPImage;
+import com.seizia.chromite.model.fs.DBFFileSystemContainer;
+import com.seizia.chromite.model.fs.DBFFileSystemManager;
+import com.seizia.chromite.model.fs.DBFUtils;
+import com.seizia.chromite.model.fs.DBFVirtualFileSystem;
+import com.seizia.chromite.model.messages.ModelMessages;
+import com.seizia.chromite.model.meta.Property;
+import com.seizia.chromite.model.navigator.DBNEvent;
+import com.seizia.chromite.model.navigator.DBNNode;
+import com.seizia.chromite.model.navigator.DBNNodeWithCache;
+import com.seizia.chromite.model.navigator.DBNUtils;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.runtime.DBWorkbench;
 import org.jkiss.utils.ArrayUtils;
 import org.jkiss.utils.HttpUtils;
 

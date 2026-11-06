@@ -14,17 +14,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.gis.registry;
+package com.seizia.chromite.ui.gis.registry;
 
 import org.eclipse.core.runtime.IConfigurationElement;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.DBPDataSource;
-import org.jkiss.dbeaver.model.DBPImage;
-import org.jkiss.dbeaver.model.impl.AbstractDescriptor;
-import org.jkiss.dbeaver.registry.RegistryConstants;
-import org.jkiss.dbeaver.ui.data.IValueController;
-import org.jkiss.dbeaver.ui.gis.IGeometryViewer;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.DBPDataSource;
+import com.seizia.chromite.model.DBPImage;
+import com.seizia.chromite.model.impl.AbstractDescriptor;
+import com.seizia.chromite.registry.RegistryConstants;
+import com.seizia.chromite.ui.data.IValueController;
+import com.seizia.chromite.ui.gis.IGeometryViewer;
 import org.jkiss.utils.CommonUtils;
 
 import java.util.ArrayList;
@@ -32,7 +32,7 @@ import java.util.List;
 
 public class GeometryViewerDescriptor extends AbstractDescriptor {
 
-    public static final String EXTENSION_ID = "org.jkiss.dbeaver.data.gis.geometryViewer"; //$NON-NLS-1$
+    public static final String EXTENSION_ID = "com.seizia.chromite.data.gis.geometryViewer"; //$NON-NLS-1$
 
     private static final Log log = Log.getLog(GeometryViewerDescriptor.class);
 

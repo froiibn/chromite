@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.controls.txn;
+package com.seizia.chromite.ui.controls.txn;
 
 import org.eclipse.jface.dialogs.IDialogConstants;
 import org.eclipse.swt.events.SelectionListener;
@@ -24,18 +24,18 @@ import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Shell;
 import org.eclipse.ui.IWorkbenchPart;
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.core.CoreMessages;
-import org.jkiss.dbeaver.model.exec.DBCExecutionContext;
-import org.jkiss.dbeaver.model.exec.DBCExecutionPurpose;
-import org.jkiss.dbeaver.model.qm.QMEventFilter;
-import org.jkiss.dbeaver.model.qm.QMUtils;
-import org.jkiss.dbeaver.model.qm.meta.QMMConnectionInfo;
-import org.jkiss.dbeaver.model.qm.meta.QMMObject;
-import org.jkiss.dbeaver.model.qm.meta.QMMStatementExecuteInfo;
-import org.jkiss.dbeaver.model.qm.meta.QMMTransactionSavepointInfo;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.controls.querylog.QueryLogViewer;
-import org.jkiss.dbeaver.ui.dialogs.AbstractPopupPanel;
+import com.seizia.chromite.core.CoreMessages;
+import com.seizia.chromite.model.exec.DBCExecutionContext;
+import com.seizia.chromite.model.exec.DBCExecutionPurpose;
+import com.seizia.chromite.model.qm.QMEventFilter;
+import com.seizia.chromite.model.qm.QMUtils;
+import com.seizia.chromite.model.qm.meta.QMMConnectionInfo;
+import com.seizia.chromite.model.qm.meta.QMMObject;
+import com.seizia.chromite.model.qm.meta.QMMStatementExecuteInfo;
+import com.seizia.chromite.model.qm.meta.QMMTransactionSavepointInfo;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.controls.querylog.QueryLogViewer;
+import com.seizia.chromite.ui.dialogs.AbstractPopupPanel;
 import org.jkiss.utils.CommonUtils;
 
 public abstract class TransactionInfoDialog extends AbstractPopupPanel {

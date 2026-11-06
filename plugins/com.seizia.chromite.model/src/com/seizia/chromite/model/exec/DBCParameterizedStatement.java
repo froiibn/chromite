@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.model.exec;
+package com.seizia.chromite.model.exec;
 
 /**
  * Statement with parameters

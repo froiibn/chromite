@@ -14,18 +14,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.databend;
+package com.seizia.chromite.ext.databend;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.ext.databend.model.DatabendDataSource;
-import org.jkiss.dbeaver.ext.databend.model.DatabendMetaModel;
-import org.jkiss.dbeaver.ext.generic.GenericDataSourceProvider;
-import org.jkiss.dbeaver.model.DBPDataSourceContainer;
-import org.jkiss.dbeaver.model.DBPInformationProvider;
-import org.jkiss.dbeaver.model.DBPObject;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.ext.databend.model.DatabendDataSource;
+import com.seizia.chromite.ext.databend.model.DatabendMetaModel;
+import com.seizia.chromite.ext.generic.GenericDataSourceProvider;
+import com.seizia.chromite.model.DBPDataSourceContainer;
+import com.seizia.chromite.model.DBPInformationProvider;
+import com.seizia.chromite.model.DBPObject;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
 
 
 public class DatabendDataSourceProvider extends GenericDataSourceProvider<DatabendDataSource> implements DBPInformationProvider {

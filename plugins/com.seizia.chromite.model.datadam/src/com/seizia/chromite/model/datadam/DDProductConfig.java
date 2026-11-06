@@ -14,9 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.datadam;
+package com.seizia.chromite.model.datadam;
 
-import org.jkiss.dbeaver.model.impl.config.ProductConfigPropertyTester;
+import com.seizia.chromite.model.impl.config.ProductConfigPropertyTester;
 
 public final class DDProductConfig {
     private static final ProductConfigPropertyTester PROPERTY_TESTER = new ProductConfigPropertyTester();

@@ -9,7 +9,7 @@
  *     IBM Corporation - initial API and implementation
  *     Stephan Wahlbrink <stephan.wahlbrink@walware.de> - [templates] improve logging when reading templates into SQLTemplateStore - https://bugs.eclipse.org/bugs/show_bug.cgi?id=212252
  *******************************************************************************/
-package org.jkiss.dbeaver.ui.editors.sql.templates;
+package com.seizia.chromite.ui.editors.sql.templates;
 
 import org.eclipse.core.runtime.FileLocator;
 import org.eclipse.core.runtime.Platform;
@@ -21,15 +21,15 @@ import org.eclipse.jface.text.templates.persistence.TemplateReaderWriter;
 import org.eclipse.jface.text.templates.persistence.TemplateStore;
 import org.jkiss.code.NotNull;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.connection.DBPDataSourceProviderDescriptor;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.connection.DBPDataSourceProviderDescriptor;
 import org.jkiss.utils.ReaderWriterLock;
-import org.jkiss.dbeaver.model.impl.preferences.SimplePreferenceStore;
-import org.jkiss.dbeaver.model.rm.RMConstants;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.ui.editors.sql.internal.SQLEditorActivator;
-import org.jkiss.dbeaver.ui.preferences.PreferenceStoreDelegate;
-import org.jkiss.dbeaver.utils.ContentUtils;
+import com.seizia.chromite.model.impl.preferences.SimplePreferenceStore;
+import com.seizia.chromite.model.rm.RMConstants;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.ui.editors.sql.internal.SQLEditorActivator;
+import com.seizia.chromite.ui.preferences.PreferenceStoreDelegate;
+import com.seizia.chromite.utils.ContentUtils;
 import org.jkiss.utils.CommonUtils;
 import org.osgi.framework.Bundle;
 
@@ -51,7 +51,7 @@ public class SQLTemplateStore extends TemplateStore {
     public static final String TEMPLATES_CONFIG_XML = "templates.xml";
 
     private static final Log log = Log.getLog(SQLTemplateStore.class);
-    public static final String PREF_STORE_KEY = "org.jkiss.dbeaver.core.sql_templates";
+    public static final String PREF_STORE_KEY = "com.seizia.chromite.core.sql_templates";
     
 
     private final ReaderWriterLock<?> rwLock = new ReaderWriterLock<>(() -> null);

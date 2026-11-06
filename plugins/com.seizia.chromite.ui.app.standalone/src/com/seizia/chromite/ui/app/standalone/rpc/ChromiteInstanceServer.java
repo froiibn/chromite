@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.ui.app.standalone.rpc;
+package com.seizia.chromite.ui.app.standalone.rpc;
 
 
 import org.eclipse.core.runtime.IProgressMonitor;
@@ -27,25 +27,25 @@ import org.eclipse.ui.IWorkbenchPage;
 import org.eclipse.ui.IWorkbenchWindow;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.DBPDataSourceContainer;
-import org.jkiss.dbeaver.model.app.DBPPlatformDesktop;
-import org.jkiss.dbeaver.model.app.DBPProject;
-import org.jkiss.dbeaver.model.cli.ApplicationInstanceServer;
-import org.jkiss.dbeaver.model.cli.CLIProcessResult;
-import org.jkiss.dbeaver.model.cli.InstanceServerProperties;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.ui.ActionUtils;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.actions.datasource.DataSourceHandler;
-import org.jkiss.dbeaver.ui.app.standalone.DBeaverApplication;
-import org.jkiss.dbeaver.ui.app.standalone.DBeaverCommandLine;
-import org.jkiss.dbeaver.ui.editors.EditorUtils;
-import org.jkiss.dbeaver.ui.editors.sql.handlers.SQLEditorHandlerOpenEditor;
-import org.jkiss.dbeaver.ui.editors.sql.handlers.SQLNavigatorContext;
-import org.jkiss.dbeaver.utils.DataSourceUtils;
-import org.jkiss.dbeaver.utils.GeneralUtils;
-import org.jkiss.dbeaver.utils.SystemVariablesResolver;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.DBPDataSourceContainer;
+import com.seizia.chromite.model.app.DBPPlatformDesktop;
+import com.seizia.chromite.model.app.DBPProject;
+import com.seizia.chromite.model.cli.ApplicationInstanceServer;
+import com.seizia.chromite.model.cli.CLIProcessResult;
+import com.seizia.chromite.model.cli.InstanceServerProperties;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.ui.ActionUtils;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.actions.datasource.DataSourceHandler;
+import com.seizia.chromite.ui.app.standalone.ChromiteApplication;
+import com.seizia.chromite.ui.app.standalone.ChromiteCommandLine;
+import com.seizia.chromite.ui.editors.EditorUtils;
+import com.seizia.chromite.ui.editors.sql.handlers.SQLEditorHandlerOpenEditor;
+import com.seizia.chromite.ui.editors.sql.handlers.SQLNavigatorContext;
+import com.seizia.chromite.utils.DataSourceUtils;
+import com.seizia.chromite.utils.GeneralUtils;
+import com.seizia.chromite.utils.SystemVariablesResolver;
 import org.jkiss.utils.CommonUtils;
 import org.jkiss.utils.HttpConstants;
 import org.jkiss.utils.rest.RestClient;
@@ -64,20 +64,20 @@ import javax.net.ssl.TrustManagerFactory;
 /**
  * DBeaver instance controller.
  */
-public class DBeaverInstanceServer extends ApplicationInstanceServer<IInstanceController> implements IInstanceController {
+public class ChromiteInstanceServer extends ApplicationInstanceServer<IInstanceController> implements IInstanceController {
 
-    private static final Log log = Log.getLog(DBeaverInstanceServer.class);
+    private static final Log log = Log.getLog(ChromiteInstanceServer.class);
     private DBPDataSourceContainer dataSourceContainer = null;
 
     private final List<File> filesToConnect = new ArrayList<>();
 
-    private DBeaverInstanceServer() throws IOException {
+    private ChromiteInstanceServer() throws IOException {
         super(IInstanceController.class);
     }
 
     @NotNull
-    public static DBeaverInstanceServer createServer() throws IOException {
-        return new DBeaverInstanceServer();
+    public static ChromiteInstanceServer createServer() throws IOException {
+        return new ChromiteInstanceServer();
     }
 
     @Nullable
@@ -167,9 +167,9 @@ public class DBeaverInstanceServer extends ApplicationInstanceServer<IInstanceCo
     @Override
     public CLIProcessResult handleCommandLine(@NotNull String[] args) {
         try {
-            return DBeaverCommandLine.getInstance().executeCommandLineCommands(
+            return ChromiteCommandLine.getInstance().executeCommandLineCommands(
                 this,
-                !DBeaverApplication.getInstance().isHeadlessMode(),
+                !ChromiteApplication.getInstance().isHeadlessMode(),
                 true,
                 args
             );

@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.app.standalone.tipoftheday;
+package com.seizia.chromite.ui.app.standalone.tipoftheday;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;

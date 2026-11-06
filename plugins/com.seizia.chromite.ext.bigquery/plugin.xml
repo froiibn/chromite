@@ -3,7 +3,7 @@
 
 <plugin>
 
-    <extension point="org.jkiss.dbeaver.dataSourceProvider">
+    <extension point="com.seizia.chromite.dataSourceProvider">
 
         <dataSourceType
             id="bigquery"
@@ -17,7 +17,7 @@
         <!-- BigQuery -->
 
         <datasource
-                class="org.jkiss.dbeaver.ext.bigquery.BQDataSourceProvider"
+                class="com.seizia.chromite.ext.bigquery.BQDataSourceProvider"
                 description="%datasource.bq.description"
                 id="bigquery"
                 dataSourceType="bigquery"
@@ -48,7 +48,7 @@
                     <file type="jar" path="bundle:/org.jkiss.bundle.google-cloud" bundle="drivers.bigquery"/>
                     <file type="license" path="drivers/bigquery/EULA.txt" bundle="drivers.bigquery"/>
 
-                    <property name="@dbeaver-default-resultset.maxrows.sql" value="true"/>
+                    <property name="@chromite-default-resultset.maxrows.sql" value="true"/>
                     <parameter name="supports-multiple-results" value="true"/>
                     <parameter name="supports-catalog-selection" value="false"/>
                     <parameter name="supports-ddl-transactions" value="false"/>
@@ -74,7 +74,7 @@
                     <file type="jar" path="bundle:/org.jkiss.bundle.google-cloud" bundle="drivers.google-bigquery"/>
                     <file type="license" path="drivers/google-bigquery/EULA.txt" bundle="drivers.google-bigquery"/>
 
-                    <property name="@dbeaver-default-resultset.maxrows.sql" value="true"/>
+                    <property name="@chromite-default-resultset.maxrows.sql" value="true"/>
                     <parameter name="supports-catalog-selection" value="false"/>
                     <parameter name="supports-ddl-transactions" value="false"/>
                     <parameter name="supports-schema-selection" value="false"/>
@@ -91,21 +91,21 @@
         </datasource>
     </extension>
 
-    <extension point="org.jkiss.dbeaver.sqlDialect">
-        <dialect id="google_bigquery" parent="generic" class="org.jkiss.dbeaver.ext.bigquery.model.BQSQLDialect" label="BigQuery" description="Google BigQuery." icon="icons/bigquery_icon.png">
+    <extension point="com.seizia.chromite.sqlDialect">
+        <dialect id="google_bigquery" parent="generic" class="com.seizia.chromite.ext.bigquery.model.BQSQLDialect" label="BigQuery" description="Google BigQuery." icon="icons/bigquery_icon.png">
         </dialect>
     </extension>
 
-    <extension point="org.jkiss.dbeaver.generic.meta">
-        <meta id="bigquery" class="org.jkiss.dbeaver.ext.bigquery.model.BQMetaModel" driverClass="com.google.cloud.bigquery.jdbc.BigQueryDriver,com.simba.googlebigquery.jdbc42.Driver"/>
+    <extension point="com.seizia.chromite.generic.meta">
+        <meta id="bigquery" class="com.seizia.chromite.ext.bigquery.model.BQMetaModel" driverClass="com.google.cloud.bigquery.jdbc.BigQueryDriver,com.simba.googlebigquery.jdbc42.Driver"/>
     </extension>
 
-    <extension point="org.jkiss.dbeaver.dataSourceAuth">
+    <extension point="com.seizia.chromite.dataSourceAuth">
         <authModel
                 id="google_bigquery"
                 label="Google Cloud Auth"
                 description="BigQuery internal authentication"
-                class="org.jkiss.dbeaver.ext.bigquery.auth.BQAuthModel"
+                class="com.seizia.chromite.ext.bigquery.auth.BQAuthModel"
                 default="true">
             <replace model="native"/>
             <datasource id="bigquery"/>

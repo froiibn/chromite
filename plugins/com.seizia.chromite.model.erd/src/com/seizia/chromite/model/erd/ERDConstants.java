@@ -15,15 +15,15 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.model.erd;
+package com.seizia.chromite.model.erd;
 
-import org.jkiss.dbeaver.model.struct.DBSEntityConstraintType;
+import com.seizia.chromite.model.struct.DBSEntityConstraintType;
 
 /**
  * ERD constants
  */
 public class ERDConstants {
-    public static final String PLUGIN_ID = "org.jkiss.dbeaver.model.erd";
+    public static final String PLUGIN_ID = "com.seizia.chromite.model.erd";
 
     public static final String PREF_ATTR_VISIBILITY = "erd.attr.visibility";
     public static final String PREF_ATTR_STYLES = "erd.attr.styles";

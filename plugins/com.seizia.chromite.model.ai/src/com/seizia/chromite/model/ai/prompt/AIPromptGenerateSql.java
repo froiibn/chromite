@@ -14,17 +14,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.ai.prompt;
+package com.seizia.chromite.model.ai.prompt;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.model.ai.AIConstants;
-import org.jkiss.dbeaver.model.ai.AISqlJoinRule;
-import org.jkiss.dbeaver.model.ai.engine.AIDatabaseContext;
-import org.jkiss.dbeaver.model.ai.impl.AIPromptUtils;
-import org.jkiss.dbeaver.model.logical.DBSLogicalDataSource;
-import org.jkiss.dbeaver.model.logical.DBSLogicalDataSourceSupplier;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
+import com.seizia.chromite.model.ai.AIConstants;
+import com.seizia.chromite.model.ai.AISqlJoinRule;
+import com.seizia.chromite.model.ai.engine.AIDatabaseContext;
+import com.seizia.chromite.model.ai.impl.AIPromptUtils;
+import com.seizia.chromite.model.logical.DBSLogicalDataSource;
+import com.seizia.chromite.model.logical.DBSLogicalDataSourceSupplier;
+import com.seizia.chromite.runtime.DBWorkbench;
 import org.jkiss.utils.CommonUtils;
 
 public class AIPromptGenerateSql extends AIPromptAbstract {

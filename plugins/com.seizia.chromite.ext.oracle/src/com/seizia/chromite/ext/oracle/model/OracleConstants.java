@@ -15,24 +15,24 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.ext.oracle.model;
+package com.seizia.chromite.ext.oracle.model;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.ext.oracle.internal.OracleMessages;
-import org.jkiss.dbeaver.model.DBConstants;
-import org.jkiss.dbeaver.model.connection.DBPConnectionConfiguration;
-import org.jkiss.dbeaver.model.data.DBDPseudoAttribute;
-import org.jkiss.dbeaver.model.data.DBDPseudoAttributeType;
-import org.jkiss.dbeaver.model.struct.DBSEntityConstraintType;
-import org.jkiss.dbeaver.model.struct.rdb.DBSIndexType;
+import com.seizia.chromite.ext.oracle.internal.OracleMessages;
+import com.seizia.chromite.model.DBConstants;
+import com.seizia.chromite.model.connection.DBPConnectionConfiguration;
+import com.seizia.chromite.model.data.DBDPseudoAttribute;
+import com.seizia.chromite.model.data.DBDPseudoAttributeType;
+import com.seizia.chromite.model.struct.DBSEntityConstraintType;
+import com.seizia.chromite.model.struct.rdb.DBSIndexType;
 
 /**
  * Oracle constants
  */
 public class OracleConstants {
 
-    public static final String CMD_COMPILE = "org.jkiss.dbeaver.ext.oracle.code.compile"; //$NON-NLS-1$
+    public static final String CMD_COMPILE = "com.seizia.chromite.ext.oracle.code.compile"; //$NON-NLS-1$
 
     public static final int DEFAULT_PORT = 1521;
 

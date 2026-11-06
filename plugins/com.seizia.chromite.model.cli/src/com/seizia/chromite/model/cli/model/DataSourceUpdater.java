@@ -14,11 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.cli.model;
+package com.seizia.chromite.model.cli.model;
 
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.model.DBPDataSourceContainer;
-import org.jkiss.dbeaver.model.cli.CLIException;
+import com.seizia.chromite.model.DBPDataSourceContainer;
+import com.seizia.chromite.model.cli.CLIException;
 
 @FunctionalInterface
 public interface DataSourceUpdater {

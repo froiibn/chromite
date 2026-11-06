@@ -14,20 +14,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.ai.app.config;
+package com.seizia.chromite.model.ai.app.config;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.ai.registry.AISettingsManager;
-import org.jkiss.dbeaver.model.config.ProductConfigFeatureAvailabilityTester;
-import org.jkiss.dbeaver.model.config.ProductConfigFeatureTester;
-import org.jkiss.dbeaver.model.impl.GlobalPropertyTester;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.ai.registry.AISettingsManager;
+import com.seizia.chromite.model.config.ProductConfigFeatureAvailabilityTester;
+import com.seizia.chromite.model.config.ProductConfigFeatureTester;
+import com.seizia.chromite.model.impl.GlobalPropertyTester;
 
 public final class AIProductConfigFeatureTester implements ProductConfigFeatureTester, ProductConfigFeatureAvailabilityTester {
     private static final Log log = Log.getLog(AIProductConfigFeatureTester.class);
     private static final String AI_DISABLED_PROPERTY = "ai.disabled";
-    private static final String AI_DISABLED_ENV_VARIABLE = "DBEAVER_AI_DISABLED";
+    private static final String AI_DISABLED_ENV_VARIABLE = "CHROMITE_AI_DISABLED";
     private static final GlobalPropertyTester GLOBAL_PROPERTY_TESTER = new GlobalPropertyTester();
 
     @NotNull

@@ -15,17 +15,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.ai.engine.openai;
+package com.seizia.chromite.model.ai.engine.openai;
 
 import com.google.gson.Gson;
 import org.jkiss.code.NotNull;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.model.ai.AIConfigurationProfile;
-import org.jkiss.dbeaver.model.ai.engine.BaseAIEngineProperties;
-import org.jkiss.dbeaver.model.ai.engine.copilot.CopilotCompletionEngine;
-import org.jkiss.dbeaver.model.ai.engine.copilot.CopilotProperties;
-import org.jkiss.dbeaver.model.runtime.VoidProgressMonitor;
-import org.jkiss.dbeaver.model.secret.DBSSecretController;
+import com.seizia.chromite.model.ai.AIConfigurationProfile;
+import com.seizia.chromite.model.ai.engine.BaseAIEngineProperties;
+import com.seizia.chromite.model.ai.engine.copilot.CopilotCompletionEngine;
+import com.seizia.chromite.model.ai.engine.copilot.CopilotProperties;
+import com.seizia.chromite.model.runtime.VoidProgressMonitor;
+import com.seizia.chromite.model.secret.DBSSecretController;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;

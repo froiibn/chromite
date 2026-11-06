@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.data.dialogs;
+package com.seizia.chromite.ui.data.dialogs;
 
 import org.eclipse.core.runtime.IAdaptable;
 import org.eclipse.jface.action.Action;
@@ -39,37 +39,37 @@ import org.eclipse.ui.IWorkbenchPartSite;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.DBPMessageType;
-import org.jkiss.dbeaver.model.DBUtils;
-import org.jkiss.dbeaver.model.DBValueFormatting;
-import org.jkiss.dbeaver.model.data.*;
-import org.jkiss.dbeaver.model.exec.DBCException;
-import org.jkiss.dbeaver.model.exec.DBCExecutionContext;
-import org.jkiss.dbeaver.model.exec.DBCExecutionPurpose;
-import org.jkiss.dbeaver.model.exec.DBCSession;
-import org.jkiss.dbeaver.model.impl.SimpleTypedObject;
-import org.jkiss.dbeaver.model.impl.data.DefaultValueHandler;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.model.runtime.DBRRunnableWithResult;
-import org.jkiss.dbeaver.model.runtime.VoidProgressMonitor;
-import org.jkiss.dbeaver.model.struct.DBSAttributeBase;
-import org.jkiss.dbeaver.model.struct.DBSDataType;
-import org.jkiss.dbeaver.model.struct.DBSTypedObject;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.ui.DBeaverIcons;
-import org.jkiss.dbeaver.ui.UIIcon;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.controls.TreeContentProvider;
-import org.jkiss.dbeaver.ui.controls.resultset.ResultSetPreferences;
-import org.jkiss.dbeaver.ui.controls.resultset.ResultSetThemeSettings;
-import org.jkiss.dbeaver.ui.data.*;
-import org.jkiss.dbeaver.ui.data.managers.BaseValueManager;
-import org.jkiss.dbeaver.ui.data.managers.DefaultValueManager;
-import org.jkiss.dbeaver.ui.data.registry.ValueManagerRegistry;
-import org.jkiss.dbeaver.ui.editors.data.internal.DataEditorsMessages;
-import org.jkiss.dbeaver.ui.internal.UIMessages;
-import org.jkiss.dbeaver.utils.GeneralUtils;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.DBPMessageType;
+import com.seizia.chromite.model.DBUtils;
+import com.seizia.chromite.model.DBValueFormatting;
+import com.seizia.chromite.model.data.*;
+import com.seizia.chromite.model.exec.DBCException;
+import com.seizia.chromite.model.exec.DBCExecutionContext;
+import com.seizia.chromite.model.exec.DBCExecutionPurpose;
+import com.seizia.chromite.model.exec.DBCSession;
+import com.seizia.chromite.model.impl.SimpleTypedObject;
+import com.seizia.chromite.model.impl.data.DefaultValueHandler;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.model.runtime.DBRRunnableWithResult;
+import com.seizia.chromite.model.runtime.VoidProgressMonitor;
+import com.seizia.chromite.model.struct.DBSAttributeBase;
+import com.seizia.chromite.model.struct.DBSDataType;
+import com.seizia.chromite.model.struct.DBSTypedObject;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.ui.SwtIcons;
+import com.seizia.chromite.ui.UIIcon;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.controls.TreeContentProvider;
+import com.seizia.chromite.ui.controls.resultset.ResultSetPreferences;
+import com.seizia.chromite.ui.controls.resultset.ResultSetThemeSettings;
+import com.seizia.chromite.ui.data.*;
+import com.seizia.chromite.ui.data.managers.BaseValueManager;
+import com.seizia.chromite.ui.data.managers.DefaultValueManager;
+import com.seizia.chromite.ui.data.registry.ValueManagerRegistry;
+import com.seizia.chromite.ui.editors.data.internal.DataEditorsMessages;
+import com.seizia.chromite.ui.internal.UIMessages;
+import com.seizia.chromite.utils.GeneralUtils;
 import org.jkiss.utils.CommonUtils;
 
 import java.lang.reflect.InvocationTargetException;
@@ -307,7 +307,7 @@ public class ComplexObjectEditor extends TreeViewer {
     @Nullable
     private Image getColumnImage(@NotNull ComplexElementItem item, int columnIndex) {
         if (columnIndex == 0) {
-            return DBeaverIcons.getImage(DBValueFormatting.getTypeImage(item.getDataType()));
+            return SwtIcons.getImage(DBValueFormatting.getTypeImage(item.getDataType()));
         } else {
             return null;
         }
@@ -684,7 +684,7 @@ public class ComplexObjectEditor extends TreeViewer {
 
     private class AddElementAction extends Action {
         AddElementAction() {
-            super(DataEditorsMessages.complex_object_editor_dialog_menu_add_element, DBeaverIcons.getImageDescriptor(UIIcon.ROW_ADD));
+            super(DataEditorsMessages.complex_object_editor_dialog_menu_add_element, SwtIcons.getImageDescriptor(UIIcon.ROW_ADD));
         }
 
         @Override
@@ -724,7 +724,7 @@ public class ComplexObjectEditor extends TreeViewer {
 
     private class RemoveElementAction extends Action {
         RemoveElementAction() {
-            super(DataEditorsMessages.complex_object_editor_dialog_menu_remove_element, DBeaverIcons.getImageDescriptor(UIIcon.ROW_DELETE));
+            super(DataEditorsMessages.complex_object_editor_dialog_menu_remove_element, SwtIcons.getImageDescriptor(UIIcon.ROW_DELETE));
         }
 
         @Override
@@ -753,7 +753,7 @@ public class ComplexObjectEditor extends TreeViewer {
             super(dir == SWT.UP
                       ? DataEditorsMessages.complex_object_editor_dialog_menu_move_up_element
                       : DataEditorsMessages.complex_object_editor_dialog_menu_move_down_element,
-                DBeaverIcons.getImageDescriptor(dir == SWT.UP ? UIIcon.ARROW_UP : UIIcon.ARROW_DOWN));
+                SwtIcons.getImageDescriptor(dir == SWT.UP ? UIIcon.ARROW_UP : UIIcon.ARROW_DOWN));
             this.direction = dir;
         }
 

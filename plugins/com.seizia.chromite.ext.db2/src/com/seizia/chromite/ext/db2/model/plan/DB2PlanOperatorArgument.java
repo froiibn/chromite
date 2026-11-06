@@ -15,12 +15,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.db2.model.plan;
+package com.seizia.chromite.ext.db2.model.plan;
 
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.model.DBPNamedValueObject;
-import org.jkiss.dbeaver.model.exec.jdbc.JDBCResultSet;
-import org.jkiss.dbeaver.model.impl.jdbc.JDBCUtils;
+import com.seizia.chromite.model.DBPNamedValueObject;
+import com.seizia.chromite.model.exec.jdbc.JDBCResultSet;
+import com.seizia.chromite.model.impl.jdbc.JDBCUtils;
 
 import java.util.HashMap;
 import java.util.Map;

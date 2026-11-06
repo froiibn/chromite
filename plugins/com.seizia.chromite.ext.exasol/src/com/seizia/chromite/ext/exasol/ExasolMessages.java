@@ -14,12 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.exasol;
+package com.seizia.chromite.ext.exasol;
 
 import org.eclipse.osgi.util.NLS;
 
 public class ExasolMessages extends NLS {
-    private static final String BUNDLE_NAME = "org.jkiss.dbeaver.ext.exasol.ExasolResources"; //$NON-NLS-1$
+    private static final String BUNDLE_NAME = "com.seizia.chromite.ext.exasol.ExasolResources"; //$NON-NLS-1$
 
     public static String manager_consumer_drop;
     public static String manager_consumer_rename;

@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.editors.erd.editor.tools;
+package com.seizia.chromite.ui.editors.erd.editor.tools;
 
 import org.eclipse.gef.Tool;
 import org.eclipse.gef.palette.PaletteEntry;

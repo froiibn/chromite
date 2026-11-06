@@ -14,33 +14,33 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.mimer.model;
+package com.seizia.chromite.ext.mimer.model;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.DBDatabaseException;
+import com.seizia.chromite.DBDatabaseException;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.ext.generic.model.GenericSchema;
-import org.jkiss.dbeaver.ext.generic.model.GenericTableBase;
-import org.jkiss.dbeaver.ext.generic.model.GenericTableColumn;
-import org.jkiss.dbeaver.ext.generic.model.GenericUniqueKey;
-import org.jkiss.dbeaver.ext.mimer.MimerConstants;
-import org.jkiss.dbeaver.model.DBUtils;
-import org.jkiss.dbeaver.model.exec.jdbc.JDBCPreparedStatement;
-import org.jkiss.dbeaver.model.exec.jdbc.JDBCResultSet;
-import org.jkiss.dbeaver.model.exec.jdbc.JDBCSession;
-import org.jkiss.dbeaver.model.exec.jdbc.JDBCStatement;
-import org.jkiss.dbeaver.model.impl.jdbc.JDBCUtils;
-import org.jkiss.dbeaver.model.impl.jdbc.cache.JDBCObjectCache;
-import org.jkiss.dbeaver.model.impl.jdbc.struct.JDBCTableColumn;
-import org.jkiss.dbeaver.model.meta.Association;
-import org.jkiss.dbeaver.model.meta.IPropertyValueListProvider;
-import org.jkiss.dbeaver.model.meta.Property;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.model.runtime.VoidProgressMonitor;
-import org.jkiss.dbeaver.model.struct.DBSEntityConstraintType;
-import org.jkiss.dbeaver.model.struct.cache.DBSObjectCache;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.ext.generic.model.GenericSchema;
+import com.seizia.chromite.ext.generic.model.GenericTableBase;
+import com.seizia.chromite.ext.generic.model.GenericTableColumn;
+import com.seizia.chromite.ext.generic.model.GenericUniqueKey;
+import com.seizia.chromite.ext.mimer.MimerConstants;
+import com.seizia.chromite.model.DBUtils;
+import com.seizia.chromite.model.exec.jdbc.JDBCPreparedStatement;
+import com.seizia.chromite.model.exec.jdbc.JDBCResultSet;
+import com.seizia.chromite.model.exec.jdbc.JDBCSession;
+import com.seizia.chromite.model.exec.jdbc.JDBCStatement;
+import com.seizia.chromite.model.impl.jdbc.JDBCUtils;
+import com.seizia.chromite.model.impl.jdbc.cache.JDBCObjectCache;
+import com.seizia.chromite.model.impl.jdbc.struct.JDBCTableColumn;
+import com.seizia.chromite.model.meta.Association;
+import com.seizia.chromite.model.meta.IPropertyValueListProvider;
+import com.seizia.chromite.model.meta.Property;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.model.runtime.VoidProgressMonitor;
+import com.seizia.chromite.model.struct.DBSEntityConstraintType;
+import com.seizia.chromite.model.struct.cache.DBSObjectCache;
 import org.jkiss.utils.CommonUtils;
 
 import java.sql.SQLException;
@@ -54,8 +54,8 @@ import java.util.regex.Pattern;
 /**
  * {@code GenericTableColumn} + a {@code sequenceName} attribute backing "Auto Generated" -
  * Mimer SQL has no identity syntax, so the equivalent is a sequence + {@code DEFAULT NEXT VALUE
- * FOR "<schema>"."<seq>"} (built by {@link org.jkiss.dbeaver.ext.mimer.edit.MimerTableColumnManager}/
- * {@link org.jkiss.dbeaver.ext.mimer.edit.MimerTableManager}). {@code sequenceName} is
+ * FOR "<schema>"."<seq>"} (built by {@link com.seizia.chromite.ext.mimer.edit.MimerTableColumnManager}/
+ * {@link com.seizia.chromite.ext.mimer.edit.MimerTableManager}). {@code sequenceName} is
  * editable only while {@link #isAutoIncrement()} is checked, and is create-only - once
  * persisted, the column's own {@code DEFAULT} clause already shows it.
  *
@@ -119,7 +119,7 @@ public class MimerTableColumn extends GenericTableColumn {
      * meaningful for a character type, see {@link #isCollationApplicable}/{@link
      * MimerConstants#isCharacterType}. Editable both at create time and afterwards - unlike
      * {@link #getSequenceName}, Mimer SQL does support changing an existing column's collation
-     * (see {@link org.jkiss.dbeaver.ext.mimer.edit.MimerTableColumnManager} for the {@code ALTER
+     * (see {@link com.seizia.chromite.ext.mimer.edit.MimerTableColumnManager} for the {@code ALTER
      * TABLE ... ALTER COLUMN ... SET DATA TYPE ... COLLATE ...} write side - the docs' own
      * example shows the data type has to be repeated even when only the collation changes).
      * <p>
@@ -142,7 +142,7 @@ public class MimerTableColumn extends GenericTableColumn {
      * visibleIf} doesn't reliably re-evaluate per row in the Columns grid when the answer varies
      * row to row (every row came back checked-but-blank, not just non-character ones); {@code
      * editableExpr}/{@code updatableExpr} do, confirmed working per-row already ({@link
-     * org.jkiss.dbeaver.ext.mimer.model.MimerDatabankFile}'s file name). See {@link
+     * com.seizia.chromite.ext.mimer.model.MimerDatabankFile}'s file name). See {@link
      * #isCollationApplicable} for why a not-yet-typed column counts as applicable too - the
      * generic "Create New Column" dialog filters editability exactly once, at construction,
      * before any type is picked, so a strict character-type-only check would permanently hide
@@ -255,7 +255,7 @@ public class MimerTableColumn extends GenericTableColumn {
      * Rebuilt here, for a persisted column, from {@code INFORMATION_SCHEMA.COLUMNS}'s own {@code
      * INTERVAL_TYPE}/{@code INTERVAL_PRECISION}/{@code DATETIME_PRECISION} - lazily resolved and
      * cached, same shape as {@link #getCollation}. Re-declares {@code @Property} matching {@link
-     * org.jkiss.dbeaver.model.impl.jdbc.struct.JDBCTableColumn#getTypeName} exactly (not the
+     * com.seizia.chromite.model.impl.jdbc.struct.JDBCTableColumn#getTypeName} exactly (not the
      * further ancestor {@code AbstractAttribute}'s bare version) - a property change on an
      * overridden getter only takes effect with its own annotation, and copying the wrong
      * ancestor's here first silently dropped {@code editable}/{@code listProvider}, hiding the

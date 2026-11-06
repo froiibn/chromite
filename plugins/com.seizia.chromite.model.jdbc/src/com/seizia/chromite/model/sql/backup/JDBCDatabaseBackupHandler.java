@@ -14,11 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.sql.backup;
+package com.seizia.chromite.model.sql.backup;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.model.connection.InternalDatabaseConfig;
+import com.seizia.chromite.model.connection.InternalDatabaseConfig;
 
 import java.io.IOException;
 import java.sql.Connection;

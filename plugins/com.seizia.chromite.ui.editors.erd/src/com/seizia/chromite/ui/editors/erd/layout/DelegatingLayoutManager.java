@@ -17,18 +17,18 @@
 /*
  * Created on Jul 13, 2004
  */
-package org.jkiss.dbeaver.ui.editors.erd.layout;
+package com.seizia.chromite.ui.editors.erd.layout;
 
 import org.eclipse.draw2d.IFigure;
 import org.eclipse.draw2d.LayoutManager;
 import org.eclipse.draw2d.geometry.Dimension;
 import org.eclipse.draw2d.geometry.Rectangle;
 import org.eclipse.gef.EditPolicy;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.ui.editors.erd.internal.ERDUIMessages;
-import org.jkiss.dbeaver.ui.editors.erd.model.EntityDiagram;
-import org.jkiss.dbeaver.ui.editors.erd.part.DiagramPart;
-import org.jkiss.dbeaver.ui.editors.erd.policy.DiagramXYLayoutPolicy;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.ui.editors.erd.internal.ERDUIMessages;
+import com.seizia.chromite.ui.editors.erd.model.EntityDiagram;
+import com.seizia.chromite.ui.editors.erd.part.DiagramPart;
+import com.seizia.chromite.ui.editors.erd.policy.DiagramXYLayoutPolicy;
 
 /**
  * Used to delegate between the GraphLayoutAuto and the GraphLayoutXY classes

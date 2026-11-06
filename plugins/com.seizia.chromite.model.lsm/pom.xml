@@ -4,12 +4,12 @@
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
     <modelVersion>4.0.0</modelVersion>
     <parent>
-        <groupId>org.jkiss.dbeaver</groupId>
+        <groupId>com.seizia.chromite</groupId>
         <artifactId>plugins</artifactId>
         <version>1.0.0-SNAPSHOT</version>
         <relativePath>../</relativePath>
     </parent>
-    <artifactId>org.jkiss.dbeaver.model.lsm</artifactId>
+    <artifactId>com.seizia.chromite.model.lsm</artifactId>
     <version>1.0.86-SNAPSHOT</version>
     <packaging>eclipse-plugin</packaging>
 
@@ -31,7 +31,7 @@
                         <configuration>
                             <sourceDirectory>grammar</sourceDirectory>
                             <outputDirectory>
-                                target/generated-sources/antlr4/org/jkiss/dbeaver/model/lsm/sql/impl/syntax
+                                target/generated-sources/antlr4/com/seizia/chromite/model/lsm/sql/impl/syntax
                             </outputDirectory>
                         </configuration>
                     </execution>

@@ -14,11 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.altibase;
+package com.seizia.chromite.ext.altibase;
 
 import org.jkiss.code.DynamicCall;
-import org.jkiss.dbeaver.ext.altibase.model.AltibaseDataSource;
-import org.jkiss.dbeaver.ext.generic.GenericDataSourceProvider;
+import com.seizia.chromite.ext.altibase.model.AltibaseDataSource;
+import com.seizia.chromite.ext.generic.GenericDataSourceProvider;
 
 public class AltibaseDataSourceProvider extends GenericDataSourceProvider<AltibaseDataSource> {
     @DynamicCall

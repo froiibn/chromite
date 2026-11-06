@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.model.runtime;
+package com.seizia.chromite.model.runtime;
 
 /**
  * Operating system match descriptor

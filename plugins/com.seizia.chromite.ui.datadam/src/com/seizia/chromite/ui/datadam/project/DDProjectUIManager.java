@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.datadam.project;
+package com.seizia.chromite.ui.datadam.project;
 
 import com.dbeaver.datadam.share.api.model.DDSharedProject;
 import org.eclipse.core.runtime.IStatus;
@@ -28,29 +28,29 @@ import org.eclipse.ui.PlatformUI;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.model.app.DBPProject;
-import org.jkiss.dbeaver.model.datadam.auth.desktop.DDDesktopAccessListener;
-import org.jkiss.dbeaver.model.datadam.auth.desktop.DDDesktopAccessService;
-import org.jkiss.dbeaver.model.datadam.sync.project.ConflictResolution;
-import org.jkiss.dbeaver.model.datadam.sync.project.DDProjectManager;
-import org.jkiss.dbeaver.model.datadam.sync.project.DDProjectManager.LocalProjectInfo;
-import org.jkiss.dbeaver.model.datadam.sync.project.DDProjectManager.SyncResult;
-import org.jkiss.dbeaver.model.datadam.sync.project.ProjectStatus;
-import org.jkiss.dbeaver.model.navigator.DBNEmptyNode;
-import org.jkiss.dbeaver.model.navigator.DBNNode;
-import org.jkiss.dbeaver.model.runtime.AbstractJob;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.model.runtime.DBRRunnableWithResult;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.datadam.DDDesktopTokenUIManager;
-import org.jkiss.dbeaver.ui.datadam.internal.DDTrackingUIMessages;
-import org.jkiss.dbeaver.ui.datadam.project.job.*;
-import org.jkiss.dbeaver.ui.datadam.project.navigator.DDProjectSyncPropertyTester;
-import org.jkiss.dbeaver.ui.navigator.database.DatabaseNavigatorContent;
-import org.jkiss.dbeaver.ui.navigator.database.DatabaseNavigatorView;
-import org.jkiss.dbeaver.ui.navigator.database.NavigatorViewBase;
-import org.jkiss.dbeaver.ui.navigator.project.ProjectExplorerView;
-import org.jkiss.dbeaver.ui.navigator.project.ProjectNavigatorView;
+import com.seizia.chromite.model.app.DBPProject;
+import com.seizia.chromite.model.datadam.auth.desktop.DDDesktopAccessListener;
+import com.seizia.chromite.model.datadam.auth.desktop.DDDesktopAccessService;
+import com.seizia.chromite.model.datadam.sync.project.ConflictResolution;
+import com.seizia.chromite.model.datadam.sync.project.DDProjectManager;
+import com.seizia.chromite.model.datadam.sync.project.DDProjectManager.LocalProjectInfo;
+import com.seizia.chromite.model.datadam.sync.project.DDProjectManager.SyncResult;
+import com.seizia.chromite.model.datadam.sync.project.ProjectStatus;
+import com.seizia.chromite.model.navigator.DBNEmptyNode;
+import com.seizia.chromite.model.navigator.DBNNode;
+import com.seizia.chromite.model.runtime.AbstractJob;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.model.runtime.DBRRunnableWithResult;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.datadam.DDDesktopTokenUIManager;
+import com.seizia.chromite.ui.datadam.internal.DDTrackingUIMessages;
+import com.seizia.chromite.ui.datadam.project.job.*;
+import com.seizia.chromite.ui.datadam.project.navigator.DDProjectSyncPropertyTester;
+import com.seizia.chromite.ui.navigator.database.DatabaseNavigatorContent;
+import com.seizia.chromite.ui.navigator.database.DatabaseNavigatorView;
+import com.seizia.chromite.ui.navigator.database.NavigatorViewBase;
+import com.seizia.chromite.ui.navigator.project.ProjectExplorerView;
+import com.seizia.chromite.ui.navigator.project.ProjectNavigatorView;
 
 import java.lang.reflect.InvocationTargetException;
 import java.util.*;

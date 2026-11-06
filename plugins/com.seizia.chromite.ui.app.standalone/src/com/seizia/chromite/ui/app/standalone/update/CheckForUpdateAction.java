@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.app.standalone.update;
+package com.seizia.chromite.ui.app.standalone.update;
 
 import org.eclipse.core.commands.AbstractHandler;
 import org.eclipse.core.commands.ExecutionEvent;
@@ -23,7 +23,7 @@ import org.eclipse.jface.action.Action;
 import org.eclipse.ui.IWorkbenchWindow;
 import org.eclipse.ui.handlers.IHandlerActivation;
 import org.eclipse.ui.handlers.IHandlerService;
-import org.jkiss.dbeaver.core.CoreMessages;
+import com.seizia.chromite.core.CoreMessages;
 
 
 public class CheckForUpdateAction extends Action {
@@ -36,12 +36,12 @@ public class CheckForUpdateAction extends Action {
 
     public CheckForUpdateAction() {
         super(CoreMessages.actions_menu_check_update);
-        setId("org.jkiss.dbeaver.action.checkForUpdate");
+        setId("com.seizia.chromite.action.checkForUpdate");
     }
 
     @Override
     public void run() {
-        new DBeaverVersionChecker(true).schedule();
+        new ChromiteVersionChecker(true).schedule();
     }
 
     public static void deactivateStandardHandler(IWorkbenchWindow window) {

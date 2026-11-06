@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.properties;
+package com.seizia.chromite.ui.properties;
 
 import org.eclipse.jface.viewers.CellEditor;
 import org.eclipse.jface.viewers.ColumnLabelProvider;
@@ -24,11 +24,11 @@ import org.eclipse.swt.graphics.Image;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.ui.views.properties.IPropertyDescriptor;
 import org.eclipse.ui.views.properties.IPropertySheetEntry;
-import org.jkiss.dbeaver.model.*;
-import org.jkiss.dbeaver.model.preferences.DBPPropertyDescriptor;
-import org.jkiss.dbeaver.model.preferences.DBPPropertySource;
-import org.jkiss.dbeaver.ui.DBeaverIcons;
-import org.jkiss.dbeaver.utils.GeneralUtils;
+import com.seizia.chromite.model.*;
+import com.seizia.chromite.model.preferences.DBPPropertyDescriptor;
+import com.seizia.chromite.model.preferences.DBPPropertySource;
+import com.seizia.chromite.ui.SwtIcons;
+import com.seizia.chromite.utils.GeneralUtils;
 import org.jkiss.utils.CommonUtils;
 
 /**
@@ -59,7 +59,7 @@ public class PropertyDescriptorDelegate implements IPropertyDescriptor
                 }
 */
                 if (image != null) {
-                    return DBeaverIcons.getImage(image);
+                    return SwtIcons.getImage(image);
                 }
             }
             return super.getImage(element);

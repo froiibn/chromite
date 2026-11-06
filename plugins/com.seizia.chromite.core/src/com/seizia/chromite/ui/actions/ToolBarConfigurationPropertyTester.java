@@ -14,13 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.actions;
+package com.seizia.chromite.ui.actions;
 
 import org.eclipse.core.expressions.PropertyTester;
-import org.jkiss.dbeaver.ui.ActionUtils;
+import com.seizia.chromite.ui.ActionUtils;
 
 public class ToolBarConfigurationPropertyTester extends PropertyTester {
-    public static final String NAMESPACE = "org.jkiss.dbeaver.ui.toolbar.configuration"; //$NON-NLS-1$
+    public static final String NAMESPACE = "com.seizia.chromite.ui.toolbar.configuration"; //$NON-NLS-1$
     public static final String PROP_VISIBLE = "visible"; //$NON-NLS-1$
 
     @Override

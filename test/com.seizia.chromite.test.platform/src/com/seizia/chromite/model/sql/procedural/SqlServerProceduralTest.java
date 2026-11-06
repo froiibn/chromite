@@ -14,26 +14,26 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.sql.procedural;
+package com.seizia.chromite.model.sql.procedural;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.ext.mssql.model.SQLServerDialectSybase;
-import org.jkiss.dbeaver.model.lsm.sql.impl.syntax.SQLStandardParser;
-import org.jkiss.dbeaver.model.sql.SQLDialect;
-import org.jkiss.dbeaver.model.sql.SQLDialectFeatures.ProjectionAliasVisibilityScope;
-import org.jkiss.dbeaver.model.sql.analyzer.builder.request.RequestBuilder;
-import org.jkiss.dbeaver.model.sql.semantics.SQLQuerySymbolEntry;
-import org.jkiss.dbeaver.model.sql.semantics.SQLQuerySymbolOrigin;
-import org.jkiss.dbeaver.model.sql.semantics.context.SQLQueryLocalVariableInfo;
-import org.jkiss.dbeaver.model.sql.semantics.model.dml.SQLQuerySelectIntoModel;
-import org.jkiss.dbeaver.model.sql.semantics.model.dml.SQLQueryUpdateModel;
-import org.jkiss.dbeaver.model.sql.semantics.model.expressions.SQLQueryValueTargetReferenceExpression;
-import org.jkiss.dbeaver.model.sql.semantics.model.programmaticals.SQLQueryRoutineCreateModel;
-import org.jkiss.dbeaver.model.sql.semantics.model.programmaticals.SQLQueryTriggerCreateModel;
-import org.jkiss.dbeaver.model.sql.semantics.model.programmaticals.SQLQueryTriggerStatementModel;
-import org.jkiss.dbeaver.model.sql.semantics.model.statements.SQLQueryConditionalStatement;
-import org.jkiss.dbeaver.model.sql.semantics.model.statements.SQLQueryVariableDeclarationStatement;
+import com.seizia.chromite.ext.mssql.model.SQLServerDialectSybase;
+import com.seizia.chromite.model.lsm.sql.impl.syntax.SQLStandardParser;
+import com.seizia.chromite.model.sql.SQLDialect;
+import com.seizia.chromite.model.sql.SQLDialectFeatures.ProjectionAliasVisibilityScope;
+import com.seizia.chromite.model.sql.analyzer.builder.request.RequestBuilder;
+import com.seizia.chromite.model.sql.semantics.SQLQuerySymbolEntry;
+import com.seizia.chromite.model.sql.semantics.SQLQuerySymbolOrigin;
+import com.seizia.chromite.model.sql.semantics.context.SQLQueryLocalVariableInfo;
+import com.seizia.chromite.model.sql.semantics.model.dml.SQLQuerySelectIntoModel;
+import com.seizia.chromite.model.sql.semantics.model.dml.SQLQueryUpdateModel;
+import com.seizia.chromite.model.sql.semantics.model.expressions.SQLQueryValueTargetReferenceExpression;
+import com.seizia.chromite.model.sql.semantics.model.programmaticals.SQLQueryRoutineCreateModel;
+import com.seizia.chromite.model.sql.semantics.model.programmaticals.SQLQueryTriggerCreateModel;
+import com.seizia.chromite.model.sql.semantics.model.programmaticals.SQLQueryTriggerStatementModel;
+import com.seizia.chromite.model.sql.semantics.model.statements.SQLQueryConditionalStatement;
+import com.seizia.chromite.model.sql.semantics.model.statements.SQLQueryVariableDeclarationStatement;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 

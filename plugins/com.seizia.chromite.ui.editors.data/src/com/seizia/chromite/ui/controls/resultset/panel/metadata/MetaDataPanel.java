@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.controls.resultset.panel.metadata;
+package com.seizia.chromite.ui.controls.resultset.panel.metadata;
 
 import org.eclipse.jface.action.Action;
 import org.eclipse.jface.action.IContributionManager;
@@ -35,23 +35,23 @@ import org.eclipse.swt.widgets.Text;
 import org.eclipse.swt.widgets.Tree;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.model.DBIcon;
-import org.jkiss.dbeaver.model.DBPImage;
-import org.jkiss.dbeaver.model.DBValueFormatting;
-import org.jkiss.dbeaver.model.data.DBDAttributeBinding;
-import org.jkiss.dbeaver.model.data.DBDAttributeBindingMeta;
-import org.jkiss.dbeaver.model.exec.DBCExecutionContext;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.model.runtime.load.DatabaseLoadService;
-import org.jkiss.dbeaver.model.struct.DBSEntityAttribute;
-import org.jkiss.dbeaver.ui.*;
-import org.jkiss.dbeaver.ui.controls.TreeContentProvider;
-import org.jkiss.dbeaver.ui.controls.ViewerColumnController;
-import org.jkiss.dbeaver.ui.controls.resultset.IResultSetPresentation;
-import org.jkiss.dbeaver.ui.controls.resultset.internal.ResultSetMessages;
-import org.jkiss.dbeaver.ui.controls.resultset.panel.ResultSetPanelBase;
-import org.jkiss.dbeaver.ui.controls.resultset.panel.ResultSetPanelRefresher;
-import org.jkiss.dbeaver.ui.navigator.itemlist.DatabaseObjectListControl;
+import com.seizia.chromite.model.DBIcon;
+import com.seizia.chromite.model.DBPImage;
+import com.seizia.chromite.model.DBValueFormatting;
+import com.seizia.chromite.model.data.DBDAttributeBinding;
+import com.seizia.chromite.model.data.DBDAttributeBindingMeta;
+import com.seizia.chromite.model.exec.DBCExecutionContext;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.model.runtime.load.DatabaseLoadService;
+import com.seizia.chromite.model.struct.DBSEntityAttribute;
+import com.seizia.chromite.ui.*;
+import com.seizia.chromite.ui.controls.TreeContentProvider;
+import com.seizia.chromite.ui.controls.ViewerColumnController;
+import com.seizia.chromite.ui.controls.resultset.IResultSetPresentation;
+import com.seizia.chromite.ui.controls.resultset.internal.ResultSetMessages;
+import com.seizia.chromite.ui.controls.resultset.panel.ResultSetPanelBase;
+import com.seizia.chromite.ui.controls.resultset.panel.ResultSetPanelRefresher;
+import com.seizia.chromite.ui.navigator.itemlist.DatabaseObjectListControl;
 import org.jkiss.utils.CommonUtils;
 
 import java.util.Arrays;
@@ -205,7 +205,7 @@ public class MetaDataPanel extends ResultSetPanelBase {
         manager.add(
             ActionUtils.makeCommandContribution(
                 UIUtils.getActiveWorkbenchWindow(),
-                "org.jkiss.dbeaver.ui.editors.sql.generate.ddl.by.resultSet", //$NON-NLS-1$
+                "com.seizia.chromite.ui.editors.sql.generate.ddl.by.resultSet", //$NON-NLS-1$
                 ResultSetMessages.generate_ddl_by_result_set_name,
                 DBIcon.SQL_TEXT,
                 ResultSetMessages.generate_ddl_by_result_set_tip,

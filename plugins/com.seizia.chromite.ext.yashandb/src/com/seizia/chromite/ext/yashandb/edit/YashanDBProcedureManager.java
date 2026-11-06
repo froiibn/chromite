@@ -14,15 +14,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.yashandb.edit;
+package com.seizia.chromite.ext.yashandb.edit;
 
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.ext.oracle.edit.OracleProcedureManager;
-import org.jkiss.dbeaver.ext.oracle.model.OracleProcedureStandalone;
-import org.jkiss.dbeaver.ext.oracle.model.OracleSchema;
-import org.jkiss.dbeaver.ext.yashandb.model.YashanDBProcedureStandalone;
-import org.jkiss.dbeaver.ext.yashandb.model.YashanDBSchema;
-import org.jkiss.dbeaver.model.struct.rdb.DBSProcedureType;
+import com.seizia.chromite.ext.oracle.edit.OracleProcedureManager;
+import com.seizia.chromite.ext.oracle.model.OracleProcedureStandalone;
+import com.seizia.chromite.ext.oracle.model.OracleSchema;
+import com.seizia.chromite.ext.yashandb.model.YashanDBProcedureStandalone;
+import com.seizia.chromite.ext.yashandb.model.YashanDBSchema;
+import com.seizia.chromite.model.struct.rdb.DBSProcedureType;
 
 /**
  * YashanDBProcedureManager

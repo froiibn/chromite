@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.views.qm;
+package com.seizia.chromite.ui.views.qm;
 
 import org.eclipse.core.commands.AbstractHandler;
 import org.eclipse.core.commands.ExecutionEvent;
@@ -23,12 +23,12 @@ import org.eclipse.ui.IWorkbenchWindow;
 import org.eclipse.ui.commands.IElementUpdater;
 import org.eclipse.ui.handlers.HandlerUtil;
 import org.eclipse.ui.menus.UIElement;
-import org.jkiss.dbeaver.ui.UIUtils;
+import com.seizia.chromite.ui.UIUtils;
 
 import java.util.Map;
 
 public class QueryManagerFilterHandler extends AbstractHandler implements IElementUpdater {
-    public static final String ID = "org.jkiss.dbeaver.core.qm.filter";
+    public static final String ID = "com.seizia.chromite.core.qm.filter";
 
     @Override
     public Object execute(ExecutionEvent event) throws ExecutionException {

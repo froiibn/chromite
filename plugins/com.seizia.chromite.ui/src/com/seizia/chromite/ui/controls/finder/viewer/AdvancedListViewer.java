@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.controls.finder.viewer;
+package com.seizia.chromite.ui.controls.finder.viewer;
 
 import org.eclipse.jface.viewers.*;
 import org.eclipse.swt.events.SelectionAdapter;
@@ -22,10 +22,10 @@ import org.eclipse.swt.events.SelectionEvent;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Control;
 import org.eclipse.swt.widgets.Widget;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.controls.finder.AdvancedList;
-import org.jkiss.dbeaver.ui.controls.finder.AdvancedListItem;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.controls.finder.AdvancedList;
+import com.seizia.chromite.ui.controls.finder.AdvancedListItem;
 
 import java.util.ArrayList;
 import java.util.List;

@@ -14,15 +14,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.ai.utils;
+package com.seizia.chromite.model.ai.utils;
 
-import org.jkiss.junit.DBeaverUnitTest;
+import com.seizia.chromite.junit.ChromiteUnitTest;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import java.net.URI;
 
-public class AIHttpUtilsTest extends DBeaverUnitTest {
+public class AIHttpUtilsTest extends ChromiteUnitTest {
     @Test
     public void appendsPathWhenBaseHasNoTrailingSlash() throws Exception {
         URI uri = AIHttpUtils.resolve("http://localhost:11434/v1", "models");

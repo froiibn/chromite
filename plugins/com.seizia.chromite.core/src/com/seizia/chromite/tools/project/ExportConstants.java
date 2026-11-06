@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.tools.project;
+package com.seizia.chromite.tools.project;
 
 /**
  * Import/Export constants

@@ -14,12 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.registry;
+package com.seizia.chromite.registry;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.model.DBFileController;
-import org.jkiss.dbeaver.model.exec.DBCFeatureNotSupportedException;
+import com.seizia.chromite.model.DBFileController;
+import com.seizia.chromite.model.exec.DBCFeatureNotSupportedException;
 
 import java.io.IOException;
 import java.nio.file.Files;

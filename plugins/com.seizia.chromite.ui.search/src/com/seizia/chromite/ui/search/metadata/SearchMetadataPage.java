@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.search.metadata;
+package com.seizia.chromite.ui.search.metadata;
 
 import org.eclipse.jface.viewers.*;
 import org.eclipse.swt.SWT;
@@ -27,23 +27,23 @@ import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.*;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.model.DBPDataSource;
-import org.jkiss.dbeaver.model.DBUtils;
-import org.jkiss.dbeaver.model.app.DBPPlatform;
-import org.jkiss.dbeaver.model.app.DBPProject;
-import org.jkiss.dbeaver.model.navigator.*;
-import org.jkiss.dbeaver.model.preferences.DBPPreferenceStore;
-import org.jkiss.dbeaver.model.runtime.DefaultProgressMonitor;
-import org.jkiss.dbeaver.model.struct.*;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.ui.DBeaverIcons;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.internal.UINavigatorMessages;
-import org.jkiss.dbeaver.ui.navigator.NavigatorUtils;
-import org.jkiss.dbeaver.ui.navigator.database.DatabaseNavigatorTree;
-import org.jkiss.dbeaver.ui.navigator.database.load.TreeNodeSpecial;
-import org.jkiss.dbeaver.ui.search.AbstractSearchPage;
-import org.jkiss.dbeaver.ui.search.internal.UISearchMessages;
+import com.seizia.chromite.model.DBPDataSource;
+import com.seizia.chromite.model.DBUtils;
+import com.seizia.chromite.model.app.DBPPlatform;
+import com.seizia.chromite.model.app.DBPProject;
+import com.seizia.chromite.model.navigator.*;
+import com.seizia.chromite.model.preferences.DBPPreferenceStore;
+import com.seizia.chromite.model.runtime.DefaultProgressMonitor;
+import com.seizia.chromite.model.struct.*;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.ui.SwtIcons;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.internal.UINavigatorMessages;
+import com.seizia.chromite.ui.navigator.NavigatorUtils;
+import com.seizia.chromite.ui.navigator.database.DatabaseNavigatorTree;
+import com.seizia.chromite.ui.navigator.database.load.TreeNodeSpecial;
+import com.seizia.chromite.ui.search.AbstractSearchPage;
+import com.seizia.chromite.ui.search.internal.UISearchMessages;
 import org.jkiss.utils.CommonUtils;
 
 import java.lang.reflect.InvocationTargetException;
@@ -402,7 +402,7 @@ public class SearchMetadataPage extends AbstractSearchPage {
                 TableItem item = new TableItem(typesTable, SWT.NONE);
                 item.setText(objectType.getTypeName());
                 if (objectType.getImage() != null) {
-                    item.setImage(0, DBeaverIcons.getImage(objectType.getImage()));
+                    item.setImage(0, SwtIcons.getImage(objectType.getImage()));
                 }
                 if (!CommonUtils.isEmpty(objectType.getDescription())) {
                     item.setText(1, objectType.getDescription());

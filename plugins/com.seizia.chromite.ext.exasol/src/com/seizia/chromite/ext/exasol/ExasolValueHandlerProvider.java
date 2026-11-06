@@ -14,17 +14,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.exasol;
+package com.seizia.chromite.ext.exasol;
 
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.ext.exasol.model.ExasolGeometryValueHandler;
-import org.jkiss.dbeaver.model.DBPDataKind;
-import org.jkiss.dbeaver.model.DBPDataSource;
-import org.jkiss.dbeaver.model.data.DBDFormatSettings;
-import org.jkiss.dbeaver.model.data.DBDValueHandler;
-import org.jkiss.dbeaver.model.data.DBDValueHandlerProvider;
-import org.jkiss.dbeaver.model.impl.jdbc.data.handlers.JDBCDateTimeValueHandler;
-import org.jkiss.dbeaver.model.struct.DBSTypedObject;
+import com.seizia.chromite.ext.exasol.model.ExasolGeometryValueHandler;
+import com.seizia.chromite.model.DBPDataKind;
+import com.seizia.chromite.model.DBPDataSource;
+import com.seizia.chromite.model.data.DBDFormatSettings;
+import com.seizia.chromite.model.data.DBDValueHandler;
+import com.seizia.chromite.model.data.DBDValueHandlerProvider;
+import com.seizia.chromite.model.impl.jdbc.data.handlers.JDBCDateTimeValueHandler;
+import com.seizia.chromite.model.struct.DBSTypedObject;
 
 public class ExasolValueHandlerProvider implements DBDValueHandlerProvider {
 

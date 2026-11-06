@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.ui.editors.erd;
+package com.seizia.chromite.ui.editors.erd;
 
 import org.eclipse.draw2d.PrintFigureOperation;
 
@@ -24,7 +24,7 @@ import org.eclipse.draw2d.PrintFigureOperation;
  */
 public class ERDUIConstants {
 
-    public static final String ERD_CONTROL_ID = "org.jkiss.dbeaver.erd.ERDEditor";
+    public static final String ERD_CONTROL_ID = "com.seizia.chromite.erd.ERDEditor";
 
     public static final String PREF_PRINT_PAGE_MODE = "erd.print.page-mode";
     public static final String PREF_PRINT_MARGIN_TOP = "erd.print.margin-top";
@@ -46,39 +46,39 @@ public class ERDUIConstants {
     public static final String PREF_GRID_HEIGHT = "erd.grid.height";
     public static final String PREF_LOAD_LAZY_DESCRIPTIONS = "erd.load.lazy.descriptions";
 
-    public static final String PROP_DIAGRAM_FONT = "org.jkiss.dbeaver.erd.diagram.font";
-    public static final String PROP_DIAGRAM_NOTATION_LABEL_FONT = "org.jkiss.dbeaver.erd.diagram.font.notation.label";
+    public static final String PROP_DIAGRAM_FONT = "com.seizia.chromite.erd.diagram.font";
+    public static final String PROP_DIAGRAM_NOTATION_LABEL_FONT = "com.seizia.chromite.erd.diagram.font.notation.label";
 
-    public static final String COLOR_ERD_DIAGRAM_BACKGROUND = "org.jkiss.dbeaver.erd.diagram.background";
-    public static final String COLOR_ERD_ENTITY_PRIMARY_BACKGROUND = "org.jkiss.dbeaver.erd.diagram.entity.primary.background";
-    public static final String COLOR_ERD_ENTITY_ASSOCIATION_BACKGROUND = "org.jkiss.dbeaver.erd.diagram.entity.association.background";
-    public static final String COLOR_ERD_ENTITY_REGULAR_BACKGROUND = "org.jkiss.dbeaver.erd.diagram.entity.regular.background";
-    public static final String COLOR_ERD_ENTITY_NAME_FOREGROUND = "org.jkiss.dbeaver.erd.diagram.entity.name.foreground";
-    public static final String COLOR_ERD_LINES_FOREGROUND = "org.jkiss.dbeaver.erd.diagram.lines.foreground";
-    public static final String COLOR_ERD_ATTR_BACKGROUND = "org.jkiss.dbeaver.erd.diagram.attributes.background";
-    public static final String COLOR_ERD_ATTR_FOREGROUND = "org.jkiss.dbeaver.erd.diagram.attributes.foreground";
-    public static final String COLOR_ERD_SEARCH_HIGHLIGHTING = "org.jkiss.dbeaver.erd.diagram.search.highlighting";
-    public static final String COLOR_ERD_FK_HIGHLIGHTING = "org.jkiss.dbeaver.erd.diagram.fk.highlighting";
-    public static final String COLOR_ERD_NOTE_BACKGROUND = "org.jkiss.dbeaver.erd.diagram.notes.background";
-    public static final String COLOR_ERD_NOTE_FOREGROUND = "org.jkiss.dbeaver.erd.diagram.notes.foreground";
+    public static final String COLOR_ERD_DIAGRAM_BACKGROUND = "com.seizia.chromite.erd.diagram.background";
+    public static final String COLOR_ERD_ENTITY_PRIMARY_BACKGROUND = "com.seizia.chromite.erd.diagram.entity.primary.background";
+    public static final String COLOR_ERD_ENTITY_ASSOCIATION_BACKGROUND = "com.seizia.chromite.erd.diagram.entity.association.background";
+    public static final String COLOR_ERD_ENTITY_REGULAR_BACKGROUND = "com.seizia.chromite.erd.diagram.entity.regular.background";
+    public static final String COLOR_ERD_ENTITY_NAME_FOREGROUND = "com.seizia.chromite.erd.diagram.entity.name.foreground";
+    public static final String COLOR_ERD_LINES_FOREGROUND = "com.seizia.chromite.erd.diagram.lines.foreground";
+    public static final String COLOR_ERD_ATTR_BACKGROUND = "com.seizia.chromite.erd.diagram.attributes.background";
+    public static final String COLOR_ERD_ATTR_FOREGROUND = "com.seizia.chromite.erd.diagram.attributes.foreground";
+    public static final String COLOR_ERD_SEARCH_HIGHLIGHTING = "com.seizia.chromite.erd.diagram.search.highlighting";
+    public static final String COLOR_ERD_FK_HIGHLIGHTING = "com.seizia.chromite.erd.diagram.fk.highlighting";
+    public static final String COLOR_ERD_NOTE_BACKGROUND = "com.seizia.chromite.erd.diagram.notes.background";
+    public static final String COLOR_ERD_NOTE_FOREGROUND = "com.seizia.chromite.erd.diagram.notes.foreground";
 
-    public static final String COLOR_ERD_BORDERS_COLOR_1 = "org.jkiss.dbeaver.ui.presentation.erd.borders.color.1"; //$NON-NLS-1$
-    public static final String COLOR_ERD_BORDERS_COLOR_2 = "org.jkiss.dbeaver.ui.presentation.erd.borders.color.2"; //$NON-NLS-1$
-    public static final String COLOR_ERD_BORDERS_COLOR_3 = "org.jkiss.dbeaver.ui.presentation.erd.borders.color.3"; //$NON-NLS-1$
-    public static final String COLOR_ERD_BORDERS_COLOR_4 = "org.jkiss.dbeaver.ui.presentation.erd.borders.color.4"; //$NON-NLS-1$
-    public static final String COLOR_ERD_BORDERS_COLOR_5 = "org.jkiss.dbeaver.ui.presentation.erd.borders.color.5"; //$NON-NLS-1$
-    public static final String COLOR_ERD_BORDERS_COLOR_6 = "org.jkiss.dbeaver.ui.presentation.erd.borders.color.6"; //$NON-NLS-1$
-    public static final String COLOR_ERD_BORDERS_COLOR_7 = "org.jkiss.dbeaver.ui.presentation.erd.borders.color.7"; //$NON-NLS-1$
+    public static final String COLOR_ERD_BORDERS_COLOR_1 = "com.seizia.chromite.ui.presentation.erd.borders.color.1"; //$NON-NLS-1$
+    public static final String COLOR_ERD_BORDERS_COLOR_2 = "com.seizia.chromite.ui.presentation.erd.borders.color.2"; //$NON-NLS-1$
+    public static final String COLOR_ERD_BORDERS_COLOR_3 = "com.seizia.chromite.ui.presentation.erd.borders.color.3"; //$NON-NLS-1$
+    public static final String COLOR_ERD_BORDERS_COLOR_4 = "com.seizia.chromite.ui.presentation.erd.borders.color.4"; //$NON-NLS-1$
+    public static final String COLOR_ERD_BORDERS_COLOR_5 = "com.seizia.chromite.ui.presentation.erd.borders.color.5"; //$NON-NLS-1$
+    public static final String COLOR_ERD_BORDERS_COLOR_6 = "com.seizia.chromite.ui.presentation.erd.borders.color.6"; //$NON-NLS-1$
+    public static final String COLOR_ERD_BORDERS_COLOR_7 = "com.seizia.chromite.ui.presentation.erd.borders.color.7"; //$NON-NLS-1$
 
-    public static final String COLOR_ERD_HEADER_COLOR_1 = "org.jkiss.dbeaver.ui.presentation.erd.headers.color.1"; //$NON-NLS-1$
-    public static final String COLOR_ERD_HEADER_COLOR_2 = "org.jkiss.dbeaver.ui.presentation.erd.headers.color.2"; //$NON-NLS-1$
-    public static final String COLOR_ERD_HEADER_COLOR_3 = "org.jkiss.dbeaver.ui.presentation.erd.headers.color.3"; //$NON-NLS-1$
-    public static final String COLOR_ERD_HEADER_COLOR_4 = "org.jkiss.dbeaver.ui.presentation.erd.headers.color.4"; //$NON-NLS-1$
-    public static final String COLOR_ERD_HEADER_COLOR_5 = "org.jkiss.dbeaver.ui.presentation.erd.headers.color.5"; //$NON-NLS-1$
-    public static final String COLOR_ERD_HEADER_COLOR_6 = "org.jkiss.dbeaver.ui.presentation.erd.headers.color.6"; //$NON-NLS-1$
-    public static final String COLOR_ERD_HEADER_COLOR_7 = "org.jkiss.dbeaver.ui.presentation.erd.headers.color.7"; //$NON-NLS-1$
+    public static final String COLOR_ERD_HEADER_COLOR_1 = "com.seizia.chromite.ui.presentation.erd.headers.color.1"; //$NON-NLS-1$
+    public static final String COLOR_ERD_HEADER_COLOR_2 = "com.seizia.chromite.ui.presentation.erd.headers.color.2"; //$NON-NLS-1$
+    public static final String COLOR_ERD_HEADER_COLOR_3 = "com.seizia.chromite.ui.presentation.erd.headers.color.3"; //$NON-NLS-1$
+    public static final String COLOR_ERD_HEADER_COLOR_4 = "com.seizia.chromite.ui.presentation.erd.headers.color.4"; //$NON-NLS-1$
+    public static final String COLOR_ERD_HEADER_COLOR_5 = "com.seizia.chromite.ui.presentation.erd.headers.color.5"; //$NON-NLS-1$
+    public static final String COLOR_ERD_HEADER_COLOR_6 = "com.seizia.chromite.ui.presentation.erd.headers.color.6"; //$NON-NLS-1$
+    public static final String COLOR_ERD_HEADER_COLOR_7 = "com.seizia.chromite.ui.presentation.erd.headers.color.7"; //$NON-NLS-1$
 
-    public static final String CMD_SAVE_AS = "org.jkiss.dbeaver.erd.diagram.saveAs";
+    public static final String CMD_SAVE_AS = "com.seizia.chromite.erd.diagram.saveAs";
     public static final String CONFIRM_OPEN_EXPORTED_FILE = "erd_open_exported_file";
 
     public static final int DEFAULT_NOTE_BORDER_WIDTH = 1;
@@ -89,6 +89,6 @@ public class ERDUIConstants {
     public static final String ATTR_ERD_ROUTER = "router"; //$NON-NLS-1$
     public static final String ATTR_ERD_CONNECTION = "connection"; //$NON-NLS-1$
 
-    public static final String PREF_DEFAULT_ATTR_ERD_ROUTER_ID = "org.jkiss.dbeaver.erd.router.shortest.path"; //$NON-NLS-1$
-    public static final String PREF_DEFAULT_ATTR_ERD_NOTATION_ID = "org.jkiss.dbeaver.erd.notaion.idef1x"; //$NON-NLS-1$
+    public static final String PREF_DEFAULT_ATTR_ERD_ROUTER_ID = "com.seizia.chromite.erd.router.shortest.path"; //$NON-NLS-1$
+    public static final String PREF_DEFAULT_ATTR_ERD_NOTATION_ID = "com.seizia.chromite.erd.notaion.idef1x"; //$NON-NLS-1$
 }

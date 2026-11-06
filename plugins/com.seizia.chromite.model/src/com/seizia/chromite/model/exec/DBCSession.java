@@ -14,13 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.exec;
+package com.seizia.chromite.model.exec;
 
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.model.DBPCloseableObject;
-import org.jkiss.dbeaver.model.DBPDataSource;
-import org.jkiss.dbeaver.model.data.DBDFormatSettings;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.model.DBPCloseableObject;
+import com.seizia.chromite.model.DBPDataSource;
+import com.seizia.chromite.model.data.DBDFormatSettings;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
 
 /**
  * Execution session

@@ -15,14 +15,14 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.tools.transfer.stream.model;
+package com.seizia.chromite.tools.transfer.stream.model;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.model.DBPDataSource;
-import org.jkiss.dbeaver.model.exec.*;
-import org.jkiss.dbeaver.model.impl.AbstractSession;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.model.DBPDataSource;
+import com.seizia.chromite.model.exec.*;
+import com.seizia.chromite.model.impl.AbstractSession;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
 
 /**
  * Stream session

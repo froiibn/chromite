@@ -15,15 +15,15 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.ext.gbase8s;
+package com.seizia.chromite.ext.gbase8s;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.ext.gbase8s.model.GBase8sDataSource;
-import org.jkiss.dbeaver.ext.gbase8s.model.meta.GBase8sMetaModel;
-import org.jkiss.dbeaver.ext.generic.GenericDataSourceProvider;
-import org.jkiss.dbeaver.model.DBPDataSourceContainer;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.ext.gbase8s.model.GBase8sDataSource;
+import com.seizia.chromite.ext.gbase8s.model.meta.GBase8sMetaModel;
+import com.seizia.chromite.ext.generic.GenericDataSourceProvider;
+import com.seizia.chromite.model.DBPDataSourceContainer;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
 
 /**
  * @author Chao Tian

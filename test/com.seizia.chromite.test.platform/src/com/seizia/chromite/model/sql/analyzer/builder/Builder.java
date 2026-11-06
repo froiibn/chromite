@@ -14,12 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.sql.analyzer.builder;
+package com.seizia.chromite.model.sql.analyzer.builder;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.model.DBPDataSource;
-import org.jkiss.dbeaver.model.struct.DBSObject;
+import com.seizia.chromite.model.DBPDataSource;
+import com.seizia.chromite.model.struct.DBSObject;
 
 import java.util.ArrayList;
 import java.util.List;

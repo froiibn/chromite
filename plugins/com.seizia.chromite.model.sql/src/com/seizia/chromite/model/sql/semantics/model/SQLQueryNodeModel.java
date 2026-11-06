@@ -14,17 +14,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.sql.semantics.model;
+package com.seizia.chromite.model.sql.semantics.model;
 
 import org.antlr.v4.runtime.misc.Interval;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.model.sql.semantics.SQLQueryLexicalScope;
-import org.jkiss.dbeaver.model.sql.semantics.SQLQuerySymbolClass;
-import org.jkiss.dbeaver.model.sql.semantics.SQLQuerySymbolOrigin;
-import org.jkiss.dbeaver.model.stm.STMTreeNode;
-import org.jkiss.dbeaver.model.stm.STMUtils;
-import org.jkiss.dbeaver.utils.ListNode;
+import com.seizia.chromite.model.sql.semantics.SQLQueryLexicalScope;
+import com.seizia.chromite.model.sql.semantics.SQLQuerySymbolClass;
+import com.seizia.chromite.model.sql.semantics.SQLQuerySymbolOrigin;
+import com.seizia.chromite.model.stm.STMTreeNode;
+import com.seizia.chromite.model.stm.STMUtils;
+import com.seizia.chromite.utils.ListNode;
 
 import java.util.*;
 import java.util.function.BiConsumer;

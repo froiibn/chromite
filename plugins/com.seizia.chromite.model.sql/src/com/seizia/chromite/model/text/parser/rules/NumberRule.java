@@ -14,13 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.text.parser.rules;
+package com.seizia.chromite.model.text.parser.rules;
 
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.model.text.parser.TPCharacterScanner;
-import org.jkiss.dbeaver.model.text.parser.TPRule;
-import org.jkiss.dbeaver.model.text.parser.TPToken;
-import org.jkiss.dbeaver.model.text.parser.TPTokenAbstract;
+import com.seizia.chromite.model.text.parser.TPCharacterScanner;
+import com.seizia.chromite.model.text.parser.TPRule;
+import com.seizia.chromite.model.text.parser.TPToken;
+import com.seizia.chromite.model.text.parser.TPTokenAbstract;
 import org.jkiss.utils.CommonUtils;
 
 

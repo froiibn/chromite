@@ -15,12 +15,12 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.ext.db2;
+package com.seizia.chromite.ext.db2;
 
 import org.eclipse.osgi.util.NLS;
 
 public class DB2Messages extends NLS {
-    static final String BUNDLE_NAME = "org.jkiss.dbeaver.ext.db2.DB2Resources"; //$NON-NLS-1$
+    static final String BUNDLE_NAME = "com.seizia.chromite.ext.db2.DB2Resources"; //$NON-NLS-1$
 
     public static String dialog_explain_no_tables;
     public static String dialog_explain_no_tables_found_ex;

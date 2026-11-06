@@ -14,9 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.dashboard.view;
+package com.seizia.chromite.ui.dashboard.view;
 
-import org.jkiss.dbeaver.ui.dnd.LocalObjectTransfer;
+import com.seizia.chromite.ui.dnd.LocalObjectTransfer;
 
 import java.util.List;
 

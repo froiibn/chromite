@@ -1,17 +1,17 @@
 Manifest-Version: 1.0
 Bundle-ManifestVersion: 2
 Bundle-Name: Chromite Snowflake Model
-Bundle-SymbolicName: org.jkiss.dbeaver.ext.snowflake;singleton:=true
+Bundle-SymbolicName: com.seizia.chromite.ext.snowflake;singleton:=true
 Bundle-Version: 1.0.211.qualifier
 Bundle-Release-Date: 20261116
-Bundle-Vendor: DBeaver Corp
+Bundle-Vendor: Chromite contributors
 Bundle-RequiredExecutionEnvironment: JavaSE-21
 Bundle-ActivationPolicy: lazy
-Bundle-Activator: org.jkiss.dbeaver.ext.snowflake.internal.SnowflakeActivator
-Require-Bundle: org.jkiss.dbeaver.model.sql;visibility:=reexport,
- org.jkiss.dbeaver.ext.generic;visibility:=reexport
-Export-Package: org.jkiss.dbeaver.ext.snowflake,
- org.jkiss.dbeaver.ext.snowflake.model,
- org.jkiss.dbeaver.ext.snowflake.model.auth
+Bundle-Activator: com.seizia.chromite.ext.snowflake.internal.SnowflakeActivator
+Require-Bundle: com.seizia.chromite.model.sql;visibility:=reexport,
+ com.seizia.chromite.ext.generic;visibility:=reexport
+Export-Package: com.seizia.chromite.ext.snowflake,
+ com.seizia.chromite.ext.snowflake.model,
+ com.seizia.chromite.ext.snowflake.model.auth
 Bundle-Localization: OSGI-INF/l10n/bundle
-Automatic-Module-Name: org.jkiss.dbeaver.ext.snowflake
+Automatic-Module-Name: com.seizia.chromite.ext.snowflake

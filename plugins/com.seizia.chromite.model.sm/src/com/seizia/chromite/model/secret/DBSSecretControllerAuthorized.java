@@ -15,12 +15,12 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.model.secret;
+package com.seizia.chromite.model.secret;
 
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.model.auth.SMCredentialsProvider;
-import org.jkiss.dbeaver.model.auth.SMSessionContext;
+import com.seizia.chromite.model.auth.SMCredentialsProvider;
+import com.seizia.chromite.model.auth.SMSessionContext;
 
 /**
  * Secret controller associated with authorized principal

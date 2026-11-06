@@ -14,11 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.postgresql.model.data.type;
+package com.seizia.chromite.ext.postgresql.model.data.type;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.ext.postgresql.model.PostgreDataType;
+import com.seizia.chromite.ext.postgresql.model.PostgreDataType;
 
 /**
  * Handler for types that don't support modifiers.

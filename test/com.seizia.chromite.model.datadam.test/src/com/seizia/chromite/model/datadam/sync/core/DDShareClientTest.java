@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.datadam.sync.core;
+package com.seizia.chromite.model.datadam.sync.core;
 
 import com.dbeaver.datadam.share.api.exception.DDShareException;
 import com.google.gson.JsonObject;
@@ -22,8 +22,8 @@ import com.google.gson.JsonParser;
 import com.sun.net.httpserver.HttpServer;
 import org.jkiss.code.NotNull;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.model.datadam.auth.DDCrypto;
-import org.jkiss.dbeaver.model.datadam.auth.desktop.DDDesktopAccessService;
+import com.seizia.chromite.model.datadam.auth.DDCrypto;
+import com.seizia.chromite.model.datadam.auth.desktop.DDDesktopAccessService;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;

@@ -14,22 +14,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.altibase.model.plan;
+package com.seizia.chromite.ext.altibase.model.plan;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.ext.altibase.AltibaseConstants;
-import org.jkiss.dbeaver.ext.altibase.AltibaseConstants.ExplainPlan;
-import org.jkiss.dbeaver.ext.altibase.model.AltibaseDataSource;
-import org.jkiss.dbeaver.ext.altibase.model.AltibaseDataTypeDomain;
-import org.jkiss.dbeaver.model.exec.DBCException;
-import org.jkiss.dbeaver.model.exec.jdbc.JDBCPreparedStatement;
-import org.jkiss.dbeaver.model.exec.jdbc.JDBCSession;
-import org.jkiss.dbeaver.model.exec.plan.DBCPlanNode;
-import org.jkiss.dbeaver.model.exec.plan.DBCPlanSourceFormat;
-import org.jkiss.dbeaver.model.impl.plan.AbstractExecutionPlan;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.ext.altibase.AltibaseConstants;
+import com.seizia.chromite.ext.altibase.AltibaseConstants.ExplainPlan;
+import com.seizia.chromite.ext.altibase.model.AltibaseDataSource;
+import com.seizia.chromite.ext.altibase.model.AltibaseDataTypeDomain;
+import com.seizia.chromite.model.exec.DBCException;
+import com.seizia.chromite.model.exec.jdbc.JDBCPreparedStatement;
+import com.seizia.chromite.model.exec.jdbc.JDBCSession;
+import com.seizia.chromite.model.exec.plan.DBCPlanNode;
+import com.seizia.chromite.model.exec.plan.DBCPlanSourceFormat;
+import com.seizia.chromite.model.impl.plan.AbstractExecutionPlan;
 
 import java.lang.reflect.Method;
 import java.sql.Connection;

@@ -15,21 +15,21 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.model.app;
+package com.seizia.chromite.model.app;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.model.*;
-import org.jkiss.dbeaver.model.access.DBAAuthProfile;
-import org.jkiss.dbeaver.model.access.DBACredentialsProvider;
-import org.jkiss.dbeaver.model.connection.DBPConnectionConfiguration;
-import org.jkiss.dbeaver.model.connection.DBPDriver;
-import org.jkiss.dbeaver.model.net.DBWNetworkProfile;
-import org.jkiss.dbeaver.model.net.DBWNetworkProfileManager;
-import org.jkiss.dbeaver.model.preferences.DBPPreferenceStore;
-import org.jkiss.dbeaver.model.secret.DBPSecretHolder;
-import org.jkiss.dbeaver.model.struct.DBSObjectFilter;
+import com.seizia.chromite.model.*;
+import com.seizia.chromite.model.access.DBAAuthProfile;
+import com.seizia.chromite.model.access.DBACredentialsProvider;
+import com.seizia.chromite.model.connection.DBPConnectionConfiguration;
+import com.seizia.chromite.model.connection.DBPDriver;
+import com.seizia.chromite.model.net.DBWNetworkProfile;
+import com.seizia.chromite.model.net.DBWNetworkProfileManager;
+import com.seizia.chromite.model.preferences.DBPPreferenceStore;
+import com.seizia.chromite.model.secret.DBPSecretHolder;
+import com.seizia.chromite.model.struct.DBSObjectFilter;
 
 import java.util.Collection;
 import java.util.List;
@@ -48,7 +48,7 @@ public interface DBPDataSourceRegistry extends DBPObject, DBPSecretHolder {
     String CREDENTIALS_CONFIG_FILE_EXT = ".json"; //$NON-NLS-1$
     String CREDENTIALS_CONFIG_FILE_NAME = CREDENTIALS_CONFIG_FILE_PREFIX + CREDENTIALS_CONFIG_FILE_EXT;
 
-    String LEGACY_CONFIG_FILE_PREFIX = ".dbeaver-data-sources"; //$NON-NLS-1$
+    String LEGACY_CONFIG_FILE_PREFIX = ".chromite-data-sources"; //$NON-NLS-1$
     String LEGACY_CONFIG_FILE_EXT = ".xml"; //$NON-NLS-1$
     String LEGACY_CONFIG_FILE_NAME = LEGACY_CONFIG_FILE_PREFIX + LEGACY_CONFIG_FILE_EXT;
     String LEGACY2_CONFIG_FILE_NAME = "data-sources.xml"; //$NON-NLS-1$

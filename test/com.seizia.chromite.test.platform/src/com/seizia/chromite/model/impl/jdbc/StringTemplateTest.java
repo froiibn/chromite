@@ -14,21 +14,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.impl.jdbc;
+package com.seizia.chromite.model.impl.jdbc;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.model.DBConstants;
-import org.jkiss.dbeaver.model.DatabaseURL;
-import org.jkiss.dbeaver.model.StringTemplate;
-import org.jkiss.junit.DBeaverUnitTest;
+import com.seizia.chromite.model.DBConstants;
+import com.seizia.chromite.model.DatabaseURL;
+import com.seizia.chromite.model.StringTemplate;
+import com.seizia.chromite.junit.ChromiteUnitTest;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import java.util.*;
 import java.util.stream.Collectors;
 
-public class StringTemplateTest extends DBeaverUnitTest {
+public class StringTemplateTest extends ChromiteUnitTest {
     private static final String URL_TEMPLATE = "[jdbc:]{driver}://[{user}:{password}@]{host}[:{port}][/{database}]";
     private static final String URL_TEMPLATE_WITH_PARAMS =
         URL_TEMPLATE + "[?{prop}={value}[&{prop}={value}...]]";

@@ -14,11 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.editors.text.handlers;
+package com.seizia.chromite.ui.editors.text.handlers;
 
 import org.eclipse.jface.text.*;
 import org.eclipse.jface.viewers.ISelectionProvider;
-import org.jkiss.dbeaver.ui.ICommentsSupport;
+import com.seizia.chromite.ui.ICommentsSupport;
 import org.jkiss.utils.Pair;
 
 public final class ToggleMultiLineCommentHandler extends AbstractCommentHandler {

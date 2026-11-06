@@ -15,11 +15,11 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.model.exec;
+package com.seizia.chromite.model.exec;
 
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.model.DBUtils;
-import org.jkiss.dbeaver.model.sql.SQLUtils;
+import com.seizia.chromite.model.DBUtils;
+import com.seizia.chromite.model.sql.SQLUtils;
 import org.jkiss.utils.ArrayUtils;
 
 /**

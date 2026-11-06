@@ -14,13 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.navigator.project;
+package com.seizia.chromite.ui.navigator.project;
 
 import org.eclipse.core.runtime.Platform;
 import org.jkiss.code.NotNull;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.navigator.DBNProject;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.navigator.DBNProject;
 
 public final class ProjectVisibility {
     private static final Log log = Log.getLog(ProjectVisibility.class);

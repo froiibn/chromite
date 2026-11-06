@@ -14,22 +14,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.connection;
+package com.seizia.chromite.model.connection;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.DBPObject;
-import org.jkiss.dbeaver.model.access.DBAAuthCredentials;
-import org.jkiss.dbeaver.model.access.DBAAuthModel;
-import org.jkiss.dbeaver.model.impl.auth.AuthModelDatabaseNative;
-import org.jkiss.dbeaver.model.net.DBWHandlerConfiguration;
-import org.jkiss.dbeaver.model.net.DBWNetworkProfile;
-import org.jkiss.dbeaver.model.runtime.DBRShellCommand;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.runtime.IVariableResolver;
-import org.jkiss.dbeaver.utils.GeneralUtils;
-import org.jkiss.dbeaver.utils.SystemVariablesResolver;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.DBPObject;
+import com.seizia.chromite.model.access.DBAAuthCredentials;
+import com.seizia.chromite.model.access.DBAAuthModel;
+import com.seizia.chromite.model.impl.auth.AuthModelDatabaseNative;
+import com.seizia.chromite.model.net.DBWHandlerConfiguration;
+import com.seizia.chromite.model.net.DBWNetworkProfile;
+import com.seizia.chromite.model.runtime.DBRShellCommand;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.runtime.IVariableResolver;
+import com.seizia.chromite.utils.GeneralUtils;
+import com.seizia.chromite.utils.SystemVariablesResolver;
 import org.jkiss.utils.ArrayUtils;
 import org.jkiss.utils.CommonUtils;
 
@@ -79,7 +79,7 @@ public class DBPConnectionConfiguration implements DBPObject {
 
         {SystemVariablesResolver.VAR_WORKSPACE, "workspace path"},
         {SystemVariablesResolver.VAR_HOME, "OS user home path"},
-        {SystemVariablesResolver.VAR_DBEAVER_HOME, "application install path"},
+        {SystemVariablesResolver.VAR_CHROMITE_HOME, "application install path"},
         {SystemVariablesResolver.VAR_APP_PATH, "application install path"},
         {SystemVariablesResolver.VAR_APP_NAME, "application name"},
         {SystemVariablesResolver.VAR_APP_VERSION, "application version"},

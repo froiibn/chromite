@@ -8,7 +8,7 @@
  * Contributors:
  *     Tasktop Technologies - initial API and implementation
  *******************************************************************************/
-package org.jkiss.dbeaver.ui.notifications;
+package com.seizia.chromite.ui.notifications;
 
 import org.eclipse.jface.action.LegacyActionTools;
 import org.eclipse.jface.layout.GridDataFactory;
@@ -26,7 +26,7 @@ import org.eclipse.ui.IWorkbenchWindow;
 import org.eclipse.ui.PlatformUI;
 import org.eclipse.ui.forms.events.HyperlinkAdapter;
 import org.eclipse.ui.forms.events.HyperlinkEvent;
-import org.jkiss.dbeaver.ui.internal.UIMessages;
+import com.seizia.chromite.ui.internal.UIMessages;
 import org.jkiss.utils.CommonUtils;
 
 import java.util.ArrayList;
@@ -36,7 +36,7 @@ import java.util.List;
  * @author Rob Elves
  * @author Mik Kersten
  */
-public class DBeaverNotificationPopup extends AbstractWorkbenchNotificationPopup {
+public class ChromiteNotificationPopup extends AbstractWorkbenchNotificationPopup {
 
     private static final int NUM_NOTIFICATIONS_TO_DISPLAY = 4;
 
@@ -46,7 +46,7 @@ public class DBeaverNotificationPopup extends AbstractWorkbenchNotificationPopup
 
     private Composite parent;
 
-    DBeaverNotificationPopup(Shell parent) {
+    ChromiteNotificationPopup(Shell parent) {
         super(parent.getDisplay());
     }
 

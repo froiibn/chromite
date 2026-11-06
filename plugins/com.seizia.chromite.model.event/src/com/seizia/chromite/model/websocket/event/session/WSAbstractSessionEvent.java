@@ -14,10 +14,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.websocket.event.session;
+package com.seizia.chromite.model.websocket.event.session;
 
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.model.websocket.event.WSAbstractEvent;
+import com.seizia.chromite.model.websocket.event.WSAbstractEvent;
 
 public class WSAbstractSessionEvent extends WSAbstractEvent {
     protected WSAbstractSessionEvent(@NotNull String eventId, @NotNull String topicId) {

@@ -14,10 +14,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.db2.i;
+package com.seizia.chromite.ext.db2.i;
 
-import org.jkiss.dbeaver.ext.db2.i.model.DB2IDataSource;
-import org.jkiss.dbeaver.ext.generic.GenericDataSourceProvider;
+import com.seizia.chromite.ext.db2.i.model.DB2IDataSource;
+import com.seizia.chromite.ext.generic.GenericDataSourceProvider;
 
 public class DB2IDataSourceProvider extends GenericDataSourceProvider<DB2IDataSource> {
 

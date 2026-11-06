@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.services;
+package com.seizia.chromite.ui.services;
 
 import org.eclipse.jface.dialogs.IDialogConstants;
 import org.eclipse.jface.layout.GridDataFactory;
@@ -27,13 +27,13 @@ import org.eclipse.swt.widgets.Shell;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.core.CoreMessages;
-import org.jkiss.dbeaver.model.preferences.ConfirmedShellCommandsStore;
-import org.jkiss.dbeaver.model.runtime.DBRShellCommand;
-import org.jkiss.dbeaver.model.runtime.RunnableWithResult;
-import org.jkiss.dbeaver.runtime.ui.UIServiceShellCommands;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.dialogs.BaseDialog;
+import com.seizia.chromite.core.CoreMessages;
+import com.seizia.chromite.model.preferences.ConfirmedShellCommandsStore;
+import com.seizia.chromite.model.runtime.DBRShellCommand;
+import com.seizia.chromite.model.runtime.RunnableWithResult;
+import com.seizia.chromite.runtime.ui.UIServiceShellCommands;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.dialogs.BaseDialog;
 
 import java.util.Map;
 

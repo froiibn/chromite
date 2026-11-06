@@ -15,19 +15,19 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.model.app;
+package com.seizia.chromite.model.app;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.model.DBPAdaptable;
-import org.jkiss.dbeaver.model.DBPImage;
-import org.jkiss.dbeaver.model.access.DBAPermissionRealm;
-import org.jkiss.dbeaver.model.auth.SMAuthSpace;
-import org.jkiss.dbeaver.model.auth.SMSession;
-import org.jkiss.dbeaver.model.auth.SMSessionContext;
-import org.jkiss.dbeaver.model.fs.DBFFileSystemContainer;
-import org.jkiss.dbeaver.model.rm.RMConstants;
+import com.seizia.chromite.model.DBPAdaptable;
+import com.seizia.chromite.model.DBPImage;
+import com.seizia.chromite.model.access.DBAPermissionRealm;
+import com.seizia.chromite.model.auth.SMAuthSpace;
+import com.seizia.chromite.model.auth.SMSession;
+import com.seizia.chromite.model.auth.SMSessionContext;
+import com.seizia.chromite.model.fs.DBFFileSystemContainer;
+import com.seizia.chromite.model.rm.RMConstants;
 
 import java.nio.file.Path;
 import java.util.List;

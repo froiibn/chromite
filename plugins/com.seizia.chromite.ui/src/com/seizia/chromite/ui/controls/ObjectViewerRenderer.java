@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.controls;
+package com.seizia.chromite.ui.controls;
 
 import org.eclipse.jface.resource.JFaceColors;
 import org.eclipse.jface.util.IPropertyChangeListener;
@@ -29,17 +29,17 @@ import org.eclipse.swt.graphics.*;
 import org.eclipse.swt.widgets.*;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.model.DBPNamedObject;
-import org.jkiss.dbeaver.model.DBPNamedValueObject;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.ui.DBeaverIcons;
-import org.jkiss.dbeaver.ui.UIElementAlignment;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.controls.bool.BooleanMode;
-import org.jkiss.dbeaver.ui.controls.bool.BooleanStyle;
-import org.jkiss.dbeaver.ui.controls.bool.BooleanStyleSet;
-import org.jkiss.dbeaver.utils.GeneralUtils;
-import org.jkiss.dbeaver.utils.RuntimeUtils;
+import com.seizia.chromite.model.DBPNamedObject;
+import com.seizia.chromite.model.DBPNamedValueObject;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.ui.SwtIcons;
+import com.seizia.chromite.ui.UIElementAlignment;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.controls.bool.BooleanMode;
+import com.seizia.chromite.ui.controls.bool.BooleanStyle;
+import com.seizia.chromite.ui.controls.bool.BooleanStyleSet;
+import com.seizia.chromite.utils.GeneralUtils;
+import com.seizia.chromite.utils.RuntimeUtils;
 import org.jkiss.utils.CommonUtils;
 
 /**
@@ -262,7 +262,7 @@ public abstract class ObjectViewerRenderer {
 //                        (boolValue ? ImageUtils.getImageCheckboxEnabledOn() : ImageUtils.getImageCheckboxEnabledOff()) :
 //                        (boolValue ? ImageUtils.getImageCheckboxDisabledOn() : ImageUtils.getImageCheckboxDisabledOff());
                     final boolean disabled = event.widget instanceof Control && !((Control) event.widget).isEnabled();
-                    Image image = DBeaverIcons.getImage(booleanStyle.getIcon());
+                    Image image = SwtIcons.getImage(booleanStyle.getIcon());
                     if (disabled) {
                         image = new Image(image.getDevice(), image, SWT.IMAGE_GRAY);
                     }

@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.ai.engine.copilot;
+package com.seizia.chromite.ui.ai.engine.copilot;
 
 
 import org.eclipse.jface.layout.GridDataFactory;
@@ -29,21 +29,21 @@ import org.eclipse.swt.widgets.Text;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.ai.engine.AIEngineProperties;
-import org.jkiss.dbeaver.model.ai.engine.AIModel;
-import org.jkiss.dbeaver.model.ai.engine.AIModelFeature;
-import org.jkiss.dbeaver.model.ai.engine.copilot.*;
-import org.jkiss.dbeaver.model.ai.registry.AIEngineDescriptor;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.runtime.ui.UIServiceAuth;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.ai.internal.AIUIMessages;
-import org.jkiss.dbeaver.ui.ai.model.CachedValue;
-import org.jkiss.dbeaver.ui.ai.model.ContextWindowSizeField;
-import org.jkiss.dbeaver.ui.ai.model.ModelSelectorField;
-import org.jkiss.dbeaver.ui.ai.preferences.AbstractAIEngineConfigurator;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.ai.engine.AIEngineProperties;
+import com.seizia.chromite.model.ai.engine.AIModel;
+import com.seizia.chromite.model.ai.engine.AIModelFeature;
+import com.seizia.chromite.model.ai.engine.copilot.*;
+import com.seizia.chromite.model.ai.registry.AIEngineDescriptor;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.runtime.ui.UIServiceAuth;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.ai.internal.AIUIMessages;
+import com.seizia.chromite.ui.ai.model.CachedValue;
+import com.seizia.chromite.ui.ai.model.ContextWindowSizeField;
+import com.seizia.chromite.ui.ai.model.ModelSelectorField;
+import com.seizia.chromite.ui.ai.preferences.AbstractAIEngineConfigurator;
 import org.jkiss.utils.CommonUtils;
 
 import java.net.URI;

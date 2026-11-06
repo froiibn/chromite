@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.datadam.sync.project.sync;
+package com.seizia.chromite.model.datadam.sync.project.sync;
 
 import com.dbeaver.datadam.share.api.exception.DDShareException;
 import com.dbeaver.datadam.share.api.model.DDSharedProject;
@@ -23,12 +23,12 @@ import com.dbeaver.datadam.share.api.utils.DDFingerprintUtils;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.app.DBPProject;
-import org.jkiss.dbeaver.model.datadam.sync.core.DDShareClient;
-import org.jkiss.dbeaver.model.datadam.sync.core.DDSharedProjectPullResult;
-import org.jkiss.dbeaver.model.datadam.sync.core.PreparedFiles;
-import org.jkiss.dbeaver.model.datadam.sync.project.DDProjectSyncUtils;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.app.DBPProject;
+import com.seizia.chromite.model.datadam.sync.core.DDShareClient;
+import com.seizia.chromite.model.datadam.sync.core.DDSharedProjectPullResult;
+import com.seizia.chromite.model.datadam.sync.core.PreparedFiles;
+import com.seizia.chromite.model.datadam.sync.project.DDProjectSyncUtils;
 import org.jkiss.utils.Pair;
 
 import java.util.LinkedHashMap;

@@ -14,13 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.dialogs;
+package com.seizia.chromite.ui.dialogs;
 
 import org.eclipse.jface.util.IPropertyChangeListener;
 import org.eclipse.jface.wizard.IWizard;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.model.connection.DBPDriverSubstitutionDescriptor;
+import com.seizia.chromite.model.connection.DBPDriverSubstitutionDescriptor;
 
 public interface IConnectionWizard extends IWizard {
     String PROP_CONNECTION_SAVED = "connection-saved";

@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.tools.registry;
+package com.seizia.chromite.tools.registry;
 
 import org.eclipse.core.runtime.IConfigurationElement;
 import org.eclipse.core.runtime.IExtensionRegistry;
@@ -29,7 +29,7 @@ import java.util.Map;
 
 public class ToolsRegistry
 {
-    public static final String EXTENSION_ID = "org.jkiss.dbeaver.tools"; //$NON-NLS-1$
+    public static final String EXTENSION_ID = "com.seizia.chromite.tools"; //$NON-NLS-1$
 
     static final String TAG_TOOLS = "tools"; //$NON-NLS-1$
     static final String TAG_TOOL = "tool"; //$NON-NLS-1$

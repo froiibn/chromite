@@ -15,11 +15,11 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.ext.gbase8s.model;
+package com.seizia.chromite.ext.gbase8s.model;
 
-import org.jkiss.dbeaver.ext.generic.model.*;
-import org.jkiss.dbeaver.model.meta.Property;
-import org.jkiss.dbeaver.model.struct.rdb.DBSProcedureType;
+import com.seizia.chromite.ext.generic.model.*;
+import com.seizia.chromite.model.meta.Property;
+import com.seizia.chromite.model.struct.rdb.DBSProcedureType;
 
 /**
  * @author Chao Tian

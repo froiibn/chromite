@@ -14,11 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.controls.resultset.panel.references;
+package com.seizia.chromite.ui.controls.resultset.panel.references;
 
 import org.eclipse.jface.action.IContributionManager;
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.ui.controls.resultset.QueryResultsDecorator;
+import com.seizia.chromite.ui.controls.resultset.QueryResultsDecorator;
 
 /**
  * Decorator for grouping panel

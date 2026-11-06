@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.ui.editors.sql;
+package com.seizia.chromite.ui.editors.sql;
 
 import org.eclipse.jface.text.*;
 import org.eclipse.jface.text.hyperlink.IHyperlinkPresenter;
@@ -33,10 +33,10 @@ import org.eclipse.swt.graphics.Point;
 import org.eclipse.swt.widgets.Composite;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.preferences.DBPPreferenceStore;
-import org.jkiss.dbeaver.ui.contentassist.ContentAssistUtils.ProposalActivationKey;
-import org.jkiss.dbeaver.ui.editors.sql.syntax.SQLContentAssistant;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.preferences.DBPPreferenceStore;
+import com.seizia.chromite.ui.contentassist.ContentAssistUtils.ProposalActivationKey;
+import com.seizia.chromite.ui.editors.sql.syntax.SQLContentAssistant;
 
 import java.util.Iterator;
 import java.util.LinkedList;

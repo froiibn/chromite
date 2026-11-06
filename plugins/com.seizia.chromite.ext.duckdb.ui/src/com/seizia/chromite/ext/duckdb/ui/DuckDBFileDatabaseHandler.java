@@ -14,11 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.duckdb.ui;
+package com.seizia.chromite.ext.duckdb.ui;
 
 import org.jkiss.api.CompositeObjectId;
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.ui.actions.AbstractFileDatabaseHandler;
+import com.seizia.chromite.ui.actions.AbstractFileDatabaseHandler;
 
 import java.nio.file.Path;
 import java.util.List;

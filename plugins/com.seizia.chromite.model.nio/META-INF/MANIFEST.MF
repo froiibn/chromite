@@ -1,12 +1,12 @@
 Manifest-Version: 1.0
 Bundle-ManifestVersion: 2
-Bundle-Vendor: DBeaver Corp
+Bundle-Vendor: Chromite contributors
 Bundle-Name: Chromite NIO Model
-Bundle-SymbolicName: org.jkiss.dbeaver.model.nio;singleton:=true
+Bundle-SymbolicName: com.seizia.chromite.model.nio;singleton:=true
 Bundle-Version: 1.0.75.qualifier
 Bundle-Release-Date: 20261116
 Bundle-RequiredExecutionEnvironment: JavaSE-21
 Bundle-ActivationPolicy: lazy
-Export-Package: org.jkiss.dbeaver.model.nio
+Export-Package: com.seizia.chromite.model.nio
 Require-Bundle: org.jkiss.utils;visibility:=reexport
-Automatic-Module-Name: org.jkiss.dbeaver.model.nio
+Automatic-Module-Name: com.seizia.chromite.model.nio

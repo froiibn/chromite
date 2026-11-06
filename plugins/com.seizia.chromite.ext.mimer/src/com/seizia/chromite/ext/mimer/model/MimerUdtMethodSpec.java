@@ -14,24 +14,24 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.mimer.model;
+package com.seizia.chromite.ext.mimer.model;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.model.DBPSaveableObject;
-import org.jkiss.dbeaver.model.DBPStatefulObject;
-import org.jkiss.dbeaver.model.exec.jdbc.JDBCResultSet;
-import org.jkiss.dbeaver.model.exec.jdbc.JDBCSession;
-import org.jkiss.dbeaver.model.exec.jdbc.JDBCStatement;
-import org.jkiss.dbeaver.model.impl.jdbc.JDBCUtils;
-import org.jkiss.dbeaver.model.impl.jdbc.cache.JDBCObjectCache;
-import org.jkiss.dbeaver.model.meta.Association;
-import org.jkiss.dbeaver.model.meta.Property;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.model.struct.DBSObject;
-import org.jkiss.dbeaver.model.struct.DBSObjectState;
-import org.jkiss.dbeaver.model.struct.DBSObjectWithScript;
+import com.seizia.chromite.model.DBPSaveableObject;
+import com.seizia.chromite.model.DBPStatefulObject;
+import com.seizia.chromite.model.exec.jdbc.JDBCResultSet;
+import com.seizia.chromite.model.exec.jdbc.JDBCSession;
+import com.seizia.chromite.model.exec.jdbc.JDBCStatement;
+import com.seizia.chromite.model.impl.jdbc.JDBCUtils;
+import com.seizia.chromite.model.impl.jdbc.cache.JDBCObjectCache;
+import com.seizia.chromite.model.meta.Association;
+import com.seizia.chromite.model.meta.Property;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.model.struct.DBSObject;
+import com.seizia.chromite.model.struct.DBSObjectState;
+import com.seizia.chromite.model.struct.DBSObjectWithScript;
 import org.jkiss.utils.CommonUtils;
 
 import java.sql.SQLException;
@@ -50,7 +50,7 @@ import java.util.Map;
  * .../SQL_Statements/ALTER_TYPE.htm} and {@code .../udts/udts.htm}). First, {@code ALTER TYPE
  * "s"."t" ADD [CONSTRUCTOR|INSTANCE|STATIC] METHOD "name"(params) RETURNS &lt;type&gt; ...}
  * declares just the signature - creating this class, via {@link
- * org.jkiss.dbeaver.ext.mimer.edit.MimerUdtMethodSpecManager}. Then {@code CREATE SPECIFIC
+ * com.seizia.chromite.ext.mimer.edit.MimerUdtMethodSpecManager}. Then {@code CREATE SPECIFIC
  * METHOD "s"."specificName" BEGIN ... END} separately supplies the body, through this same
  * class's editable Source tab. Once that runs, the object "graduates" to a real {@link
  * MimerUdtMethod} row on next refresh - it now has a matching {@code ROUTINES} row, so the
@@ -107,7 +107,7 @@ public class MimerUdtMethodSpec implements DBSObject, DBPSaveableObject, DBPStat
 
     /**
      * For a brand-new specification, not yet declared on the server - see {@link
-     * org.jkiss.dbeaver.ext.mimer.edit.MimerUdtMethodSpecManager}.
+     * com.seizia.chromite.ext.mimer.edit.MimerUdtMethodSpecManager}.
      */
     public MimerUdtMethodSpec(@NotNull MimerUserDefinedType type, @NotNull String methodKind, @NotNull String methodName) {
         this.type = type;
@@ -150,7 +150,7 @@ public class MimerUdtMethodSpec implements DBSObject, DBPSaveableObject, DBPStat
 
     /**
      * {@code specificName} when set, else the bare method name - same fallback {@link
-     * org.jkiss.dbeaver.ext.generic.model.GenericProcedure#getUniqueName} uses, needed here for
+     * com.seizia.chromite.ext.generic.model.GenericProcedure#getUniqueName} uses, needed here for
      * the same reason: {@link MimerObjectUsedBy}/{@link MimerObjectUses} must scope by specific
      * name, not bare name, since a method name can overload within one type.
      */
@@ -291,7 +291,7 @@ public class MimerUdtMethodSpec implements DBSObject, DBPSaveableObject, DBPStat
     /**
      * {@code CREATE SPECIFIC METHOD "s"."specificName" BEGIN <body> END} - supplies the body for
      * this already-declared specification. See {@link
-     * org.jkiss.dbeaver.ext.mimer.edit.MimerUdtMethodSpecManager} for the write side.
+     * com.seizia.chromite.ext.mimer.edit.MimerUdtMethodSpecManager} for the write side.
      */
     @NotNull
     public String buildCreateBodyDDL() {

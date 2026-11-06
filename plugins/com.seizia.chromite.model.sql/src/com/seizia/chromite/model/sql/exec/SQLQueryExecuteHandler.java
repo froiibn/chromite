@@ -19,14 +19,14 @@ package com.seizia.chromite.model.sql.exec;
 import org.eclipse.osgi.util.NLS;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.model.data.DBDDataReceiver;
-import org.jkiss.dbeaver.model.exec.DBCException;
-import org.jkiss.dbeaver.model.exec.DBCStatement;
-import org.jkiss.dbeaver.model.exec.DBCStatistics;
-import org.jkiss.dbeaver.model.sql.SQLQuery;
-import org.jkiss.dbeaver.model.sql.messages.ModelSQLMessages;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.runtime.ui.DBPPlatformUI;
+import com.seizia.chromite.model.data.DBDDataReceiver;
+import com.seizia.chromite.model.exec.DBCException;
+import com.seizia.chromite.model.exec.DBCStatement;
+import com.seizia.chromite.model.exec.DBCStatistics;
+import com.seizia.chromite.model.sql.SQLQuery;
+import com.seizia.chromite.model.sql.messages.ModelSQLMessages;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.runtime.ui.DBPPlatformUI;
 
 /**
  * Front-end side of {@link SQLQueryExecuteJob}: result receivers, user interaction and editor settings.
@@ -156,7 +156,7 @@ public interface SQLQueryExecuteHandler {
     }
 
     /**
-     * Execution controller passed to {@link org.jkiss.dbeaver.model.exec.DBCExecutionSource}.
+     * Execution controller passed to {@link com.seizia.chromite.model.exec.DBCExecutionSource}.
      */
     @Nullable
     default Object getExecutionController() {

@@ -14,15 +14,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.tasks.ui.nativetool;
+package com.seizia.chromite.tasks.ui.nativetool;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.model.struct.DBSObject;
-import org.jkiss.dbeaver.tasks.ui.wizard.TaskConfigurationWizard;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.actions.exec.SQLScriptExecutor;
+import com.seizia.chromite.model.struct.DBSObject;
+import com.seizia.chromite.tasks.ui.wizard.TaskConfigurationWizard;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.actions.exec.SQLScriptExecutor;
 
 import java.nio.file.Path;
 

@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.team.git.ui.utils;
+package com.seizia.chromite.team.git.ui.utils;
 
 
 import org.eclipse.core.commands.ExecutionEvent;
@@ -31,13 +31,13 @@ import org.eclipse.ui.handlers.HandlerUtil;
 import org.eclipse.ui.services.IServiceLocator;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.model.navigator.DBNDatabaseNode;
-import org.jkiss.dbeaver.model.navigator.DBNNode;
-import org.jkiss.dbeaver.model.navigator.DBNProject;
-import org.jkiss.dbeaver.model.navigator.DBNResource;
-import org.jkiss.dbeaver.model.rcp.RCPProject;
-import org.jkiss.dbeaver.ui.editors.EditorUtils;
-import org.jkiss.dbeaver.ui.editors.IDatabaseEditorInput;
+import com.seizia.chromite.model.navigator.DBNDatabaseNode;
+import com.seizia.chromite.model.navigator.DBNNode;
+import com.seizia.chromite.model.navigator.DBNProject;
+import com.seizia.chromite.model.navigator.DBNResource;
+import com.seizia.chromite.model.rcp.RCPProject;
+import com.seizia.chromite.ui.editors.EditorUtils;
+import com.seizia.chromite.ui.editors.IDatabaseEditorInput;
 
 public class GitUIUtils {
 

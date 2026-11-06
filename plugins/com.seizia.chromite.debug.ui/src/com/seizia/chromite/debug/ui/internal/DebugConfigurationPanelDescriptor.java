@@ -14,15 +14,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.debug.ui.internal;
+package com.seizia.chromite.debug.ui.internal;
 
 import org.eclipse.core.runtime.IConfigurationElement;
 import org.jkiss.code.NotNull;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.debug.ui.DBGConfigurationPanel;
-import org.jkiss.dbeaver.model.DBPDataSourceContainer;
-import org.jkiss.dbeaver.model.impl.AbstractContextDescriptor;
-import org.jkiss.dbeaver.registry.RegistryConstants;
+import com.seizia.chromite.debug.ui.DBGConfigurationPanel;
+import com.seizia.chromite.model.DBPDataSourceContainer;
+import com.seizia.chromite.model.impl.AbstractContextDescriptor;
+import com.seizia.chromite.registry.RegistryConstants;
 import org.jkiss.utils.CommonUtils;
 
 import java.util.ArrayList;
@@ -33,7 +33,7 @@ import java.util.List;
  */
 public class DebugConfigurationPanelDescriptor extends AbstractContextDescriptor
 {
-    public static final String EXTENSION_ID = "org.jkiss.dbeaver.debug.ui.configurationPanels"; //$NON-NLS-1$
+    public static final String EXTENSION_ID = "com.seizia.chromite.debug.ui.configurationPanels"; //$NON-NLS-1$
 
     private final String id;
     private final String name;

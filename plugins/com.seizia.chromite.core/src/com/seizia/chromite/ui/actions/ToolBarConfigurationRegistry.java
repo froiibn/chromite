@@ -14,13 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.actions;
+package com.seizia.chromite.ui.actions;
 
 import org.eclipse.core.runtime.IConfigurationElement;
 import org.eclipse.core.runtime.IExtensionRegistry;
 import org.eclipse.core.runtime.Platform;
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.Log;
+import com.seizia.chromite.Log;
 
 import java.util.Collection;
 import java.util.LinkedHashMap;
@@ -31,7 +31,7 @@ import java.util.stream.Stream;
 
 public class ToolBarConfigurationRegistry {
     
-    static final String EXTENSION_ID = "org.jkiss.dbeaver.toolBarConfiguration"; //$NON-NLS-1$
+    static final String EXTENSION_ID = "com.seizia.chromite.toolBarConfiguration"; //$NON-NLS-1$
     
     private static final Log log = Log.getLog(ToolBarConfigurationRegistry.class);
 
@@ -85,7 +85,7 @@ public class ToolBarConfigurationRegistry {
 
     static String makeItemVisibilityPreferenceKeyName(@NotNull String toolBarKey, @NotNull String itemKey, @NotNull String property) {
         return String.join(".", new String[]{
-            "org.jkiss.dbeaver.toolBarConfiguration", "toolbars", "[" + toolBarKey + "]", "items", "[" + itemKey + "]", property 
+            "com.seizia.chromite.toolBarConfiguration", "toolbars", "[" + toolBarKey + "]", "items", "[" + itemKey + "]", property 
         });
     }
 }

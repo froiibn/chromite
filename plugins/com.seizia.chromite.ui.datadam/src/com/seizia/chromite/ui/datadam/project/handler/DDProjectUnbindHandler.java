@@ -14,17 +14,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.datadam.project.handler;
+package com.seizia.chromite.ui.datadam.project.handler;
 
 import org.eclipse.core.commands.ExecutionEvent;
 import org.eclipse.osgi.util.NLS;
 import org.eclipse.ui.handlers.HandlerUtil;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.model.app.DBPProject;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.datadam.internal.DDTrackingUIMessages;
-import org.jkiss.dbeaver.ui.datadam.project.job.DDProjectUnbindJob;
+import com.seizia.chromite.model.app.DBPProject;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.datadam.internal.DDTrackingUIMessages;
+import com.seizia.chromite.ui.datadam.project.job.DDProjectUnbindJob;
 
 public class DDProjectUnbindHandler extends DDProjectHandler<DDProjectUnbindJob> {
     @Nullable

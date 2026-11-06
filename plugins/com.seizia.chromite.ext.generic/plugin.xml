@@ -2,9 +2,9 @@
 <?eclipse version="3.2"?>
 
 <plugin>
-    <extension-point id="org.jkiss.dbeaver.generic.meta" name="Generic meta model retrieval" schema="schema/org.jkiss.dbeaver.generic.meta.exsd"/>
+    <extension-point id="com.seizia.chromite.generic.meta" name="Generic meta model retrieval" schema="schema/com.seizia.chromite.generic.meta.exsd"/>
 
-    <extension point="org.jkiss.dbeaver.dataSourceProvider">
+    <extension point="com.seizia.chromite.dataSourceProvider">
         <dataSourceType
             id="open_distro_elasticsearch"
             label="Open Distro Elasticsearch"
@@ -47,17 +47,17 @@
             label="PostgreSQL"
             description="PostgreSQL database"
             dataSourceInformation="Open-source object-relational database system"
-            icon="platform:/plugin/org.jkiss.dbeaver.ext.postgresql/icons/postgresql_icon.png"
-            iconBig="platform:/plugin/org.jkiss.dbeaver.ext.postgresql/icons/postgresql_icon_big.png"
-            logoImage="platform:/plugin/org.jkiss.dbeaver.ext.postgresql/icons/postgresql_logo.png"/>
+            icon="platform:/plugin/com.seizia.chromite.ext.postgresql/icons/postgresql_icon.png"
+            iconBig="platform:/plugin/com.seizia.chromite.ext.postgresql/icons/postgresql_icon_big.png"
+            logoImage="platform:/plugin/com.seizia.chromite.ext.postgresql/icons/postgresql_logo.png"/>
         <dataSourceType
             id="mysql"
             label="MySQL"
             description="MySQL database"
             dataSourceInformation="Popular open-source relational database"
-            icon="platform:/plugin/org.jkiss.dbeaver.ext.mysql/icons/mysql_icon.png"
-            iconBig="platform:/plugin/org.jkiss.dbeaver.ext.mysql/icons/mysql_icon_big.png"
-            logoImage="platform:/plugin/org.jkiss.dbeaver.ext.mysql/icons/mysql_logo.png"/>
+            icon="platform:/plugin/com.seizia.chromite.ext.mysql/icons/mysql_icon.png"
+            iconBig="platform:/plugin/com.seizia.chromite.ext.mysql/icons/mysql_icon_big.png"
+            logoImage="platform:/plugin/com.seizia.chromite.ext.mysql/icons/mysql_logo.png"/>
         <dataSourceType
             id="apache_kylin"
             label="Apache Kylin"
@@ -107,7 +107,7 @@
             dataSourceInformation="Relational database management system"
             icon="icons/cratedb_icon.png"
             iconBig="icons/cratedb_icon_big.png"
-            logoImage="platform:/plugin/org.jkiss.dbeaver.ext.postgresql/icons/cratedb_logo.png"/>
+            logoImage="platform:/plugin/com.seizia.chromite.ext.postgresql/icons/cratedb_logo.png"/>
         <dataSourceType
             id="omnisci_formerly_mapd"
             label="OmniSci (formerly MapD)"
@@ -361,7 +361,7 @@
             icon="icons/sap_maxdb_icon.png"
             iconBig="icons/sap_maxdb_icon_big.png"/>
         <datasource
-            class="org.jkiss.dbeaver.ext.generic.GenericDataSourceProviderBasic"
+            class="com.seizia.chromite.ext.generic.GenericDataSourceProviderBasic"
             description="Generic JDBC connector"
             id="generic"
             label="Generic"
@@ -370,29 +370,29 @@
             <tree path="generic" label="Generic data source" supportsEntityMerge="true">
                 <items label="#catalog" path="catalog" property="catalogList" icon="#database" optional="true">
                     <items label="#schema" path="schema" property="schemaList" icon="#schema" optional="true">
-                        <folder type="org.jkiss.dbeaver.ext.generic.model.GenericTable" label="%tree.tables.node.name" labelTerm="table" icon="#folder_table" description="%tree.tables.node.tip">
+                        <folder type="com.seizia.chromite.ext.generic.model.GenericTable" label="%tree.tables.node.name" labelTerm="table" icon="#folder_table" description="%tree.tables.node.tip">
                             <items label="%tree.table.node.name" path="table" property="physicalTables" icon="#table">
                                 <icon if="object.externalTable" icon="#table_external"/>
                                 <icon if="object.abstractTable" icon="#table_alias"/>
                                 <icon if="object.sharedTable" icon="#table_shared"/>
 
-                                <folder type="org.jkiss.dbeaver.ext.generic.model.GenericTableColumn" label="%tree.columns.node.name" icon="#columns" description="%tree.columns.node.tip">
+                                <folder type="com.seizia.chromite.ext.generic.model.GenericTableColumn" label="%tree.columns.node.name" icon="#columns" description="%tree.columns.node.tip">
                                     <items label="%tree.column.node.name" path="attribute" property="attributes" icon="#column">
                                     </items>
                                 </folder>
-                                <folder type="org.jkiss.dbeaver.ext.generic.model.GenericUniqueKey" label="%tree.uni_keys.node.name" icon="#constraints" description="%tree.uni_keys.node.tip" visibleIf="!object.view &amp;&amp; (object.dataSource.info.supportsReferentialIntegrity() || object.container.dataSource.metaModel.supportsUniqueKeys())">
+                                <folder type="com.seizia.chromite.ext.generic.model.GenericUniqueKey" label="%tree.uni_keys.node.name" icon="#constraints" description="%tree.uni_keys.node.tip" visibleIf="!object.view &amp;&amp; (object.dataSource.info.supportsReferentialIntegrity() || object.container.dataSource.metaModel.supportsUniqueKeys())">
                                     <items label="%tree.uni_key.node.name" path="uniqueKey" property="constraints" icon="#unique-key">
                                         <items label="%tree.uni_key.columns.node.name" itemLabel="%tree.column.node.name" path="column" property="attributeReferences" navigable="false" inline="true">
                                         </items>
                                     </items>
                                 </folder>
-                                <folder type="org.jkiss.dbeaver.ext.generic.model.GenericTableForeignKey" label="%tree.foreign_keys.node.name" icon="#foreign-keys" description="%tree.foreign_keys.node.tip" visibleIf="!object.view &amp;&amp; object.dataSource.info.supportsReferentialIntegrity()">
+                                <folder type="com.seizia.chromite.ext.generic.model.GenericTableForeignKey" label="%tree.foreign_keys.node.name" icon="#foreign-keys" description="%tree.foreign_keys.node.tip" visibleIf="!object.view &amp;&amp; object.dataSource.info.supportsReferentialIntegrity()">
                                     <items label="%tree.foreign_key.node.name" path="association" property="associations" icon="#foreign-key">
                                         <items label="%tree.foreign_key_columns.node.name" itemLabel="%tree.column.node.name" path="column" property="attributeReferences" navigable="false" inline="true">
                                         </items>
                                     </items>
                                 </folder>
-                                <folder type="org.jkiss.dbeaver.ext.generic.model.GenericTableIndex" label="%tree.indexes.node.name" icon="#indexes" description="%tree.indexes.node.tip" visibleIf="object.dataSource.info.supportsIndexes()">
+                                <folder type="com.seizia.chromite.ext.generic.model.GenericTableIndex" label="%tree.indexes.node.name" icon="#indexes" description="%tree.indexes.node.tip" visibleIf="object.dataSource.info.supportsIndexes()">
                                     <items label="%tree.index.node.name" path="index" property="indexes" icon="#index">
                                         <items label="%tree.index_columns.node.name" path="column" property="attributeReferences" icon="#column" navigable="false" inline="true">
                                         </items>
@@ -404,28 +404,28 @@
                                         </items>
                                     </items>
                                 </folder>
-                                <folder type="org.jkiss.dbeaver.ext.generic.model.GenericTableTrigger" label="%tree.triggers.node.name" icon="#triggers" description="%tree.triggers.node.tip" visibleIf="object.dataSource.metaModel.supportsTriggers(object.dataSource)">
+                                <folder type="com.seizia.chromite.ext.generic.model.GenericTableTrigger" label="%tree.triggers.node.name" icon="#triggers" description="%tree.triggers.node.tip" visibleIf="object.dataSource.metaModel.supportsTriggers(object.dataSource)">
                                     <items label="%tree.trigger.node.name" path="trigger" property="triggers" icon="#trigger"/>
                                 </folder>
                                 <items label="%tree.sub_table.node.name" optional="true" path="subtable" property="subTables" icon="#table" recursive=".." visibleIf="!object.view">
                                 </items>
                             </items>
                         </folder>
-                        <folder type="org.jkiss.dbeaver.ext.generic.model.GenericView" label="%tree.tviews.node.name" icon="#folder_view" description="%tree.tviews.node.tip" visibleIf="object.dataSource.metaModel.supportsViews(object.dataSource)">
+                        <folder type="com.seizia.chromite.ext.generic.model.GenericView" label="%tree.tviews.node.name" icon="#folder_view" description="%tree.tviews.node.tip" visibleIf="object.dataSource.metaModel.supportsViews(object.dataSource)">
                             <items label="%tree.tview.node.name" path="view" property="views" icon="#view">
-                                <folder type="org.jkiss.dbeaver.ext.generic.model.GenericTableColumn" label="%tree.columns.node.name" icon="#columns" description="View columns">
+                                <folder type="com.seizia.chromite.ext.generic.model.GenericTableColumn" label="%tree.columns.node.name" icon="#columns" description="View columns">
                                     <items label="%tree.column.node.name" path="attribute" property="attributes" icon="#column">
                                     </items>
                                 </folder>
                             </items>
                         </folder>
-                        <folder type="org.jkiss.dbeaver.model.struct.rdb.DBSTableIndex" label="%tree.indexes.node.name" icon="#indexes" description="%tree.indexes.node.tip" visibleIf="object.dataSource.info.supportsIndexes()">
+                        <folder type="com.seizia.chromite.model.struct.rdb.DBSTableIndex" label="%tree.indexes.node.name" icon="#indexes" description="%tree.indexes.node.tip" visibleIf="object.dataSource.info.supportsIndexes()">
                             <items icon="#index" label="%tree.index.node.name" path="index" property="indexes" virtual="true">
                                 <items icon="#column" label="%tree.index_columns.node.name" itemLabel="%tree.column.node.name" path="column" property="attributeReferences" inline="true" navigable="false" virtual="true">
                                 </items>
                             </items>
                         </folder>
-                        <folder type="org.jkiss.dbeaver.ext.generic.model.GenericProcedure" label="%tree.procedures.node.name" icon="#procedures" description="Procedures" visibleIf="object.dataSource.info.supportsStoredCode()">
+                        <folder type="com.seizia.chromite.ext.generic.model.GenericProcedure" label="%tree.procedures.node.name" icon="#procedures" description="Procedures" visibleIf="object.dataSource.info.supportsStoredCode()">
                             <items label="%tree.procedures.node.name" itemLabel="%tree.procedure.node.name" path="procedure" property="proceduresOnly" icon="#procedure">
                                 <folder label="%tree.procedure_columns.node.name" icon="#columns" description="Procedure parameters">
                                     <items label="%tree.procedure_columns.node.name" itemLabel="%tree.column.node.name" path="column" property="parameters" navigable="false"/>
@@ -442,19 +442,19 @@
                                 <items label="%tree.function_columns.node.name" itemLabel="%tree.column.node.name" path="column" property="parameters" navigable="false"/>
                             </items>
                         </folder>
-                        <folder type="org.jkiss.dbeaver.ext.generic.model.GenericSequence" label="%tree.sequences.node.name" icon="#sequences" description="%tree.sequences.node.tip" visibleIf="object.dataSource.metaModel.supportsSequences(object.dataSource)">
+                        <folder type="com.seizia.chromite.ext.generic.model.GenericSequence" label="%tree.sequences.node.name" icon="#sequences" description="%tree.sequences.node.tip" visibleIf="object.dataSource.metaModel.supportsSequences(object.dataSource)">
                             <items label="%tree.sequence.node.name" path="sequence" property="sequences" icon="#sequence"/>
                         </folder>
-                        <folder type="org.jkiss.dbeaver.ext.generic.model.GenericSynonym" label="%tree.synonyms.node.name" icon="#synonyms" description="Synonyms" visibleIf="object.dataSource.metaModel.supportsSynonyms(object.dataSource)">
+                        <folder type="com.seizia.chromite.ext.generic.model.GenericSynonym" label="%tree.synonyms.node.name" icon="#synonyms" description="Synonyms" visibleIf="object.dataSource.metaModel.supportsSynonyms(object.dataSource)">
                             <items label="%tree.synonym.node.name" path="synonym" property="synonyms" icon="#synonym"/>
                         </folder>
-                        <folder id="databaseTrigger" type="org.jkiss.dbeaver.ext.generic.model.GenericContainerTrigger" label="%tree.triggers.node.name" icon="#triggers" description="Global triggers" visibleIf="object.dataSource.metaModel.supportsDatabaseTriggers(object.dataSource)">
+                        <folder id="databaseTrigger" type="com.seizia.chromite.ext.generic.model.GenericContainerTrigger" label="%tree.triggers.node.name" icon="#triggers" description="Global triggers" visibleIf="object.dataSource.metaModel.supportsDatabaseTriggers(object.dataSource)">
                             <items label="%tree.trigger.node.name" path="trigger" property="triggers" icon="#trigger"/>
                         </folder>
-                        <folder id="tableTrigger" type="org.jkiss.dbeaver.ext.generic.model.GenericTableTrigger" label="%tree.tableTriggers.node.name" icon="#triggers" description="%tree.tableTriggers.node.tip" visibleIf="object.dataSource.metaModel.supportsTriggers(object.dataSource)">
+                        <folder id="tableTrigger" type="com.seizia.chromite.ext.generic.model.GenericTableTrigger" label="%tree.tableTriggers.node.name" icon="#triggers" description="%tree.tableTriggers.node.tip" visibleIf="object.dataSource.metaModel.supportsTriggers(object.dataSource)">
                             <items label="%tree.trigger.node.name" path="tableTrigger" property="tableTriggers" icon="#trigger"/>
                         </folder>
-                        <folder type="org.jkiss.dbeaver.model.struct.DBSDataType" label="%tree.dataTypes.node.name" icon="#data_types" description="%tree.dataTypes.node.tip" visibleIf="object.dataSource.dataTypesVisible">
+                        <folder type="com.seizia.chromite.model.struct.DBSDataType" label="%tree.dataTypes.node.name" icon="#data_types" description="%tree.dataTypes.node.tip" visibleIf="object.dataSource.dataTypesVisible">
                             <items label="%tree.dataType.node.name" path="dataType" property="dataTypes" icon="#data_type"/>
                         </folder>
                     </items>
@@ -592,7 +592,7 @@
 
                     <parameter name="ddl-drop-column-short" value="true"/>
 
-                    <property name="@dbeaver-default-resultset.column.label.ignore" value="true"/>
+                    <property name="@chromite-default-resultset.column.label.ignore" value="true"/>
                 </driver>
                 <driver
                     id="derby"
@@ -1205,7 +1205,7 @@
                     supportedConfigurationTypes="MANUAL,URL"
                     webURL="https://trino.io/"
                     categories="sql,federated,bigdata,hadoop">
-                    <property name="@dbeaver-default-resultset.maxrows.sql" value="true"/>
+                    <property name="@chromite-default-resultset.maxrows.sql" value="true"/>
                     <file type="jar" path="maven:/io.trino:trino-jdbc:RELEASE" bundle="!drivers.trino"/>
                     <file type="license" path="licenses/external/asl-2.0.txt"/>
                     <file type="jar" path="drivers/trino" bundle="drivers.trino"/>
@@ -1742,7 +1742,7 @@
 
         <!-- Elasticsearch data sources. Historically in another datasource provider but in fact generic -->
         <datasource
-                class="org.jkiss.dbeaver.ext.generic.GenericDataSourceProviderBasic"
+                class="com.seizia.chromite.ext.generic.GenericDataSourceProviderBasic"
                 description="Elasticsearch datasource"
                 id="elasticsearch"
                 dataSourceType="elasticsearch"
@@ -1776,7 +1776,7 @@
 
         </datasource>
         <datasource
-                class="org.jkiss.dbeaver.ext.generic.GenericDataSourceProviderBasic"
+                class="com.seizia.chromite.ext.generic.GenericDataSourceProviderBasic"
                 description="Opendistro datasource"
                 id="open-distro-elasticsearch"
                 dataSourceType="open_distro_elasticsearch"
@@ -1809,9 +1809,9 @@
 
     </extension>
 
-    <extension point="org.jkiss.dbeaver.dataTypeProvider">
+    <extension point="com.seizia.chromite.dataTypeProvider">
         <provider
-                class="org.jkiss.dbeaver.ext.generic.data.GenericValueHandlerProvider"
+                class="com.seizia.chromite.ext.generic.data.GenericValueHandlerProvider"
                 id="GenericValueHandlerProvider"
                 label="Generic data types provider">
             <datasource id="generic"/>
@@ -1820,22 +1820,22 @@
         </provider>
     </extension>
 
-    <extension point="org.jkiss.dbeaver.objectManager">
-        <manager class="org.jkiss.dbeaver.ext.generic.edit.GenericTableManager"         objectType="org.jkiss.dbeaver.ext.generic.model.GenericTable"/>
-        <manager class="org.jkiss.dbeaver.ext.generic.edit.GenericViewManager"          objectType="org.jkiss.dbeaver.ext.generic.model.GenericView"/>
-        <manager class="org.jkiss.dbeaver.ext.generic.edit.GenericTableColumnManager"   objectType="org.jkiss.dbeaver.ext.generic.model.GenericTableColumn"/>
-        <manager class="org.jkiss.dbeaver.ext.generic.edit.GenericPrimaryKeyManager"    objectType="org.jkiss.dbeaver.ext.generic.model.GenericUniqueKey"/>
-        <manager class="org.jkiss.dbeaver.ext.generic.edit.GenericForeignKeyManager"    objectType="org.jkiss.dbeaver.ext.generic.model.GenericTableForeignKey"/>
-        <manager class="org.jkiss.dbeaver.ext.generic.edit.GenericIndexManager"         objectType="org.jkiss.dbeaver.ext.generic.model.GenericTableIndex"/>
-        <manager class="org.jkiss.dbeaver.ext.generic.edit.GenericProcedureManager"     objectType="org.jkiss.dbeaver.ext.generic.model.GenericProcedure"/>
-        <manager class="org.jkiss.dbeaver.ext.generic.edit.GenericTriggerManager"       objectType="org.jkiss.dbeaver.ext.generic.model.GenericTrigger"/>
-        <manager class="org.jkiss.dbeaver.ext.generic.edit.GenericSequenceManager"       objectType="org.jkiss.dbeaver.ext.generic.model.GenericSequence"/>
+    <extension point="com.seizia.chromite.objectManager">
+        <manager class="com.seizia.chromite.ext.generic.edit.GenericTableManager"         objectType="com.seizia.chromite.ext.generic.model.GenericTable"/>
+        <manager class="com.seizia.chromite.ext.generic.edit.GenericViewManager"          objectType="com.seizia.chromite.ext.generic.model.GenericView"/>
+        <manager class="com.seizia.chromite.ext.generic.edit.GenericTableColumnManager"   objectType="com.seizia.chromite.ext.generic.model.GenericTableColumn"/>
+        <manager class="com.seizia.chromite.ext.generic.edit.GenericPrimaryKeyManager"    objectType="com.seizia.chromite.ext.generic.model.GenericUniqueKey"/>
+        <manager class="com.seizia.chromite.ext.generic.edit.GenericForeignKeyManager"    objectType="com.seizia.chromite.ext.generic.model.GenericTableForeignKey"/>
+        <manager class="com.seizia.chromite.ext.generic.edit.GenericIndexManager"         objectType="com.seizia.chromite.ext.generic.model.GenericTableIndex"/>
+        <manager class="com.seizia.chromite.ext.generic.edit.GenericProcedureManager"     objectType="com.seizia.chromite.ext.generic.model.GenericProcedure"/>
+        <manager class="com.seizia.chromite.ext.generic.edit.GenericTriggerManager"       objectType="com.seizia.chromite.ext.generic.model.GenericTrigger"/>
+        <manager class="com.seizia.chromite.ext.generic.edit.GenericSequenceManager"       objectType="com.seizia.chromite.ext.generic.model.GenericSequence"/>
     </extension>
 
-    <extension point="org.jkiss.dbeaver.generic.meta">
-        <meta id="apache_arrow_flight_sql" class="org.jkiss.dbeaver.ext.generic.model.meta.GenericMetaModel"/>
-        <meta id="gizmosql" class="org.jkiss.dbeaver.ext.generic.model.meta.gizmosql.GizmoSQLMetaModel" driverClass="org.apache.arrow.driver.jdbc.ArrowFlightJdbcDriver"/>
-        <meta id="indexed" class="org.jkiss.dbeaver.ext.generic.model.meta.GenericMetaModel">
+    <extension point="com.seizia.chromite.generic.meta">
+        <meta id="apache_arrow_flight_sql" class="com.seizia.chromite.ext.generic.model.meta.GenericMetaModel"/>
+        <meta id="gizmosql" class="com.seizia.chromite.ext.generic.model.meta.gizmosql.GizmoSQLMetaModel" driverClass="org.apache.arrow.driver.jdbc.ArrowFlightJdbcDriver"/>
+        <meta id="indexed" class="com.seizia.chromite.ext.generic.model.meta.GenericMetaModel">
             <object type="catalog">
                 <column id="TABLE_CAT" index="1"/>
             </object>
@@ -1956,7 +1956,7 @@
         </meta>
     </extension>
 
-    <extension point="org.jkiss.dbeaver.mavenRepository">
+    <extension point="com.seizia.chromite.mavenRepository">
         <repository id="monetdb-maven-repo" name="MonetDB Repository" url="https://clojars.org/repo/" order="20">
             <scope group="monetdb"/>
         </repository>
@@ -1971,8 +1971,8 @@
 -->
     </extension>
 
-    <extension point="org.jkiss.dbeaver.sqlDialect">
-        <dialect id="generic" parent="basic" class="org.jkiss.dbeaver.ext.generic.model.GenericSQLDialect" label="Generic" description="Dialect based on JDBC API information." icon="#database_icon_default" hidden="true">
+    <extension point="com.seizia.chromite.sqlDialect">
+        <dialect id="generic" parent="basic" class="com.seizia.chromite.ext.generic.model.GenericSQLDialect" label="Generic" description="Dialect based on JDBC API information." icon="#database_icon_default" hidden="true">
         </dialect>
     </extension>
 

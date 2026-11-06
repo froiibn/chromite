@@ -14,14 +14,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.connection;
+package com.seizia.chromite.model.connection;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.model.DBPDataSourcePermission;
-import org.jkiss.dbeaver.model.DBPDataSourcePermissionOwner;
-import org.jkiss.dbeaver.model.messages.ModelMessages;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
+import com.seizia.chromite.model.DBPDataSourcePermission;
+import com.seizia.chromite.model.DBPDataSourcePermissionOwner;
+import com.seizia.chromite.model.messages.ModelMessages;
+import com.seizia.chromite.runtime.DBWorkbench;
 import org.jkiss.utils.CommonUtils;
 
 import java.util.ArrayList;
@@ -78,7 +78,7 @@ public class DBPConnectionType implements DBPDataSourcePermissionOwner {
             7200, //2 hours
             true,
             null,
-            "org.jkiss.dbeaver.color.connectionType.qa.background"
+            "com.seizia.chromite.color.connectionType.qa.background"
         ); //$NON-NLS-1$ //$NON-NLS-3$
         PROD = new DBPConnectionType(
             "prod",
@@ -97,7 +97,7 @@ public class DBPConnectionType implements DBPDataSourcePermissionOwner {
             3600, //1 hour
             true,
             null,
-            "org.jkiss.dbeaver.color.connectionType.prod.background"
+            "com.seizia.chromite.color.connectionType.prod.background"
         ); //$NON-NLS-1$ //$NON-NLS-3$
 
         SYSTEM_TYPES = new DBPConnectionType[] { DEV, TEST, PROD };

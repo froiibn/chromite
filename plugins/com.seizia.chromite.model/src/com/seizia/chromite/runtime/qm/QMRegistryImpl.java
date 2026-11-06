@@ -14,14 +14,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.runtime.qm;
+package com.seizia.chromite.runtime.qm;
 
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.qm.*;
-import org.jkiss.dbeaver.model.qm.filters.QMCursorFilter;
-import org.jkiss.dbeaver.model.qm.meta.*;
-import org.jkiss.dbeaver.utils.GeneralUtils;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.qm.*;
+import com.seizia.chromite.model.qm.filters.QMCursorFilter;
+import com.seizia.chromite.model.qm.meta.*;
+import com.seizia.chromite.utils.GeneralUtils;
 import org.jkiss.utils.ArrayUtils;
 import org.jkiss.utils.CommonUtils;
 import org.jkiss.utils.StringUtils;

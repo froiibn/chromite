@@ -15,12 +15,12 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.ext.oceanbase.ui.internal;
+package com.seizia.chromite.ext.oceanbase.ui.internal;
 
 import org.eclipse.osgi.util.NLS;
 
 public class OceanbaseMessages extends NLS {
-    private static final String BUNDLE_NAME = "org.jkiss.dbeaver.ext.oceanbase.ui.internal.OceanbaseMessages"; //$NON-NLS-1$
+    private static final String BUNDLE_NAME = "com.seizia.chromite.ext.oceanbase.ui.internal.OceanbaseMessages"; //$NON-NLS-1$
     
     public static String oceanbase_connection_page_label_port;
     public static String oceanbase_connection_page_label_host;

@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.datadam.rpc;
+package com.seizia.chromite.model.datadam.rpc;
 
 import com.dbeaver.datadam.dam.remote.api.model.DDRemoteDamHandshakeRequest;
 import com.dbeaver.datadam.dam.remote.api.transport.DDRemoteDamChannel;
@@ -22,14 +22,14 @@ import com.dbeaver.datadam.dam.remote.api.transport.DDRemoteDamSubscription;
 import com.dbeaver.messaging.rpc.MessagingRpcEndpoint;
 import org.jkiss.code.NotNull;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.datadam.DDEndpoints;
-import org.jkiss.dbeaver.model.datadam.auth.desktop.DDDesktopAccessListener;
-import org.jkiss.dbeaver.model.datadam.auth.desktop.DDDesktopAccessService;
-import org.jkiss.dbeaver.model.datadam.transport.DDRemoteDamDesktopChannel;
-import org.jkiss.dbeaver.model.impl.app.BaseWorkspaceImpl;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.utils.GeneralUtils;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.datadam.DDEndpoints;
+import com.seizia.chromite.model.datadam.auth.desktop.DDDesktopAccessListener;
+import com.seizia.chromite.model.datadam.auth.desktop.DDDesktopAccessService;
+import com.seizia.chromite.model.datadam.transport.DDRemoteDamDesktopChannel;
+import com.seizia.chromite.model.impl.app.BaseWorkspaceImpl;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.utils.GeneralUtils;
 
 import java.net.URI;
 import java.nio.charset.StandardCharsets;

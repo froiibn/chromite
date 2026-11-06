@@ -14,17 +14,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.sqlite.ui;
+package com.seizia.chromite.ext.sqlite.ui;
 
 import org.eclipse.jface.window.Window;
 import org.eclipse.swt.widgets.Shell;
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.ext.sqlite.SQLiteExtensionConfirmation;
-import org.jkiss.dbeaver.ext.sqlite.SQLiteExtensionSettings;
-import org.jkiss.dbeaver.ext.sqlite.ui.internal.SQLiteUIMessages;
-import org.jkiss.dbeaver.model.runtime.RunnableWithResult;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.dialogs.ExecutionConfirmationDialog;
+import com.seizia.chromite.ext.sqlite.SQLiteExtensionConfirmation;
+import com.seizia.chromite.ext.sqlite.SQLiteExtensionSettings;
+import com.seizia.chromite.ext.sqlite.ui.internal.SQLiteUIMessages;
+import com.seizia.chromite.model.runtime.RunnableWithResult;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.dialogs.ExecutionConfirmationDialog;
 
 import java.util.LinkedHashMap;
 import java.util.Map;

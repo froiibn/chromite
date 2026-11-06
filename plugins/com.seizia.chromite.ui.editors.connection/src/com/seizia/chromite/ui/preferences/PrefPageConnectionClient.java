@@ -14,30 +14,30 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.preferences;
+package com.seizia.chromite.ui.preferences;
 
 import org.eclipse.swt.events.SelectionListener;
 import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.widgets.*;
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.ModelPreferences;
-import org.jkiss.dbeaver.model.DBConstants;
-import org.jkiss.dbeaver.model.DBPDataSourceContainer;
-import org.jkiss.dbeaver.model.connection.DBPConnectionConfiguration;
-import org.jkiss.dbeaver.model.preferences.DBPPreferenceStore;
-import org.jkiss.dbeaver.ui.internal.UIConnectionMessages;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.contentassist.ContentAssistUtils;
-import org.jkiss.dbeaver.ui.contentassist.SmartTextContentAdapter;
-import org.jkiss.dbeaver.ui.contentassist.StringContentProposalProvider;
-import org.jkiss.dbeaver.utils.PrefUtils;
-import org.jkiss.dbeaver.utils.SystemVariablesResolver;
+import com.seizia.chromite.ModelPreferences;
+import com.seizia.chromite.model.DBConstants;
+import com.seizia.chromite.model.DBPDataSourceContainer;
+import com.seizia.chromite.model.connection.DBPConnectionConfiguration;
+import com.seizia.chromite.model.preferences.DBPPreferenceStore;
+import com.seizia.chromite.ui.internal.UIConnectionMessages;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.contentassist.ContentAssistUtils;
+import com.seizia.chromite.ui.contentassist.SmartTextContentAdapter;
+import com.seizia.chromite.ui.contentassist.StringContentProposalProvider;
+import com.seizia.chromite.utils.PrefUtils;
+import com.seizia.chromite.utils.SystemVariablesResolver;
 
 /**
  * PrefPageConnectionClient
  */
 public class PrefPageConnectionClient extends TargetPrefPage {
-    public static final String PAGE_ID = "org.jkiss.dbeaver.preferences.client.connections"; //$NON-NLS-1$
+    public static final String PAGE_ID = "com.seizia.chromite.preferences.client.connections"; //$NON-NLS-1$
 
     private static final String[] ALLOWED_VARIABLES = new String[] {
         DBPConnectionConfiguration.VARIABLE_HOST,
@@ -57,7 +57,7 @@ public class PrefPageConnectionClient extends TargetPrefPage {
 
         SystemVariablesResolver.VAR_WORKSPACE,
         SystemVariablesResolver.VAR_HOME,
-        SystemVariablesResolver.VAR_DBEAVER_HOME,
+        SystemVariablesResolver.VAR_CHROMITE_HOME,
         SystemVariablesResolver.VAR_APP_NAME,
         SystemVariablesResolver.VAR_APP_VERSION,
         SystemVariablesResolver.VAR_APP_PATH,

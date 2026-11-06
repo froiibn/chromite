@@ -14,10 +14,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.mysql.model;
+package com.seizia.chromite.ext.mysql.model;
 
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.model.impl.jdbc.AbstractJDBCConnectionValidator;
+import com.seizia.chromite.model.impl.jdbc.AbstractJDBCConnectionValidator;
 
 import java.util.List;
 

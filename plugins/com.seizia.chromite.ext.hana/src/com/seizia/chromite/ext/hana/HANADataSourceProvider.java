@@ -14,10 +14,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.hana;
+package com.seizia.chromite.ext.hana;
 
-import org.jkiss.dbeaver.ext.generic.GenericDataSourceProvider;
-import org.jkiss.dbeaver.ext.hana.model.HANADataSource;
+import com.seizia.chromite.ext.generic.GenericDataSourceProvider;
+import com.seizia.chromite.ext.hana.model.HANADataSource;
 
 public class HANADataSourceProvider extends GenericDataSourceProvider<HANADataSource> {
 

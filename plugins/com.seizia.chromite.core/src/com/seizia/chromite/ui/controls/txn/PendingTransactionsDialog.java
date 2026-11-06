@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.controls.txn;
+package com.seizia.chromite.ui.controls.txn;
 
 import org.eclipse.jface.dialogs.IDialogSettings;
 import org.eclipse.swt.SWT;
@@ -22,18 +22,18 @@ import org.eclipse.swt.events.SelectionListener;
 import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.widgets.*;
 import org.eclipse.ui.IWorkbenchPart;
-import org.jkiss.dbeaver.model.DBPDataSourceContainer;
-import org.jkiss.dbeaver.model.exec.DBCExecutionContext;
-import org.jkiss.dbeaver.model.qm.QMTransactionState;
-import org.jkiss.dbeaver.model.qm.QMUtils;
-import org.jkiss.dbeaver.model.struct.DBSInstance;
-import org.jkiss.dbeaver.registry.DataSourceRegistry;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.ui.DBeaverIcons;
-import org.jkiss.dbeaver.ui.UIIcon;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.actions.datasource.DataSourceCommitHandler;
-import org.jkiss.dbeaver.ui.actions.datasource.DataSourceRollbackHandler;
+import com.seizia.chromite.model.DBPDataSourceContainer;
+import com.seizia.chromite.model.exec.DBCExecutionContext;
+import com.seizia.chromite.model.qm.QMTransactionState;
+import com.seizia.chromite.model.qm.QMUtils;
+import com.seizia.chromite.model.struct.DBSInstance;
+import com.seizia.chromite.registry.DataSourceRegistry;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.ui.SwtIcons;
+import com.seizia.chromite.ui.UIIcon;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.actions.datasource.DataSourceCommitHandler;
+import com.seizia.chromite.ui.actions.datasource.DataSourceRollbackHandler;
 import org.jkiss.utils.ArrayUtils;
 
 import java.util.ArrayList;
@@ -100,10 +100,10 @@ public class PendingTransactionsDialog extends TransactionInfoDialog {
             gd = new GridData(GridData.FILL_HORIZONTAL);
             gd.grabExcessHorizontalSpace = true;
             showAllCheck.setLayoutData(gd);
-            commitButton = UIUtils.createPushButton(controlPanel, "Commit", DBeaverIcons.getImage(UIIcon.TXN_COMMIT));
+            commitButton = UIUtils.createPushButton(controlPanel, "Commit", SwtIcons.getImage(UIIcon.TXN_COMMIT));
             commitButton.setEnabled(false);
             commitButton.addSelectionListener(SelectionListener.widgetSelectedAdapter(e -> endTransaction(true)));
-            rollbackButton = UIUtils.createPushButton(controlPanel, "Rollback", DBeaverIcons.getImage(UIIcon.TXN_ROLLBACK));
+            rollbackButton = UIUtils.createPushButton(controlPanel, "Rollback", SwtIcons.getImage(UIIcon.TXN_ROLLBACK));
             rollbackButton.setEnabled(false);
             rollbackButton.addSelectionListener(SelectionListener.widgetSelectedAdapter(e -> endTransaction(false)));
 
@@ -154,7 +154,7 @@ public class PendingTransactionsDialog extends TransactionInfoDialog {
                 }
                 TreeItem dsItem = new TreeItem(contextTree, SWT.NONE);
                 dsItem.setText(dataSource.getName());
-                dsItem.setImage(DBeaverIcons.getImage(dataSource.getDriver().getIcon()));
+                dsItem.setImage(SwtIcons.getImage(dataSource.getDriver().getIcon()));
                 dsItem.setData(dataSource);
 
                 for (DBCExecutionContext context : txnContexts) {

@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.db2.tasks;
+package com.seizia.chromite.ext.db2.tasks;
 
 public class DB2SQLTasks {
 

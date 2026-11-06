@@ -14,12 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.postgresql.debug.internal;
+package com.seizia.chromite.ext.postgresql.debug.internal;
 
 import org.eclipse.osgi.util.NLS;
 
 public class PostgreDebugCoreMessages extends NLS {
-    private static final String BUNDLE_NAME = "org.jkiss.dbeaver.ext.postgresql.debug.internal.PostgreDebugCoreMessages"; //$NON-NLS-1$
+    private static final String BUNDLE_NAME = "com.seizia.chromite.ext.postgresql.debug.internal.PostgreDebugCoreMessages"; //$NON-NLS-1$
 
     public static String PostgreSqlDebugCore_parameter_type_not_fit_message;
     public static String PostgreSqlDebugCore_parameters_not_set_message;

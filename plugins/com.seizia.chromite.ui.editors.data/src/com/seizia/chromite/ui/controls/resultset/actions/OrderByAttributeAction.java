@@ -14,15 +14,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.controls.resultset.actions;
+package com.seizia.chromite.ui.controls.resultset.actions;
 
-import org.jkiss.dbeaver.model.data.DBDAttributeBinding;
-import org.jkiss.dbeaver.model.data.DBDAttributeConstraint;
-import org.jkiss.dbeaver.model.data.DBDDataFilter;
-import org.jkiss.dbeaver.ui.DBeaverIcons;
-import org.jkiss.dbeaver.ui.UIIcon;
-import org.jkiss.dbeaver.ui.controls.resultset.IResultSetController;
-import org.jkiss.dbeaver.ui.controls.resultset.ResultSetViewer;
+import com.seizia.chromite.model.data.DBDAttributeBinding;
+import com.seizia.chromite.model.data.DBDAttributeConstraint;
+import com.seizia.chromite.model.data.DBDDataFilter;
+import com.seizia.chromite.ui.SwtIcons;
+import com.seizia.chromite.ui.UIIcon;
+import com.seizia.chromite.ui.controls.resultset.IResultSetController;
+import com.seizia.chromite.ui.controls.resultset.ResultSetViewer;
 
 public class OrderByAttributeAction extends AbstractResultSetViewerAction {
     private final DBDAttributeBinding attribute;
@@ -37,7 +37,7 @@ public class OrderByAttributeAction extends AbstractResultSetViewerAction {
         this.attribute = attribute;
         this.order = order;
         if (order != IResultSetController.ColumnOrder.NONE) {
-            setImageDescriptor(DBeaverIcons.getImageDescriptor(order != IResultSetController.ColumnOrder.ASC ?
+            setImageDescriptor(SwtIcons.getImageDescriptor(order != IResultSetController.ColumnOrder.ASC ?
                 UIIcon.SORT_INCREASE : UIIcon.SORT_DECREASE));
         }
     }

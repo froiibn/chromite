@@ -15,14 +15,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.lsp;
+package com.seizia.chromite.model.lsp;
 
 import org.eclipse.lsp4j.*;
 import org.eclipse.lsp4j.services.*;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.utils.GeneralUtils;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.utils.GeneralUtils;
 import org.jkiss.utils.Pair;
 
 import java.util.List;

@@ -14,17 +14,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.mimer.model;
+package com.seizia.chromite.ext.mimer.model;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.ext.generic.model.GenericTableBase;
-import org.jkiss.dbeaver.model.exec.jdbc.JDBCResultSet;
-import org.jkiss.dbeaver.model.impl.jdbc.JDBCUtils;
-import org.jkiss.dbeaver.model.meta.Association;
-import org.jkiss.dbeaver.model.meta.IPropertyValueValidator;
-import org.jkiss.dbeaver.model.meta.Property;
-import org.jkiss.dbeaver.model.struct.DBSObject;
+import com.seizia.chromite.ext.generic.model.GenericTableBase;
+import com.seizia.chromite.model.exec.jdbc.JDBCResultSet;
+import com.seizia.chromite.model.impl.jdbc.JDBCUtils;
+import com.seizia.chromite.model.meta.Association;
+import com.seizia.chromite.model.meta.IPropertyValueValidator;
+import com.seizia.chromite.model.meta.Property;
+import com.seizia.chromite.model.struct.DBSObject;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -63,7 +63,7 @@ import java.util.stream.Collectors;
  * to {@code false} rather than reading a column that isn't there.
  * <p>
  * {@code INDEX_ALGORITHM} (word search / PinYin, see {@link
- * org.jkiss.dbeaver.ext.mimer.edit.MimerIndexManager}) is a per-COLUMN property in Mimer SQL, not
+ * com.seizia.chromite.ext.mimer.edit.MimerIndexManager}) is a per-COLUMN property in Mimer SQL, not
  * an index-wide one - exposed on {@link MimerAccessPathColumn}, not here, since a single index can
  * mix a special-algorithm column with ordinary ones (e.g. the user's own {@code "id" ASC, c1 DESC,
  * "c2" FOR WORD_SEARCH DESC} example) and an index-level summary would only ever reflect whichever

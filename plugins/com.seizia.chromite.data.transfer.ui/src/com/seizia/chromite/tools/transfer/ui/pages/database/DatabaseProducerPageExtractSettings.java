@@ -14,24 +14,24 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.tools.transfer.ui.pages.database;
+package com.seizia.chromite.tools.transfer.ui.pages.database;
 
 import org.eclipse.swt.widgets.Composite;
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.model.data.DBDCellValue;
-import org.jkiss.dbeaver.model.struct.DBSDataContainer;
-import org.jkiss.dbeaver.model.struct.DBSDocumentContainer;
-import org.jkiss.dbeaver.model.struct.DBSObject;
-import org.jkiss.dbeaver.tools.transfer.database.DatabaseProducerSettings;
-import org.jkiss.dbeaver.tools.transfer.database.DatabaseProducerSettings.ExtractType;
-import org.jkiss.dbeaver.tools.transfer.database.DatabaseProducerSettings.FetchedRowsPolicy;
-import org.jkiss.dbeaver.tools.transfer.database.DatabaseTransferProducer;
-import org.jkiss.dbeaver.tools.transfer.internal.DTMessages;
-import org.jkiss.dbeaver.tools.transfer.ui.internal.DTUIMessages;
-import org.jkiss.dbeaver.tools.transfer.ui.pages.DataTransferPageNodeSettings;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.forms.*;
-import org.jkiss.dbeaver.utils.GeneralUtils;
+import com.seizia.chromite.model.data.DBDCellValue;
+import com.seizia.chromite.model.struct.DBSDataContainer;
+import com.seizia.chromite.model.struct.DBSDocumentContainer;
+import com.seizia.chromite.model.struct.DBSObject;
+import com.seizia.chromite.tools.transfer.database.DatabaseProducerSettings;
+import com.seizia.chromite.tools.transfer.database.DatabaseProducerSettings.ExtractType;
+import com.seizia.chromite.tools.transfer.database.DatabaseProducerSettings.FetchedRowsPolicy;
+import com.seizia.chromite.tools.transfer.database.DatabaseTransferProducer;
+import com.seizia.chromite.tools.transfer.internal.DTMessages;
+import com.seizia.chromite.tools.transfer.ui.internal.DTUIMessages;
+import com.seizia.chromite.tools.transfer.ui.pages.DataTransferPageNodeSettings;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.forms.*;
+import com.seizia.chromite.utils.GeneralUtils;
 
 import java.util.List;
 import java.util.function.Consumer;

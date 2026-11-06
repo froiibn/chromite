@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.forms;
+package com.seizia.chromite.ui.forms;
 
 import org.eclipse.jface.widgets.*;
 import org.eclipse.swt.SWT;
@@ -22,9 +22,9 @@ import org.eclipse.swt.custom.ScrolledComposite;
 import org.eclipse.swt.widgets.*;
 import org.eclipse.ui.forms.widgets.ExpandableComposite;
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.controls.ExpandableCompositeEx;
-import org.jkiss.dbeaver.ui.controls.TitledComposite;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.controls.ExpandableCompositeEx;
+import com.seizia.chromite.ui.controls.TitledComposite;
 
 /**
  * Manages creation of UI controls for forms.

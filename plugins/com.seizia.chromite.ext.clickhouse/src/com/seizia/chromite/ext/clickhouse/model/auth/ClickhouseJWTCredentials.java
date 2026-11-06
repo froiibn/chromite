@@ -14,10 +14,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.clickhouse.model.auth;
+package com.seizia.chromite.ext.clickhouse.model.auth;
 
-import org.jkiss.dbeaver.model.impl.auth.AuthModelDatabaseNativeCredentials;
-import org.jkiss.dbeaver.model.meta.Property;
+import com.seizia.chromite.model.impl.auth.AuthModelDatabaseNativeCredentials;
+import com.seizia.chromite.model.meta.Property;
 
 /**
  * Credentials of the token based ClickHouse auth models. User name and password are not used:

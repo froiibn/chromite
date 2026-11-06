@@ -14,18 +14,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.mysql.tasks;
+package com.seizia.chromite.ext.mysql.tasks;
 
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.model.preferences.DBPPreferenceStore;
-import org.jkiss.dbeaver.model.runtime.DBRRunnableContext;
-import org.jkiss.junit.DBeaverUnitTest;
+import com.seizia.chromite.model.preferences.DBPPreferenceStore;
+import com.seizia.chromite.model.runtime.DBRRunnableContext;
+import com.seizia.chromite.junit.ChromiteUnitTest;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.mockito.Mockito;
 
-class MySQLScriptExecuteSettingsTest extends DBeaverUnitTest {
+class MySQLScriptExecuteSettingsTest extends ChromiteUnitTest {
 
     @ParameterizedTest
     @CsvSource({"false, true", "true, false", "false, false", "true, true"})

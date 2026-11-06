@@ -14,13 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.registry;
+package com.seizia.chromite.registry;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.model.DBConfigurationController;
-import org.jkiss.dbeaver.utils.ContentUtils;
+import com.seizia.chromite.model.DBConfigurationController;
+import com.seizia.chromite.utils.ContentUtils;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;

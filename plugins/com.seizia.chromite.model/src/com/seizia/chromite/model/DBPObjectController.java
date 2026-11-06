@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.model;
+package com.seizia.chromite.model;
 
 /**
  * Base interface for all object controllers

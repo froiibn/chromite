@@ -14,12 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.databend.ui.internal;
+package com.seizia.chromite.ext.databend.ui.internal;
 
 import org.eclipse.osgi.util.NLS;
 
 public class DatabendMessages extends NLS {
-    static final String BUNDLE_NAME = "org.jkiss.dbeaver.ext.databend.ui.internal.DatabendMessages"; //$NON-NLS-1$
+    static final String BUNDLE_NAME = "com.seizia.chromite.ext.databend.ui.internal.DatabendMessages"; //$NON-NLS-1$
 
     public static String dialog_connection_page_checkbox_use_ssl;
     public static String dialog_connection_page_checkbox_tip_use_ssl;

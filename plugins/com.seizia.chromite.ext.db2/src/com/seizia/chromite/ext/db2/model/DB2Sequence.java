@@ -15,23 +15,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.db2.model;
+package com.seizia.chromite.ext.db2.model;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.ext.db2.DB2Constants;
-import org.jkiss.dbeaver.ext.db2.model.dict.DB2OwnerType;
-import org.jkiss.dbeaver.ext.db2.model.dict.DB2SequencePrecision;
-import org.jkiss.dbeaver.ext.db2.model.dict.DB2SequenceType;
-import org.jkiss.dbeaver.ext.db2.model.dict.DB2YesNo;
-import org.jkiss.dbeaver.model.DBPRefreshableObject;
-import org.jkiss.dbeaver.model.impl.jdbc.JDBCUtils;
-import org.jkiss.dbeaver.model.meta.Property;
-import org.jkiss.dbeaver.model.meta.PropertyLength;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.model.struct.DBSObject;
-import org.jkiss.dbeaver.model.struct.rdb.DBSSequence;
+import com.seizia.chromite.ext.db2.DB2Constants;
+import com.seizia.chromite.ext.db2.model.dict.DB2OwnerType;
+import com.seizia.chromite.ext.db2.model.dict.DB2SequencePrecision;
+import com.seizia.chromite.ext.db2.model.dict.DB2SequenceType;
+import com.seizia.chromite.ext.db2.model.dict.DB2YesNo;
+import com.seizia.chromite.model.DBPRefreshableObject;
+import com.seizia.chromite.model.impl.jdbc.JDBCUtils;
+import com.seizia.chromite.model.meta.Property;
+import com.seizia.chromite.model.meta.PropertyLength;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.model.struct.DBSObject;
+import com.seizia.chromite.model.struct.rdb.DBSSequence;
 import org.jkiss.utils.CommonUtils;
 
 import java.sql.ResultSet;

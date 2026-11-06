@@ -15,9 +15,9 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.model.exec;
+package com.seizia.chromite.model.exec;
 
-import org.jkiss.dbeaver.model.sql.SQLQuery;
+import com.seizia.chromite.model.sql.SQLQuery;
 
 /**
  * Query transformer

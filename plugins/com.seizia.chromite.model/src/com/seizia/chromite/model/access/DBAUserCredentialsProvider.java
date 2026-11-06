@@ -15,11 +15,11 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.model.access;
+package com.seizia.chromite.model.access;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.model.connection.DBPConnectionConfiguration;
+import com.seizia.chromite.model.connection.DBPConnectionConfiguration;
 
 /**
  * Auth credentials provider.

@@ -14,26 +14,26 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.tasks.ui;
+package com.seizia.chromite.tasks.ui;
 
 import org.eclipse.core.expressions.PropertyTester;
 import org.eclipse.jface.viewers.IStructuredSelection;
 import org.eclipse.ui.IWorkbenchPart;
-import org.jkiss.dbeaver.model.DBPObject;
-import org.jkiss.dbeaver.model.DBUtils;
-import org.jkiss.dbeaver.model.rm.RMConstants;
-import org.jkiss.dbeaver.model.struct.DBSObject;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.tools.registry.ToolDescriptor;
-import org.jkiss.dbeaver.tools.registry.ToolsRegistry;
-import org.jkiss.dbeaver.ui.navigator.NavigatorUtils;
+import com.seizia.chromite.model.DBPObject;
+import com.seizia.chromite.model.DBUtils;
+import com.seizia.chromite.model.rm.RMConstants;
+import com.seizia.chromite.model.struct.DBSObject;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.tools.registry.ToolDescriptor;
+import com.seizia.chromite.tools.registry.ToolsRegistry;
+import com.seizia.chromite.ui.navigator.NavigatorUtils;
 
 /**
  * ToolsPropertyTester
  */
 public class ToolsPropertyTester extends PropertyTester
 {
-    public static final String NAMESPACE = "org.jkiss.dbeaver.core.tools";
+    public static final String NAMESPACE = "com.seizia.chromite.core.tools";
     public static final String PROP_HAS_TOOLS = "hasTools";
 
     public ToolsPropertyTester() {

@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.editors.entity;
+package com.seizia.chromite.ui.editors.entity;
 
 import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.core.runtime.IStatus;
@@ -30,9 +30,9 @@ import org.eclipse.swt.widgets.*;
 import org.eclipse.ui.IEditorInput;
 import org.eclipse.ui.IEditorSite;
 import org.eclipse.ui.part.EditorPart;
-import org.jkiss.dbeaver.model.DBIcon;
-import org.jkiss.dbeaver.ui.DBeaverIcons;
-import org.jkiss.dbeaver.utils.GeneralUtils;
+import com.seizia.chromite.model.DBIcon;
+import com.seizia.chromite.ui.SwtIcons;
+import com.seizia.chromite.utils.GeneralUtils;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
@@ -123,13 +123,13 @@ public class ErrorEditorPartEx extends EditorPart {
         Image image;
         switch (error.getSeverity()) {
             case IStatus.ERROR:
-                image = DBeaverIcons.getImage(DBIcon.STATUS_ERROR);
+                image = SwtIcons.getImage(DBIcon.STATUS_ERROR);
                 break;
             case IStatus.WARNING:
-                image = DBeaverIcons.getImage(DBIcon.STATUS_WARNING);
+                image = SwtIcons.getImage(DBIcon.STATUS_WARNING);
                 break;
             default:
-                image = DBeaverIcons.getImage(DBIcon.STATUS_INFO);
+                image = SwtIcons.getImage(DBIcon.STATUS_INFO);
                 break;
         }
 

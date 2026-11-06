@@ -14,12 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.registry.driver;
+package com.seizia.chromite.registry.driver;
 
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.registry.DataSourceProviderDescriptor;
-import org.jkiss.dbeaver.utils.GeneralUtils;
-import org.jkiss.dbeaver.utils.SystemVariablesResolver;
+import com.seizia.chromite.registry.DataSourceProviderDescriptor;
+import com.seizia.chromite.utils.GeneralUtils;
+import com.seizia.chromite.utils.SystemVariablesResolver;
 import org.jkiss.utils.CommonUtils;
 
 import java.io.IOException;
@@ -59,7 +59,7 @@ public abstract class DriverDescriptorSerializer {
                 SystemVariablesResolver.VAR_WORKSPACE,
                 SystemVariablesResolver.VAR_HOME,
                 SystemVariablesResolver.VAR_APP_PATH,
-                SystemVariablesResolver.VAR_DBEAVER_HOME};
+                SystemVariablesResolver.VAR_CHROMITE_HOME};
             for (String varName : variables) {
                 String varValue = varResolver.get(varName);
                 if (!CommonUtils.isEmpty(varValue)) {

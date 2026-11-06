@@ -14,25 +14,25 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.impl.data;
+package com.seizia.chromite.model.impl.data;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.DBPDataSource;
-import org.jkiss.dbeaver.model.data.DBDAttributeBinding;
-import org.jkiss.dbeaver.model.data.DBDValueRow;
-import org.jkiss.dbeaver.model.data.hints.DBDAttributeHintProvider;
-import org.jkiss.dbeaver.model.data.hints.DBDCellHintProvider;
-import org.jkiss.dbeaver.model.data.hints.DBDValueHintContext;
-import org.jkiss.dbeaver.model.data.hints.DBDValueHintProvider;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.model.struct.DBSDataContainer;
-import org.jkiss.dbeaver.model.struct.DBSEntity;
-import org.jkiss.dbeaver.registry.data.hints.ValueHintContextConfiguration;
-import org.jkiss.dbeaver.registry.data.hints.ValueHintProviderDescriptor;
-import org.jkiss.dbeaver.registry.data.hints.ValueHintRegistry;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.DBPDataSource;
+import com.seizia.chromite.model.data.DBDAttributeBinding;
+import com.seizia.chromite.model.data.DBDValueRow;
+import com.seizia.chromite.model.data.hints.DBDAttributeHintProvider;
+import com.seizia.chromite.model.data.hints.DBDCellHintProvider;
+import com.seizia.chromite.model.data.hints.DBDValueHintContext;
+import com.seizia.chromite.model.data.hints.DBDValueHintProvider;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.model.struct.DBSDataContainer;
+import com.seizia.chromite.model.struct.DBSEntity;
+import com.seizia.chromite.registry.data.hints.ValueHintContextConfiguration;
+import com.seizia.chromite.registry.data.hints.ValueHintProviderDescriptor;
+import com.seizia.chromite.registry.data.hints.ValueHintRegistry;
 import org.jkiss.utils.CommonUtils;
 
 import java.util.*;

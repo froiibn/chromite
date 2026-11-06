@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.controls.resultset.handler;
+package com.seizia.chromite.ui.controls.resultset.handler;
 
 import org.eclipse.core.commands.AbstractHandler;
 import org.eclipse.core.commands.ExecutionEvent;
@@ -45,48 +45,48 @@ import org.eclipse.ui.texteditor.ITextEditorActionDefinitionIds;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.model.*;
-import org.jkiss.dbeaver.model.data.DBDAttributeBinding;
-import org.jkiss.dbeaver.model.data.DBDDisplayFormat;
-import org.jkiss.dbeaver.model.data.DBDValueDefaultGenerator;
-import org.jkiss.dbeaver.model.data.DBDValueHandler;
-import org.jkiss.dbeaver.model.data.resultset.ResultSetSaveSettings;
-import org.jkiss.dbeaver.model.exec.DBCExecutionPurpose;
-import org.jkiss.dbeaver.model.exec.DBCSession;
-import org.jkiss.dbeaver.model.exec.DBExecUtils;
-import org.jkiss.dbeaver.model.preferences.DBPPreferenceStore;
-import org.jkiss.dbeaver.model.runtime.AbstractJob;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.model.runtime.VoidProgressMonitor;
-import org.jkiss.dbeaver.model.struct.DBSDataContainer;
-import org.jkiss.dbeaver.model.virtual.DBVEntity;
-import org.jkiss.dbeaver.model.virtual.DBVUtils;
-import org.jkiss.dbeaver.registry.ApplicationPolicyProvider;
-import org.jkiss.dbeaver.tools.transfer.database.DatabaseTransferProducer;
-import org.jkiss.dbeaver.tools.transfer.registry.DataTransferProcessorDescriptor;
-import org.jkiss.dbeaver.tools.transfer.ui.wizard.DataTransferWizard;
-import org.jkiss.dbeaver.ui.ActionUtils;
-import org.jkiss.dbeaver.ui.DBeaverIcons;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.actions.ConnectionCommands;
-import org.jkiss.dbeaver.ui.contentassist.ContentAssistUtils;
-import org.jkiss.dbeaver.ui.contentassist.ContentProposalExt;
-import org.jkiss.dbeaver.ui.contentassist.SmartTextContentAdapter;
-import org.jkiss.dbeaver.ui.controls.StyledTextFindReplaceTarget;
-import org.jkiss.dbeaver.ui.controls.StyledTextUtils;
-import org.jkiss.dbeaver.ui.controls.findandreplace.FindReplaceOverlay;
-import org.jkiss.dbeaver.ui.controls.resultset.*;
-import org.jkiss.dbeaver.ui.controls.resultset.IResultSetController.RowPlacement;
-import org.jkiss.dbeaver.ui.controls.resultset.internal.ResultSetMessages;
-import org.jkiss.dbeaver.ui.controls.resultset.panel.valueviewer.ValueViewerPanel;
-import org.jkiss.dbeaver.ui.controls.resultset.spreadsheet.Spreadsheet;
-import org.jkiss.dbeaver.ui.controls.resultset.spreadsheet.SpreadsheetPresentation;
-import org.jkiss.dbeaver.ui.data.IValueController;
-import org.jkiss.dbeaver.ui.data.managers.BaseValueManager;
-import org.jkiss.dbeaver.ui.editors.MultiPageAbstractEditor;
-import org.jkiss.dbeaver.ui.editors.text.BaseTextEditor;
-import org.jkiss.dbeaver.ui.internal.UIMessages;
-import org.jkiss.dbeaver.utils.GeneralUtils;
+import com.seizia.chromite.model.*;
+import com.seizia.chromite.model.data.DBDAttributeBinding;
+import com.seizia.chromite.model.data.DBDDisplayFormat;
+import com.seizia.chromite.model.data.DBDValueDefaultGenerator;
+import com.seizia.chromite.model.data.DBDValueHandler;
+import com.seizia.chromite.model.data.resultset.ResultSetSaveSettings;
+import com.seizia.chromite.model.exec.DBCExecutionPurpose;
+import com.seizia.chromite.model.exec.DBCSession;
+import com.seizia.chromite.model.exec.DBExecUtils;
+import com.seizia.chromite.model.preferences.DBPPreferenceStore;
+import com.seizia.chromite.model.runtime.AbstractJob;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.model.runtime.VoidProgressMonitor;
+import com.seizia.chromite.model.struct.DBSDataContainer;
+import com.seizia.chromite.model.virtual.DBVEntity;
+import com.seizia.chromite.model.virtual.DBVUtils;
+import com.seizia.chromite.registry.ApplicationPolicyProvider;
+import com.seizia.chromite.tools.transfer.database.DatabaseTransferProducer;
+import com.seizia.chromite.tools.transfer.registry.DataTransferProcessorDescriptor;
+import com.seizia.chromite.tools.transfer.ui.wizard.DataTransferWizard;
+import com.seizia.chromite.ui.ActionUtils;
+import com.seizia.chromite.ui.SwtIcons;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.actions.ConnectionCommands;
+import com.seizia.chromite.ui.contentassist.ContentAssistUtils;
+import com.seizia.chromite.ui.contentassist.ContentProposalExt;
+import com.seizia.chromite.ui.contentassist.SmartTextContentAdapter;
+import com.seizia.chromite.ui.controls.StyledTextFindReplaceTarget;
+import com.seizia.chromite.ui.controls.StyledTextUtils;
+import com.seizia.chromite.ui.controls.findandreplace.FindReplaceOverlay;
+import com.seizia.chromite.ui.controls.resultset.*;
+import com.seizia.chromite.ui.controls.resultset.IResultSetController.RowPlacement;
+import com.seizia.chromite.ui.controls.resultset.internal.ResultSetMessages;
+import com.seizia.chromite.ui.controls.resultset.panel.valueviewer.ValueViewerPanel;
+import com.seizia.chromite.ui.controls.resultset.spreadsheet.Spreadsheet;
+import com.seizia.chromite.ui.controls.resultset.spreadsheet.SpreadsheetPresentation;
+import com.seizia.chromite.ui.data.IValueController;
+import com.seizia.chromite.ui.data.managers.BaseValueManager;
+import com.seizia.chromite.ui.editors.MultiPageAbstractEditor;
+import com.seizia.chromite.ui.editors.text.BaseTextEditor;
+import com.seizia.chromite.ui.internal.UIMessages;
+import com.seizia.chromite.utils.GeneralUtils;
 import org.jkiss.utils.CommonUtils;
 import org.jkiss.utils.Pair;
 
@@ -458,7 +458,7 @@ public class ResultSetHandlerMain extends AbstractHandler implements IElementUpd
                 break;
             }
             case IResultSetCommands.CMD_NAVIGATE_LINK: {
-                // FIXME: Should probably rely on hints; see org.jkiss.dbeaver.ui.data.DBDValueHintActionHandler
+                // FIXME: Should probably rely on hints; see com.seizia.chromite.ui.data.DBDValueHintActionHandler
                 final DBDAttributeBinding attr = rsv.getActivePresentation().getCurrentAttribute();
                 if (attr != null) {
                     new AbstractJob("Navigate association") {
@@ -713,7 +713,7 @@ public class ResultSetHandlerMain extends AbstractHandler implements IElementUpd
                 element.setTooltip(ActionUtils.findCommandDescription(IResultSetCommands.CMD_EXPORT, element.getServiceLocator(), false));
             } else {
                 element.setText(descriptor.getAppName());
-                element.setIcon(DBeaverIcons.getImageDescriptor(descriptor.getIcon()));
+                element.setIcon(SwtIcons.getImageDescriptor(descriptor.getIcon()));
                 element.setTooltip(descriptor.getDescription());
             }
         }

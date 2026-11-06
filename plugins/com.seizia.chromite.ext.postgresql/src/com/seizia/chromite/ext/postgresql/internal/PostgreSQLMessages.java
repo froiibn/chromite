@@ -14,12 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.postgresql.internal;
+package com.seizia.chromite.ext.postgresql.internal;
 
 import org.eclipse.osgi.util.NLS;
 
 public class PostgreSQLMessages extends NLS {
-    static final String BUNDLE_NAME = "org.jkiss.dbeaver.ext.postgresql.internal.PostgreSQLMessages"; //$NON-NLS-1$
+    static final String BUNDLE_NAME = "com.seizia.chromite.ext.postgresql.internal.PostgreSQLMessages"; //$NON-NLS-1$
 
     public static String pseudo_column_oid_description;
     public static String global_variable_current_date_description;

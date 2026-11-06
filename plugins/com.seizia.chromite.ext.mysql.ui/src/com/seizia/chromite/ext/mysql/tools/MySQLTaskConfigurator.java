@@ -15,20 +15,20 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.ext.mysql.tools;
+package com.seizia.chromite.ext.mysql.tools;
 
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.ext.mysql.MySQLDataSourceProvider;
-import org.jkiss.dbeaver.ext.mysql.model.MySQLCatalog;
-import org.jkiss.dbeaver.ext.mysql.tasks.MySQLTasks;
-import org.jkiss.dbeaver.model.runtime.DBRRunnableContext;
-import org.jkiss.dbeaver.model.task.DBTTask;
-import org.jkiss.dbeaver.model.task.DBTTaskType;
-import org.jkiss.dbeaver.tasks.ui.DBTTaskConfigPanelProvider;
-import org.jkiss.dbeaver.tasks.ui.DBTTaskConfigurator;
-import org.jkiss.dbeaver.tasks.ui.nativetool.NativeToolConfigPanel;
-import org.jkiss.dbeaver.tasks.ui.wizard.TaskConfigurationWizard;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.ext.mysql.MySQLDataSourceProvider;
+import com.seizia.chromite.ext.mysql.model.MySQLCatalog;
+import com.seizia.chromite.ext.mysql.tasks.MySQLTasks;
+import com.seizia.chromite.model.runtime.DBRRunnableContext;
+import com.seizia.chromite.model.task.DBTTask;
+import com.seizia.chromite.model.task.DBTTaskType;
+import com.seizia.chromite.tasks.ui.DBTTaskConfigPanelProvider;
+import com.seizia.chromite.tasks.ui.DBTTaskConfigurator;
+import com.seizia.chromite.tasks.ui.nativetool.NativeToolConfigPanel;
+import com.seizia.chromite.tasks.ui.wizard.TaskConfigurationWizard;
 
 /**
  * MySQL task configurator

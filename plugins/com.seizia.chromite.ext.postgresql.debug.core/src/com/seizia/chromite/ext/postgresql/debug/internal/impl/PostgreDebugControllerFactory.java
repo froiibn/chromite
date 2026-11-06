@@ -16,12 +16,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.postgresql.debug.internal.impl;
+package com.seizia.chromite.ext.postgresql.debug.internal.impl;
 
-import org.jkiss.dbeaver.debug.DBGController;
-import org.jkiss.dbeaver.debug.DBGControllerFactory;
-import org.jkiss.dbeaver.debug.DBGException;
-import org.jkiss.dbeaver.model.DBPDataSourceContainer;
+import com.seizia.chromite.debug.DBGController;
+import com.seizia.chromite.debug.DBGControllerFactory;
+import com.seizia.chromite.debug.DBGException;
+import com.seizia.chromite.model.DBPDataSourceContainer;
 
 import java.util.Map;
 

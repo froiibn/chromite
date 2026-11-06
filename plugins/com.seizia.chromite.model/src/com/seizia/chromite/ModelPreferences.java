@@ -16,25 +16,25 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver;
+package com.seizia.chromite;
 
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.model.DBConstants;
-import org.jkiss.dbeaver.model.connection.DBPConnectionConfiguration;
-import org.jkiss.dbeaver.model.data.order.OrderingPolicy;
-import org.jkiss.dbeaver.model.data.order.OrderingStrategy;
-import org.jkiss.dbeaver.model.exec.DBCDDLTransactionBehavior;
-import org.jkiss.dbeaver.model.exec.DBCExecutionPurpose;
-import org.jkiss.dbeaver.model.impl.preferences.BundlePreferenceStore;
-import org.jkiss.dbeaver.model.preferences.DBPPreferenceStore;
-import org.jkiss.dbeaver.model.qm.QMConstants;
-import org.jkiss.dbeaver.model.qm.QMObjectType;
-import org.jkiss.dbeaver.model.sql.SQLConstants;
-import org.jkiss.dbeaver.model.virtual.DBVEntity;
-import org.jkiss.dbeaver.registry.formatter.DataFormatterProfile;
-import org.jkiss.dbeaver.utils.GeneralUtils;
-import org.jkiss.dbeaver.utils.PrefUtils;
-import org.jkiss.dbeaver.utils.RuntimeUtils;
+import com.seizia.chromite.model.DBConstants;
+import com.seizia.chromite.model.connection.DBPConnectionConfiguration;
+import com.seizia.chromite.model.data.order.OrderingPolicy;
+import com.seizia.chromite.model.data.order.OrderingStrategy;
+import com.seizia.chromite.model.exec.DBCDDLTransactionBehavior;
+import com.seizia.chromite.model.exec.DBCExecutionPurpose;
+import com.seizia.chromite.model.impl.preferences.BundlePreferenceStore;
+import com.seizia.chromite.model.preferences.DBPPreferenceStore;
+import com.seizia.chromite.model.qm.QMConstants;
+import com.seizia.chromite.model.qm.QMObjectType;
+import com.seizia.chromite.model.sql.SQLConstants;
+import com.seizia.chromite.model.virtual.DBVEntity;
+import com.seizia.chromite.registry.formatter.DataFormatterProfile;
+import com.seizia.chromite.utils.GeneralUtils;
+import com.seizia.chromite.utils.PrefUtils;
+import com.seizia.chromite.utils.RuntimeUtils;
 import org.jkiss.utils.CommonUtils;
 import org.osgi.framework.Bundle;
 
@@ -166,7 +166,7 @@ public final class ModelPreferences
         }
     }
 
-    public static final String PLUGIN_ID = "org.jkiss.dbeaver.model";
+    public static final String PLUGIN_ID = "com.seizia.chromite.model";
     public static final String CLIENT_TIMEZONE = "java.client.timezone";
     public static final String CLIENT_BROWSER = "swt.client.browser";
 
@@ -277,7 +277,7 @@ public final class ModelPreferences
      * Offline mode: never download driver files (Maven artifacts, URL and repo: files).
      * Only bundled files, local Maven repositories/caches and manually added files are used.
      * Off by default (public edition); an edition can turn it on with plugin_customization.ini
-     * ({@code org.jkiss.dbeaver.core/ui.drivers.offline=true}).
+     * ({@code com.seizia.chromite.core/ui.drivers.offline=true}).
      */
     public static final String UI_DRIVERS_OFFLINE = "ui.drivers.offline"; //$NON-NLS-1$
     public static final String UI_MAVEN_REPOSITORIES = "ui.maven.repositories"; //$NON-NLS-1$

@@ -14,14 +14,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.postgresql.model;
+package com.seizia.chromite.ext.postgresql.model;
 
-import org.jkiss.junit.DBeaverUnitTest;
+import com.seizia.chromite.junit.ChromiteUnitTest;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-public class PostgreProcedureSourceTest extends DBeaverUnitTest {
+public class PostgreProcedureSourceTest extends ChromiteUnitTest {
     @Test
     public void preservesDefinitionAndRoutineAttributes() {
         String prefix = "CREATE OR REPLACE FUNCTION public.f() RETURNS integer\n"

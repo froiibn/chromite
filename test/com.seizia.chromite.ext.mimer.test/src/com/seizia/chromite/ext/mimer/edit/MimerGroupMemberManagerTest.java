@@ -14,10 +14,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.mimer.edit;
+package com.seizia.chromite.ext.mimer.edit;
 
-import org.jkiss.dbeaver.ext.mimer.model.MimerGroup;
-import org.jkiss.junit.DBeaverUnitTest;
+import com.seizia.chromite.ext.mimer.model.MimerGroup;
+import com.seizia.chromite.junit.ChromiteUnitTest;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
@@ -28,11 +28,11 @@ import org.mockito.Mockito;
  * {@link MimerGroupMemberManager#canCreateObject} - refuses "Create New Member" under the
  * built-in PUBLIC group specifically, since every ident is already implicitly a member and
  * Mimer SQL rejects an explicit {@code GRANT MEMBER ON GROUP PUBLIC}. Case-insensitive, matching
- * {@link org.jkiss.dbeaver.ext.mimer.MimerConstants#GROUP_PUBLIC}'s own comparison.
+ * {@link com.seizia.chromite.ext.mimer.MimerConstants#GROUP_PUBLIC}'s own comparison.
  *
  * @author Mimer Information Technology
  */
-public class MimerGroupMemberManagerTest extends DBeaverUnitTest {
+public class MimerGroupMemberManagerTest extends ChromiteUnitTest {
 
     @Mock
     private MimerGroup publicGroup;

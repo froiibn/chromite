@@ -14,21 +14,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.tools.transfer.stream.importer;
+package com.seizia.chromite.tools.transfer.stream.importer;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.DBPDataKind;
-import org.jkiss.dbeaver.model.struct.DBSEntity;
-import org.jkiss.dbeaver.model.struct.DBSEntityAttribute;
-import org.jkiss.dbeaver.tools.transfer.IDataTransferConsumer;
-import org.jkiss.dbeaver.tools.transfer.database.DatabaseTransferConsumer;
-import org.jkiss.dbeaver.tools.transfer.stream.IStreamDataImporter;
-import org.jkiss.dbeaver.tools.transfer.stream.IStreamDataImporterSite;
-import org.jkiss.dbeaver.tools.transfer.stream.StreamDataImporterColumnInfo;
-import org.jkiss.dbeaver.tools.transfer.stream.StreamTransferResultSet;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.DBPDataKind;
+import com.seizia.chromite.model.struct.DBSEntity;
+import com.seizia.chromite.model.struct.DBSEntityAttribute;
+import com.seizia.chromite.tools.transfer.IDataTransferConsumer;
+import com.seizia.chromite.tools.transfer.database.DatabaseTransferConsumer;
+import com.seizia.chromite.tools.transfer.stream.IStreamDataImporter;
+import com.seizia.chromite.tools.transfer.stream.IStreamDataImporterSite;
+import com.seizia.chromite.tools.transfer.stream.StreamDataImporterColumnInfo;
+import com.seizia.chromite.tools.transfer.stream.StreamTransferResultSet;
 import org.jkiss.utils.CommonUtils;
 
 import java.time.ZoneId;

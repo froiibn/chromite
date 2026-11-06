@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.controls;
+package com.seizia.chromite.ui.controls;
 
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.events.*;
@@ -24,10 +24,10 @@ import org.eclipse.swt.graphics.Image;
 import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.*;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.ui.DBeaverIcons;
-import org.jkiss.dbeaver.ui.UIIcon;
-import org.jkiss.dbeaver.ui.UIUtils;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.ui.SwtIcons;
+import com.seizia.chromite.ui.UIIcon;
+import com.seizia.chromite.ui.UIUtils;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -96,19 +96,19 @@ public class PairListControl<ELEMENT> extends Composite
             GridLayout gl = new GridLayout(1, false);
             buttonsPane.setLayout(gl);
 
-            final Button btnMoveRight = createButton(buttonsPane, DBeaverIcons.getImage(UIIcon.ARROW_RIGHT), SelectionListener.widgetSelectedAdapter(e ->
+            final Button btnMoveRight = createButton(buttonsPane, SwtIcons.getImage(UIIcon.ARROW_RIGHT), SelectionListener.widgetSelectedAdapter(e ->
                 moveElements(true)));
-            final Button btnMoveRightAll = createButton(buttonsPane, DBeaverIcons.getImage(UIIcon.ARROW_RIGHT_ALL), SelectionListener.widgetSelectedAdapter(e -> {
+            final Button btnMoveRightAll = createButton(buttonsPane, SwtIcons.getImage(UIIcon.ARROW_RIGHT_ALL), SelectionListener.widgetSelectedAdapter(e -> {
                     leftList.selectAll();
                     moveElements(true);
                 }));
-            final Button btnMoveLeft = createButton(buttonsPane, DBeaverIcons.getImage(UIIcon.ARROW_LEFT), SelectionListener.widgetSelectedAdapter(e ->
+            final Button btnMoveLeft = createButton(buttonsPane, SwtIcons.getImage(UIIcon.ARROW_LEFT), SelectionListener.widgetSelectedAdapter(e ->
                 moveElements(false)));
-            final Button btnMoveLeftAll = createButton(buttonsPane, DBeaverIcons.getImage(UIIcon.ARROW_LEFT_ALL), SelectionListener.widgetSelectedAdapter(e -> {
+            final Button btnMoveLeftAll = createButton(buttonsPane, SwtIcons.getImage(UIIcon.ARROW_LEFT_ALL), SelectionListener.widgetSelectedAdapter(e -> {
                     rightList.selectAll();
                     moveElements(false);
                 }));
-            createButton(buttonsPane, DBeaverIcons.getImage(UIIcon.ARROW_RESET), SelectionListener.widgetSelectedAdapter(e -> {
+            createButton(buttonsPane, SwtIcons.getImage(UIIcon.ARROW_RESET), SelectionListener.widgetSelectedAdapter(e -> {
                     setListData(leftList, leftElements);
                     setListData(rightList, rightElements);
                 }));

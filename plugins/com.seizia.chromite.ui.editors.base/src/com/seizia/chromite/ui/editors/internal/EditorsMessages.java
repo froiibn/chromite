@@ -14,12 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.editors.internal;
+package com.seizia.chromite.ui.editors.internal;
 
 import org.eclipse.osgi.util.NLS;
 
 public class EditorsMessages extends NLS {
-    private static final String BUNDLE_NAME = "org.jkiss.dbeaver.ui.editors.internal.EditorsResources"; //$NON-NLS-1$
+    private static final String BUNDLE_NAME = "com.seizia.chromite.ui.editors.internal.EditorsResources"; //$NON-NLS-1$
 
     public static String dialog_morph_delimited_shell_text;
     public static String dialog_morph_delimited_source_group;

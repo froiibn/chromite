@@ -14,16 +14,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.postgresql.model;
+package com.seizia.chromite.ext.postgresql.model;
 
-import org.jkiss.dbeaver.ext.postgresql.model.impls.PostgreServerPostgreSQL;
-import org.jkiss.dbeaver.ext.postgresql.model.impls.redshift.PostgreServerRedshift;
-import org.jkiss.dbeaver.model.DBPDataSourceContainer;
-import org.jkiss.dbeaver.model.exec.DBCExecutionPurpose;
-import org.jkiss.dbeaver.model.exec.jdbc.JDBCPreparedStatement;
-import org.jkiss.dbeaver.model.exec.jdbc.JDBCResultSet;
-import org.jkiss.dbeaver.model.exec.jdbc.JDBCSession;
-import org.jkiss.junit.DBeaverUnitTest;
+import com.seizia.chromite.ext.postgresql.model.impls.PostgreServerPostgreSQL;
+import com.seizia.chromite.ext.postgresql.model.impls.redshift.PostgreServerRedshift;
+import com.seizia.chromite.model.DBPDataSourceContainer;
+import com.seizia.chromite.model.exec.DBCExecutionPurpose;
+import com.seizia.chromite.model.exec.jdbc.JDBCPreparedStatement;
+import com.seizia.chromite.model.exec.jdbc.JDBCResultSet;
+import com.seizia.chromite.model.exec.jdbc.JDBCSession;
+import com.seizia.chromite.junit.ChromiteUnitTest;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -33,7 +33,7 @@ import org.mockito.Mockito;
 
 import java.util.List;
 
-public class PostgreExecutionContextTest extends DBeaverUnitTest {
+public class PostgreExecutionContextTest extends ChromiteUnitTest {
     @Mock
     private PostgreDataSource dataSource;
     @Mock

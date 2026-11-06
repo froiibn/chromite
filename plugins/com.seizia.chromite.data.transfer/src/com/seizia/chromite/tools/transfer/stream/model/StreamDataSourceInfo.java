@@ -15,9 +15,9 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.tools.transfer.stream.model;
+package com.seizia.chromite.tools.transfer.stream.model;
 
-import org.jkiss.dbeaver.model.impl.AbstractDataSourceInfo;
+import com.seizia.chromite.model.impl.AbstractDataSourceInfo;
 import org.osgi.framework.Version;
 
 class StreamDataSourceInfo extends AbstractDataSourceInfo {

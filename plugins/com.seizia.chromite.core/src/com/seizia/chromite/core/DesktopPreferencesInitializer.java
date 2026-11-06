@@ -14,25 +14,25 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.core;
+package com.seizia.chromite.core;
 
 import org.eclipse.core.runtime.preferences.AbstractPreferenceInitializer;
-import org.jkiss.dbeaver.DBeaverPreferences;
-import org.jkiss.dbeaver.LogOutputStream;
-import org.jkiss.dbeaver.model.DBConstants;
-import org.jkiss.dbeaver.model.exec.DBCExecutionPurpose;
-import org.jkiss.dbeaver.model.impl.preferences.BundlePreferenceStore;
-import org.jkiss.dbeaver.model.preferences.DBPPreferenceStore;
-import org.jkiss.dbeaver.model.qm.QMConstants;
-import org.jkiss.dbeaver.model.qm.QMObjectType;
-import org.jkiss.dbeaver.ui.editors.DatabaseEditorPreferences.BreadcrumbLocation;
-import org.jkiss.dbeaver.ui.preferences.UIPreferences;
-import org.jkiss.dbeaver.ui.screenreaders.ScreenReader;
-import org.jkiss.dbeaver.ui.screenreaders.ScreenReaderPreferences;
-import org.jkiss.dbeaver.ui.services.ApplicationPolicyService;
-import org.jkiss.dbeaver.utils.PrefUtils;
-import org.jkiss.dbeaver.utils.RuntimeUtils;
-import org.jkiss.dbeaver.utils.SystemVariablesResolver;
+import com.seizia.chromite.ChromitePreferences;
+import com.seizia.chromite.LogOutputStream;
+import com.seizia.chromite.model.DBConstants;
+import com.seizia.chromite.model.exec.DBCExecutionPurpose;
+import com.seizia.chromite.model.impl.preferences.BundlePreferenceStore;
+import com.seizia.chromite.model.preferences.DBPPreferenceStore;
+import com.seizia.chromite.model.qm.QMConstants;
+import com.seizia.chromite.model.qm.QMObjectType;
+import com.seizia.chromite.ui.editors.DatabaseEditorPreferences.BreadcrumbLocation;
+import com.seizia.chromite.ui.preferences.UIPreferences;
+import com.seizia.chromite.ui.screenreaders.ScreenReader;
+import com.seizia.chromite.ui.screenreaders.ScreenReaderPreferences;
+import com.seizia.chromite.ui.services.ApplicationPolicyService;
+import com.seizia.chromite.utils.PrefUtils;
+import com.seizia.chromite.utils.RuntimeUtils;
+import com.seizia.chromite.utils.SystemVariablesResolver;
 
 import java.io.File;
 import java.util.Arrays;
@@ -44,34 +44,34 @@ public class DesktopPreferencesInitializer extends AbstractPreferenceInitializer
     @Override
     public void initializeDefaultPreferences() {
         // Init default preferences
-        DBPPreferenceStore store = new BundlePreferenceStore(DBeaverActivator.getInstance().getBundle());
+        DBPPreferenceStore store = new BundlePreferenceStore(ChromiteActivator.getInstance().getBundle());
 
         // Resources
-        //PrefUtils.setDefaultPreferenceValue(store, DBeaverPreferences.DEFAULT_RESOURCE_ENCODING, GeneralUtils.UTF8_ENCODING);
+        //PrefUtils.setDefaultPreferenceValue(store, ChromitePreferences.DEFAULT_RESOURCE_ENCODING, GeneralUtils.UTF8_ENCODING);
 
         // Agent
-        PrefUtils.setDefaultPreferenceValue(store, DBeaverPreferences.AGENT_ENABLED, true);
-        PrefUtils.setDefaultPreferenceValue(store, DBeaverPreferences.AGENT_LONG_OPERATION_NOTIFY, RuntimeUtils.isWindows());
-        PrefUtils.setDefaultPreferenceValue(store, DBeaverPreferences.AGENT_LONG_OPERATION_TIMEOUT, 30);
-        PrefUtils.setDefaultPreferenceValue(store, DBeaverPreferences.SECURITY_USE_BOUNCY_CASTLE, true);
+        PrefUtils.setDefaultPreferenceValue(store, ChromitePreferences.AGENT_ENABLED, true);
+        PrefUtils.setDefaultPreferenceValue(store, ChromitePreferences.AGENT_LONG_OPERATION_NOTIFY, RuntimeUtils.isWindows());
+        PrefUtils.setDefaultPreferenceValue(store, ChromitePreferences.AGENT_LONG_OPERATION_TIMEOUT, 30);
+        PrefUtils.setDefaultPreferenceValue(store, ChromitePreferences.SECURITY_USE_BOUNCY_CASTLE, true);
 
-        PrefUtils.setDefaultPreferenceValue(store, DBeaverPreferences.NAVIGATOR_EDITOR_FULL_NAME, false);
+        PrefUtils.setDefaultPreferenceValue(store, ChromitePreferences.NAVIGATOR_EDITOR_FULL_NAME, false);
 
-        PrefUtils.setDefaultPreferenceValue(store, DBeaverPreferences.TEXT_EDIT_UNDO_LEVEL, 200);
+        PrefUtils.setDefaultPreferenceValue(store, ChromitePreferences.TEXT_EDIT_UNDO_LEVEL, 200);
 
         // General UI
-        PrefUtils.setDefaultPreferenceValue(store, DBeaverPreferences.UI_AUTO_UPDATE_CHECK,
+        PrefUtils.setDefaultPreferenceValue(store, ChromitePreferences.UI_AUTO_UPDATE_CHECK,
             !ApplicationPolicyService.getInstance().isInstallUpdateDisabled());
         PrefUtils.setDefaultPreferenceValue(store, UIPreferences.UI_USE_EMBEDDED_AUTH, false);
         PrefUtils.setDefaultPreferenceValue(store, UIPreferences.DRIVER_SELECTOR_SHOW_COMMERCIAL_DRIVERS, false);
-        PrefUtils.setDefaultPreferenceValue(store, DBeaverPreferences.UI_SHOW_HOLIDAY_DECORATIONS, true);
-        PrefUtils.setDefaultPreferenceValue(store, DBeaverPreferences.UI_STATUS_BAR_SHOW_BREADCRUMBS, BreadcrumbLocation.IN_STATUS_BAR);
-        PrefUtils.setDefaultPreferenceValue(store, DBeaverPreferences.UI_STATUS_BAR_SHOW_STATUS_LINE, true);
+        PrefUtils.setDefaultPreferenceValue(store, ChromitePreferences.UI_SHOW_HOLIDAY_DECORATIONS, true);
+        PrefUtils.setDefaultPreferenceValue(store, ChromitePreferences.UI_STATUS_BAR_SHOW_BREADCRUMBS, BreadcrumbLocation.IN_STATUS_BAR);
+        PrefUtils.setDefaultPreferenceValue(store, ChromitePreferences.UI_STATUS_BAR_SHOW_STATUS_LINE, true);
         // SWT can only rescale at runtime on Windows; elsewhere the Eclipse zoom-restart prompt never helps.
-        PrefUtils.setDefaultPreferenceValue(store, DBeaverPreferences.UI_SHOW_ZOOM_RESTART_PROMPT, RuntimeUtils.isWindows());
+        PrefUtils.setDefaultPreferenceValue(store, ChromitePreferences.UI_SHOW_ZOOM_RESTART_PROMPT, RuntimeUtils.isWindows());
 
-        PrefUtils.setDefaultPreferenceValue(store, DBeaverPreferences.UI_KEEP_DATABASE_EDITORS, true);
-        PrefUtils.setDefaultPreferenceValue(store, DBeaverPreferences.UI_KEEP_DATABASE_EDITORS_ON_DISCONNECT, true);
+        PrefUtils.setDefaultPreferenceValue(store, ChromitePreferences.UI_KEEP_DATABASE_EDITORS, true);
+        PrefUtils.setDefaultPreferenceValue(store, ChromitePreferences.UI_KEEP_DATABASE_EDITORS_ON_DISCONNECT, true);
         PrefUtils.setDefaultPreferenceValue(store, ScreenReaderPreferences.PREF_SCREEN_READER_ACCESSIBILITY, ScreenReader.DEFAULT);
         PrefUtils.setDefaultPreferenceValue(store, ScreenReaderPreferences.PREF_FORCE_FOCUS_ON_EDITOR, false);
 
@@ -85,8 +85,8 @@ public class DesktopPreferencesInitializer extends AbstractPreferenceInitializer
         PrefUtils.setDefaultPreferenceValue(store, QMConstants.PROP_STORE_LOG_FILE, false);
 
         // Logs
-        PrefUtils.setDefaultPreferenceValue(store, DBeaverPreferences.LOGS_DEBUG_ENABLED, true);
-        PrefUtils.setDefaultPreferenceValue(store, DBeaverPreferences.LOGS_DEBUG_LOCATION,
+        PrefUtils.setDefaultPreferenceValue(store, ChromitePreferences.LOGS_DEBUG_ENABLED, true);
+        PrefUtils.setDefaultPreferenceValue(store, ChromitePreferences.LOGS_DEBUG_LOCATION,
             "${" + SystemVariablesResolver.VAR_WORKSPACE + "}" + File.separator + ".metadata" + File.separator + DBConstants.DEBUG_LOG_FILE_NAME);
 
         PrefUtils.setDefaultPreferenceValue(store, LogOutputStream.LOGS_MAX_FILE_SIZE, LogOutputStream.DEFAULT_MAX_LOG_SIZE);

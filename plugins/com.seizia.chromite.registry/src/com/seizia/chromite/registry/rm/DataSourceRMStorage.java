@@ -14,12 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.registry.rm;
+package com.seizia.chromite.registry.rm;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.model.DBPDataSourceConfigurationStorage;
-import org.jkiss.dbeaver.model.app.DBPProject;
+import com.seizia.chromite.model.DBPDataSourceConfigurationStorage;
+import com.seizia.chromite.model.app.DBPProject;
 
 /**
  * DataSourceRemoteStorage

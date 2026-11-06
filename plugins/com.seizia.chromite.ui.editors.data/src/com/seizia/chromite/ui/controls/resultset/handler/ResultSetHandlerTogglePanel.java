@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.controls.resultset.handler;
+package com.seizia.chromite.ui.controls.resultset.handler;
 
 import org.eclipse.core.commands.AbstractHandler;
 import org.eclipse.core.commands.ExecutionEvent;
@@ -24,11 +24,11 @@ import org.eclipse.ui.IWorkbenchPart;
 import org.eclipse.ui.commands.IElementUpdater;
 import org.eclipse.ui.handlers.HandlerUtil;
 import org.eclipse.ui.menus.UIElement;
-import org.jkiss.dbeaver.ui.DataEditorFeatures;
-import org.jkiss.dbeaver.ui.controls.resultset.IResultSetController;
-import org.jkiss.dbeaver.ui.controls.resultset.ResultSetPresentationRegistry;
-import org.jkiss.dbeaver.ui.controls.resultset.ResultSetViewer;
-import org.jkiss.dbeaver.ui.controls.resultset.panel.ResultSetPanelDescriptor;
+import com.seizia.chromite.ui.DataEditorFeatures;
+import com.seizia.chromite.ui.controls.resultset.IResultSetController;
+import com.seizia.chromite.ui.controls.resultset.ResultSetPresentationRegistry;
+import com.seizia.chromite.ui.controls.resultset.ResultSetViewer;
+import com.seizia.chromite.ui.controls.resultset.panel.ResultSetPanelDescriptor;
 import org.jkiss.utils.CommonUtils;
 
 import java.util.HashMap;
@@ -39,7 +39,7 @@ import java.util.Map;
  */
 public class ResultSetHandlerTogglePanel extends AbstractHandler implements IElementUpdater {
 
-    public static final String CMD_TOGGLE_PANEL = "org.jkiss.dbeaver.core.resultset.grid.togglePanel";
+    public static final String CMD_TOGGLE_PANEL = "com.seizia.chromite.core.resultset.grid.togglePanel";
     public static final String PARAM_PANEL_ID = "panelId";
 
     @Override

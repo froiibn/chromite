@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.mysql.ui.editors;
+package com.seizia.chromite.ext.mysql.ui.editors;
 
 import org.eclipse.jface.action.IContributionManager;
 import org.eclipse.swt.SWT;
@@ -22,15 +22,15 @@ import org.eclipse.swt.widgets.Composite;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.ext.mysql.model.MySQLGrant;
-import org.jkiss.dbeaver.ext.mysql.model.MySQLUser;
-import org.jkiss.dbeaver.ext.mysql.ui.internal.MySQLUIMessages;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.model.runtime.load.DatabaseLoadService;
-import org.jkiss.dbeaver.ui.LoadingJob;
-import org.jkiss.dbeaver.ui.controls.ObjectEditorPageControl;
-import org.jkiss.dbeaver.ui.editors.AbstractDatabaseObjectEditor;
-import org.jkiss.dbeaver.ui.editors.DatabaseEditorUtils;
+import com.seizia.chromite.ext.mysql.model.MySQLGrant;
+import com.seizia.chromite.ext.mysql.model.MySQLUser;
+import com.seizia.chromite.ext.mysql.ui.internal.MySQLUIMessages;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.model.runtime.load.DatabaseLoadService;
+import com.seizia.chromite.ui.LoadingJob;
+import com.seizia.chromite.ui.controls.ObjectEditorPageControl;
+import com.seizia.chromite.ui.editors.AbstractDatabaseObjectEditor;
+import com.seizia.chromite.ui.editors.DatabaseEditorUtils;
 
 import java.lang.reflect.InvocationTargetException;
 import java.util.List;

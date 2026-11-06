@@ -14,15 +14,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.editors.erd.part;
+package com.seizia.chromite.ui.editors.erd.part;
 
 import org.eclipse.gef.GraphicalViewer;
 import org.eclipse.gef.ui.parts.GraphicalViewerKeyHandler;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.events.KeyEvent;
 
-public class DBeaverNavigationKeyHandler extends GraphicalViewerKeyHandler {
-    public DBeaverNavigationKeyHandler(GraphicalViewer viewer) {
+public class ChromiteNavigationKeyHandler extends GraphicalViewerKeyHandler {
+    public ChromiteNavigationKeyHandler(GraphicalViewer viewer) {
         super(viewer);
     }
 

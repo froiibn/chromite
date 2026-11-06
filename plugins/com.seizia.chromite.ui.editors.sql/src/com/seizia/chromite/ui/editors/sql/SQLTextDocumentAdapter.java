@@ -14,15 +14,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.editors.sql;
+package com.seizia.chromite.ui.editors.sql;
 
 import org.eclipse.jface.text.BadLocationException;
 import org.eclipse.jface.text.IDocument;
 import org.eclipse.jface.text.IRegion;
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.text.TPTextDocument;
-import org.jkiss.dbeaver.model.text.TPTextRegion;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.text.TPTextDocument;
+import com.seizia.chromite.model.text.TPTextRegion;
 
 /**
  * Script-to-datasource binding type

@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.editors.text;
+package com.seizia.chromite.ui.editors.text;
 
 import org.eclipse.core.resources.IStorage;
 import org.eclipse.core.runtime.CoreException;
@@ -22,7 +22,7 @@ import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.jface.text.IDocument;
 import org.eclipse.ui.IStorageEditorInput;
 import org.eclipse.ui.editors.text.StorageDocumentProvider;
-import org.jkiss.dbeaver.runtime.IPersistentStorage;
+import com.seizia.chromite.runtime.IPersistentStorage;
 
 import java.io.ByteArrayInputStream;
 import java.nio.charset.StandardCharsets;

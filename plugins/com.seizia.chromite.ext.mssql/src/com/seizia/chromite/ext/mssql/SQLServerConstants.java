@@ -14,12 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.mssql;
+package com.seizia.chromite.ext.mssql;
 
-import org.jkiss.dbeaver.model.DBConstants;
-import org.jkiss.dbeaver.model.impl.net.SSLHandlerTrustStoreImpl;
-import org.jkiss.dbeaver.model.net.DBWHandlerConfiguration;
-import org.jkiss.dbeaver.model.struct.rdb.DBSIndexType;
+import com.seizia.chromite.model.DBConstants;
+import com.seizia.chromite.model.impl.net.SSLHandlerTrustStoreImpl;
+import com.seizia.chromite.model.net.DBWHandlerConfiguration;
+import com.seizia.chromite.model.struct.rdb.DBSIndexType;
 
 public class SQLServerConstants {
 

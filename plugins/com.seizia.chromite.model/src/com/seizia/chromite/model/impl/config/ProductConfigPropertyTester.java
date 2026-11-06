@@ -14,14 +14,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.impl.config;
+package com.seizia.chromite.model.impl.config;
 
 import org.eclipse.core.expressions.PropertyTester;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.config.ProductConfigFeatureDescriptor;
-import org.jkiss.dbeaver.model.config.ProductConfigRegistry;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.config.ProductConfigFeatureDescriptor;
+import com.seizia.chromite.model.config.ProductConfigRegistry;
 
 public final class ProductConfigPropertyTester extends PropertyTester {
     private static final Log log = Log.getLog(ProductConfigPropertyTester.class);

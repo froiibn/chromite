@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.app.config.registry;
+package com.seizia.chromite.ui.app.config.registry;
 
 /**
  * An action that can be performed in Product Config as the last step.

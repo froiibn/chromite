@@ -14,23 +14,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.sql.semantics;
+package com.seizia.chromite.model.sql.semantics;
 
 import org.antlr.v4.runtime.misc.Interval;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.lsm.sql.impl.syntax.SQLStandardParser;
-import org.jkiss.dbeaver.model.sql.semantics.model.dml.SQLQuerySelectIntoModel;
-import org.jkiss.dbeaver.model.sql.semantics.model.dml.SQLQuerySelectIntoResultModel;
-import org.jkiss.dbeaver.model.sql.semantics.model.expressions.SQLQueryValueExpression;
-import org.jkiss.dbeaver.model.sql.semantics.model.expressions.SQLQueryValueFlattenedExpression;
-import org.jkiss.dbeaver.model.sql.semantics.model.expressions.SQLQueryValueTupleReferenceExpression;
-import org.jkiss.dbeaver.model.sql.semantics.model.select.*;
-import org.jkiss.dbeaver.model.stm.STMKnownRuleNames;
-import org.jkiss.dbeaver.model.stm.STMTreeNode;
-import org.jkiss.dbeaver.model.stm.STMTreeTermNode;
-import org.jkiss.dbeaver.model.stm.STMUtils;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.lsm.sql.impl.syntax.SQLStandardParser;
+import com.seizia.chromite.model.sql.semantics.model.dml.SQLQuerySelectIntoModel;
+import com.seizia.chromite.model.sql.semantics.model.dml.SQLQuerySelectIntoResultModel;
+import com.seizia.chromite.model.sql.semantics.model.expressions.SQLQueryValueExpression;
+import com.seizia.chromite.model.sql.semantics.model.expressions.SQLQueryValueFlattenedExpression;
+import com.seizia.chromite.model.sql.semantics.model.expressions.SQLQueryValueTupleReferenceExpression;
+import com.seizia.chromite.model.sql.semantics.model.select.*;
+import com.seizia.chromite.model.stm.STMKnownRuleNames;
+import com.seizia.chromite.model.stm.STMTreeNode;
+import com.seizia.chromite.model.stm.STMTreeTermNode;
+import com.seizia.chromite.model.stm.STMUtils;
 
 import java.util.*;
 

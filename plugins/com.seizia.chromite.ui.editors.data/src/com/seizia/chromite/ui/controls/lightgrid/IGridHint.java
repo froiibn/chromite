@@ -15,12 +15,12 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.ui.controls.lightgrid;
+package com.seizia.chromite.ui.controls.lightgrid;
 
 import org.eclipse.swt.graphics.Point;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.model.DBPImage;
+import com.seizia.chromite.model.DBPImage;
 
 /**
  * Grid cell hint

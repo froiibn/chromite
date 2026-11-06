@@ -14,16 +14,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.editors.erd.editor.tools;
+package com.seizia.chromite.ui.editors.erd.editor.tools;
 
 import org.eclipse.gef.Tool;
 import org.eclipse.gef.palette.PaletteEntry;
 import org.eclipse.gef.palette.ToolEntry;
 import org.eclipse.gef.tools.SelectionTool;
-import org.jkiss.dbeaver.model.DBPImage;
-import org.jkiss.dbeaver.ui.ActionUtils;
-import org.jkiss.dbeaver.ui.DBeaverIcons;
-import org.jkiss.dbeaver.ui.UIUtils;
+import com.seizia.chromite.model.DBPImage;
+import com.seizia.chromite.ui.ActionUtils;
+import com.seizia.chromite.ui.SwtIcons;
+import com.seizia.chromite.ui.UIUtils;
 
 public class CommandToolEntry extends ToolEntry {
 
@@ -33,7 +33,7 @@ public class CommandToolEntry extends ToolEntry {
         super(
             label,
             ActionUtils.findCommandDescription(commandId, UIUtils.getActiveWorkbenchWindow(), false),
-            DBeaverIcons.getImageDescriptor(image),
+            SwtIcons.getImageDescriptor(image),
             null);
         this.commandId = commandId;
 

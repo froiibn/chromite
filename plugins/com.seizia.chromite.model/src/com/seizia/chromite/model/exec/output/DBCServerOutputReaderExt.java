@@ -14,10 +14,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.exec.output;
+package com.seizia.chromite.model.exec.output;
 
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.model.exec.DBCExecutionContext;
+import com.seizia.chromite.model.exec.DBCExecutionContext;
 
 public interface DBCServerOutputReaderExt extends DBCServerOutputReader {
     @NotNull

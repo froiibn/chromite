@@ -14,26 +14,26 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.mimer.model;
+package com.seizia.chromite.ext.mimer.model;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.model.DBPNamedObject2;
-import org.jkiss.dbeaver.model.DBPRefreshableObject;
-import org.jkiss.dbeaver.model.DBPSaveableObject;
-import org.jkiss.dbeaver.model.exec.jdbc.JDBCPreparedStatement;
-import org.jkiss.dbeaver.model.exec.jdbc.JDBCResultSet;
-import org.jkiss.dbeaver.model.exec.jdbc.JDBCSession;
-import org.jkiss.dbeaver.model.exec.jdbc.JDBCStatement;
-import org.jkiss.dbeaver.model.impl.jdbc.JDBCUtils;
-import org.jkiss.dbeaver.model.impl.jdbc.cache.JDBCObjectCache;
-import org.jkiss.dbeaver.model.meta.Association;
-import org.jkiss.dbeaver.model.meta.Property;
-import org.jkiss.dbeaver.model.meta.PropertyLength;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.model.struct.DBSObject;
-import org.jkiss.dbeaver.model.struct.cache.DBSObjectCache;
+import com.seizia.chromite.model.DBPNamedObject2;
+import com.seizia.chromite.model.DBPRefreshableObject;
+import com.seizia.chromite.model.DBPSaveableObject;
+import com.seizia.chromite.model.exec.jdbc.JDBCPreparedStatement;
+import com.seizia.chromite.model.exec.jdbc.JDBCResultSet;
+import com.seizia.chromite.model.exec.jdbc.JDBCSession;
+import com.seizia.chromite.model.exec.jdbc.JDBCStatement;
+import com.seizia.chromite.model.impl.jdbc.JDBCUtils;
+import com.seizia.chromite.model.impl.jdbc.cache.JDBCObjectCache;
+import com.seizia.chromite.model.meta.Association;
+import com.seizia.chromite.model.meta.Property;
+import com.seizia.chromite.model.meta.PropertyLength;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.model.struct.DBSObject;
+import com.seizia.chromite.model.struct.cache.DBSObjectCache;
 
 import java.sql.SQLException;
 import java.util.Collection;
@@ -43,7 +43,7 @@ import java.util.Collection;
  * {@link MimerDataSource.GroupCache}, filtered to {@code IDENT_TYPE = 'GROUP'}, plus the
  * built-in {@code PUBLIC} group unioned in since {@code EXT_IDENTS} doesn't return it).
  * Backs {@code CREATE}/{@code DROP IDENT} for
- * {@link org.jkiss.dbeaver.ext.mimer.edit.MimerGroupManager} and owns a {@link MemberCache}
+ * {@link com.seizia.chromite.ext.mimer.edit.MimerGroupManager} and owns a {@link MemberCache}
  * of {@link MimerGroupMember}s (the group's {@code MEMBER} privilege grants).
  *
  * @author Mimer Information Technology
@@ -109,7 +109,7 @@ public class MimerGroup implements DBSObject, DBPNamedObject2, DBPSaveableObject
     /**
      * {@code COMMENT ON IDENT "name" IS '...'} - see {@link MimerUser#getComment} for why
      * {@code OBJECT_TYPE = 'IDENT'} is correct here too. See {@link
-     * org.jkiss.dbeaver.ext.mimer.edit.MimerGroupManager} for the write side.
+     * com.seizia.chromite.ext.mimer.edit.MimerGroupManager} for the write side.
      */
     @Nullable
     @Property(viewable = true, editable = true, updatable = true, length = PropertyLength.MULTILINE, order = 4)

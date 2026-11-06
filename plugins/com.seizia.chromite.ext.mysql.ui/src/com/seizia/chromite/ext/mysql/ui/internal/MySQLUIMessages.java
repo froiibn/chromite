@@ -14,12 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.mysql.ui.internal;
+package com.seizia.chromite.ext.mysql.ui.internal;
 
 import org.eclipse.osgi.util.NLS;
 
 public final class MySQLUIMessages extends NLS {
-    private static final String BUNDLE_NAME = "org.jkiss.dbeaver.ext.mysql.ui.internal.MySQLUIMessages"; //$NON-NLS-1$
+    private static final String BUNDLE_NAME = "com.seizia.chromite.ext.mysql.ui.internal.MySQLUIMessages"; //$NON-NLS-1$
 
     static {
         // initialize resource bundle

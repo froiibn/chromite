@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.model.struct.rdb;
+package com.seizia.chromite.model.struct.rdb;
 
 /**
  * DBSProcedureType

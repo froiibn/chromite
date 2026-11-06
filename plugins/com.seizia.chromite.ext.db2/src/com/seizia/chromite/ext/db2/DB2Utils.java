@@ -15,31 +15,31 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.db2;
+package com.seizia.chromite.ext.db2;
 
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.DBDatabaseException;
+import com.seizia.chromite.DBDatabaseException;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.ext.db2.info.DB2Parameter;
-import org.jkiss.dbeaver.ext.db2.info.DB2XMLString;
-import org.jkiss.dbeaver.ext.db2.model.*;
-import org.jkiss.dbeaver.ext.db2.model.app.DB2ServerApplication;
-import org.jkiss.dbeaver.ext.db2.model.dict.DB2TablespaceDataType;
-import org.jkiss.dbeaver.ext.db2.model.fed.DB2Nickname;
-import org.jkiss.dbeaver.ext.db2.model.module.DB2Module;
-import org.jkiss.dbeaver.model.DBPEvaluationContext;
-import org.jkiss.dbeaver.model.DBUtils;
-import org.jkiss.dbeaver.model.exec.DBCException;
-import org.jkiss.dbeaver.model.exec.jdbc.JDBCCallableStatement;
-import org.jkiss.dbeaver.model.exec.jdbc.JDBCPreparedStatement;
-import org.jkiss.dbeaver.model.exec.jdbc.JDBCResultSet;
-import org.jkiss.dbeaver.model.exec.jdbc.JDBCSession;
-import org.jkiss.dbeaver.model.impl.jdbc.JDBCUtils;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.model.runtime.VoidProgressMonitor;
-import org.jkiss.dbeaver.model.sql.SQLConstants;
-import org.jkiss.dbeaver.model.sql.format.SQLFormatUtils;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.ext.db2.info.DB2Parameter;
+import com.seizia.chromite.ext.db2.info.DB2XMLString;
+import com.seizia.chromite.ext.db2.model.*;
+import com.seizia.chromite.ext.db2.model.app.DB2ServerApplication;
+import com.seizia.chromite.ext.db2.model.dict.DB2TablespaceDataType;
+import com.seizia.chromite.ext.db2.model.fed.DB2Nickname;
+import com.seizia.chromite.ext.db2.model.module.DB2Module;
+import com.seizia.chromite.model.DBPEvaluationContext;
+import com.seizia.chromite.model.DBUtils;
+import com.seizia.chromite.model.exec.DBCException;
+import com.seizia.chromite.model.exec.jdbc.JDBCCallableStatement;
+import com.seizia.chromite.model.exec.jdbc.JDBCPreparedStatement;
+import com.seizia.chromite.model.exec.jdbc.JDBCResultSet;
+import com.seizia.chromite.model.exec.jdbc.JDBCSession;
+import com.seizia.chromite.model.impl.jdbc.JDBCUtils;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.model.runtime.VoidProgressMonitor;
+import com.seizia.chromite.model.sql.SQLConstants;
+import com.seizia.chromite.model.sql.format.SQLFormatUtils;
 import org.jkiss.utils.CommonUtils;
 
 import java.sql.Clob;

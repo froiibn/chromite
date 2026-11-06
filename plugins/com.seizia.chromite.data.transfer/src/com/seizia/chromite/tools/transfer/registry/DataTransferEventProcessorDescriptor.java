@@ -14,14 +14,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.tools.transfer.registry;
+package com.seizia.chromite.tools.transfer.registry;
 
 import org.eclipse.core.runtime.IConfigurationElement;
 import org.jkiss.code.NotNull;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.model.impl.AbstractDescriptor;
-import org.jkiss.dbeaver.tools.transfer.IDataTransferConsumer;
-import org.jkiss.dbeaver.tools.transfer.IDataTransferEventProcessor;
+import com.seizia.chromite.model.impl.AbstractDescriptor;
+import com.seizia.chromite.tools.transfer.IDataTransferConsumer;
+import com.seizia.chromite.tools.transfer.IDataTransferEventProcessor;
 import org.jkiss.utils.CommonUtils;
 
 import java.util.Arrays;

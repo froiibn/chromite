@@ -15,12 +15,12 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.model.edit;
+package com.seizia.chromite.model.edit;
 
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.model.DBPObject;
-import org.jkiss.dbeaver.model.edit.prop.DBEPropertyHandler;
-import org.jkiss.dbeaver.model.preferences.DBPPropertyDescriptor;
+import com.seizia.chromite.model.DBPObject;
+import com.seizia.chromite.model.edit.prop.DBEPropertyHandler;
+import com.seizia.chromite.model.preferences.DBPPropertyDescriptor;
 
 /**
  * Object editor

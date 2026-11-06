@@ -15,9 +15,9 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.ext.kingbase.model;
+package com.seizia.chromite.ext.kingbase.model;
 
-import org.jkiss.dbeaver.ext.postgresql.model.PostgreDialect;
+import com.seizia.chromite.ext.postgresql.model.PostgreDialect;
 
 public class KingbaseDialect extends PostgreDialect {
 

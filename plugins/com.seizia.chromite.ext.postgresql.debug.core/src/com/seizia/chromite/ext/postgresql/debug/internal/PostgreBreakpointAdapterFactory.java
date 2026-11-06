@@ -15,12 +15,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.postgresql.debug.internal;
+package com.seizia.chromite.ext.postgresql.debug.internal;
 
 import org.eclipse.core.runtime.IAdapterFactory;
-import org.jkiss.dbeaver.debug.DBGBreakpointDescriptor;
-import org.jkiss.dbeaver.ext.postgresql.debug.internal.impl.PostgreDebugBreakpointDescriptor;
-import org.jkiss.dbeaver.ext.postgresql.model.PostgreProcedure;
+import com.seizia.chromite.debug.DBGBreakpointDescriptor;
+import com.seizia.chromite.ext.postgresql.debug.internal.impl.PostgreDebugBreakpointDescriptor;
+import com.seizia.chromite.ext.postgresql.model.PostgreProcedure;
 
 public class PostgreBreakpointAdapterFactory implements IAdapterFactory {
 

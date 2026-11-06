@@ -14,14 +14,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.hana.model.plan;
+package com.seizia.chromite.ext.hana.model.plan;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.model.exec.plan.DBCPlanNode;
-import org.jkiss.dbeaver.model.impl.jdbc.JDBCUtils;
-import org.jkiss.dbeaver.model.impl.plan.AbstractExecutionPlanNode;
-import org.jkiss.dbeaver.model.meta.Property;
+import com.seizia.chromite.model.exec.plan.DBCPlanNode;
+import com.seizia.chromite.model.impl.jdbc.JDBCUtils;
+import com.seizia.chromite.model.impl.plan.AbstractExecutionPlanNode;
+import com.seizia.chromite.model.meta.Property;
 
 import java.sql.ResultSet;
 import java.sql.Timestamp;
@@ -53,7 +53,7 @@ public class HANAPlanNode extends AbstractExecutionPlanNode {
     private Timestamp timestamp;
 
     public HANAPlanNode(ResultSet dbResult) {
-         // trim tree style indentation in operatorName, as dbeaver creates a real tree
+         // trim tree style indentation in operatorName, as chromite creates a real tree
         this.operatorName = JDBCUtils.safeGetStringTrimmed(dbResult, "OPERATOR_NAME");
         this.operatorDetails = JDBCUtils.safeGetString(dbResult, "OPERATOR_DETAILS");
         this.operatorProperties = JDBCUtils.safeGetString(dbResult, "OPERATOR_PROPERTIES");

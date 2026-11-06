@@ -14,16 +14,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.editors.data.internal;
+package com.seizia.chromite.ui.editors.data.internal;
 
 import org.eclipse.core.runtime.preferences.AbstractPreferenceInitializer;
-import org.jkiss.dbeaver.model.data.DBDDisplayFormat;
-import org.jkiss.dbeaver.model.preferences.DBPPreferenceStore;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.ui.controls.resultset.ResultSetPreferences;
-import org.jkiss.dbeaver.ui.controls.resultset.spreadsheet.Spreadsheet;
-import org.jkiss.dbeaver.ui.data.IValueController;
-import org.jkiss.dbeaver.utils.PrefUtils;
+import com.seizia.chromite.model.data.DBDDisplayFormat;
+import com.seizia.chromite.model.preferences.DBPPreferenceStore;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.ui.controls.resultset.ResultSetPreferences;
+import com.seizia.chromite.ui.controls.resultset.spreadsheet.Spreadsheet;
+import com.seizia.chromite.ui.data.IValueController;
+import com.seizia.chromite.utils.PrefUtils;
 
 public class DataEditorsPreferencesInitializer extends AbstractPreferenceInitializer {
 

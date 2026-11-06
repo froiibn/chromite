@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.model.secret;
+package com.seizia.chromite.model.secret;
 
 /**
  * Value encryptor

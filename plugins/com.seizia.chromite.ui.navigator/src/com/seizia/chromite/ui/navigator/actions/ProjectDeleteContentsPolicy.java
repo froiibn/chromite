@@ -14,11 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.navigator.actions;
+package com.seizia.chromite.ui.navigator.actions;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.model.app.DBPProject;
+import com.seizia.chromite.model.app.DBPProject;
 
 /** Determines whether deleting a project must also delete its local files. */
 public interface ProjectDeleteContentsPolicy {

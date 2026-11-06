@@ -14,18 +14,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.sql.generator;
+package com.seizia.chromite.model.sql.generator;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.model.*;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.model.runtime.DBRRunnableWithResult;
-import org.jkiss.dbeaver.model.sql.format.SQLFormatUtils;
-import org.jkiss.dbeaver.model.sql.registry.SQLGeneratorConfigurationRegistry;
-import org.jkiss.dbeaver.model.sql.registry.SQLGeneratorDescriptor;
-import org.jkiss.dbeaver.model.struct.DBSEntity;
+import com.seizia.chromite.model.*;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.model.runtime.DBRRunnableWithResult;
+import com.seizia.chromite.model.sql.format.SQLFormatUtils;
+import com.seizia.chromite.model.sql.registry.SQLGeneratorConfigurationRegistry;
+import com.seizia.chromite.model.sql.registry.SQLGeneratorDescriptor;
+import com.seizia.chromite.model.struct.DBSEntity;
 
 import java.lang.reflect.InvocationTargetException;
 import java.util.LinkedHashMap;

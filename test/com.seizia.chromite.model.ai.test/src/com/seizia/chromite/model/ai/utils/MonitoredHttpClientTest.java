@@ -14,10 +14,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.ai.utils;
+package com.seizia.chromite.model.ai.utils;
 
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.junit.DBeaverUnitTest;
+import com.seizia.chromite.junit.ChromiteUnitTest;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -38,7 +38,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
-public class MonitoredHttpClientTest extends DBeaverUnitTest {
+public class MonitoredHttpClientTest extends ChromiteUnitTest {
     @Test
     public void closesFromResponseCallbackWithoutWaitingForBody() throws Exception {
         for (int attempt = 0; attempt < 3; attempt++) {

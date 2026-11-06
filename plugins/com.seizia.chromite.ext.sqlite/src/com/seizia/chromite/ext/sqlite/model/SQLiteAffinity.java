@@ -14,9 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.sqlite.model;
+package com.seizia.chromite.ext.sqlite.model;
 
-import org.jkiss.dbeaver.model.DBPDataKind;
+import com.seizia.chromite.model.DBPDataKind;
 
 import java.sql.Types;
 

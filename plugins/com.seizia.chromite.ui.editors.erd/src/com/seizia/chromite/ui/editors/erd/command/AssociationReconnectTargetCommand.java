@@ -14,11 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.editors.erd.command;
+package com.seizia.chromite.ui.editors.erd.command;
 
 import org.eclipse.gef.commands.Command;
-import org.jkiss.dbeaver.model.erd.ERDAssociation;
-import org.jkiss.dbeaver.model.erd.ERDElement;
+import com.seizia.chromite.model.erd.ERDAssociation;
+import com.seizia.chromite.model.erd.ERDElement;
 
 import java.util.List;
 

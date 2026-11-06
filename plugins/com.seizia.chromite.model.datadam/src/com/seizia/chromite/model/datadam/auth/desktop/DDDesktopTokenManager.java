@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.datadam.auth.desktop;
+package com.seizia.chromite.model.datadam.auth.desktop;
 
 import com.dbeaver.datadam.sso.api.DDSsoConstants;
 import com.dbeaver.datadam.sso.api.DDSsoScopes;
@@ -24,12 +24,12 @@ import org.eclipse.core.runtime.jobs.Job;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.data.json.JSONUtils;
-import org.jkiss.dbeaver.model.datadam.auth.DDDesktopSsoClient;
-import org.jkiss.dbeaver.model.datadam.auth.DDDesktopSsoLogin;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.data.json.JSONUtils;
+import com.seizia.chromite.model.datadam.auth.DDDesktopSsoClient;
+import com.seizia.chromite.model.datadam.auth.DDDesktopSsoLogin;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.runtime.DBWorkbench;
 
 import java.net.URI;
 import java.time.Instant;

@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.actions.datasource;
+package com.seizia.chromite.ui.actions.datasource;
 
 import org.eclipse.jface.action.Action;
 import org.eclipse.jface.action.ActionContributionItem;
@@ -24,14 +24,14 @@ import org.eclipse.jface.action.MenuManager;
 import org.eclipse.jface.action.Separator;
 import org.eclipse.ui.IWorkbenchWindow;
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.model.connection.DBPDriver;
-import org.jkiss.dbeaver.model.connection.DBPDriverWithLazyIcon;
-import org.jkiss.dbeaver.model.connection.DBPDriverWithLicense;
-import org.jkiss.dbeaver.registry.driver.DriverUtils;
-import org.jkiss.dbeaver.ui.DBeaverIcons;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.dialogs.connection.NewConnectionDialog;
-import org.jkiss.dbeaver.ui.dialogs.driver.DataSourceTypeViewer;
+import com.seizia.chromite.model.connection.DBPDriver;
+import com.seizia.chromite.model.connection.DBPDriverWithLazyIcon;
+import com.seizia.chromite.model.connection.DBPDriverWithLicense;
+import com.seizia.chromite.registry.driver.DriverUtils;
+import com.seizia.chromite.ui.SwtIcons;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.dialogs.connection.NewConnectionDialog;
+import com.seizia.chromite.ui.dialogs.driver.DataSourceTypeViewer;
 
 import java.lang.ref.WeakReference;
 import java.util.List;
@@ -90,14 +90,14 @@ public class NewConnectionDriverSelectorContributor extends DataSourceMenuContri
         private final Runnable iconUpdateCallback;
 
         public NewConnectionAction(@NotNull IWorkbenchWindow window, @NotNull DBPDriver driver) {
-            super(driver.getName(), DBeaverIcons.getImageDescriptor(driver.getIcon()));
+            super(driver.getName(), SwtIcons.getImageDescriptor(driver.getIcon()));
             this.window = window;
             this.driver = driver;
             WeakReference<NewConnectionAction> actionReference = new WeakReference<>(this);
             iconUpdateCallback = () -> UIUtils.asyncExec(() -> {
                 NewConnectionAction action = actionReference.get();
                 if (action != null) {
-                    action.setImageDescriptor(DBeaverIcons.getImageDescriptor(action.driver.getIcon()));
+                    action.setImageDescriptor(SwtIcons.getImageDescriptor(action.driver.getIcon()));
                 }
             });
         }
@@ -105,7 +105,7 @@ public class NewConnectionDriverSelectorContributor extends DataSourceMenuContri
         private void loadIcon() {
             if (driver instanceof DBPDriverWithLazyIcon lazyIcon) {
                 lazyIcon.loadIcon(iconUpdateCallback);
-                setImageDescriptor(DBeaverIcons.getImageDescriptor(driver.getIcon()));
+                setImageDescriptor(SwtIcons.getImageDescriptor(driver.getIcon()));
             }
         }
 

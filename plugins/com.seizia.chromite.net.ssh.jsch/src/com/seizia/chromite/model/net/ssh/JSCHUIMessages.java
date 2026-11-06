@@ -14,12 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.net.ssh;
+package com.seizia.chromite.model.net.ssh;
 
 import org.eclipse.osgi.util.NLS;
 
 public class JSCHUIMessages extends NLS {
-	static final String BUNDLE_NAME = "org.jkiss.dbeaver.model.net.ssh.JSCHUIMessages"; //$NON-NLS-1$
+	static final String BUNDLE_NAME = "com.seizia.chromite.model.net.ssh.JSCHUIMessages"; //$NON-NLS-1$
 
 	public static String ssh_file_corrupted_dialog_title;
 	public static String ssh_file_corrupted_dialog_message;

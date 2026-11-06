@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.dashboard;
+package com.seizia.chromite.model.dashboard;
 
 /**
  * Dashboard value calculation
@@ -41,8 +41,8 @@ public class DashboardConstants {
     public static final String DEF_DASHBOARD_VIEW_TYPE = "timeseries";
     public static final DBDashboardInterval DEF_DASHBOARD_INTERVAL = DBDashboardInterval.millisecond;
 
-    public static final String DASHBOARDS_PLUGIN_ID = "org.jkiss.dbeaver.model.dashboard";
-    public static final String DASHBOARDS_LEGACY_PLUGIN_ID = "org.jkiss.dbeaver.model.dashboard";
-    public static final String DASHBOARDS_LEGACY_PLUGIN_ID2 = "org.jkiss.dbeaver.ui.dashboard";
+    public static final String DASHBOARDS_PLUGIN_ID = "com.seizia.chromite.model.dashboard";
+    public static final String DASHBOARDS_LEGACY_PLUGIN_ID = "com.seizia.chromite.model.dashboard";
+    public static final String DASHBOARDS_LEGACY_PLUGIN_ID2 = "com.seizia.chromite.ui.dashboard";
     public static final String DASHBOARD_EXT = "dashboard"; //$NON-NLS-1$
 }

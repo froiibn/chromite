@@ -14,13 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.controls.resultset.panel.grouping.action;
+package com.seizia.chromite.ui.controls.resultset.panel.grouping.action;
 
 import org.eclipse.jface.action.Action;
 import org.eclipse.jface.resource.ImageDescriptor;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.ui.controls.resultset.panel.grouping.GroupingResultsContainer;
+import com.seizia.chromite.ui.controls.resultset.panel.grouping.GroupingResultsContainer;
 
 public abstract class GroupingAction extends Action {
     protected final GroupingResultsContainer groupingResultsContainer;

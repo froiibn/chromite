@@ -14,10 +14,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.postgresql.model.data;
+package com.seizia.chromite.ext.postgresql.model.data;
 
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.model.impl.data.formatters.BinaryFormatterHex;
+import com.seizia.chromite.model.impl.data.formatters.BinaryFormatterHex;
 
 /**
  * PostgreBinaryFormatter

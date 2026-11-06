@@ -15,11 +15,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.exasol.ui.config;
+package com.seizia.chromite.ext.exasol.ui.config;
 
-import org.jkiss.dbeaver.ext.exasol.model.ExasolTableForeignKey;
-import org.jkiss.dbeaver.model.struct.rdb.DBSForeignKeyModifyRule;
-import org.jkiss.dbeaver.ui.editors.object.struct.EditForeignKeyPage;
+import com.seizia.chromite.ext.exasol.model.ExasolTableForeignKey;
+import com.seizia.chromite.model.struct.rdb.DBSForeignKeyModifyRule;
+import com.seizia.chromite.ui.editors.object.struct.EditForeignKeyPage;
 
 import java.util.Map;
 

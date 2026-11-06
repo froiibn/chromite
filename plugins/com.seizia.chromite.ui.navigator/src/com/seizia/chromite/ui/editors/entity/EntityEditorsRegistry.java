@@ -15,14 +15,14 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.ui.editors.entity;
+package com.seizia.chromite.ui.editors.entity;
 
 import org.eclipse.core.runtime.IConfigurationElement;
 import org.eclipse.core.runtime.IExtensionRegistry;
 import org.eclipse.core.runtime.Platform;
 import org.eclipse.ui.IEditorPart;
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.model.DBPObject;
+import com.seizia.chromite.model.DBPObject;
 import org.jkiss.utils.BeanUtils;
 import org.jkiss.utils.CommonUtils;
 

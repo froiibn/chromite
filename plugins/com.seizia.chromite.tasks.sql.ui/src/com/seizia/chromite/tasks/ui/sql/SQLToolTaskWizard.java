@@ -14,33 +14,33 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.tasks.ui.sql;
+package com.seizia.chromite.tasks.ui.sql;
 
 import org.eclipse.jface.wizard.IWizardPage;
 import org.jkiss.code.NotNull;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.DBPObject;
-import org.jkiss.dbeaver.model.edit.DBEPersistAction;
-import org.jkiss.dbeaver.model.exec.DBCException;
-import org.jkiss.dbeaver.model.exec.DBCSession;
-import org.jkiss.dbeaver.model.navigator.DBNDatabaseNode;
-import org.jkiss.dbeaver.model.navigator.DBNEvent;
-import org.jkiss.dbeaver.model.navigator.DBNUtils;
-import org.jkiss.dbeaver.model.runtime.DBRRunnableContext;
-import org.jkiss.dbeaver.model.runtime.DefaultProgressMonitor;
-import org.jkiss.dbeaver.model.sql.task.SQLToolExecuteHandler;
-import org.jkiss.dbeaver.model.sql.task.SQLToolExecuteSettings;
-import org.jkiss.dbeaver.model.sql.task.SQLToolRunListener;
-import org.jkiss.dbeaver.model.sql.task.SQLToolStatistics;
-import org.jkiss.dbeaver.model.struct.DBSObject;
-import org.jkiss.dbeaver.model.task.DBTTask;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.tasks.ui.sql.internal.TasksSQLUIMessages;
-import org.jkiss.dbeaver.tasks.ui.wizard.TaskConfigurationWizard;
-import org.jkiss.dbeaver.tasks.ui.wizard.TaskConfigurationWizardDialog;
-import org.jkiss.dbeaver.tasks.ui.wizard.TaskWizardExecutor;
-import org.jkiss.dbeaver.ui.UIUtils;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.DBPObject;
+import com.seizia.chromite.model.edit.DBEPersistAction;
+import com.seizia.chromite.model.exec.DBCException;
+import com.seizia.chromite.model.exec.DBCSession;
+import com.seizia.chromite.model.navigator.DBNDatabaseNode;
+import com.seizia.chromite.model.navigator.DBNEvent;
+import com.seizia.chromite.model.navigator.DBNUtils;
+import com.seizia.chromite.model.runtime.DBRRunnableContext;
+import com.seizia.chromite.model.runtime.DefaultProgressMonitor;
+import com.seizia.chromite.model.sql.task.SQLToolExecuteHandler;
+import com.seizia.chromite.model.sql.task.SQLToolExecuteSettings;
+import com.seizia.chromite.model.sql.task.SQLToolRunListener;
+import com.seizia.chromite.model.sql.task.SQLToolStatistics;
+import com.seizia.chromite.model.struct.DBSObject;
+import com.seizia.chromite.model.task.DBTTask;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.tasks.ui.sql.internal.TasksSQLUIMessages;
+import com.seizia.chromite.tasks.ui.wizard.TaskConfigurationWizard;
+import com.seizia.chromite.tasks.ui.wizard.TaskConfigurationWizardDialog;
+import com.seizia.chromite.tasks.ui.wizard.TaskWizardExecutor;
+import com.seizia.chromite.ui.UIUtils;
 
 import java.lang.reflect.InvocationTargetException;
 import java.util.List;

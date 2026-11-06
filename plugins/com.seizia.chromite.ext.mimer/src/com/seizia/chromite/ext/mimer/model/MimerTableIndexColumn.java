@@ -14,17 +14,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.mimer.model;
+package com.seizia.chromite.ext.mimer.model;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.ext.generic.model.GenericTableBase;
-import org.jkiss.dbeaver.ext.generic.model.GenericTableColumn;
-import org.jkiss.dbeaver.ext.generic.model.GenericTableIndex;
-import org.jkiss.dbeaver.ext.generic.model.GenericTableIndexColumn;
-import org.jkiss.dbeaver.ext.mimer.MimerConstants;
-import org.jkiss.dbeaver.model.meta.Property;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.ext.generic.model.GenericTableBase;
+import com.seizia.chromite.ext.generic.model.GenericTableColumn;
+import com.seizia.chromite.ext.generic.model.GenericTableIndex;
+import com.seizia.chromite.ext.generic.model.GenericTableIndexColumn;
+import com.seizia.chromite.ext.mimer.MimerConstants;
+import com.seizia.chromite.model.meta.Property;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
 import org.jkiss.utils.CommonUtils;
 
 import java.util.Collection;
@@ -33,7 +33,7 @@ import java.util.Collection;
  * {@link GenericTableIndexColumn} plus two CREATE-only fields: {@link #createTimeAlgorithm} for
  * Mimer SQL's per-column {@code "col" FOR <algorithm>} clause (word search / PinYin indexes),
  * and {@link #createTimeCollation} for its {@code "col" COLLATE <collation>} clause. See {@link
- * org.jkiss.dbeaver.ext.mimer.edit.MimerIndexManager#appendIndexColumnModifiers} for the write
+ * com.seizia.chromite.ext.mimer.edit.MimerIndexManager#appendIndexColumnModifiers} for the write
  * side (uses the plain, no-monitor {@link #getAlgorithm()}/{@link #getCollation()}) and {@link
  * MimerConstants#INDEX_ALGORITHMS_FOR_CLAUSE} for the algorithm choices offered. {@code null}
  * means an ordinary column - the DDL simply omits the {@code FOR}/{@code COLLATE} clause for
@@ -132,7 +132,7 @@ public class MimerTableIndexColumn extends GenericTableIndexColumn {
     /**
      * The {@code COLLATE <collation>} clause to emit for this column, or {@code null} for none -
      * create-time only, same shape as {@link #getAlgorithm()} (see {@link
-     * org.jkiss.dbeaver.ext.mimer.edit.MimerIndexManager#appendIndexColumnModifiers} for the
+     * com.seizia.chromite.ext.mimer.edit.MimerIndexManager#appendIndexColumnModifiers} for the
      * write side; {@link #getCollation(DBRProgressMonitor)} is the grid-visible one for an
      * already-persisted column).
      */

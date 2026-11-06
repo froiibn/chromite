@@ -15,24 +15,24 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.model.app;
+package com.seizia.chromite.model.app;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.model.DBConfigurationController;
-import org.jkiss.dbeaver.model.DBFileController;
-import org.jkiss.dbeaver.model.connection.DBPDataSourceProviderRegistry;
-import org.jkiss.dbeaver.model.data.DBDRegistry;
-import org.jkiss.dbeaver.model.edit.DBERegistry;
-import org.jkiss.dbeaver.model.fs.DBFRegistry;
-import org.jkiss.dbeaver.model.navigator.DBNModel;
-import org.jkiss.dbeaver.model.net.DBWHandlerRegistry;
-import org.jkiss.dbeaver.model.net.DBWNetworkProfileManager;
-import org.jkiss.dbeaver.model.preferences.DBPPreferenceStore;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.model.runtime.OSDescriptor;
-import org.jkiss.dbeaver.model.sql.SQLDialectMetadataRegistry;
-import org.jkiss.dbeaver.model.task.DBTTaskController;
+import com.seizia.chromite.model.DBConfigurationController;
+import com.seizia.chromite.model.DBFileController;
+import com.seizia.chromite.model.connection.DBPDataSourceProviderRegistry;
+import com.seizia.chromite.model.data.DBDRegistry;
+import com.seizia.chromite.model.edit.DBERegistry;
+import com.seizia.chromite.model.fs.DBFRegistry;
+import com.seizia.chromite.model.navigator.DBNModel;
+import com.seizia.chromite.model.net.DBWHandlerRegistry;
+import com.seizia.chromite.model.net.DBWNetworkProfileManager;
+import com.seizia.chromite.model.preferences.DBPPreferenceStore;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.model.runtime.OSDescriptor;
+import com.seizia.chromite.model.sql.SQLDialectMetadataRegistry;
+import com.seizia.chromite.model.task.DBTTaskController;
 
 import java.io.IOException;
 import java.nio.file.Path;

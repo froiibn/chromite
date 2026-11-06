@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.ui.controls.resultset.plaintext;
+package com.seizia.chromite.ui.controls.resultset.plaintext;
 
 import org.eclipse.jface.action.IMenuManager;
 import org.eclipse.jface.text.IFindReplaceTarget;
@@ -40,19 +40,19 @@ import org.eclipse.swt.widgets.Shell;
 import org.eclipse.ui.themes.ITheme;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.model.DBPAdaptable;
-import org.jkiss.dbeaver.model.data.DBDAttributeBinding;
-import org.jkiss.dbeaver.model.data.DBDDisplayFormat;
-import org.jkiss.dbeaver.model.preferences.DBPPreferenceStore;
-import org.jkiss.dbeaver.ui.BaseThemeSettings;
-import org.jkiss.dbeaver.ui.UIFonts;
-import org.jkiss.dbeaver.ui.UIStyles;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.controls.StyledTextFindReplaceTarget;
-import org.jkiss.dbeaver.ui.controls.findandreplace.FindReplaceOverlay;
-import org.jkiss.dbeaver.ui.controls.resultset.*;
-import org.jkiss.dbeaver.ui.css.CSSUtils;
-import org.jkiss.dbeaver.ui.editors.TextEditorUtils;
+import com.seizia.chromite.model.DBPAdaptable;
+import com.seizia.chromite.model.data.DBDAttributeBinding;
+import com.seizia.chromite.model.data.DBDDisplayFormat;
+import com.seizia.chromite.model.preferences.DBPPreferenceStore;
+import com.seizia.chromite.ui.BaseThemeSettings;
+import com.seizia.chromite.ui.UIFonts;
+import com.seizia.chromite.ui.UIStyles;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.controls.StyledTextFindReplaceTarget;
+import com.seizia.chromite.ui.controls.findandreplace.FindReplaceOverlay;
+import com.seizia.chromite.ui.controls.resultset.*;
+import com.seizia.chromite.ui.css.CSSUtils;
+import com.seizia.chromite.ui.editors.TextEditorUtils;
 
 import java.util.*;
 
@@ -330,7 +330,7 @@ public class PlainTextPresentation extends AbstractPresentation implements IResu
     @NotNull
     @Override
     public String getFontId() {
-        return UIFonts.DBeaver.MONOSPACE_FONT;
+        return UIFonts.Chromite.MONOSPACE_FONT;
     }
 
     @Override

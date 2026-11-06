@@ -14,9 +14,9 @@
  * is strictly forbidden unless prior written permission is obtained
  * from DBeaver Corp.
  */
-package org.jkiss.dbeaver.ui.controls.resultset;
+package com.seizia.chromite.ui.controls.resultset;
 
-import org.jkiss.dbeaver.model.DBIcon;
+import com.seizia.chromite.model.DBIcon;
 
 /**
  * Plan Icons

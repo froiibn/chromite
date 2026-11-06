@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.ext.gaussdb.ui.internal;
+package com.seizia.chromite.ext.gaussdb.ui.internal;
 
 import org.eclipse.jface.resource.ImageDescriptor;
 import org.eclipse.ui.plugin.AbstractUIPlugin;
@@ -23,7 +23,7 @@ import org.osgi.framework.BundleContext;
 
 public class Activator extends AbstractUIPlugin {
 
-    private static final String PLUGIN_ID = "org.jkiss.dbeaver.ext.gaussdb.ui";
+    private static final String PLUGIN_ID = "com.seizia.chromite.ext.gaussdb.ui";
 
     @Override
     public void start(BundleContext context) throws Exception {

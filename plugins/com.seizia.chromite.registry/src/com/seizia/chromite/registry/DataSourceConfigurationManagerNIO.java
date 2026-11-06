@@ -14,15 +14,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.registry;
+package com.seizia.chromite.registry;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.DBPDataSourceConfigurationStorage;
-import org.jkiss.dbeaver.model.app.DBPDataSourceRegistry;
-import org.jkiss.dbeaver.model.app.DBPProject;
-import org.jkiss.dbeaver.utils.ContentUtils;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.DBPDataSourceConfigurationStorage;
+import com.seizia.chromite.model.app.DBPDataSourceRegistry;
+import com.seizia.chromite.model.app.DBPProject;
+import com.seizia.chromite.utils.ContentUtils;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -114,7 +114,7 @@ public class DataSourceConfigurationManagerNIO implements DataSourceConfiguratio
     public InputStream readConfiguration(@NotNull String name, Collection<String> dataSourceIds) throws IOException {
         Path path = getConfigurationPath(false).resolve(name);
         if (Files.notExists(path)) {
-            // maybe it's .dbeaver-data-sources*.xml in the project folder (DBeaver < 6.1.3 (Legacy))
+            // maybe it's .chromite-data-sources*.xml in the project folder (DBeaver < 6.1.3 (Legacy))
             path = project.getAbsolutePath().resolve(name);
         }
         if (Files.notExists(path)) {

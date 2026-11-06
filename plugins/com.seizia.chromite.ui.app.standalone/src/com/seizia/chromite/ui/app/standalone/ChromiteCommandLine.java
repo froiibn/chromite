@@ -14,18 +14,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.app.standalone;
+package com.seizia.chromite.ui.app.standalone;
 
 
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.cli.ApplicationCommandLine;
-import org.jkiss.dbeaver.model.cli.CLIContextImpl;
-import org.jkiss.dbeaver.model.cli.CLIRunMeta;
-import org.jkiss.dbeaver.model.cli.registry.CLICommandDescriptor;
-import org.jkiss.dbeaver.ui.app.standalone.cli.DBeaverMixin;
-import org.jkiss.dbeaver.ui.app.standalone.rpc.IInstanceController;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.cli.ApplicationCommandLine;
+import com.seizia.chromite.model.cli.CLIContextImpl;
+import com.seizia.chromite.model.cli.CLIRunMeta;
+import com.seizia.chromite.model.cli.registry.CLICommandDescriptor;
+import com.seizia.chromite.ui.app.standalone.cli.ChromiteMixin;
+import com.seizia.chromite.ui.app.standalone.rpc.IInstanceController;
 import picocli.CommandLine;
 
 import java.util.List;
@@ -39,27 +39,27 @@ import java.util.List;
  *    Otherwise it will start normally (and then will try to process commands in UI)
  * 2. After DBeaver UI start. It will execute commands directly
  */
-public class DBeaverCommandLine extends ApplicationCommandLine<IInstanceController> {
-    private static final Log log = Log.getLog(DBeaverCommandLine.class);
+public class ChromiteCommandLine extends ApplicationCommandLine<IInstanceController> {
+    private static final Log log = Log.getLog(ChromiteCommandLine.class);
 
-    private static DBeaverCommandLine INSTANCE = null;
+    private static ChromiteCommandLine INSTANCE = null;
 
-    private DBeaverCommandLine() {
+    private ChromiteCommandLine() {
         super();
     }
 
     @Override
-    protected DBeaverTopLevelCommand createTopLevelCommand(
+    protected ChromiteTopLevelCommand createTopLevelCommand(
         @Nullable IInstanceController applicationInstanceController,
         @NotNull CLIContextImpl context,
         @NotNull CLIRunMeta runMeta
     ) {
-        return new DBeaverTopLevelCommand(applicationInstanceController, context, runMeta);
+        return new ChromiteTopLevelCommand(applicationInstanceController, context, runMeta);
     }
 
-    public synchronized static DBeaverCommandLine getInstance() {
+    public synchronized static ChromiteCommandLine getInstance() {
         if (INSTANCE == null) {
-            INSTANCE = new DBeaverCommandLine();
+            INSTANCE = new ChromiteCommandLine();
         }
         return INSTANCE;
     }
@@ -71,8 +71,8 @@ public class DBeaverCommandLine extends ApplicationCommandLine<IInstanceControll
     ) {
         super.preprocessCommandLineParameter(descriptor, uiActivated);
         if (!uiActivated && descriptor.isExclusiveMode()) {
-            if (DBeaverApplication.instance != null) {
-                DBeaverApplication.instance.setExclusiveMode(true);
+            if (ChromiteApplication.instance != null) {
+                ChromiteApplication.instance.setExclusiveMode(true);
             }
         }
     }
@@ -86,7 +86,7 @@ public class DBeaverCommandLine extends ApplicationCommandLine<IInstanceControll
         @NotNull List<CLICommandDescriptor> commandsToExecute
     ) {
         CommandLine cmd = super.initCommandLine(applicationInstanceController, context, runMeta, commandsToExecute);
-        cmd.addMixin("dbeaver", new DBeaverMixin());
+        cmd.addMixin("chromite", new ChromiteMixin());
         return cmd;
     }
 }

@@ -14,26 +14,26 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.mimer.model;
+package com.seizia.chromite.ext.mimer.model;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.model.DBPRefreshableObject;
-import org.jkiss.dbeaver.model.DBPSaveableObject;
-import org.jkiss.dbeaver.model.exec.jdbc.JDBCPreparedStatement;
-import org.jkiss.dbeaver.model.exec.jdbc.JDBCResultSet;
-import org.jkiss.dbeaver.model.exec.jdbc.JDBCSession;
-import org.jkiss.dbeaver.model.exec.jdbc.JDBCStatement;
-import org.jkiss.dbeaver.model.impl.jdbc.JDBCUtils;
-import org.jkiss.dbeaver.model.impl.jdbc.cache.JDBCObjectCache;
-import org.jkiss.dbeaver.model.meta.Association;
-import org.jkiss.dbeaver.model.meta.Property;
-import org.jkiss.dbeaver.model.meta.PropertyLength;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.model.struct.DBSObject;
-import org.jkiss.dbeaver.model.struct.DBSObjectWithScript;
-import org.jkiss.dbeaver.model.struct.cache.DBSObjectCache;
+import com.seizia.chromite.model.DBPRefreshableObject;
+import com.seizia.chromite.model.DBPSaveableObject;
+import com.seizia.chromite.model.exec.jdbc.JDBCPreparedStatement;
+import com.seizia.chromite.model.exec.jdbc.JDBCResultSet;
+import com.seizia.chromite.model.exec.jdbc.JDBCSession;
+import com.seizia.chromite.model.exec.jdbc.JDBCStatement;
+import com.seizia.chromite.model.impl.jdbc.JDBCUtils;
+import com.seizia.chromite.model.impl.jdbc.cache.JDBCObjectCache;
+import com.seizia.chromite.model.meta.Association;
+import com.seizia.chromite.model.meta.Property;
+import com.seizia.chromite.model.meta.PropertyLength;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.model.struct.DBSObject;
+import com.seizia.chromite.model.struct.DBSObjectWithScript;
+import com.seizia.chromite.model.struct.cache.DBSObjectCache;
 
 import java.sql.SQLException;
 import java.util.Collection;
@@ -55,7 +55,7 @@ import java.util.Map;
  * REFRESH}, a recompile with no text change, not modeled here - so editing an existing
  * statement's source drops and recreates it, same as {@link MimerModule}/{@link
  * MimerProcedure}/{@link MimerTableTrigger}. See {@link
- * org.jkiss.dbeaver.ext.mimer.edit.MimerStatementManager}.
+ * com.seizia.chromite.ext.mimer.edit.MimerStatementManager}.
  *
  * @author Mimer Information Technology
  */
@@ -80,7 +80,7 @@ public class MimerStatement implements DBSObject, DBPSaveableObject, DBPRefresha
 
     /**
      * For a brand-new, not-yet-created statement - see {@link
-     * org.jkiss.dbeaver.ext.mimer.edit.MimerStatementManager}. The create dialog seeds {@link
+     * com.seizia.chromite.ext.mimer.edit.MimerStatementManager}. The create dialog seeds {@link
      * #source} (header + placeholder body) directly via {@link #setObjectDefinitionText} rather
      * than through {@link #scrollable}/{@link #forwardOnly}, which are unused until the object
      * is actually loaded back from the catalog.
@@ -175,7 +175,7 @@ public class MimerStatement implements DBSObject, DBPSaveableObject, DBPRefresha
 
     /**
      * {@code COMMENT ON STATEMENT "schema"."name" IS '...'}. See {@link
-     * org.jkiss.dbeaver.ext.mimer.edit.MimerStatementManager} for the write side.
+     * com.seizia.chromite.ext.mimer.edit.MimerStatementManager} for the write side.
      */
     @Nullable
     @Property(viewable = true, editable = true, updatable = true, length = PropertyLength.MULTILINE, order = 100)

@@ -15,11 +15,11 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.model.data.hints;
+package com.seizia.chromite.model.data.hints;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.model.DBPImage;
+import com.seizia.chromite.model.DBPImage;
 
 /**
  * Value hint

@@ -14,10 +14,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.security;
+package com.seizia.chromite.model.security;
 
-import org.jkiss.dbeaver.model.meta.PropertyLength;
-import org.jkiss.dbeaver.model.preferences.DBPPropertyDescriptor;
+import com.seizia.chromite.model.meta.PropertyLength;
+import com.seizia.chromite.model.preferences.DBPPropertyDescriptor;
 
 public class SMPropertyDescriptor {
 

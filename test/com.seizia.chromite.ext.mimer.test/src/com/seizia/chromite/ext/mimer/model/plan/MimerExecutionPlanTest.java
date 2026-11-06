@@ -14,9 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.mimer.model.plan;
+package com.seizia.chromite.ext.mimer.model.plan;
 
-import org.jkiss.junit.DBeaverUnitTest;
+import com.seizia.chromite.junit.ChromiteUnitTest;
 import org.jkiss.utils.xml.XMLUtils;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
@@ -34,7 +34,7 @@ import java.io.StringReader;
  *
  * @author Mimer Information Technology
  */
-public class MimerExecutionPlanTest extends DBeaverUnitTest {
+public class MimerExecutionPlanTest extends ChromiteUnitTest {
 
     @Test
     public void findStatementRootUnwrapsMimersqlExplainEnvelope() throws Exception {

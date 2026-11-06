@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.ui.navigator;
+package com.seizia.chromite.ui.navigator;
 
 import org.eclipse.jface.viewers.Viewer;
 import org.jkiss.code.Nullable;
@@ -24,12 +24,12 @@ import org.jkiss.code.Nullable;
  * INavigatorView
  */
 public interface INavigatorModelView extends INavigatorNodeContainer {
-    String NAVIGATOR_CONTEXT_ID = "org.jkiss.dbeaver.ui.context.navigator";
-    String NAVIGATOR_VIEW_CONTEXT_ID = "org.jkiss.dbeaver.ui.context.navigator.view";
+    String NAVIGATOR_CONTEXT_ID = "com.seizia.chromite.ui.context.navigator";
+    String NAVIGATOR_VIEW_CONTEXT_ID = "com.seizia.chromite.ui.context.navigator.view";
     // Control-based handler activation disabled for now (as it requires workbench site and thus doesn't work in dialogs)
     // However current handlers also don't work in dialogs as they are mapped on activePart.
     // TODO: find some solution.
-    String NAVIGATOR_CONTROL_ID = "org.jkiss.dbeaver.core.ui.navigator.control";
+    String NAVIGATOR_CONTROL_ID = "com.seizia.chromite.core.ui.navigator.control";
 
     @Nullable
     Viewer getNavigatorViewer();

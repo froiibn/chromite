@@ -14,12 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.generic.test;
+package com.seizia.chromite.ext.generic.test;
 
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.registry.maven.MavenArtifact;
-import org.jkiss.dbeaver.registry.maven.MavenArtifactVersion;
-import org.jkiss.dbeaver.registry.maven.MavenRepository;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.registry.maven.MavenArtifact;
+import com.seizia.chromite.registry.maven.MavenArtifactVersion;
+import com.seizia.chromite.registry.maven.MavenRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 

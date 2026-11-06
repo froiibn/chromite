@@ -14,27 +14,27 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.mimer.model;
+package com.seizia.chromite.ext.mimer.model;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.ext.mimer.MimerConstants;
-import org.jkiss.dbeaver.model.DBPSaveableObject;
-import org.jkiss.dbeaver.model.DBPScriptObject;
-import org.jkiss.dbeaver.model.exec.jdbc.JDBCPreparedStatement;
-import org.jkiss.dbeaver.model.exec.jdbc.JDBCResultSet;
-import org.jkiss.dbeaver.model.exec.jdbc.JDBCSession;
-import org.jkiss.dbeaver.model.exec.jdbc.JDBCStatement;
-import org.jkiss.dbeaver.model.impl.jdbc.JDBCUtils;
-import org.jkiss.dbeaver.model.impl.jdbc.cache.JDBCObjectCache;
-import org.jkiss.dbeaver.model.meta.Association;
-import org.jkiss.dbeaver.model.meta.Property;
-import org.jkiss.dbeaver.model.meta.PropertyLength;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.model.struct.DBSObject;
-import org.jkiss.dbeaver.model.struct.DBSObjectWithScript;
-import org.jkiss.dbeaver.model.struct.rdb.DBSProcedureType;
+import com.seizia.chromite.ext.mimer.MimerConstants;
+import com.seizia.chromite.model.DBPSaveableObject;
+import com.seizia.chromite.model.DBPScriptObject;
+import com.seizia.chromite.model.exec.jdbc.JDBCPreparedStatement;
+import com.seizia.chromite.model.exec.jdbc.JDBCResultSet;
+import com.seizia.chromite.model.exec.jdbc.JDBCSession;
+import com.seizia.chromite.model.exec.jdbc.JDBCStatement;
+import com.seizia.chromite.model.impl.jdbc.JDBCUtils;
+import com.seizia.chromite.model.impl.jdbc.cache.JDBCObjectCache;
+import com.seizia.chromite.model.meta.Association;
+import com.seizia.chromite.model.meta.Property;
+import com.seizia.chromite.model.meta.PropertyLength;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.model.struct.DBSObject;
+import com.seizia.chromite.model.struct.DBSObjectWithScript;
+import com.seizia.chromite.model.struct.rdb.DBSProcedureType;
 
 import java.sql.SQLException;
 import java.util.ArrayList;
@@ -44,12 +44,12 @@ import java.util.Map;
 
 /**
  * Mimer SQL module - a named collection of routines and their shared declarations. Carries
- * **create/drop** support (see {@link org.jkiss.dbeaver.ext.mimer.edit.MimerModuleManager}) via
+ * **create/drop** support (see {@link com.seizia.chromite.ext.mimer.edit.MimerModuleManager}) via
  * a second constructor for a not-yet-persisted module. No ALTER - Mimer SQL has no {@code ALTER
  * MODULE}, only drop-and-recreate.
  * <p>
  * Implements {@link DBSObjectWithScript} so the Source tab's editor - registered against {@code
- * org.jkiss.dbeaver.ext.mimer.ui.editors.MimerModuleSourceViewEditor}, a small local copy of
+ * com.seizia.chromite.ext.mimer.ui.editors.MimerModuleSourceViewEditor}, a small local copy of
  * {@code ext.generic.ui}'s {@code GenericSourceViewEditor} (kept local to avoid a cross-plugin
  * {@code class=} reference; see that class's Javadoc) - opens editable rather than read-only.
  *
@@ -70,7 +70,7 @@ public class MimerModule implements DBSObject, DBPScriptObject, DBPSaveableObjec
     }
 
     /**
-     * For a brand-new, not-yet-created module - see {@link org.jkiss.dbeaver.ext.mimer.edit.MimerModuleManager}.
+     * For a brand-new, not-yet-created module - see {@link com.seizia.chromite.ext.mimer.edit.MimerModuleManager}.
      */
     public MimerModule(@NotNull MimerSchema schema, @NotNull String name) {
         this.schema = schema;
@@ -152,7 +152,7 @@ public class MimerModule implements DBSObject, DBPScriptObject, DBPSaveableObjec
 
     /**
      * {@code COMMENT ON MODULE "schema"."name" IS '...'}. See {@link
-     * org.jkiss.dbeaver.ext.mimer.edit.MimerModuleManager} for the write side.
+     * com.seizia.chromite.ext.mimer.edit.MimerModuleManager} for the write side.
      */
     @Nullable
     @Property(viewable = true, editable = true, updatable = true, length = PropertyLength.MULTILINE, order = 100)

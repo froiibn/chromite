@@ -14,15 +14,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.help;
+package com.seizia.chromite.ui.help;
 
 import org.eclipse.help.IContext;
 import org.eclipse.help.IHelpResource;
 import org.eclipse.ui.help.AbstractHelpUI;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.ui.ShellUtils;
-import org.jkiss.dbeaver.utils.HelpUtils;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.ui.ShellUtils;
+import com.seizia.chromite.utils.HelpUtils;
 
 /**
  * Lightweight help UI

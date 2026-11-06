@@ -15,9 +15,9 @@
  * limitations under the License.
  */
 
-package  org.jkiss.dbeaver.ui.controls.lightgrid;
+package  com.seizia.chromite.ui.controls.lightgrid;
 
-import org.jkiss.dbeaver.model.data.DBDCellValue;
+import com.seizia.chromite.model.data.DBDCellValue;
 
 import java.util.Comparator;
 

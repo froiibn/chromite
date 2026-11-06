@@ -14,9 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.oracle.oci;
+package com.seizia.chromite.ext.oracle.oci;
 
-import org.jkiss.dbeaver.Log;
+import com.seizia.chromite.Log;
 
 import java.io.File;
 import java.io.FilenameFilter;

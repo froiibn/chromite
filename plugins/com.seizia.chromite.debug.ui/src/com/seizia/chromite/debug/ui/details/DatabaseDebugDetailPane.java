@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.debug.ui.details;
+package com.seizia.chromite.debug.ui.details;
 
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.IProgressMonitor;
@@ -33,9 +33,9 @@ import org.eclipse.swt.widgets.Control;
 import org.eclipse.ui.IPropertyListener;
 import org.eclipse.ui.IWorkbenchPartConstants;
 import org.eclipse.ui.IWorkbenchPartSite;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.debug.ui.Widgets;
-import org.jkiss.dbeaver.ui.ActionBars;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.debug.ui.Widgets;
+import com.seizia.chromite.ui.ActionBars;
 
 import java.util.HashSet;
 import java.util.Set;

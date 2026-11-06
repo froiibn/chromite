@@ -20,12 +20,12 @@ import com.formdev.flatlaf.util.UIScale;
 import com.seizia.chromite.ui.swing.internal.ToolsMessages;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.DBPNamedObject;
-import org.jkiss.dbeaver.model.DBValueFormatting;
-import org.jkiss.dbeaver.model.data.DBDDisplayFormat;
-import org.jkiss.dbeaver.model.struct.DBSObject;
-import org.jkiss.dbeaver.runtime.properties.ObjectPropertyDescriptor;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.DBPNamedObject;
+import com.seizia.chromite.model.DBValueFormatting;
+import com.seizia.chromite.model.data.DBDDisplayFormat;
+import com.seizia.chromite.model.struct.DBSObject;
+import com.seizia.chromite.runtime.properties.ObjectPropertyDescriptor;
 import org.jkiss.utils.CommonUtils;
 
 import javax.swing.*;

@@ -14,16 +14,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.fs;
+package com.seizia.chromite.model.fs;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.fs.event.DBFEvent;
-import org.jkiss.dbeaver.model.fs.event.DBFEventListener;
-import org.jkiss.dbeaver.model.fs.event.DBFEventManager;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.fs.event.DBFEvent;
+import com.seizia.chromite.model.fs.event.DBFEventListener;
+import com.seizia.chromite.model.fs.event.DBFEventManager;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.runtime.DBWorkbench;
 import org.jkiss.utils.ArrayUtils;
 import org.jkiss.utils.CommonUtils;
 import org.jkiss.utils.IOUtils;

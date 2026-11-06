@@ -14,13 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.rm;
+package com.seizia.chromite.model.rm;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.model.DBPObjectController;
-import org.jkiss.dbeaver.model.app.DBPPingController;
+import com.seizia.chromite.model.DBPObjectController;
+import com.seizia.chromite.model.app.DBPPingController;
 
 import java.util.List;
 import java.util.Map;

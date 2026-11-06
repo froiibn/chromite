@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.ui.controls.lightgrid;
+package com.seizia.chromite.ui.controls.lightgrid;
 
 import org.jkiss.code.NotNull;
 

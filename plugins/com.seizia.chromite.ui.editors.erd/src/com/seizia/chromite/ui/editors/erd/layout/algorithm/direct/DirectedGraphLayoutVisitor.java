@@ -18,7 +18,7 @@
 /*
  * Created on Jul 15, 2004
  */
-package org.jkiss.dbeaver.ui.editors.erd.layout.algorithm.direct;
+package com.seizia.chromite.ui.editors.erd.layout.algorithm.direct;
 
 import org.eclipse.draw2d.*;
 import org.eclipse.draw2d.geometry.Dimension;
@@ -28,16 +28,16 @@ import org.eclipse.gef.EditPart;
 import org.eclipse.gef.GraphicalEditPart;
 import org.eclipse.gef.editparts.AbstractConnectionEditPart;
 import org.eclipse.gef.editparts.AbstractGraphicalEditPart;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.erd.ERDEntity;
-import org.jkiss.dbeaver.ui.editors.erd.editor.ERDEditorPart;
-import org.jkiss.dbeaver.ui.editors.erd.layout.GraphAnimation;
-import org.jkiss.dbeaver.ui.editors.erd.model.ERDDecorator;
-import org.jkiss.dbeaver.ui.editors.erd.part.AttributePart;
-import org.jkiss.dbeaver.ui.editors.erd.part.DiagramPart;
-import org.jkiss.dbeaver.ui.editors.erd.part.EntityPart;
-import org.jkiss.dbeaver.ui.editors.erd.part.NodePart;
-import org.jkiss.dbeaver.ui.editors.erd.router.ERDConnectionRouterDescriptor;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.erd.ERDEntity;
+import com.seizia.chromite.ui.editors.erd.editor.ERDEditorPart;
+import com.seizia.chromite.ui.editors.erd.layout.GraphAnimation;
+import com.seizia.chromite.ui.editors.erd.model.ERDDecorator;
+import com.seizia.chromite.ui.editors.erd.part.AttributePart;
+import com.seizia.chromite.ui.editors.erd.part.DiagramPart;
+import com.seizia.chromite.ui.editors.erd.part.EntityPart;
+import com.seizia.chromite.ui.editors.erd.part.NodePart;
+import com.seizia.chromite.ui.editors.erd.router.ERDConnectionRouterDescriptor;
 
 import java.util.ArrayList;
 import java.util.IdentityHashMap;

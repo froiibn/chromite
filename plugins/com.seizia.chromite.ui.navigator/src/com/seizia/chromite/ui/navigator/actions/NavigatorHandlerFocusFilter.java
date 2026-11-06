@@ -14,9 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.navigator.actions;
+package com.seizia.chromite.ui.navigator.actions;
 
-import org.jkiss.dbeaver.Log;
+import com.seizia.chromite.Log;
 import org.eclipse.core.commands.AbstractHandler;
 import org.eclipse.core.commands.ExecutionEvent;
 import org.eclipse.core.commands.ExecutionException;
@@ -24,8 +24,8 @@ import org.eclipse.ui.IWorkbenchPage;
 import org.eclipse.ui.IWorkbenchWindow;
 import org.eclipse.ui.PartInitException;
 import org.eclipse.ui.handlers.HandlerUtil;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.navigator.database.DatabaseNavigatorView;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.navigator.database.DatabaseNavigatorView;
 
 public class NavigatorHandlerFocusFilter extends AbstractHandler {
     private static final Log log = Log.getLog(NavigatorHandlerFocusFilter.class);

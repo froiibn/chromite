@@ -3,29 +3,29 @@
 
 <plugin>
 
-    <extension point="org.jkiss.dbeaver.generic.meta">
+    <extension point="com.seizia.chromite.generic.meta">
         <meta id="clickhouse"
-              class="org.jkiss.dbeaver.ext.clickhouse.model.ClickhouseMetaModel"
+              class="com.seizia.chromite.ext.clickhouse.model.ClickhouseMetaModel"
               driverClass="ru.yandex.clickhouse.ClickHouseDriver,com.clickhouse.jdbc.ClickHouseDriver"
               dialect="clickhouse"/>
     </extension>
 
-    <extension point="org.jkiss.dbeaver.dataSourceProvider">
+    <extension point="com.seizia.chromite.dataSourceProvider">
         <dataSourceType
             id="clickhouse"
             label="ClickHouse"
             description="ClickHouse database"
             dataSourceInformation="Column-oriented analytical database system"
-            icon="platform:/plugin/org.jkiss.dbeaver.ext.clickhouse/icons/clickhouse_icon.png"
-            iconBig="platform:/plugin/org.jkiss.dbeaver.ext.clickhouse/icons/clickhouse_icon_big.png"/>
+            icon="platform:/plugin/com.seizia.chromite.ext.clickhouse/icons/clickhouse_icon.png"
+            iconBig="platform:/plugin/com.seizia.chromite.ext.clickhouse/icons/clickhouse_icon_big.png"/>
         <datasource
-                class="org.jkiss.dbeaver.ext.clickhouse.ClickhouseDataSourceProvider"
+                class="com.seizia.chromite.ext.clickhouse.ClickhouseDataSourceProvider"
                 description="Clickhouse"
                 id="clickhouse"
                 dataSourceType="clickhouse"
                 parent="generic"
                 label="ClickHouse"
-                icon="platform:/plugin/org.jkiss.dbeaver.ext.clickhouse/icons/clickhouse_icon.png"
+                icon="platform:/plugin/com.seizia.chromite.ext.clickhouse/icons/clickhouse_icon.png"
                 dialect="clickhouse">
             <drivers managable="true">
 
@@ -44,7 +44,7 @@
                     <replace provider="generic" driver="yandex_clickhouse"/>
                     <file type="jar" path="maven:/ru.yandex.clickhouse:clickhouse-jdbc:RELEASE[0.3.2]"/>
                     <file type="license" path="licenses/external/asl-2.0.txt"/>
-                    <property name="@dbeaver-default-dataformat.type.timestamp.pattern" value="yyyy-MM-dd HH:mm:ss[.fffffffff]"/>
+                    <property name="@chromite-default-dataformat.type.timestamp.pattern" value="yyyy-MM-dd HH:mm:ss[.fffffffff]"/>
                     <parameter name="supports-references" value="false"/>
                     <parameter name="supports-truncate" value="false"/>
                     <parameter name="omit-catalog" value="true"/>
@@ -71,8 +71,8 @@
                     <file type="jar" path="drivers/clickhouse_com" bundle="drivers.clickhouse_com"/>
                     <file type="jar" path="bundle:/org.apache.commons.lang3" bundle="drivers.clickhouse_com"/>
                     <!-- Disable server timezone as it confuses during timestamp edit -->
-                    <property name="@dbeaver-default-dataformat.type.timestamp.pattern" value="yyyy-MM-dd HH:mm:ss[.fffffffff]"/>
-                    <property name="@dbeaver-default-resultset.maxrows.sql" value="true"/>
+                    <property name="@chromite-default-dataformat.type.timestamp.pattern" value="yyyy-MM-dd HH:mm:ss[.fffffffff]"/>
+                    <property name="@chromite-default-resultset.maxrows.sql" value="true"/>
 
                     <parameter name="supports-references" value="false"/>
                     <parameter name="supports-truncate" value="false"/>
@@ -84,16 +84,16 @@
         </datasource>
     </extension>
 
-    <extension point="org.jkiss.dbeaver.sqlDialect">
-        <dialect id="clickhouse" parent="generic" class="org.jkiss.dbeaver.ext.clickhouse.model.ClickhouseSQLDialect" label="Clickhouse" description="Clickhouse SQL dialect." icon="platform:/plugin/org.jkiss.dbeaver.ext.clickhouse/icons/clickhouse_icon.png">
+    <extension point="com.seizia.chromite.sqlDialect">
+        <dialect id="clickhouse" parent="generic" class="com.seizia.chromite.ext.clickhouse.model.ClickhouseSQLDialect" label="Clickhouse" description="Clickhouse SQL dialect." icon="platform:/plugin/com.seizia.chromite.ext.clickhouse/icons/clickhouse_icon.png">
         </dialect>
     </extension>
 
-    <extension point="org.jkiss.dbeaver.objectManager">
-        <manager class="org.jkiss.dbeaver.ext.clickhouse.edit.ClickhouseTableManager" objectType="org.jkiss.dbeaver.ext.clickhouse.model.ClickhouseTable"/>
-        <manager class="org.jkiss.dbeaver.ext.clickhouse.edit.ClickhouseViewManager" objectType="org.jkiss.dbeaver.ext.clickhouse.model.ClickhouseView"/>
+    <extension point="com.seizia.chromite.objectManager">
+        <manager class="com.seizia.chromite.ext.clickhouse.edit.ClickhouseTableManager" objectType="com.seizia.chromite.ext.clickhouse.model.ClickhouseTable"/>
+        <manager class="com.seizia.chromite.ext.clickhouse.edit.ClickhouseViewManager" objectType="com.seizia.chromite.ext.clickhouse.model.ClickhouseView"/>
     </extension>
-    <extension point="org.jkiss.dbeaver.networkHandler">
+    <extension point="com.seizia.chromite.networkHandler">
         <handler
                 type="config"
                 id="clickhouse-ssl"
@@ -104,7 +104,7 @@
                 secured="false"
                 desktop="false"
                 order="2"
-                handlerClass="org.jkiss.dbeaver.ext.clickhouse.model.ClickhouseSSLImpl">
+                handlerClass="com.seizia.chromite.ext.clickhouse.model.ClickhouseSSLImpl">
             <propertyGroup label="Method">
                 <property id="ssl.method" label="Method" type="string" validValues="CERTIFICATES" defaultValue="CERTIFICATES"
                           desktop="true" hidden="true"/>
@@ -123,15 +123,15 @@
             <propertyGroup label="Advanced Settings">
                 <property id="ssl.mode" label="SSL mode" type="string" description="Is certificate verification required" validValues="STRICT,NONE" defaultValue="STRICT"/>
             </propertyGroup>
-            <objectType name="org.jkiss.dbeaver.ext.clickhouse.ClickhouseDataSourceProvider"/>
+            <objectType name="com.seizia.chromite.ext.clickhouse.ClickhouseDataSourceProvider"/>
         </handler>
     </extension>
-    <extension point="org.jkiss.dbeaver.dataSourceAuth">
+    <extension point="com.seizia.chromite.dataSourceAuth">
         <authModel
                 id="clickhouse_cloud_sso"
                 label="ClickHouse Cloud SSO"
                 description="Browser based single sign-on to ClickHouse Cloud"
-                class="org.jkiss.dbeaver.ext.clickhouse.model.auth.ClickhouseAuthModelCloudSSO"
+                class="com.seizia.chromite.ext.clickhouse.model.auth.ClickhouseAuthModelCloudSSO"
                 desktop="true">
             <datasource id="clickhouse" driver="com_clickhouse"/>
         </authModel>
@@ -139,17 +139,17 @@
                 id="clickhouse_oidc"
                 label="SSO / OpenID Connect provider"
                 description="Single sign-on with an external identity provider (Microsoft Entra ID, Okta)"
-                class="org.jkiss.dbeaver.ext.clickhouse.model.auth.ClickhouseAuthModelOIDC"
+                class="com.seizia.chromite.ext.clickhouse.model.auth.ClickhouseAuthModelOIDC"
                 desktop="true">
             <datasource id="clickhouse" driver="com_clickhouse"/>
         </authModel>
     </extension>
 
-    <extension point="org.jkiss.dbeaver.dataTypeProvider">
+    <extension point="com.seizia.chromite.dataTypeProvider">
         <provider
                 id="ClickhouseValueHandlerProvider"
                 parent="GenericValueHandlerProvider"
-                class="org.jkiss.dbeaver.ext.clickhouse.model.data.ClickhouseValueHandlerProvider"
+                class="com.seizia.chromite.ext.clickhouse.model.data.ClickhouseValueHandlerProvider"
                 label="ClickHouse data types provider"
                 description="ClickHouse data types provider">
 

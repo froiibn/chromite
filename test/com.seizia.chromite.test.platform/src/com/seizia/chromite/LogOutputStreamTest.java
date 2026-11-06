@@ -14,12 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver;
+package com.seizia.chromite;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.model.preferences.DBPPreferenceStore;
-import org.jkiss.junit.DBeaverUnitTest;
+import com.seizia.chromite.model.preferences.DBPPreferenceStore;
+import com.seizia.chromite.junit.ChromiteUnitTest;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
@@ -37,7 +37,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 
-public class LogOutputStreamTest extends DBeaverUnitTest {
+public class LogOutputStreamTest extends ChromiteUnitTest {
 
     private static final File LOG_FILE = new File("logs", "debug.log");
 

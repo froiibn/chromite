@@ -1,9 +1,9 @@
 <?xml version='1.0' encoding='UTF-8'?>
 <!-- Schema file written by PDE -->
-<schema targetNamespace="org.jkiss.dbeaver.model.dashboard" xmlns="http://www.w3.org/2001/XMLSchema">
+<schema targetNamespace="com.seizia.chromite.model.dashboard" xmlns="http://www.w3.org/2001/XMLSchema">
 <annotation>
       <appInfo>
-         <meta.schema plugin="org.jkiss.dbeaver.model.dashboard" id="org.jkiss.dbeaver.dashboard" name="Dashboard"/>
+         <meta.schema plugin="com.seizia.chromite.model.dashboard" id="com.seizia.chromite.dashboard" name="Dashboard"/>
       </appInfo>
       <documentation>DBeaver dashboard</documentation>
    </annotation>
@@ -36,7 +36,7 @@
          </choice>
          <attribute name="id" type="string" use="required"/>
          <attribute name="class" type="string" use="required">
-            <annotation><appInfo><meta.attribute kind="java" basedOn=":org.jkiss.dbeaver.model.dashboard.DBDashboardProvider"/></appInfo></annotation>
+            <annotation><appInfo><meta.attribute kind="java" basedOn=":com.seizia.chromite.model.dashboard.DBDashboardProvider"/></appInfo></annotation>
          </attribute>
          <attribute name="label" type="string" use="required">
             <annotation><appInfo><meta.attribute translatable="true"/></appInfo></annotation>

@@ -14,13 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.impl.app;
+package com.seizia.chromite.model.impl.app;
 
 import org.eclipse.core.runtime.IConfigurationElement;
 import org.eclipse.core.runtime.IExtensionRegistry;
 import org.eclipse.core.runtime.IProduct;
 import org.eclipse.core.runtime.Platform;
-import org.jkiss.dbeaver.Log;
+import com.seizia.chromite.Log;
 import org.jkiss.utils.CommonUtils;
 
 import java.util.ArrayList;
@@ -30,7 +30,7 @@ import java.util.stream.Collectors;
 public class ApplicationRegistry {
     private static final Log log = Log.getLog(ApplicationRegistry.class);
 
-    public static final String EXTENSION_ID = "org.jkiss.dbeaver.application"; //$NON-NLS-1$
+    public static final String EXTENSION_ID = "com.seizia.chromite.application"; //$NON-NLS-1$
 
     private static ApplicationRegistry instance = null;
 

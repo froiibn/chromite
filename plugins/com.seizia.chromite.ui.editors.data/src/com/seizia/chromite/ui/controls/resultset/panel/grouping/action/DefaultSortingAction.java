@@ -14,17 +14,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.controls.resultset.panel.grouping.action;
+package com.seizia.chromite.ui.controls.resultset.panel.grouping.action;
 
 import org.eclipse.jface.action.Action;
 import org.eclipse.jface.action.IMenuCreator;
 import org.eclipse.jface.action.MenuManager;
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.ui.DBeaverIcons;
-import org.jkiss.dbeaver.ui.MenuCreator;
-import org.jkiss.dbeaver.ui.UIIcon;
-import org.jkiss.dbeaver.ui.controls.resultset.internal.ResultSetMessages;
-import org.jkiss.dbeaver.ui.controls.resultset.panel.grouping.GroupingResultsContainer;
+import com.seizia.chromite.ui.SwtIcons;
+import com.seizia.chromite.ui.MenuCreator;
+import com.seizia.chromite.ui.UIIcon;
+import com.seizia.chromite.ui.controls.resultset.internal.ResultSetMessages;
+import com.seizia.chromite.ui.controls.resultset.panel.grouping.GroupingResultsContainer;
 
 public class DefaultSortingAction extends Action {
 
@@ -32,7 +32,7 @@ public class DefaultSortingAction extends Action {
 
     public DefaultSortingAction(@NotNull GroupingResultsContainer resultsContainer) {
         super(ResultSetMessages.dialog_toolbar_sort, Action.AS_DROP_DOWN_MENU);
-        setImageDescriptor(DBeaverIcons.getImageDescriptor(UIIcon.SORT_CONFIG));
+        setImageDescriptor(SwtIcons.getImageDescriptor(UIIcon.SORT_CONFIG));
         setToolTipText(ResultSetMessages.controls_resultset_grouping_default_sorting);
         this.resultsContainer = resultsContainer;
     }

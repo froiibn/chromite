@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.ai.chat.controls;
+package com.seizia.chromite.ui.ai.chat.controls;
 
 import org.eclipse.jface.preference.JFacePreferences;
 import org.eclipse.jface.resource.ColorRegistry;
@@ -25,14 +25,14 @@ import org.eclipse.swt.widgets.Display;
 import org.eclipse.ui.internal.IWorkbenchThemeConstants;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.model.DBPImage;
-import org.jkiss.dbeaver.ui.BaseThemeSettings;
-import org.jkiss.dbeaver.ui.UIStyles;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.ai.chat.internal.AIChatThemeSettings;
-import org.jkiss.dbeaver.ui.ai.internal.AIUIActivator;
-import org.jkiss.dbeaver.ui.browser.LocalResourceHttpServer;
-import org.jkiss.dbeaver.utils.RuntimeUtils;
+import com.seizia.chromite.model.DBPImage;
+import com.seizia.chromite.ui.BaseThemeSettings;
+import com.seizia.chromite.ui.UIStyles;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.ai.chat.internal.AIChatThemeSettings;
+import com.seizia.chromite.ui.ai.internal.AIUIActivator;
+import com.seizia.chromite.ui.browser.LocalResourceHttpServer;
+import com.seizia.chromite.utils.RuntimeUtils;
 import org.osgi.framework.Bundle;
 
 import java.io.IOException;

@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.dialogs.driver;
+package com.seizia.chromite.ui.dialogs.driver;
 
 import org.eclipse.jface.viewers.*;
 import org.eclipse.swt.SWT;
@@ -28,30 +28,30 @@ import org.eclipse.swt.widgets.*;
 import org.eclipse.ui.PlatformUI;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.model.DBIcon;
-import org.jkiss.dbeaver.model.DBPDataSourceContainer;
-import org.jkiss.dbeaver.model.DBPImage;
-import org.jkiss.dbeaver.model.config.ProductConfigRegistry;
-import org.jkiss.dbeaver.model.connection.DBPDataSourceProviderDescriptor;
-import org.jkiss.dbeaver.model.connection.DBPDataSourceType;
-import org.jkiss.dbeaver.model.connection.DBPDriver;
-import org.jkiss.dbeaver.model.connection.DBPDriverWithLicense;
-import org.jkiss.dbeaver.registry.DataSourceProviderRegistry;
-import org.jkiss.dbeaver.registry.DataSourceRegistry;
-import org.jkiss.dbeaver.registry.DriverCategoryDescriptor;
-import org.jkiss.dbeaver.registry.DriverManagerRegistry;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.ui.DBeaverIcons;
-import org.jkiss.dbeaver.ui.UIIcon;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.controls.ListContentProvider;
-import org.jkiss.dbeaver.ui.controls.finder.viewer.AdvancedListViewer;
-import org.jkiss.dbeaver.ui.controls.folders.ITabbedFolder;
-import org.jkiss.dbeaver.ui.controls.folders.TabbedFolderComposite;
-import org.jkiss.dbeaver.ui.controls.folders.TabbedFolderInfo;
-import org.jkiss.dbeaver.ui.internal.UIConnectionMessages;
-import org.jkiss.dbeaver.ui.preferences.UIPreferences;
-import org.jkiss.dbeaver.utils.PrefUtils;
+import com.seizia.chromite.model.DBIcon;
+import com.seizia.chromite.model.DBPDataSourceContainer;
+import com.seizia.chromite.model.DBPImage;
+import com.seizia.chromite.model.config.ProductConfigRegistry;
+import com.seizia.chromite.model.connection.DBPDataSourceProviderDescriptor;
+import com.seizia.chromite.model.connection.DBPDataSourceType;
+import com.seizia.chromite.model.connection.DBPDriver;
+import com.seizia.chromite.model.connection.DBPDriverWithLicense;
+import com.seizia.chromite.registry.DataSourceProviderRegistry;
+import com.seizia.chromite.registry.DataSourceRegistry;
+import com.seizia.chromite.registry.DriverCategoryDescriptor;
+import com.seizia.chromite.registry.DriverManagerRegistry;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.ui.SwtIcons;
+import com.seizia.chromite.ui.UIIcon;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.controls.ListContentProvider;
+import com.seizia.chromite.ui.controls.finder.viewer.AdvancedListViewer;
+import com.seizia.chromite.ui.controls.folders.ITabbedFolder;
+import com.seizia.chromite.ui.controls.folders.TabbedFolderComposite;
+import com.seizia.chromite.ui.controls.folders.TabbedFolderInfo;
+import com.seizia.chromite.ui.internal.UIConnectionMessages;
+import com.seizia.chromite.ui.preferences.UIPreferences;
+import com.seizia.chromite.utils.PrefUtils;
 import org.jkiss.utils.CommonUtils;
 
 import java.util.*;
@@ -116,7 +116,7 @@ public class DataSourceTypeViewer extends Viewer {
         filterText.setLayoutData(new GridData(GridData.FILL_HORIZONTAL));
         ToolBar toolbar = new ToolBar(filterComposite, SWT.HORIZONTAL);
         ToolItem clearItem = new ToolItem(toolbar, SWT.PUSH);
-        clearItem.setImage(DBeaverIcons.getImage(UIIcon.ERASE));
+        clearItem.setImage(SwtIcons.getImage(UIIcon.ERASE));
         clearItem.addSelectionListener(SelectionListener.widgetSelectedAdapter(e -> filterText.setText("")));
         createExtraFilterControlsAfter(filterGroup);
 
@@ -473,7 +473,7 @@ public class DataSourceTypeViewer extends Viewer {
             type.getEnabledDrivers().stream()
                 .filter(folder::isDriverVisible)
                 .forEach(driver -> DriverIconLoader.load(driver, viewer));
-            return DBeaverIcons.getImage(type.getIconBig());
+            return SwtIcons.getImage(type.getIconBig());
         }
 
         @Override

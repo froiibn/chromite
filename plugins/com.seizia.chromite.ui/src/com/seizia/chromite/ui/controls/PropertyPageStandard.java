@@ -14,20 +14,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.controls;
+package com.seizia.chromite.ui.controls;
 
 import org.eclipse.core.runtime.IAdaptable;
 import org.eclipse.jface.viewers.ISelection;
 import org.eclipse.jface.viewers.IStructuredSelection;
 import org.eclipse.ui.IWorkbenchPart;
 import org.eclipse.ui.views.properties.*;
-import org.jkiss.dbeaver.model.preferences.DBPPropertyDescriptor;
-import org.jkiss.dbeaver.runtime.properties.ILazyPropertyLoadListener;
-import org.jkiss.dbeaver.runtime.properties.PropertiesContributor;
-import org.jkiss.dbeaver.runtime.properties.PropertySourceCollection;
-import org.jkiss.dbeaver.runtime.properties.PropertySourceMap;
-import org.jkiss.dbeaver.ui.properties.PropertySourceDelegate;
-import org.jkiss.dbeaver.utils.RuntimeUtils;
+import com.seizia.chromite.model.preferences.DBPPropertyDescriptor;
+import com.seizia.chromite.runtime.properties.ILazyPropertyLoadListener;
+import com.seizia.chromite.runtime.properties.PropertiesContributor;
+import com.seizia.chromite.runtime.properties.PropertySourceCollection;
+import com.seizia.chromite.runtime.properties.PropertySourceMap;
+import com.seizia.chromite.ui.properties.PropertySourceDelegate;
+import com.seizia.chromite.utils.RuntimeUtils;
 import org.jkiss.utils.ArrayUtils;
 
 import java.util.Collection;

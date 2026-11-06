@@ -14,11 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.ai.internal;
+package com.seizia.chromite.ui.ai.internal;
 
 import org.eclipse.ui.IStartup;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.ai.AIPropertyTester;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.ai.AIPropertyTester;
 
 public class AIUIStartup implements IStartup {
     @Override

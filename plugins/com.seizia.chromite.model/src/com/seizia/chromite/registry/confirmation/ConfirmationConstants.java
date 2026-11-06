@@ -14,11 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.registry.confirmation;
+package com.seizia.chromite.registry.confirmation;
 
 public class ConfirmationConstants {
 
-    public static final String CONFIRM_PREF_KEY_PREFIX = "org.jkiss.dbeaver.core.confirm."; //$NON-NLS-1$
+    public static final String CONFIRM_PREF_KEY_PREFIX = "com.seizia.chromite.core.confirm."; //$NON-NLS-1$
     public static final String CONFIRM_DANGER_SQL_ID = "dangerous_sql"; //$NON-NLS-1$
     public static final String CONFIRM_DROP_SQL_ID = "drop_sql"; //$NON-NLS-1$
     public static final String CONFIRM_DANGER_SQL_KEY = CONFIRM_PREF_KEY_PREFIX + CONFIRM_DANGER_SQL_ID; //$NON-NLS-1$

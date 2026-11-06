@@ -14,14 +14,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.mysql.ui.config;
+package com.seizia.chromite.ext.mysql.ui.config;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.ext.mysql.model.MySQLUser;
-import org.jkiss.dbeaver.model.DBUtils;
-import org.jkiss.dbeaver.model.edit.prop.DBEPropertyHandler;
-import org.jkiss.dbeaver.model.edit.prop.DBEPropertyReflector;
+import com.seizia.chromite.ext.mysql.model.MySQLUser;
+import com.seizia.chromite.model.DBUtils;
+import com.seizia.chromite.model.edit.prop.DBEPropertyHandler;
+import com.seizia.chromite.model.edit.prop.DBEPropertyReflector;
 import org.jkiss.utils.CommonUtils;
 
 /**

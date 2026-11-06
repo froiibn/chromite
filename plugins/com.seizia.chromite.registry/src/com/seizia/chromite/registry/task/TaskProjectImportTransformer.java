@@ -14,20 +14,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.registry.task;
+package com.seizia.chromite.registry.task;
 
 import com.google.gson.*;
 import org.jkiss.code.NotNull;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.app.DBPProjectImportTransformer;
-import org.jkiss.dbeaver.model.data.json.JSONUtils;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.model.task.DBTTaskHandler;
-import org.jkiss.dbeaver.model.task.DBTTaskImportTransformer;
-import org.jkiss.dbeaver.model.task.DBTTaskRegistry;
-import org.jkiss.dbeaver.model.task.DBTTaskType;
-import org.jkiss.dbeaver.runtime.DBInterruptedException;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.app.DBPProjectImportTransformer;
+import com.seizia.chromite.model.data.json.JSONUtils;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.model.task.DBTTaskHandler;
+import com.seizia.chromite.model.task.DBTTaskImportTransformer;
+import com.seizia.chromite.model.task.DBTTaskRegistry;
+import com.seizia.chromite.model.task.DBTTaskType;
+import com.seizia.chromite.runtime.DBInterruptedException;
 
 import java.io.StringReader;
 import java.util.Map;

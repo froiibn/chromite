@@ -14,16 +14,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.mssql.model.data;
+package com.seizia.chromite.ext.mssql.model.data;
 
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.model.data.DBDDataFormatter;
-import org.jkiss.dbeaver.model.data.DBDDataFormatterProfile;
-import org.jkiss.dbeaver.model.data.DBDDisplayFormat;
-import org.jkiss.dbeaver.model.data.DBDFormatSettings;
-import org.jkiss.dbeaver.model.impl.data.formatters.DateTimeDataFormatter;
-import org.jkiss.dbeaver.model.struct.DBSTypedObject;
-import org.jkiss.junit.DBeaverUnitTest;
+import com.seizia.chromite.model.data.DBDDataFormatter;
+import com.seizia.chromite.model.data.DBDDataFormatterProfile;
+import com.seizia.chromite.model.data.DBDDisplayFormat;
+import com.seizia.chromite.model.data.DBDFormatSettings;
+import com.seizia.chromite.model.impl.data.formatters.DateTimeDataFormatter;
+import com.seizia.chromite.model.struct.DBSTypedObject;
+import com.seizia.chromite.junit.ChromiteUnitTest;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -38,7 +38,7 @@ import java.util.Map;
 
 import static org.mockito.Mockito.*;
 
-public class SQLServerDateTimeOffsetHandlerTest extends DBeaverUnitTest {
+public class SQLServerDateTimeOffsetHandlerTest extends ChromiteUnitTest {
     private final DBSTypedObject column = mock(DBSTypedObject.class);
     private final DBDFormatSettings settings = mock(DBDFormatSettings.class);
     private final DateTimeDataFormatter formatter = spy(new DateTimeDataFormatter());

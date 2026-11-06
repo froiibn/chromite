@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.tools.transfer.ui.pages.database;
+package com.seizia.chromite.tools.transfer.ui.pages.database;
 
 import org.eclipse.osgi.util.NLS;
 import org.eclipse.swt.SWT;
@@ -28,26 +28,26 @@ import org.eclipse.swt.widgets.Table;
 import org.eclipse.swt.widgets.TableItem;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.model.DBPEvaluationContext;
-import org.jkiss.dbeaver.model.DBUtils;
-import org.jkiss.dbeaver.model.navigator.DBNDatabaseNode;
-import org.jkiss.dbeaver.model.navigator.DBNModel;
-import org.jkiss.dbeaver.model.navigator.DBNNode;
-import org.jkiss.dbeaver.model.runtime.DefaultProgressMonitor;
-import org.jkiss.dbeaver.model.struct.*;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.tools.transfer.DataTransferPipe;
-import org.jkiss.dbeaver.tools.transfer.DataTransferSettings;
-import org.jkiss.dbeaver.tools.transfer.IDataTransferSettings;
-import org.jkiss.dbeaver.tools.transfer.database.DatabaseConsumerSettings;
-import org.jkiss.dbeaver.tools.transfer.database.DatabaseTransferConsumer;
-import org.jkiss.dbeaver.tools.transfer.database.DatabaseTransferProducer;
-import org.jkiss.dbeaver.tools.transfer.internal.DTMessages;
-import org.jkiss.dbeaver.tools.transfer.ui.internal.DTUIMessages;
-import org.jkiss.dbeaver.tools.transfer.ui.pages.DataTransferPageNodeSettings;
-import org.jkiss.dbeaver.ui.DBeaverIcons;
-import org.jkiss.dbeaver.ui.UIIcon;
-import org.jkiss.dbeaver.ui.UIUtils;
+import com.seizia.chromite.model.DBPEvaluationContext;
+import com.seizia.chromite.model.DBUtils;
+import com.seizia.chromite.model.navigator.DBNDatabaseNode;
+import com.seizia.chromite.model.navigator.DBNModel;
+import com.seizia.chromite.model.navigator.DBNNode;
+import com.seizia.chromite.model.runtime.DefaultProgressMonitor;
+import com.seizia.chromite.model.struct.*;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.tools.transfer.DataTransferPipe;
+import com.seizia.chromite.tools.transfer.DataTransferSettings;
+import com.seizia.chromite.tools.transfer.IDataTransferSettings;
+import com.seizia.chromite.tools.transfer.database.DatabaseConsumerSettings;
+import com.seizia.chromite.tools.transfer.database.DatabaseTransferConsumer;
+import com.seizia.chromite.tools.transfer.database.DatabaseTransferProducer;
+import com.seizia.chromite.tools.transfer.internal.DTMessages;
+import com.seizia.chromite.tools.transfer.ui.internal.DTUIMessages;
+import com.seizia.chromite.tools.transfer.ui.pages.DataTransferPageNodeSettings;
+import com.seizia.chromite.ui.SwtIcons;
+import com.seizia.chromite.ui.UIIcon;
+import com.seizia.chromite.ui.UIUtils;
 import org.jkiss.utils.CommonUtils;
 
 import java.lang.reflect.InvocationTargetException;
@@ -110,7 +110,7 @@ public class DatabaseProducerPageInputObjects extends DataTransferPageNodeSettin
         {
             Composite controlGroup = UIUtils.createComposite(composite, 1);
             Button autoAssignButton = new Button(controlGroup, SWT.PUSH);
-            autoAssignButton.setImage(DBeaverIcons.getImage(UIIcon.ASTERISK));
+            autoAssignButton.setImage(SwtIcons.getImage(UIIcon.ASTERISK));
             autoAssignButton.setText(DTMessages.data_transfer_db_consumer_auto_assign);
             autoAssignButton.addSelectionListener(SelectionListener.widgetSelectedAdapter(e -> autoAssignMappings()));
         }
@@ -195,7 +195,7 @@ public class DatabaseProducerPageInputObjects extends DataTransferPageNodeSettin
             item.setImage(0, null);
             item.setText(0, DTUIMessages.database_producer_page_input_objects_item_text_none);
         } else {
-            item.setImage(0, DBeaverIcons.getImage(settings.getProducer().getIcon()));
+            item.setImage(0, SwtIcons.getImage(settings.getProducer().getIcon()));
             item.setText(0, DBUtils.getObjectFullName(pipe.getProducer().getDatabaseObject(), DBPEvaluationContext.DML));
         }
         if (pipe.getConsumer() == null || pipe.getConsumer().getObjectName() == null) {
@@ -203,7 +203,7 @@ public class DatabaseProducerPageInputObjects extends DataTransferPageNodeSettin
             item.setText(1, DTUIMessages.database_producer_page_input_objects_item_text_none);
         } else {
             updateConsumerContainer(pipe);
-            item.setImage(1, DBeaverIcons.getImage(settings.getConsumer().getIcon()));
+            item.setImage(1, SwtIcons.getImage(settings.getConsumer().getIcon()));
             item.setText(1, pipe.getConsumer().getObjectName());
         }
     }

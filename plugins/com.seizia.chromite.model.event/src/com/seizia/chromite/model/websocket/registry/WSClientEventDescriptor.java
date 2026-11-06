@@ -14,15 +14,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.websocket.registry;
+package com.seizia.chromite.model.websocket.registry;
 
 import org.eclipse.core.runtime.IConfigurationElement;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.websocket.event.WSClientEvent;
-import org.jkiss.dbeaver.model.websocket.event.WSClientEventHandler;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.websocket.event.WSClientEvent;
+import com.seizia.chromite.model.websocket.event.WSClientEventHandler;
 import org.jkiss.utils.CommonUtils;
 
 /**

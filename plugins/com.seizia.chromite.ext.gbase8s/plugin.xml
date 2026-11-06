@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <?eclipse version="3.2"?>
 <plugin>
-    <extension point="org.jkiss.dbeaver.generic.meta">
+    <extension point="com.seizia.chromite.generic.meta">
         <meta id="gbase8s"
-            class="org.jkiss.dbeaver.ext.gbase8s.model.meta.GBase8sMetaModel"
+            class="com.seizia.chromite.ext.gbase8s.model.meta.GBase8sMetaModel"
             driverClass="com.gbasedbt.jdbc.Driver" />
     </extension>
-    <extension point="org.jkiss.dbeaver.dataSourceProvider">
+    <extension point="com.seizia.chromite.dataSourceProvider">
         <dataSourceType
             id="gbase_8s"
             label="GBase 8s"
@@ -16,7 +16,7 @@
             iconBig="icons/gbase8s_icon_big.png"
             logoImage="icons/gbase8s_logo.png"/>
         <datasource
-            class="org.jkiss.dbeaver.ext.gbase8s.GBase8sDataSourceProvider"
+            class="com.seizia.chromite.ext.gbase8s.GBase8sDataSourceProvider"
             id="gbase8s"
             dataSourceType="gbase_8s"
             description="GBase 8s connector"
@@ -25,14 +25,14 @@
             dialect="gbase8s"
             label="GBase 8s">
             <treeInjection path="generic/catalog/schema/table"
-                changeFolderType="org.jkiss.dbeaver.ext.gbase8s.model.GBase8sTable"/>
+                changeFolderType="com.seizia.chromite.ext.gbase8s.model.GBase8sTable"/>
             <treeInjection path="generic/catalog/schema/table/attribute"
-                changeFolderType="org.jkiss.dbeaver.ext.gbase8s.model.GBase8sTableColumn"/>
+                changeFolderType="com.seizia.chromite.ext.gbase8s.model.GBase8sTableColumn"/>
             <treeInjection path="generic/catalog/schema/table/uniqueKey"
-                changeFolderType="org.jkiss.dbeaver.ext.gbase8s.model.GBase8sUniqueKey"/>
+                changeFolderType="com.seizia.chromite.ext.gbase8s.model.GBase8sUniqueKey"/>
             <treeInjection path="generic/catalog/schema/index" remove="true"/>
             <treeInjection path="generic/catalog/schema/tableTrigger"
-                changeFolderType="org.jkiss.dbeaver.ext.gbase8s.model.GBase8sTableTrigger"/>
+                changeFolderType="com.seizia.chromite.ext.gbase8s.model.GBase8sTableTrigger"/>
 
             <drivers managable="true">
                 <driver
@@ -55,8 +55,8 @@
                      -->
                     <property name="JDBCTEMP" type="string" required="false" defaultValue="" />
 
-                    <property name="@dbeaver-default-database.meta.client.name.disable" value="true" />
-                    <property name="@dbeaver-default-dataformat.type.timestamp.pattern" value="yyyy-MM-dd HH.mm.ss.ffffff" />
+                    <property name="@chromite-default-database.meta.client.name.disable" value="true" />
+                    <property name="@chromite-default-dataformat.type.timestamp.pattern" value="yyyy-MM-dd HH.mm.ss.ffffff" />
 
                     <file type="jar" path="maven:/com.gbasedbt:jdbc:RELEASE[3.5.1]"/>
                     <file type="license" path="licenses/external/asl-2.0.txt"/>
@@ -71,19 +71,19 @@
         </datasource>
     </extension>
 
-    <extension point="org.jkiss.dbeaver.objectManager">
-        <manager class="org.jkiss.dbeaver.ext.gbase8s.edit.GBase8sTableManager"
-            objectType="org.jkiss.dbeaver.ext.gbase8s.model.GBase8sTable" />
+    <extension point="com.seizia.chromite.objectManager">
+        <manager class="com.seizia.chromite.ext.gbase8s.edit.GBase8sTableManager"
+            objectType="com.seizia.chromite.ext.gbase8s.model.GBase8sTable" />
         <manager
-            class="org.jkiss.dbeaver.ext.gbase8s.edit.GBase8sTableColumnManager"
-            objectType="org.jkiss.dbeaver.ext.gbase8s.model.GBase8sTableColumn" />
+            class="com.seizia.chromite.ext.gbase8s.edit.GBase8sTableColumnManager"
+            objectType="com.seizia.chromite.ext.gbase8s.model.GBase8sTableColumn" />
         <manager
-            class="org.jkiss.dbeaver.ext.gbase8s.edit.GBase8sUniqueKeyManager"
-            objectType="org.jkiss.dbeaver.ext.gbase8s.model.GBase8sUniqueKey" />
+            class="com.seizia.chromite.ext.gbase8s.edit.GBase8sUniqueKeyManager"
+            objectType="com.seizia.chromite.ext.gbase8s.model.GBase8sUniqueKey" />
     </extension>
 
-    <extension point="org.jkiss.dbeaver.sqlDialect">
-        <dialect id="gbase8s" parent="generic" class="org.jkiss.dbeaver.ext.gbase8s.model.GBase8sDialect"
+    <extension point="com.seizia.chromite.sqlDialect">
+        <dialect id="gbase8s" parent="generic" class="com.seizia.chromite.ext.gbase8s.model.GBase8sDialect"
                  label="gbase8s" description="GBase 8s JDBC dialect" icon="icons/gbase8s_icon.png">
         </dialect>
     </extension>

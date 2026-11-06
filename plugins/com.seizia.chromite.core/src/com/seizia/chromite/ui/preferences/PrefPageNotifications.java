@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.preferences;
+package com.seizia.chromite.ui.preferences;
 
 import org.eclipse.jface.layout.GridDataFactory;
 import org.eclipse.jface.viewers.*;
@@ -24,21 +24,21 @@ import org.eclipse.swt.widgets.*;
 import org.eclipse.ui.IWorkbench;
 import org.eclipse.ui.IWorkbenchPreferencePage;
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.DBeaverPreferences;
-import org.jkiss.dbeaver.ModelPreferences;
-import org.jkiss.dbeaver.core.CoreMessages;
-import org.jkiss.dbeaver.model.preferences.DBPPreferenceStore;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.controls.CustomCheckboxCellEditor;
-import org.jkiss.dbeaver.ui.controls.CustomComboBoxCellEditor;
-import org.jkiss.dbeaver.ui.controls.ListContentProvider;
-import org.jkiss.dbeaver.ui.controls.ViewerColumnController;
-import org.jkiss.dbeaver.ui.internal.UIMessages;
-import org.jkiss.dbeaver.ui.notifications.NotificationSettings;
-import org.jkiss.dbeaver.ui.notifications.NotificationUtils;
-import org.jkiss.dbeaver.ui.registry.NotificationDescriptor;
-import org.jkiss.dbeaver.ui.registry.NotificationRegistry;
+import com.seizia.chromite.ChromitePreferences;
+import com.seizia.chromite.ModelPreferences;
+import com.seizia.chromite.core.CoreMessages;
+import com.seizia.chromite.model.preferences.DBPPreferenceStore;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.controls.CustomCheckboxCellEditor;
+import com.seizia.chromite.ui.controls.CustomComboBoxCellEditor;
+import com.seizia.chromite.ui.controls.ListContentProvider;
+import com.seizia.chromite.ui.controls.ViewerColumnController;
+import com.seizia.chromite.ui.internal.UIMessages;
+import com.seizia.chromite.ui.notifications.NotificationSettings;
+import com.seizia.chromite.ui.notifications.NotificationUtils;
+import com.seizia.chromite.ui.registry.NotificationDescriptor;
+import com.seizia.chromite.ui.registry.NotificationRegistry;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -113,14 +113,14 @@ public class PrefPageNotifications extends AbstractPrefPage implements IWorkbenc
                 group,
                 CoreMessages.pref_page_ui_general_label_enable_long_operations,
                 CoreMessages.pref_page_ui_general_label_enable_long_operations_tip,
-                preferences.getBoolean(DBeaverPreferences.AGENT_LONG_OPERATION_NOTIFY),
+                preferences.getBoolean(ChromitePreferences.AGENT_LONG_OPERATION_NOTIFY),
                 2
             );
 
             longOperationsTimeout = UIUtils.createLabelSpinner(
                 group,
                 CoreMessages.pref_page_ui_general_label_long_operation_timeout + UIMessages.label_sec,
-                preferences.getInt(DBeaverPreferences.AGENT_LONG_OPERATION_TIMEOUT), 0, Integer.MAX_VALUE
+                preferences.getInt(ChromitePreferences.AGENT_LONG_OPERATION_TIMEOUT), 0, Integer.MAX_VALUE
             );
         }
 
@@ -276,8 +276,8 @@ public class PrefPageNotifications extends AbstractPrefPage implements IWorkbenc
         preferences.setValue(ModelPreferences.NOTIFICATIONS_CLOSE_DELAY_TIMEOUT, hideDelaySpinner.getSelection());
         preferences.setValue(ModelPreferences.NOTIFICATIONS_SOUND_ENABLED, enableSoundsCheckbox.getSelection());
         preferences.setValue(ModelPreferences.NOTIFICATIONS_SOUND_VOLUME, soundVolumeSpinner.getSelection());
-        preferences.setValue(DBeaverPreferences.AGENT_LONG_OPERATION_NOTIFY, longOperationsCheck.getSelection());
-        preferences.setValue(DBeaverPreferences.AGENT_LONG_OPERATION_TIMEOUT, longOperationsTimeout.getSelection());
+        preferences.setValue(ChromitePreferences.AGENT_LONG_OPERATION_NOTIFY, longOperationsCheck.getSelection());
+        preferences.setValue(ChromitePreferences.AGENT_LONG_OPERATION_TIMEOUT, longOperationsTimeout.getSelection());
 
         return super.performOk();
     }
@@ -298,8 +298,8 @@ public class PrefPageNotifications extends AbstractPrefPage implements IWorkbenc
         hideDelaySpinner.setSelection(preferences.getDefaultInt(ModelPreferences.NOTIFICATIONS_CLOSE_DELAY_TIMEOUT));
         enableSoundsCheckbox.setSelection(preferences.getDefaultBoolean(ModelPreferences.NOTIFICATIONS_SOUND_ENABLED));
         soundVolumeSpinner.setSelection(preferences.getDefaultInt(ModelPreferences.NOTIFICATIONS_SOUND_VOLUME));
-        longOperationsCheck.setSelection(preferences.getDefaultBoolean(DBeaverPreferences.AGENT_LONG_OPERATION_NOTIFY));
-        longOperationsTimeout.setSelection(preferences.getDefaultInt(DBeaverPreferences.AGENT_LONG_OPERATION_TIMEOUT));
+        longOperationsCheck.setSelection(preferences.getDefaultBoolean(ChromitePreferences.AGENT_LONG_OPERATION_NOTIFY));
+        longOperationsTimeout.setSelection(preferences.getDefaultInt(ChromitePreferences.AGENT_LONG_OPERATION_TIMEOUT));
 
         viewer.refresh();
 

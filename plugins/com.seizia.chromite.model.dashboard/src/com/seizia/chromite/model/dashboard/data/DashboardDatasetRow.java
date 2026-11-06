@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.dashboard.data;
+package com.seizia.chromite.model.dashboard.data;
 
 import java.util.Date;
 

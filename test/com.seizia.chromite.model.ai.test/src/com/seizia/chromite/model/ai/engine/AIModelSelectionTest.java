@@ -15,15 +15,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.ai.engine;
+package com.seizia.chromite.model.ai.engine;
 
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.model.ai.AIConstants;
-import org.jkiss.dbeaver.model.ai.engine.copilot.CopilotProperties;
-import org.jkiss.dbeaver.model.ai.engine.openai.OpenAIEngine;
-import org.jkiss.dbeaver.model.ai.engine.openai.OpenAIProperties;
-import org.jkiss.dbeaver.model.runtime.VoidProgressMonitor;
-import org.jkiss.junit.DBeaverUnitTest;
+import com.seizia.chromite.model.ai.AIConstants;
+import com.seizia.chromite.model.ai.engine.copilot.CopilotProperties;
+import com.seizia.chromite.model.ai.engine.openai.OpenAIEngine;
+import com.seizia.chromite.model.ai.engine.openai.OpenAIProperties;
+import com.seizia.chromite.model.runtime.VoidProgressMonitor;
+import com.seizia.chromite.junit.ChromiteUnitTest;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -41,7 +41,7 @@ import java.util.stream.Stream;
  * - 2026-11-06 dbeaver.com AI 모델 카탈로그 제거: 카탈로그 픽스처와 카탈로그 캐시 값을 쓰던
  *   missingMetadataUsesCachedModelContextWindow 테스트를 삭제했다.
  */
-class AIModelSelectionTest extends DBeaverUnitTest {
+class AIModelSelectionTest extends ChromiteUnitTest {
     @ParameterizedTest
     @MethodSource("largeContextProperties")
     void switchingToSmallerModelReducesContextBudget(@NotNull AIEngineProperties properties) throws Exception {

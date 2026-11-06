@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.ui.editors.sql.convert.impl;
+package com.seizia.chromite.ui.editors.sql.convert.impl;
 
 import org.eclipse.jface.text.BadLocationException;
 import org.eclipse.jface.text.IDocument;
@@ -24,11 +24,11 @@ import org.eclipse.jface.text.rules.IToken;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.graphics.Color;
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.sql.SQLDialect;
-import org.jkiss.dbeaver.model.sql.SQLSyntaxManager;
-import org.jkiss.dbeaver.ui.editors.sql.convert.ISQLTextConverter;
-import org.jkiss.dbeaver.ui.editors.sql.syntax.SQLRuleScanner;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.sql.SQLDialect;
+import com.seizia.chromite.model.sql.SQLSyntaxManager;
+import com.seizia.chromite.ui.editors.sql.convert.ISQLTextConverter;
+import com.seizia.chromite.ui.editors.sql.syntax.SQLRuleScanner;
 import org.jkiss.utils.CommonUtils;
 
 import java.util.Map;

@@ -15,13 +15,13 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.model.data;
+package com.seizia.chromite.model.data;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.model.DBPImage;
-import org.jkiss.dbeaver.model.app.DBPRegistryDescriptor;
-import org.jkiss.dbeaver.model.preferences.DBPPropertyDescriptor;
+import com.seizia.chromite.model.DBPImage;
+import com.seizia.chromite.model.app.DBPRegistryDescriptor;
+import com.seizia.chromite.model.preferences.DBPPropertyDescriptor;
 
 import java.util.List;
 

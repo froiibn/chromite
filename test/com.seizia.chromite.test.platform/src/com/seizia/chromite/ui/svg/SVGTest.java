@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.svg;
+package com.seizia.chromite.ui.svg;
 
 //import com.github.weisj.jsvg.SVGDocument;
 //import com.github.weisj.jsvg.parser.SVGLoader;

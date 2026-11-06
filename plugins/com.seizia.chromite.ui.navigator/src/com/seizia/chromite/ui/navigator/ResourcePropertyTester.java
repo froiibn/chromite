@@ -14,26 +14,26 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.navigator;
+package com.seizia.chromite.ui.navigator;
 
 import org.eclipse.core.expressions.PropertyTester;
 import org.eclipse.core.resources.IFolder;
 import org.eclipse.core.resources.IProject;
 import org.eclipse.core.resources.IResource;
-import org.jkiss.dbeaver.model.app.DBPPlatformDesktop;
-import org.jkiss.dbeaver.model.app.DBPResourceCreator;
-import org.jkiss.dbeaver.model.app.DBPResourceHandler;
-import org.jkiss.dbeaver.model.app.DBPWorkspaceDesktop;
-import org.jkiss.dbeaver.model.fs.nio.EFSNIOResource;
-import org.jkiss.dbeaver.model.rcp.RCPProject;
-import org.jkiss.dbeaver.ui.ActionUtils;
+import com.seizia.chromite.model.app.DBPPlatformDesktop;
+import com.seizia.chromite.model.app.DBPResourceCreator;
+import com.seizia.chromite.model.app.DBPResourceHandler;
+import com.seizia.chromite.model.app.DBPWorkspaceDesktop;
+import com.seizia.chromite.model.fs.nio.EFSNIOResource;
+import com.seizia.chromite.model.rcp.RCPProject;
+import com.seizia.chromite.ui.ActionUtils;
 
 /**
  * ResourcePropertyTester
  */
 public class ResourcePropertyTester extends PropertyTester
 {
-    public static final String NAMESPACE = "org.jkiss.dbeaver.core.resource";
+    public static final String NAMESPACE = "com.seizia.chromite.core.resource";
     public static final String PROP_CAN_OPEN = "canOpen";
     public static final String PROP_CAN_CREATE_FILE = "canCreateFile";
     public static final String PROP_CAN_CREATE_FOLDER = "canCreateFolder";

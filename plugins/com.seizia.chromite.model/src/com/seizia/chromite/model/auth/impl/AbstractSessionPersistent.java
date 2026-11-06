@@ -14,13 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.auth.impl;
+package com.seizia.chromite.model.auth.impl;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.auth.SMSessionPersistent;
-import org.jkiss.dbeaver.model.exec.DBCException;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.auth.SMSessionPersistent;
+import com.seizia.chromite.model.exec.DBCException;
 import org.jkiss.utils.function.ThrowableConsumer;
 import org.jkiss.utils.function.ThrowableFunction;
 

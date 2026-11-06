@@ -14,13 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.impl.jdbc.exec;
+package com.seizia.chromite.model.impl.jdbc.exec;
 
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.exec.DBCExecutionContext;
-import org.jkiss.dbeaver.model.exec.DBCSavepoint;
-import org.jkiss.dbeaver.model.impl.jdbc.JDBCExecutionContext;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.exec.DBCExecutionContext;
+import com.seizia.chromite.model.exec.DBCSavepoint;
+import com.seizia.chromite.model.impl.jdbc.JDBCExecutionContext;
 
 import java.sql.SQLException;
 import java.sql.Savepoint;

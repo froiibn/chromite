@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.editors.sql;
+package com.seizia.chromite.ui.editors.sql;
 
 import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.jface.action.Action;
@@ -39,19 +39,19 @@ import org.eclipse.ui.texteditor.IDocumentProvider;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.model.exec.DBCExecutionContext;
-import org.jkiss.dbeaver.model.exec.compile.DBCCompileLog;
-import org.jkiss.dbeaver.model.exec.compile.DBCSourceHost;
-import org.jkiss.dbeaver.model.preferences.DBPPropertySource;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.model.struct.DBSObject;
-import org.jkiss.dbeaver.ui.*;
-import org.jkiss.dbeaver.ui.controls.ObjectCompilerLogViewer;
-import org.jkiss.dbeaver.ui.controls.ProgressPageControl;
-import org.jkiss.dbeaver.ui.editors.DatabaseEditorUtils;
-import org.jkiss.dbeaver.ui.editors.IDatabaseEditorInput;
-import org.jkiss.dbeaver.ui.editors.IDatabasePostSaveProcessor;
-import org.jkiss.dbeaver.ui.editors.entity.EntityEditor;
+import com.seizia.chromite.model.exec.DBCExecutionContext;
+import com.seizia.chromite.model.exec.compile.DBCCompileLog;
+import com.seizia.chromite.model.exec.compile.DBCSourceHost;
+import com.seizia.chromite.model.preferences.DBPPropertySource;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.model.struct.DBSObject;
+import com.seizia.chromite.ui.*;
+import com.seizia.chromite.ui.controls.ObjectCompilerLogViewer;
+import com.seizia.chromite.ui.controls.ProgressPageControl;
+import com.seizia.chromite.ui.editors.DatabaseEditorUtils;
+import com.seizia.chromite.ui.editors.IDatabaseEditorInput;
+import com.seizia.chromite.ui.editors.IDatabasePostSaveProcessor;
+import com.seizia.chromite.ui.editors.entity.EntityEditor;
 
 import java.util.Map;
 
@@ -301,7 +301,7 @@ public abstract class SQLEditorNested<T extends DBSObject>
 
     public class ViewLogAction extends Action {
         ViewLogAction() {
-            super("View compile log", DBeaverIcons.getImageDescriptor(UIIcon.COMPILE_LOG)); //$NON-NLS-2$
+            super("View compile log", SwtIcons.getImageDescriptor(UIIcon.COMPILE_LOG)); //$NON-NLS-2$
         }
 
         @Override

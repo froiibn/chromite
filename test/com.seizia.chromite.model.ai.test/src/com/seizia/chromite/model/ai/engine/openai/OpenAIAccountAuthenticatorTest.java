@@ -15,13 +15,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.ai.engine.openai;
+package com.seizia.chromite.model.ai.engine.openai;
 
 import com.google.gson.JsonParser;
-import org.jkiss.dbeaver.model.ai.engine.openai.dto.OAIMessage;
-import org.jkiss.dbeaver.model.ai.engine.openai.dto.OAIMessageContent;
-import org.jkiss.dbeaver.model.ai.engine.openai.dto.OAIResponsesRequest;
-import org.jkiss.junit.DBeaverUnitTest;
+import com.seizia.chromite.model.ai.engine.openai.dto.OAIMessage;
+import com.seizia.chromite.model.ai.engine.openai.dto.OAIMessageContent;
+import com.seizia.chromite.model.ai.engine.openai.dto.OAIResponsesRequest;
+import com.seizia.chromite.junit.ChromiteUnitTest;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
@@ -43,7 +43,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * - 2026-11-06 dbeaver.com AI 모델 카탈로그 제거: 카탈로그로 계정 모델의 컨텍스트 크기를 채우던
  *   catalogFillsMissingAccountContextWithoutReplacingNativeLimit 테스트를 삭제했다.
  */
-class OpenAIAccountAuthenticatorTest extends DBeaverUnitTest {
+class OpenAIAccountAuthenticatorTest extends ChromiteUnitTest {
     @Test
     void fallsBackToAuthenticatorOwnedDevicePolling() throws Exception {
         AIAccountAuthenticator authenticator = Mockito.mock(AIAccountAuthenticator.class, Mockito.CALLS_REAL_METHODS);

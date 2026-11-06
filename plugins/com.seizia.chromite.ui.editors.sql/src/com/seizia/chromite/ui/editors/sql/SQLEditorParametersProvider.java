@@ -14,20 +14,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.editors.sql;
+package com.seizia.chromite.ui.editors.sql;
 
 import org.eclipse.jface.dialogs.IDialogConstants;
 import org.eclipse.ui.IWorkbenchPartSite;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.model.data.DBDDataReceiver;
-import org.jkiss.dbeaver.model.data.DBDDataReceiverInteractive;
-import org.jkiss.dbeaver.model.sql.SQLParametersProviderBase;
-import org.jkiss.dbeaver.model.sql.SQLQuery;
-import org.jkiss.dbeaver.model.sql.SQLQueryParameter;
-import org.jkiss.dbeaver.model.sql.SQLScriptContext;
-import org.jkiss.dbeaver.ui.UITask;
-import org.jkiss.dbeaver.ui.editors.sql.dialogs.SQLQueryParameterBindDialog;
+import com.seizia.chromite.model.data.DBDDataReceiver;
+import com.seizia.chromite.model.data.DBDDataReceiverInteractive;
+import com.seizia.chromite.model.sql.SQLParametersProviderBase;
+import com.seizia.chromite.model.sql.SQLQuery;
+import com.seizia.chromite.model.sql.SQLQueryParameter;
+import com.seizia.chromite.model.sql.SQLScriptContext;
+import com.seizia.chromite.ui.UITask;
+import com.seizia.chromite.ui.editors.sql.dialogs.SQLQueryParameterBindDialog;
 
 import java.util.List;
 import java.util.function.Supplier;

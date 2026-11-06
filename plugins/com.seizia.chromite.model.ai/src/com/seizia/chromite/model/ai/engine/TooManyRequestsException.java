@@ -14,9 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.ai.engine;
+package com.seizia.chromite.model.ai.engine;
 
-import org.jkiss.dbeaver.model.exec.DBCException;
+import com.seizia.chromite.model.exec.DBCException;
 
 public class TooManyRequestsException extends DBCException {
     public TooManyRequestsException(String message) {

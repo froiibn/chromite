@@ -15,11 +15,11 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.tools.project;
+package com.seizia.chromite.tools.project;
 
-import org.jkiss.dbeaver.model.app.DBPWorkspaceEclipse;
-import org.jkiss.dbeaver.model.connection.DBPDriver;
-import org.jkiss.dbeaver.model.rcp.RCPProject;
+import com.seizia.chromite.model.app.DBPWorkspaceEclipse;
+import com.seizia.chromite.model.connection.DBPDriver;
+import com.seizia.chromite.model.rcp.RCPProject;
 import org.jkiss.utils.xml.XMLBuilder;
 
 import java.io.File;

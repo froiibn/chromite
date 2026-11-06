@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.controls.lightgrid;
+package com.seizia.chromite.ui.controls.lightgrid;
 
 import org.eclipse.jface.resource.JFaceColors;
 import org.eclipse.swt.SWT;
@@ -24,15 +24,15 @@ import org.eclipse.swt.graphics.*;
 import org.eclipse.swt.widgets.*;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.DBPImage;
-import org.jkiss.dbeaver.ui.DBeaverIcons;
-import org.jkiss.dbeaver.ui.UIElementFontStyle;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.controls.CustomToolTipHandler;
-import org.jkiss.dbeaver.ui.dnd.LocalObjectTransfer;
-import org.jkiss.dbeaver.ui.editors.data.internal.DataEditorsMessages;
-import org.jkiss.dbeaver.utils.RuntimeUtils;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.DBPImage;
+import com.seizia.chromite.ui.SwtIcons;
+import com.seizia.chromite.ui.UIElementFontStyle;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.controls.CustomToolTipHandler;
+import com.seizia.chromite.ui.dnd.LocalObjectTransfer;
+import com.seizia.chromite.ui.editors.data.internal.DataEditorsMessages;
+import com.seizia.chromite.utils.RuntimeUtils;
 import org.jkiss.utils.ArrayUtils;
 import org.jkiss.utils.CommonUtils;
 import org.jkiss.utils.IntKeyMap;
@@ -4722,7 +4722,7 @@ public abstract class LightGrid extends Canvas {
             for (IGridStatusColumn gsc : statusColumns) {
                 DBPImage statusIcon = gsc.getStatusIcon();
                 if (statusIcon != null) {
-                    Image statusImage = DBeaverIcons.getImage(statusIcon);
+                    Image statusImage = SwtIcons.getImage(statusIcon);
                     Rectangle iconBounds = statusImage.getBounds();
                     xPos -= iconBounds.width;
                     gc.drawImage(statusImage, xPos, y + (height - iconBounds.height) / 2);

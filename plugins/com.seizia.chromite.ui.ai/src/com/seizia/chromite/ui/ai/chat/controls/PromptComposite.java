@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.ai.chat.controls;
+package com.seizia.chromite.ui.ai.chat.controls;
 
 import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.Status;
@@ -40,18 +40,18 @@ import org.eclipse.swt.widgets.Control;
 import org.eclipse.swt.widgets.Event;
 import org.eclipse.ui.IWorkbenchPartSite;
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.model.ai.AIChatConversation;
-import org.jkiss.dbeaver.model.ai.AIChatListener;
-import org.jkiss.dbeaver.model.ai.AIChatMessage;
-import org.jkiss.dbeaver.model.ai.AIImageAttachment;
-import org.jkiss.dbeaver.model.ai.AIMessageType;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.ui.*;
-import org.jkiss.dbeaver.ui.ai.chat.AIChatController;
-import org.jkiss.dbeaver.ui.ai.chat.internal.AIChatIcons;
-import org.jkiss.dbeaver.ui.ai.chat.internal.AIChatMessagesUI;
-import org.jkiss.dbeaver.ui.editors.TextEditorUtils;
+import com.seizia.chromite.model.ai.AIChatConversation;
+import com.seizia.chromite.model.ai.AIChatListener;
+import com.seizia.chromite.model.ai.AIChatMessage;
+import com.seizia.chromite.model.ai.AIImageAttachment;
+import com.seizia.chromite.model.ai.AIMessageType;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.ui.*;
+import com.seizia.chromite.ui.ai.chat.AIChatController;
+import com.seizia.chromite.ui.ai.chat.internal.AIChatIcons;
+import com.seizia.chromite.ui.ai.chat.internal.AIChatMessagesUI;
+import com.seizia.chromite.ui.editors.TextEditorUtils;
 import org.jkiss.utils.CommonUtils;
 
 import java.nio.file.Path;
@@ -110,7 +110,7 @@ public class PromptComposite extends Composite {
 
                     if (!busy) {
                         sendButton.setToolTipText(AIChatMessagesUI.ai_chat_send_button_tip);
-                        sendButton.setImage(DBeaverIcons.getImage(AIChatIcons.SEND));
+                        sendButton.setImage(SwtIcons.getImage(AIChatIcons.SEND));
                         setFocusOnPrompt();
                     } else {
                         new AbstractUIJob("Enable AI cancellation") {
@@ -119,7 +119,7 @@ public class PromptComposite extends Composite {
                             protected IStatus runInUIThread(@NotNull DBRProgressMonitor monitor) {
                                 if (!isDisposed() && chat.getActiveConversation().isActive()) {
                                     sendButton.setImage(null);
-                                    sendButton.setImage(DBeaverIcons.getImage(UIIcon.CLOSE));
+                                    sendButton.setImage(SwtIcons.getImage(UIIcon.CLOSE));
                                     sendButton.setToolTipText(AIChatMessagesUI.ai_chat_cancel_button_tip);
                                     sendButton.setEnabled(true);
                                 }

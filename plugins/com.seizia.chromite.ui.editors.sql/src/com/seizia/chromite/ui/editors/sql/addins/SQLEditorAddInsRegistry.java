@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.editors.sql.addins;
+package com.seizia.chromite.ui.editors.sql.addins;
 
 import org.eclipse.core.runtime.IConfigurationElement;
 import org.eclipse.core.runtime.IExtensionRegistry;
@@ -29,7 +29,7 @@ import java.util.List;
  */
 public class SQLEditorAddInsRegistry {
     
-    public static final String EXTENSION_ID = "org.jkiss.dbeaver.sql.editorAddIns"; //$NON-NLS-1$
+    public static final String EXTENSION_ID = "com.seizia.chromite.sql.editorAddIns"; //$NON-NLS-1$
 
     private static final String TAG_VIEW = "addIn"; //$NON-NLS-1$
 

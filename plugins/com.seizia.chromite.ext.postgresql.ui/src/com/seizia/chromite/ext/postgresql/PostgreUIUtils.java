@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.postgresql;
+package com.seizia.chromite.ext.postgresql;
 
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.layout.GridData;
@@ -22,11 +22,11 @@ import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Control;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.ext.postgresql.model.PostgreDataSource;
-import org.jkiss.dbeaver.ext.postgresql.model.PostgreObject;
-import org.jkiss.dbeaver.ext.postgresql.model.impls.PostgreServerPostgreSQL;
-import org.jkiss.dbeaver.tasks.ui.nativetool.AbstractNativeToolWizard;
-import org.jkiss.dbeaver.ui.UIUtils;
+import com.seizia.chromite.ext.postgresql.model.PostgreDataSource;
+import com.seizia.chromite.ext.postgresql.model.PostgreObject;
+import com.seizia.chromite.ext.postgresql.model.impls.PostgreServerPostgreSQL;
+import com.seizia.chromite.tasks.ui.nativetool.AbstractNativeToolWizard;
+import com.seizia.chromite.ui.UIUtils;
 
 public class PostgreUIUtils {
 

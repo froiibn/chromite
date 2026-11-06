@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.controls.resultset;
+package com.seizia.chromite.ui.controls.resultset;
 
 import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.Status;
@@ -35,13 +35,13 @@ import org.eclipse.ui.IWorkbenchPart;
 import org.eclipse.ui.internal.findandreplace.SearchOptions;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.ui.*;
-import org.jkiss.dbeaver.ui.controls.findandreplace.AccessibleToolItemBuilder;
-import org.jkiss.dbeaver.ui.controls.findandreplace.FindReplaceOverlay;
-import org.jkiss.dbeaver.ui.controls.findandreplace.SearchQuickFilterInfo;
-import org.jkiss.dbeaver.ui.controls.resultset.internal.ResultSetMessages;
-import org.jkiss.dbeaver.ui.editors.TextEditorUtils;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.ui.*;
+import com.seizia.chromite.ui.controls.findandreplace.AccessibleToolItemBuilder;
+import com.seizia.chromite.ui.controls.findandreplace.FindReplaceOverlay;
+import com.seizia.chromite.ui.controls.findandreplace.SearchQuickFilterInfo;
+import com.seizia.chromite.ui.controls.resultset.internal.ResultSetMessages;
+import com.seizia.chromite.ui.editors.TextEditorUtils;
 import org.jkiss.utils.CommonUtils;
 
 public class ResultsetFindReplaceOverlay extends FindReplaceOverlay {
@@ -107,7 +107,7 @@ public class ResultsetFindReplaceOverlay extends FindReplaceOverlay {
         @Override
         protected void configureSelectAllButton(@NotNull AccessibleToolItemBuilder buttonBuilder) {
             buttonBuilder.withStyleBits(SWT.CHECK)
-                .withImage(DBeaverIcons.getImage(UIIcon.FIND_REPLACE_FIND_ALL_FILTER))
+                .withImage(SwtIcons.getImage(UIIcon.FIND_REPLACE_FIND_ALL_FILTER))
                 .withToolTipText(ResultSetMessages.find_and_replace_find_all_tooltip)
                 .withOperation(this::performSelectAll).withShortcuts(KeyboardShortcuts.SEARCH_ALL);
 

@@ -14,15 +14,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.h2.backup;
+package com.seizia.chromite.ext.h2.backup;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.connection.InternalDatabaseConfig;
-import org.jkiss.dbeaver.model.sql.backup.JDBCDatabaseBackupHandler;
-import org.jkiss.dbeaver.model.sql.backup.SQLBackupConstants;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.connection.InternalDatabaseConfig;
+import com.seizia.chromite.model.sql.backup.JDBCDatabaseBackupHandler;
+import com.seizia.chromite.model.sql.backup.SQLBackupConstants;
+import com.seizia.chromite.runtime.DBWorkbench;
 import org.jkiss.utils.IOUtils;
 
 import java.io.IOException;

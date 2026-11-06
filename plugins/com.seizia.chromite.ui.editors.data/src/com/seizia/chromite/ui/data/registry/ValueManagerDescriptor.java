@@ -14,18 +14,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.data.registry;
+package com.seizia.chromite.ui.data.registry;
 
 import org.eclipse.core.runtime.IConfigurationElement;
-import org.jkiss.dbeaver.registry.data.hints.AbstractValueBindingDescriptor;
-import org.jkiss.dbeaver.ui.data.IValueManager;
+import com.seizia.chromite.registry.data.hints.AbstractValueBindingDescriptor;
+import com.seizia.chromite.ui.data.IValueManager;
 
 /**
  * ValueManagerDescriptor
  */
 public class ValueManagerDescriptor extends AbstractValueBindingDescriptor<IValueManager, Object> {
 
-    public static final String EXTENSION_ID = "org.jkiss.dbeaver.dataManager"; //$NON-NLS-1$
+    public static final String EXTENSION_ID = "com.seizia.chromite.dataManager"; //$NON-NLS-1$
     public static final String TAG_MANAGER = "manager"; //$NON-NLS-1$
 
     private IValueManager instance;

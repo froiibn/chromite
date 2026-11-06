@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.controls.resultset.view;
+package com.seizia.chromite.ui.controls.resultset.view;
 
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.IStatus;
@@ -38,17 +38,17 @@ import org.eclipse.ui.statushandlers.StatusManager;
 import org.eclipse.ui.views.IViewDescriptor;
 import org.jkiss.code.NotNull;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.DBIcon;
-import org.jkiss.dbeaver.ui.DBeaverIcons;
-import org.jkiss.dbeaver.ui.IActionConstants;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.controls.resultset.IResultSetContainer;
-import org.jkiss.dbeaver.ui.controls.resultset.IResultSetErrorAction;
-import org.jkiss.dbeaver.ui.controls.resultset.ResultSetErrorActionDescriptor;
-import org.jkiss.dbeaver.ui.controls.resultset.ResultSetErrorActionRegistry;
-import org.jkiss.dbeaver.ui.dialogs.EditTextDialog;
-import org.jkiss.dbeaver.utils.GeneralUtils;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.DBIcon;
+import com.seizia.chromite.ui.SwtIcons;
+import com.seizia.chromite.ui.IActionConstants;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.controls.resultset.IResultSetContainer;
+import com.seizia.chromite.ui.controls.resultset.IResultSetErrorAction;
+import com.seizia.chromite.ui.controls.resultset.ResultSetErrorActionDescriptor;
+import com.seizia.chromite.ui.controls.resultset.ResultSetErrorActionRegistry;
+import com.seizia.chromite.ui.dialogs.EditTextDialog;
+import com.seizia.chromite.utils.GeneralUtils;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
@@ -127,9 +127,9 @@ class ErrorDetailsPart {
      */
     private Image getImage() {
         return switch (reason.getSeverity()) {
-            case IStatus.ERROR -> DBeaverIcons.getImage(DBIcon.STATUS_ERROR);
-            case IStatus.WARNING -> DBeaverIcons.getImage(DBIcon.STATUS_WARNING);
-            default -> DBeaverIcons.getImage(DBIcon.STATUS_INFO);
+            case IStatus.ERROR -> SwtIcons.getImage(DBIcon.STATUS_ERROR);
+            case IStatus.WARNING -> SwtIcons.getImage(DBIcon.STATUS_WARNING);
+            default -> SwtIcons.getImage(DBIcon.STATUS_INFO);
         };
     }
 

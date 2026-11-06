@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.navigator.itemlist;
+package com.seizia.chromite.ui.navigator.itemlist;
 
 import org.eclipse.jface.action.Action;
 import org.eclipse.jface.action.IAction;
@@ -25,15 +25,15 @@ import org.eclipse.ui.IWorkbenchSite;
 import org.eclipse.ui.internal.WorkbenchMessages;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.model.DBPObject;
-import org.jkiss.dbeaver.model.struct.DBSObject;
-import org.jkiss.dbeaver.ui.ActionUtils;
-import org.jkiss.dbeaver.ui.ClipboardData;
-import org.jkiss.dbeaver.ui.CopyMode;
-import org.jkiss.dbeaver.ui.IActionConstants;
-import org.jkiss.dbeaver.ui.controls.ObjectViewerRenderer;
-import org.jkiss.dbeaver.ui.navigator.NavigatorUtils;
-import org.jkiss.dbeaver.ui.navigator.actions.NavigatorHandlerObjectOpen;
+import com.seizia.chromite.model.DBPObject;
+import com.seizia.chromite.model.struct.DBSObject;
+import com.seizia.chromite.ui.ActionUtils;
+import com.seizia.chromite.ui.ClipboardData;
+import com.seizia.chromite.ui.CopyMode;
+import com.seizia.chromite.ui.IActionConstants;
+import com.seizia.chromite.ui.controls.ObjectViewerRenderer;
+import com.seizia.chromite.ui.navigator.NavigatorUtils;
+import com.seizia.chromite.ui.navigator.actions.NavigatorHandlerObjectOpen;
 
 /**
  * DatabaseObjectListControl

@@ -16,15 +16,15 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.debug.ui.details;
+package com.seizia.chromite.debug.ui.details;
 
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.debug.core.model.IBreakpoint;
 import org.eclipse.debug.ui.IDetailPane;
 import org.eclipse.debug.ui.IDetailPaneFactory;
 import org.eclipse.jface.viewers.IStructuredSelection;
-import org.jkiss.dbeaver.debug.DBGConstants;
-import org.jkiss.dbeaver.debug.ui.internal.DebugUIMessages;
+import com.seizia.chromite.debug.DBGConstants;
+import com.seizia.chromite.debug.ui.internal.DebugUIMessages;
 
 import java.util.HashSet;
 import java.util.Map;

@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.dialogs.driver;
+package com.seizia.chromite.ui.dialogs.driver;
 
 import org.eclipse.jface.viewers.*;
 import org.eclipse.osgi.util.NLS;
@@ -25,21 +25,21 @@ import org.eclipse.swt.widgets.Control;
 import org.eclipse.swt.widgets.Widget;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.model.DBIcon;
-import org.jkiss.dbeaver.model.DBPDataSourceContainer;
-import org.jkiss.dbeaver.model.connection.DBPDriver;
-import org.jkiss.dbeaver.model.connection.DBPDriverWithLicense;
-import org.jkiss.dbeaver.registry.DriverCategoryDescriptor;
-import org.jkiss.dbeaver.registry.DriverManagerRegistry;
-import org.jkiss.dbeaver.registry.driver.DriverUtils;
-import org.jkiss.dbeaver.ui.DBeaverIcons;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.controls.ListContentProvider;
-import org.jkiss.dbeaver.ui.controls.finder.viewer.AdvancedListViewer;
-import org.jkiss.dbeaver.ui.controls.folders.ITabbedFolder;
-import org.jkiss.dbeaver.ui.controls.folders.TabbedFolderComposite;
-import org.jkiss.dbeaver.ui.controls.folders.TabbedFolderInfo;
-import org.jkiss.dbeaver.ui.internal.UIConnectionMessages;
+import com.seizia.chromite.model.DBIcon;
+import com.seizia.chromite.model.DBPDataSourceContainer;
+import com.seizia.chromite.model.connection.DBPDriver;
+import com.seizia.chromite.model.connection.DBPDriverWithLicense;
+import com.seizia.chromite.registry.DriverCategoryDescriptor;
+import com.seizia.chromite.registry.DriverManagerRegistry;
+import com.seizia.chromite.registry.driver.DriverUtils;
+import com.seizia.chromite.ui.SwtIcons;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.controls.ListContentProvider;
+import com.seizia.chromite.ui.controls.finder.viewer.AdvancedListViewer;
+import com.seizia.chromite.ui.controls.folders.ITabbedFolder;
+import com.seizia.chromite.ui.controls.folders.TabbedFolderComposite;
+import com.seizia.chromite.ui.controls.folders.TabbedFolderInfo;
+import com.seizia.chromite.ui.internal.UIConnectionMessages;
 import org.jkiss.utils.CommonUtils;
 
 import java.util.ArrayList;
@@ -371,7 +371,7 @@ public class DriverTabbedViewer extends StructuredViewer {
             public Image getImage(@NotNull Object element) {
                 DBPDriver driver = (DBPDriver) element;
                 DriverIconLoader.load(driver, viewer);
-                return DBeaverIcons.getImage(driver.getIconBig());
+                return SwtIcons.getImage(driver.getIconBig());
             }
 
             @Override

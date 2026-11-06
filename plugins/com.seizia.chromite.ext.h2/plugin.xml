@@ -3,11 +3,11 @@
 
 <plugin>
 
-    <extension point="org.jkiss.dbeaver.generic.meta">
-        <meta id="h2" class="org.jkiss.dbeaver.ext.h2.model.H2MetaModel" driverClass="org.h2.Driver" dialect="h2"/>
+    <extension point="com.seizia.chromite.generic.meta">
+        <meta id="h2" class="com.seizia.chromite.ext.h2.model.H2MetaModel" driverClass="org.h2.Driver" dialect="h2"/>
     </extension>
 
-    <extension point="org.jkiss.dbeaver.dataSourceProvider">
+    <extension point="com.seizia.chromite.dataSourceProvider">
         <dataSourceType
             id="h2gis"
             label="H2GIS"
@@ -20,23 +20,23 @@
             label="H2"
             description="H2 database"
             dataSourceInformation="Open-source, lightweight RDBMS written in Java"
-            icon="platform:/plugin/org.jkiss.dbeaver.ext.generic/icons/h2_icon.png"
-            iconBig="platform:/plugin/org.jkiss.dbeaver.ext.generic/icons/h2_icon_big.png"/>
+            icon="platform:/plugin/com.seizia.chromite.ext.generic/icons/h2_icon.png"
+            iconBig="platform:/plugin/com.seizia.chromite.ext.generic/icons/h2_icon_big.png"/>
         <datasource
-                class="org.jkiss.dbeaver.ext.h2.H2DataSourceProvider"
+                class="com.seizia.chromite.ext.h2.H2DataSourceProvider"
                 description="H2"
                 id="h2"
                 dataSourceType="h2"
                 parent="generic"
                 label="H2"
-                icon="platform:/plugin/org.jkiss.dbeaver.ext.generic/icons/h2_icon.png"
+                icon="platform:/plugin/com.seizia.chromite.ext.generic/icons/h2_icon.png"
                 dialect="h2">
             <treeInjection path="generic/catalog/schema/table"
-                           changeFolderType="org.jkiss.dbeaver.ext.h2.model.H2Table"/>
+                           changeFolderType="com.seizia.chromite.ext.h2.model.H2Table"/>
             <treeInjection path="generic/catalog/schema/table/uniqueKey"
-                           changeFolderType="org.jkiss.dbeaver.ext.h2.model.H2Constraint"/>
+                           changeFolderType="com.seizia.chromite.ext.h2.model.H2Constraint"/>
             <treeInjection path="generic/catalog/schema/sequence"
-                           changeFolderType="org.jkiss.dbeaver.ext.h2.model.H2Sequence"/>
+                           changeFolderType="com.seizia.chromite.ext.h2.model.H2Sequence"/>
 
             <drivers managable="true">
 
@@ -145,7 +145,7 @@
 
         <!-- H2GIS driver -->
         <datasource
-                class="org.jkiss.dbeaver.ext.h2gis.H2GISDataSourceProvider"
+                class="com.seizia.chromite.ext.h2gis.H2GISDataSourceProvider"
                 description="H2GIS datasource"
                 id="h2gis"
                 dataSourceType="h2gis"
@@ -202,26 +202,26 @@
         </datasource>
     </extension>
 
-    <extension point="org.jkiss.dbeaver.sqlDialect">
-        <dialect id="h2" parent="generic" class="org.jkiss.dbeaver.ext.h2.model.H2SQLDialect" label="H2" description="H2 SQL dialect." icon="platform:/plugin/org.jkiss.dbeaver.ext.generic/icons/h2_icon.png">
+    <extension point="com.seizia.chromite.sqlDialect">
+        <dialect id="h2" parent="generic" class="com.seizia.chromite.ext.h2.model.H2SQLDialect" label="H2" description="H2 SQL dialect." icon="platform:/plugin/com.seizia.chromite.ext.generic/icons/h2_icon.png">
         </dialect>
     </extension>
 
-    <extension point="org.jkiss.dbeaver.objectManager">
-        <manager class="org.jkiss.dbeaver.ext.h2.edit.H2RoutineAliasManager" objectType="org.jkiss.dbeaver.ext.h2.model.H2RoutineAlias"/>
-        <manager class="org.jkiss.dbeaver.ext.h2.edit.H2TableManager" objectType="org.jkiss.dbeaver.ext.h2.model.H2Table"/>
-        <manager class="org.jkiss.dbeaver.ext.h2.edit.H2ConstraintManager" objectType="org.jkiss.dbeaver.ext.h2.model.H2Constraint"/>
+    <extension point="com.seizia.chromite.objectManager">
+        <manager class="com.seizia.chromite.ext.h2.edit.H2RoutineAliasManager" objectType="com.seizia.chromite.ext.h2.model.H2RoutineAlias"/>
+        <manager class="com.seizia.chromite.ext.h2.edit.H2TableManager" objectType="com.seizia.chromite.ext.h2.model.H2Table"/>
+        <manager class="com.seizia.chromite.ext.h2.edit.H2ConstraintManager" objectType="com.seizia.chromite.ext.h2.model.H2Constraint"/>
     </extension>
 
-    <extension point="org.jkiss.dbeaver.sqlBackup">
-        <backup id="backupH2" class="org.jkiss.dbeaver.ext.h2.backup.JDBCDatabaseH2BackupHandler" dialect="h2"
+    <extension point="com.seizia.chromite.sqlBackup">
+        <backup id="backupH2" class="com.seizia.chromite.ext.h2.backup.JDBCDatabaseH2BackupHandler" dialect="h2"
                 label="backup" description="Backup database">
         </backup>
     </extension>
 
-    <extension point="org.jkiss.dbeaver.dataTypeProvider">
+    <extension point="com.seizia.chromite.dataTypeProvider">
         <provider
-                class="org.jkiss.dbeaver.ext.h2gis.data.H2GISValueHandlerProvider"
+                class="com.seizia.chromite.ext.h2gis.data.H2GISValueHandlerProvider"
                 description="H2GIS data types provider"
                 id="H2GISValueHandlerProvider"
                 parent="GenericValueHandlerProvider"

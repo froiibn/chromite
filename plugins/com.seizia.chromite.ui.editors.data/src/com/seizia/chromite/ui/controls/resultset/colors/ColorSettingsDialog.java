@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.controls.resultset.colors;
+package com.seizia.chromite.ui.controls.resultset.colors;
 
 import org.eclipse.jface.dialogs.ControlEnableState;
 import org.eclipse.jface.dialogs.IDialogConstants;
@@ -35,23 +35,23 @@ import org.eclipse.ui.internal.WorkbenchMessages;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.DBValueFormatting;
-import org.jkiss.dbeaver.model.data.DBDAttributeBinding;
-import org.jkiss.dbeaver.model.data.DBDDisplayFormat;
-import org.jkiss.dbeaver.model.exec.DBCLogicalOperator;
-import org.jkiss.dbeaver.model.virtual.DBVColorOverride;
-import org.jkiss.dbeaver.model.virtual.DBVEntity;
-import org.jkiss.dbeaver.ui.DBeaverIcons;
-import org.jkiss.dbeaver.ui.UIIcon;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.controls.resultset.*;
-import org.jkiss.dbeaver.ui.controls.resultset.internal.ResultSetMessages;
-import org.jkiss.dbeaver.ui.data.IValueEditor;
-import org.jkiss.dbeaver.ui.data.IValueManager;
-import org.jkiss.dbeaver.ui.data.managers.StringValueManager;
-import org.jkiss.dbeaver.ui.data.registry.ValueManagerRegistry;
-import org.jkiss.dbeaver.ui.dialogs.BaseDialog;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.DBValueFormatting;
+import com.seizia.chromite.model.data.DBDAttributeBinding;
+import com.seizia.chromite.model.data.DBDDisplayFormat;
+import com.seizia.chromite.model.exec.DBCLogicalOperator;
+import com.seizia.chromite.model.virtual.DBVColorOverride;
+import com.seizia.chromite.model.virtual.DBVEntity;
+import com.seizia.chromite.ui.SwtIcons;
+import com.seizia.chromite.ui.UIIcon;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.controls.resultset.*;
+import com.seizia.chromite.ui.controls.resultset.internal.ResultSetMessages;
+import com.seizia.chromite.ui.data.IValueEditor;
+import com.seizia.chromite.ui.data.IValueManager;
+import com.seizia.chromite.ui.data.managers.StringValueManager;
+import com.seizia.chromite.ui.data.registry.ValueManagerRegistry;
+import com.seizia.chromite.ui.dialogs.BaseDialog;
 import org.jkiss.utils.ArrayUtils;
 import org.jkiss.utils.CommonUtils;
 
@@ -177,7 +177,7 @@ public class ColorSettingsDialog extends BaseDialog {
             TableItem attrItem = new TableItem(attributeTable, SWT.NONE);
             attrItem.setData(attr);
             attrItem.setText(0, attr.getName());
-            attrItem.setImage(0, DBeaverIcons.getImage(DBValueFormatting.getObjectImage(attr, true)));
+            attrItem.setImage(0, SwtIcons.getImage(DBValueFormatting.getObjectImage(attr, true)));
 
             if (this.attribute == attr) {
                 attributeTable.setSelection(attrItem);

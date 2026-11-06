@@ -14,18 +14,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.dashboard.model;
+package com.seizia.chromite.ui.dashboard.model;
 
 import org.apache.commons.jexl3.JexlExpression;
 import org.eclipse.jface.action.IMenuManager;
 import org.eclipse.swt.widgets.Control;
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.model.DBPDataSourceContainer;
-import org.jkiss.dbeaver.model.app.DBPProject;
-import org.jkiss.dbeaver.model.dashboard.DBDashboardMapQuery;
-import org.jkiss.dbeaver.model.dashboard.DBDashboardQuery;
-import org.jkiss.dbeaver.model.dashboard.data.DashboardDataset;
-import org.jkiss.dbeaver.model.dashboard.registry.DashboardItemConfiguration;
+import com.seizia.chromite.model.DBPDataSourceContainer;
+import com.seizia.chromite.model.app.DBPProject;
+import com.seizia.chromite.model.dashboard.DBDashboardMapQuery;
+import com.seizia.chromite.model.dashboard.DBDashboardQuery;
+import com.seizia.chromite.model.dashboard.data.DashboardDataset;
+import com.seizia.chromite.model.dashboard.registry.DashboardItemConfiguration;
 
 import java.util.Date;
 import java.util.List;

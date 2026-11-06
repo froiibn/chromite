@@ -14,12 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.gis.internal;
+package com.seizia.chromite.ui.gis.internal;
 
 import org.eclipse.osgi.util.NLS;
 
 public class GISMessages extends NLS {
-	private static final String BUNDLE_NAME = "org.jkiss.dbeaver.ui.gis.internal.GISResources"; //$NON-NLS-1$
+	private static final String BUNDLE_NAME = "com.seizia.chromite.ui.gis.internal.GISResources"; //$NON-NLS-1$
 
 	public static String panel_leaflet_viewer_tool_bar_action_text_open;
 	public static String panel_leaflet_viewer_tool_bar_action_text_copy_as;

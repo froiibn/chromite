@@ -14,13 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.websocket.event.permissions;
+package com.seizia.chromite.model.websocket.event.permissions;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.model.security.SMSubjectType;
-import org.jkiss.dbeaver.model.websocket.WSConstants;
-import org.jkiss.dbeaver.model.websocket.event.WSAbstractEvent;
+import com.seizia.chromite.model.security.SMSubjectType;
+import com.seizia.chromite.model.websocket.WSConstants;
+import com.seizia.chromite.model.websocket.event.WSAbstractEvent;
 
 public class WSSubjectPermissionEvent extends WSAbstractEvent {
 

@@ -14,21 +14,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.actions.exec;
+package com.seizia.chromite.ui.actions.exec;
 
 import org.eclipse.core.runtime.IConfigurationElement;
 import org.eclipse.core.runtime.IExtensionRegistry;
 import org.eclipse.core.runtime.Platform;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.model.DBPDataSourceContainer;
-import org.jkiss.dbeaver.model.connection.DBPDataSourceProviderDescriptor;
+import com.seizia.chromite.model.DBPDataSourceContainer;
+import com.seizia.chromite.model.connection.DBPDataSourceProviderDescriptor;
 
 import java.util.ArrayList;
 import java.util.List;
 
 public class SQLNativeExecutorRegistry {
-    public static final String EXTENSION_ID = "org.jkiss.dbeaver.sql.executors"; //NON-NLS-1
+    public static final String EXTENSION_ID = "com.seizia.chromite.sql.executors"; //NON-NLS-1
 
     private static final String TAG_EXECUTOR = "executor"; //$NON-NLS-1$
 

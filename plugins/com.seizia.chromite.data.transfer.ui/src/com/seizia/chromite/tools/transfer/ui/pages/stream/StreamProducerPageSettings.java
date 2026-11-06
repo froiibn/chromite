@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.tools.transfer.ui.pages.stream;
+package com.seizia.chromite.tools.transfer.ui.pages.stream;
 
 import org.eclipse.jface.action.Action;
 import org.eclipse.jface.dialogs.IMessageProvider;
@@ -27,36 +27,36 @@ import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.*;
 import org.jkiss.code.NotNull;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.app.DBPProject;
-import org.jkiss.dbeaver.model.fs.DBFUtils;
-import org.jkiss.dbeaver.model.navigator.fs.DBNPathBase;
-import org.jkiss.dbeaver.model.preferences.DBPPropertyDescriptor;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.model.runtime.DBRRunnableWithProgress;
-import org.jkiss.dbeaver.model.runtime.VoidProgressMonitor;
-import org.jkiss.dbeaver.model.struct.DBSDataManipulator;
-import org.jkiss.dbeaver.model.struct.DBSObject;
-import org.jkiss.dbeaver.model.struct.DBSObjectContainer;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.runtime.properties.PropertySourceCustom;
-import org.jkiss.dbeaver.tools.transfer.*;
-import org.jkiss.dbeaver.tools.transfer.database.DatabaseConsumerSettings;
-import org.jkiss.dbeaver.tools.transfer.database.DatabaseMappingContainer;
-import org.jkiss.dbeaver.tools.transfer.database.DatabaseTransferConsumer;
-import org.jkiss.dbeaver.tools.transfer.internal.DTMessages;
-import org.jkiss.dbeaver.tools.transfer.registry.DataTransferProcessorDescriptor;
-import org.jkiss.dbeaver.tools.transfer.stream.StreamEntityMapping;
-import org.jkiss.dbeaver.tools.transfer.stream.StreamProducerSettings;
-import org.jkiss.dbeaver.tools.transfer.stream.StreamTransferProducer;
-import org.jkiss.dbeaver.tools.transfer.ui.internal.DTUIMessages;
-import org.jkiss.dbeaver.tools.transfer.ui.pages.DataTransferPageNodeSettings;
-import org.jkiss.dbeaver.ui.*;
-import org.jkiss.dbeaver.ui.controls.CustomTableEditor;
-import org.jkiss.dbeaver.ui.dialogs.DialogUtils;
-import org.jkiss.dbeaver.ui.internal.UIMessages;
-import org.jkiss.dbeaver.ui.properties.PropertyTreeViewer;
-import org.jkiss.dbeaver.utils.HelpUtils;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.app.DBPProject;
+import com.seizia.chromite.model.fs.DBFUtils;
+import com.seizia.chromite.model.navigator.fs.DBNPathBase;
+import com.seizia.chromite.model.preferences.DBPPropertyDescriptor;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.model.runtime.DBRRunnableWithProgress;
+import com.seizia.chromite.model.runtime.VoidProgressMonitor;
+import com.seizia.chromite.model.struct.DBSDataManipulator;
+import com.seizia.chromite.model.struct.DBSObject;
+import com.seizia.chromite.model.struct.DBSObjectContainer;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.runtime.properties.PropertySourceCustom;
+import com.seizia.chromite.tools.transfer.*;
+import com.seizia.chromite.tools.transfer.database.DatabaseConsumerSettings;
+import com.seizia.chromite.tools.transfer.database.DatabaseMappingContainer;
+import com.seizia.chromite.tools.transfer.database.DatabaseTransferConsumer;
+import com.seizia.chromite.tools.transfer.internal.DTMessages;
+import com.seizia.chromite.tools.transfer.registry.DataTransferProcessorDescriptor;
+import com.seizia.chromite.tools.transfer.stream.StreamEntityMapping;
+import com.seizia.chromite.tools.transfer.stream.StreamProducerSettings;
+import com.seizia.chromite.tools.transfer.stream.StreamTransferProducer;
+import com.seizia.chromite.tools.transfer.ui.internal.DTUIMessages;
+import com.seizia.chromite.tools.transfer.ui.pages.DataTransferPageNodeSettings;
+import com.seizia.chromite.ui.*;
+import com.seizia.chromite.ui.controls.CustomTableEditor;
+import com.seizia.chromite.ui.dialogs.DialogUtils;
+import com.seizia.chromite.ui.internal.UIMessages;
+import com.seizia.chromite.ui.properties.PropertyTreeViewer;
+import com.seizia.chromite.utils.HelpUtils;
 import org.jkiss.utils.CommonUtils;
 
 import java.lang.reflect.InvocationTargetException;
@@ -384,7 +384,7 @@ public class StreamProducerPageSettings extends DataTransferPageNodeSettings {
             item.setImage(0, null);
             item.setText(0, noneItemSelectedText);
         } else {
-            item.setImage(0, DBeaverIcons.getImage(getProducerProcessor().getIcon()));
+            item.setImage(0, SwtIcons.getImage(getProducerProcessor().getIcon()));
             if (producer instanceof StreamTransferProducer stp) {
                 Path inputFile = stp.getInputFile();
                 item.setText(0, DBFUtils.convertPathToString(inputFile));
@@ -398,7 +398,7 @@ public class StreamProducerPageSettings extends DataTransferPageNodeSettings {
             item.setImage(1, null);
             item.setText(1, noneItemSelectedText);
         } else {
-            item.setImage(1, DBeaverIcons.getImage(getWizard().getSettings().getConsumer().getIcon()));
+            item.setImage(1, SwtIcons.getImage(getWizard().getSettings().getConsumer().getIcon()));
             item.setText(1, String.valueOf(consumer.getObjectName()));
         }
     }

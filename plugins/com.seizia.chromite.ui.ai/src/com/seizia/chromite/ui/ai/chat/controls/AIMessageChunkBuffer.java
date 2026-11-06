@@ -14,11 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.ai.chat.controls;
+package com.seizia.chromite.ui.ai.chat.controls;
 
 import org.eclipse.swt.widgets.Display;
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.model.ai.AIChatMessage;
+import com.seizia.chromite.model.ai.AIChatMessage;
 
 import java.util.function.BiConsumer;
 import java.util.function.BooleanSupplier;

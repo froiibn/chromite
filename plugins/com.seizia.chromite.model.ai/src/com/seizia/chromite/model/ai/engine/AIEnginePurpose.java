@@ -14,11 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.ai.engine;
+package com.seizia.chromite.model.ai.engine;
 
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.model.DBPNamedObject;
-import org.jkiss.dbeaver.model.DBPObjectWithDescription;
+import com.seizia.chromite.model.DBPNamedObject;
+import com.seizia.chromite.model.DBPObjectWithDescription;
 
 /**
  * Purpose like: generate SQL, code completion, transcript, embedding

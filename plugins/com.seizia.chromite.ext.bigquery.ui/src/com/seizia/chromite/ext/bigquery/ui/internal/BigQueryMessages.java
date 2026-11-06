@@ -14,13 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.bigquery.ui.internal;
+package com.seizia.chromite.ext.bigquery.ui.internal;
 
 import org.eclipse.osgi.util.NLS;
 
 public class BigQueryMessages extends NLS {
 
-	private static final String BUNDLE_NAME = "org.jkiss.dbeaver.ext.bigquery.ui.internal.messages"; //$NON-NLS-1$
+	private static final String BUNDLE_NAME = "com.seizia.chromite.ext.bigquery.ui.internal.messages"; //$NON-NLS-1$
 
 	public static String label_additional_project;
 	public static String label_additional_project_tip;

@@ -18,7 +18,7 @@
 /*
  * Created on Jul 13, 2004
  */
-package org.jkiss.dbeaver.ui.editors.erd.figures;
+package com.seizia.chromite.ui.editors.erd.figures;
 
 import org.eclipse.draw2d.CompoundBorder;
 import org.eclipse.draw2d.LineBorder;
@@ -28,9 +28,9 @@ import org.eclipse.draw2d.text.FlowPage;
 import org.eclipse.draw2d.text.TextFlow;
 import org.eclipse.swt.graphics.Color;
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.model.erd.ERDNote;
-import org.jkiss.dbeaver.ui.editors.erd.ERDUIConstants;
-import org.jkiss.dbeaver.ui.editors.erd.editor.ERDThemeSettings;
+import com.seizia.chromite.model.erd.ERDNote;
+import com.seizia.chromite.ui.editors.erd.ERDUIConstants;
+import com.seizia.chromite.ui.editors.erd.editor.ERDThemeSettings;
 
 /**
  * Figure used to represent a note

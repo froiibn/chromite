@@ -14,16 +14,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.mssql.model;
+package com.seizia.chromite.ext.mssql.model;
 
-import org.jkiss.junit.DBeaverUnitTest;
+import com.seizia.chromite.junit.ChromiteUnitTest;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
 import java.util.List;
 
-public class SQLServerIndexColumnOrderTest extends DBeaverUnitTest {
+public class SQLServerIndexColumnOrderTest extends ChromiteUnitTest {
 
     @Test
     public void keyColumnsPrecedeIncludedColumnsInOrdinalOrder() {

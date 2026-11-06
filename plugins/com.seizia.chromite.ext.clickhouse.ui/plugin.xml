@@ -3,15 +3,15 @@
 
 <plugin>
 
-    <extension point="org.jkiss.dbeaver.dataManager">
-        <manager class="org.jkiss.dbeaver.ext.clickhouse.ui.ClickhouseEnumValueManager" id="org.jkiss.dbeaver.ext.clickhouse.ui.ClickhouseEnumValueManager">
+    <extension point="com.seizia.chromite.dataManager">
+        <manager class="com.seizia.chromite.ext.clickhouse.ui.ClickhouseEnumValueManager" id="com.seizia.chromite.ext.clickhouse.ui.ClickhouseEnumValueManager">
             <supports dataSource="clickhouse" typeName="ENUM8*"/>
             <supports dataSource="clickhouse" typeName="ENUM16*"/>
         </manager>
     </extension>
-    <extension point="org.jkiss.dbeaver.ui.propertyConfigurator">
-        <propertyConfigurator class="org.jkiss.dbeaver.ext.clickhouse.model.ClickhouseSSLImpl" uiClass="org.jkiss.dbeaver.ext.clickhouse.ui.ClickhouseSSLConfigurator"/>
-        <propertyConfigurator class="org.jkiss.dbeaver.ext.clickhouse.model.auth.ClickhouseAuthModelCloudSSO" uiClass="org.jkiss.dbeaver.ext.clickhouse.ui.auth.ClickhouseCloudSSOAuthConfigurator"/>
-        <propertyConfigurator class="org.jkiss.dbeaver.ext.clickhouse.model.auth.ClickhouseAuthModelOIDC" uiClass="org.jkiss.dbeaver.ext.clickhouse.ui.auth.ClickhouseOIDCAuthConfigurator"/>
+    <extension point="com.seizia.chromite.ui.propertyConfigurator">
+        <propertyConfigurator class="com.seizia.chromite.ext.clickhouse.model.ClickhouseSSLImpl" uiClass="com.seizia.chromite.ext.clickhouse.ui.ClickhouseSSLConfigurator"/>
+        <propertyConfigurator class="com.seizia.chromite.ext.clickhouse.model.auth.ClickhouseAuthModelCloudSSO" uiClass="com.seizia.chromite.ext.clickhouse.ui.auth.ClickhouseCloudSSOAuthConfigurator"/>
+        <propertyConfigurator class="com.seizia.chromite.ext.clickhouse.model.auth.ClickhouseAuthModelOIDC" uiClass="com.seizia.chromite.ext.clickhouse.ui.auth.ClickhouseOIDCAuthConfigurator"/>
     </extension>
 </plugin>

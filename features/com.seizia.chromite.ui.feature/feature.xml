@@ -1,13 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <feature
-      id="org.jkiss.dbeaver.ui.feature"
+      id="com.seizia.chromite.ui.feature"
       label="Chromite Desktop UI"
       version="26.2.5.qualifier"
-      provider-name="DBeaver Corp">
+      provider-name="Chromite contributors">
 
    <copyright>DBeaver Corp and others</copyright>
 
-   <includes id="org.jkiss.dbeaver.runtime.feature" version="0.0.0"/>
+   <includes id="com.seizia.chromite.runtime.feature" version="0.0.0"/>
 
    <requires>
       <import plugin="org.eclipse.gef" version="0.0.0" match="greaterOrEqual"/>
@@ -23,30 +23,30 @@
       <import plugin="org.eclipse.search" version="0.0.0" match="greaterOrEqual"/>
    </requires>
 
-   <plugin id="org.jkiss.dbeaver.model.rcp" version="0.0.0" />
-   <plugin id="org.jkiss.dbeaver.core" version="0.0.0" />
-   <plugin id="org.jkiss.dbeaver.net.ssh.ui" version="0.0.0" />
-   <plugin id="org.jkiss.dbeaver.ui" version="0.0.0" />
-   <plugin id="org.jkiss.dbeaver.ui.ai" version="0.0.0" />
-   <plugin id="org.jkiss.dbeaver.ui.editors.acl" version="0.0.0" />
-   <plugin id="org.jkiss.dbeaver.ui.editors.base" version="0.0.0" />
-   <plugin id="org.jkiss.dbeaver.ui.editors.connection" version="0.0.0" />
-   <plugin id="org.jkiss.dbeaver.ui.editors.data" version="0.0.0" />
-   <plugin id="org.jkiss.dbeaver.ui.editors.entity" version="0.0.0" />
-   <plugin id="org.jkiss.dbeaver.ui.editors.hex" version="0.0.0" />
-   <plugin id="org.jkiss.dbeaver.ui.editors.image" version="0.0.0" />
-   <plugin id="org.jkiss.dbeaver.ui.editors.json" version="0.0.0" />
-   <plugin id="org.jkiss.dbeaver.ui.editors.sql" version="0.0.0" />
-   <plugin id="org.jkiss.dbeaver.ui.editors.sql.terminal" version="0.0.0" />
-   <plugin id="org.jkiss.dbeaver.ui.editors.session" version="0.0.0" />
-   <plugin id="org.jkiss.dbeaver.ui.editors.xml" version="0.0.0" />
-   <plugin id="org.jkiss.dbeaver.ui.forms" version="0.0.0" />
-   <plugin id="org.jkiss.dbeaver.ui.navigator" version="0.0.0" />
-   <plugin id="org.jkiss.dbeaver.ui.search" version="0.0.0" />
-   <plugin id="org.jkiss.dbeaver.ui.editors.erd" version="0.0.0" />
-   <plugin id="org.jkiss.dbeaver.data.transfer.ui" version="0.0.0" />
-   <plugin id="org.jkiss.dbeaver.data.gis.view" version="0.0.0" />
+   <plugin id="com.seizia.chromite.model.rcp" version="0.0.0" />
+   <plugin id="com.seizia.chromite.core" version="0.0.0" />
+   <plugin id="com.seizia.chromite.net.ssh.ui" version="0.0.0" />
+   <plugin id="com.seizia.chromite.ui" version="0.0.0" />
+   <plugin id="com.seizia.chromite.ui.ai" version="0.0.0" />
+   <plugin id="com.seizia.chromite.ui.editors.acl" version="0.0.0" />
+   <plugin id="com.seizia.chromite.ui.editors.base" version="0.0.0" />
+   <plugin id="com.seizia.chromite.ui.editors.connection" version="0.0.0" />
+   <plugin id="com.seizia.chromite.ui.editors.data" version="0.0.0" />
+   <plugin id="com.seizia.chromite.ui.editors.entity" version="0.0.0" />
+   <plugin id="com.seizia.chromite.ui.editors.hex" version="0.0.0" />
+   <plugin id="com.seizia.chromite.ui.editors.image" version="0.0.0" />
+   <plugin id="com.seizia.chromite.ui.editors.json" version="0.0.0" />
+   <plugin id="com.seizia.chromite.ui.editors.sql" version="0.0.0" />
+   <plugin id="com.seizia.chromite.ui.editors.sql.terminal" version="0.0.0" />
+   <plugin id="com.seizia.chromite.ui.editors.session" version="0.0.0" />
+   <plugin id="com.seizia.chromite.ui.editors.xml" version="0.0.0" />
+   <plugin id="com.seizia.chromite.ui.forms" version="0.0.0" />
+   <plugin id="com.seizia.chromite.ui.navigator" version="0.0.0" />
+   <plugin id="com.seizia.chromite.ui.search" version="0.0.0" />
+   <plugin id="com.seizia.chromite.ui.editors.erd" version="0.0.0" />
+   <plugin id="com.seizia.chromite.data.transfer.ui" version="0.0.0" />
+   <plugin id="com.seizia.chromite.data.gis.view" version="0.0.0" />
    <plugin id="org.jkiss.bundle.jfreechart" version="0.0.0" />
-   <plugin id="org.jkiss.dbeaver.ui.charts" version="0.0.0" />
+   <plugin id="com.seizia.chromite.ui.charts" version="0.0.0" />
 
 </feature>

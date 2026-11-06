@@ -15,13 +15,13 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.ext.gbase8s.model;
+package com.seizia.chromite.ext.gbase8s.model;
 
 import java.sql.Types;
 
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.ext.generic.model.GenericDataType;
-import org.jkiss.dbeaver.ext.generic.model.GenericStructContainer;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.ext.generic.model.GenericDataType;
+import com.seizia.chromite.ext.generic.model.GenericStructContainer;
 
 /**
  * @author Chao Tian

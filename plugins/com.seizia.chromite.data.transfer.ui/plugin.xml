@@ -2,38 +2,38 @@
 <?eclipse version="3.4"?>
 <plugin>
 
-    <extension-point id="org.jkiss.dbeaver.dataTransferConfigurator" name="Data Transfer UI Configurators" schema="schema/org.jkiss.dbeaver.dataTransferConfigurator.exsd"/>
+    <extension-point id="com.seizia.chromite.dataTransferConfigurator" name="Data Transfer UI Configurators" schema="schema/com.seizia.chromite.dataTransferConfigurator.exsd"/>
 
     <extension point="org.eclipse.ui.commands">
-        <command id="org.jkiss.dbeaver.core.export.data" name="%command.org.jkiss.dbeaver.core.export.data.name" description="%command.org.jkiss.dbeaver.core.export.data.description" categoryId="org.jkiss.dbeaver.core.util"/>
-        <command id="org.jkiss.dbeaver.core.import.data" name="%command.org.jkiss.dbeaver.core.import.data.name" description="%command.org.jkiss.dbeaver.core.import.data.description" categoryId="org.jkiss.dbeaver.core.util"/>
+        <command id="com.seizia.chromite.core.export.data" name="%command.com.seizia.chromite.core.export.data.name" description="%command.com.seizia.chromite.core.export.data.description" categoryId="com.seizia.chromite.core.util"/>
+        <command id="com.seizia.chromite.core.import.data" name="%command.com.seizia.chromite.core.import.data.name" description="%command.com.seizia.chromite.core.import.data.description" categoryId="com.seizia.chromite.core.util"/>
     </extension>
 
     <extension point="org.eclipse.ui.commandImages">
-        <image commandId="org.jkiss.dbeaver.core.export.data" icon="platform:/plugin/org.jkiss.dbeaver.ui/icons/sql/table_export.svg"/>
-        <image commandId="org.jkiss.dbeaver.core.import.data" icon="platform:/plugin/org.jkiss.dbeaver.ui/icons/sql/table_import.svg"/>
+        <image commandId="com.seizia.chromite.core.export.data" icon="platform:/plugin/com.seizia.chromite.ui/icons/sql/table_export.svg"/>
+        <image commandId="com.seizia.chromite.core.import.data" icon="platform:/plugin/com.seizia.chromite.ui/icons/sql/table_import.svg"/>
     </extension>
 
     <extension point="org.eclipse.core.expressions.propertyTesters">
         <propertyTester
-                class="org.jkiss.dbeaver.tools.transfer.ui.handlers.DataImportPropertyTester"
-                id="org.jkiss.dbeaver.tools.transfer.ui.handlers.DataImportPropertyTester"
-                namespace="org.jkiss.dbeaver.dataTransfer"
+                class="com.seizia.chromite.tools.transfer.ui.handlers.DataImportPropertyTester"
+                id="com.seizia.chromite.tools.transfer.ui.handlers.DataImportPropertyTester"
+                namespace="com.seizia.chromite.dataTransfer"
                 properties="supportsImport"
-                type="org.jkiss.dbeaver.model.struct.DBSObject"/>
+                type="com.seizia.chromite.model.struct.DBSObject"/>
     </extension>
 
     <extension point="org.eclipse.ui.menus">
 
         <menuContribution allPopups="false" locationURI="popup:org.eclipse.ui.popup.any?after=export_import">
             <command
-                    commandId="org.jkiss.dbeaver.core.export.data"
-                    label="%command.org.jkiss.dbeaver.core.export.data.name">
+                    commandId="com.seizia.chromite.core.export.data"
+                    label="%command.com.seizia.chromite.core.export.data.name">
                 <visibleWhen checkEnabled="true"/>
             </command>
             <command
-                    commandId="org.jkiss.dbeaver.core.import.data"
-                    label="%command.org.jkiss.dbeaver.core.import.data.name">
+                    commandId="com.seizia.chromite.core.import.data"
+                    label="%command.com.seizia.chromite.core.import.data.name">
                 <visibleWhen checkEnabled="true"/>
             </command>
         </menuContribution>
@@ -41,30 +41,30 @@
     </extension>
 
     <extension point="org.eclipse.ui.handlers">
-        <handler commandId="org.jkiss.dbeaver.core.export.data" class="org.jkiss.dbeaver.tools.transfer.ui.handlers.DataExportHandler">
+        <handler commandId="com.seizia.chromite.core.export.data" class="com.seizia.chromite.tools.transfer.ui.handlers.DataExportHandler">
             <enabledWhen>
                 <with variable="selection">
                     <count value="+"/>
                     <iterate operator="and">
-                        <adapt type="org.jkiss.dbeaver.model.struct.DBSDataContainer"/>
+                        <adapt type="com.seizia.chromite.model.struct.DBSDataContainer"/>
                     </iterate>
                 </with>
             </enabledWhen>
         </handler>
-        <handler commandId="org.jkiss.dbeaver.core.import.data" class="org.jkiss.dbeaver.tools.transfer.ui.handlers.DataImportHandler">
+        <handler commandId="com.seizia.chromite.core.import.data" class="com.seizia.chromite.tools.transfer.ui.handlers.DataImportHandler">
             <enabledWhen>
                 <with variable="selection">
                     <count value="+"/>
                     <iterate operator="and">
                         <and>
                             <or>
-                                <adapt type="org.jkiss.dbeaver.model.struct.DBSDataManipulator"/>
-                                <adapt type="org.jkiss.dbeaver.model.struct.DBSObject">
-                                    <test property="org.jkiss.dbeaver.model.isTableContainer"/>
+                                <adapt type="com.seizia.chromite.model.struct.DBSDataManipulator"/>
+                                <adapt type="com.seizia.chromite.model.struct.DBSObject">
+                                    <test property="com.seizia.chromite.model.isTableContainer"/>
                                 </adapt>
                             </or>
-                            <adapt type="org.jkiss.dbeaver.model.struct.DBSObject">
-                                <test property="org.jkiss.dbeaver.dataTransfer.supportsImport" forcePluginActivation="true"/>
+                            <adapt type="com.seizia.chromite.model.struct.DBSObject">
+                                <test property="com.seizia.chromite.dataTransfer.supportsImport" forcePluginActivation="true"/>
                             </adapt>
                         </and>
                     </iterate>
@@ -73,78 +73,78 @@
         </handler>
     </extension>
 
-    <extension point="org.jkiss.dbeaver.dataTransferConfigurator">
+    <extension point="com.seizia.chromite.dataTransferConfigurator">
 
         <configPages node="database_producer">
-            <page id="database_producer_input_objects" class="org.jkiss.dbeaver.tools.transfer.ui.pages.database.DatabaseProducerPageInputObjects" producerSelector="true"/>
-            <page id="database_producer_extract_settings" class="org.jkiss.dbeaver.tools.transfer.ui.pages.database.DatabaseProducerPageExtractSettings" type="settings"/>
+            <page id="database_producer_input_objects" class="com.seizia.chromite.tools.transfer.ui.pages.database.DatabaseProducerPageInputObjects" producerSelector="true"/>
+            <page id="database_producer_extract_settings" class="com.seizia.chromite.tools.transfer.ui.pages.database.DatabaseProducerPageExtractSettings" type="settings"/>
         </configPages>
 
         <configPages node="database_consumer">
-            <page id="database_consumer_mappings" class="org.jkiss.dbeaver.tools.transfer.ui.pages.database.DatabaseConsumerPageMapping"/>
-            <page id="database_consumer_settings" class="org.jkiss.dbeaver.tools.transfer.ui.pages.database.DatabaseConsumerPageLoadSettings" type="settings"/>
+            <page id="database_consumer_mappings" class="com.seizia.chromite.tools.transfer.ui.pages.database.DatabaseConsumerPageMapping"/>
+            <page id="database_consumer_settings" class="com.seizia.chromite.tools.transfer.ui.pages.database.DatabaseConsumerPageLoadSettings" type="settings"/>
         </configPages>
 
         <configPages node="stream_producer">
-            <page id="stream_producer_settings" class="org.jkiss.dbeaver.tools.transfer.ui.pages.stream.StreamProducerPageSettings"/>
+            <page id="stream_producer_settings" class="com.seizia.chromite.tools.transfer.ui.pages.stream.StreamProducerPageSettings"/>
         </configPages>
 
         <configPages node="stream_consumer">
-            <page id="stream_consumer_settings" class="org.jkiss.dbeaver.tools.transfer.ui.pages.stream.StreamConsumerPageSettings" type="settings"/>
-            <page id="stream_consumer_output" class="org.jkiss.dbeaver.tools.transfer.ui.pages.stream.StreamConsumerPageOutput" type="preview"/>
+            <page id="stream_consumer_settings" class="com.seizia.chromite.tools.transfer.ui.pages.stream.StreamConsumerPageSettings" type="settings"/>
+            <page id="stream_consumer_output" class="com.seizia.chromite.tools.transfer.ui.pages.stream.StreamConsumerPageOutput" type="preview"/>
         </configPages>
 
     </extension>
 
-    <extension point="org.jkiss.dbeaver.task.ui">
-        <configurator type="dataExport" class="org.jkiss.dbeaver.tools.transfer.ui.wizard.DataTransferTaskConfigurator"/>
-        <configurator type="dataImport" class="org.jkiss.dbeaver.tools.transfer.ui.wizard.DataTransferTaskConfigurator"/>
-        <configurator type="scriptExecute" class="org.jkiss.dbeaver.tasks.ui.sql.script.SQLScriptTaskConfigurator" supportsPanel="false"/>
+    <extension point="com.seizia.chromite.task.ui">
+        <configurator type="dataExport" class="com.seizia.chromite.tools.transfer.ui.wizard.DataTransferTaskConfigurator"/>
+        <configurator type="dataImport" class="com.seizia.chromite.tools.transfer.ui.wizard.DataTransferTaskConfigurator"/>
+        <configurator type="scriptExecute" class="com.seizia.chromite.tasks.ui.sql.script.SQLScriptTaskConfigurator" supportsPanel="false"/>
     </extension>
 
-    <extension point="org.jkiss.dbeaver.ui.propertyConfigurator">
+    <extension point="com.seizia.chromite.ui.propertyConfigurator">
         <propertyConfigurator
-                class="org.jkiss.dbeaver.tools.transfer.processor.ShowInExplorerEventProcessor"
-                uiClass="org.jkiss.dbeaver.tools.transfer.ui.processor.config.ShowInExplorerEventProcessorConfigurator"/>
+                class="com.seizia.chromite.tools.transfer.processor.ShowInExplorerEventProcessor"
+                uiClass="com.seizia.chromite.tools.transfer.ui.processor.config.ShowInExplorerEventProcessorConfigurator"/>
         <propertyConfigurator
-                class="org.jkiss.dbeaver.tools.transfer.processor.ExecuteCommandEventProcessor"
-                uiClass="org.jkiss.dbeaver.tools.transfer.ui.processor.config.ExecuteCommandEventProcessorConfigurator"/>
+                class="com.seizia.chromite.tools.transfer.processor.ExecuteCommandEventProcessor"
+                uiClass="com.seizia.chromite.tools.transfer.ui.processor.config.ExecuteCommandEventProcessorConfigurator"/>
         <propertyConfigurator
-                class="org.jkiss.dbeaver.tools.transfer.processor.FailedExportFileCleanerProcessor"
-                uiClass="org.jkiss.dbeaver.tools.transfer.ui.processor.config.FailedExportFileCleanerProcessorConfigurator"/>
+                class="com.seizia.chromite.tools.transfer.processor.FailedExportFileCleanerProcessor"
+                uiClass="com.seizia.chromite.tools.transfer.ui.processor.config.FailedExportFileCleanerProcessorConfigurator"/>
     </extension>
 
-    <extension point="org.jkiss.dbeaver.sqlCommand">
-        <pragma id="export" class="org.jkiss.dbeaver.tools.transfer.ui.SQLPragmaExport"/>
+    <extension point="com.seizia.chromite.sqlCommand">
+        <pragma id="export" class="com.seizia.chromite.tools.transfer.ui.SQLPragmaExport"/>
     </extension>
 
     <extension point="org.eclipse.ui.preferencePages">
-        <page category="org.jkiss.dbeaver.preferences.main.connections" class="org.jkiss.dbeaver.tools.transfer.ui.prefs.PrefPageDataTransfer" id="org.jkiss.dbeaver.preferences.datatransfer" name="%pref.page.name.datatransfer">
-            <keywordReference id="org.jkiss.dbeaver.core.keyword.dbeaver"/>
-            <keywordReference id="org.jkiss.dbeaver.core.keyword.datatransfer"/>
+        <page category="com.seizia.chromite.preferences.main.connections" class="com.seizia.chromite.tools.transfer.ui.prefs.PrefPageDataTransfer" id="com.seizia.chromite.preferences.datatransfer" name="%pref.page.name.datatransfer">
+            <keywordReference id="com.seizia.chromite.core.keyword.chromite"/>
+            <keywordReference id="com.seizia.chromite.core.keyword.datatransfer"/>
         </page>
     </extension>
 
     <extension point="org.eclipse.ui.propertyPages">
-        <page category="org.jkiss.dbeaver.preferences.main.connections" class="org.jkiss.dbeaver.tools.transfer.ui.prefs.PrefPageDataTransfer"
-              id="org.jkiss.dbeaver.preferences.datatransfer" name="%pref.page.name.datatransfer">
+        <page category="com.seizia.chromite.preferences.main.connections" class="com.seizia.chromite.tools.transfer.ui.prefs.PrefPageDataTransfer"
+              id="com.seizia.chromite.preferences.datatransfer" name="%pref.page.name.datatransfer">
             <enabledWhen>
-                <reference definitionId="org.jkiss.dbeaver.core.preferences.datasource"/>
+                <reference definitionId="com.seizia.chromite.core.preferences.datasource"/>
             </enabledWhen>
         </page>
     </extension>
 
-    <extension point="org.jkiss.dbeaver.connectionPageConfigurator">
+    <extension point="com.seizia.chromite.connectionPageConfigurator">
             <page
-                    id="org.jkiss.dbeaver.preferences.datatransfer"
-                    after="org.jkiss.dbeaver.preferences.main.meta"
-                    class="org.jkiss.dbeaver.tools.transfer.ui.prefs.PrefPageDataTransfer"
+                    id="com.seizia.chromite.preferences.datatransfer"
+                    after="com.seizia.chromite.preferences.main.meta"
+                    class="com.seizia.chromite.tools.transfer.ui.prefs.PrefPageDataTransfer"
                     title="%pref.page.name.datatransfer"
                     description="%pref.page.name.datatransfer"/>
     </extension>
 
     <extension point="org.eclipse.ui.keywords">
-        <keyword id="org.jkiss.dbeaver.core.keyword.datatransfer" label="%keyword.org.jkiss.dbeaver.preferences.datatransfer"/>
+        <keyword id="com.seizia.chromite.core.keyword.datatransfer" label="%keyword.com.seizia.chromite.preferences.datatransfer"/>
     </extension>
 
 </plugin>

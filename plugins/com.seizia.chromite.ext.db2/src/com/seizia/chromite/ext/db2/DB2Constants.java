@@ -15,11 +15,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.db2;
+package com.seizia.chromite.ext.db2;
 
-import org.jkiss.dbeaver.model.DBConstants;
-import org.jkiss.dbeaver.model.data.DBDPseudoAttribute;
-import org.jkiss.dbeaver.model.data.DBDPseudoAttributeType;
+import com.seizia.chromite.model.DBConstants;
+import com.seizia.chromite.model.data.DBDPseudoAttribute;
+import com.seizia.chromite.model.data.DBDPseudoAttributeType;
 
 /**
  * DB2 constants

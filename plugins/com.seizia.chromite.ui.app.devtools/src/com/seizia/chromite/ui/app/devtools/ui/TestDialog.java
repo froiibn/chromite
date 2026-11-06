@@ -14,16 +14,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.app.devtools.ui;
+package com.seizia.chromite.ui.app.devtools.ui;
 
 import org.eclipse.jface.dialogs.TrayDialog;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.widgets.*;
-import org.jkiss.dbeaver.model.DBIcon;
-import org.jkiss.dbeaver.ui.controls.folders.TabbedFolderComposite;
-import org.jkiss.dbeaver.ui.controls.folders.TabbedFolderInfo;
-import org.jkiss.dbeaver.ui.controls.folders.TabbedFolderPage;
+import com.seizia.chromite.model.DBIcon;
+import com.seizia.chromite.ui.controls.folders.TabbedFolderComposite;
+import com.seizia.chromite.ui.controls.folders.TabbedFolderInfo;
+import com.seizia.chromite.ui.controls.folders.TabbedFolderPage;
 
 public class TestDialog extends TrayDialog {
 

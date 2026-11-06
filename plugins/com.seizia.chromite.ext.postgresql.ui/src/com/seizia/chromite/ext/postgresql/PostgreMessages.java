@@ -14,12 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.postgresql;
+package com.seizia.chromite.ext.postgresql;
 
 import org.eclipse.osgi.util.NLS;
 
 public class PostgreMessages extends NLS {
-    static final String BUNDLE_NAME = "org.jkiss.dbeaver.ext.postgresql.PostgresResources"; //$NON-NLS-1$
+    static final String BUNDLE_NAME = "com.seizia.chromite.ext.postgresql.PostgresResources"; //$NON-NLS-1$
 
     /*backup wizard*/
     public static String wizard_backup_title;

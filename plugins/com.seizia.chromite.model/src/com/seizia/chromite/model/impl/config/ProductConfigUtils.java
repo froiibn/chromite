@@ -14,10 +14,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.impl.config;
+package com.seizia.chromite.model.impl.config;
 
-import org.jkiss.dbeaver.model.impl.app.BaseApplicationImpl;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
+import com.seizia.chromite.model.impl.app.BaseApplicationImpl;
+import com.seizia.chromite.runtime.DBWorkbench;
 import org.jkiss.utils.CommonUtils;
 
 public final class ProductConfigUtils {
@@ -28,7 +28,7 @@ public final class ProductConfigUtils {
     /**
      * Returns whether Product Config feature is available.
      * <p>
-     * This is determined by the system property {@code dbeaver.show.easy.config.on.startup}.
+     * This is determined by the system property {@code chromite.show.easy.config.on.startup}.
      */
     public static boolean isAvailable() {
         return isProductApplicable();

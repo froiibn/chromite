@@ -15,9 +15,9 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.ui.controls.resultset;
+package com.seizia.chromite.ui.controls.resultset;
 
-import org.jkiss.dbeaver.model.data.DBDAttributeBinding;
+import com.seizia.chromite.model.data.DBDAttributeBinding;
 
 /**
  * Result set value manager

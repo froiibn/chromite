@@ -14,18 +14,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.eula;
+package com.seizia.chromite.ui.eula;
 
 import org.eclipse.ui.IWorkbenchWindow;
 import org.eclipse.ui.application.IWorkbenchWindowConfigurer;
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.ui.IWorkbenchWindowInitializer;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.ui.IWorkbenchWindowInitializer;
 
 import java.util.prefs.Preferences;
 
 public class EULAInitializer implements IWorkbenchWindowInitializer {
-    public static final String DBEAVER_EULA = "DBeaver.eula";
+    public static final String CHROMITE_EULA = "DBeaver.eula";
 
     @Override
     public void initializeWorkbenchWindow(@NotNull IWorkbenchWindowConfigurer configurer) {
@@ -38,9 +38,9 @@ public class EULAInitializer implements IWorkbenchWindowInitializer {
 
     private boolean isEulaDialogNeeded() {
         Preferences preferences = Preferences.userNodeForPackage(DBWorkbench.getPlatform().getApplication().getClass());
-        if (preferences.get(DBEAVER_EULA, null) == null || !preferences.get(DBEAVER_EULA, null).equals(EULAUtils.getEulaVersion())) {
+        if (preferences.get(CHROMITE_EULA, null) == null || !preferences.get(CHROMITE_EULA, null).equals(EULAUtils.getEulaVersion())) {
             //Used didn't accept EULA before or dialog was shown on different eula version
-            preferences.remove(DBEAVER_EULA);
+            preferences.remove(CHROMITE_EULA);
             return true;
         }
         return false;

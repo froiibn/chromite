@@ -14,13 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.search;
+package com.seizia.chromite.ui.search;
 
 import org.eclipse.jface.action.IAction;
 import org.eclipse.jface.viewers.ISelection;
 import org.eclipse.ui.IWorkbenchWindow;
 import org.eclipse.ui.IWorkbenchWindowActionDelegate;
-import org.jkiss.dbeaver.ui.ActionUtils;
+import com.seizia.chromite.ui.ActionUtils;
 
 /**
  * Opens quick search dialog

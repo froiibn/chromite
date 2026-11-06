@@ -15,10 +15,10 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.model.exec;
+package com.seizia.chromite.model.exec;
 
-import org.jkiss.dbeaver.DBDatabaseException;
-import org.jkiss.dbeaver.model.DBPDataSource;
+import com.seizia.chromite.DBDatabaseException;
+import com.seizia.chromite.model.DBPDataSource;
 
 /**
  * DBCException

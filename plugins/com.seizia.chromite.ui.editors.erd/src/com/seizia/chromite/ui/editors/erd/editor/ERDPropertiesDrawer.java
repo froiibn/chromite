@@ -17,12 +17,12 @@
 /*
  * Created on Aug 12, 2004
  */
-package org.jkiss.dbeaver.ui.editors.erd.editor;
+package com.seizia.chromite.ui.editors.erd.editor;
 
 import org.eclipse.gef.palette.PaletteDrawer;
 import org.eclipse.gef.palette.SelectionToolEntry;
-import org.jkiss.dbeaver.ui.DBeaverIcons;
-import org.jkiss.dbeaver.ui.UIIcon;
+import com.seizia.chromite.ui.SwtIcons;
+import com.seizia.chromite.ui.UIIcon;
 
 /**
  * Experimental drawer.
@@ -32,7 +32,7 @@ public class ERDPropertiesDrawer extends PaletteDrawer
 {
 
 	public ERDPropertiesDrawer() {
-		super("Properties", DBeaverIcons.getImageDescriptor(UIIcon.PROPERTIES));
+		super("Properties", SwtIcons.getImageDescriptor(UIIcon.PROPERTIES));
 		setDescription("Object properties");
 		setId("erd-properties");
 

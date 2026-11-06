@@ -1,9 +1,9 @@
 <?xml version='1.0' encoding='UTF-8'?>
 <!-- Schema file written by PDE -->
-<schema targetNamespace="org.jkiss.dbeaver.model.ai" xmlns="http://www.w3.org/2001/XMLSchema">
+<schema targetNamespace="com.seizia.chromite.model.ai" xmlns="http://www.w3.org/2001/XMLSchema">
    <annotation>
       <appInfo>
-         <meta.schema plugin="org.jkiss.dbeaver.model.ai" id="com.dbeaver.ai.functionImplementation" name="AI function implementations"/>
+         <meta.schema plugin="com.seizia.chromite.model.ai" id="com.seizia.chromite.ai.functionImplementation" name="AI function implementations"/>
       </appInfo>
       <documentation>
          Runtime-specific implementations of model-defined AI functions
@@ -27,7 +27,7 @@
          <attribute name="functionId" type="string" use="required">
             <annotation>
                <documentation>
-                  Identifier of a function declared through com.dbeaver.ai.function
+                  Identifier of a function declared through com.seizia.chromite.ai.function
                </documentation>
             </annotation>
          </attribute>
@@ -37,7 +37,7 @@
                   Class implementing AIFunction. It may be omitted for actions executed by a headless application's client
                </documentation>
                <appInfo>
-                  <meta.attribute kind="java" basedOn=":org.jkiss.dbeaver.model.ai.AIFunction"/>
+                  <meta.attribute kind="java" basedOn=":com.seizia.chromite.model.ai.AIFunction"/>
                </appInfo>
             </annotation>
          </attribute>
@@ -66,7 +66,7 @@
                   Runtime-specific parameter transformer
                </documentation>
                <appInfo>
-                  <meta.attribute kind="java" basedOn=":org.jkiss.dbeaver.model.ai.AIFunctionParameterTransformer"/>
+                  <meta.attribute kind="java" basedOn=":com.seizia.chromite.model.ai.AIFunctionParameterTransformer"/>
                </appInfo>
             </annotation>
          </attribute>
@@ -95,7 +95,7 @@
                   Runtime-specific class providing valid values for the parameter
                </documentation>
                <appInfo>
-                  <meta.attribute kind="java" basedOn=":org.jkiss.dbeaver.model.ai.AIFunctionParameterValueProvider"/>
+                  <meta.attribute kind="java" basedOn=":com.seizia.chromite.model.ai.AIFunctionParameterValueProvider"/>
                </appInfo>
             </annotation>
          </attribute>

@@ -14,11 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.registry;
+package com.seizia.chromite.registry;
 
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.utils.RuntimeUtils;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.utils.RuntimeUtils;
 import org.jkiss.utils.CommonUtils;
 import org.jkiss.utils.SecurityUtils;
 
@@ -30,7 +30,7 @@ public final class DeploymentId {
 
     private static final Log log = Log.getLog(DeploymentId.class);
 
-    private static final String PREF_NODE = "org/jkiss/dbeaver";
+    private static final String PREF_NODE = "com/seizia/chromite";
     private static final String PREF_KEY = "deploymentId";
 
     private static final String PREFIX = "DI";

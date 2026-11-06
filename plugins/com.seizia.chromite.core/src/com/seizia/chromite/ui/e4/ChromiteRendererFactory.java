@@ -14,24 +14,24 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.e4;
+package com.seizia.chromite.ui.e4;
 
 import org.eclipse.e4.ui.internal.workbench.swt.AbstractPartRenderer;
 import org.eclipse.e4.ui.model.application.ui.MUIElement;
 import org.eclipse.e4.ui.model.application.ui.basic.MPartStack;
 import org.eclipse.e4.ui.workbench.renderers.swt.WorkbenchRendererFactory;
 
-public class DBeaverRendererFactory extends WorkbenchRendererFactory {
-    private DBeaverStackRenderer stackRenderer;
+public class ChromiteRendererFactory extends WorkbenchRendererFactory {
+    private ChromiteStackRenderer stackRenderer;
 
-    public DBeaverRendererFactory() {
+    public ChromiteRendererFactory() {
     }
 
     @Override
     public AbstractPartRenderer getRenderer(MUIElement uiElement, Object parent) {
         if (uiElement instanceof MPartStack) {
             if (stackRenderer == null) {
-                stackRenderer = new DBeaverStackRenderer();
+                stackRenderer = new ChromiteStackRenderer();
                 super.initRenderer(stackRenderer);
             }
             return stackRenderer;

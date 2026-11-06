@@ -15,10 +15,10 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.model.fs;
+package com.seizia.chromite.model.fs;
 
-import org.jkiss.dbeaver.model.DBPImage;
-import org.jkiss.dbeaver.model.DBPObjectWithDescription;
+import com.seizia.chromite.model.DBPImage;
+import com.seizia.chromite.model.DBPObjectWithDescription;
 
 /**
  * Virtual file system provider

@@ -14,12 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.sql.procedural;
+package com.seizia.chromite.model.sql.procedural;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.model.impl.sql.BasicSQLDialect;
-import org.jkiss.dbeaver.model.sql.SQLDialect;
+import com.seizia.chromite.model.impl.sql.BasicSQLDialect;
+import com.seizia.chromite.model.sql.SQLDialect;
 import org.junit.jupiter.api.Test;
 
 import java.util.Objects;
@@ -107,7 +107,7 @@ public class ProceduralNestedCompletionTest extends ProceduralDialectTestBase {
         this.activeDialect = switch (dialectId) {
             case "generic" -> BasicSQLDialect.INSTANCE;
             case "databricks" -> dialectFromBundle(
-                "org.jkiss.dbeaver.ext.databricks", "org.jkiss.dbeaver.ext.databricks.DatabricksSQLDialect");
+                "com.seizia.chromite.ext.databricks", "com.seizia.chromite.ext.databricks.DatabricksSQLDialect");
             default -> dialectById(dialectId);
         };
     }

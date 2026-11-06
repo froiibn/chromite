@@ -14,10 +14,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.mysql.model;
+package com.seizia.chromite.ext.mysql.model;
 
-import org.jkiss.dbeaver.ext.mysql.model.MySQLCatalog.CheckConstraintCache;
-import org.jkiss.junit.DBeaverUnitTest;
+import com.seizia.chromite.ext.mysql.model.MySQLCatalog.CheckConstraintCache;
+import com.seizia.chromite.junit.ChromiteUnitTest;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -25,7 +25,7 @@ import org.junit.jupiter.api.Test;
  * Regression tests for the check constraint lookup of dbeaver/dbeaver#41909 and
  * dbeaver/dbeaver#41941.
  */
-public class MySQLCheckConstraintCacheTest extends DBeaverUnitTest {
+public class MySQLCheckConstraintCacheTest extends ChromiteUnitTest {
 
     private static final String TABLE_CONSTRAINTS = "TABLE_CONSTRAINTS";
 

@@ -14,11 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.h2.internal;
+package com.seizia.chromite.ext.h2.internal;
 
 import org.eclipse.core.runtime.Plugin;
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.ext.h2.util.H2Utils;
+import com.seizia.chromite.ext.h2.util.H2Utils;
 import org.osgi.framework.BundleContext;
 
 public final class H2Activator extends Plugin {

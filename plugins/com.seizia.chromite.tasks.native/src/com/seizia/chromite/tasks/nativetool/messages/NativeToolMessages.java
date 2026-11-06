@@ -14,13 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.tasks.nativetool.messages;
+package com.seizia.chromite.tasks.nativetool.messages;
 
 import org.eclipse.osgi.util.NLS;
 
 public class NativeToolMessages extends NLS {
 
-    private static final String BUNDLE_NAME = "org.jkiss.dbeaver.tasks.nativetool.messages.NativeToolMessages";
+    private static final String BUNDLE_NAME = "com.seizia.chromite.tasks.nativetool.messages.NativeToolMessages";
 
     public static String native_tool_handler_log_task;
     public static String native_tool_handler_log_finished_task;

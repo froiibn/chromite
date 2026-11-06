@@ -14,10 +14,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.struct;
+package com.seizia.chromite.model.struct;
 
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.model.DBPObjectWithDescription;
+import com.seizia.chromite.model.DBPObjectWithDescription;
 
 /**
  * Object whose description can be modified.

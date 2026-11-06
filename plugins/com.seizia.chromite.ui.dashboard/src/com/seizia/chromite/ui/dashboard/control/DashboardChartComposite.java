@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.ui.dashboard.control;
+package com.seizia.chromite.ui.dashboard.control;
 
 import org.eclipse.jface.action.IMenuManager;
 import org.eclipse.jface.dialogs.IDialogConstants;
@@ -24,11 +24,11 @@ import org.eclipse.swt.graphics.Point;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Control;
 import org.jfree.chart.JFreeChart;
-import org.jkiss.dbeaver.ui.charts.BaseChartComposite;
-import org.jkiss.dbeaver.ui.dashboard.model.DashboardContainer;
-import org.jkiss.dbeaver.ui.dashboard.model.DashboardItemContainer;
-import org.jkiss.dbeaver.ui.dashboard.view.DashboardItemViewDialog;
-import org.jkiss.dbeaver.ui.dashboard.view.DashboardItemViewSettingsDialog;
+import com.seizia.chromite.ui.charts.BaseChartComposite;
+import com.seizia.chromite.ui.dashboard.model.DashboardContainer;
+import com.seizia.chromite.ui.dashboard.model.DashboardItemContainer;
+import com.seizia.chromite.ui.dashboard.view.DashboardItemViewDialog;
+import com.seizia.chromite.ui.dashboard.view.DashboardItemViewSettingsDialog;
 
 /**
  * Dashboard chart composite

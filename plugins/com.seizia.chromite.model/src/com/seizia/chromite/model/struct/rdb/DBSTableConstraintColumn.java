@@ -14,12 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.struct.rdb;
+package com.seizia.chromite.model.struct.rdb;
 
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.model.DBPObjectWithOrdinalPosition;
-import org.jkiss.dbeaver.model.struct.DBSEntityAttributeRef;
-import org.jkiss.dbeaver.model.struct.DBSObject;
+import com.seizia.chromite.model.DBPObjectWithOrdinalPosition;
+import com.seizia.chromite.model.struct.DBSEntityAttributeRef;
+import com.seizia.chromite.model.struct.DBSObject;
 
 /**
  * DBSTableConstraintColumn

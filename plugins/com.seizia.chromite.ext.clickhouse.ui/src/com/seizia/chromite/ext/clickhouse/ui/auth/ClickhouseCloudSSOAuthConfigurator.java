@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.clickhouse.ui.auth;
+package com.seizia.chromite.ext.clickhouse.ui.auth;
 
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.events.SelectionAdapter;
@@ -25,14 +25,14 @@ import org.eclipse.swt.widgets.Composite;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.ext.clickhouse.model.auth.ClickhouseAuthModelCloudSSO;
-import org.jkiss.dbeaver.ext.clickhouse.model.auth.ClickhouseAuthModelJWTBase;
-import org.jkiss.dbeaver.ext.clickhouse.model.auth.ClickhouseJWTProviderRegistry;
-import org.jkiss.dbeaver.ext.clickhouse.ui.internal.ClickhouseMessages;
-import org.jkiss.dbeaver.model.DBPDataSourceContainer;
-import org.jkiss.dbeaver.model.access.DBAAuthModel;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.dialogs.connection.DatabaseNativeAuthModelConfigurator;
+import com.seizia.chromite.ext.clickhouse.model.auth.ClickhouseAuthModelCloudSSO;
+import com.seizia.chromite.ext.clickhouse.model.auth.ClickhouseAuthModelJWTBase;
+import com.seizia.chromite.ext.clickhouse.model.auth.ClickhouseJWTProviderRegistry;
+import com.seizia.chromite.ext.clickhouse.ui.internal.ClickhouseMessages;
+import com.seizia.chromite.model.DBPDataSourceContainer;
+import com.seizia.chromite.model.access.DBAAuthModel;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.dialogs.connection.DatabaseNativeAuthModelConfigurator;
 
 /**
  * Configuration of the ClickHouse Cloud SSO auth model.

@@ -15,15 +15,15 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.ui.controls.resultset;
+package com.seizia.chromite.ui.controls.resultset;
 
 import org.eclipse.core.runtime.IConfigurationElement;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.DBPImage;
-import org.jkiss.dbeaver.model.DBUtils;
-import org.jkiss.dbeaver.model.exec.DBCResultSet;
-import org.jkiss.dbeaver.model.impl.AbstractContextDescriptor;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.DBPImage;
+import com.seizia.chromite.model.DBUtils;
+import com.seizia.chromite.model.exec.DBCResultSet;
+import com.seizia.chromite.model.impl.AbstractContextDescriptor;
 import org.jkiss.utils.CommonUtils;
 import org.jkiss.utils.MimeType;
 
@@ -38,7 +38,7 @@ public class ResultSetPresentationDescriptor extends AbstractContextDescriptor {
 
     private static final Log log = Log.getLog(ResultSetPresentationDescriptor.class);
 
-    public static final String EXTENSION_ID = "org.jkiss.dbeaver.resultset.presentation"; //NON-NLS-1 //$NON-NLS-1$
+    public static final String EXTENSION_ID = "com.seizia.chromite.resultset.presentation"; //NON-NLS-1 //$NON-NLS-1$
 
     private static final String CONTENT_TYPE = "contentType";
 

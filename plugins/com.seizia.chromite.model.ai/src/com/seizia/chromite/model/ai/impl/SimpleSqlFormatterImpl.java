@@ -14,12 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.ai.impl;
+package com.seizia.chromite.model.ai.impl;
 
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.model.DBPDataSource;
-import org.jkiss.dbeaver.model.ai.AISqlFormatter;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.model.DBPDataSource;
+import com.seizia.chromite.model.ai.AISqlFormatter;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
 
 public class SimpleSqlFormatterImpl implements AISqlFormatter {
 

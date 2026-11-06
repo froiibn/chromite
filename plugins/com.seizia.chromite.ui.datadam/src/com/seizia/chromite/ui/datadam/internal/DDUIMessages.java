@@ -14,12 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.datadam.internal;
+package com.seizia.chromite.ui.datadam.internal;
 
 import org.eclipse.osgi.util.NLS;
 
 public class DDUIMessages extends NLS {
-    static final String BUNDLE_NAME = "org.jkiss.dbeaver.ui.datadam.internal.DDUIMessages"; //$NON-NLS-1$
+    static final String BUNDLE_NAME = "com.seizia.chromite.ui.datadam.internal.DDUIMessages"; //$NON-NLS-1$
 
     static {
         // initialize resource bundle

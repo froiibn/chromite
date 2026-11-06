@@ -2,11 +2,11 @@
 <?eclipse version="3.4"?>
 <plugin>
 
-    <extension point="org.jkiss.dbeaver.postgresql.serverType">
-        <serverType id="kingbase" name="Kingbase" class="org.jkiss.dbeaver.ext.kingbase.model.PostgreServerKingbase" logo="icons/kingbase_icon.png" customURL="true" turnOffPreparedStatements="true"/>
+    <extension point="com.seizia.chromite.postgresql.serverType">
+        <serverType id="kingbase" name="Kingbase" class="com.seizia.chromite.ext.kingbase.model.PostgreServerKingbase" logo="icons/kingbase_icon.png" customURL="true" turnOffPreparedStatements="true"/>
     </extension>
 
-    <extension point="org.jkiss.dbeaver.dataSourceProvider">
+    <extension point="com.seizia.chromite.dataSourceProvider">
         <dataSourceType
             id="kingbase"
             label="Kingbase"
@@ -16,7 +16,7 @@
             iconBig="icons/kingbase_icon_big.png"
             logoImage="icons/kingbase_icon.png"/>
         <datasource
-                class="org.jkiss.dbeaver.ext.kingbase.KingbaseDataSourceProvider"
+                class="com.seizia.chromite.ext.kingbase.KingbaseDataSourceProvider"
                 description="%datasource.kingbase.description"
                 id="kingbase"
                 dataSourceType="kingbase"
@@ -28,7 +28,7 @@
                      
             <treeInjection path="postgresql/database/schema/procedure" remove="true"/>
             <treeInjection path="postgresql/database/schema" after="index">
-                <folder type="org.jkiss.dbeaver.ext.kingbase.model.KingbaseProcedure" label="%tree.procedures.node.name"
+                <folder type="com.seizia.chromite.ext.kingbase.model.KingbaseProcedure" label="%tree.procedures.node.name"
                         icon="#procedures" description="%tree.procedures.node.tip">
                     <items label="%tree.procedure.node.name" itemLabel="%tree.procedure.node.name" path="procedure"
                            property="kingbaseProcedures" icon="#procedure">
@@ -41,7 +41,7 @@
                 </folder>
             </treeInjection>
             <treeInjection path="postgresql/database/schema" after="procedure">
-                <folder type="org.jkiss.dbeaver.ext.kingbase.model.KingbaseFunction" label="%tree.functions.node.name"
+                <folder type="com.seizia.chromite.ext.kingbase.model.KingbaseFunction" label="%tree.functions.node.name"
                         icon="#procedures" description="%tree.procedures.node.tip">
                     <items label="%tree.function.node.name" itemLabel="%tree.functions.node.name" path="function"
                            property="kingbaseFunctions" icon="#function">
@@ -78,15 +78,15 @@
     </extension>
    
     
-    <extension point="org.jkiss.dbeaver.objectManager">
-        <manager class="org.jkiss.dbeaver.ext.kingbase.edit.KingbaseDatabaseManager" objectType="org.jkiss.dbeaver.ext.kingbase.model.KingbaseDatabase"/>
-        <manager class="org.jkiss.dbeaver.ext.kingbase.edit.KingbaseSchemaManager" objectType="org.jkiss.dbeaver.ext.kingbase.model.KingbaseSchema"/>
-        <manager class="org.jkiss.dbeaver.ext.kingbase.edit.KingbaseProcedureManager" objectType="org.jkiss.dbeaver.ext.kingbase.model.KingbaseProcedure"/>
-        <manager class="org.jkiss.dbeaver.ext.kingbase.edit.KingbaseFunctionManager" objectType="org.jkiss.dbeaver.ext.kingbase.model.KingbaseFunction"/>
+    <extension point="com.seizia.chromite.objectManager">
+        <manager class="com.seizia.chromite.ext.kingbase.edit.KingbaseDatabaseManager" objectType="com.seizia.chromite.ext.kingbase.model.KingbaseDatabase"/>
+        <manager class="com.seizia.chromite.ext.kingbase.edit.KingbaseSchemaManager" objectType="com.seizia.chromite.ext.kingbase.model.KingbaseSchema"/>
+        <manager class="com.seizia.chromite.ext.kingbase.edit.KingbaseProcedureManager" objectType="com.seizia.chromite.ext.kingbase.model.KingbaseProcedure"/>
+        <manager class="com.seizia.chromite.ext.kingbase.edit.KingbaseFunctionManager" objectType="com.seizia.chromite.ext.kingbase.model.KingbaseFunction"/>
     </extension>
 
-    <extension point="org.jkiss.dbeaver.sqlDialect">
-        <dialect id="kingbase" parent="basic" class="org.jkiss.dbeaver.ext.kingbase.model.KingbaseDialect" label="Kingbase" description="Kingbase dialect." icon="icons/kingbase_icon.png">
+    <extension point="com.seizia.chromite.sqlDialect">
+        <dialect id="kingbase" parent="basic" class="com.seizia.chromite.ext.kingbase.model.KingbaseDialect" label="Kingbase" description="Kingbase dialect." icon="icons/kingbase_icon.png">
             <property name="insertMethods" value="pgInsertIgnore,pgReplaceIgnore"/>
         </dialect>
     </extension>

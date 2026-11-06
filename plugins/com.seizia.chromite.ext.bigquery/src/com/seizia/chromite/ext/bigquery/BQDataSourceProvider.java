@@ -14,15 +14,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.bigquery;
+package com.seizia.chromite.ext.bigquery;
 
 import org.jkiss.code.DynamicCall;
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.ext.bigquery.model.BQDataSource;
-import org.jkiss.dbeaver.ext.generic.GenericDataSourceProvider;
-import org.jkiss.dbeaver.model.connection.DBPConnectionConfiguration;
-import org.jkiss.dbeaver.model.connection.DBPDriver;
-import org.jkiss.dbeaver.utils.GeneralUtils;
+import com.seizia.chromite.ext.bigquery.model.BQDataSource;
+import com.seizia.chromite.ext.generic.GenericDataSourceProvider;
+import com.seizia.chromite.model.connection.DBPConnectionConfiguration;
+import com.seizia.chromite.model.connection.DBPDriver;
+import com.seizia.chromite.utils.GeneralUtils;
 import org.jkiss.utils.CommonUtils;
 
 public class BQDataSourceProvider extends GenericDataSourceProvider<BQDataSource> {

@@ -14,14 +14,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.sql.semantics.tracking;
+package com.seizia.chromite.model.sql.semantics.tracking;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.model.sql.SQLBatchDelimiterElement;
-import org.jkiss.dbeaver.model.sql.SQLScriptElement;
-import org.jkiss.dbeaver.model.sql.SQLScriptVariableScope;
-import org.jkiss.dbeaver.model.sql.semantics.OffsetKeyedTreeMap;
+import com.seizia.chromite.model.sql.SQLBatchDelimiterElement;
+import com.seizia.chromite.model.sql.SQLScriptElement;
+import com.seizia.chromite.model.sql.SQLScriptVariableScope;
+import com.seizia.chromite.model.sql.semantics.OffsetKeyedTreeMap;
 
 /**
  * Ordered tracker for batch-scoped variables. It tracks both variable operations and batch delimiters,

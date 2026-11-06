@@ -14,31 +14,31 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.db2.model.fed;
+package com.seizia.chromite.ext.db2.model.fed;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.ext.db2.DB2Constants;
-import org.jkiss.dbeaver.ext.db2.DB2Messages;
-import org.jkiss.dbeaver.ext.db2.editors.DB2SourceObject;
-import org.jkiss.dbeaver.ext.db2.model.DB2Schema;
-import org.jkiss.dbeaver.ext.db2.model.DB2TableBase;
-import org.jkiss.dbeaver.ext.db2.model.DB2TableColumn;
-import org.jkiss.dbeaver.ext.db2.model.dict.DB2TableAccessMode;
-import org.jkiss.dbeaver.ext.db2.model.dict.DB2TablePartitionMode;
-import org.jkiss.dbeaver.ext.db2.model.dict.DB2TableStatus;
-import org.jkiss.dbeaver.ext.db2.model.dict.DB2YesNo;
-import org.jkiss.dbeaver.model.DBConstants;
-import org.jkiss.dbeaver.model.DBPNamedObject2;
-import org.jkiss.dbeaver.model.DBPRefreshableObject;
-import org.jkiss.dbeaver.model.exec.DBCException;
-import org.jkiss.dbeaver.model.impl.DBObjectNameCaseTransformer;
-import org.jkiss.dbeaver.model.impl.jdbc.JDBCUtils;
-import org.jkiss.dbeaver.model.impl.jdbc.cache.JDBCStructLookupCache;
-import org.jkiss.dbeaver.model.meta.Property;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.model.struct.DBSObject;
-import org.jkiss.dbeaver.model.struct.DBSObjectState;
+import com.seizia.chromite.ext.db2.DB2Constants;
+import com.seizia.chromite.ext.db2.DB2Messages;
+import com.seizia.chromite.ext.db2.editors.DB2SourceObject;
+import com.seizia.chromite.ext.db2.model.DB2Schema;
+import com.seizia.chromite.ext.db2.model.DB2TableBase;
+import com.seizia.chromite.ext.db2.model.DB2TableColumn;
+import com.seizia.chromite.ext.db2.model.dict.DB2TableAccessMode;
+import com.seizia.chromite.ext.db2.model.dict.DB2TablePartitionMode;
+import com.seizia.chromite.ext.db2.model.dict.DB2TableStatus;
+import com.seizia.chromite.ext.db2.model.dict.DB2YesNo;
+import com.seizia.chromite.model.DBConstants;
+import com.seizia.chromite.model.DBPNamedObject2;
+import com.seizia.chromite.model.DBPRefreshableObject;
+import com.seizia.chromite.model.exec.DBCException;
+import com.seizia.chromite.model.impl.DBObjectNameCaseTransformer;
+import com.seizia.chromite.model.impl.jdbc.JDBCUtils;
+import com.seizia.chromite.model.impl.jdbc.cache.JDBCStructLookupCache;
+import com.seizia.chromite.model.meta.Property;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.model.struct.DBSObject;
+import com.seizia.chromite.model.struct.DBSObjectState;
 import org.jkiss.utils.CommonUtils;
 
 import java.sql.ResultSet;

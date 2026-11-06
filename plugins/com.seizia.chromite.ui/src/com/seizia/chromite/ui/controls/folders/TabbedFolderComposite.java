@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.ui.controls.folders;
+package com.seizia.chromite.ui.controls.folders;
 
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.events.SelectionListener;
@@ -29,9 +29,9 @@ import org.eclipse.swt.widgets.Control;
 import org.eclipse.swt.widgets.Sash;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.ui.ConComposite;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.css.CSSUtils;
+import com.seizia.chromite.ui.ConComposite;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.css.CSSUtils;
 
 import java.util.ArrayList;
 import java.util.Arrays;

@@ -14,21 +14,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.navigator.actions;
+package com.seizia.chromite.ui.navigator.actions;
 
 import org.eclipse.core.commands.AbstractHandler;
 import org.eclipse.core.commands.ExecutionEvent;
 import org.eclipse.core.commands.ExecutionException;
 import org.eclipse.ui.commands.IElementUpdater;
 import org.eclipse.ui.menus.UIElement;
-import org.jkiss.dbeaver.model.DBIcon;
-import org.jkiss.dbeaver.ui.ActionUtils;
-import org.jkiss.dbeaver.ui.DBeaverIcons;
-import org.jkiss.dbeaver.ui.UIIcon;
-import org.jkiss.dbeaver.ui.internal.UINavigatorMessages;
-import org.jkiss.dbeaver.ui.navigator.NavigatorCommands;
-import org.jkiss.dbeaver.ui.navigator.NavigatorUtils;
-import org.jkiss.dbeaver.ui.navigator.database.DatabaseNavigatorTree;
+import com.seizia.chromite.model.DBIcon;
+import com.seizia.chromite.ui.ActionUtils;
+import com.seizia.chromite.ui.SwtIcons;
+import com.seizia.chromite.ui.UIIcon;
+import com.seizia.chromite.ui.internal.UINavigatorMessages;
+import com.seizia.chromite.ui.navigator.NavigatorCommands;
+import com.seizia.chromite.ui.navigator.NavigatorUtils;
+import com.seizia.chromite.ui.navigator.database.DatabaseNavigatorTree;
 
 import java.util.Map;
 
@@ -57,7 +57,7 @@ public class NavigatorHandlerConnectionFilter extends AbstractHandler implements
             DBIcon actionIcon = navigatorTree.isFilterShowConnected()
                 ? UIIcon.FILTER_CONNECTED
                 : UIIcon.FILTER_ALL;
-            element.setIcon(DBeaverIcons.getImageDescriptor(actionIcon));
+            element.setIcon(SwtIcons.getImageDescriptor(actionIcon));
             String actionName = navigatorTree.isFilterShowConnected()
                 ? UINavigatorMessages.navigator_handler_connections_filter_show_connected_text
                 : UINavigatorMessages.navigator_handler_connections_filter_show_all_text;

@@ -14,15 +14,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.mimer.edit;
+package com.seizia.chromite.ext.mimer.edit;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.ext.mimer.model.MimerStatement;
-import org.jkiss.dbeaver.ext.mimer.model.MimerStatementPrivilege;
-import org.jkiss.dbeaver.model.edit.DBECommandContext;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.model.struct.cache.DBSObjectCache;
+import com.seizia.chromite.ext.mimer.model.MimerStatement;
+import com.seizia.chromite.ext.mimer.model.MimerStatementPrivilege;
+import com.seizia.chromite.model.edit.DBECommandContext;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.model.struct.cache.DBSObjectCache;
 
 import java.util.Map;
 

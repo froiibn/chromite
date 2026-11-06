@@ -17,13 +17,13 @@
  * Contributors:
  *    Stefan Uhrig - initial implementation
  */
-package org.jkiss.dbeaver.ui.gis.panel;
+package com.seizia.chromite.ui.gis.panel;
 
 import com.google.gson.TypeAdapter;
 import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonWriter;
-import org.jkiss.dbeaver.model.data.DBDContent;
-import org.jkiss.dbeaver.model.data.DBDDisplayFormat;
+import com.seizia.chromite.model.data.DBDContent;
+import com.seizia.chromite.model.data.DBDDisplayFormat;
 
 import java.io.IOException;
 

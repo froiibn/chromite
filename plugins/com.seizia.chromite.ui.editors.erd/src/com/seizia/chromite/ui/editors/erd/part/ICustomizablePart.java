@@ -18,7 +18,7 @@
 /*
  * Created on Jul 13, 2004
  */
-package org.jkiss.dbeaver.ui.editors.erd.part;
+package com.seizia.chromite.ui.editors.erd.part;
 
 import org.eclipse.swt.graphics.Color;
 import org.eclipse.swt.graphics.Font;

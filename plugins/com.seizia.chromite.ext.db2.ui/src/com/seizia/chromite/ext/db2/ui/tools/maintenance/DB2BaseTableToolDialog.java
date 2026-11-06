@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.db2.ui.tools.maintenance;
+package com.seizia.chromite.ext.db2.ui.tools.maintenance;
 
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.widgets.Tree;
@@ -23,16 +23,16 @@ import org.eclipse.swt.widgets.TreeItem;
 import org.eclipse.ui.IWorkbenchPartSite;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.ext.db2.model.DB2Table;
-import org.jkiss.dbeaver.ext.db2.ui.internal.DB2Messages;
-import org.jkiss.dbeaver.model.exec.DBCException;
-import org.jkiss.dbeaver.model.exec.DBCResultSet;
-import org.jkiss.dbeaver.model.exec.DBCStatement;
-import org.jkiss.dbeaver.model.impl.jdbc.exec.JDBCResultSetMetaDataImpl;
-import org.jkiss.dbeaver.ui.BaseThemeSettings;
-import org.jkiss.dbeaver.ui.editors.sql.dialogs.GenerateMultiSQLDialog;
-import org.jkiss.dbeaver.ui.editors.sql.dialogs.SQLScriptProgressListener;
-import org.jkiss.dbeaver.ui.editors.sql.dialogs.SQLScriptStatusDialog;
+import com.seizia.chromite.ext.db2.model.DB2Table;
+import com.seizia.chromite.ext.db2.ui.internal.DB2Messages;
+import com.seizia.chromite.model.exec.DBCException;
+import com.seizia.chromite.model.exec.DBCResultSet;
+import com.seizia.chromite.model.exec.DBCStatement;
+import com.seizia.chromite.model.impl.jdbc.exec.JDBCResultSetMetaDataImpl;
+import com.seizia.chromite.ui.BaseThemeSettings;
+import com.seizia.chromite.ui.editors.sql.dialogs.GenerateMultiSQLDialog;
+import com.seizia.chromite.ui.editors.sql.dialogs.SQLScriptProgressListener;
+import com.seizia.chromite.ui.editors.sql.dialogs.SQLScriptStatusDialog;
 import org.jkiss.utils.CommonUtils;
 
 import java.sql.SQLException;

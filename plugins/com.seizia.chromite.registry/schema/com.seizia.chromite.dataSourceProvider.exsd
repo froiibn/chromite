@@ -1,9 +1,9 @@
 <?xml version='1.0' encoding='UTF-8'?>
 <!-- Schema file written by PDE -->
-<schema targetNamespace="org.jkiss.dbeaver.registry" xmlns="http://www.w3.org/2001/XMLSchema">
+<schema targetNamespace="com.seizia.chromite.registry" xmlns="http://www.w3.org/2001/XMLSchema">
 <annotation>
       <appInfo>
-         <meta.schema plugin="org.jkiss.dbeaver.registry" id="org.jkiss.dbeaver.dataSourceProvider" name="Datasource provider"/>
+         <meta.schema plugin="com.seizia.chromite.registry" id="com.seizia.chromite.dataSourceProvider" name="Datasource provider"/>
       </appInfo>
       <documentation>DBeaver data source provider</documentation>
    </annotation>
@@ -84,7 +84,7 @@
             <annotation>
                <documentation>Datasource provider implementation</documentation>
                <appInfo>
-                  <meta.attribute kind="java" basedOn=":org.jkiss.dbeaver.model.DBPDataSourceProvider"/>
+                  <meta.attribute kind="java" basedOn=":com.seizia.chromite.model.DBPDataSourceProvider"/>
                </appInfo>
             </annotation>
          </attribute>
@@ -627,7 +627,7 @@
       <complexType>
          <attribute name="provider" type="string" use="required"/>
          <attribute name="class" type="string" use="required">
-            <annotation><appInfo><meta.attribute kind="java" basedOn=":org.jkiss.dbeaver.model.DBPDataSourceProvider"/></appInfo></annotation>
+            <annotation><appInfo><meta.attribute kind="java" basedOn=":com.seizia.chromite.model.DBPDataSourceProvider"/></appInfo></annotation>
          </attribute>
       </complexType>
    </element>
@@ -637,7 +637,7 @@
          <attribute name="id" type="string" use="required"/>
          <attribute name="label" type="string" use="required"/>
          <attribute name="class" type="string" use="required">
-            <annotation><appInfo><meta.attribute kind="java" basedOn=":org.jkiss.dbeaver.model.DBPDataSourceOriginProvider"/></appInfo></annotation>
+            <annotation><appInfo><meta.attribute kind="java" basedOn=":com.seizia.chromite.model.DBPDataSourceOriginProvider"/></appInfo></annotation>
          </attribute>
       </complexType>
    </element>
@@ -672,7 +672,7 @@
          <attribute name="provider" type="string" use="required"/>
          <attribute name="driver" type="string" use="required"/>
          <attribute name="class" type="string" use="required">
-            <annotation><appInfo><meta.attribute kind="java" basedOn=":org.jkiss.dbeaver.model.connection.DBPDriverSubstitution"/></appInfo></annotation>
+            <annotation><appInfo><meta.attribute kind="java" basedOn=":com.seizia.chromite.model.connection.DBPDriverSubstitution"/></appInfo></annotation>
          </attribute>
       </complexType>
    </element>

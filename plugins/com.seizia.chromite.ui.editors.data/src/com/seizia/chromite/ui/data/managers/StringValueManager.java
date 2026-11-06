@@ -14,21 +14,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.data.managers;
+package com.seizia.chromite.ui.data.managers;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.model.DBPDataKind;
-import org.jkiss.dbeaver.model.data.DBDContentCached;
-import org.jkiss.dbeaver.ui.controls.resultset.ResultSetPreferences;
-import org.jkiss.dbeaver.ui.data.IValueController;
-import org.jkiss.dbeaver.ui.data.IValueEditor;
-import org.jkiss.dbeaver.ui.data.dialogs.TextViewDialog;
-import org.jkiss.dbeaver.ui.data.editors.ContentInlineEditor;
-import org.jkiss.dbeaver.ui.data.editors.ContentPanelEditor;
-import org.jkiss.dbeaver.ui.data.editors.StringInlineEditor;
-import org.jkiss.dbeaver.ui.editors.content.ContentEditor;
-import org.jkiss.dbeaver.utils.ContentUtils;
+import com.seizia.chromite.model.DBPDataKind;
+import com.seizia.chromite.model.data.DBDContentCached;
+import com.seizia.chromite.ui.controls.resultset.ResultSetPreferences;
+import com.seizia.chromite.ui.data.IValueController;
+import com.seizia.chromite.ui.data.IValueEditor;
+import com.seizia.chromite.ui.data.dialogs.TextViewDialog;
+import com.seizia.chromite.ui.data.editors.ContentInlineEditor;
+import com.seizia.chromite.ui.data.editors.ContentPanelEditor;
+import com.seizia.chromite.ui.data.editors.StringInlineEditor;
+import com.seizia.chromite.ui.editors.content.ContentEditor;
+import com.seizia.chromite.utils.ContentUtils;
 
 import java.util.Collection;
 

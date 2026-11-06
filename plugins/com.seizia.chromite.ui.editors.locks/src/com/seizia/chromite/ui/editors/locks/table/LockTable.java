@@ -15,24 +15,24 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.ui.editors.locks.table;
+package com.seizia.chromite.ui.editors.locks.table;
 
 import org.eclipse.jface.viewers.IStructuredContentProvider;
 import org.eclipse.jface.viewers.Viewer;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.ui.IWorkbenchSite;
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.model.admin.locks.DBAServerLock;
-import org.jkiss.dbeaver.model.admin.locks.DBAServerLockItem;
-import org.jkiss.dbeaver.model.admin.locks.DBAServerLockManager;
-import org.jkiss.dbeaver.model.exec.DBCExecutionContext;
-import org.jkiss.dbeaver.model.exec.DBCExecutionPurpose;
-import org.jkiss.dbeaver.model.exec.DBCSession;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.model.runtime.load.DatabaseLoadService;
-import org.jkiss.dbeaver.ui.LoadingJob;
-import org.jkiss.dbeaver.ui.controls.TreeContentProvider;
-import org.jkiss.dbeaver.ui.navigator.itemlist.DatabaseObjectListControl;
+import com.seizia.chromite.model.admin.locks.DBAServerLock;
+import com.seizia.chromite.model.admin.locks.DBAServerLockItem;
+import com.seizia.chromite.model.admin.locks.DBAServerLockManager;
+import com.seizia.chromite.model.exec.DBCExecutionContext;
+import com.seizia.chromite.model.exec.DBCExecutionPurpose;
+import com.seizia.chromite.model.exec.DBCSession;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.model.runtime.load.DatabaseLoadService;
+import com.seizia.chromite.ui.LoadingJob;
+import com.seizia.chromite.ui.controls.TreeContentProvider;
+import com.seizia.chromite.ui.navigator.itemlist.DatabaseObjectListControl;
 
 import java.lang.reflect.InvocationTargetException;
 import java.util.Collection;

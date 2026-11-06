@@ -14,19 +14,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.dashboard.registry;
+package com.seizia.chromite.ui.dashboard.registry;
 
 import org.eclipse.core.runtime.IConfigurationElement;
 import org.jkiss.code.NotNull;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.model.DBPImage;
-import org.jkiss.dbeaver.model.dashboard.DBDashboardDataType;
-import org.jkiss.dbeaver.model.dashboard.registry.DashboardItemConfiguration;
-import org.jkiss.dbeaver.model.impl.AbstractContextDescriptor;
-import org.jkiss.dbeaver.ui.IObjectPropertyConfigurator;
-import org.jkiss.dbeaver.ui.dashboard.model.DashboardItemRenderer;
-import org.jkiss.dbeaver.ui.dashboard.model.DashboardItemViewSettings;
-import org.jkiss.dbeaver.ui.dashboard.model.DashboardRendererType;
+import com.seizia.chromite.model.DBPImage;
+import com.seizia.chromite.model.dashboard.DBDashboardDataType;
+import com.seizia.chromite.model.dashboard.registry.DashboardItemConfiguration;
+import com.seizia.chromite.model.impl.AbstractContextDescriptor;
+import com.seizia.chromite.ui.IObjectPropertyConfigurator;
+import com.seizia.chromite.ui.dashboard.model.DashboardItemRenderer;
+import com.seizia.chromite.ui.dashboard.model.DashboardItemViewSettings;
+import com.seizia.chromite.ui.dashboard.model.DashboardRendererType;
 import org.jkiss.utils.CommonUtils;
 
 /**
@@ -34,7 +34,7 @@ import org.jkiss.utils.CommonUtils;
  */
 public class DashboardRendererDescriptor extends AbstractContextDescriptor implements DashboardRendererType
 {
-    public static final String EXTENSION_ID = "org.jkiss.dbeaver.dashboard.ui";
+    public static final String EXTENSION_ID = "com.seizia.chromite.dashboard.ui";
     private final String id;
     private final String label;
     private final String description;

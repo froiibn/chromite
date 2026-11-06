@@ -14,11 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.ai.chat.internal;
+package com.seizia.chromite.ui.ai.chat.internal;
 
 import org.eclipse.swt.graphics.Color;
-import org.jkiss.dbeaver.ui.ThemeColor;
-import org.jkiss.dbeaver.ui.ThemeListener;
+import com.seizia.chromite.ui.ThemeColor;
+import com.seizia.chromite.ui.ThemeListener;
 
 public final class AIChatThemeSettings extends ThemeListener {
     public static final AIChatThemeSettings instance = new AIChatThemeSettings();

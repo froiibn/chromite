@@ -14,13 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.editors.erd.policy;
+package com.seizia.chromite.ui.editors.erd.policy;
 
 import org.eclipse.gef.commands.Command;
 import org.eclipse.gef.editpolicies.ComponentEditPolicy;
 import org.eclipse.gef.requests.GroupRequest;
-import org.jkiss.dbeaver.ui.editors.erd.command.AssociationDeleteCommand;
-import org.jkiss.dbeaver.ui.editors.erd.part.AssociationPart;
+import com.seizia.chromite.ui.editors.erd.command.AssociationDeleteCommand;
+import com.seizia.chromite.ui.editors.erd.part.AssociationPart;
 
 /**
  * EditPolicy to handle deletion of relationships

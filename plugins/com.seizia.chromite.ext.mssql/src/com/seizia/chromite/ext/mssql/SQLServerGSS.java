@@ -15,11 +15,11 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.ext.mssql;
+package com.seizia.chromite.ext.mssql;
 
 import org.ietf.jgss.*;
-import org.jkiss.dbeaver.model.connection.DBPConnectionConfiguration;
-import org.jkiss.dbeaver.model.exec.DBCException;
+import com.seizia.chromite.model.connection.DBPConnectionConfiguration;
+import com.seizia.chromite.model.exec.DBCException;
 import org.jkiss.utils.CommonUtils;
 
 import java.util.Properties;

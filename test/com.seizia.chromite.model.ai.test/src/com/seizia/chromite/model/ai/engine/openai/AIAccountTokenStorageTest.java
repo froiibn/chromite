@@ -14,18 +14,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.ai.engine.openai;
+package com.seizia.chromite.model.ai.engine.openai;
 
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.model.ai.AIConfigurationProfile;
-import org.jkiss.dbeaver.model.ai.utils.AIUtils;
-import org.jkiss.dbeaver.model.app.DBPPlatform;
-import org.jkiss.dbeaver.model.impl.app.SecurePreferencesSecretController;
-import org.jkiss.dbeaver.model.secret.DBSSecretController;
-import org.jkiss.dbeaver.model.security.DBSecurityProviders;
-import org.jkiss.dbeaver.model.security.DBSecurityUtils;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.junit.DBeaverUnitTest;
+import com.seizia.chromite.model.ai.AIConfigurationProfile;
+import com.seizia.chromite.model.ai.utils.AIUtils;
+import com.seizia.chromite.model.app.DBPPlatform;
+import com.seizia.chromite.model.impl.app.SecurePreferencesSecretController;
+import com.seizia.chromite.model.secret.DBSSecretController;
+import com.seizia.chromite.model.security.DBSecurityProviders;
+import com.seizia.chromite.model.security.DBSecurityUtils;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.junit.ChromiteUnitTest;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentMatchers;
@@ -35,7 +35,7 @@ import org.mockito.Mockito;
 import java.util.HashMap;
 import java.util.Map;
 
-class AIAccountTokenStorageTest extends DBeaverUnitTest {
+class AIAccountTokenStorageTest extends ChromiteUnitTest {
     @Test
     void subscriptionTokensUseNativeProviderAndKeepLegacyReadable() throws Exception {
         AIConfigurationProfile profile = new AIConfigurationProfile();

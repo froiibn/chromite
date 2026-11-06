@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.ui.controls.resultset;
+package com.seizia.chromite.ui.controls.resultset;
 
 import org.eclipse.jface.action.IMenuManager;
 import org.eclipse.swt.dnd.Transfer;
@@ -24,8 +24,8 @@ import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Control;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.model.data.DBDAttributeBinding;
-import org.jkiss.dbeaver.ui.controls.findandreplace.FindReplaceOverlay;
+import com.seizia.chromite.model.data.DBDAttributeBinding;
+import com.seizia.chromite.ui.controls.findandreplace.FindReplaceOverlay;
 
 import java.util.Map;
 
@@ -116,7 +116,7 @@ public interface IResultSetPresentation {
     /**
      * Called by controller to fill context menu.
      * Note: context menu invocation must be initiated by presentation, then it should call controller's
-     * {@link org.jkiss.dbeaver.ui.controls.resultset.IResultSetController#fillContextMenu} which then will
+     * {@link com.seizia.chromite.ui.controls.resultset.IResultSetController#fillContextMenu} which then will
      * call this function.
      * Cool, huh?
      * @param menu    menu

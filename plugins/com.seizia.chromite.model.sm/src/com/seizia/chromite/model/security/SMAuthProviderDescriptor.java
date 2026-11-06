@@ -14,9 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.security;
+package com.seizia.chromite.model.security;
 
-import org.jkiss.dbeaver.model.auth.AuthPropertyDescriptor;
+import com.seizia.chromite.model.auth.AuthPropertyDescriptor;
 
 import java.util.ArrayList;
 import java.util.List;

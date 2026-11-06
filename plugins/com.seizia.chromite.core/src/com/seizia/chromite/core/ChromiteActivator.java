@@ -14,20 +14,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.core;
+package com.seizia.chromite.core;
 
 import org.eclipse.core.runtime.Platform;
 import org.eclipse.ui.plugin.AbstractUIPlugin;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.awt.injector.ProxyInjector;
-import org.jkiss.dbeaver.ModelPreferences;
-import org.jkiss.dbeaver.model.impl.preferences.BundlePreferenceStore;
-import org.jkiss.dbeaver.model.preferences.DBPPreferenceStore;
-import org.jkiss.dbeaver.ui.AWTUtils;
-import org.jkiss.dbeaver.ui.ShellUtils;
-import org.jkiss.dbeaver.ui.browser.BrowsePeerMethods;
-import org.jkiss.dbeaver.ui.preferences.UIPreferences;
+import com.seizia.chromite.ModelPreferences;
+import com.seizia.chromite.model.impl.preferences.BundlePreferenceStore;
+import com.seizia.chromite.model.preferences.DBPPreferenceStore;
+import com.seizia.chromite.ui.AWTUtils;
+import com.seizia.chromite.ui.ShellUtils;
+import com.seizia.chromite.ui.browser.BrowsePeerMethods;
+import com.seizia.chromite.ui.preferences.UIPreferences;
 import org.osgi.framework.Bundle;
 import org.osgi.framework.BundleContext;
 
@@ -39,11 +39,11 @@ import java.util.ResourceBundle;
 /**
  * The activator class controls the plug-in life cycle
  */
-public class DBeaverActivator extends AbstractUIPlugin {
+public class ChromiteActivator extends AbstractUIPlugin {
 
     // The shared instance
     @Nullable
-    private static DBeaverActivator instance;
+    private static ChromiteActivator instance;
     @Nullable
     private ResourceBundle pluginResourceBundle;
     @Nullable
@@ -51,11 +51,11 @@ public class DBeaverActivator extends AbstractUIPlugin {
     @Nullable
     private DBPPreferenceStore preferences;
 
-    public DBeaverActivator() {
+    public ChromiteActivator() {
     }
 
     @Nullable
-    public static DBeaverActivator getInstance() {
+    public static ChromiteActivator getInstance() {
         return instance;
     }
 

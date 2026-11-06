@@ -14,27 +14,27 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.mimer.edit;
+package com.seizia.chromite.ext.mimer.edit;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.ext.mimer.model.MimerUdtMethodSpec;
-import org.jkiss.dbeaver.ext.mimer.model.MimerUserDefinedType;
-import org.jkiss.dbeaver.model.DBPDataSource;
-import org.jkiss.dbeaver.model.edit.DBECommandContext;
-import org.jkiss.dbeaver.model.edit.DBEObjectManager;
-import org.jkiss.dbeaver.model.edit.DBEPersistAction;
-import org.jkiss.dbeaver.model.exec.DBCExecutionContext;
-import org.jkiss.dbeaver.model.impl.edit.SQLDatabasePersistAction;
-import org.jkiss.dbeaver.model.impl.sql.edit.SQLObjectEditor;
-import org.jkiss.dbeaver.model.navigator.DBNDatabaseFolder;
-import org.jkiss.dbeaver.model.navigator.meta.DBXTreeItem;
-import org.jkiss.dbeaver.model.navigator.meta.DBXTreeNode;
-import org.jkiss.dbeaver.model.rm.RMConstants;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.model.struct.cache.DBSObjectCache;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
+import com.seizia.chromite.ext.mimer.model.MimerUdtMethodSpec;
+import com.seizia.chromite.ext.mimer.model.MimerUserDefinedType;
+import com.seizia.chromite.model.DBPDataSource;
+import com.seizia.chromite.model.edit.DBECommandContext;
+import com.seizia.chromite.model.edit.DBEObjectManager;
+import com.seizia.chromite.model.edit.DBEPersistAction;
+import com.seizia.chromite.model.exec.DBCExecutionContext;
+import com.seizia.chromite.model.impl.edit.SQLDatabasePersistAction;
+import com.seizia.chromite.model.impl.sql.edit.SQLObjectEditor;
+import com.seizia.chromite.model.navigator.DBNDatabaseFolder;
+import com.seizia.chromite.model.navigator.meta.DBXTreeItem;
+import com.seizia.chromite.model.navigator.meta.DBXTreeNode;
+import com.seizia.chromite.model.rm.RMConstants;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.model.struct.cache.DBSObjectCache;
+import com.seizia.chromite.runtime.DBWorkbench;
 import org.jkiss.utils.CommonUtils;
 
 import java.util.List;
@@ -167,7 +167,7 @@ public class MimerUdtMethodSpecManager extends SQLObjectEditor<MimerUdtMethodSpe
      * Supplies the body for an already-declared specification - {@code CREATE SPECIFIC METHOD
      * "s"."specificName" BEGIN ... END}, fired via the Source tab's Save (see {@link
      * MimerUdtMethodSpec#getObjectDefinitionText}). Once this runs, the spec has a matching
-     * {@code ROUTINES} row and "graduates" to a real {@link org.jkiss.dbeaver.ext.mimer.model.MimerUdtMethod}
+     * {@code ROUTINES} row and "graduates" to a real {@link com.seizia.chromite.ext.mimer.model.MimerUdtMethod}
      * on next refresh - this manager has no further use for the object after that.
      */
     @Override

@@ -15,11 +15,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.db2.editors;
+package com.seizia.chromite.ext.db2.editors;
 
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.ext.db2.DB2Constants;
-import org.jkiss.dbeaver.ext.db2.model.DB2DataSource;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.ext.db2.DB2Constants;
+import com.seizia.chromite.ext.db2.model.DB2DataSource;
 import org.jkiss.utils.CommonUtils;
 
 /**
@@ -37,7 +37,7 @@ public enum DB2DDLFormat {
     private final String     title;
     private final boolean    needsFormatting;
 
-    private static final Log log = org.jkiss.dbeaver.Log.getLog(DB2DDLFormat.class);
+    private static final Log log = com.seizia.chromite.Log.getLog(DB2DDLFormat.class);
 
     // ------------
     // Constructors

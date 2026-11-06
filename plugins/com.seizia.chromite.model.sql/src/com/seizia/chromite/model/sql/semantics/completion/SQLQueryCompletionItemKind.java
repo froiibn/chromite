@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.sql.semantics.completion;
+package com.seizia.chromite.model.sql.semantics.completion;
 
 public enum SQLQueryCompletionItemKind {
     UNKNOWN(false, false, Integer.MAX_VALUE),

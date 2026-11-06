@@ -14,12 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.duckdb.ui;
+package com.seizia.chromite.ext.duckdb.ui;
 
 import org.eclipse.swt.widgets.Composite;
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.model.access.DBAAuthModel;
-import org.jkiss.dbeaver.ui.dialogs.connection.DatabaseNativeAuthModelConfigurator;
+import com.seizia.chromite.model.access.DBAAuthModel;
+import com.seizia.chromite.ui.dialogs.connection.DatabaseNativeAuthModelConfigurator;
 
 /**
  * MotherDuck has no user name, only the access token, entered in the password field.

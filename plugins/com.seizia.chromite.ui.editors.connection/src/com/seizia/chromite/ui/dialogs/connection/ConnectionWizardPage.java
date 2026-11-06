@@ -14,11 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.dialogs.connection;
+package com.seizia.chromite.ui.dialogs.connection;
 
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.model.DBPDataSourceContainer;
-import org.jkiss.dbeaver.ui.dialogs.ActiveWizardPage;
+import com.seizia.chromite.model.DBPDataSourceContainer;
+import com.seizia.chromite.ui.dialogs.ActiveWizardPage;
 
 /**
  * Abstract connection wizard page

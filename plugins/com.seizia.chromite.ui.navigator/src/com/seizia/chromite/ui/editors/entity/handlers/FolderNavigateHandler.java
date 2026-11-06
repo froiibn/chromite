@@ -14,15 +14,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.editors.entity.handlers;
+package com.seizia.chromite.ui.editors.entity.handlers;
 
 import org.eclipse.core.commands.AbstractHandler;
 import org.eclipse.core.commands.ExecutionEvent;
 import org.eclipse.core.commands.ExecutionException;
 import org.eclipse.ui.IWorkbenchCommandConstants;
 import org.eclipse.ui.handlers.HandlerUtil;
-import org.jkiss.dbeaver.ui.editors.entity.FolderEditor;
-import org.jkiss.dbeaver.utils.RuntimeUtils;
+import com.seizia.chromite.ui.editors.entity.FolderEditor;
+import com.seizia.chromite.utils.RuntimeUtils;
 
 
 public class FolderNavigateHandler extends AbstractHandler //implements IElementUpdater

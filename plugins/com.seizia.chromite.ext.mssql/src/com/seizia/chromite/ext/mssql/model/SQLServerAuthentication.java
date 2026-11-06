@@ -14,12 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.mssql.model;
+package com.seizia.chromite.ext.mssql.model;
 
-import org.jkiss.dbeaver.ext.mssql.SQLServerMessages;
-import org.jkiss.dbeaver.ext.mssql.auth.*;
-import org.jkiss.dbeaver.model.connection.DBPConnectionConfiguration;
-import org.jkiss.dbeaver.model.exec.DBCException;
+import com.seizia.chromite.ext.mssql.SQLServerMessages;
+import com.seizia.chromite.ext.mssql.auth.*;
+import com.seizia.chromite.model.connection.DBPConnectionConfiguration;
+import com.seizia.chromite.model.exec.DBCException;
 
 import java.util.Properties;
 

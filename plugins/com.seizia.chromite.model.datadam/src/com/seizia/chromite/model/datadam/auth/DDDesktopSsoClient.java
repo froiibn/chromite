@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.datadam.auth;
+package com.seizia.chromite.model.datadam.auth;
 
 import com.dbeaver.datadam.sso.api.DDSsoConstants;
 import com.dbeaver.datadam.sso.api.DDSsoScopes;
@@ -25,8 +25,8 @@ import com.google.gson.JsonParseException;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.model.datadam.DDClient;
-import org.jkiss.dbeaver.model.datadam.DDEndpoints;
+import com.seizia.chromite.model.datadam.DDClient;
+import com.seizia.chromite.model.datadam.DDEndpoints;
 import org.jkiss.utils.CommonUtils;
 import org.jkiss.utils.oauth.OAuthConstants;
 

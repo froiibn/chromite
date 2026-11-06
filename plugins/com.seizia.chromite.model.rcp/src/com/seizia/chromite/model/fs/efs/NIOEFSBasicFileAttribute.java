@@ -14,11 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.fs.efs;
+package com.seizia.chromite.model.fs.efs;
 
 import org.eclipse.core.filesystem.IFileInfo;
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.model.nio.NIOFileBasicAttribute;
+import com.seizia.chromite.model.nio.NIOFileBasicAttribute;
 
 import java.nio.file.attribute.FileTime;
 

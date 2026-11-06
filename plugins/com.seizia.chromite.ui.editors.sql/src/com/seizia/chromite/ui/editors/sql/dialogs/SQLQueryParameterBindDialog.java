@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.editors.sql.dialogs;
+package com.seizia.chromite.ui.editors.sql.dialogs;
 
 import org.eclipse.jface.dialogs.IDialogConstants;
 import org.eclipse.jface.dialogs.IDialogSettings;
@@ -27,24 +27,24 @@ import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.*;
 import org.eclipse.ui.IWorkbenchPartSite;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.DBIcon;
-import org.jkiss.dbeaver.model.impl.DataSourceContextProvider;
-import org.jkiss.dbeaver.model.sql.SQLQuery;
-import org.jkiss.dbeaver.model.sql.SQLQueryParameter;
-import org.jkiss.dbeaver.model.sql.SQLScriptContext;
-import org.jkiss.dbeaver.model.sql.SQLUtils;
-import org.jkiss.dbeaver.model.sql.registry.SQLQueryParameterRegistry;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.runtime.ui.UIServiceSQL;
-import org.jkiss.dbeaver.ui.DBeaverIcons;
-import org.jkiss.dbeaver.ui.UIIcon;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.controls.CustomTableEditor;
-import org.jkiss.dbeaver.ui.controls.TableColumnSortListener;
-import org.jkiss.dbeaver.ui.dialogs.EditTextDialog;
-import org.jkiss.dbeaver.ui.editors.sql.internal.SQLEditorMessages;
-import org.jkiss.dbeaver.ui.internal.UIMessages;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.DBIcon;
+import com.seizia.chromite.model.impl.DataSourceContextProvider;
+import com.seizia.chromite.model.sql.SQLQuery;
+import com.seizia.chromite.model.sql.SQLQueryParameter;
+import com.seizia.chromite.model.sql.SQLScriptContext;
+import com.seizia.chromite.model.sql.SQLUtils;
+import com.seizia.chromite.model.sql.registry.SQLQueryParameterRegistry;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.runtime.ui.UIServiceSQL;
+import com.seizia.chromite.ui.SwtIcons;
+import com.seizia.chromite.ui.UIIcon;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.controls.CustomTableEditor;
+import com.seizia.chromite.ui.controls.TableColumnSortListener;
+import com.seizia.chromite.ui.dialogs.EditTextDialog;
+import com.seizia.chromite.ui.editors.sql.internal.SQLEditorMessages;
+import com.seizia.chromite.ui.internal.UIMessages;
 import org.jkiss.utils.CommonUtils;
 
 import java.io.StringWriter;
@@ -170,7 +170,7 @@ public class SQLQueryParameterBindDialog extends TrayDialog {
                     composite.setLayoutData(gridData);
                     editor = new Text(composite, SWT.NONE);
                     editor.setLayoutData(gridData);
-                    Button button = UIUtils.createPushButton(composite, null, DBeaverIcons.getImage(UIIcon.DOTS_BUTTON));
+                    Button button = UIUtils.createPushButton(composite, null, SwtIcons.getImage(UIIcon.DOTS_BUTTON));
                     editor.setText(CommonUtils.notEmpty(param.getValue()));
                     button.addSelectionListener(SelectionListener.widgetSelectedAdapter(e -> {
                             final String result = EditTextDialog.editText(parent.getShell(), UIMessages.edit_text_dialog_title_edit_value,
@@ -289,7 +289,7 @@ public class SQLQueryParameterBindDialog extends TrayDialog {
             }
             TableItem item = new TableItem(paramTable, SWT.NONE);
             item.setData(param);
-            item.setImage(DBeaverIcons.getImage(DBIcon.TREE_ATTRIBUTE));
+            item.setImage(SwtIcons.getImage(DBIcon.TREE_ATTRIBUTE));
             item.setText(0, String.valueOf(param.getOrdinalPosition() + 1));
             item.setText(1, param.getOriginalName());
             item.setText(2, CommonUtils.notEmpty(param.getValue()));

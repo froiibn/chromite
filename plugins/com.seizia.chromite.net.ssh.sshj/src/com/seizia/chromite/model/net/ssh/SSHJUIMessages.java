@@ -14,12 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.net.ssh;
+package com.seizia.chromite.model.net.ssh;
 
 import org.eclipse.osgi.util.NLS;
 
 public final class SSHJUIMessages extends NLS {
-    private static final String BUNDLE_NAME = "org.jkiss.dbeaver.model.net.ssh.SSHJUIMessages"; //$NON-NLS-1$
+    private static final String BUNDLE_NAME = "com.seizia.chromite.model.net.ssh.SSHJUIMessages"; //$NON-NLS-1$
 
     public static String verify_connection_confirmation_message;
     public static String verify_connection_confirmation_title;

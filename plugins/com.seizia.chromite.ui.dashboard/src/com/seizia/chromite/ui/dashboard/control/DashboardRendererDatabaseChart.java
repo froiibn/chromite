@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.dashboard.control;
+package com.seizia.chromite.ui.dashboard.control;
 
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.widgets.Composite;
@@ -26,11 +26,11 @@ import org.jfree.data.time.TimeSeries;
 import org.jfree.data.time.TimeSeriesCollection;
 import org.jfree.data.time.TimeSeriesDataItem;
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.ui.AWTUtils;
-import org.jkiss.dbeaver.ui.UIStyles;
-import org.jkiss.dbeaver.ui.dashboard.model.DashboardContainer;
-import org.jkiss.dbeaver.ui.dashboard.model.DashboardItemContainer;
-import org.jkiss.dbeaver.ui.dashboard.model.DashboardItemViewSettings;
+import com.seizia.chromite.ui.AWTUtils;
+import com.seizia.chromite.ui.UIStyles;
+import com.seizia.chromite.ui.dashboard.model.DashboardContainer;
+import com.seizia.chromite.ui.dashboard.model.DashboardItemContainer;
+import com.seizia.chromite.ui.dashboard.model.DashboardItemViewSettings;
 
 import java.awt.*;
 

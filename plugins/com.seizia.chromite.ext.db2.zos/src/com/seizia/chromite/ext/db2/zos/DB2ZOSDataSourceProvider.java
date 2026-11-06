@@ -14,10 +14,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.db2.zos;
+package com.seizia.chromite.ext.db2.zos;
 
-import org.jkiss.dbeaver.ext.db2.zos.model.DB2ZOSDataSource;
-import org.jkiss.dbeaver.ext.generic.GenericDataSourceProvider;
+import com.seizia.chromite.ext.db2.zos.model.DB2ZOSDataSource;
+import com.seizia.chromite.ext.generic.GenericDataSourceProvider;
 
 public class DB2ZOSDataSourceProvider extends GenericDataSourceProvider<DB2ZOSDataSource> {
 

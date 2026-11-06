@@ -14,14 +14,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.ai.impl;
+package com.seizia.chromite.model.ai.impl;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.model.ai.AIImageAttachment;
-import org.jkiss.dbeaver.model.ai.AIMessage;
-import org.jkiss.dbeaver.model.ai.AIMessageType;
+import com.seizia.chromite.model.ai.AIImageAttachment;
+import com.seizia.chromite.model.ai.AIMessage;
+import com.seizia.chromite.model.ai.AIMessageType;
 
 import java.util.*;
 import java.util.function.ToIntFunction;

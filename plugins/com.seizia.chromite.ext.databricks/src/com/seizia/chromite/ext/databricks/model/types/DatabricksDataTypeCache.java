@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.databricks.model.types;
+package com.seizia.chromite.ext.databricks.model.types;
 
 import org.antlr.v4.runtime.CharStreams;
 import org.antlr.v4.runtime.CommonTokenStream;
@@ -22,13 +22,13 @@ import org.antlr.v4.runtime.RuleContext;
 import org.antlr.v4.runtime.tree.ParseTree;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.ext.databricks.DatabricksDataTypesLexer;
-import org.jkiss.dbeaver.ext.databricks.DatabricksDataTypesParser;
-import org.jkiss.dbeaver.ext.generic.model.GenericDataType;
-import org.jkiss.dbeaver.ext.generic.model.GenericDataTypeCache;
-import org.jkiss.dbeaver.ext.generic.model.GenericStructContainer;
-import org.jkiss.dbeaver.model.struct.DBSEntity;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.ext.databricks.DatabricksDataTypesLexer;
+import com.seizia.chromite.ext.databricks.DatabricksDataTypesParser;
+import com.seizia.chromite.ext.generic.model.GenericDataType;
+import com.seizia.chromite.ext.generic.model.GenericDataTypeCache;
+import com.seizia.chromite.ext.generic.model.GenericStructContainer;
+import com.seizia.chromite.model.struct.DBSEntity;
 
 import java.sql.Types;
 import java.util.HashMap;

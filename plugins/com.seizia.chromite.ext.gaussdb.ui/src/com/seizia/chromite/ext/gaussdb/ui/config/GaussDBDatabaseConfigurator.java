@@ -15,19 +15,19 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.ext.gaussdb.ui.config;
+package com.seizia.chromite.ext.gaussdb.ui.config;
 
 import org.eclipse.jface.dialogs.IDialogConstants;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.ext.gaussdb.model.GaussDBDatabase;
-import org.jkiss.dbeaver.ext.gaussdb.ui.GaussDBCreateDatabaseDialog;
-import org.jkiss.dbeaver.model.edit.DBECommandContext;
-import org.jkiss.dbeaver.model.edit.DBEObjectConfigurator;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.ui.UITask;
-import org.jkiss.dbeaver.ui.UIUtils;
+import com.seizia.chromite.ext.gaussdb.model.GaussDBDatabase;
+import com.seizia.chromite.ext.gaussdb.ui.GaussDBCreateDatabaseDialog;
+import com.seizia.chromite.model.edit.DBECommandContext;
+import com.seizia.chromite.model.edit.DBEObjectConfigurator;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.ui.UITask;
+import com.seizia.chromite.ui.UIUtils;
 
 import java.util.Map;
 

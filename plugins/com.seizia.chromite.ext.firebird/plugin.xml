@@ -3,11 +3,11 @@
 
 <plugin>
 
-    <extension point="org.jkiss.dbeaver.generic.meta">
-        <meta id="firebird" class="org.jkiss.dbeaver.ext.firebird.model.FireBirdMetaModel" driverClass="org.firebirdsql.jdbc.FBDriver"/>
+    <extension point="com.seizia.chromite.generic.meta">
+        <meta id="firebird" class="com.seizia.chromite.ext.firebird.model.FireBirdMetaModel" driverClass="org.firebirdsql.jdbc.FBDriver"/>
     </extension>
 
-    <extension point="org.jkiss.dbeaver.dataSourceProvider">
+    <extension point="com.seizia.chromite.dataSourceProvider">
 
         <dataSourceType
             id="firebird"
@@ -20,7 +20,7 @@
         <!-- SQL Server -->
 
         <datasource
-                class="org.jkiss.dbeaver.ext.firebird.FireBirdDataSourceProvider"
+                class="com.seizia.chromite.ext.firebird.FireBirdDataSourceProvider"
                 description="Firebird Jaybird driver"
                 id="jaybird"
                 dataSourceType="firebird"
@@ -93,36 +93,36 @@
         </datasource>
     </extension>
 
-    <extension point="org.jkiss.dbeaver.objectManager">
-        <manager class="org.jkiss.dbeaver.ext.firebird.edit.FireBirdTableManager" objectType="org.jkiss.dbeaver.ext.firebird.model.FireBirdTable"/>
-        <manager class="org.jkiss.dbeaver.ext.firebird.edit.FireBirdTableColumnManager" objectType="org.jkiss.dbeaver.ext.firebird.model.FireBirdTableColumn"/>
-        <manager class="org.jkiss.dbeaver.ext.firebird.edit.FireBirdProcedureManager" objectType="org.jkiss.dbeaver.ext.firebird.model.FireBirdProcedure"/>
+    <extension point="com.seizia.chromite.objectManager">
+        <manager class="com.seizia.chromite.ext.firebird.edit.FireBirdTableManager" objectType="com.seizia.chromite.ext.firebird.model.FireBirdTable"/>
+        <manager class="com.seizia.chromite.ext.firebird.edit.FireBirdTableColumnManager" objectType="com.seizia.chromite.ext.firebird.model.FireBirdTableColumn"/>
+        <manager class="com.seizia.chromite.ext.firebird.edit.FireBirdProcedureManager" objectType="com.seizia.chromite.ext.firebird.model.FireBirdProcedure"/>
     </extension>
 
-    <extension point="org.jkiss.dbeaver.sqlInsertMethod">
-        <method id="firebirdReplaceIgnore" class="org.jkiss.dbeaver.ext.firebird.model.FireBirdInsertReplaceMethod" label="UPDATE OR INSERT INTO" description="Insert replace duplicate key value"/>
+    <extension point="com.seizia.chromite.sqlInsertMethod">
+        <method id="firebirdReplaceIgnore" class="com.seizia.chromite.ext.firebird.model.FireBirdInsertReplaceMethod" label="UPDATE OR INSERT INTO" description="Insert replace duplicate key value"/>
     </extension>
 
-    <extension point="org.jkiss.dbeaver.sqlDialect">
-        <dialect id="firebird" parent="generic" class="org.jkiss.dbeaver.ext.firebird.model.FireBirdSQLDialect" label="Firebird" description="Firebird SQL dialect." icon="icons/firebird_icon.png">
+    <extension point="com.seizia.chromite.sqlDialect">
+        <dialect id="firebird" parent="generic" class="com.seizia.chromite.ext.firebird.model.FireBirdSQLDialect" label="Firebird" description="Firebird SQL dialect." icon="icons/firebird_icon.png">
             <property name="insertMethods" value="firebirdReplaceIgnore"/>
         </dialect>
     </extension>
 
-    <extension point="org.jkiss.dbeaver.sqlGenerator">
+    <extension point="com.seizia.chromite.sqlGenerator">
         <generator id="firebirdUpdateOrInsert"
-            class="org.jkiss.dbeaver.ext.firebird.model.sql.generator.SQLGeneratorUpdateOrInsert"
+            class="com.seizia.chromite.ext.firebird.model.sql.generator.SQLGeneratorUpdateOrInsert"
             label="UPDATE OR INSERT"
             description="UPDATE OR INSERT INTO with MATCHING clause"
             order="7">
-            <objectType name="org.jkiss.dbeaver.ext.firebird.model.FireBirdTable"/>
+            <objectType name="com.seizia.chromite.ext.firebird.model.FireBirdTable"/>
         </generator>
         <generator id="firebirdExecuteBlock"
-            class="org.jkiss.dbeaver.ext.firebird.model.sql.generator.SQLGeneratorExecuteBlock"
+            class="com.seizia.chromite.ext.firebird.model.sql.generator.SQLGeneratorExecuteBlock"
             label="EXECUTE BLOCK"
             description="EXECUTE BLOCK with variable declarations"
             order="8">
-            <objectType name="org.jkiss.dbeaver.ext.firebird.model.FireBirdTable"/>
+            <objectType name="com.seizia.chromite.ext.firebird.model.FireBirdTable"/>
         </generator>
     </extension>
 

@@ -14,15 +14,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.controls;
+package com.seizia.chromite.ui.controls;
 
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Control;
 import org.eclipse.swt.widgets.Label;
 import org.eclipse.ui.menus.WorkbenchWindowControlContribution;
-import org.jkiss.dbeaver.ui.DBeaverIcons;
-import org.jkiss.dbeaver.ui.UIIcon;
+import com.seizia.chromite.ui.SwtIcons;
+import com.seizia.chromite.ui.UIIcon;
 
 /**
  * ToolbarSeparatorContribution
@@ -51,7 +51,7 @@ public class ToolbarSeparatorContribution extends WorkbenchWindowControlContribu
     @Override
     protected Control createControl(Composite parent) {
         Label label = new Label(parent, SWT.NONE);//SEPARATOR | (vertical ? SWT.VERTICAL : SWT.HORIZONTAL));
-        label.setImage(DBeaverIcons.getImage(vertical ? UIIcon.SEPARATOR_V : UIIcon.SEPARATOR_H));
+        label.setImage(SwtIcons.getImage(vertical ? UIIcon.SEPARATOR_V : UIIcon.SEPARATOR_H));
         return label;
     }
 }

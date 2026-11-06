@@ -14,15 +14,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.sql;
+package com.seizia.chromite.model.sql;
 
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.ext.postgresql.tasks.PostgreToolBaseVacuum;
-import org.jkiss.dbeaver.model.data.json.JSONUtils;
-import org.jkiss.dbeaver.model.runtime.VoidProgressMonitor;
-import org.jkiss.dbeaver.model.sql.task.SQLToolExecuteHandler;
-import org.jkiss.dbeaver.registry.project.ProjectImportRegistry;
-import org.jkiss.junit.DBeaverUnitTest;
+import com.seizia.chromite.ext.postgresql.tasks.PostgreToolBaseVacuum;
+import com.seizia.chromite.model.data.json.JSONUtils;
+import com.seizia.chromite.model.runtime.VoidProgressMonitor;
+import com.seizia.chromite.model.sql.task.SQLToolExecuteHandler;
+import com.seizia.chromite.registry.project.ProjectImportRegistry;
+import com.seizia.chromite.junit.ChromiteUnitTest;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -36,7 +36,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.Map;
 
-public class SQLToolExecuteHandlerImportTest extends DBeaverUnitTest {
+public class SQLToolExecuteHandlerImportTest extends ChromiteUnitTest {
     private final SQLToolExecuteHandler<?, ?> handler = new PostgreToolBaseVacuum();
 
     @Test
@@ -122,7 +122,7 @@ public class SQLToolExecuteHandlerImportTest extends DBeaverUnitTest {
         ProjectImportRegistry imports = new ProjectImportRegistry();
         try (InputStream source = new ByteArrayInputStream(json.getBytes(StandardCharsets.UTF_8));
              InputStream result = imports.transformResource(
-                 new VoidProgressMonitor(), Path.of(".dbeaver/tasks.json"), source, StandardCharsets.UTF_8,
+                 new VoidProgressMonitor(), Path.of(".chromite/tasks.json"), source, StandardCharsets.UTF_8,
                  Map.of("Source", "Target", "OtherImported", "OtherTarget"))
         ) {
             Assertions.assertEquals(expected, JSONUtils.parseMap(JSONUtils.GSON, new InputStreamReader(result, StandardCharsets.UTF_8)));

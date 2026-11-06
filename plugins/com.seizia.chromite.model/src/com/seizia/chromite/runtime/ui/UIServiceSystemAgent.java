@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.runtime.ui;
+package com.seizia.chromite.runtime.ui;
 
 /**
  * System agent interactions

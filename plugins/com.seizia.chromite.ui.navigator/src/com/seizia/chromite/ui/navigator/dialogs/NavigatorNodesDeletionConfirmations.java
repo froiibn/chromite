@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.navigator.dialogs;
+package com.seizia.chromite.ui.navigator.dialogs;
 
 import org.eclipse.core.resources.IProject;
 import org.eclipse.core.resources.IResource;
@@ -26,16 +26,16 @@ import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.widgets.*;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.model.DBIcon;
-import org.jkiss.dbeaver.model.navigator.DBNLocalFolder;
-import org.jkiss.dbeaver.model.navigator.DBNNode;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.ui.DBeaverIcons;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.dialogs.MessageBoxBuilder;
-import org.jkiss.dbeaver.ui.dialogs.Reply;
-import org.jkiss.dbeaver.ui.internal.UINavigatorMessages;
-import org.jkiss.dbeaver.ui.navigator.actions.NavigatorObjectsDeleter;
+import com.seizia.chromite.model.DBIcon;
+import com.seizia.chromite.model.navigator.DBNLocalFolder;
+import com.seizia.chromite.model.navigator.DBNNode;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.ui.SwtIcons;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.dialogs.MessageBoxBuilder;
+import com.seizia.chromite.ui.dialogs.Reply;
+import com.seizia.chromite.ui.internal.UINavigatorMessages;
+import com.seizia.chromite.ui.navigator.actions.NavigatorObjectsDeleter;
 import org.jkiss.utils.CommonUtils;
 
 import java.util.ArrayList;
@@ -151,7 +151,7 @@ public final class NavigatorNodesDeletionConfirmations {
                 continue;
             }
             TableItem item = new TableItem(objectsTable, SWT.NONE);
-            item.setImage(DBeaverIcons.getImage(node.getNodeIcon()));
+            item.setImage(SwtIcons.getImage(node.getNodeIcon()));
             if (node.getAdapter(IResource.class) != null) {
                 IResource resource = node.getAdapter(IResource.class);
                 item.setText(0, node.getName());

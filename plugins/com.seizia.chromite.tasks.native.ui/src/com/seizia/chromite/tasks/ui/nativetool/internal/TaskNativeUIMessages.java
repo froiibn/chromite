@@ -14,12 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.tasks.ui.nativetool.internal;
+package com.seizia.chromite.tasks.ui.nativetool.internal;
 
 import org.eclipse.osgi.util.NLS;
 
 public class TaskNativeUIMessages extends NLS {
-    private static final String BUNDLE_NAME = "org.jkiss.dbeaver.tasks.ui.nativetool.internal.TaskNativeUIMessages"; //$NON-NLS-1$
+    private static final String BUNDLE_NAME = "com.seizia.chromite.tasks.ui.nativetool.internal.TaskNativeUIMessages"; //$NON-NLS-1$
 
     public static String tools_script_execute_wizard_task_completed;
     public static String tools_wizard_error_no_database_object_selected;

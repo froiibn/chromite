@@ -15,12 +15,12 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.model.qm.filters;
+package com.seizia.chromite.model.qm.filters;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.model.exec.DBCExecutionPurpose;
-import org.jkiss.dbeaver.model.qm.QMObjectType;
+import com.seizia.chromite.model.exec.DBCExecutionPurpose;
+import com.seizia.chromite.model.qm.QMObjectType;
 import org.jkiss.utils.ArrayUtils;
 
 import java.util.Collections;

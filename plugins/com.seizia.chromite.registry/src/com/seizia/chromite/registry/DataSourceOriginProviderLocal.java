@@ -14,13 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.registry;
+package com.seizia.chromite.registry;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.model.DBPDataSourceOrigin;
-import org.jkiss.dbeaver.model.DBPDataSourceOriginProvider;
-import org.jkiss.dbeaver.model.DBPExternalConfiguration;
+import com.seizia.chromite.model.DBPDataSourceOrigin;
+import com.seizia.chromite.model.DBPDataSourceOriginProvider;
+import com.seizia.chromite.model.DBPExternalConfiguration;
 
 import java.util.Map;
 

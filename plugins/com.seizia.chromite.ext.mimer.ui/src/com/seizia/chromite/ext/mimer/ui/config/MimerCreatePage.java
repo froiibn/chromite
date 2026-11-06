@@ -14,9 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.mimer.ui.config;
+package com.seizia.chromite.ext.mimer.ui.config;
 
-import org.jkiss.dbeaver.ui.editors.object.struct.BaseObjectEditPage;
+import com.seizia.chromite.ui.editors.object.struct.BaseObjectEditPage;
 
 /**
  * Implemented by every Mimer SQL "Create ..." wizard page so {@link AbstractMimerConfigurator}

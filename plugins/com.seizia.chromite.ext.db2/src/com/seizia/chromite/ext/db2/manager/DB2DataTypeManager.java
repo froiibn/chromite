@@ -15,13 +15,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.db2.manager;
+package com.seizia.chromite.ext.db2.manager;
 
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.ext.db2.model.DB2DataType;
-import org.jkiss.dbeaver.ext.db2.model.DB2Schema;
-import org.jkiss.dbeaver.model.DBPEvaluationContext;
-import org.jkiss.dbeaver.model.struct.cache.DBSObjectCache;
+import com.seizia.chromite.ext.db2.model.DB2DataType;
+import com.seizia.chromite.ext.db2.model.DB2Schema;
+import com.seizia.chromite.model.DBPEvaluationContext;
+import com.seizia.chromite.model.struct.cache.DBSObjectCache;
 
 /**
  * DB2 Data Type Manager

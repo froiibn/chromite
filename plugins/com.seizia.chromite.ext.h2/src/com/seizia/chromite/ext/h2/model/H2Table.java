@@ -14,13 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.h2.model;
+package com.seizia.chromite.ext.h2.model;
 
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.ext.generic.model.GenericStructContainer;
-import org.jkiss.dbeaver.ext.generic.model.GenericTable;
-import org.jkiss.dbeaver.model.DBPObjectStatistics;
-import org.jkiss.dbeaver.model.exec.jdbc.JDBCResultSet;
+import com.seizia.chromite.ext.generic.model.GenericStructContainer;
+import com.seizia.chromite.ext.generic.model.GenericTable;
+import com.seizia.chromite.model.DBPObjectStatistics;
+import com.seizia.chromite.model.exec.jdbc.JDBCResultSet;
 
 public class H2Table extends GenericTable implements DBPObjectStatistics {
 

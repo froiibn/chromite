@@ -14,20 +14,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.controls.resultset.spreadsheet;
+package com.seizia.chromite.ui.controls.resultset.spreadsheet;
 
 import org.eclipse.swt.graphics.Point;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.model.DBPImage;
-import org.jkiss.dbeaver.model.data.hints.DBDValueHint;
-import org.jkiss.dbeaver.model.exec.DBCException;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.ui.controls.lightgrid.IGridController;
-import org.jkiss.dbeaver.ui.controls.lightgrid.IGridHint;
-import org.jkiss.dbeaver.ui.controls.resultset.IResultSetController;
-import org.jkiss.dbeaver.ui.data.DBDValueHintActionHandler;
+import com.seizia.chromite.model.DBPImage;
+import com.seizia.chromite.model.data.hints.DBDValueHint;
+import com.seizia.chromite.model.exec.DBCException;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.ui.controls.lightgrid.IGridController;
+import com.seizia.chromite.ui.controls.lightgrid.IGridHint;
+import com.seizia.chromite.ui.controls.resultset.IResultSetController;
+import com.seizia.chromite.ui.data.DBDValueHintActionHandler;
 import org.jkiss.utils.CommonUtils;
 
 /**

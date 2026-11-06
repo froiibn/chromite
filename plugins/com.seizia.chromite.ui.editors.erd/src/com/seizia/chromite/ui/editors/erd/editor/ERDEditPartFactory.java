@@ -17,17 +17,17 @@
 /*
  * Created on Jul 13, 2004
  */
-package org.jkiss.dbeaver.ui.editors.erd.editor;
+package com.seizia.chromite.ui.editors.erd.editor;
 
 import org.eclipse.gef.EditPart;
 import org.eclipse.gef.EditPartFactory;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.model.erd.ERDAssociation;
-import org.jkiss.dbeaver.model.erd.ERDEntity;
-import org.jkiss.dbeaver.model.erd.ERDEntityAttribute;
-import org.jkiss.dbeaver.model.erd.ERDNote;
-import org.jkiss.dbeaver.ui.editors.erd.model.EntityDiagram;
-import org.jkiss.dbeaver.ui.editors.erd.part.*;
+import com.seizia.chromite.model.erd.ERDAssociation;
+import com.seizia.chromite.model.erd.ERDEntity;
+import com.seizia.chromite.model.erd.ERDEntityAttribute;
+import com.seizia.chromite.model.erd.ERDNote;
+import com.seizia.chromite.ui.editors.erd.model.EntityDiagram;
+import com.seizia.chromite.ui.editors.erd.part.*;
 
 /**
  * Edit part factory for creating EditPart instances as delegates for model objects

@@ -14,14 +14,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.cloudflare.d1.ui.views;
+package com.seizia.chromite.ext.cloudflare.d1.ui.views;
 
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.layout.FillLayout;
 import org.eclipse.swt.widgets.Combo;
 import org.eclipse.swt.widgets.Composite;
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.ext.cloudflare.d1.model.CloudflareD1ConnectionAdapter.DatabaseChoice;
+import com.seizia.chromite.ext.cloudflare.d1.model.CloudflareD1ConnectionAdapter.DatabaseChoice;
 
 import java.util.List;
 

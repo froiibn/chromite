@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.ai.engine.openai;
+package com.seizia.chromite.model.ai.engine.openai;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
@@ -24,10 +24,10 @@ import com.google.gson.JsonParser;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.model.access.DBAuthUtils;
-import org.jkiss.dbeaver.model.ai.engine.AIModel;
-import org.jkiss.dbeaver.model.ai.engine.OAuthDeviceCodeFlow;
-import org.jkiss.dbeaver.utils.GeneralUtils;
+import com.seizia.chromite.model.access.DBAuthUtils;
+import com.seizia.chromite.model.ai.engine.AIModel;
+import com.seizia.chromite.model.ai.engine.OAuthDeviceCodeFlow;
+import com.seizia.chromite.utils.GeneralUtils;
 import org.jkiss.utils.HttpConstants;
 import org.jkiss.utils.oauth.OAuthConstants;
 import org.jkiss.utils.oauth.OAuthUtils;

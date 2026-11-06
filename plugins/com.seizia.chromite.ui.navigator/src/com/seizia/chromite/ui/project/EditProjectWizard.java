@@ -14,17 +14,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.project;
+package com.seizia.chromite.ui.project;
 
 import org.eclipse.core.runtime.IAdaptable;
 import org.eclipse.jface.preference.IPreferenceNode;
 import org.eclipse.swt.graphics.Image;
 import org.eclipse.ui.dialogs.PreferencesUtil;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.DBIcon;
-import org.jkiss.dbeaver.model.rcp.RCPProject;
-import org.jkiss.dbeaver.ui.DBeaverIcons;
-import org.jkiss.dbeaver.ui.dialogs.ActiveWizard;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.DBIcon;
+import com.seizia.chromite.model.rcp.RCPProject;
+import com.seizia.chromite.ui.SwtIcons;
+import com.seizia.chromite.ui.dialogs.ActiveWizard;
 
 /**
  * EditProjectWizard
@@ -46,7 +46,7 @@ public class EditProjectWizard extends ActiveWizard {
 
     @Override
     public Image getDefaultPageImage() {
-        return DBeaverIcons.getImage(DBIcon.PROJECT);
+        return SwtIcons.getImage(DBIcon.PROJECT);
     }
 
     @Override

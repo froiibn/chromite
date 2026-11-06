@@ -15,12 +15,12 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.ext.oracle.ui.internal;
+package com.seizia.chromite.ext.oracle.ui.internal;
 
 import org.eclipse.osgi.util.NLS;
 
 public final class OracleUIMessages extends NLS {
-    private static final String BUNDLE_NAME = "org.jkiss.dbeaver.ext.oracle.ui.internal.OracleUIMessages"; //$NON-NLS-1$
+    private static final String BUNDLE_NAME = "com.seizia.chromite.ext.oracle.ui.internal.OracleUIMessages"; //$NON-NLS-1$
 
 
     public static String config_import_wizard_page_sql_developer_label_installation_not_found;

@@ -14,12 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.dnd;
+package com.seizia.chromite.ui.dnd;
 
 import org.eclipse.swt.dnd.Clipboard;
 import org.eclipse.swt.widgets.Display;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.model.navigator.DBNNode;
+import com.seizia.chromite.model.navigator.DBNNode;
 
 import java.util.Collection;
 import java.util.List;

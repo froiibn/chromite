@@ -14,13 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.actions;
+package com.seizia.chromite.ui.actions;
 
 import org.eclipse.core.runtime.IConfigurationElement;
 import org.eclipse.jface.preference.IPreferenceStore;
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.core.DBeaverActivator;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.core.ChromiteActivator;
 import org.jkiss.utils.CommonUtils;
 
 import java.util.Collection;
@@ -84,7 +84,7 @@ public class ToolBarConfigurationDescriptor {
          */
         public boolean isVisible() {
             if (isVisible == null) {
-                IPreferenceStore prefs = DBeaverActivator.getInstance().getPreferenceStore();
+                IPreferenceStore prefs = ChromiteActivator.getInstance().getPreferenceStore();
                 isVisible = prefs.getBoolean(prefKeyIsSet) ? prefs.getBoolean(prefKeyVisibility) : defaultVisibility;
             }
             return isVisible;
@@ -94,7 +94,7 @@ public class ToolBarConfigurationDescriptor {
          * Set visibility for toolbar item
          */
         public void setVisible(boolean value) {
-            IPreferenceStore prefs = DBeaverActivator.getInstance().getPreferenceStore();
+            IPreferenceStore prefs = ChromiteActivator.getInstance().getPreferenceStore();
             prefs.setValue(prefKeyIsSet, true);
             prefs.setValue(prefKeyVisibility, value);
             isVisible = value;

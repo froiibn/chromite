@@ -14,10 +14,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.postgresql.ui;
+package com.seizia.chromite.ext.postgresql.ui;
 
 public final class PostgreUIConstants {
-    public static final String PLUGIN_ID = "org.jkiss.dbeaver.ext.postgresql.ui";
+    public static final String PLUGIN_ID = "com.seizia.chromite.ext.postgresql.ui";
 
     private PostgreUIConstants() {
     }

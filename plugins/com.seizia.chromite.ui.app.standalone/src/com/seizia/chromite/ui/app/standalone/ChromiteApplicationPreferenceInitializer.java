@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.app.standalone;
+package com.seizia.chromite.ui.app.standalone;
 
 import org.eclipse.core.runtime.preferences.AbstractPreferenceInitializer;
 import org.eclipse.core.runtime.preferences.DefaultScope;
@@ -25,7 +25,7 @@ import org.eclipse.ui.internal.ide.IDEWorkbenchPlugin;
 /**
  * Overwrites IDEPreferenceInitializer behavior.
  */
-public class DBeaverApplicationPreferenceInitializer extends AbstractPreferenceInitializer {
+public class ChromiteApplicationPreferenceInitializer extends AbstractPreferenceInitializer {
 
 	@Override
 	public void initializeDefaultPreferences() {

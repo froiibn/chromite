@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.resources;
+package com.seizia.chromite.ui.resources;
 
 import org.eclipse.core.filesystem.EFS;
 import org.eclipse.core.filesystem.IFileInfo;
@@ -32,17 +32,17 @@ import org.eclipse.ui.ide.IDE;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.model.file.FileOpenHandler;
-import org.jkiss.dbeaver.model.file.FileTypeAction;
-import org.jkiss.dbeaver.model.file.FileTypeHandlerDescriptor;
-import org.jkiss.dbeaver.model.file.FileTypeHandlerRegistry;
-import org.jkiss.dbeaver.model.fs.DBFFileStoreProvider;
-import org.jkiss.dbeaver.model.fs.DBFUtils;
-import org.jkiss.dbeaver.model.fs.nio.EFSNIOResource;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.ui.ProgramInfo;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.utils.ContentUtils;
+import com.seizia.chromite.model.file.FileOpenHandler;
+import com.seizia.chromite.model.file.FileTypeAction;
+import com.seizia.chromite.model.file.FileTypeHandlerDescriptor;
+import com.seizia.chromite.model.file.FileTypeHandlerRegistry;
+import com.seizia.chromite.model.fs.DBFFileStoreProvider;
+import com.seizia.chromite.model.fs.DBFUtils;
+import com.seizia.chromite.model.fs.nio.EFSNIOResource;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.ui.ProgramInfo;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.utils.ContentUtils;
 import org.jkiss.utils.ByteNumberFormat;
 import org.jkiss.utils.CommonUtils;
 import org.jkiss.utils.IOUtils;

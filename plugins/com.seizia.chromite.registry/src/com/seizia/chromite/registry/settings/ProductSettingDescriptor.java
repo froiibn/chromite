@@ -14,12 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.registry.settings;
+package com.seizia.chromite.registry.settings;
 
 import org.eclipse.core.runtime.IConfigurationElement;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.model.impl.LocalizedPropertyDescriptor;
+import com.seizia.chromite.model.impl.LocalizedPropertyDescriptor;
 import org.jkiss.utils.CommonUtils;
 
 import java.util.ArrayList;

@@ -14,28 +14,28 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.tasks.ui.nativetool;
+package com.seizia.chromite.tasks.ui.nativetool;
 
 import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.widgets.Composite;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.DBPDataSourceContainer;
-import org.jkiss.dbeaver.model.DBPDataSourceProvider;
-import org.jkiss.dbeaver.model.connection.DBPDriver;
-import org.jkiss.dbeaver.model.navigator.*;
-import org.jkiss.dbeaver.model.runtime.DBRRunnableContext;
-import org.jkiss.dbeaver.model.struct.DBSObject;
-import org.jkiss.dbeaver.model.struct.DBSWrapper;
-import org.jkiss.dbeaver.model.task.DBTTaskType;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.tasks.nativetool.AbstractImportExportSettings;
-import org.jkiss.dbeaver.tasks.nativetool.AbstractNativeToolSettings;
-import org.jkiss.dbeaver.tasks.ui.DBTTaskConfigPanel;
-import org.jkiss.dbeaver.tasks.ui.nativetool.internal.TaskNativeUIMessages;
-import org.jkiss.dbeaver.tasks.ui.wizard.TaskConfigurationWizard;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.dialogs.connection.ClientHomesSelector;
-import org.jkiss.dbeaver.ui.navigator.database.DatabaseObjectsSelectorPanel;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.DBPDataSourceContainer;
+import com.seizia.chromite.model.DBPDataSourceProvider;
+import com.seizia.chromite.model.connection.DBPDriver;
+import com.seizia.chromite.model.navigator.*;
+import com.seizia.chromite.model.runtime.DBRRunnableContext;
+import com.seizia.chromite.model.struct.DBSObject;
+import com.seizia.chromite.model.struct.DBSWrapper;
+import com.seizia.chromite.model.task.DBTTaskType;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.tasks.nativetool.AbstractImportExportSettings;
+import com.seizia.chromite.tasks.nativetool.AbstractNativeToolSettings;
+import com.seizia.chromite.tasks.ui.DBTTaskConfigPanel;
+import com.seizia.chromite.tasks.ui.nativetool.internal.TaskNativeUIMessages;
+import com.seizia.chromite.tasks.ui.wizard.TaskConfigurationWizard;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.dialogs.connection.ClientHomesSelector;
+import com.seizia.chromite.ui.navigator.database.DatabaseObjectsSelectorPanel;
 import org.jkiss.utils.CommonUtils;
 
 import java.lang.reflect.InvocationTargetException;

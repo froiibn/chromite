@@ -1,19 +1,19 @@
 Manifest-Version: 1.0
 Bundle-ManifestVersion: 2
-Bundle-Vendor: DBeaver Corp
+Bundle-Vendor: Chromite contributors
 Bundle-Name: Chromite Exasol Model
-Bundle-SymbolicName: org.jkiss.dbeaver.ext.exasol;singleton:=true
+Bundle-SymbolicName: com.seizia.chromite.ext.exasol;singleton:=true
 Bundle-Version: 1.0.249.qualifier
 Bundle-Release-Date: 20261116
 Bundle-RequiredExecutionEnvironment: JavaSE-21
 Bundle-ActivationPolicy: lazy
-Require-Bundle: org.jkiss.dbeaver.model;visibility:=reexport,
- org.jkiss.dbeaver.model.jdbc;visibility:=reexport,
- org.jkiss.dbeaver.data.gis
-Automatic-Module-Name: org.jkiss.dbeaver.ext.exasol
-Export-Package: org.jkiss.dbeaver.ext.exasol,
- org.jkiss.dbeaver.ext.exasol.editors,
- org.jkiss.dbeaver.ext.exasol.model,
- org.jkiss.dbeaver.ext.exasol.model.app,
- org.jkiss.dbeaver.ext.exasol.model.lock,
- org.jkiss.dbeaver.ext.exasol.model.security
+Require-Bundle: com.seizia.chromite.model;visibility:=reexport,
+ com.seizia.chromite.model.jdbc;visibility:=reexport,
+ com.seizia.chromite.data.gis
+Automatic-Module-Name: com.seizia.chromite.ext.exasol
+Export-Package: com.seizia.chromite.ext.exasol,
+ com.seizia.chromite.ext.exasol.editors,
+ com.seizia.chromite.ext.exasol.model,
+ com.seizia.chromite.ext.exasol.model.app,
+ com.seizia.chromite.ext.exasol.model.lock,
+ com.seizia.chromite.ext.exasol.model.security

@@ -29,14 +29,14 @@ The commercial products share the same model layer as DBeaver CE + browser-based
 
 ### Building
 
-- To perform full product build run `mvn package -f product/aggregate/pom.xml -T1C -Pproduct-dbeaver-ce`  
+- To perform full product build run `mvn package -f product/aggregate/pom.xml -T1C -Pproduct-chromite-swt`  
 - Building a single bundle with `mvn package` in bundle folder usually fails.
 - To build other products(s) use different profiles. You can find maven profiles list in file `product/pom.xml`.
 
 ### Running tests
 
 - Running tests in a single bundle usually fail because OSGI needs ALL bundles to be included in build OR be installed in .m2.
-- To run tests over full repo run `mvn verify -f product/aggregate/pom.xml -T1C -Pproduct-dbeaver-ce`. This will run tests for desktop dbeaver ce.
+- To run tests over full repo run `mvn verify -f product/aggregate/pom.xml -T1C -Pproduct-chromite-swt`. This will run tests for desktop dbeaver ce.
 
 ### Repo dependencies
 
@@ -67,7 +67,7 @@ The commercial products share the same model layer as DBeaver CE + browser-based
 ### Annotations
 
 - Use `@NotNull` and `@Nullable` from `org.jkiss.code` on all method parameters and return types where applicable.
-- Expose object properties to the UI via `@Property` (from `org.jkiss.dbeaver.model.meta`) on getter methods. Object properties are needed in UI rendering.
+- Expose object properties to the UI via `@Property` (from `com.seizia.chromite.model.meta`) on getter methods. Object properties are needed in UI rendering.
 
 ### Code style
 
@@ -83,7 +83,7 @@ The commercial products share the same model layer as DBeaver CE + browser-based
 
 ### Logging
 
-- Use `org.jkiss.dbeaver.Log`.
+- Use `com.seizia.chromite.Log`.
 - Do not use `System.out` or any other logging system unless directly requested.
 
 ### Exception handling
@@ -113,8 +113,8 @@ The commercial products share the same model layer as DBeaver CE + browser-based
 
 - Create unit tests for all model (non-UI) functions if possible.
 - Test plugins are in the `test/` directory.
-- Each test plugin mirrors a production plugin: `test/org.jkiss.dbeaver.ext.postgresql.test/`.
-- Tests extend `DBeaverUnitTest` (from `org.jkiss.dbeaver.osgi.test.runner`) or use `@RunWithApplication`/`@RunWithProduct` annotations for integration tests that need a running OSGi container.
+- Each test plugin mirrors a production plugin: `test/com.seizia.chromite.ext.postgresql.test/`.
+- Tests extend `ChromiteUnitTest` (from `com.seizia.chromite.osgi.test.runner`) or use `@RunWithApplication`/`@RunWithProduct` annotations for integration tests that need a running OSGi container.
 - Tests are run by Maven Tycho as part of the standard build. 
 - There is no separate test-only Maven command; tests execute during `mvn install` or `mvn verify` when the `desktop`.
 

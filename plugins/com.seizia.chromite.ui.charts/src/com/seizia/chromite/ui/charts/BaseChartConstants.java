@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.ui.charts;
+package com.seizia.chromite.ui.charts;
 
 import java.awt.*;
 
@@ -24,7 +24,7 @@ import java.awt.*;
  */
 public class BaseChartConstants {
 
-    public static final Paint[] DBEAVER_DEFAULT_COLOR_SERIES = new Paint[] {
+    public static final Paint[] CHROMITE_DEFAULT_COLOR_SERIES = new Paint[] {
         new Color(206, 63, 34),
         new Color(44, 165, 233),
         new Color(138, 114, 99),

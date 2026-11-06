@@ -14,17 +14,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.virtual;
+package com.seizia.chromite.model.virtual;
 
-import org.jkiss.dbeaver.model.data.DBDAttributeBinding;
-import org.jkiss.dbeaver.model.struct.DBSObject;
-import org.jkiss.junit.DBeaverUnitTest;
+import com.seizia.chromite.model.data.DBDAttributeBinding;
+import com.seizia.chromite.model.struct.DBSObject;
+import com.seizia.chromite.junit.ChromiteUnitTest;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import static org.mockito.Mockito.mock;
 
-public class DBVUtilsTest extends DBeaverUnitTest {
+public class DBVUtilsTest extends ChromiteUnitTest {
     @Test
     void evaluatesExtensionNamespaceFunction() {
         var expression = DBVUtils.parseExpression("geo.wktPoint(1, 2)");

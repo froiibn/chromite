@@ -14,23 +14,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.mimer.edit;
+package com.seizia.chromite.ext.mimer.edit;
 
 import org.eclipse.osgi.util.NLS;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.ext.mimer.MimerConstants;
-import org.jkiss.dbeaver.ext.mimer.internal.MimerMessages;
-import org.jkiss.dbeaver.model.DBPDataSourceContainer;
-import org.jkiss.dbeaver.model.edit.DBEObjectManager;
-import org.jkiss.dbeaver.model.exec.DBCException;
-import org.jkiss.dbeaver.model.exec.DBCExecutionContext;
-import org.jkiss.dbeaver.model.exec.DBCSession;
-import org.jkiss.dbeaver.model.impl.edit.SQLDatabasePersistAction;
-import org.jkiss.dbeaver.model.preferences.DBPPreferenceStore;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.runtime.ui.DBPPlatformUI;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.ext.mimer.MimerConstants;
+import com.seizia.chromite.ext.mimer.internal.MimerMessages;
+import com.seizia.chromite.model.DBPDataSourceContainer;
+import com.seizia.chromite.model.edit.DBEObjectManager;
+import com.seizia.chromite.model.exec.DBCException;
+import com.seizia.chromite.model.exec.DBCExecutionContext;
+import com.seizia.chromite.model.exec.DBCSession;
+import com.seizia.chromite.model.impl.edit.SQLDatabasePersistAction;
+import com.seizia.chromite.model.preferences.DBPPreferenceStore;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.runtime.ui.DBPPlatformUI;
 import org.jkiss.utils.CommonUtils;
 
 import java.io.IOException;
@@ -49,7 +49,7 @@ import java.util.Map;
  * preference (per object type - {@link MimerConstants#PREF_DROP_CASCADE_CONFIRM_PREFIX}) that
  * suppresses the prompt for that type from then on; the Mimer SQL preference page lists and
  * resets them. <b>Production connections</b> - those whose connection type has "Confirm SQL
- * execution" set ({@link org.jkiss.dbeaver.model.connection.DBPConnectionType#isConfirmExecute()},
+ * execution" set ({@link com.seizia.chromite.model.connection.DBPConnectionType#isConfirmExecute()},
  * on for the built-in Production type) - never see the checkbox and always get the prompt.
  *
  * @author Mimer Information Technology

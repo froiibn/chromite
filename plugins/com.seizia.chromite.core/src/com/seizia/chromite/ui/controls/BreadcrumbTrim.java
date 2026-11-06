@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.controls;
+package com.seizia.chromite.ui.controls;
 
 import jakarta.annotation.PostConstruct;
 import org.eclipse.e4.ui.model.application.ui.MUIElement;
@@ -27,27 +27,27 @@ import org.eclipse.ui.internal.Workbench;
 import org.eclipse.ui.internal.WorkbenchWindow;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.DBeaverPreferences;
-import org.jkiss.dbeaver.model.DBPDataSourceContainerProvider;
-import org.jkiss.dbeaver.model.app.DBPProject;
-import org.jkiss.dbeaver.model.navigator.DBNDatabaseNode;
-import org.jkiss.dbeaver.model.navigator.DBNModel;
-import org.jkiss.dbeaver.model.navigator.DBNNode;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.ui.AbstractPartListener;
-import org.jkiss.dbeaver.ui.UIExecutionQueue;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.actions.AbstractPageListener;
-import org.jkiss.dbeaver.ui.editors.DatabaseEditorPreferences.BreadcrumbLocation;
-import org.jkiss.dbeaver.ui.editors.ILazyEditorInput;
-import org.jkiss.dbeaver.ui.editors.INavigatorEditorInput;
-import org.jkiss.dbeaver.ui.editors.MultiPageAbstractEditor;
-import org.jkiss.dbeaver.ui.navigator.breadcrumb.NodeBreadcrumbViewer;
+import com.seizia.chromite.ChromitePreferences;
+import com.seizia.chromite.model.DBPDataSourceContainerProvider;
+import com.seizia.chromite.model.app.DBPProject;
+import com.seizia.chromite.model.navigator.DBNDatabaseNode;
+import com.seizia.chromite.model.navigator.DBNModel;
+import com.seizia.chromite.model.navigator.DBNNode;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.ui.AbstractPartListener;
+import com.seizia.chromite.ui.UIExecutionQueue;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.actions.AbstractPageListener;
+import com.seizia.chromite.ui.editors.DatabaseEditorPreferences.BreadcrumbLocation;
+import com.seizia.chromite.ui.editors.ILazyEditorInput;
+import com.seizia.chromite.ui.editors.INavigatorEditorInput;
+import com.seizia.chromite.ui.editors.MultiPageAbstractEditor;
+import com.seizia.chromite.ui.navigator.breadcrumb.NodeBreadcrumbViewer;
 
 import java.util.function.Consumer;
 
 public class BreadcrumbTrim {
-    private static final String STATUS_CONTROLS_ID = "org.jkiss.dbeaver.core.ui.Breadcrumb"; //$NON-NLS-1$
+    private static final String STATUS_CONTROLS_ID = "com.seizia.chromite.core.ui.Breadcrumb"; //$NON-NLS-1$
     private static final String BOTTOM_TRIM_ID = "org.eclipse.ui.trim.status"; //$NON-NLS-1$
 
     @PostConstruct
@@ -97,7 +97,7 @@ public class BreadcrumbTrim {
             dirty = true;
         }
 
-        var statusLineVisible = store.getBoolean(DBeaverPreferences.UI_STATUS_BAR_SHOW_STATUS_LINE);
+        var statusLineVisible = store.getBoolean(ChromitePreferences.UI_STATUS_BAR_SHOW_STATUS_LINE);
         if (statusLineVisible) {
             MUIElement statusLineElement = modelService.find(WorkbenchWindow.STATUS_LINE_ID, model);
             if (statusLineElement != null && !statusLineElement.isToBeRendered()) {
@@ -213,8 +213,8 @@ public class BreadcrumbTrim {
 
         DBWorkbench.getPlatform().getPreferenceStore().addPropertyChangeListener(event -> {
             switch (event.getProperty()) {
-                case DBeaverPreferences.UI_STATUS_BAR_SHOW_BREADCRUMBS:
-                case DBeaverPreferences.UI_STATUS_BAR_SHOW_STATUS_LINE:
+                case ChromitePreferences.UI_STATUS_BAR_SHOW_BREADCRUMBS:
+                case ChromitePreferences.UI_STATUS_BAR_SHOW_STATUS_LINE:
                     updateElementVisibility(viewer);
                     break;
                 default:

@@ -14,32 +14,32 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.tasks.ui.wizard;
+package com.seizia.chromite.tasks.ui.wizard;
 
 import org.eclipse.core.runtime.IStatus;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.DBPMessageType;
-import org.jkiss.dbeaver.model.qm.QMTaskExecution;
-import org.jkiss.dbeaver.model.runtime.DBRRunnable;
-import org.jkiss.dbeaver.model.runtime.DBRRunnableContext;
-import org.jkiss.dbeaver.model.runtime.DBRRunnableWithProgress;
-import org.jkiss.dbeaver.model.struct.DBSObject;
-import org.jkiss.dbeaver.model.task.DBTTask;
-import org.jkiss.dbeaver.model.task.DBTTaskEvent;
-import org.jkiss.dbeaver.model.task.DBTTaskExecutionListener;
-import org.jkiss.dbeaver.model.task.DBTTaskRun;
-import org.jkiss.dbeaver.registry.task.TaskRegistry;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.runtime.DBeaverNotifications;
-import org.jkiss.dbeaver.runtime.ui.UIServiceSystemAgent;
-import org.jkiss.dbeaver.tasks.nativetool.AbstractNativeToolSettings;
-import org.jkiss.dbeaver.tasks.ui.internal.TaskUIMessages;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.utils.GeneralUtils;
-import org.jkiss.dbeaver.utils.RuntimeUtils;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.DBPMessageType;
+import com.seizia.chromite.model.qm.QMTaskExecution;
+import com.seizia.chromite.model.runtime.DBRRunnable;
+import com.seizia.chromite.model.runtime.DBRRunnableContext;
+import com.seizia.chromite.model.runtime.DBRRunnableWithProgress;
+import com.seizia.chromite.model.struct.DBSObject;
+import com.seizia.chromite.model.task.DBTTask;
+import com.seizia.chromite.model.task.DBTTaskEvent;
+import com.seizia.chromite.model.task.DBTTaskExecutionListener;
+import com.seizia.chromite.model.task.DBTTaskRun;
+import com.seizia.chromite.registry.task.TaskRegistry;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.runtime.ChromiteNotifications;
+import com.seizia.chromite.runtime.ui.UIServiceSystemAgent;
+import com.seizia.chromite.tasks.nativetool.AbstractNativeToolSettings;
+import com.seizia.chromite.tasks.ui.internal.TaskUIMessages;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.utils.GeneralUtils;
+import com.seizia.chromite.utils.RuntimeUtils;
 
 import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
@@ -153,7 +153,7 @@ public class TaskProcessorUI implements DBRRunnableContext, DBTTaskExecutionList
             }
 
             if (isShowFinalMessage() && !hasErrors) {
-                DBeaverNotifications.showNotification(
+                ChromiteNotifications.showNotification(
                     "task.execute.success",
                     theTask == null ? this.task.getName() : theTask.getName(),
                     completeMessage.toString(),
@@ -161,7 +161,7 @@ public class TaskProcessorUI implements DBRRunnableContext, DBTTaskExecutionList
                     () -> TaskRegistry.getInstance().notifyTaskListeners(
                         new DBTTaskEvent(theTask == null ? this.task : theTask, DBTTaskEvent.Action.TASK_ACTIVATE)));
             } else if (error != null && !(error instanceof InterruptedException)) {
-                DBeaverNotifications.showNotification(
+                ChromiteNotifications.showNotification(
                     "task.execute.failure",
                     theTask == null ? this.task.getName() : theTask.getName(),
                     notificationMessage,

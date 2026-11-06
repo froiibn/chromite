@@ -14,17 +14,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.cubrid.edit;
+package com.seizia.chromite.ext.cubrid.edit;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.ext.cubrid.model.CubridTable;
-import org.jkiss.dbeaver.ext.cubrid.model.CubridTableForeignKey;
-import org.jkiss.dbeaver.ext.generic.edit.GenericForeignKeyManager;
-import org.jkiss.dbeaver.model.edit.DBECommandContext;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.model.struct.rdb.DBSForeignKeyDeferability;
-import org.jkiss.dbeaver.model.struct.rdb.DBSForeignKeyModifyRule;
+import com.seizia.chromite.ext.cubrid.model.CubridTable;
+import com.seizia.chromite.ext.cubrid.model.CubridTableForeignKey;
+import com.seizia.chromite.ext.generic.edit.GenericForeignKeyManager;
+import com.seizia.chromite.model.edit.DBECommandContext;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.model.struct.rdb.DBSForeignKeyDeferability;
+import com.seizia.chromite.model.struct.rdb.DBSForeignKeyModifyRule;
 
 import java.util.Map;
 

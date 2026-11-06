@@ -14,9 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.mssql.model;
+package com.seizia.chromite.ext.mssql.model;
 
-import org.jkiss.dbeaver.model.impl.net.SSLHandlerImpl;
+import com.seizia.chromite.model.impl.net.SSLHandlerImpl;
 
 public class SQLServerSSLHandlerImpl extends SSLHandlerImpl {
 }

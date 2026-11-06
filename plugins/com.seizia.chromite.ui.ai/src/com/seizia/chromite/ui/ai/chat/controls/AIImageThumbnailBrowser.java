@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.ai.chat.controls;
+package com.seizia.chromite.ui.ai.chat.controls;
 
 import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.core.runtime.IStatus;
@@ -27,12 +27,12 @@ import org.eclipse.swt.browser.ProgressListener;
 import org.eclipse.swt.graphics.ImageData;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.ai.AIImageAttachment;
-import org.jkiss.dbeaver.model.ai.AIImageDimensions;
-import org.jkiss.dbeaver.model.data.json.JSONUtils;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.ai.chat.internal.AIChatMessagesUI;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.ai.AIImageAttachment;
+import com.seizia.chromite.model.ai.AIImageDimensions;
+import com.seizia.chromite.model.data.json.JSONUtils;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.ai.chat.internal.AIChatMessagesUI;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;

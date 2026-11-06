@@ -15,9 +15,9 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.model;
+package com.seizia.chromite.model;
 
-import org.jkiss.dbeaver.model.struct.DBSObjectType;
+import com.seizia.chromite.model.struct.DBSObjectType;
 import org.osgi.framework.Version;
 
 import java.util.Collection;

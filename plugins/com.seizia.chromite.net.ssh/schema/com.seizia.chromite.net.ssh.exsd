@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='UTF-8'?>
 <!-- Schema file written by PDE -->
-<schema targetNamespace="org.jkiss.dbeaver.net.ssh" xmlns="http://www.w3.org/2001/XMLSchema">
-   <annotation><appInfo><meta.schema plugin="org.jkiss.dbeaver.net.ssh" id="org.jkiss.dbeaver.net.ssh" name="SSH implementations"/></appInfo></annotation>
+<schema targetNamespace="com.seizia.chromite.net.ssh" xmlns="http://www.w3.org/2001/XMLSchema">
+   <annotation><appInfo><meta.schema plugin="com.seizia.chromite.net.ssh" id="com.seizia.chromite.net.ssh" name="SSH implementations"/></appInfo></annotation>
    <element name="extension">
       <annotation><appInfo><meta.element/></appInfo></annotation>
       <complexType>
@@ -15,7 +15,7 @@
       <complexType>
          <attribute name="id" type="string" use="required"><annotation><appInfo><meta.attribute kind="identifier"/></appInfo></annotation></attribute>
          <attribute name="label" type="string" use="required"><annotation><appInfo><meta.attribute translatable="true"/></appInfo></annotation></attribute>
-         <attribute name="class" type="string" use="required"><annotation><appInfo><meta.attribute kind="java" basedOn=":org.jkiss.dbeaver.model.net.ssh.SSHSessionController"/></appInfo></annotation></attribute>
+         <attribute name="class" type="string" use="required"><annotation><appInfo><meta.attribute kind="java" basedOn=":com.seizia.chromite.model.net.ssh.SSHSessionController"/></appInfo></annotation></attribute>
       </complexType>
    </element>
 </schema>

@@ -14,10 +14,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.sql.semantics;
+package com.seizia.chromite.model.sql.semantics;
 
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.model.struct.DBSObject;
+import com.seizia.chromite.model.struct.DBSObject;
 
 /**
  * A database entity responsible for the meaning of the symbol

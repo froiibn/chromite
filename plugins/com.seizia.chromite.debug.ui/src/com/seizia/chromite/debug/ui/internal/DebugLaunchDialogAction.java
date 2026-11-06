@@ -14,10 +14,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.debug.ui.internal;
+package com.seizia.chromite.debug.ui.internal;
 
 import org.eclipse.debug.ui.actions.OpenLaunchDialogAction;
-import org.jkiss.dbeaver.debug.ui.DebugUI;
+import com.seizia.chromite.debug.ui.DebugUI;
 
 public class DebugLaunchDialogAction extends OpenLaunchDialogAction {
 

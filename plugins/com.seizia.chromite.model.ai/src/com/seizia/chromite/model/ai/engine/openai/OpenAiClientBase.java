@@ -14,24 +14,24 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.ai.engine.openai;
+package com.seizia.chromite.model.ai.engine.openai;
 
 import com.google.gson.Gson;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.ai.engine.AIEngineResponseConsumer;
-import org.jkiss.dbeaver.model.ai.engine.AbstractHttpAIClient;
-import org.jkiss.dbeaver.model.ai.engine.openai.dto.OAIModel;
-import org.jkiss.dbeaver.model.ai.engine.openai.dto.OAIModelList;
-import org.jkiss.dbeaver.model.ai.engine.openai.dto.OAIResponsesRequest;
-import org.jkiss.dbeaver.model.ai.engine.openai.dto.OAIResponsesResponse;
-import org.jkiss.dbeaver.model.ai.utils.AIHttpRequestFilter;
-import org.jkiss.dbeaver.model.ai.utils.AIHttpUtils;
-import org.jkiss.dbeaver.model.data.json.JSONUtils;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.utils.GeneralUtils;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.ai.engine.AIEngineResponseConsumer;
+import com.seizia.chromite.model.ai.engine.AbstractHttpAIClient;
+import com.seizia.chromite.model.ai.engine.openai.dto.OAIModel;
+import com.seizia.chromite.model.ai.engine.openai.dto.OAIModelList;
+import com.seizia.chromite.model.ai.engine.openai.dto.OAIResponsesRequest;
+import com.seizia.chromite.model.ai.engine.openai.dto.OAIResponsesResponse;
+import com.seizia.chromite.model.ai.utils.AIHttpRequestFilter;
+import com.seizia.chromite.model.ai.utils.AIHttpUtils;
+import com.seizia.chromite.model.data.json.JSONUtils;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.utils.GeneralUtils;
 import org.jkiss.utils.HttpConstants;
 
 import java.net.http.HttpRequest;

@@ -14,10 +14,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.sql.db;
+package com.seizia.chromite.model.sql.db;
 
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.model.connection.InternalDatabaseConfig;
+import com.seizia.chromite.model.connection.InternalDatabaseConfig;
 import org.jkiss.utils.CommonUtils;
 
 import java.sql.*;

@@ -14,13 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.registry.driver;
+package com.seizia.chromite.registry.driver;
 
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.registry.maven.MavenArtifactDependency;
-import org.jkiss.dbeaver.registry.maven.MavenArtifactReference;
-import org.jkiss.dbeaver.registry.maven.MavenArtifactVersion;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.registry.maven.MavenArtifactDependency;
+import com.seizia.chromite.registry.maven.MavenArtifactReference;
+import com.seizia.chromite.registry.maven.MavenArtifactVersion;
 
 import java.util.List;
 

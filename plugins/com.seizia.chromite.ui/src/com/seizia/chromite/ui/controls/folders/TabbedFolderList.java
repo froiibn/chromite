@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.ui.controls.folders;
+package com.seizia.chromite.ui.controls.folders;
 
 import org.eclipse.jface.text.source.ISharedTextColors;
 import org.eclipse.jface.util.IPropertyChangeListener;
@@ -33,8 +33,8 @@ import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.Event;
 import org.eclipse.ui.PlatformUI;
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.ui.*;
-import org.jkiss.dbeaver.ui.css.CSSUtils;
+import com.seizia.chromite.ui.*;
+import com.seizia.chromite.ui.css.CSSUtils;
 
 import java.util.IdentityHashMap;
 import java.util.Map;
@@ -219,7 +219,7 @@ public class TabbedFolderList extends ConComposite {
                 } else {
                     textIndent = textIndent - 3;
                 }
-                Image image = DBeaverIcons.getImage(tab.getImage());
+                Image image = SwtIcons.getImage(tab.getImage());
                 final Rectangle imageBounds = image.getBounds();
                 final int imageMiddle = (bounds.height - imageBounds.height) / 2;
                 if (selected || hover) {
@@ -663,7 +663,7 @@ public class TabbedFolderList extends ConComposite {
 		 * an icon the width of the tab doesn't change.
 		 */
         if (folderInfo.getImage() != null) {
-            Image image = DBeaverIcons.getImage(folderInfo.getImage());
+            Image image = SwtIcons.getImage(folderInfo.getImage());
             width = width + image.getBounds().width + 4;
         }
         if (folderInfo.isIndented()) {

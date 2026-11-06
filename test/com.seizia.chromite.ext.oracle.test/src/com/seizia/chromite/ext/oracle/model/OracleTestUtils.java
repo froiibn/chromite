@@ -14,11 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.oracle.model;
+package com.seizia.chromite.ext.oracle.model;
 
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.model.edit.DBEObjectMaker;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
+import com.seizia.chromite.model.edit.DBEObjectMaker;
+import com.seizia.chromite.runtime.DBWorkbench;
 
 import java.util.List;
 

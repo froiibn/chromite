@@ -14,15 +14,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.editors.erd.export;
+package com.seizia.chromite.ui.editors.erd.export;
 
 import org.eclipse.draw2d.IFigure;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.model.runtime.VoidProgressMonitor;
-import org.jkiss.dbeaver.ui.editors.erd.model.DiagramLoader;
-import org.jkiss.dbeaver.ui.editors.erd.model.EntityDiagram;
-import org.jkiss.dbeaver.ui.editors.erd.part.DiagramPart;
-import org.jkiss.dbeaver.utils.GeneralUtils;
+import com.seizia.chromite.model.runtime.VoidProgressMonitor;
+import com.seizia.chromite.ui.editors.erd.model.DiagramLoader;
+import com.seizia.chromite.ui.editors.erd.model.EntityDiagram;
+import com.seizia.chromite.ui.editors.erd.part.DiagramPart;
+import com.seizia.chromite.utils.GeneralUtils;
 
 import java.io.File;
 import java.io.FileWriter;

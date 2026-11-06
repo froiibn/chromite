@@ -14,18 +14,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.dashboard.model;
+package com.seizia.chromite.ui.dashboard.model;
 
 import org.eclipse.core.resources.IFile;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.DBPDataSourceContainer;
-import org.jkiss.dbeaver.model.app.DBPProject;
-import org.jkiss.dbeaver.model.dashboard.DBDashboard;
-import org.jkiss.dbeaver.model.dashboard.DBDashboardItem;
-import org.jkiss.dbeaver.model.dashboard.registry.DashboardItemConfiguration;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.DBPDataSourceContainer;
+import com.seizia.chromite.model.app.DBPProject;
+import com.seizia.chromite.model.dashboard.DBDashboard;
+import com.seizia.chromite.model.dashboard.DBDashboardItem;
+import com.seizia.chromite.model.dashboard.registry.DashboardItemConfiguration;
 import org.jkiss.utils.CommonUtils;
 import org.jkiss.utils.xml.XMLBuilder;
 import org.jkiss.utils.xml.XMLUtils;

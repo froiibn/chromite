@@ -14,9 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.qm.meta;
+package com.seizia.chromite.model.qm.meta;
 
-import org.jkiss.dbeaver.model.qm.QMConstants;
+import com.seizia.chromite.model.qm.QMConstants;
 
 public enum QMMetaObjectType {
     CONNECTION_INFO(QMConstants.EVENT_TYPE_SESSION, QMMConnectionInfo.class),

@@ -14,12 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.impl.data.transformers;
+package com.seizia.chromite.model.impl.data.transformers;
 
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.model.DBPDataKind;
-import org.jkiss.dbeaver.model.data.DBDAttributeBinding;
-import org.jkiss.dbeaver.model.impl.struct.AbstractAttribute;
+import com.seizia.chromite.model.DBPDataKind;
+import com.seizia.chromite.model.data.DBDAttributeBinding;
+import com.seizia.chromite.model.impl.struct.AbstractAttribute;
 
 /**
  * TransformerPresentationAttribute

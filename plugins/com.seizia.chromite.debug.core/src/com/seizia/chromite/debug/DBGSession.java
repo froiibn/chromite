@@ -17,9 +17,9 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.debug;
+package com.seizia.chromite.debug;
 
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
 
 import java.util.List;
 

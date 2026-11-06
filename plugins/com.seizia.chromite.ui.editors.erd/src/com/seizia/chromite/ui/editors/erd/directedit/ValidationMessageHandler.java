@@ -18,7 +18,7 @@
 /*
  * Created on Jul 25, 2004
  */
-package org.jkiss.dbeaver.ui.editors.erd.directedit;
+package com.seizia.chromite.ui.editors.erd.directedit;
 
 /**
  * Represents interface for outputting validation error messages to some widget

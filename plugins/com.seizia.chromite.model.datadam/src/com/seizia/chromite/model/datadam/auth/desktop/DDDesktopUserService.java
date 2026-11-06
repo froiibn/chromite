@@ -14,13 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.datadam.auth.desktop;
+package com.seizia.chromite.model.datadam.auth.desktop;
 
 import com.google.gson.JsonObject;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.datadam.DDAccountClient;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.datadam.DDAccountClient;
 
 import java.util.UUID;
 

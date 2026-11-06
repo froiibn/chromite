@@ -14,13 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui;
+package com.seizia.chromite.ui;
 
 import org.eclipse.core.resources.IFile;
 import org.eclipse.core.resources.IResource;
 import org.eclipse.swt.graphics.ImageData;
 import org.eclipse.swt.program.Program;
-import org.jkiss.dbeaver.model.DBPImage;
+import com.seizia.chromite.model.DBPImage;
 import org.jkiss.utils.CommonUtils;
 
 import java.util.HashMap;

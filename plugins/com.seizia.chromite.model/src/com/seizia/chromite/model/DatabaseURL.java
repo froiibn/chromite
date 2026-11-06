@@ -14,14 +14,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model;
+package com.seizia.chromite.model;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.connection.DBPConnectionConfiguration;
-import org.jkiss.dbeaver.model.connection.DBPDriver;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.connection.DBPConnectionConfiguration;
+import com.seizia.chromite.model.connection.DBPDriver;
 import org.jkiss.utils.CommonUtils;
 
 import java.util.*;
@@ -108,7 +108,7 @@ public class DatabaseURL {
     }
 
     private static final Log log = Log.getLog(DatabaseURL.class);
-    private static final String URL_SUFFIX_PARAMETER = "dbeaverUrlSuffix";
+    private static final String URL_SUFFIX_PARAMETER = "chromiteUrlSuffix";
 
     @NotNull
     private static final Object lock = new Object();

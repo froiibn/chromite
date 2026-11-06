@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.ai.chat.controls;
+package com.seizia.chromite.ui.ai.chat.controls;
 
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.browser.Browser;
@@ -24,12 +24,12 @@ import org.eclipse.swt.widgets.Menu;
 import org.eclipse.swt.widgets.MenuItem;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.access.DBAPermissionRealm;
-import org.jkiss.dbeaver.model.ai.*;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.ai.internal.AIUIMessages;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.access.DBAPermissionRealm;
+import com.seizia.chromite.model.ai.*;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.ai.internal.AIUIMessages;
 import org.jkiss.utils.CommonUtils;
 
 import java.util.ArrayList;
@@ -201,7 +201,7 @@ public final class AIFunctionAllowMenu {
             new MenuItem(menu, SWT.SEPARATOR);
             createActionItem(
                 menu, AIUIMessages.ai_function_allow_menu_configure, SWT.PUSH, false, () -> {
-                    UIUtils.showPreferencesFor(browser.getShell(), null, "com.dbeaver.preferences.ai.tools");
+                    UIUtils.showPreferencesFor(browser.getShell(), null, "com.seizia.chromite.preferences.ai.tools");
                     handleSelection(Action.CONFIGURE_TOOLS, function, pendingApproval);
                 }
             );

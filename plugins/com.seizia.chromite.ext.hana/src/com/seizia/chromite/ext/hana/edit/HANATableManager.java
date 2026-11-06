@@ -14,15 +14,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.hana.edit;
+package com.seizia.chromite.ext.hana.edit;
 
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.ext.generic.edit.GenericTableManager;
-import org.jkiss.dbeaver.ext.generic.model.GenericTableForeignKey;
-import org.jkiss.dbeaver.ext.generic.model.GenericTableIndex;
-import org.jkiss.dbeaver.ext.generic.model.GenericUniqueKey;
-import org.jkiss.dbeaver.ext.hana.model.HANATableColumn;
-import org.jkiss.dbeaver.model.struct.DBSObject;
+import com.seizia.chromite.ext.generic.edit.GenericTableManager;
+import com.seizia.chromite.ext.generic.model.GenericTableForeignKey;
+import com.seizia.chromite.ext.generic.model.GenericTableIndex;
+import com.seizia.chromite.ext.generic.model.GenericUniqueKey;
+import com.seizia.chromite.ext.hana.model.HANATableColumn;
+import com.seizia.chromite.model.struct.DBSObject;
 import org.jkiss.utils.CommonUtils;
 
 public class HANATableManager extends GenericTableManager {

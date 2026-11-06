@@ -17,12 +17,12 @@
 /*
  * Created on Jul 21, 2004
  */
-package org.jkiss.dbeaver.ui.editors.erd.layout;
+package com.seizia.chromite.ui.editors.erd.layout;
 
 import org.eclipse.draw2d.FreeformLayout;
 import org.eclipse.draw2d.IFigure;
 import org.eclipse.draw2d.geometry.Rectangle;
-import org.jkiss.dbeaver.ui.editors.erd.part.DiagramPart;
+import com.seizia.chromite.ui.editors.erd.part.DiagramPart;
 
 
 /**

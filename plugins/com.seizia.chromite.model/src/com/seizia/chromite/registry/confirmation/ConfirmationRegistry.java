@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.registry.confirmation;
+package com.seizia.chromite.registry.confirmation;
 
 import org.eclipse.core.runtime.IConfigurationElement;
 import org.eclipse.core.runtime.IExtensionRegistry;
@@ -28,7 +28,7 @@ import java.util.Map;
 public class ConfirmationRegistry {
 
     private static final String ELEMENT_ID = "confirmation";
-    private static final String EXTENSION_ID = "org.jkiss.dbeaver.confirmations";
+    private static final String EXTENSION_ID = "com.seizia.chromite.confirmations";
 
     private static ConfirmationRegistry instance;
 

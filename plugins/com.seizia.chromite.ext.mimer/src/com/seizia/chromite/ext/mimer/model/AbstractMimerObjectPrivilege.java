@@ -14,15 +14,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.mimer.model;
+package com.seizia.chromite.ext.mimer.model;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.model.DBPSaveableObject;
-import org.jkiss.dbeaver.model.exec.jdbc.JDBCResultSet;
-import org.jkiss.dbeaver.model.impl.jdbc.JDBCUtils;
-import org.jkiss.dbeaver.model.meta.Property;
-import org.jkiss.dbeaver.model.struct.DBSObject;
+import com.seizia.chromite.model.DBPSaveableObject;
+import com.seizia.chromite.model.exec.jdbc.JDBCResultSet;
+import com.seizia.chromite.model.impl.jdbc.JDBCUtils;
+import com.seizia.chromite.model.meta.Property;
+import com.seizia.chromite.model.struct.DBSObject;
 
 /**
  * Shared shape for a privilege grant that always carries exactly one fixed privilege type against
@@ -34,7 +34,7 @@ import org.jkiss.dbeaver.model.struct.DBSObject;
  * #buildQualifiedOwnerName()}. Extracted from {@code MimerSequencePrivilege}/{@code
  * MimerDomainPrivilege}/{@code MimerProgramPrivilege}/{@code MimerStatementPrivilege}/{@code
  * MimerUserDefinedTypePrivilege}, which used to duplicate this in full - see {@link
- * org.jkiss.dbeaver.ext.mimer.edit.AbstractMimerPrivilegeManager} for the matching
+ * com.seizia.chromite.ext.mimer.edit.AbstractMimerPrivilegeManager} for the matching
  * create/drop side. Two independent things vary per privilege kind and are deliberately NOT
  * normalized away here since they reflect real (if likely accidental) differences that predate
  * this refactor: whether the owner has a schema (a program's name is unqualified, unlike a

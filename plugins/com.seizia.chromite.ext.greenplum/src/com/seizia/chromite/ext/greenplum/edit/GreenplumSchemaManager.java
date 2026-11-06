@@ -14,9 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.greenplum.edit;
+package com.seizia.chromite.ext.greenplum.edit;
 
-import org.jkiss.dbeaver.ext.postgresql.edit.PostgreSchemaManager;
+import com.seizia.chromite.ext.postgresql.edit.PostgreSchemaManager;
 
 public class GreenplumSchemaManager extends PostgreSchemaManager {
 }

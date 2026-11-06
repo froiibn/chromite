@@ -17,7 +17,7 @@
  * Contributors:
  *    Stefan Uhrig - initial implementation
  */
-package org.jkiss.dbeaver.ext.hana.model.data.wkb;
+package com.seizia.chromite.ext.hana.model.data.wkb;
 
 /**
  * Exception thrown if WKB writing fails.

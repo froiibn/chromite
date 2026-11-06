@@ -14,15 +14,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.dashboard.model;
+package com.seizia.chromite.ui.dashboard.model;
 
 import org.eclipse.jface.action.IContributionManager;
 import org.eclipse.swt.graphics.Point;
 import org.eclipse.swt.widgets.Composite;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.model.dashboard.data.DashboardDataset;
-import org.jkiss.dbeaver.ui.dashboard.control.DashboardViewItem;
+import com.seizia.chromite.model.dashboard.data.DashboardDataset;
+import com.seizia.chromite.ui.dashboard.control.DashboardViewItem;
 
 import java.util.Date;
 

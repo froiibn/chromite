@@ -19,7 +19,7 @@ package com.seizia.chromite.ui.swing;
 import com.seizia.chromite.ui.swing.internal.ToolsMessages;
 import org.fife.ui.rtextarea.RTextScrollPane;
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
+import com.seizia.chromite.runtime.DBWorkbench;
 
 import javax.swing.*;
 import java.awt.*;

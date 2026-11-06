@@ -15,17 +15,17 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.ext.gaussdb.ui.config;
+package com.seizia.chromite.ext.gaussdb.ui.config;
 
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.ext.gaussdb.model.GaussDBProcedure;
-import org.jkiss.dbeaver.ext.gaussdb.ui.views.CreateFunctionOrProcedurePage;
-import org.jkiss.dbeaver.ext.postgresql.model.PostgreProcedureKind;
-import org.jkiss.dbeaver.model.edit.DBECommandContext;
-import org.jkiss.dbeaver.model.edit.DBEObjectConfigurator;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.ui.UITask;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.ext.gaussdb.model.GaussDBProcedure;
+import com.seizia.chromite.ext.gaussdb.ui.views.CreateFunctionOrProcedurePage;
+import com.seizia.chromite.ext.postgresql.model.PostgreProcedureKind;
+import com.seizia.chromite.model.edit.DBECommandContext;
+import com.seizia.chromite.model.edit.DBEObjectConfigurator;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.ui.UITask;
 
 import java.util.Map;
 

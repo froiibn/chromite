@@ -15,11 +15,11 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.model.qm.meta;
+package com.seizia.chromite.model.qm.meta;
 
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.model.exec.DBCExecutionPurpose;
-import org.jkiss.dbeaver.model.sql.SQLDialect;
+import com.seizia.chromite.model.exec.DBCExecutionPurpose;
+import com.seizia.chromite.model.sql.SQLDialect;
 import org.jkiss.utils.CommonUtils;
 
 import java.sql.SQLException;

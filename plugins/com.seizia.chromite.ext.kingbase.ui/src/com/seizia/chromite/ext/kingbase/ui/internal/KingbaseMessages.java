@@ -15,12 +15,12 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.ext.kingbase.ui.internal;
+package com.seizia.chromite.ext.kingbase.ui.internal;
 
 import org.eclipse.osgi.util.NLS;
 
 public class KingbaseMessages extends NLS {
-    private static final String BUNDLE_NAME = "org.jkiss.dbeaver.ext.kingbase.ui.internal.KingbaseResources";
+    private static final String BUNDLE_NAME = "com.seizia.chromite.ext.kingbase.ui.internal.KingbaseResources";
     public static String dialog_struct_create_procedure_combo_type;
     public static String dialog_struct_create_procedure_label_name;
     public static String dialog_struct_create_procedure_title;

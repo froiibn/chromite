@@ -14,16 +14,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.clickhouse.model;
+package com.seizia.chromite.ext.clickhouse.model;
 
-import org.jkiss.dbeaver.ext.clickhouse.model.data.ClickhouseContentJSON;
-import org.jkiss.dbeaver.model.data.DBDDisplayFormat;
-import org.jkiss.dbeaver.utils.MimeTypes;
-import org.jkiss.junit.DBeaverUnitTest;
+import com.seizia.chromite.ext.clickhouse.model.data.ClickhouseContentJSON;
+import com.seizia.chromite.model.data.DBDDisplayFormat;
+import com.seizia.chromite.utils.MimeTypes;
+import com.seizia.chromite.junit.ChromiteUnitTest;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
-public class ClickhouseJSONContentTest extends DBeaverUnitTest {
+public class ClickhouseJSONContentTest extends ChromiteUnitTest {
 
     @Test
     public void jsonContentUsesJsonMimeType() {

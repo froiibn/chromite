@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.navigator.database;
+package com.seizia.chromite.ui.navigator.database;
 
 import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.core.runtime.IStatus;
@@ -41,27 +41,27 @@ import org.eclipse.ui.progress.WorkbenchJob;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.DBPDataSourceContainer;
-import org.jkiss.dbeaver.model.navigator.*;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.model.runtime.DBRRunnableWithResult;
-import org.jkiss.dbeaver.model.runtime.VoidProgressMonitor;
-import org.jkiss.dbeaver.model.struct.DBSObject;
-import org.jkiss.dbeaver.model.struct.DBSStructContainer;
-import org.jkiss.dbeaver.model.struct.rdb.DBSCatalog;
-import org.jkiss.dbeaver.model.struct.rdb.DBSSchema;
-import org.jkiss.dbeaver.model.struct.rdb.DBSTableColumn;
-import org.jkiss.dbeaver.registry.RuntimeProjectPropertiesConstant;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.ui.*;
-import org.jkiss.dbeaver.ui.controls.ProgressPainter;
-import org.jkiss.dbeaver.ui.navigator.INavigatorFilter;
-import org.jkiss.dbeaver.ui.navigator.INavigatorItemRenderer;
-import org.jkiss.dbeaver.ui.navigator.NavigatorCommands;
-import org.jkiss.dbeaver.ui.navigator.NavigatorPreferences;
-import org.jkiss.dbeaver.ui.navigator.actions.NavigatorHandlerObjectRename;
-import org.jkiss.dbeaver.utils.RuntimeUtils;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.DBPDataSourceContainer;
+import com.seizia.chromite.model.navigator.*;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.model.runtime.DBRRunnableWithResult;
+import com.seizia.chromite.model.runtime.VoidProgressMonitor;
+import com.seizia.chromite.model.struct.DBSObject;
+import com.seizia.chromite.model.struct.DBSStructContainer;
+import com.seizia.chromite.model.struct.rdb.DBSCatalog;
+import com.seizia.chromite.model.struct.rdb.DBSSchema;
+import com.seizia.chromite.model.struct.rdb.DBSTableColumn;
+import com.seizia.chromite.registry.RuntimeProjectPropertiesConstant;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.ui.*;
+import com.seizia.chromite.ui.controls.ProgressPainter;
+import com.seizia.chromite.ui.navigator.INavigatorFilter;
+import com.seizia.chromite.ui.navigator.INavigatorItemRenderer;
+import com.seizia.chromite.ui.navigator.NavigatorCommands;
+import com.seizia.chromite.ui.navigator.NavigatorPreferences;
+import com.seizia.chromite.ui.navigator.actions.NavigatorHandlerObjectRename;
+import com.seizia.chromite.utils.RuntimeUtils;
 import org.jkiss.utils.ArrayUtils;
 import org.jkiss.utils.CommonUtils;
 
@@ -75,8 +75,8 @@ public class DatabaseNavigatorTree extends Composite implements INavigatorListen
     private static final Log log = Log.getLog(DatabaseNavigatorTree.class);
 
     static final String TREE_DATA_STAT_MAX_SIZE = "nav.stat.maxSize";
-    private static final String FILTER_TOOLBAR_CONNECTED_CONTRIBUTION_ID = "toolbar:org.jkiss.dbeaver.navigator.filter.toolbar.connected"; //$NON-NLS-1$
-    private static final String FILTER_TOOLBAR_TYPE_CONTRIBUTION_ID = "toolbar:org.jkiss.dbeaver.navigator.filter.toolbar.type"; //$NON-NLS-1$
+    private static final String FILTER_TOOLBAR_CONNECTED_CONTRIBUTION_ID = "toolbar:com.seizia.chromite.navigator.filter.toolbar.connected"; //$NON-NLS-1$
+    private static final String FILTER_TOOLBAR_TYPE_CONTRIBUTION_ID = "toolbar:com.seizia.chromite.navigator.filter.toolbar.type"; //$NON-NLS-1$
     private static final String DATA_TREE_CONTROL = DatabaseNavigatorTree.class.getSimpleName();
     private static final boolean INLINE_RENAME_ENABLED = false;
 
@@ -653,7 +653,7 @@ public class DatabaseNavigatorTree extends Composite implements INavigatorListen
 
         private Image getCurrentImage() {
             int imgIndex = (ticksCount % UIIcon.LOADING.size());
-            return DBeaverIcons.getImage(UIIcon.LOADING.get(imgIndex));
+            return SwtIcons.getImage(UIIcon.LOADING.get(imgIndex));
         }
 
     }

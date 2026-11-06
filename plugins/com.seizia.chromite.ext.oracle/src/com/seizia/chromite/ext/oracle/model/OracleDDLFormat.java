@@ -15,10 +15,10 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.ext.oracle.model;
+package com.seizia.chromite.ext.oracle.model;
 
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.DBPDataSource;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.DBPDataSource;
 import org.jkiss.utils.CommonUtils;
 
 /**
@@ -35,7 +35,7 @@ public enum OracleDDLFormat {
     private final boolean showSegments;
     private final boolean showTablespace;
 
-    private static final Log log = org.jkiss.dbeaver.Log.getLog(OracleDDLFormat.class);
+    private static final Log log = com.seizia.chromite.Log.getLog(OracleDDLFormat.class);
 
     private OracleDDLFormat(String title, boolean showStorage, boolean showSegments, boolean showTablespace)
     {

@@ -15,11 +15,11 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.ext.mysql;
+package com.seizia.chromite.ext.mysql;
 
-import org.jkiss.dbeaver.model.DBConstants;
-import org.jkiss.dbeaver.model.impl.net.SSLHandlerTrustStoreImpl;
-import org.jkiss.dbeaver.model.struct.rdb.DBSIndexType;
+import com.seizia.chromite.model.DBConstants;
+import com.seizia.chromite.model.impl.net.SSLHandlerTrustStoreImpl;
+import com.seizia.chromite.model.struct.rdb.DBSIndexType;
 
 /**
  * MySQL constants

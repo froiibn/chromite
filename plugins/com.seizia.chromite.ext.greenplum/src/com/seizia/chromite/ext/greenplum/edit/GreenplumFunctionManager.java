@@ -15,13 +15,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.greenplum.edit;
+package com.seizia.chromite.ext.greenplum.edit;
 
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.ext.postgresql.edit.PostgreProcedureManager;
-import org.jkiss.dbeaver.ext.postgresql.model.PostgreProcedure;
-import org.jkiss.dbeaver.ext.postgresql.model.PostgreSchema;
-import org.jkiss.dbeaver.model.struct.cache.DBSObjectCache;
+import com.seizia.chromite.ext.postgresql.edit.PostgreProcedureManager;
+import com.seizia.chromite.ext.postgresql.model.PostgreProcedure;
+import com.seizia.chromite.ext.postgresql.model.PostgreSchema;
+import com.seizia.chromite.model.struct.cache.DBSObjectCache;
 
 public class GreenplumFunctionManager extends PostgreProcedureManager {
     @Nullable

@@ -17,7 +17,7 @@
 /*
  * Created on Jul 13, 2004
  */
-package org.jkiss.dbeaver.model.erd;
+package com.seizia.chromite.model.erd;
 
 public class ERDModel {
 }

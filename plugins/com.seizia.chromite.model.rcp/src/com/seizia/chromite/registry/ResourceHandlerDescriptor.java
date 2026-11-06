@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.registry;
+package com.seizia.chromite.registry;
 
 import org.eclipse.core.resources.IFile;
 import org.eclipse.core.resources.IFolder;
@@ -28,15 +28,15 @@ import org.eclipse.core.runtime.content.IContentType;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.DBPDataSourceContainer;
-import org.jkiss.dbeaver.model.DBPImage;
-import org.jkiss.dbeaver.model.app.DBPResourceHandler;
-import org.jkiss.dbeaver.model.app.DBPResourceHandlerDescriptor;
-import org.jkiss.dbeaver.model.app.DBPResourceTypeDescriptor;
-import org.jkiss.dbeaver.model.impl.AbstractDescriptor;
-import org.jkiss.dbeaver.model.navigator.DBNNode;
-import org.jkiss.dbeaver.model.navigator.DBNResource;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.DBPDataSourceContainer;
+import com.seizia.chromite.model.DBPImage;
+import com.seizia.chromite.model.app.DBPResourceHandler;
+import com.seizia.chromite.model.app.DBPResourceHandlerDescriptor;
+import com.seizia.chromite.model.app.DBPResourceTypeDescriptor;
+import com.seizia.chromite.model.impl.AbstractDescriptor;
+import com.seizia.chromite.model.navigator.DBNNode;
+import com.seizia.chromite.model.navigator.DBNResource;
 import org.jkiss.utils.ArrayUtils;
 
 import java.util.List;
@@ -47,7 +47,7 @@ import java.util.List;
 public class ResourceHandlerDescriptor extends AbstractDescriptor implements DBPResourceHandlerDescriptor {
     private static final Log log = Log.getLog(ResourceHandlerDescriptor.class);
 
-    public static final String EXTENSION_ID = "org.jkiss.dbeaver.resourceHandler"; //$NON-NLS-1$
+    public static final String EXTENSION_ID = "com.seizia.chromite.resourceHandler"; //$NON-NLS-1$
 
     private final String typeId;
     @Nullable

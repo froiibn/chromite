@@ -14,13 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui;
+package com.seizia.chromite.ui;
 
 import org.eclipse.jface.viewers.ColumnViewer;
 import org.eclipse.jface.viewers.ColumnViewerToolTipSupport;
 import org.eclipse.jface.window.ToolTip;
 import org.eclipse.swt.widgets.Event;
-import org.jkiss.dbeaver.ui.dialogs.AbstractPopupPanel;
+import com.seizia.chromite.ui.dialogs.AbstractPopupPanel;
 
 /**
  * Tooltips

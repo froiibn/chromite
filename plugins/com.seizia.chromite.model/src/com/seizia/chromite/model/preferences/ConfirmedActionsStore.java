@@ -14,14 +14,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.preferences;
+package com.seizia.chromite.model.preferences;
 
 import com.google.gson.reflect.TypeToken;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.data.json.JSONUtils;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.data.json.JSONUtils;
 
 import java.io.IOException;
 import java.nio.file.AtomicMoveNotSupportedException;

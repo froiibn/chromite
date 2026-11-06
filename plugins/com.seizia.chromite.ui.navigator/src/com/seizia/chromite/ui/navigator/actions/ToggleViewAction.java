@@ -14,13 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.navigator.actions;
+package com.seizia.chromite.ui.navigator.actions;
 
 import org.eclipse.jface.action.Action;
 import org.eclipse.jface.resource.ImageDescriptor;
 import org.eclipse.ui.*;
 import org.eclipse.ui.views.IViewDescriptor;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
+import com.seizia.chromite.runtime.DBWorkbench;
 
 
 public class ToggleViewAction extends Action implements IPartListener

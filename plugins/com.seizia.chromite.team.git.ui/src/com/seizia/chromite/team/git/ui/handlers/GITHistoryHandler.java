@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.team.git.ui.handlers;
+package com.seizia.chromite.team.git.ui.handlers;
 
 
 import org.eclipse.core.commands.ExecutionEvent;
@@ -29,7 +29,7 @@ import org.eclipse.ui.IWorkbenchPage;
 import org.eclipse.ui.IWorkbenchWindow;
 import org.eclipse.ui.PartInitException;
 import org.eclipse.ui.handlers.HandlerUtil;
-import org.jkiss.dbeaver.ui.UIUtils;
+import com.seizia.chromite.ui.UIUtils;
 import org.jkiss.utils.ArrayUtils;
 
 import java.util.Arrays;

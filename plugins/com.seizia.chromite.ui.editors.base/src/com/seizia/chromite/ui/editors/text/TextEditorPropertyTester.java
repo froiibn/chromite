@@ -14,12 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.editors.text;
+package com.seizia.chromite.ui.editors.text;
 
 import org.eclipse.core.expressions.PropertyTester;
 import org.eclipse.ui.IEditorPart;
-import org.jkiss.dbeaver.ui.ActionUtils;
-import org.jkiss.dbeaver.ui.ICommentsSupport;
+import com.seizia.chromite.ui.ActionUtils;
+import com.seizia.chromite.ui.ICommentsSupport;
 import org.jkiss.utils.ArrayUtils;
 
 /**
@@ -27,7 +27,7 @@ import org.jkiss.utils.ArrayUtils;
  */
 public class TextEditorPropertyTester extends PropertyTester
 {
-    public static final String NAMESPACE = "org.jkiss.dbeaver.ui.editors.text";
+    public static final String NAMESPACE = "com.seizia.chromite.ui.editors.text";
     public static final String PROP_AVAILABLE = "available";
     public static final String PROP_CAN_LOAD = "canLoad";
     public static final String PROP_CAN_SAVE = "canSave";

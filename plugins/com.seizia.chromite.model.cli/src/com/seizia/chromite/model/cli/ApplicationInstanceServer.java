@@ -15,16 +15,16 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.model.cli;
+package com.seizia.chromite.model.cli;
 
 import com.google.gson.Gson;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.app.DBPWorkspace;
-import org.jkiss.dbeaver.model.cli.rest.BearerRequestHandler;
-import org.jkiss.dbeaver.utils.FileMutex;
-import org.jkiss.dbeaver.utils.GeneralUtils;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.app.DBPWorkspace;
+import com.seizia.chromite.model.cli.rest.BearerRequestHandler;
+import com.seizia.chromite.utils.FileMutex;
+import com.seizia.chromite.utils.GeneralUtils;
 import org.jkiss.utils.CommonUtils;
 import org.jkiss.utils.SecurityUtils;
 import org.jkiss.utils.rest.RequestHandlerFactory;

@@ -14,14 +14,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.app.config.pages;
+package com.seizia.chromite.ui.app.config.pages;
 
 import org.eclipse.jface.wizard.WizardPage;
 import org.eclipse.swt.SWT;
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.ui.DBeaverIcons;
-import org.jkiss.dbeaver.ui.UIIcon;
-import org.jkiss.dbeaver.ui.app.config.ProductConfigWizard;
+import com.seizia.chromite.ui.SwtIcons;
+import com.seizia.chromite.ui.UIIcon;
+import com.seizia.chromite.ui.app.config.ProductConfigWizard;
 
 public abstract class ProductConfigWizardPage extends WizardPage {
     protected static final int TEXT_WIDTH_HINT = 300;
@@ -31,7 +31,7 @@ public abstract class ProductConfigWizardPage extends WizardPage {
         super(title);
         setTitle(title);
         setDescription(description);
-        setImageDescriptor(DBeaverIcons.getImageDescriptor(UIIcon.DBEAVER_LOGO));
+        setImageDescriptor(SwtIcons.getImageDescriptor(UIIcon.CHROMITE_LOGO));
     }
 
     @NotNull

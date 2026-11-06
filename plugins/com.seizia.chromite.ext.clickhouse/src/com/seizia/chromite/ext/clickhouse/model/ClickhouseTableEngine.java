@@ -14,12 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.clickhouse.model;
+package com.seizia.chromite.ext.clickhouse.model;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.model.DBPDataSource;
-import org.jkiss.dbeaver.model.struct.DBSObject;
+import com.seizia.chromite.model.DBPDataSource;
+import com.seizia.chromite.model.struct.DBSObject;
 
 /**
  * The table engine (type of table) in ClickHouse helps to understand how and where data is stored in table

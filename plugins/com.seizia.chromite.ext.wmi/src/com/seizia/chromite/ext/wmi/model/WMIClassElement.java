@@ -14,13 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.wmi.model;
+package com.seizia.chromite.ext.wmi.model;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.model.DBPDataSource;
-import org.jkiss.dbeaver.model.meta.Property;
-import org.jkiss.dbeaver.model.struct.DBSEntityElement;
+import com.seizia.chromite.model.DBPDataSource;
+import com.seizia.chromite.model.meta.Property;
+import com.seizia.chromite.model.struct.DBSEntityElement;
 import org.jkiss.wmi.service.WMIObjectElement;
 import org.jkiss.wmi.service.WMIQualifiedObject;
 

@@ -14,10 +14,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.mimer.model;
+package com.seizia.chromite.ext.mimer.model;
 
-import org.jkiss.dbeaver.model.struct.DBSObject;
-import org.jkiss.junit.DBeaverUnitTest;
+import com.seizia.chromite.model.struct.DBSObject;
+import com.seizia.chromite.junit.ChromiteUnitTest;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
@@ -34,7 +34,7 @@ import org.mockito.Mockito;
  *
  * @author Mimer Information Technology
  */
-public class AbstractMimerObjectPrivilegeTest extends DBeaverUnitTest {
+public class AbstractMimerObjectPrivilegeTest extends ChromiteUnitTest {
 
     @Mock
     private MimerSequence sequence;

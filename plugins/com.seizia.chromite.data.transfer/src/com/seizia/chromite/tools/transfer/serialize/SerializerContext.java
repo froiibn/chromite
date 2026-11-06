@@ -15,9 +15,9 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.tools.transfer.serialize;
+package com.seizia.chromite.tools.transfer.serialize;
 
-import org.jkiss.dbeaver.model.DBPDataSourceContainer;
+import com.seizia.chromite.model.DBPDataSourceContainer;
 
 import java.util.ArrayList;
 import java.util.HashSet;

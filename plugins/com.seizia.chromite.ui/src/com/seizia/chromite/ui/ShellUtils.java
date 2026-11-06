@@ -14,16 +14,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui;
+package com.seizia.chromite.ui;
 
 import org.eclipse.jface.util.Util;
 import org.eclipse.swt.program.Program;
 import org.eclipse.ui.internal.ide.IDEInternalPreferences;
 import org.eclipse.ui.internal.ide.IDEWorkbenchPlugin;
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.utils.RuntimeUtils;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.utils.RuntimeUtils;
 import org.jkiss.utils.IOUtils;
 
 import java.awt.*;
@@ -39,8 +39,8 @@ import java.util.StringTokenizer;
  */
 public final class ShellUtils {
     private static final Log log = Log.getLog(ShellUtils.class);
-    private static final String TEST_BROWSER_EXECUTABLE_PROPERTY = "dbeaver.test.browser.executable";
-    private static final String TEST_BROWSER_ARGUMENTS_PROPERTY = "dbeaver.test.browser.arguments";
+    private static final String TEST_BROWSER_EXECUTABLE_PROPERTY = "chromite.test.browser.executable";
+    private static final String TEST_BROWSER_ARGUMENTS_PROPERTY = "chromite.test.browser.arguments";
 
     private ShellUtils() {
         // prevent constructing utility class

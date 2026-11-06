@@ -15,13 +15,13 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.ext.gbase8s.model;
+package com.seizia.chromite.ext.gbase8s.model;
 
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.ext.generic.model.GenericTableBase;
-import org.jkiss.dbeaver.ext.generic.model.GenericTableColumn;
-import org.jkiss.dbeaver.model.impl.DBDummyNumberTransformer;
-import org.jkiss.dbeaver.model.meta.Property;
+import com.seizia.chromite.ext.generic.model.GenericTableBase;
+import com.seizia.chromite.ext.generic.model.GenericTableColumn;
+import com.seizia.chromite.model.impl.DBDummyNumberTransformer;
+import com.seizia.chromite.model.meta.Property;
 
 /**
  * @author Chao Tian

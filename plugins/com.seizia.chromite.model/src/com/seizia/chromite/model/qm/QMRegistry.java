@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.model.qm;
+package com.seizia.chromite.model.qm;
 
 import org.jkiss.code.NotNull;
 

@@ -14,13 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.editors.locks.graph;
+package com.seizia.chromite.ui.editors.locks.graph;
 
 import org.eclipse.gef.EditPart;
 import org.eclipse.gef.EditPartFactory;
-import org.jkiss.dbeaver.model.impl.admin.locks.LockGraph;
-import org.jkiss.dbeaver.model.impl.admin.locks.LockGraphEdge;
-import org.jkiss.dbeaver.model.impl.admin.locks.LockGraphNode;
+import com.seizia.chromite.model.impl.admin.locks.LockGraph;
+import com.seizia.chromite.model.impl.admin.locks.LockGraphEdge;
+import com.seizia.chromite.model.impl.admin.locks.LockGraphNode;
 
 
 public class LockGraphEditPartFactory implements EditPartFactory {

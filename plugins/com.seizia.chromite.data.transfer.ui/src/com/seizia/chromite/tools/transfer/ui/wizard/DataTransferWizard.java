@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.tools.transfer.ui.wizard;
+package com.seizia.chromite.tools.transfer.ui.wizard;
 
 import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.MultiStatus;
@@ -30,41 +30,41 @@ import org.eclipse.ui.IWorkbenchWindow;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.DBPContextProvider;
-import org.jkiss.dbeaver.model.DBUtils;
-import org.jkiss.dbeaver.model.exec.DBCExecutionContext;
-import org.jkiss.dbeaver.model.runtime.DBRRunnable;
-import org.jkiss.dbeaver.model.runtime.DBRRunnableContext;
-import org.jkiss.dbeaver.model.sql.SQLQueryContainer;
-import org.jkiss.dbeaver.model.struct.DBSObject;
-import org.jkiss.dbeaver.model.task.DBTTask;
-import org.jkiss.dbeaver.registry.task.TaskExecutionLog;
-import org.jkiss.dbeaver.runtime.DBInterruptedException;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.tasks.ui.wizard.TaskConfigurationWizard;
-import org.jkiss.dbeaver.tasks.ui.wizard.TaskConfigurationWizardDialog;
-import org.jkiss.dbeaver.tasks.ui.wizard.TaskProcessorUI;
-import org.jkiss.dbeaver.tools.transfer.*;
-import org.jkiss.dbeaver.tools.transfer.database.DatabaseTransferProducer;
-import org.jkiss.dbeaver.tools.transfer.internal.DTActivator;
-import org.jkiss.dbeaver.tools.transfer.internal.DTMessages;
-import org.jkiss.dbeaver.tools.transfer.registry.DataTransferNodeDescriptor;
-import org.jkiss.dbeaver.tools.transfer.registry.DataTransferProcessorDescriptor;
-import org.jkiss.dbeaver.tools.transfer.registry.DataTransferRegistry;
-import org.jkiss.dbeaver.tools.transfer.task.DTTaskHandlerTransfer;
-import org.jkiss.dbeaver.tools.transfer.ui.DataTransferFeatures;
-import org.jkiss.dbeaver.tools.transfer.ui.dialog.DataTransferConfigurationWizardDialog;
-import org.jkiss.dbeaver.tools.transfer.ui.internal.DTUIMessages;
-import org.jkiss.dbeaver.tools.transfer.ui.pages.DataTransferPageNodeSettings;
-import org.jkiss.dbeaver.tools.transfer.ui.registry.DataTransferConfiguratorRegistry;
-import org.jkiss.dbeaver.tools.transfer.ui.registry.DataTransferNodeConfiguratorDescriptor;
-import org.jkiss.dbeaver.tools.transfer.ui.registry.DataTransferPageDescriptor;
-import org.jkiss.dbeaver.tools.transfer.ui.registry.DataTransferPageType;
-import org.jkiss.dbeaver.ui.DialogSettingsMap;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.dialogs.IWizardPageNavigable;
-import org.jkiss.dbeaver.utils.GeneralUtils;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.DBPContextProvider;
+import com.seizia.chromite.model.DBUtils;
+import com.seizia.chromite.model.exec.DBCExecutionContext;
+import com.seizia.chromite.model.runtime.DBRRunnable;
+import com.seizia.chromite.model.runtime.DBRRunnableContext;
+import com.seizia.chromite.model.sql.SQLQueryContainer;
+import com.seizia.chromite.model.struct.DBSObject;
+import com.seizia.chromite.model.task.DBTTask;
+import com.seizia.chromite.registry.task.TaskExecutionLog;
+import com.seizia.chromite.runtime.DBInterruptedException;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.tasks.ui.wizard.TaskConfigurationWizard;
+import com.seizia.chromite.tasks.ui.wizard.TaskConfigurationWizardDialog;
+import com.seizia.chromite.tasks.ui.wizard.TaskProcessorUI;
+import com.seizia.chromite.tools.transfer.*;
+import com.seizia.chromite.tools.transfer.database.DatabaseTransferProducer;
+import com.seizia.chromite.tools.transfer.internal.DTActivator;
+import com.seizia.chromite.tools.transfer.internal.DTMessages;
+import com.seizia.chromite.tools.transfer.registry.DataTransferNodeDescriptor;
+import com.seizia.chromite.tools.transfer.registry.DataTransferProcessorDescriptor;
+import com.seizia.chromite.tools.transfer.registry.DataTransferRegistry;
+import com.seizia.chromite.tools.transfer.task.DTTaskHandlerTransfer;
+import com.seizia.chromite.tools.transfer.ui.DataTransferFeatures;
+import com.seizia.chromite.tools.transfer.ui.dialog.DataTransferConfigurationWizardDialog;
+import com.seizia.chromite.tools.transfer.ui.internal.DTUIMessages;
+import com.seizia.chromite.tools.transfer.ui.pages.DataTransferPageNodeSettings;
+import com.seizia.chromite.tools.transfer.ui.registry.DataTransferConfiguratorRegistry;
+import com.seizia.chromite.tools.transfer.ui.registry.DataTransferNodeConfiguratorDescriptor;
+import com.seizia.chromite.tools.transfer.ui.registry.DataTransferPageDescriptor;
+import com.seizia.chromite.tools.transfer.ui.registry.DataTransferPageType;
+import com.seizia.chromite.ui.DialogSettingsMap;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.dialogs.IWizardPageNavigable;
+import com.seizia.chromite.utils.GeneralUtils;
 import org.jkiss.utils.ArrayUtils;
 import org.jkiss.utils.CommonUtils;
 
@@ -75,7 +75,7 @@ public class DataTransferWizard extends TaskConfigurationWizard<DataTransferSett
 
     private static final String RS_EXPORT_WIZARD_DIALOG_SETTINGS = "DataTransfer";//$NON-NLS-1$
     private static final Log log = Log.getLog(DataTransferWizard.class);
-    private static final String CLI_ARG_DEBUG_DISABLE_DT_SETTINGS_SAVE = "dbeaver.debug.disable-data-transfer-settings-save";
+    private static final String CLI_ARG_DEBUG_DISABLE_DT_SETTINGS_SAVE = "chromite.debug.disable-data-transfer-settings-save";
 
     private DataTransferSettings settings;
     private final Map<Class<?>, NodePageSettings> nodeSettings = new LinkedHashMap<>();

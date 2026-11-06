@@ -14,11 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.controls;
+package com.seizia.chromite.ui.controls;
 
 import org.eclipse.jface.viewers.ColumnLabelProvider;
 import org.eclipse.jface.viewers.ViewerCell;
-import org.jkiss.dbeaver.ui.IColumnValueProvider;
+import com.seizia.chromite.ui.IColumnValueProvider;
 
 class ColumnBooleanLabelProvider<ELEMENT, VALUE_TYPE> extends ColumnLabelProvider {
     private final IColumnValueProvider<ELEMENT, VALUE_TYPE> valueProvider;

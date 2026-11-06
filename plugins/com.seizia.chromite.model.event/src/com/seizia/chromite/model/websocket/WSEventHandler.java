@@ -14,10 +14,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.websocket;
+package com.seizia.chromite.model.websocket;
 
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.model.websocket.event.WSEvent;
+import com.seizia.chromite.model.websocket.event.WSEvent;
 
 /**
  * CB web event handlers

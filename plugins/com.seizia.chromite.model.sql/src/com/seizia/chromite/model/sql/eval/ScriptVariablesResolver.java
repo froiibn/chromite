@@ -14,13 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.sql.eval;
+package com.seizia.chromite.model.sql.eval;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.model.sql.SQLScriptContext;
-import org.jkiss.dbeaver.model.sql.commands.SQLCommandSet;
-import org.jkiss.dbeaver.runtime.IVariableResolver;
+import com.seizia.chromite.model.sql.SQLScriptContext;
+import com.seizia.chromite.model.sql.commands.SQLCommandSet;
+import com.seizia.chromite.runtime.IVariableResolver;
 import org.jkiss.utils.CommonUtils;
 
 /**

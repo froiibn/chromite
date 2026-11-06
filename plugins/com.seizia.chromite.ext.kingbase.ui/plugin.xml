@@ -2,20 +2,20 @@
 <?eclipse version="3.4"?>
 
 <plugin>
-    <extension point="org.jkiss.dbeaver.dataSourceConfigurator">
-    <configurator dataSource="kingbase" class="org.jkiss.dbeaver.ext.kingbase.ui.views.KingbaseConnectionPage"/>
+    <extension point="com.seizia.chromite.dataSourceConfigurator">
+    <configurator dataSource="kingbase" class="com.seizia.chromite.ext.kingbase.ui.views.KingbaseConnectionPage"/>
   </extension>
-  <extension point="org.jkiss.dbeaver.databaseEditor">
+  <extension point="com.seizia.chromite.databaseEditor">
     
-    <configurator class="org.jkiss.dbeaver.ext.kingbase.ui.config.KingbaseDatabaseConfigurator">
-      <objectType name="org.jkiss.dbeaver.ext.kingbase.model.KingbaseDatabase"/>
+    <configurator class="com.seizia.chromite.ext.kingbase.ui.config.KingbaseDatabaseConfigurator">
+      <objectType name="com.seizia.chromite.ext.kingbase.model.KingbaseDatabase"/>
     </configurator>
    
-    <configurator class="org.jkiss.dbeaver.ext.kingbase.ui.config.KingbaseProcedureConfigurator">
-      <objectType name="org.jkiss.dbeaver.ext.kingbase.model.KingbaseProcedure"/>
+    <configurator class="com.seizia.chromite.ext.kingbase.ui.config.KingbaseProcedureConfigurator">
+      <objectType name="com.seizia.chromite.ext.kingbase.model.KingbaseProcedure"/>
     </configurator>
-    <configurator class="org.jkiss.dbeaver.ext.kingbase.ui.config.KingbaseFunctionConfigurator">
-      <objectType name="org.jkiss.dbeaver.ext.kingbase.model.KingbaseFunction"/>
+    <configurator class="com.seizia.chromite.ext.kingbase.ui.config.KingbaseFunctionConfigurator">
+      <objectType name="com.seizia.chromite.ext.kingbase.model.KingbaseFunction"/>
     </configurator>
   </extension>
 </plugin>

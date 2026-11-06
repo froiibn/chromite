@@ -14,9 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.controls.decorations;
+package com.seizia.chromite.ui.controls.decorations;
 
-import org.jkiss.dbeaver.model.DBIcon;
+import com.seizia.chromite.model.DBIcon;
 
 final class SnowflakeIcons {
     static final DBIcon FLAKE_1 = new DBIcon("flake1", "misc/decorations/flake1.png");

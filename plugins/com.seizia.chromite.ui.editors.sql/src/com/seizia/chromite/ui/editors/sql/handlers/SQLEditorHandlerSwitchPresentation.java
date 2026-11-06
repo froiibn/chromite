@@ -14,24 +14,24 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.editors.sql.handlers;
+package com.seizia.chromite.ui.editors.sql.handlers;
 
 import org.eclipse.core.commands.AbstractHandler;
 import org.eclipse.core.commands.ExecutionEvent;
 import org.eclipse.core.commands.ExecutionException;
 import org.eclipse.core.commands.IParameterValues;
 import org.eclipse.ui.handlers.HandlerUtil;
-import org.jkiss.dbeaver.ui.editors.sql.SQLEditor;
-import org.jkiss.dbeaver.ui.editors.sql.registry.SQLPresentationDescriptor;
-import org.jkiss.dbeaver.ui.editors.sql.registry.SQLPresentationRegistry;
-import org.jkiss.dbeaver.utils.RuntimeUtils;
+import com.seizia.chromite.ui.editors.sql.SQLEditor;
+import com.seizia.chromite.ui.editors.sql.registry.SQLPresentationDescriptor;
+import com.seizia.chromite.ui.editors.sql.registry.SQLPresentationRegistry;
+import com.seizia.chromite.utils.RuntimeUtils;
 import org.jkiss.utils.CommonUtils;
 
 import java.util.Map;
 import java.util.stream.Collectors;
 
 public class SQLEditorHandlerSwitchPresentation extends AbstractHandler {
-    public static final String CMD_SWITCH_PRESENTATION_ID = "org.jkiss.dbeaver.ui.editors.sql.switch.presentation";
+    public static final String CMD_SWITCH_PRESENTATION_ID = "com.seizia.chromite.ui.editors.sql.switch.presentation";
     public static final String PARAM_PRESENTATION_ID = "presentationId";
 
     @Override

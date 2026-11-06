@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.app.config.pages;
+package com.seizia.chromite.ui.app.config.pages;
 
 import org.eclipse.e4.ui.css.swt.theme.ITheme;
 import org.eclipse.e4.ui.css.swt.theme.IThemeEngine;
@@ -22,14 +22,14 @@ import org.eclipse.jface.dialogs.IDialogConstants;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.ui.PlatformUI;
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.model.navigator.DBNBrowseSettings;
-import org.jkiss.dbeaver.registry.DataSourceNavigatorSettings;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.ui.app.config.nls.ProductConfigMessages;
-import org.jkiss.dbeaver.ui.dialogs.connection.EditConnectionNavigatorSettingsDialog;
-import org.jkiss.dbeaver.ui.forms.UIObservable;
-import org.jkiss.dbeaver.ui.forms.UIObservables;
-import org.jkiss.dbeaver.ui.forms.UIPanelBuilder;
+import com.seizia.chromite.model.navigator.DBNBrowseSettings;
+import com.seizia.chromite.registry.DataSourceNavigatorSettings;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.ui.app.config.nls.ProductConfigMessages;
+import com.seizia.chromite.ui.dialogs.connection.EditConnectionNavigatorSettingsDialog;
+import com.seizia.chromite.ui.forms.UIObservable;
+import com.seizia.chromite.ui.forms.UIObservables;
+import com.seizia.chromite.ui.forms.UIPanelBuilder;
 
 import java.util.function.Consumer;
 

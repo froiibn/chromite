@@ -14,12 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.datadam.internal;
+package com.seizia.chromite.ui.datadam.internal;
 
 import org.eclipse.osgi.util.NLS;
 
 public class DDMcpMessages extends NLS {
-    private static final String BUNDLE_NAME = "org.jkiss.dbeaver.ui.datadam.internal.DDMcpMessages";
+    private static final String BUNDLE_NAME = "com.seizia.chromite.ui.datadam.internal.DDMcpMessages";
 
     public static String mcp_connection_settings_group;
     public static String mcp_connection_settings_enabled;

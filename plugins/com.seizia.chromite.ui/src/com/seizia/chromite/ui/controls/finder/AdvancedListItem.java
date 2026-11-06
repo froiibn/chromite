@@ -14,14 +14,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.controls.finder;
+package com.seizia.chromite.ui.controls.finder;
 
 import org.eclipse.jface.viewers.ILabelProvider;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.graphics.*;
-import org.jkiss.dbeaver.model.DBIcon;
-import org.jkiss.dbeaver.ui.DBeaverIcons;
-import org.jkiss.dbeaver.utils.RuntimeUtils;
+import com.seizia.chromite.model.DBIcon;
+import com.seizia.chromite.ui.SwtIcons;
+import com.seizia.chromite.utils.RuntimeUtils;
 import org.jkiss.utils.CommonUtils;
 
 /**
@@ -83,7 +83,7 @@ public class AdvancedListItem {
 
         Image icon = labelProvider.getImage(data);
         if (icon == null) {
-            icon = DBeaverIcons.getImage(DBIcon.DATABASE_BIG_DEFAULT);
+            icon = SwtIcons.getImage(DBIcon.DATABASE_BIG_DEFAULT);
         }
         Rectangle iconBounds;
 

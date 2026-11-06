@@ -14,17 +14,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.data.managers;
+package com.seizia.chromite.ui.data.managers;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.model.DBPDataKind;
-import org.jkiss.dbeaver.ui.data.IValueController;
-import org.jkiss.dbeaver.ui.data.IValueEditor;
-import org.jkiss.dbeaver.ui.data.dialogs.DefaultValueViewDialog;
-import org.jkiss.dbeaver.ui.data.editors.BitInlineEditor;
-import org.jkiss.dbeaver.ui.data.editors.NumberInlineEditor;
+import com.seizia.chromite.model.DBPDataKind;
+import com.seizia.chromite.ui.data.IValueController;
+import com.seizia.chromite.ui.data.IValueEditor;
+import com.seizia.chromite.ui.data.dialogs.DefaultValueViewDialog;
+import com.seizia.chromite.ui.data.editors.BitInlineEditor;
+import com.seizia.chromite.ui.data.editors.NumberInlineEditor;
 
 /**
  * Number value handler

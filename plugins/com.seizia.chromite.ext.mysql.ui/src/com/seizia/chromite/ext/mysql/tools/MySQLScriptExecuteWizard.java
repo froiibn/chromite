@@ -15,19 +15,19 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.ext.mysql.tools;
+package com.seizia.chromite.ext.mysql.tools;
 
 import org.eclipse.jface.wizard.IWizardPage;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.ext.mysql.model.MySQLCatalog;
-import org.jkiss.dbeaver.ext.mysql.tasks.MySQLScriptExecuteSettings;
-import org.jkiss.dbeaver.ext.mysql.tasks.MySQLTasks;
-import org.jkiss.dbeaver.ext.mysql.ui.internal.MySQLUIMessages;
-import org.jkiss.dbeaver.model.runtime.DBRRunnableContext;
-import org.jkiss.dbeaver.model.task.DBTTask;
-import org.jkiss.dbeaver.registry.task.TaskPreferenceStore;
-import org.jkiss.dbeaver.tasks.ui.nativetool.AbstractNativeScriptExecuteWizard;
+import com.seizia.chromite.ext.mysql.model.MySQLCatalog;
+import com.seizia.chromite.ext.mysql.tasks.MySQLScriptExecuteSettings;
+import com.seizia.chromite.ext.mysql.tasks.MySQLTasks;
+import com.seizia.chromite.ext.mysql.ui.internal.MySQLUIMessages;
+import com.seizia.chromite.model.runtime.DBRRunnableContext;
+import com.seizia.chromite.model.task.DBTTask;
+import com.seizia.chromite.registry.task.TaskPreferenceStore;
+import com.seizia.chromite.tasks.ui.nativetool.AbstractNativeScriptExecuteWizard;
 
 import java.nio.file.Path;
 import java.util.Collections;

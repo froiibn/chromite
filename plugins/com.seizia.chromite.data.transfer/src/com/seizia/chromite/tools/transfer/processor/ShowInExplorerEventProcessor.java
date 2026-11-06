@@ -14,17 +14,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.tools.transfer.processor;
+package com.seizia.chromite.tools.transfer.processor;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.model.fs.DBFUtils;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.model.task.DBTTask;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.tools.transfer.IDataTransferEventProcessor;
-import org.jkiss.dbeaver.tools.transfer.stream.StreamTransferConsumer;
+import com.seizia.chromite.model.fs.DBFUtils;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.model.task.DBTTask;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.tools.transfer.IDataTransferEventProcessor;
+import com.seizia.chromite.tools.transfer.stream.StreamTransferConsumer;
 import org.jkiss.utils.IOUtils;
 
 import java.nio.file.Path;

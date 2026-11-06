@@ -15,12 +15,12 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.tools.transfer.ui.registry;
+package com.seizia.chromite.tools.transfer.ui.registry;
 
 import org.eclipse.core.runtime.IExtensionRegistry;
 import org.eclipse.core.runtime.Platform;
 import org.eclipse.jface.wizard.IWizardPage;
-import org.jkiss.dbeaver.Log;
+import com.seizia.chromite.Log;
 
 import java.util.*;
 
@@ -29,7 +29,7 @@ import java.util.*;
  */
 public class DataTransferConfiguratorRegistry {
 
-    public static final String EXTENSION_ID = "org.jkiss.dbeaver.dataTransferConfigurator"; //$NON-NLS-1$
+    public static final String EXTENSION_ID = "com.seizia.chromite.dataTransferConfigurator"; //$NON-NLS-1$
 
     private static DataTransferConfiguratorRegistry instance = null;
 

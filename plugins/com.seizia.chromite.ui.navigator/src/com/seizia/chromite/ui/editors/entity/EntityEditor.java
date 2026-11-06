@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.editors.entity;
+package com.seizia.chromite.ui.editors.entity;
 
 import com.google.gson.reflect.TypeToken;
 import org.eclipse.core.runtime.IProgressMonitor;
@@ -36,49 +36,49 @@ import org.eclipse.ui.views.properties.IPropertySheetPage;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.*;
-import org.jkiss.dbeaver.model.data.json.JSONUtils;
-import org.jkiss.dbeaver.model.edit.DBECommand;
-import org.jkiss.dbeaver.model.edit.DBECommandContext;
-import org.jkiss.dbeaver.model.edit.DBEObjectManager;
-import org.jkiss.dbeaver.model.edit.DBEPersistAction;
-import org.jkiss.dbeaver.model.exec.DBCException;
-import org.jkiss.dbeaver.model.exec.DBCExecutionContext;
-import org.jkiss.dbeaver.model.exec.DBExecUtils;
-import org.jkiss.dbeaver.model.impl.edit.DBECommandAdapter;
-import org.jkiss.dbeaver.model.navigator.DBNDatabaseNode;
-import org.jkiss.dbeaver.model.navigator.DBNEvent;
-import org.jkiss.dbeaver.model.navigator.DBNNode;
-import org.jkiss.dbeaver.model.preferences.DBPPreferenceListener;
-import org.jkiss.dbeaver.model.preferences.DBPPreferenceStore;
-import org.jkiss.dbeaver.model.rm.RMConstants;
-import org.jkiss.dbeaver.model.runtime.AbstractJob;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.model.runtime.ProxyProgressMonitor;
-import org.jkiss.dbeaver.model.sql.SQLUtils;
-import org.jkiss.dbeaver.model.struct.DBSObject;
-import org.jkiss.dbeaver.model.struct.DBSObjectContainer;
-import org.jkiss.dbeaver.model.struct.rdb.DBSTable;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.runtime.ui.UIServiceSQL;
-import org.jkiss.dbeaver.ui.*;
-import org.jkiss.dbeaver.ui.actions.DataSourcePropertyTester;
-import org.jkiss.dbeaver.ui.actions.datasource.DataSourceToolbarUtils;
-import org.jkiss.dbeaver.ui.controls.CustomFormEditor;
-import org.jkiss.dbeaver.ui.controls.ProgressPageControl;
-import org.jkiss.dbeaver.ui.controls.PropertyPageStandard;
-import org.jkiss.dbeaver.ui.controls.folders.ITabbedFolder;
-import org.jkiss.dbeaver.ui.controls.folders.ITabbedFolderContainer;
-import org.jkiss.dbeaver.ui.controls.folders.ITabbedFolderListener;
-import org.jkiss.dbeaver.ui.dialogs.ConfirmationDialog;
-import org.jkiss.dbeaver.ui.editors.*;
-import org.jkiss.dbeaver.ui.editors.DatabaseEditorPreferences.BreadcrumbLocation;
-import org.jkiss.dbeaver.ui.editors.entity.properties.ObjectPropertiesEditor;
-import org.jkiss.dbeaver.ui.internal.UINavigatorMessages;
-import org.jkiss.dbeaver.ui.navigator.NavigatorPreferences;
-import org.jkiss.dbeaver.ui.navigator.breadcrumb.NodeBreadcrumbViewer;
-import org.jkiss.dbeaver.utils.GeneralUtils;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.*;
+import com.seizia.chromite.model.data.json.JSONUtils;
+import com.seizia.chromite.model.edit.DBECommand;
+import com.seizia.chromite.model.edit.DBECommandContext;
+import com.seizia.chromite.model.edit.DBEObjectManager;
+import com.seizia.chromite.model.edit.DBEPersistAction;
+import com.seizia.chromite.model.exec.DBCException;
+import com.seizia.chromite.model.exec.DBCExecutionContext;
+import com.seizia.chromite.model.exec.DBExecUtils;
+import com.seizia.chromite.model.impl.edit.DBECommandAdapter;
+import com.seizia.chromite.model.navigator.DBNDatabaseNode;
+import com.seizia.chromite.model.navigator.DBNEvent;
+import com.seizia.chromite.model.navigator.DBNNode;
+import com.seizia.chromite.model.preferences.DBPPreferenceListener;
+import com.seizia.chromite.model.preferences.DBPPreferenceStore;
+import com.seizia.chromite.model.rm.RMConstants;
+import com.seizia.chromite.model.runtime.AbstractJob;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.model.runtime.ProxyProgressMonitor;
+import com.seizia.chromite.model.sql.SQLUtils;
+import com.seizia.chromite.model.struct.DBSObject;
+import com.seizia.chromite.model.struct.DBSObjectContainer;
+import com.seizia.chromite.model.struct.rdb.DBSTable;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.runtime.ui.UIServiceSQL;
+import com.seizia.chromite.ui.*;
+import com.seizia.chromite.ui.actions.DataSourcePropertyTester;
+import com.seizia.chromite.ui.actions.datasource.DataSourceToolbarUtils;
+import com.seizia.chromite.ui.controls.CustomFormEditor;
+import com.seizia.chromite.ui.controls.ProgressPageControl;
+import com.seizia.chromite.ui.controls.PropertyPageStandard;
+import com.seizia.chromite.ui.controls.folders.ITabbedFolder;
+import com.seizia.chromite.ui.controls.folders.ITabbedFolderContainer;
+import com.seizia.chromite.ui.controls.folders.ITabbedFolderListener;
+import com.seizia.chromite.ui.dialogs.ConfirmationDialog;
+import com.seizia.chromite.ui.editors.*;
+import com.seizia.chromite.ui.editors.DatabaseEditorPreferences.BreadcrumbLocation;
+import com.seizia.chromite.ui.editors.entity.properties.ObjectPropertiesEditor;
+import com.seizia.chromite.ui.internal.UINavigatorMessages;
+import com.seizia.chromite.ui.navigator.NavigatorPreferences;
+import com.seizia.chromite.ui.navigator.breadcrumb.NodeBreadcrumbViewer;
+import com.seizia.chromite.utils.GeneralUtils;
 import org.jkiss.utils.CommonUtils;
 
 import java.lang.reflect.InvocationTargetException;
@@ -95,7 +95,7 @@ public class EntityEditor extends MultiPageDatabaseEditor
     implements IPropertyChangeReflector, IProgressControlProvider, ISaveablePart2, IRevertableEditor, ILazyEditor,
     ITabbedFolderContainer, DBPDataSourceContainerProvider, IEntityEditorContext
 {
-    public static final String ID = "org.jkiss.dbeaver.ui.editors.entity.EntityEditor"; //$NON-NLS-1$
+    public static final String ID = "com.seizia.chromite.ui.editors.entity.EntityEditor"; //$NON-NLS-1$
 
     public static final String TABS_CONFIG_FILE = "entity-editor-tabs.json"; //$NON-NLS-1$
 
@@ -629,7 +629,7 @@ public class EntityEditor extends MultiPageDatabaseEditor
                         propEditorIndex,
                         node.getNodeTypeLabel() + UINavigatorMessages.editors_entity_properties_tooltip_suffix
                     );
-                    setPageImage(propEditorIndex, DBeaverIcons.getImage(node.getNodeIconDefault()));
+                    setPageImage(propEditorIndex, SwtIcons.getImage(node.getNodeIconDefault()));
                 }
             }
         }
@@ -684,7 +684,7 @@ public class EntityEditor extends MultiPageDatabaseEditor
                 setPageText(0, input.canLoadImmediately()
                     ? UINavigatorMessages.editors_entity_title_initializing
                     : UINavigatorMessages.editors_entity_title_uninitialized);
-                setPageImage(0, DBeaverIcons.getImage(UIIcon.REFRESH));
+                setPageImage(0, SwtIcons.getImage(UIIcon.REFRESH));
                 setActivePage(0);
             } catch (PartInitException e) {
                 log.error(e);
@@ -988,7 +988,7 @@ public class EntityEditor extends MultiPageDatabaseEditor
             int index = addPage(editor, nestedInput);
             setPageText(index, descriptor.getName());
             if (descriptor.getIcon() != null) {
-                setPageImage(index, DBeaverIcons.getImage(descriptor.getIcon()));
+                setPageImage(index, SwtIcons.getImage(descriptor.getIcon()));
             }
             if (!CommonUtils.isEmpty(descriptor.getDescription())) {
                 setPageToolTip(index, descriptor.getDescription());
@@ -1132,7 +1132,7 @@ public class EntityEditor extends MultiPageDatabaseEditor
             // Update main editor image
             DBNDatabaseNode navigatorNode = getEditorInput().getNavigatorNode();
             if (navigatorNode != null) {
-                setPageImage(0, DBeaverIcons.getImage(navigatorNode.getNodeIconDefault()));
+                setPageImage(0, SwtIcons.getImage(navigatorNode.getNodeIconDefault()));
             }
         }
 

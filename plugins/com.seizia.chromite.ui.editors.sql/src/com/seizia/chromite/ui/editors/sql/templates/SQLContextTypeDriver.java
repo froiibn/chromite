@@ -9,10 +9,10 @@
  *     IBM Corporation - initial API and implementation
  *     Sebastian Davids: sdavids@gmx.de - see bug 25376
  *******************************************************************************/
-package org.jkiss.dbeaver.ui.editors.sql.templates;
+package com.seizia.chromite.ui.editors.sql.templates;
 
 
-import org.jkiss.dbeaver.model.connection.DBPDriver;
+import com.seizia.chromite.model.connection.DBPDriver;
 
 public class SQLContextTypeDriver extends SQLContextTypeAbstract {
 

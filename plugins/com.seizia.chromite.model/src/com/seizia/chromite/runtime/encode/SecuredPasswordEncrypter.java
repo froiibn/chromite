@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.runtime.encode;
+package com.seizia.chromite.runtime.encode;
 
 import org.jkiss.utils.Base64;
 

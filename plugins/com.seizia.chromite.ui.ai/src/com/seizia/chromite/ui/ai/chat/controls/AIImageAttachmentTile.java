@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.ai.chat.controls;
+package com.seizia.chromite.ui.ai.chat.controls;
 
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.accessibility.ACC;
@@ -34,11 +34,11 @@ import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Control;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.model.ai.AIImageAttachment;
-import org.jkiss.dbeaver.ui.DBeaverIcons;
-import org.jkiss.dbeaver.ui.UIIcon;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.ai.chat.internal.AIChatMessagesUI;
+import com.seizia.chromite.model.ai.AIImageAttachment;
+import com.seizia.chromite.ui.SwtIcons;
+import com.seizia.chromite.ui.UIIcon;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.ai.chat.internal.AIChatMessagesUI;
 
 final class AIImageAttachmentTile extends Composite {
     static final int PREVIEW_SIZE = 64;
@@ -147,7 +147,7 @@ final class AIImageAttachmentTile extends Composite {
     private void paintPreview(@NotNull GC gc) {
         gc.setAntialias(SWT.ON);
         gc.setInterpolation(SWT.HIGH);
-        Image image = thumbnail != null ? thumbnail : DBeaverIcons.getImage(UIIcon.PICTURE);
+        Image image = thumbnail != null ? thumbnail : SwtIcons.getImage(UIIcon.PICTURE);
         if (image != null) {
             Rectangle bounds = image.getBounds();
             double scale = Math.min((double) (PREVIEW_SIZE - 2 * PREVIEW_PADDING) / bounds.width,

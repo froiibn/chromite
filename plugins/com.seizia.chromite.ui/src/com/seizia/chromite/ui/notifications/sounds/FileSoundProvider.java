@@ -14,12 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.notifications.sounds;
+package com.seizia.chromite.ui.notifications.sounds;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.ui.notifications.NotificationSound;
-import org.jkiss.dbeaver.ui.notifications.NotificationSoundProvider;
+import com.seizia.chromite.ui.notifications.NotificationSound;
+import com.seizia.chromite.ui.notifications.NotificationSoundProvider;
 
 import javax.sound.sampled.*;
 import java.io.File;

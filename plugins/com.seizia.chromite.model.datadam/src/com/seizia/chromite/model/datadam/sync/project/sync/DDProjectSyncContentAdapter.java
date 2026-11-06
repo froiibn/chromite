@@ -14,12 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.datadam.sync.project.sync;
+package com.seizia.chromite.model.datadam.sync.project.sync;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.model.app.DBPProject;
-import org.jkiss.dbeaver.model.sync.*;
+import com.seizia.chromite.model.app.DBPProject;
+import com.seizia.chromite.model.sync.*;
 
 import java.util.*;
 

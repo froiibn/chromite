@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.postgresql.tools;
+package com.seizia.chromite.ext.postgresql.tools;
 
 import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.Status;
@@ -30,26 +30,26 @@ import org.eclipse.swt.widgets.TableItem;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.ext.postgresql.PostgreMessages;
-import org.jkiss.dbeaver.ext.postgresql.PostgreUIUtils;
-import org.jkiss.dbeaver.ext.postgresql.model.PostgreDatabase;
-import org.jkiss.dbeaver.ext.postgresql.model.PostgreSchema;
-import org.jkiss.dbeaver.ext.postgresql.model.PostgreTableBase;
-import org.jkiss.dbeaver.ext.postgresql.model.PostgreTableContainer;
-import org.jkiss.dbeaver.ext.postgresql.tasks.PostgreDatabaseBackupInfo;
-import org.jkiss.dbeaver.ext.postgresql.tasks.PostgreDatabaseBackupSelection;
-import org.jkiss.dbeaver.model.DBIcon;
-import org.jkiss.dbeaver.model.DBUtils;
-import org.jkiss.dbeaver.model.impl.jdbc.struct.JDBCTable;
-import org.jkiss.dbeaver.model.runtime.AbstractJob;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.model.runtime.VoidProgressMonitor;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.tasks.ui.nativetool.AbstractNativeToolWizardPage;
-import org.jkiss.dbeaver.ui.DBeaverIcons;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.controls.CustomSashForm;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.ext.postgresql.PostgreMessages;
+import com.seizia.chromite.ext.postgresql.PostgreUIUtils;
+import com.seizia.chromite.ext.postgresql.model.PostgreDatabase;
+import com.seizia.chromite.ext.postgresql.model.PostgreSchema;
+import com.seizia.chromite.ext.postgresql.model.PostgreTableBase;
+import com.seizia.chromite.ext.postgresql.model.PostgreTableContainer;
+import com.seizia.chromite.ext.postgresql.tasks.PostgreDatabaseBackupInfo;
+import com.seizia.chromite.ext.postgresql.tasks.PostgreDatabaseBackupSelection;
+import com.seizia.chromite.model.DBIcon;
+import com.seizia.chromite.model.DBUtils;
+import com.seizia.chromite.model.impl.jdbc.struct.JDBCTable;
+import com.seizia.chromite.model.runtime.AbstractJob;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.model.runtime.VoidProgressMonitor;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.tasks.ui.nativetool.AbstractNativeToolWizardPage;
+import com.seizia.chromite.ui.SwtIcons;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.controls.CustomSashForm;
 import org.jkiss.utils.CommonUtils;
 
 import java.util.*;
@@ -88,7 +88,7 @@ class PostgreBackupWizardPageObjects extends AbstractNativeToolWizardPage<Postgr
 
         connInfo = new CLabel(objectsGroup, SWT.WRAP);
         connInfo.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false));
-        connInfo.setImage(DBeaverIcons.getImage(DBIcon.DATABASE_DEFAULT));
+        connInfo.setImage(SwtIcons.getImage(DBIcon.DATABASE_DEFAULT));
 
         SashForm sash = new CustomSashForm(objectsGroup, SWT.VERTICAL);
         sash.setLayoutData(new GridData(GridData.FILL_BOTH));
@@ -238,7 +238,7 @@ class PostgreBackupWizardPageObjects extends AbstractNativeToolWizardPage<Postgr
                         continue;
                     }
                     TableItem item = new TableItem(schemasTable, SWT.NONE);
-                    item.setImage(DBeaverIcons.getImage(DBIcon.TREE_SCHEMA));
+                    item.setImage(SwtIcons.getImage(DBIcon.TREE_SCHEMA));
                     item.setText(0, schema.getName());
                     item.setData(schema);
                     if (activeSchemas.contains(schema)) {
@@ -335,7 +335,7 @@ class PostgreBackupWizardPageObjects extends AbstractNativeToolWizardPage<Postgr
                         tablesTable.removeAll();
                         for (PostgreTableBase table : objects) {
                             TableItem item = new TableItem(tablesTable, SWT.NONE);
-                            item.setImage(DBeaverIcons.getImage(table.isView() ? DBIcon.TREE_VIEW : DBIcon.TREE_TABLE));
+                            item.setImage(SwtIcons.getImage(table.isView() ? DBIcon.TREE_VIEW : DBIcon.TREE_TABLE));
                             item.setText(0, table.getName());
                             item.setData(table);
                             item.setChecked(selection.isTableSelected(schema, table));

@@ -14,10 +14,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui;
+package com.seizia.chromite.ui;
 
 import org.eclipse.jface.action.Action;
-import org.jkiss.dbeaver.ui.internal.UIMessages;
+import com.seizia.chromite.ui.internal.UIMessages;
 
 /**
  * Context search action
@@ -29,7 +29,7 @@ public class ContextSearchAction extends Action {
 
     public ContextSearchAction(ISearchContextProvider contextProvider, ISearchContextProvider.SearchType searchType)
     {
-        super(UIMessages.ui_actions_context_search_name, DBeaverIcons.getImageDescriptor(UIIcon.FIND));
+        super(UIMessages.ui_actions_context_search_name, SwtIcons.getImageDescriptor(UIIcon.FIND));
         this.contextProvider = contextProvider;
         this.searchType = searchType;
     }

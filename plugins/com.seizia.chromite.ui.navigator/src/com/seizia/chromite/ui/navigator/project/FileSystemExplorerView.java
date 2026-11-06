@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.navigator.project;
+package com.seizia.chromite.ui.navigator.project;
 
 import org.eclipse.jface.viewers.*;
 import org.eclipse.swt.SWT;
@@ -23,22 +23,22 @@ import org.eclipse.swt.widgets.Composite;
 import org.eclipse.ui.IViewSite;
 import org.eclipse.ui.PartInitException;
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.DBConstants;
-import org.jkiss.dbeaver.model.navigator.DBNEmptyNode;
-import org.jkiss.dbeaver.model.navigator.DBNNode;
-import org.jkiss.dbeaver.model.navigator.DBNProjectDatabases;
-import org.jkiss.dbeaver.model.navigator.fs.DBNFileSystems;
-import org.jkiss.dbeaver.model.navigator.fs.DBNPath;
-import org.jkiss.dbeaver.ui.UIExecutionQueue;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.controls.ViewerColumnController;
-import org.jkiss.dbeaver.ui.internal.UINavigatorMessages;
-import org.jkiss.dbeaver.ui.navigator.INavigatorFilter;
-import org.jkiss.dbeaver.ui.navigator.SimpleNavigatorTreeFilter;
-import org.jkiss.dbeaver.ui.navigator.database.DatabaseBrowserView;
-import org.jkiss.dbeaver.ui.navigator.database.DatabaseNavigatorTree;
-import org.jkiss.dbeaver.ui.navigator.database.DatabaseNavigatorTreeFilterObjectType;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.DBConstants;
+import com.seizia.chromite.model.navigator.DBNEmptyNode;
+import com.seizia.chromite.model.navigator.DBNNode;
+import com.seizia.chromite.model.navigator.DBNProjectDatabases;
+import com.seizia.chromite.model.navigator.fs.DBNFileSystems;
+import com.seizia.chromite.model.navigator.fs.DBNPath;
+import com.seizia.chromite.ui.UIExecutionQueue;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.controls.ViewerColumnController;
+import com.seizia.chromite.ui.internal.UINavigatorMessages;
+import com.seizia.chromite.ui.navigator.INavigatorFilter;
+import com.seizia.chromite.ui.navigator.SimpleNavigatorTreeFilter;
+import com.seizia.chromite.ui.navigator.database.DatabaseBrowserView;
+import com.seizia.chromite.ui.navigator.database.DatabaseNavigatorTree;
+import com.seizia.chromite.ui.navigator.database.DatabaseNavigatorTreeFilterObjectType;
 
 import java.io.IOException;
 import java.nio.file.Files;

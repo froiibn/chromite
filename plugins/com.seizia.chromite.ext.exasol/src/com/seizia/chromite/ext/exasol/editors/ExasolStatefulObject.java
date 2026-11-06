@@ -15,13 +15,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.exasol.editors;
+package com.seizia.chromite.ext.exasol.editors;
 
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.ext.exasol.model.ExasolDataSource;
-import org.jkiss.dbeaver.ext.exasol.model.ExasolSchema;
-import org.jkiss.dbeaver.model.DBPStatefulObject;
-import org.jkiss.dbeaver.model.struct.DBSObject;
+import com.seizia.chromite.ext.exasol.model.ExasolDataSource;
+import com.seizia.chromite.ext.exasol.model.ExasolSchema;
+import com.seizia.chromite.model.DBPStatefulObject;
+import com.seizia.chromite.model.struct.DBSObject;
 
 /**
  * @author Karl

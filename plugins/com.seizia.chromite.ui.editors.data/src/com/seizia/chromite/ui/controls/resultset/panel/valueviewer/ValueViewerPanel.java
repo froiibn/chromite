@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.controls.resultset.panel.valueviewer;
+package com.seizia.chromite.ui.controls.resultset.panel.valueviewer;
 
 import org.eclipse.core.runtime.IAdaptable;
 import org.eclipse.jface.action.*;
@@ -35,23 +35,23 @@ import org.eclipse.ui.internal.WorkbenchMessages;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.ModelPreferences;
-import org.jkiss.dbeaver.model.DBPAdaptable;
-import org.jkiss.dbeaver.model.data.DBDValue;
-import org.jkiss.dbeaver.model.impl.data.DBDValueError;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.ui.*;
-import org.jkiss.dbeaver.ui.controls.resultset.*;
-import org.jkiss.dbeaver.ui.controls.resultset.internal.ResultSetMessages;
-import org.jkiss.dbeaver.ui.controls.resultset.panel.ResultSetPanelBase;
-import org.jkiss.dbeaver.ui.css.CSSUtils;
-import org.jkiss.dbeaver.ui.data.IValueController;
-import org.jkiss.dbeaver.ui.data.IValueEditor;
-import org.jkiss.dbeaver.ui.data.IValueManager;
-import org.jkiss.dbeaver.ui.data.editors.BaseValueEditor;
-import org.jkiss.dbeaver.ui.data.editors.ContentPanelEditor;
-import org.jkiss.dbeaver.ui.data.editors.ReferenceValueEditor;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.ModelPreferences;
+import com.seizia.chromite.model.DBPAdaptable;
+import com.seizia.chromite.model.data.DBDValue;
+import com.seizia.chromite.model.impl.data.DBDValueError;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.ui.*;
+import com.seizia.chromite.ui.controls.resultset.*;
+import com.seizia.chromite.ui.controls.resultset.internal.ResultSetMessages;
+import com.seizia.chromite.ui.controls.resultset.panel.ResultSetPanelBase;
+import com.seizia.chromite.ui.css.CSSUtils;
+import com.seizia.chromite.ui.data.IValueController;
+import com.seizia.chromite.ui.data.IValueEditor;
+import com.seizia.chromite.ui.data.IValueManager;
+import com.seizia.chromite.ui.data.editors.BaseValueEditor;
+import com.seizia.chromite.ui.data.editors.ContentPanelEditor;
+import com.seizia.chromite.ui.data.editors.ReferenceValueEditor;
 import org.jkiss.utils.CommonUtils;
 
 /**
@@ -63,7 +63,7 @@ public class ValueViewerPanel extends ResultSetPanelBase implements DBPAdaptable
 
     public static final String PANEL_ID = "value-view";
 
-    public static final String VALUE_VIEW_CONTROL_ID = "org.jkiss.dbeaver.ui.resultset.panel.valueView";
+    public static final String VALUE_VIEW_CONTROL_ID = "com.seizia.chromite.ui.resultset.panel.valueView";
 
     private IResultSetPresentation presentation;
     private Composite viewPlaceholder;
@@ -446,7 +446,7 @@ public class ValueViewerPanel extends ResultSetPanelBase implements DBPAdaptable
         SaveValueAction() {
             super(WorkbenchMessages.Save, Action.AS_DROP_DOWN_MENU);
             setActionDefinitionId(ValueViewCommandHandler.CMD_SAVE_VALUE);
-            setImageDescriptor(DBeaverIcons.getImageDescriptor(UIIcon.SAVE));
+            setImageDescriptor(SwtIcons.getImageDescriptor(UIIcon.SAVE));
             setMenuCreator(new MenuCreator(widget -> {
                 MenuManager menuManager = new MenuManager();
                 menuManager.add(ActionUtils.makeCommandContribution(

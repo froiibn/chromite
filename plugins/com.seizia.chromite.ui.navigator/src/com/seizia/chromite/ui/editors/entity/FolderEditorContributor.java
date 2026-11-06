@@ -15,11 +15,11 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.ui.editors.entity;
+package com.seizia.chromite.ui.editors.entity;
 
 import org.eclipse.ui.IEditorPart;
 import org.eclipse.ui.part.EditorActionBarContributor;
-import org.jkiss.dbeaver.ui.editors.EditorSearchActionsContributor;
+import com.seizia.chromite.ui.editors.EditorSearchActionsContributor;
 
 /**
  * Folder Editor contributor

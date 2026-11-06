@@ -14,13 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.dashboard;
+package com.seizia.chromite.ui.dashboard;
 
 import org.jfree.chart.axis.NumberTickUnitSource;
 import org.jfree.chart.axis.StandardTickUnitSource;
 import org.jfree.chart.axis.TickUnitSource;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.dashboard.DBDashboardValueType;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.dashboard.DBDashboardValueType;
 import org.jkiss.utils.ByteNumberFormat;
 
 import java.time.Duration;

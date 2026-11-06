@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.model.secret;
+package com.seizia.chromite.model.secret;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;

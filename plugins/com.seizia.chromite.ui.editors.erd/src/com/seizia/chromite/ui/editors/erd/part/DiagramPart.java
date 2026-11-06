@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.editors.erd.part;
+package com.seizia.chromite.ui.editors.erd.part;
 
 import org.eclipse.draw2d.ConnectionLayer;
 import org.eclipse.draw2d.IFigure;
@@ -31,28 +31,28 @@ import org.eclipse.swt.graphics.Font;
 import org.eclipse.swt.widgets.Control;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.model.erd.ERDEntity;
-import org.jkiss.dbeaver.model.erd.ERDNote;
-import org.jkiss.dbeaver.model.preferences.DBPPreferenceStore;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.ui.LoadingJob;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.editors.erd.ERDUIConstants;
-import org.jkiss.dbeaver.ui.editors.erd.command.EntityAddCommand;
-import org.jkiss.dbeaver.ui.editors.erd.command.EntityRemoveCommand;
-import org.jkiss.dbeaver.ui.editors.erd.editor.ERDEditorPart;
-import org.jkiss.dbeaver.ui.editors.erd.editor.ERDThemeSettings;
-import org.jkiss.dbeaver.ui.editors.erd.figures.EntityDiagramFigure;
-import org.jkiss.dbeaver.ui.editors.erd.internal.ERDUIActivator;
-import org.jkiss.dbeaver.ui.editors.erd.internal.ERDUIMessages;
-import org.jkiss.dbeaver.ui.editors.erd.layout.DelegatingLayoutManager;
-import org.jkiss.dbeaver.ui.editors.erd.layout.GraphAnimation;
-import org.jkiss.dbeaver.ui.editors.erd.layout.GraphLayoutAuto;
-import org.jkiss.dbeaver.ui.editors.erd.model.EntityDiagram;
-import org.jkiss.dbeaver.ui.editors.erd.policy.DiagramContainerEditPolicy;
-import org.jkiss.dbeaver.ui.editors.erd.router.ERDConnectionRouter;
-import org.jkiss.dbeaver.ui.editors.erd.router.ERDConnectionRouterDescriptor;
-import org.jkiss.dbeaver.ui.editors.erd.router.ERDConnectionRouterRegistry;
+import com.seizia.chromite.model.erd.ERDEntity;
+import com.seizia.chromite.model.erd.ERDNote;
+import com.seizia.chromite.model.preferences.DBPPreferenceStore;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.ui.LoadingJob;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.editors.erd.ERDUIConstants;
+import com.seizia.chromite.ui.editors.erd.command.EntityAddCommand;
+import com.seizia.chromite.ui.editors.erd.command.EntityRemoveCommand;
+import com.seizia.chromite.ui.editors.erd.editor.ERDEditorPart;
+import com.seizia.chromite.ui.editors.erd.editor.ERDThemeSettings;
+import com.seizia.chromite.ui.editors.erd.figures.EntityDiagramFigure;
+import com.seizia.chromite.ui.editors.erd.internal.ERDUIActivator;
+import com.seizia.chromite.ui.editors.erd.internal.ERDUIMessages;
+import com.seizia.chromite.ui.editors.erd.layout.DelegatingLayoutManager;
+import com.seizia.chromite.ui.editors.erd.layout.GraphAnimation;
+import com.seizia.chromite.ui.editors.erd.layout.GraphLayoutAuto;
+import com.seizia.chromite.ui.editors.erd.model.EntityDiagram;
+import com.seizia.chromite.ui.editors.erd.policy.DiagramContainerEditPolicy;
+import com.seizia.chromite.ui.editors.erd.router.ERDConnectionRouter;
+import com.seizia.chromite.ui.editors.erd.router.ERDConnectionRouterDescriptor;
+import com.seizia.chromite.ui.editors.erd.router.ERDConnectionRouterRegistry;
 import org.jkiss.utils.CommonUtils;
 
 import java.beans.PropertyChangeEvent;

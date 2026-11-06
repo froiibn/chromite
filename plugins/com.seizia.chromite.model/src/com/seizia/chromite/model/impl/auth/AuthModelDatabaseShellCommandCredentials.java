@@ -15,10 +15,10 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.model.impl.auth;
+package com.seizia.chromite.model.impl.auth;
 
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.model.meta.Property;
+import com.seizia.chromite.model.meta.Property;
 import org.jkiss.utils.CommonUtils;
 
 /**

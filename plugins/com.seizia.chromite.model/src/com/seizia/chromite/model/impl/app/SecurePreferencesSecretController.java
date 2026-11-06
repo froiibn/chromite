@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.impl.app;
+package com.seizia.chromite.model.impl.app;
 
 import org.eclipse.equinox.security.storage.ISecurePreferences;
 import org.eclipse.equinox.security.storage.SecurePreferencesFactory;
@@ -23,9 +23,9 @@ import org.eclipse.equinox.security.storage.provider.IProviderHints;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.model.exec.DBCFeatureNotSupportedException;
-import org.jkiss.dbeaver.model.secret.*;
-import org.jkiss.dbeaver.runtime.DBSecurityException;
+import com.seizia.chromite.model.exec.DBCFeatureNotSupportedException;
+import com.seizia.chromite.model.secret.*;
+import com.seizia.chromite.runtime.DBSecurityException;
 
 import java.io.IOException;
 import java.nio.file.Path;
@@ -39,7 +39,7 @@ import java.util.stream.Collectors;
  */
 public class SecurePreferencesSecretController implements DBSSecretController, DBSSecretBrowser {
 
-    public static final String SECRET_PREFS_ROOT = "dbeaver";
+    public static final String SECRET_PREFS_ROOT = "chromite";
 
     public static final SecurePreferencesSecretController INSTANCE = new SecurePreferencesSecretController(
         "", SECRET_PREFS_ROOT, Map.of());

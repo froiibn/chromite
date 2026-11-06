@@ -14,20 +14,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.controls.resultset.panel.grouping.registry;
+package com.seizia.chromite.ui.controls.resultset.panel.grouping.registry;
 
 import org.eclipse.core.runtime.IConfigurationElement;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.model.DBPDataSource;
-import org.jkiss.dbeaver.model.DBPImage;
-import org.jkiss.dbeaver.model.impl.AbstractDescriptor;
-import org.jkiss.dbeaver.registry.RegistryConstants;
-import org.jkiss.dbeaver.ui.controls.resultset.panel.grouping.GroupingResultsContainer;
-import org.jkiss.dbeaver.ui.controls.resultset.panel.grouping.action.ExtensionPointAction;
-import org.jkiss.dbeaver.ui.controls.resultset.panel.grouping.action.GroupingAction;
-import org.jkiss.dbeaver.ui.controls.resultset.panel.grouping.column.impl.TransformerGroupingFunctionColumn;
+import com.seizia.chromite.model.DBPDataSource;
+import com.seizia.chromite.model.DBPImage;
+import com.seizia.chromite.model.impl.AbstractDescriptor;
+import com.seizia.chromite.registry.RegistryConstants;
+import com.seizia.chromite.ui.controls.resultset.panel.grouping.GroupingResultsContainer;
+import com.seizia.chromite.ui.controls.resultset.panel.grouping.action.ExtensionPointAction;
+import com.seizia.chromite.ui.controls.resultset.panel.grouping.action.GroupingAction;
+import com.seizia.chromite.ui.controls.resultset.panel.grouping.column.impl.TransformerGroupingFunctionColumn;
 
 public class GroupingActionDescriptor extends AbstractDescriptor {
 

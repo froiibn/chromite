@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.model.task;
+package com.seizia.chromite.model.task;
 
 import org.jkiss.code.NotNull;
 

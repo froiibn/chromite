@@ -1,33 +1,33 @@
 Manifest-Version: 1.0
 Bundle-ManifestVersion: 2
-Bundle-Vendor: DBeaver Corp
+Bundle-Vendor: Chromite contributors
 Bundle-Name: Chromite Desktop Application Core
-Bundle-SymbolicName: org.jkiss.dbeaver.core;singleton:=true
+Bundle-SymbolicName: com.seizia.chromite.core;singleton:=true
 Bundle-Version: 26.2.5.qualifier
 Bundle-Release-Date: 20261116
-Bundle-Activator: org.jkiss.dbeaver.core.DBeaverActivator
+Bundle-Activator: com.seizia.chromite.core.ChromiteActivator
 Bundle-ActivationPolicy: lazy
 Bundle-RequiredExecutionEnvironment: JavaSE-21
-Export-Package: org.jkiss.dbeaver,
- org.jkiss.dbeaver.core,
- org.jkiss.dbeaver.registry,
- org.jkiss.dbeaver.tools.project,
- org.jkiss.dbeaver.tools.scripts,
- org.jkiss.dbeaver.ui.actions,
- org.jkiss.dbeaver.ui.actions.common,
- org.jkiss.dbeaver.ui.actions.datasource,
- org.jkiss.dbeaver.ui.e4,
- org.jkiss.dbeaver.ui.eula,
- org.jkiss.dbeaver.ui.perspective,
- org.jkiss.dbeaver.ui.preferences,
- org.jkiss.dbeaver.ui.resources,
- org.jkiss.dbeaver.ui.resources.bookmarks,
- org.jkiss.dbeaver.ui.resources.projects,
- org.jkiss.dbeaver.ui.resources.shortcuts,
- org.jkiss.dbeaver.ui.services,
- org.jkiss.dbeaver.ui.views,
- org.jkiss.dbeaver.ui.views.process,
- org.jkiss.dbeaver.ui.views.qm
+Export-Package: com.seizia.chromite,
+ com.seizia.chromite.core,
+ com.seizia.chromite.registry,
+ com.seizia.chromite.tools.project,
+ com.seizia.chromite.tools.scripts,
+ com.seizia.chromite.ui.actions,
+ com.seizia.chromite.ui.actions.common,
+ com.seizia.chromite.ui.actions.datasource,
+ com.seizia.chromite.ui.e4,
+ com.seizia.chromite.ui.eula,
+ com.seizia.chromite.ui.perspective,
+ com.seizia.chromite.ui.preferences,
+ com.seizia.chromite.ui.resources,
+ com.seizia.chromite.ui.resources.bookmarks,
+ com.seizia.chromite.ui.resources.projects,
+ com.seizia.chromite.ui.resources.shortcuts,
+ com.seizia.chromite.ui.services,
+ com.seizia.chromite.ui.views,
+ com.seizia.chromite.ui.views.process,
+ com.seizia.chromite.ui.views.qm
 Bundle-ClassPath: .,
  lib/awt.injector-1.0.0.jar
 Require-Bundle: org.osgi.service.event,
@@ -43,9 +43,9 @@ Require-Bundle: org.osgi.service.event,
  org.eclipse.e4.ui.workbench,
  org.eclipse.e4.ui.workbench.swt,
  org.eclipse.e4.ui.workbench.renderers.swt,
- org.jkiss.dbeaver.ui,
- org.jkiss.dbeaver.ui.editors.connection;visibility:=reexport,
- org.jkiss.dbeaver.ui.editors.sql;visibility:=reexport
+ com.seizia.chromite.ui,
+ com.seizia.chromite.ui.editors.connection;visibility:=reexport,
+ com.seizia.chromite.ui.editors.sql;visibility:=reexport
 Import-Package: jakarta.annotation
 Bundle-Localization: OSGI-INF/l10n/bundle
-Automatic-Module-Name: org.jkiss.dbeaver.core
+Automatic-Module-Name: com.seizia.chromite.core

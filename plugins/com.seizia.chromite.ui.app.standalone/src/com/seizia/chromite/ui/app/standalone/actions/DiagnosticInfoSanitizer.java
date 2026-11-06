@@ -15,10 +15,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.app.standalone.actions;
+package com.seizia.chromite.ui.app.standalone.actions;
 
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.utils.GeneralUtils;
+import com.seizia.chromite.utils.GeneralUtils;
 
 import java.util.Comparator;
 import java.util.List;
@@ -30,7 +30,7 @@ import java.util.regex.Pattern;
  * Sanitizes text only when it is copied into a diagnostic archive.
  *
  * Change history:
- * - 2026-11-06 Chromite: recognize the startup line by the actual product name, because DBeaverApplication logs
+ * - 2026-11-06 Chromite: recognize the startup line by the actual product name, because ChromiteApplication logs
  *   "{@code <product name> <version> is starting}" and the product name is no longer "DBeaver".
  */
 final class DiagnosticInfoSanitizer {

@@ -14,11 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.navigator.actions;
+package com.seizia.chromite.ui.navigator.actions;
 
 import org.eclipse.core.commands.ExecutionEvent;
 import org.eclipse.core.commands.ExecutionException;
-import org.jkiss.dbeaver.model.struct.DBSEntityConstraint;
+import com.seizia.chromite.model.struct.DBSEntityConstraint;
 
 public class NavigatorHandlerCreateColumnConstraint extends NavigatorHandlerCreateColumnObjectBase {
     @Override

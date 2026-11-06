@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui;
+package com.seizia.chromite.ui;
 
 import org.eclipse.core.commands.ParameterizedCommand;
 import org.eclipse.core.resources.ResourcesPlugin;
@@ -75,29 +75,29 @@ import org.eclipse.ui.themes.ITheme;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.*;
-import org.jkiss.dbeaver.model.connection.DBPConnectionConfiguration;
-import org.jkiss.dbeaver.model.connection.DBPConnectionType;
-import org.jkiss.dbeaver.model.exec.DBCExecutionContext;
-import org.jkiss.dbeaver.model.exec.DBCExecutionContextDefaults;
-import org.jkiss.dbeaver.model.runtime.*;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.runtime.DummyRunnableContext;
-import org.jkiss.dbeaver.runtime.RunnableContextDelegate;
-import org.jkiss.dbeaver.ui.contentassist.ContentAssistUtils;
-import org.jkiss.dbeaver.ui.contentassist.SmartTextContentAdapter;
-import org.jkiss.dbeaver.ui.contentassist.StringContentProposalProvider;
-import org.jkiss.dbeaver.ui.controls.CustomSashForm;
-import org.jkiss.dbeaver.ui.controls.ExpandableCompositeEx;
-import org.jkiss.dbeaver.ui.controls.TitledComposite;
-import org.jkiss.dbeaver.ui.dialogs.EditTextDialog;
-import org.jkiss.dbeaver.ui.dialogs.MessageBoxBuilder;
-import org.jkiss.dbeaver.ui.dialogs.Reply;
-import org.jkiss.dbeaver.ui.internal.UIActivator;
-import org.jkiss.dbeaver.ui.internal.UIMessages;
-import org.jkiss.dbeaver.utils.GeneralUtils;
-import org.jkiss.dbeaver.utils.RuntimeUtils;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.*;
+import com.seizia.chromite.model.connection.DBPConnectionConfiguration;
+import com.seizia.chromite.model.connection.DBPConnectionType;
+import com.seizia.chromite.model.exec.DBCExecutionContext;
+import com.seizia.chromite.model.exec.DBCExecutionContextDefaults;
+import com.seizia.chromite.model.runtime.*;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.runtime.DummyRunnableContext;
+import com.seizia.chromite.runtime.RunnableContextDelegate;
+import com.seizia.chromite.ui.contentassist.ContentAssistUtils;
+import com.seizia.chromite.ui.contentassist.SmartTextContentAdapter;
+import com.seizia.chromite.ui.contentassist.StringContentProposalProvider;
+import com.seizia.chromite.ui.controls.CustomSashForm;
+import com.seizia.chromite.ui.controls.ExpandableCompositeEx;
+import com.seizia.chromite.ui.controls.TitledComposite;
+import com.seizia.chromite.ui.dialogs.EditTextDialog;
+import com.seizia.chromite.ui.dialogs.MessageBoxBuilder;
+import com.seizia.chromite.ui.dialogs.Reply;
+import com.seizia.chromite.ui.internal.UIActivator;
+import com.seizia.chromite.ui.internal.UIMessages;
+import com.seizia.chromite.utils.GeneralUtils;
+import com.seizia.chromite.utils.RuntimeUtils;
 import org.jkiss.utils.ArrayUtils;
 import org.jkiss.utils.CommonUtils;
 import org.jkiss.utils.StringUtils;
@@ -116,7 +116,7 @@ import java.util.SortedMap;
 public class UIUtils {
     private static final Log log = Log.getLog(UIUtils.class);
 
-    private static final String INLINE_WIDGET_EDITOR_ID = "org.jkiss.dbeaver.ui.InlineWidgetEditor";
+    private static final String INLINE_WIDGET_EDITOR_ID = "com.seizia.chromite.ui.InlineWidgetEditor";
 
     private static final SharedTextColors SHARED_TEXT_COLORS = new SharedTextColors();
     private static final SharedFonts SHARED_FONTS = new SharedFonts();
@@ -217,7 +217,7 @@ public class UIUtils {
 
     public static void createToolBarSeparator(@NotNull ToolBar toolBar, int style) {
         Label label = new Label(toolBar, SWT.NONE);//SEPARATOR | style);
-        label.setImage(DBeaverIcons.getImage((style & SWT.HORIZONTAL) == SWT.HORIZONTAL ? UIIcon.SEPARATOR_H : UIIcon.SEPARATOR_V));
+        label.setImage(SwtIcons.getImage((style & SWT.HORIZONTAL) == SWT.HORIZONTAL ? UIIcon.SEPARATOR_H : UIIcon.SEPARATOR_V));
         new ToolItem(toolBar, SWT.SEPARATOR).setControl(label);
     }
 
@@ -764,7 +764,7 @@ public class UIUtils {
     @NotNull
     public static Label createLabel(@NotNull Composite parent, @NotNull DBPImage image) {
         Label imageLabel = new Label(parent, SWT.NONE);
-        imageLabel.setImage(DBeaverIcons.getImage(image));
+        imageLabel.setImage(SwtIcons.getImage(image));
 
         return imageLabel;
     }
@@ -791,7 +791,7 @@ public class UIUtils {
         int gridStyle,
         int hSpan
     ) {
-        return createInfoLabel(parent, text, gridStyle, hSpan, null, DBeaverIcons.getImage(DBIcon.SMALL_WARNING));
+        return createInfoLabel(parent, text, gridStyle, hSpan, null, SwtIcons.getImage(DBIcon.SMALL_WARNING));
     }
 
     @NotNull
@@ -802,7 +802,7 @@ public class UIUtils {
         int hSpan,
         @Nullable Runnable callback
     ) {
-        return createInfoLabel(parent, text, gridStyle, hSpan, callback, DBeaverIcons.getImage(DBIcon.SMALL_INFO));
+        return createInfoLabel(parent, text, gridStyle, hSpan, callback, SwtIcons.getImage(DBIcon.SMALL_INFO));
     }
 
     @NotNull
@@ -860,7 +860,7 @@ public class UIUtils {
             .hint(widthHint, SWT.DEFAULT)
             .grab(true, false).create());
         final Label imageLabel = new Label(composite, SWT.NONE);
-        imageLabel.setImage(DBeaverIcons.getImage(DBIcon.SMALL_INFO));
+        imageLabel.setImage(SwtIcons.getImage(DBIcon.SMALL_INFO));
         imageLabel.setLayoutData(new GridData(SWT.BEGINNING, SWT.CENTER, false, true));
 
         final Link link = new Link(composite, SWT.NONE);
@@ -930,7 +930,7 @@ public class UIUtils {
         //Button editButton = new Button(panel, SWT.DOWN);
         //editButton.setLayoutData(new GridData(GridData.HORIZONTAL_ALIGN_BEGINNING));
         //editButton.setText("...");
-        editButton.setImage(DBeaverIcons.getImage(UIIcon.EDIT)); //$NON-NLS-1$
+        editButton.setImage(SwtIcons.getImage(UIIcon.EDIT)); //$NON-NLS-1$
         editButton.addSelectionListener(SelectionListener.widgetSelectedAdapter(e -> {
                 String newText = EditTextDialog.editText(parent.getShell(), label, text.getText());
                 if (newText != null) {
@@ -1099,7 +1099,7 @@ public class UIUtils {
         @Nullable DBPImage icon,
         @Nullable SelectionListener selectionListener
     ) {
-        return createToolItem(parent, text, icon != null ? DBeaverIcons.getImage(icon) : null, selectionListener);
+        return createToolItem(parent, text, icon != null ? SwtIcons.getImage(icon) : null, selectionListener);
     }
 
     @NotNull
@@ -1110,7 +1110,7 @@ public class UIUtils {
         @Nullable DBPImage icon,
         @Nullable SelectionListener selectionListener
     ) {
-        ToolItem toolItem = createToolItem(parent, text, icon != null ? DBeaverIcons.getImage(icon) : null, selectionListener);
+        ToolItem toolItem = createToolItem(parent, text, icon != null ? SwtIcons.getImage(icon) : null, selectionListener);
         if (title != null) {
             toolItem.setText(title);
         }
@@ -1448,7 +1448,7 @@ public class UIUtils {
             button.setToolTipText(toolTip);
         }
         if (image != null) {
-            button.setImage(DBeaverIcons.getImage(image));
+            button.setImage(SwtIcons.getImage(image));
         }
         if (selectionListener != null) {
             button.addSelectionListener(selectionListener);
@@ -1490,7 +1490,7 @@ public class UIUtils {
         }
         button.setFont(JFaceResources.getDialogFont());
         if (icon != null) {
-            button.setImage(DBeaverIcons.getImage(icon));
+            button.setImage(SwtIcons.getImage(icon));
         }
         if (toolTip != null) {
             button.setToolTipText(toolTip);
@@ -2688,7 +2688,7 @@ public class UIUtils {
 
     public static void installAndUpdateMainFont(@NotNull Control control) {
         BaseThemeSettings.instance.addPropertyListener(
-            UIFonts.DBeaver.MAIN_FONT,
+            UIFonts.Chromite.MAIN_FONT,
             s -> applyMainFont(control),
             control
         );
@@ -2719,7 +2719,7 @@ public class UIUtils {
     }
 
     private static boolean mainFontIsDefault() {
-        final FontData[] mainFontData = JFaceResources.getFontRegistry().getFontData(UIFonts.DBeaver.MAIN_FONT);
+        final FontData[] mainFontData = JFaceResources.getFontRegistry().getFontData(UIFonts.Chromite.MAIN_FONT);
         final FontData[] defaultFontData = JFaceResources.getFontRegistry().getFontData(JFaceResources.DEFAULT_FONT);
         return Arrays.equals(mainFontData, defaultFontData);
     }
@@ -2751,7 +2751,7 @@ public class UIUtils {
     }
 
     public static void populateToolItemCommandIds(ToolBarManager toolbarManager) {
-        // used for accessibility automation, see qa-auto-dbeaver
+        // used for accessibility automation, see qa-auto-chromite
         ToolBar toolBar = toolbarManager.getControl();
         if (toolBar == null || toolBar.isDisposed()) {
             return;

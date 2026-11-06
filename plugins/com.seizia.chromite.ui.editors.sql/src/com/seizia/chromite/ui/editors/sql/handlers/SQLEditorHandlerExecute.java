@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.editors.sql.handlers;
+package com.seizia.chromite.ui.editors.sql.handlers;
 
 import org.eclipse.core.commands.AbstractHandler;
 import org.eclipse.core.commands.ExecutionEvent;
@@ -23,23 +23,23 @@ import org.eclipse.core.runtime.NullProgressMonitor;
 import org.eclipse.ui.handlers.HandlerUtil;
 import org.jkiss.code.NotNull;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.DBIcon;
-import org.jkiss.dbeaver.model.exec.DBCExecutionContextDefaults;
-import org.jkiss.dbeaver.model.sql.transformers.SQLQueryTransformerAllRows;
-import org.jkiss.dbeaver.model.sql.transformers.SQLQueryTransformerCount;
-import org.jkiss.dbeaver.model.sql.transformers.SQLQueryTransformerExpression;
-import org.jkiss.dbeaver.model.struct.DBSObject;
-import org.jkiss.dbeaver.ui.actions.exec.SQLNativeExecutorDescriptor;
-import org.jkiss.dbeaver.ui.actions.exec.SQLNativeExecutorRegistry;
-import org.jkiss.dbeaver.ui.actions.exec.SQLScriptExecutor;
-import org.jkiss.dbeaver.ui.dialogs.MessageBoxBuilder;
-import org.jkiss.dbeaver.ui.dialogs.Reply;
-import org.jkiss.dbeaver.ui.editors.sql.SQLEditor;
-import org.jkiss.dbeaver.ui.editors.sql.SQLEditorCommands;
-import org.jkiss.dbeaver.ui.editors.sql.SQLPreferenceConstants;
-import org.jkiss.dbeaver.ui.editors.sql.internal.SQLEditorMessages;
-import org.jkiss.dbeaver.utils.RuntimeUtils;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.DBIcon;
+import com.seizia.chromite.model.exec.DBCExecutionContextDefaults;
+import com.seizia.chromite.model.sql.transformers.SQLQueryTransformerAllRows;
+import com.seizia.chromite.model.sql.transformers.SQLQueryTransformerCount;
+import com.seizia.chromite.model.sql.transformers.SQLQueryTransformerExpression;
+import com.seizia.chromite.model.struct.DBSObject;
+import com.seizia.chromite.ui.actions.exec.SQLNativeExecutorDescriptor;
+import com.seizia.chromite.ui.actions.exec.SQLNativeExecutorRegistry;
+import com.seizia.chromite.ui.actions.exec.SQLScriptExecutor;
+import com.seizia.chromite.ui.dialogs.MessageBoxBuilder;
+import com.seizia.chromite.ui.dialogs.Reply;
+import com.seizia.chromite.ui.editors.sql.SQLEditor;
+import com.seizia.chromite.ui.editors.sql.SQLEditorCommands;
+import com.seizia.chromite.ui.editors.sql.SQLPreferenceConstants;
+import com.seizia.chromite.ui.editors.sql.internal.SQLEditorMessages;
+import com.seizia.chromite.utils.RuntimeUtils;
 
 
 public class SQLEditorHandlerExecute extends AbstractHandler {

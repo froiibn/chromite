@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.config.migration.wizards;
+package com.seizia.chromite.ui.config.migration.wizards;
 
 import org.eclipse.jface.dialogs.IMessageProvider;
 import org.eclipse.osgi.util.NLS;
@@ -28,17 +28,17 @@ import org.eclipse.swt.widgets.TableItem;
 import org.eclipse.ui.internal.WorkbenchMessages;
 import org.jkiss.code.NotNull;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.model.DBIcon;
-import org.jkiss.dbeaver.model.connection.DBPDriver;
-import org.jkiss.dbeaver.registry.DataSourceProviderDescriptor;
-import org.jkiss.dbeaver.registry.DataSourceProviderRegistry;
-import org.jkiss.dbeaver.ui.DBeaverIcons;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.config.migration.ImportConfigMessages;
-import org.jkiss.dbeaver.ui.controls.ConnectionFolderSelector;
-import org.jkiss.dbeaver.ui.dialogs.ActiveWizardPage;
-import org.jkiss.dbeaver.ui.navigator.NavigatorUtils;
-import org.jkiss.dbeaver.ui.navigator.dialogs.ObjectListDialog;
+import com.seizia.chromite.model.DBIcon;
+import com.seizia.chromite.model.connection.DBPDriver;
+import com.seizia.chromite.registry.DataSourceProviderDescriptor;
+import com.seizia.chromite.registry.DataSourceProviderRegistry;
+import com.seizia.chromite.ui.SwtIcons;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.config.migration.ImportConfigMessages;
+import com.seizia.chromite.ui.controls.ConnectionFolderSelector;
+import com.seizia.chromite.ui.dialogs.ActiveWizardPage;
+import com.seizia.chromite.ui.navigator.NavigatorUtils;
+import com.seizia.chromite.ui.navigator.dialogs.ObjectListDialog;
 import org.jkiss.utils.CommonUtils;
 
 import java.util.ArrayList;
@@ -172,7 +172,7 @@ public abstract class ConfigImportWizardPage extends ActiveWizardPage<ConfigImpo
     private void setConnectionInfoForItem(ImportConnectionInfo connectionInfo,
         TableItem item) {
         if (connectionInfo.getDriverInfo() != null) {
-            item.setImage(0, DBeaverIcons.getImage(DBIcon.TREE_DATABASE));
+            item.setImage(0, SwtIcons.getImage(DBIcon.TREE_DATABASE));
             item.setText(0, connectionInfo.getAlias());
             item.setText(1, connectionInfo.getDriverInfo().getName());
             String url = connectionInfo.getUrl();
@@ -185,7 +185,7 @@ public abstract class ConfigImportWizardPage extends ActiveWizardPage<ConfigImpo
             item.setText(2, url);
             item.setData(connectionInfo);
         } else {
-            item.setImage(0, DBeaverIcons.getImage(DBIcon.DATABASE_DEFAULT));
+            item.setImage(0, SwtIcons.getImage(DBIcon.DATABASE_DEFAULT));
             item.setText(0, connectionInfo.getAlias());
             item.setText(1, ImportConfigMessages.config_import_wizard_page_driver_unknown);
             item.setText(2, ImportConfigMessages.config_import_wizard_page_driver_unknown); 

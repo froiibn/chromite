@@ -14,12 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.mssql.ui;
+package com.seizia.chromite.ext.mssql.ui;
 
 import org.eclipse.osgi.util.NLS;
 
 public class SQLServerUIMessages extends NLS {
-    static final String BUNDLE_NAME = "org.jkiss.dbeaver.ext.mssql.ui.SQLServerUIMessages"; //$NON-NLS-1$
+    static final String BUNDLE_NAME = "com.seizia.chromite.ext.mssql.ui.SQLServerUIMessages"; //$NON-NLS-1$
 
     public static String dialog_setting_connection_settings;
     public static String dialog_connection_database_schema_label;

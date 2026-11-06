@@ -14,21 +14,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.editors.binary;
+package com.seizia.chromite.ui.editors.binary;
 
 import org.eclipse.swt.graphics.Color;
-import org.jkiss.dbeaver.ui.ThemeColor;
-import org.jkiss.dbeaver.ui.ThemeListener;
-import org.jkiss.dbeaver.ui.controls.resultset.ThemeConstants;
+import com.seizia.chromite.ui.ThemeColor;
+import com.seizia.chromite.ui.ThemeListener;
+import com.seizia.chromite.ui.controls.resultset.ThemeConstants;
 
 /**
  * Theme settings
  */
 public class HexEditThemeSettings extends ThemeListener {
 
-    @ThemeColor("org.jkiss.dbeaver.hex.editor.color.caret")
+    @ThemeColor("com.seizia.chromite.hex.editor.color.caret")
     public volatile Color colorCaretLine;
-    @ThemeColor("org.jkiss.dbeaver.hex.editor.color.text")
+    @ThemeColor("com.seizia.chromite.hex.editor.color.text")
     public volatile Color colorText;
 
     @ThemeColor(ThemeConstants.COLOR_SQL_RESULT_HEADER_FOREGROUND)

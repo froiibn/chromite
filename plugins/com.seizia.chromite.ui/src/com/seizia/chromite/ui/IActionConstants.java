@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.ui;
+package com.seizia.chromite.ui;
 
 /**
  * Action constants
@@ -24,9 +24,9 @@ public interface IActionConstants {
 
     String LOG_VIEW_ID = "org.eclipse.pde.runtime.LogView"; //$NON-NLS-1$
     String DEBUG_VIEW_ID = "org.eclipse.debug.ui.DebugView"; //$NON-NLS-1$
-    String DEBUG_UI_PLUGIN_ID = "org.jkiss.dbeaver.debug.ui"; //$NON-NLS-1$
+    String DEBUG_UI_PLUGIN_ID = "com.seizia.chromite.debug.ui"; //$NON-NLS-1$
     String HELP_VIEW_ID = "org.eclipse.help.ui.HelpView"; //$NON-NLS-1$
-    String CHAT_VIEW_ID = "com.dbeaver.ai.chat"; //$NON-NLS-1$
+    String CHAT_VIEW_ID = "com.seizia.chromite.ai.chat"; //$NON-NLS-1$
 
     String M_DATABASE = "dataSourceMenu"; //$NON-NLS-1$
     String M_DRIVER_GROUP = "driverGroup"; //$NON-NLS-1$
@@ -34,22 +34,22 @@ public interface IActionConstants {
     String M_TOOLS_GROUP = "toolsGroup"; //$NON-NLS-1$
     String M_SESSION_GROUP = "sessionGroup"; //$NON-NLS-1$
 
-    String TOOLBAR_DATABASE = "dbeaver-general"; //$NON-NLS-1$
-    String TOOLBAR_TXN = "dbeaver-transactions"; //$NON-NLS-1$
+    String TOOLBAR_DATABASE = "chromite-general"; //$NON-NLS-1$
+    String TOOLBAR_TXN = "chromite-transactions"; //$NON-NLS-1$
     String TOOLBAR_DATASOURCE = "datasource-settings"; //$NON-NLS-1$
-    String TOOLBAR_EDIT = "dbeaver-edit"; //$NON-NLS-1$
-    //String MENU_ID = "org.jkiss.dbeaver.core.navigationMenu";
+    String TOOLBAR_EDIT = "chromite-edit"; //$NON-NLS-1$
+    //String MENU_ID = "com.seizia.chromite.core.navigationMenu";
 
     String MB_ADDITIONS_END = "additions_end"; //$NON-NLS-1$
     String MB_ADDITIONS_PROPS = "additions_props"; //$NON-NLS-1$
     String MB_ADDITIONS_MIDDLE = "additions_middle"; //$NON-NLS-1$
     String MB_ADDITIONS_START = "additions_start"; //$NON-NLS-1$
 
-    String NEW_CONNECTION_POINT = "org.jkiss.dbeaver.ext.ui.newConnectionWizard"; //$NON-NLS-1$
-    String EDIT_CONNECTION_POINT = "org.jkiss.dbeaver.ext.ui.editConnectionDialog"; //$NON-NLS-1$
-    String EXTRA_CONNECTION_POINT = "org.jkiss.dbeaver.ext.ui.extraConnectionPage"; //$NON-NLS-1$
+    String NEW_CONNECTION_POINT = "com.seizia.chromite.ext.ui.newConnectionWizard"; //$NON-NLS-1$
+    String EDIT_CONNECTION_POINT = "com.seizia.chromite.ext.ui.editConnectionDialog"; //$NON-NLS-1$
+    String EXTRA_CONNECTION_POINT = "com.seizia.chromite.ext.ui.extraConnectionPage"; //$NON-NLS-1$
 
-    String CMD_COPY_SPECIAL = "org.jkiss.dbeaver.core.edit.copy.special"; //$NON-NLS-1$
-    String CMD_COPY_SPECIAL_LAST = "org.jkiss.dbeaver.core.edit.copy.special.with.last.settings"; //$NON-NLS-1$
-    String CMD_PASTE_SPECIAL = "org.jkiss.dbeaver.core.edit.paste.special"; //$NON-NLS-1$
+    String CMD_COPY_SPECIAL = "com.seizia.chromite.core.edit.copy.special"; //$NON-NLS-1$
+    String CMD_COPY_SPECIAL_LAST = "com.seizia.chromite.core.edit.copy.special.with.last.settings"; //$NON-NLS-1$
+    String CMD_PASTE_SPECIAL = "com.seizia.chromite.core.edit.paste.special"; //$NON-NLS-1$
 }

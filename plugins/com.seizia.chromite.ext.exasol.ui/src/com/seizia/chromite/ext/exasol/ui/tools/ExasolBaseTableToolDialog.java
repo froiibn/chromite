@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.exasol.ui.tools;
+package com.seizia.chromite.ext.exasol.ui.tools;
 
 import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.Status;
@@ -25,24 +25,24 @@ import org.eclipse.swt.widgets.TreeItem;
 import org.eclipse.ui.IWorkbenchPartSite;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.ext.exasol.model.ExasolTableBase;
-import org.jkiss.dbeaver.ext.exasol.ui.internal.ExasolMessages;
-import org.jkiss.dbeaver.model.DBPDataKind;
-import org.jkiss.dbeaver.model.DBPEvaluationContext;
-import org.jkiss.dbeaver.model.DBUtils;
-import org.jkiss.dbeaver.model.exec.*;
-import org.jkiss.dbeaver.model.exec.jdbc.JDBCSession;
-import org.jkiss.dbeaver.model.impl.jdbc.exec.JDBCStatementImpl;
-import org.jkiss.dbeaver.model.impl.local.LocalResultSet;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.runtime.jobs.DataSourceJob;
-import org.jkiss.dbeaver.ui.BaseThemeSettings;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.editors.sql.dialogs.GenerateMultiSQLDialog;
-import org.jkiss.dbeaver.ui.editors.sql.dialogs.SQLScriptProgressListener;
-import org.jkiss.dbeaver.ui.editors.sql.dialogs.SQLScriptStatusDialog;
-import org.jkiss.dbeaver.utils.GeneralUtils;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.ext.exasol.model.ExasolTableBase;
+import com.seizia.chromite.ext.exasol.ui.internal.ExasolMessages;
+import com.seizia.chromite.model.DBPDataKind;
+import com.seizia.chromite.model.DBPEvaluationContext;
+import com.seizia.chromite.model.DBUtils;
+import com.seizia.chromite.model.exec.*;
+import com.seizia.chromite.model.exec.jdbc.JDBCSession;
+import com.seizia.chromite.model.impl.jdbc.exec.JDBCStatementImpl;
+import com.seizia.chromite.model.impl.local.LocalResultSet;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.runtime.jobs.DataSourceJob;
+import com.seizia.chromite.ui.BaseThemeSettings;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.editors.sql.dialogs.GenerateMultiSQLDialog;
+import com.seizia.chromite.ui.editors.sql.dialogs.SQLScriptProgressListener;
+import com.seizia.chromite.ui.editors.sql.dialogs.SQLScriptStatusDialog;
+import com.seizia.chromite.utils.GeneralUtils;
 import org.jkiss.utils.CommonUtils;
 
 import java.sql.Statement;

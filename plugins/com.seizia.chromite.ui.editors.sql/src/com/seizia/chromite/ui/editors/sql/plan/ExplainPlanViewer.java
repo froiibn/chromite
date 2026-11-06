@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.editors.sql.plan;
+package com.seizia.chromite.ui.editors.sql.plan;
 
 import org.eclipse.core.runtime.IAdaptable;
 import org.eclipse.jface.action.Action;
@@ -37,39 +37,39 @@ import org.eclipse.ui.services.IEvaluationService;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.model.DBPContextProvider;
-import org.jkiss.dbeaver.model.DBPDataSource;
-import org.jkiss.dbeaver.model.edit.DBEObjectConfigurator;
-import org.jkiss.dbeaver.model.exec.DBCExecutionContext;
-import org.jkiss.dbeaver.model.exec.DBCExecutionPurpose;
-import org.jkiss.dbeaver.model.exec.DBCSession;
-import org.jkiss.dbeaver.model.exec.DBExecUtils;
-import org.jkiss.dbeaver.model.exec.plan.*;
-import org.jkiss.dbeaver.model.messages.ModelMessages;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.model.runtime.DBRRunnableWithParam;
-import org.jkiss.dbeaver.model.runtime.DBRRunnableWithReturn;
-import org.jkiss.dbeaver.model.runtime.load.DatabaseLoadService;
-import org.jkiss.dbeaver.model.runtime.load.ILoadVisualizerExt;
-import org.jkiss.dbeaver.model.sql.SQLQuery;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.ui.DBeaverIcons;
-import org.jkiss.dbeaver.ui.LoadingJob;
-import org.jkiss.dbeaver.ui.UIIcon;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.controls.ProgressPageControl;
-import org.jkiss.dbeaver.ui.controls.VerticalButton;
-import org.jkiss.dbeaver.ui.controls.VerticalFolder;
-import org.jkiss.dbeaver.ui.editors.sql.SQLEditor;
-import org.jkiss.dbeaver.ui.editors.sql.SQLPlanSaveProvider;
-import org.jkiss.dbeaver.ui.editors.sql.SQLPlanViewProvider;
-import org.jkiss.dbeaver.ui.editors.sql.internal.SQLEditorActivator;
-import org.jkiss.dbeaver.ui.editors.sql.internal.SQLEditorMessages;
-import org.jkiss.dbeaver.ui.editors.sql.plan.registry.SQLPlanActionDescriptor;
-import org.jkiss.dbeaver.ui.editors.sql.plan.registry.SQLPlanViewDescriptor;
-import org.jkiss.dbeaver.ui.editors.sql.plan.registry.SQLPlanViewRegistry;
-import org.jkiss.dbeaver.ui.internal.UIMessages;
-import org.jkiss.dbeaver.utils.GeneralUtils;
+import com.seizia.chromite.model.DBPContextProvider;
+import com.seizia.chromite.model.DBPDataSource;
+import com.seizia.chromite.model.edit.DBEObjectConfigurator;
+import com.seizia.chromite.model.exec.DBCExecutionContext;
+import com.seizia.chromite.model.exec.DBCExecutionPurpose;
+import com.seizia.chromite.model.exec.DBCSession;
+import com.seizia.chromite.model.exec.DBExecUtils;
+import com.seizia.chromite.model.exec.plan.*;
+import com.seizia.chromite.model.messages.ModelMessages;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.model.runtime.DBRRunnableWithParam;
+import com.seizia.chromite.model.runtime.DBRRunnableWithReturn;
+import com.seizia.chromite.model.runtime.load.DatabaseLoadService;
+import com.seizia.chromite.model.runtime.load.ILoadVisualizerExt;
+import com.seizia.chromite.model.sql.SQLQuery;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.ui.SwtIcons;
+import com.seizia.chromite.ui.LoadingJob;
+import com.seizia.chromite.ui.UIIcon;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.controls.ProgressPageControl;
+import com.seizia.chromite.ui.controls.VerticalButton;
+import com.seizia.chromite.ui.controls.VerticalFolder;
+import com.seizia.chromite.ui.editors.sql.SQLEditor;
+import com.seizia.chromite.ui.editors.sql.SQLPlanSaveProvider;
+import com.seizia.chromite.ui.editors.sql.SQLPlanViewProvider;
+import com.seizia.chromite.ui.editors.sql.internal.SQLEditorActivator;
+import com.seizia.chromite.ui.editors.sql.internal.SQLEditorMessages;
+import com.seizia.chromite.ui.editors.sql.plan.registry.SQLPlanActionDescriptor;
+import com.seizia.chromite.ui.editors.sql.plan.registry.SQLPlanViewDescriptor;
+import com.seizia.chromite.ui.editors.sql.plan.registry.SQLPlanViewRegistry;
+import com.seizia.chromite.ui.internal.UIMessages;
+import com.seizia.chromite.utils.GeneralUtils;
 import org.jkiss.utils.CommonUtils;
 
 import java.io.IOException;
@@ -166,7 +166,7 @@ public class ExplainPlanViewer extends Viewer implements IAdaptable {
                 if (!CommonUtils.isEmpty(viewDesc.getDescription())) {
                     treeViewButton.setToolTipText(viewDesc.getDescription());
                     if (viewDesc.getIcon() != null) {
-                        treeViewButton.setImage(DBeaverIcons.getImage(viewDesc.getIcon()));
+                        treeViewButton.setImage(SwtIcons.getImage(viewDesc.getIcon()));
                     }
                 }
                 treeViewButton.setData(new PlanViewInfo(viewDesc));
@@ -182,7 +182,7 @@ public class ExplainPlanViewer extends Viewer implements IAdaptable {
                     button.setText(actionDescriptor.getLabel());
                     button.setToolTipText(actionDescriptor.getDescription());
                     if (actionDescriptor.getIcon() != null) {
-                        button.setImage(DBeaverIcons.getImage(actionDescriptor.getIcon()));
+                        button.setImage(SwtIcons.getImage(actionDescriptor.getIcon()));
                     }
                     button.setData(new PlanActionInfo(actionDescriptor));
                     button.setAction(new Action(actionDescriptor.getLabel()) {
@@ -545,7 +545,7 @@ public class ExplainPlanViewer extends Viewer implements IAdaptable {
     private class RefreshPlanAction extends Action {
         private RefreshPlanAction()
         {
-            super(SQLEditorMessages.editors_sql_explain_refresh_plan_action_text, DBeaverIcons.getImageDescriptor(UIIcon.REFRESH));
+            super(SQLEditorMessages.editors_sql_explain_refresh_plan_action_text, SwtIcons.getImageDescriptor(UIIcon.REFRESH));
         }
 
         @Override

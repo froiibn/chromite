@@ -14,12 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.yashandb.model;
+package com.seizia.chromite.ext.yashandb.model;
 
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.ext.oracle.model.OracleDataType;
-import org.jkiss.dbeaver.ext.oracle.model.OracleDataTypeMethod;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.ext.oracle.model.OracleDataType;
+import com.seizia.chromite.ext.oracle.model.OracleDataTypeMethod;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
 
 import java.sql.ResultSet;
 

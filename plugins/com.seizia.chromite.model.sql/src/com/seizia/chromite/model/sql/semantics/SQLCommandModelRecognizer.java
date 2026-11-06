@@ -14,22 +14,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.sql.semantics;
+package com.seizia.chromite.model.sql.semantics;
 
 import org.antlr.v4.runtime.CommonToken;
 import org.antlr.v4.runtime.misc.Interval;
 import org.antlr.v4.runtime.misc.Pair;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.model.sql.SQLScriptContext;
-import org.jkiss.dbeaver.model.sql.eval.ScriptVariablesResolver;
-import org.jkiss.dbeaver.model.sql.semantics.model.SQLCommandModel;
-import org.jkiss.dbeaver.model.sql.semantics.model.SQLQueryModel;
-import org.jkiss.dbeaver.model.stm.LSMInspections;
-import org.jkiss.dbeaver.model.stm.STMTreeNode;
-import org.jkiss.dbeaver.model.stm.STMTreeRuleNode;
-import org.jkiss.dbeaver.model.stm.STMTreeTermNode;
-import org.jkiss.dbeaver.utils.GeneralUtils;
+import com.seizia.chromite.model.sql.SQLScriptContext;
+import com.seizia.chromite.model.sql.eval.ScriptVariablesResolver;
+import com.seizia.chromite.model.sql.semantics.model.SQLCommandModel;
+import com.seizia.chromite.model.sql.semantics.model.SQLQueryModel;
+import com.seizia.chromite.model.stm.LSMInspections;
+import com.seizia.chromite.model.stm.STMTreeNode;
+import com.seizia.chromite.model.stm.STMTreeRuleNode;
+import com.seizia.chromite.model.stm.STMTreeTermNode;
+import com.seizia.chromite.utils.GeneralUtils;
 
 import java.util.*;
 
@@ -62,18 +62,18 @@ public class SQLCommandModelRecognizer {
         int end;
         if (text.startsWith(multilinePrefix)) {
             start = multilinePrefix.length();
-            symbolEntries.add(makeSymbol(0, multilinePrefix.length(), multilinePrefix, SQLQuerySymbolClass.DBEAVER_COMMAND));
+            symbolEntries.add(makeSymbol(0, multilinePrefix.length(), multilinePrefix, SQLQuerySymbolClass.CHROMITE_COMMAND));
 
             if (text.endsWith(multilinePrefix)) {
                 end = text.length() - multilinePrefix.length();
-                symbolEntries.add(makeSymbol(end, multilinePrefix.length(), multilinePrefix, SQLQuerySymbolClass.DBEAVER_COMMAND));
+                symbolEntries.add(makeSymbol(end, multilinePrefix.length(), multilinePrefix, SQLQuerySymbolClass.CHROMITE_COMMAND));
             } else {
                 end = text.length();
             }
         } else if (text.startsWith(cmdPrefix)) {
             start = cmdPrefix.length();
             end = text.length();
-            symbolEntries.add(makeSymbol(0, cmdPrefix.length(), cmdPrefix, SQLQuerySymbolClass.DBEAVER_COMMAND));
+            symbolEntries.add(makeSymbol(0, cmdPrefix.length(), cmdPrefix, SQLQuerySymbolClass.CHROMITE_COMMAND));
         } else {
             start = 0;
             end = text.length();
@@ -85,7 +85,7 @@ public class SQLCommandModelRecognizer {
             symbolEntries.add(makeSymbol(
                 start, nameInterval.length(),
                 cmdText.substring(nameInterval.a, nameInterval.b + 1),
-                SQLQuerySymbolClass.DBEAVER_COMMAND
+                SQLQuerySymbolClass.CHROMITE_COMMAND
             ));
         }
         STMTreeNode fakeTree = new STMTreeRuleNode();
@@ -110,7 +110,7 @@ public class SQLCommandModelRecognizer {
             SQLQuerySymbolEntry symbolEntry = makeSymbol(
                 start + varEntry.start(), varEntry.end() - varEntry.start(),
                 cmdText.substring(varEntry.start(), varEntry.end()),
-                SQLQuerySymbolClass.DBEAVER_VARIABLE
+                SQLQuerySymbolClass.CHROMITE_VARIABLE
             );
             symbolEntries.add(symbolEntry);
             cmdModel.addVariable(symbolEntry, variablesResolver == null ? "?" : variablesResolver.get(varEntry.name()));

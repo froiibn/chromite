@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.project;
+package com.seizia.chromite.ui.project;
 
 import org.eclipse.core.resources.IFolder;
 import org.eclipse.core.resources.IProject;
@@ -36,20 +36,20 @@ import org.eclipse.ui.IWorkbenchPreferencePage;
 import org.eclipse.ui.IWorkbenchPropertyPage;
 import org.eclipse.ui.dialogs.ContainerSelectionDialog;
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.DBPImage;
-import org.jkiss.dbeaver.model.DBUtils;
-import org.jkiss.dbeaver.model.app.DBPPlatformDesktop;
-import org.jkiss.dbeaver.model.app.DBPProject;
-import org.jkiss.dbeaver.model.app.DBPResourceTypeDescriptor;
-import org.jkiss.dbeaver.model.app.DBPWorkspaceDesktop;
-import org.jkiss.dbeaver.model.navigator.NavigatorResources;
-import org.jkiss.dbeaver.registry.ResourceTypeRegistry;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.ui.DBeaverIcons;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.internal.UINavigatorMessages;
-import org.jkiss.dbeaver.ui.preferences.AbstractPrefPage;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.DBPImage;
+import com.seizia.chromite.model.DBUtils;
+import com.seizia.chromite.model.app.DBPPlatformDesktop;
+import com.seizia.chromite.model.app.DBPProject;
+import com.seizia.chromite.model.app.DBPResourceTypeDescriptor;
+import com.seizia.chromite.model.app.DBPWorkspaceDesktop;
+import com.seizia.chromite.model.navigator.NavigatorResources;
+import com.seizia.chromite.registry.ResourceTypeRegistry;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.ui.SwtIcons;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.internal.UINavigatorMessages;
+import com.seizia.chromite.ui.preferences.AbstractPrefPage;
 import org.jkiss.utils.CommonUtils;
 
 import java.io.File;
@@ -59,7 +59,7 @@ import java.util.ArrayList;
  * PrefPageProjectResourceSettings
  */
 public class PrefPageProjectResourceSettings extends AbstractPrefPage implements IWorkbenchPreferencePage, IWorkbenchPropertyPage {
-    public static final String PAGE_ID = "org.jkiss.dbeaver.preferences.projectSettings"; //$NON-NLS-1$
+    public static final String PAGE_ID = "com.seizia.chromite.preferences.projectSettings"; //$NON-NLS-1$
 
     private static final Log log = Log.getLog(PrefPageProjectResourceSettings.class);
 
@@ -195,7 +195,7 @@ public class PrefPageProjectResourceSettings extends AbstractPrefPage implements
             item.setData(descriptor);
             final DBPImage icon = descriptor.getIcon();
             if (icon != null) {
-                item.setImage(DBeaverIcons.getImage(icon));
+                item.setImage(SwtIcons.getImage(icon));
             }
             item.setText(0, descriptor.getName());
 

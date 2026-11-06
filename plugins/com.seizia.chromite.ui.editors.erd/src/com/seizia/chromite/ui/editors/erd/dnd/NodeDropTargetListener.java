@@ -17,7 +17,7 @@
 /*
  * Created on Jul 14, 2004
  */
-package org.jkiss.dbeaver.ui.editors.erd.dnd;
+package com.seizia.chromite.ui.editors.erd.dnd;
 
 import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.MultiStatus;
@@ -29,18 +29,18 @@ import org.eclipse.gef.dnd.AbstractTransferDropTargetListener;
 import org.eclipse.gef.requests.CreateRequest;
 import org.eclipse.gef.requests.CreationFactory;
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.model.DBPNamedObject;
-import org.jkiss.dbeaver.model.erd.DiagramObjectCollector;
-import org.jkiss.dbeaver.model.erd.ERDEntity;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.model.runtime.DBRRunnableWithResult;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.dnd.DatabaseObjectTransfer;
-import org.jkiss.dbeaver.ui.editors.erd.editor.ERDEditorPart;
-import org.jkiss.dbeaver.ui.editors.erd.internal.ERDUIActivator;
-import org.jkiss.dbeaver.ui.editors.erd.model.DiagramCollectSettingsDefault;
-import org.jkiss.dbeaver.ui.editors.erd.part.DiagramPart;
+import com.seizia.chromite.model.DBPNamedObject;
+import com.seizia.chromite.model.erd.DiagramObjectCollector;
+import com.seizia.chromite.model.erd.ERDEntity;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.model.runtime.DBRRunnableWithResult;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.dnd.DatabaseObjectTransfer;
+import com.seizia.chromite.ui.editors.erd.editor.ERDEditorPart;
+import com.seizia.chromite.ui.editors.erd.internal.ERDUIActivator;
+import com.seizia.chromite.ui.editors.erd.model.DiagramCollectSettingsDefault;
+import com.seizia.chromite.ui.editors.erd.part.DiagramPart;
 
 import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;

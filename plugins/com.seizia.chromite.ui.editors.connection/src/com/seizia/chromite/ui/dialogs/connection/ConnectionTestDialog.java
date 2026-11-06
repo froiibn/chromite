@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.dialogs.connection;
+package com.seizia.chromite.ui.dialogs.connection;
 
 import org.eclipse.jface.dialogs.IDialogConstants;
 import org.eclipse.jface.layout.GridLayoutFactory;
@@ -24,14 +24,14 @@ import org.eclipse.swt.SWT;
 import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.*;
-import org.jkiss.dbeaver.model.DBIcon;
-import org.jkiss.dbeaver.model.messages.ModelMessages;
-import org.jkiss.dbeaver.registry.DataSourceDescriptor;
-import org.jkiss.dbeaver.ui.DBeaverIcons;
-import org.jkiss.dbeaver.ui.internal.UIConnectionMessages;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.controls.PropertyPageStandard;
-import org.jkiss.dbeaver.ui.dialogs.BaseDialog;
+import com.seizia.chromite.model.DBIcon;
+import com.seizia.chromite.model.messages.ModelMessages;
+import com.seizia.chromite.registry.DataSourceDescriptor;
+import com.seizia.chromite.ui.SwtIcons;
+import com.seizia.chromite.ui.internal.UIConnectionMessages;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.controls.PropertyPageStandard;
+import com.seizia.chromite.ui.dialogs.BaseDialog;
 
 /**
  * Connection test results dialog
@@ -58,7 +58,7 @@ public class ConnectionTestDialog extends BaseDialog {
 
         {
             Label imageLabel = new Label(composite, SWT.NULL);
-            imageLabel.setImage(DBeaverIcons.getImage(DBIcon.STATUS_INFO));
+            imageLabel.setImage(SwtIcons.getImage(DBIcon.STATUS_INFO));
 
             Label messageLabel = new Label(composite, SWT.NONE);
             messageLabel.setText(NLS.bind(ModelMessages.dialog_connection_wizard_start_connection_monitor_connected, elapsedTime));

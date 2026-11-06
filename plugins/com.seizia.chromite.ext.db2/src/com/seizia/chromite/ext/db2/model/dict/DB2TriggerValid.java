@@ -15,11 +15,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.db2.model.dict;
+package com.seizia.chromite.ext.db2.model.dict;
 
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.model.DBPNamedObject;
-import org.jkiss.dbeaver.model.struct.DBSObjectState;
+import com.seizia.chromite.model.DBPNamedObject;
+import com.seizia.chromite.model.struct.DBSObjectState;
 
 /**
  * DB2 Trigger Valid attribute

@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.preferences;
+package com.seizia.chromite.ui.preferences;
 
 import org.eclipse.core.commands.common.NotDefinedException;
 import org.eclipse.core.runtime.FileLocator;
@@ -39,12 +39,12 @@ import org.eclipse.ui.commands.ICommandImageService;
 import org.eclipse.ui.commands.ICommandService;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.core.DBeaverActivator;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.actions.ToolBarConfigurationDescriptor;
-import org.jkiss.dbeaver.ui.actions.ToolBarConfigurationPropertyTester;
-import org.jkiss.dbeaver.ui.actions.ToolBarConfigurationRegistry;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.core.ChromiteActivator;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.actions.ToolBarConfigurationDescriptor;
+import com.seizia.chromite.ui.actions.ToolBarConfigurationPropertyTester;
+import com.seizia.chromite.ui.actions.ToolBarConfigurationRegistry;
 import org.osgi.framework.Bundle;
 
 import java.io.IOException;
@@ -357,7 +357,7 @@ public class PrefPageToolbarCustomization extends AbstractPrefPage implements IW
     @Override
     public final boolean performOk() {
         forEachToolItem(ToolItemNode::apply);
-        IPreferenceStore prefs = DBeaverActivator.getInstance().getPreferenceStore();
+        IPreferenceStore prefs = ChromiteActivator.getInstance().getPreferenceStore();
         if (prefs.needsSaving() && prefs instanceof IPersistentPreferenceStore) {
             try {
                 ((IPersistentPreferenceStore) prefs).save();

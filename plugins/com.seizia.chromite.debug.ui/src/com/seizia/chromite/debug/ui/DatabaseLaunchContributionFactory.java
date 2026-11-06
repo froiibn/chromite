@@ -17,7 +17,7 @@
  */
 
 
-package org.jkiss.dbeaver.debug.ui;
+package com.seizia.chromite.debug.ui;
 
 import org.eclipse.jface.action.MenuManager;
 import org.eclipse.jface.resource.ImageDescriptor;

@@ -14,11 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.oracle.model.util;
+package com.seizia.chromite.ext.oracle.model.util;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.ext.oracle.model.OracleProcedurePackaged;
+import com.seizia.chromite.ext.oracle.model.OracleProcedurePackaged;
 
 import java.util.*;
 import java.util.regex.Matcher;

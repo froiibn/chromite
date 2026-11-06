@@ -15,10 +15,10 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.ext.mssql.auth;
+package com.seizia.chromite.ext.mssql.auth;
 
-import org.jkiss.dbeaver.model.impl.auth.AuthModelDatabaseNative;
-import org.jkiss.dbeaver.model.impl.auth.AuthModelDatabaseNativeCredentials;
+import com.seizia.chromite.model.impl.auth.AuthModelDatabaseNative;
+import com.seizia.chromite.model.impl.auth.AuthModelDatabaseNativeCredentials;
 
 /**
  * SQL Server abstract auth model.

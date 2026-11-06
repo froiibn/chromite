@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.actions.datasource;
+package com.seizia.chromite.ui.actions.datasource;
 
 import org.eclipse.jface.action.*;
 import org.eclipse.jface.dialogs.IDialogConstants;
@@ -27,25 +27,25 @@ import org.eclipse.ui.IWorkbenchPage;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.DBPDataSourceContainer;
-import org.jkiss.dbeaver.model.navigator.DBNBrowseSettings;
-import org.jkiss.dbeaver.model.navigator.DBNDatabaseNode;
-import org.jkiss.dbeaver.registry.DataSourceDescriptor;
-import org.jkiss.dbeaver.registry.DataSourceNavigatorSettings;
-import org.jkiss.dbeaver.registry.DataSourceNavigatorSettingsUtils;
-import org.jkiss.dbeaver.registry.internal.RegistryMessages;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.runtime.ui.UIServiceConnections;
-import org.jkiss.dbeaver.ui.DBeaverIcons;
-import org.jkiss.dbeaver.ui.internal.UIConnectionMessages;
-import org.jkiss.dbeaver.ui.UIIcon;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.actions.AbstractDataSourceHandler;
-import org.jkiss.dbeaver.ui.dialogs.connection.EditConnectionNavigatorSettingsDialog;
-import org.jkiss.dbeaver.ui.internal.UINavigatorMessages;
-import org.jkiss.dbeaver.ui.navigator.INavigatorModelView;
-import org.jkiss.dbeaver.ui.navigator.NavigatorPreferences;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.DBPDataSourceContainer;
+import com.seizia.chromite.model.navigator.DBNBrowseSettings;
+import com.seizia.chromite.model.navigator.DBNDatabaseNode;
+import com.seizia.chromite.registry.DataSourceDescriptor;
+import com.seizia.chromite.registry.DataSourceNavigatorSettings;
+import com.seizia.chromite.registry.DataSourceNavigatorSettingsUtils;
+import com.seizia.chromite.registry.internal.RegistryMessages;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.runtime.ui.UIServiceConnections;
+import com.seizia.chromite.ui.SwtIcons;
+import com.seizia.chromite.ui.internal.UIConnectionMessages;
+import com.seizia.chromite.ui.UIIcon;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.actions.AbstractDataSourceHandler;
+import com.seizia.chromite.ui.dialogs.connection.EditConnectionNavigatorSettingsDialog;
+import com.seizia.chromite.ui.internal.UINavigatorMessages;
+import com.seizia.chromite.ui.navigator.INavigatorModelView;
+import com.seizia.chromite.ui.navigator.NavigatorPreferences;
 
 import java.util.List;
 
@@ -61,7 +61,7 @@ public class ConnectionViewSettingsContributor extends DataSourceMenuContributor
         }
 
         MenuManager customizeViewMenu = new MenuManager(RegistryMessages.navigator_settings_customize_view);
-        customizeViewMenu.setImageDescriptor(DBeaverIcons.getImageDescriptor(UIIcon.SHOW_ALL_DETAILS));
+        customizeViewMenu.setImageDescriptor(SwtIcons.getImageDescriptor(UIIcon.SHOW_ALL_DETAILS));
         addPresetSettings(customizeViewMenu, dsContainer);
         addSystemObjects(customizeViewMenu, dsContainer);
         addAdditionalSettings(customizeViewMenu, dsContainer);

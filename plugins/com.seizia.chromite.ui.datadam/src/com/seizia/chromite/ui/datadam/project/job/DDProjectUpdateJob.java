@@ -14,14 +14,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.datadam.project.job;
+package com.seizia.chromite.ui.datadam.project.job;
 
 import com.dbeaver.datadam.share.api.model.DDSharedProject;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.ui.datadam.internal.DDTrackingUIMessages;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.ui.datadam.internal.DDTrackingUIMessages;
 
 /** Updates the name and description of a DataDam project. */
 public class DDProjectUpdateJob extends DDProjectOperationJob<DDSharedProject> {

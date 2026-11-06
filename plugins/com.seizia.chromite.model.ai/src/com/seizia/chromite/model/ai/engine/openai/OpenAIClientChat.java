@@ -14,27 +14,27 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.ai.engine.openai;
+package com.seizia.chromite.model.ai.engine.openai;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import org.jkiss.code.NotNull;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.model.ai.AIMessage;
-import org.jkiss.dbeaver.model.ai.AIMessageMeta;
-import org.jkiss.dbeaver.model.ai.AIMessageType;
-import org.jkiss.dbeaver.model.ai.AIMetaTypes;
-import org.jkiss.dbeaver.model.ai.engine.AIEngineResponseConsumer;
-import org.jkiss.dbeaver.model.ai.engine.openai.dto.OAIMessageFactory;
-import org.jkiss.dbeaver.model.ai.engine.openai.dto.OAIResponsesRequest;
-import org.jkiss.dbeaver.model.ai.engine.openai.dto.OAIResponsesResponse;
-import org.jkiss.dbeaver.model.ai.engine.openai.dto.legacy.ChatCompletionRequest;
-import org.jkiss.dbeaver.model.ai.engine.openai.dto.legacy.ChatCompletionResult;
-import org.jkiss.dbeaver.model.ai.engine.openai.dto.legacy.ChatMessage;
-import org.jkiss.dbeaver.model.ai.engine.openai.dto.legacy.ChatMessageContent;
-import org.jkiss.dbeaver.model.ai.utils.AIHttpRequestFilter;
-import org.jkiss.dbeaver.model.ai.utils.AIHttpUtils;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.model.ai.AIMessage;
+import com.seizia.chromite.model.ai.AIMessageMeta;
+import com.seizia.chromite.model.ai.AIMessageType;
+import com.seizia.chromite.model.ai.AIMetaTypes;
+import com.seizia.chromite.model.ai.engine.AIEngineResponseConsumer;
+import com.seizia.chromite.model.ai.engine.openai.dto.OAIMessageFactory;
+import com.seizia.chromite.model.ai.engine.openai.dto.OAIResponsesRequest;
+import com.seizia.chromite.model.ai.engine.openai.dto.OAIResponsesResponse;
+import com.seizia.chromite.model.ai.engine.openai.dto.legacy.ChatCompletionRequest;
+import com.seizia.chromite.model.ai.engine.openai.dto.legacy.ChatCompletionResult;
+import com.seizia.chromite.model.ai.engine.openai.dto.legacy.ChatMessage;
+import com.seizia.chromite.model.ai.engine.openai.dto.legacy.ChatMessageContent;
+import com.seizia.chromite.model.ai.utils.AIHttpRequestFilter;
+import com.seizia.chromite.model.ai.utils.AIHttpUtils;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
 
 import java.net.http.HttpRequest;
 import java.time.Duration;

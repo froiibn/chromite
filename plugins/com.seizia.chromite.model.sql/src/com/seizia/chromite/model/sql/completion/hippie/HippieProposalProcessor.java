@@ -15,12 +15,12 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.model.sql.completion.hippie;
+package com.seizia.chromite.model.sql.completion.hippie;
 
 import org.eclipse.jface.text.BadLocationException;
 import org.eclipse.jface.text.IDocument;
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.model.text.parser.TPWordDetector;
+import com.seizia.chromite.model.text.parser.TPWordDetector;
 
 import java.util.ArrayList;
 import java.util.List;

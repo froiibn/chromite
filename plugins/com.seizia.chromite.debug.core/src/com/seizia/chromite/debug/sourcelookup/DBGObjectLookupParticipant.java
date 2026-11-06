@@ -16,11 +16,11 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.debug.sourcelookup;
+package com.seizia.chromite.debug.sourcelookup;
 
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.debug.core.sourcelookup.AbstractSourceLookupParticipant;
-import org.jkiss.dbeaver.debug.core.DebugUtils;
+import com.seizia.chromite.debug.core.DebugUtils;
 
 public class DBGObjectLookupParticipant extends AbstractSourceLookupParticipant {
 

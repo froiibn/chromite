@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.editors.sql.terminal;
+package com.seizia.chromite.ui.editors.sql.terminal;
 
 import org.eclipse.core.runtime.QualifiedName;
 import org.eclipse.swt.SWT;
@@ -25,21 +25,21 @@ import org.eclipse.swt.custom.CTabItem;
 import org.eclipse.swt.widgets.Widget;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.preferences.DBPPreferenceStore;
-import org.jkiss.dbeaver.model.runtime.RunnableWithResult;
-import org.jkiss.dbeaver.model.sql.SQLQueryResult;
-import org.jkiss.dbeaver.ui.DBeaverIcons;
-import org.jkiss.dbeaver.ui.UIIcon;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.controls.resultset.ResultSetModel;
-import org.jkiss.dbeaver.ui.editors.EditorPartContextualProperty;
-import org.jkiss.dbeaver.ui.editors.EditorPartContextualProperty.PartCustomPropertyValueInfo;
-import org.jkiss.dbeaver.ui.editors.sql.SQLEditor;
-import org.jkiss.dbeaver.ui.editors.sql.SQLEditorListener;
-import org.jkiss.dbeaver.ui.editors.sql.SQLEditorListenerDefault;
-import org.jkiss.dbeaver.ui.editors.sql.addins.SQLEditorAddIn;
-import org.jkiss.dbeaver.ui.editors.sql.terminal.internal.SQLTerminalMessages;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.preferences.DBPPreferenceStore;
+import com.seizia.chromite.model.runtime.RunnableWithResult;
+import com.seizia.chromite.model.sql.SQLQueryResult;
+import com.seizia.chromite.ui.SwtIcons;
+import com.seizia.chromite.ui.UIIcon;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.controls.resultset.ResultSetModel;
+import com.seizia.chromite.ui.editors.EditorPartContextualProperty;
+import com.seizia.chromite.ui.editors.EditorPartContextualProperty.PartCustomPropertyValueInfo;
+import com.seizia.chromite.ui.editors.sql.SQLEditor;
+import com.seizia.chromite.ui.editors.sql.SQLEditorListener;
+import com.seizia.chromite.ui.editors.sql.SQLEditorListenerDefault;
+import com.seizia.chromite.ui.editors.sql.addins.SQLEditorAddIn;
+import com.seizia.chromite.ui.editors.sql.terminal.internal.SQLTerminalMessages;
 import org.jkiss.utils.CommonUtils;
 
 import java.io.PrintWriter;
@@ -49,9 +49,9 @@ import java.util.Map;
 public class SQLTerminalEditorAddIn implements SQLEditorAddIn {
     private static final Log log = Log.getLog(SQLTerminalViewSwitchHandler.class);
 
-    private static final String BUNDLE_NAME = "org.jkiss.dbeaver.ui.editors.sql.terminal";
+    private static final String BUNDLE_NAME = "com.seizia.chromite.ui.editors.sql.terminal";
 
-    private static final String TERMINAL_VIEW_ENABLED_PROPERTY = "org.jkiss.dbeaver.ui.editors.sql.show.consoleView.isEnabled";
+    private static final String TERMINAL_VIEW_ENABLED_PROPERTY = "com.seizia.chromite.ui.editors.sql.show.consoleView.isEnabled";
     
     private static final QualifiedName FILE_TERMINAL_VIEW_ENABLED_PROP_NAME = new QualifiedName(
         BUNDLE_NAME, TERMINAL_VIEW_ENABLED_PROPERTY
@@ -118,7 +118,7 @@ public class SQLTerminalEditorAddIn implements SQLEditorAddIn {
             tabItem.setControl(view.getControl());
             tabItem.setText(SQLTerminalMessages.sql_terminal_item_text);
             tabItem.setToolTipText("");
-            tabItem.setImage(DBeaverIcons.getImage(UIIcon.SQL_CONSOLE));
+            tabItem.setImage(SwtIcons.getImage(UIIcon.SQL_CONSOLE));
             tabItem.setData(view);
             tabsContainer.addCTabFolder2Listener(new CTabFolder2Adapter() {
                 @Override

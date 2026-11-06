@@ -14,12 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.tools.transfer.ui.internal;
+package com.seizia.chromite.tools.transfer.ui.internal;
 
 import org.eclipse.osgi.util.NLS;
 
 public class DTUIMessages extends NLS {
-    static final String BUNDLE_NAME = "org.jkiss.dbeaver.tools.transfer.ui.internal.DTUIMessages"; //$NON-NLS-1$
+    static final String BUNDLE_NAME = "com.seizia.chromite.tools.transfer.ui.internal.DTUIMessages"; //$NON-NLS-1$
 
     public static String data_transfer_wizard_name;
     public static String data_transfer_wizard_format_group;

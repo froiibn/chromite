@@ -14,17 +14,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.data.hints.standard;
+package com.seizia.chromite.model.data.hints.standard;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.model.DBPDataSource;
-import org.jkiss.dbeaver.model.data.DBDAttributeBinding;
-import org.jkiss.dbeaver.model.data.DBDResultSetModel;
-import org.jkiss.dbeaver.model.data.hints.DBDAttributeHintProvider;
-import org.jkiss.dbeaver.model.data.hints.DBDValueHint;
-import org.jkiss.dbeaver.model.data.hints.ValueHintText;
-import org.jkiss.dbeaver.model.exec.DBExecUtils;
+import com.seizia.chromite.model.DBPDataSource;
+import com.seizia.chromite.model.data.DBDAttributeBinding;
+import com.seizia.chromite.model.data.DBDResultSetModel;
+import com.seizia.chromite.model.data.hints.DBDAttributeHintProvider;
+import com.seizia.chromite.model.data.hints.DBDValueHint;
+import com.seizia.chromite.model.data.hints.ValueHintText;
+import com.seizia.chromite.model.exec.DBExecUtils;
 
 import java.util.EnumSet;
 

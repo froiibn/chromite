@@ -14,22 +14,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.gis.panel;
+package com.seizia.chromite.ui.gis.panel;
 
 import org.eclipse.jface.action.Action;
 import org.eclipse.jface.action.IMenuCreator;
 import org.eclipse.jface.action.MenuManager;
 import org.eclipse.jface.action.Separator;
 import org.eclipse.jface.dialogs.IDialogConstants;
-import org.jkiss.dbeaver.model.rm.RMConstants;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.ui.DBeaverIcons;
-import org.jkiss.dbeaver.ui.MenuCreator;
-import org.jkiss.dbeaver.ui.UIIcon;
-import org.jkiss.dbeaver.ui.gis.IGeometryValueEditor;
-import org.jkiss.dbeaver.ui.gis.internal.GISMessages;
-import org.jkiss.dbeaver.ui.gis.registry.GeometryViewerRegistry;
-import org.jkiss.dbeaver.ui.gis.registry.LeafletTilesDescriptor;
+import com.seizia.chromite.model.rm.RMConstants;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.ui.SwtIcons;
+import com.seizia.chromite.ui.MenuCreator;
+import com.seizia.chromite.ui.UIIcon;
+import com.seizia.chromite.ui.gis.IGeometryValueEditor;
+import com.seizia.chromite.ui.gis.internal.GISMessages;
+import com.seizia.chromite.ui.gis.registry.GeometryViewerRegistry;
+import com.seizia.chromite.ui.gis.registry.LeafletTilesDescriptor;
 
 import java.util.stream.Stream;
 
@@ -38,7 +38,7 @@ class SelectTilesAction extends Action {
 
     SelectTilesAction(IGeometryValueEditor valueEditor) {
         super(valueEditor.getValueSRID() == 0 ? GISMessages.panel_select_tiles_action_text_plain : getActionText(), Action.AS_DROP_DOWN_MENU);
-        setImageDescriptor(DBeaverIcons.getImageDescriptor(UIIcon.PICTURE));
+        setImageDescriptor(SwtIcons.getImageDescriptor(UIIcon.PICTURE));
         this.valueEditor = valueEditor;
     }
 

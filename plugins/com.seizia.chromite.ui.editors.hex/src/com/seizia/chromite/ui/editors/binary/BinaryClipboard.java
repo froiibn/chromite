@@ -14,13 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.editors.binary;
+package com.seizia.chromite.ui.editors.binary;
 
 import org.eclipse.swt.dnd.*;
 import org.eclipse.swt.widgets.Display;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.ui.SimpleByteArrayTransfer;
-import org.jkiss.dbeaver.utils.ContentUtils;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.ui.SimpleByteArrayTransfer;
+import com.seizia.chromite.utils.ContentUtils;
 import org.jkiss.utils.StandardConstants;
 
 import java.io.*;
@@ -123,7 +123,7 @@ public class BinaryClipboard {
 
 
     private static final File clipboardDir = new File(System.getProperty(StandardConstants.ENV_TMP_DIR, "."));
-    private static final File clipboardFile = new File(clipboardDir, "dbeaver-binary-clipboard.tmp");
+    private static final File clipboardFile = new File(clipboardDir, "chromite-binary-clipboard.tmp");
     private static final long maxClipboardDataInMemory = 4 * 1024 * 1024;  // 4 Megs for byte[], 4 Megs for text
 
     private final Map<File, Integer> filesReferencesCounter = new HashMap<>();

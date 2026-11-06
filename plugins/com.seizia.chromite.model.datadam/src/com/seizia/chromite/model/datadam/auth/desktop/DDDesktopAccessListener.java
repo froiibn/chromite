@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.datadam.auth.desktop;
+package com.seizia.chromite.model.datadam.auth.desktop;
 
 /** Receives notifications about changes to the desktop DataDam access state. */
 public interface DDDesktopAccessListener {

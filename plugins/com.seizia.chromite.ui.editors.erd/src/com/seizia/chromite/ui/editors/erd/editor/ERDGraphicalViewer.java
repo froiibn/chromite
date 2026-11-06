@@ -17,7 +17,7 @@
 /*
  * Created on Jul 19, 2004
  */
-package org.jkiss.dbeaver.ui.editors.erd.editor;
+package com.seizia.chromite.ui.editors.erd.editor;
 
 import org.eclipse.draw2d.FigureCanvas;
 import org.eclipse.draw2d.geometry.Dimension;
@@ -39,27 +39,27 @@ import org.eclipse.ui.IEditorPart;
 import org.eclipse.ui.IWorkbenchPartSite;
 import org.eclipse.ui.part.MultiPageEditorSite;
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.*;
-import org.jkiss.dbeaver.model.edit.DBEObjectManager;
-import org.jkiss.dbeaver.model.erd.*;
-import org.jkiss.dbeaver.model.preferences.DBPPreferenceStore;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.model.runtime.VoidProgressMonitor;
-import org.jkiss.dbeaver.model.struct.DBSEntity;
-import org.jkiss.dbeaver.model.struct.DBSEntityAssociation;
-import org.jkiss.dbeaver.model.struct.DBSEntityAttribute;
-import org.jkiss.dbeaver.model.struct.DBSObject;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.ui.DBeaverIcons;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.editors.erd.ERDUIConstants;
-import org.jkiss.dbeaver.ui.editors.erd.directedit.ValidationMessageHandler;
-import org.jkiss.dbeaver.ui.editors.erd.internal.ERDUIActivator;
-import org.jkiss.dbeaver.ui.editors.erd.internal.ERDUIMessages;
-import org.jkiss.dbeaver.ui.editors.erd.model.EntityDiagram;
-import org.jkiss.dbeaver.ui.editors.erd.part.DiagramPart;
-import org.jkiss.dbeaver.ui.editors.erd.part.EntityPart;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.*;
+import com.seizia.chromite.model.edit.DBEObjectManager;
+import com.seizia.chromite.model.erd.*;
+import com.seizia.chromite.model.preferences.DBPPreferenceStore;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.model.runtime.VoidProgressMonitor;
+import com.seizia.chromite.model.struct.DBSEntity;
+import com.seizia.chromite.model.struct.DBSEntityAssociation;
+import com.seizia.chromite.model.struct.DBSEntityAttribute;
+import com.seizia.chromite.model.struct.DBSObject;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.ui.SwtIcons;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.editors.erd.ERDUIConstants;
+import com.seizia.chromite.ui.editors.erd.directedit.ValidationMessageHandler;
+import com.seizia.chromite.ui.editors.erd.internal.ERDUIActivator;
+import com.seizia.chromite.ui.editors.erd.internal.ERDUIMessages;
+import com.seizia.chromite.ui.editors.erd.model.EntityDiagram;
+import com.seizia.chromite.ui.editors.erd.part.DiagramPart;
+import com.seizia.chromite.ui.editors.erd.part.EntityPart;
 
 import java.util.*;
 
@@ -288,7 +288,7 @@ public class ERDGraphicalViewer extends ScrollingGraphicalViewer implements DBPE
 
         PaletteDrawer dsDrawer = new PaletteDrawer(
             container.getName(),
-            DBeaverIcons.getImageDescriptor(container.getDriver().getIcon()));
+            SwtIcons.getImageDescriptor(container.getDriver().getIcon()));
         dsDrawer.setDescription(container.getDescription());
         dsDrawer.setId(container.getId());
 
@@ -535,8 +535,8 @@ public class ERDGraphicalViewer extends ScrollingGraphicalViewer implements DBPE
         ToolEntryTable(DBSEntity table)
         {
             super(table.getName(), table.getDescription(),
-                DBeaverIcons.getImageDescriptor(DBIcon.TREE_TABLE),
-                DBeaverIcons.getImageDescriptor(DBIcon.TREE_TABLE));
+                SwtIcons.getImageDescriptor(DBIcon.TREE_TABLE),
+                SwtIcons.getImageDescriptor(DBIcon.TREE_TABLE));
             this.setUserModificationPermission(PERMISSION_NO_MODIFICATION);
             setDescription(DBUtils.getObjectFullName(table, DBPEvaluationContext.UI));
             this.table = table;

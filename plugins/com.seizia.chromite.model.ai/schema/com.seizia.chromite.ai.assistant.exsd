@@ -1,9 +1,9 @@
 <?xml version='1.0' encoding='UTF-8'?>
 <!-- Schema file written by PDE -->
-<schema targetNamespace="org.jkiss.dbeaver.model.ai" xmlns="http://www.w3.org/2001/XMLSchema">
+<schema targetNamespace="com.seizia.chromite.model.ai" xmlns="http://www.w3.org/2001/XMLSchema">
    <annotation>
       <appInfo>
-         <meta.schema plugin="org.jkiss.dbeaver.model.ai" id="com.dbeaver.ai.assistant" name="AI assistants"/>
+         <meta.schema plugin="com.seizia.chromite.model.ai" id="com.seizia.chromite.ai.assistant" name="AI assistants"/>
       </appInfo>
       <documentation>AI assistants</documentation>
    </annotation>
@@ -23,12 +23,12 @@
          <attribute name="class" type="string" use="required">
             <annotation>
                <appInfo>
-                  <meta.attribute kind="java" basedOn=":org.jkiss.dbeaver.model.ai.AIAssistant"/>
+                  <meta.attribute kind="java" basedOn=":com.seizia.chromite.model.ai.AIAssistant"/>
                </appInfo>
             </annotation>
          </attribute>
          <attribute name="sqlFormatter" type="string" use="required">
-            <annotation><appInfo><meta.attribute kind="java" basedOn=":org.jkiss.dbeaver.model.ai.AISqlFormatter"/></appInfo></annotation>
+            <annotation><appInfo><meta.attribute kind="java" basedOn=":com.seizia.chromite.model.ai.AISqlFormatter"/></appInfo></annotation>
          </attribute>
          <attribute name="priority" type="integer"/>
       </complexType>

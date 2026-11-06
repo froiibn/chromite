@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.dashboard.view.catalogpanel;
+package com.seizia.chromite.ui.dashboard.view.catalogpanel;
 
 import org.eclipse.jface.viewers.*;
 import org.eclipse.osgi.util.NLS;
@@ -32,23 +32,23 @@ import org.eclipse.swt.widgets.Tree;
 import org.eclipse.swt.widgets.TreeItem;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.DBIcon;
-import org.jkiss.dbeaver.model.DBPDataSourceContainer;
-import org.jkiss.dbeaver.model.DBPImage;
-import org.jkiss.dbeaver.model.app.DBPProject;
-import org.jkiss.dbeaver.model.dashboard.DBDashboardFolder;
-import org.jkiss.dbeaver.model.dashboard.registry.DashboardItemConfiguration;
-import org.jkiss.dbeaver.model.dashboard.registry.DashboardProviderDescriptor;
-import org.jkiss.dbeaver.model.dashboard.registry.DashboardRegistry;
-import org.jkiss.dbeaver.model.dashboard.registry.DashboardRegistryListener;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.ui.DBeaverIcons;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.dashboard.internal.UIDashboardMessages;
-import org.jkiss.dbeaver.ui.dashboard.registry.DashboardRendererDescriptor;
-import org.jkiss.dbeaver.ui.dashboard.registry.DashboardUIRegistry;
-import org.jkiss.dbeaver.ui.dashboard.view.DashboardItemConfigurationTransfer;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.DBIcon;
+import com.seizia.chromite.model.DBPDataSourceContainer;
+import com.seizia.chromite.model.DBPImage;
+import com.seizia.chromite.model.app.DBPProject;
+import com.seizia.chromite.model.dashboard.DBDashboardFolder;
+import com.seizia.chromite.model.dashboard.registry.DashboardItemConfiguration;
+import com.seizia.chromite.model.dashboard.registry.DashboardProviderDescriptor;
+import com.seizia.chromite.model.dashboard.registry.DashboardRegistry;
+import com.seizia.chromite.model.dashboard.registry.DashboardRegistryListener;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.ui.SwtIcons;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.dashboard.internal.UIDashboardMessages;
+import com.seizia.chromite.ui.dashboard.registry.DashboardRendererDescriptor;
+import com.seizia.chromite.ui.dashboard.registry.DashboardUIRegistry;
+import com.seizia.chromite.ui.dashboard.view.DashboardItemConfigurationTransfer;
 import org.jkiss.utils.CommonUtils;
 
 import java.util.List;
@@ -115,7 +115,7 @@ public abstract class DashboardCatalogPanel extends Composite implements Dashboa
                 if (cell.getElement() instanceof DashboardProviderDescriptor dpd) {
                     if (cell.getColumnIndex() == 0) {
                         cell.setText(dpd.getName());
-                        cell.setImage(DBeaverIcons.getImage(dpd.getIcon()));
+                        cell.setImage(SwtIcons.getImage(dpd.getIcon()));
                     } else {
                         cell.setText(CommonUtils.notEmpty(dpd.getDescription()));
                     }
@@ -126,7 +126,7 @@ public abstract class DashboardCatalogPanel extends Composite implements Dashboa
                         if (icon == null) {
                             icon = DBIcon.TREE_FOLDER;
                         }
-                        cell.setImage(DBeaverIcons.getImage(icon));
+                        cell.setImage(SwtIcons.getImage(icon));
                     } else {
                         cell.setText(CommonUtils.notEmpty(folder.getDescription()));
                     }
@@ -143,7 +143,7 @@ public abstract class DashboardCatalogPanel extends Composite implements Dashboa
                             }
                         }
                         if (icon != null) {
-                            cell.setImage(DBeaverIcons.getImage(icon));
+                            cell.setImage(SwtIcons.getImage(icon));
                         }
 
                     } else {

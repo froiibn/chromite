@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.editors.json;
+package com.seizia.chromite.ui.editors.json;
 
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.IProgressMonitor;
@@ -32,8 +32,8 @@ import org.eclipse.ui.IEditorInput;
 import org.eclipse.ui.editors.text.TextFileDocumentProvider;
 import org.eclipse.ui.ide.FileStoreEditorInput;
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.ui.editors.text.BaseTextEditor;
-import org.jkiss.dbeaver.ui.editors.text.FileRefDocumentProvider;
+import com.seizia.chromite.ui.editors.text.BaseTextEditor;
+import com.seizia.chromite.ui.editors.text.FileRefDocumentProvider;
 
 /*
  * JSONTextEditor

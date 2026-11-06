@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.controls;
+package com.seizia.chromite.ui.controls;
 
 import org.eclipse.jface.action.Action;
 import org.eclipse.jface.action.IContributionManager;
@@ -29,14 +29,14 @@ import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.widgets.*;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.DBIcon;
-import org.jkiss.dbeaver.model.DBPObjectWithOrdinalPosition;
-import org.jkiss.dbeaver.ui.*;
-import org.jkiss.dbeaver.ui.dialogs.BaseDialog;
-import org.jkiss.dbeaver.ui.internal.UIMessages;
-import org.jkiss.dbeaver.ui.internal.UINavigatorMessages;
-import org.jkiss.dbeaver.utils.RuntimeUtils;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.DBIcon;
+import com.seizia.chromite.model.DBPObjectWithOrdinalPosition;
+import com.seizia.chromite.ui.*;
+import com.seizia.chromite.ui.dialogs.BaseDialog;
+import com.seizia.chromite.ui.internal.UIMessages;
+import com.seizia.chromite.ui.internal.UINavigatorMessages;
+import com.seizia.chromite.utils.RuntimeUtils;
 import org.jkiss.utils.CommonUtils;
 
 import java.lang.reflect.Array;
@@ -173,7 +173,7 @@ public class ViewerColumnController<COLUMN, ELEMENT> {
     }
 
     public void fillConfigMenu(IContributionManager menuManager) {
-        menuManager.add(new Action(UINavigatorMessages.obj_editor_properties_control_action_configure_columns, DBeaverIcons.getImageDescriptor(UIIcon.CONFIGURATION)) {
+        menuManager.add(new Action(UINavigatorMessages.obj_editor_properties_control_action_configure_columns, SwtIcons.getImageDescriptor(UIIcon.CONFIGURATION)) {
             {
                 setDescription(UINavigatorMessages.obj_editor_properties_control_action_configure_columns_description);
             }
@@ -214,7 +214,7 @@ public class ViewerColumnController<COLUMN, ELEMENT> {
             public void update(ViewerCell cell) {
                 if (cell.getColumnIndex() == 0) {
                     if (defaultIcon != null) {
-                        cell.setImage(DBeaverIcons.getImage(defaultIcon));
+                        cell.setImage(SwtIcons.getImage(defaultIcon));
                     }
                 }
                 cell.setText(labelProvider.getText((ELEMENT) cell.getElement()));

@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.tasks.ui.nativetool;
+package com.seizia.chromite.tasks.ui.nativetool;
 
 import org.eclipse.jface.viewers.IStructuredSelection;
 import org.eclipse.osgi.util.NLS;
@@ -23,11 +23,11 @@ import org.eclipse.ui.IImportWizard;
 import org.eclipse.ui.IWorkbench;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.model.struct.DBSObject;
-import org.jkiss.dbeaver.model.task.DBTTask;
-import org.jkiss.dbeaver.tasks.nativetool.AbstractScriptExecuteSettings;
-import org.jkiss.dbeaver.tasks.ui.nativetool.internal.TaskNativeUIMessages;
-import org.jkiss.dbeaver.ui.UIUtils;
+import com.seizia.chromite.model.struct.DBSObject;
+import com.seizia.chromite.model.task.DBTTask;
+import com.seizia.chromite.tasks.nativetool.AbstractScriptExecuteSettings;
+import com.seizia.chromite.tasks.ui.nativetool.internal.TaskNativeUIMessages;
+import com.seizia.chromite.ui.UIUtils;
 
 import java.nio.file.Files;
 import java.nio.file.Path;

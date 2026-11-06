@@ -14,15 +14,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.tools.transfer.database;
+package com.seizia.chromite.tools.transfer.database;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.model.runtime.DBRRunnableContext;
-import org.jkiss.dbeaver.tools.transfer.DTUtils;
-import org.jkiss.dbeaver.tools.transfer.DataTransferSettings;
-import org.jkiss.dbeaver.tools.transfer.IDataTransferSettings;
-import org.jkiss.dbeaver.tools.transfer.internal.DTMessages;
+import com.seizia.chromite.model.runtime.DBRRunnableContext;
+import com.seizia.chromite.tools.transfer.DTUtils;
+import com.seizia.chromite.tools.transfer.DataTransferSettings;
+import com.seizia.chromite.tools.transfer.IDataTransferSettings;
+import com.seizia.chromite.tools.transfer.internal.DTMessages;
 import org.jkiss.utils.CommonUtils;
 
 import java.util.Map;

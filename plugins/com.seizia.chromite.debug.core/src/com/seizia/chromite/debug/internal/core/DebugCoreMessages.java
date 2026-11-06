@@ -15,13 +15,13 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.debug.internal.core;
+package com.seizia.chromite.debug.internal.core;
 
 import org.eclipse.osgi.util.NLS;
 
 public class DebugCoreMessages extends NLS {
 
-    private static final String BUNDLE_NAME = "org.jkiss.dbeaver.debug.internal.core.DebugCoreMessages"; //$NON-NLS-1$
+    private static final String BUNDLE_NAME = "com.seizia.chromite.debug.internal.core.DebugCoreMessages"; //$NON-NLS-1$
     public static String DebugCore_e_unable_to_retrieve_modes;
 
     public static String DatabaseThread_name;

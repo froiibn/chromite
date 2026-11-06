@@ -14,18 +14,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.actions.common;
+package com.seizia.chromite.ui.actions.common;
 
 import org.eclipse.jface.action.Action;
-import org.jkiss.dbeaver.model.DBIcon;
-import org.jkiss.dbeaver.ui.DBeaverIcons;
-import org.jkiss.dbeaver.ui.UIUtils;
+import com.seizia.chromite.model.DBIcon;
+import com.seizia.chromite.ui.SwtIcons;
+import com.seizia.chromite.ui.UIUtils;
 
 public class ExternalPageAction extends Action {
     private final String url;
 
     public ExternalPageAction(String title, DBIcon icon, String url) {
-        super(title, DBeaverIcons.getImageDescriptor(icon));
+        super(title, SwtIcons.getImageDescriptor(icon));
         this.url = url;
     }
 

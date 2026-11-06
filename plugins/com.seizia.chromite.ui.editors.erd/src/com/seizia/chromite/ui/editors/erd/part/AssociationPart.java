@@ -17,7 +17,7 @@
 /*
  * Created on Jul 13, 2004
  */
-package org.jkiss.dbeaver.ui.editors.erd.part;
+package com.seizia.chromite.ui.editors.erd.part;
 
 import org.eclipse.draw2d.*;
 import org.eclipse.draw2d.geometry.Dimension;
@@ -32,26 +32,26 @@ import org.eclipse.swt.graphics.Color;
 import org.eclipse.swt.graphics.RGB;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.DBIcon;
-import org.jkiss.dbeaver.model.erd.ERDAssociation;
-import org.jkiss.dbeaver.model.erd.ERDEntityAttribute;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.ui.DBeaverIcons;
-import org.jkiss.dbeaver.ui.UIStyles;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.editors.erd.ERDUIUtils;
-import org.jkiss.dbeaver.ui.editors.erd.connector.ERDConnection;
-import org.jkiss.dbeaver.ui.editors.erd.editor.*;
-import org.jkiss.dbeaver.ui.editors.erd.internal.ERDUIMessages;
-import org.jkiss.dbeaver.ui.editors.erd.notations.ERDNotation;
-import org.jkiss.dbeaver.ui.editors.erd.notations.ERDNotationDescriptor;
-import org.jkiss.dbeaver.ui.editors.erd.policy.AssociationBendEditPolicy;
-import org.jkiss.dbeaver.ui.editors.erd.policy.AssociationEditPolicy;
-import org.jkiss.dbeaver.ui.editors.erd.router.ERDConnectionRouter;
-import org.jkiss.dbeaver.ui.editors.erd.router.ERDConnectionRouterDescriptor;
-import org.jkiss.dbeaver.ui.editors.erd.router.shortpath.ShortPathRouting;
-import org.jkiss.dbeaver.utils.ListNode;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.DBIcon;
+import com.seizia.chromite.model.erd.ERDAssociation;
+import com.seizia.chromite.model.erd.ERDEntityAttribute;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.ui.SwtIcons;
+import com.seizia.chromite.ui.UIStyles;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.editors.erd.ERDUIUtils;
+import com.seizia.chromite.ui.editors.erd.connector.ERDConnection;
+import com.seizia.chromite.ui.editors.erd.editor.*;
+import com.seizia.chromite.ui.editors.erd.internal.ERDUIMessages;
+import com.seizia.chromite.ui.editors.erd.notations.ERDNotation;
+import com.seizia.chromite.ui.editors.erd.notations.ERDNotationDescriptor;
+import com.seizia.chromite.ui.editors.erd.policy.AssociationBendEditPolicy;
+import com.seizia.chromite.ui.editors.erd.policy.AssociationEditPolicy;
+import com.seizia.chromite.ui.editors.erd.router.ERDConnectionRouter;
+import com.seizia.chromite.ui.editors.erd.router.ERDConnectionRouterDescriptor;
+import com.seizia.chromite.ui.editors.erd.router.shortpath.ShortPathRouting;
+import com.seizia.chromite.utils.ListNode;
 import org.jkiss.utils.CommonUtils;
 
 import java.util.ArrayList;
@@ -267,7 +267,7 @@ public class AssociationPart extends PropertyAwareConnectionPart {
             return;
         }
         Label toolTip = new Label(getAssociation().getObject().getName() + " [" + getAssociation().getObject().getConstraintType().getName() + "]");
-        toolTip.setIcon(DBeaverIcons.getImage(DBIcon.TREE_FOREIGN_KEY));
+        toolTip.setIcon(SwtIcons.getImage(DBIcon.TREE_FOREIGN_KEY));
         conn.setToolTip(toolTip);
     }
 

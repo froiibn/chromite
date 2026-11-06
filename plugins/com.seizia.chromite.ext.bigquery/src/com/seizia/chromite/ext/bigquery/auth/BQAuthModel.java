@@ -14,10 +14,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.bigquery.auth;
+package com.seizia.chromite.ext.bigquery.auth;
 
-import org.jkiss.dbeaver.model.impl.auth.AuthModelDatabaseNative;
-import org.jkiss.dbeaver.model.impl.auth.AuthModelDatabaseNativeCredentials;
+import com.seizia.chromite.model.impl.auth.AuthModelDatabaseNative;
+import com.seizia.chromite.model.impl.auth.AuthModelDatabaseNativeCredentials;
 
 public class BQAuthModel extends AuthModelDatabaseNative<AuthModelDatabaseNativeCredentials> {
 

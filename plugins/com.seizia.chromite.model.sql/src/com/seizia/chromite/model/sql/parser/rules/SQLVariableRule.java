@@ -14,15 +14,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.sql.parser.rules;
+package com.seizia.chromite.model.sql.parser.rules;
 
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.model.sql.SQLDialect;
-import org.jkiss.dbeaver.model.sql.parser.tokens.SQLVariableToken;
-import org.jkiss.dbeaver.model.text.parser.TPCharacterScanner;
-import org.jkiss.dbeaver.model.text.parser.TPPredicateRule;
-import org.jkiss.dbeaver.model.text.parser.TPToken;
-import org.jkiss.dbeaver.model.text.parser.TPTokenAbstract;
+import com.seizia.chromite.model.sql.SQLDialect;
+import com.seizia.chromite.model.sql.parser.tokens.SQLVariableToken;
+import com.seizia.chromite.model.text.parser.TPCharacterScanner;
+import com.seizia.chromite.model.text.parser.TPPredicateRule;
+import com.seizia.chromite.model.text.parser.TPToken;
+import com.seizia.chromite.model.text.parser.TPTokenAbstract;
 
 /**
  * Rule that matches {@code @variableName} supported by some dialects.

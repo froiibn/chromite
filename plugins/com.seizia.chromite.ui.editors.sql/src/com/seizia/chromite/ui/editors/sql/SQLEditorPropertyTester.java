@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.editors.sql;
+package com.seizia.chromite.ui.editors.sql;
 
 import org.eclipse.core.expressions.PropertyTester;
 import org.eclipse.jface.text.IDocument;
@@ -26,15 +26,15 @@ import org.eclipse.swt.widgets.Control;
 import org.eclipse.swt.widgets.Display;
 import org.eclipse.ui.internal.findandreplace.overlay.FindReplaceOverlay;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.exec.plan.DBCQueryPlanner;
-import org.jkiss.dbeaver.model.sql.parser.SQLIdentifierDetector;
-import org.jkiss.dbeaver.ui.ActionUtils;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.actions.exec.SQLNativeExecutorDescriptor;
-import org.jkiss.dbeaver.ui.actions.exec.SQLNativeExecutorRegistry;
-import org.jkiss.dbeaver.ui.editors.sql.registry.SQLPresentationDescriptor.QueryMode;
-import org.jkiss.dbeaver.utils.GeneralUtils;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.exec.plan.DBCQueryPlanner;
+import com.seizia.chromite.model.sql.parser.SQLIdentifierDetector;
+import com.seizia.chromite.ui.ActionUtils;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.actions.exec.SQLNativeExecutorDescriptor;
+import com.seizia.chromite.ui.actions.exec.SQLNativeExecutorRegistry;
+import com.seizia.chromite.ui.editors.sql.registry.SQLPresentationDescriptor.QueryMode;
+import com.seizia.chromite.utils.GeneralUtils;
 import org.jkiss.utils.CommonUtils;
 
 import java.util.Set;
@@ -45,7 +45,7 @@ import java.util.Set;
 public class SQLEditorPropertyTester extends PropertyTester {
     static final Log log = Log.getLog(SQLEditorPropertyTester.class);
 
-    public static final String NAMESPACE = "org.jkiss.dbeaver.ui.editors.sql";
+    public static final String NAMESPACE = "com.seizia.chromite.ui.editors.sql";
     public static final String PROP_CAN_EXECUTE = "canExecute";
     public static final String PROP_CAN_EXECUTE_NATIVE = "canExecuteNative";
     public static final String PROP_CAN_EXPLAIN = "canExplain";

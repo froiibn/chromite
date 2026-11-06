@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.navigator.project;
+package com.seizia.chromite.ui.navigator.project;
 
 import org.eclipse.jface.viewers.Viewer;
 import org.eclipse.jface.viewers.ViewerFilter;
@@ -24,15 +24,15 @@ import org.eclipse.ui.IViewSite;
 import org.eclipse.ui.PartInitException;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.navigator.DBNNode;
-import org.jkiss.dbeaver.model.navigator.DBNProject;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.ui.IHelpContextIds;
-import org.jkiss.dbeaver.ui.UIExecutionQueue;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.navigator.NavigatorPreferences;
-import org.jkiss.dbeaver.ui.navigator.NavigatorStatePersister;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.navigator.DBNNode;
+import com.seizia.chromite.model.navigator.DBNProject;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.ui.IHelpContextIds;
+import com.seizia.chromite.ui.UIExecutionQueue;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.navigator.NavigatorPreferences;
+import com.seizia.chromite.ui.navigator.NavigatorStatePersister;
 
 /**
  * ProjectNavigatorView
@@ -42,7 +42,7 @@ public class ProjectNavigatorView extends DecoratedProjectView
 
     private static final Log log = Log.getLog(ProjectNavigatorView.class);
 
-    public static final String VIEW_ID = "org.jkiss.dbeaver.core.projectNavigator";
+    public static final String VIEW_ID = "com.seizia.chromite.core.projectNavigator";
 
     private IMemento memento;
 

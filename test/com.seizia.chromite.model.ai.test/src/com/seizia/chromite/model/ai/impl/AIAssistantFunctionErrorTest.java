@@ -14,23 +14,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.ai.impl;
+package com.seizia.chromite.model.ai.impl;
 
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.model.ai.AIChatConversation;
-import org.jkiss.dbeaver.model.ai.AIChatRequest;
-import org.jkiss.dbeaver.model.ai.AIChatResponseConsumer;
-import org.jkiss.dbeaver.model.ai.AIChatSession;
-import org.jkiss.dbeaver.model.ai.AIFunctionCall;
-import org.jkiss.dbeaver.model.ai.AIFunctionContext;
-import org.jkiss.dbeaver.model.ai.AIFunctionDescriptor;
-import org.jkiss.dbeaver.model.ai.AIFunctionResult;
-import org.jkiss.dbeaver.model.ai.AIFunctionType;
-import org.jkiss.dbeaver.model.ai.AIPromptGenerator;
-import org.jkiss.dbeaver.model.ai.AIToolboxManager;
-import org.jkiss.dbeaver.model.app.DBPWorkspace;
-import org.jkiss.dbeaver.model.runtime.VoidProgressMonitor;
-import org.jkiss.junit.DBeaverUnitTest;
+import com.seizia.chromite.model.ai.AIChatConversation;
+import com.seizia.chromite.model.ai.AIChatRequest;
+import com.seizia.chromite.model.ai.AIChatResponseConsumer;
+import com.seizia.chromite.model.ai.AIChatSession;
+import com.seizia.chromite.model.ai.AIFunctionCall;
+import com.seizia.chromite.model.ai.AIFunctionContext;
+import com.seizia.chromite.model.ai.AIFunctionDescriptor;
+import com.seizia.chromite.model.ai.AIFunctionResult;
+import com.seizia.chromite.model.ai.AIFunctionType;
+import com.seizia.chromite.model.ai.AIPromptGenerator;
+import com.seizia.chromite.model.ai.AIToolboxManager;
+import com.seizia.chromite.model.app.DBPWorkspace;
+import com.seizia.chromite.model.runtime.VoidProgressMonitor;
+import com.seizia.chromite.junit.ChromiteUnitTest;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
@@ -40,7 +40,7 @@ import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 
-public class AIAssistantFunctionErrorTest extends DBeaverUnitTest {
+public class AIAssistantFunctionErrorTest extends ChromiteUnitTest {
     @Test
     public void failedFunctionStopsRequestAndFinishesConversation() throws Exception {
         AIAssistantImpl assistant = Mockito.spy(new AIAssistantImpl(Mockito.mock(DBPWorkspace.class)));

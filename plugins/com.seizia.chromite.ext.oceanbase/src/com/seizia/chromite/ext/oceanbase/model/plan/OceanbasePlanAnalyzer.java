@@ -15,23 +15,23 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.ext.oceanbase.model.plan;
+package com.seizia.chromite.ext.oceanbase.model.plan;
 
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.google.gson.JsonPrimitive;
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.ext.mysql.MySQLConstants;
-import org.jkiss.dbeaver.ext.oceanbase.model.OceanbaseMySQLDataSource;
-import org.jkiss.dbeaver.model.DBPDataSource;
-import org.jkiss.dbeaver.model.exec.DBCException;
-import org.jkiss.dbeaver.model.exec.DBCSession;
-import org.jkiss.dbeaver.model.exec.jdbc.JDBCSession;
-import org.jkiss.dbeaver.model.exec.plan.*;
-import org.jkiss.dbeaver.model.impl.plan.AbstractExecutionPlanSerializer;
-import org.jkiss.dbeaver.model.impl.plan.ExecutionPlanDeserializer;
-import org.jkiss.dbeaver.model.sql.SQLDialect;
-import org.jkiss.dbeaver.model.sql.SQLUtils;
+import com.seizia.chromite.ext.mysql.MySQLConstants;
+import com.seizia.chromite.ext.oceanbase.model.OceanbaseMySQLDataSource;
+import com.seizia.chromite.model.DBPDataSource;
+import com.seizia.chromite.model.exec.DBCException;
+import com.seizia.chromite.model.exec.DBCSession;
+import com.seizia.chromite.model.exec.jdbc.JDBCSession;
+import com.seizia.chromite.model.exec.plan.*;
+import com.seizia.chromite.model.impl.plan.AbstractExecutionPlanSerializer;
+import com.seizia.chromite.model.impl.plan.ExecutionPlanDeserializer;
+import com.seizia.chromite.model.sql.SQLDialect;
+import com.seizia.chromite.model.sql.SQLUtils;
 import org.jkiss.utils.CommonUtils;
 
 import java.io.IOException;

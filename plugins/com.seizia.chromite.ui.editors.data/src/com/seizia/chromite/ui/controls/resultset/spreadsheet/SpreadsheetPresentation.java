@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.ui.controls.resultset.spreadsheet;
+package com.seizia.chromite.ui.controls.resultset.spreadsheet;
 
 import org.eclipse.jface.action.Action;
 import org.eclipse.jface.action.IMenuManager;
@@ -47,50 +47,50 @@ import org.eclipse.ui.views.properties.IPropertySheetPage;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.ModelPreferences;
-import org.jkiss.dbeaver.model.*;
-import org.jkiss.dbeaver.model.data.*;
-import org.jkiss.dbeaver.model.data.hints.DBDAttributeHintProvider;
-import org.jkiss.dbeaver.model.data.hints.DBDCellHintProvider;
-import org.jkiss.dbeaver.model.data.hints.DBDValueHint;
-import org.jkiss.dbeaver.model.data.hints.DBDValueHintProvider;
-import org.jkiss.dbeaver.model.exec.*;
-import org.jkiss.dbeaver.model.impl.data.DBDValueError;
-import org.jkiss.dbeaver.model.impl.data.ResultSetHintContext;
-import org.jkiss.dbeaver.model.preferences.DBPPreferenceStore;
-import org.jkiss.dbeaver.model.runtime.VoidProgressMonitor;
-import org.jkiss.dbeaver.model.sql.SQLConstants;
-import org.jkiss.dbeaver.model.sql.SQLUtils;
-import org.jkiss.dbeaver.model.struct.*;
-import org.jkiss.dbeaver.model.virtual.DBVEntityConstraint;
-import org.jkiss.dbeaver.registry.ApplicationPolicyProvider;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.runtime.properties.PropertyCollector;
-import org.jkiss.dbeaver.ui.*;
-import org.jkiss.dbeaver.ui.controls.PropertyPageStandard;
-import org.jkiss.dbeaver.ui.controls.bool.BooleanMode;
-import org.jkiss.dbeaver.ui.controls.bool.BooleanStyleSet;
-import org.jkiss.dbeaver.ui.controls.findandreplace.FindReplaceOverlay;
-import org.jkiss.dbeaver.ui.controls.lightgrid.*;
-import org.jkiss.dbeaver.ui.controls.resultset.*;
-import org.jkiss.dbeaver.ui.controls.resultset.IResultSetController.RowPlacement;
-import org.jkiss.dbeaver.ui.controls.resultset.handler.ResultSetPropertyTester;
-import org.jkiss.dbeaver.ui.controls.resultset.internal.ResultSetMessages;
-import org.jkiss.dbeaver.ui.controls.resultset.panel.valueviewer.ValueViewerPanel;
-import org.jkiss.dbeaver.ui.data.IMultiController;
-import org.jkiss.dbeaver.ui.data.IValueController;
-import org.jkiss.dbeaver.ui.data.IValueEditor;
-import org.jkiss.dbeaver.ui.data.IValueEditorStandalone;
-import org.jkiss.dbeaver.ui.data.editors.BaseValueEditor;
-import org.jkiss.dbeaver.ui.data.managers.BaseValueManager;
-import org.jkiss.dbeaver.ui.dialogs.EditTextDialog;
-import org.jkiss.dbeaver.ui.editors.TextEditorUtils;
-import org.jkiss.dbeaver.ui.navigator.database.NavigatorThemeSettings;
-import org.jkiss.dbeaver.ui.properties.PropertySourceDelegate;
-import org.jkiss.dbeaver.utils.ContentUtils;
-import org.jkiss.dbeaver.utils.GeneralUtils;
-import org.jkiss.dbeaver.utils.ListNode;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.ModelPreferences;
+import com.seizia.chromite.model.*;
+import com.seizia.chromite.model.data.*;
+import com.seizia.chromite.model.data.hints.DBDAttributeHintProvider;
+import com.seizia.chromite.model.data.hints.DBDCellHintProvider;
+import com.seizia.chromite.model.data.hints.DBDValueHint;
+import com.seizia.chromite.model.data.hints.DBDValueHintProvider;
+import com.seizia.chromite.model.exec.*;
+import com.seizia.chromite.model.impl.data.DBDValueError;
+import com.seizia.chromite.model.impl.data.ResultSetHintContext;
+import com.seizia.chromite.model.preferences.DBPPreferenceStore;
+import com.seizia.chromite.model.runtime.VoidProgressMonitor;
+import com.seizia.chromite.model.sql.SQLConstants;
+import com.seizia.chromite.model.sql.SQLUtils;
+import com.seizia.chromite.model.struct.*;
+import com.seizia.chromite.model.virtual.DBVEntityConstraint;
+import com.seizia.chromite.registry.ApplicationPolicyProvider;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.runtime.properties.PropertyCollector;
+import com.seizia.chromite.ui.*;
+import com.seizia.chromite.ui.controls.PropertyPageStandard;
+import com.seizia.chromite.ui.controls.bool.BooleanMode;
+import com.seizia.chromite.ui.controls.bool.BooleanStyleSet;
+import com.seizia.chromite.ui.controls.findandreplace.FindReplaceOverlay;
+import com.seizia.chromite.ui.controls.lightgrid.*;
+import com.seizia.chromite.ui.controls.resultset.*;
+import com.seizia.chromite.ui.controls.resultset.IResultSetController.RowPlacement;
+import com.seizia.chromite.ui.controls.resultset.handler.ResultSetPropertyTester;
+import com.seizia.chromite.ui.controls.resultset.internal.ResultSetMessages;
+import com.seizia.chromite.ui.controls.resultset.panel.valueviewer.ValueViewerPanel;
+import com.seizia.chromite.ui.data.IMultiController;
+import com.seizia.chromite.ui.data.IValueController;
+import com.seizia.chromite.ui.data.IValueEditor;
+import com.seizia.chromite.ui.data.IValueEditorStandalone;
+import com.seizia.chromite.ui.data.editors.BaseValueEditor;
+import com.seizia.chromite.ui.data.managers.BaseValueManager;
+import com.seizia.chromite.ui.dialogs.EditTextDialog;
+import com.seizia.chromite.ui.editors.TextEditorUtils;
+import com.seizia.chromite.ui.navigator.database.NavigatorThemeSettings;
+import com.seizia.chromite.ui.properties.PropertySourceDelegate;
+import com.seizia.chromite.utils.ContentUtils;
+import com.seizia.chromite.utils.GeneralUtils;
+import com.seizia.chromite.utils.ListNode;
 import org.jkiss.utils.ArrayUtils;
 import org.jkiss.utils.CommonUtils;
 import org.jkiss.utils.Pair;
@@ -3429,9 +3429,9 @@ public class SpreadsheetPresentation extends AbstractPresentation
 
             if (item.getElement() instanceof DBDAttributeBinding attr) {
                 boolean includeModifiers = controller.isRecordMode();
-                return DBeaverIcons.getImage(DBValueFormatting.getObjectImage(attr.getAttribute(), true, includeModifiers));
+                return SwtIcons.getImage(DBValueFormatting.getObjectImage(attr.getAttribute(), true, includeModifiers));
             } else if (item.getElement() instanceof DBSAttributeBase attrBase) {
-                return DBeaverIcons.getImage(DBValueFormatting.getObjectImage(attrBase));
+                return SwtIcons.getImage(DBValueFormatting.getObjectImage(attrBase));
             }
 
             return null;

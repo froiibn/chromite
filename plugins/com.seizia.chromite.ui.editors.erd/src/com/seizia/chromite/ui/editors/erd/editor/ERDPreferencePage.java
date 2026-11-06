@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.editors.erd.editor;
+package com.seizia.chromite.ui.editors.erd.editor;
 
 import org.eclipse.core.runtime.IAdaptable;
 import org.eclipse.draw2d.PrintFigureOperation;
@@ -25,20 +25,20 @@ import org.eclipse.ui.IWorkbench;
 import org.eclipse.ui.IWorkbenchPreferencePage;
 import org.eclipse.ui.IWorkbenchPropertyPage;
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.model.erd.ERDAttributeVisibility;
-import org.jkiss.dbeaver.model.erd.ERDConstants;
-import org.jkiss.dbeaver.model.preferences.DBPPreferenceStore;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.editors.erd.ERDUIConstants;
-import org.jkiss.dbeaver.ui.editors.erd.internal.ERDUIActivator;
-import org.jkiss.dbeaver.ui.editors.erd.internal.ERDUIMessages;
-import org.jkiss.dbeaver.ui.editors.erd.notations.ERDNotationDescriptor;
-import org.jkiss.dbeaver.ui.editors.erd.notations.ERDNotationRegistry;
-import org.jkiss.dbeaver.ui.editors.erd.router.ERDConnectionRouterDescriptor;
-import org.jkiss.dbeaver.ui.editors.erd.router.ERDConnectionRouterRegistry;
-import org.jkiss.dbeaver.ui.preferences.AbstractPrefPage;
-import org.jkiss.dbeaver.utils.PrefUtils;
+import com.seizia.chromite.model.erd.ERDAttributeVisibility;
+import com.seizia.chromite.model.erd.ERDConstants;
+import com.seizia.chromite.model.preferences.DBPPreferenceStore;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.editors.erd.ERDUIConstants;
+import com.seizia.chromite.ui.editors.erd.internal.ERDUIActivator;
+import com.seizia.chromite.ui.editors.erd.internal.ERDUIMessages;
+import com.seizia.chromite.ui.editors.erd.notations.ERDNotationDescriptor;
+import com.seizia.chromite.ui.editors.erd.notations.ERDNotationRegistry;
+import com.seizia.chromite.ui.editors.erd.router.ERDConnectionRouterDescriptor;
+import com.seizia.chromite.ui.editors.erd.router.ERDConnectionRouterRegistry;
+import com.seizia.chromite.ui.preferences.AbstractPrefPage;
+import com.seizia.chromite.utils.PrefUtils;
 import org.jkiss.utils.ArrayUtils;
 
 import java.util.ArrayList;
@@ -49,7 +49,7 @@ import java.util.List;
  */
 public class ERDPreferencePage extends AbstractPrefPage implements IWorkbenchPreferencePage, IWorkbenchPropertyPage {
 
-    public static final String PAGE_ID = "org.jkiss.dbeaver.preferences.erd.general"; //$NON-NLS-1$
+    public static final String PAGE_ID = "com.seizia.chromite.preferences.erd.general"; //$NON-NLS-1$
     private IAdaptable element;
 
     private Button contentsShowViews;

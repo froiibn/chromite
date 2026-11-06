@@ -14,13 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.tools.transfer.ui.pages;
+package com.seizia.chromite.tools.transfer.ui.pages;
 
-import org.jkiss.dbeaver.tools.transfer.IDataTransferConsumer;
-import org.jkiss.dbeaver.tools.transfer.IDataTransferProducer;
-import org.jkiss.dbeaver.tools.transfer.ui.wizard.DataTransferWizard;
-import org.jkiss.dbeaver.ui.dialogs.ActiveWizardPage;
-import org.jkiss.dbeaver.ui.dialogs.IWizardPageNavigable;
+import com.seizia.chromite.tools.transfer.IDataTransferConsumer;
+import com.seizia.chromite.tools.transfer.IDataTransferProducer;
+import com.seizia.chromite.tools.transfer.ui.wizard.DataTransferWizard;
+import com.seizia.chromite.ui.dialogs.ActiveWizardPage;
+import com.seizia.chromite.ui.dialogs.IWizardPageNavigable;
 
 public abstract class DataTransferPageNodeSettings extends ActiveWizardPage<DataTransferWizard> implements IWizardPageNavigable {
 

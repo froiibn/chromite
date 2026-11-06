@@ -14,16 +14,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.tasks.ui.view;
+package com.seizia.chromite.tasks.ui.view;
 
 import org.eclipse.jface.dialogs.IDialogConstants;
 import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Shell;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.task.DBTTask;
-import org.jkiss.dbeaver.tasks.ui.internal.TaskUIViewMessages;
-import org.jkiss.dbeaver.ui.dialogs.BaseDialog;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.task.DBTTask;
+import com.seizia.chromite.tasks.ui.internal.TaskUIViewMessages;
+import com.seizia.chromite.ui.dialogs.BaseDialog;
 
 import java.util.ArrayList;
 import java.util.List;

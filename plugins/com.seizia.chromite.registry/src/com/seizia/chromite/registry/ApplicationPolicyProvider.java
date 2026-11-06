@@ -14,15 +14,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.registry;
+package com.seizia.chromite.registry;
 
 import com.sun.jna.platform.win32.Advapi32Util;
 import com.sun.jna.platform.win32.WinReg;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.app.DBPPolicyProvider;
-import org.jkiss.dbeaver.utils.RuntimeUtils;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.app.DBPPolicyProvider;
+import com.seizia.chromite.utils.RuntimeUtils;
 import org.jkiss.utils.CommonUtils;
 
 /**
@@ -33,7 +33,7 @@ import org.jkiss.utils.CommonUtils;
 public class ApplicationPolicyProvider implements DBPPolicyProvider {
     private static final Log log = Log.getLog(ApplicationPolicyProvider.class);
 
-    private static final String DBEAVER_REGISTRY_POLICY_NODE = "Software\\DBeaver Corp\\DBeaver\\policy"; //$NON-NLS-1$
+    private static final String CHROMITE_REGISTRY_POLICY_NODE = "Software\\Chromite\\policy"; //$NON-NLS-1$
 
     public static final String POLICY_DATA_IMPORT = "policy.data.import.disabled"; //$NON-NLS-1$
     public static final String POLICY_DATA_EXPORT = "policy.data.export.disabled"; //$NON-NLS-1$
@@ -113,10 +113,10 @@ public class ApplicationPolicyProvider implements DBPPolicyProvider {
         }
 
         try {
-            if (Advapi32Util.registryKeyExists(root, DBEAVER_REGISTRY_POLICY_NODE) &&
-                Advapi32Util.registryValueExists(root, DBEAVER_REGISTRY_POLICY_NODE, property)
+            if (Advapi32Util.registryKeyExists(root, CHROMITE_REGISTRY_POLICY_NODE) &&
+                Advapi32Util.registryValueExists(root, CHROMITE_REGISTRY_POLICY_NODE, property)
             ) {
-                return Advapi32Util.registryGetValue(root, DBEAVER_REGISTRY_POLICY_NODE, property);
+                return Advapi32Util.registryGetValue(root, CHROMITE_REGISTRY_POLICY_NODE, property);
             }
         } catch (Throwable e) {
             log.error("Error reading Windows registry", e);

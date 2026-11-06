@@ -14,17 +14,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.sql.commands;
+package com.seizia.chromite.model.sql.commands;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.model.sql.SQLControlCommand;
-import org.jkiss.dbeaver.model.sql.SQLControlCommandHandler;
-import org.jkiss.dbeaver.model.sql.SQLControlResult;
-import org.jkiss.dbeaver.model.sql.SQLScriptContext;
-import org.jkiss.dbeaver.model.sql.eval.ScriptVariablesResolver;
-import org.jkiss.dbeaver.utils.GeneralUtils;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.model.sql.SQLControlCommand;
+import com.seizia.chromite.model.sql.SQLControlCommandHandler;
+import com.seizia.chromite.model.sql.SQLControlResult;
+import com.seizia.chromite.model.sql.SQLScriptContext;
+import com.seizia.chromite.model.sql.eval.ScriptVariablesResolver;
+import com.seizia.chromite.utils.GeneralUtils;
 
 /**
  * Control command handler

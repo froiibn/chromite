@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.mimer.ui.internal;
+package com.seizia.chromite.ext.mimer.ui.internal;
 
 import org.eclipse.osgi.util.NLS;
 
@@ -34,7 +34,7 @@ import org.eclipse.osgi.util.NLS;
  * @author Mimer Information Technology
  */
 public final class MimerUIMessages extends NLS {
-    private static final String BUNDLE_NAME = "org.jkiss.dbeaver.ext.mimer.ui.internal.MimerUIMessages"; //$NON-NLS-1$
+    private static final String BUNDLE_NAME = "com.seizia.chromite.ext.mimer.ui.internal.MimerUIMessages"; //$NON-NLS-1$
 
     // Shared grid button labels (Parameters/Attributes grids - method specs, procedures, structured types)
     public static String button_add;

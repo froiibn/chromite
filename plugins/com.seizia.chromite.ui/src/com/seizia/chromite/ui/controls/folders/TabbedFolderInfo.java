@@ -26,9 +26,9 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.ui.controls.folders;
+package com.seizia.chromite.ui.controls.folders;
 
-import org.jkiss.dbeaver.model.DBPImage;
+import com.seizia.chromite.model.DBPImage;
 
 /**
  * Folder info

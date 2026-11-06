@@ -16,11 +16,11 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.model.exec.plan;
+package com.seizia.chromite.model.exec.plan;
 
 
 import com.google.gson.JsonObject;
-import org.jkiss.dbeaver.model.DBPDataSource;
+import com.seizia.chromite.model.DBPDataSource;
 
 public interface DBCQueryPlannerDeSerialInfo<NODE extends DBCPlanNode> {
     

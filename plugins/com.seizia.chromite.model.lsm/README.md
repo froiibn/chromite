@@ -22,13 +22,13 @@ The second argument is of type `STMErrorListener` and used to define the behavio
 Use `STMLoggingErrorListener` to log errors and `STMSkippingErrorListener` to just skip them and do nothing.
 
 The concrete implementation of `LSMAnalyzer` used according to `SQLDialect` implementation with `LSMDialectRegistry`. `LSMDialectRegistry` contains a map with analyzer to dialect correspondence, which comes from extension point declared in `plugin.xml`.
-`SQLStandardAnalyzer` is a common analyzer with parser and lexer by the common grammar for most SQL databases without any specific settings. It's being instantiated with the `SQLStandardAnalyzerFactory` implementation of the `LSMAnalyzerFactory` interface via extension point in `org.jkiss.dbeaver.model.sql.plugin.xml`.
+`SQLStandardAnalyzer` is a common analyzer with parser and lexer by the common grammar for most SQL databases without any specific settings. It's being instantiated with the `SQLStandardAnalyzerFactory` implementation of the `LSMAnalyzerFactory` interface via extension point in `com.seizia.chromite.model.sql.plugin.xml`.
 
 ```xml
 
-<extension point="org.jkiss.dbeaver.lsm.dialectSyntax">
-    <lsmDialect analyzerFactoryClass="org.jkiss.dbeaver.model.lsm.sql.dialect.SQLStandardAnalyzerFactory">
-        <appliesTo dialectClass="org.jkiss.dbeaver.model.impl.sql.BasicSQLDialect"/>
+<extension point="com.seizia.chromite.lsm.dialectSyntax">
+    <lsmDialect analyzerFactoryClass="com.seizia.chromite.model.lsm.sql.dialect.SQLStandardAnalyzerFactory">
+        <appliesTo dialectClass="com.seizia.chromite.model.impl.sql.BasicSQLDialect"/>
     </lsmDialect>
 </extension>
 ```
@@ -60,9 +60,9 @@ public class SQLiteAnalyzerFactory implements LSMAnalyzerFactory {
 ```
 Usage of the corresponding extension point for this case is the following:
 ```xml
-    <extension point="org.jkiss.dbeaver.lsm.dialectSyntax">
-        <lsmDialect analyzerFactoryClass="org.jkiss.dbeaver.ext.sqlite.model.SQLiteSQLAnalyzer">
-            <appliesTo dialectClass="org.jkiss.dbeaver.ext.sqlite.model.SQLiteSQLDialect"/>
+    <extension point="com.seizia.chromite.lsm.dialectSyntax">
+        <lsmDialect analyzerFactoryClass="com.seizia.chromite.ext.sqlite.model.SQLiteSQLAnalyzer">
+            <appliesTo dialectClass="com.seizia.chromite.ext.sqlite.model.SQLiteSQLDialect"/>
         </lsmDialect>
     </extension>
 ```

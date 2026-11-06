@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.perspective;
+package com.seizia.chromite.ui.perspective;
 
 import org.eclipse.ui.IFolderLayout;
 import org.eclipse.ui.IPageLayout;
@@ -23,17 +23,17 @@ import org.eclipse.ui.IPlaceholderFolderLayout;
 import org.eclipse.ui.PlatformUI;
 import org.eclipse.ui.texteditor.templates.TemplatesView;
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.ui.IActionConstants;
-import org.jkiss.dbeaver.ui.navigator.database.DatabaseBrowserView;
-import org.jkiss.dbeaver.ui.navigator.database.DatabaseNavigatorView;
-import org.jkiss.dbeaver.ui.navigator.project.ProjectExplorerView;
-import org.jkiss.dbeaver.ui.navigator.project.ProjectNavigatorView;
-import org.jkiss.dbeaver.ui.views.process.ShellProcessView;
-import org.jkiss.dbeaver.ui.views.qm.QueryManagerView;
+import com.seizia.chromite.ui.IActionConstants;
+import com.seizia.chromite.ui.navigator.database.DatabaseBrowserView;
+import com.seizia.chromite.ui.navigator.database.DatabaseNavigatorView;
+import com.seizia.chromite.ui.navigator.project.ProjectExplorerView;
+import com.seizia.chromite.ui.navigator.project.ProjectNavigatorView;
+import com.seizia.chromite.ui.views.process.ShellProcessView;
+import com.seizia.chromite.ui.views.qm.QueryManagerView;
 
-public class DBeaverPerspective implements IPerspectiveFactory
+public class ChromitePerspective implements IPerspectiveFactory
 {
-    public static final String PERSPECTIVE_ID = "org.jkiss.dbeaver.core.perspective"; //$NON-NLS-1$
+    public static final String PERSPECTIVE_ID = "com.seizia.chromite.core.perspective"; //$NON-NLS-1$
 
     public static final String FOLDER_NAVIGATION = "navigation"; //$NON-NLS-1$
     public static final String FOLDER_RIGHT = "right"; //$NON-NLS-1$

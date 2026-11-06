@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.tasks.ui.view;
+package com.seizia.chromite.tasks.ui.view;
 
 import org.eclipse.core.commands.AbstractHandler;
 import org.eclipse.core.commands.ExecutionEvent;
@@ -23,13 +23,13 @@ import org.eclipse.jface.viewers.IStructuredSelection;
 import org.eclipse.osgi.util.NLS;
 import org.eclipse.ui.handlers.HandlerUtil;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.model.DBPNamedObject;
-import org.jkiss.dbeaver.model.task.DBTTask;
-import org.jkiss.dbeaver.model.task.DBTTaskFolder;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.tasks.ui.TaskFeatures;
-import org.jkiss.dbeaver.tasks.ui.internal.TaskUIViewMessages;
-import org.jkiss.dbeaver.ui.UIUtils;
+import com.seizia.chromite.model.DBPNamedObject;
+import com.seizia.chromite.model.task.DBTTask;
+import com.seizia.chromite.model.task.DBTTaskFolder;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.tasks.ui.TaskFeatures;
+import com.seizia.chromite.tasks.ui.internal.TaskUIViewMessages;
+import com.seizia.chromite.ui.UIUtils;
 
 import java.util.ArrayList;
 import java.util.List;

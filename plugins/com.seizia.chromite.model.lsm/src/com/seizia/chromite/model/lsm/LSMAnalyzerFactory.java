@@ -14,10 +14,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.lsm;
+package com.seizia.chromite.model.lsm;
 
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.model.sql.SQLDialect;
+import com.seizia.chromite.model.sql.SQLDialect;
 
 /**
  * Factory responsible for creating analyzer instances, parametrized with a given dialect

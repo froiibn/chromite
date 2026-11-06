@@ -14,16 +14,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.app.standalone.internal;
+package com.seizia.chromite.ui.app.standalone.internal;
 
 import org.eclipse.ui.plugin.AbstractUIPlugin;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.DBPDataSource;
-import org.jkiss.dbeaver.model.DBPMessageType;
-import org.jkiss.dbeaver.runtime.DBeaverNotifications;
-import org.jkiss.dbeaver.ui.notifications.NotificationUtils;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.DBPDataSource;
+import com.seizia.chromite.model.DBPMessageType;
+import com.seizia.chromite.runtime.ChromiteNotifications;
+import com.seizia.chromite.ui.notifications.NotificationUtils;
 import org.osgi.framework.Bundle;
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.BundleEvent;
@@ -55,7 +55,7 @@ public class CoreApplicationActivator extends AbstractUIPlugin {
 
     private static void configureNotifications() {
         // Set notifications handler
-        DBeaverNotifications.setHandler(new DBeaverNotifications.NotificationHandler() {
+        ChromiteNotifications.setHandler(new ChromiteNotifications.NotificationHandler() {
             @Override
             public void sendNotification(
                 @NotNull DBPDataSource dataSource,

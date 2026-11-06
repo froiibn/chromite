@@ -14,20 +14,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.mimer.ui.plan;
+package com.seizia.chromite.ext.mimer.ui.plan;
 
 import org.eclipse.jface.viewers.Viewer;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.ui.IWorkbenchPart;
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.model.exec.plan.DBCPlan;
-import org.jkiss.dbeaver.model.sql.SQLQuery;
-import org.jkiss.dbeaver.ui.editors.sql.SQLPlanSaveProvider;
+import com.seizia.chromite.model.exec.plan.DBCPlan;
+import com.seizia.chromite.model.sql.SQLQuery;
+import com.seizia.chromite.ui.editors.sql.SQLPlanSaveProvider;
 
 /**
  * Registers {@link MimerSQLPlanXMLViewer} as an extra "XML" tab on the Explain Execution Plan
  * panel, alongside the standard node-tree tab - see {@code plugin.xml}'s {@code
- * org.jkiss.dbeaver.sql.plan.view} registration (same mechanism {@code ext.cubrid.ui}'s
+ * com.seizia.chromite.sql.plan.view} registration (same mechanism {@code ext.cubrid.ui}'s
  * "fulltext" plan view uses).
  *
  * @author Mimer Information Technology

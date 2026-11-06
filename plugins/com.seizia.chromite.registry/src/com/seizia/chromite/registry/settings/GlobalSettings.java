@@ -15,12 +15,12 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.registry.settings;
+package com.seizia.chromite.registry.settings;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.runtime.DBWorkbench;
 
 import java.io.IOException;
 import java.io.Reader;
@@ -34,7 +34,7 @@ import java.util.Properties;
  */
 public class GlobalSettings {
 
-    private static final String DBEAVER_CONFIG_FILE = "global-settings.ini";
+    private static final String CHROMITE_CONFIG_FILE = "global-settings.ini";
 
     private static final Log log = Log.getLog(GlobalSettings.class);
 
@@ -87,7 +87,7 @@ public class GlobalSettings {
 
     @NotNull
     private static Path getPropertiesFile() {
-        return DBWorkbench.getPlatform().getGlobalConfigurationFile(DBEAVER_CONFIG_FILE);
+        return DBWorkbench.getPlatform().getGlobalConfigurationFile(CHROMITE_CONFIG_FILE);
     }
 
     private void saveProperties() {

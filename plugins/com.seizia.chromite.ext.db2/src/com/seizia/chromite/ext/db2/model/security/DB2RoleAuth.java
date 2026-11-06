@@ -15,14 +15,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.db2.model.security;
+package com.seizia.chromite.ext.db2.model.security;
 
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.ext.db2.model.DB2Object;
-import org.jkiss.dbeaver.ext.db2.model.dict.DB2YesNo;
-import org.jkiss.dbeaver.model.access.DBAPrivilege;
-import org.jkiss.dbeaver.model.impl.jdbc.JDBCUtils;
-import org.jkiss.dbeaver.model.meta.Property;
+import com.seizia.chromite.ext.db2.model.DB2Object;
+import com.seizia.chromite.ext.db2.model.dict.DB2YesNo;
+import com.seizia.chromite.model.access.DBAPrivilege;
+import com.seizia.chromite.model.impl.jdbc.JDBCUtils;
+import com.seizia.chromite.model.meta.Property;
 import org.jkiss.utils.CommonUtils;
 
 import java.sql.ResultSet;

@@ -15,9 +15,9 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.ext.teradata;
+package com.seizia.chromite.ext.teradata;
 
-import org.jkiss.dbeaver.Log;
+import com.seizia.chromite.Log;
 
 /**
  * TeradataUtils

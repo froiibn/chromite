@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.app.standalone;
+package com.seizia.chromite.ui.app.standalone;
 
 import org.eclipse.jface.dialogs.IMessageProvider;
 import org.eclipse.jface.preference.*;
@@ -36,12 +36,12 @@ import org.eclipse.ui.internal.themes.*;
 import org.eclipse.ui.themes.ITheme;
 import org.eclipse.ui.themes.IThemeManager;
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.ui.DBIconBinary;
-import org.jkiss.dbeaver.ui.DBeaverIcons;
-import org.jkiss.dbeaver.ui.UIFontPreferenceManager;
-import org.jkiss.dbeaver.ui.UIFonts;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.preferences.PrefPageConstants;
+import com.seizia.chromite.ui.DBIconBinary;
+import com.seizia.chromite.ui.SwtIcons;
+import com.seizia.chromite.ui.UIFontPreferenceManager;
+import com.seizia.chromite.ui.UIFonts;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.preferences.PrefPageConstants;
 
 import java.util.*;
 
@@ -437,7 +437,7 @@ public class FontPreferenceOverrides {
             if (originalPage instanceof PreferencePage) {
                 page = new MyFontsPrefPage((PreferencePage)originalPage, prefIdsToHide);
                 if (getLabelImage() != null) {
-                    page.setImageDescriptor(DBeaverIcons.getImageDescriptor(new DBIconBinary(null, originalNode.getLabelImage())));
+                    page.setImageDescriptor(SwtIcons.getImageDescriptor(new DBIconBinary(null, originalNode.getLabelImage())));
                 }
                 page.setTitle(getLabelText());
             } else {

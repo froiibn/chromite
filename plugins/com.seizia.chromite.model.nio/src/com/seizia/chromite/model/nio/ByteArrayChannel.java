@@ -23,7 +23,7 @@
  * questions.
  */
 
-package org.jkiss.dbeaver.model.nio;
+package com.seizia.chromite.model.nio;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;

@@ -14,12 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.registry.driver;
+package com.seizia.chromite.registry.driver;
 
 import org.eclipse.core.runtime.IConfigurationElement;
-import org.jkiss.dbeaver.registry.RegistryConstants;
-import org.jkiss.dbeaver.registry.maven.MavenArtifact;
-import org.jkiss.dbeaver.registry.maven.MavenArtifactVersion;
+import com.seizia.chromite.registry.RegistryConstants;
+import com.seizia.chromite.registry.maven.MavenArtifact;
+import com.seizia.chromite.registry.maven.MavenArtifactVersion;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;

@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.forms;
+package com.seizia.chromite.ui.forms;
 
 import org.eclipse.core.databinding.DataBindingContext;
 import org.eclipse.jface.layout.GridLayoutFactory;
@@ -27,8 +27,8 @@ import org.eclipse.swt.widgets.Control;
 import org.eclipse.ui.forms.events.IExpansionListener;
 import org.eclipse.ui.forms.widgets.ExpandableComposite;
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.controls.TitledComposite;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.controls.TitledComposite;
 
 import java.util.ArrayList;
 import java.util.List;

@@ -15,13 +15,13 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.registry;
+package com.seizia.chromite.registry;
 
 import org.eclipse.core.runtime.IConfigurationElement;
 import org.eclipse.core.runtime.IExtensionRegistry;
 import org.eclipse.core.runtime.Platform;
-import org.jkiss.dbeaver.model.runtime.OSDescriptor;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
+import com.seizia.chromite.model.runtime.OSDescriptor;
+import com.seizia.chromite.runtime.DBWorkbench;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -31,7 +31,7 @@ import java.util.Map;
  */
 public class ProductBundleRegistry {
 
-    public static final String EXTENSION_ID = "org.jkiss.dbeaver.product.bundles"; //$NON-NLS-1$
+    public static final String EXTENSION_ID = "com.seizia.chromite.product.bundles"; //$NON-NLS-1$
 
     private static ProductBundleRegistry instance = null;
 

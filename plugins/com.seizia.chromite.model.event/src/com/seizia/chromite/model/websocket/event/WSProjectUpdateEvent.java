@@ -14,12 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.websocket.event;
+package com.seizia.chromite.model.websocket.event;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.model.rm.RMProjectInfo;
-import org.jkiss.dbeaver.model.websocket.WSConstants;
+import com.seizia.chromite.model.rm.RMProjectInfo;
+import com.seizia.chromite.model.websocket.WSConstants;
 
 public class WSProjectUpdateEvent extends WSAbstractEvent implements WSProjectEvent {
     public static final String ADDED = "cb_rm_project_added";

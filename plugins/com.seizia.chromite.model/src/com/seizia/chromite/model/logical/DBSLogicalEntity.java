@@ -15,9 +15,9 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.model.logical;
+package com.seizia.chromite.model.logical;
 
-import org.jkiss.dbeaver.model.struct.DBSEntity;
+import com.seizia.chromite.model.struct.DBSEntity;
 
 import java.util.List;
 

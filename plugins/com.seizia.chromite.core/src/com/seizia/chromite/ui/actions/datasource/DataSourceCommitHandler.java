@@ -14,23 +14,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.actions.datasource;
+package com.seizia.chromite.ui.actions.datasource;
 
 import org.eclipse.core.commands.ExecutionEvent;
 import org.eclipse.core.commands.ExecutionException;
 import org.eclipse.swt.widgets.Shell;
 import org.eclipse.ui.handlers.HandlerUtil;
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.ModelPreferences;
-import org.jkiss.dbeaver.model.DBUtils;
-import org.jkiss.dbeaver.model.exec.*;
-import org.jkiss.dbeaver.model.qm.QMTransactionState;
-import org.jkiss.dbeaver.model.qm.QMUtils;
-import org.jkiss.dbeaver.runtime.DBeaverNotifications;
-import org.jkiss.dbeaver.runtime.TasksJob;
-import org.jkiss.dbeaver.ui.actions.AbstractDataSourceHandler;
-import org.jkiss.dbeaver.ui.controls.txn.TransactionLogDialog;
-import org.jkiss.dbeaver.utils.RuntimeUtils;
+import com.seizia.chromite.ModelPreferences;
+import com.seizia.chromite.model.DBUtils;
+import com.seizia.chromite.model.exec.*;
+import com.seizia.chromite.model.qm.QMTransactionState;
+import com.seizia.chromite.model.qm.QMUtils;
+import com.seizia.chromite.runtime.ChromiteNotifications;
+import com.seizia.chromite.runtime.TasksJob;
+import com.seizia.chromite.ui.actions.AbstractDataSourceHandler;
+import com.seizia.chromite.ui.controls.txn.TransactionLogDialog;
+import com.seizia.chromite.utils.RuntimeUtils;
 
 import java.lang.reflect.InvocationTargetException;
 
@@ -58,9 +58,9 @@ public class DataSourceCommitHandler extends AbstractDataSourceHandler {
 
                 if (context.getDataSource().getContainer().getPreferenceStore()
                     .getBoolean(ModelPreferences.TRANSACTIONS_SHOW_NOTIFICATIONS)) {
-                    DBeaverNotifications.showNotification(
+                    ChromiteNotifications.showNotification(
                         context.getDataSource(),
-                        DBeaverNotifications.NT_COMMIT,
+                        ChromiteNotifications.NT_COMMIT,
                         "Transaction has been committed\n\n" +
                             "Query count: " + txnInfo.getUpdateCount() + "\n" +
                             "Duration: " + RuntimeUtils.formatExecutionTime(System.currentTimeMillis() - txnInfo.getTransactionStartTime())

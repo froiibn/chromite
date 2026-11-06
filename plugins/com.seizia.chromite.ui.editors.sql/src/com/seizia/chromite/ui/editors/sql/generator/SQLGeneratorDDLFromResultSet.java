@@ -14,29 +14,29 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.editors.sql.generator;
+package com.seizia.chromite.ui.editors.sql.generator;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.model.DBPDataSource;
-import org.jkiss.dbeaver.model.DBUtils;
-import org.jkiss.dbeaver.model.edit.DBEPersistAction;
-import org.jkiss.dbeaver.model.exec.DBCExecutionContext;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.model.sql.SQLUtils;
-import org.jkiss.dbeaver.model.sql.generator.SQLGenerator;
-import org.jkiss.dbeaver.model.struct.DBSDataContainer;
-import org.jkiss.dbeaver.model.struct.DBSEntity;
-import org.jkiss.dbeaver.model.struct.DBSObject;
-import org.jkiss.dbeaver.model.struct.DBSObjectContainer;
-import org.jkiss.dbeaver.tools.transfer.database.DatabaseConsumerSettings;
-import org.jkiss.dbeaver.tools.transfer.database.DatabaseMappingContainer;
-import org.jkiss.dbeaver.tools.transfer.database.DatabaseMappingType;
-import org.jkiss.dbeaver.tools.transfer.database.DatabaseTransferUtils;
-import org.jkiss.dbeaver.ui.controls.resultset.IResultSetController;
-import org.jkiss.dbeaver.ui.controls.resultset.ResultSetDataContainer;
-import org.jkiss.dbeaver.ui.controls.resultset.ResultSetDataContainerOptions;
-import org.jkiss.dbeaver.ui.editors.sql.internal.SQLEditorMessages;
+import com.seizia.chromite.model.DBPDataSource;
+import com.seizia.chromite.model.DBUtils;
+import com.seizia.chromite.model.edit.DBEPersistAction;
+import com.seizia.chromite.model.exec.DBCExecutionContext;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.model.sql.SQLUtils;
+import com.seizia.chromite.model.sql.generator.SQLGenerator;
+import com.seizia.chromite.model.struct.DBSDataContainer;
+import com.seizia.chromite.model.struct.DBSEntity;
+import com.seizia.chromite.model.struct.DBSObject;
+import com.seizia.chromite.model.struct.DBSObjectContainer;
+import com.seizia.chromite.tools.transfer.database.DatabaseConsumerSettings;
+import com.seizia.chromite.tools.transfer.database.DatabaseMappingContainer;
+import com.seizia.chromite.tools.transfer.database.DatabaseMappingType;
+import com.seizia.chromite.tools.transfer.database.DatabaseTransferUtils;
+import com.seizia.chromite.ui.controls.resultset.IResultSetController;
+import com.seizia.chromite.ui.controls.resultset.ResultSetDataContainer;
+import com.seizia.chromite.ui.controls.resultset.ResultSetDataContainerOptions;
+import com.seizia.chromite.ui.editors.sql.internal.SQLEditorMessages;
 import org.jkiss.utils.ArrayUtils;
 
 import java.util.Collections;

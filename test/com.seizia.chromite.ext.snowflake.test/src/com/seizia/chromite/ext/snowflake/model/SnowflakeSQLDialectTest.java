@@ -14,14 +14,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.snowflake.model;
+package com.seizia.chromite.ext.snowflake.model;
 
-import org.jkiss.dbeaver.model.sql.SQLDialect;
-import org.jkiss.junit.DBeaverUnitTest;
+import com.seizia.chromite.model.sql.SQLDialect;
+import com.seizia.chromite.junit.ChromiteUnitTest;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
-public class SnowflakeSQLDialectTest extends DBeaverUnitTest {
+public class SnowflakeSQLDialectTest extends ChromiteUnitTest {
     @Test
     public void quoteStatusStringTest() {
         SQLDialect dialect = new SnowflakeSQLDialect();

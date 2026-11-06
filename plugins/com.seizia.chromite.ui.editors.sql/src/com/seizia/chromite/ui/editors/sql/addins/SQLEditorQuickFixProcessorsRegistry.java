@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.editors.sql.addins;
+package com.seizia.chromite.ui.editors.sql.addins;
 
 import org.eclipse.core.runtime.IConfigurationElement;
 import org.eclipse.core.runtime.IExtensionRegistry;
@@ -28,7 +28,7 @@ import java.util.Map;
 
 public class SQLEditorQuickFixProcessorsRegistry {
 
-    public static final String EXTENSION_ID = "org.jkiss.dbeaver.sql.quickFixProcessors"; //$NON-NLS-1$
+    public static final String EXTENSION_ID = "com.seizia.chromite.sql.quickFixProcessors"; //$NON-NLS-1$
 
     private static final String TAG_QUICK_FIX_PROCESSOR = "quickFixProcessor"; //$NON-NLS-1$
 

@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.app.standalone;
+package com.seizia.chromite.ui.app.standalone;
 
 import org.eclipse.e4.core.services.events.IEventBroker;
 import org.eclipse.jface.preference.IPreferenceStore;
@@ -30,14 +30,14 @@ import org.eclipse.ui.internal.themes.WorkbenchThemeManager;
 import org.eclipse.ui.internal.util.PrefUtil;
 import org.eclipse.ui.themes.ITheme;
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.ui.UIUtils;
+import com.seizia.chromite.ui.UIUtils;
 
 import java.util.HashMap;
 import java.util.Map;
 
 final class ThemeColorOverridePreserver {
-    private static final String DBEAVER_COLOR_ID_PREFIX = "org.jkiss.dbeaver.";
-    private static final String CUSTOM_COLOR_PREFERENCE_PREFIX = "org.jkiss.dbeaver.ui.customColorOverride.";
+    private static final String CHROMITE_COLOR_ID_PREFIX = "com.seizia.chromite.";
+    private static final String CUSTOM_COLOR_PREFERENCE_PREFIX = "com.seizia.chromite.ui.customColorOverride.";
 
     private static final Map<String, String> pendingColorUpdates = new HashMap<>();
     private static boolean initialized;
@@ -66,7 +66,7 @@ final class ThemeColorOverridePreserver {
     }
 
     private static synchronized void recordColorChange(@NotNull String preferenceKey, @NotNull Object value) {
-        int colorIdOffset = preferenceKey.indexOf(DBEAVER_COLOR_ID_PREFIX);
+        int colorIdOffset = preferenceKey.indexOf(CHROMITE_COLOR_ID_PREFIX);
         if (colorIdOffset < 0) {
             return;
         }
@@ -128,7 +128,7 @@ final class ThemeColorOverridePreserver {
         ColorRegistry colorRegistry = currentTheme.getColorRegistry();
 
         for (ColorDefinition definition : WorkbenchPlugin.getDefault().getThemeRegistry().getColors()) {
-            if (!definition.isEditable() || !definition.getId().startsWith(DBEAVER_COLOR_ID_PREFIX)) {
+            if (!definition.isEditable() || !definition.getId().startsWith(CHROMITE_COLOR_ID_PREFIX)) {
                 continue;
             }
             String customKey = CUSTOM_COLOR_PREFERENCE_PREFIX + definition.getId();

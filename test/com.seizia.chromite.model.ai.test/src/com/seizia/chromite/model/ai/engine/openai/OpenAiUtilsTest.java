@@ -14,13 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.ai.engine.openai;
+package com.seizia.chromite.model.ai.engine.openai;
 
-import org.jkiss.junit.DBeaverUnitTest;
+import com.seizia.chromite.junit.ChromiteUnitTest;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
-public class OpenAiUtilsTest extends DBeaverUnitTest {
+public class OpenAiUtilsTest extends ChromiteUnitTest {
     @Test
     public void recognizesUnsupportedAndDeprecatedTemperature() {
         Assertions.assertTrue(OpenAiUtils.isTemperatureNotSupported("`temperature` is deprecated for this model."));

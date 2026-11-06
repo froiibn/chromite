@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.model.logical;
+package com.seizia.chromite.model.logical;
 
 import java.util.function.Supplier;
 

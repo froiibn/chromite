@@ -14,12 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.oracle.oci;
+package com.seizia.chromite.ext.oracle.oci;
 
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.ext.oracle.OracleDataSourceProvider;
-import org.jkiss.dbeaver.model.connection.LocalNativeClientLocation;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.ext.oracle.OracleDataSourceProvider;
+import com.seizia.chromite.model.connection.LocalNativeClientLocation;
 import org.jkiss.utils.CommonUtils;
 
 import java.util.ArrayList;

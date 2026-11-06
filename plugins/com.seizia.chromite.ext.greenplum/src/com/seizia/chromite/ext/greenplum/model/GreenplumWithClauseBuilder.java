@@ -18,10 +18,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.greenplum.model;
+package com.seizia.chromite.ext.greenplum.model;
 
-import org.jkiss.dbeaver.ext.postgresql.model.PostgreTable;
-import org.jkiss.dbeaver.ext.postgresql.model.PostgreTableBase;
+import com.seizia.chromite.ext.postgresql.model.PostgreTable;
+import com.seizia.chromite.ext.postgresql.model.PostgreTableBase;
 
 import static java.lang.String.format;
 

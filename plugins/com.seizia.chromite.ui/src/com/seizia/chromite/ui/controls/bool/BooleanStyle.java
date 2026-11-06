@@ -14,15 +14,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.controls.bool;
+package com.seizia.chromite.ui.controls.bool;
 
 import org.eclipse.core.runtime.Assert;
 import org.eclipse.swt.graphics.RGB;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.model.DBIcon;
-import org.jkiss.dbeaver.ui.UIElementAlignment;
-import org.jkiss.dbeaver.ui.UIElementFontStyle;
+import com.seizia.chromite.model.DBIcon;
+import com.seizia.chromite.ui.UIElementAlignment;
+import com.seizia.chromite.ui.UIElementFontStyle;
 
 public class BooleanStyle {
     private final BooleanMode mode;

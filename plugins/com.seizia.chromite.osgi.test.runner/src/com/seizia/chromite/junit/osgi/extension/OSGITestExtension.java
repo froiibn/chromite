@@ -14,14 +14,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.junit.osgi.extension;
+package com.seizia.chromite.junit.osgi.extension;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.junit.osgi.OSGIFrameworkHandler;
-import org.jkiss.junit.osgi.annotation.RunWithApplication;
-import org.jkiss.junit.osgi.annotation.RunWithProduct;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.junit.osgi.OSGIFrameworkHandler;
+import com.seizia.chromite.junit.osgi.annotation.RunWithApplication;
+import com.seizia.chromite.junit.osgi.annotation.RunWithProduct;
 import org.junit.jupiter.api.extension.*;
 
 import java.lang.reflect.*;

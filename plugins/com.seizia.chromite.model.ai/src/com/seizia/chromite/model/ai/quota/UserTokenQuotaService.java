@@ -14,15 +14,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.ai.quota;
+package com.seizia.chromite.model.ai.quota;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.model.ai.*;
-import org.jkiss.dbeaver.model.ai.qm.AIChatStorage;
-import org.jkiss.dbeaver.model.ai.qm.QMAIMessageMeta;
-import org.jkiss.dbeaver.model.ai.registry.AISettingsManager;
+import com.seizia.chromite.model.ai.*;
+import com.seizia.chromite.model.ai.qm.AIChatStorage;
+import com.seizia.chromite.model.ai.qm.QMAIMessageMeta;
+import com.seizia.chromite.model.ai.registry.AISettingsManager;
 
 import java.time.Clock;
 import java.time.Duration;

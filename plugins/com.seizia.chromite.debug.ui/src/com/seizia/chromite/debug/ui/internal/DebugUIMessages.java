@@ -15,13 +15,13 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.debug.ui.internal;
+package com.seizia.chromite.debug.ui.internal;
 
 import org.eclipse.osgi.util.NLS;
 
 public class DebugUIMessages extends NLS {
 
-    private static final String BUNDLE_NAME = "org.jkiss.dbeaver.debug.ui.internal.DebugUIMessages"; //$NON-NLS-1$
+    private static final String BUNDLE_NAME = "com.seizia.chromite.debug.ui.internal.DebugUIMessages"; //$NON-NLS-1$
 
     public static String DatabaseStandardBreakpointPane_description;
     public static String DatabaseStandardBreakpointPane_name;

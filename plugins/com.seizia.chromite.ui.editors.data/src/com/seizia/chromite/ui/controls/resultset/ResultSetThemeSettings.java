@@ -14,14 +14,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.controls.resultset;
+package com.seizia.chromite.ui.controls.resultset;
 
 import org.eclipse.swt.graphics.Color;
 import org.eclipse.swt.graphics.Font;
-import org.jkiss.dbeaver.ui.BaseEditorColors;
-import org.jkiss.dbeaver.ui.ThemeColor;
-import org.jkiss.dbeaver.ui.ThemeFont;
-import org.jkiss.dbeaver.ui.ThemeListener;
+import com.seizia.chromite.ui.BaseEditorColors;
+import com.seizia.chromite.ui.ThemeColor;
+import com.seizia.chromite.ui.ThemeFont;
+import com.seizia.chromite.ui.ThemeListener;
 
 /**
  * Theme settings

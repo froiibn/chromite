@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.launcher;
+package com.seizia.chromite.launcher;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledOnOs;
@@ -32,14 +32,14 @@ public class LauncherUtilsTest {
 
     @Test
     public void roundTripPreservesPathWithSpaces() throws Exception {
-        File original = new File("/home/john smith/DBeaverData");
+        File original = new File("/home/john smith/ChromiteData");
         File decoded = LauncherUtils.toFile(LauncherUtils.toURL(original));
         assertEquals(original.getAbsoluteFile(), decoded.getAbsoluteFile());
     }
 
     @Test
     public void roundTripPreservesPlainLocalPath() throws Exception {
-        File original = new File("/tmp/dbeaver/install-data/workspace6");
+        File original = new File("/tmp/chromite/install-data/workspace6");
         File decoded = LauncherUtils.toFile(LauncherUtils.toURL(original));
         assertEquals(original.getAbsoluteFile(), decoded.getAbsoluteFile());
     }
@@ -53,15 +53,15 @@ public class LauncherUtilsTest {
 
     @Test
     public void toFileHandlesLegacyUnescapedSpaceUrl() throws Exception {
-        URL legacy = new URL("file:/home/john smith/DBeaverData");
-        assertEquals(new File("/home/john smith/DBeaverData").getPath(), LauncherUtils.toFile(legacy).getPath());
+        URL legacy = new URL("file:/home/john smith/ChromiteData");
+        assertEquals(new File("/home/john smith/ChromiteData").getPath(), LauncherUtils.toFile(legacy).getPath());
     }
 
     @Test
     public void toFileUrlDecodesEncodedSpaces() {
         assertEquals(
-            new File("/home/john smith/DBeaverData").getPath(),
-            LauncherUtils.toFileURL("file:/home/john%20smith/DBeaverData").getPath()
+            new File("/home/john smith/ChromiteData").getPath(),
+            LauncherUtils.toFileURL("file:/home/john%20smith/ChromiteData").getPath()
         );
     }
 

@@ -14,10 +14,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.wmi;
+package com.seizia.chromite.ext.wmi;
 
 public final class WMIPluginConstants {
-    public static final String PLUGIN_ID = "org.jkiss.dbeaver.ext.wmi";
+    public static final String PLUGIN_ID = "com.seizia.chromite.ext.wmi";
 
     private WMIPluginConstants() {
     }

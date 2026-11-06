@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.tools.compare.simple.ui;
+package com.seizia.chromite.tools.compare.simple.ui;
 
 import org.eclipse.jface.dialogs.IDialogSettings;
 import org.eclipse.jface.viewers.IStructuredSelection;
@@ -23,20 +23,20 @@ import org.eclipse.swt.SWT;
 import org.eclipse.ui.IExportWizard;
 import org.eclipse.ui.IWorkbench;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.navigator.DBNDatabaseNode;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.tools.compare.simple.CompareObjectsExecutor;
-import org.jkiss.dbeaver.tools.compare.simple.CompareObjectsSettings;
-import org.jkiss.dbeaver.tools.compare.simple.CompareReport;
-import org.jkiss.dbeaver.tools.compare.simple.CompareReportRenderer;
-import org.jkiss.dbeaver.tools.compare.simple.ui.internal.CompareUIMessages;
-import org.jkiss.dbeaver.ui.DialogSettingsDelegate;
-import org.jkiss.dbeaver.ui.ShellUtils;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.dialogs.DialogUtils;
-import org.jkiss.dbeaver.utils.RuntimeUtils;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.navigator.DBNDatabaseNode;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.tools.compare.simple.CompareObjectsExecutor;
+import com.seizia.chromite.tools.compare.simple.CompareObjectsSettings;
+import com.seizia.chromite.tools.compare.simple.CompareReport;
+import com.seizia.chromite.tools.compare.simple.CompareReportRenderer;
+import com.seizia.chromite.tools.compare.simple.ui.internal.CompareUIMessages;
+import com.seizia.chromite.ui.DialogSettingsDelegate;
+import com.seizia.chromite.ui.ShellUtils;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.dialogs.DialogUtils;
+import com.seizia.chromite.utils.RuntimeUtils;
 import org.jkiss.utils.CommonUtils;
 
 import java.io.IOException;

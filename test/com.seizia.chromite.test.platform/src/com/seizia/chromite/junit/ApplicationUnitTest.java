@@ -14,19 +14,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.junit;
+package com.seizia.chromite.junit;
 
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.junit.osgi.annotation.RunWithApplication;
-import org.jkiss.junit.osgi.behaviors.IAsyncApplication;
-import org.jkiss.junit.osgi.extension.OSGITestExtension;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.junit.osgi.annotation.RunWithApplication;
+import com.seizia.chromite.junit.osgi.behaviors.IAsyncApplication;
+import com.seizia.chromite.junit.osgi.extension.OSGITestExtension;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.MockitoAnnotations;
 
 
 @ExtendWith(OSGITestExtension.class)
-@RunWithApplication(bundleName = "org.jkiss.dbeaver.headless", registryName = "org.jkiss.dbeaver.headless.application")
+@RunWithApplication(bundleName = "com.seizia.chromite.headless", registryName = "com.seizia.chromite.headless.application")
 public abstract class ApplicationUnitTest implements IAsyncApplication {
 
     @BeforeEach

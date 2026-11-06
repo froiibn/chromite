@@ -14,26 +14,26 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.editors.erd.figures;
+package com.seizia.chromite.ui.editors.erd.figures;
 
 import org.eclipse.draw2d.*;
 import org.eclipse.swt.graphics.Color;
 import org.eclipse.swt.graphics.Image;
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.model.DBPDataSourceContainer;
-import org.jkiss.dbeaver.model.DBPEvaluationContext;
-import org.jkiss.dbeaver.model.DBUtils;
-import org.jkiss.dbeaver.model.erd.ERDEntity;
-import org.jkiss.dbeaver.model.struct.DBSEntityType;
-import org.jkiss.dbeaver.model.struct.DBSObjectContainer;
-import org.jkiss.dbeaver.ui.DBeaverIcons;
-import org.jkiss.dbeaver.ui.UIStyles;
-import org.jkiss.dbeaver.ui.editors.erd.ERDColors;
-import org.jkiss.dbeaver.ui.editors.erd.ERDUIConstants;
-import org.jkiss.dbeaver.ui.editors.erd.editor.ERDThemeSettings;
-import org.jkiss.dbeaver.ui.editors.erd.editor.ERDViewStyle;
-import org.jkiss.dbeaver.ui.editors.erd.internal.ERDUIActivator;
-import org.jkiss.dbeaver.ui.editors.erd.part.EntityPart;
+import com.seizia.chromite.model.DBPDataSourceContainer;
+import com.seizia.chromite.model.DBPEvaluationContext;
+import com.seizia.chromite.model.DBUtils;
+import com.seizia.chromite.model.erd.ERDEntity;
+import com.seizia.chromite.model.struct.DBSEntityType;
+import com.seizia.chromite.model.struct.DBSObjectContainer;
+import com.seizia.chromite.ui.SwtIcons;
+import com.seizia.chromite.ui.UIStyles;
+import com.seizia.chromite.ui.editors.erd.ERDColors;
+import com.seizia.chromite.ui.editors.erd.ERDUIConstants;
+import com.seizia.chromite.ui.editors.erd.editor.ERDThemeSettings;
+import com.seizia.chromite.ui.editors.erd.editor.ERDViewStyle;
+import com.seizia.chromite.ui.editors.erd.internal.ERDUIActivator;
+import com.seizia.chromite.ui.editors.erd.part.EntityPart;
 import org.jkiss.utils.CommonUtils;
 
 import java.util.ArrayList;
@@ -60,7 +60,7 @@ public class EntityFigure extends Figure {
         boolean useFQN = part.getDiagram().hasAttributeStyle(ERDViewStyle.ENTITY_FQN);
         boolean showComments = part.getDiagram().hasAttributeStyle(ERDViewStyle.COMMENTS);
 
-        Image tableImage = DBeaverIcons.getImage(entity.getObject().getEntityType().getIcon());
+        Image tableImage = SwtIcons.getImage(entity.getObject().getEntityType().getIcon());
 
         keyFigure = new AttributeListFigure(entity, true);
         attributeFigure = new AttributeListFigure(entity, false);
@@ -129,13 +129,13 @@ public class EntityFigure extends Figure {
 
         {
             Label dsLabel = new Label(dataSource.getName());
-            dsLabel.setIcon(DBeaverIcons.getImage(dataSource.getDriver().getIcon()));
+            dsLabel.setIcon(SwtIcons.getImage(dataSource.getDriver().getIcon()));
             dsLabel.setBorder(new MarginBorder(2));
             toolTip.add(dsLabel);
         }
         {
             Label entityLabel = new Label(DBUtils.getObjectFullName(entity.getObject(), DBPEvaluationContext.UI));
-            entityLabel.setIcon(DBeaverIcons.getImage(entity.getObject().getEntityType().getIcon()));
+            entityLabel.setIcon(SwtIcons.getImage(entity.getObject().getEntityType().getIcon()));
             entityLabel.setBorder(new MarginBorder(2));
             toolTip.add(entityLabel);
         }

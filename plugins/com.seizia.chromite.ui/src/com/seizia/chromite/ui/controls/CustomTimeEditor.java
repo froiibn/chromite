@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.controls;
+package com.seizia.chromite.ui.controls;
 
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.custom.CLabel;
@@ -24,17 +24,17 @@ import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.*;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.DBIcon;
-import org.jkiss.dbeaver.model.data.DBDEndOfDayValue;
-import org.jkiss.dbeaver.model.data.DBDZeroDateValue;
-import org.jkiss.dbeaver.model.data.DBDZeroTimestampValue;
-import org.jkiss.dbeaver.model.exec.DBCException;
-import org.jkiss.dbeaver.model.struct.DBSTypedObject;
-import org.jkiss.dbeaver.model.struct.DBSTypedObjectJDBC;
-import org.jkiss.dbeaver.ui.DBeaverIcons;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.css.CSSUtils;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.DBIcon;
+import com.seizia.chromite.model.data.DBDEndOfDayValue;
+import com.seizia.chromite.model.data.DBDZeroDateValue;
+import com.seizia.chromite.model.data.DBDZeroTimestampValue;
+import com.seizia.chromite.model.exec.DBCException;
+import com.seizia.chromite.model.struct.DBSTypedObject;
+import com.seizia.chromite.model.struct.DBSTypedObjectJDBC;
+import com.seizia.chromite.ui.SwtIcons;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.css.CSSUtils;
 import org.jkiss.utils.CommonUtils;
 
 import java.sql.JDBCType;
@@ -269,7 +269,7 @@ public class CustomTimeEditor {
             }
             warningLabel = new CLabel(mainComposite, style);
             warningLabel.setText("Original value was null, using current time");
-            warningLabel.setImage(DBeaverIcons.getImage(DBIcon.SMALL_INFO));
+            warningLabel.setImage(SwtIcons.getImage(DBIcon.SMALL_INFO));
             mainComposite.layout();
         } else {
             if (warningLabel != null) {

@@ -15,11 +15,11 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.model.qm;
+package com.seizia.chromite.model.qm;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.model.qm.filters.QMCursorFilter;
+import com.seizia.chromite.model.qm.filters.QMCursorFilter;
 
 /**
  * Query manager history

@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.editors.erd.connector;
+package com.seizia.chromite.ui.editors.erd.connector;
 
 import org.eclipse.draw2d.PolylineConnection;
 

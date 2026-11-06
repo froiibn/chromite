@@ -14,15 +14,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.dashboard.registry;
+package com.seizia.chromite.model.dashboard.registry;
 
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.model.DBPDataSourceContainer;
-import org.jkiss.dbeaver.model.dashboard.DBDashboardContext;
-import org.jkiss.dbeaver.model.dashboard.DBDashboardFolder;
-import org.jkiss.dbeaver.model.dashboard.DBDashboardProvider;
-import org.jkiss.dbeaver.model.dashboard.DashboardConstants;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.model.DBPDataSourceContainer;
+import com.seizia.chromite.model.dashboard.DBDashboardContext;
+import com.seizia.chromite.model.dashboard.DBDashboardFolder;
+import com.seizia.chromite.model.dashboard.DBDashboardProvider;
+import com.seizia.chromite.model.dashboard.DashboardConstants;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
 
 import java.util.ArrayList;
 import java.util.List;

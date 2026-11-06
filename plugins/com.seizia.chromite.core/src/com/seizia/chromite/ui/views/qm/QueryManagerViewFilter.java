@@ -14,11 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.views.qm;
+package com.seizia.chromite.ui.views.qm;
 
 import org.eclipse.swt.widgets.Composite;
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.ui.controls.querylog.QueryLogViewer;
+import com.seizia.chromite.ui.controls.querylog.QueryLogViewer;
 
 public interface QueryManagerViewFilter {
     void createControl(@NotNull Composite parent, @NotNull QueryLogViewer viewer);

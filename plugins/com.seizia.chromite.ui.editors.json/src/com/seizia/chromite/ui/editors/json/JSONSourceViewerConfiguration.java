@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.editors.json;
+package com.seizia.chromite.ui.editors.json;
 
 
 import org.eclipse.jface.resource.ColorRegistry;
@@ -28,9 +28,9 @@ import org.eclipse.jface.text.presentation.PresentationReconciler;
 import org.eclipse.jface.text.rules.DefaultDamagerRepairer;
 import org.eclipse.jface.text.source.ISourceViewer;
 import org.eclipse.jface.text.source.SourceViewerConfiguration;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.controls.SQLEditorThemeSettings;
-import org.jkiss.dbeaver.ui.editors.text.NonRuleBasedDamagerRepairer;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.controls.SQLEditorThemeSettings;
+import com.seizia.chromite.ui.editors.text.NonRuleBasedDamagerRepairer;
 
 /**
  * JSONSourceViewerConfiguration

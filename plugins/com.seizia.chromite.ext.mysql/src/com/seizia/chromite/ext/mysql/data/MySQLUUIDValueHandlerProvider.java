@@ -14,13 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.mysql.data;
+package com.seizia.chromite.ext.mysql.data;
 
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.model.DBValueFormatting;
-import org.jkiss.dbeaver.model.data.DBDDisplayFormat;
-import org.jkiss.dbeaver.model.impl.jdbc.data.handlers.JDBCUUIDValueHandler;
-import org.jkiss.dbeaver.model.struct.DBSTypedObject;
+import com.seizia.chromite.model.DBValueFormatting;
+import com.seizia.chromite.model.data.DBDDisplayFormat;
+import com.seizia.chromite.model.impl.jdbc.data.handlers.JDBCUUIDValueHandler;
+import com.seizia.chromite.model.struct.DBSTypedObject;
 
 public class MySQLUUIDValueHandlerProvider extends JDBCUUIDValueHandler {
 

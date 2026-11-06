@@ -15,13 +15,13 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.model.sql;
+package com.seizia.chromite.model.sql;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.model.DBPImage;
-import org.jkiss.dbeaver.model.data.DBDInsertReplaceMethod;
+import com.seizia.chromite.model.DBPImage;
+import com.seizia.chromite.model.data.DBDInsertReplaceMethod;
 
 import java.util.List;
 

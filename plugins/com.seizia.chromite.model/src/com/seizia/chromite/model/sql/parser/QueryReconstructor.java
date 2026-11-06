@@ -14,13 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.sql.parser;
+package com.seizia.chromite.model.sql.parser;
 
 import net.sf.jsqlparser.parser.Token;
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.model.sql.Diff;
-import org.jkiss.dbeaver.model.sql.SQLDialect;
-import org.jkiss.dbeaver.model.sql.SQLUtils;
+import com.seizia.chromite.model.sql.Diff;
+import com.seizia.chromite.model.sql.SQLDialect;
+import com.seizia.chromite.model.sql.SQLUtils;
 import org.jkiss.utils.CommonUtils;
 
 import java.util.List;

@@ -15,9 +15,9 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.model.struct;
+package com.seizia.chromite.model.struct;
 
-import org.jkiss.dbeaver.model.DBPScriptObject;
+import com.seizia.chromite.model.DBPScriptObject;
 
 /**
  * DBSObjectWithScript

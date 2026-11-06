@@ -14,15 +14,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.generic;
+package com.seizia.chromite.ext.generic;
 
 import org.eclipse.core.runtime.IExtensionRegistry;
 import org.eclipse.core.runtime.Platform;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.ext.generic.model.meta.GenericMetaModel;
-import org.jkiss.dbeaver.ext.generic.model.meta.GenericMetaModelDescriptor;
-import org.jkiss.dbeaver.model.DBPDataSourceContainer;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.ext.generic.model.meta.GenericMetaModel;
+import com.seizia.chromite.ext.generic.model.meta.GenericMetaModelDescriptor;
+import com.seizia.chromite.model.DBPDataSourceContainer;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -32,7 +32,7 @@ public class GenericMetaModelRegistry {
     static final protected Log log = Log.getLog(GenericMetaModelRegistry.class);
     private final Map<String, GenericMetaModelDescriptor> metaModels = new HashMap<>();
 
-    private static final String EXTENSION_ID = "org.jkiss.dbeaver.generic.meta";
+    private static final String EXTENSION_ID = "com.seizia.chromite.generic.meta";
 
     private static volatile GenericMetaModelRegistry instance = null;
 

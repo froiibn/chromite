@@ -14,14 +14,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.datadam.project.job;
+package com.seizia.chromite.ui.datadam.project.job;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.model.app.DBPProject;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.ui.datadam.internal.DDTrackingUIMessages;
-import org.jkiss.dbeaver.ui.datadam.project.navigator.DDProjectSyncPropertyTester;
+import com.seizia.chromite.model.app.DBPProject;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.ui.datadam.internal.DDTrackingUIMessages;
+import com.seizia.chromite.ui.datadam.project.navigator.DDProjectSyncPropertyTester;
 
 /** Removes the local DataDam binding without deleting either project. */
 public class DDProjectUnbindJob extends DDProjectOperationJob<DBPProject> {

@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.registry.maven;
+package com.seizia.chromite.registry.maven;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;

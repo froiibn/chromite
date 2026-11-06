@@ -14,14 +14,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.greenplum;
+package com.seizia.chromite.ext.greenplum;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.ext.greenplum.model.CloudberryDataSource;
-import org.jkiss.dbeaver.ext.postgresql.PostgreDataSourceProvider;
-import org.jkiss.dbeaver.model.DBPDataSourceContainer;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.ext.greenplum.model.CloudberryDataSource;
+import com.seizia.chromite.ext.postgresql.PostgreDataSourceProvider;
+import com.seizia.chromite.model.DBPDataSourceContainer;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
 
 public class CloudberryDataSourceProvider extends PostgreDataSourceProvider {
     public CloudberryDataSourceProvider() {

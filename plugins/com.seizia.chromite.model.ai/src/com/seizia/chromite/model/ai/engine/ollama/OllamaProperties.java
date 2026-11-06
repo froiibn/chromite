@@ -14,16 +14,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.ai.engine.ollama;
+package com.seizia.chromite.model.ai.engine.ollama;
 
 import com.google.gson.annotations.SerializedName;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.model.ai.AIConfigurationProfile;
-import org.jkiss.dbeaver.model.ai.engine.BaseAIEngineProperties;
-import org.jkiss.dbeaver.model.ai.utils.AIUtils;
-import org.jkiss.dbeaver.model.meta.Property;
+import com.seizia.chromite.model.ai.AIConfigurationProfile;
+import com.seizia.chromite.model.ai.engine.BaseAIEngineProperties;
+import com.seizia.chromite.model.ai.utils.AIUtils;
+import com.seizia.chromite.model.meta.Property;
 import org.jkiss.utils.CommonUtils;
 
 import java.net.URI;
@@ -32,7 +32,7 @@ import java.util.List;
 
 public class OllamaProperties extends BaseAIEngineProperties {
     public static final String ENV_HOST = "OLLAMA_HOST";
-    public static final String ENV_MODEL = "DBEAVER_AI_OLLAMA_MODEL";
+    public static final String ENV_MODEL = "CHROMITE_AI_OLLAMA_MODEL";
     public static final String ENV_API_KEY = "OLLAMA_API_KEY";
 
     private static final String OLLAMA_HOSTNAME = "ollama.hostname";

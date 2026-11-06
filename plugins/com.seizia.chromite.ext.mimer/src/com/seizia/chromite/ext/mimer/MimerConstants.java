@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.mimer;
+package com.seizia.chromite.ext.mimer;
 
 import org.jkiss.code.Nullable;
 
@@ -244,7 +244,7 @@ public class MimerConstants {
 
     // The six values Mimer SQL system privileges can cover (System Privileges create dialog,
     // see MimerSystemPrivilegeManager) - DATABANK is the default selection. Declared here rather than on
-    // MimerSystemPrivilegeManager itself (org.jkiss.dbeaver.ext.mimer.edit) so .ui's create
+    // MimerSystemPrivilegeManager itself (com.seizia.chromite.ext.mimer.edit) so .ui's create
     // dialog can reference it directly - that package is never exported (see the cross-plugin
     // class= reference gotcha elsewhere in this codebase), unlike this one.
     public static final String[] SYSTEM_PRIVILEGE_TYPES = {"BACKUP", "DATABANK", "IDENT", "SCHEMA", "SHADOW", "STATISTICS"};
@@ -254,7 +254,7 @@ public class MimerConstants {
     // "are you sure - CASCADE is recursive" prompt for that object type. Production connections
     // (DBPConnectionType.isConfirmExecute()) ignore these keys and always prompt. The keys are
     // written by the dialog's "Don't ask again" checkbox and managed on the Mimer SQL preference
-    // page (org.jkiss.dbeaver.ext.mimer.ui.views.PrefPageMimer). Declared here (an exported
+    // page (com.seizia.chromite.ext.mimer.ui.views.PrefPageMimer). Declared here (an exported
     // package) rather than on the .edit util so the .ui page can reference it.
     public static final String PREF_DROP_CASCADE_CONFIRM_PREFIX = "mimer.confirm.drop_cascade.";
 
@@ -295,7 +295,7 @@ public class MimerConstants {
     // DBPPreferenceStore#setValue(key, false) compares the new value against Eclipse's own
     // unregistered-key fallback (always false), so unticking a checkbox and saving would silently
     // never persist. Managed on the Mimer SQL preference page
-    // (org.jkiss.dbeaver.ext.mimer.ui.views.PrefPageMimer).
+    // (com.seizia.chromite.ext.mimer.ui.views.PrefPageMimer).
     public static final String PREF_GIS_LOCATION_AUTO_MAP = "mimer.gis.location.auto_map";
     public static final String PREF_GIS_COORDINATE_AUTO_MAP = "mimer.gis.coordinate.auto_map";
     public static final String PREF_GIS_LATLONG_AUTO_DECIMAL = "mimer.gis.latlong.auto_decimal";

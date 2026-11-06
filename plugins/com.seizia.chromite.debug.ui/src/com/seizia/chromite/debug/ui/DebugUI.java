@@ -16,21 +16,21 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.debug.ui;
+package com.seizia.chromite.debug.ui;
 
 import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.Status;
 import org.eclipse.ui.IEditorInput;
 import org.eclipse.ui.IEditorPart;
-import org.jkiss.dbeaver.model.DBPDataSourceContainer;
-import org.jkiss.dbeaver.model.struct.DBSObject;
-import org.jkiss.dbeaver.utils.GeneralUtils;
+import com.seizia.chromite.model.DBPDataSourceContainer;
+import com.seizia.chromite.model.struct.DBSObject;
+import com.seizia.chromite.utils.GeneralUtils;
 
 public class DebugUI {
 
-    public static final String BUNDLE_SYMBOLIC_NAME = "org.jkiss.dbeaver.debug.ui"; //$NON-NLS-1$
-    public static final String DEBUG_LAUNCH_GROUP_ID = "org.jkiss.dbeaver.debug.launchGroup";
-    public static final String DEBUG_OPEN_CONFIGURATION_COMMAND_ID = "org.jkiss.dbeaver.debug.ui.command.debugConfigurationMenu"; //$NON-NLS-1$
+    public static final String BUNDLE_SYMBOLIC_NAME = "com.seizia.chromite.debug.ui"; //$NON-NLS-1$
+    public static final String DEBUG_LAUNCH_GROUP_ID = "com.seizia.chromite.debug.launchGroup";
+    public static final String DEBUG_OPEN_CONFIGURATION_COMMAND_ID = "com.seizia.chromite.debug.ui.command.debugConfigurationMenu"; //$NON-NLS-1$
 
     public static DBGEditorAdvisor findEditorAdvisor(DBPDataSourceContainer dataSourceContainer) {
         DBGEditorAdvisor advisor = GeneralUtils.adapt(dataSourceContainer, DBGEditorAdvisor.class);

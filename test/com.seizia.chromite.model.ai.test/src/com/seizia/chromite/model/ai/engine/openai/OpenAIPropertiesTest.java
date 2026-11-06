@@ -14,20 +14,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.ai.engine.openai;
+package com.seizia.chromite.model.ai.engine.openai;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonParser;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.model.ai.AIConfigurationProfile;
-import org.jkiss.dbeaver.model.ai.AIConstants;
-import org.jkiss.dbeaver.model.ai.engine.AIAccountProperties;
-import org.jkiss.dbeaver.model.secret.DBSSecretController;
-import org.jkiss.dbeaver.runtime.properties.ObjectAttributeDescriptor;
-import org.jkiss.dbeaver.runtime.properties.ObjectPropertyDescriptor;
-import org.jkiss.dbeaver.runtime.properties.PropertySourceEditable;
-import org.jkiss.dbeaver.utils.PropertySerializationUtils;
-import org.jkiss.junit.DBeaverUnitTest;
+import com.seizia.chromite.model.ai.AIConfigurationProfile;
+import com.seizia.chromite.model.ai.AIConstants;
+import com.seizia.chromite.model.ai.engine.AIAccountProperties;
+import com.seizia.chromite.model.secret.DBSSecretController;
+import com.seizia.chromite.runtime.properties.ObjectAttributeDescriptor;
+import com.seizia.chromite.runtime.properties.ObjectPropertyDescriptor;
+import com.seizia.chromite.runtime.properties.PropertySourceEditable;
+import com.seizia.chromite.utils.PropertySerializationUtils;
+import com.seizia.chromite.junit.ChromiteUnitTest;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentMatchers;
@@ -42,7 +42,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-public class OpenAIPropertiesTest extends DBeaverUnitTest {
+public class OpenAIPropertiesTest extends ChromiteUnitTest {
 
     @Test
     public void contextWindowSizeMustBePositive() throws Exception {

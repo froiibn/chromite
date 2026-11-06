@@ -14,18 +14,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.datadam.project.navigator;
+package com.seizia.chromite.ui.datadam.project.navigator;
 
 import org.eclipse.core.runtime.IAdapterFactory;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.model.app.DBPProject;
-import org.jkiss.dbeaver.model.datadam.DDProductConfig;
-import org.jkiss.dbeaver.model.datadam.sync.project.DDProjectManager.BindingStatus;
-import org.jkiss.dbeaver.model.navigator.DBNProject;
-import org.jkiss.dbeaver.ui.datadam.project.DDProjectUIManager;
-import org.jkiss.dbeaver.ui.navigator.actions.ProjectDeleteContentsPolicy;
+import com.seizia.chromite.model.app.DBPProject;
+import com.seizia.chromite.model.datadam.DDProductConfig;
+import com.seizia.chromite.model.datadam.sync.project.DDProjectManager.BindingStatus;
+import com.seizia.chromite.model.navigator.DBNProject;
+import com.seizia.chromite.ui.datadam.project.DDProjectUIManager;
+import com.seizia.chromite.ui.navigator.actions.ProjectDeleteContentsPolicy;
 
 public class DDProjectDeleteContentsAdapterFactory implements IAdapterFactory, ProjectDeleteContentsPolicy {
     @Nullable

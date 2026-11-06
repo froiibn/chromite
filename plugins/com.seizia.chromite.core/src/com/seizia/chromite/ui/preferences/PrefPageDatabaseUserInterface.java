@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.preferences;
+package com.seizia.chromite.ui.preferences;
 
 import org.eclipse.core.runtime.IAdaptable;
 import org.eclipse.e4.core.services.events.IEventBroker;
@@ -46,25 +46,25 @@ import org.eclipse.ui.themes.ITheme;
 import org.eclipse.ui.themes.IThemeManager;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.DBeaverPreferences;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.core.CoreMessages;
-import org.jkiss.dbeaver.core.DesktopPlatform;
-import org.jkiss.dbeaver.model.preferences.DBPPreferenceStore;
-import org.jkiss.dbeaver.registry.SWTBrowserRegistry;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.ui.UIFontPreferenceManager;
-import org.jkiss.dbeaver.ui.UIFonts;
-import org.jkiss.dbeaver.ui.UIIcon;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.controls.BreadcrumbTrim;
-import org.jkiss.dbeaver.ui.editors.DatabaseEditorPreferences;
-import org.jkiss.dbeaver.ui.editors.DatabaseEditorPreferences.BreadcrumbLocation;
-import org.jkiss.dbeaver.ui.editors.EditorUtils;
-import org.jkiss.dbeaver.ui.internal.UIMessages;
-import org.jkiss.dbeaver.utils.GeneralUtils;
-import org.jkiss.dbeaver.utils.PrefUtils;
-import org.jkiss.dbeaver.utils.RuntimeUtils;
+import com.seizia.chromite.ChromitePreferences;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.core.CoreMessages;
+import com.seizia.chromite.core.DesktopPlatform;
+import com.seizia.chromite.model.preferences.DBPPreferenceStore;
+import com.seizia.chromite.registry.SWTBrowserRegistry;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.ui.UIFontPreferenceManager;
+import com.seizia.chromite.ui.UIFonts;
+import com.seizia.chromite.ui.UIIcon;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.controls.BreadcrumbTrim;
+import com.seizia.chromite.ui.editors.DatabaseEditorPreferences;
+import com.seizia.chromite.ui.editors.DatabaseEditorPreferences.BreadcrumbLocation;
+import com.seizia.chromite.ui.editors.EditorUtils;
+import com.seizia.chromite.ui.internal.UIMessages;
+import com.seizia.chromite.utils.GeneralUtils;
+import com.seizia.chromite.utils.PrefUtils;
+import com.seizia.chromite.utils.RuntimeUtils;
 import org.osgi.service.event.EventHandler;
 
 import java.util.*;
@@ -77,11 +77,11 @@ public class PrefPageDatabaseUserInterface extends AbstractPrefPage implements I
 
     private static final Log log = Log.getLog(PrefPageDatabaseUserInterface.class);
 
-    public static final String PAGE_ID = "org.jkiss.dbeaver.preferences.main"; //$NON-NLS-1$
+    public static final String PAGE_ID = "com.seizia.chromite.preferences.main"; //$NON-NLS-1$
 
     private static final Collection<String> QUICK_FONT_IDS = List.of(
-        UIFonts.DBeaver.MAIN_FONT,
-        UIFonts.DBeaver.MONOSPACE_FONT
+        UIFonts.Chromite.MAIN_FONT,
+        UIFonts.Chromite.MONOSPACE_FONT
     );
 
 
@@ -340,9 +340,9 @@ public class PrefPageDatabaseUserInterface extends AbstractPrefPage implements I
             statusBarBreadcrumbPositionCombo.select(breadcrumbLocation == DatabaseEditorPreferences.BreadcrumbLocation.IN_EDITORS ? 1 : 0);
             statusBarBreadcrumbPositionCombo.setEnabled(statusBarShowBreadcrumbsCheck.getSelection());
         }
-        statusBarShowStatusCheck.setSelection(store.getBoolean(DBeaverPreferences.UI_STATUS_BAR_SHOW_STATUS_LINE));
+        statusBarShowStatusCheck.setSelection(store.getBoolean(ChromitePreferences.UI_STATUS_BAR_SHOW_STATUS_LINE));
         if (RuntimeUtils.isLinux()) {
-            zoomRestartPromptCheck.setSelection(store.getBoolean(DBeaverPreferences.UI_SHOW_ZOOM_RESTART_PROMPT));
+            zoomRestartPromptCheck.setSelection(store.getBoolean(ChromitePreferences.UI_SHOW_ZOOM_RESTART_PROMPT));
         }
     }
 
@@ -360,13 +360,13 @@ public class PrefPageDatabaseUserInterface extends AbstractPrefPage implements I
         if (isStandalone) {
             statusBarBreadcrumbPositionCombo.select(location == BreadcrumbLocation.IN_STATUS_BAR ? 0 : 1);
         }
-        statusBarShowStatusCheck.setSelection(store.getDefaultBoolean(DBeaverPreferences.UI_STATUS_BAR_SHOW_STATUS_LINE));
+        statusBarShowStatusCheck.setSelection(store.getDefaultBoolean(ChromitePreferences.UI_STATUS_BAR_SHOW_STATUS_LINE));
         if (isStandalone) {
             statusBarBreadcrumbPositionCombo.setEnabled(statusBarShowBreadcrumbsCheck.getSelection());
         }
         previewStatusBar();
         if (RuntimeUtils.isLinux()) {
-            zoomRestartPromptCheck.setSelection(store.getDefaultBoolean(DBeaverPreferences.UI_SHOW_ZOOM_RESTART_PROMPT));
+            zoomRestartPromptCheck.setSelection(store.getDefaultBoolean(ChromitePreferences.UI_SHOW_ZOOM_RESTART_PROMPT));
         }
 
         if (this.fontsController != null) {
@@ -382,14 +382,14 @@ public class PrefPageDatabaseUserInterface extends AbstractPrefPage implements I
         if (statusBarPreviewed) {
             DBPPreferenceStore store = DBWorkbench.getPlatform().getPreferenceStore();
             if (appliedBreadcrumbLocationIsDefault) {
-                store.setToDefault(DBeaverPreferences.UI_STATUS_BAR_SHOW_BREADCRUMBS);
+                store.setToDefault(ChromitePreferences.UI_STATUS_BAR_SHOW_BREADCRUMBS);
             } else {
-                store.setValue(DBeaverPreferences.UI_STATUS_BAR_SHOW_BREADCRUMBS, appliedBreadcrumbLocation);
+                store.setValue(ChromitePreferences.UI_STATUS_BAR_SHOW_BREADCRUMBS, appliedBreadcrumbLocation);
             }
             if (appliedStatusLineVisibleIsDefault) {
-                store.setToDefault(DBeaverPreferences.UI_STATUS_BAR_SHOW_STATUS_LINE);
+                store.setToDefault(ChromitePreferences.UI_STATUS_BAR_SHOW_STATUS_LINE);
             } else {
-                store.setValue(DBeaverPreferences.UI_STATUS_BAR_SHOW_STATUS_LINE, appliedStatusLineVisible);
+                store.setValue(ChromitePreferences.UI_STATUS_BAR_SHOW_STATUS_LINE, appliedStatusLineVisible);
             }
             if (isStandalone) {
                 BreadcrumbTrim.refreshStatusBar();
@@ -407,17 +407,17 @@ public class PrefPageDatabaseUserInterface extends AbstractPrefPage implements I
     }
 
     private void rememberAppliedStatusBar(@NotNull DBPPreferenceStore store) {
-        appliedBreadcrumbLocation = store.getString(DBeaverPreferences.UI_STATUS_BAR_SHOW_BREADCRUMBS);
-        appliedBreadcrumbLocationIsDefault = store.isDefault(DBeaverPreferences.UI_STATUS_BAR_SHOW_BREADCRUMBS);
-        appliedStatusLineVisible = store.getBoolean(DBeaverPreferences.UI_STATUS_BAR_SHOW_STATUS_LINE);
-        appliedStatusLineVisibleIsDefault = store.isDefault(DBeaverPreferences.UI_STATUS_BAR_SHOW_STATUS_LINE);
+        appliedBreadcrumbLocation = store.getString(ChromitePreferences.UI_STATUS_BAR_SHOW_BREADCRUMBS);
+        appliedBreadcrumbLocationIsDefault = store.isDefault(ChromitePreferences.UI_STATUS_BAR_SHOW_BREADCRUMBS);
+        appliedStatusLineVisible = store.getBoolean(ChromitePreferences.UI_STATUS_BAR_SHOW_STATUS_LINE);
+        appliedStatusLineVisibleIsDefault = store.isDefault(ChromitePreferences.UI_STATUS_BAR_SHOW_STATUS_LINE);
         statusBarPreviewed = false;
     }
 
     private void previewStatusBar() {
         DBPPreferenceStore store = DBWorkbench.getPlatform().getPreferenceStore();
-        store.setValue(DBeaverPreferences.UI_STATUS_BAR_SHOW_BREADCRUMBS, getSelectedBreadcrumbLocation().name());
-        store.setValue(DBeaverPreferences.UI_STATUS_BAR_SHOW_STATUS_LINE, statusBarShowStatusCheck.getSelection());
+        store.setValue(ChromitePreferences.UI_STATUS_BAR_SHOW_BREADCRUMBS, getSelectedBreadcrumbLocation().name());
+        store.setValue(ChromitePreferences.UI_STATUS_BAR_SHOW_STATUS_LINE, statusBarShowStatusCheck.getSelection());
         if (isStandalone) {
             BreadcrumbTrim.refreshStatusBar();
         }
@@ -460,10 +460,10 @@ public class PrefPageDatabaseUserInterface extends AbstractPrefPage implements I
             }
         }
 
-        store.setValue(DBeaverPreferences.UI_STATUS_BAR_SHOW_BREADCRUMBS, getSelectedBreadcrumbLocation().name());
-        store.setValue(DBeaverPreferences.UI_STATUS_BAR_SHOW_STATUS_LINE, statusBarShowStatusCheck.getSelection());
+        store.setValue(ChromitePreferences.UI_STATUS_BAR_SHOW_BREADCRUMBS, getSelectedBreadcrumbLocation().name());
+        store.setValue(ChromitePreferences.UI_STATUS_BAR_SHOW_STATUS_LINE, statusBarShowStatusCheck.getSelection());
         if (RuntimeUtils.isLinux()) {
-            store.setValue(DBeaverPreferences.UI_SHOW_ZOOM_RESTART_PROMPT, zoomRestartPromptCheck.getSelection());
+            store.setValue(ChromitePreferences.UI_SHOW_ZOOM_RESTART_PROMPT, zoomRestartPromptCheck.getSelection());
         }
 
         if (this.fontsController != null) {

@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.lsm.sql;
+package com.seizia.chromite.model.lsm.sql;
 
 public interface LSMDeleteStatement extends LSMAbstractStatement {
 

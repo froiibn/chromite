@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.editors.sql.semantics;
+package com.seizia.chromite.ui.editors.sql.semantics;
 
 import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.Status;
@@ -33,27 +33,27 @@ import org.eclipse.ui.views.contentoutline.ContentOutlinePage;
 import org.eclipse.ui.views.contentoutline.IContentOutlinePage;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.model.*;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.model.sql.SQLConstants;
-import org.jkiss.dbeaver.model.sql.semantics.*;
-import org.jkiss.dbeaver.model.sql.semantics.context.SQLQueryExprType;
-import org.jkiss.dbeaver.model.sql.semantics.context.SQLQueryResultColumn;
-import org.jkiss.dbeaver.model.sql.semantics.context.SQLQueryRowsDataContext;
-import org.jkiss.dbeaver.model.sql.semantics.model.*;
-import org.jkiss.dbeaver.model.sql.semantics.model.ddl.*;
-import org.jkiss.dbeaver.model.sql.semantics.model.dml.*;
-import org.jkiss.dbeaver.model.sql.semantics.model.expressions.*;
-import org.jkiss.dbeaver.model.sql.semantics.model.select.*;
-import org.jkiss.dbeaver.model.struct.DBSEntity;
-import org.jkiss.dbeaver.ui.AbstractUIJob;
-import org.jkiss.dbeaver.ui.DBeaverIcons;
-import org.jkiss.dbeaver.ui.UIIcon;
-import org.jkiss.dbeaver.ui.controls.resultset.ThemeConstants;
-import org.jkiss.dbeaver.ui.editors.sql.SQLEditorBase;
-import org.jkiss.dbeaver.ui.editors.sql.SQLEditorUtils;
-import org.jkiss.dbeaver.ui.editors.sql.handlers.SQLEditorHandlerToggleOutlineView;
-import org.jkiss.dbeaver.ui.editors.sql.internal.SQLEditorMessages;
+import com.seizia.chromite.model.*;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.model.sql.SQLConstants;
+import com.seizia.chromite.model.sql.semantics.*;
+import com.seizia.chromite.model.sql.semantics.context.SQLQueryExprType;
+import com.seizia.chromite.model.sql.semantics.context.SQLQueryResultColumn;
+import com.seizia.chromite.model.sql.semantics.context.SQLQueryRowsDataContext;
+import com.seizia.chromite.model.sql.semantics.model.*;
+import com.seizia.chromite.model.sql.semantics.model.ddl.*;
+import com.seizia.chromite.model.sql.semantics.model.dml.*;
+import com.seizia.chromite.model.sql.semantics.model.expressions.*;
+import com.seizia.chromite.model.sql.semantics.model.select.*;
+import com.seizia.chromite.model.struct.DBSEntity;
+import com.seizia.chromite.ui.AbstractUIJob;
+import com.seizia.chromite.ui.SwtIcons;
+import com.seizia.chromite.ui.UIIcon;
+import com.seizia.chromite.ui.controls.resultset.ThemeConstants;
+import com.seizia.chromite.ui.editors.sql.SQLEditorBase;
+import com.seizia.chromite.ui.editors.sql.SQLEditorUtils;
+import com.seizia.chromite.ui.editors.sql.handlers.SQLEditorHandlerToggleOutlineView;
+import com.seizia.chromite.ui.editors.sql.internal.SQLEditorMessages;
 import org.jkiss.utils.CommonUtils;
 
 import java.util.*;
@@ -79,9 +79,9 @@ public class SQLEditorOutlinePage extends ContentOutlinePage implements IContent
         put(SQLQuerySymbolClass.CATALOG, ThemeConstants.SQL_EDITOR_COLOR_SCHEMA);
         put(SQLQuerySymbolClass.SCHEMA, ThemeConstants.SQL_EDITOR_COLOR_SCHEMA);
         put(SQLQuerySymbolClass.SQL_BATCH_VARIABLE, ThemeConstants.SQL_EDITOR_COLOR_SQL_VARIABLE);
-        put(SQLQuerySymbolClass.DBEAVER_VARIABLE, ThemeConstants.SQL_EDITOR_COLOR_PARAMETER);
-        put(SQLQuerySymbolClass.DBEAVER_PARAMETER, ThemeConstants.SQL_EDITOR_COLOR_PARAMETER);
-        put(SQLQuerySymbolClass.DBEAVER_COMMAND, ThemeConstants.SQL_EDITOR_COLOR_COMMAND);
+        put(SQLQuerySymbolClass.CHROMITE_VARIABLE, ThemeConstants.SQL_EDITOR_COLOR_PARAMETER);
+        put(SQLQuerySymbolClass.CHROMITE_PARAMETER, ThemeConstants.SQL_EDITOR_COLOR_PARAMETER);
+        put(SQLQuerySymbolClass.CHROMITE_COMMAND, ThemeConstants.SQL_EDITOR_COLOR_COMMAND);
         put(SQLQuerySymbolClass.ERROR, ThemeConstants.SQL_EDITOR_COLOR_SEMANTIC_ERROR);
         put(SQLQuerySymbolClass.QUOTED, ThemeConstants.SQL_EDITOR_COLOR_DATATYPE);
     }};
@@ -331,7 +331,7 @@ public class SQLEditorOutlinePage extends ContentOutlinePage implements IContent
         @Nullable
         @Override
         public Image getImage(@NotNull Object element) {
-            return element instanceof OutlineNode node ? node.getImage() : DBeaverIcons.getImage(DBIcon.TYPE_UNKNOWN, false);
+            return element instanceof OutlineNode node ? node.getImage() : SwtIcons.getImage(DBIcon.TYPE_UNKNOWN, false);
         }
 
         @NotNull
@@ -395,7 +395,7 @@ public class SQLEditorOutlinePage extends ContentOutlinePage implements IContent
         @Nullable
         public Image getImage() {
             DBPImage icon = this.getIcon();
-            return icon == null ? null : DBeaverIcons.getImage(icon, false);
+            return icon == null ? null : SwtIcons.getImage(icon, false);
         }
 
         protected abstract DBPImage getIcon();

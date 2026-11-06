@@ -15,20 +15,20 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.ui.editors.erd.editor;
+package com.seizia.chromite.ui.editors.erd.editor;
 
 import org.eclipse.draw2d.Connection;
 import org.eclipse.draw2d.IFigure;
 import org.eclipse.swt.graphics.Color;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.erd.ERDEntityAttribute;
-import org.jkiss.dbeaver.ui.editors.erd.connector.ERDConnection;
-import org.jkiss.dbeaver.ui.editors.erd.part.AssociationPart;
-import org.jkiss.dbeaver.ui.editors.erd.part.AttributePart;
-import org.jkiss.dbeaver.ui.editors.erd.part.EntityPart;
-import org.jkiss.dbeaver.utils.ListNode;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.erd.ERDEntityAttribute;
+import com.seizia.chromite.ui.editors.erd.connector.ERDConnection;
+import com.seizia.chromite.ui.editors.erd.part.AssociationPart;
+import com.seizia.chromite.ui.editors.erd.part.AttributePart;
+import com.seizia.chromite.ui.editors.erd.part.EntityPart;
+import com.seizia.chromite.utils.ListNode;
 
 import java.util.*;
 

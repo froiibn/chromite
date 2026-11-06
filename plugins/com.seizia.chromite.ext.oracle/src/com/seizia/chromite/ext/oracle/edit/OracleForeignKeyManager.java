@@ -14,19 +14,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.oracle.edit;
+package com.seizia.chromite.ext.oracle.edit;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.ext.oracle.model.OracleObjectStatus;
-import org.jkiss.dbeaver.ext.oracle.model.OracleTableBase;
-import org.jkiss.dbeaver.ext.oracle.model.OracleTableForeignKey;
-import org.jkiss.dbeaver.model.edit.DBECommandContext;
-import org.jkiss.dbeaver.model.impl.sql.edit.struct.SQLForeignKeyManager;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.model.struct.DBSObject;
-import org.jkiss.dbeaver.model.struct.cache.DBSObjectCache;
-import org.jkiss.dbeaver.model.struct.rdb.DBSForeignKeyModifyRule;
+import com.seizia.chromite.ext.oracle.model.OracleObjectStatus;
+import com.seizia.chromite.ext.oracle.model.OracleTableBase;
+import com.seizia.chromite.ext.oracle.model.OracleTableForeignKey;
+import com.seizia.chromite.model.edit.DBECommandContext;
+import com.seizia.chromite.model.impl.sql.edit.struct.SQLForeignKeyManager;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.model.struct.DBSObject;
+import com.seizia.chromite.model.struct.cache.DBSObjectCache;
+import com.seizia.chromite.model.struct.rdb.DBSForeignKeyModifyRule;
 
 import java.util.Map;
 

@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.clickhouse.ui;
+package com.seizia.chromite.ext.clickhouse.ui;
 
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.layout.GridData;
@@ -22,13 +22,13 @@ import org.eclipse.swt.widgets.Combo;
 import org.eclipse.swt.widgets.Composite;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.ext.clickhouse.ClickhouseConstants;
-import org.jkiss.dbeaver.ext.clickhouse.ui.internal.ClickhouseMessages;
-import org.jkiss.dbeaver.model.net.DBWHandlerConfiguration;
-import org.jkiss.dbeaver.registry.configurator.DBPConnectionEditIntention;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.dialogs.net.SSLConfiguratorTrustStoreUI;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.ext.clickhouse.ClickhouseConstants;
+import com.seizia.chromite.ext.clickhouse.ui.internal.ClickhouseMessages;
+import com.seizia.chromite.model.net.DBWHandlerConfiguration;
+import com.seizia.chromite.registry.configurator.DBPConnectionEditIntention;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.dialogs.net.SSLConfiguratorTrustStoreUI;
 import org.jkiss.utils.CommonUtils;
 
 public class ClickhouseSSLConfigurator extends SSLConfiguratorTrustStoreUI {

@@ -14,19 +14,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.headless;
+package com.seizia.chromite.headless;
 
 import org.eclipse.core.resources.IWorkspace;
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.model.app.DBPPlatform;
-import org.jkiss.dbeaver.model.rcp.DesktopWorkspaceImpl;
+import com.seizia.chromite.model.app.DBPPlatform;
+import com.seizia.chromite.model.rcp.DesktopWorkspaceImpl;
 
 /**
  * DBeaver test workspace.
  */
-public class DBeaverTestWorkspace extends DesktopWorkspaceImpl {
+public class ChromiteTestWorkspace extends DesktopWorkspaceImpl {
 
-    DBeaverTestWorkspace(DBPPlatform platform, IWorkspace eclipseWorkspace) {
+    ChromiteTestWorkspace(DBPPlatform platform, IWorkspace eclipseWorkspace) {
         super(platform, eclipseWorkspace);
     }
 

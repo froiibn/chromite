@@ -14,15 +14,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.controls.decorations;
+package com.seizia.chromite.ui.controls.decorations;
 
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.graphics.*;
 import org.eclipse.swt.widgets.Display;
 import org.eclipse.ui.services.IDisposable;
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.model.DBPImage;
-import org.jkiss.dbeaver.ui.DBeaverIcons;
+import com.seizia.chromite.model.DBPImage;
+import com.seizia.chromite.ui.SwtIcons;
 
 import java.util.List;
 import java.util.Random;
@@ -81,7 +81,7 @@ record SnowflakeAtlas(
 
             for (int i = 0; i < images.size(); i++) {
                 for (int j = 0; j < mips; j++) {
-                    var sprite = DBeaverIcons.getImage(images.get(i));
+                    var sprite = SwtIcons.getImage(images.get(i));
                     var bounds = sprite.getBounds();
 
                     int scale = size - j * step;

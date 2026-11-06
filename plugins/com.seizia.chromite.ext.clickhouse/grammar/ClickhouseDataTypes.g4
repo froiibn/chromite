@@ -33,7 +33,7 @@ grammar ClickhouseDataTypes;
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.clickhouse;
+package com.seizia.chromite.ext.clickhouse;
 }
 
 Enum: 'Enum' ('8'|'16');

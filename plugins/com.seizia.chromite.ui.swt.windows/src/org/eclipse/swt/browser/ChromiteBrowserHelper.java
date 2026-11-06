@@ -26,8 +26,8 @@ import org.jkiss.code.NotNull;
 
 import java.util.Objects;
 
-public class DBeaverBrowserHelper {
-    private DBeaverBrowserHelper() {
+public class ChromiteBrowserHelper {
+    private ChromiteBrowserHelper() {
     }
 
     public static void clearCookies(@NotNull Browser browser) {

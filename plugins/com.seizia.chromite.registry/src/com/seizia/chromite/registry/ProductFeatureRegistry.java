@@ -15,13 +15,13 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.registry;
+package com.seizia.chromite.registry;
 
 import org.eclipse.core.runtime.IConfigurationElement;
 import org.eclipse.core.runtime.IExtensionRegistry;
 import org.eclipse.core.runtime.Platform;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.app.DBPApplicationFeature;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.app.DBPApplicationFeature;
 import org.jkiss.utils.CommonUtils;
 
 import java.util.ArrayList;
@@ -36,7 +36,7 @@ public class ProductFeatureRegistry {
 
     private static final Log log = Log.getLog(ProductFeatureRegistry.class);
 
-    public static final String EXTENSION_ID = "org.jkiss.dbeaver.productFeature"; //NON-NLS-1
+    public static final String EXTENSION_ID = "com.seizia.chromite.productFeature"; //NON-NLS-1
 
     private final Map<String, DBPApplicationFeature> allFeatures = new LinkedHashMap<>();
 

@@ -15,10 +15,10 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.ui.controls.resultset;
+package com.seizia.chromite.ui.controls.resultset;
 
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.model.data.DBDDisplayFormat;
+import com.seizia.chromite.model.data.DBDDisplayFormat;
 
 /**
  * Result set display format provider.

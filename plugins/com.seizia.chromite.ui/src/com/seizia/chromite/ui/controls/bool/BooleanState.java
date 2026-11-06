@@ -14,13 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.controls.bool;
+package com.seizia.chromite.ui.controls.bool;
 
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.model.DBConstants;
-import org.jkiss.dbeaver.model.DBIcon;
-import org.jkiss.dbeaver.ui.UIIcon;
-import org.jkiss.dbeaver.ui.internal.UIMessages;
+import com.seizia.chromite.model.DBConstants;
+import com.seizia.chromite.model.DBIcon;
+import com.seizia.chromite.ui.UIIcon;
+import com.seizia.chromite.ui.internal.UIMessages;
 
 public enum BooleanState {
     CHECKED(

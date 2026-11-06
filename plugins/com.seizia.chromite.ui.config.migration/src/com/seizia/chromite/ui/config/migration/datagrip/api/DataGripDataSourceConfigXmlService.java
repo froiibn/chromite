@@ -14,10 +14,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.config.migration.datagrip.api;
+package com.seizia.chromite.ui.config.migration.datagrip.api;
 
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.ui.config.migration.wizards.ImportConnectionInfo;
+import com.seizia.chromite.ui.config.migration.wizards.ImportConnectionInfo;
 
 import java.nio.file.Path;
 import java.util.List;

@@ -1,15 +1,15 @@
 Manifest-Version: 1.0
 Bundle-ManifestVersion: 2
 Bundle-Name: Chromite Vertica Model
-Bundle-SymbolicName: org.jkiss.dbeaver.ext.vertica;singleton:=true
+Bundle-SymbolicName: com.seizia.chromite.ext.vertica;singleton:=true
 Bundle-Version: 2.0.221.qualifier
 Bundle-Release-Date: 20261116
-Require-Bundle: org.jkiss.dbeaver.model,
- org.jkiss.dbeaver.model.sql,
- org.jkiss.dbeaver.ext.generic
+Require-Bundle: com.seizia.chromite.model,
+ com.seizia.chromite.model.sql,
+ com.seizia.chromite.ext.generic
 Bundle-ActivationPolicy: lazy
 Bundle-RequiredExecutionEnvironment: JavaSE-21
-Bundle-Vendor: DBeaver Corp
-Automatic-Module-Name: org.jkiss.dbeaver.ext.vertica
-Export-Package: org.jkiss.dbeaver.ext.vertica,
- org.jkiss.dbeaver.ext.vertica.model
+Bundle-Vendor: Chromite contributors
+Automatic-Module-Name: com.seizia.chromite.ext.vertica
+Export-Package: com.seizia.chromite.ext.vertica,
+ com.seizia.chromite.ext.vertica.model

@@ -14,11 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.sql.semantics;
+package com.seizia.chromite.model.sql.semantics;
 
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.model.sql.messages.ModelSQLMessages;
-import org.jkiss.dbeaver.model.sql.parser.tokens.SQLTokenType;
+import com.seizia.chromite.model.sql.messages.ModelSQLMessages;
+import com.seizia.chromite.model.sql.parser.tokens.SQLTokenType;
 
 public enum SQLQuerySymbolClass {
     UNKNOWN(SQLTokenType.T_OTHER, ModelSQLMessages.model_sql_semantic_symbolClass_UNKNOWN),
@@ -36,9 +36,9 @@ public enum SQLQuerySymbolClass {
     COLUMN_DERIVED(SQLTokenType.T_COLUMN_DERIVED, ModelSQLMessages.model_sql_semantic_symbolClass_COLUMN_DERIVED),
     COMPOSITE_FIELD(SQLTokenType.T_COMPOSITE_FIELD, ModelSQLMessages.model_sql_semantic_symbolClass_COMPOSITE_FIELD),
     SQL_BATCH_VARIABLE(SQLTokenType.T_SQL_VARIABLE, ModelSQLMessages.model_sql_semantic_symbolClass_SQL_BATCH_VARIABLE),
-    DBEAVER_VARIABLE(SQLTokenType.T_VARIABLE, ModelSQLMessages.model_sql_semantic_symbolClass_DBEAVER_VARIABLE),
-    DBEAVER_PARAMETER(SQLTokenType.T_PARAMETER, ModelSQLMessages.model_sql_semantic_symbolClass_DBEAVER_PARAMETER),
-    DBEAVER_COMMAND(SQLTokenType.T_CONTROL, ModelSQLMessages.model_sql_semantic_symbolClass_DBEAVER_COMMAND),
+    CHROMITE_VARIABLE(SQLTokenType.T_VARIABLE, ModelSQLMessages.model_sql_semantic_symbolClass_CHROMITE_VARIABLE),
+    CHROMITE_PARAMETER(SQLTokenType.T_PARAMETER, ModelSQLMessages.model_sql_semantic_symbolClass_CHROMITE_PARAMETER),
+    CHROMITE_COMMAND(SQLTokenType.T_CONTROL, ModelSQLMessages.model_sql_semantic_symbolClass_CHROMITE_COMMAND),
     ERROR(SQLTokenType.T_SEMANTIC_ERROR, ModelSQLMessages.model_sql_semantic_symbolClass_ERROR);
     
     private final SQLTokenType tokenType;

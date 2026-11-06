@@ -14,11 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.sqlite.model;
+package com.seizia.chromite.ext.sqlite.model;
 
-import org.jkiss.dbeaver.ext.generic.model.GenericDataSourceInfo;
-import org.jkiss.dbeaver.model.connection.DBPDriver;
-import org.jkiss.dbeaver.model.exec.jdbc.JDBCDatabaseMetaData;
+import com.seizia.chromite.ext.generic.model.GenericDataSourceInfo;
+import com.seizia.chromite.model.connection.DBPDriver;
+import com.seizia.chromite.model.exec.jdbc.JDBCDatabaseMetaData;
 
 public class SQLiteDataSourceInfo extends GenericDataSourceInfo {
 

@@ -14,12 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.dashboard.navigator;
+package com.seizia.chromite.ui.dashboard.navigator;
 
 import org.eclipse.core.commands.ExecutionEvent;
 import org.eclipse.core.commands.ExecutionException;
-import org.jkiss.dbeaver.ui.dashboard.model.DashboardItemContainer;
-import org.jkiss.dbeaver.ui.dashboard.model.DashboardViewer;
+import com.seizia.chromite.ui.dashboard.model.DashboardItemContainer;
+import com.seizia.chromite.ui.dashboard.model.DashboardViewer;
 
 public class HandlerDashboardRemoveItem extends HandlerDashboardAbstract {
 

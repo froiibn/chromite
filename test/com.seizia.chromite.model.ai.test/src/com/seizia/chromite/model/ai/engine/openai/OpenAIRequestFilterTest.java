@@ -14,10 +14,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.ai.engine.openai;
+package com.seizia.chromite.model.ai.engine.openai;
 
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.junit.DBeaverUnitTest;
+import com.seizia.chromite.junit.ChromiteUnitTest;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -28,7 +28,7 @@ import java.time.Duration;
 import java.util.Arrays;
 import java.util.Map;
 
-public class OpenAIRequestFilterTest extends DBeaverUnitTest {
+public class OpenAIRequestFilterTest extends ChromiteUnitTest {
 
     private static final URI ENDPOINT = URI.create("http://localhost:8000/v1/responses");
 

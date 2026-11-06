@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.actions.datasource;
+package com.seizia.chromite.ui.actions.datasource;
 
 import org.eclipse.core.commands.ExecutionEvent;
 import org.eclipse.core.commands.ExecutionException;
@@ -30,23 +30,23 @@ import org.eclipse.ui.handlers.HandlerUtil;
 import org.eclipse.ui.menus.UIElement;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.model.*;
-import org.jkiss.dbeaver.model.app.DBPPlatformDesktop;
-import org.jkiss.dbeaver.model.app.DBPProject;
-import org.jkiss.dbeaver.model.connection.DBPDriver;
-import org.jkiss.dbeaver.model.navigator.DBNDatabaseNode;
-import org.jkiss.dbeaver.model.navigator.DBNUtils;
-import org.jkiss.dbeaver.registry.DataSourceRegistry;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.ui.DBeaverIcons;
-import org.jkiss.dbeaver.ui.IDataSourceContainerUpdate;
-import org.jkiss.dbeaver.ui.UITextUtils;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.actions.AbstractDataSourceHandler;
-import org.jkiss.dbeaver.ui.editors.EditorUtils;
-import org.jkiss.dbeaver.ui.internal.UINavigatorMessages;
-import org.jkiss.dbeaver.ui.navigator.dialogs.SelectDataSourceDialog;
-import org.jkiss.dbeaver.utils.GeneralUtils;
+import com.seizia.chromite.model.*;
+import com.seizia.chromite.model.app.DBPPlatformDesktop;
+import com.seizia.chromite.model.app.DBPProject;
+import com.seizia.chromite.model.connection.DBPDriver;
+import com.seizia.chromite.model.navigator.DBNDatabaseNode;
+import com.seizia.chromite.model.navigator.DBNUtils;
+import com.seizia.chromite.registry.DataSourceRegistry;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.ui.SwtIcons;
+import com.seizia.chromite.ui.IDataSourceContainerUpdate;
+import com.seizia.chromite.ui.UITextUtils;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.actions.AbstractDataSourceHandler;
+import com.seizia.chromite.ui.editors.EditorUtils;
+import com.seizia.chromite.ui.internal.UINavigatorMessages;
+import com.seizia.chromite.ui.navigator.dialogs.SelectDataSourceDialog;
+import com.seizia.chromite.utils.GeneralUtils;
 
 import java.util.*;
 
@@ -148,7 +148,7 @@ public class SelectActiveDataSourceHandler extends AbstractDataSourceHandler imp
             }
         }
         element.setText(connectionName);
-        element.setIcon(DBeaverIcons.getImageDescriptor(connectionIcon));
+        element.setIcon(SwtIcons.getImageDescriptor(connectionIcon));
         element.setTooltip(UINavigatorMessages.toolbar_datasource_selector_combo_datasource_tooltip);
     }
 
@@ -227,7 +227,7 @@ public class SelectActiveDataSourceHandler extends AbstractDataSourceHandler imp
                     DBPDriver driver = de.getKey();
                     MenuManager driverMenu = new MenuManager(
                         driver.getName(),
-                        DBeaverIcons.getImageDescriptor(driver.getIcon()),
+                        SwtIcons.getImageDescriptor(driver.getIcon()),
                         driver.getId());
                     for (DBPDataSourceContainer ds : de.getValue()) {
                         driverMenu.add(
@@ -264,7 +264,7 @@ public class SelectActiveDataSourceHandler extends AbstractDataSourceHandler imp
             return new Action(newDataSource.getName(), Action.AS_CHECK_BOX) {
                 {
                     if (dsNode != null) {
-                        setImageDescriptor(DBeaverIcons.getImageDescriptor(dsNode.getNodeIcon()));
+                        setImageDescriptor(SwtIcons.getImageDescriptor(dsNode.getNodeIcon()));
                     }
                 }
                 @Override

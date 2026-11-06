@@ -14,12 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.tidblake.ui.internal;
+package com.seizia.chromite.ext.tidblake.ui.internal;
 
 import org.eclipse.osgi.util.NLS;
 
 public class TiDBLakeMessages extends NLS {
-    static final String BUNDLE_NAME = "org.jkiss.dbeaver.ext.tidblake.ui.internal.TiDBLakeMessages"; //$NON-NLS-1$
+    static final String BUNDLE_NAME = "com.seizia.chromite.ext.tidblake.ui.internal.TiDBLakeMessages"; //$NON-NLS-1$
 
     public static String dialog_connection_page_checkbox_use_ssl;
     public static String dialog_connection_page_checkbox_tip_use_ssl;

@@ -15,16 +15,16 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.ext.bigquery.model;
+package com.seizia.chromite.ext.bigquery.model;
 
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.ext.generic.model.GenericDataType;
-import org.jkiss.dbeaver.ext.generic.model.GenericStructContainer;
-import org.jkiss.dbeaver.model.exec.jdbc.JDBCResultSet;
-import org.jkiss.dbeaver.model.impl.jdbc.JDBCConstants;
-import org.jkiss.dbeaver.model.impl.jdbc.JDBCUtils;
+import com.seizia.chromite.ext.generic.model.GenericDataType;
+import com.seizia.chromite.ext.generic.model.GenericStructContainer;
+import com.seizia.chromite.model.exec.jdbc.JDBCResultSet;
+import com.seizia.chromite.model.impl.jdbc.JDBCConstants;
+import com.seizia.chromite.model.impl.jdbc.JDBCUtils;
 
-public class BQDataTypeCache extends org.jkiss.dbeaver.ext.generic.model.GenericDataTypeCache {
+public class BQDataTypeCache extends com.seizia.chromite.ext.generic.model.GenericDataTypeCache {
     public BQDataTypeCache(GenericStructContainer owner) {
         super(owner);
     }

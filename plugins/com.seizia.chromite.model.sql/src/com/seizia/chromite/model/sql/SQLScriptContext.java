@@ -15,29 +15,29 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.model.sql;
+package com.seizia.chromite.model.sql;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.model.DBPContextProvider;
-import org.jkiss.dbeaver.model.DBPDataSourceContainer;
-import org.jkiss.dbeaver.model.DBUtils;
-import org.jkiss.dbeaver.model.connection.DBPDriver;
-import org.jkiss.dbeaver.model.connection.DataSourceVariableResolver;
-import org.jkiss.dbeaver.model.data.DBDDataReceiver;
-import org.jkiss.dbeaver.model.exec.DBCExecutionContext;
-import org.jkiss.dbeaver.model.exec.DBCScriptContext;
-import org.jkiss.dbeaver.model.exec.DBCScriptContextListener;
-import org.jkiss.dbeaver.model.exec.output.DBCOutputWriter;
-import org.jkiss.dbeaver.model.impl.OutputWriterAdapter;
-import org.jkiss.dbeaver.model.impl.sql.AbstractSQLDialect;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.model.sql.registry.SQLCommandHandlerDescriptor;
-import org.jkiss.dbeaver.model.sql.registry.SQLCommandsRegistry;
-import org.jkiss.dbeaver.model.sql.registry.SQLQueryParameterRegistry;
-import org.jkiss.dbeaver.model.sql.registry.SQLVariablesRegistry;
-import org.jkiss.dbeaver.runtime.IVariableResolver;
+import com.seizia.chromite.model.DBPContextProvider;
+import com.seizia.chromite.model.DBPDataSourceContainer;
+import com.seizia.chromite.model.DBUtils;
+import com.seizia.chromite.model.connection.DBPDriver;
+import com.seizia.chromite.model.connection.DataSourceVariableResolver;
+import com.seizia.chromite.model.data.DBDDataReceiver;
+import com.seizia.chromite.model.exec.DBCExecutionContext;
+import com.seizia.chromite.model.exec.DBCScriptContext;
+import com.seizia.chromite.model.exec.DBCScriptContextListener;
+import com.seizia.chromite.model.exec.output.DBCOutputWriter;
+import com.seizia.chromite.model.impl.OutputWriterAdapter;
+import com.seizia.chromite.model.impl.sql.AbstractSQLDialect;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.model.sql.registry.SQLCommandHandlerDescriptor;
+import com.seizia.chromite.model.sql.registry.SQLCommandsRegistry;
+import com.seizia.chromite.model.sql.registry.SQLQueryParameterRegistry;
+import com.seizia.chromite.model.sql.registry.SQLVariablesRegistry;
+import com.seizia.chromite.runtime.IVariableResolver;
 import org.jkiss.utils.ArrayUtils;
 import org.jkiss.utils.CommonUtils;
 

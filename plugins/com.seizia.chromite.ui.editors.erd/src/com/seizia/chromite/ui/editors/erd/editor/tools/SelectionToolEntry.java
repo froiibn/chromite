@@ -14,12 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.editors.erd.editor.tools;
+package com.seizia.chromite.ui.editors.erd.editor.tools;
 
 import org.eclipse.gef.palette.ToolEntry;
 import org.eclipse.gef.tools.SelectionTool;
-import org.jkiss.dbeaver.ui.DBeaverIcons;
-import org.jkiss.dbeaver.ui.editors.erd.ERDIcon;
+import com.seizia.chromite.ui.SwtIcons;
+import com.seizia.chromite.ui.editors.erd.ERDIcon;
 
 /**
  * This class is used to override default GEF icons.
@@ -28,7 +28,7 @@ import org.jkiss.dbeaver.ui.editors.erd.ERDIcon;
  */
 public class SelectionToolEntry extends ToolEntry {
     public SelectionToolEntry() {
-        super("Select", "Select diagram objects", DBeaverIcons.getImageDescriptor(ERDIcon.SELECT), DBeaverIcons.getImageDescriptor(ERDIcon.SELECT), SelectionTool.class);
+        super("Select", "Select diagram objects", SwtIcons.getImageDescriptor(ERDIcon.SELECT), SwtIcons.getImageDescriptor(ERDIcon.SELECT), SelectionTool.class);
         setUserModificationPermission(PERMISSION_NO_MODIFICATION);
     }
 }

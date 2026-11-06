@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <feature
-        id="org.jkiss.dbeaver.rcp.feature"
+        id="com.seizia.chromite.rcp.feature"
         label="Chromite RCP"
         version="3.0.70.qualifier"
-        provider-name="DBeaver Corp">
+        provider-name="Chromite contributors">
 
     <description>Universal Database Manager RCP</description>
 

@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.secret;
+package com.seizia.chromite.model.secret;
 
 import org.eclipse.core.runtime.IConfigurationElement;
 import org.eclipse.core.runtime.IExtensionRegistry;
@@ -22,14 +22,14 @@ import org.eclipse.core.runtime.Platform;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.model.auth.SMCredentialsProvider;
-import org.jkiss.dbeaver.model.auth.SMSessionContext;
+import com.seizia.chromite.model.auth.SMCredentialsProvider;
+import com.seizia.chromite.model.auth.SMSessionContext;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
 
 public class SecretControllerRegistry {
-    public static final String EXTENSION_ID = "com.dbeaver.secretController"; //$NON-NLS-1$
+    public static final String EXTENSION_ID = "com.seizia.chromite.secretController"; //$NON-NLS-1$
 
     @Nullable
     private static SecretControllerRegistry instance;

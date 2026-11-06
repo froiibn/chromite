@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.controls.resultset.virtual;
+package com.seizia.chromite.ui.controls.resultset.virtual;
 
 import org.eclipse.osgi.util.NLS;
 import org.eclipse.swt.SWT;
@@ -27,19 +27,19 @@ import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Table;
 import org.eclipse.swt.widgets.TableItem;
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.model.DBIcon;
-import org.jkiss.dbeaver.model.DBValueFormatting;
-import org.jkiss.dbeaver.model.struct.DBSObject;
-import org.jkiss.dbeaver.model.virtual.DBVEntity;
-import org.jkiss.dbeaver.model.virtual.DBVEntityAttribute;
-import org.jkiss.dbeaver.ui.ConComposite;
-import org.jkiss.dbeaver.ui.DBeaverIcons;
-import org.jkiss.dbeaver.ui.IHelpContextIdProvider;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.controls.resultset.ResultSetViewer;
-import org.jkiss.dbeaver.ui.controls.resultset.internal.ResultSetMessages;
-import org.jkiss.dbeaver.ui.css.CSSUtils;
-import org.jkiss.dbeaver.ui.editors.object.struct.BaseObjectEditPage;
+import com.seizia.chromite.model.DBIcon;
+import com.seizia.chromite.model.DBValueFormatting;
+import com.seizia.chromite.model.struct.DBSObject;
+import com.seizia.chromite.model.virtual.DBVEntity;
+import com.seizia.chromite.model.virtual.DBVEntityAttribute;
+import com.seizia.chromite.ui.ConComposite;
+import com.seizia.chromite.ui.SwtIcons;
+import com.seizia.chromite.ui.IHelpContextIdProvider;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.controls.resultset.ResultSetViewer;
+import com.seizia.chromite.ui.controls.resultset.internal.ResultSetMessages;
+import com.seizia.chromite.ui.css.CSSUtils;
+import com.seizia.chromite.ui.editors.object.struct.BaseObjectEditPage;
 import org.jkiss.utils.CommonUtils;
 
 /**
@@ -150,7 +150,7 @@ public class EditVirtualColumnsPage extends BaseObjectEditPage implements IHelpC
 
     private void createAttributeItem(Table attrTable, DBVEntityAttribute attribute) {
         TableItem item = new TableItem(attrTable, SWT.NONE);
-        item.setImage(0, DBeaverIcons.getImage(DBValueFormatting.getObjectImage(attribute)));
+        item.setImage(0, SwtIcons.getImage(DBValueFormatting.getObjectImage(attribute)));
         item.setText(0, attribute.getName());
         item.setText(1, attribute.getTypeName());
         if (attribute.getExpression() != null) {

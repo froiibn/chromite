@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.tasks.ui.view;
+package com.seizia.chromite.tasks.ui.view;
 
 import org.eclipse.core.commands.AbstractHandler;
 import org.eclipse.core.commands.ExecutionEvent;
@@ -27,16 +27,16 @@ import org.eclipse.ui.handlers.HandlerUtil;
 import org.eclipse.ui.menus.UIElement;
 import org.jkiss.code.NotNull;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.model.DBIcon;
-import org.jkiss.dbeaver.model.DBPImage;
-import org.jkiss.dbeaver.model.task.DBTTask;
-import org.jkiss.dbeaver.model.task.DBTaskUtils;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.tasks.ui.wizard.EditTaskVariablesDialog;
-import org.jkiss.dbeaver.tasks.ui.wizard.TaskProcessorUI;
-import org.jkiss.dbeaver.ui.DBeaverIcons;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.navigator.NavigatorUtils;
+import com.seizia.chromite.model.DBIcon;
+import com.seizia.chromite.model.DBPImage;
+import com.seizia.chromite.model.task.DBTTask;
+import com.seizia.chromite.model.task.DBTaskUtils;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.tasks.ui.wizard.EditTaskVariablesDialog;
+import com.seizia.chromite.tasks.ui.wizard.TaskProcessorUI;
+import com.seizia.chromite.ui.SwtIcons;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.navigator.NavigatorUtils;
 import org.jkiss.utils.CommonUtils;
 
 import java.util.LinkedHashMap;
@@ -88,7 +88,7 @@ public class TaskHandlerRun extends AbstractHandler implements IElementUpdater {
             if (task != null) {
                 DBPImage taskIcon = task.getType().getIcon();
                 if (taskIcon == null) taskIcon = DBIcon.TREE_TASK;
-                element.setIcon(DBeaverIcons.getImageDescriptor(taskIcon));
+                element.setIcon(SwtIcons.getImageDescriptor(taskIcon));
                 element.setText(task.getName());
             }
         }

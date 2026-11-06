@@ -14,21 +14,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.registry.task;
+package com.seizia.chromite.registry.task;
 
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.google.gson.stream.JsonWriter;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.model.data.json.JSONUtils;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.model.runtime.VoidProgressMonitor;
-import org.jkiss.dbeaver.model.task.DBTTaskHandler;
-import org.jkiss.dbeaver.model.task.DBTTaskRegistry;
-import org.jkiss.dbeaver.model.task.DBTTaskType;
-import org.jkiss.dbeaver.registry.project.ProjectImportRegistry;
-import org.jkiss.dbeaver.runtime.DBInterruptedException;
-import org.jkiss.junit.DBeaverUnitTest;
+import com.seizia.chromite.model.data.json.JSONUtils;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.model.runtime.VoidProgressMonitor;
+import com.seizia.chromite.model.task.DBTTaskHandler;
+import com.seizia.chromite.model.task.DBTTaskRegistry;
+import com.seizia.chromite.model.task.DBTTaskType;
+import com.seizia.chromite.registry.project.ProjectImportRegistry;
+import com.seizia.chromite.runtime.DBInterruptedException;
+import com.seizia.chromite.junit.ChromiteUnitTest;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
@@ -44,7 +44,7 @@ import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-public class TaskProjectImportTransformerTest extends DBeaverUnitTest {
+public class TaskProjectImportTransformerTest extends ChromiteUnitTest {
     private static final Map<String, String> PROJECT_NAMES = Map.of("Source", "Target", "Other", "OtherTarget");
     private final DBRProgressMonitor progress = new VoidProgressMonitor();
     private DBTTaskRegistry registry;
@@ -179,7 +179,7 @@ public class TaskProjectImportTransformerTest extends DBeaverUnitTest {
             .getBytes(StandardCharsets.UTF_8);
         try (InputStream source = new ByteArrayInputStream(contents);
              InputStream result = imports.transformResource(
-                 progress, Path.of(".dbeaver/tasks.json"), source, StandardCharsets.UTF_8, PROJECT_NAMES)) {
+                 progress, Path.of(".chromite/tasks.json"), source, StandardCharsets.UTF_8, PROJECT_NAMES)) {
             assertEquals("Target", JsonParser.parseString(new String(result.readAllBytes(), StandardCharsets.UTF_8))
                 .getAsJsonObject().getAsJsonObject("task").getAsJsonObject("state").get("project").getAsString());
         }

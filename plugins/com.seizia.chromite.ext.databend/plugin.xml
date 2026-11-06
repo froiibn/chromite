@@ -3,14 +3,14 @@
 
 <plugin>
 
-    <extension point="org.jkiss.dbeaver.generic.meta">
+    <extension point="com.seizia.chromite.generic.meta">
         <meta id="databend"
-              class="org.jkiss.dbeaver.ext.databend.model.DatabendMetaModel"
+              class="com.seizia.chromite.ext.databend.model.DatabendMetaModel"
               driverClass="com.databend.jdbc.DatabendDriver"
               dialect="databend"/>
     </extension>
 
-    <extension point="org.jkiss.dbeaver.dataSourceProvider">
+    <extension point="com.seizia.chromite.dataSourceProvider">
         <dataSourceType
             id="databend"
             label="Databend"
@@ -19,7 +19,7 @@
             icon="icons/databend_icon.png"
             iconBig="icons/databend_icon_big.png"/>
         <datasource
-                class="org.jkiss.dbeaver.ext.databend.DatabendDataSourceProvider"
+                class="com.seizia.chromite.ext.databend.DatabendDataSourceProvider"
                 description="Databend"
                 id="databend"
                 dataSourceType="databend"
@@ -43,7 +43,7 @@
                     <file type="license" path="licenses/external/asl-2.0.txt"/>
                     <file type="jar" path="drivers/databend" bundle="drivers.databend"/>
                     <!-- Disable server timezone as it confuses during timestamp edit -->
-                    <property name="@dbeaver-default-dataformat.type.timestamp.pattern" value="yyyy-MM-dd HH:mm:ss[.fffffffff]"/>
+                    <property name="@chromite-default-dataformat.type.timestamp.pattern" value="yyyy-MM-dd HH:mm:ss[.fffffffff]"/>
                     <property name="use_server_time_zone" value="false"/>
                     <property name="use_time_zone" value="false"/>
 
@@ -64,12 +64,12 @@
         </datasource>
     </extension>
 
-    <extension point="org.jkiss.dbeaver.sqlDialect">
-        <dialect id="databend" parent="generic" class="org.jkiss.dbeaver.ext.databend.model.DatabendSQLDialect" label="Databend" description="Databend SQL dialect." icon="icons/databend_icon.png">
+    <extension point="com.seizia.chromite.sqlDialect">
+        <dialect id="databend" parent="generic" class="com.seizia.chromite.ext.databend.model.DatabendSQLDialect" label="Databend" description="Databend SQL dialect." icon="icons/databend_icon.png">
         </dialect>
     </extension>
 
-    <extension point="org.jkiss.dbeaver.networkHandler">
+    <extension point="com.seizia.chromite.networkHandler">
         <handler
                 type="config"
                 id="databend-ssl"
@@ -80,8 +80,8 @@
                 secured="false"
                 desktop="false"
                 order="2"
-                handlerClass="org.jkiss.dbeaver.model.impl.net.SSLHandlerImpl">
-            <objectType name="org.jkiss.dbeaver.ext.databend.DatabendDataSourceProvider"/>
+                handlerClass="com.seizia.chromite.model.impl.net.SSLHandlerImpl">
+            <objectType name="com.seizia.chromite.ext.databend.DatabendDataSourceProvider"/>
         </handler>
     </extension>
 

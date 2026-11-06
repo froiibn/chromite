@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.dialogs;
+package com.seizia.chromite.ui.dialogs;
 
 import org.eclipse.jface.dialogs.IDialogConstants;
 import org.eclipse.jface.layout.GridDataFactory;
@@ -26,9 +26,9 @@ import org.eclipse.swt.widgets.Label;
 import org.eclipse.swt.widgets.Shell;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.model.DBIcon;
-import org.jkiss.dbeaver.ui.DBeaverIcons;
-import org.jkiss.dbeaver.ui.UIUtils;
+import com.seizia.chromite.model.DBIcon;
+import com.seizia.chromite.ui.SwtIcons;
+import com.seizia.chromite.ui.UIUtils;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -75,7 +75,7 @@ public class ExecutionConfirmationDialog extends BaseDialog {
         Composite warning = UIUtils.createComposite(content, 2);
         warning.setLayoutData(GridDataFactory.fillDefaults().span(2, 1).grab(true, false).create());
         Label icon = new Label(warning, SWT.NONE);
-        icon.setImage(DBeaverIcons.getImage(DBIcon.STATUS_WARNING));
+        icon.setImage(SwtIcons.getImage(DBIcon.STATUS_WARNING));
         icon.setLayoutData(new GridData(SWT.BEGINNING, SWT.TOP, false, false));
         Label description = new Label(warning, SWT.WRAP);
         description.setText(message);

@@ -2,7 +2,7 @@
 <?eclipse version="3.2"?>
 <plugin>
 
-    <extension point="org.jkiss.dbeaver.dataSourceProvider">
+    <extension point="com.seizia.chromite.dataSourceProvider">
         <dataSourceType
             id="oceanbase"
             label="OceanBase"
@@ -12,7 +12,7 @@
             iconBig="icons/ob_icon_big.png"
             logoImage="icons/ob_logo.png"/>
         <datasource
-            class="org.jkiss.dbeaver.ext.oceanbase.OceanbaseDataSourceProvider"
+            class="com.seizia.chromite.ext.oceanbase.OceanbaseDataSourceProvider"
             description="Oceanbase"
             id="oceanbase"
             dataSourceType="oceanbase"
@@ -20,9 +20,9 @@
             dialect="mysql"
             label="Oceanbase">
             <treeInjection path="mysql/database"
-                           changeFolderType="org.jkiss.dbeaver.ext.oceanbase.model.OceanbaseMySQLCatalog"/>
+                           changeFolderType="com.seizia.chromite.ext.oceanbase.model.OceanbaseMySQLCatalog"/>
             <treeInjection path="mysql/database/view/column"
-                           changeFolderType="org.jkiss.dbeaver.ext.oceanbase.model.OceanbaseMySQLViewColumn"/>
+                           changeFolderType="com.seizia.chromite.ext.oceanbase.model.OceanbaseMySQLViewColumn"/>
             <drivers managable="true">
                 <driver
                     id="alipay_oceanbase"
@@ -35,7 +35,7 @@
                     supportedPageFields="host,port,database,server"
                     categories="sql">
 
-                    <property name="@dbeaver-default-resultset.maxrows.sql" value="true"/>
+                    <property name="@chromite-default-resultset.maxrows.sql" value="true"/>
                     <file type="jar" path="maven:/com.oceanbase:oceanbase-client:RELEASE[2.4.18]"/>
                     <parameter name="supports-events" value="false"/>
                     <parameter name="supports-plugins" value="false"/>
@@ -53,7 +53,7 @@
             </drivers>
         </datasource>
         <datasource
-            class="org.jkiss.dbeaver.ext.oceanbase.OceanbaseOracleDataSourceProvider"
+            class="com.seizia.chromite.ext.oceanbase.OceanbaseOracleDataSourceProvider"
             description="Oceanbase (Oracle mode)"
             id="oceanbase_oracle"
             dataSourceType="oceanbase"
@@ -73,19 +73,19 @@
                     supportedPageFields="host,port,database,server"
                     categories="sql">
 
-                    <property name="@dbeaver-default-resultset.maxrows.sql" value="true"/>
+                    <property name="@chromite-default-resultset.maxrows.sql" value="true"/>
                     <file type="jar" path="maven:/com.oceanbase:oceanbase-client:RELEASE[2.4.18]"/>
                 </driver>
             </drivers>
         </datasource>
     </extension>
 
-    <extension point="org.jkiss.dbeaver.dataSourceAuth">
+    <extension point="com.seizia.chromite.dataSourceAuth">
         <authModel
             id="oceanbase_native"
             label="Oceanbase Native"
             description="Oceanbase native authentication (name/password)"
-            class="org.jkiss.dbeaver.ext.oceanbase.model.auth.OceanbaseAuthModelDatabaseNative"
+            class="com.seizia.chromite.ext.oceanbase.model.auth.OceanbaseAuthModelDatabaseNative"
             default="true">
             <replace model="native"/>
             <datasource id="oceanbase"/>

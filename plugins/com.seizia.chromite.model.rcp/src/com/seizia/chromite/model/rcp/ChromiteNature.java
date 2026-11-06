@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.rcp;
+package com.seizia.chromite.model.rcp;
 
 import org.eclipse.core.resources.IProject;
 import org.eclipse.core.resources.IProjectNature;
@@ -23,9 +23,9 @@ import org.eclipse.core.runtime.CoreException;
 /**
  * DBeaver project nature
  */
-public class DBeaverNature implements IProjectNature {
+public class ChromiteNature implements IProjectNature {
 
-    public static final String NATURE_ID = "org.jkiss.dbeaver.DBeaverNature";
+    public static final String NATURE_ID = "com.seizia.chromite.ChromiteNature";
 
     private IProject project;
 

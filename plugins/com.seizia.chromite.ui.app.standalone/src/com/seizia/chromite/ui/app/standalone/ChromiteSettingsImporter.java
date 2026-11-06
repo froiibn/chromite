@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.app.standalone;
+package com.seizia.chromite.ui.app.standalone;
 
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.events.SelectionListener;
@@ -26,11 +26,11 @@ import org.eclipse.swt.widgets.*;
 import org.eclipse.ui.internal.WorkbenchPlugin;
 import org.eclipse.ui.plugin.AbstractUIPlugin;
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.model.DBConstants;
-import org.jkiss.dbeaver.model.rcp.DesktopApplicationImpl;
-import org.jkiss.dbeaver.model.runtime.BaseProgressMonitor;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.utils.GeneralUtils;
+import com.seizia.chromite.model.DBConstants;
+import com.seizia.chromite.model.rcp.DesktopApplicationImpl;
+import com.seizia.chromite.model.runtime.BaseProgressMonitor;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.utils.GeneralUtils;
 import org.jkiss.utils.ArrayUtils;
 import org.jkiss.utils.IOUtils;
 import org.jkiss.utils.StandardConstants;
@@ -41,7 +41,7 @@ import java.util.Properties;
 /**
  * This class controls all aspects of the application's execution
  */
-class DBeaverSettingsImporter {
+class ChromiteSettingsImporter {
 
     private static final String[] COPY_PLUGINS = {
         "org.eclipse.compare",
@@ -58,7 +58,7 @@ class DBeaverSettingsImporter {
         "org.eclipse.ui.workbench.texteditor",
     };
 
-    private final DBeaverApplication application;
+    private final ChromiteApplication application;
     private final Display display;
 
     private Shell windowShell;
@@ -70,7 +70,7 @@ class DBeaverSettingsImporter {
 
     private int shellResult = SWT.NONE;
 
-    public DBeaverSettingsImporter(DBeaverApplication application, Display display) {
+    public ChromiteSettingsImporter(ChromiteApplication application, Display display) {
         this.application = application;
         this.display = display;
     }
@@ -87,7 +87,7 @@ class DBeaverSettingsImporter {
             }
         }
 
-        String oldVersion = workspaceProps.getProperty(DBeaverApplication.VERSION_PROP_PRODUCT_VERSION);
+        String oldVersion = workspaceProps.getProperty(ChromiteApplication.VERSION_PROP_PRODUCT_VERSION);
         if (oldVersion == null) {
             oldVersion = "3.x";
         } else {
@@ -102,15 +102,15 @@ class DBeaverSettingsImporter {
             //System.getProperty(StandardConstants.ENV_USER_HOME),
             DBConstants.DEFAULT_DRIVERS_FOLDER);
 
-        Image dbeaverIcon = AbstractUIPlugin.imageDescriptorFromPlugin(DBeaverApplication.APPLICATION_PLUGIN_ID, "icons/dbeaver32.png").createImage();
-        Image dbeaverLogo = AbstractUIPlugin.imageDescriptorFromPlugin(DBeaverApplication.APPLICATION_PLUGIN_ID, "icons/dbeaver64.png").createImage();
+        Image chromiteIcon = AbstractUIPlugin.imageDescriptorFromPlugin(ChromiteApplication.APPLICATION_PLUGIN_ID, "icons/chromite32.png").createImage();
+        Image chromiteLogo = AbstractUIPlugin.imageDescriptorFromPlugin(ChromiteApplication.APPLICATION_PLUGIN_ID, "icons/chromite64.png").createImage();
 
         // Hide splash if any
         WorkbenchPlugin.unsetSplashShell(display);
 
         // Make new shell
         windowShell = new Shell(display);
-        windowShell.setImage(dbeaverIcon);
+        windowShell.setImage(chromiteIcon);
         windowShell.setText("Import " + GeneralUtils.getProductName() + " configuration");
         windowShell.setLayout(new GridLayout(1, false));
 
@@ -122,7 +122,7 @@ class DBeaverSettingsImporter {
             gl.horizontalSpacing = 10;
             infoGroup.setLayout(gl);
             Label iconLabel = new Label(infoGroup, SWT.NONE);
-            iconLabel.setImage(dbeaverLogo);
+            iconLabel.setImage(chromiteLogo);
             iconLabel.setLayoutData(new GridData(GridData.VERTICAL_ALIGN_BEGINNING));
             Label confirmLabel = new Label(infoGroup, SWT.NONE);
             //confirmLabel.setImage(JFaceResources.getImage(org.eclipse.jface.dialogs.Dialog.DLG_IMG_MESSAGE_INFO));
@@ -226,7 +226,7 @@ class DBeaverSettingsImporter {
                 copyWorkspaceFiles(monitor, DIR_TYPE.WORKSPACE, oldDir, newDir);
                 copyFolderFiles(monitor, oldDriversFolder, driversFolder);
             } finally {
-                DBeaverApplication.WORKSPACE_MIGRATED = true;
+                ChromiteApplication.WORKSPACE_MIGRATED = true;
                 display.syncExec(new Runnable() {
                     @Override
                     public void run() {
@@ -285,7 +285,7 @@ class DBeaverSettingsImporter {
                         dirType = DIR_TYPE.PLUGINS;
                     }
                     break;
-                case "org.jkiss.dbeaver.core":
+                case "com.seizia.chromite.core":
                     if (parentDirType == DIR_TYPE.PLUGINS) {
                         dirType = DIR_TYPE.CORE;
                     }
@@ -295,13 +295,13 @@ class DBeaverSettingsImporter {
             String relPath = file.getAbsolutePath().substring(oldWorkspacePath.getAbsolutePath().length());
             monitor.subTask(relPath);
             if (file.isDirectory()) {
-                if (parentDirType == DIR_TYPE.METADATA && !(fileName.equals(".plugins") || fileName.equals("qmdb") || fileName.startsWith("dbeaver"))) {
+                if (parentDirType == DIR_TYPE.METADATA && !(fileName.equals(".plugins") || fileName.equals("qmdb") || fileName.startsWith("chromite"))) {
                     // Skip all dirs but plugins
                     skippedFiles += countWorkspaceFiles(file);
                     continue;
                 }
                 if (parentDirType == DIR_TYPE.PLUGINS) {
-                    if (!fileName.contains("dbeaver") && !ArrayUtils.contains(COPY_PLUGINS, fileName)) {
+                    if (!fileName.contains("chromite") && !ArrayUtils.contains(COPY_PLUGINS, fileName)) {
                         skippedFiles += countWorkspaceFiles(file);
                         continue;
                     }
@@ -337,7 +337,7 @@ class DBeaverSettingsImporter {
                     continue;
                 }
                 File newFile = new File(toDir, fileName);
-                if (fileName.equals("org.jkiss.dbeaver.core.prefs")) {
+                if (fileName.equals("com.seizia.chromite.core.prefs")) {
                     // Patch configuration
                     Properties coreProps = new Properties();
                     try (FileInputStream is = new FileInputStream(file)) {
@@ -348,7 +348,7 @@ class DBeaverSettingsImporter {
                     final String driversHomeProp = coreProps.getProperty("ui.drivers.home");
                     if (driversHomeProp != null && !driversHomeProp.isEmpty()) {
                         File oldDriversPath = new File(driversHomeProp);
-                        if (oldDriversPath.equals(new File(oldWorkspacePath, ".metadata/.plugins/org.jkiss.dbeaver.core"))) {
+                        if (oldDriversPath.equals(new File(oldWorkspacePath, ".metadata/.plugins/com.seizia.chromite.core"))) {
                             // Set new drivers path
                             coreProps.setProperty("ui.drivers.home", driversFolder.getAbsolutePath());
                         }
@@ -363,8 +363,8 @@ class DBeaverSettingsImporter {
                     String driversText = null;
                     try (Reader r = new InputStreamReader(new FileInputStream(file), GeneralUtils.UTF8_CHARSET)) {
                         driversText = IOUtils.readToString(r);
-                        driversText = driversText.replace("${workspace}\\.metadata\\.plugins\\org.jkiss.dbeaver.core", "${drivers_home}");
-                        driversText = driversText.replace("${workspace}/.metadata/.plugins/org.jkiss.dbeaver.core", "${drivers_home}");
+                        driversText = driversText.replace("${workspace}\\.metadata\\.plugins\\com.seizia.chromite.core", "${drivers_home}");
+                        driversText = driversText.replace("${workspace}/.metadata/.plugins/com.seizia.chromite.core", "${drivers_home}");
                     } catch (IOException e) {
                         e.printStackTrace(System.err);
                     }

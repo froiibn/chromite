@@ -14,17 +14,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.altibase.ui.config;
+package com.seizia.chromite.ext.altibase.ui.config;
 
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.ext.altibase.model.AltibaseTypeset;
-import org.jkiss.dbeaver.ext.altibase.ui.views.CreateTypesetPage;
-import org.jkiss.dbeaver.model.edit.DBECommandContext;
-import org.jkiss.dbeaver.model.edit.DBEObjectConfigurator;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.model.struct.rdb.DBSProcedureType;
-import org.jkiss.dbeaver.ui.UITask;
-import org.jkiss.dbeaver.utils.GeneralUtils;
+import com.seizia.chromite.ext.altibase.model.AltibaseTypeset;
+import com.seizia.chromite.ext.altibase.ui.views.CreateTypesetPage;
+import com.seizia.chromite.model.edit.DBECommandContext;
+import com.seizia.chromite.model.edit.DBEObjectConfigurator;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.model.struct.rdb.DBSProcedureType;
+import com.seizia.chromite.ui.UITask;
+import com.seizia.chromite.utils.GeneralUtils;
 
 import java.util.Map;
 

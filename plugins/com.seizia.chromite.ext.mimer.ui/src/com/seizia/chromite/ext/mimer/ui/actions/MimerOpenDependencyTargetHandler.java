@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.mimer.ui.actions;
+package com.seizia.chromite.ext.mimer.ui.actions;
 
 import org.eclipse.core.commands.AbstractHandler;
 import org.eclipse.core.commands.ExecutionEvent;
@@ -24,17 +24,17 @@ import org.eclipse.jface.viewers.ISelection;
 import org.eclipse.ui.handlers.HandlerUtil;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.ext.mimer.model.MimerObjectUsedBy;
-import org.jkiss.dbeaver.ext.mimer.model.MimerObjectUses;
-import org.jkiss.dbeaver.ext.mimer.ui.internal.MimerUIMessages;
-import org.jkiss.dbeaver.model.navigator.DBNDatabaseNode;
-import org.jkiss.dbeaver.model.navigator.DBNNode;
-import org.jkiss.dbeaver.model.runtime.AbstractJob;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.model.struct.DBSObject;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.navigator.NavigatorUtils;
+import com.seizia.chromite.ext.mimer.model.MimerObjectUsedBy;
+import com.seizia.chromite.ext.mimer.model.MimerObjectUses;
+import com.seizia.chromite.ext.mimer.ui.internal.MimerUIMessages;
+import com.seizia.chromite.model.navigator.DBNDatabaseNode;
+import com.seizia.chromite.model.navigator.DBNNode;
+import com.seizia.chromite.model.runtime.AbstractJob;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.model.struct.DBSObject;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.navigator.NavigatorUtils;
 
 /**
  * "Open Target" navigator action for a {@link MimerObjectUsedBy}/{@link MimerObjectUses}
@@ -46,9 +46,9 @@ import org.jkiss.dbeaver.ui.navigator.NavigatorUtils;
  * navigator context menu instead of the left-click-with-modifier core's {@code
  * ObjectViewerRenderer} listens for - the context menu's own "View Object" entry just reopens the
  * row itself, not the resolved target), and Option(Alt)+Click doesn't navigate either. That
- * mouse-handling code lives in {@code org.jkiss.dbeaver.ui} (core, outside
+ * mouse-handling code lives in {@code com.seizia.chromite.ui} (core, outside
  * this codebase) - rather than try to patch it, this menu action reaches the exact same {@link
- * org.jkiss.dbeaver.ext.mimer.model.MimerUtils#resolveDependencyObject} result through a path
+ * com.seizia.chromite.ext.mimer.model.MimerUtils#resolveDependencyObject} result through a path
  * that doesn't depend on any mouse modifier at all.
  *
  * @author Mimer Information Technology

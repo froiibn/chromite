@@ -14,15 +14,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.eula;
+package com.seizia.chromite.ui.eula;
 
 import org.eclipse.core.runtime.Platform;
 import org.eclipse.swt.widgets.Shell;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.utils.RuntimeUtils;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.utils.RuntimeUtils;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -31,7 +31,7 @@ import java.nio.file.Path;
 public class EULAUtils {
     private static final Log log = Log.getLog(EULAUtils.class);
 
-    public static final String DBEAVER_EULA = "DBeaver.eula";
+    public static final String CHROMITE_EULA = "DBeaver.eula";
 
     //TODO change hardcoded eula version to something more flexible
     private static final String eulaVersion = "1.5";

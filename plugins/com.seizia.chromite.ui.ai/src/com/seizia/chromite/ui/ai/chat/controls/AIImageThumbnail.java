@@ -14,15 +14,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.ai.chat.controls;
+package com.seizia.chromite.ui.ai.chat.controls;
 
 import org.eclipse.core.runtime.jobs.ISchedulingRule;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.graphics.ImageData;
 import org.eclipse.swt.graphics.ImageLoader;
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.model.ai.AIImageDimensions;
-import org.jkiss.dbeaver.ui.swt.ImageConverter;
+import com.seizia.chromite.model.ai.AIImageDimensions;
+import com.seizia.chromite.ui.swt.ImageConverter;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;

@@ -14,23 +14,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.mimer.ui.config;
+package com.seizia.chromite.ext.mimer.ui.config;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.ext.generic.model.GenericTableBase;
-import org.jkiss.dbeaver.ext.generic.model.GenericTableColumn;
-import org.jkiss.dbeaver.ext.mimer.model.MimerDataSource;
-import org.jkiss.dbeaver.ext.mimer.model.MimerTableIndex;
-import org.jkiss.dbeaver.ext.mimer.model.MimerTableIndexColumn;
-import org.jkiss.dbeaver.model.edit.DBECommandContext;
-import org.jkiss.dbeaver.model.edit.DBEObjectConfigurator;
-import org.jkiss.dbeaver.model.impl.DBObjectNameCaseTransformer;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.model.struct.DBSEntityAttribute;
-import org.jkiss.dbeaver.model.struct.rdb.DBSIndexType;
-import org.jkiss.dbeaver.ui.UITask;
-import org.jkiss.dbeaver.ui.editors.object.struct.EditIndexPage;
+import com.seizia.chromite.ext.generic.model.GenericTableBase;
+import com.seizia.chromite.ext.generic.model.GenericTableColumn;
+import com.seizia.chromite.ext.mimer.model.MimerDataSource;
+import com.seizia.chromite.ext.mimer.model.MimerTableIndex;
+import com.seizia.chromite.ext.mimer.model.MimerTableIndexColumn;
+import com.seizia.chromite.model.edit.DBECommandContext;
+import com.seizia.chromite.model.edit.DBEObjectConfigurator;
+import com.seizia.chromite.model.impl.DBObjectNameCaseTransformer;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.model.struct.DBSEntityAttribute;
+import com.seizia.chromite.model.struct.rdb.DBSIndexType;
+import com.seizia.chromite.ui.UITask;
+import com.seizia.chromite.ui.editors.object.struct.EditIndexPage;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -49,7 +49,7 @@ import java.util.Map;
  * MimerTableIndexColumn#getAlgorithm}. A column marked "Include" is added to {@code
  * includedColumns} instead of the index's own ordinal key-column list, since it isn't part of
  * the index key at all in Mimer SQL's grammar - just carried along in a separate {@code
- * INCLUDE (...)} clause (see {@link org.jkiss.dbeaver.ext.mimer.edit.MimerIndexManager}). So
+ * INCLUDE (...)} clause (see {@link com.seizia.chromite.ext.mimer.edit.MimerIndexManager}). So
  * {@code colIndex} is only advanced from a real key column, not simply the first selected one.
  * <p>
  * The index's own name is no longer built here at all - {@link
@@ -60,7 +60,7 @@ import java.util.Map;
  * <p>
  * Defensively normalizes a {@code CLUSTERED} index's Ignore Nulls/Include/Algorithm choices back
  * to "none" here too - on top of {@link MimerCreateIndexPage}'s own UI-level enforcement and
- * {@link org.jkiss.dbeaver.ext.mimer.edit.MimerIndexManager}'s DDL-level re-check, see the
+ * {@link com.seizia.chromite.ext.mimer.edit.MimerIndexManager}'s DDL-level re-check, see the
  * {@code clustered} local below - so the invalid combination can never reach the DDL builder no
  * matter which layer a future change might otherwise miss.
  * <p>

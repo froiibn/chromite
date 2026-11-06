@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.preferences;
+package com.seizia.chromite.ui.preferences;
 
 import org.eclipse.jface.fieldassist.ComboContentAdapter;
 import org.eclipse.jface.fieldassist.ContentProposal;
@@ -28,25 +28,25 @@ import org.eclipse.ui.IWorkbench;
 import org.eclipse.ui.IWorkbenchPreferencePage;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.DBeaverPreferences;
-import org.jkiss.dbeaver.ModelPreferences;
-import org.jkiss.dbeaver.core.CoreMessages;
-import org.jkiss.dbeaver.model.DBConstants;
-import org.jkiss.dbeaver.model.app.DBPPlatformDesktop;
-import org.jkiss.dbeaver.model.app.DBPPlatformLanguage;
-import org.jkiss.dbeaver.model.app.DBPPlatformLanguageManager;
-import org.jkiss.dbeaver.model.preferences.DBPPreferenceStore;
-import org.jkiss.dbeaver.registry.language.PlatformLanguageDescriptor;
-import org.jkiss.dbeaver.registry.language.PlatformLanguageRegistry;
-import org.jkiss.dbeaver.registry.timezone.TimezoneRegistry;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.ui.ActionUtils;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.contentassist.ContentAssistUtils;
-import org.jkiss.dbeaver.ui.internal.UIConnectionMessages;
-import org.jkiss.dbeaver.ui.services.ApplicationPolicyService;
-import org.jkiss.dbeaver.utils.GeneralUtils;
-import org.jkiss.dbeaver.utils.PrefUtils;
+import com.seizia.chromite.ChromitePreferences;
+import com.seizia.chromite.ModelPreferences;
+import com.seizia.chromite.core.CoreMessages;
+import com.seizia.chromite.model.DBConstants;
+import com.seizia.chromite.model.app.DBPPlatformDesktop;
+import com.seizia.chromite.model.app.DBPPlatformLanguage;
+import com.seizia.chromite.model.app.DBPPlatformLanguageManager;
+import com.seizia.chromite.model.preferences.DBPPreferenceStore;
+import com.seizia.chromite.registry.language.PlatformLanguageDescriptor;
+import com.seizia.chromite.registry.language.PlatformLanguageRegistry;
+import com.seizia.chromite.registry.timezone.TimezoneRegistry;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.ui.ActionUtils;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.contentassist.ContentAssistUtils;
+import com.seizia.chromite.ui.internal.UIConnectionMessages;
+import com.seizia.chromite.ui.services.ApplicationPolicyService;
+import com.seizia.chromite.utils.GeneralUtils;
+import com.seizia.chromite.utils.PrefUtils;
 import org.jkiss.utils.CommonUtils;
 import org.jkiss.utils.StringUtils;
 
@@ -58,10 +58,10 @@ import java.util.List;
  * General product preferences.
  */
 public class PrefPageGeneral extends AbstractPrefPage implements IWorkbenchPreferencePage {
-    public static final String PAGE_ID = "org.jkiss.dbeaver.preferences.general"; //$NON-NLS-1$
+    public static final String PAGE_ID = "com.seizia.chromite.preferences.general"; //$NON-NLS-1$
 
     private static final String PRODUCT_CONFIGURATION_COMMAND_ID =
-        "org.jkiss.dbeaver.ui.app.config.showWizard"; //$NON-NLS-1$
+        "com.seizia.chromite.ui.app.config.showWizard"; //$NON-NLS-1$
 
     @Nullable
     private Button automaticUpdateCheck;
@@ -198,7 +198,7 @@ public class PrefPageGeneral extends AbstractPrefPage implements IWorkbenchPrefe
     private void setSettings() {
         DBPPreferenceStore store = DBWorkbench.getPlatform().getPreferenceStore();
         if (automaticUpdateCheck != null) {
-            automaticUpdateCheck.setSelection(store.getBoolean(DBeaverPreferences.UI_AUTO_UPDATE_CHECK));
+            automaticUpdateCheck.setSelection(store.getBoolean(ChromitePreferences.UI_AUTO_UPDATE_CHECK));
         }
         String timezone = store.getString(ModelPreferences.CLIENT_TIMEZONE);
         clientTimezone.setText(DBConstants.DEFAULT_TIMEZONE.equals(timezone) ? DBConstants.DEFAULT_TIMEZONE : timezone);
@@ -208,7 +208,7 @@ public class PrefPageGeneral extends AbstractPrefPage implements IWorkbenchPrefe
     protected void performDefaults() {
         DBPPreferenceStore store = DBWorkbench.getPlatform().getPreferenceStore();
         if (automaticUpdateCheck != null) {
-            automaticUpdateCheck.setSelection(store.getDefaultBoolean(DBeaverPreferences.UI_AUTO_UPDATE_CHECK));
+            automaticUpdateCheck.setSelection(store.getDefaultBoolean(ChromitePreferences.UI_AUTO_UPDATE_CHECK));
         }
         UIUtils.setComboSelection(clientTimezone, store.getDefaultString(ModelPreferences.CLIENT_TIMEZONE));
         super.performDefaults();
@@ -218,7 +218,7 @@ public class PrefPageGeneral extends AbstractPrefPage implements IWorkbenchPrefe
     public boolean performOk() {
         DBPPreferenceStore store = DBWorkbench.getPlatform().getPreferenceStore();
         store.setValue(
-            DBeaverPreferences.UI_AUTO_UPDATE_CHECK,
+            ChromitePreferences.UI_AUTO_UPDATE_CHECK,
             automaticUpdateCheck == null ? Boolean.FALSE : automaticUpdateCheck.getSelection()
         );
         PrefUtils.savePreferenceStore(store);

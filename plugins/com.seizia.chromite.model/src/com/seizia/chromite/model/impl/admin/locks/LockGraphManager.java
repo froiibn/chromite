@@ -15,11 +15,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.impl.admin.locks;
+package com.seizia.chromite.model.impl.admin.locks;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.model.admin.locks.DBAServerLock;
+import com.seizia.chromite.model.admin.locks.DBAServerLock;
 
 import java.util.*;
 

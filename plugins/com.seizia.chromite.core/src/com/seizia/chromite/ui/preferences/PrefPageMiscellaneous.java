@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.preferences;
+package com.seizia.chromite.ui.preferences;
 
 import org.eclipse.core.commands.common.EventManager;
 import org.eclipse.jface.layout.GridDataFactory;
@@ -33,17 +33,17 @@ import org.eclipse.ui.IWorkbench;
 import org.eclipse.ui.IWorkbenchPreferencePage;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.DBeaverPreferences;
-import org.jkiss.dbeaver.core.CoreMessages;
-import org.jkiss.dbeaver.model.preferences.DBPPreferenceStore;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.ui.*;
-import org.jkiss.dbeaver.ui.controls.DefaultColorSelector;
-import org.jkiss.dbeaver.ui.controls.TextWithDropDown;
-import org.jkiss.dbeaver.ui.controls.bool.BooleanMode;
-import org.jkiss.dbeaver.ui.controls.bool.BooleanState;
-import org.jkiss.dbeaver.ui.controls.bool.BooleanStyle;
-import org.jkiss.dbeaver.ui.controls.bool.BooleanStyleSet;
+import com.seizia.chromite.ChromitePreferences;
+import com.seizia.chromite.core.CoreMessages;
+import com.seizia.chromite.model.preferences.DBPPreferenceStore;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.ui.*;
+import com.seizia.chromite.ui.controls.DefaultColorSelector;
+import com.seizia.chromite.ui.controls.TextWithDropDown;
+import com.seizia.chromite.ui.controls.bool.BooleanMode;
+import com.seizia.chromite.ui.controls.bool.BooleanState;
+import com.seizia.chromite.ui.controls.bool.BooleanStyle;
+import com.seizia.chromite.ui.controls.bool.BooleanStyleSet;
 import org.jkiss.utils.CommonUtils;
 
 import java.util.ArrayList;
@@ -156,7 +156,7 @@ public class PrefPageMiscellaneous extends PrefPageMiscellaneousAbstract impleme
 
             holidayDecorationsCheck = UIUtils.createCheckbox(group, "Show holiday decorations", false);
             holidayDecorationsCheck.setLayoutData(new GridData());
-            holidayDecorationsCheck.setSelection(store.getBoolean(DBeaverPreferences.UI_SHOW_HOLIDAY_DECORATIONS));
+            holidayDecorationsCheck.setSelection(store.getBoolean(ChromitePreferences.UI_SHOW_HOLIDAY_DECORATIONS));
             UIUtils.createInfoLabel(group, CoreMessages.pref_page_ui_general_label_options_take_effect_after_restart);
         }
 
@@ -169,7 +169,7 @@ public class PrefPageMiscellaneous extends PrefPageMiscellaneousAbstract impleme
     protected void performDefaults() {
         final DBPPreferenceStore store = DBWorkbench.getPlatform().getPreferenceStore();
 
-        holidayDecorationsCheck.setSelection(store.getDefaultBoolean(DBeaverPreferences.UI_SHOW_HOLIDAY_DECORATIONS));
+        holidayDecorationsCheck.setSelection(store.getDefaultBoolean(ChromitePreferences.UI_SHOW_HOLIDAY_DECORATIONS));
 
         notifyBooleanStylesChanged(BooleanStyleSet.getDefaultStyleSet());
 
@@ -180,7 +180,7 @@ public class PrefPageMiscellaneous extends PrefPageMiscellaneousAbstract impleme
     public boolean performOk() {
         final DBPPreferenceStore store = DBWorkbench.getPlatform().getPreferenceStore();
 
-        store.setValue(DBeaverPreferences.UI_SHOW_HOLIDAY_DECORATIONS, holidayDecorationsCheck.getSelection());
+        store.setValue(ChromitePreferences.UI_SHOW_HOLIDAY_DECORATIONS, holidayDecorationsCheck.getSelection());
 
         BooleanStyleSet.setDefaultStyles(store, new BooleanStyleSet(
             booleanCheckedPanel.saveStyle(),
@@ -369,7 +369,7 @@ public class PrefPageMiscellaneous extends PrefPageMiscellaneousAbstract impleme
 
                 for (final UIElementAlignment alignment : UIElementAlignment.values()) {
                     final ToolItem item = new ToolItem(alignToolBar, SWT.RADIO);
-                    item.setImage(DBeaverIcons.getImage(alignment.getIcon()));
+                    item.setImage(SwtIcons.getImage(alignment.getIcon()));
                     item.setToolTipText(alignment.getLabel());
                     item.addSelectionListener(selectionListener);
                     item.setData(alignment);

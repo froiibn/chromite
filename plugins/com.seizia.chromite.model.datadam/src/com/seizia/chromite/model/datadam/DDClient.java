@@ -14,13 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.datadam;
+package com.seizia.chromite.model.datadam;
 
 import com.dbeaver.rest.client.AbstractRestClient;
 import com.dbeaver.rest.client.interceptor.HttpInterceptor;
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.utils.GeneralUtils;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.utils.GeneralUtils;
 
 import java.net.http.HttpClient;
 import java.util.List;

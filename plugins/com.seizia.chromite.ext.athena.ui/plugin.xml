@@ -3,8 +3,8 @@
 
 <plugin>
 
-    <extension point="org.jkiss.dbeaver.dataSourceConfigurator">
-        <configurator dataSource="athena" class="org.jkiss.dbeaver.ext.athena.ui.views.AthenaConnectionPage"/>
+    <extension point="com.seizia.chromite.dataSourceConfigurator">
+        <configurator dataSource="athena" class="com.seizia.chromite.ext.athena.ui.views.AthenaConnectionPage"/>
     </extension>
 
 </plugin>

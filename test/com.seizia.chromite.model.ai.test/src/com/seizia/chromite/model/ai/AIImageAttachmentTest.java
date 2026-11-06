@@ -14,28 +14,28 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.ai;
+package com.seizia.chromite.model.ai;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.model.ai.engine.AIModel;
-import org.jkiss.dbeaver.model.ai.engine.AIModelFeature;
-import org.jkiss.dbeaver.model.ai.engine.copilot.CopilotClientChat;
-import org.jkiss.dbeaver.model.ai.engine.copilot.CopilotClientResponses;
-import org.jkiss.dbeaver.model.ai.engine.copilot.dto.CopilotChatRequest;
-import org.jkiss.dbeaver.model.ai.engine.copilot.dto.CopilotMessage;
-import org.jkiss.dbeaver.model.ai.engine.copilot.dto.CopilotSessionToken;
-import org.jkiss.dbeaver.model.ai.engine.openai.dto.OAIMessageFactory;
-import org.jkiss.dbeaver.model.ai.engine.openai.dto.OAIResponsesRequest;
-import org.jkiss.dbeaver.model.ai.engine.openai.dto.legacy.ChatMessage;
-import org.jkiss.dbeaver.model.ai.engine.openai.dto.legacy.ChatMessageContent;
-import org.jkiss.dbeaver.model.ai.impl.ChatTruncator;
-import org.jkiss.dbeaver.model.ai.impl.DummyTokenCounter;
-import org.jkiss.dbeaver.model.ai.prompt.AIPromptGenerateSql;
-import org.jkiss.dbeaver.model.ai.qm.QMAIChatHistoryMapper;
-import org.jkiss.dbeaver.model.ai.qm.QMAIChatMessage;
-import org.jkiss.dbeaver.model.data.json.JSONUtils;
-import org.jkiss.dbeaver.model.runtime.VoidProgressMonitor;
+import com.seizia.chromite.model.ai.engine.AIModel;
+import com.seizia.chromite.model.ai.engine.AIModelFeature;
+import com.seizia.chromite.model.ai.engine.copilot.CopilotClientChat;
+import com.seizia.chromite.model.ai.engine.copilot.CopilotClientResponses;
+import com.seizia.chromite.model.ai.engine.copilot.dto.CopilotChatRequest;
+import com.seizia.chromite.model.ai.engine.copilot.dto.CopilotMessage;
+import com.seizia.chromite.model.ai.engine.copilot.dto.CopilotSessionToken;
+import com.seizia.chromite.model.ai.engine.openai.dto.OAIMessageFactory;
+import com.seizia.chromite.model.ai.engine.openai.dto.OAIResponsesRequest;
+import com.seizia.chromite.model.ai.engine.openai.dto.legacy.ChatMessage;
+import com.seizia.chromite.model.ai.engine.openai.dto.legacy.ChatMessageContent;
+import com.seizia.chromite.model.ai.impl.ChatTruncator;
+import com.seizia.chromite.model.ai.impl.DummyTokenCounter;
+import com.seizia.chromite.model.ai.prompt.AIPromptGenerateSql;
+import com.seizia.chromite.model.ai.qm.QMAIChatHistoryMapper;
+import com.seizia.chromite.model.ai.qm.QMAIChatMessage;
+import com.seizia.chromite.model.data.json.JSONUtils;
+import com.seizia.chromite.model.runtime.VoidProgressMonitor;
 import org.jkiss.utils.Pair;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;

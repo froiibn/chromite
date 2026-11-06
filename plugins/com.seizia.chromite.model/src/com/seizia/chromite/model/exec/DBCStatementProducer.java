@@ -14,11 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.exec;
+package com.seizia.chromite.model.exec;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.model.sql.SQLQuery;
+import com.seizia.chromite.model.sql.SQLQuery;
 
 /** Creates and binds statements requiring driver-specific parameter handling. */
 public interface DBCStatementProducer {

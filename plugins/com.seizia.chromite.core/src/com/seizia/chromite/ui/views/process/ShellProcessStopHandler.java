@@ -14,14 +14,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.views.process;
+package com.seizia.chromite.ui.views.process;
 
 import org.eclipse.core.commands.AbstractHandler;
 import org.eclipse.core.commands.ExecutionEvent;
 import org.eclipse.core.commands.ExecutionException;
 import org.eclipse.ui.IWorkbenchPart;
 import org.eclipse.ui.handlers.HandlerUtil;
-import org.jkiss.dbeaver.model.runtime.DBRProcessController;
+import com.seizia.chromite.model.runtime.DBRProcessController;
 
 public class ShellProcessStopHandler extends AbstractHandler {
 

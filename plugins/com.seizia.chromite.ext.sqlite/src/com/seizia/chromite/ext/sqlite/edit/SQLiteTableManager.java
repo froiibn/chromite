@@ -14,31 +14,31 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.sqlite.edit;
+package com.seizia.chromite.ext.sqlite.edit;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.ext.generic.edit.GenericTableManager;
-import org.jkiss.dbeaver.ext.generic.model.*;
-import org.jkiss.dbeaver.ext.sqlite.model.SQLiteTable;
-import org.jkiss.dbeaver.ext.sqlite.model.SQLiteTableColumn;
-import org.jkiss.dbeaver.ext.sqlite.model.SQLiteTableForeignKey;
-import org.jkiss.dbeaver.model.DBPEvaluationContext;
-import org.jkiss.dbeaver.model.DBPPersistedObject;
-import org.jkiss.dbeaver.model.DBPScriptObject;
-import org.jkiss.dbeaver.model.DBUtils;
-import org.jkiss.dbeaver.model.edit.*;
-import org.jkiss.dbeaver.model.edit.prop.DBECommandDeleteObject;
-import org.jkiss.dbeaver.model.exec.DBCExecutionContext;
-import org.jkiss.dbeaver.model.impl.edit.SQLDatabasePersistAction;
-import org.jkiss.dbeaver.model.impl.edit.SQLDatabasePersistActionComment;
-import org.jkiss.dbeaver.model.messages.ModelMessages;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.model.struct.DBSEntityConstraint;
-import org.jkiss.dbeaver.model.struct.DBSEntityConstraintType;
-import org.jkiss.dbeaver.model.struct.DBSObject;
-import org.jkiss.dbeaver.model.struct.DBStructUtils;
+import com.seizia.chromite.ext.generic.edit.GenericTableManager;
+import com.seizia.chromite.ext.generic.model.*;
+import com.seizia.chromite.ext.sqlite.model.SQLiteTable;
+import com.seizia.chromite.ext.sqlite.model.SQLiteTableColumn;
+import com.seizia.chromite.ext.sqlite.model.SQLiteTableForeignKey;
+import com.seizia.chromite.model.DBPEvaluationContext;
+import com.seizia.chromite.model.DBPPersistedObject;
+import com.seizia.chromite.model.DBPScriptObject;
+import com.seizia.chromite.model.DBUtils;
+import com.seizia.chromite.model.edit.*;
+import com.seizia.chromite.model.edit.prop.DBECommandDeleteObject;
+import com.seizia.chromite.model.exec.DBCExecutionContext;
+import com.seizia.chromite.model.impl.edit.SQLDatabasePersistAction;
+import com.seizia.chromite.model.impl.edit.SQLDatabasePersistActionComment;
+import com.seizia.chromite.model.messages.ModelMessages;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.model.struct.DBSEntityConstraint;
+import com.seizia.chromite.model.struct.DBSEntityConstraintType;
+import com.seizia.chromite.model.struct.DBSObject;
+import com.seizia.chromite.model.struct.DBStructUtils;
 import org.jkiss.utils.CommonUtils;
 
 import java.util.ArrayList;

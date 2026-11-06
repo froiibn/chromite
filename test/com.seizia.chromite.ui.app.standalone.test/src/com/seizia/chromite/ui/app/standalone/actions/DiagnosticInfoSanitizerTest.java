@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.app.standalone.actions;
+package com.seizia.chromite.ui.app.standalone.actions;
 
 import org.junit.jupiter.api.Test;
 
@@ -79,8 +79,8 @@ class DiagnosticInfoSanitizerTest {
     void preservesTimestampAndPluginNameInLogHeader() {
         var sanitizer = new DiagnosticInfoSanitizer(Map.of());
         String lines = "2026-11-04 12:56:04.687 - Start [org.eclipse.osgi]\n"
-            + "2026-11-04 12:56:04.696 - Start [org.jkiss.dbeaver.core]\n"
-            + "2026-11-04 12:56:04.701 - Start [org.jkiss.dbeaver.ui.app.standalone]";
+            + "2026-11-04 12:56:04.696 - Start [com.seizia.chromite.core]\n"
+            + "2026-11-04 12:56:04.701 - Start [com.seizia.chromite.ui.app.standalone]";
         assertEquals(lines, sanitizer.sanitize(lines));
         assertEquals("Found [[REDACTED]]", sanitizer.sanitize("Found [db.customer.de]"));
     }
@@ -112,7 +112,7 @@ class DiagnosticInfoSanitizerTest {
             sanitizer.sanitize("2026-11-04 14:30:46.756 - DBeaver Ultimate 26.2.5.qualifier is starting"));
         assertEquals("2026-11-04 14:30:46.756 - DBeaver Ultimate 26.2.5.123123123 is starting",
             sanitizer.sanitize("2026-11-04 14:30:46.756 - DBeaver Ultimate 26.2.5.123123123 is starting"));
-        var versionEnvironment = new DiagnosticInfoSanitizer(Map.of("DBEAVER_PRODUCT_VERSION", "26.2.5.qualifier"));
+        var versionEnvironment = new DiagnosticInfoSanitizer(Map.of("CHROMITE_PRODUCT_VERSION", "26.2.5.qualifier"));
         assertEquals("2026-11-04 14:30:46.756 - DBeaver Ultimate 26.2.5.qualifier is starting",
             versionEnvironment.sanitize("2026-11-04 14:30:46.756 - DBeaver Ultimate 26.2.5.qualifier is starting"));
     }
@@ -120,7 +120,7 @@ class DiagnosticInfoSanitizerTest {
     @Test
     void preservesEclipseLogEntryBundleIdentifiers() {
         var sanitizer = new DiagnosticInfoSanitizer(Map.of());
-        String lines = "!ENTRY org.jkiss.dbeaver.ui 2 0 2026-11-04 14:05:13.124\n"
+        String lines = "!ENTRY com.seizia.chromite.ui 2 0 2026-11-04 14:05:13.124\n"
             + "!MESSAGE Cannot connect DataDam desktop channel\n"
             + "!SUBENTRY 1 org.eclipse.core.runtime 2 0 2026-11-04 14:05:13.125\n"
             + "!MESSAGE java.net.http.HttpConnectTimeoutException: HTTP connect timed out\n"

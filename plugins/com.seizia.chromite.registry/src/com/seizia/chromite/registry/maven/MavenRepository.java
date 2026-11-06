@@ -15,18 +15,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.registry.maven;
+package com.seizia.chromite.registry.maven;
 
 import org.eclipse.core.runtime.IConfigurationElement;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.connection.DBPAuthInfo;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.registry.RegistryConstants;
-import org.jkiss.dbeaver.registry.driver.DriverDescriptor;
-import org.jkiss.dbeaver.registry.driver.DriverUtils;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.connection.DBPAuthInfo;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.registry.RegistryConstants;
+import com.seizia.chromite.registry.driver.DriverDescriptor;
+import com.seizia.chromite.registry.driver.DriverUtils;
+import com.seizia.chromite.runtime.DBWorkbench;
 import org.jkiss.utils.CommonUtils;
 
 import java.io.IOException;
@@ -50,7 +50,7 @@ public class MavenRepository
 {
     private static final Log log = Log.getLog(MavenRepository.class);
 
-    public static final String EXTENSION_ID = "org.jkiss.dbeaver.mavenRepository";
+    public static final String EXTENSION_ID = "com.seizia.chromite.mavenRepository";
 
     public static final String ATTR_ID = "id";
     public static final String ATTR_NAME = "name";
@@ -262,7 +262,7 @@ public class MavenRepository
         }
 
         Path homeFolder = customDriversHome.resolve("maven/" + extPath);
-        //File homeFolder = new File(DBeaverActivator.getInstance().getStateLocation().toFile(), "maven/" + extPath);
+        //File homeFolder = new File(ChromiteActivator.getInstance().getStateLocation().toFile(), "maven/" + extPath);
         if (!Files.exists(homeFolder)) {
             try {
                 Files.createDirectories(homeFolder);

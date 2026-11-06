@@ -16,13 +16,13 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.ext.postgresql.model.plan;
+package com.seizia.chromite.ext.postgresql.model.plan;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
-import org.jkiss.dbeaver.ext.postgresql.model.PostgreDataSource;
-import org.jkiss.dbeaver.model.impl.plan.AbstractExecutionPlanSerializer;
+import com.seizia.chromite.ext.postgresql.model.PostgreDataSource;
+import com.seizia.chromite.model.impl.plan.AbstractExecutionPlanSerializer;
 
 import java.util.HashMap;
 import java.util.Map;

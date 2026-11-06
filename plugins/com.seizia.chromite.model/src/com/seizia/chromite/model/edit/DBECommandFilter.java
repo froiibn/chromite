@@ -15,10 +15,10 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.model.edit;
+package com.seizia.chromite.model.edit;
 
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.model.struct.DBSObject;
+import com.seizia.chromite.model.struct.DBSObject;
 
 /**
  * Command filter.

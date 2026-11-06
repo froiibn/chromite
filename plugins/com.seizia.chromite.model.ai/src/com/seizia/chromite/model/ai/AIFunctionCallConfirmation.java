@@ -15,10 +15,10 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.model.ai;
+package com.seizia.chromite.model.ai;
 
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.model.ai.utils.AIUtils;
+import com.seizia.chromite.model.ai.utils.AIUtils;
 
 import java.util.ArrayList;
 import java.util.List;

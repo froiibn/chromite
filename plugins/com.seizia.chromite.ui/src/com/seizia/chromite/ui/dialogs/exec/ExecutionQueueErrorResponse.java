@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.ui.dialogs.exec;
+package com.seizia.chromite.ui.dialogs.exec;
 
 /**
  * ExecutionQueueErrorResponse

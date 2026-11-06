@@ -17,7 +17,7 @@
  */
 
 
-package org.jkiss.dbeaver.debug.ui;
+package com.seizia.chromite.debug.ui;
 
 import org.eclipse.debug.core.ILaunchConfiguration;
 import org.eclipse.debug.ui.DebugUITools;
@@ -38,8 +38,8 @@ import org.eclipse.ui.IEditorPart;
 import org.eclipse.ui.IWorkbenchPage;
 import org.eclipse.ui.IWorkbenchWindow;
 import org.eclipse.ui.PlatformUI;
-import org.jkiss.dbeaver.debug.ui.internal.DebugUIInternals;
-import org.jkiss.dbeaver.model.struct.DBSObject;
+import com.seizia.chromite.debug.ui.internal.DebugUIInternals;
+import com.seizia.chromite.model.struct.DBSObject;
 
 import java.util.*;
 

@@ -15,12 +15,12 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.model.ai;
+package com.seizia.chromite.model.ai;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.ai.engine.AIDatabaseContext;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.ai.engine.AIDatabaseContext;
 
 import java.util.LinkedHashMap;
 import java.util.Map;

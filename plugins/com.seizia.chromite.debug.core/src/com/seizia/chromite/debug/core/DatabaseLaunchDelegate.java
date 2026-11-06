@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.debug.core;
+package com.seizia.chromite.debug.core;
 
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.IProgressMonitor;
@@ -23,14 +23,14 @@ import org.eclipse.debug.core.ILaunchConfiguration;
 import org.eclipse.debug.core.model.LaunchConfigurationDelegate;
 import org.eclipse.osgi.util.NLS;
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.debug.DBGConstants;
-import org.jkiss.dbeaver.debug.DBGController;
-import org.jkiss.dbeaver.debug.DBGControllerFactory;
-import org.jkiss.dbeaver.debug.DBGException;
-import org.jkiss.dbeaver.debug.core.model.DatabaseDebugTarget;
-import org.jkiss.dbeaver.debug.core.model.DatabaseProcess;
-import org.jkiss.dbeaver.model.DBPDataSourceContainer;
-import org.jkiss.dbeaver.utils.GeneralUtils;
+import com.seizia.chromite.debug.DBGConstants;
+import com.seizia.chromite.debug.DBGController;
+import com.seizia.chromite.debug.DBGControllerFactory;
+import com.seizia.chromite.debug.DBGException;
+import com.seizia.chromite.debug.core.model.DatabaseDebugTarget;
+import com.seizia.chromite.debug.core.model.DatabaseProcess;
+import com.seizia.chromite.model.DBPDataSourceContainer;
+import com.seizia.chromite.utils.GeneralUtils;
 
 import java.util.Map;
 

@@ -15,13 +15,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui;
+package com.seizia.chromite.ui;
 
 import org.eclipse.core.runtime.IStatus;
 import org.eclipse.swt.widgets.Shell;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.utils.GeneralUtils;
-import org.jkiss.dbeaver.utils.RuntimeUtils;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.utils.GeneralUtils;
+import com.seizia.chromite.utils.RuntimeUtils;
 
 import java.awt.*;
 import java.awt.event.MouseAdapter;
@@ -51,7 +51,7 @@ public class TrayIconHandler {
 
         Path logoFile;
         try {
-            logoFile = RuntimeUtils.getPlatformFile(UIIcon.DBEAVER_LOGO.getLocation());
+            logoFile = RuntimeUtils.getPlatformFile(UIIcon.CHROMITE_LOGO.getLocation());
         } catch (IOException e) {
             log.error(e);
             return;

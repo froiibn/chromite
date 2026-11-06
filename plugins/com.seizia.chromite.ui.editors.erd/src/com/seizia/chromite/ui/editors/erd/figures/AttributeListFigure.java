@@ -17,13 +17,13 @@
 /*
  * Created on Jul 13, 2004
  */
-package org.jkiss.dbeaver.ui.editors.erd.figures;
+package com.seizia.chromite.ui.editors.erd.figures;
 
 import org.eclipse.draw2d.*;
 import org.eclipse.draw2d.geometry.Insets;
 import org.eclipse.draw2d.geometry.Rectangle;
-import org.jkiss.dbeaver.model.erd.ERDEntity;
-import org.jkiss.dbeaver.ui.editors.erd.editor.ERDThemeSettings;
+import com.seizia.chromite.model.erd.ERDEntity;
+import com.seizia.chromite.ui.editors.erd.editor.ERDThemeSettings;
 
 import java.util.ArrayList;
 import java.util.List;

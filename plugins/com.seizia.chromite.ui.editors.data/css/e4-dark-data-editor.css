@@ -1,76 +1,76 @@
-ColorDefinition#org-jkiss-dbeaver-sql-resultset-color-cell-odd-background {
+ColorDefinition#com-seizia-chromite-sql-resultset-color-cell-odd-background {
     color: #252525;
 }
 
-ColorDefinition#org-jkiss-dbeaver-sql-resultset-color-cell-modified-background {
+ColorDefinition#com-seizia-chromite-sql-resultset-color-cell-modified-background {
     color: #963000;
 }
 
-ColorDefinition#org-jkiss-dbeaver-sql-resultset-color-cell-error-background {
+ColorDefinition#com-seizia-chromite-sql-resultset-color-cell-error-background {
     color: #800000;
 }
 
-ColorDefinition#org-jkiss-dbeaver-sql-resultset-color-cell-new-background {
+ColorDefinition#com-seizia-chromite-sql-resultset-color-cell-new-background {
     color: #004000;
 }
 
-ColorDefinition#org-jkiss-dbeaver-sql-resultset-color-cell-deleted-background {
+ColorDefinition#com-seizia-chromite-sql-resultset-color-cell-deleted-background {
     color: #400000;
 }
 
-ColorDefinition#org-jkiss-dbeaver-sql-resultset-color-cell-matched-background {
+ColorDefinition#com-seizia-chromite-sql-resultset-color-cell-matched-background {
     color: #8b4513;
 }
 
-ColorDefinition#org-jkiss-dbeaver-sql-resultset-color-selection-background {
+ColorDefinition#com-seizia-chromite-sql-resultset-color-selection-background {
     color: #505050;
 }
 
-ColorDefinition#org-jkiss-dbeaver-sql-resultset-color-selection-foreground {
+ColorDefinition#com-seizia-chromite-sql-resultset-color-selection-foreground {
     color: #f4f4f4;
 }
 
-ColorDefinition#org-jkiss-dbeaver-sql-resultset-color-lines-normal {
+ColorDefinition#com-seizia-chromite-sql-resultset-color-lines-normal {
     color: #1e1e1e;
 }
 
-ColorDefinition#org-jkiss-dbeaver-sql-resultset-color-lines-selected,
-ColorDefinition#org-jkiss-dbeaver-sql-resultset-color-header-border {
+ColorDefinition#com-seizia-chromite-sql-resultset-color-lines-selected,
+ColorDefinition#com-seizia-chromite-sql-resultset-color-header-border {
     color: #696969;
 }
 
-ColorDefinition#org-jkiss-dbeaver-sql-resultset-color-header-background {
+ColorDefinition#com-seizia-chromite-sql-resultset-color-header-background {
     color: #394248;
 }
 
-ColorDefinition#org-jkiss-dbeaver-sql-resultset-color-header-foreground {
+ColorDefinition#com-seizia-chromite-sql-resultset-color-header-foreground {
     color: #e0e0e0;
 }
 
-ColorDefinition#org-jkiss-dbeaver-sql-resultset-color-header-selected-background {
+ColorDefinition#com-seizia-chromite-sql-resultset-color-header-selected-background {
     color: #5a5a7c;
 }
 
-ColorDefinition#org-jkiss-dbeaver-sql-resultset-color-null-foreground {
+ColorDefinition#com-seizia-chromite-sql-resultset-color-null-foreground {
     color: #646464;
 }
 
-ColorDefinition#org-jkiss-dbeaver-sql-resultset-color-binary-foreground {
+ColorDefinition#com-seizia-chromite-sql-resultset-color-binary-foreground {
     color: #808000;
 }
 
-ColorDefinition#org-jkiss-dbeaver-sql-resultset-color-boolean-foreground {
+ColorDefinition#com-seizia-chromite-sql-resultset-color-boolean-foreground {
     color: #808080;
 }
 
-ColorDefinition#org-jkiss-dbeaver-sql-resultset-color-datetime-foreground {
+ColorDefinition#com-seizia-chromite-sql-resultset-color-datetime-foreground {
     color: #5ca259;
 }
 
-ColorDefinition#org-jkiss-dbeaver-sql-resultset-color-numeric-foreground {
+ColorDefinition#com-seizia-chromite-sql-resultset-color-numeric-foreground {
     color: #c0c0ff;
 }
 
-ColorDefinition#org-jkiss-dbeaver-sql-resultset-color-string-foreground {
+ColorDefinition#com-seizia-chromite-sql-resultset-color-string-foreground {
     color: #d0d0d0;
 }

@@ -14,24 +14,24 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.controls.lightgrid;
+package com.seizia.chromite.ui.controls.lightgrid;
 
 import org.eclipse.swt.graphics.Font;
 import org.eclipse.swt.graphics.GC;
 import org.eclipse.swt.graphics.Image;
 import org.eclipse.swt.graphics.Rectangle;
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.ui.DBeaverIcons;
-import org.jkiss.dbeaver.ui.UIIcon;
-import org.jkiss.dbeaver.ui.UITextUtils;
+import com.seizia.chromite.ui.SwtIcons;
+import com.seizia.chromite.ui.UIIcon;
+import com.seizia.chromite.ui.UITextUtils;
 import org.jkiss.utils.CommonUtils;
 
 /**
  * Grid row header renderer.
  */
 class GridRowRenderer extends AbstractRenderer {
-    static final Image IMG_EXPAND = DBeaverIcons.getImage(UIIcon.TREE_EXPAND);
-    static final Image IMG_COLLAPSE = DBeaverIcons.getImage(UIIcon.TREE_COLLAPSE);
+    static final Image IMG_EXPAND = SwtIcons.getImage(UIIcon.TREE_EXPAND);
+    static final Image IMG_COLLAPSE = SwtIcons.getImage(UIIcon.TREE_COLLAPSE);
     static final Rectangle EXPANDED_BOUNDS = IMG_EXPAND.getBounds();
 
     public static final int LEFT_MARGIN = 4;

@@ -14,15 +14,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.cli.model.option;
+package com.seizia.chromite.model.cli.model.option;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.model.DBPDataSourceContainer;
-import org.jkiss.dbeaver.model.cli.CLIException;
-import org.jkiss.dbeaver.model.cli.CLIUtils;
-import org.jkiss.dbeaver.model.cli.command.ListAuthenticationModelParameterHandler;
-import org.jkiss.dbeaver.model.cli.model.DataSourceUpdater;
+import com.seizia.chromite.model.DBPDataSourceContainer;
+import com.seizia.chromite.model.cli.CLIException;
+import com.seizia.chromite.model.cli.CLIUtils;
+import com.seizia.chromite.model.cli.command.ListAuthenticationModelParameterHandler;
+import com.seizia.chromite.model.cli.model.DataSourceUpdater;
 import picocli.CommandLine;
 
 import java.util.List;

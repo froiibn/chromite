@@ -14,11 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.net.ssh;
+package com.seizia.chromite.ui.net.ssh;
 
-import org.jkiss.dbeaver.model.net.DBWHandlerConfiguration;
-import org.jkiss.dbeaver.ui.IObjectPropertyConfigurator;
-import org.jkiss.dbeaver.ui.ObjectPropertyConfiguratorWrapper;
+import com.seizia.chromite.model.net.DBWHandlerConfiguration;
+import com.seizia.chromite.ui.IObjectPropertyConfigurator;
+import com.seizia.chromite.ui.ObjectPropertyConfiguratorWrapper;
 
 /**
  * SSH tunnel configuration

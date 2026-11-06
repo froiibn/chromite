@@ -15,12 +15,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.db2.model.fed;
+package com.seizia.chromite.ext.db2.model.fed;
 
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.ext.db2.model.DB2Object;
-import org.jkiss.dbeaver.model.impl.jdbc.JDBCUtils;
-import org.jkiss.dbeaver.model.meta.Property;
+import com.seizia.chromite.ext.db2.model.DB2Object;
+import com.seizia.chromite.model.impl.jdbc.JDBCUtils;
+import com.seizia.chromite.model.meta.Property;
 
 import java.sql.ResultSet;
 

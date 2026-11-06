@@ -14,13 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.runtime.jobs;
+package com.seizia.chromite.runtime.jobs;
 
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.model.DBPDataSourceContainer;
-import org.jkiss.dbeaver.model.DBPMessageType;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.runtime.DBeaverNotifications;
+import com.seizia.chromite.model.DBPDataSourceContainer;
+import com.seizia.chromite.model.DBPMessageType;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.runtime.ChromiteNotifications;
 
 import java.util.Collection;
 import java.util.Set;
@@ -36,9 +36,9 @@ public class DefaultInvalidationFeedbackHandler implements InvalidateJob.Invalid
         @NotNull DBPDataSourceContainer container,
         @NotNull Collection<InvalidateJob.ContextInvalidateResult> results
     ) {
-        DBeaverNotifications.showNotification(
+        ChromiteNotifications.showNotification(
             container.getDataSource(),
-            DBeaverNotifications.NT_RECONNECT_SUCCESS,
+            ChromiteNotifications.NT_RECONNECT_SUCCESS,
             "Datasource was invalidated\n\nLive connection count: " + InvalidateJob.getSucceededCount(results) + "/" + results.size(),
             DBPMessageType.INFORMATION
         );
@@ -49,9 +49,9 @@ public class DefaultInvalidationFeedbackHandler implements InvalidateJob.Invalid
         @NotNull DBPDataSourceContainer container,
         @NotNull Collection<InvalidateJob.ContextInvalidateResult> results
     ) {
-        DBeaverNotifications.showNotification(
+        ChromiteNotifications.showNotification(
             container.getDataSource(),
-            DBeaverNotifications.NT_RECONNECT_FAILURE,
+            ChromiteNotifications.NT_RECONNECT_FAILURE,
             "Datasource invalidate failed",
             DBPMessageType.ERROR,
             () -> onNotificationFeedback(container)

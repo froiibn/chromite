@@ -14,18 +14,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.datadam.mcp.function;
+package com.seizia.chromite.model.datadam.mcp.function;
 
 import com.dbeaver.datadam.mcp.api.exception.DDMcpFunctionException;
 import com.dbeaver.datadam.mcp.api.model.DDMcpFunctionResult;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.model.DBPDataSourceContainer;
-import org.jkiss.dbeaver.model.app.DBPProject;
-import org.jkiss.dbeaver.model.connection.DBPDataSourceType;
-import org.jkiss.dbeaver.model.datadam.mcp.DDMcpConnectionCatalog;
-import org.jkiss.dbeaver.model.datadam.mcp.DDMcpFunction;
+import com.seizia.chromite.model.DBPDataSourceContainer;
+import com.seizia.chromite.model.app.DBPProject;
+import com.seizia.chromite.model.connection.DBPDataSourceType;
+import com.seizia.chromite.model.datadam.mcp.DDMcpConnectionCatalog;
+import com.seizia.chromite.model.datadam.mcp.DDMcpFunction;
 
 import java.util.Map;
 

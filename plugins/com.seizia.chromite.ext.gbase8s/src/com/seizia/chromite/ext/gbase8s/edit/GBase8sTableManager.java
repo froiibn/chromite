@@ -15,30 +15,30 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.ext.gbase8s.edit;
+package com.seizia.chromite.ext.gbase8s.edit;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.ext.gbase8s.GBase8sConstants;
-import org.jkiss.dbeaver.ext.gbase8s.model.GBase8sTableColumn;
-import org.jkiss.dbeaver.ext.gbase8s.model.GBase8sUniqueKey;
-import org.jkiss.dbeaver.ext.generic.edit.GenericTableColumnManager;
-import org.jkiss.dbeaver.ext.generic.edit.GenericTableManager;
-import org.jkiss.dbeaver.ext.generic.model.*;
-import org.jkiss.dbeaver.model.*;
-import org.jkiss.dbeaver.model.edit.DBECommandContext;
-import org.jkiss.dbeaver.model.edit.DBEObjectRenamer;
-import org.jkiss.dbeaver.model.edit.DBEPersistAction;
-import org.jkiss.dbeaver.model.exec.DBCExecutionContext;
-import org.jkiss.dbeaver.model.impl.edit.SQLDatabasePersistAction;
-import org.jkiss.dbeaver.model.impl.sql.edit.SQLObjectEditor;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.model.runtime.VoidProgressMonitor;
-import org.jkiss.dbeaver.model.sql.SQLUtils;
-import org.jkiss.dbeaver.model.struct.DBSEntityConstraint;
-import org.jkiss.dbeaver.model.struct.DBSObject;
-import org.jkiss.dbeaver.model.struct.rdb.DBSTableIndex;
+import com.seizia.chromite.ext.gbase8s.GBase8sConstants;
+import com.seizia.chromite.ext.gbase8s.model.GBase8sTableColumn;
+import com.seizia.chromite.ext.gbase8s.model.GBase8sUniqueKey;
+import com.seizia.chromite.ext.generic.edit.GenericTableColumnManager;
+import com.seizia.chromite.ext.generic.edit.GenericTableManager;
+import com.seizia.chromite.ext.generic.model.*;
+import com.seizia.chromite.model.*;
+import com.seizia.chromite.model.edit.DBECommandContext;
+import com.seizia.chromite.model.edit.DBEObjectRenamer;
+import com.seizia.chromite.model.edit.DBEPersistAction;
+import com.seizia.chromite.model.exec.DBCExecutionContext;
+import com.seizia.chromite.model.impl.edit.SQLDatabasePersistAction;
+import com.seizia.chromite.model.impl.sql.edit.SQLObjectEditor;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.model.runtime.VoidProgressMonitor;
+import com.seizia.chromite.model.sql.SQLUtils;
+import com.seizia.chromite.model.struct.DBSEntityConstraint;
+import com.seizia.chromite.model.struct.DBSObject;
+import com.seizia.chromite.model.struct.rdb.DBSTableIndex;
 import org.jkiss.utils.CommonUtils;
 
 import java.util.Collection;

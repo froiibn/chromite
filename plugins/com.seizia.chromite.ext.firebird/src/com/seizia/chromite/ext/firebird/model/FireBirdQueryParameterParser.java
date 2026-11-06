@@ -14,16 +14,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.firebird.model;
+package com.seizia.chromite.ext.firebird.model;
 
 import org.eclipse.jface.text.BadLocationException;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.sql.SQLQueryParameter;
-import org.jkiss.dbeaver.model.sql.parser.DefaultSQLQueryParameterParser;
-import org.jkiss.dbeaver.model.sql.parser.SQLParserContext;
-import org.jkiss.dbeaver.model.sql.parser.SQLQueryParameterParser;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.sql.SQLQueryParameter;
+import com.seizia.chromite.model.sql.parser.DefaultSQLQueryParameterParser;
+import com.seizia.chromite.model.sql.parser.SQLParserContext;
+import com.seizia.chromite.model.sql.parser.SQLQueryParameterParser;
 
 import java.util.List;
 import java.util.regex.Pattern;

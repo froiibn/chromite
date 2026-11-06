@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.editors.erd.policy;
+package com.seizia.chromite.ui.editors.erd.policy;
 
 import org.eclipse.draw2d.geometry.Point;
 import org.eclipse.gef.EditPart;
@@ -24,10 +24,10 @@ import org.eclipse.gef.editpolicies.AbstractEditPolicy;
 import org.eclipse.gef.editpolicies.ContainerEditPolicy;
 import org.eclipse.gef.requests.CreateRequest;
 import org.eclipse.gef.requests.GroupRequest;
-import org.jkiss.dbeaver.model.erd.ERDEntity;
-import org.jkiss.dbeaver.model.erd.ERDNote;
-import org.jkiss.dbeaver.ui.editors.erd.command.NoteCreateCommand;
-import org.jkiss.dbeaver.ui.editors.erd.part.DiagramPart;
+import com.seizia.chromite.model.erd.ERDEntity;
+import com.seizia.chromite.model.erd.ERDNote;
+import com.seizia.chromite.ui.editors.erd.command.NoteCreateCommand;
+import com.seizia.chromite.ui.editors.erd.part.DiagramPart;
 import org.jkiss.utils.CommonUtils;
 
 import java.util.ArrayList;

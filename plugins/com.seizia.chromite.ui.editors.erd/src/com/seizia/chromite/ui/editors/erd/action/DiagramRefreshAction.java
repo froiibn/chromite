@@ -17,13 +17,13 @@
 /*
  * Created on Jul 23, 2004
  */
-package org.jkiss.dbeaver.ui.editors.erd.action;
+package com.seizia.chromite.ui.editors.erd.action;
 
 import org.eclipse.jface.action.Action;
-import org.jkiss.dbeaver.ui.DBeaverIcons;
-import org.jkiss.dbeaver.ui.UIIcon;
-import org.jkiss.dbeaver.ui.editors.erd.editor.ERDEditorPart;
-import org.jkiss.dbeaver.ui.editors.erd.internal.ERDUIMessages;
+import com.seizia.chromite.ui.SwtIcons;
+import com.seizia.chromite.ui.UIIcon;
+import com.seizia.chromite.ui.editors.erd.editor.ERDEditorPart;
+import com.seizia.chromite.ui.editors.erd.internal.ERDUIMessages;
 
 /**
  * Action to toggle the layout between manual and automatic
@@ -36,7 +36,7 @@ public class DiagramRefreshAction extends Action
 
 	public DiagramRefreshAction(ERDEditorPart editor)
 	{
-		super(ERDUIMessages.erd_editor_control_action_refresh_diagram, DBeaverIcons.getImageDescriptor(UIIcon.REFRESH));
+		super(ERDUIMessages.erd_editor_control_action_refresh_diagram, SwtIcons.getImageDescriptor(UIIcon.REFRESH));
 		this.editor = editor;
 	}
 

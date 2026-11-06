@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.app.standalone.update;
+package com.seizia.chromite.ui.app.standalone.update;
 
 import org.eclipse.e4.ui.model.application.ui.basic.MTrimBar;
 import org.eclipse.e4.ui.model.application.ui.basic.MTrimElement;
@@ -22,14 +22,14 @@ import org.eclipse.e4.ui.workbench.modeling.EModelService;
 import org.eclipse.ui.application.IWorkbenchWindowConfigurer;
 import org.eclipse.ui.internal.WorkbenchWindow;
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.model.app.DBPApplication;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.ui.IWorkbenchWindowInitializer;
-import org.jkiss.dbeaver.ui.services.ApplicationPolicyService;
-import org.jkiss.dbeaver.ui.services.UIServiceApplicationVersionUpdater;
+import com.seizia.chromite.model.app.DBPApplication;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.ui.IWorkbenchWindowInitializer;
+import com.seizia.chromite.ui.services.ApplicationPolicyService;
+import com.seizia.chromite.ui.services.UIServiceApplicationVersionUpdater;
 
 public class WorkbenchInitializerUpdateCheck implements IWorkbenchWindowInitializer {
-    private static final String UPDATE_TOOLBAR_ID = "dbeaver-version-update";
+    private static final String UPDATE_TOOLBAR_ID = "chromite-version-update";
     private static final String PERSPECTIVE_SPACER_ID = "PerspectiveSpacer";
 
     @Override
@@ -40,7 +40,7 @@ public class WorkbenchInitializerUpdateCheck implements IWorkbenchWindowInitiali
         if (isAutoupdateDisabled(application)) {
             return;
         }
-        new DBeaverVersionChecker(false).schedule();
+        new ChromiteVersionChecker(false).schedule();
     }
 
     private static void positionUpdateToolbar(@NotNull IWorkbenchWindowConfigurer configurer) {

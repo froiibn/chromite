@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.controls.resultset;
+package com.seizia.chromite.ui.controls.resultset;
 
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.events.MouseAdapter;
@@ -28,15 +28,15 @@ import org.eclipse.swt.widgets.ToolBar;
 import org.eclipse.swt.widgets.ToolItem;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.model.DBIcon;
-import org.jkiss.dbeaver.model.DBPMessageType;
-import org.jkiss.dbeaver.model.data.DBDDataReceiver;
-import org.jkiss.dbeaver.ui.ConComposite;
-import org.jkiss.dbeaver.ui.DBeaverIcons;
-import org.jkiss.dbeaver.ui.UIIcon;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.css.CSSUtils;
-import org.jkiss.dbeaver.ui.editors.TextEditorUtils;
+import com.seizia.chromite.model.DBIcon;
+import com.seizia.chromite.model.DBPMessageType;
+import com.seizia.chromite.model.data.DBDDataReceiver;
+import com.seizia.chromite.ui.ConComposite;
+import com.seizia.chromite.ui.SwtIcons;
+import com.seizia.chromite.ui.UIIcon;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.css.CSSUtils;
+import com.seizia.chromite.ui.editors.TextEditorUtils;
 import org.jkiss.utils.CommonUtils;
 
 import java.util.Collections;
@@ -65,7 +65,7 @@ class StatusLabel extends ConComposite {
         final ToolBar tb = new ToolBar(this, SWT.FLAT | SWT.HORIZONTAL);
 
         detailsIcon = new ToolItem(tb, SWT.NONE);
-        detailsIcon.setImage(DBeaverIcons.getImage(UIIcon.DOTS_BUTTON));
+        detailsIcon.setImage(SwtIcons.getImage(UIIcon.DOTS_BUTTON));
         tb.setLayoutData(new GridData(GridData.HORIZONTAL_ALIGN_BEGINNING));
 
         detailsIcon.addSelectionListener(SelectionListener.widgetSelectedAdapter(e -> showDetails()));
@@ -129,9 +129,9 @@ class StatusLabel extends ConComposite {
             message = "???"; //$NON-NLS-1$
         }
         if (statusIcon != null) {
-            detailsIcon.setImage(DBeaverIcons.getImage(statusIcon));
+            detailsIcon.setImage(SwtIcons.getImage(statusIcon));
         } else {
-            detailsIcon.setImage(DBeaverIcons.getImage(UIIcon.DOTS_BUTTON));
+            detailsIcon.setImage(SwtIcons.getImage(UIIcon.DOTS_BUTTON));
         }
         statusText.setText(CommonUtils.getSingleLineString(message));
         if (messageType != DBPMessageType.INFORMATION) {

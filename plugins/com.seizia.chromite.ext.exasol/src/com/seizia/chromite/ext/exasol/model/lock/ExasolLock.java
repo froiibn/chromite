@@ -15,11 +15,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.exasol.model.lock;
+package com.seizia.chromite.ext.exasol.model.lock;
 
-import org.jkiss.dbeaver.model.admin.locks.DBAServerLock;
-import org.jkiss.dbeaver.model.impl.jdbc.JDBCUtils;
-import org.jkiss.dbeaver.model.meta.Property;
+import com.seizia.chromite.model.admin.locks.DBAServerLock;
+import com.seizia.chromite.model.impl.jdbc.JDBCUtils;
+import com.seizia.chromite.model.meta.Property;
 
 import java.math.BigInteger;
 import java.sql.ResultSet;

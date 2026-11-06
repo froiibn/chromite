@@ -14,11 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.altibase.sql;
+package com.seizia.chromite.ext.altibase.sql;
 
 import org.eclipse.core.runtime.IAdapterFactory;
-import org.jkiss.dbeaver.model.sql.SQLDialect;
-import org.jkiss.dbeaver.model.text.parser.TPRuleProvider;
+import com.seizia.chromite.model.sql.SQLDialect;
+import com.seizia.chromite.model.text.parser.TPRuleProvider;
 
 public class AltibaseDialectAdapterFactory implements IAdapterFactory {
 

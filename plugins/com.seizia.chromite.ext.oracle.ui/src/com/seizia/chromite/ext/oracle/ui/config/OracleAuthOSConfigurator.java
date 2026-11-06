@@ -14,12 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.oracle.ui.config;
+package com.seizia.chromite.ext.oracle.ui.config;
 
 import org.eclipse.swt.widgets.Composite;
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.model.DBPDataSourceContainer;
-import org.jkiss.dbeaver.ui.IObjectPropertyConfigurator;
+import com.seizia.chromite.model.DBPDataSourceContainer;
+import com.seizia.chromite.ui.IObjectPropertyConfigurator;
 
 /**
  * Oracle OS auth model config

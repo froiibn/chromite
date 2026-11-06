@@ -14,10 +14,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.ocient.model.plan;
+package com.seizia.chromite.ext.ocient.model.plan;
 
-import org.jkiss.dbeaver.model.exec.plan.DBCPlanCostNode;
-import org.jkiss.dbeaver.model.impl.plan.AbstractExecutionPlanNode;
+import com.seizia.chromite.model.exec.plan.DBCPlanCostNode;
+import com.seizia.chromite.model.impl.plan.AbstractExecutionPlanNode;
 
 /**
  * Abstract plan node

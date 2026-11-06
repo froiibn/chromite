@@ -14,14 +14,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.mssql.model;
+package com.seizia.chromite.ext.mssql.model;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.model.impl.struct.AbstractTableConstraint;
-import org.jkiss.dbeaver.model.impl.struct.AbstractTableConstraintColumn;
-import org.jkiss.dbeaver.model.meta.Property;
-import org.jkiss.dbeaver.model.struct.rdb.DBSTableConstraintColumn;
+import com.seizia.chromite.model.impl.struct.AbstractTableConstraint;
+import com.seizia.chromite.model.impl.struct.AbstractTableConstraintColumn;
+import com.seizia.chromite.model.meta.Property;
+import com.seizia.chromite.model.struct.rdb.DBSTableConstraintColumn;
 
 /**
  * SQLServerTableUniqueKeyColumn.

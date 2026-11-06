@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.app.devtools.desktop;
+package com.seizia.chromite.ui.app.devtools.desktop;
 
 import com.sun.jna.platform.win32.*;
 import com.sun.jna.platform.win32.DBT.*;

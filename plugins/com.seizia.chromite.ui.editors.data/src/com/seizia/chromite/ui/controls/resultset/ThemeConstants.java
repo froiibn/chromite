@@ -15,15 +15,15 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.ui.controls.resultset;
+package com.seizia.chromite.ui.controls.resultset;
 
 /**
  * ThemeConstants
  */
 public class ThemeConstants
 {
-    public static final String RESULTS_PROP_PREFIX = "org.jkiss.dbeaver.sql.resultset.";
-    public static final String SQL_EDITOR_PROP_PREFIX = "org.jkiss.dbeaver.sql.editor.";
+    public static final String RESULTS_PROP_PREFIX = "com.seizia.chromite.sql.resultset.";
+    public static final String SQL_EDITOR_PROP_PREFIX = "com.seizia.chromite.sql.editor.";
 
     public static final String FONT_SQL_RESULT_SET = RESULTS_PROP_PREFIX + "font"; //$NON-NLS-1$
     public static final String COLOR_SQL_RESULT_SET_SELECTION_FORE = RESULTS_PROP_PREFIX + "color.selection.foreground"; //$NON-NLS-1$

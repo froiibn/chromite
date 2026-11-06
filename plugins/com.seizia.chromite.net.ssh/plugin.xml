@@ -3,9 +3,9 @@
 
 <plugin>
 
-    <extension-point id="org.jkiss.dbeaver.net.ssh" name="SSH implementations" schema="schema/org.jkiss.dbeaver.net.ssh.exsd"/>
+    <extension-point id="com.seizia.chromite.net.ssh" name="SSH implementations" schema="schema/com.seizia.chromite.net.ssh.exsd"/>
 
-    <extension point="org.jkiss.dbeaver.networkHandler">
+    <extension point="com.seizia.chromite.networkHandler">
         <handler
                 type="tunnel"
                 id="ssh_tunnel"
@@ -16,7 +16,7 @@
                 desktop="false"
                 secured="true"
                 order="1"
-                handlerClass="org.jkiss.dbeaver.model.net.ssh.SSHTunnelImpl">
+                handlerClass="com.seizia.chromite.model.net.ssh.SSHTunnelImpl">
             <propertyGroup label="SSH Settings">
                 <property id="host" label="Host" type="string" description="SSH target host name or IP address"/>
                 <property id="port" label="Port" type="string" description="SSH target host port (22 by default)" defaultValue="22"/>

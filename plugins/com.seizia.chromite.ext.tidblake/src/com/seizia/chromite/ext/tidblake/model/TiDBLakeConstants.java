@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.tidblake.model;
+package com.seizia.chromite.ext.tidblake.model;
 
 public class TiDBLakeConstants {
     public static final String JDBC_URL_PREFIX = "jdbc:lake://";

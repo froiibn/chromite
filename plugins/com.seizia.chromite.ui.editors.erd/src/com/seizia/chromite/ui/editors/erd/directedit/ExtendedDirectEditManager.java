@@ -17,7 +17,7 @@
 /*
  * Created on Jul 13, 2004
  */
-package org.jkiss.dbeaver.ui.editors.erd.directedit;
+package com.seizia.chromite.ui.editors.erd.directedit;
 
 import org.eclipse.draw2d.IFigure;
 import org.eclipse.draw2d.Label;
@@ -35,7 +35,7 @@ import org.eclipse.swt.events.VerifyListener;
 import org.eclipse.swt.graphics.GC;
 import org.eclipse.swt.graphics.Point;
 import org.eclipse.swt.widgets.Text;
-import org.jkiss.dbeaver.ui.editors.erd.figures.NoteFigure;
+import com.seizia.chromite.ui.editors.erd.figures.NoteFigure;
 
 /**
  * A generic DirectEdit manager to be used for labels which includes validation

@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.tools.project;
+package com.seizia.chromite.tools.project;
 
 import org.eclipse.core.resources.IProject;
 import org.eclipse.jface.dialogs.IMessageProvider;
@@ -28,12 +28,12 @@ import org.eclipse.swt.events.SelectionListener;
 import org.eclipse.swt.graphics.Point;
 import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.widgets.*;
-import org.jkiss.dbeaver.core.CoreMessages;
-import org.jkiss.dbeaver.model.DBIcon;
-import org.jkiss.dbeaver.model.app.DBPPlatformDesktop;
-import org.jkiss.dbeaver.ui.DBeaverIcons;
-import org.jkiss.dbeaver.ui.UIIcon;
-import org.jkiss.dbeaver.ui.UIUtils;
+import com.seizia.chromite.core.CoreMessages;
+import com.seizia.chromite.model.DBIcon;
+import com.seizia.chromite.model.app.DBPPlatformDesktop;
+import com.seizia.chromite.ui.SwtIcons;
+import com.seizia.chromite.ui.UIIcon;
+import com.seizia.chromite.ui.UIUtils;
 import org.jkiss.utils.CommonUtils;
 import org.jkiss.utils.xml.XMLUtils;
 import org.w3c.dom.Document;
@@ -87,7 +87,7 @@ class ProjectImportWizardPageFile extends WizardPage {
             updateState();
         });
         Button openFolder = new Button(configGroup, SWT.PUSH);
-        openFolder.setImage(DBeaverIcons.getImage(UIIcon.OPEN));
+        openFolder.setImage(SwtIcons.getImage(UIIcon.OPEN));
         openFolder.addSelectionListener(SelectionListener.widgetSelectedAdapter(e -> {
                 FileDialog fd = new FileDialog(getShell(), SWT.OPEN | SWT.SINGLE);
                 fd.setText(CoreMessages.dialog_project_import_wizard_file_dialog_export_archive_text);
@@ -236,7 +236,7 @@ class ProjectImportWizardPageFile extends WizardPage {
                     for (Element projectElement : XMLUtils.getChildElementList(projectsElement, ExportConstants.TAG_PROJECT)) {
                         String projectName = projectElement.getAttribute(ExportConstants.ATTR_NAME);
                         TableItem item = new TableItem(projectsTable, SWT.NONE);
-                        item.setImage(DBeaverIcons.getImage(DBIcon.PROJECT));
+                        item.setImage(SwtIcons.getImage(DBIcon.PROJECT));
                         item.setText(0, projectName);
                         item.setText(1, projectName);
                     }

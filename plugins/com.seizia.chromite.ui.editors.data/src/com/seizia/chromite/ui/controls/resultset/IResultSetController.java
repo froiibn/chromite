@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.ui.controls.resultset;
+package com.seizia.chromite.ui.controls.resultset;
 
 import org.eclipse.jface.action.IMenuManager;
 import org.eclipse.swt.graphics.Color;
@@ -24,17 +24,17 @@ import org.eclipse.swt.widgets.Control;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.model.DBPContextProvider;
-import org.jkiss.dbeaver.model.DBPMessageType;
-import org.jkiss.dbeaver.model.DBPObject;
-import org.jkiss.dbeaver.model.data.*;
-import org.jkiss.dbeaver.model.data.resultset.ResultSetSaveSettings;
-import org.jkiss.dbeaver.model.edit.DBEPersistAction;
-import org.jkiss.dbeaver.model.preferences.DBPPreferenceStore;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.model.struct.DBSEntityAssociation;
-import org.jkiss.dbeaver.ui.controls.resultset.internal.ResultSetMessages;
-import org.jkiss.dbeaver.ui.data.IDataController;
+import com.seizia.chromite.model.DBPContextProvider;
+import com.seizia.chromite.model.DBPMessageType;
+import com.seizia.chromite.model.DBPObject;
+import com.seizia.chromite.model.data.*;
+import com.seizia.chromite.model.data.resultset.ResultSetSaveSettings;
+import com.seizia.chromite.model.edit.DBEPersistAction;
+import com.seizia.chromite.model.preferences.DBPPreferenceStore;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.model.struct.DBSEntityAssociation;
+import com.seizia.chromite.ui.controls.resultset.internal.ResultSetMessages;
+import com.seizia.chromite.ui.data.IDataController;
 
 import java.util.Collection;
 import java.util.List;
@@ -54,7 +54,7 @@ public interface IResultSetController extends IDataController, DBPContextProvide
     String MENU_GROUP_EDIT = "edit";
     String MENU_GROUP_EXPORT = "results_export";
     String MENU_GROUP_ADDITIONS = "results_additions";//IWorkbenchActionConstants.MB_ADDITIONS;
-    String RESULTS_CONTEXT_ID = "org.jkiss.dbeaver.ui.context.resultset";
+    String RESULTS_CONTEXT_ID = "com.seizia.chromite.ui.context.resultset";
 
     enum ColumnOrder {
         ASC(ResultSetMessages.controls_resultset_viewer_sorting_order_ascending),

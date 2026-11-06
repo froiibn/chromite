@@ -14,11 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.editors.erd.model;
+package com.seizia.chromite.ui.editors.erd.model;
 
-import org.jkiss.dbeaver.model.erd.DiagramCollectSettings;
-import org.jkiss.dbeaver.ui.editors.erd.ERDUIConstants;
-import org.jkiss.dbeaver.ui.editors.erd.internal.ERDUIActivator;
+import com.seizia.chromite.model.erd.DiagramCollectSettings;
+import com.seizia.chromite.ui.editors.erd.ERDUIConstants;
+import com.seizia.chromite.ui.editors.erd.internal.ERDUIActivator;
 
 /**
  * Table collector settings

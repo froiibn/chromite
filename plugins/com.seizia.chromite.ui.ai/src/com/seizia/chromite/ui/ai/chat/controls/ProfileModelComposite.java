@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.ai.chat.controls;
+package com.seizia.chromite.ui.ai.chat.controls;
 
 import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.Status;
@@ -33,24 +33,24 @@ import org.eclipse.swt.widgets.*;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.ai.*;
-import org.jkiss.dbeaver.model.ai.engine.AIEngine;
-import org.jkiss.dbeaver.model.ai.engine.AIEngineProperties;
-import org.jkiss.dbeaver.model.ai.engine.AIModel;
-import org.jkiss.dbeaver.model.ai.engine.AIModelFeature;
-import org.jkiss.dbeaver.model.ai.registry.AISettingsEventListener;
-import org.jkiss.dbeaver.model.ai.registry.AISettingsManager;
-import org.jkiss.dbeaver.model.rm.RMConstants;
-import org.jkiss.dbeaver.model.runtime.AbstractJob;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.ui.DBeaverIcons;
-import org.jkiss.dbeaver.ui.UIIcon;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.ai.AIUIUtils;
-import org.jkiss.dbeaver.ui.ai.chat.internal.AIChatMessagesUI;
-import org.jkiss.dbeaver.ui.ai.internal.AIUIMessages;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.ai.*;
+import com.seizia.chromite.model.ai.engine.AIEngine;
+import com.seizia.chromite.model.ai.engine.AIEngineProperties;
+import com.seizia.chromite.model.ai.engine.AIModel;
+import com.seizia.chromite.model.ai.engine.AIModelFeature;
+import com.seizia.chromite.model.ai.registry.AISettingsEventListener;
+import com.seizia.chromite.model.ai.registry.AISettingsManager;
+import com.seizia.chromite.model.rm.RMConstants;
+import com.seizia.chromite.model.runtime.AbstractJob;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.ui.SwtIcons;
+import com.seizia.chromite.ui.UIIcon;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.ai.AIUIUtils;
+import com.seizia.chromite.ui.ai.chat.internal.AIChatMessagesUI;
+import com.seizia.chromite.ui.ai.internal.AIUIMessages;
 import org.jkiss.utils.CommonUtils;
 
 import java.util.List;
@@ -230,7 +230,7 @@ class ProfileModelComposite extends Composite {
             item.setText(profile.getProfileName().replace("&", "&&"));
             item.setSelection(profile == getProfile());
             try {
-                item.setImage(DBeaverIcons.getImage(profile.getEngineDescriptor().getIcon()));
+                item.setImage(SwtIcons.getImage(profile.getEngineDescriptor().getIcon()));
             } catch (DBException e) {
                 log.debug(e);
             }
@@ -356,7 +356,7 @@ class ProfileModelComposite extends Composite {
         }
         MenuItem refreshItem = new MenuItem(modelMenu, SWT.PUSH);
         refreshItem.setText(AIUIMessages.gpt_preference_page_refresh_models);
-        refreshItem.setImage(DBeaverIcons.getImage(UIIcon.REFRESH));
+        refreshItem.setImage(SwtIcons.getImage(UIIcon.REFRESH));
         refreshItem.addSelectionListener(SelectionListener.widgetSelectedAdapter(event -> showModels(true)));
         showMenu(modelSelector);
     }
@@ -398,7 +398,7 @@ class ProfileModelComposite extends Composite {
             textLabel.setLayoutData(textData);
 
             arrowLabel = new Label(this, SWT.NONE);
-            arrowLabel.setImage(DBeaverIcons.getImage(UIIcon.TREE_COLLAPSE));
+            arrowLabel.setImage(SwtIcons.getImage(UIIcon.TREE_COLLAPSE));
 
             // open after release so macOS menus cannot select an item with the opening click
             MouseListener mouseListener = MouseListener.mouseUpAdapter(event -> {

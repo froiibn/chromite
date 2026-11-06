@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.ai.chat.controls;
+package com.seizia.chromite.ui.ai.chat.controls;
 
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.browser.Browser;
@@ -32,16 +32,16 @@ import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.Listener;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.DBPDataSource;
-import org.jkiss.dbeaver.model.navigator.DBNNode;
-import org.jkiss.dbeaver.ui.BaseThemeSettings;
-import org.jkiss.dbeaver.ui.DBeaverIcons;
-import org.jkiss.dbeaver.ui.UIIcon;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.ai.chat.internal.AIChatMessagesUI;
-import org.jkiss.dbeaver.ui.ai.internal.AIUIFeatures;
-import org.jkiss.dbeaver.ui.dnd.TreeNodeTransfer;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.DBPDataSource;
+import com.seizia.chromite.model.navigator.DBNNode;
+import com.seizia.chromite.ui.BaseThemeSettings;
+import com.seizia.chromite.ui.SwtIcons;
+import com.seizia.chromite.ui.UIIcon;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.ai.chat.internal.AIChatMessagesUI;
+import com.seizia.chromite.ui.ai.internal.AIUIFeatures;
+import com.seizia.chromite.ui.dnd.TreeNodeTransfer;
 import org.jkiss.utils.IOUtils;
 
 import java.nio.file.Path;
@@ -208,7 +208,7 @@ final class WebViewDndController {
         var text = getDropMessage();
         var extent = gc.textExtent(text);
 
-        Image icon = DBeaverIcons.getImage(UIIcon.IMPORT);
+        Image icon = SwtIcons.getImage(UIIcon.IMPORT);
         Rectangle iconBounds = icon.getBounds();
         int iconSize = 48;
 

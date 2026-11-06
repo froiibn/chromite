@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.sql;
+package com.seizia.chromite.model.sql;
 
 import net.sf.jsqlparser.expression.Alias;
 import net.sf.jsqlparser.expression.Expression;
@@ -22,8 +22,8 @@ import net.sf.jsqlparser.schema.Column;
 import net.sf.jsqlparser.schema.Database;
 import net.sf.jsqlparser.schema.Table;
 import net.sf.jsqlparser.statement.select.*;
-import org.jkiss.dbeaver.model.exec.DBCEntityMetaData;
-import org.jkiss.dbeaver.model.sql.parser.SQLSemanticProcessor;
+import com.seizia.chromite.model.exec.DBCEntityMetaData;
+import com.seizia.chromite.model.sql.parser.SQLSemanticProcessor;
 import org.jkiss.utils.CommonUtils;
 
 /**

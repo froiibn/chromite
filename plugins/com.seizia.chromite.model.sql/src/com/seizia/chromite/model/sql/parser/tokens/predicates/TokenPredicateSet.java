@@ -14,13 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.sql.parser.tokens.predicates;
+package com.seizia.chromite.model.sql.parser.tokens.predicates;
 
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.model.sql.parser.SQLTokenPredicate;
-import org.jkiss.dbeaver.model.sql.parser.SQLTokenPredicateSet;
-import org.jkiss.dbeaver.model.sql.parser.TokenEntry;
-import org.jkiss.dbeaver.model.sql.parser.TrieNode;
+import com.seizia.chromite.model.sql.parser.SQLTokenPredicate;
+import com.seizia.chromite.model.sql.parser.SQLTokenPredicateSet;
+import com.seizia.chromite.model.sql.parser.TokenEntry;
+import com.seizia.chromite.model.sql.parser.TrieNode;
 
 import java.util.*;
 

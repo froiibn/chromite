@@ -14,23 +14,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.mimer.edit;
+package com.seizia.chromite.ext.mimer.edit;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.ext.generic.edit.GenericTableManager;
-import org.jkiss.dbeaver.ext.generic.model.GenericTableBase;
-import org.jkiss.dbeaver.ext.generic.model.GenericTableForeignKey;
-import org.jkiss.dbeaver.ext.generic.model.GenericUniqueKey;
-import org.jkiss.dbeaver.ext.mimer.model.MimerTable;
-import org.jkiss.dbeaver.ext.mimer.model.MimerTableColumn;
-import org.jkiss.dbeaver.ext.mimer.model.MimerTableIndex;
-import org.jkiss.dbeaver.model.DBPEvaluationContext;
-import org.jkiss.dbeaver.model.DBUtils;
-import org.jkiss.dbeaver.model.edit.DBEPersistAction;
-import org.jkiss.dbeaver.model.exec.DBCExecutionContext;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.model.struct.DBSObject;
+import com.seizia.chromite.ext.generic.edit.GenericTableManager;
+import com.seizia.chromite.ext.generic.model.GenericTableBase;
+import com.seizia.chromite.ext.generic.model.GenericTableForeignKey;
+import com.seizia.chromite.ext.generic.model.GenericUniqueKey;
+import com.seizia.chromite.ext.mimer.model.MimerTable;
+import com.seizia.chromite.ext.mimer.model.MimerTableColumn;
+import com.seizia.chromite.ext.mimer.model.MimerTableIndex;
+import com.seizia.chromite.model.DBPEvaluationContext;
+import com.seizia.chromite.model.DBUtils;
+import com.seizia.chromite.model.edit.DBEPersistAction;
+import com.seizia.chromite.model.exec.DBCExecutionContext;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.model.struct.DBSObject;
 import org.jkiss.utils.CommonUtils;
 
 import java.util.ArrayList;
@@ -69,7 +69,7 @@ public class MimerTableManager extends GenericTableManager {
      * the actual pending object's runtime class - and {@code ObjectManagerRegistry} does an
      * exact-class-name match. Left at {@code GenericTableIndex.class}, that would resolve to
      * the plain {@code GenericIndexManager} instead of {@link
-     * org.jkiss.dbeaver.ext.mimer.edit.MimerIndexManager} (registered only for the exact {@link
+     * com.seizia.chromite.ext.mimer.edit.MimerIndexManager} (registered only for the exact {@link
      * MimerTableIndex} class), producing a DDL preview that doesn't reflect Mimer SQL-specific
      * index modifiers (Clustered/Include/Ignore Nulls).
      * <p>

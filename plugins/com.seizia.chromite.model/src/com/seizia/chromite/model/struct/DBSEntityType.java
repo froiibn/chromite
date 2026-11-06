@@ -14,10 +14,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.struct;
+package com.seizia.chromite.model.struct;
 
-import org.jkiss.dbeaver.model.DBIcon;
-import org.jkiss.dbeaver.model.DBPImage;
+import com.seizia.chromite.model.DBIcon;
+import com.seizia.chromite.model.DBPImage;
 
 /**
  * Entity type

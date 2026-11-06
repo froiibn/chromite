@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.dashboard.control;
+package com.seizia.chromite.ui.dashboard.control;
 
 import org.apache.commons.jexl3.JexlExpression;
 import org.eclipse.jface.action.*;
@@ -29,23 +29,23 @@ import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.*;
 import org.jkiss.code.NotNull;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.model.DBPDataSourceContainer;
-import org.jkiss.dbeaver.model.DBPImage;
-import org.jkiss.dbeaver.model.app.DBPProject;
-import org.jkiss.dbeaver.model.dashboard.DBDashboardMapQuery;
-import org.jkiss.dbeaver.model.dashboard.DBDashboardQuery;
-import org.jkiss.dbeaver.model.dashboard.DashboardIcons;
-import org.jkiss.dbeaver.model.dashboard.data.DashboardDataset;
-import org.jkiss.dbeaver.model.dashboard.registry.DashboardItemConfiguration;
-import org.jkiss.dbeaver.ui.ActionUtils;
-import org.jkiss.dbeaver.ui.DBeaverIcons;
-import org.jkiss.dbeaver.ui.UIStyles;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.dashboard.DashboardUIConstants;
-import org.jkiss.dbeaver.ui.dashboard.internal.UIDashboardMessages;
-import org.jkiss.dbeaver.ui.dashboard.model.*;
-import org.jkiss.dbeaver.ui.dashboard.registry.DashboardUIRegistry;
-import org.jkiss.dbeaver.utils.GeneralUtils;
+import com.seizia.chromite.model.DBPDataSourceContainer;
+import com.seizia.chromite.model.DBPImage;
+import com.seizia.chromite.model.app.DBPProject;
+import com.seizia.chromite.model.dashboard.DBDashboardMapQuery;
+import com.seizia.chromite.model.dashboard.DBDashboardQuery;
+import com.seizia.chromite.model.dashboard.DashboardIcons;
+import com.seizia.chromite.model.dashboard.data.DashboardDataset;
+import com.seizia.chromite.model.dashboard.registry.DashboardItemConfiguration;
+import com.seizia.chromite.ui.ActionUtils;
+import com.seizia.chromite.ui.SwtIcons;
+import com.seizia.chromite.ui.UIStyles;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.dashboard.DashboardUIConstants;
+import com.seizia.chromite.ui.dashboard.internal.UIDashboardMessages;
+import com.seizia.chromite.ui.dashboard.model.*;
+import com.seizia.chromite.ui.dashboard.registry.DashboardUIRegistry;
+import com.seizia.chromite.utils.GeneralUtils;
 import org.jkiss.utils.CommonUtils;
 
 import java.util.Date;
@@ -53,7 +53,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static org.jkiss.dbeaver.ui.dashboard.DashboardUIConstants.PARAM_CATALOG_PANEL_TOGGLE;
+import static com.seizia.chromite.ui.dashboard.DashboardUIConstants.PARAM_CATALOG_PANEL_TOGGLE;
 
 public class DashboardViewItem extends Composite implements DashboardItemContainer {
 
@@ -106,7 +106,7 @@ public class DashboardViewItem extends Composite implements DashboardItemContain
                 icon = item.getDashboardProvider().getIcon();
             }
             Label titleIcon = new Label(titleComposite, SWT.NONE);
-            titleIcon.setImage(DBeaverIcons.getImage(icon));
+            titleIcon.setImage(SwtIcons.getImage(icon));
 
             titleLabel = new Label(titleComposite, SWT.NONE);
             titleLabel.setFont(parent.getTitleFont());
@@ -524,7 +524,7 @@ public class DashboardViewItem extends Composite implements DashboardItemContain
                     }
                 };
                 if (viewType.getIcon() != null) {
-                    changeViewAction.setImageDescriptor(DBeaverIcons.getImageDescriptor(viewType.getIcon()));
+                    changeViewAction.setImageDescriptor(SwtIcons.getImageDescriptor(viewType.getIcon()));
                 }
                 viewMenu.add(changeViewAction);
             }

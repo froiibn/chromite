@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.editors.binary.dialogs;
+package com.seizia.chromite.ui.editors.binary.dialogs;
 
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.events.*;
@@ -25,11 +25,11 @@ import org.eclipse.swt.graphics.Point;
 import org.eclipse.swt.layout.*;
 import org.eclipse.swt.widgets.*;
 import org.eclipse.ui.internal.WorkbenchMessages;
-import org.jkiss.dbeaver.ui.editors.binary.BinaryTextFinder;
-import org.jkiss.dbeaver.ui.editors.binary.HexEditControl;
-import org.jkiss.dbeaver.ui.editors.binary.HexManager;
-import org.jkiss.dbeaver.ui.editors.binary.internal.BinaryEditorMessages;
-import org.jkiss.dbeaver.utils.GeneralUtils;
+import com.seizia.chromite.ui.editors.binary.BinaryTextFinder;
+import com.seizia.chromite.ui.editors.binary.HexEditControl;
+import com.seizia.chromite.ui.editors.binary.HexManager;
+import com.seizia.chromite.ui.editors.binary.internal.BinaryEditorMessages;
+import com.seizia.chromite.utils.GeneralUtils;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;

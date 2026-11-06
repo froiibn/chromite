@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.controls.resultset;
+package com.seizia.chromite.ui.controls.resultset;
 
 import org.eclipse.core.runtime.IAdaptable;
 import org.eclipse.core.runtime.IProgressMonitor;
@@ -51,73 +51,73 @@ import org.eclipse.ui.menus.IMenuService;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.ModelPreferences;
-import org.jkiss.dbeaver.model.*;
-import org.jkiss.dbeaver.model.app.DBPProject;
-import org.jkiss.dbeaver.model.data.*;
-import org.jkiss.dbeaver.model.data.hints.DBDCellHintProvider;
-import org.jkiss.dbeaver.model.data.hints.DBDValueHint;
-import org.jkiss.dbeaver.model.data.hints.DBDValueHintContext;
-import org.jkiss.dbeaver.model.data.hints.DBDValueHintProvider;
-import org.jkiss.dbeaver.model.data.order.OrderingPolicy;
-import org.jkiss.dbeaver.model.data.order.OrderingStrategy;
-import org.jkiss.dbeaver.model.data.order.OrderingUtils;
-import org.jkiss.dbeaver.model.data.resultset.DBDDataUpdateListener;
-import org.jkiss.dbeaver.model.data.resultset.ResultSetSaveSettings;
-import org.jkiss.dbeaver.model.edit.DBEPersistAction;
-import org.jkiss.dbeaver.model.exec.*;
-import org.jkiss.dbeaver.model.impl.local.StatResultSet;
-import org.jkiss.dbeaver.model.messages.ModelMessages;
-import org.jkiss.dbeaver.model.preferences.DBPPreferenceListener;
-import org.jkiss.dbeaver.model.preferences.DBPPreferenceStore;
-import org.jkiss.dbeaver.model.qm.QMQueryFilter;
-import org.jkiss.dbeaver.model.runtime.AbstractJob;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.model.runtime.DBRRunnableWithProgress;
-import org.jkiss.dbeaver.model.runtime.VoidProgressMonitor;
-import org.jkiss.dbeaver.model.runtime.load.DatabaseLoadService;
-import org.jkiss.dbeaver.model.runtime.load.ILoadService;
-import org.jkiss.dbeaver.model.sql.*;
-import org.jkiss.dbeaver.model.sql.parser.SQLSemanticProcessor;
-import org.jkiss.dbeaver.model.struct.*;
-import org.jkiss.dbeaver.model.virtual.*;
-import org.jkiss.dbeaver.registry.ApplicationPolicyProvider;
-import org.jkiss.dbeaver.registry.configurator.UIPropertyConfiguratorDescriptor;
-import org.jkiss.dbeaver.registry.configurator.UIPropertyConfiguratorRegistry;
-import org.jkiss.dbeaver.registry.data.hints.ValueHintProviderDescriptor;
-import org.jkiss.dbeaver.registry.data.hints.ValueHintRegistry;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.runtime.DBeaverNotifications;
-import org.jkiss.dbeaver.runtime.jobs.DataSourceJob;
-import org.jkiss.dbeaver.tools.transfer.ui.internal.DTUIMessages;
-import org.jkiss.dbeaver.ui.*;
-import org.jkiss.dbeaver.ui.controls.*;
-import org.jkiss.dbeaver.ui.controls.autorefresh.AutoRefreshControl;
-import org.jkiss.dbeaver.ui.controls.resultset.actions.*;
-import org.jkiss.dbeaver.ui.controls.resultset.colors.CustomizeColorsAction;
-import org.jkiss.dbeaver.ui.controls.resultset.colors.GroupRowStripingAction;
-import org.jkiss.dbeaver.ui.controls.resultset.colors.ResetAllColorAction;
-import org.jkiss.dbeaver.ui.controls.resultset.colors.ResetRowColorAction;
-import org.jkiss.dbeaver.ui.controls.resultset.handler.*;
-import org.jkiss.dbeaver.ui.controls.resultset.internal.ResultSetMessages;
-import org.jkiss.dbeaver.ui.controls.resultset.panel.ResultSetPanelDescriptor;
-import org.jkiss.dbeaver.ui.controls.resultset.valuefilter.FilterValueEditPopup;
-import org.jkiss.dbeaver.ui.controls.resultset.view.EmptyPresentation;
-import org.jkiss.dbeaver.ui.controls.resultset.view.ErrorPresentation;
-import org.jkiss.dbeaver.ui.controls.resultset.view.StatisticsPresentation;
-import org.jkiss.dbeaver.ui.controls.resultset.virtual.*;
-import org.jkiss.dbeaver.ui.css.CSSUtils;
-import org.jkiss.dbeaver.ui.data.IValueController;
-import org.jkiss.dbeaver.ui.dialogs.ConfirmationDialog;
-import org.jkiss.dbeaver.ui.editors.data.internal.DataEditorsMessages;
-import org.jkiss.dbeaver.ui.editors.data.preferences.PrefPageResultSetMain;
-import org.jkiss.dbeaver.ui.editors.text.DynamicFindReplaceTarget;
-import org.jkiss.dbeaver.ui.internal.UIMessages;
-import org.jkiss.dbeaver.ui.navigator.NavigatorCommands;
-import org.jkiss.dbeaver.utils.GeneralUtils;
-import org.jkiss.dbeaver.utils.PrefUtils;
-import org.jkiss.dbeaver.utils.RuntimeUtils;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.ModelPreferences;
+import com.seizia.chromite.model.*;
+import com.seizia.chromite.model.app.DBPProject;
+import com.seizia.chromite.model.data.*;
+import com.seizia.chromite.model.data.hints.DBDCellHintProvider;
+import com.seizia.chromite.model.data.hints.DBDValueHint;
+import com.seizia.chromite.model.data.hints.DBDValueHintContext;
+import com.seizia.chromite.model.data.hints.DBDValueHintProvider;
+import com.seizia.chromite.model.data.order.OrderingPolicy;
+import com.seizia.chromite.model.data.order.OrderingStrategy;
+import com.seizia.chromite.model.data.order.OrderingUtils;
+import com.seizia.chromite.model.data.resultset.DBDDataUpdateListener;
+import com.seizia.chromite.model.data.resultset.ResultSetSaveSettings;
+import com.seizia.chromite.model.edit.DBEPersistAction;
+import com.seizia.chromite.model.exec.*;
+import com.seizia.chromite.model.impl.local.StatResultSet;
+import com.seizia.chromite.model.messages.ModelMessages;
+import com.seizia.chromite.model.preferences.DBPPreferenceListener;
+import com.seizia.chromite.model.preferences.DBPPreferenceStore;
+import com.seizia.chromite.model.qm.QMQueryFilter;
+import com.seizia.chromite.model.runtime.AbstractJob;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.model.runtime.DBRRunnableWithProgress;
+import com.seizia.chromite.model.runtime.VoidProgressMonitor;
+import com.seizia.chromite.model.runtime.load.DatabaseLoadService;
+import com.seizia.chromite.model.runtime.load.ILoadService;
+import com.seizia.chromite.model.sql.*;
+import com.seizia.chromite.model.sql.parser.SQLSemanticProcessor;
+import com.seizia.chromite.model.struct.*;
+import com.seizia.chromite.model.virtual.*;
+import com.seizia.chromite.registry.ApplicationPolicyProvider;
+import com.seizia.chromite.registry.configurator.UIPropertyConfiguratorDescriptor;
+import com.seizia.chromite.registry.configurator.UIPropertyConfiguratorRegistry;
+import com.seizia.chromite.registry.data.hints.ValueHintProviderDescriptor;
+import com.seizia.chromite.registry.data.hints.ValueHintRegistry;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.runtime.ChromiteNotifications;
+import com.seizia.chromite.runtime.jobs.DataSourceJob;
+import com.seizia.chromite.tools.transfer.ui.internal.DTUIMessages;
+import com.seizia.chromite.ui.*;
+import com.seizia.chromite.ui.controls.*;
+import com.seizia.chromite.ui.controls.autorefresh.AutoRefreshControl;
+import com.seizia.chromite.ui.controls.resultset.actions.*;
+import com.seizia.chromite.ui.controls.resultset.colors.CustomizeColorsAction;
+import com.seizia.chromite.ui.controls.resultset.colors.GroupRowStripingAction;
+import com.seizia.chromite.ui.controls.resultset.colors.ResetAllColorAction;
+import com.seizia.chromite.ui.controls.resultset.colors.ResetRowColorAction;
+import com.seizia.chromite.ui.controls.resultset.handler.*;
+import com.seizia.chromite.ui.controls.resultset.internal.ResultSetMessages;
+import com.seizia.chromite.ui.controls.resultset.panel.ResultSetPanelDescriptor;
+import com.seizia.chromite.ui.controls.resultset.valuefilter.FilterValueEditPopup;
+import com.seizia.chromite.ui.controls.resultset.view.EmptyPresentation;
+import com.seizia.chromite.ui.controls.resultset.view.ErrorPresentation;
+import com.seizia.chromite.ui.controls.resultset.view.StatisticsPresentation;
+import com.seizia.chromite.ui.controls.resultset.virtual.*;
+import com.seizia.chromite.ui.css.CSSUtils;
+import com.seizia.chromite.ui.data.IValueController;
+import com.seizia.chromite.ui.dialogs.ConfirmationDialog;
+import com.seizia.chromite.ui.editors.data.internal.DataEditorsMessages;
+import com.seizia.chromite.ui.editors.data.preferences.PrefPageResultSetMain;
+import com.seizia.chromite.ui.editors.text.DynamicFindReplaceTarget;
+import com.seizia.chromite.ui.internal.UIMessages;
+import com.seizia.chromite.ui.navigator.NavigatorCommands;
+import com.seizia.chromite.utils.GeneralUtils;
+import com.seizia.chromite.utils.PrefUtils;
+import com.seizia.chromite.utils.RuntimeUtils;
 import org.jkiss.utils.ArrayUtils;
 import org.jkiss.utils.CommonUtils;
 
@@ -146,13 +146,13 @@ public class ResultSetViewer extends Viewer
 
     private static final String SETTINGS_SECTION_PRESENTATIONS = "presentations";
 
-    private static final String TOOLBAR_EDIT_CONTRIBUTION_ID = "toolbar:org.jkiss.dbeaver.ui.controls.resultset.status.editCmds";
-    private static final String TOOLBAR_NAVIGATION_CONTRIBUTION_ID = "toolbar:org.jkiss.dbeaver.ui.controls.resultset.status.navCmds";
-    private static final String TOOLBAR_EXPORT_CONTRIBUTION_ID = "toolbar:org.jkiss.dbeaver.ui.controls.resultset.status.exportCmd";
-    private static final String TOOLBAR_CONTRIBUTION_ID = "toolbar:org.jkiss.dbeaver.ui.controls.resultset.status";
-    private static final String TOOLBAR_CONFIGURATION_VISIBLE_PROPERTY = "org.jkiss.dbeaver.ui.toolbar.configuration.visible";
+    private static final String TOOLBAR_EDIT_CONTRIBUTION_ID = "toolbar:com.seizia.chromite.ui.controls.resultset.status.editCmds";
+    private static final String TOOLBAR_NAVIGATION_CONTRIBUTION_ID = "toolbar:com.seizia.chromite.ui.controls.resultset.status.navCmds";
+    private static final String TOOLBAR_EXPORT_CONTRIBUTION_ID = "toolbar:com.seizia.chromite.ui.controls.resultset.status.exportCmd";
+    private static final String TOOLBAR_CONTRIBUTION_ID = "toolbar:com.seizia.chromite.ui.controls.resultset.status";
+    private static final String TOOLBAR_CONFIGURATION_VISIBLE_PROPERTY = "com.seizia.chromite.ui.toolbar.configuration.visible";
 
-    private static final String CONFIRM_SERVER_SIDE_ORDERING_UNAVAILABLE = "org.jkiss.dbeaver.sql.resultset.serverSideOrderingUnavailable";
+    private static final String CONFIRM_SERVER_SIDE_ORDERING_UNAVAILABLE = "com.seizia.chromite.sql.resultset.serverSideOrderingUnavailable";
 
     private static final int THEME_UPDATE_DELAY_MS = 250;
 
@@ -683,8 +683,8 @@ public class ResultSetViewer extends Viewer
         DataFilterRegistry.getInstance().saveDataFilter(dataContainer, model.getDataFilter());
 
         if (filtersPanel != null) {
-            DBeaverNotifications.showNotification(
-                DBeaverNotifications.NT_GENERIC,
+            ChromiteNotifications.showNotification(
+                ChromiteNotifications.NT_GENERIC,
                 "Data filter was saved",
                 filtersPanel.getFilterText(),
                 DBPMessageType.INFORMATION, null);
@@ -706,8 +706,8 @@ public class ResultSetViewer extends Viewer
         DataFilterRegistry.getInstance().removeDataFilter(dataContainer);
 
         if (filtersPanel != null) {
-            DBeaverNotifications.showNotification(
-                DBeaverNotifications.NT_GENERIC,
+            ChromiteNotifications.showNotification(
+                ChromiteNotifications.NT_GENERIC,
                 ResultSetMessages.controls_resultset_filter_saved_filter_reset_message,
                 filtersPanel.getFilterText(),
                 DBPMessageType.INFORMATION, null);
@@ -975,7 +975,7 @@ public class ResultSetViewer extends Viewer
                 }
                 for (ResultSetPresentationDescriptor pd : availablePresentations) {
                     VerticalButton item = new VerticalButton(presentationSwitchFolder, SWT.LEFT | SWT.RADIO);
-                    item.setImage(DBeaverIcons.getImage(pd.getIcon()));
+                    item.setImage(SwtIcons.getImage(pd.getIcon()));
                     item.setText(pd.getLabel());
                     item.setToolTipText(pd.getDescription());
                     item.setData(pd);
@@ -1066,7 +1066,7 @@ public class ResultSetViewer extends Viewer
                 VerticalButton panelsButton = new VerticalButton(panelSwitchFolder, SWT.RIGHT | SWT.CHECK);
                 {
                     panelsButton.setText(ResultSetMessages.controls_resultset_config_panels);
-                    panelsButton.setImage(DBeaverIcons.getImage(UIIcon.PANEL_CUSTOMIZE));
+                    panelsButton.setImage(SwtIcons.getImage(UIIcon.PANEL_CUSTOMIZE));
                     panelsButton.addSelectionListener(SelectionListener.widgetSelectedAdapter(e -> {
                             showPanels(!isPanelsVisible(), true, true);
                             panelsButton.setChecked(isPanelsVisible());
@@ -1086,7 +1086,7 @@ public class ResultSetViewer extends Viewer
                     gd.verticalIndent = 2;
                     panelButton.setLayoutData(gd);
                     panelButton.setData(panel);
-                    panelButton.setImage(DBeaverIcons.getImage(panel.getIcon()));
+                    panelButton.setImage(SwtIcons.getImage(panel.getIcon()));
                     panelButton.setToolTipText(panel.getLabel());
                     String toolTip = ActionUtils.findCommandDescription(
                         ResultSetHandlerTogglePanel.CMD_TOGGLE_PANEL, getSite(), true,
@@ -1385,7 +1385,7 @@ public class ResultSetViewer extends Viewer
             CTabItem panelTab = new CTabItem(panelFolder, SWT.CLOSE);
             panelTab.setData(id);
             panelTab.setText(panelDescriptor.getLabel());
-            panelTab.setImage(DBeaverIcons.getImage(panelDescriptor.getIcon()));
+            panelTab.setImage(SwtIcons.getImage(panelDescriptor.getIcon()));
             panelTab.setToolTipText(panelDescriptor.getDescription());
             panelTab.setControl(panelComposite);
             UIUtils.disposeControlOnItemDispose(panelTab);
@@ -2182,7 +2182,7 @@ public class ResultSetViewer extends Viewer
 
             rowCountLabel = new ActiveStatusMessage(
                 statusBar,
-                DBeaverIcons.getImage(UIIcon.COMPILE),
+                SwtIcons.getImage(UIIcon.COMPILE),
                 ResultSetMessages.controls_resultset_viewer_calculate_row_count,
                 this
             ) {
@@ -3198,7 +3198,7 @@ public class ResultSetViewer extends Viewer
                 if ((decoratorFeatures & IResultSetDecorator.FEATURE_FILTERS) != 0) {
                     MenuManager filtersMenu = new MenuManager(
                         ResultSetMessages.controls_resultset_viewer_action_filter,
-                        DBeaverIcons.getImageDescriptor(UIIcon.FILTER),
+                        SwtIcons.getImageDescriptor(UIIcon.FILTER),
                         MENU_ID_FILTERS); //$NON-NLS-1$
                     filtersMenu.setActionDefinitionId(IResultSetCommands.CMD_FILTER_MENU);
                     filtersMenu.setRemoveAllWhenShown(true);
@@ -3208,7 +3208,7 @@ public class ResultSetViewer extends Viewer
                 {
                     MenuManager orderMenu = new MenuManager(
                         ResultSetMessages.controls_resultset_viewer_action_order,
-                        DBeaverIcons.getImageDescriptor(UIIcon.SORT),
+                        SwtIcons.getImageDescriptor(UIIcon.SORT),
                         MENU_ID_ORDER); //$NON-NLS-1$
                     orderMenu.setRemoveAllWhenShown(true);
                     orderMenu.addMenuListener(manager1 -> fillOrderingsMenu(manager1, attr));
@@ -3225,7 +3225,7 @@ public class ResultSetViewer extends Viewer
 
                 final MenuManager editMenu = new MenuManager(
                     ResultSetMessages.controls_resultset_viewer_action_edit,
-                    DBeaverIcons.getImageDescriptor(UIIcon.ROW_EDIT),
+                    SwtIcons.getImageDescriptor(UIIcon.ROW_EDIT),
                     MENU_ID_EDIT
                 );
 
@@ -3254,7 +3254,7 @@ public class ResultSetViewer extends Viewer
         if ((getDecorator().getDecoratorFeatures() & IResultSetDecorator.FEATURE_PANELS) != 0) {
             MenuManager panelsMenu = new MenuManager(
                 ResultSetMessages.controls_resultset_viewer_action_panels,
-                DBeaverIcons.getImageDescriptor(UIIcon.PANEL_CUSTOMIZE),
+                SwtIcons.getImageDescriptor(UIIcon.PANEL_CUSTOMIZE),
                 "result_panels"); //$NON-NLS-1$
             manager.add(panelsMenu);
             for (IContributionItem item : fillPanelsMenu()) {
@@ -3589,7 +3589,7 @@ public class ResultSetViewer extends Viewer
                     final ResultSetPresentationDescriptor presentation;
                     {
                         presentation = pd;
-                        setImageDescriptor(DBeaverIcons.getImageDescriptor(presentation.getIcon()));
+                        setImageDescriptor(SwtIcons.getImageDescriptor(presentation.getIcon()));
                     }
 
                     @Override
@@ -5458,7 +5458,7 @@ public class ResultSetViewer extends Viewer
         ConfigAction()
         {
             super(ResultSetMessages.controls_resultset_viewer_action_options);
-            setImageDescriptor(DBeaverIcons.getImageDescriptor(UIIcon.CONFIGURATION));
+            setImageDescriptor(SwtIcons.getImageDescriptor(UIIcon.CONFIGURATION));
         }
 
         @Override

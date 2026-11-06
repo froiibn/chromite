@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.tasks.ui.view;
+package com.seizia.chromite.tasks.ui.view;
 
 import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.Status;
@@ -32,26 +32,26 @@ import org.eclipse.ui.dialogs.PatternFilter;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.DBIcon;
-import org.jkiss.dbeaver.model.DBPImage;
-import org.jkiss.dbeaver.model.DBPObjectWithOrdinalPosition;
-import org.jkiss.dbeaver.model.DBUtils;
-import org.jkiss.dbeaver.model.app.DBPProject;
-import org.jkiss.dbeaver.model.preferences.DBPPreferenceStore;
-import org.jkiss.dbeaver.model.runtime.AbstractJob;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.model.task.*;
-import org.jkiss.dbeaver.registry.task.TaskImpl;
-import org.jkiss.dbeaver.registry.task.TaskRegistry;
-import org.jkiss.dbeaver.registry.timezone.TimezoneRegistry;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.tasks.ui.internal.TaskUIViewMessages;
-import org.jkiss.dbeaver.ui.*;
-import org.jkiss.dbeaver.ui.controls.ViewerColumnController;
-import org.jkiss.dbeaver.ui.dialogs.DialogUtils;
-import org.jkiss.dbeaver.utils.GeneralUtils;
-import org.jkiss.dbeaver.utils.RuntimeUtils;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.DBIcon;
+import com.seizia.chromite.model.DBPImage;
+import com.seizia.chromite.model.DBPObjectWithOrdinalPosition;
+import com.seizia.chromite.model.DBUtils;
+import com.seizia.chromite.model.app.DBPProject;
+import com.seizia.chromite.model.preferences.DBPPreferenceStore;
+import com.seizia.chromite.model.runtime.AbstractJob;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.model.task.*;
+import com.seizia.chromite.registry.task.TaskImpl;
+import com.seizia.chromite.registry.task.TaskRegistry;
+import com.seizia.chromite.registry.timezone.TimezoneRegistry;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.tasks.ui.internal.TaskUIViewMessages;
+import com.seizia.chromite.ui.*;
+import com.seizia.chromite.ui.controls.ViewerColumnController;
+import com.seizia.chromite.ui.dialogs.DialogUtils;
+import com.seizia.chromite.utils.GeneralUtils;
+import com.seizia.chromite.utils.RuntimeUtils;
 import org.jkiss.utils.ArrayUtils;
 import org.jkiss.utils.CommonUtils;
 
@@ -295,15 +295,15 @@ public class DatabaseTasksTree {
 
     public void loadViewConfig() {
         DBPPreferenceStore preferenceStore = DBWorkbench.getPlatform().getPreferenceStore();
-        groupByCategory = preferenceStore.getBoolean("dbeaver.tasks.view.groupByCategory");
-        groupByType = preferenceStore.getBoolean("dbeaver.tasks.view.groupByType");
+        groupByCategory = preferenceStore.getBoolean("chromite.tasks.view.groupByCategory");
+        groupByType = preferenceStore.getBoolean("chromite.tasks.view.groupByType");
 
     }
 
     public void saveViewConfig() {
         DBPPreferenceStore preferenceStore = DBWorkbench.getPlatform().getPreferenceStore();
-        preferenceStore.setValue("dbeaver.tasks.view.groupByCategory", groupByCategory);
-        preferenceStore.setValue("dbeaver.tasks.view.groupByType", groupByType);
+        preferenceStore.setValue("chromite.tasks.view.groupByCategory", groupByCategory);
+        preferenceStore.setValue("chromite.tasks.view.groupByType", groupByType);
         try {
             preferenceStore.save();
         } catch (IOException e) {
@@ -758,7 +758,7 @@ public class DatabaseTasksTree {
         @Override
         public Image getImage(@NotNull Object element) {
             DBPImage cellImage = getCellImage(element);
-            return cellImage == null ? null : DBeaverIcons.getImage(cellImage);
+            return cellImage == null ? null : SwtIcons.getImage(cellImage);
         }
 
         @Nullable

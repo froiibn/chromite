@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.tools.transfer.ui.pages.database;
+package com.seizia.chromite.tools.transfer.ui.pages.database;
 
 import org.eclipse.jface.action.Action;
 import org.eclipse.jface.dialogs.IDialogConstants;
@@ -34,38 +34,38 @@ import org.eclipse.swt.widgets.*;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.*;
-import org.jkiss.dbeaver.model.app.DBPProject;
-import org.jkiss.dbeaver.model.impl.DBObjectNameCaseTransformer;
-import org.jkiss.dbeaver.model.impl.struct.RelationalObjectType;
-import org.jkiss.dbeaver.model.navigator.DBNDatabaseNode;
-import org.jkiss.dbeaver.model.navigator.DBNModel;
-import org.jkiss.dbeaver.model.navigator.DBNNode;
-import org.jkiss.dbeaver.model.navigator.DBNUtils;
-import org.jkiss.dbeaver.model.preferences.DBPPreferenceStore;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.model.runtime.LoggingProgressMonitor;
-import org.jkiss.dbeaver.model.struct.*;
-import org.jkiss.dbeaver.model.struct.rdb.DBSSchema;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.tools.transfer.DTConstants;
-import org.jkiss.dbeaver.tools.transfer.DataTransferPipe;
-import org.jkiss.dbeaver.tools.transfer.DataTransferSettings;
-import org.jkiss.dbeaver.tools.transfer.IDataTransferConsumer;
-import org.jkiss.dbeaver.tools.transfer.database.*;
-import org.jkiss.dbeaver.tools.transfer.internal.DTActivator;
-import org.jkiss.dbeaver.tools.transfer.internal.DTMessages;
-import org.jkiss.dbeaver.tools.transfer.registry.DataTransferAttributeTransformerDescriptor;
-import org.jkiss.dbeaver.tools.transfer.registry.DataTransferRegistry;
-import org.jkiss.dbeaver.tools.transfer.ui.handlers.DataImportPropertyTester;
-import org.jkiss.dbeaver.tools.transfer.ui.internal.DTUIMessages;
-import org.jkiss.dbeaver.tools.transfer.ui.pages.DataTransferPageNodeSettings;
-import org.jkiss.dbeaver.ui.*;
-import org.jkiss.dbeaver.ui.controls.CustomComboBoxCellEditor;
-import org.jkiss.dbeaver.ui.controls.ObjectContainerSelectorPanel;
-import org.jkiss.dbeaver.ui.controls.TreeContentProvider;
-import org.jkiss.dbeaver.ui.navigator.dialogs.ObjectBrowserDialog;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.*;
+import com.seizia.chromite.model.app.DBPProject;
+import com.seizia.chromite.model.impl.DBObjectNameCaseTransformer;
+import com.seizia.chromite.model.impl.struct.RelationalObjectType;
+import com.seizia.chromite.model.navigator.DBNDatabaseNode;
+import com.seizia.chromite.model.navigator.DBNModel;
+import com.seizia.chromite.model.navigator.DBNNode;
+import com.seizia.chromite.model.navigator.DBNUtils;
+import com.seizia.chromite.model.preferences.DBPPreferenceStore;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.model.runtime.LoggingProgressMonitor;
+import com.seizia.chromite.model.struct.*;
+import com.seizia.chromite.model.struct.rdb.DBSSchema;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.tools.transfer.DTConstants;
+import com.seizia.chromite.tools.transfer.DataTransferPipe;
+import com.seizia.chromite.tools.transfer.DataTransferSettings;
+import com.seizia.chromite.tools.transfer.IDataTransferConsumer;
+import com.seizia.chromite.tools.transfer.database.*;
+import com.seizia.chromite.tools.transfer.internal.DTActivator;
+import com.seizia.chromite.tools.transfer.internal.DTMessages;
+import com.seizia.chromite.tools.transfer.registry.DataTransferAttributeTransformerDescriptor;
+import com.seizia.chromite.tools.transfer.registry.DataTransferRegistry;
+import com.seizia.chromite.tools.transfer.ui.handlers.DataImportPropertyTester;
+import com.seizia.chromite.tools.transfer.ui.internal.DTUIMessages;
+import com.seizia.chromite.tools.transfer.ui.pages.DataTransferPageNodeSettings;
+import com.seizia.chromite.ui.*;
+import com.seizia.chromite.ui.controls.CustomComboBoxCellEditor;
+import com.seizia.chromite.ui.controls.ObjectContainerSelectorPanel;
+import com.seizia.chromite.ui.controls.TreeContentProvider;
+import com.seizia.chromite.ui.navigator.dialogs.ObjectBrowserDialog;
 import org.jkiss.utils.ArrayUtils;
 import org.jkiss.utils.CommonUtils;
 
@@ -142,7 +142,7 @@ public class DatabaseConsumerPageMapping extends DataTransferPageNodeSettings {
             if (getMappingTooltip(mapping) != null) {
                 icon = new DBIconComposite(icon, false, null, DBIcon.OVER_ERROR, null, null);
             }
-            return DBeaverIcons.getImage(icon);
+            return SwtIcons.getImage(icon);
         }
     }
 
@@ -447,7 +447,7 @@ public class DatabaseConsumerPageMapping extends DataTransferPageNodeSettings {
             bottomBar.setLayoutData(new GridData(GridData.FILL_HORIZONTAL));
 
             Label hintInfo = new Label(bottomBar, SWT.NONE);
-            hintInfo.setImage(DBeaverIcons.getImage(DBIcon.SMALL_INFO));
+            hintInfo.setImage(SwtIcons.getImage(DBIcon.SMALL_INFO));
             hintInfo.setCursor(hintInfo.getDisplay().getSystemCursor(SWT.CURSOR_HELP));
             hintInfo.setToolTipText(DTUIMessages.database_consumer_page_mapping_label_hint);
 
@@ -592,7 +592,7 @@ public class DatabaseConsumerPageMapping extends DataTransferPageNodeSettings {
         if (container != null) {
             loadMappingsButton = new Button(mappingViewer.getTree(), SWT.PUSH);
             loadMappingsButton.setText(NLS.bind(DTUIMessages.columns_mapping_dialog_composite_button_reconnect, container.getName()));
-            loadMappingsButton.setImage(DBeaverIcons.getImage(UIIcon.SQL_CONNECT));
+            loadMappingsButton.setImage(SwtIcons.getImage(UIIcon.SQL_CONNECT));
             loadMappingsButton.addSelectionListener(SelectionListener.widgetSelectedAdapter(
                 e -> loadSettings(true)));
 
@@ -817,7 +817,7 @@ public class DatabaseConsumerPageMapping extends DataTransferPageNodeSettings {
             case recreate -> DBIcon.RECREATE;
             default -> null;
         };
-        return icon == null ? null : DBeaverIcons.getImage(icon);
+        return icon == null ? null : SwtIcons.getImage(icon);
     }
 
     @Nullable
@@ -1791,7 +1791,7 @@ public class DatabaseConsumerPageMapping extends DataTransferPageNodeSettings {
         if (needed && !present) {
             chooseContainerButton = new Button(mappingViewer.getTree(), SWT.PUSH);
             chooseContainerButton.setText(DTMessages.data_transfer_db_consumer_choose_container);
-            chooseContainerButton.setImage(DBeaverIcons.getImage(UIIcon.OPEN));
+            chooseContainerButton.setImage(SwtIcons.getImage(UIIcon.OPEN));
             chooseContainerButton.addSelectionListener(SelectionListener.widgetSelectedAdapter(
                 e -> containerPanel.browseContainer()));
 

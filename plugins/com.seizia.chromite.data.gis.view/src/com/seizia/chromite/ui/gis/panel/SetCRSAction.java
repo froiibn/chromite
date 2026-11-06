@@ -14,12 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.gis.panel;
+package com.seizia.chromite.ui.gis.panel;
 
 import org.eclipse.jface.action.Action;
-import org.jkiss.dbeaver.model.gis.GisConstants;
-import org.jkiss.dbeaver.ui.gis.IGeometryValueEditor;
-import org.jkiss.dbeaver.ui.gis.internal.GISMessages;
+import com.seizia.chromite.model.gis.GisConstants;
+import com.seizia.chromite.ui.gis.IGeometryValueEditor;
+import com.seizia.chromite.ui.gis.internal.GISMessages;
 
 class SetCRSAction extends Action {
     private final IGeometryValueEditor valueEditor;

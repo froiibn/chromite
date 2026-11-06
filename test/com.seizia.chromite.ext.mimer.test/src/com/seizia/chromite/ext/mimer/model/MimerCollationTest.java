@@ -14,9 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.mimer.model;
+package com.seizia.chromite.ext.mimer.model;
 
-import org.jkiss.junit.DBeaverUnitTest;
+import com.seizia.chromite.junit.ChromiteUnitTest;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -31,7 +31,7 @@ import org.mockito.Mockito;
  *
  * @author Mimer Information Technology
  */
-public class MimerCollationTest extends DBeaverUnitTest {
+public class MimerCollationTest extends ChromiteUnitTest {
 
     @Mock
     private MimerSchema schema;

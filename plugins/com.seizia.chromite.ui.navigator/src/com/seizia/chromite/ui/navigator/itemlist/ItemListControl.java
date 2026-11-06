@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.navigator.itemlist;
+package com.seizia.chromite.ui.navigator.itemlist;
 
 import org.eclipse.jface.action.*;
 import org.eclipse.jface.viewers.*;
@@ -30,33 +30,33 @@ import org.eclipse.ui.part.MultiPageEditorPart;
 import org.eclipse.ui.part.MultiPageEditorSite;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.DBPDataSourceContainer;
-import org.jkiss.dbeaver.model.DBPObjectStatisticsCollector;
-import org.jkiss.dbeaver.model.DBUtils;
-import org.jkiss.dbeaver.model.edit.DBEObjectReorderer;
-import org.jkiss.dbeaver.model.messages.ModelMessages;
-import org.jkiss.dbeaver.model.navigator.DBNDatabaseFolder;
-import org.jkiss.dbeaver.model.navigator.DBNDatabaseNode;
-import org.jkiss.dbeaver.model.navigator.DBNNode;
-import org.jkiss.dbeaver.model.navigator.DBNUtils;
-import org.jkiss.dbeaver.model.navigator.meta.DBXTreeNode;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.model.runtime.load.DatabaseLoadService;
-import org.jkiss.dbeaver.model.struct.DBSObject;
-import org.jkiss.dbeaver.model.struct.DBSWrapper;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.runtime.properties.ObjectPropertyDescriptor;
-import org.jkiss.dbeaver.ui.*;
-import org.jkiss.dbeaver.ui.actions.ObjectPropertyTester;
-import org.jkiss.dbeaver.ui.editors.DatabaseEditorUtils;
-import org.jkiss.dbeaver.ui.editors.entity.EntityEditor;
-import org.jkiss.dbeaver.ui.internal.UINavigatorMessages;
-import org.jkiss.dbeaver.ui.navigator.NavigatorCommands;
-import org.jkiss.dbeaver.ui.navigator.NavigatorUtils;
-import org.jkiss.dbeaver.ui.navigator.actions.NavigatorHandlerFilterConfig;
-import org.jkiss.dbeaver.ui.navigator.actions.NavigatorHandlerObjectCreateNew;
-import org.jkiss.dbeaver.ui.properties.PropertyEditorUtils;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.DBPDataSourceContainer;
+import com.seizia.chromite.model.DBPObjectStatisticsCollector;
+import com.seizia.chromite.model.DBUtils;
+import com.seizia.chromite.model.edit.DBEObjectReorderer;
+import com.seizia.chromite.model.messages.ModelMessages;
+import com.seizia.chromite.model.navigator.DBNDatabaseFolder;
+import com.seizia.chromite.model.navigator.DBNDatabaseNode;
+import com.seizia.chromite.model.navigator.DBNNode;
+import com.seizia.chromite.model.navigator.DBNUtils;
+import com.seizia.chromite.model.navigator.meta.DBXTreeNode;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.model.runtime.load.DatabaseLoadService;
+import com.seizia.chromite.model.struct.DBSObject;
+import com.seizia.chromite.model.struct.DBSWrapper;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.runtime.properties.ObjectPropertyDescriptor;
+import com.seizia.chromite.ui.*;
+import com.seizia.chromite.ui.actions.ObjectPropertyTester;
+import com.seizia.chromite.ui.editors.DatabaseEditorUtils;
+import com.seizia.chromite.ui.editors.entity.EntityEditor;
+import com.seizia.chromite.ui.internal.UINavigatorMessages;
+import com.seizia.chromite.ui.navigator.NavigatorCommands;
+import com.seizia.chromite.ui.navigator.NavigatorUtils;
+import com.seizia.chromite.ui.navigator.actions.NavigatorHandlerFilterConfig;
+import com.seizia.chromite.ui.navigator.actions.NavigatorHandlerObjectCreateNew;
+import com.seizia.chromite.ui.properties.PropertyEditorUtils;
 import org.jkiss.utils.ArrayUtils;
 import org.jkiss.utils.CommonUtils;
 
@@ -70,8 +70,8 @@ public class ItemListControl extends NodeListControl
 {
     private static final Log log = Log.getLog(ItemListControl.class);
 
-    private static final String COLOR_NEW = "org.jkiss.dbeaver.ui.navigator.node.new.background";
-    private static final String COLOR_MODIFIED = "org.jkiss.dbeaver.ui.navigator.node.modified.background";
+    private static final String COLOR_NEW = "com.seizia.chromite.ui.navigator.node.new.background";
+    private static final String COLOR_MODIFIED = "com.seizia.chromite.ui.navigator.node.modified.background";
 
     private final ISearchExecutor searcher;
     private final Color searchHighlightColor;
@@ -212,7 +212,7 @@ public class ItemListControl extends NodeListControl
         if (rootNode instanceof DBNDatabaseNode dbNode && dbNode.getItemsMeta() != null) {
             contributionManager.add(new Action(
                 UINavigatorMessages.obj_editor_properties_control_action_filter_setting,
-                DBeaverIcons.getImageDescriptor(UIIcon.FILTER))
+                SwtIcons.getImageDescriptor(UIIcon.FILTER))
             {
                 @Override
                 public void run()

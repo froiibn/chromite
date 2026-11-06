@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.ui;
+package com.seizia.chromite.ui;
 
 import org.eclipse.jface.resource.ImageDescriptor;
 import org.eclipse.swt.SWT;
@@ -23,10 +23,10 @@ import org.eclipse.swt.graphics.Image;
 import org.eclipse.swt.widgets.Display;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.DBIcon;
-import org.jkiss.dbeaver.model.DBIconComposite;
-import org.jkiss.dbeaver.model.DBPImage;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.DBIcon;
+import com.seizia.chromite.model.DBIconComposite;
+import com.seizia.chromite.model.DBPImage;
 
 import java.net.URI;
 import java.util.ArrayList;
@@ -36,10 +36,10 @@ import java.util.Map;
 import java.util.function.Function;
 
 /**
- * DBeaverIcons
+ * SwtIcons
  */
-public class DBeaverIcons {
-    private static final Log log = Log.getLog(DBeaverIcons.class);
+public class SwtIcons {
+    private static final Log log = Log.getLog(SwtIcons.class);
 
     private static class IconDescriptor {
         @NotNull

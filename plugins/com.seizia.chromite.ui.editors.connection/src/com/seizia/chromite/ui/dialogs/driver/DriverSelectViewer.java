@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.dialogs.driver;
+package com.seizia.chromite.ui.dialogs.driver;
 
 import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.core.runtime.IStatus;
@@ -31,19 +31,19 @@ import org.eclipse.ui.dialogs.PatternFilter;
 import org.eclipse.ui.progress.WorkbenchJob;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.model.DBIcon;
-import org.jkiss.dbeaver.model.DBPDataSourceContainer;
-import org.jkiss.dbeaver.model.connection.DBPDataSourceProviderDescriptor;
-import org.jkiss.dbeaver.model.connection.DBPDriver;
-import org.jkiss.dbeaver.model.connection.DBPDriverWithLicense;
-import org.jkiss.dbeaver.registry.DataSourceRegistry;
-import org.jkiss.dbeaver.registry.driver.DriverDescriptor;
-import org.jkiss.dbeaver.registry.driver.DriverUtils;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.ui.DBeaverIcons;
-import org.jkiss.dbeaver.ui.UIIcon;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.internal.UIConnectionMessages;
+import com.seizia.chromite.model.DBIcon;
+import com.seizia.chromite.model.DBPDataSourceContainer;
+import com.seizia.chromite.model.connection.DBPDataSourceProviderDescriptor;
+import com.seizia.chromite.model.connection.DBPDriver;
+import com.seizia.chromite.model.connection.DBPDriverWithLicense;
+import com.seizia.chromite.registry.DataSourceRegistry;
+import com.seizia.chromite.registry.driver.DriverDescriptor;
+import com.seizia.chromite.registry.driver.DriverUtils;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.ui.SwtIcons;
+import com.seizia.chromite.ui.UIIcon;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.internal.UIConnectionMessages;
 import org.jkiss.utils.CommonUtils;
 
 import java.util.ArrayList;
@@ -261,7 +261,7 @@ public class DriverSelectViewer extends Viewer {
         // Create browser control toggle
         ToolBar switcherToolbar = new ToolBar(parent, SWT.RIGHT | SWT.HORIZONTAL);
         ToolItem clearItem = new ToolItem(switcherToolbar, SWT.PUSH);
-        clearItem.setImage(DBeaverIcons.getImage(UIIcon.ERASE));
+        clearItem.setImage(SwtIcons.getImage(UIIcon.ERASE));
             clearItem.addSelectionListener(SelectionListener.widgetSelectedAdapter(e -> {
                 clearText();
                 filterText.setFocus();
@@ -271,7 +271,7 @@ public class DriverSelectViewer extends Viewer {
             switchItem = new ToolItem(switcherToolbar, SWT.CHECK | SWT.DROP_DOWN);
             switchItem.setText("Switch view");
             switchItem.setWidth(UIUtils.getFontHeight(switcherToolbar) * 15);
-            switchItem.setImage(DBeaverIcons.getImage(DBIcon.TREE_SCHEMA));
+            switchItem.setImage(SwtIcons.getImage(DBIcon.TREE_SCHEMA));
             switchItem.addSelectionListener(SelectionListener.widgetSelectedAdapter(e -> switchSelectorControl()));
         }
     }
@@ -299,7 +299,7 @@ public class DriverSelectViewer extends Viewer {
                 (forceViewType == null && getCurrentSelectorViewType() == SelectorViewType.tree)
             ) {
                 if (forceViewType == null) {
-                    switchItem.setImage(DBeaverIcons.getImage(DBIcon.TREE_SCHEMA));
+                    switchItem.setImage(SwtIcons.getImage(DBIcon.TREE_SCHEMA));
                     switchItem.setText(UIConnectionMessages.viewer_selector_control_text_gallery);
                     switchItem.setSelection(true);
                 }
@@ -313,7 +313,7 @@ public class DriverSelectViewer extends Viewer {
                 });
             } else {
                 if (forceViewType == null) {
-                    switchItem.setImage(DBeaverIcons.getImage(DBIcon.TREE_TABLE));
+                    switchItem.setImage(SwtIcons.getImage(DBIcon.TREE_TABLE));
                     switchItem.setText(UIConnectionMessages.viewer_selector_control_text_classic);
                     switchItem.setSelection(false);
                 }

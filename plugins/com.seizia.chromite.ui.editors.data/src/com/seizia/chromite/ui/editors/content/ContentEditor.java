@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.editors.content;
+package com.seizia.chromite.ui.editors.content;
 
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.IProgressMonitor;
@@ -30,25 +30,25 @@ import org.eclipse.ui.*;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.DBPDataKind;
-import org.jkiss.dbeaver.model.data.DBDContent;
-import org.jkiss.dbeaver.model.exec.DBCException;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.model.runtime.DBRRunnableWithProgress;
-import org.jkiss.dbeaver.model.runtime.DefaultProgressMonitor;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.ui.IRefreshablePart;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.controls.ColumnInfoPanel;
-import org.jkiss.dbeaver.ui.data.IStreamValueManager;
-import org.jkiss.dbeaver.ui.data.IValueController;
-import org.jkiss.dbeaver.ui.data.IValueEditorStandalone;
-import org.jkiss.dbeaver.ui.data.managers.stream.TextStreamValueManager;
-import org.jkiss.dbeaver.ui.data.registry.StreamValueManagerDescriptor;
-import org.jkiss.dbeaver.ui.data.registry.ValueManagerRegistry;
-import org.jkiss.dbeaver.ui.dialogs.DialogUtils;
-import org.jkiss.dbeaver.ui.editors.MultiPageAbstractEditor;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.DBPDataKind;
+import com.seizia.chromite.model.data.DBDContent;
+import com.seizia.chromite.model.exec.DBCException;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.model.runtime.DBRRunnableWithProgress;
+import com.seizia.chromite.model.runtime.DefaultProgressMonitor;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.ui.IRefreshablePart;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.controls.ColumnInfoPanel;
+import com.seizia.chromite.ui.data.IStreamValueManager;
+import com.seizia.chromite.ui.data.IValueController;
+import com.seizia.chromite.ui.data.IValueEditorStandalone;
+import com.seizia.chromite.ui.data.managers.stream.TextStreamValueManager;
+import com.seizia.chromite.ui.data.registry.StreamValueManagerDescriptor;
+import com.seizia.chromite.ui.data.registry.ValueManagerRegistry;
+import com.seizia.chromite.ui.dialogs.DialogUtils;
+import com.seizia.chromite.ui.editors.MultiPageAbstractEditor;
 
 import java.lang.reflect.InvocationTargetException;
 import java.nio.file.Path;
@@ -593,7 +593,7 @@ public class ContentEditor extends MultiPageAbstractEditor implements IValueEdit
         {
             // Content was changed somehow so mark editor as dirty
             dirty = true;
-            DBeaverUI.asyncExec(new Runnable() {
+            ChromiteUI.asyncExec(new Runnable() {
                 @Override
                 public void run() {
                     firePropertyChange(PROP_DIRTY);

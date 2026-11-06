@@ -14,11 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.hana.model;
+package com.seizia.chromite.ext.hana.model;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.model.meta.IPropertyValueValidator;
+import com.seizia.chromite.model.meta.IPropertyValueValidator;
 
 public class HANANotPartitionedTable implements IPropertyValueValidator<HANATable, Object> {
 

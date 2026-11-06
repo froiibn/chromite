@@ -14,15 +14,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.cubrid.model;
+package com.seizia.chromite.ext.cubrid.model;
 
 import net.sf.jsqlparser.statement.Statement;
 import net.sf.jsqlparser.statement.select.PlainSelect;
 
-import org.jkiss.dbeaver.model.exec.DBCException;
-import org.jkiss.dbeaver.model.exec.DBCQueryTransformerExt;
-import org.jkiss.dbeaver.model.impl.sql.QueryTransformerLimit;
-import org.jkiss.dbeaver.model.sql.SQLQuery;
+import com.seizia.chromite.model.exec.DBCException;
+import com.seizia.chromite.model.exec.DBCQueryTransformerExt;
+import com.seizia.chromite.model.impl.sql.QueryTransformerLimit;
+import com.seizia.chromite.model.sql.SQLQuery;
 
 public class QueryTransformerLimitCubrid extends QueryTransformerLimit
         implements DBCQueryTransformerExt {

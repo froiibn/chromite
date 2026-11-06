@@ -14,10 +14,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.postgresql.tasks;
+package com.seizia.chromite.ext.postgresql.tasks;
 
-import org.jkiss.dbeaver.model.sql.task.SQLToolTaskVersionValidator;
-import org.jkiss.dbeaver.model.struct.DBSObject;
+import com.seizia.chromite.model.sql.task.SQLToolTaskVersionValidator;
+import com.seizia.chromite.model.struct.DBSObject;
 
 public class PostgreVersionValidator12 extends SQLToolTaskVersionValidator<PostgreToolBaseVacuumSettings, DBSObject> {
     @Override

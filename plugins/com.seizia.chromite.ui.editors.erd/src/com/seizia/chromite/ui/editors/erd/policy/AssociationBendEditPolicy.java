@@ -14,18 +14,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.editors.erd.policy;
+package com.seizia.chromite.ui.editors.erd.policy;
 
 import org.eclipse.draw2d.geometry.Point;
 import org.eclipse.gef.commands.Command;
 import org.eclipse.gef.editpolicies.BendpointEditPolicy;
 import org.eclipse.gef.requests.BendpointRequest;
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.ui.editors.erd.command.BendpointCreateCommand;
-import org.jkiss.dbeaver.ui.editors.erd.command.BendpointDeleteCommand;
-import org.jkiss.dbeaver.ui.editors.erd.command.BendpointMoveCommand;
-import org.jkiss.dbeaver.ui.editors.erd.part.AssociationPart;
-import org.jkiss.dbeaver.ui.editors.erd.router.shortpath.ShortPathRouting;
+import com.seizia.chromite.ui.editors.erd.command.BendpointCreateCommand;
+import com.seizia.chromite.ui.editors.erd.command.BendpointDeleteCommand;
+import com.seizia.chromite.ui.editors.erd.command.BendpointMoveCommand;
+import com.seizia.chromite.ui.editors.erd.part.AssociationPart;
+import com.seizia.chromite.ui.editors.erd.router.shortpath.ShortPathRouting;
 
 /**
  * EditPolicy to handle deletion of relationships

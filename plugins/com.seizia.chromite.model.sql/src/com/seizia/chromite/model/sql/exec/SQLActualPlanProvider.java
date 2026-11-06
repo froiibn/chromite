@@ -18,7 +18,7 @@ package com.seizia.chromite.model.sql.exec;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.model.exec.plan.DBCPlan;
+import com.seizia.chromite.model.exec.plan.DBCPlan;
 
 import java.util.List;
 
@@ -26,7 +26,7 @@ import java.util.List;
  * Actual execution plans that the server returns while the statements run, as an extra result set after each
  * statement (SQL Server {@code SET STATISTICS XML ON}). A data source provides it as an adapter.
  *
- * 설계: {@link org.jkiss.dbeaver.model.exec.plan.DBCQueryPlanner}는 계획만 따로 구하는 API라, 실행하면서 실제 계획을 받는
+ * 설계: {@link com.seizia.chromite.model.exec.plan.DBCQueryPlanner}는 계획만 따로 구하는 API라, 실행하면서 실제 계획을 받는
  * 방식(문장을 한 번만 실행)을 나타낼 수 없다. 그래서 "실행 전에 켜는 문장, 실행 뒤에 끄는 문장, 어떤 결과 집합이 계획인지,
  * 계획 데이터를 계획 노드로 바꾸기"를 이 어댑터 하나로 모았다. 편집기는 이 어댑터가 있는 연결에서만 실행 중 계획을 받고,
  * 없는 연결은 계획기(EXPLAIN ANALYZE 같은 설정)로 구한다. 계획 노드는 DBeaver 계획 모델({@link DBCPlan})이라 계획 화면은 하나다.

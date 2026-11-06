@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.data.managers.image;
+package com.seizia.chromite.ui.data.managers.image;
 
 import org.eclipse.core.runtime.IPath;
 import org.eclipse.core.runtime.IProgressMonitor;
@@ -26,17 +26,17 @@ import org.eclipse.ui.IEditorSite;
 import org.eclipse.ui.IPathEditorInput;
 import org.eclipse.ui.PartInitException;
 import org.eclipse.ui.part.EditorPart;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.DBIcon;
-import org.jkiss.dbeaver.model.preferences.DBPPreferenceStore;
-import org.jkiss.dbeaver.ui.DBeaverIcons;
-import org.jkiss.dbeaver.ui.IRefreshablePart;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.controls.imageview.AbstractImageViewer;
-import org.jkiss.dbeaver.ui.controls.imageview.BrowserImageEditor;
-import org.jkiss.dbeaver.ui.controls.imageview.SWTImageEditor;
-import org.jkiss.dbeaver.ui.controls.resultset.ResultSetPreferences;
-import org.jkiss.dbeaver.ui.data.IValueController;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.DBIcon;
+import com.seizia.chromite.model.preferences.DBPPreferenceStore;
+import com.seizia.chromite.ui.SwtIcons;
+import com.seizia.chromite.ui.IRefreshablePart;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.controls.imageview.AbstractImageViewer;
+import com.seizia.chromite.ui.controls.imageview.BrowserImageEditor;
+import com.seizia.chromite.ui.controls.imageview.SWTImageEditor;
+import com.seizia.chromite.ui.controls.resultset.ResultSetPreferences;
+import com.seizia.chromite.ui.data.IValueController;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -137,7 +137,7 @@ public class ImageEditorPart extends EditorPart implements IRefreshablePart {
     @Override
     public Image getTitleImage()
     {
-        return DBeaverIcons.getImage(DBIcon.TYPE_IMAGE);
+        return SwtIcons.getImage(DBIcon.TYPE_IMAGE);
     }
 
     @Override

@@ -14,14 +14,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.cloudflare.d1.ui.config;
+package com.seizia.chromite.ext.cloudflare.d1.ui.config;
 
 import org.eclipse.swt.widgets.Composite;
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.ext.cloudflare.d1.ui.internal.CloudflareD1UIMessages;
-import org.jkiss.dbeaver.model.access.DBAAuthModel;
-import org.jkiss.dbeaver.model.connection.DBPConnectionConfiguration;
-import org.jkiss.dbeaver.ui.dialogs.connection.DatabaseNativeAuthModelConfigurator;
+import com.seizia.chromite.ext.cloudflare.d1.ui.internal.CloudflareD1UIMessages;
+import com.seizia.chromite.model.access.DBAAuthModel;
+import com.seizia.chromite.model.connection.DBPConnectionConfiguration;
+import com.seizia.chromite.ui.dialogs.connection.DatabaseNativeAuthModelConfigurator;
 
 public final class CloudflareD1AuthConfigurator extends DatabaseNativeAuthModelConfigurator {
     @Override

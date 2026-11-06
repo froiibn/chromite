@@ -14,13 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.views.session.internal;
+package com.seizia.chromite.ui.views.session.internal;
 
 import org.eclipse.osgi.util.NLS;
 
 public class SessionEditorMessages extends NLS {
 
-    static final String BUNDLE_NAME = "org.jkiss.dbeaver.ui.views.session.internal.SessionEditorMessages"; //$NON-NLS-1$
+    static final String BUNDLE_NAME = "com.seizia.chromite.ui.views.session.internal.SessionEditorMessages"; //$NON-NLS-1$
 
     public static String viewer_details_item_details;
     public static String viewer_details_item_session_details;

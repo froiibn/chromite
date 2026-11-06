@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.editors.locks.manage;
+package com.seizia.chromite.ui.editors.locks.manage;
 
 import org.eclipse.jface.action.Action;
 import org.eclipse.jface.action.IContributionManager;
@@ -32,20 +32,20 @@ import org.eclipse.ui.IWorkbenchPart;
 import org.eclipse.ui.IWorkbenchSite;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.model.admin.locks.DBAServerLock;
-import org.jkiss.dbeaver.model.admin.locks.DBAServerLockItem;
-import org.jkiss.dbeaver.model.admin.locks.DBAServerLockManager;
-import org.jkiss.dbeaver.model.impl.admin.locks.LockGraph;
-import org.jkiss.dbeaver.model.impl.admin.locks.LockGraphManager;
-import org.jkiss.dbeaver.ui.BaseThemeSettings;
-import org.jkiss.dbeaver.ui.DBeaverIcons;
-import org.jkiss.dbeaver.ui.UIIcon;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.controls.autorefresh.AutoRefreshControl;
-import org.jkiss.dbeaver.ui.editors.locks.LocksUIMessages;
-import org.jkiss.dbeaver.ui.editors.locks.graph.LockGraphicalView;
-import org.jkiss.dbeaver.ui.editors.locks.table.LockTable;
-import org.jkiss.dbeaver.ui.editors.locks.table.LockTableDetail;
+import com.seizia.chromite.model.admin.locks.DBAServerLock;
+import com.seizia.chromite.model.admin.locks.DBAServerLockItem;
+import com.seizia.chromite.model.admin.locks.DBAServerLockManager;
+import com.seizia.chromite.model.impl.admin.locks.LockGraph;
+import com.seizia.chromite.model.impl.admin.locks.LockGraphManager;
+import com.seizia.chromite.ui.BaseThemeSettings;
+import com.seizia.chromite.ui.SwtIcons;
+import com.seizia.chromite.ui.UIIcon;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.controls.autorefresh.AutoRefreshControl;
+import com.seizia.chromite.ui.editors.locks.LocksUIMessages;
+import com.seizia.chromite.ui.editors.locks.graph.LockGraphicalView;
+import com.seizia.chromite.ui.editors.locks.table.LockTable;
+import com.seizia.chromite.ui.editors.locks.table.LockTableDetail;
 
 import java.util.Collection;
 import java.util.Map;
@@ -282,7 +282,7 @@ public class LockManagerViewer {
             contributionManager.add(killAction);
             contributionManager.add(new Separator());
             refreshControl.populateRefreshButton(contributionManager);
-            contributionManager.add(new Action(LocksUIMessages.actions_refresh_control_refresh_locks, DBeaverIcons.getImageDescriptor(UIIcon.REFRESH)) {
+            contributionManager.add(new Action(LocksUIMessages.actions_refresh_control_refresh_locks, SwtIcons.getImageDescriptor(UIIcon.REFRESH)) {
                 @Override
                 public void run() {
                     refreshLocks(curLock);

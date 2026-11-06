@@ -14,12 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.search.internal;
+package com.seizia.chromite.ui.search.internal;
 
 import org.eclipse.osgi.util.NLS;
 
 public class UISearchMessages extends NLS {
-    private static final String BUNDLE_NAME = "org.jkiss.dbeaver.ui.search.internal.UISearchMessages"; //$NON-NLS-1$
+    private static final String BUNDLE_NAME = "com.seizia.chromite.ui.search.internal.UISearchMessages"; //$NON-NLS-1$
     public static String dialog_search_objects_column_description;
     public static String dialog_search_objects_column_type;
     public static String dialog_search_objects_combo_contains;

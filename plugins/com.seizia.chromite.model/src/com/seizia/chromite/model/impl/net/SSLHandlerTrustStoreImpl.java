@@ -14,17 +14,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.impl.net;
+package com.seizia.chromite.model.impl.net;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.model.DBPDataSource;
-import org.jkiss.dbeaver.model.app.DBACertificateStorage;
-import org.jkiss.dbeaver.model.impl.app.CertificateGenHelper;
-import org.jkiss.dbeaver.model.impl.app.DefaultCertificateStorage;
-import org.jkiss.dbeaver.model.net.DBWHandlerConfiguration;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
+import com.seizia.chromite.model.DBPDataSource;
+import com.seizia.chromite.model.app.DBACertificateStorage;
+import com.seizia.chromite.model.impl.app.CertificateGenHelper;
+import com.seizia.chromite.model.impl.app.DefaultCertificateStorage;
+import com.seizia.chromite.model.net.DBWHandlerConfiguration;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.runtime.DBWorkbench;
 import org.jkiss.utils.CommonUtils;
 
 import java.io.IOException;
@@ -312,7 +312,7 @@ public class SSLHandlerTrustStoreImpl extends SSLHandlerImpl {
             }
 
             Set<PosixFilePermission> ownerOnly = PosixFilePermissions.fromString("rw-------");
-            Path staged = Files.createTempFile(path.getParent(), ".dbeaver-private-", ".tmp",
+            Path staged = Files.createTempFile(path.getParent(), ".chromite-private-", ".tmp",
                 PosixFilePermissions.asFileAttribute(ownerOnly));
             try {
                 Files.write(staged, contents);

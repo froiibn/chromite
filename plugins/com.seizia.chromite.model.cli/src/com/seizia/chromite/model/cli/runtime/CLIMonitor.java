@@ -14,12 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.cli.runtime;
+package com.seizia.chromite.model.cli.runtime;
 
 import org.eclipse.core.runtime.IProgressMonitor;
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.runtime.DefaultProgressMonitor;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.runtime.DefaultProgressMonitor;
 
 public class CLIMonitor extends DefaultProgressMonitor {
     private static final Log log = Log.getLog(CLIMonitor.class);

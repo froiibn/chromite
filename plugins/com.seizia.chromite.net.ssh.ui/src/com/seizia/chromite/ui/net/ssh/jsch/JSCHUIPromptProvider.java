@@ -14,18 +14,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.net.ssh.jsch;
+package com.seizia.chromite.ui.net.ssh.jsch;
 
 import com.jcraft.jsch.Session;
 import com.jcraft.jsch.UserInfo;
 import org.eclipse.jsch.ui.UserInfoPrompter;
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.net.ssh.JSCHUserInfoPromptProvider;
-import org.jkiss.dbeaver.model.net.ssh.config.SSHAuthConfiguration;
-import org.jkiss.dbeaver.model.net.ssh.config.SSHHostConfiguration;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.ui.net.ssh.SSHUIMessages;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.net.ssh.JSCHUserInfoPromptProvider;
+import com.seizia.chromite.model.net.ssh.config.SSHAuthConfiguration;
+import com.seizia.chromite.model.net.ssh.config.SSHHostConfiguration;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.ui.net.ssh.SSHUIMessages;
 import org.jkiss.utils.CommonUtils;
 
 public class JSCHUIPromptProvider implements JSCHUserInfoPromptProvider {

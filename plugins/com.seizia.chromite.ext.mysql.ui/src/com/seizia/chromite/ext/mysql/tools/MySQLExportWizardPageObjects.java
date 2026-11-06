@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.mysql.tools;
+package com.seizia.chromite.ext.mysql.tools;
 
 import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.Status;
@@ -26,21 +26,21 @@ import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.widgets.*;
 import org.jkiss.code.NotNull;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.ext.mysql.MySQLConstants;
-import org.jkiss.dbeaver.ext.mysql.model.MySQLCatalog;
-import org.jkiss.dbeaver.ext.mysql.model.MySQLDataSource;
-import org.jkiss.dbeaver.ext.mysql.model.MySQLTableBase;
-import org.jkiss.dbeaver.ext.mysql.tasks.MySQLDatabaseExportInfo;
-import org.jkiss.dbeaver.ext.mysql.ui.internal.MySQLUIMessages;
-import org.jkiss.dbeaver.model.DBIcon;
-import org.jkiss.dbeaver.model.DBPDataSourceContainer;
-import org.jkiss.dbeaver.model.DBUtils;
-import org.jkiss.dbeaver.model.runtime.AbstractJob;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.ui.DBeaverIcons;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.controls.CustomSashForm;
+import com.seizia.chromite.ext.mysql.MySQLConstants;
+import com.seizia.chromite.ext.mysql.model.MySQLCatalog;
+import com.seizia.chromite.ext.mysql.model.MySQLDataSource;
+import com.seizia.chromite.ext.mysql.model.MySQLTableBase;
+import com.seizia.chromite.ext.mysql.tasks.MySQLDatabaseExportInfo;
+import com.seizia.chromite.ext.mysql.ui.internal.MySQLUIMessages;
+import com.seizia.chromite.model.DBIcon;
+import com.seizia.chromite.model.DBPDataSourceContainer;
+import com.seizia.chromite.model.DBUtils;
+import com.seizia.chromite.model.runtime.AbstractJob;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.ui.SwtIcons;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.controls.CustomSashForm;
 import org.jkiss.utils.CommonUtils;
 
 import java.util.*;
@@ -73,7 +73,7 @@ class MySQLExportWizardPageObjects extends MySQLWizardPageSettings<MySQLExportWi
 
         connInfo = new CLabel(objectsGroup, SWT.WRAP);
         connInfo.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false));
-        connInfo.setImage(DBeaverIcons.getImage(DBIcon.DATABASE_DEFAULT));
+        connInfo.setImage(SwtIcons.getImage(DBIcon.DATABASE_DEFAULT));
 
 
         SashForm sash = new CustomSashForm(objectsGroup, SWT.VERTICAL);
@@ -182,7 +182,7 @@ class MySQLExportWizardPageObjects extends MySQLWizardPageSettings<MySQLExportWi
                     continue;
                 }
                 TableItem item = new TableItem(catalogTable, SWT.NONE);
-                item.setImage(DBeaverIcons.getImage(DBIcon.TREE_DATABASE));
+                item.setImage(SwtIcons.getImage(DBIcon.TREE_DATABASE));
                 item.setText(0, catalog.getName());
                 item.setData(catalog);
                 if (activeCatalogs.contains(catalog)) {
@@ -254,7 +254,7 @@ class MySQLExportWizardPageObjects extends MySQLWizardPageSettings<MySQLExportWi
                         tablesTable.removeAll();
                         for (MySQLTableBase table : objects) {
                             TableItem item = new TableItem(tablesTable, SWT.NONE);
-                            item.setImage(DBeaverIcons.getImage(table.isView() ? DBIcon.TREE_VIEW : DBIcon.TREE_TABLE));
+                            item.setImage(SwtIcons.getImage(table.isView() ? DBIcon.TREE_VIEW : DBIcon.TREE_TABLE));
                             item.setText(0, table.getName());
                             item.setData(table);
                             item.setChecked(isCatalogChecked && (checkedObjects == null || checkedObjects.contains(table)));

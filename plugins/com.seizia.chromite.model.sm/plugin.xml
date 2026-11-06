@@ -2,5 +2,5 @@
 <?eclipse version="3.2"?>
 
 <plugin>
-    <extension-point id="com.dbeaver.secretController" name="Secret controllers" schema="schema/com.dbeaver.secretController.exsd"/>
+    <extension-point id="com.seizia.chromite.secretController" name="Secret controllers" schema="schema/com.seizia.chromite.secretController.exsd"/>
 </plugin>

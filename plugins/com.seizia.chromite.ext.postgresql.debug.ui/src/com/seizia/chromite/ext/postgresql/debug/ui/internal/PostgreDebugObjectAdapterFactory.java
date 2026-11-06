@@ -14,17 +14,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.postgresql.debug.ui.internal;
+package com.seizia.chromite.ext.postgresql.debug.ui.internal;
 
 import org.eclipse.core.runtime.IAdapterFactory;
 import org.eclipse.ui.IEditorPart;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.debug.DBGDebugObject;
-import org.jkiss.dbeaver.ext.postgresql.model.PostgreProcedure;
-import org.jkiss.dbeaver.model.navigator.DBNDatabaseNode;
-import org.jkiss.dbeaver.model.struct.DBSObject;
-import org.jkiss.dbeaver.ui.editors.IDatabaseEditorInput;
+import com.seizia.chromite.debug.DBGDebugObject;
+import com.seizia.chromite.ext.postgresql.model.PostgreProcedure;
+import com.seizia.chromite.model.navigator.DBNDatabaseNode;
+import com.seizia.chromite.model.struct.DBSObject;
+import com.seizia.chromite.ui.editors.IDatabaseEditorInput;
 
 public class PostgreDebugObjectAdapterFactory implements IAdapterFactory {
 
@@ -54,7 +54,7 @@ public class PostgreDebugObjectAdapterFactory implements IAdapterFactory {
         if (object != null) {
             // An instanceof check on every active editor starts the lazy PostgreSQL model bundle.
             for (Class<?> type = object.getClass(); type != null; type = type.getSuperclass()) {
-                if (type.getName().equals("org.jkiss.dbeaver.ext.postgresql.model.PostgreProcedure")) {
+                if (type.getName().equals("com.seizia.chromite.ext.postgresql.model.PostgreProcedure")) {
                     return object instanceof PostgreProcedure;
                 }
             }

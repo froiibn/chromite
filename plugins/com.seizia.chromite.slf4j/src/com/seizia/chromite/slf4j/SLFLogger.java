@@ -14,9 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.slf4j;
+package com.seizia.chromite.slf4j;
 
-import org.jkiss.dbeaver.Log;
+import com.seizia.chromite.Log;
 import org.slf4j.Logger;
 import org.slf4j.Marker;
 import org.slf4j.helpers.MessageFormatter;

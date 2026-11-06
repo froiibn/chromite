@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.cloudflare.d1.ui.views;
+package com.seizia.chromite.ext.cloudflare.d1.ui.views;
 
 import org.eclipse.jface.dialogs.IMessageProvider;
 import org.eclipse.osgi.util.NLS;
@@ -27,16 +27,16 @@ import org.eclipse.swt.widgets.Label;
 import org.jkiss.code.DynamicCall;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.ext.cloudflare.d1.CloudflareD1ConnectionSettings;
-import org.jkiss.dbeaver.ext.cloudflare.d1.auth.CloudflareD1AuthModel;
-import org.jkiss.dbeaver.ext.cloudflare.d1.model.CloudflareD1ConnectionAdapter;
-import org.jkiss.dbeaver.ext.cloudflare.d1.ui.config.CloudflareD1AuthConfigurator;
-import org.jkiss.dbeaver.ext.cloudflare.d1.ui.internal.CloudflareD1UIMessages;
-import org.jkiss.dbeaver.model.DBPDataSourceContainer;
-import org.jkiss.dbeaver.model.connection.DBPConnectionConfiguration;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.dialogs.connection.ConnectionPageAbstract;
+import com.seizia.chromite.ext.cloudflare.d1.CloudflareD1ConnectionSettings;
+import com.seizia.chromite.ext.cloudflare.d1.auth.CloudflareD1AuthModel;
+import com.seizia.chromite.ext.cloudflare.d1.model.CloudflareD1ConnectionAdapter;
+import com.seizia.chromite.ext.cloudflare.d1.ui.config.CloudflareD1AuthConfigurator;
+import com.seizia.chromite.ext.cloudflare.d1.ui.internal.CloudflareD1UIMessages;
+import com.seizia.chromite.model.DBPDataSourceContainer;
+import com.seizia.chromite.model.connection.DBPConnectionConfiguration;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.dialogs.connection.ConnectionPageAbstract;
 import org.jkiss.utils.CommonUtils;
 
 import java.lang.reflect.InvocationTargetException;

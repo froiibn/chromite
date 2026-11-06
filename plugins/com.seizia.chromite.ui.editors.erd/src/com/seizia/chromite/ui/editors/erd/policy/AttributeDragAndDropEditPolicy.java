@@ -14,13 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.editors.erd.policy;
+package com.seizia.chromite.ui.editors.erd.policy;
 
 import org.eclipse.gef.Request;
 import org.eclipse.gef.RequestConstants;
 import org.eclipse.gef.commands.Command;
 import org.eclipse.gef.editpolicies.GraphicalEditPolicy;
-import org.jkiss.dbeaver.ui.editors.erd.part.AttributePart;
+import com.seizia.chromite.ui.editors.erd.part.AttributePart;
 
 /**
  * EditPolicy for the direct editing of Column names

@@ -18,7 +18,7 @@
 /*
  * Created on Jul 15, 2004
  */
-package org.jkiss.dbeaver.ui.editors.erd.layout.algorithm.direct;
+package com.seizia.chromite.ui.editors.erd.layout.algorithm.direct;
 
 import org.eclipse.draw2d.BendpointConnectionRouter;
 import org.eclipse.draw2d.IFigure;

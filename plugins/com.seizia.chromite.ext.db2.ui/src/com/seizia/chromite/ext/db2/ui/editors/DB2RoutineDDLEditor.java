@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.db2.ui.editors;
+package com.seizia.chromite.ext.db2.ui.editors;
 
 import org.eclipse.jface.action.ControlContribution;
 import org.eclipse.jface.action.IContributionManager;
@@ -26,10 +26,10 @@ import org.eclipse.swt.events.SelectionEvent;
 import org.eclipse.swt.widgets.Combo;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Control;
-import org.jkiss.dbeaver.ext.db2.DB2Constants;
-import org.jkiss.dbeaver.ext.db2.editors.DB2DDLFormat;
-import org.jkiss.dbeaver.ext.db2.model.DB2Routine;
-import org.jkiss.dbeaver.ui.editors.sql.SQLSourceViewer;
+import com.seizia.chromite.ext.db2.DB2Constants;
+import com.seizia.chromite.ext.db2.editors.DB2DDLFormat;
+import com.seizia.chromite.ext.db2.model.DB2Routine;
+import com.seizia.chromite.ui.editors.sql.SQLSourceViewer;
 
 /**
  * Manage the "Format" drop down box in the bottom right corner of the Routine DDL viewer toformat DDL

@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.tasks.ui.view;
+package com.seizia.chromite.tasks.ui.view;
 
 import org.eclipse.core.commands.AbstractHandler;
 import org.eclipse.core.commands.ExecutionEvent;
@@ -23,8 +23,8 @@ import org.eclipse.core.runtime.Platform;
 import org.eclipse.ui.commands.IElementUpdater;
 import org.eclipse.ui.handlers.HandlerUtil;
 import org.eclipse.ui.menus.UIElement;
-import org.jkiss.dbeaver.tasks.ui.internal.TaskUIViewBundle;
-import org.jkiss.dbeaver.ui.UIUtils;
+import com.seizia.chromite.tasks.ui.internal.TaskUIViewBundle;
+import com.seizia.chromite.ui.UIUtils;
 import org.jkiss.utils.CommonUtils;
 
 import java.util.Map;
@@ -68,14 +68,14 @@ public class TaskHandlerGroupBy extends AbstractHandler implements IElementUpdat
             switch (groupBy) {
                 case category:
                     element.setChecked(tasksTree.isGroupByCategory());
-                    //element.setIcon(DBeaverIcons.getImageDescriptor(DBIcon.TREE_DATABASE_CATEGORY));
+                    //element.setIcon(SwtIcons.getImageDescriptor(DBIcon.TREE_DATABASE_CATEGORY));
                     break;
                 case type:
                     element.setChecked(tasksTree.isGroupByType());
-                    //element.setIcon(DBeaverIcons.getImageDescriptor(DBIcon.TREE_TASK));
+                    //element.setIcon(SwtIcons.getImageDescriptor(DBIcon.TREE_TASK));
                     break;
             }
-            String commandName = Platform.getResourceBundle(Platform.getBundle(TaskUIViewBundle.BUDLE_ID)).getString("command.org.jkiss.dbeaver.task.group." + groupBy.name() + ".name");
+            String commandName = Platform.getResourceBundle(Platform.getBundle(TaskUIViewBundle.BUDLE_ID)).getString("command.com.seizia.chromite.task.group." + groupBy.name() + ".name");
             element.setText(commandName);
             element.setTooltip(commandName);
         }

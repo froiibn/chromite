@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.navigator;
+package com.seizia.chromite.ui.navigator;
 
 import org.eclipse.core.resources.IFile;
 import org.eclipse.core.resources.IFolder;
@@ -26,17 +26,17 @@ import org.eclipse.jface.resource.ImageDescriptor;
 import org.eclipse.ui.model.IWorkbenchAdapter;
 import org.eclipse.ui.model.WorkbenchAdapter;
 import org.eclipse.ui.views.properties.IPropertySource;
-import org.jkiss.dbeaver.model.*;
-import org.jkiss.dbeaver.model.messages.ModelMessages;
-import org.jkiss.dbeaver.model.navigator.DBNDataSource;
-import org.jkiss.dbeaver.model.navigator.DBNDatabaseFolder;
-import org.jkiss.dbeaver.model.navigator.DBNNode;
-import org.jkiss.dbeaver.model.navigator.DBNResource;
-import org.jkiss.dbeaver.model.preferences.DBPPropertySource;
-import org.jkiss.dbeaver.model.struct.*;
-import org.jkiss.dbeaver.runtime.properties.PropertyCollector;
-import org.jkiss.dbeaver.ui.DBeaverIcons;
-import org.jkiss.dbeaver.ui.properties.PropertySourceDelegate;
+import com.seizia.chromite.model.*;
+import com.seizia.chromite.model.messages.ModelMessages;
+import com.seizia.chromite.model.navigator.DBNDataSource;
+import com.seizia.chromite.model.navigator.DBNDatabaseFolder;
+import com.seizia.chromite.model.navigator.DBNNode;
+import com.seizia.chromite.model.navigator.DBNResource;
+import com.seizia.chromite.model.preferences.DBPPropertySource;
+import com.seizia.chromite.model.struct.*;
+import com.seizia.chromite.runtime.properties.PropertyCollector;
+import com.seizia.chromite.ui.SwtIcons;
+import com.seizia.chromite.ui.properties.PropertySourceDelegate;
 
 /**
  * Navigator AdapterFactory
@@ -148,7 +148,7 @@ public class NavigatorAdapterFactory implements IAdapterFactory
                 WorkbenchAdapter workbenchAdapter = new WorkbenchAdapter() {
                     @Override
                     public ImageDescriptor getImageDescriptor(Object object) {
-                        return DBeaverIcons.getImageDescriptor(node.getNodeIconDefault());
+                        return SwtIcons.getImageDescriptor(node.getNodeIconDefault());
                     }
 
                     @Override

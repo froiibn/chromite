@@ -14,11 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.tidblake.ui;
+package com.seizia.chromite.ext.tidblake.ui;
 
 import org.eclipse.swt.widgets.Composite;
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.ui.dialogs.net.SSLConfiguratorTrustStoreUI;
+import com.seizia.chromite.ui.dialogs.net.SSLConfiguratorTrustStoreUI;
 
 public class TiDBLakeSSLConfigurator extends SSLConfiguratorTrustStoreUI {
     @Override

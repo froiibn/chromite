@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.ui.resources.bookmarks;
+package com.seizia.chromite.ui.resources.bookmarks;
 
 import org.eclipse.core.resources.IFile;
 import org.eclipse.core.runtime.CoreException;
@@ -24,10 +24,10 @@ import org.eclipse.swt.graphics.Image;
 import org.eclipse.swt.graphics.ImageData;
 import org.eclipse.swt.graphics.ImageLoader;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.model.DBPImage;
-import org.jkiss.dbeaver.ui.DBIconBinary;
-import org.jkiss.dbeaver.ui.DBeaverIcons;
-import org.jkiss.dbeaver.utils.GeneralUtils;
+import com.seizia.chromite.model.DBPImage;
+import com.seizia.chromite.ui.DBIconBinary;
+import com.seizia.chromite.ui.SwtIcons;
+import com.seizia.chromite.utils.GeneralUtils;
 import org.jkiss.utils.Base64;
 import org.jkiss.utils.xml.XMLBuilder;
 import org.jkiss.utils.xml.XMLException;
@@ -152,7 +152,7 @@ public class BookmarkStorage {
         {
             xml.startElement(TAG_IMAGE);
 
-            Image realImage = DBeaverIcons.getImage(this.image);
+            Image realImage = SwtIcons.getImage(this.image);
             ImageLoader loader = new ImageLoader();
             loader.data = new ImageData[]{realImage.getImageData()};
             ByteArrayOutputStream imageBuffer = new ByteArrayOutputStream(5000);

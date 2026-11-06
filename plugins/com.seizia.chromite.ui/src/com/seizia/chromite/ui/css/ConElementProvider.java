@@ -14,11 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.css;
+package com.seizia.chromite.ui.css;
 
 import org.eclipse.e4.ui.css.core.dom.IElementProvider;
 import org.eclipse.e4.ui.css.core.engine.CSSEngine;
-import org.jkiss.dbeaver.ui.ConComposite;
+import com.seizia.chromite.ui.ConComposite;
 import org.w3c.dom.Element;
 
 public class ConElementProvider implements IElementProvider {

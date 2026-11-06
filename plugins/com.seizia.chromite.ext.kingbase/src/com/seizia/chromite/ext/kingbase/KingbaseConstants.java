@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.ext.kingbase;
+package com.seizia.chromite.ext.kingbase;
 
 /**
  * KingbaseConstants

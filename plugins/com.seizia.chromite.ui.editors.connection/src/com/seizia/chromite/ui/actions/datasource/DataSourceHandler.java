@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.actions.datasource;
+package com.seizia.chromite.ui.actions.datasource;
 
 import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.core.runtime.IStatus;
@@ -32,27 +32,27 @@ import org.eclipse.ui.ISaveablePart;
 import org.eclipse.ui.progress.UIJob;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.DBPDataSource;
-import org.jkiss.dbeaver.model.DBPDataSourceContainer;
-import org.jkiss.dbeaver.model.DBPDataSourceTask;
-import org.jkiss.dbeaver.model.DBUtils;
-import org.jkiss.dbeaver.model.exec.*;
-import org.jkiss.dbeaver.model.qm.QMUtils;
-import org.jkiss.dbeaver.model.runtime.DBRProgressListener;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.model.runtime.DBRRunnableWithProgress;
-import org.jkiss.dbeaver.model.runtime.VoidProgressMonitor;
-import org.jkiss.dbeaver.model.struct.DBSInstance;
-import org.jkiss.dbeaver.registry.DataSourceDescriptor;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.runtime.jobs.ConnectJob;
-import org.jkiss.dbeaver.runtime.jobs.DisconnectJob;
-import org.jkiss.dbeaver.ui.*;
-import org.jkiss.dbeaver.ui.actions.DataSourceHandlerUtils;
-import org.jkiss.dbeaver.ui.dialogs.ConfirmationDialog;
-import org.jkiss.dbeaver.ui.editors.entity.handlers.SaveChangesHandler;
-import org.jkiss.dbeaver.utils.RuntimeUtils;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.DBPDataSource;
+import com.seizia.chromite.model.DBPDataSourceContainer;
+import com.seizia.chromite.model.DBPDataSourceTask;
+import com.seizia.chromite.model.DBUtils;
+import com.seizia.chromite.model.exec.*;
+import com.seizia.chromite.model.qm.QMUtils;
+import com.seizia.chromite.model.runtime.DBRProgressListener;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.model.runtime.DBRRunnableWithProgress;
+import com.seizia.chromite.model.runtime.VoidProgressMonitor;
+import com.seizia.chromite.model.struct.DBSInstance;
+import com.seizia.chromite.registry.DataSourceDescriptor;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.runtime.jobs.ConnectJob;
+import com.seizia.chromite.runtime.jobs.DisconnectJob;
+import com.seizia.chromite.ui.*;
+import com.seizia.chromite.ui.actions.DataSourceHandlerUtils;
+import com.seizia.chromite.ui.dialogs.ConfirmationDialog;
+import com.seizia.chromite.ui.editors.entity.handlers.SaveChangesHandler;
+import com.seizia.chromite.utils.RuntimeUtils;
 import org.jkiss.utils.ArrayUtils;
 
 import java.lang.reflect.InvocationTargetException;
@@ -269,7 +269,7 @@ public class DataSourceHandler {
         if (isContextTransactionAffected(context)) {
             // Ask for confirmation
             TransactionCloseConfirmer closeConfirmer = new TransactionCloseConfirmer(context.getDataSource().getContainer().getName());
-            DBeaverUI.syncExec(closeConfirmer);
+            ChromiteUI.syncExec(closeConfirmer);
             switch (closeConfirmer.result) {
                 case IDialogConstants.YES_ID:
                     return ISaveablePart2.YES;
@@ -374,7 +374,7 @@ public class DataSourceHandler {
         public TransactionEndConfirmDialog(DBPDataSource dataSource) {
             super(UIUtils.getActiveShell(),
                 "End transaction",
-                DBeaverIcons.getImage(UIIcon.TXN_ROLLBACK),
+                SwtIcons.getImage(UIIcon.TXN_ROLLBACK),
                 "Transactions in database '" + dataSource.getName() + "' will be ended because of the long idle period." +
                     "\nPress '" + IDialogConstants.CANCEL_LABEL + "' to prevent this.",
                 MessageDialog.WARNING,

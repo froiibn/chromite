@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.controls.decorations;
+package com.seizia.chromite.ui.controls.decorations;
 
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.graphics.GC;
@@ -23,8 +23,8 @@ import org.eclipse.swt.graphics.Point;
 import org.eclipse.swt.graphics.Rectangle;
 import org.eclipse.swt.widgets.Control;
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.ui.DBeaverIcons;
-import org.jkiss.dbeaver.ui.internal.UIMessages;
+import com.seizia.chromite.ui.SwtIcons;
+import com.seizia.chromite.ui.internal.UIMessages;
 
 /**
  * A link in the bottom right corner of a control that turns holiday decorations off.
@@ -46,7 +46,7 @@ final class DecorationsToggle {
 
     DecorationsToggle(@NotNull Control control, @NotNull Runnable action) {
         this.control = control;
-        this.image = DBeaverIcons.getImage(SnowflakeIcons.SNOWFLAKE);
+        this.image = SwtIcons.getImage(SnowflakeIcons.SNOWFLAKE);
 
         control.addListener(SWT.MouseMove, event -> setHovered(contains(event.x, event.y)));
         control.addListener(SWT.MouseExit, event -> setHovered(false));

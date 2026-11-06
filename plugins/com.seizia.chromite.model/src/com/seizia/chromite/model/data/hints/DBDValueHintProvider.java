@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.model.data.hints;
+package com.seizia.chromite.model.data.hints;
 
 /**
  * Abstract hint provider

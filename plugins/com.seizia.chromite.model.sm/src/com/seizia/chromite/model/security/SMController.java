@@ -14,19 +14,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.security;
+package com.seizia.chromite.model.security;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.model.DBInternalDatabaseInformationProvider;
-import org.jkiss.dbeaver.model.DBPObjectController;
-import org.jkiss.dbeaver.model.auth.SMAuthCredentialsManager;
-import org.jkiss.dbeaver.model.auth.SMObjectType;
-import org.jkiss.dbeaver.model.security.user.SMAuthPermissions;
-import org.jkiss.dbeaver.model.security.user.SMObjectPermissions;
-import org.jkiss.dbeaver.model.security.user.SMUser;
-import org.jkiss.dbeaver.model.security.user.SMUserTeam;
+import com.seizia.chromite.model.DBInternalDatabaseInformationProvider;
+import com.seizia.chromite.model.DBPObjectController;
+import com.seizia.chromite.model.auth.SMAuthCredentialsManager;
+import com.seizia.chromite.model.auth.SMObjectType;
+import com.seizia.chromite.model.security.user.SMAuthPermissions;
+import com.seizia.chromite.model.security.user.SMObjectPermissions;
+import com.seizia.chromite.model.security.user.SMUser;
+import com.seizia.chromite.model.security.user.SMUserTeam;
 
 import java.util.List;
 import java.util.Map;

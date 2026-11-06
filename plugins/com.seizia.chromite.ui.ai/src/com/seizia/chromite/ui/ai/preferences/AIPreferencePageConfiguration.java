@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.ai.preferences;
+package com.seizia.chromite.ui.ai.preferences;
 
 import org.eclipse.core.runtime.IAdaptable;
 import org.eclipse.swt.layout.GridData;
@@ -26,26 +26,26 @@ import org.eclipse.ui.IWorkbenchPropertyPage;
 import org.eclipse.ui.preferences.IWorkbenchPreferenceContainer;
 import org.jkiss.code.NotNull;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.ai.AISchemaGenerator;
-import org.jkiss.dbeaver.model.ai.AISettings;
-import org.jkiss.dbeaver.model.ai.impl.AISchemaGeneratorImpl;
-import org.jkiss.dbeaver.model.ai.registry.AISettingsManager;
-import org.jkiss.dbeaver.model.preferences.DBPPreferenceStore;
-import org.jkiss.dbeaver.model.rm.RMConstants;
-import org.jkiss.dbeaver.registry.configurator.UIPropertyConfiguratorDescriptor;
-import org.jkiss.dbeaver.registry.configurator.UIPropertyConfiguratorRegistry;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.ui.IObjectPropertyConfigurator;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.ai.format.DefaultFormattingConfigurator;
-import org.jkiss.dbeaver.ui.preferences.AbstractPrefPage;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.ai.AISchemaGenerator;
+import com.seizia.chromite.model.ai.AISettings;
+import com.seizia.chromite.model.ai.impl.AISchemaGeneratorImpl;
+import com.seizia.chromite.model.ai.registry.AISettingsManager;
+import com.seizia.chromite.model.preferences.DBPPreferenceStore;
+import com.seizia.chromite.model.rm.RMConstants;
+import com.seizia.chromite.registry.configurator.UIPropertyConfiguratorDescriptor;
+import com.seizia.chromite.registry.configurator.UIPropertyConfiguratorRegistry;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.ui.IObjectPropertyConfigurator;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.ai.format.DefaultFormattingConfigurator;
+import com.seizia.chromite.ui.preferences.AbstractPrefPage;
 
 import java.io.IOException;
 
 public class AIPreferencePageConfiguration extends AbstractPrefPage implements IWorkbenchPreferencePage, IWorkbenchPropertyPage {
     private static final Log log = Log.getLog(AIPreferencePageConfiguration.class);
-    public static final String PAGE_ID = "org.jkiss.dbeaver.preferences.ai.config";
+    public static final String PAGE_ID = "com.seizia.chromite.preferences.ai.config";
     private final AISettings settings;
     private final AISchemaGenerator ddlGenerator;
 

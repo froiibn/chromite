@@ -14,24 +14,24 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.tasks.ui.sql.script;
+package com.seizia.chromite.tasks.ui.sql.script;
 
 import org.eclipse.jface.dialogs.IDialogConstants;
 import org.eclipse.osgi.util.NLS;
 import org.jkiss.code.NotNull;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.runtime.DBRRunnableContext;
-import org.jkiss.dbeaver.model.task.DBTTask;
-import org.jkiss.dbeaver.model.task.DBTaskUtils;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.tasks.ui.wizard.EditTaskVariablesDialog;
-import org.jkiss.dbeaver.tasks.ui.wizard.TaskConfigurationWizard;
-import org.jkiss.dbeaver.tasks.ui.wizard.TaskConfigurationWizardDialog;
-import org.jkiss.dbeaver.tasks.ui.wizard.TaskWizardExecutor;
-import org.jkiss.dbeaver.tools.sql.SQLScriptExecuteSettings;
-import org.jkiss.dbeaver.tools.sql.SQLTaskConstants;
-import org.jkiss.dbeaver.tools.transfer.ui.internal.DTUIMessages;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.runtime.DBRRunnableContext;
+import com.seizia.chromite.model.task.DBTTask;
+import com.seizia.chromite.model.task.DBTaskUtils;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.tasks.ui.wizard.EditTaskVariablesDialog;
+import com.seizia.chromite.tasks.ui.wizard.TaskConfigurationWizard;
+import com.seizia.chromite.tasks.ui.wizard.TaskConfigurationWizardDialog;
+import com.seizia.chromite.tasks.ui.wizard.TaskWizardExecutor;
+import com.seizia.chromite.tools.sql.SQLScriptExecuteSettings;
+import com.seizia.chromite.tools.sql.SQLTaskConstants;
+import com.seizia.chromite.tools.transfer.ui.internal.DTUIMessages;
 import org.jkiss.utils.CommonUtils;
 
 import java.util.Map;

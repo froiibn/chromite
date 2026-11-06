@@ -14,11 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.snowflake;
+package com.seizia.chromite.ext.snowflake;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.model.connection.DBPConnectionConfiguration;
+import com.seizia.chromite.model.connection.DBPConnectionConfiguration;
 import org.jkiss.utils.CommonUtils;
 
 public final class SnowflakeUtils {

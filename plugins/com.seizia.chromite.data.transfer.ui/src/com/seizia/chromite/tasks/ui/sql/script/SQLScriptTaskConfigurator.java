@@ -15,12 +15,12 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.tasks.ui.sql.script;
+package com.seizia.chromite.tasks.ui.sql.script;
 
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.model.task.DBTTask;
-import org.jkiss.dbeaver.tasks.ui.DBTTaskConfigurator;
-import org.jkiss.dbeaver.tasks.ui.wizard.TaskConfigurationWizard;
+import com.seizia.chromite.model.task.DBTTask;
+import com.seizia.chromite.tasks.ui.DBTTaskConfigurator;
+import com.seizia.chromite.tasks.ui.wizard.TaskConfigurationWizard;
 
 /**
  * SQL task configurator

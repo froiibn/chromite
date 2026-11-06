@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.dashboard.histogram;
+package com.seizia.chromite.ui.dashboard.histogram;
 
 import org.eclipse.swt.graphics.Point;
 import org.eclipse.swt.widgets.Composite;
@@ -30,22 +30,22 @@ import org.jfree.chart.ui.RectangleInsets;
 import org.jfree.data.time.*;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.model.dashboard.DBDashboardFetchType;
-import org.jkiss.dbeaver.model.dashboard.DBDashboardInterval;
-import org.jkiss.dbeaver.model.dashboard.DBDashboardValueType;
-import org.jkiss.dbeaver.model.dashboard.data.DashboardDataset;
-import org.jkiss.dbeaver.model.dashboard.data.DashboardDatasetRow;
-import org.jkiss.dbeaver.model.dashboard.registry.DashboardItemConfiguration;
-import org.jkiss.dbeaver.ui.AWTUtils;
-import org.jkiss.dbeaver.ui.UIStyles;
-import org.jkiss.dbeaver.ui.charts.BaseChartDrawingSupplier;
-import org.jkiss.dbeaver.ui.dashboard.DashboardUIUtils;
-import org.jkiss.dbeaver.ui.dashboard.control.DashboardChartComposite;
-import org.jkiss.dbeaver.ui.dashboard.control.DashboardRendererDatabaseChart;
-import org.jkiss.dbeaver.ui.dashboard.control.DashboardViewItem;
-import org.jkiss.dbeaver.ui.dashboard.model.DashboardContainer;
-import org.jkiss.dbeaver.ui.dashboard.model.DashboardItemContainer;
-import org.jkiss.dbeaver.ui.dashboard.model.DashboardItemViewSettings;
+import com.seizia.chromite.model.dashboard.DBDashboardFetchType;
+import com.seizia.chromite.model.dashboard.DBDashboardInterval;
+import com.seizia.chromite.model.dashboard.DBDashboardValueType;
+import com.seizia.chromite.model.dashboard.data.DashboardDataset;
+import com.seizia.chromite.model.dashboard.data.DashboardDatasetRow;
+import com.seizia.chromite.model.dashboard.registry.DashboardItemConfiguration;
+import com.seizia.chromite.ui.AWTUtils;
+import com.seizia.chromite.ui.UIStyles;
+import com.seizia.chromite.ui.charts.BaseChartDrawingSupplier;
+import com.seizia.chromite.ui.dashboard.DashboardUIUtils;
+import com.seizia.chromite.ui.dashboard.control.DashboardChartComposite;
+import com.seizia.chromite.ui.dashboard.control.DashboardRendererDatabaseChart;
+import com.seizia.chromite.ui.dashboard.control.DashboardViewItem;
+import com.seizia.chromite.ui.dashboard.model.DashboardContainer;
+import com.seizia.chromite.ui.dashboard.model.DashboardItemContainer;
+import com.seizia.chromite.ui.dashboard.model.DashboardItemViewSettings;
 
 import java.awt.*;
 import java.text.DateFormat;

@@ -14,13 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.oracle.ui.tools;
+package com.seizia.chromite.ext.oracle.ui.tools;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.ext.oracle.model.OracleDataSource;
-import org.jkiss.dbeaver.tasks.ui.nativetool.NativeSQLScriptExecutor;
-import org.jkiss.dbeaver.tasks.ui.wizard.TaskConfigurationWizard;
+import com.seizia.chromite.ext.oracle.model.OracleDataSource;
+import com.seizia.chromite.tasks.ui.nativetool.NativeSQLScriptExecutor;
+import com.seizia.chromite.tasks.ui.wizard.TaskConfigurationWizard;
 
 import java.nio.file.Path;
 

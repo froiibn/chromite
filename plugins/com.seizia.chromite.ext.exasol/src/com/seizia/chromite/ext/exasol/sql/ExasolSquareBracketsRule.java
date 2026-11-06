@@ -15,12 +15,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.exasol.sql;
+package com.seizia.chromite.ext.exasol.sql;
 
-import org.jkiss.dbeaver.model.DBPDataSourceContainer;
-import org.jkiss.dbeaver.model.sql.parser.tokens.SQLBlockToggleToken;
-import org.jkiss.dbeaver.model.sql.parser.tokens.SQLTokenType;
-import org.jkiss.dbeaver.model.text.parser.*;
+import com.seizia.chromite.model.DBPDataSourceContainer;
+import com.seizia.chromite.model.sql.parser.tokens.SQLBlockToggleToken;
+import com.seizia.chromite.model.sql.parser.tokens.SQLTokenType;
+import com.seizia.chromite.model.text.parser.*;
 
 public class ExasolSquareBracketsRule implements TPPredicateRule {
     private final boolean partitionRule;

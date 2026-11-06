@@ -14,17 +14,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.registry;
+package com.seizia.chromite.registry;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.core.DBeaverActivator;
-import org.jkiss.dbeaver.core.DesktopPlatform;
-import org.jkiss.dbeaver.core.DesktopUI;
-import org.jkiss.dbeaver.model.app.DBPPlatform;
-import org.jkiss.dbeaver.model.preferences.DBPPreferenceStore;
-import org.jkiss.dbeaver.model.rcp.DesktopApplicationImpl;
-import org.jkiss.dbeaver.runtime.ui.DBPPlatformUI;
+import com.seizia.chromite.core.ChromiteActivator;
+import com.seizia.chromite.core.DesktopPlatform;
+import com.seizia.chromite.core.DesktopUI;
+import com.seizia.chromite.model.app.DBPPlatform;
+import com.seizia.chromite.model.preferences.DBPPreferenceStore;
+import com.seizia.chromite.model.rcp.DesktopApplicationImpl;
+import com.seizia.chromite.runtime.ui.DBPPlatformUI;
 
 /**
  * EclipseApplicationImpl
@@ -76,7 +76,7 @@ public abstract class EclipsePluginApplicationImpl extends DesktopApplicationImp
     @NotNull
     @Override
     public DBPPreferenceStore getPreferenceStore() {
-        return DBeaverActivator.getInstance().getPreferences();
+        return ChromiteActivator.getInstance().getPreferences();
 
     }
 

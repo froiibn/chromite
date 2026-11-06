@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.controls.bool;
+package com.seizia.chromite.ui.controls.bool;
 
 import org.eclipse.core.runtime.Assert;
 import org.eclipse.jface.resource.StringConverter;
@@ -25,14 +25,14 @@ import org.eclipse.swt.widgets.Control;
 import org.eclipse.ui.PlatformUI;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.model.DBConstants;
-import org.jkiss.dbeaver.model.preferences.DBPPreferenceListener;
-import org.jkiss.dbeaver.model.preferences.DBPPreferenceStore;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.ui.UIElementAlignment;
-import org.jkiss.dbeaver.ui.UIElementFontStyle;
-import org.jkiss.dbeaver.ui.UIIcon;
-import org.jkiss.dbeaver.ui.UIStyles;
+import com.seizia.chromite.model.DBConstants;
+import com.seizia.chromite.model.preferences.DBPPreferenceListener;
+import com.seizia.chromite.model.preferences.DBPPreferenceStore;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.ui.UIElementAlignment;
+import com.seizia.chromite.ui.UIElementFontStyle;
+import com.seizia.chromite.ui.UIIcon;
+import com.seizia.chromite.ui.UIStyles;
 import org.jkiss.utils.CommonUtils;
 
 public class BooleanStyleSet {

@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.actions;
+package com.seizia.chromite.ui.actions;
 
 import org.eclipse.core.expressions.PropertyTester;
 import org.eclipse.core.resources.IResource;
@@ -23,28 +23,28 @@ import org.eclipse.swt.widgets.Display;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.model.DBPDataSource;
-import org.jkiss.dbeaver.model.DBPDataSourceContainer;
-import org.jkiss.dbeaver.model.DBPOrderedObject;
-import org.jkiss.dbeaver.model.DBUtils;
-import org.jkiss.dbeaver.model.access.DBAPermissionRealm;
-import org.jkiss.dbeaver.model.app.DBPProject;
-import org.jkiss.dbeaver.model.app.DBPResourceHandler;
-import org.jkiss.dbeaver.model.app.DBPWorkspace;
-import org.jkiss.dbeaver.model.edit.*;
-import org.jkiss.dbeaver.model.navigator.*;
-import org.jkiss.dbeaver.model.navigator.fs.DBNPath;
-import org.jkiss.dbeaver.model.rm.RMConstants;
-import org.jkiss.dbeaver.model.struct.*;
-import org.jkiss.dbeaver.model.struct.rdb.DBSTableIndex;
-import org.jkiss.dbeaver.registry.ObjectManagerRegistry;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.ui.ActionUtils;
-import org.jkiss.dbeaver.ui.actions.exec.SQLNativeExecutorDescriptor;
-import org.jkiss.dbeaver.ui.actions.exec.SQLNativeExecutorRegistry;
-import org.jkiss.dbeaver.ui.navigator.UIServiceFilterConfig;
-import org.jkiss.dbeaver.ui.navigator.actions.NavigatorHandlerObjectCreateNew;
-import org.jkiss.dbeaver.utils.RuntimeUtils;
+import com.seizia.chromite.model.DBPDataSource;
+import com.seizia.chromite.model.DBPDataSourceContainer;
+import com.seizia.chromite.model.DBPOrderedObject;
+import com.seizia.chromite.model.DBUtils;
+import com.seizia.chromite.model.access.DBAPermissionRealm;
+import com.seizia.chromite.model.app.DBPProject;
+import com.seizia.chromite.model.app.DBPResourceHandler;
+import com.seizia.chromite.model.app.DBPWorkspace;
+import com.seizia.chromite.model.edit.*;
+import com.seizia.chromite.model.navigator.*;
+import com.seizia.chromite.model.navigator.fs.DBNPath;
+import com.seizia.chromite.model.rm.RMConstants;
+import com.seizia.chromite.model.struct.*;
+import com.seizia.chromite.model.struct.rdb.DBSTableIndex;
+import com.seizia.chromite.registry.ObjectManagerRegistry;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.ui.ActionUtils;
+import com.seizia.chromite.ui.actions.exec.SQLNativeExecutorDescriptor;
+import com.seizia.chromite.ui.actions.exec.SQLNativeExecutorRegistry;
+import com.seizia.chromite.ui.navigator.UIServiceFilterConfig;
+import com.seizia.chromite.ui.navigator.actions.NavigatorHandlerObjectCreateNew;
+import com.seizia.chromite.utils.RuntimeUtils;
 import org.jkiss.utils.CommonUtils;
 
 import java.util.List;
@@ -55,7 +55,7 @@ import java.util.List;
 public class ObjectPropertyTester extends PropertyTester {
     //static final Log log = Log.getLog(ObjectPropertyTester.class);
 
-    public static final String NAMESPACE = "org.jkiss.dbeaver.core.object";
+    public static final String NAMESPACE = "com.seizia.chromite.core.object";
     public static final String PROP_CAN_OPEN = "canOpen";
     public static final String PROP_CAN_CREATE_SINGLE = "canCreateSingle";
     public static final String PROP_CAN_CREATE_MULTI = "canCreateMulti";

@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.ui.controls;
+package com.seizia.chromite.ui.controls;
 
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.events.SelectionListener;
@@ -25,16 +25,16 @@ import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Label;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.core.CoreMessages;
-import org.jkiss.dbeaver.model.DBIcon;
-import org.jkiss.dbeaver.model.app.DBPPlatformDesktop;
-import org.jkiss.dbeaver.model.app.DBPProject;
-import org.jkiss.dbeaver.model.app.DBPProjectListener;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.ui.DBeaverIcons;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.navigator.NavigatorUtils;
-import org.jkiss.dbeaver.ui.navigator.actions.NavigatorHandlerProjectSetActive;
+import com.seizia.chromite.core.CoreMessages;
+import com.seizia.chromite.model.DBIcon;
+import com.seizia.chromite.model.app.DBPPlatformDesktop;
+import com.seizia.chromite.model.app.DBPProject;
+import com.seizia.chromite.model.app.DBPProjectListener;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.ui.SwtIcons;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.navigator.NavigatorUtils;
+import com.seizia.chromite.ui.navigator.actions.NavigatorHandlerProjectSetActive;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -61,7 +61,7 @@ class ProjectsPanel implements DBPProjectListener {
         Composite projectGroup = UIUtils.createComposite(parent, 3);
         projectGroup.setLayoutData(new GridData(GridData.HORIZONTAL_ALIGN_BEGINNING));
         Label label = new Label(projectGroup, SWT.NONE);
-        label.setImage(DBeaverIcons.getImage(DBIcon.PROJECT));
+        label.setImage(SwtIcons.getImage(DBIcon.PROJECT));
         label.setToolTipText(CoreMessages.project_selector_tooltip);
 
         projectCombo = new Combo(projectGroup, SWT.BORDER | SWT.DROP_DOWN | SWT.READ_ONLY | SWT.FLAT);

@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <templates>
 
-    <template id="org.jkiss.dbeaver.templates.curtime" 
+    <template id="com.seizia.chromite.templates.curtime" 
               name="curtimestamp" 
               context="sql_db2" 
               autoinsert="true" 
@@ -9,7 +9,7 @@
 VALUES (CURRENT TIMESTAMP);
     </template>
 
-    <template id="org.jkiss.dbeaver.templates.cmdAdminDropSchema" 
+    <template id="com.seizia.chromite.templates.cmdAdminDropSchema" 
               name="cmdAdminDropSchema" 
               context="sql_db2" 
               autoinsert="true" 
@@ -18,7 +18,7 @@ VALUES (CURRENT TIMESTAMP);
 call SYSPROC.ADMIN_DROP_SCHEMA('${schema}',null,?,?);
     </template>
     
-    <template id="org.jkiss.dbeaver.templates.cmdAdminCopySchema" 
+    <template id="com.seizia.chromite.templates.cmdAdminCopySchema" 
               name="cmdAdminCopySchema" 
               context="sql_db2" 
               autoinsert="true" 

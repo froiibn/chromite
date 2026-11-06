@@ -14,9 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.editors.erd;
+package com.seizia.chromite.ui.editors.erd;
 
-import org.jkiss.dbeaver.model.DBIcon;
+import com.seizia.chromite.model.DBIcon;
 
 public class ERDIcon {
     public static final DBIcon ARRANGE_ALL = new DBIcon("arrangeall", "arrangeall.png"); //$NON-NLS-1$ //$NON-NLS-2$

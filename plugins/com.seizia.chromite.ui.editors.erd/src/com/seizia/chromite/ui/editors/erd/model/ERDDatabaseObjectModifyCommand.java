@@ -14,9 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.editors.erd.model;
+package com.seizia.chromite.ui.editors.erd.model;
 
-import org.jkiss.dbeaver.model.struct.DBSObject;
+import com.seizia.chromite.model.struct.DBSObject;
 
 /**
  * Command which modifies/deletes/creates a database object

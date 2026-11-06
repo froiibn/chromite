@@ -16,12 +16,12 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.model.app;
+package com.seizia.chromite.model.app;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.runtime.ui.DBPPlatformUI;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.runtime.ui.DBPPlatformUI;
 
 import java.nio.file.Path;
 
@@ -54,7 +54,7 @@ public interface DBPApplication {
     boolean isHeadlessMode();
 
     /**
-     * Shared mode is enabled when dbeaver called thru CLI interface. It is a headless mode.
+     * Shared mode is enabled when chromite called thru CLI interface. It is a headless mode.
      * Shared sessions are usually short-term, they launched to execute some particular command and quit.
      * Many UI-specific functions are disabled
      */

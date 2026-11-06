@@ -14,11 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.firebird.ui;
+package com.seizia.chromite.ext.firebird.ui;
 
 import org.eclipse.jface.dialogs.IDialogPage;
-import org.jkiss.dbeaver.ext.generic.views.GenericConnectionPage;
-import org.jkiss.dbeaver.ui.dialogs.connection.DriverPropertiesDialogPage;
+import com.seizia.chromite.ext.generic.views.GenericConnectionPage;
+import com.seizia.chromite.ui.dialogs.connection.DriverPropertiesDialogPage;
 
 public class FireBirdConnectionPage extends GenericConnectionPage {
 

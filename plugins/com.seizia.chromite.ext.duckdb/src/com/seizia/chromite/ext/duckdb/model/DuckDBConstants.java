@@ -14,10 +14,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.duckdb.model;
+package com.seizia.chromite.ext.duckdb.model;
 
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.model.sql.SQLUtils;
+import com.seizia.chromite.model.sql.SQLUtils;
 
 public class DuckDBConstants {
     public static final String TYPE_GEOMETRY = "GEOMETRY";

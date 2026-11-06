@@ -14,19 +14,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.controls.resultset.spreadsheet;
+package com.seizia.chromite.ui.controls.resultset.spreadsheet;
 
 import org.eclipse.osgi.util.NLS;
 import org.eclipse.swt.accessibility.*;
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.model.data.DBDCollection;
-import org.jkiss.dbeaver.model.data.DBDContent;
-import org.jkiss.dbeaver.ui.controls.lightgrid.GridCell;
-import org.jkiss.dbeaver.ui.controls.lightgrid.GridPos;
-import org.jkiss.dbeaver.ui.controls.lightgrid.IGridContentProvider;
-import org.jkiss.dbeaver.ui.controls.lightgrid.IGridLabelProvider;
-import org.jkiss.dbeaver.ui.editors.data.internal.DataEditorsMessages;
-import org.jkiss.dbeaver.utils.MimeTypes;
+import com.seizia.chromite.model.data.DBDCollection;
+import com.seizia.chromite.model.data.DBDContent;
+import com.seizia.chromite.ui.controls.lightgrid.GridCell;
+import com.seizia.chromite.ui.controls.lightgrid.GridPos;
+import com.seizia.chromite.ui.controls.lightgrid.IGridContentProvider;
+import com.seizia.chromite.ui.controls.lightgrid.IGridLabelProvider;
+import com.seizia.chromite.ui.editors.data.internal.DataEditorsMessages;
+import com.seizia.chromite.utils.MimeTypes;
 
 import java.util.Map;
 

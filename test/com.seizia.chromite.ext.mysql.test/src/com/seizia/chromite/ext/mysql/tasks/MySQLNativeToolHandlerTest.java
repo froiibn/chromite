@@ -14,13 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.mysql.tasks;
+package com.seizia.chromite.ext.mysql.tasks;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.model.data.json.JSONUtils;
-import org.jkiss.dbeaver.model.task.DBTTaskImportTransformer;
-import org.jkiss.junit.DBeaverUnitTest;
+import com.seizia.chromite.model.data.json.JSONUtils;
+import com.seizia.chromite.model.task.DBTTaskImportTransformer;
+import com.seizia.chromite.junit.ChromiteUnitTest;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -32,7 +32,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Map;
 
-public class MySQLNativeToolHandlerTest extends DBeaverUnitTest {
+public class MySQLNativeToolHandlerTest extends ChromiteUnitTest {
 
     @Test
     void remapsOnlyRootProjectThroughInheritedHandler() throws DBException {

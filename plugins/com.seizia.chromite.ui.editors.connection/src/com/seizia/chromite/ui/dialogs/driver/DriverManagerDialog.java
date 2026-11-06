@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.dialogs.driver;
+package com.seizia.chromite.ui.dialogs.driver;
 
 import org.eclipse.jface.dialogs.IDialogConstants;
 import org.eclipse.jface.dialogs.IDialogSettings;
@@ -31,25 +31,25 @@ import org.eclipse.swt.widgets.*;
 import org.eclipse.ui.internal.WorkbenchMessages;
 import org.jkiss.code.NotNull;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.DBIcon;
-import org.jkiss.dbeaver.model.DBPDataSourceContainer;
-import org.jkiss.dbeaver.model.connection.DBPDataSourceProviderDescriptor;
-import org.jkiss.dbeaver.model.connection.DBPDriver;
-import org.jkiss.dbeaver.registry.DataSourceProviderDescriptor;
-import org.jkiss.dbeaver.registry.DataSourceProviderRegistry;
-import org.jkiss.dbeaver.registry.DataSourceRegistry;
-import org.jkiss.dbeaver.registry.driver.DriverDescriptor;
-import org.jkiss.dbeaver.registry.driver.DriverUtils;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.ui.DBeaverIcons;
-import org.jkiss.dbeaver.ui.IHelpContextIds;
-import org.jkiss.dbeaver.ui.UIIcon;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.dialogs.BaseDialog;
-import org.jkiss.dbeaver.ui.dialogs.HelpEnabledDialog;
-import org.jkiss.dbeaver.ui.internal.UIConnectionMessages;
-import org.jkiss.dbeaver.ui.preferences.PrefPageDrivers;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.DBIcon;
+import com.seizia.chromite.model.DBPDataSourceContainer;
+import com.seizia.chromite.model.connection.DBPDataSourceProviderDescriptor;
+import com.seizia.chromite.model.connection.DBPDriver;
+import com.seizia.chromite.registry.DataSourceProviderDescriptor;
+import com.seizia.chromite.registry.DataSourceProviderRegistry;
+import com.seizia.chromite.registry.DataSourceRegistry;
+import com.seizia.chromite.registry.driver.DriverDescriptor;
+import com.seizia.chromite.registry.driver.DriverUtils;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.ui.SwtIcons;
+import com.seizia.chromite.ui.IHelpContextIds;
+import com.seizia.chromite.ui.UIIcon;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.dialogs.BaseDialog;
+import com.seizia.chromite.ui.dialogs.HelpEnabledDialog;
+import com.seizia.chromite.ui.internal.UIConnectionMessages;
+import com.seizia.chromite.ui.preferences.PrefPageDrivers;
 import org.jkiss.utils.CommonUtils;
 
 import java.util.ArrayList;
@@ -112,7 +112,7 @@ public class DriverManagerDialog extends HelpEnabledDialog implements ISelection
 
         getShell().setText(UIConnectionMessages.dialog_driver_manager_title);
         getShell().setMinimumSize(300, 300);
-        ImageDescriptor dialogImage = DBeaverIcons.getImageDescriptor(UIIcon.DRIVER_MANAGER);
+        ImageDescriptor dialogImage = SwtIcons.getImageDescriptor(UIIcon.DRIVER_MANAGER);
         Image image = dialogImage.createImage();
         getShell().setImage(image);
         getShell().addDisposeListener(e -> UIUtils.dispose(image));
@@ -276,7 +276,7 @@ public class DriverManagerDialog extends HelpEnabledDialog implements ISelection
                 this.selectedCategory = ((DriverTreeViewer.DriverCategory) selectedObject).getName();
             }
         }
-        //super.updateStatus(new Status(Status.INFO, DBeaverConstants.PLUGIN_ID, selectedDriver == null ? "" : selectedDriver.getDescription()));
+        //super.updateStatus(new Status(Status.INFO, ChromiteConstants.PLUGIN_ID, selectedDriver == null ? "" : selectedDriver.getDescription()));
         this.updateButtons();
     }
 
@@ -398,7 +398,7 @@ public class DriverManagerDialog extends HelpEnabledDialog implements ISelection
                     for (DBPDriver dd : dspd.getDrivers()) {
                         if (dd.isDisabled()) {
                             TableItem item = new TableItem(driverTable, SWT.NONE);
-                            item.setImage(DBeaverIcons.getImage(dd.getIcon()));
+                            item.setImage(SwtIcons.getImage(dd.getIcon()));
                             item.setText(dd.getName());
                             item.setData(dd);
                         }

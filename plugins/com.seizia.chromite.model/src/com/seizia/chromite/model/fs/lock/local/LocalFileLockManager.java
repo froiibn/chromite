@@ -14,17 +14,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.fs.lock.local;
+package com.seizia.chromite.model.fs.lock.local;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.model.fs.lock.Lock;
-import org.jkiss.dbeaver.model.fs.lock.LockException;
-import org.jkiss.dbeaver.model.fs.lock.LockManager;
-import org.jkiss.dbeaver.model.fs.lock.LockOptions;
-import org.jkiss.dbeaver.model.fs.lock.LockTarget;
-import org.jkiss.dbeaver.utils.FileMutex;
-import org.jkiss.dbeaver.utils.GeneralUtils;
+import com.seizia.chromite.model.fs.lock.Lock;
+import com.seizia.chromite.model.fs.lock.LockException;
+import com.seizia.chromite.model.fs.lock.LockManager;
+import com.seizia.chromite.model.fs.lock.LockOptions;
+import com.seizia.chromite.model.fs.lock.LockTarget;
+import com.seizia.chromite.utils.FileMutex;
+import com.seizia.chromite.utils.GeneralUtils;
 
 import java.io.IOException;
 import java.nio.file.Files;

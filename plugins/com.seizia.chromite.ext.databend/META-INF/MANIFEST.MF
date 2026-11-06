@@ -1,15 +1,15 @@
 Manifest-Version: 1.0
 Bundle-ManifestVersion: 2
 Bundle-Name: Chromite Databend Model
-Bundle-SymbolicName: org.jkiss.dbeaver.ext.databend;singleton:=true
+Bundle-SymbolicName: com.seizia.chromite.ext.databend;singleton:=true
 Bundle-Version: 1.0.46.qualifier
 Bundle-Release-Date: 20261116
-Require-Bundle: org.jkiss.dbeaver.model,
- org.jkiss.dbeaver.ext.generic;visibility:=reexport
-Export-Package: org.jkiss.dbeaver.ext.databend,
- org.jkiss.dbeaver.ext.databend.model
+Require-Bundle: com.seizia.chromite.model,
+ com.seizia.chromite.ext.generic;visibility:=reexport
+Export-Package: com.seizia.chromite.ext.databend,
+ com.seizia.chromite.ext.databend.model
 Import-Package: org.slf4j
 Bundle-ActivationPolicy: lazy
 Bundle-RequiredExecutionEnvironment: JavaSE-21
-Bundle-Vendor: DBeaver Corp
-Automatic-Module-Name: org.jkiss.dbeaver.ext.databend
+Bundle-Vendor: Chromite contributors
+Automatic-Module-Name: com.seizia.chromite.ext.databend

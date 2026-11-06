@@ -14,17 +14,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.db2.ui.editors;
+package com.seizia.chromite.ext.db2.ui.editors;
 
 import org.eclipse.jface.action.Action;
 import org.eclipse.jface.action.IContributionManager;
 import org.eclipse.jface.action.Separator;
-import org.jkiss.dbeaver.ext.db2.model.DB2Table;
-import org.jkiss.dbeaver.model.DBIcon;
-import org.jkiss.dbeaver.model.DBPScriptObject;
-import org.jkiss.dbeaver.ui.ActionUtils;
-import org.jkiss.dbeaver.ui.DBeaverIcons;
-import org.jkiss.dbeaver.ui.editors.sql.SQLSourceViewer;
+import com.seizia.chromite.ext.db2.model.DB2Table;
+import com.seizia.chromite.model.DBIcon;
+import com.seizia.chromite.model.DBPScriptObject;
+import com.seizia.chromite.ui.ActionUtils;
+import com.seizia.chromite.ui.SwtIcons;
+import com.seizia.chromite.ui.editors.sql.SQLSourceViewer;
 import org.jkiss.utils.CommonUtils;
 
 import java.util.Map;
@@ -42,7 +42,7 @@ public class DB2TableDDLEditor extends SQLSourceViewer<DB2Table> {
         toolBarManager.add(ActionUtils.makeActionContribution(
             new Action("Include views", Action.AS_CHECK_BOX) {
                 {
-                    setImageDescriptor(DBeaverIcons.getImageDescriptor(DBIcon.TREE_VIEW));
+                    setImageDescriptor(SwtIcons.getImageDescriptor(DBIcon.TREE_VIEW));
                     setToolTipText("Include views to the DDL");
                     setChecked(viewsIncluded());
                 }

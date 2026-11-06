@@ -14,15 +14,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.altibase.model.plan;
+package com.seizia.chromite.ext.altibase.model.plan;
 
-import org.jkiss.junit.DBeaverUnitTest;
+import com.seizia.chromite.junit.ChromiteUnitTest;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
 
-public class AltibaseExplainPlanTest extends DBeaverUnitTest {
+public class AltibaseExplainPlanTest extends ChromiteUnitTest {
     @Test
     public void trcLogDetailMtrNode_1_Test() {
         String plan =

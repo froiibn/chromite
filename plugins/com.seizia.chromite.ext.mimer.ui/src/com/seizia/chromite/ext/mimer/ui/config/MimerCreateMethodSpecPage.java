@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.mimer.ui.config;
+package com.seizia.chromite.ext.mimer.ui.config;
 
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.custom.CCombo;
@@ -30,15 +30,15 @@ import org.eclipse.swt.widgets.TableItem;
 import org.eclipse.swt.widgets.Text;
 import org.jkiss.code.NotNull;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.ext.mimer.model.MimerUdtMethodSpec;
-import org.jkiss.dbeaver.ext.mimer.ui.internal.MimerUIMessages;
-import org.jkiss.dbeaver.model.DBPEvaluationContext;
-import org.jkiss.dbeaver.model.DBUtils;
-import org.jkiss.dbeaver.model.struct.DBSObject;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.controls.CustomTableEditor;
-import org.jkiss.dbeaver.ui.editors.object.struct.BaseObjectEditPage;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.ext.mimer.model.MimerUdtMethodSpec;
+import com.seizia.chromite.ext.mimer.ui.internal.MimerUIMessages;
+import com.seizia.chromite.model.DBPEvaluationContext;
+import com.seizia.chromite.model.DBUtils;
+import com.seizia.chromite.model.struct.DBSObject;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.controls.CustomTableEditor;
+import com.seizia.chromite.ui.editors.object.struct.BaseObjectEditPage;
 import org.jkiss.utils.CommonUtils;
 
 import java.util.ArrayList;
@@ -53,7 +53,7 @@ import java.util.Set;
  * type's own name) and fixed return type (the type itself, per {@code CREATE_TYPE.htm}), so both
  * fields are shown read-only for that kind rather than editable. The actual body is written afterward in the
  * Source tab that opens once this closes ({@code FEATURE_EDITOR_ON_CREATE}) - see {@link
- * org.jkiss.dbeaver.ext.mimer.edit.MimerUdtMethodSpecManager}.
+ * com.seizia.chromite.ext.mimer.edit.MimerUdtMethodSpecManager}.
  *
  * @author Mimer Information Technology
  */

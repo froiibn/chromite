@@ -14,10 +14,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.tasks.ui.internal;
+package com.seizia.chromite.tasks.ui.internal;
 
 public class TaskUIViewBundle {
 
-	public static final String BUDLE_ID = "org.jkiss.dbeaver.tasks.ui.view";
+	public static final String BUDLE_ID = "com.seizia.chromite.tasks.ui.view";
 
 }

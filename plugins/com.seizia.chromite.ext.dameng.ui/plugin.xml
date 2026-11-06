@@ -18,28 +18,28 @@
   -->
 
 <plugin>
-    <extension point="org.jkiss.dbeaver.databaseEditor">
-        <configurator class="org.jkiss.dbeaver.ext.dameng.ui.config.DamengSchemaConfigurator">
-            <objectType name="org.jkiss.dbeaver.ext.dameng.model.DamengSchema"/>
+    <extension point="com.seizia.chromite.databaseEditor">
+        <configurator class="com.seizia.chromite.ext.dameng.ui.config.DamengSchemaConfigurator">
+            <objectType name="com.seizia.chromite.ext.dameng.model.DamengSchema"/>
         </configurator>
-        <configurator class="org.jkiss.dbeaver.ext.dameng.ui.config.DamengSequenceConfigurator">
-            <objectType name="org.jkiss.dbeaver.ext.dameng.model.DamengSequence"/>
+        <configurator class="com.seizia.chromite.ext.dameng.ui.config.DamengSequenceConfigurator">
+            <objectType name="com.seizia.chromite.ext.dameng.model.DamengSequence"/>
         </configurator>
 
         <editor id="source.ddl"
-                class="org.jkiss.dbeaver.ui.editors.sql.SQLSourceViewer"
+                class="com.seizia.chromite.ui.editors.sql.SQLSourceViewer"
                 label="%editor.source.ddl.name"
                 description="%editor.source.ddl.description"
                 icon="#sql_text"
                 position="additions_middle"
-                contributor="org.jkiss.dbeaver.ui.editors.sql.SQLEditorContributorNested"
+                contributor="com.seizia.chromite.ui.editors.sql.SQLEditorContributorNested"
                 type="folder"
                 embeddable="false">
-            <objectType name="org.jkiss.dbeaver.ext.dameng.model.DamengTableConstraint"/>
-            <objectType name="org.jkiss.dbeaver.ext.dameng.model.DamengTablespace"/>
-            <objectType name="org.jkiss.dbeaver.ext.dameng.model.DamengUser"/>
-            <objectType name="org.jkiss.dbeaver.ext.dameng.model.DamengRole"/>
-            <objectType name="org.jkiss.dbeaver.ext.dameng.model.DamengSequence"/>
+            <objectType name="com.seizia.chromite.ext.dameng.model.DamengTableConstraint"/>
+            <objectType name="com.seizia.chromite.ext.dameng.model.DamengTablespace"/>
+            <objectType name="com.seizia.chromite.ext.dameng.model.DamengUser"/>
+            <objectType name="com.seizia.chromite.ext.dameng.model.DamengRole"/>
+            <objectType name="com.seizia.chromite.ext.dameng.model.DamengSequence"/>
         </editor>
     </extension>
 </plugin>

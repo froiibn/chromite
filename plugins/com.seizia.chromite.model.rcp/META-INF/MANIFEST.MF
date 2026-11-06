@@ -1,25 +1,25 @@
 Manifest-Version: 1.0
 Bundle-ManifestVersion: 2
-Bundle-Vendor: DBeaver Corp
+Bundle-Vendor: Chromite contributors
 Bundle-Name: Chromite RCP Model
-Bundle-SymbolicName: org.jkiss.dbeaver.model.rcp;singleton:=true
+Bundle-SymbolicName: com.seizia.chromite.model.rcp;singleton:=true
 Bundle-Version: 1.0.52.qualifier
 Bundle-Release-Date: 20261116
 Bundle-RequiredExecutionEnvironment: JavaSE-21
 Bundle-ActivationPolicy: lazy
-Export-Package: org.jkiss.dbeaver.model.app,
- org.jkiss.dbeaver.model.fs,
- org.jkiss.dbeaver.model.fs.nio,
- org.jkiss.dbeaver.model.navigator,
- org.jkiss.dbeaver.model.rcp,
- org.jkiss.dbeaver.registry,
- org.jkiss.dbeaver.runtime,
- org.jkiss.dbeaver.utils
+Export-Package: com.seizia.chromite.model.app,
+ com.seizia.chromite.model.fs,
+ com.seizia.chromite.model.fs.nio,
+ com.seizia.chromite.model.navigator,
+ com.seizia.chromite.model.rcp,
+ com.seizia.chromite.registry,
+ com.seizia.chromite.runtime,
+ com.seizia.chromite.utils
 Require-Bundle: org.eclipse.core.expressions,
  org.eclipse.core.filesystem;visibility:=reexport,
- org.jkiss.dbeaver.model.nio,
+ com.seizia.chromite.model.nio,
  org.eclipse.core.resources;visibility:=reexport,
- org.jkiss.dbeaver.model;visibility:=reexport,
- org.jkiss.dbeaver.registry
+ com.seizia.chromite.model;visibility:=reexport,
+ com.seizia.chromite.registry
 Bundle-Localization: OSGI-INF/l10n/bundle
-Automatic-Module-Name: org.jkiss.dbeaver.model.rcp
+Automatic-Module-Name: com.seizia.chromite.model.rcp

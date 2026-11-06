@@ -15,9 +15,9 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.ext.oracle.model.auth;
+package com.seizia.chromite.ext.oracle.model.auth;
 
-import org.jkiss.dbeaver.model.impl.auth.AuthModelDatabaseNativeCredentials;
+import com.seizia.chromite.model.impl.auth.AuthModelDatabaseNativeCredentials;
 
 /**
  * Oracle OS auth model.

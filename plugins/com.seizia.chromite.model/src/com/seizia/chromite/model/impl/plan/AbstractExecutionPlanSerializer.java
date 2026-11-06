@@ -15,15 +15,15 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.model.impl.plan;
+package com.seizia.chromite.model.impl.plan;
 
 
 import com.google.gson.*;
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.model.exec.plan.DBCPlan;
-import org.jkiss.dbeaver.model.exec.plan.DBCPlanNode;
-import org.jkiss.dbeaver.model.exec.plan.DBCQueryPlannerSerialInfo;
-import org.jkiss.dbeaver.model.exec.plan.DBCQueryPlannerSerializable;
+import com.seizia.chromite.model.exec.plan.DBCPlan;
+import com.seizia.chromite.model.exec.plan.DBCPlanNode;
+import com.seizia.chromite.model.exec.plan.DBCQueryPlannerSerialInfo;
+import com.seizia.chromite.model.exec.plan.DBCQueryPlannerSerializable;
 import org.jkiss.utils.CommonUtils;
 
 import java.io.IOException;

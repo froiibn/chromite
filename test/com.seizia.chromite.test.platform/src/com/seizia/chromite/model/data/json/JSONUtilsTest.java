@@ -15,16 +15,16 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.model.data.json;
+package com.seizia.chromite.model.data.json;
 
-import org.jkiss.junit.DBeaverUnitTest;
+import com.seizia.chromite.junit.ChromiteUnitTest;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.util.*;
 
-public class JSONUtilsTest extends DBeaverUnitTest {
+public class JSONUtilsTest extends ChromiteUnitTest {
 
 	private Map<String, Object> map;
 	private Map<String, Object> map2;

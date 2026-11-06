@@ -14,14 +14,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.sql.registry;
+package com.seizia.chromite.model.sql.registry;
 
 import org.eclipse.core.runtime.IConfigurationElement;
 import org.eclipse.core.runtime.IExtensionRegistry;
 import org.eclipse.core.runtime.Platform;
-import org.jkiss.dbeaver.model.sql.SQLDialectInsertReplaceMethod;
-import org.jkiss.dbeaver.model.sql.SQLDialectMetadata;
-import org.jkiss.dbeaver.model.sql.SQLDialectMetadataRegistry;
+import com.seizia.chromite.model.sql.SQLDialectInsertReplaceMethod;
+import com.seizia.chromite.model.sql.SQLDialectMetadata;
+import com.seizia.chromite.model.sql.SQLDialectMetadataRegistry;
 import org.jkiss.utils.CommonUtils;
 
 import java.util.ArrayList;

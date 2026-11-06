@@ -14,13 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.tasks.ui.view;
+package com.seizia.chromite.tasks.ui.view;
 
 import org.eclipse.swt.dnd.Clipboard;
 import org.eclipse.swt.widgets.Control;
 import org.eclipse.swt.widgets.Display;
-import org.jkiss.dbeaver.model.task.DBTTask;
-import org.jkiss.dbeaver.ui.dnd.LocalObjectTransfer;
+import com.seizia.chromite.model.task.DBTTask;
+import com.seizia.chromite.ui.dnd.LocalObjectTransfer;
 
 import java.util.List;
 

@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.preferences;
+package com.seizia.chromite.ui.preferences;
 
 import org.eclipse.core.runtime.IAdaptable;
 import org.eclipse.swt.SWT;
@@ -26,15 +26,15 @@ import org.eclipse.swt.widgets.Control;
 import org.eclipse.ui.IWorkbench;
 import org.eclipse.ui.IWorkbenchPreferencePage;
 import org.eclipse.ui.IWorkbenchPropertyPage;
-import org.jkiss.dbeaver.core.CoreMessages;
-import org.jkiss.dbeaver.model.preferences.DBPPreferenceStore;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.screenreaders.ScreenReader;
-import org.jkiss.dbeaver.ui.screenreaders.ScreenReaderPreferences;
+import com.seizia.chromite.core.CoreMessages;
+import com.seizia.chromite.model.preferences.DBPPreferenceStore;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.screenreaders.ScreenReader;
+import com.seizia.chromite.ui.screenreaders.ScreenReaderPreferences;
 
 public class PrefPageAccessibility extends AbstractPrefPage implements IWorkbenchPreferencePage, IWorkbenchPropertyPage {
-    public static final String PAGE_ID = "org.jkiss.dbeaver.preferences.user.interface.accessibility";
+    public static final String PAGE_ID = "com.seizia.chromite.preferences.user.interface.accessibility";
     private final DBPPreferenceStore store = DBWorkbench.getPlatform().getPreferenceStore();
     private Combo cmbScreenReaderSupport;
     private Button forceFocusCheckbox;

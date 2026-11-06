@@ -15,9 +15,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.exasol.ui;
+package com.seizia.chromite.ext.exasol.ui;
 
-import org.jkiss.dbeaver.model.DBConstants;
+import com.seizia.chromite.model.DBConstants;
 
 import java.util.ArrayList;
 import java.util.HashMap;

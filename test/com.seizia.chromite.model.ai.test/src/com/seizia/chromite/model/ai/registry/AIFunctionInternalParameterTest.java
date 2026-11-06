@@ -14,12 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.ai.registry;
+package com.seizia.chromite.model.ai.registry;
 
 import org.eclipse.core.runtime.IConfigurationElement;
 import org.eclipse.core.runtime.IContributor;
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.model.ai.AIFunctionParameterValueProvider;
+import com.seizia.chromite.model.ai.AIFunctionParameterValueProvider;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
@@ -33,7 +33,7 @@ class AIFunctionInternalParameterTest {
         IConfigurationElement config = Mockito.mock(IConfigurationElement.class);
         IContributor contributor = Mockito.mock(IContributor.class);
         Mockito.when(config.getContributor()).thenReturn(contributor);
-        Mockito.when(contributor.getName()).thenReturn("org.jkiss.dbeaver.model.ai");
+        Mockito.when(contributor.getName()).thenReturn("com.seizia.chromite.model.ai");
         Mockito.when(config.getAttribute("name")).thenReturn("inputFormat");
         Mockito.when(config.getAttribute("validValues")).thenReturn("csv,json");
 

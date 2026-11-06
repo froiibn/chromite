@@ -2,18 +2,18 @@
 <?eclipse version="3.2"?>
 
 <plugin>
-    <extension-point id="org.jkiss.dbeaver.commandLine" name="Command line extension" schema="schema/org.jkiss.dbeaver.commandLine.exsd"/>
+    <extension-point id="com.seizia.chromite.commandLine" name="Command line extension" schema="schema/com.seizia.chromite.commandLine.exsd"/>
 
-    <extension point="org.jkiss.dbeaver.commandLine">
+    <extension point="com.seizia.chromite.commandLine">
         <parameter
             exitAfterExecute="true"
-            handler="org.jkiss.dbeaver.model.cli.command.ListAuthenticationModelParameterHandler"/>
+            handler="com.seizia.chromite.model.cli.command.ListAuthenticationModelParameterHandler"/>
         <parameter
             exitAfterExecute="true"
-            handler="org.jkiss.dbeaver.model.cli.command.ListNetworkHandlersParameterHandler"/>
+            handler="com.seizia.chromite.model.cli.command.ListNetworkHandlersParameterHandler"/>
         <parameter
             exitAfterExecute="true"
-            handler="org.jkiss.dbeaver.model.cli.command.CLIAutoComplete"/>
+            handler="com.seizia.chromite.model.cli.command.CLIAutoComplete"/>
 
     </extension>
 </plugin>

@@ -15,15 +15,15 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver;
+package com.seizia.chromite;
 
-import org.jkiss.dbeaver.ui.controls.decorations.HolidayDecorations;
-import org.jkiss.dbeaver.ui.editors.DatabaseEditorPreferences;
+import com.seizia.chromite.ui.controls.decorations.HolidayDecorations;
+import com.seizia.chromite.ui.editors.DatabaseEditorPreferences;
 
 /**
  * Preferences constants
  */
-public final class DBeaverPreferences
+public final class ChromitePreferences
 {
     public static final String AGENT_ENABLED = "agent.enabled"; //$NON-NLS-1$
     public static final String AGENT_LONG_OPERATION_NOTIFY = "agent.long.operation.notify"; //$NON-NLS-1$

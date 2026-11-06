@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.editors.sql.generator;
+package com.seizia.chromite.ui.editors.sql.generator;
 
 import org.eclipse.jface.action.*;
 import org.eclipse.jface.viewers.ISelectionProvider;
@@ -25,33 +25,33 @@ import org.eclipse.ui.IWorkbenchPart;
 import org.eclipse.ui.actions.CompoundContributionItem;
 import org.jkiss.code.NotNull;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.*;
-import org.jkiss.dbeaver.model.data.DBDAttributeBinding;
-import org.jkiss.dbeaver.model.exec.DBCExecutionContext;
-import org.jkiss.dbeaver.model.navigator.DBNDatabaseFolder;
-import org.jkiss.dbeaver.model.sql.generator.SQLGenerator;
-import org.jkiss.dbeaver.model.sql.generator.SQLGeneratorProcedureCall;
-import org.jkiss.dbeaver.model.sql.generator.SQLGeneratorSelect;
-import org.jkiss.dbeaver.model.sql.registry.SQLGeneratorConfigurationRegistry;
-import org.jkiss.dbeaver.model.sql.registry.SQLGeneratorDescriptor;
-import org.jkiss.dbeaver.model.struct.DBSDataContainer;
-import org.jkiss.dbeaver.model.struct.DBSEntity;
-import org.jkiss.dbeaver.model.struct.DBSObject;
-import org.jkiss.dbeaver.model.struct.DBSWrapper;
-import org.jkiss.dbeaver.model.struct.rdb.DBSProcedure;
-import org.jkiss.dbeaver.model.struct.rdb.DBSTable;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.ui.DBeaverIcons;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.controls.resultset.IResultSetController;
-import org.jkiss.dbeaver.ui.controls.resultset.IResultSetSelection;
-import org.jkiss.dbeaver.ui.controls.resultset.ResultSetRow;
-import org.jkiss.dbeaver.ui.editors.sql.SQLEditorFeatures;
-import org.jkiss.dbeaver.ui.editors.sql.dialogs.ViewSQLDialog;
-import org.jkiss.dbeaver.ui.navigator.NavigatorUtils;
-import org.jkiss.dbeaver.utils.GeneralUtils;
-import org.jkiss.dbeaver.utils.RuntimeUtils;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.*;
+import com.seizia.chromite.model.data.DBDAttributeBinding;
+import com.seizia.chromite.model.exec.DBCExecutionContext;
+import com.seizia.chromite.model.navigator.DBNDatabaseFolder;
+import com.seizia.chromite.model.sql.generator.SQLGenerator;
+import com.seizia.chromite.model.sql.generator.SQLGeneratorProcedureCall;
+import com.seizia.chromite.model.sql.generator.SQLGeneratorSelect;
+import com.seizia.chromite.model.sql.registry.SQLGeneratorConfigurationRegistry;
+import com.seizia.chromite.model.sql.registry.SQLGeneratorDescriptor;
+import com.seizia.chromite.model.struct.DBSDataContainer;
+import com.seizia.chromite.model.struct.DBSEntity;
+import com.seizia.chromite.model.struct.DBSObject;
+import com.seizia.chromite.model.struct.DBSWrapper;
+import com.seizia.chromite.model.struct.rdb.DBSProcedure;
+import com.seizia.chromite.model.struct.rdb.DBSTable;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.ui.SwtIcons;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.controls.resultset.IResultSetController;
+import com.seizia.chromite.ui.controls.resultset.IResultSetSelection;
+import com.seizia.chromite.ui.controls.resultset.ResultSetRow;
+import com.seizia.chromite.ui.editors.sql.SQLEditorFeatures;
+import com.seizia.chromite.ui.editors.sql.dialogs.ViewSQLDialog;
+import com.seizia.chromite.ui.navigator.NavigatorUtils;
+import com.seizia.chromite.utils.GeneralUtils;
+import com.seizia.chromite.utils.RuntimeUtils;
 import org.jkiss.utils.CommonUtils;
 
 import java.util.ArrayList;
@@ -149,7 +149,7 @@ public class SQLGeneratorContributor extends CompoundContributionItem {
 
     private static ContributionItem makeAction(String text, SQLGeneratorDescriptor sqlGenerator, List<?> objects) {
         return new ActionContributionItem(
-            new Action(text, DBeaverIcons.getImageDescriptor(DBIcon.SQL_TEXT)) {
+            new Action(text, SwtIcons.getImageDescriptor(DBIcon.SQL_TEXT)) {
                 @Override
                 public void run() {
                     IWorkbenchPage activePage = UIUtils.getActiveWorkbenchWindow().getActivePage();

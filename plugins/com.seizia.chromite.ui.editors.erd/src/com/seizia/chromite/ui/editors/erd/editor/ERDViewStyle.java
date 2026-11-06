@@ -14,12 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.editors.erd.editor;
+package com.seizia.chromite.ui.editors.erd.editor;
 
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.model.erd.ERDConstants;
-import org.jkiss.dbeaver.model.preferences.DBPPreferenceStore;
-import org.jkiss.dbeaver.ui.editors.erd.internal.ERDUIMessages;
+import com.seizia.chromite.model.erd.ERDConstants;
+import com.seizia.chromite.model.preferences.DBPPreferenceStore;
+import com.seizia.chromite.ui.editors.erd.internal.ERDUIMessages;
 import org.jkiss.utils.CommonUtils;
 
 import java.util.Arrays;

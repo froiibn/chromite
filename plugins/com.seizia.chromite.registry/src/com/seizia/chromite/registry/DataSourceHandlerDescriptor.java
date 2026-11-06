@@ -14,19 +14,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.registry;
+package com.seizia.chromite.registry;
 
 import org.eclipse.core.runtime.IConfigurationElement;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.DBPDataSourceHandler;
-import org.jkiss.dbeaver.model.impl.AbstractContextDescriptor;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.DBPDataSourceHandler;
+import com.seizia.chromite.model.impl.AbstractContextDescriptor;
 
 /**
  * DataSourceHandlerDescriptor
  */
 public class DataSourceHandlerDescriptor extends AbstractContextDescriptor {
-    public static final String EXTENSION_ID = "org.jkiss.dbeaver.dataSourceHandler"; //$NON-NLS-1$
+    public static final String EXTENSION_ID = "com.seizia.chromite.dataSourceHandler"; //$NON-NLS-1$
 
     private static final Log log = Log.getLog(DataSourceHandlerDescriptor.class);
 

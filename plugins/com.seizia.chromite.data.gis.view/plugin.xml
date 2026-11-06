@@ -3,37 +3,37 @@
 
 <plugin>
 
-    <extension-point id="org.jkiss.dbeaver.data.gis.geometryViewer" name="Geometry viewer" schema="schema/org.jkiss.dbeaver.data.gis.geometryViewer.exsd"/>
-    <extension-point id="org.jkiss.dbeaver.data.gis.leaflet.tiles" name="Leaflet tiles" schema="schema/org.jkiss.dbeaver.data.gis.leafletTiles.exsd"/>
+    <extension-point id="com.seizia.chromite.data.gis.geometryViewer" name="Geometry viewer" schema="schema/com.seizia.chromite.data.gis.geometryViewer.exsd"/>
+    <extension-point id="com.seizia.chromite.data.gis.leaflet.tiles" name="Leaflet tiles" schema="schema/com.seizia.chromite.data.gis.leafletTiles.exsd"/>
 
     <extension point="org.eclipse.core.runtime.preferences">
-        <initializer class="org.jkiss.dbeaver.ui.gis.internal.GISViewerPreferencesInitializer"/>
+        <initializer class="com.seizia.chromite.ui.gis.internal.GISViewerPreferencesInitializer"/>
     </extension>
 
-    <extension point="org.jkiss.dbeaver.dataManager">
-        <manager class="org.jkiss.dbeaver.ui.gis.GeometryValueManager" id="org.jkiss.dbeaver.ui.gis.GeometryValueManager">
-            <supports type="org.jkiss.dbeaver.model.gis.DBGeometry"/>
+    <extension point="com.seizia.chromite.dataManager">
+        <manager class="com.seizia.chromite.ui.gis.GeometryValueManager" id="com.seizia.chromite.ui.gis.GeometryValueManager">
+            <supports type="com.seizia.chromite.model.gis.DBGeometry"/>
             <supports typeName="GIS.Transformed"/> <!-- Fake type name for GIS transformer -->
         </manager>
     </extension>
 
-    <extension point="org.jkiss.dbeaver.data.gis.geometryViewer">
+    <extension point="com.seizia.chromite.data.gis.geometryViewer">
         <geometryViewer
                 label="Text"
                 description="View GIS object in text form"
-                icon="platform:/plugin/org.jkiss.dbeaver.model/icons/types/text.svg"
+                icon="platform:/plugin/com.seizia.chromite.model/icons/types/text.svg"
                 id="text"
-                class="org.jkiss.dbeaver.ui.gis.panel.GISTextViewer"
+                class="com.seizia.chromite.ui.gis.panel.GISTextViewer"
                 supportsInline="true"/>
         <geometryViewer
                 label="Map"
                 description="View GIS object on map"
-                icon="platform:/plugin/org.jkiss.dbeaver.ui/icons/browser.svg"
+                icon="platform:/plugin/com.seizia.chromite.ui/icons/browser.svg"
                 id="browser"
-                class="org.jkiss.dbeaver.ui.gis.panel.GISBrowserViewer"/>
+                class="com.seizia.chromite.ui.gis.panel.GISBrowserViewer"/>
     </extension>
 
-    <extension point="org.jkiss.dbeaver.data.gis.leaflet.tiles">
+    <extension point="com.seizia.chromite.data.gis.leaflet.tiles">
         <tiles id="osm" label="OpenStreetMap" layersDefinition="'https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
             maxNativeZoom: 19,
             maxZoom: 24,
@@ -79,32 +79,32 @@
                         maxZoom: 24,
             id: 'carto.topo'}"/>
     </extension>
-    <extension point="org.jkiss.dbeaver.resultset.presentation">
+    <extension point="com.seizia.chromite.resultset.presentation">
         <presentation
                 id="results.geometry"
                 label="%presentation.geometry.name"
                 description="%presentation.geometry.description"
-                icon="platform:/plugin/org.jkiss.dbeaver.ui/icons/browser.svg"
-                class="org.jkiss.dbeaver.ui.gis.presentation.GeometryPresentation"
+                icon="platform:/plugin/com.seizia.chromite.ui/icons/browser.svg"
+                class="com.seizia.chromite.ui.gis.presentation.GeometryPresentation"
                 type="transformer"
                 supportsRecordMode="false"
                 supportsPanels="false"
                 supportsNavigation="false"
                 supportsEdit="false"
                 order="500">
-            <objectType name="org.jkiss.dbeaver.model.exec.DBCResultSet" if="context.hasAttributeOfType('org.jkiss.dbeaver.model.gis.DBGeometry')"/>
+            <objectType name="com.seizia.chromite.model.exec.DBCResultSet" if="context.hasAttributeOfType('com.seizia.chromite.model.gis.DBGeometry')"/>
         </presentation>
     </extension>
 
     <extension point="org.eclipse.ui.preferencePages">
-        <page category="org.jkiss.dbeaver.preferences.main.resultset" class="org.jkiss.dbeaver.ui.gis.preferences.PrefPageGIS" id="org.jkiss.dbeaver.preferences.gis" name="%pref.page.name.gis">
-            <keywordReference id="org.jkiss.dbeaver.core.keyword.dbeaver"/>
-            <keywordReference id="org.jkiss.dbeaver.core.keyword.gis"/>
+        <page category="com.seizia.chromite.preferences.main.resultset" class="com.seizia.chromite.ui.gis.preferences.PrefPageGIS" id="com.seizia.chromite.preferences.gis" name="%pref.page.name.gis">
+            <keywordReference id="com.seizia.chromite.core.keyword.chromite"/>
+            <keywordReference id="com.seizia.chromite.core.keyword.gis"/>
         </page>
     </extension>
 
     <extension point="org.eclipse.ui.keywords">
-        <keyword id="org.jkiss.dbeaver.core.keyword.gis" label="%keyword.org.jkiss.dbeaver.preferences.gis"/>
+        <keyword id="com.seizia.chromite.core.keyword.gis" label="%keyword.com.seizia.chromite.preferences.gis"/>
     </extension>
 
 </plugin>

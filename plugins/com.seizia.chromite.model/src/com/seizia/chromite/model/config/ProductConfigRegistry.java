@@ -14,16 +14,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.config;
+package com.seizia.chromite.model.config;
 
 import org.eclipse.core.runtime.IConfigurationElement;
 import org.eclipse.core.runtime.IExtensionRegistry;
 import org.eclipse.core.runtime.Platform;
 import org.jkiss.code.NotNull;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.data.json.JSONUtils;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.data.json.JSONUtils;
+import com.seizia.chromite.runtime.DBWorkbench;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -31,7 +31,7 @@ import java.util.*;
 
 public final class ProductConfigRegistry {
     private static final Log log = Log.getLog(ProductConfigRegistry.class);
-    private static final String EXTENSION_ID = "org.jkiss.dbeaver.app.config";
+    private static final String EXTENSION_ID = "com.seizia.chromite.app.config";
     private static final String CONFIG_FILE = "product-config.json";
 
     private static ProductConfigRegistry instance;

@@ -2,44 +2,44 @@
 <?eclipse version="3.4"?>
 <plugin>
 
-    <extension-point id="org.jkiss.dbeaver.dataTransfer" name="Data Transfer Provider" schema="schema/org.jkiss.dbeaver.dataTransfer.exsd"/>
+    <extension-point id="com.seizia.chromite.dataTransfer" name="Data Transfer Provider" schema="schema/com.seizia.chromite.dataTransfer.exsd"/>
 
-    <extension point="org.jkiss.dbeaver.dataTransfer">
+    <extension point="com.seizia.chromite.dataTransfer">
         <node type="producer"
               id="database_producer"
-              class="org.jkiss.dbeaver.tools.transfer.database.DatabaseTransferProducer"
-              icon="platform:/plugin/org.jkiss.dbeaver.model/icons/tree/table.svg"
+              class="com.seizia.chromite.tools.transfer.database.DatabaseTransferProducer"
+              icon="platform:/plugin/com.seizia.chromite.model/icons/tree/table.svg"
               label="%dataTransfer.producer.database.name"
               description="%dataTransfer.producer.database.description"
-              settings="org.jkiss.dbeaver.tools.transfer.database.DatabaseProducerSettings"
+              settings="com.seizia.chromite.tools.transfer.database.DatabaseProducerSettings"
               advanced="true">
-            <sourceType type="org.jkiss.dbeaver.model.struct.DBSDataContainer"/>
-<!--            <sourceType type="org.jkiss.dbeaver.model.struct.DBSObjectContainer"/>-->
+            <sourceType type="com.seizia.chromite.model.struct.DBSDataContainer"/>
+<!--            <sourceType type="com.seizia.chromite.model.struct.DBSObjectContainer"/>-->
         </node>
 
         <node type="consumer"
             id="database_consumer"
-            class="org.jkiss.dbeaver.tools.transfer.database.DatabaseTransferConsumer"
-            icon="platform:/plugin/org.jkiss.dbeaver.model/icons/tree/table.svg"
+            class="com.seizia.chromite.tools.transfer.database.DatabaseTransferConsumer"
+            icon="platform:/plugin/com.seizia.chromite.model/icons/tree/table.svg"
             label="%dataTransfer.consumer.database.name"
             description="%dataTransfer.consumer.database.description"
-            settings="org.jkiss.dbeaver.tools.transfer.database.DatabaseConsumerSettings"
+            settings="com.seizia.chromite.tools.transfer.database.DatabaseConsumerSettings"
             advanced="true">
-            <sourceType type="org.jkiss.dbeaver.model.struct.DBSDataContainer"/>
+            <sourceType type="com.seizia.chromite.model.struct.DBSDataContainer"/>
         </node>
 
         <node type="producer"
             id="stream_producer"
-            class="org.jkiss.dbeaver.tools.transfer.stream.StreamTransferProducer"
+            class="com.seizia.chromite.tools.transfer.stream.StreamTransferProducer"
             icon="icons/formats/file.svg"
             label="%dataTransfer.producer.stream.name"
             description="%dataTransfer.producer.stream.description"
-            settings="org.jkiss.dbeaver.tools.transfer.stream.StreamProducerSettings">
+            settings="com.seizia.chromite.tools.transfer.stream.StreamProducerSettings">
 
             <processor
                 id="stream.csv"
                 aiFormatId="csv"
-                class="org.jkiss.dbeaver.tools.transfer.stream.importer.DataImporterCSV"
+                class="com.seizia.chromite.tools.transfer.stream.importer.DataImporterCSV"
                 description="%dataTransfer.producer.stream.processor.csv.description"
                 icon="icons/formats/csv.svg"
                 label="%dataTransfer.producer.stream.processor.csv.name"
@@ -68,16 +68,16 @@
 
         <node type="consumer"
               id="stream_consumer"
-              class="org.jkiss.dbeaver.tools.transfer.stream.StreamTransferConsumer"
+              class="com.seizia.chromite.tools.transfer.stream.StreamTransferConsumer"
               icon="icons/formats/file.svg"
               label="%dataTransfer.consumer.stream.name"
               description="%dataTransfer.consumer.stream.description"
-              settings="org.jkiss.dbeaver.tools.transfer.stream.StreamConsumerSettings">
+              settings="com.seizia.chromite.tools.transfer.stream.StreamConsumerSettings">
 
             <processor
                     id="stream.xml"
                     shortId="xml"
-                    class="org.jkiss.dbeaver.tools.transfer.stream.exporter.DataExporterXML"
+                    class="com.seizia.chromite.tools.transfer.stream.exporter.DataExporterXML"
                     description="%dataTransfer.processor.xml.description"
                     icon="icons/formats/xml.svg"
                     label="%dataTransfer.processor.xml.name"
@@ -90,7 +90,7 @@
             <processor
                     id="stream.dbunit"
                     shortId="dbunit"
-                    class="org.jkiss.dbeaver.tools.transfer.stream.exporter.DataExporterDbUnit"
+                    class="com.seizia.chromite.tools.transfer.stream.exporter.DataExporterDbUnit"
                     description="%dataTransfer.processor.dbunit.description"
                     icon="icons/formats/xml.svg"
                     label="%dataTransfer.processor.dbunit.name"
@@ -106,7 +106,7 @@
             <processor
                     id="stream.json"
                     shortId="json"
-                    class="org.jkiss.dbeaver.tools.transfer.stream.exporter.DataExporterJSON"
+                    class="com.seizia.chromite.tools.transfer.stream.exporter.DataExporterJSON"
                     description="%dataTransfer.processor.json.description"
                     icon="icons/formats/json.svg"
                     label="%dataTransfer.processor.json.name"
@@ -124,7 +124,7 @@
             <processor
                     id="stream.html"
                     shortId="html"
-                    class="org.jkiss.dbeaver.tools.transfer.stream.exporter.DataExporterHTML"
+                    class="com.seizia.chromite.tools.transfer.stream.exporter.DataExporterHTML"
                     description="%dataTransfer.processor.html.description"
                     icon="icons/formats/html.svg"
                     label="%dataTransfer.processor.html.name"
@@ -143,7 +143,7 @@
             <processor
                     id="stream.csv"
                     shortId="csv"
-                    class="org.jkiss.dbeaver.tools.transfer.stream.exporter.DataExporterCSV"
+                    class="com.seizia.chromite.tools.transfer.stream.exporter.DataExporterCSV"
                     description="%dataTransfer.processor.csv.description"
                     icon="icons/formats/csv.svg"
                     label="%dataTransfer.processor.csv.name"
@@ -170,7 +170,7 @@
             <processor
                     id="stream.markdown.table"
                     shortId="markdown"
-                    class="org.jkiss.dbeaver.tools.transfer.stream.exporter.DataExporterMarkdownTable"
+                    class="com.seizia.chromite.tools.transfer.stream.exporter.DataExporterMarkdownTable"
                     description="%dataTransfer.processor.markdownTable.description"
                     icon="icons/formats/markdown.svg"
                     label="%dataTransfer.processor.markdownTable.name"
@@ -187,7 +187,7 @@
             <processor
                     id="stream.sql"
                     shortId="sql"
-                    class="org.jkiss.dbeaver.tools.transfer.stream.exporter.DataExporterSQL"
+                    class="com.seizia.chromite.tools.transfer.stream.exporter.DataExporterSQL"
                     description="%dataTransfer.processor.sql.description"
                     icon="icons/formats/sql.svg"
                     label="%dataTransfer.processor.sql.name"
@@ -211,7 +211,7 @@
             <processor
                     id="stream.txt"
                     shortId="txt"
-                    class="org.jkiss.dbeaver.tools.transfer.stream.exporter.DataExporterTXT"
+                    class="com.seizia.chromite.tools.transfer.stream.exporter.DataExporterTXT"
                     description="%dataTransfer.processor.txt.description"
                     icon="icons/formats/text.svg"
                     label="%dataTransfer.processor.txt.name"
@@ -238,7 +238,7 @@
             <processor
                     id="stream.source.code"
                     aiFormatId="php"
-                    class="org.jkiss.dbeaver.tools.transfer.stream.exporter.DataExporterSourceCode"
+                    class="com.seizia.chromite.tools.transfer.stream.exporter.DataExporterSourceCode"
                     description="%dataTransfer.processor.source.code.description"
                     icon="icons/formats/code.svg"
                     label="%dataTransfer.processor.source.code.name"
@@ -254,16 +254,16 @@
         </node>
 
 
-<!--        <transformer id="none" label="" description="PAss value as is" class="org.jkiss.dbeaver.tools.transfer.transformers.DataTransferTransformerNull"/>-->
-        <transformer id="null" label="Set to NULL" description="Set column value to NULL" class="org.jkiss.dbeaver.tools.transfer.transformers.DataTransferTransformerNull"/>
+<!--        <transformer id="none" label="" description="PAss value as is" class="com.seizia.chromite.tools.transfer.transformers.DataTransferTransformerNull"/>-->
+        <transformer id="null" label="Set to NULL" description="Set column value to NULL" class="com.seizia.chromite.tools.transfer.transformers.DataTransferTransformerNull"/>
 
-        <transformer id="constant" label="Constant" description="Set column value to a constant value" class="org.jkiss.dbeaver.tools.transfer.transformers.DataTransferTransformerConstant">
+        <transformer id="constant" label="Constant" description="Set column value to a constant value" class="com.seizia.chromite.tools.transfer.transformers.DataTransferTransformerConstant">
             <propertyGroup label="Settings">
                 <property id="constant" label="Constant value" type="string" description="Constant value" defaultValue="" required="false"/>
             </propertyGroup>
         </transformer>
 
-        <transformer id="expression" label="Expression" description="Set column value to a result of expression&#10;Language references and examples can be found here:&#10;http://commons.apache.org/proper/commons-jexl/reference/syntax.html" class="org.jkiss.dbeaver.tools.transfer.transformers.DataTransferTransformerExpression">
+        <transformer id="expression" label="Expression" description="Set column value to a result of expression&#10;Language references and examples can be found here:&#10;http://commons.apache.org/proper/commons-jexl/reference/syntax.html" class="com.seizia.chromite.tools.transfer.transformers.DataTransferTransformerExpression">
             <propertyGroup label="Settings">
                 <property id="expression" label="Expression" type="string" description="Expression to evaluate" defaultValue="" required="true"/>
             </propertyGroup>
@@ -273,77 +273,77 @@
                 id="showInExplorer"
                 label="%dataTransfer.eventProcessor.showInExplorer.label"
                 description="%dataTransfer.eventProcessor.showInExplorer.description"
-                class="org.jkiss.dbeaver.tools.transfer.processor.ShowInExplorerEventProcessor"
+                class="com.seizia.chromite.tools.transfer.processor.ShowInExplorerEventProcessor"
                 nodes="streamTransferConsumer"/>
 
         <eventProcessor
                 id="executeCommand"
                 label="%dataTransfer.eventProcessor.executeCommand.label"
                 description="%dataTransfer.eventProcessor.executeCommand.description"
-                class="org.jkiss.dbeaver.tools.transfer.processor.ExecuteCommandEventProcessor"
+                class="com.seizia.chromite.tools.transfer.processor.ExecuteCommandEventProcessor"
                 nodes="streamTransferConsumer"/>
 
         <eventProcessor
                 id="failedExportFileCleaner"
                 label="%dataTransfer.eventProcessor.failedExportFileCleaner.label"
                 description="%dataTransfer.eventProcessor.failedExportFileCleaner.description"
-                class="org.jkiss.dbeaver.tools.transfer.processor.FailedExportFileCleanerProcessor"
+                class="com.seizia.chromite.tools.transfer.processor.FailedExportFileCleanerProcessor"
                 nodes="streamTransferConsumer"/>
 
     </extension>
 
-    <extension point="org.jkiss.dbeaver.task">
+    <extension point="com.seizia.chromite.task">
         <category id="common" name="%task.category.name.common" description="%task.category.description.common"
-                  icon="platform:/plugin/org.jkiss.dbeaver.model/icons/tree/task.svg"/>
+                  icon="platform:/plugin/com.seizia.chromite.model/icons/tree/task.svg"/>
 
         <task id="dataExport"
               name="%task.name.export"
               description="%task.description.export"
               icon="icons/export.svg"
               type="common"
-              handler="org.jkiss.dbeaver.tools.transfer.task.DTTaskHandlerExport"
+              handler="com.seizia.chromite.tools.transfer.task.DTTaskHandlerExport"
               supportsVariables="true">
-            <objectType name="org.jkiss.dbeaver.model.struct.DBSDataContainer"/>
+            <objectType name="com.seizia.chromite.model.struct.DBSDataContainer"/>
         </task>
         <task id="dataImport"
               name="%task.name.import"
               description="%task.description.import"
               icon="icons/import.svg"
               type="common"
-              handler="org.jkiss.dbeaver.tools.transfer.task.DTTaskHandlerImport">
-            <objectType name="org.jkiss.dbeaver.model.struct.DBSDataManipulator"/>
+              handler="com.seizia.chromite.tools.transfer.task.DTTaskHandlerImport">
+            <objectType name="com.seizia.chromite.model.struct.DBSDataManipulator"/>
         </task>
 
         <task id="scriptExecute"
               name="%task.name.sql.script"
               description="%task.description.sql.script"
-              icon="platform:/plugin/org.jkiss.dbeaver.model/icons/tree/script.svg"
+              icon="platform:/plugin/com.seizia.chromite.model/icons/tree/script.svg"
               type="common"
-              handler="org.jkiss.dbeaver.tools.sql.task.SQLScriptExecuteHandler"
+              handler="com.seizia.chromite.tools.sql.task.SQLScriptExecuteHandler"
               supportsVariables="true">
             <objectType name="org.eclipse.core.resources.IFile"/>
         </task>
     </extension>
 
-    <extension point="org.jkiss.dbeaver.serialize">
+    <extension point="com.seizia.chromite.serialize">
         <serializer id="databaseTransferProducer"
-                    class="org.jkiss.dbeaver.tools.transfer.database.DatabaseTransferProducer$ObjectSerializer"/>
+                    class="com.seizia.chromite.tools.transfer.database.DatabaseTransferProducer$ObjectSerializer"/>
         <serializer id="streamTransferProducer"
-                    class="org.jkiss.dbeaver.tools.transfer.stream.StreamTransferProducer$ObjectSerializer"/>
+                    class="com.seizia.chromite.tools.transfer.stream.StreamTransferProducer$ObjectSerializer"/>
 
         <serializer id="databaseTransferConsumer"
-                    class="org.jkiss.dbeaver.tools.transfer.database.DatabaseTransferConsumerSerializer"/>
+                    class="com.seizia.chromite.tools.transfer.database.DatabaseTransferConsumerSerializer"/>
         <serializer id="streamTransferConsumer"
-                    class="org.jkiss.dbeaver.tools.transfer.stream.StreamTransferConsumer$ObjectSerializer"
+                    class="com.seizia.chromite.tools.transfer.stream.StreamTransferConsumer$ObjectSerializer"
                     supportsDistributedMode="false"/>
     </extension>
 
     <extension point="org.eclipse.core.runtime.preferences">
-        <initializer class="org.jkiss.dbeaver.tools.transfer.internal.DataTransferPreferencesInitializer"/>
+        <initializer class="com.seizia.chromite.tools.transfer.internal.DataTransferPreferencesInitializer"/>
     </extension>
 
-    <extension point="org.jkiss.dbeaver.dataSourceProvider">
-        <datasource id="stream" class="org.jkiss.dbeaver.tools.transfer.stream.model.StreamDataSourceProvider" dialect="basic"/>
+    <extension point="com.seizia.chromite.dataSourceProvider">
+        <datasource id="stream" class="com.seizia.chromite.tools.transfer.stream.model.StreamDataSourceProvider" dialect="basic"/>
     </extension>
 
 </plugin>

@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.ui.editors.sql;
+package com.seizia.chromite.ui.editors.sql;
 
 import org.eclipse.jface.preference.IPreferenceStore;
 import org.eclipse.jface.text.source.*;
@@ -23,7 +23,7 @@ import org.eclipse.swt.SWT;
 import org.eclipse.swt.widgets.Display;
 import org.eclipse.ui.texteditor.SourceViewerDecorationSupport;
 import org.eclipse.ui.texteditor.spelling.SpellingAnnotation;
-import org.jkiss.dbeaver.ui.UIStyles;
+import com.seizia.chromite.ui.UIStyles;
 
 public class SQLSourceViewerDecorationSupport extends SourceViewerDecorationSupport {
 

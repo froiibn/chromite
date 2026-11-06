@@ -2,28 +2,28 @@
 <?eclipse version="3.2"?>
 <plugin>
 
-    <extension-point id="org.jkiss.dbeaver.service" name="Service" schema="schema/org.jkiss.dbeaver.service.exsd"/>
-    <extension-point id="org.jkiss.dbeaver.application" name="DBeaver applications" schema="schema/org.jkiss.dbeaver.application.exsd"/>
-    <extension-point id="org.jkiss.dbeaver.app.config" name="Application configuration" schema="schema/org.jkiss.dbeaver.app.config.exsd"/>
-    <extension-point id="org.jkiss.dbeaver.expressions" name="Expression functions and namespaces" schema="schema/org.jkiss.dbeaver.expressions.exsd"/>
-    <extension-point id="org.jkiss.dbeaver.dataHintProvider" name="Data editor hint provider" schema="schema/org.jkiss.dbeaver.dataHintProvider.exsd"/>
-    <extension-point id="org.jkiss.dbeaver.dataFormatter" name="Data value formatters" schema="schema/org.jkiss.dbeaver.dataFormatter.exsd"/>
-    <extension-point id="org.jkiss.dbeaver.dataTypeProvider" name="DataType provider" schema="schema/org.jkiss.dbeaver.dataTypeProvider.exsd"/>
-    <extension-point id="org.jkiss.dbeaver.serialize" name="Object serializers" schema="schema/org.jkiss.dbeaver.serialize.exsd"/>
-    <extension-point id="org.jkiss.dbeaver.navigator" name="Object navigator extensions" schema="schema/org.jkiss.dbeaver.navigator.exsd"/>
-    <extension-point id="org.jkiss.dbeaver.settings" name="DBeaver Settings" schema="schema/org.jkiss.dbeaver.settings.exsd"/>
-    <extension-point id="org.jkiss.dbeaver.syncUnit" name="Synchronization unit" schema="schema/org.jkiss.dbeaver.syncUnit.exsd"/>
-    <extension-point id="org.jkiss.dbeaver.fileSystem" name="Virtual file systems" schema="schema/org.jkiss.dbeaver.fileSystem.exsd"/>
-    <extension-point id="org.jkiss.dbeaver.fileTypeHandler" name="File type handlers" schema="schema/org.jkiss.dbeaver.fileTypeHandlers.exsd"/>
+    <extension-point id="com.seizia.chromite.service" name="Service" schema="schema/com.seizia.chromite.service.exsd"/>
+    <extension-point id="com.seizia.chromite.application" name="DBeaver applications" schema="schema/com.seizia.chromite.application.exsd"/>
+    <extension-point id="com.seizia.chromite.app.config" name="Application configuration" schema="schema/com.seizia.chromite.app.config.exsd"/>
+    <extension-point id="com.seizia.chromite.expressions" name="Expression functions and namespaces" schema="schema/com.seizia.chromite.expressions.exsd"/>
+    <extension-point id="com.seizia.chromite.dataHintProvider" name="Data editor hint provider" schema="schema/com.seizia.chromite.dataHintProvider.exsd"/>
+    <extension-point id="com.seizia.chromite.dataFormatter" name="Data value formatters" schema="schema/com.seizia.chromite.dataFormatter.exsd"/>
+    <extension-point id="com.seizia.chromite.dataTypeProvider" name="DataType provider" schema="schema/com.seizia.chromite.dataTypeProvider.exsd"/>
+    <extension-point id="com.seizia.chromite.serialize" name="Object serializers" schema="schema/com.seizia.chromite.serialize.exsd"/>
+    <extension-point id="com.seizia.chromite.navigator" name="Object navigator extensions" schema="schema/com.seizia.chromite.navigator.exsd"/>
+    <extension-point id="com.seizia.chromite.settings" name="DBeaver Settings" schema="schema/com.seizia.chromite.settings.exsd"/>
+    <extension-point id="com.seizia.chromite.syncUnit" name="Synchronization unit" schema="schema/com.seizia.chromite.syncUnit.exsd"/>
+    <extension-point id="com.seizia.chromite.fileSystem" name="Virtual file systems" schema="schema/com.seizia.chromite.fileSystem.exsd"/>
+    <extension-point id="com.seizia.chromite.fileTypeHandler" name="File type handlers" schema="schema/com.seizia.chromite.fileTypeHandlers.exsd"/>
 
 
-    <extension point="org.jkiss.dbeaver.expressions">
+    <extension point="com.seizia.chromite.expressions">
         <namespace id="math" class="java.lang.Math" description="Math functions"/>
-        <namespace id="content" class="org.jkiss.dbeaver.registry.expressions.ContentExpressionFunctions" description="Content handling functions"/>
+        <namespace id="content" class="com.seizia.chromite.registry.expressions.ContentExpressionFunctions" description="Content handling functions"/>
     </extension>
 
-    <extension point="org.jkiss.dbeaver.dataFormatter">
-        <formatter id="number" label="%DateFormatter.number.label" class="org.jkiss.dbeaver.model.impl.data.formatters.NumberDataFormatter" sampleClass="org.jkiss.dbeaver.model.impl.data.formatters.NumberFormatSample">
+    <extension point="com.seizia.chromite.dataFormatter">
+        <formatter id="number" label="%DateFormatter.number.label" class="com.seizia.chromite.model.impl.data.formatters.NumberDataFormatter" sampleClass="com.seizia.chromite.model.impl.data.formatters.NumberFormatSample">
             <propertyGroup label="%DateFormatter.number.general.label">
                 <property id="useGrouping" label="%DateFormatter.number.general.grouping.label" type="boolean" description="%DateFormatter.number.general.grouping.description"/>
                 <property id="groupingSize" label="%DateFormatter.number.general.groupingSize.label" type="integer" description="%DateFormatter.number.general.groupingSize.description"/>
@@ -40,40 +40,40 @@
                 <property id="excludeIdColumns" label="%DateFormatter.number.general.excludeIdColumns.label" type="boolean" description="%DateFormatter.number.general.excludeIdColumns.description"/>
             </propertyGroup>
         </formatter>
-        <formatter id="timestamp" label="%DateFormatter.timestamp.label" class="org.jkiss.dbeaver.model.impl.data.formatters.DateTimeDataFormatter" sampleClass="org.jkiss.dbeaver.model.impl.data.formatters.TimestampFormatSample">
+        <formatter id="timestamp" label="%DateFormatter.timestamp.label" class="com.seizia.chromite.model.impl.data.formatters.DateTimeDataFormatter" sampleClass="com.seizia.chromite.model.impl.data.formatters.TimestampFormatSample">
             <propertyGroup label="%DateFormatter.timestamp.general.label">
                 <property id="pattern" label="%DateFormatter.timestamp.general.pattern.label" type="string" description="%DateFormatter.timestamp.general.pattern.description" required="true"/>
                 <property id="timezone" label="%DateFormatter.timestamp.general.timezone.label" type="string" description="%DateFormatter.timestamp.general.timezone.description" required="false"/>
             </propertyGroup>
         </formatter>
-        <formatter id="timestamptz" label="%DateFormatter.timestamptz.label" class="org.jkiss.dbeaver.model.impl.data.formatters.DateTimeDataFormatter" sampleClass="org.jkiss.dbeaver.model.impl.data.formatters.TimestampTzFormatSample">
+        <formatter id="timestamptz" label="%DateFormatter.timestamptz.label" class="com.seizia.chromite.model.impl.data.formatters.DateTimeDataFormatter" sampleClass="com.seizia.chromite.model.impl.data.formatters.TimestampTzFormatSample">
             <propertyGroup label="%DateFormatter.timestamp.general.label">
                 <property id="pattern" label="%DateFormatter.timestamp.general.pattern.label" type="string" description="%DateFormatter.timestamp.general.pattern.description" required="true"/>
             </propertyGroup>
         </formatter>
-        <formatter id="date" label="%DateFormatter.date.label" class="org.jkiss.dbeaver.model.impl.data.formatters.DateTimeDataFormatter" sampleClass="org.jkiss.dbeaver.model.impl.data.formatters.DateFormatSample">
+        <formatter id="date" label="%DateFormatter.date.label" class="com.seizia.chromite.model.impl.data.formatters.DateTimeDataFormatter" sampleClass="com.seizia.chromite.model.impl.data.formatters.DateFormatSample">
             <propertyGroup label="%DateFormatter.date.general.label">
                 <property id="pattern" label="%DateFormatter.date.general.pattern.label" type="string" description="%DateFormatter.date.general.pattern.description" required="true"/>
             </propertyGroup>
         </formatter>
-        <formatter id="time" label="%DateFormatter.time.label" class="org.jkiss.dbeaver.model.impl.data.formatters.DateTimeDataFormatter" sampleClass="org.jkiss.dbeaver.model.impl.data.formatters.TimeFormatSample">
+        <formatter id="time" label="%DateFormatter.time.label" class="com.seizia.chromite.model.impl.data.formatters.DateTimeDataFormatter" sampleClass="com.seizia.chromite.model.impl.data.formatters.TimeFormatSample">
             <propertyGroup label="%DateFormatter.time.general.label">
                 <property id="pattern" label="%DateFormatter.time.general.pattern.label" type="string" description="%DateFormatter.time.general.pattern.description" required="true"/>
                 <property id="timezone" label="%DateFormatter.time.general.timezone.label" type="string" description="%DateFormatter.time.general.timezone.description" required="false"/>
             </propertyGroup>
         </formatter>
-        <formatter id="timetz" label="%DateFormatter.timetz.label" class="org.jkiss.dbeaver.model.impl.data.formatters.DateTimeDataFormatter" sampleClass="org.jkiss.dbeaver.model.impl.data.formatters.TimeTzFormatSample">
+        <formatter id="timetz" label="%DateFormatter.timetz.label" class="com.seizia.chromite.model.impl.data.formatters.DateTimeDataFormatter" sampleClass="com.seizia.chromite.model.impl.data.formatters.TimeTzFormatSample">
             <propertyGroup label="%DateFormatter.time.general.label">
                 <property id="pattern" label="%DateFormatter.time.general.pattern.label" type="string" description="%DateFormatter.time.general.pattern.description" required="true"/>
             </propertyGroup>
         </formatter>
     </extension>
 
-    <extension point="org.jkiss.dbeaver.dataTypeProvider">
+    <extension point="com.seizia.chromite.dataTypeProvider">
         <!-- Standard transformers (enabled by default) -->
         <transformer
-                class="org.jkiss.dbeaver.model.impl.data.transformers.ComplexTypeAttributeTransformer"
-                id="org.jkiss.dbeaver.core.ComplexTypeAttributeTransformer"
+                class="com.seizia.chromite.model.impl.data.transformers.ComplexTypeAttributeTransformer"
+                id="com.seizia.chromite.core.ComplexTypeAttributeTransformer"
                 name="Complex type"
                 description="%ComplexTypeTransformer.general.description"
                 applyByDefault="true">
@@ -82,8 +82,8 @@
             <!--<type kind="OBJECT"/>-->
         </transformer>
         <transformer
-                class="org.jkiss.dbeaver.model.impl.data.transformers.MapAttributeTransformer"
-                id="org.jkiss.dbeaver.core.MapAttributeTransformer"
+                class="com.seizia.chromite.model.impl.data.transformers.MapAttributeTransformer"
+                id="com.seizia.chromite.core.MapAttributeTransformer"
                 name="Map"
                 description="%MapTransformer.general.description"
                 applyByDefault="true">
@@ -93,8 +93,8 @@
             <type kind="ANY"/>
         </transformer>
         <transformer
-                class="org.jkiss.dbeaver.model.impl.data.transformers.ArrayAttributeTransformer"
-                id="org.jkiss.dbeaver.core.ArrayAttributeTransformer"
+                class="com.seizia.chromite.model.impl.data.transformers.ArrayAttributeTransformer"
+                id="com.seizia.chromite.core.ArrayAttributeTransformer"
                 name="Array"
                 description="%ArrayTransformer.general.description"
                 applyByDefault="true">
@@ -103,8 +103,8 @@
 
         <!-- Extra transformers -->
         <transformer
-                class="org.jkiss.dbeaver.model.impl.data.transformers.EpochTimeAttributeTransformer"
-                id="org.jkiss.dbeaver.core.EpochTimeAttributeTransformer"
+                class="com.seizia.chromite.model.impl.data.transformers.EpochTimeAttributeTransformer"
+                id="com.seizia.chromite.core.EpochTimeAttributeTransformer"
                 name="Epoch Time"
                 description="%EpochTimeTransformer.general.description"
                 applyByDefault="false"
@@ -116,8 +116,8 @@
             </propertyGroup>
         </transformer>
         <transformer
-                class="org.jkiss.dbeaver.model.impl.data.transformers.RadixAttributeTransformer"
-                id="org.jkiss.dbeaver.core.RadixAttributeTransformer"
+                class="com.seizia.chromite.model.impl.data.transformers.RadixAttributeTransformer"
+                id="com.seizia.chromite.core.RadixAttributeTransformer"
                 name="Number Radix"
                 description="%RadixTransformer.general.description"
                 applyByDefault="false"
@@ -131,8 +131,8 @@
             </propertyGroup>
         </transformer>
         <transformer
-                class="org.jkiss.dbeaver.model.impl.data.transformers.URLAttributeTransformer"
-                id="org.jkiss.dbeaver.core.URLAttributeTransformer"
+                class="com.seizia.chromite.model.impl.data.transformers.URLAttributeTransformer"
+                id="com.seizia.chromite.core.URLAttributeTransformer"
                 name="URL"
                 description="%URLTransformer.general.description"
                 applyByDefault="false"
@@ -144,7 +144,7 @@
             </propertyGroup>
         </transformer>
         <transformer
-                class="org.jkiss.dbeaver.model.impl.data.transformers.BooleanAttributeTransformer"
+                class="com.seizia.chromite.model.impl.data.transformers.BooleanAttributeTransformer"
                 id="boolean"
                 name="Boolean"
                 description="%BooleanTransformer.general.description"
@@ -153,8 +153,8 @@
             <type kind="NUMERIC"/>
         </transformer>
         <transformer
-                class="org.jkiss.dbeaver.model.impl.data.transformers.UUIDAttributeTransformer"
-                id="org.jkiss.dbeaver.core.UUIDAttributeTransformer"
+                class="com.seizia.chromite.model.impl.data.transformers.UUIDAttributeTransformer"
+                id="com.seizia.chromite.core.UUIDAttributeTransformer"
                 name="UUID"
                 description="%UUIDTransformer.general.description"
                 applyByDefault="false"
@@ -167,8 +167,8 @@
             </propertyGroup>
         </transformer>
         <transformer
-                class="org.jkiss.dbeaver.model.impl.data.transformers.BinaryAttributeTransformer"
-                id="org.jkiss.dbeaver.core.BinaryAttributeTransformer"
+                class="com.seizia.chromite.model.impl.data.transformers.BinaryAttributeTransformer"
+                id="com.seizia.chromite.core.BinaryAttributeTransformer"
                 name="Binary"
                 description="%BinaryTransformer.general.description"
                 applyByDefault="false"
@@ -180,8 +180,8 @@
             </propertyGroup>
         </transformer>
         <transformer
-                class="org.jkiss.dbeaver.model.impl.data.transformers.NumericAttributeTransformer"
-                id="org.jkiss.dbeaver.core.NumericAttributeTransformer"
+                class="com.seizia.chromite.model.impl.data.transformers.NumericAttributeTransformer"
+                id="com.seizia.chromite.core.NumericAttributeTransformer"
                 name="Numeric"
                 description="Represents string value as number"
                 applyByDefault="false"
@@ -195,21 +195,21 @@
 
     </extension>
 
-    <extension point="org.jkiss.dbeaver.dataHintProvider">
-        <hintProvider id="attr-keys" for="column" class="org.jkiss.dbeaver.model.data.hints.standard.AttributeKeysHintProvider" label="%hints.attr-keys.label" description="%hints.attr-keys.description"/>
-        <hintProvider id="attr-status" for="column" class="org.jkiss.dbeaver.model.data.hints.standard.AttributeStatusHintProvider" label="%hints.attr-status.label" description="%hints.attr-status.description"/>
-        <hintProvider id="array-size" for="cell" class="org.jkiss.dbeaver.model.data.hints.standard.ArrayCellHintProvider" label="%hints.array-size.label" description="%hints.array-size.description">
+    <extension point="com.seizia.chromite.dataHintProvider">
+        <hintProvider id="attr-keys" for="column" class="com.seizia.chromite.model.data.hints.standard.AttributeKeysHintProvider" label="%hints.attr-keys.label" description="%hints.attr-keys.description"/>
+        <hintProvider id="attr-status" for="column" class="com.seizia.chromite.model.data.hints.standard.AttributeStatusHintProvider" label="%hints.attr-status.label" description="%hints.attr-status.description"/>
+        <hintProvider id="array-size" for="cell" class="com.seizia.chromite.model.data.hints.standard.ArrayCellHintProvider" label="%hints.array-size.label" description="%hints.array-size.description">
             <supports kind="ARRAY"/>
         </hintProvider>
-        <hintProvider id="binary-size" for="cell" class="org.jkiss.dbeaver.model.data.hints.standard.BinaryCellHintProvider" label="Binary data" description="Shows size of binary value">
+        <hintProvider id="binary-size" for="cell" class="com.seizia.chromite.model.data.hints.standard.BinaryCellHintProvider" label="Binary data" description="Shows size of binary value">
             <supports kind="BINARY"/>
         </hintProvider>
-        <hintProvider id="date-timezone" for="cell" class="org.jkiss.dbeaver.model.data.hints.standard.TimeZoneCellHintProvider" label="%hints.date-timezone.label" description="%hints.date-timezone.description">
+        <hintProvider id="date-timezone" for="cell" class="com.seizia.chromite.model.data.hints.standard.TimeZoneCellHintProvider" label="%hints.date-timezone.label" description="%hints.date-timezone.description">
             <supports kind="DATETIME"/>
         </hintProvider>
     </extension>
 
-    <extension point="org.jkiss.dbeaver.settings">
+    <extension point="com.seizia.chromite.settings">
         <propertyGroup id="editors" label="Editors">
             <propertyGroup id="dataEditor" label="Data Editor">
                 <property id="resultset.maxrows" label="Default fetch size" description="Default number of rows to fetch" type="integer"
@@ -221,15 +221,15 @@
 
     <extension point="org.eclipse.core.expressions.propertyTesters">
         <propertyTester
-            class="org.jkiss.dbeaver.model.impl.GlobalPropertyTester"
-            id="org.jkiss.dbeaver.model.impl.GlobalPropertyTester"
-            namespace="org.jkiss.dbeaver.core.global"
+            class="com.seizia.chromite.model.impl.GlobalPropertyTester"
+            id="com.seizia.chromite.model.impl.GlobalPropertyTester"
+            namespace="com.seizia.chromite.core.global"
             properties="standalone,distributed,bundleInstalled,hasPreference,hasEnvVariable"
             type="java.lang.Object"/>
         <propertyTester
-            class="org.jkiss.dbeaver.model.impl.config.ProductConfigPropertyTester"
-            id="org.jkiss.dbeaver.app.config"
-            namespace="org.jkiss.dbeaver.app.config"
+            class="com.seizia.chromite.model.impl.config.ProductConfigPropertyTester"
+            id="com.seizia.chromite.app.config"
+            namespace="com.seizia.chromite.app.config"
             properties="isFeatureEnabled,isAvailable"
             type="java.lang.Object"/>
     </extension>

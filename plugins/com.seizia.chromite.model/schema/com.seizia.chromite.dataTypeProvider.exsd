@@ -1,9 +1,9 @@
 <?xml version='1.0' encoding='UTF-8'?>
 <!-- Schema file written by PDE -->
-<schema targetNamespace="org.jkiss.dbeaver.model" xmlns="http://www.w3.org/2001/XMLSchema">
+<schema targetNamespace="com.seizia.chromite.model" xmlns="http://www.w3.org/2001/XMLSchema">
 <annotation>
       <appInfo>
-         <meta.schema plugin="org.jkiss.dbeaver.model" id="org.jkiss.dbeaver.dataTypeProvider" name="DataType provider"/>
+         <meta.schema plugin="com.seizia.chromite.model" id="com.seizia.chromite.dataTypeProvider" name="DataType provider"/>
       </appInfo>
       <documentation>DBeaver custom data type provider</documentation>
    </annotation>
@@ -37,7 +37,7 @@
          <attribute name="class" type="string" use="required">
             <annotation>
                <appInfo>
-                  <meta.attribute kind="java" basedOn=":org.jkiss.dbeaver.model.data.DBDValueHandlerProvider"/>
+                  <meta.attribute kind="java" basedOn=":com.seizia.chromite.model.data.DBDValueHandlerProvider"/>
                </appInfo>
             </annotation>
          </attribute>
@@ -68,7 +68,7 @@
          </choice>
          <attribute name="id" type="string" use="required"/>
          <attribute name="class" type="string" use="required">
-            <annotation><appInfo><meta.attribute kind="java" basedOn=":org.jkiss.dbeaver.model.data.DBDAttributeTransformer"/></appInfo></annotation>
+            <annotation><appInfo><meta.attribute kind="java" basedOn=":com.seizia.chromite.model.data.DBDAttributeTransformer"/></appInfo></annotation>
          </attribute>
          <attribute name="name" type="string" use="required">
             <annotation><appInfo><meta.attribute translatable="true"/></appInfo></annotation>

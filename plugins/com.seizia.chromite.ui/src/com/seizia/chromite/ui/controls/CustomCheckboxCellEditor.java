@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.controls;
+package com.seizia.chromite.ui.controls;
 
 import org.eclipse.core.runtime.Assert;
 import org.eclipse.jface.util.IPropertyChangeListener;
@@ -28,14 +28,14 @@ import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Control;
 import org.eclipse.swt.widgets.Label;
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.ui.DBeaverIcons;
-import org.jkiss.dbeaver.ui.UIElementAlignment;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.controls.bool.BooleanMode;
-import org.jkiss.dbeaver.ui.controls.bool.BooleanStyle;
-import org.jkiss.dbeaver.ui.controls.bool.BooleanStyleDecorator;
-import org.jkiss.dbeaver.ui.controls.bool.BooleanStyleSet;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.ui.SwtIcons;
+import com.seizia.chromite.ui.UIElementAlignment;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.controls.bool.BooleanMode;
+import com.seizia.chromite.ui.controls.bool.BooleanStyle;
+import com.seizia.chromite.ui.controls.bool.BooleanStyleDecorator;
+import com.seizia.chromite.ui.controls.bool.BooleanStyleSet;
 import org.jkiss.utils.CommonUtils;
 
 /**
@@ -131,7 +131,7 @@ public class CustomCheckboxCellEditor extends CellEditor implements BooleanStyle
             checkBox.setText(style.getText());
             checkBox.setForeground(UIUtils.getSharedColor(style.getColor()));
         } else {
-            checkBox.setImage(DBeaverIcons.getImage(style.getIcon()));
+            checkBox.setImage(SwtIcons.getImage(style.getIcon()));
         }
 
         final UIElementAlignment alignment = this.alignment == null ? style.getAlignment() : this.alignment;

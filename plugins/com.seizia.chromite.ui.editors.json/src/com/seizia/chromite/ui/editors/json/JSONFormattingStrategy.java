@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.editors.json;
+package com.seizia.chromite.ui.editors.json;
 
 import com.google.gson.*;
 import org.eclipse.jface.text.formatter.ContextBasedFormattingStrategy;

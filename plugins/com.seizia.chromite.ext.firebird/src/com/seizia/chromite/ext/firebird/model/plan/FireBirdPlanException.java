@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.firebird.model.plan;
+package com.seizia.chromite.ext.firebird.model.plan;
 
 /**
  * Manage raising exception with more context information.

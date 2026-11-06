@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.team.git.ui.handlers;
+package com.seizia.chromite.team.git.ui.handlers;
 
 import org.eclipse.core.commands.AbstractHandler;
 import org.eclipse.core.commands.ExecutionEvent;
@@ -23,7 +23,7 @@ import org.eclipse.egit.ui.internal.clone.GitSelectWizardPage;
 import org.eclipse.jface.wizard.WizardDialog;
 import org.eclipse.ui.IWorkbench;
 import org.eclipse.ui.handlers.HandlerUtil;
-import org.jkiss.dbeaver.Log;
+import com.seizia.chromite.Log;
 
 public class ProjectCloneHandler extends AbstractHandler {
 

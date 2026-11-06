@@ -15,13 +15,13 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.ui.controls.imageview;
+package com.seizia.chromite.ui.controls.imageview;
 
 import org.eclipse.jface.action.Action;
 import org.eclipse.swt.graphics.ImageData;
 import org.eclipse.swt.graphics.PaletteData;
-import org.jkiss.dbeaver.model.DBPImage;
-import org.jkiss.dbeaver.ui.DBeaverIcons;
+import com.seizia.chromite.model.DBPImage;
+import com.seizia.chromite.ui.SwtIcons;
 
 /**
  * Action delegate for all toolbar push-buttons.
@@ -47,7 +47,7 @@ public class ImageActionDelegate extends Action {
     public String id;
 
     public ImageActionDelegate(SWTImageViewer viewControl, String id, String name, DBPImage image) {
-        super(name, DBeaverIcons.getImageDescriptor(image));
+        super(name, SwtIcons.getImageDescriptor(image));
         this.imageViewControl = viewControl;
         this.id = id;
     }

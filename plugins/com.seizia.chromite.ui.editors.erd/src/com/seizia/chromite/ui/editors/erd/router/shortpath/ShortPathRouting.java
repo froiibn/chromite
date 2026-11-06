@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.editors.erd.router.shortpath;
+package com.seizia.chromite.ui.editors.erd.router.shortpath;
 
 import org.eclipse.draw2d.*;
 import org.eclipse.draw2d.geometry.Point;
@@ -24,8 +24,8 @@ import org.eclipse.draw2d.geometry.Rectangle;
 import org.eclipse.draw2d.graph.Path;
 import org.eclipse.draw2d.graph.ShortestPathRouter;
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.ui.editors.erd.figures.EntityFigure;
-import org.jkiss.dbeaver.ui.editors.erd.router.ERDConnectionRouter;
+import com.seizia.chromite.ui.editors.erd.figures.EntityFigure;
+import com.seizia.chromite.ui.editors.erd.router.ERDConnectionRouter;
 
 import java.util.*;
 import java.util.Map.Entry;

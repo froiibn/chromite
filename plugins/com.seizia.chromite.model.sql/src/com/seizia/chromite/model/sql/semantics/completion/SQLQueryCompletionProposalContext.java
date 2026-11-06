@@ -14,12 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.sql.semantics.completion;
+package com.seizia.chromite.model.sql.semantics.completion;
 
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.model.sql.completion.SQLCompletionActivityTracker;
-import org.jkiss.dbeaver.model.sql.completion.SQLCompletionContext;
-import org.jkiss.dbeaver.model.sql.completion.SQLCompletionRequest;
+import com.seizia.chromite.model.sql.completion.SQLCompletionActivityTracker;
+import com.seizia.chromite.model.sql.completion.SQLCompletionContext;
+import com.seizia.chromite.model.sql.completion.SQLCompletionRequest;
 
 public class SQLQueryCompletionProposalContext {
 

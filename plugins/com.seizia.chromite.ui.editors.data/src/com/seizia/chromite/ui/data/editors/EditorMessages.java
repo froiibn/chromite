@@ -14,13 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.data.editors;
+package com.seizia.chromite.ui.data.editors;
 
 import org.eclipse.osgi.util.NLS;
 
 public class EditorMessages extends NLS {
 
-    private static final String BUNDLE_NAME = "org.jkiss.dbeaver.ui.data.editors.EditorMessages";
+    private static final String BUNDLE_NAME = "com.seizia.chromite.ui.data.editors.EditorMessages";
 
     public static String content_viewer_settings;
     public static String create_control_error_title;

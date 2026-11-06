@@ -14,12 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.snowflake.ui.internal;
+package com.seizia.chromite.ext.snowflake.ui.internal;
 
 import org.eclipse.osgi.util.NLS;
 
 public class SnowflakeMessages extends NLS {
-	private static final String BUNDLE_NAME = "org.jkiss.dbeaver.ext.snowflake.ui.internal.SnowflakeResources"; //$NON-NLS-1$
+	private static final String BUNDLE_NAME = "com.seizia.chromite.ext.snowflake.ui.internal.SnowflakeResources"; //$NON-NLS-1$
 	public static String label_authenticator;
 	public static String label_click_on_test_connection;
 	public static String label_connection;

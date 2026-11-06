@@ -15,18 +15,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.registry.maven;
+package com.seizia.chromite.registry.maven;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.registry.maven.versioning.ArtifactVersion;
-import org.jkiss.dbeaver.registry.maven.versioning.DefaultArtifactVersion;
-import org.jkiss.dbeaver.registry.maven.versioning.InvalidVersionSpecificationException;
-import org.jkiss.dbeaver.registry.maven.versioning.VersionRange;
-import org.jkiss.dbeaver.runtime.WebUtils;
-import org.jkiss.dbeaver.utils.VersionUtils;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.registry.maven.versioning.ArtifactVersion;
+import com.seizia.chromite.registry.maven.versioning.DefaultArtifactVersion;
+import com.seizia.chromite.registry.maven.versioning.InvalidVersionSpecificationException;
+import com.seizia.chromite.registry.maven.versioning.VersionRange;
+import com.seizia.chromite.runtime.WebUtils;
+import com.seizia.chromite.utils.VersionUtils;
 import org.jkiss.utils.CommonUtils;
 import org.jkiss.utils.IOUtils;
 import org.jkiss.utils.xml.SAXListener;

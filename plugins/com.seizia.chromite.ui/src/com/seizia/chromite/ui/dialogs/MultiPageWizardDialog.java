@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.dialogs;
+package com.seizia.chromite.ui.dialogs;
 
 import org.eclipse.core.runtime.ListenerList;
 import org.eclipse.jface.dialogs.*;
@@ -41,11 +41,11 @@ import org.eclipse.ui.IWorkbenchWindow;
 import org.eclipse.ui.IWorkbenchWizard;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.model.DBIcon;
-import org.jkiss.dbeaver.model.DBPImage;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.ui.*;
-import org.jkiss.dbeaver.ui.preferences.PreferenceStoreDelegate;
+import com.seizia.chromite.model.DBIcon;
+import com.seizia.chromite.model.DBPImage;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.ui.*;
+import com.seizia.chromite.ui.preferences.PreferenceStoreDelegate;
 import org.jkiss.utils.ArrayUtils;
 import org.jkiss.utils.CommonUtils;
 
@@ -375,7 +375,7 @@ public class MultiPageWizardDialog extends TitleAreaDialog implements IWizardCon
             return;
         }
         TreeItem selectedItem = selection[0];
-        selectedItem.setImage(DBeaverIcons.getImage(UIIcon.OK_MARK));
+        selectedItem.setImage(SwtIcons.getImage(UIIcon.OK_MARK));
     }
 
     @Override
@@ -491,7 +491,7 @@ public class MultiPageWizardDialog extends TitleAreaDialog implements IWizardCon
             }
             if (isShowTreeIcons()) {
                 DBPImage itemImage = computePageIcon(page, currentPage, shownCompletionMarks::contains);
-                item.setImage(itemImage == null ? null : DBeaverIcons.getImage(itemImage));
+                item.setImage(itemImage == null ? null : SwtIcons.getImage(itemImage));
             }
             item.setForeground(computePageColor(page));
             updatePageCompleteMark(item);
@@ -665,7 +665,7 @@ public class MultiPageWizardDialog extends TitleAreaDialog implements IWizardCon
         if (shell != null) {
             shell.setText(getWizard().getWindowTitle());
             // Do not update dialog icon. It can be disposed in the page and this will break connection dialog
-            //getShell().setImage(getWizard().getDefaultPageImage());//DBeaverIcons.getImage(activeDataSource.getObjectImage()));
+            //getShell().setImage(getWizard().getDefaultPageImage());//SwtIcons.getImage(activeDataSource.getObjectImage()));
 
             updateMessage();
         }

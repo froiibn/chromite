@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.navigator;
+package com.seizia.chromite.model.navigator;
 
 import org.eclipse.core.filesystem.EFS;
 import org.eclipse.core.filesystem.IFileStore;
@@ -25,16 +25,16 @@ import org.eclipse.core.runtime.NullProgressMonitor;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.model.*;
-import org.jkiss.dbeaver.model.app.*;
-import org.jkiss.dbeaver.model.fs.efs.NIOEFSFileSystemProvider;
-import org.jkiss.dbeaver.model.fs.efs.NIOEFSPath;
-import org.jkiss.dbeaver.model.fs.nio.EFSNIOResource;
-import org.jkiss.dbeaver.model.meta.Property;
-import org.jkiss.dbeaver.model.rm.RMConstants;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.utils.ResourceUtils;
+import com.seizia.chromite.model.*;
+import com.seizia.chromite.model.app.*;
+import com.seizia.chromite.model.fs.efs.NIOEFSFileSystemProvider;
+import com.seizia.chromite.model.fs.efs.NIOEFSPath;
+import com.seizia.chromite.model.fs.nio.EFSNIOResource;
+import com.seizia.chromite.model.meta.Property;
+import com.seizia.chromite.model.rm.RMConstants;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.utils.ResourceUtils;
 import org.jkiss.utils.ArrayUtils;
 import org.jkiss.utils.CommonUtils;
 

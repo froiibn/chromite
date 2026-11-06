@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.ext.iotdb.ui.editors;
+package com.seizia.chromite.ext.iotdb.ui.editors;
 
 import org.eclipse.jface.action.IContributionManager;
 import org.eclipse.swt.SWT;
@@ -23,15 +23,15 @@ import org.eclipse.swt.widgets.Composite;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.ext.iotdb.model.IoTDBGrant;
-import org.jkiss.dbeaver.ext.iotdb.model.IoTDBRelationalUser;
-import org.jkiss.dbeaver.ext.iotdb.ui.internal.IoTDBUiMessages;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.model.runtime.load.DatabaseLoadService;
-import org.jkiss.dbeaver.ui.LoadingJob;
-import org.jkiss.dbeaver.ui.controls.ObjectEditorPageControl;
-import org.jkiss.dbeaver.ui.editors.AbstractDatabaseObjectEditor;
-import org.jkiss.dbeaver.ui.editors.DatabaseEditorUtils;
+import com.seizia.chromite.ext.iotdb.model.IoTDBGrant;
+import com.seizia.chromite.ext.iotdb.model.IoTDBRelationalUser;
+import com.seizia.chromite.ext.iotdb.ui.internal.IoTDBUiMessages;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.model.runtime.load.DatabaseLoadService;
+import com.seizia.chromite.ui.LoadingJob;
+import com.seizia.chromite.ui.controls.ObjectEditorPageControl;
+import com.seizia.chromite.ui.editors.AbstractDatabaseObjectEditor;
+import com.seizia.chromite.ui.editors.DatabaseEditorUtils;
 
 import java.lang.reflect.InvocationTargetException;
 import java.util.List;

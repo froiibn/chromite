@@ -14,12 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.contentassist;
+package com.seizia.chromite.ui.contentassist;
 
 import org.eclipse.jface.fieldassist.ContentProposal;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.model.DBPImage;
-import org.jkiss.dbeaver.model.DBPImageProvider;
+import com.seizia.chromite.model.DBPImage;
+import com.seizia.chromite.model.DBPImageProvider;
 
 public class ContentProposalExt extends ContentProposal implements DBPImageProvider {
 

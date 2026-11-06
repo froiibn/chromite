@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.security.macos;
+package com.seizia.chromite.model.security.macos;
 
 import com.sun.jna.Function;
 import com.sun.jna.Memory;
@@ -33,7 +33,7 @@ import java.util.Arrays;
 
 /** JNA bridge to the macOS Keychain. */
 final class MacOSKeychain {
-    private static final String SERVICE = "com.dbeaver.SecureStorage";
+    private static final String SERVICE = "com.seizia.chromite.SecureStorage";
     private static final String ACCOUNT = "master-password";
     private static final int ERR_SEC_SUCCESS = 0;
     private static final int ERR_SEC_ITEM_NOT_FOUND = -25300;

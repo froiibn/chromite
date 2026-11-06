@@ -17,9 +17,9 @@
  * Contributors:
  *    Stefan Uhrig - initial implementation
  */
-package org.jkiss.dbeaver.ext.hana.model.data;
+package com.seizia.chromite.ext.hana.model.data;
 
-import org.jkiss.dbeaver.ext.hana.model.data.wkb.XyzmMode;
+import com.seizia.chromite.ext.hana.model.data.wkb.XyzmMode;
 import org.locationtech.jts.geom.*;
 
 /**

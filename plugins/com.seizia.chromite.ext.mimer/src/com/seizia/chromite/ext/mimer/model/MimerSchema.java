@@ -14,29 +14,29 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.mimer.model;
+package com.seizia.chromite.ext.mimer.model;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.ext.generic.model.GenericCatalog;
-import org.jkiss.dbeaver.ext.generic.model.GenericDataSource;
-import org.jkiss.dbeaver.ext.generic.model.GenericSchema;
-import org.jkiss.dbeaver.ext.mimer.MimerConstants;
-import org.jkiss.dbeaver.model.DBPSaveableObject;
-import org.jkiss.dbeaver.model.DBUtils;
-import org.jkiss.dbeaver.model.exec.jdbc.JDBCPreparedStatement;
-import org.jkiss.dbeaver.model.exec.jdbc.JDBCResultSet;
-import org.jkiss.dbeaver.model.exec.jdbc.JDBCSession;
-import org.jkiss.dbeaver.model.exec.jdbc.JDBCStatement;
-import org.jkiss.dbeaver.model.impl.jdbc.JDBCUtils;
-import org.jkiss.dbeaver.model.impl.jdbc.cache.JDBCObjectCache;
-import org.jkiss.dbeaver.model.meta.Association;
-import org.jkiss.dbeaver.model.meta.Property;
-import org.jkiss.dbeaver.model.meta.PropertyLength;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.model.struct.DBSObject;
-import org.jkiss.dbeaver.model.struct.cache.DBSObjectCache;
+import com.seizia.chromite.ext.generic.model.GenericCatalog;
+import com.seizia.chromite.ext.generic.model.GenericDataSource;
+import com.seizia.chromite.ext.generic.model.GenericSchema;
+import com.seizia.chromite.ext.mimer.MimerConstants;
+import com.seizia.chromite.model.DBPSaveableObject;
+import com.seizia.chromite.model.DBUtils;
+import com.seizia.chromite.model.exec.jdbc.JDBCPreparedStatement;
+import com.seizia.chromite.model.exec.jdbc.JDBCResultSet;
+import com.seizia.chromite.model.exec.jdbc.JDBCSession;
+import com.seizia.chromite.model.exec.jdbc.JDBCStatement;
+import com.seizia.chromite.model.impl.jdbc.JDBCUtils;
+import com.seizia.chromite.model.impl.jdbc.cache.JDBCObjectCache;
+import com.seizia.chromite.model.meta.Association;
+import com.seizia.chromite.model.meta.Property;
+import com.seizia.chromite.model.meta.PropertyLength;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.model.struct.DBSObject;
+import com.seizia.chromite.model.struct.cache.DBSObjectCache;
 
 import java.sql.SQLException;
 import java.util.ArrayList;
@@ -49,7 +49,7 @@ import java.util.Map;
 /**
  * {@code GenericSchema}'s name is a {@code private final} field with no setter, and it doesn't
  * implement {@link DBPSaveableObject} - neither works for a class backing {@link
- * org.jkiss.dbeaver.ext.mimer.edit.MimerSchemaManager}'s create flow, so both are shadowed here
+ * com.seizia.chromite.ext.mimer.edit.MimerSchemaManager}'s create flow, so both are shadowed here
  * (matching {@code DamengSchema}). Deliberately does not implement {@code DBPNamedObject2} -
  * that would expose the navigator's inline "Rename" on existing schemas too, which nothing
  * here backs with an ALTER/RENAME statement.
@@ -88,7 +88,7 @@ public class MimerSchema extends GenericSchema implements DBPSaveableObject, Mim
     /**
      * One of Mimer SQL's own built-in schemas ({@link MimerConstants#SYSTEM_SCHEMAS} -
      * INFORMATION_SCHEMA / SYSTEM / MIMER / ODBC / BUILTIN). Can't be dropped - see {@link
-     * org.jkiss.dbeaver.ext.mimer.edit.MimerSchemaManager#canDeleteObject}.
+     * com.seizia.chromite.ext.mimer.edit.MimerSchemaManager#canDeleteObject}.
      */
     public boolean isSystemSchema() {
         return name != null && MimerConstants.SYSTEM_SCHEMAS.contains(name.toUpperCase(Locale.ROOT));
@@ -200,7 +200,7 @@ public class MimerSchema extends GenericSchema implements DBPSaveableObject, Mim
 
     /**
      * {@code COMMENT ON SCHEMA "name" IS '...'} - a datasource-global object ({@code
-     * OBJECT_SCHEMA IS NULL}). See {@link org.jkiss.dbeaver.ext.mimer.edit.MimerSchemaManager}
+     * OBJECT_SCHEMA IS NULL}). See {@link com.seizia.chromite.ext.mimer.edit.MimerSchemaManager}
      * for the write side.
      */
     @Nullable

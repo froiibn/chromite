@@ -14,14 +14,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.yashandb.edit;
+package com.seizia.chromite.ext.yashandb.edit;
 
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.ext.oracle.edit.OracleDataTypeManager;
-import org.jkiss.dbeaver.ext.oracle.model.OracleDataType;
-import org.jkiss.dbeaver.ext.oracle.model.OracleSchema;
-import org.jkiss.dbeaver.ext.yashandb.model.YashanDBDataType;
-import org.jkiss.dbeaver.ext.yashandb.model.YashanDBSchema;
+import com.seizia.chromite.ext.oracle.edit.OracleDataTypeManager;
+import com.seizia.chromite.ext.oracle.model.OracleDataType;
+import com.seizia.chromite.ext.oracle.model.OracleSchema;
+import com.seizia.chromite.ext.yashandb.model.YashanDBDataType;
+import com.seizia.chromite.ext.yashandb.model.YashanDBSchema;
 
 /**
  * YashanDBDataTypeManager

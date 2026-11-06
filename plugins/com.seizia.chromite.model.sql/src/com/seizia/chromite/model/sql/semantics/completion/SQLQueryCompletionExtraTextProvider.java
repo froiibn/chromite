@@ -14,14 +14,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.sql.semantics.completion;
+package com.seizia.chromite.model.sql.semantics.completion;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.model.DBUtils;
-import org.jkiss.dbeaver.model.sql.semantics.SQLQuerySemanticUtils;
-import org.jkiss.dbeaver.model.sql.semantics.completion.SQLQueryCompletionItem.*;
-import org.jkiss.dbeaver.model.sql.semantics.context.SQLQueryExprType;
+import com.seizia.chromite.model.DBUtils;
+import com.seizia.chromite.model.sql.semantics.SQLQuerySemanticUtils;
+import com.seizia.chromite.model.sql.semantics.completion.SQLQueryCompletionItem.*;
+import com.seizia.chromite.model.sql.semantics.context.SQLQueryExprType;
 import org.jkiss.utils.CommonUtils;
 
 import java.util.ArrayList;

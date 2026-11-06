@@ -14,10 +14,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.spanner.model;
+package com.seizia.chromite.ext.spanner.model;
 
-import org.jkiss.dbeaver.ext.generic.model.GenericSchema;
-import org.jkiss.dbeaver.ext.generic.model.meta.GenericMetaModel;
+import com.seizia.chromite.ext.generic.model.GenericSchema;
+import com.seizia.chromite.ext.generic.model.meta.GenericMetaModel;
 import org.jkiss.utils.CommonUtils;
 
 /**

@@ -14,17 +14,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.navigator.actions;
+package com.seizia.chromite.ui.navigator.actions;
 
 import org.eclipse.core.commands.ExecutionEvent;
 import org.eclipse.core.commands.ExecutionException;
 import org.eclipse.ui.IWorkbenchWindow;
 import org.eclipse.ui.PartInitException;
 import org.eclipse.ui.handlers.HandlerUtil;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.navigator.DBNProject;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.ui.navigator.project.ProjectNavigatorView;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.navigator.DBNProject;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.ui.navigator.project.ProjectNavigatorView;
 
 public class NavigatorHandlerProjectSelect extends NavigatorHandlerObjectBase {
 

@@ -15,24 +15,24 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.ai.engine.openai;
+package com.seizia.chromite.model.ai.engine.openai;
 
 import com.google.gson.annotations.SerializedName;
 import com.google.gson.reflect.TypeToken;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.model.ai.AIConfigurationProfile;
-import org.jkiss.dbeaver.model.ai.AIConstants;
-import org.jkiss.dbeaver.model.ai.engine.AIAccountProperties;
-import org.jkiss.dbeaver.model.ai.engine.AIModel;
-import org.jkiss.dbeaver.model.ai.engine.BaseAIEngineProperties;
-import org.jkiss.dbeaver.model.ai.utils.AIUtils;
-import org.jkiss.dbeaver.model.auth.AuthProperty;
-import org.jkiss.dbeaver.model.data.json.JSONUtils;
-import org.jkiss.dbeaver.model.meta.Property;
-import org.jkiss.dbeaver.model.meta.SecureProperty;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
+import com.seizia.chromite.model.ai.AIConfigurationProfile;
+import com.seizia.chromite.model.ai.AIConstants;
+import com.seizia.chromite.model.ai.engine.AIAccountProperties;
+import com.seizia.chromite.model.ai.engine.AIModel;
+import com.seizia.chromite.model.ai.engine.BaseAIEngineProperties;
+import com.seizia.chromite.model.ai.utils.AIUtils;
+import com.seizia.chromite.model.auth.AuthProperty;
+import com.seizia.chromite.model.data.json.JSONUtils;
+import com.seizia.chromite.model.meta.Property;
+import com.seizia.chromite.model.meta.SecureProperty;
+import com.seizia.chromite.runtime.DBWorkbench;
 import org.jkiss.utils.CommonUtils;
 
 import java.util.List;
@@ -52,7 +52,7 @@ import java.util.Map;
 public class OpenAIProperties extends BaseAIEngineProperties implements OpenAIBaseProperties, AIAccountProperties {
     public static final String ENV_API_KEY = "OPENAI_API_KEY";
     public static final String ENV_BASE_URL = "OPENAI_BASE_URL";
-    public static final String ENV_MODEL = "DBEAVER_AI_OPENAI_MODEL";
+    public static final String ENV_MODEL = "CHROMITE_AI_OPENAI_MODEL";
 
     protected static final String GPT_BASE_URL = "gpt.base_url";
     protected static final String GPT_TOKEN = "gpt.token";

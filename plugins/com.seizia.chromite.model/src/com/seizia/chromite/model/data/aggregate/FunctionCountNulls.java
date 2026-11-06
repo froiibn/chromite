@@ -14,9 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.data.aggregate;
+package com.seizia.chromite.model.data.aggregate;
 
-import org.jkiss.dbeaver.model.DBUtils;
+import com.seizia.chromite.model.DBUtils;
 
 public class FunctionCountNulls implements IAggregateFunction {
     private long count = 0;

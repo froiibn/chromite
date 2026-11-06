@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.editors.sql;
+package com.seizia.chromite.ui.editors.sql;
 
 import org.eclipse.jface.preference.IPreferenceStore;
 import org.eclipse.jface.text.*;
@@ -46,22 +46,22 @@ import org.eclipse.ui.editors.text.TextSourceViewerConfiguration;
 import org.eclipse.ui.internal.editors.text.EditorsPlugin;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.preferences.DBPPreferenceListener;
-import org.jkiss.dbeaver.model.preferences.DBPPreferenceStore;
-import org.jkiss.dbeaver.model.sql.SQLDialect;
-import org.jkiss.dbeaver.model.sql.parser.SQLParserPartitions;
-import org.jkiss.dbeaver.ui.UIStyles;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.controls.resultset.ThemeConstants;
-import org.jkiss.dbeaver.ui.editors.sql.addins.SQLEditorQuickAssistProcessor;
-import org.jkiss.dbeaver.ui.editors.sql.addins.SQLEditorQuickFixProcessorsRegistry;
-import org.jkiss.dbeaver.ui.editors.sql.indent.SQLAutoIndentStrategy;
-import org.jkiss.dbeaver.ui.editors.sql.indent.SQLCommentAutoIndentStrategy;
-import org.jkiss.dbeaver.ui.editors.sql.indent.SQLStringAutoIndentStrategy;
-import org.jkiss.dbeaver.ui.editors.sql.syntax.*;
-import org.jkiss.dbeaver.ui.editors.sql.util.DBeaverHyperLinkDetector;
-import org.jkiss.dbeaver.ui.editors.sql.util.SQLAnnotationHover;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.preferences.DBPPreferenceListener;
+import com.seizia.chromite.model.preferences.DBPPreferenceStore;
+import com.seizia.chromite.model.sql.SQLDialect;
+import com.seizia.chromite.model.sql.parser.SQLParserPartitions;
+import com.seizia.chromite.ui.UIStyles;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.controls.resultset.ThemeConstants;
+import com.seizia.chromite.ui.editors.sql.addins.SQLEditorQuickAssistProcessor;
+import com.seizia.chromite.ui.editors.sql.addins.SQLEditorQuickFixProcessorsRegistry;
+import com.seizia.chromite.ui.editors.sql.indent.SQLAutoIndentStrategy;
+import com.seizia.chromite.ui.editors.sql.indent.SQLCommentAutoIndentStrategy;
+import com.seizia.chromite.ui.editors.sql.indent.SQLStringAutoIndentStrategy;
+import com.seizia.chromite.ui.editors.sql.syntax.*;
+import com.seizia.chromite.ui.editors.sql.util.ChromiteHyperLinkDetector;
+import com.seizia.chromite.ui.editors.sql.util.SQLAnnotationHover;
 import org.jkiss.utils.ArrayUtils;
 
 
@@ -452,7 +452,7 @@ public class SQLEditorSourceViewerConfiguration extends TextSourceViewerConfigur
 
         return new IHyperlinkDetector[]{
             hyperlinkDetector,
-            new DBeaverHyperLinkDetector()};
+            new ChromiteHyperLinkDetector()};
     }
 
     void onDataSourceChange() {

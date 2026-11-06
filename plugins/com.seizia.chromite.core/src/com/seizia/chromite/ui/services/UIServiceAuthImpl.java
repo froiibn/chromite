@@ -14,16 +14,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.services;
+package com.seizia.chromite.ui.services;
 
 import org.eclipse.jface.dialogs.Dialog;
 import org.eclipse.swt.widgets.Shell;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.runtime.ui.UIServiceAuth;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.dialogs.CodeAuthDialog;
-import org.jkiss.dbeaver.ui.oauth.OAuthBrowserAuthDialog;
+import com.seizia.chromite.runtime.ui.UIServiceAuth;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.dialogs.CodeAuthDialog;
+import com.seizia.chromite.ui.oauth.OAuthBrowserAuthDialog;
 
 import java.net.URI;
 import java.util.concurrent.CompletableFuture;

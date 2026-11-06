@@ -14,11 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.altibase.edit;
+package com.seizia.chromite.ext.altibase.edit;
 
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.ext.generic.edit.GenericTableManager;
-import org.jkiss.dbeaver.ext.generic.model.GenericTableBase;
+import com.seizia.chromite.ext.generic.edit.GenericTableManager;
+import com.seizia.chromite.ext.generic.model.GenericTableBase;
 
 public class AltibaseQueueManager extends GenericTableManager {
     

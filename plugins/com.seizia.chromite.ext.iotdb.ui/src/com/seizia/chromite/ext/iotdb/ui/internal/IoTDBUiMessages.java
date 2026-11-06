@@ -15,12 +15,12 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.ext.iotdb.ui.internal;
+package com.seizia.chromite.ext.iotdb.ui.internal;
 
 import org.eclipse.osgi.util.NLS;
 
 public class IoTDBUiMessages extends NLS {
-    private static final String BUNDLE_NAME = "org.jkiss.dbeaver.ext.iotdb.ui.internal.IoTDBUIMessages"; //$NON-NLS-1$
+    private static final String BUNDLE_NAME = "com.seizia.chromite.ext.iotdb.ui.internal.IoTDBUIMessages"; //$NON-NLS-1$
 
     static {
         NLS.initializeMessages(BUNDLE_NAME, IoTDBUiMessages.class);

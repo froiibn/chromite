@@ -14,16 +14,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.mimer.ui.config;
+package com.seizia.chromite.ext.mimer.ui.config;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.ext.mimer.model.MimerDataSource;
-import org.jkiss.dbeaver.ext.mimer.model.MimerGroup;
-import org.jkiss.dbeaver.ext.mimer.model.MimerProgram;
-import org.jkiss.dbeaver.ext.mimer.model.MimerUser;
-import org.jkiss.dbeaver.ui.UIUtils;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.ext.mimer.model.MimerDataSource;
+import com.seizia.chromite.ext.mimer.model.MimerGroup;
+import com.seizia.chromite.ext.mimer.model.MimerProgram;
+import com.seizia.chromite.ext.mimer.model.MimerUser;
+import com.seizia.chromite.ui.UIUtils;
 
 import java.util.stream.Stream;
 

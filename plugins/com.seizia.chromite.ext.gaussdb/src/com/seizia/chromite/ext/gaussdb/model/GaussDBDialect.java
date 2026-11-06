@@ -15,9 +15,9 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.ext.gaussdb.model;
+package com.seizia.chromite.ext.gaussdb.model;
 
-import org.jkiss.dbeaver.ext.postgresql.model.PostgreDialect;
+import com.seizia.chromite.ext.postgresql.model.PostgreDialect;
 
 public class GaussDBDialect extends PostgreDialect {
 

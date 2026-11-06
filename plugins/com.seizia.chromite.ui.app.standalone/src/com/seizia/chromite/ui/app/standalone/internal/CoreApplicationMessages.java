@@ -14,12 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.app.standalone.internal;
+package com.seizia.chromite.ui.app.standalone.internal;
 
 import org.eclipse.osgi.util.NLS;
 
 public class CoreApplicationMessages extends NLS {
-    public static final String BUNDLE_NAME = "org.jkiss.dbeaver.ui.app.standalone.internal.CoreApplicationMessages"; //$NON-NLS-1$
+    public static final String BUNDLE_NAME = "com.seizia.chromite.ui.app.standalone.internal.CoreApplicationMessages"; //$NON-NLS-1$
 
     public static String actions_menu_exit_emergency;
     public static String actions_menu_exit_emergency_message;

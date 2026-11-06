@@ -14,11 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.db2.data;
+package com.seizia.chromite.ext.db2.data;
 
-import org.jkiss.dbeaver.model.data.DBDFormatSettings;
-import org.jkiss.dbeaver.model.impl.jdbc.data.handlers.JDBCNumberValueHandler;
-import org.jkiss.dbeaver.model.struct.DBSTypedObject;
+import com.seizia.chromite.model.data.DBDFormatSettings;
+import com.seizia.chromite.model.impl.jdbc.data.handlers.JDBCNumberValueHandler;
+import com.seizia.chromite.model.struct.DBSTypedObject;
 
 /**
  * DECFLOAT type support

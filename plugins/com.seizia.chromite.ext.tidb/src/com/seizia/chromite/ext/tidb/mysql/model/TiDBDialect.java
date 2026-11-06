@@ -1,10 +1,10 @@
-package org.jkiss.dbeaver.ext.tidb.mysql.model;
+package com.seizia.chromite.ext.tidb.mysql.model;
 
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.ext.mysql.model.MySQLDialect;
-import org.jkiss.dbeaver.model.exec.jdbc.JDBCDatabaseMetaData;
-import org.jkiss.dbeaver.model.exec.jdbc.JDBCSession;
-import org.jkiss.dbeaver.model.impl.jdbc.JDBCDataSource;
+import com.seizia.chromite.ext.mysql.model.MySQLDialect;
+import com.seizia.chromite.model.exec.jdbc.JDBCDatabaseMetaData;
+import com.seizia.chromite.model.exec.jdbc.JDBCSession;
+import com.seizia.chromite.model.impl.jdbc.JDBCDataSource;
 import org.jkiss.utils.ArrayUtils;
 
 import java.util.Arrays;

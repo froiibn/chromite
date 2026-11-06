@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.preferences;
+package com.seizia.chromite.ui.preferences;
 
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.layout.GridData;
@@ -22,26 +22,26 @@ import org.eclipse.swt.widgets.*;
 import org.eclipse.ui.IWorkbench;
 import org.eclipse.ui.IWorkbenchPreferencePage;
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.DBeaverPreferences;
-import org.jkiss.dbeaver.LogOutputStream;
-import org.jkiss.dbeaver.core.CoreMessages;
-import org.jkiss.dbeaver.model.preferences.DBPPreferenceStore;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.contentassist.ContentAssistUtils;
-import org.jkiss.dbeaver.ui.contentassist.SmartTextContentAdapter;
-import org.jkiss.dbeaver.ui.contentassist.StringContentProposalProvider;
-import org.jkiss.dbeaver.ui.controls.TextWithOpenFile;
-import org.jkiss.dbeaver.utils.GeneralUtils;
-import org.jkiss.dbeaver.utils.PrefUtils;
-import org.jkiss.dbeaver.utils.SystemVariablesResolver;
+import com.seizia.chromite.ChromitePreferences;
+import com.seizia.chromite.LogOutputStream;
+import com.seizia.chromite.core.CoreMessages;
+import com.seizia.chromite.model.preferences.DBPPreferenceStore;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.contentassist.ContentAssistUtils;
+import com.seizia.chromite.ui.contentassist.SmartTextContentAdapter;
+import com.seizia.chromite.ui.contentassist.StringContentProposalProvider;
+import com.seizia.chromite.ui.controls.TextWithOpenFile;
+import com.seizia.chromite.utils.GeneralUtils;
+import com.seizia.chromite.utils.PrefUtils;
+import com.seizia.chromite.utils.SystemVariablesResolver;
 
 /**
  * PrefPageErrorHandle
  */
 public class PrefPageErrorLogs extends AbstractPrefPage implements IWorkbenchPreferencePage
 {
-    public static final String PAGE_ID = "org.jkiss.dbeaver.preferences.main.errorLogs"; //$NON-NLS-1$
+    public static final String PAGE_ID = "com.seizia.chromite.preferences.main.errorLogs"; //$NON-NLS-1$
 
     private Button logsDebugEnabled;
     private TextWithOpenFile logsDebugLocation;
@@ -72,7 +72,7 @@ public class PrefPageErrorLogs extends AbstractPrefPage implements IWorkbenchPre
                 groupLogs,
                 CoreMessages.pref_page_ui_general_label_enable_debug_logs,
                 CoreMessages.pref_page_ui_general_label_enable_debug_logs_tip,
-                store.getBoolean(DBeaverPreferences.LOGS_DEBUG_ENABLED),
+                store.getBoolean(ChromitePreferences.LOGS_DEBUG_ENABLED),
                 2);
             UIUtils.createControlLabel(groupLogs, CoreMessages.pref_page_ui_general_label_log_file_location);
             logsDebugLocation = new TextWithOpenFile(groupLogs, CoreMessages.pref_page_ui_general_label_open_file_text, new String[] { "*.log", "*.txt" } );
@@ -83,7 +83,7 @@ public class PrefPageErrorLogs extends AbstractPrefPage implements IWorkbenchPre
                     GeneralUtils.variablePattern(SystemVariablesResolver.VAR_WORKSPACE),
                     GeneralUtils.variablePattern(SystemVariablesResolver.VAR_HOME)));
             logsDebugLocation.setLayoutData(new GridData(GridData.FILL_HORIZONTAL));
-            logsDebugLocation.setText(store.getString(DBeaverPreferences.LOGS_DEBUG_LOCATION));
+            logsDebugLocation.setText(store.getString(ChromitePreferences.LOGS_DEBUG_LOCATION));
 
             final DBPPreferenceStore preferenceStore = DBWorkbench.getPlatform().getPreferenceStore();
             UIUtils.createControlLabel(groupLogs, CoreMessages.pref_page_logs_files_max_size_label);
@@ -114,8 +114,8 @@ public class PrefPageErrorLogs extends AbstractPrefPage implements IWorkbenchPre
     @Override
     protected void performDefaults() {
         DBPPreferenceStore store = DBWorkbench.getPlatform().getPreferenceStore();
-        logsDebugEnabled.setSelection(store.getDefaultBoolean(DBeaverPreferences.LOGS_DEBUG_ENABLED));
-        logsDebugLocation.setText(store.getDefaultString(DBeaverPreferences.LOGS_DEBUG_LOCATION));
+        logsDebugEnabled.setSelection(store.getDefaultBoolean(ChromitePreferences.LOGS_DEBUG_ENABLED));
+        logsDebugLocation.setText(store.getDefaultString(ChromitePreferences.LOGS_DEBUG_LOCATION));
         logFilesMaxSizeSpinner.setSelection((int) store.getDefaultLong(LogOutputStream.LOGS_MAX_FILE_SIZE) / 1024);
         logFilesMaxCountSpinner.setSelection(store.getDefaultInt(LogOutputStream.LOGS_MAX_FILES_COUNT));
 
@@ -126,8 +126,8 @@ public class PrefPageErrorLogs extends AbstractPrefPage implements IWorkbenchPre
     public boolean performOk() {
         DBPPreferenceStore store = DBWorkbench.getPlatform().getPreferenceStore();
 
-        store.setValue(DBeaverPreferences.LOGS_DEBUG_ENABLED, logsDebugEnabled.getSelection());
-        store.setValue(DBeaverPreferences.LOGS_DEBUG_LOCATION, logsDebugLocation.getText());
+        store.setValue(ChromitePreferences.LOGS_DEBUG_ENABLED, logsDebugEnabled.getSelection());
+        store.setValue(ChromitePreferences.LOGS_DEBUG_LOCATION, logsDebugLocation.getText());
 
         store.setValue(LogOutputStream.LOGS_MAX_FILE_SIZE, logFilesMaxSizeSpinner.getSelection() * 1024L);
         store.setValue(LogOutputStream.LOGS_MAX_FILES_COUNT, logFilesMaxCountSpinner.getSelection());

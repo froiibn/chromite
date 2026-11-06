@@ -14,19 +14,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.tools.transfer;
+package com.seizia.chromite.tools.transfer;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.model.DBPDataKind;
-import org.jkiss.dbeaver.model.exec.DBCResultSet;
-import org.jkiss.dbeaver.model.runtime.VoidProgressMonitor;
-import org.jkiss.dbeaver.tools.transfer.stream.IStreamDataImporterSite;
-import org.jkiss.dbeaver.tools.transfer.stream.StreamDataImporterColumnInfo;
-import org.jkiss.dbeaver.tools.transfer.stream.StreamEntityMapping;
-import org.jkiss.dbeaver.tools.transfer.stream.StreamProducerSettings;
-import org.jkiss.dbeaver.tools.transfer.stream.importer.DataImporterCSV;
-import org.jkiss.junit.DBeaverUnitTest;
+import com.seizia.chromite.model.DBPDataKind;
+import com.seizia.chromite.model.exec.DBCResultSet;
+import com.seizia.chromite.model.runtime.VoidProgressMonitor;
+import com.seizia.chromite.tools.transfer.stream.IStreamDataImporterSite;
+import com.seizia.chromite.tools.transfer.stream.StreamDataImporterColumnInfo;
+import com.seizia.chromite.tools.transfer.stream.StreamEntityMapping;
+import com.seizia.chromite.tools.transfer.stream.StreamProducerSettings;
+import com.seizia.chromite.tools.transfer.stream.importer.DataImporterCSV;
+import com.seizia.chromite.junit.ChromiteUnitTest;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -42,7 +42,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public class CSVImporterTest  extends DBeaverUnitTest {
+public class CSVImporterTest  extends ChromiteUnitTest {
 
     private static final Path DUMMY_FILE = Path.of("dummy");
     private final DataImporterCSV importer = new DataImporterCSV();

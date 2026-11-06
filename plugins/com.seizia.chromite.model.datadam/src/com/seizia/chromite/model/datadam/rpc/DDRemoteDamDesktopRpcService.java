@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.datadam.rpc;
+package com.seizia.chromite.model.datadam.rpc;
 
 import com.dbeaver.datadam.dam.remote.api.rpc.DDRemoteDamGsonRpcCodec;
 import com.dbeaver.datadam.dam.remote.api.rpc.DDRemoteDamRpcTransport;
@@ -25,7 +25,7 @@ import org.eclipse.core.runtime.jobs.Job;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.Log;
+import com.seizia.chromite.Log;
 
 final class DDRemoteDamDesktopRpcService implements AutoCloseable {
     private static final Log log = Log.getLog(DDRemoteDamDesktopRpcService.class);

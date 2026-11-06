@@ -14,10 +14,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui;
+package com.seizia.chromite.ui;
 
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.ui.internal.UIMessages;
+import com.seizia.chromite.ui.internal.UIMessages;
 
 public enum UIElementFontStyle {
     NORMAL(UIMessages.control_font_normal),

@@ -14,15 +14,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.rm;
+package com.seizia.chromite.model.rm;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.model.DBConstants;
-import org.jkiss.dbeaver.model.DBPObjectWithDescription;
-import org.jkiss.dbeaver.model.messages.ModelMessages;
-import org.jkiss.dbeaver.model.meta.IPropertyValueTransformer;
-import org.jkiss.dbeaver.model.meta.Property;
+import com.seizia.chromite.model.DBConstants;
+import com.seizia.chromite.model.DBPObjectWithDescription;
+import com.seizia.chromite.model.messages.ModelMessages;
+import com.seizia.chromite.model.meta.IPropertyValueTransformer;
+import com.seizia.chromite.model.meta.Property;
 import org.jkiss.utils.ArrayUtils;
 import org.jkiss.utils.CommonUtils;
 

@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.forms;
+package com.seizia.chromite.ui.forms;
 
 import org.eclipse.core.databinding.DataBindingContext;
 import org.eclipse.core.databinding.UpdateValueStrategy;
@@ -36,9 +36,9 @@ import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.widgets.*;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.model.DBIcon;
-import org.jkiss.dbeaver.ui.DBeaverIcons;
-import org.jkiss.dbeaver.ui.UIUtils;
+import com.seizia.chromite.model.DBIcon;
+import com.seizia.chromite.ui.SwtIcons;
+import com.seizia.chromite.ui.UIUtils;
 
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -250,7 +250,7 @@ abstract sealed class UIControlBuilderImpl<B extends UIControlBuilder<B>, C exte
                 context.bindValue(WidgetProperties.text().observe(control), UIControlBuilderImpl.delegate(text));
             }
             if (image != null) {
-                var observable = image.map(DBeaverIcons::getImage, Image.class);
+                var observable = image.map(SwtIcons::getImage, Image.class);
                 context.bindValue(WidgetProperties.image().observe(control), UIControlBuilderImpl.delegate(observable));
             }
         }

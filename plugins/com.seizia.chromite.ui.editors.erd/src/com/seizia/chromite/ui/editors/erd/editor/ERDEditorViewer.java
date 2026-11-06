@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.editors.erd.editor;
+package com.seizia.chromite.ui.editors.erd.editor;
 
 import org.eclipse.gef.GraphicalViewer;
 import org.eclipse.jface.viewers.ISelection;
@@ -22,10 +22,10 @@ import org.eclipse.jface.viewers.IStructuredSelection;
 import org.eclipse.jface.viewers.StructuredSelection;
 import org.eclipse.jface.viewers.Viewer;
 import org.eclipse.swt.widgets.Control;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.navigator.DBNUtils;
-import org.jkiss.dbeaver.model.struct.DBSEntity;
-import org.jkiss.dbeaver.ui.editors.erd.part.EntityPart;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.navigator.DBNUtils;
+import com.seizia.chromite.model.struct.DBSEntity;
+import com.seizia.chromite.ui.editors.erd.part.EntityPart;
 
 import java.util.ArrayList;
 import java.util.Iterator;

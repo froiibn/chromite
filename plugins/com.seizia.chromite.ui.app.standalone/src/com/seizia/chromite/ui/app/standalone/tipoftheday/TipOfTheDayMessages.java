@@ -14,13 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.app.standalone.tipoftheday;
+package com.seizia.chromite.ui.app.standalone.tipoftheday;
 
 import org.eclipse.osgi.util.NLS;
 
 public class TipOfTheDayMessages extends NLS {
 
-    private static final String BUNDLE_NAME = "org.jkiss.dbeaver.ui.app.standalone.tipoftheday.TipOfTheDayMessages";
+    private static final String BUNDLE_NAME = "com.seizia.chromite.ui.app.standalone.tipoftheday.TipOfTheDayMessages";
 
     public static String tip_of_the_day_title;
     public static String show_tips_on_startup;

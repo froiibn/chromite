@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.model.sql.parser.tokens;
+package com.seizia.chromite.model.sql.parser.tokens;
 
 /**
  * SQLMultilineCommentToken

@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.editors.sql.templates;
+package com.seizia.chromite.ui.editors.sql.templates;
 
 import org.eclipse.jface.preference.IPreferenceStore;
 import org.eclipse.jface.text.*;
@@ -35,19 +35,19 @@ import org.eclipse.ui.internal.editors.text.EditorsPlugin;
 import org.eclipse.ui.part.IPageSite;
 import org.eclipse.ui.texteditor.templates.AbstractTemplatesPage;
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.DBIcon;
-import org.jkiss.dbeaver.model.DBPDataSource;
-import org.jkiss.dbeaver.model.DBPDataSourceContainer;
-import org.jkiss.dbeaver.model.connection.DBPDriver;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.ui.DBeaverIcons;
-import org.jkiss.dbeaver.ui.ProxyPageSite;
-import org.jkiss.dbeaver.ui.editors.sql.SQLEditor;
-import org.jkiss.dbeaver.ui.editors.sql.SQLEditorBase;
-import org.jkiss.dbeaver.ui.editors.sql.SQLEditorSourceViewer;
-import org.jkiss.dbeaver.ui.editors.sql.SQLEditorSourceViewerConfiguration;
-import org.jkiss.dbeaver.ui.preferences.PreferenceStoreDelegate;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.DBIcon;
+import com.seizia.chromite.model.DBPDataSource;
+import com.seizia.chromite.model.DBPDataSourceContainer;
+import com.seizia.chromite.model.connection.DBPDriver;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.ui.SwtIcons;
+import com.seizia.chromite.ui.ProxyPageSite;
+import com.seizia.chromite.ui.editors.sql.SQLEditor;
+import com.seizia.chromite.ui.editors.sql.SQLEditorBase;
+import com.seizia.chromite.ui.editors.sql.SQLEditorSourceViewer;
+import com.seizia.chromite.ui.editors.sql.SQLEditorSourceViewerConfiguration;
+import com.seizia.chromite.ui.preferences.PreferenceStoreDelegate;
 
 
 /**
@@ -57,7 +57,7 @@ public class SQLTemplatesPage extends AbstractTemplatesPage {
 
     private static final Log log = Log.getLog(SQLTemplatesPage.class);
 
-    private static final String PREFERENCE_PAGE_ID = "org.jkiss.dbeaver.ui.editors.sql.templates.SQLTemplatesPage"; //$NON-NLS-1$
+    private static final String PREFERENCE_PAGE_ID = "com.seizia.chromite.ui.editors.sql.templates.SQLTemplatesPage"; //$NON-NLS-1$
 
     private final SQLEditorBase sqlEditor;
 
@@ -192,7 +192,7 @@ public class SQLTemplatesPage extends AbstractTemplatesPage {
     @Override
     protected Image getImage(Template template)
     {
-        return DBeaverIcons.getImage(DBIcon.TREE_SCRIPT);
+        return SwtIcons.getImage(DBIcon.TREE_SCRIPT);
     }
 
     @Override

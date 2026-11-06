@@ -14,14 +14,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.task;
+package com.seizia.chromite.model.task;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.model.DBPNamedObject;
-import org.jkiss.dbeaver.model.DBPObjectWithDescription;
-import org.jkiss.dbeaver.model.app.DBPProject;
+import com.seizia.chromite.model.DBPNamedObject;
+import com.seizia.chromite.model.DBPObjectWithDescription;
+import com.seizia.chromite.model.app.DBPProject;
 
 import java.io.IOException;
 import java.io.InputStream;

@@ -8,9 +8,9 @@
  * Contributors:
  *     Tasktop Technologies - initial API and implementation
  *******************************************************************************/
-package org.jkiss.dbeaver.ui.notifications;
+package com.seizia.chromite.ui.notifications;
 
-import org.jkiss.dbeaver.model.DBPAdaptable;
+import com.seizia.chromite.model.DBPAdaptable;
 import org.jkiss.utils.CommonUtils;
 
 import java.util.Date;

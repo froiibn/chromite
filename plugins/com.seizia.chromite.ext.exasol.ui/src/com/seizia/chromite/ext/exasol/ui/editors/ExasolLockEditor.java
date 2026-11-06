@@ -14,20 +14,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.exasol.ui.editors;
+package com.seizia.chromite.ext.exasol.ui.editors;
 
 import org.eclipse.jface.action.IContributionManager;
 import org.eclipse.jface.action.Separator;
 import org.eclipse.swt.widgets.Composite;
-import org.jkiss.dbeaver.ext.exasol.model.ExasolDataSource;
-import org.jkiss.dbeaver.ext.exasol.model.lock.ExasolLock;
-import org.jkiss.dbeaver.ext.exasol.model.lock.ExasolLockManager;
-import org.jkiss.dbeaver.model.admin.locks.DBAServerLock;
-import org.jkiss.dbeaver.model.admin.locks.DBAServerLockItem;
-import org.jkiss.dbeaver.model.admin.locks.DBAServerLockManager;
-import org.jkiss.dbeaver.model.exec.DBCExecutionContext;
-import org.jkiss.dbeaver.ui.editors.locks.edit.AbstractLockEditor;
-import org.jkiss.dbeaver.ui.editors.locks.manage.LockManagerViewer;
+import com.seizia.chromite.ext.exasol.model.ExasolDataSource;
+import com.seizia.chromite.ext.exasol.model.lock.ExasolLock;
+import com.seizia.chromite.ext.exasol.model.lock.ExasolLockManager;
+import com.seizia.chromite.model.admin.locks.DBAServerLock;
+import com.seizia.chromite.model.admin.locks.DBAServerLockItem;
+import com.seizia.chromite.model.admin.locks.DBAServerLockManager;
+import com.seizia.chromite.model.exec.DBCExecutionContext;
+import com.seizia.chromite.ui.editors.locks.edit.AbstractLockEditor;
+import com.seizia.chromite.ui.editors.locks.manage.LockManagerViewer;
 
 import java.math.BigInteger;
 import java.util.HashMap;

@@ -14,22 +14,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.ai.qm;
+package com.seizia.chromite.model.ai.qm;
 
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.model.ai.AIAssistant;
-import org.jkiss.dbeaver.model.ai.AIChatMessage;
-import org.jkiss.dbeaver.model.ai.AIFunctionCall;
-import org.jkiss.dbeaver.model.ai.AIFunctionResult;
-import org.jkiss.dbeaver.model.ai.AIFunctionType;
-import org.jkiss.dbeaver.model.ai.AIMessage;
-import org.jkiss.dbeaver.model.ai.AIMessageMeta;
-import org.jkiss.dbeaver.model.ai.AIMessageType;
-import org.jkiss.dbeaver.model.ai.AIMetaTypes;
-import org.jkiss.dbeaver.model.ai.AIUsage;
-import org.jkiss.dbeaver.model.data.json.JSONUtils;
+import com.seizia.chromite.model.ai.AIAssistant;
+import com.seizia.chromite.model.ai.AIChatMessage;
+import com.seizia.chromite.model.ai.AIFunctionCall;
+import com.seizia.chromite.model.ai.AIFunctionResult;
+import com.seizia.chromite.model.ai.AIFunctionType;
+import com.seizia.chromite.model.ai.AIMessage;
+import com.seizia.chromite.model.ai.AIMessageMeta;
+import com.seizia.chromite.model.ai.AIMessageType;
+import com.seizia.chromite.model.ai.AIMetaTypes;
+import com.seizia.chromite.model.ai.AIUsage;
+import com.seizia.chromite.model.data.json.JSONUtils;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.parallel.ResourceLock;

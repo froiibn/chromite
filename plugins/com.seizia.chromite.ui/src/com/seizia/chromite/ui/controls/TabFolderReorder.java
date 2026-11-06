@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.controls;
+package com.seizia.chromite.ui.controls;
 
 import org.eclipse.swt.custom.CTabFolder;
 import org.eclipse.swt.custom.CTabItem;
@@ -27,7 +27,7 @@ import org.eclipse.swt.widgets.Control;
 import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.Event;
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.ui.dnd.LocalObjectTransfer;
+import com.seizia.chromite.ui.dnd.LocalObjectTransfer;
 
 /**
  * TabFolderReorder

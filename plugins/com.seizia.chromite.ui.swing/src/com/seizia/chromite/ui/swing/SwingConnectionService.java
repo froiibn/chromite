@@ -25,21 +25,21 @@ import org.eclipse.core.runtime.jobs.JobChangeAdapter;
 import org.eclipse.osgi.util.NLS;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.DBPDataSourceContainer;
-import org.jkiss.dbeaver.model.runtime.DBRProgressListener;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.runtime.DBServiceConnections;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.runtime.jobs.ConnectJob;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.DBPDataSourceContainer;
+import com.seizia.chromite.model.runtime.DBRProgressListener;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.runtime.DBServiceConnections;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.runtime.jobs.ConnectJob;
 
 /**
  * 모델 계층의 연결 요청({@link DBServiceConnections})을 처리한다.
  *
  * 설계: 탐색기 노드를 펼치면 {@code DBNDatabaseNode#getChildren} → {@code DBUtils.initDataSource}가 이 서비스로 연결을 요청한다.
- * SWT 버전은 {@code UIServiceConnectionsImpl}({@code org.jkiss.dbeaver.core})가 이 일을 하는데 Swing 제품에는 그 번들이 없어서,
+ * SWT 버전은 {@code UIServiceConnectionsImpl}({@code com.seizia.chromite.core})가 이 일을 하는데 Swing 제품에는 그 번들이 없어서,
  * 서비스가 없으면 연결하지 않고 탐색기가 "Connection was canceled"로 끝난다. 그래서 같은 서비스를 {@code plugin.xml}의
- * {@code org.jkiss.dbeaver.service} 확장으로 등록한다.
+ * {@code com.seizia.chromite.service} 확장으로 등록한다.
  * 동작은 SWT의 {@code DataSourceHandler.connectToDataSource}에서 UI 없는 부분만 옮겼다:
  * 이미 연결 중인 Job이 있으면 그것을 기다리고, 아니면 모델 계층의 {@link ConnectJob}으로 연결한다.
  * 모니터가 있으면(호출자가 이미 백그라운드 Job) 그 스레드에서 바로 연결하고, 없으면 Job을 예약한다.

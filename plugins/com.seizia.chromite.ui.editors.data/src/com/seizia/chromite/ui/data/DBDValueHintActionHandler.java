@@ -15,12 +15,12 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.ui.data;
+package com.seizia.chromite.ui.data;
 
 import org.eclipse.swt.graphics.Point;
 import org.jkiss.code.NotNull;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.ui.controls.resultset.IResultSetController;
+import com.seizia.chromite.ui.controls.resultset.IResultSetController;
 
 /**
  * Value hint action handler

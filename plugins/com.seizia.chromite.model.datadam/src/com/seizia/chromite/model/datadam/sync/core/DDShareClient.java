@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.datadam.sync.core;
+package com.seizia.chromite.model.datadam.sync.core;
 
 import com.dbeaver.datadam.share.api.exception.DDShareException;
 import com.dbeaver.datadam.share.api.model.*;
@@ -24,12 +24,12 @@ import com.google.gson.*;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.model.datadam.DDClient;
-import org.jkiss.dbeaver.model.datadam.DDEndpoints;
-import org.jkiss.dbeaver.model.datadam.auth.DDBundleCredentials;
-import org.jkiss.dbeaver.model.datadam.auth.DDCrypto;
-import org.jkiss.dbeaver.model.datadam.auth.DDKeyBundle;
-import org.jkiss.dbeaver.model.datadam.auth.desktop.DDDesktopAccessService;
+import com.seizia.chromite.model.datadam.DDClient;
+import com.seizia.chromite.model.datadam.DDEndpoints;
+import com.seizia.chromite.model.datadam.auth.DDBundleCredentials;
+import com.seizia.chromite.model.datadam.auth.DDCrypto;
+import com.seizia.chromite.model.datadam.auth.DDKeyBundle;
+import com.seizia.chromite.model.datadam.auth.desktop.DDDesktopAccessService;
 import org.jkiss.utils.CommonUtils;
 import org.jkiss.utils.GsonUtils;
 import org.jkiss.utils.HttpConstants;

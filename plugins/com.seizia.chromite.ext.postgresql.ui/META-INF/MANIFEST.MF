@@ -1,27 +1,27 @@
 Manifest-Version: 1.0
 Bundle-ManifestVersion: 2
 Bundle-Name: Chromite PostgreSQL UI
-Bundle-SymbolicName: org.jkiss.dbeaver.ext.postgresql.ui;singleton:=true
+Bundle-SymbolicName: com.seizia.chromite.ext.postgresql.ui;singleton:=true
 Bundle-Version: 1.0.167.qualifier
 Bundle-Release-Date: 20261116
 Require-Bundle: org.eclipse.e4.core.contexts,
  org.eclipse.e4.core.services,
- org.jkiss.dbeaver.registry;visibility:=reexport,
- org.jkiss.dbeaver.ext.postgresql;visibility:=reexport,
- org.jkiss.dbeaver.ext.generic.ui;visibility:=reexport,
- org.jkiss.dbeaver.ui.editors.locks,
- org.jkiss.dbeaver.tasks.native.ui,
- org.jkiss.dbeaver.ui.editors.connection;visibility:=reexport,
- org.jkiss.dbeaver.ui.editors.entity,
- org.jkiss.dbeaver.ui.editors.session,
- org.jkiss.dbeaver.tasks.ui
+ com.seizia.chromite.registry;visibility:=reexport,
+ com.seizia.chromite.ext.postgresql;visibility:=reexport,
+ com.seizia.chromite.ext.generic.ui;visibility:=reexport,
+ com.seizia.chromite.ui.editors.locks,
+ com.seizia.chromite.tasks.native.ui,
+ com.seizia.chromite.ui.editors.connection;visibility:=reexport,
+ com.seizia.chromite.ui.editors.entity,
+ com.seizia.chromite.ui.editors.session,
+ com.seizia.chromite.tasks.ui
 Bundle-ActivationPolicy: lazy
 Bundle-RequiredExecutionEnvironment: JavaSE-21
-Bundle-Vendor: DBeaver Corp
-Export-Package: org.jkiss.dbeaver.ext.postgresql,
- org.jkiss.dbeaver.ext.postgresql.ui,
- org.jkiss.dbeaver.ext.postgresql.ui.config,
- org.jkiss.dbeaver.ext.postgresql.ui.editors
+Bundle-Vendor: Chromite contributors
+Export-Package: com.seizia.chromite.ext.postgresql,
+ com.seizia.chromite.ext.postgresql.ui,
+ com.seizia.chromite.ext.postgresql.ui.config,
+ com.seizia.chromite.ext.postgresql.ui.editors
 Bundle-Localization: OSGI-INF/l10n/bundle
-Automatic-Module-Name: org.jkiss.dbeaver.ext.postgresql.ui
+Automatic-Module-Name: com.seizia.chromite.ext.postgresql.ui
 

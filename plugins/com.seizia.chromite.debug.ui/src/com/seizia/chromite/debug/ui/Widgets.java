@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.debug.ui;
+package com.seizia.chromite.debug.ui;
 
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.graphics.Font;
@@ -22,7 +22,7 @@ import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.Composite;
 
-//FIXME:AF: migrate to org.jkiss.dbeaver.runtime.ui bundle, to extract widget creation from UIUtils
+//FIXME:AF: migrate to com.seizia.chromite.runtime.ui bundle, to extract widget creation from UIUtils
 //FIXME:AF: looks poor anyway, provide fluent-style API
 public class Widgets {
 

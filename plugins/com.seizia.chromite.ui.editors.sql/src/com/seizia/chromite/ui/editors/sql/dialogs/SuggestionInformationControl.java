@@ -14,13 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.editors.sql.dialogs;
+package com.seizia.chromite.ui.editors.sql.dialogs;
 
 import org.eclipse.jface.text.AbstractInformationControl;
 import org.eclipse.jface.text.IInformationControlExtension2;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Shell;
-import org.jkiss.dbeaver.ui.editors.sql.util.ObjectInformationView;
+import com.seizia.chromite.ui.editors.sql.util.ObjectInformationView;
 
 public class SuggestionInformationControl extends AbstractInformationControl implements IInformationControlExtension2 {
 

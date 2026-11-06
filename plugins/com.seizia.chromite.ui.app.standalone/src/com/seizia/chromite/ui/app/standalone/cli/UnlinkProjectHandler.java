@@ -14,14 +14,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.app.standalone.cli;
+package com.seizia.chromite.ui.app.standalone.cli;
 
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.app.DBPProject;
-import org.jkiss.dbeaver.model.app.DBPWorkspaceDesktop;
-import org.jkiss.dbeaver.model.cli.CLIAbstractSubcommand;
-import org.jkiss.dbeaver.model.cli.CLIProcessResult;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.app.DBPProject;
+import com.seizia.chromite.model.app.DBPWorkspaceDesktop;
+import com.seizia.chromite.model.cli.CLIAbstractSubcommand;
+import com.seizia.chromite.model.cli.CLIProcessResult;
+import com.seizia.chromite.runtime.DBWorkbench;
 import picocli.CommandLine;
 
 @CommandLine.Command(name = "unlink-project", aliases = {"-unlink-project", "--unlink-project", "unlink"},

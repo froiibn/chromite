@@ -15,9 +15,9 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.ui.controls.resultset;
+package com.seizia.chromite.ui.controls.resultset;
 
-import org.jkiss.dbeaver.model.exec.DBCExecutionResult;
+import com.seizia.chromite.model.exec.DBCExecutionResult;
 
 /**
  * Result set execute processor

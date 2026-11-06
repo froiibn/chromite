@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.controls;
+package com.seizia.chromite.ui.controls;
 
 import org.eclipse.jface.action.Action;
 import org.eclipse.jface.action.IAction;
@@ -31,12 +31,12 @@ import org.eclipse.swt.widgets.Table;
 import org.eclipse.swt.widgets.TableItem;
 import org.eclipse.ui.IWorkbenchCommandConstants;
 import org.eclipse.ui.internal.WorkbenchMessages;
-import org.jkiss.dbeaver.model.exec.compile.DBCCompileError;
-import org.jkiss.dbeaver.model.exec.compile.DBCCompileLogBase;
-import org.jkiss.dbeaver.model.exec.compile.DBCSourceHost;
-import org.jkiss.dbeaver.ui.BaseThemeSettings;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.utils.GeneralUtils;
+import com.seizia.chromite.model.exec.compile.DBCCompileError;
+import com.seizia.chromite.model.exec.compile.DBCCompileLogBase;
+import com.seizia.chromite.model.exec.compile.DBCSourceHost;
+import com.seizia.chromite.ui.BaseThemeSettings;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.utils.GeneralUtils;
 import org.jkiss.utils.ArrayUtils;
 import org.jkiss.utils.CommonUtils;
 

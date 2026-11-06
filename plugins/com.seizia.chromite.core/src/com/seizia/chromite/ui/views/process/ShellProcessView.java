@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.views.process;
+package com.seizia.chromite.ui.views.process;
 
 import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.Status;
@@ -24,13 +24,13 @@ import org.eclipse.swt.layout.FillLayout;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.ui.part.ViewPart;
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.model.runtime.AbstractJob;
-import org.jkiss.dbeaver.model.runtime.DBRProcessController;
-import org.jkiss.dbeaver.model.runtime.DBRProcessDescriptor;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.ui.IHelpContextIds;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.utils.GeneralUtils;
+import com.seizia.chromite.model.runtime.AbstractJob;
+import com.seizia.chromite.model.runtime.DBRProcessController;
+import com.seizia.chromite.model.runtime.DBRProcessDescriptor;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.ui.IHelpContextIds;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.utils.GeneralUtils;
 
 import java.io.BufferedReader;
 import java.io.InputStream;
@@ -38,7 +38,7 @@ import java.io.InputStreamReader;
 
 public class ShellProcessView extends ViewPart implements DBRProcessController
 {
-    public static final String VIEW_ID = "org.jkiss.dbeaver.core.shellProcess";
+    public static final String VIEW_ID = "com.seizia.chromite.core.shellProcess";
 
     private StyledText processLogText;
     private static int viewId = 0;

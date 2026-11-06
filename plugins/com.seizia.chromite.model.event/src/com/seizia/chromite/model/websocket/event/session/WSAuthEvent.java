@@ -14,12 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.websocket.event.session;
+package com.seizia.chromite.model.websocket.event.session;
 
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.model.auth.SMAuthInfo;
-import org.jkiss.dbeaver.model.websocket.WSConstants;
-import org.jkiss.dbeaver.model.websocket.event.WSAbstractEvent;
+import com.seizia.chromite.model.auth.SMAuthInfo;
+import com.seizia.chromite.model.websocket.WSConstants;
+import com.seizia.chromite.model.websocket.event.WSAbstractEvent;
 
 public class WSAuthEvent extends WSAbstractEvent {
     @NotNull

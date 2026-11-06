@@ -14,13 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.timeplus.model.jdbc;
+package com.seizia.chromite.ext.timeplus.model.jdbc;
 
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.model.exec.jdbc.JDBCObjectSupplier;
-import org.jkiss.dbeaver.model.exec.jdbc.JDBCSession;
-import org.jkiss.dbeaver.model.exec.jdbc.JDBCStatement;
-import org.jkiss.dbeaver.model.impl.jdbc.exec.JDBCFactoryDefault;
+import com.seizia.chromite.model.exec.jdbc.JDBCObjectSupplier;
+import com.seizia.chromite.model.exec.jdbc.JDBCSession;
+import com.seizia.chromite.model.exec.jdbc.JDBCStatement;
+import com.seizia.chromite.model.impl.jdbc.exec.JDBCFactoryDefault;
 
 import java.sql.SQLException;
 import java.sql.Statement;

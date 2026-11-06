@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.navigator.breadcrumb;
+package com.seizia.chromite.ui.navigator.breadcrumb;
 
 import org.eclipse.jface.action.MenuManager;
 import org.eclipse.jface.viewers.ISelection;
@@ -34,19 +34,19 @@ import org.eclipse.ui.services.IEvaluationService;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.navigator.DBNDataSource;
-import org.jkiss.dbeaver.model.navigator.DBNDatabaseFolder;
-import org.jkiss.dbeaver.model.navigator.DBNLocalFolder;
-import org.jkiss.dbeaver.model.navigator.DBNNode;
-import org.jkiss.dbeaver.model.runtime.LocalCacheProgressMonitor;
-import org.jkiss.dbeaver.model.runtime.VoidProgressMonitor;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.ui.DBeaverIcons;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.controls.breadcrumb.BreadcrumbViewer;
-import org.jkiss.dbeaver.ui.navigator.NavigatorPropertyTester;
-import org.jkiss.dbeaver.ui.navigator.NavigatorUtils;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.navigator.DBNDataSource;
+import com.seizia.chromite.model.navigator.DBNDatabaseFolder;
+import com.seizia.chromite.model.navigator.DBNLocalFolder;
+import com.seizia.chromite.model.navigator.DBNNode;
+import com.seizia.chromite.model.runtime.LocalCacheProgressMonitor;
+import com.seizia.chromite.model.runtime.VoidProgressMonitor;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.ui.SwtIcons;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.controls.breadcrumb.BreadcrumbViewer;
+import com.seizia.chromite.ui.navigator.NavigatorPropertyTester;
+import com.seizia.chromite.ui.navigator.NavigatorUtils;
 import org.jkiss.utils.ArrayUtils;
 
 import java.util.IdentityHashMap;
@@ -186,7 +186,7 @@ public class NodeBreadcrumbViewer extends BreadcrumbViewer {
     private static class BreadcrumbNodeLabelProvider extends LabelProvider {
         @Override
         public Image getImage(Object element) {
-            return DBeaverIcons.getImage(((DBNNode) element).getNodeIconDefault());
+            return SwtIcons.getImage(((DBNNode) element).getNodeIconDefault());
         }
 
         @Override

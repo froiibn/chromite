@@ -14,13 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.team.git.ui.app.config;
+package com.seizia.chromite.team.git.ui.app.config;
 
 import org.eclipse.jgit.lib.Constants;
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.config.ProductConfigFeatureTester;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.config.ProductConfigFeatureTester;
+import com.seizia.chromite.runtime.DBWorkbench;
 
 import java.nio.file.Files;
 

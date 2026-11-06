@@ -15,13 +15,13 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.ext.oracle.model.source;
+package com.seizia.chromite.ext.oracle.model.source;
 
-import org.jkiss.dbeaver.ext.oracle.model.OracleSourceType;
-import org.jkiss.dbeaver.model.edit.DBEPersistAction;
-import org.jkiss.dbeaver.model.exec.DBCException;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.model.struct.DBSObjectWithScript;
+import com.seizia.chromite.ext.oracle.model.OracleSourceType;
+import com.seizia.chromite.model.edit.DBEPersistAction;
+import com.seizia.chromite.model.exec.DBCException;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.model.struct.DBSObjectWithScript;
 
 /**
  * Stored code interface

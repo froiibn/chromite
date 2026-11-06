@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.controls;
+package com.seizia.chromite.ui.controls;
 
 import org.eclipse.jface.viewers.IColorProvider;
 import org.eclipse.jface.viewers.ILabelProvider;
@@ -27,8 +27,8 @@ import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.*;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.ui.*;
-import org.jkiss.dbeaver.ui.css.CSSUtils;
+import com.seizia.chromite.ui.*;
+import com.seizia.chromite.ui.css.CSSUtils;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -107,7 +107,7 @@ public class CSmartCombo<ITEM_TYPE> extends Composite {
         this.text.setLayoutData(gd);
 
         this.arrow = new Label(this, SWT.NONE);
-        this.arrow.setImage(DBeaverIcons.getImage(UIIcon.TREE_COLLAPSE));
+        this.arrow.setImage(SwtIcons.getImage(UIIcon.TREE_COLLAPSE));
         gd = new GridData(GridData.FILL_VERTICAL | GridData.HORIZONTAL_ALIGN_END | GridData.VERTICAL_ALIGN_CENTER);
         this.arrow.setLayoutData(gd);
 

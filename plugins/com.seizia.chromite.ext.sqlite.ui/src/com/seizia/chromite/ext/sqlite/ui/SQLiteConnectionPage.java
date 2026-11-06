@@ -14,18 +14,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.sqlite.ui;
+package com.seizia.chromite.ext.sqlite.ui;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.ext.generic.views.GenericConnectionPage;
-import org.jkiss.dbeaver.ext.sqlite.SQLiteExtensionPermissionStore;
-import org.jkiss.dbeaver.ext.sqlite.SQLiteExtensionSettings;
-import org.jkiss.dbeaver.ext.sqlite.ui.internal.SQLiteUIMessages;
-import org.jkiss.dbeaver.model.DBPDataSourceContainer;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.ui.IDataSourceConnectionEditorSite;
-import org.jkiss.dbeaver.ui.dialogs.IConnectionWizard;
+import com.seizia.chromite.ext.generic.views.GenericConnectionPage;
+import com.seizia.chromite.ext.sqlite.SQLiteExtensionPermissionStore;
+import com.seizia.chromite.ext.sqlite.SQLiteExtensionSettings;
+import com.seizia.chromite.ext.sqlite.ui.internal.SQLiteUIMessages;
+import com.seizia.chromite.model.DBPDataSourceContainer;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.ui.IDataSourceConnectionEditorSite;
+import com.seizia.chromite.ui.dialogs.IConnectionWizard;
 
 public class SQLiteConnectionPage extends GenericConnectionPage {
     @Override

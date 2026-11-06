@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.controls;
+package com.seizia.chromite.ui.controls;
 
 import org.eclipse.osgi.util.NLS;
 import org.eclipse.swt.SWT;
@@ -27,17 +27,17 @@ import org.eclipse.swt.widgets.Button;
 import org.eclipse.swt.widgets.Composite;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.DBIcon;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.model.runtime.ProxyProgressMonitor;
-import org.jkiss.dbeaver.model.runtime.load.ILoadService;
-import org.jkiss.dbeaver.model.runtime.load.ILoadVisualizer;
-import org.jkiss.dbeaver.ui.DBeaverIcons;
-import org.jkiss.dbeaver.ui.UIIcon;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.utils.DurationFormat;
-import org.jkiss.dbeaver.utils.DurationFormatter;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.DBIcon;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.model.runtime.ProxyProgressMonitor;
+import com.seizia.chromite.model.runtime.load.ILoadService;
+import com.seizia.chromite.model.runtime.load.ILoadVisualizer;
+import com.seizia.chromite.ui.SwtIcons;
+import com.seizia.chromite.ui.UIIcon;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.utils.DurationFormat;
+import com.seizia.chromite.utils.DurationFormatter;
 import org.jkiss.utils.CommonUtils;
 
 import java.lang.reflect.InvocationTargetException;
@@ -140,7 +140,7 @@ public class ProgressLoaderVisualizer<RESULT> implements ILoadVisualizer<RESULT>
             cancelButton = new Button(progressPane, SWT.PUSH);
             cancelButton.setText("Cancel");
             GridData gd = new GridData(GridData.FILL_BOTH);
-            gd.verticalIndent = DBeaverIcons.getImage(UIIcon.PROGRESS0).getBounds().height * 2;
+            gd.verticalIndent = SwtIcons.getImage(UIIcon.PROGRESS0).getBounds().height * 2;
             cancelButton.setLayoutData(gd);
             cancelButton.addSelectionListener(SelectionListener.widgetSelectedAdapter(e -> {
                     cancelButton.setText("Canceled");
@@ -162,7 +162,7 @@ public class ProgressLoaderVisualizer<RESULT> implements ILoadVisualizer<RESULT>
                 }
                 GC gc = e.gc;
 
-                Image image = DBeaverIcons.getImage(PROGRESS_IMAGES[drawCount % PROGRESS_IMAGES.length]);
+                Image image = SwtIcons.getImage(PROGRESS_IMAGES[drawCount % PROGRESS_IMAGES.length]);
                 Rectangle buttonBounds = cancelButton.getBounds();
                 Rectangle imageBounds = image.getBounds();
                 gc.drawImage(

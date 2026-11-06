@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.rcp;
+package com.seizia.chromite.model.rcp;
 
 import org.eclipse.core.resources.*;
 import org.eclipse.core.runtime.CoreException;
@@ -23,19 +23,19 @@ import org.eclipse.core.runtime.NullProgressMonitor;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.DBRuntimeException;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.access.DBAPermissionRealm;
-import org.jkiss.dbeaver.model.app.DBPPlatform;
-import org.jkiss.dbeaver.model.app.DBPProject;
-import org.jkiss.dbeaver.model.app.DBPProjectListener;
-import org.jkiss.dbeaver.model.app.DBPWorkspaceEclipse;
-import org.jkiss.dbeaver.model.impl.app.BaseProjectImpl;
-import org.jkiss.dbeaver.model.impl.app.BaseWorkspaceImpl;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.model.runtime.DBRRunnableWithResult;
-import org.jkiss.dbeaver.registry.internal.RegistryMessages;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
+import com.seizia.chromite.DBRuntimeException;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.access.DBAPermissionRealm;
+import com.seizia.chromite.model.app.DBPPlatform;
+import com.seizia.chromite.model.app.DBPProject;
+import com.seizia.chromite.model.app.DBPProjectListener;
+import com.seizia.chromite.model.app.DBPWorkspaceEclipse;
+import com.seizia.chromite.model.impl.app.BaseProjectImpl;
+import com.seizia.chromite.model.impl.app.BaseWorkspaceImpl;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.model.runtime.DBRRunnableWithResult;
+import com.seizia.chromite.registry.internal.RegistryMessages;
+import com.seizia.chromite.runtime.DBWorkbench;
 import org.jkiss.utils.ArrayUtils;
 import org.jkiss.utils.CommonUtils;
 
@@ -247,7 +247,7 @@ public abstract class EclipseWorkspaceImpl extends BaseWorkspaceImpl implements 
             project.open(monitor);
             final IProjectDescription description = getEclipseWorkspace().newProjectDescription(project.getName());
             description.setComment(RegistryMessages.project_description_comment);
-            description.setNatureIds(new String[]{DBeaverNature.NATURE_ID});
+            description.setNatureIds(new String[]{ChromiteNature.NATURE_ID});
             project.setDescription(description, monitor);
 
             return project;

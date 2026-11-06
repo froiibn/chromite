@@ -15,15 +15,15 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.registry;
+package com.seizia.chromite.registry;
 
 import org.eclipse.core.runtime.IConfigurationElement;
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.DBIcon;
-import org.jkiss.dbeaver.model.DBPDataSourceConfigurationStorage;
-import org.jkiss.dbeaver.model.DBPImage;
-import org.jkiss.dbeaver.model.impl.AbstractDescriptor;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.DBIcon;
+import com.seizia.chromite.model.DBPDataSourceConfigurationStorage;
+import com.seizia.chromite.model.DBPImage;
+import com.seizia.chromite.model.impl.AbstractDescriptor;
 
 /**
  * DataSourceConfigurationStorageDescriptor
@@ -32,7 +32,7 @@ public class DataSourceConfigurationStorageDescriptor extends AbstractDescriptor
 {
     private static final Log log = Log.getLog(DataSourceConfigurationStorageDescriptor.class);
 
-    public static final String EXTENSION_ID = "org.jkiss.dbeaver.dataSourceStorage"; //$NON-NLS-1$
+    public static final String EXTENSION_ID = "com.seizia.chromite.dataSourceStorage"; //$NON-NLS-1$
 
     private final String id;
     private final ObjectType implType;

@@ -14,10 +14,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.athena.model;
+package com.seizia.chromite.ext.athena.model;
 
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.model.connection.DBPDriver;
+import com.seizia.chromite.model.connection.DBPDriver;
 
 public class AthenaUtils {
 

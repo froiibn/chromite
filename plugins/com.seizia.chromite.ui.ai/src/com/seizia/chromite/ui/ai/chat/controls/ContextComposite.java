@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.ai.chat.controls;
+package com.seizia.chromite.ui.ai.chat.controls;
 
 import org.eclipse.e4.ui.css.swt.dom.WidgetElement;
 import org.eclipse.jface.action.*;
@@ -33,26 +33,26 @@ import org.eclipse.swt.widgets.*;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.*;
-import org.jkiss.dbeaver.model.ai.*;
-import org.jkiss.dbeaver.model.ai.registry.AIEngineDescriptor;
-import org.jkiss.dbeaver.model.ai.registry.AIPromptGeneratorDescriptor;
-import org.jkiss.dbeaver.model.ai.registry.AIPromptGeneratorRegistry;
-import org.jkiss.dbeaver.model.ai.registry.AISettingsManager;
-import org.jkiss.dbeaver.model.app.DBPProject;
-import org.jkiss.dbeaver.model.exec.DBCExecutionContext;
-import org.jkiss.dbeaver.model.exec.DBCExecutionContextDefaults;
-import org.jkiss.dbeaver.model.rm.RMConstants;
-import org.jkiss.dbeaver.model.struct.rdb.DBSCatalog;
-import org.jkiss.dbeaver.model.struct.rdb.DBSSchema;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.ui.*;
-import org.jkiss.dbeaver.ui.ai.AIUIUtils;
-import org.jkiss.dbeaver.ui.ai.chat.AIChatController;
-import org.jkiss.dbeaver.ui.ai.chat.AIChatUtils;
-import org.jkiss.dbeaver.ui.ai.chat.internal.AIChatMessagesUI;
-import org.jkiss.dbeaver.utils.RuntimeUtils;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.*;
+import com.seizia.chromite.model.ai.*;
+import com.seizia.chromite.model.ai.registry.AIEngineDescriptor;
+import com.seizia.chromite.model.ai.registry.AIPromptGeneratorDescriptor;
+import com.seizia.chromite.model.ai.registry.AIPromptGeneratorRegistry;
+import com.seizia.chromite.model.ai.registry.AISettingsManager;
+import com.seizia.chromite.model.app.DBPProject;
+import com.seizia.chromite.model.exec.DBCExecutionContext;
+import com.seizia.chromite.model.exec.DBCExecutionContextDefaults;
+import com.seizia.chromite.model.rm.RMConstants;
+import com.seizia.chromite.model.struct.rdb.DBSCatalog;
+import com.seizia.chromite.model.struct.rdb.DBSSchema;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.ui.*;
+import com.seizia.chromite.ui.ai.AIUIUtils;
+import com.seizia.chromite.ui.ai.chat.AIChatController;
+import com.seizia.chromite.ui.ai.chat.AIChatUtils;
+import com.seizia.chromite.ui.ai.chat.internal.AIChatMessagesUI;
+import com.seizia.chromite.utils.RuntimeUtils;
 import org.jkiss.utils.ArrayUtils;
 import org.jkiss.utils.CommonUtils;
 
@@ -173,14 +173,14 @@ public class ContextComposite extends Composite {
             });
 
             contextIcon = new Label(contextComposite, SWT.NONE);
-            contextIcon.setImage(DBeaverIcons.getImage(DBIcon.TREE_DATABASE));
+            contextIcon.setImage(SwtIcons.getImage(DBIcon.TREE_DATABASE));
 
             contextName = new Label(contextComposite, SWT.NONE);
             contextName.setLayoutData(new GridData(SWT.FILL, SWT.BEGINNING, true, false));
             contextName.addMouseListener(MouseListener.mouseDownAdapter(e -> showContextDropDown()));
 
             Label contextArrow = new Label(contextComposite, SWT.NONE);
-            contextArrow.setImage(DBeaverIcons.getImage(UIIcon.TREE_COLLAPSE));
+            contextArrow.setImage(SwtIcons.getImage(UIIcon.TREE_COLLAPSE));
             contextArrow.addMouseListener(MouseListener.mouseDownAdapter(e -> showContextDropDown()));
 
             contextDropDown = new MenuManager();
@@ -209,7 +209,7 @@ public class ContextComposite extends Composite {
             new CompositeBorderPainter(conversationComposite);
 
             conversationIcon = new Label(conversationComposite, SWT.NONE);
-            conversationIcon.setImage(DBeaverIcons.getImage(AIIcons.AI));
+            conversationIcon.setImage(SwtIcons.getImage(AIIcons.AI));
 
             conversationNameText = new Text(conversationComposite, SWT.NONE);
             conversationNameText.setLayoutData(new GridData(SWT.FILL, SWT.BEGINNING, true, false));
@@ -234,7 +234,7 @@ public class ContextComposite extends Composite {
             }));
 
             Label conversationArrow = new Label(conversationComposite, SWT.NONE);
-            conversationArrow.setImage(DBeaverIcons.getImage(UIIcon.TREE_COLLAPSE));
+            conversationArrow.setImage(SwtIcons.getImage(UIIcon.TREE_COLLAPSE));
             conversationArrow.addMouseListener(MouseListener.mouseDownAdapter(e -> showConversationDropDown()));
 
             conversationDropDown = new MenuManager();
@@ -260,10 +260,10 @@ public class ContextComposite extends Composite {
     private void updateContext(@Nullable AIContextSettings completionSettings) {
         if (completionSettings != null) {
             this.contextName.setText(completionSettings.getDataSourceContainer().getName());
-            this.contextIcon.setImage(DBeaverIcons.getImage(completionSettings.getDataSourceContainer().getDriver().getIcon()));
+            this.contextIcon.setImage(SwtIcons.getImage(completionSettings.getDataSourceContainer().getDriver().getIcon()));
         } else {
             this.contextName.setText("No connection");
-            this.contextIcon.setImage(DBeaverIcons.getImage(DBIcon.DATABASE_DEFAULT));
+            this.contextIcon.setImage(SwtIcons.getImage(DBIcon.DATABASE_DEFAULT));
         }
 
         updateActions();
@@ -274,7 +274,7 @@ public class ContextComposite extends Composite {
         contextConversations.addAll(chat.listConversations());
 
         DBPImage convIcon = getConversationIcon(conversation);
-        conversationIcon.setImage(DBeaverIcons.getImage(convIcon));
+        conversationIcon.setImage(SwtIcons.getImage(convIcon));
         conversationNameText.setText(conversation.getCaption());
     }
 
@@ -337,7 +337,7 @@ public class ContextComposite extends Composite {
             manager.add(new EmptyAction(AIChatMessagesUI.ai_chat_context_menu_no_active_connections));
         }
         for (DBPDataSourceContainer container : containers) {
-            manager.add(new Action(container.getName(), DBeaverIcons.getImageDescriptor(container.getDriver().getIcon())) {
+            manager.add(new Action(container.getName(), SwtIcons.getImageDescriptor(container.getDriver().getIcon())) {
                 @Override
                 public void run() {
                     try {
@@ -356,7 +356,7 @@ public class ContextComposite extends Composite {
             manager.add(new Separator());
             manager.add(new Action(
                 AIChatMessagesUI.ai_chat_context_menu_no_connection,
-                DBeaverIcons.getImageDescriptor(DBIcon.DATABASE_DEFAULT)
+                SwtIcons.getImageDescriptor(DBIcon.DATABASE_DEFAULT)
             ) {
                 @Override
                 public void run() {
@@ -384,7 +384,7 @@ public class ContextComposite extends Composite {
             manager.add(new Action(
                 conversion.getCaption() + " / " + msgTime.format(
                         msgTime.toLocalDate().equals(today) ? CONV_TIME_FORMAT : CONV_DATE_TIME_FORMAT),
-                DBeaverIcons.getImageDescriptor(getConversationIcon(conversion))
+                SwtIcons.getImageDescriptor(getConversationIcon(conversion))
             ) {
                 @Override
                 public void run() {
@@ -494,7 +494,7 @@ public class ContextComposite extends Composite {
     }
 
     private void contributeContextActions(@NotNull IContributionManager manager) {
-        changeScopeAction = new Action(AIChatMessagesUI.ai_chat_change_scope_label, DBeaverIcons.getImageDescriptor(UIIcon.DOTS_BUTTON)) {
+        changeScopeAction = new Action(AIChatMessagesUI.ai_chat_change_scope_label, SwtIcons.getImageDescriptor(UIIcon.DOTS_BUTTON)) {
             @Override
             public void run() {
                 showScopeDropDown();
@@ -505,7 +505,7 @@ public class ContextComposite extends Composite {
         manager.add(changeScopeAction);
         Action settingsAction = new Action(
             AIChatMessagesUI.ai_chat_settings_label,
-            DBeaverIcons.getImageDescriptor(UIIcon.CONFIGURATION)
+            SwtIcons.getImageDescriptor(UIIcon.CONFIGURATION)
         ) {
             @Override
             public void run() {
@@ -539,7 +539,7 @@ public class ContextComposite extends Composite {
     }
 
     private void contributeConversationActions(@NotNull IContributionManager manager) {
-        addConversationAction = new Action(AIChatMessagesUI.ai_chat_conversation_new_label, DBeaverIcons.getImageDescriptor(UIIcon.ADD)) {
+        addConversationAction = new Action(AIChatMessagesUI.ai_chat_conversation_new_label, SwtIcons.getImageDescriptor(UIIcon.ADD)) {
             @Override
             public void run() {
                 chat.createNewConversation();
@@ -548,7 +548,7 @@ public class ContextComposite extends Composite {
         setToolTipWithShortcut(addConversationAction, AIChatController.CMD_NEW_CONVERSATION);
         manager.add(addConversationAction);
         if (chat.getChatSession().getStorage().canPersist()) {
-            deleteConversationAction = new Action(AIChatMessagesUI.ai_chat_conversation_delete_label, DBeaverIcons.getImageDescriptor(UIIcon.CLOSE)) {
+            deleteConversationAction = new Action(AIChatMessagesUI.ai_chat_conversation_delete_label, SwtIcons.getImageDescriptor(UIIcon.CLOSE)) {
                 @Override
                 public void run() {
                     chat.deleteActiveConversationWithConfirmation();
@@ -731,7 +731,7 @@ public class ContextComposite extends Composite {
             this.profile = profile;
             try {
                 AIEngineDescriptor engine = profile.getEngineDescriptor();
-                setImageDescriptor(DBeaverIcons.getImageDescriptor(engine.getIcon()));
+                setImageDescriptor(SwtIcons.getImageDescriptor(engine.getIcon()));
             } catch (DBException e) {
                 log.debug(e);
             }

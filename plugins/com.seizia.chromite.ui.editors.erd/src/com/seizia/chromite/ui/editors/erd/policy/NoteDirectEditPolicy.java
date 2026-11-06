@@ -14,14 +14,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.editors.erd.policy;
+package com.seizia.chromite.ui.editors.erd.policy;
 
 import org.eclipse.gef.commands.Command;
 import org.eclipse.gef.editpolicies.DirectEditPolicy;
 import org.eclipse.gef.requests.DirectEditRequest;
 import org.eclipse.jface.viewers.CellEditor;
-import org.jkiss.dbeaver.ui.editors.erd.command.NoteSetTextCommand;
-import org.jkiss.dbeaver.ui.editors.erd.part.NotePart;
+import com.seizia.chromite.ui.editors.erd.command.NoteSetTextCommand;
+import com.seizia.chromite.ui.editors.erd.part.NotePart;
 
 /**
  * EditPolicy for the direct editing of table names

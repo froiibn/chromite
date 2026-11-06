@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.app.standalone;
+package com.seizia.chromite.ui.app.standalone;
 
 
 import org.eclipse.core.runtime.Platform;
@@ -38,35 +38,36 @@ import org.eclipse.ui.internal.WorkbenchPlugin;
 import org.eclipse.ui.internal.ide.ChooseWorkspaceDialog;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.*;
-import org.jkiss.dbeaver.core.DBeaverActivator;
-import org.jkiss.dbeaver.core.DesktopPlatform;
-import org.jkiss.dbeaver.core.DesktopUI;
-import org.jkiss.dbeaver.model.DBConstants;
-import org.jkiss.dbeaver.model.app.DBPApplicationController;
-import org.jkiss.dbeaver.model.app.DBPPlatform;
-import org.jkiss.dbeaver.model.app.DBPWorkspace;
-import org.jkiss.dbeaver.model.cli.CLIConstants;
-import org.jkiss.dbeaver.model.cli.CLIProcessResult;
-import org.jkiss.dbeaver.model.impl.app.ApplicationRegistry;
-import org.jkiss.dbeaver.model.impl.app.BaseApplicationImpl;
-import org.jkiss.dbeaver.model.impl.app.BaseWorkspaceImpl;
-import org.jkiss.dbeaver.model.preferences.DBPPreferenceStore;
-import org.jkiss.dbeaver.model.rcp.DesktopApplicationImpl;
-import org.jkiss.dbeaver.registry.ApplicationPolicyProvider;
-import org.jkiss.dbeaver.registry.SWTBrowserRegistry;
-import org.jkiss.dbeaver.registry.timezone.TimezoneRegistry;
-import org.jkiss.dbeaver.registry.updater.VersionDescriptor;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.runtime.ui.DBPPlatformUI;
-import org.jkiss.dbeaver.runtime.ui.console.ConsoleUserInterface;
-import org.jkiss.dbeaver.ui.app.standalone.internal.WorkbenchPatcher;
-import org.jkiss.dbeaver.ui.app.standalone.rpc.DBeaverInstanceServer;
-import org.jkiss.dbeaver.ui.app.standalone.rpc.IInstanceController;
-import org.jkiss.dbeaver.ui.app.standalone.update.VersionUpdateDialog;
-import org.jkiss.dbeaver.utils.GeneralUtils;
-import org.jkiss.dbeaver.utils.RuntimeUtils;
-import org.jkiss.dbeaver.utils.SystemVariablesResolver;
+import com.seizia.chromite.*;
+import com.seizia.chromite.core.ChromiteActivator;
+import com.seizia.chromite.core.DesktopPlatform;
+import com.seizia.chromite.core.DesktopUI;
+import com.seizia.chromite.model.DBConstants;
+import com.seizia.chromite.model.app.DBPApplicationController;
+import com.seizia.chromite.model.app.DBPPlatform;
+import com.seizia.chromite.model.app.DBPWorkspace;
+import com.seizia.chromite.model.cli.CLIConstants;
+import com.seizia.chromite.model.cli.CLIProcessResult;
+import com.seizia.chromite.model.impl.app.ApplicationRegistry;
+import com.seizia.chromite.model.impl.app.BaseApplicationImpl;
+import com.seizia.chromite.model.impl.app.BaseWorkspaceImpl;
+import com.seizia.chromite.model.preferences.DBPPreferenceStore;
+import com.seizia.chromite.model.rcp.DesktopApplicationImpl;
+import com.seizia.chromite.registry.ApplicationPolicyProvider;
+import com.seizia.chromite.registry.SWTBrowserRegistry;
+import com.seizia.chromite.registry.timezone.TimezoneRegistry;
+import com.seizia.chromite.registry.updater.VersionDescriptor;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.runtime.ui.DBPPlatformUI;
+import com.seizia.chromite.runtime.ui.console.ConsoleUserInterface;
+import com.seizia.chromite.ui.app.standalone.internal.WorkbenchPatcher;
+import com.seizia.chromite.ui.app.standalone.rpc.ChromiteInstanceServer;
+import com.seizia.chromite.ui.app.standalone.rpc.IInstanceController;
+import com.seizia.chromite.ui.app.standalone.update.VersionUpdateDialog;
+import com.seizia.chromite.utils.GeneralUtils;
+import com.seizia.chromite.utils.RuntimeUtils;
+import com.seizia.chromite.utils.SystemVariablesResolver;
+import org.jkiss.dbeaver.DBException;
 import org.jkiss.utils.ArrayUtils;
 import org.jkiss.utils.CommonUtils;
 import org.jkiss.utils.IOUtils;
@@ -94,14 +95,14 @@ import java.util.stream.Stream;
  * 변경 이력:
  * - 2026-11-07 Microsoft Store 제품 삭제: 배포 형식 설명에서 {@code msstore}를 뺐다.
  */
-public class DBeaverApplication extends DesktopApplicationImpl implements DBPApplicationController {
+public class ChromiteApplication extends DesktopApplicationImpl implements DBPApplicationController {
 
-    private static final Log log = Log.getLog(DBeaverApplication.class);
+    private static final Log log = Log.getLog(ChromiteApplication.class);
 
-    public static final String APPLICATION_PLUGIN_ID = "org.jkiss.dbeaver.ui.app.standalone";
+    public static final String APPLICATION_PLUGIN_ID = "com.seizia.chromite.ui.app.standalone";
 
-    public static final String WORKSPACE_DIR_LEGACY = "${user.home}/.dbeaver"; //$NON-NLS-1$
-    public static final String WORKSPACE_DIR_4 = "${user.home}/.dbeaver4"; //$NON-NLS-1$
+    public static final String WORKSPACE_DIR_LEGACY = "${user.home}/.chromite"; //$NON-NLS-1$
+    public static final String WORKSPACE_DIR_4 = "${user.home}/.chromite4"; //$NON-NLS-1$
 
     public static final String[] WORKSPACE_DIR_PREVIOUS = {
         WORKSPACE_DIR_4,
@@ -115,7 +116,7 @@ public class DBeaverApplication extends DesktopApplicationImpl implements DBPApp
     public static final String DEFAULT_WORKSPACES_FILE = ".workspaces";
     public static final String POLICY_WD_CHECK_SUPPRESS = "policy.wd.check.disabled"; //$NON-NLS-1$
 
-    private static final String STARTUP_ACTIONS_FILE = "dbeaver-startup-actions.properties";
+    private static final String STARTUP_ACTIONS_FILE = "chromite-startup-actions.properties";
     private static final String RESET_USER_PREFERENCES = "reset_user_preferences";
     private static final String RESET_WORKSPACE_CONFIGURATION = "reset_workspace_configuration";
     private static final String DEFAULT_PROJECT_NAME = "General";
@@ -128,20 +129,20 @@ public class DBeaverApplication extends DesktopApplicationImpl implements DBPApp
      *     <li>{@code dmg} on macOS.</li>
      * </ul>
      */
-    public static final String PROP_DISTRIBUTION_TYPE = "dbeaver.distribution.type";
+    public static final String PROP_DISTRIBUTION_TYPE = "chromite.distribution.type";
 
     private final Path FILE_WITH_WORKSPACES;
 
     static boolean WORKSPACE_MIGRATED = false;
 
-    static DBeaverApplication instance;
+    static ChromiteApplication instance;
 
     private boolean exclusiveMode = false;
     private boolean reuseWorkspace = false;
     private boolean primaryInstance = true;
     private boolean headlessMode = false;
 
-    private DBeaverInstanceServer instanceServer;
+    private ChromiteInstanceServer instanceServer;
 
     private OutputStream debugWriter;
     private PrintStream oldSystemOut;
@@ -152,11 +153,11 @@ public class DBeaverApplication extends DesktopApplicationImpl implements DBPApp
     private boolean resetUserPreferencesOnRestart, resetWorkspaceConfigurationOnRestart;
     private long lastUserActivityTime = -1;
 
-    public DBeaverApplication() {
-        this(BaseApplicationImpl.DBEAVER_DATA_DIR, DEFAULT_WORKSPACE_FOLDER, DEFAULT_WORKSPACES_FILE);
+    public ChromiteApplication() {
+        this(BaseApplicationImpl.CHROMITE_DATA_DIR, DEFAULT_WORKSPACE_FOLDER, DEFAULT_WORKSPACES_FILE);
     }
 
-    protected DBeaverApplication(
+    protected ChromiteApplication(
         @NotNull String defaultWorkspaceLocation,
         @NotNull String defaultAppWorkspaceName,
         @NotNull String defaultWorkspacesFile
@@ -169,7 +170,7 @@ public class DBeaverApplication extends DesktopApplicationImpl implements DBPApp
      * Gets singleton instance of DBeaver application
      * @return application or null if application wasn't started or was stopped.
      */
-    public static DBeaverApplication getInstance() {
+    public static ChromiteApplication getInstance() {
         return instance;
     }
 
@@ -181,7 +182,7 @@ public class DBeaverApplication extends DesktopApplicationImpl implements DBPApp
     @NotNull
     @Override
     public DBPPreferenceStore getPreferenceStore() {
-        return DBeaverActivator.getInstance().getPreferences();
+        return ChromiteActivator.getInstance().getPreferences();
     }
 
     @NotNull
@@ -257,7 +258,7 @@ public class DBeaverApplication extends DesktopApplicationImpl implements DBPApp
         try {
             headlessMode = true;
             try {
-                CLIProcessResult cliProcessResult = DBeaverCommandLine.getInstance()
+                CLIProcessResult cliProcessResult = ChromiteCommandLine.getInstance()
                     .executeCommandLineCommands(null, false, false, args);
                 if (cliProcessResult.getPostAction() == CLIProcessResult.PostAction.SHUTDOWN) {
                     if (!CommonUtils.isEmpty(cliProcessResult.getOutput())) {
@@ -322,7 +323,7 @@ public class DBeaverApplication extends DesktopApplicationImpl implements DBPApp
 
         // Run instance server
         try {
-            instanceServer = DBeaverInstanceServer.createServer();
+            instanceServer = ChromiteInstanceServer.createServer();
         } catch (Exception e) {
             log.error("Can't start instance server: " + e.getMessage());
         }
@@ -341,7 +342,7 @@ public class DBeaverApplication extends DesktopApplicationImpl implements DBPApp
         // Prefs default
         PlatformUI.getPreferenceStore().setDefault(
             IWorkbenchPreferenceConstants.KEY_CONFIGURATION_ID,
-            ApplicationWorkbenchAdvisor.DBEAVER_SCHEME_NAME);
+            ApplicationWorkbenchAdvisor.CHROMITE_SCHEME_NAME);
         try {
             log.debug("Run workbench");
             int returnCode = PlatformUI.createAndRunWorkbench(display, createWorkbenchAdvisor());
@@ -389,7 +390,7 @@ public class DBeaverApplication extends DesktopApplicationImpl implements DBPApp
             }
         }
         try {
-            DBeaverCommandLine.getInstance().preprocessCommandLine(args);
+            ChromiteCommandLine.getInstance().preprocessCommandLine(args);
         } catch (DBException e) {
             log.error("Error preprocessing command line", e);
         }
@@ -414,7 +415,7 @@ public class DBeaverApplication extends DesktopApplicationImpl implements DBPApp
         if (!isWorkspaceSwitchingAllowed()) {
             return false;
         }
-        String lastWorkspace = DBeaverWorkspaces.fetchRecentWorkspaces(this, instanceLoc).getFirst();
+        String lastWorkspace = ChromiteWorkspaces.fetchRecentWorkspaces(this, instanceLoc).getFirst();
         if (!CommonUtils.isEmpty(lastWorkspace)) {
             try {
                 Path lwPath = Path.of(lastWorkspace);
@@ -618,7 +619,7 @@ public class DBeaverApplication extends DesktopApplicationImpl implements DBPApp
             }
         }
         if (previousVersionWorkspaceDir != null) {
-            DBeaverSettingsImporter importer = new DBeaverSettingsImporter(this, getDisplay());
+            ChromiteSettingsImporter importer = new ChromiteSettingsImporter(this, getDisplay());
             return importer.migrateFromPreviousVersion(previousVersionWorkspaceDir.toFile(), homeDir.toFile());
         }
         return true;
@@ -664,11 +665,11 @@ public class DBeaverApplication extends DesktopApplicationImpl implements DBPApp
 
         Location location = Platform.getInstanceLocation();
         if (location.isSet()) {
-            DBeaverWorkspaces.flushRecentWorkspaces(this, location);
+            ChromiteWorkspaces.flushRecentWorkspaces(this, location);
         }
 
         try {
-            DBeaverInstanceServer server = instanceServer;
+            ChromiteInstanceServer server = instanceServer;
             if (server != null) {
                 instanceServer = null;
                 RuntimeUtils.runTask(monitor -> server.stopInstanceServer(), "Stop instance server", 1000);
@@ -685,11 +686,11 @@ public class DBeaverApplication extends DesktopApplicationImpl implements DBPApp
     }
 
     private void initDebugWriter() {
-        DBPPreferenceStore preferenceStore = DBeaverActivator.getInstance().getPreferences();
-        if (!preferenceStore.getBoolean(DBeaverPreferences.LOGS_DEBUG_ENABLED)) {
+        DBPPreferenceStore preferenceStore = ChromiteActivator.getInstance().getPreferences();
+        if (!preferenceStore.getBoolean(ChromitePreferences.LOGS_DEBUG_ENABLED)) {
             return;
         }
-        String logLocation = preferenceStore.getString(DBeaverPreferences.LOGS_DEBUG_LOCATION);
+        String logLocation = preferenceStore.getString(ChromitePreferences.LOGS_DEBUG_LOCATION);
         if (CommonUtils.isEmpty(logLocation)) {
             logLocation = GeneralUtils.getMetadataFolder().resolve(DBConstants.DEBUG_LOG_FILE_NAME).toAbsolutePath().toString(); //$NON-NLS-1$
         }
@@ -723,7 +724,7 @@ public class DBeaverApplication extends DesktopApplicationImpl implements DBPApp
 
     @Nullable
     public IInstanceController createInstanceClient() {
-        return DBeaverInstanceServer.createClient(getDefaultInstanceLocation());
+        return ChromiteInstanceServer.createClient(getDefaultInstanceLocation());
     }
 
     @Override

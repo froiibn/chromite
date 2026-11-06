@@ -14,11 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.sqlite.model;
+package com.seizia.chromite.ext.sqlite.model;
 
 import org.jkiss.code.DynamicCall;
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.ext.generic.GenericDataSourceProvider;
+import com.seizia.chromite.ext.generic.GenericDataSourceProvider;
 
 public class SQLiteDataSourceProvider extends GenericDataSourceProvider<SQLiteDataSource> {
 

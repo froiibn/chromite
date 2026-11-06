@@ -16,11 +16,11 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.debug;
+package com.seizia.chromite.debug;
 
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.model.struct.DBSObject;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.model.struct.DBSObject;
 
 import java.util.Map;
 

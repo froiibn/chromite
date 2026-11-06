@@ -14,12 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.sql.parser.rules;
+package com.seizia.chromite.model.sql.parser.rules;
 
-import org.jkiss.dbeaver.model.sql.parser.tokens.SQLControlToken;
-import org.jkiss.dbeaver.model.sql.registry.SQLCommandHandlerDescriptor;
-import org.jkiss.dbeaver.model.text.parser.TPCharacterScanner;
-import org.jkiss.dbeaver.model.text.parser.rules.EndOfLineRule;
+import com.seizia.chromite.model.sql.parser.tokens.SQLControlToken;
+import com.seizia.chromite.model.sql.registry.SQLCommandHandlerDescriptor;
+import com.seizia.chromite.model.text.parser.TPCharacterScanner;
+import com.seizia.chromite.model.text.parser.rules.EndOfLineRule;
 
 public class SQLCommandRule extends EndOfLineRule {
     public SQLCommandRule(String commandPrefix, SQLCommandHandlerDescriptor controlCommand, SQLControlToken controlToken) {

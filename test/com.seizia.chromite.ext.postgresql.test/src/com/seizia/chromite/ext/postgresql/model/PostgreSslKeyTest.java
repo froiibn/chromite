@@ -14,29 +14,29 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.postgresql.model;
+package com.seizia.chromite.ext.postgresql.model;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.ext.postgresql.PostgreConstants;
-import org.jkiss.dbeaver.ext.postgresql.model.net.PostgreSSLClientKeyManager;
-import org.jkiss.dbeaver.model.DBPDataSourceContainer;
-import org.jkiss.dbeaver.model.DBPDataSourceProvider;
-import org.jkiss.dbeaver.model.access.DBAAuthCredentials;
-import org.jkiss.dbeaver.model.access.DBAAuthModel;
-import org.jkiss.dbeaver.model.connection.DBPAuthModelDescriptor;
-import org.jkiss.dbeaver.model.connection.DBPConnectionConfiguration;
-import org.jkiss.dbeaver.model.connection.DBPDriver;
-import org.jkiss.dbeaver.model.exec.DBCException;
-import org.jkiss.dbeaver.model.impl.jdbc.JDBCExecutionContext;
-import org.jkiss.dbeaver.model.impl.net.SSLHandlerTrustStoreImpl;
-import org.jkiss.dbeaver.model.net.DBWHandlerConfiguration;
-import org.jkiss.dbeaver.model.net.DBWHandlerDescriptor;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.model.runtime.VoidProgressMonitor;
-import org.jkiss.dbeaver.model.preferences.DBPPreferenceStore;
-import org.jkiss.junit.DBeaverUnitTest;
+import com.seizia.chromite.ext.postgresql.PostgreConstants;
+import com.seizia.chromite.ext.postgresql.model.net.PostgreSSLClientKeyManager;
+import com.seizia.chromite.model.DBPDataSourceContainer;
+import com.seizia.chromite.model.DBPDataSourceProvider;
+import com.seizia.chromite.model.access.DBAAuthCredentials;
+import com.seizia.chromite.model.access.DBAAuthModel;
+import com.seizia.chromite.model.connection.DBPAuthModelDescriptor;
+import com.seizia.chromite.model.connection.DBPConnectionConfiguration;
+import com.seizia.chromite.model.connection.DBPDriver;
+import com.seizia.chromite.model.exec.DBCException;
+import com.seizia.chromite.model.impl.jdbc.JDBCExecutionContext;
+import com.seizia.chromite.model.impl.net.SSLHandlerTrustStoreImpl;
+import com.seizia.chromite.model.net.DBWHandlerConfiguration;
+import com.seizia.chromite.model.net.DBWHandlerDescriptor;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.model.runtime.VoidProgressMonitor;
+import com.seizia.chromite.model.preferences.DBPPreferenceStore;
+import com.seizia.chromite.junit.ChromiteUnitTest;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -64,7 +64,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-public class PostgreSslKeyTest extends DBeaverUnitTest {
+public class PostgreSslKeyTest extends ChromiteUnitTest {
     private static Path constructorKey;
 
     @Test
@@ -73,7 +73,7 @@ public class PostgreSslKeyTest extends DBeaverUnitTest {
         when(container.getDriver()).thenReturn(mock(DBPDriver.class));
         when(container.getConnectionConfiguration()).thenReturn(new DBPConnectionConfiguration());
         VoidProgressMonitor monitor = new VoidProgressMonitor();
-        Path source = Files.createTempFile("dbeaver-test-ssl-", ".key");
+        Path source = Files.createTempFile("chromite-test-ssl-", ".key");
         Path converted;
         try {
             Files.writeString(source, makePkcs1Key());
@@ -123,7 +123,7 @@ public class PostgreSslKeyTest extends DBeaverUnitTest {
         TestPostgreDataSource dataSource = new TestPostgreDataSource(container);
         PostgreSSLClientKeyManager keyManager = dataSource.getSSLClientKeyManager();
         VoidProgressMonitor monitor = new VoidProgressMonitor();
-        Path source = Files.createTempFile("dbeaver-test-ssl-", ".key");
+        Path source = Files.createTempFile("chromite-test-ssl-", ".key");
         Path first;
         Path second;
         Path encryptedFile;
@@ -167,7 +167,7 @@ public class PostgreSslKeyTest extends DBeaverUnitTest {
 
     @Test
     public void legacyRetryCanConvertCopyWithoutChangingSavedConfiguration() throws Exception {
-        Path source = Files.createTempFile("dbeaver-test-ssl-", ".pem");
+        Path source = Files.createTempFile("chromite-test-ssl-", ".pem");
         List<Path> trackedFiles = new ArrayList<>();
         try {
             byte[] pkcs8 = KeyPairGenerator.getInstance("RSA").generateKeyPair().getPrivate().getEncoded();
@@ -206,7 +206,7 @@ public class PostgreSslKeyTest extends DBeaverUnitTest {
     public void preparesConnectionPropertiesOnlyForDefaultSslFactory() throws Exception {
         List<Path> trackedFiles = new ArrayList<>();
         PostgreSSLClientKeyManager keyManager = new PostgreSSLClientKeyManager(trackedFiles::add);
-        Path source = Files.createTempFile("dbeaver-test-ssl-", ".key");
+        Path source = Files.createTempFile("chromite-test-ssl-", ".key");
         Properties properties = new Properties();
         properties.setProperty("sslkey", source.toString());
         try {
@@ -234,7 +234,7 @@ public class PostgreSslKeyTest extends DBeaverUnitTest {
 
     @Test
     public void sslOverridesFromPropertiesAndUrlDoNotReadTheHandlerKey() throws Exception {
-        Path missingKey = Files.createTempFile("dbeaver-test-ssl-", ".key");
+        Path missingKey = Files.createTempFile("chromite-test-ssl-", ".key");
         Files.delete(missingKey);
         DBPDataSourceContainer container = mock(DBPDataSourceContainer.class);
         DBPDriver driver = mock(DBPDriver.class);
@@ -301,8 +301,8 @@ public class PostgreSslKeyTest extends DBeaverUnitTest {
 
     @Test
     public void convertsTheKeyFromMergedDriverProperties() throws Exception {
-        Path source = Files.createTempFile("dbeaver-test-ssl-", ".key");
-        Path missingHandlerKey = Files.createTempFile("dbeaver-test-ssl-", ".key");
+        Path source = Files.createTempFile("chromite-test-ssl-", ".key");
+        Path missingHandlerKey = Files.createTempFile("chromite-test-ssl-", ".key");
         Files.delete(missingHandlerKey);
         DBPDataSourceContainer container = mock(DBPDataSourceContainer.class);
         DBPDriver driver = mock(DBPDriver.class);
@@ -342,7 +342,7 @@ public class PostgreSslKeyTest extends DBeaverUnitTest {
         DBPConnectionConfiguration config = new DBPConnectionConfiguration();
         when(container.getActualConnectionConfiguration()).thenReturn(config);
         TestPostgreDataSource dataSource = new TestPostgreDataSource(container);
-        Path source = Files.createTempFile("dbeaver-test-ssl-", ".key");
+        Path source = Files.createTempFile("chromite-test-ssl-", ".key");
         Path missing = source.resolveSibling(source.getFileName() + ".missing");
         DBWHandlerDescriptor descriptor = mock(DBWHandlerDescriptor.class);
         when(descriptor.getId()).thenReturn(PostgreConstants.HANDLER_SSL);
@@ -458,7 +458,7 @@ public class PostgreSslKeyTest extends DBeaverUnitTest {
     @Test
     public void detectsPkcs8PemInFileOrStoredKeyWithoutReadingEntireFile() throws Exception {
         DBWHandlerConfiguration handler = new DBWHandlerConfiguration(mock(DBWHandlerDescriptor.class), null);
-        Path source = Files.createTempFile("dbeaver-test-ssl-", ".pem");
+        Path source = Files.createTempFile("chromite-test-ssl-", ".pem");
         try {
             Files.writeString(source, "-----BEGIN PRIVATE KEY-----\nAAAA\n-----END PRIVATE KEY-----\n");
             handler.setProperty(SSLHandlerTrustStoreImpl.PROP_SSL_CLIENT_KEY, source.toString());

@@ -14,20 +14,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.controls.resultset.panel.valueviewer;
+package com.seizia.chromite.ui.controls.resultset.panel.valueviewer;
 
 import org.eclipse.core.expressions.PropertyTester;
 import org.eclipse.ui.IWorkbenchPart;
-import org.jkiss.dbeaver.ui.controls.resultset.IResultSetPanel;
-import org.jkiss.dbeaver.ui.controls.resultset.ResultSetViewer;
-import org.jkiss.dbeaver.ui.controls.resultset.handler.ResultSetHandlerMain;
+import com.seizia.chromite.ui.controls.resultset.IResultSetPanel;
+import com.seizia.chromite.ui.controls.resultset.ResultSetViewer;
+import com.seizia.chromite.ui.controls.resultset.handler.ResultSetHandlerMain;
 
 /**
  * ValueViewPropertyTester
  */
 public class ValueViewPropertyTester extends PropertyTester
 {
-    public static final String NAMESPACE = "org.jkiss.dbeaver.core.resultset.panel.valueView";
+    public static final String NAMESPACE = "com.seizia.chromite.core.resultset.panel.valueView";
 
     public static final String PROP_ACTIVE = "active";
 

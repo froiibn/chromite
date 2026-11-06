@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.dialogs.connection;
+package com.seizia.chromite.ui.dialogs.connection;
 
 import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.Status;
@@ -32,22 +32,22 @@ import org.eclipse.swt.widgets.Text;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.DBIcon;
-import org.jkiss.dbeaver.model.DBIconComposite;
-import org.jkiss.dbeaver.model.DBPImage;
-import org.jkiss.dbeaver.model.DatabaseURL;
-import org.jkiss.dbeaver.model.connection.DBPConnectionConfiguration;
-import org.jkiss.dbeaver.model.connection.DBPDataSourceProviderDescriptor;
-import org.jkiss.dbeaver.model.connection.DBPDriver;
-import org.jkiss.dbeaver.model.runtime.AbstractJob;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.registry.DataSourceProviderRegistry;
-import org.jkiss.dbeaver.ui.DBeaverIcons;
-import org.jkiss.dbeaver.ui.internal.UIConnectionMessages;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.controls.TreeContentProvider;
-import org.jkiss.dbeaver.ui.dialogs.BaseDialog;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.DBIcon;
+import com.seizia.chromite.model.DBIconComposite;
+import com.seizia.chromite.model.DBPImage;
+import com.seizia.chromite.model.DatabaseURL;
+import com.seizia.chromite.model.connection.DBPConnectionConfiguration;
+import com.seizia.chromite.model.connection.DBPDataSourceProviderDescriptor;
+import com.seizia.chromite.model.connection.DBPDriver;
+import com.seizia.chromite.model.runtime.AbstractJob;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.registry.DataSourceProviderRegistry;
+import com.seizia.chromite.ui.SwtIcons;
+import com.seizia.chromite.ui.internal.UIConnectionMessages;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.controls.TreeContentProvider;
+import com.seizia.chromite.ui.dialogs.BaseDialog;
 import org.jkiss.utils.CommonUtils;
 
 import java.util.*;
@@ -97,7 +97,7 @@ public class NewConnectionFromUrlDialog extends BaseDialog {
 
             errorLabel = new CLabel(composite, SWT.NONE);
             errorLabel.setLayoutData(new GridData(GridData.FILL_HORIZONTAL));
-            errorLabel.setImage(DBeaverIcons.getImage(DBIcon.SMALL_ERROR));
+            errorLabel.setImage(SwtIcons.getImage(DBIcon.SMALL_ERROR));
             errorLabel.setVisible(false);
 
             final AbstractJob refreshJob = new AbstractJob("Refresh suitable drivers timeout") {
@@ -248,14 +248,14 @@ public class NewConnectionFromUrlDialog extends BaseDialog {
         public Image getImage(Object element) {
             if (element instanceof Map.Entry) {
                 final var entry = (Map.Entry<DBPDataSourceProviderDescriptor, List<DriverInfo>>) element;
-                return DBeaverIcons.getImage(entry.getKey().getIcon());
+                return SwtIcons.getImage(entry.getKey().getIcon());
             }
             if (element instanceof DriverInfo) {
                 final DriverInfo info = (DriverInfo) element;
                 final DBPImage icon = info.driver.getIcon();
                 return info.genuineUrl
-                    ? DBeaverIcons.getImage(icon)
-                    : DBeaverIcons.getImage(new DBIconComposite(icon, false, null, null, null, DBIcon.OVER_LAMP));
+                    ? SwtIcons.getImage(icon)
+                    : SwtIcons.getImage(new DBIconComposite(icon, false, null, null, null, DBIcon.OVER_LAMP));
             }
             return null;
         }

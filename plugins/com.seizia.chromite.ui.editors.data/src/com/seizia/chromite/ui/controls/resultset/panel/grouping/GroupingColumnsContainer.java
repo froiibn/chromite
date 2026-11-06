@@ -14,15 +14,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.controls.resultset.panel.grouping;
+package com.seizia.chromite.ui.controls.resultset.panel.grouping;
 
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.model.sql.SQLGroupingAttribute;
-import org.jkiss.dbeaver.ui.controls.resultset.panel.grouping.column.GroupingColumn;
-import org.jkiss.dbeaver.ui.controls.resultset.panel.grouping.column.GroupingFunctionColumn;
-import org.jkiss.dbeaver.ui.controls.resultset.panel.grouping.column.UniqueGroupingColumn;
-import org.jkiss.dbeaver.ui.controls.resultset.panel.grouping.column.impl.SQLGroupingAttributeGroupingColumn;
-import org.jkiss.dbeaver.ui.controls.resultset.panel.grouping.column.impl.TransformerGroupingFunctionColumn;
+import com.seizia.chromite.model.sql.SQLGroupingAttribute;
+import com.seizia.chromite.ui.controls.resultset.panel.grouping.column.GroupingColumn;
+import com.seizia.chromite.ui.controls.resultset.panel.grouping.column.GroupingFunctionColumn;
+import com.seizia.chromite.ui.controls.resultset.panel.grouping.column.UniqueGroupingColumn;
+import com.seizia.chromite.ui.controls.resultset.panel.grouping.column.impl.SQLGroupingAttributeGroupingColumn;
+import com.seizia.chromite.ui.controls.resultset.panel.grouping.column.impl.TransformerGroupingFunctionColumn;
 
 import java.util.*;
 

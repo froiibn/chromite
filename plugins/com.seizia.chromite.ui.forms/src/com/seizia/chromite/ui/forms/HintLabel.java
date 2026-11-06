@@ -14,19 +14,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.forms;
+package com.seizia.chromite.ui.forms;
 
 import org.eclipse.jface.layout.GridLayoutFactory;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Label;
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.css.CSSUtils;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.css.CSSUtils;
 
 /** A description styled by the active Eclipse theme. */
 final class HintLabel extends Composite {
-    private static final String CSS_CLASS = "dbeaverFormHint";
+    private static final String CSS_CLASS = "chromiteFormHint";
 
     HintLabel(@NotNull Composite parent, @NotNull String text) {
         super(parent, SWT.NONE);

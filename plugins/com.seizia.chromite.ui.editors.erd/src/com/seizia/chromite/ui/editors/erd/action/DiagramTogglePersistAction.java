@@ -17,15 +17,15 @@
 /*
  * Created on Jul 23, 2004
  */
-package org.jkiss.dbeaver.ui.editors.erd.action;
+package com.seizia.chromite.ui.editors.erd.action;
 
 import org.eclipse.core.runtime.NullProgressMonitor;
 import org.eclipse.jface.action.Action;
-import org.jkiss.dbeaver.ui.DBeaverIcons;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.editors.erd.ERDIcon;
-import org.jkiss.dbeaver.ui.editors.erd.editor.ERDEditorEmbedded;
-import org.jkiss.dbeaver.ui.editors.erd.internal.ERDUIMessages;
+import com.seizia.chromite.ui.SwtIcons;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.editors.erd.ERDIcon;
+import com.seizia.chromite.ui.editors.erd.editor.ERDEditorEmbedded;
+import com.seizia.chromite.ui.editors.erd.internal.ERDUIMessages;
 
 /**
  * Action to toggle diagram persistence
@@ -35,7 +35,7 @@ public class DiagramTogglePersistAction extends Action {
 
     public DiagramTogglePersistAction(ERDEditorEmbedded editor) {
         super(ERDUIMessages.erd_action_diagram_toggle_persist_text, AS_CHECK_BOX);
-        setImageDescriptor(DBeaverIcons.getImageDescriptor(ERDIcon.LAYOUT_SAVE));
+        setImageDescriptor(SwtIcons.getImageDescriptor(ERDIcon.LAYOUT_SAVE));
         setDescription(ERDUIMessages.erd_action_diagram_toggle_persist_description);
         setToolTipText(getDescription());
         this.editor = editor;

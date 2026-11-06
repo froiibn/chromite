@@ -14,29 +14,29 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.sql.procedural;
+package com.seizia.chromite.model.sql.procedural;
 
 import org.antlr.v4.runtime.CharStreams;
 import org.antlr.v4.runtime.CommonTokenStream;
 import org.antlr.v4.runtime.tree.Trees;
 import org.jkiss.code.NotNull;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.model.impl.struct.RelationalObjectType;
-import org.jkiss.dbeaver.model.lsm.LSMAnalyzerParameters;
-import org.jkiss.dbeaver.model.lsm.sql.impl.syntax.SQLStandardLexer;
-import org.jkiss.dbeaver.model.lsm.sql.impl.syntax.SQLStandardParser;
-import org.jkiss.dbeaver.model.sql.SQLDialect;
-import org.jkiss.dbeaver.model.sql.SQLSyntaxManager;
-import org.jkiss.dbeaver.model.sql.semantics.SQLQuerySymbolOrigin;
-import org.jkiss.dbeaver.model.sql.semantics.model.SQLQueryModel;
-import org.jkiss.dbeaver.model.sql.semantics.model.dml.SQLQueryCallModel;
-import org.jkiss.dbeaver.model.sql.semantics.model.dml.SQLQuerySelectIntoModel;
-import org.jkiss.dbeaver.model.sql.semantics.model.programmaticals.SQLQueryRoutineCreateModel;
-import org.jkiss.dbeaver.model.sql.semantics.model.programmaticals.SQLQueryRoutineReturn;
-import org.jkiss.dbeaver.model.sql.semantics.model.programmaticals.SQLQueryTriggerCreateModel;
-import org.jkiss.dbeaver.model.sql.semantics.model.statements.SQLQueryEmbeddedStatement;
-import org.jkiss.dbeaver.model.sql.semantics.model.statements.SQLQueryStatementSequence;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
+import com.seizia.chromite.model.impl.struct.RelationalObjectType;
+import com.seizia.chromite.model.lsm.LSMAnalyzerParameters;
+import com.seizia.chromite.model.lsm.sql.impl.syntax.SQLStandardLexer;
+import com.seizia.chromite.model.lsm.sql.impl.syntax.SQLStandardParser;
+import com.seizia.chromite.model.sql.SQLDialect;
+import com.seizia.chromite.model.sql.SQLSyntaxManager;
+import com.seizia.chromite.model.sql.semantics.SQLQuerySymbolOrigin;
+import com.seizia.chromite.model.sql.semantics.model.SQLQueryModel;
+import com.seizia.chromite.model.sql.semantics.model.dml.SQLQueryCallModel;
+import com.seizia.chromite.model.sql.semantics.model.dml.SQLQuerySelectIntoModel;
+import com.seizia.chromite.model.sql.semantics.model.programmaticals.SQLQueryRoutineCreateModel;
+import com.seizia.chromite.model.sql.semantics.model.programmaticals.SQLQueryRoutineReturn;
+import com.seizia.chromite.model.sql.semantics.model.programmaticals.SQLQueryTriggerCreateModel;
+import com.seizia.chromite.model.sql.semantics.model.statements.SQLQueryEmbeddedStatement;
+import com.seizia.chromite.model.sql.semantics.model.statements.SQLQueryStatementSequence;
+import com.seizia.chromite.runtime.DBWorkbench;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 

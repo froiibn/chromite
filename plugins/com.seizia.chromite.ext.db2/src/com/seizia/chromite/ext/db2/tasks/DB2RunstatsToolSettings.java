@@ -14,22 +14,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.db2.tasks;
+package com.seizia.chromite.ext.db2.tasks;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.ext.db2.model.DB2TableBase;
-import org.jkiss.dbeaver.model.app.DBPProject;
-import org.jkiss.dbeaver.model.data.json.JSONUtils;
-import org.jkiss.dbeaver.model.meta.IPropertyValueListProvider;
-import org.jkiss.dbeaver.model.meta.IPropertyValueValidator;
-import org.jkiss.dbeaver.model.meta.Property;
-import org.jkiss.dbeaver.model.runtime.DBRRunnableContext;
-import org.jkiss.dbeaver.model.sql.task.SQLToolExecuteSettings;
+import com.seizia.chromite.ext.db2.model.DB2TableBase;
+import com.seizia.chromite.model.app.DBPProject;
+import com.seizia.chromite.model.data.json.JSONUtils;
+import com.seizia.chromite.model.meta.IPropertyValueListProvider;
+import com.seizia.chromite.model.meta.IPropertyValueValidator;
+import com.seizia.chromite.model.meta.Property;
+import com.seizia.chromite.model.runtime.DBRRunnableContext;
+import com.seizia.chromite.model.sql.task.SQLToolExecuteSettings;
 
 import java.util.Map;
 
-import static org.jkiss.dbeaver.ext.db2.tasks.DB2RunstatsOptions.*;
+import static com.seizia.chromite.ext.db2.tasks.DB2RunstatsOptions.*;
 
 public class DB2RunstatsToolSettings extends SQLToolExecuteSettings<DB2TableBase> {
 

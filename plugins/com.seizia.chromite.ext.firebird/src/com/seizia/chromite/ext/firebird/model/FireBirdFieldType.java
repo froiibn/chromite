@@ -14,11 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.firebird.model;
+package com.seizia.chromite.ext.firebird.model;
 
 import java.sql.Types;
 
-import org.jkiss.dbeaver.model.DBPDataKind;
+import com.seizia.chromite.model.DBPDataKind;
 
 public enum FireBirdFieldType {
     SMALLINT(7, Types.SMALLINT, DBPDataKind.NUMERIC, "SMALLINT"),

@@ -15,10 +15,10 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.model.connection;
+package com.seizia.chromite.model.connection;
 
-import org.jkiss.dbeaver.model.DBPImage;
-import org.jkiss.dbeaver.model.navigator.DBNNode;
+import com.seizia.chromite.model.DBPImage;
+import com.seizia.chromite.model.navigator.DBNNode;
 
 /**
  * DBPEditorContribution

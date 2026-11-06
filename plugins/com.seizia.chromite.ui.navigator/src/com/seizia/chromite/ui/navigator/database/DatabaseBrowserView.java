@@ -14,27 +14,27 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.navigator.database;
+package com.seizia.chromite.ui.navigator.database;
 
 import org.eclipse.swt.widgets.Composite;
 import org.jkiss.code.NotNull;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.app.DBPProject;
-import org.jkiss.dbeaver.model.navigator.DBNEmptyNode;
-import org.jkiss.dbeaver.model.navigator.DBNModel;
-import org.jkiss.dbeaver.model.navigator.DBNNode;
-import org.jkiss.dbeaver.model.navigator.DBNProject;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.ui.DBeaverIcons;
-import org.jkiss.dbeaver.ui.UIExecutionQueue;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.navigator.INavigatorFilter;
-import org.jkiss.dbeaver.ui.navigator.SmartNavigatorTreeFilter;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.app.DBPProject;
+import com.seizia.chromite.model.navigator.DBNEmptyNode;
+import com.seizia.chromite.model.navigator.DBNModel;
+import com.seizia.chromite.model.navigator.DBNNode;
+import com.seizia.chromite.model.navigator.DBNProject;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.ui.SwtIcons;
+import com.seizia.chromite.ui.UIExecutionQueue;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.navigator.INavigatorFilter;
+import com.seizia.chromite.ui.navigator.SmartNavigatorTreeFilter;
 import org.jkiss.utils.CommonUtils;
 
 public class DatabaseBrowserView extends NavigatorViewBase {
-    public static final String VIEW_ID = "org.jkiss.dbeaver.core.databaseBrowser";
+    public static final String VIEW_ID = "com.seizia.chromite.core.databaseBrowser";
 
     private static final Log log = Log.getLog(DatabaseBrowserView.class);
     private DBNNode rootNode;
@@ -84,7 +84,7 @@ public class DatabaseBrowserView extends NavigatorViewBase {
                 try {
                     DBNNode node = getNodeFromSecondaryId(secondaryId);
                     setPartName(node.getNodeDisplayName());
-                    setTitleImage(DBeaverIcons.getImage(node.getNodeIconDefault()));
+                    setTitleImage(SwtIcons.getImage(node.getNodeIconDefault()));
                 } catch (DBException e) {
                     log.error("Error creating DB browser view", e);
                 }

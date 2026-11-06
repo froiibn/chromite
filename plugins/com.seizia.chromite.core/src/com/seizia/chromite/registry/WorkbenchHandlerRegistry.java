@@ -14,15 +14,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.registry;
+package com.seizia.chromite.registry;
 
 import org.eclipse.core.runtime.IConfigurationElement;
 import org.eclipse.core.runtime.IExtensionRegistry;
 import org.eclipse.core.runtime.Platform;
 import org.jkiss.code.NotNull;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.model.impl.AbstractDescriptor;
-import org.jkiss.dbeaver.ui.IWorkbenchWindowInitializer;
+import com.seizia.chromite.model.impl.AbstractDescriptor;
+import com.seizia.chromite.ui.IWorkbenchWindowInitializer;
 import org.jkiss.utils.CommonUtils;
 
 import java.util.Arrays;
@@ -32,7 +32,7 @@ import java.util.List;
 
 public class WorkbenchHandlerRegistry
 {
-    public static final String EXTENSION_ID = "org.jkiss.dbeaver.workbenchHandler"; //$NON-NLS-1$
+    public static final String EXTENSION_ID = "com.seizia.chromite.workbenchHandler"; //$NON-NLS-1$
     public static final String WORKBENCH_WINDOW_INITIALIZER = "workbenchWindowInitializer";
 
     private static WorkbenchHandlerRegistry instance = null;

@@ -14,12 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.sql;
+package com.seizia.chromite.model.sql;
 
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.model.DBPIdentifierCase;
-import org.jkiss.dbeaver.model.impl.sql.BasicSQLDialect;
-import org.jkiss.junit.DBeaverUnitTest;
+import com.seizia.chromite.model.DBPIdentifierCase;
+import com.seizia.chromite.model.impl.sql.BasicSQLDialect;
+import com.seizia.chromite.junit.ChromiteUnitTest;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -33,7 +33,7 @@ import java.util.Map;
  * Prepared input represents an identifier already obtained from database metadata, while forced-unquoted output is
  * the form suitable for direct metadata-cache lookup.
  */
-public class SQLIdentifierCanonicalizationTest extends DBeaverUnitTest {
+public class SQLIdentifierCanonicalizationTest extends ChromiteUnitTest {
     // LOWER/LOWER: TDengine declares this combination; generic drivers can configure it explicitly.
     private static final IdentifierBehavior LOWER_LOWER = new IdentifierBehavior(
         "LOWER/LOWER (TDengine)",

@@ -14,9 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.qm.filters;
+package com.seizia.chromite.model.qm.filters;
 
-import org.jkiss.dbeaver.model.qm.QMEventFilter;
+import com.seizia.chromite.model.qm.QMEventFilter;
 
 public class QMCursorFilter {
     private final QMEventCriteria criteria;

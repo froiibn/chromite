@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.utils;
+package com.seizia.chromite.utils;
 
 import org.jkiss.code.NotNull;
 

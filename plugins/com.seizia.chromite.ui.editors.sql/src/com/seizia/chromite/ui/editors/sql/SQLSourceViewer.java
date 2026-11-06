@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.ui.editors.sql;
+package com.seizia.chromite.ui.editors.sql;
 
 import org.eclipse.jface.action.Action;
 import org.eclipse.jface.action.IAction;
@@ -26,19 +26,19 @@ import org.eclipse.jface.text.TextSelection;
 import org.eclipse.jface.viewers.ISelection;
 import org.eclipse.ui.IEditorInput;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.model.*;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.model.struct.DBSEntity;
-import org.jkiss.dbeaver.model.struct.DBSObject;
-import org.jkiss.dbeaver.model.struct.DBStructUtils;
-import org.jkiss.dbeaver.ui.ActionUtils;
-import org.jkiss.dbeaver.ui.DBeaverIcons;
-import org.jkiss.dbeaver.ui.UIIcon;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.editors.IDatabaseEditorInput;
-import org.jkiss.dbeaver.ui.editors.sql.handlers.SQLEditorHandlerOpenEditor;
-import org.jkiss.dbeaver.ui.editors.sql.handlers.SQLNavigatorContext;
-import org.jkiss.dbeaver.ui.editors.sql.internal.SQLEditorMessages;
+import com.seizia.chromite.model.*;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.model.struct.DBSEntity;
+import com.seizia.chromite.model.struct.DBSObject;
+import com.seizia.chromite.model.struct.DBStructUtils;
+import com.seizia.chromite.ui.ActionUtils;
+import com.seizia.chromite.ui.SwtIcons;
+import com.seizia.chromite.ui.UIIcon;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.editors.IDatabaseEditorInput;
+import com.seizia.chromite.ui.editors.sql.handlers.SQLEditorHandlerOpenEditor;
+import com.seizia.chromite.ui.editors.sql.handlers.SQLNavigatorContext;
+import com.seizia.chromite.ui.editors.sql.internal.SQLEditorMessages;
 
 import java.util.Collection;
 import java.util.HashMap;
@@ -57,7 +57,7 @@ public class SQLSourceViewer<T extends DBPScriptObject & DBSObject> extends SQLE
     protected Boolean showFullDDL;
     private Boolean showPartitionsDDL;
 
-    private final IAction OPEN_CONSOLE_ACTION = new Action(SQLEditorMessages.source_viewer_open_in_sql_console, DBeaverIcons.getImageDescriptor(UIIcon.SQL_CONSOLE)) {
+    private final IAction OPEN_CONSOLE_ACTION = new Action(SQLEditorMessages.source_viewer_open_in_sql_console, SwtIcons.getImageDescriptor(UIIcon.SQL_CONSOLE)) {
         @Override
         public void run() 
         {
@@ -178,7 +178,7 @@ public class SQLSourceViewer<T extends DBPScriptObject & DBSObject> extends SQLE
                 toolBarManager.add(ActionUtils.makeActionContribution(
                         new Action(SQLEditorMessages.source_viewer_show_ddl_text, Action.AS_CHECK_BOX) {
                             {
-                                setImageDescriptor(DBeaverIcons.getImageDescriptor(DBIcon.TREE_TABLE_EXTERNAL));
+                                setImageDescriptor(SwtIcons.getImageDescriptor(DBIcon.TREE_TABLE_EXTERNAL));
                                 setToolTipText(SQLEditorMessages.source_viewer_show_ddl_tip);
                                 setChecked(getShowFullDDL());
                             }
@@ -195,7 +195,7 @@ public class SQLSourceViewer<T extends DBPScriptObject & DBSObject> extends SQLE
                 toolBarManager.add(ActionUtils.makeActionContribution(
                         new Action(SQLEditorMessages.source_viewer_show_permissions_text, Action.AS_CHECK_BOX) {
                             {
-                                setImageDescriptor(DBeaverIcons.getImageDescriptor(DBIcon.TREE_PERMISSIONS));
+                                setImageDescriptor(SwtIcons.getImageDescriptor(DBIcon.TREE_PERMISSIONS));
                                 setToolTipText(SQLEditorMessages.source_viewer_show_permissions_tip);
                                 setChecked(getShowPermissions());
                             }
@@ -213,7 +213,7 @@ public class SQLSourceViewer<T extends DBPScriptObject & DBSObject> extends SQLE
                 toolBarManager.add(ActionUtils.makeActionContribution(
                     new Action(SQLEditorMessages.source_viewer_separate_fk_text, Action.AS_CHECK_BOX) {
                         {
-                            setImageDescriptor(DBeaverIcons.getImageDescriptor(DBIcon.TREE_FOREIGN_KEY));
+                            setImageDescriptor(SwtIcons.getImageDescriptor(DBIcon.TREE_FOREIGN_KEY));
                             setToolTipText(SQLEditorMessages.source_viewer_separate_fk_tip);
                             setChecked(getSeparateFKStmts());
                         }
@@ -230,7 +230,7 @@ public class SQLSourceViewer<T extends DBPScriptObject & DBSObject> extends SQLE
                 toolBarManager.add(ActionUtils.makeActionContribution(
                     new Action(SQLEditorMessages.source_viewer_separate_constraint_indexes_text, Action.AS_CHECK_BOX) {
                         {
-                            setImageDescriptor(DBeaverIcons.getImageDescriptor(DBIcon.TREE_CONSTRAINT));
+                            setImageDescriptor(SwtIcons.getImageDescriptor(DBIcon.TREE_CONSTRAINT));
                             setToolTipText(SQLEditorMessages.source_viewer_separate_constraint_indexes_tip);
                             setChecked(getSeparateConstraintIndexes());
                         }
@@ -247,7 +247,7 @@ public class SQLSourceViewer<T extends DBPScriptObject & DBSObject> extends SQLE
                 toolBarManager.add(ActionUtils.makeActionContribution(
                         new Action(SQLEditorMessages.source_viewer_show_comments_text, Action.AS_CHECK_BOX) {
                             {
-                                setImageDescriptor(DBeaverIcons.getImageDescriptor(DBIcon.TYPE_TEXT));
+                                setImageDescriptor(SwtIcons.getImageDescriptor(DBIcon.TYPE_TEXT));
                                 setToolTipText(SQLEditorMessages.source_viewer_show_comments_tip);
                                 setChecked(getShowColumnComments());
                             }
@@ -264,7 +264,7 @@ public class SQLSourceViewer<T extends DBPScriptObject & DBSObject> extends SQLE
                 toolBarManager.add(ActionUtils.makeActionContribution(
                     new Action(SQLEditorMessages.source_viewer_show_partitions_ddl_text, Action.AS_CHECK_BOX) {
                         {
-                            setImageDescriptor(DBeaverIcons.getImageDescriptor(DBIcon.TREE_PARTITION));
+                            setImageDescriptor(SwtIcons.getImageDescriptor(DBIcon.TREE_PARTITION));
                             setToolTipText(SQLEditorMessages.source_viewer_show_partitions_ddl_tip);
                             setChecked(getShowPartitionsDDL());
                         }

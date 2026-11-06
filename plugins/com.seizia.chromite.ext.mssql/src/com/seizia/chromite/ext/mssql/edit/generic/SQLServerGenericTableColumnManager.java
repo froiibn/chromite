@@ -14,11 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.mssql.edit.generic;
+package com.seizia.chromite.ext.mssql.edit.generic;
 
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.ext.generic.edit.GenericTableColumnManager;
-import org.jkiss.dbeaver.ext.generic.model.GenericTableColumn;
+import com.seizia.chromite.ext.generic.edit.GenericTableColumnManager;
+import com.seizia.chromite.ext.generic.model.GenericTableColumn;
 
 import java.util.Map;
 

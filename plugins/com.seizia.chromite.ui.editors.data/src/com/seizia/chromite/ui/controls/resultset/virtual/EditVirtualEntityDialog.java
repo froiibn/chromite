@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.controls.resultset.virtual;
+package com.seizia.chromite.ui.controls.resultset.virtual;
 
 import org.eclipse.jface.dialogs.IDialogConstants;
 import org.eclipse.osgi.util.NLS;
@@ -31,26 +31,26 @@ import org.eclipse.swt.widgets.TableItem;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.DBIcon;
-import org.jkiss.dbeaver.model.DBPEvaluationContext;
-import org.jkiss.dbeaver.model.DBUtils;
-import org.jkiss.dbeaver.model.data.DBDAttributeBinding;
-import org.jkiss.dbeaver.model.data.DBDAttributeTransformerDescriptor;
-import org.jkiss.dbeaver.model.struct.DBSEntity;
-import org.jkiss.dbeaver.model.struct.DBSEntityAttribute;
-import org.jkiss.dbeaver.model.struct.DBSEntityConstraint;
-import org.jkiss.dbeaver.model.virtual.*;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.ui.DBeaverIcons;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.controls.resultset.ResultSetViewer;
-import org.jkiss.dbeaver.ui.controls.resultset.internal.ResultSetMessages;
-import org.jkiss.dbeaver.ui.dialogs.BaseTitleDialog;
-import org.jkiss.dbeaver.ui.dialogs.IDialogPageContainer;
-import org.jkiss.dbeaver.ui.editors.object.struct.EditConstraintPage;
-import org.jkiss.dbeaver.ui.editors.object.struct.EditDictionaryPage;
-import org.jkiss.dbeaver.ui.editors.object.struct.EditForeignKeyPage;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.DBIcon;
+import com.seizia.chromite.model.DBPEvaluationContext;
+import com.seizia.chromite.model.DBUtils;
+import com.seizia.chromite.model.data.DBDAttributeBinding;
+import com.seizia.chromite.model.data.DBDAttributeTransformerDescriptor;
+import com.seizia.chromite.model.struct.DBSEntity;
+import com.seizia.chromite.model.struct.DBSEntityAttribute;
+import com.seizia.chromite.model.struct.DBSEntityConstraint;
+import com.seizia.chromite.model.virtual.*;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.ui.SwtIcons;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.controls.resultset.ResultSetViewer;
+import com.seizia.chromite.ui.controls.resultset.internal.ResultSetMessages;
+import com.seizia.chromite.ui.dialogs.BaseTitleDialog;
+import com.seizia.chromite.ui.dialogs.IDialogPageContainer;
+import com.seizia.chromite.ui.editors.object.struct.EditConstraintPage;
+import com.seizia.chromite.ui.editors.object.struct.EditDictionaryPage;
+import com.seizia.chromite.ui.editors.object.struct.EditForeignKeyPage;
 import org.jkiss.utils.CommonUtils;
 
 import java.lang.reflect.InvocationTargetException;
@@ -166,7 +166,7 @@ public class EditVirtualEntityDialog extends BaseTitleDialog implements IDialogP
             editDictionaryPage.createControl(tabFolder);
             CTabItem dictItem = new CTabItem(tabFolder, SWT.NONE);
             dictItem.setText(ResultSetMessages.controls_resultset_virtual_dictionary_page_text);
-            dictItem.setImage(DBeaverIcons.getImage(DBIcon.TREE_PACKAGE));
+            dictItem.setImage(SwtIcons.getImage(DBIcon.TREE_PACKAGE));
             dictItem.setControl(editDictionaryPage.getControl());
             dictItem.setData(InitPage.DICTIONARY);
             dictItem.setData(DATA_PAGE, editDictionaryPage);
@@ -176,7 +176,7 @@ public class EditVirtualEntityDialog extends BaseTitleDialog implements IDialogP
     private void createColumnsPage(CTabFolder tabFolder) {
         CTabItem attrsItem = new CTabItem(tabFolder, SWT.NONE);
         attrsItem.setText(ResultSetMessages.controls_resultset_virtual_columns_page_text);
-        attrsItem.setImage(DBeaverIcons.getImage(DBIcon.TREE_COLUMN));
+        attrsItem.setImage(SwtIcons.getImage(DBIcon.TREE_COLUMN));
         attrsItem.setData(InitPage.ATTRIBUTES);
 
         columnsPage = new EditVirtualColumnsPage(viewer, vEntity);
@@ -231,7 +231,7 @@ public class EditVirtualEntityDialog extends BaseTitleDialog implements IDialogP
         }
         CTabItem ukItem = new CTabItem(tabFolder, SWT.NONE);
         ukItem.setText("Virtual Unique Key");
-        ukItem.setImage(DBeaverIcons.getImage(DBIcon.TREE_UNIQUE_KEY));
+        ukItem.setImage(SwtIcons.getImage(DBIcon.TREE_UNIQUE_KEY));
         ukItem.setData(InitPage.UNIQUE_KEY);
 
         editUniqueKeyPage = new EditConstraintPage(
@@ -252,7 +252,7 @@ public class EditVirtualEntityDialog extends BaseTitleDialog implements IDialogP
     private void createForeignKeysPage(CTabFolder tabFolder) {
         CTabItem fkItem = new CTabItem(tabFolder, SWT.NONE);
         fkItem.setText(ResultSetMessages.controls_resultset_virtual_foreignkey_page_text);
-        fkItem.setImage(DBeaverIcons.getImage(DBIcon.TREE_FOREIGN_KEY));
+        fkItem.setImage(SwtIcons.getImage(DBIcon.TREE_FOREIGN_KEY));
         fkItem.setData(InitPage.FOREIGN_KEYS);
 
         Composite panel = new Composite(tabFolder, 1);
@@ -323,10 +323,10 @@ public class EditVirtualEntityDialog extends BaseTitleDialog implements IDialogP
         }
 
         TableItem item = new TableItem(fkTable, SWT.NONE);
-        //item.setImage(0, DBeaverIcons.getImage(DBIcon.TREE_FOREIGN_KEY));
+        //item.setImage(0, SwtIcons.getImage(DBIcon.TREE_FOREIGN_KEY));
         DBSEntity refEntity = referencedConstraint.getParentObject();
 
-        item.setImage(0, DBeaverIcons.getImage(DBIcon.TREE_FOREIGN_KEY));
+        item.setImage(0, SwtIcons.getImage(DBIcon.TREE_FOREIGN_KEY));
         if (referencedConstraint != null) {
             item.setText(0, DBUtils.getObjectFullName(refEntity, DBPEvaluationContext.UI));
         }
@@ -336,7 +336,7 @@ public class EditVirtualEntityDialog extends BaseTitleDialog implements IDialogP
             .collect(Collectors.joining(","));
         item.setText(1, "(" + ownAttrNames + ") -> (" + refAttrNames + ")");
 
-        item.setImage(2, DBeaverIcons.getImage(refEntity.getDataSource().getContainer().getDriver().getIcon()));
+        item.setImage(2, SwtIcons.getImage(refEntity.getDataSource().getContainer().getDriver().getIcon()));
         item.setText(2, refEntity.getDataSource().getContainer().getName());
 
         item.setData(fk);

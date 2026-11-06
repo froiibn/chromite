@@ -14,9 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.altibase.model;
+package com.seizia.chromite.ext.altibase.model;
 
-import org.jkiss.dbeaver.ext.altibase.AltibaseConstants;
+import com.seizia.chromite.ext.altibase.AltibaseConstants;
 
 import java.sql.JDBCType;
 import java.sql.Types;

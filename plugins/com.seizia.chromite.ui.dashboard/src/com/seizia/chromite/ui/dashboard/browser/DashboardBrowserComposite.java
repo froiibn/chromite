@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.ui.dashboard.browser;
+package com.seizia.chromite.ui.dashboard.browser;
 
 import org.eclipse.jface.action.*;
 import org.eclipse.swt.SWT;
@@ -27,11 +27,11 @@ import org.eclipse.swt.layout.RowLayout;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Control;
 import org.eclipse.ui.IActionBars;
-import org.jkiss.dbeaver.model.dashboard.registry.DashboardItemConfiguration;
-import org.jkiss.dbeaver.ui.ActionBars;
-import org.jkiss.dbeaver.ui.dashboard.control.DashboardViewCompositeControl;
-import org.jkiss.dbeaver.ui.dashboard.model.DashboardContainer;
-import org.jkiss.dbeaver.ui.dashboard.model.DashboardItemContainer;
+import com.seizia.chromite.model.dashboard.registry.DashboardItemConfiguration;
+import com.seizia.chromite.ui.ActionBars;
+import com.seizia.chromite.ui.dashboard.control.DashboardViewCompositeControl;
+import com.seizia.chromite.ui.dashboard.model.DashboardContainer;
+import com.seizia.chromite.ui.dashboard.model.DashboardItemContainer;
 import org.jkiss.utils.CommonUtils;
 
 /**

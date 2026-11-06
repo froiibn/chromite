@@ -14,9 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.databricks;
+package com.seizia.chromite.ext.databricks;
 
-import org.jkiss.dbeaver.ext.generic.GenericDataSourceProvider;
+import com.seizia.chromite.ext.generic.GenericDataSourceProvider;
 
 public class DatabricksDataSourceProvider extends GenericDataSourceProvider<DatabricksDataSource> {
 

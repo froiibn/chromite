@@ -15,18 +15,18 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.registry;
+package com.seizia.chromite.registry;
 
 import org.eclipse.core.runtime.IConfigurationElement;
-import org.jkiss.dbeaver.model.edit.DBEObjectManager;
-import org.jkiss.dbeaver.model.impl.AbstractDescriptor;
+import com.seizia.chromite.model.edit.DBEObjectManager;
+import com.seizia.chromite.model.impl.AbstractDescriptor;
 
 /**
  * ObjectManagerDescriptor
  */
 public class ObjectManagerDescriptor extends AbstractDescriptor
 {
-    public static final String EXTENSION_ID = "org.jkiss.dbeaver.objectManager"; //NON-NLS-1 //$NON-NLS-1$
+    public static final String EXTENSION_ID = "com.seizia.chromite.objectManager"; //NON-NLS-1 //$NON-NLS-1$
 
     private String id;
     private ObjectType managerType;

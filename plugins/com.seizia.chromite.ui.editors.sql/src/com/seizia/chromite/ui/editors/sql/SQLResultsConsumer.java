@@ -14,11 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.editors.sql;
+package com.seizia.chromite.ui.editors.sql;
 
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.model.data.DBDDataReceiver;
-import org.jkiss.dbeaver.model.sql.SQLQuery;
+import com.seizia.chromite.model.data.DBDDataReceiver;
+import com.seizia.chromite.model.sql.SQLQuery;
 
 /**
  * SQLResultsConsumer

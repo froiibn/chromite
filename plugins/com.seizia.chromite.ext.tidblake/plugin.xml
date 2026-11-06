@@ -3,16 +3,16 @@
 
 <plugin>
 
-    <extension point="org.jkiss.dbeaver.generic.meta">
+    <extension point="com.seizia.chromite.generic.meta">
         <meta id="tidblake"
-              class="org.jkiss.dbeaver.ext.tidblake.model.TiDBLakeMetaModel"
+              class="com.seizia.chromite.ext.tidblake.model.TiDBLakeMetaModel"
               driverClass="com.tidbcloud.jdbc.LakeDriver"
               dialect="tidblake"/>
     </extension>
 
-    <extension point="org.jkiss.dbeaver.dataSourceProvider">
+    <extension point="com.seizia.chromite.dataSourceProvider">
         <datasource
-                class="org.jkiss.dbeaver.ext.tidblake.TiDBLakeDataSourceProvider"
+                class="com.seizia.chromite.ext.tidblake.TiDBLakeDataSourceProvider"
                 description="TiDBLake"
                 id="tidblake"
                 dataSourceType="tidb"
@@ -54,12 +54,12 @@
         </datasource>
     </extension>
 
-    <extension point="org.jkiss.dbeaver.sqlDialect">
-        <dialect id="tidblake" parent="generic" class="org.jkiss.dbeaver.ext.tidblake.model.TiDBLakeSQLDialect" label="TiDBLake" description="TiDBLake SQL dialect." icon="icons/tidb-small.svg">
+    <extension point="com.seizia.chromite.sqlDialect">
+        <dialect id="tidblake" parent="generic" class="com.seizia.chromite.ext.tidblake.model.TiDBLakeSQLDialect" label="TiDBLake" description="TiDBLake SQL dialect." icon="icons/tidb-small.svg">
         </dialect>
     </extension>
 
-    <extension point="org.jkiss.dbeaver.networkHandler">
+    <extension point="com.seizia.chromite.networkHandler">
         <handler
                 type="config"
                 id="tidblake-ssl"
@@ -70,8 +70,8 @@
                 secured="false"
                 desktop="false"
                 order="2"
-                handlerClass="org.jkiss.dbeaver.model.impl.net.SSLHandlerImpl">
-            <objectType name="org.jkiss.dbeaver.ext.tidblake.TiDBLakeDataSourceProvider"/>
+                handlerClass="com.seizia.chromite.model.impl.net.SSLHandlerImpl">
+            <objectType name="com.seizia.chromite.ext.tidblake.TiDBLakeDataSourceProvider"/>
         </handler>
     </extension>
 

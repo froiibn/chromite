@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.ext.iotdb.model;
+package com.seizia.chromite.ext.iotdb.model;
 
 import org.jkiss.dbeaver.DBException;
 

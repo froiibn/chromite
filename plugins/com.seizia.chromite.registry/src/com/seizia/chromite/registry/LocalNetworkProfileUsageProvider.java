@@ -14,12 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.registry;
+package com.seizia.chromite.registry;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.model.app.DBPWorkspace;
-import org.jkiss.dbeaver.model.net.DBWNetworkProfileUsageProvider;
+import com.seizia.chromite.model.app.DBPWorkspace;
+import com.seizia.chromite.model.net.DBWNetworkProfileUsageProvider;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;

@@ -14,11 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.impl.jdbc;
+package com.seizia.chromite.model.impl.jdbc;
 
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.model.exec.DBCException;
-import org.jkiss.junit.DBeaverUnitTest;
+import com.seizia.chromite.model.exec.DBCException;
+import com.seizia.chromite.junit.ChromiteUnitTest;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -29,7 +29,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Properties;
 
-public class AbstractJDBCConnectionValidatorTest extends DBeaverUnitTest {
+public class AbstractJDBCConnectionValidatorTest extends ChromiteUnitTest {
     private final JDBCConnectionValidator validator = new AbstractJDBCConnectionValidator() {
         @NotNull
         @Override

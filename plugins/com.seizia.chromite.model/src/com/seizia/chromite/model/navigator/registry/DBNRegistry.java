@@ -14,15 +14,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.navigator.registry;
+package com.seizia.chromite.model.navigator.registry;
 
 import org.eclipse.core.runtime.IConfigurationElement;
 import org.eclipse.core.runtime.IExtensionRegistry;
 import org.eclipse.core.runtime.Platform;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.navigator.*;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.navigator.*;
 import org.jkiss.utils.CommonUtils;
 
 import java.util.ArrayList;
@@ -31,7 +31,7 @@ import java.util.List;
 public class DBNRegistry {
     private static final Log log = Log.getLog(DBNRegistry.class);
 
-    public static final String EXTENSION_ID = "org.jkiss.dbeaver.navigator"; //$NON-NLS-1$
+    public static final String EXTENSION_ID = "com.seizia.chromite.navigator"; //$NON-NLS-1$
 
     private static DBNRegistry instance = null;
 

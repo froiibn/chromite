@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.controls.resultset.panel.grouping;
+package com.seizia.chromite.ui.controls.resultset.panel.grouping;
 
 import org.eclipse.jface.action.ActionContributionItem;
 import org.eclipse.jface.action.IContributionManager;
@@ -26,13 +26,13 @@ import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Control;
 import org.jkiss.code.NotNull;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.controls.ToolbarSeparatorContribution;
-import org.jkiss.dbeaver.ui.controls.resultset.*;
-import org.jkiss.dbeaver.ui.controls.resultset.panel.ResultSetPanelBase;
-import org.jkiss.dbeaver.ui.controls.resultset.panel.grouping.action.*;
-import org.jkiss.dbeaver.ui.controls.resultset.panel.grouping.registry.GroupingRegistry;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.controls.ToolbarSeparatorContribution;
+import com.seizia.chromite.ui.controls.resultset.*;
+import com.seizia.chromite.ui.controls.resultset.panel.ResultSetPanelBase;
+import com.seizia.chromite.ui.controls.resultset.panel.grouping.action.*;
+import com.seizia.chromite.ui.controls.resultset.panel.grouping.registry.GroupingRegistry;
 
 /**
  * RSV grouping panel

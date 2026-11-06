@@ -15,16 +15,16 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.model.sql.registry;
+package com.seizia.chromite.model.sql.registry;
 
 import org.eclipse.core.expressions.Expression;
 import org.eclipse.core.runtime.IConfigurationElement;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.model.DBPImage;
-import org.jkiss.dbeaver.model.impl.AbstractContextDescriptor;
-import org.jkiss.dbeaver.model.sql.SQLControlCommandHandler;
+import com.seizia.chromite.model.DBPImage;
+import com.seizia.chromite.model.impl.AbstractContextDescriptor;
+import com.seizia.chromite.model.sql.SQLControlCommandHandler;
 import org.jkiss.utils.CommonUtils;
 
 /**
@@ -32,7 +32,7 @@ import org.jkiss.utils.CommonUtils;
  */
 public class SQLCommandHandlerDescriptor extends AbstractContextDescriptor {
 
-    public static final String EXTENSION_ID = "org.jkiss.dbeaver.sqlCommand"; //$NON-NLS-1$
+    public static final String EXTENSION_ID = "com.seizia.chromite.sqlCommand"; //$NON-NLS-1$
 
     private final String id;
     private final String label;

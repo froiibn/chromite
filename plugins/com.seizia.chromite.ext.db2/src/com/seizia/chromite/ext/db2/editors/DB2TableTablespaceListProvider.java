@@ -14,12 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.db2.editors;
+package com.seizia.chromite.ext.db2.editors;
 
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.ext.db2.model.DB2Table;
-import org.jkiss.dbeaver.ext.db2.model.DB2Tablespace;
-import org.jkiss.dbeaver.model.meta.IPropertyValueListProvider;
+import com.seizia.chromite.ext.db2.model.DB2Table;
+import com.seizia.chromite.ext.db2.model.DB2Tablespace;
+import com.seizia.chromite.model.meta.IPropertyValueListProvider;
 
 import java.util.ArrayList;
 import java.util.Collection;

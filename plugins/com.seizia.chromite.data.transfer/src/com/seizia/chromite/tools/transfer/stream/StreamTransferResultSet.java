@@ -15,16 +15,16 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.tools.transfer.stream;
+package com.seizia.chromite.tools.transfer.stream;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.DBPDataKind;
-import org.jkiss.dbeaver.model.data.DBDValueMeta;
-import org.jkiss.dbeaver.model.exec.*;
-import org.jkiss.dbeaver.model.impl.local.LocalResultSetColumn;
-import org.jkiss.dbeaver.model.impl.local.LocalResultSetMeta;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.DBPDataKind;
+import com.seizia.chromite.model.data.DBDValueMeta;
+import com.seizia.chromite.model.exec.*;
+import com.seizia.chromite.model.impl.local.LocalResultSetColumn;
+import com.seizia.chromite.model.impl.local.LocalResultSetMeta;
 import org.jkiss.utils.CommonUtils;
 
 import java.sql.Timestamp;

@@ -14,9 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.derby.model;
+package com.seizia.chromite.ext.derby.model;
 
-import org.jkiss.dbeaver.ext.generic.model.GenericSQLDialect;
+import com.seizia.chromite.ext.generic.model.GenericSQLDialect;
 
 public class DerbySQLDialect extends GenericSQLDialect {
 

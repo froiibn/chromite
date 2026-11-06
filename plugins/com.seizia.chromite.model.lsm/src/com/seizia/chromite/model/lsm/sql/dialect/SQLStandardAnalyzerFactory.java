@@ -14,13 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.lsm.sql.dialect;
+package com.seizia.chromite.model.lsm.sql.dialect;
 
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.model.lsm.LSMAnalyzer;
-import org.jkiss.dbeaver.model.lsm.LSMAnalyzerFactory;
-import org.jkiss.dbeaver.model.lsm.LSMAnalyzerParameters;
-import org.jkiss.dbeaver.model.sql.SQLDialect;
+import com.seizia.chromite.model.lsm.LSMAnalyzer;
+import com.seizia.chromite.model.lsm.LSMAnalyzerFactory;
+import com.seizia.chromite.model.lsm.LSMAnalyzerParameters;
+import com.seizia.chromite.model.sql.SQLDialect;
 
 public class SQLStandardAnalyzerFactory implements LSMAnalyzerFactory {
 

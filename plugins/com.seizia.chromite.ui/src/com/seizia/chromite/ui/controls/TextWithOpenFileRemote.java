@@ -14,11 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.controls;
+package com.seizia.chromite.ui.controls;
 
 import org.eclipse.swt.widgets.Composite;
-import org.jkiss.dbeaver.model.app.DBPProject;
-import org.jkiss.dbeaver.model.fs.DBFUtils;
+import com.seizia.chromite.model.app.DBPProject;
+import com.seizia.chromite.model.fs.DBFUtils;
 
 /**
  * TextWithOpenFileRemote.

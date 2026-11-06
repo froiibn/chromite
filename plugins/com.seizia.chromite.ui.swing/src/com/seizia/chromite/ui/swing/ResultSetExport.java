@@ -21,15 +21,15 @@ import org.eclipse.osgi.util.NLS;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.data.office.export.DataExporterXLSX;
-import org.jkiss.dbeaver.model.DBPNamedObject;
-import org.jkiss.dbeaver.model.data.DBDAttributeBinding;
-import org.jkiss.dbeaver.model.data.DBDContentStorage;
-import org.jkiss.dbeaver.model.data.DBDDisplayFormat;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.runtime.DBInterruptedException;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.tools.transfer.stream.IStreamDataExporterSite;
+import com.seizia.chromite.data.office.export.DataExporterXLSX;
+import com.seizia.chromite.model.DBPNamedObject;
+import com.seizia.chromite.model.data.DBDAttributeBinding;
+import com.seizia.chromite.model.data.DBDContentStorage;
+import com.seizia.chromite.model.data.DBDDisplayFormat;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.runtime.DBInterruptedException;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.tools.transfer.stream.IStreamDataExporterSite;
 
 import javax.swing.*;
 import javax.swing.filechooser.FileNameExtensionFilter;
@@ -60,7 +60,7 @@ import java.util.Map;
  *     <li>수식 이스케이프: {@code DataExporterCSV}의 기본 동작처럼 {@code = + - @}, 탭, 줄바꿈으로 시작하는 글자 값 앞에 {@code '}를 붙여
  *     스프레드시트가 수식으로 실행하지 않게 한다(CSV injection). 숫자 열은 건드리지 않는다. 대화상자에서 끌 수 있다.</li>
  *     <li>파일 쓰기는 진행 대화상자({@link ProgressDialog}, 취소 가능)의 작업 스레드에서 한다. 취소하거나 실패하면 쓰다 만 파일을 지운다.</li>
- *     <li>XLSX는 모델의 내보내기 엔진 {@link DataExporterXLSX}({@code org.jkiss.dbeaver.data.office}, Apache POI)로 쓴다(SWT Office 확장의 "Open in Excel"과 같은 기본 속성).
+ *     <li>XLSX는 모델의 내보내기 엔진 {@link DataExporterXLSX}({@code com.seizia.chromite.data.office}, Apache POI)로 쓴다(SWT Office 확장의 "Open in Excel"과 같은 기본 속성).
  *     숫자·불리언·날짜 칸은 결과 표가 표시 문자열과 함께 남긴 원래 값({@link ResultSetGrid.Data#values()})을 넘겨 숫자·불리언·날짜 셀이 되고,
  *     나머지 값은 표에 보이는 표시 문자열을 그대로 쓴다({@link GridXlsxExporter}). 그래서 세션·결과 집합 없이 쓸 수 있다(LOB 값이 엔진에 가지 않음).
  *     날짜 셀 형식은 {@value #XLSX_DATE_FORMAT}이다(엔진 기본 속성의 빈 형식 대신. 엑셀 셀 형식과 엔진이 1900년 이전 날짜에 쓰는
@@ -78,7 +78,7 @@ final class ResultSetExport {
     private static final int PROGRESS_STEP = 1000;
 
     /**
-     * Property ids of the XLSX processor ({@code org.jkiss.dbeaver.data.office} plugin.xml, {@code DataExporterXLSX.PROP_*}).
+     * Property ids of the XLSX processor ({@code com.seizia.chromite.data.office} plugin.xml, {@code DataExporterXLSX.PROP_*}).
      */
     private static final String XLSX_PROP_HEADER = "header"; //$NON-NLS-1$
     private static final String XLSX_PROP_DATE_FORMAT = "dateFormat"; //$NON-NLS-1$

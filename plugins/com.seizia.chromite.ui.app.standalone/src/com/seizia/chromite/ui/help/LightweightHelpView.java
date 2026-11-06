@@ -14,9 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.help;
+package com.seizia.chromite.ui.help;
 
-import org.jkiss.dbeaver.ui.views.BaseBrowserView;
+import com.seizia.chromite.ui.views.BaseBrowserView;
 
 /**
  * Help view

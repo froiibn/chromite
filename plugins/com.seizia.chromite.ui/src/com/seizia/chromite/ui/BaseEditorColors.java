@@ -14,19 +14,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui;
+package com.seizia.chromite.ui;
 
 /**
  * Colors for various connection-related objects
  */
 public interface BaseEditorColors {
-    String COLOR_SUCCESS = "org.jkiss.dbeaver.txn.color.committed.background";  //= new RGB(0xBD, 0xFE, 0xBF); //$NON-NLS-1$
-    String COLOR_ERROR = "org.jkiss.dbeaver.txn.color.reverted.background";  // = new RGB(0xFF, 0x63, 0x47); //$NON-NLS-1$
-    String COLOR_WARNING = "org.jkiss.dbeaver.txn.color.transaction.background";  // = new RGB(0xFF, 0xE4, 0xB5); //$NON-NLS-1$
-    String COLOR_READ_ONLY = "org.jkiss.dbeaver.color.readOnly.foreground";
-    String COLOR_ACCENT = "org.jkiss.dbeaver.ui.general.accent";
-    String COLOR_WARNING_FOREGROUND = "org.jkiss.dbeaver.ui.general.color.warning.foreground";
-    String COLOR_ERROR_FOREGROUND = "org.jkiss.dbeaver.ui.general.color.error.foreground";
+    String COLOR_SUCCESS = "com.seizia.chromite.txn.color.committed.background";  //= new RGB(0xBD, 0xFE, 0xBF); //$NON-NLS-1$
+    String COLOR_ERROR = "com.seizia.chromite.txn.color.reverted.background";  // = new RGB(0xFF, 0x63, 0x47); //$NON-NLS-1$
+    String COLOR_WARNING = "com.seizia.chromite.txn.color.transaction.background";  // = new RGB(0xFF, 0xE4, 0xB5); //$NON-NLS-1$
+    String COLOR_READ_ONLY = "com.seizia.chromite.color.readOnly.foreground";
+    String COLOR_ACCENT = "com.seizia.chromite.ui.general.accent";
+    String COLOR_WARNING_FOREGROUND = "com.seizia.chromite.ui.general.color.warning.foreground";
+    String COLOR_ERROR_FOREGROUND = "com.seizia.chromite.ui.general.color.error.foreground";
 
     String COLOR_UNCOMMITTED = COLOR_SUCCESS;
     String COLOR_REVERTED = COLOR_ERROR;

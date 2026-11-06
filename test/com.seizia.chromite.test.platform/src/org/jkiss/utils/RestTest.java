@@ -18,7 +18,7 @@ package org.jkiss.utils;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.junit.DBeaverUnitTest;
+import com.seizia.chromite.junit.ChromiteUnitTest;
 import org.jkiss.utils.rest.RequestMapping;
 import org.jkiss.utils.rest.RequestParameter;
 import org.jkiss.utils.rest.RestClient;
@@ -29,7 +29,7 @@ import org.junit.jupiter.api.Test;
 import java.net.URI;
 import java.util.Map;
 
-public class RestTest extends DBeaverUnitTest {
+public class RestTest extends ChromiteUnitTest {
     @Test
     public void restClientServerTest() {
         final RestServer server = RestServer
@@ -42,9 +42,9 @@ public class RestTest extends DBeaverUnitTest {
             .create();
 
         Assertions.assertEquals("1.0", client.getVersion());
-        Assertions.assertEquals(Map.of("version", "1.0", "name", "dbeaver"), client.getSettings());
+        Assertions.assertEquals(Map.of("version", "1.0", "name", "chromite"), client.getSettings());
         Assertions.assertEquals("1.0", client.getSetting("version"));
-        Assertions.assertEquals("dbeaver", client.getSetting("name"));
+        Assertions.assertEquals("chromite", client.getSetting("name"));
         Assertions.assertEquals("cool", client.getSetting("something", "cool"));
         Assertions.assertNull(client.getSetting("something"));
 
@@ -79,7 +79,7 @@ public class RestTest extends DBeaverUnitTest {
         @NotNull
         @Override
         public Map<String, Object> getSettings() {
-            return Map.of("version", "1.0", "name", "dbeaver");
+            return Map.of("version", "1.0", "name", "chromite");
         }
 
         @Nullable

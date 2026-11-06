@@ -14,9 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.tidblake.model;
+package com.seizia.chromite.ext.tidblake.model;
 
-import org.jkiss.dbeaver.model.impl.jdbc.JDBCSQLDialect;
+import com.seizia.chromite.model.impl.jdbc.JDBCSQLDialect;
 
 /**
  * TiDBLake SQL dialect

@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.debug.ui;
+package com.seizia.chromite.debug.ui;
 
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.debug.core.ILaunchConfiguration;
@@ -32,21 +32,21 @@ import org.eclipse.swt.widgets.Control;
 import org.eclipse.swt.widgets.Text;
 import org.eclipse.ui.PlatformUI;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.debug.DBGConstants;
-import org.jkiss.dbeaver.debug.core.DebugUtils;
-import org.jkiss.dbeaver.debug.ui.internal.DebugConfigurationPanelDescriptor;
-import org.jkiss.dbeaver.debug.ui.internal.DebugConfigurationPanelRegistry;
-import org.jkiss.dbeaver.debug.ui.internal.DebugUIMessages;
-import org.jkiss.dbeaver.model.DBIcon;
-import org.jkiss.dbeaver.model.DBPDataSourceContainer;
-import org.jkiss.dbeaver.model.runtime.DBRRunnableContext;
-import org.jkiss.dbeaver.registry.DataSourceRegistry;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.runtime.RunnableContextDelegate;
-import org.jkiss.dbeaver.ui.DBeaverIcons;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.controls.SelectDataSourceCombo;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.debug.DBGConstants;
+import com.seizia.chromite.debug.core.DebugUtils;
+import com.seizia.chromite.debug.ui.internal.DebugConfigurationPanelDescriptor;
+import com.seizia.chromite.debug.ui.internal.DebugConfigurationPanelRegistry;
+import com.seizia.chromite.debug.ui.internal.DebugUIMessages;
+import com.seizia.chromite.model.DBIcon;
+import com.seizia.chromite.model.DBPDataSourceContainer;
+import com.seizia.chromite.model.runtime.DBRRunnableContext;
+import com.seizia.chromite.registry.DataSourceRegistry;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.runtime.RunnableContextDelegate;
+import com.seizia.chromite.ui.SwtIcons;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.controls.SelectDataSourceCombo;
 import org.jkiss.utils.CommonUtils;
 
 import java.util.HashMap;
@@ -245,10 +245,10 @@ public class DatabaseDebugConfigurationTab extends AbstractLaunchConfigurationTa
         if (connectionCombo != null) {
             DBPDataSourceContainer dataSource = connectionCombo.getSelectedItem();
             if (dataSource != null) {
-                return DBeaverIcons.getImage(dataSource.getDriver().getIcon());
+                return SwtIcons.getImage(dataSource.getDriver().getIcon());
             }
         }
-        return DBeaverIcons.getImage(DBIcon.TREE_DATABASE);
+        return SwtIcons.getImage(DBIcon.TREE_DATABASE);
     }
 
     @Override

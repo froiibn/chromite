@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.sql.parser.tokens.predicates;
+package com.seizia.chromite.model.sql.parser.tokens.predicates;
 
 
 import org.jkiss.code.NotNull;

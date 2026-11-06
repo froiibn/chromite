@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.mimer.internal;
+package com.seizia.chromite.ext.mimer.internal;
 
 import org.eclipse.osgi.util.NLS;
 
@@ -23,7 +23,7 @@ import org.eclipse.osgi.util.NLS;
  * edit} package - a handful of classes there (see {@code MimerCascadeDropUtil}/{@code
  * MimerFileRenameUtil}) call {@code DBWorkbench.getPlatformUI()} directly to confirm a
  * destructive action before running it, the same way core's own edit-layer classes do. That text
- * is exactly the same category {@code org.jkiss.dbeaver.ext.mimer.ui.internal.MimerUIMessages}
+ * is exactly the same category {@code com.seizia.chromite.ext.mimer.ui.internal.MimerUIMessages}
  * already covers in the {@code .ui} plugin, just unreachable from here - the model plugin has no
  * dependency on {@code .ui} (and shouldn't gain one just for this). Named {@code MimerMessages},
  * not {@code MimerUIMessages}, matching the plain-model-plugin naming convention sibling plugins
@@ -33,7 +33,7 @@ import org.eclipse.osgi.util.NLS;
  * @author Mimer Information Technology
  */
 public final class MimerMessages extends NLS {
-    private static final String BUNDLE_NAME = "org.jkiss.dbeaver.ext.mimer.internal.MimerMessages"; //$NON-NLS-1$
+    private static final String BUNDLE_NAME = "com.seizia.chromite.ext.mimer.internal.MimerMessages"; //$NON-NLS-1$
 
     // MimerCascadeDropUtil
     public static String action_cascade_drop_title;

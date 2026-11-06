@@ -2,14 +2,14 @@
 <?eclipse version="3.2"?>
 <plugin>
 
-    <extension point="org.jkiss.dbeaver.sqlDialect">
-        <dialect id="yashandb" parent="oracle" class="org.jkiss.dbeaver.ext.yashandb.model.YashanDBSQLDialect"
+    <extension point="com.seizia.chromite.sqlDialect">
+        <dialect id="yashandb" parent="oracle" class="com.seizia.chromite.ext.yashandb.model.YashanDBSQLDialect"
                  label="YashanDB" description="YashanDB SQL dialect." icon="icons/yashandb_icon.png">
             <property name="insertMethods" value="yashandbInsertIgnore"/>
         </dialect>
     </extension>
 
-    <extension point="org.jkiss.dbeaver.dataSourceProvider">
+    <extension point="com.seizia.chromite.dataSourceProvider">
         <dataSourceType
                 id="yashandb"
                 label="YashanDB"
@@ -19,7 +19,7 @@
                 iconBig="icons/yashandb_big.png"
                 logoImage="icons/yashandb_logo.png"/>
         <datasource
-                class="org.jkiss.dbeaver.ext.yashandb.YashanDBDataSourceProvider"
+                class="com.seizia.chromite.ext.yashandb.YashanDBDataSourceProvider"
                 description="YashanDB connector"
                 id="yashandb"
                 dataSourceType="yashandb"
@@ -29,29 +29,29 @@
                 dialect="yashandb">
 
             <treeInjection path="oracle/schema"
-                           changeFolderType="org.jkiss.dbeaver.ext.yashandb.model.YashanDBSchema"/>
+                           changeFolderType="com.seizia.chromite.ext.yashandb.model.YashanDBSchema"/>
             <treeInjection path="oracle/schema/table"
-                           changeFolderType="org.jkiss.dbeaver.ext.yashandb.model.YashanDBTable"/>
+                           changeFolderType="com.seizia.chromite.ext.yashandb.model.YashanDBTable"/>
             <treeInjection path="oracle/schema/table/column"
-                           changeFolderType="org.jkiss.dbeaver.ext.yashandb.model.YashanDBTableColumn"/>
+                           changeFolderType="com.seizia.chromite.ext.yashandb.model.YashanDBTableColumn"/>
             <treeInjection path="oracle/schema/table/trigger"
-                           changeFolderType="org.jkiss.dbeaver.ext.yashandb.model.YashanDBTableTrigger"/>
+                           changeFolderType="com.seizia.chromite.ext.yashandb.model.YashanDBTableTrigger"/>
             <treeInjection path="oracle/schema/type"
-                           changeFolderType="org.jkiss.dbeaver.ext.yashandb.model.YashanDBDataType"/>
+                           changeFolderType="com.seizia.chromite.ext.yashandb.model.YashanDBDataType"/>
             <treeInjection path="oracle/schema/package"
-                           changeFolderType="org.jkiss.dbeaver.ext.yashandb.model.YashanDBPackage"/>
+                           changeFolderType="com.seizia.chromite.ext.yashandb.model.YashanDBPackage"/>
             <treeInjection path="oracle/schema/tabletrigger"
-                           changeFolderType="org.jkiss.dbeaver.ext.yashandb.model.YashanDBTableTrigger"/>
+                           changeFolderType="com.seizia.chromite.ext.yashandb.model.YashanDBTableTrigger"/>
             <treeInjection path="oracle/schema/schedulerJob"
-                           changeFolderType="org.jkiss.dbeaver.ext.yashandb.model.YashanDBSchedulerJob"/>
+                           changeFolderType="com.seizia.chromite.ext.yashandb.model.YashanDBSchedulerJob"/>
             <treeInjection path="oracle/schema/view"
-                           changeFolderType="org.jkiss.dbeaver.ext.yashandb.model.YashanDBView"/>
+                           changeFolderType="com.seizia.chromite.ext.yashandb.model.YashanDBView"/>
             <treeInjection path="oracle/schema/procedure"
-                           changeFolderType="org.jkiss.dbeaver.ext.yashandb.model.YashanDBProcedureStandalone"/>
+                           changeFolderType="com.seizia.chromite.ext.yashandb.model.YashanDBProcedureStandalone"/>
             <treeInjection path="oracle/schema/function"
-                           changeFolderType="org.jkiss.dbeaver.ext.yashandb.model.YashanDBProcedureStandalone"/>
+                           changeFolderType="com.seizia.chromite.ext.yashandb.model.YashanDBProcedureStandalone"/>
             <treeInjection path="oracle/tablespace"
-                           changeFolderType="org.jkiss.dbeaver.ext.yashandb.model.YashanDBTablespace"/>
+                           changeFolderType="com.seizia.chromite.ext.yashandb.model.YashanDBTablespace"/>
 
             <drivers managable="true">
                 <driver
@@ -77,24 +77,24 @@
         </datasource>
     </extension>
 
-    <extension point="org.jkiss.dbeaver.objectManager">
-        <manager class="org.jkiss.dbeaver.ext.yashandb.edit.YashanDBTableManager"
-                 objectType="org.jkiss.dbeaver.ext.yashandb.model.YashanDBTable"/>
-        <manager class="org.jkiss.dbeaver.ext.yashandb.edit.YashanDBTableColumnManager"
-                 objectType="org.jkiss.dbeaver.ext.yashandb.model.YashanDBTableColumn"/>
-        <manager class="org.jkiss.dbeaver.ext.yashandb.edit.YashanDBSchemaManager"
-                 objectType="org.jkiss.dbeaver.ext.yashandb.model.YashanDBSchema"/>
-        <manager class="org.jkiss.dbeaver.ext.yashandb.edit.YashanDBDataTypeManager"
-                 objectType="org.jkiss.dbeaver.ext.yashandb.model.YashanDBDataType"/>
-        <manager class="org.jkiss.dbeaver.ext.yashandb.edit.YashanDBPackageManager"
-                 objectType="org.jkiss.dbeaver.ext.yashandb.model.YashanDBPackage"/>
-        <manager class="org.jkiss.dbeaver.ext.yashandb.edit.YashanDBProcedureManager"
-                 objectType="org.jkiss.dbeaver.ext.yashandb.model.YashanDBProcedureStandalone"/>
-        <manager class="org.jkiss.dbeaver.ext.yashandb.edit.YashanDBTableTriggerManager"
-                 objectType="org.jkiss.dbeaver.ext.yashandb.model.YashanDBTableTrigger"/>
-        <manager class="org.jkiss.dbeaver.ext.yashandb.edit.YashanDBViewManager"
-                 objectType="org.jkiss.dbeaver.ext.yashandb.model.YashanDBView"/>
-        <manager class="org.jkiss.dbeaver.ext.yashandb.edit.YashanDBMaterializedViewManager"
-                 objectType="org.jkiss.dbeaver.ext.yashandb.model.YashanDBMaterializedView"/>
+    <extension point="com.seizia.chromite.objectManager">
+        <manager class="com.seizia.chromite.ext.yashandb.edit.YashanDBTableManager"
+                 objectType="com.seizia.chromite.ext.yashandb.model.YashanDBTable"/>
+        <manager class="com.seizia.chromite.ext.yashandb.edit.YashanDBTableColumnManager"
+                 objectType="com.seizia.chromite.ext.yashandb.model.YashanDBTableColumn"/>
+        <manager class="com.seizia.chromite.ext.yashandb.edit.YashanDBSchemaManager"
+                 objectType="com.seizia.chromite.ext.yashandb.model.YashanDBSchema"/>
+        <manager class="com.seizia.chromite.ext.yashandb.edit.YashanDBDataTypeManager"
+                 objectType="com.seizia.chromite.ext.yashandb.model.YashanDBDataType"/>
+        <manager class="com.seizia.chromite.ext.yashandb.edit.YashanDBPackageManager"
+                 objectType="com.seizia.chromite.ext.yashandb.model.YashanDBPackage"/>
+        <manager class="com.seizia.chromite.ext.yashandb.edit.YashanDBProcedureManager"
+                 objectType="com.seizia.chromite.ext.yashandb.model.YashanDBProcedureStandalone"/>
+        <manager class="com.seizia.chromite.ext.yashandb.edit.YashanDBTableTriggerManager"
+                 objectType="com.seizia.chromite.ext.yashandb.model.YashanDBTableTrigger"/>
+        <manager class="com.seizia.chromite.ext.yashandb.edit.YashanDBViewManager"
+                 objectType="com.seizia.chromite.ext.yashandb.model.YashanDBView"/>
+        <manager class="com.seizia.chromite.ext.yashandb.edit.YashanDBMaterializedViewManager"
+                 objectType="com.seizia.chromite.ext.yashandb.model.YashanDBMaterializedView"/>
     </extension>
 </plugin>

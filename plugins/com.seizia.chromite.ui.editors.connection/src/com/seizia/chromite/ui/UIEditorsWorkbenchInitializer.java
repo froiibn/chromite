@@ -14,18 +14,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui;
+package com.seizia.chromite.ui;
 
 import org.eclipse.ui.application.IWorkbenchWindowConfigurer;
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.model.access.DBAPermissionRealm;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.ui.preferences.PrefPageGlobalProjectNetworkProfiles;
-import org.jkiss.dbeaver.ui.workbench.WorkbenchUtils;
+import com.seizia.chromite.model.access.DBAPermissionRealm;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.ui.preferences.PrefPageGlobalProjectNetworkProfiles;
+import com.seizia.chromite.ui.workbench.WorkbenchUtils;
 
 public class UIEditorsWorkbenchInitializer implements IWorkbenchWindowInitializer {
 
-    public static final String MAIN_PAGE = "org.jkiss.dbeaver.preferences.main.connections";
+    public static final String MAIN_PAGE = "com.seizia.chromite.preferences.main.connections";
 
     @Override
     public void initializeWorkbenchWindow(@NotNull IWorkbenchWindowConfigurer configurer) {

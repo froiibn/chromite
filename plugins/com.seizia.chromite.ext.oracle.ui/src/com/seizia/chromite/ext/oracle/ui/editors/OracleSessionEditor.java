@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.oracle.ui.editors;
+package com.seizia.chromite.ext.oracle.ui.editors;
 
 import org.eclipse.jface.action.Action;
 import org.eclipse.jface.action.IContributionManager;
@@ -26,19 +26,19 @@ import org.eclipse.osgi.util.NLS;
 import org.eclipse.swt.widgets.Composite;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.ext.oracle.model.OracleDataSource;
-import org.jkiss.dbeaver.ext.oracle.model.session.OracleServerSession;
-import org.jkiss.dbeaver.ext.oracle.model.session.OracleServerSessionManager;
-import org.jkiss.dbeaver.ext.oracle.ui.internal.OracleUIMessages;
-import org.jkiss.dbeaver.model.admin.sessions.DBAServerSession;
-import org.jkiss.dbeaver.model.admin.sessions.DBAServerSessionManager;
-import org.jkiss.dbeaver.model.exec.DBCExecutionContext;
-import org.jkiss.dbeaver.ui.ActionUtils;
-import org.jkiss.dbeaver.ui.DBeaverIcons;
-import org.jkiss.dbeaver.ui.UIIcon;
-import org.jkiss.dbeaver.ui.dialogs.ConfirmationDialog;
-import org.jkiss.dbeaver.ui.views.session.AbstractSessionEditor;
-import org.jkiss.dbeaver.ui.views.session.SessionManagerViewer;
+import com.seizia.chromite.ext.oracle.model.OracleDataSource;
+import com.seizia.chromite.ext.oracle.model.session.OracleServerSession;
+import com.seizia.chromite.ext.oracle.model.session.OracleServerSessionManager;
+import com.seizia.chromite.ext.oracle.ui.internal.OracleUIMessages;
+import com.seizia.chromite.model.admin.sessions.DBAServerSession;
+import com.seizia.chromite.model.admin.sessions.DBAServerSessionManager;
+import com.seizia.chromite.model.exec.DBCExecutionContext;
+import com.seizia.chromite.ui.ActionUtils;
+import com.seizia.chromite.ui.SwtIcons;
+import com.seizia.chromite.ui.UIIcon;
+import com.seizia.chromite.ui.dialogs.ConfirmationDialog;
+import com.seizia.chromite.ui.views.session.AbstractSessionEditor;
+import com.seizia.chromite.ui.views.session.SessionManagerViewer;
 import org.jkiss.utils.CommonUtils;
 
 import java.util.HashMap;
@@ -80,7 +80,7 @@ public class OracleSessionEditor extends AbstractSessionEditor
                 contributionManager.add(ActionUtils.makeActionContribution(
                     new Action(OracleUIMessages.views_session_manager_viewer_show_background, Action.AS_CHECK_BOX) {
                         {
-                            setImageDescriptor(DBeaverIcons.getImageDescriptor(UIIcon.CONFIGURATION));
+                            setImageDescriptor(SwtIcons.getImageDescriptor(UIIcon.CONFIGURATION));
                             setToolTipText(OracleUIMessages.views_session_manager_viewer_show_background_tasks_tip);
                             setChecked(showBackground);
                         }
@@ -94,7 +94,7 @@ public class OracleSessionEditor extends AbstractSessionEditor
                 contributionManager.add(ActionUtils.makeActionContribution(
                     new Action(OracleUIMessages.views_session_manager_viewer_show_inactive, Action.AS_CHECK_BOX) {
                         {
-                            setImageDescriptor(DBeaverIcons.getImageDescriptor(UIIcon.CONFIGURATION));
+                            setImageDescriptor(SwtIcons.getImageDescriptor(UIIcon.CONFIGURATION));
                             setToolTipText(OracleUIMessages.views_session_manager_viewer_show_inactive_sessions_tip);
                             setChecked(showInactive);
                         }
@@ -149,7 +149,7 @@ public class OracleSessionEditor extends AbstractSessionEditor
         {
             super(
                 kill ? OracleUIMessages.editors_oracle_session_editor_title_kill_session : OracleUIMessages.editors_oracle_session_editor_title_disconnect_session,
-                DBeaverIcons.getImageDescriptor(kill ? UIIcon.REJECT : UIIcon.SQL_DISCONNECT));
+                SwtIcons.getImageDescriptor(kill ? UIIcon.REJECT : UIIcon.SQL_DISCONNECT));
             this.kill = kill;
         }
 

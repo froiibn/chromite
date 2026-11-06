@@ -14,12 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.editors.acl.internal;
+package com.seizia.chromite.ui.editors.acl.internal;
 
 import org.eclipse.osgi.util.NLS;
 
 public class ACLMessages extends NLS {
-	static final String BUNDLE_NAME = "org.jkiss.dbeaver.ui.editors.acl.internal.ACLMessages"; //$NON-NLS-1$
+	static final String BUNDLE_NAME = "com.seizia.chromite.ui.editors.acl.internal.ACLMessages"; //$NON-NLS-1$
 		
 	/* Permissions */
 	public static String edit_command_grant_privilege_action_grant_privilege;

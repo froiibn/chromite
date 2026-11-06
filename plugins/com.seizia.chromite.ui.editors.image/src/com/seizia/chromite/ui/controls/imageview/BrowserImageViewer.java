@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.controls.imageview;
+package com.seizia.chromite.ui.controls.imageview;
 
 import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.core.runtime.IStatus;
@@ -30,12 +30,12 @@ import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Control;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.runtime.VoidProgressMonitor;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.utils.GeneralUtils;
-import org.jkiss.dbeaver.utils.RuntimeUtils;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.runtime.VoidProgressMonitor;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.utils.GeneralUtils;
+import com.seizia.chromite.utils.RuntimeUtils;
 import org.jkiss.utils.IOUtils;
 
 import javax.imageio.ImageIO;
@@ -109,7 +109,7 @@ public class BrowserImageViewer extends AbstractImageViewer {
             clearTempFile();
             if (RuntimeUtils.isLinux()) {
                 tempFile = Files.createTempFile(
-                    DBWorkbench.getPlatform().getTempFolder(new VoidProgressMonitor(), "dbeaver-images"),
+                    DBWorkbench.getPlatform().getTempFolder(new VoidProgressMonitor(), "chromite-images"),
                     "image",
                     ""
                 );
@@ -129,7 +129,7 @@ public class BrowserImageViewer extends AbstractImageViewer {
                         ImageReader reader = readers.next();
                         reader.setInput(stream);
                         tempFile = Files.createTempFile(
-                            DBWorkbench.getPlatform().getTempFolder(new VoidProgressMonitor(), "dbeaver-images"),
+                            DBWorkbench.getPlatform().getTempFolder(new VoidProgressMonitor(), "chromite-images"),
                             "image",
                             "." + reader.getFormatName().toLowerCase(Locale.ROOT)
                         );
@@ -157,7 +157,7 @@ public class BrowserImageViewer extends AbstractImageViewer {
 
     private void showBinaryTXT(@NotNull InputStream inputStream) throws IOException {
         tempFile = Files.createTempFile(
-            DBWorkbench.getPlatform().getTempFolder(new VoidProgressMonitor(), "dbeaver-images"),
+            DBWorkbench.getPlatform().getTempFolder(new VoidProgressMonitor(), "chromite-images"),
             "image",
             ".txt"
         );

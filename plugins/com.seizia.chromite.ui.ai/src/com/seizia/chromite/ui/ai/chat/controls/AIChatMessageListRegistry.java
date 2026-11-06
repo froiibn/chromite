@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.ai.chat.controls;
+package com.seizia.chromite.ui.ai.chat.controls;
 
 import org.eclipse.core.runtime.IConfigurationElement;
 import org.eclipse.core.runtime.IExtensionRegistry;
@@ -30,7 +30,7 @@ import java.util.Map;
 
 public class AIChatMessageListRegistry {
 
-    public static final String EXTENSION_ID = "org.jkiss.dbeaver.ui.ai.chatView";
+    public static final String EXTENSION_ID = "com.seizia.chromite.ui.ai.chatView";
 
     private static AIChatMessageListRegistry instance;
 

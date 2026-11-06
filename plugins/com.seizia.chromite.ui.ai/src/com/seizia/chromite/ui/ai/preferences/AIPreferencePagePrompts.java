@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.ai.preferences;
+package com.seizia.chromite.ui.ai.preferences;
 
 import org.eclipse.core.runtime.IAdaptable;
 import org.eclipse.jface.layout.GridLayoutFactory;
@@ -33,17 +33,17 @@ import org.eclipse.ui.IWorkbenchPreferencePage;
 import org.eclipse.ui.IWorkbenchPropertyPage;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.model.ai.AISettings;
-import org.jkiss.dbeaver.model.ai.registry.AIPromptGeneratorDescriptor;
-import org.jkiss.dbeaver.model.ai.registry.AIPromptGeneratorRegistry;
-import org.jkiss.dbeaver.model.ai.registry.AISettingsManager;
-import org.jkiss.dbeaver.ui.BaseThemeSettings;
-import org.jkiss.dbeaver.ui.DBeaverIcons;
-import org.jkiss.dbeaver.ui.UITextUtils;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.ai.internal.AIUIMessages;
-import org.jkiss.dbeaver.ui.controls.ListContentProvider;
-import org.jkiss.dbeaver.ui.preferences.AbstractPrefPage;
+import com.seizia.chromite.model.ai.AISettings;
+import com.seizia.chromite.model.ai.registry.AIPromptGeneratorDescriptor;
+import com.seizia.chromite.model.ai.registry.AIPromptGeneratorRegistry;
+import com.seizia.chromite.model.ai.registry.AISettingsManager;
+import com.seizia.chromite.ui.BaseThemeSettings;
+import com.seizia.chromite.ui.SwtIcons;
+import com.seizia.chromite.ui.UITextUtils;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.ai.internal.AIUIMessages;
+import com.seizia.chromite.ui.controls.ListContentProvider;
+import com.seizia.chromite.ui.preferences.AbstractPrefPage;
 import org.jkiss.utils.StringUtils;
 
 import java.util.Comparator;
@@ -52,7 +52,7 @@ import java.util.List;
 import java.util.Map;
 
 public final class AIPreferencePagePrompts extends AbstractPrefPage implements IWorkbenchPreferencePage, IWorkbenchPropertyPage {
-    public static final String PAGE_ID = "org.jkiss.dbeaver.preferences.ai.prompts";
+    public static final String PAGE_ID = "com.seizia.chromite.preferences.ai.prompts";
 
     private final AISettingsManager settingsManager;
     private final AISettings settings;
@@ -202,7 +202,7 @@ public final class AIPreferencePagePrompts extends AbstractPrefPage implements I
         @Override
         public Image getImage(@NotNull Object element) {
             var descriptor = (AIPromptGeneratorDescriptor) element;
-            return descriptor.getIcon() != null ? DBeaverIcons.getImage(descriptor.getIcon()) : null;
+            return descriptor.getIcon() != null ? SwtIcons.getImage(descriptor.getIcon()) : null;
         }
 
         @Override

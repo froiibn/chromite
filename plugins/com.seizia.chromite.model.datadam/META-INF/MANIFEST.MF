@@ -1,28 +1,28 @@
 Manifest-Version: 1.0
 Bundle-ManifestVersion: 2
-Bundle-Vendor: DBeaver Corp
+Bundle-Vendor: Chromite contributors
 Bundle-Name: Chromite DataDam Model
-Bundle-SymbolicName: org.jkiss.dbeaver.model.datadam;singleton:=true
+Bundle-SymbolicName: com.seizia.chromite.model.datadam;singleton:=true
 Bundle-Version: 1.0.0.qualifier
 Bundle-Release-Date: 20260720
 Bundle-RequiredExecutionEnvironment: JavaSE-21
 Bundle-ActivationPolicy: lazy
-Export-Package: org.jkiss.dbeaver.model.datadam,
- org.jkiss.dbeaver.model.datadam.ai,
- org.jkiss.dbeaver.model.datadam.auth,
- org.jkiss.dbeaver.model.datadam.auth.desktop,
- org.jkiss.dbeaver.model.datadam.mcp,
- org.jkiss.dbeaver.model.datadam.rpc,
- org.jkiss.dbeaver.model.datadam.sync,
- org.jkiss.dbeaver.model.datadam.sync.core,
- org.jkiss.dbeaver.model.datadam.sync.project,
- org.jkiss.dbeaver.model.datadam.transport
-Require-Bundle: org.jkiss.dbeaver.model;visibility:=reexport,
- org.jkiss.dbeaver.model.security,
- org.jkiss.dbeaver.model.ai,
+Export-Package: com.seizia.chromite.model.datadam,
+ com.seizia.chromite.model.datadam.ai,
+ com.seizia.chromite.model.datadam.auth,
+ com.seizia.chromite.model.datadam.auth.desktop,
+ com.seizia.chromite.model.datadam.mcp,
+ com.seizia.chromite.model.datadam.rpc,
+ com.seizia.chromite.model.datadam.sync,
+ com.seizia.chromite.model.datadam.sync.core,
+ com.seizia.chromite.model.datadam.sync.project,
+ com.seizia.chromite.model.datadam.transport
+Require-Bundle: com.seizia.chromite.model;visibility:=reexport,
+ com.seizia.chromite.model.security,
+ com.seizia.chromite.model.ai,
  com.dbeaver.rest.client;visibility:=reexport,
  com.dbeaver.datadam.share.api;visibility:=reexport,
   com.dbeaver.datadam.sso.api,
   com.dbeaver.datadam.mcp.api,
   com.dbeaver.datadam.dam.remote.api;visibility:=reexport
-Automatic-Module-Name: org.jkiss.dbeaver.model.datadam
+Automatic-Module-Name: com.seizia.chromite.model.datadam

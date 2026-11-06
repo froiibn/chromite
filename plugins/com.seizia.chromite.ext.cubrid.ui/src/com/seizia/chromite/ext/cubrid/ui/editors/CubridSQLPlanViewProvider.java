@@ -15,17 +15,17 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.ext.cubrid.ui.editors;
+package com.seizia.chromite.ext.cubrid.ui.editors;
 
 import org.eclipse.jface.viewers.Viewer;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.ui.IWorkbenchPart;
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.ext.cubrid.model.plan.CubridPlanAnalyser;
-import org.jkiss.dbeaver.ext.cubrid.ui.views.CubridSQLPlanFullTextViewer;
-import org.jkiss.dbeaver.model.exec.plan.DBCPlan;
-import org.jkiss.dbeaver.model.sql.SQLQuery;
-import org.jkiss.dbeaver.ui.editors.sql.SQLPlanSaveProvider;
+import com.seizia.chromite.ext.cubrid.model.plan.CubridPlanAnalyser;
+import com.seizia.chromite.ext.cubrid.ui.views.CubridSQLPlanFullTextViewer;
+import com.seizia.chromite.model.exec.plan.DBCPlan;
+import com.seizia.chromite.model.sql.SQLQuery;
+import com.seizia.chromite.ui.editors.sql.SQLPlanSaveProvider;
 
 public class CubridSQLPlanViewProvider extends SQLPlanSaveProvider {
 

@@ -14,13 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.actions.datasource;
+package com.seizia.chromite.ui.actions.datasource;
 
 import org.eclipse.core.commands.ExecutionEvent;
 import org.eclipse.core.commands.ExecutionException;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.registry.DataSourceDescriptor;
-import org.jkiss.dbeaver.ui.actions.AbstractDataSourceHandler;
+import com.seizia.chromite.registry.DataSourceDescriptor;
+import com.seizia.chromite.ui.actions.AbstractDataSourceHandler;
 
 public class DataSourceConnectHandler extends AbstractDataSourceHandler
 {

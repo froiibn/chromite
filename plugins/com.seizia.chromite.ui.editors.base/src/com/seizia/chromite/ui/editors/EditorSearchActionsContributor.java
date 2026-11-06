@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.ui.editors;
+package com.seizia.chromite.ui.editors;
 
 import org.eclipse.jface.action.IMenuManager;
 import org.eclipse.ui.IActionBars;
@@ -24,9 +24,9 @@ import org.eclipse.ui.IWorkbenchCommandConstants;
 import org.eclipse.ui.part.MultiPageEditorActionBarContributor;
 import org.eclipse.ui.part.MultiPageEditorPart;
 import org.eclipse.ui.texteditor.IWorkbenchActionDefinitionIds;
-import org.jkiss.dbeaver.model.DBUtils;
-import org.jkiss.dbeaver.ui.ContextSearchAction;
-import org.jkiss.dbeaver.ui.ISearchContextProvider;
+import com.seizia.chromite.model.DBUtils;
+import com.seizia.chromite.ui.ContextSearchAction;
+import com.seizia.chromite.ui.ISearchContextProvider;
 
 /**
  * Search actions contributor

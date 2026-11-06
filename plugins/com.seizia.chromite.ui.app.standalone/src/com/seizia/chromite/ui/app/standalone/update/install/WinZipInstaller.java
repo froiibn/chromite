@@ -15,15 +15,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.app.standalone.update.install;
+package com.seizia.chromite.ui.app.standalone.update.install;
 
 import org.eclipse.core.runtime.Platform;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.utils.RuntimeUtils;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.utils.RuntimeUtils;
 import org.jkiss.utils.IOUtils;
 
 import java.io.IOException;
@@ -84,16 +84,16 @@ public final class WinZipInstaller implements PlatformInstaller {
             .redirectOutput(ProcessBuilder.Redirect.appendTo(output.toFile()));
         var environment = builder.environment();
         // Keep paths out of PowerShell source and cmd.exe command strings.
-        environment.put("DBEAVER_UPDATE_ARCHIVE", archive.toAbsolutePath().toString());
-        environment.put("DBEAVER_UPDATE_HOME", installation.toString());
-        environment.put("DBEAVER_UPDATE_LAUNCHER", launcher.getFileName().toString());
-        environment.put("DBEAVER_UPDATE_WORKSPACE", DBWorkbench.getPlatform().getWorkspace().getAbsolutePath().toRealPath().toString());
+        environment.put("CHROMITE_UPDATE_ARCHIVE", archive.toAbsolutePath().toString());
+        environment.put("CHROMITE_UPDATE_HOME", installation.toString());
+        environment.put("CHROMITE_UPDATE_LAUNCHER", launcher.getFileName().toString());
+        environment.put("CHROMITE_UPDATE_WORKSPACE", DBWorkbench.getPlatform().getWorkspace().getAbsolutePath().toRealPath().toString());
         ProcessHandle current = ProcessHandle.current();
         StringBuilder processIds = new StringBuilder(Long.toString(current.pid()));
         current.parent().filter(parent -> parent.info().command()
             .map(path -> Path.of(path).equals(launcher)).orElse(false))
             .ifPresent(parent -> processIds.append(',').append(parent.pid()));
-        environment.put("DBEAVER_UPDATE_PIDS", processIds.toString());
+        environment.put("CHROMITE_UPDATE_PIDS", processIds.toString());
 
         // Validate/extract before requesting shutdown, so failures (including enforced script policies) are still reported in the UI.
         var prepareCommand = new ArrayList<>(command);

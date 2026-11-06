@@ -14,14 +14,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.registry.fs;
+package com.seizia.chromite.registry.fs;
 
 import org.eclipse.core.runtime.IConfigurationElement;
 import org.eclipse.core.runtime.IExtensionRegistry;
 import org.eclipse.core.runtime.Platform;
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.model.fs.DBFFileSystemDescriptor;
-import org.jkiss.dbeaver.model.fs.DBFRegistry;
+import com.seizia.chromite.model.fs.DBFFileSystemDescriptor;
+import com.seizia.chromite.model.fs.DBFRegistry;
 import org.jkiss.utils.CommonUtils;
 
 import java.util.ArrayList;

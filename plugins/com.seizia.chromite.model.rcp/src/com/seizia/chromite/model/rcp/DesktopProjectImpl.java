@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.rcp;
+package com.seizia.chromite.model.rcp;
 
 import org.eclipse.core.internal.localstore.Bucket;
 import org.eclipse.core.internal.localstore.BucketTree;
@@ -26,22 +26,22 @@ import org.eclipse.core.runtime.IPath;
 import org.eclipse.core.runtime.NullProgressMonitor;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.app.DBPDataSourceRegistry;
-import org.jkiss.dbeaver.model.app.DBPProject;
-import org.jkiss.dbeaver.model.app.DBPWorkspaceEclipse;
-import org.jkiss.dbeaver.model.auth.SMSessionContext;
-import org.jkiss.dbeaver.model.fs.DBFResourceAdapter;
-import org.jkiss.dbeaver.model.fs.DBFVirtualFileSystemRoot;
-import org.jkiss.dbeaver.model.impl.app.BaseProjectImpl;
-import org.jkiss.dbeaver.model.impl.app.BaseWorkspaceImpl;
-import org.jkiss.dbeaver.model.navigator.DBNModel;
-import org.jkiss.dbeaver.model.task.DBTTaskManager;
-import org.jkiss.dbeaver.registry.DataSourceRegistry;
-import org.jkiss.dbeaver.registry.task.TaskConstants;
-import org.jkiss.dbeaver.registry.task.TaskManagerImpl;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.utils.ResourceUtils;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.app.DBPDataSourceRegistry;
+import com.seizia.chromite.model.app.DBPProject;
+import com.seizia.chromite.model.app.DBPWorkspaceEclipse;
+import com.seizia.chromite.model.auth.SMSessionContext;
+import com.seizia.chromite.model.fs.DBFResourceAdapter;
+import com.seizia.chromite.model.fs.DBFVirtualFileSystemRoot;
+import com.seizia.chromite.model.impl.app.BaseProjectImpl;
+import com.seizia.chromite.model.impl.app.BaseWorkspaceImpl;
+import com.seizia.chromite.model.navigator.DBNModel;
+import com.seizia.chromite.model.task.DBTTaskManager;
+import com.seizia.chromite.registry.DataSourceRegistry;
+import com.seizia.chromite.registry.task.TaskConstants;
+import com.seizia.chromite.registry.task.TaskManagerImpl;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.utils.ResourceUtils;
 import org.jkiss.utils.ArrayUtils;
 import org.jkiss.utils.CommonUtils;
 
@@ -263,7 +263,7 @@ public class DesktopProjectImpl extends BaseProjectImpl implements RCPProject, D
                                               String[][] bucketProps = (String[][]) value;
                                               for (String[] resProps : bucketProps) {
                                                   if (resProps.length == 3) {
-                                                      if ("org.jkiss.dbeaver".equals(resProps[0])) {
+                                                      if ("com.seizia.chromite".equals(resProps[0])) {
                                                           if ("sql-editor-project-id".equals(resProps[1])) {
                                                               continue;
                                                           }
@@ -370,8 +370,8 @@ public class DesktopProjectImpl extends BaseProjectImpl implements RCPProject, D
                     String[] natureIds = description.getNatureIds();
                     if (getDataSourceRegistry() instanceof DataSourceRegistry<?> dsr && dsr.getDataSourceCount() > 0) {
                         // Add nature
-                        if (!ArrayUtils.contains(natureIds, DBeaverNature.NATURE_ID)) {
-                            description.setNatureIds(ArrayUtils.add(String.class, natureIds, DBeaverNature.NATURE_ID));
+                        if (!ArrayUtils.contains(natureIds, ChromiteNature.NATURE_ID)) {
+                            description.setNatureIds(ArrayUtils.add(String.class, natureIds, ChromiteNature.NATURE_ID));
                             try {
                                 eclipseProject.setDescription(description, new NullProgressMonitor());
                             } catch (CoreException e) {

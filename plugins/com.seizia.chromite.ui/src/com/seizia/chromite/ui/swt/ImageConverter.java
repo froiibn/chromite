@@ -12,7 +12,7 @@
  *    		   GMF's DisplayUtils
  ****************************************************************************/
 
-package org.jkiss.dbeaver.ui.swt;
+package com.seizia.chromite.ui.swt;
 
 import org.eclipse.swt.graphics.Image;
 import org.eclipse.swt.graphics.ImageData;

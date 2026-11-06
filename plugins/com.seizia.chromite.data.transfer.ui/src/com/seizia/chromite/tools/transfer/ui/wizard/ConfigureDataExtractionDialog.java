@@ -14,29 +14,29 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.tools.transfer.ui.wizard;
+package com.seizia.chromite.tools.transfer.ui.wizard;
 
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Shell;
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.struct.DBSDataContainer;
-import org.jkiss.dbeaver.model.struct.DBSDocumentContainer;
-import org.jkiss.dbeaver.model.struct.DBSObject;
-import org.jkiss.dbeaver.tools.transfer.DataTransferPipe;
-import org.jkiss.dbeaver.tools.transfer.DataTransferSettings;
-import org.jkiss.dbeaver.tools.transfer.database.DatabaseProducerSettings;
-import org.jkiss.dbeaver.tools.transfer.database.DatabaseProducerSettings.ExtractType;
-import org.jkiss.dbeaver.tools.transfer.database.DatabaseProducerSettings.FetchedRowsPolicy;
-import org.jkiss.dbeaver.tools.transfer.internal.DTMessages;
-import org.jkiss.dbeaver.tools.transfer.ui.internal.DTUIMessages;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.dialogs.BaseDialog;
-import org.jkiss.dbeaver.ui.forms.UIObservable;
-import org.jkiss.dbeaver.ui.forms.UIObservables;
-import org.jkiss.dbeaver.ui.forms.UIPanelBuilder;
-import org.jkiss.dbeaver.ui.forms.UIRowBuilder;
-import org.jkiss.dbeaver.utils.GeneralUtils;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.struct.DBSDataContainer;
+import com.seizia.chromite.model.struct.DBSDocumentContainer;
+import com.seizia.chromite.model.struct.DBSObject;
+import com.seizia.chromite.tools.transfer.DataTransferPipe;
+import com.seizia.chromite.tools.transfer.DataTransferSettings;
+import com.seizia.chromite.tools.transfer.database.DatabaseProducerSettings;
+import com.seizia.chromite.tools.transfer.database.DatabaseProducerSettings.ExtractType;
+import com.seizia.chromite.tools.transfer.database.DatabaseProducerSettings.FetchedRowsPolicy;
+import com.seizia.chromite.tools.transfer.internal.DTMessages;
+import com.seizia.chromite.tools.transfer.ui.internal.DTUIMessages;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.dialogs.BaseDialog;
+import com.seizia.chromite.ui.forms.UIObservable;
+import com.seizia.chromite.ui.forms.UIObservables;
+import com.seizia.chromite.ui.forms.UIPanelBuilder;
+import com.seizia.chromite.ui.forms.UIRowBuilder;
+import com.seizia.chromite.utils.GeneralUtils;
 
 import java.util.List;
 import java.util.function.Consumer;

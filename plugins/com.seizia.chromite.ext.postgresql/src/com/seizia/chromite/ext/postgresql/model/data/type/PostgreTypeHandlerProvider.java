@@ -14,14 +14,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.postgresql.model.data.type;
+package com.seizia.chromite.ext.postgresql.model.data.type;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.ext.postgresql.PostgreUtils;
-import org.jkiss.dbeaver.ext.postgresql.model.PostgreDataType;
-import org.jkiss.dbeaver.ext.postgresql.model.PostgreOid;
-import org.jkiss.dbeaver.ext.postgresql.model.impls.redshift.PostgreServerRedshift;
+import com.seizia.chromite.ext.postgresql.PostgreUtils;
+import com.seizia.chromite.ext.postgresql.model.PostgreDataType;
+import com.seizia.chromite.ext.postgresql.model.PostgreOid;
+import com.seizia.chromite.ext.postgresql.model.impls.redshift.PostgreServerRedshift;
 
 public class PostgreTypeHandlerProvider {
 

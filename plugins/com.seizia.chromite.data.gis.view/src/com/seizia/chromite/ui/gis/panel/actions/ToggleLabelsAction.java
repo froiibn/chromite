@@ -14,17 +14,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.gis.panel.actions;
+package com.seizia.chromite.ui.gis.panel.actions;
 
 import org.eclipse.jface.action.Action;
 import org.eclipse.jface.action.IMenuCreator;
 import org.eclipse.jface.action.MenuManager;
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.model.DBIcon;
-import org.jkiss.dbeaver.ui.DBeaverIcons;
-import org.jkiss.dbeaver.ui.MenuCreator;
-import org.jkiss.dbeaver.ui.gis.internal.GISMessages;
-import org.jkiss.dbeaver.ui.gis.panel.GISLeafletViewer;
+import com.seizia.chromite.model.DBIcon;
+import com.seizia.chromite.ui.SwtIcons;
+import com.seizia.chromite.ui.MenuCreator;
+import com.seizia.chromite.ui.gis.internal.GISMessages;
+import com.seizia.chromite.ui.gis.panel.GISLeafletViewer;
 
 public class ToggleLabelsAction extends Action {
     private final GISLeafletViewer viewer;
@@ -34,7 +34,7 @@ public class ToggleLabelsAction extends Action {
         this.viewer = viewer;
 
         setText(getActionText());
-        setImageDescriptor(DBeaverIcons.getImageDescriptor(DBIcon.SMALL_INFO));
+        setImageDescriptor(SwtIcons.getImageDescriptor(DBIcon.SMALL_INFO));
     }
 
     @Override

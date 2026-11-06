@@ -16,14 +16,14 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.model.runtime.features;
+package com.seizia.chromite.model.runtime.features;
 
 import org.eclipse.core.runtime.IConfigurationElement;
 import org.eclipse.core.runtime.Platform;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.model.impl.AbstractDescriptor;
-import org.jkiss.dbeaver.model.qm.QMUtils;
+import com.seizia.chromite.model.impl.AbstractDescriptor;
+import com.seizia.chromite.model.qm.QMUtils;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -41,7 +41,7 @@ import java.util.Objects;
  */
 public class DBRFeatureRegistry {
 
-    public static final String COMMAND_FEATURE_EXTENSION = "org.jkiss.dbeaver.commandFeature";
+    public static final String COMMAND_FEATURE_EXTENSION = "com.seizia.chromite.commandFeature";
 
     private static final class CommandFeatureDescriptor extends AbstractDescriptor {
         @NotNull

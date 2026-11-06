@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.ext.oracle.ui.tools.sqldeveloper;
+package com.seizia.chromite.ext.oracle.ui.tools.sqldeveloper;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -25,18 +25,18 @@ import org.eclipse.ui.plugin.AbstractUIPlugin;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.ext.oracle.model.OracleConstants;
-import org.jkiss.dbeaver.ext.oracle.model.dict.OracleConnectionRole;
-import org.jkiss.dbeaver.ext.oracle.model.dict.OracleConnectionType;
-import org.jkiss.dbeaver.ext.oracle.oci.OCIUtils;
-import org.jkiss.dbeaver.ext.oracle.ui.OracleUIConstants;
-import org.jkiss.dbeaver.ext.oracle.ui.internal.OracleUIMessages;
-import org.jkiss.dbeaver.ui.config.migration.wizards.ConfigImportWizardPage;
-import org.jkiss.dbeaver.ui.config.migration.wizards.ImportConnectionInfo;
-import org.jkiss.dbeaver.ui.config.migration.wizards.ImportData;
-import org.jkiss.dbeaver.ui.config.migration.wizards.ImportDriverInfo;
-import org.jkiss.dbeaver.utils.RuntimeUtils;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.ext.oracle.model.OracleConstants;
+import com.seizia.chromite.ext.oracle.model.dict.OracleConnectionRole;
+import com.seizia.chromite.ext.oracle.model.dict.OracleConnectionType;
+import com.seizia.chromite.ext.oracle.oci.OCIUtils;
+import com.seizia.chromite.ext.oracle.ui.OracleUIConstants;
+import com.seizia.chromite.ext.oracle.ui.internal.OracleUIMessages;
+import com.seizia.chromite.ui.config.migration.wizards.ConfigImportWizardPage;
+import com.seizia.chromite.ui.config.migration.wizards.ImportConnectionInfo;
+import com.seizia.chromite.ui.config.migration.wizards.ImportData;
+import com.seizia.chromite.ui.config.migration.wizards.ImportDriverInfo;
+import com.seizia.chromite.utils.RuntimeUtils;
 import org.jkiss.utils.CommonUtils;
 import org.jkiss.utils.xml.XMLException;
 import org.jkiss.utils.xml.XMLUtils;
@@ -278,7 +278,7 @@ public class ConfigImportWizardPageSqlDeveloper extends ConfigImportWizardPage {
                     String url = isTnsConnection ? getTnsUrl(info.getUrl()) : info.getUrl();
 
                     // database name should be set to network alias as with connections
-                    // created within dbeaver
+                    // created within chromite
                     String dbName = isTnsConnection ? info.getUrl() 
                         : CommonUtils.isEmpty(info.getSID()) ? info.getServiceName() : info.getSID();
 
@@ -295,7 +295,7 @@ public class ConfigImportWizardPageSqlDeveloper extends ConfigImportWizardPage {
                     }
                     if (!CommonUtils.isEmpty(info.getRole())) {
                         connectionInfo.setProviderProperty(OracleConstants.PROP_INTERNAL_LOGON, info.getRole());
-                        // dbeaver only supports SYSDBA, SYSOPER, and default auth logon roles
+                        // chromite only supports SYSDBA, SYSOPER, and default auth logon roles
                         if (info.getRole().equals(OracleConnectionRole.SYSDBA.getTitle())
                                 || info.getRole().equals(OracleConnectionRole.SYSOPER.getTitle())) {
                             connectionInfo.setProviderProperty(OracleConstants.PROP_AUTH_LOGON_AS, info.getRole());

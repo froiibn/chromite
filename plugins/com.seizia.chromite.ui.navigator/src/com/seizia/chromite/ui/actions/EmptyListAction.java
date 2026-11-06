@@ -15,10 +15,10 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.ui.actions;
+package com.seizia.chromite.ui.actions;
 
-import org.jkiss.dbeaver.ui.EmptyAction;
-import org.jkiss.dbeaver.ui.internal.UINavigatorMessages;
+import com.seizia.chromite.ui.EmptyAction;
+import com.seizia.chromite.ui.internal.UINavigatorMessages;
 
 public class EmptyListAction extends EmptyAction {
     public EmptyListAction() {

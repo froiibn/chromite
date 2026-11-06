@@ -14,11 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.navigator;
+package com.seizia.chromite.model.navigator;
 
-import org.jkiss.dbeaver.ModelPreferences;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.junit.DBeaverUnitTest;
+import com.seizia.chromite.ModelPreferences;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.junit.ChromiteUnitTest;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
@@ -29,7 +29,7 @@ import java.util.List;
 
 import static org.mockito.Mockito.*;
 
-public class DBNUtilsTest extends DBeaverUnitTest {
+public class DBNUtilsTest extends ChromiteUnitTest {
 
     private final List<String> changedProperties = new ArrayList<>();
 

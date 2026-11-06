@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.app.standalone;
+package com.seizia.chromite.ui.app.standalone;
 
 import org.eclipse.core.runtime.IConfigurationElement;
 import org.eclipse.core.runtime.IExtension;
@@ -41,23 +41,23 @@ import org.eclipse.ui.internal.registry.ActionSetRegistry;
 import org.eclipse.ui.internal.registry.IActionSetDescriptor;
 import org.eclipse.ui.texteditor.ITextEditorActionDefinitionIds;
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.ModelPreferences;
-import org.jkiss.dbeaver.core.CoreMessages;
-import org.jkiss.dbeaver.model.DBIcon;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.ui.*;
-import org.jkiss.dbeaver.ui.app.standalone.about.AboutBoxAction;
-import org.jkiss.dbeaver.ui.app.standalone.internal.CoreApplicationMessages;
-import org.jkiss.dbeaver.ui.app.standalone.internal.WorkbenchPatcher;
-import org.jkiss.dbeaver.ui.app.standalone.update.CheckForUpdateAction;
-import org.jkiss.dbeaver.ui.controls.StatusLineContributionItemEx;
-import org.jkiss.dbeaver.ui.navigator.actions.ToggleViewAction;
-import org.jkiss.dbeaver.ui.navigator.database.DatabaseNavigatorView;
-import org.jkiss.dbeaver.ui.navigator.project.ProjectExplorerView;
-import org.jkiss.dbeaver.ui.navigator.project.ProjectNavigatorView;
-import org.jkiss.dbeaver.ui.preferences.PrefPageGeneral;
-import org.jkiss.dbeaver.ui.services.ApplicationPolicyService;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.ModelPreferences;
+import com.seizia.chromite.core.CoreMessages;
+import com.seizia.chromite.model.DBIcon;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.ui.*;
+import com.seizia.chromite.ui.app.standalone.about.AboutBoxAction;
+import com.seizia.chromite.ui.app.standalone.internal.CoreApplicationMessages;
+import com.seizia.chromite.ui.app.standalone.internal.WorkbenchPatcher;
+import com.seizia.chromite.ui.app.standalone.update.CheckForUpdateAction;
+import com.seizia.chromite.ui.controls.StatusLineContributionItemEx;
+import com.seizia.chromite.ui.navigator.actions.ToggleViewAction;
+import com.seizia.chromite.ui.navigator.database.DatabaseNavigatorView;
+import com.seizia.chromite.ui.navigator.project.ProjectExplorerView;
+import com.seizia.chromite.ui.navigator.project.ProjectNavigatorView;
+import com.seizia.chromite.ui.preferences.PrefPageGeneral;
+import com.seizia.chromite.ui.services.ApplicationPolicyService;
 import org.jkiss.utils.ArrayUtils;
 import org.jkiss.utils.BeanUtils;
 import org.jkiss.utils.StandardConstants;
@@ -181,7 +181,7 @@ public class ApplicationActionBarAdvisor extends ActionBarAdvisor
         //register(aboutAction);
         aboutAction = new AboutBoxAction(window);
         register(showHelpAction = ActionFactory.HELP_CONTENTS.create(window));
-        showHelpAction.setImageDescriptor(DBeaverIcons.getImageDescriptor(DBIcon.SMALL_QUESTION));
+        showHelpAction.setImageDescriptor(SwtIcons.getImageDescriptor(DBIcon.SMALL_QUESTION));
         //register(searchHelpAction = ActionFactory.HELP_SEARCH.create(window));
         //register(dynamicHelpAction = ActionFactory.DYNAMIC_HELP.create(window));
         checkUpdatesAction = new CheckForUpdateAction();
@@ -206,8 +206,8 @@ public class ApplicationActionBarAdvisor extends ActionBarAdvisor
 
     private void patchImages() {
         // We have to patch images manually because using commandImages extension point doesn't guarantee order
-        //WorkbenchImages.declareImage(IWorkbenchGraphicConstants.IMG_WIZBAN_IMPORT_WIZ, DBeaverIcons.getImageDescriptor(UIIcon.IMPORT), true);
-        //WorkbenchImages.declareImage(IWorkbenchGraphicConstants.IMG_WIZBAN_EXPORT_WIZ, DBeaverIcons.getImageDescriptor(UIIcon.EXPORT), true);
+        //WorkbenchImages.declareImage(IWorkbenchGraphicConstants.IMG_WIZBAN_IMPORT_WIZ, SwtIcons.getImageDescriptor(UIIcon.IMPORT), true);
+        //WorkbenchImages.declareImage(IWorkbenchGraphicConstants.IMG_WIZBAN_EXPORT_WIZ, SwtIcons.getImageDescriptor(UIIcon.EXPORT), true);
 
         IWorkbenchWindow workbenchWindow = getActionBarConfigurer().getWindowConfigurer().getWindow();
         if (workbenchWindow != null) {
@@ -233,7 +233,7 @@ public class ApplicationActionBarAdvisor extends ActionBarAdvisor
     }
 
     private void bindImage(@NotNull CommandImageService cis, @NotNull String commandId, @NotNull DBIcon icon) {
-        ImageDescriptor id = DBeaverIcons.getImageDescriptor(icon);
+        ImageDescriptor id = SwtIcons.getImageDescriptor(icon);
         cis.bind(commandId, CommandImageManager.TYPE_DEFAULT, null, id);
         cis.bind(commandId, CommandImageManager.TYPE_HOVER, null, id);
         cis.bind(commandId, CommandImageManager.TYPE_DISABLED, null, (ImageDescriptor) null);

@@ -14,13 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.mimer.ui.editors;
+package com.seizia.chromite.ext.mimer.ui.editors;
 
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.ext.mimer.model.MimerModule;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.model.struct.DBSObjectWithScript;
-import org.jkiss.dbeaver.ui.editors.sql.SQLSourceViewer;
+import com.seizia.chromite.ext.mimer.model.MimerModule;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.model.struct.DBSObjectWithScript;
+import com.seizia.chromite.ui.editors.sql.SQLSourceViewer;
 
 /**
  * Editable Source tab for {@link MimerModule}. A self-contained copy of {@code

@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.data.managers;
+package com.seizia.chromite.ui.data.managers;
 
 import org.eclipse.core.filesystem.EFS;
 import org.eclipse.core.filesystem.IFileStore;
@@ -28,35 +28,35 @@ import org.eclipse.ui.ide.IDE;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.DBPDataKind;
-import org.jkiss.dbeaver.model.DBPMessageType;
-import org.jkiss.dbeaver.model.DBValueFormatting;
-import org.jkiss.dbeaver.model.data.*;
-import org.jkiss.dbeaver.model.data.storage.ExternalContentStorage;
-import org.jkiss.dbeaver.model.exec.DBCException;
-import org.jkiss.dbeaver.model.preferences.DBPPropertyManager;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.ui.DBeaverIcons;
-import org.jkiss.dbeaver.ui.ShellUtils;
-import org.jkiss.dbeaver.ui.UIIcon;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.controls.resultset.ResultSetPreferences;
-import org.jkiss.dbeaver.ui.controls.resultset.internal.ResultSetMessages;
-import org.jkiss.dbeaver.ui.data.IStreamValueEditor;
-import org.jkiss.dbeaver.ui.data.IStreamValueEditorPersistent;
-import org.jkiss.dbeaver.ui.data.IValueController;
-import org.jkiss.dbeaver.ui.data.IValueEditor;
-import org.jkiss.dbeaver.ui.data.dialogs.TextViewDialog;
-import org.jkiss.dbeaver.ui.data.editors.ContentInlineEditor;
-import org.jkiss.dbeaver.ui.data.editors.ContentPanelEditor;
-import org.jkiss.dbeaver.ui.data.editors.StringInlineEditor;
-import org.jkiss.dbeaver.ui.dialogs.DialogUtils;
-import org.jkiss.dbeaver.ui.editors.content.ContentEditor;
-import org.jkiss.dbeaver.utils.ContentUtils;
-import org.jkiss.dbeaver.utils.GeneralUtils;
-import org.jkiss.dbeaver.utils.RuntimeUtils;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.DBPDataKind;
+import com.seizia.chromite.model.DBPMessageType;
+import com.seizia.chromite.model.DBValueFormatting;
+import com.seizia.chromite.model.data.*;
+import com.seizia.chromite.model.data.storage.ExternalContentStorage;
+import com.seizia.chromite.model.exec.DBCException;
+import com.seizia.chromite.model.preferences.DBPPropertyManager;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.ui.SwtIcons;
+import com.seizia.chromite.ui.ShellUtils;
+import com.seizia.chromite.ui.UIIcon;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.controls.resultset.ResultSetPreferences;
+import com.seizia.chromite.ui.controls.resultset.internal.ResultSetMessages;
+import com.seizia.chromite.ui.data.IStreamValueEditor;
+import com.seizia.chromite.ui.data.IStreamValueEditorPersistent;
+import com.seizia.chromite.ui.data.IValueController;
+import com.seizia.chromite.ui.data.IValueEditor;
+import com.seizia.chromite.ui.data.dialogs.TextViewDialog;
+import com.seizia.chromite.ui.data.editors.ContentInlineEditor;
+import com.seizia.chromite.ui.data.editors.ContentPanelEditor;
+import com.seizia.chromite.ui.data.editors.StringInlineEditor;
+import com.seizia.chromite.ui.dialogs.DialogUtils;
+import com.seizia.chromite.ui.editors.content.ContentEditor;
+import com.seizia.chromite.utils.ContentUtils;
+import com.seizia.chromite.utils.GeneralUtils;
+import com.seizia.chromite.utils.RuntimeUtils;
 
 import java.io.*;
 import java.lang.reflect.InvocationTargetException;
@@ -90,14 +90,14 @@ public class ContentValueManager extends BaseValueManager {
     ) {
         if (controller.getValue() instanceof DBDContent content) {
             if (!content.isNull()) {
-                manager.add(new Action(ResultSetMessages.model_jdbc_save_to_file_, DBeaverIcons.getImageDescriptor(UIIcon.SAVE_AS)) {
+                manager.add(new Action(ResultSetMessages.model_jdbc_save_to_file_, SwtIcons.getImageDescriptor(UIIcon.SAVE_AS)) {
                     @Override
                     public void run() {
                         saveToFile(controller);
                     }
                 });
             }
-            manager.add(new Action("Open in external editor", DBeaverIcons.getImageDescriptor(UIIcon.FILE)) {
+            manager.add(new Action("Open in external editor", SwtIcons.getImageDescriptor(UIIcon.FILE)) {
                 @Override
                 public void run() {
                     try {
@@ -141,7 +141,7 @@ public class ContentValueManager extends BaseValueManager {
                     return !controller.isReadOnly();
                 }
             });
-            manager.add(new Action(ResultSetMessages.model_jdbc_load_from_file_, DBeaverIcons.getImageDescriptor(UIIcon.LOAD)) {
+            manager.add(new Action(ResultSetMessages.model_jdbc_load_from_file_, SwtIcons.getImageDescriptor(UIIcon.LOAD)) {
                 @Override
                 public void run() {
                     if (loadFromFile(controller)) {

@@ -14,9 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.gis;
+package com.seizia.chromite.ui.gis;
 
-import org.jkiss.dbeaver.ui.data.IValueEditor;
+import com.seizia.chromite.ui.data.IValueEditor;
 
 /**
  * Geometry value viewer

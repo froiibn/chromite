@@ -15,9 +15,9 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.model.qm;
+package com.seizia.chromite.model.qm;
 
-import org.jkiss.dbeaver.model.data.json.JSONUtils;
+import com.seizia.chromite.model.data.json.JSONUtils;
 
 import java.util.Date;
 import java.util.LinkedHashMap;

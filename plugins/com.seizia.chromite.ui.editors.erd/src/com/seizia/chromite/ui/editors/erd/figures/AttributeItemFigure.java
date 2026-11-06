@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.editors.erd.figures;
+package com.seizia.chromite.ui.editors.erd.figures;
 
 import org.eclipse.draw2d.Figure;
 import org.eclipse.draw2d.GridLayout;
@@ -26,15 +26,15 @@ import org.eclipse.swt.graphics.Color;
 import org.eclipse.swt.graphics.Font;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.model.DBPImage;
-import org.jkiss.dbeaver.model.erd.ERDEntityAttribute;
-import org.jkiss.dbeaver.ui.DBeaverIcons;
-import org.jkiss.dbeaver.ui.editors.erd.editor.ERDThemeSettings;
-import org.jkiss.dbeaver.ui.editors.erd.editor.ERDViewStyle;
-import org.jkiss.dbeaver.ui.editors.erd.model.ERDDecorator;
-import org.jkiss.dbeaver.ui.editors.erd.model.EntityDiagram;
-import org.jkiss.dbeaver.ui.editors.erd.part.AttributePart;
-import org.jkiss.dbeaver.ui.editors.erd.part.DiagramPart;
+import com.seizia.chromite.model.DBPImage;
+import com.seizia.chromite.model.erd.ERDEntityAttribute;
+import com.seizia.chromite.ui.SwtIcons;
+import com.seizia.chromite.ui.editors.erd.editor.ERDThemeSettings;
+import com.seizia.chromite.ui.editors.erd.editor.ERDViewStyle;
+import com.seizia.chromite.ui.editors.erd.model.ERDDecorator;
+import com.seizia.chromite.ui.editors.erd.model.EntityDiagram;
+import com.seizia.chromite.ui.editors.erd.part.AttributePart;
+import com.seizia.chromite.ui.editors.erd.part.DiagramPart;
 
 import java.util.List;
 
@@ -83,7 +83,7 @@ public class AttributeItemFigure extends Figure
         if (diagram.hasAttributeStyle(ERDViewStyle.ICONS)) {
             DBPImage labelImage = attribute.getLabelImage();
             if (labelImage != null) {
-                attrNameLabel.setIcon(DBeaverIcons.getImage(labelImage));
+                attrNameLabel.setIcon(SwtIcons.getImage(labelImage));
             }
         }
         add(attrNameLabel);
@@ -143,7 +143,7 @@ public class AttributeItemFigure extends Figure
         if (decorator.supportsAttributeStyle(ERDViewStyle.ICONS) && diagram.hasAttributeStyle(ERDViewStyle.ICONS)) {
             DBPImage labelImage = part.getAttribute().getLabelImage();
             if (labelImage != null) {
-                getLabel().setIcon(DBeaverIcons.getImage(labelImage));
+                getLabel().setIcon(SwtIcons.getImage(labelImage));
             }
         }
 

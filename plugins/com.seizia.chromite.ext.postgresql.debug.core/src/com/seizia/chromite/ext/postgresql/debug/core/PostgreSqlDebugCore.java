@@ -15,24 +15,24 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.postgresql.debug.core;
+package com.seizia.chromite.ext.postgresql.debug.core;
 
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.debug.DBGConstants;
-import org.jkiss.dbeaver.ext.postgresql.debug.PostgreDebugConstants;
-import org.jkiss.dbeaver.ext.postgresql.model.PostgreDataSource;
-import org.jkiss.dbeaver.ext.postgresql.model.PostgreDatabase;
-import org.jkiss.dbeaver.ext.postgresql.model.PostgreProcedure;
-import org.jkiss.dbeaver.ext.postgresql.model.PostgreSchema;
-import org.jkiss.dbeaver.model.DBPDataSourceContainer;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.debug.DBGConstants;
+import com.seizia.chromite.ext.postgresql.debug.PostgreDebugConstants;
+import com.seizia.chromite.ext.postgresql.model.PostgreDataSource;
+import com.seizia.chromite.ext.postgresql.model.PostgreDatabase;
+import com.seizia.chromite.ext.postgresql.model.PostgreProcedure;
+import com.seizia.chromite.ext.postgresql.model.PostgreSchema;
+import com.seizia.chromite.model.DBPDataSourceContainer;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
 import org.jkiss.utils.CommonUtils;
 
 import java.util.Map;
 
 public class PostgreSqlDebugCore {
 
-    public static final String BUNDLE_SYMBOLIC_NAME = "org.jkiss.dbeaver.ext.postgresql.debug.core"; //$NON-NLS-1$
+    public static final String BUNDLE_SYMBOLIC_NAME = "com.seizia.chromite.ext.postgresql.debug.core"; //$NON-NLS-1$
 
     public static void saveFunction(PostgreProcedure procedure, Map<String, Object> configuration) {
         PostgreDataSource dataSource = procedure.getDataSource();

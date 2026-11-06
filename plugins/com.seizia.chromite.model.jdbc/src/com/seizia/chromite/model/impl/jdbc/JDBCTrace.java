@@ -14,10 +14,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.impl.jdbc;
+package com.seizia.chromite.model.impl.jdbc;
 
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.runtime.DBWorkbench;
 import org.jkiss.utils.CommonUtils;
 
 import java.io.IOException;
@@ -41,7 +41,7 @@ public class JDBCTrace {
     private static final String RS_DIVIDER =    "-------------------------------------------------------";
 
     static {
-        boolean traceEnabled = CommonUtils.toBoolean(System.getProperty("dbeaver.jdbc.trace"));
+        boolean traceEnabled = CommonUtils.toBoolean(System.getProperty("chromite.jdbc.trace"));
 
         if (traceEnabled) {
             Path traceFile = DBWorkbench.getPlatform().getWorkspace().getMetadataFolder().resolve("jdbc-api-trace.log");

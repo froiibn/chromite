@@ -14,15 +14,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.starrocks;
+package com.seizia.chromite.ext.starrocks;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.ext.generic.GenericDataSourceProvider;
-import org.jkiss.dbeaver.ext.starrocks.model.StarRocksDataSource;
-import org.jkiss.dbeaver.ext.starrocks.model.StarRocksMetaModel;
-import org.jkiss.dbeaver.model.DBPDataSourceContainer;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.ext.generic.GenericDataSourceProvider;
+import com.seizia.chromite.ext.starrocks.model.StarRocksDataSource;
+import com.seizia.chromite.ext.starrocks.model.StarRocksMetaModel;
+import com.seizia.chromite.model.DBPDataSourceContainer;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
 
 /**
  * StarRocks DataSource Provider - creates StarRocksDataSource instances.

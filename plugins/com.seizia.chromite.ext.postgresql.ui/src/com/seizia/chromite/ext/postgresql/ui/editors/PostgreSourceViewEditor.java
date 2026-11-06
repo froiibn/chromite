@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.ext.postgresql.ui.editors;
+package com.seizia.chromite.ext.postgresql.ui.editors;
 
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.jface.action.Action;
@@ -26,22 +26,22 @@ import org.eclipse.ui.IWorkbenchWindow;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.ext.postgresql.PostgreMessages;
-import org.jkiss.dbeaver.ext.postgresql.model.*;
-import org.jkiss.dbeaver.ext.postgresql.ui.editors.sql.handlers.SQLEditorHandlerCheckProcedureConsole;
-import org.jkiss.dbeaver.model.DBIcon;
-import org.jkiss.dbeaver.model.DBPScriptObject;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.model.runtime.DBRRunnableWithResult;
-import org.jkiss.dbeaver.model.struct.rdb.DBSProcedure;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.ui.ActionUtils;
-import org.jkiss.dbeaver.ui.DBeaverIcons;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.editors.sql.SQLObjectDocumentProvider;
-import org.jkiss.dbeaver.ui.editors.sql.SQLSourceViewer;
-import org.jkiss.dbeaver.ui.editors.sql.handlers.SQLEditorHandlerOpenObjectConsole;
-import org.jkiss.dbeaver.ui.editors.sql.handlers.SQLNavigatorContext;
+import com.seizia.chromite.ext.postgresql.PostgreMessages;
+import com.seizia.chromite.ext.postgresql.model.*;
+import com.seizia.chromite.ext.postgresql.ui.editors.sql.handlers.SQLEditorHandlerCheckProcedureConsole;
+import com.seizia.chromite.model.DBIcon;
+import com.seizia.chromite.model.DBPScriptObject;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.model.runtime.DBRRunnableWithResult;
+import com.seizia.chromite.model.struct.rdb.DBSProcedure;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.ui.ActionUtils;
+import com.seizia.chromite.ui.SwtIcons;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.editors.sql.SQLObjectDocumentProvider;
+import com.seizia.chromite.ui.editors.sql.SQLSourceViewer;
+import com.seizia.chromite.ui.editors.sql.handlers.SQLEditorHandlerOpenObjectConsole;
+import com.seizia.chromite.ui.editors.sql.handlers.SQLNavigatorContext;
 import org.jkiss.utils.CommonUtils;
 
 import java.util.ArrayList;
@@ -136,7 +136,7 @@ public class PostgreSourceViewEditor extends SQLSourceViewer<PostgreScriptObject
             contributionManager.add(ActionUtils.makeActionContribution(
                 new Action(PostgreMessages.source_view_show_header_label, Action.AS_CHECK_BOX) {
                     {
-                        setImageDescriptor(DBeaverIcons.getImageDescriptor(DBIcon.TREE_PROCEDURE));
+                        setImageDescriptor(SwtIcons.getImageDescriptor(DBIcon.TREE_PROCEDURE));
                         setToolTipText(PostgreMessages.source_view_show_header_description);
                         setChecked(!isInDebugMode());
                     }

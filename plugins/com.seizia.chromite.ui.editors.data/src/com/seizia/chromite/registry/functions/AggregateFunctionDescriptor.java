@@ -15,13 +15,13 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.registry.functions;
+package com.seizia.chromite.registry.functions;
 
 import org.eclipse.core.runtime.IConfigurationElement;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.model.DBPImage;
-import org.jkiss.dbeaver.model.data.aggregate.IAggregateFunction;
-import org.jkiss.dbeaver.model.impl.AbstractContextDescriptor;
+import com.seizia.chromite.model.DBPImage;
+import com.seizia.chromite.model.data.aggregate.IAggregateFunction;
+import com.seizia.chromite.model.impl.AbstractContextDescriptor;
 import org.jkiss.utils.CommonUtils;
 
 /**
@@ -29,7 +29,7 @@ import org.jkiss.utils.CommonUtils;
  */
 public class AggregateFunctionDescriptor extends AbstractContextDescriptor {
 
-    public static final String EXTENSION_ID = "org.jkiss.dbeaver.aggregateFunction"; //$NON-NLS-1$
+    public static final String EXTENSION_ID = "com.seizia.chromite.aggregateFunction"; //$NON-NLS-1$
 
     private final String id;
     private final String label;

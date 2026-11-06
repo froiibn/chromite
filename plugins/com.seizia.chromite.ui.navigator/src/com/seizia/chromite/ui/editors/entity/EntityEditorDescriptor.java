@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.editors.entity;
+package com.seizia.chromite.ui.editors.entity;
 
 import org.eclipse.core.runtime.IConfigurationElement;
 import org.eclipse.ui.IEditorActionBarContributor;
@@ -22,18 +22,18 @@ import org.eclipse.ui.IEditorInput;
 import org.eclipse.ui.IEditorPart;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.DBIcon;
-import org.jkiss.dbeaver.model.DBPImage;
-import org.jkiss.dbeaver.model.impl.AbstractContextDescriptor;
-import org.jkiss.dbeaver.model.impl.AbstractDescriptor;
-import org.jkiss.dbeaver.ui.IActionConstants;
-import org.jkiss.dbeaver.ui.editors.IDatabaseEditorInput;
-import org.jkiss.dbeaver.ui.editors.IDatabaseEditorInputFactory;
-import org.jkiss.dbeaver.ui.editors.entity.properties.ObjectPropertiesEditor;
-import org.jkiss.dbeaver.ui.editors.entity.properties.ObjectPropertiesEditorInputFactory;
-import org.jkiss.dbeaver.ui.internal.UINavigatorActivator;
-import org.jkiss.dbeaver.ui.internal.UINavigatorMessages;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.DBIcon;
+import com.seizia.chromite.model.DBPImage;
+import com.seizia.chromite.model.impl.AbstractContextDescriptor;
+import com.seizia.chromite.model.impl.AbstractDescriptor;
+import com.seizia.chromite.ui.IActionConstants;
+import com.seizia.chromite.ui.editors.IDatabaseEditorInput;
+import com.seizia.chromite.ui.editors.IDatabaseEditorInputFactory;
+import com.seizia.chromite.ui.editors.entity.properties.ObjectPropertiesEditor;
+import com.seizia.chromite.ui.editors.entity.properties.ObjectPropertiesEditorInputFactory;
+import com.seizia.chromite.ui.internal.UINavigatorActivator;
+import com.seizia.chromite.ui.internal.UINavigatorMessages;
 import org.jkiss.utils.CommonUtils;
 
 /**
@@ -42,7 +42,7 @@ import org.jkiss.utils.CommonUtils;
 public class EntityEditorDescriptor extends AbstractContextDescriptor {
     private static final Log log = Log.getLog(EntityEditorDescriptor.class);
 
-    public static final String EXTENSION_ID = "org.jkiss.dbeaver.databaseEditor"; //NON-NLS-1 //$NON-NLS-1$
+    public static final String EXTENSION_ID = "com.seizia.chromite.databaseEditor"; //NON-NLS-1 //$NON-NLS-1$
 
     public static final String DEFAULT_OBJECT_EDITOR_ID = "default.object.editor"; //NON-NLS-1 //$NON-NLS-1$
 

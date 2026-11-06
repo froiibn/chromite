@@ -14,19 +14,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.tools.compare.simple.ui;
+package com.seizia.chromite.tools.compare.simple.ui;
 
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.events.SelectionListener;
 import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.*;
-import org.jkiss.dbeaver.model.navigator.DBNDatabaseNode;
-import org.jkiss.dbeaver.tools.compare.simple.CompareObjectsSettings;
-import org.jkiss.dbeaver.tools.compare.simple.ui.internal.CompareUIMessages;
-import org.jkiss.dbeaver.ui.DBeaverIcons;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.dialogs.ActiveWizardPage;
+import com.seizia.chromite.model.navigator.DBNDatabaseNode;
+import com.seizia.chromite.tools.compare.simple.CompareObjectsSettings;
+import com.seizia.chromite.tools.compare.simple.ui.internal.CompareUIMessages;
+import com.seizia.chromite.ui.SwtIcons;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.dialogs.ActiveWizardPage;
 
 class CompareObjectsPageSettings extends ActiveWizardPage<CompareObjectsWizard> {
 
@@ -70,7 +70,7 @@ class CompareObjectsPageSettings extends ActiveWizardPage<CompareObjectsWizard> 
             UIUtils.createTableColumn(nodesTable, SWT.LEFT, CompareUIMessages.compare_objects_page_settings_nodes_column_full_name);
             for (DBNDatabaseNode node : settings.getNodes()) {
                 TableItem item = new TableItem(nodesTable, SWT.NONE);
-                item.setImage(DBeaverIcons.getImage(node.getNodeIconDefault()));
+                item.setImage(SwtIcons.getImage(node.getNodeIconDefault()));
                 item.setText(0, node.getNodeDisplayName());
                 item.setText(1, node.getNodeTypeLabel());
                 item.setText(2, node.getNodeFullName());

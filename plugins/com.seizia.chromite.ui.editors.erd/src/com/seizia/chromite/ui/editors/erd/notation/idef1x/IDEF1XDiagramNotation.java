@@ -14,24 +14,24 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.editors.erd.notation.idef1x;
+package com.seizia.chromite.ui.editors.erd.notation.idef1x;
 
 import org.eclipse.draw2d.PolygonDecoration;
 import org.eclipse.draw2d.PolylineConnection;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.graphics.Color;
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.model.erd.ERDAssociation;
-import org.jkiss.dbeaver.model.erd.ERDEntity;
-import org.jkiss.dbeaver.model.erd.ERDUtils;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.model.struct.DBSEntityConstraintType;
-import org.jkiss.dbeaver.ui.editors.erd.notations.ERDNotation;
-import org.jkiss.dbeaver.ui.editors.erd.notations.ERDNotationBase;
-import org.jkiss.dbeaver.ui.editors.erd.part.AssociationPart.CircleDecoration;
-import org.jkiss.dbeaver.ui.editors.erd.part.AssociationPart.RhombusDecoration;
-import org.jkiss.dbeaver.ui.editors.erd.router.ERDConnectionRouterDescriptor;
-import org.jkiss.dbeaver.ui.editors.erd.router.ERDConnectionRouterRegistry;
+import com.seizia.chromite.model.erd.ERDAssociation;
+import com.seizia.chromite.model.erd.ERDEntity;
+import com.seizia.chromite.model.erd.ERDUtils;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.model.struct.DBSEntityConstraintType;
+import com.seizia.chromite.ui.editors.erd.notations.ERDNotation;
+import com.seizia.chromite.ui.editors.erd.notations.ERDNotationBase;
+import com.seizia.chromite.ui.editors.erd.part.AssociationPart.CircleDecoration;
+import com.seizia.chromite.ui.editors.erd.part.AssociationPart.RhombusDecoration;
+import com.seizia.chromite.ui.editors.erd.router.ERDConnectionRouterDescriptor;
+import com.seizia.chromite.ui.editors.erd.router.ERDConnectionRouterRegistry;
 
 public class IDEF1XDiagramNotation extends ERDNotationBase implements ERDNotation {
     @Override

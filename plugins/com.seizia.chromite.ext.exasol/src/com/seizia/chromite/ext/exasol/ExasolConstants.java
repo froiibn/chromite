@@ -15,11 +15,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.exasol;
+package com.seizia.chromite.ext.exasol;
 
-import org.jkiss.dbeaver.model.DBConstants;
-import org.jkiss.dbeaver.model.data.DBDPseudoAttribute;
-import org.jkiss.dbeaver.model.data.DBDPseudoAttributeType;
+import com.seizia.chromite.model.DBConstants;
+import com.seizia.chromite.model.data.DBDPseudoAttribute;
+import com.seizia.chromite.model.data.DBDPseudoAttributeType;
 
 /**
  * Exasol constants
@@ -43,8 +43,8 @@ public class ExasolConstants {
     public static final String DRV_USE_BACKUP_HOST_LIST = DBConstants.INTERNAL_PROP_PREFIX + "useBackupHostList";
     public static final String DRV_USE_LEGACY_ENCRYPTION = "exasol.useLegacyEncryption";
     public static final String DRV_LEGACY_ENCRYPTION = "legacyencryption";
-    public static final String CONSUMER_GROUP_CLASS = "org.jkiss.dbeaver.ext.exasol.model.ExasolConsumerGroup";
-    public static final String PRIORITY_GROUP_CLASS = "org.jkiss.dbeaver.ext.exasol.model.ExasolPriorityGroup";
+    public static final String CONSUMER_GROUP_CLASS = "com.seizia.chromite.ext.exasol.model.ExasolConsumerGroup";
+    public static final String PRIORITY_GROUP_CLASS = "com.seizia.chromite.ext.exasol.model.ExasolPriorityGroup";
 
 
     public static final DBDPseudoAttribute PSEUDO_ATTR_ROWID = new DBDPseudoAttribute(

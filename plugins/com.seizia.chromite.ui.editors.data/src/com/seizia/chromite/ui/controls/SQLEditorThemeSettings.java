@@ -14,12 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.controls;
+package com.seizia.chromite.ui.controls;
 
 import org.eclipse.swt.graphics.Color;
-import org.jkiss.dbeaver.ui.ThemeColor;
-import org.jkiss.dbeaver.ui.ThemeListener;
-import org.jkiss.dbeaver.ui.controls.resultset.ThemeConstants;
+import com.seizia.chromite.ui.ThemeColor;
+import com.seizia.chromite.ui.ThemeListener;
+import com.seizia.chromite.ui.controls.resultset.ThemeConstants;
 
 public class SQLEditorThemeSettings extends ThemeListener {
 

@@ -14,11 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.impl.data.formatters;
+package com.seizia.chromite.model.impl.data.formatters;
 
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.model.DBConstants;
-import org.jkiss.dbeaver.model.data.DBDDataFormatterSample;
+import com.seizia.chromite.model.DBConstants;
+import com.seizia.chromite.model.data.DBDDataFormatterSample;
 
 import java.util.Collections;
 import java.util.Date;

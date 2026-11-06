@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.runtime;
+package com.seizia.chromite.runtime;
 
 /**
  * Markers
@@ -23,7 +23,7 @@ package org.jkiss.dbeaver.runtime;
 public class DBMarkers
 {
     // Markers used to pass underlying information from editors to debugger
-    public static final String MARKER_ATTRIBUTE_DATASOURCE_ID = "org.jkiss.dbeaver.runtime.marker.datasourceId"; //$NON-NLS-1$
-    public static final String MARKER_ATTRIBUTE_NODE_PATH = "org.jkiss.dbeaver.runtime.marker.nodePath"; //$NON-NLS-1$
+    public static final String MARKER_ATTRIBUTE_DATASOURCE_ID = "com.seizia.chromite.runtime.marker.datasourceId"; //$NON-NLS-1$
+    public static final String MARKER_ATTRIBUTE_NODE_PATH = "com.seizia.chromite.runtime.marker.nodePath"; //$NON-NLS-1$
 
 }

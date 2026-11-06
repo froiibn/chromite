@@ -14,10 +14,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.dialogs.connection;
+package com.seizia.chromite.ui.dialogs.connection;
 
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.model.navigator.DBNBrowseSettings;
+import com.seizia.chromite.model.navigator.DBNBrowseSettings;
 
 public interface NavigatorSettingsStorage {
     DBNBrowseSettings getNavigatorSettings();

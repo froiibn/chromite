@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.editors.erd.router;
+package com.seizia.chromite.ui.editors.erd.router;
 
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.IConfigurationElement;
@@ -22,17 +22,17 @@ import org.eclipse.core.runtime.IExtensionRegistry;
 import org.eclipse.core.runtime.Platform;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.preferences.DBPPreferenceStore;
-import org.jkiss.dbeaver.ui.editors.erd.ERDUIConstants;
-import org.jkiss.dbeaver.ui.editors.erd.internal.ERDUIActivator;
-import org.jkiss.dbeaver.ui.editors.erd.notations.ERDNotationRegistry;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.preferences.DBPPreferenceStore;
+import com.seizia.chromite.ui.editors.erd.ERDUIConstants;
+import com.seizia.chromite.ui.editors.erd.internal.ERDUIActivator;
+import com.seizia.chromite.ui.editors.erd.notations.ERDNotationRegistry;
 
 import java.util.*;
 
 public class ERDConnectionRouterRegistry {
 
-    private static final String EXTENSION_ID = "org.jkiss.dbeaver.ui.editors.erd.routing"; //$NON-NLS-1$
+    private static final String EXTENSION_ID = "com.seizia.chromite.ui.editors.erd.routing"; //$NON-NLS-1$
     private final static Log log = Log.getLog(ERDNotationRegistry.class);
 
     private static ERDConnectionRouterRegistry instance;

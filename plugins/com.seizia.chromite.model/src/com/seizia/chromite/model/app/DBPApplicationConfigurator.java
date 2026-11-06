@@ -15,13 +15,13 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.model.app;
+package com.seizia.chromite.model.app;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.model.DBConfigurationController;
-import org.jkiss.dbeaver.model.DBFileController;
-import org.jkiss.dbeaver.model.task.DBTTaskController;
+import com.seizia.chromite.model.DBConfigurationController;
+import com.seizia.chromite.model.DBFileController;
+import com.seizia.chromite.model.task.DBTTaskController;
 
 /**
  * DB desktop application.

@@ -15,12 +15,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model;
+package com.seizia.chromite.model;
 
-import org.jkiss.dbeaver.model.data.DBDBinaryFormatter;
-import org.jkiss.dbeaver.model.impl.data.formatters.BinaryFormatterBase64;
-import org.jkiss.dbeaver.model.impl.data.formatters.BinaryFormatterHex;
-import org.jkiss.dbeaver.model.impl.data.formatters.BinaryFormatterString;
+import com.seizia.chromite.model.data.DBDBinaryFormatter;
+import com.seizia.chromite.model.impl.data.formatters.BinaryFormatterBase64;
+import com.seizia.chromite.model.impl.data.formatters.BinaryFormatterHex;
+import com.seizia.chromite.model.impl.data.formatters.BinaryFormatterString;
 
 import java.util.Locale;
 
@@ -58,8 +58,8 @@ public class DBConstants {
     /////////////////////////////////
     // Object context parameters
 
-    public static final String CONTEXT_PARAMETER_PROJECT = "dbeaver.project";
-    public static final String CONTEXT_PARAMETER_DATA_SOURCE = "dbeaver.datasource";
+    public static final String CONTEXT_PARAMETER_PROJECT = "chromite.project";
+    public static final String CONTEXT_PARAMETER_DATA_SOURCE = "chromite.datasource";
 
     /////////////////////////////////
     // Misc
@@ -74,7 +74,7 @@ public class DBConstants {
 
     // Internal properties prefix. This is a legacy properties marker (used to divide driver properties from provider properties)
     // Left for backward compatibility. Do not use it for new provider property names
-    public static final String INTERNAL_PROP_PREFIX = "@dbeaver-"; //NON-NLS-1
+    public static final String INTERNAL_PROP_PREFIX = "@chromite-"; //NON-NLS-1
 
     // Used for default driver property values redefine
     public static final String DEFAULT_DRIVER_PROP_PREFIX = INTERNAL_PROP_PREFIX + "default-"; //NON-NLS-1
@@ -114,16 +114,16 @@ public class DBConstants {
 
     public static final String DEFAULT_ISO_TIMESTAMP_FORMAT = "yyyy-MM-dd'T'HH:mm:ss'Z'";
 
-    public static final String LEGACY_DRIVERS_FOLDER = ".dbeaver-drivers";
+    public static final String LEGACY_DRIVERS_FOLDER = ".chromite-drivers";
     public static final String DEFAULT_DRIVERS_FOLDER = "drivers";
 
-    public static final String MODEL_BUNDLE_ID = "org.jkiss.dbeaver.model";
+    public static final String MODEL_BUNDLE_ID = "com.seizia.chromite.model";
 
-    public static final String WORKSPACE_PROPS_FILE = "dbeaver-workspace.properties"; //$NON-NLS-1$
+    public static final String WORKSPACE_PROPS_FILE = "chromite-workspace.properties"; //$NON-NLS-1$
 
     public static final String LABEL_NA = "N/A";
 
-    public static final String DEBUG_LOG_FILE_NAME = "dbeaver-debug.log";
+    public static final String DEBUG_LOG_FILE_NAME = "chromite-debug.log";
 
     /////////////////////////////////
     // Property categories and features

@@ -2,31 +2,31 @@
 <?eclipse version="3.2"?>
 
 <plugin>
-    <extension-point id="org.jkiss.dbeaver.pluginService" name="Plugin service" schema="schema/org.jkiss.dbeaver.pluginService.exsd"/>
+    <extension-point id="com.seizia.chromite.pluginService" name="Plugin service" schema="schema/com.seizia.chromite.pluginService.exsd"/>
 
     <!-- Non UI extensions -->
-    <extension-point id="org.jkiss.dbeaver.objectManager" name="Database object managers" schema="schema/org.jkiss.dbeaver.objectManager.exsd"/>
-    <extension-point id="org.jkiss.dbeaver.mavenRepository" name="Maven repositories config" schema="schema/org.jkiss.dbeaver.mavenRepository.exsd"/>
-    <extension-point id="org.jkiss.dbeaver.dataSourceProvider" name="DataSource provider" schema="schema/org.jkiss.dbeaver.dataSourceProvider.exsd"/>
-    <extension-point id="org.jkiss.dbeaver.dataSourceStorage" name="DataSource configuration storage" schema="schema/org.jkiss.dbeaver.dataSourceStorage.exsd"/>
-    <extension-point id="org.jkiss.dbeaver.dataSourceAuth" name="DataSource authentication model" schema="schema/org.jkiss.dbeaver.dataSourceAuth.exsd"/>
-    <extension-point id="org.jkiss.dbeaver.dataSourceHandler" name="Datasource handler" schema="schema/org.jkiss.dbeaver.dataSourceHandler.exsd"/>
-    <extension-point id="org.jkiss.dbeaver.driverManager" name="Driver related decorations" schema="schema/org.jkiss.dbeaver.driverManager.exsd"/>
-    <extension-point id="org.jkiss.dbeaver.resourceType" name="Resource types" schema="schema/org.jkiss.dbeaver.resourceType.exsd"/>
-    <extension-point id="org.jkiss.dbeaver.networkHandler" name="Network handlers" schema="schema/org.jkiss.dbeaver.networkHandler.exsd"/>
-    <extension-point id="org.jkiss.dbeaver.resources" name="Resources" schema="schema/org.jkiss.dbeaver.resources.exsd"/>
-    <extension-point id="org.jkiss.dbeaver.product.bundles" name="Product bundles" schema="schema/org.jkiss.dbeaver.product.bundles.exsd"/>
-    <extension-point id="org.jkiss.dbeaver.language" name="Languages" schema="schema/org.jkiss.dbeaver.language.exsd"/>
-    <extension-point id="org.jkiss.dbeaver.task" name="Tasks and task types" schema="schema/org.jkiss.dbeaver.task.exsd"/>
-    <extension-point id="org.jkiss.dbeaver.projectImport" name="Project import transformers" schema="schema/org.jkiss.dbeaver.projectImport.exsd"/>
-    <extension-point id="org.jkiss.dbeaver.productFeature" name="Product feature" schema="schema/org.jkiss.dbeaver.productFeature.exsd"/>
+    <extension-point id="com.seizia.chromite.objectManager" name="Database object managers" schema="schema/com.seizia.chromite.objectManager.exsd"/>
+    <extension-point id="com.seizia.chromite.mavenRepository" name="Maven repositories config" schema="schema/com.seizia.chromite.mavenRepository.exsd"/>
+    <extension-point id="com.seizia.chromite.dataSourceProvider" name="DataSource provider" schema="schema/com.seizia.chromite.dataSourceProvider.exsd"/>
+    <extension-point id="com.seizia.chromite.dataSourceStorage" name="DataSource configuration storage" schema="schema/com.seizia.chromite.dataSourceStorage.exsd"/>
+    <extension-point id="com.seizia.chromite.dataSourceAuth" name="DataSource authentication model" schema="schema/com.seizia.chromite.dataSourceAuth.exsd"/>
+    <extension-point id="com.seizia.chromite.dataSourceHandler" name="Datasource handler" schema="schema/com.seizia.chromite.dataSourceHandler.exsd"/>
+    <extension-point id="com.seizia.chromite.driverManager" name="Driver related decorations" schema="schema/com.seizia.chromite.driverManager.exsd"/>
+    <extension-point id="com.seizia.chromite.resourceType" name="Resource types" schema="schema/com.seizia.chromite.resourceType.exsd"/>
+    <extension-point id="com.seizia.chromite.networkHandler" name="Network handlers" schema="schema/com.seizia.chromite.networkHandler.exsd"/>
+    <extension-point id="com.seizia.chromite.resources" name="Resources" schema="schema/com.seizia.chromite.resources.exsd"/>
+    <extension-point id="com.seizia.chromite.product.bundles" name="Product bundles" schema="schema/com.seizia.chromite.product.bundles.exsd"/>
+    <extension-point id="com.seizia.chromite.language" name="Languages" schema="schema/com.seizia.chromite.language.exsd"/>
+    <extension-point id="com.seizia.chromite.task" name="Tasks and task types" schema="schema/com.seizia.chromite.task.exsd"/>
+    <extension-point id="com.seizia.chromite.projectImport" name="Project import transformers" schema="schema/com.seizia.chromite.projectImport.exsd"/>
+    <extension-point id="com.seizia.chromite.productFeature" name="Product feature" schema="schema/com.seizia.chromite.productFeature.exsd"/>
 
-    <extension point="org.jkiss.dbeaver.projectImport">
-        <transformer path=".dbeaver/tasks.json" class="org.jkiss.dbeaver.registry.task.TaskProjectImportTransformer"/>
+    <extension point="com.seizia.chromite.projectImport">
+        <transformer path=".chromite/tasks.json" class="com.seizia.chromite.registry.task.TaskProjectImportTransformer"/>
     </extension>
 
     <!-- Language names should be written in their respective languages. Do not localize them -->
-    <extension point="org.jkiss.dbeaver.language">
+    <extension point="com.seizia.chromite.language">
         <language code="en" label="English"/>
         <language code="fr" label="Français"/>
         <language code="de" label="Deutsch"/>
@@ -44,7 +44,7 @@
         <language code="ar" label="العربية"/>
     </extension>
 
-    <extension point="org.jkiss.dbeaver.driverManager">
+    <extension point="com.seizia.chromite.driverManager">
         <category id="sql" name="%driver.category.sql.name" description="%driver.category.sql.description" icon="#folder_database" rank="4" promoted="true"/>
         <category id="nosql" name="%driver.category.nosql.name" description="%driver.category.nosql.description" icon="#folder_database" rank="5" promoted="true"/>
         <category id="analytic" name="%driver.category.analytical.name" description="%driver.category.analytical.description" icon="#folder_database" rank="10" promoted="true"/>
@@ -56,7 +56,7 @@
         <category id="graph" name="%driver.category.graph.name" description="%driver.category.graph.description" icon="#folder_database" rank="23" promoted="true"/>
     </extension>
 
-    <extension point="org.jkiss.dbeaver.networkHandler">
+    <extension point="com.seizia.chromite.networkHandler">
         <handler
             type="proxy"
             id="socks_proxy"
@@ -67,25 +67,25 @@
             desktop="true"
             secured="true"
             order="3"
-            handlerClass="org.jkiss.dbeaver.model.impl.net.SocksProxyImpl"/>
+            handlerClass="com.seizia.chromite.model.impl.net.SocksProxyImpl"/>
     </extension>
 
-    <extension point="org.jkiss.dbeaver.dataSourceProvider">
-        <datasourceOrigin id="local" label="Local configuration" class="org.jkiss.dbeaver.registry.DataSourceOriginProviderLocal"/>
+    <extension point="com.seizia.chromite.dataSourceProvider">
+        <datasourceOrigin id="local" label="Local configuration" class="com.seizia.chromite.registry.DataSourceOriginProviderLocal"/>
     </extension>
 
     <extension point="org.eclipse.core.runtime.adapters">
-        <factory adaptableType="org.jkiss.dbeaver.model.app.DBPWorkspace" class="org.jkiss.dbeaver.registry.NetworkProfileUsageAdapterFactory">
-            <adapter type="org.jkiss.dbeaver.model.net.DBWNetworkProfileUsageProvider"/>
+        <factory adaptableType="com.seizia.chromite.model.app.DBPWorkspace" class="com.seizia.chromite.registry.NetworkProfileUsageAdapterFactory">
+            <adapter type="com.seizia.chromite.model.net.DBWNetworkProfileUsageProvider"/>
         </factory>
     </extension>
 
-    <extension point="org.jkiss.dbeaver.dataSourceAuth">
+    <extension point="com.seizia.chromite.dataSourceAuth">
         <authModel
             id="native"
             label="%auth.native.label"
             description="%auth.native.description"
-            class="org.jkiss.dbeaver.model.impl.auth.AuthModelDatabaseNative"
+            class="com.seizia.chromite.model.impl.auth.AuthModelDatabaseNative"
             default="true">
 
             <propertyGroup label="Database user">
@@ -98,11 +98,11 @@
             id="shell_command"
             label="%auth.shell_command.label"
             description="%auth.shell_command.description"
-            class="org.jkiss.dbeaver.model.impl.auth.AuthModelDatabaseShellCommand"
+            class="com.seizia.chromite.model.impl.auth.AuthModelDatabaseShellCommand"
             desktop="true">
 
             <enabledWhen>
-                <test property="org.jkiss.dbeaver.core.global.hasPreference" value="connection.shellAuthModelEnabled"/>
+                <test property="com.seizia.chromite.core.global.hasPreference" value="connection.shellAuthModelEnabled"/>
             </enabledWhen>
         </authModel>
     </extension>
@@ -110,12 +110,12 @@
     <extension point="org.eclipse.core.contenttype.contentTypes">
         <content-type
                 file-extensions="bm"
-                id="org.jkiss.dbeaver.bookmark"
+                id="com.seizia.chromite.bookmark"
                 name="Database Bookmarks"
                 priority="normal"
-                describer="org.jkiss.dbeaver.ui.resources.bookmarks.BookmarkContentTypeDescriber"/>
+                describer="com.seizia.chromite.ui.resources.bookmarks.BookmarkContentTypeDescriber"/>
 
-        <content-type file-extensions="lnk" id="org.jkiss.dbeaver.shortcut" name="Windows shortcuts" priority="normal">
+        <content-type file-extensions="lnk" id="com.seizia.chromite.shortcut" name="Windows shortcuts" priority="normal">
             <describer class="org.eclipse.core.runtime.content.BinarySignatureDescriber">
                 <!-- http://msdn.microsoft.com/en-us/library/dd871305%28PROT.10%29.aspx -->
                 <parameter name="signature" value="4C,00,00,00,01,14,02,00,00,00,00,00,C0,00,00,00,00,00,00,46"/>
@@ -124,11 +124,11 @@
         </content-type>
     </extension>
 
-    <extension point="org.jkiss.dbeaver.resourceType">
+    <extension point="com.seizia.chromite.resourceType">
         <type id="default"/>
     </extension>
 
-    <extension point="org.jkiss.dbeaver.mavenRepository">
+    <extension point="com.seizia.chromite.mavenRepository">
         <repository id="maven-central" name="%maven.respository.central" url="https://repo1.maven.org/maven2/" order="0"/>
         <repository id="oss.sonatype.org" snapshot="true" name="%maven.repository.sonatype" url="https://oss.sonatype.org/content/repositories/snapshots/" order="0"/>
 
@@ -138,8 +138,8 @@
         -->
     </extension>
 
-    <extension point="org.jkiss.dbeaver.syncUnit">
-        <unit class="org.jkiss.dbeaver.registry.DataSourceSyncUnit"/>
+    <extension point="com.seizia.chromite.syncUnit">
+        <unit class="com.seizia.chromite.registry.DataSourceSyncUnit"/>
     </extension>
 
 </plugin>

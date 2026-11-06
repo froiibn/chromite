@@ -14,16 +14,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.gis.panel.actions;
+package com.seizia.chromite.ui.gis.panel.actions;
 
 import org.eclipse.jface.action.Action;
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.model.struct.DBSEntity;
-import org.jkiss.dbeaver.ui.controls.resultset.IResultSetPresentation;
-import org.jkiss.dbeaver.ui.editors.object.struct.EditDictionaryPage;
-import org.jkiss.dbeaver.ui.gis.internal.GISMessages;
-import org.jkiss.dbeaver.ui.gis.panel.GISLeafletViewer;
-import org.jkiss.dbeaver.ui.gis.presentation.GeometryPresentation;
+import com.seizia.chromite.model.struct.DBSEntity;
+import com.seizia.chromite.ui.controls.resultset.IResultSetPresentation;
+import com.seizia.chromite.ui.editors.object.struct.EditDictionaryPage;
+import com.seizia.chromite.ui.gis.internal.GISMessages;
+import com.seizia.chromite.ui.gis.panel.GISLeafletViewer;
+import com.seizia.chromite.ui.gis.presentation.GeometryPresentation;
 
 public class ConfigureLabelsAction extends Action {
     private final GISLeafletViewer viewer;

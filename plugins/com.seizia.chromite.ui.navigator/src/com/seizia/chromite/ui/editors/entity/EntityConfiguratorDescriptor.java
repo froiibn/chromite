@@ -14,14 +14,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.editors.entity;
+package com.seizia.chromite.ui.editors.entity;
 
 import org.eclipse.core.runtime.IConfigurationElement;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.edit.DBEObjectConfigurator;
-import org.jkiss.dbeaver.model.impl.AbstractContextDescriptor;
-import org.jkiss.dbeaver.ui.editors.entity.properties.ObjectPropertiesEditor;
-import org.jkiss.dbeaver.ui.internal.UINavigatorActivator;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.edit.DBEObjectConfigurator;
+import com.seizia.chromite.model.impl.AbstractContextDescriptor;
+import com.seizia.chromite.ui.editors.entity.properties.ObjectPropertiesEditor;
+import com.seizia.chromite.ui.internal.UINavigatorActivator;
 
 /**
  * EntityConfiguratorDescriptor
@@ -29,7 +29,7 @@ import org.jkiss.dbeaver.ui.internal.UINavigatorActivator;
 public class EntityConfiguratorDescriptor extends AbstractContextDescriptor {
     private static final Log log = Log.getLog(EntityConfiguratorDescriptor.class);
 
-    public static final String EXTENSION_ID = "org.jkiss.dbeaver.databaseObjectConfigurator"; //NON-NLS-1 //$NON-NLS-1$
+    public static final String EXTENSION_ID = "com.seizia.chromite.databaseObjectConfigurator"; //NON-NLS-1 //$NON-NLS-1$
 
     private final ObjectType implType;
 

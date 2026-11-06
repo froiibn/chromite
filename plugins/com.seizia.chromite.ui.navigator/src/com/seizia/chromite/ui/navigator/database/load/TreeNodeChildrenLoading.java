@@ -14,11 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.navigator.database.load;
+package com.seizia.chromite.ui.navigator.database.load;
 
 import org.eclipse.swt.graphics.Image;
-import org.jkiss.dbeaver.model.navigator.DBNNode;
-import org.jkiss.dbeaver.ui.internal.UINavigatorMessages;
+import com.seizia.chromite.model.navigator.DBNNode;
+import com.seizia.chromite.ui.internal.UINavigatorMessages;
 
 import java.util.HashMap;
 import java.util.Map;

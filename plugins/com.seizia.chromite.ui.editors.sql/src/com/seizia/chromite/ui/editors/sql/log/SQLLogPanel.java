@@ -15,13 +15,13 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.ui.editors.sql.log;
+package com.seizia.chromite.ui.editors.sql.log;
 
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.Composite;
-import org.jkiss.dbeaver.ui.controls.querylog.QueryLogViewer;
-import org.jkiss.dbeaver.ui.editors.sql.SQLEditor;
+import com.seizia.chromite.ui.controls.querylog.QueryLogViewer;
+import com.seizia.chromite.ui.editors.sql.SQLEditor;
 
 /**
  * ResultSetViewer

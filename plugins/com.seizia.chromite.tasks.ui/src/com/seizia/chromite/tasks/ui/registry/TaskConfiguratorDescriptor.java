@@ -14,15 +14,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.tasks.ui.registry;
+package com.seizia.chromite.tasks.ui.registry;
 
 import org.eclipse.core.runtime.IConfigurationElement;
 import org.jkiss.code.NotNull;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.model.impl.AbstractContextDescriptor;
-import org.jkiss.dbeaver.registry.RegistryConstants;
-import org.jkiss.dbeaver.registry.task.TaskTypeDescriptor;
-import org.jkiss.dbeaver.tasks.ui.DBTTaskConfigurator;
+import com.seizia.chromite.model.impl.AbstractContextDescriptor;
+import com.seizia.chromite.registry.RegistryConstants;
+import com.seizia.chromite.registry.task.TaskTypeDescriptor;
+import com.seizia.chromite.tasks.ui.DBTTaskConfigurator;
 import org.jkiss.utils.CommonUtils;
 
 /**

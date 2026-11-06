@@ -14,10 +14,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui;
+package com.seizia.chromite.ui;
 
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.registry.configurator.DBPConnectionEditIntention;
+import com.seizia.chromite.registry.configurator.DBPConnectionEditIntention;
 
 public abstract class AbstractObjectPropertyConfigurator<OBJECT, SETTINGS> implements IObjectPropertyConfigurator<OBJECT, SETTINGS> {
 

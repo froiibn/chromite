@@ -14,12 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.mssql.model.session;
+package com.seizia.chromite.ext.mssql.model.session;
 
-import org.jkiss.dbeaver.model.DBConstants;
-import org.jkiss.dbeaver.model.admin.sessions.AbstractServerSession;
-import org.jkiss.dbeaver.model.impl.jdbc.JDBCUtils;
-import org.jkiss.dbeaver.model.meta.Property;
+import com.seizia.chromite.model.DBConstants;
+import com.seizia.chromite.model.admin.sessions.AbstractServerSession;
+import com.seizia.chromite.model.impl.jdbc.JDBCUtils;
+import com.seizia.chromite.model.meta.Property;
 
 import java.sql.ResultSet;
 import java.util.Date;

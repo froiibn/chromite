@@ -14,19 +14,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.ai.engine.ollama;
+package com.seizia.chromite.model.ai.engine.ollama;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.model.ai.AIMessageType;
-import org.jkiss.dbeaver.model.ai.AIUsage;
-import org.jkiss.dbeaver.model.ai.engine.*;
-import org.jkiss.dbeaver.model.ai.engine.ollama.dto.OllamaChatMessage;
-import org.jkiss.dbeaver.model.ai.engine.ollama.dto.OllamaChatRequest;
-import org.jkiss.dbeaver.model.ai.engine.ollama.dto.OllamaChatResponse;
-import org.jkiss.dbeaver.model.ai.engine.ollama.dto.OllamaToolCall;
-import org.jkiss.dbeaver.model.ai.utils.DisposableLazyValue;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.model.ai.AIMessageType;
+import com.seizia.chromite.model.ai.AIUsage;
+import com.seizia.chromite.model.ai.engine.*;
+import com.seizia.chromite.model.ai.engine.ollama.dto.OllamaChatMessage;
+import com.seizia.chromite.model.ai.engine.ollama.dto.OllamaChatRequest;
+import com.seizia.chromite.model.ai.engine.ollama.dto.OllamaChatResponse;
+import com.seizia.chromite.model.ai.engine.ollama.dto.OllamaToolCall;
+import com.seizia.chromite.model.ai.utils.DisposableLazyValue;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
 import org.jkiss.utils.CommonUtils;
 
 import java.util.List;

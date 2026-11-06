@@ -16,11 +16,11 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.ext.postgresql.debug.internal.impl;
+package com.seizia.chromite.ext.postgresql.debug.internal.impl;
 
 import org.eclipse.core.resources.IMarker;
-import org.jkiss.dbeaver.debug.DBGBreakpointDescriptor;
-import org.jkiss.dbeaver.ext.postgresql.debug.PostgreDebugConstants;
+import com.seizia.chromite.debug.DBGBreakpointDescriptor;
+import com.seizia.chromite.ext.postgresql.debug.PostgreDebugConstants;
 import org.jkiss.utils.CommonUtils;
 
 import java.util.HashMap;

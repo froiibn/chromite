@@ -14,14 +14,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.datadam;
+package com.seizia.chromite.model.datadam;
 
 import com.google.gson.Gson;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.model.datadam.ai.DDAIEngine;
-import org.jkiss.dbeaver.model.datadam.ai.DDAIEngineProperties;
+import com.seizia.chromite.model.datadam.ai.DDAIEngine;
+import com.seizia.chromite.model.datadam.ai.DDAIEngineProperties;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 

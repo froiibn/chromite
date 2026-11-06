@@ -14,17 +14,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.ai.internal;
+package com.seizia.chromite.ui.ai.internal;
 
 import org.eclipse.ui.plugin.AbstractUIPlugin;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.model.impl.preferences.BundlePreferenceStore;
-import org.jkiss.dbeaver.model.rm.RMConstants;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.ui.ai.preferences.AIPreferencePageMain;
-import org.jkiss.dbeaver.ui.preferences.PrefPageConstants;
-import org.jkiss.dbeaver.ui.workbench.WorkbenchUtils;
+import com.seizia.chromite.model.impl.preferences.BundlePreferenceStore;
+import com.seizia.chromite.model.rm.RMConstants;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.ui.ai.preferences.AIPreferencePageMain;
+import com.seizia.chromite.ui.preferences.PrefPageConstants;
+import com.seizia.chromite.ui.workbench.WorkbenchUtils;
 import org.osgi.framework.BundleContext;
 
 public class AIUIActivator extends AbstractUIPlugin {

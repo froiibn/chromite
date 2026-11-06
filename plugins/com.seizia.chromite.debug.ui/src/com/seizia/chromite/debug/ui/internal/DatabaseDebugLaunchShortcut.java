@@ -14,19 +14,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.debug.ui.internal;
+package com.seizia.chromite.debug.ui.internal;
 
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.debug.core.*;
-import org.jkiss.dbeaver.debug.core.DebugUtils;
-import org.jkiss.dbeaver.debug.ui.DatabaseLaunchShortcut;
-import org.jkiss.dbeaver.model.struct.DBSObject;
+import com.seizia.chromite.debug.core.DebugUtils;
+import com.seizia.chromite.debug.ui.DatabaseLaunchShortcut;
+import com.seizia.chromite.model.struct.DBSObject;
 
 import java.util.Map;
 
 public class DatabaseDebugLaunchShortcut extends DatabaseLaunchShortcut {
 
-    private static final String CONFIG_TYPE = "org.jkiss.dbeaver.debug.launchConfiguration";
+    private static final String CONFIG_TYPE = "com.seizia.chromite.debug.launchConfiguration";
 
     public DatabaseDebugLaunchShortcut() {
         super(CONFIG_TYPE, "Database Debug");

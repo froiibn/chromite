@@ -14,19 +14,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.websocket.registry;
+package com.seizia.chromite.model.websocket.registry;
 
 import org.eclipse.core.runtime.IConfigurationElement;
 import org.eclipse.core.runtime.Platform;
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.model.websocket.WSEventHandler;
+import com.seizia.chromite.model.websocket.WSEventHandler;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
 public class WSEventHandlersRegistry {
-    private static final String EXTENSION_ID = "org.jkiss.dbeaver.ws.event.handler";
+    private static final String EXTENSION_ID = "com.seizia.chromite.ws.event.handler";
     private static final String EVENT_HANDLER_TAG = "eventHandler";
     private static WSEventHandlersRegistry instance = null;
 

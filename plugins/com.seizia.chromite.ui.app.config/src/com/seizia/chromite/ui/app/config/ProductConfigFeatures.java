@@ -14,9 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.app.config;
+package com.seizia.chromite.ui.app.config;
 
-import org.jkiss.dbeaver.model.runtime.features.DBRFeature;
+import com.seizia.chromite.model.runtime.features.DBRFeature;
 
 public final class ProductConfigFeatures {
     public static final DBRFeature WIZARD_SHOWN = new DBRFeature("WIZARD_SHOWN");

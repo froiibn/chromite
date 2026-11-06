@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.editors.sql.semantics;
+package com.seizia.chromite.ui.editors.sql.semantics;
 
 import org.eclipse.core.resources.IMarker;
 import org.eclipse.jface.text.source.IAnnotationPresentation;
@@ -26,22 +26,22 @@ import org.eclipse.swt.graphics.Rectangle;
 import org.eclipse.swt.widgets.Canvas;
 import org.eclipse.ui.texteditor.MarkerAnnotation;
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.model.DBIcon;
-import org.jkiss.dbeaver.model.sql.semantics.SQLQueryRecognitionProblemInfo;
-import org.jkiss.dbeaver.ui.DBeaverIcons;
-import org.jkiss.dbeaver.ui.editors.sql.syntax.SQLProblemAnnotation;
+import com.seizia.chromite.model.DBIcon;
+import com.seizia.chromite.model.sql.semantics.SQLQueryRecognitionProblemInfo;
+import com.seizia.chromite.ui.SwtIcons;
+import com.seizia.chromite.ui.editors.sql.syntax.SQLProblemAnnotation;
 import org.jkiss.utils.CommonUtils;
 
 import java.util.Map;
 
 public class SQLSemanticErrorAnnotation extends MarkerAnnotation implements IAnnotationPresentation {
 
-    public static final String MARKER_TYPE = "org.jkiss.dbeaver.ui.editors.sql.semanticProblemMarker";
-    public static final String MARKER_ATTRIBUTE_NAME = "org.jkiss.dbeaver.ui.editors.sql.semantics.semanticProblemAnnotation";
+    public static final String MARKER_TYPE = "com.seizia.chromite.ui.editors.sql.semanticProblemMarker";
+    public static final String MARKER_ATTRIBUTE_NAME = "com.seizia.chromite.ui.editors.sql.semantics.semanticProblemAnnotation";
 
     private static final Map<SQLQueryRecognitionProblemInfo.Severity, Image> imageByProblemSeverity = Map.of(
-        SQLQueryRecognitionProblemInfo.Severity.ERROR, DBeaverIcons.getImage(DBIcon.TINY_ERROR),
-        SQLQueryRecognitionProblemInfo.Severity.WARNING, DBeaverIcons.getImage(DBIcon.TINY_WARNING)
+        SQLQueryRecognitionProblemInfo.Severity.ERROR, SwtIcons.getImage(DBIcon.TINY_ERROR),
+        SQLQueryRecognitionProblemInfo.Severity.WARNING, SwtIcons.getImage(DBIcon.TINY_WARNING)
     );
 
     @NotNull

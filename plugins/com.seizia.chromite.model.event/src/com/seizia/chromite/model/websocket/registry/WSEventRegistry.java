@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.websocket.registry;
+package com.seizia.chromite.model.websocket.registry;
 
 import org.eclipse.core.runtime.IConfigurationElement;
 import org.eclipse.core.runtime.IExtensionRegistry;
@@ -28,7 +28,7 @@ import java.util.List;
 import java.util.Map;
 
 public class WSEventRegistry {
-    private static final String EXTENSION_ID = "org.jkiss.dbeaver.ws.event";
+    private static final String EXTENSION_ID = "com.seizia.chromite.ws.event";
     private static final String EVENT_TAG = "event";
     private static final String CLIENT_EVENT_TAG = "clientEvent";
 

@@ -14,9 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.core;
+package com.seizia.chromite.core;
 
-import org.jkiss.dbeaver.model.runtime.features.DBRFeature;
+import com.seizia.chromite.model.runtime.features.DBRFeature;
 
 /**
  * DBeaver core features

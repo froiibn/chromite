@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.tasks.ui.view;
+package com.seizia.chromite.tasks.ui.view;
 
 import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.core.runtime.IStatus;
@@ -47,25 +47,25 @@ import org.eclipse.ui.texteditor.IDocumentProvider;
 import org.eclipse.ui.texteditor.ITextEditor;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.app.DBPPlatformDesktop;
-import org.jkiss.dbeaver.model.app.DBPProject;
-import org.jkiss.dbeaver.model.app.DBPProjectListener;
-import org.jkiss.dbeaver.model.rm.RMConstants;
-import org.jkiss.dbeaver.model.runtime.AbstractJob;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.model.task.*;
-import org.jkiss.dbeaver.registry.task.TaskRegistry;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.tasks.ui.TaskFeatures;
-import org.jkiss.dbeaver.tasks.ui.internal.TaskUIViewMessages;
-import org.jkiss.dbeaver.ui.*;
-import org.jkiss.dbeaver.ui.controls.ViewerColumnController;
-import org.jkiss.dbeaver.ui.dialogs.DialogUtils;
-import org.jkiss.dbeaver.ui.editors.EditorUtils;
-import org.jkiss.dbeaver.ui.navigator.actions.NavigatorHandlerProjectSetActive;
-import org.jkiss.dbeaver.utils.GeneralUtils;
-import org.jkiss.dbeaver.utils.RuntimeUtils;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.app.DBPPlatformDesktop;
+import com.seizia.chromite.model.app.DBPProject;
+import com.seizia.chromite.model.app.DBPProjectListener;
+import com.seizia.chromite.model.rm.RMConstants;
+import com.seizia.chromite.model.runtime.AbstractJob;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.model.task.*;
+import com.seizia.chromite.registry.task.TaskRegistry;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.tasks.ui.TaskFeatures;
+import com.seizia.chromite.tasks.ui.internal.TaskUIViewMessages;
+import com.seizia.chromite.ui.*;
+import com.seizia.chromite.ui.controls.ViewerColumnController;
+import com.seizia.chromite.ui.dialogs.DialogUtils;
+import com.seizia.chromite.ui.editors.EditorUtils;
+import com.seizia.chromite.ui.navigator.actions.NavigatorHandlerProjectSetActive;
+import com.seizia.chromite.utils.GeneralUtils;
+import com.seizia.chromite.utils.RuntimeUtils;
 import org.jkiss.utils.CommonUtils;
 
 import java.io.InputStream;
@@ -79,17 +79,17 @@ import java.util.*;
 public class DatabaseTasksView extends ViewPart implements DBTTaskListener {
     private static final Log log = Log.getLog(DatabaseTasksView.class);
 
-    public static final String VIEW_ID = "org.jkiss.dbeaver.tasks";
+    public static final String VIEW_ID = "com.seizia.chromite.tasks";
     private static final String TASKS_VIEW_MENU_ID = VIEW_ID + ".menu";
     private static final String TASK_RUNS_MENU_ID = VIEW_ID + ".runs.menu";
 
-    public static final String CREATE_TASK_CMD_ID = "org.jkiss.dbeaver.task.create";
-    public static final String COPY_TASK_CMD_ID = "org.jkiss.dbeaver.task.copy";
-    public static final String EDIT_TASK_CMD_ID = "org.jkiss.dbeaver.task.edit";
-    public static final String RUN_TASK_CMD_ID = "org.jkiss.dbeaver.task.run";
-    private static final String CREATE_FOLDER_TASK_CMD_ID = "org.jkiss.dbeaver.folder.task.create";
-    private static final String CREATE_FOLDER_RENAME_CMD_ID = "org.jkiss.dbeaver.folder.rename";
-    public static final String GROUP_TASK_CMD_ID = "org.jkiss.dbeaver.task.group";
+    public static final String CREATE_TASK_CMD_ID = "com.seizia.chromite.task.create";
+    public static final String COPY_TASK_CMD_ID = "com.seizia.chromite.task.copy";
+    public static final String EDIT_TASK_CMD_ID = "com.seizia.chromite.task.edit";
+    public static final String RUN_TASK_CMD_ID = "com.seizia.chromite.task.run";
+    private static final String CREATE_FOLDER_TASK_CMD_ID = "com.seizia.chromite.folder.task.create";
+    private static final String CREATE_FOLDER_RENAME_CMD_ID = "com.seizia.chromite.folder.rename";
+    public static final String GROUP_TASK_CMD_ID = "com.seizia.chromite.task.group";
 
     private static final ArrayList<Object> EMPTY_TASK_RUN_LIST = new ArrayList<>();
 
@@ -643,7 +643,7 @@ public class DatabaseTasksView extends ViewPart implements DBTTaskListener {
     private class DeleteRunLogAction extends Action {
 
         DeleteRunLogAction() {
-            super(TaskUIViewMessages.db_tasks_view_run_log_delete, DBeaverIcons.getImageDescriptor(UIIcon.DELETE));
+            super(TaskUIViewMessages.db_tasks_view_run_log_delete, SwtIcons.getImageDescriptor(UIIcon.DELETE));
         }
 
         @Override
@@ -663,7 +663,7 @@ public class DatabaseTasksView extends ViewPart implements DBTTaskListener {
     private class ClearRunLogAction extends Action {
 
         ClearRunLogAction() {
-            super(TaskUIViewMessages.db_tasks_view_clear_run_log_clear, DBeaverIcons.getImageDescriptor(UIIcon.ERASE));
+            super(TaskUIViewMessages.db_tasks_view_clear_run_log_clear, SwtIcons.getImageDescriptor(UIIcon.ERASE));
         }
 
         @Override

@@ -3,11 +3,11 @@
 
 <plugin>
 
-    <extension point="org.jkiss.dbeaver.generic.meta">
-        <meta id="manticore" class="org.jkiss.dbeaver.ext.manticore.model.ManticoreMetaModel" dialect="manticore"/>
+    <extension point="com.seizia.chromite.generic.meta">
+        <meta id="manticore" class="com.seizia.chromite.ext.manticore.model.ManticoreMetaModel" dialect="manticore"/>
     </extension>
 
-    <extension point="org.jkiss.dbeaver.dataSourceProvider">
+    <extension point="com.seizia.chromite.dataSourceProvider">
         <dataSourceType
             id="manticore_search"
             label="Manticore Search"
@@ -16,7 +16,7 @@
             icon="icons/manticore_icon.svg"
             iconBig="icons/manticore_icon_big.svg"/>
         <datasource
-                class="org.jkiss.dbeaver.ext.manticore.ManticoreDataSourceProvider"
+                class="com.seizia.chromite.ext.manticore.ManticoreDataSourceProvider"
                 description="Manticore Search datasource"
                 id="manticore"
                 dataSourceType="manticore_search"
@@ -47,7 +47,7 @@
                     <property name="serverTimezone" value="UTC"/>
                     <property name="useSSL" value="false"/>
                     <property name="connectTimeout" value="20000"/>
-                    <property name="@dbeaver-default-resultset.maxrows.sql" value="true"/>
+                    <property name="@chromite-default-resultset.maxrows.sql" value="true"/>
                     <parameter name="meta-model" value="manticore"/>
                     <parameter name="omit-catalog" value="true"/>
                     <parameter name="omit-schema" value="true"/>
@@ -63,8 +63,8 @@
         </datasource>
     </extension>
 
-    <extension point="org.jkiss.dbeaver.sqlDialect">
-        <dialect id="manticore" parent="generic" class="org.jkiss.dbeaver.ext.manticore.model.ManticoreSQLDialect" label="Manticore Search"
+    <extension point="com.seizia.chromite.sqlDialect">
+        <dialect id="manticore" parent="generic" class="com.seizia.chromite.ext.manticore.model.ManticoreSQLDialect" label="Manticore Search"
                  description="Manticore Search dialect." icon="icons/manticore_icon.svg"/>
     </extension>
 

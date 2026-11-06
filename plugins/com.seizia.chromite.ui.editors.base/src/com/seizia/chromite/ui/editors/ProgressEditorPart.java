@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.editors;
+package com.seizia.chromite.ui.editors;
 
 import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.osgi.util.NLS;
@@ -34,13 +34,13 @@ import org.eclipse.ui.IWorkbenchWindow;
 import org.eclipse.ui.part.EditorPart;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
-import org.jkiss.dbeaver.model.runtime.load.AbstractLoadService;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.ui.*;
-import org.jkiss.dbeaver.ui.controls.ProgressLoaderVisualizer;
-import org.jkiss.dbeaver.ui.css.CSSUtils;
-import org.jkiss.dbeaver.ui.editors.internal.EditorsMessages;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.model.runtime.load.AbstractLoadService;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.ui.*;
+import com.seizia.chromite.ui.controls.ProgressLoaderVisualizer;
+import com.seizia.chromite.ui.css.CSSUtils;
+import com.seizia.chromite.ui.editors.internal.EditorsMessages;
 
 import java.lang.reflect.InvocationTargetException;
 
@@ -129,7 +129,7 @@ public class ProgressEditorPart extends EditorPart {
     private void createInitializerPlaceholder() {
         final Button button = new Button(progressCanvas, SWT.PUSH);
         button.setText(EditorsMessages.progress_editor_uninitialized_text);
-        button.setImage(DBeaverIcons.getImage(UIIcon.SQL_CONNECT));
+        button.setImage(SwtIcons.getImage(UIIcon.SQL_CONNECT));
         button.addSelectionListener(SelectionListener.widgetSelectedAdapter(e -> {
             for (Control child : progressCanvas.getChildren()) {
                 child.dispose();
@@ -218,7 +218,7 @@ public class ProgressEditorPart extends EditorPart {
                 // Activate entity editor (we have changed inner editors and need to force contexts activation).
                 UIUtils.asyncExec(() -> EditorUtils.refreshPartContexts(ownerEditor));
             }
-            ActionUtils.evaluatePropertyState("org.jkiss.dbeaver.ui.editors.entity.hasSource");
+            ActionUtils.evaluatePropertyState("com.seizia.chromite.ui.editors.entity.hasSource");
         }
 
         @Override

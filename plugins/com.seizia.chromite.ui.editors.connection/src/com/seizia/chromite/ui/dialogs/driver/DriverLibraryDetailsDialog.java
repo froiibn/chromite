@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.dialogs.driver;
+package com.seizia.chromite.ui.dialogs.driver;
 
 import org.eclipse.jface.dialogs.IDialogConstants;
 import org.eclipse.jface.dialogs.IDialogSettings;
@@ -29,14 +29,14 @@ import org.eclipse.swt.widgets.Shell;
 import org.eclipse.swt.widgets.Text;
 import org.jkiss.code.NotNull;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.model.connection.DBPDriver;
-import org.jkiss.dbeaver.model.connection.DBPDriverLibrary;
-import org.jkiss.dbeaver.registry.driver.DriverDependencies;
-import org.jkiss.dbeaver.ui.DBeaverIcons;
-import org.jkiss.dbeaver.ui.IHelpContextIds;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.dialogs.HelpEnabledDialog;
-import org.jkiss.dbeaver.ui.internal.UIConnectionMessages;
+import com.seizia.chromite.model.connection.DBPDriver;
+import com.seizia.chromite.model.connection.DBPDriverLibrary;
+import com.seizia.chromite.registry.driver.DriverDependencies;
+import com.seizia.chromite.ui.SwtIcons;
+import com.seizia.chromite.ui.IHelpContextIds;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.dialogs.HelpEnabledDialog;
+import com.seizia.chromite.ui.internal.UIConnectionMessages;
 import org.jkiss.utils.CommonUtils;
 
 import java.nio.file.Path;
@@ -71,7 +71,7 @@ public class DriverLibraryDetailsDialog extends HelpEnabledDialog {
             driver.getName(),
             library.getDisplayName()
         ));
-        getShell().setImage(DBeaverIcons.getImage(library.getIcon()));
+        getShell().setImage(SwtIcons.getImage(library.getIcon()));
 
         Composite group = super.createDialogArea(parent);
         GridData gd = new GridData(GridData.FILL_BOTH);

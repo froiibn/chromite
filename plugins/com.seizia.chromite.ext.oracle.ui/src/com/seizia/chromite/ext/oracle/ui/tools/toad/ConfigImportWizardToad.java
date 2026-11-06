@@ -14,10 +14,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.oracle.ui.tools.toad;
+package com.seizia.chromite.ext.oracle.ui.tools.toad;
 
-import org.jkiss.dbeaver.ui.config.migration.wizards.ConfigImportWizard;
-import org.jkiss.dbeaver.ui.config.migration.wizards.ConfigImportWizardPage;
+import com.seizia.chromite.ui.config.migration.wizards.ConfigImportWizard;
+import com.seizia.chromite.ui.config.migration.wizards.ConfigImportWizardPage;
 
 import java.io.File;
 

@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.editors.erd.export;
+package com.seizia.chromite.ui.editors.erd.export;
 
 import org.eclipse.draw2d.Bendpoint;
 import org.eclipse.draw2d.Connection;
@@ -24,15 +24,15 @@ import org.eclipse.draw2d.geometry.PointList;
 import org.eclipse.draw2d.geometry.Rectangle;
 import org.eclipse.swt.graphics.Color;
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.erd.*;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.ui.editors.erd.ERDUIUtils;
-import org.jkiss.dbeaver.ui.editors.erd.figures.AttributeListFigure;
-import org.jkiss.dbeaver.ui.editors.erd.figures.EntityFigure;
-import org.jkiss.dbeaver.ui.editors.erd.model.EntityDiagram;
-import org.jkiss.dbeaver.ui.editors.erd.part.*;
-import org.jkiss.dbeaver.utils.GeneralUtils;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.erd.*;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.ui.editors.erd.ERDUIUtils;
+import com.seizia.chromite.ui.editors.erd.figures.AttributeListFigure;
+import com.seizia.chromite.ui.editors.erd.figures.EntityFigure;
+import com.seizia.chromite.ui.editors.erd.model.EntityDiagram;
+import com.seizia.chromite.ui.editors.erd.part.*;
+import com.seizia.chromite.utils.GeneralUtils;
 import org.jkiss.utils.Pair;
 import org.jkiss.utils.xml.XMLBuilder;
 

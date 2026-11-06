@@ -14,9 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.impl.data;
+package com.seizia.chromite.model.impl.data;
 
-import org.jkiss.dbeaver.model.data.DBDCollection;
+import com.seizia.chromite.model.data.DBDCollection;
 
 import java.util.AbstractList;
 

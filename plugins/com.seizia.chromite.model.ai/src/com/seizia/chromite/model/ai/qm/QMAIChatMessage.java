@@ -14,11 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.ai.qm;
+package com.seizia.chromite.model.ai.qm;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.model.ai.AIImageAttachment;
+import com.seizia.chromite.model.ai.AIImageAttachment;
 import org.jkiss.utils.CommonUtils;
 
 import java.time.Instant;

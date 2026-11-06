@@ -15,11 +15,11 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.model.data;
+package com.seizia.chromite.model.data;
 
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.model.exec.DBCException;
-import org.jkiss.dbeaver.model.struct.DBSAttributeBase;
+import com.seizia.chromite.model.exec.DBCException;
+import com.seizia.chromite.model.struct.DBSAttributeBase;
 
 /**
  * Provides possibility to override default SQL query binding

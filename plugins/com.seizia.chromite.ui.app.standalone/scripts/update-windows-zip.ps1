@@ -156,18 +156,18 @@ function Remove-UpdateStaging([string]$Archive, [string]$Extracted) {
 
 try {
     foreach ($name in @('ARCHIVE', 'HOME', 'LAUNCHER', 'WORKSPACE', 'PIDS')) {
-        if ([string]::IsNullOrWhiteSpace([Environment]::GetEnvironmentVariable('DBEAVER_UPDATE_' + $name))) {
+        if ([string]::IsNullOrWhiteSpace([Environment]::GetEnvironmentVariable('CHROMITE_UPDATE_' + $name))) {
             throw "Missing update parameter: $name"
         }
     }
-    $archive = [IO.Path]::GetFullPath($env:DBEAVER_UPDATE_ARCHIVE)
-    $installation = [IO.Path]::GetFullPath($env:DBEAVER_UPDATE_HOME)
+    $archive = [IO.Path]::GetFullPath($env:CHROMITE_UPDATE_ARCHIVE)
+    $installation = [IO.Path]::GetFullPath($env:CHROMITE_UPDATE_HOME)
     if ($installation -eq [IO.Path]::GetPathRoot($installation)) {
         throw 'Cannot update an installation in a filesystem root.'
     }
     $installation = $installation.TrimEnd('\')
-    $workspace = [IO.Path]::GetFullPath($env:DBEAVER_UPDATE_WORKSPACE).TrimEnd('\')
-    $launcher = $env:DBEAVER_UPDATE_LAUNCHER
+    $workspace = [IO.Path]::GetFullPath($env:CHROMITE_UPDATE_WORKSPACE).TrimEnd('\')
+    $launcher = $env:CHROMITE_UPDATE_LAUNCHER
     if ([IO.Path]::GetFileName($launcher) -ne $launcher -or ![IO.File]::Exists((Join-Path $installation $launcher))) {
         throw 'Invalid installation launcher.'
     }
@@ -199,7 +199,7 @@ try {
     }
 
     Write-Output 'Waiting for DBeaver to exit.'
-    foreach ($processId in $env:DBEAVER_UPDATE_PIDS.Split(',')) {
+    foreach ($processId in $env:CHROMITE_UPDATE_PIDS.Split(',')) {
         $process = Get-Process -Id ([int]$processId) -ErrorAction SilentlyContinue
         if ($null -ne $process -and !$process.WaitForExit(120000)) {
             throw 'DBeaver did not exit in time. The installation has not been changed.'

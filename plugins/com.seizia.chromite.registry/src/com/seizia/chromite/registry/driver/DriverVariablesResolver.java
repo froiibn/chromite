@@ -14,11 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.registry.driver;
+package com.seizia.chromite.registry.driver;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.utils.SystemVariablesResolver;
+import com.seizia.chromite.utils.SystemVariablesResolver;
 
 class DriverVariablesResolver extends SystemVariablesResolver {
     static final String VAR_DRIVERS_HOME = "drivers_home";

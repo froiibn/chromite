@@ -14,10 +14,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.runtime;
+package com.seizia.chromite.model.runtime;
 
 import org.eclipse.core.runtime.IProgressMonitor;
-import org.jkiss.dbeaver.Log;
+import com.seizia.chromite.Log;
 
 import java.io.PrintStream;
 

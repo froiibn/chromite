@@ -3,12 +3,12 @@
 
 <plugin>
 
-    <extension point="org.jkiss.dbeaver.sqlDialect">
-        <dialect id="ocient" parent="generic" class="org.jkiss.dbeaver.ext.ocient.model.OcientSQLDialect" label="Ocient" description="Ocient dialect." icon="platform:/plugin/org.jkiss.dbeaver.ext.generic/icons/ocient_icon.png">
+    <extension point="com.seizia.chromite.sqlDialect">
+        <dialect id="ocient" parent="generic" class="com.seizia.chromite.ext.ocient.model.OcientSQLDialect" label="Ocient" description="Ocient dialect." icon="platform:/plugin/com.seizia.chromite.ext.generic/icons/ocient_icon.png">
         </dialect>
     </extension>
 
-    <extension point="org.jkiss.dbeaver.dataSourceProvider">
+    <extension point="com.seizia.chromite.dataSourceProvider">
         <dataSourceType
             id="ocient"
             label="Ocient"
@@ -17,7 +17,7 @@
             icon="icons/ocient_icon.png"
             iconBig="icons/ocient_icon_big.png"/>
         <datasource
-                class="org.jkiss.dbeaver.ext.ocient.OcientDataSourceProvider"
+                class="com.seizia.chromite.ext.ocient.OcientDataSourceProvider"
                 description="%datasource.bq.description"
                 id="ocient"
                 dataSourceType="ocient"
@@ -42,8 +42,8 @@
         </datasource>
     </extension>
     
-    <extension point="org.jkiss.dbeaver.generic.meta">
-        <meta id="ocient" class="org.jkiss.dbeaver.ext.ocient.model.OcientMetaModel" driverClass="com.ocient.jdbc.Driver"/>
+    <extension point="com.seizia.chromite.generic.meta">
+        <meta id="ocient" class="com.seizia.chromite.ext.ocient.model.OcientMetaModel" driverClass="com.ocient.jdbc.Driver"/>
     </extension>
 
 </plugin>

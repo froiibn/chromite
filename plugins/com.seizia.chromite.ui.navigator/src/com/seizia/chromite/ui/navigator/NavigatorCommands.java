@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.navigator;
+package com.seizia.chromite.ui.navigator;
 
 /**
  * NavigatorCommands
@@ -26,27 +26,27 @@ public class NavigatorCommands {
     public static final String GROUP_NAVIGATOR_ADDITIONS = "navigator_additions";
     public static final String GROUP_NAVIGATOR_ADDITIONS_END = "navigator_additions_end";
 
-    public static final String CMD_OBJECT_OPEN = "org.jkiss.dbeaver.core.object.open"; //$NON-NLS-1$
-    public static final String CMD_OBJECT_CREATE = "org.jkiss.dbeaver.core.object.create"; //$NON-NLS-1$
-    public static final String CMD_OBJECT_DELETE = "org.jkiss.dbeaver.core.object.delete"; //$NON-NLS-1$
-    public static final String CMD_OBJECT_MOVE_TOP = "org.jkiss.dbeaver.core.object.move.top"; //$NON-NLS-1$
-    public static final String CMD_OBJECT_MOVE_BOTTOM = "org.jkiss.dbeaver.core.object.move.bottom"; //$NON-NLS-1$
-    public static final String CMD_OBJECT_MOVE_UP = "org.jkiss.dbeaver.core.object.move.up"; //$NON-NLS-1$
-    public static final String CMD_OBJECT_MOVE_DOWN = "org.jkiss.dbeaver.core.object.move.down"; //$NON-NLS-1$
-    public static final String CMD_OBJECT_SET_DEFAULT = "org.jkiss.dbeaver.core.navigator.set.default";
-    public static final String CMD_CREATE_LOCAL_FOLDER = "org.jkiss.dbeaver.core.new.folder";
-    public static final String CMD_CREATE_RESOURCE_FILE = "org.jkiss.dbeaver.core.resource.create.file";
-    public static final String CMD_CREATE_RESOURCE_FOLDER = "org.jkiss.dbeaver.core.resource.create.folder";
-    public static final String CMD_CREATE_FILE_LINK = "org.jkiss.dbeaver.core.resource.link.file";
-    public static final String CMD_CREATE_FOLDER_LINK = "org.jkiss.dbeaver.core.resource.link.folder";
-    public static final String CMD_CREATE_PROJECT = "org.jkiss.dbeaver.core.project.create";
+    public static final String CMD_OBJECT_OPEN = "com.seizia.chromite.core.object.open"; //$NON-NLS-1$
+    public static final String CMD_OBJECT_CREATE = "com.seizia.chromite.core.object.create"; //$NON-NLS-1$
+    public static final String CMD_OBJECT_DELETE = "com.seizia.chromite.core.object.delete"; //$NON-NLS-1$
+    public static final String CMD_OBJECT_MOVE_TOP = "com.seizia.chromite.core.object.move.top"; //$NON-NLS-1$
+    public static final String CMD_OBJECT_MOVE_BOTTOM = "com.seizia.chromite.core.object.move.bottom"; //$NON-NLS-1$
+    public static final String CMD_OBJECT_MOVE_UP = "com.seizia.chromite.core.object.move.up"; //$NON-NLS-1$
+    public static final String CMD_OBJECT_MOVE_DOWN = "com.seizia.chromite.core.object.move.down"; //$NON-NLS-1$
+    public static final String CMD_OBJECT_SET_DEFAULT = "com.seizia.chromite.core.navigator.set.default";
+    public static final String CMD_CREATE_LOCAL_FOLDER = "com.seizia.chromite.core.new.folder";
+    public static final String CMD_CREATE_RESOURCE_FILE = "com.seizia.chromite.core.resource.create.file";
+    public static final String CMD_CREATE_RESOURCE_FOLDER = "com.seizia.chromite.core.resource.create.folder";
+    public static final String CMD_CREATE_FILE_LINK = "com.seizia.chromite.core.resource.link.file";
+    public static final String CMD_CREATE_FOLDER_LINK = "com.seizia.chromite.core.resource.link.folder";
+    public static final String CMD_CREATE_PROJECT = "com.seizia.chromite.core.project.create";
 
-    public static final String CMD_FILTER_CONNECTED = "org.jkiss.dbeaver.navigator.filter.connected";
-    public static final String CMD_FILTER_OBJECT_TYPE = "org.jkiss.dbeaver.navigator.filter.object.type";
+    public static final String CMD_FILTER_CONNECTED = "com.seizia.chromite.navigator.filter.connected";
+    public static final String CMD_FILTER_OBJECT_TYPE = "com.seizia.chromite.navigator.filter.object.type";
 
-    public static final String PARAM_OBJECT_TYPE = "org.jkiss.dbeaver.core.object.type";
-    public static final String PARAM_OBJECT_TYPE_NAME = "org.jkiss.dbeaver.core.object.typeName";
-    public static final String PARAM_OBJECT_TYPE_ICON = "org.jkiss.dbeaver.core.object.typeIcon";
-    public static final String PARAM_OBJECT_TYPE_FOLDER = "org.jkiss.dbeaver.core.object.folder";
+    public static final String PARAM_OBJECT_TYPE = "com.seizia.chromite.core.object.type";
+    public static final String PARAM_OBJECT_TYPE_NAME = "com.seizia.chromite.core.object.typeName";
+    public static final String PARAM_OBJECT_TYPE_ICON = "com.seizia.chromite.core.object.typeIcon";
+    public static final String PARAM_OBJECT_TYPE_FOLDER = "com.seizia.chromite.core.object.folder";
 
 }

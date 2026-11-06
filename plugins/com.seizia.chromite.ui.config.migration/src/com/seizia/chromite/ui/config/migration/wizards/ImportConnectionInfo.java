@@ -15,10 +15,10 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.ui.config.migration.wizards;
+package com.seizia.chromite.ui.config.migration.wizards;
 
-import org.jkiss.dbeaver.model.connection.DBPDriver;
-import org.jkiss.dbeaver.model.net.DBWHandlerConfiguration;
+import com.seizia.chromite.model.connection.DBPDriver;
+import com.seizia.chromite.model.net.DBWHandlerConfiguration;
 
 import java.util.ArrayList;
 import java.util.HashMap;

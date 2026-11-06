@@ -17,10 +17,10 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.debug;
+package com.seizia.chromite.debug;
 
-import org.jkiss.dbeaver.DBDatabaseException;
-import org.jkiss.dbeaver.model.DBPDataSource;
+import com.seizia.chromite.DBDatabaseException;
+import com.seizia.chromite.model.DBPDataSource;
 
 @SuppressWarnings("serial")
 public class DBGException extends DBDatabaseException {

@@ -14,18 +14,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.impl;
+package com.seizia.chromite.model.impl;
 
 import org.eclipse.core.expressions.PropertyTester;
 import org.eclipse.core.runtime.Platform;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
+import com.seizia.chromite.runtime.DBWorkbench;
 import org.jkiss.utils.CommonUtils;
 
 /**
  * GlobalPropertyTester
  */
 public class GlobalPropertyTester extends PropertyTester {
-    public static final String NAMESPACE = "org.jkiss.dbeaver.core.global";
+    public static final String NAMESPACE = "com.seizia.chromite.core.global";
     public static final String PROP_STANDALONE = "standalone";
     public static final String PROP_DISTRIBUTED = "distributed";
     public static final String PROP_BUNDLE_INSTALLED = "bundleInstalled";

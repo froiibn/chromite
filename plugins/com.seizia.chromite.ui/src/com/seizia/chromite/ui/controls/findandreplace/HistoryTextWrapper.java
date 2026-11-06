@@ -11,7 +11,7 @@
  * Contributors:
  *     Vector Informatik GmbH - initial API and implementation
  *******************************************************************************/
-package org.jkiss.dbeaver.ui.controls.findandreplace;
+package com.seizia.chromite.ui.controls.findandreplace;
 
 import org.eclipse.jface.layout.GridDataFactory;
 import org.eclipse.jface.layout.GridLayoutFactory;
@@ -28,8 +28,8 @@ import org.eclipse.ui.internal.findandreplace.FindReplaceMessages;
 import org.eclipse.ui.internal.findandreplace.HistoryStore;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.ui.DBeaverIcons;
-import org.jkiss.dbeaver.ui.UIIcon;
+import com.seizia.chromite.ui.SwtIcons;
+import com.seizia.chromite.ui.UIIcon;
 
 import java.util.function.Consumer;
 
@@ -64,7 +64,7 @@ public class HistoryTextWrapper extends Composite {
         this.tools = new AccessibleToolBar(this);
         this.dropDown = new AccessibleToolItemBuilder(this.tools).withStyleBits(SWT.PUSH)
             .withToolTipText(FindReplaceMessages.FindReplaceOverlay_searchHistory_toolTip)
-            .withImage(DBeaverIcons.getImage(UIIcon.FIND_REPLACE_OPEN_HISTORY))
+            .withImage(SwtIcons.getImage(UIIcon.FIND_REPLACE_OPEN_HISTORY))
             .withOperation(this::createHistoryMenuDropdown)
             .build();
 

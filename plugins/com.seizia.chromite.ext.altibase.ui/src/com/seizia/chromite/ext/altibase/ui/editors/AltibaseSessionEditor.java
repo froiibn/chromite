@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ext.altibase.ui.editors;
+package com.seizia.chromite.ext.altibase.ui.editors;
 
 import org.eclipse.jface.action.Action;
 import org.eclipse.jface.action.IContributionManager;
@@ -25,18 +25,18 @@ import org.eclipse.osgi.util.NLS;
 import org.eclipse.swt.widgets.Composite;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.ext.altibase.model.AltibaseDataSource;
-import org.jkiss.dbeaver.ext.altibase.model.session.AltibaseServerSession;
-import org.jkiss.dbeaver.ext.altibase.model.session.AltibaseServerSessionManager;
-import org.jkiss.dbeaver.ext.altibase.ui.internal.AltibaseUIMessages;
-import org.jkiss.dbeaver.model.admin.sessions.DBAServerSession;
-import org.jkiss.dbeaver.model.admin.sessions.DBAServerSessionManager;
-import org.jkiss.dbeaver.model.exec.DBCExecutionContext;
-import org.jkiss.dbeaver.ui.DBeaverIcons;
-import org.jkiss.dbeaver.ui.UIIcon;
-import org.jkiss.dbeaver.ui.dialogs.ConfirmationDialog;
-import org.jkiss.dbeaver.ui.views.session.AbstractSessionEditor;
-import org.jkiss.dbeaver.ui.views.session.SessionManagerViewer;
+import com.seizia.chromite.ext.altibase.model.AltibaseDataSource;
+import com.seizia.chromite.ext.altibase.model.session.AltibaseServerSession;
+import com.seizia.chromite.ext.altibase.model.session.AltibaseServerSessionManager;
+import com.seizia.chromite.ext.altibase.ui.internal.AltibaseUIMessages;
+import com.seizia.chromite.model.admin.sessions.DBAServerSession;
+import com.seizia.chromite.model.admin.sessions.DBAServerSessionManager;
+import com.seizia.chromite.model.exec.DBCExecutionContext;
+import com.seizia.chromite.ui.SwtIcons;
+import com.seizia.chromite.ui.UIIcon;
+import com.seizia.chromite.ui.dialogs.ConfirmationDialog;
+import com.seizia.chromite.ui.views.session.AbstractSessionEditor;
+import com.seizia.chromite.ui.views.session.SessionManagerViewer;
 
 import java.util.HashMap;
 import java.util.List;
@@ -80,7 +80,7 @@ public class AltibaseSessionEditor extends AbstractSessionEditor {
     private class DisconnectSessionAction extends Action {
         DisconnectSessionAction() {
             super(AltibaseUIMessages.editors_altibase_session_editor_action_disconnect_session, 
-                 DBeaverIcons.getImageDescriptor(UIIcon.SQL_DISCONNECT));
+                 SwtIcons.getImageDescriptor(UIIcon.SQL_DISCONNECT));
         }
 
         @Override

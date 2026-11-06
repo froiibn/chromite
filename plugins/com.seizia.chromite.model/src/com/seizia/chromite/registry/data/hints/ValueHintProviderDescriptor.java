@@ -14,18 +14,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.registry.data.hints;
+package com.seizia.chromite.registry.data.hints;
 
 import org.eclipse.core.runtime.IConfigurationElement;
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.DBPDataSource;
-import org.jkiss.dbeaver.model.data.DBDAttributeBinding;
-import org.jkiss.dbeaver.model.data.hints.DBDValueHintContext;
-import org.jkiss.dbeaver.model.data.hints.DBDValueHintProvider;
-import org.jkiss.dbeaver.model.struct.DBSDataContainer;
-import org.jkiss.dbeaver.model.struct.DBSEntity;
-import org.jkiss.dbeaver.model.struct.DBSTypedObject;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.DBPDataSource;
+import com.seizia.chromite.model.data.DBDAttributeBinding;
+import com.seizia.chromite.model.data.hints.DBDValueHintContext;
+import com.seizia.chromite.model.data.hints.DBDValueHintProvider;
+import com.seizia.chromite.model.struct.DBSDataContainer;
+import com.seizia.chromite.model.struct.DBSEntity;
+import com.seizia.chromite.model.struct.DBSTypedObject;
 import org.jkiss.utils.CommonUtils;
 
 /**
@@ -34,7 +34,7 @@ import org.jkiss.utils.CommonUtils;
 public class ValueHintProviderDescriptor extends AbstractValueBindingDescriptor<DBDValueHintProvider, DBDValueHintContext> {
     private static final Log log = Log.getLog(ValueHintProviderDescriptor.class);
 
-    public static final String EXTENSION_ID = "org.jkiss.dbeaver.dataHintProvider"; //$NON-NLS-1$
+    public static final String EXTENSION_ID = "com.seizia.chromite.dataHintProvider"; //$NON-NLS-1$
     public static final String TAG_HINT_PROVIDER = "hintProvider"; //$NON-NLS-1$
 
     @NotNull

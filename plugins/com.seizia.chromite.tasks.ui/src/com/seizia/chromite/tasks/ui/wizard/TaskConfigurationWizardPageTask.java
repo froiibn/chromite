@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.tasks.ui.wizard;
+package com.seizia.chromite.tasks.ui.wizard;
 
 import org.eclipse.jface.dialogs.IDialogConstants;
 import org.eclipse.jface.viewers.ISelection;
@@ -28,21 +28,21 @@ import org.eclipse.swt.widgets.*;
 import org.eclipse.ui.IWorkbenchPart;
 import org.eclipse.ui.IWorkbenchWindow;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.DBIcon;
-import org.jkiss.dbeaver.model.DBPDataSourceContainer;
-import org.jkiss.dbeaver.model.DBUtils;
-import org.jkiss.dbeaver.model.app.DBPProject;
-import org.jkiss.dbeaver.model.task.*;
-import org.jkiss.dbeaver.registry.task.TaskImpl;
-import org.jkiss.dbeaver.registry.task.TaskRegistry;
-import org.jkiss.dbeaver.tasks.ui.DBTTaskConfigurator;
-import org.jkiss.dbeaver.tasks.ui.internal.TaskUIMessages;
-import org.jkiss.dbeaver.tasks.ui.registry.TaskUIRegistry;
-import org.jkiss.dbeaver.ui.DBeaverIcons;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.dialogs.ActiveWizardPage;
-import org.jkiss.dbeaver.ui.navigator.NavigatorUtils;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.DBIcon;
+import com.seizia.chromite.model.DBPDataSourceContainer;
+import com.seizia.chromite.model.DBUtils;
+import com.seizia.chromite.model.app.DBPProject;
+import com.seizia.chromite.model.task.*;
+import com.seizia.chromite.registry.task.TaskImpl;
+import com.seizia.chromite.registry.task.TaskRegistry;
+import com.seizia.chromite.tasks.ui.DBTTaskConfigurator;
+import com.seizia.chromite.tasks.ui.internal.TaskUIMessages;
+import com.seizia.chromite.tasks.ui.registry.TaskUIRegistry;
+import com.seizia.chromite.ui.SwtIcons;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.dialogs.ActiveWizardPage;
+import com.seizia.chromite.ui.navigator.NavigatorUtils;
 import org.jkiss.utils.ArrayUtils;
 import org.jkiss.utils.CommonUtils;
 
@@ -308,7 +308,7 @@ class TaskConfigurationWizardPageTask extends ActiveWizardPage<TaskConfiguration
             }
             TreeItem item = parentItem == null ? new TreeItem(taskCategoryTree, SWT.NONE) : new TreeItem(parentItem, SWT.NONE);
             item.setText(0, cat.getName());
-            item.setImage(0, DBeaverIcons.getImage(cat.getIcon() == null ? DBIcon.TREE_TASK : cat.getIcon()));
+            item.setImage(0, SwtIcons.getImage(cat.getIcon() == null ? DBIcon.TREE_TASK : cat.getIcon()));
             item.setText(1, CommonUtils.notEmpty(cat.getDescription()));
             item.setData(cat);
             addTaskCategories(item, cat.getChildren());
@@ -329,7 +329,7 @@ class TaskConfigurationWizardPageTask extends ActiveWizardPage<TaskConfiguration
             item.setText(0, type.getName());
             item.setText(1, CommonUtils.notEmpty(type.getDescription()));
             if (type.getIcon() != null) {
-                item.setImage(0, DBeaverIcons.getImage(type.getIcon()));
+                item.setImage(0, SwtIcons.getImage(type.getIcon()));
             }
             item.setData(type);
         }

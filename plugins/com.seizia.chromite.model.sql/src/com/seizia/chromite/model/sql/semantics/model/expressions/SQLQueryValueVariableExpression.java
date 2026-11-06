@@ -14,18 +14,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.sql.semantics.model.expressions;
+package com.seizia.chromite.model.sql.semantics.model.expressions;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.model.sql.SQLDialectFeatures;
-import org.jkiss.dbeaver.model.sql.semantics.*;
-import org.jkiss.dbeaver.model.sql.semantics.context.SQLQueryExprType;
-import org.jkiss.dbeaver.model.sql.semantics.context.SQLQueryLocalVariableInfo;
-import org.jkiss.dbeaver.model.sql.semantics.context.SQLQueryRowsDataContext;
-import org.jkiss.dbeaver.model.sql.semantics.context.SQLQueryRowsSourceContext;
-import org.jkiss.dbeaver.model.sql.semantics.model.SQLQueryNodeModelVisitor;
-import org.jkiss.dbeaver.model.stm.STMTreeNode;
+import com.seizia.chromite.model.sql.SQLDialectFeatures;
+import com.seizia.chromite.model.sql.semantics.*;
+import com.seizia.chromite.model.sql.semantics.context.SQLQueryExprType;
+import com.seizia.chromite.model.sql.semantics.context.SQLQueryLocalVariableInfo;
+import com.seizia.chromite.model.sql.semantics.context.SQLQueryRowsDataContext;
+import com.seizia.chromite.model.sql.semantics.context.SQLQueryRowsSourceContext;
+import com.seizia.chromite.model.sql.semantics.model.SQLQueryNodeModelVisitor;
+import com.seizia.chromite.model.stm.STMTreeNode;
 
 /**
  * Script variable. One of :var, ${var} or @var depending on the VariableExpressionKind
@@ -42,11 +42,11 @@ public class SQLQueryValueVariableExpression extends SQLQueryValueExpression {
         /**
          * The variable of kind ${var}
          */
-        CLIENT_VARIABLE(SQLQuerySymbolClass.DBEAVER_VARIABLE),
+        CLIENT_VARIABLE(SQLQuerySymbolClass.CHROMITE_VARIABLE),
         /**
          * The variable of kind :var
          */
-        CLIENT_PARAMETER(SQLQuerySymbolClass.DBEAVER_PARAMETER);
+        CLIENT_PARAMETER(SQLQuerySymbolClass.CHROMITE_PARAMETER);
 
         public final SQLQuerySymbolClass symbolClass;
 

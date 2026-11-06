@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.navigator.project;
+package com.seizia.chromite.ui.navigator.project;
 
 import org.eclipse.core.resources.IFile;
 import org.eclipse.core.resources.IResource;
@@ -27,19 +27,19 @@ import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Label;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.model.DBConstants;
-import org.jkiss.dbeaver.model.DBPDataSourceContainer;
-import org.jkiss.dbeaver.model.app.DBPPlatformDesktop;
-import org.jkiss.dbeaver.model.app.DBPProject;
-import org.jkiss.dbeaver.model.app.DBPProjectListener;
-import org.jkiss.dbeaver.model.navigator.*;
-import org.jkiss.dbeaver.model.rm.RMConstants;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.ui.*;
-import org.jkiss.dbeaver.ui.actions.ObjectPropertyTester;
-import org.jkiss.dbeaver.ui.controls.ViewerColumnController;
-import org.jkiss.dbeaver.ui.internal.UINavigatorMessages;
-import org.jkiss.dbeaver.utils.ResourceUtils;
+import com.seizia.chromite.model.DBConstants;
+import com.seizia.chromite.model.DBPDataSourceContainer;
+import com.seizia.chromite.model.app.DBPPlatformDesktop;
+import com.seizia.chromite.model.app.DBPProject;
+import com.seizia.chromite.model.app.DBPProjectListener;
+import com.seizia.chromite.model.navigator.*;
+import com.seizia.chromite.model.rm.RMConstants;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.ui.*;
+import com.seizia.chromite.ui.actions.ObjectPropertyTester;
+import com.seizia.chromite.ui.controls.ViewerColumnController;
+import com.seizia.chromite.ui.internal.UINavigatorMessages;
+import com.seizia.chromite.utils.ResourceUtils;
 import org.jkiss.utils.CommonUtils;
 
 import java.text.DecimalFormat;
@@ -55,7 +55,7 @@ public class ProjectExplorerView extends DecoratedProjectView implements DBPProj
 
     //static final Log log = Log.getLog(ProjectExplorerView.class);
 
-    public static final String VIEW_ID = "org.jkiss.dbeaver.core.projectExplorer";
+    public static final String VIEW_ID = "com.seizia.chromite.core.projectExplorer";
     private ViewerColumnController<?,?> columnController;
     private final NumberFormat sizeFormat = new DecimalFormat();
     
@@ -188,11 +188,11 @@ public class ProjectExplorerView extends DecoratedProjectView implements DBPProj
         /*
                         DBNNode node = (DBNNode) element;
                         if (node instanceof DBNDatabaseNode) {
-                            return DBeaverIcons.getImage(((DBNDatabaseNode) node).getDataSourceContainer().getDriver().getIcon());
+                            return SwtIcons.getImage(((DBNDatabaseNode) node).getDataSourceContainer().getDriver().getIcon());
                         } else if (node instanceof DBNResource) {
                             Collection<DBPDataSourceContainer> containers = ((DBNResource) node).getAssociatedDataSources();
                             if (containers != null && containers.size() == 1) {
-                                return DBeaverIcons.getImage((containers.iterator().next().getDriver().getIcon()));
+                                return SwtIcons.getImage((containers.iterator().next().getDriver().getIcon()));
                             }
                         }
         */

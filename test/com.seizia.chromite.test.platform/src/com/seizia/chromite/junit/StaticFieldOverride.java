@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.junit;
+package com.seizia.chromite.junit;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;

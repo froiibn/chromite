@@ -14,15 +14,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.editors.sql;
+package com.seizia.chromite.ui.editors.sql;
 
 import org.eclipse.jface.text.BadLocationException;
 import org.eclipse.jface.text.IDocument;
 import org.eclipse.jface.text.IRegion;
 import org.eclipse.jface.text.Region;
 import org.eclipse.jface.text.formatter.*;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.sql.SQLScriptElement;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.sql.SQLScriptElement;
 
 class SQLContentFormatter extends ContentFormatter implements IContentFormatterExtension {
     private static final Log log = Log.getLog(SQLContentFormatter.class);

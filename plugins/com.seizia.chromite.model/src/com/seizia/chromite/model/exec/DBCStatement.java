@@ -15,15 +15,15 @@
  * limitations under the License.
  */
 
-package org.jkiss.dbeaver.model.exec;
+package com.seizia.chromite.model.exec;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.model.DBPAutoCloser;
-import org.jkiss.dbeaver.model.DBPCloseableObject;
-import org.jkiss.dbeaver.model.DBPObject;
-import org.jkiss.dbeaver.model.runtime.DBRBlockingObject;
+import com.seizia.chromite.model.DBPAutoCloser;
+import com.seizia.chromite.model.DBPCloseableObject;
+import com.seizia.chromite.model.DBPObject;
+import com.seizia.chromite.model.runtime.DBRBlockingObject;
 
 /**
  * DBCStatement

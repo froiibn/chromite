@@ -14,21 +14,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.net;
+package com.seizia.chromite.model.net;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.model.DBInfoUtils;
-import org.jkiss.dbeaver.model.app.DBPProject;
-import org.jkiss.dbeaver.model.connection.DBPConfigurationProfile;
-import org.jkiss.dbeaver.model.data.json.JSONUtils;
-import org.jkiss.dbeaver.model.rm.RMProjectType;
-import org.jkiss.dbeaver.model.secret.DBSSecret;
-import org.jkiss.dbeaver.model.secret.DBSSecretBrowser;
-import org.jkiss.dbeaver.model.secret.DBSSecretController;
-import org.jkiss.dbeaver.model.secret.DBSSecretSubject;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
+import com.seizia.chromite.model.DBInfoUtils;
+import com.seizia.chromite.model.app.DBPProject;
+import com.seizia.chromite.model.connection.DBPConfigurationProfile;
+import com.seizia.chromite.model.data.json.JSONUtils;
+import com.seizia.chromite.model.rm.RMProjectType;
+import com.seizia.chromite.model.secret.DBSSecret;
+import com.seizia.chromite.model.secret.DBSSecretBrowser;
+import com.seizia.chromite.model.secret.DBSSecretController;
+import com.seizia.chromite.model.secret.DBSSecretSubject;
+import com.seizia.chromite.runtime.DBWorkbench;
 import org.jkiss.utils.AlphanumericComparator;
 
 import java.io.StringReader;

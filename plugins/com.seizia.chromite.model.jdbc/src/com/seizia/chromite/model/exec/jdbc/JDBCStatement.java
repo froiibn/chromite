@@ -14,13 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.exec.jdbc;
+package com.seizia.chromite.model.exec.jdbc;
 
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.model.exec.DBCException;
-import org.jkiss.dbeaver.model.exec.DBCScriptStatement;
-import org.jkiss.dbeaver.model.exec.DBCStatement;
-import org.jkiss.dbeaver.model.runtime.DBRBlockingObject;
+import com.seizia.chromite.model.exec.DBCException;
+import com.seizia.chromite.model.exec.DBCScriptStatement;
+import com.seizia.chromite.model.exec.DBCStatement;
+import com.seizia.chromite.model.runtime.DBRBlockingObject;
 
 import java.sql.SQLException;
 import java.sql.Statement;

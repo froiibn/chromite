@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.model.security;
+package com.seizia.chromite.model.security;
 
 public interface SMConstants {
     String SESSION_PARAM_LAST_REMOTE_ADDRESS = "lastRemoteAddr";

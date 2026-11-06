@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <?pde version="3.5"?>
 
-<product name="DBeaverUnitTest" uid="org.jkiss.dbeaver.test.product" id="org.jkiss.dbeaver.ui.app.test.product"
-    application="org.jkiss.dbeaver.ui.app.test.test" version="24.3.1.qualifier" useFeatures="true"
+<product name="ChromiteUnitTest" uid="com.seizia.chromite.test.product" id="com.seizia.chromite.ui.app.test.product"
+    application="com.seizia.chromite.ui.app.test.test" version="24.3.1.qualifier" useFeatures="true"
     includeLaunchers="true">
 
     <configIni use="default">
@@ -47,14 +47,14 @@
         <vmArgsMac>-XstartOnFirstThread -Dorg.eclipse.swt.internal.cocoa.useNativeItemHeight=false</vmArgsMac>
     </launcherArgs>
 
-    <splash location="org.jkiss.dbeaver.ui.app.standalone"/>
+    <splash location="com.seizia.chromite.ui.app.standalone"/>
 
-    <launcher name="dbeaver">
-        <linux icon="/icons/dbeaver.xpm"/>
-        <macosx icon="/icons/dbeaver.icns"/>
+    <launcher name="chromite">
+        <linux icon="/icons/chromite.xpm"/>
+        <macosx icon="/icons/chromite.icns"/>
         <solaris/>
         <win useIco="true">
-            <ico path="icons/dbeaver.ico"/>
+            <ico path="icons/chromite.ico"/>
         </win>
     </launcher>
 
@@ -85,10 +85,10 @@
     </plugins>
 
     <features>
-        <feature id="org.jkiss.dbeaver.runtime.feature"/>
-        <feature id="org.jkiss.dbeaver.db.feature"/>
-        <feature id="org.jkiss.dbeaver.test.base.feature"/>
-        <feature id="org.jkiss.dbeaver.test.feature"/>
+        <feature id="com.seizia.chromite.runtime.feature"/>
+        <feature id="com.seizia.chromite.db.feature"/>
+        <feature id="com.seizia.chromite.test.base.feature"/>
+        <feature id="com.seizia.chromite.test.feature"/>
     </features>
 
     <configurations>

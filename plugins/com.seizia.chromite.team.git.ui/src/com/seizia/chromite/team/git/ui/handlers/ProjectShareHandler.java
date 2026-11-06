@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.team.git.ui.handlers;
+package com.seizia.chromite.team.git.ui.handlers;
 
 import org.eclipse.core.commands.AbstractHandler;
 import org.eclipse.core.commands.ExecutionEvent;
@@ -31,16 +31,16 @@ import org.eclipse.ui.IWorkbench;
 import org.eclipse.ui.commands.IElementUpdater;
 import org.eclipse.ui.handlers.HandlerUtil;
 import org.eclipse.ui.menus.UIElement;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.DBPMessageType;
-import org.jkiss.dbeaver.model.app.DBPDataSourceRegistry;
-import org.jkiss.dbeaver.model.app.DBPProject;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.runtime.DBeaverNotifications;
-import org.jkiss.dbeaver.team.git.ui.internal.GITMessages;
-import org.jkiss.dbeaver.team.git.ui.utils.GitUIUtils;
-import org.jkiss.dbeaver.ui.ActionUtils;
-import org.jkiss.dbeaver.ui.UIUtils;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.DBPMessageType;
+import com.seizia.chromite.model.app.DBPDataSourceRegistry;
+import com.seizia.chromite.model.app.DBPProject;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.runtime.ChromiteNotifications;
+import com.seizia.chromite.team.git.ui.internal.GITMessages;
+import com.seizia.chromite.team.git.ui.utils.GitUIUtils;
+import com.seizia.chromite.ui.ActionUtils;
+import com.seizia.chromite.ui.UIUtils;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -71,7 +71,7 @@ public class ProjectShareHandler extends AbstractHandler implements IElementUpda
             // Add content
             addProjectContentsToRepository(event, project);
 
-            DBeaverNotifications.showNotification(
+            ChromiteNotifications.showNotification(
                 "git.project.added",
                 GITMessages.project_share_handler_notifications_title_project_added,
                 NLS.bind(GITMessages.project_share_handler_notifications_text_project_added, project.getName()),
@@ -97,7 +97,7 @@ public class ProjectShareHandler extends AbstractHandler implements IElementUpda
     private void addFolderToIndex(IContainer container, List<IResource> resources) throws CoreException {
         for (IResource resource : container.members(IContainer.INCLUDE_HIDDEN)) {
             if (container instanceof IProject && resource instanceof IFolder && resource.getName().equals(DBPProject.METADATA_FOLDER)) {
-                // Add dbeaver configs
+                // Add chromite configs
                 for (IResource cfgResource : ((IFolder) resource).members(IContainer.INCLUDE_HIDDEN)) {
                     if (cfgResource instanceof IFile) {
                         if (cfgResource.getFileExtension().equals("bak")) {

@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jkiss.dbeaver.ui.search;
+package com.seizia.chromite.ui.search;
 
 import org.eclipse.jface.action.IContributionManager;
 import org.eclipse.jface.viewers.TreeViewer;
@@ -31,17 +31,17 @@ import org.eclipse.ui.IMemento;
 import org.eclipse.ui.part.Page;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.model.DBPNamedObject;
-import org.jkiss.dbeaver.model.navigator.DBNContainer;
-import org.jkiss.dbeaver.model.navigator.DBNNode;
-import org.jkiss.dbeaver.model.navigator.DBNResource;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
-import org.jkiss.dbeaver.ui.LoadingJob;
-import org.jkiss.dbeaver.ui.UIUtils;
-import org.jkiss.dbeaver.ui.controls.TreeContentProvider;
-import org.jkiss.dbeaver.ui.navigator.INavigatorModelView;
-import org.jkiss.dbeaver.ui.navigator.itemlist.NodeListControl;
-import org.jkiss.dbeaver.ui.search.internal.UISearchMessages;
+import com.seizia.chromite.model.DBPNamedObject;
+import com.seizia.chromite.model.navigator.DBNContainer;
+import com.seizia.chromite.model.navigator.DBNNode;
+import com.seizia.chromite.model.navigator.DBNResource;
+import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.ui.LoadingJob;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.controls.TreeContentProvider;
+import com.seizia.chromite.ui.navigator.INavigatorModelView;
+import com.seizia.chromite.ui.navigator.itemlist.NodeListControl;
+import com.seizia.chromite.ui.search.internal.UISearchMessages;
 import org.jkiss.utils.CommonUtils;
 
 import java.util.*;
