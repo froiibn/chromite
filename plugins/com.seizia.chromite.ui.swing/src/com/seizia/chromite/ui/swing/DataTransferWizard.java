@@ -82,6 +82,7 @@ import java.util.Locale;
  * 변경 이력:
  * - 2026-11-06 데이터 전송: 최초 작성 (docs/chromite/swing-data-transfer.md)
  * - 2026-11-06 화면 문구를 ToolsMessages로 옮김(OS 언어를 따름)
+ * - 2026-11-06 테이블 복사: 성공 뒤 처리({@link #transferSucceeded}), 선택에 따라 단계 목록 다시 그리기({@link #refreshSteps})
  */
 abstract class DataTransferWizard extends JDialog {
 
@@ -284,6 +285,20 @@ abstract class DataTransferWizard extends JDialog {
     @Nullable
     protected String describeResult(@NotNull DataTransferPipe pipe) {
         return null;
+    }
+
+    /**
+     * Called on the EDT when the whole transfer succeeded (e.g. to open the copied tables).
+     */
+    protected void transferSucceeded() {
+    }
+
+    /**
+     * Updates the step list and the buttons after a choice that makes other pages applicable (e.g. the destination type).
+     */
+    protected final void refreshSteps() {
+        updateSteps();
+        updateButtons();
     }
 
     /**
@@ -639,6 +654,8 @@ abstract class DataTransferWizard extends JDialog {
         if (error == null) {
             progressLabel.setText(NLS.bind(pipeRows.size() == 1 ? ToolsMessages.transfer_progress_success_one : ToolsMessages.transfer_progress_success,
                 succeeded, pipeRows.size()));
+            updateButtons();
+            transferSucceeded();
         } else if (canceled) {
             progressLabel.setText(NLS.bind(ToolsMessages.transfer_progress_canceled, succeeded, pipeRows.size()));
         } else {
