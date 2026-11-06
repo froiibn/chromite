@@ -2,6 +2,8 @@
 <?pde version="3.5"?>
 
 <!-- Chromite Swing frontend product (docs/chromite/swing-frontend.md). No SWT/JFace/Eclipse UI bundles. -->
+<!-- version is the Chromite product version (major.minor.dev, docs/chromite/versioning.md). Change it only with
+     tools/release/bump-version.ps1, which keeps the other copies Tycho needs in step. -->
 <product name="Chromite" uid="com.seizia.chromite.swing.product" id="com.seizia.chromite.ui.swing.product"
     application="com.seizia.chromite.ui.swing.application" version="26.2.5.qualifier" useFeatures="true"
     includeLaunchers="true">

@@ -25,7 +25,7 @@
                     <products>
                         <product>
                             <id>com.seizia.chromite.swing.product</id>
-                            <archiveFileName>chromite-swing-${dbeaver-version}</archiveFileName>
+                            <archiveFileName>chromite-swing-${unqualifiedVersion}</archiveFileName>
                             <rootFolders>
                                 <!-- for MacOSX, make sure you use a folder ending with .app , see bug 463670 -->
                                 <macosx>ChromiteSwing.app</macosx>
