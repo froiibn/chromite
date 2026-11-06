@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  Entitlements of the Chromite launchers (Contents/MacOS/chromite, Contents/MacOS/chromite-swing)
+  under the hardened runtime, used by tools/release/release-macos.sh when it signs the .app.
+  The launcher starts the Java VM inside its own process (dlopen of libjli/libjvm), so these
+  entitlements are the JVM's:
+    allow-jit                         HotSpot compiles bytecode to machine code at run time (JIT).
+    allow-unsigned-executable-memory  HotSpot and native code loaded through JNI/JNA (libffi
+                                      closures) also create writable and executable memory
+                                      without MAP_JIT.
+    disable-library-validation        the VM is not part of the app yet: the launcher loads the
+                                      JDK installed on the user's Mac, signed by another team
+                                      (docs/chromite/runtime.md), and JDBC drivers or JNA unpack
+                                      native libraries at run time that are not signed by us.
+                                      Library validation would refuse all of them.
+  Nothing else: no App Sandbox (the app opens user files, network connections and drivers freely).
+  Design: docs/chromite/signing.md.
+-->
+<plist version="1.0">
+  <dict>
+    <key>com.apple.security.cs.allow-jit</key>
+    <true/>
+    <key>com.apple.security.cs.allow-unsigned-executable-memory</key>
+    <true/>
+    <key>com.apple.security.cs.disable-library-validation</key>
+    <true/>
+  </dict>
+</plist>

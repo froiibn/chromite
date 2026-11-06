@@ -62,7 +62,7 @@ DataGrip처럼 사용자가 Java 런타임(JRE)을 따로 설치하지 않아도
 | 내장 런타임 | JBR 25 windows-x64 | JBR 25 osx-aarch64 |
 | 런타임 위치 | `<설치폴더>/jre/` | `Chromite.app/Contents/` 안 |
 | 배포 형태 | 설치 프로그램(.exe/.msi) + zip (관리자 권한 없이 풀어 쓰는 폐쇄망 환경 고려) | .dmg |
-| 서명 | 코드 서명 인증서 검토 (없으면 SmartScreen 경고) | Apple Developer 계정으로 서명 + 공증. 공증 결과를 붙여 두면(stapling) 폐쇄망에서도 실행 |
+| 서명 | Azure Artifact Signing으로 CI에서 서명 ([signing.md](signing.md)) | Developer ID 서명 + 공증, CI에서 실행 ([signing.md](signing.md)). 공증 결과를 붙여 두면(stapling) 폐쇄망에서도 실행 |
 | 기타 | | 화면 상단 메뉴 막대, Cmd 단축키, 제목 표시줄 통합 |
 
 - Linux, Intel Mac, Windows ARM은 지원하지 않는다. 그래서 빌드 대상 환경도 두 가지만 둔다.
@@ -97,3 +97,4 @@ DataGrip처럼 사용자가 Java 런타임(JRE)을 따로 설치하지 않아도
 - 2026-11-06 빌드 대상 환경을 Windows x64, macOS aarch64 두 가지로 줄였다(루트 `pom.xml`). 그 전에는 Linux gtk
   x86_64/aarch64, Windows aarch64, macOS x86_64 제품도 함께 만들었다. Linux·Solaris 전용 제품 설정과 아이콘,
   Linux 전용 플러그인 `org.jkiss.dbeaver.ui.swt.linux` 삭제.
+- 2026-11-06 플랫폼별 "서명" 항목을 CI 서명 릴리스(`release.yml`, [signing.md](signing.md))에 맞게 고쳤다.
