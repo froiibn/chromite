@@ -544,7 +544,9 @@ final class ToolWindowDocking {
      */
     @Nullable
     private Place computeMainPlace(@NotNull Dock dock) {
-        if (!isInMainWindow(dock.dockable)) {
+        // Before the main window is shown the split dividers are not laid out, so their proportions are not real
+        // (e.g. a tool window hidden while the old preferences are migrated keeps its default place instead)
+        if (!root.isShowing() || !isInMainWindow(dock.dockable)) {
             return null;
         }
         return computePlace(docking.getDockingState().getWindowLayout(frame).getRootNode(), dock.getId());
@@ -638,6 +640,10 @@ final class ToolWindowDocking {
      * or close (also from a floating window's close button) can bring it back there.
      */
     private void updatePlaces() {
+        if (!root.isShowing()) {
+            // Not laid out yet: the divider proportions would not be real (see computeMainPlace)
+            return;
+        }
         DockingLayoutNode rootNode = null;
         for (Dock dock : docks.values()) {
             if (isInMainWindow(dock.dockable)) {
