@@ -63,6 +63,8 @@ import java.util.Map;
 *
 * 변경 이력:
 * - 2026-11-06 탐색기에서 함수를 별도 "Functions" 폴더로 분리하고, CLR 함수(FS, FT)도 읽도록 함
+* - 2026-11-07 스키마 새로 고침(refreshObject)에서 트리거 캐시도 비움. 테이블 캐시만 비우면 남은 트리거가 이전 테이블 객체를 가리켜
+*   다시 연결할 때까지 테이블의 트리거 폴더가 비어 보였다
 */
 public class SQLServerSchema implements DBSSchema, DBPSaveableObject, DBPQualifiedObject, DBPRefreshableObject, DBPSystemObject, SQLServerObject, DBSProcedureContainer, DBSObjectWithScript, DBPObjectStatisticsCollector {
 
@@ -198,6 +200,9 @@ public class SQLServerSchema implements DBSSchema, DBPSaveableObject, DBPQualifi
         sequenceCache.clearCache();
         synonymCache.clearCache();
         procedureCache.clearCache();
+        // Triggers hold their table objects: kept after the table cache is cleared, they would point to tables no
+        // longer in the model and every table's Triggers folder would stay empty (SQLServerTableBase.getTriggers)
+        triggerCache.clearCache();
         database.refreshDataTypes();
         hasTableStatistics = false;
 

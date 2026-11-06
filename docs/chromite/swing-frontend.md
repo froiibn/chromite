@@ -2074,6 +2074,20 @@ EDT 에이전트로 단추를 누르고(`doClick`) 결과를 읽었다. 캡처�
   (`ko-light-maria-session-variable.png`: `autocommit` = ON). PostgreSQL 함수·프로시저의 "함수 매개 변수" 폴더 아래 `p_customer varchar`,
   `p_min numeric` 등이 보인다. 인덱스 노드는 이제 열을 펼친다.
 
+### SQL Server 스키마 새로 고침 뒤 트리거
+
+- 증상(#36): 스키마(또는 그 아래 폴더)를 새로 고치면 테이블의 "트리거" 폴더가 다시 연결할 때까지 비었다.
+- 근본 원인: `SQLServerSchema.refreshObject`(수정 전 `SQLServerSchema.java:193-205`)가 테이블·인덱스·제약 조건·프로시저 캐시는 비우고 트리거 캐시는
+  비우지 않았다. 테이블 캐시를 다시 읽으면 테이블 객체가 새로 생기는데, 남은 트리거는 이전 테이블 객체를 가리키고 캐시는 "다 읽음" 상태라 다시 읽지 않는다.
+  `SQLServerTableBase.getTriggers`(`SQLServerTableBase.java:321-333`)는 `this == trigger.getTable()`로 거르므로 새 테이블에는 트리거가 하나도 없다.
+  스키마 아래 "테이블 트리거" 가상 폴더(`plugin.xml:144`)는 이전 테이블 객체의 트리거를 보여 줬다.
+- 수정: `refreshObject`에서 `triggerCache.clearCache()`도 부른다. MySQL(`MySQLCatalog.java:550`)과 SQL Server 데이터베이스
+  (`SQLServerDatabase.java:289`)의 새로 고침은 이미 트리거 캐시를 비운다. 테이블 하나의 새로 고침(`SQLServerTableBase.refreshObject`)은
+  같은 테이블 객체를 다시 채우고 그 테이블의 트리거만 지워(`clearChildrenOf`, 캐시를 "덜 읽음"으로 돌림) 원래 문제가 없었다.
+- 모델 수정이라 SWT에도 같이 적용된다(upstream에도 있는 버그).
+- 확인(SQL Server 2022, 트리거 2개인 `orders`): 수정 전 빌드에서 `dbo`를 F5로 새로 고친 뒤 `orders` > 트리거가 비었다
+  (`before-ko-light-mssql-triggers-after-schema-refresh.png`). 수정 뒤에는 `trg_orders_delete`, `trg_orders_insert`가 그대로 보인다(한국어·영어).
+
 ## 변경 이력
 
 - 2026-11-06 최초 작성. Swing 전환 결정, 구조, 재사용 분석, MVP 범위, F5 실행 사양을 정리.
@@ -2151,3 +2165,4 @@ EDT 에이전트로 단추를 누르고(`doClick`) 결과를 읽었다. 캡처�
 - 2026-11-07 XLSX 내보내기 설명: Office 확장 피처의 설치 원본(CE 업데이트 저장소)을 삭제한 것을 반영.
 - 2026-11-07 Object Explorer 후속 수정: 탐색 불가 항목(프로시저·함수 매개 변수, MySQL/MariaDB 시스템 정보의 변수·상태·엔진 등)을 트리에 보여 줌,
   반환 값 매개 변수 이름. "Object Explorer 후속 수정" 절 추가, B단계 데이터 흐름 2·3 갱신.
+- 2026-11-07 SQL Server 스키마를 새로 고친 뒤 테이블 트리거가 비던 문제(트리거 캐시도 비움). "Object Explorer 후속 수정" 절.
