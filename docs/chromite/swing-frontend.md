@@ -1492,6 +1492,12 @@ Swing 제품에는 그 번들이 없다. 그래서 범용 칸(Login, Password)�
 | 파일 | 바뀐 것 |
 |---|---|
 | `ResultSetGrid` | 열 너비 여백을 Look and Feel 렌더러·셀 테두리에서 계산, 행 번호를 눌러도 가로로 스크롤하지 않음 |
+| `ChromiteLightLaf.properties`, `ChromiteDarkLaf.properties` | 제목 표시줄 40(`TitlePane.buttonSize` 46,40, 제목 글자 `text.secondary`), 메뉴 항목 24(`@menuItemMargin`), 스크롤바, Properties 분류 띠 색 |
+| `EditMenu`(새 파일) | Edit 메뉴: Undo, Redo, Cut, Copy, Paste, Select All, Find…, Replace…, Find Next, Find Previous |
+| `FindReplaceDialog`(새 파일) | 찾기·바꾸기 대화상자(RSyntaxTextArea `SearchEngine`) |
+| `OptionsDialog`(새 파일) | Tools > Options: 테마, 아이콘 스타일, 입력 중 자동완성, 자동완성 지연, 최대 행 수 |
+| `MainFrame` | 메뉴 순서 File, Edit, View, Query, Tools, Window, Help, Window 메뉴(Reset Window Layout, 열린 문서 탭), 탭 닫기 단추·가운데 단추, 쿼리 상태 줄 자리 |
+| `ToolWindow` | 기본 크기로 되돌리기(`reset`) |
 
 ### 결과 그리드 머리글이 잘려 보이던 것 (근본 원인)
 
@@ -1504,6 +1510,22 @@ Swing 제품에는 그 번들이 없다. 그래서 범용 칸(Login, Password)�
   행 번호 클릭은 자동 스크롤을 잠시 끄고 행을 고르도록 고쳤다(누른 행은 이미 보임).
 - 함께 고친 것: 열 너비의 여백이 고정값 18(셀 여백 8 + 8 + 격자선 1을 가정)이었다. Look and Feel이 여백을 배율로 키우는 환경(FlatLaf 사용자 배율 > 1)이나 테마가
   `TableHeader.cellMargins`를 바꾸면 머리글이 잘린다. 머리글 너비는 머리글 렌더러의 선호 너비, 셀은 셀 테두리(`Table.cellNoFocusBorder`)의 여백으로 계산한다(모든 열).
+
+### 제목 표시줄과 메뉴
+
+- 제목 표시줄 40(창 단추 46×40, `TitlePane.buttonSize`), 제목 글자 `text.secondary`. 메뉴 항목 높이 24(`@menuItemMargin` 3,8,4,8). 팝업 모서리 8, 선택 arc 8·좌우 4는 디자인 적용 때 그대로.
+- 주 메뉴는 SSMS 순서 File, Edit, View, Query, Tools, Window, Help.
+- **Edit**(`EditMenu`): Undo부터 Select All까지는 키보드 초점 컴포넌트에 적용한다(Swing 메뉴는 초점을 가져가지 않음). 편집기(RSyntaxTextArea)는 실행 취소 기록,
+  입력 칸은 `JTextComponent`, 표·트리의 복사는 그 컴포넌트의 전송 처리기다. 단축키는 메뉴 단축키라 초점 컴포넌트가 같은 키를 직접 처리하면 그쪽이 먼저다.
+  켜고 끄기는 초점이 바뀔 때(컴포넌트 종류) 정하고, 메뉴를 열 때 선택·실행 취소 기록까지 보고 다시 정한다.
+- **Find/Replace**(`FindReplaceDialog`): Ctrl+F, Ctrl+H(SSMS), F3·Shift+F3. 편집기가 이 키를 직접 받아(텍스트 영역의 Ctrl+H 뒤로 지우기보다 우선) 활성 문서 탭의 편집기를 대상으로 연다.
+  RSyntaxTextArea `SearchEngine`(대소문자, 단어 단위, 정규식, 끝에서 처음으로 이어 찾기, 맞는 곳 모두 표시)을 쓴다. 대화상자는 모달이 아니고 닫으면 표시를 지운다. DDL 탭에서는 바꾸기를 끈다.
+  RSTA의 찾기 대화상자(RSTAUI)는 별도 라이브러리라 넣지 않았다.
+- **Tools > Options**(`OptionsDialog`): 이미 있는 설정만 한곳에 모았다. 테마·아이콘 스타일(`ui.theme`, `ui.iconStyle`), 입력 중 자동완성·지연(`sqlEditor.completion.*`),
+  최대 행 수(`resultset.maxrows`, 실행 엔진이 연결 설정 저장소 → 플랫폼 설정 저장소 순으로 읽는 값, 0 = 제한 없음). OK를 누를 때 바뀐 값만 적용·저장한다.
+  같은 설정을 보이는 메뉴 항목(View > Theme, Icon Style, Query > Auto-Complete While Typing)은 메뉴를 열 때 현재 값으로 맞춘다.
+  자동완성 설정의 기본값은 처음 읽을 때 선언한다(편집기를 열기 전에 Options를 열어도 기본값이 보이게).
+- **Window**: Reset Window Layout(도구 창을 모두 보이고 기본 크기로), 열린 문서 탭 목록(활성 탭에 표시, 고르면 그 탭으로).
 
 ## 변경 이력
 

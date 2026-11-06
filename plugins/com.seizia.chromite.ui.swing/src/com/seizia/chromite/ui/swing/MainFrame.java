@@ -67,8 +67,10 @@ import java.util.function.IntConsumer;
  *     <li>도구 창 크기는 창이 실제 크기를 가진 뒤(windowOpened 이후) 바깥 분할부터 차례로 적용한다.</li>
  *     <li>모양은 DataGrip Islands다: 메인 창 바탕은 캔버스({@code Chromite.island.canvas})이고 Object Explorer, 문서 탭·편집기, Results, Properties가
  *     각각 둥근 카드({@link IslandPanel})다. 카드 사이 틈은 분할선(6px, 선 없음)과 좌우 바깥 여백이다. 주 도구 막대와 상태 표시줄은 캔버스 위에 있다.</li>
- *     <li>메뉴는 File(새 연결·쿼리, 파일, Exit), View(도구 창 토글, Theme), Query(실행, 취소), Help(About)이다. FlatLaf의 통합 제목 표시줄(Windows)에서
- *     메뉴 막대는 A단계처럼 제목 표시줄 안에 들어간다.
+ *     <li>메뉴는 SSMS 순서로 File(새 연결·쿼리, 파일, Exit), Edit({@link EditMenu}), View(도구 창 토글, Theme), Query(실행, 취소, 자동완성),
+ *     Tools(Options, {@link OptionsDialog}), Window(Reset Window Layout, 열린 문서 탭 목록), Help(About)이다. FlatLaf의 통합 제목 표시줄(Windows)에서
+ *     메뉴 막대는 A단계처럼 제목 표시줄 안에 들어간다. Tools &gt; Options와 같은 설정을 보이는 메뉴 항목(Theme, Icon Style, Auto-Complete While Typing)은
+ *     메뉴를 열 때 현재 값으로 맞춘다.
  *     도구 창 단축키는 SSMS와 같다(Object Explorer F8, Properties F4, Results Ctrl+R).</li>
  *     <li>문서 탭: 시작 탭과 SQL 편집기 탭({@link SqlEditorPanel}). 편집기는 Object Explorer의 "New Query", File > New Query(Ctrl+N),
  *     도구 막대의 New Query로 연다. 제목은 SSMS처럼 {@code SQLQueryN.sql - 연결 이름}이고 닫기 단추가 있다.</li>
@@ -107,6 +109,7 @@ import java.util.function.IntConsumer;
  *   상태 표시줄 28, View > Theme > Icon Style (docs/chromite/design-spec.md "적용 현황")
  * - 2026-11-06 Islands: 캔버스 위 둥근 카드(Object Explorer, 문서, Results, Properties), 카드 사이 6px 틈의 분할선, 문서 탭 알약 모양 선택,
  *   주 도구 막대·상태 표시줄은 캔버스 (docs/chromite/design-spec.md "Islands 적용")
+ * - 2026-11-06 P1: Edit·Tools·Window 메뉴(SSMS 순서) (docs/chromite/swing-frontend.md "P1 디자인 적용")
  */
 final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplorerPanel.QueryWindows {
 
@@ -141,6 +144,7 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
     private final Action executeQueryAction;
     private final Action cancelQueryAction;
     private final Action completeAction;
+    private final EditMenu editMenu;
     private int queryCounter;
     /**
      * Folder of the last file dialog, for this run of the application.
@@ -234,6 +238,7 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
                     editor.complete();
                 }
             });
+        editMenu = new EditMenu(this::getActiveTextArea);
         documentTabs.addChangeListener(e -> activeEditorChanged());
         resultTabs.addChangeListener(e -> {
             SqlEditorPanel editor = getActiveEditor();
@@ -310,6 +315,7 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
             saveLayout();
         }
         explorerPanel.dispose();
+        editMenu.dispose();
         for (DBPDataSourceRegistry registry : listenedRegistries) {
             registry.removeDataSourceListener(registryListener);
         }
@@ -703,6 +709,18 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
         return documentTabs.getSelectedComponent() instanceof SqlEditorPanel editor ? editor : null;
     }
 
+    /**
+     * Text of the active document tab (query window or DDL tab), for Edit &gt; Find / Replace.
+     */
+    @Nullable
+    private SqlEditorPanel.SqlTextArea getActiveTextArea() {
+        Component component = documentTabs.getSelectedComponent();
+        if (component instanceof SqlEditorPanel editor) {
+            return editor.getTextArea();
+        }
+        return component instanceof DdlViewerPanel viewer ? viewer.getTextArea() : null;
+    }
+
     private void activeEditorChanged() {
         SqlEditorPanel editor = getActiveEditor();
         switchingResults = true;
@@ -739,6 +757,7 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
         completeAction.setEnabled(editor != null);
         saveAction.setEnabled(editor != null);
         saveAsAction.setEnabled(editor != null);
+        editMenu.activeDocumentChanged();
     }
 
     @Override
@@ -828,20 +847,7 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
         fileMenu.add(new JMenuItem(saveAsAction));
         fileMenu.addSeparator();
         fileMenu.add(exitItem);
-        fileMenu.addMenuListener(new MenuListener() {
-            @Override
-            public void menuSelected(MenuEvent e) {
-                fillRecentFilesMenu(recentMenu);
-            }
-
-            @Override
-            public void menuDeselected(MenuEvent e) {
-            }
-
-            @Override
-            public void menuCanceled(MenuEvent e) {
-            }
-        });
+        onMenuSelected(fileMenu, () -> fillRecentFilesMenu(recentMenu));
         fillRecentFilesMenu(recentMenu);
 
         JMenu queryMenu = new JMenu("Query");
@@ -854,6 +860,8 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
         autoCompleteItem.setToolTipText("Show completion proposals after typing letters (they always appear after a period)");
         autoCompleteItem.addActionListener(e -> SqlCompletionPopup.setAutoActivateOnLetters(autoCompleteItem.isSelected()));
         queryMenu.add(autoCompleteItem);
+        // Tools > Options changes the same setting
+        onMenuSelected(queryMenu, () -> autoCompleteItem.setSelected(SqlCompletionPopup.isAutoActivateOnLetters()));
 
         JMenu viewMenu = new JMenu("View");
         viewMenu.setMnemonic(KeyEvent.VK_V);
@@ -871,12 +879,85 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
         helpMenu.setMnemonic(KeyEvent.VK_H);
         helpMenu.add(aboutItem);
 
+        JMenuItem optionsItem = new JMenuItem("Options…");
+        optionsItem.setMnemonic(KeyEvent.VK_O);
+        optionsItem.addActionListener(e -> OptionsDialog.open(this));
+        JMenu toolsMenu = new JMenu("Tools");
+        toolsMenu.setMnemonic(KeyEvent.VK_T);
+        toolsMenu.add(optionsItem);
+
+        JMenu windowMenu = new JMenu("Window");
+        windowMenu.setMnemonic(KeyEvent.VK_W);
+        onMenuSelected(windowMenu, () -> fillWindowMenu(windowMenu));
+        fillWindowMenu(windowMenu);
+
+        // SSMS order
         JMenuBar menuBar = new JMenuBar();
         menuBar.add(fileMenu);
+        menuBar.add(editMenu.getMenu());
         menuBar.add(viewMenu);
         menuBar.add(queryMenu);
+        menuBar.add(toolsMenu);
+        menuBar.add(windowMenu);
         menuBar.add(helpMenu);
         return menuBar;
+    }
+
+    /**
+     * Window menu (SSMS): Reset Window Layout, then the open document tabs (the active one checked), rebuilt each
+     * time the menu opens.
+     */
+    private void fillWindowMenu(@NotNull JMenu windowMenu) {
+        windowMenu.removeAll();
+        JMenuItem resetItem = new JMenuItem("Reset Window Layout");
+        resetItem.setMnemonic(KeyEvent.VK_R);
+        resetItem.addActionListener(e -> resetWindowLayout());
+        windowMenu.add(resetItem);
+        if (documentTabs.getTabCount() > 0) {
+            windowMenu.addSeparator();
+        }
+        for (int i = 0; i < documentTabs.getTabCount(); i++) {
+            int index = i;
+            // No tab icon: the radio mark shows the active tab
+            JRadioButtonMenuItem item = new JRadioButtonMenuItem((i + 1) + " " + documentTabs.getTitleAt(i), i == documentTabs.getSelectedIndex());
+            if (i < 9) {
+                item.setMnemonic(KeyEvent.VK_1 + i);
+            }
+            item.setToolTipText(documentTabs.getToolTipTextAt(i));
+            item.addActionListener(e -> {
+                if (index < documentTabs.getTabCount()) {
+                    documentTabs.setSelectedIndex(index);
+                }
+            });
+            windowMenu.add(item);
+        }
+    }
+
+    /**
+     * Window &gt; Reset Window Layout: every tool window shown again with its default size.
+     */
+    private void resetWindowLayout() {
+        // Outer split first: the inner split panes are sized from its new layout
+        for (ToolWindow toolWindow : toolWindows) {
+            toolWindow.reset();
+        }
+    }
+
+    private static void onMenuSelected(@NotNull JMenu menu, @NotNull Runnable task) {
+        menu.addMenuListener(new MenuListener() {
+            @Override
+            public void menuSelected(MenuEvent e) {
+                task.run();
+            }
+
+            @Override
+            public void menuDeselected(MenuEvent e) {
+            }
+
+            @Override
+            public void menuCanceled(MenuEvent e) {
+            }
+        });
     }
 
     @NotNull
@@ -885,6 +966,7 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
         themeMenu.setMnemonic(KeyEvent.VK_T);
         ButtonGroup group = new ButtonGroup();
         ChromiteTheme current = ChromiteTheme.getCurrent();
+        List<JRadioButtonMenuItem> themeItems = new ArrayList<>();
         for (ChromiteTheme theme : ChromiteTheme.values()) {
             JRadioButtonMenuItem item = new JRadioButtonMenuItem(theme.getLabel(), theme == current);
             item.setMnemonic(theme.getLabel().charAt(0));
@@ -895,6 +977,7 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
             });
             group.add(item);
             themeMenu.add(item);
+            themeItems.add(item);
         }
         themeMenu.addSeparator();
         JMenu iconStyleMenu = new JMenu("Icon Style");
@@ -912,6 +995,17 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
             iconStyleMenu.add(item);
         }
         themeMenu.add(iconStyleMenu);
+        // Tools > Options changes the same settings
+        onMenuSelected(themeMenu, () -> {
+            ChromiteTheme theme = ChromiteTheme.getCurrent();
+            UiIconStyle iconStyle = UiIconStyle.getCurrent();
+            for (int i = 0; i < themeItems.size(); i++) {
+                themeItems.get(i).setSelected(ChromiteTheme.values()[i] == theme);
+            }
+            for (int i = 0; i < iconStyleMenu.getItemCount(); i++) {
+                iconStyleMenu.getItem(i).setSelected(UiIconStyle.values()[i] == iconStyle);
+            }
+        });
         return themeMenu;
     }
 

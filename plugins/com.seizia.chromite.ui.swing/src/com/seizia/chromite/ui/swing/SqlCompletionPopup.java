@@ -58,7 +58,7 @@ import java.util.function.Supplier;
  * <ul>
  *     <li>띄우는 때: Ctrl+Space(편집기 키와 Query > Complete), 구조 구분자 {@code .}을 입력했을 때, 그리고 설정이 켜져 있으면 글자·{@code _}를
  *     입력했을 때(기본 켬, Query > Auto-Complete While Typing). 자동으로 띄울 때는 입력이 멈춘 뒤 지연 시간({@code sqlEditor.completion.autoActivationDelay},
- *     기본 {@value #DEFAULT_ACTIVATION_DELAY}ms)이 지나야 분석을 시작한다. SWT 편집기도 같은 두 가지 자동 실행(점, 글자)이 기본으로 켜져 있다.</li>
+ *     기본 {@value #DEFAULT_ACTIVATION_DELAY}ms, Tools &gt; Options에서 바꿈)이 지나야 분석을 시작한다. SWT 편집기도 같은 두 가지 자동 실행(점, 글자)이 기본으로 켜져 있다.</li>
  *     <li>비동기: 분석은 {@link AbstractJob}에서 돌고 EDT는 기다리지 않는다. 분석 중에 문서가 바뀌면(계속 입력) 그 Job을 취소하고
  *     지연 시간 뒤 새 위치에서 다시 분석한다. 그래서 결과는 늘 마지막 입력 기준이고, 늦게 끝난 이전 결과는 요청 번호로 버린다.</li>
  *     <li>목록이 뜬 뒤 이름 글자를 더 입력하거나 지우면 다시 분석하지 않고 받은 제안을 거른다. 거르기는 엔진의 일치 규칙
@@ -78,6 +78,7 @@ import java.util.function.Supplier;
  *
  * 변경 이력:
  * - 2026-11-06 F단계: 최초 작성 (docs/chromite/swing-frontend.md "구현 현황 — F단계")
+ * - 2026-11-06 P1: 자동완성 지연 설정 접근자와 처음 쓸 때 기본값 선언(Tools &gt; Options) (docs/chromite/swing-frontend.md "P1 디자인 적용")
  */
 final class SqlCompletionPopup {
 
@@ -94,6 +95,8 @@ final class SqlCompletionPopup {
     static final int DEFAULT_ACTIVATION_DELAY = 200;
 
     private static final int MAX_VISIBLE_ROWS = 12;
+    // EDT only
+    private static boolean defaultsSet;
     private static final int MIN_WIDTH = 280;
     private static final int MAX_WIDTH = 640;
 
@@ -141,8 +144,6 @@ final class SqlCompletionPopup {
     SqlCompletionPopup(@NotNull RTextArea textArea, @NotNull Supplier<DBPDataSourceContainer> connectionSupplier) {
         this.textArea = textArea;
         this.connectionSupplier = connectionSupplier;
-        getPreferences().setDefault(PREF_AUTO_ACTIVATE_ON_LETTERS, true);
-        getPreferences().setDefault(PREF_AUTO_ACTIVATION_DELAY, DEFAULT_ACTIVATION_DELAY);
         activationTimer = new Timer(DEFAULT_ACTIVATION_DELAY, e -> start(pendingExplicit));
         activationTimer.setRepeats(false);
 
@@ -230,9 +231,32 @@ final class SqlCompletionPopup {
         PrefUtils.savePreferenceStore(preferences);
     }
 
+    /**
+     * Pause after the last keystroke before an auto-activated analysis starts, in milliseconds.
+     */
+    static int getAutoActivationDelay() {
+        return Math.max(0, getPreferences().getInt(PREF_AUTO_ACTIVATION_DELAY));
+    }
+
+    static void setAutoActivationDelay(int delay) {
+        DBPPreferenceStore preferences = getPreferences();
+        preferences.setValue(PREF_AUTO_ACTIVATION_DELAY, Math.max(0, delay));
+        PrefUtils.savePreferenceStore(preferences);
+    }
+
+    /**
+     * The bundle preferences with this popup's defaults; the defaults are declared on first use, because Tools &gt; Options
+     * may read the settings before any query window (and its popup) exists.
+     */
     @NotNull
     private static DBPPreferenceStore getPreferences() {
-        return ChromiteSwingActivator.getInstance().getPreferences();
+        DBPPreferenceStore preferences = ChromiteSwingActivator.getInstance().getPreferences();
+        if (!defaultsSet) {
+            preferences.setDefault(PREF_AUTO_ACTIVATE_ON_LETTERS, true);
+            preferences.setDefault(PREF_AUTO_ACTIVATION_DELAY, DEFAULT_ACTIVATION_DELAY);
+            defaultsSet = true;
+        }
+        return preferences;
     }
 
     private boolean isVisible() {
@@ -273,7 +297,7 @@ final class SqlCompletionPopup {
     private void schedule(boolean explicit) {
         pending = true;
         pendingExplicit = explicit;
-        activationTimer.setInitialDelay(Math.max(0, getPreferences().getInt(PREF_AUTO_ACTIVATION_DELAY)));
+        activationTimer.setInitialDelay(getAutoActivationDelay());
         activationTimer.restart();
     }
 
