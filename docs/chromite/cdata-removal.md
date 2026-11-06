@@ -86,10 +86,11 @@ CData 드라이버로 만든 연결은 `data-sources.json`에 공급자 `cdata`�
 
 ## upstream 대비 변경점
 
-- upstream의 `com.seizia.chromite.ext.cdata*` 플러그인, 피처, 테스트 플러그인이 없다.
+- upstream의 `ext.cdata*` 플러그인(upstream 이름 접두어는 DBeaver 것), 피처, 테스트 플러그인이 없다.
 - Chromite 제품에는 CData 드라이버 분류, CData 환경설정 페이지, "Show commercial drivers" 확인란이 나타나지 않는다.
 
 ## 변경 이력
 
 - 2026-11-06 CData 연동(플러그인 2개, 피처, 테스트 플러그인, 빌드·피처 참조, 쓰이지 않던 pl 메시지 키)을 제거.
   CData 사용권 조건과 dbeaver.com 의존이 이유다.
+- 2026-11-07 내부 이름 변경([internal-rename.md](internal-rename.md)) 뒤에도 upstream 플러그인 이름을 가리키도록 "upstream 대비" 문구를 고침.

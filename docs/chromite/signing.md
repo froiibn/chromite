@@ -249,13 +249,17 @@ App Sandbox는 쓰지 않는다(사용자 파일, 네트워크, 드라이버를 
 
 ## 사용자가 해야 할 일
 
-- [ ] Azure: Entra 앱에 GitHub OIDC 연합 자격 증명 추가, subject `repo:froiibn/chromite:environment:signing`.
-      `AADSTS700213 No matching federated identity record ... subject '...'` 오류가 나오면 오류에 찍힌 subject를 그대로 쓴다.
-- [ ] GitHub 저장소 Variables 6개: `AZURE_CLIENT_ID`, `AZURE_TENANT_ID`, `AZURE_SUBSCRIPTION_ID`,
+- [x] Azure: Entra 앱에 GitHub OIDC 연합 자격 증명 `github-chromite-signing-env` 추가(2026-11-07),
+      subject `repo:froiibn@101344212/chromite@1447161703:environment:signing`.
+      이 저장소는 변경 불가 OIDC subject를 쓴다(`gh api repos/froiibn/chromite/actions/oidc/customization/sub`가
+      `use_immutable_subject: true`). 그래서 subject 앞부분이 `repo:<소유자>/<저장소>`가 아니라
+      `repo:<소유자>@<소유자 ID>/<저장소>@<저장소 ID>`이고, 저장소 이름을 바꿔도 subject는 그대로다.
+      `AADSTS700213 No matching federated identity record ... subject '...'` 오류가 나오면 오류에 찍힌 subject와 위 값을 비교한다.
+- [x] GitHub 저장소 Variables 6개(2026-11-07): `AZURE_CLIENT_ID`, `AZURE_TENANT_ID`, `AZURE_SUBSCRIPTION_ID`,
       `ARTIFACT_SIGNING_ENDPOINT`, `ARTIFACT_SIGNING_ACCOUNT`, `ARTIFACT_SIGNING_PROFILE`.
-- [ ] GitHub 환경 `signing` 만들기: Deployment branches and tags를 "Selected"로 하고 브랜치 `devel`, 태그 `v*`만 허용.
-- [ ] `signing` 환경의 Environment secrets 6개: `APPLE_DEVID_P12_BASE64`, `APPLE_DEVID_P12_PASSWORD`, `APPLE_API_KEY_P8_BASE64`,
-      `APPLE_API_KEY_ID`, `APPLE_API_ISSUER_ID`, `APPLE_TEAM_ID`.
+- [x] GitHub 환경 `signing`(2026-11-07): Deployment branches and tags "Selected", 브랜치 `devel`, 태그 `v*`만 허용.
+- [ ] `signing` 환경의 Environment secrets 6개(아직 없음, Apple 계정 필요): `APPLE_DEVID_P12_BASE64`, `APPLE_DEVID_P12_PASSWORD`,
+      `APPLE_API_KEY_P8_BASE64`, `APPLE_API_KEY_ID`, `APPLE_API_ISSUER_ID`, `APPLE_TEAM_ID`.
 - [ ] Turbrix의 Developer ID·API 키를 같이 쓸지 결정.
 - [ ] 위 "미결정 사항" 답변. 그다음 `devel`에서 수동 실행으로 서명 경로를 한 번 확인(Release는 만들지 않음)하고, `v*` 태그로 첫 릴리스.
 
@@ -273,5 +277,9 @@ DBeaver는 이 저장소에 릴리스·서명 설정이 없다(별도 빌드 저
 - 2026-11-06 최초 작성. Turbrix 서명 안내서(2026-11-06)를 따라 `release.yml`(Windows: Azure Artifact Signing, macOS: Developer ID 서명·공증·staple),
   macOS 서명 스크립트, jar 안 Mach-O 처리, 권한 plist를 추가했다. 로컬 빌드로 서명 대상 목록을 확인했다.
 - 2026-11-06 Windows 아이콘 생성 스크립트 이름 변경(`gen_launcher_ico.py` → `gen_app_icons.py`)에 맞춰 링크 수정.
+- 2026-11-07 "사용자가 해야 할 일" 갱신: Azure 연합 자격 증명(변경 불가 OIDC subject), 저장소 Variables, `signing` 환경은 완료,
+  Apple 비밀 값은 남음. 내부 이름 변경([internal-rename.md](internal-rename.md))으로 `release.yml`의 SWT 제품 폴더가
+  `product/community/target/products/com.seizia.chromite.core.product`, 버전을 읽는 파일이 `product/community/Chromite.product`가 됐다.
+  이 경로들은 CI의 `tools/rename/gate.py`(G8)가 제품 uid·저장소 경로와 맞는지 검사한다.
 - 2026-11-07 내장 런타임 반영: Windows 런타임 exe·dll(제3자, 서명하지 않음), macOS 런타임 Mach-O 39개(기존 단계가 서명),
   `disable-library-validation` 이유 갱신(`entitlements.mac.plist` 주석 포함), `release.yml`의 런타임 단계, "남은 위험"의 JRE 항목.

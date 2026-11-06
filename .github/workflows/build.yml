@@ -19,6 +19,18 @@ permissions:
   contents: read
 
 jobs:
+  # Old DBeaver internal names must not come back (docs/chromite/internal-rename.md); seconds, no build needed.
+  rename-gate:
+    name: Rename gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Check names and references
+        run: python3 tools/rename/gate.py
+
   build:
     name: Build (${{ matrix.name }})
     runs-on: ${{ matrix.os }}
