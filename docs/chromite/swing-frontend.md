@@ -1688,3 +1688,5 @@ Windows 11, 화면 배율 150%, JBR 25, 작업 공간 사본 `D:\Tools\_smoke\sw
 - 2026-11-06 편집기 글꼴과 SQL 색: 편집기 글꼴 Cascadia Mono 13(번들, Options > Editor에서 변경), SSMS 구문 색, 방언 기반 단어 분류(`SqlTokenClassifier`),
   Options > Editor Colors(테마별 사용자 색), DDL 탭도 객체 연결의 방언. "편집기 글꼴과 SQL 색" 절 추가, 편집기·설정 키·P1 남긴 것 갱신.
 - 2026-11-06 화면 문구에서 다른 제품 이름 제거: 아이콘 팩 "Duo-tone"·"Full color", Options > Editor Colors의 "Reset to Defaults".
+- 2026-11-06 Registered Servers 도구 창(서버 그룹 = 연결 폴더), Object Explorer는 연 서버만 보이는 평평한 목록으로 바꿈.
+  [swing-registered-servers.md](swing-registered-servers.md).

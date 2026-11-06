@@ -56,19 +56,25 @@ import java.awt.*;
  *
  * 변경 이력:
  * - 2026-11-06 D단계: 최초 작성 (docs/chromite/swing-frontend.md "구현 현황 — D단계")
+ * - 2026-11-06 Registered Servers: 새 연결 명령이 만든 연결을 돌려준다(docs/chromite/swing-registered-servers.md)
  */
 final class ConnectionCommands {
 
     private ConnectionCommands() {
     }
 
-    static void newConnection(@Nullable Component parent, @Nullable DBPDataSourceFolder folder) {
+    /**
+     * @param folder server group of the new connection, or null for the top level
+     * @return the new connection, or null if canceled
+     */
+    @Nullable
+    static DBPDataSourceContainer newConnection(@Nullable Component parent, @Nullable DBPDataSourceFolder folder) {
         DBPProject project = DBWorkbench.getPlatform().getWorkspace().getActiveProject();
         if (project == null) {
             DBWorkbench.getPlatformUI().showError("New Connection", "There is no active project.");
-            return;
+            return null;
         }
-        ConnectionDialog.openNew(getWindow(parent), project, folder);
+        return ConnectionDialog.openNew(getWindow(parent), project, folder);
     }
 
     static void edit(@Nullable Component parent, @NotNull DBPDataSourceContainer dataSource) {
