@@ -1,0 +1,179 @@
+/*
+ * Chromite - Database Workbench
+ * Copyright (C) 2026 Chromite contributors
+ * Licensed under the Apache License, Version 2.0 (http://www.apache.org/licenses/LICENSE-2.0).
+ *
+ * The download site's only stylesheet (docs/chromite/distribution.md "Site"). Served from the same origin:
+ * the site's CSP allows style-src 'self' and font-src 'self' only, so there are no inline styles and no
+ * external fonts. Colours follow the app's design tokens (docs/chromite/design-spec.md): light #F7F8FA /
+ * #FFFFFF, dark #1E1F22 / #2B2D30, accent #3574F0. Light or dark follows the OS (prefers-color-scheme).
+ *
+ * Change history:
+ * - 2026-11-07 Created.
+ */
+@font-face {
+  font-family: "Pretendard";
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+  src: url("fonts/Pretendard-Regular.subset.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Pretendard";
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+  src: url("fonts/Pretendard-SemiBold.subset.woff2") format("woff2");
+}
+
+:root {
+  color-scheme: light dark;
+  --bg: #f7f8fa;
+  --surface: #ffffff;
+  --border: #dfe1e5;
+  --text: #1e1f22;
+  --muted: #6c707e;
+  --accent: #3574f0;
+  --accent-hover: #2c62d0;
+  --accent-text: #ffffff;
+  --code-bg: #f2f3f5;
+  --notice-bg: #fff4e5;
+  --notice-border: #f2c98b;
+  --radius: 12px;
+  --font: "Pretendard", -apple-system, BlinkMacSystemFont, "Segoe UI", "Malgun Gothic", "Apple SD Gothic Neo", system-ui, sans-serif;
+  --mono: ui-monospace, "Cascadia Mono", "SF Mono", Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #1e1f22;
+    --surface: #2b2d30;
+    --border: #43454a;
+    --text: #dfe1e5;
+    --muted: #9da0a8;
+    --accent: #3574f0;
+    --accent-hover: #4c85f5;
+    --code-bg: #1e1f22;
+    --notice-bg: #3d3223;
+    --notice-border: #7a5b2e;
+  }
+}
+
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font);
+  font-size: 16px;
+  line-height: 1.6;
+}
+a { color: var(--accent); }
+a:hover { color: var(--accent-hover); }
+.wrap { max-width: 960px; margin: 0 auto; padding: 0 20px; }
+
+/* header */
+.top { border-bottom: 1px solid var(--border); background: var(--surface); }
+.top .wrap { display: flex; align-items: center; gap: 24px; min-height: 64px; flex-wrap: wrap; }
+.brand { display: flex; align-items: center; gap: 10px; color: var(--text); text-decoration: none; font-weight: 600; font-size: 18px; }
+.brand:hover { color: var(--text); }
+.brand img { width: 32px; height: 32px; }
+.nav { display: flex; gap: 20px; margin-left: auto; flex-wrap: wrap; }
+.nav a { color: var(--muted); text-decoration: none; }
+.nav a:hover, .nav a[aria-current="page"] { color: var(--text); }
+
+/* hero */
+.hero { padding: 56px 0 24px; }
+.hero h1 { margin: 0; font-size: 40px; line-height: 1.2; font-weight: 600; }
+.hero .sub { margin: 8px 0 0; font-size: 20px; color: var(--muted); }
+.hero .lead { margin: 20px 0 0; max-width: 680px; }
+
+/* download cards */
+.downloads { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; margin: 24px 0 8px; }
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.card h2 { margin: 0; font-size: 22px; font-weight: 600; }
+.card .req { margin: 0; color: var(--muted); font-size: 14px; }
+.btn {
+  display: inline-block;
+  align-self: flex-start;
+  padding: 10px 20px;
+  border-radius: 8px;
+  background: var(--accent);
+  color: var(--accent-text);
+  text-decoration: none;
+  font-weight: 600;
+}
+.btn:hover { background: var(--accent-hover); color: var(--accent-text); }
+.facts { margin: 0; display: grid; grid-template-columns: auto 1fr; gap: 4px 16px; font-size: 14px; }
+.facts dt { color: var(--muted); }
+.facts dd { margin: 0; min-width: 0; }
+.hash { display: flex; align-items: flex-start; gap: 8px; }
+.hash code {
+  font-family: var(--mono);
+  font-size: 12px;
+  word-break: break-all;
+  background: var(--code-bg);
+  border-radius: 6px;
+  padding: 2px 6px;
+}
+.copy {
+  font: inherit;
+  font-size: 12px;
+  color: var(--muted);
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 1px 8px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.copy:hover { color: var(--text); }
+
+/* states: the script sets data-state on .downloads-area and data-ready on each card */
+.state { color: var(--muted); }
+.downloads-area .state { display: none; }
+.downloads-area[data-state="loading"] .state-loading,
+.downloads-area[data-state="error"] .state-error,
+.downloads-area[data-state="empty"] .state-empty { display: block; }
+.downloads-area:not([data-state="ready"]) .downloads { display: none; }
+.card .when-missing { display: none; color: var(--muted); }
+.card[data-ready="false"] .when-ready { display: none; }
+.card[data-ready="false"] .when-missing { display: block; }
+.notice {
+  background: var(--notice-bg);
+  border: 1px solid var(--notice-border);
+  border-radius: 8px;
+  padding: 10px 14px;
+}
+
+/* text pages */
+.page { padding: 40px 0 24px; }
+.page h1 { font-size: 32px; font-weight: 600; margin: 0 0 16px; }
+.page h2 { font-size: 22px; font-weight: 600; margin: 32px 0 8px; }
+.page section { scroll-margin-top: 16px; }
+.release h2 { display: flex; align-items: baseline; gap: 12px; }
+.release .date { font-size: 14px; color: var(--muted); font-weight: 400; }
+.info { padding: 8px 0 24px; }
+.info h2 { font-size: 22px; font-weight: 600; margin: 32px 0 8px; }
+
+.foot { border-top: 1px solid var(--border); margin-top: 48px; padding: 24px 0 40px; color: var(--muted); font-size: 14px; }
+.foot a { color: var(--muted); }
+
+/* language chooser (/index.html) */
+.choose { min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 24px; }
+.choose img { width: 72px; height: 72px; }
+.choose .langs { display: flex; gap: 16px; }
+
+@media (max-width: 600px) {
+  .hero { padding-top: 32px; }
+  .hero h1 { font-size: 32px; }
+  .nav { margin-left: 0; }
+}

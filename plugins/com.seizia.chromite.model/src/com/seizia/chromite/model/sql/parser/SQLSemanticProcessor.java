@@ -57,6 +57,14 @@ import java.util.concurrent.*;
 
 /**
  * Semantic SQL processor
+ *
+ * 설계: 결과 필터는 가능하면 원래 SELECT의 WHERE에 넣고(정렬·별칭 그대로), 열의 테이블을 확인하지 못하면 쿼리를 감싼다
+ * ({@code SQLQueryGenerator.getWrappedFilterQuery}). 열의 테이블은 드라이버 메타데이터의 테이블 이름에서 찾는다.
+ *
+ * 변경 이력:
+ * - 2026-11-07 SQL Server처럼 드라이버가 결과 열의 테이블 이름을 주지 않을 때, 쿼리에서 찾아 묶은 열({@code DBDAttributeBinding.getEntityAttribute})의
+ *   테이블로 필터를 넣음. 그전에는 늘 감싸서 {@code ORDER BY}가 있는 쿼리의 열 필터가 "ORDER BY clause is invalid in … derived tables"로 실패했다
+ *   (docs/chromite/swing-grid-column-filters.md)
  */
 public class SQLSemanticProcessor {
 
@@ -335,6 +343,13 @@ public class SQLSemanticProcessor {
 
         if (attribute instanceof DBDAttributeBinding attributeBinding) {
             attribute = attributeBinding.getMetaAttribute();
+            DBSEntityAttribute boundAttribute = attributeBinding.getEntityAttribute();
+            if (table != null && boundAttribute != null
+                && (!(attribute instanceof DBCAttributeMetaData metaData) || metaData.getEntityMetaData() == null)) {
+                // The driver gave no table for the column (SQL Server) and the binding found it from the query: the
+                // result column is that table's column only if the names match (not an alias, #6927)
+                return boundAttribute.getName().equalsIgnoreCase(co.getAttributeName());
+            }
         }
 
         if (table != null && attribute instanceof DBCAttributeMetaData attributeMetaData) {
@@ -405,6 +420,10 @@ public class SQLSemanticProcessor {
         if (ca instanceof DBDAttributeBinding binding) {
             DBCAttributeMetaData metaAttribute = binding.getMetaAttribute();
             constrTable = metaAttribute == null ? null : metaAttribute.getEntityName();
+            if (CommonUtils.isEmpty(constrTable) && binding.getEntityAttribute() != null) {
+                // Drivers like SQL Server's don't name the table of a result column; the binding found it from the query
+                constrTable = binding.getEntityAttribute().getParentObject().getName();
+            }
         } else if (ca instanceof DBSEntityAttribute entityAttribute) {
             constrTable = entityAttribute.getParentObject().getName();
         } else {

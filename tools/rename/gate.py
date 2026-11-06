@@ -25,7 +25,8 @@ copy-pasted snippet) can bring the old names back. The gates read every tracked 
   G8  paths in .github/workflows that point into the repository exist, and target/products/<id> matches a product uid
 
 Allowed places for old names: http(s) URLs to upstream, this tool, docs/chromite/internal-rename.md (the mapping),
-CLAUDE.md (the rule), NOTICE and LICENSE.md, deps/.
+CLAUDE.md (the rule), NOTICE and LICENSE.md, deps/, and the files in rules.EXCLUDE_FILES (LegacyNameMigration.java
+reads user data written under the old names).
 """
 import argparse
 import collections

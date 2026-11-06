@@ -86,20 +86,6 @@ class DataSourceConfigurationProfileQueryTest {
     }
 
     @Test
-    void skipsLegacyStoragesWithoutLoadingTheRegistry() throws Exception {
-        Files.writeString(projectFolder.resolve(DBPDataSourceRegistry.LEGACY_CONFIG_FILE_NAME), "not JSON");
-        Files.writeString(projectFolder.resolve(".chromite-data-sources-extra.xml"), "not JSON");
-        DBPProject project = Mockito.mock(DBPProject.class);
-        Mockito.when(project.getAbsolutePath()).thenReturn(projectFolder);
-        Mockito.when(project.getMetadataFolder(false)).thenReturn(projectFolder.resolve(".chromite"));
-        Mockito.when(project.getName()).thenReturn("Legacy project");
-
-        Assertions.assertFalse(DataSourceConfigurationProfileQuery.hasLocalProfile(project, "profile"));
-        Assertions.assertTrue(DataSourceConfigurationProfileQuery.findGlobalProfileConnections(project, "profile").isEmpty());
-        Mockito.verify(project, Mockito.never()).getDataSourceRegistry();
-    }
-
-    @Test
     void doesNotSkipInvalidJson() throws Exception {
         Path metadata = Files.createDirectory(projectFolder.resolve(".chromite"));
         Files.writeString(metadata.resolve(DBPDataSourceRegistry.MODERN_CONFIG_FILE_NAME), "{\"network-profiles\": ");

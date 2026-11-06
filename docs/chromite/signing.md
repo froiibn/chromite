@@ -18,6 +18,7 @@ Chromite 릴리스 파일을 GitHub Actions에서 빌드하고 서명·확인한
 | 파일 | 하는 일 |
 |---|---|
 | `.github/workflows/release.yml` | 작업 5개: `version`, `windows`, `macos-build`, `macos-sign`, `release` (아래 "흐름") |
+| `tools/installer/build-installer.ps1`, `chromite.nsi` | Windows 설치 프로그램(NSIS). 제거 프로그램을 먼저 만들어 서명한 뒤 설치 프로그램에 넣는다([distribution.md](distribution.md)) |
 | `tools/release/release-macos.sh` | macOS 단계를 하위 명령으로 모은 스크립트: `keychain-create`, `sign`, `check-signed`, `notarize`, `package`, `sign-dmg`, `verify`, `keychain-delete` |
 | `tools/release/macos_natives.py` | 앱 안의 모든 Mach-O를 찾는다(낱개 파일과 jar 안의 항목, 중첩 jar 포함). `scan`(목록, 어느 OS에서나), `sign`(서명 후 jar에 다시 넣기), `check`(모두 팀 서명인지 확인) |
 | `tools/release/entitlements.mac.plist` | 런처(JVM)의 hardened runtime 권한(entitlements) 3개 |
@@ -47,13 +48,17 @@ Chromite 릴리스 파일을 GitHub Actions에서 빌드하고 서명·확인한
 4. `azure/login@v3`(OIDC, 비밀값 없음) → `azure/artifact-signing-action@v2`로 파일마다 한 단계씩 서명
    (`file-digest: SHA256`, `timestamp-rfc3161: http://timestamp.acs.microsoft.com`, `timestamp-digest: SHA256`).
    이 액션은 기존 서명을 덧붙이지 않고 바꾼다(`append-signature` 기본값 false).
-5. 확인: 우리 런처가 `Valid`이고 타임스탬프가 있고 발급자가 Azure Artifact Signing(`Microsoft ID Verified CS ...`)인지 확인한다.
+5. 설치 프로그램([distribution.md](distribution.md)): 고정한 NSIS 3.12를 받아(SHA-256 확인) 서명한 제품 폴더로 1단계(제거 프로그램 `uninstall.exe`)를 만들고 서명,
+   2단계(`Chromite-<버전>-x64-setup.exe`, 서명한 제거 프로그램을 넣음)를 만들고 서명한다.
+6. 확인: 우리 파일 셋(런처, `uninstall.exe`, `setup.exe`)이 `Valid`이고 타임스탬프가 있고 발급자가 Azure Artifact Signing(`Microsoft ID Verified CS ...`)이고
+   서명자 주체가 정확히 게시자 문자열(아래 "게시자")인지, `setup.exe`의 `ProductVersion`·`FileVersion`이 버전인지 확인한다.
    나머지 exe·dll(제3자)에 우리 서명(같은 인증서 지문)이 없는지도 확인한다.
-6. zip: `build.yml` 결과물과 같은 구성(zip 안에 `chromite-swing/` 폴더). zip의 파일 수가 폴더와 같은지,
+7. 조용한 설치·제거 확인: `setup.exe /S /D=<임시 폴더>`가 제품 파일을 바이트 그대로 놓고 앱 목록 항목(버전, 게시자)을 쓰는지, `uninstall.exe /S`가 지우는지.
+8. zip: `build.yml` 결과물과 같은 구성(zip 안에 `chromite-swing/` 폴더). zip의 파일 수가 폴더와 같은지,
    zip 안의 런처가 서명한 파일과 바이트 단위로 같은지 확인한다.
    - 서명: `chromite-swing-<버전>-windows-x64.zip` → 결과물 `chromite-<버전>-windows-x64`
    - 서명 없음: 이름 끝에 `-UNSIGNED` → 결과물 `UNSIGNED-chromite-<버전>-windows-x64-not-for-release`(보관 3일)
-- 설치 프로그램(MSI·NSIS)은 아직 없어서 만들지 않는다. 생기면 설치 프로그램도 같은 작업에서 서명한다.
+   - 설치 프로그램 `Chromite-<버전>-x64-setup.exe`도 같은 결과물에 들어간다(서명 없음이면 `Chromite-<버전>-x64-setup-UNSIGNED.exe`).
 
 ### macOS (작업 `macos-build` → `macos-sign`)
 
@@ -80,7 +85,7 @@ Chromite 릴리스 파일을 GitHub Actions에서 빌드하고 서명·확인한
      `stapler validate`, `spctl -a -t exec -vv`가 "accepted"이고 `source=Notarized Developer ID`인지 확인한다.
      dmg는 `stapler validate`와 `spctl -a -t open --context context:primary-signature -vv`. Gatekeeper가 꺼져 있으면 켠 뒤 확인한다.
   9. `keychain-delete`(`if: always()`): 키체인과 .p12·.p8 파일을 지운다.
-  - 결과물: 서명이면 `chromite-<버전>-macos-aarch64`(`chromite-swing-<버전>-macos-aarch64.dmg`, `.zip`), 서명 없음이면 `-UNSIGNED` 이름으로
+  - 결과물: 서명이면 `chromite-<버전>-macos-aarch64`(`Chromite-<버전>-arm64.dmg`, `.zip`; zip은 업데이트 파일, [distribution.md](distribution.md)), 서명 없음이면 `-UNSIGNED` 이름으로
     `UNSIGNED-chromite-<버전>-macos-aarch64-not-for-release`(보관 3일).
 
 ### Release (작업 `release`)
@@ -106,6 +111,7 @@ SWT 제품(`chromite/chromite.exe`, `chromitec.exe`, `Chromite.app`)은 2026-11-
 | 파일 | 서명 | 이유 |
 |---|---|---|
 | `chromite-swing/chromite-swing.exe` | **서명** | Tycho(p2 BrandingIron, `IconExe`)가 Eclipse 런처에 Chromite 아이콘을 넣어 만든 파일이다([tools/branding/gen_app_icons.py](../../tools/branding/gen_app_icons.py)). 이때 원래 붙어 있던 Eclipse 서명이 깨진다(`HashMismatch`, 서명자 Eclipse.org Foundation) |
+| `uninstall.exe`, `Chromite-<버전>-x64-setup.exe` (설치 프로그램) | **서명** | Chromite 빌드가 만든 파일(NSIS 스텁 + 우리 스크립트). 업데이트 기능과 배포 스크립트가 서명자 주체를 확인한다 |
 | `chromite-swingc.exe` (콘솔 런처) | 안 함 | 이름만 바뀐 Eclipse 파일이고 Eclipse 서명이 그대로 유효하다(`Valid`, Eclipse.org Foundation) |
 | `plugins/org.eclipse.equinox.launcher.win32.win32.x86_64_*/eclipse_11924.dll` | 안 함 | Eclipse 파일, Eclipse 서명 `Valid` |
 | `plugins/com.sun.jna_*/com/sun/jna/win32-*/jnidispatch.dll` (3개) | 안 함 | JNA 파일, 서명 없음(`NotSigned`) |
@@ -139,6 +145,18 @@ jar 안(개수, `[jar 서명]`은 다시 넣을 때 jar 서명이 지워지는 j
 
 FlatLaf 라이브러리는 서명이 없거나 ad-hoc이라 이대로는 공증이 반드시 실패한다. jar 안의 Mach-O를 서명해야 하는 직접적인 근거다.
 x86_64 조각(Intel용)은 Chromite가 쓰지 않지만 공증은 앱 안의 모든 Mach-O를 검사하므로 함께 서명한다.
+
+## 게시자
+
+Windows 릴리스 파일(런처, `uninstall.exe`, `setup.exe`)의 서명자 주체는 정확히 다음 문자열이다. **바꾸지 않는다**(업데이트 기능이 이 문자열과 같은 서명만 실행한다).
+
+```
+CN=Seizia, O=Seizia, L=Cheongju-si, S=North Chungcheong, C=KR
+```
+
+- 출처: Turbrix `docs/SIGNING.md`(같은 Azure Artifact Signing 게시자 SEIZIA, Turbrix 0.3.1 설치 파일에서 확인된 값). Chromite 서명으로는 아직 확인하지 못했다.
+  `release.yml` 확인 단계가 이 문자열과 비교하므로, 다르면 첫 서명 실행이 실패한다. 그때 실제 값을 확인해 이 문서, `release.yml`, `deploy-chromite-site.ps1`, 업데이트 기능을 함께 고친다.
+- 앱 목록의 게시자 표시(`Publisher`)와 설치 프로그램의 `CompanyName`도 `Seizia`다.
 
 ## 제3자 바이너리 정책
 
@@ -292,3 +310,4 @@ DBeaver는 이 저장소에 릴리스·서명 설정이 없다(별도 빌드 저
 - 2026-11-07 SWT 프런트엔드 삭제([swt-removal.md](swt-removal.md)): `release.yml`이 Swing 제품만 빌드·서명(`chromite.exe`, `Chromite.app` 단계 삭제), 버전은 `chromite-swing.product`에서만 읽음.
 - 2026-11-07 버전 체계 결정([versioning.md](versioning.md)): `version` 작업이 `bump-version.ps1` 검사 모드로 버전을 읽고(파일 4개 일치 확인),
   태그 push는 태그가 정확히 `v<버전>`이어야 함. 미결정 사항에서 "버전 체계와 태그 이름" 삭제. SWT 삭제 뒤 남아 있던 결과물 파일 이름(zip·dmg 2개)을 Swing 하나로 고침.
+- 2026-11-07 배포([distribution.md](distribution.md)): Windows 작업이 NSIS 설치 프로그램을 2단계로 만들어 `uninstall.exe`와 `setup.exe`를 서명하고, 확인 단계가 서명자 주체(새 절 "게시자")와 버전 리소스를 확인한 뒤 조용한 설치·제거를 한 번 해 본다. macOS 결과 파일 이름을 `Chromite-<버전>-arm64.{zip,dmg}`로 바꿨다.

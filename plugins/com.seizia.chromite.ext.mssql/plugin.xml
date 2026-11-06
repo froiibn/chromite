@@ -170,6 +170,25 @@
                         <items label="%tree.login.node.name" path="logins" property="logins" icon="#user"/>
                     </folder>
                 </folder>
+                <!-- Chromite: SQL Server Agent (docs/chromite/swing-sqlserver-agent.md) -->
+                <items label="%tree.agent.node.name" path="agent" property="agent" icon="#scheduler">
+                    <folder type="com.seizia.chromite.ext.mssql.model.agent.SQLServerAgentJob" label="%tree.agentJobs.node.name" icon="#folder" description="%tree.agentJobs.node.tip">
+                        <items label="%tree.agentJob.node.name" path="agentJob" property="jobs" icon="#job"/>
+                    </folder>
+                    <items label="%tree.agentActivityMonitor.node.name" path="agentActivityMonitor" property="activityMonitors" icon="#sessions"/>
+                    <folder type="com.seizia.chromite.ext.mssql.model.agent.SQLServerAgentAlert" label="%tree.agentAlerts.node.name" icon="#folder" description="%tree.agentAlerts.node.tip">
+                        <items label="%tree.agentAlert.node.name" path="agentAlert" property="alerts" icon="#event"/>
+                    </folder>
+                    <folder type="com.seizia.chromite.ext.mssql.model.agent.SQLServerAgentOperator" label="%tree.agentOperators.node.name" icon="#folder_user" description="%tree.agentOperators.node.tip">
+                        <items label="%tree.agentOperator.node.name" path="agentOperator" property="operators" icon="#user"/>
+                    </folder>
+                    <folder type="com.seizia.chromite.ext.mssql.model.agent.SQLServerAgentProxy" label="%tree.agentProxies.node.name" icon="#folder" description="%tree.agentProxies.node.tip">
+                        <items label="%tree.agentProxy.node.name" path="agentProxy" property="proxies" icon="#user_group"/>
+                    </folder>
+                    <folder type="com.seizia.chromite.ext.mssql.model.agent.SQLServerAgentErrorLog" label="%tree.agentErrorLogs.node.name" icon="#folder_info" description="%tree.agentErrorLogs.node.tip">
+                        <items label="%tree.agentErrorLog.node.name" path="agentErrorLog" property="errorLogs" icon="#info"/>
+                    </folder>
+                </items>
                 <folder label="%tree.administer.node.name" icon="#folder_admin" id="folderAdmin"
                         description="tree.administer.node.description">
                     <treeContribution category="connectionEditor"/>

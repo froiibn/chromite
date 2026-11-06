@@ -59,6 +59,13 @@ import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
+/**
+ * Connection registry of a project.
+ *
+ * 변경 이력:
+ * - 2026-11-07 옛 XML 연결 설정({@code .chromite-data-sources*.xml}) 읽기를 지움. 내부 이름 변경(#59)으로 찾는 이름이
+ *   어떤 빌드도 쓰지 않는 이름이 됐다(docs/chromite/internal-rename.md "사용자 데이터 이전")
+ */
 public class DataSourceRegistry<T extends DataSourceDescriptor> implements DBPDataSourceRegistry,
     DataSourcePersistentRegistry, DBPDataSourceRegistryCache {
     private static final Log log = Log.getLog(DataSourceRegistry.class);
@@ -185,7 +192,7 @@ public class DataSourceRegistry<T extends DataSourceDescriptor> implements DBPDa
             try {
                 java.nio.file.Path configPath = this.getProject().getMetadataFolder(false).resolve(MODERN_CONFIG_FILE_NAME);
                 Files.createFile(configPath);
-                DBPDataSourceConfigurationStorage defaultStorage = new DataSourceFileStorage(configPath, false, true);
+                DBPDataSourceConfigurationStorage defaultStorage = new DataSourceFileStorage(configPath, true);
                 this.storages.add(defaultStorage);
                 return defaultStorage;
             } catch (IOException e) {
@@ -900,12 +907,7 @@ public class DataSourceRegistry<T extends DataSourceDescriptor> implements DBPDa
     ) {
         boolean configChanged = false;
         try {
-            DataSourceSerializer<T> serializer;
-            if (storage instanceof DataSourceFileStorage && ((DataSourceFileStorage) storage).isLegacy()) {
-                serializer = new DataSourceSerializerLegacy<>(this);
-            } else {
-                serializer = createModernSerializer();
-            }
+            DataSourceSerializer<T> serializer = createModernSerializer();
             configChanged = serializer.parseDataSources(storage, manager, parseResults, dataSourceIds);
 
             lastError = null;
@@ -935,11 +937,6 @@ public class DataSourceRegistry<T extends DataSourceDescriptor> implements DBPDa
         saveInProgress = true;
         try {
             for (DBPDataSourceConfigurationStorage storage : storages) {
-                if (storage instanceof DataSourceFileStorage fs && fs.isLegacy()) {
-                    // Legacy storage. We must save it in the modern format
-                    fs.convertToModern(project);
-                }
-
                 List<T> localDataSources = getDataSources(storage);
 
                 try {

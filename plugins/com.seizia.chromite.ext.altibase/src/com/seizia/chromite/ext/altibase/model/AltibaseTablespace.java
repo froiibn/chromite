@@ -37,12 +37,20 @@ import com.seizia.chromite.model.meta.Property;
 import com.seizia.chromite.model.runtime.DBRProgressMonitor;
 import com.seizia.chromite.model.struct.DBSObject;
 import com.seizia.chromite.model.struct.DBSObjectLazy;
+import com.seizia.chromite.model.struct.rdb.DBSTableStorageKind;
 import org.jkiss.utils.ByteNumberFormat;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Collection;
 
+/**
+ * Altibase tablespace (V$TABLESPACES).
+ *
+ * 변경 이력:
+ * - 2026-11-07 {@link TbsType#getStorageKind()} 추가: 테이블 목록이 읽은 V$TABLESPACES.TYPE을 테이블 저장 방식으로
+ *   바꾼다(docs/chromite/altibase.md)
+ */
 public class AltibaseTablespace extends AltibaseGlobalObject implements DBPRefreshableObject, DBPObjectStatistics {
 
     public enum TbsType {
@@ -74,6 +82,30 @@ public class AltibaseTablespace extends AltibaseGlobalObject implements DBPRefre
             }
             
             return UNKNOWN;
+        }
+
+        /**
+         * Storage kind of the tables in a tablespace of this type. The temporary and undo types count as disk:
+         * they are disk tablespaces, although no user table is created in them.
+         */
+        @Nullable
+        public DBSTableStorageKind getStorageKind() {
+            switch (this) {
+                case MEMORY_SYSTEM_DICTIONARY:
+                case MEMORY_SYSTEM_DATA:
+                case MEMORY_USER_DATA:
+                    return DBSTableStorageKind.MEMORY;
+                case DISK_SYSTEM_DATA:
+                case DISK_USER_DATA:
+                case DISK_SYSTEM_TEMP:
+                case DISK_USER_TEMP:
+                case DISK_SYSTEM_UNDO:
+                    return DBSTableStorageKind.DISK;
+                case VOLATILE_USER_DATA:
+                    return DBSTableStorageKind.VOLATILE;
+                default:
+                    return null;
+            }
         }
     }
     

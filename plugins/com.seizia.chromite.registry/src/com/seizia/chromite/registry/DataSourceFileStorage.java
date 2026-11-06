@@ -21,23 +21,24 @@ import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import com.seizia.chromite.model.DBPDataSourceConfigurationStorage;
 import com.seizia.chromite.model.app.DBPDataSourceRegistry;
-import com.seizia.chromite.model.app.DBPProject;
 
 import java.nio.file.Path;
 
 /**
  * DataSourceStorage
+ *
+ * 변경 이력:
+ * - 2026-11-07 옛 XML 연결 설정({@code .chromite-data-sources*.xml}) 읽기를 지움. 내부 이름 변경(#59)으로 찾는 이름이
+ *   어떤 빌드도 쓰지 않는 이름이 됐다(docs/chromite/internal-rename.md "사용자 데이터 이전")
  */
 class DataSourceFileStorage implements DBPDataSourceConfigurationStorage
 {
     private Path sourceFile;
-    private boolean isLegacy;
     private boolean isDefault;
     private String configSuffix;
 
-    DataSourceFileStorage(Path sourceFile, boolean isLegacy, boolean isDefault) {
+    DataSourceFileStorage(Path sourceFile, boolean isDefault) {
         this.sourceFile = sourceFile;
-        this.isLegacy = isLegacy;
         this.isDefault = isDefault;
 
         if (isDefault) {
@@ -61,10 +62,6 @@ class DataSourceFileStorage implements DBPDataSourceConfigurationStorage
     @Override
     public String getStorageName() {
         return sourceFile.getFileName().toString();
-    }
-
-    public boolean isLegacy() {
-        return isLegacy;
     }
 
     @Override
@@ -93,11 +90,6 @@ class DataSourceFileStorage implements DBPDataSourceConfigurationStorage
 
     public Path getSourceFile() {
         return sourceFile;
-    }
-
-    void convertToModern(DBPProject project) {
-        this.sourceFile = project.getMetadataFolder(true).resolve(DBPDataSourceRegistry.MODERN_CONFIG_FILE_NAME);
-        this.isLegacy = false;
     }
 
     @Override

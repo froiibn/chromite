@@ -20,7 +20,7 @@ import org.eclipse.osgi.util.NLS;
 
 /**
  * Texts of the SQL editor area: query window, execution plan, results grid and its value panel, record view,
- * filter bar, Copy As, CSV/Excel export, query history, bind parameters and SQL templates.
+ * Copy As, CSV/Excel export, query history, bind parameters and SQL templates.
  *
  * 설계: DBeaver의 {@code *Messages}(예: {@code SQLEditorMessages})와 같이 {@link NLS} 필드와 같은 이름의 properties 파일을 쓴다.
  * 영어가 기본({@code EditorMessages.properties}), 한국어는 {@code EditorMessages_ko.properties}이고 언어는 OS(플랫폼 NL)를 따른다.
@@ -30,6 +30,10 @@ import org.eclipse.osgi.util.NLS;
  *
  * 변경 이력:
  * - 2026-11-06 최초 작성: 편집기 영역 화면 문구를 옮김(OS 언어를 따름)
+ * - 2026-11-07 쿼리 창 도구 막대 삭제로 쓰지 않게 된 {@code editor_sql_cancel} 삭제. 실행·중지·계획 단추의 도구 설명은
+ *   메인 창 SQL Editor 도구 막대가 씀 (docs/chromite/swing-frontend.md "SQL Editor 도구 막대")
+ * - 2026-11-07 쿼리 상태 줄의 커밋 방식 칸 문구({@code editor_status_auto_commit} 등) (docs/chromite/swing-frontend.md "자동 커밋 상태")
+ * - 2026-11-07 결과 필터 줄(ResultSetFilterBar)을 없애며 그 문구를 지움. 열 필터 문구는 {@link GridFilterMessages}
  */
 public class EditorMessages extends NLS {
     private static final String BUNDLE_NAME = "com.seizia.chromite.ui.swing.internal.EditorMessages"; //$NON-NLS-1$
@@ -53,7 +57,6 @@ public class EditorMessages extends NLS {
     public static String editor_sql_actual_plan;
     public static String editor_sql_actual_plan_tip;
     public static String editor_sql_execute_tip;
-    public static String editor_sql_cancel;
     public static String editor_sql_cancel_tip;
     public static String editor_sql_estimated_plan;
     public static String editor_sql_estimated_plan_tip;
@@ -195,6 +198,12 @@ public class EditorMessages extends NLS {
     public static String editor_status_rows;
     public static String editor_status_caret;
     public static String editor_status_caret_tip;
+    public static String editor_status_auto_commit;
+    public static String editor_status_auto_commit_tip;
+    public static String editor_status_manual_commit;
+    public static String editor_status_manual_commit_tip;
+    public static String editor_status_commit_setting_tip;
+    public static String editor_status_commit_default_differs;
 
     // Results (QueryResultsView)
     public static String editor_results_none;
@@ -328,13 +337,6 @@ public class EditorMessages extends NLS {
     public static String editor_record_no_rows;
     public static String editor_record_position;
     public static String editor_record_type;
-
-    // Filter bar (ResultSetFilterBar)
-    public static String editor_filter_hint;
-    public static String editor_filter_apply;
-    public static String editor_filter_apply_tip;
-    public static String editor_filter_clear_tip;
-    public static String editor_filter_not_available;
 
     // Aggregates (ResultSetAggregates)
     public static String editor_aggregate_count;

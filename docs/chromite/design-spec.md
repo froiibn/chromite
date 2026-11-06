@@ -70,9 +70,9 @@ Swing 프런트엔드(`com.seizia.chromite.ui.swing`)의 화면을 **배치와 �
 
 | 요소 | SSMS | DataGrip New UI | 현재 Chromite | 목표 | 우선 |
 |---|---|---|---|---|---|
-| 구성 | 표준 도구 막대: **New Query**(아이콘 + 글자), 파일 열기·저장 아이콘 등. 아래에 SQL Editor 도구 막대 | 주 도구 막대(프로젝트·실행 위젯) | 글자 단추 4개 `New Connection…`, `New Query`, `Open File…`, `Save` [C] `MainFrame.java:335-344` | SSMS Standard 구성(2026-11-06 사용자 결정으로 확장): [New Query(아이콘 + 글자)] [새 연결] │ [열기] [저장] [모두 저장] │ [실행 취소] [다시 실행] │ [작업 모니터] │ [등록된 서버] [개체 탐색기] [쿼리 라이브러리] [속성](도구 창 켜고 끄기, 보이면 눌림) │ [찾기]. 글자는 New Query만 보이고 나머지는 아이콘 + 도구 설명(메뉴와 같은 단축키). 좁은 창에서는 넘치는 단추를 오른쪽 끝 » 메뉴로 | P0 |
+| 구성 | 표준 도구 막대: **New Query**(아이콘 + 글자), 파일 열기·저장 아이콘 등. 아래에 SQL Editor 도구 막대 | 주 도구 막대(프로젝트·실행 위젯) | 글자 단추 4개 `New Connection…`, `New Query`, `Open File…`, `Save` [C] `MainFrame.java:335-344` | SSMS Standard 구성(2026-11-06 사용자 결정으로 확장): [New Query(아이콘 + 글자)] [새 연결] │ [열기] [저장] [모두 저장] │ [실행 취소] [다시 실행] │ [작업 모니터] │ [등록된 서버] [개체 탐색기] [쿼리 라이브러리] [속성](도구 창 켜고 끄기, 보이면 눌림) │ [찾기]. 글자는 New Query만 보이고 나머지는 아이콘 + 도구 설명(메뉴와 같은 단축키). 좁은 창에서는 넘치는 단추를 오른쪽 끝 » 메뉴로. 그 아래 둘째 줄에 SQL Editor 도구 막대(7절, 2026-11-07 사용자 결정) | P0 |
 | 단추 모양 | — | 아이콘 16, 누를 수 있는 영역 ≈26×26, 마우스를 올리면 L `#00000012` / D `#FFFFFF16` 바탕, 누르면 L `#0000001D` / D `#FFFFFF26`, 모서리 arc ≈6 [T `ActionButton.*`][S] | FlatLaf 도구 막대 단추(글자, 여백 3) | `size.actionButton` 26, 아이콘 `size.icon` 16, 바탕 `bg.actionHover`/`bg.actionPressed`, arc 6, 단추 사이 2, 묶음 사이 구분선(높이 16, `border.subtle`) | P0 |
-| 높이 | — | 40 [J] | ≈30 [S] | 36(제목 표시줄 40과 합쳐 SSMS의 두 줄 구성을 유지하되 높이를 줄임) | P1 |
+| 높이 | — | 40 [J] | ≈30 [S] | 36(제목 표시줄 40과 합쳐 SSMS의 두 줄 구성을 유지하되 높이를 줄임). 2026-11-07부터 도구 막대도 두 줄(Standard, SQL Editor)이고 둘 다 밀도 B 32 | P1 |
 
 ### 3. 도구 창 머리말 (Object Explorer, Properties)
 
@@ -126,16 +126,16 @@ Swing 프런트엔드(`com.seizia.chromite.ui.swing`)의 화면을 **배치와 �
 | 같은 이름 강조 | — | L `#EDEBFC` / D `#373B39` [E `IDENTIFIER_UNDER_CARET_ATTRIBUTES`] | L `#D4D4D4` / D `#3B514D` [C] | `editor.identifierUnderCaret` | P1 |
 | 구문 색 | 키워드 파랑, 함수 자홍, 문자열 빨강, 주석 초록 | 아래 "SQL 구문 색" 표 [E] | 다크는 DataGrip 값, 라이트는 SSMS 값 [C] `SqlEditorLight.xml` | SSMS 색(2026-11-06 사용자 결정), 아래 표 | P0(라이트) |
 
-### 7. 쿼리 창 도구 막대
+### 7. SQL Editor 도구 막대 (쿼리 창 도구 막대)
 
 | 요소 | SSMS | DataGrip New UI | 현재 Chromite | 목표 | 우선 |
 |---|---|---|---|---|---|
-| 위치 | 주 창의 SQL Editor 도구 막대(활성 쿼리 창에 적용) | 콘솔마다 편집기 위 도구 막대 | 편집기마다 위 도구 막대 [C] | 편집기마다 유지(연결·DB가 창마다 다르므로 보이는 곳에 둠. "결정" 참고) | — |
+| 위치 | 주 창의 SQL Editor 도구 막대(활성 쿼리 창에 적용) | 콘솔마다 편집기 위 도구 막대 | 메인 창 둘째 줄의 SQL Editor 도구 막대(2026-11-07) [C] `SqlEditorToolBar` | **SSMS처럼 메인 창 둘째 줄 하나**(2026-11-07 사용자 결정, "결정" 참고). 활성 쿼리 창을 따르고(탭을 바꾸면 연결·DB 콤보와 단추 상태가 바뀜), 쿼리 창이 아니거나 문서가 없으면 보인 채 모두 꺼짐 | 완료 |
 | 순서 | [DB 목록 ▾] [▶ Execute] [■] [✓ Parse] … [M] | [▶] [기록] [설정] … [Tx: Auto ▾] [■] … [스키마 ▾](오른쪽) [S] | [Execute] [Cancel] │ [연결 ▾] │ [스키마 ▾] [C] `SqlEditorPanel.java:380-426` | [▶ Execute] [■] │ [예상 계획] [실제 계획] │ [연결 ▾] │ [DB/스키마 ▾] │ [주석 처리] [주석 처리 제거] │ [내어쓰기] [들여쓰기] │ [SQL 서식 지정] │ [쿼리 기록]. SSMS처럼 Execute는 글자를 보이고, 중지는 아이콘만. 좁으면 콤보가 먼저 줄고(최소 100·100) 넘치는 단추는 » 메뉴로 | P0 |
 | Execute 단추 | 초록 삼각형 + "Execute"(F5) | 실행 아이콘: L 선 `#208A3C` 채움 `#F2FCF3` / D 선 `#57965C` 채움 `#253627` [I `expui/run/run`] | 글자만 `Execute` [C] | 아이콘 `action.run`(초록) + 글자 `Execute`, 도구 설명 "Execute (F5)" | P0 |
 | 중지 단추 | 빨간 사각형(실행 중에만 켜짐) | L 선 `#DB3B4B` 채움 `#FFF7F7` / D 선 `#DB5C5C` 채움 `#5E3838` [I `expui/run/stop`] | 글자 `Cancel` [C] | 아이콘 `action.stop`만, 실행 중에만 켜짐(비활성은 `text.disabled`색) | P0 |
 | 콤보 | Available Databases ▾ | 높이 28, arc 8, 테두리 L `#C9CCD6` / D `#4E5157`, 안쪽 여백 1,9,1,6, 화살표 영역 28 [T `ComboBox.*`, `Component.arrowAreaWidth`] | FlatLaf 기본(arc 5) [F] | `size.control` 28, arc 8, 연결 콤보에 공급자 아이콘 16, DB/스키마 콤보에 스키마 아이콘 16 | P0 |
-| 높이 | — | ≈36 [S] | ≈32 [S] | `size.toolbar.editor` 36, 아래 1px `border.subtle` | P1 |
+| 높이 | — | ≈36 [S] | 32(밀도 B) [S] | `size.toolbar.editor` 32(콤보 28 + 위아래 2). 메인 창 캔버스 위에 주 도구 막대와 같은 모양(투명, 구분선 없음) | P1 |
 
 ### 8. 결과(Results) / 메시지(Messages)
 
@@ -146,7 +146,7 @@ Swing 프런트엔드(`com.seizia.chromite.ui.swing`)의 화면을 **배치와 �
 | 그리드 바탕 | 흰색(다크: 어두움) | 편집기 바탕(L `#FFFFFF` / D `#1E1F22`) [S][E] | L `#FFFFFF` / D `#36383A` [S] | `bg.editor` | P0 |
 | 행 높이 | ≈20 | ≈27 [S](편집기 글꼴 13 + 위아래 여백) | 20(FlatLaf `Table.rowHeight`) [F] | `size.row.grid` 27 | P0 |
 | 글꼴 | 비례 글꼴(설정 가능) | 편집기 글꼴(JetBrains Mono 13) [S] | `font.ui`(Segoe UI 12) | `font.grid` = `font.ui` Pretendard 12(2026-11-07 사용자 요청, "적용 현황 — 그리드 글꼴 Pretendard". 그전 목표는 `font.code`). 설정으로 바꿀 수 있게는 P2 | P0 |
-| 머리글 | 이름 왼쪽 정렬 [M 결과 캡처] | 높이 ≈28, 바탕 = 그리드 바탕, 열 종류 아이콘 16(키 표시 포함) + 이름(왼쪽 정렬), 마우스 올리면 필터·정렬 아이콘 [S] | 높이 25, 이름 가운데 정렬, 아이콘 없음 [F][S] | `size.header.grid` 28, 왼쪽 정렬(숫자 열도 머리글은 왼쪽), 열 아이콘(PK/FK 배지 포함), 아래 1px `grid.line` | P0 |
+| 머리글 | 이름 왼쪽 정렬 [M 결과 캡처] | 높이 ≈28, 바탕 = 그리드 바탕, 열 종류 아이콘 16(키 표시 포함) + 이름(왼쪽 정렬), 마우스 올리면 필터·정렬 아이콘 [S] | 높이 25, 이름 가운데 정렬, 아이콘 없음 [F][S] | `size.header.grid` 28, 왼쪽 정렬(숫자 열도 머리글은 왼쪽), 열 아이콘(PK/FK 배지 포함), 아래 1px `grid.line`. 2026-11-07 사용자 요청 10과 사용자 캡처(DataGrip, 아이콘이 늘 보임)로 바꿈: 열 아이콘 16 + 이름 + 오른쪽 끝에 필터(깔때기)·정렬 아이콘(각 `size.gridHeader.action` 16, 늘 보이는 흐린 `text.secondary`, 필터·정렬이 있으면 `accent`), 결과 위 WHERE 필터 줄은 없앰("적용 현황 — 열 필터", [swing-grid-column-filters.md](swing-grid-column-filters.md)) | P0 |
 | 격자선 | 세로·가로 옅은 선 | 세로선이 가로선보다 조금 진함 [S] | FlatLaf 기본(표시 안 함) | 세로선 `grid.line`, 가로선 `grid.lineSubtle` 둘 다 표시 | P0 |
 | 줄무늬 | 없음 | 없음(기본) [S] | 없음 | 없음 | — |
 | 행 번호 열 | 맨 왼쪽 열, 왼쪽 정렬 [M] | 바탕 = 그리드 바탕, 글자 `text.secondary`, 폭 ≈40 [S] | 머리글 바탕, 오른쪽 정렬 [C] `ResultSetGrid.java:194-205` | 바탕 `bg.editor`, 글자 `text.secondary`, 왼쪽 여백 8, 오른쪽 1px `grid.line` | P1 |
@@ -159,7 +159,7 @@ Swing 프런트엔드(`com.seizia.chromite.ui.swing`)의 화면을 **배치와 �
 
 | 요소 | SSMS | DataGrip New UI | 현재 Chromite | 목표 | 우선 |
 |---|---|---|---|---|---|
-| 쿼리 상태 줄 | 쿼리 창 맨 아래: 상태 아이콘 + "Query executed successfully." │ 서버(버전) │ 사용자(spid) │ DB │ 00:00:00 │ N rows. 연결별 색 지정 가능 [M] | — | 편집기와 결과 사이: 상태, 경과 시간, 행 수 [C] `SqlEditorPanel.java:447-463` | SSMS 내용(서버, 사용자, DB 추가) + 상태 아이콘 16(`msg.*`), 위치는 결과 아래(쿼리 창 맨 아래). 높이 28, 바탕 `bg.chrome`, 위 1px `border.subtle`. 연결 색은 P2 | P1 |
+| 쿼리 상태 줄 | 쿼리 창 맨 아래: 상태 아이콘 + "Query executed successfully." │ 서버(버전) │ 사용자(spid) │ DB │ 00:00:00 │ N rows. 연결별 색 지정 가능 [M] | — | 편집기와 결과 사이: 상태, 경과 시간, 행 수 [C] `SqlEditorPanel.java:447-463` | SSMS 내용(서버, 사용자, DB 추가) + 상태 아이콘 16(`msg.*`), 위치는 결과 아래(쿼리 창 맨 아래). 높이 28, 바탕 `bg.chrome`, 위 1px `border.subtle`. 연결 색은 P2. 2026-11-07 커밋 방식 칸 추가(사용자 요청): DB 뒤에 점(`size.statusDot`, 자동 `status.success` / 수동 `status.error`) + 글자, 누르면 연결 설정의 Auto-commit으로 안내만 함([swing-frontend.md](swing-frontend.md) "자동 커밋 상태") | P1 |
 | 주 상태 표시줄 | 왼쪽 "Ready", 오른쪽 Ln/Col/Ch/INS [M] | 위젯 글자 L `#6C707E` / D `#9DA0A8`, 마우스 올림 바탕 [T `StatusBar.Widget.*`] | 왼쪽 `N connections in workspace`만 [C] | 왼쪽 상태 문구, 오른쪽 `Ln, Col` │ 인코딩 │ 줄바꿈. 글자 `text.secondary`, 높이 28 | P1 |
 
 ### 10. Properties 창
@@ -270,6 +270,7 @@ IntelliJ 전용 키와 FlatLaf 키의 차이를 줄이기 위해서다(설계 �
 | `tab.hover` | 탭 마우스 올림 | `#EBECF0` | `#43454A` | `TabbedPane.hoverColor`(L Gray12, D Gray4) | `TabbedPane.hoverColor` |
 | `grid.line` | 그리드 세로선, 머리글 아래 선 | `#EBECF0` | `#393B40` | `Table.gridColor`(L Gray12), 다크는 [S] 비율로 Gray3 | `Table.gridColor`, `TableHeader.separatorColor`, `TableHeader.bottomSeparatorColor` |
 | `grid.lineSubtle` | 그리드 가로선 | `#F7F8FA` | `#2B2D30` | [S] 가로선이 세로선보다 옅음 | `Chromite.Table.horizontalLineColor` |
+| `grid.headerIcon` / `grid.headerIconActive` | 그리드 머리글의 필터·정렬 아이콘(평소 / 필터·정렬 있음) | = `text.secondary` / = `accent` | = `text.secondary` / = `accent` | [S] 사용자 캡처: 늘 보이는 흐린 깔때기·정렬 아이콘(2026-11-07) | `Chromite.Table.headerIconForeground`(`$Chromite.secondaryForeground`), `Chromite.Table.headerIconActiveForeground`(`@accentColor`) |
 | `tooltip.bg` / `tooltip.fg` | 도구 설명 | `#27282E` / `#FFFFFF` | `#393B40` / `#F0F1F2` | `ToolTip.background`/`foreground` | `ToolTip.background`, `ToolTip.foreground` |
 | `status.success` | 연결됨 점, 성공 | `#208A3C` | `#5FAD65` | 팔레트 L Green4, D Green7, 실행 아이콘 [I] | `Chromite.status.success` |
 | `status.warning` | 경고, 연결 중 | `#A46704`(글자) / `#FFAF0F`(아이콘) | `#BA9752`(글자) / `#F2C55C`(아이콘) | `Label.warningForeground`(L Yellow1, D Yellow5), 팔레트 L Yellow4, D Yellow7 | `Chromite.status.warning`, `Component.warning.focusedBorderColor` |
@@ -342,7 +343,7 @@ FlatLaf 키와, Chromite 컴포넌트가 `UiSizes`로 읽는 `Chromite.size.*` �
 | `size.tabUnderline` | 4 (탭) / 3 (결과 탭) | [T `EditorTabs.underlineHeight`][J] | `TabbedPane.tabSelectionHeight`, `TabbedPane.tabSelectionArc = 4` |
 | `size.titleBar` | 40 | [J] 주 도구 막대 40 | `TitlePane.buttonSize = 46,40` |
 | `size.toolbar.main` | 32 (36) | Chromite 결정(SSMS 두 줄 유지) | `Chromite.size.mainToolBar.padding = 4,8,4,8` |
-| `size.toolbar.editor` | 32 (36) | [S] ≈36 | `Chromite.size.editorToolBar.padding = 2,8,2,8`(콤보 28 + 4; 쿼리 창, 테이블 디자이너) |
+| `size.toolbar.editor` | 32 (36) | [S] ≈36 | `Chromite.size.editorToolBar.padding = 2,8,2,8`(콤보 28 + 4; 메인 창 둘째 줄 SQL Editor 도구 막대, 테이블 디자이너) |
 | `size.statusBar` | 26 (28) | ≈ | `Chromite.size.statusBar.height` |
 | `size.statusLine.query` | 26 (28) (+ 위 선 1) | Chromite 결정 | `Chromite.size.queryStatusLine.height`. 칸의 위아래 여백은 글자 줄 높이로 계산한다(칸이 줄보다 높아지지 않게) |
 | `size.control` | 28 | [T `Button.minimumSize` 72,28, `TextField.minimumSize`, `ComboBox.minimumSize`] | 글자 줄 15(12px) + 위 6·아래 5 + 테두리 2: `@componentMargin = 6,8,5,8`(입력·콤보·스피너), `Button.margin = 6,14,5,14`. 13px일 때는 글자 줄 17 + 위 5·아래 4 |
@@ -355,7 +356,8 @@ FlatLaf 키와, Chromite 컴포넌트가 `UiSizes`로 읽는 `Chromite.size.*` �
 | `size.badge` | 8 | 아이콘 지침 "6~9px" | 겹침 배지 |
 | `size.indent.tree` | 17 (19) | [S] | `Tree.leftChildIndent = 6`, `Tree.rightChildIndent = 11` |
 | `size.gap.treeIcon` | 4 (6) | 시안 B | 트리 아이콘–글자 간격 `Chromite.size.tree.iconTextGap`. 보조 글자 앞과 연결 색 알약 앞뒤는 `Chromite.size.tree.secondaryGap` 6(알약 사양 그대로) |
-| `size.padding.filterBar`, `size.padding.viewerStatus` | 2,4,2,4 / 1,6,1,6 | 시안 B(그대로, C에서 줄임) | `Chromite.size.filterBar.padding`, `Chromite.size.viewerStatus.padding` |
+| `size.padding.viewerStatus` | 1,6,1,6 | 시안 B(그대로, C에서 줄임) | `Chromite.size.viewerStatus.padding`. 필터 막대 여백 `size.padding.filterBar`(2,4,2,4)는 2026-11-07 필터 막대와 함께 지움 |
+| `size.gridHeader.action`, `size.gridHeader.gap` | 16 / 4 | 아이콘 16, 아이콘–글자 간격(`size.gap.treeIcon`과 같은 4) | 결과 그리드 머리글의 필터·정렬 아이콘 칸(각 16×16), 열 아이콘–이름·이름–필터 아이콘 간격. `Chromite.size.gridHeader.action`, `Chromite.size.gridHeader.gap` |
 | `size.scrollbar` | 11 (막대 7) | [S] | `ScrollBar.width = 11`, `ScrollBar.thumbInsets = 2,2,2,2`, `ScrollBar.thumbArc = 999` |
 | `size.divider` | 끄는 영역 5, 선 1 | [T `OnePixelDivider`] | `SplitPane.dividerSize = 5`, `SplitPaneDivider.style = plain` + 1px 선 |
 | `size.focusWidth` | 2 (테두리 1 + 안쪽 1) | [T] | `Component.focusWidth = 0`, `Component.innerFocusWidth = 1`, `Component.borderWidth = 1` |
@@ -391,7 +393,7 @@ FlatLaf 키와, Chromite 컴포넌트가 `UiSizes`로 읽는 `Chromite.size.*` �
 | `font.ui.small` | Pretendard 10 | 팝업 안내 줄, 배지 | 스타일 클래스 `small`: FlatLaf 기본 `small.font = -2`(`font.ui` − 2px; 13일 때 11로 측정. 이전에 적은 "−1px로 맞춤"은 구현과 달랐다) |
 | `font.title` | Pretendard 15 semibold | 대화상자 머리말, 시작 탭 제목 | 스타일 클래스 `h3`: FlatLaf 기본 `h3.font = +3 $semibold.font`(`font.ui` + 3px; 13일 때 16) |
 | `font.grid` | Pretendard 12(= `font.ui`) | 결과 그리드 칸·행 번호, 레코드 보기, 테이블 디자이너 표 | `Table.font`(FlatLaf 기본 = `defaultFont`). 2026-11-07 사용자 요청으로 `font.code`에서 바꿈("적용 현황 — 그리드 글꼴 Pretendard") |
-| `font.code` | JetBrains Mono 12, 줄 간격 1.2 | 메시지, 필터 막대, 값 패널, 오류 상세, DDL·스크립트 미리 보기 | `monospaced.font`(크기를 적지 않아 `defaultFont` 크기를 따른다: 2026-11-07 12), 스타일 클래스 `monospaced` |
+| `font.code` | JetBrains Mono 12, 줄 간격 1.2 | 메시지, 값 패널, 오류 상세, DDL·스크립트 미리 보기(필터 막대는 2026-11-07 없앰) | `monospaced.font`(크기를 적지 않아 `defaultFont` 크기를 따른다: 2026-11-07 12), 스타일 클래스 `monospaced` |
 | `font.editor` | Cascadia Mono 13(Options에서 바꿀 수 있음) | SQL 편집기, 줄 번호, DDL 탭 | `EditorFont`(2026-11-06, "편집기 글꼴과 SQL 색") |
 
 Pretendard(1.3.9, 번들 `fonts/pretendard`), Inter, JetBrains Mono는 SIL Open Font License 1.1이다. FlatLaf가 Inter와 JetBrains Mono를 별도 jar(`flatlaf-fonts-inter`, `flatlaf-fonts-jetbrains-mono`)로 낸다.
@@ -568,6 +570,7 @@ P0 전체와 P1 일부를 `com.seizia.chromite.ui.swing`에 적용했다. 동작
 | `Chromite.secondaryForeground`, 메뉴 단축키 | `#73767C` | `#73767C` | `text-secondary` |
 | `@selectionBackground` / `@selectionInactiveBackground` | `#D0DFFE` / `#E9EAEE` | `#2A4371` / `#33353B` | `selectionBackground` = `selection-bg-active`, `selection-bg-inactive` |
 | `Chromite.Tree.hoverBackground` | `#00000008` | `#FFFFFF10` | `Tree.hoverBackground` = `selection-bg-hovered` |
+| `Chromite.Tree.storageMemoryForeground` / `storageDiskForeground` / `storageVolatileForeground` | `#B3261E` / `#1A4FB0` / `#8F4F00` | `#FF9999` / `#94B8FF` / `#F0A858` | Chromite 결정: Object Explorer 테이블 저장 방식 글자색, 바탕·선택 바탕에서 4.5:1 이상([altibase.md](altibase.md)) |
 | `@accentColor`, 포커스, 기본 단추 | `#3871E1` | `#3871E1` | `control-brand-border`, `accent-brand-bg` |
 | `Component.borderColor` | `#D1D3D9` | `#40434A` | `control-border` |
 | `Separator.foreground`, `Chromite.dividerColor`, 탭 줄 아래 선, 그리드 세로선 | `#E9EAEE` | `#26282C` | `dialog-border`, `editor-border`, `Table.gridColor` |
@@ -634,7 +637,7 @@ P0 전체와 P1 일부를 `com.seizia.chromite.ui.swing`에 적용했다. 동작
 | 8 | 도구 창 머리말 | 40 + 1px 선, semibold, 아이콘 단추 | 40(+1, 61px), semibold 제목 왼쪽 12, 숨기기(—) 아이콘. Object Explorer는 머리말 아래 32 도구 막대(New Connection, Connect, Disconnect │ Filter, Refresh │ Collapse All) | 완료 |
 | 9 | 주 도구 막대 | 아이콘 16/26, hover 바탕, New Query만 글자 | 단추 26, 막대 36, hover `#00000012` / `#FFFFFF16`. 2026-11-06 SSMS Standard 배치로 확장(단추 15개, 넘침 메뉴, [swing-frontend.md](swing-frontend.md) "도구 막대") | 완료 |
 | 10 | 편집기 탭 | 40, 탭 줄 = 편집기 바탕, 밑줄 4 arc 4, 아이콘 16 | 40(60px), 탭 줄 `#FFFFFF` / `#1E1F22`, 밑줄 4(포커스 `#3574F0`, 아니면 `#A8ADBD`/`#5A5D63`), 아이콘: 저장한 파일은 SQL 파일, 새 쿼리는 공급자 로고 | 완료 |
-| 11 | 쿼리 도구 막대 | ▶ Execute(초록 + 글자), ■ 아이콘, 콤보 28 arc 8 + 공급자 아이콘 | 콤보 28(42px), 막대 36. 2026-11-06 주석·들여쓰기·서식·쿼리 기록 단추 추가(높이 그대로) | 완료 |
+| 11 | 쿼리 도구 막대 | ▶ Execute(초록 + 글자), ■ 아이콘, 콤보 28 arc 8 + 공급자 아이콘 | 콤보 28(42px), 막대 36. 2026-11-06 주석·들여쓰기·서식·쿼리 기록 단추 추가(높이 그대로). 2026-11-07 메인 창 둘째 줄의 SQL Editor 도구 막대로 옮김(사용자 결정) | 완료 |
 | 12 | 라이트 SQL 색 | DataGrip Light | "SQL 구문 색" 표 그대로, 줄 번호 `#AEB3C2`/`#767A8A`, 현재 줄 `#F5F8FE`, 선택 `#A6D2FF` | 완료. 오류 표시는 글자색 밑줄(아래 "못 한 것") |
 | 13 | 결과 그리드 | 편집기 바탕, 행 27, 머리글 28 왼쪽 정렬, 세로·가로 격자선, 옅은 선택 | 행 27(40.5px), 머리글 28(41px), 세로선 `#EBECF0`/`#393B40`, 가로선 `#F7F8FA`/`#2B2D30`, 선택 `#D4E2FF`/`#2E436E`, 편집기 글꼴 | 완료. 머리글 열 아이콘은 못 함 |
 | 14 | 분할선 | 1px, 손잡이 없음 | 1px `#EBECF0`/`#393B40`, 끄는 영역 5 | 완료 |
@@ -672,7 +675,7 @@ P0 전체와 P1 일부를 `com.seizia.chromite.ui.swing`에 적용했다. 동작
 - 두 팩을 넣고 View > Theme > Icon Style에서 고른다(실행 중 바로 바뀌고 저장됨, 설정 키 `ui.iconStyle`).
   - **A "Duo-tone"(기본, DataGrip풍)**: 1px 윤곽 + 옅은 채움, 중립 회색, 폴더·DB·루틴·외래 키는 파랑, 기본 키는 주황.
   - **B "Full color"(SSMS풍)**: Visual Studio 이미지 라이브러리풍 진한 색(갈색 폴더, 파란 원통, 금·은 키).
-- 파일: `plugins/com.seizia.chromite.ui.swing/icons/ui/{duotone,color}/{light,dark}/<id>.svg` 74개씩(P1에서 Properties 도구 막대의 `categorized`, `sort-alpha`, Registered Servers 도구 막대의 `new-group`, SQL 편집기 확장에서 실행 계획 `plan`·쿼리 기록 `history`, Query Library에서 `library`·`library-query`·`new-folder`·`schedule`, ER 다이어그램에서 `diagram`·`zoom-in`·`zoom-out`·`zoom-fit`·`layout`, 도구 막대 확장에서 `save-all`·`undo`·`redo`·`activity-monitor`·`registered-servers`·`object-explorer`·`properties`·`comment`·`uncomment`·`indent`·`outdent`·`format`·`overflow` 추가(찾기·쿼리 라이브러리·쿼리 기록은 기존 `search`·`library`·`history`를 씀), [swing-sql-editor-plus.md](swing-sql-editor-plus.md), [swing-query-library.md](swing-query-library.md), [swing-erd.md](swing-erd.md), [swing-frontend.md](swing-frontend.md) "도구 막대"). 생성기 `tools/branding/gen_ui_icons.py`(Python 표준 라이브러리만, 다시 만드는 방법은 파일 머리말).
+- 파일: `plugins/com.seizia.chromite.ui.swing/icons/ui/{duotone,color}/{light,dark}/<id>.svg` 92개씩(P1에서 Properties 도구 막대의 `categorized`, `sort-alpha`, Registered Servers 도구 막대의 `new-group`, SQL 편집기 확장에서 실행 계획 `plan`·쿼리 기록 `history`, Query Library에서 `library`·`library-query`·`new-folder`·`schedule`, ER 다이어그램에서 `diagram`·`zoom-in`·`zoom-out`·`zoom-fit`·`layout`, 도구 막대 확장에서 `save-all`·`undo`·`redo`·`activity-monitor`·`registered-servers`·`object-explorer`·`properties`·`comment`·`uncomment`·`indent`·`outdent`·`format`·`overflow`, 실행 계획 세 보기에서 연산자 `plan-*` 17개와 `copy` 추가(찾기·쿼리 라이브러리·쿼리 기록은 기존 `search`·`library`·`history`를 씀), [swing-sql-editor-plus.md](swing-sql-editor-plus.md), [swing-query-library.md](swing-query-library.md), [swing-erd.md](swing-erd.md), [swing-frontend.md](swing-frontend.md) "도구 막대"). 생성기 `tools/branding/gen_ui_icons.py`(Python 표준 라이브러리만, 다시 만드는 방법은 파일 머리말).
   사용자가 고른 38개(색 토큰은 생성기의 `PAL`)에 도구 창·편집기용 9개(`new-connection`, `connect`, `disconnect`, `collapse-all`, `hide`, `close`, `results`, `messages`, `file-sql`)를 같은 규칙으로 더했다.
   원래 38개는 후보 파일과 바이트 단위로 같다.
 - 모양은 Tabler Icons(MIT)를 16px 격자에 다시 그린 Chromite 그림이다. JetBrains·Microsoft 그림은 쓰지 않았다. Tabler 라이선스는 번들의 `icons/ui/LICENSE-tabler.txt`와 `NOTICE`에 있다.
@@ -928,6 +931,45 @@ UI 글꼴 `font.grid` = `font.ui`(Pretendard 12)로 바꿨다. 열 머리글은 
 - 배율: 창 기본 크기(`setSize(DEFAULT_SIZE)`)처럼 `UIScale`을 곱하지 않는다(바꾸기 전 220도 곱하지 않았다). Windows 화면 배율(150% 등)은 Java 런타임이 처리한다.
 - 저장된 높이: 사용자가 높이를 바꿨으면 저장된 값(`results.size`)이 이긴다. 설정 저장소는 기본값과 같은 값을 저장하지 않으므로(`ToolWindow.SplitHost.load`)
   높이를 바꾼 적 없는 사용자는 새 기본값 280을 받는다. Window > Reset Window Layout도 280으로 돌린다.
+### 적용 현황 — 실행 계획 그림 (2026-11-07)
+
+사용자 결정: 실행 계획 탭에 그래픽(SSMS식 연산자 그림) · 트리 · 원본 세 보기. 동작과 DB별 범위는 [swing-sql-editor-plus.md](swing-sql-editor-plus.md) "실행 계획 세 보기".
+여기는 모양 토큰만 적는다(모든 값은 UIScale을 곱하기 전의 px).
+
+| 요소 | 값 |
+|---|---|
+| 보기 전환 | 계획 탭 도구 막대(`toolWindowToolBar.padding`) 맨 앞, 글자 토글 단추 셋(그래픽 / 트리 / 원본, `arc: 6` 도구 막대 단추)을 1px `Component.borderColor` 둥근 테두리(arc 8)로 묶음 |
+| 캔버스 | `Chromite.editorBackground`, 바깥 여백 16, 문장 사이 28, 머리말 아래 12 |
+| 문장 머리말 | 1줄 굵게 `쿼리 N: 쿼리 비용(일괄 처리 기준): X%`, 2줄 문장 첫 줄 `text.secondary`, 누락 인덱스 줄 `status.success`, 오류 줄 `status.error`(글자색과 35% 섞음). 최대 폭 1200 |
+| 연산자 상자 | 폭 168, 높이 = 여백 6 × 3 + 아이콘 32 + 글자 줄 4개, arc 10, 바탕 = 캔버스에 글자색 3.5%, 테두리 1px `Component.borderColor`. 열 간격 60, 줄 간격 22 |
+| 상자 글자 | 연산 이름 UI 글꼴 굵게, 둘째 줄(개체·논리 연산) UI 글꼴 −1 `text.secondary`, `비용: N%` UI 글꼴, 행 줄 UI 글꼴 −1 `text.secondary`. 넘치면 … |
+| 아이콘 | 연산자 아이콘 16px를 두 배(32)로 그림, 아이콘 팩·테마를 따름. 경고 배지는 `warning` 16을 아이콘 오른쪽 아래에 겹침 |
+| 비싼 연산자 | 최대 비용: 2px `status.error` 테두리 + 바탕 `status.error` 8%, 비용 글자 굵게 오류 색. 25% 이상: 1.5px `status.warning` 테두리, 비용 글자 경고 색 |
+| 예상 어긋남 | 행 줄을 굵게, `status.warning`과 글자색 35% 섞은 색 |
+| 선택 | 바탕 `Table.selectionBackground`, 2px `Component.focusedBorderColor` |
+| 화살표 | 캔버스와 글자색 45% 섞은 색, 굵기 1~10(행 수 로그 비율), 머리 길이 굵기+6 · 반폭 굵기/2+3, 자식마다 들어가는 높이 7씩 |
+| 원본 보기 | SQL 편집기 테마 파일(`SqlEditorLight/Dark.xml`), `monospaced.font`, 줄 번호, 현재 줄 강조 없음 |
+
+새 아이콘 18개(연산자 `plan-*` 17개, `copy`)는 생성기 규칙 그대로다: 데이터 객체 중립색, 동작 파랑, 데이터 변경은 표 위 배지(삽입 초록, 수정 파랑, 삭제 빨강).
+
+### 적용 현황 — 열 필터 (2026-11-07)
+
+사용자 요청 10(2026-11-07): "쿼리결과의 필터 입력 항목을 제거하고 그리드의 각 컬럼에 필터 아이콘을 배치하여 컬럼별 필터를 설정할 수 있도록 수정한다."
+참고는 사용자의 DataGrip 결과 그리드 캡처(머리글마다 늘 보이는 흐린 깔때기·정렬 아이콘, WHERE 줄 없음). 기능 설계는 [swing-grid-column-filters.md](swing-grid-column-filters.md).
+
+| 요소 | 값 | 토큰 |
+|---|---|---|
+| 머리글 배치 | 열 아이콘 16(`column`, 기본 키 `column-pk`) – 4 – 이름 … 4 – 깔때기 16 – 정렬 16 – 셀 여백 8 | `size.gridHeader.gap`, `size.gridHeader.action`, `TableHeader.cellMargins` |
+| 머리글 높이 | 26(바뀌지 않음) | `size.header.grid` |
+| 아이콘 색 | 평소 `text.secondary`, 필터·정렬 있음 `accent`(깔때기는 채움), 다시 읽을 수 없으면 40% | `grid.headerIcon`, `grid.headerIconActive` |
+| 아이콘 마우스 올림 | 16×16 둥근 바탕(arc 4) `bg.actionHover` | `Button.toolbar.hoverBackground` |
+| 필터 팝업 | 폭 320, 안쪽 여백 8, 간격 6, 테두리 `border.popup`, 바탕 `bg.popup`, 값 목록 8행, 기본 단추 "적용" | `PopupMenu.border`, `PopupMenu.background` |
+| 필터 요약 | 결과 상태 줄(행 수 옆)에 강조색 깔때기 16 + "필터: 열1, 열2" + ✕(여백 1, 높이 18). 필터가 있을 때만 | `size.padding.viewerStatus` |
+| 값 패널·레코드 단추 | 필터 막대 오른쪽 → 결과 상태 줄 오른쪽 | — |
+
+- 측정(EDT 에이전트, Windows 11, 150%): 머리글 26, 결과 상태 줄 25(필터 요약이 보여도 25, ✕ 단추 18), 팝업 320×318(조건 값 칸이 보이면 352, 범위 397).
+- 필터 막대(34)가 없어진 만큼 결과 영역이 넓어졌다. 흐린 아이콘이라 머리글이 무거워 보이지 않고, 필터가 걸린 열은 강조색으로 바로 보인다.
+- 캡처: `D:\Tools\_scratch\grid-column-filters\run\shots\`(한국어·영어, 라이트·다크).
 
 ### Swing/FlatLaf로 못 한 것과 이유
 
@@ -956,8 +998,10 @@ UI 글꼴 `font.grid` = `font.ui`(Pretendard 12)로 바꿨다. 열 머리글은 
 - **토큰 소유**: JetBrains 테마 JSON을 FlatLaf `IntelliJTheme`로 직접 읽지 않고, Chromite 토큰(이 문서)에 New UI 팔레트 값을 옮겨 FlatLaf 키에 연결한다.
   IntelliJ 전용 키 다수(`EditorTabs.*`, `ToolWindow.*`)는 FlatLaf가 읽지 않으므로 직접 읽어도 대응이 필요하고, 토큰을 소유해야 나중에 값을 바꿀 때 한곳만 고친다.
   값의 출처는 Apache 2.0 저장소(intellij-community)이지만 색값만 가져오고 파일은 복사하지 않는다.
-- **쿼리 창 도구 막대 위치**: SSMS는 주 창의 SQL Editor 도구 막대 하나를 쓰지만, Chromite는 편집기마다 연결·DB가 달라 보이는 자리에 두는 편이 낫고 이미 구현되어 있다.
-  순서와 아이콘만 SSMS에 맞춘다. 되돌리기 쉬운 결정이다.
+- **쿼리 창 도구 막대 위치**: 처음(2026-11-06)에는 연결·DB가 창마다 달라 편집기마다 위에 두었다.
+  **2026-11-07 사용자 결정으로 SSMS처럼 바꿨다**: 메인 창 위에 도구 막대 두 줄(1줄 Standard, 2줄 SQL Editor)을 두고, 2줄은 활성 쿼리 창에 적용하며
+  쿼리 창마다의 도구 막대는 없앴다. 편집기가 한 줄 높아지고 단추가 늘 같은 자리에 있다. 연결·DB 콤보는 2줄에서 활성 창의 것으로 바뀌므로 창마다 다른 연결이 그대로 보인다.
+  쿼리 창이 아닌 문서가 활성이거나 문서가 없으면 2줄은 보인 채 컨트롤이 모두 꺼진다(SSMS). 구현은 [swing-frontend.md](swing-frontend.md) "SQL Editor 도구 막대".
 - **라이트 머리말**: New UI Light의 기본은 어두운 주 도구 막대지만, SSMS 라이트와 이어지고 밝은 화면에서 덜 튀도록 "Light with Light Header" 값(`MainToolbar.background` `#F7F8FA`)을 쓴다.
 - **결과 탭 높이 32**: 결과가 쿼리 창 아래 붙는 SSMS 배치에서 40은 세로 공간을 많이 쓴다. 도구 창 머리말(40)과 구분되는 낮은 탭으로 둔다. (2026-11-07 밀도 B로 28)
 - **그리드 행 27**: DataGrip 측정값을 따른다. SSMS(≈20)보다 성기지만 모양 기준이 DataGrip이다. 촘촘한 모드(P2)에서 낮춘다. (2026-11-07 밀도 B로 24)
@@ -1037,3 +1081,10 @@ UI 글꼴 `font.grid` = `font.ui`(Pretendard 12)로 바꿨다. 열 머리글은 
 - 2026-11-07 그리드 글꼴 Pretendard(사용자 요청 "쿼리결과 그리드의 폰트와 사이즈도 pretendard 12로 맞춘다"): `font.grid` 토큰 추가, `font.code`의 쓰는 곳 갱신,
   8절 표 갱신, "적용 현황 — 그리드 글꼴 Pretendard" 절(따를지 정한 것, 비례 숫자와 `tnum`, 측정) 추가.
 - 2026-11-07 결과 창 기본 높이 280(사용자 결정): "결과 창 기본 높이" 절 추가, 밀도 B 절의 결정 대기 문장 갱신.
+- 2026-11-07 Islands 색 표에 테이블 저장 방식 글자색 토큰(`Chromite.Tree.storage*Foreground`) 추가([altibase.md](altibase.md)).
+- 2026-11-07 도구 막대 두 줄(사용자 결정): 쿼리 창 도구 막대를 메인 창 둘째 줄의 SQL Editor 도구 막대로 옮김. 2절 구성·높이, 7절 제목·위치·높이,
+  "설계 결정"의 쿼리 창 도구 막대 위치, 적용 현황 11행, `size.toolbar.editor` 설명 갱신.
+- 2026-11-07 쿼리 상태 줄의 커밋 방식 칸(사용자 요청): 9절 쿼리 상태 줄 행 갱신.
+- 2026-11-07 실행 계획 세 보기(사용자 결정): "적용 현황 — 실행 계획 그림" 절(보기 전환, 연산자 상자·화살표·비싼 연산자·경고 배지·선택 색과 치수) 추가, 아이콘 팩 파일 수(74 → 92) 갱신.
+- 2026-11-07 열 필터(사용자 요청 10): 8절 머리글 목표(늘 보이는 흐린 깔때기·정렬 아이콘), 색 토큰 `grid.headerIcon`·`grid.headerIconActive`,
+  치수 토큰 `size.gridHeader.*`(필터 막대 여백 삭제), `font.code` 쓰는 곳 갱신, "적용 현황 — 열 필터" 절 추가.
