@@ -174,6 +174,11 @@ updates/
 SWT의 `ApplicationWorkbenchAdvisor.closeActiveTransactions`와 `DataSourceHandler.checkAndCloseActiveTransaction`(#68에서 삭제)을 옮겼다.
 SWT는 문맥마다 물었지만, 끝낼 때는 편집기 저장 질문처럼 한 번에 묻는다. 이 작업 전의 Swing 종료 경로는 트랜잭션을 묻지 않았다.
 
+AI 도우미·MCP 도구의 트랜잭션(2026-11-07 추가): 에이전트는 자기 격리 문맥의 JDBC 연결에 직접 SQL을 보내므로(`AgentSql`) 쿼리 관리자에
+기록이 없고 `QMUtils.isTransactionActive`가 늘 false다. 그래서 수동 커밋 연결에 에이전트가 열어 둔 트랜잭션을 놓쳤다. 이제 연결마다
+`AgentSql.hasPendingTransaction`(쓰기 뒤 DB에 직접 물어 기록한 값)도 보고, 목록에 "연결 이름 (AI 도우미·MCP 도구)"로 넣는다. 같은 답으로
+`AgentSql.endTransaction`이 커밋·롤백한다(에이전트 도구 `commitTransaction`/`rollbackTransaction`과 같은 경로, [ai-agent.md](ai-agent.md) "트랜잭션 안전").
+
 ### 시험 모드 (`UpdateTestMode`, 개발 빌드 전용)
 
 이 PC에서 업데이트 경로 전체를 시험하려고 둔 스위치다. **릴리스 빌드에서는 켜지지 않는다.**
@@ -286,3 +291,6 @@ DBeaver는 p2 업데이트 사이트와 dbeaver.io 버전 확인을 쓴다. Chro
 ## 변경 이력
 
 - 2026-11-07 최초 작성. 앱 안의 업데이터(모델 번들 `com.seizia.chromite.model.update`, Swing 화면), 끝낼 때 트랜잭션 질문.
+- 2026-11-07 끝낼 때 트랜잭션 질문이 AI 에이전트 격리 문맥의 열린 트랜잭션도 찾음(후속 과제 #78). 확인: PostgreSQL 수동 커밋 연결에서
+  채팅이 INSERT를 열어 둔 채 File > 끝내기 → 질문에 "FB PG Manual (AI 도우미·MCP 도구)", [취소]는 앱과 트랜잭션을 그대로 두고
+  (`pg_stat_activity` "idle in transaction"), [커밋]은 행을 커밋하고 닫음(psql로 행 확인). 영어 화면에서 [Roll Back]은 행 없음.

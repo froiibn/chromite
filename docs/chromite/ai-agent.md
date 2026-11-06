@@ -693,8 +693,8 @@ Oracle 진단 결과의 대문자 열 이름(소문자로 맞춤), PostgreSQL에
 
 - **실제 LLM으로 시험하지 않았다(2단계)**: 유료 키가 없어 가짜 Messages API로만 시험했다. 실제 모델의 도구 선택, 긴 대화의 문맥 크기(도구 86개 정의 + 결과가 매번
   다시 감, 잘라 내기 없음), OpenAI Responses·Ollama 스트림의 도구 호출 흐름은 확인하지 못했다. 대화가 길어지면 제공자의 문맥 한도에 걸릴 수 있다.
-- **열린 에이전트 트랜잭션과 앱 종료**: 채팅이 수동 커밋 연결에 남긴 에이전트 트랜잭션은 채팅 카드("트랜잭션 열림")로만 보인다. 앱 종료 시 묻는 열린 트랜잭션 확인
-  (`ExitTransactionCheck`)이 에이전트 격리 문맥을 찾는지는 확인하지 않았다.
+- **열린 에이전트 트랜잭션과 앱 종료**: 2026-11-07 확인 결과 `ExitTransactionCheck`는 쿼리 관리자만 보아 에이전트 격리 문맥의 트랜잭션을 찾지 못했다
+  (에이전트는 JDBC 연결을 직접 쓴다). 이제 `AgentSql.hasPendingTransaction`도 보고 같은 질문으로 끝낸다([auto-update.md](auto-update.md) "끝낼 때 트랜잭션").
 - **트랜잭션 질문에 롤백으로 답하면 원래 도구는 실행된다**: 1단계 실행기 규칙이다(롤백 후 `commitTransaction`은 커밋할 것이 없어 "완료"). 카드가 "완료"로 보여 헷갈릴 수 있다.
 - **분류기는 보수적이다**: JSQLParser가 해석하지 못하는 읽기 문장(예: PostgreSQL `make_interval(secs => …)`)은 WRITE로 본다. 모델은 `runReadOnlySql` 대신 `runSql`을 써야 하고
   사용자가 확인한다. SQL Server는 읽기 전용 트랜잭션이 없어 두 번째 겹이 롤백뿐이다.
@@ -704,6 +704,7 @@ Oracle 진단 결과의 대문자 열 이름(소문자로 맞춤), PostgreSQL에
 
 ## 변경 이력
 
+- 2026-11-07 후속 과제 #78: 앱 종료 질문(`ExitTransactionCheck`)이 에이전트 격리 문맥의 트랜잭션도 찾음([auto-update.md](auto-update.md) "끝낼 때 트랜잭션").
 - 2026-11-07 2단계 구현과 확인: AI Assistant 도구 창(대화, 제공자·모델·연결·데이터베이스, 스트리밍 Markdown, 도구 카드, 중지, 플레이북, Ask AI), 확인 대화상자
   (Allow/Deny, Commit/Roll back/Cancel, WRITE "항상 허용"), 편집기 연결, Options > AI Assistant(Providers, Tool Policy, MCP Server, Audit Log), Query Library 기준값 편집.
   모델 쪽 `model.ai.tools.chat` 패키지, `AIToolPolicy.resolve(Settings, …)`·`setSettings`. 위 "2단계 구현", "위험과 남은 일".
