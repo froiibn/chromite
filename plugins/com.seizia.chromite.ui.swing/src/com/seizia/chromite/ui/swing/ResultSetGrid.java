@@ -17,7 +17,6 @@
 package com.seizia.chromite.ui.swing;
 
 import com.formdev.flatlaf.FlatClientProperties;
-import com.formdev.flatlaf.FlatLaf;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
@@ -35,6 +34,8 @@ import javax.swing.table.TableCellEditor;
 import javax.swing.table.TableColumn;
 import java.awt.*;
 import java.awt.event.ActionEvent;
+import java.awt.event.FocusAdapter;
+import java.awt.event.FocusEvent;
 import java.awt.event.InputEvent;
 import java.awt.event.KeyEvent;
 import java.awt.event.MouseAdapter;
@@ -50,7 +51,7 @@ import java.util.Map;
  *
  * 설계: 값은 Job 스레드의 {@link ResultSetGridReceiver}가 결과 집합이 열려 있는 동안 표시 문자열로 바꿔 넘긴다
  * ({@link Data}). 그래서 EDT에서는 모델 계층(값 처리기, LOB 읽기)을 부르지 않고, 결과 집합을 닫은 뒤에도 값을 그대로 보여 줄 수 있다.
- * NULL은 표시 문자열과 구분되는 표지({@link #NULL_VALUE})로 두어 "NULL"이라는 문자열 값과 다르게 그린다(SSMS처럼 "NULL", 흐린 기울임꼴).
+ * NULL은 표시 문자열과 구분되는 표지({@link #NULL_VALUE})로 두어 "NULL"이라는 문자열 값과 다르게 그린다(SSMS처럼 "NULL", 보조 글자색 text.secondary).
  * 숫자 열은 오른쪽 정렬한다. 열 너비는 머리글과 앞쪽 행들의 글자 너비로 정하고, 표는 자동 맞춤을 끄고 가로 스크롤한다.
  * 왼쪽에 SSMS처럼 행 번호 열을 둔다(행 머리글, 누르면 그 행 선택, 새 행은 {@code *}).
  * 복사(Ctrl+C)는 {@link JTable}의 기본 전송 처리기가 선택한 칸의 표시 문자열을 탭으로 나눠 복사한다.
@@ -76,6 +77,8 @@ import java.util.Map;
  * - 2026-11-06 E단계: 오른쪽 클릭 메뉴(복사, 머리글 포함 복사, CSV 내보내기) (docs/chromite/swing-frontend.md "구현 현황 — E단계")
  * - 2026-11-06 F단계: XLSX 내보내기 메뉴, {@link Data}에 원래 값(숫자·불리언·날짜)과 열 바인딩 (docs/chromite/swing-frontend.md "구현 현황 — F단계")
  * - 2026-11-06 G단계: 셀 편집·NULL·행 추가·삭제, 저장·취소, 편집 상태 줄 (docs/chromite/swing-frontend.md "구현 현황 — G단계")
+ * - 2026-11-06 디자인 적용: DataGrip 그리드 모양(편집기 글꼴, 세로·가로 격자선, 왼쪽 정렬 머리글, 행 번호 열, NULL 보조 글자색,
+ *   편집 색을 테마 키로) (docs/chromite/design-spec.md "적용 현황")
  */
 final class ResultSetGrid extends JPanel {
 
@@ -92,7 +95,8 @@ final class ResultSetGrid extends JPanel {
     private static final int MIN_COLUMN_WIDTH = 40;
     private static final int MAX_COLUMN_WIDTH = 320;
     private static final int MEASURED_ROWS = 200;
-    private static final int CELL_PADDING = 14;
+    // Table.cellMargins (8 left, 8 right) and the 1px vertical grid line
+    private static final int CELL_PADDING = 18;
 
     /**
      * Fetched result set.
@@ -176,7 +180,22 @@ final class ResultSetGrid extends JPanel {
         this.editModel = fetched.editModel();
         this.host = host;
         gridModel = new GridModel();
-        table = new JTable(gridModel);
+        table = new JTable(gridModel) {
+            @Override
+            protected void paintComponent(Graphics g) {
+                super.paintComponent(g);
+                paintHorizontalLines(this, g);
+            }
+        };
+        // DataGrip grid: font.code, vertical lines in grid.line, horizontal lines in the lighter grid.lineSubtle
+        // (one JTable grid color can't do both), column names left-aligned
+        table.putClientProperty(FlatClientProperties.STYLE_CLASS, "monospaced"); //$NON-NLS-1$
+        table.setShowVerticalLines(true);
+        table.setShowHorizontalLines(false);
+        table.setIntercellSpacing(new Dimension(1, 0));
+        if (table.getTableHeader().getDefaultRenderer() instanceof JLabel headerRenderer) {
+            headerRenderer.setHorizontalAlignment(SwingConstants.LEFT);
+        }
         table.setAutoResizeMode(JTable.AUTO_RESIZE_OFF);
         table.setCellSelectionEnabled(true);
         table.setFillsViewportHeight(true);
@@ -600,6 +619,30 @@ final class ResultSetGrid extends JPanel {
      * Row numbers like SSMS ({@code *} for a new row). A one-column table keeps the row heights of the grid; clicking
      * a number selects the row.
      */
+    /**
+     * Horizontal grid lines (grid.lineSubtle) at the bottom of every visible row.
+     */
+    private static void paintHorizontalLines(@NotNull JTable table, @NotNull Graphics g) {
+        Color color = UIManager.getColor("Chromite.Table.horizontalLineColor"); //$NON-NLS-1$
+        Rectangle clip = g.getClipBounds();
+        if (color == null || clip == null || table.getRowCount() == 0) {
+            return;
+        }
+        int first = table.rowAtPoint(new Point(0, clip.y));
+        int last = table.rowAtPoint(new Point(0, clip.y + clip.height - 1));
+        if (first < 0) {
+            return;
+        }
+        if (last < 0) {
+            last = table.getRowCount() - 1;
+        }
+        g.setColor(color);
+        for (int row = first; row <= last; row++) {
+            Rectangle cell = table.getCellRect(row, 0, true);
+            g.fillRect(clip.x, cell.y + cell.height - 1, clip.width, 1);
+        }
+    }
+
     @NotNull
     private JTable createRowHeader() {
         JTable header = new JTable(new AbstractTableModel() {
@@ -622,19 +665,51 @@ final class ResultSetGrid extends JPanel {
             }
         }) {
             @Override
-            public void updateUI() {
-                super.updateUI();
-                setBackground(UIManager.getColor("TableHeader.background")); //$NON-NLS-1$
-                setForeground(UIManager.getColor("TableHeader.foreground")); //$NON-NLS-1$
+            protected void paintComponent(Graphics g) {
+                super.paintComponent(g);
+                paintHorizontalLines(this, g);
+                // 1px grid.line between the row numbers and the grid
+                Color lineColor = UIManager.getColor("Table.gridColor"); //$NON-NLS-1$
+                if (lineColor != null) {
+                    g.setColor(lineColor);
+                    g.fillRect(getWidth() - 1, 0, 1, getHeight());
+                }
             }
         };
         gridModel.addTableModelListener(e -> ((AbstractTableModel) header.getModel()).fireTableDataChanged());
+        header.putClientProperty(FlatClientProperties.STYLE_CLASS, "monospaced"); //$NON-NLS-1$
         header.setFocusable(false);
         header.setRowSelectionAllowed(false);
+        header.setShowGrid(false);
         header.setRowHeight(table.getRowHeight());
-        DefaultTableCellRenderer renderer = new DefaultTableCellRenderer();
-        renderer.setHorizontalAlignment(SwingConstants.RIGHT);
+        // DataGrip row numbers: grid background, text.secondary, left-aligned; the numbers of selected rows get the
+        // selection background of the grid
+        DefaultTableCellRenderer renderer = new DefaultTableCellRenderer() {
+            @Override
+            public Component getTableCellRendererComponent(JTable rowTable, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
+                super.getTableCellRendererComponent(rowTable, value, false, false, row, column);
+                boolean rowSelected = row < table.getRowCount() && table.isRowSelected(row);
+                setBackground(rowSelected
+                    ? UIManager.getColor(table.isFocusOwner() ? "Table.selectionBackground" : "Table.selectionInactiveBackground") //$NON-NLS-1$ //$NON-NLS-2$
+                    : rowTable.getBackground());
+                setForeground(UIManager.getColor("Chromite.secondaryForeground")); //$NON-NLS-1$
+                return this;
+            }
+        };
+        renderer.setHorizontalAlignment(SwingConstants.LEFT);
         header.setDefaultRenderer(Object.class, renderer);
+        table.getSelectionModel().addListSelectionListener(e -> header.repaint());
+        table.addFocusListener(new FocusAdapter() {
+            @Override
+            public void focusGained(FocusEvent e) {
+                header.repaint();
+            }
+
+            @Override
+            public void focusLost(FocusEvent e) {
+                header.repaint();
+            }
+        });
         int rowCount = gridModel.getRowCount();
         int width = header.getFontMetrics(header.getFont()).stringWidth(String.valueOf(Math.max(rowCount, 99))) + CELL_PADDING;
         header.getColumnModel().getColumn(0).setPreferredWidth(width);
@@ -786,9 +861,6 @@ final class ResultSetGrid extends JPanel {
             int modelColumn = table.convertColumnIndexToModel(column);
             setHorizontalAlignment(modelColumn < numeric.length && numeric[modelColumn] ? SwingConstants.RIGHT : SwingConstants.LEFT);
             Font font = table.getFont();
-            if (isNull) {
-                font = font.deriveFont(Font.ITALIC);
-            }
             ResultSetEditModel.Row editRow = editModel != null ? editModel.getRow(table.convertRowIndexToModel(row)) : null;
             if (editRow != null && editRow.state == ResultSetEditModel.RowState.REMOVED) {
                 font = font.deriveFont(Map.of(TextAttribute.STRIKETHROUGH, TextAttribute.STRIKETHROUGH_ON));
@@ -796,7 +868,7 @@ final class ResultSetGrid extends JPanel {
             setFont(font);
             if (!isSelected) {
                 // setForeground/setBackground also become the renderer's defaults, so every cell sets them
-                setForeground(isNull ? UIManager.getColor("Label.disabledForeground") : table.getForeground()); //$NON-NLS-1$
+                setForeground(isNull ? UIManager.getColor("Chromite.secondaryForeground") : table.getForeground()); //$NON-NLS-1$
                 Color changeColor = editRow == null ? null : getChangeColor(editRow, modelColumn);
                 setBackground(changeColor != null ? changeColor : table.getBackground());
             }
@@ -804,15 +876,14 @@ final class ResultSetGrid extends JPanel {
         }
 
         /**
-         * Background of a new row, a deleted row or a changed cell; light or dark like the theme.
+         * Background of a new row, a deleted row or a changed cell (theme keys {@code Chromite.Table.*Background}).
          */
         @Nullable
         private static Color getChangeColor(@NotNull ResultSetEditModel.Row row, int column) {
-            boolean dark = FlatLaf.isLafDark();
             return switch (row.state) {
-                case ADDED -> dark ? new Color(0x2E4A33) : new Color(0xDFF5E1);
-                case REMOVED -> dark ? new Color(0x4D2F2F) : new Color(0xF9DEDE);
-                case NORMAL -> row.isCellChanged(column) ? (dark ? new Color(0x5A4A1F) : new Color(0xFFF0B8)) : null;
+                case ADDED -> UIManager.getColor("Chromite.Table.addedBackground"); //$NON-NLS-1$
+                case REMOVED -> UIManager.getColor("Chromite.Table.removedBackground"); //$NON-NLS-1$
+                case NORMAL -> row.isCellChanged(column) ? UIManager.getColor("Chromite.Table.changedBackground") : null; //$NON-NLS-1$
             };
         }
     }

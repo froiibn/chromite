@@ -401,7 +401,7 @@ SQL 편집기, 결과 그리드, 연결 화면은 C단계에서 만든다.
 | 클래스 | 역할 |
 |---|---|
 | `MainFrame` | 메인 창. 분할 창 3개, 메뉴, 상태 표시줄, 창·도구 창 배치 저장, 알림 표시 |
-| `ToolWindow` | 도구 창 하나(분할 창의 한쪽). 머리말(제목, 도구 단추, 숨기기 `×`), View 메뉴 토글, 크기·표시 여부 저장 |
+| `ToolWindow` | 도구 창 하나(분할 창의 한쪽). 머리말(제목, 숨기기 아이콘 `—`. 디자인 적용 전에는 도구 단추와 `×`), View 메뉴 토글, 크기·표시 여부 저장 |
 | `ObjectExplorerPanel` | 탐색기 트리 |
 | `PropertiesPanel` | 선택한 노드의 이름·종류·설명과 속성 표 |
 | `NodeIcons` | 노드 아이콘(`DBPImage`) → Swing `Icon` |
@@ -472,15 +472,17 @@ B단계는 `JSplitPane`만 쓴다.
 - 상태 겹침 아이콘(`DBIconComposite`, 예: 연결됨 표시)은 기본 아이콘 네 모서리에 겹쳐 그린다(SWT `OverlayImageDescriptor`와 같음).
 - 읽을 수 없는 아이콘은 `DBIcon.TYPE_UNKNOWN`, 그것도 없으면 Look and Feel의 트리 잎 아이콘으로 대신한다. 위치별로 캐시한다(실패도 캐시).
 - 아이콘 파일은 DBeaver 번들의 것(Apache 2.0)을 그대로 쓴다. JetBrains·Microsoft 아이콘은 쓰지 않는다.
+- (디자인 적용, 2026-11-06) 자주 보는 모델 아이콘은 Chromite 아이콘 팩으로 바꿔 그리고, 연결의 PNG 겹침 아이콘 대신 상태 점을 쓴다. 아래 "디자인 적용"과
+  [design-spec.md](design-spec.md) "적용 현황 — 아이콘 팩"을 본다.
 
 ### 테마
 
 | 테마 | 클래스 | 바탕 | 바꾼 값 (`<클래스>.properties`) |
 |---|---|---|---|
-| Light (SSMS풍) | `ChromiteLightLaf` | `FlatLightLaf` | 강조색 `#0078d4`(운영체제 강조색 대신 고정), 바탕 `#f3f3f3` |
-| Dark (DataGrip풍) | `ChromiteDarkLaf` | `FlatDarculaLaf` | 바탕 `#2b2d30`, 글자 `#dfe1e5`, 강조색 `#3574f0` |
+| Light (DataGrip New UI Light) | `ChromiteLightLaf` | `FlatLightLaf` | 디자인 토큰 전체(색, 치수, 글꼴). B단계에는 SSMS풍 강조색 `#0078d4`, 바탕 `#f3f3f3`만 바꿨다 |
+| Dark (DataGrip New UI Dark) | `ChromiteDarkLaf` | `FlatDarkLaf` | 디자인 토큰 전체. B단계에는 `FlatDarculaLaf` 기반에 바탕·글자·강조색만 바꿨다 |
 
-- 위 표는 B단계 구현 상태다. 2026-11-06 결정으로 라이트도 DataGrip New UI 모양을 따르며, 목표 값(토큰, FlatLaf 키, 다크 기반을 `FlatDarkLaf`로 바꾸는 이유)은 [design-spec.md](design-spec.md)에 있다.
+- 2026-11-06 디자인 적용으로 두 테마 모두 DataGrip New UI 값을 쓴다. 값과 FlatLaf 키는 [design-spec.md](design-spec.md) "디자인 토큰", 적용 결과는 같은 문서 "적용 현황"에 있다.
 - FlatLaf는 Look and Feel 클래스 계층마다 "클래스 이름.properties"를 읽어 덮어쓴다. 그래서 외부 테마 파일 없이 색 변수 몇 개만 바꿨다.
   JetBrains·Microsoft의 테마 파일과 아이콘은 쓰지 않고 색감만 참고했다.
 - View > Theme에서 바꾸면 바로 `FlatLaf.setup()` + `FlatLaf.updateUI()`로 열린 모든 창을 다시 그리고, 설정에 저장해 다음 시작에도 쓴다.
@@ -496,6 +498,7 @@ B단계는 `JSplitPane`만 쓴다.
 | 키 | 값 |
 |---|---|
 | `ui.theme` | `LIGHT` / `DARK` |
+| `ui.iconStyle` | `DUOTONE`(기본) / `COLOR` (디자인 적용) |
 | `mainWindow.bounds`, `mainWindow.maximized` | `x,y,너비,높이`(최대화 전 크기), 최대화 여부 |
 | `objectExplorer.visible`, `objectExplorer.size` 등 (`properties.*`, `results.*`) | 표시 여부, 너비(위·아래 분할은 높이) |
 
@@ -583,8 +586,9 @@ C단계의 목표는 SSMS식 SQL 편집기와 결과 창이다: 편집기 탭을
 ### 편집기 (RSyntaxTextArea)
 
 - `RSyntaxTextArea`(`SYNTAX_STYLE_SQL`) + `RTextScrollPane`(줄 번호). 실행 취소·다시 실행, 괄호 짝 표시 등은 라이브러리 기본 기능이다.
-- 색은 테마마다 RSyntaxTextArea 테마 XML(`SqlEditorLight.xml`: SSMS풍 — 파란 키워드, 자홍 함수, 빨간 문자열, 초록 주석, 회색 연산자 /
-  `SqlEditorDark.xml`: DataGrip풍 — `#1e1f22` 바탕)로 정한다. 색값만 참고했고 SSMS·DataGrip의 테마 파일은 쓰지 않았다.
+- 색은 테마마다 RSyntaxTextArea 테마 XML(`SqlEditorLight.xml`, `SqlEditorDark.xml`)로 정한다. C단계에는 라이트가 SSMS풍이었고,
+  디자인 적용(2026-11-06)부터 두 테마 모두 DataGrip New UI 색이다([design-spec.md](design-spec.md) "SQL 구문 색"). 색값만 옮겼고 SSMS·DataGrip의 테마 파일은 쓰지 않았다.
+  글꼴은 XML이 아니라 코드에서 Look and Feel의 `monospaced.font`(JetBrains Mono 합성 글꼴)로 정한다.
 - 테마 전환: Look and Feel이 바뀌면(`updateUI`) 트리 갱신이 끝난 뒤(`invokeLater`) 현재 테마의 XML을 다시 적용한다. 거터(줄 번호) 색도 테마가 정하므로
   처음 적용은 스크롤 창을 만든 뒤에 한다.
 - 구문 강조는 RSyntaxTextArea의 일반 SQL 규칙이다. DBeaver의 방언별 키워드는 아직 연결하지 않았다. (자동완성은 F단계에서 연결했다, "구현 현황 — F단계")
@@ -1274,6 +1278,46 @@ G단계의 목표는 쿼리 결과를 표에서 고치고 DB에 저장하는 것
 - 원본 테이블이 `FEATURE_DATA_REFRESH_AFTER_UPDATE`를 지원하면 SWT는 저장 뒤 결과 전체를 다시 읽는다(관계형 DB에는 해당 없음). Swing은 행 다시 읽기만 한다.
 - 편집기별 별도 연결: 저장은 연결의 기본 문맥에서 자동 커밋을 잠시 끄므로, 같은 연결의 다른 편집기가 그 사이에 실행한 문장도 저장 트랜잭션에 들어갈 수 있다(SWT도 같은 문맥을 쓰면 같은 문제).
 
+## 디자인 적용 (2026-11-06)
+
+[design-spec.md](design-spec.md)의 P0 전체와 P1 일부를 적용했다(배치·동작은 SSMS, 모양은 DataGrip New UI 다크·라이트). 항목별 측정값과 못 한 것은 그 문서의 "적용 현황"에 있다.
+
+### 구성
+
+| 파일 | 바뀐 것 |
+|---|---|
+| `ChromiteLightLaf.properties`, `ChromiteDarkLaf.properties` | 디자인 토큰 전체(색, 선택, 트리·표·탭·컨트롤 치수, arc, 분할선, 글꼴). `Chromite.*` 키는 Chromite 컴포넌트가 읽는 값 |
+| `ChromiteDarkLaf` | 상위 클래스 `FlatDarculaLaf` → `FlatDarkLaf`(Darcula의 삼각 화살표와 밝은 트리·표 바탕을 피함) |
+| `ChromiteTheme` | Look and Feel 설치 전에 Inter·JetBrains Mono 글꼴 등록 |
+| `UiIcons`(새 파일) | 아이콘 팩 SVG(현재 팩·테마를 그릴 때 고름), 비활성 아이콘, 연결 상태 점, 아이콘 단추 |
+| `UiIconStyle`(새 파일) | 아이콘 팩 2종과 저장(View > Theme > Icon Style) |
+| `NodeIcons` | 모델 아이콘 → 아이콘 팩 대응, Object Explorer 노드 아이콘(객체 종류, 펼친 폴더, 드라이버 로고 + 상태 점) |
+| `ObjectExplorerPanel` | 머리말 아래 아이콘 도구 막대, Filter·Collapse All, 보조 글자, 마우스 올림 표시 |
+| `ToolWindow` | 머리말 40, 숨기기 아이콘 단추. 쓰이지 않게 된 머리말 도구 인자 삭제 |
+| `MainFrame` | 아이콘 주 도구 막대, 문서 탭(40, 편집기 바탕, 아이콘), 결과 탭(32, 아이콘), 1px 분할선, 상태 표시줄 28, Icon Style 메뉴 |
+| `SqlEditorPanel`, `SqlEditorLight.xml`, `SqlEditorDark.xml` | 도구 막대 아이콘(▶ Execute, ■), 탭 아이콘, DataGrip 구문 색, 편집기 글꼴 |
+| `ResultSetGrid`, `QueryResultsView` | 그리드 글꼴·격자선·머리글 정렬·행 번호 열·NULL·편집 색, Messages 글꼴·오류 색 |
+| `icons/ui/**`, `tools/branding/gen_ui_icons.py` | 아이콘 팩 SVG 188개(2팩 × 2테마 × 47)와 생성기, `icons/ui/LICENSE-tabler.txt` |
+
+### 외부 라이브러리 (디자인 적용 추가)
+
+| 라이브러리 | 버전 | 라이선스 | 출처 |
+|---|---|---|---|
+| Inter 글꼴 (`com.formdev:flatlaf-fonts-inter`) | 4.1 | 글꼴 SIL OFL 1.1, jar Apache 2.0 | Maven Central. SHA-1 `5b22a28695d69d6865bceb206db1debb729e26ac`(Central `.sha1`과 같음), SHA-256 `053f7274d6489900e53d4ad397323440428733a41b7fe2f642daf3feb7c730e8` 확인 |
+| JetBrains Mono 글꼴 (`com.formdev:flatlaf-fonts-jetbrains-mono`) | 2.304 | 글꼴 SIL OFL 1.1, jar Apache 2.0 | Maven Central. SHA-1 `68c779e849aec16c69f69d4405fb1edea04e9b8f`(Central `.sha1`과 같음), SHA-256 `bc8e93479960b2a5e3b45fe724e16439a69f28cc43cac3a2b87b7f7f325fd3a5` 확인 |
+| Tabler Icons(모양만 참고해 다시 그림) | 3.50.0 | MIT | 아이콘 파일은 Chromite 생성기 출력. 라이선스 전문을 `icons/ui/LICENSE-tabler.txt`로 함께 배포 |
+
+- 글꼴 jar는 FlatLaf와 같은 방식이다: `pom.xml`의 `maven-dependency-plugin:copy`가 `lib/`에 복사하고 `Bundle-ClassPath`·`bin.includes`에 넣는다. 저장소에는 넣지 않는다. `NOTICE`에 적었다.
+
+### 확인 (2026-11-06)
+
+- 빌드: `mvn -B clean package -f product/aggregate/pom.xml -T1C '-Pproduct-dbeaver-ce,product-chromite-swing'` → `BUILD SUCCESS`.
+  Swing 제품의 `plugins/`에 `swt`·`jface`·`org.eclipse.ui`·`e4.ui` 번들 0개. Swing 번들 jar에 `lib/flatlaf-fonts-inter.jar`(1,988,916 bytes), `lib/flatlaf-fonts-jetbrains-mono.jar`(537,127 bytes), SVG 188개, `icons/ui/LICENSE-tabler.txt`가 들어 있다.
+- 실행(작업 공간 사본 `D:\Tools\_smoke\swing-design`, Windows 11, 150%): 라이트·다크 × 아이콘 팩 A·B 네 조합에서 트리(Tables → Album → 컬럼·Unique 키·인덱스, 뷰 폴더), SQL 편집기와 결과 그리드, Properties를 캡처해 사양 값과 비교했다(측정값은 design-spec.md "적용 현황").
+  테마와 아이콘 팩은 실행 중 메뉴로 바뀌고, 다시 시작해도 저장된 값(`DARK`, `COLOR`)으로 열렸다. 연결 대화상자, 자동완성 목록, Filter(마스크 걸기·풀기와 `data-sources.json` 저장), 한글 트리·편집기·그리드, 연결 상태 점(연결됨 초록, 없는 폴더의 SQLite 파일로 연결 실패 빨강)도 확인했다.
+- 디버그 로그(`.metadata/dbeaver-debug.log`)에 ERROR/WARN/예외 없음, Eclipse 로그(`.metadata/.log`) 없음.
+- 회귀 테스트는 실행하지 않았다(요청 없음). 영향받을 수 있는 기능: 결과 그리드 편집 색과 행 번호 클릭, 트리 키 조작(Enter, F2, Delete), 도구 창 숨기기, 테마 전환.
+
 ## 변경 이력
 
 - 2026-11-06 최초 작성. Swing 전환 결정, 구조, 재사용 분석, MVP 범위, F5 실행 사양을 정리.
@@ -1300,3 +1344,6 @@ G단계의 목표는 쿼리 결과를 표에서 고치고 DB에 저장하는 것
   셀 편집·NULL·행 추가·삭제, 한 트랜잭션 저장과 저장 뒤 행 다시 읽기, 실패 시 Messages와 변경 유지, 닫기·끝내기·다시 실행 전 확인.
   "구현 현황 — G단계" 절 추가, 재사용 분석 표와 이전 단계의 남긴 항목에 구현 표시.
 - 2026-11-06 디자인 방향 변경: 배치·동작은 SSMS, 모양은 다크·라이트 모두 DataGrip New UI. 목표 사양을 [design-spec.md](design-spec.md)로 분리하고 목적·MVP·테마 절에 연결.
+- 2026-11-06 디자인 적용: design-spec.md의 P0 전체와 P1 일부 적용(다크 기반 `FlatDarkLaf`, 토큰 properties, Inter·JetBrains Mono 글꼴 jar,
+  아이콘 팩 2종 duo-tone·SSMS color와 View > Theme > Icon Style, 트리·머리말·도구 막대·탭·그리드·편집기 모양, Object Explorer Filter·Collapse All).
+  "디자인 적용" 절 추가, 테마·노드 아이콘·편집기 색·설정 키 절을 갱신.

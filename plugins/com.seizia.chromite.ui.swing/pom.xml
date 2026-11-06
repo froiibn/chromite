@@ -19,13 +19,16 @@
     <java.version>25</java.version>
     <flatlaf.version>3.8</flatlaf.version>
     <rsyntaxtextarea.version>4.0.1</rsyntaxtextarea.version>
+    <!-- UI and editor fonts of the design spec (Inter, JetBrains Mono; SIL OFL 1.1), packaged by FlatLaf -->
+    <flatlaf.fonts.inter.version>4.1</flatlaf.fonts.inter.version>
+    <flatlaf.fonts.jetbrains.mono.version>2.304</flatlaf.fonts.jetbrains.mono.version>
   </properties>
 
   <build>
     <plugins>
-      <!-- FlatLaf has no OSGi manifest and RSyntaxTextArea exports no packages: embed them via Bundle-ClassPath
-           (lib/flatlaf.jar, lib/rsyntaxtextarea.jar). The jars are copied from Maven Central before compilation
-           instead of being committed. -->
+      <!-- FlatLaf (and its font jars) has no OSGi manifest and RSyntaxTextArea exports no packages: embed them via
+           Bundle-ClassPath (lib/flatlaf.jar, lib/flatlaf-fonts-*.jar, lib/rsyntaxtextarea.jar). The jars are copied
+           from Maven Central before compilation instead of being committed. -->
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-dependency-plugin</artifactId>
@@ -49,6 +52,18 @@
                   <artifactId>rsyntaxtextarea</artifactId>
                   <version>${rsyntaxtextarea.version}</version>
                   <destFileName>rsyntaxtextarea.jar</destFileName>
+                </artifactItem>
+                <artifactItem>
+                  <groupId>com.formdev</groupId>
+                  <artifactId>flatlaf-fonts-inter</artifactId>
+                  <version>${flatlaf.fonts.inter.version}</version>
+                  <destFileName>flatlaf-fonts-inter.jar</destFileName>
+                </artifactItem>
+                <artifactItem>
+                  <groupId>com.formdev</groupId>
+                  <artifactId>flatlaf-fonts-jetbrains-mono</artifactId>
+                  <version>${flatlaf.fonts.jetbrains.mono.version}</version>
+                  <destFileName>flatlaf-fonts-jetbrains-mono.jar</destFileName>
                 </artifactItem>
               </artifactItems>
               <outputDirectory>${project.basedir}/lib</outputDirectory>

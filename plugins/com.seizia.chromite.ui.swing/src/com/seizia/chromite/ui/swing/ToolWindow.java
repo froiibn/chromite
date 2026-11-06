@@ -17,6 +17,7 @@
 package com.seizia.chromite.ui.swing;
 
 import com.formdev.flatlaf.FlatClientProperties;
+import com.formdev.flatlaf.util.UIScale;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.model.preferences.DBPPreferenceStore;
@@ -37,10 +38,12 @@ import java.awt.event.ActionEvent;
  *     <li>저장하는 값은 구분선 위치가 아니라 도구 창의 크기(가로 분할은 너비, 세로 분할은 높이)다. 창 크기가 바뀌어도
  *     도구 창 크기가 유지되도록 뒤쪽 도구 창의 분할 창은 늘어난 공간을 앞쪽(문서 영역)에 준다({@code resizeWeight = 1}).</li>
  *     <li>저장 위치는 테마와 같은 이 번들의 설정 저장소다({@link ChromiteTheme} 참고).</li>
+ *     <li>머리말(DataGrip New UI): 높이 40 + 아래 1px 선, semibold 제목(왼쪽 12), 오른쪽에 숨기기(—) 아이콘 단추. 도구 창의 도구 막대는 내용 쪽에 둔다(Object Explorer, SSMS처럼 머리말 아래).</li>
  * </ul>
  *
  * 변경 이력:
  * - 2026-11-06 B단계: 최초 작성 (docs/chromite/swing-frontend.md "구현 현황 — B단계")
+ * - 2026-11-06 디자인 적용: 머리말 높이 40, 아이콘 숨기기 단추, 쓰지 않게 된 머리말 도구 인자 삭제 (docs/chromite/design-spec.md "적용 현황")
  */
 final class ToolWindow {
 
@@ -60,7 +63,6 @@ final class ToolWindow {
      * @param title       header title and View menu label
      * @param showHeader  {@code false} for content with its own header (it can embed {@link #createHideButton()})
      * @param content     tool window content
-     * @param headerTools extra header controls (e.g. a refresh button), shown before the hide button
      * @param splitPane   split pane that hosts the tool window
      * @param leading     {@code true} for the left/top side of the split pane, {@code false} for the right/bottom side
      * @param defaultSize width or height used until the user resizes the tool window
@@ -71,7 +73,6 @@ final class ToolWindow {
         @NotNull String title,
         boolean showHeader,
         @NotNull JComponent content,
-        @Nullable JComponent headerTools,
         @NotNull JSplitPane splitPane,
         boolean leading,
         int defaultSize,
@@ -94,7 +95,7 @@ final class ToolWindow {
             component = content;
         } else {
             JPanel panel = new JPanel(new BorderLayout());
-            panel.add(createHeader(title, headerTools), BorderLayout.NORTH);
+            panel.add(createHeader(title), BorderLayout.NORTH);
             panel.add(content, BorderLayout.CENTER);
             component = panel;
         }
@@ -116,16 +117,17 @@ final class ToolWindow {
     }
 
     /**
-     * A small "hide" button for the tool window header or for content with its own header.
+     * The "hide" icon button (—) for the tool window header or for content with its own header.
      */
     @NotNull
     JButton createHideButton() {
-        JButton button = new JButton("×"); //$NON-NLS-1$
-        button.setToolTipText("Hide " + toggleAction.getValue(Action.NAME));
-        button.putClientProperty(FlatClientProperties.BUTTON_TYPE, FlatClientProperties.BUTTON_TYPE_TOOLBAR_BUTTON);
-        button.setFocusable(false);
-        button.addActionListener(e -> setShown(false));
-        return button;
+        Action hideAction = new AbstractAction("Hide " + toggleAction.getValue(Action.NAME)) {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                setShown(false);
+            }
+        };
+        return UiIcons.createActionButton(hideAction, "hide"); //$NON-NLS-1$
     }
 
     boolean isShown() {
@@ -200,36 +202,42 @@ final class ToolWindow {
     }
 
     @NotNull
-    private JComponent createHeader(@NotNull String title, @Nullable JComponent headerTools) {
+    private JComponent createHeader(@NotNull String title) {
         JLabel titleLabel = new JLabel(title);
         titleLabel.putClientProperty(FlatClientProperties.STYLE_CLASS, "semibold"); //$NON-NLS-1$
 
-        JPanel tools = new JPanel(new FlowLayout(FlowLayout.RIGHT, 2, 0));
+        // Icon buttons are centered vertically in the header (GridBagLayout centers its row)
+        JPanel tools = new JPanel(new GridBagLayout());
         tools.setOpaque(false);
-        if (headerTools != null) {
-            tools.add(headerTools);
-        }
         tools.add(createHideButton());
 
         JPanel header = new SeparatedPanel();
-        header.setLayout(new BorderLayout());
-        header.add(titleLabel, BorderLayout.WEST);
+        header.setLayout(new BorderLayout(UIScale.scale(8), 0));
+        header.add(titleLabel, BorderLayout.CENTER);
         header.add(tools, BorderLayout.EAST);
         return header;
     }
 
     /**
-     * Header with a bottom separator line. The border is recreated on theme changes, because its color comes
-     * from the look and feel.
+     * Header (size.header.toolWindow: 40 + a 1px border.subtle line below, title 12px from the left). The border is
+     * recreated on theme changes, because its color comes from the look and feel.
      */
     private static final class SeparatedPanel extends JPanel {
+        private static final int HEIGHT = 40;
+
         @Override
         public void updateUI() {
             super.updateUI();
             Color separatorColor = UIManager.getColor("Separator.foreground"); //$NON-NLS-1$
             setBorder(BorderFactory.createCompoundBorder(
                 BorderFactory.createMatteBorder(0, 0, 1, 0, separatorColor != null ? separatorColor : Color.GRAY),
-                BorderFactory.createEmptyBorder(2, 8, 2, 2)));
+                BorderFactory.createEmptyBorder(0, UIScale.scale(12), 0, UIScale.scale(8))));
+        }
+
+        @Override
+        public Dimension getPreferredSize() {
+            Dimension size = super.getPreferredSize();
+            return new Dimension(size.width, UIScale.scale(HEIGHT) + 1);
         }
     }
 }

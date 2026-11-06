@@ -9,6 +9,8 @@ Bundle-RequiredExecutionEnvironment: JavaSE-25
 Bundle-Activator: com.seizia.chromite.ui.swing.ChromiteSwingActivator
 Bundle-ClassPath: .,
  lib/flatlaf.jar,
+ lib/flatlaf-fonts-inter.jar,
+ lib/flatlaf-fonts-jetbrains-mono.jar,
  lib/rsyntaxtextarea.jar
 Require-Bundle: org.eclipse.equinox.app,
  org.eclipse.core.resources,

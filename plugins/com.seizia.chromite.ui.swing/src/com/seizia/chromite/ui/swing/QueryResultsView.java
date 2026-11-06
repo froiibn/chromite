@@ -47,6 +47,7 @@ import java.util.List;
  * 변경 이력:
  * - 2026-11-06 C단계: 최초 작성 (docs/chromite/swing-frontend.md "구현 현황 — C단계")
  * - 2026-11-06 G단계: 편집할 수 있는 결과 표, 저장 메시지, 저장하지 않은 변경 묻기 (docs/chromite/swing-frontend.md "구현 현황 — G단계")
+ * - 2026-11-06 디자인 적용: Messages 글꼴 font.code, 오류 색 status.error (docs/chromite/design-spec.md "적용 현황")
  */
 final class QueryResultsView {
 
@@ -105,6 +106,8 @@ final class QueryResultsView {
         resultsComponent.getVerticalScrollBar().setUnitIncrement(16);
 
         messagesPane.setEditable(false);
+        // font.code, like the DataGrip console output
+        messagesPane.putClientProperty(FlatClientProperties.STYLE_CLASS, "monospaced"); //$NON-NLS-1$
         messagesComponent = new JScrollPane(messagesPane);
         messagesComponent.setBorder(BorderFactory.createEmptyBorder());
         clear();
@@ -203,7 +206,7 @@ final class QueryResultsView {
 
     void appendError(@NotNull String text) {
         SimpleAttributeSet attributes = new SimpleAttributeSet();
-        Color errorColor = UIManager.getColor("Actions.Red"); //$NON-NLS-1$
+        Color errorColor = UIManager.getColor("Chromite.status.error"); //$NON-NLS-1$
         StyleConstants.setForeground(attributes, errorColor != null ? errorColor : Color.RED);
         append(text, attributes);
     }

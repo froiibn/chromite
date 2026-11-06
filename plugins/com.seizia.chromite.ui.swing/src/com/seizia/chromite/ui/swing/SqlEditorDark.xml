@@ -2,19 +2,21 @@
 <!DOCTYPE RSyntaxTheme SYSTEM "theme.dtd">
 
 <!--
-	Chromite dark SQL editor colors (DataGrip-like palette on the ChromiteDarkLaf background).
+	Chromite dark SQL editor colors: DataGrip New UI Dark (IntelliJ expUI_darkScheme DEFAULT_* attributes),
+	values from docs/chromite/design-spec.md "SQL 구문 색". RSyntaxTextArea draws an underline in the token's
+	own color, so syntax errors are underlined in the text color (New UI: a red wave).
 	Loaded by SqlEditorPanel; see org.fife.ui.rsyntaxtextarea.Theme and theme.dtd for the format.
 -->
 <RSyntaxTheme version="1.0">
 
-	<!-- No baseFont: the system monospaced font of RSyntaxTextArea. -->
+	<!-- No baseFont: SqlEditorPanel sets the look and feel's JetBrains Mono composite font (font.code). -->
 	<background color="1e1f22"/>
 	<caret color="ced0d6"/>
 	<selection useFG="false" bg="214283" roundedEdges="false"/>
 	<currentLineHighlight color="26282e" fade="false"/>
 	<marginLine fg="393b40"/>
-	<markAllHighlight color="3b514d"/>
-	<markOccurrencesHighlight color="3b514d" border="false"/>
+	<markAllHighlight color="373b39"/>
+	<markOccurrencesHighlight color="373b39" border="false"/>
 	<matchedBracket fg="bcbec4" bg="43454a" highlightBoth="false" animate="false"/>
 	<hyperlinks fg="56a8f5"/>
 	<secondaryLanguages>
@@ -24,7 +26,7 @@
 	</secondaryLanguages>
 
 	<gutterBackground color="1e1f22"/>
-	<gutterBorder color="393b40"/>
+	<gutterBorder color="1e1f22"/>
 	<lineNumbers fg="4b5059" currentFG="a1a3ab"/>
 	<foldIndicator fg="4b5059" iconBg="1e1f22"/>
 	<iconRowHeader activeLineRange="4b5059"/>
@@ -63,10 +65,10 @@
 		<style token="SEPARATOR" fg="bcbec4"/>
 		<style token="VARIABLE" fg="c77dbb"/>
 		<style token="WHITESPACE" fg="bcbec4"/>
-		<style token="ERROR_IDENTIFIER" fg="bcbec4" bg="5e3838"/>
-		<style token="ERROR_NUMBER_FORMAT" fg="bcbec4" bg="5e3838"/>
-		<style token="ERROR_STRING_DOUBLE" fg="bcbec4" bg="5e3838"/>
-		<style token="ERROR_CHAR" fg="bcbec4" bg="5e3838"/>
+		<style token="ERROR_IDENTIFIER" fg="bcbec4" underline="true"/>
+		<style token="ERROR_NUMBER_FORMAT" fg="bcbec4" underline="true"/>
+		<style token="ERROR_STRING_DOUBLE" fg="bcbec4" underline="true"/>
+		<style token="ERROR_CHAR" fg="bcbec4" underline="true"/>
 	</tokenStyles>
 
 </RSyntaxTheme>

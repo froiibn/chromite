@@ -17,6 +17,8 @@
 package com.seizia.chromite.ui.swing;
 
 import com.formdev.flatlaf.FlatLaf;
+import com.formdev.flatlaf.fonts.inter.FlatInterFont;
+import com.formdev.flatlaf.fonts.jetbrains_mono.FlatJetBrainsMonoFont;
 import org.jkiss.code.NotNull;
 import org.jkiss.dbeaver.Log;
 import org.jkiss.dbeaver.model.preferences.DBPPreferenceStore;
@@ -34,9 +36,12 @@ import java.util.function.Supplier;
  * 인스턴스 설정)에 저장한다. SWT 버전의 테마 설정과 같은 위치 계열이고, 레지스트리(Java Preferences)를 건드리지 않으며,
  * 작업 공간을 복사한 스모크 테스트가 사용자 설정을 바꾸지 않는다.
  * 실행 중 전환은 {@link FlatLaf#updateUI()}로 열린 모든 창을 다시 그린다.
+ * 글꼴(Inter, JetBrains Mono)은 번들에 넣은 FlatLaf 글꼴 jar를 Look and Feel을 설치하기 전에 등록한다
+ * (테마 properties의 {@code defaultFont}, {@code monospaced.font}가 이 이름을 쓴다).
  *
  * 변경 이력:
  * - 2026-11-06 B단계: 최초 작성 (docs/chromite/swing-frontend.md "구현 현황 — B단계")
+ * - 2026-11-06 디자인 적용: Inter·JetBrains Mono 글꼴 등록 (docs/chromite/design-spec.md "적용 현황")
  */
 enum ChromiteTheme {
 
@@ -66,6 +71,10 @@ enum ChromiteTheme {
      * @param updateWindows update all open windows (runtime switch); not needed before any window exists
      */
     void install(boolean updateWindows) {
+        // The theme properties name the bundled families (defaultFont = Inter, monospaced.font = JetBrains Mono);
+        // FlatLaf loads them on first use. Registering twice is harmless.
+        FlatInterFont.installLazy();
+        FlatJetBrainsMonoFont.installLazy();
         if (!FlatLaf.setup(lafFactory.get())) {
             log.warn("Can't install look and feel of theme " + name());
             return;
