@@ -1,0 +1,27 @@
+MySQL Connector/J 9.7.0 (mysql8/mysql-connector-j-9.7.0.jar)
+
+This library is licensed under the GNU General Public License, version 2,
+with the Universal FOSS Exception, version 1.0. See LICENSE.txt in this
+folder (the LICENSE file shipped inside the jar, unmodified).
+
+The jar file is the unmodified binary published on Maven Central:
+  https://repo1.maven.org/maven2/com/mysql/mysql-connector-j/9.7.0/
+It is byte-identical to the jar in Oracle's source distribution below.
+
+Complete corresponding source code (source distribution with build.xml):
+  https://downloads.mysql.com/archives/get/p/3/file/mysql-connector-j-9.7.0.tar.gz
+  https://github.com/mysql/mysql-connector-j/tree/9.7.0
+  https://repo1.maven.org/maven2/com/mysql/mysql-connector-j/9.7.0/mysql-connector-j-9.7.0-sources.jar
+
+The library is loaded as a separate file and is not combined with
+Chromite code. You may replace this jar file with another build of
+MySQL Connector/J (for example with the driver settings dialog in
+Chromite).
+
+Chromite is distributed with MySQL Connector/J under the Universal FOSS
+Exception because Chromite itself is free and open source software
+(Apache License 2.0) whose complete source code is published. If you
+redistribute a modified version of Chromite that is not distributed as
+free and open source software with its complete source code, the
+exception does not apply to your distribution; do not include MySQL
+Connector/J in it.

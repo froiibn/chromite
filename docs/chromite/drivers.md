@@ -30,7 +30,7 @@ JDBC 드라이버를 설치 파일에 미리 넣는다.
   앱이 `org.jkiss.dbeaver.product.bundles` 확장 포인트로 `drivers.oracle` 묶음을 선언하면 설치 폴더의 `drivers/oracle`을 쓰고,
   선언하지 않으면 Maven에서 받는다([ProductBundleRegistry](../../plugins/org.jkiss.dbeaver.registry/src/org/jkiss/dbeaver/registry/ProductBundleRegistry.java)).
   이런 대체 정의가 있는 묶음은 약 45개다(`drivers.mssql.new`, `drivers.oracle`, `drivers.postgresql`, `drivers.mariadb`, `drivers.mysql`, `drivers.db2` 등).
-  upstream 저장소에는 묶음 선언이 없다. Chromite 공개판은 4개를 선언한다(아래 "구현").
+  upstream 저장소에는 묶음 선언이 없다. Chromite 공개판은 5개를 선언한다(아래 "구현").
 - **폴더 경로 해석:** `drivers/oracle` 같은 상대 경로는 설치 폴더 기준으로 먼저 찾는다
   ([DriverLibraryLocal.detectLocalFile](../../plugins/org.jkiss.dbeaver.registry/src/org/jkiss/dbeaver/registry/driver/DriverLibraryLocal.java:175)).
   경로가 폴더이면 그 폴더 **바로 아래의** `.jar`·`.zip` 파일만 클래스패스에 넣는다(하위 폴더는 보지 않음,
@@ -45,8 +45,8 @@ JDBC 드라이버를 설치 파일에 미리 넣는다.
 
 | 구분 | 공개판 | 내부판 |
 |---|---|---|
-| 내장 드라이버 | SQL Server, Oracle, PostgreSQL, MariaDB | 전체 |
-| MySQL | MariaDB 드라이버로 연결. Connector/J는 재배포 가능으로 확인됐으나 포함 여부 미결정 | Connector/J 포함 |
+| 내장 드라이버 | SQL Server, Oracle, PostgreSQL, MariaDB, MySQL | 전체 |
+| MySQL | Connector/J 9.7.0 포함(2026-11-06 결정). MySQL 5 (Legacy) 드라이버는 내장하지 않음 | Connector/J 포함 |
 | 그 밖의 드라이버 | 인터넷이 되면 Maven에서 온라인 다운로드. 폐쇄망에서는 jar 파일을 직접 지정 | 모두 내장, 원격 다운로드 끔 |
 
 ### 내장 방법
@@ -80,15 +80,15 @@ JDBC 드라이버를 설치 파일에 미리 넣는다.
 
 | 위치 | 역할 |
 |---|---|
-| [plugins/com.seizia.chromite.drivers.public/plugin.xml](../../plugins/com.seizia.chromite.drivers.public/plugin.xml) | `org.jkiss.dbeaver.product.bundles`로 `drivers.mssql.new`, `drivers.oracle`, `drivers.postgresql`, `drivers.mariadb` 선언. 코드 없음 |
+| [plugins/com.seizia.chromite.drivers.public/plugin.xml](../../plugins/com.seizia.chromite.drivers.public/plugin.xml) | `org.jkiss.dbeaver.product.bundles`로 `drivers.mssql.new`, `drivers.oracle`, `drivers.postgresql`, `drivers.mariadb`, `drivers.mysql` 선언. 코드 없음 |
 | [features/com.seizia.chromite.drivers.public.feature/feature.xml](../../features/com.seizia.chromite.drivers.public.feature/feature.xml) | 공개판 드라이버 전용 feature `com.seizia.chromite.drivers.public.feature`. 위 플러그인 포함 |
 | [features/com.seizia.chromite.drivers.public.feature/pom.xml](../../features/com.seizia.chromite.drivers.public.feature/pom.xml) | `maven-dependency-plugin:copy`(실행 ID `bundle-public-drivers`)로 Maven Central에서 정확한 버전의 jar를 `target/generated/drivers/<이름>/`에 받는다. jar 목록·버전은 이곳에만 있다. jar는 저장소에 커밋하지 않는다 |
-| [features/com.seizia.chromite.drivers.public.feature/drivers-root/drivers/](../../features/com.seizia.chromite.drivers.public.feature/drivers-root/drivers/) | 라이선스 원문, LGPL 소스 위치 안내(`SOURCE.txt`), 전체 목록(`README.txt`). 루트 [.gitattributes](../../.gitattributes)로 `core.autocrlf`와 상관없이 항상 LF로 체크아웃된다 |
+| [features/com.seizia.chromite.drivers.public.feature/drivers-root/drivers/](../../features/com.seizia.chromite.drivers.public.feature/drivers-root/drivers/) | 라이선스 원문, LGPL·GPL 소스 위치 안내(`SOURCE.txt`), 전체 목록(`README.txt`). 루트 [.gitattributes](../../.gitattributes)로 `core.autocrlf`와 상관없이 항상 LF로 체크아웃된다 |
 | [features/com.seizia.chromite.drivers.public.feature/build.properties](../../features/com.seizia.chromite.drivers.public.feature/build.properties) | `root = target/generated,drivers-root` — 두 폴더가 설치 폴더의 `drivers/`로 합쳐진다 |
 | [features/org.jkiss.dbeaver.ce.feature/feature.xml](../../features/org.jkiss.dbeaver.ce.feature/feature.xml), [features/com.seizia.chromite.swing.feature/feature.xml](../../features/com.seizia.chromite.swing.feature/feature.xml) | SWT 제품과 Swing 제품이 위 feature를 `<includes>`로 포함한다 |
 
 - **플러그인을 따로 만든 이유:** `ui.app.standalone`은 msstore·standalone·테스트 제품에도 들어간다. 그곳에 묶음을 선언하면
-  jar가 없는 제품에서 4개 드라이버가 내려받을 곳도 잃는다. 선언(플러그인)과 파일(feature 루트 파일)을 같은 feature에 묶어
+  jar가 없는 제품에서 묶음 드라이버가 내려받을 곳도 잃는다. 선언(플러그인)과 파일(feature 루트 파일)을 같은 feature에 묶어
   함께만 배포되게 했다.
 - **feature를 따로 만든 이유:** 처음에는 플러그인과 루트 파일을 `ce.feature`에 두었는데, Swing 제품(`com.seizia.chromite.swing.feature`)은
   SWT 번들을 끌어오는 `ce.feature`를 포함할 수 없다. jar 목록을 두 곳에 적지 않도록 "선언 + 파일" 한 쌍을 전용 feature로 옮기고
@@ -105,9 +105,13 @@ JDBC 드라이버를 설치 파일에 미리 넣는다.
 | `drivers/oracle/` | `ojdbc11-23.2.0.0.jar`, `orai18n-23.2.0.0.jar`, `xdb6-18.3.0.0.jar`, `xmlparserv2-23.2.0.0.jar`, `LICENSE.txt`(FUTC 원문) | Oracle |
 | `drivers/postgresql/` | `postgresql-42.7.14.jar`, `LICENSE.txt`(pgjdbc jar의 `META-INF/LICENSE`, BSD-2-Clause) | PostgreSQL 계열 전부(TimescaleDB, Greenplum, YugabyteDB 등 `drivers.postgresql`을 쓰는 드라이버) |
 | `drivers/postgis/` | `postgis-jdbc-2.5.0.jar`, `postgis-geometry-2.5.0.jar`, `postgis-jdbc-jtsparser-2.5.0.jar`, `LICENSE.txt`(LGPL-2.1), `SOURCE.txt` | PostgreSQL 계열의 선택 파일 |
-| `drivers/mariadb/` | `mariadb-java-client-3.5.10.jar`, `LICENSE.txt`(LGPL-2.1), `SOURCE.txt` | MariaDB. 공개판은 MySQL 서버도 이 드라이버로 연결한다 |
+| `drivers/mariadb/` | `mariadb-java-client-3.5.10.jar`, `LICENSE.txt`(LGPL-2.1), `SOURCE.txt` | MariaDB. MySQL 서버에도 쓸 수 있다 |
+| `drivers/mysql/` | `mysql8/mysql-connector-j-9.7.0.jar`, `LICENSE.txt`(jar 안의 `LICENSE` 그대로: GPLv2 + Universal FOSS Exception 1.0과 제3자 고지), `SOURCE.txt` | MySQL, NDB Cluster, Apache Doris, GreptimeDB, Manticore Search, TiDB(`drivers.mysql`을 쓰는 드라이버 전부) |
 
 - 버전은 각 `plugin.xml`의 Maven 대체 경로(`RELEASE[x]`)와 같다. 묶음 사용 여부와 상관없이 같은 드라이버를 쓴다.
+  **예외는 MySQL이다.** `drivers/mysql/mysql8` 하나를 쓰는 드라이버들의 Maven 대체 경로가 서로 다르고
+  (MySQL·NDB·Doris `RELEASE[8.2.0]`, Manticore `RELEASE[9.7.0]`, GreptimeDB·TiDB 버전 없는 `RELEASE` = 조사일 26.10.0),
+  한 폴더에 Connector/J jar를 두 개 넣으면 같은 클래스가 겹치므로 하나만 넣어야 한다.
 - **넣은 것과 뺀 것(결정):**
   - `msal4j`와 의존 jar: 넣음. 묶음 모드에서는 Azure 드라이버의 `msal4j` Maven 항목이 `!drivers.mssql.new`로 빠지고
     대체 경로가 `drivers/mssql/new`뿐이라, 넣지 않으면 Entra ID(Azure AD) 인증이 동작하지 않는다. 모두 MIT·Apache-2.0·BSD-3.
@@ -118,6 +122,25 @@ JDBC 드라이버를 설치 파일에 미리 넣는다.
   - `waffle-jna`(PostgreSQL SSPI 인증): 뺌. `plugin.xml`의 묶음 대체 경로(`drivers/waffle`)가 주석 처리돼 있어 넣어도 쓰이지 않고,
     JNA까지 약 3MB가 더 든다. 공개판에서 SSPI(`gsslib=sspi`)를 쓰려면 jar를 직접 추가한다.
   - `checker-qual`: 뺌. pgjdbc의 runtime 의존성이지만 어노테이션뿐이라 실행에 필요 없다.
+  - MySQL Connector/J 버전: 9.7.0. 저장소에 이미 고정된 버전(Manticore, upstream이 2026-09에 추가)이고,
+    [driver-licenses.md](driver-licenses.md)에서 내장할 때 9.x 또는 26.x로 올리기로 정리했다. 8.2.0(2023년)은 오래됐고,
+    26.10.0은 `RELEASE`가 지금 가리키는 최신판이라 검증 이력이 가장 짧다. 9.7.0 소스에서 서버 버전으로 연결을 거부하는 곳은
+    아래 `CLIENT_PLUGIN_AUTH` 검사뿐이고(5.x 서버용 `versionMeetsMinimum(5, ...)` 분기는 남아 있다),
+    NDB 드라이버가 쓰는 `com.mysql.jdbc.Driver` 클래스도 들어 있다.
+    Maven 모드의 MySQL·NDB·Doris(8.2.0)와 묶음 모드의 버전이 다르다는 점은 남는다.
+  - `protobuf-java`(Connector/J의 compile 의존성): 뺌. X DevAPI(`mysqlx:`) 전용이다. `jdeps`로 보면 protobuf를 참조하는 패키지는
+    `com.mysql.cj.protocol.x`, `com.mysql.cj.x.protobuf`, `com.mysql.cj.xdevapi`뿐이고, JDBC 쪽에서 이 패키지로 가는 경로는
+    `CoreSession.getDataStoreMetadata()` 하나인데 이 메서드는 `xdevapi` 클래스만 부른다. jar의 OSGi `Import-Package`도
+    `com.google.protobuf;resolution:=optional`이다. Chromite의 MySQL 계열 드라이버는 모두 `jdbc:mysql:` URL을 쓴다.
+    선택 의존성 `oci-java-sdk-common`(OCI IAM 인증)도 넣지 않는다(Maven 모드에서도 받지 않는 선택 의존성).
+  - `mysql-connector-java` 5.1.49(MySQL 5 (Legacy)): 뺌. 이 드라이버는 `drivers/mysql/mysql5`를 대체 경로로 두지만,
+    9.7.0으로 대신할 수 없다. 9.7.0은 `CLIENT_PLUGIN_AUTH`가 없는 서버(MySQL 5.5.7 미만)를 거부하는데
+    (`NativeAuthenticationProvider.java:145`의 "CLIENT_PLUGIN_AUTH is required", 8.2.0에도 같은 검사가 있다), Legacy 드라이버는 그런 예전 서버용이다.
+    5.1.49는 예전 "MySQL FOSS License Exception"이 적용되고 2020년 이후 갱신이 없어 내장하지 않기로 했다([driver-licenses.md](driver-licenses.md)).
+    그래서 [ext.mysql/plugin.xml](../../plugins/org.jkiss.dbeaver.ext.mysql/plugin.xml)의 Legacy 드라이버 두 항목만 묶음 ID를
+    `drivers.mysql5`로 바꿨다. 공개판은 이 묶음을 선언하지 않으므로 Legacy 드라이버는 예전처럼 처음 쓸 때 Maven에서 5.1.49를 받는다.
+    바꾸지 않으면 `drivers.mysql` 선언과 함께 Maven 항목이 빠지고 폴더도 없어 파일 출처가 사라진다. 내부판은 `drivers.mysql5`를 선언하고 5.1.49를 넣을 수 있다.
+    StarRocks(`starrocks-connector-j`)와 "MySQL (Old)"(ext.generic)는 묶음 속성이 없어 영향이 없다.
 
 ### 오프라인 우선 조회와 오프라인 모드
 
@@ -155,7 +178,14 @@ JDBC 드라이버를 설치 파일에 미리 넣는다.
   위 첫 확인보다 1,351바이트 큰 것은 `core.autocrlf=true` 체크아웃에서 라이선스 텍스트 1,351줄이 CRLF로 들어갔기 때문이다.
   이후 `.gitattributes`로 이 텍스트를 항상 LF로 고정해 크기가 체크아웃 설정에 따라 달라지지 않는다), SWT 제품의 `drivers/`도 분리 전과 같다. Swing 제품에서 오프라인 모드를 끈 채 PostgreSQL의
   Driver Properties를 열면 내려받기 확인 없이 속성이 보이고, Test Connection은 pgjdbc의 "Connection refused"로 끝났다([swing-frontend.md](swing-frontend.md)).
-- 오프라인 모드를 끈 상태(공개판 기본값)의 SWT 제품 내장 드라이버는 실행해 보지 않았다. 코드상 묶음 모드에서는 4개 드라이버에
+- MySQL 추가 후(2026-11-06, `-Pproduct-dbeaver-ce,product-chromite-swing` 빌드): 네 결과물(SWT·Swing × Windows·macOS)의 `drivers/`가
+  37개 파일, 21,608,448 bytes로 이름·크기·SHA-256이 모두 같다. 늘어난 파일은 `mysql/LICENSE.txt`(82,896), `mysql/SOURCE.txt`,
+  `mysql/mysql8/mysql-connector-j-9.7.0.jar`(2,607,237, SHA-256 `0353648e…43eb44`)이고 protobuf-java는 없다.
+  SWT Windows 제품을 오프라인 모드를 끈 새 작업 공간(공개판 기본값)으로 실행해 127.0.0.1:1에 연결했다. MySQL과 NDB Cluster
+  (`jdbc:mysql:loadbalance:`, `com.mysql.jdbc.Driver`)는 다운로드 대화상자 없이 Connector/J의 "Communications link failure /
+  Connection refused"로 끝났다. 스택의 `NonRegisteringDriver.java:180`은 9.7.0 소스와 맞는다(8.2.0은 189줄). MySQL 5 (Legacy)는
+  예상대로 `mysql:mysql-connector-java` 5.1.49 다운로드 대화상자가 열렸다(취소함).
+- 오프라인 모드를 끈 상태(공개판 기본값)의 SWT 제품 내장 드라이버는 실행해 보지 않았다(MySQL 추가 전 4종 기준). 코드상 묶음 모드에서는 4개 드라이버에
   내려받을 항목이 남지 않으므로(`getDriverDependencies`가 `null`) 다운로드 대화상자가 열리지 않는다.
 
 ### 공개판에 드라이버를 추가하는 방법
@@ -189,19 +219,22 @@ JDBC 드라이버를 설치 파일에 미리 넣는다.
 | PostgreSQL (`postgresql`) | BSD-2-Clause | 가능 |
 | MariaDB Connector/J | LGPL-2.1-or-later | 가능 (jar 수정 없이, 라이선스·소스 위치 동봉) |
 | Oracle (`ojdbc11`, `orai18n`, `xdb6`, `xmlparserv2`) | Oracle Free Use Terms and Conditions | 가능. 수정 없는 재배포 허용, 약관 사본 동봉·사용료 미부과 조건 |
-| MySQL Connector/J | GPLv2 + Universal FOSS Exception 1.0 | 가능(조건부). Apache-2.0 공개판은 예외가 적용되는 "Other FOSS"에 해당. GPL 원문 동봉과 Connector/J 소스 제공 의무 |
+| MySQL Connector/J | GPLv2 + Universal FOSS Exception 1.0 | 내장함(2026-11-06 결정). Apache-2.0 공개판은 예외가 적용되는 "Other FOSS"에 해당. jar 무수정, 라이선스 원문·소스 위치(`SOURCE.txt`) 동봉 |
 | IBM Db2·Informix, Vertica | 재배포 허용이지만 최종 사용자 약관 전가·면책 조건 | 제외. 내부판만 |
 | Teradata, SAP HANA, SAP ASE(jConnect), GBase 8s, Simba BigQuery | 재배포 금지 또는 서면 동의 필요 | 제외. 내부판에도 내장하지 않음 |
 
-- 공개판 4종 크기는 의존성 포함 약 23.7MB(최소 구성 약 14.7MB)다. 전체를 내장하면 약 1.7GB다.
-- MySQL Connector/J를 공개판에 넣을 수 있게 됐으므로, 넣을지(+약 4.5MB) 다시 결정한다.
+- 공개판 4종 크기는 의존성 포함 약 23.7MB(최소 구성 약 14.7MB)다. MySQL Connector/J 9.7.0은 jar 2,607,237 bytes와
+  `LICENSE.txt`·`SOURCE.txt`가 더해진다(protobuf-java를 빼서 조사 때 잡은 +약 4.5MB보다 작다). 전체를 내장하면 약 1.7GB다.
 
 ## 미완료 항목
 
-- 공개판에 MySQL Connector/J 포함 여부 결정
+- MySQL 계열 `plugin.xml`의 라이선스 표기(`licenses/external/gnu3.txt`, GPLv3)가 실제(GPLv2 + Universal FOSS Exception)와 다르다.
+  묶음 모드에서는 `drivers/mysql/LICENSE.txt`를 보이게 하는 것이 맞지만(TiDB만 그렇게 돼 있다) 플러그인 5개에 걸친 변경이라 따로 한다
+  ([driver-licenses.md](driver-licenses.md) "plugin.xml의 라이선스 표기와 실제가 다른 항목")
+- GPLv2 3항 대응 소스 제공 방식 확정: 지금은 `SOURCE.txt`에 Oracle의 공식 소스 배포 위치를 적었다. 3항을 문자 그대로 따르려면
+  설치 파일과 같은 곳(예: GitHub Release)에 소스 묶음(`mysql-connector-j-9.7.0.tar.gz`, 4,556,015 bytes)을 함께 올리거나 서면 제공 약속을 넣어야 한다(법률 검토 항목)
 - [driver-licenses.md](driver-licenses.md)의 "확인 못함" 항목 약관 원문 확인, 공개판 라이선스 고지 형식 법률 검토
-- MariaDB 드라이버로 MySQL 8 연결 시 인증 방식(`caching_sha2_password`) 등 호환성 실측
-- 내장 드라이버로 실제 DB(SQL Server, Oracle, PostgreSQL, MariaDB)에 로그인까지 하는 확인(드라이버 로드까지만 확인함), macOS 실행 확인
+- 내장 드라이버로 실제 DB(SQL Server, Oracle, PostgreSQL, MariaDB, MySQL)에 로그인까지 하는 확인(드라이버 로드까지만 확인함), macOS 실행 확인
 - 내부판 구현(위 "내부판 계획")
 
 ## 변경 이력
@@ -217,3 +250,6 @@ JDBC 드라이버를 설치 파일에 미리 넣는다.
   라이선스 텍스트가 LF로 들어가 배포되는 `drivers/` 바이트가 체크아웃 설정에 따라 달라지지 않는다(텍스트 11개, 70,322 bytes).
 - 2026-11-06 설치 폴더의 `licenses/external/readme.txt`(원본 `docs/root/licenses/external/readme.txt`)가 "드라이버는 제품에 포함되지 않는다"고
   적고 있어, 일부 드라이버는 내장되며 `drivers/README.txt`와 `NOTICE`를 보라고 고침.
+- 2026-11-06 공개판에 MySQL Connector/J 9.7.0 내장(사용자 결정). `drivers.mysql` 선언, `drivers/mysql/mysql8/`에 jar,
+  `drivers/mysql/`에 jar 안의 `LICENSE` 원문과 `SOURCE.txt`, `README.txt`·`NOTICE` 갱신. protobuf-java(X DevAPI 전용)는 넣지 않음.
+  MySQL 5 (Legacy) 드라이버의 묶음 ID를 `ext.mysql/plugin.xml`에서 `drivers.mysql5`로 분리해 Maven 다운로드(5.1.49)를 유지.
