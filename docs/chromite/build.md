@@ -37,7 +37,7 @@ chromite/
 ### 빌드 명령
 
 ```bash
-mvn package -f product/aggregate/pom.xml -T1C -Pproduct-chromite-swt
+mvn package -f product/aggregate/pom.xml -T1C -Pproduct-chromite-swing
 ```
 
 `tools/build.cmd`, `tools/build.sh`는 Maven을 설치하지 않아도 되도록 `deps/dbeaver-common`의 Maven Wrapper(`mvnw`)로
@@ -47,8 +47,10 @@ mvn package -f product/aggregate/pom.xml -T1C -Pproduct-chromite-swt
 
 | 프로파일 (`product/pom.xml`) | 모듈 | 제품 |
 |---|---|---|
-| `product-chromite-swt` | `product/community` | SWT 제품 `chromite` |
 | `product-chromite-swing` | `product/swing` | Swing 제품 `chromite-swing` ([swing-frontend.md](swing-frontend.md)) |
+
+- SWT 제품(`product/community`, 프로파일 `product-chromite-swt`)은 2026-11-07 삭제했다([swt-removal.md](swt-removal.md)).
+  결과물은 `product/swing/target/products/com.seizia.chromite.swing.product/<os>/<ws>/<arch>/`(Windows `chromite-swing/`, macOS `ChromiteSwing.app`)이다.
 
 - `product/testing/ChromiteUnitTest.product`는 Maven 모듈이 아니다. 테스트 기반 클래스 `ChromiteUnitTest`의
   `@RunWithProduct("ChromiteUnitTest.product")`와 `osgi-app.properties`의 `productsPaths`(IDEA 작업 공간 생성기)가 이 파일을 쓴다.
@@ -69,6 +71,7 @@ mvn package -f product/aggregate/pom.xml -T1C -Pproduct-chromite-swt
 - 남긴 것: Office·Git·Debug 확장 feature(`com.seizia.chromite.{ext.office,git,debug}.feature`)와 그 번들은 그대로 빌드한다.
   이 feature들은 이제 어느 제품이나 p2 저장소에도 들어가지 않지만, 번들 일부(`data.office`, `bundle.apache.poi`)를 Swing 제품이 쓰고
   나머지는 SWT 확장 기능(PostgreSQL 디버거, Git, Office 내보내기 UI)이라, 지울지는 따로 정한다.
+  → 같은 날 SWT 프런트엔드 삭제에서 세 feature와 SWT 번들을 지웠다. `data.office`는 Swing feature가 직접 포함한다([swt-removal.md](swt-removal.md)).
 
 ## 설계 결정과 이유
 
@@ -153,3 +156,4 @@ git subtree pull --prefix=deps/datadam-api   --squash https://github.com/dbeaver
 - 2026-11-06 CI를 Chromite 자체 워크플로로 바꾸면서 `push-pr-devel.yml`을 삭제. CI 관련 설명을 [ci.md](ci.md)로 옮김.
 - 2026-11-07 쓰지 않는 제품 삭제: Microsoft Store(`community-msstore`), Eclipse 플러그인(`repositories`, `ide.feature`, `ui.app.eclipse`),
   Snap(`snap-build`)과 그것만 쓰던 코드·메시지 키. `tools/build.*`의 프로파일을 `product-chromite-swt`만 남김. "빌드하는 제품" 절 추가.
+- 2026-11-07 SWT 프런트엔드 삭제([swt-removal.md](swt-removal.md)): 빌드 명령과 `tools/build.*`의 프로파일을 `product-chromite-swing`으로, "빌드하는 제품" 표에서 SWT 제품 삭제.

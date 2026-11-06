@@ -5,7 +5,7 @@
 Chromite의 CI를 DBeaver 조직의 워크플로, 액션, 시크릿 없이 이 저장소 안의 설정만으로 돌린다.
 
 - `devel`에 push하거나 `devel` 대상 PR을 열면 지원 플랫폼(Windows x64, macOS arm64)의 전체 제품을 빌드한다.
-  제품은 두 가지다: SWT 제품(`product/community`)과 Swing 제품(`product/swing`, [swing-frontend.md](swing-frontend.md)).
+  제품은 Swing 제품(`product/swing`, [swing-frontend.md](swing-frontend.md)) 하나다. SWT 제품은 2026-11-07 삭제했다([swt-removal.md](swt-removal.md)).
   Windows 제품은 Windows 러너에서, macOS 제품은 Linux 러너에서 만든다(아래 "macOS 제품을 Linux 러너에서 만드는 이유").
 - 빌드한 제품을 워크플로 결과물(artifact)로 올려 PR마다 바로 내려받아 실행해 볼 수 있게 한다.
 - CodeQL로 Chromite 코드(`deps/` 제외)의 보안 취약점을 검사한다.
@@ -16,7 +16,7 @@ Chromite의 CI를 DBeaver 조직의 워크플로, 액션, 시크릿 없이 이 �
 |---|---|---|
 | `.github/workflows/build.yml` | `devel` push, `devel` 대상 PR, 수동 실행(`workflow_dispatch`) | 작업 `build`를 행렬(matrix)로 두 번 실행: `windows-x64`(`windows-latest`), `macos-aarch64-on-linux`(`ubuntu-latest`). 제품 빌드 후 결과물 업로드. 작업 `rename-gate`(`ubuntu-latest`)가 `tools/rename/gate.py`로 옛 DBeaver 내부 이름 재유입과 깨진 참조를 검사([internal-rename.md](internal-rename.md)) |
 | `.github/workflows/codeql.yml` | `devel` push, `devel` 대상 PR, 매주 화요일 03:30 UTC | 작업 `analyze`를 `actions`, `java-kotlin` 두 언어로 실행(`ubuntu-latest`) |
-| `.github/workflows/release.yml` | `v*` 태그 push, `devel`에서 수동 실행 | 두 제품을 빌드·서명·확인하고 태그면 초안 Release에 올림([signing.md](signing.md)) |
+| `.github/workflows/release.yml` | `v*` 태그 push, `devel`에서 수동 실행 | 제품을 빌드·서명·확인하고 태그면 초안 Release에 올림([signing.md](signing.md)) |
 | `.github/codeql/codeql-config.yml` | `codeql.yml`이 읽음 | `paths-ignore: deps` |
 
 ### build.yml 단계
@@ -26,24 +26,20 @@ Chromite의 CI를 DBeaver 조직의 워크플로, 액션, 시크릿 없이 이 �
 3. `actions/cache@v6`: `~/.m2/repository`(Maven·Tycho·p2 결과물), `~/.m2/wrapper`(mvnw가 받은 Maven)
    - 키: `m2-<OS>-<arch>-<모든 pom.xml과 maven-wrapper.properties의 해시>`, 복원 키: `m2-<OS>-<arch>-`
    - `<OS>`, `<arch>`는 `runner.os`, `runner.arch`라서 러너가 바뀌면 키도 따라 바뀐다(macOS 제품 작업: `m2-Linux-X64-...`).
-4. 빌드: `deps/dbeaver-common/mvnw -B -ntp package -f product/aggregate/pom.xml -T1C -Pproduct-chromite-swt,product-chromite-swing`
-   - Maven 한 번으로 SWT 제품(`product-chromite-swt`)과 Swing 제품(`product-chromite-swing`, `product/pom.xml`의 프로파일)을 함께 만든다.
-     두 제품은 같은 reactor의 번들을 쓰므로 따로 실행하면 같은 번들을 두 번 빌드한다.
+4. 빌드: `deps/dbeaver-common/mvnw -B -ntp package -f product/aggregate/pom.xml -T1C -Pproduct-chromite-swing`
    - Windows는 `pwsh`에서 `mvnw.cmd`, Linux는 `bash`에서 `mvnw`를 실행한다. 두 단계의 인수는 같게 유지한다.
-   - `pwsh`에서는 프로파일 목록을 작은따옴표로 묶는다(`'-Pproduct-chromite-swt,product-chromite-swing'`).
-     묶지 않으면 PowerShell이 쉼표를 배열 구분자로 읽어 인수를 나눌 수 있다.
+   - 프로파일을 여러 개 쓰게 되면 `pwsh`에서는 목록을 작은따옴표로 묶는다(PowerShell이 쉼표를 배열 구분자로 읽는다).
    - `MAVEN_OPTS=-Xmx3g`
-5. 결과물 업로드(보관 7일). macOS 제품은 실행 파일의 실행 권한을 확인한 뒤 tar로 묶어 올린다. 제품마다 결과물을 따로 올린다.
+5. 결과물 업로드(보관 7일). macOS 제품은 실행 파일의 실행 권한을 확인한 뒤 tar로 묶어 올린다.
 
 ### 결과물 (artifact)
 
-Tycho는 `product/<community|swing>/target/products/<제품 ID>/<os>/<ws>/<arch>/<루트 폴더>`에 제품을 만든다
-(`product/community/pom.xml`, `product/swing/pom.xml`의 `rootFolders`, 로컬 빌드 결과로 확인). 압축 파일(`archive-products`)은 만들지 않는다.
+Tycho는 `product/swing/target/products/<제품 ID>/<os>/<ws>/<arch>/<루트 폴더>`에 제품을 만든다
+(`product/swing/pom.xml`의 `rootFolders`, 로컬 빌드 결과로 확인). 압축 파일(`archive-products`)은 만들지 않는다.
+SWT 제품의 결과물(`chromite-windows-x64`, `chromite-macos-aarch64`)은 SWT 삭제와 함께 없어졌다.
 
 | 결과물 이름 | 만드는 러너 | 원본 경로 | 내용 |
 |---|---|---|---|
-| `chromite-windows-x64` | `windows-latest` | `product/community/target/products/com.seizia.chromite.core.product/win32/win32/x86_64/` | zip 안에 `chromite/` 폴더(`chromite.exe` 포함) |
-| `chromite-macos-aarch64` | `ubuntu-latest`(작업 `macos-aarch64-on-linux`) | `product/community/target/products/com.seizia.chromite.core.product/macosx/cocoa/aarch64/Chromite.app` | zip 안에 `chromite-macos-aarch64.tar.gz`(`Chromite.app`) |
 | `chromite-swing-windows-x64` | `windows-latest` | `product/swing/target/products/com.seizia.chromite.swing.product/win32/win32/x86_64/` | zip 안에 `chromite-swing/` 폴더(`chromite-swing.exe` 포함) |
 | `chromite-swing-macos-aarch64` | `ubuntu-latest`(작업 `macos-aarch64-on-linux`) | `product/swing/target/products/com.seizia.chromite.swing.product/macosx/cocoa/aarch64/ChromiteSwing.app` | zip 안에 `chromite-swing-macos-aarch64.tar.gz`(`ChromiteSwing.app`, 런처 `Contents/MacOS/chromite-swing`) |
 
@@ -94,18 +90,18 @@ Swing 제품의 루트 폴더(`chromite-swing`, `ChromiteSwing.app`)는 `product
   `chmod` 동작으로 준다.
   - p2 publisher가 macOS 런처 IU에 `chmod(targetDir:${installFolder}/../MacOS/, targetFile:<런처 이름>, permissions:755)`를
     넣는다(`org.eclipse.equinox.p2.publisher.eclipse` 1.6.900 소스, `EquinoxExecutableAction.computeMacInstallActions` 209~213행).
-    런처 이름은 `product/community/Chromite.product`의 `<launcher name="chromite">`다.
-    Swing 제품도 같은 방식이며 런처 이름은 `product/swing/chromite-swing.product`의 `<launcher name="chromite-swing">`다.
+    런처 이름은 `product/swing/chromite-swing.product`의 `<launcher name="chromite-swing">`다
+    (이 절의 `Chromite.app`은 처음 확인한 SWT 제품이다. 같은 방식이 `ChromiteSwing.app`에 적용된다).
   - `ChmodAction`(`org.eclipse.equinox.p2.touchpoint.natives` 1.5.900 소스)은 빌드하는 OS가 Windows일 때만
     (`File.separatorChar == '\\'`, 30·100행) 아무것도 하지 않고, 그 밖의 OS에서는 `chmod 755 <파일>` 명령을 실행한다(191~208행).
     대상 제품의 OS가 아니라 빌드하는 OS를 본다. 그래서 Windows에서 만든 `Chromite.app`에는 실행 권한이 없고,
     Linux에서 만들면 macOS에서 만든 것과 같이 실행 권한이 붙는다.
   - `ChmodAction`은 `chmod`의 종료 코드를 확인하지 않는다(208~221행). 그래서 tar로 묶기 전에 런처에 실행 권한이 있는지
-    확인하고, 없으면 작업을 실패시킨다(SWT·Swing 제품 각각). `chmod +x`를 따로 하지 않는 이유: 위 근거로 p2가 권한을 주므로 필요 없고,
+    확인하고, 없으면 작업을 실패시킨다. `chmod +x`를 따로 하지 않는 이유: 위 근거로 p2가 권한을 주므로 필요 없고,
     p2 동작이 바뀌었을 때 덮어 숨기지 않고 바로 드러내기 위해서다.
 - Windows 제품은 계속 Windows 러너에서 만든다. 두 OS(Windows, Linux)에서 빌드하므로 경로 구분자, 대소문자 구분 같은
   OS 차이로 생기는 빌드 문제를 PR 단계에서 찾는다.
-- 각 작업은 행렬 항목이 가리키는 플랫폼의 제품(SWT, Swing)만 올린다.
+- 각 작업은 행렬 항목이 가리키는 플랫폼의 제품만 올린다.
 - 실제 macOS 러너는 나중에 다시 필요하다. 실행 시험(앱이 뜨는지), 코드 서명(`codesign`), 공증(notarization, `notarytool`)은
   macOS에서만 할 수 있다. 그때는 Linux 작업이 올린 `chromite-macos-aarch64`를 macOS 작업이 받아 처리하게 하면
   macOS 러너에서 빌드(수십 분)를 다시 하지 않아도 된다. macOS 러너 배정이 늦을 수 있으므로 그 작업은 PR을 막지 않게 둔다.
@@ -114,9 +110,9 @@ Swing 제품의 루트 폴더(`chromite-swing`, `ChromiteSwing.app`)는 `product
 
 ### macOS 결과물을 tar로 묶는 이유
 
-`actions/upload-artifact`는 파일 권한을 저장하지 않는다. `Chromite.app/Contents/MacOS/`(Swing: `ChromiteSwing.app/Contents/MacOS/`)
+`actions/upload-artifact`는 파일 권한을 저장하지 않는다. `ChromiteSwing.app/Contents/MacOS/`
 실행 파일의 실행 권한을 지키려고 `tar -czf`로 묶어서 올린다. 이미 압축한 파일이라 `compression-level: 0`으로 다시 압축하지 않는다.
-Windows 제품은 권한 문제가 없어 폴더를 그대로 올린다(상위 폴더를 올려 결과물 안에 `chromite/`, `chromite-swing/` 폴더가 남는다).
+Windows 제품은 권한 문제가 없어 폴더를 그대로 올린다(상위 폴더를 올려 결과물 안에 `chromite-swing/` 폴더가 남는다).
 
 ### 캐시
 
@@ -209,3 +205,4 @@ CI에서 checkstyle을 돌리지 않기로 했다. 깔끔하게 유지할 방법
 - 2026-11-06 `SECURITY.md`를 Chromite 기준으로 고쳐(GitHub Security Advisories로 비공개 보고) 남은 문제 항목에서 지웠다.
 - 2026-11-06 서명 릴리스 워크플로 `release.yml`을 추가했다(Turbrix 서명 안내서 기준, [signing.md](signing.md)). `build.yml`은 바꾸지 않았다.
 - 2026-11-07 내부 이름 변경: `build.yml`에 작업 `rename-gate` 추가(빌드 없이 수 초). SWT 프로파일 이름 `product-chromite-swt`, SWT 제품 폴더 `com.seizia.chromite.core.product`.
+- 2026-11-07 SWT 프런트엔드 삭제([swt-removal.md](swt-removal.md)): `build.yml`·`release.yml`에서 SWT 제품 빌드·업로드·서명·패키징 단계 삭제, 프로파일은 `product-chromite-swing`만. 결과물 표와 설명 갱신.
