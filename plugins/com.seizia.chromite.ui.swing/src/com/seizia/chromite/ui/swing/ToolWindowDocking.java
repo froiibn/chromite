@@ -88,6 +88,7 @@ import java.util.StringJoiner;
  *
  * 변경 이력:
  * - 2026-11-06 최초 작성: ModernDocking 도입, 분할 창 배치 대체 (docs/chromite/swing-frontend.md "도구 창 도킹")
+ * - 2026-11-07 밀도 B: 치수를 테마의 Chromite.size.* 키({@link UiSizes})에서 읽음 (docs/chromite/design-spec.md "치수 토큰")
  */
 final class ToolWindowDocking {
 
@@ -685,7 +686,7 @@ final class ToolWindowDocking {
                     component.setBorder(null);
                 }
                 if (child instanceof JTabbedPane tabs) {
-                    tabs.putClientProperty(FlatClientProperties.STYLE, "tabHeight: 32; tabSelectionHeight: 3"); //$NON-NLS-1$
+                    tabs.putClientProperty(FlatClientProperties.STYLE, UiSizes.TOOL_TABS_STYLE);
                 }
             }
             if (child instanceof Container nested) {
@@ -945,13 +946,12 @@ final class ToolWindowDocking {
     }
 
     /**
-     * Tool window header (size.header.toolWindow: 40 + a 1px border.subtle line below, semibold title 12px from the
-     * left, [⋮ options] [— hide] on the right). The library uses it as the drag handle: the title label has no mouse
+     * Tool window header (size.header.toolWindow + a 1px border.subtle line below, semibold title on the left,
+     * [⋮ options] [— hide] on the right; sizes from {@link UiSizes}). The library uses it as the drag handle: the title label has no mouse
      * listeners, so a press on it reaches the header's drag recognizer. The border is recreated on theme changes,
      * because its color comes from the look and feel.
      */
     private final class Header extends JPanel implements DockingHeaderUI {
-        private static final int HEIGHT = 40;
         private final Dock dock;
         private final JLabel titleLabel;
         private final JButton optionsButton;
@@ -987,13 +987,13 @@ final class ToolWindowDocking {
             Color separatorColor = UIManager.getColor("Separator.foreground"); //$NON-NLS-1$
             setBorder(BorderFactory.createCompoundBorder(
                 BorderFactory.createMatteBorder(0, 0, 1, 0, separatorColor != null ? separatorColor : Color.GRAY),
-                BorderFactory.createEmptyBorder(0, UIScale.scale(12), 0, UIScale.scale(8))));
+                UiSizes.createPadding(UiSizes.TOOL_WINDOW_HEADER_PADDING)));
         }
 
         @Override
         public Dimension getPreferredSize() {
             Dimension size = super.getPreferredSize();
-            return new Dimension(size.width, UIScale.scale(HEIGHT) + 1);
+            return new Dimension(size.width, UiSizes.get(UiSizes.TOOL_WINDOW_HEADER_HEIGHT) + 1);
         }
 
         /**

@@ -79,12 +79,12 @@ import java.util.stream.Stream;
  * - 2026-11-06 P1: 머리글 있는 표 → SSMS식 속성 그리드(분류별·이름순, 분류 접기, 설명 칸) (docs/chromite/swing-frontend.md "P1 디자인 적용")
  * - 2026-11-06 화면 문구를 CoreMessages로 옮김(OS 언어를 따름)
  * - 2026-11-07 오류 문구를 {@link ErrorText}로 만듦(클래스 이름이 화면에 나오지 않게, docs/chromite/swing-frontend.md "오류 문구")
+ * - 2026-11-07 밀도 B: 치수를 테마의 Chromite.size.* 키({@link UiSizes})에서 읽음 (docs/chromite/design-spec.md "치수 토큰")
  */
 final class PropertiesPanel extends JPanel {
 
     private static final Log log = Log.getLog(PropertiesPanel.class);
 
-    private static final int ROW_HEIGHT = 24;
     private static final int DESCRIPTION_HEIGHT = 72;
     private static final int CHEVRON_WIDTH = 16;
 
@@ -130,7 +130,7 @@ final class PropertiesPanel extends JPanel {
         grid.setTableHeader(null);
         grid.setShowGrid(false);
         grid.setIntercellSpacing(new Dimension(0, 0));
-        grid.setRowHeight(UIScale.scale(ROW_HEIGHT));
+        grid.setRowHeight(UiSizes.get(UiSizes.PROPERTY_ROW_HEIGHT));
         grid.setFillsViewportHeight(true);
         grid.setRowSelectionAllowed(true);
         grid.setColumnSelectionAllowed(false);
@@ -413,7 +413,7 @@ final class PropertiesPanel extends JPanel {
         JToolBar toolBar = new JToolBar();
         toolBar.setFloatable(false);
         toolBar.setOpaque(false);
-        toolBar.setBorder(BorderFactory.createEmptyBorder(UIScale.scale(3), UIScale.scale(8), UIScale.scale(3), UIScale.scale(8)));
+        toolBar.setBorder(UiSizes.createPadding(UiSizes.TOOL_WINDOW_TOOL_BAR_PADDING));
         toolBar.add(categorizedButton);
         toolBar.add(alphabeticalButton);
         return toolBar;
