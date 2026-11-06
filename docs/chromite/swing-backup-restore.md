@@ -1,0 +1,160 @@
+# Swing 데이터베이스 백업·복원 (Back Up / Restore)
+
+## 목적
+
+Object Explorer의 데이터베이스 노드에서 SSMS처럼 **Tasks ▸ Back Up… / Restore…**로 데이터베이스를 백업하고 복원한다.
+
+1. **SQL Server** — SSMS의 Back Up Database / Restore Database 대화상자와 같은 페이지와 T-SQL(`BACKUP DATABASE/LOG … TO DISK`,
+   `RESTORE HEADERONLY/FILELISTONLY`, `RESTORE DATABASE/LOG … WITH MOVE, REPLACE, RECOVERY/NORECOVERY`). 백업 파일은 **서버의 경로**다.
+2. **PostgreSQL, MySQL/MariaDB** — DBeaver의 네이티브 도구 작업(pg_dump/pg_restore/psql, mysqldump/mysql)을 이 컴퓨터의 **로컬 클라이언트**로 실행한다.
+3. Oracle은 대상이 아니다(RMAN·Data Pump는 서버 쪽 도구이고 DBeaver CE에도 없다).
+
+## 구조
+
+| 클래스 | 번들 | 역할 |
+|---|---|---|
+| `SQLServerBackupSettings` (새) | `com.seizia.chromite.model.admin` (`.mssql`) | 백업 설정과 T-SQL 일괄 처리(BACKUP, 확인용 RESTORE VERIFYONLY) |
+| `SQLServerRestoreSettings` (새) | 같은 곳 | 복원 설정, 기본 복원 계획(LSN), 파일 위치 기본값, T-SQL 일괄 처리 |
+| `SQLServerBackupSet`, `SQLServerBackupFile` (새) | 같은 곳 | `RESTORE HEADERONLY`·`FILELISTONLY`의 한 행 |
+| `SQLServerBackupRestore` (새) | 같은 곳 | 서버 정보·백업 기록·백업 파일 읽기, 일괄 처리 실행과 진행 메시지(STATS), 취소 |
+| `DatabaseTaskDialog` (새) | `com.seizia.chromite.ui.swing` | 작업 대화상자 틀: 페이지 선택 목록, 연결·진행률, 스크립트 메뉴, 확인·취소, 메시지 페이지, 백그라운드 실행 |
+| `SqlServerBackupDialog` (새) | 같은 곳 | 일반 / 미디어 옵션 / 백업 옵션 |
+| `SqlServerRestoreDialog` (새) | 같은 곳 | 일반(백업 파일·대상·백업 세트) / 파일(WITH MOVE) / 옵션 |
+| `NativeBackupRestoreDialog` (새) | 같은 곳 | PostgreSQL·MySQL 백업·복원: 일반 / 옵션 / 로컬 클라이언트(명령줄 미리 보기) |
+| `BackupRestoreCommands` (새) | 같은 곳 | 메뉴를 켤 조건, DB 종류별 대화상자 열기 |
+| `internal/BackupRestoreMessages` (새) | 같은 곳 | 화면 문구(영어 기본 + `_ko`) |
+| `ObjectExplorerPanel` (변경) | 같은 곳 | Tasks 메뉴에 Back Up… / Restore… 두 항목과 켜기 조건(작은 훅) |
+
+모델 클래스는 SWT·Swing에 기대지 않는다. `com.seizia.chromite.model.admin`은 이미 `ext.mssql`과 `model.jdbc`를 쓰고 `.mssql` 패키지를 내보내므로
+MANIFEST·feature·pom은 바꾸지 않았다. Swing 번들도 새 `Require-Bundle`이 없다. `org.jkiss.dbeaver.tasks.native`는 `ext.postgresql`이
+`visibility:=reexport`로 다시 내보내고, `registry`(`TaskPreferenceStore`, `DriverDescriptor`)·`ext.postgresql`·`ext.mysql`은 이미 쓰고 있었다.
+`tasks.native`는 SWT에 기대지 않는다(`Require-Bundle: model, model.sql, registry`). 그래서 SWT에서 떼어 낼 모델 부분이 없었다.
+
+## SWT·DBeaver에서 옮긴 것 (근거)
+
+| DBeaver | Chromite | 내용 |
+|---|---|---|
+| (없음) ext.mssql `tasks`에는 테이블 도구(재작성, 트리거)만 있다 | `SQLServerBackupSettings`, `SQLServerRestoreSettings`, `SQLServerBackupRestore` | SQL Server 백업·복원은 새로 만들었다. 문장 모양은 SSMS가 만드는 스크립트를 따른다 |
+| ext.postgresql.ui `PostgreBackupWizard`, `PostgreRestoreWizard` → `PostgreDatabaseBackupSettings`/`PostgreDatabaseRestoreSettings` + `PostgreDatabaseBackupHandler`/`PostgreDatabaseRestoreHandler` | `NativeBackupRestoreDialog.createSettings`·`runHandler` | 같은 설정을 채워 임시 작업에 저장(`saveSettings` → `TaskPreferenceStore`)하고 작업 형식의 처리기로 `executeTask` |
+| ext.mysql.ui 백업·복원 마법사 → `MySQLExportSettings`/`MySQLScriptExecuteSettings` + `MySQLDatabaseExportHandler`/`MySQLScriptExecuteHandler` | 같은 곳 | 같음(`mysqlDatabaseBackup`, `mysqlDatabaseRestore` 작업 형식) |
+| tasks.native.ui `NativeToolWizardDialog.NativeClientConfigDialog`(:123-152), ui.editors.connection `ClientHomesSelector.populateHomes`, `ClientHomesPanel`(:300-318) | `NativeBackupRestoreDialog.loadClients`·`browseClient`·`prepareRun` | 드라이버의 클라이언트 위치 + 클라이언트 관리자가 찾은 설치를 목록으로, 찾아보기로 더한 폴더는 `DriverDescriptor.setNativeClientLocations` + `saveDrivers`, 고른 위치는 연결의 `clientHomeId`로 `persistConfiguration` |
+| `DataTransferWizard.DataTransferWizardExecutor`(임시 작업) | `NativeBackupRestoreDialog.runHandler` | `createTemporaryTask` + `MonitorRunnableContext` (Swing 데이터 전송 마법사와 같은 방식) |
+| ext.postgresql/ext.mysql plugin.xml의 작업 조건(`supportsNativeClient()`, `supportsNativeClients()`) | `BackupRestoreCommands.canBackUp` | 메뉴를 켜는 조건 |
+
+## 설계 결정과 이유
+
+### 대화상자 틀 (`DatabaseTaskDialog`)
+
+- SSMS 데이터베이스 작업 대화상자 배치: 왼쪽에 "페이지 선택", 연결(서버·연결 이름·사용자), 진행률(상태 글자 + 막대), 오른쪽에 페이지,
+  아래에 **스크립트 ▾**(새 쿼리 창 / 클립보드), 확인, 취소. 화면 문구에는 다른 제품 이름을 쓰지 않는다.
+- 확인을 누르면 설정을 읽어 백그라운드 Job에서 실행하고 **메시지** 페이지로 넘어간다. 서버 메시지(STATS의 "N percent processed.", 처리한 페이지 수, 완료)와
+  도구 출력이 줄 단위로 쌓인다. 실행 중에는 페이지 목록을 잠근다(설정은 이미 읽었으므로 고쳐도 소용이 없다). 취소 단추·창 닫기·Esc는 Job을 취소한다.
+- 성공해도 창을 닫지 않는다. 메시지를 다시 볼 수 있게 확인을 끄고 취소를 닫기로 바꾼다. 실패하면 오류 전문을 메시지에 남기고 다시 고쳐 실행할 수 있다.
+- "새 쿼리 창에 작업 스크립트"는 스크립트를 연결의 새 쿼리 창(`QueryWindows.openScript`)에 넣고 대화상자를 닫는다(모달이라 그대로 두면 쿼리 창을 쓸 수 없다).
+
+### SQL Server 백업
+
+- 페이지: **일반**(데이터베이스, 복구 모델, 백업 유형 전체/차등/트랜잭션 로그, 복사 전용, 백업 파일), **미디어 옵션**(기존 세트에 추가 = `NOFORMAT, NOINIT`,
+  모두 덮어쓰기 = `NOFORMAT, INIT`, 새 미디어 세트 = `FORMAT, INIT, MEDIANAME, MEDIADESCRIPTION`; 완료되면 확인, 체크섬, 오류 시 계속),
+  **백업 옵션**(백업 세트 이름·설명, 압축: 서버 기본값 / `COMPRESSION` / `NO_COMPRESSION`).
+- 스크립트 예: `BACKUP DATABASE [db] TO DISK = N'/var/opt/mssql/backup/db.bak' WITH NOFORMAT, INIT, NAME = N'db-Full Database Backup', SKIP, NOREWIND, NOUNLOAD, COMPRESSION, CHECKSUM, STATS = 10`.
+  만료 날짜 옵션이 없으므로 SSMS 기본처럼 늘 `SKIP`이다. "완료되면 백업 확인"은 SSMS처럼 msdb에서 방금 만든 세트의 위치를 찾아 `RESTORE VERIFYONLY … WITH FILE = @backupSetId`를 실행하는 두 번째 일괄 처리다.
+- 기본 백업 파일은 `SERVERPROPERTY('InstanceDefaultBackupPath')`(2019 이전은 없음 → 기본 데이터 폴더) + `<db>.bak`. 경로 구분자는 서버 경로에서 정한다(Linux 서버는 `/`).
+  파일은 서버가 쓰므로 이 컴퓨터의 파일 대화상자를 두지 않고 "경로는 데이터베이스 서버의 경로" 안내를 보인다.
+- 단순 복구 모델이면 트랜잭션 로그 항목을 흐리게 하고 고르지 못하게 한다(서버가 거부한다). 압축을 지원하지 않는 에디션(`EngineEdition` 2·3·8만 지원,
+  Express 4는 아님)이면 압축 칸을 서버 기본값으로 고정한다. 파일로 백업할 수 없는 서버(Azure SQL Database 5, Synapse 6·11)는 열 때 안내만 한다.
+  Azure·Fabric·Babelfish 드라이버와 Synapse는 메뉴부터 끈다.
+- 백업 세트 이름은 사용자가 고치기 전까지 백업 유형을 따라 기본 이름(`<db>-Full Database Backup` 등, 한국어 화면은 한국어)으로 바뀐다.
+
+### SQL Server 복원
+
+- **일반**: 백업 파일(서버 경로, 편집 가능한 콤보). 목록은 msdb 백업 기록(`backupset` + `backupmediafamily`, 디스크 장치)의 파일로, 이 데이터베이스 것 먼저다.
+  기록이 있으면 열 때 가장 최근 파일을 바로 읽는다. **읽기**는 `RESTORE HEADERONLY`로 세트 목록을 읽고 기본 복원 계획을 고른 뒤 첫 데이터베이스 세트의
+  `FILELISTONLY`를 읽는다. 표에서 복원할 세트를 체크한다(이름, 유형, 데이터베이스, 위치, 시작·완료 날짜, 첫·마지막 LSN, 크기, 사용자, 서버).
+- **기본 복원 계획**: 마지막 전체 백업 → 그 전체 백업을 기준으로 한 마지막 차등 백업(전체의 CheckpointLSN = 차등의 DatabaseBackupLSN, 복사 전용 전체는 기준이 아님)
+  → 그 뒤로 끊기지 않는 로그 백업(FirstLSN ≤ 앞 세트의 LastLSN, 이미 덮인 로그는 건너뜀, 틈이 있으면 멈춤).
+- **파일**: 논리 이름, 형식(행 데이터/로그), 원래 파일, 복원 위치(편집 가능). 대상 이름이 원래 데이터베이스와 같으면 원래 경로, 다르면 파일 이름 속 원래 DB 이름을
+  대상 이름으로 바꾼다(없으면 앞에 붙인다) — 원본 파일과 부딪치지 않게 하려는 것. "모든 파일을 폴더로 재배치"를 켜면 서버 기본 데이터·로그 폴더(바꿀 수 있음)로 옮긴다.
+  원래 경로와 다른 파일만 `MOVE`로 쓴다. 대상 이름·폴더 설정이 바뀌면 기본값으로 다시 계산한다.
+- **옵션**: 기존 데이터베이스 덮어쓰기(`REPLACE`), 복구 상태(`RECOVERY`/`NORECOVERY`, 설명 글), 대상 데이터베이스에 대한 기존 연결 닫기.
+- 스크립트: `USE [master]` → (연결 닫기이고 대상이 있으면) `ALTER DATABASE … SET SINGLE_USER WITH ROLLBACK IMMEDIATE` → 고른 세트마다
+  `RESTORE DATABASE|LOG [대상] FROM DISK = N'…' WITH FILE = n, [MOVE …,] NORECOVERY|RECOVERY, NOUNLOAD, [REPLACE,] STATS = 10`
+  (마지막 세트만 고른 복구 상태, `MOVE`·`REPLACE`는 첫 문장만) → (연결 닫기이고 `RECOVERY`이면) `SET MULTI_USER`.
+  복원 중 상태로 남는 데이터베이스는 ALTER할 수 없으므로 `NORECOVERY`면 마지막 문장을 넣지 않는다. 대상이 서버에 있는지는 실행(또는 스크립트)할 때 `sys.databases`로 확인한다.
+- 성공하면 탐색기에서 데이터베이스가 든 폴더를 다시 읽는다(새 이름의 데이터베이스나 바뀐 상태가 보이게).
+
+### 실행과 진행 메시지 (`SQLServerBackupRestore.execute`)
+
+- 연결의 **격리 문맥**(`openIsolatedContext`, Activity Monitor와 같음)에서 일괄 처리마다 따로 실행하고 닫는다. 긴 백업이 쿼리 창의 연결을 붙잡지 않고,
+  복원의 `USE [master]`가 쿼리 창의 현재 DB를 바꾸지 않게 하려는 것이다. "단일 연결" 설정이면 기본 문맥을 쓴다. BACKUP/RESTORE는 트랜잭션 안에서 실행할 수 없으므로
+  자동 커밋으로 실행한다(수동 커밋 연결이면 이 실행 동안만 켠다).
+- `STATS` 메시지는 JDBC 경고로 온다. 드라이버는 응답을 읽으면서 경고를 문장에 붙이므로, 실행하는 동안 감시 스레드가 200ms마다 경고 사슬에서 새 것만 넘긴다.
+  진행률은 메시지 번호 3211(언어와 상관없음)의 첫 숫자다. 일괄 처리의 나머지 결과(`getMoreResults`)도 읽어 뒤 문장의 메시지를 받는다.
+- 취소: 모니터가 취소되면 감시 스레드가 `Statement.cancel()`을 보낸다.
+- 오류 글은 `SQLException` 사슬의 메시지를 모두 보인다(원인 메시지가 "terminating abnormally" 앞에 온다).
+
+### PostgreSQL·MySQL/MariaDB (`NativeBackupRestoreDialog`)
+
+- DBeaver 네이티브 도구 작업을 그대로 쓴다. 설정 객체를 화면 값으로 채우고(`loadSettingsFromInput` + setter), 임시 작업에 `saveSettings`로 저장한 뒤
+  작업 형식의 처리기(`pgDatabaseBackup`, `pgDatabaseRestore`, `mysqlDatabaseBackup`, `mysqlDatabaseRestore`)의 `executeTask`를 부른다. SWT 마법사가
+  작업에 설정을 저장하고 처리기가 다시 읽는 흐름과 같다. 처리기의 로그 스트림(명령줄, 도구 출력)은 메시지 페이지에 줄 단위로 보인다.
+- 페이지: **일반**(데이터베이스, 출력 폴더·파일 이름 패턴 또는 입력 파일, PostgreSQL 형식·압축·인코딩, MySQL 덤프 방법), **옵션**(SWT 마법사의 주요 옵션:
+  PostgreSQL `--no-owner`, `--no-privileges`, `--inserts`, `--clean`, `--create`; MySQL `--no-create-info`, `--add-drop-table`, `--disable-keys`,
+  `--extended-insert`, `--no-data`, `--routines`, `--events`, `--comments`, DEFINER 제거, `--hex-blob`; 복원 쪽 `--clean`, `--create`, 외래 키 검사 끄기, `-v`),
+  **로컬 클라이언트**(클라이언트 폴더, 찾아보기, 상태, 명령줄 미리 보기). 스크립트 메뉴는 "명령줄 복사"다.
+- 파일은 **이 컴퓨터의 파일**이다(도구가 로컬에서 읽고 쓴다). 파일 이름 기본값은 SWT와 같은 `dump-${database}-${timestamp}` + 형식의 확장자.
+- **로컬 클라이언트**: 목록은 드라이버의 사용자 위치와 클라이언트 관리자가 찾은 설치(Windows 레지스트리 등)다. **내려받는 클라이언트**
+  (`RemoteNativeClientLocation`, 처음 쓸 때 원격 저장소에서 받음)는 넣지 않는다 — 클라이언트 도구를 묻지 않고 내려받지 않으려는 것이다.
+  처리기는 연결의 `clientHomeId`가 비어 있으면 목록 첫 항목(내려받는 클라이언트일 수 있음)을 고르므로, 실행 전에 늘 고른 로컬 위치를 연결에 저장한다.
+  찾아보기로 더한 폴더는 드라이버를 "수정됨"(`setModified(true)`)으로 표시한 뒤 저장한다. `drivers.xml`에는 수정된 드라이버만 쓰이므로
+  표시하지 않으면 다시 시작한 뒤 폴더가 사라진다(확인 중에 발견). SWT `ClientHomesPanel`(:300-318)도 표시하지 않아 같은 문제가 있을 수 있다(SWT라 고치지 않음).
+  로컬 클라이언트가 없으면 "로컬 클라이언트가 설치되어 있지 않습니다… 찾아보기…로 폴더를 선택하십시오."를 보이고 실행하지 않는다.
+- **명령줄 미리 보기**: 처리기의 `getCommandLine`(보호 메서드)을 미리 보기용 하위 클래스로 불러, 실행할 명령을 그대로 보인다(MySQL은 출력·입력 리디렉션 `>`/`<`을 덧붙임).
+  암호는 명령줄에 없다(`PGPASSWORD`, `MYSQL_PWD` 환경 변수). 도구가 그 폴더에 없으면 미리 보기 대신 "{도구}를 찾을 수 없습니다"를 보인다.
+
+## upstream 대비 변경점
+
+- DBeaver 코드는 고치지 않았다. Chromite 번들(`model.admin`, `ui.swing`)에 클래스를 더하고 `ObjectExplorerPanel`에 메뉴 훅을 넣었다.
+- DBeaver CE에 없는 SQL Server 백업·복원을 더했다.
+- PostgreSQL·MySQL은 DBeaver와 같은 처리기를 쓰되, 내려받는 클라이언트를 목록에서 뺐다(위 "로컬 클라이언트").
+
+## 확인 (2026-11-06)
+
+전체 빌드(`product-dbeaver-ce,product-chromite-swing`) 후 Swing 제품을 개인 작업 영역으로 띄워 EDT 테스트 에이전트로 조작했다. 화면은 한국어(OS 기본)와
+`-nl en`, 라이트·다크로 찍었다(`D:\Tools\_scratch\backup-restore\shots\`).
+
+- **SQL Server 2022(Linux 컨테이너), `chr_backup_restore`(약 67MB)**
+  - 백업: 전체, 모두 덮어쓰기(INIT), 압축, 체크섬, 완료 후 확인 → 메시지 페이지에 "10 percent processed." … "100 percent processed.", 처리한 페이지 수,
+    "The backup set on file 1 is valid."가 차례로 나옴. `sqlcmd`로 `RESTORE HEADERONLY`(Compressed = 1, 세트 이름 한국어 그대로), msdb의
+    `has_backup_checksums = 1` 확인. 차등·트랜잭션 로그 백업(추가, NOINIT)도 성공.
+  - 데이터를 바꾼 뒤(UPDATE, DELETE, INSERT) **복원**: REPLACE + 기존 연결 닫기 → 원래 3행으로 돌아옴, `user_access_desc = MULTI_USER`,
+    `msdb.dbo.restorehistory`의 replace = 1(`sqlcmd`로 확인).
+  - 기본 복원 계획: 전체(1) + 차등(2)을 고르고 차등에 이미 덮인 로그(3, LastLSN = 차등의 LastLSN)는 빼고, 그 뒤 로그(4)를 고름.
+    새 이름 `chr_backup_restore_copy`로 복원: 파일 이름이 `chr_backup_restore_copy.mdf` / `_copy_log.ldf`로 바뀌고(MOVE),
+    전체 → 차등 → 로그 세 문장이 NORECOVERY, NORECOVERY, RECOVERY로 실행됨. 로그로만 들어간 행까지 복원됨(`sqlcmd`). "새 쿼리 창에 작업 스크립트"로 같은 스크립트가 쿼리 창에 열림.
+    복원 뒤 Object Explorer의 데이터베이스 목록에 새 데이터베이스가 나타남.
+  - 약 1GB 데이터베이스(`chr_backup_restore_big`, 단순 복구 모델): 트랜잭션 로그 항목이 꺼지고 안내가 나옴. 백업 중 "10 percent processed."가
+    실행 중에 나오고 진행률이 "10% 처리됨"으로 바뀜(메시지가 끝까지 기다리지 않고 들어옴). 취소 → "취소됨", msdb에 백업 세트 없음, 실행 중인 BACKUP 요청 없음.
+- **PostgreSQL 17, MariaDB 11**: 이 컴퓨터에는 pg_dump·mysqldump 등 클라이언트 도구가 없다(설치하지 않음). 클라이언트 폴더 목록이 비어
+  "로컬 클라이언트가 설치되어 있지 않습니다…" 안내가 나오고, 확인을 누르면 같은 안내로 실행하지 않음을 확인했다.
+  명령줄은 빈 파일로 만든 가짜 클라이언트 폴더(`bin\pg_dump.exe` 등)를 찾아보기로 더해 미리 보기로 확인했다(실행하면 "올바른 Win32 응용 프로그램이 아닙니다"
+  오류가 메시지에 나옴 — 실패 표시 확인). 같은 인수를 컨테이너 안의 도구로 실행해 교차 확인했다:
+  `pg_dump --verbose --host --port --username --format=c --no-owner --create --file … chr_backup_restore`(pg_restore --list로 테이블·데이터 확인),
+  `mariadb-dump --single-transaction --routines --add-drop-table --disable-keys --extended-insert -u root … chr_backup_restore` →
+  `mariadb --no-beep -u root … "--init-command=SET SESSION FOREIGN_KEY_CHECKS=0;" chr_backup_restore < 파일`(복원 후 2행).
+  찾아보기로 더한 폴더가 다시 시작한 뒤에도 남는 것(`drivers.xml`)도 확인했다.
+- 회귀 테스트는 실행하지 않았다(요청 없음).
+
+## 남긴 것
+
+- Oracle 백업·복원(RMAN·Data Pump) — 대상 아님.
+- SQL Server: 여러 파일로 나눠 쓰는 백업(스트라이프), URL(Azure Blob) 백업, 백업 암호화, 만료 날짜, 꼬리 로그 백업, 지정 시간 복원(STOPAT),
+  `STANDBY` 복구 상태, 서버 파일 탐색기(`xp_dirtree`/`sys.dm_os_enumerate_filesystem`), "데이터베이스에서 복원"(msdb 기록의 백업 세트를 파일 대신 고르기).
+- PostgreSQL 백업할 스키마·테이블 고르기, 전체 클러스터 백업(pg_dumpall), MySQL 테이블 고르기, 도구 사용자 이름·암호 따로 쓰기, 추가 명령줄 인수.
+
+## 변경 이력
+
+- 2026-11-06 최초 작성: SQL Server 백업·복원(T-SQL, 진행 메시지, 취소), PostgreSQL·MySQL 네이티브 도구 백업·복원(로컬 클라이언트, 명령줄 미리 보기).
+  확인 중 고친 것: 단순 복구 모델 표시용 콤보 렌더러가 선택 항목(인덱스 -1)까지 흐리게 그리던 것, 복원 뒤 탐색기가 새 데이터베이스를 보이지 않던 것
+  (연결 노드 새로 고침만으로는 탐색기가 자식을 다시 읽지 않음 → 데이터베이스 폴더에 REFRESH 이벤트), 긴 안내 글이 잘리던 것(줄 바꿈 글 상자),
+  찾아보기로 더한 클라이언트 폴더가 다시 시작하면 사라지던 것(드라이버 수정됨 표시), 도구 로그의 스택 추적 줄.
