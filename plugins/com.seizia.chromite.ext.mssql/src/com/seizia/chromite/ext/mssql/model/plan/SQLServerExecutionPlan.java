@@ -41,9 +41,17 @@ import java.util.StringJoiner;
  * 개체·술어·출력 열도 같은 규칙으로, 다음 {@code RelOp} 아래로는 내려가지 않고 자기 연산자 요소 안에서만 찾는다.
  * 실제 계획의 실행 값({@code RunTimeCountersPerThread})은 스레드별로 나뉘어 있어 행 수·실행 수는 합치고 경과 시간은 가장 큰 값을 쓴다.
  * 파서는 네임스페이스를 보지 않는 DOM이라 요소 이름에서 접두사를 떼고 비교한다. 원문 XML은 {@link #getPlanSourceData}로 남긴다.
+ * <ul>
+ *     <li>경고는 서버가 계획에 적은 것만 읽는다: 연산자의 {@code RelOp/Warnings}(분산·조인 조건 없음·통계 없음 등)와 문장의
+ *     {@code QueryPlan/Warnings}(계획에 영향을 주는 암시적 변환, 메모리 부여). 누락 인덱스 제안({@code QueryPlan/MissingIndexes})은
+ *     문장 노드에 둔다. 그래픽 계획이 배지와 머리말을 그리는 데 쓴다.</li>
+ *     <li>키 조회는 XML에서 {@code PhysicalOp="Clustered Index Seek"}이고 연산자 요소 {@code IndexScan}의 {@code Lookup} 속성으로만
+ *     구별된다. SQL Server 도구처럼 "Key Lookup"으로 보이게 연산 이름을 바꾼다(그대로 두면 일반 Seek와 구별되지 않는다).</li>
+ * </ul>
  *
  * 변경 이력:
  * - 2026-11-06 최초 작성 (docs/chromite/swing-sql-editor-plus.md)
+ * - 2026-11-07 경고·누락 인덱스·예상 실행 수를 읽고 키 조회를 "Key Lookup"으로 (docs/chromite/swing-sql-editor-plus.md "실행 계획 세 보기")
  */
 public class SQLServerExecutionPlan extends AbstractExecutionPlan {
 
@@ -144,10 +152,109 @@ public class SQLServerExecutionPlan extends AbstractExecutionPlan {
         node.estimateRows = toDouble(element.getAttribute("StatementEstRows")); //$NON-NLS-1$
         for (Element queryPlan : childElements(element)) {
             if (localName(queryPlan).equals("QueryPlan")) { //$NON-NLS-1$
+                for (Element child : childElements(queryPlan)) {
+                    if (localName(child).equals("Warnings")) { //$NON-NLS-1$
+                        readWarnings(node, child);
+                    } else if (localName(child).equals("MissingIndexes")) { //$NON-NLS-1$
+                        readMissingIndexes(node, child);
+                    }
+                }
                 collectOperators(node, queryPlan, node);
             }
         }
         return node;
+    }
+
+    /**
+     * Warnings of an operator or statement: the warning elements and the flag attributes of {@code Warnings}.
+     */
+    private static void readWarnings(@NotNull SQLServerPlanNode node, @NotNull Element warnings) {
+        if (isTrue(warnings.getAttribute("NoJoinPredicate"))) { //$NON-NLS-1$
+            node.warnings.add(new SQLServerPlanNode.Warning(SQLServerPlanNode.WarningKind.NO_JOIN_PREDICATE, "NoJoinPredicate", "")); //$NON-NLS-1$ //$NON-NLS-2$
+        }
+        if (isTrue(warnings.getAttribute("UnmatchedIndexes"))) { //$NON-NLS-1$
+            node.warnings.add(new SQLServerPlanNode.Warning(SQLServerPlanNode.WarningKind.OTHER, "UnmatchedIndexes", "")); //$NON-NLS-1$ //$NON-NLS-2$
+        }
+        for (Element warning : childElements(warnings)) {
+            String name = localName(warning);
+            SQLServerPlanNode.WarningKind kind = switch (name) {
+                case "PlanAffectingConvert" -> SQLServerPlanNode.WarningKind.IMPLICIT_CONVERSION; //$NON-NLS-1$
+                case "SpillToTempDb", "SortSpillDetails", "HashSpillDetails", "ExchangeSpillDetails", "SpillOccurred" -> //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$ //$NON-NLS-4$ //$NON-NLS-5$
+                    SQLServerPlanNode.WarningKind.SPILL;
+                case "ColumnsWithNoStatistics" -> SQLServerPlanNode.WarningKind.NO_STATISTICS; //$NON-NLS-1$
+                case "MemoryGrantWarning" -> SQLServerPlanNode.WarningKind.MEMORY_GRANT; //$NON-NLS-1$
+                default -> SQLServerPlanNode.WarningKind.OTHER;
+            };
+            String detail;
+            if (kind == SQLServerPlanNode.WarningKind.IMPLICIT_CONVERSION) {
+                detail = warning.getAttribute("ConvertIssue") + ": " + warning.getAttribute("Expression"); //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$
+            } else if (kind == SQLServerPlanNode.WarningKind.NO_STATISTICS) {
+                StringJoiner columns = new StringJoiner(", "); //$NON-NLS-1$
+                for (Element column : childElements(warning)) {
+                    columns.add(describeColumn(column));
+                }
+                detail = columns.toString();
+            } else {
+                // The attributes tell the details (SpillLevel, GrantWarningKind, WaitType, ...)
+                StringJoiner attributes = new StringJoiner(", "); //$NON-NLS-1$
+                for (int i = 0; i < warning.getAttributes().getLength(); i++) {
+                    Node attribute = warning.getAttributes().item(i);
+                    attributes.add(attribute.getNodeName() + "=" + attribute.getNodeValue()); //$NON-NLS-1$
+                }
+                detail = attributes.toString();
+            }
+            node.warnings.add(new SQLServerPlanNode.Warning(kind, name, detail));
+        }
+    }
+
+    private static void readMissingIndexes(@NotNull SQLServerPlanNode statement, @NotNull Element missingIndexes) {
+        for (Element group : childElements(missingIndexes)) {
+            if (!localName(group).equals("MissingIndexGroup")) { //$NON-NLS-1$
+                continue;
+            }
+            Double impact = toDouble(group.getAttribute("Impact")); //$NON-NLS-1$
+            for (Element index : childElements(group)) {
+                if (!localName(index).equals("MissingIndex")) { //$NON-NLS-1$
+                    continue;
+                }
+                List<String> equality = new ArrayList<>();
+                List<String> inequality = new ArrayList<>();
+                List<String> include = new ArrayList<>();
+                for (Element columnGroup : childElements(index)) {
+                    List<String> target = switch (columnGroup.getAttribute("Usage")) { //$NON-NLS-1$
+                        case "EQUALITY" -> equality; //$NON-NLS-1$
+                        case "INEQUALITY" -> inequality; //$NON-NLS-1$
+                        default -> include;
+                    };
+                    for (Element column : childElements(columnGroup)) {
+                        target.add(column.getAttribute("Name")); //$NON-NLS-1$
+                    }
+                }
+                statement.missingIndexes.add(new SQLServerPlanNode.MissingIndex(impact == null ? 0 : impact,
+                    index.getAttribute("Schema") + "." + index.getAttribute("Table"), equality, inequality, include)); //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$
+            }
+        }
+        if (!statement.missingIndexes.isEmpty()) {
+            statement.warnings.add(new SQLServerPlanNode.Warning(SQLServerPlanNode.WarningKind.MISSING_INDEX, "MissingIndexes", //$NON-NLS-1$
+                statement.getMissingIndexStatements()));
+        }
+    }
+
+    private static boolean isTrue(@Nullable String value) {
+        return "1".equals(value) || "true".equalsIgnoreCase(value); //$NON-NLS-1$ //$NON-NLS-2$
+    }
+
+    /**
+     * Whether the operator reads a clustered index (or heap) row by row for keys found in another index:
+     * its {@code IndexScan} element has {@code Lookup="1"}.
+     */
+    private static boolean isLookup(@NotNull Element relOp) {
+        for (Element child : childElements(relOp)) {
+            if (localName(child).equals("IndexScan") && isTrue(child.getAttribute("Lookup"))) { //$NON-NLS-1$ //$NON-NLS-2$
+                return true;
+            }
+        }
+        return false;
     }
 
     /**
@@ -165,10 +272,17 @@ public class SQLServerExecutionPlan extends AbstractExecutionPlan {
 
     @NotNull
     private static SQLServerPlanNode parseOperator(@NotNull SQLServerPlanNode parent, @NotNull Element relOp, @NotNull SQLServerPlanNode statement) {
-        SQLServerPlanNode node = new SQLServerPlanNode(parent, false,
-            CommonUtils.toString(relOp.getAttribute("PhysicalOp"), "Operator"), //$NON-NLS-1$ //$NON-NLS-2$
+        String physicalOp = CommonUtils.toString(relOp.getAttribute("PhysicalOp"), "Operator"); //$NON-NLS-1$ //$NON-NLS-2$
+        if (physicalOp.equals("Clustered Index Seek") && isLookup(relOp)) { //$NON-NLS-1$
+            physicalOp = "Key Lookup"; //$NON-NLS-1$
+        }
+        SQLServerPlanNode node = new SQLServerPlanNode(parent, false, physicalOp,
             CommonUtils.nullIfEmpty(relOp.getAttribute("LogicalOp"))); //$NON-NLS-1$
         node.estimateRows = toDouble(relOp.getAttribute("EstimateRows")); //$NON-NLS-1$
+        // Estimated number of executions: one plus the rebinds and rewinds (the inner side of a nested loops join)
+        Double rebinds = toDouble(relOp.getAttribute("EstimateRebinds")); //$NON-NLS-1$
+        Double rewinds = toDouble(relOp.getAttribute("EstimateRewinds")); //$NON-NLS-1$
+        node.estimateExecutions = 1 + (rebinds == null ? 0 : rebinds) + (rewinds == null ? 0 : rewinds);
         node.subtreeCost = toDouble(relOp.getAttribute("EstimatedTotalSubtreeCost")); //$NON-NLS-1$
         node.estimateCpu = toDouble(relOp.getAttribute("EstimateCPU")); //$NON-NLS-1$
         node.estimateIo = toDouble(relOp.getAttribute("EstimateIO")); //$NON-NLS-1$
@@ -186,6 +300,8 @@ public class SQLServerExecutionPlan extends AbstractExecutionPlan {
                 }
             } else if (name.equals("RunTimeInformation")) { //$NON-NLS-1$
                 readRuntime(node, child);
+            } else if (name.equals("Warnings")) { //$NON-NLS-1$
+                readWarnings(node, child);
             } else if (!name.equals("RelOp")) { //$NON-NLS-1$
                 // The operator element (IndexScan, NestedLoops, Hash, ...): its own object and predicates
                 scanOperatorElement(child, objects, predicates);

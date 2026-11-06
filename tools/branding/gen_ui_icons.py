@@ -307,6 +307,25 @@ CONCEPTS = [
     ("outdent", "내어쓰기", "Decrease indent", "indent-decrease"),
     ("format", "SQL 서식 지정", "Format SQL", "align-left (indented lines)"),
     ("overflow", "더 보기", "More (tool bar overflow)", "chevrons-right"),
+    # Execution plan: copy of the raw plan, and the operators of the graphical plan (drawn 2x in the diagram)
+    ("copy", "복사", "Copy", "copy"),
+    ("plan-select", "계획: 문", "Plan: statement (result)", "table"),
+    ("plan-scan", "계획: 전체 읽기", "Plan: scan", "table + arrow-right"),
+    ("plan-seek", "계획: 인덱스 찾기", "Plan: seek", "list + arrow-right + point"),
+    ("plan-lookup", "계획: 키 조회", "Plan: key lookup", "key"),
+    ("plan-join-nested", "계획: 중첩 루프 조인", "Plan: nested loops", "repeat"),
+    ("plan-join-hash", "계획: 해시 조인", "Plan: hash join/match", "hash"),
+    ("plan-join-merge", "계획: 병합 조인", "Plan: merge join", "arrow-merge"),
+    ("plan-sort", "계획: 정렬", "Plan: sort", "sort-descending"),
+    ("plan-aggregate", "계획: 집계", "Plan: aggregate", "sum"),
+    ("plan-filter", "계획: 필터", "Plan: filter", "filter"),
+    ("plan-compute", "계획: 계산", "Plan: compute scalar", "equal (in a tile)"),
+    ("plan-top", "계획: 상위 N", "Plan: top / limit", "arrow-bar-to-up"),
+    ("plan-parallelism", "계획: 병렬 처리", "Plan: parallelism / gather", "arrows-right (three)"),
+    ("plan-insert", "계획: 삽입", "Plan: insert", "table + plus"),
+    ("plan-update", "계획: 수정", "Plan: update", "table + pencil"),
+    ("plan-delete", "계획: 삭제", "Plan: delete", "table + x"),
+    ("plan-operator", "계획: 기타 연산", "Plan: other operator", "square + point"),
 ]
 
 
@@ -443,6 +462,40 @@ def extra_icons(I, P, n, nf, blue, blue_fill, green, green_fill, red, red_fill, 
                       + path("M4.5 6.5H13M4.5 9.5H11", None, n, sw, cap="butt"))
     # Tool bar overflow button: Tabler chevrons-right
     I["overflow"] = svg(path("M3.5 4.5L7 8L3.5 11.5M8.5 4.5L12 8L8.5 11.5", None, n, sw))
+    # Copy: Tabler copy, a front sheet over the corner of a back sheet
+    I["copy"] = svg(path("M10.5 4.5V3A1.5 1.5 0 0 0 9 1.5H3A1.5 1.5 0 0 0 1.5 3V9A1.5 1.5 0 0 0 3 10.5H4.5", None, n, sw)
+                    + rect(5.5, 5.5, 9, 9, 1.5, doc_fill, n, sw))
+    # Execution plan operators (graphical plan, drawn at 2x): the data object in neutral, the action in blue,
+    # data changes as a badge on the table (green insert, blue update, red delete)
+    sheet = rect(1.5, 2.5, 13, 11, 1.5, doc_fill, n, sw)
+    I["plan-select"] = svg(table)
+    I["plan-scan"] = svg(sheet + path("M4 5.5H12M4 10.5H12", None, n, sw, cap="butt")
+                         + path("M3.5 8H12.5M10.5 6L12.5 8L10.5 10", None, blue, sw))
+    I["plan-seek"] = svg(sheet + path("M7.5 5.5H12M7.5 10.5H12", None, n, sw, cap="butt")
+                         + path("M3.5 8H8.5", None, blue, sw) + circle(11, 8, 1.75, blue_fill, blue, sw))
+    I["plan-lookup"] = svg(key_shape(blue_fill, blue, blue, blue))
+    I["plan-join-nested"] = svg(path("M5.5 3.5H11A3 3 0 0 1 11 9.5H5A3 3 0 0 1 5 3.5", None, n, sw)
+                                + path("M7 11.5H12.5M10.5 9.5L12.5 11.5L10.5 13.5", None, blue, sw)
+                                + path("M3.5 11.5H5", None, blue, sw, cap="butt"))
+    I["plan-join-hash"] = svg(tile(doc_fill, n) + path("M6.5 4L5.5 12M10.5 4L9.5 12M4 6.5H12M3.5 9.5H11.5", None, blue, sw, cap="butt"))
+    I["plan-join-merge"] = svg(path("M1.5 4.5H5L8.5 8M1.5 11.5H5L8.5 8", None, n, sw)
+                               + path("M8.5 8H14M12 6L14 8L12 10", None, blue, sw))
+    I["plan-sort"] = svg(path("M2 4H9.5M2 8H7.5M2 12H5.5", None, n, sw, cap="butt")
+                         + path("M12 2.5V13M10 11L12 13L14 11", None, blue, sw))
+    I["plan-aggregate"] = svg(tile(doc_fill, n) + path("M11 4.5H5L8.5 8L5 11.5H11", None, blue, sw))
+    I["plan-filter"] = svg(path("M2.5 2.5H13.5V4L9.5 8.5V13L6.5 14V8.5L2.5 4Z", blue_fill, blue, sw))
+    I["plan-compute"] = svg(tile(doc_fill, n) + path("M5 6.5H11M5 9.5H11", None, blue, sw, cap="butt"))
+    I["plan-top"] = svg(path("M2.5 2.5H13.5", None, blue, sw) + path("M8 13.5V5.5M5 8.5L8 5.5L11 8.5", None, n, sw))
+    I["plan-parallelism"] = svg(path("M1.5 4H9.5M1.5 8H9.5M1.5 12H9.5", None, n, sw, cap="butt")
+                                + path("M11 2.5L13 4L11 5.5M11 6.5L13 8L11 9.5M11 10.5L13 12L11 13.5", None, blue, sw))
+    halo = rect(8, 8, 8, 8, 2, "#000")
+    body, defs = with_badge(table, plus_badge(green), halo)
+    I["plan-insert"] = svg(body, defs)
+    body, defs = with_badge(table, path("M9.5 15.5V13.5L13.5 9.5L15.5 11.5L11.5 15.5Z", blue_fill, blue), halo)
+    I["plan-update"] = svg(body, defs)
+    body, defs = with_badge(table, path("M9.5 9.5L15 15M15 9.5L9.5 15", None, red, 2, cap="butt"), halo)
+    I["plan-delete"] = svg(body, defs)
+    I["plan-operator"] = svg(tile(doc_fill, n) + circle(8, 8, 2.25, blue_fill, blue, sw))
 
 
 # ----------------------------------------------------------------- SET A: duo-tone
