@@ -1,9 +1,9 @@
 <?xml version='1.0' encoding='UTF-8'?>
 <!-- Schema file written by PDE -->
-<schema targetNamespace="com.seizia.chromite.core" xmlns="http://www.w3.org/2001/XMLSchema">
+<schema targetNamespace="com.seizia.chromite.model.sql" xmlns="http://www.w3.org/2001/XMLSchema">
 <annotation>
       <appInfo>
-         <meta.schema plugin="com.seizia.chromite.core" id="com.seizia.chromite.sqlGenerator" name="SQL Generator"/>
+         <meta.schema plugin="com.seizia.chromite.model.sql" id="com.seizia.chromite.sqlGenerator" name="SQL Generator"/>
       </appInfo>
    </annotation>
 

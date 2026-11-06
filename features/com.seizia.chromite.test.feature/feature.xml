@@ -32,7 +32,6 @@
     <plugin id="com.seizia.chromite.net.ssh.sshj.test" version="0.0.0"/>
     <plugin id="com.seizia.chromite.model.navigator.test" version="0.0.0"/>
     <plugin id="com.seizia.chromite.model.net.test" version="0.0.0"/>
-    <plugin id="com.seizia.chromite.launcher.test" version="0.0.0"/>
     <plugin id="com.seizia.chromite.model.sql.test" version="0.0.0"/>
     <plugin id="com.seizia.chromite.data.transfer.test" version="0.0.0"/>
     <plugin id="com.seizia.chromite.model.datadam.test" version="0.0.0"/>

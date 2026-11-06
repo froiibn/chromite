@@ -15,8 +15,6 @@
 
     <modules>
         <module>com.seizia.chromite.test.platform</module>
-        <module>com.seizia.chromite.launcher.test</module>
-        <module>com.seizia.chromite.ui.app.standalone.test</module>
         <module>com.seizia.chromite.ext.altibase.test</module>
         <module>com.seizia.chromite.ext.cubrid.test</module>
         <module>com.seizia.chromite.ext.clickhouse.test</module>

@@ -1,5 +1,5 @@
-# Chromite release: builds both products (SWT: product/community, Swing: product/swing) for Windows x64
-# and macOS arm64, signs them, verifies the signatures and, for a v* tag, puts only the signed and
+# Chromite release: builds the Swing product (product/swing; the SWT product was removed,
+# docs/chromite/swt-removal.md) for Windows x64 and macOS arm64, signs it, verifies the signatures and, for a v* tag, puts only the signed and
 # verified files on a draft GitHub Release. build.yml stays the unsigned CI build for devel and PRs.
 # Design, file lists and decisions: docs/chromite/signing.md (adapted from the Turbrix signing guide,
 # 2026-11-06).
@@ -7,12 +7,12 @@
 #   * Signing happens in CI only, in the GitHub environment `signing` (allowed on devel and v* tags
 #     only; the user creates it), in jobs with id-token: write. Nothing here changes Azure or Apple.
 #   * Windows (job windows): build -> azure/login (OIDC, repository variables, no secrets) ->
-#     azure/artifact-signing-action for each of our launchers (chromite.exe, chromite-swing.exe;
-#     Tycho re-brands them, which breaks the Eclipse signature they came with) -> verify (Valid,
+#     azure/artifact-signing-action for our launcher (chromite-swing.exe;
+#     Tycho re-brands it, which breaks the Eclipse signature they came with) -> verify (Valid,
 #     timestamp, Azure issuer; no third-party binary carries our signature) -> zip, same layout as build.yml.
-#     Third-party binaries (Equinox launcher library, JNA, the Eclipse-signed console launchers
-#     chromitec.exe / chromite-swingc.exe) are not signed.
-#   * macOS: the apps are built on Linux like build.yml (macOS arm64 runner capacity, docs/chromite/ci.md)
+#     Third-party binaries (Equinox launcher library, JNA, the Eclipse-signed console launcher
+#     chromite-swingc.exe) are not signed.
+#   * macOS: the app is built on Linux like build.yml (macOS arm64 runner capacity, docs/chromite/ci.md)
 #     and handed over as an intermediate artifact that is never released; the job macos-sign signs
 #     every Mach-O inside out (also inside jars), the app with the hardened runtime and
 #     tools/release/entitlements.mac.plist, notarizes and staples the app, makes zip and dmg, signs,
@@ -38,7 +38,6 @@ concurrency:
 
 env:
   MAVEN_OPTS: -Xmx3g
-  SWT_PRODUCTS_DIR: product/community/target/products/com.seizia.chromite.core.product
   SWING_PRODUCTS_DIR: product/swing/target/products/com.seizia.chromite.swing.product
 
 jobs:
@@ -59,20 +58,15 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          # <product version="X.Y.Z.qualifier"> of both products (line 1 is the XML declaration)
-          swt=$(grep -o 'version="[0-9.]*\.qualifier"' product/community/Chromite.product | head -n 1 | sed 's/version="\(.*\)\.qualifier"/\1/')
-          swing=$(grep -o 'version="[0-9.]*\.qualifier"' product/swing/chromite-swing.product | head -n 1 | sed 's/version="\(.*\)\.qualifier"/\1/')
-          test -n "$swt"
-          if [ "$swt" != "$swing" ]; then
-            echo "::error::product versions differ: Chromite.product $swt, chromite-swing.product $swing"
+          # <product version="X.Y.Z.qualifier"> (line 1 is the XML declaration)
+          version=$(grep -o 'version="[0-9.]*\.qualifier"' product/swing/chromite-swing.product | head -n 1 | sed 's/version="\(.*\)\.qualifier"/\1/')
+          test -n "$version"
+          if [ "$GITHUB_REF_TYPE" = tag ] && [ "$GITHUB_REF_NAME" != "v$version" ]; then
+            echo "::error::tag $GITHUB_REF_NAME does not match the product version $version"
             exit 1
           fi
-          if [ "$GITHUB_REF_TYPE" = tag ] && [ "$GITHUB_REF_NAME" != "v$swt" ]; then
-            echo "::error::tag $GITHUB_REF_NAME does not match the product version $swt"
-            exit 1
-          fi
-          echo "version=$swt" >> "$GITHUB_OUTPUT"
-          echo "product version $swt"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "product version $version"
 
   windows:
     name: Windows x64 (build, sign, verify)
@@ -138,7 +132,7 @@ jobs:
       # Same build as build.yml "Build (Windows)"; keep both in sync.
       - name: Build
         shell: pwsh
-        run: .\deps\dbeaver-common\mvnw.cmd -B -ntp package -f product/aggregate/pom.xml -T1C '-Pproduct-chromite-swt,product-chromite-swing'
+        run: .\deps\dbeaver-common\mvnw.cmd -B -ntp package -f product/aggregate/pom.xml -T1C -Pproduct-chromite-swing
 
       # Bundled Java runtime, as build.yml "Bundle Java runtime (Windows x64)" (docs/chromite/runtime.md).
       # Restore only, like the Maven cache: the download cache of build.yml's devel runs.
@@ -156,7 +150,7 @@ jobs:
       - name: Binaries before signing
         shell: pwsh
         run: |
-          foreach ($dir in "$env:SWT_PRODUCTS_DIR/win32/win32/x86_64/chromite", "$env:SWING_PRODUCTS_DIR/win32/win32/x86_64/chromite-swing") {
+          foreach ($dir in "$env:SWING_PRODUCTS_DIR/win32/win32/x86_64/chromite-swing") {
             Get-ChildItem $dir -Recurse -File -Include *.exe, *.dll | ForEach-Object {
               $sig = Get-AuthenticodeSignature $_.FullName
               "$($_.FullName) : $($sig.Status) | $($sig.SignerCertificate.Subject)"
@@ -171,17 +165,6 @@ jobs:
           subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
       # The signing certificate lives three days; the RFC 3161 timestamp keeps the signature valid.
       # One file per step. The action replaces the broken Eclipse signature (append-signature: false).
-      - name: Sign chromite.exe (ours)
-        if: steps.azure.outputs.signed == 'true'
-        uses: azure/artifact-signing-action@v2
-        with:
-          endpoint: ${{ vars.ARTIFACT_SIGNING_ENDPOINT }}
-          signing-account-name: ${{ vars.ARTIFACT_SIGNING_ACCOUNT }}
-          certificate-profile-name: ${{ vars.ARTIFACT_SIGNING_PROFILE }}
-          files: ${{ github.workspace }}\product\community\target\products\com.seizia.chromite.core.product\win32\win32\x86_64\chromite\chromite.exe
-          file-digest: SHA256
-          timestamp-rfc3161: http://timestamp.acs.microsoft.com
-          timestamp-digest: SHA256
       - name: Sign chromite-swing.exe (ours)
         if: steps.azure.outputs.signed == 'true'
         uses: azure/artifact-signing-action@v2
@@ -198,8 +181,7 @@ jobs:
         if: steps.azure.outputs.signed == 'true'
         shell: pwsh
         run: |
-          $ours = @((Resolve-Path "$env:SWT_PRODUCTS_DIR/win32/win32/x86_64/chromite/chromite.exe").Path,
-                    (Resolve-Path "$env:SWING_PRODUCTS_DIR/win32/win32/x86_64/chromite-swing/chromite-swing.exe").Path)
+          $ours = @((Resolve-Path "$env:SWING_PRODUCTS_DIR/win32/win32/x86_64/chromite-swing/chromite-swing.exe").Path)
           $thumbprints = @()
           foreach ($path in $ours) {
             $sig = Get-AuthenticodeSignature $path
@@ -210,7 +192,7 @@ jobs:
             if ($sig.SignerCertificate.Issuer -notmatch 'Microsoft ID Verified CS') { throw "$path is not signed through Azure Artifact Signing" }
             $thumbprints += $sig.SignerCertificate.Thumbprint
           }
-          foreach ($dir in "$env:SWT_PRODUCTS_DIR/win32/win32/x86_64/chromite", "$env:SWING_PRODUCTS_DIR/win32/win32/x86_64/chromite-swing") {
+          foreach ($dir in "$env:SWING_PRODUCTS_DIR/win32/win32/x86_64/chromite-swing") {
             Get-ChildItem $dir -Recurse -File -Include *.exe, *.dll | Where-Object { $ours -notcontains $_.FullName } | ForEach-Object {
               $sig = Get-AuthenticodeSignature $_.FullName
               "$($_.FullName) : $($sig.Status) | $($sig.SignerCertificate.Subject) (third party, not signed by us)"
@@ -218,7 +200,7 @@ jobs:
             }
           }
 
-      # The zip holds the product's root folder (chromite/, chromite-swing/), as the build.yml artifacts.
+      # The zip holds the product's root folder (chromite-swing/), as the build.yml artifact.
       - name: Package (zip)
         shell: pwsh
         env:
@@ -226,8 +208,7 @@ jobs:
         run: |
           $suffix = if ($env:SIGNED -eq 'true') { '' } else { '-UNSIGNED' }
           $dist = New-Item -ItemType Directory -Force dist
-          foreach ($p in @(@{ dir = "$env:SWT_PRODUCTS_DIR/win32/win32/x86_64"; root = 'chromite'; exe = 'chromite.exe' },
-                           @{ dir = "$env:SWING_PRODUCTS_DIR/win32/win32/x86_64"; root = 'chromite-swing'; exe = 'chromite-swing.exe' })) {
+          foreach ($p in @(@{ dir = "$env:SWING_PRODUCTS_DIR/win32/win32/x86_64"; root = 'chromite-swing'; exe = 'chromite-swing.exe' })) {
             $zip = Join-Path $dist.FullName "$($p.root)-$env:VERSION-windows-x64$suffix.zip"
             Push-Location $p.dir
             7z a -tzip $zip $p.root | Out-Null
@@ -301,7 +282,7 @@ jobs:
       # Same build as build.yml "Build (Linux)"; keep both in sync.
       - name: Build
         shell: bash
-        run: ./deps/dbeaver-common/mvnw -B -ntp package -f product/aggregate/pom.xml -T1C -Pproduct-chromite-swt,product-chromite-swing
+        run: ./deps/dbeaver-common/mvnw -B -ntp package -f product/aggregate/pom.xml -T1C -Pproduct-chromite-swing
 
       # Bundled Java runtime, as build.yml "Bundle Java runtime (macOS arm64, linked on Linux)". Its Mach-O
       # files are signed with the others in macos-sign (tools/release/macos_natives.py finds them).
@@ -329,7 +310,6 @@ jobs:
             fi
             tar -czf "$RUNNER_TEMP/apps/$app.tar.gz" -C "$dir" "$app"
           }
-          pack "$SWT_PRODUCTS_DIR/macosx/cocoa/aarch64" Chromite.app chromite
           pack "$SWING_PRODUCTS_DIR/macosx/cocoa/aarch64" ChromiteSwing.app chromite-swing
 
       - name: Upload the unsigned apps (intermediate, not for release)
@@ -426,7 +406,6 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          bash tools/release/release-macos.sh sign "$APPS/Chromite.app"
           bash tools/release/release-macos.sh sign "$APPS/ChromiteSwing.app"
 
       - name: The apps are signed by the team (app, entitlements, every Mach-O)
@@ -436,7 +415,6 @@ jobs:
           MAC_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
         run: |
           set -euo pipefail
-          bash tools/release/release-macos.sh check-signed "$APPS/Chromite.app"
           bash tools/release/release-macos.sh check-signed "$APPS/ChromiteSwing.app"
 
       - name: Notarize the apps and staple them
@@ -447,7 +425,6 @@ jobs:
           NOTARY_ISSUER: ${{ secrets.APPLE_API_ISSUER_ID }}
         run: |
           set -euo pipefail
-          bash tools/release/release-macos.sh notarize "$APPS/Chromite.app"
           bash tools/release/release-macos.sh notarize "$APPS/ChromiteSwing.app"
 
       - name: Zip and disk image of each app
@@ -457,7 +434,6 @@ jobs:
         run: |
           set -euo pipefail
           if [ "$SIGNED" = true ]; then suffix=; else suffix=-UNSIGNED; fi
-          bash tools/release/release-macos.sh package "$APPS/Chromite.app" "chromite-$VERSION-macos-aarch64$suffix" dist
           bash tools/release/release-macos.sh package "$APPS/ChromiteSwing.app" "chromite-swing-$VERSION-macos-aarch64$suffix" dist
 
       - name: Sign, notarize and staple the disk images
@@ -469,7 +445,7 @@ jobs:
           NOTARY_ISSUER: ${{ secrets.APPLE_API_ISSUER_ID }}
         run: |
           set -euo pipefail
-          for name in chromite chromite-swing; do
+          for name in chromite-swing; do
             bash tools/release/release-macos.sh sign-dmg "dist/$name-$VERSION-macos-aarch64.dmg"
             bash tools/release/release-macos.sh notarize "dist/$name-$VERSION-macos-aarch64.dmg"
           done
@@ -481,7 +457,6 @@ jobs:
           MAC_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
         run: |
           set -euo pipefail
-          bash tools/release/release-macos.sh verify signed "$APPS/Chromite.app" "dist/chromite-$VERSION-macos-aarch64.dmg" "dist/chromite-$VERSION-macos-aarch64.zip"
           bash tools/release/release-macos.sh verify signed "$APPS/ChromiteSwing.app" "dist/chromite-swing-$VERSION-macos-aarch64.dmg" "dist/chromite-swing-$VERSION-macos-aarch64.zip"
 
       - name: Verify (unsigned) - contents only
@@ -489,7 +464,6 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          bash tools/release/release-macos.sh verify unsigned "$APPS/Chromite.app" "dist/chromite-$VERSION-macos-aarch64-UNSIGNED.dmg" "dist/chromite-$VERSION-macos-aarch64-UNSIGNED.zip"
           bash tools/release/release-macos.sh verify unsigned "$APPS/ChromiteSwing.app" "dist/chromite-swing-$VERSION-macos-aarch64-UNSIGNED.dmg" "dist/chromite-swing-$VERSION-macos-aarch64-UNSIGNED.zip"
 
       - name: Delete the temporary keychain and the key files

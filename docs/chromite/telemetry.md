@@ -133,6 +133,7 @@ DBeaver 소유 서버로 나가는 다른 요청은 이번 작업에서 조사�
   사용자가 Install New Software 같은 p2 화면을 열 때만 접속했다. 자동 업데이트 스케줄러는 제품에 없다.
 - 제거: 사용자 결정(2026-11-06)에 따라 세 저장소 등록을 지웠다. 남은 p2 저장소는 Eclipse 릴리스 저장소
   (`https://download.eclipse.org/releases/2026-06/`)뿐이다. 자세한 이유는 [branding.md](branding.md).
+- 2026-11-07 SWT 제품 삭제([swt-removal.md](swt-removal.md))로 `Chromite.p2.inf`도 없어졌다. Swing 제품에는 p2 업데이트 화면이 없다.
 
 ### 찾지 못한 것
 
@@ -156,3 +157,4 @@ DBeaver 소유 서버로 나가는 다른 요청은 이번 작업에서 조사�
 - 2026-11-06 외부 전송 1번(AI 모델 카탈로그, `dbeaver.com/info/ai_models_api.json`) 제거. 대체 동작은 [ai.md](ai.md).
 - 2026-11-06 외부 전송 5번(dbeaver.io Office, Git, Debug 확장 p2 업데이트 사이트) 제거.
 - 2026-11-07 내부 이름 변경([internal-rename.md](internal-rename.md)) 뒤에도 upstream 플러그인 이름을 가리키도록 "upstream 대비" 문구를 고침.
+- 2026-11-07 SWT 프런트엔드 삭제([swt-removal.md](swt-removal.md)): p2 업데이트 사이트 절에 `Chromite.p2.inf` 삭제를 적음. 외부 전송 현황의 SWT 번들 경로(업데이트 확인, `ui.datadam`)는 조사 당시 기록이며 그 번들은 삭제됐다.

@@ -17,7 +17,7 @@ The commercial products share the same model layer as DBeaver CE + browser-based
 
 - Language: Java (21)
 - Platform: OSGi / Eclipse Equinox
-- UI: Eclipse RCP (SWT + JFace)
+- UI: Swing (`com.seizia.chromite.ui.swing`); the Eclipse RCP (SWT + JFace) UI was removed (docs/chromite/swt-removal.md)
 - DB connectivity: JDBC or custom implementation (e.g. WMI)
 - SQL parsing: JSQLParser, ANTLR4 (LSM module)
 - Testing: JUnit 5, Mockito, custom OSGi test runner
@@ -29,14 +29,14 @@ The commercial products share the same model layer as DBeaver CE + browser-based
 
 ### Building
 
-- To perform full product build run `mvn package -f product/aggregate/pom.xml -T1C -Pproduct-chromite-swt`  
+- To perform full product build run `mvn package -f product/aggregate/pom.xml -T1C -Pproduct-chromite-swing`  
 - Building a single bundle with `mvn package` in bundle folder usually fails.
 - To build other products(s) use different profiles. You can find maven profiles list in file `product/pom.xml`.
 
 ### Running tests
 
 - Running tests in a single bundle usually fail because OSGI needs ALL bundles to be included in build OR be installed in .m2.
-- To run tests over full repo run `mvn verify -f product/aggregate/pom.xml -T1C -Pproduct-chromite-swt`. This will run tests for desktop dbeaver ce.
+- To run tests over full repo run `mvn verify -f product/aggregate/pom.xml -T1C -Pproduct-chromite-swing`. This will run tests for the desktop product.
 
 ### Repo dependencies
 
@@ -106,7 +106,7 @@ The commercial products share the same model layer as DBeaver CE + browser-based
 
 ## Common Pitfalls / Known Issues
 
-- UI thread safety: All SWT/UI updates must run on the display thread. Use functions like `UIUtils.asyncExec(Runnable)` if needed.
+- UI thread safety: All Swing UI updates must run on the event dispatch thread. Use `SwingUtilities.invokeLater(Runnable)` if needed.
 - Java 21 required: The target platform requires `JavaSE-21`. Do not use preview features.
 
 ## Creating unit tests
