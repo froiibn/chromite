@@ -19,6 +19,7 @@ package com.seizia.chromite.ui.swing;
 import com.formdev.flatlaf.FlatClientProperties;
 import com.formdev.flatlaf.util.UIScale;
 import com.seizia.chromite.ui.swing.internal.CoreMessages;
+import com.seizia.chromite.ui.swing.internal.UpdateMessages;
 import org.eclipse.osgi.util.NLS;
 import org.fife.ui.rsyntaxtextarea.Theme;
 import org.jkiss.code.NotNull;
@@ -51,6 +52,7 @@ import java.util.Objects;
  *     <li>Editor 탭의 Formatting: SQL 서식기 종류와 키워드 대소문자({@link SqlEditCommands}, SWT 서식 설정과 같은 플랫폼 설정 키).
  *     General 탭의 Query History: 쿼리 기록 보관 일수({@link QueryHistory}). Templates 탭: SQL 템플릿({@link SqlTemplatesPage}).</li>
  *     <li>Query Library 기록 보존(실행 수, 일수): {@link QueryLibraryHistory}의 설정. 다음 기록을 덧붙일 때 줄인다.</li>
+ *     <li>Updates 탭: 자동 업데이트 확인 켜기·끄기(업데이트 모델이 설치 단위로 저장), 현재 버전, 지금 확인({@link UpdateOptionsPage}).</li>
  * </ul>
  * OK를 누를 때 바뀐 값만 적용한다. 읽기는 열 때 한 번 한다.
  *
@@ -63,6 +65,7 @@ import java.util.Objects;
  * - 2026-11-06 화면 문구를 CoreMessages로 옮김(OS 언어를 따름)
  * - 2026-11-07 자동완성에 프로시저·함수 제안 설정 (docs/chromite/swing-followup-fixes.md "자동완성 프로시저")
  * - 2026-11-07 날짜/시간 값을 데이터베이스 형식 그대로 보이는 설정(SWT "Disable date/time formatting") (docs/chromite/swing-followup-fixes.md "날짜/시간 소수 초")
+ * - 2026-11-07 Updates 탭: 자동 업데이트 확인, 현재 버전, 지금 확인({@link UpdateOptionsPage}) (docs/chromite/auto-update.md)
  */
 final class OptionsDialog extends JDialog {
 
@@ -87,6 +90,7 @@ final class OptionsDialog extends JDialog {
     private final JComboBox<String> keywordCaseCombo = new JComboBox<>(new String[]{
         CoreMessages.options_case_database, CoreMessages.options_case_upper, CoreMessages.options_case_lower, CoreMessages.options_case_as_typed});
     private final SqlTemplatesPage templatesPage = new SqlTemplatesPage();
+    private final UpdateOptionsPage updatesPage = new UpdateOptionsPage();
 
     // Editor tab
     private final JComboBox<String> fontFamilyCombo;
@@ -172,6 +176,7 @@ final class OptionsDialog extends JDialog {
         tabs.addTab(CoreMessages.options_editor, createEditorPage());
         tabs.addTab(CoreMessages.options_editor_colors, createColorsPage());
         tabs.addTab(CoreMessages.options_templates, templatesPage);
+        tabs.addTab(UpdateMessages.update_options_tab, updatesPage);
         content.add(tabs, BorderLayout.CENTER);
         content.add(buttons, BorderLayout.SOUTH);
         setContentPane(content);
@@ -427,6 +432,7 @@ final class OptionsDialog extends JDialog {
     }
 
     private void apply() {
+        updatesPage.apply();
         if (autoCompleteBox.isSelected() != SqlCompletionPopup.isAutoActivateOnLetters()) {
             SqlCompletionPopup.setAutoActivateOnLetters(autoCompleteBox.isSelected());
         }

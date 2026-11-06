@@ -31,6 +31,7 @@ import com.seizia.chromite.model.exec.plan.DBCPlanNode;
 import com.seizia.chromite.model.exec.plan.DBCPlanSourceFormat;
 import com.seizia.chromite.model.impl.local.CachedResultSet;
 import com.seizia.chromite.model.impl.plan.AbstractExecutionPlan;
+import org.jkiss.utils.CommonUtils;
 import org.jkiss.utils.IntKeyMap;
 import org.jkiss.utils.SecurityUtils;
 
@@ -43,6 +44,13 @@ import java.util.Map;
 
 /**
  * Oracle execution plan analyser
+ *
+ * 설계(Chromite): 계획 원문은 PLAN_TABLE 행({@link CachedResultSet})만 남았다. 실행 계획 원문 보기는 Oracle 사용자가 읽는 형태인
+ * {@code DBMS_XPLAN.DISPLAY} 글자를 보여야 하므로, 계획 행을 읽은 뒤 같은 세션에서 같은 STATEMENT_ID의 DBMS_XPLAN 출력을 읽어 둔다.
+ * 그 글자가 있으면 원문은 TEXT 형식의 그 글자이고, 읽지 못하면(권한 등) 예전처럼 계획 행이다. 계획 노드는 바뀌지 않는다.
+ *
+ * 변경 이력:
+ * - 2026-11-07 Chromite: DBMS_XPLAN 출력을 계획 원문으로 남김 (docs/chromite/swing-sql-editor-plus.md "실행 계획 세 보기")
  */
 public class OracleExecutionPlan extends AbstractExecutionPlan {
 
@@ -55,6 +63,8 @@ public class OracleExecutionPlan extends AbstractExecutionPlan {
     private String planStmtId;
     private String planTableName;
     private CachedResultSet planResults;
+    @Nullable
+    private String planText;
 
     OracleExecutionPlan(OracleDataSource dataSource, JDBCSession session, String query) {
         this.dataSource = dataSource;
@@ -111,13 +121,13 @@ public class OracleExecutionPlan extends AbstractExecutionPlan {
     @NotNull
     @Override
     public DBCPlanSourceFormat getPlanSourceDataFormat() {
-        return DBCPlanSourceFormat.RESULT_SET;
+        return planText != null ? DBCPlanSourceFormat.TEXT : DBCPlanSourceFormat.RESULT_SET;
     }
 
     @Nullable
     @Override
     public Object getPlanSourceData() {
-        return planResults;
+        return planText != null ? planText : planResults;
     }
 
     @NotNull
@@ -207,6 +217,27 @@ public class OracleExecutionPlan extends AbstractExecutionPlan {
         // Update costs
         for (OraclePlanNode node : rootNodes) {
             node.updateCosts();
+        }
+        readPlanText();
+    }
+
+    /**
+     * Reads the plan as DBMS_XPLAN formats it, from the same plan table rows.
+     */
+    private void readPlanText() {
+        try (JDBCPreparedStatement dbStat = session.prepareStatement(
+            "SELECT PLAN_TABLE_OUTPUT FROM TABLE(DBMS_XPLAN.DISPLAY(?, ?, 'TYPICAL'))")) {
+            dbStat.setString(1, planTableName);
+            dbStat.setString(2, planStmtId);
+            try (JDBCResultSet dbResult = dbStat.executeQuery()) {
+                StringBuilder text = new StringBuilder();
+                while (dbResult.next()) {
+                    text.append(CommonUtils.notEmpty(dbResult.getString(1))).append('\n');
+                }
+                planText = text.isEmpty() ? null : text.toString();
+            }
+        } catch (SQLException e) {
+            log.debug("Can't read the DBMS_XPLAN output, the plan table rows are the plan source", e);
         }
     }
 

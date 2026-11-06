@@ -7,6 +7,7 @@ Swing 프런트엔드([swing-frontend.md](swing-frontend.md))의 SQL 편집기(�
 ## 목적
 
 - 실행 계획: 예상 계획(Ctrl+L)과 실행하면서 받는 실제 계획(Ctrl+M 켜고 실행)을 결과 옆 **Execution plan** 탭에서 본다.
+  탭 안에서 그래픽(연산자 그림) · 트리(속성 표) · 원본(서버가 돌려준 글자) 세 보기로 바꿔 본다(아래 "실행 계획 세 보기").
 - 쿼리 기록: 쿼리 창에서 실행한 모든 문장을 남기고(재시작 뒤에도), **Query > Query History…** 창에서 찾고 다시 열거나 실행한다.
 - SQL 서식과 편집 명령: Format SQL, 대문자·소문자, 주석 넣기·빼기, 들여쓰기.
 - 템플릿: 이름 + Tab(`sel` + Tab), Ctrl+K Ctrl+X 목록, Tools > Options > Templates에서 편집.
@@ -22,7 +23,12 @@ Swing 프런트엔드([swing-frontend.md](swing-frontend.md))의 SQL 편집기(�
 | `.../plan/SQLServerExecutionPlan.java`, `SQLServerPlanNode.java` | showplan XML을 DBeaver 계획 모델(`DBCPlan`, `DBCPlanCostNode`)로 바꿈 |
 | `plugins/com.seizia.chromite.ext.mssql/.../model/SQLServerDataSource.java` | `getAdapter`에서 위 계획기를 돌려줌(Babelfish 제외) |
 | `plugins/com.seizia.chromite.registry/.../BasePlatformImpl.java` | `getLocalConfigurationFile`이 작업 공간 설정 폴더를 만듦(매개변수 값 저장) |
-| `plugins/com.seizia.chromite.ui.swing/.../ExecutionPlanView.java` | Execution plan 탭: 문장별 계획 트리 표 + 노드 속성 표 |
+| `plugins/com.seizia.chromite.ui.swing/.../ExecutionPlanView.java` | Execution plan 탭: 보기 전환 도구 막대, 문장별 계획 트리 표 + 노드 속성 표, 그래픽·원본 보기를 담음 |
+| `.../PlanDiagram.java`, `PlanDiagramView.java` | 그래픽 계획: 계획 모델을 모르는 그림 내용(문장, 연산자 상자)과 그것을 배치·그리는 컴포넌트(확대, 도구 설명, 선택) |
+| `.../PlanDiagramBuilder.java` | 계획 모델(`DBCPlan`)을 그림 내용으로: DB별 비용 %, 예상·실제 행, 경고, 연산자 아이콘 |
+| `.../PlanRawView.java` | 원본 보기: 계획 원문(읽기 전용, XML·JSON 구문 색), 복사, 다른 이름으로 저장 |
+| `.../internal/PlanMessages*.properties` | 세 보기의 화면 문구(영어, 한국어) |
+| `plugins/com.seizia.chromite.ext.oracle/.../plan/OracleExecutionPlan.java` | `DBMS_XPLAN.DISPLAY` 글자를 계획 원문으로 남김 |
 | `.../SqlPlanExplainer.java` | 계획기로 문장들의 계획을 구하는 Job(예상, ANALYZE) |
 | `.../ActualPlanReceiver.java` | 실행 중 계획 결과 집합을 계획으로, 나머지는 결과 표로 보내는 수신기 |
 | `.../QueryHistory.java`, `QueryHistoryDialog.java` | 쿼리 기록 저장소(작업 공간 `.metadata/chromite-query-history.jsonl`)와 Query History 창 |
@@ -31,13 +37,14 @@ Swing 프런트엔드([swing-frontend.md](swing-frontend.md))의 SQL 편집기(�
 | `.../SqlParameterDialog.java` | 매개변수 값 대화상자와 엔진의 매개변수 제공자 |
 | `SqlEditorPanel`, `MainFrame`, `OptionsDialog`, `QueryStatusLine`, `SqlCompletionPopup` | 위 기능을 잇는 작은 연결 지점(아래 "upstream·기존 코드 대비 변경점") |
 | `tools/branding/gen_ui_icons.py`, `icons/ui/*/*/plan.svg`, `history.svg` | 실행 계획·쿼리 기록 아이콘(생성기에 추가, 두 팩 × 두 테마) |
+| `icons/ui/*/*/plan-*.svg`, `copy.svg` | 그래픽 계획의 연산자 아이콘 17개와 원본 보기의 복사 아이콘(같은 생성기) |
 
 ## 단축키와 메뉴
 
 | 기능 | 키 | 메뉴 |
 |---|---|---|
-| 예상 실행 계획 | Ctrl+L | Query > Display Estimated Execution Plan, 쿼리 창 도구 막대의 계획 단추 |
-| 실제 실행 계획 포함 | Ctrl+M (쿼리 창마다 켜고 끔) | Query > Include Actual Execution Plan, 도구 막대의 Actual Plan 토글 |
+| 예상 실행 계획 | Ctrl+L | Query > Display Estimated Execution Plan, 메인 창 SQL Editor 도구 막대의 계획 단추 |
+| 실제 실행 계획 포함 | Ctrl+M (쿼리 창마다 켜고 끔) | Query > Include Actual Execution Plan, SQL Editor 도구 막대의 Actual Plan 토글(메뉴와 같은 동작, 활성 쿼리 창의 값을 보임) |
 | 쿼리 기록 | - | Query > Query History… |
 | SQL 서식 | Ctrl+K Ctrl+D, Ctrl+Shift+F | Edit > Advanced > Format SQL |
 | 대문자 / 소문자 | Ctrl+Shift+U / Ctrl+Shift+L | Edit > Advanced > Make Uppercase / Make Lowercase |
@@ -78,12 +85,107 @@ Ctrl+K는 RSyntaxTextArea 기본값(다음 같은 단어로 이동)이었는데 
 - **탭 배치**: 메인 창의 Results / Messages 옆에 Execution plan 탭을 늘 둔다(SQL Server 도구는 계획이 있을 때만 탭을 보이지만,
   탭을 넣고 빼면 `MainFrame`의 탭 번호 처리가 늘어 다른 작업과 겹치기 쉬워 고정 탭으로 했다). 쿼리 창마다 마지막으로 본 탭을 기억한다.
   Ctrl+L은 계획 탭을 앞으로 가져오고, 실제 계획은 결과를 먼저 보인다(계획 탭은 눌러서 본다).
-- **그래픽 계획 도면은 미뤘다**(아래 "미룬 일"). 트리 표와 노드 속성 표가 같은 정보를 보인다.
+- **그래픽 계획 도면은 처음에 미뤘다가 2026-11-07에 더했다**(아래 "실행 계획 세 보기").
 - **열 너비는 내용에 맞춘다.** 처음에는 모든 열을 고정 비율(연산 320, 나머지 110)로 보기 안에 밀어 넣어(`AUTO_RESIZE_SUBSEQUENT_COLUMNS`)
   속성 열이 많은 SQL Server 계획에서 연산 이름이 잘렸다. 계획이 들어올 때 머리글과 보이는 행을 표의 렌더러로 재어(들여쓰기 포함) 맞추고
   (연산 열 200~700px, 속성 열 60~360px, SWT `PlanNodesTree`의 상위 `ObjectListControl.java:520-541`이 내용을 채운 뒤 열을 다시 맞추는 것과 같은 의도),
   열이 보기보다 좁으면 보기를 채우고 넓으면 가로로 스크롤한다(`getScrollableTracksViewportWidth`). 연산 열은 계획 노드만 잰다:
   "Query N" 행은 SQL 글이라 길고, 전체는 오른쪽 상세 표에 보인다.
+
+### 실행 계획 세 보기 (2026-11-07)
+
+사용자 결정: 계획 탭에 세 보기를 두고 탭 자체의 작은 도구 막대에 있는 분할 단추로 바꾼다.
+
+| 보기 | 내용 |
+|---|---|
+| **그래픽** (기본) | SQL Server 계획 도구 같은 연산자 그림. 데이터는 오른쪽(잎)에서 왼쪽(뿌리 SELECT)으로 흐르고, 화살표 굵기는 행 수, 상자는 아이콘·연산·개체·비용 % |
+| **트리** | 기존 트리 표(위 설명 그대로) |
+| **원본** | 서버가 돌려준 계획 글자 그대로(읽기 전용, 고정폭, XML·JSON 구문 색), 복사, 다른 이름으로 저장… |
+
+- **배치(도구 막대):** `[그래픽 | 트리 | 원본]` 분할 단추(둥근 테두리 안 토글 단추 셋, FlatLaf에 분할 단추 형식이 없어 `ExecutionPlanView.SegmentedPanel`이 테두리를 그림),
+  그다음에 보이는 보기의 도구(그래픽: 축소·배율(누르면 100%)·확대·창에 맞추기, 원본: 계획 목록·복사·다른 이름으로 저장…), 오른쪽에 기존 머리말 글자
+  ("예상 실행 계획 - 문 N개"). 그래픽·트리는 오른쪽 속성 표를 함께 쓰고, 원본은 탭 전체를 쓴다.
+- **마지막 보기 기억:** 고른 보기를 이 번들의 사용자 설정 `plan.view`(`GRAPHICAL`·`TREE`·`RAW`)에 저장하고 새 쿼리 창의 계획 탭도 그 보기로 연다.
+- **선택 연동:** 그림에서 상자를 누르면 트리의 같은 노드 행을 고르고(접힌 가지 안이면 속성만 보임), 트리에서 행을 고르면 그림의 상자도 선택된다.
+  그래서 "상자를 누르면 오른쪽 속성 표에 전체 속성"이 트리 보기와 같은 코드(`showDetails`)로 된다. 문장 머리말을 누르면 문장 속성(문, 계획 쿼리, 예상/실제)이 보인다. 한 번에 계획한 일괄 처리(SQL Server는 스크립트 전체가 계획 하나이고 그 안에 문장 노드가 여럿)는
+  머리말이 그 문장 노드를 고른다(모두 같은 계획을 고르면 모든 머리말이 함께 선택되어 보였다).
+- **SQL 편집기는 바꾸지 않았다.** `SqlEditorPanel`은 `ExecutionPlanView`의 `clear`·`addEntry`·`getComponent`만 쓰므로 세 보기는 이 클래스 안에서 끝난다.
+  `MainFrame`도 그대로다(탭에 끼우는 컴포넌트가 같음).
+
+#### 그래픽 보기
+
+- **라이브러리 없이 직접 배치한다.** 계획은 트리라서 배치가 간단하다: 깊이가 열(뿌리 문장이 왼쪽 첫 열), 부모는 첫 자식과 같은 줄, 다음 자식은 앞 자식의
+  하위 트리 아래 줄부터. SQL Server 계획 도구와 같은 모양이고 선이 겹치지 않는다. JGraphX(BSD, 약 1.5MB, 개발 중단)나 JUNG 같은 그래프 라이브러리는
+  일반 그래프 배치를 위한 것이라 이 트리에는 과하고, 테마 색·확대·도구 설명을 다시 맞춰야 해서 쓰지 않았다.
+- **모델과 그림을 나눴다.** `PlanDiagramView`는 `PlanDiagram`(문장, 연산자 상자: 글자, 아이콘 id, 비용 %, 예상·실제 행, 경고, 도구 설명 줄)만 그리고,
+  DB별 해석은 `PlanDiagramBuilder` 한곳에 있다. 새 DB를 지원할 때 그림 코드는 바뀌지 않는다.
+- **상자:** 폭 168, 연산자 아이콘 32(16px 아이콘을 두 배로, 아이콘 팩·테마를 따름), 연산 이름(굵게), 개체(SQL Server는 DB·스키마를 뺀 `[테이블].[인덱스] [별칭]`,
+  개체가 없는 조인은 논리 연산 `(Inner Join)`), `비용: N%`, 행(예상 계획 `N행`, 실제 계획 `실제 / 예상 (비율)`). 글자가 넘치면 …로 자르고 전체는 도구 설명과 속성 표에 있다.
+- **비싼 연산자:** 문장 안에서 연산자 비용 %가 가장 큰 상자(1% 이상)는 오류 색(`Chromite.status.error`) 2px 테두리와 옅은 오류 색 바탕, 비용 글자도 오류 색 굵게.
+  그 밖에 25% 이상인 상자는 경고 색 테두리.
+- **경고 배지:** 서버가 계획에 적은 경고가 있으면 아이콘 오른쪽 아래에 경고 아이콘(`warning`)을 그리고, 도구 설명에 종류와 서버의 세부 내용을 보인다.
+  - SQL Server(모델이 showplan에서 읽음, 아래 "모델 변경"): 암시적 변환(`PlanAffectingConvert`), 디스크 넘침(`SpillToTempDb`, `Sort/Hash/ExchangeSpillDetails`),
+    조인 조건자 없음(`NoJoinPredicate`), 통계 없는 열(`ColumnsWithNoStatistics`), 메모리 부여(`MemoryGrantWarning`), 누락 인덱스(`MissingIndexes`), 그 밖의 경고 요소.
+    문장 단위 경고(암시적 변환, 메모리 부여, 누락 인덱스)는 뿌리 SELECT 상자에 붙는다. 누락 인덱스는 문장 머리말에도 성공 색으로
+    `누락 인덱스(영향 94): CREATE NONCLUSTERED INDEX … ON [dbo].[t] ([status], [amount])`를 보인다.
+  - PostgreSQL(계획 속성으로 판단): 디스크 정렬(`Sort-Space-Type` = Disk), 해시 일괄 처리 증가(`Hash-Batches` &gt; 1), 해시 집계 디스크 사용(`Disk-Usage` &gt; 0).
+    PostgreSQL 계획에는 암시적 변환·누락 인덱스 보고가 없다.
+- **예상과 실제:** 실제 계획에서 상자의 행 줄은 `실제 / 예상 (비율)`이다. 두 값은 모두 "모든 실행" 합계다(SQL Server: 1회 예상 행 × 예상 실행 수
+  (`1 + EstimateRebinds + EstimateRewinds`)와 스레드 합계 실제 행, PostgreSQL: 루프 1회 값 × `Actual-Loops`). 큰 값이 작은 값(1 이상)의 10배 이상이고
+  차이가 100행 이상이면 행 줄을 경고 색 굵게 그리고 도구 설명에 "예상이 N배 어긋났습니다"를 더한다(몇 행짜리 차이는 표시하지 않음).
+- **화살표:** 자식 상자 왼쪽에서 부모 상자 오른쪽으로(데이터 흐름 방향, 머리는 부모 쪽). 굵기는 그 연산자가 넘기는 행 수(실제 계획이면 실제, 아니면 예상)를
+  문장 안 최대 행 수에 대한 로그 비율로 1~10px. 행 수 그대로 비례시키면 몇 행짜리 화살표는 보이지 않고 큰 화살표는 상자를 덮는다. 화살표에 마우스를 올리면 행 수가 보인다.
+  자식이 여럿이면 부모에 들어가는 높이를 7px씩 내려 선이 합쳐지지 않게 한다.
+- **여러 문장:** 문장마다 그림 하나를 위아래로 쌓고, 머리말은 트리와 같은 번호로 `쿼리 N: 쿼리 비용(일괄 처리 기준): X%`와 문장 첫 줄이다.
+  일괄 처리 기준 비용은 탭의 모든 문장 비용(SQL Server 문장 하위 트리 비용, PostgreSQL 뿌리 Total-Cost, 그 밖은 뿌리 비용)의 합에 대한 비율이다.
+  계획을 만들지 못한 문장은 머리말 아래에 오류 색으로 `계획 없음: 오류`를 보인다.
+- **확대·이동:** 도구 막대 단추, Ctrl+휠(마우스 아래 점 고정), Ctrl+= / Ctrl+- / Ctrl+0(그림에 포커스가 있을 때). 배율 10~300%. 휠은 스크롤, 빈 곳을 끌면 화면 이동
+  (ER 다이어그램 `ErdCanvas`와 같은 조작). 창에 맞추기는 100%를 넘지 않는다.
+- **도구 설명:** 연산, 논리 연산, 개체(전체 이름), 연산자 비용, 예상 행(모든 실행), 실제 행, 하위 트리 비용, 실행 횟수, 시간, 조건자, 경고. 긴 값은 줄을 나누고 600자에서 자른다.
+- **색:** 모두 테마 키를 그릴 때마다 읽는다(캔버스 `Chromite.editorBackground`, 상자 바탕은 캔버스에 글자색 3.5%, 테두리 `Component.borderColor`, 선택
+  `Table.selectionBackground` + `Component.focusedBorderColor`, 보조 글자 `Chromite.secondaryForeground`, 화살표는 캔버스와 글자색의 45% 섞음,
+  상태 색 `Chromite.status.*`). 경고 노랑은 밝은 바탕에서 글자로 읽기 어려워 글자에 쓸 때는 글자색과 35% 섞는다. 그래서 라이트·다크 전환 뒤 다시 그리기만 하면 된다.
+- **아이콘:** 생성기(`gen_ui_icons.py`)에 연산자 17개를 더했다. 데이터 객체는 중립색, 동작은 파랑, 데이터 변경은 표 위 배지(삽입 초록 +, 수정 파랑 연필, 삭제 빨강 ×).
+  `plan-select`(문), `plan-scan`, `plan-seek`, `plan-lookup`(키), `plan-join-nested`, `plan-join-hash`(#), `plan-join-merge`, `plan-sort`, `plan-aggregate`(Σ),
+  `plan-filter`, `plan-compute`(=), `plan-top`, `plan-parallelism`, `plan-insert`, `plan-update`, `plan-delete`, `plan-operator`(그 밖).
+  연산 이름의 낱말로 고른다(`PlanDiagramBuilder.classify`): DB마다 같은 연산의 이름이 달라(`Clustered Index Seek` / `Index Scan`+`Index-Cond` / `INDEX RANGE SCAN` /
+  MySQL `access_type` ref) 공통 종류(`DBCPlanNodeKind`)로는 Seek·Scan·Lookup을 나누지 못한다. 순서가 중요하다: 해시로 하는 집계는 집계, 병렬 스캔은 스캔.
+
+#### 원본 보기
+
+- 계획 모델이 남긴 원문(`DBCPlan.getPlanSourceData`)을 바꾸지 않고 보인다. 서식을 다시 맞추지 않으므로 SQL Server showplan XML은 한 줄이고,
+  2,000자보다 긴 줄이 있으면 화면에서만 줄을 접는다(복사·저장은 원문 그대로). 구문 색은 RSyntaxTextArea가 아는 XML·JSON, 테마와 고정폭 글꼴은 값 패널과 같이
+  SQL 편집기 테마 파일과 `monospaced.font`다.
+- 계획이 여럿이면(실제 계획은 문장마다 XML 하나) 도구 막대에 `쿼리 N` 목록이 보인다. 계획이 더 들어와도 보던 항목을 유지한다.
+- 다른 이름으로 저장: 형식에 맞는 확장자 하나(SQL Server showplan `.sqlplan`, 그 밖의 XML `.xml`, JSON `.json`, 글자 `.txt`), UTF-8. 파일이 있으면 바꿀지 묻는다.
+- DB별 원문(모델이 실제로 남기는 것, 확인한 코드):
+
+| DB | 원문 | 모델 |
+|---|---|---|
+| SQL Server | showplan XML(예상 `SHOWPLAN_XML`, 실제 `STATISTICS XML`) | `SQLServerExecutionPlan.getPlanSourceData` (원래도 남김) |
+| PostgreSQL | `EXPLAIN (FORMAT XML …)` 결과 XML. DBeaver 계획기가 XML 형식으로 요청하므로 JSON이 아니라 XML이다(서버가 돌려준 그대로) | `PostgreExecutionPlan.planText` (원래도 남김) |
+| MySQL / MariaDB | `EXPLAIN FORMAT=JSON` 결과 JSON(예전 서버는 `EXPLAIN EXTENDED` 결과 집합 → 열 맞춘 표 글자) | `MySQLPlanJSON.jsonPlan`, `MySQLPlanClassic.rawResultSet` (원래도 남김) |
+| Oracle | `DBMS_XPLAN.DISPLAY(plan_table, statement_id, 'TYPICAL')` 글자. 읽지 못하면(권한 등) PLAN_TABLE 행 표 글자 | **모델 변경**: 원래는 PLAN_TABLE 행(`CachedResultSet`)만 남아 Oracle 사용자가 읽는 형태가 아니었다 |
+
+#### DB별 지원 범위
+
+| DB | 그래픽 보기 | 원본 |
+|---|---|---|
+| SQL Server | 전체: 연산자 아이콘(Key Lookup 포함), 연산자 비용 %, 예상·실제 행(모든 실행), 어긋남 표시, 경고 배지 전부, 누락 인덱스 머리말, 일괄 처리 기준 문장 비용 | showplan XML |
+| PostgreSQL | 전체: 비용 %(Total-Cost에서 자식 비용을 뺀 값), 예상·실제 행(× Actual-Loops), 어긋남 표시, 넘침 경고, 문장 상자(SQL 첫 단어) | EXPLAIN XML |
+| MySQL / MariaDB | 공통 모델: JSON 노드 이름(`query_block`, `nested_loop`, `table`…), 개체 `테이블 (access_type)`, `access_type`으로 Seek/Scan 아이콘, 예상 행(`rows`/`rows_examined_per_scan`), 비용 %(공통 방식, 중간 노드는 모델 한계로 0%, 아래 "미룬 일"). 뿌리 `select`/`query_block`이 문장 상자. 실제 계획 없음(아래 "미룬 일") | JSON |
+| Oracle | 공통 모델: 연산(옵션)(`TABLE ACCESS (FULL)`, `INDEX (RANGE SCAN)`…, 뿌리 `SELECT STATEMENT`가 문장 상자), 개체 `소유자.이름`, 비용 %(하위 트리 COST에서 자식 COST를 뺀 값), 예상 행(CARDINALITY). 실제 계획 없음 | DBMS_XPLAN 글자 |
+| 그 밖의 DB | 공통 모델(`DBCPlanNode` 이름·개체·조건, `DBCPlanCostNode` 비용·행). 아이콘은 연산 이름의 낱말로 | 모델이 남긴 원문 |
+
+#### 모델 변경
+
+- `SQLServerExecutionPlan`/`SQLServerPlanNode`(Chromite 파일): showplan의 경고(`RelOp/Warnings`, `QueryPlan/Warnings`), 누락 인덱스(`QueryPlan/MissingIndexes`),
+  예상 실행 수(`EstimateRebinds`/`EstimateRewinds`)를 읽는다. 속성 표에 `예상 실행 횟수`, `경고`(서버가 쓴 요소 이름과 세부 내용), `누락 인덱스`(CREATE 문)가 더해진다
+  (번들 지역화 `meta.*` 키, 영어·한국어). 키 조회는 XML에서 `PhysicalOp="Clustered Index Seek"`이고 `IndexScan Lookup="1"`로만 구별되므로
+  연산 이름을 SQL Server 도구처럼 `Key Lookup`으로 바꿨다(트리 보기에도 같은 이름이 보인다).
+- `ext.mssql` MANIFEST: Swing 번들이 SQL Server 계획 노드를 읽도록 `com.seizia.chromite.ext.mssql.model.plan`을 내보낸다(다른 DB의 계획 패키지는 원래 내보냄).
+- `OracleExecutionPlan`(DBeaver 파일, Chromite 수정 표시와 Javadoc): 계획 행을 읽은 뒤 같은 세션·같은 STATEMENT_ID로 `DBMS_XPLAN.DISPLAY` 글자를 읽어 원문으로 둔다.
+  `getPlanSourceDataFormat`은 그 글자가 있으면 TEXT, 없으면 예전처럼 RESULT_SET이다. 이 값을 읽는 다른 코드는 없다(검색으로 확인: `getPlanSourceData` 호출은 원본 보기뿐).
 
 ### 쿼리 기록
 
@@ -156,7 +258,13 @@ Ctrl+K는 RSyntaxTextArea 기본값(다음 같은 단어로 이동)이었는데 
 
 ## 미룬 일
 
-- 그래픽 계획 도면(SQL Server 계획 도구 같은 연산자 그림과 화살표): 트리 표가 같은 정보를 보이므로 미뤘다.
+- ~~그래픽 계획 도면~~: 2026-11-07 "실행 계획 세 보기"로 더함.
+- 원본 보기의 서식 맞춤(SQL Server showplan XML 들여쓰기): 요청이 "서버가 돌려준 그대로"라 넣지 않았다. 지금은 긴 줄을 화면에서만 접는다.
+- MySQL/MariaDB 그래픽 보기의 중간 노드 비용: DBeaver 모델 `MySQLPlanNodeJSON.getNodeCost`가 자식 비용을 `longValue()`로 더해
+  1보다 작은 비용(MariaDB 11의 `cost` 0.003 등)이 0이 되므로 `filesort`, `nested_loop` 같은 중간 노드는 0%로 보인다(테이블 노드의 비용 %는 맞음). `ext.mysql` 모델 수정이 필요해 고치지 않았다.
+- Oracle 적응 계획: PLAN_TABLE에는 쓰이지 않는 행(`STATISTICS COLLECTOR`, 대안 `HASH JOIN`)도 있어 DBeaver 모델의 트리·그림에 함께 보인다.
+  DBMS_XPLAN 글자(원본 보기)는 쓰이는 계획만 보인다. 모델이 `OTHER_XML`의 적응 계획 정보를 읽어야 해서 미뤘다.
+- 문장 머리말의 누락 인덱스 줄을 눌러 CREATE 문을 편집기로 여는 동작(SQL Server 도구에는 있음): 요청 범위 밖.
 - MySQL/MariaDB 실제 계획: DBeaver MySQL 계획기는 `ANALYZE` 설정을 모른다. MariaDB `ANALYZE FORMAT=JSON` / MySQL `EXPLAIN ANALYZE`를 계획기에 넣는 일은
   `ext.mysql` 수정이 필요해 미뤘다(지금은 예상 계획을 "Estimated"로 표시).
 - 템플릿 변수의 같은 이름 동시 편집(linked mode)과 문맥 값 제안(테이블 이름 목록).
@@ -185,8 +293,34 @@ Ctrl+K는 RSyntaxTextArea 기본값(다음 같은 단어로 이동)이었는데 
 화면(작업 폴더 `D:\Tools\_scratch\sql-editor-plus\shots\`): 밝은 테마 b01·b03·b04·b05·c01·d01·f01–f06, 어두운 테마 d02–d06·e01–e05.
 회귀 테스트는 실행하지 않았다.
 
+## 확인 — 실행 계획 세 보기 (2026-11-07)
+
+빌드: `mvn -B clean package -f product/aggregate/pom.xml -T1C -Pproduct-chromite-swing` → `BUILD SUCCESS`, `java tools/jre/BundleJre.java windows-x64` → 런타임 설치.
+빌드한 제품을 개인 작업 공간으로 띄워 한국어(OS 기본)와 `-nl en`, 라이트·다크에서 시험용 EDT 에이전트(제품에 넣지 않음)로 조작했다.
+DB는 로컬 테스트 DB에 만든 `chr_plan_three_views`(`chr_plan_customer` 5,000행, `chr_plan_order` 200,000행(MariaDB 50,000, Oracle 100,000), `customer_id` 인덱스,
+SQL Server는 통계를 다시 계산하지 않는 `chr_plan_stale`)이다.
+
+| 항목 | 결과 |
+|---|---|
+| SQL Server 예상 계획(네 문장 일괄 처리) | 문장마다 그림 하나, 머리말 일괄 처리 기준 30% / 1% / 69% / 0%. 조인 + Key Lookup(97%, 오류 색 강조) + Sort, `N'…'` 비교의 암시적 변환 경고(SELECT 상자 배지), 누락 인덱스 머리말(영향 94, `CREATE NONCLUSTERED INDEX … ([status], [amount])`), 쉼표 조인의 "조인 조건자 없음" 배지 |
+| SQL Server 실제 계획 | 실제 / 예상 행(`240 / 예상 255 (94%)`), 오래된 통계의 어긋남(`40,000 / 예상 1`, 경고 색), `MAX_GRANT_PERCENT = 0` 정렬의 디스크 넘침(`SpillLevel=8`)과 메모리 부여 경고 |
+| PostgreSQL EXPLAIN / EXPLAIN ANALYZE | Hash Join(Inner) + Parallel Seq Scan(71%) + Hash + Seq Scan, Gather Merge(병렬 아이콘), 실제 행 = 루프 값 × Actual-Loops(40,000), 원본은 EXPLAIN XML |
+| MariaDB | JSON 노드(select → filesort → temporary_table → nested_loop → table `c (range)`/`o (ref)` Seek 아이콘), 원본 JSON |
+| Oracle | `SELECT STATEMENT`, `SORT (ORDER BY)`, `HASH JOIN`, `NESTED LOOPS`, `TABLE ACCESS (BY INDEX ROWID BATCHED)`(Lookup), `INDEX (RANGE SCAN)`(Seek), 원본은 DBMS_XPLAN 글자 |
+| 선택·속성 | 그림의 Key Lookup·Parallel Seq Scan 상자를 누르면 오른쪽 속성 표에 모든 속성(SQL Server 예상 실행 횟수 254.93, PostgreSQL 계획 속성 전체) |
+| 도구 설명 | 상자: 연산·논리 연산·개체·비용·예상 행·하위 트리 비용·조건자·경고, 화살표: 행 수 (창 캡처에는 도구 설명 창이 담기지 않아 글자로 확인) |
+| 원본 보기 | 복사 → 클립보드에 showplan XML, 다른 이름으로 저장… → `.xml` 확장자를 붙여 저장(PostgreSQL), 여러 계획이면 `쿼리 N` 목록 |
+| 보기 기억 | 트리를 고르고 다시 시작 → 설정 `plan.view=TREE`, 새 계획 탭이 트리로 열림 |
+
+화면(작업 폴더 `D:\Tools\_scratch\plan-three-views\shots\`, `f-` 파일): SQL Server 예상(ko·en 라이트 그래픽·트리·원본), 실제(ko 라이트·다크 그래픽, 다크 트리·원본),
+PostgreSQL(ko 라이트·다크 그래픽·트리·원본, en 다크 그래픽), MariaDB(en 라이트 그래픽·원본), Oracle(en 라이트·다크 그래픽, 다크 트리·원본), 보기 기억(en 다크 트리).
+회귀 테스트는 실행하지 않았다.
+
 ## 변경 이력
 
 - 2026-11-06 최초 작성: 실행 계획(예상·실제, SQL Server 계획기), 쿼리 기록, SQL 서식·편집 명령, 템플릿, 매개변수 대화상자, 상태 줄 Ln/Col.
 - 2026-11-06 실행 계획 표: 열이 너무 좁아 연산 이름이 잘리던 문제. 열을 내용에 맞추고 넘치면 가로 스크롤.
 - 2026-11-06 매개변수 대화상자 Cancel 뒤 "Query executed successfully"가 보이던 문제: 엔진이 사용자 취소를 `isCanceledByUser()`로 알림.
+- 2026-11-07 계획 단추와 Actual Plan 토글이 메인 창 둘째 줄의 SQL Editor 도구 막대로 옮겨짐(사용자 결정). [swing-frontend.md](swing-frontend.md) "SQL Editor 도구 막대".
+- 2026-11-07 실행 계획 세 보기(사용자 결정): 그래픽(연산자 그림, 비용·행·경고·예상 어긋남), 트리, 원본(복사·저장) 보기 전환과 마지막 보기 기억.
+  SQL Server 계획 모델이 경고·누락 인덱스·예상 실행 수를 읽고 키 조회를 Key Lookup으로, Oracle 계획 원문을 DBMS_XPLAN 글자로. "미룬 일"의 그래픽 계획 도면 항목을 닫음.

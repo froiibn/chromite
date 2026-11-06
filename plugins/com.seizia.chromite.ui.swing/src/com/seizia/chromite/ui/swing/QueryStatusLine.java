@@ -31,9 +31,11 @@ import javax.swing.*;
 import javax.swing.border.AbstractBorder;
 import javax.swing.border.Border;
 import java.awt.*;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 
 /**
- * 쿼리 창 상태 줄(SSMS 쿼리 창 맨 아래 줄): 상태 아이콘과 문구 │ 서버 │ 사용자 │ DB/스키마 │ 경과 시간 │ 행 수 │ 커서 위치(Ln, Col).
+ * 쿼리 창 상태 줄(SSMS 쿼리 창 맨 아래 줄): 상태 아이콘과 문구 │ 서버 │ 사용자 │ DB/스키마 │ 커밋 방식 │ 경과 시간 │ 행 수 │ 커서 위치(Ln, Col).
  *
  * 설계:
  * <ul>
@@ -42,6 +44,12 @@ import java.awt.*;
  *     실행 전에는 연결 아이콘(연결되어 있으면 초록 상태 점)이라 연결 상태를 보인다.</li>
  *     <li>서버는 호스트[:포트], 호스트가 없는 파일 DB는 파일 이름이다. 전체 경로·URL과 DB 제품 버전은 도구 설명에 둔다(SSMS의 "서버 (버전)"을 줄이지 않고 보이면 칸이 길어진다).
  *     빈 칸(사용자가 없는 SQLite, 기본 DB/스키마를 모르는 연결)은 숨긴다.</li>
+ *     <li>커밋 방식(2026-11-07 사용자 요청): 쿼리 창 실행 문맥의 자동 커밋/수동 커밋. 실행 문맥은 창마다(연결마다) 다르므로 메인 창 상태 표시줄(작업 공간 전체의
+ *     연결 수)이 아니라 연결의 서버·사용자·DB가 있는 이 줄에 둔다. 값은 쿼리 창이 작업 스레드에서 읽어 넣고({@code SqlEditorPanel#refreshTransactionMode}),
+ *     연결되어 있지 않으면 칸을 숨긴다(빨간 점을 보이지 않는다). 글자 앞의 점은 자동 커밋이면 초록(status.success), 수동 커밋이면 빨강(status.error)이고
+ *     글자도 함께 보여 색만으로 구별하지 않는다(사용자 요청). 보이는 값은 열린 세션의 실제 상태이고, 연결 설정에 저장한 값과 다르면(다음 연결부터 적용)
+ *     도구 설명에 적는다. 수동 커밋의 도구 설명은 COMMIT이 필요하다고 알린다.
+ *     칸을 누르면 설정 화면(연결 편집의 Auto-commit)으로 안내만 한다: 사용자 결정(2026-11-07)으로 상태 줄에서는 커밋 방식을 바꾸지 않는다.</li>
  *     <li>커서 위치는 SSMS 창 아래 상태 표시줄의 Ln/Col이다(한 줄로 합쳐 쿼리 창 상태 줄 끝에 둔다).</li>
  *     <li>바탕은 연결 색({@link ConnectionColors}: 연결에 정한 색, 없으면 연결 종류의 색)이다. 색이 없는 연결(기본 Development)은 카드 바탕 그대로다.
  *     연결 설정이 바뀌면 편집기가 {@link #setConnection}을 다시 불러 색도 바뀐다.
@@ -60,6 +68,7 @@ import java.awt.*;
  * - 2026-11-06 띠 위 글자가 읽히지 않으면 대비 색 (docs/chromite/swing-registered-servers.md "연결 색 알약")
  * - 2026-11-06 화면 문구를 EditorMessages로 옮김(OS 언어를 따름)
  * - 2026-11-07 밀도 B: 치수를 테마의 Chromite.size.* 키({@link UiSizes})에서 읽음 (docs/chromite/design-spec.md "치수 토큰")
+ * - 2026-11-07 커밋 방식 칸(자동 커밋/수동 커밋, 사용자 요청) (docs/chromite/swing-frontend.md "자동 커밋 상태")
  */
 final class QueryStatusLine extends JPanel {
 
@@ -74,12 +83,15 @@ final class QueryStatusLine extends JPanel {
     private final JLabel serverLabel = createSegment();
     private final JLabel userLabel = createSegment();
     private final JLabel databaseLabel = createSegment();
+    private final JLabel transactionLabel = createSegment();
     private final JLabel elapsedLabel = createSegment();
     private final JLabel rowsLabel = createSegment();
     private final JLabel caretLabel = createSegment();
     private State state = State.READY;
     @Nullable
     private DBPDataSourceContainer container;
+    @Nullable
+    private Runnable transactionAction;
     /**
      * Text color of every label when the theme's text is unreadable on the connection color, else {@code null}.
      */
@@ -101,6 +113,16 @@ final class QueryStatusLine extends JPanel {
         segments.add(serverLabel);
         segments.add(userLabel);
         segments.add(databaseLabel);
+        transactionLabel.setIconTextGap(UIScale.scale(6));
+        transactionLabel.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                if (SwingUtilities.isLeftMouseButton(e) && transactionAction != null) {
+                    transactionAction.run();
+                }
+            }
+        });
+        segments.add(transactionLabel);
         segments.add(elapsedLabel);
         segments.add(rowsLabel);
         segments.add(caretLabel);
@@ -167,6 +189,41 @@ final class QueryStatusLine extends JPanel {
      */
     void setDatabase(@Nullable String name) {
         setSegment(databaseLabel, name, EditorMessages.editor_status_database);
+    }
+
+    /**
+     * Commit mode of the window's execution context, the actual state of the open session: auto-commit (green dot),
+     * manual commit (red dot, changes wait for COMMIT), or null to hide the segment (not connected, or the connection
+     * has no transactions). The tool tip also says when the connection's saved setting differs (it applies from the next
+     * connect) and that a click opens the setting.
+     */
+    void setAutoCommit(@Nullable Boolean autoCommit) {
+        if (autoCommit == null) {
+            setSegment(transactionLabel, null, null);
+            transactionLabel.setIcon(null);
+            return;
+        }
+        String text = autoCommit ? EditorMessages.editor_status_auto_commit : EditorMessages.editor_status_manual_commit;
+        StringBuilder tip = new StringBuilder("<html>") //$NON-NLS-1$
+            .append(CommonUtils.escapeHtml(autoCommit ? EditorMessages.editor_status_auto_commit_tip : EditorMessages.editor_status_manual_commit_tip));
+        if (container != null && container.isDefaultAutoCommit() != autoCommit) {
+            String setting = container.isDefaultAutoCommit() ? EditorMessages.editor_status_auto_commit : EditorMessages.editor_status_manual_commit;
+            tip.append("<br>").append(CommonUtils.escapeHtml(NLS.bind(EditorMessages.editor_status_commit_default_differs, setting))); //$NON-NLS-1$
+        }
+        if (transactionAction != null) {
+            tip.append("<br>").append(CommonUtils.escapeHtml(EditorMessages.editor_status_commit_setting_tip)); //$NON-NLS-1$
+        }
+        setSegment(transactionLabel, text, tip.append("</html>").toString()); //$NON-NLS-1$
+        transactionLabel.setIcon(UiIcons.statusDot(autoCommit ? UiIcons.Status.CONNECTED : UiIcons.Status.ERROR));
+    }
+
+    /**
+     * What a click on the commit mode segment does: it only leads to the setting (user decision 2026-11-07: the status
+     * line never changes the mode itself).
+     */
+    void setTransactionAction(@Nullable Runnable action) {
+        transactionAction = action;
+        transactionLabel.setCursor(action != null ? Cursor.getPredefinedCursor(Cursor.HAND_CURSOR) : null);
     }
 
     void setElapsed(@Nullable String elapsed) {

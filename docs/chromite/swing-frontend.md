@@ -611,7 +611,7 @@ C단계의 목표는 SSMS식 SQL 편집기와 결과 창이다: 편집기 탭을
    (`DBUtils.getDefaultContext(dataSource.getDefaultInstance(), false)`)이다. 그다음 `SQLScriptBatches.extractQueries`로 나눈다.
 3. **실행 Job:** `SQLQueryExecuteJob`을 만들어 예약한다(`runDirectly`가 아니라 예약하는 것은 `DataSourceJob`의 연결 잡기 `acquire/release`를 그대로 쓰기 위해서).
    EDT는 기다리지 않는다. 실행 중에는 상태 줄의 경과 시간이 0.25초마다 바뀐다.
-4. **취소:** 편집기 도구 막대의 Cancel 또는 Query > Cancel Executing Query(Alt+Break). 지금 도는 Job(준비 또는 실행)을 취소한다.
+4. **취소:** 메인 창 SQL Editor 도구 막대의 중지(■) 또는 Query > Cancel Executing Query(Alt+Break). 지금 도는 Job(준비 또는 실행)을 취소한다.
    준비 Job이 실행 Job을 예약하는 순간과 겹치지 않도록 같은 잠금 안에서 취소 표시를 확인하고 예약한다. 실행 Job의 취소는 `AbstractJob`이 실행 중인 문장을 취소한다.
 5. **끝:** 실행 Job의 `done` 이벤트(또는 준비 단계의 조기 종료)에서 EDT로 상태를 마무리한다. 실행마다 `Execution` 객체를 두어, 끝난 실행의 늦은 결과가 다음 실행 화면에 섞이지 않게 한다.
 
@@ -927,7 +927,7 @@ E단계의 목표는 SSMS처럼 SQL 파일을 열고 저장하고, 편집기에�
 
 ### 편집기 연결과 기본 DB/스키마
 
-- **연결 콤보:** 편집기 도구 막대(Execute, Cancel 오른쪽)에 활성 프로젝트의 연결 목록(숨김·임시 연결 제외, 이름순, 드라이버 아이콘)을 보여 준다.
+- **연결 콤보:** 메인 창 SQL Editor 도구 막대(실행·계획 단추 오른쪽, 2026-11-07부터. 활성 쿼리 창의 콤보를 끼움)에 활성 프로젝트의 연결 목록(숨김·임시 연결 제외, 이름순, 드라이버 아이콘)을 보여 준다.
   고르면 그 편집기의 연결이 바뀌고 탭 제목이 바뀐다. 연결은 C단계처럼 실행할 때 필요하면 연다. 목록은 콤보를 열 때마다 다시 채워 연결 추가·삭제·이름 변경을 반영한다.
   실행 중에는 콤보를 끈다(실행 중인 Job은 시작할 때의 연결을 쓴다).
 - **기본 DB/스키마 콤보 (SSMS "Available Databases"):** SWT의 활성 스키마 선택(`SelectActiveSchemaHandler`)과 같은 모델 API를 쓴다.
@@ -1660,6 +1660,9 @@ Windows 11, 화면 배율 150%, JBR 25, 작업 공간 사본 `D:\Tools\_smoke\sw
 사용자 결정("가")에 따라 주 도구 막대와 쿼리 창 도구 막대를 SSMS 배치로 늘렸다. 메뉴로만 갈 수 있던 기능을 단추로 꺼낸 것이고,
 새 동작은 Save All 하나다. 나머지 단추는 메뉴와 같은 `Action`이라 켜고 끄기·단축키·동작이 메뉴와 같다.
 
+> 2026-11-07: 쿼리 창 도구 막대는 쿼리 창마다 있지 않고 메인 창 둘째 줄의 SQL Editor 도구 막대가 되었다(사용자 결정). 구성과 단추는 같고,
+> 바뀐 것은 아래 "SQL Editor 도구 막대" 절에 있다. 이 절의 쿼리 창 도구 막대 설명·측정은 2026-11-06 당시의 것이다.
+
 ### 구성
 
 | 도구 막대 | 순서 (│ = 구분선) |
@@ -1731,6 +1734,168 @@ EDT 에이전트로 단추를 누르고(`doClick`) 결과를 읽었다. 캡처�
   연결·DB 콤보는 메뉴에 넣을 수 없어 보이지 않는다(도구 창을 닫으면 다시 보임).
 - 다크 테마에서 눌린 도구 창 단추 바탕이 `#494B4E`로 보임(바꾸기 전 `#2A2C2F`, 캔버스 `#26282C`).
 - 회귀 테스트는 실행하지 않았다(요청 없음). 영향받을 수 있는 기능: Edit 메뉴 Undo/Redo의 켜고 끄기, Tools > Activity Monitor, File 메뉴, 쿼리 창 도구 막대 배치.
+
+## SQL Editor 도구 막대 (2026-11-07)
+
+사용자 결정(2026-11-07): 메인 창 위의 도구 막대를 SSMS처럼 **두 줄**로 한다. 1줄은 지금의 Standard 도구 막대(그대로), 2줄은 **활성 쿼리 창**에 적용하는
+SQL Editor 도구 막대다. 쿼리 창마다 있던 도구 막대는 없앴다(편집기가 한 줄 높아지고 단추가 늘 같은 자리에 있다).
+
+### 구성과 동작
+
+| 2줄 (│ = 구분선) | Execute(아이콘 + 글자), Stop │ Estimated Plan, Actual Plan(아이콘 + 글자, 토글) │ 연결 ▾ │ DB/스키마 ▾ │ Comment, Uncomment │ Decrease Indent, Increase Indent │ Format SQL │ Query History |
+|---|---|
+
+- **활성 쿼리 창을 따름:** 문서 탭을 바꾸면 2줄에 그 쿼리 창의 연결·DB 콤보가 끼워지고, 단추 상태(실행 중이면 Execute 꺼짐·Stop 켜짐, 예상 계획 중이면 계획 꺼짐,
+  Actual Plan 눌림)가 그 창의 것으로 바뀐다. Actual Plan은 쿼리 창마다 기억한다(이전과 같음).
+- **쿼리 창이 아닐 때:** 활성 문서가 테이블 디자이너·ER 다이어그램·도구 문서·DDL 탭이거나 문서가 없으면 2줄은 보인 채 모든 컨트롤이 꺼진다(SSMS).
+  콤보 자리에는 같은 폭의 빈 콤보(꺼짐)를 두어 막대가 움직이지 않는다.
+- **단축키:** 그대로다. F5(Execute), Alt+Break(Stop), Ctrl+L(예상 계획), Ctrl+M(실제 계획)은 Query 메뉴 단축키이고 2줄 단추와 같은 동작을 쓴다.
+  편집 명령의 키(Ctrl+K Ctrl+C 등)는 편집 영역이 직접 받는다.
+- **좁은 창:** 두 줄 모두 `OverflowToolBar`다. 폭이 모자라면 2줄의 콤보가 먼저 줄고(최소 100·100), 그래도 넘치는 뒤쪽 단추는 오른쪽 끝 » 메뉴로 간다.
+  콤보는 메뉴에 넣을 수 없어 넘치면 보이지 않는다(창을 넓히면 다시 보임).
+- **크기·모양:** 두 줄 모두 캔버스 위 투명 도구 막대(주 도구 막대 모양)이고 높이는 밀도 B 32다. 1줄은 `size.toolbar.main`(단추 24 + 위아래 4),
+  2줄은 28px 콤보가 들어가는 `size.toolbar.editor`(콤보 28 + 위아래 2)를 쓴다. 같은 여백을 쓰면 2줄이 36이 되어 두 줄 높이가 달라진다.
+
+### 설계
+
+- **단추 = Query 메뉴 동작:** Execute·Stop·예상 계획은 `MainFrame`의 Query 메뉴 `Action`, Actual Plan은 Include Actual Execution Plan을 선택 상태가 있는 `Action`
+  (`SELECTED_KEY`)으로 바꿔 메뉴 체크 항목과 토글 단추가 같이 쓴다. 켜짐은 `updateQueryActions`가 활성 쿼리 창의 `canExecute`·`canCancel`·`canExplain`으로 정한다.
+  쿼리 창 도구 막대에 있던 세밀한 규칙(결과 저장 중·계획 중에는 Execute 끔, Stop을 누른 뒤에는 Stop 끔)이 이제 메뉴에도 적용된다.
+  쿼리 창은 상태가 바뀔 때 `Host#executionStateChanged`로 알린다(Stop을 누를 때도).
+- **콤보는 쿼리 창의 것:** 연결·DB 콤보의 모델·리스너·켜짐(실행 중 끔, 스키마를 바꿀 수 없으면 끔)은 창마다의 상태다. 한 쌍을 두고 모델을 바꿔 끼우면
+  `SqlEditorPanel`의 콤보 코드를 크게 고쳐야 하므로, 쿼리 창이 콤보를 만들고 가지며 2줄이 활성 창의 콤보를 그 자리에 끼운다(결과 탭·쿼리 상태 줄과 같은 방식).
+  2줄 밖에 있던 콤보(비활성 창의 것, 빈 콤보)는 테마 전환을 받지 못했으므로 끼울 때 Look and Feel을 맞춘다(`MainFrame.updateLookAndFeel`).
+- **편집 명령·Query History:** 2줄의 동작이다. 활성 쿼리 창이 없으면 꺼진다. 편집 명령은 Edit > Advanced와 같은 `SqlTextArea#runCommand`이고 편집 영역에 초점을 돌려준다.
+  Query > Query History… 메뉴는 그대로 쿼리 창이 없어도 열린다.
+- **Query Library 쿼리 창:** 머리말(이름·설명·대상)은 도구 막대 아래 대신 편집기 위에 붙는다.
+
+### 바뀐 파일
+
+| 파일 | 바뀐 것 |
+|---|---|
+| `SqlEditorToolBar`(새 파일) | 2줄: 단추, 활성 창 콤보 끼우기, 빈 콤보, 편집 명령·Query History 동작 |
+| `MainFrame` | 두 줄 배치, Include Actual Execution Plan을 `Action`으로, Query 동작 켜짐을 쿼리 창 상태로, 활성 문서가 바뀌면 2줄 갱신, `updateLookAndFeel`을 2줄과 같이 씀 |
+| `SqlEditorPanel` | 도구 막대 삭제, 콤보 설정을 `createPickers`로, `getConnectionCombo`·`getSchemaCombo`·`sizePicker`, `canExecute`·`canCancel`·`canExplain`, 실제 계획을 필드로 |
+| `OverflowToolBar`, `UiSizes`, `SqlEditorExtension`, `QueryLibraryEditor`, `internal/ToolbarMessages` | 주석(쿼리 창 도구 막대 → SQL Editor 도구 막대) |
+| `internal/EditorMessages`(`.properties`, `_ko`) | 쓰지 않게 된 `editor_sql_cancel` 삭제 |
+
+지운 코드(규칙 4): `SqlEditorPanel`의 `createToolBar`, `createCommandButton`, `executeAction`·`cancelAction`·`estimatedPlanAction`, 실제 계획 토글 단추(`actualPlanButton`),
+`Host#openQueryHistory`(이제 `MainFrame` 안의 메서드), 문구 `editor_sql_cancel`("Cancel"/"실행 취소", 쿼리 창 Stop 동작의 이름). 아이콘은 모두 2줄이 계속 쓴다.
+
+### 확인 (2026-11-07)
+
+빌드 `-Pproduct-chromite-swing` BUILD SUCCESS, `java tools/jre/BundleJre.java windows-x64`로 번들 JRE를 넣고 `-vm` 없이 실행. Windows 11, 150%, 창 1280×800 논리,
+개인 작업 공간 `D:\Tools\_scratch\ssms-two-row-toolbar\ws`, 한국어(OS 기본)와 `-nl en`, 라이트·다크. 시험 DB는 SQL Server 2022와 PostgreSQL 17의 `chr_ssms_two_row_toolbar`.
+프로세스 안 EDT 시험 에이전트(OS 입력 없음)로 2줄 단추를 누르고(`doClick`) 상태를 읽었다. 캡처는 창만 `D:\Tools\_scratch\ssms-two-row-toolbar\shots\`.
+
+| 경우 | 결과 |
+|---|---|
+| 문서 없음 | 1줄·2줄 모두 높이 32. 2줄 단추·빈 콤보(260·200) 모두 꺼짐, 막대는 보임(`*-01-no-query`) |
+| Object Explorer New Query로 SQL Server·PostgreSQL 쿼리 창 | 2줄 콤보가 활성 창의 것(연결 `TR PG`·스키마 `public` / `TR MSSQL`·DB `chr_ssms_two_row_toolbar`), 단추 켜짐 |
+| 탭 바꾸기 | 연결·DB 콤보와 단추 상태가 그 창의 것으로 바뀜 |
+| 2줄 Execute(PostgreSQL) | 실행, Results 탭에 결과 |
+| SQL Server `WAITFOR DELAY '00:00:20'` 실행 중 | Execute 꺼짐·Stop 켜짐·콤보 꺼짐. PostgreSQL 탭으로 가면 Execute 켜짐·Stop 꺼짐, 돌아오면 다시 실행 중 상태 |
+| 2줄 Stop | 취소, Messages 탭, Execute 켜짐·Stop 꺼짐 |
+| 2줄 예상 계획 | Execution plan 탭에 계획(Clustered Index Seek) |
+| 2줄 Actual Plan | 그 창만 켜짐(다른 탭에서는 꺼짐, 돌아오면 켜짐), 다시 누르면 꺼짐. F5(메뉴 단축키)로 실행 |
+| 좁은 창(논리 560) | 2줄 콤보가 최소 100까지 줄고 들여쓰기·Format SQL·Query History가 » 메뉴로. 900에서는 콤보만 줄어듦(248·193) |
+| 쿼리 창을 모두 닫음 | 2줄 다시 꺼짐(빈 콤보). 다크에서 빈 콤보도 다크(끼울 때 Look and Feel 맞춤 확인) |
+| Results 기본 높이 | 처음 연 쿼리 창의 Results 카드 280(Change A) |
+
+- 연결하는 중에 Stop을 누르면 "'TR MSSQL'에 연결하지 못했습니다 / Connection has been canceled" 오류 대화상자가 뜬다. Stop은 이전 쿼리 창 Cancel과 같은 `SqlEditorPanel#cancel`을 부르므로
+  이번 변경과 무관하다(사용자가 취소한 연결을 오류로 보이는 것은 따로 볼 일).
+- 회귀 테스트는 실행하지 않았다(요청 없음). 영향받을 수 있는 기능: Query 메뉴 Execute·Cancel·계획의 켜고 끄기, 연결·DB 콤보(연결 바꾸기, 기본 DB 바꾸기),
+  Query Library 쿼리 창의 머리말 위치, 좁은 창의 도구 막대 넘침.
+
+### 남긴 것
+
+- 연결·DB 콤보가 넘침 메뉴에 들어가지 않는 것(이전과 같음). 아주 좁은 창에서는 콤보가 보이지 않는다.
+- 관찰(이번 범위 밖, 고치지 않음): 문서 탭이 열린 채 테마를 바꾼 뒤 탭을 모두 닫고 새 쿼리 창을 열면 `BasicTabbedPaneUI.getTextViewForTab`에서
+  `ArrayIndexOutOfBoundsException`이 나고 문서 탭이 깨진다. `MainFrame`의 문서 탭 `ContainerListener`(`updateDocumentCard`의 `CardLayout.show` → validate)가
+  테마 전환으로 다시 등록된 탭 UI의 리스너보다 먼저 불려, UI가 탭 목록을 갱신하기 전에 배치하기 때문으로 보인다. 확인 중 테마는 문서가 없을 때만 바꿔 피했다.
+- Actual Plan 토글은 글자 단추라 다른 단추(24)보다 1 높다(25, design-spec "Pretendard와 밀도 B"에 적은 것과 같음). 막대 높이(콤보 28)에는 영향이 없다.
+
+## 자동 커밋 상태 (2026-11-07)
+
+사용자 요청(2026-11-07): "AutoCommit이 지금 어떤상태인지 상태표시줄에 표시해준다". 이어서 사용자 결정:
+- "상태표시줄에서 바꾸면 안된다. 사고난다. 옵션 설정은 설정 화면에서 하도록 해야 한다. 다만 상태표시줄에서 오토커밋을 클릭하면 옵션 창으로 안내까지는 허용한다."
+- "열려있는 세션에도 반영되는 방법을 찾아야 한다." (설정을 바꾸면 다시 연결하지 않아도 열린 세션에 적용)
+- "on일 경우 초록색 동그라미, off일 경우 빨간색 동그라미로 색상도 나타내야 한다."
+
+### 표시
+
+- **위치: 쿼리 상태 줄**(서버 │ 사용자 │ DB/스키마 │ **커밋 방식** │ 시간 │ 행 │ Ln, Col). 커밋 방식은 쿼리 창이 쓰는 실행 컨텍스트(연결의 주 컨텍스트)의 상태라
+  연결마다 다르다. 메인 창 상태 표시줄은 작업 공간 전체(연결 수)를 보이고, 연결별 정보(서버, 사용자, DB)는 쿼리 상태 줄에 있으므로(design-spec "9. 쿼리 상태 줄") 여기에 둔다.
+  메인 창은 활성 쿼리 창의 상태 줄을 끼우므로 활성 쿼리 창의 값이 보이고, 쿼리 창이 없으면 줄 자체가 없다.
+- **모양:** 점(size.statusDot 6) + 글자. 자동 커밋은 초록 점(`Chromite.status.success`) + "자동 커밋"/"Auto-commit", 수동 커밋은 빨간 점(`Chromite.status.error`) +
+  "수동 커밋"/"Manual commit". 색은 두 테마의 상태 색 토큰을 그릴 때 읽는다(라이트 `#208A3C`/`#DB3B4B`, 다크 `#5FAD65`/`#DB5C5C`). 글자가 함께 있어 색만으로 구별하지 않는다.
+  점은 연결 상태 점(`UiIcons.withStatusDot`)과 같은 크기·색 규칙의 새 `UiIcons.statusDot`이다.
+- **숨김:** 연결되어 있지 않으면(연결 전, 연결 끊김) 칸을 숨긴다(빨간 점을 보이지 않는다). 트랜잭션 관리자가 없는 연결도 숨긴다.
+- **도구 설명:** 상태 설명(수동 커밋은 "COMMIT을 실행할 때까지 열린 트랜잭션에 남는다, ROLLBACK은 버린다"), 연결 설정에 저장한 값이 실제 세션과 다르면
+  "연결 설정은 지금 …입니다. 다시 연결하면 적용됩니다", 끝에 "클릭하면 연결의 자동 커밋 설정을 엽니다".
+- **보이는 값은 열린 세션의 실제 상태다.** 연결 설정의 기본값이 아니라 컨텍스트의 `DBCTransactionManager#isAutoCommit`을 읽는다. 컨텍스트가 값을 캐시하지만 연결 직후 첫 읽기는
+  드라이버에 묻으므로 작업 스레드에서 읽는다(`SqlEditorPanel#refreshTransactionMode`, SWT `DataSourceAutoCommitHandler#updateElement`와 같은 API).
+- **갱신 시점:** 연결 고르기(2줄 연결 콤보), 연결·연결 끊기·연결 설정 변경(연결 갱신 이벤트 → `connectionChanged`), 실행이 끝날 때, 기본 DB 바꾸기(모두 `refreshSchemas`를 거침),
+  쿼리 창이 활성이 될 때(같은 연결의 다른 창이 세션을 함께 쓴다), 열린 세션에 적용한 뒤.
+  SQL Server `SET IMPLICIT_TRANSACTIONS ON`처럼 드라이버의 자동 커밋 플래그를 바꾸지 않는 문은 알 수 없다(JDBC `getAutoCommit`은 그대로 true). 서버에 물어야 하므로 이번에는 하지 않았다.
+
+### 바꾸기 (설정 화면에서만)
+
+- 상태 줄은 커밋 방식을 **바꾸지 않는다**(토글·팝업 메뉴 없음). 칸을 누르면 활성 쿼리 창 연결의 **연결 편집** 대화상자가 Options를 펼치고
+  Connection Properties 탭의 **Auto-commit** 칸에 초점을 둔 채 열린다(`ConnectionCommands.editAutoCommit` → `ConnectionDialog.openEditAutoCommit` → `ConnectionSettingsPanel.focusAutoCommit`).
+  커밋 방식을 실제로 정하는 설정은 이것(연결의 bootstrap `defaultAutoCommit`, "기본값(연결 유형)"이면 연결 유형의 자동 커밋)뿐이다. Swing Options에는 커밋 방식 설정이 없다.
+- **열린 세션에 적용(`AutoCommitApplier`):** 모델은 이 기본값을 컨텍스트를 열 때만 읽는다(`JDBCExecutionContext.connect`의 `isDefaultAutoCommit`).
+  그래서 연결 편집에서 Save했을 때 Auto-commit의 실제 값(연결 유형 포함)이 바뀌었고 연결되어 있으면, 그 연결의 모든 인스턴스의 모든 컨텍스트(주 컨텍스트 = 쿼리 창들,
+  메타데이터, 관리 도구의 격리 컨텍스트)에 `DBCTransactionManager#setAutoCommit`을 부른다. 다시 연결했을 때와 같은 결과이고, 다시 연결 질문은 그 밖의 설정도 바뀌었을 때만 묻는다.
+- **안전:** 자동 커밋을 켜면 JDBC가 열린 트랜잭션을 조용히 커밋한다. 그래서 먼저 쿼리 관리자의 트랜잭션 추적(`QMUtils.isTransactionActive`)으로 커밋하지 않은 변경이 있는 컨텍스트를 찾고,
+  있으면 한 대화상자에 목록(쿼리 창 이름과 연결, 쿼리 창이 아닌 세션은 "TR MSSQL의 Metadata 세션" 식)을 보이고 **커밋하고 적용 / 롤백하고 적용 / 취소**를 묻는다(기본은 취소).
+  취소하면 열린 세션은 수동 커밋 그대로이고, 저장한 설정은 다음 연결부터 적용된다(도구 설명이 이를 알린다). 끄기(자동 → 수동)는 묻지 않는다.
+- **오류:** 전환하지 못한 컨텍스트(드라이버 오류)는 창 이름과 오류 문구를 한 대화상자로 알린다. 끝나면 연결 갱신 이벤트를 보내 모든 쿼리 창이 실제 상태를 다시 읽으므로 상태 줄은 실제 값을 보인다.
+- JDBC 호출(현재 값 읽기, 커밋·롤백, 전환)은 모두 작업 스레드에서 하고, 질문·결과만 EDT에서 보인다.
+
+### 바뀐 파일
+
+| 파일 | 바뀐 것 |
+|---|---|
+| `QueryStatusLine` | 커밋 방식 칸(점 + 글자, 도구 설명, 누르면 설정으로 안내하는 동작) |
+| `SqlEditorPanel` | `refreshTransactionMode`(작업 스레드에서 실제 상태 읽기), `refreshSchemas`에서 부름, 칸의 동작을 연결 설정 열기로 |
+| `MainFrame` | 쿼리 창이 활성이 되면 커밋 방식을 다시 읽음 |
+| `AutoCommitApplier`(새 파일) | 열린 세션에 적용, 커밋하지 않은 변경 확인 대화상자, 오류 알림 |
+| `ConnectionDialog` | `openEditAutoCommit`, Save 뒤 Auto-commit이 바뀌었으면 열린 세션에 적용하고 그 밖의 변경이 있을 때만 다시 연결 질문 |
+| `ConnectionSettingsPanel` | `focusAutoCommit`(Options 펼치고 Auto-commit 칸에 초점) |
+| `ConnectionCommands` | `editAutoCommit` |
+| `UiIcons` | `statusDot`(아이콘 없는 상태 점) |
+| `internal/EditorMessages`, `internal/ConnectionMessages`(`_ko`) | 칸 글자·도구 설명, 적용 대화상자 문구 |
+
+### 확인 (2026-11-07)
+
+빌드 `-Pproduct-chromite-swing` BUILD SUCCESS, 번들 JRE로 실행. 개인 작업 공간, SQL Server 2022·PostgreSQL 17의 `chr_ssms_two_row_toolbar`, EDT 시험 에이전트.
+캡처는 창만 `D:\Tools\_scratch\ssms-two-row-toolbar\shots\c-*.png`.
+
+| 경우 | 결과 |
+|---|---|
+| SQL Server 쿼리 창 2개 + PostgreSQL 쿼리 창 1개, 처음 | 셋 다 초록 점 "Auto-commit"(연결 유형 Development 기본값) |
+| 상태 줄 칸 클릭 | 연결 편집이 Options를 펼치고 Auto-commit 칸에 초점(`c-en-light-02-settings-dialog`) |
+| SQL Server를 Manual commit으로 Save | 다시 연결 질문 없이 SQL Server 창 2개 모두 빨간 점 "Manual commit", PostgreSQL은 그대로 |
+| 수동 커밋에서 `INSERT … (10, …)` 뒤 Auto-commit으로 Save | 대화상자에 "SQLQuery1.sql - TR MSSQL, SQLQuery2.sql - TR MSSQL"(`c-en-light-05-pending-dialog`). 롤백하고 적용 → 두 창 Auto-commit, `sqlcmd`로 Id 10 = 0행 |
+| 같은 순서로 `INSERT … (11, …)` 뒤 커밋하고 적용 | 두 창 Auto-commit, Id 11 = 1행 |
+| PostgreSQL에서 같은 두 경우 | 롤백 → id 10 없음, 커밋 → id 11 있음(`psql`) |
+| PostgreSQL 수동 + 커밋 안 한 INSERT에서 Auto-commit으로 Save → 취소 | 세션은 Manual commit 그대로, 도구 설명 "The connection setting is now Auto-commit; it applies when you reconnect" |
+| PostgreSQL 연결 끊기 | PostgreSQL 창의 칸이 숨겨짐(빨간 점 없음). 다시 실행해 연결하면 다시 보임 |
+| 탭 바꾸기 | 각 창의 값(SQL Server 수동, PostgreSQL 자동)이 보임. 라이트·다크(`c-en-*`, `c-ko-*`) |
+| 한국어: 2줄 연결 콤보로 SQL Server 창을 PostgreSQL로 바꿈 | 연결 전에는 칸 숨김, 실행해 연결하면 초록 점 "자동 커밋" |
+| 한국어: SQL Server 수동 + `INSERT … (12, …)` → 자동 커밋으로 저장 | 대화상자 "• SQLQuery1.sql - TR MSSQL"(`c-ko-light-04-pending-dialog`), 롤백하고 적용 → Id 12 = 0행 |
+
+- 기본 배치(Object Explorer·Properties가 열린 1280 창)에서는 칸이 하나 늘어 왼쪽 상태 문구가 "…"로 줄어든다(아이콘은 보임, 도구 설명에 전문).
+- 회귀 테스트는 실행하지 않았다(요청 없음). 영향받을 수 있는 기능: 연결 편집의 Save(다시 연결 질문 조건이 바뀜), 쿼리 상태 줄 배치(칸이 하나 늘어 좁은 창에서 왼쪽 상태 문구가 더 일찍 줄어듦),
+  수동 커밋 연결의 실행.
+
+### 남긴 것 (사용자에게 물을 것)
+
+- 실행 중 커밋 방식 전환(토글)과 Commit/Rollback 단추는 요청 범위가 아니라 만들지 않았다. 지금 수동 커밋 연결에서 변경을 확정하려면 쿼리 창에서 `COMMIT`/`ROLLBACK`을 실행해야 한다.
+  상태 줄에서는 바꾸지 않는다는 결정과 별개로, 도구 막대나 Query 메뉴에 Commit/Rollback을 둘지 결정이 필요하다.
+- `SET IMPLICIT_TRANSACTIONS ON`(SQL Server) 같은 서버 쪽 트랜잭션 모드는 표시하지 않는다(위 "갱신 시점").
+- 쿼리 창마다 따로 세션을 쓰는 기능이 생기면 적용 대상 목록의 이름 붙이기(지금은 주 컨텍스트 = 그 연결의 모든 쿼리 창)를 고쳐야 한다.
 
 ## 도구 창 도킹 (2026-11-06)
 
@@ -1934,6 +2099,12 @@ EDT 에이전트로 단추를 누르고(`doClick`) 결과를 읽었다. 캡처�
   단축키 줄은 메뉴와 같은 `Action`의 이름·단축키에서 만들고, 이름 끝의 "…"는 뺀다.
 - **결과 카드:** 문서가 없으면 숨기므로 빈 화면이 문서 영역을 다 쓴다(2026-11-07 "Results 자동 숨김". 그 전에는 "결과가 없습니다" 자리 표시가 아래에 있었다).
 - 이전 시작 탭의 정사각 아이콘 로고(128)와 큰 제품명 글자는 없앴다(가로 로고에 제품명이 있음).
+- **전환 시점(2026-11-07 수정):** 빈 화면 ↔ 문서 탭 전환(`updateDocumentCard`)은 `EditorTabbedPane`의 `insertTab`·`removeTabAt`이 **끝난 뒤** 부른다.
+  처음에는 문서 탭의 `ContainerListener`에서 불렀는데, 컨테이너 이벤트는 탭 추가 도중에 오고 `BasicTabbedPaneUI`는 탭마다의 제목 뷰(`htmlViews`)를
+  자기 컨테이너 리스너에서 맞춘다. `updateUI`(테마 전환)가 그 리스너를 우리 리스너 뒤에 다시 붙이므로, 테마를 바꾼 뒤 탭을 모두 닫고 새로 열면
+  `CardLayout.show`의 즉시 레이아웃이 UI보다 먼저 돌아 `ArrayIndexOutOfBoundsException`(`BasicTabbedPaneUI.getTextViewForTab`)이 났고,
+  `insertTab`이 중간에 끊겨 탭 영역이 계속 깨졌다(선택 -1, 그릴 때마다 같은 예외). `invokeLater`로 미루지 않은 것은 전환이 늦으면 같은 이벤트 안의
+  코드가 아직 숨은 탭 창을 볼 수 있기 때문이다(포커스 요청, `isShowing`). 다른 탭 창(Results 탭, 도구 창 탭, 대화상자 탭)에는 컨테이너 리스너가 없고, 선택 변경 리스너는 `updateUI` 중에 불리지 않는다.
 
 ### 확인 (2026-11-06)
 
@@ -2183,6 +2354,14 @@ EDT 에이전트로 단추를 누르고(`doClick`) 결과를 읽었다. 캡처�
   같은 방법으로 넣은 저장 프로시저는 "저장 프로시저" 아래에 붙는다.
   Swing "새 함수…"(New Function…) 템플릿을 실행한 뒤에도 `NewFunction`은 "함수"(Functions) 아래에 "Returns int", `@Param1`과 함께 보인다(영어).
 
+## 제목 표시줄 (2026-11-07)
+
+사용자 결정(2026-11-07): "화면 제목표시줄 가운데 chromite 문구는 안보이게 제거하라". 주 창의 FlatLaf 제목 표시줄은 창 제목을 그리지 않는다
+(`JRootPane`의 `FlatClientProperties.TITLE_BAR_SHOW_TITLE = false`, `MainFrame` 생성자).
+
+- 창 제목 자체("Chromite")는 그대로 둔다. Windows 작업 표시줄, Alt+Tab, macOS 창 메뉴는 이 이름을 쓴다.
+- 주 창에만 건다. 테마 전체 설정(`TitlePane.showTitle`)으로 끄면 대화상자 제목까지 사라진다.
+
 ## 변경 이력
 
 - 2026-11-06 최초 작성. Swing 전환 결정, 구조, 재사용 분석, MVP 범위, F5 실행 사양을 정리.
@@ -2271,9 +2450,19 @@ EDT 에이전트로 단추를 누르고(`doClick`) 결과를 읽었다. 캡처�
 - 2026-11-07 드라이버 관리자: Tools > Driver Manager…, Connect 대화상자의 Edit Driver…(드라이버 만들기·편집, 로컬 jar·폴더 라이브러리, 오프라인 모드). [swing-driver-manager.md](swing-driver-manager.md).
 - 2026-11-07 SWT 프런트엔드 삭제([swt-removal.md](swt-removal.md)): 목적 절에 안내, 식별자 표(피처가 `licenses/`를 넣음, 실행 파일 이름을 유지하는 이유), 기능 공백·설정 저장 위치 설명 갱신.
 - 2026-11-07 테마 전환 뒤 SQL 편집기·값 패널 세로 스크롤바 트랙이 옛 테마 색으로 남던 문제: `ChromiteScrollBarUI`가 뷰 바탕색 변경을 듣고 다시 그린다. "테마" 절.
+- 2026-11-07 자동 업데이트: 제목 표시줄의 "새 버전 X · 다시 시작" 단추, 상태 표시줄의 받기 진행, Tools > Options > Updates, 끝낼 때 커밋하지 않은 트랜잭션 질문. [auto-update.md](auto-update.md).
 - 2026-11-07 도구 창 최소 폭: 카드 최소 폭을 머리말(단추 + 제목 첫 글자와 말줄임표)이 정하고 내용은 최소 폭을 갖지 않음(Properties가 일정 폭 이하로 줄지 않던 문제),
   도구 창 도구 막대를 `OverflowToolBar`로. "도구 창 도킹 — 도구 창 최소 폭" 절.
 - 2026-11-07 Query Library 자리: 한 열의 두 도구 창(Query Library·Properties, Object Explorer·Registered Servers)이 서로를 기본 이웃으로 두고,
   문서 영역 옆 열로 돌아가는 도구 창은 이웃이 같은 쪽에 있으면 이웃의 열로. "도구 창 도킹 — Query Library 자리" 절.
 - 2026-11-07 Results 기본 높이 220 → 280(사용자 결정, 밀도 B 때 결정 대기였던 것). "Results 자동 숨김" 절의 크기·Reset Window Layout.
 - 2026-11-07 Object Explorer 테이블 저장 방식 표시(Altibase 메모리 빨강, 디스크 파랑, 휘발성 호박색, 툴팁). [altibase.md](altibase.md).
+- 2026-11-07 도구 막대 두 줄(사용자 결정): 쿼리 창마다의 도구 막대를 없애고 메인 창 둘째 줄에 활성 쿼리 창을 따르는 SQL Editor 도구 막대.
+  "SQL Editor 도구 막대" 절 추가, "도구 막대" 절에 안내, C단계 취소·E단계 연결 콤보 위치 갱신.
+- 2026-11-07 자동 커밋 상태(사용자 요청·결정): 쿼리 상태 줄의 커밋 방식 칸(초록·빨간 점), 누르면 연결 설정의 Auto-commit으로 안내,
+  설정을 바꾸면 열린 세션에도 적용(커밋하지 않은 변경은 커밋/롤백/취소를 물음). "자동 커밋 상태" 절 추가.
+- 2026-11-07 테마를 바꾼 뒤 문서 탭을 모두 닫고 새로 열면 문서 탭이 `ArrayIndexOutOfBoundsException`으로 깨지던 문제 수정:
+  빈 화면 전환을 컨테이너 리스너 대신 탭 추가·삭제가 끝난 뒤에. "빈 문서 영역" 절에 원인과 설계.
+- 2026-11-07 주 창 제목 표시줄 가운데의 "Chromite"를 그리지 않음(사용자 결정). "제목 표시줄" 절.
+- 2026-11-07 SQL Server 에이전트 관리: 개체 탐색기의 에이전트 노드, 작업·작업 활동 모니터·경고·운영자·오류 로그. [swing-sqlserver-agent.md](swing-sqlserver-agent.md).
+- 2026-11-07 실행 계획 세 보기: 계획 탭에 그래픽(연산자 그림)·트리·원본 보기 전환. [swing-sql-editor-plus.md](swing-sql-editor-plus.md) "실행 계획 세 보기".

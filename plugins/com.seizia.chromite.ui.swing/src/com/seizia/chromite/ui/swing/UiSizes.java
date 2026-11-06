@@ -39,6 +39,7 @@ import java.awt.*;
  *
  * 변경 이력:
  * - 2026-11-07 최초 작성: 하드코딩한 치수를 테마 키로 모으고 기본 밀도를 B("조금 촘촘")로 바꿈 (docs/chromite/design-spec.md "치수 토큰")
+ * - 2026-11-07 size.toolbar.editor 설명: 쿼리 창 도구 막대가 메인 창 둘째 줄의 SQL Editor 도구 막대가 됨 (docs/chromite/swing-frontend.md "SQL Editor 도구 막대")
  */
 final class UiSizes {
 
@@ -50,7 +51,7 @@ final class UiSizes {
     static final String TOOL_WINDOW_TOOL_BAR_PADDING = "Chromite.size.toolWindowToolBar.padding"; //$NON-NLS-1$
     /** size.toolbar.main: the main tool bar. */
     static final String MAIN_TOOL_BAR_PADDING = "Chromite.size.mainToolBar.padding"; //$NON-NLS-1$
-    /** size.toolbar.editor: the query window and table designer tool bars (28 controls). */
+    /** size.toolbar.editor: the SQL Editor tool bar (main window, second row) and the table designer tool bar (28 controls). */
     static final String EDITOR_TOOL_BAR_PADDING = "Chromite.size.editorToolBar.padding"; //$NON-NLS-1$
     /** size.tab.editor: document tab row height. */
     static final String DOCUMENT_TAB_HEIGHT = "Chromite.size.documentTab.height"; //$NON-NLS-1$
