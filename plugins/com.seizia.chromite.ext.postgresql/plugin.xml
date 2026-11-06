@@ -286,6 +286,13 @@
                         <folder type="com.seizia.chromite.ext.postgresql.model.PostgreExtension" label="%tree.extensions.node.name" icon="#folder_admin" description="%tree.extensions.node.tip" visibleIf="connected &amp;&amp; dataSource.serverType.supportsExtensions()">
                             <items label="%tree.extension.node.name" path="extension" property="extensions" icon="#package"/>
                         </folder>
+                        <!-- Chromite: pg_cron (docs/chromite/swing-job-schedulers.md) -->
+                        <items label="%tree.cron.node.name" path="cronScheduler" property="cronScheduler" icon="#scheduler" visibleIf="connected &amp;&amp; dataSource.serverType.supportsExtensions()">
+                            <folder type="com.seizia.chromite.ext.postgresql.model.cron.PostgreCronJob" label="%tree.cron.jobs.node.name" icon="#folder" description="%tree.cron.jobs.node.tip" visibleIf="object.installed">
+                                <items label="%tree.cron.job.node.name" path="cronJob" property="jobs" icon="#job"/>
+                            </folder>
+                            <items label="%tree.cron.run_details.node.name" path="cronRunDetails" property="runDetails" icon="#info"/>
+                        </items>
                         <folder label="%tree.storage.node.name" icon="#folder_info" id="storage" description="%tree.storage.node.tip">
                             <folder type="com.seizia.chromite.ext.postgresql.model.PostgreTablespace" label="%tree.tablespaces.node.name" icon="#tablespaces" description="Tablespaces" visibleIf="connected &amp;&amp; dataSource.serverType.supportsTablespaces()">
                                 <items label="%tree.tablespace.node.name" path="tablespace" property="tablespaces" icon="#tablespace"/>

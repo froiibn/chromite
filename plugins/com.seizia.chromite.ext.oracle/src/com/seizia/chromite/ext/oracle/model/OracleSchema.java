@@ -21,6 +21,7 @@ import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
 import com.seizia.chromite.Log;
+import com.seizia.chromite.ext.oracle.model.scheduler.OracleSchemaScheduler;
 import com.seizia.chromite.model.*;
 import com.seizia.chromite.model.connection.DBPConnectionConfiguration;
 import com.seizia.chromite.model.exec.DBCException;
@@ -53,6 +54,12 @@ import java.util.stream.Collectors;
 
 /**
  * OracleSchema
+ *
+ * 설계(Chromite): 스케줄러 폴더의 일정·작업 실행 기록·실행 중인 작업 항목은 {@link #getScheduler}가 돌려주는
+ * {@link OracleSchemaScheduler}에서 읽는다(Chromite, {@code model.scheduler} 패키지).
+ *
+ * 변경 이력:
+ * - 2026-11-07 스케줄러 폴더 항목 {@link #getScheduler}, 새로 고침 때 일정 목록을 지움 (docs/chromite/swing-job-schedulers.md)
  */
 public class OracleSchema extends OracleGlobalObject implements
     DBSSchema,
@@ -88,6 +95,7 @@ public class OracleSchema extends OracleGlobalObject implements
     final private SchedulerJobCache schedulerJobCache;
     final public SchedulerProgramCache schedulerProgramCache;
     final public RecycleBin recycleBin;
+    private final OracleSchemaScheduler scheduler = new OracleSchemaScheduler(this);
     private volatile boolean hasStatistics;
 
     private long id;
@@ -470,6 +478,14 @@ public class OracleSchema extends OracleGlobalObject implements
         return schedulerProgramCache.getAllObjects(monitor, this);
     }
 
+    /**
+     * The Chromite items of the Scheduler folder: schedules, job run details and running jobs.
+     */
+    @NotNull
+    public OracleSchemaScheduler getScheduler() {
+        return scheduler;
+    }
+
     @Association
     public Collection<OracleRecycledObject> getRecycledObjects(DBRProgressMonitor monitor)
         throws DBException
@@ -567,6 +583,7 @@ public class OracleSchema extends OracleGlobalObject implements
         sequenceCache.clearCache();
         synonymCache.clearCache();
         getSchedulerJobCache().clearCache();
+        scheduler.clearCache();
         recycleBin.clearCache();
         jobCache.clearCache();
         return this;

@@ -15,6 +15,7 @@ Bundle-Vendor: Chromite contributors
 Export-Package: com.seizia.chromite.ext.mysql,
  com.seizia.chromite.ext.mysql.model,
  com.seizia.chromite.ext.mysql.model.plan,
+ com.seizia.chromite.ext.mysql.model.scheduler,
  com.seizia.chromite.ext.mysql.model.session,
  com.seizia.chromite.ext.mysql.tasks
 Automatic-Module-Name: com.seizia.chromite.ext.mysql

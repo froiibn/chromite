@@ -24,6 +24,7 @@ import org.jkiss.dbeaver.DBException;
 import com.seizia.chromite.Log;
 import com.seizia.chromite.ext.postgresql.PostgreConstants;
 import com.seizia.chromite.ext.postgresql.PostgreUtils;
+import com.seizia.chromite.ext.postgresql.model.cron.PostgreCronScheduler;
 import com.seizia.chromite.model.*;
 import com.seizia.chromite.model.exec.DBCException;
 import com.seizia.chromite.model.exec.DBCExecutionContext;
@@ -53,6 +54,12 @@ import java.util.*;
 
 /**
  * PostgreDatabase
+ *
+ * 설계(Chromite): 탐색기의 "pg_cron" 노드({@link PostgreCronScheduler})는 {@link #getCronScheduler}가 만든다
+ * (Chromite, pg_cron 모델은 {@code model.cron} 패키지).
+ *
+ * 변경 이력:
+ * - 2026-11-07 pg_cron 노드 {@link #getCronScheduler}, 새로 고침 때 다시 만듦 (docs/chromite/swing-job-schedulers.md)
  */
 public class PostgreDatabase extends JDBCRemoteInstance
     implements
@@ -102,6 +109,8 @@ public class PostgreDatabase extends JDBCRemoteInstance
     private final LongKeyMap<PostgreDataType> dataTypeCache = new LongKeyMap<>();
     public final JobCache jobCache = new JobCache();
     public final JobClassCache jobClassCache = new JobClassCache();
+    @Nullable
+    private volatile PostgreCronScheduler cronScheduler;
 
     public JDBCObjectLookupCache<PostgreDatabase, PostgreSchema> schemaCache;
     private final EnumValueCache enumValueCache = new EnumValueCache();
@@ -515,6 +524,21 @@ public class PostgreDatabase extends JDBCRemoteInstance
         return extensionCache.getAllObjects(monitor, this);
     }
 
+    /**
+     * The "pg_cron" node: a list of one (navigator tree items are lists). It says whether the extension is installed.
+     */
+    @Association
+    @NotNull
+    public List<PostgreCronScheduler> getCronScheduler(@NotNull DBRProgressMonitor monitor) {
+        PostgreCronScheduler current = cronScheduler;
+        if (current == null) {
+            current = new PostgreCronScheduler(this);
+            current.readState(monitor);
+            cronScheduler = current;
+        }
+        return List.of(current);
+    }
+
     @Association
     public Collection<PostgreAvailableExtension> getAvailableExtensions(DBRProgressMonitor monitor)
         throws DBException {
@@ -901,6 +925,7 @@ public class PostgreDatabase extends JDBCRemoteInstance
         tablespaceCache.clearCache();
         jobCache.clearCache();
         jobClassCache.clearCache();
+        cronScheduler = null;
         schemaCache.clearCache();
         cacheDataTypes(monitor, true);
         enumValueCache.clearCache();
