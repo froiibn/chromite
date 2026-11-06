@@ -237,6 +237,11 @@ SELECT ...
   - 쿼리 창의 매개변수 대화상자(SQL 편집기 확장의 Bind Parameters, `SqlParameterDialog`)는 라이브러리 실행에서 뜨지 않는다. 바꾼 쿼리에 매개변수 목록이 없어
     엔진의 `fillQueryParameters`가 제공자를 부르지 않기 때문이다. 두 대화상자를 하나로 합치는 것은 남긴 일이다.
   - SQL Server `GO` 배치는 배치 하나가 prepared statement 하나다(`DECLARE`한 변수와 `?`를 함께 쓸 수 있음). JDBC가 아닌 연결은 바인딩할 수 없어 오류로 끝난다.
+  - Query History(쿼리 창 기록)에는 엔진이 보낸 `?` 문장이 아니라 원래 문장에 값을 SQL 리터럴로 넣은 글자(`SqlParameterBinding.getHistoryText`)를 남긴다.
+    `?` 문장은 값이 없어 기록에서 Open·Execute 해도 실행할 수 없었다. 쿼리 창의 Bind Parameters 기록(값을 글자로 치환한 문장)과 같은 모양이다.
+    `prepare`가 `?`로 바꿀 때 같은 자리에 리터럴을 넣은 글자를 함께 만든다: 숫자는 그대로, 문자열·날짜·시각은 방언의 따옴표 처리(`SQLUtils.quoteString`),
+    빈 값은 `NULL`, 불리언은 `TRUE`/`FALSE`. SQL Server에는 불리언 리터럴이 없어 불리언 매개변수가 있는 기록은 그 서버에서 오류가 난다
+    (`'true'` 같은 글자는 MySQL·MariaDB에서 오류 없이 0과 비교되므로 쓰지 않았다).
 - **`${name}`·`{{name}}` 변수(표시: "SQL text"):** SWT에서도 텍스트 치환 변수이고 식별자·SQL 조각 자리(테이블 이름, `ORDER BY` 열 등)라 바인딩할 수 없다.
   값을 **그대로 SQL에 끼운다**. 대화상자와 정의 표에 "SQL text"로 표시하고, 쓰는 사람이 이 점을 알도록 도구 설명을 단다. 신뢰하지 않는 값에는 `:name`을 쓴다.
 
@@ -389,3 +394,4 @@ Schedule…·History…·Scheduled Queries… 대화상자, Save to Query Librar
 - 2026-11-06 다른 Swing 기능과 합침: 도구 창을 오른쪽 열의 Properties 위로 옮김, 실행 기록 창 이름을 `QueryRunHistoryDialog`로 바꿈(쿼리 창 기록과 겹침),
   `history` 아이콘은 SQL 편집기 확장의 것을 함께 씀, `new-folder`의 Full color 그림을 `new-group`과 같은 폴더 모양으로 맞춤(생성기의 같은 폴더 식),
   Options의 기록 보존 칸을 쿼리 창 기록 칸과 따로 둠. 바인딩한 쿼리의 결과는 다시 읽지 않음(Export Data·결과 뷰어 필터가 값 없는 `?`로 실패하던 것).
+- 2026-11-06 바인딩한 실행이 Query History에 `… = ?`로 남던 문제: 값을 SQL 리터럴로 넣은 원래 문장을 기록.

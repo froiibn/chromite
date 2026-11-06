@@ -92,6 +92,7 @@ Ctrl+K는 RSyntaxTextArea 기본값(다음 같은 단어로 이동)이었는데 
 - 그래서 편집기가 실행한 문장만 엔진의 문장 끝 이벤트(`SQLQueryListener.onEndQuery`)에서 `QueryHistory`에 남긴다:
   시각, 연결 ID·이름, 기본 DB/스키마(실행 문맥의 기본값, 서버 호출 없음), 문장, 실행 시간, 행 수(가져온 행 또는 바뀐 행), 결과(성공·실패·취소), 오류 메시지.
   문장은 엔진이 서버에 보낸 글자다: 매개변수는 넣은 값으로 바뀌어 있고(다시 실행하면 같은 값), SQL Server `GO` 배치는 배치 하나가 한 기록이다.
+  Query Library가 값을 바인딩한 문장은 서버에 `?`로 가므로 대신 값을 SQL 리터럴로 넣은 글자를 남긴다([swing-query-library.md](swing-query-library.md) "매개변수 바인딩").
   실제 계획 결과 집합은 행 수에 넣지 않는다.
 - 저장은 작업 공간 `.metadata/chromite-query-history.jsonl`에 기록마다 JSON 한 줄 덧붙이기다. 실행할 때마다 파일 전체를 다시 쓰지 않고,
   비정상 종료되어도 그때까지 남는다. 처음 읽을 때 보관 기간이 지난 기록과 깨진 줄을 빼고 다시 쓴다. 최대 20,000개.

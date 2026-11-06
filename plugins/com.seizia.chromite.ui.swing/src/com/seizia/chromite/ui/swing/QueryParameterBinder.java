@@ -29,9 +29,11 @@ import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
 import org.jkiss.dbeaver.model.sql.SQLQuery;
 import org.jkiss.dbeaver.model.sql.SQLQueryParameter;
 import org.jkiss.dbeaver.model.sql.SQLScriptElement;
+import org.jkiss.dbeaver.model.sql.SQLUtils;
 import org.jkiss.dbeaver.model.struct.DBSObject;
 import org.jkiss.utils.CommonUtils;
 
+import java.math.BigDecimal;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.Types;
@@ -65,13 +67,17 @@ import java.util.regex.Matcher;
  *
  * 변경 이력:
  * - 2026-11-06 Query Library: 최초 작성 (docs/chromite/swing-query-library.md "매개변수 바인딩")
+ * - 2026-11-06 Query History용 글자({@link #getHistoryText}): 값을 SQL 리터럴로 넣은 원래 문장. 엔진이 보낸 {@code ?} 문장이 기록되어
+ *   기록에서 다시 열거나 실행할 수 없던 문제 (docs/chromite/swing-query-library.md "매개변수 바인딩")
  */
 final class QueryParameterBinder implements SqlParameterBinding {
 
     /**
      * Values bound to the {@code ?} markers of one rewritten query, in order; kept as the query's data.
+     *
+     * @param historyText the query with the values written in as SQL literals, for the query history
      */
-    private record BoundValues(@NotNull List<Object> values, @NotNull List<QueryLibraryParameter.Type> types) {
+    private record BoundValues(@NotNull List<Object> values, @NotNull List<QueryLibraryParameter.Type> types, @NotNull String historyText) {
     }
 
     // Lower-case name -> value as typed
@@ -144,6 +150,12 @@ final class QueryParameterBinder implements SqlParameterBinding {
         }
     }
 
+    @NotNull
+    @Override
+    public String getHistoryText(@NotNull SQLQuery query) {
+        return query.getData() instanceof BoundValues bound ? bound.historyText() : query.getText();
+    }
+
     /**
      * Replaces the parameter markers of a parsed query: {@code :name} by {@code ?} with a bound value, {@code ${name}}
      * by its value as SQL text.
@@ -154,6 +166,8 @@ final class QueryParameterBinder implements SqlParameterBinding {
         parameters.sort(Comparator.comparingInt(SQLQueryParameter::getTokenOffset));
         String text = query.getText();
         StringBuilder newText = new StringBuilder(text.length());
+        // The same text with the values instead of the markers: what the query history keeps and can run again
+        StringBuilder historyText = new StringBuilder(text.length());
         List<Object> boundValues = new ArrayList<>();
         List<QueryLibraryParameter.Type> boundTypes = new ArrayList<>();
         int position = 0;
@@ -173,27 +187,58 @@ final class QueryParameterBinder implements SqlParameterBinding {
             }
             String value = values.get(key);
             newText.append(text, position, start);
+            historyText.append(text, position, start);
             if (isTextSubstitution(originalName)) {
                 newText.append(CommonUtils.notEmpty(value));
+                historyText.append(CommonUtils.notEmpty(value));
             } else {
                 QueryLibraryParameter definition = definitions.get(key);
                 QueryLibraryParameter.Type type = definition != null ? definition.getType() : QueryLibraryParameter.Type.TEXT;
+                Object boundValue;
                 try {
-                    boundValues.add(definition != null ? definition.toJdbcValue(value) : CommonUtils.nullIfEmpty(value));
+                    boundValue = definition != null ? definition.toJdbcValue(value) : CommonUtils.nullIfEmpty(value);
                 } catch (IllegalArgumentException e) {
                     throw new DBException("Parameter " + originalName + ": " + e.getMessage());
                 }
+                boundValues.add(boundValue);
                 boundTypes.add(type);
                 newText.append('?');
+                historyText.append(toSqlLiteral(query.getDataSource(), boundValue, value));
             }
             position = end;
         }
         newText.append(text, position, text.length());
+        historyText.append(text, position, text.length());
         SQLQuery rewritten = new SQLQuery(query.getDataSource(), newText.toString(), query.getOffset(), query.getLength());
         if (!boundValues.isEmpty()) {
-            rewritten.setData(new BoundValues(boundValues, boundTypes));
+            rewritten.setData(new BoundValues(boundValues, boundTypes, historyText.toString()));
         }
         return rewritten;
+    }
+
+    /**
+     * A bound value as SQL text for the query history: numbers as they are, strings, dates and times as quoted strings
+     * (the dialect's quoting; the servers convert them as for the bound value), booleans as {@code TRUE}/{@code FALSE}
+     * (SQL Server has no boolean literal: such a history entry fails there with an error rather than comparing wrongly).
+     *
+     * @param typed the value as typed (dates and times keep the user's format)
+     */
+    @NotNull
+    private static String toSqlLiteral(@Nullable DBPDataSource dataSource, @Nullable Object value, @Nullable String typed) {
+        if (value == null) {
+            return "NULL"; //$NON-NLS-1$
+        }
+        if (value instanceof BigDecimal decimal) {
+            return decimal.toPlainString();
+        }
+        if (value instanceof Number) {
+            return value.toString();
+        }
+        if (value instanceof Boolean flag) {
+            return flag ? "TRUE" : "FALSE"; //$NON-NLS-1$ //$NON-NLS-2$
+        }
+        String text = value instanceof String string ? string : CommonUtils.notEmpty(typed).trim();
+        return dataSource != null ? SQLUtils.quoteString(dataSource, text) : "'" + text.replace("'", "''") + "'"; //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$ //$NON-NLS-4$
     }
 
     /**

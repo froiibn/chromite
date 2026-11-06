@@ -174,6 +174,7 @@ import java.util.concurrent.atomic.AtomicLong;
  * - 2026-11-06 매개변수 대화상자의 Cancel 뒤 상태 줄이 "Query executed successfully"이던 문제: 엔진이 알리는
  *   {@code SQLQueryExecuteJob#isCanceledByUser}로 취소 상태를 보임 (docs/chromite/swing-sql-editor-plus.md "매개변수")
  * - 2026-11-06 결과 표를 필터·정렬·다음 페이지로 다시 읽은 뒤 상태 줄 행 수를 지금 보이는 행으로 바꿈 (docs/chromite/swing-result-viewer.md)
+ * - 2026-11-06 Query Library의 바인딩한 실행을 Query History에 값을 넣은 글자로 기록 (docs/chromite/swing-query-library.md "매개변수 바인딩")
  */
 final class SqlEditorPanel extends JPanel {
 
@@ -1399,7 +1400,8 @@ final class SqlEditorPanel extends JPanel {
                 container.getId(),
                 container.getName(),
                 getDefaultObjectName(context),
-                result.getStatement().getText(),
+                // Bound values (Query Library) written into the text: the statement itself has "?" markers
+                run.binding.getHistoryText(result.getStatement()),
                 result.getQueryTime(),
                 rows,
                 status,
