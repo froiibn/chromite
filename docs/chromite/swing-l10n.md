@@ -179,7 +179,7 @@ Swing 제품을 개인 작업 공간으로 실행해 SQL Server, PostgreSQL, Mar
 - **속성 범주**: 속성 창의 범주 머리글(Statistics, Properties, Flags, Settings, Constraints, Misc, Partitioning, Details, 연결 노드의
   Driver/Server 등)은 `@Property(category = "...")` 문자열이다. `ObjectPropertyDescriptor.getCategory()`가 번들을 찾지 않고 그대로 돌려준다
   (`org.jkiss.dbeaver.model/src/org/jkiss/dbeaver/runtime/properties/ObjectPropertyDescriptor.java:363-366`).
-- **`plugin.xml`에 박힌 라벨**: Oracle 폴더 `Java`, `Jobs`(`ext.oracle/plugin.xml`), SQL Server 폴더 설명(도구 설명), 인증 방식 이름
+- **`plugin.xml`에 박힌 라벨**: Oracle 폴더 `Java`, `Jobs`(`ext.oracle/plugin.xml`), SQL Server 폴더 설명(도구 설명. 저장 프로시저·함수·테이블 CHECK 제약 조건 폴더만 `%키`), 인증 방식 이름
   (SQL Server `dataSourceAuth`의 "SQL Server Authentication", "Windows Authentication" 등, Oracle의 "Username/password", "OS Authentication" —
   `ext.oracle/plugin.xml:463,472`; 기본 인증 방식처럼 `%키`로 바꾸면 번역할 수 있다), Oracle 역할 값 Normal/SYSDBA/SYSOPER, 드라이버 속성(Misc, Performance, Show all databases, Server Time Zone, SSL 설정 등), 작업 범주 이름.
   SQL Server의 `description="tree.administer.node.description"`은 `%`가 빠져 키 이름이 그대로 보인다(upstream 버그).
@@ -209,10 +209,44 @@ Swing 제품을 개인 작업 공간으로 실행해 SQL Server, PostgreSQL, Mar
 - 개체 하나를 가리키는 `tree.check_constraint.node.name`은 "CHECK 제약 조건"으로 둔다. 그 제약 조건의 종류를 나타내는 이름이기 때문이다.
 - 용어집의 Procedure → 프로시저는 그대로다. 다른 데이터베이스(PostgreSQL, Oracle, MySQL, generic 등)의 번들은 "프로시저"를 쓴다.
 - `ext.mssql`의 다른 `_ko` 문구(속성 이름·설명, `SQLServerMessages_ko.properties`)에는 저장 프로시저를 개체 종류로 부르는 "프로시저"가 없었다.
-  폴더 설명 `description="Procedures"`는 `plugin.xml`에 영어로 박혀 있어(`%키` 아님) 번역 대상이 아니다.
-- 주의: 이 폴더에는 모델이 함수도 함께 담는다(`SQLServerSchema.ProcedureCache`가 `type IN ('P','PC','X','TF','FN','IF')`를 읽음).
-  구조는 바꾸지 않기로 했으므로 함수도 "저장 프로시저" 폴더 아래에 보인다.
+- 함수는 처음에 이 폴더에 함께 보였으나, 아래 "SQL Server 함수 폴더"에서 별도 "함수" 폴더로 나눴다.
 - SSMS에도 데이터베이스마다 스키마 폴더(보안 > 스키마)가 있다. Chromite는 DBeaver 모델대로 데이터베이스 > 스키마 > 개체 순서로 보여 준다.
+
+### SQL Server 함수 폴더: "저장 프로시저"와 "함수" 분리
+
+사용자 결정(2026-11-06): SQL Server 스키마 아래 "저장 프로시저"(Procedures) 폴더에 함수가 섞여 보이던 것을 SSMS처럼 나눈다.
+Swing과 SWT가 같은 탐색기 모델(`plugin.xml`의 `<folder>`/`<items>`)을 쓰므로 두 화면에 함께 적용된다.
+
+- 원인: 폴더가 `property="procedures"`(`SQLServerSchema.getProcedures()`)를 그대로 보여 줬고, 그 캐시는 저장 프로시저와 함수를
+  한 쿼리로 읽는다(`SQLServerSchema.java:958`, `type IN (...)`). 개체 종류는 `SQLServerProcedure.loadInfo()`가 `type`으로 정한다
+  (P/PC/X → `DBSProcedureType.PROCEDURE`, 나머지 → `FUNCTION`, `SQLServerProcedure.java:73-81`).
+- 설계: 캐시·쿼리는 하나로 두고, 탐색기 폴더용 getter 두 개가 종류별로 거른다.
+  `getProceduresOnly()`(`SQLServerSchema.java:929`), `getFunctionsOnly()`(`:940`). Oracle(`OracleSchema.java:384,392`,
+  `ext.oracle/plugin.xml:209,220`)과 generic(`GenericObjectContainer.java:341,355`)이 이미 같은 방식이다.
+  `plugin.xml:128-137`에서 "Procedures" 폴더는 `proceduresOnly`, 새 "Functions" 폴더는 `functionsOnly`를 쓴다.
+- `getProcedures()`/`getProcedure(name)`은 바꾸지 않았다(두 종류를 모두 돌려준다). 이 메서드를 부르는 곳은 함수도 찾아야 하기 때문이다.
+  - SQL 자동 완성: `SQLQueryCompletionContext.java:1536`(`pc.getProcedures`)
+  - SQL 이름 찾기(하이퍼링크, 의미 분석): `SQLSearchUtils.java:326,330`
+  - 호출문 해석: `JDBCCallableStatementImpl.java:207`
+  - 개체 검색·자동 완성 결과 해석: `SQLServerObjectType.findObject()`(`SQLServerObjectType.java:138`, `schema.getProcedure`)
+  - 매개 변수, 새로 고침, 편집기: `SQLServerProcedure.java:121,158`, `SQLServerProcedureManager.java:55`(`getProcedureCache()`)
+  - Swing 코드는 `getProcedures`를 직접 부르지 않는다. 아이콘만 `DBSProcedureType`으로 고른다(`NodeIcons.java:239`).
+- 두 폴더 모두 `type="...SQLServerProcedure"`로 둔다. 탐색기가 개체로 노드를 찾을 때(`DBNModel.cacheNodeChildren`, `DBNModel.java:384-415`)
+  형식이 맞는 폴더를 차례로 뒤지므로 함수도 "함수" 폴더에서 찾는다. `type`을 빼면 함수 노드를 찾지 못해 편집기 열기 등이 깨진다.
+- CLR 함수(FS, FT)도 읽게 했다(`SQLServerSchema.java:958,980`). `SQLServerObjectType`은 FS/FT를 `SQLServerProcedure`로 매핑하고
+  개체 검색 종류(`SQLServerStructureAssistant.java:74-75`)에도 넣었지만 캐시가 읽지 않아 검색 결과가 개체로 풀리지 않았다.
+  CLR 저장 프로시저(PC)는 원래 읽고 있었다. 테스트 DB에 CLR 어셈블리가 없어 FS/FT는 화면으로 확인하지 못했다.
+- 폴더 설명(도구 설명)을 `%키`로: `tree.procedures.node.tip`(Procedures / 저장 프로시저), `tree.functions.node.tip`(Functions / 함수),
+  `tree.check_constraints.node.tip`(Table check constraints / 테이블 CHECK 제약 조건). 영어 문구는 이전과 같다.
+- 알려진 제약(upstream Oracle과 같음): 새로 만든 함수는 `DBNModel.getParentNode()`가 형식이 맞는 첫 폴더를 고르므로(`DBNModel.java:444-450`)
+  새로 고침 전까지 "저장 프로시저" 폴더에 보일 수 있다. 두 폴더가 같은 형식이라 폴더 필터 설정도 함께 쓴다.
+  함수 노드 경로가 `.../procedure/<이름>`에서 `.../function/<이름>`으로 바뀌어, 이전에 열어 둔 함수 편집기는 복원되지 않을 수 있다.
+- 화면 확인(2026-11-06, Swing, SQL Server 2022 테스트 DB에 저장 프로시저 1개, 스칼라·인라인·다중 문 테이블 반환 함수 각 1개):
+  한국어·영어, 라이트·다크에서 "저장 프로시저"(Procedures)에는 저장 프로시저만, "함수"(Functions)에는 함수 3개가 보인다.
+  함수 속성 창, DDL 보기, CREATE로 스크립팅(새 쿼리 창)이 저장 프로시저·함수 모두 동작하고, 폴더 설명이 두 언어로 나온다.
+  `getProcedures()`는 4개, `getProcedure("order_count")`는 함수를 돌려주고, 탐색기 조회는 `.../function/order_count_<id>` 노드를 찾는다.
+  SQL 자동 완성은 이전과 같이 함수 이름을 제안하지 않는다. Swing 완성이 SWT 기본값대로 프로시저 검색을 끄기 때문이다
+  (`SqlCompletionAnalysis.java:426-428` `isSearchProcedures()` → false, `SQLQueryCompletionContext.java:1533`). 이번 변경과 관계없다.
 
 ## 용어집
 
@@ -323,6 +357,8 @@ XML, XLSX, BOM, host:port 같은 기술 토큰은 번역하지 않는다. "…"�
   `ext.mssql`의 `OSGI-INF/l10n/bundle.properties`(Chromite 실행 계획 노드 키 추가)와 새 `bundle_ko.properties`.
 - DBeaver 플러그인 한국어 보충: 위 표의 `_ko` 파일(새로 만들거나 키 추가·값 정렬), `org.jkiss.dbeaver.registry`의 `plugin.xml`(인증 방식 두 개의
   라벨·설명을 `%키`로)과 `OSGI-INF/l10n/bundle.properties`(같은 영어 문구 4개 추가). Java 파일은 바꾸지 않았다.
+- SQL Server 함수 폴더: `ext.mssql`의 `plugin.xml`(Functions 폴더 추가, 폴더 설명 3개를 `%키`로), `SQLServerSchema.java`
+  (`getProceduresOnly`/`getFunctionsOnly` 추가, 캐시가 FS/FT도 읽음), `bundle.properties`·`bundle_ko.properties`(`*.node.tip` 3개).
 
 ## 변경 이력
 
@@ -333,3 +369,5 @@ XML, XLSX, BOM, host:port 같은 기술 토큰은 번역하지 않는다. "…"�
   기본 인증 방식 이름을 `plugin.xml` `%키`로. 용어집에 모델 용어 추가. SQL Server "저장 프로시저"는 미해결 질문으로 남김.
 - 2026-11-06 SQL Server 폴더 이름을 한국어 SSMS에 맞춤(사용자 결정, SQL Server만, 이름만 바꾸고 구조는 그대로): "프로시저" → "저장 프로시저"
   (폴더·개체·매개 변수), 테이블 아래 "CHECK 제약 조건" 폴더 → "제약 조건". 미해결 질문을 닫음.
+- 2026-11-06 SQL Server 탐색기에서 함수를 "함수"(Functions) 폴더로 분리(사용자 결정). 한 캐시를 종류별로 거르는 getter 두 개,
+  CLR 함수 FS/FT 읽기, 폴더 설명 3개 `%키`로.
