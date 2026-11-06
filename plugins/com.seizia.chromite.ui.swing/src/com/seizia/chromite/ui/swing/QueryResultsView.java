@@ -48,6 +48,8 @@ import java.util.List;
  * - 2026-11-06 C단계: 최초 작성 (docs/chromite/swing-frontend.md "구현 현황 — C단계")
  * - 2026-11-06 G단계: 편집할 수 있는 결과 표, 저장 메시지, 저장하지 않은 변경 묻기 (docs/chromite/swing-frontend.md "구현 현황 — G단계")
  * - 2026-11-06 디자인 적용: Messages 글꼴 font.code, 오류 색 status.error (docs/chromite/design-spec.md "적용 현황")
+ * - 2026-11-06 결과 뷰어: 결과 표마다 {@link ResultSetViewerPanel}(필터 줄, 값 패널, 레코드 보기, 상태 줄)로 감싸고, 지울 때 값 패널용 LOB 값을 놓아 줌
+ *   (docs/chromite/swing-result-viewer.md)
  */
 final class QueryResultsView {
 
@@ -66,7 +68,8 @@ final class QueryResultsView {
         void resultsEditStateChanged();
     }
 
-    private static final int MIN_GRID_HEIGHT = 140;
+    // A result viewer adds a filter bar and a status line around its grid (ResultSetViewerPanel)
+    private static final int MIN_GRID_HEIGHT = 220;
 
     private final GridStack gridStack = new GridStack();
     private final JScrollPane resultsComponent;
@@ -124,6 +127,11 @@ final class QueryResultsView {
     }
 
     void clear() {
+        for (Component component : gridStack.getComponents()) {
+            if (component instanceof ResultSetViewerPanel viewer) {
+                viewer.dispose();
+            }
+        }
         gridStack.removeAll();
         gridStack.add(placeholder);
         gridStack.revalidate();
@@ -150,7 +158,7 @@ final class QueryResultsView {
         if (getGridCount() == 0) {
             gridStack.removeAll();
         }
-        gridStack.add(new ResultSetGrid(fetched, gridHost));
+        gridStack.add(new ResultSetViewerPanel(fetched, gridHost));
         gridStack.revalidate();
         gridStack.repaint();
     }
@@ -159,8 +167,8 @@ final class QueryResultsView {
     private List<ResultSetGrid> getGrids() {
         List<ResultSetGrid> grids = new ArrayList<>();
         for (Component component : gridStack.getComponents()) {
-            if (component instanceof ResultSetGrid grid) {
-                grids.add(grid);
+            if (component instanceof ResultSetViewerPanel viewer) {
+                grids.add(viewer.getGrid());
             }
         }
         return grids;

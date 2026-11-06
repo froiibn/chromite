@@ -1692,3 +1692,5 @@ Windows 11, 화면 배율 150%, JBR 25, 작업 공간 사본 `D:\Tools\_smoke\sw
   [swing-registered-servers.md](swing-registered-servers.md).
 - 2026-11-06 관리 도구: Tools·Object Explorer 메뉴의 Activity Monitor(세션, 잠금)와 Find Objects. 설계는 [swing-admin-tools.md](swing-admin-tools.md).
 - 2026-11-06 데이터 가져오기·내보내기: Object Explorer Tasks > Import Data… / Export Data…, 결과 표 Export Data…(쿼리를 다시 실행해 모든 행). 설계는 [swing-data-transfer.md](swing-data-transfer.md).
+- 2026-11-06 결과 뷰어: 결과 표마다 값 패널(JSON·XML·이미지·16진수, 편집), 머리글 정렬(서버·표 안), WHERE 필터와 기록, 칸 값으로 거르기, 다음 페이지·모두 읽기, 레코드 보기,
+  열 너비 맞춤, Copy As, 선택 집계. 설계는 [swing-result-viewer.md](swing-result-viewer.md).

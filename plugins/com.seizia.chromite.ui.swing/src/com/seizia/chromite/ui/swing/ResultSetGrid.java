@@ -87,6 +87,9 @@ import java.util.Map;
  * - 2026-11-06 P1: 열 너비의 여백을 고정값(18) 대신 Look and Feel의 머리글 렌더러·셀 테두리 여백으로 계산, 행 번호를 눌러 행을 고를 때
  *   표가 가로로 스크롤되지 않게 함 (docs/chromite/swing-frontend.md "P1 디자인 적용")
  * - 2026-11-06 데이터 전송: "Export Data…" 메뉴, {@link Fetched#exportQuery()} (docs/chromite/swing-data-transfer.md)
+ * - 2026-11-06 결과 뷰어: {@link Fetched}에 다시 읽기 정보와 칸 값({@link ResultSetSource}), 결과 뷰어가 쓰는 표 접근과 글자로 칸 값 바꾸기
+ *   ({@link #getTable}, {@link #setCellText}). 정렬·필터·값 패널 등은 이 표를 감싸는 {@link ResultSetViewerPanel}에 있다
+ *   (docs/chromite/swing-result-viewer.md)
  */
 final class ResultSetGrid extends JPanel {
 
@@ -126,7 +129,8 @@ final class ResultSetGrid extends JPanel {
     }
 
     /**
-     * What a receiver delivers: the data, and either the edit model of an editable result or why it is read-only.
+     * What a receiver delivers: the data, either the edit model of an editable result or why it is read-only, and
+     * where the result was read from (with the cell values of the value panel).
      *
      * @param exportQuery the query container that reads this result again on its own (the first result set of a
      *                    query; "Export Data…" runs it again for all rows), or null
@@ -135,15 +139,16 @@ final class ResultSetGrid extends JPanel {
         @NotNull Data data,
         @Nullable ResultSetEditModel editModel,
         @Nullable String readOnlyReason,
+        @NotNull ResultSetSource source,
         @Nullable DBSDataContainer exportQuery
     ) {
-        Fetched(@NotNull Data data, @Nullable ResultSetEditModel editModel, @Nullable String readOnlyReason) {
-            this(data, editModel, readOnlyReason, null);
+        Fetched(@NotNull Data data, @Nullable ResultSetEditModel editModel, @Nullable String readOnlyReason, @NotNull ResultSetSource source) {
+            this(data, editModel, readOnlyReason, source, null);
         }
 
         @NotNull
         Fetched withExportQuery(@NotNull DBSDataContainer query) {
-            return new Fetched(data, editModel, readOnlyReason, query);
+            return new Fetched(data, editModel, readOnlyReason, source, query);
         }
     }
 
@@ -252,6 +257,39 @@ final class ResultSetGrid extends JPanel {
 
     int getChangeCount() {
         return editModel == null ? 0 : editModel.getChangeCount();
+    }
+
+    /**
+     * The table of the grid, for the result viewer around it (selection, header, menu).
+     */
+    @NotNull
+    JTable getTable() {
+        return table;
+    }
+
+    /**
+     * Sets a cell from text as the cell editor does: the column's value handler makes the value (value panel,
+     * record view).
+     *
+     * @param row    row index of the table
+     * @param column model column index
+     * @return null if the value was set, otherwise why it was not
+     */
+    @Nullable
+    String setCellText(int row, int column, @NotNull String text) {
+        if (editModel == null || !editModel.isCellEditable(row, column)) {
+            return "the cell is read-only";
+        }
+        if (!stopEditing()) {
+            return "the open cell editor holds an invalid value";
+        }
+        try {
+            editModel.setValue(row, column, editModel.parseValue(column, text));
+        } catch (DBCException e) {
+            return "invalid value for " + data.columns()[column] + ": " + CommonUtils.notEmpty(e.getMessage());
+        }
+        repaintKeepingSelection();
+        return null;
     }
 
     /**
