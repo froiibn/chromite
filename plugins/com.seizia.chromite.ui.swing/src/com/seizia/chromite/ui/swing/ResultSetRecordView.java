@@ -47,6 +47,7 @@ import java.util.Locale;
  * 변경 이력:
  * - 2026-11-06 최초 작성 (docs/chromite/swing-result-viewer.md "레코드 보기")
  * - 2026-11-06 화면 문구를 EditorMessages로 옮김(OS 언어를 따름)
+ * - 2026-11-07 그리드처럼 고정폭 글꼴 대신 UI 글꼴 (docs/chromite/design-spec.md "적용 현황 — 그리드 글꼴 Pretendard")
  */
 final class ResultSetRecordView extends JPanel {
 
@@ -104,7 +105,6 @@ final class ResultSetRecordView extends JPanel {
         super(new BorderLayout());
         this.source = source;
         table = new JTable(model);
-        table.putClientProperty(FlatClientProperties.STYLE_CLASS, "monospaced"); //$NON-NLS-1$
         table.putClientProperty("JTable.autoStartsEdit", Boolean.FALSE); //$NON-NLS-1$
         table.putClientProperty("terminateEditOnFocusLost", Boolean.TRUE); //$NON-NLS-1$
         table.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);

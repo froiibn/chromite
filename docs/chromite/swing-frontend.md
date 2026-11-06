@@ -491,6 +491,8 @@ B단계는 `JSplitPane`만 쓴다. (2026-11-06 사용자가 끌어서 옮기기�
   JetBrains·Microsoft의 테마 파일과 아이콘은 쓰지 않고 색감만 참고했다.
 - View > Theme에서 바꾸면 바로 `FlatLaf.setup()` + `FlatLaf.updateUI()`로 열린 모든 창을 다시 그리고, 설정에 저장해 다음 시작에도 쓴다.
   Look and Feel 색을 쓰는 직접 만든 테두리(상태 표시줄, 도구 창 머리말)는 `updateUI()`에서 다시 만든다.
+- 스크롤바 트랙은 스크롤하는 내용(뷰)의 바탕색으로 칠한다(`ChromiteScrollBarUI`). 편집기는 트리 갱신이 끝난 뒤 테마 색을 다시 적용하므로,
+  스크롤바 UI가 뷰·뷰포트의 `background`·`opaque` 변경을 듣고 스크롤바를 다시 그린다(2026-11-07, 그 전에는 트랙이 옛 테마 색으로 남았다).
 - 시작 순서: 작업 공간을 잠그기 전에는 설정을 읽을 수 없으므로(인스턴스 위치가 정해지기 전) 시작 오류 대화상자용으로 라이트 테마를 먼저 설치하고,
   메인 창을 열기 직전에 저장된 테마로 바꾼다.
 
@@ -1843,6 +1845,75 @@ EDT 에이전트로 단추를 누르고(`doClick`) 결과를 읽었다. 캡처�
 - 떠 있는 도구 창 안에서 메인 창 메뉴 단축키(F8 등)는 동작하지 않는다(메뉴 막대가 메인 창에만 있음).
 - 숨긴 도구 창을 다시 보일 때 떠 있던 창이면 떠 있는 창이 아니라 메인 창의 마지막 자리에 놓는다.
 
+### 도구 창 최소 폭 (2026-11-07)
+
+사용자 보고(2026-11-07): Properties 창이 일정 폭 이하로 줄어들지 않는다.
+
+- **원인:** 라이브러리의 분할 창(`JSplitPane`)은 양쪽 카드를 최소 크기보다 작게 만들지 않는다. 카드의 최소 폭은 머리말과 내용의 최소 폭에서 나왔고,
+  Swing 기본값으로는 내용의 최소 폭이 사실상 전체 폭이었다. Properties(실행 중 덤프, 150%, 논리 픽셀):
+  - 위쪽 이름·종류·설명 `JLabel`(`GridLayout`): 레이블의 최소 폭 = 글자 전체 폭. 긴 테이블 이름 378, 테이블 주석 575 → 카드 최소 591. 고른 개체에 따라 바뀐다.
+  - 아래 설명 칸의 줄 바꿈 `JTextArea`: 줄 바꿈 뷰(`WrappedPlainView`)의 최소 폭 = 지금 폭이다. 그래서 아무것도 고르지 않아도 카드 최소 폭이 지금 폭(385)과 같아
+    전혀 줄일 수 없었고, 한 번 넓히면(585) 다시 줄지 않았다.
+  - 같은 원인(내용이 최소 폭을 정함)이 다른 도구 창에도 있었다: 도구 막대(`JToolBar`의 `BoxLayout`, 최소 폭 = 모든 단추) Object Explorer 174, Query Library 200,
+    Registered Servers 95, 머리말 제목 레이블(전체 제목 폭 + 단추) Registered Servers 138(영어 제목은 더 넓음).
+- **고친 것(`ToolWindowDocking`):** 카드의 최소 폭은 머리말(`Header.getMinimumSize`)이 정하고 내용(`ToolWindowDockable`)은 최소 폭이 없다(높이는 그대로).
+  머리말 최소 폭 = 여백 + 제목 첫 글자와 말줄임표 + 간격 + [⋮ 옵션] [— 숨기기] 단추 전체. 한국어 99, 영어 96~98(논리 픽셀).
+  내용은 이보다 좁게 배치되고 각 부분이 스스로 줄어든다: 레이블은 말줄임표(JLabel UI), 속성 그리드는 열이 좁아지고 칸 글자가 말줄임표, 줄 바꿈 칸은 다시 줄 바꿈,
+  트리는 가로 스크롤.
+- **도구 막대(`ObjectExplorerPanel`, `RegisteredServersPanel`, `QueryLibraryPanel`):** `OverflowToolBar`(주 도구 막대와 같음)로 바꿨다.
+  들어가지 않는 뒤쪽 단추는 오른쪽 끝 » 메뉴로 간다(최소 폭에서 잘려 누를 수 없게 되지 않도록). Properties 도구 막대(단추 둘, 68)는 머리말 최소 폭보다 좁아 그대로 둔다.
+- **왜 이 최소값인가:** 머리말 단추(옵션, 숨기기)는 늘 누를 수 있어야 하고, 제목 첫 글자가 있어야 어느 도구 창인지 안다. 그 이상은 사용자가 끌어서 정한다.
+  내용 기준 최소값(가장 긴 레이블, 도구 막대 전체)은 데이터·언어·글꼴에 따라 바뀌고 줄 바꿈 칸처럼 커지기만 할 수도 있어 쓰지 않는다.
+- 문서 영역 쪽 최소 크기는 바꾸지 않았다. 메인 창 최소 폭도 함께 작아진다(Properties 긴 이름 기준 1209 → 642).
+
+확인(2026-11-07, `-Pproduct-chromite-swt,product-chromite-swing`, JBR 25 번들 런타임, 150%, 개인 작업 공간 `D:\Tools\_scratch\toolwindow-min-width\ws`, PostgreSQL
+`chr_toolwindow_min_width`의 긴 이름·주석 테이블). EDT 시험 에이전트가 분할선에 마우스 누르기·끌기·놓기 이벤트를 보내 끌었다. 캡처는 `D:\Tools\_scratch\toolwindow-min-width\run\shots\`.
+
+| 경우 | 고치기 전 | 고친 뒤 |
+|---|---|---|
+| 긴 이름 테이블을 고르고 Properties 분할선을 오른쪽으로 끌기 | 385 → 591로 오히려 넓어지고(왼쪽 열이 밀림) 줄지 않음 | 99까지 줄고 제목 "속...", 이름·설명·그리드 칸이 말줄임표 |
+| Properties를 585로 넓힌 뒤 다시 좁히기 | 585에서 멈춤 | 99 |
+| Object Explorer·Registered Servers 열을 왼쪽으로 끌기 | 174에서 멈춤 | 98~99, 도구 막대 »에 연결 끊기·필터·새로 고침·모두 축소 |
+| Query Library를 보인 오른쪽 열 | 최소 200(도구 막대) | 98~99, 도구 막대는 실행 + », 검색 칸 말줄임 |
+| 한국어·영어(`-nl en`) × 라이트·다크 | | 위와 같음, 겹침·잘린 단추 없음 |
+
+### Query Library 자리 (2026-11-07)
+
+사용자 결정(2026-11-07): Query Library는 기본으로 숨기고, 보이면 오른쪽 위, Properties 위(같은 오른쪽 열을 위아래로 나눔)에 놓는다.
+
+- **이미 맞던 것:** 기본 배치에서 숨김(`addToolWindow(..., false, ...)`), 처음 보이면 `Place.next(properties, NORTH, 0.5)`로 Properties 위.
+  View 메뉴, 주 도구 막대 토글, Ctrl+Alt+T, Query Library의 "창 보이기"(Save to Query Library… 뒤)는 모두 같은 `ToolWindow.setShown(true)` → `ToolWindowDocking.show`를 거친다.
+- **틀리던 경우(고치기 전 확인):** 한쪽이 숨어 있을 때 다른 쪽을 보이면 두 도구 창이 따로 열을 만들었다.
+  - Properties를 숨기고 Query Library를 보인 뒤 Properties를 보이면 `[문서 | Query Library | Properties]` 두 열.
+  - 그 상태에서 Query Library를 숨겼다가(마지막 자리 = 오른쪽 가장자리) Properties가 보일 때 다시 보이면(메뉴·도구 막대·Ctrl+Alt+T 모두) `[문서 | Properties | Query Library]`.
+  - 분할 창 시절 설정(`properties.visible=false`, `queryLibrary.visible=true`)을 옮긴 첫 실행 뒤 Properties를 보일 때도 두 열(위 "확인"의 "이전 설정 옮기기" 줄).
+  - 왼쪽 열도 같았다: Registered Servers와 Object Explorer를 차례로 숨기고 차례로 보이면 Object Explorer가 문서 영역 옆에 따로 열.
+- **원인:** 숨긴 도구 창은 마지막 자리(`<id>.restorePlace`)로 돌아간다. 그 자리는 숨길 때 계산되므로, 이웃이 숨어 있던 때면 "오른쪽 가장자리"나 "문서 영역 왼쪽"처럼
+  이웃을 모르는 자리다. 또 이웃 관계가 한쪽에만 있었다(Query Library → Properties 위, Registered Servers → Object Explorer 아래). Properties와 Object Explorer의 기본 자리는 가장자리뿐이었다.
+- **고친 것:**
+  - `MainFrame`: Properties의 기본 자리 맨 앞에 `next(queryLibrary, SOUTH, 0.5)`, Object Explorer에 `next(registeredServers, NORTH, 0.6)`.
+    기본 배치는 그대로다(기본 배치는 앞에 놓인 이웃만 쓰고, Query Library는 숨김이며 Object Explorer가 Registered Servers보다 먼저 놓인다).
+  - `ToolWindowDocking.show`: 마지막 자리가 문서 영역 옆 열(창 가장자리, 또는 문서 영역의 왼쪽·오른쪽)이고 기본 이웃이 지금 문서 영역의 같은 쪽에 있으면,
+    마지막 자리보다 이웃 자리를 먼저 쓴다(`getNeighbourColumnPlace`). 쪽은 배치 트리에서 도구 창과 문서 영역을 함께 가진 첫 분할로 정한다(`getSideOfDocuments`,
+    창이 보이기 전에도 같음). 마지막 자리가 다른 도구 창 옆(탭, 위아래)이면 그대로 쓴다.
+- **저장된 배치는 옮기지 않는다(결정):** 배치 파일(`chromite-window-layout-1.xml`)은 사용자가 끌어서 만든 배치이고 형식도 같다. Query Library가 그 안에서 다른 곳에 보이면 사용자가
+  옮긴 것이므로 그대로 복원한다. 숨김 상태로 저장된 경우는 다음에 보일 때 위 규칙으로 Properties 위에 간다. 이전 형식(분할 창 설정)은 보이기 여부만 옮기는 지금 방식 그대로다.
+- **알려진 차이:** 오른쪽 가장자리에 `[Query Library | Properties]`를 일부러 두 열로 둔 뒤 Properties를 숨겼다가 보이면 Query Library 아래로 들어간다
+  (마지막 자리 "오른쪽 가장자리"로는 두 경우를 구별할 수 없다). 다시 끌어 놓으면 된다.
+
+확인(2026-11-07, 같은 빌드·환경, 새 작업 공간 `ws-q3`, `ws-old-after`). 캡처는 `D:\Tools\_scratch\toolwindow-min-width\run\shots\before-S*`, `after-S*`.
+
+| 경우 | 고치기 전 | 고친 뒤 |
+|---|---|---|
+| S1 새 작업 공간, View > Query Library | `V(queryLibrary / properties)` (이미 맞음) | 같음 |
+| S2 Properties 숨김 → Query Library 보임 → Properties 보임 | `H(... | queryLibrary) | properties` 두 열 | `V(queryLibrary / properties)` |
+| S3 Query Library 마지막 자리 = 오른쪽 가장자리, 도구 막대 토글로 보임 | `... | properties) | queryLibrary` 두 열 | `V(queryLibrary / properties)` |
+| S5 Ctrl+Alt+T 숨김·보임 | S3과 같음 | `V(queryLibrary / properties)` |
+| S4 Registered Servers·Object Explorer 숨김 → 차례로 보임 | `registeredServers | H(objectExplorer | documents ...)` | `V(objectExplorer / registeredServers)` |
+| S6 분할 창 설정을 옮긴 작업 공간 → Properties 보임 | `H(... | queryLibrary) | properties` | `V(queryLibrary / properties)` |
+| S7 닫고 다시 시작 | | 배치 파일에서 `V(queryLibrary / properties)` 그대로 |
+| 다크 테마 | | 카드·머리말 색 정상 |
+
 ## 빈 문서 영역 (2026-11-06)
 
 사용자 결정(2026-11-06): "Welcome"/"시작" 문서 탭을 없앤다. 문서가 하나도 열려 있지 않으면 가운데 문서 영역 자체가 시작 내용을 바탕으로 보인다(IDE의 빈 편집기 화면).
@@ -2198,3 +2269,8 @@ EDT 에이전트로 단추를 누르고(`doClick`) 결과를 읽었다. 캡처�
 - 2026-11-07 서버 대시보드: Activity Monitor 첫 탭 "개요"(연결별 실시간 차트), Tools·Object Explorer의 Server Dashboard. [swing-dashboard.md](swing-dashboard.md).
 - 2026-11-07 드라이버 관리자: Tools > Driver Manager…, Connect 대화상자의 Edit Driver…(드라이버 만들기·편집, 로컬 jar·폴더 라이브러리, 오프라인 모드). [swing-driver-manager.md](swing-driver-manager.md).
 - 2026-11-07 SWT 프런트엔드 삭제([swt-removal.md](swt-removal.md)): 목적 절에 안내, 식별자 표(피처가 `licenses/`를 넣음, 실행 파일 이름을 유지하는 이유), 기능 공백·설정 저장 위치 설명 갱신.
+- 2026-11-07 테마 전환 뒤 SQL 편집기·값 패널 세로 스크롤바 트랙이 옛 테마 색으로 남던 문제: `ChromiteScrollBarUI`가 뷰 바탕색 변경을 듣고 다시 그린다. "테마" 절.
+- 2026-11-07 도구 창 최소 폭: 카드 최소 폭을 머리말(단추 + 제목 첫 글자와 말줄임표)이 정하고 내용은 최소 폭을 갖지 않음(Properties가 일정 폭 이하로 줄지 않던 문제),
+  도구 창 도구 막대를 `OverflowToolBar`로. "도구 창 도킹 — 도구 창 최소 폭" 절.
+- 2026-11-07 Query Library 자리: 한 열의 두 도구 창(Query Library·Properties, Object Explorer·Registered Servers)이 서로를 기본 이웃으로 두고,
+  문서 영역 옆 열로 돌아가는 도구 창은 이웃이 같은 쪽에 있으면 이웃의 열로. "도구 창 도킹 — Query Library 자리" 절.

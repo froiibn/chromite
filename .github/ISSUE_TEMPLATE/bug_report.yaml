@@ -23,7 +23,7 @@ body:
     attributes:
       label: Chromite Version
       description: What version of Chromite are you running?
-      placeholder: ex. 26.2.5
+      placeholder: ex. 0.1.0
     validations:
       required: true
   - type: input
