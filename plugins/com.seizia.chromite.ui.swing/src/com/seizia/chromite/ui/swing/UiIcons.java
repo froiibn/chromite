@@ -53,6 +53,7 @@ import java.util.Map;
  * 변경 이력:
  * - 2026-11-06 디자인 적용: 최초 작성 (docs/chromite/design-spec.md "적용 현황")
  * - 2026-11-07 밀도 B: 글자 단추의 위 여백을 줄여 아이콘 단추와 높이를 맞춤 (docs/chromite/design-spec.md "치수 토큰")
+ * - 2026-11-07 UI 글꼴 12: 글자 단추 여백 주석을 고침(12px 글자 줄 15는 아이콘보다 낮아 여백을 줄이지 않음)
  */
 final class UiIcons {
 
@@ -120,8 +121,9 @@ final class UiIcons {
     @NotNull
     static JButton createToolButton(@NotNull Action action, @NotNull String iconId) {
         JButton button = createButton(action, iconId);
-        // The text line (17 for the 13px UI font) is higher than the icon (16): take the difference off the top margin,
-        // or the button and its tool bar are 1px higher than size.actionButton (the margin is unscaled, like the theme value)
+        // A text line higher than the icon (16) would make the button and its tool bar higher than size.actionButton:
+        // take the difference off the top margin (the margin is unscaled, like the theme value). The 12px UI font's line
+        // (15) is lower than the icon, so nothing is taken off; a larger UI font (13px: 17) would need it
         Insets margin = UIManager.getInsets("Button.toolbar.margin"); //$NON-NLS-1$
         if (margin != null) {
             int excess = Math.max(0, UIScale.unscale(button.getFontMetrics(button.getFont()).getHeight()) - SIZE);
