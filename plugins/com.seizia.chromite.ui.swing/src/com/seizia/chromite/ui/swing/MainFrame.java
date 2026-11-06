@@ -176,6 +176,8 @@ import java.util.function.Supplier;
  * - 2026-11-07 밀도 B: 치수를 테마의 Chromite.size.* 키({@link UiSizes})에서 읽음 (docs/chromite/design-spec.md "치수 토큰")
  * - 2026-11-07 서버 대시보드: Tools &gt; Server Dashboard(Activity Monitor의 개요 탭) (docs/chromite/swing-dashboard.md)
  * - 2026-11-07 Tools &gt; Driver Manager… ({@link DriverManagerDialog}) (docs/chromite/swing-driver-manager.md)
+ * - 2026-11-07 자동 업데이트: 제목 표시줄 단추와 상태 표시줄 진행({@link UpdateUi}), 끝낼 때 커밋하지 않은 트랜잭션을 묻기
+ *   ({@link ExitTransactionCheck}) (docs/chromite/auto-update.md)
  * - 2026-11-07 Object Explorer·Properties의 기본 위치에 같은 열의 이웃(Registered Servers 위, Query Library 아래)을 둠 (docs/chromite/swing-frontend.md "Query Library 자리")
  * - 2026-11-07 Results 기본 높이 220 → 280(사용자 결정), {@link #DEFAULT_RESULTS_HEIGHT} (docs/chromite/swing-frontend.md "Results 자동 숨김")
  * - 2026-11-07 도구 막대 두 줄(사용자 결정): SQL Editor 도구 막대 {@link SqlEditorToolBar}를 Standard 아래에 두고 활성 쿼리 창을 따름,
@@ -494,6 +496,7 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
         content.add(toolWindowDocking.getComponent(), BorderLayout.CENTER);
         statusBar = new StatusBar(statusText);
         content.add(statusBar, BorderLayout.SOUTH);
+        UpdateUi.install(this, statusBar);
         setContentPane(content);
         for (DBPProject project : DBWorkbench.getPlatform().getWorkspace().getProjects()) {
             DBPDataSourceRegistry registry = project.getDataSourceRegistry();
@@ -1098,8 +1101,9 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
     }
 
     /**
-     * Window closing and File > Exit: asks to save the modified query windows and the unsaved changes of their
-     * result grids (SSMS lists them in one question), then closes the window.
+     * Window closing, File > Exit and an update's [Restart now]: asks to save the modified query windows and the unsaved
+     * changes of their result grids (SSMS lists them in one question), then what to do with uncommitted transactions
+     * ({@link ExitTransactionCheck}), then closes the window.
      */
     private void requestExit() {
         // Table designers ask one by one: saving shows each change script
@@ -1149,6 +1153,10 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
             } else if (answer != 1) {
                 return;
             }
+        }
+        // Closing ends every session: open transactions are committed or rolled back only as the user says
+        if (!ExitTransactionCheck.confirm(this)) {
+            return;
         }
         dispose();
     }
