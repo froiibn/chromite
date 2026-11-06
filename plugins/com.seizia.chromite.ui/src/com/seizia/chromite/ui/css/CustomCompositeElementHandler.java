@@ -1,0 +1,60 @@
+/*
+ * DBeaver - Universal Database Manager
+ * Copyright (C) 2010-2025 DBeaver Corp and others
+ * Modifications Copyright (C) 2026 Chromite contributors
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package com.seizia.chromite.ui.css;
+
+import org.eclipse.e4.ui.css.core.engine.CSSEngine;
+import org.eclipse.e4.ui.css.swt.helpers.SWTElementHelpers;
+import org.eclipse.e4.ui.css.swt.properties.css2.CSSPropertyBackgroundSWTHandler;
+import org.eclipse.swt.graphics.Color;
+import org.eclipse.swt.widgets.Control;
+import org.eclipse.swt.widgets.Widget;
+import com.seizia.chromite.ui.UIUtils;
+import org.w3c.dom.css.CSSValue;
+
+
+/**
+ * Needed to override theme styles.
+ * For now it's used only for coloring widgets regarding the connection type color.
+ */
+public abstract class CustomCompositeElementHandler extends CSSPropertyBackgroundSWTHandler {
+
+    @Override
+    public void applyCSSPropertyBackgroundColor(
+        Object element,
+        CSSValue value,
+        String pseudo,
+        CSSEngine engine
+    ) throws Exception {
+        Widget widget = SWTElementHelpers.getWidget(element);
+        if (widget instanceof Control ctrl && !UIUtils.isInDialog(ctrl)) {
+            if (isBackgroundByConnectionType(ctrl, widget)) {
+                Color newColor = CSSUtils.getCurrentEditorConnectionColor(widget);
+                if (newColor != null) {
+                    ctrl.setBackground(newColor);
+                    return;
+                }
+            }
+        }
+        super.applyCSSPropertyBackgroundColor(element, value, pseudo, engine);
+    }
+
+    protected boolean isBackgroundByConnectionType(Control ctrl, Widget widget) {
+        return CSSUtils.isDatabaseColored(widget);
+    }
+
+}

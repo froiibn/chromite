@@ -19,7 +19,7 @@ package com.seizia.chromite.ui.swing;
 import com.seizia.chromite.ui.swing.internal.ConnectionMessages;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.model.connection.DBPDriver;
+import com.seizia.chromite.model.connection.DBPDriver;
 import org.jkiss.utils.CommonUtils;
 
 import javax.swing.*;

@@ -2,7 +2,7 @@
 
 ## 목적
 
-SWT 연결 편집기(`org.jkiss.dbeaver.ui.editors.connection`, `ext.*.ui`의 연결 화면)에만 있던 고급 연결 설정을 Swing Connect 대화상자
+SWT 연결 편집기(`com.seizia.chromite.ui.editors.connection`, `ext.*.ui`의 연결 화면)에만 있던 고급 연결 설정을 Swing Connect 대화상자
 ([swing-frontend.md](swing-frontend.md) "Connect 대화상자 (SSMS식)")로 옮긴다. 우선순위는 다음과 같다.
 
 1. 드라이버별 인증 방식과 인증 방식별 추가 칸
@@ -32,9 +32,9 @@ SWT 연결 편집기(`org.jkiss.dbeaver.ui.editors.connection`, `ext.*.ui`의 �
 | `QueryStatusLine` (변경) | 쿼리 창 상태 줄 바탕 = 연결 색 | — |
 | `ObjectExplorerPanel` (변경) | 연결 노드 이름의 알약 = 연결 색(`ConnectionPill`, 2026-11-06 노드 바탕에서 바꿈) | `DatabaseNavigatorLabelProvider`의 연결 색 |
 
-`MANIFEST.MF`의 `Require-Bundle`에 UI 없는 모델 번들 `org.jkiss.dbeaver.net.ssh`, `ext.mssql`, `ext.mysql`, `ext.oracle`, `ext.postgresql`을 더했다.
+`MANIFEST.MF`의 `Require-Bundle`에 UI 없는 모델 번들 `com.seizia.chromite.net.ssh`, `ext.mssql`, `ext.mysql`, `ext.oracle`, `ext.postgresql`을 더했다.
 상수(속성 키, 핸들러 ID)와 모델 클래스(`SSHTunnelImpl`, `SSHUtils`, 인증 방식 클래스, `OCIUtils`)를 문자열로 베끼지 않고 그대로 쓰기 위해서다.
-다섯 번들 모두 이미 Swing 피처(`org.jkiss.dbeaver.runtime.feature`, `org.jkiss.dbeaver.db.feature`)에 들어 있으므로 결과물의 번들 수는 바뀌지 않고, SWT·JFace 번들은 여전히 없다.
+다섯 번들 모두 이미 Swing 피처(`com.seizia.chromite.runtime.feature`, `com.seizia.chromite.db.feature`)에 들어 있으므로 결과물의 번들 수는 바뀌지 않고, SWT·JFace 번들은 여전히 없다.
 
 ## 화면
 
@@ -78,16 +78,16 @@ Connection Properties | SSH ✓ | SSL | Proxy | Driver Properties | Provider Pro
 
 - 목록: `NetworkHandlerRegistry.getDescriptors(driver)`(대체된 핸들러 제외, 드라이버의 `objectType`에 맞는 것, SSH는 작업 공간이 터널 기능을 허용할 때만).
   내장 DB 드라이버는 `enableNetworkParameters`가 없으면, `disableNetworkParameters` 드라이버는 탭이 없다. 드라이버 대체가 지원하지 않는 핸들러도 뺀다.
-  ([ConnectionPageSettings.java:1046-1056](../../plugins/org.jkiss.dbeaver.ui.editors.connection/src/org/jkiss/dbeaver/ui/dialogs/connection/ConnectionPageSettings.java)와 같은 조건)
+  ([ConnectionPageSettings.java:1046-1056](../../plugins/com.seizia.chromite.ui.editors.connection/src/com/seizia/chromite/ui/dialogs/connection/ConnectionPageSettings.java)와 같은 조건)
 - Swing 칸이 있는 핸들러만 탭을 만든다: SSH(`SSHTunnelImpl`), Proxy(`SocksProxyImpl`), SSL(`postgre_ssl`, `mysql_ssl`, `mssql_ssl`). SWT도 설정 화면이 없는 핸들러는 탭을 만들지 않는다.
 - 읽기: 연결의 핸들러 설정(없으면 새 설정)을 칸에 채우고, "Use SSH"/"Use SSL"/"Use Proxy" 확인란은 그 설정의 `enabled`다. 확인란을 끄면 칸이 꺼진다.
   확인란 이름은 핸들러의 짧은 이름(`codeName`)이다. 핸들러의 `label`은 모델 번들이 OS 언어로 바꿔(예: "SSH 터널") 영어 화면에 섞이기 때문이다.
 - 저장: 켜져 있으면 연결의 핸들러 설정 사본에 칸 값을 쓰고 `updateHandler`, 꺼져 있으면 `removeHandler`
-  ([ConnectionPageNetworkHandler.java](../../plugins/org.jkiss.dbeaver.ui.editors.connection/src/org/jkiss/dbeaver/ui/dialogs/connection/ConnectionPageNetworkHandler.java) `saveSettings`).
-  연결 레지스트리도 꺼진 핸들러는 파일에 쓰지 않는다([DataSourceSerializerModern.java](../../plugins/org.jkiss.dbeaver.registry/src/org/jkiss/dbeaver/registry/DataSourceSerializerModern.java) "Save network handlers' configurations").
+  ([ConnectionPageNetworkHandler.java](../../plugins/com.seizia.chromite.ui.editors.connection/src/com/seizia/chromite/ui/dialogs/connection/ConnectionPageNetworkHandler.java) `saveSettings`).
+  연결 레지스트리도 꺼진 핸들러는 파일에 쓰지 않는다([DataSourceSerializerModern.java](../../plugins/com.seizia.chromite.registry/src/com/seizia/chromite/registry/DataSourceSerializerModern.java) "Save network handlers' configurations").
 - 비밀번호: 핸들러 비밀번호(`setPassword`)와 비밀 속성(`setSecureProperty`)에만 넣는다. 레지스트리가 저장할 때 이 값들을 `SecureCredentials`로 묶어
   비밀 저장소(암호화한 `credentials-config.json`, 보안 저장소를 쓰는 프로젝트는 보안 저장소)에 쓴다
-  ([DataSourceParser.java](../../plugins/org.jkiss.dbeaver.registry/src/org/jkiss/dbeaver/registry/DataSourceParser.java) `saveNetworkHandlerConfiguration`). 설정 파일·환경 설정에는 평문으로 남지 않는다.
+  ([DataSourceParser.java](../../plugins/com.seizia.chromite.registry/src/com/seizia/chromite/registry/DataSourceParser.java) `saveNetworkHandlerConfiguration`). 설정 파일·환경 설정에는 평문으로 남지 않는다.
 - 켜진 핸들러의 칸이 비어 있으면(`getErrorMessage`) 대화상자 아래 빠진 값 안내에 `SSH: Enter the SSH host.`처럼 보이고 Test·Connect가 꺼진다(SWT `isPageComplete`).
 - 네트워크 프로필: 연결이 프로필을 쓰고 그 프로필에 이 핸들러가 켜져 있으면 칸을 끄고 프로필 이름을 보인다. 이때 연결의 핸들러 설정은 건드리지 않는다(프로필 편집 화면은 없다).
 
@@ -115,7 +115,7 @@ SSH 시험 직후 Windows 방화벽이 앱(`chromite-swing.exe`)의 네트워크
   JSch는 빈 주소를 0.0.0.0으로 바꾼다(`com.jcraft.jsch.PortWatcher.normalize`, jsch 2.28.7 바이트코드에서 확인: `""`·`"*"` → `"0.0.0.0"`).
   즉 구현을 JSch로 고른 터널은 다른 컴퓨터에서도 접속할 수 있는 포트를 열었다. 설정 화면의 설명("비우면 127.0.0.1")과도 달랐다.
 
-고친 것(`org.jkiss.dbeaver.net.ssh`, upstream 파일에 Chromite 수정 표시):
+고친 것(`com.seizia.chromite.net.ssh`, upstream 파일에 Chromite 수정 표시):
 
 - `SSHTunnelImpl.loadPortForwardConfiguration`: 비어 있는 로컬 주소를 `DBConstants.HOST_LOCALHOST_IP`(127.0.0.1)로 바꾼다. 점프 서버 포워드가 이미 쓰는 값과 같다(`AbstractSessionController`).
 - `SSHUtils.findFreePort(localHost)`: 포워더가 들을 주소에서만 `ServerSocket(port, 0, address)`로 시험한다. `IOUtils`(`deps/`)는 고치지 않았다(`deps/`는 수정하지 않는 사본).
@@ -148,11 +148,11 @@ SSH 시험 직후 Windows 방화벽이 앱(`chromite-swing.exe`)의 네트워크
 ### SQL Server (Microsoft 드라이버, `SQLServerUtils.isDriverSqlServer`)
 
 - **Encrypt**: Optional / Mandatory / Strict (TDS 8.0) → 드라이버 속성 `encrypt` = 지움 / `true` / `strict`. SQL Server 모델은 이 속성이 비어 있으면 `false`로,
-  SSL 탭이 켜져 있으면 `true`로 연결한다([SQLServerDataSource.java:235-253](../../plugins/org.jkiss.dbeaver.ext.mssql/src/org/jkiss/dbeaver/ext/mssql/model/SQLServerDataSource.java)).
+  SSL 탭이 켜져 있으면 `true`로 연결한다([SQLServerDataSource.java:235-253](../../plugins/com.seizia.chromite.ext.mssql/src/com/seizia/chromite/ext/mssql/model/SQLServerDataSource.java)).
   SWT 화면에는 없고 Driver Properties 표에서만 고치던 값이다. 표보다 뒤에 저장하므로 둘 다 고치면 주 양식 값이 이긴다.
 - **Trust server certificate**: 공급자 속성 `sslTrustServerCertificate`(SWT `SQLServerConnectionPage`와 같음). Provider Properties 표에서는 뺐다.
 - **명명된 인스턴스**: Server name에 `호스트\인스턴스`를 쓰면 따로 처리하지 않아도 된다. 공급자가 기본 포트(1433)를 URL에 넣지 않으므로
-  ([SQLServerDataSourceProvider.java:70-74](../../plugins/org.jkiss.dbeaver.ext.mssql/src/org/jkiss/dbeaver/ext/mssql/SQLServerDataSourceProvider.java)) 포트를 적지 않으면
+  ([SQLServerDataSourceProvider.java:70-74](../../plugins/com.seizia.chromite.ext.mssql/src/com/seizia/chromite/ext/mssql/SQLServerDataSourceProvider.java)) 포트를 적지 않으면
   `serverName=호스트\인스턴스`가 되어 드라이버가 인스턴스 이름으로 찾아간다. 실제 명명된 인스턴스 연결은 시험 환경에 없어 확인하지 못했다.
 
 ### Oracle (`OracleDataSourceProvider`)
@@ -204,7 +204,7 @@ SSH 시험 직후 Windows 방화벽이 앱(`chromite-swing.exe`)의 네트워크
 
 ## 확인
 
-빌드: `-Pproduct-dbeaver-ce,product-chromite-swing` BUILD SUCCESS. Swing 결과물 `bundles.info` 139개, `swt`·`jface`·`org.eclipse.ui`·`org.eclipse.e4.ui` 번들 0개.
+빌드: `-Pproduct-chromite-swt,product-chromite-swing` BUILD SUCCESS. Swing 결과물 `bundles.info` 139개, `swt`·`jface`·`org.eclipse.ui`·`org.eclipse.e4.ui` 번들 0개.
 더한 `Require-Bundle`(`net.ssh`, `ext.mssql`, `ext.mysql`, `ext.oracle`, `ext.postgresql`)은 원래 결과물에 있던 번들이다.
 
 Windows에서 in-process JVM으로 개인 작업 공간을 열어 로컬 Docker DB(`chr_conn_advanced`)에 대해 키보드·마우스로 확인했다. 화면은 `D:\Tools\_scratch\conn-advanced\shots\`.

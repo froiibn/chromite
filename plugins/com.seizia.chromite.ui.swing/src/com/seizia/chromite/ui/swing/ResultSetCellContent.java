@@ -20,11 +20,11 @@ import com.seizia.chromite.ui.swing.internal.EditorMessages;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.model.DBUtils;
-import org.jkiss.dbeaver.model.data.DBDContent;
-import org.jkiss.dbeaver.model.data.DBDContentCached;
-import org.jkiss.dbeaver.model.data.DBDContentStorage;
-import org.jkiss.dbeaver.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.model.DBUtils;
+import com.seizia.chromite.model.data.DBDContent;
+import com.seizia.chromite.model.data.DBDContentCached;
+import com.seizia.chromite.model.data.DBDContentStorage;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
 import org.jkiss.utils.CommonUtils;
 
 import java.io.ByteArrayOutputStream;

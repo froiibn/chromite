@@ -22,25 +22,25 @@ import com.github.weisj.jsvg.view.ViewBox;
 import org.eclipse.core.runtime.Platform;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.Log;
-import org.jkiss.dbeaver.model.DBIcon;
-import org.jkiss.dbeaver.model.DBIconComposite;
-import org.jkiss.dbeaver.model.DBPDataSourceContainer;
-import org.jkiss.dbeaver.model.DBPImage;
-import org.jkiss.dbeaver.model.DBPStatefulObject;
-import org.jkiss.dbeaver.model.navigator.DBNDataSource;
-import org.jkiss.dbeaver.model.navigator.DBNDatabaseFolder;
-import org.jkiss.dbeaver.model.navigator.DBNDatabaseNode;
-import org.jkiss.dbeaver.model.navigator.DBNNode;
-import org.jkiss.dbeaver.model.struct.DBSEntityConstraint;
-import org.jkiss.dbeaver.model.struct.DBSEntityConstraintType;
-import org.jkiss.dbeaver.model.struct.DBSObject;
-import org.jkiss.dbeaver.model.struct.DBSObjectState;
-import org.jkiss.dbeaver.model.struct.rdb.DBSProcedure;
-import org.jkiss.dbeaver.model.struct.rdb.DBSProcedureType;
-import org.jkiss.dbeaver.model.struct.rdb.DBSSequence;
-import org.jkiss.dbeaver.model.struct.rdb.DBSTableIndex;
-import org.jkiss.dbeaver.model.struct.rdb.DBSTrigger;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.model.DBIcon;
+import com.seizia.chromite.model.DBIconComposite;
+import com.seizia.chromite.model.DBPDataSourceContainer;
+import com.seizia.chromite.model.DBPImage;
+import com.seizia.chromite.model.DBPStatefulObject;
+import com.seizia.chromite.model.navigator.DBNDataSource;
+import com.seizia.chromite.model.navigator.DBNDatabaseFolder;
+import com.seizia.chromite.model.navigator.DBNDatabaseNode;
+import com.seizia.chromite.model.navigator.DBNNode;
+import com.seizia.chromite.model.struct.DBSEntityConstraint;
+import com.seizia.chromite.model.struct.DBSEntityConstraintType;
+import com.seizia.chromite.model.struct.DBSObject;
+import com.seizia.chromite.model.struct.DBSObjectState;
+import com.seizia.chromite.model.struct.rdb.DBSProcedure;
+import com.seizia.chromite.model.struct.rdb.DBSProcedureType;
+import com.seizia.chromite.model.struct.rdb.DBSSequence;
+import com.seizia.chromite.model.struct.rdb.DBSTableIndex;
+import com.seizia.chromite.model.struct.rdb.DBSTrigger;
 import org.osgi.framework.Bundle;
 
 import javax.imageio.ImageIO;
@@ -57,7 +57,7 @@ import java.util.Map;
  * 모델 계층의 이미지 참조({@link DBPImage})를 Swing {@link Icon}으로 바꾼다.
  *
  * 설계: 탐색기 노드 아이콘({@code DBNNode#getNodeIcon()})은 {@link DBIcon}이고, 위치는
- * {@code platform:/plugin/<번들>/<경로>} 형식이다. SWT 버전의 {@code DBeaverIcons}와 같은 규칙으로 해석한다.
+ * {@code platform:/plugin/<번들>/<경로>} 형식이다. SWT 버전의 {@code SwtIcons}와 같은 규칙으로 해석한다.
  * 디자인 적용(2026-11-06): 자주 보는 모델 아이콘(폴더, 테이블, 뷰, 열, 키, 인덱스, 루틴, 사용자 등)은 위치로 Chromite 아이콘 팩({@link UiIcons})에
  * 대응시켜 그린다({@link #UI_ICON_IDS}). 대응이 없는 아이콘(드라이버 로고, 드물게 쓰는 객체)만 아래 규칙으로 모델의 파일을 읽는다.
  * Object Explorer는 {@link #getNodeIcon}으로 모델 아이콘만으로는 구분되지 않는 종류(기본 키와 고유 키, 함수와 프로시저)와

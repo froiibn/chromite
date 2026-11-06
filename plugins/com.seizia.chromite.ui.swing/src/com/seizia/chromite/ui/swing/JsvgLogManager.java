@@ -19,7 +19,7 @@ package com.seizia.chromite.ui.swing;
 import com.github.weisj.jsvg.logging.LogManager;
 import com.github.weisj.jsvg.logging.Logger;
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.Log;
+import com.seizia.chromite.Log;
 
 import java.util.function.Supplier;
 

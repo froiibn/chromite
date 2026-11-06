@@ -1,0 +1,19 @@
+Manifest-Version: 1.0
+Bundle-ManifestVersion: 2
+Bundle-Name: Chromite SQL Language Semantic Model
+Bundle-Vendor: Chromite contributors
+Bundle-Version: 1.0.86.qualifier
+Bundle-Release-Date: 20261116
+Bundle-SymbolicName: com.seizia.chromite.model.lsm;singleton:=true
+Bundle-ActivationPolicy: lazy
+Require-Bundle: org.antlr.antlr4-runtime;visibility:=reexport,
+ com.seizia.chromite.model;visibility:=reexport
+Bundle-RequiredExecutionEnvironment: JavaSE-21
+Export-Package: com.seizia.chromite.model.lsm,
+ com.seizia.chromite.model.lsm.sql,
+ com.seizia.chromite.model.lsm.sql.dialect,
+ com.seizia.chromite.model.lsm.sql.impl,
+ com.seizia.chromite.model.lsm.sql.impl.syntax,
+ com.seizia.chromite.model.stm
+Import-Package: org.jkiss.code
+Automatic-Module-Name: com.seizia.chromite.model.lsm

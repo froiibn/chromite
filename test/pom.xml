@@ -4,8 +4,8 @@
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
     <modelVersion>4.0.0</modelVersion>
     <parent>
-        <groupId>org.jkiss.dbeaver</groupId>
-        <artifactId>dbeaver</artifactId>
+        <groupId>com.seizia.chromite</groupId>
+        <artifactId>chromite</artifactId>
         <version>1.0.0-SNAPSHOT</version>
         <relativePath>../</relativePath>
     </parent>
@@ -14,33 +14,33 @@
     <packaging>pom</packaging>
 
     <modules>
-        <module>org.jkiss.dbeaver.test.platform</module>
-        <module>org.jkiss.dbeaver.launcher.test</module>
-        <module>org.jkiss.dbeaver.ui.app.standalone.test</module>
-        <module>org.jkiss.dbeaver.ext.altibase.test</module>
-        <module>org.jkiss.dbeaver.ext.cubrid.test</module>
-        <module>org.jkiss.dbeaver.ext.clickhouse.test</module>
-        <module>org.jkiss.dbeaver.ext.firebird.test</module>
-        <module>org.jkiss.dbeaver.ext.generic.test</module>
-        <module>org.jkiss.dbeaver.ext.greenplum.test</module>
-        <module>org.jkiss.dbeaver.ext.hana.test</module>
-        <module>org.jkiss.dbeaver.ext.hive.test</module>
-        <module>org.jkiss.dbeaver.ext.mysql.test</module>
-        <module>org.jkiss.dbeaver.ext.mimer.test</module>
-        <module>org.jkiss.dbeaver.ext.oracle.test</module>
-        <module>org.jkiss.dbeaver.ext.postgresql.test</module>
-        <module>org.jkiss.dbeaver.ext.snowflake.test</module>
-        <module>org.jkiss.dbeaver.ext.sqlite.test</module>
-        <module>org.jkiss.dbeaver.ext.cloudflare.d1.test</module>
-        <module>org.jkiss.dbeaver.ext.timeplus.test</module>
-        <module>org.jkiss.dbeaver.model.lsm.test</module>
-        <module>org.jkiss.dbeaver.model.navigator.test</module>
-        <module>org.jkiss.dbeaver.model.net.test</module>
-        <module>org.jkiss.dbeaver.model.datadam.test</module>
-        <module>org.jkiss.dbeaver.model.ai.test</module>
-        <module>org.jkiss.dbeaver.net.ssh.sshj.test</module>
-        <module>org.jkiss.dbeaver.model.sql.test</module>
-        <module>org.jkiss.dbeaver.data.transfer.test</module>
+        <module>com.seizia.chromite.test.platform</module>
+        <module>com.seizia.chromite.launcher.test</module>
+        <module>com.seizia.chromite.ui.app.standalone.test</module>
+        <module>com.seizia.chromite.ext.altibase.test</module>
+        <module>com.seizia.chromite.ext.cubrid.test</module>
+        <module>com.seizia.chromite.ext.clickhouse.test</module>
+        <module>com.seizia.chromite.ext.firebird.test</module>
+        <module>com.seizia.chromite.ext.generic.test</module>
+        <module>com.seizia.chromite.ext.greenplum.test</module>
+        <module>com.seizia.chromite.ext.hana.test</module>
+        <module>com.seizia.chromite.ext.hive.test</module>
+        <module>com.seizia.chromite.ext.mysql.test</module>
+        <module>com.seizia.chromite.ext.mimer.test</module>
+        <module>com.seizia.chromite.ext.oracle.test</module>
+        <module>com.seizia.chromite.ext.postgresql.test</module>
+        <module>com.seizia.chromite.ext.snowflake.test</module>
+        <module>com.seizia.chromite.ext.sqlite.test</module>
+        <module>com.seizia.chromite.ext.cloudflare.d1.test</module>
+        <module>com.seizia.chromite.ext.timeplus.test</module>
+        <module>com.seizia.chromite.model.lsm.test</module>
+        <module>com.seizia.chromite.model.navigator.test</module>
+        <module>com.seizia.chromite.model.net.test</module>
+        <module>com.seizia.chromite.model.datadam.test</module>
+        <module>com.seizia.chromite.model.ai.test</module>
+        <module>com.seizia.chromite.net.ssh.sshj.test</module>
+        <module>com.seizia.chromite.model.sql.test</module>
+        <module>com.seizia.chromite.data.transfer.test</module>
     </modules>
 
     <build>
@@ -55,8 +55,8 @@
                     <includes>
                         <include>**/*Test.java</include>
                     </includes>
-                    <application>org.jkiss.dbeaver.headless.application</application>
-                    <product>org.jkiss.dbeaver.headless.product</product>
+                    <application>com.seizia.chromite.headless.application</application>
+                    <product>com.seizia.chromite.headless.product</product>
                     <testRuntime>default</testRuntime>
                     <providerHint>junit6</providerHint>
                     <!-- Auto activate headless bundle to instantiate test application -->
@@ -77,7 +77,7 @@
                             <autoStart>true</autoStart>
                         </bundle>
                         <bundle>
-                            <id>org.jkiss.dbeaver.headless</id>
+                            <id>com.seizia.chromite.headless</id>
                             <level>4</level>
                             <autoStart>true</autoStart>
                         </bundle>

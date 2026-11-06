@@ -20,7 +20,7 @@ import com.formdev.flatlaf.FlatClientProperties;
 import com.seizia.chromite.ui.swing.internal.ConnectionMessages;
 import org.eclipse.osgi.util.NLS;
 import org.jkiss.code.NotNull;
-import org.jkiss.dbeaver.model.DBPDataSourceContainer;
+import com.seizia.chromite.model.DBPDataSourceContainer;
 
 import javax.swing.*;
 import java.awt.*;

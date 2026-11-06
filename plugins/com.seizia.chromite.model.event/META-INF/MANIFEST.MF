@@ -1,0 +1,20 @@
+Manifest-Version: 1.0
+Bundle-ManifestVersion: 2
+Bundle-Vendor: Chromite contributors
+Bundle-Name: Chromite Events Model
+Bundle-SymbolicName: com.seizia.chromite.model.event;singleton:=true
+Bundle-Version: 1.0.95.qualifier
+Bundle-Release-Date: 20261116
+Bundle-RequiredExecutionEnvironment: JavaSE-21
+Bundle-ActivationPolicy: lazy
+Export-Package: com.seizia.chromite.model.websocket,
+ com.seizia.chromite.model.websocket.event,
+ com.seizia.chromite.model.websocket.event.datasource,
+ com.seizia.chromite.model.websocket.event.permissions,
+ com.seizia.chromite.model.websocket.event.resource,
+ com.seizia.chromite.model.websocket.event.session,
+ com.seizia.chromite.model.websocket.registry
+Require-Bundle: com.seizia.chromite.model.sm,
+ com.seizia.chromite.registry;visibility:=reexport
+Bundle-Localization: OSGI-INF/l10n/bundle
+Automatic-Module-Name: com.seizia.chromite.model.event

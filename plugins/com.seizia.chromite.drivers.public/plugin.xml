@@ -22,7 +22,7 @@
 -->
 <plugin>
 
-    <extension point="org.jkiss.dbeaver.product.bundles">
+    <extension point="com.seizia.chromite.product.bundles">
         <bundle id="drivers.mssql.new" label="Microsoft SQL Server JDBC driver" description="mssql-jdbc with msal4j in drivers/mssql/new"/>
         <bundle id="drivers.oracle" label="Oracle JDBC driver" description="ojdbc11, orai18n, xdb6 and xmlparserv2 in drivers/oracle"/>
         <bundle id="drivers.postgresql" label="PostgreSQL JDBC driver" description="pgjdbc in drivers/postgresql, PostGIS in drivers/postgis"/>

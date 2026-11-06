@@ -1,0 +1,61 @@
+/*
+ * DBeaver - Universal Database Manager
+ * Copyright (C) 2010-2025 DBeaver Corp and others
+ * Modifications Copyright (C) 2026 Chromite contributors
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+/*
+ * Created on Jul 23, 2004
+ */
+package com.seizia.chromite.ui.editors.erd.action;
+
+import org.eclipse.core.runtime.NullProgressMonitor;
+import org.eclipse.jface.action.Action;
+import com.seizia.chromite.ui.SwtIcons;
+import com.seizia.chromite.ui.UIUtils;
+import com.seizia.chromite.ui.editors.erd.ERDIcon;
+import com.seizia.chromite.ui.editors.erd.editor.ERDEditorEmbedded;
+import com.seizia.chromite.ui.editors.erd.internal.ERDUIMessages;
+
+/**
+ * Action to toggle diagram persistence
+ */
+public class DiagramTogglePersistAction extends Action {
+    private final ERDEditorEmbedded editor;
+
+    public DiagramTogglePersistAction(ERDEditorEmbedded editor) {
+        super(ERDUIMessages.erd_action_diagram_toggle_persist_text, AS_CHECK_BOX);
+        setImageDescriptor(SwtIcons.getImageDescriptor(ERDIcon.LAYOUT_SAVE));
+        setDescription(ERDUIMessages.erd_action_diagram_toggle_persist_description);
+        setToolTipText(getDescription());
+        this.editor = editor;
+    }
+
+    @Override
+    public boolean isChecked() {
+        return editor.isStateSaved();
+    }
+
+    @Override
+    public void run() {
+        if (isChecked()) {
+            boolean refreshDiagram = UIUtils.confirmAction(ERDUIMessages.erd_action_diagram_toggle_persist_confirmation_title,
+                    ERDUIMessages.erd_action_diagram_toggle_persist_confirmation_description);
+            editor.resetSavedState(refreshDiagram);
+        } else {
+            editor.doSave(new NullProgressMonitor());
+        }
+    }
+
+}

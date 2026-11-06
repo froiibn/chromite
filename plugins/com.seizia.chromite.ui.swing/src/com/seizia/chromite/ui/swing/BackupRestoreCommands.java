@@ -18,12 +18,12 @@ package com.seizia.chromite.ui.swing;
 
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.ext.mssql.SQLServerUtils;
-import org.jkiss.dbeaver.ext.mssql.model.SQLServerDatabase;
-import org.jkiss.dbeaver.ext.mysql.model.MySQLCatalog;
-import org.jkiss.dbeaver.ext.postgresql.model.PostgreDatabase;
-import org.jkiss.dbeaver.model.connection.DBPDriver;
-import org.jkiss.dbeaver.model.struct.DBSObject;
+import com.seizia.chromite.ext.mssql.SQLServerUtils;
+import com.seizia.chromite.ext.mssql.model.SQLServerDatabase;
+import com.seizia.chromite.ext.mysql.model.MySQLCatalog;
+import com.seizia.chromite.ext.postgresql.model.PostgreDatabase;
+import com.seizia.chromite.model.connection.DBPDriver;
+import com.seizia.chromite.model.struct.DBSObject;
 
 import java.awt.*;
 

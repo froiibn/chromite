@@ -1,0 +1,48 @@
+/*
+ * DBeaver - Universal Database Manager
+ * Copyright (C) 2010-2026 DBeaver Corp and others
+ * Modifications Copyright (C) 2026 Chromite contributors
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package com.seizia.chromite.ext.gaussdb.edit;
+
+import org.jkiss.code.NotNull;
+import org.jkiss.code.Nullable;
+import com.seizia.chromite.ext.gaussdb.model.GaussDBDatabase;
+import com.seizia.chromite.ext.gaussdb.model.GaussDBSchema;
+import com.seizia.chromite.ext.postgresql.edit.PostgreSchemaManager;
+import com.seizia.chromite.ext.postgresql.model.PostgreRole;
+import com.seizia.chromite.model.edit.DBECommandContext;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+
+import java.util.Map;
+
+/**
+ * GaussDBSchemaManager
+ */
+public class GaussDBSchemaManager extends PostgreSchemaManager {
+
+    @Override
+    protected GaussDBSchema createDatabaseObject(
+        @NotNull DBRProgressMonitor monitor,
+        @NotNull DBECommandContext context,
+        @NotNull Object container,
+        @Nullable Object copyFrom,
+        @NotNull Map<String, Object> options
+    ) {
+        GaussDBDatabase database = (GaussDBDatabase) container;
+        return database.createSchemaImpl(database, "NewSchema", (PostgreRole) null);
+    }
+}

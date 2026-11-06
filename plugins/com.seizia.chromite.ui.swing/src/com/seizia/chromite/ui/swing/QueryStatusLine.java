@@ -21,10 +21,10 @@ import com.seizia.chromite.ui.swing.internal.EditorMessages;
 import org.eclipse.osgi.util.NLS;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.model.DBPDataSource;
-import org.jkiss.dbeaver.model.DBPDataSourceContainer;
-import org.jkiss.dbeaver.model.DBPDataSourceInfo;
-import org.jkiss.dbeaver.model.connection.DBPConnectionConfiguration;
+import com.seizia.chromite.model.DBPDataSource;
+import com.seizia.chromite.model.DBPDataSourceContainer;
+import com.seizia.chromite.model.DBPDataSourceInfo;
+import com.seizia.chromite.model.connection.DBPConnectionConfiguration;
 import org.jkiss.utils.CommonUtils;
 
 import javax.swing.*;

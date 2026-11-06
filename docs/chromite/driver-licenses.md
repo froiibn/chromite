@@ -15,7 +15,7 @@
   묶음 대체 경로(`bundle="drivers.*"`인 `drivers/...`)는 같은 파일을 가리키므로 제외했다.
   Maven 좌표 112개, `https:` URL 9개, `repo:/` 파일 5개다.
 - **버전:** `RELEASE[x]`는 `x`가 고정 버전이다
-  ([DriverLibraryMavenArtifact.java:119](../../plugins/org.jkiss.dbeaver.registry/src/org/jkiss/dbeaver/registry/driver/DriverLibraryMavenArtifact.java:119)).
+  ([DriverLibraryMavenArtifact.java:119](../../plugins/com.seizia.chromite.registry/src/com/seizia/chromite/registry/driver/DriverLibraryMavenArtifact.java:119)).
   버전 없는 `RELEASE`·`LATEST`는 조사일의 `maven-metadata.xml` 최신 release를 적고 "(RELEASE)"로 표시했다.
   표의 버전은 Chromite가 지금 받는 버전이고, 비고의 "최신"은 조사일 기준 Maven Central 최신 버전이다.
 - **라이선스:** Maven Central POM의 `<licenses>`(없으면 parent POM에서 상속), 벤더 약관 원문,
@@ -26,7 +26,7 @@
 - **크기:** 저장소에 HTTP HEAD 요청을 보내 받은 `Content-Length`의 합(의존성 포함, 1MB = 10⁶ bytes).
   jar는 이미 압축돼 있어 설치 파일 크기도 이와 비슷하다.
 - **`repo:/` 파일:** `repo:/`는 `ui.drivers.sources` 기본값인 `https://dbeaver.io/files/jdbc/`(DBeaver 소유 서버)에서 받는다
-  ([ModelPreferences.java:411](../../plugins/org.jkiss.dbeaver.model/src/org/jkiss/dbeaver/ModelPreferences.java:411)).
+  ([ModelPreferences.java:411](../../plugins/com.seizia.chromite.model/src/com/seizia/chromite/ModelPreferences.java:411)).
 
 ## 분류 기준
 
@@ -55,7 +55,7 @@
   Windows 통합 인증용 `mssql-jdbc_auth` DLL은 Microsoft 독점 약관이다. REDIST 목록상 재배포 대상이지만
   배포자가 최종 사용자에게 Microsoft를 같은 수준으로 보호하는 약관에 동의를 받고 Microsoft를 면책해야 한다.
   Apache-2.0만으로 배포하는 공개판과 맞지 않으므로 **공개판에는 넣지 않는다**(묶음의 `drivers/mssql/new/auth/x64`도 비운다,
-  [mssql/plugin.xml:201](../../plugins/org.jkiss.dbeaver.ext.mssql/plugin.xml:201)).
+  [mssql/plugin.xml:201](../../plugins/com.seizia.chromite.ext.mssql/plugin.xml:201)).
   DLL 없이도 `authenticationScheme=JavaKerberos`, `NTLM` 같은 순수 Java 인증은 쓸 수 있다.
 - **Oracle:** FUTC는 오픈소스 라이선스가 아니지만 "수정하지 않은 프로그램의 재배포"를 허용한다. 조건은
   ① 배포할 때 FUTC 사본 포함, ② 최종 사용자에게 프로그램 사용료를 따로 받지 않음, ③ Oracle 표시 제거 금지,

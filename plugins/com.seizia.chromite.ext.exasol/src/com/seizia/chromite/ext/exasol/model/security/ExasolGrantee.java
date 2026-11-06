@@ -1,0 +1,262 @@
+/*
+ * DBeaver - Universal Database Manager
+ * Copyright (C) 2010-2025 DBeaver Corp and others
+ * Modifications Copyright (C) 2026 Chromite contributors
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package com.seizia.chromite.ext.exasol.model.security;
+
+import org.jkiss.code.NotNull;
+import org.jkiss.code.Nullable;
+import org.jkiss.dbeaver.DBException;
+import com.seizia.chromite.Log;
+import com.seizia.chromite.ext.exasol.model.ExasolConsumerGroup;
+import com.seizia.chromite.ext.exasol.model.ExasolDataSource;
+import com.seizia.chromite.ext.exasol.model.ExasolPriority;
+import com.seizia.chromite.ext.exasol.model.ExasolPriorityGroup;
+import com.seizia.chromite.model.DBPRefreshableObject;
+import com.seizia.chromite.model.DBPSaveableObject;
+import com.seizia.chromite.model.impl.jdbc.JDBCUtils;
+import com.seizia.chromite.model.meta.IPropertyValueListProvider;
+import com.seizia.chromite.model.meta.Property;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.model.runtime.VoidProgressMonitor;
+import com.seizia.chromite.model.struct.DBSObject;
+
+import java.sql.ResultSet;
+import java.util.ArrayList;
+import java.util.Collection;
+
+public abstract class ExasolGrantee
+		implements DBPSaveableObject, DBPRefreshableObject {
+	
+	private ExasolDataSource dataSource;
+	private ExasolPriority priority;
+	private boolean persisted;
+
+	private static final Log log = Log.getLog(ExasolGrantee.class);
+	
+
+
+	public ExasolGrantee(ExasolDataSource dataSource, ResultSet resultSet)
+	{
+		this.dataSource = dataSource;
+		if (resultSet != null) {
+			this.persisted = true;
+	        try {
+        		this.priority = dataSource.getPriorityGroup(new VoidProgressMonitor(), JDBCUtils.safeGetString(resultSet, "USER_PRIORITY"));
+			} catch (DBException e) {
+				this.priority = null;
+			}
+		} else {
+			this.persisted = false;
+		}
+		
+	}
+	
+	public ExasolGrantee(ExasolDataSource dataSource, Boolean persisted)
+	{
+		this.dataSource = dataSource;
+		this.persisted = persisted;
+	}
+	
+	@NotNull
+    public abstract String getName();
+
+	@Override
+	public boolean isPersisted()
+	{
+		return this.persisted;
+	}
+
+	@Override
+	public DBSObject getParentObject()
+	{
+		return this.dataSource.getContainer();
+	}
+
+	@Override
+	public ExasolDataSource getDataSource()
+	{
+		return this.dataSource;
+	}
+
+
+	@Override
+	public DBSObject refreshObject(@NotNull DBRProgressMonitor monitor)
+			throws DBException
+	{
+		dataSource.refreshObject(monitor);
+		for (ExasolGrantee grantee : dataSource.getAllGrantees(monitor))
+		{
+			if (this.getClass().getSimpleName().equals(grantee.getClass().getSimpleName())
+					&& this.getName().equals(grantee.getName())
+					) 
+			{
+				return grantee;
+			}
+		}
+		throw new DBException("Object disappeared after refresh");
+	}
+
+	@Override
+	public void setPersisted(boolean persisted)
+	{
+		this.persisted = persisted;
+	}
+	
+	public Collection<ExasolSystemGrant> getSystemgrants(DBRProgressMonitor monitor) throws DBException
+	{
+		Collection<ExasolSystemGrant> sysGrants = new ArrayList<>();
+		
+		for(ExasolSystemGrant grant: dataSource.getSystemGrants(monitor))
+		{
+			if (grant.getGrantee().equals(this.getName()))
+				sysGrants.add(grant);
+		}
+		return sysGrants;
+	}
+	
+	public Collection<ExasolConnectionGrant> getConnections(DBRProgressMonitor monitor) throws DBException
+	{
+		Collection<ExasolConnectionGrant> conGrants = new ArrayList<>(); 
+		for(ExasolConnectionGrant grant: this.dataSource.getConnectionGrants(monitor))
+		{
+			if (grant.getGrantee().equals(this.getName()))
+				conGrants.add(grant);
+		}
+		return conGrants;
+			
+		
+	}
+
+	public Collection<ExasolRoleGrant> getRoles(DBRProgressMonitor monitor)
+			throws DBException
+	{
+		Collection<ExasolRoleGrant> roleGrants = new ArrayList<>();
+		for (ExasolRoleGrant grant: this.dataSource.getRoleGrants(monitor))
+		{
+			if (grant.getGrantee().equals(this.getName()))
+				roleGrants.add(grant);
+				
+		}
+		return roleGrants;
+		
+
+	}
+	
+	//
+	// Retrieve Grants
+	//
+	public Collection<ExasolTableGrant> getTables(DBRProgressMonitor monitor) throws DBException
+	{
+		Collection<ExasolTableGrant> grants = new ArrayList<>();
+		
+		for(ExasolTableGrant grant: this.dataSource.getTableGrants(monitor))
+		{
+			if (grant.getGrantee().equals(this.getName()))
+			{
+				grants.add(grant);
+			}
+		}
+		return grants;
+		
+	}
+	
+	public Collection<ExasolViewGrant> getViews(DBRProgressMonitor monitor) throws DBException
+	{
+		Collection<ExasolViewGrant> grants = new ArrayList<>();
+		
+		for(ExasolViewGrant grant: this.dataSource.getViewGrants(monitor))
+		{
+			if (grant.getGrantee().equals(this.getName()))
+			{
+				grants.add(grant);
+			}
+		}
+		return grants;
+		
+	}
+
+	public Collection<ExasolScriptGrant> getProcedures(DBRProgressMonitor monitor) throws DBException
+	{
+		Collection<ExasolScriptGrant> grants = new ArrayList<>();
+		
+		for(ExasolScriptGrant grant: this.dataSource.getScriptGrants(monitor))
+		{
+			if (grant.getGrantee().equals(this.getName()))
+			{
+				grants.add(grant);
+			}
+		}
+		return grants;
+		
+	}
+
+	public Collection<ExasolSchemaGrant> getSchemas(DBRProgressMonitor monitor) throws DBException
+	{
+		Collection<ExasolSchemaGrant> grants = new ArrayList<>();
+		
+		for(ExasolSchemaGrant grant: this.dataSource.getSchemaGrants(monitor))
+		{
+			if (grant.getGrantee().equals(this.getName()))
+			{
+				grants.add(grant);
+			}
+		}
+		return grants;
+		
+	}
+
+    @Property(viewable = true,   editable = true, updatable = true, order = 20, listProvider = PriorityListProvider.class)
+    public ExasolPriority getPriority()
+    {
+    	return priority;
+    }
+    
+    public void setPriority(ExasolPriority priority) {
+		this.priority = priority;
+	}
+    
+
+    public static class PriorityListProvider implements IPropertyValueListProvider<ExasolGrantee> {
+
+		@Override
+		public boolean allowCustomValue() {
+			return false;
+		}
+
+		@Nullable
+		@Override
+		public Object[] getPossibleValues(ExasolGrantee object) {
+			ExasolDataSource dataSource = object.getDataSource();
+			try {
+				if (dataSource.getUserPriviliges().hasConsumerGroups())
+				{
+					Collection<ExasolConsumerGroup> consumerGroups = dataSource.getConsumerGroups(new VoidProgressMonitor());
+					return consumerGroups.toArray(new Object[0]);
+				} else {
+					Collection<ExasolPriorityGroup> priorityGroups = dataSource.getPriorityGroups(new VoidProgressMonitor());
+					return priorityGroups.toArray(new Object[0]);
+				}
+			} catch (DBException e) {
+				log.error(e);
+				return new Object[0];
+			}
+		}
+    	
+    }
+	
+	
+}

@@ -1,0 +1,20 @@
+Manifest-Version: 1.0
+Bundle-ManifestVersion: 2
+Bundle-Name: Chromite MySQL Support
+Bundle-SymbolicName: com.seizia.chromite.ext.mysql;singleton:=true
+Bundle-Version: 2.1.276.qualifier
+Bundle-Release-Date: 20261116
+Require-Bundle: com.seizia.chromite.model;visibility:=reexport,
+ com.seizia.chromite.model.sql,
+ com.seizia.chromite.data.gis;visibility:=reexport,
+ com.seizia.chromite.registry,
+ com.seizia.chromite.tasks.native
+Bundle-ActivationPolicy: lazy
+Bundle-RequiredExecutionEnvironment: JavaSE-21
+Bundle-Vendor: Chromite contributors
+Export-Package: com.seizia.chromite.ext.mysql,
+ com.seizia.chromite.ext.mysql.model,
+ com.seizia.chromite.ext.mysql.model.plan,
+ com.seizia.chromite.ext.mysql.model.session,
+ com.seizia.chromite.ext.mysql.tasks
+Automatic-Module-Name: com.seizia.chromite.ext.mysql

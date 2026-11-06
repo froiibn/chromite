@@ -29,6 +29,7 @@ Chromite가 무엇을 만들고, 누구를 위한 제품이며, 어떤 원칙으
 | 런타임 | JBR 25 LTS를 jlink로 줄여 내장. 사용자가 JRE를 따로 설치하지 않음 | 2026-11-06 |
 | 플랫폼 | Windows x64, macOS Apple Silicon(arm64). Linux, Intel Mac, Windows ARM은 지원하지 않음 | 2026-11-06 |
 | SWT 버전 | Swing MVP가 나올 때까지 유지한 뒤 삭제 | 2026-11-06 |
+| 내부 이름 | DBeaver 내부 이름(패키지·번들·ID·실행 식별자)을 `com.seizia.chromite`로 한 번에 변경, 데이터는 새로 시작([internal-rename.md](internal-rename.md)) | 2026-11-07 |
 | 제품 구성 | SWT 제품과 Swing 제품만 빌드. Microsoft Store, Eclipse 플러그인, Snap 제품은 삭제([build.md](build.md) "빌드하는 제품") | 2026-11-07 |
 
 ## 개발 원칙
@@ -56,10 +57,10 @@ Chromite가 무엇을 만들고, 누구를 위한 제품이며, 어떤 원칙으
 - 업데이트 방식 (GitHub Releases 기반 버전 확인 등)
 - Windows 코드 서명 인증서, Apple Developer 계정과 공증
 - GitHub 포크 연결 해제 여부 (저장소 소유자가 직접 처리)
-- 내부 이름(`org.jkiss.dbeaver.*` 패키지 등)을 바꿀지와 그 시점
 
 ## 변경 이력
 
 - 2026-11-06 최초 작성. 제품 방향 논의 결과(공개 여부, upstream, UI 기술, 드라이버, 런타임, 플랫폼)를 정리.
 - 2026-11-06 UX / 디자인 결정 변경: 라이트도 SSMS풍 대신 DataGrip New UI 모양을 따름(사용자 피드백). 아이콘은 오픈 라이선스 세트.
 - 2026-11-07 결정 사항에 "제품 구성" 추가: 쓰지 않는 제품(Microsoft Store, Eclipse 플러그인, Snap) 삭제.
+- 2026-11-07 미결정 사항 "내부 이름을 바꿀지와 그 시점"을 결정 사항 "내부 이름"으로 옮김.

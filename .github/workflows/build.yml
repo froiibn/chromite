@@ -19,6 +19,18 @@ permissions:
   contents: read
 
 jobs:
+  # Old DBeaver internal names must not come back (docs/chromite/internal-rename.md); seconds, no build needed.
+  rename-gate:
+    name: Rename gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Check names and references
+        run: python3 tools/rename/gate.py
+
   build:
     name: Build (${{ matrix.name }})
     runs-on: ${{ matrix.os }}
@@ -34,7 +46,7 @@ jobs:
             os: ubuntu-latest
     env:
       MAVEN_OPTS: -Xmx3g
-      PRODUCTS_DIR: product/community/target/products/org.jkiss.dbeaver.core.product
+      PRODUCTS_DIR: product/community/target/products/com.seizia.chromite.core.product
       SWING_PRODUCTS_DIR: product/swing/target/products/com.seizia.chromite.swing.product
 
     steps:
@@ -64,17 +76,17 @@ jobs:
 
       # Same Maven arguments as the build command in docs/chromite/build.md, run through the Maven wrapper
       # in deps/dbeaver-common (pins Maven 3.9.16, same as local builds). Keep both steps in sync.
-      # One Maven run builds both products: SWT (product-dbeaver-ce) and Swing (product-chromite-swing).
+      # One Maven run builds both products: SWT (product-chromite-swt) and Swing (product-chromite-swing).
       # The profile list is quoted in pwsh so the comma is not parsed as an array separator.
       - name: Build (Windows)
         if: runner.os == 'Windows'
         shell: pwsh
-        run: .\deps\dbeaver-common\mvnw.cmd -B -ntp package -f product/aggregate/pom.xml -T1C '-Pproduct-dbeaver-ce,product-chromite-swing'
+        run: .\deps\dbeaver-common\mvnw.cmd -B -ntp package -f product/aggregate/pom.xml -T1C '-Pproduct-chromite-swt,product-chromite-swing'
 
       - name: Build (Linux)
         if: runner.os == 'Linux'
         shell: bash
-        run: ./deps/dbeaver-common/mvnw -B -ntp package -f product/aggregate/pom.xml -T1C -Pproduct-dbeaver-ce,product-chromite-swing
+        run: ./deps/dbeaver-common/mvnw -B -ntp package -f product/aggregate/pom.xml -T1C -Pproduct-chromite-swt,product-chromite-swing
 
       # Tycho materializes every environment from the root pom.xml (Swing: product/swing/pom.xml);
       # each job uploads only the products of the platform its matrix entry names.

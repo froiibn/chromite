@@ -23,11 +23,11 @@ import org.eclipse.osgi.util.NLS;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
-import org.jkiss.dbeaver.model.data.DBDAttributeBinding;
-import org.jkiss.dbeaver.model.data.resultset.DataUpdaterJob;
-import org.jkiss.dbeaver.model.exec.DBCException;
-import org.jkiss.dbeaver.model.struct.DBSDataContainer;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
+import com.seizia.chromite.model.data.DBDAttributeBinding;
+import com.seizia.chromite.model.data.resultset.DataUpdaterJob;
+import com.seizia.chromite.model.exec.DBCException;
+import com.seizia.chromite.model.struct.DBSDataContainer;
+import com.seizia.chromite.runtime.DBWorkbench;
 import org.jkiss.utils.CommonUtils;
 
 import javax.swing.*;

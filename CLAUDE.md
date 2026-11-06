@@ -102,7 +102,7 @@
 - 사용자가 요청하면 다음과 같이 한다.
   - 모델 기능: `test/` 아래 테스트 플러그인에 JUnit 테스트로 작성한다(AGENTS.md "Creating unit tests" 참고).
   - 자동화하기 어려운 UI, 설치, 브랜딩 확인: `docs/chromite/regression-tests.md`에 확인 절차와 기대 결과를 체크리스트로 적는다.
-  - 자동 테스트 실행: `mvn verify -f product/aggregate/pom.xml -T1C -Pproduct-dbeaver-ce` (백그라운드에서 실행)
+  - 자동 테스트 실행: `mvn verify -f product/aggregate/pom.xml -T1C -Pproduct-chromite-swt` (백그라운드에서 실행)
   - 결과 보고: 실행한 테스트, 통과/실패 수, 실패 내용을 그대로 적는다.
     환경 문제(JDK 21이나 Maven 없음 등)로 실행하지 못했으면 실행하지 못했다고 밝히고, 사용자가 실행할 명령을 알려 준다.
 
@@ -111,13 +111,16 @@
 - 사용자에게 보이는 곳(제품명, 메뉴, 대화상자, About, 설치 파일, 스플래시, 아이콘)에는 "DBeaver" 이름이나 로고를 쓰지 않는다.
   제품명은 `Chromite`, 부제는 `Database Workbench`다. DBeaver는 DBeaver Corp의 상표다.
 - 로고와 아이콘 원본은 `chromite_logo_pack/`에 있다. 새 아이콘은 이 폴더의 이미지로 만든다.
-- 제품 정보는 `product/community/product-branding.properties`, `product/community/DBeaver.product`,
-  `plugins/org.jkiss.dbeaver.ui.app.standalone/plugin.xml`과 `OSGI-INF/l10n/bundle*.properties`에 있다.
-- 다음 내부 이름은 별도로 계획한 작업에서만 바꾼다. 다른 작업 중에 일부만 바꾸지 않는다.
-  사용자 설정, 저장된 연결 정보, 플러그인 참조가 이 이름에 묶여 있어 일부만 바꾸면 기능이 깨진다.
-  - Java 패키지명, 번들 ID, 확장 포인트 ID (`org.jkiss.dbeaver.*`)
-  - 설정 키, 드라이버 ID, 내부 파일 이름(`dbeaver16.png` 같은 아이콘 파일명 포함)
-  - Maven 프로파일 이름(`product-dbeaver-ce` 등)
+- 제품 정보는 `product/community/product-branding.properties`, `product/community/Chromite.product`,
+  `plugins/com.seizia.chromite.ui.app.standalone/plugin.xml`과 `OSGI-INF/l10n/bundle*.properties`에 있다.
+- 내부 이름은 2026-11-07에 모두 Chromite 이름으로 바꿨다([docs/chromite/internal-rename.md](docs/chromite/internal-rename.md)).
+  - Java 패키지, 번들·피처·제품 ID, 확장 포인트 ID는 `com.seizia.chromite.*`, Maven 프로파일은 `product-chromite-swt`,
+    `product-chromite-swing`이다. 새 코드도 이 접두어를 쓴다.
+  - `org.jkiss.dbeaver` 이름은 `deps/`에 있는 `org.jkiss.dbeaver.DBException` 하나만 남는다. 옛 이름(`org.jkiss.dbeaver`,
+    `DBeaver<이름>` 타입, `com.dbeaver.ai` 등)을 다시 넣지 않는다. CI의 `tools/rename/gate.py`가 막는다.
+  - 외부와 약속된 값(OpenAI `originator`, Snowflake·TiDB 앱 이름, DataDam 범위, `jdbc:dbeaver:`, upstream URL)은
+    `dbeaver`가 들어 있어도 바꾸지 않는다(internal-rename.md "바꾸지 않는 것").
+  - 설정 키, 드라이버 ID, 데이터 폴더(`ChromiteData`), 저장 형식에 쓰는 이름은 사용자 데이터와 묶여 있다. 바꿔야 하면 따로 계획한다.
 - 화면 문구에서 "DBeaver"를 바꿀 때는 일괄 치환하지 않는다. 사용자에게 실제로 보이는 문자열만 골라서 바꾼다.
 - dbeaver.io의 버전 확인, 업데이트 사이트, 다운로드 링크를 새로 넣지 않는다. Chromite가 DBeaver 업데이트로 덮어써질 수 있다.
 
@@ -126,6 +129,7 @@
 - `LICENSE.md`와 `NOTICE`를 유지한다. 출처 표기가 바뀌면 `NOTICE`를 갱신한다.
 - 기존 소스 파일의 DBeaver Corp 저작권 머리말은 지우거나 고치지 않는다.
 - DBeaver에서 온 Java 파일을 수정하면 저작권 줄 바로 아래에 다음 한 줄을 넣는다(이미 있으면 연도만 갱신).
+  내부 이름 변경으로 DBeaver에서 온 Java 파일 대부분에 이 줄이 이미 들어 있다.
 
   ```
    * Modifications Copyright (C) 2026 Chromite contributors
@@ -171,6 +175,8 @@ Chromite는 2026-11-06 포크 시점부터 DBeaver와 독립적으로 개발한�
 - 필요한 변경(보안 패치, 드라이버 수정 등)은 사용자가 요청할 때만 해당 커밋을 `git cherry-pick`으로 가져온다.
   - 가져오기 전에 그 커밋이 바꾸는 파일과 Chromite에서 바뀐 부분이 겹치는지 확인하고 사용자에게 알린다.
   - 커밋 메시지에 원본 커밋을 남긴다(`git cherry-pick -x`).
+  - upstream 커밋은 옛 이름(`org.jkiss.dbeaver`)을 쓴다. `git cherry-pick` 대신 패치로 만들어
+    `python tools/rename/rename.py patch`로 이름을 바꾼 뒤 `git apply -3`으로 적용한다(internal-rename.md "upstream 커밋 가져오기").
   - 가져온 내용은 관련 설계 문서의 변경 이력에 적는다.
 - 보안 패치와 JDBC 드라이버 업데이트는 자동으로 들어오지 않는다. 관련 작업을 할 때 오래된 의존성이 보이면 사용자에게 알린다.
 
@@ -181,11 +187,11 @@ Chromite는 2026-11-06 포크 시점부터 DBeaver와 독립적으로 개발한�
   전체 빌드는 시간이 오래 걸리므로 백그라운드에서 실행한다.
 
   ```bash
-  mvn package -f product/aggregate/pom.xml -T1C -Pproduct-dbeaver-ce
+  mvn package -f product/aggregate/pom.xml -T1C -Pproduct-chromite-swt
   ```
 
-- Swing 제품까지 함께 빌드하려면 `-Pproduct-dbeaver-ce,product-chromite-swing`을 쓴다. PowerShell에서는 프로파일 목록을
-  작은따옴표로 묶는다(`'-Pproduct-dbeaver-ce,product-chromite-swing'`). CI는 JBR 25로 두 제품을 모두 빌드한다([docs/chromite/ci.md](docs/chromite/ci.md)).
+- Swing 제품까지 함께 빌드하려면 `-Pproduct-chromite-swt,product-chromite-swing`을 쓴다. PowerShell에서는 프로파일 목록을
+  작은따옴표로 묶는다(`'-Pproduct-chromite-swt,product-chromite-swing'`). CI는 JBR 25로 두 제품을 모두 빌드한다([docs/chromite/ci.md](docs/chromite/ci.md)).
 
 - 결과물은 `product/community/target/products/chromite-<버전>-<플랫폼>`이다.
 - 빌드에 필요한 `dbeaver-common`과 `datadam-api`는 이 저장소의 `deps/`에 들어 있다([docs/chromite/build.md](docs/chromite/build.md)).

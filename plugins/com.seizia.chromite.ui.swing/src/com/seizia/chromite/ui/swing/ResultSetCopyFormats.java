@@ -19,9 +19,9 @@ package com.seizia.chromite.ui.swing;
 import com.seizia.chromite.ui.swing.internal.EditorMessages;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
-import org.jkiss.dbeaver.model.DBPDataSource;
-import org.jkiss.dbeaver.model.sql.SQLUtils;
-import org.jkiss.dbeaver.runtime.DBWorkbench;
+import com.seizia.chromite.model.DBPDataSource;
+import com.seizia.chromite.model.sql.SQLUtils;
+import com.seizia.chromite.runtime.DBWorkbench;
 
 import javax.swing.*;
 import java.math.BigDecimal;
