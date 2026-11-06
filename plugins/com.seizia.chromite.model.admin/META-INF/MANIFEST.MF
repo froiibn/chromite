@@ -11,8 +11,10 @@ Require-Bundle: org.jkiss.dbeaver.model,
  org.jkiss.dbeaver.ext.postgresql,
  org.jkiss.dbeaver.ext.mssql,
  org.jkiss.dbeaver.ext.mysql,
- org.jkiss.dbeaver.ext.oracle
+ org.jkiss.dbeaver.ext.oracle,
+ org.jkiss.dbeaver.model.dashboard
 Export-Package: com.seizia.chromite.model.admin,
+ com.seizia.chromite.model.admin.dashboard,
  com.seizia.chromite.model.admin.mssql,
  com.seizia.chromite.model.admin.mysql,
  com.seizia.chromite.model.admin.security

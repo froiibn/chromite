@@ -20,6 +20,7 @@ import com.formdev.flatlaf.FlatClientProperties;
 import com.formdev.flatlaf.ui.FlatTabbedPaneUI;
 import com.formdev.flatlaf.util.UIScale;
 import com.seizia.chromite.ui.swing.internal.CoreMessages;
+import com.seizia.chromite.ui.swing.internal.DashboardMessages;
 import com.seizia.chromite.ui.swing.internal.ToolbarMessages;
 import io.github.andrewauclair.moderndocking.DockingRegion;
 import org.eclipse.osgi.util.NLS;
@@ -166,6 +167,7 @@ import java.util.function.IntConsumer;
  * - 2026-11-06 빈 문서 영역: Welcome 탭 삭제, 문서가 없으면 문서 카드에 {@link WelcomePanel} (docs/chromite/swing-frontend.md "빈 문서 영역")
  * - 2026-11-07 Results 자동 숨김: Results는 활성 문서가 쿼리 창일 때만 보이고 숨김은 쿼리 창마다 기억, 쿼리 창이 없으면 Results 토글을 끔,
  *   쓰지 않게 된 Results 자리 표시 내용 삭제 (docs/chromite/swing-frontend.md "Results 자동 숨김")
+ * - 2026-11-07 서버 대시보드: Tools &gt; Server Dashboard(Activity Monitor의 개요 탭) (docs/chromite/swing-dashboard.md)
  */
 final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplorerPanel.QueryWindows, TableDesignerPanel.Host, QueryLibraryPanel.Host {
 
@@ -1436,6 +1438,9 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
         JMenuItem locksItem = new JMenuItem(CoreMessages.main_locks);
         locksItem.setMnemonic(KeyEvent.VK_L);
         locksItem.addActionListener(e -> openActivityMonitor(ActivityMonitorPanel.LOCKS_TAB));
+        JMenuItem dashboardItem = new JMenuItem(DashboardMessages.dashboard_command);
+        dashboardItem.setToolTipText(DashboardMessages.dashboard_command_tip);
+        dashboardItem.addActionListener(e -> openActivityMonitor(ActivityMonitorPanel.OVERVIEW_TAB));
         JMenuItem findObjectsItem = new JMenuItem(CoreMessages.main_find_objects);
         findObjectsItem.setMnemonic(KeyEvent.VK_F);
         findObjectsItem.addActionListener(e -> openObjectSearch(explorerPanel.getSelectedNode()));
@@ -1443,6 +1448,7 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
         toolsMenu.setMnemonic(KeyEvent.VK_T);
         toolsMenu.add(activityMonitorItem);
         toolsMenu.add(locksItem);
+        toolsMenu.add(dashboardItem);
         toolsMenu.add(findObjectsItem);
         toolsMenu.addSeparator();
         toolsMenu.add(optionsItem);

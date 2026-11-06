@@ -22,6 +22,7 @@ import com.formdev.flatlaf.util.UIScale;
 import com.seizia.chromite.model.admin.security.SecurityPrincipal;
 import com.seizia.chromite.ui.swing.internal.BackupRestoreMessages;
 import com.seizia.chromite.ui.swing.internal.CoreMessages;
+import com.seizia.chromite.ui.swing.internal.DashboardMessages;
 import com.seizia.chromite.ui.swing.internal.DbCopyMessages;
 import com.seizia.chromite.ui.swing.internal.ErdMessages;
 import com.seizia.chromite.ui.swing.internal.SecurityMessages;
@@ -167,6 +168,7 @@ import java.util.function.Consumer;
  *   (docs/chromite/swing-security.md)
  * - 2026-11-06 Import Data… / Export Data… / Copy Tables…를 데이터베이스 노드와 데이터베이스가 하나인 연결 노드에서도 켬, 도구 설명
  *   (docs/chromite/swing-data-transfer.md "데이터베이스 노드")
+ * - 2026-11-07 서버 대시보드: Server Dashboard 메뉴(Activity Monitor의 개요 탭) (docs/chromite/swing-dashboard.md)
  */
 final class ObjectExplorerPanel extends JPanel {
 
@@ -203,7 +205,8 @@ final class ObjectExplorerPanel extends JPanel {
         void showDdl(@Nullable DBPDataSourceContainer dataSource, @NotNull String objectName, @NotNull String ddl);
 
         /**
-         * Opens (or shows) the Activity Monitor of the connection at a tab ({@link ActivityMonitorPanel#PROCESSES_TAB}, {@link ActivityMonitorPanel#LOCKS_TAB}).
+         * Opens (or shows) the Activity Monitor of the connection at a tab ({@link ActivityMonitorPanel#OVERVIEW_TAB},
+         * {@link ActivityMonitorPanel#PROCESSES_TAB}, {@link ActivityMonitorPanel#LOCKS_TAB}).
          */
         void openActivityMonitor(@NotNull DBPDataSourceContainer dataSource, int tab);
 
@@ -261,6 +264,7 @@ final class ObjectExplorerPanel extends JPanel {
     private final Action viewDdlAction;
     private final Action activityMonitorAction;
     private final Action locksAction;
+    private final Action dashboardAction;
     private final Action findObjectsAction;
     private final Action designAction;
     private final Action newTableAction;
@@ -381,6 +385,9 @@ final class ObjectExplorerPanel extends JPanel {
         locksAction = createAction(CoreMessages.main_locks, () -> runOnSelectedDataSource(
             dataSource -> queryWindows.openActivityMonitor(dataSource, ActivityMonitorPanel.LOCKS_TAB)));
         locksAction.putValue(Action.SHORT_DESCRIPTION, CoreMessages.explorer_locks_tip);
+        dashboardAction = createAction(DashboardMessages.dashboard_command, () -> runOnSelectedDataSource(
+            dataSource -> queryWindows.openActivityMonitor(dataSource, ActivityMonitorPanel.OVERVIEW_TAB)));
+        dashboardAction.putValue(Action.SHORT_DESCRIPTION, DashboardMessages.dashboard_command_tip);
         findObjectsAction = createAction(CoreMessages.main_find_objects, () -> queryWindows.openObjectSearch(getSelectedNavigatorNode()));
         findObjectsAction.putValue(Action.SHORT_DESCRIPTION, CoreMessages.explorer_find_objects_tip);
         designAction = createAction(CoreMessages.explorer_design, () -> {
@@ -555,6 +562,7 @@ final class ObjectExplorerPanel extends JPanel {
         popupMenu.addSeparator();
         popupMenu.add(activityMonitorAction);
         popupMenu.add(locksAction);
+        popupMenu.add(dashboardAction);
         popupMenu.add(findObjectsAction);
         popupMenu.addSeparator();
         popupMenu.add(editConnectionAction);
@@ -765,6 +773,7 @@ final class ObjectExplorerPanel extends JPanel {
         reconnectAction.setEnabled(connected);
         activityMonitorAction.setEnabled(dataSource != null);
         locksAction.setEnabled(dataSource != null);
+        dashboardAction.setEnabled(dataSource != null);
         findObjectsAction.setEnabled(projectNode != null);
         editConnectionAction.setEnabled(connectionNode);
         renameAction.setEnabled(connectionNode);

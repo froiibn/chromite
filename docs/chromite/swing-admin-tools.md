@@ -7,7 +7,7 @@ DBeaver(SWT)의 서버 관리 도구를 Swing 프런트엔드로 옮긴다. 배�
 - **Activity Monitor**: 서버 세션 목록, 세션의 현재 SQL과 속성, 세션·쿼리 끝내기, 자동 새로 고침, 필터.
   같은 문서 탭의 **Locks** 탭은 잠금을 기다리는 세션과 막는 세션(blocking chain), 각 세션의 잠금을 보인다.
 - **Find Objects**: 여러 연결에서 이름으로 테이블·뷰·프로시저·열을 찾고, 결과를 Object Explorer에서 고른다.
-- **서버 대시보드**: 이번에는 옮기지 않았다(아래 "미룬 것").
+- **서버 대시보드**: 처음에는 미뤘고(아래 "미룬 것"), 뒤에 Activity Monitor의 첫 탭(개요)으로 옮겼다([swing-dashboard.md](swing-dashboard.md)).
 
 ## 여는 곳
 
@@ -149,6 +149,7 @@ SWT 메타데이터 검색(`plugins/org.jkiss.dbeaver.ui.search/.../SearchMetada
 - **서버 대시보드**: 모델(`org.jkiss.dbeaver.model.dashboard`)에는 대시보드 정의와 질의 등록만 있고, 값을 주기적으로 읽어 누적·차분하는
   부분(`DashboardUpdater`, `DashboardUpdateJob`)과 차트가 SWT 플러그인(`org.jkiss.dbeaver.ui.dashboard`, SWT 차트)에 있다.
   옮기려면 갱신 로직을 모델로 옮기고 Swing 차트 라이브러리를 새로 들여야 해서 이번 범위에서 뺐다.
+  2026-11-07 개요 탭으로 옮김: 갱신 로직은 이 번들의 `dashboard` 패키지, 차트는 Java2D로 직접 그림([swing-dashboard.md](swing-dashboard.md)).
 - 세션의 실행 계획 탭(SWT `ExplainPlanViewer`): Swing 실행 계획 보기가 아직 없다.
 - 잠금 그래프 그림(GEF): 나무로 대신했다.
 - Find Objects의 "주석·정의에서도 찾기"(`setSearchInComments`, `setSearchInDefinitions`)와 검색 기록.
@@ -182,3 +183,4 @@ Swing 제품을 별도 작업 공간으로 띄우고 로컬 Docker DB(PostgreSQL
 - 2026-11-06 Registered Servers와 합침: Find Objects 결과의 서버가 Object Explorer에 없으면 먼저 넣고 펼친다(연 서버만 보이는 Object Explorer).
 - 2026-11-06 테마 전환 뒤 Processes의 찾기 칸이 흰색, Only my sessions 글자가 어두운 색으로 남던 문제: 첫 읽기 뒤에 붙이는 두 컴포넌트를
   붙일 때 현재 Look and Feel로 다시 설치함.
+- 2026-11-07 서버 대시보드를 Activity Monitor의 첫 탭(개요)으로 더함, 탭 번호가 바뀜(개요 0, Processes 1, Locks 2) ([swing-dashboard.md](swing-dashboard.md)).

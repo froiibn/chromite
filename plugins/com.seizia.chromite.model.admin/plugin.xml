@@ -1,0 +1,132 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?eclipse version="3.2"?>
+
+<!--
+    Server dashboard charts that DBeaver does not define (docs/chromite/swing-dashboard.md).
+    DBeaver has no SQL Server dashboards and no lock, wait or cache charts for PostgreSQL and MySQL/MariaDB.
+    The definitions use DBeaver's dashboard extension point, so DashboardRegistry lists them next to the DBeaver ones.
+    Labels are %keys of OSGI-INF/l10n/bundle.properties (English) and bundle_ko.properties (Korean).
+-->
+<plugin>
+
+    <extension point="org.jkiss.dbeaver.dashboard">
+
+        <!-- SQL Server -->
+        <dashboard id="chromite.sqlserver.sessions" label="%dashboard.sqlserver.sessions.label" description="%dashboard.sqlserver.sessions.description"
+            group="Standard" defaultView="timeseries" calc="value" value="integer" fetch="columns" showByDefault="true">
+            <datasource id="sqlserver"/>
+            <query>
+SELECT
+    (SELECT count(*) FROM sys.dm_exec_sessions WHERE is_user_process = 1 AND status = 'running') AS "Active",
+    (SELECT count(*) FROM sys.dm_exec_sessions WHERE is_user_process = 1 AND status = 'sleeping') AS "Idle",
+    (SELECT count(*) FROM sys.dm_exec_sessions WHERE is_user_process = 1) AS "Total"
+            </query>
+        </dashboard>
+        <!-- total_cpu_usage_ms grows by the CPU time of all schedulers: its change per second divided by 10 x CPUs is the percent -->
+        <dashboard id="chromite.sqlserver.cpu" label="%dashboard.sqlserver.cpu.label" description="%dashboard.sqlserver.cpu.description"
+            group="Standard" defaultView="timeseries" calc="delta" value="percent" fetch="columns" measure="%" showByDefault="true">
+            <datasource id="sqlserver"/>
+            <query>
+SELECT SUM(s.total_cpu_usage_ms) / (10.0 * MAX(i.cpu_count)) AS "SQL Server"
+FROM sys.dm_os_schedulers s CROSS JOIN sys.dm_os_sys_info i
+WHERE s.status = N'VISIBLE ONLINE'
+            </query>
+        </dashboard>
+        <dashboard id="chromite.sqlserver.requests" label="%dashboard.sqlserver.requests.label" description="%dashboard.sqlserver.requests.description"
+            group="Standard" defaultView="timeseries" calc="delta" value="integer" fetch="columns" showByDefault="true">
+            <datasource id="sqlserver"/>
+            <query>
+SELECT
+    (SELECT cntr_value FROM sys.dm_os_performance_counters WHERE object_name LIKE N'%:SQL Statistics%' AND counter_name = N'Batch Requests/sec') AS "Batches",
+    (SELECT cntr_value FROM sys.dm_os_performance_counters WHERE object_name LIKE N'%:Databases%' AND counter_name = N'Transactions/sec' AND instance_name = N'_Total') AS "Transactions",
+    (SELECT cntr_value FROM sys.dm_os_performance_counters WHERE object_name LIKE N'%:SQL Statistics%' AND counter_name = N'SQL Compilations/sec') AS "Compilations"
+            </query>
+        </dashboard>
+        <dashboard id="chromite.sqlserver.waits" label="%dashboard.sqlserver.waits.label" description="%dashboard.sqlserver.waits.description"
+            group="Standard" defaultView="timeseries" calc="value" value="integer" fetch="columns" showByDefault="true">
+            <datasource id="sqlserver"/>
+            <query>
+SELECT
+    (SELECT count(*) FROM sys.dm_os_waiting_tasks wt JOIN sys.dm_exec_sessions s ON s.session_id = wt.session_id WHERE s.is_user_process = 1) AS "Waiting tasks",
+    (SELECT count(*) FROM sys.dm_exec_requests WHERE blocking_session_id &lt;&gt; 0) AS "Blocked"
+            </query>
+        </dashboard>
+        <dashboard id="chromite.sqlserver.io" label="%dashboard.sqlserver.io.label" description="%dashboard.sqlserver.io.description"
+            group="Standard" defaultView="timeseries" calc="delta" value="bytes" fetch="columns" showByDefault="true">
+            <datasource id="sqlserver"/>
+            <query>
+SELECT SUM(num_of_bytes_read) AS "Read", SUM(num_of_bytes_written) AS "Write"
+FROM sys.dm_io_virtual_file_stats(NULL, NULL)
+            </query>
+        </dashboard>
+        <dashboard id="chromite.sqlserver.locks" label="%dashboard.sqlserver.locks.label" description="%dashboard.sqlserver.locks.description"
+            group="Standard" defaultView="timeseries" calc="delta" value="integer" fetch="columns" showByDefault="true">
+            <datasource id="sqlserver"/>
+            <query>
+SELECT
+    (SELECT cntr_value FROM sys.dm_os_performance_counters WHERE object_name LIKE N'%:Locks%' AND counter_name = N'Lock Waits/sec' AND instance_name = N'_Total') AS "Lock waits",
+    (SELECT cntr_value FROM sys.dm_os_performance_counters WHERE object_name LIKE N'%:Locks%' AND counter_name = N'Number of Deadlocks/sec' AND instance_name = N'_Total') AS "Deadlocks"
+            </query>
+        </dashboard>
+        <dashboard id="chromite.sqlserver.cacheHit" label="%dashboard.sqlserver.cacheHit.label" description="%dashboard.sqlserver.cacheHit.description"
+            group="Standard" defaultView="timeseries" calc="value" value="percent" fetch="columns" measure="%" showByDefault="true">
+            <datasource id="sqlserver"/>
+            <query>
+SELECT CAST(100.0 * a.cntr_value / NULLIF(b.cntr_value, 0) AS decimal(5, 1)) AS "Cache hit"
+FROM sys.dm_os_performance_counters a
+JOIN sys.dm_os_performance_counters b ON b.object_name = a.object_name AND b.counter_name = N'Buffer cache hit ratio base'
+WHERE a.object_name LIKE N'%:Buffer Manager%' AND a.counter_name = N'Buffer cache hit ratio'
+            </query>
+        </dashboard>
+
+        <!-- PostgreSQL: next to DBeaver's sessions, transactions and block IO charts -->
+        <dashboard id="chromite.postgresql.waits" label="%dashboard.postgresql.waits.label" description="%dashboard.postgresql.waits.description"
+            group="Standard" defaultView="timeseries" calc="value" value="integer" fetch="columns" showByDefault="true">
+            <datasource id="postgresql"/>
+            <query>
+SELECT
+    (SELECT count(*) FROM pg_catalog.pg_stat_activity WHERE state = 'active' AND wait_event_type IS NULL) AS "CPU",
+    (SELECT count(*) FROM pg_catalog.pg_stat_activity WHERE state = 'active' AND wait_event_type = 'Lock') AS "Lock",
+    (SELECT count(*) FROM pg_catalog.pg_stat_activity WHERE state = 'active' AND wait_event_type = 'IO') AS "IO",
+    (SELECT count(*) FROM pg_catalog.pg_stat_activity WHERE state = 'active' AND wait_event_type NOT IN ('Lock', 'IO')) AS "Other"
+            </query>
+        </dashboard>
+        <dashboard id="chromite.postgresql.locks" label="%dashboard.postgresql.locks.label" description="%dashboard.postgresql.locks.description"
+            group="Standard" defaultView="timeseries" calc="value" value="integer" fetch="columns" showByDefault="false">
+            <datasource id="postgresql"/>
+            <query>
+SELECT
+    (SELECT count(*) FROM pg_catalog.pg_locks WHERE granted) AS "Granted",
+    (SELECT count(*) FROM pg_catalog.pg_locks WHERE NOT granted) AS "Waiting"
+            </query>
+        </dashboard>
+        <dashboard id="chromite.postgresql.cacheHit" label="%dashboard.postgresql.cacheHit.label" description="%dashboard.postgresql.cacheHit.description"
+            group="Standard" defaultView="timeseries" calc="value" value="percent" fetch="columns" measure="%" showByDefault="true">
+            <datasource id="postgresql"/>
+            <query>
+SELECT round(100.0 * sum(blks_hit) / NULLIF(sum(blks_hit) + sum(blks_read), 0), 1) AS "Cache hit"
+FROM pg_catalog.pg_stat_database
+            </query>
+        </dashboard>
+
+        <!-- MySQL and MariaDB: values of DBeaver's map query "mysql.query.status" (SHOW GLOBAL STATUS) -->
+        <dashboard id="chromite.mysql.threads" mapQuery="mysql.query.status" label="%dashboard.mysql.threads.label" description="%dashboard.mysql.threads.description"
+            group="Status" defaultView="timeseries" calc="value" value="integer" mapKeys="Threads_connected,Threads_running" mapLabels="Connected,Running"
+            showByDefault="true">
+            <datasource id="mysql"/>
+        </dashboard>
+        <dashboard id="chromite.mysql.lockWaits" mapQuery="mysql.query.status" label="%dashboard.mysql.lockWaits.label" description="%dashboard.mysql.lockWaits.description"
+            group="Status" defaultView="timeseries" calc="value" value="integer" mapKeys="Innodb_row_lock_current_waits" mapLabels="Waiting"
+            showByDefault="true">
+            <datasource id="mysql"/>
+        </dashboard>
+        <dashboard id="chromite.mysql.bufferPoolHit" mapQuery="mysql.query.status" label="%dashboard.mysql.bufferPoolHit.label" description="%dashboard.mysql.bufferPoolHit.description"
+            group="Status" defaultView="timeseries" calc="value" value="percent" measure="%" mapLabels="Cache hit"
+            mapFormula="map.innodb_buffer_pool_read_requests > 0 ? 100 - map.innodb_buffer_pool_reads * 100.0 / map.innodb_buffer_pool_read_requests : 100"
+            showByDefault="true">
+            <datasource id="mysql"/>
+        </dashboard>
+
+    </extension>
+
+</plugin>
