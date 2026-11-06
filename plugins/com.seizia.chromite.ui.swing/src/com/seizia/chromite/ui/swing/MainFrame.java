@@ -171,6 +171,8 @@ import java.util.function.IntConsumer;
  * - 2026-11-07 밀도 B: 치수를 테마의 Chromite.size.* 키({@link UiSizes})에서 읽음 (docs/chromite/design-spec.md "치수 토큰")
  * - 2026-11-07 서버 대시보드: Tools &gt; Server Dashboard(Activity Monitor의 개요 탭) (docs/chromite/swing-dashboard.md)
  * - 2026-11-07 Tools &gt; Driver Manager… ({@link DriverManagerDialog}) (docs/chromite/swing-driver-manager.md)
+ * - 2026-11-07 자동 업데이트: 제목 표시줄 단추와 상태 표시줄 진행({@link UpdateUi}), 끝낼 때 커밋하지 않은 트랜잭션을 묻기
+ *   ({@link ExitTransactionCheck}) (docs/chromite/auto-update.md)
  */
 final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplorerPanel.QueryWindows, TableDesignerPanel.Host, QueryLibraryPanel.Host {
 
@@ -450,6 +452,7 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
         content.add(toolWindowDocking.getComponent(), BorderLayout.CENTER);
         statusBar = new StatusBar(statusText);
         content.add(statusBar, BorderLayout.SOUTH);
+        UpdateUi.install(this, statusBar);
         setContentPane(content);
         for (DBPProject project : DBWorkbench.getPlatform().getWorkspace().getProjects()) {
             DBPDataSourceRegistry registry = project.getDataSourceRegistry();
@@ -1038,8 +1041,9 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
     }
 
     /**
-     * Window closing and File > Exit: asks to save the modified query windows and the unsaved changes of their
-     * result grids (SSMS lists them in one question), then closes the window.
+     * Window closing, File > Exit and an update's [Restart now]: asks to save the modified query windows and the unsaved
+     * changes of their result grids (SSMS lists them in one question), then what to do with uncommitted transactions
+     * ({@link ExitTransactionCheck}), then closes the window.
      */
     private void requestExit() {
         // Table designers ask one by one: saving shows each change script
@@ -1089,6 +1093,10 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
             } else if (answer != 1) {
                 return;
             }
+        }
+        // Closing ends every session: open transactions are committed or rolled back only as the user says
+        if (!ExitTransactionCheck.confirm(this)) {
+            return;
         }
         dispose();
     }

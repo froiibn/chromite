@@ -16,7 +16,9 @@
  */
 package com.seizia.chromite.ui.swing;
 
+import com.seizia.chromite.model.update.UpdateService;
 import com.seizia.chromite.ui.swing.internal.CoreMessages;
+import com.seizia.chromite.ui.swing.internal.UpdateMessages;
 import org.eclipse.core.runtime.Platform;
 import org.eclipse.equinox.app.IApplicationContext;
 import org.eclipse.osgi.service.datalocation.Location;
@@ -73,6 +75,8 @@ import java.util.concurrent.CountDownLatch;
  *   (docs/chromite/swing-frontend.md "구현 현황 — D단계")
  * - 2026-11-06 화면 문구를 CoreMessages로 옮김(OS 언어를 따름)
  * - 2026-11-07 오류 문구를 {@link ErrorText}로 만듦(클래스 이름이 화면에 나오지 않게, docs/chromite/swing-frontend.md "오류 문구")
+ * - 2026-11-07 자동 업데이트: 사용자가 창을 닫아 끝날 때 확인한 업데이트를 적용({@link UpdateService#applyAtExit}),
+ *   업데이트 도우미가 설치하는 동안에는 시작하지 않음 (docs/chromite/auto-update.md)
  */
 public class ChromiteSwingApplication extends DesktopApplicationImpl {
 
@@ -83,6 +87,10 @@ public class ChromiteSwingApplication extends DesktopApplicationImpl {
 
     private final CountDownLatch mainWindowClosed = new CountDownLatch(1);
     private volatile MainFrame mainFrame;
+    /**
+     * The application was stopped from outside ({@link #stop}), not closed by the user: no update is applied then.
+     */
+    private volatile boolean stopRequested;
 
     private OutputStream debugWriter;
     private PrintStream oldSystemOut;
@@ -92,6 +100,12 @@ public class ChromiteSwingApplication extends DesktopApplicationImpl {
     @Override
     public Object start(IApplicationContext context) throws Exception {
         installLookAndFeel();
+
+        // The update helper replaces the installation now: a start would use files being replaced
+        if (UpdateService.isApplyRunning()) {
+            showStartupMessage(UpdateMessages.update_applying_message);
+            return EXIT_OK;
+        }
 
         Location instanceLoc = Platform.getInstanceLocation();
         if (!lockWorkspace(instanceLoc)) {
@@ -127,6 +141,10 @@ public class ChromiteSwingApplication extends DesktopApplicationImpl {
             mainWindowClosed.await();
             platform.setWorkbenchStarted(false);
             log.debug("Main window closed");
+            if (!stopRequested) {
+                // After the normal exit path (unsaved editors, open transactions): the helper waits until this process ends
+                UpdateService.getInstance().applyAtExit(UpdateUi.isRestartRequested());
+            }
             return EXIT_OK;
         } finally {
             shutdown();
@@ -135,6 +153,7 @@ public class ChromiteSwingApplication extends DesktopApplicationImpl {
 
     @Override
     public void stop() {
+        stopRequested = true;
         SwingUtilities.invokeLater(() -> {
             MainFrame frame = mainFrame;
             if (frame != null) {
@@ -196,6 +215,17 @@ public class ChromiteSwingApplication extends DesktopApplicationImpl {
         });
         mainFrame = frame;
         frame.setVisible(true);
+    }
+
+    private static void showStartupMessage(@NotNull String message) {
+        try {
+            SwingUtilities.invokeAndWait(() ->
+                JOptionPane.showMessageDialog(null, message, GeneralUtils.getProductName(), JOptionPane.INFORMATION_MESSAGE));
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        } catch (InvocationTargetException e) {
+            log.error("Error showing startup message", e.getTargetException());
+        }
     }
 
     private static void showStartupError(@NotNull String title, @Nullable String message) {
