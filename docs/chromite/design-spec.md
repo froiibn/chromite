@@ -200,7 +200,7 @@ Swing 프런트엔드(`com.seizia.chromite.ui.swing`)의 화면을 **배치와 �
 
 | 요소 | SSMS | DataGrip New UI | 현재 Chromite | 목표 | 우선 |
 |---|---|---|---|---|---|
-| UI 글꼴 | Segoe UI | Inter 13(모든 OS) [JetBrains New UI 도움말], 한글은 운영체제 글꼴로 대체 | Segoe UI 12 | `font.ui` Pretendard 13(2026-11-07 사용자 결정, 한글·라틴을 한 글꼴로, "적용 현황 — Pretendard와 밀도 B"). 처음 목표는 Inter 13 + 한글 대체 Malgun Gothic이었다. FlatLaf 합성 글꼴(`defaultFont`가 대체 글꼴을 갖는 composite font)이어야 Pretendard에 없는 글자(한자·가나)가 □로 나오지 않음 | P0 |
+| UI 글꼴 | Segoe UI | Inter 13(모든 OS) [JetBrains New UI 도움말], 한글은 운영체제 글꼴로 대체 | Segoe UI 12 | `font.ui` Pretendard 12(2026-11-07 사용자 결정: 한글·라틴을 한 글꼴로 Pretendard 13, "적용 현황 — Pretendard와 밀도 B". 같은 날 "한단계 줄인다"로 12, "적용 현황 — UI 글꼴 12"). 처음 목표는 Inter 13 + 한글 대체 Malgun Gothic이었다. FlatLaf 합성 글꼴(`defaultFont`가 대체 글꼴을 갖는 composite font)이어야 Pretendard에 없는 글자(한자·가나)가 □로 나오지 않음 | P0 |
 | 간격 단위 | — | 2·4·6·8·12·16·20 [J `SpacingConfiguration`, `Tree.border`, `List.border`] | 화면마다 다름(2, 3, 8, 14 등) [C] | "디자인 토큰"의 `space.*`만 씀 | P1 |
 | 시작 탭(Welcome) | 시작 화면 | Welcome 화면(로고, 큰 단추) | 큰 로고 + 안내 글 [S] | 로고 64, 제목 `font.title`, "New Connection", "New Query", "Open File" 링크 단추, 최근 파일 목록 | P2 (2026-11-06 탭 대신 빈 문서 영역: "적용 현황 — 빈 문서 영역") |
 | Islands | — | 2025.3부터 기본: 패널 사이 6px 틈, 패널 모서리 arc 20 [T `ManyIslands*`] | — | 기본 모양으로 적용("적용 현황 — Islands 적용") | 완료 |
@@ -331,7 +331,7 @@ FlatLaf 키와, Chromite 컴포넌트가 `UiSizes`로 읽는 `Chromite.size.*` �
 |---|---|---|---|
 | `size.row.tree` | 22 (24) | [T `Tree.rowHeight`][J] compact 22 | `Tree.rowHeight = 22`, `Tree.border = empty(3,10,3,10)`, `Tree.selectionInsets = 0,6,0,6` |
 | `size.row.list` | 24 | [T `List.rowHeight`] | 목록 `setFixedCellHeight(24)` 또는 `List.cellMargins` |
-| `size.row.menu` | 22 (24) | ≈ New UI 메뉴 | `@menuItemMargin = 2,8,3,8` (글자 줄 17 + 5) |
+| `size.row.menu` | 22 (24) | ≈ New UI 메뉴 | `@menuItemMargin = 3,8,3,8` (아이콘 칸 16 + 6. 12px 글자 줄 15가 아이콘 칸보다 낮다. 13px일 때는 `2,8,3,8` = 글자 줄 17 + 5) |
 | `size.row.grid` | 24 (27) | [S] DataGrip 그리드 | `Table.rowHeight = 24`, `Table.cellMargins = 0,8,2,8`(글자를 1px 위로: 한글·내림 글자가 가운데로 보임) |
 | `size.header.grid` | 26 (28) | [S] | `TableHeader.height = 26`, `TableHeader.cellMargins = 0,8,2,8` |
 | `size.row.properties` | 22 (24) | Chromite 결정(트리 행과 같음) | `Chromite.size.propertyRow.height` |
@@ -345,9 +345,9 @@ FlatLaf 키와, Chromite 컴포넌트가 `UiSizes`로 읽는 `Chromite.size.*` �
 | `size.toolbar.editor` | 32 (36) | [S] ≈36 | `Chromite.size.editorToolBar.padding = 2,8,2,8`(콤보 28 + 4; 쿼리 창, 테이블 디자이너) |
 | `size.statusBar` | 26 (28) | ≈ | `Chromite.size.statusBar.height` |
 | `size.statusLine.query` | 26 (28) (+ 위 선 1) | Chromite 결정 | `Chromite.size.queryStatusLine.height`. 칸의 위아래 여백은 글자 줄 높이로 계산한다(칸이 줄보다 높아지지 않게) |
-| `size.control` | 28 | [T `Button.minimumSize` 72,28, `TextField.minimumSize`, `ComboBox.minimumSize`] | 글자 줄 17 + 위 5·아래 4 + 테두리 2: `@componentMargin = 5,8,4,8`(입력·콤보·스피너), `Button.margin = 5,14,4,14` |
+| `size.control` | 28 | [T `Button.minimumSize` 72,28, `TextField.minimumSize`, `ComboBox.minimumSize`] | 글자 줄 15(12px) + 위 6·아래 5 + 테두리 2: `@componentMargin = 6,8,5,8`(입력·콤보·스피너), `Button.margin = 6,14,5,14`. 13px일 때는 글자 줄 17 + 위 5·아래 4 |
 | `size.button.minWidth` | 72 | [T] | `Button.minimumWidth = 72` |
-| `size.actionButton` | 24 (26) | [S] | `Button.toolbar.margin = 4,4,4,4` (16 + 8). 글자 단추(새 쿼리, 실행)는 글자 줄(17)이 아이콘(16)보다 1 높아 위 여백을 1 줄인다(`UiIcons.createToolButton`) |
+| `size.actionButton` | 24 (26) | [S] | `Button.toolbar.margin = 4,4,4,4` (16 + 8). 글자 단추(새 쿼리, 실행)는 글자 줄이 아이콘(16)보다 높으면 그만큼 위 여백을 줄인다(`UiIcons.createToolButton`). 12px 글자 줄(15)은 아이콘보다 낮아 줄이지 않는다(13px일 때 17이라 1 줄였다) |
 | `size.arrowArea` | 28 | [T `Component.arrowAreaWidth`] | 콤보 화살표 단추 폭 |
 | `size.icon` | 16 | [I] | — |
 | `size.icon.large` | 20 | [J] New UI 주 도구 막대·띠 아이콘 20 | 나중(주 도구 막대 큰 아이콘) |
@@ -386,11 +386,11 @@ FlatLaf 키와, Chromite 컴포넌트가 `UiSizes`로 읽는 `Chromite.size.*` �
 
 | 토큰 | 값 | 쓰는 곳 | FlatLaf |
 |---|---|---|---|
-| `font.ui` | Pretendard 13 보통 (2026-11-07 전: Inter 13) | 모든 UI | `defaultFont = 13 Pretendard` (+ Pretendard에 없는 글자를 위해 합성 글꼴) |
-| `font.ui.semibold` | Pretendard 13 SemiBold | 도구 창 제목, 섹션 제목, Properties 분류 | `semibold.font = "Pretendard SemiBold"`, 스타일 클래스 `semibold` |
-| `font.ui.small` | Pretendard 12 | 팝업 안내 줄, 배지 | 스타일 클래스 `small`(FlatLaf `@smallScale`이 아니라 −1px로 맞춤) |
-| `font.title` | Pretendard 15 semibold | 대화상자 머리말, 시작 탭 제목 | 스타일 클래스 `h3` 크기 조정 |
-| `font.code` | JetBrains Mono 13, 줄 간격 1.2 | 결과 그리드, 메시지 | `monospaced.font` |
+| `font.ui` | Pretendard 12 보통 (2026-11-07 전: Inter 13, 2026-11-07 Pretendard 13 → 12) | 모든 UI | `defaultFont = 12 Pretendard` (+ Pretendard에 없는 글자를 위해 합성 글꼴) |
+| `font.ui.semibold` | Pretendard 12 SemiBold | 도구 창 제목, 섹션 제목, Properties 분류 | `semibold.font = "Pretendard SemiBold"`, 스타일 클래스 `semibold` |
+| `font.ui.small` | Pretendard 10 | 팝업 안내 줄, 배지 | 스타일 클래스 `small`: FlatLaf 기본 `small.font = -2`(`font.ui` − 2px; 13일 때 11로 측정. 이전에 적은 "−1px로 맞춤"은 구현과 달랐다) |
+| `font.title` | Pretendard 15 semibold | 대화상자 머리말, 시작 탭 제목 | 스타일 클래스 `h3`: FlatLaf 기본 `h3.font = +3 $semibold.font`(`font.ui` + 3px; 13일 때 16) |
+| `font.code` | JetBrains Mono 12, 줄 간격 1.2 | 결과 그리드, 메시지 | `monospaced.font`(크기를 적지 않아 `defaultFont` 크기를 따른다: 2026-11-07 12) |
 | `font.editor` | Cascadia Mono 13(Options에서 바꿀 수 있음) | SQL 편집기, 줄 번호, DDL 탭 | `EditorFont`(2026-11-06, "편집기 글꼴과 SQL 색") |
 
 Pretendard(1.3.9, 번들 `fonts/pretendard`), Inter, JetBrains Mono는 SIL Open Font License 1.1이다. FlatLaf가 Inter와 JetBrains Mono를 별도 jar(`flatlaf-fonts-inter`, `flatlaf-fonts-jetbrains-mono`)로 낸다.
@@ -829,6 +829,55 @@ Windows 11, 화면 배율 150%, JBR 25, 작업 공간 사본 `D:\Tools\_smoke\sw
 - 캡처: `D:\Tools\_scratch\ui-pretendard-density\run\shots\`(before-·after- × ko·en × light·dark: 주 창, 파일 메뉴, 트리 메뉴, 연결 대화상자),
   전후 비교 `D:\Tools\_scratch\ui-pretendard-density\pair-*.png`.
 
+### 적용 현황 — UI 글꼴 12 (2026-11-07)
+
+사용자 요청(2026-11-07): "앱 기본 폰트 사이즈를 한단계 줄인다". UI 글꼴을 Pretendard 13에서 **12**로 줄였다. 밀도 B의 목표 높이는 그대로다.
+SQL 편집기 글꼴(`font.editor`, `EditorFont` 기본 13)은 따로 정해진 크기라 바뀌지 않는다.
+
+| 파일 | 변경 |
+|---|---|
+| `ChromiteLightLaf.properties`, `ChromiteDarkLaf.properties` | `defaultFont = 12 Pretendard`. 글자 줄이 17 → 15로 낮아져 `@componentMargin = 6,8,5,8`, `Button.margin = 6,14,5,14`(컨트롤 28), `@menuItemMargin = 3,8,3,8`(메뉴 항목 22) |
+| `UiIcons` | 글자 도구 막대 단추의 여백 주석(12px 글자 줄 15는 아이콘 16보다 낮아 위 여백을 줄이지 않는다). 코드는 글자 줄 높이로 계산하므로 그대로 |
+| `UiFont` | Javadoc의 크기 |
+
+글꼴 크기에서 따라 바뀌는 것(FlatLaf 상대 크기, 측정):
+`semibold.font`(Pretendard SemiBold 12), `small` 10(−2), `medium` 11, `h3` 15(+3), `h4` 12 굵게,
+`monospaced.font` = JetBrains Mono **12**(크기를 적지 않아 `defaultFont` 크기를 따른다. 결과 그리드·Messages·필터 막대·값 패널·오류 상세 등 `monospaced` 스타일 클래스를 쓰는 곳 모두).
+글자 줄 높이로 크기를 계산하는 코드(`QueryStatusLine` 칸 여백, `UiIcons.createToolButton`, 트리·목록의 보조 글자, `DashboardChart`)는 값을 고정하지 않아 그대로 맞는다.
+
+측정(Windows 11, 150%, 창 1280×800 논리, 사설 작업 공간, EDT 에이전트로 컴포넌트 높이를 읽음; 한국어·`-nl en`, 라이트·다크에서 같음):
+
+| 항목 | 전(Pretendard 13) | 후(Pretendard 12) | 토큰 |
+|---|---|---|---|
+| UI 글꼴 한 줄(`FontMetrics.getHeight`) | 17(위 13 아래 4) | 15(위 12 아래 3) | — |
+| `font.code` 한 줄 | 18(JetBrains Mono 13) | 17(JetBrains Mono 12) | — |
+| 주 도구 막대 / 단추(아이콘·글자) | 32 / 24·24 | 32 / 24·24 | 32 / 24 |
+| 도구 창 머리말 / 도구 막대 | 35 / 28 | 35 / 28 | 34 + 1 / 28 |
+| 트리 행 | 22 | 22 | 22 |
+| 문서 탭 / 결과 탭 | 36 / 28 | 36 / 28 | 36 / 28 |
+| 편집기 도구 막대(콤보), 테이블 디자이너 도구 막대 | 32(28), 32 | 32(28), 32 | 32 |
+| "실제 계획" 글자 토글 | 25 | 24 | (24) |
+| 그리드 행 / 머리글, 테이블 디자이너 행 / 머리글 | 24 / 26 | 24 / 26 | 24 / 26 |
+| 쿼리 상태 줄(칸) | 27(26) | 27(26) | 26 + 1 |
+| Properties 행 | 22 | 22 | 22 |
+| 상태 표시줄 | 26 | 26 | 26 |
+| 메뉴 항목(파일 메뉴, 트리 메뉴) | 22 | 22 | 22 |
+| 입력·콤보·단추·스피너(연결 대화상자, 옵션) | 28 | 28 | 28 |
+| 아이콘이 있는 콤보(연결 대화상자 "데이터베이스 유형")와 같은 줄의 "드라이버 편집…" | 28 | **29** | 28 |
+| 필터 막대(고정폭 콤보) | 33(29) | 34(30) | 시안 32 |
+| 확인란 | 21 | 19 | — |
+
+- 글꼴만 줄이면(여백 그대로) 컨트롤 26, 메뉴 항목 21, 편집기 도구 막대 30이 되어 목표보다 낮았다(실행 중 `FlatLaf.setGlobalExtraDefaults`로 미리 측정).
+  컨트롤은 위아래 여백을 1씩 늘려 28. 메뉴 항목은 글자 줄(15)보다 아이콘 칸(16)이 높이를 정하므로 위아래 3으로 22다(글자가 행 가운데 온다).
+- **1px 차이(그대로 둠)**: 항목에 16px 아이콘을 그리는 콤보는 내용 높이가 글자 줄(15)이 아니라 아이콘(16)이라 29다(13px일 때는 글자 줄 17이 더 높아 28).
+  연결 대화상자의 "데이터베이스 유형" 한 줄이 그렇다(같은 줄 단추도 29로 늘어남). 여백을 줄이면 글자만 있는 콤보·입력이 27이 되므로 공통 여백은 글자 기준으로 두었다.
+  쿼리 창 도구 막대의 연결·데이터베이스 콤보는 만들 때 높이를 고정해(`SqlEditorPanel.setFixedWidth`) 28이다.
+- 필터 막대는 고정폭 글꼴(한 줄 17)이라 콤보가 30, 막대가 34다(전 33). 목표보다 낮지 않아 그대로 두었다. 필터 막대는 열 머리글 필터로 바꿀 예정이다(사용자 요청, 2026-11-07).
+- `small`(10)은 About 저작권 줄, 시작 화면 단축키, Properties 유형, 권한 대화상자 안내에 쓴다. 150%에서 15px로 읽을 수 있어 따로 키우지 않았다.
+- 잘림: 주 창(트리, 쿼리, 결과), 파일·트리 메뉴, 연결 대화상자, 옵션, 테이블 디자이너를 한국어·영어, 라이트·다크로 캡처해 잘린 글자가 없음을 확인했다.
+- 캡처: `D:\Tools\_scratch\ui-font-12\run\shots\`(before-·after- × ko·en × light·dark: main, menu-file, menu-tree, connect, options, designer),
+  전후 비교 `D:\Tools\_scratch\ui-font-12\pairs\`.
+
 ### Swing/FlatLaf로 못 한 것과 이유
 
 | 항목 | 이유 | 대신 한 것 |
@@ -865,6 +914,8 @@ Windows 11, 화면 배율 150%, JBR 25, 작업 공간 사본 `D:\Tools\_smoke\sw
   B를 기본으로 하고, DataGrip Compact 수준(C)은 선택으로 남긴다. 치수를 테마 키 한곳에 모아 C가 값 교체로 끝나게 했다.
 - **UI 글꼴 Pretendard**(2026-11-07 사용자 결정): Inter + 맑은 고딕 대체는 한글과 라틴 글자의 굵기·크기·기준선이 달랐다. Pretendard는
   한글과 라틴 글자를 한 글꼴로 맞춰 그린다(라틴 글자는 Inter 기반). 13px 한 줄 높이는 17로 Inter(JBR)와 같다.
+- **UI 글꼴 12**(2026-11-07 사용자 요청 "앱 기본 폰트 사이즈를 한단계 줄인다"): 밀도 B의 행·막대 높이는 그대로 두고 글자만 줄인다.
+  높이가 고정된 곳(트리·그리드·Properties 행, 탭, 머리말, 상태 표시줄)은 값이 그대로이고, 글자 줄에서 높이가 정해지는 컨트롤·메뉴 항목만 여백을 늘려 28·22에 맞췄다.
 
 ## 적용 순서 (제안)
 
@@ -928,4 +979,7 @@ Windows 11, 화면 배율 150%, JBR 25, 작업 공간 사본 `D:\Tools\_smoke\sw
 - 2026-11-06 도구 막대 확장(사용자 결정 "가"): 주 도구 막대(2절)와 쿼리 창 도구 막대(7절)의 목표 구성을 SSMS Standard·SQL Editor 배치로 바꾸고 적용 현황 9·11행, 아이콘 팩 파일 수(61 → 74) 갱신.
 - 2026-11-07 UI 글꼴 Pretendard 13과 기본 밀도 B(사용자 결정): 글꼴 토큰, 치수 토큰(B 값, 처음 값, 촘촘한 모드 C 값과 바꾸는 방법),
   14절 표, 설계 결정, 미룬 결정 갱신. "적용 현황 — Pretendard와 밀도 B" 절(바뀐 파일, 전후 측정) 추가.
+- 2026-11-07 UI 글꼴 12(사용자 요청 "앱 기본 폰트 사이즈를 한단계 줄인다"): `font.ui` 13 → 12, 컨트롤·메뉴 여백을 다시 맞춤(밀도 B 높이 유지).
+  글꼴 토큰(`font.ui.small`·`font.title`을 FlatLaf 상대 크기 실측으로 고침, `font.code`가 `defaultFont` 크기를 따름), 치수 토큰, 14절 표, 설계 결정 갱신.
+  "적용 현황 — UI 글꼴 12" 절(전후 측정, 1px 차이 항목) 추가.
 - 2026-11-07 Islands 색 표에 테이블 저장 방식 글자색 토큰(`Chromite.Tree.storage*Foreground`) 추가([altibase.md](altibase.md)).
