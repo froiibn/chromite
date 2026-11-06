@@ -90,6 +90,8 @@ import java.util.function.Consumer;
  *
  * 변경 이력:
  * - 2026-11-06 최초 작성: 값 패널, 정렬·필터, 다음 페이지, 레코드 보기, 복사 형식, 열 너비 맞춤, 선택 집계 (docs/chromite/swing-result-viewer.md)
+ * - 2026-11-06 데이터 전송과 합침: 다시 읽은 결과(정렬·필터·다음 페이지)도 Export Data…의 쿼리({@link ResultSetGrid.Fetched#exportQuery()})를 이어받음
+ *   (docs/chromite/swing-result-viewer.md)
  */
 final class ResultSetViewerPanel extends JPanel {
 
@@ -1092,7 +1094,10 @@ final class ResultSetViewerPanel extends JPanel {
         });
     }
 
-    private void applyRequery(@NotNull ResultSetGrid.Fetched newFetched, @NotNull DBDDataFilter filter) {
+    private void applyRequery(@NotNull ResultSetGrid.Fetched requeried, @NotNull DBDDataFilter filter) {
+        // The re-read keeps the query of the first result, so "Export Data…" stays available (it runs the query without the filter)
+        DBSDataContainer exportQuery = fetched.exportQuery();
+        ResultSetGrid.Fetched newFetched = exportQuery == null ? requeried : requeried.withExportQuery(exportQuery);
         releaseContents(fetched.source().cellValues());
         fetched = newFetched;
         ordinals = sequence(newFetched.data().rows().size());
@@ -1292,7 +1297,7 @@ final class ResultSetViewerPanel extends JPanel {
             : new ResultSetEditModel(oldModel.getExecutionContext(), oldModel.getDataContainer(), old.bindings(), unreadable, values, display);
         ResultSetSource newSource = new ResultSetSource(source.dataContainer(), source.context(), source.segmentSize(),
             source.requeryBlocker(), unreadable, List.copyOf(cells));
-        fetched = new ResultSetGrid.Fetched(data, editModel, fetched.readOnlyReason(), newSource);
+        fetched = new ResultSetGrid.Fetched(data, editModel, fetched.readOnlyReason(), newSource, fetched.exportQuery());
         ordinals = newOrdinals;
         installGrid(new ResultSetGrid(fetched, gridHost), keepView);
         host.editStateChanged();

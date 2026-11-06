@@ -129,6 +129,9 @@ SWT: 결과 뷰어의 레코드 모드(`ResultSetViewer.toggleMode`).
   표의 실제 렌더러로 머리글과 5,000행까지 재어 최대 900px로 맞춘다(처음 너비는 C단계 규칙: 200행, 최대 320px).
 - **Copy As:** CSV(RFC 4180 따옴표), TSV(머리글 포함, 탭·줄바꿈은 공백), Markdown 표(숫자 열 오른쪽 정렬), SQL IN 목록(중복 없이, 숫자는 그대로, 글자는 방언의 따옴표).
   파일 내보내기(`ResultSetExport`, CSV·XLSX)는 바꾸지 않았다.
+- **Export Data…(데이터 전송, [swing-data-transfer.md](swing-data-transfer.md)):** 정렬·필터·다음 페이지로 다시 읽은 결과도 처음 결과의
+  다시 실행할 쿼리(`ResultSetGrid.Fetched#exportQuery`)를 이어받아 메뉴가 켜진 채로 남는다. 내보내기는 그 쿼리를 필터·정렬 없이 다시 실행해 모든 행을 쓴다.
+  지금 필터·서버 정렬을 내보내기에 넘기려면(`DatabaseTransferProducer(컨테이너, DBDDataFilter)`) 마법사와 표의 메뉴에 필터를 넘기는 길이 더 필요해 남겼다(아래 "남긴 것").
 - **선택 집계:** 칸을 둘 이상 고르면 상태 줄 오른쪽에 `Count: 6   Sum: …   Avg: …   Min: …   Max: …`. 모델 계층의 집계 함수(`FunctionSum`, `FunctionAvg`, `FunctionMin`, `FunctionMax`,
   SWT `AggregateColumnsPanel`(panel/aggregate/AggregateColumnsPanel.java:60)이 쓰는 것)를 쓰고 숫자 값만 넣는다. 선택이 바뀌고 100ms 뒤에 계산한다(SWT `ResultSetStatListener`와 같은 지연).
 - **NULL 표시:** C단계 그대로 `NULL`을 보조 글자색으로 그린다(문자열 "NULL"과 구분). 레코드 보기와 값 패널도 같다.
@@ -168,7 +171,9 @@ SWT: 결과 뷰어의 레코드 모드(`ResultSetViewer.toggleMode`).
 - 열 고정(freeze), 열 숨기기·순서 바꾸기, 행 수 세기(SWT "Calculate total row count"), 저장한 필터, 필터 편집 대화상자, 자동완성되는 필터 입력.
 - LOB·JSON 열 편집(값 패널에서도 읽기 전용), 파일로 저장·파일에서 불러오기, 이진 값 형식 바꾸기(SWT의 Binary format 메뉴).
 - 결과 안 찾기(SWT Find/Replace), 그룹·참조 패널, 메타데이터 패널.
+- Export Data…에 지금 필터·서버 정렬 적용(지금은 원래 쿼리의 모든 행을 내보냄).
 
 ## 변경 이력
 
 - 2026-11-06 최초 작성: 값 패널, 정렬·필터·기록·칸 값 거르기, 다음 페이지·모두 읽기, 레코드 보기, 열 너비 맞춤, Copy As, 선택 집계.
+- 2026-11-06 데이터 전송과 합침: `ResultSetGrid.Fetched`에 두 기능의 항목(`source`, `exportQuery`)을 함께 두고, 다시 읽은 결과도 Export Data…의 쿼리를 이어받음.
