@@ -68,6 +68,7 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.IntConsumer;
+import java.util.function.Supplier;
 
 /**
  * Chromite Swing 메인 창 (SSMS식 배치).
@@ -173,6 +174,8 @@ import java.util.function.IntConsumer;
  * - 2026-11-07 밀도 B: 치수를 테마의 Chromite.size.* 키({@link UiSizes})에서 읽음 (docs/chromite/design-spec.md "치수 토큰")
  * - 2026-11-07 서버 대시보드: Tools &gt; Server Dashboard(Activity Monitor의 개요 탭) (docs/chromite/swing-dashboard.md)
  * - 2026-11-07 Tools &gt; Driver Manager… ({@link DriverManagerDialog}) (docs/chromite/swing-driver-manager.md)
+ * - 2026-11-07 자동 업데이트: 제목 표시줄 단추와 상태 표시줄 진행({@link UpdateUi}), 끝낼 때 커밋하지 않은 트랜잭션을 묻기
+ *   ({@link ExitTransactionCheck}) (docs/chromite/auto-update.md)
  * - 2026-11-07 Object Explorer·Properties의 기본 위치에 같은 열의 이웃(Registered Servers 위, Query Library 아래)을 둠 (docs/chromite/swing-frontend.md "Query Library 자리")
  * - 2026-11-07 Results 기본 높이 220 → 280(사용자 결정), {@link #DEFAULT_RESULTS_HEIGHT} (docs/chromite/swing-frontend.md "Results 자동 숨김")
  * - 2026-11-07 도구 막대 두 줄(사용자 결정): SQL Editor 도구 막대 {@link SqlEditorToolBar}를 Standard 아래에 두고 활성 쿼리 창을 따름,
@@ -181,6 +184,9 @@ import java.util.function.IntConsumer;
  * - 2026-11-07 쿼리 창이 활성이 되면 쿼리 상태 줄의 커밋 방식을 다시 읽음 (docs/chromite/swing-frontend.md "자동 커밋 상태")
  * - 2026-11-07 테마를 바꾼 뒤 문서 탭을 모두 닫고 새로 열면 탭 영역이 깨지던 문제: 빈 화면 전환을 컨테이너 리스너 대신
  *   {@link EditorTabbedPane}의 탭 추가·삭제가 끝난 뒤에 함 (docs/chromite/swing-frontend.md "빈 문서 영역")
+ * - 2026-11-07 제목 표시줄 가운데의 창 제목("Chromite")을 그리지 않음(사용자 결정, 작업 표시줄·Alt+Tab 이름은 그대로)
+ *   (docs/chromite/swing-frontend.md "제목 표시줄")
+ * - 2026-11-07 열쇠로 찾아 여는 도구 문서 탭 {@link #openToolDocument}(SQL Server 에이전트 작업 활동·기록·로그) (docs/chromite/swing-sqlserver-agent.md)
  */
 final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplorerPanel.QueryWindows, TableDesignerPanel.Host, QueryLibraryPanel.Host {
 
@@ -204,6 +210,10 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
      * Client property of a query window whose results the user hid; kept on the editor so the choice lives and dies with it.
      */
     private static final String RESULTS_HIDDEN_KEY = "chromite.resultsHidden"; //$NON-NLS-1$
+    /**
+     * Client property of a document tab opened with {@link #openToolDocument}: its key.
+     */
+    private static final String TOOL_DOCUMENT_KEY = "chromite.toolDocumentKey"; //$NON-NLS-1$
     private static final String DOCUMENTS_CARD = "documents"; //$NON-NLS-1$
     private static final String WELCOME_CARD = "welcome"; //$NON-NLS-1$
     private static final int RESULTS_TAB = 0;
@@ -274,6 +284,9 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
     MainFrame(@NotNull String title, @NotNull String statusText) {
         super(title);
         setIconImages(ChromiteIcons.getWindowIcons());
+        // The title stays the window's name for the taskbar and Alt+Tab, but the title bar does not paint it (user
+        // decision 2026-11-07); dialogs keep their titles because this is set on the main window only
+        getRootPane().putClientProperty(FlatClientProperties.TITLE_BAR_SHOW_TITLE, false);
         // Closing asks to save modified query windows first (requestExit)
         setDefaultCloseOperation(WindowConstants.DO_NOTHING_ON_CLOSE);
 
@@ -472,6 +485,7 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
         content.add(toolWindowDocking.getComponent(), BorderLayout.CENTER);
         statusBar = new StatusBar(statusText);
         content.add(statusBar, BorderLayout.SOUTH);
+        UpdateUi.install(this, statusBar);
         setContentPane(content);
         for (DBPProject project : DBWorkbench.getPlatform().getWorkspace().getProjects()) {
             DBPDataSourceRegistry registry = project.getDataSourceRegistry();
@@ -731,6 +745,22 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
             toolWindows.get(0).setShown(true);
             explorerPanel.revealNode(node);
         }));
+    }
+
+    @NotNull
+    @Override
+    public ToolDocument openToolDocument(@NotNull String key, @NotNull Supplier<ToolDocument> factory) {
+        for (int i = 0; i < documentTabs.getTabCount(); i++) {
+            if (documentTabs.getComponentAt(i) instanceof ToolDocument document
+                && key.equals(((JComponent) document).getClientProperty(TOOL_DOCUMENT_KEY))) {
+                documentTabs.setSelectedIndex(i);
+                return document;
+            }
+        }
+        ToolDocument document = factory.get();
+        ((JComponent) document).putClientProperty(TOOL_DOCUMENT_KEY, key);
+        addToolDocument(document);
+        return document;
     }
 
     private void addToolDocument(@NotNull ToolDocument document) {
@@ -1060,8 +1090,9 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
     }
 
     /**
-     * Window closing and File > Exit: asks to save the modified query windows and the unsaved changes of their
-     * result grids (SSMS lists them in one question), then closes the window.
+     * Window closing, File > Exit and an update's [Restart now]: asks to save the modified query windows and the unsaved
+     * changes of their result grids (SSMS lists them in one question), then what to do with uncommitted transactions
+     * ({@link ExitTransactionCheck}), then closes the window.
      */
     private void requestExit() {
         // Table designers ask one by one: saving shows each change script
@@ -1111,6 +1142,10 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
             } else if (answer != 1) {
                 return;
             }
+        }
+        // Closing ends every session: open transactions are committed or rolled back only as the user says
+        if (!ExitTransactionCheck.confirm(this)) {
+            return;
         }
         dispose();
     }

@@ -20,6 +20,7 @@ import com.formdev.flatlaf.FlatClientProperties;
 import com.formdev.flatlaf.ui.FlatUIUtils;
 import com.formdev.flatlaf.util.UIScale;
 import com.seizia.chromite.model.admin.security.SecurityPrincipal;
+import com.seizia.chromite.ui.swing.internal.AgentMessages;
 import com.seizia.chromite.ui.swing.internal.BackupRestoreMessages;
 import com.seizia.chromite.ui.swing.internal.CoreMessages;
 import com.seizia.chromite.ui.swing.internal.DashboardMessages;
@@ -91,6 +92,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
+import java.util.function.Supplier;
 
 /**
  * Object Explorer: 활성 프로젝트의 연결과 DB 객체를 보여 주는 트리.
@@ -148,6 +150,8 @@ import java.util.function.Consumer;
  *     <li>Tasks &gt; Back Up… / Restore…(SSMS 데이터베이스 Tasks 메뉴): 데이터베이스 백업·복원({@link BackupRestoreCommands}).</li>
  *     <li>보안({@link SecurityCommands}): 로그인·사용자·역할의 Properties와 Delete, Logins·Roles·Users 폴더의 New Login/Role/User…,
  *     테이블·뷰·시퀀스·루틴의 Permissions…</li>
+ *     <li>SQL Server 에이전트({@link AgentCommands}): 에이전트 노드·폴더·작업·경고·운영자의 명령(그 노드에서만 보임), 작업·경고·운영자의
+ *     Properties와 Delete, 두 번 클릭으로 작업 활동 모니터·에이전트 로그·속성 열기, 에이전트 노드의 서비스 상태 보조 글자.</li>
  * </ul>
  *
  * 변경 이력:
@@ -185,6 +189,8 @@ import java.util.function.Consumer;
  * - 2026-11-07 서버 대시보드: Server Dashboard 메뉴(Activity Monitor의 개요 탭) (docs/chromite/swing-dashboard.md)
  * - 2026-11-07 도구 막대를 {@link OverflowToolBar}로: 좁힌 도구 창에서 들어가지 않는 단추는 넘침 메뉴로 (docs/chromite/swing-frontend.md "도구 창 최소 폭")
  * - 2026-11-07 테이블 저장 방식(메모리/디스크/휘발성) 글자색과 툴팁({@link TableStorageStyle}) (docs/chromite/altibase.md)
+ * - 2026-11-07 SQL Server 에이전트: 에이전트 메뉴 항목, Properties·Delete 갈래, 두 번 클릭, 보조 글자, 도구 문서 열기
+ *   ({@link QueryWindows#openToolDocument}) (docs/chromite/swing-sqlserver-agent.md)
  */
 final class ObjectExplorerPanel extends JPanel {
 
@@ -252,6 +258,14 @@ final class ObjectExplorerPanel extends JPanel {
          * @param refreshNode node read again from the database after each run of the window (the object, or the folder)
          */
         void openSourceScript(@NotNull DBPDataSourceContainer dataSource, @NotNull String script, @NotNull DBNDatabaseNode refreshNode);
+
+        /**
+         * Shows the document tab with a key, creating it first if none is open (SQL Server Agent job activity, history, log).
+         *
+         * @return the open or created document
+         */
+        @NotNull
+        ToolDocument openToolDocument(@NotNull String key, @NotNull Supplier<ToolDocument> factory);
     }
 
     private final DefaultTreeModel treeModel;
@@ -295,6 +309,7 @@ final class ObjectExplorerPanel extends JPanel {
     private final Action importDataAction;
     private final Action exportDataAction;
     private final SourceEditCommands sourceEditCommands;
+    private final AgentCommands agentCommands;
     private final Action backUpAction;
     private final Action restoreAction;
     private final Action copyTablesAction;
@@ -424,9 +439,12 @@ final class ObjectExplorerPanel extends JPanel {
             }
         });
         viewDiagramAction.putValue(Action.SHORT_DESCRIPTION, ErdMessages.erd_view_diagram_tip);
+        agentCommands = new AgentCommands(this::getSelectedNavigatorNode, this, queryWindows);
         principalPropertiesAction = createAction(SecurityMessages.security_properties, () -> {
             DBSObject object = getSelectedObject();
-            if (object != null) {
+            if (AgentCommands.canOpenProperties(getSelectedNavigatorNode())) {
+                agentCommands.openProperties(getSelectedNavigatorNode());
+            } else if (object != null) {
                 SecurityCommands.openProperties(this, object, queryWindows);
             }
         });
@@ -528,6 +546,8 @@ final class ObjectExplorerPanel extends JPanel {
                 ConnectionCommands.delete(this, node.getDataSourceContainer());
             } else if (SecurityCommands.canOpenProperties(getSelectedObject())) {
                 SecurityCommands.deletePrincipal(this, getSelectedObject(), queryWindows);
+            } else if (AgentCommands.canDelete(getSelectedNavigatorNode())) {
+                agentCommands.delete(getSelectedNavigatorNode());
             }
         });
         deleteAction.putValue(Action.ACCELERATOR_KEY, KeyStroke.getKeyStroke(KeyEvent.VK_DELETE, 0));
@@ -563,6 +583,7 @@ final class ObjectExplorerPanel extends JPanel {
         popupMenu.add(sourceEditCommands.getNewProcedureAction());
         popupMenu.add(sourceEditCommands.getNewFunctionAction());
         popupMenu.add(newPrincipalAction);
+        agentCommands.addTo(popupMenu);
         popupMenu.add(designAction);
         popupMenu.add(sourceEditCommands.getModifyAction());
         popupMenu.add(objectPermissionsAction);
@@ -615,6 +636,14 @@ final class ObjectExplorerPanel extends JPanel {
                     } else {
                         tree.clearSelection();
                     }
+                }
+            }
+
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                // SQL Server Agent leaves open on double click (job activity, agent log, job properties)
+                if (e.getClickCount() == 2 && SwingUtilities.isLeftMouseButton(e)) {
+                    agentCommands.openDefault(getSelectedNavigatorNode());
                 }
             }
         });
@@ -794,8 +823,11 @@ final class ObjectExplorerPanel extends JPanel {
         editConnectionAction.setEnabled(connectionNode);
         renameAction.setEnabled(connectionNode);
         boolean principal = SecurityCommands.canOpenProperties(object);
-        deleteAction.setEnabled(connectionNode || principal);
-        principalPropertiesAction.setEnabled(principal);
+        boolean agentObject = AgentCommands.canDelete(getSelectedNavigatorNode());
+        deleteAction.setEnabled(connectionNode || principal || agentObject);
+        principalPropertiesAction.setEnabled(principal || agentObject);
+        principalPropertiesAction.putValue(Action.SHORT_DESCRIPTION, agentObject ? AgentMessages.agent_properties_tip : SecurityMessages.security_properties_tip);
+        agentCommands.update(getSelectedNavigatorNode());
         SecurityPrincipal.Kind newPrincipalKind = SecurityCommands.getNewPrincipalKind(getSelectedNavigatorNode());
         newPrincipalAction.putValue(Action.NAME, SecurityCommands.getNewPrincipalLabel(newPrincipalKind));
         newPrincipalAction.setEnabled(newPrincipalKind != null);
@@ -1561,6 +1593,11 @@ final class ObjectExplorerPanel extends JPanel {
 
         @Nullable
         private static String getSecondaryText(@NotNull ExplorerNode node, @NotNull DBNNode navigatorNode) {
+            String agentText = AgentCommands.getSecondaryText(navigatorNode);
+            if (agentText != null) {
+                // SQL Server Agent: the service state, or "disabled" for jobs, alerts and operators
+                return agentText;
+            }
             if (navigatorNode instanceof DBNDataSource dataSourceNode) {
                 DBPConnectionConfiguration configuration = dataSourceNode.getDataSourceContainer().getConnectionConfiguration();
                 String host = configuration.getHostName();

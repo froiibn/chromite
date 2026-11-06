@@ -2354,6 +2354,14 @@ SQL Editor 도구 막대다. 쿼리 창마다 있던 도구 막대는 없앴다(
   같은 방법으로 넣은 저장 프로시저는 "저장 프로시저" 아래에 붙는다.
   Swing "새 함수…"(New Function…) 템플릿을 실행한 뒤에도 `NewFunction`은 "함수"(Functions) 아래에 "Returns int", `@Param1`과 함께 보인다(영어).
 
+## 제목 표시줄 (2026-11-07)
+
+사용자 결정(2026-11-07): "화면 제목표시줄 가운데 chromite 문구는 안보이게 제거하라". 주 창의 FlatLaf 제목 표시줄은 창 제목을 그리지 않는다
+(`JRootPane`의 `FlatClientProperties.TITLE_BAR_SHOW_TITLE = false`, `MainFrame` 생성자).
+
+- 창 제목 자체("Chromite")는 그대로 둔다. Windows 작업 표시줄, Alt+Tab, macOS 창 메뉴는 이 이름을 쓴다.
+- 주 창에만 건다. 테마 전체 설정(`TitlePane.showTitle`)으로 끄면 대화상자 제목까지 사라진다.
+
 ## 변경 이력
 
 - 2026-11-06 최초 작성. Swing 전환 결정, 구조, 재사용 분석, MVP 범위, F5 실행 사양을 정리.
@@ -2442,6 +2450,7 @@ SQL Editor 도구 막대다. 쿼리 창마다 있던 도구 막대는 없앴다(
 - 2026-11-07 드라이버 관리자: Tools > Driver Manager…, Connect 대화상자의 Edit Driver…(드라이버 만들기·편집, 로컬 jar·폴더 라이브러리, 오프라인 모드). [swing-driver-manager.md](swing-driver-manager.md).
 - 2026-11-07 SWT 프런트엔드 삭제([swt-removal.md](swt-removal.md)): 목적 절에 안내, 식별자 표(피처가 `licenses/`를 넣음, 실행 파일 이름을 유지하는 이유), 기능 공백·설정 저장 위치 설명 갱신.
 - 2026-11-07 테마 전환 뒤 SQL 편집기·값 패널 세로 스크롤바 트랙이 옛 테마 색으로 남던 문제: `ChromiteScrollBarUI`가 뷰 바탕색 변경을 듣고 다시 그린다. "테마" 절.
+- 2026-11-07 자동 업데이트: 제목 표시줄의 "새 버전 X · 다시 시작" 단추, 상태 표시줄의 받기 진행, Tools > Options > Updates, 끝낼 때 커밋하지 않은 트랜잭션 질문. [auto-update.md](auto-update.md).
 - 2026-11-07 도구 창 최소 폭: 카드 최소 폭을 머리말(단추 + 제목 첫 글자와 말줄임표)이 정하고 내용은 최소 폭을 갖지 않음(Properties가 일정 폭 이하로 줄지 않던 문제),
   도구 창 도구 막대를 `OverflowToolBar`로. "도구 창 도킹 — 도구 창 최소 폭" 절.
 - 2026-11-07 Query Library 자리: 한 열의 두 도구 창(Query Library·Properties, Object Explorer·Registered Servers)이 서로를 기본 이웃으로 두고,
@@ -2454,3 +2463,6 @@ SQL Editor 도구 막대다. 쿼리 창마다 있던 도구 막대는 없앴다(
   설정을 바꾸면 열린 세션에도 적용(커밋하지 않은 변경은 커밋/롤백/취소를 물음). "자동 커밋 상태" 절 추가.
 - 2026-11-07 테마를 바꾼 뒤 문서 탭을 모두 닫고 새로 열면 문서 탭이 `ArrayIndexOutOfBoundsException`으로 깨지던 문제 수정:
   빈 화면 전환을 컨테이너 리스너 대신 탭 추가·삭제가 끝난 뒤에. "빈 문서 영역" 절에 원인과 설계.
+- 2026-11-07 주 창 제목 표시줄 가운데의 "Chromite"를 그리지 않음(사용자 결정). "제목 표시줄" 절.
+- 2026-11-07 SQL Server 에이전트 관리: 개체 탐색기의 에이전트 노드, 작업·작업 활동 모니터·경고·운영자·오류 로그. [swing-sqlserver-agent.md](swing-sqlserver-agent.md).
+- 2026-11-07 실행 계획 세 보기: 계획 탭에 그래픽(연산자 그림)·트리·원본 보기 전환. [swing-sql-editor-plus.md](swing-sql-editor-plus.md) "실행 계획 세 보기".
