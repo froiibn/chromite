@@ -103,6 +103,27 @@ Connection Properties | SSH ✓ | SSL | Proxy | Driver Properties | Provider Pro
 - Test Tunnel: 폼 값으로 만든 핸들러 설정(변수 풀기, DB 없음)으로 모델의 `SSHTunnelImpl`을 진행 대화상자에서 열었다 닫고 SSH 클라이언트·서버 버전을 보인다
   (`testTunnelConnection`과 같음). 저장하지 않는 비밀번호도 시험에는 쓴다.
 
+### SSH 터널의 로컬 주소 (모델 수정)
+
+SSH 시험 직후 Windows 방화벽이 앱(`chromite-swing.exe`)의 네트워크 허용 여부를 묻는 창(`PickerHost.exe FirewallNotificationDialogServer`)을 띄웠다.
+방화벽은 앱이 루프백이 아닌 주소에서 들으려 할 때 묻는다. 원인은 모델 코드 두 곳이다(SWT 제품도 같다).
+
+- **빈 포트 찾기**: `SSHTunnelImpl.loadPortForwardConfiguration`이 SSH 서버에 연결하기 **전에** `SSHUtils.findFreePort` → `IOUtils.findFreePort`
+  (`deps/dbeaver-common`의 `org.jkiss.utils.IOUtils`, 191-207행)를 부르는데, 이 함수는 `new ServerSocket(port)`로 시험한다. 이 생성자는 모든 인터페이스(0.0.0.0)에서 듣는다.
+  그래서 SSH 서버가 없어 연결이 거부되어도 잠깐 0.0.0.0에서 듣고 방화벽 창이 뜬다.
+- **빈 로컬 주소**: 로컬 주소(`localHost`) 설정이 비어 있으면 빈 문자열이 포워더로 간다. SSHJ(`SSHJSession.LocalPortListener`)는 `InetAddress.getByName("")` = 루프백으로 듣지만,
+  JSch는 빈 주소를 0.0.0.0으로 바꾼다(`com.jcraft.jsch.PortWatcher.normalize`, jsch 2.28.7 바이트코드에서 확인: `""`·`"*"` → `"0.0.0.0"`).
+  즉 구현을 JSch로 고른 터널은 다른 컴퓨터에서도 접속할 수 있는 포트를 열었다. 설정 화면의 설명("비우면 127.0.0.1")과도 달랐다.
+
+고친 것(`org.jkiss.dbeaver.net.ssh`, upstream 파일에 Chromite 수정 표시):
+
+- `SSHTunnelImpl.loadPortForwardConfiguration`: 비어 있는 로컬 주소를 `DBConstants.HOST_LOCALHOST_IP`(127.0.0.1)로 바꾼다. 점프 서버 포워드가 이미 쓰는 값과 같다(`AbstractSessionController`).
+- `SSHUtils.findFreePort(localHost)`: 포워더가 들을 주소에서만 `ServerSocket(port, 0, address)`로 시험한다. `IOUtils`(`deps/`)는 고치지 않았다(`deps/`는 수정하지 않는 사본).
+- 확인: 같은 방식으로 연 소켓(`new ServerSocket(0, 0, InetAddress.getByName("127.0.0.1"))`)을 `netstat -ano`로 보면 `TCP 127.0.0.1:54187 … LISTENING`이다.
+  고친 빌드로 앱을 다시 열었을 때 그 프로세스의 LISTENING 줄은 없었다(터널을 열지 않은 상태). 0.0.0.0 쪽 재현은 같은 방화벽 창을 또 띄우므로 하지 않았다
+  (`ServerSocket(int)`이 와일드카드 주소에서 듣는 것은 Java API 동작).
+- 이미 떠 있는 방화벽 창은 사용자가 정할 일이라(허용·취소 모두 방화벽 규칙을 바꿈) 건드리지 않았다.
+
 ### Proxy (`SocksProxyPanel`)
 
 - Proxy host, Port(1080), User name, Password, Remember password(끄면 비밀번호 칸이 꺼짐). 키는 `SocksConstants.PROP_HOST`/`PROP_PORT`, 사용자·비밀번호는 핸들러의 것.
@@ -175,7 +196,7 @@ Connection Properties | SSH ✓ | SSL | Proxy | Driver Properties | Provider Pro
 
 ## upstream 대비 변경점
 
-- upstream 모델·SWT 코드는 바꾸지 않았다. Swing 번들만 바뀌었다.
+- upstream 코드는 SSH 터널의 로컬 주소 두 곳(`SSHTunnelImpl`, `SSHUtils`, 위 절)만 고쳤고 나머지는 Swing 번들만 바뀌었다.
 - SWT와 다른 동작: SQL Server Encrypt를 주 양식에 둠(SWT는 드라이버 속성 표), 연결 색을 쿼리 창 상태 줄에 칠함(SWT는 편집기 탭·탐색기),
   Oracle Custom은 JDBC URL 연결 방식으로 통합, PostgreSQL SSL factory는 직접 입력, 네트워크 프로필 편집 없음.
 
@@ -192,7 +213,7 @@ Windows에서 in-process JVM으로 개인 작업 공간을 열어 로컬 Docker 
   New Query에서 `select @@language` → `British`(연결 직후 SQL 실행 확인). 쿼리 상태 줄과 Object Explorer 연결 노드 바탕이 Test 색(라이트 214,250,207, 다크 64,89,66).
 - **PostgreSQL 17**: SSL 탭 Use SSL + SSL mode require → 서버가 SSL을 지원하지 않는다는 pgjdbc 오류(핸들러가 `sslmode`를 넣음). 편집에서 prefer → Test 성공, 결과에 `Network: SSL`.
   편집 대화상자가 저장된 SSL 설정(켜짐, 모드)을 그대로 읽음. SSH 탭: 호스트 127.0.0.1:2222(듣는 서버 없음)로 Test → `Error establishing SSHJ tunnel: Connection refused`(터널을 거쳐 연결을 시도함).
-- 확인하지 못한 것: 위 SSH 시험 직후 Windows 방화벽 알림 창이 데스크톱 전면을 차지해, 그 뒤의 화면 조작(SSH 설정 저장·다시 열기,
+- 확인하지 못한 것: 위 SSH 시험 직후 Windows 방화벽 알림 창("SSH 터널의 로컬 주소")이 데스크톱 전면을 차지해, 그 뒤의 화면 조작(SSH 설정 저장·다시 열기,
   Proxy 탭, MariaDB SSL, Oracle Basic/TNS 화면, PgPass·NTLM 추가 칸, 바뀌지 않은 편집 저장, 대화상자 다크 화면)은 하지 못했다. 실제 SSH 서버 연결(이미지 없음),
   명명된 인스턴스 연결, Oracle 서버 연결, macOS 실행도 확인하지 못했다.
 
@@ -207,3 +228,4 @@ Windows에서 in-process JVM으로 개인 작업 공간을 열어 로컬 Docker 
 ## 변경 이력
 
 - 2026-11-06 최초 작성: 인증 방식별 칸, 네트워크 핸들러 탭(SSH, Proxy, SSL), SQL Server·Oracle 주 양식 칸, 연결 색, 연결 직후 SQL, Test Connection 결과.
+- 2026-11-06 SSH 터널 로컬 포트를 루프백에서만 열도록 모델 수정(빈 포트 시험과 JSch의 빈 주소가 0.0.0.0에서 들음). "SSH 터널의 로컬 주소" 절 추가.
