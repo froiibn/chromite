@@ -89,6 +89,8 @@ import java.util.concurrent.CountDownLatch;
  * - 2026-11-07 모델 알림 처리기({@link SwingModelNotifications}) 등록: 연결 감시가 시작되기 전에 등록해 유휴 연결 닫힘 등이
  *   메인 창 알림으로 보이게 함 (docs/chromite/idle-transactions.md "모델 알림")
  * - 2026-11-08 저장된 밀도(촘촘한 모드, {@link UiDensity})가 다르면 주 창을 열기 전에 테마를 다시 설치함 (docs/chromite/design-spec.md "적용 현황 — 촘촘한 모드")
+ * - 2026-11-08 macOS: 런처가 첫(AppKit) 스레드에서 부르면 본문({@code run})을 다른 스레드에서 돌리고 첫 스레드는 AppKit 실행 루프를
+ *   돌린다({@link MacOSMainThread}). 첫 스레드가 Swing을 기다려 창이 뜨지 않던 교착 수정 (docs/chromite/platform-startup.md)
  */
 public class ChromiteSwingApplication extends DesktopApplicationImpl {
 
@@ -111,6 +113,15 @@ public class ChromiteSwingApplication extends DesktopApplicationImpl {
     @NotNull
     @Override
     public Object start(IApplicationContext context) throws Exception {
+        if (MacOSMainThread.isAppKitMainThread()) {
+            // macOS: this thread must serve AppKit for AWT, so the application runs on another one (never returns)
+            return MacOSMainThread.runApplication(() -> run(context));
+        }
+        return run(context);
+    }
+
+    @NotNull
+    private Object run(@NotNull IApplicationContext context) throws Exception {
         installLookAndFeel();
 
         // The update helper replaces the installation now: a start would use files being replaced
