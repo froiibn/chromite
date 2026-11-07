@@ -179,6 +179,10 @@ import java.util.concurrent.atomic.AtomicLong;
  *     읽으면 버퍼가 비워지므로 매번 읽는다(Oracle 버퍼 넘침, Altibase 메모리 증가 방지). 경고만 되풀이하는 읽기 도구는 실행 결과 없이 불러
  *     PRINT·NOTICE가 두 번 나오지 않는다(docs/chromite/swing-server-output.md). 문장을 실행하기 전에는
  *     {@link DBCServerOutputReader#syncServerOutput}으로 세션의 서버 쪽 켜짐을 지금 설정에 맞춘다(설정이 세션을 연 뒤 바뀐 경우).</li>
+ *     <li>SQL 터미널(Query &gt; SQL Terminal, 쿼리 창마다 켜고 끔): 켜고 시작한 실행은 결과 표와 Messages 탭은 그대로 두고, 문장마다
+ *     {@code SQL> 문장}, 결과 집합의 글자 표, 같은 메시지와 오류를 Terminal 탭({@link SqlTerminalView})에도 쓴다. 글자 표는 결과를 받는 Job
+ *     스레드에서 만들어 두었다가 문장이 끝날 때 메시지와 함께 한 번에 EDT로 넘겨 순서가 섞이지 않는다. 실행 중에는 Results 대신 Terminal 탭을
+ *     앞으로 가져온다(SWT 터미널이 결과 탭 자동 포커스를 끈 것과 같음, docs/chromite/swing-sql-terminal.md).</li>
  * </ul>
  *
  * 변경 이력:
@@ -231,6 +235,7 @@ import java.util.concurrent.atomic.AtomicLong;
  * - 2026-11-07 쿼리 창마다 별도 연결({@link QueryWindowContext}): 실행·계획·기본 스키마·트랜잭션 표시와 명령·자동완성이 창의 문맥을 쓰고,
  *   창 닫기·연결 바꾸기·DB 인스턴스 바꾸기 전에 그 세션의 트랜잭션을 물음. 상태 줄 커밋 방식 칸의 도구 설명에 세션 수.
  *   자동완성이 창을 만들 때의 연결을 계속 쓰던 것(생성자 매개 변수를 잡은 람다)을 지금 연결로 고침 (docs/chromite/transactions.md)
+ * - 2026-11-08 원본 객체를 Query &gt; Trace Execution…도 씀(주석) (docs/chromite/sqlserver-execution-trace.md)
  * - 2026-11-08 촘촘한 모드: 도구 막대 선택 상자의 여백을 치수 키로 정하고, 높이를 UI가 바뀔 때 다시 정함
  *   (docs/chromite/design-spec.md "적용 현황 — 촘촘한 모드")
  * - 2026-11-08 매개변수 대화상자를 하나로({@link QueryParameterDialog}, 엔진 제공자는 {@link QueryParameterBinder.ScriptProvider}),
@@ -238,6 +243,8 @@ import java.util.concurrent.atomic.AtomicLong;
  *   기록에서 연 창은 그 값으로 다시 바인딩({@link #setRecordedParameters}) (docs/chromite/swing-query-library.md "매개변수 대화상자와 바인딩 하나로")
  * - 2026-11-08 문장마다 실행 전에 서버 출력 켜짐을 설정에 맞춤({@code syncServerOutput}). Oracle DBMS_OUTPUT을 끄거나 켜도 열린 세션은
  *   다시 연결할 때까지 그대로였던 것 (docs/chromite/model-fixes.md "작은 모델·안전·라이선스 수정")
+ * - 2026-11-08 SQL 터미널: 창마다 켜고 끄는 Terminal 탭에 문장과 결과를 글자로 씀({@link SqlTerminalView}, docs/chromite/swing-sql-terminal.md)
+ * - 2026-11-08 Scripts 도구 창에서 이름을 바꾼 파일을 따라가는 {@link #fileMoved} (docs/chromite/swing-scripts-explorer.md)
  */
 final class SqlEditorPanel extends JPanel {
 
@@ -269,6 +276,11 @@ final class SqlEditorPanel extends JPanel {
          * Brings the Execution plan tab of the editor to the front.
          */
         void showPlan(@NotNull SqlEditorPanel editor);
+
+        /**
+         * Brings the Terminal tab of the editor to the front (a run while Query &gt; SQL Terminal is on).
+         */
+        void showTerminal(@NotNull SqlEditorPanel editor);
     }
 
     private static final String NOT_AVAILABLE = "< N/A >"; //$NON-NLS-1$
@@ -330,6 +342,10 @@ final class SqlEditorPanel extends JPanel {
     // EDT only
     private boolean explaining;
     private boolean planTabSelected;
+    // EDT only: Query > SQL Terminal for this window; the terminal keeps its output across runs
+    private boolean terminalEnabled;
+    private boolean terminalTabSelected;
+    private final SqlTerminalView terminalView = new SqlTerminalView();
     private final QueryStatusLine statusLine = new QueryStatusLine();
     private final Timer elapsedTimer;
     private final Timer transactionTimer;
@@ -506,6 +522,16 @@ final class SqlEditorPanel extends JPanel {
     }
 
     /**
+     * The window's file was renamed or its folder renamed (Scripts tool window): the window keeps its text and modified
+     * state, and saves to the new file.
+     */
+    void fileMoved(@NotNull Path file) {
+        this.file = file;
+        this.fileName = file.getFileName().toString();
+        host.titleChanged(this);
+    }
+
+    /**
      * Makes this window a window of another document kind (a Query Library query): its header goes above the editor,
      * and saving, the tab icon and parameter binding come from the extension.
      */
@@ -541,7 +567,7 @@ final class SqlEditorPanel extends JPanel {
     }
 
     /**
-     * The object whose definition the window edits (Modify), for Query &gt; Debug…; null for other windows.
+     * The object whose definition the window edits (Modify), for Query &gt; Debug… and Trace Execution…; null for other windows.
      */
     @Nullable
     DBSObject getSourceObject() {
@@ -623,6 +649,43 @@ final class SqlEditorPanel extends JPanel {
 
     boolean isExplaining() {
         return explaining;
+    }
+
+    /**
+     * Query &gt; SQL Terminal, per query window: runs are also written as text to the Terminal tab
+     * ({@link #getTerminalView()}).
+     */
+    boolean isTerminalEnabled() {
+        return terminalEnabled;
+    }
+
+    /**
+     * Turns the terminal on or off for the next runs; a run that is going on keeps the choice it started with.
+     */
+    void setTerminalEnabled(boolean enabled) {
+        terminalEnabled = enabled;
+        if (!enabled) {
+            terminalTabSelected = false;
+        }
+    }
+
+    /**
+     * Content of the Terminal tab.
+     */
+    @NotNull
+    SqlTerminalView getTerminalView() {
+        return terminalView;
+    }
+
+    /**
+     * Whether the Terminal tab was the last one the user looked at for this window (restored on activation).
+     */
+    boolean isTerminalTabSelected() {
+        return terminalTabSelected;
+    }
+
+    void setTerminalTabSelected(boolean terminalTabSelected) {
+        this.terminalTabSelected = terminalTabSelected;
     }
 
     /**
@@ -901,6 +964,7 @@ final class SqlEditorPanel extends JPanel {
         Execution run = new Execution(container, text, offset, length,
             maxRows > 0 ? Math.max(maxRows, connectionMaxRows) : connectionMaxRows, maxRows > 0);
         run.includeActualPlan = isIncludeActualPlan();
+        run.terminal = terminalEnabled;
         run.binding = binding;
         execution = run;
         resultsView.clear();
@@ -912,7 +976,7 @@ final class SqlEditorPanel extends JPanel {
         statusLine.setRows(null);
         elapsedTimer.start();
         updateActions();
-        host.showResults(this, false);
+        showRunOutput(run, false);
 
         AbstractJob prepareJob = new AbstractJob("Prepare query") {
             @NotNull
@@ -990,10 +1054,18 @@ final class SqlEditorPanel extends JPanel {
             // Errors outside of a query (e.g. opening the session); query errors were already written by the listener
             run.hasErrors = true;
             resultsView.appendError(ErrorText.describe(status));
+            if (run.terminal) {
+                terminalView.appendError(ErrorText.describe(status));
+                terminalView.append("");
+            }
         }
         boolean canceled = run.cancelRequested || status.getSeverity() == IStatus.CANCEL;
         if (canceled) {
             resultsView.appendMessage(EditorMessages.editor_sql_canceled_by_user);
+            if (run.terminal) {
+                terminalView.append(EditorMessages.editor_sql_canceled_by_user);
+                terminalView.append("");
+            }
         }
         resultsView.appendMessage("");
         resultsView.appendMessage(NLS.bind(EditorMessages.editor_sql_completion_time, OffsetDateTime.now().format(COMPLETION_TIME_FORMAT)));
@@ -1013,12 +1085,24 @@ final class SqlEditorPanel extends JPanel {
         refreshOpenTransaction();
         updateActions();
         // As in SSMS: errors (or no result grids at all) bring the Messages tab to the front
-        host.showResults(this, run.hasErrors || resultsView.getGridCount() == 0);
+        showRunOutput(run, run.hasErrors || resultsView.getGridCount() == 0);
         finishActualPlan(run, canceled);
         // The run may have connected, or changed the default database (USE)
         refreshSchemas();
         if (executionFinishedListener != null) {
             executionFinishedListener.run();
+        }
+    }
+
+    /**
+     * Brings the output of a run to the front: the Terminal tab when the run writes to the terminal, else the Results
+     * or Messages tab.
+     */
+    private void showRunOutput(@NotNull Execution run, boolean messages) {
+        if (run.terminal) {
+            host.showTerminal(this);
+        } else {
+            host.showResults(this, messages);
         }
     }
 
@@ -1333,10 +1417,30 @@ final class SqlEditorPanel extends JPanel {
             run.reportedErrors.add(error);
         }
         String finalErrorText = errorText;
+        // SQL terminal: the statement, its result sets as text tables, then the same messages as the Messages tab
+        String terminalText = null;
+        if (run.terminal) {
+            StringBuilder terminal = new StringBuilder(SqlTerminalView.formatStatement(run.binding.getHistoryText(result.getStatement())));
+            for (String table : run.terminalTables.getOrDefault(result.getStatement(), List.of())) {
+                terminal.append('\n').append(table);
+            }
+            for (String message : messages) {
+                terminal.append('\n').append(message);
+            }
+            terminalText = terminal.toString();
+        }
+        String finalTerminalText = terminalText;
         post(run, () -> {
             messages.forEach(resultsView::appendMessage);
             if (finalErrorText != null) {
                 resultsView.appendError(finalErrorText);
+            }
+            if (finalTerminalText != null) {
+                terminalView.append(finalTerminalText);
+                if (finalErrorText != null) {
+                    terminalView.appendError(finalErrorText);
+                }
+                terminalView.append("");
             }
         });
     }
@@ -1511,6 +1615,9 @@ final class SqlEditorPanel extends JPanel {
         final Map<SQLQuery, List<ActualPlanReceiver>> planReceivers = new IdentityHashMap<>();
         // Set in the EDT before the jobs start
         SqlParameterBinding binding = SqlParameterBinding.NONE;
+        boolean terminal;
+        // SQL terminal (job thread only): the text tables of each query's result sets, written when the query ends
+        final Map<SQLQuery, List<String>> terminalTables = new IdentityHashMap<>();
 
         Execution(
             @NotNull DBPDataSourceContainer dataSourceContainer,
@@ -1567,10 +1674,14 @@ final class SqlEditorPanel extends JPanel {
                 run.rowsFetched.addAndGet(fetched.data().rows().size());
                 // Only a query's first result set can be read again on its own (Export Data); receivers are called in order
                 boolean exportable = gridQueries.add(query);
+                if (run.terminal) {
+                    // Formatted here, off the EDT; written with the query's messages when it ends (reportQueryResult)
+                    run.terminalTables.computeIfAbsent(query, q -> new ArrayList<>()).add(SqlTerminalView.formatTable(fetched.data()));
+                }
                 post(run, () -> {
                     resultsView.addGrid(exportable ? fetched.withExportQuery(dataContainer) : fetched);
                     statusLine.setRows(NLS.bind(EditorMessages.editor_sql_rows_many, run.rowsFetched.get()));
-                    host.showResults(SqlEditorPanel.this, false);
+                    showRunOutput(run, false);
                 });
             });
         }
@@ -1582,7 +1693,13 @@ final class SqlEditorPanel extends JPanel {
             if (!run.reportedErrors.contains(error)) {
                 // Failed before the query was sent (parameters, pragmas, control commands)
                 run.hasErrors = true;
-                post(run, () -> resultsView.appendError(ErrorText.describe(error)));
+                post(run, () -> {
+                    resultsView.appendError(ErrorText.describe(error));
+                    if (run.terminal) {
+                        terminalView.appendError(ErrorText.describe(error));
+                        terminalView.append("");
+                    }
+                });
             }
             return DBPPlatformUI.UserResponse.STOP;
         }
@@ -1682,7 +1799,7 @@ final class SqlEditorPanel extends JPanel {
     }
 
     /**
-     * Output of script commands ({@code @echo} etc.) goes to the Messages tab.
+     * Output of script commands ({@code @echo} etc.) goes to the Messages tab, and to the terminal when it is on.
      */
     private final class MessagesWriter extends Writer {
         private final Execution run;
@@ -1695,7 +1812,12 @@ final class SqlEditorPanel extends JPanel {
         public void write(char[] buffer, int offset, int length) {
             String text = new String(buffer, offset, length);
             if (!text.isBlank()) {
-                post(run, () -> resultsView.appendMessage(text.stripTrailing()));
+                post(run, () -> {
+                    resultsView.appendMessage(text.stripTrailing());
+                    if (run.terminal) {
+                        terminalView.append(text.stripTrailing());
+                    }
+                });
             }
         }
 

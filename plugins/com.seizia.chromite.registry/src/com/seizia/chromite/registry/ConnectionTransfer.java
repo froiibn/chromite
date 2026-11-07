@@ -34,6 +34,7 @@ import com.seizia.chromite.model.net.DBWHandlerConfiguration;
 import com.seizia.chromite.model.net.DBWNetworkProfile;
 import com.seizia.chromite.model.runtime.DBRProgressMonitor;
 import com.seizia.chromite.model.secret.DBSSecretController;
+import com.seizia.chromite.registry.driver.DriverDescriptor;
 import org.jkiss.utils.CommonUtils;
 
 import java.io.IOException;
@@ -68,6 +69,9 @@ import java.util.function.Predicate;
  *
  * 변경 이력:
  * - 2026-11-07 최초 작성 (docs/chromite/connection-transfer.md)
+ * - 2026-11-08 다른 도구의 연결({@link ForeignConnectionImport})도 같은 미리 보기·충돌·가져오기를 쓰게 함: 파일을 읽은 뒤의 단계를
+ *   {@link #readConfiguration}으로 나눔, 알 수 없는 종류의 연결과 그 대기 드라이버(가져올 때만 등록) (docs/chromite/connection-transfer.md
+ *   "다른 도구에서 가져오기")
  */
 public final class ConnectionTransfer {
 
@@ -76,8 +80,8 @@ public final class ConnectionTransfer {
     private static final String PAYLOAD_CONFIGURATION = "configuration"; //$NON-NLS-1$
 
     // Sections of the data source configuration (DataSourceSerializerModern)
-    private static final String CFG_FOLDERS = "folders"; //$NON-NLS-1$
-    private static final String CFG_CONNECTIONS = "connections"; //$NON-NLS-1$
+    static final String CFG_FOLDERS = "folders"; //$NON-NLS-1$
+    static final String CFG_CONNECTIONS = "connections"; //$NON-NLS-1$
     private static final String CFG_CONFIGURATION = "configuration"; //$NON-NLS-1$
     private static final String CFG_CREDENTIALS = "credentials"; //$NON-NLS-1$
     private static final String CFG_NETWORK_PROFILES = "network-profiles"; //$NON-NLS-1$
@@ -130,6 +134,8 @@ public final class ConnectionTransfer {
         @Nullable
         private final String folderPath;
         private final boolean hasPassword;
+        @Nullable
+        private final String unrecognizedType;
         @NotNull
         private ConflictKind conflict = ConflictKind.NONE;
         @Nullable
@@ -142,7 +148,8 @@ public final class ConnectionTransfer {
             @NotNull String driverName,
             boolean driverMissing,
             @Nullable String folderPath,
-            boolean hasPassword
+            boolean hasPassword,
+            @Nullable String unrecognizedType
         ) {
             this.id = id;
             this.name = name;
@@ -151,6 +158,7 @@ public final class ConnectionTransfer {
             this.driverMissing = driverMissing;
             this.folderPath = folderPath;
             this.hasPassword = hasPassword;
+            this.unrecognizedType = unrecognizedType;
         }
 
         @NotNull
@@ -198,6 +206,15 @@ public final class ConnectionTransfer {
             return hasPassword;
         }
 
+        /**
+         * The database type of another tool's connection that no installed driver matched (the connection gets a Generic
+         * driver that must be configured), or null.
+         */
+        @Nullable
+        public String getUnrecognizedType() {
+            return unrecognizedType;
+        }
+
         @NotNull
         public ConflictKind getConflict() {
             return conflict;
@@ -228,11 +245,22 @@ public final class ConnectionTransfer {
         private final JsonObject configuration;
         @NotNull
         private final List<ImportEntry> entries;
+        /**
+         * Drivers for unrecognized types (by driver ID), registered only when a connection using them is imported.
+         */
+        @NotNull
+        private final Map<String, DriverDescriptor> pendingDrivers;
 
-        private ImportFile(boolean secrets, @NotNull JsonObject configuration, @NotNull List<ImportEntry> entries) {
+        private ImportFile(
+            boolean secrets,
+            @NotNull JsonObject configuration,
+            @NotNull List<ImportEntry> entries,
+            @NotNull Map<String, DriverDescriptor> pendingDrivers
+        ) {
             this.secrets = secrets;
             this.configuration = configuration;
             this.entries = entries;
+            this.pendingDrivers = pendingDrivers;
         }
 
         /**
@@ -258,6 +286,7 @@ public final class ConnectionTransfer {
         private int skipped;
         private final List<String> skippedConnected = new ArrayList<>();
         private final List<String> missingDrivers = new ArrayList<>();
+        private final List<String> unrecognizedDrivers = new ArrayList<>();
         private final List<String> keptProfiles = new ArrayList<>();
 
         public int getAdded() {
@@ -293,6 +322,14 @@ public final class ConnectionTransfer {
         @NotNull
         public List<String> getMissingDrivers() {
             return missingDrivers;
+        }
+
+        /**
+         * Names of imported connections of an unrecognized type: their Generic driver must be configured before connecting.
+         */
+        @NotNull
+        public List<String> getUnrecognizedDrivers() {
+            return unrecognizedDrivers;
         }
 
         /**
@@ -558,13 +595,32 @@ public final class ConnectionTransfer {
             Arrays.fill(payloadBytes, (byte) 0);
         }
         JsonObject configuration = payload == null ? null : getObject(payload, PAYLOAD_CONFIGURATION);
-        JsonObject connectionsJson = configuration == null ? null : getObject(configuration, CFG_CONNECTIONS);
-        if (connectionsJson == null) {
+        if (configuration == null) {
             throw invalidContent(null);
         }
         boolean secrets = payload.has(PAYLOAD_SECRETS) && payload.get(PAYLOAD_SECRETS).isJsonPrimitive()
             && payload.get(PAYLOAD_SECRETS).getAsBoolean();
+        return readConfiguration(configuration, secrets, Map.of(), Map.of(), getRegistry(target));
+    }
 
+    /**
+     * Builds the preview of a configuration in the registry's file format; conflicts are checked against the target registry.
+     *
+     * @param pendingDrivers    drivers not registered yet (by driver ID); their connections are not shown as "driver missing"
+     * @param unrecognizedTypes source database type of the connections (by ID) that got a driver for an unrecognized type
+     */
+    @NotNull
+    static ImportFile readConfiguration(
+        @NotNull JsonObject configuration,
+        boolean secrets,
+        @NotNull Map<String, DriverDescriptor> pendingDrivers,
+        @NotNull Map<String, String> unrecognizedTypes,
+        @NotNull DataSourceRegistry<?> target
+    ) throws DBException {
+        JsonObject connectionsJson = getObject(configuration, CFG_CONNECTIONS);
+        if (connectionsJson == null) {
+            throw invalidContent(null);
+        }
         DataSourceProviderRegistry providers = DataSourceProviderRegistry.getInstance();
         List<ImportEntry> entries = new ArrayList<>();
         for (String id : connectionsJson.keySet()) {
@@ -577,6 +633,10 @@ public final class ConnectionTransfer {
             String driverId = CommonUtils.notEmpty(getString(connectionJson, RegistryConstants.ATTR_DRIVER));
             DataSourceProviderDescriptor provider = providerId.isEmpty() ? null : providers.getDataSourceProvider(providerId);
             DBPDriver driver = provider == null || driverId.isEmpty() ? null : provider.getOriginalDriver(driverId);
+            DriverDescriptor pending = pendingDrivers.get(driverId);
+            if (driver == null && pending != null && pending.getProviderDescriptor() == provider) {
+                driver = pending;
+            }
             boolean driverMissing = driver == null || driver.isTemporary();
             ImportEntry entry = new ImportEntry(
                 id,
@@ -585,11 +645,12 @@ public final class ConnectionTransfer {
                 driverMissing ? driverId : driver.getName(),
                 driverMissing,
                 CommonUtils.nullIfEmpty(getString(connectionJson, RegistryConstants.ATTR_FOLDER)),
-                cfgJson != null && hasPassword(cfgJson));
+                cfgJson != null && hasPassword(cfgJson),
+                unrecognizedTypes.get(id));
             entries.add(entry);
         }
-        ImportFile importFile = new ImportFile(secrets, configuration, entries);
-        updateConflicts(getRegistry(target), importFile);
+        ImportFile importFile = new ImportFile(secrets, configuration, entries, pendingDrivers);
+        updateConflicts(target, importFile);
         return importFile;
     }
 
@@ -642,6 +703,7 @@ public final class ConnectionTransfer {
             }
         }
         retainKeys(getObject(configuration, CFG_CONNECTION_TYPES), usedTypes::contains);
+        registerPendingDrivers(importFile, connectionsJson);
         boolean newConnectionTypes = false;
         JsonObject typesJson = getObject(configuration, CFG_CONNECTION_TYPES);
         if (typesJson != null) {
@@ -713,6 +775,9 @@ public final class ConnectionTransfer {
                 if (copy.getDriver().isTemporary()) {
                     result.missingDrivers.add(copy.getName());
                 }
+                if (entry != null && entry.unrecognizedType != null) {
+                    result.unrecognizedDrivers.add(copy.getName());
+                }
                 monitor.worked(1);
             }
             if (newConnectionTypes) {
@@ -726,6 +791,30 @@ public final class ConnectionTransfer {
             monitor.done();
         }
         return result;
+    }
+
+    /**
+     * Registers (and saves) the pending drivers that the connections to import use; drivers of skipped connections are not created.
+     */
+    private static void registerPendingDrivers(@NotNull ImportFile importFile, @NotNull JsonObject connectionsJson) throws DBException {
+        if (importFile.pendingDrivers.isEmpty()) {
+            return;
+        }
+        boolean added = false;
+        for (String id : connectionsJson.keySet()) {
+            JsonObject connectionJson = Objects.requireNonNull(getObject(connectionsJson, id));
+            DriverDescriptor pending = importFile.pendingDrivers.get(CommonUtils.notEmpty(getString(connectionJson, RegistryConstants.ATTR_DRIVER)));
+            if (pending == null
+                || !pending.getProviderDescriptor().getId().equals(getString(connectionJson, RegistryConstants.ATTR_PROVIDER))
+                || pending.getProviderDescriptor().getOriginalDriver(pending.getId()) != null) {
+                continue;
+            }
+            pending.getProviderDescriptor().addDriver(pending);
+            added = true;
+        }
+        if (added) {
+            DataSourceProviderRegistry.getInstance().saveDrivers();
+        }
     }
 
     private static void updateConflicts(@NotNull DataSourceRegistry<?> registry, @NotNull ImportFile importFile) {
@@ -862,9 +951,10 @@ public final class ConnectionTransfer {
 
     /**
      * Configuration manager of the import's separate registry: the file's configuration as its one default storage.
-     * A secure manager, so the serializer reads the credentials from the configuration itself.
+     * A secure manager, so the serializer reads the credentials from the configuration itself. {@link ForeignConnectionImport}
+     * also serializes other tools' connections into it (secure: the credentials are written into the configuration).
      */
-    private static final class TransferConfigurationManager extends DataSourceConfigurationManagerBuffer {
+    static final class TransferConfigurationManager extends DataSourceConfigurationManagerBuffer {
         private final DBPDataSourceConfigurationStorage storage = new DBPDataSourceConfigurationStorage() {
             @NotNull
             @Override
@@ -894,7 +984,7 @@ public final class ConnectionTransfer {
             }
         };
 
-        TransferConfigurationManager(@NotNull byte[] data) {
+        TransferConfigurationManager(@Nullable byte[] data) {
             setData(data);
         }
 

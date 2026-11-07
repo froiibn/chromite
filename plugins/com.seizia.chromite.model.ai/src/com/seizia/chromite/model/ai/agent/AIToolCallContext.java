@@ -26,14 +26,19 @@ import com.seizia.chromite.model.ai.AIPromptGenerator;
 import com.seizia.chromite.model.ai.engine.AIDatabaseContext;
 import com.seizia.chromite.model.runtime.DBRProgressMonitor;
 
+import java.util.function.Consumer;
+
 /**
  * Function context of an agent tool call: the tool, the caller and the resolved connection.
  *
  * 설계: 기존 {@code AIFunction}의 호출 형식(문맥 + 인수)을 그대로 쓰면서, 도구가 자기 설명자(진단 SQL 자원 이름)와
  * 실행기가 찾아 둔 연결을 받을 수 있게 {@link AIFunctionContext}를 넓혔다. 채팅에서 오면 채팅의 데이터베이스 문맥과 프롬프트를 그대로 넘긴다.
+ * 오래 걸리는 도구(백업·복원)는 {@link #reportProgress}로 진행 상황을 알린다. 모니터의 {@code subTask}를 쓰지 않은 것은 JDBC·처리기 같은
+ * 아래 계층도 {@code subTask}를 불러, 도구가 고른 글이 아닌 것까지 채팅 카드에 나오기 때문이다.
  *
  * 변경 이력:
  * - 2026-11-07 최초 작성 (docs/chromite/ai-agent.md)
+ * - 2026-11-08 진행 상황 알림({@link #reportProgress}): PostgreSQL·MySQL 백업·복원 도구 (docs/chromite/ai-agent.md "PostgreSQL·MySQL 백업·복원 도구")
  *
  * @see com.seizia.chromite.model.ai.AIFunction
  */
@@ -59,6 +64,8 @@ public class AIToolCallContext extends AIFunctionContext {
     private final AIToolClient client;
     @Nullable
     private final DBPDataSourceContainer connection;
+    @Nullable
+    private final Consumer<String> progressListener;
 
     public AIToolCallContext(
         @NotNull DBRProgressMonitor monitor,
@@ -66,6 +73,21 @@ public class AIToolCallContext extends AIFunctionContext {
         @NotNull AIFunctionDescriptor tool,
         @NotNull AIToolClient client,
         @Nullable DBPDataSourceContainer connection
+    ) {
+        this(monitor, chatContext, tool, client, connection, null);
+    }
+
+    /**
+     * @param progressListener receives the progress texts of the tool ({@link #reportProgress}), or null when the caller does
+     *                         not show progress (the MCP server answers each call with one response)
+     */
+    public AIToolCallContext(
+        @NotNull DBRProgressMonitor monitor,
+        @Nullable AIFunctionContext chatContext,
+        @NotNull AIFunctionDescriptor tool,
+        @NotNull AIToolClient client,
+        @Nullable DBPDataSourceContainer connection,
+        @Nullable Consumer<String> progressListener
     ) {
         super(
             monitor,
@@ -75,6 +97,7 @@ public class AIToolCallContext extends AIFunctionContext {
         this.tool = tool;
         this.client = client;
         this.connection = connection;
+        this.progressListener = progressListener;
     }
 
     @NotNull
@@ -93,5 +116,15 @@ public class AIToolCallContext extends AIFunctionContext {
     @Nullable
     public DBPDataSourceContainer getConnection() {
         return connection;
+    }
+
+    /**
+     * Shows how far a long-running tool is (for example the bytes a backup wrote so far) while it runs. Called on the tool's
+     * thread; the text replaces the previous one. Does nothing when the caller shows no progress.
+     */
+    public void reportProgress(@NotNull String text) {
+        if (progressListener != null) {
+            progressListener.accept(text);
+        }
     }
 }

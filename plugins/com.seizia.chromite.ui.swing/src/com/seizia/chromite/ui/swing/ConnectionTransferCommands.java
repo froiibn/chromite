@@ -16,6 +16,9 @@
  */
 package com.seizia.chromite.ui.swing;
 
+import com.formdev.flatlaf.util.UIScale;
+import com.seizia.chromite.ext.oracle.importer.SqlDeveloperConnectionReader;
+import com.seizia.chromite.ext.oracle.importer.ToadConnectionReader;
 import com.seizia.chromite.model.DBPDataSourceContainer;
 import com.seizia.chromite.model.DBPDataSourceFolder;
 import com.seizia.chromite.model.app.DBPDataSourceRegistry;
@@ -24,9 +27,13 @@ import com.seizia.chromite.model.runtime.VoidProgressMonitor;
 import com.seizia.chromite.registry.ConnectionTransfer;
 import com.seizia.chromite.registry.ConnectionTransferException;
 import com.seizia.chromite.registry.ConnectionTransferFile;
+import com.seizia.chromite.registry.CsvConnectionReader;
+import com.seizia.chromite.registry.ForeignConnectionImport;
+import com.seizia.chromite.registry.ForeignConnectionReader;
 import com.seizia.chromite.runtime.DBWorkbench;
 import com.seizia.chromite.ui.swing.internal.ConnectionTransferMessages;
 import com.seizia.chromite.ui.swing.internal.CoreMessages;
+import com.seizia.chromite.utils.RuntimeUtils;
 import org.eclipse.osgi.util.NLS;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
@@ -41,11 +48,13 @@ import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Arrays;
+import java.util.Comparator;
+import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
 
 /**
- * 연결 내보내기·가져오기 명령(File 메뉴, Registered Servers 메뉴).
+ * 연결 내보내기·가져오기 명령(File 메뉴, Registered Servers 메뉴)과 다른 도구에서 가져오기(File > Import Connections > From Another Tool).
  *
  * 설계:
  * <ul>
@@ -54,12 +63,17 @@ import java.util.Map;
  *     가져오기 자체(레지스트리에 연결 더하기)는 Registered Servers의 다른 명령처럼 EDT에서 한다(메모리와 설정 파일만 바꾼다).</li>
  *     <li>잘못된 암호나 바뀐 파일(GCM 인증 실패)은 아무것도 가져오지 않았다고 알리고 암호를 다시 묻는다.</li>
  *     <li>암호({@code char[]})는 작업이 끝나면 지운다.</li>
+ *     <li>다른 도구에서 가져오기는 원본 도구와 파일을 고른 뒤 모델({@link ForeignConnectionImport})이 만든 가져오기 파일을 Chromite 파일과
+ *     같은 미리 보기·가져오기({@link #previewAndImport})로 넘긴다. 도구 목록에만 그 도구 이름을 쓴다(파일 형식을 고르려면 필요하다).
+ *     SQL Developer는 이 PC의 설정 폴더가 있으면 파일 고르기를 그 연결 폴더에서 시작한다(SWT 가져오기가 찾던 위치).</li>
  * </ul>
  *
  * 변경 이력:
  * - 2026-11-07 최초 작성 (docs/chromite/connection-transfer.md)
  * - 2026-11-07 가져온 연결의 저장 실패(OS 보안 저장소가 비밀번호를 저장하지 못함)를 결과 뒤에 알림 (docs/chromite/credential-storage.md)
  * - 2026-11-08 내보내기 파일 덮어쓰기 확인은 바꾸기 / 취소 단추(취소가 기본) (docs/chromite/swing-frontend.md "실행 확인의 기본 단추")
+ * - 2026-11-08 다른 도구에서 가져오기(SQL Developer, Toad, CSV), 미리 보기 뒤 단계를 {@link #previewAndImport}로 나눔,
+ *   결과에 알 수 없는 DB 종류의 연결 (docs/chromite/connection-transfer.md "다른 도구에서 가져오기")
  */
 final class ConnectionTransferCommands {
 
@@ -123,6 +137,59 @@ final class ConnectionTransferCommands {
                 ConnectionTransferMessages.transfer_import_title, JOptionPane.INFORMATION_MESSAGE);
             return;
         }
+        previewAndImport(parent, registry, file, importFile);
+    }
+
+    /**
+     * Import Connections > From Another Tool: the source tool, its file, then the same preview and import as a Chromite file.
+     */
+    static void importFromOtherTool(@NotNull Component parent) {
+        DBPDataSourceRegistry registry = getRegistry(parent, ConnectionTransferMessages.transfer_other_title);
+        if (registry == null) {
+            return;
+        }
+        ForeignSource source = chooseForeignSource(parent);
+        if (source == null) {
+            return;
+        }
+        JFileChooser chooser = new JFileChooser();
+        chooser.setDialogTitle(ConnectionTransferMessages.transfer_other_open_title);
+        FileNameExtensionFilter filter = new FileNameExtensionFilter(source.getFilterDescription(), source.extensions);
+        chooser.addChoosableFileFilter(filter);
+        chooser.setFileFilter(filter);
+        File startFolder = source.getStartFolder();
+        if (startFolder != null) {
+            chooser.setCurrentDirectory(startFolder);
+        }
+        if (chooser.showOpenDialog(getWindow(parent)) != JFileChooser.APPROVE_OPTION) {
+            return;
+        }
+        Path file = chooser.getSelectedFile().toPath();
+        ConnectionTransfer.ImportFile importFile;
+        try {
+            importFile = ProgressDialog.runTask(ConnectionTransferMessages.transfer_other_progress,
+                monitor -> ForeignConnectionImport.prepare(monitor, source.reader.read(file), registry));
+        } catch (DBException e) {
+            DBWorkbench.getPlatformUI().showError(ConnectionTransferMessages.transfer_other_title, ConnectionTransferMessages.transfer_other_failed, e);
+            return;
+        }
+        if (importFile.getEntries().isEmpty()) {
+            JOptionPane.showMessageDialog(getWindow(parent), ConnectionTransferMessages.transfer_other_empty,
+                ConnectionTransferMessages.transfer_other_title, JOptionPane.INFORMATION_MESSAGE);
+            return;
+        }
+        previewAndImport(parent, registry, file, importFile);
+    }
+
+    /**
+     * The preview (conflicts and their actions), the import, then what it did.
+     */
+    private static void previewAndImport(
+        @NotNull Component parent,
+        @NotNull DBPDataSourceRegistry registry,
+        @NotNull Path file,
+        @NotNull ConnectionTransfer.ImportFile importFile
+    ) {
         Map<String, ConnectionTransfer.ConflictAction> actions = ConnectionImportDialog.open(parent, file.getFileName().toString(), importFile);
         if (actions == null) {
             return;
@@ -141,9 +208,10 @@ final class ConnectionTransferCommands {
             new Object[]{result.getAdded(), result.getReplaced(), result.getCopied(), result.getSkipped()}));
         appendList(message, ConnectionTransferMessages.transfer_import_done_skipped_connected, result.getSkippedConnected());
         appendList(message, ConnectionTransferMessages.transfer_import_done_missing_drivers, result.getMissingDrivers());
+        appendList(message, ConnectionTransferMessages.transfer_import_done_unrecognized, result.getUnrecognizedDrivers());
         appendList(message, ConnectionTransferMessages.transfer_import_done_kept_profiles, result.getKeptProfiles());
         JOptionPane.showMessageDialog(getWindow(parent), message.toString(), ConnectionTransferMessages.transfer_import_title,
-            result.getSkippedConnected().isEmpty() && result.getMissingDrivers().isEmpty()
+            result.getSkippedConnected().isEmpty() && result.getMissingDrivers().isEmpty() && result.getUnrecognizedDrivers().isEmpty()
                 ? JOptionPane.INFORMATION_MESSAGE : JOptionPane.WARNING_MESSAGE);
         // Saving the imported connections keeps a failure (the secure storage could not keep the passwords) as the last error
         Throwable saveError = registry.getLastError();
@@ -151,6 +219,39 @@ final class ConnectionTransferCommands {
             DBWorkbench.getPlatformUI().showError(ConnectionTransferMessages.transfer_import_title,
                 ConnectionTransferMessages.transfer_import_save_failed, saveError);
         }
+    }
+
+    /**
+     * The tool to import from, or null when canceled.
+     */
+    @Nullable
+    private static ForeignSource chooseForeignSource(@NotNull Component parent) {
+        JPanel panel = new JPanel(new GridLayout(0, 1, 0, 4));
+        panel.add(new JLabel(ConnectionTransferMessages.transfer_other_choose));
+        ButtonGroup group = new ButtonGroup();
+        Map<ForeignSource, JRadioButton> buttons = new EnumMap<>(ForeignSource.class);
+        for (ForeignSource source : ForeignSource.values()) {
+            JRadioButton button = new JRadioButton(source.getLabel());
+            group.add(button);
+            panel.add(button);
+            buttons.put(source, button);
+        }
+        buttons.get(ForeignSource.SQL_DEVELOPER).setSelected(true);
+        JPanel content = new JPanel(new BorderLayout(0, 10));
+        content.add(panel, BorderLayout.NORTH);
+        content.add(new JLabel("<html><body style='width:" + UIScale.scale(420) + "px'>" //$NON-NLS-1$ //$NON-NLS-2$
+            + ConnectionTransferMessages.transfer_other_note + "</body></html>"), BorderLayout.CENTER); //$NON-NLS-1$
+        int answer = JOptionPane.showConfirmDialog(getWindow(parent), content, ConnectionTransferMessages.transfer_other_title,
+            JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
+        if (answer != JOptionPane.OK_OPTION) {
+            return null;
+        }
+        for (Map.Entry<ForeignSource, JRadioButton> entry : buttons.entrySet()) {
+            if (entry.getValue().isSelected()) {
+                return entry.getKey();
+            }
+        }
+        return null;
     }
 
     /**
@@ -291,5 +392,80 @@ final class ConnectionTransferCommands {
     @Nullable
     private static Window getWindow(@NotNull Component component) {
         return component instanceof Window window ? window : SwingUtilities.getWindowAncestor(component);
+    }
+
+    /**
+     * Another tool whose connections can be imported, with the reader of its file format.
+     */
+    private enum ForeignSource {
+        SQL_DEVELOPER(new SqlDeveloperConnectionReader(), "json", "xml"), //$NON-NLS-1$ //$NON-NLS-2$
+        TOAD(new ToadConnectionReader(), "xml"), //$NON-NLS-1$
+        CSV(new CsvConnectionReader(), "csv", "txt"); //$NON-NLS-1$ //$NON-NLS-2$
+
+        /**
+         * SQL Developer keeps its settings here (Windows, older Windows, Linux and macOS), like the SWT importer looked them up.
+         */
+        private static final String[] SQL_DEVELOPER_HOMES = {
+            "AppData/Roaming/SQL Developer", "Application Data/SQL Developer", ".sqldeveloper" //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$
+        };
+        private static final String SQL_DEVELOPER_SYSTEM_PREFIX = "system"; //$NON-NLS-1$
+        private static final String SQL_DEVELOPER_CONNECTIONS_FOLDER = "o.jdeveloper.db.connection"; //$NON-NLS-1$
+
+        private final ForeignConnectionReader reader;
+        private final String[] extensions;
+
+        ForeignSource(@NotNull ForeignConnectionReader reader, @NotNull String... extensions) {
+            this.reader = reader;
+            this.extensions = extensions;
+        }
+
+        @NotNull
+        String getLabel() {
+            return switch (this) {
+                case SQL_DEVELOPER -> ConnectionTransferMessages.transfer_other_sqldeveloper;
+                case TOAD -> ConnectionTransferMessages.transfer_other_toad;
+                case CSV -> ConnectionTransferMessages.transfer_other_csv;
+            };
+        }
+
+        @NotNull
+        String getFilterDescription() {
+            return switch (this) {
+                case SQL_DEVELOPER -> ConnectionTransferMessages.transfer_other_filter_sqldeveloper;
+                case TOAD -> ConnectionTransferMessages.transfer_other_filter_toad;
+                case CSV -> ConnectionTransferMessages.transfer_other_filter_csv;
+            };
+        }
+
+        /**
+         * Where the file chooser starts: the connection folder of the newest SQL Developer settings on this computer, or null.
+         */
+        @Nullable
+        File getStartFolder() {
+            if (this != SQL_DEVELOPER) {
+                return null;
+            }
+            Path userHome = RuntimeUtils.getUserHomePath();
+            for (String homeName : SQL_DEVELOPER_HOMES) {
+                Path home = userHome.resolve(homeName);
+                if (!Files.isDirectory(home)) {
+                    continue;
+                }
+                File[] systemFolders = home.toFile().listFiles(f -> f.isDirectory() && f.getName().startsWith(SQL_DEVELOPER_SYSTEM_PREFIX));
+                if (systemFolders != null) {
+                    // "system23.1.1.345.2114" and the like: the newest version sorts last
+                    Arrays.sort(systemFolders, Comparator.comparing(File::getName).reversed());
+                    for (File systemFolder : systemFolders) {
+                        File[] connectionFolders = systemFolder.listFiles(
+                            f -> f.isDirectory() && f.getName().startsWith(SQL_DEVELOPER_CONNECTIONS_FOLDER));
+                        if (connectionFolders != null && connectionFolders.length > 0) {
+                            return connectionFolders[0];
+                        }
+                    }
+                }
+                return home.toFile();
+            }
+            return null;
+        }
     }
 }

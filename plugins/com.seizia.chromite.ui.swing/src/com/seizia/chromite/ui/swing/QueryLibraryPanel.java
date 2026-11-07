@@ -98,6 +98,7 @@ import java.util.Set;
  * - 2026-11-07 ④ 공유: 자동 새로 고침, Git Pull·Commit &amp; Push와 충돌 표시, 내보내기·가져오기, Save As .sql…
  *   (docs/chromite/swing-query-library.md "공유")
  * - 2026-11-08 삭제 확인은 삭제 / 취소, 내보내기 파일 덮어쓰기 확인은 바꾸기 / 취소 단추(취소가 기본) (docs/chromite/swing-frontend.md "실행 확인의 기본 단추")
+ * - 2026-11-08 마우스를 올린 행을 그리는 트리({@link LibraryTree})를 Scripts 도구 창도 쓰도록 패키지 안에 엶 (docs/chromite/swing-scripts-explorer.md)
  */
 final class QueryLibraryPanel extends JPanel {
 
@@ -1538,9 +1539,10 @@ final class QueryLibraryPanel extends JPanel {
     // Look
 
     /**
-     * The tree with a rounded background on the row under the mouse (as Object Explorer).
+     * The tree with a rounded background on the row under the mouse (as Object Explorer); also the tree of the Scripts
+     * tool window ({@link ScriptsPanel}).
      */
-    private static final class LibraryTree extends JTree {
+    static final class LibraryTree extends JTree {
         private int hoverRow = -1;
 
         LibraryTree(@NotNull DefaultTreeModel model) {

@@ -25,11 +25,11 @@ SWT 제품은 설정 페이지 62개(Window > Preferences, 연결별 속성 페�
 
 | 상태 | 키 수 | 뜻 |
 |---|---|---|
-| 추가함 | 84 | Swing 화면을 만듦(2026-11-07 23키, 2026-11-08 Errors and Timeouts 5·Metadata 5·Client Identification 4, 오후 47키) |
+| 추가함 | 85 | Swing 화면을 만듦(2026-11-07 23키, 2026-11-08 Errors and Timeouts 5·Metadata 5·Client Identification 4·전역 라이브러리 1(Driver Manager), 오후 47키) |
 | 이미 있음 | 7 | 전에 만든 Swing 화면이 같은 키를 씀 |
 | 연결별 공급자 속성 | 7 | 연결 대화상자 Provider Properties 탭에서 이미 바꿀 수 있음 |
 | 규칙상 두지 않음 | 5 | 스크립트 커밋 방식 2키, 오류 때 롤백, 취소가 안 될 때 세션 단위 취소: 트랜잭션 안전 규칙에 어긋남. Altibase 실행 계획 방식: 계획 보기가 문장을 실행함 |
-| 다음 작업 | 1 | 전역 라이브러리: 드라이버 관리자 작업(X5)에 맡김(아래 "다음 작업") |
+| 다음 작업 | 0 | 없음. 정할 일만 남음(아래 "다음 작업": 파일 원본 기본값, Altibase 실행 계획 방식 확인 절차, `postgresql.dd.*` 전역 기본값) |
 | 효과 없음 | 202 | Swing에서 읽는 곳이 없거나 경로가 돌지 않음. 화면을 만들지 않음 |
 
 키가 아닌 설정(연결 유형, 연결별 격리 수준, 템플릿, AI, 데이터 형식 프로필의 `dataformat.*` 키 등)은 아래 페이지별 표에 적었다.
@@ -296,8 +296,8 @@ SWT는 설정 페이지 중 일부(`TargetPrefPage`를 쓰는 페이지)를 연�
 | 프록시 사용자 이름, 비밀번호 | `ui.proxy.user`, `ui.proxy.password` | 보안 저장소(`GlobalProxyAuthenticator.readCredentials`·`saveCredentials`). 설정 파일에 두지 않는다 |
 | Maven 저장소(사용 여부, 추가·편집·제거) | `maven-repositories.xml` | `MavenRegistry`(드라이버 내려받기). 저장소 인증 정보는 보안 저장소 |
 
-- 전역 라이브러리(`ui.drivers.global.libraries`)와 드라이버의 Maven 아티팩트 편집은 드라이버 관리자 작업(X5 `chromite/drivers-oracle-batch`)이 드라이버
-  관리자에 넣는다. 이 작업을 시작할 때 X5는 병합되지 않았다. 겹치지 않게 Drivers 페이지에는 "드라이버 관리자..." 단추만 두었다.
+- 전역 라이브러리(`ui.drivers.global.libraries`)와 드라이버의 Maven 아티팩트 편집은 드라이버 관리자에 있다(#148, Driver Manager > Global Libraries…,
+  드라이버 편집 창). 겹치지 않게 Drivers 페이지에는 "드라이버 관리자..." 단추만 두었다.
 - 기본 제공 Maven 저장소(plugin.xml)는 사용 여부만 바꾸고, 추가한 저장소만 편집·제거한다. 저장소 순서 바꾸기는 두지 않았다(추가한 저장소는 맨 뒤).
 - **고친 버그(모델)**: 그룹(scope)이 있는 저장소를 저장하면 `MavenRegistry.saveConfiguration`이 scope 자식 요소 뒤에 `snapshot` 속성을 쓰려다
   "Attribute outside of element"로 실패했다(upstream 그대로, SWT에서도 같음). 속성을 자식 요소보다 먼저 쓰게 고쳤다. 실행 확인 중 OK가 이 예외로 멈춰 찾았다.
@@ -378,7 +378,7 @@ SWT는 설정 페이지 중 일부(`TargetPrefPage`를 쓰는 페이지)를 연�
 | Client Identification | **추가함**(2026-11-08, 연결별 값 있음) 4키 |
 | General, Connections | **추가함**(2026-11-08 오후, Options > Connections): 시간대, 드라이버 매개 변수 거부, Windows 인증서 저장소. 셸 명령 인증 허용은 효과 없음 |
 | Drivers, Maven | **추가함**(2026-11-08 오후, Options > Drivers): 드라이버 폴더·파일 원본·버전 갱신, 프록시(사용자·비밀번호는 보안 저장소), Maven 저장소 목록 |
-| Classpath | 다음 작업: 전역 라이브러리는 드라이버 관리자 작업(X5)이 넣는다. Options > Drivers에는 드라이버 관리자 열기만 |
+| Classpath | **추가함**(2026-11-08): Driver Manager > Global Libraries…(`ui.drivers.global.libraries`). Options > Drivers에서 드라이버 관리자를 연다 |
 | Query Manager, Error Logs | **추가함**(2026-11-08 오후, Options > Logs): SQL 로그 파일 5키, 디버그 로그 크기·개수 |
 | Navigator(정렬), Notifications(긴 작업 알림) | **추가함**(2026-11-08 오후, Options > Object Explorer·Notifications): 정렬 3키, 알림 2키. 폴더 자리 표시는 효과 없음 |
 | Data Transfer(매핑 3키), Code Completion(3키) | **추가함**(2026-11-08 오후, 연결별 값 있음). 단어 완성(hippie)은 효과 없음 |
@@ -403,8 +403,8 @@ Swing 제품이 읽지만 화면이 없는 키다. 우선순위 순서로 적었
    `resultset.reference.value.description.column.patterns`는 효과 없음으로 옮김.
 6. ~~Client Identification~~: 2026-11-08.
 7. ~~Connections, General~~: 2026-11-08 오후 Options > Connections. 시간대의 앱 전체 적용(S12)과 IP 스택(S13)은 B9 2부.
-8. ~~Drivers·Maven~~: 2026-11-08 오후 Options > Drivers. 남은 것: `ui.drivers.global.libraries`(전역 라이브러리)는 드라이버 관리자 작업(X5
-   `chromite/drivers-oracle-batch`)이 드라이버 관리자에 넣는다. 파일 원본의 모델 기본값(`https://dbeaver.io/files/jdbc/`)을 Chromite 주소로 바꿀지
+8. ~~Drivers·Classpath·Maven~~: 2026-11-08 오후 Options > Drivers. `ui.drivers.global.libraries`(전역 라이브러리)는 2026-11-08 Driver Manager >
+   Global Libraries…([swing-driver-manager.md](swing-driver-manager.md) "전역 라이브러리"). 남은 것: 파일 원본의 모델 기본값(`https://dbeaver.io/files/jdbc/`)을 Chromite 주소로 바꿀지
    또는 비울지는 따로 정한다(Maven이 아닌 드라이버 파일과 네이티브 클라이언트 내려받기가 쓴다).
 9. ~~Query Manager, Error Logs~~: 2026-11-08 오후 Options > Logs.
 10. ~~Navigator~~: 2026-11-08 오후 Options > Object Explorer. `navigator.show.folder.placeholders`는 효과 없음.
@@ -497,7 +497,8 @@ Windows 인증서 저장소(다시 시작 뒤 적용, 키 저장만 확인), 끝
 - 2026-11-08 오후 "다음 작업" 5·7–13순위(`chromite/settings-rest-2`): Query Results 읽기와 정렬 절, Binary and LOB, Connections, Drivers(프록시, Maven 저장소),
   Logs, Object Explorer, Notifications, Data Transfer, Code Completion, Altibase, CUBRID, Mimer SQL. `SettingsPage.getGlobalStore`. 끝까지 내리면 더 읽기의
   전역 값이 무시되던 것과 그룹이 있는 Maven 저장소를 저장하지 못하던 것(`MavenRegistry`), 결과 표 머리글이 별칭 대신 원래 열 이름을 보이던 것
-  (`ResultSetGridReceiver`)을 고침. 다시 확인해 효과 없는 키 6개를 옮김. 요약 수(추가함 84, 규칙상 두지 않음 5, 다음 작업 1, 효과 없음 202)와 부록 갱신.
+  (`ResultSetGridReceiver`)을 고침. 다시 확인해 효과 없는 키 6개를 옮김. 요약 수(추가함 85, 규칙상 두지 않음 5, 다음 작업 0, 효과 없음 202, devel 병합 뒤 다시 셈)와 부록 갱신.
+- 2026-11-08 `ui.drivers.global.libraries`: Driver Manager > Global Libraries…로 만듦(후속 #55, [swing-driver-manager.md](swing-driver-manager.md) "전역 라이브러리"). 요약 수(추가함 38, 다음 작업 54)와 8순위·부록 갱신.
 
 ## 부록: 키별 상태
 
@@ -566,7 +567,7 @@ Windows 인증서 저장소(다시 시작 뒤 적용, 키 저장만 확인), 끝
 | Drivers | `ui.proxy.host` | **추가함**: Options > Drivers(2026-11-08) |
 | Drivers | `ui.proxy.port` | **추가함**: Options > Drivers(2026-11-08) |
 | Drivers | `ui.proxy.user` | **추가함**: Options > Drivers(2026-11-08, 비밀번호와 함께 보안 저장소) |
-| Classpath | `ui.drivers.global.libraries` | 읽음, 화면 없음 → 다음 작업: 드라이버 관리자 작업(X5)이 넣음. Options > Drivers에는 드라이버 관리자 열기만(2026-11-08) |
+| Classpath | `ui.drivers.global.libraries` | **추가함**(2026-11-08 Driver Manager > Global Libraries…). 조사 당시: 읽음, 화면 없음 → 다음 작업 |
 | Navigator | `navigator.color.nodes.all` | 효과 없음(읽는 곳 없음) |
 | Navigator | `navigator.connection.doubleClick` | 효과 없음(읽는 곳 없음) |
 | Navigator | `navigator.editor.showGrid` | 효과 없음(읽는 곳 없음) |
