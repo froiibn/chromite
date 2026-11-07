@@ -290,9 +290,7 @@ public class ChromiteSwingApplication extends DesktopApplicationImpl {
             desktop.setQuitHandler((event, response) -> SwingUtilities.invokeLater(() -> {
                 // Our own exit path ends the process; the JDK must not exit before it has run
                 response.cancelQuit();
-                if (frame.isDisplayable()) {
-                    frame.dispatchEvent(new WindowEvent(frame, WindowEvent.WINDOW_CLOSING));
-                }
+                requestQuit(frame);
             }));
         }
         if (desktop.isSupported(Desktop.Action.APP_ABOUT)) {
@@ -303,7 +301,17 @@ public class ChromiteSwingApplication extends DesktopApplicationImpl {
         }
         if (MacOSMainThread.isActive()) {
             // AWT does not build the application menu for an NSApplication it did not create (the launcher's)
-            MacOSAppMenu.install(GeneralUtils.getProductName(), () -> AboutDialog.open(frame), () -> OptionsDialog.open(frame));
+            MacOSAppMenu.install(GeneralUtils.getProductName(), () -> AboutDialog.open(frame), () -> OptionsDialog.open(frame),
+                () -> requestQuit(frame));
+        }
+    }
+
+    /**
+     * Quit from the macOS application (menu, Apple event, Dock): the main window's close button path. Call in the EDT.
+     */
+    private static void requestQuit(@NotNull MainFrame frame) {
+        if (frame.isDisplayable()) {
+            frame.dispatchEvent(new WindowEvent(frame, WindowEvent.WINDOW_CLOSING));
         }
     }
 

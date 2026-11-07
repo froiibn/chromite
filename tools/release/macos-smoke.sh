@@ -351,7 +351,8 @@ cmd_secure_storage() {
   fi
   # Keys and module ids only: Equinox writes <key>=<module id>\t<iv>,<salt>,<data> (a properties file, \t escaped)
   sed -E 's/(\\t).*/\1<encrypted>/' "$store" > "$OUT/secure-storage-redacted.txt"
-  if grep -q 'MacOSSecureStorageKeychain' "$store"; then
+  # Equinox writes module ids in lower case
+  if grep -qi 'MacOSSecureStorageKeychain' "$store"; then
     pass "values encrypted by the Keychain provider (MacOSSecureStorageKeychain), no plain text password"
   else
     result FAIL "no value of the secure storage names the Keychain provider (secure-storage-redacted.txt)"
@@ -521,8 +522,9 @@ cmd_txn() {
   pid=$(app_pid)
   [ -n "$pid" ] || fail "the app does not run"
   before=$(log_lines)
-  # The explorer tree has the focus (MainFrame.windowOpened); Home selects its first row, the connection
-  on_app "$pid" 'key code 115' > /dev/null
+  # The explorer tree has the focus (MainFrame.windowOpened); Down selects its first row, the connection
+  # (Home is not bound to the tree's first row on macOS)
+  on_app "$pid" 'key code 125' > /dev/null
   sleep 1
   # Ctrl+N: new query window for the selected connection (MainFrame.newQueryAction, Control, not Command)
   on_app "$pid" 'keystroke "n" using control down' > /dev/null

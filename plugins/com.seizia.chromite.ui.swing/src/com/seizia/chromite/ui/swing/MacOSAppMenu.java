@@ -33,14 +33,16 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * The macOS application menu (About, Options, Hide, Hide Others, Show All, Quit) when AWT does not own the application.
+ * The macOS application menu (About, Options, Hide, Hide Others, Show All, Quit) and the quit request when AWT does not
+ * own the application.
  *
  * 설계: Eclipse 런처는 JVM을 올리기 전에 평범한 {@code NSApplication}을 만든다(Apple event 처리기 설치). 그래서 AWT는 자기
  * {@code NSApplicationAWT}를 만들지 못하고 내장(embedded) 상태로 시작해 앱 메뉴를 만들지 않는다(빈 앱 메뉴, Cmd+Q 없음).
- * 끝내기 Apple event와 Dock의 끝내기는 AWT 위임자({@code AWT_OVERRIDE_NSDELEGATE}, {@link MacOSMainThread})가 받아 Java의
- * 끝내기 처리기로 보내므로, 이 메뉴의 끝내기도 같은 {@code terminate:}를 보낸다(같은 경로: 창 닫기, 저장·트랜잭션 질문).
- * 정보·옵션은 이 클래스가 런타임에 만든 Objective-C 대상 객체가 받아 Swing 쪽 실행기를 EDT에서 부른다(AWT 위임자의 내부 선택자에
- * 기대지 않는다). 메뉴는 AppKit 스레드에서만 다룰 수 있어 main dispatch queue로 보낸다. AWT는 창이 활성화될 때 메인 메뉴의
+ * 앱 위임자도 두지 않아 끝내기 Apple event·Dock의 끝내기·Cmd+Q({@code terminate:})가 Java 끝내기 처리기를 거치지 않고 바로
+ * 프로세스를 끝낸다. 그래서 앱에 위임자가 없으면 이 클래스가 런타임에 만든 Objective-C 객체를 위임자로 두고,
+ * {@code applicationShouldTerminate:}에서 {@code quit}(창 닫기 경로: 저장·트랜잭션 질문)을 EDT에 맡긴 뒤 끝내기를 취소한다
+ * ({@code NSTerminateCancel}). 앱은 사용자가 끝내기로 하면 자기 경로로 끝난다. 이는 Java 끝내기 처리기와 같은 동작이다.
+ * 정보·옵션도 같은 객체가 받아 Swing 쪽 실행기를 EDT에서 부른다(AWT 위임자의 내부 선택자에 기대지 않는다). 메뉴는 AppKit 스레드에서만 다룰 수 있어 main dispatch queue로 보낸다. AWT는 창이 활성화될 때 메인 메뉴의
  * 0번(앱 메뉴)을 남기고 나머지를 지우므로({@code CMenuBar clearMenuBar}) 이 메뉴는 그대로 남는다.
  *
  * 변경 이력:
@@ -53,6 +55,9 @@ final class MacOSAppMenu {
     private static final String TARGET_CLASS = "ChromiteAppMenuTarget";
     private static final String ABOUT_ACTION = "chromiteAbout:";
     private static final String OPTIONS_ACTION = "chromiteOptions:";
+    private static final String SHOULD_TERMINATE = "applicationShouldTerminate:";
+    /** NSApplicationTerminateReply NSTerminateCancel */
+    private static final long TERMINATE_CANCEL = 0;
     /** NSEventModifierFlagCommand, NSEventModifierFlagOption */
     private static final long COMMAND = 1L << 20;
     private static final long OPTION = 1L << 19;
@@ -60,6 +65,11 @@ final class MacOSAppMenu {
     /** Objective-C method "v@:@": {@code - (void)action:(id)sender} */
     public interface ActionCallback extends Callback {
         void invoke(Pointer self, Pointer selector, Pointer sender);
+    }
+
+    /** Objective-C method "Q@:@": {@code - (NSApplicationTerminateReply)applicationShouldTerminate:(NSApplication *)sender} */
+    public interface TerminateCallback extends Callback {
+        long invoke(Pointer self, Pointer selector, Pointer sender);
     }
 
     /** dispatch_function_t */
@@ -77,14 +87,20 @@ final class MacOSAppMenu {
     }
 
     /**
-     * Sets the application menu, on the AppKit thread (asynchronously). {@code about} and {@code options} run on the EDT.
+     * Sets the application menu and, when the application has no delegate, the quit request, on the AppKit thread
+     * (asynchronously). {@code about}, {@code options} and {@code quit} run on the EDT.
      */
-    static synchronized void install(@NotNull String productName, @NotNull Runnable about, @NotNull Runnable options) {
+    static synchronized void install(
+        @NotNull String productName,
+        @NotNull Runnable about,
+        @NotNull Runnable options,
+        @NotNull Runnable quit
+    ) {
         process = NativeLibrary.getProcess();
         msgSend = process.getFunction("objc_msgSend");
         DispatchCallback build = context -> {
             try {
-                setMainMenu(productName, about, options);
+                setUp(productName, about, options, quit);
             } catch (Throwable e) {
                 log.error("Cannot set the macOS application menu", e);
             }
@@ -95,8 +111,21 @@ final class MacOSAppMenu {
             new Object[] {process.getGlobalVariableAddress("_dispatch_main_q"), null, build});
     }
 
-    private static void setMainMenu(@NotNull String productName, @NotNull Runnable about, @NotNull Runnable options) {
-        Pointer target = send(send(targetClass(about, options), "alloc"), "init");
+    private static void setUp(
+        @NotNull String productName,
+        @NotNull Runnable about,
+        @NotNull Runnable options,
+        @NotNull Runnable quit
+    ) {
+        Pointer target = send(send(targetClass(about, options, quit), "alloc"), "init");
+        Pointer application = send(objcClass("NSApplication"), "sharedApplication");
+        Pointer delegate = send(application, "delegate");
+        log.debug("macOS application " + className(application) + ", delegate " + (delegate == null ? "none" : className(delegate)));
+        if (delegate == null) {
+            // NSApplication keeps a weak reference: the target is never released
+            send(application, "setDelegate:", target);
+        }
+
         Pointer appMenu = send(send(objcClass("NSMenu"), "alloc"), "initWithTitle:", nsString(productName));
         addItem(appMenu, NLS.bind(CoreMessages.main_about, productName), ABOUT_ACTION, "", 0, target);
         addSeparator(appMenu);
@@ -107,21 +136,22 @@ final class MacOSAppMenu {
         addItem(appMenu, CoreMessages.mac_menu_hide_others, "hideOtherApplications:", "h", COMMAND | OPTION, null);
         addItem(appMenu, CoreMessages.mac_menu_show_all, "unhideAllApplications:", "", 0, null);
         addSeparator(appMenu);
-        // terminate: asks the application delegate (AWT's), which calls the Java quit handler
+        // terminate: asks the application delegate (applicationShouldTerminate:)
         addItem(appMenu, NLS.bind(CoreMessages.mac_menu_quit, productName), "terminate:", "q", COMMAND, null);
 
         Pointer appItem = send(send(objcClass("NSMenuItem"), "alloc"), "init");
         send(appItem, "setSubmenu:", appMenu);
         Pointer mainMenu = send(send(objcClass("NSMenu"), "alloc"), "initWithTitle:", nsString(""));
         send(mainMenu, "addItem:", appItem);
-        send(send(objcClass("NSApplication"), "sharedApplication"), "setMainMenu:", mainMenu);
+        send(application, "setMainMenu:", mainMenu);
     }
 
     /**
-     * An NSObject subclass whose two actions run {@code about} and {@code options} on the EDT.
+     * An NSObject subclass whose two actions run {@code about} and {@code options} on the EDT and whose
+     * {@code applicationShouldTerminate:} runs {@code quit} on the EDT and cancels the termination.
      */
     @NotNull
-    private static Pointer targetClass(@NotNull Runnable about, @NotNull Runnable options) {
+    private static Pointer targetClass(@NotNull Runnable about, @NotNull Runnable options, @NotNull Runnable quit) {
         Pointer existing = objcClass(TARGET_CLASS);
         if (existing != null) {
             return existing;
@@ -130,6 +160,12 @@ final class MacOSAppMenu {
             .invokePointer(new Object[] {objcClass("NSObject"), TARGET_CLASS, 0L});
         addMethod(cls, ABOUT_ACTION, (self, selector, sender) -> SwingUtilities.invokeLater(about));
         addMethod(cls, OPTIONS_ACTION, (self, selector, sender) -> SwingUtilities.invokeLater(options));
+        TerminateCallback shouldTerminate = (self, selector, sender) -> {
+            SwingUtilities.invokeLater(quit);
+            return TERMINATE_CANCEL;
+        };
+        CALLBACKS.add(shouldTerminate);
+        process.getFunction("class_addMethod").invokeInt(new Object[] {cls, selector(SHOULD_TERMINATE), shouldTerminate, "Q@:@"});
         process.getFunction("objc_registerClassPair").invokeVoid(new Object[] {cls});
         return cls;
     }
@@ -160,6 +196,11 @@ final class MacOSAppMenu {
 
     private static void addSeparator(@NotNull Pointer menu) {
         send(menu, "addItem:", send(objcClass("NSMenuItem"), "separatorItem"));
+    }
+
+    @NotNull
+    private static String className(@NotNull Pointer object) {
+        return process.getFunction("object_getClassName").invokeString(new Object[] {object}, false);
     }
 
     @Nullable
