@@ -168,6 +168,21 @@
   Oracle 23ai에서 `t1 JOIN v1 … ORDER BY` 예상 계획(노드 5개) → `serialize` → `deserialize`. 앞뒤 트리가 같다(id 0 뿌리, 1 SORT의 부모 0, 2 HASH JOIN의 부모 1,
   3·4 TABLE ACCESS의 부모 2, 자식 수 1·1·2·0·0, 겹친 자식 없음). `getParentId`는 0·0·1·2·2. Altibase는 코드 경로만 확인했다.
 
+### Oracle 형식 컴파일의 개체 종류, SQL Server 루틴 매개변수의 길이와 정밀도 (#31)
+
+- Oracle: `OracleDataType.getCompileActions`(`:292`)가 `ALTER TYPE … COMPILE` 동작의 개체 종류를 `OracleObjectType.VIEW`로 적었다. `TYPE`으로 고쳤다.
+  지금 Swing의 Compile 명령은 오류를 이 값이 아니라 `OracleCompileErrors.getErrorTypes`(형식은 TYPE·TYPE BODY)로 읽어 화면은 달라지지 않는다.
+  같은 클래스를 쓰는 다른 `getCompileActions`(뷰, 구체화된 뷰, 패키지, 프로시저, 트리거, Java 클래스)는 모두 자기 종류다.
+- SQL Server 길이: `SQLServerProcedureParameter`(`:76`)가 `sys.parameters.max_length`(바이트)를 그대로 길이로 썼다. `nvarchar(50)`이 `nvarchar(100)`,
+  `nchar(10)`이 `nchar(20)`으로 보였고, 실행 대화상자가 만드는 OUTPUT 변수 선언(`DECLARE @label nchar(20)`, `ProcedureCallScript.typeOf`)도 그 길이였다.
+  테이블 열(`SQLServerTableColumn.loadInfo`)이 쓰는 `SQLServerUtils.getDisplayMaxLength`(nchar·nvarchar는 2로 나눔)를 매개변수에도 쓴다. `-1`(MAX)은 그대로다.
+- SQL Server 정밀도: `decimal(5,2)`가 `decimal(38,38)`로 보이던 곳은 매개변수 자신이 아니라 데이터 형식(`getParameterType()`, 형식의 기본 정밀도)의 이름을
+  쓰던 곳이다. 실행·디버거 대화상자의 인수 표는 B5에서 이미 고쳤고(`RoutineArgumentTable`), 남은 곳은 편집기의 루틴 설명(마우스 올림, `SqlObjectNavigation`)이었다.
+  인수 표와 같이 매개변수 자신(`DBSTypedObject`)의 형식을 쓴다. 디버거의 루틴 식별 키(`DebugCommands`, 화면에 보이지 않는 오버로드 구분)는 그대로 두었다.
+- 확인(SQL Server 2022, `chr_followups_3.dbo.fu3_proc(@title nvarchar(50), @amount decimal(5,2), @code varchar(20), @label nchar(10) OUTPUT)`):
+  `sys.parameters`는 100·5,2·20·20. 한국어 화면의 Execute Procedure 인수 표가 `nvarchar(50)`, `decimal(5,2)`, `varchar(20)`, `nchar(10)`, "쿼리 창에서 열기"의
+  스크립트가 `DECLARE @label nchar(10) = NULL;`. 마우스 올림 설명과 Oracle 형식 컴파일은 코드 경로만 확인했다.
+
 ## 확인 (2026-11-07)
 
 빌드한 Swing 제품(`-vm D:\Tools\jbrsdk-25\bin\server\jvm.dll`, 시험 작업 공간 사본)에 같은 프로세스 안에서 도는 시험 코드를 붙여 모델을 불렀다(OS 입력 없음).
@@ -196,3 +211,4 @@
 - 2026-11-08 "작은 모델·안전·라이선스 수정": 변경을 하는 모델 확인 네 곳의 기본 단추(#17), Oracle DBMS_OUTPUT을 열린 세션에도 적용(#4), 슬래시 Windows 경로(#5),
   연결 유형 이름의 언어(#3), MySQL 5 (Legacy)·StarRocks 라이선스 표기(#12), `LICENSE.md`의 JFreeChart 줄(#49).
 - 2026-11-08 "후속 수정 3": Oracle 계획 노드의 부모 번호와 저장한 계획 읽기(#24, Altibase 같은 원인).
+- 2026-11-08 "후속 수정 3": Oracle 형식 컴파일의 개체 종류, SQL Server 루틴 매개변수의 길이와 루틴 설명의 정밀도(#31).

@@ -49,6 +49,9 @@ import java.util.Map;
 
 /**
  * Oracle data type
+ *
+ * 변경 이력:
+ * - 2026-11-08 Chromite: 형식 컴파일 동작의 개체 종류를 VIEW에서 TYPE으로 고침(evening #31, docs/chromite/model-fixes.md "후속 수정 3")
  */
 public class OracleDataType extends OracleObject<DBSObject>
     implements DBSDataType, DBSEntity, DBPQualifiedObject, OracleSourceObject, DBPScriptObjectExt, DBPImageProvider {
@@ -289,7 +292,7 @@ public class OracleDataType extends OracleObject<DBSObject>
         if (!isPredefined()) {
             return new DBEPersistAction[]{
                     new OracleObjectPersistAction(
-                            OracleObjectType.VIEW,
+                            OracleObjectType.TYPE,
                             "Compile type",
                             "ALTER TYPE " + getFullyQualifiedName(DBPEvaluationContext.DDL) + " COMPILE"
                     )};

@@ -20,6 +20,7 @@ package com.seizia.chromite.ext.mssql.model;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
+import com.seizia.chromite.ext.mssql.SQLServerUtils;
 import com.seizia.chromite.model.DBPDataKind;
 import com.seizia.chromite.model.DBUtils;
 import com.seizia.chromite.model.exec.jdbc.JDBCResultSet;
@@ -40,6 +41,8 @@ import com.seizia.chromite.model.struct.rdb.DBSProcedureParameterKind;
  * 변경 이력:
  * - 2026-11-07 일반 매개변수를 INOUT이 아니라 IN으로, 반환 값을 OUT이 아니라 RETURN으로 보고함
  *   (docs/chromite/model-fixes.md)
+ * - 2026-11-08 nchar·nvarchar 길이를 바이트가 아니라 글자 수로(테이블 열과 같은 {@code SQLServerUtils.getDisplayMaxLength}).
+ *   nvarchar(50)이 nvarchar(100)으로 보이고 실행 스크립트의 OUTPUT 변수 선언도 그 길이였다 (docs/chromite/model-fixes.md "후속 수정 3")
  */
 public class SQLServerProcedureParameter implements DBSProcedureParameter, DBSAttributeBase, DBSObject {
     private SQLServerProcedure procedure;
@@ -77,7 +80,10 @@ public class SQLServerProcedureParameter implements DBSProcedureParameter, DBSAt
             this.parameterKind = isOutput ? DBSProcedureParameterKind.OUT : DBSProcedureParameterKind.IN;
         }
 
-        this.maxLength = JDBCUtils.safeGetInt(dbResult, "max_length");
+        // sys.parameters.max_length is in bytes: nvarchar(50) is 100, as for table columns
+        int rawMaxLength = JDBCUtils.safeGetInt(dbResult, "max_length");
+        this.maxLength = dataType == null ? rawMaxLength
+            : SQLServerUtils.getDisplayMaxLength(getDataSource(), dataType.getTypeName(), rawMaxLength);
         this.scale = JDBCUtils.safeGetInt(dbResult, "scale");
         this.precision = JDBCUtils.safeGetInt(dbResult, "precision");
 
