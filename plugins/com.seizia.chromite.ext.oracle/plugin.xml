@@ -401,6 +401,9 @@
                         <property id="@chromite-meta-use-simple-constraints@" label="%provider.property.simple_constraints.label" type="boolean" description="%provider.property.simple_constraints.description"/>
                         <property id="@chromite-meta-use-alternative-table-query@" label="%provider.property.alternative_table_query.label" type="boolean" description="%provider.property.alternative_table_query.description"/>
                         <property id="oracle.meta-search-in-synonyms" label="%provider.property.search_in_synonyms.label" type="boolean" description="%provider.property.search_in_synonyms.description"/>
+                        <property id="oracle-meta-optimizer-version" label="%provider.property.optimizer_version.label" type="string" description="%provider.property.optimizer_version.description" validValues="10.2.0.5,12.1.0.1,18.1.0,19.1.0,23.1.0"/>
+                        <property id="@chromite-meta-read-column-comments@" label="%provider.property.read_column_comments.label" type="boolean" description="%provider.property.read_column_comments.description"/>
+                        <property id="oracle.meta-search-in-sequences" label="%provider.property.search_in_sequences.label" type="boolean" description="%provider.property.search_in_sequences.description"/>
                     </propertyGroup>
                     <propertyGroup label="%provider.group.content.label">
                         <property id="show-only-one-schema@" label="%provider.property.show_only_one_schema.label" type="boolean" description="%provider.property.show_only_one_schema.description"/>
