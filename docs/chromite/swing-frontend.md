@@ -2442,6 +2442,117 @@ SQL Editor 도구 막대다. 쿼리 창마다 있던 도구 막대는 없앴다(
 - 창 제목 자체("Chromite")는 그대로 둔다. Windows 작업 표시줄, Alt+Tab, macOS 창 메뉴는 이 이름을 쓴다.
 - 주 창에만 건다. 테마 전체 설정(`TitlePane.showTitle`)으로 끄면 대화상자 제목까지 사라진다.
 
+## 실행 확인의 기본 단추 (2026-11-08)
+
+DDL·DML·작업·세션·파일을 바꾸는 확인과 스크립트 미리 보기 중 일부가 실행(Execute, 예, 확인)을 기본 단추로 두고 있었다.
+습관처럼 Enter를 누르면 DROP, DELETE, 작업 실행, 세션 종료가 실행됐다. Object Explorer 삭제(#119), TRUNCATE·보안 편집기(#128)는 이미 고쳤고,
+이번에 `ui.swing` 전체를 훑어 남은 곳을 같은 규칙으로 맞췄다.
+
+### 규칙
+
+- 무언가를 바꾸는 확인은 안전한 답(취소, 아니요, 닫기)이 기본 단추이고 처음 포커스도 그 단추에 있다. Enter는 아무것도 실행하지 않는다.
+- 실행 단추에는 하는 일을 쓴다(삭제, Kill Session, 바꾸기, 실행…). 예/확인은 동사로 바꾸기 쉬운 곳만 바꿨다. 모델 계층의 질문(`confirmAction`)은
+  문구를 호출자가 정하므로 예/아니요를 그대로 두고 기본만 아니요로 했다.
+- 읽기만 하는 대화상자, 알림, 값을 입력받는 폼(OK가 폼을 적용하거나 사용자가 이미 고른 실행에 값을 넣는 것)은 그대로 둔다.
+  폼의 OK가 바로 바꾸는 일을 시작하면(백업·복원, 전송 마법사의 Finish) 기본 단추를 없앤다. 폼에서 취소를 기본으로 하면 칸에서 친 Enter가
+  설정을 버리고 창을 닫거나, 실행 중인 작업을 취소하기 때문이다.
+
+### 공통 구현
+
+| 위치 | 내용 |
+|------|------|
+| `SwingPlatformUI.confirmChange` (새 정적 메서드) | 동사 단추 / 취소 확인. `JOptionPane.showOptionDialog`의 초깃값을 취소로 주면 그 단추가 기본 단추이자 처음 포커스다(`BasicOptionPaneUI`). EDT에서 부른다 |
+| `SwingPlatformUI.confirmAction(title, message, isWarning)` | 경고(`isWarning = true`)면 아니요가 기본. 단추 이름은 예/아니요 그대로. 경고가 아니면 예가 기본(전과 같음) |
+| `ScriptPreviewDialog` | 실행 단추가 있든 없든 Cancel(Close)이 기본 단추이고 처음 포커스를 받는다. 늘 참이 된 `cancelDefault` 플래그를 지웠다 |
+| `CoreMessages.common_replace` (새 키) | 파일 덮어쓰기 확인의 "Replace" / "바꾸기" |
+| `DebugMessages.debug_compile_button` (새 키) | 디버그 컴파일 확인의 "Compile" / "컴파일" |
+
+### 바꾼 대화상자
+
+| 대화상자 (클래스) | 바꾸는 것 | 전: 단추(기본) | 후: 단추(기본) |
+|------|------|------|------|
+| 스크립트 미리 보기, 실행 단추 있음 (`ScriptPreviewDialog.show(…, true)`) | 테이블 디자이너 Save, SQL Server 에이전트 삭제·속성 OK, 작업 스케줄러 삭제·속성 OK의 스크립트 | Copy / Open / Execute / Cancel (Execute) | 같음 (Cancel, 포커스) |
+| 결과 표 저장 미리 보기, 개체 변경 미리 보기 (`confirmSave`, `confirmChange`) | 결과 표 DML, Object Explorer 삭제·이름 바꾸기·유지 관리, 보안 편집기 | 같음 (Cancel) | 같음 (Cancel, 포커스 추가) |
+| 모델의 경고 확인 (`SwingPlatformUI.confirmAction(…, true)`) | 확인이 필요한 연결 유형의 변경 쿼리(`SQLQueryExecuteHandler.confirmQueryExecution` 기본 구현), 결과 표 편집을 버리는 다시 읽기, 결과 집합이 많을 때 계속 읽기, Mimer 파일 이름 바꾸기, `@ai` 확인의 대체 경로 | 예 / 아니요 (예) | 예 / 아니요 (아니요) |
+| 에이전트 개체 삭제 (`AgentCommands.delete`) | 작업·경고·운영자 DROP | 예 / 아니요 (예) | 삭제 / 취소 (취소) |
+| 스케줄러 개체 삭제 (`SchedulerCommands.delete`) | 작업·이벤트 DROP | 예 / 아니요 (예) | 삭제 / 취소 (취소) |
+| 지금 실행 (`SchedulerCommands`, Oracle) | 작업 실행 | 확인 / 취소 (확인) | 지금 실행 / 취소 (취소) |
+| 연결 삭제 (`ConnectionCommands.delete`) | 연결 설정 삭제 | 예 / 아니요 (예) | 삭제 / 취소 (취소) |
+| Kill Session (`LockManagerPanel`) | 잠금을 쥔 세션 종료 | 예 / 아니요 (예) | Kill Session / 취소 (취소) |
+| 세션 명령 (`SessionManagerPanel`) | 세션 종료, 쿼리 취소 등 | 예 / 아니요 (예) | 명령 이름 / 취소 (취소) |
+| 유지 관리 실행 (`MaintenanceDialog.confirm`) | VACUUM, OPTIMIZE, 인덱스 다시 작성 등 | 확인 / 취소 (확인) | 실행 / 취소 (취소) |
+| 실행 중 닫기 (`MaintenanceDialog.closeRequested`) | 실행 중인 유지 관리 명령 취소 | 예 / 아니요 (예) | 예 / 아니요 (아니요) |
+| 테이블 복사 TRUNCATE (`DatabaseCopyPages`) | 대상 테이블 행 삭제 | 예 / 아니요 (예) | 잘라내기 / 취소 (취소) |
+| 테이블 복사 다시 만들기 (`DatabaseCopyPages`) | 매핑을 "삭제 후 다시 만들기"로 | 예 / 아니요 (예) | 삭제 후 다시 만들기 / 취소 (취소) |
+| 가져오기 TRUNCATE (`DataImportWizard`) | 대상 테이블 행 삭제 | 예 / 아니요 (예) | 잘라내기 / 취소 (취소) |
+| 데이터 전송 마법사 마지막 페이지 (`DataTransferWizard`) | 전송 시작 | Finish (Finish) | 같음 (기본 단추 없음. 앞 페이지의 Next, 진행 중 Cancel은 그대로) |
+| 데이터베이스 작업 대화상자 (`DatabaseTaskDialog`) | 백업·복원 실행, 에이전트·스케줄러 속성 적용 | OK / Cancel (OK) | 같음 (기본 단추 없음) |
+| 연결 가져오기 미리 보기 (`ConnectionImportDialog`) | 연결 추가, 충돌을 Replace로 둔 연결 바꾸기 | Import / Cancel (Import) | 같음 (Cancel, 포커스) |
+| 오프라인 드라이버 묶음 설치 (`DriverBundleInstallDialog`) | 드라이버 파일 쓰기, 다른 파일 바꾸기 | Install / Cancel (바꿀 것이 있으면 Install) | 같음 (Cancel, 포커스) |
+| 드라이버 삭제 (`DriverManagerDialog`) | 사용자 드라이버 삭제, 기본 드라이버 끄기 | 예 / 아니요 (예) | 삭제 / 취소 (취소) |
+| 드라이버 라이브러리 제거 (`DriverLibrariesPanel`) | 드라이버 파일 목록에서 제거 | 예 / 아니요 (예) | 제거 / 취소 (취소) |
+| 연결 유형 삭제 (`ConnectionTypesPage`) | 연결 유형 삭제, 쓰던 연결 옮기기 | 확인 / 취소 (확인) | 삭제 / 취소 (취소) |
+| 서버 그룹 삭제 (`RegisteredServerCommands`) | 그룹 삭제, 서버 옮기기 | 예 / 아니요 (예) | 삭제 / 취소 (취소) |
+| Query Library 삭제 (`QueryLibraryPanel`) | 쿼리 파일·폴더 삭제 | 확인 / 취소 (확인) | 삭제 / 취소 (취소) |
+| 쿼리 기록 지우기 (`QueryHistoryDialog`) | 기록 전체 삭제 | 확인 / 취소 (확인) | 기록 지우기 / 취소 (취소) |
+| AI 대화 삭제 (`AiAssistantPanel`) | 저장된 대화 삭제 | 확인 / 취소 (확인) | 대화 삭제 / 취소 (취소) |
+| MCP 토큰 다시 만들기 (`AiOptionsPage`) | 기존 클라이언트의 토큰 무효화 | 확인 / 취소 (확인) | 다시 만들기 / 취소 (취소) |
+| 디버그용 컴파일 (`DebugCommands`) | 루틴을 디버그 정보와 함께 다시 컴파일(DDL) | 확인 / 취소 (확인) | 컴파일 / 취소 (취소) |
+| 비밀 기본값 경고 (`QueryParameterDefinitionsDialog`) | 비밀처럼 보이는 기본값을 공유 파일에 저장 | 예 / 아니요 (예) | 저장 / 취소 (취소) |
+| 결과 표 변경 저장 질문 (`MainFrame.askSave`) | 쿼리 창 닫기·끝내기 때 결과 표 DML 저장(미리 보기가 꺼진 연결이면 바로 실행) | 저장 / 저장 안 함 / 취소 (저장) | 같음 (결과 표 변경이 있으면 취소, 텍스트 파일만이면 저장) |
+| 파일 덮어쓰기 8곳 | 기존 파일 바꾸기: Save As(`MainFrame`), 결과 내보내기(`ResultSetExport`), ERD 그림(`ErdDiagramPanel`), 계획 원본(`PlanRawView`), Query Library 내보내기(`QueryLibraryPanel`)·Save As .sql(`QueryLibraryEditor`), 연결 내보내기(`ConnectionTransferCommands`), 드라이버 묶음(`DriverBundleCreateDialog`) | 예 / 아니요 (예) | 바꾸기 / 취소 (취소) |
+
+### 이미 안전해서 그대로 둔 것
+
+| 대화상자 (클래스) | 단추(기본) |
+|------|------|
+| Object Explorer 삭제 확인 (`ExplorerObjectCommands`, #119) | 삭제 / 취소 (취소) |
+| TRUNCATE 확인 (`ObjectMaintenanceCommands`, #128) | 잘라내기 / 취소 (취소) |
+| 보안 주체 삭제 (`SecurityCommands`, #128) | 삭제 / 취소 (취소) |
+| 위험한 문·`@ai` 실행 확인 (`SqlConfirmDialog`) | 실행 / 취소 (취소, 포커스) |
+| Chromite Agent 도구 확인 (`AiConfirmationDialog`) | 허용 / 거부, 트랜잭션이면 커밋 / 롤백 / 취소 (거부·취소, 포커스) |
+| 셸 명령 승인 (`SwingShellCommandsService`) | 한 번 실행 / 항상 / 취소 (취소) |
+| 열린 트랜잭션 질문 (`ExitTransactionCheck`, `AutoCommitApplier`, `ProcedureDebuggerPanel`) | 커밋 / 롤백 / 취소 (취소) |
+| 결과 변경을 버리고 실행 (`SqlEditorPanel`) | 버리고 실행 / 취소 (취소) |
+| Query Library 저장 충돌 (`QueryLibraryEditor.confirmOverwrite`) | 덮어쓰기 / 다시 읽기 / 취소 (취소) |
+| SSH 호스트 키 (`JschUserInfoPrompter.promptYesNo`) | 예 / 아니요 (아니요) |
+| 모델의 동사 확인 (`SwingPlatformUI.confirmAction(…, buttonLabel, true)`), 라이선스 동의 | 동사 / 취소 (취소), 동의 / 거절 (거절) |
+| 생성 스크립트만 보기 (`ScriptPreviewDialog.show(…, false)`: Generate Script, 보안 Script) | Copy / Open / Close (Close) |
+| MySQL 이벤트 스케줄러 상태 (`SchedulerCommands`) | 명령 열기 / 복사 / 닫기 (닫기) |
+
+### 바꾸지 않은 것과 이유
+
+- 텍스트 파일 저장 질문(`MainFrame.askSave`의 텍스트만, `TableDesignerPanel.confirmClose`): 저장이 기본. 텍스트 파일 저장은 DB를 바꾸지 않고,
+  테이블 디자이너의 저장은 Cancel이 기본인 스크립트 미리 보기를 다시 거친다.
+- 테이블 디자이너 Revert(`TableDesignerPanel.revert`): 확인이 기본. DB를 바꾸지 않고 디자이너의 편집만 버린다.
+- 드라이버 파일 내려받기 질문(`SwingDriversService`): 내려받기가 기본. 사용자가 연결을 시작해서 뜬 질문이고, 없는 파일을 더하기만 한다.
+- Query Library 가져오기 충돌(`QueryLibraryPanel`): 복사본 만들기가 기본(기존 쿼리를 바꾸지 않음). 지워진 쿼리 파일 다시 저장(`QueryLibraryEditor`): 사용자가 누른 저장이고 잃는 것이 없다.
+- 지운 드라이버 되살리기(`DriverManagerDialog` Restore Deleted…): 되살리기만 한다.
+- 값을 입력받는 폼: 연결 대화상자(Connect), 쿼리 매개변수(`SqlParameterDialog`의 Execute, `QueryParameterDialog`의 Run: 사용자가 이미 고른 실행에 값을 넣음),
+  디버그 시작(`DebugStartDialog`), 보안 속성(`PrincipalPropertiesDialog`, `ObjectPermissionsDialog`: OK가 Cancel 기본 미리 보기를 거침),
+  일정(`AgentScheduleDialog`, `ScheduleBuilderDialog`, `QueryScheduleDialog`), 디자이너 하위 창(`DesignerDialogs`), Options, 드라이버 편집, 찾기·바꾸기,
+  열 필터, Query Library 루트·기준값·매개변수 정의, 부트스트랩 쿼리, 연결 내보내기, 드라이버 묶음 만들기(파일 덮어쓰기는 따로 확인), 자격 증명·비밀번호·암호 문구·SSH 질문,
+  Git 커밋 메시지(글 상자가 Enter를 받음), Query Library 저장 폼, 연결·서버 고르기.
+- 모델 계층의 경고가 아닌 확인(`confirmAction(title, message)`): 예가 기본. 모두 가져오기, 바뀐 연결 다시 연결, AI 메타데이터 전송 동의, 새 비밀번호 저장 같은
+  질문이 섞여 있어 기본을 일괄로 바꾸지 않았다. 이 중 변경을 하는 호출(Oracle PLAN_TABLE 만들기 `OracleDataSource`, 대상 DDL 자동 생성
+  `DatabaseTransferUtils`, 리소스 복사·이동 `DBNPathBase`, 작업 복원 `DBTaskUtils`)은 모델 호출자가 `isWarning`을 켜야 하므로 이번 범위 밖으로 남긴다.
+
+### 확인 (2026-11-08)
+
+- `mvn package -Pproduct-chromite-swing` BUILD SUCCESS, `tools/rename/gate.py` ALL GATES PASSED. 회귀 테스트는 실행하지 않았다(요청 없음).
+- 빌드한 앱(영어)을 테스트 DB에 붙여, 같은 프로세스 안에서 대화상자의 포커스 단추에 Enter 키 이벤트를 보내 확인했다(스크래치 객체만 쓰고 뒤에 지움).
+  다섯 곳 모두 기본 단추·포커스가 취소(아니요)였고 Enter로 창만 닫혔다.
+
+  | 대화상자 | 단추 (기본) | Enter 뒤 |
+  |------|------|------|
+  | Delete Connection (MariaDB 연결) | Delete / Cancel (Cancel) | 연결이 트리와 `data-sources.json`에 남음 |
+  | 스케줄러 Delete (MariaDB 이벤트 `cds_evt`) | Delete / Cancel (Cancel) | `information_schema.EVENTS`에 이벤트 남음 |
+  | Script - Delete cds_evt (`DROP EVENT`) | Copy / Open in Query Window / Execute / Cancel (Cancel) | 이벤트 남음 |
+  | Confirm query execution (Production 유형 PostgreSQL, `DELETE … WHERE id = 1`) | Yes / No (No) | 행 남음, 트랜잭션 중인 세션 없음 |
+  | Clear History | Clear History / Cancel (Cancel) | 기록 파일 3줄 그대로 |
+- 영향받을 수 있는 기능: 위 표의 모든 확인(Enter가 이제 취소), 데이터베이스 작업 대화상자와 전송 마법사 마지막 페이지(Enter가 아무것도 하지 않음),
+  모델의 경고 확인을 쓰는 확인 필요 연결 유형의 쿼리 실행.
+
 ## 변경 이력
 
 - 2026-11-06 최초 작성. Swing 전환 결정, 구조, 재사용 분석, MVP 범위, F5 실행 사양을 정리.
@@ -2556,3 +2667,5 @@ SQL Editor 도구 막대다. 쿼리 창마다 있던 도구 막대는 없앴다(
 - 2026-11-07 쿼리 실행의 오류 처리를 설정에서 넘김(오류 뒤 무확인 롤백 고침), C단계 "커밋·오류 처리" 항목 갱신. [swing-options.md](swing-options.md).
 - 2026-11-07 쿼리 창마다 별도 연결: 기본 DB/스키마 콤보, E·G·C단계 "남긴 것"의 편집기별 별도 연결 항목 갱신. [transactions.md](transactions.md) "쿼리 창마다 별도 연결".
 - 2026-11-07 Database type 콤보 설명: MySQL 드라이버 내장을 없앴으므로 "공개판에 드라이버가 내장된 주요 DB"를 "주요 DB"로 고침(목록은 그대로). [drivers.md](drivers.md).
+- 2026-11-08 실행 확인의 기본 단추: 데이터·스키마·작업·세션·파일을 바꾸는 확인과 실행 미리 보기는 취소(아니요, 닫기)가 기본 단추이고 처음 포커스,
+  실행 단추에 동사(삭제, Kill Session, 바꾸기…). 백업·복원 대화상자와 전송 마법사의 Finish는 기본 단추가 없음. "실행 확인의 기본 단추" 절.

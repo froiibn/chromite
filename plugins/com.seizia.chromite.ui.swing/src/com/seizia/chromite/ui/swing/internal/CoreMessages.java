@@ -37,6 +37,7 @@ import org.eclipse.osgi.util.NLS;
  * - 2026-11-07 Options의 위험한 문(WHERE 없는 UPDATE/DELETE, DROP) 확인 설정 문구 추가 (docs/chromite/swing-sql-exec-safety.md)
  * - 2026-11-07 Query 메뉴의 Commit / Roll Back / Transaction Log, Tools 메뉴의 Open Transactions 문구 추가 (docs/chromite/transactions.md)
  * - 2026-11-07 Options의 위험한 SQL 확인 문구에 TRUNCATE를 더함 (docs/chromite/swing-sql-exec-safety.md)
+ * - 2026-11-08 파일 덮어쓰기 확인의 바꾸기 단추 문구 추가 (docs/chromite/swing-frontend.md "실행 확인의 기본 단추")
  */
 public class CoreMessages extends NLS {
     private static final String BUNDLE_NAME = "com.seizia.chromite.ui.swing.internal.CoreMessages"; //$NON-NLS-1$
@@ -45,6 +46,7 @@ public class CoreMessages extends NLS {
     public static String common_cancel;
     public static String common_save;
     public static String common_dont_save;
+    public static String common_replace;
     public static String common_error;
     public static String common_input;
     public static String common_loading;

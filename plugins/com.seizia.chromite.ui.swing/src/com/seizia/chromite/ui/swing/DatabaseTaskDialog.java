@@ -59,6 +59,7 @@ import java.util.List;
  * - 2026-11-06 최초 작성: 백업·복원 (docs/chromite/swing-backup-restore.md)
  * - 2026-11-07 오류 문구를 {@link ErrorText}로 만들고, 실패하면 스택 추적을 여는 "자세히…" 단추를 보여 줌 (docs/chromite/swing-frontend.md "오류 문구")
  * - 2026-11-07 실행 전 확인 단계 {@link #confirmRun}(SQL Server 에이전트 창이 실행할 스크립트를 먼저 보여 줌) (docs/chromite/swing-sqlserver-agent.md)
+ * - 2026-11-08 기본 단추를 없앰: Enter로 백업·복원·작업 변경이 시작되지 않게 함 (docs/chromite/swing-frontend.md "실행 확인의 기본 단추")
  */
 abstract class DatabaseTaskDialog extends JDialog {
 
@@ -190,7 +191,8 @@ abstract class DatabaseTaskDialog extends JDialog {
         content.add(right, BorderLayout.CENTER);
         content.add(south, BorderLayout.SOUTH);
         setContentPane(content);
-        getRootPane().setDefaultButton(okButton);
+        // No default button: OK of a backup or restore runs at once (a restore replaces a database), so Enter typed in a
+        // field must not start it
         pageList.setSelectedIndex(0);
 
         setSize(900, 640);

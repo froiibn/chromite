@@ -70,6 +70,7 @@ import java.util.Set;
  * - 2026-11-07 권한 안내 줄과 권한에 따른 Kill Session 끄기(PostgreSQL·Oracle 세션·잠금, docs/chromite/swing-admin-tools.md)
  * - 2026-11-08 차단 체인 나무의 처음 폭을 280으로: 빈 나무의 폭(머리글만)으로 시작해 대기 세션 줄이 잘렸다
  *   (docs/chromite/swing-followup-fixes.md "작은 화면 수정")
+ * - 2026-11-08 Kill Session 확인은 Kill Session / 취소 단추(취소가 기본) (docs/chromite/swing-frontend.md "실행 확인의 기본 단추")
  */
 final class LockManagerPanel extends JPanel {
 
@@ -429,10 +430,9 @@ final class LockManagerPanel extends JPanel {
         if (lock == null) {
             return;
         }
-        int answer = JOptionPane.showConfirmDialog(this,
+        if (!SwingPlatformUI.confirmChange(this,
             NLS.bind(ConnectionMessages.locks_kill_confirm, lock.getTitle()),
-            ConnectionMessages.locks_kill, JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE);
-        if (answer != JOptionPane.YES_OPTION) {
+            ConnectionMessages.locks_kill, ConnectionMessages.locks_kill, JOptionPane.WARNING_MESSAGE)) {
             return;
         }
         connection.run("Kill session", (monitor, session, profile) -> {

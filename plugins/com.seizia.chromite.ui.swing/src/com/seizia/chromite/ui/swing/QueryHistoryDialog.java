@@ -55,6 +55,7 @@ import java.util.TreeSet;
  * 변경 이력:
  * - 2026-11-06 최초 작성 (docs/chromite/swing-sql-editor-plus.md)
  * - 2026-11-06 화면 문구를 EditorMessages로 옮김(OS 언어를 따름)
+ * - 2026-11-08 기록 지우기 확인은 기록 지우기 / 취소 단추(취소가 기본) (docs/chromite/swing-frontend.md "실행 확인의 기본 단추")
  */
 final class QueryHistoryDialog extends JDialog {
 
@@ -327,8 +328,8 @@ final class QueryHistoryDialog extends JDialog {
     }
 
     private void clearHistory() {
-        if (JOptionPane.showConfirmDialog(this, EditorMessages.editor_history_clear_confirm, EditorMessages.editor_history_clear_title,
-            JOptionPane.OK_CANCEL_OPTION, JOptionPane.WARNING_MESSAGE) == JOptionPane.OK_OPTION) {
+        if (SwingPlatformUI.confirmChange(this, EditorMessages.editor_history_clear_confirm, EditorMessages.editor_history_clear_title,
+            EditorMessages.editor_history_clear_title, JOptionPane.WARNING_MESSAGE)) {
             QueryHistory.clear();
         }
     }

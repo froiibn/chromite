@@ -18,6 +18,7 @@ package com.seizia.chromite.ui.swing;
 
 import com.formdev.flatlaf.FlatClientProperties;
 import com.seizia.chromite.ui.swing.internal.DbCopyMessages;
+import com.seizia.chromite.ui.swing.internal.ObjectMaintenanceMessages;
 import com.seizia.chromite.ui.swing.internal.ToolsMessages;
 import org.eclipse.osgi.util.NLS;
 import org.jkiss.code.NotNull;
@@ -96,6 +97,7 @@ import java.util.Set;
  * - 2026-11-06 화면 문구를 ToolsMessages로 옮김(OS 언어를 따름)
  * - 2026-11-06 데이터베이스 노드에서 Import Data…: 대상 테이블 고르기, 새 테이블로 가져오기 (docs/chromite/swing-data-transfer.md "데이터베이스 노드")
  * - 2026-11-07 오류 문구를 {@link ErrorText}로 만듦(클래스 이름이 화면에 나오지 않게, docs/chromite/swing-frontend.md "오류 문구")
+ * - 2026-11-08 TRUNCATE 확인은 잘라내기 / 취소 단추(취소가 기본) (docs/chromite/swing-frontend.md "실행 확인의 기본 단추")
  */
 final class DataImportWizard extends DataTransferWizard {
 
@@ -310,9 +312,9 @@ final class DataImportWizard extends DataTransferWizard {
         if (mapping == null) {
             return null;
         }
-        if (truncateCheck.isSelected() && JOptionPane.showConfirmDialog(this,
+        if (truncateCheck.isSelected() && !SwingPlatformUI.confirmChange(this,
             NLS.bind(ToolsMessages.import_confirm_truncate, getTableName()),
-            getTitle(), JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE) != JOptionPane.YES_OPTION) {
+            getTitle(), ObjectMaintenanceMessages.objmaint_truncate_button, JOptionPane.WARNING_MESSAGE)) {
             return null;
         }
         consumerSettings.setTruncateBeforeLoad(truncateCheck.isSelected());

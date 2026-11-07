@@ -89,6 +89,7 @@ import java.util.Map;
  * - 2026-11-07 탭 이름을 Chromite Agent로 바꾼 데 맞춰 주석을 고침(docs/chromite/ai-agent.md "명칭")
  * - 2026-11-08 감사 기록의 고정 문구·형식 열(시각·클라이언트·분류·정책·결과)을 가장 긴 문구에 맞춤: "Chromite Agent"가 "Chro…"로 잘렸다
  *   (docs/chromite/swing-followup-fixes.md "작은 화면 수정")
+ * - 2026-11-08 MCP 토큰 다시 만들기 확인은 다시 만들기 / 취소 단추(취소가 기본) (docs/chromite/swing-frontend.md "실행 확인의 기본 단추")
  */
 final class AiOptionsPage extends JPanel {
 
@@ -809,8 +810,8 @@ final class AiOptionsPage extends JPanel {
         }
 
         private void regenerate() {
-            if (JOptionPane.showConfirmDialog(this, AiMessages.ai_mcp_regenerate_question, AiMessages.ai_mcp_regenerate,
-                JOptionPane.OK_CANCEL_OPTION, JOptionPane.WARNING_MESSAGE) != JOptionPane.OK_OPTION) {
+            if (!SwingPlatformUI.confirmChange(this, AiMessages.ai_mcp_regenerate_question, AiMessages.ai_mcp_regenerate,
+                AiMessages.ai_mcp_regenerate, JOptionPane.WARNING_MESSAGE)) {
                 return;
             }
             try {

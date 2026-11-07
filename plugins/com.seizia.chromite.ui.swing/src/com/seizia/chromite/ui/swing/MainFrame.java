@@ -204,6 +204,7 @@ import java.util.function.Supplier;
  *   (docs/chromite/transactions.md "쿼리 창마다 별도 연결")
  * - 2026-11-08 문서 탭 UI가 {@link ChromiteTabbedPaneUI}를 상속: 테마를 바꾼 뒤 숨겨진 탭 단추의 도구 설명이 사라지던 문제
  *   (docs/chromite/swing-followup-fixes.md "작은 화면 수정")
+ * - 2026-11-08 Save As 덮어쓰기 확인은 바꾸기 / 취소 단추(취소가 기본), 결과 표 변경 저장 질문은 취소가 기본 (docs/chromite/swing-frontend.md "실행 확인의 기본 단추")
  */
 final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplorerPanel.QueryWindows, TableDesignerPanel.Host, QueryLibraryPanel.Host {
 
@@ -1067,9 +1068,9 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
             if (!selected.getFileName().toString().contains(".")) {
                 selected = selected.resolveSibling(selected.getFileName() + ".sql"); //$NON-NLS-1$
             }
-            if (!selected.equals(file) && Files.exists(selected) && JOptionPane.showConfirmDialog(this,
+            if (!selected.equals(file) && Files.exists(selected) && !SwingPlatformUI.confirmChange(this,
                 NLS.bind(CoreMessages.main_file_exists, selected.getFileName()), CoreMessages.main_save_as_title,
-                JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE) != JOptionPane.YES_OPTION) {
+                CoreMessages.common_replace, JOptionPane.WARNING_MESSAGE)) {
                 return false;
             }
             file = selected;
@@ -1144,7 +1145,7 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
         }
         if (editor.isDirty()) {
             documentTabs.setSelectedComponent(editor);
-            boolean saved = switch (askSave(NLS.bind(CoreMessages.main_save_changes, editor.getFileName()))) {
+            boolean saved = switch (askSave(NLS.bind(CoreMessages.main_save_changes, editor.getFileName()), false)) {
                 case 0 -> saveEditor(editor, false);
                 case 1 -> true;
                 default -> false;
@@ -1169,7 +1170,7 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
             return true;
         }
         documentTabs.setSelectedComponent(editor);
-        return switch (askSave(NLS.bind(CoreMessages.main_save_result_changes, editor.getFileName(), describeResultChanges(editor)))) {
+        return switch (askSave(NLS.bind(CoreMessages.main_save_result_changes, editor.getFileName(), describeResultChanges(editor)), true)) {
             case 0 -> editor.saveResultChanges();
             case 1 -> true;
             default -> false;
@@ -1232,7 +1233,7 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
             for (SqlEditorPanel editor : resultsModified) {
                 message.append('\n').append(describeResultChanges(editor));
             }
-            int answer = askSave(message.toString());
+            int answer = askSave(message.toString(), !resultsModified.isEmpty());
             if (answer == 0) {
                 for (SqlEditorPanel editor : resultsModified) {
                     documentTabs.setSelectedComponent(editor);
@@ -1267,12 +1268,14 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
     }
 
     /**
+     * @param resultChanges Save also writes result grid changes to the database (DML, without a preview when the connection
+     *                      does not ask for one): Cancel is then the default button, so that Enter does not run it
      * @return 0 Save, 1 Don't Save, anything else Cancel
      */
-    private int askSave(@NotNull String message) {
+    private int askSave(@NotNull String message, boolean resultChanges) {
         String[] options = {CoreMessages.common_save, CoreMessages.common_dont_save, CoreMessages.common_cancel};
         return JOptionPane.showOptionDialog(this, message, GeneralUtils.getProductName(), JOptionPane.YES_NO_CANCEL_OPTION,
-            JOptionPane.WARNING_MESSAGE, null, options, options[0]);
+            JOptionPane.WARNING_MESSAGE, null, options, resultChanges ? options[2] : options[0]);
     }
 
     /**

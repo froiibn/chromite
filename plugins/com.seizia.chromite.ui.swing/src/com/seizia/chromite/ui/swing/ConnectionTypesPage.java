@@ -74,6 +74,7 @@ import java.util.Set;
  *
  * 변경 이력:
  * - 2026-11-07 최초 작성 (docs/chromite/swing-options.md "연결 유형")
+ * - 2026-11-08 연결 유형 삭제 확인은 삭제 / 취소 단추(취소가 기본) (docs/chromite/swing-frontend.md "실행 확인의 기본 단추")
  */
 final class ConnectionTypesPage extends JPanel {
 
@@ -360,8 +361,8 @@ final class ConnectionTypesPage extends JPanel {
         int used = original == null ? 0 : findConnections(Set.of(original)).size();
         String message = used == 0 ? NLS.bind(SettingsMessages.types_delete_confirm_unused, type.getName())
             : NLS.bind(SettingsMessages.types_delete_confirm, new Object[]{type.getName(), used, getReplacementType(Set.of()).getName()});
-        if (JOptionPane.showConfirmDialog(this, message, SettingsMessages.types_delete_title,
-            JOptionPane.OK_CANCEL_OPTION, JOptionPane.WARNING_MESSAGE) != JOptionPane.OK_OPTION) {
+        if (!SwingPlatformUI.confirmChange(this, message, SettingsMessages.types_delete_title,
+            SettingsMessages.types_delete, JOptionPane.WARNING_MESSAGE)) {
             return;
         }
         int row = table.getSelectedRow();

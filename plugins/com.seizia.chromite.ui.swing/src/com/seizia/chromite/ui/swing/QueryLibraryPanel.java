@@ -19,6 +19,7 @@ package com.seizia.chromite.ui.swing;
 import com.formdev.flatlaf.FlatClientProperties;
 import com.formdev.flatlaf.ui.FlatUIUtils;
 import com.formdev.flatlaf.util.UIScale;
+import com.seizia.chromite.ui.swing.internal.CoreMessages;
 import com.seizia.chromite.ui.swing.internal.ToolsMessages;
 import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.Status;
@@ -96,6 +97,7 @@ import java.util.Set;
  * - 2026-11-07 도구 막대를 {@link OverflowToolBar}로: 좁힌 도구 창에서 들어가지 않는 단추는 넘침 메뉴로 (docs/chromite/swing-frontend.md "도구 창 최소 폭")
  * - 2026-11-07 ④ 공유: 자동 새로 고침, Git Pull·Commit &amp; Push와 충돌 표시, 내보내기·가져오기, Save As .sql…
  *   (docs/chromite/swing-query-library.md "공유")
+ * - 2026-11-08 삭제 확인은 삭제 / 취소, 내보내기 파일 덮어쓰기 확인은 바꾸기 / 취소 단추(취소가 기본) (docs/chromite/swing-frontend.md "실행 확인의 기본 단추")
  */
 final class QueryLibraryPanel extends JPanel {
 
@@ -876,8 +878,8 @@ final class QueryLibraryPanel extends JPanel {
         String question = node.getUserObject() instanceof QueryLibraryItem item
             ? NLS.bind(ToolsMessages.library_confirm_delete_query, item.getName())
             : NLS.bind(ToolsMessages.library_confirm_delete_folder, path.getFileName());
-        if (JOptionPane.showConfirmDialog(host.getComponent(), question,
-            ToolsMessages.library_delete, JOptionPane.OK_CANCEL_OPTION, JOptionPane.WARNING_MESSAGE) != JOptionPane.OK_OPTION) {
+        if (!SwingPlatformUI.confirmChange(host.getComponent(), question,
+            ToolsMessages.library_delete, ToolsMessages.library_delete, JOptionPane.WARNING_MESSAGE)) {
             return;
         }
         try {
@@ -945,8 +947,8 @@ final class QueryLibraryPanel extends JPanel {
         Path selected = chooser.getSelectedFile().toPath().toAbsolutePath().normalize();
         Path target = selected.getFileName().toString().toLowerCase(Locale.ROOT).endsWith(QueryLibraryArchive.EXTENSION)
             ? selected : selected.resolveSibling(selected.getFileName() + QueryLibraryArchive.EXTENSION);
-        if (Files.exists(target) && JOptionPane.showConfirmDialog(host.getComponent(), NLS.bind(ToolsMessages.library_save_sql_exists, target.getFileName()),
-            ToolsMessages.library_export_title, JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE) != JOptionPane.YES_OPTION) {
+        if (Files.exists(target) && !SwingPlatformUI.confirmChange(host.getComponent(), NLS.bind(ToolsMessages.library_save_sql_exists, target.getFileName()),
+            ToolsMessages.library_export_title, CoreMessages.common_replace, JOptionPane.WARNING_MESSAGE)) {
             return;
         }
         new AbstractJob("Export Query Library folder") {

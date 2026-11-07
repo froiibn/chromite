@@ -33,9 +33,10 @@ import java.awt.event.KeyEvent;
  * 설계: SWT 객체 편집기의 저장 전 미리 보기({@code EntityEditor.showChanges}의 {@code ChangesPreviewer})와 같은 역할이다.
  * 스크립트는 디자이너가 명령 묶음에서 만들어 넘기고, 이 대화상자는 SQL 편집기와 같은 읽기 전용 글 상자로 보여 준 뒤
  * 사용자의 선택(실행, 쿼리 창으로 열기, 닫기)만 돌려준다. 저장 흐름과 Object Explorer의 개체 변경({@link #confirmChange})에서만 Execute 단추를 보여 준다.
- * 개체 변경은 DROP이 될 수 있으므로 저장 확인처럼 Cancel을 기본 단추로 한다.
+ * 실행 단추가 있는 미리 보기는 모두 DDL·DML·작업 변경을 실행하므로, 어떤 호출이든 Cancel(실행 단추가 없으면 Close)을 기본 단추로 하고
+ * 처음 포커스도 그 단추에 둔다. 습관처럼 누른 Enter로 스크립트가 실행되지 않게 하려는 것이다.
  * 결과 표 저장 확인({@link #confirmSave})은 SWT {@code SavePreviewDialog}에 해당한다. 바뀐 내용은 표에 남아 있으므로
- * 쿼리 창으로 열기는 두지 않고, SWT처럼 Cancel을 기본 단추로 해서 Enter로 바로 저장되지 않게 한다.
+ * 쿼리 창으로 열기는 두지 않는다.
  *
  * 변경 이력:
  * - 2026-11-06 테이블 디자이너: 최초 작성 (docs/chromite/swing-table-designer.md)
@@ -45,6 +46,8 @@ import java.awt.event.KeyEvent;
  *   "저장 확인" 한 플래그를 쿼리 창 단추와 기본 단추 두 플래그로 나눔, 줄바꿈이 있는 머리글은 여러 줄로 보임
  *   (docs/chromite/swing-explorer-object-actions.md)
  * - 2026-11-08 {@link #confirmChange}를 Object Explorer 유지 관리 명령과 보안 편집기도 씀(Cancel이 기본 단추) (docs/chromite/swing-security.md)
+ * - 2026-11-08 {@link #show}의 실행 미리 보기(테이블 디자이너 저장, SQL Server 에이전트, 작업 스케줄러)도 Cancel이 기본 단추.
+ *   기본 단추 플래그는 늘 참이 되어 지우고, Cancel에 처음 포커스를 둠 (docs/chromite/swing-frontend.md "실행 확인의 기본 단추")
  */
 final class ScriptPreviewDialog extends JDialog {
 
@@ -59,15 +62,16 @@ final class ScriptPreviewDialog extends JDialog {
     private ScriptPreviewDialog(@NotNull Component owner, @NotNull String title, @NotNull String script, boolean allowExecute) {
         this(owner, title, script, allowExecute
             ? ToolsMessages.script_preview_execute_question
-            : ToolsMessages.script_preview_header, allowExecute ? ToolsMessages.script_preview_execute : null, true, false);
+            : ToolsMessages.script_preview_header, allowExecute ? ToolsMessages.script_preview_execute : null, true);
     }
 
     /**
-     * @param header        text above the script; a header with line breaks keeps them
-     * @param executeLabel  label of the button that runs the script, or null to only show the script
-     * @param allowOpen     show "Open in Query Window" (not for a save confirmation: the changes stay in the grid)
-     * @param cancelDefault Cancel is the default button, so Enter does not run the script (save confirmation,
-     *                      dropping objects)
+     * Cancel (Close without an execute button) is always the default button and has the initial focus, so that Enter
+     * pressed by habit does not run the script.
+     *
+     * @param header       text above the script; a header with line breaks keeps them
+     * @param executeLabel label of the button that runs the script, or null to only show the script
+     * @param allowOpen    show "Open in Query Window" (not for a save confirmation: the changes stay in the grid)
      */
     private ScriptPreviewDialog(
         @NotNull Component owner,
@@ -75,8 +79,7 @@ final class ScriptPreviewDialog extends JDialog {
         @NotNull String script,
         @NotNull String header,
         @Nullable String executeLabel,
-        boolean allowOpen,
-        boolean cancelDefault
+        boolean allowOpen
     ) {
         super(SwingUtilities.getWindowAncestor(owner), title, ModalityType.APPLICATION_MODAL);
         setIconImages(ChromiteIcons.getWindowIcons());
@@ -122,11 +125,12 @@ final class ScriptPreviewDialog extends JDialog {
         content.add(scrollPane, BorderLayout.CENTER);
         content.add(buttons, BorderLayout.SOUTH);
         setContentPane(content);
-        getRootPane().setDefaultButton(executeLabel != null && !cancelDefault ? executeButton : cancelButton);
+        getRootPane().setDefaultButton(cancelButton);
         getRootPane().registerKeyboardAction(e -> close(Result.CLOSE),
             KeyStroke.getKeyStroke(KeyEvent.VK_ESCAPE, 0), JComponent.WHEN_IN_FOCUSED_WINDOW);
         setSize(760, 480);
         setLocationRelativeTo(owner);
+        SwingUtilities.invokeLater(cancelButton::requestFocusInWindow);
     }
 
     private void close(@NotNull Result result) {
@@ -135,7 +139,7 @@ final class ScriptPreviewDialog extends JDialog {
     }
 
     /**
-     * Shows the script and waits for the user's choice.
+     * Shows the script and waits for the user's choice. Cancel (or Close) is the default button.
      *
      * @param allowExecute show the Execute button (Save), or only show the script (Generate Script)
      */
@@ -160,7 +164,7 @@ final class ScriptPreviewDialog extends JDialog {
         @NotNull String script,
         @NotNull String saveLabel
     ) {
-        ScriptPreviewDialog dialog = new ScriptPreviewDialog(owner, title, script, header, saveLabel, false, true);
+        ScriptPreviewDialog dialog = new ScriptPreviewDialog(owner, title, script, header, saveLabel, false);
         dialog.setVisible(true);
         return dialog.result == Result.EXECUTE;
     }
@@ -174,7 +178,7 @@ final class ScriptPreviewDialog extends JDialog {
      */
     @NotNull
     static Result confirmChange(@NotNull Component owner, @NotNull String title, @NotNull String header, @NotNull String script) {
-        ScriptPreviewDialog dialog = new ScriptPreviewDialog(owner, title, script, header, ToolsMessages.script_preview_execute, true, true);
+        ScriptPreviewDialog dialog = new ScriptPreviewDialog(owner, title, script, header, ToolsMessages.script_preview_execute, true);
         dialog.setVisible(true);
         return dialog.result;
     }
