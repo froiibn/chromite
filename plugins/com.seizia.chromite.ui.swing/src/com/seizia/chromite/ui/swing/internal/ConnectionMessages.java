@@ -37,6 +37,7 @@ import org.eclipse.osgi.util.NLS;
  * - 2026-11-07 쿼리 창마다 별도 연결: 연결별 설정({@code settings_separate_connection*}), 창 세션을 끝내기 전 질문({@code window_txn_*})
  *   (docs/chromite/transactions.md "쿼리 창마다 별도 연결")
  * - 2026-11-07 오류 복구가 멈췄다는 알림({@code recovery_*}) (docs/chromite/transactions.md "오류 복구와 열린 트랜잭션")
+ * - 2026-11-08 Oracle 세션 설정 탭({@code driver_oracle_session_tab}, {@code driver_oracle_nls_*}) (docs/chromite/swing-conn-advanced.md "Oracle 세션 설정")
  * - 2026-11-08 끊긴 세션만 다시 열었다는 알림({@code recovery_session_*})과 끊긴 세션의 트랜잭션을 버리는 질문({@code lost_txn_*})
  *   (docs/chromite/transactions.md "끊긴 세션의 쿼리 창")
  */
@@ -167,6 +168,21 @@ public class ConnectionMessages extends NLS {
     public static String driver_oracle_tns_folder_placeholder;
     public static String driver_oracle_tns_folder_tip;
     public static String driver_oracle_enter_alias;
+    public static String driver_oracle_session_tab;
+    public static String driver_oracle_nls_default;
+    public static String driver_oracle_nls_language;
+    public static String driver_oracle_nls_language_tip;
+    public static String driver_oracle_nls_territory;
+    public static String driver_oracle_nls_territory_tip;
+    public static String driver_oracle_nls_date_format;
+    public static String driver_oracle_nls_date_format_tip;
+    public static String driver_oracle_nls_timestamp_format;
+    public static String driver_oracle_nls_timestamp_format_tip;
+    public static String driver_oracle_nls_length;
+    public static String driver_oracle_nls_length_tip;
+    public static String driver_oracle_nls_currency;
+    public static String driver_oracle_nls_currency_tip;
+    public static String driver_oracle_nls_hint;
 
     public static String auth_integrated_security;
     public static String auth_integrated_security_tip;

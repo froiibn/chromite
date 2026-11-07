@@ -61,6 +61,7 @@ com.seizia.chromite.model.admin (새 모델 번들, UI 없음)
   AbstractBlockingLockManager, BlockingSessionLock, SessionLockItem
   mssql/SQLServerLockManager, mysql/MySQLLockManager
   postgresql/PostgreActivitySessionManager(+PostgreActivitySession), postgresql/PostgreBlockingLockManager
+  altibase/AltibaseBlockingLockManager
   oracle/OracleActivitySessionManager(+OracleActivitySession), oracle/OracleBlockingLockManager(+OracleBlockingLock)
   AdminSql ── 시스템 뷰 읽기 도우미(공간 사용량·서버 로그)
   space/ServerSpaceDialect(+SpaceGrid, SpaceColumn, SpaceReport, SpaceFormat, SpaceMessages)
@@ -154,6 +155,7 @@ SWT `LockManagerViewer`(`plugins/com.seizia.chromite.ui.editors.locks/.../LockMa
 | Oracle | `OracleBlockingLockManager`(새로 만듦, 10g+), 그 전은 `OracleLockManager`(DBeaver) | `V$SESSION.BLOCKING_SESSION` + 요청 중인 `V$LOCK` | `V$LOCK`(TM은 ID1, 대기 중인 TX는 `ROW_WAIT_OBJ#`을 `DBA_OBJECTS`로 이름) |
 | SQL Server | `SQLServerLockManager`(새로 만듦) | `sys.dm_exec_requests.blocking_session_id` | `sys.dm_tran_locks`(OBJECT 잠금은 객체 이름) |
 | MySQL·MariaDB | `MySQLLockManager`(새로 만듦) | `sys.innodb_lock_waits`(sys 스키마 없으면 `INNODB_LOCK_WAITS`) | MariaDB·MySQL 5.7: `INNODB_LOCKS`, MySQL 8: `performance_schema.data_locks` |
+| Altibase | `AltibaseBlockingLockManager`(새로 만듦, 2026-11-08, 아래 "Altibase 잠금") | `V$LOCK_WAIT` + `V$SESSION.TRANS_ID` | `V$LOCK`(테이블은 `SYSTEM_.SYS_TABLES_`, 분할은 `SYS_TABLE_PARTITIONS_`로 이름) |
 
 새 관리자는 `AbstractBlockingLockManager`가 공통 부분(뿌리 행 더하기, 그래프 만들기, 상세 옵션)을 맡고 하위 클래스는 질의만 한다.
 행 모양(`BlockingSessionLock`: 세션, 사용자, Blocked By, 대기 자원·모드·시간, 문장)은 `PostgreLock`과 같은 방식이고,
@@ -467,6 +469,29 @@ SWT 메타데이터 검색(`plugins/com.seizia.chromite.ui.search/.../SearchMeta
   "Object Explorer" 명령처럼 그 서버를 먼저 Object Explorer에 넣고(맨 아래) 서버 목록을 다시 읽은 뒤 이어서 펼친다.
   없는 서버의 결과에서 조용히 멈추지 않게 하려는 것이다. 되돌리기: `revealNode`의 서버 넣기 분기를 지우면 Object Explorer에 있는 서버의 결과만 펼친다.
 
+## Altibase 잠금 (2026-11-08)
+
+SWT 감사 3순위 "Altibase 잠금 탭"(D-db-specific A2). 세션 목록(Processes)은 원래부터 데이터 소스 어댑터(`AltibaseServerSessionManager`)로 나왔지만
+`ServerAdminProfile`의 그 밖 분기가 잠금 관리자를 넣지 않아 Locks 탭이 비어 있었다. Altibase 분기를 더하고 잠금 관리자를 새로 만들었다.
+
+- **DBeaver `AltibaseLockManager`를 쓰지 않은 이유**: 행 모양(`w_sid`·`h_sid` 열)과 상세 옵션 키(`wsid`/`hsid`)가 다른 네 DB와 달라 공통 화면 모양
+  (`BlockingSessionLock`, `SessionLockItem`)과 맞지 않고, 대기 객체를 기다리는 트랜잭션의 모든 `V$LOCK` 행과 곱해 한 대기가 여러 줄이 된다.
+  다른 DB처럼 `AbstractBlockingLockManager`를 따라 질의만 새로 썼다(DBeaver 파일은 고치지 않음).
+- **대기**: `V$LOCK_WAIT`(트랜잭션 → 기다리는 트랜잭션)를 `V$SESSION.TRANS_ID`로 세션에 잇는다. 대기 대상·모드는 기다리는 트랜잭션의 승인되지 않은
+  `V$LOCK` 행(`IS_GRANT = 0`)의 테이블과 `LOCK_DESC`, 없으면 `TX <번호>`. 문장은 `V$SESSION.CURRENT_STMT_ID`의 `V$STATEMENT.QUERY`.
+  대기 시간은 `UNIX_DATE`(UTC)와 `V$STATEMENT.QUERY_START_TIME`(Unix 초)의 차이다(서버 시간대와 무관).
+- **세션의 잠금**: 그 세션 트랜잭션의 `V$LOCK`(종류, 모드, 승인/대기, 트랜잭션·개수·테이블스페이스).
+- **Kill Session**: DBeaver 세션·잠금 관리자와 같은 `ALTER DATABASE <db> SESSION CLOSE <id>`(SYS 권한).
+- MANIFEST: `model.admin`이 `ext.altibase`와 그 부모 `ext.generic`을 요구한다(Swing 번들은 그대로).
+
+### 확인 (2026-11-08, Docker Altibase 7.3.0.0.7 `chromite-test-altibase`, mydb)
+
+열은 먼저 `isql`의 `DESC`로 확인했다(`V$LOCK`, `V$LOCK_WAIT`, `V$LOCK_STATEMENT`, `V$SESSION`, `V$STATEMENT`, `V$TRANSACTION`). 컨테이너 안 `/tmp/chromite-p3-oracle-altibase-admin/`의
+두 `isql` 세션(CHR_ALTI)이 같은 테이블에 `LOCK TABLE … IN EXCLUSIVE MODE`(자료를 바꾸지 않음)를 걸어 하나가 기다리게 하고, 60초 뒤 둘 다 롤백했다.
+Locks 탭(자동 새로 고침 10초): 나무 "Session 4 · blocking 1" → "Session 5 · waits for 4", 표 `5 | CHR_ALTI | 4 | CHR_ALTI | CHR_ALTI.CHR_ALTI_DEFAULT | X_LOCK | 11 | LOCK TABLE …`,
+상세 "Locks of session 5 (waiting)" `CHR_ALTI.CHR_ALTI_DEFAULT TBL X_LOCK WAITING`, "Locks of blocking session 4" `… X_LOCK GRANTED`(`D:\Tools\_scratch\p3-oracle-altibase-admin\shots\` `alti-en-locks.png`).
+Kill Session은 공용 컨테이너에서 실행하지 않았다(다른 작업의 세션을 끊지 않도록).
+
 ## 미룬 것
 
 - **서버 대시보드**: 모델(`com.seizia.chromite.model.dashboard`)에는 대시보드 정의와 질의 등록만 있고, 값을 주기적으로 읽어 누적·차분하는
@@ -615,3 +640,4 @@ PostgreSQL 17 이전 권한 분기(데이터베이스 소유자)와 12 이전 CO
 - 2026-11-07 Disk Usage·Server Logs(DB 관리 축 3·5): Activity Monitor의 4·5번째 탭, `model.admin`의 `space`·`logs` 패키지와 DB별 방언 (SQL Server·PostgreSQL·MySQL/MariaDB·Oracle), 권한 확인과 안내, 쪽 단위 로그 읽기, `AdminGridTable`(단위 표시·정확한 바이트·복사).
 - 2026-11-07 Maintenance·Replication(DB 관리 축 4·6): Activity Monitor의 6·7번째 탭, 유지 관리 대화상자(권한 확인, 미리 보기, 확인, 별도 자동 커밋 연결, 진행·취소)와
   Object Explorer의 Maintenance… 명령, `model.admin`의 `maintenance`·`replication` 패키지와 DB별 방언(SQL Server·PostgreSQL·MySQL/MariaDB·Oracle), `AdminGrid`·`AdminGridTabs`.
+- 2026-11-08 Altibase 잠금 탭(`AltibaseBlockingLockManager`, `ServerAdminProfile`의 Altibase 분기), Docker Altibase 7.3에서 확인.

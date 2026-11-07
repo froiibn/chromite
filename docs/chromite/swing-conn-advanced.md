@@ -164,6 +164,29 @@ SSH 시험 직후 Windows 방화벽이 앱(`chromite-swing.exe`)의 네트워크
   폴더를 비우면 기본 Oracle 홈, 그다음 `TNS_ADMIN` 환경 변수의 tnsnames.ora를 읽는다(`OCIUtils.readTnsNames`, SWT `getAvailableServiceNames`에서 클라이언트 홈 선택을 뺀 것).
 - Oracle 클라이언트(OCI) 홈 선택은 SWT에서도 상용 기능에서만 보이는 칸이라 옮기지 않았다.
 
+### Oracle 세션 설정 (2026-11-08)
+
+SWT `OracleConnectionExtraPage`의 "Session settings" 묶음(D-db-specific O5)을 Options의 **Session Settings / 세션 설정** 탭(Connection Properties 다음)으로 옮겼다.
+
+| 칸 | 공급자 속성(SWT와 같음) | 연결 때 모델이 실행 |
+|---|---|---|
+| Language / 언어 (콤보, `OracleLanguage` 목록, 입력 가능) | `@chromite-session-language@` | `ALTER SESSION SET NLS_LANGUAGE = '…'` |
+| Territory / 지역 (콤보, `OracleTerritory` 목록, 입력 가능) | `@chromite-session-territory@` | `NLS_TERRITORY` |
+| Date format / 날짜 형식 | `@chromite-session-nls-date-format@` | `NLS_DATE_FORMAT` |
+| Timestamp format / 타임스탬프 형식 | `session-nls-timestamp-format` | `NLS_TIMESTAMP_FORMAT` |
+| Length semantics / 길이 의미 (콤보 BYTE/CHAR, 입력 가능) | `session-nls-length-format` | `NLS_LENGTH_SEMANTICS` |
+| Currency symbol / 통화 기호 | `session-nls-currency-format` | `NLS_CURRENCY` |
+
+- 적용은 모델 그대로다(`OracleDataSource.initializeContextState`, 모든 실행 문맥). 기본값(콤보 첫 항목 "Default/기본값")이나 빈 칸이면 속성을 지운다(SWT `saveSettings`와 같음).
+- 이 속성들은 `plugin.xml`의 `<provider-properties>`에 선언되지 않아 Provider Properties 표에 나오지 않았다. 그래서 전에는 이전된 연결에 저장된 값이 보이지 않은 채 적용됐다.
+  표에 선언하지 않고 탭으로 둔 이유: SWT처럼 언어·지역 목록 콤보가 필요하고, 표 선언은 목록(46·76개)을 `plugin.xml`에 다시 적어야 한다.
+- 고리: `ConnectionDriverFields#getOptionsPage`(드라이버별 Options 탭, 기본 없음)를 더하고 `ConnectionSettingsPanel`이 Connection Properties 다음에 넣는다.
+- 값에 작은따옴표가 있으면 모델이 그대로 `'…'` 안에 넣어 ALTER SESSION이 실패한다(모델 동작, 형식 문자열은 큰따옴표로 글자를 쓴다).
+- 확인(2026-11-08, Oracle Free 23ai): 지역 KOREA, 날짜 형식 `YYYY-MM-DD HH24:MI:SS`, 통화 KRW로 저장 → 다시 연결 →
+  `SELECT TO_CHAR(SYSDATE), TO_CHAR(SYSTIMESTAMP), TO_CHAR(1234.5, 'L9999.99'), NLS_TERRITORY`가 `07-NOV-26 | 07-NOV-26 03.49.35… PM +00:00 | $1234.50 | AMERICA`에서
+  `2026-11-07 15:50:10 | 26/11/07 15:50:10.658957 +00:00 | KRW1234.50 | KOREA`로 바뀜. 다시 열면 저장한 값이 보이고, 기본값으로 되돌려 저장하면
+  `data-sources.json`에서 세 속성이 지워짐. 영어·한국어, 라이트·다크(`D:\Tools\_scratch\p3-oracle-altibase-admin\shots\` `ora-en-nls-tab.png`, `ora-ko-dark-nls-tab.png`).
+
 ## 4. 일반 설정 (Connection Properties 탭)
 
 - 기존: 연결 종류, 자동 커밋, 기본 DB·스키마, 읽기 전용, keep-alive, 유휴 연결 닫기("Connect 대화상자 (SSMS식)").
@@ -229,6 +252,7 @@ Windows에서 in-process JVM으로 개인 작업 공간을 열어 로컬 Docker 
 
 ## 변경 이력
 
+- 2026-11-08 Oracle 세션 설정(NLS) 탭, 드라이버별 Options 탭 고리(`ConnectionDriverFields#getOptionsPage`).
 - 2026-11-07 비밀번호 저장 위치를 OS 보안 저장소로 고쳐 적음([credential-storage.md](credential-storage.md)).
 - 2026-11-06 최초 작성: 인증 방식별 칸, 네트워크 핸들러 탭(SSH, Proxy, SSL), SQL Server·Oracle 주 양식 칸, 연결 색, 연결 직후 SQL, Test Connection 결과.
 - 2026-11-06 SSH 터널 로컬 포트를 루프백에서만 열도록 모델 수정(빈 포트 시험과 JSch의 빈 주소가 0.0.0.0에서 들음). "SSH 터널의 로컬 주소" 절 추가.

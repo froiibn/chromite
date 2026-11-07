@@ -19,7 +19,8 @@ Export-Package: com.seizia.chromite.ext.mssql,
  com.seizia.chromite.ext.mssql.model.data,
  com.seizia.chromite.ext.mssql.model.generic,
  com.seizia.chromite.ext.mssql.model.plan,
- com.seizia.chromite.ext.mssql.model.session
+ com.seizia.chromite.ext.mssql.model.session,
+ com.seizia.chromite.ext.mssql.tasks
 Bundle-ActivationPolicy: lazy
 Bundle-RequiredExecutionEnvironment: JavaSE-21
 Bundle-Vendor: Chromite contributors

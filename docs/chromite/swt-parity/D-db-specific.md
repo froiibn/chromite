@@ -16,13 +16,15 @@
 
 | 구역 | 행 | 있음 | 일부 | 없음 | 의도적 제외 | 조용히 끊김 |
 |---|---|---|---|---|---|---|
-| PostgreSQL (`ext.postgresql.ui`, `ext.postgresql.debug.ui`) | 29 | 12 | 7 | 10 | 0 | 0 |
-| SQL Server (`ext.mssql.ui`) | 14 | 9 | 1 | 4 | 0 | 0 |
-| MySQL/MariaDB (`ext.mysql.ui`) | 19 | 9 | 4 | 6 | 0 | 0 |
-| Oracle (`ext.oracle.ui`) | 24 | 8 | 3 | 11 | 1 | 1 |
-| Altibase (`ext.altibase.ui`) | 9 | 2 | 0 | 6 | 0 | 1 |
+| PostgreSQL (`ext.postgresql.ui`, `ext.postgresql.debug.ui`) | 29 | 13 | 7 | 9 | 0 | 0 |
+| SQL Server (`ext.mssql.ui`) | 14 | 10 | 1 | 3 | 0 | 0 |
+| MySQL/MariaDB (`ext.mysql.ui`) | 19 | 10 | 4 | 5 | 0 | 0 |
+| Oracle (`ext.oracle.ui`) | 24 | 11 | 3 | 8 | 1 | 1 |
+| Altibase (`ext.altibase.ui`) | 9 | 3 | 0 | 5 | 0 | 1 |
 | 나머지 26개 번들 (+ 끊김 3행) | 29 | 2 | 16 | 8 | 0 | 3 |
-| **합계** | **124** | **42** | **31** | **45** | **1** | **5** |
+| **합계** | **124** | **49** | **31** | **38** | **1** | **5** |
+
+2026-11-08 3순위 Oracle·Altibase 관리(`chromite/p3-oracle-altibase-admin`): P23·S14·M17·O5·O16·O21·A2 없음 → 있음.
 
 ### 조용히 끊김 (먼저 볼 것)
 
@@ -63,7 +65,7 @@ K1–K3의 공통 원인은 SQL 편집기에 서버 출력 패널이 없는 것�
 | P20 | Restore(pg_restore/psql) | 도구 `PostgreToolRestore`, `PostgreRestoreWizard` | 있음 | `NativeBackupRestoreDialog`(+ 첫 오류에서 멈춤) | 중간 | |
 | P21 | psql로 스크립트 실행(도구) + SQL 편집기 "네이티브 클라이언트로 실행"(`sql.executors`) | `PostgreScriptExecuteWizard`, `PostgreScriptExecutor` | 일부 | 일반 형식 복원이 psql로 파일을 실행함. 편집기 연동은 grep `ScriptExecute`·`sql.executors` → `ui.swing` 0건(MySQL 복원용 1건 제외) | 낮음 | |
 | P22 | 유지 관리: ANALYZE, VACUUM | 도구 `PostgreToolAnalyze`, `PostgreToolVacuum` | 있음 | `MaintenanceDialog` + `PostgreMaintenanceDialect`(swing-admin-tools.md 368행) | 중간 | Swing이 REINDEX·CLUSTER·부풀림 추정을 더함 |
-| P23 | TRUNCATE, 트리거 사용/사용 안 함, 구체화된 뷰 새로 고침 | 도구 `PostgreToolTruncate`, `PostgreToolTriggerEnable/Disable`, `PostgreToolRefreshMView` | 없음 | grep `TRUNCATE`·`REFRESH MATERIALIZED`·`ENABLE TRIGGER` → `ui.swing`·`model.admin`에 없음(데이터 복사의 "적재 전 비우기"만) | 중간 | 모델 작업(`pgToolTableTruncate` 등)은 남아 있다 |
+| P23 | TRUNCATE, 트리거 사용/사용 안 함, 구체화된 뷰 새로 고침 | 도구 `PostgreToolTruncate`, `PostgreToolTriggerEnable/Disable`, `PostgreToolRefreshMView` | 있음(2026-11-08) | Object Explorer 메뉴, `ObjectMaintenanceCommands` + `ObjectMaintenanceActions`(모델 도구의 SQL, swing-explorer-object-actions.md "유지 관리 명령") | 중간 | 조사 당시: 없음. 도구 옵션(ONLY, RESTART IDENTITY, CASCADE, CONCURRENTLY) 화면은 없음 |
 | P24 | 외부 데이터 래퍼(FDW) 구성 마법사 | `PostgreFDWConfigWizard*`, 명령 `ext.postgresql.ui.fdw` | 없음 | grep `FDW`·`ForeignDataWrapper` → 0건 | 낮음 | |
 | P25 | pgAgent 작업·일정 편집(분·시·요일 표) | `PostgreScheduleEditor`(+ 범용 편집기) | 일부 | 탐색기에 pgAgent 폴더는 모델 트리로 보임. 만들기·편집 없음. pg_cron은 Swing 새 기능(swing-job-schedulers.md 13, 75행) | 낮음 | |
 | P26 | EXPLAIN 옵션(ANALYZE, VERBOSE, COSTS, BUFFERS, SETTINGS, WAL, TIMING, SUMMARY) | `PostgreExplainPlanConfigurator` | 일부 | `SqlPlanExplainer.java:123-126`(실제 계획 = ANALYZE만) | 낮음 | BUFFERS 등 진단 옵션 없음 |
@@ -88,7 +90,7 @@ K1–K3의 공통 원인은 SQL 편집기에 서버 출력 패널이 없는 것�
 | S11 | 열·고유 키·외래 키·인덱스·CHECK 제약 | `SQLServer{Column,UniqueKey,ForeignKey,Index,CheckConstraint}Configurator` | 있음 | `design/SQLServerTableDesignerDriver`(CHECK 포함, `:43-66`) | 중간 | |
 | S12 | 프로시저 만들기(SQL Server, Sybase generic) | `SQLServerProcedureConfigurator`, `SQLServerGenericProcedureConfigurator` | 있음 | New Procedure/Function(`SourceScripts`, SQL Server 템플릿) | 중간 | Sybase generic 템플릿 없음 |
 | S13 | 도구: 인덱스 다시 작성 | `SQLServerToolRebuild`(`mssqlToolTableRebuild`) | 있음 | `SQLServerMaintenanceDialect`(swing-admin-tools.md 368-370행) | 중간 | Swing이 조각화 목록·통계·CHECKDB를 더함 |
-| S14 | 도구: 트리거 사용/사용 안 함 | `SQLServerToolTriggerEnable/Disable` | 없음 | P23과 같은 grep | 낮음 | |
+| S14 | 도구: 트리거 사용/사용 안 함 | `SQLServerToolTriggerEnable/Disable` | 있음(2026-11-08) | P23과 같음 | 낮음 | 조사 당시: 없음 |
 
 ## 3. MySQL / MariaDB (`ext.mysql.ui`, 34 클래스)
 
@@ -110,7 +112,7 @@ K1–K3의 공통 원인은 SQL 편집기에 서버 출력 패널이 없는 것�
 | M14 | 가져오기(mysql로 덤프 복원) | 도구 `MySQLToolImport` | 있음 | `NativeBackupRestoreDialog` | 중간 | |
 | M15 | mysql로 스크립트 실행 + 편집기 네이티브 실행(`sql.executors`) | `MySQLScriptExecuteWizard`, `MySQLScriptExecutor` | 일부 | 복원이 `MySQLScriptExecuteHandler`로 파일 실행(`NativeBackupRestoreDialog.java:29-30, 516`) | 낮음 | 편집기 연동 없음 |
 | M16 | 테이블 유지 관리: ANALYZE, CHECK, OPTIMIZE, REPAIR | `MySQLToolAnalyse/Check/Optimize/Repair` | 있음 | `MySQLMaintenanceDialect`(swing-admin-tools.md 368행) | 중간 | |
-| M17 | TRUNCATE | `MySQLToolTruncate` | 없음 | P23과 같은 grep | 중간 | |
+| M17 | TRUNCATE | `MySQLToolTruncate` | 있음(2026-11-08) | P23과 같음(MariaDB 확인) | 중간 | 조사 당시: 없음. "외래 키 검사 끄기" 옵션 화면은 없음 |
 | M18 | ENUM 값 편집기 | `MySQLEnumValueManager` | 없음 | P28과 같음 | 낮음 | |
 | M19 | 스크립트의 `source`(다른 파일 포함) 명령 | `sqlCommand` `mysql.source` → `SQLCommandInclude`(`ui.editors.sql`) | 없음 | 모델 명령 등록에 include 없음, grep `SQLCommandInclude` → 0건. 알 수 없는 명령은 오류(`SQLQueryExecuteJob.java:454-475`) | 낮음 | |
 
@@ -122,7 +124,7 @@ K1–K3의 공통 원인은 SQL 편집기에 서버 출력 패널이 없는 것�
 | O2 | Custom(JDBC URL 직접) | `OracleConnectionPage` | 있음 | URL 방식으로 통합(같은 문서 160행) | 중간 | |
 | O3 | 인증: OS 인증, Role(SYSDBA/SYSOPER) | `OracleAuthOSConfigurator`(칸 없음), `OracleAuthDatabaseNativeConfigurator` | 있음 | `ConnectionAuthExtras`(swing-conn-advanced.md 68행, swing-frontend.md 1427행) | 높음 | |
 | O4 | Oracle 클라이언트(OCI) 홈 선택 | `OracleConnectionPage.createClientHomeGroup` | 의도적 제외 | swing-conn-advanced.md 165행. SWT도 `PRODUCT_FEATURE_ADVANCED_DATABASE_ADMINISTRATION`(상용)일 때만 보임(`OracleConnectionPage.java:112-114`) | 낮음 | |
-| O5 | 세션 NLS: 언어, 지역, 날짜·타임스탬프 형식, 길이 의미(BYTE/CHAR), 통화 | `OracleConnectionExtraPage:103-122` | 없음 | 6개 키 모두 `<provider-properties>`에 없음. 모델은 연결 때 `ALTER SESSION`으로 적용(`OracleDataSource.java:361-372`) | 중간 | 이전된 연결에 저장된 값은 보이지 않은 채 계속 적용된다. 바꾸려면 `data-sources.json`을 손으로 고쳐야 한다 |
+| O5 | 세션 NLS: 언어, 지역, 날짜·타임스탬프 형식, 길이 의미(BYTE/CHAR), 통화 | `OracleConnectionExtraPage:103-122` | 있음(2026-11-08) | 연결 대화상자 Options의 세션 설정 탭(`ConnectionDriverFields` Oracle, swing-conn-advanced.md "Oracle 세션 설정") | 중간 | 조사 당시: 없음(6개 키가 `<provider-properties>`에 없어 저장값이 보이지 않게 적용됨) |
 | O6 | 메타데이터 옵션: 옵티마이저 힌트, RULE 힌트, 단순 제약 질의, 다른 테이블 질의, DBA 뷰 쓰기·항상 DBA 보기, SYS 스키마, 빈 스키마 숨김, 한 스키마만, DATE를 날짜로, 동의어에서 찾기, OS 사용자 | `OracleConnectionExtraPage` | 있음 | 모두 선언(`ext.oracle/plugin.xml` provider-properties) → 표 | 낮음 | |
 | O7 | 메타데이터 옵션: 열 주석 읽기, 시퀀스에서 찾기, 옵티마이저 버전 | `OracleConnectionExtraPage:138-171` | 없음 | 키 미선언. 모델 `OracleSchema.java:151`, `:813`, `OracleDataSource.java:396` | 낮음 | |
 | O8 | 전역·연결별 "Oracle" 환경설정(PLAN_TABLE 이름, ROWID 사용, DBMS_OUTPUT 켜기, 모든 동의어 읽기, 스크립트 escape 처리 끄기) | `PrefPageOracle`(preferencePages + propertyPages) | 없음 | `OptionsDialog.java:178-180` | 낮음 | 기본값은 모델 쪽 `OraclePreferencesInitializer`가 그대로 넣는다(UI 번들의 같은 초기화가 지워져도 값 같음). K1을 끌 방법도 없다 |
@@ -133,12 +135,12 @@ K1–K3의 공통 원인은 SQL 편집기에 서버 출력 패널이 없는 것�
 | O13 | 패키지 안 프로시저 → 소스 위치로 이동 | 명령 `ext.oracle.code.package.navigate` → `PackageNavigateHandler` | 없음 | grep `navigate` 관련 명령 없음 | 낮음 | |
 | O14 | DDL 탭의 DDL 형식(FULL / 저장소 제외 / 간단히) | `OracleObjectDDLEditor`, `OracleEditorUtils.addDDLControl` | 일부 | View DDL은 있으나 형식 콤보 없음(`OracleDDLFormat` 참조 grep → `ui.swing` 0건) | 낮음 | |
 | O15 | 스케줄러 작업: 실행, 작업 동작 편집, 작업 로그 | 명령 `ext.oracle.job.run` → `JobRunHandler`, `SchedulerJobActionEditor`, `SchedulerJobLogEditor` | 있음 | `SchedulerCommands`, `OracleJobDialog`, 기록 탭(swing-job-schedulers.md 12, 23-25행) | 중간 | Swing이 더 넓음 |
-| O16 | 사용자(스키마) 만들기, 역할·권한 부여 | `OracleSchemaConfigurator`(+ 범용 편집기의 권한 탭) | 없음 | swing-security.md 17행 "Oracle은 이번에 넣지 않았다", 153행 | 높음 | DBA 일상 작업. 문서에 "남긴 것"으로만 기록(제외 결정 아님) |
+| O16 | 사용자(스키마) 만들기, 역할·권한 부여 | `OracleSchemaConfigurator`(+ 범용 편집기의 권한 탭) | 있음(2026-11-08) | `OracleSecurityDialect` + 보안 창(swing-security.md "Oracle"): 사용자·역할 만들기·속성·삭제, 역할 소속, 시스템·객체 권한 | 높음 | 조사 당시: 없음. 패키지·열 권한, 테이블스페이스·할당량·프로필은 없음 |
 | O17 | 시퀀스·큐·데이터 형식·패키지·테이블 트리거 만들기 | `Oracle{Sequence,Queue,DataType,Package,TableTrigger}Configurator` | 없음 | 새로 만들기는 View/Procedure/Function뿐(swing-source-editor.md 21행) | 중간 | |
 | O18 | 인덱스·제약·외래 키 만들기 | `Oracle{Index,Constraint,ForeignKey}Configurator` | 없음 | 테이블 디자이너는 Oracle 열만 되고 인덱스·FK·CHECK는 드라이버 구현 없음(swing-table-designer.md 74, 124행) | 중간 | |
 | O19 | 통계 수집(테이블·인덱스) | `OracleToolGatherStatistics` | 있음 | `OracleMaintenanceDialect` GATHER_TABLE/INDEX/SCHEMA_STATS | 중간 | |
 | O20 | 구조 검증(VALIDATE STRUCTURE) | `OracleToolValidateStructure` | 없음 | swing-admin-tools.md 600행 "미룬 것" | 낮음 | |
-| O21 | TRUNCATE, 트리거 사용/사용 안 함, 구체화된 뷰 새로 고침 | `OracleToolTruncate`, `OracleToolTriggerEnable/Disable`, `OracleToolRefreshMView` | 없음 | P23과 같은 grep | 중간 | |
+| O21 | TRUNCATE, 트리거 사용/사용 안 함, 구체화된 뷰 새로 고침 | `OracleToolTruncate`, `OracleToolTriggerEnable/Disable`, `OracleToolRefreshMView` | 있음(2026-11-08) | P23과 같음 | 중간 | 조사 당시: 없음. REUSE STORAGE·새로 고침 방식 옵션 화면은 없음 |
 | O22 | SQL*Plus로 스크립트 실행(도구 + 편집기 네이티브 실행) | `OracleToolScript`, `OracleScriptExecutor`(`sql.executors`) | 없음 | grep `sqlplus` → `ui.swing` 0건. 백업·복원도 Oracle은 대상 아님(swing-backup-restore.md 10행) | 낮음 | |
 | O23 | Toad·SQL Developer 연결 가져오기 | `importWizards`: `ConfigImportWizardToad`, `ConfigImportWizardSqlDeveloper` | 없음 | swt-removal.md 115행(다른 도구의 연결 가져오기 없음) | 중간 | Oracle 사용자 이전 경로 |
 | O24 | DBMS_OUTPUT 출력 | (SQL 편집기 Output 패널 + `PREF_DBMS_OUTPUT`) | 있음(2026-11-07, 조사 때 조용히 끊김) | 위 K1. 쿼리 창 Messages 탭 | 높음 | 켜고 끄는 화면은 없음(O8) |
@@ -150,7 +152,7 @@ SWT에도 Altibase 전용 연결 화면은 없었다(`dataSourceConfigurator` �
 | # | 기능 | SWT 출처 | 상태 | 근거 (Swing) | 영향 | 비고 |
 |---|---|---|---|---|---|---|
 | A1 | 세션 관리자(Disconnect) | `AltibaseSessionEditor` | 있음 | Activity Monitor의 "그 밖" 분기가 `AltibaseServerSessionManager` 어댑터 + Terminate(`ServerAdminProfile.java:253-260`) | 높음 | |
-| A2 | 잠금 관리자 | `AltibaseLockEditor` | 없음 | 모델 `ext.altibase/.../lock/AltibaseLockManager.java`는 있으나 `ServerAdminProfile`의 그 밖 분기는 잠금 관리자를 넣지 않고, `LockManagerPanel.java:226`은 프로필의 관리자만 쓴다 | 높음 | 모델은 남아 있어 화면 고리 하나로 살릴 수 있다(Exasol도 같음) |
+| A2 | 잠금 관리자 | `AltibaseLockEditor` | 있음(2026-11-08) | `ServerAdminProfile` Altibase 분기 + `AltibaseBlockingLockManager`(swing-admin-tools.md "Altibase 잠금") | 높음 | 조사 당시: 없음(모델 `AltibaseLockManager`가 연결되지 않음). Exasol은 남음 |
 | A3 | 환경설정(계획 형식, DBMS 출력, 계획 깊이 접두어) | `PrefPageAltibase` | 없음 | `OptionsDialog.java:178-180` | 낮음 | 기본값은 모델 `AltibasePreferencesInitializer` |
 | A4 | 서버 출력(PRINT) | (SQL 편집기 Output 패널) | 있음(2026-11-07, 조사 때 조용히 끊김) | 위 K2. 쿼리 창 Messages 탭 | 중간 | 켜고 끄는 화면은 없음(A3) |
 | A5 | 구체화된 뷰 새로 고침, TRUNCATE | `AltibaseToolMViewRefresh`, `AltibaseToolTableTruncate` | 없음 | P23과 같은 grep, Altibase 유지 관리 방언 없음(`model.admin` maintenance 방언 4개) | 중간 | |
@@ -181,7 +183,7 @@ SWT에도 Altibase 전용 연결 화면은 없었다(`dataSourceConfigurator` �
 | MySQL | SSL 옵션 | `ssl.*` 핸들러 속성 | — | SSL 탭 | 예 |
 | Oracle | Basic/TNS, TNS 경로, SID/Service | `@chromite-connection-type@`, `@chromite-tns-path@`, `@chromite-sid-service@` | 일부(sid-service만) | 주 양식 칸(`ConnectionDriverFields`) | 예 |
 | Oracle | Role(SYSDBA 등), OS 인증 | 인증 속성 `oracle.logon-as`, auth model | 예 | 주 양식 칸 | 예 |
-| Oracle | NLS 언어·지역·날짜·타임스탬프·길이·통화 | `@chromite-session-language@`, `@chromite-session-territory@`, `@chromite-session-nls-date-format@`, `session-nls-timestamp-format`, `session-nls-length-format`, `session-nls-currency-format` | 아니오 | 없음 | 예(`OracleDataSource.java:361-372`) |
+| Oracle | NLS 언어·지역·날짜·타임스탬프·길이·통화 | `@chromite-session-language@`, `@chromite-session-territory@`, `@chromite-session-nls-date-format@`, `session-nls-timestamp-format`, `session-nls-length-format`, `session-nls-currency-format` | 아니오 | Options의 세션 설정 탭(2026-11-08, swing-conn-advanced.md "Oracle 세션 설정") | 예(`OracleDataSource.java:361-372`) |
 | Oracle | 열 주석 읽기, 시퀀스에서 찾기, 옵티마이저 버전 | `@chromite-meta-read-column-comments@`, `oracle.meta-search-in-sequences`, `oracle-meta-optimizer-version` | 아니오 | 없음 | 예 |
 | Oracle | 그 밖의 메타데이터 옵션 11개 | O6 | 예 | 표 | 예 |
 | 기타 | Firebird 내장 라이브러리 경로, Spanner 키 경로, BigQuery OAuth 종류·키 경로, Snowflake 스키마(`@chromite-schema@`)·인증자·역할, CUBRID shard, Mimer protocol·program, HANA 에디션 | 각 `*ConnectionPage`·`*AuthConfigurator` | 아니오 | 없음 | 예 |
@@ -234,11 +236,11 @@ SWT에도 Altibase 전용 연결 화면은 없었다(`dataSourceConfigurator` �
 ## 높은 순서로 본 빠진 것·끊긴 것
 
 1. K1 / O24 Oracle DBMS_OUTPUT — 조용히 끊김, 높음. (2026-11-07 고침)
-2. O16 Oracle 사용자·역할·권한 관리 — 없음, 높음.
-3. A2 Altibase 잠금 관리자(모델은 있음; Exasol도 같음) — 없음, 높음.
+2. O16 Oracle 사용자·역할·권한 관리 — 없음, 높음. (2026-11-08 고침, [swing-security.md](../swing-security.md) "Oracle")
+3. A2 Altibase 잠금 관리자(모델은 있음; Exasol도 같음) — 없음, 높음. (2026-11-08 고침, Exasol은 남음)
 4. K2 / A4 Altibase 서버 출력(메모리에 쌓임) — 조용히 끊김, 중간. (2026-11-07 고침)
-5. O5 Oracle 세션 NLS 설정 — 없음(저장값은 보이지 않게 적용), 중간.
-6. TRUNCATE·트리거 사용/사용 안 함·구체화된 뷰 새로 고침(P23, O21, S14, M17, A5) — 없음, 중간.
+5. O5 Oracle 세션 NLS 설정 — 없음(저장값은 보이지 않게 적용), 중간. (2026-11-08 고침)
+6. TRUNCATE·트리거 사용/사용 안 함·구체화된 뷰 새로 고침(P23, O21, S14, M17, A5) — 없음, 중간. (2026-11-08 고침, A5 Altibase는 남음)
 7. DB·스키마·시퀀스·테이블스페이스·확장·트리거·패키지 만들기(P13-P15, S9, M6, M9, O17) — 없음, 중간.
 8. O18 Oracle 인덱스·제약·외래 키(디자이너 미지원) — 없음, 중간.
 9. P29 PostgreSQL 디버거(모델까지 삭제) — 없음, 중간. (2026-11-07 옮김, [procedure-debugger.md](../procedure-debugger.md))
@@ -256,3 +258,7 @@ SWT에도 Altibase 전용 연결 화면은 없었다(`dataSourceConfigurator` �
   나머지 26개 번들은 클래스 목록·`plugin.xml` 기여 수준으로만 보았다.
 - `ext.*` 모델 번들에서 쓰는 UI 서비스는 grep으로 모두 찾았다(`UIServiceAuth`, `UIServiceConnectionInit`, `SQLiteExtensionConfirmation`, `UIServiceSystemAgent`).
   `DBWorkbench.getPlatformUI()`의 확인·입력 메서드는 `SwingPlatformUI`가 모두 구현한다(`confirmAction` `:178-210`, `promptUserPasswordChange` `:360`, `showUserChoice` `:212`).
+
+## 변경 이력
+
+- 2026-11-08 3순위 Oracle·Altibase 관리: P23·S14·M17·O5·O16·O21·A2 → 있음, 요약 표와 높은 순서 목록 갱신.
