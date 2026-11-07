@@ -70,7 +70,8 @@ SWT: `ValueViewerPanel`(panel/valueviewer/ValueViewerPanel.java:60), `ContentPan
   - 메모리에 없는 LOB(BLOB·CLOB 로케이터, SQLXML)는 SWT 결과 모델처럼 값 객체를 남겨 두었다가 값 패널이 처음 보여 줄 때 `DBDContent.getContents`로 읽는다.
     1,000,000바이트(SWT 기본 `content.cache.maxsize`)까지 읽고 넘으면 "showing the first …"로 알린다. 결과를 지우거나 다시 읽을 때 놓아 준다.
 - **편집:** 표가 편집할 수 있는 칸이고 글자 값이면 패널에서 고친 뒤 Apply(Ctrl+Enter)로 표에 넣는다. 값은 셀 편집기처럼 열의 값 처리기가 만들고(`ResultSetGrid.setCellText`),
-  틀린 값이면 아래 줄에 빨간 글자로 이유를 쓴다. 저장은 표의 저장(Ctrl+S, Save)이다. LOB 열은 G단계처럼 읽기 전용이다.
+  틀린 값이면 아래 줄에 빨간 글자로 이유를 쓴다. 저장은 표의 저장(Ctrl+S, Save)이다. 2026-11-08부터 글자 LOB(JSON·XML·CLOB)도 패널에서 고치고(JSON·XML 정리·검사),
+  LOB는 파일에서 불러오기·파일로 저장을 한다([swing-grid-editing.md](swing-grid-editing.md) "LOB 편집과 파일").
 - **글꼴과 색:** 구문 색은 SQL 편집기 테마 파일(`SqlEditorLight/Dark.xml`), 글꼴은 Messages·오류 상세와 같은 코드 글꼴 `monospaced.font`
   ([design-spec.md](design-spec.md) `font.code`)다. SQL 편집기 글꼴(`EditorFont`, Options에서 바꿈)은 따르지 않는다.
 - **열고 닫기:** F7, 상태 줄 오른쪽 "Value" 단추(2026-11-07 전에는 필터 줄 오른쪽), 오른쪽 클릭 "Value Panel". 연 상태는 이 실행 동안 다음 결과에도 이어진다.
@@ -186,7 +187,7 @@ SWT: 결과 뷰어의 레코드 모드(`ResultSetViewer.toggleMode`).
 ## 남긴 것
 
 - 열 고정(freeze), 열 숨기기·순서 바꾸기, 행 수 세기(SWT "Calculate total row count"), 저장한 필터, 필터 편집 대화상자, 자동완성되는 필터 입력.
-- LOB·JSON 열 편집(값 패널에서도 읽기 전용), 파일로 저장·파일에서 불러오기, 이진 값 형식 바꾸기(SWT의 Binary format 메뉴).
+- 이진 값 형식 바꾸기(SWT의 Binary format 메뉴). LOB·JSON 열 편집과 파일로 저장·파일에서 불러오기는 2026-11-08에 했다([swing-grid-editing.md](swing-grid-editing.md)).
 - 결과 안 찾기(SWT Find/Replace), 그룹·참조 패널, 메타데이터 패널.
 
 ## 변경 이력
@@ -200,3 +201,5 @@ SWT: 결과 뷰어의 레코드 모드(`ResultSetViewer.toggleMode`).
   [swing-grid-column-filters.md](swing-grid-column-filters.md).
 - 2026-11-07 값 패널 글꼴 설명을 코드에 맞춤: `ResultSetValuePanel` 설계 주석이 "SQL 편집기와 같은 글꼴"이라 했지만 코드와 design-spec.md는 `monospaced.font`(코드는 그대로).
 - 2026-11-07 아주 작은 수의 표시(#53): `scientificSmallValues` 기본값을 켜고, 원래 형식(편집·생성 SQL)이 값을 반올림하면 지수 표기를 둠. 위 "아주 작은 수의 표시".
+- 2026-11-08 값 패널에서 글자 LOB 편집, JSON·XML 정리·검사, LOB 파일 불러오기·저장, Copy As의 JSON·XML·HTML·SQL INSERT와 고급 복사. 값 패널 "편집"과 "남긴 것" 갱신.
+  [swing-grid-editing.md](swing-grid-editing.md).

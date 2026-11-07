@@ -11,9 +11,9 @@
 
 | 상태 | SQL 편집기 | 결과 뷰어 | 개체 편집기 | 연결 편집기 | 그 밖의 편집기 | 합계 |
 |---|---|---|---|---|---|---|
-| 있음 | 9 | 7 | 4 | 5 | 0 | **25** |
-| 일부 | 12 | 8 | 6 | 9 | 7 | **42** |
-| 없음 | 19 | 12 | 1 | 7 | 0 | **39** |
+| 있음 | 9 | 9 | 4 | 5 | 2 | **29** |
+| 일부 | 12 | 8 | 6 | 9 | 5 | **40** |
+| 없음 | 19 | 10 | 1 | 7 | 0 | **37** |
 | 조용히 끊김 | 5 | 1 | 1 | 1 | 0 | **8** |
 | 의도적 제외 | 1 | 2 | 0 | 0 | 0 | **3** |
 | 합계 | 46 | 30 | 12 | 22 | 7 | **117** |
@@ -111,14 +111,14 @@
 | R11 | 정렬(서버·표 안) | `toggleOrder`, `OrderingStrategy` | 있음 | `ResultSetViewerPanel`, swing-result-viewer.md "정렬과 필터" | 중간 | |
 | R12 | 페이지·더 읽기·모두 읽기, 최대 행 수 | `fetch.page`, `fetch.all`, `PrefPageResultSetMain` | 있음 | `ResultSetViewerPanel`, Options "Maximum rows" | 중간 | JDBC fetch size 설정 없음 |
 | R13 | 전체 행 수 세기 | `resultset.count` | 없음 | swing-result-viewer.md:177 | 낮음 | |
-| R14 | 형식별 값 편집기(날짜 선택, 불리언 확인란, 참조 값 고르기, 배열·구조체, 커서, LOB 파일 불러오기·저장, 외부 편집기, UUID 만들기) | `data/editors/*`, `data/managers/*`, `openWith`, `cell.save`, `generate.uuid` | 일부 | 글자 셀 편집기만(swing-frontend.md:1291, swing-result-viewer.md:178) | 중간 | |
+| R14 | 형식별 값 편집기(날짜 선택, 불리언 확인란, 참조 값 고르기, 배열·구조체, 커서, LOB 파일 불러오기·저장, 외부 편집기, UUID 만들기) | `data/editors/*`, `data/managers/*`, `openWith`, `cell.save`, `generate.uuid` | 일부 | 2026-11-08 날짜·시각 선택기, 불리언·ENUM 목록, LOB 파일 불러오기·저장, LOB 값 패널 편집([swing-grid-editing.md](../swing-grid-editing.md)) | 중간 | 참조 값 고르기, 배열·구조체·커서, 외부 편집기, UUID 만들기는 남음 |
 | R15 | 이진 표시 형식, 데이터 형식 설정 화면 | `BinaryFormatAction`, `PrefPageDataFormat` | 일부 | Options "Show date/time values in the database format" 하나 | 낮음 | |
-| R16 | 고급 복사(설정 대화상자, JSON·XML·HTML·SQL INSERT 등 처리기별 복사), 특수 붙여넣기 | `ResultSetHandlerCopySpecial`, `CopyAs`, `PasteSpecial` | 일부 | `ResultSetCopyFormats`(CSV·TSV·Markdown·SQL IN), Copy with Headers | 중간 | 여러 칸 붙여넣기 없음 |
+| R16 | 고급 복사(설정 대화상자, JSON·XML·HTML·SQL INSERT 등 처리기별 복사), 특수 붙여넣기 | `ResultSetHandlerCopySpecial`, `CopyAs`, `PasteSpecial` | 있음 (2026-11-08) | `ResultSetCopyFormats`(CSV·TSV·Markdown·SQL IN·JSON·XML·HTML·SQL INSERT, 고급 복사), `ResultSetPaste`(여러 칸 붙여넣기, 특수 붙여넣기), [swing-grid-editing.md](../swing-grid-editing.md) | 중간 | 복사 형식은 데이터 전송 처리기가 아니라 표의 값으로 만듦 |
 | R17 | 그리드에서 내보내기 | `resultset.export` | 있음 | `ResultSetExport`(CSV·XLSX), `DataExportWizard`(Export Data…) | 중간 | |
 | R18 | 편집·저장(셀, NULL, 행 추가·삭제, 저장·취소) | `ResultSetViewer`, `ResultSetPersister` | 있음 | `ResultSetEditModel`, `ResultSetEditPersister`(swing-frontend.md G단계) | 높음 | 자동 커밋 연결은 한 트랜잭션으로 저장 |
 | R19 | 저장 전 스크립트 미리 보기, 연결 종류 "데이터 변경 확인" | `ResultSetViewer.java:4735`, `SavePreviewDialog`, `toggleConfirmSave` | 있음 (2026-11-07 수정, 조사 때 조용히 끊김) | `ResultSetGrid.confirmSave`, `ScriptPreviewDialog.confirmSave`, Options "Show the SQL script before saving grid changes" | 높음 | Test·Production 기본 켬. 도구 막대 토글·연쇄 삭제 선택 없음 |
-| R20 | 저장하고 커밋, 변경 스크립트 보기, 연쇄 삭제 옵션 | `applyAndCommitChanges`, `generateScript`, `SaveScriptDialog` | 없음 | swing-frontend.md:1290 | 중간 | 수동 커밋 연결은 저장 뒤 `COMMIT`을 직접 실행 |
-| R21 | 행 복제·위/아래 행 복사, 기본값으로, 칸 되돌리기, 실행 취소 | `row.copy*`, `cell.setDefault`, `cell.reset` | 없음 | swing-frontend.md:1291 | 낮음 | |
+| R20 | 저장하고 커밋, 변경 스크립트 보기, 연쇄 삭제 옵션 | `applyAndCommitChanges`, `generateScript`, `SaveScriptDialog` | 일부 (2026-11-08) | 저장하고 커밋(수동 커밋 연결, 그 전 변경은 먼저 물음), 변경 미리 보기([swing-grid-editing.md](../swing-grid-editing.md)) | 중간 | 연쇄 삭제는 남음 |
+| R21 | 행 복제·위/아래 행 복사, 기본값으로, 칸 되돌리기, 실행 취소 | `row.copy*`, `cell.setDefault`, `cell.reset` | 있음 (2026-11-08) | `ResultSetGrid`·`ResultSetEditModel`, SWT 단축키([swing-grid-editing.md](../swing-grid-editing.md)) | 낮음 | 셀 되돌리기에 Esc 없음(표의 편집 취소 키) |
 | R22 | 가상 키(키 없는 테이블 편집), 가상(계산) 열, 가상 외래 키 | `controls/resultset/virtual/*` | 없음 | swing-frontend.md:1291, grep `DBVEntity` 0건(결과) | 중간 | 기본 키 없는 테이블은 편집 불가 |
 | R23 | 값에 따른 색, 행 색, 그룹 줄무늬 | `colors/*` | 없음 | grep 0건 | 낮음 | |
 | R24 | 열 숨기기·순서·고정·빈 열 숨기기, 행·열로 가기, 확대·축소 | `grid.*` 명령, `zoomIn/Out` | 일부 | 열 너비 맞추기만(`ResultSetColumnFit`), swing-result-viewer.md:177 | 낮음 | |
@@ -184,8 +184,8 @@ swing-security.md는 DB 보안(로그인·역할·권한) 문서이고 연결 �
 | O3 | 개체 권한(ACL) 편집기 | `ui.editors.acl` `ObjectACLEditor` | 일부 | `ObjectPermissionsDialog`(SQL Server·PostgreSQL·MySQL) | 낮음 | CE에서 `ObjectACLEditor`를 쓰는 확장은 없었음(`plugin.xml` 비어 있음). Oracle 없음 |
 | O4 | HEX 편집기 | `ui.editors.hex` `BinaryEditor`, `HexEditControl` | 일부 | 값 패널 Hex 보기(256 KiB, 읽기 전용) | 낮음 | 편집·찾기·이동 없음(swt-removal.md:119) |
 | O5 | 이미지 편집기 | `ui.editors.image` `ImageViewer` | 일부 | 값 패널 Image 보기 | 낮음 | 확대·저장·불러오기 없음 |
-| O6 | JSON 편집기 | `ui.editors.json` `JSONTextEditor`, `JSONPanelEditor` | 일부 | 값 패널 JSON 정리 보기 | 낮음 | JSON 열 편집 불가(swing-result-viewer.md:178) |
-| O7 | XML 편집기 | `ui.editors.xml` `XMLEditor`, `XMLPanelEditor` | 일부 | 값 패널 XML 정리 보기(XXE 차단) | 낮음 | XML 열 편집 불가 |
+| O6 | JSON 편집기 | `ui.editors.json` `JSONTextEditor`, `JSONPanelEditor` | 있음 (2026-11-08) | 값 패널 JSON 편집(정리, 검사, JSON 열은 잘못된 글자를 넣지 않음), [swing-grid-editing.md](../swing-grid-editing.md) | 낮음 | |
+| O7 | XML 편집기 | `ui.editors.xml` `XMLEditor`, `XMLPanelEditor` | 있음 (2026-11-08) | 값 패널 XML 편집(정리, 검사, XXE 차단), [swing-grid-editing.md](../swing-grid-editing.md) | 낮음 | |
 
 ## 영향이 큰 빠진 기능·조용히 끊긴 기능 10개
 
