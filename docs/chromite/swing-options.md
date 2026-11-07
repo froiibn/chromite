@@ -334,7 +334,7 @@ Swing 제품이 읽지만 화면이 없는 키다. 우선순위 순서로 적었
 
 | SWT 페이지 | 키 | Swing 상태 |
 |---|---|---|
-| General | `java.client.timezone` | 일부만 읽음(ClickHouse), 시간대 적용 코드 없음(S12) → 다음 작업 |
+| General | `java.client.timezone` | 2026-11-08: 시작할 때 적용(S12, [platform-startup.md](platform-startup.md)). 설정 칸은 다음 작업 |
 | General | `ui.auto.update.check` | 효과 없음(읽는 곳 없음) |
 | User Interface | `ui.showZoomRestartPrompt` | 효과 없음(읽는 곳 없음) |
 | User Interface | `ui.statusBar.show.breadcrumbs` | 효과 없음(읽는 곳 없음) |
@@ -426,9 +426,9 @@ Swing 제품이 읽지만 화면이 없는 키다. 우선순위 순서로 적었
 | Notifications | `notifications.soundEnabled` | 효과 없음(읽는 곳 없음) |
 | Notifications | `notifications.soundVolume` | 효과 없음(읽는 곳 없음) |
 | Miscellaneous | `ui.show.holiday.decorations` | 효과 없음(읽는 곳 없음) |
-| Expert Settings | `connections.debugNetworkConnections` | 효과 없음(읽는 곳 없음) |
-| Expert Settings | `connections.preferredIPAddresses` | 효과 없음: 적용 코드가 Swing에 없음(S13) |
-| Expert Settings | `connections.preferredIPType` | 효과 없음: 적용 코드가 Swing에 없음(S13) |
+| Expert Settings | `connections.debugNetworkConnections` | 2026-11-08: 시작할 때 적용(`javax.net.debug=all`, S13). 설정 칸 없음 |
+| Expert Settings | `connections.preferredIPAddresses` | 2026-11-08: 시작할 때 적용(S13). 설정 칸 없음 |
+| Expert Settings | `connections.preferredIPType` | 2026-11-08: 시작할 때 적용(S13). 설정 칸 없음 |
 | Data Transfer | `captureUnsavedTaskLogs` | 효과 없음(읽는 곳 없음) |
 | Data Transfer | `fallbackOutputDirectory` | 효과 없음(읽는 곳 없음) |
 | Data Transfer | `maxTypeLengthMapping` | 읽음, 화면 없음 → 다음 작업 |

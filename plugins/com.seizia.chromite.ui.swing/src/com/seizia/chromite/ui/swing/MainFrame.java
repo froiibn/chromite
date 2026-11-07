@@ -20,6 +20,7 @@ import com.formdev.flatlaf.FlatClientProperties;
 import com.formdev.flatlaf.util.UIScale;
 import com.seizia.chromite.ui.swing.internal.AiMessages;
 import com.seizia.chromite.ui.swing.internal.CompareMessages;
+import com.seizia.chromite.ui.swing.internal.ConnectionMessages;
 import com.seizia.chromite.ui.swing.internal.ConnectionTransferMessages;
 import com.seizia.chromite.ui.swing.internal.CoreMessages;
 import com.seizia.chromite.ui.swing.internal.DashboardMessages;
@@ -90,7 +91,7 @@ import java.util.function.Supplier;
  *     <li>모양은 DataGrip Islands다: 메인 창 바탕은 캔버스({@code Chromite.island.canvas})이고 문서 탭·편집기와 Results는 각각 둥근 카드({@link IslandPanel}),
  *     도구 창(탭 묶음 포함)은 도킹 루트가 그리는 둥근 카드다. 카드 사이 틈은 분할선(6px, 선 없음)과 좌우 바깥 여백이다. 주 도구 막대와 상태 표시줄은 캔버스 위에 있다.</li>
  *     <li>메뉴는 SSMS 순서로 File(새 연결·쿼리, 파일, Exit), Edit({@link EditMenu}), View(도구 창 토글, Theme), Query(실행, 취소, 자동완성),
- *     Tools(Activity Monitor, Locks, Find Objects, Driver Manager {@link DriverManagerDialog}, Options {@link OptionsDialog}), Window(Reset Window Layout, 열린 문서 탭 목록), Help(About)이다. FlatLaf의 통합 제목 표시줄(Windows)에서
+ *     Tools(Activity Monitor, Locks, Find Objects, Driver Manager {@link DriverManagerDialog}, Network Profiles {@link NetworkProfilesDialog}, Options {@link OptionsDialog}), Window(Reset Window Layout, 열린 문서 탭 목록), Help(About)이다. FlatLaf의 통합 제목 표시줄(Windows)에서
  *     메뉴 막대는 A단계처럼 제목 표시줄 안에 들어간다. Tools &gt; Options와 같은 설정을 보이는 메뉴 항목(Theme, Icon Style, Auto-Complete While Typing)은
  *     메뉴를 열 때 현재 값으로 맞춘다.
  *     도구 창 단축키는 SSMS와 같다(Object Explorer F8, Registered Servers Ctrl+Alt+G, Properties F4, Results Ctrl+R).</li>
@@ -212,6 +213,7 @@ import java.util.function.Supplier;
  * - 2026-11-08 Query History에서 연 바인딩 실행은 기록된 값으로 다시 바인딩(Execute는 묻지 않음)
  *   (docs/chromite/swing-query-library.md "매개변수 대화상자와 바인딩 하나로")
  * - 2026-11-08 Tools &gt; Compare Schemas… ({@link SchemaComparePanel}, docs/chromite/schema-compare.md)
+ * - 2026-11-08 Tools &gt; Network Profiles… ({@link NetworkProfilesDialog}, docs/chromite/swing-conn-advanced.md "네트워크 프로필")
  */
 final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplorerPanel.QueryWindows, TableDesignerPanel.Host, QueryLibraryPanel.Host {
 
@@ -1695,6 +1697,9 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
         JMenuItem driverManagerItem = new JMenuItem(DriverManagerMessages.drivermgr_menu);
         driverManagerItem.setToolTipText(DriverManagerMessages.drivermgr_menu_tip);
         driverManagerItem.addActionListener(e -> DriverManagerDialog.open(this));
+        JMenuItem networkProfilesItem = new JMenuItem(ConnectionMessages.profiles_menu);
+        networkProfilesItem.setToolTipText(ConnectionMessages.profiles_menu_tip);
+        networkProfilesItem.addActionListener(e -> NetworkProfilesDialog.open(this, DBWorkbench.getPlatform().getWorkspace().getActiveProject()));
         JMenu toolsMenu = new JMenu(CoreMessages.main_menu_tools);
         toolsMenu.setMnemonic(KeyEvent.VK_T);
         toolsMenu.add(activityMonitorItem);
@@ -1706,6 +1711,7 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
         toolsMenu.add(compareSchemasItem);
         toolsMenu.addSeparator();
         toolsMenu.add(driverManagerItem);
+        toolsMenu.add(networkProfilesItem);
         toolsMenu.add(optionsItem);
 
         JMenu windowMenu = new JMenu(CoreMessages.main_menu_window);

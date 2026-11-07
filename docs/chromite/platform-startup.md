@@ -1,4 +1,4 @@
-# 플랫폼 시작·종료: Windows 인증서 저장소, macOS 앱 메뉴
+# 플랫폼 시작·종료: Windows 인증서 저장소, macOS 앱 메뉴, JCE 공급자, 시간대, IP 스택
 
 ## 목적
 
@@ -11,6 +11,13 @@ SWT 앱이 시작할 때 하던 플랫폼별 처리 두 가지가 Swing 앱에 �
 - **macOS 끝내기(A-S14)**: JDK의 macOS 기본 끝내기 동작은 `System.exit`이다. 그래서 Cmd+Q(앱 메뉴의 끝내기)가
   메인 창 닫기 경로(저장 질문, 열린 트랜잭션 질문 `ExitTransactionCheck`)를 건너뛸 수 있었다. 앱 메뉴의 정보·환경설정도
   JDK 기본(자바 정보 창, 동작 없음)이었다.
+- **BouncyCastle JCE 공급자(A-S9, 2026-11-08)**: SWT `DesktopPlatform.initialize`는 설정 `security.jce.bc`(기본 켬)가 켜져 있으면 BouncyCastle 공급자를
+  등록했다(`SecurityProviderUtils.registerSecurityProvider`). Swing 플랫폼은 하지 않았다.
+- **클라이언트 시간대(A-S12, 2026-11-08)**: SWT `ChromiteApplication.start`는 설정 `java.client.timezone`이 기본값(`Default`)이 아니면
+  JVM 기본 시간대를 그 시간대로 바꿨다(`TimezoneRegistry.overrideTimezone`). Swing 앱은 하지 않아 설정이 효과가 없었다.
+- **IP 스택·네트워크 디버그(A-S13, 2026-11-08)**: SWT `ChromiteApplication.initializeApplication`은 설정 `connections.preferredIPType`·
+  `connections.preferredIPAddresses`(IPv4 / IPv6 / Auto)로 `java.net.preferIPv4Stack`·`java.net.preferIPv6Addresses`를, `connections.debugNetworkConnections`로
+  `javax.net.debug=all`을 정했다. Swing 앱은 하지 않았다.
 
 ## 구조
 
@@ -20,6 +27,17 @@ SWT 앱이 시작할 때 하던 플랫폼별 처리 두 가지가 Swing 앱에 �
 |---|---|
 | `useWindowsTrustStore` | Windows이고 설정 `connections.useWinTrustStoreType`(`ModelPreferences.PROP_USE_WIN_TRUST_STORE_TYPE`, Windows 기본 켬)이 켜져 있으며, 명령줄에 `javax.net.ssl.trustStore`·`trustStoreType`이 없으면 `javax.net.ssl.trustStoreType=WINDOWS-ROOT`로 둔다. 적용 결과를 디버그 로그에 남긴다(`SSL trust store type: ...`) |
 | `installDesktopHandlers` | `java.awt.Desktop`이 지원하는 경우에만 끝내기·정보·환경설정 처리기를 등록한다 |
+| `configureNetwork` (2026-11-08) | IP 스택·주소 선호(Auto면 JDK 기본 그대로)와 네트워크 디버그 시스템 속성. 모델 설정 저장소(`ModelPreferences.getPreferences`)에서 읽는다 |
+| `start`의 `TimezoneRegistry.overrideTimezone()` (2026-11-08) | 플랫폼을 만든 직후(플랫폼 설정 저장소를 읽으므로), 연결·날짜 서식보다 앞 |
+| `ChromiteSwingPlatform.initialize` (2026-11-08) | 맨 앞에서 `security.jce.bc`의 기본값(켬)을 정하고, 켜져 있으면 BouncyCastle 공급자를 등록한다(SWT `DesktopPreferencesInitializer`의 기본값과 같음) |
+
+### 네트워크·시간대·JCE를 정하는 시점
+
+- JDK는 `java.net.preferIPv4Stack`·`preferIPv6Addresses`를 소켓을 처음 만들 때 읽는다. 그래서 신뢰 저장소와 같은 자리(플랫폼을 만들기 전)에서 정한다.
+- 시간대는 플랫폼 설정 저장소(`DBWorkbench.getPlatform().getPreferenceStore()`)에서 읽으므로 플랫폼을 만든 직후, 연결 감시(`postInitialize`)와 메인 창보다 앞에서 바꾼다.
+  설정 화면(Options의 시간대 칸)은 다른 작업(설정 화면 나머지)이 만든다. 이 문서는 시작할 때 적용하는 부분만 맡는다.
+- BouncyCastle은 인증서 저장소·작업 공간보다 먼저 등록한다(SWT와 같은 순서). Chromite 코드에는 공급자 이름("BC")으로 찾는 곳이 없지만, 같은 JVM의 라이브러리
+  (SSH 구현, JDBC 드라이버의 키 읽기)가 등록된 공급자를 쓸 수 있어 SWT와 같은 실행 환경을 맞춘다.
 
 ### 신뢰 저장소를 정하는 시점
 
@@ -55,6 +73,8 @@ JDK는 `javax.net.ssl.trustStoreType`을 기본 SSL 문맥을 처음 만들 때 
 ## upstream 대비 변경점
 
 - upstream(DBeaver)의 SWT 앱 시작 처리(`ChromiteApplication.start`의 신뢰 저장소)를 Swing 앱에 옮겼다. 조건과 키는 같다.
+- 2026-11-08: `DesktopPlatform.initialize`의 BouncyCastle 등록, `ChromiteApplication.start`의 시간대, `initializeApplication`의 네트워크 설정도 같은 조건·키로 옮겼다.
+  `initializeApplication`의 Windows Defender 정책 처리는 옮기지 않았다(SWT 설치 정책 전용).
 - macOS 메뉴 통합은 upstream `ui.swt.macos`(SWT Cocoa)가 맡았다. Swing에서는 `java.awt.Desktop` API로 새로 구현했다.
 
 ## 확인 기록 (2026-11-07, Windows 11, 내장 런타임 JBR 25.0.4.1)
@@ -78,6 +98,14 @@ JDK는 `javax.net.ssl.trustStoreType`을 기본 SSL 문맥을 처음 만들 때 
   이 변경은 `MainFrame.requestExit`와 `ExitTransactionCheck`를 고치지 않았고, Windows에서는 새 처리기가 등록되지 않으므로 코드 경로는 그대로다.
 - macOS 확인은 아래 "macOS 확인 기록"에 있다.
 
+## 확인 기록 (2026-11-08, JCE·시간대·IP 스택, Windows 11)
+
+개인 데이터 폴더·작업 공간으로 연 앱 하나에 시험 코드를 붙여 확인했다(`D:\Tools\_scratch\chromite-p4-connection-fields\ops-tools-*.log`).
+
+- 첫 시작: `Security.getProvider("BC")` 있음, `security.jce.bc=true`. 기본 시간대 `Asia/Seoul`(OS), `java.net.preferIPv4Stack` 없음(설정 Auto).
+- 설정 `java.client.timezone=Asia/Tokyo`, `connections.preferredIPType=IPV4`를 저장하고 다시 시작: 기본 시간대 `Asia/Tokyo`, `java.net.preferIPv4Stack=true`.
+- 두 설정을 기본값으로 되돌리고 끝냄. `connections.debugNetworkConnections`(SSL 디버그 출력)는 실행해 보지 않았다.
+
 ## macOS 확인 기록 (2026-11-08, GitHub `macos-15` 러너, macOS 15.8.2 arm64)
 
 `macos-smoke.yml`([ci.md](ci.md) "macOS 설치·실행 시험")이 앱을 실제로 띄워 끝내기(Apple event `quit`과 System Events의 Cmd+Q), 앱 메뉴의 정보·환경설정,
@@ -95,4 +123,5 @@ JDK는 `javax.net.ssl.trustStoreType`을 기본 SSL 문맥을 처음 만들 때 
 ## 변경 이력
 
 - 2026-11-07 최초 작성. A-S6(Windows 인증서 저장소)과 A-S14(macOS 끝내기·정보·환경설정)를 Swing 앱 시작에 옮김.
+- 2026-11-08 A-S9(BouncyCastle), A-S12(클라이언트 시간대), A-S13(IP 스택·네트워크 디버그)를 Swing 시작에 옮김(`chromite/p4-connection-tools`).
 - 2026-11-08 macOS 확인 기록 추가: `macos-smoke.yml`로 끝내기·앱 메뉴·열린 트랜잭션 확인 경로를 만들었으나 앱이 macOS에서 시작하지 않아(런처·AWT 교착) 실행하지 못함.

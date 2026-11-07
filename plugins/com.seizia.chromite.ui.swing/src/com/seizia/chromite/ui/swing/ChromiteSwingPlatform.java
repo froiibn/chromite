@@ -37,6 +37,8 @@ import com.seizia.chromite.model.runtime.LoggingProgressMonitor;
 import com.seizia.chromite.registry.BasePlatformImpl;
 import com.seizia.chromite.registry.DataSourceProviderRegistry;
 import com.seizia.chromite.registry.GlobalEventManagerImpl;
+import com.seizia.chromite.runtime.SecurityProviderUtils;
+import com.seizia.chromite.utils.PrefUtils;
 import com.seizia.chromite.utils.RuntimeUtils;
 
 /**
@@ -48,12 +50,22 @@ import com.seizia.chromite.utils.RuntimeUtils;
  * {@code DesktopWorkspaceImpl}을 그대로 써서 SWT 버전과 같은 작업 공간 형식(연결 목록 포함)을 공유한다.
  * 탐색기 모델도 SWT 버전과 같은 {@link DesktopNavigatorModel}을 써서 B단계 Object Explorer가 그대로 쓸 수 있게 한다.
  *
+ * 초기화 맨 앞에서 SWT {@code DesktopPlatform}처럼 BouncyCastle JCE 공급자를 등록한다(설정 {@code security.jce.bc}, 기본 켬).
+ * Chromite 코드에는 공급자 이름("BC")으로 찾는 곳이 없지만, 같은 JVM의 라이브러리(SSH 구현, JDBC 드라이버의 키 읽기)가 등록된 공급자를 쓸 수 있어
+ * SWT 제품과 같은 실행 환경을 맞춘다.
+ *
  * 변경 이력:
  * - 2026-11-06 A단계: 최초 작성 (docs/chromite/swing-frontend.md "구현 현황 — A단계")
+ * - 2026-11-08 BouncyCastle JCE 공급자 등록(SWT {@code DesktopPlatform.initialize}와 같음, docs/chromite/platform-startup.md)
  */
 public class ChromiteSwingPlatform extends BasePlatformImpl implements DBPPlatformDesktop {
 
     private static final Log log = Log.getLog(ChromiteSwingPlatform.class);
+
+    /**
+     * The SWT product's key (ChromitePreferences.SECURITY_USE_BOUNCY_CASTLE in the removed core bundle), default on.
+     */
+    static final String PREF_SECURITY_USE_BOUNCY_CASTLE = "security.jce.bc"; //$NON-NLS-1$
 
     private DBPWorkspaceDesktop workspace;
     private DBACertificateStorage certificateStorage;
@@ -68,6 +80,12 @@ public class ChromiteSwingPlatform extends BasePlatformImpl implements DBPPlatfo
     protected void initialize() throws DBException {
         long startTime = System.currentTimeMillis();
         log.debug("Initialize Swing platform...");
+
+        // DesktopPlatform.initialize: the BouncyCastle JCE provider, before anything reads keys or certificates
+        PrefUtils.setDefaultPreferenceValue(getPreferenceStore(), PREF_SECURITY_USE_BOUNCY_CASTLE, true);
+        if (getPreferenceStore().getBoolean(PREF_SECURITY_USE_BOUNCY_CASTLE)) {
+            SecurityProviderUtils.registerSecurityProvider();
+        }
 
         this.certificateStorage = new DefaultCertificateStorage(
             this,

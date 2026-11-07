@@ -19,6 +19,7 @@ package com.seizia.chromite.ui.swing;
 import com.formdev.flatlaf.FlatClientProperties;
 import com.formdev.flatlaf.ui.FlatUIUtils;
 import com.formdev.flatlaf.util.UIScale;
+import com.seizia.chromite.ui.swing.internal.ConnectionMessages;
 import com.seizia.chromite.ui.swing.internal.ConnectionTransferMessages;
 import com.seizia.chromite.ui.swing.internal.CoreMessages;
 import org.jkiss.code.NotNull;
@@ -101,6 +102,7 @@ import java.util.Set;
  * - 2026-11-07 도구 막대를 {@link OverflowToolBar}로: 좁힌 도구 창에서 들어가지 않는 단추는 넘침 메뉴로 (docs/chromite/swing-frontend.md "도구 창 최소 폭")
  * - 2026-11-07 메뉴에 연결 내보내기(서버·그룹은 그것만 골라 시작)와 빈 곳의 연결 가져오기 ({@link ConnectionTransferCommands},
  *   docs/chromite/connection-transfer.md)
+ * - 2026-11-08 서버 메뉴의 Change Password…(연결한 사용자의 비밀번호, docs/chromite/swing-conn-advanced.md "비밀번호 바꾸기")
  */
 final class RegisteredServersPanel extends JPanel {
 
@@ -361,6 +363,8 @@ final class RegisteredServersPanel extends JPanel {
             popupMenu.add(createMoveToMenu(container));
             popupMenu.addSeparator();
             popupMenu.add(menuItem(CoreMessages.servers_properties, null, () -> ConnectionCommands.edit(this, container)));
+            popupMenu.add(menuItem(ConnectionMessages.commands_change_password_menu, null, () -> ConnectionCommands.changePassword(container)))
+                .setEnabled(ConnectionCommands.getPasswordManager(container) != null);
             popupMenu.add(menuItem(CoreMessages.explorer_rename, KeyStroke.getKeyStroke(KeyEvent.VK_F2, 0), this::renameSelected));
             popupMenu.add(menuItem(CoreMessages.explorer_delete, KeyStroke.getKeyStroke(KeyEvent.VK_DELETE, 0), this::deleteSelected));
             popupMenu.addSeparator();

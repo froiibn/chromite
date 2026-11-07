@@ -41,6 +41,8 @@ import org.eclipse.osgi.util.NLS;
  * - 2026-11-08 끊긴 세션만 다시 열었다는 알림({@code recovery_session_*})과 끊긴 세션의 트랜잭션을 버리는 질문({@code lost_txn_*})
  *   (docs/chromite/transactions.md "끊긴 세션의 쿼리 창")
  * - 2026-11-08 연결별 설정 탭({@code settings_tab_settings}) (docs/chromite/swing-options.md "연결별 설정")
+ * - 2026-11-08 셸 명령 탭({@code shell_*}), 비밀번호 바꾸기({@code commands_change_password*}), 점프 서버({@code ssh_jump_*}),
+ *   네트워크 프로필({@code profiles_*}) (docs/chromite/swing-conn-advanced.md)
  */
 public class ConnectionMessages extends NLS {
     private static final String BUNDLE_NAME = "com.seizia.chromite.ui.swing.internal.ConnectionMessages"; //$NON-NLS-1$
@@ -438,6 +440,49 @@ public class ConnectionMessages extends NLS {
     public static String lost_txn_message;
     public static String lost_txn_note;
     public static String lost_txn_discard;
+
+    public static String settings_tab_shell_commands;
+    public static String shell_event;
+    public static String shell_command;
+    public static String shell_command_tip;
+    public static String shell_working_directory;
+    public static String shell_wait_finish;
+    public static String shell_wait_timeout;
+    public static String shell_wait_timeout_tip;
+    public static String shell_terminate_at_disconnect;
+    public static String shell_terminate_at_disconnect_tip;
+    public static String shell_pause;
+    public static String shell_pause_tip;
+    public static String shell_clear;
+    public static String shell_approval_note;
+    public static String commands_change_password;
+    public static String commands_change_password_menu;
+    public static String commands_change_password_error;
+    public static String ssh_jump_servers;
+    public static String ssh_jump_none;
+    public static String ssh_jump_edit;
+    public static String ssh_jump_title;
+    public static String ssh_jump_server_title;
+    public static String ssh_jump_hint;
+    public static String ssh_jump_up;
+    public static String ssh_jump_down;
+    public static String profiles_menu;
+    public static String profiles_menu_tip;
+    public static String profiles_title;
+    public static String profiles_scope;
+    public static String profiles_scope_global;
+    public static String profiles_scope_project;
+    public static String profiles_copy;
+    public static String profiles_name;
+    public static String profiles_name_used;
+    public static String profiles_delete_used;
+    public static String profiles_delete_confirm;
+    public static String profiles_save_error;
+    public static String profiles_none;
+    public static String profiles_global_item;
+    public static String profiles_connection;
+    public static String profiles_connection_tip;
+    public static String profiles_manage;
 
     static {
         NLS.initializeMessages(BUNDLE_NAME, ConnectionMessages.class);

@@ -32,6 +32,7 @@ import com.seizia.chromite.model.DBConstants;
 import com.seizia.chromite.model.app.DBPPlatform;
 import com.seizia.chromite.model.preferences.DBPPreferenceStore;
 import com.seizia.chromite.model.rcp.DesktopApplicationImpl;
+import com.seizia.chromite.registry.timezone.TimezoneRegistry;
 import com.seizia.chromite.runtime.ChromiteNotifications;
 import com.seizia.chromite.runtime.DBWorkbench;
 import com.seizia.chromite.runtime.ui.DBPPlatformUI;
@@ -89,6 +90,8 @@ import java.util.concurrent.CountDownLatch;
  * - 2026-11-07 모델 알림 처리기({@link SwingModelNotifications}) 등록: 연결 감시가 시작되기 전에 등록해 유휴 연결 닫힘 등이
  *   메인 창 알림으로 보이게 함 (docs/chromite/idle-transactions.md "모델 알림")
  * - 2026-11-08 저장된 밀도(촘촘한 모드, {@link UiDensity})가 다르면 주 창을 열기 전에 테마를 다시 설치함 (docs/chromite/design-spec.md "적용 현황 — 촘촘한 모드")
+ * - 2026-11-08 SWT 앱처럼 시작할 때 IP 스택·주소 선호와 네트워크 디버그({@link #configureNetwork}), 클라이언트 시간대
+ *   ({@code TimezoneRegistry.overrideTimezone})를 적용 (docs/chromite/platform-startup.md)
  */
 public class ChromiteSwingApplication extends DesktopApplicationImpl {
 
@@ -96,6 +99,11 @@ public class ChromiteSwingApplication extends DesktopApplicationImpl {
 
     // Same default project as the SWT application, so both frontends work on the same connections
     private static final String DEFAULT_PROJECT_NAME = "General";
+
+    // JDK system properties of the network settings (configureNetwork)
+    private static final String PROP_PREFER_IPV4_STACK = "java.net.preferIPv4Stack"; //$NON-NLS-1$
+    private static final String PROP_PREFER_IPV6_ADDRESSES = "java.net.preferIPv6Addresses"; //$NON-NLS-1$
+    private static final String PROP_NET_DEBUG = "javax.net.debug"; //$NON-NLS-1$
 
     private final CountDownLatch mainWindowClosed = new CountDownLatch(1);
     private volatile MainFrame mainFrame;
@@ -141,6 +149,7 @@ public class ChromiteSwingApplication extends DesktopApplicationImpl {
                 log.info(migrationResult);
             }
             useWindowsTrustStore();
+            configureNetwork();
 
             ChromiteSwingPlatform platform;
             try {
@@ -150,6 +159,9 @@ public class ChromiteSwingApplication extends DesktopApplicationImpl {
                 showStartupError(CoreMessages.app_error_init, ErrorText.describe(e));
                 return EXIT_OK;
             }
+            // ChromiteApplication.start: the client time zone of the settings (java.client.timezone) before any date is formatted;
+            // it reads the platform's preference store, so it runs once the platform exists
+            TimezoneRegistry.overrideTimezone();
             // Before the connection monitor starts: its notices (idle connection closed) go to the main window, not System.out
             ChromiteNotifications.setHandler(new SwingModelNotifications());
             // Activates plugin services and the connection monitor; the SWT workbench window advisor does the same
@@ -260,6 +272,26 @@ public class ChromiteSwingApplication extends DesktopApplicationImpl {
         }
         log.debug("SSL trust store type: " + CommonUtils.notEmpty(System.getProperty(GeneralUtils.PROP_TRUST_STORE_TYPE))
             + " (default " + KeyStore.getDefaultType() + ")");
+    }
+
+    /**
+     * The network settings of ChromiteApplication.initializeApplication: the preferred IP stack and addresses
+     * ({@link ModelPreferences.IPType}, Auto leaves the JDK default) and the SSL/TLS debug output. Set before anything opens
+     * a socket: the JDK reads {@code java.net.preferIPv4Stack} and {@code java.net.preferIPv6Addresses} once.
+     */
+    private static void configureNetwork() {
+        ModelPreferences.IPType stack = ModelPreferences.IPType.getPreferredStack();
+        if (stack != ModelPreferences.IPType.AUTO) {
+            System.setProperty(PROP_PREFER_IPV4_STACK, String.valueOf(stack == ModelPreferences.IPType.IPV4));
+        }
+        ModelPreferences.IPType address = ModelPreferences.IPType.getPreferredAddresses();
+        if (address != ModelPreferences.IPType.AUTO) {
+            System.setProperty(PROP_PREFER_IPV6_ADDRESSES, String.valueOf(address == ModelPreferences.IPType.IPV6));
+        }
+        if (ModelPreferences.getPreferences().getBoolean(ModelPreferences.PROP_DEBUG_NETWORK_CONNECTIONS)) {
+            System.setProperty(PROP_NET_DEBUG, "all"); //$NON-NLS-1$
+        }
+        log.debug("Network: IP stack " + stack + ", addresses " + address);
     }
 
     /**
