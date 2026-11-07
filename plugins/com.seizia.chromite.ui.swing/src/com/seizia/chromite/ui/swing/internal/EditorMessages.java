@@ -34,6 +34,8 @@ import org.eclipse.osgi.util.NLS;
  *   메인 창 SQL Editor 도구 막대가 씀 (docs/chromite/swing-frontend.md "SQL Editor 도구 막대")
  * - 2026-11-07 쿼리 상태 줄의 커밋 방식 칸 문구({@code editor_status_auto_commit} 등) (docs/chromite/swing-frontend.md "자동 커밋 상태")
  * - 2026-11-07 결과 필터 줄(ResultSetFilterBar)을 없애며 그 문구를 지움. 열 필터 문구는 {@link GridFilterMessages}
+ * - 2026-11-07 쿼리 창 실행 제한, 위험한 문 확인 문구({@code editor_sql_execution_restricted*}, {@code editor_sql_danger_*})
+ *   (docs/chromite/swing-sql-exec-safety.md)
  */
 public class EditorMessages extends NLS {
     private static final String BUNDLE_NAME = "com.seizia.chromite.ui.swing.internal.EditorMessages"; //$NON-NLS-1$
@@ -70,6 +72,13 @@ public class EditorMessages extends NLS {
     public static String editor_sql_saving_changes;
     public static String editor_sql_nothing_to_execute;
     public static String editor_sql_choose_connection;
+    public static String editor_sql_execution_restricted_title;
+    public static String editor_sql_execution_restricted;
+    public static String editor_sql_danger_title;
+    public static String editor_sql_danger_message_one;
+    public static String editor_sql_danger_message_many;
+    public static String editor_sql_danger_no_where;
+    public static String editor_sql_danger_drop;
     public static String editor_sql_discard_and_execute;
     public static String editor_sql_discard_confirm_one;
     public static String editor_sql_discard_confirm_many;

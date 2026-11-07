@@ -45,6 +45,7 @@ import java.util.Objects;
  * <ul>
  *     <li>Theme, Icon style: {@link ChromiteTheme#apply()}, {@link UiIconStyle#apply()}(View &gt; Theme 메뉴와 같음, 실행 중 바로 바뀌고 저장).</li>
  *     <li>Auto-complete while typing, Completion delay: {@link SqlCompletionPopup}의 설정(Query &gt; Auto-Complete While Typing과 같은 키).</li>
+ *     <li>위험한 문 확인(WHERE 없는 UPDATE/DELETE, DROP): {@link SqlExecutionSafety}의 설정(SWT 확인 대화상자와 같은 키).</li>
  *     <li>Maximum rows: 실행 엔진이 읽는 {@link ModelPreferences#RESULT_SET_MAX_ROWS}. 연결의 설정 저장소는 플랫폼 설정 저장소를 부모로 가지므로
  *     ({@code DataSourcePreferenceStore}), 플랫폼 저장소에 쓰면 연결별 값을 따로 두지 않은 모든 연결에 적용된다. 0은 제한 없음.</li>
  *     <li>Editor 탭: SQL 편집기 글꼴과 크기({@link EditorFont}). Editor Colors 탭: 테마마다 구문·편집기 색({@link EditorColors}),
@@ -68,6 +69,7 @@ import java.util.Objects;
  * - 2026-11-07 날짜/시간 값을 데이터베이스 형식 그대로 보이는 설정(SWT "Disable date/time formatting") (docs/chromite/swing-followup-fixes.md "날짜/시간 소수 초")
  * - 2026-11-07 Updates 탭: 자동 업데이트 확인, 현재 버전, 지금 확인({@link UpdateOptionsPage}) (docs/chromite/auto-update.md)
  * - 2026-11-07 AI Assistant 탭: 제공자, 도구 권한 정책, MCP 서버, 감사 기록({@link AiOptionsPage}) (docs/chromite/ai-agent.md "2단계")
+ * - 2026-11-07 Query editor 절에 위험한 문 확인 설정 두 개 (docs/chromite/swing-sql-exec-safety.md)
  */
 final class OptionsDialog extends JDialog {
 
@@ -83,6 +85,8 @@ final class OptionsDialog extends JDialog {
     private final JComboBox<UiIconStyle> iconStyleCombo = new JComboBox<>(UiIconStyle.values());
     private final JCheckBox autoCompleteBox = new JCheckBox(CoreMessages.options_auto_complete);
     private final JCheckBox showProceduresBox = new JCheckBox(CoreMessages.options_show_procedures);
+    private final JCheckBox confirmDangerousSqlBox = new JCheckBox(CoreMessages.options_confirm_dangerous_sql);
+    private final JCheckBox confirmDropSqlBox = new JCheckBox(CoreMessages.options_confirm_drop_sql);
     private final JSpinner delaySpinner;
     private final JSpinner maxRowsSpinner;
     private final JCheckBox nativeDateTimeBox = new JCheckBox(CoreMessages.options_native_datetime);
@@ -146,6 +150,12 @@ final class OptionsDialog extends JDialog {
         row = addRow(form, row, null, autoCompleteBox, null);
         row = addRow(form, row, CoreMessages.options_completion_delay, delaySpinner, CoreMessages.options_completion_delay_hint);
         row = addRow(form, row, null, showProceduresBox, null);
+        confirmDangerousSqlBox.setSelected(SqlExecutionSafety.isConfirmDangerousSql());
+        confirmDangerousSqlBox.setToolTipText(CoreMessages.options_confirm_dangerous_sql_tip);
+        row = addRow(form, row, null, confirmDangerousSqlBox, null);
+        confirmDropSqlBox.setSelected(SqlExecutionSafety.isConfirmDropSql());
+        confirmDropSqlBox.setToolTipText(CoreMessages.options_confirm_drop_sql_tip);
+        row = addRow(form, row, null, confirmDropSqlBox, null);
         row = addSection(form, row, CoreMessages.options_query_results);
         row = addRow(form, row, CoreMessages.options_max_rows, maxRowsSpinner, CoreMessages.options_max_rows_hint);
         // The model setting of the SWT "Disable date/time formatting" (Data Formats page); connections without their own
@@ -447,6 +457,12 @@ final class OptionsDialog extends JDialog {
         }
         if (showProceduresBox.isSelected() != SqlCompletionPopup.isShowProcedures()) {
             SqlCompletionPopup.setShowProcedures(showProceduresBox.isSelected());
+        }
+        if (confirmDangerousSqlBox.isSelected() != SqlExecutionSafety.isConfirmDangerousSql()) {
+            SqlExecutionSafety.setConfirmDangerousSql(confirmDangerousSqlBox.isSelected());
+        }
+        if (confirmDropSqlBox.isSelected() != SqlExecutionSafety.isConfirmDropSql()) {
+            SqlExecutionSafety.setConfirmDropSql(confirmDropSqlBox.isSelected());
         }
         DBPPreferenceStore platformPreferences = getPlatformPreferences();
         int maxRows = ((Number) maxRowsSpinner.getValue()).intValue();

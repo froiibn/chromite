@@ -154,6 +154,8 @@ import java.util.concurrent.atomic.AtomicLong;
  *     들여쓰기({@link SqlEditCommands}), 템플릿(이름 + Tab, Ctrl+K Ctrl+X 목록, {@link SqlTemplates})은 편집 영역({@link SqlTextArea})이 직접 키를 받는다.
  *     Ctrl+K로 시작하는 두 번 누르는 키는 편집 영역의 키 리스너가 두 번째 키를 받아 처리한다(키 바인딩보다 먼저 불려 Ctrl+C 복사 등을 막는다).
  *     SQL Editor 도구 막대의 주석·들여쓰기·서식 단추도 같은 명령({@link SqlTextArea#runCommand})을 부른다.</li>
+ *     <li>실행 안전 확인({@link SqlExecutionSafety}): 연결의 스크립트 실행 제한은 실행을 시작하기 전에(EDT), WHERE 없는 UPDATE/DELETE와
+ *     DROP 확인은 준비 Job이 문장을 나눈 뒤 엔진을 예약하기 전에 한 번 묻는다. 취소하면 아무 문장도 실행하지 않고 취소로 끝난다.</li>
  * </ul>
  *
  * 변경 이력:
@@ -193,6 +195,7 @@ import java.util.concurrent.atomic.AtomicLong;
  *   (docs/chromite/swing-frontend.md "SQL Editor 도구 막대")
  * - 2026-11-07 상태 줄의 커밋 방식: 실행 컨텍스트의 실제 자동 커밋 상태를 작업 스레드에서 읽어 보임({@link #refreshTransactionMode}),
  *   칸을 누르면 연결 설정의 Auto-commit으로 안내 (docs/chromite/swing-frontend.md "자동 커밋 상태")
+ * - 2026-11-07 실행 안전 확인: 스크립트 실행 제한, 위험한 문 확인 (docs/chromite/swing-sql-exec-safety.md)
  */
 final class SqlEditorPanel extends JPanel {
 
@@ -725,6 +728,9 @@ final class SqlEditorPanel extends JPanel {
                 EditorMessages.editor_common_execute, JOptionPane.INFORMATION_MESSAGE);
             return;
         }
+        if (!SqlExecutionSafety.checkExecutePermission(this, container)) {
+            return;
+        }
         int pendingChanges = resultsView.getChangeCount();
         if (pendingChanges > 0) {
             String[] options = {EditorMessages.editor_sql_discard_and_execute, EditorMessages.editor_common_cancel};
@@ -1013,6 +1019,11 @@ final class SqlEditorPanel extends JPanel {
                 SQLScriptBatches.extractQueries(dataSource, run.text, run.offset, run.length));
             if (elements.isEmpty()) {
                 stopPreparation(run, Status.OK_STATUS);
+                return;
+            }
+            // Asked here, not in execute(): the statements are known only after splitting with the connection's dialect
+            if (!SqlExecutionSafety.confirmDangerousStatements(this, dataSource, run.text, elements)) {
+                stopPreparation(run, Status.CANCEL_STATUS);
                 return;
             }
             if (run.includeActualPlan) {

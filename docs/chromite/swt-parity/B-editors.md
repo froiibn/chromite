@@ -37,6 +37,7 @@
 6. **S12 `@export` 명령이 조용히 무시된다.** `SQLCommandExport`(model.sql)는 pragma만 남기고, 그 처리기 `SQLPragmaExport`는 삭제된 `data.transfer.ui`(`plugin.xml:118`)에 있었다.
    `SQLQueryExecuteJob.java:432`는 처리기가 없으면 건너뛰므로 다음 쿼리가 평소처럼 실행되고 파일은 만들어지지 않으며 오류도 없다.
 7. **S8 연결 보안 제한 "스크립트 실행"(`PERMISSION_EXECUTE_SCRIPTS`)이 적용되지 않는다.** SWT는 `SQLEditor.java:3106`에서만 검사했다. Swing은 검사하지 않는다.
+   (2026-11-07 고침: 쿼리 창이 실행 전에 검사한다, `chromite/sql-exec-safety`, [swing-sql-exec-safety.md](../swing-sql-exec-safety.md))
    SWT 시절에 저장한 제한(연결·연결 종류의 `permissions`)은 파일에 남아 있지만 쿼리 창에서는 무시된다(데이터 편집 제한 `PERMISSION_EDIT_DATA`는 모델이 검사하므로 동작한다).
 8. **E12 `openEntityEditor`가 아무것도 하지 않는다.** `SwingPlatformUI.java:496-505`는 디버그 로그만 남긴다. 호출하는 곳: 데이터 전송 뒤 새 테이블 열기(`DatabaseTransferConsumer.java:815`). 영향은 작다.
 
@@ -50,8 +51,8 @@
 | S4 | 커서부터 스크립트 실행, 이전·다음 문장 이동, 현재 쿼리 복사 | `run.scriptFromPosition`, `query.next/prev`, `copy.query` | 없음 | grep `FromPosition`, `query.next` 0건 | 낮음 | |
 | S5 | 식 평가, 쿼리 행 수 세기 | `run.expression`, `run.count` | 없음 | grep 0건 | 낮음 | |
 | S6 | 연결 종류 "SQL 실행 확인"(Production) | `SQLQueryJob` 확인 | 있음 | 모델 `SQLQueryExecuteJob.java:507` → 핸들러 기본 `confirmQueryExecution` → `SwingPlatformUI.confirmAction`(`:183`) | 높음 | 예/취소뿐. SWT의 "건너뛰기", "모두 예" 없음 |
-| S7 | 위험한 문 확인(WHERE 없는 DELETE/UPDATE, DROP) | `SQLEditor.java:3288-3385`, `CONFIRM_DANGER_SQL`, `CONFIRM_DROP_SQL` | 없음 | Swing에서 `isDeleteUpdateDangerous`/`isDropDangerous`는 AI 분류기(`AgentSqlClassifier.java:120`)만 씀 | 높음 | 사람이 쓰는 쿼리 창은 확인 없이 실행. AI 도구만 확인함 |
-| S8 | 연결 보안 제한: 스크립트 실행 금지 | `SQLEditor.java:3106` | **조용히 끊김** | Swing에 `PERMISSION_EXECUTE_SCRIPTS` 검사 0건 | 중간 | 위 요약 7 |
+| S7 | 위험한 문 확인(WHERE 없는 DELETE/UPDATE, DROP) | `SQLEditor.java:3288-3385`, `CONFIRM_DANGER_SQL`, `CONFIRM_DROP_SQL` | 있음(2026-11-07) | `SqlExecutionSafety.confirmDangerousStatements`(준비 Job, 같은 설정 키), Options ▸ 일반 ▸ 쿼리 편집기 | 높음 | 실행마다 한 번 묻고 목록 표시, `GO` 배치는 다시 나눠 검사. 구분자 없는 T-SQL 여러 문장은 못 찾음. [swing-sql-exec-safety.md](../swing-sql-exec-safety.md) |
+| S8 | 연결 보안 제한: 스크립트 실행 금지 | `SQLEditor.java:3106` | 있음(2026-11-07) | `SqlExecutionSafety.checkExecutePermission`(`SqlEditorPanel.execute`, 연결 전) | 중간 | SWT처럼 문장 수와 관계없이 쿼리 창 실행을 모두 거절. 위 요약 7, [swing-sql-exec-safety.md](../swing-sql-exec-safety.md) |
 | S9 | 매개변수 `:name`, `${var}` 입력 | `SQLQueryParameterBindDialog`, `SQLEditorParametersProvider` | 있음 | `SqlParameterDialog`, swing-sql-editor-plus.md "매개변수" | 중간 | 값 기억 포함 |
 | S10 | `@set` 변수의 편집기 단위 유지, 변수 패널 | `SQLEditor` 전역 스크립트 문맥, `show.variables`, `SQLVariablesPanel` | 일부 | 실행마다 새 `SQLScriptContext`(`SqlEditorPanel.java:1022`) | 중간 | 한 번 실행 안에서만 `@set`이 살아 있음. 변수 보기·지우기 없음 |
 | S11 | `@include` | `ui.editors.sql/plugin.xml:55` `SQLCommandInclude` | 없음 | model.sql은 set/unset/echo/export만 등록(`model.sql/plugin.xml:72-75`) | 낮음 | 알 수 없는 명령 오류가 남 |
