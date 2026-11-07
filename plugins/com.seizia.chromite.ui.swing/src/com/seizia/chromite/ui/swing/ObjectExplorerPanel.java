@@ -210,6 +210,7 @@ import java.util.function.Supplier;
  *   (docs/chromite/swing-explorer-object-actions.md)
  * - 2026-11-08 테이블 잘라내기·트리거 사용/사용 안 함·구체화된 뷰 새로 고침 메뉴({@link ObjectMaintenanceCommands})
  *   (docs/chromite/swing-explorer-object-actions.md "유지 관리 명령")
+ * - 2026-11-08 SQL Server 프로시저의 Trace Execution… 메뉴({@link ExecutionTraceCommands}, docs/chromite/sqlserver-execution-trace.md)
  */
 final class ObjectExplorerPanel extends JPanel {
 
@@ -321,6 +322,7 @@ final class ObjectExplorerPanel extends JPanel {
     private final Action newTableAction;
     private final Action viewDiagramAction;
     private final Action debugAction;
+    private final Action traceAction;
     private final Action principalPropertiesAction;
     private final Action newPrincipalAction;
     private final Action objectPermissionsAction;
@@ -499,6 +501,7 @@ final class ObjectExplorerPanel extends JPanel {
         selectToMenu.add(createAction(CoreMessages.explorer_clipboard, () -> scriptSelected(queryWindows, true, true)));
         sourceEditCommands = new SourceEditCommands(this::getSelectedNavigatorNode, queryWindows);
         debugAction = DebugCommands.createAction(this, this::getSelectedObject, queryWindows);
+        traceAction = ExecutionTraceCommands.createAction(this, this::getSelectedObject, queryWindows);
         objectCommands = new ExplorerObjectCommands(this, this::getSelectedNavigatorNodes, queryWindows);
         tree.setTransferHandler(objectCommands.createTransferHandler());
         maintenanceCommands = new ObjectMaintenanceCommands(this, this::getSelectedNavigatorNodes, queryWindows);
@@ -633,6 +636,7 @@ final class ObjectExplorerPanel extends JPanel {
         popupMenu.add(designAction);
         popupMenu.add(sourceEditCommands.getModifyAction());
         popupMenu.add(debugAction);
+        popupMenu.add(traceAction);
         popupMenu.add(objectPermissionsAction);
         popupMenu.add(selectTopAction);
         popupMenu.add(scriptAsMenu);
@@ -875,6 +879,7 @@ final class ObjectExplorerPanel extends JPanel {
         newTableAction.setEnabled(getSelectedNavigatorNode() instanceof DBNDatabaseFolder folder && TableDesignSession.canCreateTable(folder));
         sourceEditCommands.update(getSelectedNavigatorNode());
         debugAction.setEnabled(DebugCommands.canDebug(object));
+        traceAction.setEnabled(ExecutionTraceCommands.canTrace(object));
         connectAction.setEnabled(dataSource != null && !connected);
         // Also for a server that is no longer connected: Disconnect removes it from this window
         disconnectAction.setEnabled(dataSource != null);
