@@ -58,6 +58,17 @@
   </section>
 
   <section class="sect">
+    <h2>Saved passwords</h2>
+    <div class="body">
+      <ul>
+        <li>Saved connection passwords and other saved credentials (SSH and proxy passwords, network profiles, Maven repositories) stay on this computer, encrypted in the secure storage of the operating system (on Windows it is tied to your Windows account, on macOS it uses the Keychain). They are never sent anywhere and are not kept in the workspace files.</li>
+        <li>Earlier versions kept them in the workspace, in a file encrypted with a key that was the same for every installation, or in a settings file without encryption. The newer version moves them to the secure storage when it starts and deletes those files and settings after checking the moved copy.</li>
+        <li>Because of this, a workspace copied to another computer does not carry the passwords. To move connections with their passwords, use File &gt; Export Connections with a passphrase you choose.</li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="sect">
     <h2>This site</h2>
     <div class="body">
       <ul>
