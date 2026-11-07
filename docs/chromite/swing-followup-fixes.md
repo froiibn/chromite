@@ -132,12 +132,120 @@ Swing 제품(`-vm D:\Tools\jbrsdk-25\bin\server\jvm.dll`, 비공개 작업 공�
 - 백업·복원: [swing-backup-restore.md](swing-backup-restore.md) "실패한 백업과 psql 오류"의 확인.
 - 회귀 테스트는 실행하지 않았다(CLAUDE.md 7번). 영향받을 수 있는 기능은 각 항목의 "고친 것"에 적은 곳이다.
 
+## 작은 화면 수정 (2026-11-08)
+
+후속 과제 followups-2026-11-06의 #25, #58, #65, #66, #74와 followups-2026-11-07-evening의 #7, #15(남은 부분)다. 고치기 전에 모두 다시 확인했고,
+#74는 지금 기본 배치에서 생기지 않아 고치지 않았다. 줄 번호는 고치기 전 기준이다.
+
+### 쿼리 상태 줄 왼쪽 문구 (#25, #66)
+
+- 증상: 1280 창(Windows 150%, 논리 1280×800)의 기본 배치(Object Explorer·Properties 열림, 쿼리 창 745)에서 상태 문구가 잘림.
+  한국어 "쿼리가 완료되었지만 오…"(필요 230, 받은 폭 180), 영어 "Query complet…"(203/141), 영어는 성공 문구 "Query executed successfully."도 잘림(207/134).
+- 원인: `QueryStatusLine`이 상태 문구를 `BorderLayout.CENTER`, 오른쪽 칸들을 `FlowLayout` 패널로 `EAST`에 두었다(`QueryStatusLine.java:144-182`).
+  `EAST`는 늘 선호 폭을 받으므로 폭이 모자라면 상태 문구만 줄어든다. 칸이 늘수록(커밋 방식 칸, 열린 트랜잭션 칸) 더 일찍 잘린다.
+  상태 문구에는 도구 설명도 없어(`setState`는 글자만 바꿈) 잘린 문구를 읽을 곳이 없었다.
+- 고친 것: 줄 전체를 배치하는 `QueryStatusLine.LineLayout`. 칸들은 오른쪽부터 선호 폭으로 놓고, 모자라면 **서버 칸이 먼저 양보**한다.
+  서버 칸은 최소 64까지 줄임표로 줄고(도구 설명에 전체 위치·버전이 있음), 그래도 모자라면 빠진다(연결은 도구 막대 연결 상자와 탭 제목에 있다).
+  그 뒤에야 상태 문구가 잘린다. 다른 칸(사용자, DB/스키마, 커밋 방식, 열린 트랜잭션, 시간, 행, 커서)은 값을 도구 설명에 갖고 있지 않아 줄이지 않는다.
+- 결정: 최소 64는 줄임표 앞에 몇 글자(예: "127.0...")가 남는 폭이다. 처음에는 최소 폭까지 줄이기만 했는데 영어는 1280에서도 3~10px 모자라
+  여전히 잘렸고, 최소를 48로 낮추면 "12..."만 보여 쓸모가 없어 "64까지 줄이고, 그래도 모자라면 빼기"로 했다. 한국어 오류 문구는 64로 줄인 서버 칸과 함께 보이고,
+  영어 문구는 서버 칸이 빠진다.
+- 같은 원인의 다른 경우: 실제 실행 계획 안내("The actual execution plan will be included when executing.", 약 330px)는 서버 칸을 빼도 1280에서 잘린다.
+  더 좁은 창(1000, 쿼리 창 675)에서는 서버 칸을 뺀 뒤 상태 문구가 잘린다("Query completed with errors." 203/187). 이 경우는 그대로 둔다.
+
+### 잠금 나무 폭 (#25)
+
+- 증상: 작업 모니터 > 잠금의 차단 체인 나무가 129px로 시작해 "세션 38352 · 38345 대기"(끝 207), "Session 38352 · waits for 38345"(끝 253)가 잘림.
+- 원인: 위쪽 분할(`LockManagerPanel.java:176-180`)의 처음 나눔 위치는 왼쪽 패널의 선호 폭이다. 첫 새로 고침 전에는 나무가 비어 있어 선호 폭이
+  머리글 "차단 체인"만큼이고, 나무가 채워진 뒤에는 분할이 다시 나누지 않는다.
+- 고친 것: 나무 패널의 선호 폭을 280(`TREE_WIDTH`)으로 둔다. 1단계 대기 세션 줄(영어, 다섯 자리 세션 번호)이 들어가고 두 단계 더 들여써도 남는다.
+  사용자가 분할 막대를 옮기는 것은 그대로다.
+
+### PropertiesPanel 주석 (#25)
+
+- `PropertiesPanel.GridRenderer`의 주석 "a derived font would lose the Hangul fallback"(`:565`)이 틀렸다. FlatLaf 테마 글꼴은 합성 글꼴
+  (`createdFont`인 `FontUIResource`)이라 `Font.deriveFont`가 같은 대체 글꼴을 유지한다. `semibold.font`를 쓰는 진짜 이유는 Java에 semibold 스타일이
+  없어서다(`deriveFont(Font.BOLD)`는 semibold가 아니라 bold). 주석만 고쳤다.
+
+### 테마 전환 뒤 탭 넘침 단추 도구 설명 (#58)
+
+- 증상: 실행 중 테마를 바꾸면 탭 줄이 넘칠 때 나오는 단추의 도구 설명("숨겨진 탭 표시"/"Show Hidden Tabs")이 없어짐. 다시 시작하면 나옴.
+- 원인: FlatLaf 3.8 `FlatTabbedPaneUI`의 단추(`FlatMoreTabsButton`)는 생성자에서 필드 `moreTabsButtonToolTipText`를 읽는다. 단추는
+  `BasicTabbedPaneUI.installUI` → `installComponents` → `installHiddenTabsNavigation`에서 만들어지는데, 필드를 채우는 `installDefaults`는 그 뒤에 불린다
+  (`javap -c`로 확인). 처음에는 탭 창이 만들어진 뒤 `setTabLayoutPolicy(SCROLL_TAB_LAYOUT)`가 같은 UI 객체를 다시 설치해(필드가 이미 채워짐) 단추를
+  다시 만들므로 보인다. 테마 전환(`FlatLaf.updateUI`)은 탭 창마다 새 UI 객체를 설치할 뿐이라 단추가 도구 설명 없이 남는다. 번역(ChromiteTheme이 넣는
+  UI 기본값)과는 상관없다.
+- 고친 것: 새 클래스 `ChromiteTabbedPaneUI`(`FlatTabbedPaneUI` 상속)가 `createMoreTabsButton`에서 도구 설명이 비어 있으면 UI 기본값에서 채운다.
+  `ChromiteLightLaf`·`ChromiteDarkLaf`가 `TabbedPaneUI`로 등록하고(`ChromiteScrollBarUI`와 같은 방식), 문서 탭의 `MainFrame.IslandTabbedPaneUI`도 이 클래스를 상속한다.
+  그래서 문서 탭, 도구 창 탭, 연결 설정 탭, 테마 전환 뒤에 만들어지는 탭 창 모두에 적용된다.
+
+### 연결 중 중지 (#65)
+
+- 증상: 쿼리 창에서 실행해 연결하는 동안 중지(쿼리 실행 취소)를 누르면 "'Slow PG'에 연결하지 못했습니다. … 연결 시도 중 중단되었습니다." 오류 창이 뜸.
+  드라이버가 중단을 무시하고 연결을 마치면 같은 자리에서 "Connection has been canceled" 오류가 된다.
+- 원인: `ConnectJob.run`(`:110-113`)이 연결 중 던져진 모든 예외를 오류 상태(`makeExceptionStatus`)로 만들었다. 사용자가 취소한 경우의 예외는 두 가지다:
+  `DataSourceDescriptor.connect`가 취소를 알아채고 던지는 `DBException("Connection has been canceled")`(`DataSourceDescriptor.java:1239-1243`)과,
+  `ConnectJob.canceling`이 연결 스레드를 끊어 드라이버가 던지는 예외(pgjdbc "연결 시도 중 중단되었습니다"). `SwingConnectionService.notifyFinished`는
+  취소(`IStatus.CANCEL`)가 아닌 실패를 오류 창으로 보이므로 오류 창이 떴다.
+- 고친 것: `ConnectJob.run`이 예외를 받았을 때 모니터가 취소되었으면 `connectStatus`를 `Status.CANCEL_STATUS`로 두고 `connectError`를 남기지 않는다(debug 로그만).
+  모델 쪽 한 곳이라 같은 원인을 가진 다른 경로도 함께 고쳐진다: 실행 계획, 작업 모니터, 개체 찾기, 쿼리 예약 등 `DBUtils.initDataSource`를 부르는 모든 곳,
+  탐색기 노드 펼치기(취소 상태를 받음), 연결 대화상자의 Test Connection(`ConnectionTestJob`은 `connectError`가 없고 성공도 아니면 아무 창도 띄우지 않음).
+  쿼리 창은 이미 `run.cancelRequested`이면 취소로 끝내므로(`SqlEditorPanel.prepareAndSchedule`) 상태 줄이 "쿼리가 취소되었습니다."가 된다.
+- upstream 대비: DBeaver의 `ConnectJob`은 취소로 생긴 예외도 오류 상태로 만든다(이 파일은 DBeaver에서 왔다).
+
+### 감사 기록 열 폭 (evening #7)
+
+- 증상: 옵션 > Chromite Agent > 감사 기록의 "클라이언트" 열이 59px라 "Chromite Agent"가 "Chro…", 머리글 "클라이언트"가 "클라이…"로 잘림.
+  같은 원인으로 영어 "Policy" 열의 "Run automatically"(113/101), 결과 열의 "Read-only connection"·"정책으로 막힘"도 잘린다.
+- 원인: 열 폭이 문구와 상관없는 고정 숫자였다(`AiOptionsPage.java:898-901`, 클라이언트 60, 분류·정책·결과 80).
+- 고친 것: 값이 고정 문구(클라이언트·분류·정책·결과)이거나 고정 형식(시각)인 열은 가장 긴 문구와 머리글의 글자 폭 + 28(셀 여백 8+8과 정렬 화살표)로 맞추고
+  같은 값을 최소 폭으로도 둔다(`AuditTab.fitLabels`). 처음에는 최소 폭 없이 시각 열을 고정 숫자로 두었더니, 표를 대화상자 폭에 맞출 때 시각 열이
+  132로 줄어 "2026-11-08 10:04:05"(133)가 잘려서, 시각 열도 형식 "0000-00-00 00:00:00"으로 맞췄다. 자유 글자 열(도구, 연결, ms)은 고정 숫자 그대로이고
+  표 폭에 맞춰 줄어든다.
+
+### 줄임표 (evening #15 남은 부분)
+
+- Swing 번들 메시지 파일에서 줄 끝 줄임표는 "…"(U+2026)가 144개, "..."가 10개였고 "..."는 모두 `AiMessages`에 있었다.
+  Query Library 편집기의 Parameters 단추는 "Parameters…", Thresholds 단추는 "Thresholds..."였다.
+- 고친 것: `AiMessages`(영어·한국어)의 단추·메뉴 글자 세 개를 "…"로: `ai_thresholds_button`, `ai_thresholds_button_count`, `ai_settings`(Chromite Agent 창의 설정 단추).
+- 결정: 같은 파일의 진행·안내 문구 7개("Thinking...", "Running {0}...", "Stopping...", "running...", "Testing...", "Loading...", 입력 칸 안내
+  "Ask about your databases...")는 단추·메뉴 글자가 아니라 이번 범위에서 바꾸지 않았다. 다른 번들의 진행 문구(예: "Executing query…", "Connecting…")는 "…"를 쓴다.
+
+### 결과 상태 줄과 결과 영역 높이 (#74, 고치지 않음)
+
+- 다시 확인: 기본 배치에서 Results 카드 280 중 결과 영역(바깥 스크롤 창)은 224(머리글과 쿼리 상태 줄 27을 뺀 높이)이고, 결과 하나의 최소 높이
+  `QueryResultsView.MIN_GRID_HEIGHT` 220보다 크다. 그래서 결과 표가 영역에 맞춰지고 뷰어 상태 줄(행 수, 필터 요약)이 보인다(한국어·영어, 라이트·다크에서 같음).
+  쿼리 상태 줄이 Results 카드 아래로 옮겨지고 밀도 B 치수가 적용된 뒤로 생기지 않는 것으로 보인다. 여유는 4px라 머리글이나 쿼리 상태 줄이 커지면 다시 생길 수 있다.
+  결과 집합이 둘 이상이면 표마다 220을 받아 바깥 스크롤이 생기는 것은 설계대로다.
+
+### 확인 (2026-11-08)
+
+빌드 `-Pproduct-chromite-swing` BUILD SUCCESS. 고치기 전 `origin/devel`(fa0d23fe0f)을 같은 방식으로 빌드해 "전" 캡처를 만들었다.
+JBR 25(`-vm`), `CHROMITE_DATA`와 작업 공간은 비공개 폴더, 창 1280×800(논리, Windows 150%), 같은 프로세스에 붙인 EDT 시험 에이전트(OS 입력 없음).
+데이터베이스는 공유 시험 컨테이너 PostgreSQL 17(55432), 연결할 수 없는 주소 10.255.255.1의 "Slow PG". 잠금은 `ui_polish_lock` 테이블에 세션 하나가
+`ACCESS EXCLUSIVE`를 잡고 둘이 기다리게 만들었다(확인 뒤 삭제). 감사 기록은 작업 공간에 시험 기록 3줄을 넣었다.
+캡처: `D:\Tools\_scratch\ui-polish-batch\run\shots\{before,after}-{ko,en}-{light,dark}-*.png`.
+
+| 항목 | 전 | 후 |
+|---|---|---|
+| 상태 줄 오류 문구, 한국어 | 180/230, "쿼리가 완료되었지만 오…" | 230/230, 서버 칸 114 → 65 "127.0...." |
+| 상태 줄 오류·성공 문구, 영어 | 141/203, 134/207 | 256/203, 248/207, 서버 칸 빠짐 |
+| 잠금 나무 | 폭 129, 줄 끝 207(한국어)·253(영어) | 폭 282 |
+| 탭 넘침 단추 도구 설명, 테마 전환 뒤 | null(라이트→다크, 다크→라이트) | "숨겨진 탭 표시"/"Show Hidden Tabs" |
+| 연결 중 중지 | 오류 창 "'Slow PG'에 연결하지 못했습니다. … 연결 시도 중 중단되었습니다." | 창 없음, 상태 "쿼리가 취소되었습니다."/"Query was canceled." 약 3초 |
+| 감사 기록 클라이언트 열 | 59(한국어)·81(영어) < 100 | 112, 시각 151, 정책(영어) 125, 잘림 없음 |
+| Thresholds 단추 | "기준값..."/"Thresholds..." | "기준값…"/"Thresholds…" |
+| 결과 영역(#74) | 224 ≥ 220, 상태 줄 보임 | 같음 |
+
+- 확인하지 못한 것: 연결 대화상자 Test Connection의 취소(코드 경로만 확인), SQL Server·Oracle 연결의 중지, 100% 배율, macOS.
+- 회귀 테스트는 실행하지 않았다(요청 없음). 영향받을 수 있는 기능: 쿼리 상태 줄의 모든 칸 배치(커밋 방식·열린 트랜잭션 칸 클릭 위치 포함), 모든 탭 창
+  (Look and Feel의 탭 UI가 바뀜), 연결 실패 처리(취소가 아닌 실패는 그대로 오류), 감사 기록 표.
+
 ## 남긴 것
 - (2026-11-07 고침) SQL Server `EXEC dbo.` 뒤 자동완성의 `NullPointerException`과 새 완성 엔진의 `EXEC`/`CALL` 뒤 프로시저 제안:
   [swing-sql-completion.md](swing-sql-completion.md).
 - 열의 소수 초 자릿수에 맞춘 표시(`datetime2(7)`은 일곱 자리처럼). 데이터베이스 형식 설정을 켠 채 Oracle로 복사하면 문자열 바인딩이 `NLS_TIMESTAMP_FORMAT`에 달려 있다.
-- 테마를 실행 중에 바꾸면 이미 있는 탭 창의 넘침 단추 도구 설명이 사라진다. FlatLaf가 단추를 `installComponents`에서 만들 때는 아직 문구를 읽기 전이라
-  번역과 상관없이 영어 문구도 같다. 다시 시작하면 나온다.
+- (2026-11-08 고침) 테마를 실행 중에 바꾸면 이미 있는 탭 창의 넘침 단추 도구 설명이 사라진다. 위 "작은 화면 수정".
 - 전송 오류의 앞부분 "Error while finishing result set fetching into"는 모델 예외 문구라 영어로 남는다.
 
 ## 변경 이력
@@ -150,3 +258,5 @@ Swing 제품(`-vm D:\Tools\jbrsdk-25\bin\server\jvm.dll`, 비공개 작업 공�
 - 2026-11-07 Oracle `v$session.program`에서 `.`·`-`까지 `?`로 바꾸던 것(#68), 위 "Oracle 프로그램 이름".
 - 2026-11-07 "남긴 것"의 PostgreSQL 복사한 열 `COLLATE`(#60)를 고침: [model-fixes.md](model-fixes.md).
 - 2026-11-07 "남긴 것"의 `EXEC dbo.` 예외와 `EXEC`/`CALL` 뒤 프로시저 제안(#56, #57)을 고침: [swing-sql-completion.md](swing-sql-completion.md).
+- 2026-11-08 "작은 화면 수정": 쿼리 상태 줄 폭(#25, #66), 잠금 나무 폭과 PropertiesPanel 주석(#25), 테마 전환 뒤 탭 넘침 단추 도구 설명(#58),
+  연결 중 중지의 오류 창(#65), 감사 기록 열 폭(evening #7), AI 단추 줄임표(evening #15). #74는 다시 확인해 생기지 않아 고치지 않음.

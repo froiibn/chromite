@@ -17,7 +17,6 @@
 package com.seizia.chromite.ui.swing;
 
 import com.formdev.flatlaf.FlatClientProperties;
-import com.formdev.flatlaf.ui.FlatTabbedPaneUI;
 import com.formdev.flatlaf.util.UIScale;
 import com.seizia.chromite.ui.swing.internal.AiMessages;
 import com.seizia.chromite.ui.swing.internal.ConnectionTransferMessages;
@@ -203,6 +202,8 @@ import java.util.function.Supplier;
  *   ({@link OpenTransactionsDialog}) (docs/chromite/transactions.md)
  * - 2026-11-07 쿼리 창을 닫을 때 그 창의 자기 세션에 커밋하지 않은 트랜잭션이 있으면 저장 질문 뒤에 묻기(쿼리 창마다 별도 연결)
  *   (docs/chromite/transactions.md "쿼리 창마다 별도 연결")
+ * - 2026-11-08 문서 탭 UI가 {@link ChromiteTabbedPaneUI}를 상속: 테마를 바꾼 뒤 숨겨진 탭 단추의 도구 설명이 사라지던 문제
+ *   (docs/chromite/swing-followup-fixes.md "작은 화면 수정")
  * - 2026-11-08 Save As 덮어쓰기 확인은 바꾸기 / 취소 단추(취소가 기본), 결과 표 변경 저장 질문은 취소가 기본 (docs/chromite/swing-frontend.md "실행 확인의 기본 단추")
  */
 final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplorerPanel.QueryWindows, TableDesignerPanel.Host, QueryLibraryPanel.Host {
@@ -1937,7 +1938,7 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
      * tab row edges (tabInsets -6); a hovered tab gets a pill of tab-bg-hovered. No underline.
      * The pill is painted as the tab border, which FlatLaf paints before the close button and the title.
      */
-    private static final class IslandTabbedPaneUI extends FlatTabbedPaneUI {
+    private static final class IslandTabbedPaneUI extends ChromiteTabbedPaneUI {
         @Override
         protected void paintTabBackground(Graphics g, int tabPlacement, int tabIndex, int x, int y, int w, int h, boolean isSelected) {
             // The tab row background is the tabbed pane's own (opaque) background; pills are painted in paintTabBorder
