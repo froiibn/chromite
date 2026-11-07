@@ -27,6 +27,8 @@ import org.eclipse.osgi.util.NLS;
  * - 2026-11-07 연결 작업 이름과 연결 무효화 알림 문구(runtime_connect_job_name, runtime_invalidate_*) 추가
  *   (docs/chromite/swing-l10n.md "남은 한국어 문구 정리")
  * - 2026-11-07 유휴 연결 닫기 알림 문구(model_connection_idle_closed) 추가(docs/chromite/idle-transactions.md "유휴 연결 닫기")
+ * - 2026-11-08 저장된 작업의 셸 명령 승인 문맥(model_shell_command_context_task, model_shell_command_event_saved_task) 추가
+ *   (docs/chromite/shell-command-approval.md "저장된 네이티브 도구 작업")
  * - 2026-11-08 {@link #BUNDLE_NAME}을 public으로: 기본 연결 유형의 이름을 모든 번역과 비교하는 {@code DBPConnectionType}이 번역 파일을 찾음
  *   (docs/chromite/model-fixes.md "작은 모델·안전·라이선스 수정")
  */
@@ -52,6 +54,8 @@ public class ModelMessages extends NLS {
     public static String model_shell_command_context_connection;
     public static String model_shell_command_context_event;
     public static String model_shell_command_event_password;
+    public static String model_shell_command_context_task;
+    public static String model_shell_command_event_saved_task;
 
     public static String runtime_connect_job_name;
     public static String runtime_invalidate_success;
