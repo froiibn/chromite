@@ -1330,6 +1330,7 @@ Test·Production 연결에서도 확인 없이 저장됐다. 설정값과 연결
 - 대화상자는 `ScriptPreviewDialog`를 다시 썼다. 머리글과 실행 단추 이름을 호출자가 정하는 생성자를 더했다. 저장 확인에서는 "Open in Query Window"를 숨긴다.
   바뀐 내용이 표에 남아 있어 쓸모가 적고, 결과 표의 `Host`에는 쿼리 창을 여는 방법이 없다.
 - Options > General > Query Results에 "Show the SQL script before saving grid changes"(`resultset.confirm.beforeSave`, 기본 끔)를 두었다.
+  (2026-11-08 Options > Query Results 탭으로 옮겼고 연결별 값도 둘 수 있다, [swing-options.md](swing-options.md) "연결별 설정".)
   Maximum rows처럼 플랫폼 설정 저장소에 쓴다. 키 이름은 SWT와 같아서 SWT 시절에 켠 값도 그대로 읽힌다.
 
 **upstream 대비 변경점**

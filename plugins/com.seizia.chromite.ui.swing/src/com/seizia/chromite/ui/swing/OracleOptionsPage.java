@@ -20,12 +20,13 @@ import com.seizia.chromite.ext.oracle.model.OracleConstants;
 import com.seizia.chromite.model.preferences.DBPPreferenceStore;
 import com.seizia.chromite.runtime.DBWorkbench;
 import com.seizia.chromite.ui.swing.internal.SettingsMessages;
-import com.seizia.chromite.utils.PrefUtils;
 import org.jkiss.code.NotNull;
 import org.osgi.framework.FrameworkUtil;
 
 import javax.swing.*;
 import java.awt.*;
+import java.util.Collection;
+import java.util.List;
 
 /**
  * Tools &gt; Options &gt; Oracle: the global Oracle settings of SWT's Oracle preference page ({@code PrefPageOracle}) that the
@@ -43,33 +44,36 @@ import java.awt.*;
  *     ({@code OracleActivator}가 자기 설정 노드를 읽음) 돈다. 아직 Oracle 연결을 쓰지 않아 번들이 시작되지 않았으면 기본값 대신 꺼짐이 읽히므로,
  *     값을 읽기 전에 번들의 클래스를 불러 시작시킨다(지연 활성화).</li>
  *     <li>Maximum rows처럼 플랫폼 설정 저장소에 쓴다. 연결별 값을 두지 않은 모든 Oracle 연결에 적용된다. OK에서 바뀐 값만 저장한다.</li>
+ *     <li>연결별 값({@link SettingsPage}): Oracle 연결의 연결 대화상자 Options &gt; Settings에 같은 페이지가 있다(SWT {@code PrefPageOracle}도
+ *     연결 속성 페이지였음). 실행 계획 테이블은 연결마다 한 번 찾아 기억하고 DBMS_OUTPUT 켜기·끄기는 세션을 열 때 하므로, 연결된 연결에서
+ *     바꾸면 다시 연결을 묻는다({@link #isAppliedWithoutReconnect}).</li>
  * </ul>
  *
  * 변경 이력:
  * - 2026-11-07 최초 작성 (docs/chromite/swing-options.md "Oracle")
+ * - 2026-11-08 {@link SettingsPage}로 바꿈: 연결별 값(연결 대화상자) (docs/chromite/swing-options.md "연결별 설정")
  */
-final class OracleOptionsPage extends JPanel {
+final class OracleOptionsPage extends SettingsPage {
 
-    private final DBPPreferenceStore store = DBWorkbench.getPlatform().getPreferenceStore();
     private final JTextField planTableField = new JTextField(20);
     private final JCheckBox rowIdBox = new JCheckBox(SettingsMessages.oracle_rowid);
     private final JCheckBox dbmsOutputBox = new JCheckBox(SettingsMessages.oracle_dbms_output);
     private final JCheckBox readAllSynonymsBox = new JCheckBox(SettingsMessages.oracle_read_all_synonyms);
     private final JCheckBox disableEscapeBox = new JCheckBox(SettingsMessages.oracle_disable_escape);
 
-    OracleOptionsPage() {
-        super(new BorderLayout());
+    /**
+     * @param global the global settings (Options, loaded here); otherwise one connection's settings, loaded by the caller
+     */
+    OracleOptionsPage(boolean global) {
         // Starts the Oracle bundle (lazy activation) so that its preference initializer has set the defaults
         FrameworkUtil.getBundle(OracleConstants.class);
-        planTableField.setText(store.getString(OracleConstants.PREF_EXPLAIN_TABLE_NAME));
-        rowIdBox.setSelected(store.getBoolean(OracleConstants.PREF_SUPPORT_ROWID));
         rowIdBox.setToolTipText(SettingsMessages.oracle_rowid_tip);
-        dbmsOutputBox.setSelected(store.getBoolean(OracleConstants.PREF_DBMS_OUTPUT));
         dbmsOutputBox.setToolTipText(SettingsMessages.oracle_dbms_output_tip);
-        readAllSynonymsBox.setSelected(store.getBoolean(OracleConstants.PREF_DBMS_READ_ALL_SYNONYMS));
         readAllSynonymsBox.setToolTipText(SettingsMessages.oracle_read_all_synonyms_tip);
-        disableEscapeBox.setSelected(store.getBoolean(OracleConstants.PREF_DISABLE_SCRIPT_ESCAPE_PROCESSING));
         disableEscapeBox.setToolTipText(SettingsMessages.oracle_disable_escape_tip);
+        if (global) {
+            load(DBWorkbench.getPlatform().getPreferenceStore());
+        }
 
         JPanel form = new JPanel(new GridBagLayout());
         int row = OptionsDialog.addSection(form, 0, SettingsMessages.oracle_section_execution);
@@ -82,30 +86,43 @@ final class OracleOptionsPage extends JPanel {
         add(OptionsDialog.wrapPage(form), BorderLayout.CENTER);
     }
 
-    /**
-     * Saves the changed values (Options dialog OK).
-     */
-    void apply() {
-        boolean changed = false;
-        String planTable = planTableField.getText().trim();
-        if (!planTable.equals(store.getString(OracleConstants.PREF_EXPLAIN_TABLE_NAME))) {
-            store.setValue(OracleConstants.PREF_EXPLAIN_TABLE_NAME, planTable);
-            changed = true;
-        }
-        changed |= setBoolean(OracleConstants.PREF_SUPPORT_ROWID, rowIdBox.isSelected());
-        changed |= setBoolean(OracleConstants.PREF_DBMS_OUTPUT, dbmsOutputBox.isSelected());
-        changed |= setBoolean(OracleConstants.PREF_DBMS_READ_ALL_SYNONYMS, readAllSynonymsBox.isSelected());
-        changed |= setBoolean(OracleConstants.PREF_DISABLE_SCRIPT_ESCAPE_PROCESSING, disableEscapeBox.isSelected());
-        if (changed) {
-            PrefUtils.savePreferenceStore(store);
-        }
+    @NotNull
+    @Override
+    String getTitle() {
+        return SettingsMessages.oracle_tab;
     }
 
-    private boolean setBoolean(@NotNull String key, boolean value) {
-        if (value == store.getBoolean(key)) {
-            return false;
-        }
-        store.setValue(key, value);
-        return true;
+    @NotNull
+    @Override
+    Collection<String> getKeys() {
+        return List.of(OracleConstants.PREF_EXPLAIN_TABLE_NAME, OracleConstants.PREF_SUPPORT_ROWID, OracleConstants.PREF_DBMS_OUTPUT,
+            OracleConstants.PREF_DBMS_READ_ALL_SYNONYMS, OracleConstants.PREF_DISABLE_SCRIPT_ESCAPE_PROCESSING);
+    }
+
+    @Override
+    void load(@NotNull DBPPreferenceStore store) {
+        planTableField.setText(store.getString(OracleConstants.PREF_EXPLAIN_TABLE_NAME));
+        rowIdBox.setSelected(store.getBoolean(OracleConstants.PREF_SUPPORT_ROWID));
+        dbmsOutputBox.setSelected(store.getBoolean(OracleConstants.PREF_DBMS_OUTPUT));
+        readAllSynonymsBox.setSelected(store.getBoolean(OracleConstants.PREF_DBMS_READ_ALL_SYNONYMS));
+        disableEscapeBox.setSelected(store.getBoolean(OracleConstants.PREF_DISABLE_SCRIPT_ESCAPE_PROCESSING));
+    }
+
+    @Override
+    void save(@NotNull Writer writer) {
+        // An empty plan table name is a value: the model then looks for PLAN_TABLE and TOAD_PLAN_TABLE
+        writer.setString(OracleConstants.PREF_EXPLAIN_TABLE_NAME, planTableField.getText().trim());
+        writer.setBoolean(OracleConstants.PREF_SUPPORT_ROWID, rowIdBox.isSelected());
+        writer.setBoolean(OracleConstants.PREF_DBMS_OUTPUT, dbmsOutputBox.isSelected());
+        writer.setBoolean(OracleConstants.PREF_DBMS_READ_ALL_SYNONYMS, readAllSynonymsBox.isSelected());
+        writer.setBoolean(OracleConstants.PREF_DISABLE_SCRIPT_ESCAPE_PROCESSING, disableEscapeBox.isSelected());
+    }
+
+    /**
+     * The plan table is looked up once per connection and DBMS_OUTPUT is switched on the server when a session opens.
+     */
+    @Override
+    boolean isAppliedWithoutReconnect() {
+        return false;
     }
 }
