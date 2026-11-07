@@ -11,12 +11,14 @@
 
 | 상태 | SQL 편집기 | 결과 뷰어 | 개체 편집기 | 연결 편집기 | 그 밖의 편집기 | 합계 |
 |---|---|---|---|---|---|---|
-| 있음 | 9 | 7 | 4 | 5 | 0 | **25** |
-| 일부 | 12 | 9 | 6 | 9 | 7 | **43** |
-| 없음 | 19 | 11 | 1 | 7 | 0 | **38** |
-| 조용히 끊김 | 5 | 1 | 1 | 1 | 0 | **8** |
-| 의도적 제외 | 1 | 2 | 0 | 0 | 0 | **3** |
+| 있음 | 19 | 8 | 4 | 7 | 0 | **38** |
+| 일부 | 12 | 9 | 6 | 7 | 7 | **41** |
+| 없음 | 12 | 11 | 1 | 7 | 0 | **31** |
+| 조용히 끊김 | 1 | 0 | 1 | 1 | 0 | **3** |
+| 의도적 제외 | 2 | 2 | 0 | 0 | 0 | **4** |
 | 합계 | 46 | 30 | 12 | 22 | 7 | **117** |
+
+2026-11-08 다시 셈: 위 수는 아래 표의 지금 상태 칸으로 센 것이다("수정함"은 있음으로 셈). 조사 당시 수는 있음 25, 일부 42, 없음 39, 조용히 끊김 8, 의도적 제외 3이었다.
 
 ### 조용히 끊김 (가장 위험한 것부터)
 
@@ -85,12 +87,12 @@
 | S35 | 마우스 올림 정보, Ctrl+클릭으로 개체 열기, 같은 단어 강조 | `SQLAnnotationHover`, `SQLHyperlinkDetector`, `navigate.object`, `SQLOccurrencesHighlighter` | 있음 | 2026-11-08 `SqlObjectNavigation`(의미 분석으로 별칭·열까지 풀기, 마우스 올림 설명, Ctrl+클릭), `setMarkOccurrences` ([swing-sql-editor-ergonomics.md](../swing-sql-editor-ergonomics.md)) | 낮음 | Ctrl+클릭한 DB 개체는 Object Explorer에서 고름(개체 편집기 없음). 같은 단어 강조는 대소문자가 같은 것만 |
 | S36 | 의미 분석 오류 표시, 빠른 수정 | `SQLEditorSemanticMarkersManager`, `SQLEditorQuickAssistProcessor` | 없음 | grep 0건 | 낮음 | |
 | S37 | 글자 도구: 줄 바꿈 토글, 공백 다듬기, 목록 변환, 소스 코드로 복사(Java·Python 등), 웹 검색 | `word.wrap`, `trim.*`, `morph.delimited.list`, `convert/*`, `search.web` | 있음 | 2026-11-08 Edit &gt; Advanced(`SqlTextTools`, 자동 줄 바꿈 Ctrl+Alt+Shift+W) ([swing-sql-editor-ergonomics.md](../swing-sql-editor-ergonomics.md)) | 낮음 | 대소문자 바꾸기는 있음(S30). 소스 코드로 복사는 옵션 대화상자 없이 기본 옵션 |
-| S38 | 스크립트 파일 관리(프로젝트 Scripts 폴더, 연결별 스크립트 목록, 이름 바꾸기·삭제, 스크립트에 연결 기억, 자동 저장, 다시 시작할 때 열린 편집기 복원) | `showScripts`, `rename`, `deleteThisScript`, `ScriptsHandlerImpl`, `SQLEditorHandlerOpenEditor` | 일부 | `SqlFileContent`, `RecentFiles`, File Open/Save; `MainFrame`에 편집기 복원 없음; swt-removal.md:108 | 중간 | 파일 단위 열기·저장·최근 파일만 |
+| S38 | 스크립트 파일 관리(프로젝트 Scripts 폴더, 연결별 스크립트 목록, 이름 바꾸기·삭제, 스크립트에 연결 기억, 자동 저장, 다시 시작할 때 열린 편집기 복원) | `showScripts`, `rename`, `deleteThisScript`, `ScriptsHandlerImpl`, `SQLEditorHandlerOpenEditor` | 일부 | `SqlFileContent`, `RecentFiles`, File Open/Save; Scripts 도구 창(2026-11-08: 폴더·이름 바꾸기·삭제·연결 묶기, `ScriptsPanel`); `MainFrame`에 편집기 복원 없음; swt-removal.md:108 | 중간 | 남은 것: 연결별 스크립트 목록, 자동 저장, 다시 시작할 때 편집기 복원. [swing-scripts-explorer.md](../swing-scripts-explorer.md) |
 | S39 | 연결·기본 DB/스키마 바꾸기 | 활성 연결·스키마 선택(`SelectActiveSchemaHandler`) | 있음 | `SqlEditorPanel` 콤보, `SqlEditorToolBar` | 중간 | 탐색기와 연결 맞추기(`sync.connection`)는 없음 |
 | S40 | DDL 실행 뒤 탐색기 갱신 | `SQLMetadataRefreshCoordinator` | 일부 | Modify·New 창만 노드를 다시 읽음(`setExecutionFinishedListener`, swing-source-editor.md) | 중간 | 일반 쿼리 창의 CREATE/DROP은 F5로 새로 고쳐야 보임 |
 | S41 | SQL 만들기(INSERT·UPDATE·DELETE·MERGE·JOIN, 결과 행에서, 결과로 DDL) | `GenerateSQLDialog`, `SQLGeneratorContributor`, `generate.ddl.by.resultSet` | 일부 | `ObjectScripts`(CREATE·SELECT), `SourceEditCommands`(ALTER); swing-frontend.md:1020 | 중간 | |
-| S42 | 저장 프로시저 실행(매개변수 입력) | `procedure.execute`, `ProcedureParameterBindDialog` | 없음 | grep `executeProcedure`/procedure call 0건 | 중간 | SSMS "Execute Stored Procedure"에 해당 |
-| S43 | SQL 터미널 | `ui.editors.sql.terminal` | 없음 | swt-removal.md:105 | 낮음 | |
+| S42 | 저장 프로시저 실행(매개변수 입력) | `procedure.execute`, `ProcedureParameterBindDialog` | 있음(2026-11-08) | Object Explorer "Execute Procedure…"(`ExecuteProcedureDialog`, 모델 `ProcedureCallScript`: 방언별 호출 스크립트, OUT 값), [swing-routines.md](../swing-routines.md) | 중간 | SSMS "Execute Stored Procedure"에 해당. 조사 당시: 없음 |
+| S43 | SQL 터미널 | `ui.editors.sql.terminal` | 있음(2026-11-08) | Query > SQL Terminal(Ctrl+T), `SqlTerminalView`, `MainFrame.updateTerminalTab` | 낮음 | 쿼리 창마다 켜고 끔(저장 안 함). SWT 설정 3개는 없음. [swing-sql-terminal.md](../swing-sql-terminal.md) |
 | S44 | 결과 창 배치(최대화, 가로/세로, 숨기기) | `maximize.result.panel`, `toggleLayout`, `toggle.result.panel` | 있음 | 도킹 도구 창(`ToolWindowDocking`), Results 자동 숨김(swing-frontend.md "Results 자동 숨김"), 2026-11-08 View &gt; Results Beside Editor·Maximize Results(Ctrl+Shift+T, `ToolWindow.SplitHost`) ([swing-sql-editor-ergonomics.md](../swing-sql-editor-ergonomics.md)) | 낮음 | 놓는 방향은 전역 |
 | S45 | SQL 편집기 설정 화면 | `PrefPageSQLEditor`, `CodeEditing`, `Completion`, `Execute`, `Format`, `Dialects`, `Resources` | 일부 | `OptionsDialog`(Query Editor, Formatting, Templates, 글꼴·색), swt-removal.md:116 | 중간 | 실행·방언·코드 편집 설정 없음 |
 
@@ -169,8 +171,8 @@ swing-security.md는 DB 보안(로그인·역할·권한) 문서이고 연결 �
 | C15 | 트랜잭션 설정(스마트 커밋·복귀, 유휴 트랜잭션 자동 닫기·시간) | `PrefPageTransactions` | 없음 | grep `TRANSACTIONS_SMART_COMMIT`·`TRANSACTIONS_AUTO_CLOSE` Swing 0건 | 중간 | S16·S24의 설정 쪽 |
 | C16 | 클라이언트 식별(애플리케이션 이름 끄기·바꾸기, 환경 변수 쓰기) | `PrefPageConnectionClient` | 없음 | Swing grep `META_CLIENT_NAME` 0건, 모델 키 `ModelPreferences.java:216-218` | 낮음 | 이름은 늘 `GeneralUtils.getProductTitle()`(swing-followup-fixes.md "Oracle 프로그램 이름") |
 | C17 | 오류 처리(재연결 등), 메타데이터 읽기 설정 | `PrefPageErrorHandle`, `PrefPageMetaData` | 없음 | grep 0건 | 낮음 | 모델 기본값으로 동작 |
-| C18 | 드라이버 관리 나머지(Maven 아티팩트, 의존성 트리, 전역 클래스패스) | `DriverEditDialog`, `PrefPageDrivers*` | 일부 | `DriverManagerDialog`, `DriverEditorDialog`; swt-removal.md:114 | 낮음 | |
-| C19 | 클라이언트 홈 선택 | `ClientHomesSelector`, `ClientHomesPanel` | 일부 | 기본 홈만 씀(`ConnectionDialog.java:340`) | 낮음 | Oracle OCI 홈은 SWT에서도 상용 기능이라 옮기지 않음(swing-conn-advanced.md:165) |
+| C18 | 드라이버 관리 나머지(Maven 아티팩트, 의존성 트리, 전역 클래스패스) | `DriverEditDialog`, `PrefPageDrivers*` | 있음 (2026-11-08, 조사 때 일부) | `MavenArtifactDialog`, `DriverLibraryDetailsDialog`, `GlobalLibrariesDialog`([swing-driver-manager.md](../swing-driver-manager.md)) | 낮음 | Maven 저장소 목록과 라이브러리 내보내기는 남음 |
+| C19 | 클라이언트 홈 선택 | `ClientHomesSelector`, `ClientHomesPanel` | 있음 (2026-11-08, 조사 때 일부) | 드라이버의 설치 목록은 드라이버 편집 창 Local Client 탭(`ClientHomesPanel`), 연결마다 고르기는 백업 대화상자(D-P6, M2). 새 연결은 기본 홈(`ConnectionDialog.java:340`) | 낮음 | Oracle OCI 홈은 SWT에서도 상용 기능이라 옮기지 않음(swing-conn-advanced.md:165) |
 | C20 | URL로 새 연결, 드라이버 종류 바꾸기 | `new.connection.from.url`, Driver type | 일부 | Connect with: JDBC URL 방식은 있음 | 낮음 | |
 | C21 | 현재 사용자 비밀번호 바꾸기 | `connection.changeCurrentPassword`, `PasswordChangeDialog` | 일부 | 만료 비밀번호 묻기는 됨(`SwingPlatformUI.promptUserPasswordChange` `:360`), 메뉴 없음 | 낮음 | |
 | C22 | Test Connection | `ConnectionWizard.testConnection` | 있음 | `ConnectionDialog`, swing-conn-advanced.md "5. Test Connection" | 중간 | |

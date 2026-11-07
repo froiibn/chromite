@@ -21,7 +21,11 @@ import com.seizia.chromite.model.sql.exec.SQLActualPlanProvider;
 import com.seizia.chromite.model.sql.exec.SQLQueryExecuteHandler;
 import com.seizia.chromite.model.sql.exec.SQLQueryExecuteJob;
 import com.seizia.chromite.model.sql.exec.SQLScriptBatches;
+import com.seizia.chromite.ext.oracle.model.OracleDataSource;
+import com.seizia.chromite.model.admin.oracle.OracleCompileErrors;
+import com.seizia.chromite.model.exec.jdbc.JDBCSession;
 import com.seizia.chromite.ui.swing.internal.EditorMessages;
+import com.seizia.chromite.ui.swing.internal.RoutineMessages;
 import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.Status;
 import org.eclipse.core.runtime.jobs.IJobChangeEvent;
@@ -182,6 +186,13 @@ import java.util.concurrent.atomic.AtomicLong;
  *     읽으면 버퍼가 비워지므로 매번 읽는다(Oracle 버퍼 넘침, Altibase 메모리 증가 방지). 경고만 되풀이하는 읽기 도구는 실행 결과 없이 불러
  *     PRINT·NOTICE가 두 번 나오지 않는다(docs/chromite/swing-server-output.md). 문장을 실행하기 전에는
  *     {@link DBCServerOutputReader#syncServerOutput}으로 세션의 서버 쪽 켜짐을 지금 설정에 맞춘다(설정이 세션을 연 뒤 바뀐 경우).</li>
+ *     <li>Oracle 컴파일 오류: 저장 단위·뷰를 만든 CREATE 문이 성공하면 그 세션에서 {@code ALL_ERRORS}를 읽어({@link OracleCompileErrors})
+ *     편집기 줄·열로 바꾼 오류를 Messages 탭에 쓰고 그 줄을 오류 색으로 표시한다. Oracle은 컴파일 오류를 경고로만 알려 창이 성공으로 끝나기
+ *     때문이다(SWT는 객체 편집기가 저장 뒤 오류 줄로 옮겼다). 오류가 있으면 실행을 오류로 끝낸다. 표시는 다음 실행에서 지운다.</li>
+ *     <li>SQL 터미널(Query &gt; SQL Terminal, 쿼리 창마다 켜고 끔): 켜고 시작한 실행은 결과 표와 Messages 탭은 그대로 두고, 문장마다
+ *     {@code SQL> 문장}, 결과 집합의 글자 표, 같은 메시지와 오류를 Terminal 탭({@link SqlTerminalView})에도 쓴다. 글자 표는 결과를 받는 Job
+ *     스레드에서 만들어 두었다가 문장이 끝날 때 메시지와 함께 한 번에 EDT로 넘겨 순서가 섞이지 않는다. 실행 중에는 Results 대신 Terminal 탭을
+ *     앞으로 가져온다(SWT 터미널이 결과 탭 자동 포커스를 끈 것과 같음, docs/chromite/swing-sql-terminal.md).</li>
  *     <li>편집 편의(docs/chromite/swing-sql-editor-ergonomics.md): 코드 접기({@link SqlFoldParser}), 커서가 있는 이름의 다른 자리 강조
  *     (RSyntaxTextArea의 같은 단어 표시), 이름 위 마우스 올림 설명과 Ctrl+클릭 이동({@link SqlObjectNavigation}, 이 창의 연결과 세션),
  *     결과 고정({@link #pinResults}).</li>
@@ -245,6 +256,10 @@ import java.util.concurrent.atomic.AtomicLong;
  *   기록에서 연 창은 그 값으로 다시 바인딩({@link #setRecordedParameters}) (docs/chromite/swing-query-library.md "매개변수 대화상자와 바인딩 하나로")
  * - 2026-11-08 문장마다 실행 전에 서버 출력 켜짐을 설정에 맞춤({@code syncServerOutput}). Oracle DBMS_OUTPUT을 끄거나 켜도 열린 세션은
  *   다시 연결할 때까지 그대로였던 것 (docs/chromite/model-fixes.md "작은 모델·안전·라이선스 수정")
+ * - 2026-11-08 Oracle CREATE 뒤 컴파일 오류 줄 표시(SWT 감사 O12), 위치 보이기({@link #showSourcePosition}: Go to Source Code,
+ *   Go to Error) (docs/chromite/swing-routines.md)
+ * - 2026-11-08 SQL 터미널: 창마다 켜고 끄는 Terminal 탭에 문장과 결과를 글자로 씀({@link SqlTerminalView}, docs/chromite/swing-sql-terminal.md)
+ * - 2026-11-08 Scripts 도구 창에서 이름을 바꾼 파일을 따라가는 {@link #fileMoved} (docs/chromite/swing-scripts-explorer.md)
  * - 2026-11-08 편집 편의: 코드 접기, 같은 이름 강조, 마우스 올림 설명·Ctrl+클릭({@link Host#revealNode}), 블록 주석 토글·글자 도구·자동 줄 바꿈·접기
  *   명령({@link SqlTextArea.Command}), 결과 고정. 다시 실행 전 버리기 묻기는 고정하지 않은 결과만 셈 (docs/chromite/swing-sql-editor-ergonomics.md)
  */
@@ -283,6 +298,11 @@ final class SqlEditorPanel extends JPanel {
          * Brings the Execution plan tab of the editor to the front.
          */
         void showPlan(@NotNull SqlEditorPanel editor);
+
+        /**
+         * Brings the Terminal tab of the editor to the front (a run while Query &gt; SQL Terminal is on).
+         */
+        void showTerminal(@NotNull SqlEditorPanel editor);
     }
 
     private static final String NOT_AVAILABLE = "< N/A >"; //$NON-NLS-1$
@@ -344,6 +364,10 @@ final class SqlEditorPanel extends JPanel {
     // EDT only
     private boolean explaining;
     private boolean planTabSelected;
+    // EDT only: Query > SQL Terminal for this window; the terminal keeps its output across runs
+    private boolean terminalEnabled;
+    private boolean terminalTabSelected;
+    private final SqlTerminalView terminalView = new SqlTerminalView();
     private final QueryStatusLine statusLine = new QueryStatusLine();
     private final Timer elapsedTimer;
     private final Timer transactionTimer;
@@ -368,6 +392,8 @@ final class SqlEditorPanel extends JPanel {
     // EDT only: the object whose definition this window edits (Modify), or null
     @Nullable
     private DBSObject sourceObject;
+    // EDT only: line highlights of compile errors (cleared when a run starts)
+    private final List<Object> errorLineMarks = new ArrayList<>();
     // The window's session: its own context or the connection's main context
     private final QueryWindowContext windowContext = new QueryWindowContext(this::getFileName);
 
@@ -546,6 +572,16 @@ final class SqlEditorPanel extends JPanel {
     }
 
     /**
+     * The window's file was renamed or its folder renamed (Scripts tool window): the window keeps its text and modified
+     * state, and saves to the new file.
+     */
+    void fileMoved(@NotNull Path file) {
+        this.file = file;
+        this.fileName = file.getFileName().toString();
+        host.titleChanged(this);
+    }
+
+    /**
      * Makes this window a window of another document kind (a Query Library query): its header goes above the editor,
      * and saving, the tab icon and parameter binding come from the extension.
      */
@@ -590,6 +626,60 @@ final class SqlEditorPanel extends JPanel {
 
     void setSourceObject(@Nullable DBSObject sourceObject) {
         this.sourceObject = sourceObject;
+    }
+
+    /**
+     * A place in the text to show: the selection and the lines to mark as compile errors.
+     *
+     * @param start      selection start (caret when {@code end == start})
+     * @param errorLines 0-based lines marked with the error color
+     */
+    record SourcePosition(int start, int end, @NotNull List<Integer> errorLines) {
+    }
+
+    /**
+     * Selects a range, scrolls to it and marks error lines (Go to Source Code, Go to Error). The marks stay until the
+     * next run or the next call.
+     */
+    void showSourcePosition(@NotNull SourcePosition position) {
+        markErrorLines(position.errorLines());
+        int length = textArea.getDocument().getLength();
+        int start = Math.max(0, Math.min(position.start(), length));
+        int end = Math.max(start, Math.min(position.end(), length));
+        textArea.setCaretPosition(start);
+        textArea.moveCaretPosition(end);
+        textArea.requestFocusInWindow();
+    }
+
+    /**
+     * Marks lines with the error color, replacing earlier marks (EDT).
+     */
+    private void markErrorLines(@NotNull List<Integer> lines) {
+        clearErrorLines();
+        addErrorLines(lines);
+    }
+
+    /**
+     * Marks more lines with the error color, keeping the earlier marks (EDT).
+     */
+    private void addErrorLines(@NotNull List<Integer> lines) {
+        Color red = UIManager.getColor("Chromite.status.error"); //$NON-NLS-1$
+        Color base = red != null ? red : Color.RED;
+        Color color = new Color(base.getRed(), base.getGreen(), base.getBlue(), 50);
+        for (int line : lines) {
+            if (line >= 0 && line < textArea.getLineCount()) {
+                try {
+                    errorLineMarks.add(textArea.addLineHighlight(line, color));
+                } catch (BadLocationException e) {
+                    log.debug("Error line out of the text: " + line); //$NON-NLS-1$
+                }
+            }
+        }
+    }
+
+    private void clearErrorLines() {
+        errorLineMarks.forEach(textArea::removeLineHighlight);
+        errorLineMarks.clear();
     }
 
     /**
@@ -679,6 +769,43 @@ final class SqlEditorPanel extends JPanel {
 
     boolean isExplaining() {
         return explaining;
+    }
+
+    /**
+     * Query &gt; SQL Terminal, per query window: runs are also written as text to the Terminal tab
+     * ({@link #getTerminalView()}).
+     */
+    boolean isTerminalEnabled() {
+        return terminalEnabled;
+    }
+
+    /**
+     * Turns the terminal on or off for the next runs; a run that is going on keeps the choice it started with.
+     */
+    void setTerminalEnabled(boolean enabled) {
+        terminalEnabled = enabled;
+        if (!enabled) {
+            terminalTabSelected = false;
+        }
+    }
+
+    /**
+     * Content of the Terminal tab.
+     */
+    @NotNull
+    SqlTerminalView getTerminalView() {
+        return terminalView;
+    }
+
+    /**
+     * Whether the Terminal tab was the last one the user looked at for this window (restored on activation).
+     */
+    boolean isTerminalTabSelected() {
+        return terminalTabSelected;
+    }
+
+    void setTerminalTabSelected(boolean terminalTabSelected) {
+        this.terminalTabSelected = terminalTabSelected;
     }
 
     /**
@@ -958,9 +1085,11 @@ final class SqlEditorPanel extends JPanel {
         Execution run = new Execution(container, text, offset, length,
             maxRows > 0 ? Math.max(maxRows, connectionMaxRows) : connectionMaxRows, maxRows > 0);
         run.includeActualPlan = isIncludeActualPlan();
+        run.terminal = terminalEnabled;
         run.binding = binding;
         execution = run;
         resultsView.clear();
+        clearErrorLines();
         if (run.includeActualPlan) {
             planView.clear(EditorMessages.editor_sql_waiting_actual_plan);
         }
@@ -969,7 +1098,7 @@ final class SqlEditorPanel extends JPanel {
         statusLine.setRows(null);
         elapsedTimer.start();
         updateActions();
-        host.showResults(this, false);
+        showRunOutput(run, false);
 
         AbstractJob prepareJob = new AbstractJob("Prepare query") {
             @NotNull
@@ -1047,10 +1176,18 @@ final class SqlEditorPanel extends JPanel {
             // Errors outside of a query (e.g. opening the session); query errors were already written by the listener
             run.hasErrors = true;
             resultsView.appendError(ErrorText.describe(status));
+            if (run.terminal) {
+                terminalView.appendError(ErrorText.describe(status));
+                terminalView.append("");
+            }
         }
         boolean canceled = run.cancelRequested || status.getSeverity() == IStatus.CANCEL;
         if (canceled) {
             resultsView.appendMessage(EditorMessages.editor_sql_canceled_by_user);
+            if (run.terminal) {
+                terminalView.append(EditorMessages.editor_sql_canceled_by_user);
+                terminalView.append("");
+            }
         }
         resultsView.appendMessage("");
         resultsView.appendMessage(NLS.bind(EditorMessages.editor_sql_completion_time, OffsetDateTime.now().format(COMPLETION_TIME_FORMAT)));
@@ -1070,12 +1207,24 @@ final class SqlEditorPanel extends JPanel {
         refreshOpenTransaction();
         updateActions();
         // As in SSMS: errors (or no result grids at all) bring the Messages tab to the front
-        host.showResults(this, run.hasErrors || resultsView.getGridCount() == 0);
+        showRunOutput(run, run.hasErrors || resultsView.getGridCount() == 0);
         finishActualPlan(run, canceled);
         // The run may have connected, or changed the default database (USE)
         refreshSchemas();
         if (executionFinishedListener != null) {
             executionFinishedListener.run();
+        }
+    }
+
+    /**
+     * Brings the output of a run to the front: the Terminal tab when the run writes to the terminal, else the Results
+     * or Messages tab.
+     */
+    private void showRunOutput(@NotNull Execution run, boolean messages) {
+        if (run.terminal) {
+            host.showTerminal(this);
+        } else {
+            host.showResults(this, messages);
         }
     }
 
@@ -1358,6 +1507,11 @@ final class SqlEditorPanel extends JPanel {
         readServerOutput(session, messages);
         Throwable error = result.getError();
         String errorText = null;
+        List<CompileErrorLine> compileErrors = error == null ? readCompileErrors(run, session, result.getStatement()) : List.of();
+        if (compileErrors.stream().anyMatch(CompileErrorLine::error)) {
+            // The unit exists but is invalid: the run reports errors and brings the Messages tab to the front
+            run.hasErrors = true;
+        }
         if (error == null) {
             boolean anyCount = false;
             List<ActualPlanReceiver> planReceivers = run.planReceivers.getOrDefault(result.getStatement(), List.of());
@@ -1390,12 +1544,96 @@ final class SqlEditorPanel extends JPanel {
             run.reportedErrors.add(error);
         }
         String finalErrorText = errorText;
+        // SQL terminal: the statement, its result sets as text tables, then the same messages as the Messages tab
+        String terminalText = null;
+        if (run.terminal) {
+            StringBuilder terminal = new StringBuilder(SqlTerminalView.formatStatement(run.binding.getHistoryText(result.getStatement())));
+            for (String table : run.terminalTables.getOrDefault(result.getStatement(), List.of())) {
+                terminal.append('\n').append(table);
+            }
+            for (String message : messages) {
+                terminal.append('\n').append(message);
+            }
+            // Oracle compile errors, as the Messages tab shows them after the messages
+            for (CompileErrorLine compileError : compileErrors) {
+                terminal.append('\n').append(compileError.text());
+            }
+            terminalText = terminal.toString();
+        }
+        String finalTerminalText = terminalText;
         post(run, () -> {
             messages.forEach(resultsView::appendMessage);
+            List<Integer> errorLines = new ArrayList<>();
+            for (CompileErrorLine compileError : compileErrors) {
+                if (compileError.error()) {
+                    resultsView.appendError(compileError.text());
+                } else {
+                    resultsView.appendMessage(compileError.text());
+                }
+                if (compileError.line() >= 0 && compileError.error()) {
+                    errorLines.add(compileError.line());
+                }
+            }
+            addErrorLines(errorLines);
             if (finalErrorText != null) {
                 resultsView.appendError(finalErrorText);
             }
+            if (finalTerminalText != null) {
+                terminalView.append(finalTerminalText);
+                if (finalErrorText != null) {
+                    terminalView.appendError(finalErrorText);
+                }
+                terminalView.append("");
+            }
         });
+    }
+
+    /**
+     * A message line about a compile error, and its 0-based editor line (-1: none).
+     */
+    private record CompileErrorLine(@NotNull String text, int line, boolean error) {
+    }
+
+    /**
+     * Oracle: the compile errors ({@code ALL_ERRORS}) of the stored unit or view a successful CREATE statement made, with
+     * their lines in the editor. Oracle reports them only as a warning (ORA-17110), so the window would say the run
+     * succeeded while the object is invalid (SWT showed them in the object editor after saving). Empty for other
+     * statements and databases. Job thread; reads in the statement's session.
+     */
+    @NotNull
+    private static List<CompileErrorLine> readCompileErrors(@NotNull Execution run, @NotNull DBCSession session, @NotNull SQLQuery query) {
+        if (!(session.getDataSource() instanceof OracleDataSource) || !(session instanceof JDBCSession jdbcSession)) {
+            return List.of();
+        }
+        String text = query.getText();
+        OracleCompileErrors.Unit unit = OracleCompileErrors.parseCreate(text);
+        if (unit == null) {
+            return List.of();
+        }
+        List<CompileErrorLine> lines = new ArrayList<>();
+        try {
+            String owner = unit.owner() != null ? unit.owner() : OracleCompileErrors.readCurrentSchema(jdbcSession);
+            List<OracleCompileErrors.CompileError> errors = OracleCompileErrors.read(jdbcSession, owner, unit.name(), List.of(unit.type()));
+            if (errors.isEmpty()) {
+                return List.of();
+            }
+            boolean anyError = errors.stream().anyMatch(OracleCompileErrors.CompileError::error);
+            lines.add(new CompileErrorLine(NLS.bind(anyError ? RoutineMessages.routine_compile_errors_header : RoutineMessages.routine_compile_warnings_header,
+                unit.type(), owner + "." + unit.name()), -1, anyError)); //$NON-NLS-1$
+            // The statement's text starts at its offset in the run's text (the editor text when the run started)
+            boolean aligned = run.text.startsWith(text, query.getOffset());
+            for (OracleCompileErrors.CompileError error : errors) {
+                int offset = query.getOffset() + OracleCompileErrors.getErrorOffset(text, unit.sourceStart(), error);
+                int line = aligned ? lineOf(run.text, offset) : lineOf(run.text, query.getOffset());
+                int column = aligned ? offset - run.text.lastIndexOf('\n', offset - 1) : 0;
+                String message = column > 0 ? NLS.bind(RoutineMessages.routine_compile_error_position, new Object[] {line, column, error.text()})
+                    : NLS.bind(RoutineMessages.routine_compile_error_line, line, error.text());
+                lines.add(new CompileErrorLine(message, line - 1, error.error()));
+            }
+        } catch (SQLException e) {
+            log.debug("Can't read the compile errors", e); //$NON-NLS-1$
+        }
+        return lines;
     }
 
     /**
@@ -1568,6 +1806,9 @@ final class SqlEditorPanel extends JPanel {
         final Map<SQLQuery, List<ActualPlanReceiver>> planReceivers = new IdentityHashMap<>();
         // Set in the EDT before the jobs start
         SqlParameterBinding binding = SqlParameterBinding.NONE;
+        boolean terminal;
+        // SQL terminal (job thread only): the text tables of each query's result sets, written when the query ends
+        final Map<SQLQuery, List<String>> terminalTables = new IdentityHashMap<>();
 
         Execution(
             @NotNull DBPDataSourceContainer dataSourceContainer,
@@ -1624,10 +1865,14 @@ final class SqlEditorPanel extends JPanel {
                 run.rowsFetched.addAndGet(fetched.data().rows().size());
                 // Only a query's first result set can be read again on its own (Export Data); receivers are called in order
                 boolean exportable = gridQueries.add(query);
+                if (run.terminal) {
+                    // Formatted here, off the EDT; written with the query's messages when it ends (reportQueryResult)
+                    run.terminalTables.computeIfAbsent(query, q -> new ArrayList<>()).add(SqlTerminalView.formatTable(fetched.data()));
+                }
                 post(run, () -> {
                     resultsView.addGrid(exportable ? fetched.withExportQuery(dataContainer) : fetched);
                     statusLine.setRows(NLS.bind(EditorMessages.editor_sql_rows_many, run.rowsFetched.get()));
-                    host.showResults(SqlEditorPanel.this, false);
+                    showRunOutput(run, false);
                 });
             });
         }
@@ -1639,7 +1884,13 @@ final class SqlEditorPanel extends JPanel {
             if (!run.reportedErrors.contains(error)) {
                 // Failed before the query was sent (parameters, pragmas, control commands)
                 run.hasErrors = true;
-                post(run, () -> resultsView.appendError(ErrorText.describe(error)));
+                post(run, () -> {
+                    resultsView.appendError(ErrorText.describe(error));
+                    if (run.terminal) {
+                        terminalView.appendError(ErrorText.describe(error));
+                        terminalView.append("");
+                    }
+                });
             }
             return DBPPlatformUI.UserResponse.STOP;
         }
@@ -1739,7 +1990,7 @@ final class SqlEditorPanel extends JPanel {
     }
 
     /**
-     * Output of script commands ({@code @echo} etc.) goes to the Messages tab.
+     * Output of script commands ({@code @echo} etc.) goes to the Messages tab, and to the terminal when it is on.
      */
     private final class MessagesWriter extends Writer {
         private final Execution run;
@@ -1752,7 +2003,12 @@ final class SqlEditorPanel extends JPanel {
         public void write(char[] buffer, int offset, int length) {
             String text = new String(buffer, offset, length);
             if (!text.isBlank()) {
-                post(run, () -> resultsView.appendMessage(text.stripTrailing()));
+                post(run, () -> {
+                    resultsView.appendMessage(text.stripTrailing());
+                    if (run.terminal) {
+                        terminalView.append(text.stripTrailing());
+                    }
+                });
             }
         }
 

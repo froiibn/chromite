@@ -28,6 +28,7 @@ import com.seizia.chromite.model.ai.engine.AIModelFeature;
 import com.seizia.chromite.model.ai.engine.openai.OpenAIConstants;
 import com.seizia.chromite.model.ai.engine.openai.OpenAIModels;
 import com.seizia.chromite.model.ai.engine.openai.OpenAIProperties;
+import com.seizia.chromite.model.app.DBPApplication;
 import com.seizia.chromite.model.app.DBPPlatform;
 import com.seizia.chromite.model.impl.app.SecurePreferencesSecretController;
 import com.seizia.chromite.model.rm.RMConstants;
@@ -38,6 +39,7 @@ import com.seizia.chromite.runtime.DBWorkbench;
 import com.seizia.chromite.junit.ChromiteUnitTest;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
+import org.mockito.AdditionalAnswers;
 import org.mockito.ArgumentCaptor;
 import org.mockito.ArgumentMatchers;
 import org.mockito.MockedStatic;
@@ -53,6 +55,9 @@ import java.util.Set;
  *
  * 변경 이력:
  * - 2026-11-07 AI 비밀이 OS 보안 저장소로 옮겨져 헤더 비밀 저장 테스트의 저장소 목(mock)을 보안 저장소 컨트롤러로 바꿈
+ * - 2026-11-08 프로필을 만들 때도 비밀을 읽으므로, 프로필을 만드는 세 테스트에 메모리 보안 저장소({@link InMemorySecureStorage})를 줌.
+ *   헤드리스 시험 앱에는 OS 보안 저장소가 없어 DBSecurityException으로 실패했다(제품은 평문으로 대신 저장하지 않음,
+ *   docs/chromite/regression-tests.md "실행 결과")
  */
 public class AISettingsManagerTest extends ChromiteUnitTest {
 
@@ -63,11 +68,14 @@ public class AISettingsManagerTest extends ChromiteUnitTest {
         AISettings settings = new AISettings();
         AIEngineDescriptor engine = AIEngineRegistry.getInstance().getEngineDescriptor(OpenAIConstants.OPENAI_ENGINE);
         Assertions.assertNotNull(engine);
-        AIConfigurationProfile work = settings.createConfiguration("test-work", engine);
-        ((OpenAIProperties) work.getConfiguration()).setCustomHeaders(Map.of("X-Api-Key", "work-secret"));
-        AIConfigurationProfile personal = settings.createConfiguration("test-personal", engine);
-        ((OpenAIProperties) personal.getConfiguration()).setCustomHeaders(Map.of("Authorization", "personal-secret"));
-        settings.setDefaultConfiguration(work);
+        // Creating a profile reads its secrets from the secure storage
+        try (InMemorySecureStorage ignored = new InMemorySecureStorage()) {
+            AIConfigurationProfile work = settings.createConfiguration("test-work", engine);
+            ((OpenAIProperties) work.getConfiguration()).setCustomHeaders(Map.of("X-Api-Key", "work-secret"));
+            AIConfigurationProfile personal = settings.createConfiguration("test-personal", engine);
+            ((OpenAIProperties) personal.getConfiguration()).setCustomHeaders(Map.of("Authorization", "personal-secret"));
+            settings.setDefaultConfiguration(work);
+        }
 
         // AI secrets live in the OS secure storage; the global controller only holds plain text values of older versions
         Map<String, String> secrets = new HashMap<>();
@@ -122,6 +130,12 @@ public class AISettingsManagerTest extends ChromiteUnitTest {
 
     @Test
     public void modelSelectionIsSavedPerProfile() throws Exception {
+        try (InMemorySecureStorage ignored = new InMemorySecureStorage()) {
+            checkModelSelectionIsSavedPerProfile();
+        }
+    }
+
+    private void checkModelSelectionIsSavedPerProfile() throws Exception {
         AISettings settings = new AISettings();
         AIEngineDescriptor engine = AIEngineRegistry.getInstance().getEngineDescriptor(OpenAIConstants.OPENAI_ENGINE);
         Assertions.assertNotNull(engine);
@@ -256,6 +270,12 @@ public class AISettingsManagerTest extends ChromiteUnitTest {
 
     @Test
     public void generatesUniqueIdentityForProfileCopy() throws Exception {
+        try (InMemorySecureStorage ignored = new InMemorySecureStorage()) {
+            checkUniqueIdentityForProfileCopy();
+        }
+    }
+
+    private void checkUniqueIdentityForProfileCopy() throws Exception {
         AISettings settings = new AISettings();
         AIEngineDescriptor engine = AIEngineRegistry.getInstance().getEngineDescriptor(OpenAIConstants.OPENAI_ENGINE);
         Assertions.assertNotNull(engine);
@@ -273,5 +293,48 @@ public class AISettingsManagerTest extends ChromiteUnitTest {
         AIConfigurationProfile copyWithProvidedId = settings.copyConfiguration(source, "provided-copy-id");
         Assertions.assertEquals("provided-copy-id", copyWithProvidedId.getProfileId());
         Assertions.assertEquals("Profile (3)", copyWithProvidedId.getProfileName());
+    }
+
+    /**
+     * An OS secure storage in memory for this thread: the headless test application has none, and AI secrets are never
+     * kept anywhere else. The platform is the real one except that it does not report headless mode, and the native
+     * provider's controller keeps its values in a map.
+     */
+    private static final class InMemorySecureStorage implements AutoCloseable {
+        private final Map<String, String> secrets = new HashMap<>();
+        private final MockedStatic<DBWorkbench> workbench;
+        private final MockedStatic<DBSecurityUtils> providers;
+        private final MockedStatic<SecurePreferencesSecretController> securePreferences;
+
+        InMemorySecureStorage() throws Exception {
+            DBPPlatform realPlatform = DBWorkbench.getPlatform();
+            DBPApplication desktop = Mockito.mock(DBPApplication.class, AdditionalAnswers.delegatesTo(realPlatform.getApplication()));
+            Mockito.doReturn(false).when(desktop).isHeadlessMode();
+            DBPPlatform platform = Mockito.mock(DBPPlatform.class, AdditionalAnswers.delegatesTo(realPlatform));
+            Mockito.doReturn(desktop).when(platform).getApplication();
+            SecurePreferencesSecretController controller = Mockito.mock(SecurePreferencesSecretController.class);
+            Mockito.when(controller.getPrivateSecretValue(ArgumentMatchers.anyString()))
+                .thenAnswer(invocation -> secrets.get(invocation.getArgument(0)));
+            Mockito.doAnswer(invocation -> secrets.put(invocation.getArgument(0), invocation.getArgument(1)))
+                .when(controller).setPrivateSecretValue(ArgumentMatchers.anyString(), ArgumentMatchers.nullable(String.class));
+            Mockito.when(controller.isPrivateSecretEncrypted(ArgumentMatchers.anyString())).thenReturn(true);
+
+            workbench = Mockito.mockStatic(DBWorkbench.class,
+                Mockito.withSettings().mockMaker("mock-maker-inline").defaultAnswer(Mockito.CALLS_REAL_METHODS));
+            workbench.when(DBWorkbench::getPlatform).thenReturn(platform);
+            providers = Mockito.mockStatic(DBSecurityUtils.class, Mockito.withSettings().mockMaker("mock-maker-inline"));
+            providers.when(DBSecurityUtils::findNativeOSProvider).thenReturn(DBSecurityProviders.WINDOWS_INTEGRATION);
+            securePreferences = Mockito.mockStatic(SecurePreferencesSecretController.class, Mockito.withSettings().mockMaker("mock-maker-inline"));
+            securePreferences.when(() -> SecurePreferencesSecretController.create(
+                    ArgumentMatchers.anyString(), ArgumentMatchers.nullable(String.class)))
+                .thenReturn(controller);
+        }
+
+        @Override
+        public void close() {
+            securePreferences.close();
+            providers.close();
+            workbench.close();
+        }
     }
 }

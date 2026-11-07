@@ -38,6 +38,7 @@ import org.eclipse.osgi.util.NLS;
  * - 2026-11-07 Query 메뉴의 Commit / Roll Back / Transaction Log, Tools 메뉴의 Open Transactions 문구 추가 (docs/chromite/transactions.md)
  * - 2026-11-07 Options의 위험한 SQL 확인 문구에 TRUNCATE를 더함 (docs/chromite/swing-sql-exec-safety.md)
  * - 2026-11-08 파일 덮어쓰기 확인의 바꾸기 단추 문구 추가 (docs/chromite/swing-frontend.md "실행 확인의 기본 단추")
+ * - 2026-11-08 View DDL의 Oracle DDL 형식 콤보 문구 추가 (docs/chromite/swing-routines.md)
  * - 2026-11-08 View &gt; Compact Mode 문구 추가 (docs/chromite/design-spec.md "적용 현황 — 촘촘한 모드")
  * - 2026-11-08 Outline 도구 창, Query &gt; Pin Results, View &gt; Results Beside Editor·Maximize Results 문구
  *   (docs/chromite/swing-sql-editor-ergonomics.md)
@@ -357,6 +358,11 @@ public class CoreMessages extends NLS {
     public static String servers_group_exists;
 
     public static String ddl_header;
+    public static String ddl_format;
+    public static String ddl_format_tip;
+    public static String ddl_format_full;
+    public static String ddl_format_no_storage;
+    public static String ddl_format_compact;
     public static String scripts_cant_generate;
     public static String scripts_none_generated;
     public static String sql_file_invalid_text;
