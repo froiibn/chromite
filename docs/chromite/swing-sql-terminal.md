@@ -77,6 +77,18 @@ Swing 쿼리 창에 같은 기능을 쿼리 창마다 켜고 끄는 **Query > SQ
 
 회귀 테스트는 만들지 않았다(요청 없음). 앱 사본에서 확인한 내용은 아래 "확인 기록"에 있다.
 
+### 확인 기록 (2026-11-08, Windows, 이 브랜치 빌드, 작업 공간 사본, Docker 테스트 DB, 프로세스 안 드라이버로 조작)
+
+| 확인 | 결과 |
+|---|---|
+| PostgreSQL, Query > SQL Terminal 켜고 두 문장 실행(한글 값, NULL, 숫자, 줄바꿈 든 값) | Terminal 탭이 넷째로 붙고 앞으로 옴. `SQL> 문장`, 글자 표(숫자 오른쪽 맞춤, `NULL`, 한글 두 칸 정렬, 줄바꿈은 공백), `(2 rows affected)`, `Execution time` |
+| 같은 창에서 없는 테이블 SELECT | 앞 출력 뒤에 쌓이고 `Msg 0, State 42P01, Line 1, Column 15`와 오류가 빨간색. Terminal 탭이 앞에 남음 |
+| SQL Server 새 창, 편집기에서 Ctrl+T | Terminal 탭이 붙음(RSyntaxTextArea가 Ctrl+T를 먹지 않음) |
+| SQL Server `PRINT` + SELECT, `GO`, `SELECT 1/0` | 첫 배치: 표, `hello print`, 행 수. 둘째 배치: 빈 표 머리, `Msg 8134` 오류. Messages 탭에도 같은 메시지 |
+| 창 바꾸기 | 터미널을 켠 창에서만 Terminal 탭이 보이고, 각 창이 마지막으로 본 탭으로 돌아감. 끄면 탭이 빠지고 Results로 |
+| 한국어(`-nl ko`) | 메뉴 `SQL 터미널`, 탭 `터미널`, `(1개 행 적용됨)`, 한글 열 이름 정렬 |
+| 다크 테마 | 탭·글자 색이 테마를 따름 |
+
 ## 변경 이력
 
 - 2026-11-08 최초 작성: Query > SQL Terminal(Ctrl+T), 창마다 켜는 Terminal 탭, 글자 표, 아이콘
