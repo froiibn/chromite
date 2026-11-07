@@ -51,6 +51,8 @@ import java.util.*;
  *
  * 변경 이력:
  * - 2026-11-06 로컬 저장소 조회 순서를 마지막에서 처음으로 변경(docs/chromite/drivers.md).
+ * - 2026-11-08 저장할 때 추가한 저장소의 snapshot 속성을 scope 자식 요소보다 먼저 씀. 그룹(scope)이 있는 저장소를 저장하면
+ *   "Attribute outside of element"로 실패했다(upstream 결함, docs/chromite/swing-options.md "남은 키 (2026-11-08 오후)").
  */
 public class MavenRegistry {
     private static final Log log = Log.getLog(MavenRegistry.class);
@@ -315,12 +317,13 @@ public class MavenRegistry {
                         if (!CommonUtils.isEmpty(repository.getDescription())) {
                             xml.addAttribute("description", repository.getDescription());
                         }
+                        // Attributes before the child elements: XMLBuilder can't add one after them
+                        xml.addAttribute(RegistryConstants.ATTR_SNAPSHOT, repository.isSnapshot());
                         for (String scope : repository.getScopes()) {
                             try (final XMLBuilder.Element e3 = xml.startElement("scope")) {
                                 xml.addAttribute("group", scope);
                             }
                         }
-                        xml.addAttribute(RegistryConstants.ATTR_SNAPSHOT, repository.isSnapshot());
                         final DBPAuthInfo authInfo = repository.getAuthInfo();
                         if (!CommonUtils.isEmpty(authInfo.getUserName())) {
                             secrets.setPrivateSecretValue("maven/" + repository.getId() + "/auth-user", authInfo.getUserName());

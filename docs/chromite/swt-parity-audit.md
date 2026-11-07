@@ -90,6 +90,9 @@ SWT 프런트엔드를 지울 때(#68) 기능 전체 목록과 맞춰 보지 않
   2026-11-08 더 고침(`chromite/settings-rest`): 연결별 설정(연결 대화상자 Options > Settings), Data Formats·Errors and Timeouts·Metadata·Client Identification.
   남은 것: 읽지만 화면 없는 키 55개(결과 편집기 나머지, 연결 일반, 드라이버·프록시·Maven, QM·로그, 탐색기 정렬, 알림, 데이터 전송 매핑, 자동완성, DB별).
   2026-11-08 전역 라이브러리(`ui.drivers.global.libraries`)는 Driver Manager에 만들어 54개(`chromite/drivers-oracle-batch`).
+  2026-11-08 오후 고침(`chromite/settings-rest-2`): 남은 54개 중 47개를 Options(Connections, Drivers, Logs, Object Explorer, Notifications, Data Transfer,
+  Code Completion, Binary and LOB, Altibase, CUBRID, Mimer SQL, Query Results 읽기와 정렬)에 넣음. 효과 없음 6개, 규칙상 두지 않음 1개(Altibase 실행 계획 방식).
+  남은 것 없음.
 - ~~Oracle 사용자·역할·권한 관리, Oracle NLS 세션 설정, Altibase 잠금 탭, TRUNCATE·트리거 켜기/끄기·구체화된 뷰 새로 고침.~~
   2026-11-08 고침(`chromite/p3-oracle-altibase-admin`): [swing-security.md](swing-security.md) "Oracle", [swing-conn-advanced.md](swing-conn-advanced.md) "Oracle 세션 설정",
   [swing-admin-tools.md](swing-admin-tools.md) "Altibase 잠금", [swing-explorer-object-actions.md](swing-explorer-object-actions.md) "유지 관리 명령".
@@ -144,3 +147,5 @@ PostgreSQL 디버거는 2026-11-07 사용자 요청으로 Swing에 옮겼다(C-6
   D-O9·O10 비고(Oracle Cancel Query, RAC). [swing-driver-manager.md](swing-driver-manager.md), [drivers.md](drivers.md) "로컬 파일 우선", [swing-admin-tools.md](swing-admin-tools.md) "Oracle RAC와 쿼리 취소". devel 병합 때 결과 요약 B를 영역 보고서의 지금 행 상태로 다시 세고("수정함"은 있음) 합계를 다시 냄.
 - 2026-11-08 4순위 SQL 터미널: B-S43 없음 → 있음(Query > SQL Terminal, [swing-sql-terminal.md](swing-sql-terminal.md)), A-platform §6 SQL Terminal 설정 줄 갱신. 결과 요약은 메인 세션이 다시 셈.
 - 2026-11-08 4순위 스크립트 탐색기: C-22·A-C13 없음 → 일부(Scripts 도구 창, 스크립트와 연결 묶기, [swing-scripts-explorer.md](swing-scripts-explorer.md)), B-S38 근거 갱신(일부 그대로). 결과 요약은 메인 세션이 다시 셈.
+- 2026-11-08 설정 화면 나머지 2차(`chromite/settings-rest-2`): 남은 키 47개 화면, 효과 없는 키 6개 재판정([swing-options.md](swing-options.md) "남은 키 (2026-11-08 오후)").
+  A-platform §6의 해당 줄과 S12 근거 갱신(집계 수는 고치지 않음).
