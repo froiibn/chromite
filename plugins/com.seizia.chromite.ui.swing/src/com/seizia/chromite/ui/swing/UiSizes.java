@@ -20,6 +20,7 @@ import com.formdev.flatlaf.util.UIScale;
 import org.jkiss.code.NotNull;
 
 import javax.swing.*;
+import javax.swing.border.AbstractBorder;
 import javax.swing.border.Border;
 import java.awt.*;
 
@@ -30,9 +31,11 @@ import java.awt.*;
  * <ul>
  *     <li>화면 밀도를 정하는 값을 한곳(테마 properties의 "Sizes" 절)에 모은다. FlatLaf 키(트리·그리드 행, 메뉴 항목, 도구 막대 단추 여백,
  *     컨트롤 여백)는 원래 거기에 있었고, 컴포넌트 코드에 흩어져 있던 값(도구 창 머리말·도구 막대·탭·상태 줄 높이, 트리 아이콘 간격 등)을
- *     {@code Chromite.size.*} 키로 옮겼다. 그래서 나중의 촘촘한 모드(design-spec "촘촘한 모드")는 이 키들의 값만 바꾸면 된다
+ *     {@code Chromite.size.*} 키로 옮겼다. 그래서 촘촘한 모드({@link UiDensity})는 이 키들의 값만 바꾼다
  *     ({@code FlatLaf#setExtraDefaults}로 덮어쓰기).</li>
- *     <li>컴포넌트는 만들 때 값을 읽는다(크기 계산이 매번 부르는 곳은 그때마다 읽는다). 두 테마의 값이 같으므로 테마를 바꿔도 다시 읽을 필요가 없다.</li>
+ *     <li>촘촘한 모드는 실행 중에 바뀌므로 컴포넌트는 값을 쓸 때 읽는다: 크기 계산과 그리기에서 {@link #get}을 부르고, 여백은
+ *     {@link #createPadding}의 테두리가 매번 읽고, 스타일은 {@code $키} 참조로 {@code updateUI} 때 다시 읽는다. 만들 때 한 번 정해야 하는 값
+ *     (표의 행 높이, 선택 상자 크기)은 UI가 바뀔 때 다시 정한다.</li>
  *     <li>FlatLaf 스타일 문자열은 {@code $키} 참조로 같은 키를 읽는다({@link #TOOL_TABS_STYLE}). 스타일은 {@code updateUI} 때마다 다시 적용된다.</li>
  *     <li>값은 배율 1의 논리 픽셀이고 {@link UIScale}로 배율을 적용한다(FlatLaf 키와 같음).</li>
  * </ul>
@@ -41,6 +44,8 @@ import java.awt.*;
  * - 2026-11-07 최초 작성: 하드코딩한 치수를 테마 키로 모으고 기본 밀도를 B("조금 촘촘")로 바꿈 (docs/chromite/design-spec.md "치수 토큰")
  * - 2026-11-07 size.toolbar.editor 설명: 쿼리 창 도구 막대가 메인 창 둘째 줄의 SQL Editor 도구 막대가 됨 (docs/chromite/swing-frontend.md "SQL Editor 도구 막대")
  * - 2026-11-07 결과 필터 줄을 없애고 열 머리글 아이콘 치수(필터·정렬 아이콘, 간격)를 더함 (docs/chromite/swing-grid-column-filters.md)
+ * - 2026-11-08 촘촘한 모드: 여백 테두리가 값을 매번 읽음(실행 중 전환), SQL Editor 도구 막대 선택 상자 여백 키를 더함
+ *   (docs/chromite/design-spec.md "적용 현황 — 촘촘한 모드")
  */
 final class UiSizes {
 
@@ -54,6 +59,8 @@ final class UiSizes {
     static final String MAIN_TOOL_BAR_PADDING = "Chromite.size.mainToolBar.padding"; //$NON-NLS-1$
     /** size.toolbar.editor: the SQL Editor tool bar (main window, second row) and the table designer tool bar (28 controls). */
     static final String EDITOR_TOOL_BAR_PADDING = "Chromite.size.editorToolBar.padding"; //$NON-NLS-1$
+    /** Padding of the SQL Editor tool bar's connection and schema pickers (the control margin in density B; 24 high in compact mode). */
+    static final String EDITOR_TOOL_BAR_COMBO_PADDING = "Chromite.size.editorToolBar.comboBox.padding"; //$NON-NLS-1$
     /** size.tab.editor: document tab row height. */
     static final String DOCUMENT_TAB_HEIGHT = "Chromite.size.documentTab.height"; //$NON-NLS-1$
     /** Distance of the selected document tab's pill from the top and bottom of the tab row. */
@@ -97,12 +104,19 @@ final class UiSizes {
     }
 
     /**
-     * An empty border of the padding token, scaled.
+     * An empty border of the padding token, scaled. It reads the token whenever its insets are asked for, so it follows
+     * density changes (compact mode) without being created again.
      */
     @NotNull
     static Border createPadding(@NotNull String key) {
-        Insets insets = getInsets(key);
-        return BorderFactory.createEmptyBorder(insets.top, insets.left, insets.bottom, insets.right);
+        return new AbstractBorder() {
+            @Override
+            public Insets getBorderInsets(Component c, Insets insets) {
+                Insets padding = getInsets(key);
+                insets.set(padding.top, padding.left, padding.bottom, padding.right);
+                return insets;
+            }
+        };
     }
 
     /**

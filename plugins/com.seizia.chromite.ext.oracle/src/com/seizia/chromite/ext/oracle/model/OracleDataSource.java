@@ -77,6 +77,12 @@ import java.util.regex.Pattern;
  * - 2026-11-07 Chromite: v$session.program keeps printable ASCII ('.', '-' and the like) and replaces only
  *   '(' / ')' and non-ASCII characters with '?'. Before, every character except letters, digits and space became
  *   '?' ("Chromite 0?1?0 ? Activity Monitor") (docs/chromite/swing-followup-fixes.md).
+ * - 2026-11-08 Chromite: the PLAN_TABLE create question is a warning confirmation (No is the default button), so a
+ *   habitual Enter does not create a table. DBMS_OUTPUT: each execution context remembers whether it is enabled on the
+ *   server, and {@link OracleOutputReader#syncServerOutput} enables or disables it on the open session when the setting
+ *   changed. Before, the setting reached the server only when a session opened, so turning it off left the session
+ *   buffering (until ORU-10027 once 1 MB was not read) and turning it on showed nothing until reconnect
+ *   (docs/chromite/model-fixes.md "작은 모델·안전·라이선스 수정").
  */
 public class OracleDataSource extends JDBCDataSource implements DBPObjectStatisticsCollector, DBPAdaptable, DBDPseudoAttributeContainer {
     private static final Log log = Log.getLog(OracleDataSource.class);
@@ -805,7 +811,8 @@ public class OracleDataSource extends JDBCDataSource implements DBPObjectStatist
                 if (!DBWorkbench.getPlatformUI().confirmAction(
                     "Oracle PLAN_TABLE missing",
                     "PLAN_TABLE not found in current user's session. " +
-                        "Do you want Chromite to create new PLAN_TABLE (" + newPlanTableName + ")?")) {
+                        "Do you want Chromite to create new PLAN_TABLE (" + newPlanTableName + ")?",
+                    true)) {
                     return null;
                 }
                 planTableName = createPlanTable(session, newPlanTableName);
@@ -998,6 +1005,17 @@ public class OracleDataSource extends JDBCDataSource implements DBPObjectStatist
                 JDBCUtils.executeSQL((JDBCSession) session, sql);
             } catch (SQLException e) {
                 throw new DBCException(e, context);
+            }
+            if (context instanceof OracleExecutionContext oracleContext) {
+                oracleContext.setServerOutputEnabled(enable);
+            }
+        }
+
+        @Override
+        public void syncServerOutput(@NotNull DBRProgressMonitor monitor, @NotNull DBCExecutionContext context) throws DBCException {
+            boolean enable = isServerOutputEnabled();
+            if (context instanceof OracleExecutionContext oracleContext && oracleContext.isServerOutputEnabled() != enable) {
+                enableServerOutput(monitor, context, enable);
             }
         }
 

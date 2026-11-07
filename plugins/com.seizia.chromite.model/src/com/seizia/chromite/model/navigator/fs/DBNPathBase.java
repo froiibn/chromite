@@ -46,6 +46,10 @@ import java.util.stream.Stream;
 
 /**
  * DBNPath
+ *
+ * 변경 이력:
+ * - 2026-11-08 Chromite: 파일 복사·이동 확인을 경고 확인으로 물음(아니요가 기본 단추). 습관처럼 친 Enter로 파일이 옮겨지지 않게
+ *   (docs/chromite/model-fixes.md "작은 모델·안전·라이선스 수정")
  */
 public abstract class DBNPathBase extends DBNNode implements DBNLazyNode {
 
@@ -276,7 +280,7 @@ public abstract class DBNPathBase extends DBNNode implements DBNLazyNode {
                 action + "\n" +
                 nodes.stream().map(DBNNode::getNodeDisplayName).collect(Collectors.joining(",")) +
                 "\ninto folder " + folder + "?";
-            if (!DBWorkbench.getPlatformUI().confirmAction(action, message)) {
+            if (!DBWorkbench.getPlatformUI().confirmAction(action, message, true)) {
                 return;
             }
         }

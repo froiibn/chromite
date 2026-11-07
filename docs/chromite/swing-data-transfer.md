@@ -95,8 +95,9 @@ DBeaver의 데이터 전송(`com.seizia.chromite.data.transfer` 모델 + `.ui` S
   `GO` 배치의 여러 문장은 쿼리 하나로 합쳐지고 그 형식은 첫 문장의 것이라, 셋째 조건이 없으면 `SELECT 1; DELETE …` 배치의 첫 결과 표에서도 켜졌다(SQL Server에서 확인 후 고침). `SQLQueryDataContainer`는 결과 집합을 하나만 읽고("Doesn't support multiple resulsets"),
   `GO` 배치는 여러 문장이 한 쿼리라 다시 실행하면 INSERT 등이 되풀이되기 때문이다. 첫 결과 집합인지는 `SqlEditorPanel`의 처리기가 쿼리 객체별로 처음 넘긴 표인지로 정한다
   (`SQLQueryExecuteJob`의 결과 번호는 스크립트 전체에서 이어지므로 쓸 수 없음).
-  꺼진 메뉴의 도구 설명은 수신기가 아는 이유(`ResultSetSource.requeryBlocker`, 예: Query Library가 값을 바인딩한 실행의 "parameter values bound for this run only")가
-  있으면 그것을 보인다. 처음에는 늘 "SELECT 하나인 쿼리만" 문구라, SELECT 하나인 바인딩 실행에서 이유를 잘못 알렸다.
+  꺼진 메뉴의 도구 설명은 수신기가 아는 이유(`ResultSetSource.requeryBlocker`, 예: 연결이 끊김)가 있으면 그것을 보인다. 처음에는 늘 "SELECT 하나인 쿼리만" 문구라,
+  SELECT 하나인 결과에서 이유를 잘못 알렸다. Query Library가 값을 바인딩한 실행도 2026-11-08부터 같은 값을 바인딩해 내보낸다
+  ([swing-query-library.md](swing-query-library.md) "매개변수 대화상자와 바인딩 하나로", 그 전에는 "parameter values bound for this run only"로 꺼짐).
 - **기존 "Export to CSV… / Export to Excel (XLSX)…"는 남겼다.** 이 둘은 표에 보이는 행(편집 중인 값 포함, 다시 실행할 수 없는 결과 포함)을 바로 쓰는 기능이고,
   마법사는 쿼리를 다시 실행한다. 표는 값을 표시 문자열로만 들고 있어(C단계 설계) 모델의 스트림 내보내기(값 처리기로 결과 집합에서 다시 읽음)에 "가져온 행"을 넣을 수 없으므로
   마법사가 두 항목을 대신하지 못한다. 그래서 `ResultSetExport`는 지우지 않았다(CLAUDE.md 4번: 쓸모없어진 코드가 아님).
@@ -450,8 +451,9 @@ SQL Server·MariaDB 원본 22열). PostgreSQL → SQL Server·MariaDB의 `c_nume
   SWT는 모르는 형식 속성을 로그만 남기고 건너뛰었지만 그러면 사용자가 준 옵션이 조용히 무시된다. SELECT만 받는 것은 내보내기가 새 연결에서 쿼리를 실행하므로
   데이터를 바꾸는 문장이 쿼리 창의 수동 커밋 트랜잭션 밖에서 커밋되면 안 되기 때문이다.
 - 명령으로 연 마법사는 폴더·패턴·형식·형식 속성을 기억하지 않는다. 스크립트의 옵션이 Export Data…의 기본값을 바꾸면 안 되기 때문이다.
-- 경로는 Windows 형식으로 쓴다(JSON에서는 `"D:\\exports"`). `"D:/exports"`는 데이터 전송 엔진이 URI(`D` 파일 시스템)로 읽어
-  "File system schema 'D' not recognized"로 실패한다(`DBFUtils.resolvePathFromString`, 마법사에 직접 입력해도 같음. 이 작업에서 고치지 않음).
+- 경로는 `"D:\\exports"`(JSON)와 `"D:/exports"` 모두 된다. 2026-11-07에는 `"D:/exports"`를 데이터 전송 엔진이 URI(`D` 파일 시스템)로 읽어
+  "File system schema 'D' not recognized"로 실패했다(`DBFFileSystemManager.getPathFromString`, 마법사에 직접 입력해도 같음). 2026-11-08에 고침
+  ([model-fixes.md](model-fixes.md) "작은 모델·안전·라이선스 수정").
 
 ### 남은 매핑과 기본 키 (2026-11-07 밤)
 
@@ -640,3 +642,6 @@ SQL Server·MariaDB 원본 22열). PostgreSQL → SQL Server·MariaDB의 `c_nume
 - 2026-11-07 남은 매핑과 기본 키(모델·방언, SWT에도 적용): 새 테이블에 원본의 기본 키(`DatabaseTransferUtils`, #39), Oracle 열 복사의 문자 길이 단위
   (`OracleTableColumnManager`, #51), `MAX_STRING_SIZE`에 따른 `VARCHAR2` 한도(`OracleSQLDialect`, #52), 다른 DB의 한 비트 `BIT` → PostgreSQL `boolean`(`PostgreDialect`, #53),
   NULL 열이 바뀌는 행을 행마다 삽입할 때 앞 행의 문장을 쓰던 것(`ExecuteBatchImpl`). `NUMBER(p,0)` → `numeric(p,0)`은 확인만 함.
+- 2026-11-08 Query Library가 값을 바인딩한 결과의 Export Data…를 켬: 데이터 컨테이너가 같은 값을 바인딩해 다시 읽음([swing-query-library.md](swing-query-library.md)).
+- 2026-11-08 `"D:/exports"`처럼 슬래시를 쓴 Windows 경로가 "File system schema 'D' not recognized"로 실패하던 것을 고침(`DBFFileSystemManager.URI_SCHEME_PREFIX`가 두 글자 이상의 스킴만 받음).
+  위 "@export 명령"의 경로 항목 갱신. [model-fixes.md](model-fixes.md) "작은 모델·안전·라이선스 수정".
