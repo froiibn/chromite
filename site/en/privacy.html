@@ -43,6 +43,21 @@
   </section>
 
   <section class="sect">
+    <h2>AI assistant</h2>
+    <div class="body">
+      <p>The AI assistant sends nothing until you set it up. To use it, choose a provider in the AI Assistant tab of Options (Anthropic Claude, OpenAI or an OpenAI-compatible address, Ollama) and enter your own API key or Ollama address. Requests go from this computer straight to the address of the provider you chose. They do not pass through this site or any other Chromite server, and Chromite does not collect them.</p>
+      <ul>
+        <li>What is sent: what you write in the chat and the whole conversation so far, the name and driver of the current connection and the database name, and the results of the tools the assistant runs. Tool results can contain structure (tables, columns), query text and query results (100 rows at a time by default, at most 10,000), execution plans, and server status such as sessions, locks and server settings. Connection passwords and credentials are never put into tool results.</li>
+        <li>By default, read tools run without asking. Tools that change data or structure ask before they run, and on production connections they are blocked until you allow them for that connection.</li>
+        <li>With Ollama, requests go only to the Ollama server you entered (usually this computer or your company network).</li>
+        <li>What reaches a provider is covered by that provider's privacy policy and terms.</li>
+        <li>API keys are stored unencrypted in a settings file of the Chromite workspace on this computer and are not shown again in the settings. Conversations and the tool log also stay in the workspace.</li>
+      </ul>
+      <p>The local MCP server is off by default. When you turn it on, it accepts only requests from this computer (127.0.0.1) that carry the token shown in the settings. The same permission and confirmation rules apply to other AI tools connected to it; where such a tool sends the results is up to that tool's settings and terms.</p>
+    </div>
+  </section>
+
+  <section class="sect">
     <h2>This site</h2>
     <div class="body">
       <ul>
