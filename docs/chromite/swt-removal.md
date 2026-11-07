@@ -113,7 +113,7 @@ Swing 소스에서 해당 모델 API나 기능을 찾지 못한 검색으로 확
 | Query Manager(실행 로그 보기) | `ui.editors.sql`(`QueryLogViewer`) | `model`의 QM | QM 보기 없음. Swing에는 자체 쿼리 기록만 있다([swing-sql-editor-plus.md](swing-sql-editor-plus.md)) |
 | ~~데이터 검색(여러 테이블의 값 찾기)~~ 2026-11-08 옮김([swing-data-search.md](swing-data-search.md)) | `ui.search` | `model` | Object Explorer "Search Data…"(`DataSearchPanel`, 모델 `DataSearch`) |
 | 드라이버 관리의 나머지: Maven 아티팩트 추가·편집, 라이브러리 의존성 트리, 전역 클래스패스 | `ui.editors.connection` | `registry` | 관리자·편집 창·오프라인 모드는 Swing에 있다([swing-driver-manager.md](swing-driver-manager.md) "남긴 것", 2026-11-07 devel 병합으로 확인) |
-| 다른 도구의 연결 설정 가져오기(DbVisualizer, Navicat, SQuirreL 등) | `ui.config.migration` | - | 참조 0 |
+| 다른 도구의 연결 설정 가져오기(DbVisualizer, Navicat, SQuirreL 등) | `ui.config.migration` | - | 참조 0. 2026-11-08: Oracle SQL Developer·Toad·CSV는 File > Import Connections > From Another Tool…로 옮김([connection-transfer.md](connection-transfer.md) "다른 도구에서 가져오기"), 나머지 도구는 없음 |
 | 환경설정 화면 대부분(편집기·결과·연결 기본값 등) | `ui`, `ui.editors.*`, `core` | `model` 설정 키 | Swing에는 일부 옵션 대화상자만 있다 |
 | DB별 전용 화면: 연결 페이지, 객체 편집기 탭, 도구(예: Oracle 컴파일, PostgreSQL 유지 보수, MySQL 세션) | `ext.*.ui` 32개 | `ext.*` | Swing은 범용 연결 화면과 일부 SQL Server·PostgreSQL·MySQL 도구만 있다([swing-frontend.md](swing-frontend.md) D단계, [swing-conn-advanced.md](swing-conn-advanced.md)) |
 | WMI 데이터 소스 | `ext.wmi` | 없음 | Swing 제품에 원래 없었다 |
