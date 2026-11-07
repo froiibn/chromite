@@ -19,12 +19,14 @@
 | PostgreSQL (`ext.postgresql.ui`, `ext.postgresql.debug.ui`) | 29 | 13 | 7 | 9 | 0 | 0 |
 | SQL Server (`ext.mssql.ui`) | 14 | 10 | 1 | 3 | 0 | 0 |
 | MySQL/MariaDB (`ext.mysql.ui`) | 19 | 10 | 4 | 5 | 0 | 0 |
-| Oracle (`ext.oracle.ui`) | 24 | 11 | 3 | 8 | 1 | 1 |
+| Oracle (`ext.oracle.ui`) | 24 | 12 | 3 | 7 | 1 | 1 |
 | Altibase (`ext.altibase.ui`) | 9 | 3 | 0 | 5 | 0 | 1 |
 | 나머지 26개 번들 (+ 끊김 3행) | 29 | 2 | 16 | 8 | 0 | 3 |
-| **합계** | **124** | **49** | **31** | **38** | **1** | **5** |
+| **합계** | **124** | **50** | **31** | **37** | **1** | **5** |
 
 2026-11-08 3순위 Oracle·Altibase 관리(`chromite/p3-oracle-altibase-admin`): P23·S14·M17·O5·O16·O21·A2 없음 → 있음.
+
+2026-11-08 다른 도구에서 가져오기(`chromite/import-other-tools`): O23 없음 → 있음.
 
 ### 조용히 끊김 (먼저 볼 것)
 
@@ -142,7 +144,7 @@ K1–K3의 공통 원인은 SQL 편집기에 서버 출력 패널이 없는 것�
 | O20 | 구조 검증(VALIDATE STRUCTURE) | `OracleToolValidateStructure` | 없음 | swing-admin-tools.md 600행 "미룬 것" | 낮음 | |
 | O21 | TRUNCATE, 트리거 사용/사용 안 함, 구체화된 뷰 새로 고침 | `OracleToolTruncate`, `OracleToolTriggerEnable/Disable`, `OracleToolRefreshMView` | 있음(2026-11-08) | P23과 같음 | 중간 | 조사 당시: 없음. REUSE STORAGE·새로 고침 방식 옵션 화면은 없음 |
 | O22 | SQL*Plus로 스크립트 실행(도구 + 편집기 네이티브 실행) | `OracleToolScript`, `OracleScriptExecutor`(`sql.executors`) | 없음 | grep `sqlplus` → `ui.swing` 0건. 백업·복원도 Oracle은 대상 아님(swing-backup-restore.md 10행) | 낮음 | |
-| O23 | Toad·SQL Developer 연결 가져오기 | `importWizards`: `ConfigImportWizardToad`, `ConfigImportWizardSqlDeveloper` | 없음 | swt-removal.md 115행(다른 도구의 연결 가져오기 없음) | 중간 | Oracle 사용자 이전 경로 |
+| O23 | Toad·SQL Developer 연결 가져오기 | `importWizards`: `ConfigImportWizardToad`, `ConfigImportWizardSqlDeveloper` | 있음(2026-11-08) | File > Import Connections > From Another Tool…, `ext.oracle` `importer/SqlDeveloperConnectionReader`·`ToadConnectionReader`([connection-transfer.md](../connection-transfer.md) "다른 도구에서 가져오기"). 비밀번호는 SWT처럼 읽지 않음(Toad SSH 평문 비밀번호만) | 중간 | 조사 당시: 없음(swt-removal.md 115행). Oracle 사용자 이전 경로 |
 | O24 | DBMS_OUTPUT 출력 | (SQL 편집기 Output 패널 + `PREF_DBMS_OUTPUT`) | 있음(2026-11-07, 조사 때 조용히 끊김) | 위 K1. 쿼리 창 Messages 탭 | 높음 | 켜고 끄는 화면은 없음(O8) |
 
 ## 5. Altibase (`ext.altibase.ui`, 8 클래스)
@@ -246,7 +248,7 @@ SWT에도 Altibase 전용 연결 화면은 없었다(`dataSourceConfigurator` �
 9. P29 PostgreSQL 디버거(모델까지 삭제) — 없음, 중간. (2026-11-07 옮김, [procedure-debugger.md](../procedure-debugger.md))
 10. A6·A7 Altibase 컴파일, 복제 시작·중지 — 없음, 중간.
 
-다음 순위: S4 Azure·Babelfish 모든 DB 보기, P19 pg_dumpall, O23 Toad·SQL Developer 가져오기, P3 PgBouncer prepared statement, K3 CUBRID 출력.
+다음 순위: S4 Azure·Babelfish 모든 DB 보기, P19 pg_dumpall, O23 Toad·SQL Developer 가져오기(2026-11-08 고침), P3 PgBouncer prepared statement, K3 CUBRID 출력.
 "일부"이지만 영향이 큰 것: O11·O12 Oracle 컴파일과 컴파일 오류 표시(노드에서 컴파일 불가, Modify 뒤 오류 위치 없음).
 
 ## 확인하지 못한 것
@@ -262,3 +264,4 @@ SWT에도 Altibase 전용 연결 화면은 없었다(`dataSourceConfigurator` �
 ## 변경 이력
 
 - 2026-11-08 3순위 Oracle·Altibase 관리: P23·S14·M17·O5·O16·O21·A2 → 있음, 요약 표와 높은 순서 목록 갱신.
+- 2026-11-08 O23 Toad·SQL Developer 연결 가져오기 → 있음([connection-transfer.md](../connection-transfer.md) "다른 도구에서 가져오기"), 요약 표 갱신.

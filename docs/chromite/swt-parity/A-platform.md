@@ -163,7 +163,7 @@
 | A-X1 | 첫 실행 제품 구성 마법사(모양, 기능 켜기, 마지막 단계) | `ui.app.config` `ProductConfigWizard` | 없음 | Swing 검색 0 | 낮음 | |
 | A-X2 | 마법사의 "Data collection" 페이지(사용 통계) | `ui.statistics`(마법사 확장) | 의도적 제외 | [telemetry.md](../telemetry.md):27, 146 | - | |
 | A-X3 | 샘플 데이터베이스 만들기 | `ui.config.sample` | 없음 | Swing 검색 0 | 낮음 | |
-| A-X4 | 다른 도구 설정 가져오기(DbVisualizer, Navicat, SQuirreL, DataGrip, pgAdmin, SQL Workbench/J, 사용자 정의) | `ui.config.migration` | 없음 | swt-removal.md:115 | 중간 | 다른 도구에서 옮겨 오는 사용자 |
+| A-X4 | 다른 도구 설정 가져오기(DbVisualizer, Navicat, SQuirreL, DataGrip, pgAdmin, SQL Workbench/J, 사용자 정의) | `ui.config.migration` | 일부 (2026-11-08, File > Import Connections > From Another Tool…: Oracle SQL Developer, Toad, CSV(사용자 정의를 대신함), Chromite 파일과 같은 미리 보기·충돌 화면. 조사 당시: 없음) | [connection-transfer.md](../connection-transfer.md) "다른 도구에서 가져오기". 읽는 코드가 모두 UI 번들에 있어 SWT와 함께 없어졌으므로 모델(`registry`, `ext.oracle`)로 옮김. DbVisualizer, Navicat, SQuirreL, DataGrip, pgAdmin, SQL Workbench/J는 남음 | 중간 | 다른 도구에서 옮겨 오는 사용자 |
 | A-X5 | 사용자 정의 런처 | `launcher` | 의도적 제외 | swt-removal.md:53 "Swing 제품은 기본 `org.eclipse.equinox.launcher`를 쓴다" | - | |
 | A-X6 | macOS 메뉴 통합, 마우스 휠 설정 | `ui.swt.macos` `CocoaUIService`, `PrefPageMouseConfigurator` | 없음 | S14 | 높음(Cmd+Q, 미확인) / 낮음(마우스) | |
 | A-X7 | 내장 브라우저 도우미, Windows 창 테마 | `ui.swt.windows`, `ui.swt.macos` `ChromiteBrowserHelper`, `SWTThemeUtils` | 해당 없음 | SWT 위젯 전용. Swing은 FlatLaf | - | 사용자 기능 없음 |
@@ -236,8 +236,8 @@ Swing에서 바꿀 수 있는 설정: Options — 테마, 아이콘 모양, 입�
 | 상태 | 수 |
 |---|---|
 | 있음 | 11 (A-C21, A-C22, A-U1, A-U2, A-U4, A-U5, A-U9, A-S1, A-S9, A-S10, A-S13) |
-| 일부 | 13 (A-C5, A-C6, A-C8, A-C9, A-C10, A-C14, A-C15, A-C20, A-C23, A-U6, A-U7, A-U8, A-P1) |
-| 없음 | 33 (A-C1~A-C4, A-C7, A-C11~A-C13, A-C19, A-C24~A-C28, A-U3, A-U10, A-U11, A-S2~A-S8, A-S11, A-S12, A-S14, A-S15, A-S17, A-X1, A-X3, A-X4, A-X6) |
+| 일부 | 14 (A-C5, A-C6, A-C8, A-C9, A-C10, A-C14, A-C15, A-C20, A-C23, A-U6, A-U7, A-U8, A-P1, A-X4(2026-11-08)) |
+| 없음 | 32 (A-C1~A-C4, A-C7, A-C11~A-C13, A-C19, A-C24~A-C28, A-U3, A-U10, A-U11, A-S2~A-S8, A-S11, A-S12, A-S14, A-S15, A-S17, A-X1, A-X3, A-X6) |
 | 의도적 제외 | 2 (A-X2 사용 통계 페이지, A-X5 런처) |
 | 조용히 끊김 | 14 (S1~S14, 조사 당시. 그 뒤 S1·S2·S3·S4·S5·S6·S7 수정함, S14는 수정했지만 macOS 실행 확인 필요. S10·S11은 안전 쪽으로 실패) |
 

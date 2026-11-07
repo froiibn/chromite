@@ -205,6 +205,7 @@ import java.util.function.Supplier;
  * - 2026-11-08 문서 탭 UI가 {@link ChromiteTabbedPaneUI}를 상속: 테마를 바꾼 뒤 숨겨진 탭 단추의 도구 설명이 사라지던 문제
  *   (docs/chromite/swing-followup-fixes.md "작은 화면 수정")
  * - 2026-11-08 Save As 덮어쓰기 확인은 바꾸기 / 취소 단추(취소가 기본), 결과 표 변경 저장 질문은 취소가 기본 (docs/chromite/swing-frontend.md "실행 확인의 기본 단추")
+ * - 2026-11-08 File > Import Connections를 하위 메뉴로: Chromite 파일에서… / 다른 도구에서… (docs/chromite/connection-transfer.md "다른 도구에서 가져오기")
  */
 final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplorerPanel.QueryWindows, TableDesignerPanel.Host, QueryLibraryPanel.Host {
 
@@ -1585,9 +1586,14 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
         fileMenu.add(new JMenuItem(saveAsAction));
         fileMenu.add(new JMenuItem(saveAllAction));
         fileMenu.addSeparator();
-        JMenuItem importConnectionsItem = new JMenuItem(ConnectionTransferMessages.transfer_menu_import);
+        JMenu importConnectionsMenu = new JMenu(ConnectionTransferMessages.transfer_menu_import_group);
+        JMenuItem importConnectionsItem = new JMenuItem(ConnectionTransferMessages.transfer_menu_import_file);
         importConnectionsItem.addActionListener(e -> ConnectionTransferCommands.importConnections(this));
-        fileMenu.add(importConnectionsItem);
+        importConnectionsMenu.add(importConnectionsItem);
+        JMenuItem importOtherToolItem = new JMenuItem(ConnectionTransferMessages.transfer_menu_import_other);
+        importOtherToolItem.addActionListener(e -> ConnectionTransferCommands.importFromOtherTool(this));
+        importConnectionsMenu.add(importOtherToolItem);
+        fileMenu.add(importConnectionsMenu);
         JMenuItem exportConnectionsItem = new JMenuItem(ConnectionTransferMessages.transfer_menu_export);
         exportConnectionsItem.addActionListener(e -> ConnectionTransferCommands.exportConnections(this, null));
         fileMenu.add(exportConnectionsItem);
