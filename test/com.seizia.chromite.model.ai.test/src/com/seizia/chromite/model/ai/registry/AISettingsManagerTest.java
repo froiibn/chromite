@@ -29,8 +29,11 @@ import com.seizia.chromite.model.ai.engine.openai.OpenAIConstants;
 import com.seizia.chromite.model.ai.engine.openai.OpenAIModels;
 import com.seizia.chromite.model.ai.engine.openai.OpenAIProperties;
 import com.seizia.chromite.model.app.DBPPlatform;
+import com.seizia.chromite.model.impl.app.SecurePreferencesSecretController;
 import com.seizia.chromite.model.rm.RMConstants;
 import com.seizia.chromite.model.secret.DBSSecretController;
+import com.seizia.chromite.model.security.DBSecurityProviders;
+import com.seizia.chromite.model.security.DBSecurityUtils;
 import com.seizia.chromite.runtime.DBWorkbench;
 import com.seizia.chromite.junit.ChromiteUnitTest;
 import org.junit.jupiter.api.Assertions;
@@ -45,6 +48,12 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
+/**
+ * AI settings: saving, profiles and migration of older configurations.
+ *
+ * 변경 이력:
+ * - 2026-11-07 AI 비밀이 OS 보안 저장소로 옮겨져 헤더 비밀 저장 테스트의 저장소 목(mock)을 보안 저장소 컨트롤러로 바꿈
+ */
 public class AISettingsManagerTest extends ChromiteUnitTest {
 
     @Test
@@ -60,24 +69,36 @@ public class AISettingsManagerTest extends ChromiteUnitTest {
         ((OpenAIProperties) personal.getConfiguration()).setCustomHeaders(Map.of("Authorization", "personal-secret"));
         settings.setDefaultConfiguration(work);
 
+        // AI secrets live in the OS secure storage; the global controller only holds plain text values of older versions
         Map<String, String> secrets = new HashMap<>();
         secrets.put("gpt.token_test-personal", "existing-personal-token");
-        DBSSecretController controller = Mockito.mock(DBSSecretController.class);
+        SecurePreferencesSecretController controller = Mockito.mock(SecurePreferencesSecretController.class);
         Mockito.when(controller.getPrivateSecretValue(ArgumentMatchers.anyString()))
             .thenAnswer(invocation -> secrets.get(invocation.getArgument(0)));
         Mockito.doAnswer(invocation -> {
             secrets.put(invocation.getArgument(0), invocation.getArgument(1));
             return null;
         }).when(controller).setPrivateSecretValue(ArgumentMatchers.anyString(), ArgumentMatchers.nullable(String.class));
+        Mockito.when(controller.isPrivateSecretEncrypted(ArgumentMatchers.anyString())).thenReturn(true);
         DBPPlatform platform = Mockito.mock(DBPPlatform.class, Mockito.RETURNS_DEEP_STUBS);
         Mockito.when(platform.getWorkspace().hasRealmPermission(RMConstants.PERMISSION_CONFIGURATION_MANAGER)).thenReturn(true);
 
         try (MockedStatic<DBWorkbench> workbench = Mockito.mockStatic(
             DBWorkbench.class, Mockito.withSettings().mockMaker("mock-maker-inline"));
             MockedStatic<DBSSecretController> controllers = Mockito.mockStatic(
-                DBSSecretController.class, Mockito.withSettings().mockMaker("mock-maker-inline"))) {
+                DBSSecretController.class, Mockito.withSettings().mockMaker("mock-maker-inline"));
+            MockedStatic<DBSecurityUtils> providers = Mockito.mockStatic(
+                DBSecurityUtils.class, Mockito.withSettings().mockMaker("mock-maker-inline"));
+            MockedStatic<SecurePreferencesSecretController> securePreferences = Mockito.mockStatic(
+                SecurePreferencesSecretController.class, Mockito.withSettings().mockMaker("mock-maker-inline"))) {
             workbench.when(DBWorkbench::getPlatform).thenReturn(platform);
-            controllers.when(DBSSecretController::getGlobalSecretControllerOrNull).thenReturn(controller);
+            workbench.when(DBWorkbench::isPlatformStarted).thenReturn(true);
+            controllers.when(DBSSecretController::getGlobalSecretControllerOrNull)
+                .thenReturn(Mockito.mock(DBSSecretController.class));
+            providers.when(DBSecurityUtils::findNativeOSProvider).thenReturn(DBSecurityProviders.WINDOWS_INTEGRATION);
+            securePreferences.when(() -> SecurePreferencesSecretController.create(
+                SecurePreferencesSecretController.SECRET_PREFS_ROOT, DBSecurityProviders.WINDOWS_INTEGRATION))
+                .thenReturn(controller);
             try {
                 manager.saveSettings(settings);
                 Assertions.assertEquals("existing-personal-token", secrets.get("gpt.token_test-personal"));

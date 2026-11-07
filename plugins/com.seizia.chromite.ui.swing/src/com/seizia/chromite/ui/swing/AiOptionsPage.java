@@ -41,6 +41,7 @@ import com.seizia.chromite.model.ai.tools.mcp.AIMcpServer;
 import com.seizia.chromite.model.ai.tools.mcp.AIMcpSettings;
 import com.seizia.chromite.model.runtime.AbstractJob;
 import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.runtime.DBSecurityException;
 import com.seizia.chromite.runtime.DBWorkbench;
 import com.seizia.chromite.ui.swing.internal.AiMessages;
 import org.eclipse.core.runtime.IStatus;
@@ -68,8 +69,9 @@ import java.util.Map;
  *
  * 설계:
  * <ul>
- *     <li>Providers: 제공자별 API 키·주소·기본 모델. 키는 비밀 저장소에만 저장하고({@link AIAgentProviders#saveProperties}) 화면에 다시 보이지 않는다
- *     (입력란은 비어 있고 "저장됨" 안내만 보인다). Test는 저장하지 않은 값으로 모델 목록을 받아 본다(작업 스레드, 제공자에 요청 1번).</li>
+ *     <li>Providers: 제공자별 API 키·주소·기본 모델. 키는 OS 보안 저장소에만 저장하고({@link AIAgentProviders#saveProperties}) 화면에 다시 보이지 않는다
+ *     (입력란은 비어 있고 "저장됨" 안내만 보인다). 보안 저장소가 키를 저장하지 못하면 그 이유를 따로 알리고 아무것도 저장하지 않는다.
+ *     Test는 저장하지 않은 값으로 모델 목록을 받아 본다(작업 스레드, 제공자에 요청 1번).</li>
  *     <li>Policy: {@link AIToolPolicy}의 규칙 사본을 고치고 OK에서 한 번에 저장한다. "실제 권한" 열은 저장 전 사본으로 실행기와 같은 판정
  *     ({@link AIToolPolicy#resolve(AIToolPolicy.Settings, DBPDataSourceContainer, AIFunctionDescriptor, AIToolAccess)})을 해서 보인다.
  *     운영 연결 규칙과 읽기 전용 연결 규칙은 맨 위에 늘 보인다.</li>
@@ -80,6 +82,7 @@ import java.util.Map;
  *
  * 변경 이력:
  * - 2026-11-07 최초 작성 (docs/chromite/ai-agent.md "2단계")
+ * - 2026-11-07 OS 보안 저장소 실패 안내({@code ai_options_save_failed_secure_storage})
  */
 final class AiOptionsPage extends JPanel {
 
@@ -356,8 +359,10 @@ final class AiOptionsPage extends JPanel {
             try {
                 AIAgentProviders.saveProperties(engineId, createProperties());
             } catch (Exception e) {
-                ErrorDialog.show(this, AiMessages.ai_options_title, NLS.bind(AiMessages.ai_options_save_failed,
-                    AIAgentProviders.getLabel(engineId)), e);
+                // A secure storage failure gets its own text: the details alone don't tell that nothing went to a file
+                String text = e instanceof DBSecurityException ? AiMessages.ai_options_save_failed_secure_storage
+                    : AiMessages.ai_options_save_failed;
+                ErrorDialog.show(this, AiMessages.ai_options_title, NLS.bind(text, AIAgentProviders.getLabel(engineId)), e);
             }
         }
     }

@@ -29,6 +29,7 @@ import org.eclipse.osgi.util.NLS;
  * 변경 이력:
  * - 2026-11-07 최초 작성 (docs/chromite/ai-agent.md "2단계")
  * - 2026-11-07 {@code ai_tool_transaction_*}, {@code ai_tool_state_after_transaction}: 도구 카드의 트랜잭션 질문 결과
+ * - 2026-11-07 {@code ai_options_save_failed_secure_storage}: OS 보안 저장소에 키를 저장하지 못했을 때의 안내
  */
 public class AiMessages extends NLS {
     private static final String BUNDLE_NAME = "com.seizia.chromite.ui.swing.internal.AiMessages"; //$NON-NLS-1$
@@ -150,6 +151,7 @@ public class AiMessages extends NLS {
     public static String ai_options_test_ok;
     public static String ai_options_test_failed;
     public static String ai_options_save_failed;
+    public static String ai_options_save_failed_secure_storage;
     public static String ai_policy_rule_production;
     public static String ai_policy_rule_read_only;
     public static String ai_policy_rule_dangerous;

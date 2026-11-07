@@ -24,8 +24,13 @@ import com.seizia.chromite.model.ai.AIConfigurationProfile;
 import com.seizia.chromite.model.ai.engine.BaseAIEngineProperties;
 import com.seizia.chromite.model.ai.engine.copilot.CopilotCompletionEngine;
 import com.seizia.chromite.model.ai.engine.copilot.CopilotProperties;
+import com.seizia.chromite.model.app.DBPPlatform;
+import com.seizia.chromite.model.impl.app.SecurePreferencesSecretController;
 import com.seizia.chromite.model.runtime.VoidProgressMonitor;
 import com.seizia.chromite.model.secret.DBSSecretController;
+import com.seizia.chromite.model.security.DBSecurityProviders;
+import com.seizia.chromite.model.security.DBSecurityUtils;
+import com.seizia.chromite.runtime.DBWorkbench;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
@@ -42,6 +47,7 @@ import java.util.Map;
  * - 2026-11-06 dbeaver.com AI 모델 카탈로그 제거: 카탈로그 픽스처를 삭제했다. 환경 변수로 지정한 모델에도 카탈로그 크기 대신
  *   설정한 컨텍스트 크기를 쓰도록 기대값을 바꾸고, 카탈로그 한도를 빌리지 않는지 보던
  *   environmentGatewayDoesNotBorrowFirstPartyCatalogLimits 테스트와 getEffectiveTemperature() 검사를 삭제했다.
+ * - 2026-11-07 AI 비밀이 OS 보안 저장소로 옮겨져 savingSecretsDoesNotPersistTheEnvironmentKey가 보안 저장소 컨트롤러에 쓰인 값을 확인한다.
  */
 class OpenAIEnvironmentTest {
     @Test
@@ -124,10 +130,24 @@ class OpenAIEnvironmentTest {
         properties.setToken("saved-key");
         AIConfigurationProfile profile = new AIConfigurationProfile();
         profile.setProfileId("environment-test");
-        DBSSecretController controller = Mockito.mock(DBSSecretController.class);
-        try (MockedStatic<DBSSecretController> controllers = Mockito.mockStatic(
-            DBSSecretController.class, Mockito.withSettings().mockMaker("mock-maker-inline"))) {
-            controllers.when(DBSSecretController::getGlobalSecretControllerOrNull).thenReturn(controller);
+        SecurePreferencesSecretController controller = Mockito.mock(SecurePreferencesSecretController.class);
+        Mockito.when(controller.isPrivateSecretEncrypted(Mockito.anyString())).thenReturn(true);
+        try (MockedStatic<DBWorkbench> workbench = Mockito.mockStatic(
+                 DBWorkbench.class, Mockito.withSettings().mockMaker("mock-maker-inline"));
+             MockedStatic<DBSSecretController> controllers = Mockito.mockStatic(
+                 DBSSecretController.class, Mockito.withSettings().mockMaker("mock-maker-inline"));
+             MockedStatic<DBSecurityUtils> providers = Mockito.mockStatic(
+                 DBSecurityUtils.class, Mockito.withSettings().mockMaker("mock-maker-inline"));
+             MockedStatic<SecurePreferencesSecretController> securePreferences = Mockito.mockStatic(
+                 SecurePreferencesSecretController.class, Mockito.withSettings().mockMaker("mock-maker-inline"))) {
+            workbench.when(DBWorkbench::getPlatform).thenReturn(Mockito.mock(DBPPlatform.class, Mockito.RETURNS_DEEP_STUBS));
+            workbench.when(DBWorkbench::isPlatformStarted).thenReturn(true);
+            controllers.when(DBSSecretController::getGlobalSecretControllerOrNull)
+                .thenReturn(Mockito.mock(DBSSecretController.class));
+            providers.when(DBSecurityUtils::findNativeOSProvider).thenReturn(DBSecurityProviders.WINDOWS_INTEGRATION);
+            securePreferences.when(() -> SecurePreferencesSecretController.create(
+                SecurePreferencesSecretController.SECRET_PREFS_ROOT, DBSecurityProviders.WINDOWS_INTEGRATION))
+                .thenReturn(controller);
             properties.saveSecrets(profile);
             Mockito.verify(controller).setPrivateSecretValue("gpt.token_environment-test", "saved-key");
             Mockito.verify(controller, Mockito.never()).setPrivateSecretValue(Mockito.anyString(), Mockito.eq("environment-key"));

@@ -51,7 +51,7 @@
         <li>By default, read tools run without asking. Tools that change data or structure ask before they run, and on production connections they are blocked until you allow them for that connection.</li>
         <li>With Ollama, requests go only to the Ollama server you entered (usually this computer or your company network).</li>
         <li>What reaches a provider is covered by that provider's privacy policy and terms.</li>
-        <li>API keys are stored unencrypted in a settings file of the Chromite workspace on this computer and are not shown again in the settings. Conversations and the tool log also stay in the workspace.</li>
+        <li>From the version after 0.1.0, API keys are stored encrypted in the secure storage of the operating system on this computer (on Windows it is tied to your Windows account, on macOS it uses the Keychain), never in a settings file, and are not shown again in the settings. Version 0.1.0 stored them unencrypted in a settings file of the Chromite workspace; the newer version moves such a key to the secure storage the first time it uses it and deletes the unencrypted copy. Conversations and the tool log stay in the workspace.</li>
       </ul>
       <p>The local MCP server is off by default. When you turn it on, it accepts only requests from this computer (127.0.0.1) that carry the token shown in the settings. The same permission and confirmation rules apply to other AI tools connected to it; where such a tool sends the results is up to that tool's settings and terms.</p>
     </div>

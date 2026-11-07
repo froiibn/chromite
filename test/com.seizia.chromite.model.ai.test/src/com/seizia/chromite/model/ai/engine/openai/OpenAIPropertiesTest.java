@@ -23,7 +23,12 @@ import org.jkiss.dbeaver.DBException;
 import com.seizia.chromite.model.ai.AIConfigurationProfile;
 import com.seizia.chromite.model.ai.AIConstants;
 import com.seizia.chromite.model.ai.engine.AIAccountProperties;
+import com.seizia.chromite.model.app.DBPPlatform;
+import com.seizia.chromite.model.impl.app.SecurePreferencesSecretController;
 import com.seizia.chromite.model.secret.DBSSecretController;
+import com.seizia.chromite.model.security.DBSecurityProviders;
+import com.seizia.chromite.model.security.DBSecurityUtils;
+import com.seizia.chromite.runtime.DBWorkbench;
 import com.seizia.chromite.runtime.properties.ObjectAttributeDescriptor;
 import com.seizia.chromite.runtime.properties.ObjectPropertyDescriptor;
 import com.seizia.chromite.runtime.properties.PropertySourceEditable;
@@ -43,6 +48,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+/**
+ * OpenAI settings: properties, serialization, secrets and request headers.
+ *
+ * 변경 이력:
+ * - 2026-11-07 AI 비밀이 OS 보안 저장소로 옮겨져 사용자 헤더 비밀 테스트의 저장소 목(mock)을 보안 저장소 컨트롤러로 바꿈
+ */
 public class OpenAIPropertiesTest extends ChromiteUnitTest {
 
     @Test
@@ -204,18 +215,33 @@ public class OpenAIPropertiesTest extends ChromiteUnitTest {
 
     @Test
     public void customHeaderSecretsShouldBeRestoredClearedAndDeletedPerProfile() throws DBException {
+        // AI secrets live in the OS secure storage; the global controller only holds plain text values of older versions
         Map<String, String> secrets = new HashMap<>();
-        DBSSecretController controller = Mockito.mock(DBSSecretController.class);
+        SecurePreferencesSecretController controller = Mockito.mock(SecurePreferencesSecretController.class);
         Mockito.when(controller.getPrivateSecretValue(ArgumentMatchers.anyString()))
             .thenAnswer(invocation -> secrets.get(invocation.getArgument(0)));
         Mockito.doAnswer(invocation -> {
             secrets.put(invocation.getArgument(0), invocation.getArgument(1));
             return null;
         }).when(controller).setPrivateSecretValue(ArgumentMatchers.anyString(), ArgumentMatchers.nullable(String.class));
+        Mockito.when(controller.isPrivateSecretEncrypted(ArgumentMatchers.anyString())).thenReturn(true);
 
-        try (MockedStatic<DBSSecretController> controllers = Mockito.mockStatic(
-            DBSSecretController.class, Mockito.withSettings().mockMaker("mock-maker-inline"))) {
-            controllers.when(DBSSecretController::getGlobalSecretControllerOrNull).thenReturn(controller);
+        try (MockedStatic<DBWorkbench> workbench = Mockito.mockStatic(
+                 DBWorkbench.class, Mockito.withSettings().mockMaker("mock-maker-inline"));
+             MockedStatic<DBSSecretController> controllers = Mockito.mockStatic(
+                 DBSSecretController.class, Mockito.withSettings().mockMaker("mock-maker-inline"));
+             MockedStatic<DBSecurityUtils> providers = Mockito.mockStatic(
+                 DBSecurityUtils.class, Mockito.withSettings().mockMaker("mock-maker-inline"));
+             MockedStatic<SecurePreferencesSecretController> securePreferences = Mockito.mockStatic(
+                 SecurePreferencesSecretController.class, Mockito.withSettings().mockMaker("mock-maker-inline"))) {
+            workbench.when(DBWorkbench::getPlatform).thenReturn(Mockito.mock(DBPPlatform.class, Mockito.RETURNS_DEEP_STUBS));
+            workbench.when(DBWorkbench::isPlatformStarted).thenReturn(true);
+            controllers.when(DBSSecretController::getGlobalSecretControllerOrNull)
+                .thenReturn(Mockito.mock(DBSSecretController.class));
+            providers.when(DBSecurityUtils::findNativeOSProvider).thenReturn(DBSecurityProviders.WINDOWS_INTEGRATION);
+            securePreferences.when(() -> SecurePreferencesSecretController.create(
+                SecurePreferencesSecretController.SECRET_PREFS_ROOT, DBSecurityProviders.WINDOWS_INTEGRATION))
+                .thenReturn(controller);
             AIConfigurationProfile work = new AIConfigurationProfile();
             work.setProfileId("work");
             AIConfigurationProfile personal = new AIConfigurationProfile();

@@ -45,6 +45,7 @@ import com.seizia.chromite.model.sql.parser.SQLIdentifierDetector;
 import com.seizia.chromite.model.struct.*;
 import com.seizia.chromite.model.struct.rdb.*;
 import com.seizia.chromite.registry.DataSourceDescriptor;
+import com.seizia.chromite.runtime.DBSecurityException;
 import com.seizia.chromite.runtime.DBWorkbench;
 import com.seizia.chromite.runtime.ui.UIServiceSQL;
 import org.jkiss.utils.CommonUtils;
@@ -54,6 +55,21 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+/**
+ * AI helpers: secrets of the AI settings, object eligibility and DDL, SQL and context helpers.
+ *
+ * 설계:
+ * - AI 비밀(API 키, Copilot 토큰, OpenAI 사용자 헤더)은 OS 보안 저장소(Eclipse secure storage + OS 제공자: Windows는 DPAPI로 보호한
+ *   마스터 비밀번호, macOS는 키체인)에 둔다. 작업 공간의 전역 비밀 컨트롤러(데스크톱은 {@code LocalSecretController})는 값을
+ *   작업 공간 설정 파일에 평문으로 쓰기 때문이다. 이 컨트롤러는 다른 기능(전역 네트워크 프로필, 프록시, Maven 인증)도 쓰므로
+ *   컨트롤러 자체를 바꾸지 않고 AI 비밀만 옮겼다.
+ * - OS 보안 저장소를 쓸 수 없거나 값을 암호화하지 않으면 예외를 낸다. 평문으로 대신 저장하지 않는다.
+ * - 0.1.0이 평문으로 저장한 값은 처음 읽을 때 보안 저장소로 옮기고(쓰고 flush한 뒤) 평문 항목을 지운다. 보안 저장소는 OS 사용자
+ *   단위라(OpenAI 계정 토큰, DataDam과 같은 노드) 이미 값이 있으면 그 작업 공간의 평문 사본은 쓰이지 않으므로 지운다.
+ *
+ * 변경 이력:
+ * - 2026-11-07 AI 비밀을 OS 보안 저장소로 옮김, 평문 값 이전 (docs/chromite/ai-agent.md "엔진")
+ */
 public final class AIUtils {
     private static final Log log = Log.getLog(AIUtils.class);
     public static final double DEFAULT_TEMPERATURE = 0.0;
@@ -82,8 +98,11 @@ public final class AIUtils {
     }
 
     /**
-     * Retrieves a secret value from the global secret controller.
-     * If the secret value is empty, it returns the provided default value.
+     * Retrieves a secret value (API key, token, custom headers) from the OS secure storage.
+     * A value that an earlier version saved in plain text with the global secret controller is moved to the secure storage
+     * on this first read. If the secret value is empty, it returns the provided default value.
+     *
+     * @throws DBException if the OS secure storage is not available
      */
     @Nullable
     public static String getSecretValueOrDefault(
@@ -95,9 +114,16 @@ public final class AIUtils {
         if (globalSecretController == null) {
             return defaultValue;
         }
-        String suffix = getSecretSuffix(profile);
-        String secretValue = globalSecretController.getPrivateSecretValue(
-            secretId + suffix);
+        String key = secretId + getSecretSuffix(profile);
+        SecurePreferencesSecretController secureController = getSecureSecretController();
+        String secretValue = secureController.getPrivateSecretValue(key);
+        if (secretValue == null) {
+            secretValue = moveLegacySecret(globalSecretController, secureController, key);
+        } else {
+            // The secure storage is per OS user: another workspace may have moved its key first. The plain text copy of
+            // this workspace is then never used, and it must not stay in the settings file.
+            removeLegacySecret(globalSecretController, key);
+        }
         if (CommonUtils.isEmpty(secretValue)) {
             return defaultValue;
         }
@@ -105,6 +131,12 @@ public final class AIUtils {
         return secretValue;
     }
 
+    /**
+     * Saves a secret value in the OS secure storage (an empty value removes it) and removes any plain text copy an earlier
+     * version left with the global secret controller.
+     *
+     * @throws DBException if the OS secure storage is not available or did not encrypt the value; nothing is saved then
+     */
     public static void setSecretValue(
         @NotNull AIConfigurationProfile profile,
         @NotNull String secret,
@@ -114,18 +146,78 @@ public final class AIUtils {
         if (globalSecretController == null) {
             return;
         }
-        globalSecretController.setPrivateSecretValue(secret + getSecretSuffix(profile), value);
+        String key = secret + getSecretSuffix(profile);
+        SecurePreferencesSecretController secureController = getSecureSecretController();
+        if (CommonUtils.isEmpty(value)) {
+            secureController.setPrivateSecretValue(key, null);
+            secureController.flushChanges();
+        } else {
+            putSecureSecret(secureController, key, value);
+        }
+        removeLegacySecret(globalSecretController, key);
     }
 
     public static void deleteSecretValue(
         @NotNull AIConfigurationProfile profile,
         @NotNull String secret
     ) throws DBException {
-        DBSSecretController globalSecretController = DBSSecretController.getGlobalSecretControllerOrNull();
-        if (globalSecretController == null) {
-            return;
+        setSecretValue(profile, secret, null);
+    }
+
+    /**
+     * The OS secure storage of AI secrets.
+     */
+    @NotNull
+    private static SecurePreferencesSecretController getSecureSecretController() throws DBException {
+        SecurePreferencesSecretController controller = getNativeSecretController();
+        if (controller == null) {
+            // Never fall back to the global secret controller: it keeps values in plain text in a workspace settings file
+            throw new DBSecurityException("The secure storage of the operating system is not available. "
+                + "AI keys can't be read or saved.");
         }
-        globalSecretController.setPrivateSecretValue(secret + getSecretSuffix(profile), null);
+        return controller;
+    }
+
+    private static void putSecureSecret(
+        @NotNull SecurePreferencesSecretController secureController,
+        @NotNull String key,
+        @NotNull String value
+    ) throws DBException {
+        secureController.setPrivateSecretValue(key, value);
+        if (!secureController.isPrivateSecretEncrypted(key)) {
+            // Equinox can store the value unencrypted when the OS provider cannot supply a password
+            secureController.setPrivateSecretValue(key, null);
+            secureController.flushChanges();
+            throw new DBSecurityException("The secure storage of the operating system did not encrypt the AI secret");
+        }
+        secureController.flushChanges();
+    }
+
+    /**
+     * Moves a secret that Chromite 0.1.0 saved in plain text with the global secret controller to the secure storage.
+     * The plain text copy is removed only after the secure copy was written and flushed.
+     */
+    @Nullable
+    private static String moveLegacySecret(
+        @NotNull DBSSecretController legacyController,
+        @NotNull SecurePreferencesSecretController secureController,
+        @NotNull String key
+    ) throws DBException {
+        String legacyValue = legacyController.getPrivateSecretValue(key);
+        if (CommonUtils.isEmpty(legacyValue)) {
+            return null;
+        }
+        putSecureSecret(secureController, key, legacyValue);
+        removeLegacySecret(legacyController, key);
+        log.info("AI secret '" + key + "' was moved from the workspace settings to the secure storage");
+        return legacyValue;
+    }
+
+    private static void removeLegacySecret(@NotNull DBSSecretController legacyController, @NotNull String key) throws DBException {
+        if (legacyController.getPrivateSecretValue(key) != null) {
+            legacyController.setPrivateSecretValue(key, null);
+            legacyController.flushChanges();
+        }
     }
 
     /** Read account tokens from integrated storage, falling back to older global secrets. */
@@ -140,7 +232,7 @@ public final class AIUtils {
             return defaultValue;
         }
         String key = INTEGRATED_ACCOUNT_TOKEN_PREFIX + secretId + getSecretSuffix(profile);
-        DBSSecretController nativeController = getNativeAccountTokenController();
+        DBSSecretController nativeController = getNativeSecretController();
         if (nativeController != null) {
             String value = nativeController.getPrivateSecretValue(key);
             if (value != null) {
@@ -151,7 +243,9 @@ public final class AIUtils {
         if (value != null) {
             return value;
         }
-        return getSecretValueOrDefault(profile, secretId, defaultValue);
+        // Tokens of older versions without the integrated prefix: read in place, deleteAccountToken removes them
+        value = globalController.getPrivateSecretValue(secretId + getSecretSuffix(profile));
+        return CommonUtils.isEmpty(value) ? defaultValue : value;
     }
 
     public static void setAccountToken(
@@ -164,7 +258,7 @@ public final class AIUtils {
             return;
         }
         String key = INTEGRATED_ACCOUNT_TOKEN_PREFIX + secretId + getSecretSuffix(profile);
-        SecurePreferencesSecretController nativeController = getNativeAccountTokenController();
+        SecurePreferencesSecretController nativeController = getNativeSecretController();
         if (value == null) {
             if (nativeController != null) {
                 nativeController.setPrivateSecretValue(key, null);
@@ -189,8 +283,12 @@ public final class AIUtils {
         setAccountToken(profile, secretId, null);
     }
 
+    /**
+     * Eclipse secure storage with the OS provider (Windows: master password protected by DPAPI, macOS: Keychain),
+     * or null when there is none (headless application, no usable provider).
+     */
     @Nullable
-    private static SecurePreferencesSecretController getNativeAccountTokenController() {
+    private static SecurePreferencesSecretController getNativeSecretController() {
         if (!DBWorkbench.isPlatformStarted() || DBWorkbench.getPlatform().getApplication().isHeadlessMode()) {
             return null;
         }

@@ -37,6 +37,13 @@ import java.util.stream.Collectors;
 
 /**
  * Uses Eclipse secure preferences to read/write local secrets.
+ *
+ * 설계: OS 제공자(Windows DPAPI, macOS 키체인)의 실패는 unchecked 예외로도 올라온다. 이 컨트롤러의 호출자는
+ * {@link DBException}만 처리하므로 값 읽기·쓰기·암호화 확인에서 그런 예외를 {@link DBSecurityException}으로 바꾼다.
+ *
+ * 변경 이력:
+ * - 2026-11-07 제공자의 unchecked 예외를 DBSecurityException으로 바꿈. AI 키를 이 저장소로 옮긴 뒤(AIUtils) 복호화할 수 없는
+ *   보안 저장소에서 Win32Exception이 AI 창을 거쳐 앱 시작을 멈췄다 (docs/chromite/ai-agent.md "엔진")
  */
 public class SecurePreferencesSecretController implements DBSSecretController, DBSSecretBrowser {
 
@@ -74,6 +81,8 @@ public class SecurePreferencesSecretController implements DBSSecretController, D
                 throw new DBSecurityException("Cannot load secure settings - master password is not provided");
             }
             throw new DBSecurityException("Error getting preference value '" + secretId + "'", e);
+        } catch (RuntimeException e) {
+            throw providerFailure(secretId, e);
         }
     }
 
@@ -93,7 +102,19 @@ public class SecurePreferencesSecretController implements DBSSecretController, D
                 throw new DBSecurityException("Cannot save secure settings - password is invalid or was not provided", e);
             }
             throw new DBSecurityException("Error setting preference value '" + secretId + "'", e);
+        } catch (RuntimeException e) {
+            throw providerFailure(secretId, e);
         }
+    }
+
+    /**
+     * An OS password provider can fail with an unchecked exception (the Windows provider throws JNA's
+     * {@code Win32Exception} when DPAPI can't decrypt the master password). Callers handle {@link DBException} only,
+     * so an unchecked failure would escape to whatever UI code asked for the secret.
+     */
+    @NotNull
+    private static DBSecurityException providerFailure(@NotNull String secretId, @NotNull RuntimeException e) {
+        return new DBSecurityException("Secure storage failed for '" + secretId + "': " + e.getMessage(), e);
     }
 
     @NotNull
@@ -133,6 +154,8 @@ public class SecurePreferencesSecretController implements DBSSecretController, D
             return getNodeByPath(keyPath.getParent()).isEncrypted(keyPath.getFileName().toString());
         } catch (StorageException e) {
             throw new DBSecurityException("Error checking encryption of preference value '" + secretId + "'", e);
+        } catch (RuntimeException e) {
+            throw providerFailure(secretId, e);
         }
     }
 
