@@ -180,7 +180,7 @@ swing-security.md는 DB 보안(로그인·역할·권한) 문서이고 연결 �
 | # | 기능 | SWT 출처 | 상태 | 근거 | 영향 | 메모 |
 |---|---|---|---|---|---|---|
 | O1 | 세션 관리자 | `ui.editors.session` `SessionManagerViewer` | 일부 | `SessionManagerPanel`, swing-admin-tools.md "Activity Monitor — Processes" | 중간 | SQL Server·MySQL/MariaDB·PostgreSQL·Oracle만. SWT는 세션 관리자가 있는 다른 DB도 지원 |
-| O2 | 잠금 관리자(그래프) | `ui.editors.locks` `LockGraphicalView`, `LockManagerViewer` | 일부 | `LockManagerPanel`(트리·표, 4개 DB) | 중간 | 그래프 보기 없음 |
+| O2 | 잠금 관리자(그래프) | `ui.editors.locks` `LockGraphicalView`, `LockManagerViewer` | 일부 | `LockManagerPanel`(트리·표, 4개 DB, 2026-11-08 Altibase를 더해 5개) | 중간 | 그래프 보기 없음 |
 | O3 | 개체 권한(ACL) 편집기 | `ui.editors.acl` `ObjectACLEditor` | 일부 | `ObjectPermissionsDialog`(SQL Server·PostgreSQL·MySQL) | 낮음 | CE에서 `ObjectACLEditor`를 쓰는 확장은 없었음(`plugin.xml` 비어 있음). Oracle 없음 |
 | O4 | HEX 편집기 | `ui.editors.hex` `BinaryEditor`, `HexEditControl` | 일부 | 값 패널 Hex 보기(256 KiB, 읽기 전용) | 낮음 | 편집·찾기·이동 없음(swt-removal.md:119) |
 | O5 | 이미지 편집기 | `ui.editors.image` `ImageViewer` | 일부 | 값 패널 Image 보기 | 낮음 | 확대·저장·불러오기 없음 |

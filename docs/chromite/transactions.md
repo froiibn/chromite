@@ -26,7 +26,8 @@
 | 열린 트랜잭션 목록 | `com.seizia.chromite.ui.swing` | `OpenTransactionsDialog`(Tools > Open Transactions…) |
 | 문구 | `com.seizia.chromite.ui.swing` | `CoreMessages`(`main_commit` 등), `EditorMessages`(`editor_txn_log_*`, `editor_txn_list_*`, `editor_sql_commit_tip` 등), 영어·한국어 |
 | 오류 복구의 트랜잭션 보호 | `com.seizia.chromite.model` | `runtime.jobs.TransactionRecoveryGuard`(판단, 사용자가 고른 다시 연결), `DBExecUtils.tryExecuteRecover`, `KeepAlivePingJob`, `UIServiceIdleTransactions` |
-| 오류 복구 알림 | `com.seizia.chromite.ui.swing` | `SwingIdleTransactionService`(`showTransactionAborted`, `showReconnectHeld`), `ConnectionMessages`(`recovery_*`) |
+| 오류 복구 알림 | `com.seizia.chromite.ui.swing` | `SwingIdleTransactionService`(`showTransactionAborted`, `showReconnectHeld`, `showSessionReopened`), `ConnectionMessages`(`recovery_*`) |
+| 끊긴 세션(확인, 그 세션만 다시 열기, 버리기) | `com.seizia.chromite.model`, `ui.swing` | `TransactionRecoveryGuard`(`isSessionLost`, `reopenLostSession`, `discardLostTransaction`), `ExitTransactionCheck`(`findLost`, `confirmDiscard`), `ConnectionMessages`(`lost_txn_*`) |
 
 ## Commit / Roll Back 명령
 
@@ -121,7 +122,8 @@ A의 Roll Back이 B의 작업도 버렸다. 한 창에서 바꾼 기본 DB/스�
 - 닫기: 창을 닫을 때, 창의 연결을 바꿀 때 작업 스레드에서 닫는다.
 - 연결 끊기: 인스턴스가 모든 문맥을 닫는다(`JDBCRemoteInstance.shutdown`). 끊기 전 질문(`ExitTransactionCheck.confirmDisconnect`)은 연결의 모든 문맥을 보므로
   창마다의 세션이 모두 목록에 나오고, 목록은 문맥 이름 대신 창 이름("연결 (SQLQuery1.sql)")이다. 다시 연결하면 창마다 새 세션을 연다.
-- 다시 연결(연결 유지 실패 등 무효화): 같은 문맥 객체가 다시 연결되므로 창은 같은 세션을 계속 쓴다.
+- 다시 연결(연결 유지 실패 등 무효화): 같은 문맥 객체가 다시 연결되므로 창은 같은 세션을 계속 쓴다. 창의 세션 하나만 끊겼으면 그 세션만 다시 연다
+  (아래 "끊긴 세션의 쿼리 창").
 
 ### 트랜잭션 안전
 
@@ -139,8 +141,9 @@ A의 Roll Back이 B의 작업도 버렸다. 한 창에서 바꾼 기본 DB/스�
 오류 복구(아래 "오류 복구와 열린 트랜잭션", `TransactionRecoveryGuard`)와 함께:
 - 창의 세션은 인스턴스의 문맥 목록(`getAllContexts`)에 들어가므로 복구가 끝낼 문맥을 셀 때 창마다의 세션이 모두 들어간다. 코드를 바꿀 필요가 없었다.
 - 중단된 트랜잭션(PostgreSQL 25P02)의 롤백은 실패한 창의 문맥 하나만 대상이다. 알림은 그 창 이름으로 뜨고 다른 창의 트랜잭션은 그대로다.
-- 한 창의 세션이 끊기면 복구는 데이터 소스 전체를 다시 연결하려 한다(업스트림 동작). 다른 창에 열린 트랜잭션이 있으면 다시 연결하지 않고 "연결 끊김" 알림이
-  그 창들을 이름으로 보인다(`SwingIdleTransactionService.describeQueryWindows`가 창의 실제 문맥을 비교). 알림의 다시 연결을 고르면 모든 창의 세션이 다시 연결된다.
+- 한 창의 세션이 끊기면 복구는 그 창의 세션만 다시 연다(2026-11-08, 아래 "끊긴 세션의 쿼리 창"). 주 문맥(창들이 함께 쓰는 설정)이나 메타데이터 문맥이
+  끊겼을 때만 데이터 소스 전체를 다시 연결하려 하고, 다른 창에 열린 트랜잭션이 있으면 다시 연결하지 않고 "연결 끊김" 알림이 그 창들을 이름으로 보인다
+  (`SwingIdleTransactionService.describeQueryWindows`가 창의 실제 문맥을 비교). 알림의 다시 연결을 고르면 모든 창의 세션이 다시 연결된다.
 
 ### 창의 문맥을 따르는 것
 
@@ -252,6 +255,58 @@ N은 연결의 모든 인스턴스의 실행 문맥 수다(주, 메타데이터,
 
 연결 유지 핑 경로(`KeepAlivePingJob`)는 같은 판단을 쓰지만 연결 유지 간격을 켜고 실행해 보지는 않았다.
 
+## 끊긴 세션의 쿼리 창
+
+### 문제 (#124를 만들며 발견, 2026-11-07 저녁 후속 10·11번)
+
+1. 쿼리 창의 자기 세션이 끊기면(서버가 세션을 끊음, 네트워크 끊김) 창을 닫을 수 없었다. 닫기 질문이 커밋 / 롤백 / 취소를 물었지만 커밋과 롤백이 모두
+   끊긴 연결에서 실패해 창이 남았다. 끊긴 연결을 끊을 때(연결 끊기, 다시 연결, 삭제)와 Chromite를 끝낼 때도 같았다(`ExitTransactionCheck`의 한 경로).
+2. 세션 하나가 끊기면 복구가 연결 전체를 다시 연결하려 했고, #120의 멈춤이 다른 창의 열린 트랜잭션 때문에 그 다시 연결을 막았다. 그래서 끊긴 창은
+   다른 창의 트랜잭션이 끝날 때까지 쓸 수 없었고, 알림의 다시 연결을 고르면 다른 창의 트랜잭션이 버려졌다.
+
+### 바꾼 것
+
+- **끊긴 세션 알아보기**(`TransactionRecoveryGuard.isSessionLost`, 모델). 문맥에 연결이 없거나, 연결 확인(`DBCExecutionContext.checkContextAlive`, 연결 유지 핑과 같은
+  확인. PostgreSQL·SQL Server는 `Connection.isValid`, 테스트 SQL이 있는 DB는 그 SQL)이 3초 안에 실패하면 끊긴 것이다. 3초 안에 답하지 않거나 문맥에서 문장이
+  실행 중이면 살아 있다고 본다. 살아 있는 세션을 끊긴 것으로 보면 트랜잭션을 묻지 않고 버리게 되므로 모를 때는 예전처럼 묻는다.
+  확인은 서버에 왕복 하나를 보내지만 트랜잭션을 끝내지 않고 쿼리 관리자에도 기록되지 않는다.
+- **끝내기 전 질문**(`ExitTransactionCheck`: 창 닫기, 연결 바꾸기, 연결 끊기·다시 연결·삭제, Chromite 끝내기, 탐색기 개체 변경). 열린 트랜잭션이 있는 세션을
+  찾은 뒤 위 확인을 진행 대화상자에서 한다(빨리 끝나면 대화상자는 보이지 않는다).
+  - 모두 끊겼으면: "다음 세션의 연결이 끊겼습니다 … 커밋하지 않은 변경은 이미 사라졌습니다. 끊긴 세션의 트랜잭션은 서버가 롤백하므로 커밋도 롤백도 할 수 없습니다.
+    버리고 계속하시겠습니까?" 단추 **버리기** / **취소**. 버리기는 쿼리 관리자에 롤백으로 적고(`discardLostTransaction`, 상태 줄·목록에서 사라짐) 하던 일(창 닫기,
+    끊기)을 계속한다. 취소하면 아무것도 바꾸지 않는다.
+  - 살아 있는 세션과 섞였으면: 기존 커밋 / 롤백 / 취소 질문이 살아 있는 세션만 나열하고, 아래에 "다음 세션은 연결이 끊겨 서버가 … 이미 롤백했습니다. 이 세션들은
+    버립니다"를 덧붙인다. 커밋·롤백은 살아 있는 세션에만 한다.
+  - 확인이 답하지 않아 살아 있다고 본 세션의 커밋·롤백이 연결 끊김 오류(`DBExecUtils.discoverErrorType` = `CONNECTION_LOST`)로 실패하면 그 세션에 대해 위 버리기
+    질문을 한다. 전에는 여기서 오류를 보이고 멈췄다.
+- **끊긴 세션만 다시 열기**(`TransactionRecoveryGuard.reopenLostSession`). 실행 복구(`DBExecUtils.tryExecuteRecover`의 끊긴 연결)와 연결 유지 핑에서, 실패한 문맥이
+  인스턴스의 주 문맥도 메타데이터 문맥도 아니고(격리 문맥: 쿼리 창의 자기 세션, Activity Monitor 등 도구의 세션) 위 확인으로 정말 끊겼으면 그 문맥만 다시 연다
+  (`DBCExecutionContext.invalidateContext`, 데이터 소스 다시 연결이 문맥마다 하는 것과 같은 단계, 인스턴스 잠금 안에서). 주·메타데이터 문맥과 다른 창의 세션,
+  그 트랜잭션은 그대로다. 그 뒤 실행 복구는 같은 문장을 새 세션에서 다시 실행한다(업스트림 다시 연결 뒤와 같음).
+  - 옛 연결은 닫혔으므로 쿼리 관리자에 롤백으로 적는다(상태 줄의 "열린 트랜잭션"이 사라진 문장을 계속 보이지 않게).
+  - 알림(`showSessionReopened`): 실패한 시도 전에 사용자 문장이 있었으면 "세션 끊김 — {연결}의 쿼리 창 {창}의 세션이 끊겼습니다: {오류 첫 줄}. 이 세션만 새로
+    열었고 다른 세션과 그 트랜잭션은 건드리지 않았습니다. 커밋하지 않은 트랜잭션({시각}부터 문장 N개)은 사라졌습니다 …"(닫을 때까지 남음). 문장 수는 쿼리
+    관리자의 그 트랜잭션 문장 수(상태 줄과 같은 기준, 실패한 시도 자신은 빼고)다. 잃은 것이 없으면 잠시 보이는 정보 알림 "세션 다시 열림"이다.
+  - 다시 열지 못하면(서버가 아예 내려감, SSH 터널이 죽음 등) 예전 경로로 간다: 데이터 소스 전체 다시 연결과 #120의 멈춤.
+  - 주 문맥(창들이 함께 쓰는 설정)이나 메타데이터 문맥이 끊긴 경우는 바꾸지 않았다. 여러 창과 탐색기가 함께 쓰므로 #120의 멈춤과 사용자가 고르는 다시 연결을 그대로 쓴다.
+- **살아 있는 세션은 묻지 않고 끝내지 않는다.** 다시 열기와 버리기는 확인으로 끊긴 것이 확인된 세션에만 한다. 끊긴 세션의 트랜잭션은 서버가 세션과 함께
+  롤백하므로(PostgreSQL `pg_terminate_backend`, SQL Server `KILL`, 네트워크가 끊기면 서버가 끊김을 알아챌 때) 버려도 잃을 것이 없다.
+
+### 확인 (2026-11-08)
+
+이 브랜치의 제품 빌드를 복사해 자기 작업 공간으로 실행하고 프로세스 안에서 Swing API로 누르는 스크립트(OS 입력 없음)로 확인했다. 연결은 수동 커밋,
+전용 DB `chr_dead_session`의 `ds_test`(행 1~10, `orig`). 세션은 밖에서(`docker exec`) PostgreSQL `pg_terminate_backend`, SQL Server `KILL`로 끊었다.
+증거: `D:\Tools\_scratch\dead-session-windows\`(스크립트 `pg*.txt`, `ms*.txt`, 결과 `*.txt.log`, 서버 상태 `server-state.txt`, 앱 로그 `app-workspace.log`, 그림 `shots\`).
+
+| 확인 | PostgreSQL 17 (55432) | SQL Server 2022 (51433) |
+|---|---|---|
+| A·B에 열린 UPDATE, A의 세션을 끊고 A 닫기 | 저장 질문 뒤 "다음 세션의 연결이 끊겼습니다: PG test (SQLQuery1.sql) …" 버리기 / 취소 → 버리기로 창 닫힘. B는 같은 pid 35358로 `idle in transaction`(xid 있음), 상태 줄 그대로, 행 1·2 `orig` (`pg-02-…`) | 같은 질문 → 닫힘. B는 같은 SPID 55, `open_transaction_count` 1, `READPAST`로 행 2가 B의 잠금으로 빠짐 (`ms-02-…`) |
+| 새 창 C에 열린 UPDATE, C의 세션을 끊고 C에서 `SELECT 4` | C만 새 세션(pid 35405 → 35420)으로 실행됨. 알림 "세션 끊김 … 57P01 … 커밋하지 않은 트랜잭션(00:32:52부터 문장 2개)은 사라졌습니다". 주 35356·메타데이터 35357·B 35358 그대로 (`pg-06-…`) | C만 새 세션(08S01 "연결이 닫혔습니다", 문장 1개), 주 52·메타데이터 53·B 55(`open_transaction_count` 1) 그대로 (`ms-06-…`) |
+| C에 살아 있는 열린 트랜잭션, B의 세션을 끊고 연결 끊기 | "PG test (SQLQuery3.sql)" 커밋 / 롤백 / 취소 + "다음 세션은 연결이 끊겨 … 이 세션들은 버립니다: PG test (SQLQuery2.sql)" → 취소로 그대로 (`pg-07-…`) | 같음 (`ms-07-…`) |
+| C를 롤백한 뒤 다시 연결 끊기 | "다음 세션의 연결이 끊겼습니다: PG test (SQLQuery2.sql)" 버리기 / 취소 → 버리기로 끊김, 서버 세션 0, 행 1~5 `orig` (`pg-08-…`) | 같음, 서버 세션 0 (`ms-08-…`) |
+
+연결 유지 핑 경로와 네트워크가 끊긴 경우(확인이 3초 안에 답하지 않음)는 실행해 보지 않았다. 확인한 뒤 확인용 DB를 지웠다.
+
 ## 설계 결정과 이유
 
 - **한 커밋 경로**: Query 메뉴·도구 막대·단축키·목록이 모두 #97의 `SwingIdleTransactionService.endTransaction`을 쓴다. 오래된 화면이 새 트랜잭션을 끝내지 않는 보호(시작 시각 비교, 실행 중이면 하지 않음)를 그대로 얻는다.
@@ -293,11 +348,11 @@ N은 연결의 모든 인스턴스의 실행 문맥 수다(주, 메타데이터,
   알리지 않고, 상태 줄도 계속 열린 트랜잭션을 보인다. 오류 코드로 알아보거나 서버에 트랜잭션 수(`@@TRANCOUNT` 등)를 묻는 것이 필요하다.
 - PostgreSQL의 중단된 트랜잭션에 Query > Commit을 누르면 서버가 롤백하고 오류가 없다(pgjdbc `raiseExceptionOnSilentRollback` 기본 꺼짐). 알림이 그것을 말하지만
   커밋 명령 자체는 막지 않는다.
-- 연결이 죽은 채 열린 트랜잭션이 남으면 연결 메뉴의 끊기·다시 연결은 먼저 커밋·롤백을 시도하다 실패해 끊지 못한다(`ExitTransactionCheck`, 이전부터).
-  이 경우 "연결 끊김" 알림의 다시 연결로 벗어난다. 알림을 ×로 닫았으면 다음 실행이 다시 띄운다.
 - 사용자가 고른 다시 연결 뒤 Chromite Agent의 열린 트랜잭션 기록(`AgentSql`)은 지우지 않는다(모델에서 위 번들을 알 수 없다). 에이전트가 끝내거나 끊을 때 정리된다.
-- 끊긴 창 세션만 다시 여는 복구는 없다: 창 A의 세션이 끊기고 창 B에 열린 트랜잭션이 있으면, A를 다시 쓰려면 B를 먼저 끝내거나 다시 연결로 B를 버려야 한다.
-  끊긴 세션의 창을 닫을 때 질문에서 커밋·롤백을 고르면 끊긴 연결에서 실패해 창이 닫히지 않는다(끊기 질문과 같은 한계).
+- 주 문맥(창들이 세션을 함께 쓰는 설정)이나 메타데이터 문맥이 끊기면 여전히 데이터 소스 전체를 다시 연결하고, 다른 창에 열린 트랜잭션이 있으면 #120의 멈춤이 막는다.
+  끊긴 격리 세션은 2026-11-08부터 그 세션만 다시 연다("끊긴 세션의 쿼리 창").
+- "연결 끊김" 알림(#120)의 목록은 끊긴 세션의 트랜잭션도 "다시 연결하면 끝나는 트랜잭션"으로 센다. 끊긴 세션은 이미 끝났으므로 그 목록에서 빼는 것이 더 정확하다.
+- Chromite Agent 세션(`AgentSql`)은 쿼리 관리자 밖이라 끝내기 전 질문에서 끊긴 세션인지 확인하지 않는다. 그 세션이 끊겼으면 커밋·롤백이 실패해 예전처럼 멈춘다.
 
 ## 변경 이력
 
@@ -309,3 +364,5 @@ N은 연결의 모든 인스턴스의 실행 문맥 수다(주, 메타데이터,
 - 2026-11-07 오류 복구와 열린 트랜잭션: 실행 복구와 연결 유지 핑이 열린 트랜잭션을 묻지 않고 롤백(PostgreSQL 중단된 트랜잭션)하거나
   다시 연결로 끝내던 것을 막음. 멈추고 롤백·다시 연결을 알림으로 물음(`TransactionRecoveryGuard`). PostgreSQL·SQL Server·MariaDB에서 확인
 - 2026-11-08 origin/devel(#120 오류 복구, #121, #122) 병합: 오류 복구가 창마다의 세션을 보는지 확인하고 "쿼리 창마다 별도 연결 > 트랜잭션 안전"과 남은 일에 적음
+- 2026-11-08 끊긴 세션의 쿼리 창: 끝내기 전 질문이 끊긴 세션에 버리기 / 취소를 물음(커밋·롤백이 실패해 창을 닫거나 끊을 수 없던 것), 실행 복구와 연결 유지 핑이
+  끊긴 격리 세션만 다시 열고 잃은 문장 수를 알림(다른 창의 세션과 트랜잭션은 그대로). PostgreSQL·SQL Server에서 확인("끊긴 세션의 쿼리 창 > 확인")

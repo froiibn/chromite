@@ -29,6 +29,12 @@
  * - 2026-11-07 The "other platform" button row (site.js puts the visitor's platform first). The first
  *   state is "static" instead of "loading": without script the page used to say "looking for the latest
  *   version" forever and show no card; now it shows both cards and where to get the files.
+ * - 2026-11-07 The feature tour (.tour): one strength per screen, between the hero screenshot and the
+ *   signing/update sections. Its index is a tool window whose selected row follows the screen in view
+ *   (tour.js), the same selection colour as the app's trees. Screens snap with "proximity", not
+ *   "mandatory": the hero and the downloads have no snap point, and mandatory snapping would pull the page
+ *   past them to the first screen. Hidden-then-revealed states exist only under .is-animated, which
+ *   tour.js sets, and only without prefers-reduced-motion.
  */
 @font-face {
   font-family: "Pretendard";
@@ -263,6 +269,77 @@ li + li { margin-top: 6px; }
 .oss-links { display: flex; flex-wrap: wrap; gap: 8px 20px; margin: 16px 0 0; padding: 0; list-style: none; font-size: 15px; }
 .oss-links li + li { margin-top: 0; }
 
+/* feature tour: an index (left, sticky) and one screen per strength */
+.visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+@media (min-height: 560px) {
+  :root:has(.tour) { scroll-snap-type: y proximity; }
+}
+.tour { display: grid; grid-template-columns: 184px minmax(0, 1fr); gap: 0 48px; margin-top: 88px; }
+.tour-index { position: sticky; top: 0; align-self: start; display: flex; align-items: center; height: 100vh; height: 100svh; }
+.tour-index .panel { width: 100%; }
+.tour-index ul { list-style: none; margin: 0; padding: 6px; }
+.tour-index li + li { margin-top: 0; }
+.tour-index a { display: block; padding: 5px 10px; border-radius: 4px; color: var(--ink-2); text-decoration: none; font-size: 14px; line-height: 1.45; }
+.tour-index a:hover { color: var(--ink); background: var(--line-subtle); }
+.tour-index a[aria-current="true"] { color: var(--ink); background: var(--selection); }
+
+.feature {
+  min-height: 100vh;
+  min-height: 100svh;
+  scroll-snap-align: start;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 40px 0;
+  border-top: 1px solid var(--line);
+}
+.feature:last-child { border-bottom: 1px solid var(--line); }
+.feature-text { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: 0 40px; align-items: start; }
+.feature h3 { font-size: 32px; line-height: 1.25; letter-spacing: -0.02em; }
+.feature-lead { margin-top: 14px; color: var(--ink-2); font-size: 16px; }
+.feature-points { margin: 0; padding: 0; list-style: none; font-size: 15px; line-height: 1.6; }
+.feature-points li { margin: 0; padding: 9px 0; border-top: 1px solid var(--line-subtle); }
+.feature-points li:first-child { border-top: 0; padding-top: 0; }
+.feature-points.tasks strong { display: block; font-weight: 600; }
+.feature-note { margin-top: 14px; font-size: 14px; color: var(--ink-2); }
+.feature-text > .feature-note,
+.feature-text > .more { grid-column: 2; }
+.more { margin-top: 4px; font-size: 15px; }
+.more summary { cursor: pointer; padding: 6px 0; color: var(--link); }
+.more summary:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; border-radius: 4px; }
+.more[open] summary { margin-bottom: 8px; }
+.more .feature-points li:first-child { border-top: 1px solid var(--line-subtle); padding-top: 9px; }
+
+.feature-shot { margin: 28px 0 0; }
+/* the captures are 1.5x (srcset), so their natural size is the app's own size; they shrink to fit, never grow.
+   Under the text the picture gets what is left of the screen (the text block is about 330px high). */
+.feature-shot img { display: block; width: auto; height: auto; max-width: 100%; max-height: max(300px, calc(100vh - 470px)); border: 1px solid var(--line); border-radius: 8px; box-shadow: var(--shot-shadow); }
+.feature-shot figcaption { margin-top: 12px; font-size: 13px; line-height: 1.55; color: var(--ink-2); max-width: 46em; }
+
+/* text beside the picture: portrait shots, dialogs, and the open-source card */
+.feature-side { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 6fr); gap: 0 48px; align-content: center; align-items: center; }
+.feature-side .feature-text { grid-template-columns: minmax(0, 1fr); }
+.feature-side .feature-text > .feature-points,
+.feature-side .feature-text > .more { margin-top: 24px; }
+.feature-side .feature-text > .feature-note,
+.feature-side .feature-text > .more { grid-column: 1; }
+.feature-side .feature-shot { margin: 0; justify-self: center; }
+.feature-side .feature-shot img { max-height: 76vh; }
+.feature-repo { width: 100%; max-width: 360px; justify-self: center; }
+.feature-repo .oss-repo { margin-top: 0; }
+
+/* the reveal (tour.js): hidden only once the script has marked the tour, and never with reduced motion */
+@media (prefers-reduced-motion: no-preference) {
+  .tour.is-animated .feature-text,
+  .tour.is-animated .feature-shot,
+  .tour.is-animated .feature-repo { transition: opacity 0.45s ease, transform 0.45s ease; }
+  .tour.is-animated .feature-shot,
+  .tour.is-animated .feature-repo { transition-delay: 0.12s; }
+  .tour.is-animated .feature:not(.is-in) .feature-text,
+  .tour.is-animated .feature:not(.is-in) .feature-shot,
+  .tour.is-animated .feature:not(.is-in) .feature-repo { opacity: 0; transform: translateY(14px); }
+}
+
 /* text pages */
 .page-head { padding: 56px 0 40px; }
 .page-head h1 { font-size: 36px; line-height: 1.25; letter-spacing: -0.02em; }
@@ -313,4 +390,28 @@ li + li { margin-top: 6px; }
   .spec dd { border-top: 0; padding-top: 0; }
   .spec dt:first-of-type + dd { padding-top: 0; }
   .foot .right { margin-left: 0; }
+}
+
+/* feature tour on narrower screens: no index, then text above the picture */
+@media (max-width: 1100px) {
+  .tour { grid-template-columns: minmax(0, 1fr); }
+  .tour-index { display: none; }
+}
+@media (max-width: 860px) {
+  .tour { margin-top: 56px; }
+  .feature-text,
+  .feature-side { grid-template-columns: minmax(0, 1fr); }
+  .feature-text > .feature-points { margin-top: 20px; }
+  .feature-text > .feature-note,
+  .feature-text > .more { grid-column: 1; }
+  .feature-side .feature-shot { margin-top: 32px; justify-self: start; }
+  .feature-repo { max-width: none; margin-top: 28px; }
+  .feature h3 { font-size: 28px; }
+}
+@media (max-width: 600px) {
+  .feature { padding: 40px 0; }
+  .feature h3 { font-size: 24px; line-height: 1.3; }
+  .feature-lead { font-size: 15px; }
+  .feature-shot img,
+  .feature-side .feature-shot img { max-height: none; }
 }

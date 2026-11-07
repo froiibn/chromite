@@ -208,6 +208,8 @@ import java.util.function.Supplier;
  * - 2026-11-07 함수·프로시저의 Debug… 메뉴({@link DebugCommands}, docs/chromite/procedure-debugger.md)
  * - 2026-11-07 DB 객체 Delete·Rename, Copy Name·Copy Qualified Name, Generate SQL 메뉴, 여러 개 선택({@link ExplorerObjectCommands})
  *   (docs/chromite/swing-explorer-object-actions.md)
+ * - 2026-11-08 테이블 잘라내기·트리거 사용/사용 안 함·구체화된 뷰 새로 고침 메뉴({@link ObjectMaintenanceCommands})
+ *   (docs/chromite/swing-explorer-object-actions.md "유지 관리 명령")
  */
 final class ObjectExplorerPanel extends JPanel {
 
@@ -332,6 +334,7 @@ final class ObjectExplorerPanel extends JPanel {
     private final AgentCommands agentCommands;
     private final SchedulerCommands schedulerCommands;
     private final ExplorerObjectCommands objectCommands;
+    private final ObjectMaintenanceCommands maintenanceCommands;
     private final Action backUpAction;
     private final Action restoreAction;
     private final Action copyTablesAction;
@@ -498,6 +501,7 @@ final class ObjectExplorerPanel extends JPanel {
         debugAction = DebugCommands.createAction(this, this::getSelectedObject, queryWindows);
         objectCommands = new ExplorerObjectCommands(this, this::getSelectedNavigatorNodes, queryWindows);
         tree.setTransferHandler(objectCommands.createTransferHandler());
+        maintenanceCommands = new ObjectMaintenanceCommands(this, this::getSelectedNavigatorNodes, queryWindows);
         scriptAsMenu = new JMenu(CoreMessages.explorer_script_as);
         scriptAsMenu.add(createToMenu);
         scriptAsMenu.add(sourceEditCommands.getAlterToMenu());
@@ -637,6 +641,7 @@ final class ObjectExplorerPanel extends JPanel {
         popupMenu.add(viewDiagramAction);
         popupMenu.add(tasksMenu);
         popupMenu.add(maintenanceAction);
+        maintenanceCommands.addTo(popupMenu);
         popupMenu.addSeparator();
         popupMenu.add(connectAction);
         popupMenu.add(disconnectAction);
@@ -887,6 +892,7 @@ final class ObjectExplorerPanel extends JPanel {
         deleteAction.setEnabled(connectionNode || principal || agentObject || schedulerObject
             || ExplorerObjectCommands.canDelete(getSelectedNavigatorNodes()));
         objectCommands.update(getSelectedNavigatorNodes());
+        maintenanceCommands.update(getSelectedNavigatorNodes());
         principalPropertiesAction.setEnabled(principal || agentObject || schedulerObject);
         principalPropertiesAction.putValue(Action.SHORT_DESCRIPTION, agentObject ? AgentMessages.agent_properties_tip
             : schedulerObject ? SchedulerMessages.scheduler_properties_tip : SecurityMessages.security_properties_tip);

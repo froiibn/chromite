@@ -22,6 +22,7 @@ import com.seizia.chromite.DBDatabaseException;
 import org.jkiss.dbeaver.DBException;
 import com.seizia.chromite.ext.mssql.model.SQLServerDataSource;
 import com.seizia.chromite.ext.mysql.model.MySQLDataSource;
+import com.seizia.chromite.ext.oracle.model.OracleDataSource;
 import com.seizia.chromite.ext.postgresql.model.PostgreDataSource;
 import com.seizia.chromite.model.DBPDataSource;
 import com.seizia.chromite.model.DBUtils;
@@ -69,6 +70,7 @@ import java.util.Set;
  *
  * 변경 이력:
  * - 2026-11-06 최초 작성 (docs/chromite/swing-security.md)
+ * - 2026-11-08 Oracle({@link OracleSecurityDialect}) (docs/chromite/swing-security.md "Oracle")
  */
 public abstract class SecurityDialect {
 
@@ -154,6 +156,9 @@ public abstract class SecurityDialect {
         }
         if (dataSource instanceof MySQLDataSource mysql && mysql.supportsUserManagement()) {
             return new MySQLSecurityDialect(context, mysql);
+        }
+        if (dataSource instanceof OracleDataSource oracle) {
+            return new OracleSecurityDialect(context, oracle);
         }
         return null;
     }

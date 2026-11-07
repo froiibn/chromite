@@ -6,7 +6,29 @@
 <meta name="color-scheme" content="light dark">
 <title>Chromite changelog</title>
 <meta name="description" content="Changes in each version of Chromite">
+<link rel="icon" href="/favicon.ico" sizes="16x16 32x32 48x48">
 <link rel="icon" href="/assets/chromite-icon.svg" type="image/svg+xml">
+<link rel="icon" href="/assets/icons/icon-32.png" type="image/png" sizes="32x32">
+<link rel="icon" href="/assets/icons/icon-192.png" type="image/png" sizes="192x192">
+<link rel="apple-touch-icon" href="/assets/icons/apple-touch-icon.png">
+<link rel="canonical" href="https://chromite.seizia.com/en/changelog.html">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Chromite">
+<meta property="og:title" content="Chromite changelog">
+<meta property="og:description" content="Changes in each version of Chromite">
+<meta property="og:url" content="https://chromite.seizia.com/en/changelog.html">
+<meta property="og:image" content="https://chromite.seizia.com/assets/og/og-en.png">
+<meta property="og:image:type" content="image/png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="The Chromite logo, the line &#x27;SQL Server, Oracle, PostgreSQL and MariaDB in one window&#x27; and the Chromite window">
+<meta property="og:locale" content="en_US">
+<meta property="og:locale:alternate" content="ko_KR">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Chromite changelog">
+<meta name="twitter:description" content="Changes in each version of Chromite">
+<meta name="twitter:image" content="https://chromite.seizia.com/assets/og/og-en.png">
+<meta name="twitter:image:alt" content="The Chromite logo, the line &#x27;SQL Server, Oracle, PostgreSQL and MariaDB in one window&#x27; and the Chromite window">
 <link rel="stylesheet" href="/assets/site.css">
 <link rel="alternate" hreflang="ko" href="/ko/changelog.html">
 </head>
@@ -30,6 +52,27 @@
     <h1>Changelog</h1>
     <p>Versions are numbered <code>major.minor.dev</code>. The app's update notice links to each version's anchor (for example <code>#v0.1.0</code>).</p>
   </div>
+
+  <section class="sect release" id="v0.1.1">
+    <h2>0.1.1</h2>
+    <div class="body">
+      <p>Transaction safety, and more tools for administration and development.</p>
+      <ul>
+        <li>Transactions: open-transaction indicator and idle reminder, Commit and Roll Back commands with a transaction log, an open transactions list, and a separate session per query window. Disconnect, exit and error recovery never commit or roll back without asking</li>
+        <li>Confirmations before running: DELETE and UPDATE without WHERE, DROP, TRUNCATE, an SQL preview before saving grid edits, and approval of saved shell commands</li>
+        <li>Procedure debugger (PostgreSQL, Oracle)</li>
+        <li>Chromite Agent: database tools, per-connection and per-tool permission policy, local MCP server</li>
+        <li>Shared Query Library: shared folder and Git roots, export and import, save conflict checks</li>
+        <li>Object Explorer: delete and rename with a DDL preview, copy names, multi-select, Generate SQL</li>
+        <li>Settings pages: query execution, connection types, result formats, Oracle</li>
+        <li>Saved passwords are kept in the operating system's secure storage (Windows DPAPI, macOS Keychain); passphrase-encrypted connection export and import</li>
+        <li>Offline driver install bundles for closed networks, built-in SQLite driver. The MySQL driver is no longer built in: it is downloaded on first connect or installed from an offline bundle</li>
+        <li>Oracle DBMS_OUTPUT and Altibase output shown, login prompt for connections without a saved password, Windows certificate store, the @export command, procedure completion after CALL and EXEC</li>
+        <li>Copy Tables creates the primary key and maps more types; fixed shifted values for NULL columns in row-by-row inserts</li>
+        <li>Remaining untranslated Korean labels translated</li>
+      </ul>
+    </div>
+  </section>
 
   <section class="sect release" id="v0.1.0">
     <h2>0.1.0</h2>

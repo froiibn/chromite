@@ -110,6 +110,8 @@ import java.util.Set;
  *   (docs/chromite/idle-transactions.md "유휴 연결 닫기")
  * - 2026-11-07 Connection Properties에 트랜잭션 격리 수준(SWT {@code ConnectionPageInitialization}의 같은 값,
  *   {@link #loadIsolationLevels}). 연결 유형 편집(Options)이 쓰도록 {@link ColorSwatch}를 패키지 안에 공개 (docs/chromite/swing-options.md)
+ * - 2026-11-08 드라이버별 Options 탭({@link ConnectionDriverFields#getOptionsPage}, Oracle 세션 설정)을 Connection Properties 다음에 둠
+ *   (docs/chromite/swing-conn-advanced.md "Oracle 세션 설정")
  * - 2026-11-07 Connection Properties에 쿼리 창 세션(이 연결의 쿼리 창마다 별도 연결: Options 설정 / 창마다 / 함께 씀)
  *   (docs/chromite/transactions.md "쿼리 창마다 별도 연결")
  */
@@ -249,6 +251,10 @@ final class ConnectionSettingsPanel extends JPanel {
 
         add(createMainForm(databaseTypeCombo), BorderLayout.NORTH);
         optionsTabs.addTab(ConnectionMessages.settings_tab_connection_properties, createConnectionPropertiesPage());
+        ConnectionDriverFields.OptionsPage driverPage = driverFields == null ? null : driverFields.getOptionsPage();
+        if (driverPage != null) {
+            optionsTabs.addTab(driverPage.title(), driverPage.page());
+        }
         for (ConnectionNetworkPage page : networkPages) {
             optionsTabs.addTab(page.getTitle(), page);
         }
