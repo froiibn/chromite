@@ -89,7 +89,7 @@ SWT `PrefPageConnectionTypes`의 Swing판이다. 지금까지 연결 유형은 �
 | 이름, 설명 | `name`, `description` | 연결 대화상자 연결 유형 콤보 |
 | 색, 다크 테마 색, 색 없음 | `colorLight`, `colorDark` | `ConnectionColors`(개체 탐색기·등록된 서버 알약, 쿼리 상태 줄) |
 | 기본으로 자동 커밋 | `autocommit` | `DataSourceDescriptor.isDefaultAutoCommit`(연결이 자체 값을 정하지 않았을 때) |
-| SQL 실행 확인 | `confirmExecute` | `SQLQueryExecuteJob`(SELECT가 아닌 문), AI 도구 정책 |
+| SQL 실행 확인 | `confirmExecute` | `SQLQueryExecuteJob`(SELECT가 아닌 문), Chromite Agent 도구 정책 |
 | 데이터 변경 확인 | `confirmDataChange` | `ResultSetGrid.isSavePreviewRequired` |
 | 유휴 트랜잭션 알림, 시간(분) | `autoCloseTransactions`, `closeIdleTransactionPeriod` | `IdleTransactionMonitor`(연결이 자체 값을 정하지 않았을 때) |
 | 유휴 연결 닫기, 시간(초) | `autoCloseConnections`, `closeIdleConnectionPeriod` | `DataSourceMonitorJob.getDisconnectTimeoutSeconds`, 새 연결의 기본값 |
@@ -147,7 +147,7 @@ SWT `ConnectionPageInitialization`의 트랜잭션 격리 수준(`DBPConnectionB
 | Errors and Timeouts, Client Identification, Metadata, Drivers, Classpath, Query Manager, Error Logs, Navigator(정렬), Notifications(긴 작업 알림), Data Transfer(매핑 3키), Dictionaries, Code Completion(4키), Altibase, CUBRID, Mimer | 다음 작업(키는 아래 목록) |
 | Maven | 다음 작업: 저장소 목록은 키가 아니라 `maven-repositories.xml`(`MavenRegistry`)에 저장되고 드라이버 내려받기가 읽는다 |
 | Network Profiles | 다음 작업: 전역·프로젝트 네트워크 프로필 편집(지금은 연결이 쓰는 프로필을 읽기 전용으로 보임) |
-| Templates, AI | Swing 자체 저장으로 이미 있음(Options > Templates, AI Assistant) |
+| Templates, AI | Swing 자체 저장으로 이미 있음(Options > Templates, Chromite Agent) |
 | User Interface, Editors, Toolbar Customization, Accessibility, Confirmations, Miscellaneous, Expert Settings, GIS, Appearance, Grid, Plain text, ERD, SQL Editor, Code Editor, SQL Dialects, Scripts, macOS Mouse, Project Resources | 효과 없음: 키를 읽던 SWT 코드가 지워졌다. Swing에 같은 기능이 생기면 그때 그 기능의 키를 정한다 |
 | DataDam, Projects | 의도적 제외에 준함(삭제 전에도 어떤 제품에도 없던 기능) |
 

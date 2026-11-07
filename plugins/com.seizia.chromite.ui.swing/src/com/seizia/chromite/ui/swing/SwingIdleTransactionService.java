@@ -64,6 +64,8 @@ import java.util.Map;
  *
  * 변경 이력:
  * - 2026-11-07 최초 작성 (docs/chromite/idle-transactions.md)
+ * - 2026-11-07 {@link #endTransaction}을 Query 메뉴·도구 막대·단축키와 열린 트랜잭션 목록도 씀, 쿼리 창 이름 찾기({@link #describeQueryWindows})를
+ *   목록과 나눔 (docs/chromite/transactions.md)
  */
 public class SwingIdleTransactionService implements UIServiceIdleTransactions {
 
@@ -149,8 +151,9 @@ public class SwingIdleTransactionService implements UIServiceIdleTransactions {
     }
 
     /**
-     * Commits or rolls back the transaction shown to the user, in a job, as the explicit answer of the reminder or of
-     * the query window's open transaction indicator. Tells the user when nothing was done (the transaction already
+     * Commits or rolls back the transaction shown to the user, in a job, as the explicit answer of the reminder, of
+     * the query window's open transaction indicator, of Query &gt; Commit / Roll Back (menu, tool bar, shortcut) or of
+     * the open transactions list. Tells the user when nothing was done (the transaction already
      * ended or changed, or a statement runs in it) or when it failed. Call in the EDT.
      *
      * @param transactionStart the shown transaction ({@link QMTransactionState#getTransactionStartTime()})
@@ -214,21 +217,35 @@ public class SwingIdleTransactionService implements UIServiceIdleTransactions {
      */
     @NotNull
     private static String describeContext(@NotNull DBCExecutionContext context) {
+        DBPDataSourceContainer container = context.getDataSource().getContainer();
+        String windows = describeQueryWindows(context);
+        if (windows != null) {
+            return NLS.bind(ConnectionMessages.idle_txn_windows, windows, container.getName());
+        }
+        return NLS.bind(ConnectionMessages.idle_txn_session, context.getContextName(), container.getName());
+    }
+
+    /**
+     * The file names of the query windows working in the context (all query windows of a connection share its main
+     * context), comma separated; null for another context or without such a window. Also for the open transactions list.
+     */
+    @Nullable
+    static String describeQueryWindows(@NotNull DBCExecutionContext context) {
         DBPDataSource dataSource = context.getDataSource();
         DBPDataSourceContainer container = dataSource.getContainer();
         if (context == DBUtils.getDefaultContext(dataSource.getDefaultInstance(), false) && findMainFrame() instanceof MainFrame frame) {
             List<String> windows = new ArrayList<>();
             for (SqlEditorPanel editor : frame.getQueryWindows()) {
                 if (editor.getDataSourceContainer() == container) {
-                    // The file name only: the message names the connection itself
+                    // The file name only: the messages name the connection themselves
                     windows.add(editor.getFileName());
                 }
             }
             if (!windows.isEmpty()) {
-                return NLS.bind(ConnectionMessages.idle_txn_windows, String.join(", ", windows), container.getName()); //$NON-NLS-1$
+                return String.join(", ", windows); //$NON-NLS-1$
             }
         }
-        return NLS.bind(ConnectionMessages.idle_txn_session, context.getContextName(), container.getName());
+        return null;
     }
 
     /**

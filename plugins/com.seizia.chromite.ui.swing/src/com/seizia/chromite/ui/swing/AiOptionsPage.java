@@ -65,7 +65,7 @@ import java.util.Locale;
 import java.util.Map;
 
 /**
- * Tools &gt; Options &gt; AI Assistant: providers, the tool policy, the local MCP server and the audit log.
+ * Tools &gt; Options &gt; Chromite Agent: providers, the tool policy, the local MCP server and the audit log.
  *
  * 설계:
  * <ul>
@@ -83,6 +83,7 @@ import java.util.Map;
  * 변경 이력:
  * - 2026-11-07 최초 작성 (docs/chromite/ai-agent.md "2단계")
  * - 2026-11-07 OS 보안 저장소 실패 안내({@code ai_options_save_failed_secure_storage})
+ * - 2026-11-07 탭 이름을 Chromite Agent로 바꾼 데 맞춰 주석을 고침(docs/chromite/ai-agent.md "명칭")
  */
 final class AiOptionsPage extends JPanel {
 

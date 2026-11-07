@@ -89,10 +89,10 @@
 
 | # | 기능 | SWT 출처 | 상태 | 근거 | 영향 | 메모 |
 |---|---|---|---|---|---|---|
-| A-C1 | 커밋 / 롤백 명령(도구 막대, 메뉴, 단축키) | `DataSourceCommitHandler`, `DataSourceRollbackHandler` | 없음 | Swing에 커밋·롤백 동작 없음(`commit(`/`rollback(` 검색: `ExitTransactionCheck`, `AutoCommitApplier`, `ResultSetEditPersister`뿐). [swing-frontend.md](../swing-frontend.md):1236 "Swing에는 아직 커밋 단추가 없으므로 편집기에서 `COMMIT`을 실행한다" | 높음 | 수동 커밋 연결을 쓰려면 SQL을 직접 쳐야 한다 |
-| A-C2 | 열린 트랜잭션 표시(문장 수·경과 시간 도구 막대) | `TransactionMonitorToolbar` | 없음 | Swing은 커밋 방식(자동/수동)만 보여 준다(swing-frontend.md "자동 커밋 상태", `QueryStatusLine`). 보류 문장 수·시간 없음 | 높음 | 잠금을 오래 쥐고 있는지 알 수 없다 |
-| A-C3 | 보류 중 트랜잭션 창(모든 연결의 커밋 안 한 문장, 거기서 커밋·롤백) | `PendingTransactionsDialog`, `DataSourcePendingTransactionsHandler` | 없음 | Swing 검색 0(`QMTransactionState`, `getTransactionState` 0). 지시서의 예와 같음 | 높음 | |
-| A-C4 | 트랜잭션 로그(현재 트랜잭션의 문장 목록) | `TransactionLogDialog`, `TransactionInfoDialog`, `DataSourceTransactionLogHandler` | 없음 | Swing 검색 0 | 중간 | |
+| A-C1 | 커밋 / 롤백 명령(도구 막대, 메뉴, 단축키) | `DataSourceCommitHandler`, `DataSourceRollbackHandler` | **있음** (2026-11-07, [transactions.md](../transactions.md): Query &gt; Commit / Roll Back, SQL Editor 도구 막대 단추, SWT 단축키 Ctrl+Alt+Shift+K / R(macOS·Linux Ctrl+4 / 8), 상태 줄 메뉴와 같은 커밋 경로). 조사 당시: 없음 | Swing에 커밋·롤백 동작 없음(`commit(`/`rollback(` 검색: `ExitTransactionCheck`, `AutoCommitApplier`, `ResultSetEditPersister`뿐). [swing-frontend.md](../swing-frontend.md):1236 "Swing에는 아직 커밋 단추가 없으므로 편집기에서 `COMMIT`을 실행한다" | 높음 | 수동 커밋 연결을 쓰려면 SQL을 직접 쳐야 한다 |
+| A-C2 | 열린 트랜잭션 표시(문장 수·경과 시간 도구 막대) | `TransactionMonitorToolbar` | **있음** (2026-11-07, #97, [idle-transactions.md](../idle-transactions.md): 쿼리 창 상태 줄의 열린 트랜잭션 칸(경과 시간, 문장 수), 누르면 커밋·롤백·트랜잭션 로그). 조사 당시: 없음 | Swing은 커밋 방식(자동/수동)만 보여 준다(swing-frontend.md "자동 커밋 상태", `QueryStatusLine`). 보류 문장 수·시간 없음 | 높음 | 잠금을 오래 쥐고 있는지 알 수 없다 |
+| A-C3 | 보류 중 트랜잭션 창(모든 연결의 커밋 안 한 문장, 거기서 커밋·롤백) | `PendingTransactionsDialog`, `DataSourcePendingTransactionsHandler` | **있음** (2026-11-07, [transactions.md](../transactions.md) "열린 트랜잭션 목록": Tools &gt; Open Transactions…, 연결·DB·세션·시작·문장 수·유휴, 고른 행 커밋·롤백. "Show all connections"는 없음). 조사 당시: 없음 | Swing 검색 0(`QMTransactionState`, `getTransactionState` 0). 지시서의 예와 같음 | 높음 | |
+| A-C4 | 트랜잭션 로그(현재 트랜잭션의 문장 목록) | `TransactionLogDialog`, `TransactionInfoDialog`, `DataSourceTransactionLogHandler` | **일부** (2026-11-07, [transactions.md](../transactions.md) "트랜잭션 로그": Query 메뉴·상태 줄·목록에서 열고 현재 트랜잭션의 시각·종류·SQL·시간·행·결과. 지난 트랜잭션 보이기는 없음). 조사 당시: 없음 | Swing 검색 0 | 중간 | |
 | A-C5 | 자동 커밋 전환, 격리 수준, 스마트 커밋 메뉴 | `DataSourceAutoCommitHandler`, `DataSourceTransactionModeContributor` | 일부 | 자동 커밋: 상태 표시 + 연결 편집으로 안내, 열린 세션에 적용(swing-frontend.md "자동 커밋 상태", 사용자 결정 "상태표시줄에서 바꾸면 안된다"). 격리 수준·스마트 커밋 전환은 없음 | 중간 | 자동 커밋을 상태 줄에서 바꾸지 않는 것은 의도한 것 |
 | A-C6 | Query Manager 보기(모든 실행 기록, 필터, 지우기) | `views/qm/QueryManagerView` 외 | 일부 | Swing `QueryHistory`(편집기 문장만, 클래스 주석). [swt-removal.md](../swt-removal.md):112 | 중간 | 트랜잭션 경계·메타데이터 쿼리는 안 보인다 |
 | A-C7 | 연결 끊기 변형(모두 끊기, 다른 연결 끊기, 프로젝트·폴더 단위 끊기) | `DataSourceDisconnectAllHandler`, `…OtherHandler`, `…ProjectHandler`, `FolderDisconnectHandler` | 없음 | Swing 연결 명령은 하나씩만(`ConnectionCommands`) | 낮음 | |
@@ -254,7 +254,7 @@ Swing에서 바꿀 수 있는 설정: Options — 테마, 아이콘 모양, 입�
 2. **S1/S2** 유휴 트랜잭션 롤백·유휴 연결 끊기가 동작하지 않음(알려진 건). 고칠 때 S3의 확인과 S7의 알림이 같이 있어야 "묻지 않는 롤백"이 새로 생기지 않는다. 2026-11-07 S1 수정함(#97), S2 수정함([idle-transactions.md](../idle-transactions.md) "유휴 연결 닫기").
 3. **S5** 비밀번호를 저장하지 않은 SQL Server(SQL 인증)·Oracle 연결이 질문 없이 취소됨. 2026-11-07 실행으로 확인한 뒤 수정함([swing-auth-prompts.md](../swing-auth-prompts.md)).
 4. **S4** 연결 이벤트·셸 인증·내보내기 후 셸 명령이 승인 없이 실행됨(보안). 2026-11-07 수정함([shell-command-approval.md](../shell-command-approval.md)).
-5. **A-C1/A-C3/A-C2** 커밋·롤백 명령, 보류 트랜잭션 창, 열린 트랜잭션 표시가 없음(수동 커밋 연결을 안전하게 쓰기 어렵다).
+5. **A-C1/A-C3/A-C2** 커밋·롤백 명령, 보류 트랜잭션 창, 열린 트랜잭션 표시가 없음(수동 커밋 연결을 안전하게 쓰기 어렵다). 2026-11-07 A-C2 수정함(#97), A-C1·A-C3·A-C4 수정함([transactions.md](../transactions.md)).
 6. **S6** Windows 인증서 저장소 기본 사용이 빠져 사내 CA SSL 연결이 실패할 수 있음.
 7. **S14** macOS Cmd+Q가 저장·트랜잭션 확인을 건너뛸 가능성(실행 확인 필요).
 8. **Transactions·Connection Types 설정 화면 없음**(§6) — 트랜잭션 자동 종료 시간, 스마트 커밋, 운영 연결의 실행 확인 같은 안전 설정을 정할 수 없음.

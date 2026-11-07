@@ -181,23 +181,83 @@ Swing 제품을 개인 작업 공간으로 실행해 SQL Server, PostgreSQL, Mar
 ### 영어로 남은 것과 이유
 
 번들에 키가 없어 `.properties`만으로는 번역할 수 없는 것들이다. 고치려면 Java나 `plugin.xml`(영어 원본)을 바꿔야 해서 이번 범위에서 뺐다.
+속성 범주, Oracle `Java`/`Jobs` 폴더, SQL Server·Oracle 인증 방식 이름, 네 데이터베이스의 드라이버 속성, SQL Server 관리 폴더 설명,
+제약 조건 유형 값, `ConnectJob` 작업 이름, 드라이버 범주 필터는 2026-11-07에 고쳤다(아래 "남은 한국어 문구 정리").
 
-- **속성 범주**: 속성 창의 범주 머리글(Statistics, Properties, Flags, Settings, Constraints, Misc, Partitioning, Details, 연결 노드의
-  Driver/Server 등)은 `@Property(category = "...")` 문자열이다. `ObjectPropertyDescriptor.getCategory()`가 번들을 찾지 않고 그대로 돌려준다
-  (`com.seizia.chromite.model/src/com/seizia/chromite/runtime/properties/ObjectPropertyDescriptor.java:363-366`).
-- **`plugin.xml`에 박힌 라벨**: Oracle 폴더 `Java`, `Jobs`(`ext.oracle/plugin.xml`), SQL Server 폴더 설명(도구 설명. 저장 프로시저·함수·테이블 CHECK 제약 조건 폴더만 `%키`), 인증 방식 이름
-  (SQL Server `dataSourceAuth`의 "SQL Server Authentication", "Windows Authentication" 등, Oracle의 "Username/password", "OS Authentication" —
-  `ext.oracle/plugin.xml:463,472`; 기본 인증 방식처럼 `%키`로 바꾸면 번역할 수 있다), Oracle 역할 값 Normal/SYSDBA/SYSOPER, 드라이버 속성(Misc, Performance, Show all databases, Server Time Zone, SSL 설정 등), 작업 범주 이름.
-  SQL Server의 `description="tree.administer.node.description"`은 `%`가 빠져 키 이름이 그대로 보인다(upstream 버그).
+- **`plugin.xml`에 박힌 라벨**: SQL Server 폴더 설명(도구 설명. 저장 프로시저·함수·테이블 CHECK 제약 조건·관리 폴더만 `%키`), Oracle 역할 값
+  Normal/SYSDBA/SYSOPER(저장되는 값), 네트워크 처리기(SSL)의 속성 묶음(Swing은 이 표를 보여 주지 않음), `driver-properties`(드라이버 편집기),
+  작업 범주 이름. 네 데이터베이스 밖 확장(ClickHouse, Snowflake 등)의 인증 방식·드라이버 속성.
 - **키 없는 `@Property`**: PostgreSQL 제약 조건의 "Type"(`PostgreTableConstraintBase.getConstraintType()`을 다시 선언했는데 키가 없음),
   권한·연산자 클래스 이름 등 일부, Oracle 사용자의 `infoLabel`.
-- **값(enum·Java 문자열)**: 제약 조건 유형 값(`FOREIGN KEY`), 연결 원본 "Local", 데이터 전송 옵션 값(top, as is, always, label, quotes, upper,
-  default — `plugin.xml` `validValues`), 서버가 돌려주는 값(USER_TABLE, sleeping…). 라벨이 아니라 값이다.
-- **예외·작업 이름**: "Connect to 'X'"(`ConnectJob` 작업 이름), 드라이버 인스턴스 오류, `SQLServerLoginPasswordManager`가 덧붙이는 영어 상세 —
-  AGENTS.md 규칙대로 예외 문구는 영어.
-- **Swing 쪽**: 데이터베이스 종류 대화상자의 범주 필터가 등록부의 `driver.category.*.name` 대신 범주 ID(sql, analytic…)를 보여 준다
-  (`DriverSelectionPanel`). 별도 작업으로 남긴다.
-- 의도적으로 영어로 둔 값: `ID`, `URL`, `PID`, `TID`, `SSL`, `#` 같은 기술 토큰, 제품 이름이 들어간 드라이버 설명.
+- **값(enum·Java 문자열)**: 연결 원본 "Local", 매개 변수 방향(`DBSProcedureParameterKind`의 IN/OUT/Return — 지역화된 이름이 없음),
+  데이터 전송 옵션 값(top, as is, always, label, quotes, upper, default — `plugin.xml` `validValues`), 서버가 돌려주는 값(USER_TABLE, sleeping…).
+  라벨이 아니라 값이다.
+- **예외**: 드라이버 인스턴스 오류, `SQLServerLoginPasswordManager`가 덧붙이는 영어 상세 — AGENTS.md 규칙대로 예외 문구는 영어.
+- 의도적으로 영어로 둔 값: `ID`, `URL`, `PID`, `TID`, `SSL`, `#` 같은 기술 토큰, 제품 이름이 들어간 드라이버 설명, 속성 범주 `SQL`·`IO`.
+
+### 남은 한국어 문구 정리 (2026-11-07)
+
+후속 목록 #26·#29·#35(라벨)·#79와 연결 무효화 알림에서 남은 영어 문구를 고쳤다. 영어 화면의 문구는 아래 "영어 문구가 바뀐 곳" 말고는 그대로다.
+ID, 설정 키, 저장되는 값은 바꾸지 않았다.
+
+**속성 범주**(#29). 속성 창의 범주 머리글(Statistics, Details, Settings, 연결 노드의 Server/Driver 등)은 `@Property(category)`의 영어 상수다.
+`ObjectPropertyDescriptor`가 속성 이름을 찾을 때 범주도 번들에서 찾는다(`getLocalizedCategory`).
+- 키는 범주 값 하나에 하나: `meta.category.<값>`(예: `meta.category.Statistics = 통계`). 속성마다 키를 두면 같은 범주를 클래스마다 번역해야 한다.
+- 게터를 선언한 클래스의 번들을 먼저 보고, 없으면 `com.seizia.chromite.model`의 `OSGI-INF/l10n/bundle*.properties`에 둔 공통 범주 사전(23개)을 본다.
+  둘 다 없으면 원래 값이다. 확장 번들은 자기 번들에 같은 키를 두어 뜻이 다른 범주를 따로 번역할 수 있다.
+- 범주는 화면에서 묶는 데만 쓴다. 저장하거나 값으로 비교하는 곳이 없다(`getCategory` 호출 지점: Swing `PropertiesPanel.readProperties`,
+  `ConnectionPropertiesTable`은 드라이버 속성의 `PropertyDescriptor`라 무관).
+
+**값 표시**(#29). 제약 조건 유형(`DBSEntityConstraintType`)은 `getName()`이 SQL 키워드(FOREIGN KEY)이고 `getLocalizedName()`이 따로 있다.
+`DBValueFormatting.getDefaultValueDisplayString`이 `DBDDisplayFormat.UI`일 때 지역화된 이름을 쓴다. Swing의 값 표시 네 곳(속성 창, 개체 목록,
+테이블 디자이너, 실행 계획)이 모두 이 메서드로 끝나므로 한 곳만 고쳤다. 다른 형식(EDIT/NATIVE)은 그대로다.
+지역화된 이름을 가진 다른 값 형식(`DBSIndexType`, `DBSForeignKeyModifyRule`, `DBSTableStorageKind`)은 `DBPNamedObject`라 이미 지역화돼 있었다.
+
+**`plugin.xml` 라벨을 `%키`로**(#26). 영어 값은 원래 문구와 같다.
+
+| 번들 | 바꾼 것 |
+|---|---|
+| `ext.mssql` | 인증 방식 8개(SQL Server 인증, Windows 인증, Active Directory - 암호/통합, 사용자 지정 …)의 이름·설명, 드라이버 속성 묶음 "고급"과 속성 2개, 관리 폴더 설명(`description="tree.administer.node.description"`에 `%`가 빠져 키 이름이 보이던 upstream 버그 → `%tree.administer.node.tip`, MySQL과 같은 "Maintenance/Settings") |
+| `ext.oracle` | 폴더 `Java`(설명 "Java 클래스", 항목 "Java 클래스")·`Jobs`("작업"), 인증 방식 2개(사용자 이름/암호, OS 인증), 드라이버 속성 묶음 4개(기타·성능·내용·데이터)와 속성 14개 |
+| `ext.postgresql` | 드라이버 속성 묶음 2개(기타·데이터베이스 목록, "SQL"은 그대로)와 속성 9개 |
+| `ext.mysql` | 드라이버 속성 묶음 "고급"과 속성 2개(모든 데이터베이스 표시, 서버 표준 시간대) |
+
+- Oracle의 DBMS_JOB 폴더 "Jobs"와 스케줄러 폴더 안의 "Jobs"는 둘 다 "작업"이다. 위치(스키마 바로 아래 / 스케줄러 아래)로 구별된다.
+- 드라이버 속성 설명의 `\n`: `plugin.xml`에서는 글자 그대로 `\n`이 보였다. `.properties`에서는 줄바꿈이 된다(영어도 같음).
+- 영어 원문의 오타·잘못된 설명(Oracle "...reading of table data.r", "Search metadata in synonyms"의 설명이 "Use metadata queries optimizer")은
+  영어를 그대로 두는 원칙에 따라 고치지 않고, 한국어는 영어 원문의 뜻대로 옮겼다(앞 것은 오타 없이).
+
+**함수 속성 라벨**(#35). SQL Server 함수의 속성 창이 "프로시저 이름/설명"이었다. 근본 원인은 모든 루틴의 이름·설명 게터가 있는
+`AbstractProcedure`의 키가 "Procedure Name/Description"인 것이다. 함수와 프로시저가 한 클래스인 SQL Server(`SQLServerProcedure`)뿐 아니라
+PostgreSQL·MySQL·generic의 함수도 같은 라벨이었다. `model` 번들의 두 키를 "Name"/"Description"(이름/설명)으로 바꿨다(영어 문구가 바뀐 곳).
+SSMS 속성 창도 "이름"이다. "새 함수가 갱신 전까지 저장 프로시저 폴더에 붙는" 나머지 #35는 이미 고쳐졌다(위 "SQL Server 함수 폴더").
+
+**작업 이름·알림**. `ConnectJob` 작업 이름 "Connect to 'X'"(진행 대화상자 `ProgressDialog`가 작업 이름을 보여 줌)와
+`DefaultInvalidationFeedbackHandler`의 알림("Datasource was invalidated…", "Datasource invalidate failed")을 `ModelMessages`
+(`runtime_connect_job_name`, `runtime_invalidate_success`, `runtime_invalidate_failure`)로 옮겼다. 한국어: "'X'에 연결",
+"데이터 원본 연결을 다시 설정했습니다. 활성 연결 수: n/m", "데이터 원본 연결을 다시 설정하지 못했습니다.".
+
+**드라이버 범주**. 데이터베이스 종류 대화상자(`DriverSelectionPanel`)의 범주 콤보와 목록이 범주 ID(sql, analytic…)를 보였다.
+드라이버 관리자 등록부(`DriverManagerRegistry`, `registry/plugin.xml`의 `driver.category.*.name`)의 지역화된 이름을 보여 준다.
+콤보 항목은 ID로 두고(거르기가 ID를 비교함) 렌더러에서 이름으로 바꾼다. 이름순으로 정렬하고, 검색은 ID와 이름 모두에서 찾는다.
+등록부에 없는 범주(cloud, aws, columns 등)는 ID 그대로다.
+
+**AI 에이전트 문구**(#79). 모델이 읽는 것(도구 ID, 도구·매개 변수 설명, 결과 JSON, 오류)은 영어로 두고 사용자에게만 보이는 것만 옮겼다.
+- 도구 표시 이름 86개: `model.ai.tools/plugin.xml`의 `<function name>`을 `%tool.<id>.name`으로, 새 `OSGI-INF/l10n/bundle.properties`·
+  `bundle_ko.properties`(`build.properties`에 `OSGI-INF/` 추가). 채팅 도구 카드, 확인 대화상자, 옵션의 도구 정책 목록에 보인다.
+  MCP `tools/list`의 `title`(사람이 읽는 표시 이름, MCP 사양)도 화면 언어를 따른다. 모델이 부르는 `name`은 ID라 그대로다.
+  도구 범주 이름은 Swing이 이미 `AiMessages`로 보여 줘서 건드리지 않았다. `model.ai`의 옛 스키마 함수 3개는 채팅·MCP에 나오지 않아 두었다.
+- 열린 트랜잭션 확인 목록(소유자·설명): 새 `AIToolsMessages`(`model.ai.tools/.../internal`, `MANIFEST.MF`에 `org.eclipse.osgi` 추가).
+  `AgentSql.getPendingTransactionDatabases`(DB 목록)와 `pendingAgentTransaction`(지역화된 설명)을 새로 두고, `ConnectionTools`·`QueryTools`·
+  `AdminTools`가 쓴다. 모델에 돌려주는 `getTransactionStatus`의 `agentTransactions`(`getPendingTransactions`)는 영어 그대로다.
+  DDL 앞 암시적 커밋 설명의 제품 이름(MySQL·MariaDB·Oracle)은 받침을 정할 수 없어 조사 없이 "({0}: DDL 전에 암시적으로 커밋됨)"으로 썼다.
+  사용자 규칙(2026-11-07): 이 기능의 이름은 영어·한국어 모두 "Chromite Agent"다. 그래서 소유자 "agent"는 "Chromite Agent"로,
+  설명은 "uncommitted Chromite Agent work in …" / "… Chromite Agent가 커밋하지 않은 작업"으로 썼다(영어 문구가 바뀐 곳).
+  도구 표시 이름은 기능 이름을 쓰지 않는다. `AiMessages*`는 기능 이름 변경 작업이 따로 고치므로 건드리지 않았다.
+
+**영어 문구가 바뀐 곳**: 루틴 속성 "Procedure Name/Description" → "Name/Description", 제약 조건 유형 값 "FOREIGN KEY" → "Foreign Key"
+(속성 창·개체 목록), SQL Server 관리 폴더 도구 설명(키 이름 → "Maintenance/Settings"), 드라이버 범주 "sql/analytic" → "SQL/Analytical",
+Oracle 드라이버 속성 설명의 글자 `\n` → 줄바꿈, AI 확인 대화상자의 열린 트랜잭션 소유자·설명("agent" → "Chromite Agent").
 
 ### SQL Server 폴더 이름: "저장 프로시저", "제약 조건"
 
@@ -350,7 +410,7 @@ XML, XLSX, BOM, host:port 같은 기술 토큰은 번역하지 않는다. "…"�
   DDL 탭 제목 `<이름> [DDL]`, 끌어 놓기 내부용 DataFlavor 이름.
 - 제품 이름 "Chromite", 부제 "Database Workbench"(제품 속성, 브랜딩), 저작권 문구, 사이트 URL.
 - 다른 곳에서 오는 문구: DBeaver 모델·드라이버의 이름(인증 방식 이름, 연결 유형 이름, 드라이버 속성 범주, PostgreSQL/SQL Server 세션·잠금 열,
-  노드 유형, 개체 탐색기 폴더 이름)은 플랫폼에 번역이 있는 것만 한국어로 나온다. RSyntaxTextArea 기본 오른쪽 클릭 메뉴는 라이브러리의 `RTextArea_ko`로 이미 한국어다.
+  노드 유형, 개체 탐색기 폴더 이름)은 플랫폼에 번역이 있는 것만 한국어로 나온다(2026-11-07에 네 데이터베이스의 인증 방식·드라이버 속성을 채움). RSyntaxTextArea 기본 오른쪽 클릭 메뉴는 라이브러리의 `RTextArea_ko`로 이미 한국어다.
 - 테마 메뉴 항목의 니모닉은 기존대로 라벨의 첫 글자라, 한국어 라벨에서는 동작하지 않는다(기존 동작을 바꾸지 않음).
 
 ## 확인 방법
@@ -370,6 +430,11 @@ XML, XLSX, BOM, host:port 같은 기술 토큰은 번역하지 않는다. "…"�
   라벨·설명을 `%키`로)과 `OSGI-INF/l10n/bundle.properties`(같은 영어 문구 4개 추가). Java 파일은 바꾸지 않았다.
 - SQL Server 함수 폴더: `ext.mssql`의 `plugin.xml`(Functions 폴더 추가, 폴더 설명 3개를 `%키`로), `SQLServerSchema.java`
   (`getProceduresOnly`/`getFunctionsOnly` 추가, 캐시가 FS/FT도 읽음), `bundle.properties`·`bundle_ko.properties`(`*.node.tip` 3개).
+- 남은 한국어 문구 정리(2026-11-07): `ObjectPropertyDescriptor.java`(범주 지역화), `DBValueFormatting.java`(제약 조건 유형),
+  `ConnectJob.java`·`DefaultInvalidationFeedbackHandler.java`·`ModelMessages.java`·`ModelResources*.properties`(키 3개),
+  `model` `bundle*.properties`(범주 사전, `AbstractProcedure` 라벨), `ext.mssql`·`ext.oracle`·`ext.postgresql`·`ext.mysql`의
+  `plugin.xml`과 `bundle*.properties`(인증 방식·드라이버 속성·Oracle 폴더·SQL Server 관리 폴더 설명). Swing `DriverSelectionPanel`,
+  Chromite 번들 `model.ai.tools`(도구 이름 `%키`, `AIToolsMessages`, `AgentSql`·`ConnectionTools`·`QueryTools`·`AdminTools`)는 Chromite 코드다.
 
 ## 변경 이력
 
@@ -388,3 +453,7 @@ XML, XLSX, BOM, host:port 같은 기술 토큰은 번역하지 않는다. "…"�
 - 2026-11-07 조사 규칙("용어집" 절): 고정 문구 뒤의 겸용 조사 때문에 "쿼리 취소을(를)"처럼 나오던 메시지 6개를 고침
   (`ConnectionMessages_ko` `sessions_action_confirm_*`·`sessions_action_error_*`, `ToolsMessages_ko` `designer_error_section_not_supported`·
   `designer_error_key_not_supported`). 나머지 겸용 조사 메시지는 `{0}`이 사용자 이름이라 그대로 둠.
+- 2026-11-07 남은 한국어 문구 정리(후속 #26·#29·#35 라벨·#79, 연결 무효화 알림): 속성 범주를 `meta.category.<값>`으로 지역화, 제약 조건 유형
+  값을 지역화된 이름으로, SQL Server·Oracle 인증 방식과 네 데이터베이스의 드라이버 속성·Oracle `Java`/`Jobs` 폴더·SQL Server 관리 폴더 설명을
+  `%키`로, 루틴 라벨 "Procedure Name" → "Name", `ConnectJob` 작업 이름과 무효화 알림을 `ModelMessages`로, 드라이버 범주 이름 표시,
+  AI 도구 표시 이름 86개와 열린 트랜잭션 확인 문구 한국어("남은 한국어 문구 정리").

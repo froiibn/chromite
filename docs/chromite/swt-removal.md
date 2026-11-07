@@ -101,7 +101,7 @@ Swing 소스에서 해당 모델 API나 기능을 찾지 못한 검색으로 확
 
 | 기능 | 삭제한 SWT 번들 | 남은 모델 | Swing 확인 근거 |
 |---|---|---|---|
-| PostgreSQL 디버거(프로시저 중단점·단계 실행) | `debug.ui`, `ext.postgresql.debug.ui`, (모델) `debug.core`, `ext.postgresql.debug.core` | 없음(함께 삭제, git 이력) | `DBGController`·`debug.core` 참조 0 |
+| PostgreSQL 디버거(프로시저 중단점·단계 실행) | `debug.ui`, `ext.postgresql.debug.ui`, (모델) `debug.core`, `ext.postgresql.debug.core` | 없음(함께 삭제, git 이력) | 2026-11-07 옮김: 모델의 DB 중립 부분과 PostgreSQL 구현을 `org.eclipse.debug.core` 없이 복원, Swing 디버거 탭([procedure-debugger.md](procedure-debugger.md)) |
 | 작업(Task) 관리와 예약 실행: 저장한 작업 목록, 스케줄러, SQL 스크립트 작업 | `tasks.ui`, `tasks.ui.view`, `tasks.sql.ui`, `tasks.native.ui` | `model`의 `DBTTask*`, `tasks.native` | `DBTTask`는 데이터 전송 실행(`DataTransferWizard`)에만 쓰임. 작업 저장·예약 화면 없음 |
 | SQL 터미널(편집기 아래 콘솔 형식 결과) | `ui.editors.sql.terminal` | - | `terminal` 참조 0 |
 | 차트, 결과의 GIS(공간 데이터) 보기 | `ui.charts`, `data.gis.view` | `data.gis` | `Chart`·`DBGeometry` 참조 0 |
@@ -161,3 +161,4 @@ DBeaver CE의 Eclipse RCP 제품, SWT UI 번들 79개, SWT 전용 피처 12개, 
 - 2026-11-07 최초 작성. SWT 프런트엔드 삭제(번들 79개, 피처 12개, `product/community`, SWT 프로파일과 CI 단계), 남길 번들 판별 방법, 옮긴 리소스, 없어진 기능 목록.
 - 2026-11-07 devel 병합(#65 드라이버 관리자, #66 내장 런타임): 런타임 단계·`BundleJre.java`를 Swing 제품만 대상으로, 드라이버 관리자·오프라인 모드를 없는 기능 목록에서 뺌.
 - 2026-11-07 전수 조사 문서 [swt-parity-audit.md](swt-parity-audit.md) 연결, AI 채팅 줄 갱신(#92에서 옮김).
+- 2026-11-07 PostgreSQL 디버거 줄 갱신: 모델 복원과 Swing 디버거([procedure-debugger.md](procedure-debugger.md)).

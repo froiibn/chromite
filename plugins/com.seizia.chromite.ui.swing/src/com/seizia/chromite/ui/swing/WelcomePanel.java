@@ -53,6 +53,7 @@ import java.util.List;
  *
  * 변경 이력:
  * - 2026-11-06 최초 작성: Welcome 탭을 빈 문서 영역으로 바꿈 (docs/chromite/swing-frontend.md "빈 문서 영역")
+ * - 2026-11-07 단축키 글자({@link #getKeyText})를 SQL Editor 도구 막대의 Commit / Roll Back 도구 설명도 씀 (docs/chromite/transactions.md)
  */
 final class WelcomePanel extends JPanel {
 
@@ -135,10 +136,10 @@ final class WelcomePanel extends JPanel {
     }
 
     /**
-     * Accelerator text as the menus show it (Ctrl+Alt+G).
+     * Accelerator text as the menus show it (Ctrl+Alt+G); also for tool tips whose shortcut differs by platform.
      */
     @NotNull
-    private static String getKeyText(@NotNull KeyStroke keyStroke) {
+    static String getKeyText(@NotNull KeyStroke keyStroke) {
         String modifiers = InputEvent.getModifiersExText(keyStroke.getModifiers());
         String key = KeyEvent.getKeyText(keyStroke.getKeyCode());
         return modifiers.isEmpty() ? key : modifiers + "+" + key; //$NON-NLS-1$

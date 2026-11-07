@@ -18,5 +18,6 @@ Require-Bundle: com.seizia.chromite.model,
  com.seizia.chromite.ext.mssql,
  com.github.jsqlparser,
  org.jkiss.bundle.apache.poi,
- org.eclipse.equinox.common
+ org.eclipse.equinox.common,
+ org.eclipse.osgi
 Automatic-Module-Name: com.seizia.chromite.model.ai.tools

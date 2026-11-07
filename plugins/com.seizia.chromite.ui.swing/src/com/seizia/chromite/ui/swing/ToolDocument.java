@@ -28,6 +28,8 @@ import javax.swing.*;
  *
  * 변경 이력:
  * - 2026-11-06 최초 작성 (docs/chromite/swing-admin-tools.md)
+ * - 2026-11-07 닫기 전 확인 {@link #confirmClose}: 프로시저 디버거가 디버깅한 세션의 열린 트랜잭션을 묻는다
+ *   (docs/chromite/procedure-debugger.md)
  */
 interface ToolDocument {
 
@@ -39,6 +41,13 @@ interface ToolDocument {
 
     @NotNull
     Icon getIcon();
+
+    /**
+     * Asked before the tab closes and before Chromite exits (it may ask the user); false keeps it open. EDT.
+     */
+    default boolean confirmClose() {
+        return true;
+    }
 
     /**
      * Releases what the document holds (timers, connections); called when its tab is closed or the window closes.

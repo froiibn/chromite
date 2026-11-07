@@ -22,6 +22,8 @@ import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import com.seizia.chromite.model.connection.DBPDriver;
 import com.seizia.chromite.model.connection.DBPDriverWithLicense;
+import com.seizia.chromite.registry.DriverCategoryDescriptor;
+import com.seizia.chromite.registry.DriverManagerRegistry;
 import com.seizia.chromite.registry.driver.DriverUtils;
 import org.jkiss.utils.CommonUtils;
 
@@ -37,6 +39,7 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
 import java.util.TreeSet;
+import java.util.stream.Collectors;
 
 /**
  * 드라이버 고르기: 검색 칸, 범주 선택, 아이콘이 있는 드라이버 목록. Connect 대화상자의 "Database type" 콤보에서
@@ -50,7 +53,9 @@ import java.util.TreeSet;
  *     JDK 내장 ODBC 브리지({@code isInternalDriver}, 현재 Java에는 없음).</li>
  *     <li>검색은 SWT {@code DataSourceTypeViewer}와 같이 대소문자·공백을 무시하고 이름, 전체 이름, ID, 설명, 범주에서 찾는다.
  *     이름이 검색어로 시작하는 드라이버를 먼저 보여 준다(SWT의 인기 점수 정렬 대신 쓰는 간단한 규칙).</li>
- *     <li>범주는 드라이버의 {@code getCategories()}를 모은 것이다({@code getCategory()}는 폐기 예정 API라 쓰지 않는다). SWT의 범주 탭 대신 콤보 하나로 거른다.</li>
+ *     <li>범주는 드라이버의 {@code getCategories()}를 모은 것이다({@code getCategory()}는 폐기 예정 API라 쓰지 않는다). SWT의 범주 탭 대신 콤보 하나로 거른다.
+ *     콤보와 목록은 범주 ID 대신 드라이버 관리자 등록부({@link DriverManagerRegistry})의 지역화된 범주 이름을 보여 준다.
+ *     거르기는 ID로 하므로 콤보 항목은 ID로 두고 렌더러에서 이름으로 바꾼다. 등록부에 없는 범주(cloud, aws 등)는 ID를 그대로 보여 준다.</li>
  *     <li>아이콘은 탐색기와 같은 {@link NodeIcons}로 그린다(드라이버 아이콘도 {@code DBPImage}).</li>
  * </ul>
  * 두 번 누르거나 Enter를 누르면 고른 것으로 한다({@code onChoose}).
@@ -60,6 +65,8 @@ import java.util.TreeSet;
  * - 2026-11-06 SSMS식 Connect 대화상자: 새 연결의 1단계 화면에서 "Database type" 콤보의 전체 드라이버 검색 창으로 바꿈.
  *   콤보도 같은 드라이버 목록을 쓰도록 {@link #getConnectableDrivers()}를 패키지에 공개
  * - 2026-11-06 화면 문구를 ConnectionMessages로 옮김(OS 언어를 따름)
+ * - 2026-11-07 범주 콤보와 목록에 범주 ID(sql, analytic) 대신 지역화된 범주 이름을 보여 줌
+ *   (docs/chromite/swing-l10n.md "남은 한국어 문구 정리")
  */
 final class DriverSelectionPanel extends JPanel {
 
@@ -79,7 +86,9 @@ final class DriverSelectionPanel extends JPanel {
         super(new BorderLayout(0, 8));
         allDrivers = getConnectableDrivers();
 
-        TreeSet<String> categories = new TreeSet<>(String.CASE_INSENSITIVE_ORDER);
+        // The combo keeps category IDs (the filter compares IDs) and shows their names, sorted by name
+        TreeSet<String> categories = new TreeSet<>(Comparator.comparing(DriverSelectionPanel::getCategoryName, String.CASE_INSENSITIVE_ORDER)
+            .thenComparing(String.CASE_INSENSITIVE_ORDER));
         for (DBPDriver driver : allDrivers) {
             for (String category : driver.getCategories()) {
                 if (!CommonUtils.isEmpty(category)) {
@@ -91,6 +100,13 @@ final class DriverSelectionPanel extends JPanel {
         categoryItems.add(ALL_CATEGORIES);
         categoryItems.addAll(categories);
         categoryCombo = new JComboBox<>(categoryItems.toArray(new String[0]));
+        categoryCombo.setRenderer(new DefaultListCellRenderer() {
+            @Override
+            public Component getListCellRendererComponent(JList<?> list, Object value, int index, boolean isSelected, boolean cellHasFocus) {
+                Object text = value instanceof String category && !ALL_CATEGORIES.equals(category) ? getCategoryName(category) : value;
+                return super.getListCellRendererComponent(list, text, index, isSelected, cellHasFocus);
+            }
+        });
         categoryCombo.addActionListener(e -> applyFilter());
 
         searchField.putClientProperty(FlatClientProperties.PLACEHOLDER_TEXT, ConnectionMessages.driver_select_search);
@@ -231,7 +247,18 @@ final class DriverSelectionPanel extends JPanel {
             || normalize(driver.getId()).contains(pattern) || normalize(driver.getDescription()).contains(pattern)) {
             return true;
         }
-        return driver.getCategories().stream().anyMatch(category -> normalize(category).contains(pattern));
+        return driver.getCategories().stream()
+            .anyMatch(category -> normalize(category).contains(pattern) || normalize(getCategoryName(category)).contains(pattern));
+    }
+
+    /**
+     * Name of a driver category from the driver manager registry ({@code driver.category.*.name}, localized); the ID itself
+     * for categories the registry does not declare (cloud, aws, columns…).
+     */
+    @NotNull
+    private static String getCategoryName(@NotNull String categoryId) {
+        DriverCategoryDescriptor category = DriverManagerRegistry.getInstance().getCategory(categoryId);
+        return category == null || CommonUtils.isEmpty(category.getName()) ? categoryId : category.getName();
     }
 
     @NotNull
@@ -258,7 +285,9 @@ final class DriverSelectionPanel extends JPanel {
             super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
             if (value instanceof DBPDriver driver) {
                 setIcon(NodeIcons.getIcon(driver.getIcon()));
-                String category = String.join(", ", driver.getCategories()); //$NON-NLS-1$
+                String category = driver.getCategories().stream()
+                    .map(DriverSelectionPanel::getCategoryName)
+                    .collect(Collectors.joining(", ")); //$NON-NLS-1$
                 if (CommonUtils.isEmpty(category)) {
                     setText(driver.getName());
                 } else {

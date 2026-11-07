@@ -34,6 +34,12 @@
         <service name="com.seizia.chromite.runtime.ui.UIServiceSQL" class="com.seizia.chromite.ui.swing.SwingSqlService"/>
     </extension>
 
+    <!-- @export script command: exports the next query with the Export Data wizard; the SWT product registered
+         SQLPragmaExport in data.transfer.ui. Without it the command was ignored and the next query ran in the query window. -->
+    <extension point="com.seizia.chromite.sqlCommand">
+        <pragma id="export" class="com.seizia.chromite.ui.swing.SqlExportPragma"/>
+    </extension>
+
     <!-- Table designer: driver parts of new indexes, foreign keys and CHECK constraints (the SWT ext.*.ui configurators'
          non-UI part). Adapters of the driver's table class, so a driver class is loaded only for its own tables. -->
     <extension point="org.eclipse.core.runtime.adapters">
