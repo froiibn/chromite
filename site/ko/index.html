@@ -46,14 +46,13 @@
       </dl>
     </div>
 
-    <section class="panel downloads-area" data-state="loading" aria-labelledby="download-title" aria-live="polite">
+    <section class="panel downloads-area" data-state="static" aria-labelledby="download-title" aria-live="polite">
       <h2 class="panel-head" id="download-title">다운로드</h2>
-      <p class="state state-loading">최신 버전을 확인하는 중입니다…</p>
       <p class="state state-error notice">릴리스 목록을 읽지 못했습니다. 잠시 뒤 다시 열어 보세요. 목록은 <a href="/downloads/releases.json">releases.json</a>에서도 볼 수 있습니다.</p>
       <p class="state state-empty notice">아직 공개된 릴리스가 없습니다.</p>
 
       <div class="downloads">
-        <article class="card" data-platform="windows" data-arch="x64" data-kind="setup">
+        <article class="card" id="download-windows" data-platform="windows" data-arch="x64" data-kind="setup" data-other-label="다른 운영체제용 받기 (Windows)">
           <h3>Windows</h3>
           <p class="req">Windows 10·11 (x64). 관리자 권한 없이 사용자 계정에 설치됩니다.</p>
           <div class="when-ready">
@@ -68,7 +67,7 @@
           <p class="when-missing">Windows용 파일이 아직 없습니다.</p>
         </article>
 
-        <article class="card" data-platform="macos" data-arch="arm64" data-kind="dmg">
+        <article class="card" id="download-macos" data-platform="macos" data-arch="arm64" data-kind="dmg" data-other-label="다른 운영체제용 받기 (macOS)">
           <h3>macOS</h3>
           <p class="req">Apple Silicon(M1 이후) Mac. 디스크 이미지를 열어 Applications 폴더로 끌어 놓습니다.</p>
           <div class="when-ready">
@@ -83,6 +82,7 @@
           <p class="when-missing">macOS용 파일이 아직 없습니다.</p>
         </article>
       </div>
+      <p class="state state-static">최신 파일의 버전과 내려받기 단추는 JavaScript로 채웁니다. JavaScript 없이 받으려면 <a href="/downloads/releases.json">releases.json</a>에서 파일 이름(크기, SHA-256 포함)을 보고 <code>/downloads/파일 이름</code>을 여세요. <a href="https://github.com/froiibn/chromite/releases">GitHub 릴리스</a>에도 같은 파일이 있습니다.</p>
     </section>
   </div>
 

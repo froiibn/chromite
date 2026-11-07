@@ -46,14 +46,13 @@
       </dl>
     </div>
 
-    <section class="panel downloads-area" data-state="loading" aria-labelledby="download-title" aria-live="polite">
+    <section class="panel downloads-area" data-state="static" aria-labelledby="download-title" aria-live="polite">
       <h2 class="panel-head" id="download-title">Download</h2>
-      <p class="state state-loading">Looking for the latest version…</p>
       <p class="state state-error notice">The release list could not be read. Try again later. The list is also at <a href="/downloads/releases.json">releases.json</a>.</p>
       <p class="state state-empty notice">No release has been published yet.</p>
 
       <div class="downloads">
-        <article class="card" data-platform="windows" data-arch="x64" data-kind="setup">
+        <article class="card" id="download-windows" data-platform="windows" data-arch="x64" data-kind="setup" data-other-label="Download for Windows instead">
           <h3>Windows</h3>
           <p class="req">Windows 10 or 11 (x64). Installs for your user account; no administrator rights needed.</p>
           <div class="when-ready">
@@ -68,7 +67,7 @@
           <p class="when-missing">There is no Windows file yet.</p>
         </article>
 
-        <article class="card" data-platform="macos" data-arch="arm64" data-kind="dmg">
+        <article class="card" id="download-macos" data-platform="macos" data-arch="arm64" data-kind="dmg" data-other-label="Download for macOS instead">
           <h3>macOS</h3>
           <p class="req">Mac with Apple silicon (M1 or later). Open the disk image and drag Chromite to Applications.</p>
           <div class="when-ready">
@@ -83,6 +82,7 @@
           <p class="when-missing">There is no macOS file yet.</p>
         </article>
       </div>
+      <p class="state state-static">The latest version and the download buttons are filled in by JavaScript. Without it, find the file name (with its size and SHA-256) in <a href="/downloads/releases.json">releases.json</a> and open <code>/downloads/&lt;file name&gt;</code>. The same files are on <a href="https://github.com/froiibn/chromite/releases">GitHub Releases</a>.</p>
     </section>
   </div>
 
