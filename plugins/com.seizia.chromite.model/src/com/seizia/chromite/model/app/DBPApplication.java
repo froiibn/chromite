@@ -35,6 +35,8 @@ import java.nio.file.Path;
  * 변경 이력:
  * - 2026-11-06 사용 통계 기능 제거: getAdditionalApplicationProperties(), isStatisticsCollectionRequired() 삭제
  *   (docs/chromite/telemetry.md)
+ * - 2026-11-07 getLastUserActivityTime() 삭제: 유휴 연결 닫기가 연결별 마지막 사용 시각을 쓰게 되어 쓰는 곳이 없음
+ *   (docs/chromite/idle-transactions.md "유휴 연결 닫기")
  */
 public interface DBPApplication {
 
@@ -145,14 +147,6 @@ public interface DBPApplication {
      */
     default boolean isWorkspaceSwitchingAllowed() {
         return true;
-    }
-
-    /**
-     * Returns last user activity time
-     * @return -1 by default
-     */
-    default long getLastUserActivityTime() {
-        return -1;
     }
 
     @Nullable

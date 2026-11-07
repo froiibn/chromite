@@ -58,6 +58,7 @@ import java.util.Map;
  *
  * 변경 이력:
  * - 2026-11-07 최초 작성 (docs/chromite/connection-transfer.md)
+ * - 2026-11-07 가져온 연결의 저장 실패(OS 보안 저장소가 비밀번호를 저장하지 못함)를 결과 뒤에 알림 (docs/chromite/credential-storage.md)
  */
 final class ConnectionTransferCommands {
 
@@ -143,6 +144,12 @@ final class ConnectionTransferCommands {
         JOptionPane.showMessageDialog(getWindow(parent), message.toString(), ConnectionTransferMessages.transfer_import_title,
             result.getSkippedConnected().isEmpty() && result.getMissingDrivers().isEmpty()
                 ? JOptionPane.INFORMATION_MESSAGE : JOptionPane.WARNING_MESSAGE);
+        // Saving the imported connections keeps a failure (the secure storage could not keep the passwords) as the last error
+        Throwable saveError = registry.getLastError();
+        if (saveError != null) {
+            DBWorkbench.getPlatformUI().showError(ConnectionTransferMessages.transfer_import_title,
+                ConnectionTransferMessages.transfer_import_save_failed, saveError);
+        }
     }
 
     /**

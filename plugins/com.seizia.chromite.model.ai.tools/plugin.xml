@@ -713,4 +713,10 @@
         <service class="com.seizia.chromite.model.ai.tools.mcp.AIMcpPluginService"/>
     </extension>
 
+    <extension point="com.seizia.chromite.service">
+        <!-- The agent's statements bypass the query manager: the idle connection close asks this service so that it does not
+             close a connection the agent works on or holds an open transaction on (docs/chromite/idle-transactions.md) -->
+        <service name="com.seizia.chromite.runtime.DBServiceUnrecordedSessions" class="com.seizia.chromite.model.ai.tools.AgentSessionsService"/>
+    </extension>
+
 </plugin>

@@ -60,15 +60,18 @@ import java.util.stream.Stream;
  *
  * 설계:
  * - AI 비밀(API 키, Copilot 토큰, OpenAI 사용자 헤더)은 OS 보안 저장소(Eclipse secure storage + OS 제공자: Windows는 DPAPI로 보호한
- *   마스터 비밀번호, macOS는 키체인)에 둔다. 작업 공간의 전역 비밀 컨트롤러(데스크톱은 {@code LocalSecretController})는 값을
- *   작업 공간 설정 파일에 평문으로 쓰기 때문이다. 이 컨트롤러는 다른 기능(전역 네트워크 프로필, 프록시, Maven 인증)도 쓰므로
- *   컨트롤러 자체를 바꾸지 않고 AI 비밀만 옮겼다.
+ *   마스터 비밀번호, macOS는 키체인)에 둔다(Eclipse 기본 저장 파일, 노드 {@code chromite} 바로 아래). 작업 공간의 전역 비밀 컨트롤러는
+ *   0.1.0에서 값을 작업 공간 설정 파일에 평문으로 썼다({@code LocalSecretController}). 데스크톱의 전역 컨트롤러는 이제 작업 공간 범위의
+ *   OS 보안 저장소({@code WorkspaceSecretController}, Chromite 저장 파일)지만 AI 비밀은 그 전에 따로 옮겼으므로 여기 그대로 두고, 전역
+ *   컨트롤러는 예전 값의 출처로만 읽는다. 평문 값이 남아 있으면 전역 컨트롤러가 먼저 자기 저장소로 옮기고, 이 클래스가 그 값을 AI
+ *   위치로 옮긴 뒤 전역 컨트롤러 쪽을 지운다 (docs/chromite/credential-storage.md).
  * - OS 보안 저장소를 쓸 수 없거나 값을 암호화하지 않으면 예외를 낸다. 평문으로 대신 저장하지 않는다.
  * - 0.1.0이 평문으로 저장한 값은 처음 읽을 때 보안 저장소로 옮기고(쓰고 flush한 뒤) 평문 항목을 지운다. 보안 저장소는 OS 사용자
  *   단위라(OpenAI 계정 토큰, DataDam과 같은 노드) 이미 값이 있으면 그 작업 공간의 평문 사본은 쓰이지 않으므로 지운다.
  *
  * 변경 이력:
  * - 2026-11-07 AI 비밀을 OS 보안 저장소로 옮김, 평문 값 이전 (docs/chromite/ai-agent.md "엔진")
+ * - 2026-11-07 설계 주석 갱신: 전역 비밀 컨트롤러도 OS 보안 저장소를 쓰게 됨(코드 변경 없음)
  */
 public final class AIUtils {
     private static final Log log = Log.getLog(AIUtils.class);

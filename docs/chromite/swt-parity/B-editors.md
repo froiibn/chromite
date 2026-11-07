@@ -35,7 +35,7 @@
    인터페이스 기본값은 `false`(`SQLQueryExecuteHandler.java:91`)이고 Swing `SqlEditorPanel.QueryHandler`(`:1329`)는 재정의하지 않는다.
    연결 종류의 `smartCommit`과 `transaction.smart.commit` 설정은 저장·읽기(`DBExecUtils.java:528`)되지만 쿼리 창에서는 아무 일도 하지 않는다.
 5. **S24 유휴 트랜잭션 자동 종료**(영역 A 지시서의 예와 같음, 교차 참조). `DataSourceMonitorJob.getTransactionTimeoutSeconds`·`getLastUserActivityTime`이 쓰는
-   UI 고리(`UIServiceConnections` 구현, 마지막 사용자 활동 시각)가 Swing에 없다(`plugin.xml` 서비스 3개: Connections, Drivers, SystemAgent). 현재 `chromite/idle-transactions` 브랜치에서 작업 중이다.
+   UI 고리(`UIServiceConnections` 구현, 마지막 사용자 활동 시각)가 Swing에 없다(`plugin.xml` 서비스 3개: Connections, Drivers, SystemAgent). → **2026-11-07 수정**(#97, [idle-transactions.md](../idle-transactions.md)).
 6. **S12 `@export` 명령이 조용히 무시된다.** `SQLCommandExport`(model.sql)는 pragma만 남기고, 그 처리기 `SQLPragmaExport`는 삭제된 `data.transfer.ui`(`plugin.xml:118`)에 있었다.
    `SQLQueryExecuteJob.java:432`는 처리기가 없으면 건너뛰므로 다음 쿼리가 평소처럼 실행되고 파일은 만들어지지 않으며 오류도 없다.
 7. **S8 연결 보안 제한 "스크립트 실행"(`PERMISSION_EXECUTE_SCRIPTS`)이 적용되지 않는다.** SWT는 `SQLEditor.java:3106`에서만 검사했다. Swing은 검사하지 않는다.
@@ -70,8 +70,8 @@
 | S20 | 트랜잭션 로그(현재 트랜잭션의 문 목록), 트랜잭션 모니터(문 수·경과 시간) | `core` `TransactionLogDialog`, `TransactionMonitorToolbar` | 없음 | Swing grep `QMTransaction`/`TransactionLog` 0건 | 높음 | 끝낼 때·AI 도구만 열린 트랜잭션을 찾음(`ExitTransactionCheck`, `AutoCommitApplier`) |
 | S21 | 미결 트랜잭션 보기 | `core` pending transactions view | 없음 | 지시서의 예, grep 0건 | 높음 | |
 | S22 | 편집기별 별도 연결(트랜잭션 분리) | `SQLEditor` 격리 실행 문맥(`SEPARATE_CONNECTION`) | 없음 | `SqlEditorPanel` Javadoc "실행 문맥은 연결의 기본(주) 문맥", swing-frontend.md:708·1018·1293 | 높음 | 같은 연결의 쿼리 창들이 한 트랜잭션을 나눠 씀. 결과 저장도 같은 문맥에서 자동 커밋을 끔 |
-| S23 | 끊기·다시 연결·삭제 전 열린 트랜잭션 확인 | `ui.editors.connection` `DataSourceHandler.checkAndCloseActiveTransaction`(`:168, :206-228`) | **조용히 끊김** | 위 요약 1 | 높음 | 끝낼 때(`ExitTransactionCheck`)만 묻는다 |
-| S24 | 유휴 트랜잭션 자동 종료 | `core` `UIServiceConnectionsImpl`, 앱의 사용자 활동 시각 | **조용히 끊김** | 위 요약 5 | 높음 | 영역 A와 중복 |
+| S23 | 끊기·다시 연결·삭제 전 열린 트랜잭션 확인 | `ui.editors.connection` `DataSourceHandler.checkAndCloseActiveTransaction`(`:168, :206-228`) | **수정함** (2026-11-07, #97, [idle-transactions.md](../idle-transactions.md) "연결 끊기 전 질문", 영역 A-S3). 조사 당시: 조용히 끊김 | 위 요약 1 | 높음 | 끝낼 때(`ExitTransactionCheck`)만 묻는다 |
+| S24 | 유휴 트랜잭션 자동 종료 | `core` `UIServiceConnectionsImpl`, 앱의 사용자 활동 시각 | **수정함** (2026-11-07, #97, [idle-transactions.md](../idle-transactions.md): 마지막 문장 기준 유휴, 기본은 알림과 커밋 / 롤백 / 열어 두기, 연결에서 켰을 때만 자동 롤백 뒤 알림, 영역 A-S1). 조사 당시: 조용히 끊김 | 위 요약 5 | 높음 | 영역 A와 중복 |
 | S25 | 서버 출력(Oracle `DBMS_OUTPUT` 등) | `show.output`, `SQLEditorOutputViewer`, `DBCServerOutputReader` | 있음(2026-11-07) | `SqlEditorPanel.readServerOutput`: 문장마다 읽어(버퍼를 비움) Messages 탭에 씀. [swing-server-output.md](../swing-server-output.md) | 중간 | SWT의 별도 Output 패널(심각도 필터, 자동 표시) 대신 Messages 탭. SQL Server `PRINT`, PostgreSQL `NOTICE`는 전처럼 한 번만 나옴 |
 | S26 | 실행 로그(편집기별 쿼리 관리자 로그) | `show.log`, `SQLLogPanel`, `QueryLogViewer` | 일부 | `QueryHistory`/`QueryHistoryDialog`(swing-sql-editor-plus.md "쿼리 기록"), swt-removal.md:112 | 중간 | 편집기가 실행한 문만 기록. 내부 쿼리·트랜잭션 표시 없음 |
 | S27 | 실행 계획(예상·실제) | `run.explain`, `ExplainPlanViewer` | 있음 | `ExecutionPlanView`, `PlanDiagramView`, `PlanRawView`, swing-sql-editor-plus.md | 중간 | 계획 파일 불러오기(`load.plan`)는 없음, 저장은 원본 보기에서 됨 |
@@ -189,11 +189,11 @@ swing-security.md는 DB 보안(로그인·역할·권한) 문서이고 연결 �
 
 ## 영향이 큰 빠진 기능·조용히 끊긴 기능 10개
 
-1. S23 끊기·다시 연결·삭제 때 미커밋 트랜잭션을 묻지 않고 롤백 (조용히 끊김, 높음)
+1. S23 끊기·다시 연결·삭제 때 미커밋 트랜잭션을 묻지 않고 롤백 (조용히 끊김, 높음) — 2026-11-07 수정(#97)
 2. C5 저장 안 한 비밀번호의 SQL Server·Oracle 연결이 묻지 않고 취소 (조용히 끊김, 높음, 실행 확인 못 함)
 3. R19 결과 저장 미리 보기·연결 종류 "데이터 변경 확인" 미동작 (조용히 끊김, 높음) — 2026-11-07 수정
 4. S16 스마트 커밋 미동작 (조용히 끊김, 높음)
-5. S24 유휴 트랜잭션 자동 종료 미동작 (조용히 끊김, 높음, 영역 A와 중복)
+5. S24 유휴 트랜잭션 자동 종료 미동작 (조용히 끊김, 높음, 영역 A와 중복) — 2026-11-07 수정(#97)
 6. S7 WHERE 없는 DELETE/UPDATE·DROP 확인 없음 (없음, 높음)
 7. S17·S18 Commit/Rollback·커밋 방식 전환 명령 없음 (없음, 높음, 결정 대기)
 8. S22 쿼리 창별 별도 연결 없음 — 창들이 한 트랜잭션을 나눠 씀 (없음, 높음)

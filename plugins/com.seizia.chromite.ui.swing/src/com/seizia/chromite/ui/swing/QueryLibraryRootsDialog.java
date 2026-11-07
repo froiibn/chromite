@@ -42,6 +42,8 @@ import java.util.List;
  * 변경 이력:
  * - 2026-11-06 Query Library: 최초 작성 (docs/chromite/swing-query-library.md "저장 위치와 루트")
  * - 2026-11-06 화면 문구를 ToolsMessages로 옮김(OS 언어를 따름)
+ * - 2026-11-07 ④ 공유: 쿼리 파일에 비밀번호·토큰을 넣지 않는다는 안내(공유 루트는 폴더에 접근하는 모든 사람이 읽음)
+ *   (docs/chromite/swing-query-library.md "공유")
  */
 final class QueryLibraryRootsDialog extends JDialog {
 
@@ -103,6 +105,12 @@ final class QueryLibraryRootsDialog extends JDialog {
 
         JLabel hint = new JLabel(ToolsMessages.library_roots_hint);
         hint.putClientProperty(FlatClientProperties.STYLE, "foreground: $Chromite.secondaryForeground"); //$NON-NLS-1$
+        // Shared roots are read by everyone with access to the folder: say what never goes into a query file
+        JLabel secretsNote = new JLabel(ToolsMessages.library_roots_secrets_note, UiIcons.get("warning"), SwingConstants.LEADING); //$NON-NLS-1$
+        secretsNote.setIconTextGap(6);
+        JPanel notes = new JPanel(new BorderLayout(0, 6));
+        notes.add(hint, BorderLayout.NORTH);
+        notes.add(secretsNote, BorderLayout.CENTER);
 
         JButton okButton = new JButton(ToolsMessages.button_ok);
         okButton.addActionListener(e -> {
@@ -125,7 +133,7 @@ final class QueryLibraryRootsDialog extends JDialog {
         scrollPane.setPreferredSize(new Dimension(700, 200));
         JPanel content = new JPanel(new BorderLayout(0, 8));
         content.setBorder(BorderFactory.createEmptyBorder(10, 12, 10, 12));
-        content.add(hint, BorderLayout.NORTH);
+        content.add(notes, BorderLayout.NORTH);
         content.add(scrollPane, BorderLayout.CENTER);
         content.add(south, BorderLayout.SOUTH);
         setContentPane(content);

@@ -82,6 +82,8 @@ import java.util.concurrent.locks.ReentrantLock;
  *     MCP 취소 알림·채팅 중지가 같은 문장을 취소한다.</li>
  *     <li>"단일 연결 사용" 연결은 격리 문맥을 열 수 없어 기본 문맥을 쓴다. 이때는 사용자 트랜잭션을 건드리지 않도록 자동 커밋을 바꾸지 않고,
  *     읽기 보호는 분류기만 한다.</li>
+ *     <li>유휴 연결 닫기: 에이전트 문장은 쿼리 관리자에 기록되지 않으므로 사용 중 여부와 마지막 사용 시각({@link #isInUse},
+ *     {@link #getLastUseTime})을 {@link AgentSessionsService}로 알린다. 열린 트랜잭션이 있거나 실행 중인 연결은 닫히지 않는다.</li>
  * </ul>
  *
  * 변경 이력:
@@ -89,6 +91,7 @@ import java.util.concurrent.locks.ReentrantLock;
  * - 2026-11-07 열린 트랜잭션의 DB 목록({@link #getPendingTransactionDatabases})과 확인 대화상자용 지역화된 설명
  *   ({@link #pendingAgentTransaction})을 나눔. 모델에 돌려주는 {@link #getPendingTransactions}는 영어 그대로
  *   (docs/chromite/swing-l10n.md "남은 한국어 문구 정리")
+ * - 2026-11-07 유휴 연결 닫기용 사용 중 여부와 마지막 사용 시각 (docs/chromite/idle-transactions.md "유휴 연결 닫기")
  */
 public final class AgentSql {
 
@@ -135,6 +138,8 @@ public final class AgentSql {
     // Pools of agent contexts; a pool list is guarded by synchronizing on it
     private static final Map<ContextKey, List<AgentContext>> pools = new ConcurrentHashMap<>();
     private static final Map<String, Set<Statement>> running = new ConcurrentHashMap<>();
+    // Per connection: when the agent last finished work on it (the query manager does not see the agent's statements)
+    private static final Map<String, Long> lastUse = new ConcurrentHashMap<>();
     // setCurrentDatabase: per connection, {database, schema}
     private static final Map<String, String[]> defaults = new ConcurrentHashMap<>();
 
@@ -232,6 +237,7 @@ public final class AgentSql {
                 throw new DBException(CommonUtils.notEmpty(e.getMessage()), e);
             }
         } finally {
+            lastUse.put(container.getId(), System.currentTimeMillis());
             agentContext.lock.unlock();
         }
     }
@@ -457,6 +463,30 @@ public final class AgentSql {
      */
     public static boolean hasPendingTransaction(@NotNull DBPDataSourceContainer container) {
         return !getPendingTransactions(container).isEmpty();
+    }
+
+    /**
+     * Whether the agent works on the connection now (one of its contexts is taken) or left a transaction open on it.
+     */
+    public static boolean isInUse(@NotNull DBPDataSourceContainer container) {
+        for (Map.Entry<ContextKey, List<AgentContext>> e : pools.entrySet()) {
+            if (!e.getKey().containerId().equals(container.getId())) {
+                continue;
+            }
+            for (AgentContext agentContext : snapshot(e.getValue())) {
+                if (agentContext.pending || agentContext.lock.isLocked()) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    /**
+     * When the agent last finished work on the connection, or 0 when it never worked on it.
+     */
+    public static long getLastUseTime(@NotNull DBPDataSourceContainer container) {
+        return lastUse.getOrDefault(container.getId(), 0L);
     }
 
     /**

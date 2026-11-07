@@ -63,6 +63,9 @@ import java.util.stream.Collectors;
  * 변경 이력:
  * - 2026-11-07 연결의 유휴 트랜잭션 설정(idleTransactionReminder, idleTransactionPeriod, idleTransactionRollback)을 읽고 씀.
  *   기본값과 같으면 쓰지 않아 기존 파일은 그대로 연결 종류를 따르고 자동 롤백은 꺼져 있다 (docs/chromite/idle-transactions.md)
+ * - 2026-11-07 데스크톱 프로젝트 파일({@link DataSourceConfigurationManagerNIO})의 자격 증명을 {@code credentials-config*.json}(소스에
+ *   있는 고정 키로 암호화) 대신 OS 보안 저장소에 읽고 씀({@link ProjectCredentialsStorage}). 저장 실패는 로그만 남기지 않고 예외로
+ *   올려 레지스트리의 마지막 오류로 사용자에게 보인다 (docs/chromite/credential-storage.md)
  */
 public class DataSourceSerializerModern<T extends DataSourceDescriptor> implements DataSourceSerializer<T> {
 
@@ -355,8 +358,13 @@ public class DataSourceSerializerModern<T extends DataSourceDescriptor> implemen
     void saveSecureCredentialsFile(
         @NotNull DataSourceConfigurationManager configurationManager,
         @NotNull DBPDataSourceConfigurationStorage storage
-    ) {
+    ) throws DBException {
         String credFile = DBPDataSourceRegistry.CREDENTIALS_CONFIG_FILE_PREFIX + storage.getStorageSubId() + DBPDataSourceRegistry.CREDENTIALS_CONFIG_FILE_EXT;
+        if (configurationManager instanceof DataSourceConfigurationManagerNIO) {
+            // Desktop project files: credentials go to the OS secure storage, a failure reaches the registry's last error
+            ProjectCredentialsStorage.save(registry.getProject().getMetadataFolder(false), credFile, secureProperties);
+            return;
+        }
         try {
             if (secureProperties.isEmpty()) {
                 saveConfigFile(configurationManager, credFile, null, true);
@@ -1010,6 +1018,10 @@ public class DataSourceSerializerModern<T extends DataSourceDescriptor> implemen
         }
         final String name = DBPDataSourceRegistry.CREDENTIALS_CONFIG_FILE_PREFIX
                 + configurationStorage.getStorageSubId() + DBPDataSourceRegistry.CREDENTIALS_CONFIG_FILE_EXT;
+        if (configurationManager instanceof DataSourceConfigurationManagerNIO) {
+            // Desktop project files: credentials are in the OS secure storage (an old file is moved there)
+            return ProjectCredentialsStorage.load(registry.getProject().getMetadataFolder(false), name);
+        }
         try (InputStream is = configurationManager.readConfiguration(name, dataSourceIds)) {
             if (is == null) {
                 return null;
