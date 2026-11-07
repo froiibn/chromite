@@ -505,12 +505,27 @@ end tell
 EOF
 }
 # Presses the button named $2 in the app's front window (a JOptionPane), searching its whole AX tree
+# ("entire contents" is a list, not an element: no "whose" filter on it, so the elements are walked)
 press_button() {
-  on_app "$1" "click (first button of entire contents of window 1 whose name is \"$2\")"
+  on_app "$1" "repeat with e in (entire contents of window 1)
+      if role of e is \"AXButton\" and name of e is \"$2\" then
+        click e
+        return \"pressed $2\"
+      end if
+    end repeat
+    error \"no button $2 in \" & name of window 1"
 }
-# The text of the app's front window (static texts of its AX tree), for the evidence files
+# The title, texts and buttons of the app's front window (its AX tree), for the evidence files
 front_window_text() {
-  on_app "$1" 'return {name of window 1, value of every static text of entire contents of window 1}' 2>&1 || true
+  on_app "$1" 'set out to {name of window 1}
+    repeat with e in (entire contents of window 1)
+      try
+        set r to role of e
+        if r is "AXStaticText" or r is "AXTextArea" then set end of out to (value of e as text)
+        if r is "AXButton" then set end of out to ("[" & name of e & "]")
+      end try
+    end repeat
+    return out' 2>&1 || true
 }
 
 # Quit while a transaction is open (A-S14 with ExitTransactionCheck): one INSERT in a new query window of the
