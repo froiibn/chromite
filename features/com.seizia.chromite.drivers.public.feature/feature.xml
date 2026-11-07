@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
-    Chromite public edition bundled JDBC drivers (docs/chromite/drivers.md).
+    Chromite bundled JDBC drivers of the major databases (docs/chromite/drivers.md).
 
     Design: the product bundle declarations (com.seizia.chromite.drivers.public) and the drivers/ root files
     (jars fetched by pom.xml, license texts from drivers-root/) must always ship together: a declared bundle
@@ -12,14 +12,16 @@
     History:
     - 2026-11-06 Created. Moved out of com.seizia.chromite.ce.feature so the Swing product ships the same drivers.
     - 2026-11-07 The SWT product was removed (docs/chromite/swt-removal.md); the Swing feature is the only includer.
+    - 2026-11-07 Added SQLite. Chromite ships one edition (no internal edition), so the "public edition" labels
+      became "bundled drivers"; the feature and plugin IDs keep "public" because renaming them buys nothing.
 -->
 <feature
         id="com.seizia.chromite.drivers.public.feature"
-        label="Chromite Bundled JDBC Drivers (Public Edition)"
+        label="Chromite Bundled JDBC Drivers"
         version="26.2.5.qualifier"
         provider-name="Chromite contributors">
 
-    <description>JDBC drivers bundled with the Chromite public edition: SQL Server, Oracle, PostgreSQL, MariaDB</description>
+    <description>JDBC drivers bundled with Chromite: SQL Server, Oracle, PostgreSQL, MariaDB, MySQL, SQLite</description>
 
     <copyright>Chromite contributors. Driver licenses: drivers/README.txt</copyright>
 

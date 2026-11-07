@@ -61,11 +61,20 @@ mysql/ - MySQL, NDB Cluster, Apache Doris, GreptimeDB, Manticore Search,
   The MySQL 5 (Legacy) driver is not bundled; it is downloaded as
   mysql-connector-java 5.1.49 when first used.
 
+sqlite/ - SQLite
+  xerial/sqlite-jdbc-3.54.1.0.jar      Apache License 2.0 (LICENSE.txt);
+                                       parts derived from the Zentus
+                                       SQLite JDBC driver: BSD-style
+                                       license (LICENSE-zentus.txt)
+  The jar contains the native SQLite library for each supported
+  platform. SQLite itself is in the public domain
+  (https://sqlite.org/copyright.html).
+
 The Apache License 2.0 text is in licenses/external/asl-2.0.txt in the
 installation folder. Jar files that contain their own LICENSE or NOTICE
 files (under META-INF/) keep them.
 
 Other drivers are not bundled. Chromite downloads them from Maven
 Central when they are first used, unless offline mode is enabled in
-Preferences > Connections > Drivers. In offline mode, add the jar files
+Tools > Driver Manager. In offline mode, add the jar files
 manually in the driver settings.

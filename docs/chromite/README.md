@@ -30,6 +30,7 @@ upstream의 전체 구조는 [AGENTS.md](../../AGENTS.md)와 [AGENTS-Architectur
 | [swing-backup-restore.md](swing-backup-restore.md) | Swing 데이터베이스 백업·복원(Tasks ▸ Back Up… / Restore…): SQL Server T-SQL 대화상자(진행 메시지, 복원 계획, 파일 위치), PostgreSQL·MySQL 로컬 클라이언트 도구 |
 | [swing-result-viewer.md](swing-result-viewer.md) | Swing 결과 뷰어: 값 패널(JSON·XML·이미지·16진수), 정렬·필터, 다음 페이지, 레코드 보기, 복사 형식, 선택 집계 |
 | [swing-sql-exec-safety.md](swing-sql-exec-safety.md) | Swing 쿼리 실행 안전 확인: WHERE 없는 UPDATE/DELETE·DROP 확인(한 번에 목록, `GO` 배치 재분할), 연결의 스크립트 실행 제한, `@ai`가 만든 SQL을 보여 주는 실행 확인(`UIServiceSQL`) |
+| [swing-server-output.md](swing-server-output.md) | Swing 쿼리 창의 서버 출력: Oracle·CUBRID `DBMS_OUTPUT`, Altibase `PRINT`를 문장마다 읽어(버퍼를 비움) Messages 탭에 씀, PRINT·NOTICE 중복 방지, Altibase 기본값 초기화 |
 | [swing-sql-editor-plus.md](swing-sql-editor-plus.md) | Swing SQL 편집기 확장: 실행 계획(예상·실제, SQL Server 계획기, 그래픽·트리·원본 세 보기), 쿼리 기록, SQL 서식·편집 명령, 템플릿, 매개변수 대화상자 |
 | [idle-transactions.md](idle-transactions.md) | 열린 트랜잭션 표시(쿼리 창 상태 줄, 커밋·롤백 메뉴)와 유휴 트랜잭션 처리(마지막 문장 기준 유휴, 알림·열어 두기, 연결에서 켰을 때만 자동 롤백), 업스트림 유휴 롤백 경로 교체, 연결 끊기 전 열린 트랜잭션 질문 |
 | [swing-grid-column-filters.md](swing-grid-column-filters.md) | Swing 결과 그리드 열 필터: 머리글 필터·정렬 아이콘, 열 필터 팝업(서버 값 목록·조건, SQL 주입 방지), 필터 줄 삭제, SQL Server 열 필터 수정 || [swing-conn-advanced.md](swing-conn-advanced.md) | Swing Connect 대화상자의 고급 연결 설정: 인증 방식별 칸, SSH·프록시·SSL 탭, SQL Server·Oracle 주 칸, 연결 색, 연결 직후 SQL |
@@ -45,9 +46,10 @@ upstream의 전체 구조는 [AGENTS.md](../../AGENTS.md)와 [AGENTS-Architectur
 | [swing-l10n.md](swing-l10n.md) | Swing 화면 언어: OS 언어를 따르는 영어/한국어 NLS 묶음, 영역 나눔, 용어집, 영어로 남긴 것, 한글 굵은 글꼴(합성 글꼴 대체 칸) |
 | [swing-followup-fixes.md](swing-followup-fixes.md) | Swing 후속 수정(2026-11-07): 자동완성 프로시저 제안 설정, SQL Server 열 COLLATE, 날짜/시간 소수 초, 남은 영어 문구, 전송 대상 이름, 네이티브 백업 실패 |
 | [altibase.md](altibase.md) | Altibase: Object Explorer의 테이블 저장 방식 표시(메모리 빨강, 디스크 파랑, 휘발성 호박색, 툴팁·속성), 목록 질의에서 함께 읽는 카탈로그 근거 |
+| [swing-auth-prompts.md](swing-auth-prompts.md) | 연결할 때의 질문: 기본 방식이 아닌 인증 방식(SQL Server Authentication, Oracle Username/password 등)의 자격 증명 질문, JSch SSH의 호스트 키·비밀번호·개인 키 암호·키보드 대화형(OTP) 질문(안전 쪽 실패) |
 | [shell-command-approval.md](shell-command-approval.md) | 저장된 설정의 셸 명령(연결 이벤트, 셸 명령 암호, 전송 뒤 명령) 실행 전 승인: Swing 대화상자(이번만 실행·항상 허용·취소), 연결별·정확한 명령별 기억, 승인 서비스가 없으면 실행 거부 |
-| [drivers.md](drivers.md) | JDBC 드라이버 내장(공개판 구현), 공개판·내부판 구성, 오프라인 우선 조회와 오프라인 모드 |
-| [driver-licenses.md](driver-licenses.md) | JDBC 드라이버별 라이선스·버전·크기 목록, 공개판 내장 가능 여부 분류 |
+| [drivers.md](drivers.md) | JDBC 드라이버 내장(주요 DB만 내장하는 단일 배포판), 오프라인 우선 조회와 오프라인 모드 |
+| [driver-licenses.md](driver-licenses.md) | JDBC 드라이버별 라이선스·버전·크기 목록, 내장 가능 여부 분류 |
 | [driver-offline-bundle.md](driver-offline-bundle.md) | 폐쇄망용 오프라인 드라이버 설치 묶음: 인터넷 PC에서 드라이버를 골라 파일 하나로 만들고 폐쇄망 PC에서 설치, 형식(`.chromite-drivers`, 매니페스트·SHA-256), 드라이버 폴더 설치와 로더 등록, 검사·zip-slip·상한, 라이선스 메모 |
 | [runtime.md](runtime.md) | 내장 런타임(JBR 25 + jlink, `tools/jre/`): 모듈 목록과 근거, 크기, 시작 시간 측정, 갱신 절차, 지원 플랫폼 |
 | [platform-startup.md](platform-startup.md) | 플랫폼 시작·종료: Windows 인증서 저장소(`WINDOWS-ROOT`)를 기본 신뢰 저장소로 쓰기, macOS 앱 메뉴의 끝내기(Cmd+Q)·정보·환경설정을 메인 창 경로로 연결 |
@@ -61,3 +63,4 @@ upstream의 전체 구조는 [AGENTS.md](../../AGENTS.md)와 [AGENTS-Architectur
 | [distribution.md](distribution.md) | 배포: Windows 설치 프로그램(NSIS, 사용자별, 조용한 업그레이드), 업데이트 피드 `releases.json`, 배포 스크립트와 Docker 리허설, 다운로드 사이트, 되돌리기 |
 | [signing.md](signing.md) | 릴리스 서명: Windows(Azure Artifact Signing)·macOS(Developer ID 서명·공증) 흐름, 서명 대상 파일, 제3자 정책, 사용자가 할 일 |
 | [auto-update.md](auto-update.md) | 앱 안의 자동 업데이트: 업데이트 목록 확인(고정 User-Agent, 1 MB, 10초), 뒤에서 받기, Windows·macOS 파일 확인(서명·게시자·버전), 끝날 때 적용(도우미), 실패 처리, 옵션, 끝낼 때 트랜잭션 질문, 개발 빌드 시험 모드 |
+| [connection-transfer.md](connection-transfer.md) | 연결 내보내기·가져오기: 비밀번호를 사용자 암호로 암호화한 파일(AES-256-GCM, PBKDF2 600,000번, 형식 버전 1), 내보내는 것, 충돌(건너뛰기·바꾸기·사본), 연결 중인 연결 보호, OS 보안 저장소 이전과의 관계 |

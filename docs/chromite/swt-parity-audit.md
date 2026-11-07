@@ -40,11 +40,11 @@ SWT 프런트엔드를 지울 때(#68) 기능 전체 목록과 맞춰 보지 않
 
 | 영역 | 있음 | 일부 | 없음 | 조용히 끊김 | 의도적 제외 | 계 |
 |---|---|---|---|---|---|---|
-| A 플랫폼·설정 | 11 | 12 | 34 | 14 | 2 | 73 |
+| A 플랫폼·설정 | 11 | 13 | 33 | 14 | 2 | 73 |
 | B 편집기 | 25 | 42 | 39 | 8 | 3 | 117 |
 | C 탐색기·도구 | 12 | 20 | 29 | 2 | 1 | 64 (+해당 없음 4) |
 | D DB별 화면 | 41 | 31 | 46 | 5 | 1 | 124 |
-| **합계** | **89** | **105** | **148** | **29** | **7** | **378** |
+| **합계** | **89** | **106** | **147** | **29** | **7** | **378** |
 
 같은 문제가 두 영역에 함께 잡힌 것이 있다(예: 연결 끊기 때 트랜잭션 확인 = A-S3·B, 유휴 트랜잭션 = A-S1·B-S24). 그래서 합계는 항목 수의 상한이다.
 
@@ -67,11 +67,11 @@ SWT 프런트엔드를 지울 때(#68) 기능 전체 목록과 맞춰 보지 않
 
 | 항목 | 영역 | 메모 |
 |---|---|---|
-| 비밀번호를 저장하지 않은 SQL Server·Oracle 연결이 묻지 않고 취소됨 | A-S5, B | 실행 확인 필요 |
-| Windows 인증서 저장소를 쓰지 않음(사내 CA 서버 SSL 실패 가능) | A-S6 | 고침(`chromite/platform-startup`, [platform-startup.md](platform-startup.md)). Windows에서 실행 확인 |
-| Oracle DBMS_OUTPUT, Altibase 서버 출력이 안 보이고 버퍼만 쌓임 | D | Oracle은 1 MB 버퍼를 켜 둠 |
-| macOS Cmd+Q가 저장·트랜잭션 확인을 건너뛸 수 있음 | A-S14 | 고침(같은 브랜치). macOS 실행 확인 안 함 |
-| JSch SSH: 새 호스트 키 거부, OTP 서버 로그인 불가 | C | 안전 쪽 실패. 기본 SSHJ는 정상 |
+| 비밀번호를 저장하지 않은 SQL Server·Oracle 연결이 묻지 않고 취소됨 | A-S5, B | 실행으로 확인한 뒤 고침(#106, [swing-auth-prompts.md](swing-auth-prompts.md)) |
+| Windows 인증서 저장소를 쓰지 않음(사내 CA 서버 SSL 실패 가능) | A-S6 | 고침(#104, [platform-startup.md](platform-startup.md)). Windows에서 실행 확인 |
+| Oracle DBMS_OUTPUT, Altibase 서버 출력이 안 보이고 버퍼만 쌓임 | D | 고침(#105, [swing-server-output.md](swing-server-output.md)): 쿼리 창이 문장마다 읽어 Messages 탭에 씀 |
+| macOS Cmd+Q가 저장·트랜잭션 확인을 건너뛸 수 있음 | A-S14 | 고침(#104). macOS 실행 확인 안 함 |
+| JSch SSH: 새 호스트 키 거부, OTP 서버 로그인 불가 | C | 고침(#106, [swing-auth-prompts.md](swing-auth-prompts.md)). 기본 SSHJ는 바꾸지 않음 |
 
 ### 3순위: 매일 쓰는 작업의 빈자리
 
@@ -100,3 +100,4 @@ SWT 사용자가 잃은 기능은 아니다. 그래도 옮길지는 따로 정�
 
 - 2026-11-07 최초 작성. 영역 A~D 조사(읽기 전용, 코드 대조), 근본 원인, 우선순위 제안.
 - 2026-11-07 2순위 A-S6(Windows 인증서 저장소), A-S14(macOS 끝내기·정보·환경설정) 고침([platform-startup.md](platform-startup.md)).
+- 2026-11-07 A-C14 없음 → 일부: 연결 내보내기·가져오기(비밀번호는 암호로 암호화한 파일)([connection-transfer.md](connection-transfer.md)).

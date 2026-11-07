@@ -31,6 +31,7 @@ import org.eclipse.osgi.util.NLS;
  * - 2026-11-07 열린 세션에 자동 커밋을 적용할 때의 문구({@code autocommit_*}) (docs/chromite/swing-frontend.md "자동 커밋 상태")
  * - 2026-11-07 유휴 트랜잭션 설정({@code settings_idle_txn_*})과 알림({@code idle_txn_*}) 문구 (docs/chromite/idle-transactions.md)
  * - 2026-11-07 끊기 전 열린 트랜잭션 질문({@code disconnect_txn_*}) (docs/chromite/idle-transactions.md "연결 끊기 전 질문")
+ * - 2026-11-07 인증 방식 자격 증명 질문({@code auth_prompt_*})과 JSch SSH 질문({@code ssh_prompt_*}) (docs/chromite/swing-auth-prompts.md)
  */
 public class ConnectionMessages extends NLS {
     private static final String BUNDLE_NAME = "com.seizia.chromite.ui.swing.internal.ConnectionMessages"; //$NON-NLS-1$
@@ -212,6 +213,12 @@ public class ConnectionMessages extends NLS {
     public static String ssh_test_close;
     public static String ssh_test_result;
     public static String ssh_test_error;
+    public static String ssh_prompt_title;
+    public static String ssh_prompt_password;
+    public static String ssh_prompt_passphrase;
+    public static String ssh_prompt_host_key_title;
+    public static String auth_prompt_title;
+    public static String auth_prompt_description;
 
     public static String ssl_keystore;
     public static String ssl_keystore_file;
