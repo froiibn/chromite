@@ -250,6 +250,8 @@ import java.util.function.Supplier;
  * - 2026-11-08 쿼리 창 자동 저장과 다시 시작할 때 복원({@link QueryWindowRecovery}: 창이 열린 뒤 한 번 묻고, 닫을 때 마지막으로 저장),
  *   복원한 {@code SQLQueryN.sql} 이름 뒤로 새 창 번호를 넘김, Object Explorer의 Recent Scripts가 스크립트를 엶
  *   (docs/chromite/swing-query-window-recovery.md, docs/chromite/swing-scripts-explorer.md "연결별 최근 스크립트")
+ * - 2026-11-08 Properties 창과 Object Details 속성 탭이 변경 스크립트를 쿼리 창으로 열 수 있게 쿼리 창 호스트를 넘김(속성 편집)
+ *   (docs/chromite/swing-object-properties.md)
  */
 final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplorerPanel.QueryWindows, TableDesignerPanel.Host, QueryLibraryPanel.Host,
     QueryWindowRecovery.Host {
@@ -420,7 +422,7 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
         // Closing asks to save modified query windows first (requestExit)
         setDefaultCloseOperation(WindowConstants.DO_NOTHING_ON_CLOSE);
 
-        PropertiesPanel propertiesPanel = new PropertiesPanel();
+        PropertiesPanel propertiesPanel = new PropertiesPanel(this, true);
         explorerPanel = new ObjectExplorerPanel(node -> {
             propertiesPanel.showNode(node);
             // Activity Monitor opens for the selected connection
@@ -1123,7 +1125,7 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
             // Object Explorer is the first tool window
             toolWindows.get(0).setShown(true);
             explorerPanel.revealNode(target);
-        }));
+        }, this));
     }
 
     @Override

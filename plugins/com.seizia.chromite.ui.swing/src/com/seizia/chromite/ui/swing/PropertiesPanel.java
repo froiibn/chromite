@@ -33,13 +33,16 @@ import com.seizia.chromite.model.preferences.DBPPropertyDescriptor;
 import com.seizia.chromite.model.preferences.DBPPropertySource;
 import com.seizia.chromite.model.runtime.AbstractJob;
 import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.model.struct.DBSObject;
 import com.seizia.chromite.model.struct.DBSWrapper;
 import com.seizia.chromite.runtime.properties.PropertyCollector;
+import com.seizia.chromite.runtime.properties.PropertySourceEditable;
 import org.jkiss.utils.CommonUtils;
 
 import javax.swing.*;
 import javax.swing.table.AbstractTableModel;
 import javax.swing.table.DefaultTableCellRenderer;
+import javax.swing.table.TableCellEditor;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.KeyEvent;
@@ -48,11 +51,13 @@ import java.awt.event.MouseEvent;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
+import java.util.EventObject;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.BiConsumer;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -65,7 +70,10 @@ import java.util.stream.Stream;
  * <ul>
  *     <li>속성 값 읽기는 게으른 속성(DB 조회가 필요한 값)을 포함하므로 백그라운드 Job에서 {@link DBRProgressMonitor}를 넘겨 읽는다.
  *     선택이 바뀌면 이전 Job을 취소하고, 늦게 끝난 이전 결과는 번호로 걸러 버린다.</li>
- *     <li>읽기 전용이다. 속성 편집은 객체 편집기 단계에서 다룬다.</li>
+ *     <li>모델이 고칠 수 있다고 하는 속성(객체 관리자가 있고 {@code @Property(updatable = true)})은 값 칸을 두 번 누르거나 F2로 고친다.
+ *     어떤 속성을 어떤 편집기로 고치는지, 저장(스크립트 미리 보기 → 트랜잭션 질문 → DDL, 취소·오류면 모델을 되돌림)은 {@link ObjectPropertyEdits}가 한다.
+ *     고칠 수 있는 속성이 있는 객체에서는 SSMS처럼 읽기 전용 값을 흐리게 보인다. 저장한 뒤에는 속성을 다시 읽는다.
+ *     같은 패널을 Object Details의 속성 탭(SWT 객체 편집기의 Properties 탭)에도 머리말 없이 쓴다.</li>
  *     <li>값은 객체면 이름, 배열·컬렉션이면 쉼표로 이은 이름, 나머지는 {@link DBValueFormatting}의 기본 표시 문자열로 보여 준다.</li>
  *     <li>속성 그리드(SSMS 배치, DataGrip 모양, design-spec "10. Properties 창"): 머리말 아래 도구 막대의 분류별·이름순 단추, 열 머리글 없는 이름 | 값 두 열,
  *     분류 줄은 셰브런 + semibold 이름이고 누르면(또는 ←/→, Enter) 접고 편다. 행 24, 가로선 grid.lineSubtle, 이름과 값 사이 1px border.subtle.
@@ -84,6 +92,8 @@ import java.util.stream.Stream;
  * - 2026-11-08 분류 행 semibold 글꼴 주석을 고침: deriveFont도 대체 글꼴을 유지하며, semibold.font를 쓰는 이유는 Java에 semibold 스타일이 없어서다
  *   (docs/chromite/swing-followup-fixes.md "작은 화면 수정")
  * - 2026-11-08 촘촘한 모드: 행 높이를 UI가 바뀔 때 다시 정함(실행 중 밀도 전환) (docs/chromite/design-spec.md "적용 현황 — 촘촘한 모드")
+ * - 2026-11-08 속성 편집(SWT 감사 B-E1, B-E2, C-15): 고칠 수 있는 속성의 값 칸 편집기와 저장({@link ObjectPropertyEdits}),
+ *   머리말 없이 Object Details 속성 탭에 넣을 수 있게 함 (docs/chromite/swing-object-properties.md)
  */
 final class PropertiesPanel extends JPanel {
 
@@ -111,9 +121,20 @@ final class PropertiesPanel extends JPanel {
     private int loadSerial;
     @Nullable
     private AbstractJob loadJob;
+    /**
+     * Saves property changes (script preview, transaction question, execution).
+     */
+    private final ExplorerObjectCommands objectCommands;
+    @Nullable
+    private DBNNode shownNode;
 
-    PropertiesPanel() {
+    /**
+     * @param queryWindows opens a change script in a query window ("Open in Query Window" of the preview)
+     * @param showHeader   show the node's name, type and description above the grid (not in Object Details, which has its own)
+     */
+    PropertiesPanel(@NotNull ObjectExplorerPanel.QueryWindows queryWindows, boolean showHeader) {
         super(new BorderLayout());
+        objectCommands = new ExplorerObjectCommands(this, List::of, queryWindows);
 
         nameLabel.putClientProperty(FlatClientProperties.STYLE_CLASS, "h4"); //$NON-NLS-1$
         typeLabel.putClientProperty(FlatClientProperties.STYLE_CLASS, "small"); //$NON-NLS-1$
@@ -136,6 +157,30 @@ final class PropertiesPanel extends JPanel {
             protected void paintComponent(Graphics g) {
                 super.paintComponent(g);
                 paintGridLines(this, g);
+            }
+
+            @Override
+            public TableCellEditor getCellEditor(int row, int column) {
+                ObjectPropertyEdits.Edit edit = gridModel.getRow(row).edit();
+                return edit != null ? ObjectPropertyEdits.createCellEditor(edit, PropertiesPanel::formatValue) : super.getCellEditor(row, column);
+            }
+
+            @Override
+            public boolean editCellAt(int row, int column, EventObject e) {
+                ObjectPropertyEdits.Edit edit = row >= 0 && column == 1 && row < gridModel.getRowCount() ? gridModel.getRow(row).edit() : null;
+                if (edit != null && edit.kind() == ObjectPropertyEdits.Kind.MULTILINE) {
+                    // Multi-line text is edited in a dialog: a double click, F2 or typing opens it
+                    if (!(e instanceof MouseEvent mouseEvent) || mouseEvent.getClickCount() >= 2) {
+                        SwingUtilities.invokeLater(() -> {
+                            String text = ObjectPropertyEdits.editMultiline(PropertiesPanel.this, edit);
+                            if (text != null) {
+                                commitEdit(edit, text);
+                            }
+                        });
+                    }
+                    return false;
+                }
+                return super.editCellAt(row, column, e);
             }
         };
         grid.setTableHeader(null);
@@ -170,11 +215,21 @@ final class PropertiesPanel extends JPanel {
                 toggleCategory(gridModel.getRow(row).name(), null);
             }
         });
+        // F2 edits the selected property's value (the table's own F2 edits the lead column, which may be the name)
+        bindKey(KeyEvent.VK_F2, "chromite.editValue", () -> { //$NON-NLS-1$
+            int row = grid.getSelectedRow();
+            if (row >= 0 && gridModel.isCellEditable(row, 1) && grid.editCellAt(row, 1)) {
+                grid.getEditorComponent().requestFocusInWindow();
+            }
+        });
+        grid.putClientProperty("terminateEditOnFocusLost", Boolean.TRUE); //$NON-NLS-1$
+        gridModel.setEditListener(this::commitEdit);
 
         JScrollPane scrollPane = new JScrollPane(grid);
         scrollPane.setBorder(BorderFactory.createEmptyBorder());
 
         JPanel top = new JPanel(new BorderLayout());
+        headerPanel.setVisible(showHeader);
         top.add(headerPanel, BorderLayout.NORTH);
         top.add(createToolBar(), BorderLayout.SOUTH);
         add(top, BorderLayout.NORTH);
@@ -188,6 +243,7 @@ final class PropertiesPanel extends JPanel {
      */
     void showNode(@Nullable DBNNode node) {
         int serial = ++loadSerial;
+        shownNode = node;
         if (loadJob != null) {
             loadJob.cancel();
             loadJob = null;
@@ -238,18 +294,25 @@ final class PropertiesPanel extends JPanel {
     }
 
     /**
-     * Collects the properties grouped by category, in the order the categories first appear.
+     * Collects the properties grouped by category, in the order the categories first appear, with the editors of the
+     * properties the user may change.
      */
     @NotNull
     private static List<Category> readProperties(@NotNull DBRProgressMonitor monitor, @NotNull DBNNode node) {
-        Object object = node instanceof DBSWrapper wrapper && wrapper.getObject() != null ? wrapper.getObject() : node;
+        Object object = getObject(node);
         DBPPropertySource propertySource;
+        PropertySourceEditable editableSource = null;
         if (object instanceof DBPPropertySource ownSource) {
             propertySource = ownSource;
         } else {
-            PropertyCollector collector = new PropertyCollector(node, object, false);
-            collector.collectProperties();
-            propertySource = collector;
+            editableSource = ObjectPropertyEdits.createSource(node, object);
+            if (editableSource != null) {
+                propertySource = editableSource;
+            } else {
+                PropertyCollector collector = new PropertyCollector(node, object, false);
+                collector.collectProperties();
+                propertySource = collector;
+            }
         }
 
         Map<String, List<Property>> byCategory = new LinkedHashMap<>();
@@ -263,8 +326,9 @@ final class PropertiesPanel extends JPanel {
                 continue;
             }
             Object value = propertySource.getPropertyValue(monitor, property.getId());
+            ObjectPropertyEdits.Edit edit = editableSource == null ? null : ObjectPropertyEdits.describe(monitor, editableSource, property);
             byCategory.computeIfAbsent(CommonUtils.notEmpty(property.getCategory()), c -> new ArrayList<>())
-                .add(new Property(property.getDisplayName(), formatValue(value), CommonUtils.notEmpty(property.getDescription())));
+                .add(new Property(property.getDisplayName(), formatValue(value), CommonUtils.notEmpty(property.getDescription()), edit));
         }
         List<Category> result = new ArrayList<>();
         byCategory.forEach((name, properties) -> {
@@ -273,6 +337,45 @@ final class PropertiesPanel extends JPanel {
             }
         });
         return result;
+    }
+
+    /**
+     * The object whose properties a node shows: the database object it wraps, else the node.
+     */
+    @NotNull
+    private static Object getObject(@NotNull DBNNode node) {
+        return node instanceof DBSWrapper wrapper && wrapper.getObject() != null ? wrapper.getObject() : node;
+    }
+
+    /**
+     * A value was edited in the grid: saves it, then reads the properties again (the saved value, or the old one when
+     * the change was canceled or failed). EDT.
+     */
+    private void commitEdit(@NotNull ObjectPropertyEdits.Edit edit, @Nullable Object input) {
+        DBNNode node = shownNode;
+        if (node == null || !(getObject(node) instanceof DBSObject object)) {
+            return;
+        }
+        Object value;
+        try {
+            value = ObjectPropertyEdits.parse(edit, input);
+        } catch (IllegalArgumentException e) {
+            // After the cell editor has closed, as the save below
+            SwingUtilities.invokeLater(() -> JOptionPane.showMessageDialog(SwingUtilities.getWindowAncestor(this),
+                NLS.bind(CoreMessages.properties_invalid_value, input, edit.name()),
+                NLS.bind(CoreMessages.properties_change_title, edit.name()), JOptionPane.WARNING_MESSAGE));
+            return;
+        }
+        if (!ObjectPropertyEdits.isChanged(edit, value)) {
+            return;
+        }
+        // After the cell editor has closed: the save shows dialogs
+        SwingUtilities.invokeLater(() -> {
+            ObjectPropertyEdits.apply(objectCommands, node, object, edit, value);
+            if (shownNode == node) {
+                showNode(node);
+            }
+        });
     }
 
     @NotNull
@@ -296,6 +399,10 @@ final class PropertiesPanel extends JPanel {
     // Grid rows
 
     private void setContent(@NotNull List<Category> categories, @Nullable String message) {
+        // A value being edited belongs to the rows that are replaced
+        if (grid.isEditing()) {
+            grid.getCellEditor().cancelCellEditing();
+        }
         this.categories = categories;
         this.message = message;
         rebuildRows(null);
@@ -309,27 +416,29 @@ final class PropertiesPanel extends JPanel {
     private void rebuildRows(@Nullable String selectName) {
         List<GridRow> rows = new ArrayList<>();
         if (message != null) {
-            rows.add(new GridRow(RowKind.MESSAGE, message, "", "", false));
+            rows.add(new GridRow(RowKind.MESSAGE, message, "", "", false, null));
         } else if (alphabetical) {
             categories.stream()
                 .flatMap(category -> category.properties().stream())
                 .sorted(Comparator.comparing(Property::name, String.CASE_INSENSITIVE_ORDER))
-                .forEach(property -> rows.add(new GridRow(RowKind.PROPERTY, property.name(), property.value(), property.description(), false)));
+                .forEach(property -> rows.add(new GridRow(RowKind.PROPERTY, property.name(), property.value(), property.description(), false,
+                    property.edit())));
         } else {
             for (Category category : categories) {
                 boolean headed = !category.name().isEmpty();
                 if (headed) {
-                    rows.add(new GridRow(RowKind.CATEGORY, category.name(), "", "", false));
+                    rows.add(new GridRow(RowKind.CATEGORY, category.name(), "", "", false, null));
                     if (collapsedCategories.contains(category.name())) {
                         continue;
                     }
                 }
                 for (Property property : category.properties()) {
-                    rows.add(new GridRow(RowKind.PROPERTY, property.name(), property.value(), property.description(), headed));
+                    rows.add(new GridRow(RowKind.PROPERTY, property.name(), property.value(), property.description(), headed, property.edit()));
                 }
             }
         }
-        gridModel.setRows(rows);
+        boolean editable = categories.stream().flatMap(category -> category.properties().stream()).anyMatch(property -> property.edit() != null);
+        gridModel.setRows(rows, editable);
         if (selectName != null) {
             for (int i = 0; i < rows.size(); i++) {
                 if (rows.get(i).kind() == RowKind.CATEGORY && rows.get(i).name().equals(selectName)) {
@@ -507,7 +616,10 @@ final class PropertiesPanel extends JPanel {
     //////////////////////////////////////////////////////////
     // Model
 
-    private record Property(@NotNull String name, @NotNull String value, @NotNull String description) {
+    /**
+     * @param edit the value's editor, null for a read-only property
+     */
+    private record Property(@NotNull String name, @NotNull String value, @NotNull String description, @Nullable ObjectPropertyEdits.Edit edit) {
     }
 
     private record Category(@NotNull String name, @NotNull List<Property> properties) {
@@ -519,21 +631,61 @@ final class PropertiesPanel extends JPanel {
 
     /**
      * @param indented a property under a category heading (its name lines up with the heading text)
+     * @param edit     the value's editor, null for a read-only property and other rows
      */
-    private record GridRow(@NotNull RowKind kind, @NotNull String name, @NotNull String value, @NotNull String description, boolean indented) {
+    private record GridRow(
+        @NotNull RowKind kind,
+        @NotNull String name,
+        @NotNull String value,
+        @NotNull String description,
+        boolean indented,
+        @Nullable ObjectPropertyEdits.Edit edit
+    ) {
     }
 
     private static final class PropertyGridModel extends AbstractTableModel {
         private List<GridRow> rows = List.of();
+        private boolean editable;
+        @Nullable
+        private BiConsumer<ObjectPropertyEdits.Edit, Object> editListener;
 
-        void setRows(@NotNull List<GridRow> rows) {
+        /**
+         * @param editable the object has properties the user may change
+         */
+        void setRows(@NotNull List<GridRow> rows, boolean editable) {
             this.rows = rows;
+            this.editable = editable;
             fireTableDataChanged();
+        }
+
+        /**
+         * True if some property of the shown object may be changed (its read-only values are dimmed).
+         */
+        boolean isEditable() {
+            return editable;
+        }
+
+        void setEditListener(@NotNull BiConsumer<ObjectPropertyEdits.Edit, Object> editListener) {
+            this.editListener = editListener;
         }
 
         @NotNull
         GridRow getRow(int row) {
             return rows.get(row);
+        }
+
+        @Override
+        public boolean isCellEditable(int rowIndex, int columnIndex) {
+            return columnIndex == 1 && rows.get(rowIndex).edit() != null;
+        }
+
+        @Override
+        public void setValueAt(Object value, int rowIndex, int columnIndex) {
+            ObjectPropertyEdits.Edit edit = rows.get(rowIndex).edit();
+            if (edit != null && editListener != null) {
+                // The grid keeps showing the old value until the properties are read again after the save
+                editListener.accept(edit, value);
+            }
         }
 
         @Override
@@ -591,6 +743,10 @@ final class PropertiesPanel extends JPanel {
                 setBackground(categoryRow && band != null ? band : table.getBackground());
             }
             Color foreground = gridRow.kind() == RowKind.MESSAGE ? UIManager.getColor("Chromite.secondaryForeground") : table.getForeground(); //$NON-NLS-1$
+            if (column == 1 && gridRow.kind() == RowKind.PROPERTY && gridRow.edit() == null && gridModel.isEditable()) {
+                // SSMS: in an object with editable properties, read-only values are dimmed
+                foreground = UIManager.getColor("Label.disabledForeground"); //$NON-NLS-1$
+            }
             setForeground(foreground != null ? foreground : table.getForeground());
             String toolTip = column == 0 ? gridRow.description() : gridRow.value();
             setToolTipText(CommonUtils.isEmpty(toolTip) || categoryRow ? null : toolTip);

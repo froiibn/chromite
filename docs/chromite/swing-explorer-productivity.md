@@ -131,3 +131,4 @@ Oracle 스키마 `CHR_P4_EXPLORER`). 끝난 뒤 모두 지웠다. 한국어(OS �
 ## 변경 이력
 
 - 2026-11-08 최초 작성(`chromite/p4-explorer`): C-4·C-6·C-7·C-16·C-18·C-19·B-E7 → 있음, C-5·C-9 → 일부, C-12 일부(선택하여 복사·연결 복제 추가).
+- 2026-11-08 객체의 Object Details 첫 탭이 속성 탭(속성 편집), 자식이 없는 객체(시퀀스)에서도 F7이 켜짐([swing-object-properties.md](swing-object-properties.md)).
