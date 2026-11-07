@@ -56,6 +56,7 @@ import java.util.function.Supplier;
  * 변경 이력:
  * - 2026-11-07 최초 작성 (docs/chromite/procedure-debugger.md)
  * - 2026-11-07 Oracle 디버거: 디버그 컴파일 질문, 권한 안내, 탭 열쇠에 루틴 이름·입력 형식
+ * - 2026-11-08 디버그 컴파일 확인은 컴파일 / 취소 단추(취소가 기본) (docs/chromite/swing-frontend.md "실행 확인의 기본 단추")
  */
 final class DebugCommands {
 
@@ -122,10 +123,9 @@ final class DebugCommands {
                 }
             });
             if (!info.unitsToCompile().isEmpty()) {
-                int answer = JOptionPane.showConfirmDialog(parent,
+                if (!SwingPlatformUI.confirmChange(parent,
                     NLS.bind(DebugMessages.debug_compile_question, String.join("\n", info.unitsToCompile())), //$NON-NLS-1$
-                    DebugMessages.debug_compile_title, JOptionPane.OK_CANCEL_OPTION, JOptionPane.QUESTION_MESSAGE);
-                if (answer != JOptionPane.OK_OPTION) {
+                    DebugMessages.debug_compile_title, DebugMessages.debug_compile_button, JOptionPane.QUESTION_MESSAGE)) {
                     return;
                 }
                 ProgressDialog.runTask(DebugMessages.debug_progress_compile, monitor -> {

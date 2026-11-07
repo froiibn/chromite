@@ -68,6 +68,7 @@ import java.util.Locale;
  *
  * 변경 이력:
  * - 2026-11-07 최초 작성 (docs/chromite/swing-sql-editor-plus.md "실행 계획 세 보기")
+ * - 2026-11-08 파일 덮어쓰기 확인은 바꾸기 / 취소 단추(취소가 기본) (docs/chromite/swing-frontend.md "실행 확인의 기본 단추")
  */
 final class PlanRawView {
 
@@ -289,9 +290,9 @@ final class PlanRawView {
             file = file.resolveSibling(file.getFileName() + "." + extension); //$NON-NLS-1$
         }
         lastDirectory = file.getParent() != null ? file.getParent().toFile() : null;
-        if (Files.exists(file) && JOptionPane.showConfirmDialog(component,
+        if (Files.exists(file) && !SwingPlatformUI.confirmChange(component,
             NLS.bind(CoreMessages.main_file_exists, file.getFileName()), PlanMessages.plan_raw_save_tip,
-            JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE) != JOptionPane.YES_OPTION) {
+            CoreMessages.common_replace, JOptionPane.WARNING_MESSAGE)) {
             return;
         }
         try {

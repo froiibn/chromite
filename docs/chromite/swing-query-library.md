@@ -413,7 +413,7 @@ Next run(남은 시간), Last run, Last status. Run Now(바로 한 번), History
   매개변수 마지막 입력값(`queryLibrary.lastValues.<id>`)과 예약 활성 여부(`queryLibrary.schedule.active.<id>`)는 지금처럼 이 PC의 설정에만 둔다. Git 자격 증명도 저장하지 않는다(위).
 - Library Roots… 대화상자에 경고 아이콘과 함께 이 내용을 보인다(루트를 더하는 곳).
 - Parameters…에서 이름이나 표시 이름이 비밀처럼 보이는(`pass`, `password`, `pwd`, `secret`, `token`, `api_key`, `credential`, `private_key`, `비밀번호`, `암호`, `토큰`) 매개변수에
-  기본값을 넣으면 OK를 누를 때 "기본값은 라이브러리를 함께 쓰는 모든 사람이 읽는 쿼리 파일에 저장된다"고 경고하고, Yes일 때만 저장한다. `:name`·`${name}` 모두 해당한다.
+  기본값을 넣으면 OK를 누를 때 "기본값은 라이브러리를 함께 쓰는 모든 사람이 읽는 쿼리 파일에 저장된다"고 경고하고, 저장을 누를 때만 저장한다(저장 / 취소, 기본 단추는 취소). `:name`·`${name}` 모두 해당한다.
 
 ## upstream 대비 변경점
 
@@ -516,4 +516,6 @@ Schedule…·History…·Scheduled Queries… 대화상자, Save to Query Librar
 - 2026-11-07 쿼리 창 도구 막대가 메인 창 둘째 줄(SQL Editor 도구 막대)로 옮겨져 머리말 위치를 "편집기 위"로 고침. [swing-frontend.md](swing-frontend.md) "SQL Editor 도구 막대".
 - 2026-11-07 ④ 공유 구현: 자동 새로 고침(`QueryLibraryWatcher`, 기본 30초 + 파일 시스템 감시), Git Pull·Commit & Push와 충돌 표시(`QueryLibraryGit`, 시스템 git),
   `.chromite-queries` 내보내기·가져오기(`QueryLibraryArchive`), 저장 충돌 확인과 열린 창 다시 읽기, Save As .sql, 비밀 정보 안내·경고. "공유 설계"를 구현한 설계로 바꿈.
+- 2026-11-08 비밀 기본값 경고의 단추를 예/아니요에서 저장/취소(취소가 기본)로 바꿈, Query Library 삭제 확인은 삭제/취소, 파일 덮어쓰기 확인은 바꾸기/취소.
+  [swing-frontend.md](swing-frontend.md) "실행 확인의 기본 단추".
 - 2026-11-08 좁은 문서 영역에서 머리말 단추가 "Para…", "Thres…"로 잘리던 문제: 글자가 들어가기 전에 단추의 최소 크기를 고정하지 않음("실행 흐름"의 "머리말 배치", "확인 (2026-11-08 …)").

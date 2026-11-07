@@ -63,6 +63,8 @@ import java.util.Objects;
  *     보이고, 고르면 메뉴를 연 때의 트랜잭션을 쿼리 창이 끝낸다({@link OpenTransactionActions}). 사용자가 직접 고르는 동작이라 허용된다.
  *     같은 메뉴의 Transaction Log는 그 트랜잭션의 문장 목록을 연다(SWT 트랜잭션 모니터를 누르면 로그가 열리던 것과 같은 자리).</li>
  *     <li>커서 위치는 SSMS 창 아래 상태 표시줄의 Ln/Col이다(한 줄로 합쳐 쿼리 창 상태 줄 끝에 둔다).</li>
+ *     <li>폭이 모자라면 서버 칸이 먼저 줄어든다({@link LineLayout}): 서버 칸은 도구 설명에 전체 위치와 버전이 있지만 상태 문구(오류, 취소)는
+ *     다른 곳에 없다. 서버 칸은 최소 폭(64)까지 줄임표로 줄고, 그래도 모자라면 빠진다(연결은 도구 막대와 탭 제목에 있다). 그 뒤에야 상태 문구가 잘린다.</li>
  *     <li>바탕은 연결 색({@link ConnectionColors}: 연결에 정한 색, 없으면 연결 종류의 색)이다. 색이 없는 연결(기본 Development)은 카드 바탕 그대로다.
  *     연결 설정이 바뀌면 편집기가 {@link #setConnection}을 다시 불러 색도 바뀐다.
  *     테마 글자 색이 띠와 4.5:1이 안 되면(다크 테마의 밝은 연결 지정 색 등) 줄의 모든 글자를 대비 색({@link ConnectionColors#getTextColor})으로 그린다.
@@ -84,6 +86,8 @@ import java.util.Objects;
  * - 2026-11-07 열린 트랜잭션 칸(경과 시간, 문장 수, 누르면 커밋/롤백, 사용자 요청) (docs/chromite/idle-transactions.md)
  * - 2026-11-07 열린 트랜잭션 메뉴에 Transaction Log (docs/chromite/transactions.md)
  * - 2026-11-07 커밋 방식 도구 설명에 세션 줄(창의 세션, 연결에 열린 세션 수) (docs/chromite/transactions.md "쿼리 창마다 별도 연결")
+ * - 2026-11-08 폭이 모자라면 상태 문구 대신 서버 칸이 먼저 줄거나 빠짐(BorderLayout·FlowLayout 대신 {@link LineLayout}): 1280 창의 기본 배치에서
+ *   상태 문구가 "…"로 잘렸다 (docs/chromite/swing-followup-fixes.md "작은 화면 수정")
  */
 final class QueryStatusLine extends JPanel {
 
@@ -110,6 +114,11 @@ final class QueryStatusLine extends JPanel {
     }
 
     private static final DateTimeFormatter TIME_FORMAT = DateTimeFormatter.ofPattern("HH:mm:ss"); //$NON-NLS-1$
+    /**
+     * Narrowest elided server segment: its padding and a few characters with the ellipsis. Below it the segment is left
+     * out.
+     */
+    private static final int SERVER_MIN_WIDTH = 64;
 
     private final JLabel stateLabel = new BandLabel(false);
     private final JLabel serverLabel = createSegment();
@@ -141,20 +150,13 @@ final class QueryStatusLine extends JPanel {
     private Color bandForeground;
 
     QueryStatusLine() {
-        super(new BorderLayout());
+        setLayout(new LineLayout());
         stateLabel.setIconTextGap(UIScale.scale(6));
         stateLabel.setBorder(BorderFactory.createEmptyBorder(0, UIScale.scale(12), 0, UIScale.scale(12)));
-        JPanel segments = new JPanel(new FlowLayout(FlowLayout.RIGHT, 0, 0)) {
-            @Override
-            public Dimension getPreferredSize() {
-                Dimension size = super.getPreferredSize();
-                return new Dimension(size.width, UiSizes.get(UiSizes.QUERY_STATUS_LINE_HEIGHT));
-            }
-        };
-        segments.setOpaque(false);
-        segments.add(serverLabel);
-        segments.add(userLabel);
-        segments.add(databaseLabel);
+        add(stateLabel);
+        add(serverLabel);
+        add(userLabel);
+        add(databaseLabel);
         transactionLabel.setIconTextGap(UIScale.scale(6));
         transactionLabel.addMouseListener(new MouseAdapter() {
             @Override
@@ -164,7 +166,7 @@ final class QueryStatusLine extends JPanel {
                 }
             }
         });
-        segments.add(transactionLabel);
+        add(transactionLabel);
         openTransactionLabel.setIconTextGap(UIScale.scale(6));
         openTransactionLabel.addMouseListener(new MouseAdapter() {
             @Override
@@ -174,12 +176,10 @@ final class QueryStatusLine extends JPanel {
                 }
             }
         });
-        segments.add(openTransactionLabel);
-        segments.add(elapsedLabel);
-        segments.add(rowsLabel);
-        segments.add(caretLabel);
-        add(stateLabel, BorderLayout.CENTER);
-        add(segments, BorderLayout.EAST);
+        add(openTransactionLabel);
+        add(elapsedLabel);
+        add(rowsLabel);
+        add(caretLabel);
         setState(State.READY, EditorMessages.editor_status_ready);
         setElapsed(null);
         setRows(null);
@@ -439,7 +439,7 @@ final class QueryStatusLine extends JPanel {
 
     /**
      * A 1px border.subtle line on the left of a segment (its color read when painting, so it follows theme changes),
-     * space.12 on both sides of the text. The segment is as high as the line: FlowLayout puts its row at the top.
+     * space.12 on both sides of the text. The segment is as high as the line ({@link LineLayout}).
      *
      * @param textHeight height of the segment's text line
      */
@@ -464,6 +464,75 @@ final class QueryStatusLine extends JPanel {
                 }
             },
             BorderFactory.createEmptyBorder(top, UIScale.scale(12), bottom, UIScale.scale(12)));
+    }
+
+    /**
+     * The state text on the left and the visible segments right-aligned at their preferred widths, all as high as the
+     * line. When the line is too narrow for both, the server segment gives up width first: it is elided down to
+     * {@link #SERVER_MIN_WIDTH} (its tool tip has the full location and version), and left out when even that is too
+     * wide (the connection is still in the tool bar and in the tab title). The state text (an error, a cancel) has no
+     * other place, so it is cut only after that. Before, the segments always kept their widths and
+     * the state text alone was cut ("Query completed with errors." to "Query complet..." at 1280 px with the default
+     * tool windows).
+     */
+    private final class LineLayout implements LayoutManager {
+        @Override
+        public void addLayoutComponent(String name, Component comp) {
+        }
+
+        @Override
+        public void removeLayoutComponent(Component comp) {
+        }
+
+        @Override
+        public Dimension preferredLayoutSize(Container parent) {
+            Insets insets = parent.getInsets();
+            int width = insets.left + insets.right;
+            for (Component component : parent.getComponents()) {
+                if (component.isVisible()) {
+                    width += component.getPreferredSize().width;
+                }
+            }
+            return new Dimension(width, UiSizes.get(UiSizes.QUERY_STATUS_LINE_HEIGHT) + insets.top + insets.bottom);
+        }
+
+        @Override
+        public Dimension minimumLayoutSize(Container parent) {
+            Insets insets = parent.getInsets();
+            return new Dimension(insets.left + insets.right, UiSizes.get(UiSizes.QUERY_STATUS_LINE_HEIGHT) + insets.top + insets.bottom);
+        }
+
+        @Override
+        public void layoutContainer(Container parent) {
+            Insets insets = parent.getInsets();
+            int left = insets.left;
+            int right = parent.getWidth() - insets.right;
+            int top = insets.top;
+            int height = parent.getHeight() - insets.top - insets.bottom;
+            int segmentsWidth = 0;
+            for (Component component : parent.getComponents()) {
+                if (component != stateLabel && component.isVisible()) {
+                    segmentsWidth += component.getPreferredSize().width;
+                }
+            }
+            int shortage = stateLabel.getPreferredSize().width + segmentsWidth - (right - left);
+            int serverWidth = serverLabel.getPreferredSize().width;
+            if (shortage > 0) {
+                serverWidth = serverWidth - shortage >= UIScale.scale(SERVER_MIN_WIDTH) ? serverWidth - shortage : 0;
+            }
+            int x = right;
+            Component[] components = parent.getComponents();
+            for (int i = components.length - 1; i >= 0; i--) {
+                Component segment = components[i];
+                if (segment == stateLabel || !segment.isVisible()) {
+                    continue;
+                }
+                int width = segment == serverLabel ? serverWidth : segment.getPreferredSize().width;
+                x -= width;
+                segment.setBounds(x, top, width, height);
+            }
+            stateLabel.setBounds(left, top, Math.max(0, x - left), height);
+        }
     }
 
     /**

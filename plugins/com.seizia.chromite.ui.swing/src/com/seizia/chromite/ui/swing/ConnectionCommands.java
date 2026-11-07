@@ -19,6 +19,7 @@ package com.seizia.chromite.ui.swing;
 import com.seizia.chromite.ui.swing.internal.ConnectionMessages;
 import com.seizia.chromite.ui.swing.internal.CoreMessages;
 import com.seizia.chromite.ui.swing.internal.ErrorMessages;
+import com.seizia.chromite.ui.swing.internal.NavigatorMessages;
 import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.jobs.IJobChangeEvent;
 import org.eclipse.core.runtime.jobs.Job;
@@ -67,6 +68,7 @@ import java.awt.*;
  * - 2026-11-07 {@link #editAutoCommit}: 연결 편집을 Auto-commit 칸에 초점을 두고 엶(쿼리 상태 줄의 커밋 방식 칸) (docs/chromite/swing-frontend.md "자동 커밋 상태")
  * - 2026-11-07 끊기 전 열린 트랜잭션 질문: 끊기·다시 연결·삭제가 수동 커밋의 열린 트랜잭션을 묻지 않고 롤백하던 것을 막음
  *   (docs/chromite/idle-transactions.md "연결 끊기 전 질문")
+ * - 2026-11-08 연결 삭제 확인은 삭제 / 취소 단추(취소가 기본) (docs/chromite/swing-frontend.md "실행 확인의 기본 단추")
  */
 final class ConnectionCommands {
 
@@ -137,13 +139,12 @@ final class ConnectionCommands {
      * Asks for confirmation, disconnects the connection if needed and removes it from its project.
      */
     static void delete(@Nullable Component parent, @NotNull DBPDataSourceContainer dataSource) {
-        int answer = JOptionPane.showConfirmDialog(
+        if (!SwingPlatformUI.confirmChange(
             getWindow(parent),
             NLS.bind(ConnectionMessages.commands_delete_confirm, dataSource.getName()),
             ConnectionMessages.commands_delete_title,
-            JOptionPane.YES_NO_OPTION,
-            JOptionPane.WARNING_MESSAGE);
-        if (answer != JOptionPane.YES_OPTION) {
+            NavigatorMessages.navigator_delete_button,
+            JOptionPane.WARNING_MESSAGE)) {
             return;
         }
         Runnable remover = () -> dataSource.getRegistry().removeDataSource(dataSource);

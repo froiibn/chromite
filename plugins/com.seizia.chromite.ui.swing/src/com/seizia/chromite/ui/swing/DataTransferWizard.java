@@ -84,6 +84,7 @@ import java.util.Locale;
  * - 2026-11-06 화면 문구를 ToolsMessages로 옮김(OS 언어를 따름)
  * - 2026-11-06 테이블 복사: 성공 뒤 처리({@link #transferSucceeded}), 선택에 따라 단계 목록 다시 그리기({@link #refreshSteps})
  * - 2026-11-07 오류 문구를 {@link ErrorText}로 만들고, 오류 영역에 스택 추적을 여는 "자세히…" 단추를 더함 (docs/chromite/swing-frontend.md "오류 문구")
+ * - 2026-11-08 마지막 페이지에서 Finish를 기본 단추로 두지 않음: Enter로 전송이 시작되지 않게 함 (docs/chromite/swing-frontend.md "실행 확인의 기본 단추")
  */
 abstract class DataTransferWizard extends JDialog {
 
@@ -367,7 +368,9 @@ abstract class DataTransferWizard extends JDialog {
         finishButton.setEnabled(!progress);
         cancelButton.setText(finished ? ToolsMessages.button_close : ToolsMessages.button_cancel);
         cancelButton.setEnabled(!progress || runningJob != null || finished);
-        getRootPane().setDefaultButton(progress ? cancelButton : nextButton.isEnabled() ? nextButton : finishButton);
+        // Finish is never the default button: Enter on the last page must not start the transfer (it can truncate or
+        // drop target tables)
+        getRootPane().setDefaultButton(progress ? cancelButton : nextButton.isEnabled() ? nextButton : null);
     }
 
     private boolean isProgressPage() {

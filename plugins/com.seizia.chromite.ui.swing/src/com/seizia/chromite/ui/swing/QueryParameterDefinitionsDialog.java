@@ -17,6 +17,7 @@
 package com.seizia.chromite.ui.swing;
 
 import com.formdev.flatlaf.FlatClientProperties;
+import com.seizia.chromite.ui.swing.internal.CoreMessages;
 import com.seizia.chromite.ui.swing.internal.ToolsMessages;
 import org.eclipse.osgi.util.NLS;
 import org.jkiss.code.NotNull;
@@ -44,6 +45,7 @@ import java.util.regex.Pattern;
  * - 2026-11-06 화면 문구를 ToolsMessages로 옮김(OS 언어를 따름)
  * - 2026-11-07 ④ 공유: 이름·표시 이름이 비밀번호·토큰처럼 보이는 매개변수의 기본값은 경고 뒤에만 저장(기본값은 공유되는 쿼리 파일에 쓰임)
  *   (docs/chromite/swing-query-library.md "공유")
+ * - 2026-11-08 비밀 기본값 경고는 저장 / 취소 단추(취소가 기본) (docs/chromite/swing-frontend.md "실행 확인의 기본 단추")
  */
 final class QueryParameterDefinitionsDialog extends JDialog {
 
@@ -131,8 +133,8 @@ final class QueryParameterDefinitionsDialog extends JDialog {
                 names.add(parameter.getName());
             }
         }
-        return names.isEmpty() || JOptionPane.showConfirmDialog(this, NLS.bind(ToolsMessages.param_definitions_secret_default, String.join(", ", names)), //$NON-NLS-1$
-            ToolsMessages.param_definitions_title, JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE) == JOptionPane.YES_OPTION;
+        return names.isEmpty() || SwingPlatformUI.confirmChange(this, NLS.bind(ToolsMessages.param_definitions_secret_default, String.join(", ", names)), //$NON-NLS-1$
+            ToolsMessages.param_definitions_title, CoreMessages.common_save, JOptionPane.WARNING_MESSAGE);
     }
 
     /**

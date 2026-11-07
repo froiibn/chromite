@@ -16,6 +16,7 @@
  */
 package com.seizia.chromite.ui.swing;
 
+import com.seizia.chromite.ui.swing.internal.CoreMessages;
 import com.seizia.chromite.ui.swing.internal.EditorMessages;
 import org.eclipse.osgi.util.NLS;
 import org.jkiss.code.NotNull;
@@ -71,6 +72,7 @@ import java.util.Map;
  * - 2026-11-06 E단계: 최초 작성 (docs/chromite/swing-frontend.md "구현 현황 — E단계")
  * - 2026-11-06 F단계: XLSX 내보내기 (docs/chromite/swing-frontend.md "구현 현황 — F단계")
  * - 2026-11-06 화면 문구를 EditorMessages로 옮김(OS 언어를 따름)
+ * - 2026-11-08 파일 덮어쓰기 확인은 바꾸기 / 취소 단추(취소가 기본) (docs/chromite/swing-frontend.md "실행 확인의 기본 단추")
  */
 final class ResultSetExport {
 
@@ -221,8 +223,8 @@ final class ResultSetExport {
         if (!file.getFileName().toString().contains(".")) {
             file = file.resolveSibling(file.getFileName() + "." + extension);
         }
-        if (Files.exists(file) && JOptionPane.showConfirmDialog(parent, NLS.bind(EditorMessages.editor_export_replace_confirm, file.getFileName()),
-            title, JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE) != JOptionPane.YES_OPTION) {
+        if (Files.exists(file) && !SwingPlatformUI.confirmChange(parent, NLS.bind(EditorMessages.editor_export_replace_confirm, file.getFileName()),
+            title, CoreMessages.common_replace, JOptionPane.WARNING_MESSAGE)) {
             return null;
         }
         lastDirectory = file.toAbsolutePath().getParent();
