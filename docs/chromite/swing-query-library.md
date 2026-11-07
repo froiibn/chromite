@@ -12,7 +12,7 @@ DBA가 자주 쓰는 상태 확인 쿼리(세션 수, 대기, 디스크 사용�
 | ① | 라이브러리 트리 + 실행 | 구현 (2026-11-06) |
 | ② | 매개변수 매핑 | 구현 (2026-11-06) |
 | ③ | 예약 실행 (Chromite가 실행 중일 때만) | 구현 (2026-11-06, 아래 "예약 실행") |
-| ④ | 다른 사람과 공유 | 설계만 (아래 "공유 설계"), **구현하지 않음**. 저장 형식과 루트 구조는 공유를 전제로 만들었다 |
+| ④ | 다른 사람과 공유 | 구현 (2026-11-07, 아래 "공유 (④)"): 공유 폴더 자동 새로 고침, Git Pull·Commit & Push, 내보내기·가져오기, 저장 충돌 확인, Save As .sql |
 
 ## 구조
 
@@ -34,6 +34,9 @@ DBA가 자주 쓰는 상태 확인 쿼리(세션 수, 대기, 디스크 사용�
 | `QueryScheduler` | ③ 예약 실행기(데몬 타이머 + 쿼리별 Job, 화면 없는 실행, 조건·알림) |
 | `QueryLibraryHistory` | ③ 실행 기록(작업 공간 메타데이터의 쿼리별 TSV 파일, 보존 기간·개수) |
 | `QueryScheduleDialog`, `QueryScheduledDialog`, `QueryRunHistoryDialog` | ③ Schedule…, Scheduled Queries…, History… 화면 (`QueryRunHistoryDialog`는 SQL 편집기 확장의 쿼리 창 기록 `QueryHistoryDialog`와 이름이 겹쳐 바꾼 이름) |
+| `QueryLibraryWatcher` | ④ 자동 새로 고침: `WatchService` + 주기 확인, 폴더 목록·파일 크기·수정 시각 지문 비교 |
+| `QueryLibraryGit` | ④ Git 작업 사본 루트: 시스템 `git`으로 상태(브랜치, 앞섬/뒤처짐, 충돌 파일), Pull, Commit & Push |
+| `QueryLibraryArchive` | ④ `.chromite-queries` 내보내기·가져오기(검사, 크기·개수 제한, ID 충돌 선택) |
 
 공유 파일에 넣은 연결 지점(다른 작업과 겹치는 곳을 줄이기 위해 작게 둠):
 
@@ -44,7 +47,10 @@ DBA가 자주 쓰는 상태 확인 쿼리(세션 수, 대기, 디스크 사용�
 | `ToolWindow` | ~~`setDefaultShown(false)`~~: 처음에는 숨긴 도구 창(Reset Window Layout도 숨김으로 되돌림). 2026-11-06부터 `ToolWindowDocking.addToolWindow(..., false, ...)` |
 | `SQLQueryExecuteHandler`, `SQLQueryExecuteJob` (model.sql, Chromite 실행 엔진) | `hasBoundParameters`/`bindParameters`: 핸들러가 값을 바인딩하는 쿼리는 스크립트 문장 대신 prepared statement로 만들고 바인딩. 기본값은 바인딩 없음이라 SWT 편집기 동작은 같다 |
 | `tools/branding/gen_ui_icons.py` | 아이콘 `library`(Tabler books), `library-query`(문서 + 실행 배지), `new-folder`(폴더 + 더하기 배지), ③ `schedule`(Tabler clock), 두 팩·두 테마. History…는 SQL 편집기 확장의 `history` 아이콘(Tabler history)을 함께 쓴다 |
-| `OptionsDialog` (③) | Tools > Options의 "Query Library" 절: 기록 보존 실행 수·일수 |
+| `OptionsDialog` (③, ④) | Tools > Options의 "Query Library" 절: 기록 보존 실행 수·일수, ④ 폴더 확인 간격 |
+| `MainFrame` (④) | 확장이 붙은 쿼리 창의 Save As는 `SqlEditorExtension.saveAs`(라이브러리 쿼리는 SQL만 평범한 `.sql`로 내보냄) |
+| `SqlEditorExtension` (④) | `saveAs` 추가(Save As를 저장과 나눔) |
+| `SqlFileContent` (④) | `parse(byte[])`: 디스크에 없는 바이트(묶음 파일 항목)를 같은 문자 집합·BOM·줄바꿈 규칙으로 읽음 |
 
 ## 화면
 
@@ -81,6 +87,9 @@ DBA가 자주 쓰는 상태 확인 쿼리(세션 수, 대기, 디스크 사용�
   | Rename… | F2, 메뉴 (쿼리는 머리말의 이름과 파일 이름을 함께 바꿈) |
   | Delete | Delete 키, 메뉴 (확인 후 휴지통, 휴지통이 없는 시스템이면 삭제) |
   | Open Folder | 메뉴: 파일 탐색기에서 폴더 열기(공유 폴더·Git 작업에 편함) |
+  | Save As .sql… | 메뉴(쿼리): SQL만 평범한 `.sql` 파일로 내보냄 (④) |
+  | Export… / Import… | 메뉴: 폴더를 `.chromite-queries`로 내보냄(폴더·루트) / 선택한 폴더로 가져옴 (④) |
+  | Pull / Commit & Push… | 메뉴: 루트가 Git 작업 사본일 때만 보임 (④) |
   | Refresh | F5(트리에 초점이 있을 때, Object Explorer와 같은 규칙), 도구 막대 |
   | Library Roots… | 도구 막대 ⚙, 메뉴 |
   | 끌어다 놓기 | 쿼리·폴더를 다른 폴더로 옮김. 파일 탐색기의 `.sql` 파일을 놓으면 그 폴더로 복사 |
@@ -151,8 +160,8 @@ WHERE state = :state
 - **여러 루트:** "Library Roots…" 대화상자에서 루트(이름, 폴더, 읽기 전용)를 더하고 뺀다. 개인 루트 + 공유 루트(네트워크 폴더, Git 작업 사본)를 함께 쓰는 구조다.
   목록은 이 번들 설정 저장소의 `queryLibrary.roots`(한 줄에 `이름<TAB>경로<TAB>읽기 전용`)에 저장한다. 루트를 빼도 파일은 지우지 않는다. 목록이 비면 개인 루트를 다시 넣는다.
 - Tools > Options에 넣지 않은 이유: 같은 시간에 다른 작업이 `OptionsDialog`를 바꾸고 있어(편집기 글꼴·색) 겹침을 피했다. 루트 목록은 표 하나라 도구 창의 ⚙에서 바로 여는 편이 쓰기도 쉽다.
-- **바깥 변경:** 트리는 디스크를 그대로 보여 주므로, 동료가 공유 폴더의 파일을 바꾸거나 `git pull` 하면 Refresh로 반영된다. Run·Edit는 트리를 읽은 시점이 아니라 그때의 파일을 다시 읽어 쓴다.
-  열려 있는 편집 창은 다시 읽지 않는다(저장하면 그 창의 내용으로 덮어쓴다, 남긴 것).
+- **바깥 변경:** 트리는 디스크를 그대로 보여 주므로, 동료가 공유 폴더의 파일을 바꾸거나 `git pull` 하면 저절로 다시 읽어 반영한다(④ "자동 새로 고침", Refresh도 된다).
+  Run·Edit는 트리를 읽은 시점이 아니라 그때의 파일을 다시 읽어 쓴다. 열려 있는 편집 창도 다시 읽을 때마다 확인한다(④ "열린 창과 저장 충돌").
 - 읽기는 작업 스레드(`AbstractJob`)에서 모든 루트를 읽고 EDT에서 트리를 다시 만든다(펼친 폴더·선택은 경로로 되살림). 네트워크 폴더가 느려도 화면이 멈추지 않는다.
 - 같은 쿼리가 옮겨졌을 때: 읽을 때 ID → 파일 색인을 만들어, 편집 중인 쿼리의 파일이 트리에서 옮겨졌어도 저장할 때 ID로 새 위치를 찾는다.
 
@@ -181,7 +190,8 @@ SELECT ...
 - 편집기는 쿼리 창 그대로라 구문 색, 자동완성, 찾기·바꾸기, F5 실행(선택만 실행 포함)이 된다. 머리말을 바꾸면 탭에 `*`가 붙는다.
 - Target 콤보: "Ask when run", "Current connection", 연결 목록. 이 PC에 없는 연결이 저장된 쿼리는 "<이름> (not found)" 항목으로 보여 주고 그대로 저장한다(동료의 설정을 지우지 않음).
 - 저장(Ctrl+S, File > Save, 닫을 때·끝낼 때 Save)은 `QueryLibrary.save`: 파일을 ID로 다시 찾고, 머리말과 SQL을 쓰고, `@updated`를 바꾸고, 이름이 바뀌었으면 파일 이름도 바꾼다.
-  Save As도 같은 저장이다(라이브러리 쿼리를 아무 파일로 내보내는 것은 남김). 읽기 전용 루트의 쿼리는 저장하지 않고 Duplicate를 안내한다.
+  읽기 전용 루트의 쿼리는 저장하지 않고 Duplicate를 안내한다. 다른 사람이 먼저 저장했으면 덮어쓰기 전에 묻는다(④).
+  File > Save As는 라이브러리 쿼리를 바꾸지 않고 SQL만 평범한 `.sql`로 내보낸다(④ "Save As .sql").
 - SQL에서 빠진 매개변수의 정의는 저장할 때 버린다.
 
 ## 매개변수
@@ -325,20 +335,80 @@ GridBagLayout은 모든 칸을 최소 크기로 놓는데, 스크롤 창의 최�
 Next run(남은 시간), Last run, Last status. Run Now(바로 한 번), History…. 비모달, 5초마다 남은 시간을 다시 그린다.
 트리에서는 이 PC에서 켠 예약 쿼리의 보조 글자에 일정(`every minute` 등)이 붙는다.
 
-## 공유 설계 (④, 구현하지 않음)
+## 공유 (④)
 
-지금 구조에서 이미 되는 것: 루트를 공유 폴더나 Git 작업 사본으로 두면 여러 사람이 같은 파일을 쓴다(읽기 전용 루트, Refresh, ID 기반 상태, 연결 이름으로 찾기).
-그 위에 만들 것:
+사용자 결정(2026-11-07): "쿼리 라이브러리 공유는 당연히 진행해야지". 처음 설계(쿼리 하나 = 파일 하나, 정해진 항목 순서, ID 기반 로컬 상태, 연결은 ID와 이름으로 찾기,
+루트 단위 읽기 전용) 위에 아래를 만들었다. 공유 쿼리를 고치려면 지금처럼 Duplicate로 개인 루트에 복사하거나, 쓰기 권한이 있는 루트에서 고친다.
 
-- **공유 폴더 루트:** 네트워크 폴더(`\\server\share\queries`)를 루트로 추가. 관리자만 쓰기 권한을 갖고 나머지는 읽기 전용 루트로 쓰는 것을 권장.
-  파일 시스템 감시(`WatchService`, 네트워크 폴더에서는 신뢰도가 낮아 주기 다시 읽기와 함께)로 자동 반영.
-- **Git 루트:** 루트를 Git 작업 사본으로 두고 Pull / Commit & Push 명령을 단다(JGit 또는 시스템 `git`). 파일 하나 = 쿼리 하나, 정해진 항목 순서라 충돌이 줄 단위로 작다.
-  충돌은 Chromite가 합치지 않고 충돌 파일을 표시해 사용자가 고친다.
-- **내보내기/가져오기:** 폴더 하나를 zip(`.chromite-queries`)으로 묶어 보내고 가져온다. 같은 ID가 있으면 "덮어쓰기 / 사본으로 / 건너뛰기"를 묻는다.
-- **읽기 전용과 편집 가능:** 루트 단위(지금 구현). 공유 쿼리를 고치려면 Duplicate로 개인 루트에 복사한다.
-- **충돌 처리:** 저장할 때 파일의 `@updated`가 연 시점과 다르면(다른 사람이 먼저 저장) 덮어쓰기 전에 묻는다(지금은 묻지 않음, 남긴 것).
-- **비밀 정보:** 쿼리 파일에는 비밀번호·토큰을 절대 쓰지 않는다. 연결은 ID와 이름으로만 가리키고 자격 증명은 각자의 Chromite 연결 설정(보안 저장소)에 있다.
-  매개변수 마지막 입력값과 예약 활성 여부도 로컬 설정에만 둔다. `${name}` 기본값에 비밀을 넣지 말라고 문서화한다.
+### 공유 폴더와 자동 새로 고침 (`QueryLibraryWatcher`)
+
+- 네트워크 폴더(`\\server\share\queries`)나 아무 폴더를 Library Roots…에서 루트로 더한다. 관리자만 쓰기 권한을 갖고 나머지는 읽기 전용 루트로 쓰는 것을 권한다.
+- 바깥 변경을 두 가지로 알아챈다.
+  - 파일 시스템 감시(`WatchService`, 루트 아래 모든 폴더를 등록, `.`으로 시작하는 폴더 제외). 로컬 폴더에서는 저장 직후(0.7초 모아서) 반영된다.
+  - 주기 확인: Tools > Options > Query Library의 "Check folders every"(`queryLibrary.refreshSeconds`, 기본 **30초**, 0 = 감시 이벤트만, 최대 3600).
+    SMB 같은 네트워크 폴더는 감시 이벤트가 오지 않거나 빠지는 일이 있어 주기 확인이 메운다. 간격은 지금 기다리는 확인이 끝난 뒤부터 적용된다.
+- 느린 공유 폴더를 반복해서 다 읽지 않는다: 확인은 파일 내용을 읽지 않고 폴더 목록과 `.sql` 파일의 크기·수정 시각만 모은 지문을 지난 읽기의 지문과 비교하고,
+  다를 때만 트리를 다시 읽는다. 감시 이벤트도 같은 비교를 거치므로 이 창에서 저장해 이미 다시 읽은 변경은 한 번 더 읽지 않는다.
+  지문은 트리를 읽기 직전에 만든다(읽는 동안 바뀐 파일은 다음 확인에서 읽음). 없어진 루트(뽑힌 공유)는 "없음"으로 기억해 돌아오면 다시 읽는다.
+- 저절로 다시 읽을 때는 펼친 폴더와 선택을 경로로 되살리고 스크롤 위치도 그대로 둔다(선택한 줄로 스크롤하지 않음). Refresh나 이 창의 변경은 예전처럼 선택한 줄을 보인다.
+- 30초를 고른 이유: 공유 폴더 하나에 쿼리 수백 개여도 확인 한 번은 디렉터리 목록 몇 번이고, 동료의 변경이 늦어도 반 분 안에 보인다. 로컬·감시가 되는 폴더는 간격과 상관없이 바로 반영된다.
+
+### 열린 창과 저장 충돌 (`QueryLibraryEditor`)
+
+- 쿼리 창은 연 때(또는 마지막 저장 때)의 쿼리를 기억한다. 비교는 창이 다루는 항목(이름, 설명, 대상, DB/스키마, 매개변수 정의, SQL)을 파일 형식으로 쓴 글자로 한다.
+  `@updated`, 예약 블록, 모르는 머리말 줄은 비교에서 뺀다: Schedule… 저장처럼 `@updated`만 바뀐 경우는 다른 사람의 편집이 아니기 때문이다.
+- **저장할 때:** 파일의 편집 항목이 기억한 것과 다르면(다른 사람이 먼저 저장) 묻는다: **Overwrite**(내 것으로 덮어씀) / **Reload**(그 사람의 버전을 창에 보이고 내 변경은 버림) / **Cancel**.
+  파일이 Chromite 밖에서 지워졌거나 옮겨졌으면 다시 저장할지 묻는다.
+- **라이브러리를 다시 읽을 때마다**(자동, Refresh, 저장) 열린 창을 확인한다(읽은 결과를 쓰므로 EDT에서 파일을 읽지 않음).
+  - 고치지 않은 창: 새 내용으로 바꾸고 머리말 위에 알림 줄("This query was changed on disk and has been reloaded (hh:mm:ss).")을 보인다.
+  - 고친 창: 내용은 그대로 두고 경고 알림 줄과 **Reload** 단추를 보인다. 저장하면 위의 질문이 뜬다.
+  - 파일이 라이브러리에서 사라졌으면(삭제, 옮김, 폴더를 쓸 수 없음) 경고 알림 줄. Dismiss로 닫으면 같은 변경에 대해서는 다시 보이지 않는다.
+
+### Git 루트 (`QueryLibraryGit`)
+
+- 루트 폴더부터 위로 `.git`이 있으면 Git 작업 사본이다(루트가 저장소의 하위 폴더여도 됨). 오른쪽 클릭 메뉴에 **Pull**과 **Commit & Push…**가 붙는다.
+- 시스템 `git`을 쓴다. 대상 플랫폼에 JGit이 없고(2026-11-07 `org.eclipse.jgit` 검색 결과 없음) 새 의존성을 넣지 않기 위해서다.
+  Git이 없으면 두 명령을 끄고 도구 설명에 이유("Git was not found. Install Git and make sure git is on the PATH.")를 보인다. 있는지는 처음 한 번 작업 스레드에서 `git --version`으로 본다.
+- **자격 증명을 저장하지 않는다.** 사용자의 Git 설정(이름·메일, 자격 증명 도우미, SSH 키, 프록시)을 그대로 쓴다. `GIT_TERMINAL_PROMPT=0`이라 Git이 보이지 않는 터미널에서
+  비밀번호를 기다리며 멈추지 않는다(자격 증명 도우미의 창은 뜬다). 원격 명령은 5분, 로컬 명령은 30초가 지나면 끝낸다.
+- 루트 이름 뒤 보조 글자: `main ↑1 ↓2 · 1 conflicts`(브랜치, 올리지 않은 커밋, 받지 않은 커밋, 충돌 수). 뒤처짐은 마지막 fetch(Pull) 기준이다(자동 fetch는 하지 않음: 네트워크·자격 증명).
+  상태는 트리를 읽을 때 `git --no-optional-locks status --porcelain=v2 --branch -z --untracked-files=all -- .`로 읽는다(기계용 형식, 색인 파일을 다시 쓰지 않음).
+- **Pull:** `git pull --no-rebase --no-edit`. 겹치지 않는 변경은 Git이 합친다. 같은 줄을 고친 충돌은 **Chromite가 합치지 않는다**: Git이 충돌 표시를 남긴 채 멈추고,
+  Chromite는 충돌 파일을 트리에 노란 점과 "conflict"로 표시하고 파일 목록과 Git 출력을 보인다. Git의 사람용 출력은 언어 설정에 따라 바뀌므로 해석하지 않고,
+  성공은 종료 코드, 충돌은 다시 읽은 상태로 정한다.
+- **Commit & Push…:** 바뀐 파일 목록과 커밋 메시지(기본 "Update queries")를 묻고 `git add -A -- .` → `git commit -F - -- .`(루트 아래만, 메시지는 표준 입력 UTF-8) → `git push`.
+  병합 중이면 Git이 일부 커밋을 받지 않으므로 색인 전체를 커밋해 병합을 끝낸다. 올라갈 브랜치가 없으면 `git push -u origin HEAD`.
+  충돌 표시(`<<<<<<< `)가 남은 파일이 있으면 올리지 않고 알린다. push가 거절되면 Git 출력과 함께 "먼저 Pull 하라"고 안내한다. 읽기 전용 루트에서는 끄고 Pull만 된다.
+- 충돌 해결: 충돌 파일을 쿼리 창에서 열면 충돌 표시가 SQL 부분에 보인다(머리말이 충돌 표시 줄에서 끝나므로). 표시 줄을 지우고 저장한 뒤 Commit & Push 하면 해결된 것으로 올라간다.
+  머리말 항목(이름, 매개변수 등)이 충돌했으면 그 뒤의 머리말 줄이 SQL 주석으로 보이므로 텍스트 편집기나 Git 도구로 고치기를 권한다.
+- **알려진 점:** 저장할 때마다 `@updated`가 바뀌므로 두 사람이 같은 쿼리를 동시에 고치면 SQL의 다른 줄을 고쳤어도 `@updated` 줄은 늘 충돌한다. 어느 쪽을 남겨도 된다.
+  Chromite가 이 줄을 저절로 고르면 "Chromite는 합치지 않는다"를 어기므로 그대로 두었다.
+
+### 내보내기·가져오기 (`QueryLibraryArchive`)
+
+- **Export…**(폴더·루트): 그 폴더와 하위 폴더의 쿼리 파일(`.sql`, `.`으로 시작하는 것 제외)을 zip 하나(`.chromite-queries`)로 묶는다. 항목은 내보낸 폴더 기준 상대 경로이고
+  파일 바이트를 그대로 담는다(문자 집합·BOM·줄바꿈·모르는 머리말 유지). 내보낸 폴더 이름은 넣지 않는다: 가져오는 사람이 넣을 폴더를 고른다. 임시 파일에 쓴 뒤 바꾸므로 실패해도 예전 파일이 남는다.
+- **Import…**(쓸 수 있는 폴더): 먼저 묶음 전체를 메모리로 읽고 검사한다.
+  - 항목 수 10,000개, 파일 하나 10 MB, 풀었을 때 전체 100 MB까지. 크기는 머리글 값이 아니라 실제로 읽은 바이트로 센다(압축 폭탄).
+  - 경로: 절대 경로, 드라이브 문자(`:`), `..`이 있으면 거부하고, 대상 폴더 밖으로 나가는 경로를 쓰기 직전에 다시 막는다(zip-slip). `.sql`이 아닌 항목과 `.`으로 시작하는 항목은 건너뛴다.
+  - 검사에 걸리면 아무것도 쓰지 않는다.
+- **ID 충돌:** 같은 `@id`의 쿼리가 라이브러리(모든 루트)에 있으면 쿼리마다 묻는다: **Overwrite**(그 파일 자리에 가져온 내용을 씀) / **Import as Copy**(새 ID, 이름에 "copy") /
+  **Skip** / Cancel(아무것도 가져오지 않음). "Do the same for the remaining N queries with the same ID"를 켜면 나머지에 같은 답을 쓴다.
+  기존 파일이 읽기 전용 루트에 있으면 Overwrite를 보이지 않는다. 묶음 안에서 같은 ID가 다시 나오면 뒤의 것은 사본으로 가져온다(한 라이브러리에 같은 ID가 둘이면 이 PC의 상태가 섞임).
+  ID가 없는 파일(머리말 없는 `.sql`)과 충돌하지 않는 쿼리는 상대 경로대로 쓰고, 같은 이름이 있으면 ` (2)`를 붙인다. 끝나면 추가·덮어씀·사본·건너뜀 수를 알린다.
+
+### Save As .sql
+
+- 트리의 **Save As .sql…**와 라이브러리 쿼리 창의 **File > Save As**는 SQL만(머리말 없이) 평범한 `.sql` 파일로 내보낸다. 문자 집합·줄바꿈은 라이브러리 파일의 것을 따른다.
+  창은 계속 라이브러리 쿼리다. 라이브러리 루트 안으로는 내보내지 않는다(머리말 없는 다른 쿼리로 보이기 때문).
+
+### 비밀 정보
+
+- 쿼리 파일에는 비밀번호·토큰을 쓰지 않는다. 연결은 ID와 이름으로만 가리키고 자격 증명은 각자의 Chromite 연결 설정(보안 저장소)에 있다.
+  매개변수 마지막 입력값(`queryLibrary.lastValues.<id>`)과 예약 활성 여부(`queryLibrary.schedule.active.<id>`)는 지금처럼 이 PC의 설정에만 둔다. Git 자격 증명도 저장하지 않는다(위).
+- Library Roots… 대화상자에 경고 아이콘과 함께 이 내용을 보인다(루트를 더하는 곳).
+- Parameters…에서 이름이나 표시 이름이 비밀처럼 보이는(`pass`, `password`, `pwd`, `secret`, `token`, `api_key`, `credential`, `private_key`, `비밀번호`, `암호`, `토큰`) 매개변수에
+  기본값을 넣으면 OK를 누를 때 "기본값은 라이브러리를 함께 쓰는 모든 사람이 읽는 쿼리 파일에 저장된다"고 경고하고, Yes일 때만 저장한다. `:name`·`${name}` 모두 해당한다.
 
 ## upstream 대비 변경점
 
@@ -347,9 +417,9 @@ Next run(남은 시간), Last run, Last status. Run Now(바로 한 번), History
 
 ## 남긴 것
 
-- 열려 있는 편집 창이 바깥에서 바뀐 파일을 알아채지 못한다(저장하면 덮어씀). 저장할 때 `@updated` 비교로 묻기(④ 충돌 처리).
-- 라이브러리 쿼리를 일반 `.sql` 파일로 내보내는 Save As.
-- 파일 시스템 감시에 의한 자동 새로 고침(지금은 Refresh).
+- ④ 두 사람이 같은 쿼리를 동시에 고치면 Git에서 `@updated` 줄이 늘 충돌한다(위 "Git 루트"의 알려진 점). Chromite는 합치지 않으므로 사용자가 고른다.
+- ④ Git: 자동 fetch(뒤처짐을 Pull 전에 보이기), 브랜치 바꾸기, 충돌을 나란히 보여 주는 해결 화면은 없다. 머리말 항목의 충돌은 텍스트 편집기·Git 도구로 고친다.
+- ④ 주기 확인만으로 바뀐 것을 알아채는 경우(감시 이벤트가 오지 않는 네트워크 폴더)는 따로 확인하지 못했다. 로컬 폴더에서는 감시 이벤트가 먼저 와서 같은 비교 경로로 반영되었다.
 - 트리 안에서 바로 이름 바꾸기(지금은 이름 입력 대화상자).
 - 예약 실행: 한 쿼리의 여러 서버를 차례로 실행한다(병렬 아님). 예약 실행마다 연결을 새로 열고 닫는다(자주 도는 예약이 많으면 연결 풀이 필요할 수 있음).
 - 범위 밖에서 발견한 문제: 기존 `NotificationToast`가 메시지가 있는 새 알림을 창 높이만큼 크게 그렸다. `layoutToasts`가 토스트를
@@ -392,6 +462,28 @@ Schedule…·History…·Scheduled Queries… 대화상자, Save to Query Librar
 스크린숏: `D:\Tools\_scratch\query-library\shots\`. 회귀 테스트는 실행하지 않았다(요청 없음).
 영향받을 수 있는 기능: SWT·Swing의 쿼리 실행(실행 엔진의 바인딩 분기, 기본은 기존 경로), Swing 쿼리 창(확장 지점, 저장), 도구 창 배치(새 열, 처음에는 숨김).
 
+## 확인 (2026-11-07, ④ 공유)
+
+빌드: `mvn -B clean package -f product/aggregate/pom.xml -T1C -Pproduct-chromite-swing` → BUILD SUCCESS. 빌드한 제품 하나를 데이터 폴더·작업 공간만 다르게 두 개 실행했다
+(A: 영어 `-nl en_US`, B: 한국어). 화면 조작은 각 프로세스에 붙인 테스트용 Java 에이전트가 Swing API로 했다(OS 입력 없음). 증거: `D:\Tools\_scratch\query-library-sharing\evidence\`.
+
+| 확인 | 결과 |
+|---|---|
+| 공유 폴더 자동 반영 | A가 공유 루트에 "Active sessions"를 만듦(21:34:25) → B의 트리에 Refresh 없이 21:34:28에 보임 |
+| 고치지 않은 열린 창 | B가 저장 → A의 창이 B의 SQL로 바뀌고 알림 줄 "changed on disk and has been reloaded" |
+| 고친 창 + 저장 충돌 | A가 먼저 저장 → B(고친 창)에 경고 알림 줄과 다시 읽기 단추, B 저장 → "다른 사람이 바꾼 쿼리" 질문 → 덮어쓰기: 파일이 B의 내용 |
+| 저장 충돌 Reload | B가 저장한 뒤 A(고친 창) 저장 → 질문 → Reload: A의 창이 B의 SQL, 알림 줄 닫힘 |
+| Git Commit & Push / Pull | 빈 bare 저장소와 두 clone. A가 쿼리를 만들고 Commit & Push(올라갈 브랜치 설정) → B Pull → 트리에 나타남. 원격 기록 `8136f75 User A Update queries` |
+| Git 충돌 | A·B가 같은 줄을 고쳐 각각 커밋. B push 거절(Git 출력 + Pull 안내) → B Pull → 충돌 안내, 트리 `main ↑1 ↓1 · 충돌 1개`, 쿼리에 "충돌". 파일에 충돌 표시가 남음(합치지 않음) |
+| 충돌 해결 | B가 쿼리 창에서 표시 줄을 지우고 저장 → Commit & Push가 병합 커밋으로 올림 → A Pull: A의 창이 병합 결과로 바뀜 |
+| Git 없음 | PATH에서 git을 뺀 B: Pull·Commit & Push가 꺼지고 도구 설명 "Git을 찾을 수 없습니다…" |
+| 내보내기·가져오기 | A가 Shared(쿼리 2개) 내보냄(항목 바이트가 원본과 같음). B가 My Queries로 세 번 가져옴: 사본으로+나머지에도(새 ID, "- 복사본"), 덮어쓰기+건너뛰기, 건너뛰기+나머지에도 |
+| 위험한 묶음 | `../../evil.sql` → "Unsafe path", 항목 10,001개 → 개수 제한, 11 MB 항목 → 크기 제한. 모두 아무것도 쓰지 않음 |
+| Save As .sql | 트리·File > Save As 모두 머리말 없는 SQL만, 루트 안 경로는 거부 |
+| 비밀 정보 | Library Roots… 안내 문구, `api_token` 기본값에 경고(No면 대화상자에 남음), Options의 "Check folders every" |
+
+회귀 테스트는 실행하지 않았다(요청 없음). 영향받을 수 있는 기능: Query Library 트리 다시 읽기(Git 상태·지문 추가), 라이브러리 쿼리 창 저장(충돌 확인), File > Save As(라이브러리 창), Tools > Options.
+
 ## 변경 이력
 
 - 2026-11-06 최초 작성: ① 라이브러리 트리·실행, ② 매개변수 매핑 구현, ③·④ 설계.
@@ -403,3 +495,5 @@ Schedule…·History…·Scheduled Queries… 대화상자, Save to Query Librar
 - 2026-11-06 Schedule… 대화상자의 Connections·Parameters 목록이 한 줄로 줄던 문제: 목록에 최소 높이와 세로 가중치.
 - 2026-11-07 Query Library와 Properties가 한쪽을 숨긴 사이 다른 쪽을 보이면 따로 열을 만들던 문제: 서로를 기본 이웃으로 둠([swing-frontend.md](swing-frontend.md) "Query Library 자리").
 - 2026-11-07 쿼리 창 도구 막대가 메인 창 둘째 줄(SQL Editor 도구 막대)로 옮겨져 머리말 위치를 "편집기 위"로 고침. [swing-frontend.md](swing-frontend.md) "SQL Editor 도구 막대".
+- 2026-11-07 ④ 공유 구현: 자동 새로 고침(`QueryLibraryWatcher`, 기본 30초 + 파일 시스템 감시), Git Pull·Commit & Push와 충돌 표시(`QueryLibraryGit`, 시스템 git),
+  `.chromite-queries` 내보내기·가져오기(`QueryLibraryArchive`), 저장 충돌 확인과 열린 창 다시 읽기, Save As .sql, 비밀 정보 안내·경고. "공유 설계"를 구현한 설계로 바꿈.
