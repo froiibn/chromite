@@ -25,8 +25,8 @@ DBA가 자주 쓰는 상태 확인 쿼리(세션 수, 대기, 디스크 사용�
 | `QueryLibraryFile` | 파일 형식 읽기·쓰기(머리말 주석 + SQL) |
 | `QueryLibraryState` | 이 PC에만 두는 쿼리별 상태(매개변수 마지막 입력값) |
 | `QueryLibraryEditor` | 쿼리 창 확장: 이름·설명·대상·DB/스키마·매개변수 머리말, 라이브러리로 저장, 실행 전 매개변수 묻기, 실행 대상 찾기 |
-| `QueryParameterBinder` | 매개변수 바인딩(`:name` → `?` + JDBC 바인딩, `${name}` → SQL 글자), 연결 없이 매개변수 찾기 |
-| `QueryParameterDialog` | 실행할 때 값을 묻는 대화상자 |
+| `QueryParameterBinder` | 쿼리 창의 매개변수 바인딩 하나: `:name` → `?` + JDBC 바인딩, `${name}` → SQL 글자, 결과 다시 읽기의 바인딩, 기록용 글자·값, 기록에서 연 실행(`Recorded`), 평범한 쿼리 창의 엔진 매개변수 제공자(`ScriptProvider`), 연결 없이 매개변수 찾기 |
+| `QueryParameterDialog` | 실행할 때 값을 묻는 대화상자 하나(라이브러리 쿼리, 기록에서 연 실행, 평범한 쿼리 창의 스크립트 모드) |
 | `QueryParameterDefinitionsDialog` | 편집기의 "Parameters…": 매개변수 정의 표 |
 | `QueryLibraryRootsDialog` | "Library Roots…": 루트 목록 |
 | `SqlEditorExtension`, `SqlParameterBinding` | 쿼리 창(`SqlEditorPanel`)에 붙이는 확장 지점과 실행별 바인딩 계약 |
@@ -43,9 +43,11 @@ DBA가 자주 쓰는 상태 확인 쿼리(세션 수, 대기, 디스크 사용�
 | 파일 | 바꾼 것 |
 |---|---|
 | `MainFrame` | Query Library 도구 창(오른쪽 열에서 Properties 위, `ToolWindow.stackBelow`(2026-11-06부터 도킹 기본 자리), 처음에는 숨김, View > Query Library, Ctrl+Alt+T), Query > Save to Query Library…, `QueryLibraryPanel.Host` 구현(창 열기·찾기, 현재 연결), 확장이 붙은 쿼리 창의 저장을 확장에 넘김 |
-| `SqlEditorPanel` | `setExtension`(머리말을 도구 막대 아래에), `markModified`, 탭 아이콘, 실행 전 `prepareExecution`, 준비 Job에서 `SqlParameterBinding.prepare`, 엔진 핸들러의 바인딩 메서드 |
+| `SqlEditorPanel` | `setExtension`(머리말을 도구 막대 아래에), `markModified`, 탭 아이콘, 실행 전 `prepareExecution`, 준비 Job에서 `SqlParameterBinding.prepare`, 엔진 핸들러의 바인딩 메서드, 결과의 데이터 컨테이너(`SqlParameterBinding.createDataContainer`), 기록에서 연 실행(`setRecordedParameters`) |
 | `ToolWindow` | ~~`setDefaultShown(false)`~~: 처음에는 숨긴 도구 창(Reset Window Layout도 숨김으로 되돌림). 2026-11-06부터 `ToolWindowDocking.addToolWindow(..., false, ...)` |
 | `SQLQueryExecuteHandler`, `SQLQueryExecuteJob` (model.sql, Chromite 실행 엔진) | `hasBoundParameters`/`bindParameters`: 핸들러가 값을 바인딩하는 쿼리는 스크립트 문장 대신 prepared statement로 만들고 바인딩. 기본값은 바인딩 없음이라 SWT 편집기 동작은 같다 |
+| `SQLQueryDataContainer`, `SQLQueryColumnValues` (model.sql, 2026-11-08) | `ParameterBinder`: 바인딩 방법이 있는 컨테이너는 다시 읽을 때 필터를 넣은 최종 글자에서 찾은 `:name`을 그 방법으로 `?`로 바꾸고 prepared statement로 바인딩한다. 열 필터 값 목록도 같은 방법을 넘겨받는다. 없으면 예전과 같다 |
+| `QueryHistory`, `QueryHistoryDialog`, `MainFrame` (2026-11-08) | 기록의 `parameters`(바인딩한 값·형식), 미리 보기의 값 주석 줄, Open·Execute가 기록 전체를 넘겨 다시 바인딩 |
 | `tools/branding/gen_ui_icons.py` | 아이콘 `library`(Tabler books), `library-query`(문서 + 실행 배지), `new-folder`(폴더 + 더하기 배지), ③ `schedule`(Tabler clock), 두 팩·두 테마. History…는 SQL 편집기 확장의 `history` 아이콘(Tabler history)을 함께 쓴다 |
 | `OptionsDialog` (③, ④) | Tools > Options의 "Query Library" 절: 기록 보존 실행 수·일수, ④ 폴더 확인 간격 |
 | `MainFrame` (④) | 확장이 붙은 쿼리 창의 Save As는 `SqlEditorExtension.saveAs`(라이브러리 쿼리는 SQL만 평범한 `.sql`로 내보냄) |
@@ -259,20 +261,47 @@ SELECT ...
   2. 엔진(`SQLQueryExecuteJob.executeStatement`)이 `handler.hasBoundParameters`가 참인 쿼리는 `DBCStatementType.QUERY`(JDBC `PreparedStatement`)로 만들고
      `handler.bindParameters` → `PreparedStatement.setObject/setNull`로 바인딩한다. 바꾼 쿼리는 매개변수 목록이 없으므로 엔진의 글자 치환(`fillQueryParameters`)은 아무것도 하지 않는다.
   - 정수는 `Integer`(범위를 넘으면 `Long`)로 바인딩한다. PostgreSQL의 `make_interval(mins => ?)`처럼 정수만 받는 함수에 `BigDecimal`(numeric)은 맞지 않기 때문이다.
-  - 값은 그 실행의 핸들러에만 있다. 결과 표의 데이터 컨테이너(`SQLQueryDataContainer`)로 쿼리를 다시 읽으면 `?`가 값 없이 나가므로
-    (합칠 때 확인: PostgreSQL "syntax error at end of input"), 바인딩한 쿼리의 결과는 다시 읽지 않는다: 결과 표의 Export Data…를 끄고
-    ([swing-data-transfer.md](swing-data-transfer.md)), 결과 뷰어의 필터·서버 정렬·다음 페이지를 막는다(이유 "parameter values bound for this run only",
-    [swing-result-viewer.md](swing-result-viewer.md)). CSV·XLSX로 내보내기와 표 안 정렬은 된다. 쿼리 창에서 같은 값으로 다시 실행하면 된다.
-  - 쿼리 창의 매개변수 대화상자(SQL 편집기 확장의 Bind Parameters, `SqlParameterDialog`)는 라이브러리 실행에서 뜨지 않는다. 바꾼 쿼리에 매개변수 목록이 없어
-    엔진의 `fillQueryParameters`가 제공자를 부르지 않기 때문이다. 두 대화상자를 하나로 합치는 것은 남긴 일이다.
+  - 결과를 다시 읽을 때(결과 뷰어의 필터·서버 정렬·다음 페이지, 열 필터 값 목록, Export Data…, 편집 저장 뒤 행 다시 읽기)도 같은 값을 바인딩한다
+    (2026-11-08, 아래 "매개변수 대화상자와 바인딩 하나로"). 2026-11-06부터 2026-11-08까지는 값이 그 실행의 핸들러에만 있어 다시 읽으면 `?`가 값 없이 나갔으므로
+    (PostgreSQL "syntax error at end of input") 이 기능들을 막았다.
   - SQL Server `GO` 배치는 배치 하나가 prepared statement 하나다(`DECLARE`한 변수와 `?`를 함께 쓸 수 있음). JDBC가 아닌 연결은 바인딩할 수 없어 오류로 끝난다.
-  - Query History(쿼리 창 기록)에는 엔진이 보낸 `?` 문장이 아니라 원래 문장에 값을 SQL 리터럴로 넣은 글자(`SqlParameterBinding.getHistoryText`)를 남긴다.
-    `?` 문장은 값이 없어 기록에서 Open·Execute 해도 실행할 수 없었다. 쿼리 창의 Bind Parameters 기록(값을 글자로 치환한 문장)과 같은 모양이다.
-    `prepare`가 `?`로 바꿀 때 같은 자리에 리터럴을 넣은 글자를 함께 만든다: 숫자는 그대로, 문자열·날짜·시각은 방언의 따옴표 처리(`SQLUtils.quoteString`),
-    빈 값은 `NULL`, 불리언은 `TRUE`/`FALSE`. SQL Server에는 불리언 리터럴이 없어 불리언 매개변수가 있는 기록은 그 서버에서 오류가 난다
-    (`'true'` 같은 글자는 MySQL·MariaDB에서 오류 없이 0과 비교되므로 쓰지 않았다).
+  - Query History(쿼리 창 기록)에는 엔진이 보낸 `?` 문장이 아니라 `:name`이 남은 문장(`${name}`은 값을 넣은 글자)과 바인딩한 값·형식을 남긴다(2026-11-08).
+    기록에서 Execute하면 같은 값을 다시 바인딩하고, Open한 창은 실행할 때 기록된 값을 채운 대화상자로 묻는다(아래).
+    2026-11-06에는 값을 SQL 리터럴로 넣은 글자를 남겼는데, 리터럴은 서버마다 뜻이 달라 다시 실행하면 처음과 다를 수 있었다
+    (Oracle의 날짜 문자열은 세션의 `NLS_DATE_FORMAT`에 따라 바뀌고, SQL Server에는 불리언 리터럴이 없어 오류).
 - **`${name}`·`{{name}}` 변수(표시: "SQL text"):** SWT에서도 텍스트 치환 변수이고 식별자·SQL 조각 자리(테이블 이름, `ORDER BY` 열 등)라 바인딩할 수 없다.
   값을 **그대로 SQL에 끼운다**. 대화상자와 정의 표에 "SQL text"로 표시하고, 쓰는 사람이 이 점을 알도록 도구 설명을 단다. 신뢰하지 않는 값에는 `:name`을 쓴다.
+
+### 매개변수 대화상자와 바인딩 하나로 (2026-11-08)
+
+후속 작업 #9(대화상자·바인딩 합치기), #22(바인딩한 결과 다시 읽기), #19(기록에 원래 글자와 값). 매개변수 입력은 쿼리 창의 세 경로에서 같은 대화상자와 같은 바인딩 클래스를 쓴다.
+
+| 경로 | 언제 묻나 | 대화상자 | 값이 들어가는 방법 |
+|---|---|---|---|
+| Query Library 쿼리 창 | 실행 전(EDT), 실행할 글자 전체 | `QueryParameterDialog.open`: 정의의 형식·필수·선택 목록·조회 쿼리, 이 PC의 마지막 값 | `:name` 바인딩, `${name}` SQL 글자 |
+| 기록에서 연 바인딩 실행 | 실행 전(EDT). History의 Execute는 묻지 않고 기록된 값 | 같은 `open`: 기록된 형식, 기록된 값(입력하면 그 창의 다음 실행에 씀) | `:name` 바인딩(`QueryParameterBinder.Recorded`) |
+| 평범한 쿼리 창 | 스크립트가 실행되는 동안 엔진이 값 없는 매개변수를 만날 때(문장마다) | `QueryParameterDialog.openForScript`: 위에 그 문장, Execute / Ignore / Cancel, 매개변수 기록(`parameter-bindings.xml`) | SQL 글자(엔진의 `fillQueryParameters`) |
+
+- **대화상자:** 예전 쿼리 창 대화상자(`SqlParameterDialog`, 이름·값 표)를 지우고 `QueryParameterDialog`에 스크립트 모드를 더했다. 줄마다 표식(`:name`, `${name}`, `?`)을
+  도구 설명으로 보이고, SQL 글자로 들어가는 줄은 "SQL text" 힌트를 단다. 스크립트 모드의 문장 미리 보기, Ignore(이 스크립트 끝까지 매개변수 무시), 아래 안내
+  ("값은 SQL 글자로 들어가니 문자열은 따옴표로"), 제목 "Bind Parameters", 단추 "Execute", 값 기억(`SQLQueryParameterRegistry`)은 예전 그대로다.
+  바뀐 점: 표의 칸 대신 입력란이라 Enter가 바로 Execute이고(예전 표는 Enter가 다음 줄로 감), 열면 첫 입력 칸에 초점이 간다(라이브러리 쿼리도 같음).
+  값의 앞뒤 공백은 지운다(라이브러리 대화상자와 같음, SQL 글자의 뜻은 바뀌지 않는다).
+- **평범한 쿼리 창을 바인딩으로 바꾸지 않은 이유:** SWT·DBeaver 사용자는 `:name` 값에 `'abc'`처럼 따옴표까지, 또는 `(1,2,3)`·열 이름 같은 SQL 조각을 넣는다.
+  바인딩으로 바꾸면 이런 스크립트가 깨진다. 또 스크립트 변수(`@set x = …`)가 실행 중에 값을 주므로 실행 전에 한 번에 물을 수 없다. 그래서 이 경로는 엔진의
+  매개변수 제공자(`QueryParameterBinder.ScriptProvider`, 예전 `SqlParameterDialog.Provider`)로 남기고 대화상자만 합쳤다.
+- **바인딩 클래스:** `QueryParameterBinder` 하나가 바인딩(`prepare`/`bind`), 다시 읽기, 기록, 기록에서 연 실행, 스크립트 제공자를 맡는다.
+  Chromite Agent의 Query Library 도구(`LibraryTools.bind`, model.ai.tools)는 UI 번들에 기댈 수 없어 같은 원칙의 자기 바인딩을 따로 갖는다(이번에 합치지 않음).
+- **다시 읽기(#22):** `SqlParameterBinding.createDataContainer`가 결과의 데이터 컨테이너를 만든다. 바인딩한 쿼리는 `?` 글자 대신 `:name`이 남은 글자(`${name}`은
+  값을 넣은 것)를 갖고, 바인딩 방법(`SQLQueryDataContainer.ParameterBinder`, 구현은 바인딩 자신)을 받는다. 다시 읽을 때 컨테이너는 필터·정렬을 넣은
+  최종 글자에서 매개변수를 다시 찾고(원래 있던 동작), 스크립트 문맥의 글자 치환 대신 바인딩 방법으로 `?`로 바꿔 prepared statement에 이름으로 바인딩한다.
+  `?` 글자를 그대로 두고 순서대로 바인딩하는 방법은 고르지 않았다: 헤더 정렬이 쿼리의 ORDER BY를 바꾸거나 열 필터 값 목록이 ORDER BY를 지우면 그 안의 `?`가 빠져
+  순서가 어긋난다. 이름으로 다시 찾으면 빠진 표식은 그냥 없다. 필터 조건 값은 방언이 글자로 넣으므로(`appendConditionString(..., inline = true)`) 새 표식이 생기지 않는다.
+  결과 표의 Export Data…, 필터, 서버 정렬, 다음 페이지, 열 필터 값 목록, 편집 저장 뒤 행 다시 읽기가 이 컨테이너를 쓴다. 값은 쿼리 창이 실행한 그 값이다
+  (같은 창에서 다른 값으로 다시 실행하면 새 결과 표가 새 값을 갖는다).
+- **기록(#19):** 위 "매개변수 바인딩"의 Query History. 기록 파일(`chromite-query-history.jsonl`)의 항목에 `parameters`(이름, 입력한 값, 바인딩 형식)가 붙는다.
+  형식은 숫자·날짜·날짜와 시각·불리언이고 나머지(선택 목록, 조회 쿼리)는 텍스트다(목록은 기록하지 않음). 이 항목이 없는 예전 기록은 예전처럼 글자만이다.
+  History 창의 미리 보기는 문장 아래에 `-- :name = 값` 주석 줄로 값을 보인다. 기록에서 연 창에서 새 `:x`를 쓰면 그것도 텍스트로 바인딩한다(그 창은 바인딩 창이다).
 
 ## 예약 실행 (③)
 
@@ -436,6 +465,8 @@ Next run(남은 시간), Last run, Last status. Run Now(바로 한 번), History
 
 ## 남긴 것
 
+- Chromite Agent의 Query Library 도구는 자기 바인딩(`LibraryTools.bind`)을 쓴다(모델 번들이라 `QueryParameterBinder`를 쓸 수 없음). 합치려면 바인딩을 모델 번들로 옮겨야 한다.
+- 데이터 전송 작업으로 저장(Save as task)한 바인딩 결과의 내보내기는 값을 저장하지 않는다(작업은 쿼리 글자만 저장함, `DatabaseTransferProducer`의 "query" 선택자). Swing에는 아직 작업 저장이 없어 드러나지 않는다.
 - ④ Git: 자동 fetch(뒤처짐을 Pull 전에 보이기), 브랜치 바꾸기, 충돌을 나란히 보여 주는 해결 화면은 없다. 머리말 항목의 충돌은 텍스트 편집기·Git 도구로 고친다.
 - ④ 주기 확인만으로 바뀐 것을 알아채는 경우(감시 이벤트가 오지 않는 네트워크 폴더)는 따로 확인하지 못했다. 로컬 폴더에서는 감시 이벤트가 먼저 와서 같은 비교 경로로 반영되었다.
 - 트리 안에서 바로 이름 바꾸기(지금은 이름 입력 대화상자).
@@ -516,6 +547,35 @@ Schedule…·History…·Scheduled Queries… 대화상자, Save to Query Librar
 
 화면: `D:\Tools\_scratch\chromite-bugs-locks-agent-stream\run\shots\q-*`.
 
+## 확인 (2026-11-08, 매개변수 대화상자와 바인딩 하나로, 고친 시각)
+
+빌드: `mvn -B clean package -f product/aggregate/pom.xml -T1C -Pproduct-chromite-swing` → BUILD SUCCESS. 빌드한 제품 하나를 데이터 폴더(`CHROMITE_DATA`)와
+작업 공간을 scratch에 두고 영어(`-nl en_US`)로 실행했다. 화면 조작은 이 프로세스에 붙인 테스트용 Java 에이전트가 Swing API와 앱의 메서드로 했다(OS 입력 없음).
+DB는 공유 테스트 컨테이너에 만든 `chr_query_library_params`(PostgreSQL, SQL Server, `orders` 600행)이고 끝난 뒤 지웠다.
+증거: `D:\Tools\_scratch\chromite-query-library-params\evidence\`(스크립트 로그, 화면).
+
+| 확인 | 결과 |
+|---|---|
+| 라이브러리 쿼리 대화상자 | "Parameters - Orders by amount": `min_amount`(number), `since`(date), `skip`("SQL text", 도구 설명 `${skip}`), 첫 칸에 초점, Run이 기본 단추 |
+| 바인딩 실행 (PostgreSQL) | 300 / 2026-03-01 / `'cust3'` → 200행(더 있음). 직접 센 값 344행과 같음 |
+| 다음 페이지 (#22) | 344행. 예전에는 "parameter values bound for this run only"로 막혔음. `requeryBlocker` 없음, Export Data 켜짐(`exportQuery` 있음) |
+| 서버 정렬 (#22) | ORDER BY 없는 같은 쿼리, 200/344행에서 id 내림차순 → 첫 행 600, 오름차순 → 첫 행 200(서버에서 다시 읽음) |
+| 필터 (#22) | customer = cust1 → 57행(직접 센 값과 같음) |
+| 열 필터 값 목록 (#22) | `SQLQueryColumnValues`: cust0·1·2·4·5·6, cust3 없음(바인딩한 조건을 따름) |
+| SQL Server (#22) | `@database` 지정, `min_amount` 800 → 67행, 필터 customer = cust2(ORDER BY 쿼리를 감싸는 경로) → 10행, 열 값 목록 7개 |
+| 기록 (#19) | 문장 `… amount >= :min_amount AND created >= :since AND customer <> 'cust3' …`, `parameters` = min_amount 300 number, since 2026-03-01 date. 미리 보기에 `-- :min_amount = 300` 줄 |
+| 기록 Execute (#19) | 묻지 않고 같은 값으로 바인딩해 200행(더 있음) |
+| 기록 Open (#19) | 창에 `:name` 글자, Execute → "Parameters - SQLQuery2.sql"에 300·2026-03-01이 채워짐 → 1000으로 실행 → 0행, 새 기록에 1000 |
+| 평범한 쿼리 창 (#9) | `:c`, `:a` → "Bind Parameters": 문장 미리 보기, 줄마다 "SQL text"와 표식 도구 설명, 아래 안내, Execute / Ignore / Cancel. `'cust2'`, 100 → `count(*)` 76, 기록은 값을 넣은 글자(매개변수 없음). 다시 실행하면 지난 값이 채워짐, Cancel → 대화상자 닫히고 실행 안 함 |
+| 저장 (`@updated`) | 예전 파일(`@updated` 있음)을 창에서 저장 → 파일에서 `@updated` 줄이 빠지고 다른 줄은 그대로 |
+| 저장 충돌 질문 | 바깥에서 파일을 바꾼 뒤 고친 창 저장 → "last update 2026-11-08 03:29:37"(파일 수정 시각), Cancel이 기본 |
+
+확인하지 못한 것: Export Data… 마법사를 끝까지 실행하지 않았다(출력 폴더 기본값이 사용자 폴더라 C: 쓰기를 피함). 내보내기는 같은 데이터 컨테이너의 `readData`를
+쓰므로 위의 다시 읽기와 같은 바인딩 경로다. 두 Git 사본에서 동시에 고친 파일의 병합은 실행하지 않았다(작업 사본 밖 git 실행이 막혀 있음). 다른 줄을 고친 두 변경은
+3방향 병합에서 겹치는 줄이 없으면 합쳐지고, 두 쪽이 같은 `@updated` 줄을 지운 것도 같은 변경이라 합쳐진다.
+회귀 테스트는 실행하지 않았다(요청 없음). 영향받을 수 있는 기능: 쿼리 창 매개변수 입력(평범한 창, 라이브러리, 기록), 결과 다시 읽기(필터, 정렬, 다음 페이지,
+열 필터 값 목록, Export Data, 편집 저장 뒤 행 다시 읽기), Query History, 라이브러리 저장·충돌 질문, 가져오기·복제.
+
 ## 변경 이력
 
 - 2026-11-06 최초 작성: ① 라이브러리 트리·실행, ② 매개변수 매핑 구현, ③·④ 설계.
@@ -532,5 +592,8 @@ Schedule…·History…·Scheduled Queries… 대화상자, Save to Query Librar
 - 2026-11-08 비밀 기본값 경고의 단추를 예/아니요에서 저장/취소(취소가 기본)로 바꿈, Query Library 삭제 확인은 삭제/취소, 파일 덮어쓰기 확인은 바꾸기/취소.
   [swing-frontend.md](swing-frontend.md) "실행 확인의 기본 단추".
 - 2026-11-08 좁은 문서 영역에서 머리말 단추가 "Para…", "Thres…"로 잘리던 문제: 글자가 들어가기 전에 단추의 최소 크기를 고정하지 않음("실행 흐름"의 "머리말 배치", "확인 (2026-11-08 …)").
+- 2026-11-08 매개변수 대화상자와 바인딩 하나로(후속 #9, #22, #19): 쿼리 창 대화상자 `SqlParameterDialog`를 지우고 `QueryParameterDialog` 스크립트 모드로 합침,
+  바인딩한 결과도 같은 값으로 다시 읽음(필터·서버 정렬·다음 페이지·열 값 목록·Export Data, `SQLQueryDataContainer.ParameterBinder`), 기록에는 리터럴 대신
+  `:name` 글자와 값을 남기고 Open·Execute가 다시 바인딩. "매개변수 바인딩", "매개변수 대화상자와 바인딩 하나로", "확인 (2026-11-08, …)".
 - 2026-11-08 `@updated`를 파일에 쓰지 않음(저녁 후속 #6): 동시에 고친 쿼리가 Git에서 그 줄로 늘 충돌하던 문제. 저장 충돌 질문의 시각은 파일의 수정 시각.
   "고친 시각을 파일에 두지 않음", "Git 루트", "남긴 것".
