@@ -20,6 +20,7 @@ import com.formdev.flatlaf.FlatClientProperties;
 import com.formdev.flatlaf.util.UIScale;
 import com.seizia.chromite.ui.swing.internal.AiMessages;
 import com.seizia.chromite.ui.swing.internal.CoreMessages;
+import com.seizia.chromite.ui.swing.internal.ObjectExplorerMessages;
 import com.seizia.chromite.ui.swing.internal.SettingsMessages;
 import com.seizia.chromite.ui.swing.internal.UpdateMessages;
 import org.eclipse.osgi.util.NLS;
@@ -58,6 +59,11 @@ import java.util.Objects;
  *     ({@link ClientIdentificationOptionsPage}), Oracle({@link OracleOptionsPage}). 여기서는 플랫폼 설정 저장소에 쓴다. 연결의 설정 저장소는
  *     이것을 부모로 가지므로({@code DataSourcePreferenceStore}) 연결별 값을 두지 않은 모든 연결에 적용된다. 같은 페이지를 연결 대화상자
  *     Options &gt; Settings가 연결별 값에 쓴다({@link ConnectionSettingsOverrides}).</li>
+ *     <li>2026-11-08 남은 키 페이지: 연결별 값도 있는 Binary and LOB({@link ContentOptionsPage}), Code Completion({@link CodeCompletionOptionsPage}),
+ *     Data Transfer({@link DataTransferOptionsPage}, 전역 값은 데이터 전송 번들 저장소), Altibase({@link AltibaseOptionsPage}), CUBRID
+ *     ({@link CubridOptionsPage})와 전역만 있는 Connections({@link ConnectionsOptionsPage}), Drivers({@link DriversOptionsPage}), Object Explorer
+ *     ({@link NavigatorOptionsPage}), Notifications({@link NotificationsOptionsPage}), Logs({@link LogsOptionsPage}), Mimer SQL({@link MimerOptionsPage}).
+ *     페이지가 많아 왼쪽 목록은 넘치면 스크롤한다.</li>
  *     <li>Connection Types 탭: 연결 유형 편집({@link ConnectionTypesPage}). 모두 OK에서 저장한다.
  *     다른 탭과 같이 쓰는 행·절 모양은 {@link #addSection}, {@link #addRow}, {@link #wrapPage}다.</li>
  *     <li>탭은 SSMS Options의 왼쪽 목록처럼 왼쪽에 둔다. 페이지가 한 줄 탭에 들어가지 않는다.</li>
@@ -82,6 +88,9 @@ import java.util.Objects;
  *   (docs/chromite/swing-options.md)
  * - 2026-11-08 General 탭의 Query Results 절을 Query Results 탭({@link ResultSetOptionsPage})으로 옮김. Data Formats·Errors and Timeouts·Metadata·
  *   Client Identification 탭. 탭을 왼쪽 목록으로 (docs/chromite/swing-options.md "연결별 설정")
+ * - 2026-11-08 남은 설정 키 페이지 11개, 왼쪽 목록 스크롤 (docs/chromite/swing-options.md "남은 키 (2026-11-08 오후)")
+ * - 2026-11-08 General 탭의 Object Explorer 절: 두 번 클릭(객체, 연결), 긴 폴더에 한 번에 보일 객체 수({@link ExplorerPreferences})
+ *   (docs/chromite/swing-explorer-productivity.md)
  */
 final class OptionsDialog extends JDialog {
 
@@ -107,10 +116,17 @@ final class OptionsDialog extends JDialog {
         CoreMessages.options_case_database, CoreMessages.options_case_upper, CoreMessages.options_case_lower, CoreMessages.options_case_as_typed});
     // Pages of model keys that connections can also override (connection dialog, Options > Settings)
     private final List<SettingsPage> settingsPages = List.of(
-        new SqlExecutionOptionsPage(true), new ResultSetOptionsPage(true), new DataFormatOptionsPage(true),
-        new ConnectionErrorsOptionsPage(true), new MetadataOptionsPage(true), new ClientIdentificationOptionsPage(true));
+        new SqlExecutionOptionsPage(true), new ResultSetOptionsPage(true), new ContentOptionsPage(true), new DataFormatOptionsPage(true),
+        new ConnectionErrorsOptionsPage(true), new MetadataOptionsPage(true), new ClientIdentificationOptionsPage(true),
+        new CodeCompletionOptionsPage(true), new DataTransferOptionsPage(true));
+    // Pages of model keys read from the global settings only (not in the connection dialog)
+    private final List<SettingsPage> globalPages = List.of(
+        new ConnectionsOptionsPage(), new DriversOptionsPage(), new NavigatorOptionsPage(), new NotificationsOptionsPage(),
+        new LogsOptionsPage());
     private final ConnectionTypesPage connectionTypesPage = new ConnectionTypesPage();
-    private final OracleOptionsPage oraclePage = new OracleOptionsPage(true);
+    // Database pages, after Connection Types as before; Altibase and CUBRID connections can override theirs as Oracle ones do
+    private final List<SettingsPage> databasePages = List.of(
+        new OracleOptionsPage(true), new AltibaseOptionsPage(true), new CubridOptionsPage(true), new MimerOptionsPage());
     private final SqlTemplatesPage templatesPage = new SqlTemplatesPage();
     private final UpdateOptionsPage updatesPage = new UpdateOptionsPage();
     private final AiOptionsPage aiPage = new AiOptionsPage();
@@ -132,6 +148,12 @@ final class OptionsDialog extends JDialog {
     private final JSpinner libraryHistoryRunsSpinner;
     private final JSpinner libraryHistoryDaysSpinner;
     private final JSpinner libraryRefreshSpinner;
+    // General tab: Object Explorer
+    private final JComboBox<ExplorerPreferences.ObjectDoubleClick> objectDoubleClickCombo = new JComboBox<>(ExplorerPreferences.ObjectDoubleClick.values());
+    private final JComboBox<ExplorerPreferences.ConnectionDoubleClick> connectionDoubleClickCombo =
+        new JComboBox<>(ExplorerPreferences.ConnectionDoubleClick.values());
+    private final JSpinner explorerPageSizeSpinner = new JSpinner(new SpinnerNumberModel(ExplorerPreferences.getPageSize(),
+        ExplorerPreferences.MIN_PAGE_SIZE, ExplorerPreferences.MAX_PAGE_SIZE, 100));
 
     private OptionsDialog(@NotNull Frame owner) {
         super(owner, CoreMessages.options_title, true);
@@ -162,6 +184,14 @@ final class OptionsDialog extends JDialog {
         row = addSection(form, row, CoreMessages.options_environment);
         row = addRow(form, row, CoreMessages.options_theme, themeCombo, null);
         row = addRow(form, row, CoreMessages.options_icon_style, iconStyleCombo, null);
+        row = addSection(form, row, ObjectExplorerMessages.oe_options_section);
+        objectDoubleClickCombo.setSelectedItem(ExplorerPreferences.getObjectDoubleClick());
+        objectDoubleClickCombo.setRenderer(new LabelRenderer());
+        connectionDoubleClickCombo.setSelectedItem(ExplorerPreferences.getConnectionDoubleClick());
+        connectionDoubleClickCombo.setRenderer(new LabelRenderer());
+        row = addRow(form, row, ObjectExplorerMessages.oe_options_object_dblclick, objectDoubleClickCombo, null);
+        row = addRow(form, row, ObjectExplorerMessages.oe_options_connection_dblclick, connectionDoubleClickCombo, null);
+        row = addRow(form, row, ObjectExplorerMessages.oe_options_page_size, explorerPageSizeSpinner, ObjectExplorerMessages.oe_options_page_size_hint);
         row = addSection(form, row, CoreMessages.options_query_editor);
         row = addRow(form, row, null, autoCompleteBox, null);
         row = addRow(form, row, CoreMessages.options_completion_delay, delaySpinner, CoreMessages.options_completion_delay_hint);
@@ -194,15 +224,20 @@ final class OptionsDialog extends JDialog {
         // Dialog insets 10/12, groups 20 apart (design-spec space tokens)
         content.setBorder(BorderFactory.createEmptyBorder(10, 12, 10, 12));
         // Pages on the left, as the SSMS Options tree: more pages than one row of tabs holds
-        JTabbedPane tabs = new JTabbedPane(SwingConstants.LEFT);
+        JTabbedPane tabs = new JTabbedPane(SwingConstants.LEFT, JTabbedPane.SCROLL_TAB_LAYOUT);
         tabs.addTab(CoreMessages.options_general, wrapPage(form));
         tabs.addTab(CoreMessages.options_editor, createEditorPage());
         tabs.addTab(CoreMessages.options_editor_colors, createColorsPage());
         for (SettingsPage page : settingsPages) {
             tabs.addTab(page.getTitle(), page);
         }
+        for (SettingsPage page : globalPages) {
+            tabs.addTab(page.getTitle(), page);
+        }
         tabs.addTab(SettingsMessages.types_tab, connectionTypesPage);
-        tabs.addTab(SettingsMessages.oracle_tab, oraclePage);
+        for (SettingsPage page : databasePages) {
+            tabs.addTab(page.getTitle(), page);
+        }
         tabs.addTab(CoreMessages.options_templates, templatesPage);
         tabs.addTab(UpdateMessages.update_options_tab, updatesPage);
         tabs.addTab(AiMessages.ai_options_tab, aiPage);
@@ -482,8 +517,21 @@ final class OptionsDialog extends JDialog {
         for (SettingsPage page : settingsPages) {
             page.apply();
         }
-        oraclePage.apply();
+        for (SettingsPage page : globalPages) {
+            page.apply();
+        }
+        for (SettingsPage page : databasePages) {
+            page.apply();
+        }
         connectionTypesPage.apply(getOwner());
+        if (objectDoubleClickCombo.getSelectedItem() instanceof ExplorerPreferences.ObjectDoubleClick objectDoubleClick
+            && connectionDoubleClickCombo.getSelectedItem() instanceof ExplorerPreferences.ConnectionDoubleClick connectionDoubleClick) {
+            int pageSize = ((Number) explorerPageSizeSpinner.getValue()).intValue();
+            if (objectDoubleClick != ExplorerPreferences.getObjectDoubleClick() || connectionDoubleClick != ExplorerPreferences.getConnectionDoubleClick()
+                || pageSize != ExplorerPreferences.getPageSize()) {
+                ExplorerPreferences.save(objectDoubleClick, connectionDoubleClick, pageSize);
+            }
+        }
         int historyDays = ((Number) historyDaysSpinner.getValue()).intValue();
         if (historyDays != QueryHistory.getRetentionDays()) {
             QueryHistory.setRetentionDays(historyDays);
@@ -584,6 +632,10 @@ final class OptionsDialog extends JDialog {
                 setText(theme.getLabel());
             } else if (value instanceof UiIconStyle iconStyle) {
                 setText(iconStyle.getLabel());
+            } else if (value instanceof ExplorerPreferences.ObjectDoubleClick action) {
+                setText(action.getLabel());
+            } else if (value instanceof ExplorerPreferences.ConnectionDoubleClick action) {
+                setText(action.getLabel());
             }
             return this;
         }

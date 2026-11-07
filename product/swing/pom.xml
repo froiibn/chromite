@@ -11,7 +11,7 @@
     </parent>
     <groupId>com.seizia.chromite</groupId>
     <artifactId>com.seizia.chromite.swing.product</artifactId>
-    <version>0.1.1-SNAPSHOT</version>
+    <version>0.1.2-SNAPSHOT</version>
     <packaging>eclipse-repository</packaging>
     <name>Chromite Swing</name>
 
@@ -71,6 +71,56 @@
                 <configuration>
                     <createArtifactRepository>false</createArtifactRepository>
                 </configuration>
+            </plugin>
+            <!-- macOS Info.plist (docs/chromite/platform-startup.md "macOS Info.plist"): p2 (BrandingIron) names the app after the
+                 launcher, "Chromite-swing", and keeps the values of Eclipse's template. Runs after materialize-products (same phase,
+                 declared later) and before signing; fails when a value is not as expected, so a template change is not missed. -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-antrun-plugin</artifactId>
+                <version>3.1.0</version>
+                <executions>
+                    <execution>
+                        <id>macos-info-plist</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>run</goal>
+                        </goals>
+                        <configuration>
+                            <target>
+                                <property name="plist" value="${project.build.directory}/products/com.seizia.chromite.swing.product/macosx/cocoa/aarch64/ChromiteSwing.app/Contents/Info.plist"/>
+                                <!-- Menu bar, Dock, Finder and system dialogs show the product name -->
+                                <replaceregexp file="${plist}" encoding="UTF-8" flags="s"
+                                    match="(&lt;key&gt;CFBundleName&lt;/key&gt;\s*&lt;string&gt;)[^&lt;]*(&lt;/string&gt;)" replace="\1Chromite\2"/>
+                                <replaceregexp file="${plist}" encoding="UTF-8" flags="s"
+                                    match="(&lt;key&gt;CFBundleDisplayName&lt;/key&gt;\s*&lt;string&gt;)[^&lt;]*(&lt;/string&gt;)" replace="\1Chromite\2"/>
+                                <!-- "Eclipse 4.x for Mac OS X, Copyright IBM Corp." (Get Info) -->
+                                <replaceregexp file="${plist}" encoding="UTF-8" flags="s"
+                                    match="\s*&lt;key&gt;CFBundleGetInfoString&lt;/key&gt;\s*&lt;string&gt;[^&lt;]*&lt;/string&gt;" replace=""/>
+                                <!-- "-keyring ~/.eclipse_keyring": only the legacy Platform authorization store reads it; Chromite's secure
+                                     storage takes -eclipse.keyring (docs/chromite/credential-storage.md) -->
+                                <replaceregexp file="${plist}" encoding="UTF-8" flags="s"
+                                    match="\s*&lt;key&gt;Eclipse&lt;/key&gt;\s*&lt;array&gt;.*?&lt;/array&gt;" replace=""/>
+                                <!-- Let the system appearance (dark mode) reach the window frames instead of forcing the light one -->
+                                <replaceregexp file="${plist}" encoding="UTF-8" flags="s"
+                                    match="\s*&lt;key&gt;NSRequiresAquaSystemAppearance&lt;/key&gt;\s*&lt;true/&gt;" replace=""/>
+                                <fail message="macOS Info.plist is not as expected after branding: ${plist}">
+                                    <condition>
+                                        <or>
+                                            <not>
+                                                <resourcecontains resource="${plist}" substring="&lt;string&gt;Chromite&lt;/string&gt;"/>
+                                            </not>
+                                            <resourcecontains resource="${plist}" substring="Chromite-swing"/>
+                                            <resourcecontains resource="${plist}" substring="CFBundleGetInfoString"/>
+                                            <resourcecontains resource="${plist}" substring="-keyring"/>
+                                            <resourcecontains resource="${plist}" substring="NSRequiresAquaSystemAppearance"/>
+                                        </or>
+                                    </condition>
+                                </fail>
+                            </target>
+                        </configuration>
+                    </execution>
+                </executions>
             </plugin>
         </plugins>
     </build>

@@ -16,6 +16,9 @@
  */
 package com.seizia.chromite.ui.swing;
 
+import com.seizia.chromite.ext.oracle.model.OracleConstants;
+import com.seizia.chromite.ext.oracle.model.OracleDDLFormat;
+import com.seizia.chromite.ext.oracle.model.OracleTableBase;
 import com.seizia.chromite.ui.swing.internal.CoreMessages;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
@@ -71,6 +74,7 @@ import java.util.List;
  * - 2026-11-06 E단계: 최초 작성 (docs/chromite/swing-frontend.md "구현 현황 — E단계")
  * - 2026-11-06 화면 문구를 CoreMessages로 옮김(OS 언어를 따름)
  * - 2026-11-07 Generate SQL 메뉴의 생성기 고르기와 실행 (docs/chromite/swing-explorer-object-actions.md)
+ * - 2026-11-08 Oracle DDL 형식(전체, 저장소 제외, 간단히)으로 만들기 (SWT 감사 O14, docs/chromite/swing-routines.md)
  * - 2026-11-08 조건을 붙인 SELECT {@link #generateFilteredSelect}(데이터 검색, docs/chromite/swing-data-search.md)
  */
 final class ObjectScripts {
@@ -92,6 +96,28 @@ final class ObjectScripts {
     static String generateCreate(@NotNull DBRProgressMonitor monitor, @NotNull DBSObject object) throws DBException {
         SQLGeneratorDDL generator = new SQLGeneratorDDL();
         generator.initGenerator(List.of((DBPScriptObject) object));
+        return runGenerator(monitor, generator);
+    }
+
+    /**
+     * Whether the object's DDL has formats to choose from: Oracle tables, views and materialized views (full, without
+     * storage, compact), as the SWT DDL tab ({@code OracleEditorUtils.addDDLControl}).
+     */
+    static boolean hasDdlFormats(@Nullable DBSObject object) {
+        return object instanceof OracleTableBase;
+    }
+
+    /**
+     * The DDL of an Oracle table, view or materialized view in a format. As the SWT combo, the format becomes the
+     * connection's current one ({@link OracleConstants#PREF_KEY_DDL_FORMAT}, which tables read) and is passed as an
+     * option too (which views and materialized views read).
+     */
+    @NotNull
+    static String generateCreate(@NotNull DBRProgressMonitor monitor, @NotNull DBSObject object, @NotNull OracleDDLFormat format) throws DBException {
+        object.getDataSource().getContainer().getPreferenceStore().setValue(OracleConstants.PREF_KEY_DDL_FORMAT, format.name());
+        SQLGeneratorDDL generator = new SQLGeneratorDDL();
+        generator.initGenerator(List.of((DBPScriptObject) object));
+        generator.setGeneratorOption(OracleConstants.PREF_KEY_DDL_FORMAT, format);
         return runGenerator(monitor, generator);
     }
 

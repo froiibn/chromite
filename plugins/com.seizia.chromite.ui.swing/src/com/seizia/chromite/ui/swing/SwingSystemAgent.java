@@ -22,6 +22,7 @@ import com.seizia.chromite.model.preferences.DBPPreferenceStore;
 import com.seizia.chromite.runtime.DBWorkbench;
 import com.seizia.chromite.runtime.ui.DBPPlatformUI;
 import com.seizia.chromite.runtime.ui.UIServiceSystemAgent;
+import org.jkiss.code.NotNull;
 
 /**
  * 오래 걸린 작업이 끝났음을 알리는 서비스({@link UIServiceSystemAgent})의 Swing 구현.
@@ -38,25 +39,36 @@ import com.seizia.chromite.runtime.ui.UIServiceSystemAgent;
  *
  * 변경 이력:
  * - 2026-11-07 최초 작성 (docs/chromite/swing-frontend.md "오류 문구")
+ * - 2026-11-08 설정 키와 기본값을 Options &gt; Notifications({@link NotificationsOptionsPage})가 쓰도록 패키지에 공개, 읽기를
+ *   {@link #isLongOperationNotify}로 모음 (docs/chromite/swing-options.md "남은 키 (2026-11-08 오후)")
  */
 public class SwingSystemAgent implements UIServiceSystemAgent {
 
     // Same keys as ChromitePreferences of com.seizia.chromite.core, which the Swing product does not include
-    private static final String PREF_LONG_OPERATION_NOTIFY = "agent.long.operation.notify"; //$NON-NLS-1$
-    private static final String PREF_LONG_OPERATION_TIMEOUT = "agent.long.operation.timeout"; //$NON-NLS-1$
+    static final String PREF_LONG_OPERATION_NOTIFY = "agent.long.operation.notify"; //$NON-NLS-1$
+    static final String PREF_LONG_OPERATION_TIMEOUT = "agent.long.operation.timeout"; //$NON-NLS-1$
     // Seconds, as DesktopPreferencesInitializer
-    private static final long DEFAULT_LONG_OPERATION_TIMEOUT = 30;
+    static final long DEFAULT_LONG_OPERATION_TIMEOUT = 30;
 
     @Override
     public long getLongOperationTimeout() {
-        DBPPreferenceStore store = DBWorkbench.getPlatform().getPreferenceStore();
+        return getLongOperationTimeout(DBWorkbench.getPlatform().getPreferenceStore());
+    }
+
+    static long getLongOperationTimeout(@NotNull DBPPreferenceStore store) {
         return store.contains(PREF_LONG_OPERATION_TIMEOUT) ? store.getLong(PREF_LONG_OPERATION_TIMEOUT) : DEFAULT_LONG_OPERATION_TIMEOUT;
+    }
+
+    /**
+     * On unless turned off: no default is registered for the key (the SWT initializer is not in this product).
+     */
+    static boolean isLongOperationNotify(@NotNull DBPPreferenceStore store) {
+        return !store.contains(PREF_LONG_OPERATION_NOTIFY) || store.getBoolean(PREF_LONG_OPERATION_NOTIFY);
     }
 
     @Override
     public void notifyAgent(String message, int status) {
-        DBPPreferenceStore store = DBWorkbench.getPlatform().getPreferenceStore();
-        if (store.contains(PREF_LONG_OPERATION_NOTIFY) && !store.getBoolean(PREF_LONG_OPERATION_NOTIFY)) {
+        if (!isLongOperationNotify(DBWorkbench.getPlatform().getPreferenceStore())) {
             return;
         }
         DBPPlatformUI platformUI = DBWorkbench.getPlatformUI();

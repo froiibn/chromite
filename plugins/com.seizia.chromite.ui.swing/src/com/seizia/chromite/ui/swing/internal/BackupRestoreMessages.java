@@ -31,6 +31,8 @@ import org.eclipse.osgi.util.NLS;
  * - 2026-11-06 최초 작성: 백업·복원 (docs/chromite/swing-backup-restore.md)
  * - 2026-11-06 pg_restore가 오류로 끝났을 때의 메시지(native_error_pg_restore_errors) 추가
  * - 2026-11-07 PostgreSQL 복원 옵션 "첫 오류에서 멈춤"(native_pg_restore_stop_on_error)과 일반 형식 안내 문구 수정
+ * - 2026-11-08 네이티브 클라이언트로 스크립트 실행(native_script_*), 작업으로 저장(native_task_*), 표준 입력 미리 보기(native_stdin)
+ *   (docs/chromite/swing-database-tasks.md)
  */
 public class BackupRestoreMessages extends NLS {
     private static final String BUNDLE_NAME = "com.seizia.chromite.ui.swing.internal.BackupRestoreMessages"; //$NON-NLS-1$
@@ -217,6 +219,40 @@ public class BackupRestoreMessages extends NLS {
     public static String native_error_no_input;
     public static String native_error_input_missing;
     public static String native_error_pg_restore_errors;
+
+    // Run Script with Native Client
+    public static String native_script_menu;
+    public static String native_script_menu_tip;
+    public static String native_script_editor_menu;
+    public static String native_script_editor_menu_tip;
+    public static String native_script_no_target;
+    public static String native_script_save_first;
+    public static String native_script_title;
+    public static String native_script_section_target;
+    public static String native_script_target;
+    public static String native_script_section_script;
+    public static String native_script_file;
+    public static String native_script_session_note;
+    public static String native_script_page_options;
+    public static String native_script_section_options;
+    public static String native_script_pg_stop_on_error;
+    public static String native_script_mysql_disable_fk;
+    public static String native_script_oracle_note;
+    public static String native_script_error_no_input;
+    public static String native_script_confirm_title;
+    public static String native_script_confirm;
+    public static String native_script_confirm_run;
+    public static String native_script_success;
+    public static String native_stdin;
+
+    // Saved tasks
+    public static String native_task_save;
+    public static String native_task_update;
+    public static String native_task_save_title;
+    public static String native_task_name;
+    public static String native_task_saved;
+    public static String native_task_loading;
+    public static String native_task_no_target;
 
     static {
         NLS.initializeMessages(BUNDLE_NAME, BackupRestoreMessages.class);

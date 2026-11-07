@@ -117,6 +117,8 @@ import java.util.Set;
  * - 2026-11-06 canCreateTable: 뷰 폴더(Views, Materialized Views)에서 New Table…이 켜지던 문제 수정. 뷰 클래스도 대부분
  *   DBSTable이라 DBSView를 따로 뺀다.
  * - 2026-11-06 화면 문구를 ToolsMessages로 옮김(OS 언어를 따름)
+ * - 2026-11-08 키·인덱스·외래 키 설정이 실패하면(드라이버가 값을 거절) 만든 객체를 거둠({@code discardNew}): 이름 없는 빈 객체가
+ *   명령 묶음에 남아 다음 스크립트가 "Empty foreign key name"으로 실패하던 것 (docs/chromite/swing-create-objects.md)
  */
 final class TableDesignSession {
 
@@ -592,17 +594,22 @@ final class TableDesignSession {
         if (constraint instanceof DBPNamedObject2 named && !CommonUtils.isEmpty(spec.name())) {
             named.setName(DBObjectNameCaseTransformer.transformName(table.getDataSource(), spec.name()));
         }
-        if (spec.type() == DBSEntityConstraintType.CHECK) {
-            if (driver == null || CommonUtils.isEmpty(spec.expression())) {
-                throw new DBException(ToolsMessages.designer_error_check_empty);
+        try {
+            if (spec.type() == DBSEntityConstraintType.CHECK) {
+                if (driver == null || CommonUtils.isEmpty(spec.expression())) {
+                    throw new DBException(ToolsMessages.designer_error_check_empty);
+                }
+                driver.setCheckExpression(constraint, spec.expression());
+            } else if (constraint instanceof AbstractTableConstraint<?, ?> tableConstraint) {
+                // EditAttributePage.createConstrainForColumn
+                tableConstraint.setConstraintType(spec.type());
+                for (DBSEntityAttribute column : spec.columns()) {
+                    tableConstraint.addAttributeReference((DBSTableColumn) column);
+                }
             }
-            driver.setCheckExpression(constraint, spec.expression());
-        } else if (constraint instanceof AbstractTableConstraint<?, ?> tableConstraint) {
-            // EditAttributePage.createConstrainForColumn
-            tableConstraint.setConstraintType(spec.type());
-            for (DBSEntityAttribute column : spec.columns()) {
-                tableConstraint.addAttributeReference((DBSTableColumn) column);
-            }
+        } catch (DBException | RuntimeException e) {
+            discardNew(constraint);
+            throw e;
         }
         recache(constraint);
         return constraint;
@@ -621,7 +628,12 @@ final class TableDesignSession {
         if (!(newObject instanceof DBSTableIndex index)) {
             throw new DBException("Unexpected index object " + newObject.getClass().getName());
         }
-        driver.configureIndex(index, unique, columns);
+        try {
+            driver.configureIndex(index, unique, columns);
+        } catch (DBException | RuntimeException e) {
+            discardNew(index);
+            throw e;
+        }
         if (index instanceof DBPNamedObject2 named) {
             named.setName(DBObjectNameCaseTransformer.transformObjectName(index, name));
         }
@@ -649,7 +661,12 @@ final class TableDesignSession {
         if (!(newObject instanceof DBSTableForeignKey foreignKey)) {
             throw new DBException("Unexpected foreign key object " + newObject.getClass().getName());
         }
-        driver.configureForeignKey(foreignKey, referencedKey, deleteRule, updateRule, columns);
+        try {
+            driver.configureForeignKey(foreignKey, referencedKey, deleteRule, updateRule, columns);
+        } catch (DBException | RuntimeException e) {
+            discardNew(foreignKey);
+            throw e;
+        }
         if (!CommonUtils.isEmpty(name) && foreignKey instanceof DBPNamedObject2 named) {
             named.setName(DBObjectNameCaseTransformer.transformObjectName(foreignKey, name));
         } else if (foreignKey instanceof AbstractTableConstraint<?, ?> tableConstraint) {
@@ -657,6 +674,19 @@ final class TableDesignSession {
         }
         recache(foreignKey);
         return foreignKey;
+    }
+
+    /**
+     * Takes back a new key, index or foreign key whose configuration failed (a driver refusing a value): the manager
+     * added it to the command context and the cache already, and an unnamed, empty object left there made the next
+     * script fail ("Empty foreign key name"). The delete command cancels the create command (nothing is saved).
+     */
+    private void discardNew(@NotNull DBSObject object) {
+        try {
+            delete(object);
+        } catch (DBException | RuntimeException e) {
+            log.debug("Can't discard the new " + object.getClass().getSimpleName(), e);
+        }
     }
 
     /**

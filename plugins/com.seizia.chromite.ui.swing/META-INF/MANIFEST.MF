@@ -3,7 +3,7 @@ Bundle-ManifestVersion: 2
 Bundle-Vendor: Chromite contributors
 Bundle-Name: Chromite Swing UI
 Bundle-SymbolicName: com.seizia.chromite.ui.swing;singleton:=true
-Bundle-Version: 0.1.1.qualifier
+Bundle-Version: 0.1.2.qualifier
 Bundle-ActivationPolicy: lazy
 Bundle-RequiredExecutionEnvironment: JavaSE-25
 Bundle-Activator: com.seizia.chromite.ui.swing.ChromiteSwingActivator
@@ -33,12 +33,21 @@ Require-Bundle: org.eclipse.equinox.app,
  com.seizia.chromite.ext.mysql,
  com.seizia.chromite.ext.oracle,
  com.seizia.chromite.ext.postgresql,
+ com.seizia.chromite.ext.sqlite,
+ com.seizia.chromite.ext.altibase,
+ com.seizia.chromite.ext.bigquery,
+ com.seizia.chromite.ext.clickhouse,
+ com.seizia.chromite.ext.cubrid,
+ com.seizia.chromite.ext.mimer,
+ com.seizia.chromite.ext.snowflake,
+ com.seizia.chromite.ext.spanner,
  com.seizia.chromite.model.jdbc,
  com.seizia.chromite.model.ai,
  com.seizia.chromite.model.ai.tools,
  com.seizia.chromite.model.update,
  com.seizia.chromite.debug.core,
  com.github.weisj.jsvg,
+ com.sun.jna,
  org.eclipse.osgi
 Require-Capability: osgi.extender;filter:="(osgi.extender=osgi.serviceloader.registrar)"
 Provide-Capability: osgi.serviceloader;osgi.serviceloader="com.github.weisj.jsvg.logging.LogManager";register:="com.seizia.chromite.ui.swing.JsvgLogManager"

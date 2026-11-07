@@ -18,6 +18,7 @@ package com.seizia.chromite.ui.swing;
 
 import com.formdev.flatlaf.FlatClientProperties;
 import com.seizia.chromite.ui.swing.internal.EditorMessages;
+import org.eclipse.osgi.util.NLS;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 
@@ -27,8 +28,11 @@ import javax.swing.text.SimpleAttributeSet;
 import javax.swing.text.StyleConstants;
 import javax.swing.text.StyledDocument;
 import java.awt.*;
+import java.time.LocalTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.IntConsumer;
 
 /**
  * 쿼리 창 하나의 Results / Messages 내용(SSMS의 결과 창).
@@ -42,6 +46,10 @@ import java.util.List;
  *     결과 표의 저장 결과와 저장 오류도 여기에 쓴다.</li>
  *     <li>결과 편집: 결과 표마다 바뀐 내용을 따로 가진다. 쿼리 창은 이 객체를 통해 저장하지 않은 변경이 있는지, 저장 중인지 묻고
  *     닫거나 다시 실행하기 전에 모두 저장한다({@link #saveChanges}).</li>
+ *     <li>결과 고정(SWT의 결과 탭 고정, Query &gt; Pin Results): 지금 결과 표들을 고정 탭으로 옮겨 다음 실행이 지우지 않게 한다. 고정 탭이 있으면
+ *     Results 안에 탭 줄이 생기고 첫 탭이 지금 실행의 결과다. 고정 탭은 닫을 수 있고, 저장하지 않은 변경이 있으면 닫기 전에 묻는다(기본 Cancel).
+ *     고정 결과도 실행한 문맥으로 다시 읽고 저장하며, 창을 닫을 때의 저장 묻기({@link #getChangeCount})에 들어간다. 다시 실행 전의 버리기 묻기는
+ *     지금 결과만 본다({@link #getCurrentChangeCount}). 행 수(상태 줄)도 지금 결과만이다.</li>
  * </ul>
  * 모든 메서드는 EDT에서 부른다.
  *
@@ -55,6 +63,8 @@ import java.util.List;
  *   머물던 문제 (docs/chromite/swing-result-viewer.md)
  * - 2026-11-06 화면 문구를 EditorMessages로 옮김(OS 언어를 따름)
  * - 2026-11-07 결과 뷰어의 필터 줄이 없어져 최소 높이 주석을 고침(값은 그대로) (docs/chromite/swing-grid-column-filters.md)
+ * - 2026-11-08 결과 고정({@link #pinResults}): 고정 탭, 지금 결과만 세는 {@link #getCurrentChangeCount}
+ *   (docs/chromite/swing-sql-editor-ergonomics.md)
  */
 final class QueryResultsView {
 
@@ -80,9 +90,16 @@ final class QueryResultsView {
 
     // A result viewer adds a status line below its grid (ResultSetViewerPanel)
     private static final int MIN_GRID_HEIGHT = 220;
+    private static final DateTimeFormatter PIN_TIME_FORMAT = DateTimeFormatter.ofPattern("HH:mm:ss"); //$NON-NLS-1$
 
     private final GridStack gridStack = new GridStack();
-    private final JScrollPane resultsComponent;
+    private final JScrollPane gridScrollPane;
+    // The current results alone, or the tabs of the current and the pinned results
+    private final JPanel resultsComponent = new JPanel(new BorderLayout());
+    private final List<GridStack> pinnedStacks = new ArrayList<>();
+    @Nullable
+    private JTabbedPane pinnedTabs;
+    private int pinCount;
     private final JLabel placeholder;
     private final JTextPane messagesPane = new JTextPane();
     private final JScrollPane messagesComponent;
@@ -119,9 +136,9 @@ final class QueryResultsView {
         this.listener = listener;
         placeholder = new JLabel(EditorMessages.editor_results_none, SwingConstants.CENTER);
         placeholder.putClientProperty(FlatClientProperties.STYLE, "foreground: $Label.disabledForeground"); //$NON-NLS-1$
-        resultsComponent = new JScrollPane(gridStack);
-        resultsComponent.setBorder(BorderFactory.createEmptyBorder());
-        resultsComponent.getVerticalScrollBar().setUnitIncrement(16);
+        gridScrollPane = createScrollPane(gridStack);
+        resultsComponent.setOpaque(false);
+        resultsComponent.add(gridScrollPane, BorderLayout.CENTER);
 
         messagesPane.setEditable(false);
         // font.code, like the DataGrip console output
@@ -141,17 +158,119 @@ final class QueryResultsView {
         return messagesComponent;
     }
 
+    @NotNull
+    private static JScrollPane createScrollPane(@NotNull GridStack stack) {
+        JScrollPane scrollPane = new JScrollPane(stack);
+        scrollPane.setBorder(BorderFactory.createEmptyBorder());
+        scrollPane.getVerticalScrollBar().setUnitIncrement(16);
+        return scrollPane;
+    }
+
+    /**
+     * Clears the current results and the messages for a new run; pinned results stay.
+     */
     void clear() {
-        for (Component component : gridStack.getComponents()) {
-            if (component instanceof ResultSetViewerPanel viewer) {
-                viewer.dispose();
-            }
-        }
+        disposeViewers(gridStack);
         gridStack.removeAll();
         gridStack.add(placeholder);
         gridStack.revalidate();
         gridStack.repaint();
         messagesPane.setText("");
+        if (pinnedTabs != null) {
+            // The new run's results are on the first tab
+            pinnedTabs.setSelectedIndex(0);
+        }
+    }
+
+    private static void disposeViewers(@NotNull GridStack stack) {
+        for (Component component : stack.getComponents()) {
+            if (component instanceof ResultSetViewerPanel viewer) {
+                viewer.dispose();
+            }
+        }
+    }
+
+    /**
+     * Query &gt; Pin Results: the current result grids move to a pinned tab of their own, so the next run leaves them.
+     *
+     * @return false when there are no results to pin
+     */
+    boolean pinResults() {
+        if (getGridCount() == 0) {
+            return false;
+        }
+        GridStack pinned = new GridStack();
+        for (Component component : gridStack.getComponents()) {
+            pinned.add(component);
+        }
+        gridStack.removeAll();
+        gridStack.add(placeholder);
+        gridStack.revalidate();
+        gridStack.repaint();
+        pinnedStacks.add(pinned);
+        pinCount++;
+        JTabbedPane tabs = getPinnedTabs();
+        JScrollPane scrollPane = createScrollPane(pinned);
+        scrollPane.putClientProperty(FlatClientProperties.TABBED_PANE_TAB_CLOSABLE, true);
+        scrollPane.putClientProperty(FlatClientProperties.TABBED_PANE_TAB_CLOSE_TOOLTIPTEXT, EditorMessages.editor_results_unpin_tip);
+        tabs.addTab(NLS.bind(EditorMessages.editor_results_pinned, pinCount, LocalTime.now().format(PIN_TIME_FORMAT)), scrollPane);
+        // The pinned results stay in view; the next run brings the first tab to the front
+        tabs.setSelectedComponent(scrollPane);
+        return true;
+    }
+
+    /**
+     * The tabs of the current and the pinned results, created with the first pin.
+     */
+    @NotNull
+    private JTabbedPane getPinnedTabs() {
+        if (pinnedTabs == null) {
+            pinnedTabs = new JTabbedPane();
+            pinnedTabs.putClientProperty(FlatClientProperties.STYLE, UiSizes.TOOL_TABS_STYLE);
+            pinnedTabs.putClientProperty(FlatClientProperties.TABBED_PANE_TAB_CLOSE_CALLBACK, (IntConsumer) this::closePinned);
+            resultsComponent.remove(gridScrollPane);
+            pinnedTabs.addTab(EditorMessages.editor_results_current, gridScrollPane);
+            resultsComponent.add(pinnedTabs, BorderLayout.CENTER);
+            resultsComponent.revalidate();
+            resultsComponent.repaint();
+        }
+        return pinnedTabs;
+    }
+
+    /**
+     * Closes a pinned tab; unsaved changes of its grids are discarded after asking (Cancel is the default).
+     */
+    private void closePinned(int tabIndex) {
+        JTabbedPane tabs = pinnedTabs;
+        if (tabs == null || tabIndex <= 0 || tabIndex > pinnedStacks.size()) {
+            return;
+        }
+        GridStack stack = pinnedStacks.get(tabIndex - 1);
+        if (isSaving(stack)) {
+            return;
+        }
+        int changes = getChangeCount(stack);
+        if (changes > 0) {
+            String[] options = {EditorMessages.editor_results_unpin_discard, EditorMessages.editor_common_cancel};
+            if (JOptionPane.showOptionDialog(tabs,
+                NLS.bind(changes == 1 ? EditorMessages.editor_results_unpin_confirm_one : EditorMessages.editor_results_unpin_confirm_many, changes),
+                tabs.getTitleAt(tabIndex), JOptionPane.OK_CANCEL_OPTION, JOptionPane.WARNING_MESSAGE, null, options, options[1]) != 0) {
+                return;
+            }
+        }
+        disposeViewers(stack);
+        pinnedStacks.remove(tabIndex - 1);
+        tabs.removeTabAt(tabIndex);
+        if (pinnedStacks.isEmpty()) {
+            // Back to the current results alone
+            resultsComponent.remove(tabs);
+            tabs.removeAll();
+            pinnedTabs = null;
+            resultsComponent.add(gridScrollPane, BorderLayout.CENTER);
+            resultsComponent.revalidate();
+            resultsComponent.repaint();
+        }
+        listener.resultsEditStateChanged();
     }
 
     /**
@@ -191,10 +310,22 @@ final class QueryResultsView {
         return rows;
     }
 
+    /**
+     * The grids of the current results and of the pinned ones.
+     */
     @NotNull
     private List<ResultSetGrid> getGrids() {
+        List<ResultSetGrid> grids = new ArrayList<>(getGrids(gridStack));
+        for (GridStack stack : pinnedStacks) {
+            grids.addAll(getGrids(stack));
+        }
+        return grids;
+    }
+
+    @NotNull
+    private static List<ResultSetGrid> getGrids(@NotNull GridStack stack) {
         List<ResultSetGrid> grids = new ArrayList<>();
-        for (Component component : gridStack.getComponents()) {
+        for (Component component : stack.getComponents()) {
             if (component instanceof ResultSetViewerPanel viewer) {
                 grids.add(viewer.getGrid());
             }
@@ -203,7 +334,7 @@ final class QueryResultsView {
     }
 
     /**
-     * Pending (unsaved) changes in all result grids.
+     * Pending (unsaved) changes in all result grids, pinned ones included (closing the window).
      */
     int getChangeCount() {
         int count = 0;
@@ -213,8 +344,32 @@ final class QueryResultsView {
         return count;
     }
 
+    /**
+     * Pending changes in the current results, the ones a new run replaces.
+     */
+    int getCurrentChangeCount() {
+        return getChangeCount(gridStack);
+    }
+
+    private static int getChangeCount(@NotNull GridStack stack) {
+        int count = 0;
+        for (ResultSetGrid grid : getGrids(stack)) {
+            count += grid.getChangeCount();
+        }
+        return count;
+    }
+
     boolean isSaving() {
         for (ResultSetGrid grid : getGrids()) {
+            if (grid.isSaving()) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static boolean isSaving(@NotNull GridStack stack) {
+        for (ResultSetGrid grid : getGrids(stack)) {
             if (grid.isSaving()) {
                 return true;
             }

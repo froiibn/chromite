@@ -18,23 +18,25 @@ SWT 연결 편집기(`com.seizia.chromite.ui.editors.connection`, `ext.*.ui`의 
 
 | 클래스 (`com.seizia.chromite.ui.swing`) | 역할 | 옮긴 SWT 클래스 |
 |---|---|---|
-| `ConnectionAuthExtras` (새로) | 인증 방식별 추가 칸(SQL Server NTLM integrated security, Oracle Role, PgPass 호스트 이름) | `SQLServerAuthConfigurator`, `OracleAuthDatabaseNativeConfigurator`, `PostgreAuthPgPassConfigurator` |
-| `ConnectionDriverFields` (새로) | 드라이버별 주 양식 칸(SQL Server, Oracle) | `SQLServerConnectionPage`, `OracleConnectionPage` |
+| `ConnectionAuthExtras` (새로) | 인증 방식별 추가 칸(SQL Server NTLM integrated security, Oracle Role, PgPass 호스트 이름, BigQuery OAuth, Snowflake Role·Authenticator, Spanner 키 파일) | `SQLServerAuthConfigurator`, `OracleAuthDatabaseNativeConfigurator`, `PostgreAuthPgPassConfigurator`, `BigQueryAuthConfigurator`, `SnowflakeAuthSnowflakeConfigurator`, `SpannerAuthConfigurator` |
+| `ConnectionDriverFields` (새로) | 드라이버별 주 양식 칸(SQL Server, Oracle, BigQuery, Snowflake, SAP HANA, Firebird Embedded, Mimer SQL) | `SQLServerConnectionPage`, `OracleConnectionPage`, `BQConnectionPage`, `SnowflakeConnectionPage`, `HANAConnectionPage`, `FireBirdEmbeddedConnectionPage`, `MimerConnectionSettingsPage` |
 | `ConnectionNetworkPage` (새로) | Options의 핸들러 탭 하나("Use …" 확인란 + 설정 칸), 탭 목록 규칙 | `ConnectionPageNetworkHandler`, `ConnectionPageSettings.getDialogPages` |
 | `NetworkHandlerPanel` (새로) | 핸들러 설정 칸의 공통 틀(load/save/오류)과 핸들러별 칸 고르기 | `IObjectPropertyConfigurator`, `UIPropertyConfiguratorRegistry` |
 | `SshTunnelPanel` (새로) | SSH 터널 칸과 Test Tunnel | `SSHTunnelDefaultConfiguratorUI` |
 | `SocksProxyPanel` (새로) | SOCKS 프록시 칸 | `SocksProxyConfiguratorUI` |
-| `SslHandlerPanel` (새로) | PostgreSQL·MySQL/MariaDB·SQL Server SSL 칸 | `SSLConfiguratorTrustStoreUI`, `PostgreSSLConfigurator`, `MySQLSSLConfigurator`, `SQLServerSSLConfigurator` |
+| `SslHandlerPanel` (새로) | PostgreSQL·MySQL/MariaDB·SQL Server·ClickHouse SSL 칸, Databend·TiDB Lake SSL 안내 | `SSLConfiguratorTrustStoreUI`, `PostgreSSLConfigurator`, `MySQLSSLConfigurator`, `SQLServerSSLConfigurator`, `ClickhouseSSLConfigurator`, `DatabendSSLConfigurator`, `TiDBLakeSSLConfigurator` |
 | `ConnectionColors` (새로) | 연결 색(연결에 정한 색, 없으면 연결 종류 색) | `UIUtils.getConnectionColor`, `getConnectionTypeColor`, `getConnectionColorByRGB` |
 | `BootstrapQueriesDialog` (새로) | 연결 직후 SQL 목록 편집 | `EditBootstrapQueriesDialog` |
-| `ConnectionSettingsPanel` (변경) | 위 칸·탭을 주 양식과 Options에 넣고 읽기·저장 순서를 정함 | `ConnectionPageGeneral`, `ConnectionPageInitialization` |
-| `ConnectionDialog` (변경) | Test Connection 결과에 쓴 네트워크 핸들러 표시 | `ConnectionWizard.testConnection` |
+| `ConnectionSettingsPanel` (변경) | 위 칸·탭을 주 양식과 Options에 넣고 읽기·저장 순서를 정함, 연결 설명 | `ConnectionPageGeneral`, `ConnectionPageInitialization` |
+| `ConnectionDialog` (변경) | Test Connection 결과에 쓴 네트워크 핸들러 표시, 설명만 바꾸면 다시 연결을 묻지 않음 | `ConnectionWizard.testConnection` |
 | `QueryStatusLine` (변경) | 쿼리 창 상태 줄 바탕 = 연결 색 | — |
 | `ObjectExplorerPanel` (변경) | 연결 노드 이름의 알약 = 연결 색(`ConnectionPill`, 2026-11-06 노드 바탕에서 바꿈) | `DatabaseNavigatorLabelProvider`의 연결 색 |
 
 `MANIFEST.MF`의 `Require-Bundle`에 UI 없는 모델 번들 `com.seizia.chromite.net.ssh`, `ext.mssql`, `ext.mysql`, `ext.oracle`, `ext.postgresql`을 더했다.
 상수(속성 키, 핸들러 ID)와 모델 클래스(`SSHTunnelImpl`, `SSHUtils`, 인증 방식 클래스, `OCIUtils`)를 문자열로 베끼지 않고 그대로 쓰기 위해서다.
 다섯 번들 모두 이미 Swing 피처(`com.seizia.chromite.runtime.feature`, `com.seizia.chromite.db.feature`)에 들어 있으므로 결과물의 번들 수는 바뀌지 않고, SWT·JFace 번들은 여전히 없다.
+2026-11-08에 같은 이유로 `ext.bigquery`, `ext.clickhouse`, `ext.mimer`, `ext.snowflake`, `ext.spanner`를 더했다(모두 `com.seizia.chromite.db.feature`에 있음).
+HANA·Firebird·Databend·TiDB Lake 번들은 공급자 클래스나 상수를 내보내지 않아 의존을 더하지 않고 `plugin.xml`의 ID 문자열을 상수로 둔다.
 
 ## 화면
 
@@ -67,10 +69,15 @@ Connection Properties | SSH ✓ | SSL | Proxy | Driver Properties | Provider Pro
 | SQL Server NTLM (`sqlserver_ntlm`) | Use integrated security (기본 켬) | 드라이버 속성 `integratedSecurity`. 다른 방식이면 지움 | `SQLServerAuthConfigurator.saveSettings`/`resetSettings`, 모델 `SQLServerAuthModelNTLM`은 속성이 없으면 true |
 | Oracle Username/password (`oracle_native`) | Role: Normal / SYSDBA / SYSOPER | 인증 속성 `oracle.logon-as`(소문자). 예전 공급자 속성 `internal-logon`과 같은 키의 공급자 속성은 지움 | `OracleAuthDatabaseNativeConfigurator`, 모델 `OracleAuthModelDatabaseNative`(인증 속성 → 공급자 속성 순으로 읽음) |
 | PostgreSQL PgPass (`postgres_pgpass`) | Override host name for pgpass + 이름 | 공급자 속성 `overriddenUsername`(`PostgreConstants.PG_PASS_HOSTNAME`), 비밀번호 저장 켬 | `PostgreAuthPgPassConfigurator` |
+| BigQuery (`google_bigquery`, 2026-11-08) | OAuth type(Service account / User account), Key file(Service account일 때만) | 드라이버 속성 `OAuthType`(0/1, 0이고 키가 없으면 넣지 않음), `OAuthPvtKeyPath`(User account이거나 비우면 지움) | `BigQueryAuthConfigurator` |
+| Snowflake (`snowflake_snowflake`, 2026-11-08) | Role(입력), Authenticator(빈 값 / Snowflake / External browser (SSO), 다른 값 입력 가능) | 인증 속성 `role`, `authenticator`(비우면 지움). 예전 공급자 속성 `@…-role@`·`@…-authenticator@`에서도 읽고 저장할 때 지움 | `SnowflakeAuthSnowflakeConfigurator` |
+| Spanner (`google_spanner`, 2026-11-08) | Key file(서비스 계정 키 JSON) | 공급자 속성 `PvtKeyPath`(비우면 지움) | `SpannerAuthConfigurator` |
 
 - 칸은 그 인증 방식을 골랐을 때만 보인다. 인증 방식 클래스는 `instanceof`로 판단한다(SWT 등록도 클래스 계층으로 고른다).
 - 주 양식에 칸이 생긴 공급자 속성(Oracle `oracle.logon-as`)은 Provider Properties 표에서 뺀다. 한 값을 두 곳에서 고치지 않게 하기 위해서다.
 - 바뀌지 않은 연결을 열어 Save만 눌러도 "바뀜"(다시 연결 질문)이 되지 않도록, SWT가 쓰는 기본값(빈 인증 속성 맵, `null` 공급자 속성)은 없는 키에 새로 넣지 않는다.
+- SWT와 다른 점(2026-11-08): Snowflake Authenticator 목록에 없는 저장값(예: `username_password_mfa`)을 SWT는 빈 칸으로 보였지만 여기서는 그 값을 그대로 보인다.
+  Role을 비우면 SWT는 예전 값을 남겼지만 여기서는 지운다. Spanner 키 파일을 비우면 SWT는 빈 문자열을 남겨 공식 드라이버에 `credentials=""`가 넘어갔다(`SpannerDataSource`). 여기서는 속성을 지운다.
 
 ## 2. 네트워크 핸들러
 
@@ -79,7 +86,12 @@ Connection Properties | SSH ✓ | SSL | Proxy | Driver Properties | Provider Pro
 - 목록: `NetworkHandlerRegistry.getDescriptors(driver)`(대체된 핸들러 제외, 드라이버의 `objectType`에 맞는 것, SSH는 작업 공간이 터널 기능을 허용할 때만).
   내장 DB 드라이버는 `enableNetworkParameters`가 없으면, `disableNetworkParameters` 드라이버는 탭이 없다. 드라이버 대체가 지원하지 않는 핸들러도 뺀다.
   ([ConnectionPageSettings.java:1046-1056](../../plugins/com.seizia.chromite.ui.editors.connection/src/com/seizia/chromite/ui/dialogs/connection/ConnectionPageSettings.java)와 같은 조건)
-- Swing 칸이 있는 핸들러만 탭을 만든다: SSH(`SSHTunnelImpl`), Proxy(`SocksProxyImpl`), SSL(`postgre_ssl`, `mysql_ssl`, `mssql_ssl`). SWT도 설정 화면이 없는 핸들러는 탭을 만들지 않는다.
+- Swing 칸이 있는 핸들러만 탭을 만든다: SSH(`SSHTunnelImpl`), Proxy(`SocksProxyImpl`), SSL(`postgre_ssl`, `mysql_ssl`, `mssql_ssl`, 2026-11-08부터 `clickhouse-ssl`, `databend-ssl`, `tidblake-ssl`).
+  SWT도 설정 화면이 없는 핸들러는 탭을 만들지 않는다.
+- Databend·TiDB Lake SSL 핸들러는 `plugin.xml`에 `desktop="false"`가 붙어 있다. 그래도 SWT는 탭을 보였다: `ConnectionPageSettings.getDialogPages`는 이 값을 보지 않고,
+  `isDesktopHandler`를 부르는 곳이 SWT·Swing 모두 없다(`NetworkHandlerDescriptor.java:185`만 있음). 그래서 Swing도 탭을 보인다.
+- SSL 칸은 핸들러 ID로 고른다. Databend와 TiDB Lake는 같은 구현 `SSLHandlerImpl`을 쓰는데, SWT의 `UIPropertyConfiguratorRegistry`는 구현 클래스 이름을 키로 한
+  `HashMap`이라(`descriptors.put(descriptor.getObjectType(), …)`) 나중에 읽힌 화면 하나가 두 DB에 모두 나왔다(코드로 판단, SWT 실행 확인 안 함).
 - 읽기: 연결의 핸들러 설정(없으면 새 설정)을 칸에 채우고, "Use SSH"/"Use SSL"/"Use Proxy" 확인란은 그 설정의 `enabled`다. 확인란을 끄면 칸이 꺼진다.
   확인란 이름은 핸들러의 짧은 이름(`codeName`)이다. 핸들러의 `label`은 모델 번들이 OS 언어로 바꿔(예: "SSH 터널") 영어 화면에 섞이기 때문이다.
 - 저장: 켜져 있으면 연결의 핸들러 설정 사본에 칸 값을 쓰고 `updateHandler`, 꺼져 있으면 `removeHandler`
@@ -148,8 +160,16 @@ SSH 시험 직후 Windows 방화벽이 앱(`chromite-swing.exe`)의 네트워크
 | PostgreSQL `postgre_ssl` | CA certificate, Client certificate, Client private key(파일 + Browse…), SSL mode(Driver default/disable/allow/prefer/require/verify-ca/verify-full), SSL factory | `ssl.ca.cert`, `ssl.client.cert`, `ssl.client.key`, `ssl.method=CERTIFICATES`, `sslMode`, `sslFactory` |
 | MySQL/MariaDB `mysql_ssl` | 위 세 파일, Cipher suites, Require SSL, Verify server certificate(기본 켬), Allow public key retrieval | 위 세 키, `ssl.cipher.suites`, `ssl.require`, `ssl.verify.server`, `ssl.public.key.retrieve` |
 | SQL Server `mssql_ssl` | Keystore(파일), Keystore password, Certificate host name | `ssl.keystore`, 핸들러 비밀번호(저장 켬), `ssl.method=KEYSTORE`, `sslKeyStoreHostname` |
+| ClickHouse `clickhouse-ssl` (2026-11-08) | CA certificate, Client certificate, Client private key(파일 + Browse…), SSL mode(STRICT / NONE) | `ssl.ca.cert`, `ssl.client.cert`, `ssl.client.key`, `ssl.method=CERTIFICATES`, `ssl.mode` |
+| Databend `databend-ssl`, TiDB Lake `tidblake-ssl` (2026-11-08) | 칸 없음, 안내 한 줄 | 핸들러가 켜져 있으면 모델이 `sslmode=enable`을 넣는다(`DatabendDataSource`·`TiDBLakeDataSource`의 `initSSL`) |
 
 - 방법 속성(`ssl.method`)이 없는 예전 설정은 SWT처럼 예전 키(`rootCert` 등, `sslKeyStore`)에서 읽는다. 저장은 새 키로 한다.
+- ClickHouse: 모델은 공식 드라이버(`com_clickhouse`)일 때 경로와 모드를 드라이버의 `Properties`에 그대로 넣는다. `Properties`는 `null`을 받지 않으므로
+  SWT처럼 모드는 늘 저장하고 경로는 빈 문자열도 저장한다.
+- TiDB Lake: SWT 화면(`TiDBLakeSSLConfigurator`)에는 클라이언트 인증서·키 칸이 있었지만 모델이 읽지 않는다(`TiDBLakeDataSource`는 `sslmode=enable`만 넣음). 효과 없는 칸이라 옮기지 않았다.
+- PostgreSQL "Use proxy server (e.g. stunnel)"(`sslProxyServer`): SWT도 칸을 숨겼다(`PostgreSSLConfigurator.ENABLE_PROXY = false`). 켜져 있으면 모델이
+  SSL 설정을 하나도 넘기지 않는다(`PostgreDataSource.getInternalConnectionProperties` → 빈 `initProxySSL`). 그래서 새로 켜는 칸은 두지 않고, 저장된 값이 켜져 있을 때만
+  확인란을 보여 끌 수 있게 했다(보이지 않는 값이 SSL 탭 전체를 무시하게 두지 않으려고). 끄면 속성을 지운다. 값이 없던 연결은 그대로 없다.
 - 데스크톱 경로만 옮겼다. 분산 제품용 `.value` 비밀 속성(인증서 내용 자체)은 쓰지 않는다(SWT도 데스크톱에서는 경로를 일반 속성에 둔다).
 - PostgreSQL SSL factory: SWT는 드라이버 jar에서 `SSLSocketFactory` 구현을 찾아 콤보에 넣지만 여기서는 클래스 이름을 직접 입력한다.
 
@@ -199,6 +219,27 @@ SWT `OracleConnectionExtraPage`의 "Session settings" 묶음(D-db-specific O5)�
   `2026-11-07 15:50:10 | 26/11/07 15:50:10.658957 +00:00 | KRW1234.50 | KOREA`로 바뀜. 다시 열면 저장한 값이 보이고, 기본값으로 되돌려 저장하면
   `data-sources.json`에서 세 속성이 지워짐. 영어·한국어, 라이트·다크(`D:\Tools\_scratch\p3-oracle-altibase-admin\shots\` `ora-en-nls-tab.png`, `ora-ko-dark-nls-tab.png`).
 
+### BigQuery, Snowflake, SAP HANA, Firebird Embedded, Mimer SQL (2026-11-08)
+
+| DB | 칸 | 저장 위치 | 근거 |
+|---|---|---|---|
+| BigQuery | Project(Server name 앞, 필수) | DB 이름. 모델이 드라이버 속성 `ProjectId`로 넘김(`BQDataSource.getInternalConnectionProperties`) | 예시 URL `jdbc:bigquery://{host}:{port}`에 `{database}`가 없어 범용 양식으로는 넣을 수 없었다. SWT `BQConnectionPage` |
+| Snowflake | Warehouse, Schema | 서버 이름, 내부 공급자 속성 `@…-schema@`(SWT와 같음) | 아래 |
+| SAP HANA | Edition, Instance number, Tenant database, 포트 안내 | 공급자 속성 `edition`·`instanceNumber`, 드라이버 속성 `databaseName`, 연결 포트 | 아래 |
+| Firebird Embedded(`jaybird_embedded`만) | Native library folder(폴더 Browse…) | 공급자 속성 `nativeLibraryPath`(비우면 지움). 공급자가 연결 전에 `jna.library.path`에 더함 | SWT `FireBirdEmbeddedConnectionPage` |
+| Mimer SQL | Protocol(TCP/IP / Local (shared memory)), Program, Program password | 공급자 속성 `protocol`(tcp 기본은 없는 키에 넣지 않음), 드라이버 속성 `program`, 인증 속성 `programPwd`(보안 저장소) | SWT `MimerConnectionSettingsPage` |
+
+- **Snowflake**: 모델은 창고를 서버 이름 → 공급자 속성 `warehouse` 순서로, 스키마를 `@…-schema@` → `schema` 순서로 읽는다(`SnowflakeUtils.getWarehouse`,
+  `SnowflakeDataSourceProvider.getConnectionURL`). 예전 Swing 표에는 뒤의 두 키(`warehouse`, `schema`)만 선언되어 있어, SWT가 쓴 값(서버 이름, `@…-schema@`)은 보이지 않은 채 이겼다.
+  그래서 두 표 줄을 빼고 모델이 실제로 쓰는 값을 칸에 보인다. 저장은 값이 모델이 쓰는 값과 다를 때만 SWT 자리에 쓰고 대체 키를 지운다
+  (바뀌지 않은 연결은 그대로, 고친 값은 대체 키에 가려지지 않음). SWT의 "Test Connection 뒤 DB·창고·스키마 목록 채우기"는 옮기지 않았다.
+- **SAP HANA**: 모델은 `edition`·`instanceNumber`를 읽지 않는다(검색 0건, 예전 표의 Instance Number 줄은 효과가 없었다). SWT처럼 대화상자가 값을 정한다.
+  플랫폼 에디션은 인스턴스 번호로 포트 3NN15(단일 DB)·3NN13(시스템·테넌트 DB), Express는 인스턴스 90·포트 39015(다른 포트를 적었으면 그대로),
+  Cloud는 443이다. 이때 Server name에 적은 포트 대신 그 포트를 쓰고, 칸 아래에 "포트 N에 연결합니다"를 보인다. 테넌트 DB는 드라이버 속성 `databaseName`(대소문자 무관하게 하나만 남김).
+  인스턴스 번호가 0–99가 아니거나 테넌트 DB가 비면 Test·Connect가 꺼진다(SWT `isComplete`). 공급자 속성이 모두 칸으로 옮겨져 Provider Properties 탭은 없다.
+- 공급자 클래스를 내보내지 않는 HANA·Firebird는 `plugin.xml`의 공급자 ID(`hana`, `jaybird`)와 드라이버 ID(`jaybird_embedded`)로 고른다.
+- Spanner는 예시 URL에 자리 표시가 없어 Swing에서 JDBC URL로만 연결한다(키 파일은 인증 칸, 위 1절). SWT의 Project·Instance·Database 칸은 옮기지 않았다.
+
 ## 셸 명령 (2026-11-08, `ConnectionShellCommandsPage`)
 
 Options의 **Shell Commands** 탭. SWT `ConnectionPageShellCommands`와 같은 값(`DBPConnectionConfiguration.setEvent`, `DBRShellCommand`)이다.
@@ -244,6 +285,8 @@ Options의 **Shell Commands** 탭. SWT `ConnectionPageShellCommands`와 같은 �
 ## 4. 일반 설정 (Connection Properties 탭)
 
 - 기존: 연결 종류, 자동 커밋, 기본 DB·스키마, 읽기 전용, keep-alive, 유휴 연결 닫기("Connect 대화상자 (SSMS식)").
+- **Description**(2026-11-08, 맨 위): SWT `ConnectionPageGeneral`의 설명과 같은 값(`DataSourceDescriptor.description`, 비우면 없음). Object Explorer 연결 노드의 도구 설명
+  (`DBNDataSource.getNodeDescription`)에 보인다. 세션과 관계없는 값이라 연결된 연결에서 설명만 바꾸면 다시 연결을 묻지 않는다(`ConnectionDialog.save`가 비교에서 뺌).
 - **연결 종류 콤보**: 항목마다 종류 색 견본을 보인다.
 - **Color**: Custom color 확인란 + 색 단추(`JColorChooser`). 켜면 연결 설정 `connectionColor`("r,g,b"), 끄면 지워서 연결 종류의 색을 쓴다(SWT `ConnectionPageGeneral`과 같은 값).
 - **연결 색이 보이는 곳**(`ConnectionColors`, SWT `UIUtils.getConnectionColor` 규칙): 쿼리 창 상태 줄(`QueryStatusLine`) 바탕, Registered Servers와 Object Explorer 서버 이름의 알약
@@ -261,6 +304,23 @@ Options의 **Shell Commands** 탭. SWT `ConnectionPageShellCommands`와 같은 �
 - 실패: 모델 오류 대화상자(D단계와 같음). 핸들러 칸이 비어 있으면 단추가 꺼지고 대화상자 아래에 이유가 보인다.
 - SSH 탭의 Test Tunnel은 DB 없이 터널만 시험한다.
 
+## 6. 공급자 속성 선언 (2026-11-08)
+
+Provider Properties 표는 모델 `plugin.xml`의 `<provider-properties>`에 선언된 키만 보인다. 모델은 읽지만 선언되지 않은 키는 저장된 값이 보이지 않은 채 적용되고
+새로 넣을 수 없었다([swt-parity/D-db-specific.md](swt-parity/D-db-specific.md) §6). SWT 전용 화면이 쓰던 키를 선언했다. 이름과 설명은 각 번들의 `OSGI-INF/l10n/bundle*.properties`(영어·한국어).
+
+| 번들 | 드라이버 | 키 | 표 묶음 | 모델이 읽는 곳 |
+|---|---|---|---|---|
+| `ext.postgresql` | 모두 | `show-database-statistics` | Database list | `PostgreDataSource` 생성자 |
+| `ext.postgresql` | 모두 | `@…-use-prepared-statements-db@` | Performance(새 묶음) | `PostgreDataSource.getInternalConnectionProperties`(서버 종류가 prepared statement를 끄는 경우) |
+| `ext.mssql` | Azure SQL Server, Babelfish | `show-all-databases-azure` + SQL Server 드라이버의 줄 복사(`copyFrom="microsoft"`: 모든 스키마 표시, 서버 인증서 신뢰) | Advanced | `SQLServerDataSource`의 DB 목록 쿼리(값이 없으면 이 두 드라이버는 현재 DB만) |
+| `ext.mssql` | Generic 공급자(Sybase·예전 jTDS) 모두 | `@…-encrypt-password@` | Advanced | `SQLServerGenericDataSource.getInternalConnectionProperties` |
+| `ext.oracle` | 모두 | `oracle-meta-optimizer-version`(SWT 목록 콤보), `@…-meta-read-column-comments@`, `oracle.meta-search-in-sequences` | Performance | `OracleDataSource`(메타데이터 최적화를 켰을 때), `OracleSchema` |
+
+- 서버 인증서 신뢰는 주 양식 칸이 맡으므로 Azure·Babelfish 표에서도 빠진다(`ConnectionDriverFields#getHandledProviderProperties`).
+- 공급자 속성이 모두 주 양식 칸에 있으면 Provider Properties 탭을 만들지 않는다(HANA).
+- CUBRID shard(`shardType`·`shardValue`)는 공급자 속성이 아니라 드라이버 속성이라 지금도 Driver Properties 표에서 고칠 수 있다(SWT의 값 검사는 없음). 선언하지 않았다.
+
 ## 설계 결정과 이유
 
 - **SWT 화면을 그대로 옮기지 않고 범용 양식에 고리를 둠**: SWT는 DB마다 연결 화면 전체를 따로 만든다. Swing은 SSMS식 한 화면을 유지하고, DB별 칸은
@@ -274,14 +334,22 @@ Options의 **Shell Commands** 탭. SWT `ConnectionPageShellCommands`와 같은 �
 - **SSH 점프 서버**: 처음에는 읽은 값을 보존하고 안내만 했다. 2026-11-08 목록 편집 대화상자를 더했다.
 - **셸 명령 승인은 실행 시점 한 곳(2026-11-08)**: 편집 화면이 입력한 명령을 승인 기록에 넣으면, 다른 사람이 넘긴 연결 설정을 열어 Save만 눌러도 그 명령이 승인될 수 있다.
   그래서 편집은 값만 바꾸고 승인은 실행할 때 정확한 명령을 보고 받는다.
+- **선언할지 칸을 만들지(2026-11-08)**: 값이 참/거짓이나 짧은 글이고 SWT도 확인란·글 칸 하나였던 키는 모델 `plugin.xml`에 선언해 Provider Properties 표로 고친다(6절).
+  파일·폴더 고르기, 목록, 다른 값과 함께 정해지는 값(HANA 포트, Snowflake 대체 키), 인증 속성·드라이버 속성은 주 양식 칸으로 만든다. 표는 공급자 속성만 다루고
+  고르기 단추가 없기 때문이다.
+- **효과 없는 SWT 칸은 옮기지 않음(2026-11-08)**: TiDB Lake SSL 인증서 칸(모델이 읽지 않음), PostgreSQL 프록시 서비스를 새로 켜는 칸(SWT도 숨김, 켜면 SSL이 꺼짐).
+  저장된 프록시 값은 끌 수 있게 보인다.
 
 ## upstream 대비 변경점
 
-- upstream 코드는 SSH 터널의 로컬 주소 두 곳(`SSHTunnelImpl`, `SSHUtils`, 위 절)만 고쳤고 나머지는 Swing 번들만 바뀌었다.
+- upstream 코드는 SSH 터널의 로컬 주소 두 곳(`SSHTunnelImpl`, `SSHUtils`, 위 절)과, 2026-11-08 공급자 속성 선언(`ext.postgresql`·`ext.mssql`·`ext.oracle`의
+  `plugin.xml`과 `OSGI-INF/l10n/bundle.properties`·`bundle_ko.properties`, 위 6절)만 고쳤고 나머지는 Swing 번들만 바뀌었다. 모델 Java 코드는 이번에 바꾸지 않았다.
 - SWT와 다른 동작: SQL Server Encrypt를 주 양식에 둠(SWT는 드라이버 속성 표), 연결 색을 쿼리 창 상태 줄에 칠함(SWT는 편집기 탭·탐색기),
   Oracle Custom은 JDBC URL 연결 방식으로 통합, PostgreSQL SSL factory는 직접 입력.
   2026-11-08: 셸 명령 편집이 명령을 승인 기록에 넣지 않음, 네트워크 프로필 고르기는 Connection Properties의 콤보(SWT는 설정 페이지 도구 막대 메뉴),
   Server name이 `https://…` 같은 URL이면 첫 `:`를 포트 구분으로 보지 않음(BigQuery 기본 호스트, 끝의 `:숫자`만 포트).
+  2026-11-08: 연결 설명은 Connection Properties 탭(SWT는 General 페이지), SSL 칸을 핸들러 ID로 고름(SWT는 구현 클래스, Databend·TiDB Lake가 겹침),
+  PostgreSQL 프록시 서비스는 저장값이 켜져 있을 때만 보임, Snowflake·Spanner 빈 값은 속성을 지움(1절).
 
 ## 확인
 
@@ -300,16 +368,34 @@ Windows에서 in-process JVM으로 개인 작업 공간을 열어 로컬 Docker 
   Proxy 탭, MariaDB SSL, Oracle Basic/TNS 화면, PgPass·NTLM 추가 칸, 바뀌지 않은 편집 저장, 대화상자 다크 화면)은 하지 못했다. 실제 SSH 서버 연결(이미지 없음),
   명명된 인스턴스 연결, Oracle 서버 연결, macOS 실행도 확인하지 못했다.
 
-## 남긴 것
+### 확인 (2026-11-08, 연결 칸 4순위)
 
-- HTTP 프록시(모델에 구현 없음). 2026-11-08 점프 서버 목록 편집, 네트워크 프로필 편집·고르기, 셸 명령 편집, 비밀번호 바꾸기를 더함.
-- 셸 명령 출력을 보는 프로세스 보기(SWT `ShellProcessView`, A-C11)와 승인 기록 관리 화면은 없다.
-- ClickHouse·Databend·TiDB Lake의 SSL 탭(Swing 칸 없음), 인증서 내용 붙여 넣기(분산 제품용 `.value` 속성).
-- 인증 방식별 칸이 더 필요한 방식: 셸 명령 비밀번호, ClickHouse SSO/OIDC, BigQuery·Snowflake·Spanner 전용 칸(키 파일 등).
-- Oracle 클라이언트(OCI) 홈 선택, PostgreSQL SSL factory 목록 찾기.
-- 연결 색을 문서 탭에도 칠하기(지금은 상태 줄, Registered Servers, Object Explorer).
+빌드: `-Pproduct-chromite-swing` BUILD SUCCESS. 앱 하나를 개인 데이터 폴더(`CHROMITE_DATA`)·작업 공간으로 열고, 같은 프로세스에 붙인 시험 코드가
+`ConnectionSettingsPanel`을 화면 밖에서 만들어 칸 값을 넣고 연결 사본에 저장한 결과를 읽었다(화면 입력 없음). 화면은 화면 밖에서 그린 PNG
+(`D:\Tools\_scratch\chromite-p4-connection-fields\shots\`). 클라우드 DB(BigQuery·Snowflake·Spanner·HANA Cloud)와 ClickHouse·Databend·TiDB Lake·Mimer·Firebird 서버에는
+연결하지 못해 칸과 저장 값만 확인했다.
 
-## 확인 (2026-11-08, 연결 도구)
+- 공급자 속성: PostgreSQL 표에 `show-database-statistics`(데이터베이스 목록)와 `@…-use-prepared-statements-db@`(성능), Azure·Babelfish에 모든 스키마 표시·서버 인증서 신뢰·
+  `show-all-databases-azure`, Sybase jTDS·jConnect에 `@…-encrypt-password@`, Oracle 성능 묶음에 세 키가 한국어 이름으로 나옴. SQL Server 드라이버 목록은 바뀌지 않음.
+- 설명: 읽기 → 앞뒤 공백 없이 저장, 비우면 `null`.
+- BigQuery: Project가 비면 "프로젝트를 입력하십시오."로 막힘. Service account 저장은 `OAuthPvtKeyPath`만(OAuthType 0은 넣지 않음), User account는 `OAuthType=1`이고 키 경로를 지우며 키 줄을 숨김.
+- Snowflake: 대체·예전 자리(`warehouse`, `schema`, `@…-role@`, `@…-authenticator@`)의 값을 칸에 보임, 표에는 `ddString`만 남음. 바꾸지 않고 저장하면 대체 키를 그대로 두고
+  예전 Role·Authenticator는 인증 속성으로 옮김. 고치면 서버 이름 `WH_NEW`, 빈 Schema는 두 키 모두 지움, 목록에 없는 `username_password_mfa`를 그대로 저장.
+- Spanner: 키 파일 → `PvtKeyPath`, 비우면 지움. HANA: 에디션별 포트 30715(단일, 인스턴스 07)·30713(시스템·테넌트)·39015(Express, 인스턴스 90)·443(Cloud),
+  테넌트 DB → 드라이버 속성 `databaseName=TENANT1`, 인스턴스 123은 막힘. Firebird Embedded → `nativeLibraryPath`(Firebird 네트워크 드라이버에는 칸 없음).
+  Mimer: 기본 저장은 아무 키도 넣지 않음, Local·Program → `protocol=local`, 드라이버 속성 `program`, 인증 속성 `programPwd`.
+- ClickHouse SSL: 탭 목록 Connection Properties, SSH, SSL, Proxy, …; 저장 `ssl.ca.cert`, 빈 클라이언트 경로, `ssl.method=CERTIFICATES`, `ssl.mode=NONE`, 다시 열면 같은 값.
+  Databend·TiDB Lake: SSL 탭과 안내, 켜고 저장하면 속성 없는 켜진 핸들러.
+- 바꾸지 않고 저장: BigQuery·Snowflake·Spanner·HANA·Firebird Embedded·Mimer·ClickHouse·PostgreSQL·Azure SQL·Databend 모두 `equalSettings` 참(다시 연결을 묻지 않음).
+- PostgreSQL SSL(공유 Docker PostgreSQL 17, 서버 SSL 꺼짐): SSL 켜짐·`sslMode=require`·저장된 `sslProxyServer=true` 연결을 열면 확인란이 보이고 켜져 있음,
+  그대로 Test 연결 → 연결됨(모델이 SSL 설정을 넘기지 않음). 확인란을 끄고 저장 → 핸들러에서 `sslProxyServer`가 빠지고 연결 → "서버가 SSL을 지원하지 않습니다."
+  (`sslmode=require`가 넘어감). 새 연결에는 확인란이 없음. 대화상자로 한 번 저장한 이 연결을 다시 열어 그대로 저장하면 `equalSettings` 참이고 `sslProxyServer`가 남음.
+  (손으로 만든 핸들러는 SSL 탭이 빈 경로 키를 SWT처럼 써서 처음 한 번은 "바뀜"이 된다. 이번 변경과 관계없는 기존 동작.)
+- HANA는 공급자 속성이 모두 칸으로 옮겨져 Provider Properties 탭이 없음(탭: Connection Properties, SSH, Proxy, Driver Properties, Additional Connection Parameters).
+- 같은 확인을 한국어(OS 언어)와 영어(`-nl en_US`)로 두 번 실행: 표 이름·안내·막힘 문구가 각 언어로 나옴(예: "Connects to port 30713 (set by the edition)",
+  "포트 30713에 연결합니다(에디션이 정함)"). 화면은 `shots-ko\`, `shots\`(영어).
+
+### 확인 (2026-11-08, 연결 도구)
 
 빌드 `-Pproduct-chromite-swing` BUILD SUCCESS. 개인 데이터 폴더·작업 공간으로 연 앱 하나(영어 `-nl en_US`)에 시험 코드를 붙여, 패널과 대화상자를 화면 밖에서 만들고
 그 대화상자의 단추를 같은 프로세스 안에서 눌렀다(화면 입력 없음). 기록 `D:\Tools\_scratch\chromite-p4-connection-fields\ops-tools-*.log`, 화면 `shots\`.
@@ -328,11 +414,24 @@ Windows에서 in-process JVM으로 개인 작업 공간을 열어 로컬 Docker 
   새 BigQuery 연결의 저장값: 호스트 `https://www.googleapis.com/bigquery/v2`, 포트 443, URL `jdbc:bigquery://https://www.googleapis.com/bigquery/v2:443;…`.
 - 확인하지 못한 것: 실제 SSH 점프 서버·프로필을 거친 연결(시험 SSH 서버 없음), 승인 기록 Always Allow 뒤 묻지 않는지(#99에서 확인함), 한국어 화면.
 
+## 남긴 것
+
+- HTTP 프록시(모델에 구현 없음). 2026-11-08 점프 서버 목록 편집, 네트워크 프로필 편집·고르기, 셸 명령 편집, 비밀번호 바꾸기를 더함.
+- 셸 명령 출력을 보는 프로세스 보기(SWT `ShellProcessView`, A-C11)와 승인 기록 관리 화면은 없다.
+- 인증서 내용 붙여 넣기(분산 제품용 `.value` 속성).
+- 인증 방식별 칸이 더 필요한 방식: 셸 명령 비밀번호, ClickHouse Cloud SSO/OIDC(인증 서비스 `UIServiceAuth` 구현도 없음).
+- Oracle 클라이언트(OCI) 홈 선택, PostgreSQL SSL factory 목록 찾기, Snowflake의 Test 뒤 목록 채우기, Spanner Project·Instance·Database 칸(지금은 JDBC URL),
+  CUBRID shard 칸(드라이버 속성 표로는 고칠 수 있음).
+- 연결 색을 문서 탭에도 칠하기(지금은 상태 줄, Registered Servers, Object Explorer).
+
 ## 변경 이력
 
 - 2026-11-08 연결 도구(`chromite/p4-connection-tools`): 셸 명령 탭, SSH 점프 서버 편집, 네트워크 프로필 편집·고르기, 비밀번호 바꾸기 메뉴,
   Server name의 URL 호스트(BigQuery) 나누기 고침. "확인 (2026-11-08, 연결 도구)" 절.
 - 2026-11-08 Oracle 세션 설정(NLS) 탭, 드라이버별 Options 탭 고리(`ConnectionDriverFields#getOptionsPage`).
+- 2026-11-08 연결 칸 4순위(`chromite/p4-connection-fields`): 공급자 속성 선언(PostgreSQL·SQL Server·Oracle, 6절), ClickHouse SSL 탭, Databend·TiDB Lake SSL 탭,
+  저장된 PostgreSQL 프록시 서비스 끄기, BigQuery·Snowflake·Spanner 인증 칸, BigQuery·Snowflake·HANA·Firebird Embedded·Mimer 주 양식 칸, 연결 설명,
+  모두 칸으로 옮겨진 공급자 속성이면 Provider Properties 탭을 만들지 않음. "확인 (2026-11-08)" 절.
 - 2026-11-07 비밀번호 저장 위치를 OS 보안 저장소로 고쳐 적음([credential-storage.md](credential-storage.md)).
 - 2026-11-06 최초 작성: 인증 방식별 칸, 네트워크 핸들러 탭(SSH, Proxy, SSL), SQL Server·Oracle 주 양식 칸, 연결 색, 연결 직후 SQL, Test Connection 결과.
 - 2026-11-06 SSH 터널 로컬 포트를 루프백에서만 열도록 모델 수정(빈 포트 시험과 JSch의 빈 주소가 0.0.0.0에서 들음). "SSH 터널의 로컬 주소" 절 추가.

@@ -52,6 +52,8 @@ import java.util.concurrent.atomic.AtomicInteger;
  *
  * 변경 이력:
  * - 2026-11-07 최초 작성 (docs/chromite/shell-command-approval.md)
+ * - 2026-11-08 문단·값 칸 만들기를 패키지 안에 공개: 초기화 SQL·SQLite 확장 승인({@link ExecutionApprovalDialog})이 같은 모양을 씀
+ *   (docs/chromite/connection-lifecycle.md)
  */
 public class SwingShellCommandsService implements UIServiceShellCommands {
 
@@ -215,7 +217,7 @@ public class SwingShellCommandsService implements UIServiceShellCommands {
      * does not, which made the dialog too short and squeezed the command box.
      */
     @NotNull
-    private static JLabel createNote(@NotNull String text) {
+    static JLabel createNote(@NotNull String text) {
         // The NLS texts contain no markup; escape anyway so that they are shown as written
         String escaped = text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;"); //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$ //$NON-NLS-4$ //$NON-NLS-5$ //$NON-NLS-6$
         return new JLabel("<html><body style='width: " + NOTE_WIDTH + "px'>" + escaped + "</body></html>"); //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$
@@ -225,7 +227,7 @@ public class SwingShellCommandsService implements UIServiceShellCommands {
      * Context values (connection name, path) can be long: a borderless read-only field the user can select and copy.
      */
     @NotNull
-    private static JTextField createValue(@NotNull String value) {
+    static JTextField createValue(@NotNull String value) {
         JTextField field = new JTextField(value);
         field.setEditable(false);
         field.setBorder(null);

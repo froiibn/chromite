@@ -22,6 +22,7 @@ import com.formdev.flatlaf.util.UIScale;
 import com.seizia.chromite.ui.swing.internal.ConnectionMessages;
 import com.seizia.chromite.ui.swing.internal.ConnectionTransferMessages;
 import com.seizia.chromite.ui.swing.internal.CoreMessages;
+import com.seizia.chromite.ui.swing.internal.LifecycleMessages;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import com.seizia.chromite.model.DBPDataSourceContainer;
@@ -102,6 +103,8 @@ import java.util.Set;
  * - 2026-11-07 도구 막대를 {@link OverflowToolBar}로: 좁힌 도구 창에서 들어가지 않는 단추는 넘침 메뉴로 (docs/chromite/swing-frontend.md "도구 창 최소 폭")
  * - 2026-11-07 메뉴에 연결 내보내기(서버·그룹은 그것만 골라 시작)와 빈 곳의 연결 가져오기 ({@link ConnectionTransferCommands},
  *   docs/chromite/connection-transfer.md)
+ * - 2026-11-08 메뉴에 다른 연결 끊기·모두 끊기(서버), 그룹 끊기(그룹, 하위 그룹 포함), 모두 끊기(빈 곳): 열린 트랜잭션은 한 질문으로
+ *   (docs/chromite/connection-lifecycle.md "여러 연결 끊기")
  * - 2026-11-08 서버 메뉴의 Change Password…(연결한 사용자의 비밀번호, docs/chromite/swing-conn-advanced.md "비밀번호 바꾸기")
  */
 final class RegisteredServersPanel extends JPanel {
@@ -359,6 +362,11 @@ final class RegisteredServersPanel extends JPanel {
             popupMenu.addSeparator();
             popupMenu.add(menuItem(CoreMessages.explorer_connect, null, () -> ConnectionCommands.connect(container))).setEnabled(!connected);
             popupMenu.add(menuItem(CoreMessages.explorer_disconnect, null, () -> ConnectionCommands.disconnect(container))).setEnabled(connected);
+            List<DBPDataSourceContainer> others = getConnectedServers(null);
+            others.remove(container);
+            popupMenu.add(menuItem(LifecycleMessages.disconnect_others, null, () -> ConnectionCommands.disconnect(this, others)))
+                .setEnabled(!others.isEmpty());
+            addDisconnectAllItem();
             popupMenu.addSeparator();
             popupMenu.add(createMoveToMenu(container));
             popupMenu.addSeparator();
@@ -376,6 +384,10 @@ final class RegisteredServersPanel extends JPanel {
             popupMenu.add(menuItem(CoreMessages.servers_expand_all, null, () -> setSubtreeExpanded(folder, true)));
             popupMenu.add(menuItem(CoreMessages.explorer_collapse_all, null, () -> setSubtreeExpanded(folder, false)));
             popupMenu.addSeparator();
+            List<DBPDataSourceContainer> inGroup = getConnectedServers(folder);
+            popupMenu.add(menuItem(LifecycleMessages.disconnect_group, null, () -> ConnectionCommands.disconnect(this, inGroup)))
+                .setEnabled(!inGroup.isEmpty());
+            popupMenu.addSeparator();
             popupMenu.add(createMoveToMenu(folder));
             popupMenu.addSeparator();
             popupMenu.add(menuItem(CoreMessages.explorer_rename, KeyStroke.getKeyStroke(KeyEvent.VK_F2, 0), this::renameSelected));
@@ -389,9 +401,48 @@ final class RegisteredServersPanel extends JPanel {
             popupMenu.add(menuItem(CoreMessages.servers_expand_all, null, () -> setSubtreeExpanded(null, true)));
             popupMenu.add(new JMenuItem(collapseAllAction));
             popupMenu.addSeparator();
+            addDisconnectAllItem();
+            popupMenu.addSeparator();
             popupMenu.add(menuItem(ConnectionTransferMessages.transfer_menu_import, null, () -> ConnectionTransferCommands.importConnections(this)));
             popupMenu.add(menuItem(ConnectionTransferMessages.transfer_menu_export, null, () -> ConnectionTransferCommands.exportConnections(this, null)));
         }
+    }
+
+    /**
+     * "Disconnect All": every connected server of the project (SWT {@code DataSourceDisconnectProjectHandler}; the
+     * registered servers are the project's connections).
+     */
+    private void addDisconnectAllItem() {
+        List<DBPDataSourceContainer> connected = getConnectedServers(null);
+        popupMenu.add(menuItem(LifecycleMessages.disconnect_all, null, () -> ConnectionCommands.disconnect(this, connected)))
+            .setEnabled(!connected.isEmpty());
+    }
+
+    /**
+     * The connected servers of a group and its subgroups (SWT {@code FolderDisconnectHandler}), or of the whole
+     * project when the group is null.
+     */
+    @NotNull
+    private List<DBPDataSourceContainer> getConnectedServers(@Nullable DBPDataSourceFolder group) {
+        List<DBPDataSourceContainer> connected = new ArrayList<>();
+        if (registry == null) {
+            return connected;
+        }
+        for (DBPDataSourceContainer container : registry.getDataSources()) {
+            if (container.isConnected() && (group == null || isInGroup(container.getFolder(), group))) {
+                connected.add(container);
+            }
+        }
+        return connected;
+    }
+
+    private static boolean isInGroup(@Nullable DBPDataSourceFolder folder, @NotNull DBPDataSourceFolder group) {
+        for (DBPDataSourceFolder f = folder; f != null; f = f.getParent()) {
+            if (f == group) {
+                return true;
+            }
+        }
+        return false;
     }
 
     @NotNull

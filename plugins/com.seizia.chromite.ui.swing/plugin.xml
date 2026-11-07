@@ -32,6 +32,12 @@
         <!-- Shows the SQL that an @ai script command generated before it runs; the SWT product registers UIServiceSQLImpl.
              Without it AIUtils asks a plain yes/no question without the SQL. Only confirmQueryExecution is implemented. -->
         <service name="com.seizia.chromite.runtime.ui.UIServiceSQL" class="com.seizia.chromite.ui.swing.SwingSqlService"/>
+        <!-- Asks before H2 runs initialization SQL from the connection settings (INIT= in the URL, bootstrap queries);
+             the SWT product registered UIServiceConnectionInitImpl. Without it the model refuses those connections. -->
+        <service name="com.seizia.chromite.runtime.ui.UIServiceConnectionInit" class="com.seizia.chromite.ui.swing.SwingConnectionInitService"/>
+        <!-- Asks before a SQLite connection loads native extensions; the SWT product registered SQLiteExtensionConfirmationImpl
+             in ext.sqlite.ui. Without it the model refuses those connections. -->
+        <service name="com.seizia.chromite.ext.sqlite.SQLiteExtensionConfirmation" class="com.seizia.chromite.ui.swing.SwingSqliteExtensionConfirmation"/>
     </extension>
 
     <!-- @export script command: exports the next query with the Export Data wizard; the SWT product registered
@@ -50,6 +56,9 @@
             <adapter type="com.seizia.chromite.ui.swing.design.TableDesignerDriver"/>
         </factory>
         <factory adaptableType="com.seizia.chromite.ext.mysql.model.MySQLTable" class="com.seizia.chromite.ui.swing.design.MySQLTableDesignerDriver">
+            <adapter type="com.seizia.chromite.ui.swing.design.TableDesignerDriver"/>
+        </factory>
+        <factory adaptableType="com.seizia.chromite.ext.oracle.model.OracleTableBase" class="com.seizia.chromite.ui.swing.design.OracleTableDesignerDriver">
             <adapter type="com.seizia.chromite.ui.swing.design.TableDesignerDriver"/>
         </factory>
     </extension>

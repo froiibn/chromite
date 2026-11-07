@@ -31,6 +31,13 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+/**
+ * Tests of {@link ConnectJob} cancellation.
+ *
+ * 변경 이력:
+ * - 2026-11-08 Chromite: 취소로 생긴 연결 실패는 취소 상태라는 #131의 동작으로 테스트를 고치고 이름을 바꿈
+ *   (docs/chromite/regression-tests.md "실행 결과")
+ */
 public class ConnectJobTest {
     @Test
     public void cancelingMonitorInterruptsSynchronousConnectionWithoutOwnerJob() throws Exception {
@@ -103,8 +110,10 @@ public class ConnectJobTest {
         Mockito.verify(container).disconnect(Mockito.any(VoidProgressMonitor.class));
     }
 
+    // Chromite #131: a failure caused by the user's cancel is a cancel status, not a connection error, so Stop during
+    // connection setup shows no error dialog (upstream reported it as an error)
     @Test
-    public void canceledConnectionExceptionIsReportedAsError() throws Exception {
+    public void canceledConnectionExceptionIsReportedAsCancel() throws Exception {
         DBRProgressMonitor monitor = Mockito.mock(DBRProgressMonitor.class);
         Mockito.when(monitor.isCanceled()).thenReturn(true);
         DBPDataSourceContainer container = Mockito.mock(DBPDataSourceContainer.class);
@@ -116,8 +125,8 @@ public class ConnectJobTest {
         ConnectJob job = new ConnectJob(container);
         job.runSync(monitor);
 
-        Assertions.assertEquals(IStatus.ERROR, job.getConnectStatus().getSeverity());
-        Assertions.assertSame(cancellation, job.getConnectError());
+        Assertions.assertEquals(IStatus.CANCEL, job.getConnectStatus().getSeverity());
+        Assertions.assertNull(job.getConnectError());
         Mockito.verify(container, Mockito.never()).disconnect(Mockito.any());
     }
 }

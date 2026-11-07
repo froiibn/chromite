@@ -21,7 +21,12 @@ import com.seizia.chromite.model.sql.exec.SQLActualPlanProvider;
 import com.seizia.chromite.model.sql.exec.SQLQueryExecuteHandler;
 import com.seizia.chromite.model.sql.exec.SQLQueryExecuteJob;
 import com.seizia.chromite.model.sql.exec.SQLScriptBatches;
+import com.seizia.chromite.ext.oracle.model.OracleDataSource;
+import com.seizia.chromite.model.admin.oracle.OracleCompileErrors;
+import com.seizia.chromite.model.exec.jdbc.JDBCSession;
 import com.seizia.chromite.ui.swing.internal.EditorMessages;
+import com.seizia.chromite.ui.swing.internal.QueryCommandMessages;
+import com.seizia.chromite.ui.swing.internal.RoutineMessages;
 import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.Status;
 import org.eclipse.core.runtime.jobs.IJobChangeEvent;
@@ -30,6 +35,7 @@ import org.eclipse.core.runtime.jobs.JobChangeAdapter;
 import org.eclipse.osgi.util.NLS;
 import org.fife.ui.rsyntaxtextarea.RSyntaxDocument;
 import org.fife.ui.rsyntaxtextarea.RSyntaxTextArea;
+import org.fife.ui.rsyntaxtextarea.RSyntaxTextAreaEditorKit;
 import org.fife.ui.rsyntaxtextarea.RSyntaxUtilities;
 import org.fife.ui.rsyntaxtextarea.SyntaxConstants;
 import org.fife.ui.rsyntaxtextarea.Theme;
@@ -62,11 +68,13 @@ import com.seizia.chromite.model.exec.output.DBCOutputWriter;
 import com.seizia.chromite.model.exec.output.DBCServerOutputReader;
 import com.seizia.chromite.model.exec.plan.DBCQueryPlanner;
 import com.seizia.chromite.model.impl.struct.ContextDefaultObjectsReader;
+import com.seizia.chromite.model.navigator.DBNDatabaseNode;
 import com.seizia.chromite.model.qm.QMTransactionState;
 import com.seizia.chromite.model.qm.QMUtils;
 import com.seizia.chromite.model.runtime.AbstractJob;
 import com.seizia.chromite.model.runtime.DBRProgressMonitor;
 import com.seizia.chromite.model.runtime.VoidProgressMonitor;
+import com.seizia.chromite.model.sql.SQLIncludedScript;
 import com.seizia.chromite.model.sql.SQLQuery;
 import com.seizia.chromite.model.sql.SQLQueryListener;
 import com.seizia.chromite.model.sql.SQLQueryResult;
@@ -90,6 +98,7 @@ import javax.swing.event.PopupMenuListener;
 import javax.swing.text.BadLocationException;
 import javax.swing.text.DefaultEditorKit;
 import java.awt.*;
+import java.awt.datatransfer.StringSelection;
 import java.awt.event.ActionEvent;
 import java.awt.event.FocusAdapter;
 import java.awt.event.FocusEvent;
@@ -168,7 +177,8 @@ import java.util.concurrent.atomic.AtomicLong;
  *     Query Library 쿼리(확장)와 기록에서 다시 연 바인딩 실행({@link #setRecordedParameters})은 실행 전에 묻고 값을 바인딩한다
  *     ({@link SqlParameterBinding}). 대화상자는 모두 {@link QueryParameterDialog}다.</li>
  *     <li>편집 명령: SQL 서식(Ctrl+K Ctrl+D, Ctrl+Shift+F), 대문자·소문자(Ctrl+Shift+U/L), 주석 넣기·빼기(Ctrl+K Ctrl+C / Ctrl+K Ctrl+U),
- *     들여쓰기({@link SqlEditCommands}), 템플릿(이름 + Tab, Ctrl+K Ctrl+X 목록, {@link SqlTemplates})은 편집 영역({@link SqlTextArea})이 직접 키를 받는다.
+ *     블록 주석 토글(Ctrl+Shift+/), 자동 줄 바꿈(Ctrl+Alt+Shift+W), 들여쓰기({@link SqlEditCommands}, 글자 도구는 {@link SqlTextTools}),
+ *     템플릿(이름 + Tab, Ctrl+K Ctrl+X 목록, {@link SqlTemplates})은 편집 영역({@link SqlTextArea})이 직접 키를 받는다.
  *     Ctrl+K로 시작하는 두 번 누르는 키는 편집 영역의 키 리스너가 두 번째 키를 받아 처리한다(키 바인딩보다 먼저 불려 Ctrl+C 복사 등을 막는다).
  *     SQL Editor 도구 막대의 주석·들여쓰기·서식 단추도 같은 명령({@link SqlTextArea#runCommand})을 부른다.</li>
  *     <li>실행 안전 확인({@link SqlExecutionSafety}): 연결의 스크립트 실행 제한은 실행을 시작하기 전에(EDT), WHERE 없는 UPDATE/DELETE와
@@ -179,6 +189,26 @@ import java.util.concurrent.atomic.AtomicLong;
  *     읽으면 버퍼가 비워지므로 매번 읽는다(Oracle 버퍼 넘침, Altibase 메모리 증가 방지). 경고만 되풀이하는 읽기 도구는 실행 결과 없이 불러
  *     PRINT·NOTICE가 두 번 나오지 않는다(docs/chromite/swing-server-output.md). 문장을 실행하기 전에는
  *     {@link DBCServerOutputReader#syncServerOutput}으로 세션의 서버 쪽 켜짐을 지금 설정에 맞춘다(설정이 세션을 연 뒤 바뀐 경우).</li>
+ *     <li>Oracle 컴파일 오류: 저장 단위·뷰를 만든 CREATE 문이 성공하면 그 세션에서 {@code ALL_ERRORS}를 읽어({@link OracleCompileErrors})
+ *     편집기 줄·열로 바꾼 오류를 Messages 탭에 쓰고 그 줄을 오류 색으로 표시한다. Oracle은 컴파일 오류를 경고로만 알려 창이 성공으로 끝나기
+ *     때문이다(SWT는 객체 편집기가 저장 뒤 오류 줄로 옮겼다). 오류가 있으면 실행을 오류로 끝낸다. 표시는 다음 실행에서 지운다.</li>
+ *     <li>SQL 터미널(Query &gt; SQL Terminal, 쿼리 창마다 켜고 끔): 켜고 시작한 실행은 결과 표와 Messages 탭은 그대로 두고, 문장마다
+ *     {@code SQL> 문장}, 결과 집합의 글자 표, 같은 메시지와 오류를 Terminal 탭({@link SqlTerminalView})에도 쓴다. 글자 표는 결과를 받는 Job
+ *     스레드에서 만들어 두었다가 문장이 끝날 때 메시지와 함께 한 번에 EDT로 넘겨 순서가 섞이지 않는다. 실행 중에는 Results 대신 Terminal 탭을
+ *     앞으로 가져온다(SWT 터미널이 결과 탭 자동 포커스를 끈 것과 같음, docs/chromite/swing-sql-terminal.md).</li>
+ *     <li>문장 명령(Query 메뉴: 현재 문장 Ctrl+Enter, 커서부터 Alt+P, 행 수, 식): F5와 같은 실행 경로에 무엇을 실행할지만
+ *     ({@link SqlQueryCommands.ExecuteMode}) 넘긴다. 문장은 준비 Job이 연결의 방언으로 찾는다({@link SqlQueryCommands#extractElements}).
+ *     이전·다음 문장과 현재 문장 복사는 실행하지 않으므로 EDT에서 바로 한다.</li>
+ *     <li>{@code @set} 변수: 창마다 변수 문맥({@code windowVariables})을 하나 두고 실행마다 만드는 스크립트 문맥의 부모로 넘긴다.
+ *     모델의 문맥은 값을 부모까지 올려 쓰고 부모에서 찾으므로 한 실행이 정한 값이 다음 실행에 남는다(SWT 편집기의 전역 문맥과 같음).
+ *     창을 닫으면 사라지고 연결을 바꿔도 남는다. Query &gt; Variables…로 보고 고치고 지운다({@link QueryVariablesDialog}).</li>
+ *     <li>{@code @include}: 실행의 스크립트 문맥에 창의 파일을 넘겨 상대 경로가 그 폴더에서 시작한다. 포함한 파일의 문장은 엔진이 끼워 실행하고,
+ *     끼우기 전에 위험한 문을 묻고(이 창의 문장과 같은 확인), 오류 위치는 그 파일의 줄로 보인다({@code describeError}).</li>
+ *     <li>DDL 뒤 탐색기 갱신({@link SqlMetadataRefresh}): 성공한 문장마다 바뀐 개체의 그릇을 모으고, 실행이 끝나고 세션에 열린 트랜잭션이
+ *     없을 때(수동 커밋이면 커밋·롤백 뒤) Object Explorer를 다시 읽는다.</li>
+ *     <li>편집 편의(docs/chromite/swing-sql-editor-ergonomics.md): 코드 접기({@link SqlFoldParser}), 커서가 있는 이름의 다른 자리 강조
+ *     (RSyntaxTextArea의 같은 단어 표시), 이름 위 마우스 올림 설명과 Ctrl+클릭 이동({@link SqlObjectNavigation}, 이 창의 연결과 세션),
+ *     결과 고정({@link #pinResults}).</li>
  * </ul>
  *
  * 변경 이력:
@@ -239,6 +269,16 @@ import java.util.concurrent.atomic.AtomicLong;
  *   기록에서 연 창은 그 값으로 다시 바인딩({@link #setRecordedParameters}) (docs/chromite/swing-query-library.md "매개변수 대화상자와 바인딩 하나로")
  * - 2026-11-08 문장마다 실행 전에 서버 출력 켜짐을 설정에 맞춤({@code syncServerOutput}). Oracle DBMS_OUTPUT을 끄거나 켜도 열린 세션은
  *   다시 연결할 때까지 그대로였던 것 (docs/chromite/model-fixes.md "작은 모델·안전·라이선스 수정")
+ * - 2026-11-08 Oracle CREATE 뒤 컴파일 오류 줄 표시(SWT 감사 O12), 위치 보이기({@link #showSourcePosition}: Go to Source Code,
+ *   Go to Error) (docs/chromite/swing-routines.md)
+ * - 2026-11-08 SQL 터미널: 창마다 켜고 끄는 Terminal 탭에 문장과 결과를 글자로 씀({@link SqlTerminalView}, docs/chromite/swing-sql-terminal.md)
+ * - 2026-11-08 Scripts 도구 창에서 이름을 바꾼 파일을 따라가는 {@link #fileMoved} (docs/chromite/swing-scripts-explorer.md)
+ * - 2026-11-08 문장 명령(현재 문장, 커서부터, 행 수, 식, 이전·다음 문장, 현재 문장 복사), 창 단위 {@code @set} 변수와 변수 대화상자,
+ *   {@code @include}(창의 파일 기준 상대 경로, 포함 파일의 위험한 문 확인과 오류 줄), DDL 뒤 탐색기 갱신 (docs/chromite/swing-query-commands.md)
+ * - 2026-11-08 편집 편의: 코드 접기, 같은 이름 강조, 마우스 올림 설명·Ctrl+클릭({@link Host#revealNode}), 블록 주석 토글·글자 도구·자동 줄 바꿈·접기
+ *   명령({@link SqlTextArea.Command}), 결과 고정. 다시 실행 전 버리기 묻기는 고정하지 않은 결과만 셈 (docs/chromite/swing-sql-editor-ergonomics.md)
+ * - 2026-11-08 스마트 커밋({@link SmartCommit}): 엔진 처리기가 설정을 따르고, 문장이 세션을 수동 커밋으로 바꾸면 커밋·롤백 뒤 되돌릴 세션으로 기억
+ *   (docs/chromite/connection-lifecycle.md "스마트 커밋"). 쿼리 관리자가 본 커밋 방식이 바뀌면 상태 줄의 커밋 방식을 다시 읽음(실행 밖의 전환)
  */
 final class SqlEditorPanel extends JPanel {
 
@@ -262,6 +302,11 @@ final class SqlEditorPanel extends JPanel {
         void executionStateChanged(@NotNull SqlEditorPanel editor);
 
         /**
+         * Shows a database object of the editor's text in Object Explorer (Ctrl+click on its name).
+         */
+        void revealNode(@NotNull DBNDatabaseNode node);
+
+        /**
          * The tab title or tool tip changed (file name, connection, modified marker).
          */
         void titleChanged(@NotNull SqlEditorPanel editor);
@@ -270,6 +315,11 @@ final class SqlEditorPanel extends JPanel {
          * Brings the Execution plan tab of the editor to the front.
          */
         void showPlan(@NotNull SqlEditorPanel editor);
+
+        /**
+         * Brings the Terminal tab of the editor to the front (a run while Query &gt; SQL Terminal is on).
+         */
+        void showTerminal(@NotNull SqlEditorPanel editor);
     }
 
     private static final String NOT_AVAILABLE = "< N/A >"; //$NON-NLS-1$
@@ -331,6 +381,10 @@ final class SqlEditorPanel extends JPanel {
     // EDT only
     private boolean explaining;
     private boolean planTabSelected;
+    // EDT only: Query > SQL Terminal for this window; the terminal keeps its output across runs
+    private boolean terminalEnabled;
+    private boolean terminalTabSelected;
+    private final SqlTerminalView terminalView = new SqlTerminalView();
     private final QueryStatusLine statusLine = new QueryStatusLine();
     private final Timer elapsedTimer;
     private final Timer transactionTimer;
@@ -339,6 +393,9 @@ final class SqlEditorPanel extends JPanel {
      */
     @Nullable
     private QMTransactionState openTransaction;
+    // The commit mode (manual = true) the query manager last reported for the window's session, or null
+    @Nullable
+    private Boolean shownTransactionMode;
     private final Object jobLock = new Object();
     // EDT only
     @Nullable
@@ -355,8 +412,14 @@ final class SqlEditorPanel extends JPanel {
     // EDT only: the object whose definition this window edits (Modify), or null
     @Nullable
     private DBSObject sourceObject;
+    // EDT only: line highlights of compile errors (cleared when a run starts)
+    private final List<Object> errorLineMarks = new ArrayList<>();
     // The window's session: its own context or the connection's main context
     private final QueryWindowContext windowContext = new QueryWindowContext(this::getFileName);
+    // The @set variables of the window: the parent of each run's script context, so what a run sets stays for the next runs
+    private final SQLScriptContext windowVariables;
+    // Object Explorer containers to read again after DDL of this window's runs
+    private final SqlMetadataRefresh metadataRefresh = new SqlMetadataRefresh();
 
     /**
      * @param dataSourceContainer connection of the query window, or null to choose it later with the connection picker
@@ -368,10 +431,38 @@ final class SqlEditorPanel extends JPanel {
         this.fileName = fileName;
         this.fileFormat = SqlFileContent.newFile("");
         this.host = host;
+        // Variable names are normalized with the dialect of the window's session (job thread: QueryWindowContext reads are lock-free)
+        this.windowVariables = new SQLScriptContext(null, this::getExecutionContext, null, Writer.nullWriter(), null);
 
         textArea = new SqlTextArea();
         // The connection and session at the time of the request (the connection picker may change them)
         completion = new SqlCompletionPopup(textArea, this::getDataSourceContainer, this::getExecutionContext);
+        // Hover documentation and Ctrl+click of names, with the connection and session at the time of the request
+        SqlObjectNavigation.install(textArea, new SqlObjectNavigation.Host() {
+            @Nullable
+            @Override
+            public DBPDataSourceContainer getDataSourceContainer() {
+                return SqlEditorPanel.this.getDataSourceContainer();
+            }
+
+            @Nullable
+            @Override
+            public DBCExecutionContext getExecutionContext() {
+                return SqlEditorPanel.this.getExecutionContext();
+            }
+
+            @Override
+            public void revealNode(@NotNull DBNDatabaseNode node) {
+                host.revealNode(node);
+            }
+
+            @Override
+            public void showMessage(@NotNull String message) {
+                if (execution == null) {
+                    statusLine.setState(QueryStatusLine.State.READY, message);
+                }
+            }
+        });
         RTextScrollPane scrollPane = new RTextScrollPane(textArea, true);
         scrollPane.setBorder(BorderFactory.createEmptyBorder());
         // The gutter takes its colors from the theme too, so the theme is applied once the scroll pane exists
@@ -507,6 +598,16 @@ final class SqlEditorPanel extends JPanel {
     }
 
     /**
+     * The window's file was renamed or its folder renamed (Scripts tool window): the window keeps its text and modified
+     * state, and saves to the new file.
+     */
+    void fileMoved(@NotNull Path file) {
+        this.file = file;
+        this.fileName = file.getFileName().toString();
+        host.titleChanged(this);
+    }
+
+    /**
      * Makes this window a window of another document kind (a Query Library query): its header goes above the editor,
      * and saving, the tab icon and parameter binding come from the extension.
      */
@@ -554,6 +655,60 @@ final class SqlEditorPanel extends JPanel {
     }
 
     /**
+     * A place in the text to show: the selection and the lines to mark as compile errors.
+     *
+     * @param start      selection start (caret when {@code end == start})
+     * @param errorLines 0-based lines marked with the error color
+     */
+    record SourcePosition(int start, int end, @NotNull List<Integer> errorLines) {
+    }
+
+    /**
+     * Selects a range, scrolls to it and marks error lines (Go to Source Code, Go to Error). The marks stay until the
+     * next run or the next call.
+     */
+    void showSourcePosition(@NotNull SourcePosition position) {
+        markErrorLines(position.errorLines());
+        int length = textArea.getDocument().getLength();
+        int start = Math.max(0, Math.min(position.start(), length));
+        int end = Math.max(start, Math.min(position.end(), length));
+        textArea.setCaretPosition(start);
+        textArea.moveCaretPosition(end);
+        textArea.requestFocusInWindow();
+    }
+
+    /**
+     * Marks lines with the error color, replacing earlier marks (EDT).
+     */
+    private void markErrorLines(@NotNull List<Integer> lines) {
+        clearErrorLines();
+        addErrorLines(lines);
+    }
+
+    /**
+     * Marks more lines with the error color, keeping the earlier marks (EDT).
+     */
+    private void addErrorLines(@NotNull List<Integer> lines) {
+        Color red = UIManager.getColor("Chromite.status.error"); //$NON-NLS-1$
+        Color base = red != null ? red : Color.RED;
+        Color color = new Color(base.getRed(), base.getGreen(), base.getBlue(), 50);
+        for (int line : lines) {
+            if (line >= 0 && line < textArea.getLineCount()) {
+                try {
+                    errorLineMarks.add(textArea.addLineHighlight(line, color));
+                } catch (BadLocationException e) {
+                    log.debug("Error line out of the text: " + line); //$NON-NLS-1$
+                }
+            }
+        }
+    }
+
+    private void clearErrorLines() {
+        errorLineMarks.forEach(textArea::removeLineHighlight);
+        errorLineMarks.clear();
+    }
+
+    /**
      * Something besides the text changed (the extension's header fields): the window needs saving.
      */
     void markModified() {
@@ -591,6 +746,22 @@ final class SqlEditorPanel extends JPanel {
     }
 
     /**
+     * Query &gt; Pin Results: the current results move to a pinned tab and the next run leaves them.
+     */
+    void pinResults() {
+        if (execution != null) {
+            // The run is still adding grids to the current results
+            UIManager.getLookAndFeel().provideErrorFeedback(this);
+            return;
+        }
+        if (!resultsView.pinResults()) {
+            statusLine.setState(QueryStatusLine.State.READY, EditorMessages.editor_results_nothing_to_pin);
+            return;
+        }
+        host.showResults(this, false);
+    }
+
+    /**
      * Content of the Execution plan tab.
      */
     @NotNull
@@ -624,6 +795,43 @@ final class SqlEditorPanel extends JPanel {
 
     boolean isExplaining() {
         return explaining;
+    }
+
+    /**
+     * Query &gt; SQL Terminal, per query window: runs are also written as text to the Terminal tab
+     * ({@link #getTerminalView()}).
+     */
+    boolean isTerminalEnabled() {
+        return terminalEnabled;
+    }
+
+    /**
+     * Turns the terminal on or off for the next runs; a run that is going on keeps the choice it started with.
+     */
+    void setTerminalEnabled(boolean enabled) {
+        terminalEnabled = enabled;
+        if (!enabled) {
+            terminalTabSelected = false;
+        }
+    }
+
+    /**
+     * Content of the Terminal tab.
+     */
+    @NotNull
+    SqlTerminalView getTerminalView() {
+        return terminalView;
+    }
+
+    /**
+     * Whether the Terminal tab was the last one the user looked at for this window (restored on activation).
+     */
+    boolean isTerminalTabSelected() {
+        return terminalTabSelected;
+    }
+
+    void setTerminalTabSelected(boolean terminalTabSelected) {
+        this.terminalTabSelected = terminalTabSelected;
     }
 
     /**
@@ -696,6 +904,42 @@ final class SqlEditorPanel extends JPanel {
     }
 
     /**
+     * Query &gt; Copy Current Statement: the statement at the caret (or the selection) to the clipboard, as it is in the
+     * editor.
+     */
+    void copyCurrentStatement() {
+        SQLScriptElement element = SqlQueryCommands.getActiveStatement(dataSourceContainer, textArea);
+        if (element == null) {
+            statusLine.setState(QueryStatusLine.State.READY, QueryCommandMessages.query_no_statement);
+            return;
+        }
+        String text = textArea.getText();
+        int start = element.getOffset();
+        int end = start + element.getLength();
+        String statement = start >= 0 && end <= text.length() && end > start ? text.substring(start, end) : element.getText();
+        Toolkit.getDefaultToolkit().getSystemClipboard().setContents(new StringSelection(statement), null);
+        statusLine.setState(QueryStatusLine.State.READY, QueryCommandMessages.query_copy_statement_done);
+    }
+
+    /**
+     * Query &gt; Previous / Next Statement: selects the statement before or after the one at the caret.
+     */
+    void selectStatement(boolean next) {
+        if (!SqlQueryCommands.selectStatement(dataSourceContainer, textArea, next)) {
+            UIManager.getLookAndFeel().provideErrorFeedback(textArea);
+        }
+    }
+
+    /**
+     * Query &gt; Variables…: the {@code @set} variables this window keeps between runs. Not while a run changes them.
+     */
+    void showVariables() {
+        if (execution == null) {
+            QueryVariablesDialog.open(this, fileName, windowVariables);
+        }
+    }
+
+    /**
      * The tab is closing: stop a running query and close the window's own session (the main window asked about its
      * transaction first, {@link #confirmEndSession}).
      */
@@ -704,6 +948,7 @@ final class SqlEditorPanel extends JPanel {
         completion.cancel();
         elapsedTimer.stop();
         transactionTimer.stop();
+        metadataRefresh.clear();
         windowContext.release();
     }
 
@@ -842,6 +1087,15 @@ final class SqlEditorPanel extends JPanel {
      * Executes the selection if at least one character is selected, otherwise the whole editor text.
      */
     void execute() {
+        execute(SqlQueryCommands.ExecuteMode.SCRIPT);
+    }
+
+    /**
+     * Executes what the mode says: F5's selection or whole text, or a statement command of the Query menu (the statement
+     * at the caret, from the caret, its row count, an expression). The statement commands find their statements in the
+     * preparation job, with the connection's dialect ({@link SqlQueryCommands#extractElements}).
+     */
+    void execute(@NotNull SqlQueryCommands.ExecuteMode mode) {
         if (execution != null || explaining) {
             return;
         }
@@ -854,11 +1108,17 @@ final class SqlEditorPanel extends JPanel {
         int selectionEnd = textArea.getSelectionEnd();
         int offset = 0;
         int length = text.length();
-        if (selectionEnd - selectionStart >= 1) {
+        if (mode != SqlQueryCommands.ExecuteMode.SCRIPT) {
+            // The caret and the selection, possibly empty
+            offset = selectionStart;
+            length = selectionEnd - selectionStart;
+        } else if (selectionEnd - selectionStart >= 1) {
             offset = selectionStart;
             length = selectionEnd - selectionStart;
         }
-        if (text.substring(offset, offset + length).isBlank()) {
+        // The text the run can execute: F5's range, the selection, or the whole text for a statement found later
+        String scope = mode == SqlQueryCommands.ExecuteMode.SCRIPT || length > 0 ? text.substring(offset, offset + length) : text;
+        if (scope.isBlank()) {
             statusLine.setState(QueryStatusLine.State.READY, EditorMessages.editor_sql_nothing_to_execute);
             return;
         }
@@ -871,7 +1131,8 @@ final class SqlEditorPanel extends JPanel {
         if (!SqlExecutionSafety.checkExecutePermission(this, container)) {
             return;
         }
-        int pendingChanges = resultsView.getChangeCount();
+        // Pinned results stay, so only the current ones are replaced
+        int pendingChanges = resultsView.getCurrentChangeCount();
         if (pendingChanges > 0) {
             String[] options = {EditorMessages.editor_sql_discard_and_execute, EditorMessages.editor_common_cancel};
             if (JOptionPane.showOptionDialog(this,
@@ -885,14 +1146,14 @@ final class SqlEditorPanel extends JPanel {
         // Other windows: the engine asks for the values it needs while the script runs (ScriptProvider)
         SqlParameterBinding binding = SqlParameterBinding.NONE;
         if (extension != null) {
-            binding = extension.prepareExecution(this, container, text.substring(offset, offset + length));
+            binding = extension.prepareExecution(this, container, scope);
             if (binding == null) {
                 return;
             }
         } else if (recordedParameters != null) {
             boolean ask = !runRecordedWithoutAsking;
             runRecordedWithoutAsking = false;
-            binding = recordedParameters.prepareExecution(this, getFileName(), container, text.substring(offset, offset + length), ask);
+            binding = recordedParameters.prepareExecution(this, getFileName(), container, scope, ask);
             if (binding == null) {
                 return;
             }
@@ -902,9 +1163,13 @@ final class SqlEditorPanel extends JPanel {
         Execution run = new Execution(container, text, offset, length,
             maxRows > 0 ? Math.max(maxRows, connectionMaxRows) : connectionMaxRows, maxRows > 0);
         run.includeActualPlan = isIncludeActualPlan();
+        run.terminal = terminalEnabled;
         run.binding = binding;
+        run.mode = mode;
+        run.file = file;
         execution = run;
         resultsView.clear();
+        clearErrorLines();
         if (run.includeActualPlan) {
             planView.clear(EditorMessages.editor_sql_waiting_actual_plan);
         }
@@ -913,7 +1178,7 @@ final class SqlEditorPanel extends JPanel {
         statusLine.setRows(null);
         elapsedTimer.start();
         updateActions();
-        host.showResults(this, false);
+        showRunOutput(run, false);
 
         AbstractJob prepareJob = new AbstractJob("Prepare query") {
             @NotNull
@@ -991,10 +1256,18 @@ final class SqlEditorPanel extends JPanel {
             // Errors outside of a query (e.g. opening the session); query errors were already written by the listener
             run.hasErrors = true;
             resultsView.appendError(ErrorText.describe(status));
+            if (run.terminal) {
+                terminalView.appendError(ErrorText.describe(status));
+                terminalView.append("");
+            }
         }
         boolean canceled = run.cancelRequested || status.getSeverity() == IStatus.CANCEL;
         if (canceled) {
             resultsView.appendMessage(EditorMessages.editor_sql_canceled_by_user);
+            if (run.terminal) {
+                terminalView.append(EditorMessages.editor_sql_canceled_by_user);
+                terminalView.append("");
+            }
         }
         resultsView.appendMessage("");
         resultsView.appendMessage(NLS.bind(EditorMessages.editor_sql_completion_time, OffsetDateTime.now().format(COMPLETION_TIME_FORMAT)));
@@ -1014,12 +1287,24 @@ final class SqlEditorPanel extends JPanel {
         refreshOpenTransaction();
         updateActions();
         // As in SSMS: errors (or no result grids at all) bring the Messages tab to the front
-        host.showResults(this, run.hasErrors || resultsView.getGridCount() == 0);
+        showRunOutput(run, run.hasErrors || resultsView.getGridCount() == 0);
         finishActualPlan(run, canceled);
         // The run may have connected, or changed the default database (USE)
         refreshSchemas();
         if (executionFinishedListener != null) {
             executionFinishedListener.run();
+        }
+    }
+
+    /**
+     * Brings the output of a run to the front: the Terminal tab when the run writes to the terminal, else the Results
+     * or Messages tab.
+     */
+    private void showRunOutput(@NotNull Execution run, boolean messages) {
+        if (run.terminal) {
+            host.showTerminal(this);
+        } else {
+            host.showResults(this, messages);
         }
     }
 
@@ -1162,26 +1447,32 @@ final class SqlEditorPanel extends JPanel {
             }
             // Opens the window's own session on the first run (QueryWindowContext); fails with editor_sql_no_context
             DBCExecutionContext context = windowContext.open(monitor, dataSource);
-            List<SQLScriptElement> elements = run.binding.prepare(monitor, context,
-                SQLScriptBatches.extractQueries(dataSource, run.text, run.offset, run.length));
+            List<SQLScriptElement> extracted = SqlQueryCommands.extractElements(run.mode, dataSource, run.text, run.offset, run.length);
+            if (extracted == null || extracted.isEmpty() && run.mode != SqlQueryCommands.ExecuteMode.SCRIPT) {
+                stopPreparation(run, errorStatus(extracted == null ? QueryCommandMessages.query_no_statement : QueryCommandMessages.query_not_a_query));
+                return;
+            }
+            List<SQLScriptElement> elements = run.binding.prepare(monitor, context, extracted);
             if (elements.isEmpty()) {
                 stopPreparation(run, Status.OK_STATUS);
                 return;
             }
             // Asked here, not in execute(): the statements are known only after splitting with the connection's dialect
-            if (!SqlExecutionSafety.confirmDangerousStatements(this, dataSource, run.text, elements)) {
+            if (!SqlExecutionSafety.confirmDangerousStatements(this, dataSource, run.text, elements, null)) {
                 stopPreparation(run, Status.CANCEL_STATUS);
                 return;
             }
             if (run.includeActualPlan) {
                 prepareActualPlan(run, monitor, dataSource, context);
             }
-            // Parameters without a value are asked for in a dialog (SWT: SQLEditorParametersProvider)
-            SQLScriptContext scriptContext = new SQLScriptContext(null, () -> context, null, new MessagesWriter(run),
+            // Parameters without a value are asked for in a dialog (SWT: SQLEditorParametersProvider). The window's variables
+            // are the parent: @set values stay for the next runs; the window's file is where @include starts relative paths
+            SQLScriptContext scriptContext = new SQLScriptContext(windowVariables, () -> context, run.file, new MessagesWriter(run),
                 new QueryParameterBinder.ScriptProvider(this));
             SQLQueryExecuteJob job = new SQLQueryExecuteJob(
                 "Execute query", context, null, elements, scriptContext,
                 new QueryListener(run, context), new QueryHandler(run, context, scriptContext));
+            run.engine = job;
             if (run.customMaxRows) {
                 job.setResultSetLimit(0, run.maxRows);
             }
@@ -1302,6 +1593,11 @@ final class SqlEditorPanel extends JPanel {
         readServerOutput(session, messages);
         Throwable error = result.getError();
         String errorText = null;
+        List<CompileErrorLine> compileErrors = error == null ? readCompileErrors(run, session, result.getStatement()) : List.of();
+        if (compileErrors.stream().anyMatch(CompileErrorLine::error)) {
+            // The unit exists but is invalid: the run reports errors and brings the Messages tab to the front
+            run.hasErrors = true;
+        }
         if (error == null) {
             boolean anyCount = false;
             List<ActualPlanReceiver> planReceivers = run.planReceivers.getOrDefault(result.getStatement(), List.of());
@@ -1334,12 +1630,96 @@ final class SqlEditorPanel extends JPanel {
             run.reportedErrors.add(error);
         }
         String finalErrorText = errorText;
+        // SQL terminal: the statement, its result sets as text tables, then the same messages as the Messages tab
+        String terminalText = null;
+        if (run.terminal) {
+            StringBuilder terminal = new StringBuilder(SqlTerminalView.formatStatement(run.binding.getHistoryText(result.getStatement())));
+            for (String table : run.terminalTables.getOrDefault(result.getStatement(), List.of())) {
+                terminal.append('\n').append(table);
+            }
+            for (String message : messages) {
+                terminal.append('\n').append(message);
+            }
+            // Oracle compile errors, as the Messages tab shows them after the messages
+            for (CompileErrorLine compileError : compileErrors) {
+                terminal.append('\n').append(compileError.text());
+            }
+            terminalText = terminal.toString();
+        }
+        String finalTerminalText = terminalText;
         post(run, () -> {
             messages.forEach(resultsView::appendMessage);
+            List<Integer> errorLines = new ArrayList<>();
+            for (CompileErrorLine compileError : compileErrors) {
+                if (compileError.error()) {
+                    resultsView.appendError(compileError.text());
+                } else {
+                    resultsView.appendMessage(compileError.text());
+                }
+                if (compileError.line() >= 0 && compileError.error()) {
+                    errorLines.add(compileError.line());
+                }
+            }
+            addErrorLines(errorLines);
             if (finalErrorText != null) {
                 resultsView.appendError(finalErrorText);
             }
+            if (finalTerminalText != null) {
+                terminalView.append(finalTerminalText);
+                if (finalErrorText != null) {
+                    terminalView.appendError(finalErrorText);
+                }
+                terminalView.append("");
+            }
         });
+    }
+
+    /**
+     * A message line about a compile error, and its 0-based editor line (-1: none).
+     */
+    private record CompileErrorLine(@NotNull String text, int line, boolean error) {
+    }
+
+    /**
+     * Oracle: the compile errors ({@code ALL_ERRORS}) of the stored unit or view a successful CREATE statement made, with
+     * their lines in the editor. Oracle reports them only as a warning (ORA-17110), so the window would say the run
+     * succeeded while the object is invalid (SWT showed them in the object editor after saving). Empty for other
+     * statements and databases. Job thread; reads in the statement's session.
+     */
+    @NotNull
+    private static List<CompileErrorLine> readCompileErrors(@NotNull Execution run, @NotNull DBCSession session, @NotNull SQLQuery query) {
+        if (!(session.getDataSource() instanceof OracleDataSource) || !(session instanceof JDBCSession jdbcSession)) {
+            return List.of();
+        }
+        String text = query.getText();
+        OracleCompileErrors.Unit unit = OracleCompileErrors.parseCreate(text);
+        if (unit == null) {
+            return List.of();
+        }
+        List<CompileErrorLine> lines = new ArrayList<>();
+        try {
+            String owner = unit.owner() != null ? unit.owner() : OracleCompileErrors.readCurrentSchema(jdbcSession);
+            List<OracleCompileErrors.CompileError> errors = OracleCompileErrors.read(jdbcSession, owner, unit.name(), List.of(unit.type()));
+            if (errors.isEmpty()) {
+                return List.of();
+            }
+            boolean anyError = errors.stream().anyMatch(OracleCompileErrors.CompileError::error);
+            lines.add(new CompileErrorLine(NLS.bind(anyError ? RoutineMessages.routine_compile_errors_header : RoutineMessages.routine_compile_warnings_header,
+                unit.type(), owner + "." + unit.name()), -1, anyError)); //$NON-NLS-1$
+            // The statement's text starts at its offset in the run's text (the editor text when the run started)
+            boolean aligned = run.text.startsWith(text, query.getOffset());
+            for (OracleCompileErrors.CompileError error : errors) {
+                int offset = query.getOffset() + OracleCompileErrors.getErrorOffset(text, unit.sourceStart(), error);
+                int line = aligned ? lineOf(run.text, offset) : lineOf(run.text, query.getOffset());
+                int column = aligned ? offset - run.text.lastIndexOf('\n', offset - 1) : 0;
+                String message = column > 0 ? NLS.bind(RoutineMessages.routine_compile_error_position, new Object[] {line, column, error.text()})
+                    : NLS.bind(RoutineMessages.routine_compile_error_line, line, error.text());
+                lines.add(new CompileErrorLine(message, line - 1, error.error()));
+            }
+        } catch (SQLException e) {
+            log.debug("Can't read the compile errors", e); //$NON-NLS-1$
+        }
+        return lines;
     }
 
     /**
@@ -1397,6 +1777,10 @@ final class SqlEditorPanel extends JPanel {
      */
     @NotNull
     private static String describeError(@NotNull Execution run, @NotNull DBCSession session, @NotNull SQLQuery query, @NotNull Throwable error) {
+        // A statement of an included file: its offsets are in that file's text
+        SQLQueryExecuteJob engine = run.engine;
+        SQLIncludedScript included = engine == null ? null : run.includedScripts.get(engine.getCurrentScriptContext());
+        String text = included != null ? included.getText() : run.text;
         int errorOffset = -1;
         int line = -1;
         int column = -1;
@@ -1412,18 +1796,18 @@ final class SqlEditorPanel extends JPanel {
                     }
                 } else {
                     // Line within the query, position within that line (both zero-based)
-                    line = lineOf(run.text, query.getOffset()) + position.line;
+                    line = lineOf(text, query.getOffset()) + position.line;
                     column = position.position >= 0 ? position.position + 1 : -1;
                 }
             }
         } catch (Throwable e) {
             log.debug("Can't get error position", e);
         }
-        if (errorOffset >= 0 && errorOffset <= run.text.length()) {
-            line = lineOf(run.text, errorOffset);
-            column = errorOffset - run.text.lastIndexOf('\n', errorOffset - 1);
+        if (errorOffset >= 0 && errorOffset <= text.length()) {
+            line = lineOf(text, errorOffset);
+            column = errorOffset - text.lastIndexOf('\n', errorOffset - 1);
         } else if (line < 0) {
-            line = lineOf(run.text, query.getOffset());
+            line = lineOf(text, query.getOffset());
         }
 
         StringBuilder header = new StringBuilder();
@@ -1436,6 +1820,9 @@ final class SqlEditorPanel extends JPanel {
             header.append(", ");
         } else {
             header.append(EditorMessages.editor_sql_error_generic);
+        }
+        if (included != null) {
+            header.append(NLS.bind(QueryCommandMessages.query_include_error_file, included.getFile().getFileName())).append(", ");
         }
         header.append(NLS.bind(EditorMessages.editor_sql_error_line, line));
         if (column > 0) {
@@ -1512,6 +1899,18 @@ final class SqlEditorPanel extends JPanel {
         final Map<SQLQuery, List<ActualPlanReceiver>> planReceivers = new IdentityHashMap<>();
         // Set in the EDT before the jobs start
         SqlParameterBinding binding = SqlParameterBinding.NONE;
+        boolean terminal;
+        SqlQueryCommands.ExecuteMode mode = SqlQueryCommands.ExecuteMode.SCRIPT;
+        // The window's file at the start (relative @include paths start in its folder), null for a query never saved
+        @Nullable
+        Path file;
+        // The engine, set before it is scheduled
+        @Nullable
+        volatile SQLQueryExecuteJob engine;
+        // The files the run's @include commands read, by their script context (job thread only)
+        final Map<SQLScriptContext, SQLIncludedScript> includedScripts = new IdentityHashMap<>();
+        // SQL terminal (job thread only): the text tables of each query's result sets, written when the query ends
+        final Map<SQLQuery, List<String>> terminalTables = new IdentityHashMap<>();
 
         Execution(
             @NotNull DBPDataSourceContainer dataSourceContainer,
@@ -1568,10 +1967,14 @@ final class SqlEditorPanel extends JPanel {
                 run.rowsFetched.addAndGet(fetched.data().rows().size());
                 // Only a query's first result set can be read again on its own (Export Data); receivers are called in order
                 boolean exportable = gridQueries.add(query);
+                if (run.terminal) {
+                    // Formatted here, off the EDT; written with the query's messages when it ends (reportQueryResult)
+                    run.terminalTables.computeIfAbsent(query, q -> new ArrayList<>()).add(SqlTerminalView.formatTable(fetched.data()));
+                }
                 post(run, () -> {
                     resultsView.addGrid(exportable ? fetched.withExportQuery(dataContainer) : fetched);
                     statusLine.setRows(NLS.bind(EditorMessages.editor_sql_rows_many, run.rowsFetched.get()));
-                    host.showResults(SqlEditorPanel.this, false);
+                    showRunOutput(run, false);
                 });
             });
         }
@@ -1583,9 +1986,29 @@ final class SqlEditorPanel extends JPanel {
             if (!run.reportedErrors.contains(error)) {
                 // Failed before the query was sent (parameters, pragmas, control commands)
                 run.hasErrors = true;
-                post(run, () -> resultsView.appendError(ErrorText.describe(error)));
+                post(run, () -> {
+                    resultsView.appendError(ErrorText.describe(error));
+                    if (run.terminal) {
+                        terminalView.appendError(ErrorText.describe(error));
+                        terminalView.append("");
+                    }
+                });
             }
             return DBPPlatformUI.UserResponse.STOP;
+        }
+
+        @Override
+        public boolean confirmIncludedScript(@NotNull SQLIncludedScript script) {
+            // Its statements report errors at lines of the file (describeError), and are checked like the run's own ones
+            run.includedScripts.put(script.getScriptContext(), script);
+            return SqlExecutionSafety.confirmDangerousStatements(SqlEditorPanel.this, context.getDataSource(), script.getText(),
+                script.getScriptElements(), String.valueOf(script.getFile().getFileName()));
+        }
+
+        @Override
+        public boolean isSmartAutoCommit() {
+            // A data-changing statement switches an auto-commit session to manual commit (SmartCommit)
+            return SmartCommit.isEnabled(run.dataSourceContainer);
         }
 
         @Override
@@ -1605,6 +2028,8 @@ final class SqlEditorPanel extends JPanel {
     private final class QueryListener implements SQLQueryListener {
         private final Execution run;
         private final DBCExecutionContext context;
+        // The session's commit mode before the current statement, for smart commit
+        private boolean wasAutoCommit;
 
         QueryListener(@NotNull Execution run, @NotNull DBCExecutionContext context) {
             this.run = run;
@@ -1613,13 +2038,20 @@ final class SqlEditorPanel extends JPanel {
 
         @Override
         public void onStartQuery(@NotNull DBCSession session, @NotNull SQLQuery query) {
+            wasAutoCommit = SmartCommit.isAutoCommit(session.getExecutionContext());
             syncServerOutput(session);
         }
 
         @Override
         public void onEndQuery(@NotNull DBCSession session, @NotNull SQLQueryResult result, @NotNull DBCStatistics statistics) {
+            if (SmartCommit.isEnabled(run.dataSourceContainer)) {
+                SmartCommit.afterStatement(session.getExecutionContext(), wasAutoCommit);
+            }
             reportQueryResult(run, session, result);
             recordHistory(run, context, result);
+            if (result.getError() == null) {
+                metadataRefresh.collect(session, result.getStatement());
+            }
             if (run.includeActualPlan && run.planner != null && result.getError() == null && !run.cancelRequested
                 && SqlPlanExplainer.isReadOnlySelect(result.getStatement())) {
                 run.actualPlanQueries.add(result.getStatement());
@@ -1683,7 +2115,7 @@ final class SqlEditorPanel extends JPanel {
     }
 
     /**
-     * Output of script commands ({@code @echo} etc.) goes to the Messages tab.
+     * Output of script commands ({@code @echo} etc.) goes to the Messages tab, and to the terminal when it is on.
      */
     private final class MessagesWriter extends Writer {
         private final Execution run;
@@ -1696,7 +2128,12 @@ final class SqlEditorPanel extends JPanel {
         public void write(char[] buffer, int offset, int length) {
             String text = new String(buffer, offset, length);
             if (!text.isBlank()) {
-                post(run, () -> resultsView.appendMessage(text.stripTrailing()));
+                post(run, () -> {
+                    resultsView.appendMessage(text.stripTrailing());
+                    if (run.terminal) {
+                        terminalView.append(text.stripTrailing());
+                    }
+                });
             }
         }
 
@@ -1848,9 +2285,22 @@ final class SqlEditorPanel extends JPanel {
         QMTransactionState previous = openTransaction;
         openTransaction = shown;
         statusLine.setOpenTransaction(shown);
+        if (shown == null && execution == null) {
+            // DDL of the window's runs is visible to Object Explorer's metadata session once it is committed
+            metadataRefresh.refreshPending();
+        }
         if (previous == null ? shown != null
             : shown == null || previous.getTransactionStartTime() != shown.getTransactionStartTime() || previous.isExecuting() != shown.isExecuting()) {
             host.executionStateChanged(this);
+        }
+        // The commit mode changed outside this window's execution (smart commit going back to auto-commit after a commit
+        // or rollback, the connection's Auto-commit applied to open sessions): read it again. Set first, so that the
+        // read, which calls this method, does not start another one.
+        Boolean mode = transaction == null ? null : transaction.isTransactionMode();
+        Boolean previousMode = shownTransactionMode;
+        shownTransactionMode = mode;
+        if (mode != null && previousMode != null && !mode.equals(previousMode)) {
+            refreshTransactionMode();
         }
     }
 
@@ -2030,6 +2480,11 @@ final class SqlEditorPanel extends JPanel {
      * {@link DdlViewerPanel} and by the Options preview).
      */
     static final class SqlTextArea extends RSyntaxTextArea {
+        static {
+            // Before the first text area: its fold manager looks up the parser of the syntax style when the style is set
+            SqlFoldParser.install();
+        }
+
         // EDT only; read by the token maker while painting
         private SqlTokenClassifier.Words words = SqlTokenClassifier.Words.STANDARD;
         // EDT only: connection for the dialect of the editing commands
@@ -2044,7 +2499,10 @@ final class SqlEditorPanel extends JPanel {
             // Keywords, functions and types of the connection's dialect, SSMS operator words (SqlTokenClassifier)
             ((RSyntaxDocument) getDocument()).setTokenMakerFactory(new SqlTokenClassifier.Factory(() -> words));
             setSyntaxEditingStyle(SyntaxConstants.SYNTAX_STYLE_SQL);
-            setCodeFoldingEnabled(false);
+            // Statements, BEGIN/END and CASE blocks, parentheses and block comments (SqlFoldParser, registered above)
+            setCodeFoldingEnabled(true);
+            // Other occurrences of the name at the caret (the theme's markOccurrencesHighlight color)
+            setMarkOccurrences(true);
             setTabSize(4);
             // SSMS find keys (Edit menu); bound here so they win over the text area's own keys (Ctrl+H deletes backwards)
             bindKey(KeyStroke.getKeyStroke(KeyEvent.VK_F, InputEvent.CTRL_DOWN_MASK), "chromite.find", //$NON-NLS-1$
@@ -2064,8 +2522,15 @@ final class SqlEditorPanel extends JPanel {
                 () -> runCommand(Command.UPPER_CASE));
             bindKey(KeyStroke.getKeyStroke(KeyEvent.VK_L, InputEvent.CTRL_DOWN_MASK | InputEvent.SHIFT_DOWN_MASK), "chromite.lowerCase", //$NON-NLS-1$
                 () -> runCommand(Command.LOWER_CASE));
+            // The keys of the SWT editor
+            bindKey(KeyStroke.getKeyStroke(KeyEvent.VK_SLASH, InputEvent.CTRL_DOWN_MASK | InputEvent.SHIFT_DOWN_MASK), "chromite.blockComment", //$NON-NLS-1$
+                () -> runCommand(Command.TOGGLE_BLOCK_COMMENT));
+            bindKey(KeyStroke.getKeyStroke(KeyEvent.VK_W, InputEvent.CTRL_DOWN_MASK | InputEvent.ALT_DOWN_MASK | InputEvent.SHIFT_DOWN_MASK),
+                "chromite.wordWrap", () -> runCommand(Command.WORD_WRAP)); //$NON-NLS-1$
             // Tab: next template variable, a template name before the caret, else the text area's own Tab (indent)
             bindKey(KeyStroke.getKeyStroke(KeyEvent.VK_TAB, 0), "chromite.tab", this::tab); //$NON-NLS-1$
+            // Ctrl+Enter is Query > Execute Current Statement (main window); the text area's own word completion would take it
+            getInputMap(JComponent.WHEN_FOCUSED).put(KeyStroke.getKeyStroke(KeyEvent.VK_ENTER, InputEvent.CTRL_DOWN_MASK), "none"); //$NON-NLS-1$
             // Key listeners run before the key bindings: the second key of a chord never reaches them
             addKeyListener(new KeyAdapter() {
                 @Override
@@ -2082,17 +2547,38 @@ final class SqlEditorPanel extends JPanel {
         }
 
         /**
-         * Editing commands of the query editor (Edit &gt; Advanced and the editor keys).
+         * Commands of the query editor (Edit &gt; Advanced and the editor keys).
          */
         enum Command {
-            FORMAT, UPPER_CASE, LOWER_CASE, COMMENT, UNCOMMENT, INDENT, OUTDENT, INSERT_TEMPLATE
+            FORMAT, UPPER_CASE, LOWER_CASE, COMMENT, UNCOMMENT, TOGGLE_BLOCK_COMMENT, INDENT, OUTDENT, INSERT_TEMPLATE,
+            TRIM, TRIM_LEADING, TRIM_TRAILING, MORPH_LIST,
+            // Commands that do not change the text: also for read-only text areas
+            WORD_WRAP(false), SEARCH_WEB(false),
+            COLLAPSE_FOLD(false), EXPAND_FOLD(false), COLLAPSE_ALL_FOLDS(false), EXPAND_ALL_FOLDS(false), COLLAPSE_COMMENT_FOLDS(false);
+
+            private final boolean edits;
+
+            Command() {
+                this(true);
+            }
+
+            Command(boolean edits) {
+                this.edits = edits;
+            }
+
+            /**
+             * Whether the command changes the text (not available in read-only text areas).
+             */
+            boolean isEdit() {
+                return edits;
+            }
         }
 
         /**
-         * Runs an editing command on this text area; read-only text areas (DDL tabs) ignore them.
+         * Runs a command on this text area; read-only text areas (DDL tabs) ignore the commands that change the text.
          */
         void runCommand(@NotNull Command command) {
-            if (!isEditable()) {
+            if (command.isEdit() && !isEditable()) {
                 return;
             }
             switch (command) {
@@ -2101,9 +2587,35 @@ final class SqlEditorPanel extends JPanel {
                 case LOWER_CASE -> SqlEditCommands.changeCase(this, false);
                 case COMMENT -> SqlEditCommands.comment(this, container);
                 case UNCOMMENT -> SqlEditCommands.uncomment(this, container);
+                case TOGGLE_BLOCK_COMMENT -> SqlTextTools.toggleBlockComment(this, container);
                 case INDENT -> SqlEditCommands.indent(this);
                 case OUTDENT -> SqlEditCommands.outdent(this);
                 case INSERT_TEMPLATE -> showTemplateMenu();
+                case TRIM -> SqlTextTools.trim(this, SqlTextTools.Trim.BOTH);
+                case TRIM_LEADING -> SqlTextTools.trim(this, SqlTextTools.Trim.LEADING);
+                case TRIM_TRAILING -> SqlTextTools.trim(this, SqlTextTools.Trim.TRAILING);
+                case MORPH_LIST -> SqlTextTools.morphDelimitedList(this);
+                case WORD_WRAP -> setLineWrap(!getLineWrap());
+                case SEARCH_WEB -> SqlTextTools.searchWeb(this);
+                case COLLAPSE_FOLD -> runTextAction(RSyntaxTextAreaEditorKit.rstaCollapseFoldAction);
+                case EXPAND_FOLD -> runTextAction(RSyntaxTextAreaEditorKit.rstaExpandFoldAction);
+                case COLLAPSE_ALL_FOLDS -> runTextAction(RSyntaxTextAreaEditorKit.rstaCollapseAllFoldsAction);
+                case EXPAND_ALL_FOLDS -> runTextAction(RSyntaxTextAreaEditorKit.rstaExpandAllFoldsAction);
+                case COLLAPSE_COMMENT_FOLDS -> runTextAction(RSyntaxTextAreaEditorKit.rstaCollapseAllCommentFoldsAction);
+            }
+        }
+
+        /**
+         * Edit &gt; Advanced &gt; Copy as Source Code: the selection (or the statement at the caret) for a programming language.
+         */
+        void copyAsSourceCode(@NotNull SqlTextTools.SourceFormat format) {
+            SqlTextTools.copyAsSourceCode(this, format, container);
+        }
+
+        private void runTextAction(@NotNull String actionKey) {
+            Action action = getActionMap().get(actionKey);
+            if (action != null) {
+                action.actionPerformed(new ActionEvent(this, ActionEvent.ACTION_PERFORMED, actionKey));
             }
         }
 

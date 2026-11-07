@@ -77,7 +77,8 @@ import java.util.stream.Stream;
  * <ul>
  *     <li>Swing 백업·복원 대화상자와 같은 네이티브 도구 작업을 같은 경로({@link NativeBackupRestore}, model.admin)로 실행한다. 설정 객체만
  *     도구 인수로 채운다. 암호는 명령줄에 없다(처리기가 PGPASSWORD·MYSQL_PWD 환경 변수로 넘김). 확인 요청에 실제로 실행할 명령줄을 보인다.</li>
- *     <li>로컬 클라이언트는 <b>연결의 로컬 클라이언트 설정</b>({@code clientHomeId}, 백업·복원 대화상자의 로컬 클라이언트 페이지가 저장)만 쓴다.
+ *     <li>로컬 클라이언트는 <b>연결의 로컬 클라이언트 설정</b>({@code clientHomeId}, 연결 편집기의 로컬 클라이언트 칸이나 백업·복원 대화상자의
+ *     로컬 클라이언트 페이지가 저장)만 쓴다.
  *     설정이 없거나, 내려받는 클라이언트를 가리키거나, 도구가 그 폴더에 없으면 무엇을 하면 되는지 알리고 실행하지 않는다. 모델이 실행 파일
  *     폴더를 인수로 고르게 하지 않은 것은 모델이 고른 실행 파일을 돌리는 길을 만들지 않으려는 것이다. 클라이언트를 내려받지 않는다.</li>
  *     <li>파일은 Chromite가 도는 이 컴퓨터의 파일이다. 경로는 절대 경로여야 하고, 백업은 있는 파일을 덮어쓰지 않는다(새 경로만).
@@ -92,6 +93,7 @@ import java.util.stream.Stream;
  *
  * 변경 이력:
  * - 2026-11-08 최초 작성: 1b단계에서 미룬 PostgreSQL·MySQL/MariaDB 백업·복원 도구
+ * - 2026-11-08 로컬 클라이언트 안내에 연결 편집기의 로컬 클라이언트 칸을 더함 (docs/chromite/swing-database-tasks.md)
  */
 public class NativeBackupTools extends AgentTool implements AIToolPreviewProvider {
 
@@ -297,8 +299,9 @@ public class NativeBackupTools extends AgentTool implements AIToolPreviewProvide
         boolean restore
     ) throws DBException {
         String tools = NativeBackupRestore.getToolNames(postgres, restore);
-        String howTo = "The folder of the client tools is set per connection on the Local Client page of the database's " +
-            "Tasks > Back Up... / Restore... dialog in Object Explorer (it is saved for the connection when that dialog runs)";
+        String howTo = "The folder of the client tools is set per connection: Local client in the connection's " +
+            "Options > Connection Properties, or the Local Client page of the database's Tasks > Back Up... / Restore... dialog " +
+            "in Object Explorer (saved for the connection when that dialog runs)";
         List<DBPNativeClientLocation> local = NativeBackupRestore.findLocalClients(container.getDriver());
         List<String> found = local.stream().map(l -> l.getPath().getAbsolutePath()).toList();
         String foundText = found.isEmpty()

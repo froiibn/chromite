@@ -31,6 +31,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.Reader;
+import java.nio.file.Path;
 
 /**
  * 결과 칸 하나의 LOB 내용(값 패널용). 수신기가 Job 스레드에서 만든다({@link ResultSetGridReceiver}).
@@ -42,10 +43,12 @@ import java.io.Reader;
  * 값 객체를 남겼다가 패널이 처음 보여 줄 때 백그라운드 Job에서 {@link DBDContent#getContents}로 읽는다(SWT와 같은 지연 읽기).
  * 읽는 양은 {@link #MAX_LOAD_SIZE}까지다(SWT 기본 LOB 캐시 크기 {@code content.cache.maxsize}와 같은 1,000,000바이트).
  * 결과를 지울 때 {@link #release}로 남긴 값 객체를 놓아 준다.
+ * 파일로 저장할 때는({@link #writeTo}) 다 읽은 내용은 메모리에서, 잘라 읽었거나 아직 읽지 않은 LOB는 DB 값에서 끝까지 쓴다.
  *
  * 변경 이력:
  * - 2026-11-06 최초 작성: 값 패널 (docs/chromite/swing-result-viewer.md "값 패널")
  * - 2026-11-06 화면 문구를 EditorMessages로 옮김(OS 언어를 따름)
+ * - 2026-11-08 파일로 저장({@link #writeTo}), 글자 내용 판단({@link #isText}) (docs/chromite/swing-grid-editing.md "LOB 파일")
  */
 final class ResultSetCellContent {
 
@@ -170,6 +173,38 @@ final class ResultSetCellContent {
             boolean truncated = out.length() >= MAX_LOAD_SIZE && (length > out.length() || in.read() >= 0);
             return new Loaded(null, out.toString(), Math.max(length, out.length()), truncated);
         }
+    }
+
+    /**
+     * Whether the content is text (read as characters, saved to a file as UTF-8): the driver gave a string, or the
+     * content type is text, JSON or XML.
+     */
+    boolean isText() {
+        Loaded result = loaded;
+        if (result != null) {
+            return result.text() != null;
+        }
+        return contentType.startsWith("text") || contentType.endsWith("json") || contentType.endsWith("xml"); //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$
+    }
+
+    /**
+     * Writes the whole content to a file (background job only): from memory when it was read completely, otherwise
+     * from the database value, so a file gets more than the {@link #MAX_LOAD_SIZE} the value panel shows.
+     */
+    void writeTo(@NotNull DBRProgressMonitor monitor, @NotNull Path file) throws DBException {
+        Loaded result = loaded;
+        if (result != null && !result.truncated()) {
+            ResultSetLobFiles.writeLoaded(result.text(), result.bytes(), file);
+            return;
+        }
+        DBDContent content;
+        synchronized (this) {
+            content = liveContent;
+        }
+        if (content == null) {
+            throw new DBException(EditorMessages.editor_value_released);
+        }
+        ResultSetLobFiles.writeContent(monitor, content, file, isText());
     }
 
     /**

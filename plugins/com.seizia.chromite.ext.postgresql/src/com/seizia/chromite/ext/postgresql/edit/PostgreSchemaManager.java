@@ -43,6 +43,10 @@ import java.util.Map;
 
 /**
  * PostgreSchemaManager
+ *
+ * 변경 이력:
+ * - 2026-11-08 소유자를 고르지 않은 새 스키마에 {@code AUTHORIZATION public}을 쓰던 것: 소유자 ID 0이 PUBLIC 의사 역할로 읽혀
+ *   CREATE SCHEMA가 "role "public" does not exist"로 실패했다. ID 0이면 AUTHORIZATION을 쓰지 않는다 (docs/chromite/swing-create-objects.md)
  */
 public class PostgreSchemaManager extends SQLObjectEditor<PostgreSchema, PostgreDatabase> implements DBEObjectRenamer<PostgreSchema> {
 
@@ -89,7 +93,9 @@ public class PostgreSchemaManager extends SQLObjectEditor<PostgreSchema, Postgre
                 .getConnectionConfiguration()
                 .getUserName();
 
-            if (owner != null && !owner.getName().equals(currentUser)) {
+            // A new schema without an owner has owner id 0, which the role cache resolves to the PUBLIC pseudo-role
+            // (no such role: "AUTHORIZATION public" fails); without AUTHORIZATION the current user owns it
+            if (owner != null && owner.getObjectId() != 0 && !owner.getName().equals(currentUser)) {
                 script.append("\nAUTHORIZATION ")
                     .append(DBUtils.getQuotedIdentifier(owner));
             }

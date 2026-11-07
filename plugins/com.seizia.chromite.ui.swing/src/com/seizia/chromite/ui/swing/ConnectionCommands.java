@@ -20,6 +20,7 @@ import com.seizia.chromite.ui.swing.internal.ConnectionMessages;
 import com.seizia.chromite.ui.swing.internal.CoreMessages;
 import com.seizia.chromite.ui.swing.internal.ErrorMessages;
 import com.seizia.chromite.ui.swing.internal.NavigatorMessages;
+import com.seizia.chromite.ui.swing.internal.ObjectExplorerMessages;
 import org.eclipse.core.runtime.IAdaptable;
 import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.jobs.IJobChangeEvent;
@@ -29,25 +30,35 @@ import org.eclipse.osgi.util.NLS;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
+import com.seizia.chromite.model.DBPDataSource;
 import com.seizia.chromite.model.DBPDataSourceContainer;
 import com.seizia.chromite.model.DBPDataSourceFolder;
 import com.seizia.chromite.model.access.DBAUserPasswordManager;
 import com.seizia.chromite.model.access.DBAuthUtils;
+import com.seizia.chromite.model.app.DBPDataSourceRegistry;
 import com.seizia.chromite.model.app.DBPProject;
 import com.seizia.chromite.model.navigator.DBNDataSource;
 import com.seizia.chromite.model.runtime.VoidProgressMonitor;
 import com.seizia.chromite.registry.DataSourceDescriptor;
 import com.seizia.chromite.runtime.DBServiceConnections;
 import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.runtime.jobs.DefaultInvalidationFeedbackHandler;
 import com.seizia.chromite.runtime.jobs.DisconnectJob;
+import com.seizia.chromite.runtime.jobs.InvalidateJob;
+import com.seizia.chromite.utils.DataSourceUtils;
 import org.jkiss.utils.ArrayUtils;
 import org.jkiss.utils.CommonUtils;
 
 import javax.swing.*;
 import java.awt.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Set;
 
 /**
- * 연결 명령: 새로 만들기, 편집, 이름 바꾸기, 삭제, 연결, 연결 끊기, 다시 연결. Object Explorer와 메뉴가 함께 쓴다.
+ * 연결 명령: 새로 만들기, 편집, 이름 바꾸기, 복제, 삭제, 연결, 연결 끊기, 다시 연결. Object Explorer와 메뉴가 함께 쓴다.
  *
  * 설계: SWT의 명령 처리기({@code DataSourceHandler}, {@code DataSourceDescriptorManager.deleteObject},
  * {@code NavigatorHandlerObjectRename})에서 UI와 무관한 부분을 모델 코드로 그대로 따른다.
@@ -58,8 +69,15 @@ import java.awt.*;
  *     ({@link ExitTransactionCheck#confirmDisconnect}, SWT {@code checkAndCloseActiveTransaction}). 취소하면 끊지 않는다.
  *     다시 연결, 삭제, 연결 편집 뒤 다시 연결도 이 경로를 지난다.</li>
  *     <li>다시 연결: 연결 끊기가 끝난 뒤 연결한다({@code DataSourceHandler.reconnectDataSource}와 같음).</li>
+ *     <li>여러 연결 끊기(모두 끊기, 다른 연결 끊기, 서버 그룹 끊기, SWT {@code DataSourceDisconnectAllHandler} 등): 열린 트랜잭션을
+ *     한 질문으로 묻고(SWT는 연결마다 물었다) 취소하면 아무것도 끊지 않는다.</li>
+ *     <li>무효화·다시 연결({@link #invalidate}, SWT {@code DataSourceInvalidateHandler}): 연결을 끊지 않고 세션만 다시 연다. 다시 여는
+ *     연결 모두(같은 터널을 쓰는 연결 포함)의 열린 트랜잭션을 먼저 묻는다. 다시 열지 못한 세션이 있으면 연결 끊김 대화상자
+ *     ({@link DatabaseErrorDialogs#showConnectionLost})가 끊기 / 다시 시도를 묻는다.</li>
  *     <li>삭제: 확인 뒤, 연결 중이면 끊고 나서 {@code DBPDataSourceRegistry.removeDataSource}(설정 파일 저장, 비밀 정보 삭제, 이벤트).</li>
  *     <li>이름 바꾸기: {@link DBNDataSource#rename}(이름 저장과 갱신 이벤트).</li>
+ *     <li>복제: 레지스트리의 복사({@code DBPDataSourceRegistry#createDataSource(DBPDataSourceContainer)}, 새 ID)에 겹치지 않는 이름을 붙여 저장한다.
+ *     SWT({@code DataSourceDescriptorManager}의 {@code copyFrom})보다 연결별 설정 저장소까지 복사한다.</li>
  * </ul>
  * 결과는 모델 이벤트로 Object Explorer와 상태 표시줄에 반영된다. 화면을 직접 고치지 않는다.
  * SWT에서 끊기 전에 하던 열린 편집기 저장 확인은 아직 없다(Swing 편집기는 저장 기능이 없다).
@@ -73,6 +91,8 @@ import java.awt.*;
  * - 2026-11-07 끊기 전 열린 트랜잭션 질문: 끊기·다시 연결·삭제가 수동 커밋의 열린 트랜잭션을 묻지 않고 롤백하던 것을 막음
  *   (docs/chromite/idle-transactions.md "연결 끊기 전 질문")
  * - 2026-11-08 연결 삭제 확인은 삭제 / 취소 단추(취소가 기본) (docs/chromite/swing-frontend.md "실행 확인의 기본 단추")
+ * - 2026-11-08 연결 복제 {@link #duplicate} (docs/chromite/swing-explorer-productivity.md "Copy Special과 연결 복제")
+ * - 2026-11-08 여러 연결 끊기와 무효화·다시 연결({@link #invalidate}) (docs/chromite/connection-lifecycle.md)
  * - 2026-11-08 {@link #changePassword}: 연결한 사용자의 비밀번호 바꾸기(SWT {@code connection.changeCurrentPassword}, 데이터베이스가
  *   {@code DBAUserPasswordManager}를 줄 때만) (docs/chromite/swing-conn-advanced.md "비밀번호 바꾸기")
  */
@@ -172,6 +192,79 @@ final class ConnectionCommands {
     }
 
     /**
+     * Disconnects several connections (Disconnect All, Disconnect Others, a server group's Disconnect) after one
+     * question about all their open transactions.
+     *
+     * @return false when the user canceled because of an open transaction (nothing is disconnected)
+     */
+    static boolean disconnect(@Nullable Component parent, @NotNull Collection<? extends DBPDataSourceContainer> dataSources) {
+        List<DBPDataSourceContainer> connected = new ArrayList<>();
+        for (DBPDataSourceContainer dataSource : dataSources) {
+            // Already connecting or disconnecting ones are left alone, as for one connection
+            if (dataSource.isConnected() && ArrayUtils.isEmpty(Job.getJobManager().find(dataSource))) {
+                connected.add(dataSource);
+            }
+        }
+        if (connected.isEmpty()) {
+            return true;
+        }
+        // Closing the sessions rolls back their open transactions: ask first, once for all (user rule "transaction safety")
+        if (!ExitTransactionCheck.confirmDisconnect(getWindow(parent), connected)) {
+            return false;
+        }
+        for (DBPDataSourceContainer dataSource : connected) {
+            scheduleDisconnect(dataSource, null);
+        }
+        return true;
+    }
+
+    /**
+     * Invalidate/Reconnect (SWT {@code DataSourceInvalidateHandler}): reopens the sessions of the connection, and of the
+     * connections that share its network tunnel, keeping the connection and its query windows. Asks about their open
+     * transactions first, because reopening closes the old JDBC connections. When some session cannot be reopened, the
+     * connection lost dialog offers Disconnect or Retry.
+     */
+    static void invalidate(@Nullable Component parent, @NotNull DBPDataSourceContainer container) {
+        DBPDataSource dataSource = container.getDataSource();
+        if (!container.isConnected() || dataSource == null) {
+            connect(container);
+            return;
+        }
+        if (!ArrayUtils.isEmpty(Job.getJobManager().find(container))) {
+            // Already connecting, disconnecting or invalidating
+            return;
+        }
+        Set<DBPDataSourceContainer> containers = new LinkedHashSet<>();
+        InvalidateJob.collectDependentDataSources(dataSource, containers);
+        if (!ExitTransactionCheck.confirmReconnect(getWindow(parent), containers)) {
+            return;
+        }
+        InvalidateJob invalidateJob = new InvalidateJob(dataSource);
+        invalidateJob.setFeedbackHandler(new DefaultInvalidationFeedbackHandler() {
+            @Override
+            public void onInvalidateFailure(@NotNull DBPDataSourceContainer failed, @NotNull Collection<InvalidateJob.ContextInvalidateResult> results) {
+                // The connection lost dialog below tells it
+            }
+        });
+        invalidateJob.addJobChangeListener(new JobChangeAdapter() {
+            @Override
+            public void done(IJobChangeEvent event) {
+                Throwable error = null;
+                for (InvalidateJob.ContextInvalidateResult result : invalidateJob.getInvalidateResults()) {
+                    if (result.isError()) {
+                        error = result.getException();
+                    }
+                }
+                if (error != null) {
+                    Throwable shown = error;
+                    SwingUtilities.invokeLater(() -> DatabaseErrorDialogs.showConnectionLost(container, null, shown, true));
+                }
+            }
+        });
+        invalidateJob.schedule();
+    }
+
+    /**
      * Asks for confirmation, disconnects the connection if needed and removes it from its project.
      */
     static void delete(@Nullable Component parent, @NotNull DBPDataSourceContainer dataSource) {
@@ -188,6 +281,28 @@ final class ConnectionCommands {
             disconnect(dataSource, remover);
         } else {
             remover.run();
+        }
+    }
+
+    /**
+     * Duplicate Connection: a new connection with the same settings (driver, connection details and saved credentials,
+     * network handlers, filters, connection-specific settings, server group) and a new unique name, saved in the same project.
+     *
+     * @return the new connection, or null if it could not be saved
+     */
+    @Nullable
+    static DBPDataSourceContainer duplicate(@Nullable Component parent, @NotNull DBPDataSourceContainer source) {
+        DBPDataSourceRegistry registry = source.getRegistry();
+        try {
+            // The registry's copy (new id) keeps more than SWT's copyFrom: the connection's own settings store too
+            DBPDataSourceContainer copy = registry.createDataSource(source);
+            copy.setName(DataSourceUtils.generateUniqueDataSourceName(registry, source.getName(), 1));
+            registry.addDataSource(copy);
+            return copy;
+        } catch (DBException e) {
+            DBWorkbench.getPlatformUI().showError(ConnectionMessages.dialog_new_connection,
+                NLS.bind(ObjectExplorerMessages.oe_duplicate_error, source.getName()), e);
+            return null;
         }
     }
 
@@ -233,6 +348,16 @@ final class ConnectionCommands {
         if (!ExitTransactionCheck.confirmDisconnect(KeyboardFocusManager.getCurrentKeyboardFocusManager().getActiveWindow(), dataSource)) {
             return false;
         }
+        scheduleDisconnect(dataSource, onFinish);
+        return true;
+    }
+
+    /**
+     * Schedules the disconnect job; the caller asked about the open transactions.
+     *
+     * @param onFinish runs after the job (in the job's thread); without it errors are shown
+     */
+    private static void scheduleDisconnect(@NotNull DBPDataSourceContainer dataSource, @Nullable Runnable onFinish) {
         DisconnectJob disconnectJob = new DisconnectJob(dataSource);
         disconnectJob.addJobChangeListener(new JobChangeAdapter() {
             @Override
@@ -248,7 +373,6 @@ final class ConnectionCommands {
             }
         });
         disconnectJob.schedule();
-        return true;
     }
 
     @Nullable

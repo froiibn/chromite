@@ -46,7 +46,10 @@ import org.jkiss.utils.CommonUtils;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
+import java.util.IdentityHashMap;
 import java.util.List;
+import java.util.Set;
 
 /**
  * Query Manager utils
@@ -58,6 +61,8 @@ import java.util.List;
  *   (docs/chromite/idle-transactions.md "유휴 연결 닫기")
  * - 2026-11-07 {@link #getTransactionStatements}: 트랜잭션 로그가 상태 줄의 문장 수와 같은 문장을 보이도록 같은 기준({@link #isUserStatement})으로 읽음
  *   (docs/chromite/transactions.md)
+ * - 2026-11-08 {@link #getRecentTransactionStatements}: 트랜잭션 로그의 "지난 트랜잭션 보이기"(같은 문장 기준)
+ *   (docs/chromite/connection-lifecycle.md "트랜잭션 로그의 지난 트랜잭션")
  */
 public class QMUtils {
 
@@ -217,6 +222,42 @@ public class QMUtils {
                     statements.addFirst(exec);
                 }
             }
+        }
+        return statements;
+    }
+
+    /**
+     * The user statements of the context's last transactions in manual-commit mode, the current one included, oldest
+     * first: the transaction log's "Show previous transactions". Each statement's transaction is
+     * {@code getSavepoint().getTransaction()} (committed, rolled back, or still open). Statements run in auto-commit mode
+     * belong to no transaction and are left out. Reads only the query manager's in-memory records.
+     *
+     * @param maxTransactions how many transactions, newest first
+     * @param maxStatements   how many statements of the session to look through at most, newest first
+     */
+    @NotNull
+    public static List<QMMStatementExecuteInfo> getRecentTransactionStatements(
+        @Nullable DBCExecutionContext executionContext,
+        int maxTransactions,
+        int maxStatements
+    ) {
+        List<QMMStatementExecuteInfo> statements = new ArrayList<>();
+        QMMConnectionInfo sessionInfo = executionContext == null || qmRegistry == null ? null : getCurrentConnection(executionContext);
+        if (sessionInfo == null) {
+            return statements;
+        }
+        Set<QMMTransactionInfo> transactions = Collections.newSetFromMap(new IdentityHashMap<>());
+        int looked = 0;
+        for (QMMStatementExecuteInfo exec = sessionInfo.getExecutionStack(); exec != null && looked < maxStatements; exec = exec.getPrevious()) {
+            looked++;
+            QMMTransactionSavepointInfo savepoint = exec.getSavepoint();
+            if (savepoint == null || !isUserStatement(exec)) {
+                continue;
+            }
+            if (transactions.add(savepoint.getTransaction()) && transactions.size() > maxTransactions) {
+                break;
+            }
+            statements.addFirst(exec);
         }
         return statements;
     }

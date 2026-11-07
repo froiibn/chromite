@@ -260,6 +260,12 @@
                     <!-- Active directory auth -->
                     <file type="jar" path="maven:/com.microsoft.azure:msal4j[1.16.0]" optional="true" bundle="!drivers.mssql.new"/>
                     <file type="license" path="drivers/mssql/new/LICENSE.txt" bundle="drivers.mssql.new"/>
+
+                    <provider-properties copyFrom="microsoft">
+                        <propertyGroup label="%provider.group.advanced.label">
+                            <property id="show-all-databases-azure" label="%provider.property.show_all_databases.label" type="boolean" description="%provider.property.show_all_databases.description"/>
+                        </propertyGroup>
+                    </provider-properties>
                 </driver>
 
                 <driver
@@ -283,6 +289,12 @@
                     <file type="license" path="https://raw.githubusercontent.com/microsoft/sql-server-samples/master/license.txt" bundle="!drivers.mssql.new"/>
                     <file type="jar" path="drivers/mssql/new" bundle="drivers.mssql.new"/>
                     <file type="license" path="drivers/mssql/new/LICENSE.txt" bundle="drivers.mssql.new"/>
+
+                    <provider-properties copyFrom="microsoft">
+                        <propertyGroup label="%provider.group.advanced.label">
+                            <property id="show-all-databases-azure" label="%provider.property.show_all_databases.label" type="boolean" description="%provider.property.show_all_databases.description"/>
+                        </propertyGroup>
+                    </provider-properties>
                 </driver>
 
                 <!-- jTDS driver - deprecated -->
@@ -538,6 +550,11 @@
                     <file type="license" path="drivers/sybase/jconnect/LICENSE.txt" bundle="drivers.sybase.jconnect"/>
                 </driver>
 
+                <provider-properties drivers="*">
+                    <propertyGroup label="%provider.group.advanced.label">
+                        <property id="@chromite-encrypt-password@" label="%provider.property.encrypt_password.label" type="boolean" description="%provider.property.encrypt_password.description"/>
+                    </propertyGroup>
+                </provider-properties>
             </drivers>
         </datasource>
     </extension>

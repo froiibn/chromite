@@ -53,6 +53,30 @@
     <p>Versions are numbered <code>major.minor.dev</code>. The app's update notice links to each version's anchor (for example <code>#v0.1.0</code>).</p>
   </div>
 
+  <section class="sect release" id="v0.1.2">
+    <h2>0.1.2</h2>
+    <div class="body">
+      <p>Fixes the app not starting on macOS, and adds compare, search and editing tools.</p>
+      <ul>
+        <li>macOS: fixed the app hanging at startup without a window (the 0.1.0 and 0.1.1 macOS builds). The app menu is named Chromite, and Cmd+Q asks about unsaved work and open transactions</li>
+        <li>Transactions: sleep and wake-up no longer roll back open transactions without asking; failed reconnects are no longer reported as success; exit asks about running jobs; smart commit; previous transactions in the log</li>
+        <li>Schema compare with migration script generation, and data search across a schema's tables</li>
+        <li>Result grid: Save and Commit, duplicate rows, multi-cell paste, copy as JSON/XML/INSERT, boolean, ENUM and date editors, LOB load from and save to file, chart and spatial views. A header sort replaces the query's ORDER BY, and column aliases show in the headers</li>
+        <li>SQL editor: code folding, outline, object docs on hover, Ctrl+click to find objects, text tools, pinned results and results layout, SQL terminal</li>
+        <li>Routines: Execute Procedure dialog, Oracle and Altibase compile with error lines, SQL Server execution trace</li>
+        <li>Object Explorer: object filters and quick filter, link with editor, paging for long folders, object details (dependencies), duplicate connection, default database and schema</li>
+        <li>Scripts and Database Tasks windows; run scripts with the native client (psql, mysql, sqlplus)</li>
+        <li>Connections: import from other database tools' connection files and CSV, provider properties, SSL and authentication fields, connection description, disconnect several at once, approval for H2 init SQL and SQLite extensions</li>
+        <li>Settings: per-connection settings, data formats, errors and timeouts, metadata, drivers, proxy and Maven repositories, logs and the other remaining settings pages</li>
+        <li>Drivers: a local jar you add takes precedence; the Driver Manager edits Maven entries, local clients and global libraries. Oracle RAC lock views and Cancel Query (18c and later)</li>
+        <li>Chromite Agent: PostgreSQL and MySQL backup and restore tools and more tools, smaller requests</li>
+        <li>Query Library: one parameter dialog; filter, sort and next page also work on results run with parameters</li>
+        <li>Compact mode (View menu); confirmations that run or change something default to Cancel</li>
+        <li>Fixed: the Oracle plan tool hanging on a long leading comment, changing SQL Server columns that have a default constraint, the password showing on the sqlplus command line</li>
+      </ul>
+    </div>
+  </section>
+
   <section class="sect release" id="v0.1.1">
     <h2>0.1.1</h2>
     <div class="body">
