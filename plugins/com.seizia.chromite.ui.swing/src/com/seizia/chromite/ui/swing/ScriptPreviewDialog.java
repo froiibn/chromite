@@ -19,7 +19,9 @@ package com.seizia.chromite.ui.swing;
 import com.seizia.chromite.ui.swing.internal.ToolsMessages;
 import org.fife.ui.rtextarea.RTextScrollPane;
 import org.jkiss.code.NotNull;
+import org.jkiss.code.Nullable;
 import com.seizia.chromite.runtime.DBWorkbench;
+import org.jkiss.utils.CommonUtils;
 
 import javax.swing.*;
 import java.awt.*;
@@ -31,10 +33,13 @@ import java.awt.event.KeyEvent;
  * 설계: SWT 객체 편집기의 저장 전 미리 보기({@code EntityEditor.showChanges}의 {@code ChangesPreviewer})와 같은 역할이다.
  * 스크립트는 디자이너가 명령 묶음에서 만들어 넘기고, 이 대화상자는 SQL 편집기와 같은 읽기 전용 글 상자로 보여 준 뒤
  * 사용자의 선택(실행, 쿼리 창으로 열기, 닫기)만 돌려준다. 저장 흐름에서만 Execute 단추를 보여 준다.
+ * 결과 표 저장 확인({@link #confirmSave})은 SWT {@code SavePreviewDialog}에 해당한다. 바뀐 내용은 표에 남아 있으므로
+ * 쿼리 창으로 열기는 두지 않고, SWT처럼 Cancel을 기본 단추로 해서 Enter로 바로 저장되지 않게 한다.
  *
  * 변경 이력:
  * - 2026-11-06 테이블 디자이너: 최초 작성 (docs/chromite/swing-table-designer.md)
  * - 2026-11-06 화면 문구를 ToolsMessages로 옮김(OS 언어를 따름)
+ * - 2026-11-07 결과 표 저장 확인({@link #confirmSave}): 머리글과 실행 단추 이름을 호출자가 정함 (docs/chromite/swing-frontend.md "저장 전 스크립트 미리 보기")
  */
 final class ScriptPreviewDialog extends JDialog {
 
@@ -47,6 +52,25 @@ final class ScriptPreviewDialog extends JDialog {
     private Result result = Result.CLOSE;
 
     private ScriptPreviewDialog(@NotNull Component owner, @NotNull String title, @NotNull String script, boolean allowExecute) {
+        this(owner, title, script, allowExecute
+            ? ToolsMessages.script_preview_execute_question
+            : ToolsMessages.script_preview_header, allowExecute ? ToolsMessages.script_preview_execute : null, false);
+    }
+
+    /**
+     * @param header       text above the script
+     * @param executeLabel label of the button that runs the script, or null to only show the script
+     * @param saveConfirm  confirmation of a save that runs right after it: no "Open in Query Window", Cancel is the
+     *                     default button
+     */
+    private ScriptPreviewDialog(
+        @NotNull Component owner,
+        @NotNull String title,
+        @NotNull String script,
+        @NotNull String header,
+        @Nullable String executeLabel,
+        boolean saveConfirm
+    ) {
         super(SwingUtilities.getWindowAncestor(owner), title, ModalityType.APPLICATION_MODAL);
         setIconImages(ChromiteIcons.getWindowIcons());
 
@@ -58,37 +82,40 @@ final class ScriptPreviewDialog extends JDialog {
         RTextScrollPane scrollPane = new RTextScrollPane(textArea, true);
         textArea.applyTheme();
 
-        JLabel header = new JLabel(allowExecute
-            ? ToolsMessages.script_preview_execute_question
-            : ToolsMessages.script_preview_header);
-        header.setBorder(BorderFactory.createEmptyBorder(0, 0, 8, 0));
+        // The save confirmation's header has several lines (connection, row counts)
+        JLabel headerLabel = new JLabel(saveConfirm
+            ? "<html>" + CommonUtils.escapeHtml(header) + "</html>" //$NON-NLS-1$ //$NON-NLS-2$
+            : header);
+        headerLabel.setBorder(BorderFactory.createEmptyBorder(0, 0, 8, 0));
 
-        JButton executeButton = new JButton(ToolsMessages.script_preview_execute);
+        JButton executeButton = new JButton(CommonUtils.notEmpty(executeLabel));
         executeButton.addActionListener(e -> close(Result.EXECUTE));
         JButton openButton = new JButton(ToolsMessages.script_preview_open);
         openButton.setToolTipText(ToolsMessages.script_preview_open_tip);
         openButton.addActionListener(e -> close(Result.OPEN_IN_EDITOR));
         JButton copyButton = new JButton(ToolsMessages.script_preview_copy);
         copyButton.addActionListener(e -> DBWorkbench.getPlatformUI().copyTextToClipboard(script, false));
-        JButton cancelButton = new JButton(allowExecute ? ToolsMessages.button_cancel : ToolsMessages.button_close);
+        JButton cancelButton = new JButton(executeLabel != null ? ToolsMessages.button_cancel : ToolsMessages.button_close);
         cancelButton.addActionListener(e -> close(Result.CLOSE));
 
         JPanel buttons = new JPanel(new FlowLayout(FlowLayout.RIGHT, 6, 0));
         buttons.setBorder(BorderFactory.createEmptyBorder(10, 0, 0, 0));
         buttons.add(copyButton);
-        buttons.add(openButton);
-        if (allowExecute) {
+        if (!saveConfirm) {
+            buttons.add(openButton);
+        }
+        if (executeLabel != null) {
             buttons.add(executeButton);
         }
         buttons.add(cancelButton);
 
         JPanel content = new JPanel(new BorderLayout());
         content.setBorder(BorderFactory.createEmptyBorder(12, 12, 12, 12));
-        content.add(header, BorderLayout.NORTH);
+        content.add(headerLabel, BorderLayout.NORTH);
         content.add(scrollPane, BorderLayout.CENTER);
         content.add(buttons, BorderLayout.SOUTH);
         setContentPane(content);
-        getRootPane().setDefaultButton(allowExecute ? executeButton : cancelButton);
+        getRootPane().setDefaultButton(executeLabel != null && !saveConfirm ? executeButton : cancelButton);
         getRootPane().registerKeyboardAction(e -> close(Result.CLOSE),
             KeyStroke.getKeyStroke(KeyEvent.VK_ESCAPE, 0), JComponent.WHEN_IN_FOCUSED_WINDOW);
         setSize(760, 480);
@@ -110,5 +137,24 @@ final class ScriptPreviewDialog extends JDialog {
         ScriptPreviewDialog dialog = new ScriptPreviewDialog(owner, title, script, allowExecute);
         dialog.setVisible(true);
         return dialog.result;
+    }
+
+    /**
+     * Shows the script of a save that runs right after it and asks whether to save.
+     *
+     * @param header    what is saved where, above the script
+     * @param saveLabel label of the button that saves
+     * @return true if the user chose to save
+     */
+    static boolean confirmSave(
+        @NotNull Component owner,
+        @NotNull String title,
+        @NotNull String header,
+        @NotNull String script,
+        @NotNull String saveLabel
+    ) {
+        ScriptPreviewDialog dialog = new ScriptPreviewDialog(owner, title, script, header, saveLabel, true);
+        dialog.setVisible(true);
+        return dialog.result == Result.EXECUTE;
     }
 }

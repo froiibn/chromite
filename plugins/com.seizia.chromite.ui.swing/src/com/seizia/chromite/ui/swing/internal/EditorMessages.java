@@ -34,6 +34,8 @@ import org.eclipse.osgi.util.NLS;
  *   메인 창 SQL Editor 도구 막대가 씀 (docs/chromite/swing-frontend.md "SQL Editor 도구 막대")
  * - 2026-11-07 쿼리 상태 줄의 커밋 방식 칸 문구({@code editor_status_auto_commit} 등) (docs/chromite/swing-frontend.md "자동 커밋 상태")
  * - 2026-11-07 결과 필터 줄(ResultSetFilterBar)을 없애며 그 문구를 지움. 열 필터 문구는 {@link GridFilterMessages}
+ * - 2026-11-07 결과 표 저장 전 스크립트 미리 보기 문구({@code editor_grid_preview_*}, {@code editor_grid_save_canceled})
+ *   (docs/chromite/swing-frontend.md "저장 전 스크립트 미리 보기")
  */
 public class EditorMessages extends NLS {
     private static final String BUNDLE_NAME = "com.seizia.chromite.ui.swing.internal.EditorMessages"; //$NON-NLS-1$
@@ -234,6 +236,11 @@ public class EditorMessages extends NLS {
     public static String editor_grid_nothing_saved;
     public static String editor_grid_cant_save;
     public static String editor_grid_save_failed;
+    public static String editor_grid_save_canceled;
+    public static String editor_grid_preview_job;
+    public static String editor_grid_preview_title;
+    public static String editor_grid_preview_header;
+    public static String editor_grid_preview_comment;
     public static String editor_grid_copy;
     public static String editor_grid_copy_with_headers;
     public static String editor_grid_export_csv;

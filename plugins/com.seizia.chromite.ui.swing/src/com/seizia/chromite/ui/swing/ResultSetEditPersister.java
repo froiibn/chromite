@@ -23,6 +23,7 @@ import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
 import com.seizia.chromite.Log;
 import com.seizia.chromite.model.DBPDataKind;
+import com.seizia.chromite.model.DBPDataSource;
 import com.seizia.chromite.model.DBPEvaluationContext;
 import com.seizia.chromite.model.DBUtils;
 import com.seizia.chromite.model.data.DBDAttributeBinding;
@@ -37,6 +38,7 @@ import com.seizia.chromite.model.data.resultset.DBDDataStatementInfo;
 import com.seizia.chromite.model.data.resultset.DBDResultSetDataUpdater;
 import com.seizia.chromite.model.data.resultset.DataUpdaterJob;
 import com.seizia.chromite.model.data.resultset.ResultSetSaveSettings;
+import com.seizia.chromite.model.edit.DBEPersistAction;
 import com.seizia.chromite.model.exec.DBCAttributeMetaData;
 import com.seizia.chromite.model.exec.DBCException;
 import com.seizia.chromite.model.exec.DBCExecutionContext;
@@ -51,6 +53,7 @@ import com.seizia.chromite.model.exec.DBCTransactionManager;
 import com.seizia.chromite.model.impl.AbstractExecutionSource;
 import com.seizia.chromite.model.runtime.DBRProgressMonitor;
 import com.seizia.chromite.model.sql.RowDataReceiver;
+import com.seizia.chromite.model.sql.SQLUtils;
 import com.seizia.chromite.model.struct.DBSDataContainer;
 import com.seizia.chromite.model.struct.DBSDataManipulator;
 import com.seizia.chromite.model.struct.DBSDocumentContainer;
@@ -86,10 +89,14 @@ import java.util.function.Consumer;
  *     <li>저장 뒤 새로 고침: SWT 기본 설정({@code resultset.edit.refreshAfterUpdate} = 켬)처럼 추가·수정한 행만 키로 다시 읽는다({@link #refreshRows}).
  *     원래 쿼리를 키 조건으로 걸러 다시 실행하므로({@code SQLQueryDataContainer.readData}) 열 구성이 같다. 스크립트 전체를 다시 실행하지 않는 것은
  *     스크립트에 다른 문장(DML 포함)이 있을 수 있고, 다른 결과 표와 화면 위치를 그대로 두기 위해서다.</li>
+ *     <li>저장 전 미리 보기 스크립트({@link #createScriptJob}): 엔진의 스크립트 생성 모드로 저장과 같은 문장을 만든다(SWT
+ *     {@code ResultSetViewer.generateChangesScript}). 저장 Job은 문장을 다시 준비하므로({@code prepareStatements}가 이전 문장과
+ *     동작을 지움) 같은 객체로 미리 보기와 저장을 차례로 해도 미리 보기의 상태가 저장에 남지 않는다.</li>
  * </ul>
  *
  * 변경 이력:
  * - 2026-11-06 G단계: 최초 작성 (docs/chromite/swing-frontend.md "구현 현황 — G단계")
+ * - 2026-11-07 저장 전 미리 보기 스크립트와 바뀐 행 수 (docs/chromite/swing-frontend.md "저장 전 스크립트 미리 보기")
  */
 final class ResultSetEditPersister extends DBDResultSetDataUpdater<ResultSetEditPersister.StatementInfo, ResultSetEditModel.Row, ResultSetEditModel> {
 
@@ -190,6 +197,54 @@ final class ResultSetEditPersister extends DBDResultSetDataUpdater<ResultSetEdit
     @NotNull
     DataUpdaterJob createSaveJob(@NotNull Consumer<Outcome> done) {
         return new SaveJob(new ResultSetSaveSettings(), done);
+    }
+
+    /**
+     * Creates the job that makes the statements of the save without running them; {@link #getScript} gives them when
+     * it is over. Same settings as {@link #createSaveJob}, so the preview shows what the save runs.
+     */
+    @NotNull
+    DataUpdaterJob createScriptJob() {
+        ResultSetSaveSettings settings = new ResultSetSaveSettings();
+        return new DataUpdaterJob(this, true, settings, null, model.getExecutionContext()) {
+            @Nullable
+            @Override
+            protected Throwable executeUpdate(@NotNull DBRProgressMonitor monitor, @NotNull Map<String, Object> options) {
+                try {
+                    prepareStatements(monitor, settings);
+                } catch (DBException e) {
+                    return e;
+                }
+                Throwable error = super.executeUpdate(monitor, options);
+                if (error == null && monitor.isCanceled()) {
+                    // The engine stops between statements without an error when canceled; the script is incomplete
+                    error = new DBCException("Script generation was canceled");
+                }
+                return error;
+            }
+        };
+    }
+
+    /**
+     * The statements made by the {@link #createScriptJob script job}, after a comment line.
+     */
+    @NotNull
+    String getScript(@NotNull String comment) {
+        DBPDataSource dataSource = model.getExecutionContext().getDataSource();
+        return SQLUtils.generateCommentLine(dataSource, comment)
+            + SQLUtils.generateScript(dataSource, getActions().toArray(new DBEPersistAction[0]), false);
+    }
+
+    int getInsertCount() {
+        return addedRows.size();
+    }
+
+    int getUpdateCount() {
+        return changedRows.size();
+    }
+
+    int getDeleteCount() {
+        return deletedRows.size();
     }
 
     //////////////////////////////////////////////////////////
