@@ -23,6 +23,7 @@ import org.eclipse.osgi.util.NLS;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
+import com.seizia.chromite.Log;
 import com.seizia.chromite.model.DBPDataSourceContainer;
 import com.seizia.chromite.model.messages.ModelMessages;
 import com.seizia.chromite.model.runtime.AbstractJob;
@@ -38,8 +39,12 @@ import com.seizia.chromite.utils.GeneralUtils;
  * 변경 이력:
  * - 2026-11-07 작업 이름("Connect to 'X'")을 ModelMessages로 옮김. 진행 대화상자에 보인다
  *   (docs/chromite/swing-l10n.md "남은 한국어 문구 정리")
+ * - 2026-11-08 사용자가 취소해 생긴 연결 실패는 오류가 아니라 취소 상태로 둠: 쿼리 창의 중지가 "연결하지 못했습니다" 오류 창을 띄웠다
+ *   (docs/chromite/swing-followup-fixes.md "작은 화면 수정")
  */
 public class ConnectJob extends AbstractJob {
+
+    private static final Log log = Log.getLog(ConnectJob.class);
 
     private volatile Thread connectThread;
     protected boolean initialize = true;
@@ -108,8 +113,15 @@ public class ConnectJob extends AbstractJob {
             }
         }
         catch (Throwable ex) {
-            connectError = ex;
-            connectStatus = GeneralUtils.makeExceptionStatus(ex);
+            if (monitor.isCanceled()) {
+                // The user canceled: the failure is its consequence ("Connection has been canceled" from the data source,
+                // or the driver's interrupted connect), not a connection error to report
+                log.debug("Connection canceled", ex);
+                connectStatus = Status.CANCEL_STATUS;
+            } else {
+                connectError = ex;
+                connectStatus = GeneralUtils.makeExceptionStatus(ex);
+            }
         }
 
         return Status.OK_STATUS;

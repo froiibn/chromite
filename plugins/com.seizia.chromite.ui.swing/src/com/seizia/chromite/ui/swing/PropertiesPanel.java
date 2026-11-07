@@ -81,6 +81,8 @@ import java.util.stream.Stream;
  * - 2026-11-07 오류 문구를 {@link ErrorText}로 만듦(클래스 이름이 화면에 나오지 않게, docs/chromite/swing-frontend.md "오류 문구")
  * - 2026-11-07 밀도 B: 치수를 테마의 Chromite.size.* 키({@link UiSizes})에서 읽음 (docs/chromite/design-spec.md "치수 토큰")
  * - 2026-11-07 제목을 Object Explorer와 같은 노드 글자로(이름 없는 반환 값 매개 변수, docs/chromite/swing-frontend.md "Object Explorer 탐색 불가 항목")
+ * - 2026-11-08 분류 행 semibold 글꼴 주석을 고침: deriveFont도 대체 글꼴을 유지하며, semibold.font를 쓰는 이유는 Java에 semibold 스타일이 없어서다
+ *   (docs/chromite/swing-followup-fixes.md "작은 화면 수정")
  */
 final class PropertiesPanel extends JPanel {
 
@@ -562,7 +564,8 @@ final class PropertiesPanel extends JPanel {
             super.getTableCellRendererComponent(table, value, isSelected, false, row, column);
             GridRow gridRow = gridModel.getRow(row);
             boolean categoryRow = gridRow.kind() == RowKind.CATEGORY;
-            // font.ui.semibold: the theme's composite font as it is (a derived font would lose the Hangul fallback)
+            // font.ui.semibold: the theme's semibold.font, a family of its own because Java has no semibold style.
+            // deriveFont(Font.BOLD) would keep the composite fallbacks too, but it gives bold, not semibold
             Font semibold = UIManager.getFont("semibold.font"); //$NON-NLS-1$
             setFont(categoryRow && semibold != null ? semibold : table.getFont());
             setIcon(null);
