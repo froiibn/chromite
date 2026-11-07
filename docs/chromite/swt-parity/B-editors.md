@@ -63,12 +63,12 @@
 | S14 | 오류 때 묻기(Stop/Retry/Ignore/Ignore all), 오류 처리 설정 | `showErrorStopRetryIgnore`, `PrefPageSQLExecute` | 일부 | `SqlEditorPanel.java:1372-1379` 늘 STOP | 중간 | 무시하고 계속할 방법 없음 |
 | S15 | 커밋 방식 설정(문장마다·스크립트 끝·N줄마다) | `PrefPageSQLExecute`, `SQLScriptCommitType` | 없음 | 엔진 기본 `NO_COMMIT`(swing-frontend.md C단계 "커밋·오류 처리") | 중간 | |
 | S16 | 스마트 커밋(변경 문에서 수동 커밋으로, 끝나면 복귀) | `SQLEditor.isSmartAutoCommit`, `TransactionMonitorToolbar`(`recoverSmartCommit`) | **조용히 끊김** | 위 요약 4 | 높음 | 설정 화면도 없음(C15) |
-| S17 | Commit / Rollback 명령 | `core` 트랜잭션 도구 막대 | 없음 | swing-frontend.md:1898 "만들지 않았다… 결정이 필요" | 높음 | 수동 커밋 연결은 `COMMIT`을 직접 실행해야 함 |
+| S17 | Commit / Rollback 명령 | `core` 트랜잭션 도구 막대 | **있음** (2026-11-07, [transactions.md](../transactions.md), 영역 A-C1). 조사 당시: 없음 | swing-frontend.md:1898 "만들지 않았다… 결정이 필요" | 높음 | 수동 커밋 연결은 `COMMIT`을 직접 실행해야 함 |
 | S18 | 실행 중 자동/수동 커밋 전환(도구 막대·메뉴) | `DataSourceAutoCommitHandler`, `DataSourceTransactionModeContributor` | 없음 | 연결 편집에서만 바꿈(`AutoCommitApplier`, swing-frontend.md "자동 커밋 상태") | 높음 | 도구 막대·메뉴 토글은 결정 대기(:1898) |
 | S18a | 상태 줄에서 커밋 방식 바꾸기 | (SWT 상태 표시와 도구 막대) | 의도적 제외 | swing-frontend.md:1824 사용자 결정 "상태표시줄에서 바꾸면 안된다" | 중간 | 상태 줄은 표시와 설정 안내만 |
 | S19 | 격리 수준 바꾸기 | `DataSourceTransactionModeContributor` | 없음 | Swing grep `isolation` 0건 | 중간 | 연결 설정에도 없음(C11) |
-| S20 | 트랜잭션 로그(현재 트랜잭션의 문 목록), 트랜잭션 모니터(문 수·경과 시간) | `core` `TransactionLogDialog`, `TransactionMonitorToolbar` | 없음 | Swing grep `QMTransaction`/`TransactionLog` 0건 | 높음 | 끝낼 때·AI 도구만 열린 트랜잭션을 찾음(`ExitTransactionCheck`, `AutoCommitApplier`) |
-| S21 | 미결 트랜잭션 보기 | `core` pending transactions view | 없음 | 지시서의 예, grep 0건 | 높음 | |
+| S20 | 트랜잭션 로그(현재 트랜잭션의 문 목록), 트랜잭션 모니터(문 수·경과 시간) | `core` `TransactionLogDialog`, `TransactionMonitorToolbar` | **있음** (2026-11-07: 모니터는 #97 상태 줄 칸([idle-transactions.md](../idle-transactions.md)), 로그는 [transactions.md](../transactions.md), 지난 트랜잭션 보이기는 없음). 조사 당시: 없음 | Swing grep `QMTransaction`/`TransactionLog` 0건 | 높음 | 끝낼 때·AI 도구만 열린 트랜잭션을 찾음(`ExitTransactionCheck`, `AutoCommitApplier`) |
+| S21 | 미결 트랜잭션 보기 | `core` pending transactions view | **있음** (2026-11-07, [transactions.md](../transactions.md) "열린 트랜잭션 목록", 영역 A-C3). 조사 당시: 없음 | 지시서의 예, grep 0건 | 높음 | |
 | S22 | 편집기별 별도 연결(트랜잭션 분리) | `SQLEditor` 격리 실행 문맥(`SEPARATE_CONNECTION`) | 없음 | `SqlEditorPanel` Javadoc "실행 문맥은 연결의 기본(주) 문맥", swing-frontend.md:708·1018·1293 | 높음 | 같은 연결의 쿼리 창들이 한 트랜잭션을 나눠 씀. 결과 저장도 같은 문맥에서 자동 커밋을 끔 |
 | S23 | 끊기·다시 연결·삭제 전 열린 트랜잭션 확인 | `ui.editors.connection` `DataSourceHandler.checkAndCloseActiveTransaction`(`:168, :206-228`) | **수정함** (2026-11-07, #97, [idle-transactions.md](../idle-transactions.md) "연결 끊기 전 질문", 영역 A-S3). 조사 당시: 조용히 끊김 | 위 요약 1 | 높음 | 끝낼 때(`ExitTransactionCheck`)만 묻는다 |
 | S24 | 유휴 트랜잭션 자동 종료 | `core` `UIServiceConnectionsImpl`, 앱의 사용자 활동 시각 | **수정함** (2026-11-07, #97, [idle-transactions.md](../idle-transactions.md): 마지막 문장 기준 유휴, 기본은 알림과 커밋 / 롤백 / 열어 두기, 연결에서 켰을 때만 자동 롤백 뒤 알림, 영역 A-S1). 조사 당시: 조용히 끊김 | 위 요약 5 | 높음 | 영역 A와 중복 |
@@ -195,9 +195,9 @@ swing-security.md는 DB 보안(로그인·역할·권한) 문서이고 연결 �
 4. S16 스마트 커밋 미동작 (조용히 끊김, 높음)
 5. S24 유휴 트랜잭션 자동 종료 미동작 (조용히 끊김, 높음, 영역 A와 중복) — 2026-11-07 수정(#97)
 6. S7 WHERE 없는 DELETE/UPDATE·DROP 확인 없음 (없음, 높음)
-7. S17·S18 Commit/Rollback·커밋 방식 전환 명령 없음 (없음, 높음, 결정 대기)
+7. S17·S18 Commit/Rollback·커밋 방식 전환 명령 없음 (없음, 높음, 결정 대기) — 2026-11-07 S17 수정([transactions.md](../transactions.md)), S18 남음
 8. S22 쿼리 창별 별도 연결 없음 — 창들이 한 트랜잭션을 나눠 씀 (없음, 높음)
-9. S20·S21 트랜잭션 로그·모니터·미결 트랜잭션 보기 없음 (없음, 높음)
+9. S20·S21 트랜잭션 로그·모니터·미결 트랜잭션 보기 없음 (없음, 높음) — 2026-11-07 수정([transactions.md](../transactions.md))
 10. S12 `@export` 무시 / S8 스크립트 실행 제한 무시 (조용히 끊김, 중간)
 
 ## 확인하지 못한 것
