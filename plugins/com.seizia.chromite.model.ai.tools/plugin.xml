@@ -261,7 +261,7 @@
         </function>
         <function id="getActualPlan" name="%tool.getActualPlan.name" type="INFORMATION" access="READ" purpose="ALL" enabledByDefault="true"
             categoryId="agent.query" class="com.seizia.chromite.model.ai.tools.PlanTools"
-            description="Runs the statement and returns the actual plan with run-time values (actual rows, executions, time, reads/buffers, spills) and SET STATISTICS IO/TIME messages. Read-only statements run in a read-only transaction; others become WRITE, are confirmed by the user and rolled back. SQL Server, PostgreSQL, MySQL/MariaDB.">
+            description="Runs the statement and returns the actual plan with run-time values (actual rows, executions, time, reads/buffers, spills) and SET STATISTICS IO/TIME messages. Read-only statements run in a read-only transaction; others become WRITE, are confirmed by the user and rolled back. SQL Server, PostgreSQL, MySQL/MariaDB, Oracle (GATHER_PLAN_STATISTICS hint + DBMS_XPLAN.DISPLAY_CURSOR ALLSTATS LAST; needs SELECT_CATALOG_ROLE).">
             <parameter name="connection" type="string" description="Connection id or name"/>
             <parameter name="database" type="string" description="Database; default: current"/>
             <parameter name="sql" type="string" required="true" description="One statement"/>
@@ -519,7 +519,7 @@
         </function>
         <function id="getDeadlocks" name="%tool.getDeadlocks.name" type="INFORMATION" access="READ" purpose="ALL" enabledByDefault="true"
             categoryId="agent.health" class="com.seizia.chromite.model.ai.tools.DiagnosticSqlTool"
-            description="Recent deadlocks: SQL Server system_health deadlock graphs as JSON (victims, processes with SQL and stack, resources with owners and waiters); MySQL/MariaDB the latest InnoDB deadlock; PostgreSQL the counters.">
+            description="Recent deadlocks: SQL Server system_health deadlock graphs as JSON (victims, processes with SQL and stack, resources with owners and waiters); MySQL/MariaDB the latest InnoDB deadlock; PostgreSQL the counters; Oracle the ORA-00060 entries of the alert log with the deadlock graph of the trace file they name.">
             <parameter name="connection" type="string" description="Connection id or name"/>
             <parameter name="limit" type="integer" description="Max deadlocks (default 10)" defaultValue="10"/>
         </function>
@@ -609,6 +609,49 @@
             <parameter name="replace" type="boolean" description="Overwrite an existing database (default false)"/>
         </function>
 
+        <!-- SQL Server Agent jobs through the model of the Agent node (ext.mssql model.agent, docs/chromite/swing-sqlserver-agent.md):
+             the msdb help procedures, so the agent roles (SQLAgentUserRole, SQLAgentReaderRole, SQLAgentOperatorRole) are enough -->
+        <function id="listAgentJobs" name="%tool.listAgentJobs.name" type="INFORMATION" access="READ" purpose="ALL" enabledByDefault="true"
+            categoryId="agent.health" class="com.seizia.chromite.model.ai.tools.AgentJobTools"
+            description="SQL Server Agent: the agent service state and the jobs with enabled flag, current status and step, last run outcome and time, next run, category, owner. Use getJobHistory for failures across all jobs.">
+            <parameter name="connection" type="string" description="Connection id or name"/>
+            <parameter name="filter" type="string" description="Optional text to match in the job name or category"/>
+        </function>
+        <function id="getAgentJob" name="%tool.getAgentJob.name" type="INFORMATION" access="READ" purpose="ALL" enabledByDefault="true"
+            categoryId="agent.health" class="com.seizia.chromite.model.ai.tools.AgentJobTools"
+            description="SQL Server Agent: one job's definition: steps (subsystem, database, command, on success/failure actions, retries) and schedules (description, next run), plus its current state.">
+            <parameter name="connection" type="string" description="Connection id or name"/>
+            <parameter name="job" type="string" required="true" description="Job name or job_id (listAgentJobs)"/>
+        </function>
+        <function id="getAgentJobHistory" name="%tool.getAgentJobHistory.name" type="INFORMATION" access="READ" purpose="ALL" enabledByDefault="true"
+            categoryId="agent.health" class="com.seizia.chromite.model.ai.tools.AgentJobTools"
+            description="SQL Server Agent: run history, newest first: each run's outcome (step 0) and the steps of the run with status, duration, retries and the server message. One job or all jobs.">
+            <parameter name="connection" type="string" description="Connection id or name"/>
+            <parameter name="job" type="string" description="Job name or job_id; empty for all jobs"/>
+            <parameter name="failedOnly" type="boolean" defaultValue="false" description="Only runs and steps that failed or were canceled (default false)"/>
+            <parameter name="limit" type="integer" description="Max history rows (default 100)"/>
+        </function>
+        <function id="startAgentJob" name="%tool.startAgentJob.name" type="ACTION" access="WRITE" purpose="ALL" enabledByDefault="true"
+            categoryId="agent.health" class="com.seizia.chromite.model.ai.tools.AgentJobTools"
+            description="SQL Server Agent: starts a job now (msdb.dbo.sp_start_job), optionally at a step. The job runs asynchronously; follow it with listAgentJobs and getAgentJobHistory. The user sees the T-SQL and confirms.">
+            <parameter name="connection" type="string" description="Connection id or name"/>
+            <parameter name="job" type="string" required="true" description="Job name or job_id"/>
+            <parameter name="step" type="string" description="Step name to start at (default: the job's start step)"/>
+        </function>
+        <function id="stopAgentJob" name="%tool.stopAgentJob.name" type="ACTION" access="WRITE" purpose="ALL" enabledByDefault="true"
+            categoryId="agent.health" class="com.seizia.chromite.model.ai.tools.AgentJobTools"
+            description="SQL Server Agent: stops a running job (msdb.dbo.sp_stop_job). The user sees the T-SQL and confirms.">
+            <parameter name="connection" type="string" description="Connection id or name"/>
+            <parameter name="job" type="string" required="true" description="Job name or job_id"/>
+        </function>
+        <function id="setAgentJobEnabled" name="%tool.setAgentJobEnabled.name" type="ACTION" access="WRITE" purpose="ALL" enabledByDefault="true"
+            categoryId="agent.health" class="com.seizia.chromite.model.ai.tools.AgentJobTools"
+            description="SQL Server Agent: enables or disables a job (msdb.dbo.sp_update_job @enabled). A disabled job does not run on its schedules but can still be started by hand. The user sees the T-SQL and confirms.">
+            <parameter name="connection" type="string" description="Connection id or name"/>
+            <parameter name="job" type="string" required="true" description="Job name or job_id"/>
+            <parameter name="enabled" type="boolean" required="true" description="true to enable, false to disable"/>
+        </function>
+
         <!-- ============================================================ Performance -->
 
         <function id="getTableStatistics" name="%tool.getTableStatistics.name" type="INFORMATION" access="READ" purpose="ALL" enabledByDefault="true"
@@ -631,14 +674,14 @@
         </function>
         <function id="getMissingIndexes" name="%tool.getMissingIndexes.name" type="INFORMATION" access="READ" purpose="ALL" enabledByDefault="true"
             categoryId="agent.performance" class="com.seizia.chromite.model.ai.tools.DiagnosticSqlTool"
-            description="Missing-index suggestions of the SQL Server optimizer with a suggested CREATE INDEX; PostgreSQL: large tables read mostly by sequential scans.">
+            description="Missing-index suggestions of the SQL Server optimizer with a suggested CREATE INDEX; PostgreSQL: large tables read mostly by sequential scans; Oracle: full scans of large tables in cached plans with the filter predicates an index could serve.">
             <parameter name="connection" type="string" description="Connection id or name"/>
             <parameter name="database" type="string" description="Database; default: current"/>
             <parameter name="limit" type="integer" description="Max rows (default 100)"/>
         </function>
         <function id="getUnusedIndexes" name="%tool.getUnusedIndexes.name" type="INFORMATION" access="READ" purpose="ALL" enabledByDefault="true"
             categoryId="agent.performance" class="com.seizia.chromite.model.ai.tools.DiagnosticSqlTool"
-            description="Indexes that are written but never read since the last restart, and duplicate or left-prefix indexes. SQL Server, PostgreSQL, MySQL/MariaDB.">
+            description="Indexes that are written but never read since the last restart, and duplicate or left-prefix indexes. SQL Server, PostgreSQL, MySQL/MariaDB, Oracle (index usage tracking DBA_INDEX_USAGE, 12.2+).">
             <parameter name="connection" type="string" description="Connection id or name"/>
             <parameter name="database" type="string" description="Database; default: current"/>
             <parameter name="schema" type="string" description="Schema"/>
@@ -654,7 +697,7 @@
         </function>
         <function id="getRoutineStats" name="%tool.getRoutineStats.name" type="INFORMATION" access="READ" purpose="ALL" enabledByDefault="true"
             categoryId="agent.performance" class="com.seizia.chromite.model.ai.tools.DiagnosticSqlTool"
-            description="Run-time statistics of a procedure, function or trigger and of each statement inside it with its start line (SQL Server); function statistics and nested statements (PostgreSQL); program statistics (MySQL).">
+            description="Run-time statistics of a procedure, function or trigger and of each statement inside it with its start line (SQL Server, Oracle V$SQL PROGRAM_LINE#); function statistics and nested statements (PostgreSQL); program statistics (MySQL).">
             <parameter name="connection" type="string" description="Connection id or name"/>
             <parameter name="database" type="string" description="Database; default: current"/>
             <parameter name="name" type="string" required="true" description="Routine name or schema.name"/>
@@ -668,6 +711,39 @@
             <parameter name="name" type="string" description="Routine name (or give contains)"/>
             <parameter name="contains" type="string" description="Text the statement contains"/>
             <parameter name="top" type="integer" defaultValue="10" description="Max statements (default 10)"/>
+        </function>
+        <function id="getQueryStoreTopQueries" name="%tool.getQueryStoreTopQueries.name" type="INFORMATION" access="READ" purpose="ALL" enabledByDefault="true"
+            categoryId="agent.performance" class="com.seizia.chromite.model.ai.tools.DiagnosticSqlTool"
+            description="SQL Server Query Store of a database: the most expensive queries of the last hours (CPU, duration, logical reads, executions) with their plan count. Unlike getTopQueries it survives restarts and plan cache eviction. Says clearly when Query Store is off.">
+            <parameter name="connection" type="string" description="Connection id or name"/>
+            <parameter name="database" type="string" description="Database; default: current"/>
+            <parameter name="orderBy" type="string" defaultValue="cpu" validValues="cpu,io,duration,executions" description="Sort key (default cpu)"/>
+            <parameter name="hours" type="integer" defaultValue="24" description="Hours back (default 24)"/>
+            <parameter name="top" type="integer" defaultValue="20" description="Number of queries (default 20)"/>
+        </function>
+        <function id="getQueryStoreRegressions" name="%tool.getQueryStoreRegressions.name" type="INFORMATION" access="READ" purpose="ALL" enabledByDefault="true"
+            categoryId="agent.performance" class="com.seizia.chromite.model.ai.tools.DiagnosticSqlTool"
+            description="SQL Server Query Store of a database: queries whose average duration in the recent window is worse than in the earlier window, with the plan ids of both windows (plan_changed = a different plan is the likely cause). Says clearly when Query Store is off.">
+            <parameter name="connection" type="string" description="Connection id or name"/>
+            <parameter name="database" type="string" description="Database; default: current"/>
+            <parameter name="recentMinutes" type="integer" defaultValue="1440" description="Recent window in minutes (default 1440 = 24 hours)"/>
+            <parameter name="historyMinutes" type="integer" defaultValue="10080" description="Earlier window in minutes before the recent one (default 10080 = 7 days)"/>
+            <parameter name="minExecutions" type="integer" defaultValue="2" description="Executions needed in each window (default 2)"/>
+            <parameter name="top" type="integer" defaultValue="20" description="Number of queries (default 20)"/>
+        </function>
+        <function id="getQueryStoreForcedPlans" name="%tool.getQueryStoreForcedPlans.name" type="INFORMATION" access="READ" purpose="ALL" enabledByDefault="true"
+            categoryId="agent.performance" class="com.seizia.chromite.model.ai.tools.DiagnosticSqlTool"
+            description="SQL Server Query Store of a database: plans forced on queries (manually or by automatic tuning) with their force failure count and last failure reason. Read only: it does not force or unforce. Says clearly when Query Store is off.">
+            <parameter name="connection" type="string" description="Connection id or name"/>
+            <parameter name="database" type="string" description="Database; default: current"/>
+        </function>
+        <function id="whatIfIndex" name="%tool.whatIfIndex.name" type="INFORMATION" access="READ" purpose="ALL" enabledByDefault="true"
+            categoryId="agent.performance" class="com.seizia.chromite.model.ai.tools.PlanTools"
+            description="PostgreSQL with the hypopg extension: estimated plan of a statement before and after a hypothetical index (nothing is built; it exists only in the agent's session for this call) and the plan comparison. Without hypopg in the database it answers available=false with the reason.">
+            <parameter name="connection" type="string" description="Connection id or name"/>
+            <parameter name="database" type="string" description="Database; default: current"/>
+            <parameter name="sql" type="string" required="true" description="One statement to explain"/>
+            <parameter name="index" type="string" required="true" description="CREATE INDEX statement of the hypothetical index"/>
         </function>
 
         <!-- ============================================================ Query Library -->

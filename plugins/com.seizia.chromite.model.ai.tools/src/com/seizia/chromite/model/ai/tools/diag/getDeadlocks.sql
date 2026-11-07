@@ -22,3 +22,15 @@ SELECT datname AS database_name, deadlocks, conflicts, stats_reset
 FROM pg_stat_database
 WHERE datname IS NOT NULL
 ORDER BY deadlocks DESC
+
+-- @family: oracle
+-- @requires: SELECT on V$DIAG_ALERT_EXT, which SELECT_CATALOG_ROLE does not include: as SYS, GRANT SELECT ON SYS.V_$DIAG_ALERT_EXT TO <user>
+-- @requires: SELECT_CATALOG_ROLE (or SELECT ANY DICTIONARY) for the deadlock graph in the trace file (V$DIAG_TRACE_FILE_CONTENTS)
+-- @note: Oracle writes each deadlock (ORA-00060) to the alert log and the deadlock graph (resources, sessions, their SQL) to the trace file the entry names; the graph is read from V$DIAG_TRACE_FILE_CONTENTS. Last 30 days.
+SELECT originating_timestamp AS event_time, SUBSTR(message_text, 1, 2000) AS message,
+       REGEXP_SUBSTR(message_text, '[^/\\ ]+\.trc') AS trace_file
+FROM v$diag_alert_ext
+WHERE message_text LIKE '%ORA-00060%'
+  AND originating_timestamp > SYSTIMESTAMP - INTERVAL '30' DAY
+ORDER BY originating_timestamp DESC
+FETCH FIRST ${limit} ROWS ONLY

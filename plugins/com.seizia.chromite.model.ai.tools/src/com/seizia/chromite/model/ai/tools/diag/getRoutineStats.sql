@@ -65,3 +65,32 @@ SELECT CONCAT(OBJECT_SCHEMA, '.', OBJECT_NAME) AS routine, OBJECT_TYPE AS kind, 
 FROM performance_schema.events_statements_summary_by_program
 WHERE OBJECT_NAME = SUBSTRING_INDEX(${name}, '.', -1)
   AND OBJECT_SCHEMA = IF(LOCATE('.', ${name}) > 0, SUBSTRING_INDEX(${name}, '.', 1), DATABASE())
+
+-- @family: oracle
+-- @requires: SELECT on V$SQL (SELECT_CATALOG_ROLE or SELECT ANY DICTIONARY)
+-- @note: V$SQL keeps the statements a PL/SQL unit ran (PROGRAM_ID, PROGRAM_LINE#) while their cursors stay in the shared pool. Oracle keeps no per-call totals of the unit itself outside the Diagnostics Pack, so the routine row sums its statements. A package is named by its package name.
+-- @statement: routine
+SELECT o.owner || '.' || o.object_name AS routine, o.object_type AS kind, COUNT(s.sql_id) AS statements,
+       SUM(s.executions) AS statement_executions, ROUND(SUM(s.elapsed_time) / 1000, 1) AS total_duration_ms,
+       ROUND(SUM(s.cpu_time) / 1000, 1) AS total_cpu_ms, SUM(s.buffer_gets) AS total_logical_reads, SUM(s.disk_reads) AS total_physical_reads,
+       MAX(s.last_active_time) AS last_execution_time
+FROM all_objects o
+LEFT JOIN v$sql s ON s.program_id = o.object_id
+WHERE o.object_type IN ('PROCEDURE', 'FUNCTION', 'PACKAGE BODY', 'TRIGGER', 'TYPE BODY')
+  AND ((o.owner = SYS_CONTEXT('USERENV', 'CURRENT_SCHEMA') AND o.object_name = UPPER(${name}))
+       OR o.owner || '.' || o.object_name = UPPER(${name}))
+GROUP BY o.owner, o.object_name, o.object_type
+-- @statement: statements
+SELECT s.program_line# AS start_line, s.sql_id, s.child_number, s.executions AS execution_count,
+       ROUND(s.cpu_time / 1000, 1) AS total_cpu_ms, ROUND(s.cpu_time / 1000 / NULLIF(s.executions, 0), 3) AS avg_cpu_ms,
+       ROUND(s.elapsed_time / 1000, 1) AS total_duration_ms, s.buffer_gets AS total_logical_reads,
+       ROUND(s.buffer_gets / NULLIF(s.executions, 0), 1) AS avg_logical_reads, s.rows_processed AS total_rows,
+       s.disk_reads AS total_physical_reads, s.plan_hash_value, s.last_active_time AS last_execution_time,
+       SUBSTR(s.sql_text, 1, 2000) AS sql_text
+FROM v$sql s
+JOIN all_objects o ON o.object_id = s.program_id
+WHERE o.object_type IN ('PROCEDURE', 'FUNCTION', 'PACKAGE BODY', 'TRIGGER', 'TYPE BODY')
+  AND ((o.owner = SYS_CONTEXT('USERENV', 'CURRENT_SCHEMA') AND o.object_name = UPPER(${name}))
+       OR o.owner || '.' || o.object_name = UPPER(${name}))
+ORDER BY s.program_line#, s.child_number
+FETCH FIRST ${limit} ROWS ONLY

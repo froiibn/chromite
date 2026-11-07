@@ -28,6 +28,9 @@ import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 
 import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Deque;
@@ -45,13 +48,19 @@ import java.util.Set;
  * 설계: 해석은 결정적인 규칙만 한다(트리 만들기, XML 읽기, 임계값 비교). "왜"를 설명하는 최종 문장은 모델이 쓴다. 다만 블로킹은 같은 규칙
  * (잠자는 머리 블로커 + 열린 트랜잭션 = 앱이 커밋하지 않음 등)을 매번 모델이 다시 추론하지 않도록 {@code findings}로 후보를 미리 낸다
  * (docs/chromite/ai-agent.md 플레이북 5).
+ * Query Store 도구는 Query Store가 꺼져 있으면 뷰가 빈 결과를 돌려준다. 모델이 이를 "비싼 쿼리 없음"으로 읽지 않도록 상태를 결과 맨 앞의 문장으로 밝힌다.
  *
  * 변경 이력:
  * - 2026-11-07 최초 작성
+ * - 2026-11-08 Oracle 교착 상태: 경고 로그 항목이 가리키는 추적 파일에서 교착 상태 그래프를 읽음, Query Store 상태 문장
+ *   (docs/chromite/ai-agent.md "1b단계 도구")
  */
 final class DiagnosticPostProcessor {
 
     private static final int MAX_GRAPH_NODES = 60;
+    // Lines of one Oracle deadlock section: header, graph and the waiting sessions are about 60 lines
+    private static final int ORACLE_DEADLOCK_LINES = 150;
+    private static final int ORACLE_DEADLOCK_CHARS = 12000;
 
     private DiagnosticPostProcessor() {
     }
@@ -72,6 +81,8 @@ final class DiagnosticPostProcessor {
     ) throws DBException {
         if (toolId.equals("getObjectDependencies")) {
             dependencyGraph(connection, runner, tool, context, block, args, limits, result);
+        } else if (toolId.equals("getDeadlocks") && block.family() == DbFamily.ORACLE) {
+            oracleDeadlockGraphs(connection, result);
         }
     }
 
@@ -91,6 +102,7 @@ final class DiagnosticPostProcessor {
             case "getCachedPlans" -> cachedPlans(result);
             case "probePermissions" -> PermissionProbe.summarize(result, family);
             case "getErrorLog" -> errorLogTail(result, args);
+            case "getQueryStoreTopQueries", "getQueryStoreRegressions", "getQueryStoreForcedPlans" -> queryStoreState(result);
             default -> {
                 // rows as they are
             }
@@ -387,6 +399,78 @@ final class DiagnosticPostProcessor {
         }
     }
 
+    /**
+     * Oracle: adds the deadlock graph of the trace file each ORA-00060 alert entry names. A dedicated server process writes
+     * every deadlock it detects to its own trace file, so the n-th oldest entry of a file is the n-th "DEADLOCK DETECTED"
+     * section of that file. A trace file that can't be read (privilege, purged file) leaves the entry without a graph.
+     */
+    private static void oracleDeadlockGraphs(@NotNull Connection connection, @NotNull JsonObject result) {
+        JsonArray rows = rows(result.get("rows"));
+        if (rows == null) {
+            return;
+        }
+        Map<String, List<JsonObject>> byFile = new LinkedHashMap<>();
+        for (int i = rows.size() - 1; i >= 0; i--) {
+            JsonObject row = rows.get(i).getAsJsonObject();
+            String file = str(row, "trace_file");
+            if (file != null) {
+                byFile.computeIfAbsent(file, f -> new ArrayList<>()).add(row);
+            }
+        }
+        for (Map.Entry<String, List<JsonObject>> e : byFile.entrySet()) {
+            try {
+                List<Long> starts = new ArrayList<>();
+                try (PreparedStatement statement = connection.prepareStatement(
+                    "SELECT line_number FROM v$diag_trace_file_contents WHERE trace_filename = ? " + //$NON-NLS-1$
+                        "AND payload LIKE '%DEADLOCK DETECTED%' ORDER BY line_number")) { //$NON-NLS-1$
+                    statement.setString(1, e.getKey());
+                    try (ResultSet rs = statement.executeQuery()) {
+                        while (rs.next()) {
+                            starts.add(rs.getLong(1));
+                        }
+                    }
+                }
+                List<JsonObject> entries = e.getValue();
+                for (int n = 0; n < entries.size() && n < starts.size(); n++) {
+                    entries.get(n).addProperty("graph", oracleDeadlockSection(connection, e.getKey(), starts.get(n)));
+                }
+            } catch (SQLException ex) {
+                for (JsonObject entry : e.getValue()) {
+                    entry.addProperty("graphError", ex.getMessage() +
+                        " (the graph needs SELECT_CATALOG_ROLE or SELECT ANY DICTIONARY for V$DIAG_TRACE_FILE_CONTENTS)");
+                }
+            }
+        }
+        result.remove("rows");
+        result.add("deadlocks", rows);
+    }
+
+    @NotNull
+    private static String oracleDeadlockSection(@NotNull Connection connection, @NotNull String file, long start) throws SQLException {
+        StringBuilder text = new StringBuilder();
+        try (PreparedStatement statement = connection.prepareStatement(
+            "SELECT payload FROM v$diag_trace_file_contents WHERE trace_filename = ? AND line_number >= ? AND line_number < ? " + //$NON-NLS-1$
+                "ORDER BY line_number")) { //$NON-NLS-1$
+            statement.setString(1, file);
+            statement.setLong(2, start);
+            statement.setLong(3, start + ORACLE_DEADLOCK_LINES);
+            try (ResultSet rs = statement.executeQuery()) {
+                while (rs.next() && text.length() < ORACLE_DEADLOCK_CHARS) {
+                    String line = rs.getString(1);
+                    if (line == null) {
+                        continue;
+                    }
+                    text.append(line.endsWith("\n") ? line : line + "\n");
+                    // The waiting sessions end the part the model needs; the error stack and call stack follow
+                    if (line.contains("End of information for waiting sessions")) {
+                        break;
+                    }
+                }
+            }
+        }
+        return truncate(text.toString(), ORACLE_DEADLOCK_CHARS);
+    }
+
     @NotNull
     static JsonObject parseSqlServerDeadlock(@NotNull String xml) throws DBException {
         Document document = PlanParser.parseXml(xml);
@@ -485,6 +569,42 @@ final class DiagnosticPostProcessor {
             } catch (DBException e) {
                 row.addProperty("planError", e.getMessage());
             }
+        }
+    }
+
+    // ------------------------------------------------------------------ Query Store
+
+    /**
+     * The Query Store options row becomes one object, and a Query Store that records nothing is said in a sentence: its views
+     * then answer with old or no rows, which must not read as "nothing expensive ran".
+     */
+    private static void queryStoreState(@NotNull JsonObject result) {
+        JsonArray rows = rows(result.get("queryStore"));
+        if (rows == null) {
+            return;
+        }
+        if (rows.isEmpty()) {
+            // master and tempdb have no Query Store options row (seen on SQL Server 2022)
+            result.addProperty("queryStoreOff", true);
+            result.addProperty("message", "This database has no Query Store (master and tempdb have none): pass the user " +
+                "database as the 'database' argument.");
+            return;
+        }
+        JsonObject options = rows.get(0).getAsJsonObject();
+        result.add("queryStore", options);
+        String state = str(options, "actual_state_desc");
+        String database = str(options, "database_name");
+        if ("OFF".equalsIgnoreCase(state)) {
+            result.addProperty("queryStoreOff", true);
+            result.addProperty("message", "Query Store is OFF in database " + database + ": it has recorded nothing, so these results " +
+                "are empty. It is turned on with ALTER DATABASE [" + database + "] SET QUERY_STORE = ON (ALTER permission on the " +
+                "database; ask the user), and then needs the workload to run. Until then getTopQueries reads the plan cache.");
+        } else if ("READ_ONLY".equalsIgnoreCase(state)) {
+            result.addProperty("message", "Query Store is READ_ONLY in database " + database + " (readonly_reason " +
+                str(options, "readonly_reason") + "; 65536 = max_storage_size_mb reached): it keeps old data but records nothing " +
+                "new, so recent activity is missing.");
+        } else if ("ERROR".equalsIgnoreCase(state)) {
+            result.addProperty("message", "Query Store is in ERROR state in database " + database + ": its data may be incomplete.");
         }
     }
 

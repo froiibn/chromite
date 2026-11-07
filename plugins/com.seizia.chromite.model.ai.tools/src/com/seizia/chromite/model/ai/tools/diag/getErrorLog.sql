@@ -22,7 +22,7 @@ LIMIT ${limit}
 SELECT @@log_error AS log_error_file
 
 -- @family: oracle
--- @requires: SELECT on V$DIAG_ALERT_EXT
+-- @requires: SELECT on V$DIAG_ALERT_EXT, which SELECT_CATALOG_ROLE does not include: as SYS, GRANT SELECT ON SYS.V_$DIAG_ALERT_EXT TO <user>
 SELECT originating_timestamp, message_level, SUBSTR(message_text, 1, 2000) AS message
 FROM v$diag_alert_ext
 WHERE originating_timestamp > SYSTIMESTAMP - INTERVAL '7' DAY
