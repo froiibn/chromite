@@ -25,6 +25,8 @@ import com.seizia.chromite.model.DBPDataSourceContainer;
 
 import javax.swing.*;
 import java.awt.*;
+import java.util.List;
+import java.util.function.IntFunction;
 
 /**
  * Object Explorer "View DDL" 문서 탭: 객체의 DDL을 읽기 전용으로 보여 준다.
@@ -37,8 +39,19 @@ import java.awt.*;
  * - 2026-11-06 P1: Edit &gt; Find가 쓰는 편집기 접근자 (docs/chromite/swing-frontend.md "P1 디자인 적용")
  * - 2026-11-06 객체의 연결을 받아 그 SQL 방언으로 강조 (docs/chromite/design-spec.md "편집기 글꼴과 SQL 색")
  * - 2026-11-06 화면 문구를 CoreMessages로 옮김(OS 언어를 따름)
+ * - 2026-11-08 DDL 형식 콤보({@link Formats}): Oracle 테이블·뷰·구체화된 뷰의 전체 / 저장소 제외 / 간단히, SWT DDL 탭과 같음
+ *   (SWT 감사 O14, docs/chromite/swing-routines.md)
  */
 final class DdlViewerPanel extends JPanel {
+
+    /**
+     * The DDL formats of the object (SWT DDL tab combo): their labels, the one shown, and how to read the DDL in
+     * another one.
+     *
+     * @param regenerate the DDL in the format of an index, read in a progress dialog; null if it failed or was canceled
+     */
+    record Formats(@NotNull List<String> labels, int selected, @NotNull IntFunction<String> regenerate) {
+    }
 
     private final String title;
     private final SqlEditorPanel.SqlTextArea textArea = new SqlEditorPanel.SqlTextArea();
@@ -47,8 +60,9 @@ final class DdlViewerPanel extends JPanel {
      * @param dataSource connection of the object, for the keywords and functions of its SQL dialect
      * @param objectName full name of the object (tab title and header)
      * @param ddl        object definition
+     * @param formats    DDL formats to choose from, or null
      */
-    DdlViewerPanel(@Nullable DBPDataSourceContainer dataSource, @NotNull String objectName, @NotNull String ddl) {
+    DdlViewerPanel(@Nullable DBPDataSourceContainer dataSource, @NotNull String objectName, @NotNull String ddl, @Nullable Formats formats) {
         super(new BorderLayout());
         this.title = objectName + " [DDL]";
         textArea.setDataSourceContainer(dataSource);
@@ -63,7 +77,37 @@ final class DdlViewerPanel extends JPanel {
 
         JLabel header = new JLabel(NLS.bind(CoreMessages.ddl_header, objectName));
         header.setBorder(BorderFactory.createEmptyBorder(4, 8, 4, 8));
-        add(header, BorderLayout.NORTH);
+        if (formats == null) {
+            add(header, BorderLayout.NORTH);
+        } else {
+            JComboBox<String> formatCombo = new JComboBox<>(formats.labels().toArray(new String[0]));
+            formatCombo.setSelectedIndex(formats.selected());
+            formatCombo.setToolTipText(CoreMessages.ddl_format_tip);
+            int[] shown = {formats.selected()};
+            formatCombo.addActionListener(e -> {
+                int index = formatCombo.getSelectedIndex();
+                if (index < 0 || index == shown[0]) {
+                    return;
+                }
+                String formatted = formats.regenerate().apply(index);
+                if (formatted == null) {
+                    // Failed or canceled: the text still shows the previous format
+                    formatCombo.setSelectedIndex(shown[0]);
+                    return;
+                }
+                shown[0] = index;
+                textArea.setText(formatted);
+                textArea.setCaretPosition(0);
+                textArea.discardAllEdits();
+            });
+            JPanel top = new JPanel(new BorderLayout());
+            top.add(header, BorderLayout.CENTER);
+            JPanel formatPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 6, 2));
+            formatPanel.add(new JLabel(CoreMessages.ddl_format));
+            formatPanel.add(formatCombo);
+            top.add(formatPanel, BorderLayout.EAST);
+            add(top, BorderLayout.NORTH);
+        }
         add(scrollPane, BorderLayout.CENTER);
     }
 

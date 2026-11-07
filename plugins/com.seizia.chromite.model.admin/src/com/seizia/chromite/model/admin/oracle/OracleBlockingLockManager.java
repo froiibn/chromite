@@ -47,11 +47,14 @@ import java.util.List;
  *     <li>세션 끝내기는 SWT 잠금 편집기와 같은 {@code ALTER SYSTEM KILL SESSION 'SID,SERIAL#' IMMEDIATE}다
  *     (기다리던 세션이 바로 이어 가도록 IMMEDIATE). SERIAL#은 목록을 읽을 때의 값({@link OracleBlockingLock})이다.</li>
  *     <li>라이선스: Diagnostics/Tuning Pack이 필요한 ASH·AWR 뷰({@code V$ACTIVE_SESSION_HISTORY}, {@code DBA_HIST_*})는 쓰지 않는다.</li>
- *     <li>현재 인스턴스({@code V$})만 본다. RAC의 다른 인스턴스 세션이 막으면 막는 세션 행은 비어 있다.</li>
+ *     <li>RAC({@link #setMultiInstance}, 권한 확인이 {@code GV$INSTANCE}로 정함): 같은 질의를 {@code GV$} 뷰로 읽고 세션을
+ *     인스턴스와 SID로 찾는다. 막는 세션은 {@code BLOCKING_INSTANCE}·{@code BLOCKING_SESSION}이고, 끝내기는 'SID,SERIAL#,@INST_ID'다.
+ *     단일 인스턴스는 {@code V$} 질의 그대로다({@code GV$}는 단일 인스턴스에서도 되지만 병렬 질의 프로세스를 쓰므로 필요할 때만 쓴다).</li>
  * </ul>
  *
  * 변경 이력:
  * - 2026-11-07 최초 작성: Oracle 세션·잠금 (docs/chromite/swing-admin-tools.md)
+ * - 2026-11-08 RAC에서 GV$ 뷰로 모든 인스턴스의 잠금 대기를 읽음 (docs/chromite/swing-admin-tools.md "Oracle RAC와 쿼리 취소")
  */
 public class OracleBlockingLockManager extends AbstractBlockingLockManager {
 
@@ -82,7 +85,33 @@ public class OracleBlockingLockManager extends AbstractBlockingLockManager {
         "WHERE l.SID = ?\n" +
         "ORDER BY CASE WHEN l.REQUEST > 0 THEN 0 ELSE 1 END, l.TYPE"; //$NON-NLS-1$
 
+    // RAC: the same queries over all instances; a session is its instance and SID
+    private static final String RAC_LOCK_WAITS_QUERY =
+        "SELECT w.INST_ID AS wait_inst, w.SID AS wait_id, w.SERIAL# AS wait_serial, w.USERNAME AS wait_user,\n" +
+        "w.BLOCKING_INSTANCE AS hold_inst, w.BLOCKING_SESSION AS hold_id, h.SERIAL# AS hold_serial, h.USERNAME AS hold_user,\n" +
+        "w.EVENT AS wait_event, w.SECONDS_IN_WAIT AS wait_seconds, rl.TYPE AS lock_type, rl.REQUEST AS lock_request,\n" +
+        "w.ROW_WAIT_FILE# AS row_file, w.ROW_WAIT_BLOCK# AS row_block, w.ROW_WAIT_ROW# AS row_row,\n" +
+        "(SELECT o.OWNER || '.' || o.OBJECT_NAME FROM %1$s o\n" +
+        "  WHERE o.OBJECT_ID = CASE WHEN rl.TYPE = 'TM' THEN rl.ID1 ELSE NULLIF(w.ROW_WAIT_OBJ#, -1) END) AS object_name,\n" +
+        "(SELECT q.SQL_TEXT FROM GV$SQL q WHERE q.INST_ID = w.INST_ID AND q.SQL_ID = w.SQL_ID AND ROWNUM = 1) AS wait_statement,\n" +
+        "(SELECT q.SQL_TEXT FROM GV$SQL q WHERE q.INST_ID = h.INST_ID AND q.SQL_ID = NVL(h.SQL_ID, h.PREV_SQL_ID) AND ROWNUM = 1) AS hold_statement\n" +
+        "FROM GV$SESSION w\n" +
+        "LEFT JOIN GV$SESSION h ON h.INST_ID = w.BLOCKING_INSTANCE AND h.SID = w.BLOCKING_SESSION\n" +
+        "LEFT JOIN GV$LOCK rl ON rl.INST_ID = w.INST_ID AND rl.SID = w.SID AND rl.REQUEST > 0\n" +
+        "WHERE w.BLOCKING_SESSION IS NOT NULL AND w.BLOCKING_SESSION_STATUS = 'VALID'\n" +
+        "ORDER BY w.INST_ID, w.SID"; //$NON-NLS-1$
+
+    private static final String RAC_LOCK_ITEMS_QUERY =
+        "SELECT l.SID, l.TYPE, l.LMODE, l.REQUEST, l.ID1, l.ID2, l.CTIME, l.BLOCK,\n" +
+        "(SELECT o.OWNER || '.' || o.OBJECT_NAME FROM %1$s o WHERE o.OBJECT_ID =\n" +
+        "  CASE WHEN l.TYPE = 'TM' THEN l.ID1\n" +
+        "  WHEN l.REQUEST > 0 THEN (SELECT NULLIF(s.ROW_WAIT_OBJ#, -1) FROM GV$SESSION s WHERE s.INST_ID = l.INST_ID AND s.SID = l.SID) END) AS object_name\n" +
+        "FROM GV$LOCK l\n" +
+        "WHERE l.INST_ID = ? AND l.SID = ?\n" +
+        "ORDER BY CASE WHEN l.REQUEST > 0 THEN 0 ELSE 1 END, l.TYPE"; //$NON-NLS-1$
+
     private volatile String objectsView = DBA_OBJECTS;
+    private volatile boolean multiInstance;
 
     public OracleBlockingLockManager(@NotNull OracleDataSource dataSource) {
         super(dataSource);
@@ -95,11 +124,30 @@ public class OracleBlockingLockManager extends AbstractBlockingLockManager {
         this.objectsView = objectsView;
     }
 
+    /**
+     * Whether the database has more than one instance (RAC): the locks are then read from the {@code GV$} views.
+     */
+    public void setMultiInstance(boolean multiInstance) {
+        this.multiInstance = multiInstance;
+    }
+
+    /**
+     * On RAC the rows show the instances too ({@link OracleBlockingLock#getWaitInstance()}); a single instance keeps
+     * the columns of the other databases.
+     */
+    @NotNull
+    @Override
+    @SuppressWarnings("unchecked")
+    public Class<BlockingSessionLock> getLocksType() {
+        return multiInstance ? (Class<BlockingSessionLock>) (Class<?>) OracleBlockingLock.class : super.getLocksType();
+    }
+
     @NotNull
     @Override
     protected List<BlockingSessionLock> readLockWaits(@NotNull JDBCSession session) throws SQLException {
         List<BlockingSessionLock> waits = new ArrayList<>();
-        try (JDBCPreparedStatement dbStat = session.prepareStatement(String.format(LOCK_WAITS_QUERY, objectsView));
+        boolean rac = multiInstance;
+        try (JDBCPreparedStatement dbStat = session.prepareStatement(String.format(rac ? RAC_LOCK_WAITS_QUERY : LOCK_WAITS_QUERY, objectsView));
              JDBCResultSet dbResult = dbStat.executeQuery()) {
             while (dbResult.next()) {
                 String lockType = JDBCUtils.safeGetString(dbResult, "lock_type"); //$NON-NLS-1$
@@ -126,26 +174,46 @@ public class OracleBlockingLockManager extends AbstractBlockingLockManager {
                     JDBCUtils.safeGetString(dbResult, "hold_statement"), //$NON-NLS-1$
                     resource,
                     lockType == null || request == 0 ? event : event + " (" + lockType + " " + getModeName(request) + ")", //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$
-                    JDBCUtils.safeGetLongNullable(dbResult, "wait_seconds"))); //$NON-NLS-1$
+                    JDBCUtils.safeGetLongNullable(dbResult, "wait_seconds"), //$NON-NLS-1$
+                    rac ? getInstance(dbResult, "wait_inst") : null, //$NON-NLS-1$
+                    rac ? getInstance(dbResult, "hold_inst") : null)); //$NON-NLS-1$
             }
         }
         return waits;
     }
 
-    @NotNull
-    @Override
-    protected BlockingSessionLock createRootLock(@NotNull BlockingSessionLock wait) {
-        Long holdSerial = wait instanceof OracleBlockingLock oracleLock ? oracleLock.getHoldSerial() : null;
-        return new OracleBlockingLock(wait.getHoldID(), holdSerial == null ? 0 : holdSerial, wait.getHoldUser(), null, null, null,
-            wait.getHoldStatement(), null, null, null, null);
+    @Nullable
+    private static Integer getInstance(@NotNull JDBCResultSet dbResult, @NotNull String column) {
+        Long instance = JDBCUtils.safeGetLongNullable(dbResult, column);
+        return instance == null ? null : instance.intValue();
     }
 
     @NotNull
     @Override
+    protected BlockingSessionLock createRootLock(@NotNull BlockingSessionLock wait) {
+        // The blocker's own SID (getHoldSessionId), not the RAC graph key (getHoldID)
+        OracleBlockingLock oracleLock = wait instanceof OracleBlockingLock lock ? lock : null;
+        Long holdSerial = oracleLock == null ? null : oracleLock.getHoldSerial();
+        Long holdId = wait.getHoldSessionId();
+        return new OracleBlockingLock(holdId == null ? 0 : holdId, holdSerial == null ? 0 : holdSerial, wait.getHoldUser(), null, null, null,
+            wait.getHoldStatement(), null, null, null, null, oracleLock == null ? null : oracleLock.getHoldInstance(), null);
+    }
+
+    /**
+     * @param sessionId the SID, or on RAC the key of {@link OracleBlockingLock#sessionKey} (instance and SID)
+     */
+    @NotNull
+    @Override
     protected List<SessionLockItem> readLockItems(@NotNull JDBCSession session, long sessionId) throws SQLException {
         List<SessionLockItem> items = new ArrayList<>();
-        try (JDBCPreparedStatement dbStat = session.prepareStatement(String.format(LOCK_ITEMS_QUERY, objectsView))) {
-            dbStat.setLong(1, sessionId);
+        boolean rac = multiInstance;
+        try (JDBCPreparedStatement dbStat = session.prepareStatement(String.format(rac ? RAC_LOCK_ITEMS_QUERY : LOCK_ITEMS_QUERY, objectsView))) {
+            if (rac) {
+                dbStat.setLong(1, sessionId >>> 32);
+                dbStat.setLong(2, sessionId & 0xFFFFFFFFL);
+            } else {
+                dbStat.setLong(1, sessionId);
+            }
             try (JDBCResultSet dbResult = dbStat.executeQuery()) {
                 while (dbResult.next()) {
                     int held = JDBCUtils.safeGetInt(dbResult, "LMODE"); //$NON-NLS-1$
@@ -169,9 +237,12 @@ public class OracleBlockingLockManager extends AbstractBlockingLockManager {
     @Override
     protected void killSession(@NotNull JDBCSession session, @NotNull BlockingSessionLock lock) throws SQLException {
         long serial = lock instanceof OracleBlockingLock oracleLock ? oracleLock.getSerial() : 0;
-        // ALTER SYSTEM takes no bind variables; both values are numbers read from the server
+        Integer instance = lock instanceof OracleBlockingLock oracleLock ? oracleLock.getWaitInstance() : null;
+        // ALTER SYSTEM takes no bind variables; all values are numbers read from the server. On RAC the instance
+        // is named: without it the statement looks for the SID on the instance of this connection
         try (JDBCPreparedStatement dbStat = session.prepareStatement(
-            "ALTER SYSTEM KILL SESSION '" + lock.getWaitId() + "," + serial + "' IMMEDIATE")) { //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$
+            "ALTER SYSTEM KILL SESSION '" + lock.getWaitId() + "," + serial //$NON-NLS-1$ //$NON-NLS-2$
+                + (instance == null ? "" : ",@" + instance) + "' IMMEDIATE")) { //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$
             dbStat.execute();
         }
     }
