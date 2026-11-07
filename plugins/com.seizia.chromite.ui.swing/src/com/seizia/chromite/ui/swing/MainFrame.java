@@ -226,6 +226,8 @@ import java.util.function.Supplier;
  * - 2026-11-08 Query 메뉴의 문장 명령: Execute Current Statement(Ctrl+Enter), Execute from Cursor(Alt+P), Count Rows,
  *   Evaluate Expression(Ctrl+Alt+'), Previous / Next Statement(Alt+PageUp/PageDown), Copy Current Statement, Variables…
  *   (docs/chromite/swing-query-commands.md)
+ * - 2026-11-08 Execute, 문장 명령, 예상 계획의 단축키는 키보드 초점이 쿼리 창(편집기, 결과)에 있을 때만 동작. 다른 글자 칸(Chromite Agent 입력 등)의
+ *   F5·Ctrl+Enter가 활성 쿼리 창을 실행하던 것 (docs/chromite/swing-query-commands.md "단축키는 쿼리 창 안에서만")
  */
 final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplorerPanel.QueryWindows, TableDesignerPanel.Host, QueryLibraryPanel.Host {
 
@@ -554,13 +556,8 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
         activityMonitorAction = createAction(CoreMessages.main_activity_monitor, ToolbarMessages.toolbar_activity_monitor_tip,
             KeyStroke.getKeyStroke(KeyEvent.VK_A, InputEvent.CTRL_DOWN_MASK | InputEvent.ALT_DOWN_MASK),
             () -> openActivityMonitor(ActivityMonitorPanel.PROCESSES_TAB));
-        executeQueryAction = createAction(CoreMessages.main_execute, CoreMessages.main_execute_tip,
-            KeyStroke.getKeyStroke(KeyEvent.VK_F5, 0), () -> {
-                SqlEditorPanel editor = getActiveEditor();
-                if (editor != null) {
-                    editor.execute();
-                }
-            });
+        executeQueryAction = createEditorAction(CoreMessages.main_execute, CoreMessages.main_execute_tip,
+            KeyStroke.getKeyStroke(KeyEvent.VK_F5, 0), SqlEditorPanel::execute);
         cancelQueryAction = createAction(CoreMessages.main_cancel_query, null,
             KeyStroke.getKeyStroke(KeyEvent.VK_PAUSE, InputEvent.ALT_DOWN_MASK), () -> {
                 SqlEditorPanel editor = getActiveEditor();
@@ -597,14 +594,9 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
             createEditorAction(QueryCommandMessages.query_copy_statement, null, null, SqlEditorPanel::copyCurrentStatement));
         variablesAction = createEditorAction(QueryCommandMessages.query_variables, QueryCommandMessages.query_variables_tip, null,
             SqlEditorPanel::showVariables);
-        estimatedPlanAction = createAction(CoreMessages.main_estimated_plan,
+        estimatedPlanAction = createEditorAction(CoreMessages.main_estimated_plan,
             CoreMessages.main_estimated_plan_tip,
-            KeyStroke.getKeyStroke(KeyEvent.VK_L, InputEvent.CTRL_DOWN_MASK), () -> {
-                SqlEditorPanel editor = getActiveEditor();
-                if (editor != null) {
-                    editor.explainEstimatedPlan();
-                }
-            });
+            KeyStroke.getKeyStroke(KeyEvent.VK_L, InputEvent.CTRL_DOWN_MASK), SqlEditorPanel::explainEstimatedPlan);
         actualPlanAction = createAction(CoreMessages.main_actual_plan, CoreMessages.main_actual_plan_tip,
             KeyStroke.getKeyStroke(KeyEvent.VK_M, InputEvent.CTRL_DOWN_MASK), () -> {
                 SqlEditorPanel editor = getActiveEditor();
@@ -794,7 +786,9 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
     }
 
     /**
-     * An action on the active query window; nothing happens without one.
+     * An action on the active query window (Execute, the statement commands, the estimated plan); nothing happens without
+     * one. Its shortcut acts only while the keyboard focus is in the query window ({@link #isShortcutFromOutside}); the
+     * menu item and the tool bar button always act.
      */
     @NotNull
     private Action createEditorAction(
@@ -805,10 +799,28 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
     ) {
         return createAction(name, description, accelerator, () -> {
             SqlEditorPanel editor = getActiveEditor();
-            if (editor != null) {
+            if (editor != null && !isShortcutFromOutside(editor, accelerator)) {
                 task.accept(editor);
             }
         });
+    }
+
+    /**
+     * Whether the action runs because its shortcut was pressed while the keyboard focus is outside the query window.
+     * Menu shortcuts work in the whole main window, so without this F5 or Ctrl+Enter typed in another text field (the
+     * Chromite Agent input, which many chat inputs send with, Object Explorer's filter, the Query Library) would run the
+     * active window's statements. The query window is its editor and its results (the result tabs show the active
+     * window's results, plan and terminal). A shortcut is told from a menu or button click by the event being handled:
+     * the key event of that key stroke. Choosing the item in the open menu with the keyboard is another key (Enter).
+     */
+    private boolean isShortcutFromOutside(@NotNull SqlEditorPanel editor, @Nullable KeyStroke accelerator) {
+        if (accelerator == null || !(EventQueue.getCurrentEvent() instanceof KeyEvent keyEvent)
+            || !accelerator.equals(KeyStroke.getKeyStrokeForEvent(keyEvent))) {
+            return false;
+        }
+        // The component the key went to: the focus owner when the key was pressed
+        Component focus = keyEvent.getComponent() != null ? keyEvent.getComponent() : KeyboardFocusManager.getCurrentKeyboardFocusManager().getFocusOwner();
+        return focus == null || !SwingUtilities.isDescendingFrom(focus, editor) && !SwingUtilities.isDescendingFrom(focus, resultTabs);
     }
 
     @NotNull

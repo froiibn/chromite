@@ -29,6 +29,13 @@ DDL 뒤 탐색기 갱신이 있었다. Swing 쿼리 창에는 이것들이 없�
 - 연결이 되어 있지 않으면 실행 명령은 F5처럼 먼저 연결한다. 실행하지 않는 명령(이전·다음, 복사)은 연결되어 있으면 그 방언으로, 아니면
   표준 SQL로 문장을 찾는다.
 
+### 단축키는 쿼리 창 안에서만
+
+- F5(Execute), Ctrl+Enter, Alt+P, Ctrl+Alt+', Ctrl+L(예상 계획), Alt+PageUp/PageDown은 키보드 초점이 활성 쿼리 창의 편집기나
+  결과(결과 탭: Results, Messages, Execution plan, Terminal)에 있을 때만 동작한다. 다른 곳(Chromite Agent 입력, Query Library,
+  Object Explorer와 그 빠른 필터, 대화상자 등)에 초점이 있으면 아무것도 하지 않는다.
+- 메뉴 항목을 누르거나(마우스, 메뉴를 열고 Enter) SQL Editor 도구 막대 단추를 누르면 초점과 관계없이 동작한다.
+
 ### `@set` 변수 유지
 
 - 한 실행에서 `@set name = value`로 정한 변수는 같은 쿼리 창의 다음 실행에도 남는다. `${name}`, `:name`으로 쓴다.
@@ -100,6 +107,12 @@ DDL 뒤 탐색기 갱신이 있었다. Swing 쿼리 창에는 이것들이 없�
   프런트엔드에 넘긴다(`confirmIncludedScript`). 확인을 끈 사용자에게는 묻지 않는다(같은 설정).
 - **DDL 갱신은 트랜잭션이 끝난 뒤.** 위 "DDL 뒤 탐색기 갱신". 갱신 시점은 상태 줄의 열린 트랜잭션 표시(1초마다, 실행이 끝날 때)가
   "없음"일 때다. 그래서 커밋을 어디서 하든(Query 메뉴, 상태 줄, 유휴 트랜잭션 알림, 스크립트의 COMMIT) 따라간다.
+- **실행 단축키는 초점이 쿼리 창에 있을 때만(`MainFrame.isShortcutFromOutside`).** 메뉴 단축키는 메인 창 어디서나 동작하므로(Swing 메뉴 막대의
+  `WHEN_IN_FOCUSED_WINDOW`), 많은 채팅 입력이 보내기로 쓰는 Ctrl+Enter를 Chromite Agent 입력칸에서 누르면 활성 쿼리 창의 문장이 실행되었다
+  (F5도 같았다). 글자 칸마다 키를 막으면 새 칸이 생길 때마다 빠지므로, 실행 동작 쪽에서 막는다. 지금 처리 중인 이벤트
+  (`EventQueue.getCurrentEvent`)가 그 동작의 단축키와 같은 키 이벤트이면 단축키로 보고 초점 위치를 본다. 마우스 클릭, 도구 막대 단추, 열린 메뉴에서
+  Enter로 고르기는 다른 이벤트라 그대로 동작한다. 쿼리 창은 편집기(`SqlEditorPanel`)와 활성 창의 결과를 보이는 결과 탭(`resultTabs`)이다.
+  Commit / Roll Back(Ctrl+Alt+Shift+K/R)은 실행 명령이 아니라 바꾸지 않았다.
 - **화면 문구는 새 묶음(`QueryCommandMessages`).** 같은 때 쿼리 창을 고치는 다른 작업과 `EditorMessages`를 함께 고치지 않으려는 것이다(SQL 터미널의
   `TerminalMessages`와 같은 방식). 모델의 오류 문구는 영어다(예외 문구 규칙).
 
@@ -150,6 +163,8 @@ DDL 뒤 탐색기 갱신이 있었다. Swing 쿼리 창에는 이것들이 없�
 | `GO`를 사이에 둔 다음 문장 이동 | `SELECT … ORDER BY id\nGO`, 그다음 문장 선택 |
 | `@include sub\..\loop_ms_a.sql`(자기 자신) | `Include loop: loop_ms_a.sql > loop_ms_a.sql.` |
 | MariaDB, `SOURCE child_maria.sql`(D-M19) | CREATE·INSERT·SELECT가 같은 실행에서 돌고 `maria_count = 3`, 뒤 문장 계속 |
+| (단축키 고친 뒤) Chromite Agent 입력에 초점, Ctrl+Enter·Alt+P·F5 키 이벤트 | 아무것도 실행하지 않음(상태 줄 그대로, 결과 없음) |
+| (단축키 고친 뒤) 편집기에 초점, 같은 키 / 초점이 Agent 입력일 때 메뉴 동작 실행(클릭과 같은 경로) | 전처럼 실행 / 실행 |
 | 한국어(`-nl ko`) | Query 메뉴 `현재 문장 실행`·`커서부터 실행`·`행 수 세기`·`식 계산`·`이전 문장`·`다음 문장`·`현재 문장 복사`·`변수…`, 대화상자 `변수 - vars_pg.sql`, `[지우기] [모두 지우기] [닫기]`, 상태 줄 `문장을 복사했습니다`, 위험한 문 목록 `danger_pg.sql, 줄 2: WHERE 절이 없는 DELETE` |
 
 임시 개체(PostgreSQL 스키마 `p4_qc`, SQL Server·MariaDB DB `p4_qc_db`)는 확인 뒤 지웠다.
@@ -158,3 +173,5 @@ DDL 뒤 탐색기 갱신이 있었다. Swing 쿼리 창에는 이것들이 없�
 
 - 2026-11-08 최초 작성: 문장 명령(현재 문장, 커서부터, 행 수, 식, 이전·다음, 복사), 창 단위 `@set` 변수와 Variables 대화상자, `@include`·`SOURCE`,
   DDL 뒤 탐색기 갱신
+- 2026-11-08 실행 단축키(F5, Ctrl+Enter, Alt+P, Ctrl+Alt+', Ctrl+L, Alt+PageUp/PageDown)는 키보드 초점이 쿼리 창의 편집기나 결과에 있을 때만 동작.
+  다른 글자 칸(Chromite Agent 입력 등)에서 누르면 활성 쿼리 창을 실행하던 것을 고침
