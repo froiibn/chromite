@@ -141,7 +141,7 @@ MView 새로 고침, TRUNCATE, 트리거 켜기/끄기), MySQL(ANALYZE·CHECK·O
 
 | # | 기능 | SWT 출처 | 상태 | 근거 | 영향 | 비고 |
 |---|---|---|---|---|---|---|
-| 62 | PostgreSQL 프로시저 디버거(중단점, 단계 실행, 변수, 호출 스택, 디버그 구성·실행 바로 가기) | `debug.ui`, `debug.core`, `ext.postgresql.debug.ui/core` | 없음(이식 대기) | swt-removal.md:103(모델도 함께 삭제), build.md:82-85 | 낮음 | `debug.feature`는 SWT 제품에 없었다(위 사실 1) → 기존 사용자 손실 없음. 기능 가치는 중간 |
+| 62 | PostgreSQL 프로시저 디버거(중단점, 단계 실행, 변수, 호출 스택, 디버그 구성·실행 바로 가기) | `debug.ui`, `debug.core`, `ext.postgresql.debug.ui/core` | 있음(2026-11-07) | 모델 복원(`debug.core`, `ext.postgresql.debug.core`), Swing `ProcedureDebuggerPanel`·`DebugStartDialog`·`DebugCommands`([procedure-debugger.md](../procedure-debugger.md)) | 낮음 | 디버그 구성·실행 바로 가기(Eclipse 실행 구성)는 옮기지 않고 Debug… 메뉴와 시작 대화상자로 바꿈. attach(Global) 모드는 SWT에서 꺼져 있던 것을 켬. Step Out은 pldbgapi에 없음 |
 | 63 | Git 연동(프로젝트 공유, Git에서 프로젝트 가져오기, 커밋, 갱신, 기록, Repositories 보기) | `team.git.ui` (+EGit) | 없음(이식 대기) | swt-removal.md:109, build.md:82-85 | 낮음 | `git.feature`는 SWT 제품에 없었다. 삭제 결정 문서는 없음(위 사실 2) |
 | 64 | 공간 데이터(GIS) 보기: 결과의 지도 보기(Leaflet, 타일 고르기, SRID), 기하 값 패널, GIS 환경설정 | `data.gis.view` `GeometryValueManager`, `results.geometry` 프레젠테이션, `PrefPageGIS` | 없음 | swt-removal.md:106, `DBGeometry` grep 0 | 낮음 | 결과 표에 기하 값이 글자로 보이는지는 확인하지 않았다 |
 | — | 개발자 Test 메뉴(노드·연결 검증, 연결 스트레스 시험, 대화상자·아이콘·색 보기) | `ui.app.devtools` | 해당 없음 | `ui.test.feature`(테스트 제품)에만 포함 | — | |
@@ -151,14 +151,14 @@ MView 새로 고침, TRUNCATE, 트리거 켜기/끄기), MySQL(ANALYZE·CHECK·O
 
 | 상태 | 수 | 번호 |
 |---|---|---|
-| 있음 | 12 | 1, 2, 3, 27, 28, 31, 34, 35, 45, 48, 50, 55 |
+| 있음 | 13 | 1, 2, 3, 27, 28, 31, 34, 35, 45, 48, 50, 55, 62 |
 | 일부 | 20 | 4, 10, 11, 13, 14, 15, 17, 18, 19, 24, 36, 37, 38, 42, 44, 47, 51, 57, 59, 60 |
-| 없음 | 29 | 5, 6, 7, 8, 9, 12, 16, 20, 21, 22, 23, 25, 26, 29, 30, 32, 33, 39, 40, 41, 43, 46, 49, 52, 53, 56, 62, 63, 64 |
+| 없음 | 28 | 5, 6, 7, 8, 9, 12, 16, 20, 21, 22, 23, 25, 26, 29, 30, 32, 33, 39, 40, 41, 43, 46, 49, 52, 53, 56, 63, 64 |
 | 의도적 제외 | 1 | 61 |
 | 조용히 끊김 | 2 | 54, 58 |
 | 해당 없음 | 4 | 즐겨찾기, 작업 스케줄러, 개발자 Test 메뉴, DataDam |
 
-없음 29개 중 62(디버거), 63(Git)은 SWT 제품에도 없던 번들이라 실제 사용자 손실은 없다.
+없음 28개 중 63(Git)은 SWT 제품에도 없던 번들이라 실제 사용자 손실은 없다. 62(디버거)는 2026-11-07 옮겼다([procedure-debugger.md](../procedure-debugger.md)).
 
 ## 영향순 상위 10 (없음·일부·조용히 끊김)
 

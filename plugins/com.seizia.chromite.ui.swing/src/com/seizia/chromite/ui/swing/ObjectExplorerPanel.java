@@ -199,6 +199,7 @@ import java.util.function.Supplier;
  * - 2026-11-07 작업 스케줄러(Oracle 스케줄러, pg_cron, MySQL 이벤트): 메뉴 항목, Properties·Delete 갈래, 두 번 클릭, 보조 글자
  *   (docs/chromite/swing-job-schedulers.md)
  * - 2026-11-07 Disconnect를 열린 트랜잭션 때문에 취소하면 서버를 창에서 빼지 않음 (docs/chromite/idle-transactions.md "연결 끊기 전 질문")
+ * - 2026-11-07 함수·프로시저의 Debug… 메뉴({@link DebugCommands}, docs/chromite/procedure-debugger.md)
  */
 final class ObjectExplorerPanel extends JPanel {
 
@@ -309,6 +310,7 @@ final class ObjectExplorerPanel extends JPanel {
     private final Action designAction;
     private final Action newTableAction;
     private final Action viewDiagramAction;
+    private final Action debugAction;
     private final Action principalPropertiesAction;
     private final Action newPrincipalAction;
     private final Action objectPermissionsAction;
@@ -483,6 +485,7 @@ final class ObjectExplorerPanel extends JPanel {
         selectToMenu.add(createAction(CoreMessages.explorer_new_query_window, () -> scriptSelected(queryWindows, true, false)));
         selectToMenu.add(createAction(CoreMessages.explorer_clipboard, () -> scriptSelected(queryWindows, true, true)));
         sourceEditCommands = new SourceEditCommands(this::getSelectedNavigatorNode, queryWindows);
+        debugAction = DebugCommands.createAction(this, this::getSelectedObject, queryWindows);
         scriptAsMenu = new JMenu(CoreMessages.explorer_script_as);
         scriptAsMenu.add(createToMenu);
         scriptAsMenu.add(sourceEditCommands.getAlterToMenu());
@@ -605,6 +608,7 @@ final class ObjectExplorerPanel extends JPanel {
         schedulerCommands.addTo(popupMenu);
         popupMenu.add(designAction);
         popupMenu.add(sourceEditCommands.getModifyAction());
+        popupMenu.add(debugAction);
         popupMenu.add(objectPermissionsAction);
         popupMenu.add(selectTopAction);
         popupMenu.add(scriptAsMenu);
@@ -839,6 +843,7 @@ final class ObjectExplorerPanel extends JPanel {
         designAction.setEnabled(TableDesignSession.canDesign(object));
         newTableAction.setEnabled(getSelectedNavigatorNode() instanceof DBNDatabaseFolder folder && TableDesignSession.canCreateTable(folder));
         sourceEditCommands.update(getSelectedNavigatorNode());
+        debugAction.setEnabled(DebugCommands.canDebug(object));
         connectAction.setEnabled(dataSource != null && !connected);
         // Also for a server that is no longer connected: Disconnect removes it from this window
         disconnectAction.setEnabled(dataSource != null);

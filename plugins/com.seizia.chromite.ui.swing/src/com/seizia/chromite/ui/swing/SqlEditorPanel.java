@@ -210,6 +210,7 @@ import java.util.concurrent.atomic.AtomicLong;
  * - 2026-11-07 실행 안전 확인: 스크립트 실행 제한, 위험한 문 확인 (docs/chromite/swing-sql-exec-safety.md)
  * - 2026-11-07 서버 출력: 문장마다 {@link DBCServerOutputReader}를 읽어 Messages 탭에 씀(Oracle DBMS_OUTPUT이 안 보이고 버퍼가 차던 것,
  *   Altibase PRINT가 메모리에 쌓이던 것) (docs/chromite/swing-server-output.md)
+ * - 2026-11-07 원본 객체({@link #setSourceObject}): Modify 창의 루틴을 Query &gt; Debug…가 디버깅 (docs/chromite/procedure-debugger.md)
  */
 final class SqlEditorPanel extends JPanel {
 
@@ -313,6 +314,9 @@ final class SqlEditorPanel extends JPanel {
     private SqlEditorExtension extension;
     @Nullable
     private Runnable executionFinishedListener;
+    // EDT only: the object whose definition this window edits (Modify), or null
+    @Nullable
+    private DBSObject sourceObject;
 
     /**
      * @param dataSourceContainer connection of the query window, or null to choose it later with the connection picker
@@ -475,6 +479,18 @@ final class SqlEditorPanel extends JPanel {
      */
     void setExecutionFinishedListener(@Nullable Runnable listener) {
         this.executionFinishedListener = listener;
+    }
+
+    /**
+     * The object whose definition the window edits (Modify), for Query &gt; Debug…; null for other windows.
+     */
+    @Nullable
+    DBSObject getSourceObject() {
+        return sourceObject;
+    }
+
+    void setSourceObject(@Nullable DBSObject sourceObject) {
+        this.sourceObject = sourceObject;
     }
 
     /**
