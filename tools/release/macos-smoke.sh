@@ -510,9 +510,12 @@ press_button() {
   on_app "$1" "set elements to entire contents of window 1
     repeat with e in elements
       try
-        if role of e is \"AXButton\" and name of e is \"$2\" then
-          click e
-          return \"pressed $2\"
+        if role of e is \"AXButton\" then
+          -- Swing buttons have no AX title (name); their text is the AX description
+          if name of e is \"$2\" or description of e is \"$2\" then
+            click e
+            return \"pressed $2\"
+          end if
         end if
       end try
     end repeat
@@ -526,7 +529,7 @@ front_window_text() {
       try
         set r to role of e
         if r is "AXStaticText" or r is "AXTextArea" then set end of out to (value of e as text)
-        if r is "AXButton" then set end of out to ("[" & name of e & "]")
+        if r is "AXButton" then set end of out to ("[" & description of e & "]")
       end try
     end repeat
     return out' 2>&1 || true
