@@ -92,6 +92,8 @@ import java.util.stream.Stream;
  *
  * 변경 이력:
  * - 2026-11-08 최초 작성: 폴더 내용 표(C-16)와 객체의 종속성·참조 등 목록 탭(B-E7) (docs/chromite/swing-explorer-productivity.md "Object Details")
+ * - 2026-11-08 암호 속성(사용자의 암호 해시 등)을 읽는 자리에서 가림({@link ObjectListTable#maskPassword},
+ *   docs/chromite/password-handling.md)
  * - 2026-11-08 객체의 첫 탭으로 속성 탭(고칠 수 있는 속성 편집, {@link PropertiesPanel}, SWT 객체 편집기의 Properties 탭, C-15).
  *   자식이 없는 객체(시퀀스)도 속성 탭으로 열린다 (docs/chromite/swing-object-properties.md)
  */
@@ -680,7 +682,7 @@ final class ObjectDetailsPanel extends JPanel implements ToolDocument {
         @Nullable
         private Object readValue(@NotNull DBRProgressMonitor monitor, @NotNull ObjectPropertyDescriptor property, @NotNull Object object) {
             try {
-                return property.readValue(object, monitor, true);
+                return ObjectListTable.maskPassword(property, property.readValue(object, monitor, true));
             } catch (Throwable e) {
                 log.debug("Can't read property " + property.getId(), e);
                 return null;

@@ -44,6 +44,8 @@ import java.util.Set;
  * 변경 이력:
  * - 2026-11-07 Chromite: data transfer type mapping — Unicode character types, uuid, JSON and LOBs, timestamps
  *   (datetime2/datetimeoffset instead of datetime), signed tinyint.
+ * - 2026-11-08 Chromite: {@link #supportsMergeStatement} (MERGE since SQL Server 2008) for Generate SQL from result rows
+ *   (docs/chromite/swing-result-generate-sql.md).
  */
 public class SQLServerDialectMssql extends SQLServerDialectBase {
 
@@ -59,6 +61,11 @@ public class SQLServerDialectMssql extends SQLServerDialectBase {
     @Override
     public SQLDialectFeatures getDialectFeatures() {
         return DialectFeatures.INSTANCE;
+    }
+
+    @Override
+    public boolean supportsMergeStatement() {
+        return true;
     }
 
     @Nullable

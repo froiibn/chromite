@@ -20,6 +20,7 @@ package com.seizia.chromite.ext.yashandb.model;
 import org.jkiss.code.NotNull;
 import org.jkiss.dbeaver.DBException;
 import com.seizia.chromite.ext.oracle.model.OracleConstants;
+import com.seizia.chromite.ext.oracle.model.OracleUtils;
 import com.seizia.chromite.model.DBUtils;
 import com.seizia.chromite.model.access.DBAUserPasswordManager;
 import com.seizia.chromite.model.exec.DBCException;
@@ -30,6 +31,15 @@ import com.seizia.chromite.model.runtime.DBRProgressMonitor;
 
 import java.sql.SQLException;
 
+/**
+ * Changes the password of the connected YashanDB user ({@code ALTER USER … IDENTIFIED BY …}, Oracle syntax).
+ *
+ * 설계: 새 암호는 Oracle과 같이 {@link OracleUtils#quotePassword}로 늘 큰따옴표로 감싸고, 큰따옴표가 든 암호는 옛 암호를 확인하기
+ * 전에 거절한다. 식별자용 {@code DBUtils.getQuotedIdentifier}는 이미 따옴표로 싸인 글을 그대로 둔다.
+ *
+ * 변경 이력:
+ * - 2026-11-08 암호를 식별자가 아니라 암호로 따옴표 처리 (docs/chromite/password-handling.md)
+ */
 public class YashanDBChangeUserPasswordManager implements DBAUserPasswordManager {
 
     private final YashanDBDataSource dataSource;
@@ -45,9 +55,7 @@ public class YashanDBChangeUserPasswordManager implements DBAUserPasswordManager
         @NotNull String newPassword,
         @NotNull String oldPassword
     ) throws DBException {
-        if (newPassword.indexOf('"') >= 0) {
-            throw new DBCException("YashanDB passwords cannot contain double quotes");
-        }
+        String quotedPassword = OracleUtils.quotePassword(newPassword);
         if (OracleConstants.SCHEMA_SYS.equals(DBUtils.getUnQuotedNormalizedIdentifier(dataSource.getSQLDialect(), userName))) {
             throw new DBCException("The YashanDB SYS password must be changed with the yaspwd tool on the database server");
         }
@@ -56,7 +64,7 @@ public class YashanDBChangeUserPasswordManager implements DBAUserPasswordManager
             session.enableLogging(false);
             String transformedUserName = DBObjectNameCaseTransformer.transformName(dataSource, userName);
             JDBCUtils.executeSQL(session, "ALTER USER " + DBUtils.getQuotedIdentifier(dataSource, transformedUserName)
-                + " IDENTIFIED BY " + DBUtils.getQuotedIdentifier(dataSource, newPassword));
+                + " IDENTIFIED BY " + quotedPassword);
         } catch (SQLException e) {
             throw new DBCException("Error changing user password", e);
         }

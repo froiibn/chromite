@@ -18,6 +18,7 @@
  */
 package com.seizia.chromite.ext.exasol.tools;
 
+import org.jkiss.code.NotNull;
 import com.seizia.chromite.DBDatabaseException;
 import org.jkiss.dbeaver.DBException;
 import com.seizia.chromite.Log;
@@ -44,6 +45,13 @@ import java.util.stream.Collectors;
 /**
  * DB2 Utils
  *
+ * 설계: 암호는 {@link #quotePassword}로만 문장에 넣는다(사용자 CREATE·ALTER, 암호 바꾸기). 식별자용
+ * {@code DBUtils.getQuotedIdentifier}는 이미 따옴표로 싸인 글을 그대로 두고 이름 규칙에 맞는 글은 따옴표 없이 둔다.
+ *
+ * 변경 이력:
+ * - 2026-11-08 {@link #quotePassword} 추가(ExasolUserManager의 것을 옮김), {@link #getConnectionDdl}의 사용자 이름 따옴표 처리
+ *   (docs/chromite/password-handling.md)
+ *
  * @author Karl Griesser
  */
 public class ExasolUtils {
@@ -62,6 +70,15 @@ public class ExasolUtils {
     // double single quotes for sql literals  
     public static String quoteString(String input) {
         return input.replaceAll("'", "''");
+    }
+
+    /**
+     * A password as Exasol's {@code IDENTIFIED BY} and {@code REPLACE} take it: always in double quotes (a delimited
+     * identifier) with inner double quotes doubled, so every character is kept as typed.
+     */
+    @NotNull
+    public static String quotePassword(@NotNull String password) {
+        return "\"" + password.replace("\"", "\"\"") + "\"";
     }
 
     public static String humanReadableByteCount(long bytes, boolean si) {
@@ -227,7 +244,7 @@ public class ExasolUtils {
         String userInfo = "";
 
         if (con.getUserName() != null) {
-            userInfo = " USER '" + con.getUserName() + "' IDENTIFIED BY '<password>' ";
+            userInfo = " USER '" + quoteString(con.getUserName()) + "' IDENTIFIED BY '<password>' ";
         }
 
 

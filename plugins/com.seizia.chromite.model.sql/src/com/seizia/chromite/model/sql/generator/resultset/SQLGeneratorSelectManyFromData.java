@@ -30,7 +30,19 @@ import com.seizia.chromite.model.struct.DBSAttributeBase;
 import java.util.Collection;
 import java.util.List;
 
+/**
+ * One SELECT of the selected rows by their unique key values ({@code WHERE key IN (…)}).
+ *
+ * 변경 이력:
+ * - 2026-11-08 Chromite: {@link #isUniqueKeyRequired} — without a key the statement was {@code WHERE  IN (…)}, not valid
+ *   SQL (docs/chromite/swing-result-generate-sql.md)
+ */
 public class SQLGeneratorSelectManyFromData extends SQLGeneratorResultSet {
+
+    @Override
+    public boolean isUniqueKeyRequired() {
+        return true;
+    }
 
     @Override
     public void generateSQL(

@@ -63,7 +63,7 @@
         <generator id="dataUpdate" class="com.seizia.chromite.model.sql.generator.resultset.SQLGeneratorUpdateFromData" label="UPDATE" description="UPDATE table" order="4">
             <objectType name="com.seizia.chromite.model.data.DBDResultSetDataProvider"/>
         </generator>
-        <generator id="dataDeleteByUniqueKey" class="com.seizia.chromite.model.sql.generator.resultset.SQLGeneratorDeleteFromData" label="DELETE by Unique Key" description="DELETE from table" order="5">
+        <generator id="dataDeleteByUniqueKey" class="com.seizia.chromite.model.sql.generator.resultset.SQLGeneratorDeleteFromData" label="%sql.generator.data.delete.name" description="DELETE from table" order="5">
             <objectType name="com.seizia.chromite.model.data.DBDResultSetDataProvider"/>
         </generator>
     </extension>

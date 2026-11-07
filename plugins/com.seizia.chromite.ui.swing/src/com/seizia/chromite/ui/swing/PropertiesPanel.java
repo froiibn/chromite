@@ -74,7 +74,8 @@ import java.util.stream.Stream;
  *     어떤 속성을 어떤 편집기로 고치는지, 저장(스크립트 미리 보기 → 트랜잭션 질문 → DDL, 취소·오류면 모델을 되돌림)은 {@link ObjectPropertyEdits}가 한다.
  *     고칠 수 있는 속성이 있는 객체에서는 SSMS처럼 읽기 전용 값을 흐리게 보인다. 저장한 뒤에는 속성을 다시 읽는다.
  *     같은 패널을 Object Details의 속성 탭(SWT 객체 편집기의 Properties 탭)에도 머리말 없이 쓴다.</li>
- *     <li>값은 객체면 이름, 배열·컬렉션이면 쉼표로 이은 이름, 나머지는 {@link DBValueFormatting}의 기본 표시 문자열로 보여 준다.</li>
+ *     <li>값은 객체면 이름, 배열·컬렉션이면 쉼표로 이은 이름, 나머지는 {@link DBValueFormatting}의 기본 표시 문자열로 보여 준다.
+ *     암호 속성은 읽는 자리에서 가린다({@link ObjectListTable#maskPassword}). 암호 속성은 고치지 않는다({@link ObjectPropertyEdits}).</li>
  *     <li>속성 그리드(SSMS 배치, DataGrip 모양, design-spec "10. Properties 창"): 머리말 아래 도구 막대의 분류별·이름순 단추, 열 머리글 없는 이름 | 값 두 열,
  *     분류 줄은 셰브런 + semibold 이름이고 누르면(또는 ←/→, Enter) 접고 편다. 행 24, 가로선 grid.lineSubtle, 이름과 값 사이 1px border.subtle.
  *     분류 줄 바탕은 {@code Chromite.PropertyGrid.categoryBackground}(Islands {@code dialog-bg-inline}), 속성 줄 바탕은 표 바탕(카드 바탕)이라 SSMS처럼 분류가 띠로 보인다. 분류 없는 속성은 SWT 속성 보기처럼 제목 없이 맨 앞에 둔다.
@@ -92,6 +93,7 @@ import java.util.stream.Stream;
  * - 2026-11-08 분류 행 semibold 글꼴 주석을 고침: deriveFont도 대체 글꼴을 유지하며, semibold.font를 쓰는 이유는 Java에 semibold 스타일이 없어서다
  *   (docs/chromite/swing-followup-fixes.md "작은 화면 수정")
  * - 2026-11-08 촘촘한 모드: 행 높이를 UI가 바뀔 때 다시 정함(실행 중 밀도 전환) (docs/chromite/design-spec.md "적용 현황 — 촘촘한 모드")
+ * - 2026-11-08 암호 속성 가리기 (docs/chromite/password-handling.md)
  * - 2026-11-08 속성 편집(SWT 감사 B-E1, B-E2, C-15): 고칠 수 있는 속성의 값 칸 편집기와 저장({@link ObjectPropertyEdits}),
  *   머리말 없이 Object Details 속성 탭에 넣을 수 있게 함 (docs/chromite/swing-object-properties.md)
  */
@@ -325,7 +327,7 @@ final class PropertiesPanel extends JPanel {
             if (property.isHidden()) {
                 continue;
             }
-            Object value = propertySource.getPropertyValue(monitor, property.getId());
+            Object value = ObjectListTable.maskPassword(property, propertySource.getPropertyValue(monitor, property.getId()));
             ObjectPropertyEdits.Edit edit = editableSource == null ? null : ObjectPropertyEdits.describe(monitor, editableSource, property);
             byCategory.computeIfAbsent(CommonUtils.notEmpty(property.getCategory()), c -> new ArrayList<>())
                 .add(new Property(property.getDisplayName(), formatValue(value), CommonUtils.notEmpty(property.getDescription()), edit));

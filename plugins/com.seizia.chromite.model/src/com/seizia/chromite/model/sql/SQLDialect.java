@@ -47,6 +47,8 @@ import java.util.List;
  * 변경 이력:
  * - 2026-11-07 Chromite: {@link #isCallStatementTarget}를 추가. SQL 자동완성이 CALL/EXEC 뒤에 부를 수 있는 루틴만 제안하도록
  *   데이터베이스마다 다른 규칙(SQL Server는 스칼라 함수도 EXEC 가능)을 방언에 둔다 (docs/chromite/swing-sql-completion.md)
+ * - 2026-11-08 Chromite: {@link #supportsMergeStatement}를 추가. 결과 행에서 MERGE를 만들 때 MERGE가 있는 데이터베이스에서만
+ *   제안하도록 방언이 알린다(키워드 목록은 모든 방언에 MERGE를 넣으므로 근거가 되지 못함) (docs/chromite/swing-result-generate-sql.md)
  */
 public interface SQLDialect {
 
@@ -568,6 +570,15 @@ public interface SQLDialect {
     boolean supportsIndexCreateAndDrop();
 
     boolean supportsInsertAllDefaultValuesStatement();
+
+    /**
+     * Whether the database has the SQL:2003 {@code MERGE INTO … USING … ON … WHEN MATCHED … WHEN NOT MATCHED …}
+     * statement. Off by default: MySQL, MariaDB and SQLite have none, and PostgreSQL only since version 15 (its
+     * upsert is {@code INSERT … ON CONFLICT}, an insert replace method of the dialect).
+     */
+    default boolean supportsMergeStatement() {
+        return false;
+    }
 
     boolean supportsUuid();
 

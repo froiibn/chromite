@@ -22,6 +22,7 @@ import com.seizia.chromite.ui.swing.internal.EditorMessages;
 import com.seizia.chromite.ui.swing.internal.GridEditMessages;
 import com.seizia.chromite.ui.swing.internal.GridFilterMessages;
 import com.seizia.chromite.ui.swing.internal.GridNavMessages;
+import com.seizia.chromite.ui.swing.internal.GridSqlMessages;
 import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.Status;
 import org.eclipse.osgi.util.NLS;
@@ -151,6 +152,8 @@ import java.util.function.Consumer;
  * - 2026-11-08 결과 탐색(SWT 대조 B4): 외래 키 따라가기와 뒤로·앞으로, 참조·집계 패널, 가상 키, 열 숨기기·순서·빈 열, 행·열로 가기, 확대·축소,
  *   찾기, 텍스트 보기, 전체 행 수. 레코드 보기의 줄은 모델 열 번호라 표의 열을 숨기거나 옮겨도 같은 칸을 가리키게 바꿈
  *   (docs/chromite/swing-grid-navigation.md)
+ * - 2026-11-08 결과 행에서 SQL 만들기: 오른쪽 클릭 메뉴의 "SQL 생성"(Copy As 다음, {@link ResultSetGenerateSql}). 고른 행의 칸 값을
+ *   저장하지 않은 변경까지 넘김 (docs/chromite/swing-result-generate-sql.md)
  */
 final class ResultSetViewerPanel extends JPanel {
 
@@ -985,7 +988,7 @@ final class ResultSetViewerPanel extends JPanel {
     }
 
     /**
-     * Adds the viewer's items to the grid's context menu: filters, copy formats, panels.
+     * Adds the viewer's items to the grid's context menu: filters, copy formats, Generate SQL, panels.
      */
     private void installMenus(@NotNull JTable table) {
         JPopupMenu menu = table.getComponentPopupMenu();
@@ -994,6 +997,8 @@ final class ResultSetViewerPanel extends JPanel {
         }
         JMenu filterMenu = new JMenu(EditorMessages.editor_viewer_filter_by_value);
         JMenu copyAsMenu = ResultSetCopyFormats.createMenu(table, () -> grid.getCurrentData(), this::getDataSource);
+        JMenu generateSqlMenu = new JMenu(GridSqlMessages.gridsql_menu);
+        ResultSetGenerateSql.Source generateSqlSource = new GenerateSqlSource(table);
         Action clearFilter = createAction(EditorMessages.editor_common_clear_filter, null, this::clearAllFilters);
         Action fitColumns = createAction(EditorMessages.editor_viewer_fit_all_columns, null, () -> ResultSetColumnFit.fitAllColumns(table));
         JCheckBoxMenuItem valuePanelItem = new JCheckBoxMenuItem(valuePanelToggle.getAction());
@@ -1019,8 +1024,10 @@ final class ResultSetViewerPanel extends JPanel {
         }
         if (copyIndex >= 0) {
             menu.insert(copyAsMenu, copyIndex + 1);
+            menu.insert(generateSqlMenu, copyIndex + 2);
         } else {
             menu.add(copyAsMenu);
+            menu.add(generateSqlMenu);
         }
         menu.addSeparator();
         menu.add(loadFileItem);
@@ -1046,6 +1053,7 @@ final class ResultSetViewerPanel extends JPanel {
             @Override
             public void popupMenuWillBecomeVisible(javax.swing.event.PopupMenuEvent e) {
                 fillFilterMenu(filterMenu, table);
+                ResultSetGenerateSql.fillMenu(generateSqlMenu, generateSqlSource);
                 clearFilter.setEnabled(fetched.source().canRequery() && dataFilter.hasConditions() && !reading);
                 valuePanelItem.setSelected(valuePanelShown);
                 recordItem.setSelected(isRecordMode());
@@ -3095,6 +3103,59 @@ final class ResultSetViewerPanel extends JPanel {
         @Override
         public void open(@NotNull ResultSetReferences.Link link) {
             navigate(link.association(), link.referencing(), link.label());
+        }
+    }
+
+    /**
+     * Generate SQL's access to the result: its columns, the selected rows and their cell values (with pending changes).
+     */
+    private final class GenerateSqlSource implements ResultSetGenerateSql.Source {
+        private final JTable table;
+
+        GenerateSqlSource(@NotNull JTable table) {
+            this.table = table;
+        }
+
+        @NotNull
+        @Override
+        public Component getOwner() {
+            return table;
+        }
+
+        @NotNull
+        @Override
+        public DBDAttributeBinding[] getBindings() {
+            return fetched.data().bindings();
+        }
+
+        @NotNull
+        @Override
+        public DBSDataContainer getDataContainer() {
+            return fetched.source().dataContainer();
+        }
+
+        @Nullable
+        @Override
+        public DBCExecutionContext getContext() {
+            return fetched.source().context();
+        }
+
+        @NotNull
+        @Override
+        public int[] getSelectedRows() {
+            return table.getSelectedRows();
+        }
+
+        @Nullable
+        @Override
+        public Object getCellValue(int row, int column) {
+            return ResultSetViewerPanel.this.getCellValue(row, column);
+        }
+
+        @NotNull
+        @Override
+        public ResultSetGrid.Host getHost() {
+            return host;
         }
     }
 

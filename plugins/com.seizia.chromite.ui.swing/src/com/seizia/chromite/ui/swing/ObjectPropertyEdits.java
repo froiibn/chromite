@@ -16,6 +16,7 @@
  */
 package com.seizia.chromite.ui.swing;
 
+import com.seizia.chromite.model.DBConstants;
 import com.seizia.chromite.model.DBPDataSource;
 import com.seizia.chromite.model.DBUtils;
 import com.seizia.chromite.model.edit.DBECommandContext;
@@ -55,7 +56,7 @@ import java.util.function.Function;
  *     <li>무엇을 고칠 수 있는지는 모델이 정한다. SWT 객체 편집기의 속성 탭처럼 {@link PropertySourceEditable}로 속성을 모으고
  *     {@link ObjectPropertyDescriptor#isEditable}을 묻는다: 객체 관리자({@link DBEObjectEditor})가 있고 편집을 허락하며, 저장된 객체에서는
  *     {@code @Property(updatable = true)}(또는 {@code updatableExpr})인 속성이다. 여기서 더 빼는 것은 이름(Rename, F2가 이름 바꾸기 명령을
- *     만든다; 속성 명령으로는 ALTER … RENAME이 나오지 않는다), 암호 속성(값이 미리 보기와 쿼리 관리자에 남는다), 그리고 이 표에서 편집기를
+ *     만든다; 속성 명령으로는 ALTER … RENAME이 나오지 않는다), 암호 속성(값이 미리 보기와 쿼리 관리자에 남고, 표에서는 가린 값만 보인다: {@code ObjectListTable#maskPassword}와 같은 판단), 그리고 이 표에서 편집기를
  *     줄 수 없는 형식(날짜, 목록 제공자가 없는 객체 참조)이다. 읽기 전용 연결과 메타데이터 변경 제한({@link DBUtils#isReadOnly})이면 모두 읽기 전용이다.</li>
  *     <li>편집기: 가능한 값이 있으면(열거형, 목록 제공자: 소유자, 테이블스페이스, 엔진, 문자 집합) 콤보 상자, 참·거짓은 True/False 콤보 상자,
  *     숫자와 한 줄 글은 글 상자, 여러 줄 글({@link PropertyLength#MULTILINE}, 주석)은 대화상자다. 가능한 값은 DB를 읽을 수 있어 속성을 읽는
@@ -145,7 +146,8 @@ final class ObjectPropertyEdits {
     ) {
         Object object = source.getEditableValue();
         if (!(property instanceof ObjectPropertyDescriptor descriptor) || object == null
-            || descriptor.isNameProperty() || descriptor.isPassword() || !descriptor.isEditable(object)) {
+            || descriptor.isNameProperty() || descriptor.hasFeature(DBConstants.PROP_FEATURE_PASSWORD)
+            || !descriptor.isEditable(object)) {
             return null;
         }
         Class<?> type = descriptor.getDataType();
