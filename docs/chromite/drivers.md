@@ -219,6 +219,31 @@ Chromite는 **배포판이 하나다.** 내부판(전체 드라이버 내장)은
 - **한계:** 오프라인 모드에서 실패한 Maven 항목은 세션 동안 "찾을 수 없음"으로 캐시된다. 오프라인 모드를 끈 뒤 다시 내려받으려면
   재시작해야 한다(설정 설명에 표기). 네이티브 클라이언트(`pg_dump` 등) 다운로드는 드라이버가 아니라 대상에서 뺐다.
 
+### 로컬 파일 우선 (2026-11-08)
+
+- **문제(후속 #62):** Altibase처럼 기본 Maven 항목(`com.altibase:altibase-jdbc`)만 있는 드라이버에 사용자가 로컬 jar를 추가해도, 연결할 때마다
+  다운로드를 물었다. 취소하면 로컬 jar가 있어도 "Class not found"로 끝났고, Maven 항목을 지워야만 연결됐다.
+- **근본 원인:** `DriverLoaderDescriptor.getDriverDependencies`는 받지 않은 다운로드 항목을 모두 후보로 넣고, `validateFilesPresence`는 다운로드가
+  취소되면(`downloadDriverLibraries`가 false) 로컬 파일까지 빈 목록을 돌려준다. 사용자 파일이 드라이버인지 보지 않았다.
+- **규칙:** 사용자가 추가한 로컬 라이브러리(사용자 정의 `custom`, 다운로드하지 않는 jar 파일·폴더, 이 OS용, 켜짐)에 드라이버 클래스
+  (`getDriverClassName()`의 `.class` 항목)가 있으면, 미리 정의된(plugin.xml) 다운로드 항목은 "대체됨"으로 본다
+  ([DriverLoaderDescriptor.hasCustomLocalDriverClass, isReplacedByLocalLibrary](../../plugins/com.seizia.chromite.registry/src/com/seizia/chromite/registry/driver/DriverLoaderDescriptor.java)).
+  대체된 항목은
+  - 다운로드 후보에서 빠지고(연결할 때 묻지 않음, Download/Update도 받지 않음),
+  - 클래스패스에도 넣지 않는다(전에 받아 둔 파일이 사용자 jar의 클래스를 가리지 않게),
+  - 오프라인 모드의 "필수 파일 없음" 판단(`needsExternalDependencies`)에서도 빠진다.
+- **사용자 정의 라이브러리만 보는 이유:** 미리 정의된 로컬 라이브러리와 미리 정의된 Maven 항목이 함께 필요한 드라이버가 있다.
+  모든 `plugin.xml`을 훑으니 `postgres-gcloud-jdbc` 하나였다(내장 `drivers/postgresql` + Maven `postgres-socket-factory`, 소켓 팩토리는 연결할 때 필요).
+  미리 정의된 로컬 파일까지 보면 이 드라이버의 소켓 팩토리를 받지 않게 된다. 내장 드라이버는 `bundle="!drivers.X"`로 Maven 항목이 빠지므로 해당 없다.
+- **사용자가 추가한 Maven 항목은 그대로 받는다:** 사용자 정의 다운로드 항목은 사용자가 일부러 더한 의존성이라 대체하지 않는다.
+  드라이버를 복사하면 라이브러리가 모두 사용자 정의가 되므로 복사본의 Maven 항목도 그대로 받는다.
+- **검사 방법:** jar는 ZIP 항목만 본다(클래스 로더·클래스 초기화 없음). 폴더는 폴더 안의 `.class` 파일과 바로 아래 jar를 본다(모델이 클래스패스에 넣는 것과 같음).
+  안에 jar가 든 ZIP은 보지 않는다(이전 동작).
+- **화면:** Driver Manager 라이브러리 탭에서 대체된 항목은 "사용 안 함: 로컬 파일에 드라이버 클래스가 있음"으로 보이고 다운로드 단추의 대상에서 빠진다
+  ([swing-driver-manager.md](swing-driver-manager.md)).
+- **확인(2026-11-08):** Altibase에 Maven 항목을 남긴 채 로컬 `Altibase.jar`를 더하고 연결 테스트 → 다운로드 질문 없이 Altibase 7.3에 연결됐다
+  ([swing-driver-manager.md](swing-driver-manager.md) "확인 (2026-11-08 …)").
+
 ### 확인 결과 (2026-11-06, Windows x86_64 빌드)
 
 - 빌드 결과물의 `drivers/` 파일 34개(18,916,472 bytes)를 확인했고, macOS aarch64 결과물의
@@ -349,3 +374,5 @@ Chromite는 **배포판이 하나다.** 내부판(전체 드라이버 내장)은
   `drivers/mysql/` 텍스트·`README.txt` 절·`NOTICE` 항목을 지우고, MySQL 5 (Legacy)의 묶음 ID를 `drivers.mysql`로 되돌림.
   MySQL 계열 6개 드라이버의 라이선스 표기를 GPLv3(`gnu3.txt`, 삭제)에서 GPLv2 + Universal FOSS Exception(`gpl-2.0-universal-foss-exception.txt`)으로 고침.
   v0.1.0은 Connector/J를 내장한 채 배포됐다는 기록 추가. 내장 목록은 SQL Server, Oracle, PostgreSQL, MariaDB, SQLite.
+- 2026-11-08 "로컬 파일 우선" 절 추가(후속 #62): 사용자가 추가한 로컬 jar·폴더에 드라이버 클래스가 있으면 미리 정의된 다운로드 항목을
+  받지도 클래스패스에 넣지도 않는다(`DriverLoaderDescriptor`).
