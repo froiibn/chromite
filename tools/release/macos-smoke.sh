@@ -505,20 +505,24 @@ end tell
 EOF
 }
 # Presses the button named $2 in the app's front window (a JOptionPane), searching its whole AX tree
-# ("entire contents" is a list, not an element: no "whose" filter on it, so the elements are walked)
+# ("entire contents" is a list, not an element: it is read once into a variable and walked, no "whose" filter on it)
 press_button() {
-  on_app "$1" "repeat with e in (entire contents of window 1)
-      if role of e is \"AXButton\" and name of e is \"$2\" then
-        click e
-        return \"pressed $2\"
-      end if
+  on_app "$1" "set elements to entire contents of window 1
+    repeat with e in elements
+      try
+        if role of e is \"AXButton\" and name of e is \"$2\" then
+          click e
+          return \"pressed $2\"
+        end if
+      end try
     end repeat
     error \"no button $2 in \" & name of window 1"
 }
 # The title, texts and buttons of the app's front window (its AX tree), for the evidence files
 front_window_text() {
   on_app "$1" 'set out to {name of window 1}
-    repeat with e in (entire contents of window 1)
+    set elements to entire contents of window 1
+    repeat with e in elements
       try
         set r to role of e
         if r is "AXStaticText" or r is "AXTextArea" then set end of out to (value of e as text)
