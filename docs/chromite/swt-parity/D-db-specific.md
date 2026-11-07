@@ -35,7 +35,7 @@
 | K5 | SQLite 확장 불러오기 승인 | 확장 불러오기를 승인하는 서비스(`SQLiteExtensionConfirmationImpl`, `ext.sqlite.ui`의 `com.seizia.chromite.service`)가 없어 승인이 늘 거부된다(안전한 쪽으로 실패). 오류 결과의 "확장 설정" 동작(`resultset.error`)도 없다 | `ext.sqlite/.../SQLiteDataSource.java:178-179` | 낮음 |
 
 K1–K3의 공통 원인은 SQL 편집기에 서버 출력 패널이 없는 것이다([swing-frontend.md](../swing-frontend.md) 708-709행 "서버 출력 읽기"를 C단계 남긴 일로 기록). 편집기 영역 감사와 겹친다.
-2026-11-07 `chromite/server-output`에서 고쳤다(쿼리 창의 Messages 탭, [swing-server-output.md](../swing-server-output.md)).
+2026-11-07 #105에서 고쳤다(쿼리 창의 Messages 탭, [swing-server-output.md](../swing-server-output.md)).
 
 ## 1. PostgreSQL (`ext.postgresql.ui`, 57 클래스 / `ext.postgresql.debug.ui`)
 
