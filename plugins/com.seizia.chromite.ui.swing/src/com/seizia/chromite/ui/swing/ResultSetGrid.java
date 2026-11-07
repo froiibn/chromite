@@ -23,6 +23,7 @@ import org.eclipse.osgi.util.NLS;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
+import com.seizia.chromite.model.DBPDataSourceContainer;
 import com.seizia.chromite.model.data.DBDAttributeBinding;
 import com.seizia.chromite.model.data.resultset.DataUpdaterJob;
 import com.seizia.chromite.model.exec.DBCException;
@@ -76,6 +77,9 @@ import java.util.Map;
  *     <li>저장은 Ctrl+S(포커스가 이 표나 셀 편집기에 있을 때. 편집할 수 있는 표에서는 바뀐 것이 없어도 SQL 파일 저장으로 넘기지 않는다), Save 단추, 메뉴 "Save Changes"다.
  *     {@link ResultSetEditPersister}가 백그라운드 Job에서 한 트랜잭션으로 저장하고, 실패하면 오류를 Messages에 쓰고 바뀐 내용은 그대로 둔다.
  *     성공하면 저장한 행을 키로 다시 읽는다. Cancel은 바뀐 내용을 모두 되돌린다. 저장 중에는 편집을 막는다.</li>
+ *     <li>저장 전 스크립트 미리 보기({@link #confirmSave}): SWT {@code ResultSetViewer.applyChanges}처럼 설정 {@value #PREF_CONFIRM_BEFORE_SAVE}가
+ *     켜졌거나 연결 유형의 "데이터 변경 확인"(기본: Test, Production)이 켜졌으면 저장할 문장을 먼저 보여 주고 Save를 눌러야 저장한다.
+ *     Cancel이면 아무것도 실행하지 않고 바뀐 내용은 표에 남는다. 설정은 SWT처럼 연결의 설정 저장소에서 읽는다(연결별 값이 없으면 전체 설정).</li>
  *     <li>복사와 내보내기는 지금 표에 보이는 내용({@link #getCurrentData})을 쓴다.</li>
  * </ul>
  *
@@ -99,6 +103,7 @@ import java.util.Map;
  * - 2026-11-07 오류 문구를 {@link ErrorText}로 만듦(클래스 이름이 화면에 나오지 않게, docs/chromite/swing-frontend.md "오류 문구")
  * - 2026-11-07 칸과 행 번호를 고정폭 글꼴 대신 UI 글꼴(Pretendard 12)로(사용자 요청). 숫자 폭이 글자마다 달라 행 번호 열 폭을
  *   가장 넓은 숫자로 계산 (docs/chromite/design-spec.md "적용 현황 — 그리드 글꼴 Pretendard")
+ * - 2026-11-07 저장 전 스크립트 미리 보기: 설정과 연결 유형의 "데이터 변경 확인"이 다시 동작함 (docs/chromite/swing-frontend.md "저장 전 스크립트 미리 보기")
  */
 final class ResultSetGrid extends JPanel {
 
@@ -115,6 +120,11 @@ final class ResultSetGrid extends JPanel {
     private static final int MIN_COLUMN_WIDTH = 40;
     private static final int MAX_COLUMN_WIDTH = 320;
     private static final int MEASURED_ROWS = 200;
+
+    /**
+     * Show the script before every save (SWT {@code ResultSetPreferences.RESULT_SET_CONFIRM_BEFORE_SAVE}, off by default).
+     */
+    static final String PREF_CONFIRM_BEFORE_SAVE = "resultset.confirm.beforeSave"; //$NON-NLS-1$
 
     /**
      * Fetched result set.
@@ -524,6 +534,9 @@ final class ResultSetGrid extends JPanel {
             reportSaveError(tableName, e, ResultSetEditPersister.TransactionMode.NONE, false);
             return false;
         }
+        if (isSavePreviewRequired() && !confirmSave(persister, tableName)) {
+            return false;
+        }
         long startTime = System.currentTimeMillis();
         editModel.setSaving(true);
         if (table.isEditing()) {
@@ -537,6 +550,40 @@ final class ResultSetGrid extends JPanel {
         }
         job.schedule();
         return true;
+    }
+
+    /**
+     * Whether the save shows its statements first, as SWT {@code ResultSetViewer.applyChanges}: the option or the
+     * connection type's "Confirm data changes".
+     */
+    private boolean isSavePreviewRequired() {
+        DBPDataSourceContainer container = editModel.getExecutionContext().getDataSource().getContainer();
+        return container.getPreferenceStore().getBoolean(PREF_CONFIRM_BEFORE_SAVE)
+            || container.getConnectionConfiguration().getConnectionType().isConfirmDataChange();
+    }
+
+    /**
+     * Shows the statements of the save and asks whether to run them (SWT {@code SavePreviewDialog}).
+     *
+     * @return true to save; false if the user canceled or the statements could not be made (the changes stay pending)
+     */
+    private boolean confirmSave(@NotNull ResultSetEditPersister persister, @NotNull String tableName) {
+        DataUpdaterJob job = persister.createScriptJob();
+        ProgressDialog.waitForJob(EditorMessages.editor_grid_preview_job, job);
+        if (job.getError() != null) {
+            reportSaveError(tableName, job.getError(), ResultSetEditPersister.TransactionMode.NONE, false);
+            return false;
+        }
+        String header = NLS.bind(EditorMessages.editor_grid_preview_header, new Object[]{
+            editModel.getExecutionContext().getDataSource().getContainer().getName(),
+            persister.getInsertCount(), persister.getUpdateCount(), persister.getDeleteCount()});
+        if (ScriptPreviewDialog.confirmSave(this, EditorMessages.editor_grid_preview_title, header,
+            persister.getScript(EditorMessages.editor_grid_preview_comment), EditorMessages.editor_common_save)) {
+            return true;
+        }
+        transientStatus = NLS.bind(EditorMessages.editor_grid_save_canceled, getChangeCount());
+        updateState();
+        return false;
     }
 
     private void finishSave(@NotNull String tableName, @NotNull ResultSetEditPersister.Outcome outcome, long startTime) {

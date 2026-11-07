@@ -1288,10 +1288,68 @@ G단계의 목표는 쿼리 결과를 표에서 고치고 DB에 저장하는 것
 
 ### G단계에서 남긴 것
 
-- 커밋·롤백 단추와 트랜잭션 표시(수동 커밋 연결), SWT의 저장 미리 보기(`resultset.confirm.beforeSave`, 연결 종류의 "데이터 변경 확인")와 연쇄 삭제 옵션.
+- 커밋·롤백 단추와 트랜잭션 표시(수동 커밋 연결), 연쇄 삭제 옵션. SWT의 저장 미리 보기(`resultset.confirm.beforeSave`, 연결 종류의 "데이터 변경 확인")는 2026-11-07에 옮겼다("저장 전 스크립트 미리 보기").
 - 키 없는 테이블의 가상 키 정의, LOB·배열·JSON 값 편집기, 날짜 선택기·불리언 체크박스 같은 형식별 편집기, 글자 입력으로 편집 시작, 붙여넣기로 여러 칸 채우기, 행 복제, 실행 취소(Ctrl+Z).
 - 원본 테이블이 `FEATURE_DATA_REFRESH_AFTER_UPDATE`를 지원하면 SWT는 저장 뒤 결과 전체를 다시 읽는다(관계형 DB에는 해당 없음). Swing은 행 다시 읽기만 한다.
 - 편집기별 별도 연결: 저장은 연결의 기본 문맥에서 자동 커밋을 잠시 끄므로, 같은 연결의 다른 편집기가 그 사이에 실행한 문장도 저장 트랜잭션에 들어갈 수 있다(SWT도 같은 문맥을 쓰면 같은 문제).
+
+### 저장 전 스크립트 미리 보기 (2026-11-07)
+
+전수 조사 항목 B-R19([swt-parity/B-editors.md](swt-parity/B-editors.md)). SWT `ResultSetViewer.applyChanges`는 설정 `resultset.confirm.beforeSave`가 켜졌거나
+연결 유형의 "데이터 변경 확인"(`DBPConnectionType.isConfirmDataChange()`, 시스템 유형 기본값: Test·Production 켬, Development 끔)이 켜졌으면
+`SavePreviewDialog`로 저장할 SQL을 보여 주고 Save를 눌러야 저장했다. Swing `ResultSetGrid.save`는 키 검사 뒤 바로 저장 Job을 돌려서,
+Test·Production 연결에서도 확인 없이 저장됐다. 설정값과 연결 유형 값은 남아 있었지만 효과가 없었다(조용히 끊김).
+
+**동작**
+
+- 결과 표 저장(Ctrl+S, Save 단추, 메뉴 Save Changes, 창을 닫거나 끝낼 때의 Save)은 키 검사(`checkEntityIdentifiers`) 뒤 조건을 본다
+  (`ResultSetGrid.isSavePreviewRequired`). 설정은 SWT처럼 연결의 설정 저장소에서 읽는다. 연결별 값이 없으면 전체 설정을 따른다.
+- 조건이 맞으면 저장할 문장을 만들어 `ScriptPreviewDialog.confirmSave`로 보여 준다.
+  - 머리글: 연결 이름, 추가·변경·삭제 행 수, "저장하시겠습니까?".
+  - 글 상자: 읽기 전용 SQL. 맨 위에 SWT와 같은 뜻의 주석 한 줄("자동 생성한 스크립트, 이진·복합 값은 실제와 다를 수 있음")을 둔다.
+  - 단추: Copy, Save, Cancel. 기본 단추는 SWT처럼 Cancel이다(Enter로 바로 저장되지 않게).
+- Save: 기존 저장 흐름 그대로다(`createSaveJob`, 트랜잭션 처리와 `finishSave`의 수동 커밋 안내 포함).
+- Cancel: 아무 문장도 실행하지 않는다. 바뀐 내용은 표에 남고 상태 줄에 "Save canceled: N pending changes kept"를 보인다.
+  창 닫기·끝내기에서 Cancel이면 `save(true)`가 false를 돌려주므로 닫기도 취소된다.
+- 문장을 만들지 못하면 저장하지 않고, 저장 실패와 같은 방식으로 Messages에 오류를 쓴다. 문장 만들기를 진행 대화상자에서 취소해도 저장하지 않는다.
+
+**설계**
+
+- 미리 보기 문장은 저장과 같은 엔진으로 만든다. `ResultSetEditPersister.createScriptJob`은 `DataUpdaterJob`의 스크립트 생성 모드(`generateScript = true`)로
+  `prepareStatements` 뒤 엔진의 `executeStatements`를 돌린다. 이 모드에서 `DBSDataManipulator.ExecuteBatch`는 문장을 실행하지 않고
+  `generatePersistActions`로 동작(`DBEPersistAction`)만 모은다. SWT `ResultSetViewer.generateChangesScript`와 같은 길이고,
+  저장 설정(`ResultSetSaveSettings`)도 저장 Job과 같으므로 미리 보기와 실제 저장 문장이 같다. 스크립트 글은 `SQLUtils.generateScript`로 만든다.
+- 미리 보기와 저장은 같은 persister 객체를 쓴다. 저장 Job의 `prepareStatements`가 이전 문장과 동작을 지우고 다시 만들기 때문에 미리 보기의 상태가 남지 않는다.
+- 미리 보기는 DB에서 아무 문장도 실행하지 않는다(엔진이 세션은 열지만 실행·자동 커밋 전환·저장점은 스크립트 모드에서 건너뜀).
+  그래서 트랜잭션 동작은 바뀌지 않았다. 문장 만들기는 백그라운드 Job이고 EDT는 진행 대화상자(`ProgressDialog.waitForJob`)로 기다린다.
+- 대화상자는 `ScriptPreviewDialog`를 다시 썼다. 머리글과 실행 단추 이름을 호출자가 정하는 생성자를 더했다. 저장 확인에서는 "Open in Query Window"를 숨긴다.
+  바뀐 내용이 표에 남아 있어 쓸모가 적고, 결과 표의 `Host`에는 쿼리 창을 여는 방법이 없다.
+- Options > General > Query Results에 "Show the SQL script before saving grid changes"(`resultset.confirm.beforeSave`, 기본 끔)를 두었다.
+  Maximum rows처럼 플랫폼 설정 저장소에 쓴다. 키 이름은 SWT와 같아서 SWT 시절에 켠 값도 그대로 읽힌다.
+
+**upstream 대비 변경점**
+
+- SWT 결과 도구 막대의 토글(`toggleConfirmSave`)은 옮기지 않았다. Swing 결과 표에는 그 도구 막대가 없고, 설정은 Options에서 바꾼다.
+- SWT `SavePreviewDialog`의 연쇄 삭제(Delete cascade, Deep cascade) 선택은 없다. Swing 저장 엔진이 연쇄 삭제를 하지 않기 때문이다
+  (`prepareDeleteCascade` 기본 구현은 빈 목록). 연쇄 삭제는 B-R20과 함께 남긴다.
+- Swing에는 연결 유형 편집 화면이 없다. 연결 편집의 Connection type 콤보로 유형만 고를 수 있고,
+  "데이터 변경 확인" 값은 시스템 유형 기본값이나 `data-sources.json`의 `connection-types.<id>.confirm-data-change`를 따른다.
+
+**확인 (2026-11-07)**
+
+`product-chromite-swing` 빌드, 복사한 작업 공간(`D:\Tools\_scratch\chromite-grid-save-preview\ws`), PostgreSQL 테스트 DB의 3행짜리 테스트 테이블.
+화면 조작은 실행 중인 앱 안에서 Swing API로 했다(같은 폴더의 `s*.txt`와 `.log`, 그림은 `shots\`).
+
+- **Test 유형 연결**(복사본에서 연결 유형만 `test`로 바꿈): 칸 하나를 고치고 저장 → "변경 내용 미리 보기"가 열림.
+  `UPDATE public.p1c_save_preview SET "name"='alpha-edited' WHERE id=1;`, 단추 복사·저장·취소, 기본 단추 취소(`p1c-test-preview-ko.png`).
+  취소 → 표에 `alpha-edited`가 남고 상태 줄 "저장 취소: 보류 중인 변경 내용 1개를 유지함", DB는 그대로 `alpha`.
+  이어서 행 하나를 지우고 저장 → 미리 보기에 DELETE와 UPDATE → 저장 → 보류 0개, DB `1|alpha-edited`, `2|beta`.
+- **Development 유형 연결, 설정 끔**: 고치고 저장 → 미리 보기 없이 바로 저장, DB에 반영.
+- **Development 유형 연결, Options에서 설정 켬**: 미리 보기가 열리고, 취소하면 남고, 저장하면 반영됨. 설정을 다시 끔.
+- **영어(`-nl en`)**: Options 항목, "Preview Changes" 머리글·주석·단추(Copy, Save, Cancel), 새 행의 `INSERT INTO public.p1c_save_preview (id,"name") VALUES (4,'delta-en');`,
+  취소 뒤 "Save canceled: 1 pending changes kept", DB에 4행 없음.
+- 앱 로그에 오류 없음.
+- 확인하지 못한 것: 창을 닫거나 끝낼 때의 저장 경로(같은 `save` 메서드), 수동 커밋 연결, SQL Server·Oracle·MariaDB, 다크 테마, macOS.
 
 ## 디자인 적용 (2026-11-06)
 
@@ -2474,3 +2532,4 @@ SQL Editor 도구 막대다. 쿼리 창마다 있던 도구 막대는 없앴다(
 - 2026-11-07 결과 그리드 열 필터: WHERE 필터 줄 삭제, 열 머리글의 필터·정렬 아이콘과 열 필터 팝업, 상태 줄 필터 요약. "Results / Messages" 절, [swing-grid-column-filters.md](swing-grid-column-filters.md).
 - 2026-11-07 AI 도우미(2단계): 오른쪽 도구 창 "AI Assistant", AI 도구 확인 대화상자, 쿼리 창 편집기의 "Ask AI About This Query", Options > AI Assistant, Query Library 기준값 편집. [ai-agent.md](ai-agent.md) "2단계 구현".
 - 2026-11-07 작업 스케줄러(Oracle DBMS_SCHEDULER, PostgreSQL pg_cron, MySQL/MariaDB 이벤트): 탐색기 노드·명령·창·기록 탭. [swing-job-schedulers.md](swing-job-schedulers.md).
+- 2026-11-07 결과 표 저장 전 스크립트 미리 보기: 설정 `resultset.confirm.beforeSave`와 연결 유형 "데이터 변경 확인"이 다시 동작(전수 조사 B-R19), Options 항목. "저장 전 스크립트 미리 보기" 절.
