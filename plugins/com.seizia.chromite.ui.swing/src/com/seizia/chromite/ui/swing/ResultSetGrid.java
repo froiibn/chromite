@@ -18,9 +18,11 @@ package com.seizia.chromite.ui.swing;
 
 import com.formdev.flatlaf.FlatClientProperties;
 import com.formdev.flatlaf.util.UIScale;
+import com.seizia.chromite.ext.postgresql.model.data.PostgreBitStringValueHandler;
 import com.seizia.chromite.ui.swing.internal.EditorMessages;
 import com.seizia.chromite.ui.swing.internal.GridEditMessages;
 import com.seizia.chromite.ui.swing.internal.GridNavMessages;
+import com.seizia.chromite.ui.swing.internal.ValueEditMessages;
 import org.eclipse.osgi.util.NLS;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
@@ -45,6 +47,10 @@ import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.TableCellEditor;
 import javax.swing.table.TableCellRenderer;
 import javax.swing.table.TableColumn;
+import javax.swing.text.AbstractDocument;
+import javax.swing.text.AttributeSet;
+import javax.swing.text.BadLocationException;
+import javax.swing.text.DocumentFilter;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.FocusAdapter;
@@ -58,6 +64,7 @@ import java.util.ArrayList;
 import java.util.EventObject;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 /**
  * 결과 집합 하나를 보여 주는 표(SSMS 결과 그리드 하나). 단일 테이블 결과는 편집하고 저장할 수 있다(SSMS "Edit Top 200 Rows").
@@ -95,6 +102,9 @@ import java.util.Map;
  *     LOB 열은 칸에서 고치지 않고 F2·두 번 누르기로 값 패널을 연다({@link Host#editInValuePanel}).</li>
  *     <li>행 복제, 위·아래 행 값 복사, 기본값으로, 칸 되돌리기, 실행 취소·다시 실행(칸 값), 붙여넣기(Ctrl+V, 여러 칸)와 특수 붙여넣기(새 행, NULL 표지)는
  *     SWT 결과 명령과 같은 단축키다. 한 동작의 변경은 한 번에 되돌린다.</li>
+ *     <li>값 편집…(Shift+Enter, SWT "Open value editor")은 외래 키·SET·배열·구조체·hstore 칸의 대화상자({@link ResultSetValueDialogs})를 연다.
+ *     글자 편집기 끝의 단추도 같다. UUID 만들기(Ctrl+Shift+Alt+U)는 고른 글자·UUID 칸에 새 UUID를 넣는다. 둘 다 칸 값만 바꾸고
+ *     DB는 저장할 때 바뀐다(Save와 저장하고 커밋 규칙 그대로).</li>
  * </ul>
  *
  * 변경 이력:
@@ -125,6 +135,8 @@ import java.util.Map;
  *   실행 취소, 붙여넣기·특수 붙여넣기 (docs/chromite/swing-grid-editing.md)
  * - 2026-11-08 결과 탐색: 결과 뷰어가 외래 키로 떠나며 남기는 결과의 변경을 버리도록 {@link #cancelChanges}를 열고, 읽기 전용 줄에
  *   "키가 없음"이면 가상 키 정하기 링크({@link Host#defineVirtualKey}) (docs/chromite/swing-grid-navigation.md)
+ * - 2026-11-08 값 편집…(참조 값·SET·배열·구조체·hstore 대화상자), UUID 만들기, 비트 문자열 칸은 0·1만, 결과 뷰어의 값 명령이 쓰는
+ *   상태 알림({@link #showStatus}) (docs/chromite/swing-value-editors.md)
  */
 final class ResultSetGrid extends JPanel {
 
@@ -273,6 +285,8 @@ final class ResultSetGrid extends JPanel {
     private Action copyFromBelowAction;
     private Action deleteRowsAction;
     private Action editCellAction;
+    private Action editValueAction;
+    private Action generateUuidAction;
     private Action undoAction;
     private Action redoAction;
     private Action pasteAction;
@@ -490,8 +504,10 @@ final class ResultSetGrid extends JPanel {
         cancelChangesAction.setEnabled(dirty && !saving);
         previewChangesAction.setEnabled(dirty && !saving);
         editCellAction.setEnabled(!saving);
+        editValueAction.setEnabled(!saving && hasRows);
         setNullAction.setEnabled(!saving);
         setDefaultAction.setEnabled(!saving && hasRows);
+        generateUuidAction.setEnabled(!saving && hasRows);
         resetCellAction.setEnabled(!saving && dirty);
         insertRowAction.setEnabled(!saving && editModel.isInsertSupported());
         duplicateRowAction.setEnabled(!saving && hasRows && editModel.isInsertSupported());
@@ -606,6 +622,95 @@ final class ResultSetGrid extends JPanel {
         repaintKeepingSelection();
         if (count == 0) {
             setTransientStatus(GridEditMessages.gridedit_no_default);
+        }
+    }
+
+    /**
+     * Edit Value… (SWT "Open value editor", Shift+Enter): the value dialog of the selected cell
+     * ({@link ResultSetValueDialogs}); a LOB cell opens the value panel as Edit Cell does.
+     */
+    private void editValueInDialog() {
+        if (editModel == null || !stopEditing()) {
+            return;
+        }
+        int row = table.getSelectedRow();
+        int viewColumn = table.getSelectedColumn();
+        if (row < 0 || viewColumn < 0) {
+            return;
+        }
+        if (isPanelEditedCell(row, viewColumn)) {
+            host.editInValuePanel();
+            return;
+        }
+        int column = table.convertColumnIndexToModel(viewColumn);
+        if (!editModel.isInlineEditable(row, column)) {
+            setTransientStatus(EditorMessages.editor_grid_cell_read_only);
+            return;
+        }
+        if (ResultSetValueDialogs.getKind(editModel, column) == null) {
+            setTransientStatus(ValueEditMessages.valueedit_no_dialog);
+            return;
+        }
+        ResultSetValueDialogs.Picked picked = ResultSetValueDialogs.edit(table, editModel, row, column);
+        if (picked == null) {
+            return;
+        }
+        try {
+            editModel.setValue(row, column, picked.input() == null ? null : editModel.parseObject(column, picked.input()));
+        } catch (DBCException e) {
+            setTransientStatus(NLS.bind(EditorMessages.editor_grid_invalid_value_status, data.columns()[column], ErrorText.describeLine(e)));
+            return;
+        }
+        repaintKeepingSelection();
+    }
+
+    /**
+     * Generate UUID (SWT {@code generate.uuid}): a new random UUID in each selected text or UUID cell, made by the
+     * column's handler (a UUID object, or its text). Other cells are skipped and counted. One undo step.
+     */
+    private void generateUuids() {
+        if (editModel == null || !stopEditing()) {
+            return;
+        }
+        int set = 0;
+        int skipped = 0;
+        editModel.beginStep();
+        try {
+            for (int row : table.getSelectedRows()) {
+                for (int column : getSelectedModelColumns()) {
+                    if (!editModel.isInlineEditable(row, column) || !isUuidColumn(data.bindings()[column])) {
+                        skipped++;
+                        continue;
+                    }
+                    try {
+                        editModel.setValue(row, column, editModel.parseObject(column, UUID.randomUUID().toString()));
+                        set++;
+                    } catch (DBCException e) {
+                        skipped++;
+                    }
+                }
+            }
+        } finally {
+            editModel.endStep();
+        }
+        repaintKeepingSelection();
+        if (skipped > 0) {
+            setTransientStatus(NLS.bind(ValueEditMessages.valueedit_uuid_skipped, set, skipped));
+        }
+    }
+
+    /**
+     * A column that can hold a UUID: text (SQL Server {@code uniqueidentifier}, MariaDB {@code UUID}, character
+     * columns), an {@code OBJECT} column edited as text (PostgreSQL {@code uuid}), or a UUID value handler.
+     */
+    private static boolean isUuidColumn(@NotNull DBDAttributeBinding binding) {
+        if (binding.getDataKind() == DBPDataKind.STRING || binding.getDataKind() == DBPDataKind.OBJECT) {
+            return true;
+        }
+        try {
+            return UUID.class.isAssignableFrom(binding.getValueHandler().getValueObjectType(binding));
+        } catch (Exception e) {
+            return false;
         }
     }
 
@@ -805,6 +910,14 @@ final class ResultSetGrid extends JPanel {
     private void setTransientStatus(@NotNull String text) {
         transientStatus = text;
         updateState();
+    }
+
+    /**
+     * Shows a notice in the status strip of an editable result until the next change (the result viewer's external
+     * editor). A read-only result keeps its reason there.
+     */
+    void showStatus(@NotNull String text) {
+        setTransientStatus(text);
     }
 
     private void insertRow() {
@@ -1089,6 +1202,13 @@ final class ResultSetGrid extends JPanel {
             setDefaultAction = createAction(GridEditMessages.gridedit_set_default,
                 KeyStroke.getKeyStroke(KeyEvent.VK_BACK_SPACE, InputEvent.CTRL_DOWN_MASK), this::setSelectedToDefault);
             resetCellAction = createAction(GridEditMessages.gridedit_reset_cell, null, this::resetSelectedCells);
+            // SWT "Open value editor" (Shift+Enter) and "Generate UUID" (Ctrl+Shift+Alt+U)
+            editValueAction = createAction(ValueEditMessages.valueedit_edit_value,
+                KeyStroke.getKeyStroke(KeyEvent.VK_ENTER, InputEvent.SHIFT_DOWN_MASK), this::editValueInDialog);
+            editValueAction.putValue(Action.SHORT_DESCRIPTION, ValueEditMessages.valueedit_edit_value_tip);
+            generateUuidAction = createAction(ValueEditMessages.valueedit_generate_uuid,
+                KeyStroke.getKeyStroke(KeyEvent.VK_U, InputEvent.CTRL_DOWN_MASK | InputEvent.SHIFT_DOWN_MASK | InputEvent.ALT_DOWN_MASK),
+                this::generateUuids);
             insertRowAction = createAction(EditorMessages.editor_grid_insert_row, KeyStroke.getKeyStroke(KeyEvent.VK_INSERT, InputEvent.ALT_DOWN_MASK), this::insertRow);
             duplicateRowAction = createAction(GridEditMessages.gridedit_duplicate_row,
                 KeyStroke.getKeyStroke(KeyEvent.VK_INSERT, InputEvent.CTRL_DOWN_MASK | InputEvent.ALT_DOWN_MASK), this::duplicateSelectedRows);
@@ -1107,8 +1227,9 @@ final class ResultSetGrid extends JPanel {
             Action saveMenuAction = createAction(EditorMessages.editor_grid_save_changes, (KeyStroke) saveAction.getValue(Action.ACCELERATOR_KEY), () -> save(false));
             Action cancelMenuAction = createAction(EditorMessages.editor_grid_cancel_changes, null, this::cancelChanges);
             // F2 opens the grid's editor, or the value panel for a LOB cell
-            for (Action action : new Action[]{editCellAction, setNullAction, setDefaultAction, insertRowAction, duplicateRowAction,
-                copyFromAboveAction, copyFromBelowAction, deleteRowsAction, undoAction, redoAction, pasteAction, pasteSpecialAction}) {
+            for (Action action : new Action[]{editCellAction, editValueAction, setNullAction, setDefaultAction, generateUuidAction,
+                insertRowAction, duplicateRowAction, copyFromAboveAction, copyFromBelowAction, deleteRowsAction, undoAction, redoAction,
+                pasteAction, pasteSpecialAction}) {
                 bindKey(table, JComponent.WHEN_FOCUSED, action, "chromite." + action.getValue(Action.NAME)); //$NON-NLS-1$
             }
             // Ctrl+S in the grid or its cell editor saves the grid, even without changes, instead of reaching File > Save
@@ -1129,8 +1250,10 @@ final class ResultSetGrid extends JPanel {
                 }
             });
             popupMenu.add(editCellAction);
+            popupMenu.add(editValueAction);
             popupMenu.add(setNullAction);
             popupMenu.add(setDefaultAction);
+            popupMenu.add(generateUuidAction);
             popupMenu.add(resetCellAction);
             popupMenu.addSeparator();
             popupMenu.add(insertRowAction);
@@ -1448,11 +1571,16 @@ final class ResultSetGrid extends JPanel {
 
     /**
      * Text editor of a cell: starts with the value in the handler's edit format and makes the value with the
-     * handler when editing stops ({@link ResultSetEditModel#parseValue}).
+     * handler when editing stops ({@link ResultSetEditModel#parseValue}). A button at its end opens the date picker,
+     * or the value dialog of a foreign key, SET, array, structure or hstore cell ({@link ResultSetValueDialogs}, also
+     * Shift+Enter). A PostgreSQL bit string cell takes only 0 and 1 (SWT {@code BitStringInlineEditor}).
      */
     private final class TextCellEditor extends AbstractCellEditor implements TableCellEditor {
         private final JTextField field = new JTextField();
         private final JButton pickerButton;
+        private final JButton dialogButton;
+        private final JButton referenceButton;
+        private final DocumentFilter bitFilter = new BitStringFilter();
         private final Border normalBorder;
         private String initialText = "";
         private int modelColumn;
@@ -1477,6 +1605,39 @@ final class ResultSetGrid extends JPanel {
             pickerButton.setMargin(new Insets(0, 2, 0, 2));
             field.getInputMap().put((KeyStroke) pickAction.getValue(Action.ACCELERATOR_KEY), "chromite.pickDate"); //$NON-NLS-1$
             field.getActionMap().put("chromite.pickDate", pickAction); //$NON-NLS-1$
+            // Value dialogs (SWT "Open value editor", Shift+Enter): a search button for foreign keys, "more" for the others
+            Action dialogAction = createAction(ValueEditMessages.valueedit_edit_value,
+                KeyStroke.getKeyStroke(KeyEvent.VK_ENTER, InputEvent.SHIFT_DOWN_MASK), this::pickFromDialog);
+            dialogButton = UiIcons.createActionButton(dialogAction, "more"); //$NON-NLS-1$
+            referenceButton = UiIcons.createActionButton(dialogAction, "search"); //$NON-NLS-1$
+            for (JButton button : new JButton[]{dialogButton, referenceButton}) {
+                button.setToolTipText(ValueEditMessages.valueedit_edit_value_tip);
+                button.setFocusable(false);
+                button.setMargin(new Insets(0, 2, 0, 2));
+            }
+            field.getInputMap().put((KeyStroke) dialogAction.getValue(Action.ACCELERATOR_KEY), "chromite.editValue"); //$NON-NLS-1$
+            field.getActionMap().put("chromite.editValue", dialogAction); //$NON-NLS-1$
+        }
+
+        /**
+         * Opens the value dialog of the cell; its value ends the edit without parsing the text.
+         */
+        private void pickFromDialog() {
+            if (ResultSetValueDialogs.getKind(editModel, modelColumn) == null) {
+                return;
+            }
+            ResultSetValueDialogs.Picked result = ResultSetValueDialogs.edit(table, editModel, modelRow, modelColumn);
+            if (result == null) {
+                field.requestFocusInWindow();
+                return;
+            }
+            try {
+                picked = new EditedValue(result.input() == null ? null : editModel.parseObject(modelColumn, result.input()));
+            } catch (DBCException e) {
+                showInvalid(e);
+                return;
+            }
+            stopCellEditing();
         }
 
         private boolean hasPicker() {
@@ -1536,10 +1697,18 @@ final class ResultSetGrid extends JPanel {
             initialText = editModel.getEditText(modelRow, modelColumn);
             value = null;
             picked = null;
+            AbstractDocument document = (AbstractDocument) field.getDocument();
+            document.setDocumentFilter(null);
             field.setText(initialText);
+            if (data.bindings()[modelColumn].getValueHandler() instanceof PostgreBitStringValueHandler) {
+                document.setDocumentFilter(bitFilter);
+            }
             field.setBorder(normalBorder);
             field.setFont(table.getFont());
-            field.putClientProperty(FlatClientProperties.TEXT_FIELD_TRAILING_COMPONENT, hasPicker() ? pickerButton : null);
+            ResultSetValueDialogs.Kind dialogKind = ResultSetValueDialogs.getKind(editModel, modelColumn);
+            field.putClientProperty(FlatClientProperties.TEXT_FIELD_TRAILING_COMPONENT, hasPicker() ? pickerButton
+                : dialogKind == ResultSetValueDialogs.Kind.REFERENCE ? referenceButton
+                : dialogKind != null ? dialogButton : null);
             SwingUtilities.invokeLater(field::selectAll);
             return field;
         }
@@ -1580,9 +1749,42 @@ final class ResultSetGrid extends JPanel {
     }
 
     /**
+     * Lets only 0 and 1 into a bit string cell (SWT {@code BitStringInlineEditor}); the length is checked by the
+     * database when the change is saved.
+     */
+    private static final class BitStringFilter extends DocumentFilter {
+        @Override
+        public void insertString(FilterBypass fb, int offset, String string, AttributeSet attr) throws BadLocationException {
+            if (isBits(string)) {
+                super.insertString(fb, offset, string, attr);
+            }
+        }
+
+        @Override
+        public void replace(FilterBypass fb, int offset, int length, String text, AttributeSet attrs) throws BadLocationException {
+            if (isBits(text)) {
+                super.replace(fb, offset, length, text, attrs);
+            }
+        }
+
+        private static boolean isBits(@Nullable String text) {
+            if (text == null) {
+                return true;
+            }
+            for (int i = 0; i < text.length(); i++) {
+                if (text.charAt(i) != '0' && text.charAt(i) != '1') {
+                    UIManager.getLookAndFeel().provideErrorFeedback(null);
+                    return false;
+                }
+            }
+            return true;
+        }
+    }
+
+    /**
      * Editor of a boolean or ENUM cell (SWT {@code BooleanInlineEditor}, {@code EnumValueManager}): a list of the
      * allowed values, with NULL when the column takes it. The list opens with the editor; picking a value ends the
-     * edit.
+     * edit. A SET column holds several values: it is typed, or picked in the value dialog ({@link ResultSetValueDialogs}).
      */
     private final class ChoiceCellEditor extends AbstractCellEditor implements TableCellEditor {
 
@@ -1614,7 +1816,8 @@ final class ResultSetGrid extends JPanel {
 
         static boolean hasChoices(@Nullable ResultSetEditModel model, int column) {
             return model != null && !model.isContentColumn(column)
-                && (model.getEnumValues(column) != null || model.getAttributes()[column].getDataKind() == DBPDataKind.BOOLEAN);
+                && ((model.getEnumValues(column) != null && !model.isMultiValueColumn(column))
+                || model.getAttributes()[column].getDataKind() == DBPDataKind.BOOLEAN);
         }
 
         @Override

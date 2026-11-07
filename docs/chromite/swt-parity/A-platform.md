@@ -216,7 +216,7 @@ Swing에서 바꿀 수 있는 설정: Options — 테마, 아이콘 모양, 입�
 | Binary Editor | ui.editors.data `PrefPageResultSetEditors` | ✓ | `resultset.string.use.content.editor`, `content.memory.maxsize`, `resultset.binary.representation`, `resultset.binary.editor`, `resultset.binary.stringMaxLength`, `content.hex.encoding`, `content.cache.*` 3개, `resultset.edit.longaslob`, `resultset.edit.maxtextsize`, `resultset.commit.oneditapply`, `resultset.commit.oncontentapply` | 일부(2026-11-07): 이진 값 표시 형식·길이(Options > Query Results, 2026-11-08부터 연결별 값도). `content.*` 5키는 2026-11-08 오후 Options > Binary and LOB([swing-options.md](../swing-options.md)), 나머지는 효과 없음 | 낮음 |
 | Appearance / Grid / Plain text | ui.editors.data | ✓ | 결과 화면 표시 38개(필터 패널, 열 너비, 숫자 오른쪽 정렬, 홀수 행 색, 불리언 체크 상자, 공백 문자 표시, 텍스트 모드 구분자 등) | 없음 | 낮음 |
 | Data Formats | ui.editors.data `PrefPageDataFormat` | ✓ | 형식 프로필, `resultset.format.datetime.native`, `resultset.format.numeric.native`, `resultset.format.numeric.scientific` | 있음: 날짜/시간·숫자 원본 형식, 과학적 표기(2026-11-07, Options > Query Results), 형식 프로필(로캘, 형식별 패턴: 2026-11-08 Options > Data Formats), 둘 다 연결별 값 있음. 이름 있는 프로필 관리는 두지 않음(Swing은 내보내기 작업 설정에서만 읽음, [swing-options.md](../swing-options.md)) | 중간 |
-| Dictionaries | ui.editors.data `PrefPageDataViewer` | ✓ | `resultset.reference.value.description.column.patterns`, `dictionary.max.rows` | 해당 키 효과 없음(2026-11-08 확인: 사전 화면이 Swing에 없음, [swing-options.md](../swing-options.md)) | 낮음 |
+| Dictionaries | ui.editors.data `PrefPageDataViewer` | ✓ | `resultset.reference.value.description.column.patterns`, `dictionary.max.rows` | 일부 (2026-11-08): 참조 값 고르기가 두 키를 읽음(`dictionary.max.rows`는 한 번에 읽는 수, 설명 열 패턴은 모델 `DBVEntity`가 설명 열을 고를 때, [swing-value-editors.md](../swing-value-editors.md)). 설정 화면은 없음. 조사 당시: 해당 키 효과 없음(사전 화면이 Swing에 없음, [swing-options.md](../swing-options.md)) | 낮음 |
 | Diagram Editor, ERD Settings | ui.editors.erd `ERDPreferencePage` | ✓ | `erd.*` 14개(설명 지연 읽기, 뷰·파티션 표시, 격자, 인쇄 여백 등) | 없음 | 낮음 |
 | HEX Editor | ui.editors.hex | | `hex.font.*` 3개, `default.hex.width` | 없음(HEX 편집기 없음) | 낮음 |
 | SQL Terminal | ui.editors.sql.terminal | ✓ | `SQLEditor.ConsoleView.showConsoleViewByDefault`, `SQLEditor.SQLTerminal.showQueryText`, `SQLEditor.SQLTerminal.showServerOutput` | 일부(2026-11-08: 터미널은 Query > SQL Terminal로 옮김, 이 설정 키 3개는 없음, [swing-sql-terminal.md](../swing-sql-terminal.md)) | 낮음 |
@@ -278,3 +278,5 @@ Client Identification, Oracle). Errors and Timeouts·Metadata·Client Identifica
 ## 변경 이력
 
 - 2026-11-08 devel(#165) 코드와 모든 행을 다시 대조(`chromite/audit-recount`): A-C20 → 있음, A-C27·A-X6 → 일부, A-S16 → 일부, §2 `UIServiceSQL`·§4 S8·S9·S12·S13 줄 → 있음, §6 Editors·Confirmations·Transactions → 일부와 A-C5·§6 Connections·Connection Types·Expert Settings 비고 갱신. §7 집계를 행 상태로 다시 셈(있음 34, 일부 15, 없음 22, 의도적 제외 2, 조용히 끊김 0)과 §6 줄 단위 집계 추가.
+- 2026-11-08 §6 Dictionaries 줄: 해당 키 효과 없음 → 일부(참조 값 고르기가 두 키를 읽음, `chromite/value-editors-rest`, [swing-value-editors.md](../swing-value-editors.md)).
+  §6 줄 단위 집계는 메인 세션이 다시 셈.

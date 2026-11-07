@@ -510,6 +510,7 @@ Windows 인증서 저장소(다시 시작 뒤 적용, 키 저장만 확인), 끝
   [swing-server-output.md](swing-server-output.md)).
 - 2026-11-08 Options의 OK가 한 페이지의 실패로 멈추지 않고 모든 페이지를 저장한 뒤 실패를 알림, Logs 페이지 키가 바뀔 때 SQL 로그 파일 핸들을 닫음
   (evening #33, [model-fixes.md](model-fixes.md) "후속 수정 3").
+- 2026-11-08 부록의 `dictionary.max.rows`: 참조 값 고르기가 읽게 되어 "효과 없음"에서 고침([swing-value-editors.md](swing-value-editors.md)).
 
 ## 부록: 키별 상태
 
@@ -720,7 +721,7 @@ Windows 인증서 저장소(다시 시작 뒤 적용, 키 저장만 확인), 끝
 | Data Formats | `resultset.format.datetime.native` | 이미 있음: Options > Query Results(2026-11-08 General 탭에서 옮김) |
 | Data Formats | `resultset.format.numeric.native` | **추가함**: Options > Query Results(2026-11-08 General 탭에서 옮김) |
 | Data Formats | `resultset.format.numeric.scientific` | **추가함**: Options > Query Results(2026-11-08 General 탭에서 옮김) |
-| Dictionaries | `dictionary.max.rows` | 효과 없음(읽는 곳 없음) |
+| Dictionaries | `dictionary.max.rows` | 2026-11-08부터 참조 값 고르기가 한 번에 읽는 수로 읽음(설정 화면은 아직 없음, [swing-value-editors.md](swing-value-editors.md)) |
 | Dictionaries | `resultset.reference.value.description.column.patterns` | 효과 없음: 사전(참조 값 고르기)만 읽음, Swing에 그 화면 없음(2026-11-08 확인) |
 | ERD | `erd.diagram.change.borders.colors` | 효과 없음(읽는 곳 없음) |
 | ERD | `erd.diagram.change.header.colors` | 효과 없음(읽는 곳 없음) |
