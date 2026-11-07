@@ -69,6 +69,7 @@ import java.util.concurrent.TimeUnit;
  *
  * 변경 이력:
  * - 2026-11-07 최초 작성 (docs/chromite/ai-agent.md "2단계")
+ * - 2026-11-07 시스템 프롬프트와 요청 한도 오류에서 기능을 공식 이름 "Chromite Agent"로 부름 (docs/chromite/ai-agent.md "명칭")
  */
 public final class AIAgentChatRunner {
 
@@ -159,7 +160,7 @@ public final class AIAgentChatRunner {
                 }
                 AIAgentChatStore.save(chat);
             }
-            listener.entryAdded(chat.addError("The assistant made " + MAX_REQUESTS + " requests in one turn and was stopped"));
+            listener.entryAdded(chat.addError("Chromite Agent made " + MAX_REQUESTS + " requests in one turn and was stopped"));
         }
     }
 
@@ -223,12 +224,13 @@ public final class AIAgentChatRunner {
     }
 
     /**
-     * System prompt of the assistant: the agent instructions shared with the MCP server and the conversation's context.
+     * System prompt of Chromite Agent: the agent instructions shared with the MCP server and the conversation's context.
+     * The first line gives the model the official name, so it introduces itself as Chromite Agent.
      */
     @NotNull
     static String buildSystemPrompt(@NotNull AIAgentChat chat) {
         StringBuilder prompt = new StringBuilder();
-        prompt.append("You are the database assistant inside Chromite, a desktop database workbench. You work like an experienced DBA.\n");
+        prompt.append("You are Chromite Agent, the database agent inside Chromite, a desktop database workbench. You work like an experienced DBA.\n");
         prompt.append(AIAgentPlaybooks.INSTRUCTIONS).append('\n');
         prompt.append("Answer in the language the user writes in. Use Markdown; put SQL in ```sql code blocks so the user can open it in a query window. ");
         prompt.append("Cite the evidence (numbers, plan operators, line numbers) from tool results. ");

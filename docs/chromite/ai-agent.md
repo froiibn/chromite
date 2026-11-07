@@ -17,8 +17,10 @@ Chromite 안에서 AI 모델이 DBA처럼 일하게 한다. 사용자가 "이 �
 
 이 기능의 공식 이름은 **Chromite Agent**다(사용자 결정, 2026-11-07: "이 앱의 에이전트 기능은 ai도우미가 아니다. 공식적으로 Chromite Agent 라는 용어를 사용하라"). 영어와 한국어 화면 모두 옮기지 않고
 "Chromite Agent"로 쓰고, 한국어 조사는 소리대로 붙인다("Chromite Agent가", "Chromite Agent에게", "Chromite Agent 설정"). "AI 도우미", "AI Assistant", "도우미"로
-이 기능을 부르지 않는다. 바꾸는 것은 사용자에게 보이는 글뿐이다. 클래스·번들·확장 포인트 ID, 설정 키, 저장 이름, MCP 도구 ID, 모델에게 주는 글(도구 설명,
-시스템 프롬프트)은 그대로 둔다. "AI 제공자"("AI provider")처럼 AI가 모델과 그 회사를 뜻하는 문구, MCP로 붙는 "외부 에이전트"·"다른 AI 도구"도 그대로다.
+이 기능을 부르지 않는다. 바꾸는 것은 사용자에게 보이는 글과 그 이름이 드러나는 값이다. 화면 문구, 모델 번들이 내는 오류 글, 서버 세션 목록에 보이는
+격리 문맥 이름(아래 "실행 문맥"), 채팅 시스템 프롬프트의 첫 줄("You are Chromite Agent, the database agent inside Chromite, …", 모델이 자기를 소개할 때
+이 이름을 쓰게)이다. 클래스·번들·확장 포인트 ID, 설정 키, 저장 이름, MCP 도구 ID, 도구 설명은 그대로 둔다. "AI 제공자"("AI provider")처럼 AI가 모델과
+그 회사를 뜻하는 문구, MCP로 붙는 "외부 에이전트"·"다른 AI 도구"도 그대로다.
 
 ## 사용자 결정 (2026-11-07)
 
@@ -67,10 +69,14 @@ Chromite 안에서 AI 모델이 DBA처럼 일하게 한다. 사용자가 "이 �
 ### 실행 문맥
 
 - 도구는 사용자의 쿼리 창이나 탐색기 메타데이터 문맥을 쓰지 않는다. 연결(그리고 `database` 인수)마다 **에이전트 전용 격리 문맥**
-  (`DBSInstance.openIsolatedContext`, 이름 "Chromite AI agent", 서버 세션의 프로그램 이름에도 보임)의 작은 풀(최대 4개)을 쓴다. 이유:
+  (`DBSInstance.openIsolatedContext`, 이름 "Chromite Agent" = `AgentSql.CONTEXT_NAME`)의 작은 풀(최대 4개)을 쓴다. 이유:
   - 에이전트가 자동 커밋이나 읽기 전용 상태를 바꿔도 사용자의 트랜잭션에 영향이 없다.
   - 사용자의 열린 트랜잭션에 에이전트 문장이 섞이지 않는다.
   - 오래 걸리는 진단 쿼리가 탐색기의 메타데이터 읽기를 막지 않는다.
+- **DBA가 에이전트 세션을 찾는 법**: 문맥 이름은 드라이버가 서버에 알리는 프로그램 이름의 뒷부분이 된다(`DBUtils.getClientApplicationName`:
+  `<제품 이름과 버전> - Chromite Agent`). PostgreSQL `pg_stat_activity.application_name`, SQL Server `sys.dm_exec_sessions.program_name`(64자에서 자름)
+  등에서 `LIKE '%- Chromite Agent'`로 거른다(드라이버마다 이 값을 서버에 넘기는지는 다르다). 연결 설정에서 클라이언트 이름을 직접 정했으면(`META_CLIENT_NAME_OVERRIDE`) 그 값을 따른다.
+  2026-11-07 이전 빌드는 "Chromite AI agent"였다.
 - 한 문맥에서는 한 번에 한 호출만 실행한다(문맥별 잠금). 바쁜 문맥이 있으면 풀에서 다른 문맥을 쓰거나 새로 연다. 문맥이 하나뿐이던 첫 구현에서는
   잠금에 걸린 에이전트 DDL(블로킹된 `CREATE INDEX`) 하나가 그 연결의 진단·`cancelQuery`까지 막았다(아래 "확인"). 쓰기는 열린 에이전트 트랜잭션이 있는
   문맥을 이어서 써야 하므로 그 문맥을 기다리고, 읽기는 그 문맥이 비어 있으면 그것을(커밋 전 변경이 보이게), 아니면 다른 문맥을 쓴다.
@@ -764,16 +770,15 @@ Oracle 진단 결과의 대문자 열 이름(소문자로 맞춤), PostgreSQL에
   OS 제공자가 없으면 여전히 전역 컨트롤러(평문)에 쓴다. Swing 화면에는 계정 로그인이 없어 지금은 쓰이지 않는다. 같은 OS 사용자의 작업 공간들은 제공자 키를
   함께 쓰므로, 0.1.0에서 작업 공간마다 다른 키를 두었다면 먼저 연 작업 공간의 키가 옮겨져 모두에 쓰이고 다른 작업 공간의 평문 키는 지워진다(다시 넣어야 한다).
 - **진단 SQL은 버전에 따라 다르다**: 시험은 PG 17, SQL Server 2022, MariaDB 11, Oracle 23ai에서만 했다. MySQL 8 블록(`performance_schema.data_lock_waits`, `error_log`)은 MySQL 서버가 없어 실행해 보지 못했다.
-- **모델 번들에 남은 옛 이름**: `model.ai.tools`에서 사용자에게 보일 수 있는 영어 글 두 개가 아직 옛 이름이다. 제공자를 설정하지 않았을 때의 오류
-  "… is not configured (Options > AI Assistant > Providers)"(`AIAgentProviders`)와 한 차례 요청 한도를 넘었을 때의 채팅 오류 "The assistant made …
-  requests in one turn …"(`AIAgentChatRunner`). 같은 때 다른 작업(`chromite/ko-leftovers`)이 이 번들의 문구를 고치고 있어 이름 바꾸기(위 "명칭")에서 고치지 않았다.
-  서버 세션 목록에 보이는 격리 문맥 이름 "Chromite AI agent"(`AgentSql.CONTEXT_NAME`)는 DBA가 세션을 거를 때 쓰는 값이라 바꿀지 따로 정한다.
 
 ## 변경 이력
 
+- 2026-11-07 모델 번들(`model.ai.tools`)의 남은 옛 이름을 Chromite Agent로: 제공자 미설정 오류의 경로 "Options > Chromite Agent > Providers"
+  (`AIAgentProviders`), 요청 한도 오류 "Chromite Agent made … requests in one turn …"(`AIAgentChatRunner`, 둘 다 영어 고정 글이라 영어만),
+  채팅 시스템 프롬프트 첫 줄 "You are Chromite Agent, the database agent inside Chromite, …", 격리 문맥 이름 `AgentSql.CONTEXT_NAME`
+  "Chromite AI agent" → "Chromite Agent"(위 "실행 문맥"에 DBA가 거르는 법). 위 "명칭"을 이에 맞춰 고치고 "위험과 남은 일"의 해당 항목을 지움.
 - 2026-11-07 기능의 공식 이름을 Chromite Agent로 정함(사용자 결정, 위 "명칭"). Swing 화면 문구(`AiMessages`, `UpdateMessages`의 `exit_txn_agent_item`,
   영어·한국어), 개인정보 페이지의 절 이름과 본문, 이 문서의 현재 설명(제목, "2단계 구현")을 바꿈. "2단계" 확인 표와 변경 이력의 옛 이름은 그때의 기록이라 그대로 둠.
-  `model.ai.tools`에 남은 옛 이름은 위 "위험과 남은 일".
 - 2026-11-07 전역 비밀 컨트롤러·연결 비밀번호 이전([credential-storage.md](credential-storage.md))에 맞춰 "API 키 저장"과 "위험과 남은 일"에 후속 안내를 더함(AI 키 동작은 그대로).
 - 2026-11-07 AI 키를 OS 보안 저장소로: `AIUtils`의 AI 비밀을 Eclipse secure storage + OS 제공자에 저장하고 0.1.0의 평문 값을 옮김, 저장소 실패 시 평문 대체 없이
   설정 화면에 안내(`ai_options_save_failed_secure_storage`), `AIAgentProviders.save`가 비밀을 먼저 저장, `SecurePreferencesSecretController`가 제공자의 unchecked
