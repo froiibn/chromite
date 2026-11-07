@@ -34,16 +34,16 @@
 | 1 | DB 탐색기 트리(연결 → DB → 스키마 → 객체, 백그라운드 지연 읽기, 새로 고침 F5, 모델 이벤트 반영, 아이콘·보조 글자·툴팁) | `DatabaseNavigatorView`, `DatabaseNavigatorTree`, `NavigatorHandlerRefresh` | 있음 | `ObjectExplorerPanel.java:100-160`(설계 주석), `:1607`(노드 설명 툴팁) | 높음 | SSMS식으로 "연 서버만" 보인다(`swing-registered-servers.md:5-7`) |
 | 2 | 연결 노드 명령: 새 연결, 연결·끊기·다시 연결, 연결 편집, 이름 바꾸기(F2), 삭제(Delete) | `DataSourceHandler`(core), `NavigatorHandlerObjectRename/Delete` | 있음 | `ObjectExplorerPanel.java:124-126, 553-569`, `ConnectionCommands` | 높음 | |
 | 3 | 연결 폴더 만들기·이름 바꾸기·삭제·옮기기(끌어 놓기 포함) | `NavigatorHandlerLocalFolderCreate`, `DBNLocalFolder.dropNodes`, `NavigatorObjectsDeleter.deleteLocalFolder` | 있음 | Registered Servers의 서버 그룹(`swing-registered-servers.md:36-46`, `RegisteredServerCommands`) | 중간 | 저장 형식은 같은 연결 폴더 |
-| 4 | 탐색기 필터: 필터 편집 대화상자(포함·제외 마스크 여러 개, 전역 필터), 선택 객체로 포함/제외 추가, 필터 켜기/끄기, 지우기 | `EditObjectFilterDialog`, `NavigatorHandlerFilterConfig/Include/Exclude/Toggle/Clear` | 있음 | 2026-11-08 필터 대화상자(`ObjectFilterDialog`): 포함·제외 마스크 여러 개, 필터 적용 켜기/끄기, 이 폴더만/연결 전체(전역) 범위, 필터 제거, 필터가 걸린 폴더의 "필터됨" 보조 글자. [swing-explorer-productivity.md](../swing-explorer-productivity.md). 조사 당시: 일부(포함 마스크 하나) | 중간 | 같은 `DBSObjectFilter`라 저장된 필터는 그대로 적용된다. 이름 붙인 저장 필터, 선택한 개체로 포함/제외 추가는 없음 |
+| 4 | 탐색기 필터: 필터 편집 대화상자(포함·제외 마스크 여러 개, 전역 필터), 선택 객체로 포함/제외 추가, 필터 켜기/끄기, 지우기 | `EditObjectFilterDialog`, `NavigatorHandlerFilterConfig/Include/Exclude/Toggle/Clear` | 일부 (2026-11-08 다시 확인: 기능 목록의 "선택 객체로 포함/제외 추가"가 없어 일부로 고침. `ObjectFilterDialog`는 마스크 입력란뿐(`ObjectFilterDialog.java`:64-65), 선택한 노드에서 마스크를 더하는 명령은 grep 0) | 2026-11-08 필터 대화상자(`ObjectFilterDialog`): 포함·제외 마스크 여러 개, 필터 적용 켜기/끄기, 이 폴더만/연결 전체(전역) 범위, 필터 제거, 필터가 걸린 폴더의 "필터됨" 보조 글자. [swing-explorer-productivity.md](../swing-explorer-productivity.md). 조사 당시: 일부(포함 마스크 하나) | 중간 | 같은 `DBSObjectFilter`라 저장된 필터는 그대로 적용된다. 이름 붙인 저장 필터, 선택한 개체로 포함/제외 추가는 없음 |
 | 5 | 트리 빠른 거르기(검색 상자, `navigator.filter.focus`), "연결된 것만" 필터, 객체 종류 필터 | `NavigatorHandlerFocusFilter`, `NavigatorHandlerConnectionFilter`, `NavigatorHandlerFilterObjectType`, `TreeNodeFilterSearch` | 일부 | 2026-11-08 도구 막대 아래 빠른 거르기 입력란(Ctrl+F, Esc): 이미 읽은 객체 폴더에서 이름에 글자가 든 객체만(`*`·`%` 와일드카드), 연결·데이터베이스·스키마·폴더는 거르지 않음. [swing-explorer-productivity.md](../swing-explorer-productivity.md). 조사 당시: 없음 | 낮음 | "연결된 것만"·객체 종류 거르기, 서버에서 다시 읽는 거르기는 없음 |
 | 6 | 편집기와 연결(Link with editor, 편집기 바꿀 때 탐색기 선택 동기화) | `NavigatorHandlerLinkEditor`, `NAVIGATOR_SYNC_EDITOR_DATASOURCE` | 있음 | 2026-11-08 도구 막대 토글(설정 `navigator.sync.editor.datasource`): 활성 문서(쿼리 창의 루틴·기본 DB/스키마, 테이블 디자이너, 다이어그램, 개체 세부 정보, 작업 모니터)의 노드를 초점을 옮기지 않고 고름. [swing-explorer-productivity.md](../swing-explorer-productivity.md). 조사 당시: 없음 | 낮음 | 이 창에 연 서버만, 연결하지 않음 |
 | 7 | 두 번 클릭 동작 설정(연결: 편집/연결/최근 스크립트/새 스크립트, 객체: 편집기 열기/펼치기, 기본 편집기 페이지) | `NavigatorViewBase.java:157-221`, `NavigatorPreferences.DoubleClickBehavior` | 있음 | 2026-11-08 옵션 > 일반 > 개체 탐색기: 객체(펼치기 / 편집기 = 디자인·수정·개체 세부 정보 / 데이터 = 상위 1000개 행), 연결(연결하고 펼치기 / 새 쿼리 창 / 연결 편집), SWT와 같은 키. [swing-explorer-productivity.md](../swing-explorer-productivity.md). 조사 당시: 없음 | 낮음 | 기본값은 펼치기(Swing 동작 유지). 연결의 "최근 스크립트"는 스크립트-연결 묶기가 없어 없음 |
-| 8 | 탐색기 환경설정(연결 시 펼치기, 상태 복원 깊이, 드라이버별 묶기, 통계·호스트·설명·자식 수 표시, 툴팁, 긴 목록 크기 등) | `PrefPageDatabaseNavigator`, `NavigatorPreferences` | 없음 | `OptionsDialog.java:178-183` 탭은 General, Editor, Editor Colors, Templates, Updates, AI뿐 | 낮음 | |
+| 8 | 탐색기 환경설정(연결 시 펼치기, 상태 복원 깊이, 드라이버별 묶기, 통계·호스트·설명·자식 수 표시, 툴팁, 긴 목록 크기 등) | `PrefPageDatabaseNavigator`, `NavigatorPreferences` | 일부 (2026-11-08 다시 확인: Options &gt; Object Explorer의 정렬 3키(`NavigatorOptionsPage.java`:45-93), 일반 페이지의 두 번 클릭·긴 목록 크기·편집기와 연결(`ExplorerPreferences.java`:41-44). 연결 시 펼치기, 상태 복원 깊이, 드라이버별 묶기, 통계·호스트·설명·자식 수 표시, 툴팁은 없음). 조사 당시: 없음 | `OptionsDialog.java:178-183` 탭은 General, Editor, Editor Colors, Templates, Updates, AI뿐 | 낮음 | |
 | 9 | 긴 목록 나눠 읽기("더 보기" 노드), 통계 렌더러(테이블 크기 막대) | `TreeNodeLazyExpander`, `StatisticsNavigatorNodeRenderer` | 일부 | 2026-11-08 긴 폴더는 N개(옵션, 기본 5000, 최소 100)와 "더 읽기… (전체 중 보인 수)" 행(두 번 클릭·Enter로 다음 묶음). 모델은 SWT처럼 한 번에 읽음. [swing-explorer-productivity.md](../swing-explorer-productivity.md). 조사 당시: 없음 | 낮음 | 통계 렌더러(테이블 크기 막대)는 없음. 크기는 Disk Usage 탭에 있음 |
 | 10 | DB 객체 이름 바꾸기(F2, `DBEObjectRenamer`: 테이블·열·뷰 등) | `NavigatorHandlerObjectRename` | 있음 | 2026-11-07 옮김: F2·메뉴 "이름 바꾸기"가 객체 관리자가 이름을 바꿀 수 있는 DB 객체에서 켜진다(`ExplorerObjectCommands.canRename`/`rename`: `DBEObjectRenamer`, 원자적 명령 묶음, 늘 스크립트 미리 보기, 실행 전 열린 트랜잭션 질문). [swing-explorer-object-actions.md](../swing-explorer-object-actions.md) | 중간 | 트리 안 인라인 편집이 아니라 입력 창(연결 이름 바꾸기와 같음) |
 | 11 | DB 객체 삭제(DROP, 여러 개, 연쇄 옵션, 스크립트 미리 보기) | `NavigatorHandlerObjectDelete`, `NavigatorObjectsDeleter`, `NavigatorNodesDeletionConfirmations` | 있음 | 2026-11-07 옮김: Delete 키·메뉴 "삭제"가 객체 관리자가 지울 수 있는 DB 객체(여러 개, 한 연결)에서 켜진다(`ExplorerObjectCommands.canDelete`/`delete`): 목록 확인, 연쇄 삭제·기존 연결 닫기 옵션, 늘 스크립트 미리 보기, 실행 전 열린 트랜잭션 질문. [swing-explorer-object-actions.md](../swing-explorer-object-actions.md) | 중간 | 열 삭제의 종속 객체 확인(`DBEObjectWithDependencies`)은 없음. Script as의 DROP은 여전히 없음(삭제의 미리 보기 "쿼리 창에서 열기"로 대신) |
 | 12 | 복사(Ctrl+C: 객체 이름·정규화 이름), Copy Special(고급 복사), 붙여넣기로 객체·연결 복제 | `NavigatorHandlerCopyObject`, `NavigatorHandlerCopySpecial`, `NavigatorHandlerObjectCreateCopy` | 일부 | 2026-11-07: Object Explorer의 "이름 복사"(Ctrl+C, Edit > 복사)·"정규화된 이름 복사"(Ctrl+Shift+C, 방언 따옴표), 여러 개 선택(`ExplorerObjectCommands`, 트리 `DISCONTIGUOUS_TREE_SELECTION`). [swing-explorer-object-actions.md](../swing-explorer-object-actions.md). 2026-11-08 선택하여 복사…(이름·정규화된 이름·DDL, 구분자)와 연결 복제(연결별 설정·자격 증명까지), [swing-explorer-productivity.md](../swing-explorer-productivity.md) | 중간 | 붙여넣기로 DB 객체 복제는 없음 |
-| 13 | 끌어 놓기: 객체를 SQL 편집기로(이름 넣기), 연결을 폴더로 | `NavigatorDragSourceListener`, `NavigatorDropTargetListener` | 일부 | 서버 → 그룹 끌어 놓기는 `RegisteredServersPanel`에 있음. `ObjectExplorerPanel`에는 `TransferHandler` 없음 | 낮음 | |
+| 13 | 끌어 놓기: 객체를 SQL 편집기로(이름 넣기), 연결을 폴더로 | `NavigatorDragSourceListener`, `NavigatorDropTargetListener` | 일부 | 서버 → 그룹 끌어 놓기는 `RegisteredServersPanel`에 있음. `ObjectExplorerPanel`에는 `TransferHandler` 없음 | 낮음 | 2026-11-08 다시 확인: 그대로. `ObjectExplorerPanel`의 `TransferHandler`(:633)는 Ctrl+C 복사만이고 끌기를 켜지 않아(`setDragEnabled` grep 0) 객체를 쿼리 창에 끌어 놓을 수 없음 |
 | 14 | 새 객체 만들기(모든 폴더의 "Create New …": 스키마·시퀀스·트리거·인덱스·데이터베이스 등), 열에서 인덱스·제약 만들기 | `NavigatorHandlerObjectCreateNew`, `NavigatorHandlerCreateColumnIndex/Constraint` | 있음(2026-11-08) | 폴더의 "New &lt;종류&gt;…" 한 항목(`NewObjectCommands`): 객체 관리자가 있는 종류는 대화상자(데이터베이스, PostgreSQL 스키마·테이블스페이스·확장) 또는 이름 → 스크립트 미리 보기(취소가 기본) → 열린 트랜잭션 질문 → 실행(삭제와 같은 `ExplorerObjectCommands.runChange`). 본문이 필요한 종류는 CREATE 틀, 테이블의 열·키·외래 키·인덱스 폴더는 테이블 디자이너. [swing-create-objects.md](../swing-create-objects.md) | 중간 | 조사 당시: 일부. 열 노드에서 바로 인덱스·제약을 만드는 명령은 없고 디자이너에서 한다 |
 | 15 | 객체 편집기(엔터티 편집기: 속성 편집·저장·되돌리기·미리 보기, 폴더 탭, 하이퍼링크) | `EntityEditor`, `ObjectPropertiesEditor`, `FolderEditor`(이 번들 안) | 일부 | 읽기 전용 Properties 창(`PropertiesPanel` 주석 "읽기 전용이다"), View DDL, Design, Modify. `openEntityEditor`는 로그만(`SwingPlatformUI.java:496-505`) | 중간 | 편집기 영역 조사와 겹침 |
 | 16 | 폴더 내용 표(폴더를 열면 객체 목록을 속성 열로) | `FolderEditor`, `ItemListControl` | 있음 | 2026-11-08 개체 세부 정보 문서 탭(F7, `ObjectDetailsPanel`): 폴더의 자식을 `@Property` 열로, 객체는 자식 폴더마다 탭, 게으른 속성은 나중에 채움, 행을 두 번 누르면 트리에서 고름. [swing-explorer-productivity.md](../swing-explorer-productivity.md). 조사 당시: 없음 | 낮음 | SSMS "Object Explorer Details"에 해당 |
@@ -87,9 +87,9 @@
 | 35 | 가져오기(CSV → 기존·새 테이블, 열 매핑, 미리 보기) | `DataImportHandler`, `StreamProducerPageSettings`, `PreviewMappingDialog` | 있음 | `DataImportWizard`(미리 보기 `DataImportWizard.java:447-455`), `swing-data-transfer.md:135-145` | 높음 | XLSX 가져오기는 모델에 처리기가 없어 SWT에도 없음 |
 | 36 | DB 간 테이블 복사(대상 고르기, 매핑 종류, 새 테이블 형식, 참조 무결성 끄기, 대량 로드) | `DatabaseConsumerPageMapping`, `ColumnsMappingDialog`, `ConfigureMetadataStructureDialog`, `DatabaseConsumerPageLoadSettings` | 일부 | `DatabaseCopyPages`. 없는 것: 매핑 규칙(`MappingRulesDialog`), 열 변환기(`AttributeTransformerSettingsDialog`), 새 테이블 속성, 기존 테이블 고르기 대화상자, 매핑 저장·불러오기, 중복 키 처리, 외래 키 옮기기(`swing-data-transfer.md:432-433, 527-528`) | 중간 | |
 | 37 | 내보내기 고급(열 고르기, 값 형식 프로필, 파일 분할, 추출 설정: 별도 연결·가져오기 크기·선택 행만) | `ConfigureColumnsDialog`, `ValueFormatSelector`, `DatabaseProducerPageExtractSettings` | 일부 | 마법사에 없음(`swing-data-transfer.md:431, 535-536`). 선택 행·가져온 행만은 결과 표의 Export to CSV/XLSX로만 | 낮음 | |
-| 38 | 끝난 뒤 처리기: 폴더 열기, 실패한 파일 지우기, 명령 실행 | `ShowInExplorer…`, `FailedExportFileCleaner…`, `ExecuteCommandEventProcessorConfigurator` | 일부 | 앞의 둘은 있음(`swing-data-transfer.md:44`), 명령 실행은 없음(`:431`) | 낮음 | 모델의 명령 실행은 `UIServiceShellCommands`가 필요한데(`ExecuteCommandEventProcessor.java:48`) Swing에 구현 없음. 화면에서 켤 수 없어 끊길 경로는 없음 |
+| 38 | 끝난 뒤 처리기: 폴더 열기, 실패한 파일 지우기, 명령 실행 | `ShowInExplorer…`, `FailedExportFileCleaner…`, `ExecuteCommandEventProcessorConfigurator` | 일부 | 앞의 둘은 있음(`swing-data-transfer.md:44`), 명령 실행은 없음(`:431`) | 낮음 | 모델의 명령 실행은 `UIServiceShellCommands`가 필요한데(`ExecuteCommandEventProcessor.java:48`) Swing에 구현 없음. 화면에서 켤 수 없어 끊길 경로는 없음. 2026-11-07부터 `SwingShellCommandsService`가 있어(`ui.swing/plugin.xml`:31) 저장된 작업의 명령은 승인을 묻는다. 마법사에서 켜는 칸은 여전히 없음 |
 | 39 | 데이터 전송을 작업으로 저장·편집 | `DataTransferTaskConfigurator` | 없음 | `swing-data-transfer.md:431, 528`. Swing은 임시 작업만(`DataTransferWizard.java:524-533`) | 중간 | #43과 같은 원인 |
-| 40 | 데이터 전송 환경설정(대체 출력 폴더, 새 이름 대소문자·공백 바꾸기 규칙, 다시 연결, 작업 로그) | `PrefPageDataTransfer` | 없음 | Options 탭에 없음(`OptionsDialog.java:178-183`) | 낮음 | |
+| 40 | 데이터 전송 환경설정(대체 출력 폴더, 새 이름 대소문자·공백 바꾸기 규칙, 다시 연결, 작업 로그) | `PrefPageDataTransfer` | 일부 (2026-11-08, Options &gt; Data Transfer와 연결별 값: 새 이름 대소문자·공백 바꾸기·최대 형식 길이(`DataTransferOptionsPage.java`:51-123), [swing-options.md](../swing-options.md). 대체 출력 폴더, 다시 연결, 작업 로그 키는 ui.swing grep 0). 조사 당시: 없음 | Options 탭에 없음(`OptionsDialog.java:178-183`) | 낮음 | |
 | 41 | SQL 스크립트 실행 작업(여러 스크립트 × 여러 연결) | `SQLScriptTaskConfigurator`, `SQLScriptTaskPageSettings` (작업 형식 `scriptExecute`) | 없음 | swt-removal.md:104 "SQL 스크립트 작업", grep `scriptExecute` 0 | 낮음 | |
 | 42 | 결과를 스프레드시트로 바로 열기(Open in Excel) | `data.office.ui` `OpenSpreadsheetHandler` | 일부 | 결과 표의 Export to Excel (XLSX)(`ResultSetExport.java:63`)로 파일을 만든 뒤 사용자가 연다 | 낮음 | `ext.office.feature`는 SWT 제품에 없었다(위 사실 1) |
 
@@ -104,7 +104,7 @@ MView 새로 고침, TRUNCATE, 트리거 켜기/끄기), MySQL(ANALYZE·CHECK·O
 |---|---|---|---|---|---|---|
 | 43 | Database Tasks 보기(저장한 작업 목록, 폴더, 범주·형식별 묶기, 만들기·편집·복사·삭제·실행, 최근 작업 메뉴, 실행 기록·로그, 작업 변수, 완료 알림·소리) | `DatabaseTasksView`, `TaskHandler*`, `RecentTasksMenuContributor`, `EditTaskVariablesDialog`, `NewTaskConfigurationWizard`, `tasks.ui` 알림 `task.execute.success/failure` | 일부(2026-11-08) | `DatabaseTasksPanel`: 목록, 실행(저장된 네이티브 작업은 명령줄 승인), 편집(백업·복원·스크립트 실행 7형식), 삭제(취소가 기본), 마지막 결과·로그, 완료 알림. 작업으로 저장은 백업·복원·스크립트 대화상자. 없는 것: 폴더, 묶기, 복사, 작업 변수, 최근 작업 메뉴, 소리, 다른 형식 편집([swing-database-tasks.md](../swing-database-tasks.md)). 조사 당시: 없음 | 중간 | 조사 당시 근거: swt-removal.md:104. Swing의 `DBTTask`는 화면 없는 임시 작업뿐(`DataTransferWizard.java:524-533`, `NativeBackupRestoreDialog.java:649-653`). 반복 내보내기·백업을 저장해 두고 다시 돌리는 흐름이 없음 |
 | — | 작업 예약(스케줄러) | `DBTScheduler`(모델 인터페이스만) | 해당 없음 | 위 사실 3. 대신 Chromite 고유의 Query Library 예약 실행(`swing-query-library.md:14`, Chromite가 켜져 있을 때만)과 서버 쪽 스케줄러 화면(`swing-job-schedulers.md`, `swing-sqlserver-agent.md`)이 있다 | — | |
-| 44 | DB 도구 메뉴와 SQL 도구 마법사(Tools 하위 메뉴, 여러 객체 고르기, 설정, 결과 상태 페이지) | `tasks.ui` `ToolsRegistry`/`ExecuteToolHandler`, `tasks.ui.view` `DataSourceToolsContributor`, `tasks.sql.ui` `SQLToolTaskWizard` | 일부 | Maintenance 대화상자(`MaintenanceDialog`, `swing-admin-tools.md:13, 346-353`)가 PG(VACUUM·ANALYZE·REINDEX·CLUSTER), MySQL(ANALYZE·OPTIMIZE·CHECK·REPAIR), Oracle(통계·다시 작성·컴파일), SQL Server(다시 작성·재구성·통계·CHECKDB)를 덮는다(방언 `OP_*` 상수). **없는 것:** Oracle 구조 검증, DB2·Exasol·Altibase 도구(TRUNCATE, 트리거 켜기/끄기, MView 새로 고침은 2026-11-08 Object Explorer 메뉴로 더함, swing-explorer-object-actions.md "유지 관리 명령") | 중간 | DB별 `ext.*.ui` 조사와 겹침 |
+| 44 | DB 도구 메뉴와 SQL 도구 마법사(Tools 하위 메뉴, 여러 객체 고르기, 설정, 결과 상태 페이지) | `tasks.ui` `ToolsRegistry`/`ExecuteToolHandler`, `tasks.ui.view` `DataSourceToolsContributor`, `tasks.sql.ui` `SQLToolTaskWizard` | 일부 | Maintenance 대화상자(`MaintenanceDialog`, `swing-admin-tools.md:13, 346-353`)가 PG(VACUUM·ANALYZE·REINDEX·CLUSTER), MySQL(ANALYZE·OPTIMIZE·CHECK·REPAIR), Oracle(통계·다시 작성·컴파일), SQL Server(다시 작성·재구성·통계·CHECKDB)를 덮는다(방언 `OP_*` 상수). **없는 것:** Oracle 구조 검증, DB2·Exasol·Altibase 도구(TRUNCATE, 트리거 켜기/끄기, MView 새로 고침은 2026-11-08 Object Explorer 메뉴로 더함, swing-explorer-object-actions.md "유지 관리 명령") | 중간 | DB별 `ext.*.ui` 조사와 겹침. 2026-11-08 다시 확인: Oracle 구조 검증(D-O20)과 Altibase TRUNCATE·MView 새로 고침·컴파일(D-A5·A6, `ObjectMaintenanceActions`)이 생김. DB2·Exasol 도구와 도구 옵션 화면은 없음 |
 | 45 | 네이티브 백업·복원 PostgreSQL·MySQL/MariaDB(형식, 압축, 인코딩, 주요 옵션, 로그, 로컬 클라이언트) | `tasks.native.ui` `AbstractNativeToolWizard`, `NativeToolWizardDialog`, `ext.*.ui` 마법사 | 있음 | `NativeBackupRestoreDialog`, `swing-backup-restore.md:96-111` | 높음 | SQL Server 백업·복원은 Chromite에서 새로 만듦 |
 | 46 | 네이티브 백업 고급: 스키마·테이블 고르기, 전체 클러스터 백업(`pgDatabaseBackupAll`, pg_dumpall), 도구 계정 따로, 추가 인수 | 같은 마법사의 객체 선택·설정 페이지 | 없음 | `swing-backup-restore.md:202`. `NativeBackupRestoreDialog.java:534-536`은 backup/restore 두 형식만 | 낮음 | |
 | 47 | 네이티브 클라이언트로 스크립트 실행(psql, mysql, sqlplus) | `AbstractNativeScriptExecuteWizard`, 작업 `pgScriptExecute`·`mysqlScriptExecute`·`oracleScriptExecute` | 있음(2026-11-08) | `NativeBackupRestoreDialog` 스크립트 방식(별도 세션 안내, 실행 전 명령줄 확인, 작업으로 저장), SQL*Plus는 암호를 표준 입력으로(명령 만들기만 확인, Instant Client 없음), [swing-database-tasks.md](../swing-database-tasks.md). 조사 당시: 일부 | 낮음 | 조사 당시 근거: MySQL 복원과 PostgreSQL 평문 복원이 같은 처리기를 쓴다(`NativeBackupRestoreDialog.java:516-521`). 임의 스크립트 실행 화면과 Oracle SQL*Plus 실행은 없음 |
@@ -152,11 +152,11 @@ MView 새로 고침, TRUNCATE, 트리거 켜기/끄기), MySQL(ANALYZE·CHECK·O
 
 | 상태 | 수 | 번호 |
 |---|---|---|
-| 있음 | 23 | 1, 2, 3, 4, 6, 7, 10, 11, 16, 17, 18, 19, 27, 28, 29, 31, 34, 35, 45, 48, 50, 55, 62 |
-| 일부 | 19 | 5, 9, 12, 13, 14, 15, 24, 36, 37, 38, 42, 44, 47, 49, 51, 57, 59, 60, 64 |
-| 없음 | 19 | 8, 20, 21, 22, 23, 25, 26, 30, 32, 33, 39, 40, 41, 43, 46, 52, 53, 56, 63 |
+| 있음 | 27 | 1, 2, 3, 6, 7, 10, 11, 14, 16, 17, 18, 19, 23, 27, 28, 29, 31, 34, 35, 45, 47, 48, 50, 51, 54, 55, 62 |
+| 일부 | 22 | 4, 5, 8, 9, 12, 13, 15, 22, 24, 36, 37, 38, 40, 42, 43, 44, 49, 57, 58, 59, 60, 64 |
+| 없음 | 14 | 20, 21, 25, 26, 30, 32, 33, 39, 41, 46, 52, 53, 56, 63 |
 | 의도적 제외 | 1 | 61 |
-| 조용히 끊김 | 0 | (조사 당시 54, 58: 54는 있음, 58은 일부가 됨) |
+| 조용히 끊김 | 0 | (조사 당시 54, 58: 54는 있음(수정함), 58은 일부가 됨) |
 | 해당 없음 | 4 | 즐겨찾기, 작업 스케줄러, 개발자 Test 메뉴, DataDam |
 
 22(자원 탐색기)는 2026-11-08 Scripts 도구 창으로 일부가 되었다([swing-scripts-explorer.md](../swing-scripts-explorer.md)).
@@ -165,21 +165,24 @@ MView 새로 고침, TRUNCATE, 트리거 켜기/끄기), MySQL(ANALYZE·CHECK·O
 조사 당시 없음 27개 중 63(Git)은 SWT 제품에도 없던 번들이라 실제 사용자 손실은 없다. 62(디버거)는 2026-11-07 옮겼다([procedure-debugger.md](../procedure-debugger.md)).
 10, 11, 17은 2026-11-07 옮겼고 12는 일부가 되었다([swing-explorer-object-actions.md](../swing-explorer-object-actions.md)).
 4, 6, 7, 16, 18, 19는 2026-11-08 있음, 5, 9는 일부가 되었고 12에 선택하여 복사·연결 복제를 더했다([swing-explorer-productivity.md](../swing-explorer-productivity.md)).
+2026-11-08 devel(#165) 코드와 모든 행을 다시 대조해 위 집계를 행 상태로 다시 셌다. 그 전 집계 줄은 이미 바뀐 14·23·47·51·54(있음), 22·43·58(일부)를 옛 칸에 두고 있었다.
+4는 기능 목록의 "선택 객체로 포함/제외 추가"가 없어 있음 → 일부, 8(탐색기 설정 일부)과 40(데이터 전송 설정 일부)은 없음 → 일부.
+조사 당시 수는 있음 12, 일부 20, 없음 29, 조용히 끊김 2, 의도적 제외 1이었다.
 
 ## 영향순 상위 10 (없음·일부·조용히 끊김)
 
 이 영역에는 "높음"인 빈칸이 없다. 매일 쓰는 내보내기·가져오기·백업·탐색·SSH 설정은 옮겨졌다. 아래는 모두 "중간"이고, 조용히 끊긴 두 개를 앞에 두었다.
 
-1. **(조용히 끊김) `@ai` 명령의 실행 확인에 SQL이 보이지 않음** (#58) — AI가 만든 DML·DDL을 내용 없이 승인. 확인 규칙 설정도 없음.
+1. **(조용히 끊김) `@ai` 명령의 실행 확인에 SQL이 보이지 않음** (#58) — AI가 만든 DML·DDL을 내용 없이 승인. 확인 규칙 설정도 없음. 2026-11-07 확인 창에 SQL을 보임([swing-sql-exec-safety.md](../swing-sql-exec-safety.md)), 확인 규칙 설정은 남음.
 2. **(조용히 끊김) JSch SSH 구현의 호스트 키 질문·OTP 입력 없음** (#54) — JSch를 고른 연결은 새·바뀐 호스트에서 묻지 않고 실패, 2단계 인증 서버에 로그인 불가. 2026-11-07 수정함([swing-auth-prompts.md](../swing-auth-prompts.md)).
 3. DB 객체 삭제(DROP) 명령 없음 (#11) — 2026-11-07 옮김([swing-explorer-object-actions.md](../swing-explorer-object-actions.md))
 4. 객체 이름 복사·연결 복제·붙여넣기 없음 (#12) — 2026-11-07 이름 복사만 옮김(일부), 2026-11-08 선택하여 복사·연결 복제 옮김(붙여넣기 복제만 남음)
 5. Generate SQL의 INSERT/UPDATE/DELETE/MERGE/JOIN/CALL/DROP 없음 (#17) — 2026-11-07 옮김(DROP은 삭제의 스크립트 미리 보기)
-6. 저장한 작업(Task) 보기·재실행·실행 기록 없음 (#43), 데이터 전송을 작업으로 저장 없음 (#39)
-7. DB 도구 일부 없음: TRUNCATE, 트리거 켜기/끄기, MView 새로 고침, DB2·Exasol·Altibase 도구 (#44)
+6. 저장한 작업(Task) 보기·재실행·실행 기록 없음 (#43), 데이터 전송을 작업으로 저장 없음 (#39) — 2026-11-08 #43 일부(Database Tasks, [swing-database-tasks.md](../swing-database-tasks.md)), #39 남음
+7. DB 도구 일부 없음: TRUNCATE, 트리거 켜기/끄기, MView 새로 고침, DB2·Exasol·Altibase 도구 (#44) — 2026-11-08 TRUNCATE·트리거·MView·Altibase 도구 옮김, DB2·Exasol 남음
 8. 데이터 검색(여러 테이블 값 찾기) 없음 (#29) — 2026-11-08 옮김([swing-data-search.md](../swing-data-search.md))
 9. 객체 비교(Simple compare) 없음 (#49) — 2026-11-08 Schema Compare(구조 비교·마이그레이션 스크립트)를 더해 일부가 됨([schema-compare.md](../schema-compare.md))
-10. 자원 탐색기(Scripts 폴더, 스크립트-연결 묶기, 연결별 최근 스크립트) 없음 (#22)
+10. 자원 탐색기(Scripts 폴더, 스크립트-연결 묶기, 연결별 최근 스크립트) 없음 (#22) — 2026-11-08 Scripts 도구 창으로 일부([swing-scripts-explorer.md](../swing-scripts-explorer.md)), 연결별 스크립트 목록 남음
 
 그다음: 범용 새 객체 만들기 일부(#14, 2026-11-08 옮김 [swing-create-objects.md](../swing-create-objects.md)), 필터 편집(#4, 2026-11-08 옮김), 테이블 복사 고급 옵션(#36), 편집기 안 AI 번역(#57), 객체 편집기(#15, 편집기 영역과 겹침).
 
@@ -188,3 +191,7 @@ MView 새로 고침, TRUNCATE, 트리거 켜기/끄기), MySQL(ANALYZE·CHECK·O
 - 앱을 띄워 확인하지 않았다. #54(JSch)와 #58(`@ai`)은 코드 경로를 읽어 판단했다.
 - #9의 큰 스키마 성능, #64의 결과 표 기하 값 표시는 확인하지 않았다.
 - DB별 SWT UI(`ext.*.ui`)의 도구 화면과 SQL 편집기·결과 영역의 Generate SQL(결과 행)은 다른 영역 조사에 맡겼고, 여기서는 틀(#44, #17)만 보았다.
+
+## 변경 이력
+
+- 2026-11-08 devel(#165) 코드와 모든 행을 다시 대조(`chromite/audit-recount`): 4 있음 → 일부, 8·40 없음 → 일부, 13·38·44 비고 갱신, 집계를 행 상태로 다시 셈(있음 27, 일부 22, 없음 14, 의도적 제외 1, 조용히 끊김 0), 상위 10 목록에 고친 것 표시.
