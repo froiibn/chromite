@@ -25,10 +25,16 @@ import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
 import com.seizia.chromite.Log;
 import com.seizia.chromite.ext.mssql.model.SQLServerDataSource;
+import com.seizia.chromite.ext.mssql.model.SQLServerDatabaseTrigger;
 import com.seizia.chromite.ext.mysql.model.MySQLDataSource;
 import com.seizia.chromite.ext.oracle.model.OracleDataSource;
+import com.seizia.chromite.ext.oracle.model.OracleQueue;
+import com.seizia.chromite.ext.oracle.model.OracleSchemaTrigger;
 import com.seizia.chromite.ext.postgresql.model.PostgreDataSource;
+import com.seizia.chromite.ext.postgresql.model.PostgreDatabase;
+import com.seizia.chromite.ext.postgresql.model.PostgreEventTrigger;
 import com.seizia.chromite.ext.postgresql.model.PostgreMaterializedView;
+import com.seizia.chromite.ext.postgresql.model.PostgreTablePolicy;
 import com.seizia.chromite.model.DBConstants;
 import com.seizia.chromite.model.DBPDataSource;
 import com.seizia.chromite.model.DBPEvaluationContext;
@@ -51,11 +57,14 @@ import com.seizia.chromite.model.runtime.AbstractJob;
 import com.seizia.chromite.model.runtime.DBRProgressMonitor;
 import com.seizia.chromite.model.sql.SQLDialect;
 import com.seizia.chromite.model.sql.SQLUtils;
+import com.seizia.chromite.model.struct.DBSDataType;
 import com.seizia.chromite.model.struct.DBSObject;
 import com.seizia.chromite.model.struct.rdb.DBSCatalog;
 import com.seizia.chromite.model.struct.rdb.DBSPackage;
 import com.seizia.chromite.model.struct.rdb.DBSProcedure;
 import com.seizia.chromite.model.struct.rdb.DBSSchema;
+import com.seizia.chromite.model.struct.rdb.DBSSequence;
+import com.seizia.chromite.model.struct.rdb.DBSTable;
 import com.seizia.chromite.model.struct.rdb.DBSTrigger;
 import com.seizia.chromite.model.struct.rdb.DBSView;
 import com.seizia.chromite.runtime.DBWorkbench;
@@ -101,7 +110,13 @@ import java.util.concurrent.ConcurrentHashMap;
  *     나중에 기본 DB를 바꿔도 객체의 DB에서 실행되게 한다(문장은 {@code SQLServerObjectManager.addDatabaseSwitchAction1}과 같음).</li>
  *     <li>새 객체 템플릿(New View/Procedure/Function): 객체를 모델에 미리 만들지 않고(탐색기에 저장 안 된 노드가 생기지 않게) 바로 실행할 수 있는
  *     CREATE 문을 만든다. 모델에 같은 기본 본문이 있는 것은 그것을 따랐다({@code MySQLProcedure#getDeclaration}의 새 객체 본문,
- *     SWT 구성기 {@code PostgreProcedureConfigurator}·{@code OracleProcedureConfigurator}의 본문). 이름은 폴더에 없는 기본 이름이다.</li>
+ *     SWT 구성기 {@code PostgreProcedureConfigurator}·{@code OracleProcedureConfigurator}의 본문). 이름은 폴더에 없는 기본 이름이다.
+ *     시퀀스·트리거·패키지·형식·이벤트 트리거·행 보안 정책·큐({@link #getTemplateKind})도 같은 방식이다. SWT는 이것들을 구성기 대화상자
+ *     ({@code PostgreSequenceConfigurator}, {@code OraclePackageConfigurator} 등)로 이름만 받아 모델 기본값으로 만들었지만, 본문(트리거 함수,
+ *     패키지 본문, 형식의 속성)은 어차피 사용자가 써야 하므로 실행할 수 있는 틀을 쿼리 창에 연다. 틀은 실행해도 해가 없게 만든다:
+ *     같은 이름을 덮어쓰는 {@code OR REPLACE}를 쓰지 않고(이름 확인은 폴더 안만 본다), 트리거 본문은 아무것도 바꾸지 않으며,
+ *     뷰의 트리거(INSTEAD OF, 빈 본문이면 행을 버림)는 만들지 않는다. 표를 고를 수 없는 스키마 수준 트리거 폴더는 자리 표시 이름의
+ *     표를 쓰므로 고치지 않고 실행하면 실패한다.</li>
  *     <li>실행 뒤 새로 고침: Modify는 객체 노드를, New는 폴더 노드를 다시 읽는다({@code DBNNode#refreshNode}, Object Explorer가
  *     모델 이벤트로 트리에 반영). 폴더를 다시 읽으면 모델이 폴더의 부모(스키마)를 다시 읽는다(Object Explorer의 새로 고침과 같음).</li>
  * </ul>
@@ -112,18 +127,34 @@ import java.util.concurrent.ConcurrentHashMap;
  * - 2026-11-07 주석만: 쿼리 창마다 별도 연결이면 새 창이 주 문맥의 기본값을 복사함 (docs/chromite/transactions.md "쿼리 창마다 별도 연결")
  * - 2026-11-08 {@link #bindDefaultContext}를 패키지 안에 열어 Execute Procedure 창도 루틴의 DB·스키마에서 실행되게 함 (docs/chromite/swing-routines.md)
  * - 2026-11-08 {@link #generateContainerScript}: 스키마 비교 스크립트도 같은 구분자·DB 맞추기로 만든다 (docs/chromite/schema-compare.md)
+ * - 2026-11-08 시퀀스·트리거·DDL 트리거·이벤트 트리거·정책·패키지·형식·큐 틀({@link #getTemplateKind}): Object Explorer의 "New …"
+ *   (docs/chromite/swing-create-objects.md)
  */
 final class SourceScripts {
 
     private static final Log log = Log.getLog(SourceScripts.class);
 
     /**
-     * Kinds of "New …" templates.
+     * Kinds of "New …" templates: the explorer's New View/Procedure/Function items ({@link #getNewKinds}) and the
+     * template kinds of the generic "New …" item ({@link #getTemplateKind}).
      */
     enum NewObjectKind {
         VIEW,
         PROCEDURE,
-        FUNCTION
+        FUNCTION,
+        SEQUENCE,
+        /** A DML trigger of a table (or of a table to fill in, in a schema-level triggers folder). */
+        TRIGGER,
+        /** SQL Server DDL trigger ON DATABASE, Oracle schema trigger. */
+        DATABASE_TRIGGER,
+        /** PostgreSQL event trigger. */
+        EVENT_TRIGGER,
+        /** PostgreSQL row security policy. */
+        POLICY,
+        PACKAGE,
+        TYPE,
+        /** Oracle Advanced Queuing queue. */
+        QUEUE
     }
 
     /**
@@ -395,6 +426,44 @@ final class SourceScripts {
     }
 
     /**
+     * The CREATE template kind the generic "New …" command offers for a folder: sequences, triggers, packages, types,
+     * PostgreSQL event triggers and row security policies, Oracle queues; null for other folders and drivers. A
+     * triggers folder of a table gets a trigger of that table, one of a schema (all triggers of the schema) a trigger
+     * of a table to fill in; views get none (see the class comment).
+     */
+    @Nullable
+    static NewObjectKind getTemplateKind(@Nullable Object node) {
+        if (!(node instanceof DBNDatabaseFolder folder) || !(folder.getValueObject() instanceof DBSObject container)
+            || getDialect(container.getDataSource()) == null) {
+            return null;
+        }
+        Class<? extends DBSObject> childClass = folder.getChildrenClass();
+        if (childClass == null) {
+            return null;
+        }
+        boolean schemaLevel = container instanceof DBSSchema || container instanceof DBSCatalog;
+        boolean table = container instanceof DBSTable dbTable && !dbTable.isView() && !(container instanceof DBSView);
+        if (DBSSequence.class.isAssignableFrom(childClass)) {
+            return schemaLevel ? NewObjectKind.SEQUENCE : null;
+        } else if (PostgreEventTrigger.class.isAssignableFrom(childClass)) {
+            return container instanceof PostgreDatabase ? NewObjectKind.EVENT_TRIGGER : null;
+        } else if (SQLServerDatabaseTrigger.class.isAssignableFrom(childClass) || OracleSchemaTrigger.class.isAssignableFrom(childClass)) {
+            return schemaLevel ? NewObjectKind.DATABASE_TRIGGER : null;
+        } else if (DBSTrigger.class.isAssignableFrom(childClass)) {
+            return schemaLevel || table ? NewObjectKind.TRIGGER : null;
+        } else if (PostgreTablePolicy.class.isAssignableFrom(childClass)) {
+            return table ? NewObjectKind.POLICY : null;
+        } else if (DBSPackage.class.isAssignableFrom(childClass)) {
+            return schemaLevel ? NewObjectKind.PACKAGE : null;
+        } else if (DBSDataType.class.isAssignableFrom(childClass)) {
+            return container instanceof DBSSchema ? NewObjectKind.TYPE : null;
+        } else if (OracleQueue.class.isAssignableFrom(childClass)) {
+            return container instanceof DBSSchema ? NewObjectKind.QUEUE : null;
+        }
+        return null;
+    }
+
+    /**
      * Makes the CREATE template of a new object in the folder and binds the connection's default context to the
      * folder's database and schema.
      */
@@ -419,6 +488,9 @@ final class SourceScripts {
         for (int i = 1; existingNames.contains(name.toLowerCase(Locale.ENGLISH)); i++) {
             name = baseName + i;
         }
+        if (kind != NewObjectKind.VIEW && kind != NewObjectKind.PROCEDURE && kind != NewObjectKind.FUNCTION) {
+            return renderScript(dataSource, getDatabaseSwitch(container), getObjectTemplate(dialect, kind, container, name));
+        }
         String quotedName = DBUtils.getQuotedIdentifier(dataSource, name);
         String qualifiedName = DBUtils.getQuotedIdentifier(container) + dataSource.getSQLDialect().getStructSeparator() + quotedName;
 
@@ -428,6 +500,7 @@ final class SourceScripts {
                 case PROCEDURE -> "CREATE PROCEDURE " + qualifiedName + "\n    @Param1 int = 0\nAS\nBEGIN\n    SET NOCOUNT ON;\n\n"
                     + "    SELECT @Param1 AS Param1;\nEND\n";
                 case FUNCTION -> "CREATE FUNCTION " + qualifiedName + "\n(\n    @Param1 int\n)\nRETURNS int\nAS\nBEGIN\n    RETURN @Param1;\nEND\n";
+                default -> throw new IllegalArgumentException(kind.name());
             };
             case POSTGRESQL -> switch (kind) {
                 case VIEW -> "CREATE OR REPLACE VIEW " + qualifiedName + " AS\nSELECT 1 AS column1;\n";
@@ -435,17 +508,20 @@ final class SourceScripts {
                     + "BEGIN\n    RAISE NOTICE 'param1: %', param1;\nEND;\n$procedure$;\n";
                 case FUNCTION -> "CREATE OR REPLACE FUNCTION " + qualifiedName + "(param1 integer)\n    RETURNS integer\n    LANGUAGE plpgsql\n"
                     + "AS $function$\nBEGIN\n    RETURN param1;\nEND;\n$function$;\n";
+                default -> throw new IllegalArgumentException(kind.name());
             };
             case MYSQL -> switch (kind) {
                 case VIEW -> "CREATE VIEW " + qualifiedName + " AS\nSELECT 1 AS column1;\n";
                 case PROCEDURE -> "CREATE PROCEDURE " + qualifiedName + "(IN param1 INT)\nBEGIN\n    SELECT param1;\nEND\n";
                 case FUNCTION -> "CREATE FUNCTION " + qualifiedName + "(param1 INT)\nRETURNS INT\nDETERMINISTIC\nBEGIN\n    RETURN param1;\nEND\n";
+                default -> throw new IllegalArgumentException(kind.name());
             };
             case ORACLE -> switch (kind) {
                 case VIEW -> "CREATE OR REPLACE VIEW " + qualifiedName + " AS\nSELECT 1 AS COLUMN1 FROM DUAL;\n";
                 case PROCEDURE -> "CREATE OR REPLACE PROCEDURE " + qualifiedName + "(P_PARAM1 IN NUMBER) IS\nBEGIN\n    NULL;\nEND " + quotedName + ";\n";
                 case FUNCTION -> "CREATE OR REPLACE FUNCTION " + qualifiedName + "(P_PARAM1 IN NUMBER) RETURN NUMBER IS\nBEGIN\n"
                     + "    RETURN P_PARAM1;\nEND " + quotedName + ";\n";
+                default -> throw new IllegalArgumentException(kind.name());
             };
         };
         // A routine body is a complex statement (as the drivers' managers mark theirs): MySQL needs it between DELIMITER lines
@@ -477,14 +553,135 @@ final class SourceScripts {
                 case VIEW -> "NewView"; //$NON-NLS-1$
                 case PROCEDURE -> "NewProcedure"; //$NON-NLS-1$
                 case FUNCTION -> "NewFunction"; //$NON-NLS-1$
+                case SEQUENCE -> "NewSequence"; //$NON-NLS-1$
+                case TRIGGER -> "NewTrigger"; //$NON-NLS-1$
+                case DATABASE_TRIGGER -> "NewDatabaseTrigger"; //$NON-NLS-1$
+                case TYPE -> "NewType"; //$NON-NLS-1$
+                default -> "NewObject"; //$NON-NLS-1$
             };
             default -> switch (kind) {
                 case VIEW -> "new_view"; //$NON-NLS-1$
                 case PROCEDURE -> "new_procedure"; //$NON-NLS-1$
                 case FUNCTION -> "new_function"; //$NON-NLS-1$
+                case SEQUENCE -> "new_sequence"; //$NON-NLS-1$
+                case TRIGGER -> "new_trigger"; //$NON-NLS-1$
+                case DATABASE_TRIGGER -> "new_ddl_trigger"; //$NON-NLS-1$
+                case EVENT_TRIGGER -> "new_event_trigger"; //$NON-NLS-1$
+                case POLICY -> "new_policy"; //$NON-NLS-1$
+                case PACKAGE -> "new_package"; //$NON-NLS-1$
+                case TYPE -> "new_type"; //$NON-NLS-1$
+                case QUEUE -> "new_queue"; //$NON-NLS-1$
             };
         };
         return dialect == Dialect.ORACLE ? name.toUpperCase(Locale.ENGLISH) : name;
+    }
+
+    /**
+     * The statements of a {@link #getTemplateKind} template. Bodies that the drivers' managers mark complex (routine,
+     * trigger, package and Oracle type bodies) are complex actions, so MySQL gets them between {@code DELIMITER} lines.
+     *
+     * @param container the folder's object: the schema (catalog), the table of a table's triggers or policies, the
+     *                  PostgreSQL database of event triggers, the SQL Server database of DDL triggers
+     * @param name      the new object's name, not in the folder yet
+     */
+    @NotNull
+    private static List<DBEPersistAction> getObjectTemplate(
+        @NotNull Dialect dialect,
+        @NotNull NewObjectKind kind,
+        @NotNull DBSObject container,
+        @NotNull String name
+    ) {
+        DBPDataSource dataSource = container.getDataSource();
+        String separator = String.valueOf(dataSource.getSQLDialect().getStructSeparator());
+        // Triggers and policies of a table belong to the table's schema (MySQL: database)
+        DBSObject owner = container instanceof DBSTable ? container.getParentObject() : container;
+        String quotedName = DBUtils.getQuotedIdentifier(dataSource, name);
+        String qualifiedName = owner == null ? quotedName : DBUtils.getQuotedIdentifier(owner) + separator + quotedName;
+        String tableName = container instanceof DBSTable ? DBUtils.getQuotedIdentifier(container) : DBUtils.getQuotedIdentifier(dataSource,
+            switch (dialect) {
+                case SQL_SERVER -> "TableName"; //$NON-NLS-1$
+                case ORACLE -> "TABLE_NAME"; //$NON-NLS-1$
+                default -> "table_name"; //$NON-NLS-1$
+            });
+        String table = owner == null ? tableName : DBUtils.getQuotedIdentifier(owner) + separator + tableName;
+        boolean executeFunction = !(dataSource instanceof PostgreDataSource postgre) || postgre.isServerVersionAtLeast(11, 0);
+        String executeKeyword = executeFunction ? "EXECUTE FUNCTION " : "EXECUTE PROCEDURE "; //$NON-NLS-1$ //$NON-NLS-2$
+        List<DBEPersistAction> actions = new ArrayList<>();
+        switch (kind) {
+            case SEQUENCE -> actions.add(new SQLDatabasePersistAction(kind.name(), switch (dialect) {
+                case SQL_SERVER -> "CREATE SEQUENCE " + qualifiedName + "\n    AS bigint\n    START WITH 1\n    INCREMENT BY 1\n    NO CYCLE\n";
+                case POSTGRESQL -> "CREATE SEQUENCE " + qualifiedName + "\n    INCREMENT BY 1\n    MINVALUE 1\n    START WITH 1\n    NO CYCLE;\n";
+                case MYSQL -> "CREATE SEQUENCE " + qualifiedName + "\n    START WITH 1\n    INCREMENT BY 1\n    MINVALUE 1\n    NOCYCLE;\n";
+                case ORACLE -> "CREATE SEQUENCE " + qualifiedName + "\n    START WITH 1\n    INCREMENT BY 1\n    NOCACHE\n    NOCYCLE;\n";
+            }));
+            case TRIGGER -> {
+                switch (dialect) {
+                    case SQL_SERVER -> actions.add(new SQLDatabasePersistAction(kind.name(), "CREATE TRIGGER " + qualifiedName + "\nON " + table
+                        + "\nAFTER INSERT, UPDATE\nAS\nBEGIN\n    SET NOCOUNT ON;\nEND\n", true));
+                    case POSTGRESQL -> {
+                        // A PostgreSQL trigger runs a trigger function; BEFORE ... RETURN NEW changes nothing
+                        String function = owner == null ? DBUtils.getQuotedIdentifier(dataSource, name + "_fn") //$NON-NLS-1$
+                            : DBUtils.getQuotedIdentifier(owner) + separator + DBUtils.getQuotedIdentifier(dataSource, name + "_fn"); //$NON-NLS-1$
+                        actions.add(new SQLDatabasePersistAction(kind.name(), "CREATE FUNCTION " + function + "()\n    RETURNS trigger\n"
+                            + "    LANGUAGE plpgsql\nAS $function$\nBEGIN\n    RETURN NEW;\nEND;\n$function$;\n", true));
+                        actions.add(new SQLDatabasePersistAction(kind.name(), "CREATE TRIGGER " + quotedName + "\n    BEFORE INSERT OR UPDATE ON "
+                            + table + "\n    FOR EACH ROW\n    " + executeKeyword + function + "();\n"));
+                    }
+                    case MYSQL -> actions.add(new SQLDatabasePersistAction(kind.name(), "CREATE TRIGGER " + qualifiedName + "\nBEFORE INSERT ON "
+                        + table + "\nFOR EACH ROW\nBEGIN\nEND\n", true));
+                    case ORACLE -> actions.add(new SQLDatabasePersistAction(kind.name(), "CREATE TRIGGER " + qualifiedName
+                        + "\nBEFORE INSERT OR UPDATE ON " + table + "\nFOR EACH ROW\nBEGIN\n    NULL;\nEND;\n", true));
+                }
+            }
+            case DATABASE_TRIGGER -> actions.add(new SQLDatabasePersistAction(kind.name(), switch (dialect) {
+                case SQL_SERVER -> "CREATE TRIGGER " + quotedName + "\nON DATABASE\nFOR CREATE_TABLE, ALTER_TABLE, DROP_TABLE\nAS\nBEGIN\n"
+                    + "    SET NOCOUNT ON;\nEND\n";
+                case ORACLE -> "CREATE TRIGGER " + qualifiedName + "\nAFTER DDL ON " + DBUtils.getQuotedIdentifier(container)
+                    + ".SCHEMA\nBEGIN\n    NULL;\nEND;\n";
+                default -> throw new IllegalArgumentException(kind.name());
+            }, true));
+            case EVENT_TRIGGER -> {
+                String function = DBUtils.getQuotedIdentifier(dataSource, "public") + separator //$NON-NLS-1$
+                    + DBUtils.getQuotedIdentifier(dataSource, name + "_fn"); //$NON-NLS-1$
+                actions.add(new SQLDatabasePersistAction(kind.name(), "CREATE FUNCTION " + function + "()\n    RETURNS event_trigger\n"
+                    + "    LANGUAGE plpgsql\nAS $function$\nBEGIN\n    NULL;\nEND;\n$function$;\n", true));
+                actions.add(new SQLDatabasePersistAction(kind.name(), "CREATE EVENT TRIGGER " + quotedName + "\n    ON ddl_command_end\n    "
+                    + executeKeyword + function + "();\n"));
+            }
+            case POLICY -> actions.add(new SQLDatabasePersistAction(kind.name(), "CREATE POLICY " + quotedName + " ON " + table
+                + "\n    AS PERMISSIVE\n    FOR SELECT\n    TO PUBLIC\n    USING (true);\n"));
+            case PACKAGE -> {
+                if (dialect == Dialect.ORACLE) {
+                    actions.add(new SQLDatabasePersistAction(kind.name(), "CREATE PACKAGE " + qualifiedName
+                        + " AS\n    PROCEDURE DO_WORK(P_PARAM1 IN NUMBER);\nEND " + quotedName + ";\n", true));
+                    actions.add(new SQLDatabasePersistAction(kind.name(), "CREATE PACKAGE BODY " + qualifiedName
+                        + " AS\n    PROCEDURE DO_WORK(P_PARAM1 IN NUMBER) IS\n    BEGIN\n        NULL;\n    END DO_WORK;\nEND " + quotedName + ";\n", true));
+                } else {
+                    // MariaDB packages (the MySQL driver shows the folder for MariaDB only)
+                    actions.add(new SQLDatabasePersistAction(kind.name(), "CREATE PACKAGE " + qualifiedName
+                        + "\n    PROCEDURE do_work(param1 INT);\nEND\n", true));
+                    actions.add(new SQLDatabasePersistAction(kind.name(), "CREATE PACKAGE BODY " + qualifiedName
+                        + "\n    PROCEDURE do_work(param1 INT)\n    BEGIN\n        SELECT param1;\n    END;\nEND\n", true));
+                }
+            }
+            case TYPE -> actions.add(switch (dialect) {
+                case SQL_SERVER -> new SQLDatabasePersistAction(kind.name(), "CREATE TYPE " + qualifiedName + "\n    FROM nvarchar(100) NULL\n");
+                case POSTGRESQL -> new SQLDatabasePersistAction(kind.name(), "CREATE TYPE " + qualifiedName
+                    + " AS (\n    id integer,\n    name text\n);\n");
+                case ORACLE -> new SQLDatabasePersistAction(kind.name(), "CREATE TYPE " + qualifiedName
+                    + " AS OBJECT (\n    ID NUMBER,\n    NAME VARCHAR2(100)\n);\n", true);
+                default -> throw new IllegalArgumentException(kind.name());
+            });
+            case QUEUE -> {
+                // DBMS_AQADM takes the names as strings; the queue table is named after the queue
+                String queue = container.getName() + "." + name; //$NON-NLS-1$
+                actions.add(new SQLDatabasePersistAction(kind.name(), "BEGIN\n    DBMS_AQADM.CREATE_QUEUE_TABLE(\n        queue_table        => '"
+                    + queue + "_QT',\n        queue_payload_type => 'RAW');\n    DBMS_AQADM.CREATE_QUEUE(\n        queue_name  => '" + queue
+                    + "',\n        queue_table => '" + queue + "_QT');\n    DBMS_AQADM.START_QUEUE(queue_name => '" + queue + "');\nEND;\n", true));
+            }
+            default -> throw new IllegalArgumentException(kind.name());
+        }
+        return actions;
     }
 
     //////////////////////////////////////////////////////////

@@ -50,11 +50,14 @@ import java.util.function.Supplier;
  * 대화상자는 고른 값만 돌려주고, 모델 객체를 만들고 채우는 일은 {@link TableDesignSession}(공통 API와 드라이버 구현)이 한다.
  * 키·인덱스 열은 체크한 순서가 키 열 순서다(# 열에 보임). 외래 키는 참조할 테이블과 그 고유 키를 고르면 키의 열마다 이 테이블의 열을 고른다
  * (참조 열이 customer.id면 customer_id, 없으면 다른 테이블의 같은 이름 열을 미리 고름). 참조 테이블의 키는 고를 때 작업 스레드에서 읽는다({@link ProgressDialog}).
- * 규칙 목록은 SWT 드라이버 설정기와 같은 다섯 가지(NO ACTION, CASCADE, RESTRICT, SET NULL, SET DEFAULT)다.
+ * 규칙 목록은 SWT 드라이버 설정기와 같은 다섯 가지(NO ACTION, CASCADE, RESTRICT, SET NULL, SET DEFAULT)다. 드라이버가 받지 않는 규칙
+ * (Oracle의 RESTRICT·SET DEFAULT·ON UPDATE)은 드라이버 구현이 추가할 때 거절한다.
  *
  * 변경 이력:
  * - 2026-11-06 테이블 디자이너: 최초 작성 (docs/chromite/swing-table-designer.md)
  * - 2026-11-06 화면 문구를 ToolsMessages로 옮김(OS 언어를 따름)
+ * - 2026-11-08 폼 도우미({@link #addRow}, {@link #showDialog}, {@link #error})를 패키지 안에 열어 새 개체 대화상자({@link NewObjectDialogs})도 씀
+ *   (docs/chromite/swing-create-objects.md)
  */
 final class DesignerDialogs {
 
@@ -349,11 +352,11 @@ final class DesignerDialogs {
     }
 
     @NotNull
-    private static Object error(@NotNull String message) {
+    static Object error(@NotNull String message) {
         return new ValidationError(message);
     }
 
-    private static void addRow(@NotNull JPanel form, int row, @NotNull String label, @NotNull JComponent field) {
+    static void addRow(@NotNull JPanel form, int row, @NotNull String label, @NotNull JComponent field) {
         GridBagConstraints labelConstraints = new GridBagConstraints();
         labelConstraints.gridx = 0;
         labelConstraints.gridy = row;
@@ -374,7 +377,7 @@ final class DesignerDialogs {
      */
     @Nullable
     @SuppressWarnings("unchecked")
-    private static <T> T showDialog(@NotNull Component owner, @NotNull String title, @NotNull JComponent form, @NotNull Supplier<Object> validator) {
+    static <T> T showDialog(@NotNull Component owner, @NotNull String title, @NotNull JComponent form, @NotNull Supplier<Object> validator) {
         JDialog dialog = new JDialog(SwingUtilities.getWindowAncestor(owner), title, Dialog.ModalityType.APPLICATION_MODAL);
         dialog.setIconImages(ChromiteIcons.getWindowIcons());
         Object[] result = new Object[1];

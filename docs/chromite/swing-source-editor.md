@@ -162,3 +162,5 @@ Swing 제품을 띄우고 EDT 테스트 에이전트로 조작했다(한국어 O
 - 2026-11-06 최초 작성: Modify, Script as ▸ ALTER To, New View… / New Procedure… / New Function…, 실행 뒤 노드 다시 읽기.
   MySQL 루틴은 `DELIMITER $$` 사이에 둠(MariaDB 확인에서 구분자 없는 본문이 잘려 실행되는 것을 찾음).
 - 2026-11-08 "남긴 것"의 Execute Stored Procedure…·Oracle 컴파일 오류 표시를 [swing-routines.md](swing-routines.md)로 옮김(완료). 열 때 보일 위치(`openSourceScript`의 위치 인수)를 더함.
+- 2026-11-08 같은 틀 경로(`SourceScripts.generateNew`)에 시퀀스·트리거·DDL 트리거·이벤트 트리거·정책·패키지·형식·큐 틀을 더함. 메뉴는 폴더의
+  "New &lt;종류&gt;…" 하나([swing-create-objects.md](swing-create-objects.md)).

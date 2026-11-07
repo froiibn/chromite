@@ -60,6 +60,8 @@ import java.util.*;
  *
  * 변경 이력:
  * - 2026-11-07 pg_cron 노드 {@link #getCronScheduler}, 새로 고침 때 다시 만듦 (docs/chromite/swing-job-schedulers.md)
+ * - 2026-11-08 {@link #setCollate}·{@link #setCtype}: 새 데이터베이스 대화상자가 고른 LC_COLLATE·LC_CTYPE를 CREATE DATABASE에 넘김
+ *   (docs/chromite/swing-create-objects.md)
  */
 public class PostgreDatabase extends JDBCRemoteInstance
     implements
@@ -432,9 +434,23 @@ public class PostgreDatabase extends JDBCRemoteInstance
         return collate;
     }
 
+    /**
+     * LC_COLLATE of a new database (empty: the template's); saved databases read it from pg_database.
+     */
+    public void setCollate(@Nullable String collate) {
+        this.collate = collate;
+    }
+
     @Property(order = 11)
     public String getCtype() {
         return ctype;
+    }
+
+    /**
+     * LC_CTYPE of a new database (empty: the template's); saved databases read it from pg_database.
+     */
+    public void setCtype(@Nullable String ctype) {
+        this.ctype = ctype;
     }
 
     @Property(order = 12)

@@ -58,6 +58,9 @@
         <factory adaptableType="com.seizia.chromite.ext.mysql.model.MySQLTable" class="com.seizia.chromite.ui.swing.design.MySQLTableDesignerDriver">
             <adapter type="com.seizia.chromite.ui.swing.design.TableDesignerDriver"/>
         </factory>
+        <factory adaptableType="com.seizia.chromite.ext.oracle.model.OracleTableBase" class="com.seizia.chromite.ui.swing.design.OracleTableDesignerDriver">
+            <adapter type="com.seizia.chromite.ui.swing.design.TableDesignerDriver"/>
+        </factory>
     </extension>
 
     <!-- JSch SSH questions (host key, password, passphrase, keyboard-interactive/OTP) as Swing dialogs; the SWT product
