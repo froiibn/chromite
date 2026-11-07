@@ -166,7 +166,7 @@ p2(`BrandingIron`)는 앱 이름을 런처 이름에서 만들고("Chromite-swin
 - `--launcher.secondThread`(JVM을 둘째 스레드에서)로 실험하면 런처가 AppKit 단정으로 바로 죽었다(`+[KeyWindow dispatch]`, `EXC_BREAKPOINT`).
   명령줄 `-vm …/jre/bin/java`도 런처가 같은 프로세스에 JVM을 올려 결과가 같았다.
 
-### 수정 뒤 (2026-11-08, 브랜치 `chromite/macos-startup-fix`의 서명 없는 빌드, 실행 42407606192)
+### 수정 뒤 (2026-11-08, 브랜치 `chromite/macos-startup-fix`의 서명 없는 빌드, 실행 42407606192·42408742370)
 
 `source: build`(Linux에서 빌드, 러너에서 임시 서명, 격리 없음)로 모든 단계가 통과했다. 증거: `D:\Tools\_scratch\macos-startup-fix\ci6\`.
 
