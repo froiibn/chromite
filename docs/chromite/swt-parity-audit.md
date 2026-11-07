@@ -93,13 +93,17 @@ SWT 프런트엔드를 지울 때(#68) 기능 전체 목록과 맞춰 보지 않
 - ~~Oracle 사용자·역할·권한 관리, Oracle NLS 세션 설정, Altibase 잠금 탭, TRUNCATE·트리거 켜기/끄기·구체화된 뷰 새로 고침.~~
   2026-11-08 고침(`chromite/p3-oracle-altibase-admin`): [swing-security.md](swing-security.md) "Oracle", [swing-conn-advanced.md](swing-conn-advanced.md) "Oracle 세션 설정",
   [swing-admin-tools.md](swing-admin-tools.md) "Altibase 잠금", [swing-explorer-object-actions.md](swing-explorer-object-actions.md) "유지 관리 명령".
-  PostgreSQL·SQL Server·Oracle·MariaDB·Altibase에서 실행 확인. 남은 것: Altibase TRUNCATE·MView 새로 고침(A5), 도구 옵션 화면, Oracle 패키지·열 권한.
+  PostgreSQL·SQL Server·Oracle·MariaDB·Altibase에서 실행 확인. 남은 것: 도구 옵션 화면, Oracle 패키지·열 권한. Altibase TRUNCATE·MView 새로 고침(A5)은
+  2026-11-08 `chromite/p4-routines`에서 고침([swing-routines.md](swing-routines.md)).
 - ~~`@export` 명령이 무시됨(오류 없이 다음 쿼리 실행).~~ 2026-11-07 고침: 형식·옵션을 채운 Export Data 마법사로 내보냄([swing-data-transfer.md](swing-data-transfer.md) "@export 명령").
 
 ### 4순위
 
 나머지 없음·일부 항목. 각 보고서 표에 있다. 예: 스키마 비교, 작업 저장·재실행, 차트, 프로젝트·스크립트 탐색기.
 데이터 검색은 2026-11-08 옮겼다([swing-data-search.md](swing-data-search.md), C-29).
+
+- 루틴 묶음(`chromite/p4-routines`, 2026-11-08): B-S42 프로시저 실행, D-O11·O12·O13·O14·O20, D-A5·A6을 고쳤다([swing-routines.md](swing-routines.md)).
+  PostgreSQL·SQL Server·MariaDB·Oracle·Altibase에서 실행 확인.
 
 ## 원래 SWT 제품에 없던 것 (해당 없음)
 
@@ -129,6 +133,7 @@ PostgreSQL 디버거는 2026-11-07 사용자 요청으로 Swing에 옮겼다(C-6
   ([swing-options.md](swing-options.md)). A-platform §6, B-S14·B-S15 상태 갱신.
 - 2026-11-08 3순위 Oracle·Altibase 관리 줄 고침: D-P23·S14·M17·O5·O16·O21·A2 → 있음(결과 요약 D·합계 갱신), C #44·B O2 비고 갱신.
 - 2026-11-07 3순위 쿼리 창마다 별도 연결 고침([transactions.md](transactions.md) "쿼리 창마다 별도 연결"). B-S22, A-platform §6 SQL Editor 줄 상태 갱신.
+- 2026-11-08 4순위 루틴 묶음: B-S42, D-O11·O12·O13·O14·O20·A5·A6 → 있음([swing-routines.md](swing-routines.md)). 결과 요약 수는 devel 병합 뒤 다시 센다.
 - 2026-11-08 4순위 차트·공간 데이터: B-R9·C-64 없음 → 일부(결과 공간 보기), 결과 표 차트 보기는 CE에 없던 기능이라 수 변화 없음
   ([swing-result-charts-spatial.md](swing-result-charts-spatial.md)). 결과 요약 B·C·합계 갱신.
 - 2026-11-08 설정 화면 나머지 1차: 연결별 설정, Data Formats·Errors and Timeouts·Metadata·Client Identification([swing-options.md](swing-options.md)).
