@@ -43,6 +43,7 @@ import java.sql.Types;
  *
  * 변경 이력:
  * - 2026-11-08 최초 작성 (docs/chromite/regression-tests.md "데이터")
+ * - 2026-11-08 문장·결과가 없는 세션과 SQL이 아닌 예외도 4000으로 남는지 더함(그 경우 NullPointerException이 방언 밖으로 나갔다)
  */
 public class OracleMaxStringSizeTest extends ChromiteUnitTest {
 
@@ -56,6 +57,19 @@ public class OracleMaxStringSizeTest extends ChromiteUnitTest {
         JDBCSession denied = Mockito.mock(JDBCSession.class);
         Mockito.when(denied.prepareStatement(Mockito.anyString())).thenThrow(new SQLException("ORA-00942: table or view does not exist"));
         Assertions.assertEquals(4000L, readLimit(denied));
+    }
+
+    @Test
+    public void probeThatBreaksOtherwiseStillKeepsTheStandardLimit() throws Exception {
+        // A session that gives no statement (the parser tests' sessions), a statement without a result, a driver error
+        Assertions.assertEquals(4000L, readLimit(Mockito.mock(JDBCSession.class)));
+        JDBCPreparedStatement noResult = Mockito.mock(JDBCPreparedStatement.class);
+        JDBCSession withoutResult = Mockito.mock(JDBCSession.class);
+        Mockito.when(withoutResult.prepareStatement(Mockito.anyString())).thenReturn(noResult);
+        Assertions.assertEquals(4000L, readLimit(withoutResult));
+        JDBCSession failing = Mockito.mock(JDBCSession.class);
+        Mockito.when(failing.prepareStatement(Mockito.anyString())).thenThrow(new IllegalStateException("driver bug"));
+        Assertions.assertEquals(4000L, readLimit(failing));
     }
 
     @Test
