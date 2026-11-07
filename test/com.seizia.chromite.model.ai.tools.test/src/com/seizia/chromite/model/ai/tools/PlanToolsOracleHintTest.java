@@ -25,16 +25,17 @@ import java.util.List;
 
 /**
  * Regression tests of where the Oracle actual plan puts its hint ({@code PlanTools.oracleHint}): after the first
- * keyword of the statement, past leading comments, joined with a hint the user wrote, and in linear time for any input
- * (the comment pattern once allowed exponential backtracking, CodeQL java/redos).
+ * keyword of the statement, past leading comments, joined with a hint the user wrote, in linear time and without a stack
+ * that grows with the input (the comment pattern once allowed exponential backtracking, CodeQL java/redos, and then
+ * overflowed the stack on long comments).
  *
  * 설계: 힌트는 쿼리 블록 키워드 바로 뒤의 첫 주석만 힌트로 읽히므로 위치가 결과를 바꾼다. 앞 주석 안의 키워드는 키워드가 아니다.
- * ReDoS 입력은 닫힌 주석이 수만 개 이어지고 키워드가 없는 문장, 닫히지 않은 주석이다. 시간 제한을 넘으면 실패한다.
- * 긴 머리 주석 시험은 2026-11-08 현재 실패한다: 주석 본문 패턴이 글자마다 재귀해 수천 자에서 StackOverflowError가 난다
- * (제품 결함, docs/chromite/regression-tests.md "실행 결과").
+ * 큰 입력은 닫힌 주석이 수만 개 이어지고 키워드가 없는 문장(ReDoS 입력), 닫히지 않은 주석, 10만 자 주석, 10만 자 공백, 긴 WITH 본문이다.
+ * 각각 시간 제한 안에 끝나야 하고 StackOverflowError가 나면 실패한다.
  *
  * 변경 이력:
  * - 2026-11-08 최초 작성 (docs/chromite/regression-tests.md "Chromite Agent")
+ * - 2026-11-08 앞 주석 건너뛰기를 반복문으로 고친 뒤({@code PlanTools.skipLeadingComments}) 10만 자 입력과 건너뛰기 규칙을 더함
  */
 public class PlanToolsOracleHintTest {
 
@@ -77,23 +78,39 @@ public class PlanToolsOracleHintTest {
     }
 
     @Test
-    public void commentFloodsFinishInLinearTime() {
-        // The CodeQL java/redos input: many short comments and no keyword
-        String closedComments = "/* *//* *//*".repeat(20_000) + " x";
-        String unclosed = "/*" + "*".repeat(50_000) + " no end";
-        String lineComments = "-- note\n".repeat(20_000) + "SELECT 1 FROM dual";
-        Assertions.assertTimeoutPreemptively(Duration.ofSeconds(10), () -> {
-            Assertions.assertThrows(AIToolArgumentException.class, () -> PlanTools.oracleHint(closedComments, MARKER));
-            Assertions.assertThrows(AIToolArgumentException.class, () -> PlanTools.oracleHint(unclosed, MARKER));
-            Assertions.assertTrue(PlanTools.oracleHint(lineComments, MARKER).endsWith("SELECT" + HINT + " 1 FROM dual"));
-        });
+    public void leadingCommentsAreSkippedLikeOracleReadsThem() {
+        Assertions.assertEquals(0, PlanTools.skipLeadingComments("SELECT 1"));
+        Assertions.assertEquals(6, PlanTools.skipLeadingComments(" \t\r\n\f\u000BSELECT 1"));
+        Assertions.assertEquals(4, PlanTools.skipLeadingComments("/**/SELECT"));
+        // Not nested: the first star-slash closes the comment, the rest is where the statement starts
+        Assertions.assertEquals(11, PlanTools.skipLeadingComments("/* /* x */ */SELECT"));
+        Assertions.assertEquals(7, PlanTools.skipLeadingComments("/*/ */ SELECT"));
+        Assertions.assertEquals(9, PlanTools.skipLeadingComments("-- /* x\n SELECT"));
+        Assertions.assertEquals(5, PlanTools.skipLeadingComments("   \n "));
+        // Ends inside a comment: nothing to run
+        Assertions.assertEquals(-1, PlanTools.skipLeadingComments("/* no end SELECT 1"));
+        Assertions.assertEquals(-1, PlanTools.skipLeadingComments("-- no line break SELECT 1"));
     }
 
     @Test
-    public void longLeadingCommentDoesNotOverflowTheStack() {
-        // A script header of a few kilobytes: the comment body pattern repeats a group per character
-        String sql = "/*" + " header line\n".repeat(400) + "*/\nSELECT 1 FROM dual";
-        Assertions.assertTimeoutPreemptively(Duration.ofSeconds(10),
-            () -> Assertions.assertTrue(PlanTools.oracleHint(sql, MARKER).endsWith("SELECT" + HINT + " 1 FROM dual")));
+    public void hugeInputsFinishQuicklyWithoutAStackOverflow() {
+        // The CodeQL java/redos input: many short comments and no keyword
+        String closedComments = "/* *//* *//*".repeat(30_000) + " x";
+        String unclosed = "/*" + "*".repeat(100_000) + " no end";
+        String longComment = "/*" + " header line\n".repeat(8_000) + "*/\nSELECT 1 FROM dual";
+        String whitespace = " ".repeat(100_000) + "SELECT 1 FROM dual";
+        String lineComments = "-- note\n".repeat(20_000) + "SELECT 1 FROM dual";
+        String longWith = "WITH a AS (SELECT " + "x, ".repeat(30_000) + "1 FROM dual) SELECT * FROM a";
+        String hintAfterSpaces = "SELECT" + " ".repeat(100_000) + "/*+ FULL(t) */ * FROM t";
+        Assertions.assertTimeoutPreemptively(Duration.ofSeconds(10), () -> {
+            Assertions.assertThrows(AIToolArgumentException.class, () -> PlanTools.oracleHint(closedComments, MARKER));
+            Assertions.assertThrows(AIToolArgumentException.class, () -> PlanTools.oracleHint(unclosed, MARKER));
+            Assertions.assertTrue(longComment.length() > 100_000);
+            Assertions.assertTrue(PlanTools.oracleHint(longComment, MARKER).endsWith("SELECT" + HINT + " 1 FROM dual"));
+            Assertions.assertTrue(PlanTools.oracleHint(whitespace, MARKER).endsWith("SELECT" + HINT + " 1 FROM dual"));
+            Assertions.assertTrue(PlanTools.oracleHint(lineComments, MARKER).endsWith("SELECT" + HINT + " 1 FROM dual"));
+            Assertions.assertTrue(PlanTools.oracleHint(longWith, MARKER).startsWith("WITH a AS (SELECT" + HINT + " x, "));
+            Assertions.assertTrue(PlanTools.oracleHint(hintAfterSpaces, MARKER).endsWith("/*+ GATHER_PLAN_STATISTICS FULL(t) */ /* " + MARKER + " */ * FROM t"));
+        });
     }
 }
