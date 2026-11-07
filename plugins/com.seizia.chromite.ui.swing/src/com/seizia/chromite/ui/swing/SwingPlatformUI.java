@@ -16,6 +16,7 @@
  */
 package com.seizia.chromite.ui.swing;
 
+import com.seizia.chromite.ui.swing.internal.ConnectionMessages;
 import com.seizia.chromite.ui.swing.internal.CoreMessages;
 import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.core.runtime.IStatus;
@@ -29,6 +30,8 @@ import com.seizia.chromite.Log;
 import com.seizia.chromite.model.DBPDataSourceContainer;
 import com.seizia.chromite.model.access.DBAPasswordChangeInfo;
 import com.seizia.chromite.model.connection.DBPAuthInfo;
+import com.seizia.chromite.model.connection.DBPAuthModelDescriptor;
+import com.seizia.chromite.model.connection.DBPConnectionConfiguration;
 import com.seizia.chromite.model.navigator.DBNNode;
 import com.seizia.chromite.model.navigator.fs.DBNPathBase;
 import com.seizia.chromite.model.runtime.AbstractJob;
@@ -84,6 +87,8 @@ import java.util.function.Supplier;
  * - 2026-11-07 오류 문구를 {@link ErrorText}로 만들고(클래스 이름이 화면에 나오지 않게), 오류 대화상자에 접힌 스택 추적과
  *   복사 단추({@link ErrorDialog})를 더함. 모델 계층이 넘긴 오류 문자열과 알림도 같은 규칙으로 정리한다
  *   (docs/chromite/swing-frontend.md "오류 문구")
+ * - 2026-11-07 {@code promptAuthModelCredentials}: 기본 방식이 아닌 인증 방식(SQL Server Authentication, Oracle Username/password 등)의
+ *   비밀번호를 저장하지 않은 연결이 묻지 않고 취소되던 것을 고침 (docs/chromite/swing-auth-prompts.md)
  */
 public class SwingPlatformUI implements DBPPlatformUI {
 
@@ -353,6 +358,64 @@ public class SwingPlatformUI implements DBPPlatformUI {
                 new String(passwordField.getPassword()),
                 showSavePassword && savePasswordCheck.isSelected());
         });
+    }
+
+    /**
+     * Credentials of an auth model other than the plain native one (SQL Server Authentication, Oracle Username/password,
+     * pgpass...), asked when connecting without a saved password. The fields are the ones the connection dialog shows
+     * for the model ({@link ConnectionAuthModels#getFields}); they are written into the connection settings as SWT
+     * {@code DatabaseNativeAuthModelConfigurator} does in its credentials prompt mode, and the registry
+     * ({@code DataSourceDescriptor.askForPassword}) keeps or restores them depending on "Save password".
+     * A model without such fields has nothing to ask here (SWT showed its own settings page, which Swing does not have),
+     * so the connection goes on with its stored settings instead of being canceled silently.
+     */
+    @Override
+    public boolean promptAuthModelCredentials(@NotNull DBPDataSourceContainer dataSourceContainer) {
+        DBPConnectionConfiguration configuration = dataSourceContainer.getConnectionConfiguration();
+        DBPAuthModelDescriptor authModel = configuration.getAuthModelDescriptor();
+        ConnectionAuthModels.Fields fields = ConnectionAuthModels.getFields(authModel);
+        if (!fields.managed() || fields.isEmpty()) {
+            log.debug("Auth model " + authModel.getId() + " has no credential fields to ask for");
+            return true;
+        }
+        Boolean confirmed = runOnEdt(() -> {
+            FormPanel form = new FormPanel(NLS.bind(ConnectionMessages.auth_prompt_description, authModel.getName()));
+            JTextField userField = new JTextField(CommonUtils.notEmpty(configuration.getUserName()), 24);
+            if (fields.userLabel() != null) {
+                form.addRow(fields.userLabel(), userField);
+            }
+            JPasswordField passwordField = new JPasswordField(CommonUtils.notEmpty(configuration.getUserPassword()), 24);
+            // A temporary connection keeps its password anyway, as in the native prompt (askForPassword)
+            boolean showSavePassword = fields.passwordLabel() != null && !dataSourceContainer.isTemporary();
+            JCheckBox savePasswordCheck = new JCheckBox(CoreMessages.platform_save_password, dataSourceContainer.isSavePassword());
+            if (fields.passwordLabel() != null) {
+                form.addRow(fields.passwordLabel(), passwordField);
+                if (showSavePassword) {
+                    form.addRow(null, savePasswordCheck);
+                }
+            }
+            focusWhenShown(fields.passwordLabel() != null && (fields.userLabel() == null || !CommonUtils.isEmpty(userField.getText()))
+                ? passwordField : userField);
+
+            int result = JOptionPane.showConfirmDialog(
+                getDialogParent(),
+                form,
+                NLS.bind(ConnectionMessages.auth_prompt_title, dataSourceContainer.getName()),
+                JOptionPane.OK_CANCEL_OPTION,
+                JOptionPane.PLAIN_MESSAGE);
+            if (result != JOptionPane.OK_OPTION) {
+                return false;
+            }
+            if (fields.userLabel() != null) {
+                configuration.setUserName(GeneralUtils.trimAllWhitespaces(userField.getText()));
+            }
+            configuration.setUserPassword(fields.passwordLabel() != null
+                ? GeneralUtils.trimAllWhitespaces(new String(passwordField.getPassword())) : null);
+            dataSourceContainer.setSavePassword(fields.passwordLabel() != null
+                && (dataSourceContainer.isTemporary() || savePasswordCheck.isSelected()));
+            return true;
+        });
+        return Boolean.TRUE.equals(confirmed);
     }
 
     @Nullable
@@ -743,7 +806,7 @@ public class SwingPlatformUI implements DBPPlatformUI {
      * The focused window, or else any visible frame, so that dialogs stay on top of the application.
      */
     @Nullable
-    private static Component getDialogParent() {
+    static Component getDialogParent() {
         Window activeWindow = KeyboardFocusManager.getCurrentKeyboardFocusManager().getActiveWindow();
         if (activeWindow != null) {
             return activeWindow;
@@ -796,7 +859,7 @@ public class SwingPlatformUI implements DBPPlatformUI {
     /**
      * JOptionPane focuses its first button; credential prompts should start in the input field instead.
      */
-    private static void focusWhenShown(@NotNull JComponent component) {
+    static void focusWhenShown(@NotNull JComponent component) {
         component.addAncestorListener(new AncestorListener() {
             @Override
             public void ancestorAdded(AncestorEvent event) {

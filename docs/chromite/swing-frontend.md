@@ -706,7 +706,7 @@ Query 메뉴 항목은 활성 편집기에 적용되고, 메뉴 단축키라 포
 
 - 편집기: 파일 열기·저장(닫을 때 저장 확인, E단계에서 구현), 방언별 키워드·자동완성(자동완성은 F단계에서 구현), 실행한 문장 강조, 오류 위치로 이동(Messages 더블클릭).
 - 실행: 편집기별 별도 연결(SSMS는 쿼리 창마다 연결), 오류 뒤 다음 배치 계속 실행(SSMS 기본 동작. 지금은 멈춤), 커밋 방식·트랜잭션 표시, 서버 출력 읽기
-  (`DBCServerOutputReader`, Oracle `DBMS_OUTPUT`), 매개변수 입력 대화상자, `@set` 변수의 편집기 단위 유지.
+  (`DBCServerOutputReader`, Oracle `DBMS_OUTPUT`. 2026-11-07 구현, [swing-server-output.md](swing-server-output.md)), 매개변수 입력 대화상자, `@set` 변수의 편집기 단위 유지.
 - 결과: 편집(Edit Top 200 Rows, "결과 모델 분석", G단계에서 구현), 더 읽기(최대 행 수 이후), 정렬, 결과 내보내기(CSV는 E단계에서 구현), 텍스트로 결과 보기.
 - SQL Server `GO` 배치는 SQL Server로 실행해 보지 못했다(아래 확인 참고).
 
