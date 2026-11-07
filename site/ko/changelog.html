@@ -31,6 +31,27 @@
     <p>버전 번호는 <code>주.부.개발</code> 형식입니다. 각 버전의 앵커(예: <code>#v0.1.0</code>)는 앱의 업데이트 알림에서 링크합니다.</p>
   </div>
 
+  <section class="sect release" id="v0.1.1">
+    <h2>0.1.1</h2>
+    <div class="body">
+      <p>트랜잭션 안전장치와 관리·개발 도구를 넓힌 버전입니다.</p>
+      <ul>
+        <li>트랜잭션: 열린 트랜잭션 표시와 유휴 알림, 커밋·롤백 명령과 트랜잭션 로그, 열린 트랜잭션 목록, 쿼리 창마다 별도 세션. 연결 끊기·종료·오류 복구 때 묻지 않고 커밋하거나 롤백하지 않습니다</li>
+        <li>실행 전 확인: 조건 없는 DELETE·UPDATE, DROP, TRUNCATE, 결과 표 저장 전 SQL 미리 보기, 저장된 셸 명령 승인</li>
+        <li>프로시저 디버거(PostgreSQL, Oracle)</li>
+        <li>Chromite Agent: 데이터베이스 작업 도구, 연결·도구별 권한 정책, 로컬 MCP 서버</li>
+        <li>쿼리 라이브러리 공유: 공유 폴더·Git 루트, 내보내기·가져오기, 저장 충돌 확인</li>
+        <li>개체 탐색기: 삭제·이름 바꾸기(DDL 미리 보기), 이름 복사, 여러 개 선택, SQL 생성</li>
+        <li>설정 화면: 쿼리 실행, 연결 유형, 결과 형식, Oracle</li>
+        <li>저장된 비밀번호를 운영체제 보안 저장소(Windows DPAPI, macOS 키체인)에 보관하고, 암호로 암호화한 연결 내보내기·가져오기를 추가</li>
+        <li>폐쇄망용 오프라인 드라이버 설치 묶음, SQLite 드라이버 내장. MySQL 드라이버는 더 이상 내장하지 않으며 처음 연결할 때 받거나 오프라인 묶음으로 설치합니다</li>
+        <li>Oracle DBMS_OUTPUT·Altibase 출력 표시, 비밀번호를 저장하지 않은 연결의 로그인 창, Windows 인증서 저장소 사용, @export 명령, CALL·EXEC 뒤 프로시저 자동 완성</li>
+        <li>테이블 복사 때 기본 키 생성과 형식 매핑 개선, 행 단위 삽입에서 NULL 열 값이 어긋나던 문제 수정</li>
+        <li>한국어 화면의 남은 영어 문구 정리</li>
+      </ul>
+    </div>
+  </section>
+
   <section class="sect release" id="v0.1.0">
     <h2>0.1.0</h2>
     <div class="body">
