@@ -94,7 +94,8 @@ import java.util.concurrent.ConcurrentHashMap;
  *     그 밖에는 {@code generateScript}와 같이 기본 구분자({@code ;})를 붙이고, 복합 동작(루틴 본문)은 구분자를 바꾸는 방언(MySQL)에서
  *     {@code DELIMITER $$} … {@code DELIMITER ;} 사이에 둔다. MySQL 방언에는 {@code BEGIN … END} 블록이 없어(MySQLDialect#getBlockBoundStrings)
  *     쿼리 창의 구문 분석기가 본문 안의 {@code ;}에서 나누기 때문이다. 쿼리 창은 {@code DELIMITER} 줄을 처리한다.</li>
- *     <li>DB/스키마 맞추기: 쿼리 창은 연결의 기본 실행 문맥에서 실행하므로, 스크립트를 만들기 전에 그 문맥의 기본 카탈로그·스키마를
+ *     <li>DB/스키마 맞추기: 새 쿼리 창은 연결의 기본 실행 문맥에서 실행하거나 자기 세션을 열 때 그 문맥의 기본값을 복사하므로
+ *     ({@link QueryWindowContext}), 스크립트를 만들기 전에 그 문맥의 기본 카탈로그·스키마를
  *     객체가 있는 곳으로 바꾼다(편집기의 기본 DB/스키마 콤보와 같은 {@link DBExecUtils#setExecutionContextDefaults}). PostgreSQL은 DB를
  *     바꾸면 기본 인스턴스가 바뀌므로 다른 DB의 객체도 그 DB에서 실행된다. SQL Server는 SSMS처럼 맨 앞에 {@code USE} 배치를 넣어,
  *     나중에 기본 DB를 바꿔도 객체의 DB에서 실행되게 한다(문장은 {@code SQLServerObjectManager.addDatabaseSwitchAction1}과 같음).</li>
@@ -108,6 +109,7 @@ import java.util.concurrent.ConcurrentHashMap;
  *
  * 변경 이력:
  * - 2026-11-06 최초 작성 (docs/chromite/swing-source-editor.md)
+ * - 2026-11-07 주석만: 쿼리 창마다 별도 연결이면 새 창이 주 문맥의 기본값을 복사함 (docs/chromite/transactions.md "쿼리 창마다 별도 연결")
  */
 final class SourceScripts {
 
@@ -290,8 +292,9 @@ final class SourceScripts {
     }
 
     /**
-     * Makes the object's catalog and schema the defaults of the connection's main context, which query windows use
-     * (as the editor's default database/schema combo). Failing to do so is not fatal: the scripts name their schema.
+     * Makes the object's catalog and schema the defaults of the connection's main context, which new query windows use
+     * or copy into their own session when they open it ({@link QueryWindowContext}), with the same call as the editor's
+     * default database/schema combo. Failing to do so is not fatal: the scripts name their schema.
      *
      * @return the main context after the change (PostgreSQL: the context of the object's database)
      */
