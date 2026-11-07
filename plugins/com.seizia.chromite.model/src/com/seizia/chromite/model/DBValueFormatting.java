@@ -45,6 +45,9 @@ import java.util.Locale;
 
 /**
  * DB value formatting utilities
+ *
+ * 변경 이력:
+ * - 2026-11-07 UI 형식에서 제약 조건 유형을 지역화된 이름으로 보여 줌(docs/chromite/swing-l10n.md "남은 한국어 문구 정리")
  */
 public final class DBValueFormatting {
 
@@ -372,6 +375,9 @@ public final class DBValueFormatting {
             return str.toString();
         } else if (value instanceof DBPNamedObject) {
             return ((DBPNamedObject) value).getName();
+        } else if (value instanceof DBSEntityConstraintType constraintType && format == DBDDisplayFormat.UI) {
+            // getName() is the SQL keyword (FOREIGN KEY); the UI shows the translated type name
+            return constraintType.getLocalizedName();
         }
 
         String className = value.getClass().getName();
