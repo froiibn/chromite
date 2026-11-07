@@ -704,6 +704,10 @@
                         <property id="@chromite-read-all-data-types-db@" label="%provider.property.read_all_data_types.label" type="boolean" description="%provider.property.read_all_data_types.description"/>
                         <property id="read-keys-with-columns" label="%provider.property.read_keys_with_columns.label" type="boolean" description="%provider.property.read_keys_with_columns.description"/>
                         <property id="replace-legacy-timezone" label="%provider.property.replace_legacy_timezone.label" type="boolean" description="%provider.property.replace_legacy_timezone.description"/>
+                        <property id="show-database-statistics" label="%provider.property.show_database_statistics.label" type="boolean" description="%provider.property.show_database_statistics.description"/>
+                    </propertyGroup>
+                    <propertyGroup label="%provider.group.performance.label">
+                        <property id="@chromite-use-prepared-statements-db@" label="%provider.property.use_prepared_statements.label" type="boolean" description="%provider.property.use_prepared_statements.description"/>
                     </propertyGroup>
                     <propertyGroup label="SQL">
                         <property id="postgresql.dd.plain.string" label="%provider.property.dd_plain_string.label" type="boolean" description="%provider.property.dd_plain_string.label"/>

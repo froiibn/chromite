@@ -183,11 +183,11 @@ Mac이 없어 코드로만 확인한 macOS 동작(앱 시작, Cmd+Q의 끝내기
 5. `secure-storage`: `<데이터 폴더>/ChromiteData/secure/secure_storage`가 있고 평문 비밀번호가 없으며 값이 키체인 제공자(`MacOSSecureStorageKeychain`)로 암호화됐는지,
    예전 파일이 옮겨지고 지워졌는지(`credentials-storage.properties`의 `legacy.migrated.…`), 로그인 키체인에 `com.seizia.chromite.SecureStorage`/`master-password` 항목이 있는지
    (`security find-generic-password`, `-g`/`-w` 없이 속성만), 디버그 로그에 보안 저장소 오류가 없는지. 키체인 잠금 상태(`security show-keychain-info`)도 남긴다.
-6. `menus`: System Events로 앱 메뉴(메뉴 막대 항목 2)의 항목 이름을 읽고 1번(정보)과 "Settings…"/"Preferences…"를 눌러 창이 하나 더 생기는지 보고 스크린숏, Esc로 닫는다.
+6. `menus`: System Events로 앱 메뉴(메뉴 막대 항목 2)의 항목 이름을 읽고 1번(정보)과 "Options…"(Chromite 앱 메뉴)·"Settings…"·"Preferences…" 중 있는 것을 눌러 창이 하나 더 생기는지 보고 스크린숏, Esc로 닫는다.
 7. `quit appleevent`: `osascript -e 'tell application id "<번들 ID>" to quit'`(끝내기 처리기). 프로세스가 끝나고 디버그 로그에 `Main window closed`와 `(Swing) shutdown completed`가
    있어야 한다(JDK 기본 끝내기 `System.exit`이면 이 줄 없이 끝남). 새 크래시 보고서가 없어야 한다.
 8. 두 번째 시작(`launch second-launch`, 보안 저장소에서 비밀번호를 읽음) → `quit keystroke`(System Events의 Cmd+Q).
-9. 세 번째 시작 → `txn`(실패해도 작업을 실패시키지 않음): 탐색기 첫 줄 선택(Home) → Ctrl+N 새 쿼리 창 → `INSERT` 입력 → F5 → Cmd+Q → "Don't Save" →
+9. 세 번째 시작 → `txn`(실패해도 작업을 실패시키지 않음): 탐색기 첫 줄 선택(아래 화살표) → Ctrl+N 새 쿼리 창 → `INSERT` 입력 → F5 → Cmd+Q → "Don't Save" →
    "Uncommitted Transactions" 질문 스크린숏 → Cancel이면 앱이 남는지 → 다시 Cmd+Q → "Roll Back" → 정상 종료와 SQLite 파일에 행이 없는지.
 10. `collect`(항상): 남은 앱 프로세스 정리, 디버그 로그, Equinox `.log`, `Info.plist`, 런처 ini, 크래시 보고서, Gatekeeper·키체인 통합 로그.
 
@@ -217,7 +217,7 @@ Mac이 없어 코드로만 확인한 macOS 동작(앱 시작, Cmd+Q의 끝내기
 | 보안 저장소·키체인, 앱 메뉴, 끝내기(Apple event·Cmd+Q), 열린 트랜잭션 질문 | 앱이 시작하지 않아 실행하지 못함 |
 | 그 밖에 본 것 | 앱 메뉴·크래시 대화상자의 앱 이름이 "Chromite-swing"(`Info.plist`의 `CFBundleName`, 브랜딩 결함). `Info.plist`의 `Eclipse` 인수에 Eclipse 기본값 `-keyring ~/.eclipse_keyring`. `NSRequiresAquaSystemAppearance`가 `true`(시스템 어두운 모드를 따르지 않음) |
 
-`secure-storage`·`menus`·`quit`·`txn`(5~9단계)은 앱이 시작하지 않아 한 번도 실행되지 않았다. 앱이 시작하게 된 뒤 첫 실행에서 조정이 필요할 수 있다.
+`secure-storage`·`menus`·`quit`·`txn`(5~9단계)은 이때 앱이 시작하지 않아 실행되지 않았다. 시작 수정 뒤 결과는 아래 "결과 (시작 수정 뒤)".
 
 **앱이 시작하지 않는 원인**: Eclipse 런처는 macOS에서 JVM을 프로세스의 첫(AppKit 메인) 스레드에서 시작한다. JVM 스레드 덤프에서 `main`은
 `ChromiteSwingApplication.installLookAndFeel`(`SwingUtilities.invokeAndWait`)에서 기다리고, `AWT-EventQueue-0`은 `CGraphicsEnvironment.initMetal`에 있다.
@@ -226,11 +226,35 @@ AWT는 초기화 일부를 AppKit 메인 스레드에서 하고 끝나기를 기
 런처의 `--launcher.secondThread`(JVM을 둘째 스레드에서 시작)로 실험하면 런처 자신이 메인 스레드에서 AppKit 단정(`_NSAssertMainEventQueueIsCurrentEventQueue`,
 `eclipse_11924.so +[KeyWindow dispatch]`)으로 `EXC_BREAKPOINT` 종료한다("Chromite-swing quit unexpectedly"). 명령줄 `-vm …/jre/bin/java`를 더해도 런처가
 같은 프로세스에 JVM을 올려(프로세스 하나, 같은 스레드 덤프) 결과가 같다. 이 브랜치(`devel`과 같은 제품 코드)의 서명 없는 빌드(`source: build`, 격리·App Translocation 없음)도
-같은 곳에서 멈춰, 서명·Gatekeeper·Translocation 때문이 아니다. 고치는 일은 이 작업 범위 밖이라 보고만 한다.
+같은 곳에서 멈춰, 서명·Gatekeeper·Translocation 때문이 아니다. 수정은 [platform-startup.md](platform-startup.md) "macOS 메인 스레드".
 
 증거(실행 URL과 파일): 실행 42400660270(`first-launch-sample.txt`), 42401087028(`--launcher.secondThread`, 크래시 보고서), 42401477114(`first-launch-stdout.txt` 스레드 덤프),
 42401481357(서명 없는 빌드, 같은 스레드 덤프), 42402015208(서명 없는 빌드 + `-vm …/bin/java`).
 내려받은 결과물은 `D:\Tools\_scratch\macos-smoke-ci\run*\`.
+
+### 결과 (시작 수정 뒤, 2026-11-08, `source: build`, 실행 42407606192, `devel`에 다시 얹은 뒤 42408742370)
+
+브랜치 `chromite/macos-startup-fix`의 서명 없는 빌드로 모든 단계가 통과했다(작업 결론 success).
+
+| 확인 | 결과 |
+|---|---|
+| 시작(세 번) | 메인 창, 시작 줄 |
+| 보안 저장소 | `<데이터 폴더>/ChromiteData/secure/secure_storage`, 평문 없음, 값의 모듈 `com.seizia.chromite.model.security.macossecurestoragekeychain`(Equinox가 소문자로 씀), 예전 파일 이전·삭제, 로그인 키체인에 `com.seizia.chromite.SecureStorage`/`master-password`, 로그 오류 없음. 러너의 로그인 키체인은 잠겨 있지 않았다(`security show-keychain-info`: `no-timeout`) |
+| 앱 메뉴 | 정보·옵션 창이 열리고 Esc로 닫힘 |
+| 끝내기(Apple event, Cmd+Q) | `Main window closed`·`shutdown completed`, 크래시 없음. Apple event는 앱이 끝내기를 취소하므로 osascript가 "User canceled (-128)"를 받는다(정상) |
+| 열린 트랜잭션 | "Uncommitted Transactions" 질문, Cancel이면 남음, Roll Back이면 롤백 후 정상 종료 |
+
+이 실행으로 고친 스크립트의 점(처음 실행에서 드러남):
+
+- 디버그 로그는 시작마다 새로 쓰인다. 줄 수로 이어 읽지 않고 시작 전에 이전 로그를 `debug-log-before-<이름>.txt`로 옮긴다.
+- 창 수는 System Events로 세고, `entire contents`는 변수에 한 번 읽은 뒤 돈다(목록에 `whose`를 쓸 수 없음). Swing 단추는 AX 제목(name)이 비어 있고
+  글자가 AX 설명(description)에 있다.
+- 탐색기 첫 줄은 Home이 아니라 아래 화살표로 고른다(macOS에서 Home이 트리 첫 줄에 묶여 있지 않음).
+- 보안 저장소 확인은 모든 항목을 본 뒤 실패하고, 키와 모듈 ID만 남긴 사본(`secure-storage-redacted.txt`)을 남긴다.
+- 앱 메뉴의 옵션 항목 이름은 "Options…"(Chromite 앱 메뉴)도 받는다.
+
+서명한 빌드(다음 릴리스 뒤 `-f tag=<태그>`)에서만 확인할 것: 강화된 런타임에서 JNA 콜백(앱 메뉴, 끝내기 위임자), 격리된 앱의 첫 실행과 App Translocation에서의
+시작, Developer ID 앱의 키체인 항목 위치. 수정에 권한(entitlements) 변경은 필요 없었다(JVM은 런처 프로세스 안, JNA 콜백은 기존 `allow-unsigned-executable-memory`).
 
 ## .github 파일 분류
 
@@ -300,3 +324,5 @@ AWT는 초기화 일부를 AppKit 메인 스레드에서 하고 끝나기를 기
 - 2026-11-07 `release.yml` Windows 작업에 NSIS 설치 프로그램(고정한 NSIS 3.12, 2단계 빌드·서명, 조용한 설치·제거 확인)을 넣고 macOS 결과 파일 이름을 계약 이름으로 바꿨다([distribution.md](distribution.md)). `build.yml`은 바꾸지 않았다.
 - 2026-11-08 `macos-smoke.yml`과 `tools/release/macos-smoke.sh` 추가("macOS 설치·실행 시험"): `macos-15` 러너에서 v0.1.1 초안 dmg의 설치·서명·Gatekeeper는 통과,
   앱 시작은 런처가 JVM을 AppKit 메인 스레드에서 돌려 AWT와 교착해 실패함을 확인(제품 결함, 보고). "알려진 제약"의 macOS 실행 항목을 고침.
+- 2026-11-08 macOS 시작 수정([platform-startup.md](platform-startup.md))과 함께 `macos-smoke.sh`의 처음 실행된 단계를 고침(디버그 로그 교체, System Events 창 세기·AX 설명,
+  트리 선택 키, 보안 저장소 확인). 서명 없는 빌드로 모든 단계 통과(실행 42407606192, "결과 (시작 수정 뒤)").

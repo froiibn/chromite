@@ -42,6 +42,8 @@ import org.eclipse.osgi.util.NLS;
  * - 2026-11-08 View &gt; Compact Mode 문구 추가 (docs/chromite/design-spec.md "적용 현황 — 촘촘한 모드")
  * - 2026-11-08 Object Explorer Filter의 한 줄 입력 창 문구(explorer_filter_title·prompt)를 지움: 필터 대화상자({@link ObjectExplorerMessages})로 바뀜
  *   (docs/chromite/swing-explorer-productivity.md "필터 대화상자")
+ * - 2026-11-08 Outline 도구 창, Query &gt; Pin Results, View &gt; Results Beside Editor·Maximize Results 문구
+ *   (docs/chromite/swing-sql-editor-ergonomics.md)
  */
 public class CoreMessages extends NLS {
     private static final String BUNDLE_NAME = "com.seizia.chromite.ui.swing.internal.CoreMessages"; //$NON-NLS-1$
@@ -114,6 +116,13 @@ public class CoreMessages extends NLS {
     public static String main_rollback_tip;
     public static String main_transaction_log;
     public static String main_transaction_log_tip;
+    public static String main_outline;
+    public static String main_pin_results;
+    public static String main_pin_results_tip;
+    public static String main_results_beside;
+    public static String main_results_beside_tip;
+    public static String main_maximize_results;
+    public static String main_maximize_results_tip;
     public static String main_menu_view;
     public static String main_about;
     public static String main_menu_help;
@@ -126,6 +135,10 @@ public class CoreMessages extends NLS {
     public static String main_menu_window;
     public static String main_reset_layout;
     public static String main_show_hidden_tabs;
+    public static String mac_menu_hide;
+    public static String mac_menu_hide_others;
+    public static String mac_menu_show_all;
+    public static String mac_menu_quit;
     public static String main_menu_theme;
     public static String main_menu_icon_style;
     public static String main_menu_compact_mode;

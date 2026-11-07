@@ -228,11 +228,18 @@ import java.util.function.Supplier;
  *   (Link with Editor, {@link #linkExplorerToDocument}), Query &gt; Select Connection…(Ctrl+9)·Select Database/Schema…(Ctrl+0)는
  *   걸러 고르는 목록({@link ObjectChooserDialog})으로 활성 쿼리 창의 콤보를 바꿈, Set as Default 뒤 그 연결의 쿼리 창 DB 콤보를 다시 읽음
  *   (docs/chromite/swing-explorer-productivity.md)
+ * - 2026-11-08 편집 편의: Outline 도구 창({@link SqlOutlinePanel}, 기본 숨김, Ctrl+Alt+O), Query &gt; Pin Results(Ctrl+Shift+P),
+ *   View &gt; Results Beside Editor·Maximize Results(Ctrl+Shift+T, 놓는 방향은 저장), 쿼리 창의 Ctrl+클릭을 Object Explorer에 보임
+ *   (docs/chromite/swing-sql-editor-ergonomics.md)
  */
 final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplorerPanel.QueryWindows, TableDesignerPanel.Host, QueryLibraryPanel.Host {
 
     private static final String PREF_BOUNDS = "mainWindow.bounds"; //$NON-NLS-1$
     private static final String PREF_MAXIMIZED = "mainWindow.maximized"; //$NON-NLS-1$
+    /**
+     * The Results card beside (right of) the documents instead of below them.
+     */
+    private static final String PREF_RESULTS_BESIDE = "results.beside"; //$NON-NLS-1$
     private static final Dimension DEFAULT_SIZE = new Dimension(1280, 800);
     /**
      * Default shares of the main window width for the left and right tool window columns: the documents keep 60% (a
@@ -335,6 +342,13 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
     private final Action commitAction;
     private final Action rollbackAction;
     private final Action transactionLogAction;
+    /**
+     * Query &gt; Pin Results and the View menu's results layout, for the active query window.
+     */
+    private final Action pinResultsAction;
+    private final Action resultsBesideAction;
+    private final Action maximizeResultsAction;
+    private final SqlOutlinePanel outlinePanel;
     private final SqlEditorToolBar sqlEditorToolBar;
     private final EditMenu editMenu;
     private int queryCounter;
@@ -485,6 +499,13 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
         toolWindowDocking.addToolWindow(scriptsWindow, scriptsPanel, false,
             ToolWindowDocking.Place.next(propertiesWindow.getId(), DockingRegion.NORTH, 0.5),
             ToolWindowDocking.Place.edge(DockingRegion.EAST, DEFAULT_RIGHT_SHARE));
+        // The statements of the active query window, in the right column like the SWT Outline view; hidden until opened
+        outlinePanel = new SqlOutlinePanel();
+        ToolWindow outlineWindow = new ToolWindow("outline", CoreMessages.main_outline, //$NON-NLS-1$
+            KeyStroke.getKeyStroke(KeyEvent.VK_O, InputEvent.CTRL_DOWN_MASK | InputEvent.ALT_DOWN_MASK));
+        toolWindowDocking.addToolWindow(outlineWindow, outlinePanel, false,
+            ToolWindowDocking.Place.next(propertiesWindow.getId(), DockingRegion.NORTH, 0.5),
+            ToolWindowDocking.Place.edge(DockingRegion.EAST, DEFAULT_RIGHT_SHARE));
         aiWindow =new ToolWindow("aiAssistant", AiMessages.ai_title, //$NON-NLS-1$
             KeyStroke.getKeyStroke(KeyEvent.VK_I, InputEvent.CTRL_DOWN_MASK | InputEvent.ALT_DOWN_MASK));
         aiAssistantPanel = new AiAssistantPanel(new AiAssistantPanel.Host() {
@@ -517,7 +538,7 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
         AIAgentServices.setConfirmationHandler(new AiConfirmationDialog.Handler(() -> this));
         AIAgentServices.setEditorBridge((connection, sql, windowTitle) ->
             SwingUtilities.invokeLater(() -> aiAssistantPanel.openInEditor(connection, sql, windowTitle)));
-        toolWindows = List.of(explorerWindow, registeredServersWindow, propertiesWindow, libraryWindow, scriptsWindow, aiWindow, resultsWindow);
+        toolWindows = List.of(explorerWindow, registeredServersWindow, propertiesWindow, libraryWindow, scriptsWindow, outlineWindow, aiWindow, resultsWindow);
 
         newQueryAction = createAction(CoreMessages.main_new_query, CoreMessages.main_new_query_tip,
             KeyStroke.getKeyStroke(KeyEvent.VK_N, InputEvent.CTRL_DOWN_MASK), this::newQuery);
@@ -624,6 +645,32 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
                 editor.showTransactionLog();
             }
         });
+        // SWT keys: Ctrl+Shift+P pins the result tab, Ctrl+Shift+T maximizes the results
+        pinResultsAction = createAction(CoreMessages.main_pin_results, CoreMessages.main_pin_results_tip,
+            KeyStroke.getKeyStroke(KeyEvent.VK_P, InputEvent.CTRL_DOWN_MASK | InputEvent.SHIFT_DOWN_MASK), () -> {
+                SqlEditorPanel editor = getActiveEditor();
+                if (editor != null) {
+                    editor.pinResults();
+                }
+            });
+        resultsBesideAction = createAction(CoreMessages.main_results_beside, CoreMessages.main_results_beside_tip, null, () -> {
+            resultsSplit.setBeside(!resultsSplit.isBeside(), true);
+            updateQueryActions();
+        });
+        resultsBesideAction.putValue(Action.SELECTED_KEY, Boolean.FALSE);
+        maximizeResultsAction = createAction(CoreMessages.main_maximize_results, CoreMessages.main_maximize_results_tip,
+            KeyStroke.getKeyStroke(KeyEvent.VK_T, InputEvent.CTRL_DOWN_MASK | InputEvent.SHIFT_DOWN_MASK), () -> {
+                if (getActiveEditor() == null) {
+                    return;
+                }
+                boolean maximize = !resultsSplit.isMaximized();
+                if (maximize) {
+                    resultsWindow.setShown(true);
+                }
+                resultsSplit.setMaximized(maximize);
+                updateQueryActions();
+            });
+        maximizeResultsAction.putValue(Action.SELECTED_KEY, Boolean.FALSE);
         debugAction = DebugCommands.createAction(this, () -> {
             SqlEditorPanel editor = getActiveEditor();
             return editor != null ? editor.getSourceObject() : null;
@@ -1602,6 +1649,7 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
         // Before the status line, which goes below the results only while they are shown
         resultsSplit.update();
         attachStatusLine(editor != null ? editor.getStatusLine() : null);
+        outlinePanel.setTextArea(getActiveTextArea());
         sqlEditorToolBar.setActiveEditor(editor);
         if (editor != null) {
             // A window that shares the connection's main context shares its commit mode with the other windows
@@ -1718,6 +1766,10 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
         commitAction.setEnabled(canEndTransaction);
         rollbackAction.setEnabled(canEndTransaction);
         transactionLogAction.setEnabled(editor != null);
+        pinResultsAction.setEnabled(editor != null);
+        resultsBesideAction.putValue(Action.SELECTED_KEY, resultsSplit.isBeside());
+        maximizeResultsAction.setEnabled(editor != null);
+        maximizeResultsAction.putValue(Action.SELECTED_KEY, resultsSplit.isMaximized());
         saveAction.setEnabled(editor != null || documentTabs.getSelectedComponent() instanceof TableDesignerPanel);
         saveAsAction.setEnabled(editor != null);
         // Results belong to a query window: without one, Ctrl+R and the View menu item are disabled and say why
@@ -1754,6 +1806,13 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
         editor.setTerminalTabSelected(false);
         resultTabs.setSelectedIndex(messages ? MESSAGES_TAB : RESULTS_TAB);
         resultsWindow.setShown(true);
+    }
+
+    @Override
+    public void revealNode(@NotNull DBNDatabaseNode node) {
+        // Object Explorer is the first tool window
+        toolWindows.get(0).setShown(true);
+        explorerPanel.revealNode(node);
     }
 
     @Override
@@ -1926,6 +1985,8 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
         queryMenu.add(new JMenuItem(rollbackAction));
         queryMenu.add(new JMenuItem(transactionLogAction));
         queryMenu.addSeparator();
+        queryMenu.add(new JMenuItem(pinResultsAction));
+        queryMenu.addSeparator();
         JMenuItem historyItem = new JMenuItem(CoreMessages.main_query_history, UiIcons.get("history")); //$NON-NLS-1$
         historyItem.setToolTipText(CoreMessages.main_query_history_tip);
         historyItem.addActionListener(e -> openQueryHistory());
@@ -1944,6 +2005,8 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
         for (ToolWindow toolWindow : toolWindows) {
             viewMenu.add(new JCheckBoxMenuItem(toolWindow.getToggleAction()));
         }
+        viewMenu.add(new JCheckBoxMenuItem(resultsBesideAction));
+        viewMenu.add(new JCheckBoxMenuItem(maximizeResultsAction));
         viewMenu.addSeparator();
         viewMenu.add(createThemeMenu());
         viewMenu.add(createCompactModeItem());
@@ -2052,7 +2115,9 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
                 editor.putClientProperty(RESULTS_HIDDEN_KEY, null);
             }
         }
+        resultsSplit.setBeside(false, false);
         resultsSplit.reset();
+        updateQueryActions();
     }
 
     /**
@@ -2169,6 +2234,8 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
             setExtendedState(Frame.MAXIMIZED_BOTH);
         }
         toolWindowDocking.restoreLayout(preferences);
+        // The size saved for the results is their width when they are beside the documents
+        resultsSplit.setBeside(preferences.getBoolean(PREF_RESULTS_BESIDE), false);
         resultsSplit.load(preferences);
     }
 
@@ -2179,6 +2246,7 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
         preferences.setValue(PREF_MAXIMIZED, (getExtendedState() & Frame.MAXIMIZED_BOTH) != 0);
         toolWindowDocking.saveLayout(preferences);
         resultsSplit.save(preferences);
+        preferences.setValue(PREF_RESULTS_BESIDE, resultsSplit.isBeside());
         PrefUtils.savePreferenceStore(preferences);
     }
 

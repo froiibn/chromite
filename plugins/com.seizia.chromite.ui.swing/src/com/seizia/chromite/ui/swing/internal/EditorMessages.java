@@ -47,6 +47,8 @@ import org.eclipse.osgi.util.NLS;
  *   (docs/chromite/swing-result-charts-spatial.md)
  * - 2026-11-08 {@code editor_sql_bound_parameters} 삭제: 값을 바인딩한 결과도 다시 읽음. {@code editor_param_*}는 합친 매개변수 대화상자
  *   ({@code QueryParameterDialog}의 스크립트 모드)가 씀 (docs/chromite/swing-query-library.md "매개변수 대화상자와 바인딩 하나로")
+ * - 2026-11-08 편집 편의 문구({@code editor_edit_*} 추가, {@code editor_text_*}, {@code editor_nav_*}, {@code editor_outline_none},
+ *   결과 고정 {@code editor_results_*}) (docs/chromite/swing-sql-editor-ergonomics.md)
  */
 public class EditorMessages extends NLS {
     private static final String BUNDLE_NAME = "com.seizia.chromite.ui.swing.internal.EditorMessages"; //$NON-NLS-1$
@@ -140,6 +142,39 @@ public class EditorMessages extends NLS {
     public static String editor_edit_indent;
     public static String editor_edit_outdent;
     public static String editor_edit_insert_template;
+    public static String editor_edit_toggle_block_comment;
+    public static String editor_edit_trim;
+    public static String editor_edit_trim_spaces;
+    public static String editor_edit_trim_leading;
+    public static String editor_edit_trim_trailing;
+    public static String editor_edit_morph_list;
+    public static String editor_edit_copy_as_source;
+    public static String editor_edit_search_web;
+    public static String editor_edit_word_wrap;
+    public static String editor_edit_folding;
+    public static String editor_edit_fold_collapse;
+    public static String editor_edit_fold_expand;
+    public static String editor_edit_fold_collapse_all;
+    public static String editor_edit_fold_expand_all;
+    public static String editor_edit_fold_collapse_comments;
+
+    // Text tools (SqlTextTools)
+    public static String editor_text_unformatted_sql;
+    public static String editor_text_morph_title;
+    public static String editor_text_morph_no_selection;
+    public static String editor_text_morph_source_delimiter;
+    public static String editor_text_morph_target_delimiter;
+    public static String editor_text_morph_quote;
+    public static String editor_text_morph_wrap;
+    public static String editor_text_morph_leading;
+    public static String editor_text_morph_trailing;
+    public static String editor_text_morph_hint;
+    public static String editor_text_morph_apply;
+
+    // Hover, Ctrl+click (SqlObjectNavigation) and Outline (SqlOutlinePanel)
+    public static String editor_nav_not_found;
+    public static String editor_nav_more;
+    public static String editor_outline_none;
 
     // Options > Templates (SqlTemplatesPage)
     public static String editor_templates_title;
@@ -268,6 +303,13 @@ public class EditorMessages extends NLS {
 
     // Results (QueryResultsView)
     public static String editor_results_none;
+    public static String editor_results_current;
+    public static String editor_results_pinned;
+    public static String editor_results_unpin_tip;
+    public static String editor_results_unpin_discard;
+    public static String editor_results_unpin_confirm_one;
+    public static String editor_results_unpin_confirm_many;
+    public static String editor_results_nothing_to_pin;
 
     // Result grid (ResultSetGrid, ResultSetGridReceiver, ResultSetEditModel)
     public static String editor_grid_cell_read_only;
