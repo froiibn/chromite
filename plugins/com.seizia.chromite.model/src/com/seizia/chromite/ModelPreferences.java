@@ -47,6 +47,8 @@ import java.util.Locale;
  * 변경 이력:
  * - 2026-11-06 드라이버 오프라인 모드 설정 {@link #UI_DRIVERS_OFFLINE} 추가(기본값 끔, docs/chromite/drivers.md)
  * - 2026-11-07 SWT 프런트엔드 삭제: {@link #UI_DRIVERS_OFFLINE} 설명의 설정 노드를 Swing 제품 번들로 고침(docs/chromite/swt-removal.md)
+ * - 2026-11-07 데이터 소스별 유휴 트랜잭션 설정 {@code transaction.auto.close.*}를 지움: 연결 설정의 유휴 트랜잭션 설정으로 바뀜
+ *   (docs/chromite/idle-transactions.md)
  */
 public final class ModelPreferences
 {
@@ -293,8 +295,6 @@ public final class ModelPreferences
     public static final String TRANSACTIONS_SMART_COMMIT = "transaction.smart.commit"; //$NON-NLS-1$
     public static final String TRANSACTIONS_SMART_COMMIT_RECOVER = "transaction.smart.commit.recover"; //$NON-NLS-1$
     public static final String TRANSACTIONS_SHOW_NOTIFICATIONS = "transaction.show.notifications"; //$NON-NLS-1$
-    public static final String TRANSACTIONS_AUTO_CLOSE_ENABLED = "transaction.auto.close.enabled"; //$NON-NLS-1$
-    public static final String TRANSACTIONS_AUTO_CLOSE_TTL = "transaction.auto.close.ttl"; //$NON-NLS-1$
     public static final String TRANSACTIONS_DDL_BEHAVIOR = "transaction.ddl.behavior"; //$NON-NLS-1$
 
     public static final String DICTIONARY_COLUMN_DIVIDER = "resultset.dictionary.columnDivider"; //$NON-NLS-1$
@@ -432,8 +432,6 @@ public final class ModelPreferences
 
         PrefUtils.setDefaultPreferenceValue(store, ModelPreferences.TRANSACTIONS_SMART_COMMIT, false);
         PrefUtils.setDefaultPreferenceValue(store, ModelPreferences.TRANSACTIONS_SMART_COMMIT_RECOVER, false);
-        PrefUtils.setDefaultPreferenceValue(store, ModelPreferences.TRANSACTIONS_AUTO_CLOSE_ENABLED, true);
-        PrefUtils.setDefaultPreferenceValue(store, ModelPreferences.TRANSACTIONS_AUTO_CLOSE_TTL, 30 * 60);
         PrefUtils.setDefaultPreferenceValue(store, ModelPreferences.TRANSACTIONS_SHOW_NOTIFICATIONS, true);
         PrefUtils.setDefaultPreferenceValue(store, ModelPreferences.TRANSACTIONS_DDL_BEHAVIOR, DBCDDLTransactionBehavior.AUTO.name());
 
