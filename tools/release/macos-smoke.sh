@@ -289,7 +289,9 @@ cmd_launch() {
   local label=${1:?launch: a label} before pid= deadline clicked=0 up=0 n prompt
   need_app
   [ -z "$(app_pid)" ] || fail "an app copy already runs"
-  before=$(log_lines)
+  # A start may rotate or rewrite the debug log: keep the previous one aside and wait for a new file
+  if [ -f "$DEBUG_LOG" ]; then mv "$DEBUG_LOG" "$OUT/debug-log-before-$label.txt"; fi
+  before=0
   # open(1) waits while LaunchServices shows Gatekeeper's question, so it runs in the background
   # LAUNCHER_ARGS (workflow input launcher_args): extra launcher options for an experiment, split on spaces
   # shellcheck disable=SC2086
@@ -339,21 +341,28 @@ cmd_launch() {
 }
 
 cmd_secure_storage() {
-  local store=$DATA/ChromiteData/secure/secure_storage props=$WS/General/.chromite/credentials-storage.properties errors
+  local store=$DATA/ChromiteData/secure/secure_storage props=$WS/General/.chromite/credentials-storage.properties errors failed=0
   [ -s "$store" ] || fail "no secure storage file $store"
   ls -la "$(dirname "$store")" > "$OUT/secure-folder.txt"
   pass "secure storage file under the test data folder: $store ($(wc -c < "$store" | tr -d ' ') bytes)"
-  if grep -q -- "$FAKE_PASSWORD" "$store"; then fail "the secure storage file holds the password in plain text"; fi
-  # Equinox writes <module id>\t<encrypted value>; the module is the Keychain provider of model.security
-  grep -c 'MacOSSecureStorageKeychain' "$store" > "$OUT/secure-provider-count.txt" || true
-  if [ "$(cat "$OUT/secure-provider-count.txt")" -gt 0 ]; then
-    pass "values encrypted by the Keychain provider (MacOSSecureStorageKeychain, $(cat "$OUT/secure-provider-count.txt") entries), no plain text password"
-  else
-    fail "no value of the secure storage names the Keychain provider"
+  if grep -q -- "$FAKE_PASSWORD" "$store"; then
+    result FAIL "the secure storage file holds the password in plain text"
+    failed=1
   fi
-  [ ! -e "$WS/General/.chromite/credentials-config.json" ] || fail "the pre-#111 credentials file was not moved"
-  grep -q '^legacy.migrated.credentials-config.json=' "$props" 2> /dev/null || fail "credentials-storage.properties has no migration record"
-  pass "the pre-#111 credentials-config.json was moved to the secure storage and deleted"
+  # Keys and module ids only: Equinox writes <key>=<module id>\t<iv>,<salt>,<data> (a properties file, \t escaped)
+  sed -E 's/(\\t).*/\1<encrypted>/' "$store" > "$OUT/secure-storage-redacted.txt"
+  if grep -q 'MacOSSecureStorageKeychain' "$store"; then
+    pass "values encrypted by the Keychain provider (MacOSSecureStorageKeychain), no plain text password"
+  else
+    result FAIL "no value of the secure storage names the Keychain provider (secure-storage-redacted.txt)"
+    failed=1
+  fi
+  if [ ! -e "$WS/General/.chromite/credentials-config.json" ] && grep -q '^legacy.migrated.credentials-config.json=' "$props" 2> /dev/null; then
+    pass "the pre-#111 credentials-config.json was moved to the secure storage and deleted"
+  else
+    result FAIL "the pre-#111 credentials file was not moved (or credentials-storage.properties has no record)"
+    failed=1
+  fi
   {
     security list-keychains
     security default-keychain
@@ -365,15 +374,19 @@ cmd_secure_storage() {
     pass "Keychain item $KEYCHAIN_SERVICE / $KEYCHAIN_ACCOUNT in $(sed -n 's/^keychain: //p' "$OUT/keychain-item.txt")"
   else
     cat "$OUT/keychain-item.txt"
-    fail "no Keychain item $KEYCHAIN_SERVICE / $KEYCHAIN_ACCOUNT in the file keychains (the data protection keychain is not searchable by security(1))"
+    result FAIL "no Keychain item $KEYCHAIN_SERVICE / $KEYCHAIN_ACCOUNT in the file keychains (the data protection keychain is not searchable by security(1))"
+    failed=1
   fi
   [ ! -e "$HOME/Library/ChromiteData" ] || note "the default data folder ~/Library/ChromiteData exists too"
   errors=$(grep -inE 'secur|keychain|credential' "$DEBUG_LOG" | grep -iE 'error|exception|fail' || true)
   if [ -n "$errors" ]; then
     echo "$errors" > "$OUT/secure-storage-errors.txt"
-    fail "the debug log has secure storage errors (secure-storage-errors.txt): $(echo "$errors" | head -3)"
+    result FAIL "the debug log has secure storage errors (secure-storage-errors.txt): $(echo "$errors" | head -3)"
+    failed=1
+  else
+    pass "no secure storage error in the debug log"
   fi
-  pass "no secure storage error in the debug log"
+  [ $failed = 0 ] || exit 1
 }
 
 # System Events: the app menu is menu bar item 2 (item 1 is the Apple menu)
@@ -406,6 +419,7 @@ cmd_menus() {
   [ -n "$pid" ] || fail "the app does not run"
   items=$(app_menu "$pid" 'return name of every menu item' 2>&1) || { echo "$items" > "$OUT/app-menu.txt"; fail "System Events cannot read the app menu: $items"; }
   echo "$items" | tee "$OUT/app-menu.txt"
+  [ -n "$items" ] || fail "the application menu is empty"
   before=$(window_count pid "$pid")
   if app_menu "$pid" 'click menu item 1' > "$OUT/menu-about.txt" 2>&1; then
     sleep 3
@@ -418,8 +432,8 @@ cmd_menus() {
     note "About: System Events could not click: $(tail -1 "$OUT/menu-about.txt")"
     rc=1
   fi
-  # macOS 13+ names the item Settings…, older systems Preferences…
-  if app_menu "$pid" 'click (first menu item whose name starts with "Settings" or name starts with "Preferences")' > "$OUT/menu-preferences.txt" 2>&1; then
+  # Chromite's application menu says Options… (MacOSAppMenu); AWT's own says Settings… (macOS 13+) or Preferences…
+  if app_menu "$pid" 'click (first menu item whose name starts with "Settings" or name starts with "Preferences" or name starts with "Options")' > "$OUT/menu-preferences.txt" 2>&1; then
     sleep 3
     n=$(window_count pid "$pid")
     window_list pid "$pid" >> "$OUT/menu-preferences.txt"

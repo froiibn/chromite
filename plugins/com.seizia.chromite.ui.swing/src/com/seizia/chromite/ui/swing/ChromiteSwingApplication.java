@@ -278,7 +278,8 @@ public class ChromiteSwingApplication extends DesktopApplicationImpl {
      * calls {@code System.exit}, which would skip the save question and {@link ExitTransactionCheck}: Quit sends the
      * main window the same closing event as its close button and is cancelled; if the user agreed to exit, the window
      * is gone and the application ends through its normal path ({@link #start}). Each handler is installed only where
-     * the platform supports it, so nothing changes on Windows. Not run on macOS yet (docs/chromite/platform-startup.md).
+     * the platform supports it, so nothing changes on Windows. Under the Eclipse launcher AWT does not own the macOS
+     * application and builds no application menu: {@link MacOSAppMenu} does (docs/chromite/platform-startup.md).
      */
     private static void installDesktopHandlers(@NotNull MainFrame frame) {
         if (!Desktop.isDesktopSupported()) {
@@ -299,6 +300,10 @@ public class ChromiteSwingApplication extends DesktopApplicationImpl {
         }
         if (desktop.isSupported(Desktop.Action.APP_PREFERENCES)) {
             desktop.setPreferencesHandler(event -> SwingUtilities.invokeLater(() -> OptionsDialog.open(frame)));
+        }
+        if (MacOSMainThread.isActive()) {
+            // AWT does not build the application menu for an NSApplication it did not create (the launcher's)
+            MacOSAppMenu.install(GeneralUtils.getProductName(), () -> AboutDialog.open(frame), () -> OptionsDialog.open(frame));
         }
     }
 

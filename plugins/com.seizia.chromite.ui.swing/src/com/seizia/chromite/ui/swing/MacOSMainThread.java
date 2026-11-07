@@ -44,7 +44,11 @@ import java.util.concurrent.Callable;
  *     맡기면 그 안에서 {@code NSApplicationAWT}를 만들고 자기 이벤트 루프를 돈다(돌아오지 않는다). AWT가 앱 메뉴와
  *     {@code java.awt.Desktop}의 끝내기·정보·환경설정 처리기를 맡는 보통 모드다.</li>
  *     <li>{@code JAVA_STARTED_ON_FIRST_THREAD_<pid>}를 AWT가 읽기 전에 지운다. 남아 있으면 AWT가 SWT용 내장 모드로 시작해
- *     이벤트 루프와 앱 메뉴(Desktop 처리기)를 두지 않는다.</li>
+ *     AppKit 이벤트 루프를 돌리지 않는다(창이 입력을 받지 못한다).</li>
+ *     <li>런처가 JVM 전에 평범한 {@code NSApplication}을 만들어 두므로 AWT는 자기 {@code NSApplicationAWT}를 만들지 못하고
+ *     그 앱을 돌린다. 이때 AWT는 앱 위임자를 두지 않아 끝내기 Apple event·Dock 끝내기가 Java 끝내기 처리기를 거치지 않고 바로
+ *     프로세스를 끝낸다. {@code AWT_OVERRIDE_NSDELEGATE}를 두면 AWT가 그 앱에도 위임자를 둔다(JDK {@code ApplicationDelegate}).
+ *     앱 메뉴는 AWT가 만들지 않으므로 {@link MacOSAppMenu}가 만든다.</li>
  *     <li>첫 스레드는 Equinox로 돌아가지 못하므로, 본문이 끝나면 일하던 스레드가 Equinox가 하던 마무리(OSGi 프레임워크
  *     정지)를 하고 결과 코드로 {@link System#exit}한다. JDK 런처도 같은 방식(둘째 스레드에서 {@code exit})으로 끝난다.
  *     {@code EclipseStarter.shutdown}은 쓰지 않는다: 실행 중인 앱(돌아오지 않는 첫 스레드)을 1분 기다린다.</li>
@@ -64,6 +68,8 @@ final class MacOSMainThread {
 
     /** Set by the Eclipse launcher (and {@code java -XstartOnFirstThread}); read by AWT when it starts. */
     private static final String FIRST_THREAD_VARIABLE = "JAVA_STARTED_ON_FIRST_THREAD_";
+    /** Read by AWT when it starts: install its application delegate on an NSApplication it did not create. */
+    private static final String OVERRIDE_DELEGATE_VARIABLE = "AWT_OVERRIDE_NSDELEGATE";
     /** CFRunLoopRunInMode result: the mode has no sources or timers yet (nothing to wait for). */
     private static final int RUN_LOOP_FINISHED = 1;
     private static final double RUN_LOOP_SECONDS = 60.0;
@@ -71,6 +77,8 @@ final class MacOSMainThread {
     /** Equinox's exit code for an application that failed with an exception (see the log). */
     private static final int EXIT_ERROR = 13;
     private static final long FRAMEWORK_STOP_MILLIS = 60_000;
+
+    private static volatile boolean active;
 
     private MacOSMainThread() {
     }
@@ -86,6 +94,13 @@ final class MacOSMainThread {
     }
 
     /**
+     * True when the application runs through {@link #runApplication} (AWT does not own the NSApplication then).
+     */
+    static boolean isActive() {
+        return active;
+    }
+
+    /**
      * Runs {@code application} on a new thread and serves the AppKit run loop on this, the first thread, until
      * the process ends. When the application returns, the OSGi framework is stopped and the process exits with
      * its result (an {@link Integer} application result is the exit code, as Equinox's {@code eclipse.exitcode}).
@@ -93,8 +108,11 @@ final class MacOSMainThread {
      * @return never
      */
     static Object runApplication(@NotNull Callable<Object> application) {
-        // Before AWT starts: AWT reads (and removes) this variable once, when its toolkit loads
-        libc().getFunction("unsetenv").invokeInt(new Object[] {FIRST_THREAD_VARIABLE + ProcessHandle.current().pid()});
+        // Before AWT starts: AWT reads these variables once, when its toolkit loads
+        NativeLibrary libc = libc();
+        libc.getFunction("unsetenv").invokeInt(new Object[] {FIRST_THREAD_VARIABLE + ProcessHandle.current().pid()});
+        libc.getFunction("setenv").invokeInt(new Object[] {OVERRIDE_DELEGATE_VARIABLE, "1", 1});
+        active = true;
         Thread thread = new Thread(() -> exit(run(application)), THREAD_NAME);
         thread.setContextClassLoader(Thread.currentThread().getContextClassLoader());
         thread.start();
