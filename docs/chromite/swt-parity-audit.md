@@ -90,16 +90,23 @@ SWT 프런트엔드를 지울 때(#68) 기능 전체 목록과 맞춰 보지 않
   2026-11-08 더 고침(`chromite/settings-rest`): 연결별 설정(연결 대화상자 Options > Settings), Data Formats·Errors and Timeouts·Metadata·Client Identification.
   남은 것: 읽지만 화면 없는 키 55개(결과 편집기 나머지, 연결 일반, 드라이버·프록시·Maven, QM·로그, 탐색기 정렬, 알림, 데이터 전송 매핑, 자동완성, DB별).
   2026-11-08 전역 라이브러리(`ui.drivers.global.libraries`)는 Driver Manager에 만들어 54개(`chromite/drivers-oracle-batch`).
+  2026-11-08 오후 고침(`chromite/settings-rest-2`): 남은 54개 중 47개를 Options(Connections, Drivers, Logs, Object Explorer, Notifications, Data Transfer,
+  Code Completion, Binary and LOB, Altibase, CUBRID, Mimer SQL, Query Results 읽기와 정렬)에 넣음. 효과 없음 6개, 규칙상 두지 않음 1개(Altibase 실행 계획 방식).
+  남은 것 없음.
 - ~~Oracle 사용자·역할·권한 관리, Oracle NLS 세션 설정, Altibase 잠금 탭, TRUNCATE·트리거 켜기/끄기·구체화된 뷰 새로 고침.~~
   2026-11-08 고침(`chromite/p3-oracle-altibase-admin`): [swing-security.md](swing-security.md) "Oracle", [swing-conn-advanced.md](swing-conn-advanced.md) "Oracle 세션 설정",
   [swing-admin-tools.md](swing-admin-tools.md) "Altibase 잠금", [swing-explorer-object-actions.md](swing-explorer-object-actions.md) "유지 관리 명령".
-  PostgreSQL·SQL Server·Oracle·MariaDB·Altibase에서 실행 확인. 남은 것: Altibase TRUNCATE·MView 새로 고침(A5), 도구 옵션 화면, Oracle 패키지·열 권한.
+  PostgreSQL·SQL Server·Oracle·MariaDB·Altibase에서 실행 확인. 남은 것: 도구 옵션 화면, Oracle 패키지·열 권한. Altibase TRUNCATE·MView 새로 고침(A5)은
+  2026-11-08 `chromite/p4-routines`에서 고침([swing-routines.md](swing-routines.md)).
 - ~~`@export` 명령이 무시됨(오류 없이 다음 쿼리 실행).~~ 2026-11-07 고침: 형식·옵션을 채운 Export Data 마법사로 내보냄([swing-data-transfer.md](swing-data-transfer.md) "@export 명령").
 
 ### 4순위
 
 나머지 없음·일부 항목. 각 보고서 표에 있다. 예: 스키마 비교, 작업 저장·재실행, 차트, 프로젝트·스크립트 탐색기.
 데이터 검색은 2026-11-08 옮겼다([swing-data-search.md](swing-data-search.md), C-29).
+
+- 루틴 묶음(`chromite/p4-routines`, 2026-11-08): B-S42 프로시저 실행, D-O11·O12·O13·O14·O20, D-A5·A6을 고쳤다([swing-routines.md](swing-routines.md)).
+  PostgreSQL·SQL Server·MariaDB·Oracle·Altibase에서 실행 확인.
 
 ## 원래 SWT 제품에 없던 것 (해당 없음)
 
@@ -129,6 +136,7 @@ PostgreSQL 디버거는 2026-11-07 사용자 요청으로 Swing에 옮겼다(C-6
   ([swing-options.md](swing-options.md)). A-platform §6, B-S14·B-S15 상태 갱신.
 - 2026-11-08 3순위 Oracle·Altibase 관리 줄 고침: D-P23·S14·M17·O5·O16·O21·A2 → 있음(결과 요약 D·합계 갱신), C #44·B O2 비고 갱신.
 - 2026-11-07 3순위 쿼리 창마다 별도 연결 고침([transactions.md](transactions.md) "쿼리 창마다 별도 연결"). B-S22, A-platform §6 SQL Editor 줄 상태 갱신.
+- 2026-11-08 4순위 루틴 묶음: B-S42, D-O11·O12·O13·O14·O20·A5·A6 → 있음([swing-routines.md](swing-routines.md)). 결과 요약 수는 devel 병합 뒤 다시 센다.
 - 2026-11-08 4순위 차트·공간 데이터: B-R9·C-64 없음 → 일부(결과 공간 보기), 결과 표 차트 보기는 CE에 없던 기능이라 수 변화 없음
   ([swing-result-charts-spatial.md](swing-result-charts-spatial.md)). 결과 요약 B·C·합계 갱신.
 - 2026-11-08 설정 화면 나머지 1차: 연결별 설정, Data Formats·Errors and Timeouts·Metadata·Client Identification([swing-options.md](swing-options.md)).
@@ -139,3 +147,5 @@ PostgreSQL 디버거는 2026-11-07 사용자 요청으로 Swing에 옮겼다(C-6
   D-O9·O10 비고(Oracle Cancel Query, RAC). [swing-driver-manager.md](swing-driver-manager.md), [drivers.md](drivers.md) "로컬 파일 우선", [swing-admin-tools.md](swing-admin-tools.md) "Oracle RAC와 쿼리 취소". devel 병합 때 결과 요약 B를 영역 보고서의 지금 행 상태로 다시 세고("수정함"은 있음) 합계를 다시 냄.
 - 2026-11-08 4순위 SQL 터미널: B-S43 없음 → 있음(Query > SQL Terminal, [swing-sql-terminal.md](swing-sql-terminal.md)), A-platform §6 SQL Terminal 설정 줄 갱신. 결과 요약은 메인 세션이 다시 셈.
 - 2026-11-08 4순위 스크립트 탐색기: C-22·A-C13 없음 → 일부(Scripts 도구 창, 스크립트와 연결 묶기, [swing-scripts-explorer.md](swing-scripts-explorer.md)), B-S38 근거 갱신(일부 그대로). 결과 요약은 메인 세션이 다시 셈.
+- 2026-11-08 설정 화면 나머지 2차(`chromite/settings-rest-2`): 남은 키 47개 화면, 효과 없는 키 6개 재판정([swing-options.md](swing-options.md) "남은 키 (2026-11-08 오후)").
+  A-platform §6의 해당 줄과 S12 근거 갱신(집계 수는 고치지 않음).

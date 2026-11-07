@@ -400,7 +400,7 @@ MainFrame은 고치지 않았다(Tools 메뉴는 `AdminViewCommands`가 만든�
 
 | 항목 | PostgreSQL(9.4+, 서버 종류 PostgreSQL) | MySQL·MariaDB | Oracle | SQL Server |
 |---|---|---|---|---|
-| 테이블 | VACUUM(FULL, FREEZE, ANALYZE, VERBOSE), ANALYZE(VERBOSE), REINDEX TABLE(CONCURRENTLY 12+), CLUSTER(인덱스 고르기, 지난번 인덱스) | ANALYZE(NO_WRITE_TO_BINLOG), OPTIMIZE, CHECK(QUICK/FAST/MEDIUM/EXTENDED/CHANGED/FOR UPGRADE), REPAIR(QUICK/EXTENDED) | DBMS_STATS.GATHER_TABLE_STATS(표본 자동/1/10/30/100%, 인덱스 포함) | 모든 인덱스 다시 작성(ONLINE, SORT_IN_TEMPDB)·다시 구성(LOB_COMPACTION), UPDATE STATISTICS(기본/FULLSCAN/SAMPLE n PERCENT/RESAMPLE) |
+| 테이블 | VACUUM(FULL, FREEZE, ANALYZE, VERBOSE), ANALYZE(VERBOSE), REINDEX TABLE(CONCURRENTLY 12+), CLUSTER(인덱스 고르기, 지난번 인덱스) | ANALYZE(NO_WRITE_TO_BINLOG), OPTIMIZE, CHECK(QUICK/FAST/MEDIUM/EXTENDED/CHANGED/FOR UPGRADE), REPAIR(QUICK/EXTENDED) | DBMS_STATS.GATHER_TABLE_STATS(표본 자동/1/10/30/100%, 인덱스 포함), ANALYZE TABLE … VALIDATE STRUCTURE(테이블만/CASCADE/CASCADE FAST/CASCADE ONLINE, 2026-11-08) | 모든 인덱스 다시 작성(ONLINE, SORT_IN_TEMPDB)·다시 구성(LOB_COMPACTION), UPDATE STATISTICS(기본/FULLSCAN/SAMPLE n PERCENT/RESAMPLE) |
 | 인덱스 | REINDEX INDEX(CONCURRENTLY), CLUSTER … USING | — | ALTER INDEX … REBUILD(ONLINE), GATHER_INDEX_STATS | 다시 작성·다시 구성·UPDATE STATISTICS(그 인덱스의 통계) |
 | 스키마 | 테이블마다 VACUUM/ANALYZE, REINDEX SCHEMA(9.5+) | (데이터베이스 = 스키마) 기본 테이블 50개씩 한 문장 | GATHER_SCHEMA_STATS(GATHER/STALE/EMPTY), 무효 개체 컴파일 | — |
 | 데이터베이스 | VACUUM/ANALYZE 전체, REINDEX DATABASE, CLUSTER(전에 정렬한 테이블) | — | — | DBCC CHECKDB(NO_INFOMSGS, PHYSICAL_ONLY), sp_updatestats |
@@ -724,7 +724,7 @@ EDT 테스트 에이전트로 조작했다. 네 연결 모두 수동 커밋 연�
 ### 미룬 것 (유지 관리·복제)
 
 - PostgreSQL 인덱스 부풀림 추정, pgstattuple을 쓰는 정확한 부풀림, VACUUM의 다른 옵션(DISABLE_PAGE_SKIPPING, SKIP_LOCKED, INDEX_CLEANUP, PARALLEL).
-- Oracle 분할 인덱스 파티션의 다시 작성(`REBUILD PARTITION`), 테이블 구조 검증(VALIDATE STRUCTURE), 세그먼트 축소(SHRINK SPACE).
+- Oracle 분할 인덱스 파티션의 다시 작성(`REBUILD PARTITION`), 세그먼트 축소(SHRINK SPACE). 테이블 구조 검증은 2026-11-08에 더했다([swing-routines.md](swing-routines.md) "구조 검증").
 - SQL Server 파티션 단위 다시 작성, 인덱스 옵션(FILLFACTOR, MAXDOP, RESUMABLE), CHECKDB 진행률(`sys.dm_exec_requests.percent_complete`) 표시.
 - 복제: SQL Server 구독자·에이전트 상태, MySQL 그룹 복제·Galera, PostgreSQL 슬롯 지우기 같은 쓰기 명령(읽기 전용 범위 밖).
 - AI DBA 도구로 내보내기(`ai-agent.md`): 모델 방언은 화면과 무관하게 만들어 두어 그대로 쓸 수 있다.
@@ -745,5 +745,6 @@ EDT 테스트 에이전트로 조작했다. 네 연결 모두 수동 커밋 연�
 - 2026-11-08 수동 커밋 PostgreSQL 연결에서 Locks 탭이 대기를 보이지 않던 문제: `AdminConnection`이 격리된 컨텍스트를 자동 커밋으로 둠(첫 읽기의 트랜잭션이 끝나지 않아
   통계 스냅숏이 멈췄다). 같은 원인의 SQL Server 묵시적 트랜잭션·MariaDB 읽기 시점과 에이전트의 열린 트랜잭션 안 진단도 고침. 위 "모니터링 연결의 커밋 방식", "확인 (2026-11-08 …)".
 - 2026-11-08 Altibase 잠금 탭(`AltibaseBlockingLockManager`, `ServerAdminProfile`의 Altibase 분기), Docker Altibase 7.3에서 확인.
+- 2026-11-08 Oracle 테이블 구조 검증(VALIDATE STRUCTURE, SWT 감사 O20) 동작. Oracle Free 23ai에서 확인([swing-routines.md](swing-routines.md)).
 - 2026-11-08 후속 #69: Oracle RAC(인스턴스 2개 이상)에서 잠금을 `GV$`로 읽고 세션을 인스턴스와 SID로 가리킴(Kill·Disconnect·잠금 상세), Oracle 18c+ Cancel Query
   (`ALTER SYSTEM CANCEL SQL`, 목록의 SQL_ID 사용, ALTER SYSTEM 권한, 취소가 기본인 확인). 위 "Oracle RAC와 쿼리 취소".
