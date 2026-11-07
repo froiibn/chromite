@@ -23,6 +23,7 @@ import com.seizia.chromite.model.data.DBDDataReceiver;
 import com.seizia.chromite.model.exec.DBCException;
 import com.seizia.chromite.model.exec.DBCStatement;
 import com.seizia.chromite.model.exec.DBCStatistics;
+import com.seizia.chromite.model.sql.SQLIncludedScript;
 import com.seizia.chromite.model.sql.SQLQuery;
 import com.seizia.chromite.model.sql.messages.ModelSQLMessages;
 import com.seizia.chromite.runtime.DBWorkbench;
@@ -47,6 +48,8 @@ import com.seizia.chromite.runtime.ui.DBPPlatformUI;
  *   안전한 바인딩은 문장을 만드는 이 지점에서만 할 수 있다. 기본값은 바인딩 없음(SWT 동작 그대로)
  *   (docs/chromite/swing-query-library.md "매개변수 바인딩").
  * - 2026-11-06 기본 확인 대화상자 문구를 {@link ModelSQLMessages}로 옮김(OS 언어를 따름)
+ * - 2026-11-08 {@link #confirmIncludedScript}: {@code @include}로 읽은 파일의 문장은 실행 전에 쿼리 창이 검사하지 못하므로
+ *   (위험한 문 확인, 오류 위치) 끼우기 전에 알린다 (docs/chromite/swing-query-commands.md "@include")
  */
 public interface SQLQueryExecuteHandler {
 
@@ -134,6 +137,16 @@ public interface SQLQueryExecuteHandler {
     @NotNull
     default DBPPlatformUI.UserResponse handleExecutionError(@NotNull String task, @NotNull Throwable error, boolean queue) {
         return DBWorkbench.getPlatformUI().showErrorStopRetryIgnore(task, error, queue);
+    }
+
+    /**
+     * An {@code @include} command read a script file: called before its statements run, in the job thread. The front end
+     * checks the statements as it checked the script's own ones before the run.
+     *
+     * @return false to stop the script (the user canceled)
+     */
+    default boolean confirmIncludedScript(@NotNull SQLIncludedScript script) {
+        return true;
     }
 
     /**

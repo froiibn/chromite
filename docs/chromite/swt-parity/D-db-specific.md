@@ -121,7 +121,7 @@ K1–K3의 공통 원인은 SQL 편집기에 서버 출력 패널이 없는 것�
 | M16 | 테이블 유지 관리: ANALYZE, CHECK, OPTIMIZE, REPAIR | `MySQLToolAnalyse/Check/Optimize/Repair` | 있음 | `MySQLMaintenanceDialect`(swing-admin-tools.md 368행) | 중간 | |
 | M17 | TRUNCATE | `MySQLToolTruncate` | 있음(2026-11-08) | P23과 같음(MariaDB 확인) | 중간 | 조사 당시: 없음. "외래 키 검사 끄기" 옵션 화면은 없음 |
 | M18 | ENUM 값 편집기 | `MySQLEnumValueManager` | 있음 (2026-11-08) | `ENUM` 열은 허용 값 목록으로 편집(`ResultSetEnumValues`) | 낮음 | `SET`은 글자로 입력 |
-| M19 | 스크립트의 `source`(다른 파일 포함) 명령 | `sqlCommand` `mysql.source` → `SQLCommandInclude`(`ui.editors.sql`) | 없음 | 모델 명령 등록에 include 없음, grep `SQLCommandInclude` → 0건. 알 수 없는 명령은 오류(`SQLQueryExecuteJob.java:454-475`) | 낮음 | |
+| M19 | 스크립트의 `source`(다른 파일 포함) 명령 | `sqlCommand` `mysql.source` → `SQLCommandInclude`(`ui.editors.sql`) | **있음** (2026-11-08, [swing-query-commands.md](../swing-query-commands.md): ext.mysql `plugin.xml`이 `mysql.source`를 model.sql `SQLCommandInclude`에 등록, MariaDB 확인). 조사 당시: 없음 | 모델 명령 등록에 include 없음, grep `SQLCommandInclude` → 0건. 알 수 없는 명령은 오류(`SQLQueryExecuteJob.java:454-475`) | 낮음 | |
 
 ## 4. Oracle (`ext.oracle.ui`, 42 클래스)
 
