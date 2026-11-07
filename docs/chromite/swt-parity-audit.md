@@ -67,11 +67,11 @@ SWT 프런트엔드를 지울 때(#68) 기능 전체 목록과 맞춰 보지 않
 
 | 항목 | 영역 | 메모 |
 |---|---|---|
-| 비밀번호를 저장하지 않은 SQL Server·Oracle 연결이 묻지 않고 취소됨 | A-S5, B | 실행 확인 필요 |
+| 비밀번호를 저장하지 않은 SQL Server·Oracle 연결이 묻지 않고 취소됨 | A-S5, B | 실행으로 확인한 뒤 고침(`chromite/auth-prompts`, [swing-auth-prompts.md](swing-auth-prompts.md)) |
 | Windows 인증서 저장소를 쓰지 않음(사내 CA 서버 SSL 실패 가능) | A-S6 | 실행 확인 필요 |
 | Oracle DBMS_OUTPUT, Altibase 서버 출력이 안 보이고 버퍼만 쌓임 | D | Oracle은 1 MB 버퍼를 켜 둠 |
 | macOS Cmd+Q가 저장·트랜잭션 확인을 건너뛸 수 있음 | A-S14 | Mac 실행 확인 필요 |
-| JSch SSH: 새 호스트 키 거부, OTP 서버 로그인 불가 | C | 안전 쪽 실패. 기본 SSHJ는 정상 |
+| JSch SSH: 새 호스트 키 거부, OTP 서버 로그인 불가 | C | 고침(같은 브랜치, [swing-auth-prompts.md](swing-auth-prompts.md)). 기본 SSHJ는 바꾸지 않음 |
 
 ### 3순위: 매일 쓰는 작업의 빈자리
 
