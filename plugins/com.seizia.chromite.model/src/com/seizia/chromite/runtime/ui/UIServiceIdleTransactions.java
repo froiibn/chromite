@@ -42,6 +42,7 @@ import java.util.Map;
  * - 2026-11-07 최초 작성 (docs/chromite/idle-transactions.md)
  * - 2026-11-07 오류 복구가 멈췄다는 알림 두 가지({@link #showTransactionAborted}, {@link #showReconnectHeld})
  *   (docs/chromite/transactions.md "오류 복구와 열린 트랜잭션")
+ * - 2026-11-08 끊긴 격리 세션만 다시 열었다는 알림({@link #showSessionReopened}) (docs/chromite/transactions.md "끊긴 세션의 쿼리 창")
  */
 public interface UIServiceIdleTransactions {
 
@@ -90,5 +91,18 @@ public interface UIServiceIdleTransactions {
         @NotNull DBPDataSource dataSource,
         @NotNull Map<DBCExecutionContext, QMTransactionState> transactions,
         @NotNull List<DBPDataSourceContainer> agentSessions,
+        @NotNull Throwable error);
+
+    /**
+     * Shows a notice: the context's own session was lost and the error recovery reopened that context alone
+     * ({@link TransactionRecoveryGuard#reopenLostSession}); the other sessions were not touched. With a lost transaction
+     * the notice stays until dismissed, as its statements are gone.
+     *
+     * @param lostTransaction the uncommitted transaction the lost session had, or null when it had none
+     * @param error           the connection error
+     */
+    void showSessionReopened(
+        @NotNull DBCExecutionContext context,
+        @Nullable QMTransactionState lostTransaction,
         @NotNull Throwable error);
 }
