@@ -23,6 +23,7 @@ import com.seizia.chromite.model.DBPDataSource;
 import com.seizia.chromite.model.DBPDataSourceContainer;
 import com.seizia.chromite.model.ai.AIFunction;
 import com.seizia.chromite.model.ai.AIFunctionContext;
+import com.seizia.chromite.model.ai.AIFunctionDescriptor;
 import com.seizia.chromite.model.ai.AIFunctionResult;
 import com.seizia.chromite.model.ai.AIFunctionType;
 import com.seizia.chromite.model.ai.agent.AIToolArgumentException;
@@ -36,9 +37,12 @@ import java.util.Map;
  * 설계: 확장점은 함수마다 {@code class}를 만들지만(설명자마다 인스턴스 하나), 도구 80여 개를 클래스 80여 개로 나누면 같은 도움 코드가 흩어진다.
  * 그래서 묶음(연결, 메타데이터, 쿼리 등)마다 클래스 하나가 {@link AIToolCallContext#getTool()}의 ID로 갈라 실행한다.
  * 도구는 실행기({@code AIToolExecutor})를 거쳐야만 정책·감사가 적용되므로, 실행기가 만든 {@link AIToolCallContext}가 아니면 거부한다.
+ * 어느 DB 종류에서 쓸 수 있는지({@link #supports})는 도구 클래스가 안다(진단 SQL 도구는 SQL 자원의 DB 종류 블록). 채팅 요청에 보낼 도구를
+ * 연결의 DB 종류로 고를 때 쓴다(docs/chromite/ai-agent.md "요청 크기"). plugin.xml 속성으로 따로 적으면 SQL 자원과 어긋날 수 있어 코드에 둔다.
  *
  * 변경 이력:
  * - 2026-11-07 최초 작성 (docs/chromite/ai-agent.md)
+ * - 2026-11-08 {@link #supports}: 도구가 쓸 수 있는 DB 종류(요청 크기를 줄이는 도구 고르기)
  */
 public abstract class AgentTool implements AIFunction {
 
@@ -65,6 +69,14 @@ public abstract class AgentTool implements AIFunction {
         @NotNull String toolId,
         @NotNull Map<String, Object> args
     ) throws DBException;
+
+    /**
+     * Whether the tool works on connections of this database family. Tools that work on any connection (the model layer or
+     * the driver's planner) keep the default.
+     */
+    public boolean supports(@NotNull AIFunctionDescriptor tool, @NotNull DbFamily family) {
+        return true;
+    }
 
     @NotNull
     protected static DBPDataSourceContainer requireConnection(@NotNull AIToolCallContext context) throws AIToolArgumentException {

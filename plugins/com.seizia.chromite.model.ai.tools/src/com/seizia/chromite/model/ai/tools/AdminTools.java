@@ -31,6 +31,7 @@ import com.seizia.chromite.model.admin.mssql.SQLServerBackupRestore;
 import com.seizia.chromite.model.admin.mssql.SQLServerBackupSet;
 import com.seizia.chromite.model.admin.mssql.SQLServerBackupSettings;
 import com.seizia.chromite.model.admin.mssql.SQLServerRestoreSettings;
+import com.seizia.chromite.model.ai.AIFunctionDescriptor;
 import com.seizia.chromite.model.ai.agent.AIPendingTransaction;
 import com.seizia.chromite.model.ai.agent.AIToolArgumentException;
 import com.seizia.chromite.model.ai.agent.AIToolCallContext;
@@ -62,6 +63,7 @@ import java.util.regex.Pattern;
  * 변경 이력:
  * - 2026-11-07 최초 작성
  * - 2026-11-07 확인 대화상자의 열린 트랜잭션 소유자·설명을 AIToolsMessages로 옮김(화면 언어를 따름)
+ * - 2026-11-08 쓸 수 있는 DB 종류({@link #supports}, 요청 크기를 줄이는 도구 고르기)
  */
 public class AdminTools extends AgentTool implements AIToolTransactionGuard, AIToolPreviewProvider {
 
@@ -83,6 +85,12 @@ public class AdminTools extends AgentTool implements AIToolTransactionGuard, AIT
             case "restoreDatabase" -> restore(context, container, args, true);
             default -> throw unknownTool(toolId);
         };
+    }
+
+    // The same families killStatement and sqlServer accept
+    @Override
+    public boolean supports(@NotNull AIFunctionDescriptor tool, @NotNull DbFamily family) {
+        return tool.getId().equals("killSession") ? family != DbFamily.OTHER : family == DbFamily.SQLSERVER;
     }
 
     // ------------------------------------------------------------------ kill

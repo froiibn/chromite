@@ -63,13 +63,16 @@ import java.util.concurrent.TimeUnit;
  *     <li>이 클래스는 호출한 작업 스레드에서 돈다(UI 스레드가 아님). 응답 글 조각과 도구 상태는 {@link Listener}로 알리고, 화면이 EDT로 넘긴다.</li>
  *     <li>중지: 모니터가 취소되면 스트림 대기를 끝내고 엔진을 닫는다(HTTP 연결도 닫힘). 실행 중인 도구는 같은 모니터로 취소된다. 확인 대화상자도
  *     모니터 취소를 보고 닫힌다({@code AIToolConfirmationHandler} 계약).</li>
- *     <li>모델에 보내는 도구는 {@link AIToolCatalog#getTools}({@link AIFunctionPurpose#TOOL})다. 채팅 문맥이 필요한 옛 스키마 함수 3개는 빠진다.</li>
+ *     <li>모델에 보내는 도구는 {@link AIToolCatalog#getTools}({@link AIFunctionPurpose#TOOL}) 가운데 대화의 연결에서 쓸 수 있는 것이다
+ *     ({@link AIAgentToolSelection}). 채팅 문맥이 필요한 옛 스키마 함수 3개는 빠진다. 대화 기록은 크기 예산 안으로 줄여 보낸다
+ *     ({@link AIAgentChat#toModelMessages}). 빠진 도구와 줄인 기록은 시스템 프롬프트 끝에 알린다(docs/chromite/ai-agent.md "요청 크기").</li>
  *     <li>로그에 대화 내용·인수·키를 쓰지 않는다(비밀 없음 규칙). 오류는 대화 항목으로만 보인다.</li>
  * </ul>
  *
  * 변경 이력:
  * - 2026-11-07 최초 작성 (docs/chromite/ai-agent.md "2단계")
  * - 2026-11-07 시스템 프롬프트와 요청 한도 오류에서 기능을 공식 이름 "Chromite Agent"로 부름 (docs/chromite/ai-agent.md "명칭")
+ * - 2026-11-08 요청 크기: 연결에 맞는 도구만 보내고, 기록을 예산 안으로 줄임 (후속 과제 #76)
  */
 public final class AIAgentChatRunner {
 
@@ -127,17 +130,21 @@ public final class AIAgentChatRunner {
         if (engineId == null) {
             throw new IllegalStateException("No AI provider is selected");
         }
-        List<AIFunctionDescriptor> tools = AIToolCatalog.getTools(AIFunctionPurpose.TOOL);
+        // The conversation's connection does not change during a turn (the UI locks it), so the tools are picked once
+        AIAgentToolSelection.Selection selection = AIAgentToolSelection.select(
+            chat.getConnectionId() == null ? null : findConnection(chat.getConnectionId()),
+            AIToolCatalog.getTools(AIFunctionPurpose.TOOL));
         try (AIEngine<?> engine = AIAgentProviders.createEngine(engineId, chat.getModel())) {
             for (int request = 0; request < MAX_REQUESTS; request++) {
                 if (monitor.isCanceled()) {
                     return;
                 }
+                AIAgentChat.ModelHistory history = chat.toModelMessages(AIAgentChat.HISTORY_BUDGET_CHARS, AIAgentChat.KEEP_TURNS);
                 List<AIMessage> messages = new ArrayList<>();
-                messages.add(AIMessage.systemMessage(buildSystemPrompt(chat)));
-                messages.addAll(chat.toModelMessages());
+                messages.add(AIMessage.systemMessage(buildSystemPrompt(chat) + describeOmissions(selection, history)));
+                messages.addAll(history.messages());
                 AIEngineRequest engineRequest = new AIEngineRequest(messages);
-                engineRequest.setFunctions(tools);
+                engineRequest.setFunctions(selection.tools());
 
                 StreamCollector collector = new StreamCollector(chat, listener);
                 engine.requestCompletionStream(monitor, engineRequest, collector);
@@ -254,6 +261,36 @@ public final class AIAgentChatRunner {
             prompt.append("No connection is selected: call listConnections and ask the user which one to use if it is not clear.\n");
         }
         return prompt.toString();
+    }
+
+    /**
+     * What the request leaves out, told to the model so that it can explain a missing tool or call a tool again instead of
+     * guessing from a shortened result. Empty when nothing is left out.
+     */
+    @NotNull
+    static String describeOmissions(@NotNull AIAgentToolSelection.Selection selection, @NotNull AIAgentChat.ModelHistory history) {
+        StringBuilder text = new StringBuilder();
+        if (!selection.blocked().isEmpty()) {
+            text.append("Tools the user's policy blocks on this connection are not offered: ")
+                .append(String.join(", ", selection.blocked()))
+                .append(". If the task needs one, say so; the user can allow it in Options > Chromite Agent > Tool Policy.\n");
+        }
+        if (!selection.otherDatabases().isEmpty()) {
+            text.append("Tools for other database types are not offered: ").append(String.join(", ", selection.otherDatabases()))
+                .append(". For another connection's database, ask the user to switch the conversation's connection.\n");
+        }
+        if (history.shortenedResults() > 0 || history.droppedTurns() > 0) {
+            text.append("To keep the request small, ");
+            if (history.droppedTurns() > 0) {
+                text.append(history.droppedTurns()).append(" earlier turn(s) of this conversation were left out");
+                text.append(history.shortenedResults() > 0 ? " and " : ". ");
+            }
+            if (history.shortenedResults() > 0) {
+                text.append(history.shortenedResults()).append(" earlier tool result(s) were shortened. ");
+            }
+            text.append("Call a tool again when you need data you no longer see.\n");
+        }
+        return text.toString();
     }
 
     /**

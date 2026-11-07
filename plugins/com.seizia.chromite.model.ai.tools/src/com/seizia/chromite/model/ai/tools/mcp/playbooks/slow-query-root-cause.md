@@ -8,7 +8,7 @@ Steps:
 1. getServerInfo and probePermissions.
 2. explainQuery; getActualPlan only if validateSql says the query is read-only.
 3. Look at the plan findings: scans vs seeks, key lookups, spills (sort/hash to disk), implicit conversions, row estimates off by 10x or more, missing statistics, parallelism, memory grants.
-4. Parameter sniffing: compare compiled and runtime parameter values (plan "parameters"; getCachedPlans for the cached plan).
+4. Parameter sniffing: compare compiled and runtime parameter values (plan "parameters"; getCachedPlans for the cached plan). SQL Server: getQueryStoreRegressions shows whether the query got slower with a new plan.
 5. Data: getTableStatistics (stale statistics?), listIndexes, getIndexUsage, getMissingIndexes.
 6. If the query is running now: getLongRunningQueries, getBlockingChain, listLocks — is it waiting on locks?
 

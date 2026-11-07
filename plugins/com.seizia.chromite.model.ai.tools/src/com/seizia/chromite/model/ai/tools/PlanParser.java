@@ -35,8 +35,10 @@ import javax.xml.parsers.DocumentBuilderFactory;
 import java.io.StringReader;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 
 /**
  * Turns native execution plans into one structured JSON shape the model can compare across databases.
@@ -50,11 +52,13 @@ import java.util.Locale;
  *     암시적 변환, 통계 없음, 추정과 실제 행 차이 10배 이상, 누락 인덱스, 매개변수 컴파일 값과 실행 값 차이)를 함께 만든다. 시나리오 1·3
  *     (docs/chromite/ai-agent.md)의 원인 순위의 근거가 된다.</li>
  *     <li>SQL Server는 showplan XML(네임스페이스 {@code http://schemas.microsoft.com/sqlserver/2004/07/showplan})을 DOM으로 읽는다. 외부 엔티티를
- *     끈다(XXE 방지). PostgreSQL은 {@code EXPLAIN (FORMAT JSON)}의 "Plan" 트리를 같은 모양으로 바꾼다.</li>
+ *     끈다(XXE 방지). PostgreSQL은 {@code EXPLAIN (FORMAT JSON)}의 "Plan" 트리를 같은 모양으로 바꾼다. Oracle은 계획 행(PLAN_TABLE 또는
+ *     {@code V$SQL_PLAN_STATISTICS_ALL})의 id/parent_id로 트리를 만든다.</li>
  * </ul>
  *
  * 변경 이력:
  * - 2026-11-07 최초 작성
+ * - 2026-11-08 Oracle 계획 행 해석({@link #parseOracle}): 예상 계획(PlanTools에서 옮김)과 실제 계획(last_* 실행 통계), 전체 테이블 스캔 소견
  */
 public final class PlanParser {
 
@@ -444,6 +448,84 @@ public final class PlanParser {
         return node;
     }
 
+    // ----------------------------------------------------------------- Oracle
+
+    /**
+     * Builds the plan from Oracle plan rows (lower-case column names): PLAN_TABLE rows of {@code EXPLAIN PLAN}, or
+     * {@code V$SQL_PLAN_STATISTICS_ALL} rows of an executed cursor with the {@code last_*} run-time columns.
+     *
+     * @param text the DBMS_XPLAN output, kept as the plan text Oracle users know
+     */
+    @NotNull
+    public static JsonObject parseOracle(@NotNull JsonArray rows, @NotNull String text) {
+        Map<String, JsonObject> byId = new HashMap<>();
+        List<JsonObject> nodes = new ArrayList<>();
+        JsonArray findings = new JsonArray();
+        JsonObject root = null;
+        for (JsonElement r : rows) {
+            JsonObject row = r.getAsJsonObject();
+            JsonObject node = new JsonObject();
+            String id = string(row, "id");
+            String op = string(row, "operation");
+            String options = string(row, "options");
+            node.addProperty("nodeId", id);
+            node.addProperty("op", options == null ? op : op + " " + options);
+            String object = string(row, "object_name");
+            if (object != null) {
+                node.addProperty("object", joinName(string(row, "object_owner"), object, null));
+            }
+            copy(row, node, "cost", "cost");
+            // E-Rows: rows per start of the operation
+            copy(row, node, "cardinality", "estRows");
+            copy(row, node, "access_predicates", "seekPredicate");
+            copy(row, node, "filter_predicates", "predicate");
+            // A-Rows: the total over all starts of the last execution, like SQL Server's actual rows
+            copy(row, node, "last_output_rows", "actualRows");
+            copy(row, node, "last_starts", "executions");
+            copy(row, node, "last_cr_buffer_gets", "reads");
+            copy(row, node, "last_disk_reads", "physicalReads");
+            copy(row, node, "last_tempseg_size", "tempBytes");
+            String elapsed = string(row, "last_elapsed_time");
+            if (elapsed != null) {
+                // Microseconds, including the children (like actualTimeMs of the other databases)
+                node.addProperty("actualTimeMs", Math.round(number(elapsed) / 10) / 100.0);
+            }
+            if (node.has("tempBytes") && node.get("tempBytes").getAsDouble() > 0) {
+                findings.add(node.get("op").getAsString() + (object == null ? "" : " on " + object) + ": spilled " +
+                    node.get("tempBytes").getAsLong() + " bytes to temp");
+            }
+            addScanFinding(node, findings);
+            addEstimateFinding(node, findings);
+            nodes.add(node);
+            byId.put(id, node);
+            JsonObject parent = byId.get(string(row, "parent_id"));
+            if (parent == null) {
+                if (root == null) {
+                    root = node;
+                }
+            } else {
+                if (!parent.has("children")) {
+                    parent.add("children", new JsonArray());
+                }
+                parent.getAsJsonArray("children").add(node);
+            }
+        }
+        JsonObject plan = new JsonObject();
+        JsonArray statements = new JsonArray();
+        JsonObject statement = new JsonObject();
+        if (root != null) {
+            statement.add("root", root);
+            statement.add("cost", root.get("cost"));
+            statement.add("estRows", root.get("estRows"));
+        }
+        statements.add(statement);
+        plan.add("statements", statements);
+        plan.add("hotspots", hotspots(nodes));
+        plan.add("findings", findings);
+        plan.addProperty("text", text);
+        return plan;
+    }
+
     // ----------------------------------------------------------------- common
 
     /**
@@ -545,7 +627,7 @@ public final class PlanParser {
     private static void addScanFinding(@NotNull JsonObject node, @NotNull JsonArray findings) {
         String op = node.has("op") ? node.get("op").getAsString() : "";
         boolean scan = op.equals("Table Scan") || op.equals("Clustered Index Scan") || op.equals("Index Scan") && !node.has("seekPredicate")
-            || op.equals("Seq Scan");
+            || op.equals("Seq Scan") || op.startsWith("TABLE ACCESS") && op.endsWith(" FULL");
         if (scan && node.has("object")) {
             double rows = node.has("actualRows") ? node.get("actualRows").getAsDouble() : node.has("estRows") ? node.get("estRows").getAsDouble() : 0;
             String predicate = node.has("predicate") ? " with filter " + node.get("predicate").getAsString() : "";

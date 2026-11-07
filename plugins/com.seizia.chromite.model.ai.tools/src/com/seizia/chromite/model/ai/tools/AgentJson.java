@@ -56,10 +56,15 @@ import java.util.Map;
  *
  * 변경 이력:
  * - 2026-11-07 최초 작성
+ * - 2026-11-08 시간대가 있는 시각(Oracle TIMESTAMP WITH [LOCAL] TIME ZONE)을 드라이버 글자로 읽음. 전에는 Oracle 드라이버 객체 이름
+ *   ({@code oracle.sql.TIMESTAMPTZ@…})이 값 대신 나갔다(getErrorLog, getDeadlocks의 Oracle 경고 로그 시각)
  */
 public final class AgentJson {
 
     public static final Gson GSON = new GsonBuilder().disableHtmlEscaping().serializeNulls().create();
+    // oracle.jdbc.OracleTypes.TIMESTAMPTZ / TIMESTAMPLTZ (the driver is not a dependency of this bundle)
+    private static final int ORACLE_TIMESTAMPTZ = -101;
+    private static final int ORACLE_TIMESTAMPLTZ = -102;
     private static final int BINARY_PREVIEW_BYTES = 64;
 
     private AgentJson() {
@@ -186,6 +191,10 @@ public final class AgentJson {
                     return new Value(JsonNull.INSTANCE, false);
                 }
                 return binary(bytes);
+            }
+            case Types.TIMESTAMP_WITH_TIMEZONE, ORACLE_TIMESTAMPTZ, ORACLE_TIMESTAMPLTZ -> {
+                // The Oracle driver's getObject gives oracle.sql.TIMESTAMPTZ, whose toString is not the value; its text is
+                value = rs.getString(index);
             }
             default -> value = rs.getObject(index);
         }
