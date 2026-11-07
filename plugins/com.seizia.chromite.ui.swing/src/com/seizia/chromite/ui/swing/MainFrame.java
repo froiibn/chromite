@@ -194,6 +194,8 @@ import java.util.function.Supplier;
  * - 2026-11-07 AI Assistant 도구 창(오른쪽 가장자리, 기본 숨김, View 메뉴·도구 막대 토글), AI 도구 확인 대화상자와 쿼리 창 연결 등록,
  *   쿼리 창 편집기의 "Ask AI About This Query" ({@link AiAssistantPanel}, docs/chromite/ai-agent.md "2단계")
  * - 2026-11-07 File 메뉴에 Import Connections… / Export Connections… ({@link ConnectionTransferCommands}, docs/chromite/connection-transfer.md)
+ * - 2026-11-07 프로시저 디버거: Query &gt; Debug…(Modify 창의 루틴), 도구 문서의 닫기 전 확인({@link ToolDocument#confirmClose})을
+ *   탭 닫기와 끝내기 전에 부름 (docs/chromite/procedure-debugger.md)
  * - 2026-11-07 Query Library 쿼리 창의 Save As는 확장의 {@link SqlEditorExtension#saveAs}(SQL을 평범한 .sql로 내보냄) (docs/chromite/swing-query-library.md "공유")
  */
 final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplorerPanel.QueryWindows, TableDesignerPanel.Host, QueryLibraryPanel.Host {
@@ -276,6 +278,10 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
      * ({@link Action#SELECTED_KEY}) while the active query window includes the actual plan.
      */
     private final Action actualPlanAction;
+    /**
+     * Query &gt; Debug…: debugs the routine of the active Modify window (enabled when the Query menu opens).
+     */
+    private final Action debugAction;
     private final SqlEditorToolBar sqlEditorToolBar;
     private final EditMenu editMenu;
     private int queryCounter;
@@ -499,7 +505,11 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
             });
         // Menu items and toggle buttons write their state back to the action only if it has one
         actualPlanAction.putValue(Action.SELECTED_KEY, Boolean.FALSE);
-        sqlEditorToolBar = new SqlEditorToolBar(executeQueryAction, cancelQueryAction, estimatedPlanAction, actualPlanAction,
+        debugAction = DebugCommands.createAction(this, () -> {
+            SqlEditorPanel editor = getActiveEditor();
+            return editor != null ? editor.getSourceObject() : null;
+        }, this);
+        sqlEditorToolBar =new SqlEditorToolBar(executeQueryAction, cancelQueryAction, estimatedPlanAction, actualPlanAction,
             this::openQueryHistory);
         editMenu = new EditMenu(this::getActiveTextArea);
         documentTabs.addChangeListener(e -> activeEditorChanged());
@@ -743,6 +753,8 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
         SqlEditorPanel editor = openQueryEditor(dataSource, null);
         editor.setContent(SqlFileContent.newFile(script), null);
         editor.setExecutionFinishedListener(() -> SourceScripts.refreshAfterRun(refreshNode));
+        // Modify: Query > Debug… debugs the routine of the window (a New window's node is its folder: not debuggable)
+        editor.setSourceObject(refreshNode.getObject());
     }
 
     @Override
@@ -907,8 +919,12 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
         } else if (component instanceof DdlViewerPanel) {
             documentTabs.removeTabAt(index);
         } else if (component instanceof ToolDocument document) {
+            if (!document.confirmClose()) {
+                return;
+            }
             document.dispose();
-            documentTabs.removeTabAt(index);
+            // By component: the question may have run events that moved the tab
+            documentTabs.remove(component);
         } else if (component instanceof TableDesignerPanel designer) {
             documentTabs.setSelectedComponent(designer);
             if (!designer.confirmClose()) {
@@ -1138,7 +1154,8 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
 
     /**
      * Window closing, File > Exit and an update's [Restart now]: asks to save the modified query windows and the unsaved
-     * changes of their result grids (SSMS lists them in one question), then what to do with uncommitted transactions
+     * changes of their result grids (SSMS lists them in one question), then lets the tool documents end their own
+     * sessions ({@link ToolDocument#confirmClose}: the debugger), then what to do with uncommitted transactions
      * ({@link ExitTransactionCheck}), then closes the window.
      */
     private void requestExit() {
@@ -1188,6 +1205,15 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
                 }
             } else if (answer != 1) {
                 return;
+            }
+        }
+        // Tool documents that end sessions of their own (the debugger's) ask first, one by one
+        for (int i = 0; i < documentTabs.getTabCount(); i++) {
+            if (documentTabs.getComponentAt(i) instanceof ToolDocument document) {
+                documentTabs.setSelectedIndex(i);
+                if (!document.confirmClose()) {
+                    return;
+                }
             }
         }
         // Closing ends every session: open transactions are committed or rolled back only as the user says
@@ -1532,13 +1558,19 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
         queryMenu.add(new JMenuItem(estimatedPlanAction));
         queryMenu.add(new JCheckBoxMenuItem(actualPlanAction));
         queryMenu.addSeparator();
+        queryMenu.add(new JMenuItem(debugAction));
+        queryMenu.addSeparator();
         JMenuItem historyItem = new JMenuItem(CoreMessages.main_query_history, UiIcons.get("history")); //$NON-NLS-1$
         historyItem.setToolTipText(CoreMessages.main_query_history_tip);
         historyItem.addActionListener(e -> openQueryHistory());
         queryMenu.add(historyItem);
         queryMenu.add(new JMenuItem(queryLibraryPanel.getSaveToLibraryAction()));
         // Tools > Options changes the same setting
-        onMenuSelected(queryMenu, () -> autoCompleteItem.setSelected(SqlCompletionPopup.isAutoActivateOnLetters()));
+        onMenuSelected(queryMenu, () -> {
+            autoCompleteItem.setSelected(SqlCompletionPopup.isAutoActivateOnLetters());
+            SqlEditorPanel editor = getActiveEditor();
+            debugAction.setEnabled(editor != null && DebugCommands.canDebug(editor.getSourceObject()));
+        });
 
         JMenu viewMenu = new JMenu(CoreMessages.main_menu_view);
         viewMenu.setMnemonic(KeyEvent.VK_V);
