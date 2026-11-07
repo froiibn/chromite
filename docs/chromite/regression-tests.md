@@ -74,7 +74,7 @@ mvn -B -fae verify -f product/aggregate/pom.xml -T1C -Pproduct-chromite-swing *>
 | | `CallStatementNameResolutionTest` (model.sql.test) | `CALL app.`의 빈 이름 조각이 객체 찾기에 가지 않음(NPE), 이름 원천이 CALL | 앱 |
 | Chromite Agent | `AIAgentToolSelectionTest` (model.ai.tools.test) | 연결 없는 대화는 모두, 다른 DB 종류의 도구 제외, 읽기 전용 연결의 DB 쓰기·운영 연결의 쓰기 도구 차단, 파일 쓰기 도구는 읽기 전용 연결에서도 보냄 | 앱 |
 | | `AIAgentChatHistoryTest` (model.ai.tools.test) | 예산 안이면 전부, 오류·빈 답 제외, 결과 없는 호출은 취소로, 오래된 결과 줄이기 → 오래된 차례 빼기 → 남은 차례의 오래된 결과 줄이기(최신 4개 유지), 호출·결과는 한 메시지, 기록은 프롬프트로 시작, 저장한 대화는 그대로 | 단독 |
-| | `PlanToolsOracleHintTest` (model.ai.tools.test) | 힌트 위치(첫 키워드 뒤, 앞 주석 건너뜀, 주석 안의 키워드 무시, WITH의 첫 SELECT), 사용자 힌트와 합침, 다른 문 거부, ReDoS 입력이 10초 안에 끝남, 긴 머리 주석 | 단독 |
+| | `PlanToolsOracleHintTest` (model.ai.tools.test) | 힌트 위치(첫 키워드 뒤, 앞 주석 건너뜀, 주석 안의 키워드 무시, WITH의 첫 SELECT), 사용자 힌트와 합침, 다른 문 거부, 앞 주석 건너뛰기 규칙(중첩 없음, 닫히지 않은 주석), ReDoS 입력·10만 자 주석·10만 자 공백·긴 WITH가 스택 넘침 없이 10초 안에 끝남 | 단독 |
 | | `AgentJsonTimestampTzTest` (model.ai.tools.test) | 시간대가 있는 시각(표준, Oracle -101·-102)은 드라이버 글자로 읽음 | 단독 |
 | Query Library | `QueryLibraryArchiveTest` (ui.swing.test) | 항목 경로 검사(zip-slip, 숨김·다른 파일 건너뜀), 기존 ID 찾기, 실제로 읽은 크기의 상한, 항목 수 상한, 덮어쓰기·사본·건너뛰기·묶음 안 중복은 사본, 읽기 전용 루트 덮어쓰기 오류 | 단독 |
 | | `QueryLibraryGitTest` (ui.swing.test) | `status --porcelain=v2 -z` 해석(경로의 공백, 이름 바꾸기, 충돌, 분리된 HEAD), 작업 사본 찾기, 충돌 표시가 남은 파일, 실제 `git`으로 셸 특수 문자가 든 커밋 메시지·파일 이름이 셸로 해석되지 않음 | 단독 |
@@ -268,49 +268,51 @@ mvn -B -fae verify -f product/aggregate/pom.xml -T1C -Pproduct-chromite-swing *>
 
 ## 실행 결과
 
-### 2026-11-08 (`chromite/regression-tests`, devel 2fe1a0bb4e 기준)
+명령은 위 "실행"의 명령에 `-Dmaven.test.failure.ignore=true`를 더한 것이다. 모든 테스트 플러그인이 `com.seizia.chromite.test.platform`에 의존하므로,
+이 옵션이 없으면 그 플러그인의 실패 하나로 나머지 테스트 플러그인이 모두 SKIPPED가 된다(첫 실행에서 확인).
 
-명령: 위 "실행"의 명령에 `-Dmaven.test.failure.ignore=true`를 더함. 모든 테스트 플러그인이 `com.seizia.chromite.test.platform`에 의존하므로,
-이 옵션이 없으면 그 플러그인의 기존 실패 하나로 나머지 테스트 플러그인이 모두 SKIPPED가 된다(첫 실행에서 확인). 결과: `BUILD SUCCESS`,
-로그 `D:\Tools\_build-logs\regression-tests-verify.log`.
+### 2026-11-08 둘째 실행 (결함 수정 뒤, devel cac9ad967a 병합)
+
+결과 `BUILD SUCCESS`, 실패 0, 로그 `D:\Tools\_build-logs\regression-tests-verify.log`.
 
 | 테스트 플러그인 | Tests run | Failures | Errors | Skipped |
 |---|---|---|---|---|
 | com.seizia.chromite.model.test (새) | 24 | 0 | 0 | 0 |
 | com.seizia.chromite.registry.test (새) | 21 | 0 | 0 | 1 |
-| com.seizia.chromite.model.ai.tools.test (새) | 15 | 0 | 1 | 0 |
+| com.seizia.chromite.model.ai.tools.test (새) | 15 | 0 | 0 | 0 |
 | com.seizia.chromite.ui.swing.test (새) | 11 | 0 | 0 | 0 |
 | com.seizia.chromite.model.sql.test (새 5개 포함) | 188 | 0 | 0 | 0 |
-| com.seizia.chromite.test.platform (새 2개 포함) | 962 | 1 | 12 | 8 |
+| com.seizia.chromite.test.platform (새 2개 포함) | 962 | 0 | 0 | 9 |
 | com.seizia.chromite.data.transfer.test (새 2개 포함) | 102 | 0 | 0 | 0 |
 | com.seizia.chromite.ext.postgresql.test (새 2개 포함) | 168 | 0 | 0 | 0 |
-| com.seizia.chromite.ext.oracle.test (새 2개 포함) | 67 | 0 | 0 | 0 |
-| com.seizia.chromite.model.ai.test | 199 | 0 | 3 | 0 |
+| com.seizia.chromite.ext.oracle.test (새 3개 포함) | 68 | 0 | 0 | 0 |
+| com.seizia.chromite.model.ai.test | 199 | 0 | 0 | 0 |
 | 그 밖의 테스트 플러그인 19개 | 779 | 0 | 0 | 15 |
+| 합계 | 2537 | 0 | 0 | 25 |
 
-새 테스트 84개 중 82개 통과, 1개 실패, 1개 건너뜀:
+건너뜀 25개 중 이번에 생긴 것은 두 개다: `DriverOfflineBundleTest`와 `DriverLibraryPlatformTest`의 심볼릭 링크 시험(Windows 일반 사용자는 링크를 만들 수
+없음, Linux CI에서는 돈다). 나머지는 원래 조건부로 건너뛰는 시험이다(lsm 12, net 3, test.platform 8).
 
-- 실패 `PlanToolsOracleHintTest.longLeadingCommentDoesNotOverflowTheStack`: **제품 결함**. Oracle 실제 실행 계획 도구(`PlanTools.oracleHint`)의
-  첫 키워드 정규식에서 블록 주석 본문 `(?:[^*]|\*+[^*/])*`이 글자마다 그룹을 반복해 `java.util.regex`가 재귀한다. 약 2,000자가 넘는 앞
-  주석(스크립트 머리말)이 있으면 `StackOverflowError`가 난다(로컬 확인: 1,000자 통과, 2,000자 이상 실패). ReDoS(지수 역추적)는 막혔지만
-  입력 길이에 비례하는 스택 사용이 남았다. 이 작업 범위(테스트 작성) 밖이라 고치지 않았다. 고치는 방법의 예: 주석 본문을 한 글자 단위
-  게으른 반복(`/\*.*?\*/`, DOTALL)으로 바꾸면 재귀 없이 같은 범위를 읽는다.
-- 건너뜀 `DriverOfflineBundleTest.checkTargetPathRejectsLinksAndFoldersInTheWay`의 링크 부분: Windows 일반 사용자는 심볼릭 링크를 만들 수 없다
-  (링크 앞의 폴더·파일 검사는 실행됨). Linux CI에서는 돈다.
+첫 실행에서 찾은 실패와 고친 것:
 
-기존 테스트의 실패(이번 변경과 무관, 고치지 않음):
-
-| 테스트 | 결과 | 원인 |
+| 실패 | 원인 | 고친 것 |
 |---|---|---|
-| `SQLScriptParserTest` 10개, `SQLScriptParserGenericsTest.parseQueryBeforeBlockDeclaration` (test.platform) | NullPointerException | #118이 Oracle 방언 초기화에 `MAX_STRING_SIZE` 읽기(`OracleSQLDialect.readMaxVarchar2Length`)를 더했고, 이 테스트들의 mock 세션은 `prepareStatement`에 null을 준다. 그 메서드는 `SQLException`만 잡는다 |
-| `ConnectJobTest.canceledConnectionExceptionIsReportedAsError` (test.platform) | expected 4(ERROR) but was 8(CANCEL) | #131이 사용자가 취소한 연결을 의도적으로 취소 상태로 바꿨다. 테스트가 옛 동작을 기대한다 |
-| `DriverLibraryPlatformTest.rejectsSymlinkedCacheDirectoriesAndFiles` (test.platform) | FileSystemException(권한) | Windows 일반 사용자의 심볼릭 링크 권한(환경) |
-| `AISettingsManagerTest` 3개 (model.ai.test) | DBSecurityException "secure storage … not available" | #103이 AI 키를 OS 보안 저장소로 옮겼고 헤드리스 시험 앱은 보안 저장소를 쓰지 않는다(예상했던 헤드리스 저장 실패) |
+| `PlanToolsOracleHintTest.longLeadingCommentDoesNotOverflowTheStack` (새 시험) | 제품 결함. Oracle 실제 계획 도구의 첫 키워드 정규식에서 블록 주석 본문 `(?:[^*]|\*+[^*/])*`이 글자마다 그룹을 반복해 `java.util.regex`가 재귀했다. 약 2,000자 넘는 머리 주석에서 `StackOverflowError` | `PlanTools.skipLeadingComments`(반복문)로 앞 공백·주석을 건너뛰고 정규식은 그 자리의 키워드만 본다. 옛 정규식과 무작위 입력 30만 개를 비교해 결과가 같았다. 시험에 10만 자 주석·10만 자 공백·ReDoS 입력 3만 번과 건너뛰기 규칙을 더함 |
+| `SQLScriptParserTest` 10개, `SQLScriptParserGenericsTest` 1개 (test.platform) | #118의 `OracleSQLDialect.readMaxVarchar2Length`가 `SQLException`만 잡았다. 시험의 mock 세션은 문장을 주지 않아 `NullPointerException`이 방언 설정 밖으로 나갔다 | 그 조회의 모든 실패를 4000으로 두고 디버그 로그만 남김(시험의 mock은 그대로). `OracleMaxStringSizeTest`에 문장·결과 없음, SQL이 아닌 예외를 더함 |
+| `ConnectJobTest.canceledConnectionExceptionIsReportedAsError` | #131이 취소로 생긴 연결 실패를 의도적으로 취소 상태로 바꿨는데 시험이 옛 동작을 기대했다 | 시험을 새 동작으로 고치고 `canceledConnectionExceptionIsReportedAsCancel`로 이름을 바꿈 |
+| `AISettingsManagerTest` 3개 (model.ai.test) | #103 뒤로 프로필을 만들 때 AI 비밀을 OS 보안 저장소에서 읽는데 헤드리스 시험 앱에는 그 저장소가 없다 | 시험에 메모리 보안 저장소를 줌(제품은 평문으로 대신 저장하지 않음) |
+| `DriverLibraryPlatformTest.rejectsSymlinkedCacheDirectoriesAndFiles` | Windows 일반 사용자의 심볼릭 링크 권한(환경) | OS가 링크를 거부하면 건너뜀 |
 
-Docker 시험 DB가 필요한 새 테스트는 없다.
+### 2026-11-08 첫 실행 (devel 2fe1a0bb4e)
 
+새 테스트 84개 중 82개 통과, 1개 실패(위 `PlanTools` 결함), 1개 건너뜀. 기존 테스트 16개 실패(위 표의 나머지). 로그
+`D:\Tools\_build-logs\regression-tests-verify-3.log`.
+
+Docker 시험 DB가 필요한 테스트는 없다.
 ## 변경 이력
 
 - 2026-11-08 최초 작성: 새 테스트 플러그인 네 개(model, registry, model.ai.tools, ui.swing)와 기존 테스트 플러그인(model.sql, test.platform,
   data.transfer, ext.postgresql, ext.oracle)에 PR #95–#133의 모델 기능 회귀 테스트, 화면 확인 목록. 첫 실행 결과(새 테스트 84개 중 82개 통과,
   Oracle 계획 힌트 정규식의 StackOverflowError 결함 발견, 기존 테스트 실패 16개의 원인)
+- 2026-11-08 찾은 실패를 고침: `PlanTools`의 앞 주석 건너뛰기(반복문), Oracle `MAX_STRING_SIZE` 조회의 모든 실패를 4000으로, `ConnectJobTest`를 #131 동작으로,
+  `AISettingsManagerTest`에 메모리 보안 저장소, 심볼릭 링크 시험 건너뛰기. 둘째 실행 결과(실패 0)
