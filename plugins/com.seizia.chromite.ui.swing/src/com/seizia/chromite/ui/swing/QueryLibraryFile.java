@@ -52,6 +52,9 @@ import java.util.Locale;
  * <ul>
  *     <li>평범한 {@code .sql} 파일이므로 어느 SQL 도구에서나 열고 실행할 수 있다(머리말은 주석). 한 줄에 항목 하나라 Git 비교가 읽기 쉽고,
  *     같은 내용은 늘 같은 순서로 쓰므로(정해진 항목 순서, 값이 없는 항목은 생략) 저장할 때마다 줄이 바뀌지 않는다.</li>
+ *     <li>저장할 때마다 바뀌는 항목은 두지 않는다. 예전의 {@code @updated}(고친 시각)는 저장마다 바뀌어, 두 사람이 같은 쿼리의 다른 줄을 고쳐도
+ *     Git에서 그 줄이 늘 충돌했다. 이제 읽고 버리며 다음 저장 때 파일에서 빠진다(두 사람이 함께 지워도 Git은 같은 변경으로 합친다).
+ *     고친 시각이 필요한 곳(저장 충돌 질문)은 파일의 수정 시각을 쓴다.</li>
  *     <li>머리말은 파일 맨 앞에서 {@code -- @}로 시작하는 줄과 그 아래 {@code --   }(세 칸 들여쓰기)로 시작하는 하위 항목 줄이다.
  *     다른 줄이 나오면 끝나고, 바로 뒤의 빈 줄 하나는 구분 줄이라 SQL에 넣지 않는다. 값의 줄바꿈과 역슬래시는 {@code \n}, {@code \\}로 쓴다.</li>
  *     <li>모르는 항목은 원래 줄 그대로 보관했다가 머리말 끝에 다시 쓴다(새 버전의 항목, 예: 예약 실행·공유 정보를 지우지 않음).</li>
@@ -63,6 +66,8 @@ import java.util.Locale;
  * 변경 이력:
  * - 2026-11-06 Query Library: 최초 작성 (docs/chromite/swing-query-library.md "저장 형식")
  * - 2026-11-06 Query Library ③: {@code @schedule} 블록 (docs/chromite/swing-query-library.md "예약 실행")
+ * - 2026-11-08 {@code @updated}를 쓰지 않음(읽고 버림): 동시에 고친 쿼리가 Git에서 그 줄로 늘 충돌하던 문제
+ *   (docs/chromite/swing-query-library.md "저장 형식")
  */
 final class QueryLibraryFile {
 
@@ -83,7 +88,8 @@ final class QueryLibraryFile {
     private static final String DATABASE = "database"; //$NON-NLS-1$
     private static final String SCHEMA = "schema"; //$NON-NLS-1$
     private static final String CREATED = "created"; //$NON-NLS-1$
-    private static final String UPDATED = "updated"; //$NON-NLS-1$
+    // No longer written: read and dropped so that the next save removes it (see the class comment)
+    private static final String OBSOLETE_UPDATED = "updated"; //$NON-NLS-1$
     private static final String PARAM = "param"; //$NON-NLS-1$
     private static final String PARAM_LABEL = "label"; //$NON-NLS-1$
     private static final String PARAM_TYPE = "type"; //$NON-NLS-1$
@@ -189,7 +195,9 @@ final class QueryLibraryFile {
             case DATABASE -> item.setDatabase(value);
             case SCHEMA -> item.setSchema(value);
             case CREATED -> item.setCreated(parseTime(value));
-            case UPDATED -> item.setUpdated(parseTime(value));
+            case OBSOLETE_UPDATED -> {
+                // Dropped (not kept as an unknown line)
+            }
             default -> {
                 return false;
             }
@@ -238,7 +246,6 @@ final class QueryLibraryFile {
         appendKey(text, DATABASE, item.getDatabase());
         appendKey(text, SCHEMA, item.getSchema());
         appendKey(text, CREATED, item.getCreated() != null ? item.getCreated().toString() : null);
-        appendKey(text, UPDATED, item.getUpdated() != null ? item.getUpdated().toString() : null);
         for (QueryLibraryParameter parameter : item.getParameters()) {
             if (parameter.isPlain()) {
                 continue;

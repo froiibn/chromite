@@ -29,7 +29,7 @@ import java.util.Locale;
 import java.util.UUID;
 
 /**
- * Query Library의 쿼리 하나(파일 하나): 이름, 설명, SQL, 기본 실행 대상, 기본 DB/스키마, 만든·고친 시각, 매개변수 정의.
+ * Query Library의 쿼리 하나(파일 하나): 이름, 설명, SQL, 기본 실행 대상, 기본 DB/스키마, 만든 시각, 매개변수 정의.
  *
  * 설계:
  * <ul>
@@ -47,6 +47,8 @@ import java.util.UUID;
  * - 2026-11-06 Query Library: 최초 작성 (docs/chromite/swing-query-library.md "저장 형식")
  * - 2026-11-06 Query Library ③: 예약 실행 정의({@link QueryLibrarySchedule}) (docs/chromite/swing-query-library.md "예약 실행")
  * - 2026-11-06 화면 문구를 ToolsMessages로 옮김(OS 언어를 따름)
+ * - 2026-11-08 고친 시각({@code @updated})을 지움: 저장마다 바뀌어 Git에서 늘 충돌함. 고친 시각은 파일의 수정 시각
+ *   (docs/chromite/swing-query-library.md "저장 형식")
  */
 final class QueryLibraryItem {
 
@@ -107,8 +109,6 @@ final class QueryLibraryItem {
     private String schema;
     @Nullable
     private OffsetDateTime created;
-    @Nullable
-    private OffsetDateTime updated;
     private final List<QueryLibraryParameter> parameters = new ArrayList<>();
     @Nullable
     private QueryLibrarySchedule schedule;
@@ -127,9 +127,7 @@ final class QueryLibraryItem {
         QueryLibraryItem item = new QueryLibraryItem(name);
         item.id = UUID.randomUUID().toString();
         item.sql = sql;
-        OffsetDateTime now = OffsetDateTime.now().withNano(0);
-        item.created = now;
-        item.updated = now;
+        item.created = OffsetDateTime.now().withNano(0);
         return item;
     }
 
@@ -146,7 +144,6 @@ final class QueryLibraryItem {
         copy.database = database;
         copy.schema = schema;
         copy.created = created;
-        copy.updated = updated;
         parameters.forEach(p -> copy.parameters.add(p.copy()));
         copy.schedule = schedule != null ? schedule.copy() : null;
         copy.extraHeader.addAll(extraHeader);
@@ -268,15 +265,6 @@ final class QueryLibraryItem {
 
     void setCreated(@Nullable OffsetDateTime created) {
         this.created = created;
-    }
-
-    @Nullable
-    OffsetDateTime getUpdated() {
-        return updated;
-    }
-
-    void setUpdated(@Nullable OffsetDateTime updated) {
-        this.updated = updated;
     }
 
     @NotNull
