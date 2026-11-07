@@ -63,6 +63,17 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
+/**
+ * Altibase data source.
+ *
+ * 설계: 서버 출력(PRINT/PRINTLN)은 드라이버의 메시지 콜백이 데이터 원본의 버퍼({@code AltibaseOutputReader})에 모으고,
+ * SQL 편집기가 문장마다 {@code readServerOutput}으로 읽어 비운다. 설정이 꺼져 있으면 콜백을 등록하지 않는다(읽는 쪽도 읽지 않아
+ * 등록하면 버퍼가 연결이 열려 있는 동안 계속 커진다).
+ *
+ * 변경 이력:
+ * - 2026-11-07 서버 출력 설정이 꺼져 있으면 콜백을 등록하지 않고, 비어 있으면 빈 줄을 쓰지 않음
+ *   (docs/chromite/swing-server-output.md)
+ */
 public class AltibaseDataSource extends GenericDataSource implements DBPObjectStatisticsCollector {
 
     private static final Log log = Log.getLog(AltibaseDataSource.class);
@@ -741,6 +752,10 @@ public class AltibaseDataSource extends GenericDataSource implements DBPObjectSt
                 DBRProgressMonitor monitor, 
                 DBCExecutionContext context, 
                 boolean enable) throws DBCException {
+            if (!enable) {
+                // Without a callback the driver drops PRINT output; with one it is kept in callBackMsg until it is read
+                return;
+            }
 
             Connection conn = null;
             ClassLoader classLoader = null;
@@ -814,7 +829,8 @@ public class AltibaseDataSource extends GenericDataSource implements DBPObjectSt
                 @Nullable DBCExecutionResult executionResult,
                 @Nullable DBCStatement statement,
                 @NotNull DBCOutputWriter output) throws DBCException {
-            if (callBackMsg != null) {
+            // Read after every statement: nothing printed is no output, not an empty line
+            if (callBackMsg != null && callBackMsg.length() > 0) {
                 output.println(null, callBackMsg.toString());
                 callBackMsg.delete(0, callBackMsg.length());
             }

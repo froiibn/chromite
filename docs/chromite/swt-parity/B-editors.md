@@ -72,7 +72,7 @@
 | S22 | 편집기별 별도 연결(트랜잭션 분리) | `SQLEditor` 격리 실행 문맥(`SEPARATE_CONNECTION`) | 없음 | `SqlEditorPanel` Javadoc "실행 문맥은 연결의 기본(주) 문맥", swing-frontend.md:708·1018·1293 | 높음 | 같은 연결의 쿼리 창들이 한 트랜잭션을 나눠 씀. 결과 저장도 같은 문맥에서 자동 커밋을 끔 |
 | S23 | 끊기·다시 연결·삭제 전 열린 트랜잭션 확인 | `ui.editors.connection` `DataSourceHandler.checkAndCloseActiveTransaction`(`:168, :206-228`) | **조용히 끊김** | 위 요약 1 | 높음 | 끝낼 때(`ExitTransactionCheck`)만 묻는다 |
 | S24 | 유휴 트랜잭션 자동 종료 | `core` `UIServiceConnectionsImpl`, 앱의 사용자 활동 시각 | **조용히 끊김** | 위 요약 5 | 높음 | 영역 A와 중복 |
-| S25 | 서버 출력(Oracle `DBMS_OUTPUT` 등) | `show.output`, `SQLEditorOutputViewer`, `DBCServerOutputReader` | 없음 | grep `ServerOutput` 0건 | 중간 | SQL Server `PRINT`, PostgreSQL `NOTICE`는 경고로 Messages에 나옴 |
+| S25 | 서버 출력(Oracle `DBMS_OUTPUT` 등) | `show.output`, `SQLEditorOutputViewer`, `DBCServerOutputReader` | 있음(2026-11-07) | `SqlEditorPanel.readServerOutput`: 문장마다 읽어(버퍼를 비움) Messages 탭에 씀. [swing-server-output.md](../swing-server-output.md) | 중간 | SWT의 별도 Output 패널(심각도 필터, 자동 표시) 대신 Messages 탭. SQL Server `PRINT`, PostgreSQL `NOTICE`는 전처럼 한 번만 나옴 |
 | S26 | 실행 로그(편집기별 쿼리 관리자 로그) | `show.log`, `SQLLogPanel`, `QueryLogViewer` | 일부 | `QueryHistory`/`QueryHistoryDialog`(swing-sql-editor-plus.md "쿼리 기록"), swt-removal.md:112 | 중간 | 편집기가 실행한 문만 기록. 내부 쿼리·트랜잭션 표시 없음 |
 | S27 | 실행 계획(예상·실제) | `run.explain`, `ExplainPlanViewer` | 있음 | `ExecutionPlanView`, `PlanDiagramView`, `PlanRawView`, swing-sql-editor-plus.md | 중간 | 계획 파일 불러오기(`load.plan`)는 없음, 저장은 원본 보기에서 됨 |
 | S28 | 아웃라인 | `show.outline`, `SQLEditorOutlinePage` | 없음 | grep `Outline` 0건 | 낮음 | |

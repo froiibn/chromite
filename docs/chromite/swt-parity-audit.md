@@ -67,11 +67,11 @@ SWT 프런트엔드를 지울 때(#68) 기능 전체 목록과 맞춰 보지 않
 
 | 항목 | 영역 | 메모 |
 |---|---|---|
-| 비밀번호를 저장하지 않은 SQL Server·Oracle 연결이 묻지 않고 취소됨 | A-S5, B | 실행으로 확인한 뒤 고침(`chromite/auth-prompts`, [swing-auth-prompts.md](swing-auth-prompts.md)) |
-| Windows 인증서 저장소를 쓰지 않음(사내 CA 서버 SSL 실패 가능) | A-S6 | 실행 확인 필요 |
-| Oracle DBMS_OUTPUT, Altibase 서버 출력이 안 보이고 버퍼만 쌓임 | D | Oracle은 1 MB 버퍼를 켜 둠 |
-| macOS Cmd+Q가 저장·트랜잭션 확인을 건너뛸 수 있음 | A-S14 | Mac 실행 확인 필요 |
-| JSch SSH: 새 호스트 키 거부, OTP 서버 로그인 불가 | C | 고침(같은 브랜치, [swing-auth-prompts.md](swing-auth-prompts.md)). 기본 SSHJ는 바꾸지 않음 |
+| 비밀번호를 저장하지 않은 SQL Server·Oracle 연결이 묻지 않고 취소됨 | A-S5, B | 실행으로 확인한 뒤 고침(#106, [swing-auth-prompts.md](swing-auth-prompts.md)) |
+| Windows 인증서 저장소를 쓰지 않음(사내 CA 서버 SSL 실패 가능) | A-S6 | 고침(#104, [platform-startup.md](platform-startup.md)). Windows에서 실행 확인 |
+| Oracle DBMS_OUTPUT, Altibase 서버 출력이 안 보이고 버퍼만 쌓임 | D | 고침(#105, [swing-server-output.md](swing-server-output.md)): 쿼리 창이 문장마다 읽어 Messages 탭에 씀 |
+| macOS Cmd+Q가 저장·트랜잭션 확인을 건너뛸 수 있음 | A-S14 | 고침(#104). macOS 실행 확인 안 함 |
+| JSch SSH: 새 호스트 키 거부, OTP 서버 로그인 불가 | C | 고침(#106, [swing-auth-prompts.md](swing-auth-prompts.md)). 기본 SSHJ는 바꾸지 않음 |
 
 ### 3순위: 매일 쓰는 작업의 빈자리
 
@@ -99,3 +99,4 @@ SWT 사용자가 잃은 기능은 아니다. 그래도 옮길지는 따로 정�
 ## 변경 이력
 
 - 2026-11-07 최초 작성. 영역 A~D 조사(읽기 전용, 코드 대조), 근본 원인, 우선순위 제안.
+- 2026-11-07 2순위 A-S6(Windows 인증서 저장소), A-S14(macOS 끝내기·정보·환경설정) 고침([platform-startup.md](platform-startup.md)).
