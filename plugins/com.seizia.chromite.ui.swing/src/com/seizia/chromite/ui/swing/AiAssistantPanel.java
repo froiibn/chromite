@@ -89,6 +89,7 @@ import java.util.Set;
  *   쿼리 창마다 별도 연결, docs/chromite/transactions.md)
  * - 2026-11-08 대화 삭제 확인은 대화 삭제 / 취소 단추(취소가 기본) (docs/chromite/swing-frontend.md "실행 확인의 기본 단추")
  * - 2026-11-08 다시 그릴 글 항목을 모음으로 둠: 도구 뒤 글이 첫 조각에서 멈추던 문제(docs/chromite/ai-agent.md "글 조각 그리기")
+ * - 2026-11-08 실행 중인 도구의 진행 글로 도구 카드를 고침({@code toolProgress}, 백업·복원 도구)
  */
 final class AiAssistantPanel extends JPanel {
 
@@ -749,6 +750,15 @@ final class AiAssistantPanel extends JPanel {
                         card.update();
                     }
                     statusLabel.setText(AiMessages.ai_status_thinking);
+                });
+            }
+
+            @Override
+            public void toolProgress(@NotNull AIAgentChat.Entry entry) {
+                SwingUtilities.invokeLater(() -> {
+                    if (entry.isRunning() && entryViews.get(entry.getId()) instanceof AiToolCard card) {
+                        card.update();
+                    }
                 });
             }
         };

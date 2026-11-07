@@ -52,7 +52,7 @@
 | 19 | 활성 연결·스키마 고르기(도구 막대 콤보, Ctrl+9 연결 선택·Ctrl+0 스키마 선택 대화상자) ― 브리프의 "최근 연결" | `SelectActiveDataSourceHandler`, `SelectActiveSchemaHandler`, `SelectDataSourceCombo` | 있음 | 콤보(`SqlEditorToolBar`), Connect 대화상자의 최근 서버 기록. 2026-11-08 쿼리 > 연결 선택…(Ctrl+9)·데이터베이스/스키마 선택…(Ctrl+0): 걸러 고르는 목록으로 활성 쿼리 창의 콤보를 바꿈. [swing-explorer-productivity.md](../swing-explorer-productivity.md) | 낮음 | 위 "먼저 알아 둘 사실" 5 |
 | 20 | 북마크(Ctrl+Alt+Shift+D로 추가, 프로젝트의 Bookmarks 폴더, 북마크로 이동) | `core` `AddBookmarkHandler`, `NavigateBookmarkHandler`, `model.rcp` 자원 형식 `bookmark` | 없음 | Swing에서 `bookmark`는 주석 한 줄뿐(`ObjectExplorerPanel.java:1093`) | 낮음 | swt-removal.md:108에 포함 |
 | 21 | 프로젝트 관리(Projects 보기, 새 프로젝트 마법사, 활성 프로젝트 바꾸기, 프로젝트 설정·자원 위치 설정 페이지) | `ProjectNavigatorView`, `ProjectCreateWizard`, `NavigatorHandlerProjectSetActive/Select`, `PrefPageProjectResourceSettings` | 없음 | Swing은 `getActiveProject()`만 쓰고 `setActiveProject` 호출 0. swt-removal.md:108 | 낮음 | 프로젝트가 하나면 영향 없음. 다른 프로젝트의 연결은 Swing에서 볼 수 없음 |
-| 22 | 자원 탐색기(Scripts 폴더·파일 트리, 새 파일·폴더, 파일·폴더 링크, 파일 시스템 탐색기, 스크립트와 연결 묶기, 시스템 탐색기에서 보기, 연결별 최근 스크립트 열기) | `ProjectExplorerView`, `FileSystemExplorerView`, `NavigatorHandlerCreateFile/Folder`, `LinkFile/FolderHandler`, `NavigatorHandlerAssociateScript`, `NavigatorHandlerShowInExplorer` | 없음 | Swing은 SSMS식 File > Open / Save / Save As / Recent Files(`MainFrame.java:112-114`). 스크립트-연결 묶기 grep 0(연 파일은 고른 연결로 열림) | 중간 | swt-removal.md:108 |
+| 22 | 자원 탐색기(Scripts 폴더·파일 트리, 새 파일·폴더, 파일·폴더 링크, 파일 시스템 탐색기, 스크립트와 연결 묶기, 시스템 탐색기에서 보기, 연결별 최근 스크립트 열기) | `ProjectExplorerView`, `FileSystemExplorerView`, `NavigatorHandlerCreateFile/Folder`, `LinkFile/FolderHandler`, `NavigatorHandlerAssociateScript`, `NavigatorHandlerShowInExplorer` | 일부(2026-11-08. 조사 당시: 없음) | Scripts 도구 창(`ScriptsPanel`): 활성 프로젝트 Scripts 폴더 트리, 열기·새 폴더·이름 바꾸기·삭제, 스크립트와 연결 묶기(SWT와 같은 자원 속성, `ScriptFiles`). 조사 당시: File > Open / Save / Save As / Recent Files만, 묶기 grep 0 | 중간 | 남은 것: 새 파일, 파일·폴더 링크, 파일 시스템 탐색기, 시스템 탐색기에서 보기, 연결별 스크립트 목록. [swing-scripts-explorer.md](../swing-scripts-explorer.md) |
 | 23 | 스크립트를 네이티브 클라이언트로 실행(psql·mysql 등) | `NavigatorHandlerExec`, `SQLNativeExecutorRegistry` | 없음 | `scriptNative` grep 0 | 낮음 | |
 | 24 | 연결 노드 인라인 단추(연결 설정, 터널, 읽기 전용, 연결 보기) | `NNAHDataSourceConfiguration/Tunnel/ReadOnly/ConnectionView` | 일부 | 같은 일은 메뉴·연결 대화상자로(읽기 전용은 `ConnectionSettingsPanel`) | 낮음 | |
 | 25 | Database Browser 보기(하위 트리를 따로 연 보기) | `DatabaseBrowserView` | 없음 | 해당 클래스·명령 없음 | 낮음 | |
@@ -65,7 +65,7 @@
 | # | 기능 | SWT 출처 | 상태 | 근거 | 영향 | 비고 |
 |---|---|---|---|---|---|---|
 | 28 | 메타데이터 검색(이름·종류·대소문자, 여러 연결, 범위) | `SearchMetadataPage`, `SearchMetadataQuery` | 있음 | `ObjectSearchPanel` 설계 주석(같은 `DBSStructureAssistant#findObjectsByMask`) | 중간 | |
-| 29 | 데이터 검색(여러 테이블의 값 찾기) | `SearchDataPage`, `SearchDataQuery` | 없음 | swt-removal.md:113, `DataSearch` grep 0 | 중간 | 모델 API는 남아 있음 |
+| 29 | 데이터 검색(여러 테이블의 값 찾기) | `SearchDataPage`, `SearchDataQuery` | 있음 | 2026-11-08 옮김: Object Explorer "Search Data…" 문서 탭(`DataSearchPanel`, 모델 `DataSearch`, [swing-data-search.md](../swing-data-search.md)) | 중간 | 인덱스 열만 찾기·외부 테이블 옵션은 옮기지 않음 |
 | 30 | Quick Search(작업 공간 파일 글자 찾기) | `OpenQuickSearchAction`(`org.eclipse.text.quicksearch`) | 없음 | grep 0. 파일 트리 자체가 없음(#22) | 낮음 | |
 
 ## 3. `ui.dashboard`, `ui.charts`
@@ -114,7 +114,7 @@ MView 새로 고침, TRUNCATE, 트리거 켜기/끄기), MySQL(ANALYZE·CHECK·O
 
 | # | 기능 | SWT 출처 | 상태 | 근거 | 영향 | 비고 |
 |---|---|---|---|---|---|---|
-| 49 | 객체 비교(Compare/Migrate > Simple compare: 두 개 이상 객체의 속성·구조 비교 보고서, 파일 출력) | `CompareObjectsHandler`, `CompareObjectsWizard` (명령 `com.seizia.chromite.core.compare.simple`) | 없음 | swt-removal.md:110. `ui.swing`에서 `CompareObjects`·`cmp.simple` grep 0. 모델 번들 `cmp.simple`은 `runtime.feature`에 있어 제품에 들어 있지만 쓰는 곳 없음 | 중간 | |
+| 49 | 객체 비교(Compare/Migrate > Simple compare: 두 개 이상 객체의 속성·구조 비교 보고서, 파일 출력) | `CompareObjectsHandler`, `CompareObjectsWizard` (명령 `com.seizia.chromite.core.compare.simple`) | 일부(2026-11-08) | 조사 당시: swt-removal.md:110, `ui.swing`에서 `CompareObjects`·`cmp.simple` grep 0. 2026-11-08 Schema Compare(Tools > Compare Schemas…, 두 스키마의 구조 비교와 마이그레이션 스크립트, `cmp.simple`의 새 패키지 `tools.compare.schema`)를 더함([schema-compare.md](../schema-compare.md)). 여러 객체의 속성 보고서·HTML 파일 출력은 없음 | 중간 | Schema Compare는 SWT CE에 없던 기능(상용판 기능)이다 |
 
 ## 7. `net.ssh.ui`
 
@@ -152,14 +152,16 @@ MView 새로 고침, TRUNCATE, 트리거 켜기/끄기), MySQL(ANALYZE·CHECK·O
 
 | 상태 | 수 | 번호 |
 |---|---|---|
-| 있음 | 22 | 1, 2, 3, 4, 6, 7, 10, 11, 16, 17, 18, 19, 27, 28, 31, 34, 35, 45, 48, 50, 55, 62 |
-| 일부 | 18 | 5, 9, 12, 13, 14, 15, 24, 36, 37, 38, 42, 44, 47, 51, 57, 59, 60, 64 |
-| 없음 | 21 | 8, 20, 21, 22, 23, 25, 26, 29, 30, 32, 33, 39, 40, 41, 43, 46, 49, 52, 53, 56, 63 |
+| 있음 | 23 | 1, 2, 3, 4, 6, 7, 10, 11, 16, 17, 18, 19, 27, 28, 29, 31, 34, 35, 45, 48, 50, 55, 62 |
+| 일부 | 19 | 5, 9, 12, 13, 14, 15, 24, 36, 37, 38, 42, 44, 47, 49, 51, 57, 59, 60, 64 |
+| 없음 | 19 | 8, 20, 21, 22, 23, 25, 26, 30, 32, 33, 39, 40, 41, 43, 46, 52, 53, 56, 63 |
 | 의도적 제외 | 1 | 61 |
-| 조용히 끊김 | 2 | 54, 58 |
+| 조용히 끊김 | 0 | (조사 당시 54, 58: 54는 있음, 58은 일부가 됨) |
 | 해당 없음 | 4 | 즐겨찾기, 작업 스케줄러, 개발자 Test 메뉴, DataDam |
 
+22(자원 탐색기)는 2026-11-08 Scripts 도구 창으로 일부가 되었다([swing-scripts-explorer.md](../swing-scripts-explorer.md)).
 64(GIS)는 2026-11-08 결과 공간 보기로 일부가 되었다([swing-result-charts-spatial.md](../swing-result-charts-spatial.md)).
+29(데이터 검색)는 2026-11-08 옮겼고([swing-data-search.md](../swing-data-search.md)), 49는 Schema Compare로 일부가 되었다([schema-compare.md](../schema-compare.md)). 위 집계는 행 상태에서 다시 센 것이다.
 조사 당시 없음 27개 중 63(Git)은 SWT 제품에도 없던 번들이라 실제 사용자 손실은 없다. 62(디버거)는 2026-11-07 옮겼다([procedure-debugger.md](../procedure-debugger.md)).
 10, 11, 17은 2026-11-07 옮겼고 12는 일부가 되었다([swing-explorer-object-actions.md](../swing-explorer-object-actions.md)).
 4, 6, 7, 16, 18, 19는 2026-11-08 있음, 5, 9는 일부가 되었고 12에 선택하여 복사·연결 복제를 더했다([swing-explorer-productivity.md](../swing-explorer-productivity.md)).
@@ -175,8 +177,8 @@ MView 새로 고침, TRUNCATE, 트리거 켜기/끄기), MySQL(ANALYZE·CHECK·O
 5. Generate SQL의 INSERT/UPDATE/DELETE/MERGE/JOIN/CALL/DROP 없음 (#17) — 2026-11-07 옮김(DROP은 삭제의 스크립트 미리 보기)
 6. 저장한 작업(Task) 보기·재실행·실행 기록 없음 (#43), 데이터 전송을 작업으로 저장 없음 (#39)
 7. DB 도구 일부 없음: TRUNCATE, 트리거 켜기/끄기, MView 새로 고침, DB2·Exasol·Altibase 도구 (#44)
-8. 데이터 검색(여러 테이블 값 찾기) 없음 (#29)
-9. 객체 비교(Simple compare) 없음 (#49)
+8. 데이터 검색(여러 테이블 값 찾기) 없음 (#29) — 2026-11-08 옮김([swing-data-search.md](../swing-data-search.md))
+9. 객체 비교(Simple compare) 없음 (#49) — 2026-11-08 Schema Compare(구조 비교·마이그레이션 스크립트)를 더해 일부가 됨([schema-compare.md](../schema-compare.md))
 10. 자원 탐색기(Scripts 폴더, 스크립트-연결 묶기, 연결별 최근 스크립트) 없음 (#22)
 
 그다음: 범용 새 객체 만들기 일부(#14), 필터 편집(#4, 2026-11-08 옮김), 테이블 복사 고급 옵션(#36), 편집기 안 AI 번역(#57), 객체 편집기(#15, 편집기 영역과 겹침).

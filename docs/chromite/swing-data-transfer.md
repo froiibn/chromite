@@ -472,6 +472,7 @@ SQL Server·MariaDB 원본 22열). PostgreSQL → SQL Server·MariaDB의 `c_nume
 - **`MAX_STRING_SIZE`(#52):** 다른 DB 문자열을 `VARCHAR2(n CHAR)`로 둘지 `CLOB`으로 둘지 정하는 한도가 4000으로 고정이었다(`OracleSQLDialect`).
   연결할 때(`initDriverSettings`) `V$PARAMETER`의 `max_string_size`를 읽어 `EXTENDED`면 32767, 아니면 4000. `V$PARAMETER`는 `SELECT_CATALOG_ROLE`이나
   권한이 있어야 읽히고(시험 사용자 `CHR_MFB`는 ORA-00942), 12c 전 서버에는 이 매개변수가 없다. 그때는 4000을 쓴다(더 긴 문자열은 모든 값을 담는 `CLOB`).
+  읽기가 어떤 이유로 실패해도(문장·결과가 없는 세션, SQL이 아닌 예외) 4000으로 두고 디버그 로그만 남긴다. 방언 설정은 연결과 파싱에서 쓰이므로 이 조회가 그것을 깨면 안 된다.
   바이트 한도는 그대로라 `EXTENDED`에서도 32767바이트를 넘는 한글 문자열은 ORA-12899로 실패한다(말없이 잘리지 않음).
 - **`bit` → PostgreSQL(#53):** SQL Server `bit`가 PostgreSQL `bit`(비트 문자열)가 되었다. 이름 찾기(`DBStructUtils`)가 같은 이름을 찾고, 두 형식 모두 JDBC `BIT`라
   데이터 종류도 같았다. PostgreSQL 방언 변환기가 다른 DB의 한 비트 `BIT`(JDBC `BIT`, 정밀도 1 이하: SQL Server `bit`, MySQL/MariaDB `BIT(1)`)를 `boolean`으로 둔다.
@@ -645,3 +646,6 @@ SQL Server·MariaDB 원본 22열). PostgreSQL → SQL Server·MariaDB의 `c_nume
 - 2026-11-08 Query Library가 값을 바인딩한 결과의 Export Data…를 켬: 데이터 컨테이너가 같은 값을 바인딩해 다시 읽음([swing-query-library.md](swing-query-library.md)).
 - 2026-11-08 `"D:/exports"`처럼 슬래시를 쓴 Windows 경로가 "File system schema 'D' not recognized"로 실패하던 것을 고침(`DBFFileSystemManager.URI_SCHEME_PREFIX`가 두 글자 이상의 스킴만 받음).
   위 "@export 명령"의 경로 항목 갱신. [model-fixes.md](model-fixes.md) "작은 모델·안전·라이선스 수정".
+- 2026-11-08 `MAX_STRING_SIZE` 조회가 `SQLException`만 잡아, 문장을 주지 않는 세션(SQL 파서 시험의 mock)에서 `NullPointerException`이 방언 설정 밖으로 나가
+  Oracle 파서 시험 11개가 실패하던 것: 모든 실패를 4000으로(`OracleSQLDialect.readMaxVarchar2Length`). 위 "`MAX_STRING_SIZE`(#52)",
+  [regression-tests.md](regression-tests.md) "실행 결과".

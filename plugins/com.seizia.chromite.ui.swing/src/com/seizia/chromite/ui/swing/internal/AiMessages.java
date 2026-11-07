@@ -33,6 +33,7 @@ import org.eclipse.osgi.util.NLS;
  * - 2026-11-07 기능의 공식 이름을 Chromite Agent로 정함(사용자 결정). "AI 도우미"·"AI Assistant"·"도우미"로 기능을 가리키던 문구를
  *   영어·한국어 모두 "Chromite Agent"로 바꿈. 모델 제공자를 뜻하는 "AI 제공자"는 그대로 둠(docs/chromite/ai-agent.md "명칭")
  * - 2026-11-08 {@code ai_policy_send_all_tools}(+ {@code _tip}): 요청마다 도구를 모두 보내는 설정(docs/chromite/ai-agent.md "요청 크기")
+ * - 2026-11-08 {@code ai_tool_running_progress}: 실행 중인 도구의 진행 글(백업·복원 도구, docs/chromite/ai-agent.md)
  */
 public class AiMessages extends NLS {
     private static final String BUNDLE_NAME = "com.seizia.chromite.ui.swing.internal.AiMessages"; //$NON-NLS-1$
@@ -78,6 +79,7 @@ public class AiMessages extends NLS {
     public static String ai_code_copy;
     public static String ai_code_open;
     public static String ai_tool_running;
+    public static String ai_tool_running_progress;
     public static String ai_tool_state;
     public static String ai_tool_arguments;
     public static String ai_tool_result;

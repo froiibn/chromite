@@ -30,7 +30,7 @@ SWT 제품에는 PostgreSQL 디버거가 있었지만 제품 피처에 들어 �
 | `com.seizia.chromite.debug.core` (복원) | DB 중립 디버그 모델: `DBGController`, `DBGControllerFactory`, `DBGSession`, `DBGEvent`, `DBGStackFrame`, `DBGVariable`, `DBGBreakpointDescriptor`, `DBGTargetResult`(새), `DBGConstants`, JDBC 기반 `jdbc/DBGJDBCSession`·`DBGJDBCWorker`. UI·Eclipse 디버그 의존 없음 |
 | `com.seizia.chromite.ext.postgresql.debug.core` (복원) | pldbgapi 구현: `PostgreDebugController`, `PostgreDebugSession`, 중단점·스택·변수 클래스. `plugin.xml`이 `PostgreProcedure`의 어댑터로 `DBGControllerFactory`를 등록 |
 | `com.seizia.chromite.ext.oracle.debug.core` (새) | DBMS_DEBUG 구현(`internal` 패키지): `OracleDebugAdapterFactory`(팩터리, attach 미지원), `OracleDebugController`(원본·권한·디버그 컴파일), `OracleDebugSession`, `OracleDebugCall`(대상이 실행할 익명 블록), `OracleDebugUnit`(원본 식별자 = ALL_SOURCE의 OWNER·TYPE·NAME), 중단점·스택·변수·세션 정보 record. `plugin.xml`이 `OracleProcedureStandalone`·`OracleProcedurePackaged`의 어댑터로 등록 |
-| `com.seizia.chromite.ui.swing` | `DebugCommands`(메뉴 동작, 열기, 디버그 컴파일 질문, 권한 안내), `ProcedureDebuggerPanel`(디버거 문서 탭), `DebugStartDialog`(시작 대화상자), `internal/DebugMessages`(영어·한국어) |
+| `com.seizia.chromite.ui.swing` | `DebugCommands`(메뉴 동작, 열기, 디버그 컴파일 질문, 권한 안내), `ProcedureDebuggerPanel`(디버거 문서 탭), `DebugStartDialog`(시작 대화상자), `RoutineArgumentTable`(시작 대화상자의 인수 표, Execute Procedure와 함께 씀, 2026-11-08), `internal/DebugMessages`(영어·한국어) |
 
 세 모델 번들은 `plugins/pom.xml`의 `desktop` 프로파일과 `com.seizia.chromite.swing.feature`에 들어간다.
 
@@ -204,7 +204,7 @@ SWT 제품에는 PostgreSQL 디버거가 있었지만 제품 피처에 들어 �
 | DB | 서버 디버그 API | 판단 |
 |---|---|---|
 | Oracle | `DBMS_DEBUG_JDWP`(Oracle 권장), `DBMS_DEBUG`(Oracle이 사용 중단(deprecated)으로 표시). 시험 DB(Oracle AI Database 26ai Free 23.26.3, 127.0.0.1:51521)에 `SYS.DBMS_DEBUG`, `DBMS_DEBUG_JDWP`, `DBMS_DEBUG_JDWP_CUSTOM` 패키지가 VALID로 있다 | 2026-11-07 `DBMS_DEBUG`로 구현(위 "Oracle (DBMS_DEBUG)"). JDWP는 아래 |
-| SQL Server | T-SQL 디버거는 SSMS 18에서 빠졌고(Visual Studio의 SQL Server 디버깅 구성 요소와 DCOM을 쓰던 방식), JDBC에서 쓸 수 있는 서버 디버그 API가 없다 | 만들지 않음. 대안 아래 |
+| SQL Server | T-SQL 디버거는 SSMS 18에서 빠졌고(Visual Studio의 SQL Server 디버깅 구성 요소와 DCOM을 쓰던 방식), JDBC에서 쓸 수 있는 서버 디버그 API가 없다 | 디버거는 만들지 않음. 대안인 실행 추적을 2026-11-08 만듦([sqlserver-execution-trace.md](sqlserver-execution-trace.md)) |
 | MySQL / MariaDB | 서버 디버그 API 없음. 시험 DB(MariaDB 11.8.9)에 debug 이름의 루틴·플러그인 0개(읽기 조회). 상용 도구는 루틴을 계측(줄마다 상태 기록 호출을 끼운 사본)해 흉내 낸다 | 만들지 않음 |
 | Altibase | 알려진 PSM 디버그 API가 없다(출력은 `PRINT`·`DBMS_OUTPUT`). 시험 DB(Altibase 7.3)의 `SYSTEM_.SYS_PROCEDURES_`에 이름에 DEBUG·DBG가 들어간 프로시저·패키지 0개(SYSTEM_ 소유 43개 중, 읽기 조회) | 만들지 않음 |
 
@@ -222,12 +222,13 @@ SWT 제품에는 PostgreSQL 디버거가 있었지만 제품 피처에 들어 �
     지금 컨트롤러를 그대로 쓴다. 화면은 이 문서의 디버거 탭을 그대로 쓴다.
   - 추정: 5–8일(JDI 연결·단위 이름 규칙·패키지 본문 줄 대응 3–4일, 변수·컬렉션 값 2일, ACL 안내·검증 1–2일).
 
-### SQL Server 대안 (만들지 않음)
+### SQL Server 대안
 
 "단계 실행 흉내": 프로시저 본문을 배치·문장 단위로 나눠(파서), 같은 세션에서 `DECLARE`한 변수와 함께 한 문장씩 실행하고 매 문장 뒤
 `SELECT @var…`로 변수를 보인다. 제어 흐름(`IF`, `WHILE`, `TRY…CATCH`, `GOTO`)과 중첩 호출을 해석해야 하고, 임시 테이블·트랜잭션·`RETURN`·
 출력 매개 변수 의미를 그대로 지키기 어렵다. 추정: 기본(직선 코드 + `IF`/`WHILE`) 8–12일, 실제 디버거와 같은 정확도는 보장할 수 없다.
-더 작은 대안: 실행 결과·메시지를 문장별로 보여 주는 "실행 추적"(확장 이벤트 `sp_statement_completed`) 3–4일.
+더 작은 대안: 실행 결과·메시지를 문장별로 보여 주는 "실행 추적"(확장 이벤트 `sp_statement_completed`) 3–4일. 이 대안을 2026-11-08 만들었다
+(Trace Execution…, [sqlserver-execution-trace.md](sqlserver-execution-trace.md)). 단계 실행 흉내는 만들지 않았다.
 
 ## 제한
 
@@ -316,4 +317,7 @@ SWT 제품에는 PostgreSQL 디버거가 있었지만 제품 피처에 들어 �
 - 2026-11-07 Oracle 디버거(`ext.oracle.debug.core`, DBMS_DEBUG): 디버그 컴파일 질문, 권한 안내, 프로시저 나가기, attach 미지원 표시.
   `debug.core`: createSession이 DBGSession을 돌려줌, getUnitsToCompile·compileForDebugging, supportsAttach, DBGPrivilegeException.
   화면: 시작 중에 끝난 호출을 끝내기로 처리, 탭 열쇠에 루틴 이름·입력 형식. 26ai에서 확인한 DBMS_DEBUG 동작과 검증 결과.
+- 2026-11-08 시작 대화상자의 인수 표를 `RoutineArgumentTable`로 옮겨 Execute Procedure 대화상자와 함께 씀. 형식 칸은 매개 변수 자신의 길이·정밀도
+  ([swing-routines.md](swing-routines.md)). PostgreSQL에서 시작 대화상자가 그대로 열리는 것을 확인.
+- 2026-11-08 SQL Server 대안 "실행 추적"을 만들었다고 적음(표, "SQL Server 대안", [sqlserver-execution-trace.md](sqlserver-execution-trace.md)).
 - 2026-11-08 인수 입력 설명의 쿼리 창 매개 변수 대화상자 이름을 고침(`SqlParameterDialog` → `QueryParameterDialog`, Query Library와 합침).

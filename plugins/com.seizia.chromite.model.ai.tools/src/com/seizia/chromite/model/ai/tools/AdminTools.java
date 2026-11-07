@@ -57,13 +57,14 @@ import java.util.regex.Pattern;
  *     끝내는 순간 서버가 롤백하므로, 실행기가 자동 실행 설정과 상관없이 Roll back / Cancel을 묻는다(커밋은 남의 세션이라 불가).</li>
  *     <li>백업·복원은 Swing 백업·복원 대화상자와 같은 모델({@code model.admin}의 {@link SQLServerBackupSettings},
  *     {@link SQLServerRestoreSettings}, {@link SQLServerBackupRestore#execute})을 써서 같은 T-SQL을 만든다(docs/chromite/swing-backup-restore.md).
- *     확인 요청에 만든 스크립트 전체를 보인다. PostgreSQL·MySQL 네이티브 도구 백업은 1b단계.</li>
+ *     확인 요청에 만든 스크립트 전체를 보인다. PostgreSQL·MySQL은 로컬 클라이언트 도구로 하는 {@link NativeBackupTools}다.</li>
  * </ul>
  *
  * 변경 이력:
  * - 2026-11-07 최초 작성
  * - 2026-11-07 확인 대화상자의 열린 트랜잭션 소유자·설명을 AIToolsMessages로 옮김(화면 언어를 따름)
  * - 2026-11-08 쓸 수 있는 DB 종류({@link #supports}, 요청 크기를 줄이는 도구 고르기)
+ * - 2026-11-08 SQL Server가 아닌 연결의 오류가 PostgreSQL·MySQL 도구(dumpDatabase, restoreDump)를 알려 줌
  */
 public class AdminTools extends AgentTool implements AIToolTransactionGuard, AIToolPreviewProvider {
 
@@ -142,7 +143,7 @@ public class AdminTools extends AgentTool implements AIToolTransactionGuard, AIT
     private static SQLServerDataSource sqlServer(@NotNull DBPDataSourceContainer container) throws DBException {
         DBPDataSource dataSource = container.getDataSource();
         if (!(dataSource instanceof SQLServerDataSource sqlServer)) {
-            throw new DBException("Backup and restore tools support SQL Server in this phase (PostgreSQL/MySQL native tools: phase 1b)");
+            throw new DBException("backupDatabase and restoreDatabase are for SQL Server; use dumpDatabase and restoreDump for PostgreSQL and MySQL/MariaDB");
         }
         return sqlServer;
     }

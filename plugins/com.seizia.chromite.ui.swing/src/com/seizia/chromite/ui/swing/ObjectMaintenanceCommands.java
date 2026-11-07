@@ -22,6 +22,7 @@ import com.seizia.chromite.model.DBPDataSourceContainer;
 import com.seizia.chromite.model.DBPEvaluationContext;
 import com.seizia.chromite.model.DBUtils;
 import com.seizia.chromite.model.admin.objects.ObjectMaintenanceActions;
+import com.seizia.chromite.model.admin.oracle.OracleCompileErrors;
 import com.seizia.chromite.model.navigator.DBNDatabaseItem;
 import com.seizia.chromite.model.navigator.DBNDatabaseNode;
 import com.seizia.chromite.model.navigator.DBNEvent;
@@ -48,8 +49,8 @@ import java.util.Set;
 import java.util.function.Supplier;
 
 /**
- * Object Explorer commands Truncate Table…, Enable Trigger, Disable Trigger and Refresh Materialized View on the selected
- * objects.
+ * Object Explorer commands Truncate Table…, Enable Trigger, Disable Trigger, Refresh Materialized View and Compile on the
+ * selected objects.
  *
  * 설계: {@link ExplorerObjectCommands}(삭제·이름 바꾸기)와 같은 나눔이다. 탐색기에는 메뉴 항목과 갱신 호출만 두고, 문 만들기·실행은 모델 번들의
  * {@link ObjectMaintenanceActions}(모델 도구 처리기의 SQL)가 맡는다. 흐름도 같다: 확인 → 스크립트 미리 보기({@link ScriptPreviewDialog#confirmChange},
@@ -62,11 +63,16 @@ import java.util.function.Supplier;
  *     <li>메뉴 항목은 선택한 객체가 모두 그 명령을 지원하고 한 연결에 있을 때만 보인다(SQL Server 에이전트 메뉴와 같은 방식).
  *     트리거는 모델이 읽은 상태가 이미 그 상태면 그 항목을 끈다.</li>
  *     <li>트리거를 바꾼 뒤에는 트리거 폴더를 다시 읽어 상태(속성)가 맞게 한다(SWT 도구의 {@code needsRefreshOnFinish}).</li>
+ *     <li>Compile(Oracle 저장 코드·뷰·형식, Altibase 뷰·프로시저·패키지): 실행 뒤 객체의 유효 상태를 다시 읽고, Oracle은 컴파일 오류를
+ *     {@link CompileErrorsDialog}로 보인다(오류에서 Modify 창으로 간다). 오류가 없으면 성공을 알린다(SWT {@code CompileHandler}와 같음).
+ *     미리 보기와 열린 트랜잭션 질문은 다른 명령과 같다(Oracle·Altibase의 ALTER … COMPILE도 DDL이라 암시적으로 커밋한다).</li>
  *     <li>제한: 읽기 전용 연결과 메타데이터 변경 제한이면 실행하지 않고 알린다({@link ExplorerObjectCommands}와 같은 판단).</li>
  * </ul>
  *
  * 변경 이력:
  * - 2026-11-08 최초 작성 (docs/chromite/swing-explorer-object-actions.md "유지 관리 명령")
+ * - 2026-11-08 Compile 명령과 컴파일 결과(SWT 감사 O11, A6), Altibase TRUNCATE·구체화된 뷰 새로 고침은 모델 쪽 지원으로 켜짐(A5)
+ *   (docs/chromite/swing-routines.md)
  */
 final class ObjectMaintenanceCommands {
 
@@ -98,6 +104,7 @@ final class ObjectMaintenanceCommands {
             ObjectMaintenanceMessages.objmaint_disable_trigger_tip);
         addItem(ObjectMaintenanceActions.Action.REFRESH_MATERIALIZED_VIEW, ObjectMaintenanceMessages.objmaint_refresh_mview,
             ObjectMaintenanceMessages.objmaint_refresh_mview_tip);
+        addItem(ObjectMaintenanceActions.Action.COMPILE, ObjectMaintenanceMessages.objmaint_compile, ObjectMaintenanceMessages.objmaint_compile_tip);
     }
 
     private void addItem(@NotNull ObjectMaintenanceActions.Action action, @NotNull String label, @NotNull String tip) {
@@ -211,11 +218,13 @@ final class ObjectMaintenanceCommands {
                 }
             }
         }
+        boolean executed = false;
         try {
             ProgressDialog.runTask(NavigatorMessages.navigator_change_execute_progress, monitor -> {
                 ObjectMaintenanceActions.execute(monitor, statements);
                 return null;
             });
+            executed = true;
         } catch (DBInterruptedException e) {
             // Canceled between statements: the statements before stay executed
         } catch (ObjectMaintenanceActions.ExecutionException e) {
@@ -226,6 +235,52 @@ final class ObjectMaintenanceCommands {
         }
         // Also after a failure: statements of other databases before it may have run
         refreshNodes.forEach(this::refresh);
+        if (action == ObjectMaintenanceActions.Action.COMPILE) {
+            showCompileResult(nodes, objects, executed);
+        }
+    }
+
+    /**
+     * After Compile: reads the objects' state again (also after a failure, an object before it may have been compiled)
+     * and, when the compile ran, shows the Oracle compile errors or that it succeeded. Other databases report compile
+     * errors as the statement's error (shown already).
+     */
+    private void showCompileResult(@NotNull List<DBNNode> nodes, @NotNull List<DBSObject> objects, boolean executed) {
+        String title = getTitle(ObjectMaintenanceActions.Action.COMPILE);
+        List<CompileErrorsDialog.Row> rows = new ArrayList<>();
+        try {
+            ProgressDialog.runTask(ObjectMaintenanceMessages.objmaint_compile_reading, monitor -> {
+                ObjectMaintenanceActions.refreshObjectStates(monitor, objects);
+                for (DBNNode node : nodes) {
+                    if (node instanceof DBNDatabaseNode databaseNode && objects.contains(databaseNode.getObject())) {
+                        String name = DBUtils.getObjectFullName(databaseNode.getObject(), DBPEvaluationContext.UI);
+                        for (OracleCompileErrors.CompileError error
+                            : ObjectMaintenanceActions.readCompileErrors(monitor, List.of(databaseNode.getObject()))) {
+                            rows.add(new CompileErrorsDialog.Row(databaseNode, name, error));
+                        }
+                    }
+                }
+                return null;
+            });
+        } catch (DBInterruptedException e) {
+            return;
+        } catch (DBException e) {
+            DBWorkbench.getPlatformUI().showError(title, null, e);
+            return;
+        }
+        if (!executed) {
+            return;
+        }
+        if (rows.isEmpty()) {
+            String message = objects.size() == 1
+                ? NLS.bind(ObjectMaintenanceMessages.objmaint_compile_done_one, DBUtils.getObjectFullName(objects.getFirst(), DBPEvaluationContext.UI))
+                : NLS.bind(ObjectMaintenanceMessages.objmaint_compile_done_many, objects.size());
+            JOptionPane.showMessageDialog(SwingUtilities.getWindowAncestor(explorer), message, title, JOptionPane.INFORMATION_MESSAGE);
+            return;
+        }
+        long failed = rows.stream().map(CompileErrorsDialog.Row::node).distinct().count();
+        CompileErrorsDialog.show(explorer, title, NLS.bind(ObjectMaintenanceMessages.objmaint_compile_errors, rows.size(), failed),
+            rows, queryWindows);
     }
 
     /**
@@ -271,6 +326,7 @@ final class ObjectMaintenanceCommands {
             case ENABLE_TRIGGER -> ObjectMaintenanceMessages.objmaint_enable_trigger_title;
             case DISABLE_TRIGGER -> ObjectMaintenanceMessages.objmaint_disable_trigger_title;
             case REFRESH_MATERIALIZED_VIEW -> ObjectMaintenanceMessages.objmaint_refresh_mview_title;
+            case COMPILE -> ObjectMaintenanceMessages.objmaint_compile_title;
         };
     }
 

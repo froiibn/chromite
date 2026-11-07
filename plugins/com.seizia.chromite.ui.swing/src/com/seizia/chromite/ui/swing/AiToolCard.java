@@ -52,6 +52,7 @@ import java.util.Map;
  * - 2026-11-07 최초 작성 (docs/chromite/ai-agent.md "2단계")
  * - 2026-11-07 트랜잭션 질문에 Commit/Roll back으로 답한 호출은 머리말 상태 앞에 "열린 트랜잭션 n개 롤백 →"을 보임(전에는 "완료"만 보여
  *   롤백으로 답한 commitTransaction이 커밋처럼 보였음)
+ * - 2026-11-08 실행 중인 도구가 알린 진행 글을 상태에 보임(백업·복원 도구)
  */
 final class AiToolCard extends JPanel {
 
@@ -115,7 +116,8 @@ final class AiToolCard extends JPanel {
         chevron.setText(expanded ? "▾" : "▸"); //$NON-NLS-1$ //$NON-NLS-2$
         String outcome = entry.getOutcome();
         if (outcome == null) {
-            stateLabel.setText(AiMessages.ai_tool_running);
+            String progress = entry.getProgress();
+            stateLabel.setText(progress == null ? AiMessages.ai_tool_running : NLS.bind(AiMessages.ai_tool_running_progress, progress));
             stateLabel.putClientProperty(FlatClientProperties.STYLE, "foreground: $Chromite.secondaryForeground"); //$NON-NLS-1$
         } else {
             String state = describeOutcome(outcome);

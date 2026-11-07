@@ -40,6 +40,10 @@ import java.util.*;
 
 /**
  * Oracle execution plan node
+ *
+ * 변경 이력:
+ * - 2026-11-08 Chromite: 적응 계획의 표시 부모로 다시 잇는 {@link #linkToDisplayParent}·{@link #clearNested}
+ *   (docs/chromite/swing-sql-editor-plus.md "Oracle 적응 계획")
  */
 public class OraclePlanNode extends AbstractExecutionPlanNode implements DBCPlanCostNode {
 
@@ -285,6 +289,24 @@ public class OraclePlanNode extends AbstractExecutionPlanNode implements DBCPlan
 
     private void addChild(OraclePlanNode node) {
          this.nested.add(node);
+    }
+
+    /**
+     * Removes the child nodes (the plan is linked again as Oracle displays it, see {@link #linkToDisplayParent}).
+     */
+    void clearNested() {
+        nested.clear();
+    }
+
+    /**
+     * Puts the node under the node Oracle displays as its parent: an adaptive plan skips its inactive rows, so the
+     * displayed parent can be another node than the PARENT_ID row.
+     */
+    void linkToDisplayParent(@Nullable OraclePlanNode displayParent) {
+        parent = displayParent;
+        if (displayParent != null) {
+            displayParent.addChild(this);
+        }
     }
 
     @Nullable

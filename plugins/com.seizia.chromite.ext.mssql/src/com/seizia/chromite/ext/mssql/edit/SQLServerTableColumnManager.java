@@ -48,6 +48,8 @@ import java.util.Map;
  * 변경 이력:
  * - 2026-11-07 Chromite: 문자형이 아닌 열에는 COLLATE를 붙이지 않음. 형식을 varchar에서 int로 바꾸면 읽어 온 정렬 규칙이 열에 남아
  *   {@code ALTER COLUMN … int COLLATE …}(오류 447)가 만들어졌다 (docs/chromite/swing-followup-fixes.md "SQL Server 열 정렬 규칙")
+ * - 2026-11-08 Chromite: 기본값 제약 조건이 있는 열의 형식·NULL 허용을 바꾸면 제약 조건을 먼저 지우고 ALTER COLUMN 뒤에 다시 만든다.
+ *   제약 조건이 남아 있으면 ALTER COLUMN이 실패했다(오류 5074, 4922) (docs/chromite/schema-compare.md "SQL Server 기본값 제약 조건")
  */
 public class SQLServerTableColumnManager extends SQLTableColumnManager<SQLServerTableColumn, SQLServerTableBase> implements DBEStructEditor<SQLServerTableColumn>, DBEObjectRenamer<SQLServerTableColumn> {
 
@@ -208,12 +210,25 @@ public class SQLServerTableColumnManager extends SQLTableColumnManager<SQLServer
         int totalProps = command.getProperties().size();
         boolean hasComment = command.hasProperty(DBConstants.PROP_ID_DESCRIPTION);
         if (hasComment) totalProps--;
-        if (column.isPersisted() && command.hasProperty("defaultValue")) {
+        boolean defaultChanged = column.isPersisted() && command.hasProperty("defaultValue");
+        if (defaultChanged) {
             totalProps--;
-
+        }
+        // ALTER COLUMN fails while a DEFAULT constraint depends on the column (errors 5074 and 4922), so the constraint
+        // is dropped before the column changes and created again after it, with the new or the kept default
+        boolean recreateDefault = defaultChanged
+            || totalProps > 0 && column.isPersisted() && column.getDefaultConstraintName() != null;
+        if (recreateDefault) {
             // [Re]create default constraint. Classic MS-style pain in the ass
             addDropConstraintAction(actionList, column);
-
+        }
+        if (totalProps > 0) {
+            actionList.add(new SQLDatabasePersistAction(
+                "Modify column",
+                "ALTER TABLE " + column.getTable().getFullyQualifiedName(DBPEvaluationContext.DDL) + //$NON-NLS-1$
+                    " ALTER COLUMN " + getNestedDeclaration(monitor, column.getTable(), command, options))); //$NON-NLS-1$
+        }
+        if (recreateDefault) {
             String defaultValue = column.getDefaultValue();
             if (!CommonUtils.isEmpty(defaultValue)) {
                 StringBuilder sql = new StringBuilder();
@@ -234,12 +249,6 @@ public class SQLServerTableColumnManager extends SQLTableColumnManager<SQLServer
             if (!CommonUtils.isEmpty(description) || commentSet) {
                 addColumnCommentAction(actionList, column, description, commentSet);
             }
-        }
-        if (totalProps > 0) {
-            actionList.add(new SQLDatabasePersistAction(
-                "Modify column",
-                "ALTER TABLE " + column.getTable().getFullyQualifiedName(DBPEvaluationContext.DDL) + //$NON-NLS-1$
-                    " ALTER COLUMN " + getNestedDeclaration(monitor, column.getTable(), command, options))); //$NON-NLS-1$
         }
     }
 

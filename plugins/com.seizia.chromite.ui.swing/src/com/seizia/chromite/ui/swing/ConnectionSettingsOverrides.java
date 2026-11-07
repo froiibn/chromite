@@ -17,10 +17,12 @@
 package com.seizia.chromite.ui.swing;
 
 import com.formdev.flatlaf.FlatClientProperties;
+import com.seizia.chromite.ext.altibase.AltibaseDataSourceProvider;
+import com.seizia.chromite.ext.cubrid.CubridDataSourceProvider;
 import com.seizia.chromite.ext.oracle.OracleDataSourceProvider;
+import com.seizia.chromite.model.DBPDataSourceProvider;
 import com.seizia.chromite.model.preferences.DBPPreferenceStore;
 import com.seizia.chromite.registry.DataSourceDescriptor;
-import com.seizia.chromite.runtime.DBWorkbench;
 import com.seizia.chromite.ui.swing.internal.SettingsMessages;
 import org.jkiss.code.NotNull;
 
@@ -37,9 +39,10 @@ import java.util.Set;
  *
  * 설계:
  * <ul>
- *     <li>페이지는 Options와 같은 {@link SettingsPage} 클래스다(Query Execution, Query Results, Data Formats, Errors and Timeouts, Metadata,
- *     Client Identification, Oracle 연결이면 Oracle). 페이지마다 위에 "이 연결에 다른 설정 사용" 확인란이 있다(SWT의 "Enable datasource-specific
- *     settings"). 끄면 페이지는 Options의 값을 보이고 고칠 수 없다.</li>
+ *     <li>페이지는 Options와 같은 {@link SettingsPage} 클래스다(Query Execution, Query Results, Binary and LOB, Data Formats, Errors and Timeouts,
+ *     Metadata, Client Identification, Code Completion, Data Transfer, Oracle·Altibase·CUBRID 연결이면 그 데이터베이스 페이지). 페이지마다 위에
+ *     "이 연결에 다른 설정 사용" 확인란이 있다(SWT의 "Enable datasource-specific settings"). 끄면 페이지는 Options의 값을 보이고 고칠 수 없다.
+ *     Options의 값은 페이지의 전역 저장소({@link SettingsPage#getGlobalStore})에서 읽는다.</li>
  *     <li>처음 상태: 연결의 설정 저장소가 페이지의 키 중 하나라도 자기 값으로 가지면 켜짐(SWT {@code hasDataSourceSpecificOptions}와 같은 규칙).</li>
  *     <li>저장({@link #saveSettings}): 켠 페이지는 모든 값을 연결의 값으로 쓰고({@link SettingsPage.Writer} 연결별 모드), 끈 페이지는 연결의 값을 지운다.
  *     값은 연결 설정 파일의 {@code custom-properties}에 저장된다(모델의 직렬화가 기본값과 다른 값만 씀).</li>
@@ -49,6 +52,8 @@ import java.util.Set;
  *
  * 변경 이력:
  * - 2026-11-08 최초 작성 (docs/chromite/swing-options.md "연결별 설정")
+ * - 2026-11-08 Binary and LOB, Code Completion, Data Transfer 페이지와 Altibase·CUBRID 연결의 페이지, 끈 페이지는 페이지의 전역 저장소 값을 보임
+ *   (docs/chromite/swing-options.md "남은 키 (2026-11-08 오후)")
  */
 final class ConnectionSettingsOverrides extends JPanel {
 
@@ -61,10 +66,16 @@ final class ConnectionSettingsOverrides extends JPanel {
     ConnectionSettingsOverrides(@NotNull DataSourceDescriptor dataSource) {
         super(new BorderLayout());
         List<SettingsPage> pages = new ArrayList<>(List.of(
-            new SqlExecutionOptionsPage(false), new ResultSetOptionsPage(false), new DataFormatOptionsPage(false),
-            new ConnectionErrorsOptionsPage(false), new MetadataOptionsPage(false), new ClientIdentificationOptionsPage(false)));
-        if (dataSource.getDriver().getDataSourceProvider() instanceof OracleDataSourceProvider) {
+            new SqlExecutionOptionsPage(false), new ResultSetOptionsPage(false), new ContentOptionsPage(false),
+            new DataFormatOptionsPage(false), new ConnectionErrorsOptionsPage(false), new MetadataOptionsPage(false),
+            new ClientIdentificationOptionsPage(false), new CodeCompletionOptionsPage(false), new DataTransferOptionsPage(false)));
+        DBPDataSourceProvider<?> provider = dataSource.getDriver().getDataSourceProvider();
+        if (provider instanceof OracleDataSourceProvider) {
             pages.add(new OracleOptionsPage(false));
+        } else if (provider instanceof AltibaseDataSourceProvider) {
+            pages.add(new AltibaseOptionsPage(false));
+        } else if (provider instanceof CubridDataSourceProvider) {
+            pages.add(new CubridOptionsPage(false));
         }
         DBPPreferenceStore store = dataSource.getPreferenceStore();
         for (SettingsPage page : pages) {
@@ -119,7 +130,7 @@ final class ConnectionSettingsOverrides extends JPanel {
     private void overrideChanged(@NotNull Entry entry) {
         if (!entry.overrideBox.isSelected()) {
             // Back to the global settings: show what applies now
-            entry.page.load(DBWorkbench.getPlatform().getPreferenceStore());
+            entry.page.load(entry.page.getGlobalStore());
         }
         entry.updateState();
         updateTabIcons();

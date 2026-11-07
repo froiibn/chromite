@@ -58,6 +58,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
  * 변경 이력:
  * - 2026-11-07 최초 작성 (docs/chromite/ai-agent.md "2단계")
  * - 2026-11-08 기록 크기 예산: 오래된 도구 결과 줄이기, 오래된 차례 빼기, 호출·결과 짝은 나누지 않음 (docs/chromite/ai-agent.md "요청 크기")
+ * - 2026-11-08 실행 중인 도구의 진행 글({@link Entry#getProgress}, 저장하지 않음): 백업·복원 도구
  */
 public final class AIAgentChat {
 
@@ -117,6 +118,9 @@ public final class AIAgentChat {
         @Nullable
         private String outcome;
         private long durationMs;
+        // TOOL while it runs: the tool's latest progress text; not saved (a saved conversation has no running tools)
+        @Nullable
+        private transient volatile String progress;
 
         Entry() {
         }
@@ -200,11 +204,24 @@ public final class AIAgentChat {
             return kind == Kind.TOOL && outcome == null;
         }
 
+        /**
+         * Latest progress text of the running tool ({@code AIToolCallContext.reportProgress}), or null.
+         */
+        @Nullable
+        public String getProgress() {
+            return progress;
+        }
+
+        void setProgress(@Nullable String progress) {
+            this.progress = progress;
+        }
+
         void finishTool(@NotNull String outcome, @Nullable String access, @NotNull String result, long durationMs) {
             this.outcome = outcome;
             this.access = access;
             this.result = result;
             this.durationMs = durationMs;
+            this.progress = null;
         }
     }
 
