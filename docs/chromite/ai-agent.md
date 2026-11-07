@@ -60,7 +60,7 @@ Chromite 안에서 AI 모델이 DBA처럼 일하게 한다. 사용자가 "이 �
 | `plugins/com.seizia.chromite.model.ai` (기존) | 확장점 `com.seizia.chromite.ai.function`에 속성 `access`, `writes` 추가(`schema/com.seizia.chromite.ai.function.exsd`). `AIFunctionDescriptor.getAccess()`, `getWrites()` |
 | `model.ai` 패키지 `com.seizia.chromite.model.ai.agent` (새) | 정책·감사·실행기·확인·편집기 연결 등 채팅과 MCP가 함께 쓰는 부분: `AIToolAccess`, `AIToolWrites`, `AIToolPermission`, `AIToolClient`, `AIToolOutcome`, `AIToolPolicy`, `AIToolDecision`, `AIToolConfirmationHandler`, `AIToolConfirmationRequest`, `AIToolConfirmationAnswer`, `AIPendingTransaction`, `AIToolTransactionGuard`, `AIEditorBridge`, `AIAgentServices`, `AIToolAuditLog`, `AIToolExecutor`, `AIToolCallContext`, `AIToolCallResult`, `AIToolAccessClassifier`, `AIToolPreviewProvider`, `AIToolArgumentException`, `AIToolCatalog`, `AIToolConnections` |
 | `model.ai` 패키지 `com.seizia.chromite.model.ai.engine.anthropic` (새) | Anthropic 엔진(Messages API, 도구 사용) |
-| `plugins/com.seizia.chromite.model.ai.tools` (새 번들) | 도구 구현(`...model.ai.tools`: `ConnectionTools`, `MetadataTools`, `QueryTools`, `PlanTools`, `DataTools`, `DdlTools`, `TransferTools`, `AdminTools`, `LibraryTools`, `DiagnosticSqlTool`, 공통 `AgentTool`, `AgentSql`, `AgentSqlClassifier`, `AgentJson`, `AgentNames`, `AgentValues`, `PlanParser`, `DiagnosticScript`, `DiagnosticPostProcessor`, `PermissionProbe`, `LibraryReader`, `ThresholdEvaluator`), 진단 SQL 자원(`.../tools/diag/<도구>.sql` 29개), MCP 서버(`...model.ai.tools.mcp`: `AIMcpServer`, `AIMcpSettings`, `AIMcpPluginService`, `AIAgentPlaybooks` + `playbooks/*.md`). SQL Server 백업·복원 모델(`model.admin`)과 `ext.mssql`에 의존하므로 `model.ai`와 나눴다 |
+| `plugins/com.seizia.chromite.model.ai.tools` (새 번들) | 도구 구현(`...model.ai.tools`: `ConnectionTools`, `MetadataTools`, `QueryTools`, `PlanTools`, `DataTools`, `DdlTools`, `TransferTools`, `AdminTools`, `AgentJobTools`(1b), `LibraryTools`, `DiagnosticSqlTool`, 공통 `AgentTool`, `AgentSql`, `AgentSqlClassifier`, `AgentJson`, `AgentNames`, `AgentValues`, `PlanParser`, `DiagnosticScript`, `DiagnosticPostProcessor`, `PermissionProbe`, `LibraryReader`, `ThresholdEvaluator`), 진단 SQL 자원(`.../tools/diag/<도구>.sql` 32개), MCP 서버(`...model.ai.tools.mcp`: `AIMcpServer`, `AIMcpSettings`, `AIMcpPluginService`, `AIAgentPlaybooks` + `playbooks/*.md`). SQL Server 백업·복원 모델(`model.admin`)과 `ext.mssql`에 의존하므로 `model.ai`와 나눴다 |
 | `features/com.seizia.chromite.swing.feature` | 새 번들을 Swing 제품에 넣는다 |
 
 모델 번들이라 SWT·Swing에 의존하지 않는다(AGENTS-Architecture.md). 화면이 필요한 곳(확인 대화상자, 쿼리 창 열기)은 인터페이스만 두고
@@ -121,7 +121,8 @@ Chromite 안에서 AI 모델이 DBA처럼 일하게 한다. 사용자가 "이 �
 - DB 종류 표기: MS = SQL Server, PG = PostgreSQL(같은 드라이버 계열 포함), MY = MySQL/MariaDB, OR = Oracle, G = 모델 계층으로 모든 연결.
   표에 없는 DB에서 부르면 `unsupported` 오류와 함께 대신 쓸 도구(대개 `runReadOnlySql`)를 알려 준다.
 - 분류: R = READ, W = WRITE, D = DANGEROUS. "R→W"는 호출별로 바뀐다(문장이 읽기라고 증명되지 않으면 WRITE, `DROP`·`TRUNCATE`·WHERE 없는 `DELETE/UPDATE`면 DANGEROUS).
-- 단계: 1 = 이번 작업, 1b = 다음 작업(아래 "1b단계").
+- 단계: 1 = 1단계 작업, 1b = 1b단계 작업(2026-11-08, 아래 "1b단계 도구"). "1 (OR 1b)"는 1단계에서 만들고 1b단계에서 그 DB를 더한 것이다.
+  아직 하지 않은 것은 "미룸"으로 적고 아래 "1b단계 (미룬 것)"에 둔다.
 
 ### 연결 (`agent.connections`)
 
@@ -170,7 +171,7 @@ Chromite 안에서 AI 모델이 DBA처럼 일하게 한다. 사용자가 "이 �
 | `rollbackTransaction` | 에이전트의 열린 트랜잭션 롤백. 늘 확인. 운영 연결에서도 에이전트가 자기 일을 되돌릴 수 있어야 하므로 분류는 READ(막히지 않음)이고, 되돌릴 것이 있으면 트랜잭션 안전 규칙이 늘 묻는다 | R | `connection` | 결과 | G | 1 |
 | `cancelQuery` | 에이전트가 실행 중인 문장 취소 | R | `connection` | 취소한 수 | G | 1 |
 | `explainQuery` | 예상 실행 계획을 **구조화 JSON**으로(연산자, 비용, 예상 행, 경고, 누락 인덱스, 매개변수 컴파일 값) | R | `connection`, `sql`, `database` | `plan` | MS PG MY OR, G(계획기) | 1 |
-| `getActualPlan` | 실제 실행 계획과 실행 통계(실제 행, 반복, 시간, 논리 읽기·버퍼, SET STATISTICS IO/TIME, EXPLAIN ANALYZE BUFFERS) | R→W | `connection`, `sql`, `database` | `plan`, `runtime` | MS PG MY | 1 (OR 1b) |
+| `getActualPlan` | 실제 실행 계획과 실행 통계(실제 행, 반복, 시간, 논리 읽기·버퍼, SET STATISTICS IO/TIME, EXPLAIN ANALYZE BUFFERS, OR: `GATHER_PLAN_STATISTICS` + `DISPLAY_CURSOR('ALLSTATS LAST')`) | R→W | `connection`, `sql`, `database` | `plan`, `runtime` | MS PG MY OR | 1 (OR 1b) |
 | `comparePlans` | 두 쿼리(또는 같은 쿼리의 인덱스 전후)의 계획 비교: 비용, 연산자 바뀜(스캔→탐색), 행 추정 | R | `connection`, `sqlA`, `sqlB`, `actual` | `a`, `b`, `diff` | MS PG MY OR | 1 |
 | `validateSql` | 구문 검사(해석 오류 위치), 문장 분류 | R | `connection`, `sql` | `valid`, `type`, `readOnly`, `error` | G | 1 |
 | `formatSql` | SQL 서식 | R | `connection`, `sql` | `sql` | G | 1 |
@@ -224,7 +225,7 @@ DDL 도구는 실행 전 확인 요청에 만든 DDL을 그대로 보여 준다(
 | `listSessions` | 세션: 로그인, 호스트, 프로그램, 상태, 대기, 현재 문장 | R | `connection`, `activeOnly` | `sessions[]` | MS PG MY OR | 1 |
 | `getBlockingChain` | **블로킹 사슬 트리**: 머리 블로커(세션, 로그인, 호스트, 프로그램, 트랜잭션 나이, 격리 수준, 열린 트랜잭션 수, 마지막 SQL), 대기자(대기 종류·시간·자원·SQL), 관련 잠금(개체·인덱스로 바꿈), 규칙 기반 **소견**(왜 막히는지 후보와 해결 제안) | R | `connection`, `database` | `heads[]`(트리), `locks[]`, `findings[]` | MS PG MY OR | 1 |
 | `listLocks` | 잡은·기다리는 잠금, 자원을 개체·인덱스로, 세션·개체별 잠금 수(에스컬레이션 단서) | R | `connection`, `database`, `session` | `locks[]`, `summary[]` | MS PG MY OR | 1 |
-| `getDeadlocks` | 최근 교착 상태를 구조화 JSON으로(MS: system_health 교착 그래프 XML 해석, MY: InnoDB 최신 교착 상태, PG: 횟수와 로그 안내) | R | `connection`, `limit` | `deadlocks[]` | MS MY PG | 1 (OR 1b) |
+| `getDeadlocks` | 최근 교착 상태를 구조화 JSON으로(MS: system_health 교착 그래프 XML 해석, MY: InnoDB 최신 교착 상태, PG: 횟수와 로그 안내, OR: 경고 로그의 ORA-00060 항목 + 그 추적 파일의 교착 상태 그래프) | R | `connection`, `limit` | `deadlocks[]` | MS MY PG OR | 1 (OR 1b) |
 | `listOpenTransactions` | 오래 열린 트랜잭션과 idle-in-transaction 세션 | R | `connection`, `minSeconds` | `transactions[]` | MS PG MY OR | 1 |
 | `getLongRunningQueries` | 지금 오래 실행 중인 요청 | R | `connection`, `minSeconds` | `queries[]` | MS PG MY OR | 1 |
 | `killSession` | 세션 끝내기 | D | `connection`, `session` | 결과 | MS PG MY OR | 1 |
@@ -236,9 +237,14 @@ DDL 도구는 실행 전 확인 요청에 만든 DDL을 그대로 보여 준다(
 | `getJobHistory` | 작업 실패·최근 실행(MS: msdb, PG: pg_cron 있으면, MY: 이벤트, OR: 스케줄러) | R | `connection`, `failedOnly` | `jobs[]` | MS PG MY OR | 1 |
 | `getErrorLog` | 서버 오류 로그 최근 항목(MS: `sp_readerrorlog`, PG: `pg_current_logfile`+`pg_read_file`, MY: `performance_schema.error_log`, OR: `v$diag_alert_ext`) | R | `connection`, `contains`, `limit` | `entries[]` | MS PG MY OR | 1 |
 | `getServerConfig` | 기본값과 다른 설정과 상식 검사(예: MAXDOP, 비용 임계값, shared_buffers, work_mem) | R | `connection` | `settings[]`, `findings[]` | MS PG MY OR | 1 |
-| `backupDatabase` | 백업(MS: T-SQL `BACKUP DATABASE`, `model.admin`의 `SQLServerBackupSettings`) | W | `connection`, `database`, `file`, `type`, `copyOnly` | 메시지 | MS | 1 (PG MY 네이티브 도구 1b) |
+| `backupDatabase` | 백업(MS: T-SQL `BACKUP DATABASE`, `model.admin`의 `SQLServerBackupSettings`) | W | `connection`, `database`, `file`, `type`, `copyOnly` | 메시지 | MS | 1 (PG MY 네이티브 도구 미룸) |
 | `restoreDatabase` | 복원(MS, `SQLServerRestoreSettings`) | D | `connection`, `database`, `file`, `replace` | 메시지 | MS | 1 |
-| SQL Server Agent 작업 관리(시작·중지·사용 설정·단계) | | W | | | MS | 1b (아래) |
+| `listAgentJobs` | SQL Server Agent 서비스 상태와 작업 목록(사용 여부, 실행 중·현재 단계, 마지막 결과·시각, 다음 실행, 범주, 소유자) | R | `connection`, `filter` | `agent`, `jobs[]` | MS | 1b |
+| `getAgentJob` | 작업 하나의 정의: 단계(하위 시스템, DB, 명령, 성공·실패 동작, 재시도)와 일정(설명, 시작 시각, 다음 실행) | R | `connection`, `job` | 객체, `steps[]`, `schedules[]` | MS | 1b |
+| `getAgentJobHistory` | 실행 기록(최신 순): 실행 결과(단계 0)와 그 실행의 단계별 상태·시간·재시도·서버 메시지. 작업 하나 또는 전체 | R | `connection`, `job`, `failedOnly`, `limit` | `history[]` | MS | 1b |
+| `startAgentJob` | 작업 시작(`sp_start_job`, 단계 지정 가능). 비동기 | W | `connection`, `job`, `step` | `statement`, `messages[]` | MS | 1b |
+| `stopAgentJob` | 실행 중인 작업 중지(`sp_stop_job`) | W | `connection`, `job` | `statement`, `messages[]` | MS | 1b |
+| `setAgentJobEnabled` | 작업 사용·사용 안 함(`sp_update_job @enabled`) | W | `connection`, `job`, `enabled` | `previouslyEnabled`, `enabled` | MS | 1b |
 
 ### 성능 (`agent.performance`)
 
@@ -246,12 +252,15 @@ DDL 도구는 실행 전 확인 요청에 만든 DDL을 그대로 보여 준다(
 |---|---|---|---|---|---|---|
 | `getTableStatistics` | 행 수, 테이블·인덱스 크기, 통계 마지막 갱신, 표본 행, 갱신 후 변경 수, 데드 튜플·자동 분석 시각 | R | `connection`, `table` 또는 `schema` | `tables[]`, `statistics[]` | MS PG MY OR | 1 |
 | `getIndexUsage` | 인덱스 사용 통계(탐색·스캔·조회·갱신), 잠금 에스컬레이션 시도 | R | `connection`, `table` 또는 `schema` | `indexes[]` | MS PG MY OR | 1 |
-| `getMissingIndexes` | 누락 인덱스 제안(MS DMV, PG: 순차 스캔이 많은 큰 테이블) | R | `connection`, `database` | `suggestions[]` | MS PG | 1 (MY OR 1b) |
-| `getUnusedIndexes` | 쓰이지 않는·중복 인덱스 | R | `connection`, `schema` | `unused[]`, `duplicates[]` | MS PG MY | 1 (OR 1b) |
+| `getMissingIndexes` | 누락 인덱스 제안(MS DMV, PG: 순차 스캔이 많은 큰 테이블, OR: 캐시된 계획에서 1만 행 넘는 테이블의 전체 스캔과 그 필터 조건) | R | `connection`, `database` | `rows[]` | MS PG OR | 1 (OR 1b, MY 미룸) |
+| `getUnusedIndexes` | 쓰이지 않는·중복 인덱스(OR: 인덱스 사용 추적 `DBA_INDEX_USAGE`, 캐시된 계획에 있는지) | R | `connection`, `schema` | `unused[]`, `duplicates[]` | MS PG MY OR | 1 (OR 1b) |
 | `getIndexFragmentation` | 조각화·부풀음(MS `dm_db_index_physical_stats` LIMITED, PG pgstattuple 있으면 그것, 없으면 추정, MY `data_free`) | R | `connection`, `table` 또는 `schema` | `indexes[]` | MS PG MY | 1 |
-| `getRoutineStats` | 루틴의 실행 통계와 **문장별 통계**(MS: 문장 오프셋 → 줄 번호, PG: `pg_stat_user_functions` + `pg_stat_statements`, MY: performance_schema 프로그램 요약) | R | `connection`, `name` | `routine`, `statements[]` | MS PG MY | 1 (OR 1b) |
+| `getRoutineStats` | 루틴의 실행 통계와 **문장별 통계**(MS: 문장 오프셋 → 줄 번호, PG: `pg_stat_user_functions` + `pg_stat_statements`, MY: performance_schema 프로그램 요약, OR: `V$SQL`의 `PROGRAM_ID`·`PROGRAM_LINE#`) | R | `connection`, `name` | `routine`, `statements[]` | MS PG MY OR | 1 (OR 1b) |
 | `getCachedPlans` | 루틴·쿼리 텍스트의 캐시된 계획을 문장별 구조화 JSON으로(MS) | R | `connection`, `name` 또는 `contains`, `top` | `plans[]` | MS | 1 (PG는 계획 캐시가 없어 `explainQuery`로 대신) |
-| `whatIfIndex` | 가상 인덱스로 계획 비교(PG hypopg 있으면) | R | | | PG | 1b |
+| `getQueryStoreTopQueries` | Query Store의 최근 N시간 상위 쿼리(CPU·시간·논리 읽기·실행 수, 계획 수). 재시작·계획 캐시 제거에도 남는다 | R | `connection`, `database`, `orderBy`, `hours`, `top` | `queryStore`, `queries[]` | MS | 1b |
+| `getQueryStoreRegressions` | 최근 창의 평균 시간이 앞 창보다 나빠진 쿼리, 두 창의 계획 ID와 `plan_changed` | R | `connection`, `database`, `recentMinutes`, `historyMinutes`, `minExecutions`, `top` | `queryStore`, `regressions[]` | MS | 1b |
+| `getQueryStoreForcedPlans` | 강제된 계획(수동·자동 조정), 강제 실패 수와 마지막 실패 이유. 읽기만 | R | `connection`, `database` | `queryStore`, `forcedPlans[]` | MS | 1b |
+| `whatIfIndex` | 가상 인덱스(PG hypopg)를 만든 전후의 예상 계획과 비교. hypopg가 그 DB에 없으면 `available: false`와 이유 | R | `connection`, `database`, `sql`, `index` | `before`, `after`, `diff`, `indexUsed` | PG | 1b |
 
 ### Query Library (`agent.library`)
 
@@ -490,7 +499,7 @@ values")에 썼기 때문이다. 결과는 `<작업 공간>/.metadata/.plugins/o
 2. `explainQuery` → 비싼 연산자, 스캔·키 조회, 경고(암시적 변환, 통계 없음), 누락 인덱스.
 3. 쿼리가 읽기 전용이면 `getActualPlan`(실제 행·시간·I/O). 읽기가 아니면 **멈춤**: 실제 실행은 WRITE이므로 사용자에게 묻는다.
 4. `describeTable`, `getTableStatistics`(행 수, 통계 갱신 시각, 변경 수), `listIndexes`, `getIndexUsage`, `getMissingIndexes`, `getIndexFragmentation`.
-5. 다시 쓴 쿼리 또는 인덱스 후보를 만든다. `comparePlans`로 전후 비용 비교(인덱스 후보는 PG hypopg가 있으면 1b `whatIfIndex`, 없으면 예상 근거만).
+5. 다시 쓴 쿼리 또는 인덱스 후보를 만든다. `comparePlans`로 전후 비용 비교(인덱스 후보는 PG hypopg가 있으면 `whatIfIndex`, 없으면 예상 근거만).
 6. **멈춤**: 바꿀 DDL(`generateDdl`)과 기대 효과를 보여 준다. 사용자가 원하면 `createIndex`(WRITE, 확인) 후 `getActualPlan`·`comparePlans`로 효과를 잰다.
 
 ### 2. "지금 DB 상태 어때?"
@@ -498,13 +507,14 @@ values")에 썼기 때문이다. 결과는 `<작업 공간>/.metadata/.plugins/o
 1. `getServerInfo`, `probePermissions`.
 2. 권한 되는 것만: `listSessions`, `getBlockingChain`, `getLongRunningQueries`, `listOpenTransactions`, `getWaitStats`, `getTopQueries`,
    `getDatabaseSizes`, `getSpaceUsage`, `getBackupHistory`, `getJobHistory`(실패), `getErrorLog`(최근 오류), `getServerConfig`.
+   SQL Server는 `getQueryStoreTopQueries`·`getQueryStoreRegressions`(Query Store가 켜져 있을 때, 꺼져 있으면 도구가 그렇게 말함)와 `listAgentJobs`(에이전트 상태, 마지막 결과)도.
 3. 항목별 정상·주의·위험과 근거, 건너뛴 항목과 이유. 아무것도 바꾸지 않는다.
 
 ### 3. "지금 이 쿼리가 너무 느린데 원인을 분석해 줘" (변경 없음)
 
 1. 1번 플레이북의 1~4단계(쓰기 없이). 실제 계획은 읽기 전용일 때만.
 2. 실행 중이면 `getLongRunningQueries`, `getBlockingChain`, `listLocks`로 블로킹·대기 확인.
-3. 매개변수 스니핑: 계획의 매개변수 컴파일 값 vs 실행 값(`explainQuery`/`getCachedPlans`의 `parameters`).
+3. 매개변수 스니핑: 계획의 매개변수 컴파일 값 vs 실행 값(`explainQuery`/`getCachedPlans`의 `parameters`). SQL Server는 `getQueryStoreRegressions`로 새 계획과 함께 느려졌는지 본다.
 4. 원인을 **순위 목록**으로: 원인, 근거(연산자·수치), 확신도, 고치는 방법(텍스트만).
 
 ### 4. "시스템 상태 어때?" (Query Library 모니터링)
@@ -700,15 +710,101 @@ Anthropic 제공자의 기본 URL로 두고, 빌드한 Swing 제품을 개인 �
 설정 후에도 "제공자를 설정하세요" 안내가 남음(AI 설정 변경 이벤트로 갱신), 연결을 고를 때 데이터베이스가 비어 있음(쿼리 창 문맥의 기본값으로), 테마를 바꿔도
 Markdown 글자색이 그대로(외형 값을 따르게).
 
+## 1b단계 도구 (2026-11-08)
+
+1단계에서 미룬 도구를 같은 카탈로그·정책·감사·읽기 전용 보호로 더했다(위 카탈로그의 단계 "1b"). MCP `tools/list`는 96개(READ 73, WRITE 19,
+DANGEROUS 4)다. 표시 이름은 `model.ai.tools`의 `OSGI-INF/l10n/bundle*.properties`(영어·한국어), 도구 ID와 모델에 주는 설명은 영어다.
+
+### SQL Server Agent 작업 (`AgentJobTools`)
+
+- 모델은 #83의 `ext.mssql` `model.agent`다(브리프의 `model.admin`이 아니다: [swing-sqlserver-agent.md](swing-sqlserver-agent.md) "모델은 `ext.mssql`에 둔다").
+  목록·기록은 `SQLServerAgentManager.readJobs`/`readHistory`, 정의는 `SQLServerAgentJobDefinition.load`, 서비스 상태는 `SQLServerAgent.readState`,
+  바꾸는 문은 `SQLServerAgentManager.startJobStatement`/`stopJobStatement`/`enableJobStatement`, 실행은 `SQLServerAgentManager.execute`(격리 연결, 한
+  트랜잭션, 커밋)다. Swing 에이전트 메뉴와 같은 T-SQL이 확인 대화상자에 보인다.
+- 읽기는 msdb 도움말 프로시저라 에이전트 역할(SQLAgentUserRole·ReaderRole·OperatorRole)이면 된다. 모델의 읽기 메서드가 DBeaver 세션을 받으므로
+  **메타데이터 세션**에서 읽는다(탐색기 에이전트 노드와 같다). 처음에는 유틸 세션(연결의 Main 문맥)에서 읽었는데, 수동 커밋 연결(운영 종류)에서
+  `sp_help_job`이 사용자 Main 문맥에 트랜잭션을 열어 앱을 닫을 때 "커밋하지 않은 트랜잭션: MSSQL PROD (Main)"이 떴다. 메타데이터 세션으로 바꾼 뒤
+  같은 호출 후 질문 없이 닫혔다. 에이전트 격리 문맥(JDBC 직접)은 DBeaver 세션을 줄 수 없고, 세션 문장을 쓰면 쿼리 관리자가 에이전트 문맥의
+  트랜잭션을 따로 세게 되어 쓰지 않았다.
+- 시작·중지는 에이전트 서비스에 보내는 요청이라 되돌릴 수 없다. 그래서 수동 커밋 연결에서도 에이전트 트랜잭션에 넣지 않고 모델이 바로 커밋한다
+  (SQL Server 백업 도구와 같다). 정책은 다른 WRITE 도구와 같다(기본 확인, 운영 연결 막힘, 읽기 전용 연결 실행 안 함).
+- 서버가 "이미 실행 중"·"실행 중이 아님"에도 "에이전트에 알릴 수 없음"과 같은 오류 번호(22022)를 내어 모델의 오류 분류가 "에이전트가 멈춤"으로
+  잘못 알린다. 그래서 실행 전에 작업 상태와 서비스 상태(`canRunJobs`)를 보고 정확한 이유를 돌려준다. 사용 설정은 msdb만 바꾸므로 에이전트가 멈춰도 된다.
+- 상태·결과 이름은 모델의 표시 이름(화면 언어)과 코드(`lastRunOutcomeCode`, `outcomeCode`)를 함께 낸다. 일정 설명은 서버 글(`Every day at 30000`처럼 시각이
+  hhmmss 수)이라 `activeStartTime`·`activeEndTime`(HH:MM:SS)을 더했다.
+
+### Oracle 진단
+
+ORACLE LICENSE GUARD: 쓰는 것은 `V$SQL`, `V$SQL_PLAN`, `V$SQL_PLAN_STATISTICS_ALL`, `DBMS_XPLAN.DISPLAY_CURSOR`, `V$DIAG_ALERT_EXT`,
+`V$DIAG_TRACE_FILE_CONTENTS`, `DBA_INDEX_USAGE`, `ALL_*`/`DBA_SEGMENTS`다. ASH·AWR(`V$ACTIVE_SESSION_HISTORY`, `DBA_HIST_*`), SQL Monitor, SQL Tuning·Access
+Advisor는 쓰지 않는다(Diagnostics/Tuning Pack).
+
+| 도구 | Oracle 구현 | 필요한 권한(없으면 도구가 이 GRANT를 알림) |
+|---|---|---|
+| `getActualPlan` | 첫 DML 키워드(WITH 쿼리는 첫 SELECT) 뒤에 `/*+ GATHER_PLAN_STATISTICS */`와 표지 주석을 넣어 실행하고 행을 끝까지 읽는다. 커서는 세션의 이전 문장이 아니라 표지로 `V$SQL`에서 찾는다(드라이버가 그 사이에 문장을 낼 수 있다). 사용자 힌트가 있으면 그 힌트 안에 더한다(Oracle은 키워드 뒤 첫 주석만 힌트로 읽음). `V$SQL_PLAN_STATISTICS_ALL`의 `last_*`(A-Rows는 모든 Starts의 합) → 공통 노드(`actualRows`, `executions`, `reads`, `actualTimeMs`), `DISPLAY_CURSOR('ALLSTATS LAST')` 글. 세션 설정(statistics_level)은 바꾸지 않는다. 읽기 문장은 읽기 전용 트랜잭션, 아니면 확인 뒤 롤백 | `SELECT_CATALOG_ROLE`(또는 `SELECT ANY DICTIONARY`). `DISPLAY_CURSOR`가 권한 부족을 오류가 아니라 계획 글로 내는 경우도 잡는다 |
+| `getDeadlocks` | `V$DIAG_ALERT_EXT`의 ORA-00060 항목(30일) + 항목이 가리키는 추적 파일의 "DEADLOCK DETECTED" 절(교착 상태 그래프, 대기 세션과 SQL)을 `V$DIAG_TRACE_FILE_CONTENTS`에서 읽음. 한 추적 파일의 n번째 오래된 항목 = n번째 절 | `V$DIAG_ALERT_EXT`는 `SELECT_CATALOG_ROLE`로 읽을 수 없다(시험에서 ORA-00942): SYS로 `GRANT SELECT ON SYS.V_$DIAG_ALERT_EXT TO <user>`. 그래프는 `SELECT_CATALOG_ROLE` |
+| `getRoutineStats` | `V$SQL`의 `PROGRAM_ID`(루틴 객체)·`PROGRAM_LINE#`(줄)로 문장별 실행 수·CPU·시간·읽기. 루틴 행은 그 문장들의 합(팩 없이 호출당 합계는 없음) | `SELECT_CATALOG_ROLE` |
+| `getMissingIndexes` | 캐시된 계획(`V$SQL_PLAN`)에서 1만 행 넘는 테이블의 `TABLE ACCESS … FULL`과 그 필터 조건, `V$SQL` 읽기 수 순(Oracle 자체 인덱스 조언은 Tuning Pack) | `SELECT_CATALOG_ROLE` |
+| `getUnusedIndexes` | 인덱스 사용 추적(`DBA_INDEX_USAGE`, 12.2+, 팩 없음)에 접근이 없는 비고유 인덱스, 캐시된 계획에 있는지(`in_cached_plan`), 크기. 중복·왼쪽 접두 인덱스(`ALL_IND_COLUMNS`) | `SELECT_CATALOG_ROLE`(`DBA_*`) |
+
+- `getErrorLog`의 Oracle 필요 권한 글도 같은 GRANT로 고쳤다. `probePermissions`에 `alert_log` 검사(위 GRANT)를 더하고 Oracle V$ 검사에 위 도구들을 넣었다.
+- 예상 계획(`explainQuery`)과 실제 계획이 같은 해석기(`PlanParser.parseOracle`)를 쓴다. 예상 계획에도 전체 테이블 스캔 소견과 hotspots가 생겼다.
+- 시간대가 있는 시각(경고 로그의 `originating_timestamp`)이 `oracle.sql.TIMESTAMPTZ@…`로 나가던 것(1단계 `getErrorLog`도 같음)을 `AgentJson`에서 고쳤다.
+
+### SQL Server Query Store
+
+- 도구 3개(`getQueryStoreTopQueries`, `getQueryStoreRegressions`, `getQueryStoreForcedPlans`)는 진단 SQL(`diag/*.sql`)이다. 각 도구의 첫 문장이
+  `sys.database_query_store_options`이고, 후처리가 그 행을 `queryStore` 객체로 바꾼다. **꺼져 있으면** `queryStoreOff: true`와 "Query Store is OFF in
+  database …: it has recorded nothing … ALTER DATABASE … SET QUERY_STORE = ON …" 문장을 낸다. READ_ONLY(저장 한도 등)·ERROR 상태도 문장으로 알린다.
+  master·tempdb처럼 옵션 행이 없는 DB는 "이 DB에는 Query Store가 없다, `database` 인수로 사용자 DB를 주라"고 알린다(시험에서 연결 기본 DB가 master였다).
+- 회귀는 두 창(최근 `recentMinutes`, 그 앞 `historyMinutes`, 분 단위)의 평균 시간 비교다. 구간(interval)은 시작 시각으로 창을 정한다. `plan_changed` = 최근 창에
+  앞 창에 없던 계획이 있음. 분 단위로 둔 것은 짧은 구간(1분)의 시험과 "방금 느려짐" 질문을 위해서다.
+- 강제 계획은 읽기만 한다(강제·해제 도구는 없음). `plan_forcing_type_desc`(MANUAL/AUTO)는 SQL Server 2019부터 있다.
+- 권한: `VIEW DATABASE STATE`(2022는 `VIEW DATABASE PERFORMANCE STATE`). `probePermissions`의 `view_database_state` 검사에 넣었다.
+
+### whatIfIndex (PostgreSQL hypopg)
+
+- 그 DB에 hypopg가 있으면(`pg_extension`): 예상 계획 → `hypopg_create_index(<CREATE INDEX>)` → 예상 계획 → `hypopg_drop_index`. 가상 인덱스는 백엔드
+  메모리에만 있어(카탈로그·디스크 변경 없음, 다른 세션에 안 보임) READ이고 읽기 전용 트랜잭션에서 돈다. 결과: `before`, `after`, `diff`(`comparePlans`와 같은
+  비교), `indexUsed`, 가상 인덱스 이름·예상 크기.
+- 없으면 `available: false`와 이유: 서버에 설치되어 있지만 그 DB에 없음(`CREATE EXTENSION hypopg`는 사용자·DBA 몫, 에이전트는 확장을 만들지 않음) /
+  서버에 설치되지 않음. PostgreSQL이 아닌 연결도 이유를 돌려준다.
+- 공용 시험 DB(PostgreSQL 17)에는 hypopg가 설치되어 있지 않아(`pg_available_extensions`에 없음) **"없음" 경로만 시험했다**. 설치하지 않았다(브리프).
+
+### 확인 (1b, 2026-11-08)
+
+빌드: `mvn -B clean package -f product/aggregate/pom.xml -T1C -Pproduct-chromite-swing` BUILD SUCCESS, `python tools/rename/gate.py` ALL GATES PASSED.
+회귀 테스트는 요청되지 않아 실행하지 않았다. 빌드한 Swing 제품 하나를 개인 작업 공간 사본과 `CHROMITE_DATA`(작업 폴더)로 띄우고, MCP(Python 클라이언트, 포트
+47871)와 채팅(앱 안에 붙인 시험 에이전트가 `AIAgentChatRunner`를 부름, 가짜 Messages API)으로 불렀다. 확인 대화상자는 시험 에이전트가 Swing API로
+눌렀다(화면 좌표·OS 입력 없음). 시험 객체: SQL Server DB `chr_agent_1b`(Query Store 1분 구간), `chr_agent_1b_qs_off`(꺼짐), 작업 `chr_agent_1b_job`(40초
+대기 + 0으로 나누기 단계), Oracle 사용자 `CHR_AGENT_1B`(SELECT_CATALOG_ROLE + V_$DIAG_ALERT_EXT GRANT), `CHR_AGENT_1B_NOPRIV`(권한 없음). 끝나고 모두 지웠다.
+
+| 시험 | 결과 |
+|---|---|
+| 에이전트 작업 읽기 | `listAgentJobs`: 서비스 RUNNING, 작업 1개. `getAgentJob`: 단계 2개(명령, "go to the next step"/"quit reporting failure"), 일정(사용 안 함). PostgreSQL 연결에서 부르면 "SQL Server 연결이 필요", 없는 작업은 INVALID |
+| 작업 시작·중지(확인) | MCP `startAgentJob` → 앱에 "Chromite Agent 도구 실행 확인"(쓰기 배지, 실행할 SQL `EXEC msdb.dbo.sp_start_job @job_id = N'…'`, 이유 "기본값") → 허용 → 상태 "실행 중, 1 (wait)". `stopAgentJob` 허용 → "Job … stopped successfully.", 마지막 결과 취소됨. 실행 중이 아닐 때 `stopAgentJob` → "is not running … nothing to stop" |
+| 사용 설정 | `setAgentJobEnabled false` 거부 → DENIED(바뀌지 않음), 허용 → `previouslyEnabled: true`, 목록에서 사용 안 함 |
+| 기록 | 다시 시작해 40초 뒤 2단계 실패 → `getAgentJobHistory`(`failedOnly`): 실행 결과 "The job failed … last step to run was step 2 (fail)", 단계 2 메시지(0으로 나누기) |
+| 운영 연결 | 같은 서버의 Production 종류 연결: 읽기 3개 성공, `startAgentJob` BLOCKED("production connection"). 읽기 뒤 앱을 닫을 때 트랜잭션 질문 없음(위 메타데이터 세션) |
+| 감사 기록 | W 호출 7건이 `CONFIRM`/`BLOCKED`와 결과(SUCCESS 4, ERROR 1, DENIED 1, BLOCKED 1)로 남음. 비밀번호·가짜 키 문자열 0건 |
+| Query Store | 상위 쿼리: `dbo.customer_total` 문장(계획 2개, 5,641회). 회귀: 인덱스를 지운 뒤 같은 쿼리 평균 2.84 → 11.03 ms(3.88배), 논리 읽기 1,392 → 5,906. 강제 계획: 지운 인덱스를 쓰던 계획을 강제 → `force_failure_count 1`, `NO_INDEX`. 꺼진 DB → `queryStoreOff` 문장, master → "Query Store가 없다" 문장, Oracle 연결 → 지원 안 함 |
+| Oracle 실제 계획 | `SELECT COUNT(*) … status='OPEN' AND customer_id=7`: `TABLE ACCESS FULL` E-Rows 20 / A-Rows 6, Buffers 91, 소견 "TABLE ACCESS FULL … with filter", `DISPLAY_CURSOR` 표(Starts, E-Rows, A-Rows, A-Time, Buffers). WITH 쿼리(힌트가 CTE 안)도 모든 노드에 실행 통계 |
+| Oracle 교착 상태 | 두 세션으로 ORA-00060을 만듦 → 경고 로그 항목(시각, 추적 파일 이름) + 그래프(TX 자원 2개, 세션 44·197, 각 현재 SQL) |
+| Oracle 루틴·인덱스 | `getRoutineStats ORDER_REPORT`: 줄 5·6·7·9의 문장(7행은 루프 안 12회). `getMissingIndexes`: `ORDERS` 전체 스캔과 필터 `CUSTOMER_ID=:B1 AND STATUS='OPEN'`. `getUnusedIndexes`: 사용 없는 인덱스 3개, `IX_ORDERS_STATUS`가 `IX_ORDERS_STATUS_AMOUNT`의 왼쪽 접두 |
+| Oracle 권한 없음 | `CHR_AGENT_1B_NOPRIV`: 실제 계획 "The statement ran, but … GRANT SELECT_CATALOG_ROLE …", 교착 상태 "… GRANT SELECT ON SYS.V_$DIAG_ALERT_EXT …", 누락·루틴 `requires`, `probePermissions`의 `alert_log`·`vdollar` 불가와 해당 도구 |
+| whatIfIndex | PostgreSQL: "hypopg … not installed on this PostgreSQL server", SQL Server: "needs PostgreSQL with hypopg", `DROP TABLE`을 인덱스로 주면 INVALID |
+| 채팅 | 가짜 Messages API로 SQL Server 대화(위 도구 포함 22개 호출)와 Oracle 대화(`getActualPlan`, `getDeadlocks`, `getRoutineStats`)가 정책·감사를 거쳐 실행됨 |
+
 ## 1b단계 (미룬 것)
 
 | 항목 | 이유 |
 |---|---|
-| SQL Server Agent 작업 관리 도구(작업 목록·상세·시작·중지·사용 설정·단계 기록) | 모델이 `chromite/sqlserver-agent` 가지에서 만들어지는 중이고 아직 합쳐지지 않았다. 합쳐지면 그 모델로 도구를 만든다. 실패 기록 읽기는 `getJobHistory`(msdb 직접 조회)로 1단계에 있다 |
 | PostgreSQL·MySQL 백업·복원 도구 | 로컬 클라이언트 도구(`pg_dump`, `mysqldump`) 실행이 필요하다(`tasks.native`). 경로 설정과 장시간 작업 진행 표시가 필요해 미뤘다 |
-| Oracle 실제 계획(`gather_plan_statistics` + `DBMS_XPLAN.DISPLAY_CURSOR`), Oracle 교착 상태(경고 로그·추적 파일), Oracle 루틴 문장 통계, 누락·미사용 인덱스 | 테스트 DB에서 권한(`SELECT_CATALOG_ROLE`) 확인과 출력 해석이 더 필요하다 |
-| `whatIfIndex` (PG hypopg, SQL Server는 없음) | 확장 설치가 필요하고 테스트 DB에 없다 |
-| SQL Server Query Store 기반 상위 쿼리·계획 회귀 | 1단계는 `dm_exec_query_stats`(플랜 캐시)만 쓴다 |
+| MySQL/MariaDB 누락 인덱스(`getMissingIndexes`) | 브리프(1b)에 없었다. performance_schema 다이제스트의 `SUM_NO_INDEX_USED`로 만들 수 있다 |
+| hypopg가 있는 PostgreSQL에서 `whatIfIndex` 실행 확인 | 공용 시험 DB에 hypopg가 없고 설치하지 않는다(위 "whatIfIndex") |
+| Query Store 계획 강제·해제, SQL Server Agent 작업 만들기·고치기 도구 | 브리프의 1b 범위 밖이다(Query Store는 읽기만, 작업은 시작·중지·사용 설정만). Swing 화면에는 작업 편집이 있다 |
+
+2026-11-08에 SQL Server Agent 작업 도구, Oracle 진단 4개, Query Store, `whatIfIndex`를 만들었다(위 "1b단계 도구").
 
 ## 요청 크기 (후속 과제 #76, 2026-11-08)
 
@@ -847,6 +943,10 @@ Oracle 진단 결과의 대문자 열 이름(소문자로 맞춤), PostgreSQL에
 
 ## 변경 이력
 
+- 2026-11-08 1b단계 도구: SQL Server Agent 작업 도구 6개(`AgentJobTools`, `ext.mssql` 에이전트 모델), Oracle 실제 계획·교착 상태(경고 로그 + 추적
+  파일 그래프)·루틴 문장 통계·누락·미사용 인덱스(팩 뷰 없음, 권한 부족 시 필요한 GRANT), Query Store 도구 3개(꺼져 있으면 문장으로 알림), `whatIfIndex`
+  (hypopg 있을 때만, 없으면 이유), `probePermissions` 검사 추가, Oracle 시간대 시각 JSON 수정, Oracle 계획 해석을 `PlanParser.parseOracle`로, 플레이북 3개에
+  새 도구. 위 "1b단계 도구", "1b단계 (미룬 것)".
 - 2026-11-08 요청 크기(후속 과제 #76): 채팅 요청에 연결의 DB 종류와 정책에 맞는 도구만 보내기(`AgentTool.supports`, `AIAgentToolSelection`, "도구를 모두
   보냄" 설정), 기록 크기 예산(`AIAgentChat.toModelMessages`), 빠진 것을 시스템 프롬프트로 알림. 위 "요청 크기".
 - 2026-11-08 도구 뒤 글이 첫 조각에서 멈추던 문제: 채팅 창이 다시 그릴 글 항목을 모음으로 둠(위 "글 조각 그리기").

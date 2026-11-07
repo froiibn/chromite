@@ -37,6 +37,7 @@ import java.util.TreeMap;
  *
  * 변경 이력:
  * - 2026-11-07 최초 작성
+ * - 2026-11-08 1b단계 도구: SQL Server 에이전트 작업 프로시저, Query Store(VIEW DATABASE STATE), Oracle V$ 도구와 경고 로그 권한
  */
 final class PermissionProbe {
 
@@ -118,8 +119,9 @@ final class PermissionProbe {
                 checks.add(new Check("view_server_state", "VIEW SERVER STATE: server-wide DMVs (sessions, requests, waits, plan cache, XE)",
                     List.of("listSessions", "getBlockingChain", "listLocks", "listOpenTransactions", "getLongRunningQueries",
                         "getWaitStats", "getTopQueries", "getCachedPlans", "getRoutineStats", "getMissingIndexes", "getDeadlocks", "killSession")));
-                checks.add(new Check("view_database_state", "VIEW DATABASE STATE: index usage, physical stats, statistics properties",
-                    List.of("getIndexUsage", "getUnusedIndexes", "getIndexFragmentation", "getTableStatistics", "getSpaceUsage")));
+                checks.add(new Check("view_database_state", "VIEW DATABASE STATE: index usage, physical stats, statistics properties, Query Store",
+                    List.of("getIndexUsage", "getUnusedIndexes", "getIndexFragmentation", "getTableStatistics", "getSpaceUsage",
+                        "getQueryStoreTopQueries", "getQueryStoreRegressions", "getQueryStoreForcedPlans")));
                 checks.add(new Check("showplan", "SHOWPLAN: estimated and actual plans",
                     List.of("explainQuery", "getActualPlan", "comparePlans")));
                 checks.add(new Check("view_definition", "VIEW DEFINITION: routine source and dependencies of objects you do not own",
@@ -127,6 +129,9 @@ final class PermissionProbe {
                 checks.add(new Check("alter_any_connection", "ALTER ANY CONNECTION: end other sessions", List.of("killSession")));
                 checks.add(new Check("msdb_backupset", "SELECT on msdb.dbo.backupset", List.of("getBackupHistory")));
                 checks.add(new Check("msdb_jobs", "SELECT on msdb job tables (SQLAgentReaderRole)", List.of("getJobHistory")));
+                checks.add(new Check("msdb_agent", "EXECUTE on the msdb job procedures (SQLAgentUserRole: own jobs, SQLAgentReaderRole: read all, " +
+                    "SQLAgentOperatorRole: start, stop, enable all)",
+                    List.of("listAgentJobs", "getAgentJob", "getAgentJobHistory", "startAgentJob", "stopAgentJob", "setAgentJobEnabled")));
                 checks.add(new Check("error_log", "securityadmin or sysadmin: read the error log", List.of("getErrorLog")));
             }
             case POSTGRESQL -> {
@@ -138,7 +143,7 @@ final class PermissionProbe {
                 checks.add(new Check("pg_read_server_files", "pg_read_server_files or superuser, and logging_collector on: read the server log",
                     List.of("getErrorLog")));
                 checks.add(new Check("ext_pgstattuple", "pgstattuple extension: exact bloat/fragmentation", List.of("getIndexFragmentation")));
-                checks.add(new Check("ext_hypopg", "hypopg extension: hypothetical indexes (phase 1b)", List.of("whatIfIndex")));
+                checks.add(new Check("ext_hypopg", "hypopg extension: hypothetical indexes", List.of("whatIfIndex")));
                 checks.add(new Check("ext_pg_cron", "pg_cron extension: job history", List.of("getJobHistory")));
                 checks.add(new Check("track_functions", "track_functions = pl or all: per-function statistics", List.of("getRoutineStats")));
             }
@@ -152,7 +157,10 @@ final class PermissionProbe {
             case ORACLE -> {
                 checks.add(new Check("vdollar", "SELECT on V$ views (SELECT_CATALOG_ROLE or SELECT ANY DICTIONARY)",
                     List.of("listSessions", "getBlockingChain", "listLocks", "listOpenTransactions", "getLongRunningQueries",
-                        "getWaitStats", "getTopQueries", "getErrorLog", "getServerConfig")));
+                        "getWaitStats", "getTopQueries", "getServerConfig", "getActualPlan", "getRoutineStats", "getMissingIndexes",
+                        "getUnusedIndexes", "getDeadlocks")));
+                checks.add(new Check("alert_log", "SELECT on V$DIAG_ALERT_EXT, which SELECT_CATALOG_ROLE does not include " +
+                    "(as SYS: GRANT SELECT ON SYS.V_$DIAG_ALERT_EXT TO <user>)", List.of("getErrorLog", "getDeadlocks")));
                 checks.add(new Check("ALTER SYSTEM", "ALTER SYSTEM: end sessions", List.of("killSession")));
                 checks.add(new Check("dba_views", "DBA_* views (DBA role): tablespaces, all users", List.of("getSpaceUsage", "getDatabaseSizes", "listPrincipals")));
             }
@@ -191,6 +199,7 @@ final class PermissionProbe {
             case ORACLE -> {
                 return switch (check) {
                     case "vdollar" -> is(facts, "vdollar");
+                    case "alert_log" -> is(facts, "alert_log");
                     case "ALTER SYSTEM" -> is(facts, "priv:ALTER SYSTEM");
                     case "dba_views" -> is(facts, "role:DBA") || is(facts, "priv:SELECT ANY DICTIONARY");
                     default -> false;

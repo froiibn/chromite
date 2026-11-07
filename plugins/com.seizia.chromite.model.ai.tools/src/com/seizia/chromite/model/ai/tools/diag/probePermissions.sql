@@ -14,6 +14,7 @@ SELECT
     HAS_DBACCESS('msdb') AS msdb_access,
     ISNULL(HAS_PERMS_BY_NAME('msdb.dbo.backupset', 'OBJECT', 'SELECT'), 0) AS msdb_backupset,
     ISNULL(HAS_PERMS_BY_NAME('msdb.dbo.sysjobhistory', 'OBJECT', 'SELECT'), 0) AS msdb_jobs,
+    ISNULL(HAS_PERMS_BY_NAME('msdb.dbo.sp_help_job', 'OBJECT', 'EXECUTE'), 0) AS msdb_agent,
     CAST(SERVERPROPERTY('EngineEdition') AS int) AS engine_edition,
     (SELECT CAST(actual_state_desc AS nvarchar(60)) FROM sys.database_query_store_options) AS query_store_state
 
@@ -47,3 +48,5 @@ SELECT privilege FROM session_privs ORDER BY privilege
 SELECT role FROM session_roles ORDER BY role
 -- @statement: vdollar
 SELECT COUNT(*) AS v_session_rows FROM v$session WHERE ROWNUM = 1
+-- @statement: alert_log
+SELECT (SELECT 1 FROM v$diag_alert_ext WHERE ROWNUM = 1) AS alert_log_first_row, 1 AS alert_log FROM dual

@@ -32,3 +32,20 @@ FROM pg_stat_user_tables
 WHERE seq_scan > 0 AND n_live_tup > 10000
 ORDER BY seq_tup_read DESC
 LIMIT ${limit}
+
+-- @family: oracle
+-- @requires: SELECT on V$SQL and V$SQL_PLAN (SELECT_CATALOG_ROLE or SELECT ANY DICTIONARY)
+-- @note: Oracle's own index advice (SQL Access Advisor, SQL Tuning Advisor) needs the Tuning Pack and is not used. These are full scans of tables over 10,000 rows in cached plans, with the filter predicates an index could serve; check them with explainQuery and the column statistics before creating anything.
+SELECT p.object_owner || '.' || p.object_name AS table_name, t.num_rows AS row_estimate, p.operation || ' ' || p.options AS operation,
+       p.sql_id, s.executions AS execution_count, s.buffer_gets AS total_logical_reads,
+       ROUND(s.buffer_gets / NULLIF(s.executions, 0)) AS avg_logical_reads, ROUND(s.elapsed_time / 1000) AS total_duration_ms,
+       SUBSTR(p.filter_predicates, 1, 1000) AS filter_predicates, s.parsing_schema_name, SUBSTR(s.sql_text, 1, 1000) AS sql_text
+FROM v$sql_plan p
+JOIN v$sql s ON s.sql_id = p.sql_id AND s.child_number = p.child_number
+JOIN all_tables t ON t.owner = p.object_owner AND t.table_name = p.object_name
+WHERE p.operation = 'TABLE ACCESS' AND p.options LIKE '%FULL'
+  AND p.filter_predicates IS NOT NULL
+  AND t.num_rows > 10000
+  AND p.object_owner NOT IN ('SYS', 'SYSTEM')
+ORDER BY s.buffer_gets DESC
+FETCH FIRST ${limit} ROWS ONLY
