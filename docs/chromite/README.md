@@ -33,6 +33,7 @@ upstream의 전체 구조는 [AGENTS.md](../../AGENTS.md)와 [AGENTS-Architectur
 | [swing-result-charts-spatial.md](swing-result-charts-spatial.md) | Swing 결과 차트·공간 보기: 선·막대·원형 차트(축·값 열·행 고르기, PNG 저장, Java2D), 기하 값 그리기(DBGeometry, SQL Server geometry/geography 바이트 해석, 밑그림 없음) |
 | [swing-sql-exec-safety.md](swing-sql-exec-safety.md) | Swing 쿼리 실행 안전 확인: WHERE 없는 UPDATE/DELETE·DROP 확인(한 번에 목록, `GO` 배치 재분할), 연결의 스크립트 실행 제한, `@ai`가 만든 SQL을 보여 주는 실행 확인(`UIServiceSQL`) |
 | [swing-sql-terminal.md](swing-sql-terminal.md) | Swing SQL 터미널(Query > SQL Terminal, Ctrl+T): 쿼리 창마다 켜는 Terminal 탭에 문장·글자 표·메시지를 명령줄처럼 쌓음, 결과 표는 그대로 |
+| [swing-query-commands.md](swing-query-commands.md) | Swing 쿼리 창 문장 명령(현재 문장 Ctrl+Enter, 커서부터 Alt+P, 행 수, 식, 이전·다음 문장, 현재 문장 복사), 창 단위 `@set` 변수와 Variables 대화상자, `@include`·MySQL `SOURCE`(상대 경로, 중첩, 고리 거절, 위험한 문 확인), DDL 뒤 탐색기 갱신 |
 | [swing-scripts-explorer.md](swing-scripts-explorer.md) | Swing Scripts 도구 창(View > Scripts, Ctrl+Alt+L): 활성 프로젝트 Scripts 폴더 트리, 열기·새 폴더·이름 바꾸기·삭제(휴지통, 취소가 기본), 스크립트와 연결 묶기(SWT와 같은 자원 속성), 묶은 연결로 열기 |
 | [swing-server-output.md](swing-server-output.md) | Swing 쿼리 창의 서버 출력: Oracle·CUBRID `DBMS_OUTPUT`, Altibase `PRINT`를 문장마다 읽어(버퍼를 비움) Messages 탭에 씀, PRINT·NOTICE 중복 방지, Altibase 기본값 초기화 |
 | [swing-sql-editor-plus.md](swing-sql-editor-plus.md) | Swing SQL 편집기 확장: 실행 계획(예상·실제, SQL Server 계획기, 그래픽·트리·원본 세 보기, Oracle 적응 계획), 쿼리 기록, SQL 서식·편집 명령, 템플릿, 매개변수 대화상자 |

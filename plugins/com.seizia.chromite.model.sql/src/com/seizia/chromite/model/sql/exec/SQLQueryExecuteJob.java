@@ -57,6 +57,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -80,6 +81,9 @@ import java.util.Map;
  *   스크립트 문장 대신 prepared statement로 만들고 값을 바인딩한다 (docs/chromite/swing-query-library.md "매개변수 바인딩").
  * - 2026-11-06 매개변수 대화상자·실행 확인에서 사용자가 멈춘 실행을 {@link #isCanceledByUser}로 알린다. 그런 실행은 오류 없이
  *   OK 상태로 끝나서 Swing 편집기가 "성공"으로 보였다. Job 상태는 SWT 동작 그대로 둔다 (docs/chromite/swing-sql-editor-plus.md "매개변수").
+ * - 2026-11-08 {@code @include}: 명령이 돌려준 {@link SQLIncludedScript}의 문장을 남은 문장 앞에 끼워 같은 루프로 실행한다(오류 처리·취소·
+ *   진행·통계가 스크립트 자신의 문장과 같다). 끼운 문장은 그 파일의 스크립트 문맥으로 실행한다(매개변수, 명령, 중첩 포함의 기준 폴더).
+ *   다시 실행하면 처음 받은 문장부터 다시 읽는다 (docs/chromite/swing-query-commands.md "@include").
  */
 public class SQLQueryExecuteJob extends DataSourceJob {
     private static final String PLUGIN_ID = "com.seizia.chromite.model.sql";
@@ -90,8 +94,14 @@ public class SQLQueryExecuteJob extends DataSourceJob {
     private static final int MAX_UPDATE_COUNT_READS = 1000;
 
     private final DBSDataContainer dataContainer;
+    // The elements the job was created with; queries also has the statements of included files after their @include
+    private final List<SQLScriptElement> scriptQueries;
     private final List<SQLScriptElement> queries;
     private final SQLScriptContext scriptContext;
+    // The script context of each statement of an included file (the others run in scriptContext)
+    private final Map<SQLScriptElement, SQLScriptContext> includedContexts = new IdentityHashMap<>();
+    // The script context of the element that runs now (job thread)
+    private SQLScriptContext currentScriptContext;
     private final SQLQueryListener listener;
     private final SQLQueryExecuteHandler handler;
 
@@ -148,8 +158,10 @@ public class SQLQueryExecuteJob extends DataSourceJob {
     ) {
         super(name, executionContext);
         this.dataContainer = dataContainer;
-        this.queries = queries;
+        this.scriptQueries = List.copyOf(queries);
+        this.queries = new ArrayList<>(queries);
         this.scriptContext = scriptContext;
+        this.currentScriptContext = scriptContext;
         this.listener = listener;
         this.handler = handler;
         this.rsMaxRows = getDataSourceContainer().getPreferenceStore().getInt(ModelPreferences.RESULT_SET_MAX_ROWS);
@@ -188,6 +200,15 @@ public class SQLQueryExecuteJob extends DataSourceJob {
 
     public SQLQueryResult getCurrentQueryResult() {
         return curResult;
+    }
+
+    /**
+     * The script context of the element that runs now: the job's context, or the context of an included file
+     * ({@link SQLIncludedScript#getScriptContext()}) while its statements run. For query events, in the job thread.
+     */
+    @NotNull
+    public SQLScriptContext getCurrentScriptContext() {
+        return currentScriptContext;
     }
 
     /**
@@ -236,6 +257,10 @@ public class SQLQueryExecuteJob extends DataSourceJob {
         canceledByUser = false;
         if (queryNum == queries.size()) {
             queryNum = 0;
+            // A new run of the whole script: its @include commands read their files again
+            queries.clear();
+            queries.addAll(scriptQueries);
+            includedContexts.clear();
         }
         monitor.beginTask("Execute SQL script", queries.size());
         try {
@@ -423,10 +448,12 @@ public class SQLQueryExecuteJob extends DataSourceJob {
         @NotNull SQLScriptElement element,
         final boolean fireEvents
     ) {
-        if (!scriptContext.getPragmas().isEmpty() && element instanceof SQLQuery query) {
-            final SQLQueryDataContainer container = new SQLQueryDataContainer(this::getExecutionContext, query, scriptContext, log);
+        final SQLScriptContext elementContext = includedContexts.getOrDefault(element, scriptContext);
+        currentScriptContext = elementContext;
+        if (!elementContext.getPragmas().isEmpty() && element instanceof SQLQuery query) {
+            final SQLQueryDataContainer container = new SQLQueryDataContainer(this::getExecutionContext, query, elementContext, log);
 
-            for (var it = scriptContext.getPragmas().entrySet().iterator(); it.hasNext(); ) {
+            for (var it = elementContext.getPragmas().entrySet().iterator(); it.hasNext(); ) {
                 final Map.Entry<String, Map<String, Object>> entry = it.next();
                 final String id = entry.getKey();
                 final SQLPragmaHandlerDescriptor descriptor = SQLCommandsRegistry.getInstance().getPragmaHandler(id);
@@ -457,8 +484,14 @@ public class SQLQueryExecuteJob extends DataSourceJob {
                 if (descriptor != null && descriptor.isInteractive()) {
                     controlCommand.setData(listener);
                 }
-                SQLControlResult controlResult = scriptContext.executeControlCommand(session.getProgressMonitor(), controlCommand);
-                if (controlResult.getTransformed() != null) {
+                SQLControlResult controlResult = elementContext.executeControlCommand(session.getProgressMonitor(), controlCommand);
+                if (controlResult.getTransformed() instanceof SQLIncludedScript includedScript) {
+                    boolean included = includeScript(includedScript);
+                    if (included) {
+                        lastGoodQuery = element;
+                    }
+                    return included;
+                } else if (controlResult.getTransformed() != null) {
                     element = controlResult.getTransformed();
                 } else {
                     if (controlResult.isSuccess()) {
@@ -494,14 +527,37 @@ public class SQLQueryExecuteJob extends DataSourceJob {
                 return false;
             }
 
-            if (!executeSingleElement(session, fireEvents, nestedQuery)) {
+            if (!executeSingleElement(session, fireEvents, nestedQuery, elementContext)) {
                 return false;
             }
         }
         return true;
     }
 
-    private boolean executeSingleElement(@NotNull DBCSession session, boolean fireEvents, SQLQuery sqlQuery) {
+    /**
+     * Puts the statements of an included file before the rest of the script, to run in the included file's context.
+     *
+     * @return false if the front end stopped the script
+     */
+    private boolean includeScript(@NotNull SQLIncludedScript script) {
+        if (!handler.confirmIncludedScript(script)) {
+            canceledByUser = true;
+            return false;
+        }
+        List<SQLScriptElement> elements = script.getScriptElements();
+        for (SQLScriptElement element : elements) {
+            includedContexts.put(element, script.getScriptContext());
+        }
+        queries.addAll(queryNum + 1, elements);
+        return true;
+    }
+
+    private boolean executeSingleElement(
+        @NotNull DBCSession session,
+        boolean fireEvents,
+        SQLQuery sqlQuery,
+        @NotNull SQLScriptContext elementContext
+    ) {
         lastError = null;
 
         if (!skipConfirmation && getDataSourceContainer().getConnectionConfiguration().getConnectionType().isConfirmExecute()) {
@@ -532,7 +588,7 @@ public class SQLQueryExecuteJob extends DataSourceJob {
         DBRProgressMonitor monitor = session.getProgressMonitor();
         monitor.beginTask("Get data receiver", 1);
         monitor.subTask("Create results view");
-        if (!scriptContext.fillQueryParameters(
+        if (!elementContext.fillQueryParameters(
             originalQuery,
             () -> handler.getDataReceiver(originalQuery, resultSetNumber),
             CommonUtils.isBitSet(fetchFlags, DBSDataContainer.FLAG_REFRESH)
@@ -616,7 +672,7 @@ public class SQLQueryExecuteJob extends DataSourceJob {
                         changedToManualCommit = DBExecUtils.checkSmartAutoCommit(session, execStatement.getText());
                     }
                     long execStartTime = System.currentTimeMillis();
-                    executeStatement(session, execStatement, execStartTime, curResult);
+                    executeStatement(session, execStatement, execStartTime, curResult, elementContext);
                 } catch (Throwable e) {
                     // We just switched to manual mode, there is no other statements in transaction
                     // let's return back to auto commit
@@ -705,9 +761,15 @@ public class SQLQueryExecuteJob extends DataSourceJob {
         }
     }
 
-    private void executeStatement(@NotNull DBCSession session, SQLQuery sqlQuery, long startTime, SQLQueryResult curResult) throws DBException {
+    private void executeStatement(
+        @NotNull DBCSession session,
+        SQLQuery sqlQuery,
+        long startTime,
+        SQLQueryResult curResult,
+        @NotNull SQLScriptContext elementContext
+    ) throws DBException {
         AbstractExecutionSource source = new AbstractExecutionSource(dataContainer, session.getExecutionContext(), handler.getExecutionController(), sqlQuery);
-        source.setScriptContext(scriptContext);
+        source.setScriptContext(elementContext);
         // Natively bound parameters need a prepared statement; everything else is sent as a script (SQLQueryJob)
         final boolean boundParameters = handler.hasBoundParameters(sqlQuery);
         final DBCStatement dbcStatement = DBUtils.makeStatement(

@@ -41,7 +41,8 @@ SWT → Swing 전수 조사([swt-parity-audit.md](swt-parity-audit.md))의 1순�
 - **실행 제한은 문장 수와 관계없이 쿼리 창의 실행을 모두 막는다.** 작업 지시서는 "스크립트만 막고 단일 문장은 허용"이었지만 SWT 코드는 그렇지 않았다.
   `SQLEditor.processQueries`는 단일 문장 실행(Ctrl+Enter)도 지나가는 경로이고, 제한이 있으면 문장 수와 관계없이 "Query execution was restricted by
   connection configuration"으로 거절했다(`SQLEditor.java:3106-3112`). 권한 설명도 "사용자 스크립트(SQL) 실행을 제한합니다"다(`ModelResources_ko.properties:107`).
-  Swing 쿼리 창에는 문장 실행과 스크립트 실행의 구분이 없고(F5 하나), 문장 수로 나누면 위험한 문을 한 문장씩 실행해 제한을 우회할 수 있다.
+  Swing 쿼리 창도 2026-11-08부터 문장 명령(Ctrl+Enter 등, [swing-query-commands.md](swing-query-commands.md))이 있지만 같은 확인을 거친다. 문장 수로
+  나누면 위험한 문을 한 문장씩 실행해 제한을 우회할 수 있다.
   그래서 SWT 동작(모두 거절, 안전 쪽)을 따랐다. 단일 문장을 허용하려면 `checkExecutePermission` 호출을 문장 수를 아는 준비 Job으로 옮기면 된다.
 - **위험한 문은 실행 한 번에 한 번만 묻고 목록을 보여 준다.** SWT는 문장마다 물었다(여러 개면 "모두 예"). 스크립트 전체를 보고 한 번에 결정하는 편이
   안전하고 덜 번거롭다. 목록에는 줄 번호(편집기 기준, 문장 앞 주석이 있으면 그 주석의 줄), 종류, 문장 원문을 SQL 주석과 함께 보여 준다.
@@ -159,3 +160,5 @@ AI는 실제 키를 쓰지 않았다. 작업 공간 복사본의 `.metadata/.con
 - 2026-11-07 DROP 판단의 근본 원인을 고침: JSQLParser가 읽지 못한 문장은 LSM 파서의 DROP 문 규칙으로 판단(`SQLObjectOperationRecognizer.isDropStatement`,
   `STMKnownRuleNames.dropTriggerStatement`). `DROP DATABASE`·`USER`·`TABLESPACE`·`PROCEDURE`·`TRIGGER` 등을 묻지 않던 것을 고침.
   TRUNCATE도 위험한 SQL 확인으로 물음(`SQLQuery.isTruncate`). MariaDB·PostgreSQL·SQL Server에서 확인
+- 2026-11-08 `@include`로 읽은 파일의 문장도 끼우기 전에 위험한 문을 묻고 목록에 파일 이름을 붙임(`SQLQueryExecuteHandler.confirmIncludedScript`),
+  실행 제한 설명을 문장 명령에 맞춤 ([swing-query-commands.md](swing-query-commands.md))

@@ -96,6 +96,7 @@ MVP 이후: 테이블 디자이너, ER 다이어그램, 데이터 비교, AI 기
 | 단축키 | 동작 |
 |---|---|
 | F5 | 선택 영역이 있으면(1자 이상) 선택한 내용만 실행하고, 없으면 편집기 전체를 실행한다 |
+| Ctrl+Enter, Alt+P 등 | 커서 위치 문장, 커서부터, 행 수, 식(2026-11-08, [swing-query-commands.md](swing-query-commands.md)) |
 
 - SWT 버전의 "스크립트 실행" 명령([SQLEditor.java:2965](../../plugins/com.seizia.chromite.ui.editors.sql/src/com/seizia/chromite/ui/editors/sql/SQLEditor.java:2965))도
   같은 방식이지만 선택 길이가 2자 이상일 때만 선택으로 본다. Swing 버전은 1자부터 선택으로 본다.
@@ -710,7 +711,7 @@ Query 메뉴 항목은 활성 편집기에 적용되고, 메뉴 단축키라 포
 
 - 편집기: 파일 열기·저장(닫을 때 저장 확인, E단계에서 구현), 방언별 키워드·자동완성(자동완성은 F단계에서 구현), 실행한 문장 강조, 오류 위치로 이동(Messages 더블클릭).
 - 실행: 편집기별 별도 연결(SSMS는 쿼리 창마다 연결. 2026-11-07 구현, [transactions.md](transactions.md) "쿼리 창마다 별도 연결"), 오류 뒤 다음 배치 계속 실행(SSMS 기본 동작. 지금은 멈춤), 커밋 방식·트랜잭션 표시, 서버 출력 읽기
-  (`DBCServerOutputReader`, Oracle `DBMS_OUTPUT`. 2026-11-07 구현, [swing-server-output.md](swing-server-output.md)), 매개변수 입력 대화상자, `@set` 변수의 편집기 단위 유지.
+  (`DBCServerOutputReader`, Oracle `DBMS_OUTPUT`. 2026-11-07 구현, [swing-server-output.md](swing-server-output.md)), 매개변수 입력 대화상자, `@set` 변수의 편집기 단위 유지(2026-11-08 구현, [swing-query-commands.md](swing-query-commands.md)).
 - 결과: 편집(Edit Top 200 Rows, "결과 모델 분석", G단계에서 구현), 더 읽기(최대 행 수 이후), 정렬, 결과 내보내기(CSV는 E단계에서 구현), 텍스트로 결과 보기.
 - SQL Server `GO` 배치는 SQL Server로 실행해 보지 못했다(아래 확인 참고).
 
@@ -1061,7 +1062,7 @@ F단계의 목표는 DataGrip의 핵심 강점인 SQL 자동완성과, MVP 7번�
 - **완성 옵션(`SQLCompletionContext`):** SWT 설정 키(`SQLPreferenceConstants`)는 SWT 번들에 있고 Swing 제품에는 설정 화면이 없으므로 SWT 기본값을 그대로 옮겼다
   (이름 안 어디든 일치, 이름순 정렬, 제안 뒤 공백, 값 제안 끔, 프로시저 검색 끔 등). 짧은/완전한 이름 형식은 모델 설정(`SQLModelPreferences`)을 연결 설정에서 읽는다.
   메타데이터 읽기·함수 검사도 SWT 기본값(켬/끔)이다. 모델 계층에는 이 둘의 기본값이 없어 설정을 그대로 읽으면 꺼져서 테이블·열을 찾지 못한다. 연결의 `META_DISABLE_EXTRA_READ`는 SWT처럼 따른다.
-- **안 한 것:** 스크립트 변수(`@set`) 추적(편집기 단위 변수 유지가 아직 없음), 제어 명령(`@`) 이름 제안, 템플릿, 제안 설명 창(설명은 목록 도구 설명으로만 보임).
+- **안 한 것:** 스크립트 변수(`@set`) 추적(편집기 단위 변수 유지는 2026-11-08에 생겼지만 자동완성은 그 변수를 제안하지 않음), 제어 명령(`@`) 이름 제안, 템플릿, 제안 설명 창(설명은 목록 도구 설명으로만 보임).
 
 ### 자동완성: 동작
 

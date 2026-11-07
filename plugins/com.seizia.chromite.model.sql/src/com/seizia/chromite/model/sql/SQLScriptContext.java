@@ -50,6 +50,10 @@ import java.util.function.Supplier;
 
 /**
  * SQL script execution context
+ *
+ * 변경 이력:
+ * - 2026-11-08 {@link #getParametersProvider}: {@code @include}가 포함한 파일의 문맥에도 같은 매개변수 제공자를 넘기도록
+ *   (docs/chromite/swing-query-commands.md "@include")
  */
 public class SQLScriptContext implements DBCScriptContext {
 
@@ -119,6 +123,14 @@ public class SQLScriptContext implements DBCScriptContext {
     @Nullable
     public Path getSourceFile() {
         return sourceFile;
+    }
+
+    /**
+     * Asks for the values of parameters that have none (null: the values come from the variables only).
+     */
+    @Nullable
+    public SQLParametersProvider getParametersProvider() {
+        return parametersProvider;
     }
 
     @Override
