@@ -65,7 +65,7 @@
 | # | 기능 | SWT 출처 | 상태 | 근거 | 영향 | 비고 |
 |---|---|---|---|---|---|---|
 | 28 | 메타데이터 검색(이름·종류·대소문자, 여러 연결, 범위) | `SearchMetadataPage`, `SearchMetadataQuery` | 있음 | `ObjectSearchPanel` 설계 주석(같은 `DBSStructureAssistant#findObjectsByMask`) | 중간 | |
-| 29 | 데이터 검색(여러 테이블의 값 찾기) | `SearchDataPage`, `SearchDataQuery` | 없음 | swt-removal.md:113, `DataSearch` grep 0 | 중간 | 모델 API는 남아 있음 |
+| 29 | 데이터 검색(여러 테이블의 값 찾기) | `SearchDataPage`, `SearchDataQuery` | 있음 | 2026-11-08 옮김: Object Explorer "Search Data…" 문서 탭(`DataSearchPanel`, 모델 `DataSearch`, [swing-data-search.md](../swing-data-search.md)) | 중간 | 인덱스 열만 찾기·외부 테이블 옵션은 옮기지 않음 |
 | 30 | Quick Search(작업 공간 파일 글자 찾기) | `OpenQuickSearchAction`(`org.eclipse.text.quicksearch`) | 없음 | grep 0. 파일 트리 자체가 없음(#22) | 낮음 | |
 
 ## 3. `ui.dashboard`, `ui.charts`
@@ -174,7 +174,7 @@ MView 새로 고침, TRUNCATE, 트리거 켜기/끄기), MySQL(ANALYZE·CHECK·O
 5. Generate SQL의 INSERT/UPDATE/DELETE/MERGE/JOIN/CALL/DROP 없음 (#17) — 2026-11-07 옮김(DROP은 삭제의 스크립트 미리 보기)
 6. 저장한 작업(Task) 보기·재실행·실행 기록 없음 (#43), 데이터 전송을 작업으로 저장 없음 (#39)
 7. DB 도구 일부 없음: TRUNCATE, 트리거 켜기/끄기, MView 새로 고침, DB2·Exasol·Altibase 도구 (#44)
-8. 데이터 검색(여러 테이블 값 찾기) 없음 (#29)
+8. 데이터 검색(여러 테이블 값 찾기) 없음 (#29) — 2026-11-08 옮김([swing-data-search.md](../swing-data-search.md))
 9. 객체 비교(Simple compare) 없음 (#49)
 10. 자원 탐색기(Scripts 폴더, 스크립트-연결 묶기, 연결별 최근 스크립트) 없음 (#22)
 

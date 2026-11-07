@@ -25,6 +25,7 @@ Export-Package: com.seizia.chromite.model.admin,
  com.seizia.chromite.model.admin.oracle,
  com.seizia.chromite.model.admin.postgresql,
  com.seizia.chromite.model.admin.replication,
+ com.seizia.chromite.model.admin.search,
  com.seizia.chromite.model.admin.security,
  com.seizia.chromite.model.admin.space
 Automatic-Module-Name: com.seizia.chromite.model.admin

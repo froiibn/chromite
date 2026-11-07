@@ -111,7 +111,7 @@ Swing 소스에서 해당 모델 API나 기능을 찾지 못한 검색으로 확
 | 스키마 비교 | `cmp.simple.ui` | `cmp.simple` | `CMPCompare` 참조 0 |
 | AI 자동완성(AI 채팅은 #92에서 옮김, [ai-agent.md](ai-agent.md)) | `ui.ai` | `model.ai` | Swing에 AI 자동완성 없음 |
 | Query Manager(실행 로그 보기) | `ui.editors.sql`(`QueryLogViewer`) | `model`의 QM | QM 보기 없음. Swing에는 자체 쿼리 기록만 있다([swing-sql-editor-plus.md](swing-sql-editor-plus.md)) |
-| 데이터 검색(여러 테이블의 값 찾기) | `ui.search` | `model` | `DataSearch` 참조 0. 이름으로 객체 찾기는 있음(`ObjectSearchPanel`) |
+| ~~데이터 검색(여러 테이블의 값 찾기)~~ 2026-11-08 옮김([swing-data-search.md](swing-data-search.md)) | `ui.search` | `model` | Object Explorer "Search Data…"(`DataSearchPanel`, 모델 `DataSearch`) |
 | 드라이버 관리의 나머지: Maven 아티팩트 추가·편집, 라이브러리 의존성 트리, 전역 클래스패스 | `ui.editors.connection` | `registry` | 관리자·편집 창·오프라인 모드는 Swing에 있다([swing-driver-manager.md](swing-driver-manager.md) "남긴 것", 2026-11-07 devel 병합으로 확인) |
 | 다른 도구의 연결 설정 가져오기(DbVisualizer, Navicat, SQuirreL 등) | `ui.config.migration` | - | 참조 0 |
 | 환경설정 화면 대부분(편집기·결과·연결 기본값 등) | `ui`, `ui.editors.*`, `core` | `model` 설정 키 | Swing에는 일부 옵션 대화상자만 있다 |
