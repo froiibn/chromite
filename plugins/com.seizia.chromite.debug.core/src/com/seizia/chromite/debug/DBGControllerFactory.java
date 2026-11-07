@@ -32,10 +32,21 @@ import java.util.Map;
  * 없고 "Debug…"는 루틴 노드에서 시작하므로 루틴 클래스의 어댑터로 바꿨다. 그래서 디버거가 있는 드라이버의 루틴에서만 명령이 켜지고,
  * 드라이버 클래스는 그 드라이버의 루틴을 어댑트할 때만 읽힌다.
  *
+ * 시작 대화상자는 루틴을 열 때 이미 이 팩터리를 들고 있으므로, 다른 세션의 호출에 붙는 방식(attach)을 지원하는지도 여기서 알린다
+ * ({@link #supportsAttach}). Oracle {@code DBMS_DEBUG}는 대상 세션이 스스로 디버그 ID를 만들어야 해서 지원하지 않는다.
+ *
  * 변경 이력:
  * - 2026-11-07 Swing 디버거용으로 복원(커밋 745f87f8ee에서 삭제): 연결 대신 루틴으로 컨트롤러를 만듦 (docs/chromite/procedure-debugger.md)
+ * - 2026-11-07 supportsAttach 추가(Oracle 디버거)
  */
 public interface DBGControllerFactory {
+
+    /**
+     * True if the debugger can wait for another session's call ({@link DBGConstants#ATTACH_KIND_GLOBAL}); the default.
+     */
+    default boolean supportsAttach() {
+        return true;
+    }
 
     /**
      * @param routine       the routine to debug

@@ -119,9 +119,10 @@
                 <module>com.seizia.chromite.model.admin</module>
                 <!-- AI agent tools and the local MCP server, docs/chromite/ai-agent.md -->
                 <module>com.seizia.chromite.model.ai.tools</module>
-                <!-- Procedure debugger model and its PostgreSQL (pldbgapi) implementation, docs/chromite/procedure-debugger.md -->
+                <!-- Procedure debugger model and its PostgreSQL (pldbgapi) and Oracle (DBMS_DEBUG) implementations, docs/chromite/procedure-debugger.md -->
                 <module>com.seizia.chromite.debug.core</module>
                 <module>com.seizia.chromite.ext.postgresql.debug.core</module>
+                <module>com.seizia.chromite.ext.oracle.debug.core</module>
             </modules>
         </profile>
     </profiles>

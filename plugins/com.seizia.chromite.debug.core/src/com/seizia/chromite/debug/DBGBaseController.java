@@ -22,7 +22,6 @@ package com.seizia.chromite.debug;
 import org.eclipse.core.runtime.ListenerList;
 import org.jkiss.dbeaver.DBException;
 import com.seizia.chromite.Log;
-import com.seizia.chromite.debug.jdbc.DBGJDBCSession;
 import com.seizia.chromite.model.DBPDataSourceContainer;
 import com.seizia.chromite.model.messages.ModelMessages;
 import com.seizia.chromite.model.runtime.DBRProgressMonitor;
@@ -30,6 +29,16 @@ import com.seizia.chromite.model.runtime.DBRProgressMonitor;
 import java.util.HashMap;
 import java.util.Map;
 
+/**
+ * Controller base: connects the data source if needed and keeps the event handlers.
+ *
+ * 설계: 세션 만들기({@link #createSession})는 {@link DBGSession}을 돌려준다. PostgreSQL 세션은 SQL 문자열 하나를 작업에서 실행하는
+ * {@link com.seizia.chromite.debug.jdbc.DBGJDBCSession}이지만, Oracle({@code DBMS_DEBUG})은 단계 명령이 OUT 매개 변수로 멈춘 이유를
+ * 돌려주고 시간 제한마다 다시 기다려야 해서 그 작업 틀을 쓰지 않는다.
+ *
+ * 변경 이력:
+ * - 2026-11-07 createSession이 DBGJDBCSession 대신 DBGSession을 돌려줌(Oracle 디버거) (docs/chromite/procedure-debugger.md)
+ */
 public abstract class DBGBaseController implements DBGController {
 
     private static final Log log = Log.getLog(DBGBaseController.class);
@@ -78,7 +87,7 @@ public abstract class DBGBaseController implements DBGController {
         }
     }
 
-    public abstract DBGJDBCSession createSession(DBRProgressMonitor monitor, Map<String, Object> configuration)
+    public abstract DBGSession createSession(DBRProgressMonitor monitor, Map<String, Object> configuration)
             throws DBGException;
 
     @Override

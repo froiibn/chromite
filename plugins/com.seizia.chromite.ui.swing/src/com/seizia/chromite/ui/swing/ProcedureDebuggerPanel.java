@@ -79,7 +79,7 @@ import java.util.concurrent.ConcurrentHashMap;
  * 설계 (docs/chromite/procedure-debugger.md):
  * <ul>
  *     <li>모델은 DB 중립 디버그 모델({@code com.seizia.chromite.debug})만 쓴다. 루틴을 디버깅할 수 있는지와 컨트롤러는 루틴의 어댑터
- *     ({@link DBGControllerFactory})가 정한다(PostgreSQL: pldbgapi). SWT 버전의 Eclipse 디버그 모델·실행 구성·마커는 옮기지 않았다.</li>
+ *     ({@link DBGControllerFactory})가 정한다(PostgreSQL: pldbgapi, Oracle: DBMS_DEBUG). SWT 버전의 Eclipse 디버그 모델·실행 구성·마커는 옮기지 않았다.</li>
  *     <li>SWT의 Debug 관점(여러 보기)을 SSMS 디버거처럼 한 문서 탭에 모았다: 위는 원본(읽기 전용 SQL 편집기, 여백을 눌러 중단점,
  *     현재 줄 화살표·바탕), 아래 탭은 Variables(이름·형식·값, 멈춘 동안 값 고치기), Call Stack(누르면 그 프레임의 원본·변수),
  *     Messages(서버 알림, 오류), Results(호출 결과). 다른 문서처럼 메인 창 탭이라 도구 창 배치를 바꾸지 않는다.</li>
@@ -92,11 +92,15 @@ import java.util.concurrent.ConcurrentHashMap;
  *     서버에 묻고, 열려 있으면 커밋/롤백/취소를, 실패한 트랜잭션이면 롤백/취소를 묻는다({@link #finishSession}). 취소하면 세션과 연결을
  *     그대로 두고 상태 줄에 알린다. 조용히 커밋하거나 롤백하지 않는다.</li>
  *     <li>단축키는 Visual Studio·SSMS 디버거와 같다(F5, Shift+F5, F10, F11, Shift+F11). 이 탭 안에 초점이 있을 때만
- *     ({@code WHEN_ANCESTOR_OF_FOCUSED_COMPONENT}) 메인 창 Query 메뉴의 F5(실행)보다 먼저 받는다.</li>
+ *     ({@code WHEN_ANCESTOR_OF_FOCUSED_COMPONENT}) 메인 창 Query 메뉴의 F5(실행)보다 먼저 받는다. 프로시저 나가기(Shift+F11)는
+ *     세션이 지원할 때({@link DBGSession#canStepReturn}, Oracle)만 켜진다.</li>
+ *     <li>시작 대화상자의 attach 모드는 팩터리가 지원할 때({@link DBGControllerFactory#supportsAttach})만 고를 수 있다.</li>
  * </ul>
  *
  * 변경 이력:
  * - 2026-11-07 최초 작성 (docs/chromite/procedure-debugger.md)
+ * - 2026-11-07 Oracle 디버거: attach 지원 여부를 시작 대화상자에 넘김, 프로시저 나가기 도움말을 세션에 따라 바꿈, 시작하는 동안 호출이
+ *   끝난 경우(TERMINATE가 시작 중에 옴)를 끝내기로 처리, 권한 오류 안내
  */
 final class ProcedureDebuggerPanel extends JPanel implements ToolDocument, DBGEventHandler {
 
@@ -339,7 +343,7 @@ final class ProcedureDebuggerPanel extends JPanel implements ToolDocument, DBGEv
         if (state == State.TRANSACTION_PENDING && !finishSession()) {
             return;
         }
-        Map<String, Object> configuration = DebugStartDialog.show(this, routineName, inputParameters, lastConfiguration);
+        Map<String, Object> configuration = DebugStartDialog.show(this, routineName, inputParameters, lastConfiguration, factory.supportsAttach());
         if (configuration == null) {
             return;
         }
@@ -371,11 +375,18 @@ final class ProcedureDebuggerPanel extends JPanel implements ToolDocument, DBGEv
             if (state == State.STARTING) {
                 // Attach mode: the session waits for a call (its RESUME event may still be on its way)
                 state = State.RUNNING;
+                if (session != null && session.getTargetResult() != null) {
+                    // The call ended before the debugger could stop in it (its TERMINATE came while starting)
+                    state = State.ENDING;
+                    showTargetEnd(session);
+                    finishSession();
+                    return;
+                }
             }
             updateState();
         } catch (DBException e) {
             if (!(e instanceof DBInterruptedException)) {
-                ErrorDialog.show(this, DebugMessages.debug_error_start, e.getMessage(), e);
+                ErrorDialog.show(this, DebugMessages.debug_error_start, DebugCommands.describeError(e), e);
             }
             newController.unregisterEventHandler(this);
             newController.dispose();
@@ -925,6 +936,8 @@ final class ProcedureDebuggerPanel extends JPanel implements ToolDocument, DBGEv
         stepOverAction.setEnabled(suspended && current != null && current.canStepOver());
         stepIntoAction.setEnabled(suspended && current != null && current.canStepInto());
         stepOutAction.setEnabled(suspended && current != null && current.canStepReturn());
+        stepOutAction.putValue(Action.SHORT_DESCRIPTION, current != null && !current.canStepReturn()
+            ? DebugMessages.debug_step_out_unsupported_tip : DebugMessages.debug_step_out_tip);
         statusLabel.setText(switch (state) {
             case IDLE -> statusLabel.getText().equals(DebugMessages.debug_status_ended) ? DebugMessages.debug_status_ended : DebugMessages.debug_status_idle;
             case STARTING -> DebugMessages.debug_status_starting;
@@ -973,7 +986,7 @@ final class ProcedureDebuggerPanel extends JPanel implements ToolDocument, DBGEv
 
     /**
      * Variables of the shown frame: name (arguments marked), type, value. The value can be changed while the target is
-     * suspended; the server checks it ({@code pldbg_deposit_value}).
+     * suspended; the server checks it ({@code pldbg_deposit_value}, {@code DBMS_DEBUG.SET_VALUE}).
      */
     private final class VariablesModel extends AbstractTableModel {
         @Override
