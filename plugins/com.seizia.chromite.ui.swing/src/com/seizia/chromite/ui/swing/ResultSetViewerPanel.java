@@ -39,8 +39,10 @@ import com.seizia.chromite.model.exec.DBCSession;
 import com.seizia.chromite.model.impl.AbstractExecutionSource;
 import com.seizia.chromite.model.preferences.DBPPreferenceStore;
 import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.model.sql.SQLQuery;
 import com.seizia.chromite.model.sql.SQLQueryContainer;
 import com.seizia.chromite.model.sql.SQLUtils;
+import com.seizia.chromite.model.sql.parser.SQLSemanticProcessor;
 import com.seizia.chromite.model.struct.DBSDataContainer;
 import com.seizia.chromite.runtime.DBWorkbench;
 import com.seizia.chromite.runtime.jobs.DataSourceJob;
@@ -79,7 +81,9 @@ import java.util.function.Consumer;
  *     ({@link OrderingStrategy}: SMART면 아직 읽지 않은 행이 있을 때만 서버, CLIENT_SIDE는 항상 표 안에서, SERVER_SIDE는 항상 서버)와
  *     DB가 결과 정렬을 지원하는지로 정하고, 쿼리를 다시 읽을 수 없는 결과({@link ResultSetSource#requeryBlocker()})는 표 안에서 정렬한다.
  *     표 안 정렬은 SWT {@code ResultSetModel.resetOrderingImpl}처럼 먼저 읽은 순서로 되돌린 뒤 열의 값 처리기 비교기, 문자열은 대소문자 무시,
- *     그 밖에는 {@link DBUtils#compareDataValues}로 비교한다.</li>
+ *     그 밖에는 {@link DBUtils#compareDataValues}로 비교한다. 서버 정렬은 쿼리의 ORDER BY를 바꾼다(모델 생성기, 행을 고르는 ORDER BY는 그대로
+ *     두고 바깥에서 정렬). 정렬이 있으면 상태 줄에 "정렬: 열 ↑ ✕"를 보이고, 쿼리의 ORDER BY를 바꿨으면 그렇다고 쓴다. ✕는 정렬을 없애
+ *     쿼리 순서로 되돌린다.</li>
  *     <li><b>필터</b>: 열마다 머리글의 깔때기로 여는 팝업({@link ResultSetColumnFilterPopup})이 그 열의 조건({@link DBDAttributeConstraint})을
  *     정하고, 뷰어가 바뀐 {@link DBDDataFilter}로 쿼리를 서버에서 다시 읽는다. 표의 오른쪽 클릭 "Filter by Value"는 SWT
  *     {@code FilterByAttributeAction}처럼 열 조건(연산자와 값)을 더한다. 조건이 있으면 상태 줄에 "필터: 열1, 열2 ✕" 요약을 보인다
@@ -108,6 +112,8 @@ import java.util.function.Consumer;
  * - 2026-11-07 밀도 B: 치수를 테마의 Chromite.size.* 키({@link UiSizes})에서 읽음 (docs/chromite/design-spec.md "치수 토큰")
  * - 2026-11-07 WHERE 필터 줄을 없애고 열 머리글의 필터·정렬 아이콘과 열 필터 팝업으로 바꿈(사용자 요청). 값 패널·레코드 단추는 상태 줄 오른쪽으로,
  *   필터 요약은 상태 줄에 (docs/chromite/swing-grid-column-filters.md)
+ * - 2026-11-08 상태 줄의 정렬 요약: 정렬한 열, 쿼리의 ORDER BY를 바꿨는지, 쿼리 순서로 되돌리기(✕). 상태 줄 왼쪽이 넘치면 두 줄로 늘어남
+ *   ({@link WrapFlowLayout}: 전에는 넘친 요약이 상태 줄 밖으로 밀려 가려짐) (docs/chromite/swing-grid-column-filters.md "정렬과 쿼리의 ORDER BY")
  */
 final class ResultSetViewerPanel extends JPanel {
 
@@ -152,6 +158,8 @@ final class ResultSetViewerPanel extends JPanel {
     private final JButton fetchAllButton;
     private final JPanel filterSummary = new JPanel(new FlowLayout(FlowLayout.LEFT, 2, 0));
     private final JLabel filterSummaryLabel = new JLabel();
+    private final JPanel sortSummary = new JPanel(new FlowLayout(FlowLayout.LEFT, 2, 0));
+    private final JLabel sortSummaryLabel = new JLabel();
     private final JLabel aggregateLabel = new JLabel();
     private final JToggleButton valuePanelToggle;
     private final JToggleButton recordToggle;
@@ -293,7 +301,9 @@ final class ResultSetViewerPanel extends JPanel {
     private JComponent createStatusBar() {
         JPanel bar = new JPanel(new BorderLayout());
         bar.setBorder(UiSizes.createPadding(UiSizes.VIEWER_STATUS_PADDING));
-        JPanel left = new JPanel(new FlowLayout(FlowLayout.LEFT, 4, 0));
+        // Wraps to a second line when the row count, filter and sort summaries don't fit: a plain FlowLayout wrapped
+        // them below the one-line status bar, where they were cut off (sort summary next to filters in a narrow result)
+        JPanel left = new JPanel(new WrapFlowLayout(FlowLayout.LEFT, 4, 0));
         left.setOpaque(false);
         rowsLabel.putClientProperty(FlatClientProperties.STYLE, "foreground: $Chromite.secondaryForeground"); //$NON-NLS-1$
         left.add(rowsLabel);
@@ -311,6 +321,16 @@ final class ResultSetViewerPanel extends JPanel {
         filterSummary.add(clearFiltersButton);
         filterSummary.setVisible(false);
         left.add(filterSummary);
+        // Active sort: the columns, whether the sort replaced the query's ORDER BY, and the way back to the query's order
+        sortSummary.setOpaque(false);
+        sortSummary.add(sortSummaryLabel);
+        Action restoreOrder = createAction(GridFilterMessages.gridfilter_sort_restore, null, this::clearSorting);
+        restoreOrder.putValue(Action.SHORT_DESCRIPTION, GridFilterMessages.gridfilter_sort_restore);
+        JButton restoreOrderButton = UiIcons.createActionButton(restoreOrder, "close"); //$NON-NLS-1$
+        restoreOrderButton.setMargin(new Insets(1, 1, 1, 1));
+        sortSummary.add(restoreOrderButton);
+        sortSummary.setVisible(false);
+        left.add(sortSummary);
         aggregateLabel.putClientProperty(FlatClientProperties.STYLE, "foreground: $Chromite.secondaryForeground"); //$NON-NLS-1$
         JPanel right = new JPanel(new FlowLayout(FlowLayout.RIGHT, 2, 0));
         right.setOpaque(false);
@@ -940,6 +960,49 @@ final class ResultSetViewerPanel extends JPanel {
             rowsLabel.setToolTipText(null);
         }
         updateFilterSummary();
+        updateSortSummary();
+    }
+
+    /**
+     * "Sort: col1 ↑, col2 ↓ ✕" while the result is sorted. A sort read from the server replaces the query's own
+     * ORDER BY (the model generator, {@link SQLSemanticProcessor#getReplaceableOrderBy}): then the summary says so, and
+     * ✕ (no sort) reads the query in its own order again.
+     */
+    private void updateSortSummary() {
+        List<DBDAttributeConstraint> orders = dataFilter.getOrderConstraints();
+        sortSummary.setVisible(!orders.isEmpty());
+        if (orders.isEmpty()) {
+            return;
+        }
+        List<String> columns = new ArrayList<>();
+        for (DBDAttributeConstraint order : orders) {
+            String label = CommonUtils.isEmpty(order.getAttributeLabel()) ? order.getAttributeName() : order.getAttributeLabel();
+            columns.add(label + (order.isOrderDescending() ? " ↓" : " ↑")); //$NON-NLS-1$ //$NON-NLS-2$
+        }
+        String columnsText = String.join(", ", columns); //$NON-NLS-1$
+        String replaced = clientOrdered ? null : getReplaceableOrderBy();
+        sortSummaryLabel.setIcon(ResultSetHeaderRenderer.createActiveSortIcon(orders.getFirst().isOrderDescending() ? -1 : 1));
+        sortSummaryLabel.setText(NLS.bind(replaced != null
+            ? GridFilterMessages.gridfilter_sort_summary_replaces : GridFilterMessages.gridfilter_sort_summary, columnsText));
+        sortSummaryLabel.setToolTipText(replaced != null ? NLS.bind(GridFilterMessages.gridfilter_sort_replaces_tip, replaced)
+            : clientOrdered ? GridFilterMessages.gridfilter_sort_grid_tip : GridFilterMessages.gridfilter_sort_server_tip);
+        for (Component component : sortSummary.getComponents()) {
+            if (component instanceof AbstractButton button) {
+                button.setEnabled(!reading);
+            }
+        }
+    }
+
+    /**
+     * The ORDER BY of the result's query that a server sort replaces, or null (the query is parsed already: the
+     * re-read check parses it in the job thread).
+     */
+    @Nullable
+    private String getReplaceableOrderBy() {
+        if (fetched.source().dataContainer() instanceof SQLQueryContainer container && container.getQuery() instanceof SQLQuery query) {
+            return SQLSemanticProcessor.getReplaceableOrderBy(query);
+        }
+        return null;
     }
 
     /**
@@ -1670,6 +1733,72 @@ final class ResultSetViewerPanel extends JPanel {
         @Override
         public void selectionChanged() {
             scheduleSelectionUpdate();
+        }
+    }
+
+    /**
+     * A flow layout whose preferred height counts the lines it wraps to at the container's width (FlowLayout reports one
+     * line, so the wrapped components fell outside the status bar). When the line count changes on a resize, the
+     * container is validated again so the status bar takes the new height.
+     */
+    private static final class WrapFlowLayout extends FlowLayout {
+        private int lastHeight = -1;
+
+        WrapFlowLayout(int align, int hgap, int vgap) {
+            super(align, hgap, vgap);
+        }
+
+        @Override
+        public Dimension preferredLayoutSize(Container target) {
+            return layoutSize(target, true);
+        }
+
+        @Override
+        public Dimension minimumLayoutSize(Container target) {
+            return layoutSize(target, false);
+        }
+
+        @Override
+        public void layoutContainer(Container target) {
+            super.layoutContainer(target);
+            int height = preferredLayoutSize(target).height;
+            if (height != lastHeight) {
+                lastHeight = height;
+                SwingUtilities.invokeLater(target::revalidate);
+            }
+        }
+
+        @NotNull
+        private Dimension layoutSize(@NotNull Container target, boolean preferred) {
+            synchronized (target.getTreeLock()) {
+                Insets insets = target.getInsets();
+                // Before the first layout the width is 0: one line, as FlowLayout
+                int width = target.getWidth();
+                int maxWidth = width > 0 ? width - insets.left - insets.right - 2 * getHgap() : Integer.MAX_VALUE;
+                int totalWidth = 0;
+                int totalHeight = 0;
+                int rowWidth = 0;
+                int rowHeight = 0;
+                for (Component component : target.getComponents()) {
+                    if (!component.isVisible()) {
+                        continue;
+                    }
+                    Dimension size = preferred ? component.getPreferredSize() : component.getMinimumSize();
+                    // The same test as FlowLayout.layoutContainer, so both break the lines at the same components
+                    if (rowWidth > 0 && rowWidth + size.width > maxWidth) {
+                        totalWidth = Math.max(totalWidth, rowWidth);
+                        totalHeight += rowHeight + getVgap();
+                        rowWidth = 0;
+                        rowHeight = 0;
+                    }
+                    rowWidth += (rowWidth > 0 ? getHgap() : 0) + size.width;
+                    rowHeight = Math.max(rowHeight, size.height);
+                }
+                totalWidth = Math.max(totalWidth, rowWidth);
+                totalHeight += rowHeight;
+                return new Dimension(totalWidth + insets.left + insets.right + 2 * getHgap(),
+                    totalHeight + insets.top + insets.bottom + 2 * getVgap());
+            }
         }
     }
 }
