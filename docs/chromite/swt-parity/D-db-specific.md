@@ -19,13 +19,15 @@
 | PostgreSQL (`ext.postgresql.ui`, `ext.postgresql.debug.ui`) | 29 | 13 | 7 | 9 | 0 | 0 |
 | SQL Server (`ext.mssql.ui`) | 14 | 10 | 1 | 3 | 0 | 0 |
 | MySQL/MariaDB (`ext.mysql.ui`) | 19 | 10 | 4 | 5 | 0 | 0 |
-| Oracle (`ext.oracle.ui`) | 24 | 16 | 0 | 6 | 1 | 1 |
-| Altibase (`ext.altibase.ui`) | 9 | 5 | 0 | 3 | 0 | 1 |
+| Oracle (`ext.oracle.ui`) | 24 | 12 | 3 | 7 | 1 | 1 |
+| Altibase (`ext.altibase.ui`) | 9 | 3 | 0 | 5 | 0 | 1 |
 | 나머지 26개 번들 (+ 끊김 3행) | 29 | 2 | 16 | 8 | 0 | 3 |
-| **합계** | **124** | **56** | **28** | **34** | **1** | **5** |
+| **합계** | **124** | **50** | **31** | **37** | **1** | **5** |
 
 2026-11-08 3순위 Oracle·Altibase 관리(`chromite/p3-oracle-altibase-admin`): P23·S14·M17·O5·O16·O21·A2 없음 → 있음.
 2026-11-08 4순위 루틴(`chromite/p4-routines`): O11·O12·O14 일부 → 있음, O13·O20·A5·A6 없음 → 있음.
+
+2026-11-08 다른 도구에서 가져오기(`chromite/import-other-tools`): O23 없음 → 있음.
 
 ### 조용히 끊김 (먼저 볼 것)
 
@@ -129,8 +131,8 @@ K1–K3의 공통 원인은 SQL 편집기에 서버 출력 패널이 없는 것�
 | O6 | 메타데이터 옵션: 옵티마이저 힌트, RULE 힌트, 단순 제약 질의, 다른 테이블 질의, DBA 뷰 쓰기·항상 DBA 보기, SYS 스키마, 빈 스키마 숨김, 한 스키마만, DATE를 날짜로, 동의어에서 찾기, OS 사용자 | `OracleConnectionExtraPage` | 있음 | 모두 선언(`ext.oracle/plugin.xml` provider-properties) → 표 | 낮음 | |
 | O7 | 메타데이터 옵션: 열 주석 읽기, 시퀀스에서 찾기, 옵티마이저 버전 | `OracleConnectionExtraPage:138-171` | 없음 | 키 미선언. 모델 `OracleSchema.java:151`, `:813`, `OracleDataSource.java:396` | 낮음 | |
 | O8 | 전역·연결별 "Oracle" 환경설정(PLAN_TABLE 이름, ROWID 사용, DBMS_OUTPUT 켜기, 모든 동의어 읽기, 스크립트 escape 처리 끄기) | `PrefPageOracle`(preferencePages + propertyPages) | 없음 | `OptionsDialog.java:178-180` | 낮음 | 기본값은 모델 쪽 `OraclePreferencesInitializer`가 그대로 넣는다(UI 번들의 같은 초기화가 지워져도 값 같음). K1을 끌 방법도 없다 |
-| O9 | 세션 관리자(Kill, Disconnect, 백그라운드·비활성 보기) | `OracleSessionEditor` | 있음 | `OracleActivitySessionManager`(swing-admin-tools.md 127행) | 높음 | |
-| O10 | 잠금 관리자 | `OracleLockEditor` | 있음 | `OracleBlockingLockManager`(swing-admin-tools.md 154행) | 높음 | |
+| O9 | 세션 관리자(Kill, Disconnect, 백그라운드·비활성 보기) | `OracleSessionEditor` | 있음 | `OracleActivitySessionManager`(swing-admin-tools.md 127행) | 높음 | 2026-11-08 SWT에 없던 Cancel Query(18c+, `ALTER SYSTEM CANCEL SQL`)와 RAC 세션 번호(`@INST_ID`) 더함(swing-admin-tools.md "Oracle RAC와 쿼리 취소") |
+| O10 | 잠금 관리자 | `OracleLockEditor` | 있음 | `OracleBlockingLockManager`(swing-admin-tools.md 154행) | 높음 | 2026-11-08 RAC(인스턴스 2개 이상)는 `GV$`로 모든 인스턴스를 읽음 |
 | O11 | Compile 명령(탐색기에서 고른 PL/SQL 객체 컴파일, 오류 목록, 편집기의 오류 줄로 이동) | 명령 `ext.oracle.code.compile` → `CompileHandler`, `OracleCompilerDialog` | 있음(2026-11-08) | Object Explorer "Compile"(`ObjectMaintenanceActions` COMPILE, 모델 `getCompileActions`), `CompileErrorsDialog`(`ALL_ERRORS`, Go to Error → Modify 창의 오류 줄), [swing-routines.md](../swing-routines.md) | 중간 | 조사 당시: 일부(Maintenance의 무효 개체만, 노드에서 컴파일 불가) |
 | O12 | PL/SQL 소스 편집기(패키지 선언·본문, 프로시저)와 저장 뒤 컴파일 오류 표시 | `OracleSourceDeclarationEditor`, `OracleSourceDefinitionEditor`, `OracleObjectDeclarationViewer`, (모델 쪽 `OracleObjectValidateAction`) | 있음(2026-11-08) | Modify → 쿼리 창. CREATE 뒤 `ALL_ERRORS`를 편집기 줄·열로 Messages에 쓰고 줄을 표시(`SqlEditorPanel`, `OracleCompileErrors`), [swing-routines.md](../swing-routines.md) | 중간 | 조사 당시: 일부(드라이버 경고만, 오류 줄·위치 없음) |
 | O13 | 패키지 안 프로시저 → 소스 위치로 이동 | 명령 `ext.oracle.code.package.navigate` → `PackageNavigateHandler` | 있음(2026-11-08) | "Go to Source Code"(`RoutineCommands`): 패키지 Modify 창의 본문에서 루틴 머리글을 고름(겹침 번호 순서), [swing-routines.md](../swing-routines.md) | 낮음 | 조사 당시: 없음 |
@@ -143,7 +145,7 @@ K1–K3의 공통 원인은 SQL 편집기에 서버 출력 패널이 없는 것�
 | O20 | 구조 검증(VALIDATE STRUCTURE) | `OracleToolValidateStructure` | 있음(2026-11-08) | Maintenance… 테이블 동작 Validate Structure(`OracleMaintenanceDialect` `validate`), [swing-routines.md](../swing-routines.md) | 낮음 | 조사 당시: 없음 |
 | O21 | TRUNCATE, 트리거 사용/사용 안 함, 구체화된 뷰 새로 고침 | `OracleToolTruncate`, `OracleToolTriggerEnable/Disable`, `OracleToolRefreshMView` | 있음(2026-11-08) | P23과 같음 | 중간 | 조사 당시: 없음. REUSE STORAGE·새로 고침 방식 옵션 화면은 없음 |
 | O22 | SQL*Plus로 스크립트 실행(도구 + 편집기 네이티브 실행) | `OracleToolScript`, `OracleScriptExecutor`(`sql.executors`) | 없음 | grep `sqlplus` → `ui.swing` 0건. 백업·복원도 Oracle은 대상 아님(swing-backup-restore.md 10행) | 낮음 | |
-| O23 | Toad·SQL Developer 연결 가져오기 | `importWizards`: `ConfigImportWizardToad`, `ConfigImportWizardSqlDeveloper` | 없음 | swt-removal.md 115행(다른 도구의 연결 가져오기 없음) | 중간 | Oracle 사용자 이전 경로 |
+| O23 | Toad·SQL Developer 연결 가져오기 | `importWizards`: `ConfigImportWizardToad`, `ConfigImportWizardSqlDeveloper` | 있음(2026-11-08) | File > Import Connections > From Another Tool…, `ext.oracle` `importer/SqlDeveloperConnectionReader`·`ToadConnectionReader`([connection-transfer.md](../connection-transfer.md) "다른 도구에서 가져오기"). 비밀번호는 SWT처럼 읽지 않음(Toad SSH 평문 비밀번호만) | 중간 | 조사 당시: 없음(swt-removal.md 115행). Oracle 사용자 이전 경로 |
 | O24 | DBMS_OUTPUT 출력 | (SQL 편집기 Output 패널 + `PREF_DBMS_OUTPUT`) | 있음(2026-11-07, 조사 때 조용히 끊김) | 위 K1. 쿼리 창 Messages 탭 | 높음 | 켜고 끄는 화면은 없음(O8) |
 
 ## 5. Altibase (`ext.altibase.ui`, 8 클래스)
@@ -247,7 +249,7 @@ SWT에도 Altibase 전용 연결 화면은 없었다(`dataSourceConfigurator` �
 9. P29 PostgreSQL 디버거(모델까지 삭제) — 없음, 중간. (2026-11-07 옮김, [procedure-debugger.md](../procedure-debugger.md))
 10. A6·A7 Altibase 컴파일, 복제 시작·중지 — 없음, 중간. (A6은 2026-11-08 고침, A7은 남음)
 
-다음 순위: S4 Azure·Babelfish 모든 DB 보기, P19 pg_dumpall, O23 Toad·SQL Developer 가져오기, P3 PgBouncer prepared statement, K3 CUBRID 출력.
+다음 순위: S4 Azure·Babelfish 모든 DB 보기, P19 pg_dumpall, O23 Toad·SQL Developer 가져오기(2026-11-08 고침), P3 PgBouncer prepared statement, K3 CUBRID 출력.
 "일부"이지만 영향이 큰 것: O11·O12 Oracle 컴파일과 컴파일 오류 표시(노드에서 컴파일 불가, Modify 뒤 오류 위치 없음). (2026-11-08 고침, [swing-routines.md](../swing-routines.md))
 
 ## 확인하지 못한 것
@@ -263,4 +265,6 @@ SWT에도 Altibase 전용 연결 화면은 없었다(`dataSourceConfigurator` �
 ## 변경 이력
 
 - 2026-11-08 3순위 Oracle·Altibase 관리: P23·S14·M17·O5·O16·O21·A2 → 있음, 요약 표와 높은 순서 목록 갱신.
-- 2026-11-08 4순위 루틴: O11·O12·O13·O14·O20·A5·A6 → 있음, 요약 표와 높은 순서 목록 갱신([swing-routines.md](../swing-routines.md)).
+- 2026-11-08 4순위 루틴: O11·O12·O13·O14·O20·A5·A6 → 있음, 높은 순서 목록 갱신(요약 표 수는 devel 병합 뒤 다시 센다)([swing-routines.md](../swing-routines.md)).
+- 2026-11-08 O23 Toad·SQL Developer 연결 가져오기 → 있음([connection-transfer.md](../connection-transfer.md) "다른 도구에서 가져오기"), 요약 표 갱신.
+- 2026-11-08 후속 #69: O9·O10 비고(Oracle Cancel Query, RAC `GV$`). 상태 변화 없음.

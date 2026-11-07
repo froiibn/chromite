@@ -111,6 +111,7 @@ import java.util.concurrent.ConcurrentHashMap;
  * - 2026-11-06 최초 작성 (docs/chromite/swing-source-editor.md)
  * - 2026-11-07 주석만: 쿼리 창마다 별도 연결이면 새 창이 주 문맥의 기본값을 복사함 (docs/chromite/transactions.md "쿼리 창마다 별도 연결")
  * - 2026-11-08 {@link #bindDefaultContext}를 패키지 안에 열어 Execute Procedure 창도 루틴의 DB·스키마에서 실행되게 함 (docs/chromite/swing-routines.md)
+ * - 2026-11-08 {@link #generateContainerScript}: 스키마 비교 스크립트도 같은 구분자·DB 맞추기로 만든다 (docs/chromite/schema-compare.md)
  */
 final class SourceScripts {
 
@@ -199,6 +200,25 @@ final class SourceScripts {
             throw new DBException(NLS.bind(SourceEditMessages.source_error_no_script, DBUtils.getObjectFullName(object, DBPEvaluationContext.UI)));
         }
         return renderScript(dataSource, getDatabaseSwitch(object), actions);
+    }
+
+    /**
+     * Joins actions made for objects of a container (Schema Compare's script) into a query window script, as the
+     * Modify script: the connection's default context is bound to the container first, and SQL Server scripts start
+     * with {@code USE <database>}.
+     */
+    @NotNull
+    static String generateContainerScript(
+        @NotNull DBRProgressMonitor monitor,
+        @NotNull DBSObject container,
+        @NotNull List<DBEPersistAction> actions
+    ) throws DBException {
+        DBPDataSource dataSource = container.getDataSource();
+        if (dataSource == null) {
+            throw new DBException(NLS.bind(SourceEditMessages.source_error_not_connected, container.getName()));
+        }
+        bindDefaultContext(monitor, container);
+        return renderScript(dataSource, getDatabaseSwitch(container), actions);
     }
 
     @Nullable

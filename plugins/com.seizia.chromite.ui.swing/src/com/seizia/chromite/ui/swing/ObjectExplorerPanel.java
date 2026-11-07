@@ -23,8 +23,10 @@ import com.seizia.chromite.ext.oracle.model.OracleDDLFormat;
 import com.seizia.chromite.model.admin.security.SecurityPrincipal;
 import com.seizia.chromite.ui.swing.internal.AgentMessages;
 import com.seizia.chromite.ui.swing.internal.BackupRestoreMessages;
+import com.seizia.chromite.ui.swing.internal.CompareMessages;
 import com.seizia.chromite.ui.swing.internal.CoreMessages;
 import com.seizia.chromite.ui.swing.internal.DashboardMessages;
+import com.seizia.chromite.ui.swing.internal.DataSearchMessages;
 import com.seizia.chromite.ui.swing.internal.DbCopyMessages;
 import com.seizia.chromite.ui.swing.internal.ErdMessages;
 import com.seizia.chromite.ui.swing.internal.NavigatorMessages;
@@ -148,7 +150,8 @@ import java.util.function.Supplier;
  *     <li>Filter(SSMS): 고른 객체 폴더에 이름 마스크를 건다. DBeaver 탐색기 필터({@code DBSObjectFilter})를 그대로 써서 연결 설정에 저장된다.
  *     Collapse All은 펼친 노드를 모두 접는다.</li>
  *     <li>관리 도구: 오른쪽 클릭 메뉴의 Activity Monitor, Locks(선택한 노드의 연결), Find Objects…(선택한 노드의 연결과 스키마를 범위로).
- *     Find Objects 결과는 {@link #revealNode}로 트리를 펼쳐 고른다.</li>
+ *     Find Objects 결과는 {@link #revealNode}로 트리를 펼쳐 고른다. Search Data…(스키마·카탈로그·"Tables" 폴더 하나, 또는 같은 부모의
+ *     테이블 여러 개)는 값을 행에서 찾는 문서 탭({@link DataSearchPanel})을 연다.</li>
  *     <li>Tasks &gt; Import Data… / Export Data…(SSMS 데이터베이스 Tasks 메뉴): 테이블에서 가져오기({@link DataImportWizard}),
  *     테이블·뷰 또는 그것들을 담은 스키마·폴더에서 내보내기({@link DataExportWizard}). Copy Tables…는 같은 원본을 다른 연결·데이터베이스로 복사한다
  *     ({@link DataExportWizard#openForCopy}). 세 명령은 데이터베이스 노드와 데이터베이스가 하나뿐인 연결 노드에서도 켜진다({@link #getTransferObject}).</li>
@@ -214,6 +217,9 @@ import java.util.function.Supplier;
  *   (docs/chromite/swing-explorer-object-actions.md "유지 관리 명령")
  * - 2026-11-08 루틴의 Execute Procedure…, 패키지 루틴의 Go to Source Code({@link RoutineCommands}), View DDL의 Oracle DDL 형식
  *   (docs/chromite/swing-routines.md)
+ * - 2026-11-08 SQL Server 프로시저의 Trace Execution… 메뉴({@link ExecutionTraceCommands}, docs/chromite/sqlserver-execution-trace.md)
+ * - 2026-11-08 Search Data… 메뉴(여러 테이블의 값 찾기, {@link DataSearchPanel}) (docs/chromite/swing-data-search.md)
+ * - 2026-11-08 Compare Schemas… 메뉴({@link SchemaComparePanel}, docs/chromite/schema-compare.md)
  */
 final class ObjectExplorerPanel extends JPanel {
 
@@ -325,10 +331,13 @@ final class ObjectExplorerPanel extends JPanel {
     private final List<Action> adminViewActions;
     private final Action maintenanceAction;
     private final Action findObjectsAction;
+    private final Action searchDataAction;
+    private final Action compareSchemasAction;
     private final Action designAction;
     private final Action newTableAction;
     private final Action viewDiagramAction;
     private final Action debugAction;
+    private final Action traceAction;
     private final Action principalPropertiesAction;
     private final Action newPrincipalAction;
     private final Action objectPermissionsAction;
@@ -458,6 +467,15 @@ final class ObjectExplorerPanel extends JPanel {
         adminViewActions = AdminViewCommands.createActions(tab -> runOnSelectedDataSource(dataSource -> queryWindows.openActivityMonitor(dataSource, tab)));
         findObjectsAction = createAction(CoreMessages.main_find_objects, () -> queryWindows.openObjectSearch(getSelectedNavigatorNode()));
         findObjectsAction.putValue(Action.SHORT_DESCRIPTION, CoreMessages.explorer_find_objects_tip);
+        searchDataAction = createAction(DataSearchMessages.datasearch_command, () -> {
+            DataSearchPanel.Scope scope = DataSearchPanel.findScope(getSelectedNavigatorNodes());
+            if (scope != null) {
+                queryWindows.openToolDocument(scope.key(), () -> new DataSearchPanel(scope, queryWindows));
+            }
+        });
+        searchDataAction.putValue(Action.SHORT_DESCRIPTION, DataSearchMessages.datasearch_command_tip);
+        compareSchemasAction = createAction(CompareMessages.compare_command, () -> SchemaComparePanel.open(queryWindows, getSelectedNavigatorNode()));
+        compareSchemasAction.putValue(Action.SHORT_DESCRIPTION, CompareMessages.compare_command_tip);
         designAction = createAction(CoreMessages.explorer_design, () -> {
             if (getSelectedObject() instanceof DBSEntity table) {
                 queryWindows.designTable(table);
@@ -510,6 +528,7 @@ final class ObjectExplorerPanel extends JPanel {
         sourceEditCommands = new SourceEditCommands(this::getSelectedNavigatorNode, queryWindows);
         debugAction = DebugCommands.createAction(this, this::getSelectedObject, queryWindows);
         routineCommands = new RoutineCommands(this, this::getSelectedNavigatorNode, queryWindows);
+        traceAction = ExecutionTraceCommands.createAction(this, this::getSelectedObject, queryWindows);
         objectCommands = new ExplorerObjectCommands(this, this::getSelectedNavigatorNodes, queryWindows);
         tree.setTransferHandler(objectCommands.createTransferHandler());
         maintenanceCommands = new ObjectMaintenanceCommands(this, this::getSelectedNavigatorNodes, queryWindows);
@@ -646,6 +665,7 @@ final class ObjectExplorerPanel extends JPanel {
         popupMenu.add(routineCommands.getExecuteAction());
         popupMenu.add(routineCommands.getGoToSourceItem());
         popupMenu.add(debugAction);
+        popupMenu.add(traceAction);
         popupMenu.add(objectPermissionsAction);
         popupMenu.add(selectTopAction);
         popupMenu.add(scriptAsMenu);
@@ -665,6 +685,8 @@ final class ObjectExplorerPanel extends JPanel {
         popupMenu.add(dashboardAction);
         adminViewActions.forEach(popupMenu::add);
         popupMenu.add(findObjectsAction);
+        popupMenu.add(searchDataAction);
+        popupMenu.add(compareSchemasAction);
         popupMenu.addSeparator();
         popupMenu.add(editConnectionAction);
         popupMenu.add(objectCommands.getCopyNameAction());
@@ -910,6 +932,7 @@ final class ObjectExplorerPanel extends JPanel {
         sourceEditCommands.update(getSelectedNavigatorNode());
         routineCommands.update(getSelectedNavigatorNode());
         debugAction.setEnabled(DebugCommands.canDebug(object));
+        traceAction.setEnabled(ExecutionTraceCommands.canTrace(object));
         connectAction.setEnabled(dataSource != null && !connected);
         // Also for a server that is no longer connected: Disconnect removes it from this window
         disconnectAction.setEnabled(dataSource != null);
@@ -919,6 +942,8 @@ final class ObjectExplorerPanel extends JPanel {
         dashboardAction.setEnabled(dataSource != null);
         adminViewActions.forEach(action -> action.setEnabled(dataSource != null));
         findObjectsAction.setEnabled(projectNode != null);
+        searchDataAction.setEnabled(DataSearchPanel.findScope(getSelectedNavigatorNodes()) != null);
+        compareSchemasAction.setEnabled(projectNode != null);
         editConnectionAction.setEnabled(connectionNode);
         renameAction.setEnabled(connectionNode || ExplorerObjectCommands.canRename(getSelectedNavigatorNode()));
         boolean principal = SecurityCommands.canOpenProperties(object);

@@ -39,6 +39,7 @@ import org.eclipse.osgi.util.NLS;
  * - 2026-11-07 Options의 위험한 SQL 확인 문구에 TRUNCATE를 더함 (docs/chromite/swing-sql-exec-safety.md)
  * - 2026-11-08 파일 덮어쓰기 확인의 바꾸기 단추 문구 추가 (docs/chromite/swing-frontend.md "실행 확인의 기본 단추")
  * - 2026-11-08 View DDL의 Oracle DDL 형식 콤보 문구 추가 (docs/chromite/swing-routines.md)
+ * - 2026-11-08 View &gt; Compact Mode 문구 추가 (docs/chromite/design-spec.md "적용 현황 — 촘촘한 모드")
  */
 public class CoreMessages extends NLS {
     private static final String BUNDLE_NAME = "com.seizia.chromite.ui.swing.internal.CoreMessages"; //$NON-NLS-1$
@@ -125,6 +126,7 @@ public class CoreMessages extends NLS {
     public static String main_show_hidden_tabs;
     public static String main_menu_theme;
     public static String main_menu_icon_style;
+    public static String main_menu_compact_mode;
 
     public static String explorer_refresh;
     public static String explorer_refresh_tip;

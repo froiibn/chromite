@@ -37,6 +37,7 @@ import org.jkiss.utils.CommonUtils;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Consumer;
 
 /**
  * The single entry point that runs an agent tool for the chat or the MCP server.
@@ -60,6 +61,7 @@ import java.util.Map;
  * - 2026-11-07 최초 작성
  * - 2026-11-07 트랜잭션 질문의 Commit/Roll back 답을 결과에 남김({@value #RESULT_TRANSACTIONS_BEFORE_CALL}): 롤백으로 답한
  *   {@code commitTransaction}이 커밋과 같은 "완료"로만 보이던 것(docs/chromite/ai-agent.md "트랜잭션 안전")
+ * - 2026-11-08 도구의 진행 상황을 받을 수신자를 넘기는 {@code execute}(채팅 카드에 백업·복원 진행 표시)
  */
 public final class AIToolExecutor {
 
@@ -95,6 +97,23 @@ public final class AIToolExecutor {
         @NotNull Map<String, Object> arguments,
         @Nullable AIFunctionContext chatContext
     ) {
+        return execute(monitor, client, toolId, arguments, chatContext, null);
+    }
+
+    /**
+     * Runs a tool through the policy and passes the tool's progress texts to a listener.
+     *
+     * @param progressListener receives {@link AIToolCallContext#reportProgress} texts on the tool's thread, or null
+     */
+    @NotNull
+    public static AIToolCallResult execute(
+        @NotNull DBRProgressMonitor monitor,
+        @NotNull AIToolClient client,
+        @NotNull String toolId,
+        @NotNull Map<String, Object> arguments,
+        @Nullable AIFunctionContext chatContext,
+        @Nullable Consumer<String> progressListener
+    ) {
         long start = System.currentTimeMillis();
         Map<String, Object> args = new LinkedHashMap<>(arguments);
         AIFunctionDescriptor tool = AIToolCatalog.getTool(toolId);
@@ -110,7 +129,7 @@ public final class AIToolExecutor {
         try {
             connection = resolveConnection(tool, args, chatContext);
             checkRequired(tool, args);
-            AIToolCallContext context = new AIToolCallContext(monitor, chatContext, tool, client, connection);
+            AIToolCallContext context = new AIToolCallContext(monitor, chatContext, tool, client, connection, progressListener);
             AIFunction instance = tool.getInstance();
             if (instance instanceof AIToolAccessClassifier classifier) {
                 access = access.max(classifier.classify(context, args));

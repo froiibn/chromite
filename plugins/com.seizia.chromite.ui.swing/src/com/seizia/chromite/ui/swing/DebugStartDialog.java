@@ -36,8 +36,8 @@ import java.util.Map;
 /**
  * Start dialog of the procedure debugger: run the routine with arguments, or wait for another session's call.
  *
- * 설계: 쿼리 창의 매개 변수 대화상자({@link SqlParameterDialog})는 쿼리 글({@code SQLQuery})의 {@code :name} 매개 변수에 묶여 있어
- * 루틴 인수에 쓸 수 없다. 값을 SQL 식으로 받는 규칙(문자열은 따옴표, NULL)은 그 대화상자와 SWT 디버거 구성 패널
+ * 설계: 쿼리 창의 매개 변수 대화상자({@link QueryParameterDialog})는 쿼리 글({@code SQLQuery})의 {@code :name} 매개 변수에 묶여 있어
+ * 루틴 인수에 쓸 수 없다. 값을 SQL 식으로 받는 규칙(문자열은 따옴표, NULL)은 그 대화상자의 스크립트 모드와 SWT 디버거 구성 패널
  * ({@code PostgreDebugPanelFunction})과 같게 했다. 표는 SWT 패널처럼 이름·형식·방향·값이다. SWT 패널에서는 막아 두었던
  * attach(Global) 모드를 켰다: 모델이 지원하고 서버에서 확인했다(docs/chromite/procedure-debugger.md "pldbgapi 동작").
  * attach를 지원하지 않는 디버거(Oracle {@code DBMS_DEBUG})에서는 그 선택을 끄고 이유를 도움말로 보인다.
@@ -46,6 +46,7 @@ import java.util.Map;
  * - 2026-11-07 최초 작성 (docs/chromite/procedure-debugger.md)
  * - 2026-11-07 attach 지원 여부 인수(Oracle 디버거)
  * - 2026-11-08 인수 표를 {@link RoutineArgumentTable}로 옮겨 Execute Procedure 대화상자와 함께 씀 (docs/chromite/swing-routines.md)
+ * - 2026-11-08 설계 설명의 쿼리 창 매개 변수 대화상자를 합친 대화상자({@link QueryParameterDialog})로 고침
  */
 final class DebugStartDialog extends JDialog {
 
