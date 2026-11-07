@@ -45,6 +45,9 @@ import java.util.List;
  * - 2026-11-06 새 토스트가 창 높이만큼 크게 그려지던 문제: 줄 바꿈 글 상자의 너비가 정해지기 전에 선호 높이를 재던 것을
  *   토스트를 먼저 배치한 뒤 재도록 고침 (docs/chromite/swing-frontend.md)
  * - 2026-11-06 화면 문구를 CoreMessages로 옮김(OS 언어를 따름)
+ * - 2026-11-07 답 단추가 있는 알림({@link #showWithActions}): 시간이 지나도 사라지지 않고, 단추나 ×를 누르거나 연 쪽이
+ *   {@link #dismiss}할 때까지 남는다. 유휴 트랜잭션 알림(커밋/롤백/열어 두기)과 자동 롤백 알림이 쓴다. 자리를 비운 사이 사라지면
+ *   돌아온 사용자가 볼 수 없기 때문이다 (docs/chromite/idle-transactions.md)
  */
 final class NotificationToast extends JPanel {
 
@@ -69,16 +72,25 @@ final class NotificationToast extends JPanel {
 
     private final JRootPane rootPane;
     private final Timer closeTimer;
+    private final boolean persistent;
 
+    /**
+     * @param actions   answer buttons below the message; each closes the toast, then runs
+     * @param dismissed run when the user closes a persistent toast with ×
+     */
     private NotificationToast(
         @NotNull JRootPane rootPane,
         @NotNull String title,
         @Nullable String message,
         @NotNull Kind kind,
-        @Nullable Runnable feedback
+        @Nullable Runnable feedback,
+        @NotNull List<? extends Action> actions,
+        boolean persistent,
+        @Nullable Runnable dismissed
     ) {
         super(new BorderLayout(10, 4));
         this.rootPane = rootPane;
+        this.persistent = persistent;
         setBorder(BorderFactory.createCompoundBorder(
             new FlatLineBorder(new Insets(0, 0, 0, 0), UIManager.getColor("Component.borderColor"), 1, 10), //$NON-NLS-1$
             BorderFactory.createEmptyBorder(10, 12, 10, 8)));
@@ -90,7 +102,12 @@ final class NotificationToast extends JPanel {
         JButton closeButton = new JButton("×"); //$NON-NLS-1$
         closeButton.putClientProperty(FlatClientProperties.BUTTON_TYPE, FlatClientProperties.BUTTON_TYPE_TOOLBAR_BUTTON);
         closeButton.setFocusable(false);
-        closeButton.addActionListener(e -> close());
+        closeButton.addActionListener(e -> {
+            close();
+            if (dismissed != null) {
+                dismissed.run();
+            }
+        });
 
         JPanel header = new JPanel(new BorderLayout());
         header.setOpaque(false);
@@ -115,6 +132,19 @@ final class NotificationToast extends JPanel {
                 messageArea.addMouseListener(createFeedbackListener(feedback));
             }
         }
+        if (!actions.isEmpty()) {
+            JPanel buttons = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
+            buttons.setOpaque(false);
+            for (Action action : actions) {
+                if (buttons.getComponentCount() > 0) {
+                    buttons.add(Box.createHorizontalStrut(6));
+                }
+                JButton button = new JButton(action);
+                button.addActionListener(e -> close());
+                buttons.add(button);
+            }
+            text.add(buttons, BorderLayout.SOUTH);
+        }
         add(new JLabel(UIManager.getIcon(kind.iconKey)), BorderLayout.WEST);
         add(text, BorderLayout.CENTER);
         if (feedback != null) {
@@ -137,13 +167,45 @@ final class NotificationToast extends JPanel {
         @NotNull Kind kind,
         @Nullable Runnable feedback
     ) {
+        display(frame, new NotificationToast(frame.getRootPane(), title, message, kind, feedback, List.of(), false, null));
+    }
+
+    /**
+     * Shows a notification that stays until the user presses one of its buttons or ×, or the caller dismisses it.
+     *
+     * @param actions   answer buttons (may be empty); a button closes the toast, then runs its action
+     * @param dismissed run when the user closes the toast with ×
+     */
+    @NotNull
+    static NotificationToast showWithActions(
+        @NotNull JFrame frame,
+        @NotNull String title,
+        @Nullable String message,
+        @NotNull Kind kind,
+        @NotNull List<? extends Action> actions,
+        @Nullable Runnable dismissed
+    ) {
+        return display(frame, new NotificationToast(frame.getRootPane(), title, message, kind, null, actions, true, dismissed));
+    }
+
+    @NotNull
+    private static NotificationToast display(@NotNull JFrame frame, @NotNull NotificationToast toast) {
         JRootPane rootPane = frame.getRootPane();
-        NotificationToast toast = new NotificationToast(rootPane, title, message, kind, feedback);
         List<NotificationToast> toasts = getToasts(rootPane);
         toasts.add(toast);
         rootPane.getLayeredPane().add(toast, JLayeredPane.POPUP_LAYER);
         layoutToasts(rootPane);
-        toast.closeTimer.start();
+        if (!toast.persistent) {
+            toast.closeTimer.start();
+        }
+        return toast;
+    }
+
+    /**
+     * Closes the toast without running anything (its question is no longer current).
+     */
+    void dismiss() {
+        close();
     }
 
     @NotNull

@@ -24,6 +24,8 @@
         <!-- Notifies the end of long operations (native backup/restore tools); the SWT product registers UIServiceSystemAgentImpl.
              Without it DBWorkbench.getService logs "Service ... not found" into the task output. -->
         <service name="com.seizia.chromite.runtime.ui.UIServiceSystemAgent" class="com.seizia.chromite.ui.swing.SwingSystemAgent"/>
+        <!-- Reminder and notice of idle open transactions (IdleTransactionMonitor); without it the monitor neither reminds nor rolls back -->
+        <service name="com.seizia.chromite.runtime.ui.UIServiceIdleTransactions" class="com.seizia.chromite.ui.swing.SwingIdleTransactionService"/>
     </extension>
 
     <!-- Table designer: driver parts of new indexes, foreign keys and CHECK constraints (the SWT ext.*.ui configurators'

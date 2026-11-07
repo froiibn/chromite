@@ -36,6 +36,7 @@ import org.eclipse.osgi.util.NLS;
  * - 2026-11-07 결과 필터 줄(ResultSetFilterBar)을 없애며 그 문구를 지움. 열 필터 문구는 {@link GridFilterMessages}
  * - 2026-11-07 결과 표 저장 전 스크립트 미리 보기 문구({@code editor_grid_preview_*}, {@code editor_grid_save_canceled})
  *   (docs/chromite/swing-frontend.md "저장 전 스크립트 미리 보기")
+ * - 2026-11-07 쿼리 상태 줄의 열린 트랜잭션 칸 문구({@code editor_status_txn_*}) (docs/chromite/idle-transactions.md)
  */
 public class EditorMessages extends NLS {
     private static final String BUNDLE_NAME = "com.seizia.chromite.ui.swing.internal.EditorMessages"; //$NON-NLS-1$
@@ -206,6 +207,14 @@ public class EditorMessages extends NLS {
     public static String editor_status_manual_commit_tip;
     public static String editor_status_commit_setting_tip;
     public static String editor_status_commit_default_differs;
+    public static String editor_status_txn_open_one;
+    public static String editor_status_txn_open_many;
+    public static String editor_status_txn_tip_started;
+    public static String editor_status_txn_tip_statements;
+    public static String editor_status_txn_tip_last;
+    public static String editor_status_txn_tip_click;
+    public static String editor_status_txn_commit;
+    public static String editor_status_txn_rollback;
 
     // Results (QueryResultsView)
     public static String editor_results_none;

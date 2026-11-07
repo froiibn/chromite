@@ -786,7 +786,8 @@ SWT 범용 화면(`GenericConnectionPage`)의 규칙을 모델 코드로 따랐�
 - **이름 바꾸기:** `DBNDataSource.rename`(이름 저장 + 갱신 이벤트, SWT 이름 바꾸기와 같음).
 - **삭제** (SWT `DataSourceDescriptorManager.deleteObject`): 확인 → 연결 중이면 `DisconnectJob`으로 끊은 뒤 → `DBPDataSourceRegistry.removeDataSource`(설정 파일 저장, 비밀 정보 삭제, `OBJECT_REMOVE`).
 - **연결 / 끊기 / 다시 연결** (SWT `DataSourceHandler`): 연결은 `SwingConnectionService`(B단계, 연결 Job 예약), 끊기는 모델의 `DisconnectJob`(이미 연결·끊기 Job이 있으면 무시),
-  다시 연결은 끊기가 끝난 뒤 연결. SWT가 끊기 전에 하던 열린 편집기 저장 확인과 진행 중 트랜잭션 확인은 아직 없다.
+  다시 연결은 끊기가 끝난 뒤 연결. SWT가 끊기 전에 하던 열린 편집기 저장 확인은 아직 없다. 열린 트랜잭션은 끊기 전에 묻는다
+  (2026-11-07, [idle-transactions.md](idle-transactions.md) "연결 끊기 전 질문").
 
 ### 드라이버 파일 내려받기 (`SwingDriversService`)
 

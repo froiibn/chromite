@@ -3,8 +3,9 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
 <title>Chromite 다운로드</title>
-<meta name="description" content="Chromite - 데이터베이스 워크벤치. Windows와 macOS용 설치 파일을 받습니다.">
+<meta name="description" content="Chromite - 데이터베이스 워크벤치. PostgreSQL, SQL Server, MariaDB, MySQL, Oracle을 한 창에서 다루는 데스크톱 앱. Windows와 macOS용 설치 파일을 받습니다.">
 <link rel="icon" href="/assets/chromite-icon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="/assets/site.css">
 <link rel="alternate" hreflang="en" href="/en/">
@@ -15,71 +16,124 @@
 <header class="top">
   <div class="wrap">
     <a class="brand" href="/ko/"><img src="/assets/chromite-icon.svg" alt="">Chromite</a>
-    <nav class="nav">
+    <nav class="nav" aria-label="사이트">
       <a href="/ko/" aria-current="page">다운로드</a>
       <a href="/ko/changelog.html">변경 내역</a>
       <a href="/ko/privacy.html">개인정보</a>
+      <span class="sep" aria-hidden="true"></span>
+      <a href="https://github.com/froiibn/chromite"><span class="mark-github" aria-hidden="true"></span><span class="label">GitHub</span></a>
       <a href="/en/" lang="en">English</a>
     </nav>
   </div>
 </header>
 
 <main class="wrap">
-  <section class="hero">
-    <h1>Chromite</h1>
-    <p class="sub">데이터베이스 워크벤치</p>
-    <p class="lead">PostgreSQL, SQL Server, MariaDB·MySQL, Oracle 등 여러 데이터베이스를 한 화면에서 연결하고 조회하고 관리하는 데스크톱 앱입니다. Java 런타임이 함께 들어 있어 따로 설치할 것이 없습니다.</p>
-  </section>
-
-  <section class="downloads-area" data-state="loading" aria-live="polite">
-    <p class="state state-loading">최신 버전을 확인하는 중입니다…</p>
-    <p class="state state-error notice">릴리스 목록을 읽지 못했습니다. 잠시 뒤 다시 열어 보세요. 목록은 <a href="/downloads/releases.json">releases.json</a>에서도 볼 수 있습니다.</p>
-    <p class="state state-empty notice">아직 공개된 릴리스가 없습니다.</p>
-
-    <div class="downloads">
-      <article class="card" data-platform="windows" data-arch="x64" data-kind="setup">
-        <h2>Windows</h2>
-        <p class="req">Windows 10·11 (x64). 관리자 권한 없이 사용자 계정에 설치됩니다.</p>
-        <div class="when-ready">
-          <a class="btn" data-field="link" href="/downloads/releases.json">설치 파일 받기</a>
-        </div>
-        <dl class="facts when-ready">
-          <dt>버전</dt><dd data-field="version"></dd>
-          <dt>크기</dt><dd data-field="size"></dd>
-          <dt>게시일</dt><dd data-field="date"></dd>
-          <dt>SHA-256</dt><dd class="hash"><code data-field="sha256"></code><button type="button" class="copy" data-done="복사됨">복사</button></dd>
-        </dl>
-        <p class="when-missing">Windows용 파일이 아직 없습니다.</p>
-      </article>
-
-      <article class="card" data-platform="macos" data-arch="arm64" data-kind="dmg">
-        <h2>macOS</h2>
-        <p class="req">Apple Silicon(M1 이후) Mac. 디스크 이미지를 열어 Applications 폴더로 끌어 놓습니다.</p>
-        <div class="when-ready">
-          <a class="btn" data-field="link" href="/downloads/releases.json">디스크 이미지 받기</a>
-        </div>
-        <dl class="facts when-ready">
-          <dt>버전</dt><dd data-field="version"></dd>
-          <dt>크기</dt><dd data-field="size"></dd>
-          <dt>게시일</dt><dd data-field="date"></dd>
-          <dt>SHA-256</dt><dd class="hash"><code data-field="sha256"></code><button type="button" class="copy" data-done="복사됨">복사</button></dd>
-        </dl>
-        <p class="when-missing">macOS용 파일이 아직 없습니다.</p>
-      </article>
+  <div class="hero">
+    <div class="intro">
+      <h1>PostgreSQL, SQL Server, MariaDB, MySQL, Oracle을 한 창에서 다룹니다</h1>
+      <p class="lead">Chromite는 Windows와 macOS용 데이터베이스 워크벤치입니다. 서버에 연결해 SQL을 실행하고, 결과를 표에서 바로 고치고, 테이블과 서버를 관리합니다. Java 런타임과 JDBC 드라이버가 함께 설치되어 따로 준비할 것이 없습니다.</p>
     </div>
-  </section>
+    <div class="included">
+      <h2 class="spec-title">들어 있는 것</h2>
+      <dl class="spec">
+        <dt>데이터베이스</dt><dd>PostgreSQL, SQL Server, MariaDB, MySQL, Oracle. 각 JDBC 드라이버가 함께 들어 있습니다.</dd>
+        <dt>쿼리</dt><dd>SQL 편집기, 필터와 바로 편집이 되는 결과 표, 실행 계획, 쿼리 라이브러리</dd>
+        <dt>개체</dt><dd>개체 탐색기, 등록된 서버, 속성 창, 테이블 디자이너, ER 다이어그램</dd>
+        <dt>데이터</dt><dd>가져오기와 내보내기, 백업과 복원</dd>
+        <dt>서버 관리</dt><dd>작업 모니터: 프로세스, 잠금, 공간 사용량, 서버 로그, 유지 관리, 복제</dd>
+        <dt>화면</dt><dd>한국어와 영어, 밝은 테마와 어두운 테마</dd>
+        <dt>지원 환경</dt><dd>Windows 10·11 (x64), Apple Silicon Mac</dd>
+      </dl>
+    </div>
 
-  <section class="info">
-    <h2>서명과 확인</h2>
-    <p>Windows 설치 파일은 게시자 Seizia로 코드 서명되어 있고, macOS 앱은 Apple의 공증을 받았습니다. 받은 파일의 SHA-256을 위 값과 비교해 확인할 수 있습니다(Windows: <code>Get-FileHash 파일</code>, macOS: <code>shasum -a 256 파일</code>).</p>
-    <h2>자동 업데이트</h2>
-    <p>Chromite는 새 버전이 나오면 스스로 받아 두었다가, 앱을 다시 시작할 때 설치합니다. 받은 파일은 크기, SHA-256, 서명을 확인한 뒤에만 실행합니다. 업데이트 확인이 보내는 정보는 <a href="/ko/privacy.html">개인정보</a>에 적었습니다.</p>
-  </section>
+    <section class="panel downloads-area" data-state="loading" aria-labelledby="download-title" aria-live="polite">
+      <h2 class="panel-head" id="download-title">다운로드</h2>
+      <p class="state state-loading">최신 버전을 확인하는 중입니다…</p>
+      <p class="state state-error notice">릴리스 목록을 읽지 못했습니다. 잠시 뒤 다시 열어 보세요. 목록은 <a href="/downloads/releases.json">releases.json</a>에서도 볼 수 있습니다.</p>
+      <p class="state state-empty notice">아직 공개된 릴리스가 없습니다.</p>
+
+      <div class="downloads">
+        <article class="card" data-platform="windows" data-arch="x64" data-kind="setup">
+          <h3>Windows</h3>
+          <p class="req">Windows 10·11 (x64). 관리자 권한 없이 사용자 계정에 설치됩니다.</p>
+          <div class="when-ready">
+            <a class="btn" data-field="link" href="/downloads/releases.json">설치 파일 받기</a>
+          </div>
+          <dl class="facts when-ready">
+            <dt>버전</dt><dd data-field="version"></dd>
+            <dt>크기</dt><dd data-field="size"></dd>
+            <dt>게시일</dt><dd data-field="date"></dd>
+            <dt>SHA-256</dt><dd class="hash"><code data-field="sha256"></code><button type="button" class="copy" data-done="복사됨">복사</button></dd>
+          </dl>
+          <p class="when-missing">Windows용 파일이 아직 없습니다.</p>
+        </article>
+
+        <article class="card" data-platform="macos" data-arch="arm64" data-kind="dmg">
+          <h3>macOS</h3>
+          <p class="req">Apple Silicon(M1 이후) Mac. 디스크 이미지를 열어 Applications 폴더로 끌어 놓습니다.</p>
+          <div class="when-ready">
+            <a class="btn" data-field="link" href="/downloads/releases.json">디스크 이미지 받기</a>
+          </div>
+          <dl class="facts when-ready">
+            <dt>버전</dt><dd data-field="version"></dd>
+            <dt>크기</dt><dd data-field="size"></dd>
+            <dt>게시일</dt><dd data-field="date"></dd>
+            <dt>SHA-256</dt><dd class="hash"><code data-field="sha256"></code><button type="button" class="copy" data-done="복사됨">복사</button></dd>
+          </dl>
+          <p class="when-missing">macOS용 파일이 아직 없습니다.</p>
+        </article>
+      </div>
+    </section>
+  </div>
+
+  <figure class="shot">
+    <picture>
+      <source srcset="/assets/shots/ko-dark.webp" media="(prefers-color-scheme: dark)">
+      <img src="/assets/shots/ko-light.webp" width="1899" height="1188" alt="Chromite 창. 왼쪽에 개체 탐색기와 등록된 서버, 가운데에 SQL 편집기와 결과 표, 오른쪽에 속성 창이 있다.">
+    </picture>
+    <figcaption>SQL Server에 연결해 쿼리를 실행한 실제 화면입니다. 왼쪽은 개체 탐색기와 등록된 서버, 오른쪽은 선택한 테이블의 속성입니다.</figcaption>
+  </figure>
+
+  <div class="sects">
+    <section class="sect">
+      <h2>서명과 확인</h2>
+      <div class="body">
+        <p>Windows 설치 파일은 게시자 Seizia로 코드 서명되어 있고, macOS 앱은 Apple의 공증을 받았습니다. 받은 파일의 SHA-256을 위 값과 비교해 확인할 수 있습니다(Windows: <code>Get-FileHash 파일</code>, macOS: <code>shasum -a 256 파일</code>).</p>
+      </div>
+    </section>
+
+    <section class="sect">
+      <h2>자동 업데이트</h2>
+      <div class="body">
+        <p>Chromite는 새 버전이 나오면 스스로 받아 두었다가, 앱을 다시 시작할 때 설치합니다. 받은 파일은 크기, SHA-256, 서명을 확인한 뒤에만 실행합니다. 업데이트 확인이 보내는 정보는 <a href="/ko/privacy.html">개인정보</a>에 적었습니다.</p>
+      </div>
+    </section>
+
+    <section class="sect" id="open-source">
+      <h2>오픈 소스</h2>
+      <div class="body">
+        <p>Chromite의 소스 코드는 GitHub에 공개되어 있으며 Apache License 2.0을 따릅니다. 누구나 코드를 읽고, 직접 빌드하고, 고쳐서 다시 배포할 수 있습니다.</p>
+        <p>Chromite는 Apache License 2.0으로 공개된 다른 오픈 소스 프로젝트에서 출발했습니다. 원저작자 표시와, 함께 배포되는 JDBC 드라이버, Java 런타임, 글꼴의 라이선스는 NOTICE에 있습니다.</p>
+        <a class="oss-repo" href="https://github.com/froiibn/chromite">
+          <span class="mark-github large" aria-hidden="true"></span>
+          <span><strong>froiibn/chromite</strong><span class="where">GitHub에서 소스 코드 보기</span></span>
+        </a>
+        <ul class="oss-links">
+          <li><a href="https://github.com/froiibn/chromite/blob/devel/LICENSE.md">라이선스 (Apache License 2.0)</a></li>
+          <li><a href="https://github.com/froiibn/chromite/blob/devel/NOTICE">NOTICE</a></li>
+        </ul>
+      </div>
+    </section>
+  </div>
 </main>
 
 <footer class="foot">
   <div class="wrap">
-    © 2026 Chromite contributors · <a href="https://github.com/froiibn/chromite">소스 코드</a> (Apache License 2.0)
+    <span>© 2026 Chromite contributors</span>
+    <span class="right">
+      <a href="https://github.com/froiibn/chromite/blob/devel/LICENSE.md">Apache License 2.0</a>
+      <a href="https://github.com/froiibn/chromite">GitHub</a>
+    </span>
   </div>
 </footer>
 </body>

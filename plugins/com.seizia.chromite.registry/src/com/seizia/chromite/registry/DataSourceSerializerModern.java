@@ -57,6 +57,13 @@ import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.stream.Collectors;
 
+/**
+ * Reads and writes the data-sources*.json connection files.
+ *
+ * 변경 이력:
+ * - 2026-11-07 연결의 유휴 트랜잭션 설정(idleTransactionReminder, idleTransactionPeriod, idleTransactionRollback)을 읽고 씀.
+ *   기본값과 같으면 쓰지 않아 기존 파일은 그대로 연결 종류를 따르고 자동 롤백은 꺼져 있다 (docs/chromite/idle-transactions.md)
+ */
 public class DataSourceSerializerModern<T extends DataSourceDescriptor> implements DataSourceSerializer<T> {
 
     private static final String ATTR_ORIGINAL_PROVIDER = "original-provider"; //$NON-NLS-1$
@@ -705,6 +712,15 @@ public class DataSourceSerializerModern<T extends DataSourceDescriptor> implemen
                     if (closeIdle > 0) {
                         config.setCloseIdleInterval(closeIdle);
                     }
+                    Object idleTxnReminder = cfgObject.get(RegistryConstants.ATTR_IDLE_TXN_REMINDER);
+                    if (idleTxnReminder != null) {
+                        config.setIdleTransactionReminder(CommonUtils.toBoolean(idleTxnReminder));
+                    }
+                    int idleTxnPeriod = JSONUtils.getInteger(cfgObject, RegistryConstants.ATTR_IDLE_TXN_PERIOD);
+                    if (idleTxnPeriod > 0) {
+                        config.setIdleTransactionPeriod(idleTxnPeriod);
+                    }
+                    config.setIdleTransactionRollback(JSONUtils.getBoolean(cfgObject, RegistryConstants.ATTR_IDLE_TXN_ROLLBACK, false));
 
                     config.setProperties(JSONUtils.deserializeStringMap(cfgObject, RegistryConstants.TAG_PROPERTIES));
                     config.setProviderProperties(JSONUtils.deserializeStringMap(cfgObject, RegistryConstants.TAG_PROVIDER_PROPERTIES));
@@ -1220,6 +1236,15 @@ public class DataSourceSerializerModern<T extends DataSourceDescriptor> implemen
             }
             if (connectionInfo.getCloseIdleInterval() > 0) {
                 JSONUtils.field(json, RegistryConstants.ATTR_CLOSE_IDLE, connectionInfo.getCloseIdleInterval());
+            }
+            if (connectionInfo.getIdleTransactionReminder() != null) {
+                JSONUtils.field(json, RegistryConstants.ATTR_IDLE_TXN_REMINDER, connectionInfo.getIdleTransactionReminder());
+            }
+            if (connectionInfo.getIdleTransactionPeriod() > 0) {
+                JSONUtils.field(json, RegistryConstants.ATTR_IDLE_TXN_PERIOD, connectionInfo.getIdleTransactionPeriod());
+            }
+            if (connectionInfo.isIdleTransactionRollback()) {
+                JSONUtils.field(json, RegistryConstants.ATTR_IDLE_TXN_ROLLBACK, true);
             }
             JSONUtils.fieldNE(json, "config-profile-source", connectionInfo.getConfigProfileSource());
             JSONUtils.fieldNE(json, "config-profile", connectionInfo.getConfigProfileName());

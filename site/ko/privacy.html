@@ -3,6 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
 <title>Chromite 개인정보</title>
 <meta name="description" content="Chromite 다운로드 사이트와 업데이트 확인이 보내고 남기는 정보">
 <link rel="icon" href="/assets/chromite-icon.svg" type="image/svg+xml">
@@ -13,39 +14,59 @@
 <header class="top">
   <div class="wrap">
     <a class="brand" href="/ko/"><img src="/assets/chromite-icon.svg" alt="">Chromite</a>
-    <nav class="nav">
+    <nav class="nav" aria-label="사이트">
       <a href="/ko/">다운로드</a>
       <a href="/ko/changelog.html">변경 내역</a>
       <a href="/ko/privacy.html" aria-current="page">개인정보</a>
+      <span class="sep" aria-hidden="true"></span>
+      <a href="https://github.com/froiibn/chromite"><span class="mark-github" aria-hidden="true"></span><span class="label">GitHub</span></a>
       <a href="/en/privacy.html" lang="en">English</a>
     </nav>
   </div>
 </header>
 
 <main class="wrap page">
-  <h1>개인정보</h1>
+  <div class="page-head">
+    <h1>개인정보</h1>
+  </div>
 
-  <h2>앱의 업데이트 확인</h2>
-  <p>업데이트 확인이 켜져 있으면 Chromite는 이 사이트의 릴리스 목록(<code>https://chromite.seizia.com/downloads/releases.json</code>)을 읽고, 새 버전이 있으면 그 설치 파일을 같은 곳에서 받습니다.</p>
-  <ul>
-    <li>요청에는 모든 Chromite가 똑같이 쓰는 고정된 User-Agent 하나만 들어갑니다. 설치 ID, 계정, 사용 기록, 연결한 데이터베이스 정보, 쿠키는 보내지 않습니다.</li>
-    <li>인터넷 연결이 없거나 회사 네트워크가 막으면 조용히 건너뜁니다.</li>
-    <li>옵션에서 자동 업데이트 확인을 끌 수 있습니다.</li>
-  </ul>
+  <section class="sect">
+    <h2>앱의 업데이트 확인</h2>
+    <div class="body">
+      <p>업데이트 확인이 켜져 있으면 Chromite는 이 사이트의 릴리스 목록(<code>https://chromite.seizia.com/downloads/releases.json</code>)을 읽고, 새 버전이 있으면 그 설치 파일을 같은 곳에서 받습니다.</p>
+      <ul>
+        <li>요청에는 모든 Chromite가 똑같이 쓰는 고정된 User-Agent 하나만 들어갑니다. 설치 ID, 계정, 사용 기록, 연결한 데이터베이스 정보, 쿠키는 보내지 않습니다.</li>
+        <li>인터넷 연결이 없거나 회사 네트워크가 막으면 조용히 건너뜁니다.</li>
+        <li>옵션에서 자동 업데이트 확인을 끌 수 있습니다.</li>
+      </ul>
+    </div>
+  </section>
 
-  <h2>이 사이트</h2>
-  <ul>
-    <li>쿠키, 분석 도구, 광고, 외부 글꼴이나 스크립트를 쓰지 않습니다. 모든 파일은 이 사이트에서만 받습니다.</li>
-    <li>서버는 모든 HTTP 요청처럼 접속 기록(IP 주소, 시각, 요청한 주소, User-Agent, 응답 코드)을 남기며, 30일이 지나면 지웁니다. 이 기록은 서버 운영과 오용 대응에만 씁니다.</li>
-  </ul>
+  <section class="sect">
+    <h2>이 사이트</h2>
+    <div class="body">
+      <ul>
+        <li>쿠키, 분석 도구, 광고, 외부 글꼴이나 스크립트를 쓰지 않습니다. 모든 파일은 이 사이트에서만 받습니다.</li>
+        <li>서버는 모든 HTTP 요청처럼 접속 기록(IP 주소, 시각, 요청한 주소, User-Agent, 응답 코드)을 남기며, 30일이 지나면 지웁니다. 이 기록은 서버 운영과 오용 대응에만 씁니다.</li>
+      </ul>
+    </div>
+  </section>
 
-  <h2>사용 통계</h2>
-  <p>Chromite는 기능 사용 통계를 모으거나 보내지 않습니다.</p>
+  <section class="sect">
+    <h2>사용 통계</h2>
+    <div class="body">
+      <p>Chromite는 기능 사용 통계를 모으거나 보내지 않습니다.</p>
+    </div>
+  </section>
 </main>
 
 <footer class="foot">
   <div class="wrap">
-    © 2026 Chromite contributors · <a href="https://github.com/froiibn/chromite">소스 코드</a> (Apache License 2.0)
+    <span>© 2026 Chromite contributors</span>
+    <span class="right">
+      <a href="https://github.com/froiibn/chromite/blob/devel/LICENSE.md">Apache License 2.0</a>
+      <a href="https://github.com/froiibn/chromite">GitHub</a>
+    </span>
   </div>
 </footer>
 </body>

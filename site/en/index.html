@@ -3,8 +3,9 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
 <title>Download Chromite</title>
-<meta name="description" content="Chromite - Database Workbench. Download the installer for Windows or macOS.">
+<meta name="description" content="Chromite - Database Workbench. A desktop app for PostgreSQL, SQL Server, MariaDB, MySQL and Oracle in one window. Download the installer for Windows or macOS.">
 <link rel="icon" href="/assets/chromite-icon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="/assets/site.css">
 <link rel="alternate" hreflang="ko" href="/ko/">
@@ -15,71 +16,124 @@
 <header class="top">
   <div class="wrap">
     <a class="brand" href="/en/"><img src="/assets/chromite-icon.svg" alt="">Chromite</a>
-    <nav class="nav">
+    <nav class="nav" aria-label="Site">
       <a href="/en/" aria-current="page">Download</a>
       <a href="/en/changelog.html">Changelog</a>
       <a href="/en/privacy.html">Privacy</a>
+      <span class="sep" aria-hidden="true"></span>
+      <a href="https://github.com/froiibn/chromite"><span class="mark-github" aria-hidden="true"></span><span class="label">GitHub</span></a>
       <a href="/ko/" lang="ko">한국어</a>
     </nav>
   </div>
 </header>
 
 <main class="wrap">
-  <section class="hero">
-    <h1>Chromite</h1>
-    <p class="sub">Database Workbench</p>
-    <p class="lead">A desktop app to connect to, query and manage PostgreSQL, SQL Server, MariaDB and MySQL, Oracle and other databases in one window. It comes with its own Java runtime, so there is nothing else to install.</p>
-  </section>
-
-  <section class="downloads-area" data-state="loading" aria-live="polite">
-    <p class="state state-loading">Looking for the latest version…</p>
-    <p class="state state-error notice">The release list could not be read. Try again later. The list is also at <a href="/downloads/releases.json">releases.json</a>.</p>
-    <p class="state state-empty notice">No release has been published yet.</p>
-
-    <div class="downloads">
-      <article class="card" data-platform="windows" data-arch="x64" data-kind="setup">
-        <h2>Windows</h2>
-        <p class="req">Windows 10 or 11 (x64). Installs for your user account; no administrator rights needed.</p>
-        <div class="when-ready">
-          <a class="btn" data-field="link" href="/downloads/releases.json">Download the installer</a>
-        </div>
-        <dl class="facts when-ready">
-          <dt>Version</dt><dd data-field="version"></dd>
-          <dt>Size</dt><dd data-field="size"></dd>
-          <dt>Published</dt><dd data-field="date"></dd>
-          <dt>SHA-256</dt><dd class="hash"><code data-field="sha256"></code><button type="button" class="copy" data-done="Copied">Copy</button></dd>
-        </dl>
-        <p class="when-missing">There is no Windows file yet.</p>
-      </article>
-
-      <article class="card" data-platform="macos" data-arch="arm64" data-kind="dmg">
-        <h2>macOS</h2>
-        <p class="req">Mac with Apple silicon (M1 or later). Open the disk image and drag Chromite to Applications.</p>
-        <div class="when-ready">
-          <a class="btn" data-field="link" href="/downloads/releases.json">Download the disk image</a>
-        </div>
-        <dl class="facts when-ready">
-          <dt>Version</dt><dd data-field="version"></dd>
-          <dt>Size</dt><dd data-field="size"></dd>
-          <dt>Published</dt><dd data-field="date"></dd>
-          <dt>SHA-256</dt><dd class="hash"><code data-field="sha256"></code><button type="button" class="copy" data-done="Copied">Copy</button></dd>
-        </dl>
-        <p class="when-missing">There is no macOS file yet.</p>
-      </article>
+  <div class="hero">
+    <div class="intro">
+      <h1>PostgreSQL, SQL Server, MariaDB, MySQL and Oracle in one window</h1>
+      <p class="lead">Chromite is a database workbench for Windows and macOS. Connect to a server, run SQL, edit results right in the grid, and manage tables and servers. It installs with its own Java runtime and JDBC drivers, so there is nothing else to set up.</p>
     </div>
-  </section>
+    <div class="included">
+      <h2 class="spec-title">What is included</h2>
+      <dl class="spec">
+        <dt>Databases</dt><dd>PostgreSQL, SQL Server, MariaDB, MySQL and Oracle, each with its JDBC driver included.</dd>
+        <dt>Queries</dt><dd>SQL editor, a result grid you can filter and edit in place, execution plans, Query Library</dd>
+        <dt>Objects</dt><dd>Object Explorer, Registered Servers, Properties, table designer, ER diagrams</dd>
+        <dt>Data</dt><dd>Import and export, backup and restore</dd>
+        <dt>Server admin</dt><dd>Activity Monitor: processes, locks, disk usage, server logs, maintenance, replication</dd>
+        <dt>Interface</dt><dd>Korean and English, light and dark themes</dd>
+        <dt>Runs on</dt><dd>Windows 10 and 11 (x64), Macs with Apple silicon</dd>
+      </dl>
+    </div>
 
-  <section class="info">
-    <h2>Signatures and checksums</h2>
-    <p>The Windows installer is code-signed by the publisher Seizia, and the macOS app is notarized by Apple. You can compare the SHA-256 of a downloaded file with the value above (Windows: <code>Get-FileHash file</code>, macOS: <code>shasum -a 256 file</code>).</p>
-    <h2>Automatic updates</h2>
-    <p>Chromite downloads a new version on its own and installs it when you restart the app. A downloaded file runs only after its size, SHA-256 and signature have been checked. What the update check sends is described under <a href="/en/privacy.html">Privacy</a>.</p>
-  </section>
+    <section class="panel downloads-area" data-state="loading" aria-labelledby="download-title" aria-live="polite">
+      <h2 class="panel-head" id="download-title">Download</h2>
+      <p class="state state-loading">Looking for the latest version…</p>
+      <p class="state state-error notice">The release list could not be read. Try again later. The list is also at <a href="/downloads/releases.json">releases.json</a>.</p>
+      <p class="state state-empty notice">No release has been published yet.</p>
+
+      <div class="downloads">
+        <article class="card" data-platform="windows" data-arch="x64" data-kind="setup">
+          <h3>Windows</h3>
+          <p class="req">Windows 10 or 11 (x64). Installs for your user account; no administrator rights needed.</p>
+          <div class="when-ready">
+            <a class="btn" data-field="link" href="/downloads/releases.json">Download the installer</a>
+          </div>
+          <dl class="facts when-ready">
+            <dt>Version</dt><dd data-field="version"></dd>
+            <dt>Size</dt><dd data-field="size"></dd>
+            <dt>Published</dt><dd data-field="date"></dd>
+            <dt>SHA-256</dt><dd class="hash"><code data-field="sha256"></code><button type="button" class="copy" data-done="Copied">Copy</button></dd>
+          </dl>
+          <p class="when-missing">There is no Windows file yet.</p>
+        </article>
+
+        <article class="card" data-platform="macos" data-arch="arm64" data-kind="dmg">
+          <h3>macOS</h3>
+          <p class="req">Mac with Apple silicon (M1 or later). Open the disk image and drag Chromite to Applications.</p>
+          <div class="when-ready">
+            <a class="btn" data-field="link" href="/downloads/releases.json">Download the disk image</a>
+          </div>
+          <dl class="facts when-ready">
+            <dt>Version</dt><dd data-field="version"></dd>
+            <dt>Size</dt><dd data-field="size"></dd>
+            <dt>Published</dt><dd data-field="date"></dd>
+            <dt>SHA-256</dt><dd class="hash"><code data-field="sha256"></code><button type="button" class="copy" data-done="Copied">Copy</button></dd>
+          </dl>
+          <p class="when-missing">There is no macOS file yet.</p>
+        </article>
+      </div>
+    </section>
+  </div>
+
+  <figure class="shot">
+    <picture>
+      <source srcset="/assets/shots/en-dark.webp" media="(prefers-color-scheme: dark)">
+      <img src="/assets/shots/en-light.webp" width="1899" height="1188" alt="The Chromite window: Object Explorer and Registered Servers on the left, the SQL editor and result grid in the middle, Properties on the right.">
+    </picture>
+    <figcaption>The app connected to SQL Server after running a query. On the left are Object Explorer and Registered Servers; on the right, the properties of the selected table.</figcaption>
+  </figure>
+
+  <div class="sects">
+    <section class="sect">
+      <h2>Signatures and checksums</h2>
+      <div class="body">
+        <p>The Windows installer is code-signed by the publisher Seizia, and the macOS app is notarized by Apple. You can compare the SHA-256 of a downloaded file with the value above (Windows: <code>Get-FileHash file</code>, macOS: <code>shasum -a 256 file</code>).</p>
+      </div>
+    </section>
+
+    <section class="sect">
+      <h2>Automatic updates</h2>
+      <div class="body">
+        <p>Chromite downloads a new version on its own and installs it when you restart the app. A downloaded file runs only after its size, SHA-256 and signature have been checked. What the update check sends is described under <a href="/en/privacy.html">Privacy</a>.</p>
+      </div>
+    </section>
+
+    <section class="sect" id="open-source">
+      <h2>Open source</h2>
+      <div class="body">
+        <p>Chromite's source code is public on GitHub under the Apache License 2.0. Anyone can read it, build it, change it and redistribute it.</p>
+        <p>Chromite started from another open-source project released under the Apache License 2.0. The original copyright notices, and the licenses of the JDBC drivers, Java runtime and fonts that ship with it, are in NOTICE.</p>
+        <a class="oss-repo" href="https://github.com/froiibn/chromite">
+          <span class="mark-github large" aria-hidden="true"></span>
+          <span><strong>froiibn/chromite</strong><span class="where">View the source code on GitHub</span></span>
+        </a>
+        <ul class="oss-links">
+          <li><a href="https://github.com/froiibn/chromite/blob/devel/LICENSE.md">License (Apache License 2.0)</a></li>
+          <li><a href="https://github.com/froiibn/chromite/blob/devel/NOTICE">NOTICE</a></li>
+        </ul>
+      </div>
+    </section>
+  </div>
 </main>
 
 <footer class="foot">
   <div class="wrap">
-    © 2026 Chromite contributors · <a href="https://github.com/froiibn/chromite">Source code</a> (Apache License 2.0)
+    <span>© 2026 Chromite contributors</span>
+    <span class="right">
+      <a href="https://github.com/froiibn/chromite/blob/devel/LICENSE.md">Apache License 2.0</a>
+      <a href="https://github.com/froiibn/chromite">GitHub</a>
+    </span>
   </div>
 </footer>
 </body>
