@@ -46,6 +46,14 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+/**
+ * Text inserted by completion items
+ *
+ * 변경 이력:
+ * - 2026-11-07 Chromite: 호출문의 루틴 이름은 이름만 넣는다. 인자 문법이 데이터베이스마다 달라서
+ *   ({@code EXEC p @a = 1}과 {@code CALL p(1)}) 괄호와 매개변수 자리를 넣으면 SQL Server에서 틀린 문장이 된다.
+ *   매개변수를 읽지 않으므로 루틴마다 메타데이터 질의도 하지 않는다 (docs/chromite/swing-sql-completion.md)
+ */
 public class SQLQueryCompletionTextProvider implements SQLQueryCompletionItemVisitor<String> {
 
     private static final Log log = Log.getLog(SQLQueryCompletionTextProvider.class);
@@ -259,6 +267,9 @@ public class SQLQueryCompletionTextProvider implements SQLQueryCompletionItemVis
     @Override
     public String visitProcedure(@NotNull SQLProcedureCompletionItem procedure) {
         String name = this.prepareObjectName(procedure);
+        if (procedure.isCallTarget()) {
+            return name;
+        }
 
         try {
             String text;

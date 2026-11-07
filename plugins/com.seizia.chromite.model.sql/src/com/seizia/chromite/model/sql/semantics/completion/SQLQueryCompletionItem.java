@@ -35,6 +35,13 @@ import com.seizia.chromite.model.struct.rdb.DBSProcedure;
 import java.util.LinkedList;
 import java.util.List;
 
+/**
+ * Completion item of the semantic completion engine
+ *
+ * 변경 이력:
+ * - 2026-11-07 Chromite: 호출문(CALL/EXEC)의 루틴 이름 제안({@link #forCallTarget}). 넣는 글자를 이름만으로 하려고 프로시저 항목이
+ *   호출 대상인지 기억한다 (docs/chromite/swing-sql-completion.md)
+ */
 public abstract class SQLQueryCompletionItem {
 
     private final int score;
@@ -248,7 +255,19 @@ public abstract class SQLQueryCompletionItem {
         @Nullable ContextObjectInfo resolvedContext,
         @NotNull DBSProcedure object
     ) {
-        return new SQLProcedureCompletionItem(score, filterKey, resolvedContext, object);
+        return new SQLProcedureCompletionItem(score, filterKey, resolvedContext, object, false);
+    }
+
+    /**
+     * Prepare completion item for the routine named by a call statement ({@code CALL}, {@code EXEC})
+     */
+    public static SQLQueryCompletionItem forCallTarget(
+        int score,
+        @NotNull SQLQueryWordEntry filterKey,
+        @Nullable ContextObjectInfo resolvedContext,
+        @NotNull DBSProcedure object
+    ) {
+        return new SQLProcedureCompletionItem(score, filterKey, resolvedContext, object, true);
     }
 
     public static class SQLRowsSourceAliasCompletionItem extends SQLQueryCompletionItem {
@@ -659,13 +678,25 @@ public abstract class SQLQueryCompletionItem {
 
     public static class SQLProcedureCompletionItem extends SQLDbObjectCompletionItem<DBSProcedure> {
 
+        private final boolean callTarget;
+
         public SQLProcedureCompletionItem(
             int score,
             @NotNull SQLQueryWordEntry filterKey,
             @Nullable ContextObjectInfo resolvedContext,
-            @NotNull DBSProcedure object
+            @NotNull DBSProcedure object,
+            boolean callTarget
         ) {
             super(score, filterKey, resolvedContext, object);
+            this.callTarget = callTarget;
+        }
+
+        /**
+         * The routine is named by a call statement, whose argument syntax differs by database
+         * ({@code EXEC p @a = 1} in T-SQL, {@code CALL p(1)} elsewhere), so only the name is inserted
+         */
+        public boolean isCallTarget() {
+            return this.callTarget;
         }
 
         @NotNull

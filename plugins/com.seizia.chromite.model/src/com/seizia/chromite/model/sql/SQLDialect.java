@@ -33,6 +33,7 @@ import com.seizia.chromite.model.struct.DBSAttributeBase;
 import com.seizia.chromite.model.struct.DBSTypedObject;
 import com.seizia.chromite.model.struct.rdb.DBSProcedure;
 import com.seizia.chromite.model.struct.rdb.DBSProcedureParameter;
+import com.seizia.chromite.model.struct.rdb.DBSProcedureType;
 import org.jkiss.utils.Pair;
 
 import java.util.ArrayList;
@@ -42,6 +43,10 @@ import java.util.List;
 
 /**
  * SQL dialect
+ *
+ * 변경 이력:
+ * - 2026-11-07 Chromite: {@link #isCallStatementTarget}를 추가. SQL 자동완성이 CALL/EXEC 뒤에 부를 수 있는 루틴만 제안하도록
+ *   데이터베이스마다 다른 규칙(SQL Server는 스칼라 함수도 EXEC 가능)을 방언에 둔다 (docs/chromite/swing-sql-completion.md)
  */
 public interface SQLDialect {
 
@@ -545,6 +550,16 @@ public interface SQLDialect {
         Collection<? extends DBSProcedureParameter> parameters,
         boolean castParams
     );
+
+    /**
+     * Whether the routine can be named by a call statement ({@code CALL}, {@code EXEC}).
+     * SQL completion proposes only these routines after the call keyword.
+     * By default functions are excluded: most databases call them only inside expressions
+     * (PostgreSQL and MySQL {@code CALL} reject functions, Oracle {@code EXEC} needs an assignment).
+     */
+    default boolean isCallStatementTarget(@NotNull DBSProcedure procedure) {
+        return procedure.getProcedureType() != DBSProcedureType.FUNCTION;
+    }
 
     boolean isDisableScriptEscapeProcessing();
 
