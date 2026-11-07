@@ -88,6 +88,7 @@ import java.util.Objects;
  * - 2026-11-07 커밋 방식 도구 설명에 세션 줄(창의 세션, 연결에 열린 세션 수) (docs/chromite/transactions.md "쿼리 창마다 별도 연결")
  * - 2026-11-08 폭이 모자라면 상태 문구 대신 서버 칸이 먼저 줄거나 빠짐(BorderLayout·FlowLayout 대신 {@link LineLayout}): 1280 창의 기본 배치에서
  *   상태 문구가 "…"로 잘렸다 (docs/chromite/swing-followup-fixes.md "작은 화면 수정")
+ * - 2026-11-08 촘촘한 모드: 칸 테두리가 줄 높이와 글자 줄을 그때마다 읽음(실행 중 밀도 전환) (docs/chromite/design-spec.md "적용 현황 — 촘촘한 모드")
  */
 final class QueryStatusLine extends JPanel {
 
@@ -433,27 +434,24 @@ final class QueryStatusLine extends JPanel {
     @NotNull
     private JLabel createSegment() {
         JLabel label = new BandLabel(true);
-        label.setBorder(createSegmentBorder(label.getFontMetrics(label.getFont()).getHeight()));
+        label.setBorder(createSegmentBorder());
         return label;
     }
 
     /**
      * A 1px border.subtle line on the left of a segment (its color read when painting, so it follows theme changes),
-     * space.12 on both sides of the text. The segment is as high as the line ({@link LineLayout}).
-     *
-     * @param textHeight height of the segment's text line
+     * space.12 on both sides of the text. The segment is as high as the line ({@link LineLayout}). The line height and
+     * the segment's text line are read whenever the border is painted or measured, so it follows density changes
+     * (compact mode, {@link UiDensity}).
      */
     @NotNull
-    private static Border createSegmentBorder(int textHeight) {
-        int height = UiSizes.get(UiSizes.QUERY_STATUS_LINE_HEIGHT);
-        int top = Math.max(0, (height - textHeight) / 2);
-        int bottom = Math.max(0, height - textHeight - top);
-        // The separator is half the line high
-        int lineInset = height / 4;
+    private static Border createSegmentBorder() {
         return BorderFactory.createCompoundBorder(
             new AbstractBorder() {
                 @Override
                 public void paintBorder(Component c, Graphics g, int x, int y, int width, int borderHeight) {
+                    // The separator is half the line high
+                    int lineInset = UiSizes.get(UiSizes.QUERY_STATUS_LINE_HEIGHT) / 4;
                     g.setColor(getLineColor());
                     g.fillRect(x, y + lineInset, 1, Math.max(0, borderHeight - 2 * lineInset));
                 }
@@ -463,7 +461,17 @@ final class QueryStatusLine extends JPanel {
                     return new Insets(0, 1, 0, 0);
                 }
             },
-            BorderFactory.createEmptyBorder(top, UIScale.scale(12), bottom, UIScale.scale(12)));
+            new AbstractBorder() {
+                @Override
+                public Insets getBorderInsets(Component c, Insets insets) {
+                    int height = UiSizes.get(UiSizes.QUERY_STATUS_LINE_HEIGHT);
+                    int textHeight = c.getFontMetrics(c.getFont()).getHeight();
+                    int top = Math.max(0, (height - textHeight) / 2);
+                    int bottom = Math.max(0, height - textHeight - top);
+                    insets.set(top, UIScale.scale(12), bottom, UIScale.scale(12));
+                    return insets;
+                }
+            });
     }
 
     /**

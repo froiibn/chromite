@@ -60,7 +60,7 @@ Chromite 안에서 AI 모델이 DBA처럼 일하게 한다. 사용자가 "이 �
 | `plugins/com.seizia.chromite.model.ai` (기존) | 확장점 `com.seizia.chromite.ai.function`에 속성 `access`, `writes` 추가(`schema/com.seizia.chromite.ai.function.exsd`). `AIFunctionDescriptor.getAccess()`, `getWrites()` |
 | `model.ai` 패키지 `com.seizia.chromite.model.ai.agent` (새) | 정책·감사·실행기·확인·편집기 연결 등 채팅과 MCP가 함께 쓰는 부분: `AIToolAccess`, `AIToolWrites`, `AIToolPermission`, `AIToolClient`, `AIToolOutcome`, `AIToolPolicy`, `AIToolDecision`, `AIToolConfirmationHandler`, `AIToolConfirmationRequest`, `AIToolConfirmationAnswer`, `AIPendingTransaction`, `AIToolTransactionGuard`, `AIEditorBridge`, `AIAgentServices`, `AIToolAuditLog`, `AIToolExecutor`, `AIToolCallContext`, `AIToolCallResult`, `AIToolAccessClassifier`, `AIToolPreviewProvider`, `AIToolArgumentException`, `AIToolCatalog`, `AIToolConnections` |
 | `model.ai` 패키지 `com.seizia.chromite.model.ai.engine.anthropic` (새) | Anthropic 엔진(Messages API, 도구 사용) |
-| `plugins/com.seizia.chromite.model.ai.tools` (새 번들) | 도구 구현(`...model.ai.tools`: `ConnectionTools`, `MetadataTools`, `QueryTools`, `PlanTools`, `DataTools`, `DdlTools`, `TransferTools`, `AdminTools`, `AgentJobTools`(1b), `LibraryTools`, `DiagnosticSqlTool`, 공통 `AgentTool`, `AgentSql`, `AgentSqlClassifier`, `AgentJson`, `AgentNames`, `AgentValues`, `PlanParser`, `DiagnosticScript`, `DiagnosticPostProcessor`, `PermissionProbe`, `LibraryReader`, `ThresholdEvaluator`), 진단 SQL 자원(`.../tools/diag/<도구>.sql` 32개), MCP 서버(`...model.ai.tools.mcp`: `AIMcpServer`, `AIMcpSettings`, `AIMcpPluginService`, `AIAgentPlaybooks` + `playbooks/*.md`). SQL Server 백업·복원 모델(`model.admin`)과 `ext.mssql`에 의존하므로 `model.ai`와 나눴다 |
+| `plugins/com.seizia.chromite.model.ai.tools` (새 번들) | 도구 구현(`...model.ai.tools`: `ConnectionTools`, `MetadataTools`, `QueryTools`, `PlanTools`, `DataTools`, `DdlTools`, `TransferTools`, `AdminTools`, `AgentJobTools`(1b), `NativeBackupTools`(1b), `LibraryTools`, `DiagnosticSqlTool`, 공통 `AgentTool`, `AgentSql`, `AgentSqlClassifier`, `AgentJson`, `AgentNames`, `AgentValues`, `PlanParser`, `DiagnosticScript`, `DiagnosticPostProcessor`, `PermissionProbe`, `LibraryReader`, `ThresholdEvaluator`), 진단 SQL 자원(`.../tools/diag/<도구>.sql` 32개), MCP 서버(`...model.ai.tools.mcp`: `AIMcpServer`, `AIMcpSettings`, `AIMcpPluginService`, `AIAgentPlaybooks` + `playbooks/*.md`). SQL Server 백업·복원 모델(`model.admin`)과 `ext.mssql`에 의존하므로 `model.ai`와 나눴다. PostgreSQL·MySQL 백업·복원 도구 때문에 `ext.postgresql`, `ext.mysql`, `tasks.native`에도 의존한다(1b) |
 | `features/com.seizia.chromite.swing.feature` | 새 번들을 Swing 제품에 넣는다 |
 
 모델 번들이라 SWT·Swing에 의존하지 않는다(AGENTS-Architecture.md). 화면이 필요한 곳(확인 대화상자, 쿼리 창 열기)은 인터페이스만 두고
@@ -237,8 +237,10 @@ DDL 도구는 실행 전 확인 요청에 만든 DDL을 그대로 보여 준다(
 | `getJobHistory` | 작업 실패·최근 실행(MS: msdb, PG: pg_cron 있으면, MY: 이벤트, OR: 스케줄러) | R | `connection`, `failedOnly` | `jobs[]` | MS PG MY OR | 1 |
 | `getErrorLog` | 서버 오류 로그 최근 항목(MS: `sp_readerrorlog`, PG: `pg_current_logfile`+`pg_read_file`, MY: `performance_schema.error_log`, OR: `v$diag_alert_ext`) | R | `connection`, `contains`, `limit` | `entries[]` | MS PG MY OR | 1 |
 | `getServerConfig` | 기본값과 다른 설정과 상식 검사(예: MAXDOP, 비용 임계값, shared_buffers, work_mem) | R | `connection` | `settings[]`, `findings[]` | MS PG MY OR | 1 |
-| `backupDatabase` | 백업(MS: T-SQL `BACKUP DATABASE`, `model.admin`의 `SQLServerBackupSettings`) | W | `connection`, `database`, `file`, `type`, `copyOnly` | 메시지 | MS | 1 (PG MY 네이티브 도구 미룸) |
-| `restoreDatabase` | 복원(MS, `SQLServerRestoreSettings`) | D | `connection`, `database`, `file`, `replace` | 메시지 | MS | 1 |
+| `backupDatabase` | 백업(MS: T-SQL `BACKUP DATABASE`, `model.admin`의 `SQLServerBackupSettings`). 파일은 서버의 경로 | W | `connection`, `database`, `file`, `type`, `copyOnly` | 메시지 | MS | 1 (PG MY: `dumpDatabase`) |
+| `restoreDatabase` | 복원(MS, `SQLServerRestoreSettings`) | D | `connection`, `database`, `file`, `replace` | 메시지 | MS | 1 (PG MY: `restoreDump`) |
+| `dumpDatabase` | 로컬 클라이언트 도구(pg_dump, mysqldump)로 DB 전체 또는 일부(PG 스키마, MY 테이블)를 **이 컴퓨터의 새 파일**로 백업. 클라이언트는 연결의 로컬 클라이언트 설정. 있는 파일을 덮어쓰지 않음 | W (`writes="file"`) | `connection`, `database`, `file`, `format`(PG), `schemas`(PG), `tables`(MY), PG `noOwner`·`noPrivileges`·`inserts`·`clean`·`create`, MY `method`·`noData`·`routines`·`events`·`removeDefiner` | `file`, `bytes`, `durationMs`, `command`, `log[]` | PG MY | 1b |
+| `restoreDump` | 이 컴퓨터의 백업 파일을 **있는 DB**로 복원(pg_restore, 일반 SQL 스크립트는 psql, mysql). PG 형식은 파일에서 알아냄 | D | `connection`, `database`, `file`, `format`(PG), PG `clean`·`noOwner`·`stopOnError`, MY `disableForeignKeyChecks` | `durationMs`, `command`, `log[]`, `note` | PG MY | 1b |
 | `listAgentJobs` | SQL Server Agent 서비스 상태와 작업 목록(사용 여부, 실행 중·현재 단계, 마지막 결과·시각, 다음 실행, 범주, 소유자) | R | `connection`, `filter` | `agent`, `jobs[]` | MS | 1b |
 | `getAgentJob` | 작업 하나의 정의: 단계(하위 시스템, DB, 명령, 성공·실패 동작, 재시도)와 일정(설명, 시작 시각, 다음 실행) | R | `connection`, `job` | 객체, `steps[]`, `schedules[]` | MS | 1b |
 | `getAgentJobHistory` | 실행 기록(최신 순): 실행 결과(단계 0)와 그 실행의 단계별 상태·시간·재시도·서버 메시지. 작업 하나 또는 전체 | R | `connection`, `job`, `failedOnly`, `limit` | `history[]` | MS | 1b |
@@ -771,6 +773,61 @@ Advisor는 쓰지 않는다(Diagnostics/Tuning Pack).
   서버에 설치되지 않음. PostgreSQL이 아닌 연결도 이유를 돌려준다.
 - 공용 시험 DB(PostgreSQL 17)에는 hypopg가 설치되어 있지 않아(`pg_available_extensions`에 없음) **"없음" 경로만 시험했다**. 설치하지 않았다(브리프).
 
+### PostgreSQL·MySQL 백업·복원 도구 (`NativeBackupTools`, 2026-11-08)
+
+1단계에서 미룬 PostgreSQL·MySQL/MariaDB 백업(`dumpDatabase`)과 복원(`restoreDump`)이다. 이 두 도구로 MCP `tools/list`는 98개(READ 73, WRITE 20,
+DANGEROUS 5)다. SQL Server의 `backupDatabase`·`restoreDatabase`(서버가 서버 경로의 파일을 씀)와 달리 **이 컴퓨터의 로컬 클라이언트 도구가 이 컴퓨터의
+파일**을 읽고 쓰므로 도구를 나눴다. 쓰는 곳(`writes`)이 다르기 때문이다: 백업은 DB를 읽기만 하고 로컬 파일을 쓰므로 `writes="file"`(연결이 읽기 전용이어도
+실행), 복원은 DB를 바꾸므로 `writes="database"`다. 채팅 요청에는 연결의 DB 종류에 맞는 쪽만 간다(`AgentTool.supports`).
+
+- **분류**: `dumpDatabase` W(파일을 씀), `restoreDump` D. 둘 다 실행기(`AIToolExecutor`)를 거치므로 정책(운영 연결 막힘, 기본 확인, DANGEROUS는 전역 AUTO 불가),
+  확인 대화상자, 감사 기록이 다른 도구와 같다.
+- **같은 실행 경로**: Swing 백업·복원 대화상자의 모델 부분을 `model.admin`의 `NativeBackupRestore`로 옮겨 대화상자와 도구가 함께 쓴다
+  ([swing-backup-restore.md](swing-backup-restore.md)). DBeaver 네이티브 도구 작업(`tasks.native`)의 설정 객체를 인수로 채우고 임시 작업에 저장한 뒤 작업 형식의
+  처리기를 부른다. pg_restore 종료 코드 1(오류 있음, 로그인 실패도 같음)은 실패로 본다(대화상자와 같은 `CheckedPostgreRestore`).
+- **로컬 클라이언트**: 연결의 로컬 클라이언트 설정(`clientHomeId`)만 쓴다. Swing에서는 Object Explorer의 데이터베이스 &gt; Tasks &gt; Back Up… / Restore…의
+  로컬 클라이언트 페이지에서 고르고, 그 대화상자를 실행할 때 연결에 저장된다. 설정이 없거나, 내려받는 클라이언트(`RemoteNativeClientLocation`)를 가리키거나,
+  그 폴더가 없어졌거나, 도구가 그 폴더에 없으면 실행하지 않고 무엇을 하면 되는지와 이 컴퓨터에서 찾은 클라이언트 폴더를 알린다. 클라이언트를 내려받지 않는다.
+  모델이 실행 파일 폴더를 인수로 고르게 하지 않았다(모델이 고른 실행 파일을 돌리는 길을 만들지 않으려는 것).
+- **비밀**: 암호는 명령줄에 없다. 처리기가 PostgreSQL은 `PGPASSWORD`, MySQL은 `MYSQL_PWD` 환경 변수로 넘긴다(Swing 대화상자와 같음). 확인 요청의 미리 보기와
+  결과의 `command`는 실제로 실행할 명령줄이고, 처리기 로그의 명령줄도 암호 인수를 가린다.
+- **파일**: 절대 경로만 받는다. 백업은 있는 경로를 거부하고(덮어쓰지 않음, MySQL 처리기도 같은 규칙) 그 폴더가 있어야 한다. `${…}` 변수는 받지 않는다(확인한
+  명령과 실행하는 명령이 같도록). 복원의 PostgreSQL 형식은 파일에서 알아낸다: `toc.dat`가 있는 폴더 = directory, 머리 `PGDMP` = custom, 257바이트의
+  `ustar` = tar, 그 밖 = plain(psql). `format` 인수로 바꿀 수 있다.
+- **진행**: 채팅에서는 도구가 1초마다 `AIToolCallContext.reportProgress`로 지난 시간, 백업 파일 크기(directory 형식은 폴더 합계), 도구 출력의 마지막 줄을
+  알리고 도구 카드가 "실행 중: 12.3 MB 씀, 0:07 지남 - pg_dump: …"처럼 보인다(숫자가 앞: 좁은 도구 창은 줄 끝을 자르고, 도구 이름은 카드 제목에 있다)(`AIAgentChat.Entry.getProgress`, 저장하지 않음, `Listener.toolProgress`).
+  모니터의 `subTask`를 쓰지 않은 것은 JDBC·처리기도 `subTask`를 불러 도구가 고르지 않은 글까지 카드에 나오기 때문이다. MCP는 호출마다 JSON 응답 하나라
+  (SSE 없음) 진행을 보내지 않고 결과에 `durationMs`와 도구 출력 끝부분(`log`, 60줄, 스택 추적 줄 제외)을 넣는다.
+- **취소**: 채팅의 중지, MCP `notifications/cancelled`가 모니터를 취소하면 처리기가 도구 프로세스를 끝낸다. 이 호출이 만든 백업 파일(호출 전에 없던 경로)은
+  지운다. 실패한 백업의 파일은 대화상자처럼 지우지 않고 오류에 경로와 크기, "쓸 수 있는 백업이 아님"을 알린다.
+- **psql 일반 스크립트 복원**: `stopOnError`가 꺼져 있으면 psql은 SQL 오류가 있어도 0으로 끝난다(대화상자의 기본값과 같이 끔). 결과의 `note`가 이를 알리고
+  모델이 `log`의 ERROR 줄을 보게 한다. 켜면 `-v ON_ERROR_STOP=1`(종료 코드 3 = 실패), pg_restore는 `--exit-on-error`.
+- **트랜잭션 안전**: 두 도구는 다른 프로세스(클라이언트 도구)가 따로 접속하므로 사용자 세션·에이전트 문맥의 트랜잭션 방식을 바꾸거나 끝내지 않는다. 다만
+  `clean`으로 복원하면 사용자의 열린 트랜잭션이 잡은 잠금 때문에 pg_restore가 기다릴 수 있다(취소하면 끝남).
+- **지원 범위**: 연결이 PostgreSQL 드라이버 계열이고 서버 종류가 네이티브 클라이언트를 지원하거나(`supportsNativeClient`), MySQL/MariaDB 드라이버이고 서버가
+  네이티브 클라이언트를 지원할 때(`supportsNativeClients`)다. Swing 메뉴 조건과 같은 `NativeBackupRestore.isSupported`다. 그 밖의 DB는 `unsupported`.
+
+**확인 (2026-11-08)**: 빌드 `mvn -B clean package -f product/aggregate/pom.xml -T1C -Pproduct-chromite-swing` BUILD SUCCESS, `python tools/rename/gate.py`
+ALL GATES PASSED. 회귀 테스트는 요청되지 않아 실행하지 않았다. 빌드한 Swing 제품 하나를 작업 공간 사본과 `CHROMITE_DATA`(작업 폴더)로 띄우고 MCP(Python
+클라이언트)와 채팅(가짜 Messages API, 앱 안에 붙인 시험 에이전트가 Swing 구성 요소를 직접 다룸, 화면 좌표·OS 입력 없음)으로 불렀다. 클라이언트는 이 PC의
+D: 드라이브에 이미 풀어 둔 PostgreSQL 17.11(`pgsql-17`)·MariaDB 11.8.9(`mariadb-11.8`) 공식 zip이다(새로 설치한 것 없음). 시험 DB는 공용 컨테이너의
+`chr_agent_backup`(PG: 주문 40만 행, 스키마 `extra`, 뷰 / MariaDB: 주문 20만 행, 프로시저)과 복원 대상 `chr_agent_backup_restore`였고 끝나고 지웠다.
+
+| 시험 | 결과 |
+|---|---|
+| 목록 | MCP `tools/list` 98개. `dumpDatabase`(destructiveHint false), `restoreDump`(destructiveHint true), 한국어 제목 |
+| 로컬 클라이언트 없음 | 연결에 설정이 없을 때 PG·MariaDB 모두 "has no Local Client setting … Tasks > Back Up... / Restore... … Local Client page …"와 찾은 설치(없음)를 알리고 실행 안 함 |
+| 인수 오류 | 상대 경로 → INVALID, 없는 DB → INVALID(연결의 DB 목록), 있는 파일 → INVALID("never overwrites") |
+| 확인 | 기본 정책(CONFIRM): "Chromite Agent 도구 실행 확인"에 실제 명령줄(`pg_dump.exe --verbose --host=… --username=postgres --format=c --file … chr_agent_backup`, 암호 없음), DB, 파일, 클라이언트 폴더. 거부 → DENIED, 파일 없음. 허용 → SUCCESS, 3.6 MB, `pg_restore --list`에 스키마·뷰·테이블 데이터 |
+| PG 백업 | custom, plain + `schemas=extra`(다른 스키마 없음), directory(폴더 3.6 MB), plain + `inserts`(48 MB, 약 2분) |
+| PG 복원 | custom(형식 자동 인식) → 40만/1,000/1행과 뷰. 같은 파일을 `clean` 없이 다시 → pg_restore 종료 코드 1 → ERROR와 마지막 출력("multiple primary keys …"). `clean` → 성공. directory + `clean` → 성공. plain(psql) → 성공 + `note`(ERROR 줄은 `log`에), `stopOnError` → 종료 코드 3으로 ERROR |
+| MariaDB | 백업 17.8 MB(`--single-transaction --routines …`, `> 파일`), `tables=customers`·`routines=false` → customers만. 복원(`mysql … < 파일`) → 20만/1,000행, 프로시저 1개 |
+| 정책 | 운영 연결 `dumpDatabase` BLOCKED, 읽기 전용 연결: `dumpDatabase` 실행(파일만 씀), `restoreDump` READ_ONLY. 연결별 도구 규칙 AUTO(DANGEROUS `restoreDump`도 도구별 규칙이라 허용)는 확인 없이 실행 |
+| 취소 | MCP `notifications/cancelled`(4초) → CANCELED, 만들던 파일 지움, pg_dump 프로세스 없음. 채팅 중지(5초) → 카드 "취소됨", 파일 지움 |
+| 진행 | 채팅 도구 카드: "실행 중: 10.0 MB 씀, 0:05 지남 - pg_dump: \"public.orders\" 테이블의 자료를 처리 중"이 1초마다 바뀜, 끝나면 "완료, 24.8초". 영어(`-nl en`) "running: 340.0 KB written, 0:05 elapsed - …". 도구 출력은 클라이언트의 언어(한국어 OS에서 한국어) |
+| 감사·비밀 | 감사 기록에 위 호출이 분류·정책·결과(SUCCESS, ERROR, INVALID, DENIED, BLOCKED, READ_ONLY, CANCELED)로 남음. 작업 공간·데이터 폴더·결과·로그 83개 파일에서 두 시험 암호 0건 |
+| Swing 대화상자(옮긴 뒤) | PG 백업 "완료", 같은 파일을 `clean` 없이 복원 → "실패" + pg_restore 종료 코드 1 안내(`NativeBackupRestore`를 거친 같은 결과) |
+
 ### 확인 (1b, 2026-11-08)
 
 빌드: `mvn -B clean package -f product/aggregate/pom.xml -T1C -Pproduct-chromite-swing` BUILD SUCCESS, `python tools/rename/gate.py` ALL GATES PASSED.
@@ -799,12 +856,12 @@ Advisor는 쓰지 않는다(Diagnostics/Tuning Pack).
 
 | 항목 | 이유 |
 |---|---|
-| PostgreSQL·MySQL 백업·복원 도구 | 로컬 클라이언트 도구(`pg_dump`, `mysqldump`) 실행이 필요하다(`tasks.native`). 경로 설정과 장시간 작업 진행 표시가 필요해 미뤘다 |
 | MySQL/MariaDB 누락 인덱스(`getMissingIndexes`) | 브리프(1b)에 없었다. performance_schema 다이제스트의 `SUM_NO_INDEX_USED`로 만들 수 있다 |
 | hypopg가 있는 PostgreSQL에서 `whatIfIndex` 실행 확인 | 공용 시험 DB에 hypopg가 없고 설치하지 않는다(위 "whatIfIndex") |
 | Query Store 계획 강제·해제, SQL Server Agent 작업 만들기·고치기 도구 | 브리프의 1b 범위 밖이다(Query Store는 읽기만, 작업은 시작·중지·사용 설정만). Swing 화면에는 작업 편집이 있다 |
 
-2026-11-08에 SQL Server Agent 작업 도구, Oracle 진단 4개, Query Store, `whatIfIndex`를 만들었다(위 "1b단계 도구").
+2026-11-08에 SQL Server Agent 작업 도구, Oracle 진단 4개, Query Store, `whatIfIndex`를 만들었다(위 "1b단계 도구"). 같은 날 PostgreSQL·MySQL 백업·복원
+도구도 만들었다(위 "PostgreSQL·MySQL 백업·복원 도구").
 
 ## 요청 크기 (후속 과제 #76, 2026-11-08)
 
@@ -939,10 +996,18 @@ Oracle 진단 결과의 대문자 열 이름(소문자로 맞춤), PostgreSQL에
 - **AI 키 저장의 남은 점**: macOS 키체인은 Mac이 없어 실행해 보지 못했다(첫 접근 때 키체인 허용 질문이 뜰 수 있다). OpenAI 계정 토큰(`AIUtils.setAccountToken`)은
   OS 제공자가 없으면 여전히 전역 컨트롤러(평문)에 쓴다. Swing 화면에는 계정 로그인이 없어 지금은 쓰이지 않는다. 같은 OS 사용자의 작업 공간들은 제공자 키를
   함께 쓰므로, 0.1.0에서 작업 공간마다 다른 키를 두었다면 먼저 연 작업 공간의 키가 옮겨져 모두에 쓰이고 다른 작업 공간의 평문 키는 지워진다(다시 넣어야 한다).
+- **PostgreSQL·MySQL 백업·복원 도구의 남은 점(2026-11-08)**: 연결의 로컬 클라이언트는 아직 백업·복원 대화상자를 실행할 때만 저장된다(연결 편집 화면에
+  칸이 없음, swt-parity D-db-specific P6). 확인 대화상자의 미리 보기 제목은 "실행할 SQL"인데 이 도구에서는 명령줄이다. 기존 `backupDatabase`·`restoreDatabase`를
+  SQL Server가 아닌 연결로 MCP에서 부르면 확인을 먼저 묻고 실행할 때 거절한다(미리 보기가 DB 종류를 보지 않음, 채팅은 도구 고르기로 보내지 않음).
+  MySQL 8 서버와 mysqldump 8은 이 PC에 없어 MariaDB로만 확인했다.
 - **진단 SQL은 버전에 따라 다르다**: 시험은 PG 17, SQL Server 2022, MariaDB 11, Oracle 23ai에서만 했다. MySQL 8 블록(`performance_schema.data_lock_waits`, `error_log`)은 MySQL 서버가 없어 실행해 보지 못했다.
 
 ## 변경 이력
 
+- 2026-11-08 1b단계에서 미룬 PostgreSQL·MySQL/MariaDB 백업·복원 도구 `dumpDatabase`(W, 파일)·`restoreDump`(D): 로컬 클라이언트 도구(`tasks.native`)를
+  Swing 대화상자와 같은 경로(`model.admin` `NativeBackupRestore`)로 실행, 연결의 로컬 클라이언트 설정만 씀, 덮어쓰지 않음, 취소 시 만든 파일 지움.
+  도구 진행 알림(`AIToolCallContext.reportProgress`, `AIToolExecutor.execute`의 진행 수신자, `AIAgentChat.Entry.getProgress`, `Listener.toolProgress`, 도구 카드
+  "실행 중: …"). `AdminTools`의 SQL Server 전용 오류가 새 도구를 알려 줌. 위 "PostgreSQL·MySQL 백업·복원 도구", "1b단계 (미룬 것)".
 - 2026-11-08 1b단계 도구: SQL Server Agent 작업 도구 6개(`AgentJobTools`, `ext.mssql` 에이전트 모델), Oracle 실제 계획·교착 상태(경고 로그 + 추적
   파일 그래프)·루틴 문장 통계·누락·미사용 인덱스(팩 뷰 없음, 권한 부족 시 필요한 GRANT), Query Store 도구 3개(꺼져 있으면 문장으로 알림), `whatIfIndex`
   (hypopg 있을 때만, 없으면 이유), `probePermissions` 검사 추가, Oracle 시간대 시각 JSON 수정, Oracle 계획 해석을 `PlanParser.parseOracle`로, 플레이북 3개에

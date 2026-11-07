@@ -9,7 +9,9 @@ gen_app_icons.py (the size-tier tile drawings, resvg rendering) instead of resiz
 favicon is the 16 px tier drawn on its own pixel grid, the same image the app uses for 16 px.
 
 The share image is the logo lockup from chromite_logo_pack/, one line of copy in Pretendard (the site's
-font) and a crop of the real app screenshot that the home page already shows (site/assets/shots). Colours
+font) and a crop of the real app screenshot that the home page already shows (site/assets/shots). The copy
+names the driver count, not a list of databases: a list of the pre-installed ones read as the only
+databases Chromite supports. Colours
 are the app's design tokens (docs/chromite/design-spec.md): canvas #F7F8FA, ink #1E1F22, secondary text
 #6C707E, border #DFE1E5. Flat colours only, no gradient washes.
 
@@ -30,6 +32,8 @@ other font.
 
 Change history:
 - 2026-11-07 Created (site favicons and Open Graph images).
+- 2026-11-08 Share image copy says "more than 100 drivers, many databases" instead of four database names
+  (user feedback: the list implied Chromite works only with those four).
 """
 import sys
 from pathlib import Path
@@ -49,9 +53,9 @@ INK_2 = "#6C707E"
 LINE = "#DFE1E5"
 
 OG_COPY = {
-    "ko": (["SQL Server, Oracle,", "PostgreSQL, MariaDB를", "한 창에서 다룹니다"],
+    "ko": (["100가지가 넘는 드라이버로", "여러 데이터베이스를", "한 창에서 다룹니다"],
            "Windows와 macOS용 무료 오픈 소스"),
-    "en": (["SQL Server, Oracle,", "PostgreSQL and MariaDB", "in one window"],
+    "en": (["More than 100 drivers,", "many databases,", "one window"],
            "Free and open source, for Windows and macOS"),
 }
 

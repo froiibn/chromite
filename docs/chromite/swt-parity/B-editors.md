@@ -11,12 +11,14 @@
 
 | 상태 | SQL 편집기 | 결과 뷰어 | 개체 편집기 | 연결 편집기 | 그 밖의 편집기 | 합계 |
 |---|---|---|---|---|---|---|
-| 있음 | 9 | 7 | 4 | 7 | 0 | **27** |
-| 일부 | 12 | 8 | 6 | 7 | 7 | **40** |
-| 없음 | 19 | 12 | 1 | 7 | 0 | **39** |
-| 조용히 끊김 | 5 | 1 | 1 | 1 | 0 | **8** |
-| 의도적 제외 | 1 | 2 | 0 | 0 | 0 | **3** |
+| 있음 | 19 | 8 | 4 | 7 | 0 | **38** |
+| 일부 | 12 | 9 | 6 | 7 | 7 | **41** |
+| 없음 | 12 | 11 | 1 | 7 | 0 | **31** |
+| 조용히 끊김 | 1 | 0 | 1 | 1 | 0 | **3** |
+| 의도적 제외 | 2 | 2 | 0 | 0 | 0 | **4** |
 | 합계 | 46 | 30 | 12 | 22 | 7 | **117** |
+
+2026-11-08 다시 셈: 위 수는 아래 표의 지금 상태 칸으로 센 것이다("수정함"은 있음으로 셈). 조사 당시 수는 있음 25, 일부 42, 없음 39, 조용히 끊김 8, 의도적 제외 3이었다.
 
 ### 조용히 끊김 (가장 위험한 것부터)
 
@@ -55,7 +57,7 @@
 | S6 | 연결 종류 "SQL 실행 확인"(Production) | `SQLQueryJob` 확인 | 있음 | 모델 `SQLQueryExecuteJob.java:507` → 핸들러 기본 `confirmQueryExecution` → `SwingPlatformUI.confirmAction`(`:183`) | 높음 | 예/취소뿐. SWT의 "건너뛰기", "모두 예" 없음 |
 | S7 | 위험한 문 확인(WHERE 없는 DELETE/UPDATE, DROP) | `SQLEditor.java:3288-3385`, `CONFIRM_DANGER_SQL`, `CONFIRM_DROP_SQL` | 있음(2026-11-07) | `SqlExecutionSafety.confirmDangerousStatements`(준비 Job, 같은 설정 키), Options ▸ 일반 ▸ 쿼리 편집기 | 높음 | 실행마다 한 번 묻고 목록 표시, `GO` 배치는 다시 나눠 검사. 구분자 없는 T-SQL 여러 문장은 못 찾음. [swing-sql-exec-safety.md](../swing-sql-exec-safety.md) |
 | S8 | 연결 보안 제한: 스크립트 실행 금지 | `SQLEditor.java:3106` | 있음(2026-11-07) | `SqlExecutionSafety.checkExecutePermission`(`SqlEditorPanel.execute`, 연결 전) | 중간 | SWT처럼 문장 수와 관계없이 쿼리 창 실행을 모두 거절. 위 요약 7, [swing-sql-exec-safety.md](../swing-sql-exec-safety.md) |
-| S9 | 매개변수 `:name`, `${var}` 입력 | `SQLQueryParameterBindDialog`, `SQLEditorParametersProvider` | 있음 | `SqlParameterDialog`, swing-sql-editor-plus.md "매개변수" | 중간 | 값 기억 포함 |
+| S9 | 매개변수 `:name`, `${var}` 입력 | `SQLQueryParameterBindDialog`, `SQLEditorParametersProvider` | 있음 | `QueryParameterDialog`(스크립트 모드), `QueryParameterBinder.ScriptProvider`, swing-sql-editor-plus.md "매개변수" | 중간 | 값 기억 포함 |
 | S10 | `@set` 변수의 편집기 단위 유지, 변수 패널 | `SQLEditor` 전역 스크립트 문맥, `show.variables`, `SQLVariablesPanel` | 일부 | 실행마다 새 `SQLScriptContext`(`SqlEditorPanel.java:1022`) | 중간 | 한 번 실행 안에서만 `@set`이 살아 있음. 변수 보기·지우기 없음 |
 | S11 | `@include` | `ui.editors.sql/plugin.xml:55` `SQLCommandInclude` | 없음 | model.sql은 set/unset/echo/export만 등록(`model.sql/plugin.xml:72-75`) | 낮음 | 알 수 없는 명령 오류가 남 |
 | S12 | `@export` | `SQLCommandExport` + `data.transfer.ui` `SQLPragmaExport` | **있음** (2026-11-07, [swing-data-transfer.md](../swing-data-transfer.md) "@export 명령": Swing 처리기 `SqlExportPragma`가 다음 쿼리를 실행하지 않고 형식·옵션을 채운 Export Data 마법사를 엶, 모르는 형식·옵션과 SELECT가 아닌 다음 문장은 오류). 조사 당시: 조용히 끊김 | `SQLQueryExecuteJob.java:432` 처리기 없음 → 건너뜀 | 중간 | 위 요약 6 |
@@ -72,7 +74,7 @@
 | S22 | 편집기별 별도 연결(트랜잭션 분리) | `SQLEditor` 격리 실행 문맥(`SEPARATE_CONNECTION`) | **있음** (2026-11-07, [transactions.md](../transactions.md) "쿼리 창마다 별도 연결": `QueryWindowContext`, SWT와 같은 키·기본값, Options와 연결 대화상자에서 바꿈). 조사 당시: 없음 | `SqlEditorPanel` Javadoc "실행 문맥은 연결의 기본(주) 문맥", swing-frontend.md:708·1018·1293 | 높음 | 같은 연결의 쿼리 창들이 한 트랜잭션을 나눠 씀. 결과 저장도 같은 문맥에서 자동 커밋을 끔 |
 | S23 | 끊기·다시 연결·삭제 전 열린 트랜잭션 확인 | `ui.editors.connection` `DataSourceHandler.checkAndCloseActiveTransaction`(`:168, :206-228`) | **수정함** (2026-11-07, #97, [idle-transactions.md](../idle-transactions.md) "연결 끊기 전 질문", 영역 A-S3). 조사 당시: 조용히 끊김 | 위 요약 1 | 높음 | 끝낼 때(`ExitTransactionCheck`)만 묻는다 |
 | S24 | 유휴 트랜잭션 자동 종료 | `core` `UIServiceConnectionsImpl`, 앱의 사용자 활동 시각 | **수정함** (2026-11-07, #97, [idle-transactions.md](../idle-transactions.md): 마지막 문장 기준 유휴, 기본은 알림과 커밋 / 롤백 / 열어 두기, 연결에서 켰을 때만 자동 롤백 뒤 알림, 영역 A-S1). 조사 당시: 조용히 끊김 | 위 요약 5 | 높음 | 영역 A와 중복 |
-| S25 | 서버 출력(Oracle `DBMS_OUTPUT` 등) | `show.output`, `SQLEditorOutputViewer`, `DBCServerOutputReader` | 있음(2026-11-07) | `SqlEditorPanel.readServerOutput`: 문장마다 읽어(버퍼를 비움) Messages 탭에 씀. [swing-server-output.md](../swing-server-output.md) | 중간 | SWT의 별도 Output 패널(심각도 필터, 자동 표시) 대신 Messages 탭. SQL Server `PRINT`, PostgreSQL `NOTICE`는 전처럼 한 번만 나옴 |
+| S25 | 서버 출력(Oracle `DBMS_OUTPUT` 등) | `show.output`, `SQLEditorOutputViewer`, `DBCServerOutputReader` | 있음(2026-11-07) | `SqlEditorPanel.readServerOutput`: 문장마다 읽어(버퍼를 비움) Messages 탭에 씀. [swing-server-output.md](../swing-server-output.md) | 중간 | SWT의 별도 Output 패널(심각도 필터, 자동 표시) 대신 Messages 탭. SQL Server `PRINT`, PostgreSQL `NOTICE`는 전처럼 한 번만 나옴. 2026-11-08: Oracle 설정을 바꾸면 열린 쿼리 창 세션에도 다음 문장부터 적용([model-fixes.md](../model-fixes.md)) |
 | S26 | 실행 로그(편집기별 쿼리 관리자 로그) | `show.log`, `SQLLogPanel`, `QueryLogViewer` | 일부 | `QueryHistory`/`QueryHistoryDialog`(swing-sql-editor-plus.md "쿼리 기록"), swt-removal.md:112 | 중간 | 편집기가 실행한 문만 기록. 내부 쿼리·트랜잭션 표시 없음 |
 | S27 | 실행 계획(예상·실제) | `run.explain`, `ExplainPlanViewer` | 있음 | `ExecutionPlanView`, `PlanDiagramView`, `PlanRawView`, swing-sql-editor-plus.md | 중간 | 계획 파일 불러오기(`load.plan`)는 없음, 저장은 원본 보기에서 됨 |
 | S28 | 아웃라인 | `show.outline`, `SQLEditorOutlinePage` | 없음 | grep `Outline` 0건 | 낮음 | |
@@ -106,7 +108,7 @@
 | R6 | 집계 패널 | `AggregateColumnsPanel`, `aggregateFunction` 확장 | 일부 | `ResultSetAggregates`(상태 줄 Count·Sum·Avg·Min·Max) | 낮음 | 함수 고르기·열별 표·그룹 집계 없음 |
 | R7 | 참조 패널, 외래 키 따라가기(참조 행 열기, 참조하는 행 보기) | `ReferencesPanel`, `navigateLink`, `referencesMenu` | 없음 | 결과 클래스에 `ForeignKey`/`DBSEntityAssociation` 0건 | 중간 | |
 | R8 | 그룹 패널(GROUP BY 보기, 중복만) | `GroupingPanel` | 없음 | grep `Grouping` 0건(결과) | 낮음 | |
-| R9 | GIS(공간 데이터) 보기 | `data.gis.view` | 없음 | swt-removal.md:106 | 낮음 | |
+| R9 | GIS(공간 데이터) 보기 | `data.gis.view` | 일부 (2026-11-08) | `ResultSetSpatialView`, `SqlServerSpatialReader`([swing-result-charts-spatial.md](../swing-result-charts-spatial.md)). 조사 당시: 없음(swt-removal.md:106) | 낮음 | 밑그림 지도(온라인 타일)·SRID 변환·GIS 설정·기하 값 편집 없음(폐쇄망용으로 일부러 뺌). SQL Server 바이트는 SWT보다 더 그림 |
 | R10 | 필터 | `ResultSetFilterPanel`, `filterMenu`, `filterSave`, `filterSettings` | 일부 | `ResultSetColumnFilterPopup`, "Filter by Value"(swing-grid-column-filters.md) | 중간 | 저장한 필터, 필터 편집 대화상자, 고급 WHERE 입력 없음(swing-result-viewer.md:177) |
 | R11 | 정렬(서버·표 안) | `toggleOrder`, `OrderingStrategy` | 있음 | `ResultSetViewerPanel`, swing-result-viewer.md "정렬과 필터" | 중간 | |
 | R12 | 페이지·더 읽기·모두 읽기, 최대 행 수 | `fetch.page`, `fetch.all`, `PrefPageResultSetMain` | 있음 | `ResultSetViewerPanel`, Options "Maximum rows" | 중간 | JDBC fetch size 설정 없음 |

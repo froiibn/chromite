@@ -66,7 +66,7 @@ Chromite는 **배포판이 하나다.** 내부판(전체 드라이버 내장)은
 - **이전 결정(2026-11-06):** MySQL Connector/J 9.7.0을 내장했다(`drivers.mysql` 선언, `drivers/mysql/mysql8/`에 jar,
   `drivers/mysql/`에 jar 안 `LICENSE` 원문과 `SOURCE.txt`, `NOTICE` 고지). 아래 "넣은 것과 뺀 것"의 MySQL 항목과 "확인 결과"의 MySQL 추가 기록은 그때의 기록이다.
 - **v0.1.0은 Connector/J 9.7.0을 내장한 채 배포됐다**(`v0.1.0` 태그에 `drivers.mysql` 선언과 `drivers/mysql/` 텍스트가 있다).
-  그 릴리스의 대응 소스 제공은 GitHub Release를 게시할 때 메인 작업에서 처리한다.
+  그 릴리스의 대응 소스 묶음은 GitHub `v0.1.0` Release(초안)에 첨부했다(아래 "미완료 항목").
 - **이제 MySQL에 연결하는 방법:**
   - 온라인: 다른 내장되지 않은 드라이버처럼 처음 연결할 때 다운로드 대화상자가 열리고 Maven Central에서 받는다.
   - 폐쇄망: 인터넷 PC에서 MySQL을 넣은 오프라인 설치 묶음을 만들어 설치한다([driver-offline-bundle.md](driver-offline-bundle.md)).
@@ -88,7 +88,8 @@ Chromite는 **배포판이 하나다.** 내부판(전체 드라이버 내장)은
   버전마다 다른 제3자 고지와 "9.7.0" 같은 버전 문구는 넣지 않았다(8.2.0·최신판도 같은 표기를 쓴다). TiDB의 묶음 모드 표기(`drivers/mysql/LICENSE.txt`)는
   upstream 항목이라 그대로 두었다(묶음을 선언하지 않아 쓰이지 않는다). `gnu3.txt`는 쓰는 드라이버가 없어져 지웠다.
   MySQL 5 (Legacy)(`lgpl-2.0.txt`, 실제 GPLv2 + 예전 MySQL FOSS License Exception)와 StarRocks는 다른 jar라 이번 범위에서 고치지 않았다
-  ([driver-licenses.md](driver-licenses.md) "plugin.xml의 라이선스 표기와 실제가 다른 항목").
+  ([driver-licenses.md](driver-licenses.md) "plugin.xml의 라이선스 표기와 실제가 다른 항목"). 2026-11-08에 고쳤다: MySQL 5 (Legacy)는 새 파일
+  `gpl-2.0-mysql-foss-exception.txt`, StarRocks는 `gpl-2.0-universal-foss-exception.txt`(앞 안내에 StarRocks 문단 추가).
 - **v0.1.0에서 올린 사용자:** 작업 공간의 `drivers.xml`에 `drivers/mysql/mysql8` 라이브러리가 저장돼 있어도, 사용자 정의가 아닌 라이브러리가
   `plugin.xml`에 없으면 읽을 때 건너뛴다(`DriverDescriptorSerializerLegacy`의 "Skip obsolete custom library"). 그래서 Maven 항목이 쓰이고 처음 연결할 때 내려받는다.
 - **Connect 대화상자:** Database type 콤보의 주요 DB 목록(`DatabaseTypeCombo.FAVORITES`)에는 MySQL을 그대로 둔다. 결정은 내장 여부만 정했다.
@@ -338,10 +339,11 @@ Chromite는 **배포판이 하나다.** 내부판(전체 드라이버 내장)은
 
 ## 미완료 항목
 
-- v0.1.0(Connector/J 9.7.0 내장)의 GPLv2 3항 대응 소스 제공: 그 릴리스의 `SOURCE.txt`는 Oracle의 공식 소스 배포 위치만 적었다. 3항을 문자 그대로 따르려면
-  설치 파일과 같은 곳(GitHub Release)에 소스 묶음(`mysql-connector-j-9.7.0.tar.gz`, 4,556,015 bytes)을 함께 올리거나 서면 제공 약속을 넣어야 한다.
-  GitHub Release를 게시할 때 메인 작업에서 처리한다. 2026-11-07 이후 릴리스는 Connector/J를 넣지 않으므로 해당 없다.
-- MySQL 5 (Legacy)(`mysql-connector-java` 5.1.49, `lgpl-2.0.txt`)와 StarRocks(GPLv2 원문)의 라이선스 표기가 실제와 다르다([driver-licenses.md](driver-licenses.md) "plugin.xml의 라이선스 표기와 실제가 다른 항목")
+- v0.1.0(Connector/J 9.7.0 내장)의 GPLv2 3항 대응 소스 제공: 그 릴리스의 `SOURCE.txt`는 Oracle의 공식 소스 배포 위치만 적었다. 3항을 문자 그대로 따르려고
+  설치 파일과 같은 곳에 소스 묶음을 올렸다(2026-11-08, 메인 작업): Oracle 공식 소스 배포본 `mysql-connector-j-9.7.0.tar.gz`(4,556,015 bytes,
+  SHA-256 `53d8fdf1b9b8040907cecd470bf3333af96b00371d74dbe4230a15c58f0cb310`, `https://downloads.mysql.com/archives/get/p/3/file/mysql-connector-j-9.7.0.tar.gz`,
+  `.java` 698개와 빌드 파일)을 GitHub `v0.1.0` Release에 첨부했다. **남은 것:** Release가 아직 초안이라, 사용자가 게시할 때 소스 묶음도 공개된다.
+  0.1.1부터는 Connector/J를 내장하지 않으므로(#123) 이후 릴리스에는 소스를 첨부할 필요가 없다.
 - [driver-licenses.md](driver-licenses.md)의 "확인 못함" 항목 약관 원문 확인, 내장 드라이버 라이선스 고지 형식 법률 검토
 - 내장 드라이버로 실제 DB(SQL Server, Oracle, PostgreSQL, MariaDB)에 로그인까지 하는 확인(드라이버 로드까지만 확인함), macOS 실행 확인
 
@@ -374,5 +376,7 @@ Chromite는 **배포판이 하나다.** 내부판(전체 드라이버 내장)은
   `drivers/mysql/` 텍스트·`README.txt` 절·`NOTICE` 항목을 지우고, MySQL 5 (Legacy)의 묶음 ID를 `drivers.mysql`로 되돌림.
   MySQL 계열 6개 드라이버의 라이선스 표기를 GPLv3(`gnu3.txt`, 삭제)에서 GPLv2 + Universal FOSS Exception(`gpl-2.0-universal-foss-exception.txt`)으로 고침.
   v0.1.0은 Connector/J를 내장한 채 배포됐다는 기록 추가. 내장 목록은 SQL Server, Oracle, PostgreSQL, MariaDB, SQLite.
+- 2026-11-08 "미완료 항목": v0.1.0 Release에 Connector/J 9.7.0 소스 묶음을 첨부한 기록(크기·SHA-256·출처, 초안 Release 게시 때 공개, 0.1.1부터 해당 없음).
+  MySQL 5 (Legacy)·StarRocks 라이선스 표기를 고치고(evening #12) 미완료 항목에서 뺌.
 - 2026-11-08 "로컬 파일 우선" 절 추가(후속 #62): 사용자가 추가한 로컬 jar·폴더에 드라이버 클래스가 있으면 미리 정의된 다운로드 항목을
   받지도 클래스패스에 넣지도 않는다(`DriverLoaderDescriptor`).
