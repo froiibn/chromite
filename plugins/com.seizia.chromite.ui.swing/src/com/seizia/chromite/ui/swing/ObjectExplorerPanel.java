@@ -34,6 +34,7 @@ import com.seizia.chromite.ui.swing.internal.LifecycleMessages;
 import com.seizia.chromite.ui.swing.internal.NavigatorMessages;
 import com.seizia.chromite.ui.swing.internal.ObjectExplorerMessages;
 import com.seizia.chromite.ui.swing.internal.SchedulerMessages;
+import com.seizia.chromite.ui.swing.internal.ScriptsMessages;
 import com.seizia.chromite.ui.swing.internal.SecurityMessages;
 import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.Status;
@@ -79,6 +80,8 @@ import org.jkiss.utils.CommonUtils;
 import javax.swing.*;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
+import javax.swing.event.MenuEvent;
+import javax.swing.event.MenuListener;
 import javax.swing.event.PopupMenuEvent;
 import javax.swing.event.PopupMenuListener;
 import javax.swing.event.TreeExpansionEvent;
@@ -96,6 +99,7 @@ import java.awt.event.KeyEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.geom.RoundRectangle2D;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -255,6 +259,8 @@ import java.util.regex.Pattern;
  * - 2026-11-08 Tasks &gt; Run Script with Native Client…(docs/chromite/swing-database-tasks.md)
  * - 2026-11-08 폴더의 New &lt;종류&gt;… 메뉴({@link NewObjectCommands}, docs/chromite/swing-create-objects.md)
  * - 2026-11-08 연결 노드의 Change Password… 메뉴(연결한 사용자의 비밀번호 바꾸기, docs/chromite/swing-conn-advanced.md "비밀번호 바꾸기")
+ * - 2026-11-08 Recent Scripts 하위 메뉴: 선택한 노드의 연결에 묶은 스크립트를 최근 고친 순으로 열기({@link ScriptFiles#findLinkedScripts},
+ *   docs/chromite/swing-scripts-explorer.md "연결별 최근 스크립트")
  */
 final class ObjectExplorerPanel extends JPanel {
 
@@ -265,6 +271,10 @@ final class ObjectExplorerPanel extends JPanel {
      * Rows of "Select Top N Rows", as SSMS.
      */
     static final int SELECT_TOP_ROWS = 1000;
+    /**
+     * Scripts listed in Recent Scripts, as many as File &gt; Recent Files and a few more (a connection has its own list).
+     */
+    private static final int RECENT_SCRIPTS = 15;
 
     /**
      * The main window side: document tabs for queries, scripts and tools.
@@ -345,6 +355,11 @@ final class ObjectExplorerPanel extends JPanel {
          * share it read their database picker again.
          */
         void connectionDefaultsChanged(@NotNull DBPDataSourceContainer dataSource);
+
+        /**
+         * Opens a script file in a query window, or shows the window that has it open (Recent Scripts of a connection).
+         */
+        void openScriptFile(@NotNull Path file);
     }
 
     /**
@@ -406,6 +421,10 @@ final class ObjectExplorerPanel extends JPanel {
     private final JMenu createToMenu;
     private final JMenu selectToMenu;
     private final JMenu tasksMenu;
+    /**
+     * Recent Scripts: the scripts linked to the selected node's connection, newest first (filled when it opens).
+     */
+    private final JMenu recentScriptsMenu;
     private final Action importDataAction;
     private final Action exportDataAction;
     private final SourceEditCommands sourceEditCommands;
@@ -535,6 +554,22 @@ final class ObjectExplorerPanel extends JPanel {
                 }
             }
         };
+        recentScriptsMenu = new JMenu(ScriptsMessages.scripts_recent);
+        recentScriptsMenu.setToolTipText(ScriptsMessages.scripts_recent_tip);
+        recentScriptsMenu.addMenuListener(new MenuListener() {
+            @Override
+            public void menuSelected(MenuEvent e) {
+                fillRecentScriptsMenu();
+            }
+
+            @Override
+            public void menuDeselected(MenuEvent e) {
+            }
+
+            @Override
+            public void menuCanceled(MenuEvent e) {
+            }
+        });
         selectTopAction = createAction(NLS.bind(CoreMessages.explorer_select_top, SELECT_TOP_ROWS), () -> {
             DBPDataSourceContainer dataSource = getSelectedDataSource();
             if (getSelectedObject() instanceof DBSEntity entity && dataSource != null) {
@@ -815,6 +850,7 @@ final class ObjectExplorerPanel extends JPanel {
         popupMenu.add(newConnectionAction);
         popupMenu.addSeparator();
         popupMenu.add(newQueryAction);
+        popupMenu.add(recentScriptsMenu);
         popupMenu.add(setDefaultAction);
         popupMenu.add(newTableAction);
         popupMenu.add(sourceEditCommands.getNewViewAction());
@@ -1085,6 +1121,27 @@ final class ObjectExplorerPanel extends JPanel {
         return object;
     }
 
+    /**
+     * Recent Scripts (SWT: the connection's script list, {@code SQLEditorHandlerOpenEditor}): the scripts linked to the
+     * selected node's connection, newest first. Each opens like File &gt; Open File (with its linked connection).
+     */
+    private void fillRecentScriptsMenu() {
+        recentScriptsMenu.removeAll();
+        DBPDataSourceContainer dataSource = getSelectedDataSource();
+        List<ScriptFiles.LinkedScript> scripts = dataSource == null ? List.of() : ScriptFiles.findLinkedScripts(dataSource, RECENT_SCRIPTS);
+        for (ScriptFiles.LinkedScript script : scripts) {
+            JMenuItem item = new JMenuItem(script.name(), UiIcons.get("file-sql")); //$NON-NLS-1$
+            item.setToolTipText(script.file().toString());
+            item.addActionListener(e -> queryWindows.openScriptFile(script.file()));
+            recentScriptsMenu.add(item);
+        }
+        if (scripts.isEmpty()) {
+            JMenuItem none = new JMenuItem(ScriptsMessages.scripts_recent_none);
+            none.setEnabled(false);
+            recentScriptsMenu.add(none);
+        }
+    }
+
     private void runOnSelectedDataSource(@NotNull Consumer<DBPDataSourceContainer> command) {
         DBPDataSourceContainer dataSource = getSelectedDataSource();
         if (dataSource != null) {
@@ -1099,6 +1156,7 @@ final class ObjectExplorerPanel extends JPanel {
         newConnectionAction.setEnabled(projectNode != null);
         connectServerAction.setEnabled(projectNode != null);
         newQueryAction.setEnabled(dataSource != null);
+        recentScriptsMenu.setEnabled(dataSource != null);
         DBSObject object = getSelectedObject();
         boolean canScript = ObjectScripts.canScriptCreate(object);
         boolean canSelect = ObjectScripts.canSelect(object);

@@ -11,8 +11,8 @@
 
 | 상태 | SQL 편집기 | 결과 뷰어 | 개체 편집기 | 연결 편집기 | 그 밖의 편집기 | 합계 |
 |---|---|---|---|---|---|---|
-| 있음 | 32 | 17 | 6 | 16 | 2 | **73** |
-| 일부 | 9 | 7 | 5 | 6 | 5 | **32** |
+| 있음 | 33 | 17 | 6 | 16 | 2 | **74** |
+| 일부 | 8 | 7 | 5 | 6 | 5 | **31** |
 | 없음 | 3 | 4 | 0 | 0 | 0 | **7** |
 | 조용히 끊김 | 0 | 0 | 1 | 0 | 0 | **1** |
 | 의도적 제외 | 2 | 2 | 0 | 0 | 0 | **4** |
@@ -89,7 +89,7 @@
 | S35 | 마우스 올림 정보, Ctrl+클릭으로 개체 열기, 같은 단어 강조 | `SQLAnnotationHover`, `SQLHyperlinkDetector`, `navigate.object`, `SQLOccurrencesHighlighter` | 있음 | 2026-11-08 `SqlObjectNavigation`(의미 분석으로 별칭·열까지 풀기, 마우스 올림 설명, Ctrl+클릭), `setMarkOccurrences` ([swing-sql-editor-ergonomics.md](../swing-sql-editor-ergonomics.md)) | 낮음 | Ctrl+클릭한 DB 개체는 Object Explorer에서 고름(개체 편집기 없음). 같은 단어 강조는 대소문자가 같은 것만 |
 | S36 | 의미 분석 오류 표시, 빠른 수정 | `SQLEditorSemanticMarkersManager`, `SQLEditorQuickAssistProcessor` | 없음 | grep 0건 | 낮음 | |
 | S37 | 글자 도구: 줄 바꿈 토글, 공백 다듬기, 목록 변환, 소스 코드로 복사(Java·Python 등), 웹 검색 | `word.wrap`, `trim.*`, `morph.delimited.list`, `convert/*`, `search.web` | 있음 | 2026-11-08 Edit &gt; Advanced(`SqlTextTools`, 자동 줄 바꿈 Ctrl+Alt+Shift+W) ([swing-sql-editor-ergonomics.md](../swing-sql-editor-ergonomics.md)) | 낮음 | 대소문자 바꾸기는 있음(S30). 소스 코드로 복사는 옵션 대화상자 없이 기본 옵션 |
-| S38 | 스크립트 파일 관리(프로젝트 Scripts 폴더, 연결별 스크립트 목록, 이름 바꾸기·삭제, 스크립트에 연결 기억, 자동 저장, 다시 시작할 때 열린 편집기 복원) | `showScripts`, `rename`, `deleteThisScript`, `ScriptsHandlerImpl`, `SQLEditorHandlerOpenEditor` | 일부 | `SqlFileContent`, `RecentFiles`, File Open/Save; Scripts 도구 창(2026-11-08: 폴더·이름 바꾸기·삭제·연결 묶기, `ScriptsPanel`); `MainFrame`에 편집기 복원 없음; swt-removal.md:108 | 중간 | 남은 것: 연결별 스크립트 목록, 자동 저장, 다시 시작할 때 편집기 복원. [swing-scripts-explorer.md](../swing-scripts-explorer.md) |
+| S38 | 스크립트 파일 관리(프로젝트 Scripts 폴더, 연결별 스크립트 목록, 이름 바꾸기·삭제, 스크립트에 연결 기억, 자동 저장, 다시 시작할 때 열린 편집기 복원) | `showScripts`, `rename`, `deleteThisScript`, `ScriptsHandlerImpl`, `SQLEditorHandlerOpenEditor` | 있음(2026-11-08. 조사 당시: 일부) | `SqlFileContent`, `RecentFiles`, File Open/Save; Scripts 도구 창(2026-11-08: 폴더·이름 바꾸기·삭제·연결 묶기, `ScriptsPanel`); 자동 저장·다시 시작할 때 쿼리 창 복원(2026-11-08, `QueryWindowRecovery`: 연결·기본 DB/스키마, 연결하지 않고 복원); 연결별 최근 스크립트(2026-11-08, Object Explorer > Recent Scripts, `ScriptFiles.findLinkedScripts`); swt-removal.md:108 | - | SWT 자동 저장은 스크립트 파일에 썼고, Swing은 작업 공간의 복원 파일에 쓴다(파일 저장은 Save 질문 그대로). [swing-scripts-explorer.md](../swing-scripts-explorer.md), [swing-query-window-recovery.md](../swing-query-window-recovery.md) |
 | S39 | 연결·기본 DB/스키마 바꾸기 | 활성 연결·스키마 선택(`SelectActiveSchemaHandler`) | 있음 | `SqlEditorPanel` 콤보, `SqlEditorToolBar` | 중간 | 탐색기와 연결 맞추기(`sync.connection`)는 없음 |
 | S40 | DDL 실행 뒤 탐색기 갱신 | `SQLMetadataRefreshCoordinator` | **있음** (2026-11-08, [swing-query-commands.md](../swing-query-commands.md): `SqlMetadataRefresh`, 바뀐 개체의 스키마·DB를 실행 뒤, 수동 커밋이면 트랜잭션이 끝난 뒤 다시 읽음). 조사 당시: 일부 | Modify·New 창만 노드를 다시 읽음(`setExecutionFinishedListener`, swing-source-editor.md) | 중간 | 조사 당시: 일반 쿼리 창의 CREATE/DROP은 F5로 새로 고쳐야 보임 |
 | S41 | SQL 만들기(INSERT·UPDATE·DELETE·MERGE·JOIN, 결과 행에서, 결과로 DDL) | `GenerateSQLDialog`, `SQLGeneratorContributor`, `generate.ddl.by.resultSet` | 일부 | `ObjectScripts`(CREATE·SELECT), `SourceEditCommands`(ALTER); swing-frontend.md:1020 | 중간 | 2026-11-07 탐색기 Generate SQL(SELECT·INSERT·UPDATE·DELETE·MERGE·JOIN·DDL·CALL, `ObjectScripts.getGenerators`, C-17). 결과 행에서 만들기(`dataInsert` 등)와 결과로 DDL은 없음(결과 클래스 grep 0) |

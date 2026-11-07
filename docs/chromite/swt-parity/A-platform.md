@@ -154,7 +154,7 @@
 | A-S14 | 비상 종료, 창 최소화 명령 | `EmergentExitAction`, `MinimizeWindowHandler` | 없음 | | 낮음 | |
 | A-S15 | 스플래시 | `ChromiteSplashHandler` | 없음 | swt-removal.md:69(SWT 스플래시 생성 삭제) | 낮음 | |
 | A-S16 | 절전 감지, Windows 인증서 저장소, 시간대, IP 스택, 프록시 서비스, 알림 처리기 | `ApplicationWorkbenchAdvisor`, `ChromiteApplication`, `CoreApplicationActivator` | 일부 (2026-11-08 다시 확인: S6·S7·S8·S12·S13 수정함(`ChromiteSwingApplication.java`:167, 179, 297, 339-353). Eclipse 프록시 서비스만 남음(A-C28)). 조사 당시: 조용히 끊김 | S6, S7, S8, S12, S13, A-C28 | (각 항목) | |
-| A-S17 | 편집기 다시 열기(다시 시작 뒤), 연결 끊을 때 편집기 유지 | `PrefPageDatabaseEditors` 키 | 없음 | Swing에 쿼리 창 복원 없음 | 낮음 | |
+| A-S17 | 편집기 다시 열기(다시 시작 뒤), 연결 끊을 때 편집기 유지 | `PrefPageDatabaseEditors` 키 | 있음(2026-11-08. 조사 당시: 없음) | 쿼리 창 자동 저장·복원(`QueryWindowRecovery`): 시작할 때 한 번 묻고(Restore가 기본) 연결하지 않고 엶. 연결을 끊어도 쿼리 창은 닫히지 않음(`MainFrame`은 탭 닫기에서만 창을 뺌). 조사 당시: Swing에 쿼리 창 복원 없음 | - | 켜고 끄는 설정은 없음(매번 묻고, Discard로 버림). [swing-query-window-recovery.md](../swing-query-window-recovery.md) |
 
 ### 5.4 나머지 삭제 번들
 
@@ -235,9 +235,9 @@ Swing에서 바꿀 수 있는 설정: Options — 테마, 아이콘 모양, 입�
 
 | 상태 | 수 |
 |---|---|
-| 있음 | 34 (§1 S1~S14 수정함 14, A-C1~A-C4, A-C7, A-C8, A-C15, A-C20, A-C21, A-C22, A-U1~A-U5, A-U9, A-S1, A-S9, A-S10, A-S13) |
+| 있음 | 35 (§1 S1~S14 수정함 14, A-C1~A-C4, A-C7, A-C8, A-C15, A-C20, A-C21, A-C22, A-U1~A-U5, A-U9, A-S1, A-S9, A-S10, A-S13, A-S17) |
 | 일부 | 15 (A-C5, A-C6, A-C9, A-C10, A-C13, A-C14, A-C23, A-C27, A-U6, A-U7, A-U8, A-S2, A-P1, A-X4, A-X6) |
-| 없음 | 22 (A-C11, A-C12, A-C19, A-C24~A-C26, A-C28, A-U10, A-U11, A-S3~A-S8, A-S11, A-S12, A-S14, A-S15, A-S17, A-X1, A-X3) |
+| 없음 | 21 (A-C11, A-C12, A-C19, A-C24~A-C26, A-C28, A-U10, A-U11, A-S3~A-S8, A-S11, A-S12, A-S14, A-S15, A-X1, A-X3) |
 | 의도적 제외 | 2 (A-X2 사용 통계 페이지, A-X5 런처) |
 | 조용히 끊김 | 0 (조사 당시 14: S1~S14. 모두 수정함, S14는 macOS 실행 확인 안 함) |
 

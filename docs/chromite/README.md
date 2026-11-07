@@ -37,7 +37,8 @@ upstream의 전체 구조는 [AGENTS.md](../../AGENTS.md)와 [AGENTS-Architectur
 | [swing-sql-exec-safety.md](swing-sql-exec-safety.md) | Swing 쿼리 실행 안전 확인: WHERE 없는 UPDATE/DELETE·DROP 확인(한 번에 목록, `GO` 배치 재분할), 연결의 스크립트 실행 제한, `@ai`가 만든 SQL을 보여 주는 실행 확인(`UIServiceSQL`) |
 | [swing-sql-terminal.md](swing-sql-terminal.md) | Swing SQL 터미널(Query > SQL Terminal, Ctrl+T): 쿼리 창마다 켜는 Terminal 탭에 문장·글자 표·메시지를 명령줄처럼 쌓음, 결과 표는 그대로 |
 | [swing-query-commands.md](swing-query-commands.md) | Swing 쿼리 창 문장 명령(현재 문장 Ctrl+Enter, 커서부터 Alt+P, 행 수, 식, 이전·다음 문장, 현재 문장 복사), 창 단위 `@set` 변수와 Variables 대화상자, `@include`·MySQL `SOURCE`(상대 경로, 중첩, 고리 거절, 위험한 문 확인), DDL 뒤 탐색기 갱신 |
-| [swing-scripts-explorer.md](swing-scripts-explorer.md) | Swing Scripts 도구 창(View > Scripts, Ctrl+Alt+L): 활성 프로젝트 Scripts 폴더 트리, 열기·새 폴더·이름 바꾸기·삭제(휴지통, 취소가 기본), 스크립트와 연결 묶기(SWT와 같은 자원 속성), 묶은 연결로 열기 |
+| [swing-scripts-explorer.md](swing-scripts-explorer.md) | Swing Scripts 도구 창(View > Scripts, Ctrl+Alt+L): 활성 프로젝트 Scripts 폴더 트리, 열기·새 폴더·이름 바꾸기·삭제(휴지통, 취소가 기본), 스크립트와 연결 묶기(SWT와 같은 자원 속성), 묶은 연결로 열기, Object Explorer의 연결별 Recent Scripts |
+| [swing-query-window-recovery.md](swing-query-window-recovery.md) | Swing 쿼리 창 자동 저장과 다시 시작할 때 복원: 10초마다·닫을 때 작업 공간 복원 파일에 저장(저장하지 않은 글 포함), 시작할 때 한 번 "쿼리 창 N개를 복원할까요?"(Restore 기본), 연결하지 않고 열고 첫 실행 때 예전 DB/스키마 적용, 아무것도 다시 실행하지 않음 |
 | [swing-server-output.md](swing-server-output.md) | Swing 쿼리 창의 서버 출력: Oracle·CUBRID `DBMS_OUTPUT`, Altibase `PRINT`를 문장마다 읽어(버퍼를 비움) Messages 탭에 씀, PRINT·NOTICE 중복 방지, Altibase 기본값 초기화 |
 | [swing-sql-editor-plus.md](swing-sql-editor-plus.md) | Swing SQL 편집기 확장: 실행 계획(예상·실제, SQL Server 계획기, 그래픽·트리·원본 세 보기, Oracle 적응 계획), 쿼리 기록, SQL 서식·편집 명령, 템플릿, 매개변수 대화상자 |
 | [idle-transactions.md](idle-transactions.md) | 열린 트랜잭션 표시(쿼리 창 상태 줄, 커밋·롤백 메뉴)와 유휴 트랜잭션 처리(마지막 문장 기준 유휴, 알림·열어 두기, 연결에서 켰을 때만 자동 롤백), 업스트림 유휴 롤백 경로 교체, 연결 끊기 전 열린 트랜잭션 질문, 유휴 연결 닫기(연결별 마지막 사용 기준, 열린 트랜잭션이면 닫지 않음), 모델 알림 표시 |
