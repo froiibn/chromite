@@ -37,10 +37,12 @@ import com.seizia.chromite.runtime.ui.DBPPlatformUI;
 import com.seizia.chromite.utils.GeneralUtils;
 import com.seizia.chromite.utils.PrefUtils;
 import com.seizia.chromite.utils.RuntimeUtils;
+import org.jkiss.utils.CommonUtils;
 import org.jkiss.utils.IOUtils;
 import org.jkiss.utils.StandardConstants;
 
 import javax.swing.*;
+import java.awt.Desktop;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.io.IOException;
@@ -49,6 +51,7 @@ import java.io.PrintStream;
 import java.lang.reflect.InvocationTargetException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.security.KeyStore;
 import java.util.concurrent.CountDownLatch;
 
 /**
@@ -80,6 +83,8 @@ import java.util.concurrent.CountDownLatch;
  *   docs/chromite/workspace-location.md)
  * - 2026-11-07 자동 업데이트: 사용자가 창을 닫아 끝날 때 확인한 업데이트를 적용({@link UpdateService#applyAtExit}),
  *   업데이트 도우미가 설치하는 동안에는 시작하지 않음 (docs/chromite/auto-update.md)
+ * - 2026-11-07 SWT 앱처럼 Windows 인증서 저장소({@code WINDOWS-ROOT})를 기본 신뢰 저장소로 씀(설정이 켜져 있을 때),
+ *   macOS 앱 메뉴의 끝내기·정보·환경설정을 메인 창 경로로 연결 (docs/chromite/platform-startup.md)
  */
 public class ChromiteSwingApplication extends DesktopApplicationImpl {
 
@@ -131,6 +136,7 @@ public class ChromiteSwingApplication extends DesktopApplicationImpl {
             if (migrationResult != null) {
                 log.info(migrationResult);
             }
+            useWindowsTrustStore();
 
             ChromiteSwingPlatform platform;
             try {
@@ -226,7 +232,55 @@ public class ChromiteSwingApplication extends DesktopApplicationImpl {
             }
         });
         mainFrame = frame;
+        installDesktopHandlers(frame);
         frame.setVisible(true);
+    }
+
+    /**
+     * Makes the default SSL trust store the Windows certificate store ({@code WINDOWS-ROOT}) when the model preference
+     * {@link ModelPreferences#PROP_USE_WIN_TRUST_STORE_TYPE} (default on, Windows only) is on, as the SWT application did.
+     * Called before the platform is created: the JDK reads {@code javax.net.ssl.trustStoreType} once, when the first
+     * default SSL context is made (connections, the update check). A trust store set on the command line wins.
+     */
+    private void useWindowsTrustStore() {
+        if (CommonUtils.isEmpty(System.getProperty(GeneralUtils.PROP_TRUST_STORE))
+            && CommonUtils.isEmpty(System.getProperty(GeneralUtils.PROP_TRUST_STORE_TYPE))
+            && RuntimeUtils.isWindows()
+            && getPreferenceStore().getBoolean(ModelPreferences.PROP_USE_WIN_TRUST_STORE_TYPE)
+        ) {
+            System.setProperty(GeneralUtils.PROP_TRUST_STORE_TYPE, GeneralUtils.VALUE_TRUST_STORE_TYPE_WINDOWS);
+        }
+        log.debug("SSL trust store type: " + CommonUtils.notEmpty(System.getProperty(GeneralUtils.PROP_TRUST_STORE_TYPE))
+            + " (default " + KeyStore.getDefaultType() + ")");
+    }
+
+    /**
+     * Connects the macOS application menu (Quit, About, Preferences) to the main window. The JDK's default quit
+     * calls {@code System.exit}, which would skip the save question and {@link ExitTransactionCheck}: Quit sends the
+     * main window the same closing event as its close button and is cancelled; if the user agreed to exit, the window
+     * is gone and the application ends through its normal path ({@link #start}). Each handler is installed only where
+     * the platform supports it, so nothing changes on Windows. Not run on macOS yet (docs/chromite/platform-startup.md).
+     */
+    private static void installDesktopHandlers(@NotNull MainFrame frame) {
+        if (!Desktop.isDesktopSupported()) {
+            return;
+        }
+        Desktop desktop = Desktop.getDesktop();
+        if (desktop.isSupported(Desktop.Action.APP_QUIT_HANDLER)) {
+            desktop.setQuitHandler((event, response) -> SwingUtilities.invokeLater(() -> {
+                // Our own exit path ends the process; the JDK must not exit before it has run
+                response.cancelQuit();
+                if (frame.isDisplayable()) {
+                    frame.dispatchEvent(new WindowEvent(frame, WindowEvent.WINDOW_CLOSING));
+                }
+            }));
+        }
+        if (desktop.isSupported(Desktop.Action.APP_ABOUT)) {
+            desktop.setAboutHandler(event -> SwingUtilities.invokeLater(() -> AboutDialog.open(frame)));
+        }
+        if (desktop.isSupported(Desktop.Action.APP_PREFERENCES)) {
+            desktop.setPreferencesHandler(event -> SwingUtilities.invokeLater(() -> OptionsDialog.open(frame)));
+        }
     }
 
     private static void showStartupMessage(@NotNull String message) {
