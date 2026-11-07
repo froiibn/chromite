@@ -65,6 +65,8 @@ import java.util.regex.Pattern;
  * - 2026-11-07 확인 대화상자의 열린 트랜잭션 소유자·설명을 AIToolsMessages로 옮김(화면 언어를 따름)
  * - 2026-11-08 쓸 수 있는 DB 종류({@link #supports}, 요청 크기를 줄이는 도구 고르기)
  * - 2026-11-08 SQL Server가 아닌 연결의 오류가 PostgreSQL·MySQL 도구(dumpDatabase, restoreDump)를 알려 줌
+ * - 2026-11-08 backupDatabase도 SQL Server가 아닌 연결을 확인 요청 전에(미리 보기에서) 거절함. 전에는 사용자가 허용한 뒤에야 거절했다
+ *   (evening #27, docs/chromite/ai-agent.md)
  */
 public class AdminTools extends AgentTool implements AIToolTransactionGuard, AIToolPreviewProvider {
 
@@ -262,7 +264,11 @@ public class AdminTools extends AgentTool implements AIToolTransactionGuard, AIT
         AgentSql.connect(context.getMonitor(), container);
         return switch (context.getTool().getId()) {
             case "killSession" -> killStatement(DbFamily.of(container), AgentArgs.require(arguments, "session"));
-            case "backupDatabase" -> SQLServerBackupRestore.toScript(backupBatches(arguments));
+            case "backupDatabase" -> {
+                // Refused before the user is asked, as restoreDatabase is: the script would not run on this connection
+                sqlServer(container);
+                yield SQLServerBackupRestore.toScript(backupBatches(arguments));
+            }
             case "restoreDatabase" -> SQLServerBackupRestore.toScript(restoreBatches(context, sqlServer(container), arguments));
             default -> null;
         };
