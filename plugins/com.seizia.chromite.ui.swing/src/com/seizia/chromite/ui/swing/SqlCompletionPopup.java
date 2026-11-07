@@ -25,6 +25,7 @@ import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import com.seizia.chromite.Log;
 import com.seizia.chromite.model.DBPDataSourceContainer;
+import com.seizia.chromite.model.exec.DBCExecutionContext;
 import com.seizia.chromite.model.preferences.DBPPreferenceStore;
 import com.seizia.chromite.model.runtime.AbstractJob;
 import com.seizia.chromite.model.runtime.DBRProgressMonitor;
@@ -83,6 +84,7 @@ import java.util.function.Supplier;
  * - 2026-11-06 P1: 행 24, 오른쪽 형식 글자 text.secondary, 둥근 선택(arc 8, 좌우 4)과 글자색 유지 (docs/chromite/swing-frontend.md "P1 디자인 적용")
  * - 2026-11-06 템플릿 이름 뒤의 Tab은 제안 대신 템플릿을 넣음 (docs/chromite/swing-sql-editor-plus.md)
  * - 2026-11-07 프로시저·함수 제안 설정({@code sqlEditor.completion.showProcedures}, SWT와 같이 기본 끔) 접근자 (docs/chromite/swing-followup-fixes.md "자동완성 프로시저")
+ * - 2026-11-07 요청에 쿼리 창의 실행 문맥을 넣음(쿼리 창마다 별도 연결, docs/chromite/transactions.md)
  */
 final class SqlCompletionPopup {
 
@@ -113,6 +115,7 @@ final class SqlCompletionPopup {
 
     private final RTextArea textArea;
     private final Supplier<DBPDataSourceContainer> connectionSupplier;
+    private final Supplier<DBCExecutionContext> contextSupplier;
     private final Timer activationTimer;
     private final SQLCompletionProposalComparator comparator =
         new SQLCompletionProposalComparator(SqlCompletionAnalysis.SORT_ALPHABETICALLY, SqlCompletionAnalysis.SEARCH_INSIDE_NAMES);
@@ -151,10 +154,16 @@ final class SqlCompletionPopup {
 
     /**
      * @param connectionSupplier connection of the editor at the time of the request (may be null)
+     * @param contextSupplier    session of the editor at the time of the request (may be null: the connection's main context)
      */
-    SqlCompletionPopup(@NotNull RTextArea textArea, @NotNull Supplier<DBPDataSourceContainer> connectionSupplier) {
+    SqlCompletionPopup(
+        @NotNull RTextArea textArea,
+        @NotNull Supplier<DBPDataSourceContainer> connectionSupplier,
+        @NotNull Supplier<DBCExecutionContext> contextSupplier
+    ) {
         this.textArea = textArea;
         this.connectionSupplier = connectionSupplier;
+        this.contextSupplier = contextSupplier;
         activationTimer = new Timer(DEFAULT_ACTIVATION_DELAY, e -> start(pendingExplicit));
         activationTimer.setRepeats(false);
 
@@ -341,7 +350,7 @@ final class SqlCompletionPopup {
         pending = true;
         pendingExplicit = explicit;
         SqlCompletionAnalysis.Request request = new SqlCompletionAnalysis.Request(
-            container, textArea.getText(), textArea.getCaretPosition(), explicit);
+            container, contextSupplier.get(), textArea.getText(), textArea.getCaretPosition(), explicit);
         AbstractJob analysisJob = new AbstractJob("Search SQL completion proposals") {
             @NotNull
             @Override

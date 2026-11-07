@@ -11,7 +11,7 @@
     </parent>
     <groupId>com.seizia.chromite</groupId>
     <artifactId>com.seizia.chromite.swing.product</artifactId>
-    <version>0.1.0-SNAPSHOT</version>
+    <version>0.1.1-SNAPSHOT</version>
     <packaging>eclipse-repository</packaging>
     <name>Chromite Swing</name>
 

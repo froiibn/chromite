@@ -19,7 +19,6 @@ package com.seizia.chromite.ui.swing;
 import com.seizia.chromite.Log;
 import com.seizia.chromite.model.DBPDataSource;
 import com.seizia.chromite.model.DBPDataSourceContainer;
-import com.seizia.chromite.model.DBUtils;
 import com.seizia.chromite.model.exec.DBCExecutionContext;
 import com.seizia.chromite.model.qm.QMTransactionState;
 import com.seizia.chromite.model.runtime.AbstractJob;
@@ -56,7 +55,7 @@ import java.util.Map;
  *     <li>알림은 메인 창 오른쪽 아래의 {@link NotificationToast}이고 답 단추가 있는 "남는" 알림이다({@link NotificationToast#showWithActions}).
  *     모달 대화상자로 막지 않고, 아무 것도 저절로 고르지 않으며, 시간이 지나도 사라지지 않는다. 자리를 비운 동안에는 아무 일도 일어나지 않고
  *     돌아온 사용자가 그대로 본다. ×로 닫으면 Keep open과 같다.</li>
- *     <li>알림에는 연결, 쿼리 창(실행 문맥이 연결의 주 문맥이면 그 연결의 쿼리 창 제목, 아니면 문맥 이름), 유휴 시간, 문장 수를 적는다.</li>
+ *     <li>알림에는 연결, 쿼리 창(그 실행 문맥을 쓰는 쿼리 창의 파일 이름: 창의 자기 세션이거나 함께 쓰는 주 문맥, 없으면 문맥 이름), 유휴 시간, 문장 수를 적는다.</li>
  *     <li>모니터가 트랜잭션이 끝났거나 문맥이 다시 쓰였다고 알리면({@link #closeIdleTransactionReminder}) 알림을 닫는다.
  *     오래된 알림의 단추가 새 트랜잭션을 끝내지 않도록 커밋·롤백은 알림이 보여 준 트랜잭션(첫 문장 시각)일 때만 한다
  *     ({@link IdleTransactionMonitor#endTransaction}).</li>
@@ -65,14 +64,19 @@ import java.util.Map;
  *     <li>오류 복구가 멈춘 알림({@link TransactionRecoveryGuard}): 서버가 중단한 트랜잭션은 잃은 문장 수와 롤백 단추를,
  *     끊긴 연결은 다시 연결이 끝낼 트랜잭션 목록과 다시 연결 단추를 보인다. 답할 때까지 남는다. 같은 트랜잭션(연결)에 대한 알림이
  *     떠 있으면 다시 띄우지 않는다. 멈춘 뒤의 문장마다 같은 오류가 나기 때문이다.</li>
+ *     <li>격리 세션 하나만 끊겨 그 세션만 다시 연 알림({@link #showSessionReopened}): 커밋하지 않은 문장이 있었으면 그 수와 시작 시각을 적고
+ *     닫을 때까지 남는다(사라진 작업이라 사용자가 놓치면 안 된다). 없었으면 잠시 보이는 정보 알림이다(업스트림의 "다시 연결함" 알림과 같은 무게).</li>
  * </ul>
  *
  * 변경 이력:
  * - 2026-11-07 최초 작성 (docs/chromite/idle-transactions.md)
  * - 2026-11-07 {@link #endTransaction}을 Query 메뉴·도구 막대·단축키와 열린 트랜잭션 목록도 씀, 쿼리 창 이름 찾기({@link #describeQueryWindows})를
  *   목록과 나눔 (docs/chromite/transactions.md)
+ * - 2026-11-07 쿼리 창 이름 찾기가 창의 실제 실행 문맥을 비교함(쿼리 창마다 별도 연결, 전에는 주 문맥만 창으로 보임)
+ *   (docs/chromite/transactions.md "쿼리 창마다 별도 연결")
  * - 2026-11-07 오류 복구가 멈춘 알림({@link #showTransactionAborted}, {@link #showReconnectHeld})
  *   (docs/chromite/transactions.md "오류 복구와 열린 트랜잭션")
+ * - 2026-11-08 끊긴 세션만 다시 열었다는 알림({@link #showSessionReopened}) (docs/chromite/transactions.md "끊긴 세션의 쿼리 창")
  */
 public class SwingIdleTransactionService implements UIServiceIdleTransactions {
 
@@ -237,6 +241,34 @@ public class SwingIdleTransactionService implements UIServiceIdleTransactions {
         });
     }
 
+    @Override
+    public void showSessionReopened(
+        @NotNull DBCExecutionContext context,
+        @Nullable QMTransactionState lostTransaction,
+        @NotNull Throwable error
+    ) {
+        SwingUtilities.invokeLater(() -> {
+            JFrame frame = findMainFrame();
+            if (frame == null) {
+                return;
+            }
+            String target = describeContext(context);
+            // The first line only: the causes of a connection error repeat it
+            String reason = ErrorText.describe(error).lines().findFirst().orElse(""); //$NON-NLS-1$
+            log.info("Session lost and reopened alone: " + target + ": " + reason); //$NON-NLS-1$ //$NON-NLS-2$
+            if (lostTransaction != null) {
+                NotificationToast.showWithActions(frame, ConnectionMessages.recovery_session_lost_title,
+                    NLS.bind(ConnectionMessages.recovery_session_lost_message, new Object[]{
+                        target, reason, lostTransaction.getExecuteCount(), formatTime(lostTransaction.getTransactionStartTime())}),
+                    NotificationToast.Kind.WARNING, List.of(), null);
+            } else {
+                NotificationToast.show(frame, ConnectionMessages.recovery_session_reopened_title,
+                    NLS.bind(ConnectionMessages.recovery_session_reopened_message, target, reason),
+                    NotificationToast.Kind.INFO, null);
+            }
+        });
+    }
+
     /**
      * The reconnect the user chose in the notice of {@link #showReconnectHeld}, in a job. The model's invalidation
      * reports its result itself (reconnect notifications); here only an unexpected error is shown.
@@ -321,8 +353,8 @@ public class SwingIdleTransactionService implements UIServiceIdleTransactions {
     }
 
     /**
-     * The query windows working in the context (all query windows of a connection share its main context), or the
-     * context's name, with the connection.
+     * The query windows working in the context ({@link #describeQueryWindows}), or the context's name, with the
+     * connection.
      */
     @NotNull
     private static String describeContext(@NotNull DBCExecutionContext context) {
@@ -335,17 +367,16 @@ public class SwingIdleTransactionService implements UIServiceIdleTransactions {
     }
 
     /**
-     * The file names of the query windows working in the context (all query windows of a connection share its main
-     * context), comma separated; null for another context or without such a window. Also for the open transactions list.
+     * The file names of the query windows working in the context (a window's own session, or the connection's main
+     * context shared by the windows without one), comma separated; null for another context or without such a window.
+     * Also for the open transactions list, the transaction log and the questions before ending sessions. Call in the EDT.
      */
     @Nullable
     static String describeQueryWindows(@NotNull DBCExecutionContext context) {
-        DBPDataSource dataSource = context.getDataSource();
-        DBPDataSourceContainer container = dataSource.getContainer();
-        if (context == DBUtils.getDefaultContext(dataSource.getDefaultInstance(), false) && findMainFrame() instanceof MainFrame frame) {
+        if (findMainFrame() instanceof MainFrame frame) {
             List<String> windows = new ArrayList<>();
             for (SqlEditorPanel editor : frame.getQueryWindows()) {
-                if (editor.getDataSourceContainer() == container) {
+                if (editor.getExecutionContext() == context) {
                     // The file name only: the messages name the connection themselves
                     windows.add(editor.getFileName());
                 }

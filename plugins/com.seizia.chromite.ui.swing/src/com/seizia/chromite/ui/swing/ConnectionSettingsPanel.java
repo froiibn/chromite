@@ -23,6 +23,7 @@ import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
 import com.seizia.chromite.Log;
+import com.seizia.chromite.ModelPreferences;
 import com.seizia.chromite.model.DBConstants;
 import com.seizia.chromite.model.DBPDataSource;
 import com.seizia.chromite.model.DBPDataSourceContainer;
@@ -36,6 +37,7 @@ import com.seizia.chromite.model.connection.DBPDriver;
 import com.seizia.chromite.model.connection.DBPDriverConfigurationType;
 import com.seizia.chromite.model.impl.PropertyDescriptor;
 import com.seizia.chromite.model.impl.jdbc.JDBCTransactionIsolation;
+import com.seizia.chromite.model.preferences.DBPPreferenceStore;
 import com.seizia.chromite.model.preferences.DBPPropertyDescriptor;
 import com.seizia.chromite.registry.DataSourceDescriptor;
 import com.seizia.chromite.registry.DataSourceProviderRegistry;
@@ -75,7 +77,7 @@ import java.util.Set;
  *     인증 묶음 아래에 두고 고른 방식의 것만 보인다. 저장할 때 고르지 않은 방식의 칸이 쓴 값은 지운다.</li>
  *     <li>드라이버별 주 칸({@link ConnectionDriverFields}: SQL Server Encrypt·Trust server certificate, Oracle Basic/TNS·SID/Service)은
  *     범용 칸 사이의 정해진 자리에 넣는다. 그 칸이 맡는 공급자 속성은 Provider Properties 표에서 뺀다(한 값을 두 곳에서 고치지 않게).</li>
- *     <li>Options 탭: Connection Properties(연결 종류, 자동 커밋, 트랜잭션 격리 수준, 기본 DB·스키마, 읽기 전용, 연결 색, 연결 직후 SQL, keep-alive, 유휴 연결 닫기,
+ *     <li>Options 탭: Connection Properties(연결 종류, 자동 커밋, 트랜잭션 격리 수준, 쿼리 창 세션(연결의 설정 저장소, {@link QueryWindowContext}), 기본 DB·스키마, 읽기 전용, 연결 색, 연결 직후 SQL, keep-alive, 유휴 연결 닫기,
  *     유휴 트랜잭션 알림·자동 롤백. SWT
  *     {@code ConnectionPageGeneral}·{@code ConnectionPageInitialization}과 같은 값), 네트워크 핸들러 탭(SSH, Proxy, SSL: {@link ConnectionNetworkPage},
  *     쓰는 핸들러의 탭에는 확인 표시), Driver Properties, Provider Properties,
@@ -110,6 +112,8 @@ import java.util.Set;
  *   {@link #loadIsolationLevels}). 연결 유형 편집(Options)이 쓰도록 {@link ColorSwatch}를 패키지 안에 공개 (docs/chromite/swing-options.md)
  * - 2026-11-08 드라이버별 Options 탭({@link ConnectionDriverFields#getOptionsPage}, Oracle 세션 설정)을 Connection Properties 다음에 둠
  *   (docs/chromite/swing-conn-advanced.md "Oracle 세션 설정")
+ * - 2026-11-07 Connection Properties에 쿼리 창 세션(이 연결의 쿼리 창마다 별도 연결: Options 설정 / 창마다 / 함께 씀)
+ *   (docs/chromite/transactions.md "쿼리 창마다 별도 연결")
  */
 final class ConnectionSettingsPanel extends JPanel {
 
@@ -117,6 +121,10 @@ final class ConnectionSettingsPanel extends JPanel {
 
     private static final String[] AUTO_COMMIT_ITEMS = {
         ConnectionMessages.settings_auto_commit_default, ConnectionMessages.settings_auto_commit_auto, ConnectionMessages.settings_auto_commit_manual};
+    // Query window sessions: no value of the connection (the Options setting), ALWAYS, NEVER
+    private static final String[] SEPARATE_CONNECTION_ITEMS = {
+        ConnectionMessages.settings_separate_connection_global, ConnectionMessages.settings_separate_connection_always,
+        ConnectionMessages.settings_separate_connection_never};
 
     private final DataSourceDescriptor dataSource;
     private final DBPDriver driver;
@@ -157,6 +165,7 @@ final class ConnectionSettingsPanel extends JPanel {
     private final JComboBox<String> autoCommitCombo = new JComboBox<>(AUTO_COMMIT_ITEMS);
     // The driver default (a String) or a DBPTransactionIsolation
     private final JComboBox<Object> isolationCombo = new JComboBox<>();
+    private final JComboBox<String> separateConnectionCombo = new JComboBox<>(SEPARATE_CONNECTION_ITEMS);
     private final JTextField defaultCatalogField = new JTextField();
     private final JTextField defaultSchemaField = new JTextField();
     private final JCheckBox readOnlyCheck = new JCheckBox(ConnectionMessages.settings_read_only);
@@ -714,6 +723,8 @@ final class ConnectionSettingsPanel extends JPanel {
         });
         isolationCombo.setToolTipText(ConnectionMessages.settings_isolation_tip);
         form.addRow(ConnectionMessages.settings_isolation, isolationCombo);
+        separateConnectionCombo.setToolTipText(ConnectionMessages.settings_separate_connection_tip);
+        form.addRow(ConnectionMessages.settings_separate_connection, separateConnectionCombo);
         form.addRow(ConnectionMessages.settings_default_database, defaultCatalogField);
         form.addRow(ConnectionMessages.settings_default_schema, defaultSchemaField);
         form.addRow((JLabel) null, readOnlyCheck);
@@ -875,6 +886,12 @@ final class ConnectionSettingsPanel extends JPanel {
         Boolean autoCommit = configuration.getBootstrap().getDefaultAutoCommit();
         autoCommitCombo.setSelectedIndex(autoCommit == null ? 0 : autoCommit ? 1 : 2);
         loadIsolationLevels(configuration.getBootstrap().getDefaultTransactionIsolation());
+        // The connection's own value only; without one the Options setting applies
+        DBPPreferenceStore preferences = dataSource.getPreferenceStore();
+        ModelPreferences.SeparateConnectionBehavior separate = preferences.contains(QueryWindowContext.PREF_SEPARATE_CONNECTION)
+            ? ModelPreferences.SeparateConnectionBehavior.parse(preferences.getString(QueryWindowContext.PREF_SEPARATE_CONNECTION)) : null;
+        separateConnectionCombo.setSelectedIndex(separate == ModelPreferences.SeparateConnectionBehavior.ALWAYS ? 1
+            : separate == ModelPreferences.SeparateConnectionBehavior.NEVER ? 2 : 0);
         defaultCatalogField.setText(CommonUtils.notEmpty(configuration.getBootstrap().getDefaultCatalogName()));
         defaultSchemaField.setText(CommonUtils.notEmpty(configuration.getBootstrap().getDefaultSchemaName()));
         readOnlyCheck.setSelected(dataSource.isConnectionReadOnly());
@@ -999,6 +1016,14 @@ final class ConnectionSettingsPanel extends JPanel {
         // Applied when a session opens: a connected connection asks to reconnect (ConnectionDialog), and the reconnect
         // asks about open transactions first
         bootstrap.setDefaultTransactionIsolation(isolationCombo.getSelectedItem() instanceof DBPTransactionIsolation level ? level.getCode() : null);
+        // Read when a query window opens its session (QueryWindowContext): no reconnect needed
+        int separate = separateConnectionCombo.getSelectedIndex();
+        if (separate == 0) {
+            target.getPreferenceStore().setToDefault(QueryWindowContext.PREF_SEPARATE_CONNECTION);
+        } else {
+            target.getPreferenceStore().setValue(QueryWindowContext.PREF_SEPARATE_CONNECTION, separate == 1
+                ? ModelPreferences.SeparateConnectionBehavior.ALWAYS.name() : ModelPreferences.SeparateConnectionBehavior.NEVER.name());
+        }
         bootstrap.setDefaultCatalogName(CommonUtils.nullIfEmpty(defaultCatalogField.getText().trim()));
         bootstrap.setDefaultSchemaName(CommonUtils.nullIfEmpty(defaultSchemaField.getText().trim()));
         // ConnectionPageInitialization.saveSettings

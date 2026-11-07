@@ -26,6 +26,7 @@ import org.eclipse.osgi.util.NLS;
  *
  * 변경 이력:
  * - 2026-11-07 최초 작성 (docs/chromite/swing-options.md)
+ * - 2026-11-07 Query Execution 탭의 쿼리 창 세션({@code exec_separate_connection*}) (docs/chromite/transactions.md "쿼리 창마다 별도 연결")
  */
 public class SettingsMessages extends NLS {
     private static final String BUNDLE_NAME = "com.seizia.chromite.ui.swing.internal.SettingsMessages"; //$NON-NLS-1$
@@ -60,6 +61,13 @@ public class SettingsMessages extends NLS {
     public static String exec_on_error_hint;
     public static String exec_on_error_stop;
     public static String exec_on_error_ignore;
+    public static String exec_section_sessions;
+    public static String exec_separate_connection;
+    public static String exec_separate_connection_hint;
+    public static String exec_separate_connection_tip;
+    public static String exec_separate_connection_default;
+    public static String exec_separate_connection_always;
+    public static String exec_separate_connection_never;
 
     public static String results_use_fetch_size;
     public static String results_use_fetch_size_tip;
