@@ -282,9 +282,9 @@
                 </driver>
                 <driver id="starRocks" dataSourceType="starrocks"/>
                 <provider-properties drivers="*">
-                    <propertyGroup label="Advanced">
-                        <property id="@chromite-show-all-dbs@" label="Show all databases" type="boolean" description="Show all databases on server. Otherwise show current database only." defaultValue="false"/>
-                        <property id="@chromite-serverTimezone@" label="Server Time Zone" type="string"/>
+                    <propertyGroup label="%provider.group.advanced.label">
+                        <property id="@chromite-show-all-dbs@" label="%provider.property.show_all_dbs.label" type="boolean" description="%provider.property.show_all_dbs.description" defaultValue="false"/>
+                        <property id="@chromite-serverTimezone@" label="%provider.property.server_timezone.label" type="string"/>
                     </propertyGroup>
                 </provider-properties>
             </drivers>

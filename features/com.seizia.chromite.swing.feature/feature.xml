@@ -25,6 +25,9 @@
     <plugin id="com.seizia.chromite.model.update" version="0.0.0"/>
     <!-- AI agent tools (DBA tool catalog, policy-checked) and the local MCP server: docs/chromite/ai-agent.md -->
     <plugin id="com.seizia.chromite.model.ai.tools" version="0.0.0"/>
+    <!-- Procedure debugger model and its PostgreSQL implementation (pldbgapi): docs/chromite/procedure-debugger.md -->
+    <plugin id="com.seizia.chromite.debug.core" version="0.0.0"/>
+    <plugin id="com.seizia.chromite.ext.postgresql.debug.core" version="0.0.0"/>
     <!-- SVG rendering of navigator icons (MIT, from the Eclipse release repository) -->
     <plugin id="com.github.weisj.jsvg" version="0.0.0"/>
     <!-- Desktop workspace (DesktopApplicationImpl, DesktopWorkspaceImpl); not part of runtime.feature -->

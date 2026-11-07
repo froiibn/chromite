@@ -31,14 +31,19 @@ import org.jkiss.utils.CommonUtils;
 import javax.swing.*;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
+import javax.swing.filechooser.FileNameExtensionFilter;
 import java.awt.*;
+import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 /**
  * Query Library 쿼리를 편집·실행하는 쿼리 창 확장({@link SqlEditorExtension}): 이름·설명·기본 대상·기본 DB/스키마·매개변수 머리말,
@@ -52,6 +57,11 @@ import java.util.Map;
  *     {@link QueryLibrary#save}로 쓴다. 이름을 바꾸면 파일 이름도 바뀐다.</li>
  *     <li>머리말 입력란을 바꾸면 쿼리 창을 "고침"으로 표시한다. 매개변수 정의는 "Parameters…"에서 지금 SQL의 매개변수에 대해 정한다.</li>
  *     <li>실행 대상 찾기({@link #resolveTarget}): 정해진 연결은 데이터 소스 ID → 이름 순으로 찾고, 없거나 "묻기"면 연결을 고르게 한다.</li>
+ *     <li>공유 루트에서는 다른 사람이 같은 쿼리를 먼저 저장할 수 있다. 창은 연 때(또는 마지막 저장 때)의 쿼리를 기억하고, 저장할 때 파일의
+ *     편집 항목(이름, 설명, 대상, DB/스키마, 매개변수, SQL)이 그와 다르면 덮어쓰기 전에 묻는다(Overwrite / Reload / Cancel).
+ *     {@code @updated}만 다른 경우(Schedule… 저장 등)는 묻지 않는다. 라이브러리를 다시 읽을 때마다({@link #libraryRead}) 열린 창도 확인해,
+ *     고치지 않은 창은 새 내용으로 바꾸고 알림 줄을 보이며, 고친 창은 Reload를 제안한다.</li>
+ *     <li>Save As는 라이브러리 쿼리를 바꾸지 않고 SQL만(머리말 없이) 평범한 {@code .sql} 파일로 내보낸다({@link #exportSql}).</li>
  * </ul>
  *
  * 변경 이력:
@@ -61,6 +71,8 @@ import java.util.Map;
  * - 2026-11-07 쿼리 창 도구 막대가 메인 창으로 옮겨져 머리말 위치 설명을 고침 (docs/chromite/swing-frontend.md "SQL Editor 도구 막대")
  * - 2026-11-07 Thresholds…: AI 에이전트 모니터링 판정용 {@code @threshold} 머리말 편집({@link QueryLibraryThresholdsDialog}). 저장할 때 파일의
  *   모르는 머리말 줄에서 기준값 블록만 바꾼다 (docs/chromite/ai-agent.md "Query Library 기준값")
+ * - 2026-11-07 ④ 공유: 저장할 때 다른 사람의 저장을 알아채고 묻기, 디스크에서 바뀐 쿼리 알림·다시 읽기, Save As는 평범한 .sql로 내보내기
+ *   (docs/chromite/swing-query-library.md "공유")
  */
 final class QueryLibraryEditor implements SqlEditorExtension {
 
@@ -82,12 +94,24 @@ final class QueryLibraryEditor implements SqlEditorExtension {
     private List<QueryLibraryThresholdsDialog.Threshold> thresholds;
     private List<QueryLibraryParameter> parameters = new ArrayList<>();
     private boolean updating;
+    // Changed on disk by someone else
+    private final JLabel diskNoticeLabel = new JLabel();
+    private final JButton diskNoticeReload = new JButton();
+    private final JPanel diskNotice;
+    private boolean diskNoticeWarning;
+    // The disk version the notice is about, and whether the user closed the notice for it (not shown again for it)
+    @Nullable
+    private String noticedContent;
+    private boolean dismissed;
 
     private QueryLibraryEditor(@NotNull QueryLibraryPanel.Host host, @NotNull QueryLibraryItem item) {
         this.host = host;
         this.item = item.copy();
         this.parameters = new ArrayList<>(this.item.getParameters());
-        header = createHeader();
+        diskNotice = createDiskNotice();
+        header = new JPanel(new BorderLayout());
+        header.add(diskNotice, BorderLayout.NORTH);
+        header.add(createHeader(), BorderLayout.CENTER);
         loadFields();
     }
 
@@ -291,19 +315,35 @@ final class QueryLibraryEditor implements SqlEditorExtension {
             nameField.requestFocusInWindow();
             return false;
         }
+        QueryLibraryItem current = null;
+        if (Files.isRegularFile(file)) {
+            try {
+                current = QueryLibraryFile.read(file);
+            } catch (IOException e) {
+                DBWorkbench.getPlatformUI().showError(ToolsMessages.library_editor_save, NLS.bind(ToolsMessages.library_error_read, file), e);
+                return false;
+            }
+            // Someone else saved this query after it was opened here: ask before overwriting their change
+            if (!getEditedContent(current).equals(getEditedContent(item)) && !confirmOverwrite(editor, current)) {
+                return false;
+            }
+        } else if (JOptionPane.showConfirmDialog(editor, NLS.bind(ToolsMessages.library_conflict_deleted, file),
+            ToolsMessages.library_editor_save, JOptionPane.OK_CANCEL_OPTION, JOptionPane.WARNING_MESSAGE) != JOptionPane.OK_OPTION) {
+            return false;
+        }
         QueryLibraryItem updated = item.copy();
         updated.setFile(file);
         applyFields(updated, editor.getContent().text());
         // The schedule and unknown header lines are edited elsewhere (Schedule…, other versions): keep the file's
-        try {
-            QueryLibraryItem current = QueryLibraryFile.read(file);
+        if (current != null) {
             updated.setSchedule(current.getSchedule());
             updated.getExtraHeader().clear();
-            updated.getExtraHeader().addAll(thresholds == null ? current.getExtraHeader()
-                : QueryLibraryThresholdsDialog.replace(current.getExtraHeader(), thresholds));
-        } catch (IOException e) {
-            DBWorkbench.getPlatformUI().showError(ToolsMessages.library_editor_save, NLS.bind(ToolsMessages.library_error_read, file), e);
-            return false;
+            updated.getExtraHeader().addAll(current.getExtraHeader());
+        }
+        if (thresholds != null) {
+            List<String> extraHeader = QueryLibraryThresholdsDialog.replace(updated.getExtraHeader(), thresholds);
+            updated.getExtraHeader().clear();
+            updated.getExtraHeader().addAll(extraHeader);
         }
         try {
             library.save(updated);
@@ -312,11 +352,209 @@ final class QueryLibraryEditor implements SqlEditorExtension {
             return false;
         }
         item = updated;
+        thresholds = null;
+        diskNotice.setVisible(false);
         Path savedFile = updated.getFile();
         if (savedFile != null) {
             editor.saved(savedFile, editor.getContent());
         }
         return true;
+    }
+
+    /**
+     * File &gt; Save As of a library query: its SQL (without the header) as a plain {@code .sql} file. The window stays
+     * the library query.
+     */
+    @Override
+    public boolean saveAs(@NotNull SqlEditorPanel editor) {
+        Path file = QueryLibrary.getInstance().resolveFile(item);
+        SqlFileContent format = editor.getContent();
+        if (file != null && Files.isRegularFile(file)) {
+            try {
+                // The charset and line separator of the library file
+                format = SqlFileContent.read(file).withText(format.text());
+            } catch (IOException e) {
+                // A file in a charset that can't be read: the window's format
+            }
+        }
+        return exportSql(editor, format, QueryLibraryFile.toFileName(nameField.getText().strip()) + QueryLibraryFile.EXTENSION);
+    }
+
+    /**
+     * Asks for a file and writes the SQL text into it (Save As .sql).
+     *
+     * @return false if canceled or failed
+     */
+    static boolean exportSql(@NotNull Component parent, @NotNull SqlFileContent content, @NotNull String fileName) {
+        JFileChooser chooser = new JFileChooser();
+        chooser.setDialogTitle(ToolsMessages.library_save_sql_title);
+        chooser.setFileFilter(new FileNameExtensionFilter(ToolsMessages.library_save_sql_filter, "sql")); //$NON-NLS-1$
+        chooser.setSelectedFile(new File(chooser.getCurrentDirectory(), fileName));
+        if (chooser.showSaveDialog(parent) != JFileChooser.APPROVE_OPTION) {
+            return false;
+        }
+        Path target = chooser.getSelectedFile().toPath().toAbsolutePath().normalize();
+        if (!target.getFileName().toString().contains(".")) { //$NON-NLS-1$
+            target = target.resolveSibling(target.getFileName() + QueryLibraryFile.EXTENSION);
+        }
+        if (QueryLibrary.getInstance().findRoot(target) != null) {
+            // A plain file in a root would show up as a query without a header next to the library query
+            JOptionPane.showMessageDialog(parent, ToolsMessages.library_save_sql_in_root, ToolsMessages.library_save_sql_title,
+                JOptionPane.INFORMATION_MESSAGE);
+            return false;
+        }
+        if (Files.exists(target) && JOptionPane.showConfirmDialog(parent, NLS.bind(ToolsMessages.library_save_sql_exists, target.getFileName()),
+            ToolsMessages.library_save_sql_title, JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE) != JOptionPane.YES_OPTION) {
+            return false;
+        }
+        try {
+            content.write(target);
+        } catch (IOException e) {
+            DBWorkbench.getPlatformUI().showError(ToolsMessages.library_save_sql_title, NLS.bind(ToolsMessages.library_error_save_to, target), e);
+            return false;
+        }
+        return true;
+    }
+
+    //////////////////////////////////////////////////////////
+    // Changes made by others (EDT)
+
+    /**
+     * The parts of a query that this window edits, as file text: name, description, target, database, schema,
+     * parameters and SQL. The update time, the schedule and unknown header lines are left out: a Schedule… save or
+     * another version's header is not a change of what the window shows.
+     */
+    @NotNull
+    private static String getEditedContent(@NotNull QueryLibraryItem query) {
+        QueryLibraryItem copy = query.copy();
+        copy.setCreated(null);
+        copy.setUpdated(null);
+        copy.setSchedule(null);
+        copy.getExtraHeader().clear();
+        return QueryLibraryFile.format(copy);
+    }
+
+    /**
+     * Save found the file changed by someone else since it was opened here: Overwrite, Reload (their version, the
+     * window's changes are dropped) or Cancel.
+     *
+     * @return true to overwrite
+     */
+    private boolean confirmOverwrite(@NotNull SqlEditorPanel editor, @NotNull QueryLibraryItem current) {
+        String[] options = {ToolsMessages.library_conflict_overwrite, ToolsMessages.library_conflict_reload, ToolsMessages.button_cancel};
+        String updated = current.getUpdated() != null ? current.getUpdated().toString() : "?"; //$NON-NLS-1$
+        int answer = JOptionPane.showOptionDialog(editor, NLS.bind(ToolsMessages.library_conflict_message, current.getName(), updated),
+            ToolsMessages.library_conflict_title, JOptionPane.DEFAULT_OPTION, JOptionPane.WARNING_MESSAGE, null, options, options[2]);
+        if (answer == 1) {
+            reload(current);
+        }
+        return answer == 0;
+    }
+
+    /**
+     * Shows the file's version in the window (header fields and SQL), dropping the window's changes.
+     */
+    private void reload(@NotNull QueryLibraryItem current) {
+        item = current.copy();
+        parameters = new ArrayList<>(item.getParameters());
+        thresholds = null;
+        loadFields();
+        diskNotice.setVisible(false);
+        if (editor != null) {
+            editor.setContent(editor.getContent().withText(current.getSql()), current.getFile());
+        }
+    }
+
+    /**
+     * After the library was read (automatically or by Refresh): the windows whose query changed on disk. A window
+     * without changes shows the new version and says so; a changed window keeps its text and offers Reload (its Save
+     * asks before overwriting).
+     *
+     * @param loaded the queries read, by {@link QueryLibraryItem#getStateKey}
+     */
+    static void libraryRead(@NotNull QueryLibraryPanel.Host host, @NotNull Map<String, QueryLibraryItem> loaded) {
+        for (SqlEditorPanel window : host.getQueryWindows()) {
+            if (window.getExtension() instanceof QueryLibraryEditor libraryEditor) {
+                libraryEditor.checkDisk(window, loaded.get(libraryEditor.item.getStateKey()));
+            }
+        }
+    }
+
+    private void checkDisk(@NotNull SqlEditorPanel window, @Nullable QueryLibraryItem onDisk) {
+        String diskContent = onDisk != null ? getEditedContent(onDisk) : null;
+        if (diskContent != null && diskContent.equals(getEditedContent(item))) {
+            // The same as here (also after someone undid their change): a warning is out of date, a "reloaded" note stays
+            if (diskNoticeWarning) {
+                diskNotice.setVisible(false);
+                diskNoticeWarning = false;
+            }
+            noticedContent = null;
+            return;
+        }
+        if (Objects.equals(diskContent, noticedContent) && (diskNotice.isVisible() || dismissed)) {
+            return;
+        }
+        noticedContent = diskContent;
+        dismissed = false;
+        String time = LocalTime.now().withNano(0).toString();
+        if (onDisk == null) {
+            showDiskNotice(true, NLS.bind(ToolsMessages.library_disk_missing, time), false);
+        } else if (!window.isDirty()) {
+            reload(onDisk);
+            showDiskNotice(false, NLS.bind(ToolsMessages.library_disk_reloaded, time), false);
+        } else {
+            showDiskNotice(true, NLS.bind(ToolsMessages.library_disk_changed, time), true);
+        }
+    }
+
+    private void showDiskNotice(boolean warning, @NotNull String text, boolean offerReload) {
+        diskNoticeWarning = warning;
+        diskNoticeLabel.setIcon(UiIcons.get(warning ? "warning" : "info")); //$NON-NLS-1$ //$NON-NLS-2$
+        diskNoticeLabel.setText(text);
+        diskNoticeReload.setVisible(offerReload);
+        diskNotice.setVisible(true);
+        diskNotice.revalidate();
+    }
+
+    /**
+     * Reload in the notice: the file as it is now, the window's changes are dropped.
+     */
+    private void reloadFromDisk() {
+        Path file = QueryLibrary.getInstance().resolveFile(item);
+        if (file == null || !Files.isRegularFile(file)) {
+            return;
+        }
+        try {
+            reload(QueryLibraryFile.read(file));
+        } catch (IOException e) {
+            DBWorkbench.getPlatformUI().showError(ToolsMessages.library_disk_reload, NLS.bind(ToolsMessages.library_error_read, file), e);
+        }
+    }
+
+    /**
+     * The notice above the header fields: the query changed on disk (reloaded, or Reload offered) or disappeared.
+     */
+    @NotNull
+    private JPanel createDiskNotice() {
+        JPanel panel = new JPanel(new BorderLayout(UIScale.scale(8), 0));
+        panel.setBorder(BorderFactory.createEmptyBorder(UIScale.scale(4), UIScale.scale(10), UIScale.scale(2), UIScale.scale(10)));
+        diskNoticeLabel.setIconTextGap(UIScale.scale(6));
+        panel.add(diskNoticeLabel, BorderLayout.CENTER);
+        diskNoticeReload.setText(ToolsMessages.library_disk_reload);
+        diskNoticeReload.setToolTipText(ToolsMessages.library_disk_reload_tip);
+        diskNoticeReload.addActionListener(e -> reloadFromDisk());
+        JButton dismiss = new JButton(ToolsMessages.library_disk_dismiss);
+        dismiss.addActionListener(e -> {
+            dismissed = true;
+            panel.setVisible(false);
+        });
+        JPanel buttons = new JPanel(new FlowLayout(FlowLayout.RIGHT, UIScale.scale(4), 0));
+        buttons.setOpaque(false);
+        buttons.add(diskNoticeReload);
+        buttons.add(dismiss);
+        panel.add(buttons, BorderLayout.EAST);
+        panel.setVisible(false);
+        return panel;
     }
 
     @Nullable

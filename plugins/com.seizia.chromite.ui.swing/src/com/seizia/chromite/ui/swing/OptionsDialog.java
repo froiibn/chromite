@@ -53,7 +53,8 @@ import java.util.Objects;
  *     OK를 누르면 저장해서 열린 모든 편집기와 DDL 탭에 적용한다.</li>
  *     <li>Editor 탭의 Formatting: SQL 서식기 종류와 키워드 대소문자({@link SqlEditCommands}, SWT 서식 설정과 같은 플랫폼 설정 키).
  *     General 탭의 Query History: 쿼리 기록 보관 일수({@link QueryHistory}). Templates 탭: SQL 템플릿({@link SqlTemplatesPage}).</li>
- *     <li>Query Library 기록 보존(실행 수, 일수): {@link QueryLibraryHistory}의 설정. 다음 기록을 덧붙일 때 줄인다.</li>
+ *     <li>Query Library 기록 보존(실행 수, 일수): {@link QueryLibraryHistory}의 설정. 다음 기록을 덧붙일 때 줄인다.
+ *     폴더 확인 간격: {@link QueryLibraryWatcher}의 설정. 지금 기다리는 확인이 끝난 뒤부터 적용된다.</li>
  *     <li>Updates 탭: 자동 업데이트 확인 켜기·끄기(업데이트 모델이 설치 단위로 저장), 현재 버전, 지금 확인({@link UpdateOptionsPage}).</li>
  *     <li>저장 전 스크립트 표시: 결과 표가 읽는 {@link ResultSetGrid#PREF_CONFIRM_BEFORE_SAVE}. Maximum rows처럼 플랫폼 저장소에 쓴다.</li>
  * </ul>
@@ -72,6 +73,7 @@ import java.util.Objects;
  * - 2026-11-07 AI Assistant 탭: 제공자, 도구 권한 정책, MCP 서버, 감사 기록({@link AiOptionsPage}) (docs/chromite/ai-agent.md "2단계")
  * - 2026-11-07 결과 표 저장 전 스크립트 표시 설정(SWT Data Editor 설정 페이지의 같은 항목) (docs/chromite/swing-frontend.md "저장 전 스크립트 미리 보기")
  * - 2026-11-07 Query editor 절에 위험한 문 확인 설정 두 개 (docs/chromite/swing-sql-exec-safety.md)
+ * - 2026-11-07 Query Library 절에 폴더 확인 간격(공유 루트 자동 새로 고침) (docs/chromite/swing-query-library.md "공유")
  */
 final class OptionsDialog extends JDialog {
 
@@ -118,6 +120,7 @@ final class OptionsDialog extends JDialog {
     private boolean updatingColorControls;
     private final JSpinner libraryHistoryRunsSpinner;
     private final JSpinner libraryHistoryDaysSpinner;
+    private final JSpinner libraryRefreshSpinner;
 
     private OptionsDialog(@NotNull Frame owner) {
         super(owner, CoreMessages.options_title, true);
@@ -143,6 +146,7 @@ final class OptionsDialog extends JDialog {
         }
         libraryHistoryRunsSpinner = new JSpinner(new SpinnerNumberModel(QueryLibraryHistory.getMaxRuns(), 1, 100000, 10));
         libraryHistoryDaysSpinner = new JSpinner(new SpinnerNumberModel(QueryLibraryHistory.getMaxDays(), 1, 3650, 1));
+        libraryRefreshSpinner = new JSpinner(new SpinnerNumberModel(QueryLibraryWatcher.getInterval(), 0, QueryLibraryWatcher.MAX_INTERVAL_SECONDS, 5));
 
         JPanel form = new JPanel(new GridBagLayout());
         int row = 0;
@@ -174,7 +178,8 @@ final class OptionsDialog extends JDialog {
         row = addRow(form, row, CoreMessages.options_keep_history, historyDaysSpinner, CoreMessages.options_keep_history_hint);
         row = addSection(form, row, CoreMessages.options_query_library);
         row = addRow(form, row, CoreMessages.options_keep_runs, libraryHistoryRunsSpinner, CoreMessages.options_keep_runs_hint);
-        addRow(form, row, CoreMessages.options_keep_days, libraryHistoryDaysSpinner, CoreMessages.options_keep_days_hint);
+        row = addRow(form, row, CoreMessages.options_keep_days, libraryHistoryDaysSpinner, CoreMessages.options_keep_days_hint);
+        addRow(form, row, CoreMessages.options_library_refresh, libraryRefreshSpinner, CoreMessages.options_library_refresh_hint);
 
         JButton okButton = new JButton(CoreMessages.common_ok);
         okButton.addActionListener(e -> {
@@ -519,6 +524,10 @@ final class OptionsDialog extends JDialog {
         int libraryHistoryDays = ((Number) libraryHistoryDaysSpinner.getValue()).intValue();
         if (libraryHistoryRuns != QueryLibraryHistory.getMaxRuns() || libraryHistoryDays != QueryLibraryHistory.getMaxDays()) {
             QueryLibraryHistory.setRetention(libraryHistoryRuns, libraryHistoryDays);
+        }
+        int libraryRefresh = ((Number) libraryRefreshSpinner.getValue()).intValue();
+        if (libraryRefresh != QueryLibraryWatcher.getInterval()) {
+            QueryLibraryWatcher.setInterval(libraryRefresh);
         }
         // Theme last: it updates every window, this dialog is about to close
         if (iconStyleCombo.getSelectedItem() instanceof UiIconStyle iconStyle && iconStyle != UiIconStyle.getCurrent()) {
