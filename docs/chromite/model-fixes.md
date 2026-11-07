@@ -3,6 +3,7 @@
 2026-11-06 통합 중 모은 후속 과제(followups-2026-11-06) 가운데 모델 번들의 결함 다섯 가지를 고친 기록이다(#47, #48, #50, #60, #70).
 형식 매핑·Copy Tables의 기본 키(#39, #51, #52, #53)는 [swing-data-transfer.md](swing-data-transfer.md) "남은 매핑과 기본 키 (2026-11-07 밤)",
 작은 수의 표시(#53)는 [swing-result-viewer.md](swing-result-viewer.md) "아주 작은 수의 표시"에 있다.
+2026-11-08의 작은 모델·안전 수정 네 가지는 아래 "작은 모델·안전·라이선스 수정 (2026-11-08)"에 있다.
 항목마다 증상, 근본 원인(파일:줄, 고치기 전 기준), 같은 원인의 다른 경우, 고친 방법을 적는다. 모두 DBeaver에서 온 코드라 SWT(DBeaver)에도 같은 결함이 있다.
 
 ## SQL Server 매개변수 종류 (#47)
@@ -60,6 +61,81 @@
 - 같은 원인의 다른 경우: `OceanbasePlanNodeJSON.getNodeCost`가 같은 코드를 복사해 쓴다. OceanBase의 `COST`가 정수인지 확인하지 못했고 시험 DB도 없어 고치지 않았다(아래 "남긴 것").
   행 수(`getNodeRowCount`)는 정수라 `long` 합이 맞다.
 
+## 작은 모델·안전·라이선스 수정 (2026-11-08)
+
+후속 과제 followups-2026-11-07-evening의 #17, #4, #5, #3이다(`chromite/small-fixes-2`). 고치기 전에 모두 코드로 다시 확인했다.
+줄 번호는 고치기 전 기준이다.
+
+### 변경을 하는 모델 확인의 기본 단추 (#17)
+
+- 증상: 모델이 묻는 확인 네 가지가 예를 기본 단추로 두어, 습관처럼 친 Enter로 테이블을 만들거나 파일을 옮기거나 작업을 시작했다.
+- 원인: 호출자가 경고 표시 없이 `DBPPlatformUI.confirmAction(title, message)`를 불렀다. Swing은 `isWarning = true`일 때만 아니요를 기본으로 한다
+  (`SwingPlatformUI.confirmAction`, [swing-frontend.md](swing-frontend.md) "실행 확인의 기본 단추").
+- 고친 것: 네 호출에 `isWarning = true`를 넘긴다. 단추 이름(예/아니요)과 문구는 그대로다.
+
+| 확인 | 위치 | 하는 일 |
+|---|---|---|
+| Oracle PLAN_TABLE missing | `OracleDataSource.getPlanTableName`(`:805`) | 실행 계획 테이블 `CREATE` |
+| Generate DDL automatically | `DatabaseTransferUtils.generateTargetTableDDL`(`:227`) | 구조 DDL이 실패한 뒤 자동 생성 SQL로 대상 만들기·바꾸기 |
+| Copy resource(s) / Move resource(s) | `DBNPathBase.dropNodes`(`:279`) | 파일 복사·이동 |
+| Confirmation required to launch … | `DBTaskUtils.confirmTask`(`:211`) | "데이터베이스가 손상될 수 있다"는 작업(복원 등) 실행 |
+
+- 같은 원인의 다른 경우: Swing 밖에서 `confirmAction`을 경고 없이 부르는 곳은 이제 세 곳이다(`plugins/` 검색). Vertica 비밀번호 바꾸기 권유(`VerticaDataSource`, 바꾸는 대화상자를 열 뿐),
+  새 비밀번호를 연결 설정에 저장(`DBAuthUtils`), AI 메타데이터 전송 동의(`SQLCommandAI`)로, 데이터베이스나 파일을 바꾸지 않아 그대로 둔다
+  ([swing-frontend.md](swing-frontend.md) "바꾸지 않은 것과 이유"). 나머지 모델 호출(SSH 호스트 키, Mimer 파일 이름 바꾸기, 확인 필요 연결 유형의 쿼리 등)은 이미 `isWarning`을 넘긴다.
+  `DBNPathBase.dropNodes`는 `plugins/` 안에서 부르는 곳이 없다(모델 경로만 고침).
+
+### Oracle DBMS_OUTPUT 끄기·켜기를 열린 세션에도 (#4)
+
+- 증상: Options > Oracle에서 DBMS_OUTPUT을 끄면 쿼리 창은 읽기를 멈추지만 서버는 그 세션에서 계속 모았다(100만 바이트가 차면 `PUT_LINE`이 `ORU-10027`).
+  켜면 다시 연결할 때까지 아무것도 나오지 않았다. 도구 설명이 "다시 연결한 뒤부터"라고 안내했다.
+- 원인: 서버의 `DBMS_OUTPUT.ENABLE`/`DISABLE`은 세션마다 있는데, `OracleDataSource.initializeContextState`(`:339`)가 세션을 열 때만 설정에 맞췄다.
+- 고친 것: 실행 문맥(`OracleExecutionContext`)이 마지막으로 보낸 상태를 기억하고, 새 기본 메서드 `DBCServerOutputReader.syncServerOutput`을 Oracle 읽기 도구가 구현한다
+  (설정과 다르면 그 세션에 `ENABLE`/`DISABLE`). 쿼리 창은 문장을 실행하기 전에(`SQLQueryListener.onStartQuery`, 엔진 Job 스레드) 이것을 부른다.
+  Options의 OK에서 바로 모든 세션에 보내지 않은 이유와 트랜잭션 영향(없음)은 [swing-server-output.md](swing-server-output.md) "설계 결정과 이유"에 있다.
+  도구 설명을 "바꾸면 열린 쿼리 창에도 다음 문장부터 적용"으로 고쳤다(영어·한국어).
+- 같은 원인의 다른 경우: YashanDB는 `OracleDataSource`를 상속해 함께 고쳐진다. Altibase(콜백 등록)·CUBRID(`dbms_output.enable`)도 세션을 열 때만 설정을 반영하지만,
+  Swing에 그 설정을 바꾸는 화면이 없어 실행 중에 바뀌지 않는다. 화면이 생기면 같은 메서드를 구현한다.
+
+### 슬래시를 쓴 Windows 경로 (#5)
+
+- 증상: 내보내기 폴더 `D:/x`(예: `@export`의 `outputFolder`, 마법사에 직접 입력)가 "File system schema 'D' not recognized"로 실패했다. `D:\x`는 됐다.
+- 원인: `DBFFileSystemManager.URI_SCHEME_PREFIX`(`:42`, `[a-z\d]+:/.+`)가 한 글자 `D`를 URI 스킴으로 보아 `getPathFromURI`로 보냈고, `D` 파일 시스템 제공자가 없어 실패했다.
+  같은 모델의 `IOUtils.isLocalFile`은 `:/`가 둘째 글자에 있으면(드라이브 문자) 로컬 경로로 본다.
+- 고친 것: 스킴을 두 글자 이상으로 바꿨다(`[a-z\d]{2,}:/.+`). 실제 스킴(`file`, `s3`, `gs`, `azure` 등)은 모두 두 글자 이상이다.
+- 같은 원인의 다른 경우: 진행 모니터를 받는 `DBFUtils.resolvePathFromString`(프로젝트가 있으면 `getPathFromString`)을 부르는 14곳이 함께 고쳐진다
+  (데이터 전송 출력 폴더·LOB 폴더·입력 파일·완료 뒤 폴더 열기, SQL 스크립트 작업, MySQL·PostgreSQL·Oracle 백업·복원·스크립트 작업).
+  `DBFUtils.resolvePathFromString(DBRRunnableContext, …)`(스트림 가져오기 상태 복원)와 `DBFUtils.getPathFromURI`는 이미 `isLocalFile`로 걸러 영향이 없었다.
+
+### 연결 유형 이름의 언어 (#3)
+
+- 증상: 연결 유형을 저장하면 기본 유형(Development, Test, Production)의 이름과 설명이 그때의 화면 언어로 `connection-types.xml`에 저장됐다.
+  영어 화면에서 저장한 뒤 한국어 화면에서 "Development"로 보였다(반대도 같음).
+- 원인: `DataSourceProviderRegistry.saveConnectionTypes`(`:784`, `:787`)가 `getName()`·`getDescription()`(번역된 문구)을 그대로 쓰고, `ConnectionTypeParser`(`:958`, `:961`)가 읽은 값을 그대로 썼다.
+- 고친 것: `DBPConnectionType.toStoredText`/`fromStoredText`. 기본 유형의 문구가 모델이 가진 어느 언어의 기본 문구와 같으면 영어 기본 문구로 저장하고,
+  읽을 때 어느 언어의 기본 문구든 지금 화면 언어 문구로 바꾼다. 사용자가 입력한 이름은 그대로 저장하고 그대로 읽는다.
+  번역은 모델 번들(과 언어 조각)의 `ModelResources*.properties`를 한 번 읽어 비교한다(`Bundle.findEntries`, UTF-8). 그래서 `ModelMessages.BUNDLE_NAME`을 public으로 바꿨다.
+  - 이름 속성을 빼지 않고 영어로 쓰는 이유: 이 변경 전 빌드로 되돌려도 이름이 비지 않는다(영어로 보임).
+  - 한계: 사용자가 기본 문구와 똑같은 이름(예: 한국어 "개발")을 입력하면 기본 이름으로 취급되어 다른 언어 화면에서는 번역된다.
+- 같은 원인의 다른 경우: `data-sources.json`의 `connection-types` 사본에도 번역된 이름이 들어가지만, 읽을 때 이미 있는 유형(기본 유형은 늘 있음)은 건너뛰어(`DataSourceSerializerModern`) 화면에 쓰이지 않는다. 바꾸지 않았다.
+
+### 확인 (2026-11-08)
+
+`mvn -B clean package -f product/aggregate/pom.xml -T1C -Pproduct-chromite-swing` BUILD SUCCESS, `tools/rename/gate.py` ALL GATES PASSED.
+빌드 결과물을 시험 작업 공간 사본과 별도 데이터 폴더(`CHROMITE_DATA`)로 한 번 실행하고, 같은 프로세스 안에 붙인 시험 드라이버로 화면을 조작했다(OS 입력 없음).
+작업 공간·데이터 폴더는 확인 뒤 지웠다.
+
+| 항목 | 확인 | 결과 |
+|---|---|---|
+| #4 | Oracle 쿼리 창(자동 커밋)에서 `PUT_LINE('probe')` 뒤 `GET_LINE`의 상태를 오류 문구로 보이는 블록을 실행. 켬 → Options에서 끔 → 같은 창에서 실행 → 다시 켬 → 실행(다시 연결하지 않음) | 켬 `server_status=0`, 끈 뒤 `server_status=1`(서버에서 꺼짐), 다시 켠 뒤 `server_status=0`이고 `visible line`이 Messages에 나옴 |
+| #17 | Options > Oracle의 실행 계획 테이블을 없는 이름(`CHR_SF2_NO_PLAN`)으로 두고 예상 실행 계획 | "Oracle PLAN_TABLE missing" 단추 예(Y)/아니오(N), 기본·포커스 아니오. Enter로 닫힘, `all_tables`에 테이블 없음 |
+| #5 | Oracle 쿼리 창에서 `@export {"type":"csv","consumer":{"outputFolder":"D:/Tools/_scratch/…/export",…}}` + `SELECT … FROM dual`, 마법사 마침 | "성공: 개체 1개 중 1개를 전송했습니다", 파일 `fwd_slash.csv`(2행) 생성 |
+| #3 | 옛 형식 파일(영어 기본 이름 + 사용자 이름 "My QA")을 한국어 화면에서 열기 → 유형을 바꿔 저장 | 목록 개발 / My QA / 운영(설명도 한국어). 저장된 파일은 `Development`, `My QA`, `Production`과 영어 설명 |
+| #3 | 한국어로 저장된 옛 파일(`개발`, `일반 개발 데이터베이스`)과 사용자 이름 `Производство`(러시아어 번역 아님)를 영어 화면(`-nl en`)에서 열기 | Development / My QA / Производство, 설명 Regular development database 등 |
+
+- 회귀 테스트는 실행하지 않았다(요청 없음). 영향받을 수 있는 기능: 모델 확인 네 가지(Enter가 이제 아니요), Oracle·YashanDB 쿼리 창의 문장 실행(문장 전에 상태 확인, 바뀐 경우만 SQL 한 번),
+  `getPathFromString`을 쓰는 모든 파일 경로(한 글자 스킴은 이제 로컬 경로), 연결 유형 저장·읽기.
+
 ## 확인 (2026-11-07)
 
 빌드한 Swing 제품(`-vm D:\Tools\jbrsdk-25\bin\server\jvm.dll`, 시험 작업 공간 사본)에 같은 프로세스 안에서 도는 시험 코드를 붙여 모델을 불렀다(OS 입력 없음).
@@ -85,3 +161,5 @@
 
 - 2026-11-07 최초 작성: SQL Server 매개변수 종류(#47), MariaDB 패키지 캐시(#48), PostgreSQL Block IO 단위(#50), PostgreSQL 복사한 열의 COLLATE·STORAGE(#60),
   MySQL/MariaDB 계획 비용(#70).
+- 2026-11-08 "작은 모델·안전·라이선스 수정": 변경을 하는 모델 확인 네 곳의 기본 단추(#17), Oracle DBMS_OUTPUT을 열린 세션에도 적용(#4), 슬래시 Windows 경로(#5),
+  연결 유형 이름의 언어(#3).

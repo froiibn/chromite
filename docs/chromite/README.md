@@ -50,7 +50,7 @@ upstream의 전체 구조는 [AGENTS.md](../../AGENTS.md)와 [AGENTS-Architectur
 | [swing-l10n.md](swing-l10n.md) | Swing 화면 언어: OS 언어를 따르는 영어/한국어 NLS 묶음, 영역 나눔, 용어집, 영어로 남긴 것, 한글 굵은 글꼴(합성 글꼴 대체 칸) |
 | [swing-followup-fixes.md](swing-followup-fixes.md) | Swing 후속 수정(2026-11-07): 자동완성 프로시저 제안 설정, SQL Server 열 COLLATE, 날짜/시간 소수 초, 남은 영어 문구, 전송 대상 이름, 네이티브 백업 실패. 작은 화면 수정(2026-11-08): 쿼리 상태 줄 폭, 잠금 나무 폭, 테마 전환 뒤 탭 넘침 단추, 연결 중 중지, 감사 기록 열, 줄임표 |
 | [swing-sql-completion.md](swing-sql-completion.md) | SQL 자동완성의 프로시저 제안: CALL/EXEC 뒤 부를 수 있는 루틴(방언 규칙, SQL Server 스칼라 함수 포함)·패키지·스키마, 이름만 넣기, `EXEC dbo.`의 NullPointerException(끝나지 않은 이름) |
-| [model-fixes.md](model-fixes.md) | 모델 후속 수정(2026-11-07): SQL Server 매개변수 종류, MariaDB 패키지 캐시, PostgreSQL Block IO 단위, PostgreSQL 복사한 열의 COLLATE·STORAGE, MySQL/MariaDB 계획 비용 |
+| [model-fixes.md](model-fixes.md) | 모델 후속 수정(2026-11-07): SQL Server 매개변수 종류, MariaDB 패키지 캐시, PostgreSQL Block IO 단위, PostgreSQL 복사한 열의 COLLATE·STORAGE, MySQL/MariaDB 계획 비용. 작은 수정(2026-11-08): 변경을 하는 모델 확인의 기본 단추, Oracle DBMS_OUTPUT을 열린 세션에도 적용, 슬래시 Windows 경로, 연결 유형 이름의 언어 |
 | [altibase.md](altibase.md) | Altibase: Object Explorer의 테이블 저장 방식 표시(메모리 빨강, 디스크 파랑, 휘발성 호박색, 툴팁·속성), 목록 질의에서 함께 읽는 카탈로그 근거 |
 | [swing-auth-prompts.md](swing-auth-prompts.md) | 연결할 때의 질문: 기본 방식이 아닌 인증 방식(SQL Server Authentication, Oracle Username/password 등)의 자격 증명 질문, JSch SSH의 호스트 키·비밀번호·개인 키 암호·키보드 대화형(OTP) 질문(안전 쪽 실패) |
 | [shell-command-approval.md](shell-command-approval.md) | 저장된 설정의 셸 명령(연결 이벤트, 셸 명령 암호, 전송 뒤 명령) 실행 전 승인: Swing 대화상자(이번만 실행·항상 허용·취소), 연결별·정확한 명령별 기억, 승인 서비스가 없으면 실행 거부 |
