@@ -4,6 +4,7 @@ Bundle-Name: Chromite Altibase Support
 Bundle-SymbolicName: com.seizia.chromite.ext.altibase;singleton:=true
 Bundle-Version: 1.0.52.qualifier
 Bundle-Release-Date: 20261116
+Bundle-Activator: com.seizia.chromite.ext.altibase.internal.AltibaseActivator
 Require-Bundle: com.seizia.chromite.ext.generic,
  com.seizia.chromite.data.gis,
  com.seizia.chromite.tasks.native
