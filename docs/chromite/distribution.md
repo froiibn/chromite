@@ -398,8 +398,6 @@ pwsh tools/release/rehearsal/rehearse.ps1 -Down
 - macOS zip·dmg의 새 이름으로 서명·공증 작업 실행, Mac에서 `codesign`/`spctl` 확인 경로.
 - 실제 서버 배포(사용자 승인 전이라 하지 않음).
 - 공유 미리 보기를 실제 서비스(메신저, SNS 카드 검사기)에서 본 것: `og:image`가 실제 주소(https://chromite.seizia.com/…)라 배포 뒤에만 볼 수 있다.
-- 기능 둘러보기의 Oracle 디버거 문구: 이 작업의 기준(`origin/devel` `b392c27919`)에는 PostgreSQL 디버거만 있고 Oracle 디버거는 `chromite/oracle-debugger` 가지에 있다.
-  디버거 화면 사진은 PostgreSQL이다. Oracle 디버거가 `devel`에 들어간 뒤에 배포해야 문구가 맞다.
 
 ## 사용자가 해야 할 일
 
@@ -438,3 +436,5 @@ DBeaver는 이 저장소에 설치 프로그램·배포 설정이 없다(별도 
   CSS 스크롤 스냅(`proximity`). 예전 "오픈 소스" 절은 마지막 화면으로 옮김(`#open-source` 그대로). 배포하지 않음.
 - 2026-11-07 파비콘과 공유 이미지 추가("사이트" > "파비콘과 공유 이미지"): `favicon.ico`, 아이콘 PNG 3장, 언어별 OG 이미지, 모든 페이지의 canonical·OG·Twitter 태그,
   생성기 `tools/branding/gen_site_images.py`. CSP는 그대로(매니페스트는 CSP가 막아 만들지 않음). 배포하지 않음.
+- 2026-11-07 MySQL 드라이버를 내장하지 않게 된 것(#123, [drivers.md](drivers.md))에 맞춰 홈의 "들어 있는 것"과 기능 둘러보기 "폐쇄망" 화면의 문구를 고침:
+  내장 드라이버는 SQL Server, Oracle, PostgreSQL, MariaDB, SQLite이고 MySQL은 처음 연결할 때 받거나 오프라인 묶음으로 설치한다. 지원 DB 목록(제목·설명)의 MySQL은 그대로.
