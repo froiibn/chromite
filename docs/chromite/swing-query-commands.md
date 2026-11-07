@@ -117,6 +117,43 @@ DDL 뒤 탐색기 갱신이 있었다. Swing 쿼리 창에는 이것들이 없�
 
 회귀 테스트는 만들지 않았다(요청 없음). 앱 사본에서 확인한 내용은 아래 "확인 기록"에 있다.
 
+### 확인 기록 (2026-11-08, Windows, 이 브랜치 빌드, 작업 공간 사본, Docker 테스트 DB의 임시 스키마·DB, 프로세스 안 드라이버로 조작)
+
+| 확인 | 결과 |
+|---|---|
+| PostgreSQL, 네 문장 창에서 둘째 문장에 커서, Execute Current Statement | 그 문장만 실행(결과 표 1개, `second`) |
+| 편집기에 Ctrl+Enter 키 이벤트 | 편집기 입력 맵의 Ctrl+Enter가 `none`, 메뉴 단축키가 받아 커서 위치 문장 실행 |
+| 셋째 문장에 커서, Execute from Cursor | 셋째·넷째 문장 실행(결과 표 2개) |
+| Next, Next, Previous / Copy Current Statement | 둘째 → 셋째 → 둘째 문장 선택. 넷째 문장이 클립보드에, 상태 줄 `Statement copied` |
+| 문장 일부를 선택하고 Execute Current Statement | 선택한 글자를 한 문장으로 실행 |
+| `generate_series(1, 7)` 문장에서 Count Rows | `count = 7` |
+| `2 * 21` 선택 / 커서만 두고 Evaluate Expression | 둘 다 `42` |
+| `@set` 줄에서 Count Rows | "The text at the cursor is a script command, not a query." (한국어 "커서 위치의 글자는 쿼리가 아니라 스크립트 명령입니다.") |
+| 주석뿐인 창에서 Execute Current Statement | "There is no statement at the cursor." |
+| `@set keep_me = 7` 줄만 실행, 다음 실행에서 `SELECT ${keep_me}, :keep_me` 문장만 실행(두 번) | 두 번 모두 `7`, `7`, 대화상자 없음 |
+| Variables… 값 칸을 8로 고침 → 실행 / Remove All → 실행 | `8`, `8` / 변수가 없어져 매개변수 대화상자가 뜸(Cancel로 끝냄) |
+| 저장한 창(`main_pg.sql`)에서 `@set` + `@include child_pg.sql` → `@include sub/grand_pg.sql` → `@include ../leaf_pg.sql` | 6개 결과 표, 포함 파일에서 정한 `${qc_child}`를 손자 파일이 씀, 창 변수에 `qc_val`, `qc_child` |
+| 같은 실행의 `CREATE TABLE p4_qc.inc_t`(포함 파일) | 미리 펼친 탐색기 `p4_qc > Tables`에 실행 뒤 `inc_t`가 나타남 |
+| `loop_a.sql` → `loop_b.sql` → `./LOOP_A.sql`(대소문자 다름) | `Include loop: loop_a.sql > loop_b.sql > loop_a.sql.` a, b 결과 표는 남음 |
+| 저장하지 않은 창에서 `@include 'D:\…\loop_a.sql'`(절대 경로, 작은따옴표) | 같은 고리 거절 |
+| 없는 파일 | `File 'D:\…\nothing_here.sql' not found`, 앞 문장 결과는 남고 뒤 문장은 실행하지 않음 |
+| 저장하지 않은 창에서 상대 경로 | "The relative file name 'child_pg.sql' needs a saved script to start from. …" |
+| 포함 파일 셋째 줄의 오류 | `Msg 0, State 42P01, File err_pg.sql, Line 3, Column 15` (한국어 `메시지 0, 상태 42P01, 파일 err_pg.sql, 줄 3, 열 15`) |
+| 포함 파일의 WHERE 없는 DELETE | 위험한 문 확인에 `-- danger_pg.sql, Line 2: DELETE without a WHERE clause`, 기본 단추·초점 Cancel, Cancel → 취소, 행 2개 그대로 |
+| 수동 커밋으로 바꾼 창 세션에서 `CREATE TABLE p4_qc.tx_t` | 상태 줄 `Manual commit`, `Open transaction`, 3초 뒤에도 탐색기에 없음. Commit 뒤 `tx_t`가 나타남 |
+| 자동 커밋에서 `DROP TABLE p4_qc.tx_t`(DROP 확인 → Execute) | 실행 뒤 탐색기에서 사라짐 |
+| SQL Server, `GO` 스크립트에서 커서 위치 문장 / 커서부터 | 그 배치의 문장만 / 둘째 배치부터 끝까지(포함 파일 안의 `DECLARE @x` 배치가 이어서 동작해 `doubled = 6`, `${ms_val}` = 5) |
+| 같은 창 다음 실행에서 `SELECT ${ms_val}`만 | `5` |
+| 포함 파일(`@include [D:\…\err_ms.sql]`, 대괄호 따옴표)의 오류 | `Msg 208, State S0002, File err_ms.sql, Line 3` |
+| `CREATE TABLE dbo.inc_ms`(포함 파일) | 미리 펼친 `p4_qc_db > dbo > Tables`에 `inc_ms`가 나타남 |
+| Count Rows(ORDER BY가 있는 SELECT) / `GETDATE()` 선택 후 Evaluate Expression | `1` / 현재 시각 |
+| `GO`를 사이에 둔 다음 문장 이동 | `SELECT … ORDER BY id\nGO`, 그다음 문장 선택 |
+| `@include sub\..\loop_ms_a.sql`(자기 자신) | `Include loop: loop_ms_a.sql > loop_ms_a.sql.` |
+| MariaDB, `SOURCE child_maria.sql`(D-M19) | CREATE·INSERT·SELECT가 같은 실행에서 돌고 `maria_count = 3`, 뒤 문장 계속 |
+| 한국어(`-nl ko`) | Query 메뉴 `현재 문장 실행`·`커서부터 실행`·`행 수 세기`·`식 계산`·`이전 문장`·`다음 문장`·`현재 문장 복사`·`변수…`, 대화상자 `변수 - vars_pg.sql`, `[지우기] [모두 지우기] [닫기]`, 상태 줄 `문장을 복사했습니다`, 위험한 문 목록 `danger_pg.sql, 줄 2: WHERE 절이 없는 DELETE` |
+
+임시 개체(PostgreSQL 스키마 `p4_qc`, SQL Server·MariaDB DB `p4_qc_db`)는 확인 뒤 지웠다.
+
 ## 변경 이력
 
 - 2026-11-08 최초 작성: 문장 명령(현재 문장, 커서부터, 행 수, 식, 이전·다음, 복사), 창 단위 `@set` 변수와 Variables 대화상자, `@include`·`SOURCE`,
