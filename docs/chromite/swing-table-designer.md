@@ -71,8 +71,11 @@ SWT 버전의 객체 편집기(`EntityEditor`)가 하는 일을 Swing 프런트�
   `MySQLTableIndexColumn` 생성자가 모두 다름). SWT에서는 이 일을 SWT 플러그인의 설정기가 하므로 Swing 제품에 넣을 수 없다.
   설정기의 UI 아닌 부분만 `TableDesignerDriver`로 옮기고, 테이블 클래스의 Eclipse 어댑터로 등록했다. 어댑터 관리자는 그 드라이버 테이블을
   어댑트할 때만 클래스를 읽는다(드라이버 번들 의존은 위 MANIFEST 항목). PK·UK는 공통 API(`AbstractTableConstraint.addAttributeReference`)가 있어
-  어댑터가 없는 드라이버(Oracle, DB2, Generic 등)에서도 된다. 인덱스·외래 키·CHECK는 어댑터가 있는 PostgreSQL·SQL Server·MySQL/MariaDB만 되고,
-  나머지는 추가 단추가 꺼지고 "Not supported for this database yet"을 보여 준다.
+  어댑터가 없는 드라이버(DB2, Generic 등)에서도 된다. 인덱스·외래 키·CHECK는 어댑터가 있는 PostgreSQL·SQL Server·MySQL/MariaDB·Oracle만 되고,
+  나머지는 추가 단추가 꺼지고 "Not supported for this database yet"을 보여 준다. Oracle(`OracleTableDesignerDriver`, 2026-11-08)은 외래 키 규칙 중
+  ON DELETE CASCADE·SET NULL만 받는다(ON UPDATE 없음). 다른 규칙은 추가할 때 이유를 알린다([swing-create-objects.md](swing-create-objects.md)).
+- **저장 전 열린 트랜잭션 질문(2026-11-08).** 저장은 명령마다 커밋하고 MySQL·Oracle DDL은 암묵 커밋이라, 미리 보기에서 실행을 고르면
+  연결의 열린 트랜잭션을 먼저 묻는다(커밋 / 롤백 / 취소, 사용자 규칙 "트랜잭션 안전").
 - **설정기가 대화상자 기본값으로 채우는 칸도 같은 값으로.** SWT 인덱스 대화상자(`EditIndexPage`, ui.editors.entity `EditIndexPage.java:100-106`)는
   넘겨받은 종류 목록의 첫 값을 고르고 설정기가 그 값을 넣는다(`MySQLIndexConfigurator.java:78`). MySQL·MariaDB는 그 목록이
   `MySQLDataSource.supportedIndexTypes()`(BTREE 먼저, `MySQLDataSource.java:1101-1105`)이고, 관리자는 인덱스를 `DBSIndexType.OTHER`로 만들고(`MySQLIndexManager.java:65`)
@@ -121,7 +124,7 @@ PostgreSQL 17(`chr_table_designer`)에서 화면으로 확인했다(빌드한 Sw
 - 다른 객체(시퀀스, 프로시저 등)의 속성 편집: 같은 `PropertySourceEditable` 시트로 만들 수 있으나 이번에는 하지 않았다.
 - 열 순서 바꾸기(SSMS 끌어 놓기), 실행 취소·다시 실행(Ctrl+Z), 저장된 키·인덱스의 열 구성 편집(지금은 지우고 다시 추가).
 - 다른 스키마의 테이블을 참조하는 외래 키(대화상자는 같은 스키마·카탈로그의 테이블만 보여 줌).
-- Oracle·DB2·Generic 등의 인덱스·외래 키·CHECK(드라이버 구현 추가 필요).
+- DB2·Generic 등의 인덱스·외래 키·CHECK(드라이버 구현 추가 필요).
 
 ## 변경 이력
 
@@ -136,5 +139,7 @@ PostgreSQL 17(`chr_table_designer`)에서 화면으로 확인했다(빌드한 Sw
   모델 `SQLServerTableColumnManager`에서 고침. [swing-followup-fixes.md](swing-followup-fixes.md) "SQL Server 열 정렬 규칙".
 - 2026-11-08 SQL Server에서 기본값(DEFAULT 제약 조건)이 있는 열의 형식·NULL 허용을 바꾸는 변경 스크립트가 실패하던 것(오류 5074, 4922, 스키마 비교 시험에서 찾음, 디자이너 화면에서는 확인하지 않음). 모델 `SQLServerTableColumnManager`가
   제약 조건을 지우고 `ALTER COLUMN` 뒤에 다시 만든다. [schema-compare.md](schema-compare.md) "SQL Server 기본값 제약 조건".
+- 2026-11-08 Oracle 인덱스·외래 키·CHECK(`OracleTableDesignerDriver`, `OracleTableBase` 어댑터), 저장 전 열린 트랜잭션 질문.
+  Object Explorer 테이블 자식 폴더의 New Column…/New Index… 등이 디자이너를 연다. [swing-create-objects.md](swing-create-objects.md).
 - 2026-11-08 외래 키 대화상자(`DesignerDialogs.editForeignKey`)를 결과 그리드의 가상 외래 키에도 씀: 가상 모드는 이름·ON DELETE/UPDATE를 숨기고
   참조 테이블의 가상 고유 키도 고른다. 디자이너의 동작은 그대로. [swing-grid-navigation.md](swing-grid-navigation.md) "가상 키".

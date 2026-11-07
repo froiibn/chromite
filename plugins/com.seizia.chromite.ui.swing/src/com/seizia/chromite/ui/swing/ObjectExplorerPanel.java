@@ -24,6 +24,7 @@ import com.seizia.chromite.model.admin.security.SecurityPrincipal;
 import com.seizia.chromite.ui.swing.internal.AgentMessages;
 import com.seizia.chromite.ui.swing.internal.BackupRestoreMessages;
 import com.seizia.chromite.ui.swing.internal.CompareMessages;
+import com.seizia.chromite.ui.swing.internal.ConnectionMessages;
 import com.seizia.chromite.ui.swing.internal.CoreMessages;
 import com.seizia.chromite.ui.swing.internal.DashboardMessages;
 import com.seizia.chromite.ui.swing.internal.DataSearchMessages;
@@ -252,6 +253,8 @@ import java.util.regex.Pattern;
  * - 2026-11-08 연결 메뉴에 Invalidate/Reconnect(연결을 끊지 않고 세션을 다시 엶, 열린 트랜잭션을 먼저 물음)
  *   (docs/chromite/connection-lifecycle.md "무효화·다시 연결")
  * - 2026-11-08 Tasks &gt; Run Script with Native Client…(docs/chromite/swing-database-tasks.md)
+ * - 2026-11-08 폴더의 New &lt;종류&gt;… 메뉴({@link NewObjectCommands}, docs/chromite/swing-create-objects.md)
+ * - 2026-11-08 연결 노드의 Change Password… 메뉴(연결한 사용자의 비밀번호 바꾸기, docs/chromite/swing-conn-advanced.md "비밀번호 바꾸기")
  */
 final class ObjectExplorerPanel extends JPanel {
 
@@ -378,6 +381,7 @@ final class ObjectExplorerPanel extends JPanel {
     private final Action reconnectAction;
     private final Action invalidateAction;
     private final Action editConnectionAction;
+    private final Action changePasswordAction;
     private final Action renameAction;
     private final Action deleteAction;
     private final Action selectTopAction;
@@ -409,6 +413,7 @@ final class ObjectExplorerPanel extends JPanel {
     private final AgentCommands agentCommands;
     private final SchedulerCommands schedulerCommands;
     private final ExplorerObjectCommands objectCommands;
+    private final NewObjectCommands newObjectCommands;
     private final ObjectMaintenanceCommands maintenanceCommands;
     private final Action backUpAction;
     private final Action restoreAction;
@@ -626,6 +631,7 @@ final class ObjectExplorerPanel extends JPanel {
         traceAction = ExecutionTraceCommands.createAction(this, this::getSelectedObject, queryWindows);
         objectCommands = new ExplorerObjectCommands(this, this::getSelectedNavigatorNodes, queryWindows);
         tree.setTransferHandler(objectCommands.createTransferHandler());
+        newObjectCommands = new NewObjectCommands(this, this::getSelectedNavigatorNode, queryWindows, objectCommands);
         maintenanceCommands = new ObjectMaintenanceCommands(this, this::getSelectedNavigatorNodes, queryWindows);
         scriptAsMenu = new JMenu(CoreMessages.explorer_script_as);
         scriptAsMenu.add(createToMenu);
@@ -705,6 +711,7 @@ final class ObjectExplorerPanel extends JPanel {
             }
         });
         editConnectionAction.putValue(Action.ACCELERATOR_KEY, KeyStroke.getKeyStroke(KeyEvent.VK_ENTER, 0));
+        changePasswordAction = createAction(ConnectionMessages.commands_change_password_menu, () -> runOnSelectedDataSource(ConnectionCommands::changePassword));
         renameAction = createAction(CoreMessages.explorer_rename, () -> {
             if (getSelectedNavigatorNode() instanceof DBNDataSource node) {
                 ConnectionCommands.rename(this, node);
@@ -813,6 +820,7 @@ final class ObjectExplorerPanel extends JPanel {
         popupMenu.add(sourceEditCommands.getNewViewAction());
         popupMenu.add(sourceEditCommands.getNewProcedureAction());
         popupMenu.add(sourceEditCommands.getNewFunctionAction());
+        popupMenu.add(newObjectCommands.getItem());
         popupMenu.add(newPrincipalAction);
         agentCommands.addTo(popupMenu);
         schedulerCommands.addTo(popupMenu);
@@ -848,6 +856,7 @@ final class ObjectExplorerPanel extends JPanel {
         popupMenu.addSeparator();
         popupMenu.add(editConnectionAction);
         popupMenu.add(duplicateConnectionAction);
+        popupMenu.add(changePasswordAction);
         popupMenu.add(objectCommands.getCopyNameAction());
         popupMenu.add(objectCommands.getCopyQualifiedNameAction());
         popupMenu.add(copySpecialAction);
@@ -1113,6 +1122,7 @@ final class ObjectExplorerPanel extends JPanel {
         designAction.setEnabled(TableDesignSession.canDesign(object));
         newTableAction.setEnabled(getSelectedNavigatorNode() instanceof DBNDatabaseFolder folder && TableDesignSession.canCreateTable(folder));
         sourceEditCommands.update(getSelectedNavigatorNode());
+        newObjectCommands.update(getSelectedNavigatorNode());
         routineCommands.update(getSelectedNavigatorNode());
         debugAction.setEnabled(DebugCommands.canDebug(object));
         traceAction.setEnabled(ExecutionTraceCommands.canTrace(object));
@@ -1129,6 +1139,8 @@ final class ObjectExplorerPanel extends JPanel {
         searchDataAction.setEnabled(DataSearchPanel.findScope(getSelectedNavigatorNodes()) != null);
         compareSchemasAction.setEnabled(projectNode != null);
         editConnectionAction.setEnabled(connectionNode);
+        // Only databases that can change the connected user's password (ChangeUserPasswordPropertyTester)
+        changePasswordAction.setEnabled(connectionNode && dataSource != null && ConnectionCommands.getPasswordManager(dataSource) != null);
         renameAction.setEnabled(connectionNode || ExplorerObjectCommands.canRename(getSelectedNavigatorNode()));
         boolean principal = SecurityCommands.canOpenProperties(object);
         boolean agentObject = AgentCommands.canDelete(getSelectedNavigatorNode());

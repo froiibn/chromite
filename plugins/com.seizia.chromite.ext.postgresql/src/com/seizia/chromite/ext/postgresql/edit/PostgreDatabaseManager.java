@@ -47,6 +47,10 @@ import java.util.Map;
 
 /**
  * PostgreDatabaseManager
+ *
+ * 변경 이력:
+ * - 2026-11-08 CREATE DATABASE에 LC_COLLATE·LC_CTYPE: 새 데이터베이스 대화상자가 고른 값({@link PostgreDatabase#setCollate},
+ *   {@link PostgreDatabase#setCtype}). 비어 있으면 템플릿의 값을 따른다 (docs/chromite/swing-create-objects.md)
  */
 public class PostgreDatabaseManager extends SQLObjectEditor<PostgreDatabase, PostgreDataSource> implements DBEObjectRenamer<PostgreDatabase> {
 
@@ -102,6 +106,12 @@ public class PostgreDatabaseManager extends SQLObjectEditor<PostgreDatabase, Pos
         }
         if (database.getInitialEncoding() != null) {
             sql.append("\nENCODING = '").append(database.getInitialEncoding().getName()).append("'");
+        }
+        if (!CommonUtils.isEmpty(database.getCollate())) {
+            sql.append("\nLC_COLLATE = ").append(SQLUtils.quoteString(database, database.getCollate()));
+        }
+        if (!CommonUtils.isEmpty(database.getCtype())) {
+            sql.append("\nLC_CTYPE = ").append(SQLUtils.quoteString(database, database.getCtype()));
         }
         if (database.getInitialTablespace() != null) {
             sql.append("\nTABLESPACE = ").append(DBUtils.getQuotedIdentifier(database.getDataSource(), database.getInitialTablespace().getName()));

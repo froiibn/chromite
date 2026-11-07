@@ -19,6 +19,7 @@ package com.seizia.chromite.ui.swing;
 import com.formdev.flatlaf.FlatClientProperties;
 import com.formdev.flatlaf.ui.FlatUIUtils;
 import com.formdev.flatlaf.util.UIScale;
+import com.seizia.chromite.ui.swing.internal.ConnectionMessages;
 import com.seizia.chromite.ui.swing.internal.ConnectionTransferMessages;
 import com.seizia.chromite.ui.swing.internal.CoreMessages;
 import com.seizia.chromite.ui.swing.internal.LifecycleMessages;
@@ -104,6 +105,7 @@ import java.util.Set;
  *   docs/chromite/connection-transfer.md)
  * - 2026-11-08 메뉴에 다른 연결 끊기·모두 끊기(서버), 그룹 끊기(그룹, 하위 그룹 포함), 모두 끊기(빈 곳): 열린 트랜잭션은 한 질문으로
  *   (docs/chromite/connection-lifecycle.md "여러 연결 끊기")
+ * - 2026-11-08 서버 메뉴의 Change Password…(연결한 사용자의 비밀번호, docs/chromite/swing-conn-advanced.md "비밀번호 바꾸기")
  */
 final class RegisteredServersPanel extends JPanel {
 
@@ -369,6 +371,8 @@ final class RegisteredServersPanel extends JPanel {
             popupMenu.add(createMoveToMenu(container));
             popupMenu.addSeparator();
             popupMenu.add(menuItem(CoreMessages.servers_properties, null, () -> ConnectionCommands.edit(this, container)));
+            popupMenu.add(menuItem(ConnectionMessages.commands_change_password_menu, null, () -> ConnectionCommands.changePassword(container)))
+                .setEnabled(ConnectionCommands.getPasswordManager(container) != null);
             popupMenu.add(menuItem(CoreMessages.explorer_rename, KeyStroke.getKeyStroke(KeyEvent.VK_F2, 0), this::renameSelected));
             popupMenu.add(menuItem(CoreMessages.explorer_delete, KeyStroke.getKeyStroke(KeyEvent.VK_DELETE, 0), this::deleteSelected));
             popupMenu.addSeparator();

@@ -62,9 +62,9 @@ K1–K3의 공통 원인은 SQL 편집기에 서버 출력 패널이 없는 것�
 | P10 | 사용 권한 탭(역할의 권한, 테이블·열·함수·스키마의 권한) | `RolePermissionsEditor`, `ObjectPermissionsEditor`, `PostgresPermissionsEditor` | 일부 | `PrincipalPropertiesDialog`, `ObjectPermissionsDialog`, `PostgreSecurityDialect`(DATABASE·SCHEMA 포함) | 중간 | 열 단위 권한, ALTER DEFAULT PRIVILEGES 없음(swing-security.md 158행) |
 | P11 | 역할 만들기·속성 | `PostgreCreateRoleDialog`, `PostgreRoleConfigurator` | 있음 | `PrincipalPropertiesDialog`(swing-security.md 63행 표) | 중간 | |
 | P12 | Source/DDL 탭(뷰·함수·트리거·규칙 등 정의 보기·제자리 편집 저장) | `PostgreSourceViewEditor` | 일부 | View DDL(`DdlViewerPanel`), Modify → 쿼리 창 `CREATE OR REPLACE`(swing-source-editor.md 7, 53행) | 중간 | 제자리 편집·저장 없음, 쿼리 창에서 실행 |
-| P13 | 새 데이터베이스(소유자·템플릿·인코딩·테이블스페이스) | `PostgreCreateDatabaseDialog`, `PostgreDatabaseConfigurator` | 없음 | Object Explorer 메뉴의 새로 만들기는 New Table/View/Procedure/Function/로그인·역할뿐(`ObjectExplorerPanel.java:596-606`, `SourceEditMessages.properties`) | 중간 | |
-| P14 | 새 스키마·테이블스페이스·확장, 확장 제거 | `PostgreCreateSchemaDialog`, `PostgreCreateTablespaceDialog`, `PostgreCreateExtensionDialog`, 도구 `PostgreToolExtensionUninstall` | 없음 | 위와 같음 | 중간 | |
-| P15 | 시퀀스·트리거·이벤트 트리거·행 보안 정책 만들기 | `PostgreSequenceConfigurator`, `PostgreTriggerConfigurator`(+`PostgreTriggerEditPage`), `PostgreEventTriggerConfigurator`, `PropertyObjectConfigurator`(Policy) | 없음 | 위와 같음. 속성 창은 읽기 전용(`PropertiesPanel.java:68`) | 중간 | |
+| P13 | 새 데이터베이스(소유자·템플릿·인코딩·테이블스페이스) | `PostgreCreateDatabaseDialog`, `PostgreDatabaseConfigurator` | 있음(2026-11-08) | Databases 폴더의 New Database…(`NewObjectCommands`, `NewObjectDialogs.askPostgreDatabase`): 이름·소유자·템플릿·인코딩·LC_COLLATE·LC_CTYPE·테이블스페이스 → 스크립트 미리 보기(취소가 기본) → 실행. 모델 `PostgreDatabaseManager`가 문장을 만든다. [swing-create-objects.md](../swing-create-objects.md) | 중간 | 조사 당시: 없음. LC_COLLATE·LC_CTYPE는 SWT에 없던 것 |
+| P14 | 새 스키마·테이블스페이스·확장, 확장 제거 | `PostgreCreateSchemaDialog`, `PostgreCreateTablespaceDialog`, `PostgreCreateExtensionDialog`, 도구 `PostgreToolExtensionUninstall` | 있음(2026-11-08) | Schemas·Tablespaces·Extensions 폴더의 New Schema…/New Tablespace…/New Extension…(`NewObjectDialogs`: 소유자, 위치·옵션, 설치하지 않은 확장 표·스키마). 확장 제거는 확장 노드의 Delete(`DROP EXTENSION … CASCADE`, swing-explorer-object-actions.md). [swing-create-objects.md](../swing-create-objects.md) | 중간 | 조사 당시: 없음 |
+| P15 | 시퀀스·트리거·이벤트 트리거·행 보안 정책 만들기 | `PostgreSequenceConfigurator`, `PostgreTriggerConfigurator`(+`PostgreTriggerEditPage`), `PostgreEventTriggerConfigurator`, `PropertyObjectConfigurator`(Policy) | 있음(2026-11-08) | 폴더의 New Sequence…/New Trigger…/New Event Trigger…/New Policy…/New Data type…가 실행할 수 있는 CREATE 틀을 쿼리 창에 연다(`SourceScripts.getTemplateKind`, 트리거·이벤트 트리거는 함수까지). [swing-create-objects.md](../swing-create-objects.md) | 중간 | 조사 당시: 없음. 대화상자 대신 틀(본문은 사용자가 씀) |
 | P16 | 인덱스·제약·외래 키 만들기 | `PostgreIndexConfigurator`, `PostgreConstraintConfigurator`, `PostgreForeignKeyConfigurator` | 있음 | `TableDesignerPanel` + `design/PostgreTableDesignerDriver`(swing-table-designer.md 58행) | 중간 | |
 | P17 | 함수·프로시저 만들기 | `PostgreProcedureConfigurator` | 있음 | `SourceEditCommands` New Function/Procedure(`SourceScripts`) | 중간 | |
 | P18 | Backup(pg_dump) | 도구 `PostgreToolBackup`, `PostgreBackupWizard*` | 일부 | `NativeBackupRestoreDialog` | 중간 | 스키마·테이블 고르기, 도구 사용자·추가 인수 없음(swing-backup-restore.md 200행) |
@@ -92,7 +92,7 @@ K1–K3의 공통 원인은 SQL 편집기에 서버 출력 패널이 없는 것�
 | S6 | SSL(키 저장소, 비밀번호, 인증서 호스트 이름) | `SQLServerSSLConfigurator` | 있음 | `SslHandlerPanel`(swing-conn-advanced.md 138행) | 중간 | |
 | S7 | 세션 관리자(Only connections, Kill) | `SQLServerSessionEditor` | 있음 | `SessionManagerPanel`(swing-admin-tools.md 125행) | 높음 | Swing이 잠금 탭을 새로 더함(SWT에 없었음) |
 | S8 | Source / Definition / DDL 탭 | `SQLServerSourceViewEditor` | 일부 | View DDL, Modify → 쿼리 창(swing-source-editor.md 53행) | 중간 | 제자리 편집 없음 |
-| S9 | 새 데이터베이스 | `SQLServerCreateDatabaseDialog`, `SQLServerDatabaseConfigurator` | 없음 | 새로 만들기 메뉴에 없음(P13과 같은 근거) | 중간 | |
+| S9 | 새 데이터베이스 | `SQLServerCreateDatabaseDialog`, `SQLServerDatabaseConfigurator` | 있음(2026-11-08) | Databases 폴더의 New Database…(`NewObjectDialogs.askSqlServerDatabase`): 이름·소유자·정렬 규칙·복구 모델 → 미리 보기 → 실행(자동 커밋, `CREATE DATABASE` 뒤 `ALTER DATABASE … COLLATE`, `ALTER AUTHORIZATION`, `SET RECOVERY`). [swing-create-objects.md](../swing-create-objects.md) | 중간 | 조사 당시: 없음. SWT는 이름만. 파일·파일 그룹 페이지는 없음 |
 | S10 | 새 로그인 | `SQLServerLoginConfigurator`(이름·암호) | 있음 | 로그인 - 신규(`PrincipalPropertiesDialog`, swing-security.md 75행) | 중간 | Swing이 더 넓음(서버 역할, 사용자 매핑) |
 | S11 | 열·고유 키·외래 키·인덱스·CHECK 제약 | `SQLServer{Column,UniqueKey,ForeignKey,Index,CheckConstraint}Configurator` | 있음 | `design/SQLServerTableDesignerDriver`(CHECK 포함, `:43-66`) | 중간 | |
 | S12 | 프로시저 만들기(SQL Server, Sybase generic) | `SQLServerProcedureConfigurator`, `SQLServerGenericProcedureConfigurator` | 있음 | New Procedure/Function(`SourceScripts`, SQL Server 템플릿) | 중간 | Sybase generic 템플릿 없음 |
@@ -108,12 +108,12 @@ K1–K3의 공통 원인은 SQL 편집기에 서버 출력 패널이 없는 것�
 | M3 | SSL(인증서, 암호 모음, Require SSL, 서버 인증서 확인, 공개 키 가져오기) | `MySQLSSLConfigurator` | 있음 | `SslHandlerPanel`(swing-conn-advanced.md 137행) | 중간 | |
 | M4 | 세션 관리자(Hide sleeping, 성능 정보, Kill connection/query) | `MySQLSessionEditor` | 있음 | swing-admin-tools.md 126행 | 높음 | Swing이 InnoDB 잠금 탭을 더함 |
 | M5 | 사용자 편집기(General·Privileges), 사용자 관리자, GRANT | `MySQLUserEditorGeneral/Privileges`, `MySQLUserManager`(UI 번들의 objectManager), `MySQLCommandGrantPrivilege` | 일부 | `PrincipalPropertiesDialog` + `MySQLSecurityDialect`(swing-security.md 76-80행) | 중간 | SWT General 탭의 리소스 제한(MAX_QUERIES/UPDATES/CONNECTIONS, `MySQLUserEditorGeneral.java:103-107`) 없음(swing-security.md 157행) |
-| M6 | 새 데이터베이스(문자 집합, 콜레이션) | `MySQLCreateDatabaseDialog`, `MySQLCatalogConfigurator` | 없음 | 새로 만들기 메뉴에 없음 | 중간 | |
+| M6 | 새 데이터베이스(문자 집합, 콜레이션) | `MySQLCreateDatabaseDialog`, `MySQLCatalogConfigurator` | 있음(2026-11-08) | Databases 폴더의 New Database…(`NewObjectDialogs.askMySQLDatabase`): 이름·문자 집합·정렬 규칙 → 미리 보기(DDL 바로 커밋 안내) → 열린 트랜잭션 질문 → 실행. [swing-create-objects.md](../swing-create-objects.md) | 중간 | 조사 당시: 없음 |
 | M7 | 인덱스·제약·외래 키 | `MySQL{Index,Constraint,ForeignKey}Configurator` | 있음 | `design/MySQLTableDesignerDriver` | 중간 | |
 | M8 | 프로시저·함수 만들기 | `MySQLProcedureConfigurator` | 있음 | New Procedure/Function | 중간 | |
-| M9 | 트리거 만들기 | `MySQLTriggerConfigurator` | 없음 | 새로 만들기 메뉴에 없음 | 중간 | |
+| M9 | 트리거 만들기 | `MySQLTriggerConfigurator` | 있음(2026-11-08) | 테이블·데이터베이스의 Triggers 폴더 New Trigger…: `DELIMITER` 사이의 CREATE TRIGGER 틀을 쿼리 창에(`SourceScripts.getTemplateKind`). [swing-create-objects.md](../swing-create-objects.md) | 중간 | 조사 당시: 없음 |
 | M10 | 이벤트 만들기 | `MySQLEventConfigurator` | 있음 | `MySQLEventDialog`(swing-job-schedulers.md 14행) | 낮음 | Swing이 사용/사용 안 함·스케줄러 상태를 더함 |
-| M11 | 시퀀스 만들기(MariaDB) | `MySQLSequenceConfigurator` | 없음 | 새로 만들기 메뉴에 없음 | 낮음 | |
+| M11 | 시퀀스 만들기(MariaDB) | `MySQLSequenceConfigurator` | 있음(2026-11-08) | Sequences 폴더 New Sequence…: CREATE SEQUENCE 틀. MariaDB 패키지(Packages 폴더 New Package…)도 같은 길. [swing-create-objects.md](../swing-create-objects.md) | 낮음 | 조사 당시: 없음 |
 | M12 | Source 탭, 패키지 본문(MariaDB Oracle 모드) | `MySQLSourceViewEditor`, `MySQLPackageBodyEditor` | 일부 | View DDL, Modify(swing-source-editor.md 53행) | 낮음 | |
 | M13 | 내보내기(mysqldump) | 도구 `MySQLToolExport`, `MySQLExportWizard*` | 일부 | `NativeBackupRestoreDialog` | 중간 | 테이블 고르기 없음(swing-backup-restore.md 200행) |
 | M14 | 가져오기(mysql로 덤프 복원) | 도구 `MySQLToolImport` | 있음 | `NativeBackupRestoreDialog` | 중간 | |
@@ -143,8 +143,8 @@ K1–K3의 공통 원인은 SQL 편집기에 서버 출력 패널이 없는 것�
 | O14 | DDL 탭의 DDL 형식(FULL / 저장소 제외 / 간단히) | `OracleObjectDDLEditor`, `OracleEditorUtils.addDDLControl` | 있음(2026-11-08) | View DDL 탭의 DDL format 콤보(`DdlViewerPanel.Formats`, `ObjectScripts.generateCreate`), [swing-routines.md](../swing-routines.md) | 낮음 | 조사 당시: 일부(형식 콤보 없음) |
 | O15 | 스케줄러 작업: 실행, 작업 동작 편집, 작업 로그 | 명령 `ext.oracle.job.run` → `JobRunHandler`, `SchedulerJobActionEditor`, `SchedulerJobLogEditor` | 있음 | `SchedulerCommands`, `OracleJobDialog`, 기록 탭(swing-job-schedulers.md 12, 23-25행) | 중간 | Swing이 더 넓음 |
 | O16 | 사용자(스키마) 만들기, 역할·권한 부여 | `OracleSchemaConfigurator`(+ 범용 편집기의 권한 탭) | 있음(2026-11-08) | `OracleSecurityDialect` + 보안 창(swing-security.md "Oracle"): 사용자·역할 만들기·속성·삭제, 역할 소속, 시스템·객체 권한 | 높음 | 조사 당시: 없음. 패키지·열 권한, 테이블스페이스·할당량·프로필은 없음 |
-| O17 | 시퀀스·큐·데이터 형식·패키지·테이블 트리거 만들기 | `Oracle{Sequence,Queue,DataType,Package,TableTrigger}Configurator` | 없음 | 새로 만들기는 View/Procedure/Function뿐(swing-source-editor.md 21행) | 중간 | |
-| O18 | 인덱스·제약·외래 키 만들기 | `Oracle{Index,Constraint,ForeignKey}Configurator` | 없음 | 테이블 디자이너는 Oracle 열만 되고 인덱스·FK·CHECK는 드라이버 구현 없음(swing-table-designer.md 74, 124행) | 중간 | |
+| O17 | 시퀀스·큐·데이터 형식·패키지·테이블 트리거 만들기 | `Oracle{Sequence,Queue,DataType,Package,TableTrigger}Configurator` | 있음(2026-11-08) | 폴더의 New Sequence…/New Queue…/New Type…/New Package…/New Trigger…(테이블·스키마 트리거)가 CREATE 틀을 쿼리 창에 연다(큐는 `DBMS_AQADM`, 패키지는 명세와 본문). [swing-create-objects.md](../swing-create-objects.md) | 중간 | 조사 당시: 없음 |
+| O18 | 인덱스·제약·외래 키 만들기 | `Oracle{Index,Constraint,ForeignKey}Configurator` | 있음(2026-11-08) | 테이블 디자이너의 Oracle 인덱스·외래 키·CHECK(`design.OracleTableDesignerDriver`, `OracleTableBase` 어댑터). Oracle이 받지 않는 외래 키 규칙(RESTRICT·SET DEFAULT·ON UPDATE)은 추가할 때 거절. 저장 전 열린 트랜잭션 질문. [swing-table-designer.md](../swing-table-designer.md), [swing-create-objects.md](../swing-create-objects.md) | 중간 | 조사 당시: 없음 |
 | O19 | 통계 수집(테이블·인덱스) | `OracleToolGatherStatistics` | 있음 | `OracleMaintenanceDialect` GATHER_TABLE/INDEX/SCHEMA_STATS | 중간 | |
 | O20 | 구조 검증(VALIDATE STRUCTURE) | `OracleToolValidateStructure` | 있음(2026-11-08) | Maintenance… 테이블 동작 Validate Structure(`OracleMaintenanceDialect` `validate`), [swing-routines.md](../swing-routines.md) | 낮음 | 조사 당시: 없음 |
 | O21 | TRUNCATE, 트리거 사용/사용 안 함, 구체화된 뷰 새로 고침 | `OracleToolTruncate`, `OracleToolTriggerEnable/Disable`, `OracleToolRefreshMView` | 있음(2026-11-08) | P23과 같음 | 중간 | 조사 당시: 없음. REUSE STORAGE·새로 고침 방식 옵션 화면은 없음 |
@@ -248,8 +248,8 @@ SWT에도 Altibase 전용 연결 화면은 없었다(`dataSourceConfigurator` �
 4. K2 / A4 Altibase 서버 출력(메모리에 쌓임) — 조용히 끊김, 중간. (2026-11-07 고침)
 5. O5 Oracle 세션 NLS 설정 — 없음(저장값은 보이지 않게 적용), 중간. (2026-11-08 고침)
 6. TRUNCATE·트리거 사용/사용 안 함·구체화된 뷰 새로 고침(P23, O21, S14, M17, A5) — 없음, 중간. (2026-11-08 고침, A5 Altibase도 2026-11-08 `chromite/p4-routines`)
-7. DB·스키마·시퀀스·테이블스페이스·확장·트리거·패키지 만들기(P13-P15, S9, M6, M9, O17) — 없음, 중간.
-8. O18 Oracle 인덱스·제약·외래 키(디자이너 미지원) — 없음, 중간.
+7. DB·스키마·시퀀스·테이블스페이스·확장·트리거·패키지 만들기(P13-P15, S9, M6, M9, O17) — 없음, 중간. (2026-11-08 고침, [swing-create-objects.md](../swing-create-objects.md))
+8. O18 Oracle 인덱스·제약·외래 키(디자이너 미지원) — 없음, 중간. (2026-11-08 고침)
 9. P29 PostgreSQL 디버거(모델까지 삭제) — 없음, 중간. (2026-11-07 옮김, [procedure-debugger.md](../procedure-debugger.md))
 10. A6·A7 Altibase 컴파일, 복제 시작·중지 — 없음, 중간. (A6은 2026-11-08 고침, A7은 남음)
 

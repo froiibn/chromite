@@ -80,6 +80,8 @@ import java.util.Set;
  *   (docs/chromite/swing-table-designer.md)
  * - 2026-11-06 화면 문구를 ToolsMessages로 옮김(OS 언어를 따름)
  * - 2026-11-07 밀도 B: 치수를 테마의 Chromite.size.* 키({@link UiSizes})에서 읽음 (docs/chromite/design-spec.md "치수 토큰")
+ * - 2026-11-08 저장 전 열린 트랜잭션 질문({@link ExitTransactionCheck#confirmObjectChange}): 저장 경로는 명령마다 커밋하고
+ *   MySQL·Oracle DDL은 암묵 커밋하므로 연결의 열린 트랜잭션이 함께 커밋되던 것 (docs/chromite/swing-create-objects.md "트랜잭션")
  */
 final class TableDesignerPanel extends JPanel {
 
@@ -609,7 +611,10 @@ final class TableDesignerPanel extends JPanel {
                 host.openScript(session.getTable().getDataSource().getContainer(), script, 0, false);
                 return false;
             }
-            if (result != ScriptPreviewDialog.Result.EXECUTE) {
+            // The save commits after each command and MySQL/Oracle DDL commits implicitly: an open transaction of the
+            // connection is answered first (user rule "transaction safety")
+            if (result != ScriptPreviewDialog.Result.EXECUTE
+                || !ExitTransactionCheck.confirmObjectChange(this, session.getTable().getDataSource().getContainer())) {
                 return false;
             }
         }
