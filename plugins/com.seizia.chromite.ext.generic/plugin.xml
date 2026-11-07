@@ -1562,6 +1562,7 @@
                         supportedConfigurationTypes="MANUAL,URL"
                         description="Driver for MySQL (4.x and earlier)">
                     <file type="jar" path="maven:/mysql:mysql-connector-java:RELEASE[5.1.49]"/>
+                    <file type="license" path="licenses/external/gpl-2.0-mysql-foss-exception.txt"/>
                     <property name="rewriteBatchedStatements" value="true"/>
                 </driver>
 
