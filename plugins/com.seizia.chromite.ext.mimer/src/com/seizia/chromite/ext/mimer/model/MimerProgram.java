@@ -54,6 +54,12 @@ import java.util.Set;
  * {@link MimerUser}, a program has no schema and no OS login - per the docs, its password is
  * mandatory (not optional) and capped at 18 characters.
  *
+ * 설계: 암호 속성은 필수({@code required = true})로 선언해 새 개체 이름 대화상자가 가려서 받는다. 비어 있으면
+ * {@link #buildCreateDDL}이 문장을 만들지 않는다(전에는 빈 암호 {@code USING ''}를 썼다).
+ *
+ * 변경 이력:
+ * - 2026-11-08 암호를 필수로 선언하고 빈 암호의 CREATE를 거절 (docs/chromite/swing-create-objects.md "새 사용자의 암호")
+ *
  * @author Mimer Information Technology
  */
 public class MimerProgram implements DBSObject, DBPNamedObject2, DBPSaveableObject, DBPRefreshableObject, MimerCommentable {
@@ -114,7 +120,7 @@ public class MimerProgram implements DBSObject, DBPNamedObject2, DBPSaveableObje
     }
 
     @NotNull
-    @Property(viewable = true, editable = true, updatable = true, order = 4, password = true)
+    @Property(viewable = true, editable = true, updatable = true, order = 4, password = true, required = true)
     public String getPassword() {
         return password;
     }
@@ -288,10 +294,16 @@ public class MimerProgram implements DBSObject, DBPNamedObject2, DBPSaveableObje
     /**
      * {@code CREATE IDENT "name" AS PROGRAM USING 'password'} - unlike {@link MimerUser}, the
      * password is mandatory, never omitted.
+     *
+     * @throws DBException if the password is empty: no statement is generated with an empty
+     *                     (made-up) password
      */
     @NotNull
-    public String buildCreateDDL() {
-        String quotedPassword = CommonUtils.notEmpty(password).replace("'", "''");
+    public String buildCreateDDL() throws DBException {
+        if (CommonUtils.isEmpty(password)) {
+            throw new DBException("A password is required for the program ident " + name);
+        }
+        String quotedPassword = password.replace("'", "''");
         return "CREATE IDENT \"" + name.replace("\"", "\"\"") + "\" AS PROGRAM USING '" + quotedPassword + "'";
     }
 
