@@ -133,6 +133,10 @@ public class CoreMessages extends NLS {
     public static String main_menu_window;
     public static String main_reset_layout;
     public static String main_show_hidden_tabs;
+    public static String mac_menu_hide;
+    public static String mac_menu_hide_others;
+    public static String mac_menu_show_all;
+    public static String mac_menu_quit;
     public static String main_menu_theme;
     public static String main_menu_icon_style;
     public static String main_menu_compact_mode;

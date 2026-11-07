@@ -108,6 +108,9 @@ SWT 프런트엔드를 지울 때(#68) 기능 전체 목록과 맞춰 보지 않
 - 루틴 묶음(`chromite/p4-routines`, 2026-11-08): B-S42 프로시저 실행, D-O11·O12·O13·O14·O20, D-A5·A6을 고쳤다([swing-routines.md](swing-routines.md)).
   PostgreSQL·SQL Server·MariaDB·Oracle·Altibase에서 실행 확인.
 
+- 2026-11-08 결과 편집(B3, `chromite/p4-grid-editing`, [swing-grid-editing.md](swing-grid-editing.md)): B-R16·R21·O6·O7 → 있음, B-R20 → 일부(연쇄 삭제 남음),
+  B-R14 일부(날짜 선택기·불리언·LOB 파일 더함), D-P28 → 일부, D-M18 → 있음. PostgreSQL·SQL Server·MariaDB·Oracle에서 자동·수동 커밋으로 실행 확인.
+
 ## 원래 SWT 제품에 없던 것 (해당 없음)
 
 디버거, Git, Office("Excel에서 열기"), 개발 도구 번들은 빌드는 됐지만 SWT 제품 피처에 들어 있지 않았다([C 보고서](swt-parity/C-navigator-tools.md) 참고).
@@ -141,6 +144,7 @@ PostgreSQL 디버거는 2026-11-07 사용자 요청으로 Swing에 옮겼다(C-6
   ([swing-result-charts-spatial.md](swing-result-charts-spatial.md)). 결과 요약 B·C·합계 갱신.
 - 2026-11-08 설정 화면 나머지 1차: 연결별 설정, Data Formats·Errors and Timeouts·Metadata·Client Identification([swing-options.md](swing-options.md)).
   A-platform §6의 해당 줄과 §7 집계 문단 갱신.
+- 2026-11-08 4순위 결과 편집([swing-grid-editing.md](swing-grid-editing.md)): B-R14·R16·R20·R21·O6·O7, D-P28·M18 상태 갱신. 결과 요약은 메인 세션이 다시 셈.
 - 2026-11-08 C-49 없음 → 일부: Schema Compare(두 스키마의 구조 비교와 마이그레이션 스크립트, [schema-compare.md](schema-compare.md)). 결과 요약 C·합계 갱신.
 - 2026-11-08 devel 병합 때 영역 C 집계를 행 상태에서 다시 셈: C-29(데이터 검색, 2026-11-08 옮김)가 행은 있음인데 집계에는 없음으로 남아 있었다. 결과 요약 C·합계 갱신.
 - 2026-11-08 후속 #55·#62·#69(`chromite/drivers-oracle-batch`): B-C18·C19 일부 → 있음(결과 요약 B·합계 갱신), A-platform §6 Classpath 없음 → 있음·Maven 비고,
@@ -151,3 +155,5 @@ PostgreSQL 디버거는 2026-11-07 사용자 요청으로 Swing에 옮겼다(C-6
   A-platform §6의 해당 줄과 S12 근거 갱신(집계 수는 고치지 않음).
 - 2026-11-08 4순위 쿼리 편집기 편의(B6): B-S31·S35·S37 없음 → 있음, B-S28 없음 → 일부, B-S44 일부 → 있음, B-S3·S33·S34 비고 갱신
   ([swing-sql-editor-ergonomics.md](swing-sql-editor-ergonomics.md)). 결과 요약 수는 병합 때 다시 셈.
+- 2026-11-08 4순위 연결 칸(`chromite/p4-connection-fields`, [swing-conn-advanced.md](swing-conn-advanced.md)): 공급자 속성 선언, ClickHouse·Databend·TiDB Lake SSL, BigQuery·Snowflake·Spanner·HANA·Firebird·Mimer 칸, 연결 설명.
+  D-P3·S4·S5·O7과 번들 줄 9개 갱신, B-C2·C4·C8 비고 갱신. 결과 요약 수는 고치지 않음(공통 규칙: 메인 세션이 다시 셈).
