@@ -123,7 +123,7 @@ MView 새로 고침, TRUNCATE, 트리거 켜기/끄기), MySQL(ANALYZE·CHECK·O
 | 51 | 점프 서버 목록 편집 | `SSHTunnelDefaultConfiguratorUI`의 점프 서버 표 | 일부 | 읽은 점프 서버를 그대로 저장하고 개수만 안내(`swing-conn-advanced.md:102`, `SshTunnelPanel.java:194-196`) | 낮음 | 새로 더하거나 고칠 수 없음 |
 | 52 | 네트워크 프로필을 쓰는 연결의 SSH 자격 증명만 입력 | `SSHTunnelCredsOnlyConfiguratorUI` | 없음 | 프로필을 쓰면 칸을 끄고 프로필 이름만 보임, 프로필 편집 화면 없음(`swing-conn-advanced.md:92`) | 낮음 | |
 | 53 | SSH 터널 탐색기 보기(열린 터널 목록) | `SSHTunnelView` | 없음 | grep 0 | 낮음 | |
-| 54 | **JSch 구현의 호스트 키 확인 질문과 키보드 대화형(OTP) 입력** | `JSCHUIPromptProviderAdapterFactory` → `JSCHUIPromptProvider`(`org.eclipse.jsch.ui.UserInfoPrompter`, `promptYesNo` → `confirmAction`) | **조용히 끊김** | 어댑터가 없어 `GeneralUtils.adapt`가 null을 주고 모델 기본 `JschUserInfo`를 쓴다(`JSCHSessionController.java:90-99`). 이것은 `promptYesNo`가 늘 false, 키보드 대화형 질문마다 저장된 비밀번호를 돌려준다(`:178-220`). 호스트 키 확인은 `StrictHostKeyChecking=ask`(`:126-151`) | 중간 | 결과: JSch를 고른 연결은 known_hosts에 없거나 바뀐 호스트에 묻지 않고 거절(연결 실패), OTP를 묻는 서버에는 로그인 불가. 확인을 건너뛰는 방향은 아니다. 기본 구현 SSHJ는 `KnownHostsVerifier`가 `getPlatformUI().confirmAction`을 써서 Swing에서도 묻는다(`KnownHostsVerifier.java:64-84`). JSch는 `runtime.feature`에 들어 있고 Swing 구현 콤보에 보인다(`SshTunnelPanel.java:116`) |
+| 54 | **JSch 구현의 호스트 키 확인 질문과 키보드 대화형(OTP) 입력** | `JSCHUIPromptProviderAdapterFactory` → `JSCHUIPromptProvider`(`org.eclipse.jsch.ui.UserInfoPrompter`, `promptYesNo` → `confirmAction`) | **수정함** (2026-11-07, [swing-auth-prompts.md](../swing-auth-prompts.md): `JschPromptAdapterFactory` → `JschUserInfoPrompter`). 조사 당시: 조용히 끊김 | 어댑터가 없어 `GeneralUtils.adapt`가 null을 주고 모델 기본 `JschUserInfo`를 쓴다(`JSCHSessionController.java:90-99`). 이것은 `promptYesNo`가 늘 false, 키보드 대화형 질문마다 저장된 비밀번호를 돌려준다(`:178-220`). 호스트 키 확인은 `StrictHostKeyChecking=ask`(`:126-151`) | 중간 | 결과: JSch를 고른 연결은 known_hosts에 없거나 바뀐 호스트에 묻지 않고 거절(연결 실패), OTP를 묻는 서버에는 로그인 불가. 확인을 건너뛰는 방향은 아니다. 기본 구현 SSHJ는 `KnownHostsVerifier`가 `getPlatformUI().confirmAction`을 써서 Swing에서도 묻는다(`KnownHostsVerifier.java:64-84`). JSch는 `runtime.feature`에 들어 있고 Swing 구현 콤보에 보인다(`SshTunnelPanel.java:116`) |
 
 ## 8. `ui.ai`
 
@@ -165,7 +165,7 @@ MView 새로 고침, TRUNCATE, 트리거 켜기/끄기), MySQL(ANALYZE·CHECK·O
 이 영역에는 "높음"인 빈칸이 없다. 매일 쓰는 내보내기·가져오기·백업·탐색·SSH 설정은 옮겨졌다. 아래는 모두 "중간"이고, 조용히 끊긴 두 개를 앞에 두었다.
 
 1. **(조용히 끊김) `@ai` 명령의 실행 확인에 SQL이 보이지 않음** (#58) — AI가 만든 DML·DDL을 내용 없이 승인. 확인 규칙 설정도 없음.
-2. **(조용히 끊김) JSch SSH 구현의 호스트 키 질문·OTP 입력 없음** (#54) — JSch를 고른 연결은 새·바뀐 호스트에서 묻지 않고 실패, 2단계 인증 서버에 로그인 불가.
+2. **(조용히 끊김) JSch SSH 구현의 호스트 키 질문·OTP 입력 없음** (#54) — JSch를 고른 연결은 새·바뀐 호스트에서 묻지 않고 실패, 2단계 인증 서버에 로그인 불가. 2026-11-07 수정함([swing-auth-prompts.md](../swing-auth-prompts.md)).
 3. DB 객체 삭제(DROP) 명령 없음 (#11)
 4. 객체 이름 복사·연결 복제·붙여넣기 없음 (#12)
 5. Generate SQL의 INSERT/UPDATE/DELETE/MERGE/JOIN/CALL/DROP 없음 (#17)

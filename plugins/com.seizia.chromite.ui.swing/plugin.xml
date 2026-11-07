@@ -48,6 +48,14 @@
         </factory>
     </extension>
 
+    <!-- JSch SSH questions (host key, password, passphrase, keyboard-interactive/OTP) as Swing dialogs; the SWT product
+         registered JSCHUIPromptProviderAdapterFactory. Without it JSch refuses new host keys and answers OTP with the password. -->
+    <extension point="org.eclipse.core.runtime.adapters">
+        <factory adaptableType="com.seizia.chromite.model.net.ssh.JSCHSessionController" class="com.seizia.chromite.ui.swing.JschPromptAdapterFactory">
+            <adapter type="com.seizia.chromite.model.net.ssh.JSCHUserInfoPromptProvider"/>
+        </factory>
+    </extension>
+
     <!-- Product name for GeneralUtils.getProductName(). No class attribute: Equinox creates the application instance. -->
     <extension point="com.seizia.chromite.application">
         <application id="chromite-swing"
