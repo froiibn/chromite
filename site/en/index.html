@@ -33,7 +33,7 @@
 <link rel="alternate" hreflang="ko" href="/ko/">
 <script src="/downloads/releases.js" defer></script>
 <script src="/assets/site.js" defer></script>
-<script src="/assets/tour.js" defer></script>
+<script src="/assets/stage.js"></script>
 </head>
 <body>
 <header class="top">
@@ -50,10 +50,179 @@
   </div>
 </header>
 
+<div class="stage">
+  <section class="scene scene-hero" aria-labelledby="hero-title">
+    <div class="pin">
+      <div class="hero-copy" data-t="o 1 0 .08 .34; y 0px -90px 0 .34">
+        <h1 id="hero-title">Chromite</h1>
+        <p class="hero-sub">Database workbench</p>
+        <p class="hero-cta"><a class="btn" href="#download">Download</a><span>For Windows and macOS. Free and open source.</span></p>
+      </div>
+      <div class="hero-shot">
+        <img src="/assets/shots/en-dark.webp" width="1899" height="1188" fetchpriority="high" decoding="async" data-t="y 62% -4% 0 .62; r 34 0 0 .62; s .84 1 0 .62" alt="The Chromite window: Object Explorer and Registered Servers on the left, the SQL editor and result grid in the middle, Properties on the right.">
+      </div>
+      <p class="hero-statement" data-t="o 0 1 .6 .78; y 36px 0px .6 .78">PostgreSQL, SQL Server, MariaDB, MySQL and Oracle in one window.</p>
+    </div>
+  </section>
+
+  <section class="scene scene-wide" id="transactions" aria-labelledby="transactions-title">
+    <div class="pin">
+      <div class="scene-head">
+        <h2 id="transactions-title">Transactions are never closed behind your back.</h2>
+      </div>
+      <figure class="scene-media">
+        <div class="frame"><img src="/assets/shots/tour/transactions-en-dark.webp" srcset="/assets/shots/tour/transactions-en-dark.webp 1.25x" width="994" height="342" loading="lazy" decoding="async" data-t="s 1 1.7 .03 .17; x 0% -42% .03 .17; y 0% -70% .03 .17; s 1.7 1 .52 .66; x -42% 0% .52 .66; y -70% 0% .52 .66" alt="The lower part of a query window after an UPDATE. The Messages tab says (1 row affected); the status line shows Manual commit and an open transaction with its age and 1 statement; its menu offers Commit, Roll Back and Transaction Log."></div>
+        <figcaption>PostgreSQL on a manual-commit connection: after an UPDATE, the open-transaction field of the status line is clicked.</figcaption>
+      </figure>
+      <ul class="slot">
+        <li>The status line shows the open transaction, how long it has been open and how many statements it holds. Click it to commit, roll back or open the transaction log.</li>
+        <li>A transaction left open and unused is brought back to you as a notification after the time you set.</li>
+        <li>Disconnecting, closing the app or reconnecting after an error asks first: Commit / Roll Back / Cancel.</li>
+        <li>UPDATE and DELETE without WHERE, DROP and TRUNCATE ask before they run, and edits in the result grid can show the SQL they will run before you save them.</li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="scene scene-wide" id="query-library" aria-labelledby="query-library-title">
+    <div class="pin">
+      <div class="scene-head">
+        <h2 id="query-library-title">A query library the team shares.</h2>
+      </div>
+      <figure class="scene-media">
+        <div class="frame"><img src="/assets/shots/tour/library-en-dark.webp" srcset="/assets/shots/tour/library-en-dark.webp 1.25x" width="1401" height="584" loading="lazy" decoding="async" data-t="s 1.6 1 .18 .36; x -60% 0% .18 .36; y 0% 0% .18 .36" alt="The Query Library window with the roots My queries and Team queries, a Git repository shown as main ↑1. The query window in the middle has Name, Description, Target, Parameters (1) and Thresholds, the SQL, and one long open transaction in the result grid."></div>
+        <figcaption>Team queries is a Git working copy (branch main, one commit not pushed). The query ran with its parameter set to 0.</figcaption>
+      </figure>
+      <ul class="slot">
+        <li>Add a network folder or a Git working copy as a library root. The tree shows the branch and the commits not pushed yet, and you pull or commit and push from the app.</li>
+        <li>Each query is a plain <code>.sql</code> file, so other tools can open it too.</li>
+        <li>Parameters are asked for when the query runs (numbers, dates, choice lists, defaults), and thresholds judge result columns as warning or critical.</li>
+        <li>While Chromite is running, a query can run at an interval or a time you set and notify you when its condition is met. A set of queries exports and imports as one file.</li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="scene scene-side n6" id="chromite-agent" aria-labelledby="chromite-agent-title">
+    <div class="pin">
+      <div class="scene-head">
+        <h2 id="chromite-agent-title">Chromite Agent</h2>
+        <p class="scene-lead">Ask it something and it picks tools to gather evidence from the connected database, then answers. The tools target SQL Server, PostgreSQL, MariaDB and Oracle; which tools work depends on the database.</p>
+      </div>
+      <figure class="scene-media" data-t="y 8vh 0vh 0 .3">
+        <div class="frame"><img src="/assets/shots/tour/agent-en-dark.webp" srcset="/assets/shots/tour/agent-en-dark.webp 1.25x" width="414" height="797" loading="lazy" decoding="async" alt="The Chromite Agent window. Under the question 'The UPDATE on order 42 never finishes. Why is it waiting?' the read tools Get blocking chain and List open transactions are marked Done, followed by an answer with the cause and what to do."></div>
+        <figcaption>The tool calls and their results come from a real database. The wording of the answer came from a scripted test provider used for this picture.</figcaption>
+      </figure>
+      <ul class="slot tasks">
+        <li><strong>Slow query tuning</strong> Reads the estimated and actual plan, compares plans before and after an index, and looks at statistics, index usage, missing and unused indexes and fragmentation. It creates an index only after you confirm.</li>
+        <li><strong>Blocking and deadlocks</strong> Builds the blocking chain from the head blocker, lists locks and sessions with long open or idle transactions, and reads recent deadlock graphs. Ending a session always asks you first.</li>
+        <li><strong>Health check</strong> Sessions, wait statistics, top CPU and I/O queries, database and file space, backup and job history, the server error log, and settings that differ from their defaults.</li>
+        <li><strong>Procedure review</strong> Reads the source with line numbers, its dependencies and per-statement execution statistics.</li>
+        <li><strong>And more</strong> Searches objects, describes tables, keys and permissions, and generates DDL. Samples rows, profiles columns and compares results; exports to CSV, XLSX or JSON and imports CSV; runs saved Query Library checks; opens the SQL it wrote in a new query window without running it.</li>
+        <li><strong>Safety and access</strong> Every tool has a policy per connection (run / confirm / blocked), and writes are blocked on production connections by default. Commit and rollback always ask, read-only diagnostics run read-only, and every call goes to the audit log. Providers are Claude, OpenAI and Ollama, and a local MCP server offers the same tools to external agents on this PC.</li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="scene scene-side n3" id="closed-networks" aria-labelledby="closed-networks-title">
+    <div class="pin">
+      <div class="scene-head">
+        <h2 id="closed-networks-title">Works on networks without internet.</h2>
+        <p class="scene-lead">One installer connects to the main databases right away, with no driver download.</p>
+      </div>
+      <figure class="scene-media">
+        <div class="frame"><img src="/assets/shots/tour/drivers-en-dark.webp" srcset="/assets/shots/tour/drivers-en-dark.webp 1.25x" width="731" height="669" loading="lazy" decoding="async" data-t="s 1 1.6 .3 .42; y 0% -34% .3 .42; s 1.6 1 .63 .75; y -34% 0% .63 .75" alt="The Create Offline Driver Bundle dialog. Derby Embedded and DuckDB are checked in the driver list, with 3 selected and a Create button below."></div>
+        <figcaption>Choosing the drivers for a bundle on a PC with internet. Bundled drivers are not in the list.</figcaption>
+      </figure>
+      <ul class="slot">
+        <li>The SQL Server, Oracle, PostgreSQL, MariaDB and SQLite drivers are in the installer. MySQL is downloaded on first connect or installed from an offline bundle.</li>
+        <li>For other drivers, make one offline bundle file in the Driver Manager on a PC with internet and install it on the closed-network PC. Every file's SHA-256 is checked before it is installed.</li>
+        <li>With offline mode on, Chromite does not try to download driver files. The automatic update check can be turned off in Options.</li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="scene scene-wide" id="debugger" aria-labelledby="debugger-title">
+    <div class="pin">
+      <div class="scene-head">
+        <h2 id="debugger-title">Step through procedures.</h2>
+      </div>
+      <figure class="scene-media">
+        <div class="frame"><img src="/assets/shots/tour/debugger-en-dark.webp" srcset="/assets/shots/tour/debugger-en-dark.webp 1.25x" width="1030" height="732" loading="lazy" decoding="async" data-t="s 1 1.8 .22 .34; x 0% 0% .22 .34; y 0% -43% .22 .34; s 1.8 1.5 .47 .6; x 0% -25% .47 .6; y -43% -50% .47 .6; s 1.5 1 .72 .84; x -25% 0% .72 .84; y -50% 0% .72 .84" alt="The debugger tab. The PL/pgSQL function order_total is stopped at a breakpoint on line 14. The Variables tab shows p_order_id 42, p_discount 0.05, v_total 126.50 and v_lines 1."></div>
+        <figcaption>A PostgreSQL function stopped inside its loop, on the second line. PostgreSQL needs the pldebugger extension on the server, and Oracle needs debug privileges. SQL Server is not supported.</figcaption>
+      </figure>
+      <ul class="slot">
+        <li>Run PostgreSQL (PL/pgSQL) and Oracle (PL/SQL) functions and procedures in a debugger.</li>
+        <li>Click the margin to set a breakpoint, then follow the code with Step Over and Step Into. Oracle also has Step Out.</li>
+        <li>See variables, the call stack, server messages and results. While stopped, you can change a variable's value.</li>
+        <li>When the debugger ends with a transaction not committed in its session, it asks: Commit / Roll Back / Cancel.</li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="scene scene-wide" id="administration" aria-labelledby="administration-title">
+    <div class="pin">
+      <div class="scene-head">
+        <h2 id="administration-title">Administer four databases from one tool.</h2>
+        <p class="scene-lead">SQL Server, Oracle, PostgreSQL and MariaDB in the same Activity Monitor, with the same menus.</p>
+      </div>
+      <figure class="scene-media">
+        <div class="frame"><img src="/assets/shots/tour/admin-en-dark.webp" srcset="/assets/shots/tour/admin-en-dark.webp 1.25x" width="1211" height="797" loading="lazy" decoding="async" data-t="s 1 1.7 .03 .17; x 0% -44% .03 .17; s 1.7 1 .22 .36; x -44% 0% .22 .36" alt="The Locks tab of the Activity Monitor. The blocking chain shows session 34839 blocking session 34863, with wait resource orders (row 1,104) and wait mode ShareLock. Below are the locks of both sessions."></div>
+        <figcaption>PostgreSQL: an UPDATE in one session waits for another session's change that is not committed.</figcaption>
+      </figure>
+      <ul class="slot">
+        <li>Sessions and locks: the blocking chain from the head blocker and the locks of each session; end a session.</li>
+        <li>Job schedulers: SQL Server Agent, Oracle DBMS_SCHEDULER, PostgreSQL pg_cron and MariaDB events.</li>
+        <li>Disk usage, server logs (errors, warnings, slow queries), maintenance with a preview and a confirmation, and replication status.</li>
+        <li>Altibase connects too, with tables coloured by storage type, server output, and sessions and locks.</li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="scene scene-side n3" id="passwords" aria-labelledby="passwords-title">
+    <div class="pin">
+      <div class="scene-head">
+        <h2 id="passwords-title">Passwords stay on your PC.</h2>
+        <p class="scene-lead">Saved connection passwords and API keys are never written to workspace files.</p>
+      </div>
+      <figure class="scene-media">
+        <div class="frame"><img src="/assets/shots/tour/credentials-en-dark.webp" srcset="/assets/shots/tour/credentials-en-dark.webp 1.25x" width="707" height="700" loading="lazy" decoding="async" data-t="s 1 1.6 .3 .42; x 0% -6% .3 .42; y 0% -60% .3 .42; s 1.6 1 .63 .75; x -6% 0% .63 .75; y -60% 0% .63 .75" alt="The Export Connections dialog: the list of connections to export, the check box to include passwords and encrypt the file, Passphrase and Confirm fields, and a note that it needs 12 characters or more."></div>
+        <figcaption>File &gt; Export Connections. With passwords included, the whole file is encrypted with this passphrase.</figcaption>
+      </figure>
+      <ul class="slot">
+        <li>They are encrypted in the operating system's secure storage: DPAPI tied to your Windows account, or the Keychain on macOS.</li>
+        <li>To move to a new PC, export your connections to a file encrypted with a passphrase you choose (12 characters or more) and import it there.</li>
+        <li>No usage statistics are collected or sent. The only requests that leave the PC are the update check, downloads of drivers that are not bundled, and calls to a Chromite Agent provider you set up. See <a href="/en/privacy.html">Privacy</a> for the details.</li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="scene scene-side n2" id="open-source" aria-labelledby="open-source-title">
+    <div class="pin">
+      <div class="scene-head">
+        <h2 id="open-source-title">Free and open source.</h2>
+        <p class="scene-lead">Chromite's source code is public on GitHub under the Apache License 2.0. Anyone can read it, build it, change it and redistribute it.</p>
+      </div>
+      <div class="scene-media oss" data-t="o .3 1 0 .3; y 40px 0px 0 .3">
+        <a class="oss-repo" href="https://github.com/froiibn/chromite">
+          <span class="mark-github large" aria-hidden="true"></span>
+          <span><strong>froiibn/chromite</strong><span class="where">View the source code on GitHub</span></span>
+        </a>
+        <ul class="oss-links">
+          <li><a href="https://github.com/froiibn/chromite/blob/devel/LICENSE.md">License (Apache License 2.0)</a></li>
+          <li><a href="https://github.com/froiibn/chromite/blob/devel/NOTICE">NOTICE</a></li>
+        </ul>
+      </div>
+      <ul class="slot">
+        <li>A code-signed installer for Windows and a disk image for macOS are provided. New versions are downloaded automatically and installed when you restart the app.</li>
+        <li>Chromite started from another open-source project released under the Apache License 2.0. The original copyright notices, and the licenses of the JDBC drivers, Java runtime and fonts that ship with it, are in NOTICE.</li>
+      </ul>
+    </div>
+  </section>
+</div>
+
 <main class="wrap">
-  <div class="hero">
+  <section class="get" id="download" aria-labelledby="get-title">
     <div class="intro">
-      <h1>PostgreSQL, SQL Server, MariaDB, MySQL and Oracle in one window</h1>
+      <h2 class="get-title" id="get-title">Get Chromite for Windows and macOS</h2>
       <p class="lead">Chromite is a database workbench for Windows and macOS. Connect to a server, run SQL, edit results right in the grid, and manage tables and servers. It installs with its own Java runtime and JDBC drivers, so there is nothing else to set up.</p>
     </div>
     <div class="included">
@@ -107,224 +276,6 @@
       </div>
       <p class="state state-static">The latest version and the download buttons are filled in by JavaScript. Without it, find the file name (with its size and SHA-256) in <a href="/downloads/releases.json">releases.json</a> and open <code>/downloads/&lt;file name&gt;</code>. The same files are on <a href="https://github.com/froiibn/chromite/releases">GitHub Releases</a>.</p>
     </section>
-  </div>
-
-  <figure class="shot">
-    <picture>
-      <source srcset="/assets/shots/en-dark.webp" media="(prefers-color-scheme: dark)">
-      <img src="/assets/shots/en-light.webp" width="1899" height="1188" alt="The Chromite window: Object Explorer and Registered Servers on the left, the SQL editor and result grid in the middle, Properties on the right.">
-    </picture>
-    <figcaption>The app connected to SQL Server after running a query. On the left are Object Explorer and Registered Servers; on the right, the properties of the selected table.</figcaption>
-  </figure>
-
-  <section class="tour" aria-labelledby="tour-title">
-    <h2 class="visually-hidden" id="tour-title">What Chromite does</h2>
-    <nav class="tour-index" aria-label="Features">
-      <div class="panel">
-        <p class="panel-head" aria-hidden="true">Tour</p>
-        <ul>
-          <li><a href="#transactions">Transaction safety</a></li>
-          <li><a href="#query-library">Query Library</a></li>
-          <li><a href="#chromite-agent">Chromite Agent</a></li>
-          <li><a href="#closed-networks">Closed networks</a></li>
-          <li><a href="#debugger">Procedure debugger</a></li>
-          <li><a href="#administration">Administration</a></li>
-          <li><a href="#passwords">Passwords</a></li>
-          <li><a href="#open-source">Open source</a></li>
-        </ul>
-      </div>
-    </nav>
-
-    <div class="tour-screens">
-      <article class="feature" id="transactions" aria-labelledby="transactions-title">
-        <div class="feature-text">
-          <div class="feature-head">
-            <h3 id="transactions-title">Transactions are never closed behind your back</h3>
-            <p class="feature-lead">In manual commit, changes you have not committed stay in the session. Chromite keeps that transaction in view, and you decide how it ends.</p>
-          </div>
-          <ul class="feature-points">
-            <li>The query window's status line shows the open transaction, how long it has been open and how many statements it holds. Click it to commit, roll back or open the transaction log.</li>
-            <li>A transaction left open and unused is brought back to you as a notification after the time you set.</li>
-            <li>Disconnecting or closing the app asks: Commit / Roll Back / Cancel. Reconnecting after an error asks too, before the transaction is dropped.</li>
-            <li>UPDATE and DELETE without WHERE, DROP and TRUNCATE ask for confirmation before they run.</li>
-            <li>Edits in the result grid can show the SQL they will run before you save them.</li>
-          </ul>
-        </div>
-        <figure class="feature-shot">
-          <picture>
-            <source srcset="/assets/shots/tour/transactions-en-dark.webp 1.5x" media="(prefers-color-scheme: dark)">
-            <img src="/assets/shots/tour/transactions-en-light.webp" srcset="/assets/shots/tour/transactions-en-light.webp 1.5x" width="829" height="285" loading="lazy" decoding="async" alt="The lower part of a query window after an UPDATE. The Messages tab says (1 row affected); the status line shows Manual commit and an open transaction with its age and 1 statement; its menu offers Commit, Roll Back and Transaction Log.">
-          </picture>
-          <figcaption>PostgreSQL on a manual-commit connection: after an UPDATE, the open-transaction field of the status line is clicked.</figcaption>
-        </figure>
-      </article>
-
-      <article class="feature" id="query-library" aria-labelledby="query-library-title">
-        <div class="feature-text">
-          <div class="feature-head">
-            <h3 id="query-library-title">A query library the team shares</h3>
-            <p class="feature-lead">Keep the checks and reports you run often in a tree and run them from there. Each query is a plain <code>.sql</code> file, so other tools can open it too.</p>
-          </div>
-          <ul class="feature-points">
-            <li>Parameters: values are asked for when the query runs. Numbers, dates and choice lists, with defaults.</li>
-            <li>Schedules: while Chromite is running, a query runs at an interval or a time you set and notifies you when its condition is met.</li>
-            <li>Thresholds: warning and critical limits on result columns.</li>
-            <li>Sharing: add a network folder or a Git working copy as a library root. The tree shows the branch and the commits not pushed yet, and you pull or commit and push from the app.</li>
-            <li>Export and import: move a set of queries as one file.</li>
-          </ul>
-        </div>
-        <figure class="feature-shot">
-          <picture>
-            <source srcset="/assets/shots/tour/library-en-dark.webp 1.5x" media="(prefers-color-scheme: dark)">
-            <img src="/assets/shots/tour/library-en-light.webp" srcset="/assets/shots/tour/library-en-light.webp 1.5x" width="1167" height="487" loading="lazy" decoding="async" alt="The Query Library window with the roots My queries and Team queries, a Git repository shown as main ↑1. The query window in the middle has Name, Description, Target, Parameters (1) and Thresholds, the SQL, and one long open transaction in the result grid.">
-          </picture>
-          <figcaption>Team queries is a Git working copy (branch main, one commit not pushed). The query ran with its parameter set to 0.</figcaption>
-        </figure>
-      </article>
-
-      <article class="feature feature-side" id="chromite-agent" aria-labelledby="chromite-agent-title">
-        <div class="feature-text">
-          <div class="feature-head">
-            <h3 id="chromite-agent-title">Chromite Agent</h3>
-            <p class="feature-lead">A database agent: ask it something and it picks tools to gather evidence from the connected database, then answers. The tools target SQL Server, PostgreSQL, MariaDB and Oracle; which tools work depends on the database.</p>
-          </div>
-          <ul class="feature-points tasks">
-            <li><strong>Slow query tuning</strong> Reads the estimated and actual plan as structured data, compares plans before and after an index, and looks at table statistics, index usage, missing and unused indexes and fragmentation. It proposes an index and can create it after you confirm.</li>
-            <li><strong>Blocking and deadlocks</strong> Builds the blocking chain from the head blocker, lists locks and sessions with long open or idle transactions, and reads recent deadlock graphs. Ending a session always asks you first.</li>
-            <li><strong>Health check</strong> Sessions, wait statistics, top CPU and I/O queries, database and file space, backup and job history, the server error log, and settings that differ from their defaults.</li>
-            <li><strong>Procedure review</strong> Reads the source with line numbers, its dependencies and per-statement execution statistics.</li>
-          </ul>
-          <details class="more">
-            <summary>More it can do</summary>
-            <ul class="feature-points tasks">
-              <li><strong>Schema and data</strong> Searches objects, describes tables, keys and permissions, generates DDL, samples rows and profiles columns, and compares query results. Exports to CSV, XLSX or JSON, imports CSV and copies tables.</li>
-              <li><strong>Monitoring with the Query Library</strong> Runs saved checks and judges them against their thresholds.</li>
-              <li><strong>Hands off to you</strong> Opens the SQL it wrote in a new query window without running it.</li>
-            </ul>
-          </details>
-          <p class="feature-note">Safety: every tool has a policy per connection (run / confirm / blocked), and writes are blocked on production connections by default. Commit and rollback always ask. Read-only diagnostics run read-only (in a read-only transaction where the database has one), and every call goes to the audit log.</p>
-          <p class="feature-note">Access: the same tools are offered to external agents through a local MCP server that only this PC can reach. Providers are Claude, OpenAI and local models through Ollama; API keys are kept in the operating system's secure storage.</p>
-        </div>
-        <figure class="feature-shot">
-          <picture>
-            <source srcset="/assets/shots/tour/agent-en-dark.webp 1.5x" media="(prefers-color-scheme: dark)">
-            <img src="/assets/shots/tour/agent-en-light.webp" srcset="/assets/shots/tour/agent-en-light.webp 1.5x" width="345" height="664" loading="lazy" decoding="async" alt="The Chromite Agent window. Under the question 'The UPDATE on order 42 never finishes. Why is it waiting?' the read tools Get blocking chain and List open transactions are marked Done, followed by an answer with the cause and what to do.">
-          </picture>
-          <figcaption>The tool calls and their results come from a real database. The wording of the answer came from a scripted test provider used for this picture.</figcaption>
-        </figure>
-      </article>
-
-      <article class="feature feature-side" id="closed-networks" aria-labelledby="closed-networks-title">
-        <div class="feature-text">
-          <div class="feature-head">
-            <h3 id="closed-networks-title">Works on networks without internet</h3>
-            <p class="feature-lead">One installer connects to the main databases right away, with no driver download.</p>
-          </div>
-          <ul class="feature-points">
-            <li>The SQL Server, Oracle, PostgreSQL, MariaDB and SQLite drivers are in the installer. MySQL is downloaded on first connect or installed from an offline bundle.</li>
-            <li>For other drivers, make an offline bundle file in the Driver Manager on a PC with internet and install that file on the closed-network PC. Every file's SHA-256 is checked before it is installed.</li>
-            <li>With offline mode on, Chromite does not try to download driver files.</li>
-            <li>The automatic update check can be turned off in Options.</li>
-          </ul>
-        </div>
-        <figure class="feature-shot">
-          <picture>
-            <source srcset="/assets/shots/tour/drivers-en-dark.webp 1.5x" media="(prefers-color-scheme: dark)">
-            <img src="/assets/shots/tour/drivers-en-light.webp" srcset="/assets/shots/tour/drivers-en-light.webp 1.5x" width="609" height="557" loading="lazy" decoding="async" alt="The Create Offline Driver Bundle dialog. Derby Embedded and DuckDB are checked in the driver list, with 3 selected and a Create button below.">
-          </picture>
-          <figcaption>Choosing the drivers for a bundle on a PC with internet. Bundled drivers are not in the list.</figcaption>
-        </figure>
-      </article>
-
-      <article class="feature" id="debugger" aria-labelledby="debugger-title">
-        <div class="feature-text">
-          <div class="feature-head">
-            <h3 id="debugger-title">Step through procedures</h3>
-            <p class="feature-lead">Run PostgreSQL (PL/pgSQL) and Oracle (PL/SQL) functions and procedures in a debugger.</p>
-          </div>
-          <ul class="feature-points">
-            <li>Click the margin to set a breakpoint, then follow the code with Step Over and Step Into. Oracle also has Step Out.</li>
-            <li>See variables, the call stack, server messages and results. While stopped, you can change a variable's value.</li>
-            <li>When the debugger ends with a transaction not committed in its session, it asks: Commit / Roll Back / Cancel.</li>
-          </ul>
-          <p class="feature-note">PostgreSQL needs the pldebugger extension on the server, and Oracle needs debug privileges. SQL Server is not supported.</p>
-        </div>
-        <figure class="feature-shot">
-          <picture>
-            <source srcset="/assets/shots/tour/debugger-en-dark.webp 1.5x" media="(prefers-color-scheme: dark)">
-            <img src="/assets/shots/tour/debugger-en-light.webp" srcset="/assets/shots/tour/debugger-en-light.webp 1.5x" width="859" height="610" loading="lazy" decoding="async" alt="The debugger tab. The PL/pgSQL function order_total is stopped at a breakpoint on line 14. The Variables tab shows p_order_id 42, p_discount 0.05, v_total 126.50 and v_lines 1.">
-          </picture>
-          <figcaption>A PostgreSQL function stopped inside its loop, on the second line.</figcaption>
-        </figure>
-      </article>
-
-      <article class="feature" id="administration" aria-labelledby="administration-title">
-        <div class="feature-text">
-          <div class="feature-head">
-            <h3 id="administration-title">Administer four databases from one tool</h3>
-            <p class="feature-lead">SQL Server, Oracle, PostgreSQL and MariaDB in the same Activity Monitor, with the same menus.</p>
-          </div>
-          <ul class="feature-points">
-            <li>Sessions and locks: the blocking chain from the head blocker and the locks of each session; end a session.</li>
-            <li>Job schedulers: SQL Server Agent, Oracle DBMS_SCHEDULER, PostgreSQL pg_cron and MariaDB events.</li>
-            <li>Disk usage, server logs (errors, warnings, slow queries), maintenance with a preview and a confirmation, and replication status.</li>
-          </ul>
-          <p class="feature-note">Altibase connects too, with tables coloured by storage type, server output, and sessions and locks.</p>
-        </div>
-        <figure class="feature-shot">
-          <picture>
-            <source srcset="/assets/shots/tour/admin-en-dark.webp 1.5x" media="(prefers-color-scheme: dark)">
-            <img src="/assets/shots/tour/admin-en-light.webp" srcset="/assets/shots/tour/admin-en-light.webp 1.5x" width="1009" height="664" loading="lazy" decoding="async" alt="The Locks tab of the Activity Monitor. The blocking chain shows session 34839 blocking session 34863, with wait resource orders (row 1,104) and wait mode ShareLock. Below are the locks of both sessions.">
-          </picture>
-          <figcaption>PostgreSQL: an UPDATE in one session waits for another session's change that is not committed.</figcaption>
-        </figure>
-      </article>
-
-      <article class="feature feature-side" id="passwords" aria-labelledby="passwords-title">
-        <div class="feature-text">
-          <div class="feature-head">
-            <h3 id="passwords-title">Passwords stay on your PC</h3>
-            <p class="feature-lead">Saved connection passwords and API keys are never written to workspace files.</p>
-          </div>
-          <ul class="feature-points">
-            <li>They are encrypted in the operating system's secure storage: DPAPI tied to your Windows account, or the Keychain on macOS.</li>
-            <li>To move to a new PC, export your connections to a file encrypted with a passphrase you choose (12 characters or more) and import it there.</li>
-            <li>No usage statistics are collected or sent. The only requests that leave the PC are the update check, downloads of drivers that are not bundled, and calls to a Chromite Agent provider you set up. See <a href="/en/privacy.html">Privacy</a> for the details.</li>
-          </ul>
-        </div>
-        <figure class="feature-shot">
-          <picture>
-            <source srcset="/assets/shots/tour/credentials-en-dark.webp 1.5x" media="(prefers-color-scheme: dark)">
-            <img src="/assets/shots/tour/credentials-en-light.webp" srcset="/assets/shots/tour/credentials-en-light.webp 1.5x" width="589" height="583" loading="lazy" decoding="async" alt="The Export Connections dialog: the list of connections to export, the check box to include passwords and encrypt the file, Passphrase and Confirm fields, and a note that it needs 12 characters or more.">
-          </picture>
-          <figcaption>File &gt; Export Connections. With passwords included, the whole file is encrypted with this passphrase.</figcaption>
-        </figure>
-      </article>
-
-      <article class="feature feature-side" id="open-source" aria-labelledby="open-source-title">
-        <div class="feature-text">
-          <div class="feature-head">
-            <h3 id="open-source-title">Free and open source</h3>
-            <p class="feature-lead">Chromite's source code is public on GitHub under the Apache License 2.0. Anyone can read it, build it, change it and redistribute it.</p>
-          </div>
-          <ul class="feature-points">
-            <li>A code-signed installer for Windows and a disk image for macOS are provided.</li>
-            <li>New versions are downloaded automatically and installed when you restart the app.</li>
-            <li>Chromite started from another open-source project released under the Apache License 2.0. The original copyright notices, and the licenses of the JDBC drivers, Java runtime and fonts that ship with it, are in NOTICE.</li>
-          </ul>
-        </div>
-        <div class="feature-repo">
-          <a class="oss-repo" href="https://github.com/froiibn/chromite">
-            <span class="mark-github large" aria-hidden="true"></span>
-            <span><strong>froiibn/chromite</strong><span class="where">View the source code on GitHub</span></span>
-          </a>
-          <ul class="oss-links">
-            <li><a href="https://github.com/froiibn/chromite/blob/devel/LICENSE.md">License (Apache License 2.0)</a></li>
-            <li><a href="https://github.com/froiibn/chromite/blob/devel/NOTICE">NOTICE</a></li>
-          </ul>
-        </div>
-      </article>
-    </div>
   </section>
 
   <div class="sects">

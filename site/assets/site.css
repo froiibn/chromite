@@ -35,6 +35,14 @@
  *   "mandatory": the hero and the downloads have no snap point, and mandatory snapping would pull the page
  *   past them to the first screen. Hidden-then-revealed states exist only under .is-animated, which
  *   tour.js sets, and only without prefers-reduced-motion.
+ * - 2026-11-08 The home page is a dark scroll-linked stage (.stage, stage.js; user request: "like an Apple
+ *   product page"): the hero and the eight strengths, each a tall .scene with a sticky .pin whose
+ *   pictures and lines move with the scroll. The stage is always dark, whatever the theme: the
+ *   screenshots on it are the app's dark theme, and one fixed backdrop keeps the motion from flashing
+ *   between light and dark scenes. The download block (.get, formerly .hero) follows the stage and keeps
+ *   the light/dark theme, like every other page. Without the "motion" class (no script, reduced motion)
+ *   each scene is a plain section with all of its lines shown. The feature tour, its index, scroll
+ *   snapping and the hero screenshot (.tour, .feature, .shot) are removed.
  */
 @font-face {
   font-family: "Pretendard";
@@ -68,7 +76,6 @@
   --code-bg: #f2f3f5;
   --notice-bg: #fff4e5;
   --notice-line: #f2c98b;
-  --shot-shadow: 0 1px 2px rgba(0, 0, 0, 0.06), 0 18px 40px -20px rgba(30, 31, 34, 0.28);
   --font: "Pretendard", -apple-system, BlinkMacSystemFont, "Segoe UI", "Malgun Gothic", "Apple SD Gothic Neo", system-ui, sans-serif;
   --mono: ui-monospace, "Cascadia Mono", "SF Mono", Consolas, monospace;
   --page: 1180px;
@@ -89,7 +96,6 @@
     --code-bg: #1e1f22;
     --notice-bg: #3d3223;
     --notice-line: #7a5b2e;
-    --shot-shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 18px 40px -20px rgba(0, 0, 0, 0.7);
   }
 }
 
@@ -144,24 +150,24 @@ li + li { margin-top: 6px; }
 .nav a[aria-current="page"] { color: var(--ink); }
 .nav .sep { width: 1px; height: 16px; background: var(--line); margin: 0 6px; }
 
-/* home: hero */
+/* home: the download block after the stage */
 /* the download panel spans both rows on wide screens; on narrow ones it comes right after the intro */
-.hero {
+.get {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 440px;
   grid-template-rows: auto 1fr;
   grid-template-areas: "intro panel" "included panel";
   gap: 0 56px;
   align-items: start;
-  padding: 64px 0 0;
+  padding: 88px 0 0;
 }
-.hero .intro { grid-area: intro; }
-.hero .included { grid-area: included; }
-.hero .downloads-area { grid-area: panel; }
-.hero h1 { font-size: 44px; line-height: 1.22; letter-spacing: -0.022em; max-width: 13em; }
-.hero .lead { margin-top: 20px; font-size: 18px; line-height: 1.7; color: var(--ink-2); max-width: 34em; }
-.hero .spec-title { margin: 44px 0 14px; font-size: 17px; }
-.hero .spec { font-size: 15px; max-width: 640px; }
+.get .intro { grid-area: intro; }
+.get .included { grid-area: included; }
+.get .downloads-area { grid-area: panel; }
+.get h2.get-title { font-size: 44px; line-height: 1.22; letter-spacing: -0.022em; max-width: 13em; }
+.get .lead { margin-top: 20px; font-size: 18px; line-height: 1.7; color: var(--ink-2); max-width: 34em; }
+.get .spec-title { margin: 44px 0 14px; font-size: 17px; }
+.get .spec { font-size: 15px; max-width: 640px; }
 
 /* the download box: a tool window (title strip + body) */
 .panel { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; }
@@ -241,11 +247,6 @@ li + li { margin-top: 6px; }
 .notice { background: var(--notice-bg); border: 1px solid var(--notice-line); border-radius: 8px; padding: 10px 14px; }
 .downloads-area .notice { color: var(--ink); }
 
-/* the product screenshot: the real window, shown as a window */
-.shot { margin: 72px 0 0; }
-.shot img { display: block; width: 100%; height: auto; border-radius: 8px; border: 1px solid var(--line); box-shadow: var(--shot-shadow); }
-.shot figcaption { margin-top: 14px; font-size: 14px; color: var(--ink-2); max-width: 46em; }
-
 /* heading on the left, content on the right */
 .sect { display: grid; grid-template-columns: 4fr 8fr; gap: 0 48px; padding: 48px 0; border-top: 1px solid var(--line); }
 .sects { margin-top: 80px; }
@@ -261,84 +262,112 @@ li + li { margin-top: 6px; }
 .spec dt { font-weight: 600; padding-right: 16px; }
 .spec dd { color: var(--ink-2); }
 
-/* open source */
-.oss-repo { display: flex; align-items: center; gap: 14px; margin-top: 20px; padding: 14px 16px; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; color: var(--ink); text-decoration: none; }
-.oss-repo:hover { border-color: var(--ink-2); }
-.oss-repo strong { display: block; font-weight: 600; }
-.oss-repo span.where { display: block; font-size: 14px; color: var(--ink-2); }
+/* home: the stage (stage.js). Always dark: its screenshots are the app's dark theme. Without the "motion"
+   class each scene is a plain section; with it, a tall scene whose sticky .pin is one view high. */
+.stage {
+  --stage-bg: #000000;
+  --stage-ink: #f7f8fa;
+  --stage-ink-2: #9da0a8;
+  --stage-line: #393b40;
+  --stage-link: #6f9cf9;
+  --media-max: 560px;
+  color-scheme: dark;
+  background: var(--stage-bg);
+  color: var(--stage-ink);
+  overflow-x: clip;
+}
+.stage a { color: var(--stage-link); }
+.stage a.btn { color: var(--button-ink); }
+.stage figure { margin: 0; }
+.stage code { background: #2b2d30; }
+.pin {
+  display: grid;
+  gap: 28px 64px;
+  max-width: var(--page);
+  margin: 0 auto;
+  padding: 120px var(--gutter) 0;
+}
+.scene:last-child .pin { padding-bottom: 120px; }
+
+/* the hero: the name, then the real window tilting up into place */
+.scene-hero .pin { padding-top: 96px; }
+.hero-copy h1 { font-size: clamp(76px, 14vw, 208px); line-height: 0.9; letter-spacing: -0.055em; margin-left: -0.04em; }
+.hero-sub { margin-top: 14px; font-size: clamp(22px, 2.4vw, 34px); line-height: 1.25; letter-spacing: -0.02em; color: var(--stage-ink-2); }
+.hero-cta { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 20px; margin-top: 32px; font-size: 15px; color: var(--stage-ink-2); }
+.hero-cta .btn { min-height: 44px; padding: 0 22px; font-size: 16px; }
+.hero-shot { width: min(100%, 1180px); justify-self: center; perspective: 1800px; }
+.hero-shot img {
+  display: block;
+  width: 100%;
+  height: auto;
+  border: 1px solid var(--stage-line);
+  border-radius: 12px;
+  transform-origin: 50% 100%;
+}
+.hero-statement { font-size: clamp(22px, 2.5vw, 36px); line-height: 1.3; letter-spacing: -0.025em; font-weight: 600; max-width: 30em; justify-self: center; text-align: center; }
+
+/* a strength: heading, picture, lines */
+.scene-head h2 { font-size: clamp(32px, 4.4vw, 64px); line-height: 1.1; letter-spacing: -0.035em; max-width: 15em; }
+.scene-lead { margin-top: 16px; font-size: clamp(16px, 1.35vw, 20px); line-height: 1.55; color: var(--stage-ink-2); max-width: 36em; }
+.scene-head { grid-area: head; }
+.scene-media { grid-area: media; min-width: 0; }
+.slot { grid-area: slot; }
+.scene-wide .pin { grid-template-areas: "head" "media" "slot"; }
+.scene-side .pin { grid-template-columns: minmax(0, 5fr) minmax(0, 6fr); grid-template-areas: "head media" "slot media"; align-items: start; }
+.scene-side .scene-head { align-self: end; }
+.scene-side .scene-media { align-self: center; justify-self: center; }
+
+/* the picture is clipped by its frame, so a zoom (a transform of the img) stays inside the window's edges */
+.frame { display: inline-block; vertical-align: top; max-width: 100%; overflow: hidden; border: 1px solid var(--stage-line); border-radius: 10px; background: #1e1f22; }
+.frame img { display: block; width: auto; height: auto; max-width: 100%; max-height: var(--media-max); transform-origin: 0 0; }
+.scene-media figcaption { margin-top: 12px; font-size: 13px; line-height: 1.55; color: var(--stage-ink-2); max-width: 46em; }
+
+.slot { margin: 0; padding: 0; list-style: none; font-size: clamp(19px, 1.75vw, 25px); line-height: 1.45; letter-spacing: -0.012em; max-width: 34em; }
+.slot li + li { margin-top: 18px; }
+.slot.tasks li { color: var(--stage-ink-2); }
+.slot.tasks strong { display: block; margin-bottom: 4px; font-weight: 600; color: var(--stage-ink); }
+.slot .small { font-size: 0.8em; color: var(--stage-ink-2); }
+
+/* open source: the repository instead of a picture */
+.oss { width: 100%; max-width: 420px; }
+.oss-repo { display: flex; align-items: center; gap: 16px; padding: 18px 20px; background: #1e1f22; border: 1px solid var(--stage-line); border-radius: 10px; text-decoration: none; }
+.stage a.oss-repo { color: var(--stage-ink); }
+.oss-repo:hover { border-color: var(--stage-ink-2); }
+.oss-repo strong { display: block; font-weight: 600; font-size: 18px; }
+.oss-repo span.where { display: block; font-size: 14px; color: var(--stage-ink-2); }
 .oss-links { display: flex; flex-wrap: wrap; gap: 8px 20px; margin: 16px 0 0; padding: 0; list-style: none; font-size: 15px; }
 .oss-links li + li { margin-top: 0; }
 
-/* feature tour: an index (left, sticky) and one screen per strength */
-.visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
-@media (min-height: 560px) {
-  :root:has(.tour) { scroll-snap-type: y proximity; }
+/* motion mode: tall scenes, sticky pins, lines stacked in one cell (stage.js moves them). The lengths give
+   each line a little under half a view of scrolling. */
+.motion .scene { height: 280vh; }
+.motion .scene-hero { height: 230vh; }
+.motion .scene.n2 { height: 190vh; }
+.motion .scene.n3 { height: 235vh; }
+.motion .scene.n6 { height: 370vh; }
+.motion .scene:last-child .pin,
+.motion .pin {
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  height: 100svh;
+  overflow: hidden;
+  align-content: center;
+  padding-top: 7vh;
+  padding-bottom: 6vh;
 }
-.tour { display: grid; grid-template-columns: 184px minmax(0, 1fr); gap: 0 48px; margin-top: 88px; }
-.tour-index { position: sticky; top: 0; align-self: start; display: flex; align-items: center; height: 100vh; height: 100svh; }
-.tour-index .panel { width: 100%; }
-.tour-index ul { list-style: none; margin: 0; padding: 6px; }
-.tour-index li + li { margin-top: 0; }
-.tour-index a { display: block; padding: 5px 10px; border-radius: 4px; color: var(--ink-2); text-decoration: none; font-size: 14px; line-height: 1.45; }
-.tour-index a:hover { color: var(--ink); background: var(--line-subtle); }
-.tour-index a[aria-current="true"] { color: var(--ink); background: var(--selection); }
-
-.feature {
-  min-height: 100vh;
-  min-height: 100svh;
-  scroll-snap-align: start;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  padding: 40px 0;
-  border-top: 1px solid var(--line);
-}
-.feature:last-child { border-bottom: 1px solid var(--line); }
-.feature-text { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: 0 40px; align-items: start; }
-.feature h3 { font-size: 32px; line-height: 1.25; letter-spacing: -0.02em; }
-.feature-lead { margin-top: 14px; color: var(--ink-2); font-size: 16px; }
-.feature-points { margin: 0; padding: 0; list-style: none; font-size: 15px; line-height: 1.6; }
-.feature-points li { margin: 0; padding: 9px 0; border-top: 1px solid var(--line-subtle); }
-.feature-points li:first-child { border-top: 0; padding-top: 0; }
-.feature-points.tasks strong { display: block; font-weight: 600; }
-.feature-note { margin-top: 14px; font-size: 14px; color: var(--ink-2); }
-.feature-text > .feature-note,
-.feature-text > .more { grid-column: 2; }
-.more { margin-top: 4px; font-size: 15px; }
-.more summary { cursor: pointer; padding: 6px 0; color: var(--link); }
-.more summary:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; border-radius: 4px; }
-.more[open] summary { margin-bottom: 8px; }
-.more .feature-points li:first-child { border-top: 1px solid var(--line-subtle); padding-top: 9px; }
-
-.feature-shot { margin: 28px 0 0; }
-/* the captures are 1.5x (srcset), so their natural size is the app's own size; they shrink to fit, never grow.
-   Under the text the picture gets what is left of the screen (the text block is about 330px high). */
-.feature-shot img { display: block; width: auto; height: auto; max-width: 100%; max-height: max(300px, calc(100vh - 470px)); border: 1px solid var(--line); border-radius: 8px; box-shadow: var(--shot-shadow); }
-.feature-shot figcaption { margin-top: 12px; font-size: 13px; line-height: 1.55; color: var(--ink-2); max-width: 46em; }
-
-/* text beside the picture: portrait shots, dialogs, and the open-source card */
-.feature-side { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 6fr); gap: 0 48px; align-content: center; align-items: center; }
-.feature-side .feature-text { grid-template-columns: minmax(0, 1fr); }
-.feature-side .feature-text > .feature-points,
-.feature-side .feature-text > .more { margin-top: 24px; }
-.feature-side .feature-text > .feature-note,
-.feature-side .feature-text > .more { grid-column: 1; }
-.feature-side .feature-shot { margin: 0; justify-self: center; }
-.feature-side .feature-shot img { max-height: 76vh; }
-.feature-repo { width: 100%; max-width: 360px; justify-self: center; }
-.feature-repo .oss-repo { margin-top: 0; }
-
-/* the reveal (tour.js): hidden only once the script has marked the tour, and never with reduced motion */
-@media (prefers-reduced-motion: no-preference) {
-  .tour.is-animated .feature-text,
-  .tour.is-animated .feature-shot,
-  .tour.is-animated .feature-repo { transition: opacity 0.45s ease, transform 0.45s ease; }
-  .tour.is-animated .feature-shot,
-  .tour.is-animated .feature-repo { transition-delay: 0.12s; }
-  .tour.is-animated .feature:not(.is-in) .feature-text,
-  .tour.is-animated .feature:not(.is-in) .feature-shot,
-  .tour.is-animated .feature:not(.is-in) .feature-repo { opacity: 0; transform: translateY(14px); }
-}
+.motion .scene-wide { --media-max: calc(100svh - 400px); }
+.motion .scene-side { --media-max: calc(100svh - 200px); }
+.motion .slot { display: grid; }
+.motion .slot li { grid-area: 1 / 1; margin: 0; }
+.motion [data-t],
+.motion .slot li { will-change: transform, opacity; }
+.motion .scene-hero .pin { grid-template-areas: "stack"; grid-template-rows: minmax(0, 1fr); align-content: stretch; }
+.motion .scene-hero .pin > * { grid-area: stack; }
+.motion .hero-copy { align-self: start; padding-top: 4vh; }
+.motion .hero-shot { align-self: center; }
+.motion .hero-shot { width: min(100%, 1180px, calc((100svh - 300px) * 1.598)); }
+.motion .hero-statement { align-self: end; }
 
 /* text pages */
 .page-head { padding: 56px 0 40px; }
@@ -362,19 +391,18 @@ li + li { margin-top: 6px; }
 .choose .langs { display: flex; gap: 12px; }
 
 @media (max-width: 1040px) {
-  .hero { grid-template-columns: minmax(0, 1fr) 400px; gap: 0 40px; }
-  .hero h1 { font-size: 38px; }
+  .get { grid-template-columns: minmax(0, 1fr) 400px; gap: 0 40px; }
+  .get h2.get-title { font-size: 38px; }
 }
 @media (max-width: 860px) {
-  .hero { grid-template-columns: minmax(0, 1fr); grid-template-rows: none; grid-template-areas: "intro" "panel" "included"; padding-top: 40px; gap: 32px 0; }
-  .hero .spec-title { margin-top: 8px; }
-  .hero h1 { max-width: none; }
+  .get { grid-template-columns: minmax(0, 1fr); grid-template-rows: none; grid-template-areas: "intro" "panel" "included"; padding-top: 56px; gap: 32px 0; }
+  .get .spec-title { margin-top: 8px; }
+  .get h2.get-title { max-width: none; }
 }
 @media (max-width: 760px) {
   :root { --gutter: 16px; }
   .sect { grid-template-columns: minmax(0, 1fr); gap: 16px; padding: 36px 0; }
   .sects { margin-top: 56px; }
-  .shot { margin-top: 48px; }
   .page-head { padding: 36px 0 28px; }
   .page-head h1 { font-size: 30px; }
 }
@@ -383,8 +411,8 @@ li + li { margin-top: 6px; }
   .nav { margin-left: -10px; width: calc(100% + 20px); flex-wrap: wrap; font-size: 14px; }
   .nav .sep { display: none; }
   .nav .label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
-  .hero h1 { font-size: 30px; line-height: 1.28; }
-  .hero .lead { font-size: 16px; }
+  .get h2.get-title { font-size: 30px; line-height: 1.28; }
+  .get .lead { font-size: 16px; }
   .spec { grid-template-columns: minmax(0, 1fr); }
   .spec dt { padding-bottom: 2px; }
   .spec dd { border-top: 0; padding-top: 0; }
@@ -392,26 +420,19 @@ li + li { margin-top: 6px; }
   .foot .right { margin-left: 0; }
 }
 
-/* feature tour on narrower screens: no index, then text above the picture */
-@media (max-width: 1100px) {
-  .tour { grid-template-columns: minmax(0, 1fr); }
-  .tour-index { display: none; }
-}
+/* the stage on narrower screens: text, picture and lines in one column */
 @media (max-width: 860px) {
-  .tour { margin-top: 56px; }
-  .feature-text,
-  .feature-side { grid-template-columns: minmax(0, 1fr); }
-  .feature-text > .feature-points { margin-top: 20px; }
-  .feature-text > .feature-note,
-  .feature-text > .more { grid-column: 1; }
-  .feature-side .feature-shot { margin-top: 32px; justify-self: start; }
-  .feature-repo { max-width: none; margin-top: 28px; }
-  .feature h3 { font-size: 28px; }
+  .scene-side .pin { grid-template-columns: minmax(0, 1fr); grid-template-areas: "head" "media" "slot"; }
+  .scene-side .scene-media { justify-self: start; }
+  .oss { max-width: none; }
+  .motion .scene-wide { --media-max: max(160px, calc(100svh - 430px)); }
+  .motion .scene-side { --media-max: max(180px, calc(100svh - 520px)); }
 }
 @media (max-width: 600px) {
-  .feature { padding: 40px 0; }
-  .feature h3 { font-size: 24px; line-height: 1.3; }
-  .feature-lead { font-size: 15px; }
-  .feature-shot img,
-  .feature-side .feature-shot img { max-height: none; }
+  .pin { padding-top: 88px; gap: 24px; }
+  .scene-hero .pin { padding-top: 64px; }
+  .scene-media figcaption { font-size: 12px; }
+  .motion .pin { padding-top: 5vh; padding-bottom: 4vh; }
+  .motion .scene-side .scene-lead { font-size: 15px; }
+  .motion .hero-shot { width: min(100%, calc((100svh - 360px) * 1.598)); }
 }
