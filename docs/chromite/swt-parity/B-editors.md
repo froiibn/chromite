@@ -11,8 +11,8 @@
 
 | 상태 | SQL 편집기 | 결과 뷰어 | 개체 편집기 | 연결 편집기 | 그 밖의 편집기 | 합계 |
 |---|---|---|---|---|---|---|
-| 있음 | 9 | 7 | 4 | 5 | 0 | **25** |
-| 일부 | 12 | 8 | 6 | 9 | 7 | **42** |
+| 있음 | 9 | 7 | 4 | 7 | 0 | **27** |
+| 일부 | 12 | 8 | 6 | 7 | 7 | **40** |
 | 없음 | 19 | 12 | 1 | 7 | 0 | **39** |
 | 조용히 끊김 | 5 | 1 | 1 | 1 | 0 | **8** |
 | 의도적 제외 | 1 | 2 | 0 | 0 | 0 | **3** |
@@ -169,8 +169,8 @@ swing-security.md는 DB 보안(로그인·역할·권한) 문서이고 연결 �
 | C15 | 트랜잭션 설정(스마트 커밋·복귀, 유휴 트랜잭션 자동 닫기·시간) | `PrefPageTransactions` | 없음 | grep `TRANSACTIONS_SMART_COMMIT`·`TRANSACTIONS_AUTO_CLOSE` Swing 0건 | 중간 | S16·S24의 설정 쪽 |
 | C16 | 클라이언트 식별(애플리케이션 이름 끄기·바꾸기, 환경 변수 쓰기) | `PrefPageConnectionClient` | 없음 | Swing grep `META_CLIENT_NAME` 0건, 모델 키 `ModelPreferences.java:216-218` | 낮음 | 이름은 늘 `GeneralUtils.getProductTitle()`(swing-followup-fixes.md "Oracle 프로그램 이름") |
 | C17 | 오류 처리(재연결 등), 메타데이터 읽기 설정 | `PrefPageErrorHandle`, `PrefPageMetaData` | 없음 | grep 0건 | 낮음 | 모델 기본값으로 동작 |
-| C18 | 드라이버 관리 나머지(Maven 아티팩트, 의존성 트리, 전역 클래스패스) | `DriverEditDialog`, `PrefPageDrivers*` | 일부 | `DriverManagerDialog`, `DriverEditorDialog`; swt-removal.md:114 | 낮음 | |
-| C19 | 클라이언트 홈 선택 | `ClientHomesSelector`, `ClientHomesPanel` | 일부 | 기본 홈만 씀(`ConnectionDialog.java:340`) | 낮음 | Oracle OCI 홈은 SWT에서도 상용 기능이라 옮기지 않음(swing-conn-advanced.md:165) |
+| C18 | 드라이버 관리 나머지(Maven 아티팩트, 의존성 트리, 전역 클래스패스) | `DriverEditDialog`, `PrefPageDrivers*` | 있음 (2026-11-08, 조사 때 일부) | `MavenArtifactDialog`, `DriverLibraryDetailsDialog`, `GlobalLibrariesDialog`([swing-driver-manager.md](../swing-driver-manager.md)) | 낮음 | Maven 저장소 목록과 라이브러리 내보내기는 남음 |
+| C19 | 클라이언트 홈 선택 | `ClientHomesSelector`, `ClientHomesPanel` | 있음 (2026-11-08, 조사 때 일부) | 드라이버의 설치 목록은 드라이버 편집 창 Local Client 탭(`ClientHomesPanel`), 연결마다 고르기는 백업 대화상자(D-P6, M2). 새 연결은 기본 홈(`ConnectionDialog.java:340`) | 낮음 | Oracle OCI 홈은 SWT에서도 상용 기능이라 옮기지 않음(swing-conn-advanced.md:165) |
 | C20 | URL로 새 연결, 드라이버 종류 바꾸기 | `new.connection.from.url`, Driver type | 일부 | Connect with: JDBC URL 방식은 있음 | 낮음 | |
 | C21 | 현재 사용자 비밀번호 바꾸기 | `connection.changeCurrentPassword`, `PasswordChangeDialog` | 일부 | 만료 비밀번호 묻기는 됨(`SwingPlatformUI.promptUserPasswordChange` `:360`), 메뉴 없음 | 낮음 | |
 | C22 | Test Connection | `ConnectionWizard.testConnection` | 있음 | `ConnectionDialog`, swing-conn-advanced.md "5. Test Connection" | 중간 | |

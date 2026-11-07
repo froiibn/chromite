@@ -171,7 +171,7 @@ Swing 제품이 읽지만 화면이 없는 키다. 우선순위 순서로 적었
    `database.connect.processEnvVars`.
 7. Connections: `connection.sanitizeDriverProperties`, `connection.shellAuthModelEnabled`, `connections.useWinTrustStoreType`. General: `java.client.timezone`(적용 코드 S12와 함께).
 8. Drivers·Classpath·Maven: `ui.drivers.home`, `ui.drivers.sources`, `ui.drivers.version.update`, `ui.proxy.host`, `ui.proxy.port`, `ui.proxy.user`(+비밀번호),
-   `ui.drivers.global.libraries`, `maven-repositories.xml`.
+   `ui.drivers.global.libraries`(2026-11-08 Driver Manager > Global Libraries…로 만듦, [swing-driver-manager.md](swing-driver-manager.md) "전역 라이브러리"), `maven-repositories.xml`.
 9. Query Manager: `qm.storeLogs`, `qm.historyDays`, `qm.logDirectory`, `qm.objectTypes`, `qm.queryTypes`. Error Logs: `logs.files.output.maxSize`, `logs.files.output.maxCount`.
 10. Navigator: `navigator.sort.case.insensitive`, `navigator.sort.case.insensitive.ignore.case`, `navigator.sort.forlers.first`, `navigator.show.folder.placeholders`.
 11. Notifications: `agent.long.operation.notify`, `agent.long.operation.timeout`. Data Transfer: `nameCaseMapping`, `replaceMapping`, `maxTypeLengthMapping`.
@@ -211,6 +211,7 @@ Swing 제품이 읽지만 화면이 없는 키다. 우선순위 순서로 적었
   연결 대화상자의 격리 수준. 오류로 멈춘 스크립트가 수동 커밋 세션의 열린 트랜잭션을 묻지 않고 롤백하던 것을 고침.
 - 2026-11-07 쿼리 창 세션(`database.editor.separate.connection`): Options > Query Execution과 연결 대화상자. 요약 수(추가함 23, 효과 없음 196)와 부록 갱신
   ([transactions.md](transactions.md) "쿼리 창마다 별도 연결").
+- 2026-11-08 `ui.drivers.global.libraries`의 화면을 Driver Manager에 만듦(후속 #55). 위 요약 수는 고치지 않았다(다음 작업 71개에 이 키가 들어 있음).
 
 ## 부록: 키별 상태
 
@@ -279,7 +280,7 @@ Swing 제품이 읽지만 화면이 없는 키다. 우선순위 순서로 적었
 | Drivers | `ui.proxy.host` | 읽음, 화면 없음 → 다음 작업 |
 | Drivers | `ui.proxy.port` | 읽음, 화면 없음 → 다음 작업 |
 | Drivers | `ui.proxy.user` | 읽음, 화면 없음 → 다음 작업 |
-| Classpath | `ui.drivers.global.libraries` | 읽음, 화면 없음 → 다음 작업 |
+| Classpath | `ui.drivers.global.libraries` | 읽음, 화면 있음(2026-11-08 Driver Manager > Global Libraries…). 조사 당시: 화면 없음 → 다음 작업 |
 | Navigator | `navigator.color.nodes.all` | 효과 없음(읽는 곳 없음) |
 | Navigator | `navigator.connection.doubleClick` | 효과 없음(읽는 곳 없음) |
 | Navigator | `navigator.editor.showGrid` | 효과 없음(읽는 곳 없음) |

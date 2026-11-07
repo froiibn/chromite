@@ -23,12 +23,14 @@ import org.eclipse.osgi.util.NLS;
  *
  * 설계: 다른 기능과 같은 파일을 고치지 않도록(병합 충돌) 이 기능만의 {@link NLS} 묶음을 둔다. 영어가 기본
  * ({@code DriverManagerMessages.properties}), 한국어는 {@code DriverManagerMessages_ko.properties}이고, 플랫폼이 OS 언어로 고른다.
- * 키 접두사는 관리자 {@code drivermgr_}, 편집 {@code driveredit_}, 라이브러리 {@code driverlib_}, 오프라인 설치 묶음 {@code driverbundle_}다.
+ * 키 접두사는 관리자 {@code drivermgr_}, 편집 {@code driveredit_}, 라이브러리 {@code driverlib_}, 오프라인 설치 묶음 {@code driverbundle_},
+ * Maven 아티팩트 {@code drivermaven_}, 라이브러리 정보 {@code driverdeps_}, 로컬 클라이언트 {@code driverclient_}, 전역 라이브러리 {@code driverglobal_}다.
  * {0} 자리표시자가 있는 값은 {@link NLS#bind}로만 쓰므로 작은따옴표를 두 번 쓴다('').
  *
  * 변경 이력:
  * - 2026-11-07 최초 작성 (docs/chromite/swing-driver-manager.md)
  * - 2026-11-07 오프라인 설치 묶음 만들기·설치 문구 추가 (docs/chromite/driver-offline-bundle.md)
+ * - 2026-11-08 Maven 아티팩트, 라이브러리 정보, 로컬 클라이언트, 전역 라이브러리, "사용 안 함" 상태 문구 추가 (docs/chromite/swing-driver-manager.md)
  */
 public class DriverManagerMessages extends NLS {
     private static final String BUNDLE_NAME = "com.seizia.chromite.ui.swing.internal.DriverManagerMessages"; //$NON-NLS-1$
@@ -174,6 +176,84 @@ public class DriverManagerMessages extends NLS {
     public static String driverbundle_task_read;
     public static String driverbundle_task_install;
     public static String driverbundle_installed;
+
+    public static String drivermgr_button_global_libraries;
+    public static String drivermgr_button_global_libraries_tip;
+    public static String driveredit_tab_client;
+    public static String driveredit_tab_client_tip;
+    public static String driverlib_add_artifact;
+    public static String driverlib_add_artifact_tip;
+    public static String driverlib_edit;
+    public static String driverlib_edit_tip;
+    public static String driverlib_details;
+    public static String driverlib_details_tip;
+    public static String driverlib_state_replaced;
+    public static String drivermaven_title_add;
+    public static String drivermaven_title_edit;
+    public static String drivermaven_tab_declaration;
+    public static String drivermaven_tab_manual;
+    public static String drivermaven_declaration_hint;
+    public static String drivermaven_declaration_empty;
+    public static String drivermaven_declaration_found;
+    public static String drivermaven_declaration_none;
+    public static String drivermaven_declaration_invalid;
+    public static String drivermaven_group;
+    public static String drivermaven_artifact;
+    public static String drivermaven_classifier;
+    public static String drivermaven_version;
+    public static String drivermaven_version_tip;
+    public static String drivermaven_fallback;
+    public static String drivermaven_fallback_tip;
+    public static String drivermaven_ignore_dependencies;
+    public static String drivermaven_ignore_dependencies_tip;
+    public static String drivermaven_optional_dependencies;
+    public static String drivermaven_optional_dependencies_tip;
+    public static String drivermaven_required;
+    public static String drivermaven_invalid_name;
+    public static String drivermaven_read_only;
+    public static String driverdeps_title;
+    public static String driverdeps_driver;
+    public static String driverdeps_library;
+    public static String driverdeps_path;
+    public static String driverdeps_version;
+    public static String driverdeps_file;
+    public static String driverdeps_tab_dependencies;
+    public static String driverdeps_tab_description;
+    public static String driverdeps_resolve;
+    public static String driverdeps_resolve_tip;
+    public static String driverdeps_resolve_offline_tip;
+    public static String driverdeps_not_resolved;
+    public static String driverdeps_task;
+    public static String driverdeps_error;
+    public static String driverdeps_none;
+    public static String driverdeps_count;
+    public static String driverdeps_state_present;
+    public static String driverdeps_state_not_downloaded;
+    public static String driverdeps_state_duplicate;
+    public static String driverclient_add;
+    public static String driverclient_add_tip;
+    public static String driverclient_choose;
+    public static String driverclient_remove;
+    public static String driverclient_remove_title;
+    public static String driverclient_remove_confirm;
+    public static String driverclient_remove_found_tip;
+    public static String driverclient_id;
+    public static String driverclient_path;
+    public static String driverclient_name;
+    public static String driverclient_product;
+    public static String driverclient_version;
+    public static String driverclient_found;
+    public static String driverclient_added;
+    public static String driverclient_default;
+    public static String driverclient_hint;
+    public static String driverglobal_title;
+    public static String driverglobal_libraries;
+    public static String driverglobal_add;
+    public static String driverglobal_remove;
+    public static String driverglobal_open_title;
+    public static String driverglobal_info;
+    public static String driverglobal_system;
+    public static String driverglobal_restart;
 
     static {
         NLS.initializeMessages(BUNDLE_NAME, DriverManagerMessages.class);
