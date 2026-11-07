@@ -28,6 +28,7 @@ import org.eclipse.osgi.util.NLS;
  *
  * 변경 이력:
  * - 2026-11-07 최초 작성: 결과 필터 줄을 열별 필터로 바꿈 (docs/chromite/swing-grid-column-filters.md)
+ * - 2026-11-08 상태 줄 정렬 요약 문구 (docs/chromite/swing-grid-column-filters.md "정렬과 쿼리의 ORDER BY")
  */
 public class GridFilterMessages extends NLS {
     private static final String BUNDLE_NAME = "com.seizia.chromite.ui.swing.internal.GridFilterMessages"; //$NON-NLS-1$
@@ -71,6 +72,14 @@ public class GridFilterMessages extends NLS {
 
     // Active filter summary (ResultSetViewerPanel status bar)
     public static String gridfilter_summary;
+
+    // Active sort summary (ResultSetViewerPanel status bar)
+    public static String gridfilter_sort_summary;
+    public static String gridfilter_sort_summary_replaces;
+    public static String gridfilter_sort_replaces_tip;
+    public static String gridfilter_sort_server_tip;
+    public static String gridfilter_sort_grid_tip;
+    public static String gridfilter_sort_restore;
 
     static {
         NLS.initializeMessages(BUNDLE_NAME, GridFilterMessages.class);

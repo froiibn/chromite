@@ -163,7 +163,7 @@
 | A-X1 | 첫 실행 제품 구성 마법사(모양, 기능 켜기, 마지막 단계) | `ui.app.config` `ProductConfigWizard` | 없음 | Swing 검색 0 | 낮음 | |
 | A-X2 | 마법사의 "Data collection" 페이지(사용 통계) | `ui.statistics`(마법사 확장) | 의도적 제외 | [telemetry.md](../telemetry.md):27, 146 | - | |
 | A-X3 | 샘플 데이터베이스 만들기 | `ui.config.sample` | 없음 | Swing 검색 0 | 낮음 | |
-| A-X4 | 다른 도구 설정 가져오기(DbVisualizer, Navicat, SQuirreL, DataGrip, pgAdmin, SQL Workbench/J, 사용자 정의) | `ui.config.migration` | 없음 | swt-removal.md:115 | 중간 | 다른 도구에서 옮겨 오는 사용자 |
+| A-X4 | 다른 도구 설정 가져오기(DbVisualizer, Navicat, SQuirreL, DataGrip, pgAdmin, SQL Workbench/J, 사용자 정의) | `ui.config.migration` | 일부 (2026-11-08, File > Import Connections > From Another Tool…: Oracle SQL Developer, Toad, CSV(사용자 정의를 대신함), Chromite 파일과 같은 미리 보기·충돌 화면. 조사 당시: 없음) | [connection-transfer.md](../connection-transfer.md) "다른 도구에서 가져오기". 읽는 코드가 모두 UI 번들에 있어 SWT와 함께 없어졌으므로 모델(`registry`, `ext.oracle`)로 옮김. DbVisualizer, Navicat, SQuirreL, DataGrip, pgAdmin, SQL Workbench/J는 남음 | 중간 | 다른 도구에서 옮겨 오는 사용자 |
 | A-X5 | 사용자 정의 런처 | `launcher` | 의도적 제외 | swt-removal.md:53 "Swing 제품은 기본 `org.eclipse.equinox.launcher`를 쓴다" | - | |
 | A-X6 | macOS 메뉴 통합, 마우스 휠 설정 | `ui.swt.macos` `CocoaUIService`, `PrefPageMouseConfigurator` | 없음 | S14 | 높음(Cmd+Q, 미확인) / 낮음(마우스) | |
 | A-X7 | 내장 브라우저 도우미, Windows 창 테마 | `ui.swt.windows`, `ui.swt.macos` `ChromiteBrowserHelper`, `SWTThemeUtils` | 해당 없음 | SWT 위젯 전용. Swing은 FlatLaf | - | 사용자 기능 없음 |
@@ -196,8 +196,8 @@ Swing에서 바꿀 수 있는 설정: Options — 테마, 아이콘 모양, 입�
 | Transactions (`main.transactions`) | ui.editors.connection `PrefPageTransactions` | ✓ | `transaction.smart.commit`, `transaction.smart.commit.recover`, `transaction.auto.close.enabled`, `transaction.auto.close.ttl`, `transaction.show.notifications`, `transaction.ddl.behavior` | 해당 키 효과 없음(2026-11-07 확인, [swing-options.md](../swing-options.md): 스마트 커밋은 쿼리 창이 켜지 않음, 자동 종료 키는 #97에서 지움, 나머지는 읽는 곳 없음). 같은 기능은 연결 유형 편집(Options > Connection Types)과 연결 대화상자(자동 커밋, 격리 수준, 유휴 트랜잭션 알림)에 있음. 조사 당시: 없음 | 높음 |
 | Metadata (`main.meta`) | ui.editors.connection `PrefPageMetaData` | ✓ | `database.meta.separate.connection`, `database.props.expensive`, `database.meta.casesensitive`, `database.meta.server.side.filters`, `database.meta.extra.ddl.info`, `database.meta.disableAdditionalRead` | 있음(2026-11-08, Options > Metadata와 연결별 값 5키, 별도 연결은 연결 대화상자, [swing-options.md](../swing-options.md)). 조사 당시: 없음(Swing은 두 키를 내부에서 읽기만) | 중간 |
 | Drivers (`drivers`) | ui.editors.connection `PrefPageDrivers` | | `ui.drivers.version.update`, `driver.selector.showCommercialDrivers`, `ui.proxy.host`, `ui.proxy.port`, `ui.proxy.user`(+비밀번호), `ui.drivers.home`, `ui.drivers.sources`, `ui.drivers.offline` | 일부: 오프라인 모드만(`DriverManagerDialog.java`:181) | 낮음 |
-| Maven (`drivers.maven`) | ui.editors.connection | | Maven 저장소 목록 | 없음([swing-driver-manager.md](../swing-driver-manager.md):105) | 낮음 |
-| Classpath (`drivers.classpath`) | ui.editors.connection | | `ui.drivers.global.libraries` | 없음(swing-driver-manager.md:105) | 낮음 |
+| Maven (`drivers.maven`) | ui.editors.connection | | Maven 저장소 목록 | 없음: 저장소 목록([swing-driver-manager.md](../swing-driver-manager.md) "남긴 것"). 드라이버의 Maven 아티팩트 추가·편집은 2026-11-08 드라이버 편집 창에 있음(B-C18) | 낮음 |
+| Classpath (`drivers.classpath`) | ui.editors.connection | | `ui.drivers.global.libraries` | 있음(2026-11-08, Driver Manager > Global Libraries…, [swing-driver-manager.md](../swing-driver-manager.md) "전역 라이브러리"). 조사 당시: 없음 | 낮음 |
 | Network Profiles (전역 `globalNetworkProfiles`, 프로젝트별) | ui.editors.connection | ✓ | 네트워크 프로필(SSH·프록시 묶음) | 일부: 연결이 쓰는 프로필을 읽기 전용으로 보임, 편집 없음(`ConnectionNetworkPage.java` 클래스 주석) | 낮음 |
 | Connection Types (`connectionTypes`) | ui.editors.connection `PrefPageConnectionTypes` | ✓ | 연결 종류 만들기·고치기(이름, 색, 자동 커밋, 실행 확인, 데이터 변경 확인, 스마트 커밋, 유휴 트랜잭션·연결 자동 종료) | 있음(2026-11-07, Options > Connection Types, [swing-options.md](../swing-options.md)): 스마트 커밋만 뺌(효과 없음). 자동 커밋 변경은 열린 세션에 적용하며 커밋하지 않은 변경을 물음. 조사 당시: 일부(고르기만) | 중간 (운영 연결의 "실행 확인" 같은 안전 장치를 새로 정할 수 없음) |
 | Navigator (`navigator`, 연결별 `Database Navigator`) | ui.navigator `PrefPageDatabaseNavigator` | ✓ | `navigator.*` 25개(호스트 표시, 설명, 통계, 정렬, 자식 수, 드라이버별 묶기, 연결 시 펼치기, 필터 복원, 긴 목록 가져오기 크기, 더블클릭 동작 등) | 없음 | 낮음 (탐색기 영역에서 자세히) |
@@ -235,9 +235,9 @@ Swing에서 바꿀 수 있는 설정: Options — 테마, 아이콘 모양, 입�
 
 | 상태 | 수 |
 |---|---|
-| 있음 | 14 (A-C1, A-C2, A-C3, A-C21, A-C22, A-U1, A-U2, A-U4, A-U5, A-U9, A-S1, A-S9, A-S10, A-S13) |
-| 일부 | 15 (A-C4, A-C5, A-C6, A-C8, A-C9, A-C10, A-C13, A-C14, A-C15, A-C20, A-C23, A-U6, A-U7, A-U8, A-P1) |
-| 없음 | 28 (A-C7, A-C11, A-C12, A-C19, A-C24~A-C28, A-U3, A-U10, A-U11, A-S2~A-S8, A-S11, A-S12, A-S14, A-S15, A-S17, A-X1, A-X3, A-X4, A-X6) |
+| 있음 | 11 (A-C21, A-C22, A-U1, A-U2, A-U4, A-U5, A-U9, A-S1, A-S9, A-S10, A-S13) |
+| 일부 | 14 (A-C5, A-C6, A-C8, A-C9, A-C10, A-C14, A-C15, A-C20, A-C23, A-U6, A-U7, A-U8, A-P1, A-X4(2026-11-08)) |
+| 없음 | 32 (A-C1~A-C4, A-C7, A-C11~A-C13, A-C19, A-C24~A-C28, A-U3, A-U10, A-U11, A-S2~A-S8, A-S11, A-S12, A-S14, A-S15, A-S17, A-X1, A-X3, A-X6) |
 | 의도적 제외 | 2 (A-X2 사용 통계 페이지, A-X5 런처) |
 | 조용히 끊김 | 14 (S1~S14, 조사 당시. 그 뒤 S1·S2·S3·S4·S5·S6·S7 수정함, S14는 수정했지만 macOS 실행 확인 필요. S10·S11은 안전 쪽으로 실패) |
 
@@ -249,6 +249,7 @@ Swing에서 바꿀 수 있는 설정: Options — 테마, 아이콘 모양, 입�
 추가함 22 + 이미 있음 7 + 공급자 속성 7, 규칙상 두지 않음 2, 남은 것(다음 작업) 71개다. 나머지 197개는 Swing에서 읽는 곳이 없어 화면을 만들지 않는다.
 2026-11-08 갱신: 연결별 설정 화면을 만들었다(연결 대화상자 Options > Settings: Query Execution, Query Results, Data Formats, Errors and Timeouts, Metadata,
 Client Identification, Oracle). Errors and Timeouts·Metadata·Client Identification·데이터 형식 프로필을 더해 추가함 37, 규칙상 두지 않음 4, 다음 작업 55개다.
+같은 날 전역 라이브러리(`ui.drivers.global.libraries`)를 Driver Manager > Global Libraries…로 만들어 추가함 38, 다음 작업 54개다.
 
 ## 8. 영향이 큰 순서 (없음·조용히 끊김)
 

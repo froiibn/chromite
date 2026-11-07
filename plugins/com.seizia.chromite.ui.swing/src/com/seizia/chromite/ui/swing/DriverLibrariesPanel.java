@@ -31,6 +31,8 @@ import com.seizia.chromite.registry.driver.DriverDescriptor;
 import com.seizia.chromite.registry.driver.DriverFileInfo;
 import com.seizia.chromite.registry.driver.DriverLibraryAbstract;
 import com.seizia.chromite.registry.driver.DriverLibraryBundle;
+import com.seizia.chromite.registry.driver.DriverLibraryMavenArtifact;
+import com.seizia.chromite.registry.driver.DriverLoaderDescriptor;
 import com.seizia.chromite.registry.driver.DriverUtils;
 import com.seizia.chromite.utils.RuntimeUtils;
 import org.jkiss.utils.CommonUtils;
@@ -69,12 +71,20 @@ import java.util.List;
  *     눌려도 내려받지 않는다고 알린다. 모델도 오프라인 모드에서 원격 다운로드를 막는다(docs/chromite/drivers.md).</li>
  *     <li>클래스 찾기: SWT처럼 현재 폼 값의 임시 드라이버({@link Host#createTestDriver()})로 모델의 {@link DriverClassFindJob}을 돌려
  *     {@link java.sql.Driver}를 구현한 클래스를 찾고, 고르면 Class name 칸에 넣는다. 진행 대화상자({@link ProgressDialog})에서 돌린다.</li>
+ *     <li>Maven 아티팩트 추가·편집({@link MavenArtifactDialog}, SWT {@code EditMavenArtifactDialog}): 추가한 아티팩트는 목록 끝에 붙고, 편집은
+ *     고른 사용자 정의 아티팩트를 새 객체로 바꾼다(미리 정의된 아티팩트는 읽기 전용으로 보기만 함).</li>
+ *     <li>정보({@link DriverLibraryDetailsDialog}, SWT {@code DriverLibraryDetailsDialog}): 라이브러리 정보와 의존성 트리.</li>
+ *     <li>로컬 파일 우선: 사용자가 추가한 로컬 jar·폴더에 드라이버 클래스가 있으면 미리 정의된 다운로드 항목은 쓰지 않는다
+ *     ({@code DriverLoaderDescriptor.hasCustomLocalDriverClass}). 그 항목은 "사용 안 함" 상태로 보이고, 다운로드 단추의 대상에서도 빠진다.
+ *     판단은 폼의 Class name 칸과 이 목록(아직 저장 전)으로 한다.</li>
  * </ul>
- * SWT에 있던 Maven 아티팩트 추가·편집({@code EditMavenArtifactDialog}), 라이브러리 정보 창, 전역 클래스패스, 내보내기는 없다(설계 문서 "남긴 것").
+ * SWT에 있던 라이브러리 내보내기는 없다(설계 문서 "남긴 것").
  *
  * 변경 이력:
  * - 2026-11-07 최초 작성 (docs/chromite/swing-driver-manager.md)
  * - 2026-11-08 라이브러리 제거 확인은 제거 / 취소 단추(취소가 기본) (docs/chromite/swing-frontend.md "실행 확인의 기본 단추")
+ * - 2026-11-08 Maven 아티팩트 추가·편집, 라이브러리 정보(의존성 트리), 로컬 파일 우선 상태 "사용 안 함"
+ *   (docs/chromite/swing-driver-manager.md, docs/chromite/drivers.md "로컬 파일 우선")
  */
 final class DriverLibrariesPanel extends JPanel {
 
@@ -84,7 +94,11 @@ final class DriverLibrariesPanel extends JPanel {
      * Where a library's files come from, as far as the user is concerned.
      */
     enum State {
-        BUNDLED, LOCAL, DOWNLOADED, NOT_DOWNLOADED, MISSING
+        BUNDLED, LOCAL, DOWNLOADED, NOT_DOWNLOADED, MISSING,
+        /**
+         * A predefined downloadable library not used because a user-added local library has the driver class.
+         */
+        REPLACED
     }
 
     /**
@@ -102,6 +116,12 @@ final class DriverLibrariesPanel extends JPanel {
 
         boolean isManageable();
 
+        /**
+         * The class name of the form (not saved yet).
+         */
+        @NotNull
+        String getDriverClassName();
+
         void setDriverClassName(@NotNull String className);
     }
 
@@ -117,10 +137,16 @@ final class DriverLibrariesPanel extends JPanel {
     private final DefaultTreeModel treeModel = new DefaultTreeModel(root);
     private final JTree tree = new JTree(treeModel);
     private final JButton removeButton = new JButton(DriverManagerMessages.driverlib_remove);
+    private final JButton editButton = new JButton(DriverManagerMessages.driverlib_edit);
+    private final JButton detailsButton = new JButton(DriverManagerMessages.driverlib_details);
     private final JButton downloadButton = new JButton(DriverManagerMessages.driverlib_download);
     private final JComboBox<String> classCombo = new JComboBox<>();
     private final JButton findClassButton = new JButton(DriverManagerMessages.driverlib_find_class);
     private boolean fillingClasses;
+    /**
+     * {@link #hasLocalDriverClass()} at the last reload: the renderer reads it instead of opening the jars for each row.
+     */
+    private boolean localDriverClass;
 
     DriverLibrariesPanel(@NotNull Host host, @NotNull List<DBPDriverLibrary> libraries) {
         super(new BorderLayout(10, 8));
@@ -147,12 +173,22 @@ final class DriverLibrariesPanel extends JPanel {
         JButton addFolderButton = new JButton(DriverManagerMessages.driverlib_add_folder);
         addFolderButton.setToolTipText(DriverManagerMessages.driverlib_add_folder_tip);
         addFolderButton.addActionListener(e -> addFolder());
+        JButton addArtifactButton = new JButton(DriverManagerMessages.driverlib_add_artifact);
+        addArtifactButton.setToolTipText(DriverManagerMessages.driverlib_add_artifact_tip);
+        addArtifactButton.addActionListener(e -> addArtifacts());
+        editButton.setToolTipText(DriverManagerMessages.driverlib_edit_tip);
+        editButton.addActionListener(e -> editArtifact());
+        detailsButton.setToolTipText(DriverManagerMessages.driverlib_details_tip);
+        detailsButton.addActionListener(e -> showDetails());
         removeButton.addActionListener(e -> removeSelected());
         downloadButton.addActionListener(e -> download());
 
         JPanel buttons = new JPanel(new GridLayout(0, 1, 0, 6));
         buttons.add(addFileButton);
         buttons.add(addFolderButton);
+        buttons.add(addArtifactButton);
+        buttons.add(editButton);
+        buttons.add(detailsButton);
         buttons.add(removeButton);
         buttons.add(new JSeparator());
         buttons.add(downloadButton);
@@ -213,10 +249,11 @@ final class DriverLibrariesPanel extends JPanel {
         boolean hasFiles = false;
         boolean hasDownloads = false;
         DriverDescriptor driver = host.getDriver();
+        localDriverClass = hasLocalDriverClass();
         for (DBPDriverLibrary library : libraries) {
-            State state = getState(driver, library);
+            State state = getState(driver, library, localDriverClass);
             hasFiles |= state == State.BUNDLED || state == State.LOCAL || state == State.DOWNLOADED;
-            hasDownloads |= library.isDownloadable();
+            hasDownloads |= library.isDownloadable() && state != State.REPLACED;
         }
         // Same conditions as DriverEditDialog.changeLibContent / changeLibSelection
         findClassButton.setEnabled(manageable && hasFiles);
@@ -225,7 +262,17 @@ final class DriverLibrariesPanel extends JPanel {
         downloadButton.setEnabled(hasDownloads && !offline);
         downloadButton.setToolTipText(offline ? DriverManagerMessages.driverlib_download_offline
             : hasDownloads ? DriverManagerMessages.driverlib_download_tip : DriverManagerMessages.driverlib_download_none);
-        removeButton.setEnabled(!getSelectedLibraries().isEmpty());
+        List<DBPDriverLibrary> selected = getSelectedLibraries();
+        removeButton.setEnabled(!selected.isEmpty());
+        editButton.setEnabled(selected.size() == 1 && selected.getFirst() instanceof DriverLibraryMavenArtifact);
+        detailsButton.setEnabled(selected.size() == 1);
+    }
+
+    /**
+     * Whether a user-added local library of the list has the class name of the form (the model rule, before saving).
+     */
+    private boolean hasLocalDriverClass() {
+        return DriverLoaderDescriptor.hasCustomLocalDriverClass(host.getDriverClassName(), libraries);
     }
 
     @NotNull
@@ -286,6 +333,38 @@ final class DriverLibrariesPanel extends JPanel {
             }
         }
         libraries.add(DriverLibraryAbstract.createFromPath(host.getDriver(), type, path, null));
+    }
+
+    private void addArtifacts() {
+        List<DriverLibraryMavenArtifact> artifacts = MavenArtifactDialog.openAdd(SwingUtilities.getWindowAncestor(this), host.getDriver());
+        for (DriverLibraryMavenArtifact artifact : artifacts) {
+            if (libraries.stream().noneMatch(library -> library.getPath().equals(artifact.getPath()))) {
+                libraries.add(artifact);
+            }
+        }
+        if (!artifacts.isEmpty()) {
+            reload();
+        }
+    }
+
+    private void editArtifact() {
+        List<DBPDriverLibrary> selected = getSelectedLibraries();
+        if (selected.size() != 1 || !(selected.getFirst() instanceof DriverLibraryMavenArtifact artifact)) {
+            return;
+        }
+        DriverLibraryMavenArtifact changed = MavenArtifactDialog.openEdit(SwingUtilities.getWindowAncestor(this), host.getDriver(), artifact);
+        int index = libraries.indexOf(artifact);
+        if (changed != null && index >= 0) {
+            libraries.set(index, changed);
+            reload();
+        }
+    }
+
+    private void showDetails() {
+        List<DBPDriverLibrary> selected = getSelectedLibraries();
+        if (selected.size() == 1) {
+            DriverLibraryDetailsDialog.open(SwingUtilities.getWindowAncestor(this), host.getDriver(), selected.getFirst());
+        }
     }
 
     private void removeSelected() {
@@ -384,7 +463,10 @@ final class DriverLibrariesPanel extends JPanel {
      * (the public edition's {@code drivers/}, docs/chromite/drivers.md) or in a plugin ({@code bundle:}).
      */
     @NotNull
-    static State getState(@NotNull DriverDescriptor driver, @NotNull DBPDriverLibrary library) {
+    static State getState(@NotNull DriverDescriptor driver, @NotNull DBPDriverLibrary library, boolean localDriverClass) {
+        if (DriverLoaderDescriptor.isReplacedByLocalLibrary(library, localDriverClass)) {
+            return State.REPLACED;
+        }
         if (library.isDownloadable()) {
             Collection<DriverFileInfo> files = driver.getDefaultDriverLoader().getLibraryFiles(library);
             if (CommonUtils.isEmpty(files)) {
@@ -417,6 +499,7 @@ final class DriverLibrariesPanel extends JPanel {
             case NOT_DOWNLOADED -> DriverUtils.isOfflineMode()
                 ? DriverManagerMessages.driverlib_state_not_downloaded_offline : DriverManagerMessages.driverlib_state_not_downloaded;
             case MISSING -> DriverManagerMessages.driverlib_state_missing;
+            case REPLACED -> DriverManagerMessages.driverlib_state_replaced;
         };
     }
 
@@ -449,7 +532,7 @@ final class DriverLibrariesPanel extends JPanel {
                 if (library.getPreferredVersion() != null) {
                     name.append(" [").append(library.getPreferredVersion()).append(']'); //$NON-NLS-1$
                 }
-                State state = getState(host.getDriver(), library);
+                State state = getState(host.getDriver(), library, localDriverClass);
                 String stateText = getStateText(state);
                 if (library.isOptional()) {
                     stateText += ", " + DriverManagerMessages.driverlib_optional; //$NON-NLS-1$

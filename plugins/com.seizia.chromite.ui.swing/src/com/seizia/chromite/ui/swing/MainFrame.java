@@ -19,6 +19,7 @@ package com.seizia.chromite.ui.swing;
 import com.formdev.flatlaf.FlatClientProperties;
 import com.formdev.flatlaf.util.UIScale;
 import com.seizia.chromite.ui.swing.internal.AiMessages;
+import com.seizia.chromite.ui.swing.internal.CompareMessages;
 import com.seizia.chromite.ui.swing.internal.ConnectionTransferMessages;
 import com.seizia.chromite.ui.swing.internal.CoreMessages;
 import com.seizia.chromite.ui.swing.internal.DashboardMessages;
@@ -210,10 +211,12 @@ import java.util.function.Supplier;
  * - 2026-11-08 문서 탭 UI가 {@link ChromiteTabbedPaneUI}를 상속: 테마를 바꾼 뒤 숨겨진 탭 단추의 도구 설명이 사라지던 문제
  *   (docs/chromite/swing-followup-fixes.md "작은 화면 수정")
  * - 2026-11-08 Save As 덮어쓰기 확인은 바꾸기 / 취소 단추(취소가 기본), 결과 표 변경 저장 질문은 취소가 기본 (docs/chromite/swing-frontend.md "실행 확인의 기본 단추")
+ * - 2026-11-08 File > Import Connections를 하위 메뉴로: Chromite 파일에서… / 다른 도구에서… (docs/chromite/connection-transfer.md "다른 도구에서 가져오기")
  * - 2026-11-08 Query &gt; Trace Execution…(Modify 창의 SQL Server 프로시저, {@link ExecutionTraceCommands}) (docs/chromite/sqlserver-execution-trace.md)
  * - 2026-11-08 View &gt; Compact Mode(촘촘한 모드, {@link UiDensity}) (docs/chromite/design-spec.md "적용 현황 — 촘촘한 모드")
  * - 2026-11-08 Query History에서 연 바인딩 실행은 기록된 값으로 다시 바인딩(Execute는 묻지 않음)
  *   (docs/chromite/swing-query-library.md "매개변수 대화상자와 바인딩 하나로")
+ * - 2026-11-08 Tools &gt; Compare Schemas… ({@link SchemaComparePanel}, docs/chromite/schema-compare.md)
  * - 2026-11-08 Query &gt; SQL Terminal(Ctrl+T)과 활성 쿼리 창이 켰을 때만 붙는 Terminal 탭 (docs/chromite/swing-sql-terminal.md)
  * - 2026-11-08 Scripts 도구 창(Ctrl+Alt+L, Properties 위, 기본 숨김), 스크립트에 묶은 연결로 파일 열기, 스크립트 폴더에 저장할 때 연결 묶기
  *   (docs/chromite/swing-scripts-explorer.md)
@@ -1725,9 +1728,14 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
         fileMenu.add(new JMenuItem(saveAsAction));
         fileMenu.add(new JMenuItem(saveAllAction));
         fileMenu.addSeparator();
-        JMenuItem importConnectionsItem = new JMenuItem(ConnectionTransferMessages.transfer_menu_import);
+        JMenu importConnectionsMenu = new JMenu(ConnectionTransferMessages.transfer_menu_import_group);
+        JMenuItem importConnectionsItem = new JMenuItem(ConnectionTransferMessages.transfer_menu_import_file);
         importConnectionsItem.addActionListener(e -> ConnectionTransferCommands.importConnections(this));
-        fileMenu.add(importConnectionsItem);
+        importConnectionsMenu.add(importConnectionsItem);
+        JMenuItem importOtherToolItem = new JMenuItem(ConnectionTransferMessages.transfer_menu_import_other);
+        importOtherToolItem.addActionListener(e -> ConnectionTransferCommands.importFromOtherTool(this));
+        importConnectionsMenu.add(importOtherToolItem);
+        fileMenu.add(importConnectionsMenu);
         JMenuItem exportConnectionsItem = new JMenuItem(ConnectionTransferMessages.transfer_menu_export);
         exportConnectionsItem.addActionListener(e -> ConnectionTransferCommands.exportConnections(this, null));
         fileMenu.add(exportConnectionsItem);
@@ -1805,6 +1813,9 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
         JMenuItem findObjectsItem = new JMenuItem(CoreMessages.main_find_objects);
         findObjectsItem.setMnemonic(KeyEvent.VK_F);
         findObjectsItem.addActionListener(e -> openObjectSearch(explorerPanel.getSelectedNode()));
+        JMenuItem compareSchemasItem = new JMenuItem(CompareMessages.compare_command);
+        compareSchemasItem.setToolTipText(CompareMessages.compare_command_tip);
+        compareSchemasItem.addActionListener(e -> SchemaComparePanel.open(this, explorerPanel.getSelectedNode()));
         JMenuItem driverManagerItem = new JMenuItem(DriverManagerMessages.drivermgr_menu);
         driverManagerItem.setToolTipText(DriverManagerMessages.drivermgr_menu_tip);
         driverManagerItem.addActionListener(e -> DriverManagerDialog.open(this));
@@ -1816,6 +1827,7 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
         AdminViewCommands.addMenuItems(toolsMenu, this::openActivityMonitor);
         toolsMenu.add(openTransactionsItem);
         toolsMenu.add(findObjectsItem);
+        toolsMenu.add(compareSchemasItem);
         toolsMenu.addSeparator();
         toolsMenu.add(driverManagerItem);
         toolsMenu.add(optionsItem);

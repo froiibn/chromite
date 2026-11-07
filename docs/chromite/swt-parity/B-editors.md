@@ -11,12 +11,14 @@
 
 | 상태 | SQL 편집기 | 결과 뷰어 | 개체 편집기 | 연결 편집기 | 그 밖의 편집기 | 합계 |
 |---|---|---|---|---|---|---|
-| 있음 | 20 | 8 | 4 | 5 | 0 | **37** |
-| 일부 | 12 | 9 | 6 | 9 | 7 | **43** |
-| 없음 | 11 | 11 | 1 | 7 | 0 | **30** |
+| 있음 | 19 | 8 | 4 | 7 | 0 | **38** |
+| 일부 | 12 | 9 | 6 | 7 | 7 | **41** |
+| 없음 | 12 | 11 | 1 | 7 | 0 | **31** |
 | 조용히 끊김 | 1 | 0 | 1 | 1 | 0 | **3** |
 | 의도적 제외 | 2 | 2 | 0 | 0 | 0 | **4** |
 | 합계 | 46 | 30 | 12 | 22 | 7 | **117** |
+
+2026-11-08 다시 셈: 위 수는 아래 표의 지금 상태 칸으로 센 것이다("수정함"은 있음으로 셈). 조사 당시 수는 있음 25, 일부 42, 없음 39, 조용히 끊김 8, 의도적 제외 3이었다.
 
 ### 조용히 끊김 (가장 위험한 것부터)
 
@@ -108,7 +110,7 @@
 | R8 | 그룹 패널(GROUP BY 보기, 중복만) | `GroupingPanel` | 없음 | grep `Grouping` 0건(결과) | 낮음 | |
 | R9 | GIS(공간 데이터) 보기 | `data.gis.view` | 일부 (2026-11-08) | `ResultSetSpatialView`, `SqlServerSpatialReader`([swing-result-charts-spatial.md](../swing-result-charts-spatial.md)). 조사 당시: 없음(swt-removal.md:106) | 낮음 | 밑그림 지도(온라인 타일)·SRID 변환·GIS 설정·기하 값 편집 없음(폐쇄망용으로 일부러 뺌). SQL Server 바이트는 SWT보다 더 그림 |
 | R10 | 필터 | `ResultSetFilterPanel`, `filterMenu`, `filterSave`, `filterSettings` | 일부 | `ResultSetColumnFilterPopup`, "Filter by Value"(swing-grid-column-filters.md) | 중간 | 저장한 필터, 필터 편집 대화상자, 고급 WHERE 입력 없음(swing-result-viewer.md:177) |
-| R11 | 정렬(서버·표 안) | `toggleOrder`, `OrderingStrategy` | 있음 | `ResultSetViewerPanel`, swing-result-viewer.md "정렬과 필터" | 중간 | |
+| R11 | 정렬(서버·표 안) | `toggleOrder`, `OrderingStrategy` | 있음 | `ResultSetViewerPanel`, swing-result-viewer.md "정렬과 필터" | 중간 | 2026-11-08 SWT와 다름: 서버 정렬이 쿼리의 ORDER BY를 바꾸고(SWT는 뒤에 덧붙임) 상태 줄에 정렬 요약·쿼리 순서로 되돌리기([swing-grid-column-filters.md](../swing-grid-column-filters.md) "정렬과 쿼리의 ORDER BY") |
 | R12 | 페이지·더 읽기·모두 읽기, 최대 행 수 | `fetch.page`, `fetch.all`, `PrefPageResultSetMain` | 있음 | `ResultSetViewerPanel`, Options "Maximum rows" | 중간 | JDBC fetch size 설정 없음 |
 | R13 | 전체 행 수 세기 | `resultset.count` | 없음 | swing-result-viewer.md:177 | 낮음 | |
 | R14 | 형식별 값 편집기(날짜 선택, 불리언 확인란, 참조 값 고르기, 배열·구조체, 커서, LOB 파일 불러오기·저장, 외부 편집기, UUID 만들기) | `data/editors/*`, `data/managers/*`, `openWith`, `cell.save`, `generate.uuid` | 일부 | 글자 셀 편집기만(swing-frontend.md:1291, swing-result-viewer.md:178) | 중간 | |
@@ -169,8 +171,8 @@ swing-security.md는 DB 보안(로그인·역할·권한) 문서이고 연결 �
 | C15 | 트랜잭션 설정(스마트 커밋·복귀, 유휴 트랜잭션 자동 닫기·시간) | `PrefPageTransactions` | 없음 | grep `TRANSACTIONS_SMART_COMMIT`·`TRANSACTIONS_AUTO_CLOSE` Swing 0건 | 중간 | S16·S24의 설정 쪽 |
 | C16 | 클라이언트 식별(애플리케이션 이름 끄기·바꾸기, 환경 변수 쓰기) | `PrefPageConnectionClient` | 없음 | Swing grep `META_CLIENT_NAME` 0건, 모델 키 `ModelPreferences.java:216-218` | 낮음 | 이름은 늘 `GeneralUtils.getProductTitle()`(swing-followup-fixes.md "Oracle 프로그램 이름") |
 | C17 | 오류 처리(재연결 등), 메타데이터 읽기 설정 | `PrefPageErrorHandle`, `PrefPageMetaData` | 없음 | grep 0건 | 낮음 | 모델 기본값으로 동작 |
-| C18 | 드라이버 관리 나머지(Maven 아티팩트, 의존성 트리, 전역 클래스패스) | `DriverEditDialog`, `PrefPageDrivers*` | 일부 | `DriverManagerDialog`, `DriverEditorDialog`; swt-removal.md:114 | 낮음 | |
-| C19 | 클라이언트 홈 선택 | `ClientHomesSelector`, `ClientHomesPanel` | 일부 | 기본 홈만 씀(`ConnectionDialog.java:340`) | 낮음 | Oracle OCI 홈은 SWT에서도 상용 기능이라 옮기지 않음(swing-conn-advanced.md:165) |
+| C18 | 드라이버 관리 나머지(Maven 아티팩트, 의존성 트리, 전역 클래스패스) | `DriverEditDialog`, `PrefPageDrivers*` | 있음 (2026-11-08, 조사 때 일부) | `MavenArtifactDialog`, `DriverLibraryDetailsDialog`, `GlobalLibrariesDialog`([swing-driver-manager.md](../swing-driver-manager.md)) | 낮음 | Maven 저장소 목록과 라이브러리 내보내기는 남음 |
+| C19 | 클라이언트 홈 선택 | `ClientHomesSelector`, `ClientHomesPanel` | 있음 (2026-11-08, 조사 때 일부) | 드라이버의 설치 목록은 드라이버 편집 창 Local Client 탭(`ClientHomesPanel`), 연결마다 고르기는 백업 대화상자(D-P6, M2). 새 연결은 기본 홈(`ConnectionDialog.java:340`) | 낮음 | Oracle OCI 홈은 SWT에서도 상용 기능이라 옮기지 않음(swing-conn-advanced.md:165) |
 | C20 | URL로 새 연결, 드라이버 종류 바꾸기 | `new.connection.from.url`, Driver type | 일부 | Connect with: JDBC URL 방식은 있음 | 낮음 | |
 | C21 | 현재 사용자 비밀번호 바꾸기 | `connection.changeCurrentPassword`, `PasswordChangeDialog` | 일부 | 만료 비밀번호 묻기는 됨(`SwingPlatformUI.promptUserPasswordChange` `:360`), 메뉴 없음 | 낮음 | |
 | C22 | Test Connection | `ConnectionWizard.testConnection` | 있음 | `ConnectionDialog`, swing-conn-advanced.md "5. Test Connection" | 중간 | |
