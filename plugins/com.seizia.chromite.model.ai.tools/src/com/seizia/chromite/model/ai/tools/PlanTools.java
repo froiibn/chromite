@@ -80,9 +80,11 @@ public class PlanTools extends AgentTool implements AIToolAccessClassifier, AITo
 
     private static final String SHOWPLAN_COLUMN = "Showplan"; //$NON-NLS-1$
     private static final AgentLimits ORACLE_PLAN_LIMITS = new AgentLimits(1000, 4000, AgentLimits.DEFAULT_BYTES);
-    // Leading comments, then the first DML keyword; a WITH query's first SELECT (the first query block)
+    // Leading comments, then the first DML keyword; a WITH query's first SELECT (the first query block).
+    // The block comment pattern cannot match "*/" inside a comment and the leading group is possessive, so a comment
+    // like "/* *//* *//* ..." cannot make the matcher backtrack exponentially (CodeQL java/redos).
     private static final Pattern ORACLE_FIRST_KEYWORD = Pattern.compile(
-        "^(?:\\s|--[^\\n]*\\n|/\\*.*?\\*/)*(?:WITH\\b.*?)?\\b(SELECT|INSERT|UPDATE|DELETE|MERGE)\\b", //$NON-NLS-1$
+        "^(?:\\s|--[^\\n]*\\n|/\\*(?:[^*]|\\*+[^*/])*\\*+/)*+(?:WITH\\b.*?)?\\b(SELECT|INSERT|UPDATE|DELETE|MERGE)\\b", //$NON-NLS-1$
         Pattern.CASE_INSENSITIVE | Pattern.DOTALL);
     private static final Pattern ORACLE_HINT = Pattern.compile("\\s*/\\*\\+(.*?)\\*/", Pattern.DOTALL); //$NON-NLS-1$
     private static final Pattern CREATE_INDEX = Pattern.compile("\\s*CREATE\\s+(UNIQUE\\s+)?INDEX\\b", Pattern.CASE_INSENSITIVE); //$NON-NLS-1$
