@@ -136,6 +136,7 @@ SWT 전수 조사 4순위 B7 "개체 만들기"를 옮긴다. 줄은 [swt-parity
 
 - 모델 `PostgreDatabase`: `setCollate`, `setCtype` 추가. `PostgreDatabaseManager`: 새 DB의 `LC_COLLATE`·`LC_CTYPE`.
 - 모델 `SQLServerDatabase`: `getCollationNames` 추가(이미 있던 비공개 목록을 복사해 돌려줌).
+- 모델 `PostgreSchemaManager`: 소유자 ID가 0(고르지 않음)이면 `AUTHORIZATION`을 쓰지 않음(전에는 `AUTHORIZATION public`).
 - `ext.mysql` `plugin.xml`: MariaDB 시퀀스 항목 이름을 단수 키 `tree.sequence.node.name`(영어 "Sequence", 한국어 "시퀀스", 다른 언어는 영어로
   보임)으로. upstream은 폴더 이름 키(복수)를 썼다.
 - SWT 구성기 대화상자 대신 Swing 대화상자·틀. 위 설계 결정.
@@ -162,7 +163,9 @@ SWT 전수 조사 4순위 B7 "개체 만들기"를 옮긴다. 줄은 [swt-parity
 컨테이너에 pgAgent가 없음, Altibase 시퀀스 관리자는 만들 수 없다고 함). 대화상자 길과 다른 점은 이름 입력과 `setName`뿐이다.
 시험 중 찾아 고친 것: 디자이너에서 드라이버가 외래 키 규칙을 거절하면 이름 없는 외래 키가 명령 묶음에 남아 다음 저장 스크립트가
 "Empty foreign key name"으로 실패했다(`TableDesignSession.discardNew`). MariaDB 시퀀스 폴더의 항목 이름이 복수형이라 "New Sequences…"로
-보였다(ext.mysql `plugin.xml`의 항목 이름을 단수 `tree.sequence.node.name`으로).
+보였다(ext.mysql `plugin.xml`의 항목 이름을 단수 `tree.sequence.node.name`으로). PostgreSQL New Schema…에서 소유자를 "(기본값)"으로 두면
+`AUTHORIZATION public`이 나가 "role "public" does not exist"로 실패했다: 소유자 ID 0을 역할 캐시가 PUBLIC 의사 역할로 읽는다. SWT도
+연결 설정에 사용자 이름이 없으면 같은 문장이 나갔다. 모델 `PostgreSchemaManager`가 ID 0이면 `AUTHORIZATION`을 쓰지 않는다.
 
 ## 남긴 것
 
@@ -180,4 +183,4 @@ SWT 전수 조사 4순위 B7 "개체 만들기"를 옮긴다. 줄은 [swt-parity
 - 2026-11-08 최초 작성: 폴더의 New &lt;종류&gt;…, 새 데이터베이스(PostgreSQL·SQL Server·MySQL/MariaDB), PostgreSQL 스키마·테이블스페이스·확장,
   시퀀스·트리거·DDL 트리거·이벤트 트리거·정책·패키지·형식·큐 틀, Oracle 디자이너 인덱스·외래 키·CHECK, 디자이너 저장 전 트랜잭션 질문
   (`chromite/p4-create-objects`). 확인 중 고침: 디자이너에서 거절된 외래 키가 남던 것, MariaDB "New Sequences…" 이름, 틀이 없는
-  드라이버의 시퀀스를 이름만 길에 둠.
+  드라이버의 시퀀스를 이름만 길에 둠, 소유자를 고르지 않은 PostgreSQL 새 스키마의 `AUTHORIZATION public`.
