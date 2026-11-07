@@ -42,6 +42,7 @@ Require-Bundle: org.eclipse.equinox.app,
  com.seizia.chromite.model.update,
  com.seizia.chromite.debug.core,
  com.github.weisj.jsvg,
+ com.sun.jna,
  org.eclipse.osgi
 Require-Capability: osgi.extender;filter:="(osgi.extender=osgi.serviceloader.registrar)"
 Provide-Capability: osgi.serviceloader;osgi.serviceloader="com.github.weisj.jsvg.logging.LogManager";register:="com.seizia.chromite.ui.swing.JsvgLogManager"

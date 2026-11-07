@@ -1,4 +1,4 @@
-# 플랫폼 시작·종료: Windows 인증서 저장소, macOS 앱 메뉴
+# 플랫폼 시작·종료: Windows 인증서 저장소, macOS 메인 스레드와 앱 메뉴
 
 ## 목적
 
@@ -14,12 +14,18 @@ SWT 앱이 시작할 때 하던 플랫폼별 처리 두 가지가 Swing 앱에 �
 
 ## 구조
 
-모두 `plugins/com.seizia.chromite.ui.swing`의 `ChromiteSwingApplication`에 있다.
+모두 `plugins/com.seizia.chromite.ui.swing`에 있다.
 
-| 메서드 | 하는 일 |
+| 클래스·메서드 | 하는 일 |
 |---|---|
-| `useWindowsTrustStore` | Windows이고 설정 `connections.useWinTrustStoreType`(`ModelPreferences.PROP_USE_WIN_TRUST_STORE_TYPE`, Windows 기본 켬)이 켜져 있으며, 명령줄에 `javax.net.ssl.trustStore`·`trustStoreType`이 없으면 `javax.net.ssl.trustStoreType=WINDOWS-ROOT`로 둔다. 적용 결과를 디버그 로그에 남긴다(`SSL trust store type: ...`) |
-| `installDesktopHandlers` | `java.awt.Desktop`이 지원하는 경우에만 끝내기·정보·환경설정 처리기를 등록한다 |
+| `ChromiteSwingApplication.useWindowsTrustStore` | Windows이고 설정 `connections.useWinTrustStoreType`(`ModelPreferences.PROP_USE_WIN_TRUST_STORE_TYPE`, Windows 기본 켬)이 켜져 있으며, 명령줄에 `javax.net.ssl.trustStore`·`trustStoreType`이 없으면 `javax.net.ssl.trustStoreType=WINDOWS-ROOT`로 둔다. 적용 결과를 디버그 로그에 남긴다(`SSL trust store type: ...`) |
+| `ChromiteSwingApplication.installDesktopHandlers` | `java.awt.Desktop`이 지원하는 경우에만 끝내기·정보·환경설정 처리기를 등록한다. macOS에서 런처가 첫 스레드에서 시작했으면 `MacOSAppMenu`로 앱 메뉴와 끝내기 요청도 둔다 |
+| `ChromiteSwingApplication.start` | macOS 첫(AppKit) 스레드에서 불리면 본문(`run`)을 `MacOSMainThread.runApplication`에 맡긴다. 그 밖에는 바로 `run` |
+| `MacOSMainThread` (새) | 앱 본문을 스레드 `Chromite main`에서 돌리고 첫 스레드는 CoreFoundation 실행 루프를 돈다. 본문이 끝나면 OSGi 프레임워크를 멈추고 결과 코드로 끝낸다(아래 "macOS 메인 스레드") |
+| `MacOSAppMenu` (새) | 앱 메뉴(정보, 옵션, 가리기, 기타 가리기, 모두 보기, 끝내기)와 앱 위임자(`applicationShouldTerminate:`)를 JNA·Objective-C 런타임으로 만든다(아래 "macOS 앱 메뉴") |
+| `product/swing/pom.xml` `macos-info-plist` | 제품을 만든 뒤 macOS `Info.plist`를 고친다(아래 "macOS Info.plist") |
+
+`com.seizia.chromite.ui.swing`의 `Require-Bundle`에 `com.sun.jna`를 더했다(이미 제품에 있는 번들, `model.security`가 쓴다).
 
 ### 신뢰 저장소를 정하는 시점
 
@@ -31,7 +37,47 @@ JDK는 `javax.net.ssl.trustStoreType`을 기본 SSL 문맥을 처음 만들 때 
 `WINDOWS-ROOT`는 `jdk.crypto.mscapi` 모듈(공급자 `SunMSCAPI`)이 제공한다. 내장 런타임은 Windows용 jlink 모듈 목록
 (`tools/jre/jbr.properties`의 `windows-x64.modules`)에 이미 이 모듈을 넣고 있어 바꿀 것이 없다([runtime.md](runtime.md) "모듈").
 
+### macOS 메인 스레드
+
+Eclipse 런처는 macOS에서 JVM을 언제나 같은 프로세스의 첫(AppKit 메인) 스레드에서 시작하고(SWT가 그 스레드를 써야 해서),
+`JAVA_STARTED_ON_FIRST_THREAD_<pid>`를 둔다. Equinox는 그 스레드에서 `ChromiteSwingApplication.start`를 부른다. AWT는 초기화와
+창 작업을 그 스레드의 실행 루프에 맡기고 기다리므로, `start`가 Swing 작업(`invokeAndWait`)을 기다리면 서로 기다려 창이 뜨지 않았다
+(v0.1.1, 아래 "macOS 확인 기록").
+
+`MacOSMainThread`는 JDK `java` 런처(libjli `MacOSXStartup`·`ParkEventLoop`)와 같은 배치로 바꾼다.
+
+1. `pthread_main_np()`로 첫 스레드인지 본다(macOS에서만). 아니면(Windows 등) 아무것도 바꾸지 않는다.
+2. AWT가 읽기 전에 `JAVA_STARTED_ON_FIRST_THREAD_<pid>`를 지운다(`unsetenv`). 남아 있으면 AWT가 SWT용 내장 모드로 시작해
+   AppKit 이벤트 루프를 돌리지 않는다.
+3. 앱 본문(`run`)을 새 스레드 `Chromite main`(데몬 아님)에서 돌린다.
+4. 첫 스레드는 `CFRunLoopRunInMode(kCFRunLoopDefaultMode)`를 되풀이한다. AWT가 시작 블록을 그 루프에 맡기면 그 안에서 앱의
+   이벤트 루프(`[NSApp run]`)가 돌고 다시 돌아오지 않는다.
+5. 첫 스레드는 Equinox로 돌아가지 못하므로 본문이 끝나면 `Chromite main`이 Equinox가 하던 마무리를 한다: 시스템 번들(`Framework`)을
+   멈추고(`stop`, `waitForStop` 최대 60초) 결과 코드(`Integer` 결과, 아니면 0, 예외면 13)로 `System.exit`. JDK 런처도 둘째 스레드에서
+   `exit`로 끝난다. `EclipseStarter.shutdown`은 쓰지 않는다: 실행 중인 앱(돌아오지 않는 첫 스레드)을 1분 기다린다
+   (`EclipseAppLauncher.shutdown`의 `runningLock.tryAcquire(1, MINUTES)`).
+
+자동 업데이트 다시 시작은 바뀌지 않는다: 도우미가 이 프로세스(pid)가 끝나기를 기다린 뒤 앱을 바꾸고 `/usr/bin/open`으로 다시 띄운다
+(`UpdateApplier`). 런처의 다시 시작 코드(23·24)는 Chromite가 쓰지 않는다.
+
 ### macOS 앱 메뉴
+
+런처는 JVM을 올리기 전에 Apple event 처리기를 두면서 평범한 `NSApplication`을 만든다(`eclipseCocoa.c`의 `installAppleEventHandler`,
+`reuseWorkbench`에서 언제나). 그래서 AWT는 자기 `NSApplicationAWT`를 만들지 못하고 그 앱을 돌리며, 앱 메뉴도 앱 위임자도 두지 않는다
+(디버그 로그 `macOS application NSApplication, delegate none`). 위임자가 없으면 Cmd+Q·끝내기 Apple event·Dock의 끝내기가 Java 끝내기
+처리기를 거치지 않고 프로세스를 바로 끝낸다(수정 중 실행에서 확인: `Main window closed` 없이 끝남). JDK의 `AWT_OVERRIDE_NSDELEGATE`도
+JBR 25에서는 위임자를 두지 않았다.
+
+`MacOSAppMenu`가 이 둘을 맡는다(AppKit 스레드에서, main dispatch queue로).
+
+- 앱 메뉴: "Chromite 정보"(`main_about`), "옵션…"(`main_options`, Cmd+,), "Chromite 가리기"(Cmd+H), "기타 가리기"(Opt+Cmd+H),
+  "모두 보기", "Chromite 종료"(Cmd+Q, `terminate:`). 가리기·끝내기는 대상 없이 응답자 사슬로 `NSApp`에 간다.
+- 앱에 위임자가 없으면 런타임에 만든 Objective-C 클래스 `ChromiteAppMenuTarget`의 객체를 위임자로 둔다. `applicationShouldTerminate:`는
+  `requestQuit`(창 닫기 단추와 같은 `WINDOW_CLOSING`)을 EDT에 맡기고 `NSTerminateCancel`을 돌려준다. `Desktop` 끝내기 처리기와 같은
+  동작이다(끝내기 요청은 취소하고 앱은 자기 경로로 끝남). 정보·옵션도 이 객체가 받아 `AboutDialog`·`OptionsDialog`를 EDT에서 연다.
+- AWT는 창이 활성화될 때 메인 메뉴의 0번(앱 메뉴)만 남기고 지운다(`CMenuBar clearMenuBar`). 그래서 앱 메뉴가 남는다.
+
+`Desktop` 처리기(아래)는 AWT가 앱을 가진 경우(런처 밖 실행)를 위해 그대로 둔다.
 
 - **끝내기**: `Desktop.setQuitHandler`. 처리기는 EDT에서 메인 창에 창 닫기 단추와 같은 `WINDOW_CLOSING` 이벤트를 보내고,
   JDK의 끝내기 요청은 항상 취소한다(`QuitResponse.cancelQuit`). 사용자가 끝내기로 하면 창이 닫히고 앱은 창을 닫을 때와 같은
@@ -40,6 +86,21 @@ JDK는 `javax.net.ssl.trustStoreType`을 기본 SSL 문맥을 처음 만들 때 
 - **환경설정**: `Desktop.setPreferencesHandler` → 도구 메뉴와 같은 `OptionsDialog`.
 - 각각 `Desktop.isSupported(Action.APP_QUIT_HANDLER / APP_ABOUT / APP_PREFERENCES)`일 때만 등록한다. Windows는 셋 다
   지원하지 않으므로(아래 확인 기록) 등록되지 않고 동작이 바뀌지 않는다.
+
+### macOS Info.plist
+
+p2(`BrandingIron`)는 앱 이름을 런처 이름에서 만들고("Chromite-swing") Eclipse 런처 틀의 값을 남긴다. `product/swing/pom.xml`의
+`maven-antrun-plugin` 실행 `macos-info-plist`가 `materialize-products` 뒤(같은 `package` 단계, 뒤에 선언), 서명 전에 고친다.
+
+| 키 | 전 | 후 |
+|---|---|---|
+| `CFBundleName`, `CFBundleDisplayName` | `Chromite-swing` | `Chromite`(메뉴 막대, Dock, Finder, 시스템 대화상자) |
+| `CFBundleGetInfoString` | `Eclipse 4.41 for Mac OS X, Copyright IBM Corp. …` | 지움 |
+| `Eclipse`(런처 인수 배열) | `-keyring ~/.eclipse_keyring` | 지움. 이 인수는 옛 Platform 인증 저장소(`InternalPlatform` → `AuthorizationHandler.setKeyringFile`)만 읽고 Chromite는 쓰지 않는다. 보안 저장소는 `-eclipse.keyring`만 읽는다(`SecurePreferencesMapper`, [credential-storage.md](credential-storage.md)) |
+| `NSRequiresAquaSystemAppearance` | `true` | 지움(시스템 어두운 모드가 창 테두리에 닿음) |
+
+`CFBundleExecutable`(`chromite-swing`), `CFBundleIdentifier`, 앱 폴더 이름(`ChromiteSwing.app`)은 서명·업데이트·배포 파일이 쓰므로 그대로다.
+고친 뒤 값이 예상과 다르면(틀이 바뀌어 정규식이 맞지 않으면) 빌드가 실패한다(`<fail>` 조건).
 
 ## 설계 결정과 이유
 
@@ -51,11 +112,19 @@ JDK는 `javax.net.ssl.trustStoreType`을 기본 SSL 문맥을 처음 만들 때 
 - **`MainFrame`을 고치지 않음**: 창 닫기 이벤트를 그대로 보내면 `MainFrame`의 창 닫기 처리(`requestExit`)를 그대로 지난다.
   공유 파일 변경을 줄이고, 닫기 단추와 Cmd+Q가 같은 코드를 지난다는 것이 분명해진다.
 - **화면 메뉴 막대(`apple.laf.useScreenMenuBar`)는 넣지 않음**: 요청 범위 밖이고 메뉴 배치가 바뀐다.
+- **macOS 시작은 Java 쪽에서 고침**: 다른 방법을 실행으로 확인했다(ci.md "macOS 설치·실행 시험"). 런처의 `--launcher.secondThread`는 macOS 15에서
+  런처가 AppKit 단정으로 죽는다. 런처는 macOS에서 언제나 JVM을 같은 프로세스에 올린다(`eclipseCocoa.c` `startJavaVM` → `startJavaJNI`,
+  `-vm …/bin/java`를 줘도 같은 프로세스). 별도 `java` 프로세스로 띄우려면 런처를 바꾸거나 새로 만들어야 하고 `jre/bin/java`에 JIT 권한
+  서명도 필요하다. Java 쪽 수정은 서명한 앱 하나를 그대로 두고, 권한(entitlements)도 바꾸지 않는다: JVM은 계속 런처 프로세스 안에 있고
+  JNA 콜백(Objective-C 메서드, dispatch 함수)은 이미 있는 `allow-unsigned-executable-memory`로 돈다.
+- **앱 메뉴 문구**: 앱의 도구 메뉴와 같은 "옵션…"을 쓴다(macOS 기본 이름 "설정…" 대신).
 
 ## upstream 대비 변경점
 
 - upstream(DBeaver)의 SWT 앱 시작 처리(`ChromiteApplication.start`의 신뢰 저장소)를 Swing 앱에 옮겼다. 조건과 키는 같다.
 - macOS 메뉴 통합은 upstream `ui.swt.macos`(SWT Cocoa)가 맡았다. Swing에서는 `java.awt.Desktop` API로 새로 구현했다.
+- macOS에서 Swing 앱을 첫 스레드 밖에서 돌리는 `MacOSMainThread`, 런처의 `NSApplication`에 앱 메뉴·위임자를 두는 `MacOSAppMenu`, `Info.plist` 고치기는
+  Chromite에서 새로 만들었다(upstream은 SWT라 첫 스레드에서 돈다).
 
 ## 확인 기록 (2026-11-07, Windows 11, 내장 런타임 JBR 25.0.4.1)
 
@@ -78,21 +147,46 @@ JDK는 `javax.net.ssl.trustStoreType`을 기본 SSL 문맥을 처음 만들 때 
   이 변경은 `MainFrame.requestExit`와 `ExitTransactionCheck`를 고치지 않았고, Windows에서는 새 처리기가 등록되지 않으므로 코드 경로는 그대로다.
 - macOS 확인은 아래 "macOS 확인 기록"에 있다.
 
+- 2026-11-08 macOS 시작 수정 뒤 로컬 빌드(`mvn -B clean package … -Pproduct-chromite-swing` BUILD SUCCESS)를 `CHROMITE_DATA`·작업 공간을 비공개 폴더로 두고 실행:
+  `SSL trust store type: WINDOWS-ROOT`, 창 제목 Chromite, `WM_CLOSE` → `Main window closed` → `(Swing) shutdown completed`. 수정 전과 같다
+  (`MacOSMainThread`·`MacOSAppMenu`는 macOS에서만 동작). 증거: `D:\Tools\_scratch\macos-startup-fix\windows-debug.log`, `windows-app-window.png`.
+
 ## macOS 확인 기록 (2026-11-08, GitHub `macos-15` 러너, macOS 15.8.2 arm64)
 
 `macos-smoke.yml`([ci.md](ci.md) "macOS 설치·실행 시험")이 앱을 실제로 띄워 끝내기(Apple event `quit`과 System Events의 Cmd+Q), 앱 메뉴의 정보·환경설정,
 열린 트랜잭션이 있을 때의 Cmd+Q(저장 질문 → "Uncommitted Transactions" → Cancel이면 앱이 남는지 → Roll Back이면 롤백 후 정상 종료)를 확인하도록 만들었다.
 판정은 디버그 로그의 `Main window closed`·`(Swing) shutdown completed`(JDK 기본 끝내기 `System.exit`이면 이 줄 없이 끝남)와 크래시 보고서 유무다.
 
-- **확인하지 못했다: 앱이 macOS에서 시작하지 않는다(제품 결함).** v0.1.1 서명 dmg와 이 브랜치의 서명 없는 빌드 모두 프로세스는 뜨지만 창이 없고 디버그 로그도 생기지 않는다.
+### v0.1.1: 시작하지 않음
+
+- v0.1.1 서명 dmg와 수정 전 브랜치의 서명 없는 빌드 모두 프로세스는 뜨지만 창이 없고 디버그 로그도 생기지 않았다.
   JVM 스레드 덤프: `main`이 `installLookAndFeel`의 `SwingUtilities.invokeAndWait`(`ChromiteSwingApplication.java:189`)에서, `AWT-EventQueue-0`이
   `CGraphicsEnvironment.initMetal`에서 멈춤. Eclipse 런처가 JVM을 AppKit 메인 스레드에서 시작해(`sample`: 메인 스레드 `startJavaJNI` → `JVM_MonitorWait`)
-  AWT가 메인 스레드에 맡긴 초기화를 아무도 처리하지 못한다. 그래서 이 문서의 끝내기·정보·환경설정 처리기(`installDesktopHandlers`)는 아직 한 번도 실행되지 않았다.
-- `--launcher.secondThread`(JVM을 둘째 스레드에서)로 실험하면 런처가 AppKit 단정으로 바로 죽는다(`+[KeyWindow dispatch]`, `EXC_BREAKPOINT`).
-  명령줄 `-vm …/jre/bin/java`도 런처가 같은 프로세스에 JVM을 올려 결과가 같다. 고치는 방법은 따로 정해야 한다(보고).
-- 앱이 시작하면 같은 워크플로를 다시 돌려 위 항목을 확인한다(`gh workflow run macos-smoke.yml --repo froiibn/chromite -f source=build` 또는 `-f tag=<태그>`).
+  AWT가 메인 스레드에 맡긴 초기화를 아무도 처리하지 못했다(위 "macOS 메인 스레드").
+- `--launcher.secondThread`(JVM을 둘째 스레드에서)로 실험하면 런처가 AppKit 단정으로 바로 죽었다(`+[KeyWindow dispatch]`, `EXC_BREAKPOINT`).
+  명령줄 `-vm …/jre/bin/java`도 런처가 같은 프로세스에 JVM을 올려 결과가 같았다.
+
+### 수정 뒤 (2026-11-08, 브랜치 `chromite/macos-startup-fix`의 서명 없는 빌드, 실행 42407606192·42408742370)
+
+`source: build`(Linux에서 빌드, 러너에서 임시 서명, 격리 없음)로 모든 단계가 통과했다. 증거: `D:\Tools\_scratch\macos-startup-fix\ci6\`.
+
+| 확인 | 결과 |
+|---|---|
+| 시작 | 세 번 모두 메인 창이 뜸(`first-launch-main-window.png`). 디버그 로그 `macOS application NSApplication, delegate none`(런처가 만든 앱, AWT 위임자 없음) |
+| 앱 메뉴 | System Events가 읽은 항목: About Chromite, Options…, Hide Chromite, Hide Others, Show All, Quit Chromite(+ AppKit이 붙이는 Quit and Keep Windows). 정보 → `AboutDialog`(`about.png`), 옵션 → `OptionsDialog`(`preferences.png`), Esc로 닫힘 |
+| 끝내기 Apple event | `tell application id … to quit` → 위임자가 끝내기를 취소(osascript "User canceled -128")하고 창 닫기 경로로 끝남: `Main window closed`, `Saving workspace.`, `(Swing) shutdown completed`, 크래시 보고서 없음 |
+| Cmd+Q(System Events 키) | 같은 경로로 끝남 |
+| 다시 시작 | 다음 시작의 Equinox 로그에 "workspace exited with unsaved changes"가 없음(프레임워크 정지로 작업 공간이 저장됨). 수정 중 프로세스를 죽였을 때는 이 경고가 났다 |
+| 열린 트랜잭션 + Cmd+Q | 수동 커밋 연결에서 `INSERT` 실행(상태 줄 "Open transaction") → Cmd+Q → 저장 질문 → Don't Save → "Uncommitted Transactions"(Commit / Roll Back / Cancel, 기본 Cancel, `txn-4-transaction-question.png`) → Cancel이면 앱과 트랜잭션이 남음 → 다시 Cmd+Q → Roll Back → 정상 종료, SQLite 파일에 행 없음 |
+| 보안 저장소 | 아래 [credential-storage.md](credential-storage.md) "macOS" |
+
+서명한 빌드에서만 확인할 수 있는 것(다음 릴리스 뒤 `-f tag=<태그>`): 강화된 런타임과 권한에서 JNA 콜백(Objective-C 메서드, dispatch 함수)이 도는지,
+격리된 앱의 첫 실행(Gatekeeper 질문, App Translocation), Developer ID 서명 앱의 키체인 항목 위치.
 
 ## 변경 이력
 
 - 2026-11-07 최초 작성. A-S6(Windows 인증서 저장소)과 A-S14(macOS 끝내기·정보·환경설정)를 Swing 앱 시작에 옮김.
 - 2026-11-08 macOS 확인 기록 추가: `macos-smoke.yml`로 끝내기·앱 메뉴·열린 트랜잭션 확인 경로를 만들었으나 앱이 macOS에서 시작하지 않아(런처·AWT 교착) 실행하지 못함.
+- 2026-11-08 macOS 시작 교착 수정: 첫 스레드에서는 본문을 `Chromite main` 스레드로 옮기고 첫 스레드가 AppKit 실행 루프를 돈다(`MacOSMainThread`, "macOS 메인 스레드").
+  런처가 만든 `NSApplication`에 앱 메뉴와 끝내기 위임자를 둔다(`MacOSAppMenu`, "macOS 앱 메뉴"). `Info.plist`의 이름(Chromite)과 Eclipse 틀 값 정리("macOS Info.plist").
+  `macos-smoke.yml` 서명 없는 빌드로 시작·앱 메뉴·끝내기·열린 트랜잭션·키체인을 확인("macOS 확인 기록"). Windows 시작은 그대로임을 로컬 실행으로 확인.
