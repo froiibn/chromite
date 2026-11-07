@@ -21,9 +21,14 @@ import org.jkiss.code.NotNull;
 import org.jkiss.dbeaver.DBException;
 import com.seizia.chromite.model.ai.AIConfigurationProfile;
 import com.seizia.chromite.model.ai.engine.openai.OpenAIClientResponses;
+import com.seizia.chromite.model.app.DBPPlatform;
 import com.seizia.chromite.model.datadam.ai.DDAIEngine;
 import com.seizia.chromite.model.datadam.ai.DDAIEngineProperties;
+import com.seizia.chromite.model.impl.app.SecurePreferencesSecretController;
 import com.seizia.chromite.model.secret.DBSSecretController;
+import com.seizia.chromite.model.security.DBSecurityProviders;
+import com.seizia.chromite.model.security.DBSecurityUtils;
+import com.seizia.chromite.runtime.DBWorkbench;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
@@ -34,6 +39,12 @@ import java.net.http.HttpRequest;
 import java.util.Arrays;
 import java.util.Map;
 
+/**
+ * DataDam AI engine: token requirement, custom headers and secrets.
+ *
+ * 변경 이력:
+ * - 2026-11-07 AI 비밀이 OS 보안 저장소로 옮겨져 비밀 테스트의 저장소 목(mock)을 보안 저장소 컨트롤러로 바꿈
+ */
 class DataDamAIEngineTest {
     @Test
     void dataDamShouldRequireToken() {
@@ -67,10 +78,25 @@ class DataDamAIEngineTest {
 
     @Test
     void dataDamShouldKeepItsTokenSecretAndStoreHeaderSecrets() throws DBException {
-        DBSSecretController controller = Mockito.mock(DBSSecretController.class);
-        try (MockedStatic<DBSSecretController> controllers = Mockito.mockStatic(
-            DBSSecretController.class, Mockito.withSettings().mockMaker("mock-maker-inline"))) {
-            controllers.when(DBSSecretController::getGlobalSecretControllerOrNull).thenReturn(controller);
+        // AI secrets live in the OS secure storage; the global controller only holds plain text values of older versions
+        SecurePreferencesSecretController controller = Mockito.mock(SecurePreferencesSecretController.class);
+        Mockito.when(controller.isPrivateSecretEncrypted(Mockito.anyString())).thenReturn(true);
+        try (MockedStatic<DBWorkbench> workbench = Mockito.mockStatic(
+                 DBWorkbench.class, Mockito.withSettings().mockMaker("mock-maker-inline"));
+             MockedStatic<DBSSecretController> controllers = Mockito.mockStatic(
+                 DBSSecretController.class, Mockito.withSettings().mockMaker("mock-maker-inline"));
+             MockedStatic<DBSecurityUtils> providers = Mockito.mockStatic(
+                 DBSecurityUtils.class, Mockito.withSettings().mockMaker("mock-maker-inline"));
+             MockedStatic<SecurePreferencesSecretController> securePreferences = Mockito.mockStatic(
+                 SecurePreferencesSecretController.class, Mockito.withSettings().mockMaker("mock-maker-inline"))) {
+            workbench.when(DBWorkbench::getPlatform).thenReturn(Mockito.mock(DBPPlatform.class, Mockito.RETURNS_DEEP_STUBS));
+            workbench.when(DBWorkbench::isPlatformStarted).thenReturn(true);
+            controllers.when(DBSSecretController::getGlobalSecretControllerOrNull)
+                .thenReturn(Mockito.mock(DBSSecretController.class));
+            providers.when(DBSecurityUtils::findNativeOSProvider).thenReturn(DBSecurityProviders.WINDOWS_INTEGRATION);
+            securePreferences.when(() -> SecurePreferencesSecretController.create(
+                SecurePreferencesSecretController.SECRET_PREFS_ROOT, DBSecurityProviders.WINDOWS_INTEGRATION))
+                .thenReturn(controller);
             AIConfigurationProfile profile = new AIConfigurationProfile();
             profile.setProfileId("datadam-test");
             Mockito.when(controller.getPrivateSecretValue("datadam.token_datadam-test")).thenReturn("secret");

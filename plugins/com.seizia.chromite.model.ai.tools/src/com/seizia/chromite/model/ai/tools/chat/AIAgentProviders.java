@@ -38,15 +38,18 @@ import java.util.List;
  *
  * 설계:
  * <ul>
- *     <li>제공자마다 설정 프로필({@link AIConfigurationProfile}) 하나를 쓰고, 프로필 ID는 엔진 ID와 같다. 기존 AI 설정 파일({@code ai-configuration.json})과
- *     보안 저장소를 그대로 쓰므로 API 키는 {@code @SecureProperty}라 설정 파일에 쓰이지 않는다(docs/chromite/ai-agent.md "엔진").</li>
+ *     <li>제공자마다 설정 프로필({@link AIConfigurationProfile}) 하나를 쓰고, 프로필 ID는 엔진 ID와 같다. 기존 AI 설정 파일({@code ai-configuration.json})을
+ *     그대로 쓰고, API 키는 {@code @SecureProperty}라 설정 파일에 쓰이지 않고 OS 보안 저장소({@code AIUtils.setSecretValue})에 저장된다
+ *     (docs/chromite/ai-agent.md "엔진").</li>
  *     <li>{@code AISettingsManager.saveSettings}는 기본 프로필의 비밀만 보안 저장소에 쓴다. 채팅은 대화마다 제공자를 고르므로 세 프로필 모두 기본이 아닐 수 있어
- *     {@link #save}가 각 프로필의 비밀을 직접 쓴다.</li>
+ *     {@link #save}가 각 프로필의 비밀을 직접 쓴다. 비밀을 먼저 쓰므로 보안 저장소를 쓸 수 없으면 설정도 저장하지 않고 오류를 호출자(설정 화면)에 돌려준다.</li>
  *     <li>대화의 모델은 프로필 설정의 사본에 넣어 엔진을 만든다({@link #createEngine}). 대화에서 모델을 바꿔도 설정 화면의 기본 모델은 바뀌지 않는다.</li>
  * </ul>
  *
  * 변경 이력:
  * - 2026-11-07 최초 작성 (docs/chromite/ai-agent.md "2단계")
+ * - 2026-11-07 비밀을 설정보다 먼저 저장(보안 저장소 실패 시 오류 대화상자 한 번, 아무것도 저장 안 함). 키가 실제로 OS 보안 저장소에 가도록
+ *   {@code AIUtils}를 고쳐 설명을 사실에 맞춤
  */
 public final class AIAgentProviders {
 
@@ -175,12 +178,12 @@ public final class AIAgentProviders {
     }
 
     /**
-     * Saves the settings and the secrets of every assistant provider profile (secure storage, never the settings file).
+     * Saves the secrets of every assistant provider profile (OS secure storage, never the settings file), then the settings.
+     * If a secret can't be saved, nothing is saved and the error goes to the caller.
      */
     public static void save() throws DBException {
         AISettingsManager manager = AISettingsManager.getInstance();
         AISettings settings = manager.getSettings();
-        manager.saveSettings(settings);
         if (!AISettingsManager.saveSecretsAsPlainText()) {
             for (String engineId : PROVIDERS) {
                 AIConfigurationProfile profile = settings.getConfigurationOrNull(engineId);
@@ -189,6 +192,7 @@ public final class AIAgentProviders {
                 }
             }
         }
+        manager.saveSettings(settings);
     }
 
     /**

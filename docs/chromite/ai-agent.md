@@ -417,7 +417,43 @@ claude mcp add --transport http chromite http://127.0.0.1:47821/mcp --header "Au
 | Ollama (`ollama`) | 이미 `plugin.xml`에 등록되어 있다(브리프의 "등록 안 됨"은 이전 상태). `/api/chat`의 `tools` | 예(응답의 첫 도구 호출) |
 | Anthropic (`anthropic`, 새) | Messages API `POST /v1/messages`, `anthropic-version: 2023-06-01`, `x-api-key`. 모델: `claude-opus-5-5`, `claude-sonnet-5-5`, `claude-haiku-5-5`(목록 API `GET /v1/models`가 되면 그 목록). 도구: `tools[{name, description, input_schema}]`, 응답 `tool_use` → `AIFunctionCall`(메타데이터 `tool_use_id`), 결과는 `tool_result` 블록 | 예 |
 
-API 키는 `AIUtils.setSecretValue`(보안 저장소)에 두고 설정 파일(`ai-config`)에는 쓰지 않는다(`@SecureProperty`). 환경 변수 `ANTHROPIC_API_KEY`도 쓸 수 있다.
+API 키는 설정 파일(`ai-configuration.json`)에 쓰지 않고(`@SecureProperty`) `AIUtils.setSecretValue`가 OS 보안 저장소에 둔다(아래 "API 키 저장").
+환경 변수 `ANTHROPIC_API_KEY`도 쓸 수 있다.
+
+### API 키 저장 (2026-11-07)
+
+0.1.0까지는 문서와 설정 화면이 "보안 저장소"라고 적었지만 키는 평문으로 저장되었다. `AIUtils.setSecretValue`가 작업 공간의 전역 비밀 컨트롤러
+(`DBSSecretController.getGlobalSecretControllerOrNull` → `LocalWorkspaceSession.getSecretController` → `LocalSecretController`, Javadoc "Doesn't encrypt
+values")에 썼기 때문이다. 결과는 `<작업 공간>/.metadata/.plugins/org.eclipse.core.runtime/.settings/com.seizia.chromite.ui.swing.prefs`의
+`//secrets/anthropic.apiKey_anthropic=<키>` 같은 줄이다. SWT 시절(`263b8ddb45`)에도 `LocalWorkspaceSession`이 같은 컨트롤러를 돌려주었으므로 Swing 전환에서 생긴
+차이가 아니라 upstream 구조이고, Chromite의 문서·화면 문구가 이를 보안 저장소라고 잘못 적었다.
+
+| 항목 | 내용 |
+|---|---|
+| 대상 | `AIUtils.getSecretValueOrDefault`/`setSecretValue`/`deleteSecretValue`를 쓰는 AI 비밀 전부: Anthropic·OpenAI API 키, OpenAI 사용자 헤더, Copilot 토큰(DataDam 엔진도 같은 경로) |
+| 저장소 | Eclipse secure storage + OS 제공자(`DBSecurityUtils.findNativeOSProvider`): Windows는 `org.eclipse.equinox.security.win32`(마스터 비밀번호를 DPAPI로 보호, 값은 그 비밀번호로 암호화), macOS는 `model.security`의 키체인 제공자. 노드 `chromite`, 키 이름은 예전과 같다(`anthropic.apiKey_anthropic`). 파일은 기본 위치(`%USERPROFILE%\.eclipse\org.eclipse.equinox.security\secure_storage`, `-eclipse.keyring`으로 바꿀 수 있음)라 작업 공간이 아니라 OS 사용자 단위다. Swing 제품에 두 제공자 번들이 이미 있다(`com.seizia.chromite.swing.feature`) |
+| 쓰기 | 값을 쓰고 `isPrivateSecretEncrypted`로 암호화를 확인한 뒤 flush한다. 암호화되지 않았으면 지우고 예외. 이어서 같은 키의 평문 사본이 있으면 지운다 |
+| 이전 | 읽을 때 보안 저장소에 값이 없고 평문 사본이 있으면 보안 저장소에 쓰고(확인·flush) 평문 줄을 지운 뒤 설정 파일을 저장한다. 로그에는 키 이름만 남긴다(`AI secret '…' was moved from the workspace settings to the secure storage`). 보안 저장소에 이미 값이 있으면(다른 작업 공간이 먼저 옮김) 이 작업 공간의 평문 사본은 쓰이지 않으므로 지운다 |
+| 실패 | OS 보안 저장소가 없거나(헤드리스, 제공자 없음) 열 수 없으면 `DBSecurityException`. 평문으로 대신 저장하지 않는다. 설정 화면은 OK에서 "보안 저장소에 키를 저장할 수 없습니다. 키를 대신 설정 파일에 저장하지는 않습니다"(`ai_options_save_failed_secure_storage`)를 보이고, `AIAgentProviders.save`가 비밀을 먼저 쓰므로 그 제공자의 설정 파일도 저장하지 않는다. 읽기 실패는 "제공자 미설정"으로 보인다 |
+| 제공자 예외 | Windows 제공자는 DPAPI 복호화 실패를 JNA `Win32Exception`(unchecked)으로 던진다. `SecurePreferencesSecretController`가 이를 `DBSecurityException`으로 바꾼다. 바꾸기 전에는 AI 창의 설정 확인(`AiAssistantPanel.updateSetupNotice`)을 거쳐 앱 시작이 멈췄다(아래 시험 4) |
+
+작업 공간 전역 비밀 컨트롤러 자체는 바꾸지 않았다. 같은 컨트롤러를 전역 네트워크 프로필 비밀(`GlobalNetworkProfileManager`), 전역 프록시 사용자·비밀번호
+(`GlobalProxyAuthenticator`), Maven 저장소 인증(`MavenRegistry`)도 쓰고 이들도 같은 설정 파일에 평문으로 남는다. 이들은 시작 중·백그라운드 저장 경로에서
+읽고 쓰며 실패를 로그로만 남기므로, 저장소를 바꾸면 OS 저장소 실패가 비밀번호를 조용히 잃는 일로 바뀐다. 각 기능의 실패 처리와 이전을 따로 정해야 해서
+이번 범위에서 뺐다(아래 "위험과 남은 일"). 연결 비밀번호는 이 컨트롤러를 쓰지 않는다(`isUseSecretStorage()`가 false, `credentials-config.json`).
+
+확인(2026-11-07, Windows 11): 빌드 `mvn -B clean package -f product/aggregate/pom.xml -T1C -Pproduct-chromite-swing` BUILD SUCCESS. 빌드한 제품과
+`D:\Chromite-Test`의 작업 공간 사본을 `D:\Tools\_scratch\ai-key-secure-storage`에 두고 `-eclipse.keyring <사본 폴더>\keyringN\secure_storage`로 실행했다
+(사용자 홈의 보안 저장소는 만들어지지 않음을 확인). 키는 가짜 문자열, 제공자는 로컬 가짜 Messages API(받은 `x-api-key`가 어느 가짜 키인지만 기록). 회귀 테스트는
+요청되지 않아 실행하지 않았다(바뀐 동작에 맞춰 기존 테스트 4개의 목만 고침).
+
+| 시험 | 결과 |
+|---|---|
+| 1. 새로 저장 | Providers에 키 입력 → Test "Connected", OK. 작업 공간·데이터·앱 폴더 전체에서 키 문자열 0건, 설정 파일 `secrets` 줄 0, keyring에 `/chromite/anthropic.apiKey_anthropic`(암호문)과 Windows 제공자 항목. 채팅 요청에 같은 키 |
+| 2. 다시 시작 | 키를 입력하지 않고 Test "Connected", 채팅 동작. 가짜 서버가 받은 키 = 저장한 키 |
+| 3. 이전 | 빈 keyring + 설정 파일에 0.1.0 형식 평문 줄 → 시작 후 Test가 그 키로 동작, 평문 줄 사라짐, keyring에 암호문. 로그에 키 이름만 |
+| 3b. 남은 평문 | keyring에 키가 있는 상태에서 다른 가짜 키의 평문 줄을 넣음 → keyring의 키를 쓰고 평문 줄은 지워짐 |
+| 4. 저장소 실패 | keyring의 DPAPI 마스터 비밀번호를 망가뜨려 시작 → 앱 정상 시작(고치기 전에는 `Win32Exception`으로 시작이 멈춤), 키 입력 후 OK → "Settings of Anthropic Claude were not saved: the secure storage of this computer could not store the key. The key is never saved in a settings file instead." 설정 파일·작업 공간에 키 0건 |
 
 ## 시나리오 플레이북
 
@@ -579,7 +615,7 @@ API 키는 `AIUtils.setSecretValue`(보안 저장소)에 두고 설정 파일(`a
 
 | 탭 | 내용 |
 |---|---|
-| Providers | 제공자마다 API 키(Ollama 제외), 기본 URL(OpenAI는 호환 엔드포인트, Ollama는 호스트), 기본 모델, Test. 키 입력란은 늘 비어 있고 "저장됨" 안내만 보인다(키를 화면에 다시 보이지 않음). 새 키를 넣을 때만 바꾸고, "제거"로 지운다. Test는 저장하지 않은 값으로 모델 목록을 받아 보고 받은 목록을 채팅 모델 선택에 남긴다. 저장은 OK에서 바뀐 제공자만 `AIAgentProviders.saveProperties`(설정 파일 `ai-configuration.json`에는 키가 없고 보안 저장소에만) |
+| Providers | 제공자마다 API 키(Ollama 제외), 기본 URL(OpenAI는 호환 엔드포인트, Ollama는 호스트), 기본 모델, Test. 키 입력란은 늘 비어 있고 "저장됨" 안내만 보인다(키를 화면에 다시 보이지 않음). 새 키를 넣을 때만 바꾸고, "제거"로 지운다. Test는 저장하지 않은 값으로 모델 목록을 받아 보고 받은 목록을 채팅 모델 선택에 남긴다. 저장은 OK에서 바뀐 제공자만 `AIAgentProviders.saveProperties`(설정 파일 `ai-configuration.json`에는 키가 없고 OS 보안 저장소에만, 위 "API 키 저장". 보안 저장소가 키를 저장하지 못하면 그 이유를 알리고 아무것도 저장하지 않음) |
 | Tool Policy | 맨 위에 늘 보이는 규칙 3개(운영 연결은 쓰기·위험 막힘, 읽기 전용 연결은 어떤 규칙으로도 바꿀 수 없음, 위험 도구 자동 실행은 연결 하나·도구 하나 규칙으로만). 규칙 대상(모든 연결 = 기본값, 또는 연결 하나, 운영 연결은 "(운영)" 표시), 분류별 규칙 3개, 도구 필터, 도구 표(도구, 그룹, 분류, 규칙: 상속/자동 실행/실행 전 확인/막음, 실제 권한). 실제 권한은 저장 전 규칙으로 `AIToolPolicy.resolve(Settings, …)` 판정(읽기 전용 연결이면 "실행 안 함"). OK에서 `setSettings` |
 | MCP Server | 사용 여부, 포트(OK에서 저장하면 서버가 바로 시작·중지·재시작), 상태(실행 중/중지/오류), 주소, 토큰(가림·보기·복사·다시 만들기는 묻고 즉시), Claude Code 명령(`<CHROMITE_MCP_TOKEN>` 자리 표시, 복사) |
 | Audit Log | `readRecent(2000)`을 작업에서 읽어 표(시각, 클라이언트, 도구, 분류, 연결, 정책, 결과, ms), 글자·클라이언트·결과로 거르기, 고른 기록의 JSON 전체, 파일 경로 |
@@ -611,7 +647,7 @@ Anthropic 제공자의 기본 URL로 두고, 빌드한 Swing 제품을 개인 �
 
 | 시험 | 결과 |
 |---|---|
-| 제공자 설정 | Options > AI Assistant > Providers에 키·기본 URL 입력 → Test "Connected: 3 models available". `ai-configuration.json`에는 기본 URL·모델만 있고 키는 없다(작업 공간 전체 검색 0건). 앱을 다시 시작한 뒤에도 채팅이 동작(키를 보안 저장소에서 읽음), 입력란은 "저장됨" 안내만 |
+| 제공자 설정 | Options > AI Assistant > Providers에 키·기본 URL 입력 → Test "Connected: 3 models available". `ai-configuration.json`에는 기본 URL·모델만 있고 키는 없다(작업 공간 전체 검색 0건). 앱을 다시 시작한 뒤에도 채팅이 동작(키를 보안 저장소에서 읽음), 입력란은 "저장됨" 안내만. **2026-11-07 정정**: 이때 키는 실제로는 `.metadata/.plugins/org.eclipse.core.runtime/.settings/com.seizia.chromite.ui.swing.prefs`에 평문으로 있었다("작업 공간 전체 검색 0건"은 틀린 기록이다). 위 "API 키 저장"에서 고쳤다 |
 | 대화 + Allow | READ `getServerInfo`·`listTables`(자동 실행) → WRITE `runSql INSERT` 확인 대화상자(도구, 쓰기 배지, 연결, 요청한 곳, 이유, 실행할 SQL, 인수) → 허용 → 행 1개 들어감(DB 확인), 모델의 Markdown 답(제목, 목록, 표, SQL 코드 블록)과 도구 카드 3개 |
 | Deny | 같은 흐름에서 거부 → 카드 "거부됨 - Denied by the user", 모델이 거부를 받아 "nothing changed" 답, DB에 행 없음 |
 | 열린 트랜잭션 | 수동 커밋 연결에서 `runSql` 허용 → 카드 "트랜잭션 열림" → `commitTransaction`이 "열린 트랜잭션" 대화상자(Commit / Roll Back / Cancel, 기본 Cancel). 영어 실행에서 Commit → 행이 커밋됨, 한국어 다크 실행에서 롤백 → 행 없음(DB 확인) |
@@ -654,6 +690,10 @@ Markdown 글자색이 그대로(외형 값을 따르게).
 - **Query Library는 파일을 직접 읽음**: 라이브러리 저장소 클래스는 Swing 번들 안(`QueryLibrary`, `QueryLibraryFile`)에 있다. 모델 번들이 Swing에 의존할 수 없고,
   다른 에이전트가 Query Library 창을 고치는 중이라 옮기지 않았다. 도구는 같은 설정(`com.seizia.chromite.ui.swing` 설정 `queryLibrary.roots`, 기본
   `<작업 공간>/QueryLibrary`)과 같은 머리말 형식을 읽기만 한다. 2단계 이후 저장소를 모델 번들로 옮기면 이 읽기 코드를 지운다(위험 목록).
+- **AI 비밀만 OS 보안 저장소로**: 작업 공간 전역 비밀 컨트롤러를 바꾸면 모든 호출자(네트워크 프로필, 프록시, Maven)의 실패 처리가 함께 바뀐다. AI 비밀만
+  `AIUtils`에서 옮겼다. 이미 OpenAI 계정 토큰과 DataDam이 같은 방식(`SecurePreferencesSecretController` + `DBSecurityUtils.findNativeOSProvider`, 암호화 확인)을
+  쓰고 있어 새 의존성이 없다. 저장 위치는 OS 사용자 단위라 같은 사용자의 작업 공간들이 제공자 키 하나를 함께 쓴다(프로필 ID = 엔진 ID). 평문 대체 저장은
+  두지 않았다(위 "API 키 저장").
 - **MCP는 JDK HTTP 서버**: 새 라이브러리 없이 `com.sun.net.httpserver`(내장 런타임에 `jdk.httpserver` 있음, `runtime.md`). 기존 CLI REST 서버(`BearerRequestHandler`)와 같다.
 
 ## upstream 대비 변경점
@@ -662,6 +702,8 @@ Markdown 글자색이 그대로(외형 값을 따르게).
 - `AIFunctionDescriptor`에 `getAccess()`, `getWrites()` 기본 메서드 추가.
 - `AIAssistantImpl.callFunction`이 도구 실행기를 거친다(정책·감사).
 - 새 패키지 `model.ai.agent`, `model.ai.engine.anthropic`, 새 번들 `model.ai.tools`.
+- `AIUtils.getSecretValueOrDefault`/`setSecretValue`/`deleteSecretValue`가 전역 비밀 컨트롤러 대신 OS 보안 저장소를 쓰고 평문 값을 옮긴다. upstream은 전역 비밀 컨트롤러(데스크톱은 평문 설정)를 쓴다.
+- `SecurePreferencesSecretController`가 OS 제공자의 unchecked 예외를 `DBSecurityException`으로 바꾼다.
 
 ## 확인 (1단계, 2026-11-07)
 
@@ -706,10 +748,19 @@ Oracle 진단 결과의 대문자 열 이름(소문자로 맞춤), PostgreSQL에
   사용자가 확인한다. SQL Server는 읽기 전용 트랜잭션이 없어 두 번째 겹이 롤백뿐이다.
 - **Query Library 읽기 코드 중복**: `LibraryReader`는 Swing `QueryLibraryFile`의 머리말 형식을 따로 읽는다. 저장소가 모델 번들로 옮겨지면 지운다.
 - **에이전트 문맥 수**: 연결·DB마다 최대 4개의 서버 세션을 더 연다. 연결을 끊으면 닫힌다.
+- **다른 비밀은 아직 평문이다**: 전역 네트워크 프로필 비밀, 전역 프록시 사용자·비밀번호, Maven 저장소 인증은 작업 공간 설정 파일
+  (`com.seizia.chromite.ui.swing.prefs`의 `//secrets/…`)에 평문으로 남는다(위 "API 키 저장"). 연결 비밀번호의 `credentials-config.json`은 소스에 있는 고정 키
+  (`BaseProjectImpl.LOCAL_KEY_CACHE`)로 암호화되어 OS 계정으로 보호되지 않는다. 둘 다 이번 범위 밖이다.
+- **AI 키 저장의 남은 점**: macOS 키체인은 Mac이 없어 실행해 보지 못했다(첫 접근 때 키체인 허용 질문이 뜰 수 있다). OpenAI 계정 토큰(`AIUtils.setAccountToken`)은
+  OS 제공자가 없으면 여전히 전역 컨트롤러(평문)에 쓴다. Swing 화면에는 계정 로그인이 없어 지금은 쓰이지 않는다. 같은 OS 사용자의 작업 공간들은 제공자 키를
+  함께 쓰므로, 0.1.0에서 작업 공간마다 다른 키를 두었다면 먼저 연 작업 공간의 키가 옮겨져 모두에 쓰이고 다른 작업 공간의 평문 키는 지워진다(다시 넣어야 한다).
 - **진단 SQL은 버전에 따라 다르다**: 시험은 PG 17, SQL Server 2022, MariaDB 11, Oracle 23ai에서만 했다. MySQL 8 블록(`performance_schema.data_lock_waits`, `error_log`)은 MySQL 서버가 없어 실행해 보지 못했다.
 
 ## 변경 이력
 
+- 2026-11-07 AI 키를 OS 보안 저장소로: `AIUtils`의 AI 비밀을 Eclipse secure storage + OS 제공자에 저장하고 0.1.0의 평문 값을 옮김, 저장소 실패 시 평문 대체 없이
+  설정 화면에 안내(`ai_options_save_failed_secure_storage`), `AIAgentProviders.save`가 비밀을 먼저 저장, `SecurePreferencesSecretController`가 제공자의 unchecked
+  예외를 `DBSecurityException`으로. 2단계 확인 표의 "작업 공간 전체 검색 0건" 정정. 위 "API 키 저장".
 - 2026-11-07 후속 과제 #77: 트랜잭션 질문의 Commit/Roll back 답을 결과(`transactionsBeforeCall`)와 채팅 카드에 남김.
   확인: PostgreSQL 수동 커밋 연결, 가짜 Messages API로 scenario-tx(INSERT → commitTransaction)에 롤백 → 카드 "열린 트랜잭션 1개 롤백 → 완료, …"
   (영어 "Rolled back 1 open transaction(s) → Done, …", 한국어 라이트·다크), 모델에 간 결과에 `"action":"ROLLED_BACK"`, 테이블에 행 없음(psql).
