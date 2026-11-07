@@ -14,6 +14,8 @@ SWT 제품은 설정 페이지 62개(Window > Preferences, 연결별 속성 페�
 2. 키마다 지금 작업 트리(`plugins/`)에서 그 키나 상수를 읽는 곳을 찾았다(정의와 기본값 설정은 뺌). 읽는 곳이 SWT 번들뿐이었으면 지금은 0개다.
 3. 읽는 곳이 있어도 그 경로가 Swing에서 돌지 않으면(예: 절전 감지, 스마트 커밋) "효과 없음"으로 보고 이유를 적었다.
 4. 효과 있는 키 중 1–3순위(트랜잭션, 연결 유형, SQL 실행)와 결과 형식·Oracle을 이번에 화면에 넣었다. 나머지는 "다음 작업"이다.
+5. 2026-11-08: "다음 작업"의 1–4순위(연결별 값, 데이터 형식 프로필, Errors and Timeouts, Metadata)와 6순위(Client Identification)를 넣었다.
+   키마다 지금 코드에서 읽는 곳을 다시 확인했다(아래 각 절의 표). 남은 키는 "다음 작업"에 그대로 적었다.
 
 도구(재현용, 저장소 밖): `D:\Tools\_scratch\chromite-p3-settings-pages\keyscan.py`(키 추출과 읽는 곳 검색), `gentable.py`(아래 부록 표 생성).
 
@@ -21,14 +23,16 @@ SWT 제품은 설정 페이지 62개(Window > Preferences, 연결별 속성 페�
 
 | 상태 | 키 수 | 뜻 |
 |---|---|---|
-| 추가함 | 23 | 이번에 Swing 화면을 만듦(2026-11-07 쿼리 창 세션 1키 포함) |
+| 추가함 | 37 | Swing 화면을 만듦(2026-11-07 23키, 2026-11-08 Errors and Timeouts 5·Metadata 5·Client Identification 4) |
 | 이미 있음 | 7 | 전에 만든 Swing 화면이 같은 키를 씀 |
 | 연결별 공급자 속성 | 7 | 연결 대화상자 Provider Properties 탭에서 이미 바꿀 수 있음 |
-| 규칙상 두지 않음 | 2 | 스크립트 커밋 방식: 트랜잭션 안전 규칙에 어긋남 |
-| 다음 작업 | 71 | Swing에서 읽지만 화면 없음(아래 "다음 작업") |
+| 규칙상 두지 않음 | 4 | 스크립트 커밋 방식 2키, 오류 때 롤백, 취소가 안 될 때 세션 단위 취소: 트랜잭션 안전 규칙에 어긋남 |
+| 다음 작업 | 55 | Swing에서 읽지만 화면 없음(아래 "다음 작업") |
 | 효과 없음 | 196 | Swing에서 읽는 곳이 없거나 경로가 돌지 않음. 화면을 만들지 않음 |
 
-키가 아닌 설정(연결 유형, 연결별 격리 수준, 템플릿, AI 등)은 아래 페이지별 표에 적었다.
+키가 아닌 설정(연결 유형, 연결별 격리 수준, 템플릿, AI, 데이터 형식 프로필의 `dataformat.*` 키 등)은 아래 페이지별 표에 적었다.
+2026-11-08부터 Query Execution, Query Results, Data Formats, Errors and Timeouts, Metadata, Client Identification, Oracle 페이지는 연결마다 다른 값을
+둘 수 있다("연결별 설정").
 
 ## 이번에 만든 화면
 
@@ -50,7 +54,8 @@ SWT 제품은 설정 페이지 62개(Window > Preferences, 연결별 속성 페�
 
 - 쿼리 창은 실행할 때마다 파서 문맥을 새로 만든다(`SQLScriptBatches.createParserContext`). 그래서 다시 연결하지 않아도 다음 실행부터 적용된다.
 - 값은 플랫폼 설정 저장소에 쓴다. 연결의 설정 저장소(`DataSourcePreferenceStore`)가 이것을 부모로 가지므로 연결별 값을 두지 않은 모든 연결에 적용된다.
-  연결별로 다른 값을 주는 화면은 아직 없다(다음 작업).
+  연결별로 다른 값은 연결 대화상자 Options > Settings > Query Execution에서 준다(2026-11-08, "연결별 설정"). 쿼리 창 세션은 연결 대화상자
+  Connection Properties에 따로 있어 연결별 페이지에는 없다.
 - 빈 칸은 기본값으로 되돌린다. 빈 접두사·기호는 모든 문을 매개 변수나 명령으로 보이게 만들기 때문이다.
 
 #### 오류 처리와 트랜잭션 (고친 버그)
@@ -69,7 +74,10 @@ Swing 쿼리 창은 이 값을 넘기지 않아 엔진 기본값을 썼고, 그�
   "current transaction is aborted"로 실패하면 모델의 실행 복구(`DBExecUtils.tryExecuteRecover`, `execute.recover.enabled` 기본 켬)가
   `InvalidateJob.invalidateTransaction`으로 묻지 않고 롤백한 뒤 다시 실행한다. 서버에서 이미 커밋할 수 없는 트랜잭션이라 잃는 데이터는 없지만 알림 없이 끝난다.
 
-### Options > General > Query Results (기존 절에 행 추가)
+### Options > Query Results (`ResultSetOptionsPage`)
+
+2026-11-07에는 General 탭의 Query Results 절에 행을 더했다. 2026-11-08에 연결 대화상자에서 같은 페이지를 쓰려고 절 전체(Maximum rows, 날짜/시간
+원본 형식, 저장 전 스크립트 표시 포함)를 Query Results 탭으로 옮겼다. 아래는 2026-11-07에 더한 행이다.
 
 | 항목 | 키 | 읽는 곳 |
 |---|---|---|
@@ -135,17 +143,99 @@ SWT `ConnectionPageInitialization`의 트랜잭션 격리 수준(`DBPConnectionB
   (`ExitTransactionCheck.confirmDisconnect`, 트랜잭션 안전 규칙). 열린 세션에 바로 적용하지 않은 이유: JDBC는 트랜잭션 중 격리 수준 변경의 결과를 드라이버에 맡기고,
   SWT도 다시 연결로 적용했다.
 
+## 연결별 설정 (2026-11-08)
+
+SWT는 설정 페이지 중 일부(`TargetPrefPage`를 쓰는 페이지)를 연결의 속성 페이지로도 열어 "이 연결에만 다른 설정"을 줄 수 있었다. 값은 연결의 설정 저장소
+(`DataSourcePreferenceStore`, 부모는 플랫폼 설정 저장소)에 들어가고 연결 설정 파일의 `custom-properties`로 저장된다. 모델은 아래 페이지의 키를 모두
+**연결의 설정 저장소에서** 읽으므로(키마다 읽는 곳은 각 절의 표) 연결별 값이 실제로 효과가 있다.
+
+### 구조
+
+| 부분 | 클래스 | 하는 일 |
+|---|---|---|
+| 페이지 틀 | `SettingsPage` | 페이지의 키 목록(`getKeys`), 저장소에서 읽기(`load`), 쓰기(`save(Writer)`), 연결 값 지우기(`clear`), 다시 연결 필요 여부(`isAppliedWithoutReconnect`). Options와 연결 대화상자가 같은 클래스를 쓴다 |
+| 쓰기 방식 | `SettingsPage.Writer` | 전역: 바뀐 값만 쓰고 바뀐 것이 있으면 저장. 연결별: 모든 값을 연결의 값으로 씀(전역과 같은 값도: 나중에 전역을 바꿔도 이 연결은 그대로). 빈 칸이 기본값인 글자(구분 기호, 매개 변수 접두사)는 연결이면 기본값 자체를 씀 |
+| 연결 대화상자 탭 | `ConnectionSettingsOverrides` | Options > Settings 탭. 왼쪽 목록에 페이지, 페이지마다 "이 연결에 다른 설정 사용" 확인란. 끄면 Options의 값을 보이고 고칠 수 없음. 켠 페이지 목록에 확인 표시 |
+| 페이지 | `SqlExecutionOptionsPage`, `ResultSetOptionsPage`, `DataFormatOptionsPage`, `ConnectionErrorsOptionsPage`, `MetadataOptionsPage`, `ClientIdentificationOptionsPage`, `OracleOptionsPage`(Oracle 연결만) | 아래 각 절 |
+
+- 처음 상태: 연결의 설정 저장소가 페이지의 키 중 하나라도 자기 값으로 가지면 켜짐(SWT `hasDataSourceSpecificOptions`와 같은 규칙).
+- 저장: 켠 페이지는 모든 키를 연결의 값으로 쓰고, 끈 페이지는 연결의 값을 지운다(`setToDefault`). Test Connection의 임시 연결에도 같은 값이 들어간다.
+- 다시 연결: 모델이 그 작업을 할 때마다 읽는 페이지(Query Execution, Query Results, Data Formats, Errors and Timeouts, Metadata)는 바꿔도 다시 연결을 묻지
+  않는다(`ConnectionSettingsPanel.getPreferencesAppliedWithoutReconnect`, 쿼리 창 세션과 같은 처리). 세션을 열 때 읽거나 연결마다 기억하는 페이지
+  (Client Identification, Oracle)는 기존 "다시 연결할까요" 질문을 거치고, 다시 연결은 열린 트랜잭션을 먼저 묻는다(트랜잭션 안전 규칙).
+- 트랜잭션: 이 페이지들의 키는 세션의 커밋 방식을 바꾸거나 세션을 닫지 않는다. 그런 키(오류 때 롤백, 세션 단위 취소)는 두지 않았다(아래 Errors and Timeouts).
+- 알려진 동작(모델 직렬화, 고치지 않음): 연결 설정 파일에는 기본값과 다른 값만 저장된다(`DataSourceSerializerModern`, `getDefaultString`과 비교).
+  전역 값을 바꾸지 않은 키에 연결이 기본값과 같은 값을 주면 저장되지 않아, 다시 열면 그 페이지의 확인란이 꺼져 보일 수 있다. 실제로 쓰는 값은 같다.
+- Mimer 연결은 모델이 연결할 때 이진 값 표시 형식을 연결의 값으로 넣는다(`MimerDataSource`). 그래서 Mimer 연결은 Query Results 페이지가 켜진 채로 보인다.
+
+### Options > Data Formats (`DataFormatOptionsPage`)
+
+| 항목 | 키 | 읽는 곳 |
+|---|---|---|
+| 로캘 | `dataformat.profile.language`, `.country`, `.variant` | `DataFormatterProfile.loadProfile`(값을 표시할 때마다 `createFormatter`가 다시 읽음) |
+| 형식 종류별 속성(숫자: 묶음 기호·소수 자릿수·반올림 등, 날짜·시간·타임스탬프: 패턴·시간대) | `dataformat.type.<형식>.<속성>` | `DataFormatterProfile.getFormatterProperties` → 값 처리기(`JDBCNumberValueHandler`, `TemporalAccessorValueHandler`, `DateTimeCustomValueHandler` 등) |
+
+- 형식 종류와 속성은 모델 확장점(`com.seizia.chromite.dataFormatter`)에 등록된 것을 그대로 보인다. 속성 표는 연결 속성 표(`ConnectionPropertiesTable`)를 쓰고,
+  값을 바꾸면 견본이 바로 바뀐다. 패턴이 틀리면 견본 칸에 오류가 보인다.
+- 속성의 기본값은 로캘마다 다르다(`DBDDataFormatterSample.getDefaultProperties`). 전역에 저장할 때는 기본값과 같은 값을 기본값으로 되돌린다.
+- 로캘은 세 키를 직접 쓴다. 모델의 `saveProfile`은 저장소를 저장까지 하므로(연결이면 연결 설정 파일을 씀) 편집 중인 연결 사본에 쓰지 않으려고
+  `DataFormatterProfile`의 로캘 키 상수를 공개로 바꿨다(모델 변경은 이것뿐).
+- 두지 않은 것: 이름 있는 프로필(SWT Manage profiles, `dataformat-profiles.xml`)은 데이터 내보내기 작업 설정의 `formatterProfile`만 읽는다
+  (`StreamConsumerSettings`). Swing 내보내기 화면은 프로필을 고르지 않아 화면을 만들지 않았다. 날짜·숫자 원본 형식과 과학적 표기 세 키는 Query Results에 있다.
+
+### Options > Errors and Timeouts (`ConnectionErrorsOptionsPage`)
+
+| 항목 | 키 | 읽는 곳 |
+|---|---|---|
+| 연결 열기(ms, 0 = 드라이버 소켓 시간 제한까지) | `connection.open.timeout` | `JDBCDataSource.openConnection`, `DBUtils`(지연 인스턴스 연결) |
+| 연결 닫기(ms) | `connection.close.timeout` | `JDBCDataSource.closeConnection` |
+| 연결 확인(ms) | `connection.validation.timeout` | `JDBCUtils.isConnectionAlive`, `SSHTunnelImpl` |
+| 연결이 끊기면 자동으로 다시 연결, 재시도 횟수 | `execute.recover.enabled`, `execute.recover.retryCount` | `DBExecUtils.tryExecuteRecover`. Chromite의 `TransactionRecoveryGuard`가 복구가 커밋하지 않은 변경을 버리게 되면 복구하지 않고 오류로 멈춘다([transactions.md](transactions.md) "오류 복구와 열린 트랜잭션") |
+
+- 규칙상 두지 않음:
+  - `query.rollback-on-error`(SWT "Rollback on error"): 문장이 실패하면 수동 커밋 세션의 트랜잭션을 묻지 않고 롤백한다(`JDBCStatementImpl.handleExecuteError`).
+  - `execute.cancel.checkTimeout`(SWT "Close connection after timeout"): 문장 취소가 듣지 않으면 시간 뒤 바깥 블록(세션)을 취소한다(`AbstractJob` 취소 확인,
+    `JDBCConnectionImpl.cancelBlock` → `JDBCDataSource.cancelCurrentExecution`: 일반 JDBC는 실행 스레드 인터럽트, PostgreSQL `cancelQuery`, Oracle `cancel`).
+    인터럽트로 드라이버의 연결이 끊기면 열린 트랜잭션을 묻지 않고 잃는다. 드라이버마다 확인하기 전까지 두지 않는다. 기본값(0, 꺼짐)으로 동작한다.
+  - SWT에서 이 두 키를 켜 둔 설정 파일을 가져오면 여전히 동작한다(화면이 없어 끌 수 없음). 남은 위험으로 적어 둔다.
+
+### Options > Metadata (`MetadataOptionsPage`)
+
+| 항목 | 키 | 읽는 곳 |
+|---|---|---|
+| DDL 문에 대소문자를 구분하는 이름 사용 | `database.meta.casesensitive` | `DBObjectNameCaseTransformer` |
+| DDL에 추가 정보 넣기 | `database.meta.extra.ddl.info` | `DBStructUtils`, `PostgreUtils`·`PostgreTableManagerBase`·`PostgreViewBase`, `SQLServerBaseTableManager` |
+| 서버 쪽 개체 필터 | `database.meta.server.side.filters` | `MySQLCatalog`(지원하는 데이터베이스만). 개체 탐색기를 새로 고치면 적용 |
+| 비용이 큰 개체 속성 읽기(행 수, 크기) | `database.props.expensive` | `DataSourcePropertyFilter`(개체 목록 `ObjectListTable`, 속성) |
+| 쿼리 창과 결과 표에서 테이블 정보를 읽지 않음 | `database.meta.disableAdditionalRead` | `DataSourceDescriptor.isExtraMetadataReadEnabled`(`DBExecUtils.bindAttributes`, `JDBCTable`, 자동완성), `SqlCompletionAnalysis` |
+
+- SWT 같은 페이지의 "메타데이터용 별도 연결"(`database.meta.separate.connection`)은 연결 대화상자에 이미 있어 두지 않았다.
+
+### Options > Client Identification (`ClientIdentificationOptionsPage`)
+
+| 항목 | 키 | 읽는 곳 |
+|---|---|---|
+| 클라이언트 애플리케이션 이름을 보내지 않음 | `database.meta.client.name.disable` | PostgreSQL, MySQL, SQL Server(두 공급자), Oracle, DB2(LUW·i·z/OS), HANA, Athena, 범용 JDBC 데이터 원본(연결할 때) |
+| 사용자 지정 이름 사용, 이름(변수 `${context.name}`, `${context.id}`, 연결 변수) | `database.meta.client.name.override`, `database.meta.client.name.value` | `DBUtils.getClientApplicationName` |
+| 연결 매개 변수의 변수 풀기 | `database.connect.processEnvVars` | `DataSourceDescriptor`(연결할 때 연결 정보의 `${...}`), `SQLiteExtensionSettings` |
+
+- 세션을 열 때 읽으므로 연결된 연결의 값을 바꾸면 다시 연결을 묻는다.
+
 ## 페이지별 정리
 
 | SWT 페이지 | 결과 |
 |---|---|
 | Transactions | 효과 있는 키 없음(아래). 자동 커밋 기본값·유휴 트랜잭션 알림은 연결 유형으로, 격리 수준은 연결 대화상자로. "끊을 때 트랜잭션 처리"는 설정이 없고 끊기·다시 연결은 늘 묻는다(#97) |
 | Connection Types | **추가함**(Options > Connection Types). 스마트 커밋만 뺌 |
-| SQL Processing | **추가함**(Options > Query Execution): 구분 기호 4, 매개 변수 7, 오류 처리. 커밋 방식 2키는 규칙상 두지 않음, 나머지 12키는 효과 없음 |
-| Data Editor, Binary Editor, Data Formats | 일부 **추가함**(Query Results): 가져오기 크기, 이진 값 2, 숫자 형식 2. 형식 프로필(날짜·숫자 패턴)은 다음 작업 |
-| Oracle | **추가함**(Options > Oracle) 5키, 공급자 속성 3키 |
+| SQL Processing | **추가함**(Options > Query Execution, 연결별 값 2026-11-08): 구분 기호 4, 매개 변수 7, 오류 처리. 커밋 방식 2키는 규칙상 두지 않음, 나머지 12키는 효과 없음 |
+| Data Editor, Binary Editor | 일부 **추가함**(Options > Query Results, 연결별 값 2026-11-08): 가져오기 크기, 이진 값 2. 나머지 효과 있는 키는 다음 작업 |
+| Data Formats | **추가함**: 숫자 형식 2(Query Results), 형식 프로필(로캘, 형식별 패턴: Options > Data Formats, 2026-11-08). 연결별 값 있음. 이름 있는 프로필은 두지 않음 |
+| Oracle | **추가함**(Options > Oracle, Oracle 연결의 연결별 값 2026-11-08) 5키, 공급자 속성 3키 |
 | PostgreSQL | 4키는 공급자 속성(이미 있음), `show-database-statistics`는 다음 작업 |
-| Errors and Timeouts, Client Identification, Metadata, Drivers, Classpath, Query Manager, Error Logs, Navigator(정렬), Notifications(긴 작업 알림), Data Transfer(매핑 3키), Dictionaries, Code Completion(4키), Altibase, CUBRID, Mimer | 다음 작업(키는 아래 목록) |
+| Errors and Timeouts | **추가함**(2026-11-08, 연결별 값 있음) 5키. 오류 때 롤백·세션 단위 취소 2키는 규칙상 두지 않음 |
+| Metadata | **추가함**(2026-11-08, 연결별 값 있음) 5키. 별도 연결은 이미 있음 |
+| Client Identification | **추가함**(2026-11-08, 연결별 값 있음) 4키 |
+| Drivers, Classpath, Query Manager, Error Logs, Navigator(정렬), Notifications(긴 작업 알림), Data Transfer(매핑 3키), Dictionaries, Code Completion(4키), Altibase, CUBRID, Mimer | 다음 작업(키는 아래 목록) |
 | Maven | 다음 작업: 저장소 목록은 키가 아니라 `maven-repositories.xml`(`MavenRegistry`)에 저장되고 드라이버 내려받기가 읽는다 |
 | Network Profiles | 다음 작업: 전역·프로젝트 네트워크 프로필 편집(지금은 연결이 쓰는 프로필을 읽기 전용으로 보임) |
 | Templates, AI | Swing 자체 저장으로 이미 있음(Options > Templates, Chromite Agent) |
@@ -155,20 +245,20 @@ SWT `ConnectionPageInitialization`의 트랜잭션 격리 수준(`DBPConnectionB
 
 ## 다음 작업 (키 목록)
 
-Swing 제품이 읽지만 화면이 없는 키다. 우선순위 순서로 적었다.
+Swing 제품이 읽지만 화면이 없는 키다. 우선순위 순서로 적었다. 1–4순위와 6순위는 2026-11-08에 만들었다(번호는 그대로 둠).
 
-1. 연결별 값: 위 화면은 모두 전역 값이다(쿼리 창 세션만 연결 대화상자에 연결별 값이 있음). SWT의 연결별 속성 페이지(`DataSourcePreferenceStore`)에 해당하는 화면이 없다.
-2. 데이터 형식 프로필: 날짜·시간·숫자 패턴(`DataFormatterProfile`, 키 `dataformat.*`), 프로필 고르기.
-3. Errors and Timeouts: `connection.open.timeout`, `connection.close.timeout`, `connection.validation.timeout`, `execute.recover.enabled`,
-   `execute.recover.retryCount`, `execute.cancel.checkTimeout`, `query.rollback-on-error`.
-4. Metadata: `database.meta.casesensitive`, `database.meta.extra.ddl.info`, `database.meta.server.side.filters`, `database.props.expensive`,
-   `database.meta.disableAdditionalRead`.
+1. ~~연결별 값~~: 2026-11-08 연결 대화상자 Options > Settings("연결별 설정").
+2. ~~데이터 형식 프로필~~: 2026-11-08 Options > Data Formats. 이름 있는 프로필 고르기는 Swing에서 읽는 곳이 내보내기 작업 설정뿐이라 두지 않음.
+3. ~~Errors and Timeouts~~: 2026-11-08. `query.rollback-on-error`, `execute.cancel.checkTimeout`은 규칙상 두지 않음.
+4. ~~Metadata~~: 2026-11-08.
 5. Data Editor·Binary Editor 나머지: `resultset.maxrows.sql`, `resultset.order.mode`, `resultset.order.policy`, `resultset.column.label.ignore`,
    `sql.query.filter.force.subselect`, `resultset.autofetch.next.segment`, `resultset.transform.complex.type`,
    `resultset.reference.value.description.column.patterns`, `content.memory.maxsize`, `content.hex.encoding`, `content.cache.clob`, `content.cache.blob`,
    `content.cache.maxsize`.
-6. Client Identification: `database.meta.client.name.disable`, `database.meta.client.name.override`, `database.meta.client.name.value`,
-   `database.connect.processEnvVars`.
+   만들 때 볼 것: `content.memory.maxsize`는 플랫폼 저장소에서만 읽어(`JDBCContentCLOB`·`JDBCContentBLOB`) 연결별 값이 효과가 없다. `content.hex.encoding`은
+   `ContentUtils`가 플랫폼 저장소, `DBValueFormatting`이 연결 저장소에서 읽는다. `resultset.order.mode`는 결과 표 머리글 정렬(`ResultSetViewerPanel`)이 읽으므로
+   머리글 정렬 동작을 바꾸는 작업과 함께 정한다.
+6. ~~Client Identification~~: 2026-11-08.
 7. Connections: `connection.sanitizeDriverProperties`, `connection.shellAuthModelEnabled`, `connections.useWinTrustStoreType`. General: `java.client.timezone`(적용 코드 S12와 함께).
 8. Drivers·Classpath·Maven: `ui.drivers.home`, `ui.drivers.sources`, `ui.drivers.version.update`, `ui.proxy.host`, `ui.proxy.port`, `ui.proxy.user`(+비밀번호),
    `ui.drivers.global.libraries`, `maven-repositories.xml`.
@@ -198,12 +288,31 @@ Swing 제품이 읽지만 화면이 없는 키다. 우선순위 순서로 적었
 | 격리 수준 = Serializable(연결된 MariaDB) | 저장하자 다시 연결 질문, 다시 연결 뒤 `@@tx_isolation`이 `REPEATABLE-READ`에서 `SERIALIZABLE`로 |
 | Oracle DBMS_OUTPUT 끄기 | 켜져 있을 때 메시지 탭에 `PUT_LINE` 글이 나오고, 끈 뒤 같은 블록은 글 없이 "Commands completed successfully." |
 
+## 실행 확인 (2026-11-08)
+
+이 브랜치의 빌드를 작업 공간·데이터 폴더 사본(`CHROMITE_DATA`)으로 실행하고, 앱 안에서 Swing API로 조작하는 시험 도구로 확인했다(OS 입력 없음).
+증거: `D:\Tools\_scratch\chromite-settings-rest\run\shots\`, 단계 기록은 같은 폴더의 `s*.txt.log`. PostgreSQL 17(공유 컨테이너, `postgres` DB에서 SELECT만).
+
+| 확인 | 결과 |
+|---|---|
+| Options 왼쪽 목록: Query Results, Data Formats, Errors and Timeouts, Metadata, Client Identification 페이지 | 열림(`01`–`07-…png`) |
+| 전역 Data Formats: Timestamp 패턴을 `yyyy/MM/dd HH:mm`로 | 견본이 바로 `2026/11/08 03:18`. OK 뒤 `TIMESTAMP '2026-11-08 12:34:56.789'`가 결과 표에 `2026/11/08 12:34`(`08`, `10-…png`) |
+| 연결 Settings > Query Results: 끔 상태 | 확인란 꺼짐, 페이지 칸은 모두 고칠 수 없음(`20-…png`) |
+| 연결별 Maximum rows 3, 연결별 Number "Use grouping" 끔, Save | 다시 연결 질문 없음. 같은 쿼리 창에서 다시 실행하면 10행 중 3행, 숫자 `1234567.891`(전역은 `1,234,567.891`), 타임스탬프는 전역 패턴 그대로(`24-…png`). `data-sources.json`의 `custom-properties`에 `resultset.maxrows`, `dataformat.type.number.useGrouping` 등 |
+| 연결별 Query Results 끄기 + Client Identification 켜고 이름 `chromite-w2-check`, Save | "Connection changed … reconnect?" 질문(`31-…png`), Yes 뒤 `current_setting('application_name')` = `chromite-w2-check`, 행 수는 다시 10(전역 200). `custom-properties`에서 `resultset.maxrows`가 지워짐 |
+
 ## upstream 대비 변경점
 
 - 쿼리 창 오류 처리에서 `STOP_ROLLBACK`(엔진 기본값)을 쓰지 않는다. 멈춘 스크립트가 열린 트랜잭션을 롤백하지 않는다.
 - 스크립트 커밋 방식 설정(끝에서 커밋, N줄마다 커밋, 문장마다 자동 커밋)을 두지 않는다. 쿼리 창은 늘 `NO_COMMIT`이다.
 - 연결 유형 편집에 스마트 커밋이 없다. 연결 유형을 바꿔 연결의 커밋 방식이 바뀌면 열린 세션에 적용하고, 커밋하지 않은 변경이 있으면 묻는다(SWT는 다시 연결할 때 적용).
 - 격리 수준을 연결 전에도 고를 수 있다(SWT는 연결되어 있을 때만).
+- 연결별 설정은 연결 대화상자의 한 탭(Settings)에 모았다(SWT는 연결의 속성 페이지 트리). 연결별 값을 켜면 페이지의 모든 키를 연결의 값으로 쓴다
+  (SWT 데이터 형식 페이지는 로캘 기본값과 다른 값만 써서, 전역에서 바꾼 패턴을 연결에서 기본값으로 되돌릴 수 없었다).
+- Errors and Timeouts에 "오류 때 롤백", "취소가 안 되면 시간 뒤 연결 닫기"가 없다(트랜잭션 안전 규칙).
+- 데이터 형식의 이름 있는 프로필 관리가 없다.
+- Options의 페이지 목록이 왼쪽에 있다(SSMS Options처럼). Query Results는 General 탭의 절에서 탭으로 옮겼다.
+- 모델 변경: `DataFormatterProfile`의 로캘 키 상수 세 개를 공개로 바꿨다(값 변경 없음).
 
 ## 변경 이력
 
@@ -211,6 +320,9 @@ Swing 제품이 읽지만 화면이 없는 키다. 우선순위 순서로 적었
   연결 대화상자의 격리 수준. 오류로 멈춘 스크립트가 수동 커밋 세션의 열린 트랜잭션을 묻지 않고 롤백하던 것을 고침.
 - 2026-11-07 쿼리 창 세션(`database.editor.separate.connection`): Options > Query Execution과 연결 대화상자. 요약 수(추가함 23, 효과 없음 196)와 부록 갱신
   ([transactions.md](transactions.md) "쿼리 창마다 별도 연결").
+- 2026-11-08 "다음 작업" 1–4·6순위: 연결별 설정(연결 대화상자 Options > Settings, `SettingsPage`·`ConnectionSettingsOverrides`), Options > Data Formats·
+  Errors and Timeouts·Metadata·Client Identification, Query Results를 탭으로 옮김, Options 페이지 목록을 왼쪽으로. 요약 수(추가함 37, 규칙상 두지 않음 4,
+  다음 작업 55)와 부록 갱신.
 - 2026-11-08 Oracle DBMS_OUTPUT: 값을 바꾸면 열린 쿼리 창 세션에도 다음 문장부터 적용(도구 설명 갱신), 기본 연결 유형 이름을 언어와 상관없이 저장
   ([model-fixes.md](model-fixes.md) "작은 모델·안전·라이선스 수정").
 
@@ -241,13 +353,13 @@ Swing 제품이 읽지만 화면이 없는 키다. 우선순위 순서로 적었
 | Query Manager | `qm.storeLogs` | 읽음, 화면 없음 → 다음 작업 |
 | Accessibility | `screen.reader.accessibility` | 효과 없음(읽는 곳 없음) |
 | Accessibility | `screen.reader.force.focus` | 효과 없음(읽는 곳 없음) |
-| Errors and Timeouts | `connection.close.timeout` | 읽음, 화면 없음 → 다음 작업 |
-| Errors and Timeouts | `connection.open.timeout` | 읽음, 화면 없음 → 다음 작업 |
-| Errors and Timeouts | `connection.validation.timeout` | 읽음, 화면 없음 → 다음 작업 |
-| Errors and Timeouts | `execute.cancel.checkTimeout` | 읽음, 화면 없음 → 다음 작업 |
-| Errors and Timeouts | `execute.recover.enabled` | 읽음, 화면 없음 → 다음 작업 |
-| Errors and Timeouts | `execute.recover.retryCount` | 읽음, 화면 없음 → 다음 작업 |
-| Errors and Timeouts | `query.rollback-on-error` | 읽음, 화면 없음 → 다음 작업 |
+| Errors and Timeouts | `connection.close.timeout` | **추가함**: Options > Errors and Timeouts(2026-11-08) |
+| Errors and Timeouts | `connection.open.timeout` | **추가함**: Options > Errors and Timeouts(2026-11-08) |
+| Errors and Timeouts | `connection.validation.timeout` | **추가함**: Options > Errors and Timeouts(2026-11-08) |
+| Errors and Timeouts | `execute.cancel.checkTimeout` | 두지 않음: 트랜잭션 안전 규칙(세션 단위 취소로 연결이 끊길 수 있음, 2026-11-08) |
+| Errors and Timeouts | `execute.recover.enabled` | **추가함**: Options > Errors and Timeouts(2026-11-08) |
+| Errors and Timeouts | `execute.recover.retryCount` | **추가함**: Options > Errors and Timeouts(2026-11-08) |
+| Errors and Timeouts | `query.rollback-on-error` | 두지 않음: 트랜잭션 안전 규칙(묻지 않고 롤백, 2026-11-08) |
 | Error Logs | `logs.debug.enabled` | 효과 없음(읽는 곳 없음) |
 | Error Logs | `logs.debug.location` | 효과 없음(읽는 곳 없음) |
 | Error Logs | `logs.files.output.maxCount` | 읽음, 화면 없음 → 다음 작업 |
@@ -257,22 +369,22 @@ Swing 제품이 읽지만 화면이 없는 키다. 우선순위 순서로 적었
 | Connections | `connection.shellAuthModelEnabled` | 읽음, 화면 없음 → 다음 작업 |
 | Connections | `connections.useWinTrustStoreType` | 읽음(시작 때, S6), 화면 없음 → 다음 작업 |
 | Connections | `navigator.settings.default.connectionPattern` | 효과 없음(읽는 곳 없음) |
-| Client Identification | `database.connect.processEnvVars` | 읽음, 화면 없음 → 다음 작업 |
-| Client Identification | `database.meta.client.name.disable` | 읽음, 화면 없음 → 다음 작업 |
-| Client Identification | `database.meta.client.name.override` | 읽음, 화면 없음 → 다음 작업 |
-| Client Identification | `database.meta.client.name.value` | 읽음, 화면 없음 → 다음 작업 |
+| Client Identification | `database.connect.processEnvVars` | **추가함**: Options > Client Identification(2026-11-08) |
+| Client Identification | `database.meta.client.name.disable` | **추가함**: Options > Client Identification(2026-11-08) |
+| Client Identification | `database.meta.client.name.override` | **추가함**: Options > Client Identification(2026-11-08) |
+| Client Identification | `database.meta.client.name.value` | **추가함**: Options > Client Identification(2026-11-08) |
 | Transactions | `transaction.auto.close.enabled` | 효과 없음: #97에서 키를 지움. Options > Connection Types와 연결 대화상자의 유휴 트랜잭션 알림으로 바뀜 |
 | Transactions | `transaction.auto.close.ttl` | 효과 없음: 위와 같음 |
 | Transactions | `transaction.ddl.behavior` | 효과 없음(읽는 곳 없음) |
 | Transactions | `transaction.show.notifications` | 효과 없음(읽는 곳 없음) |
 | Transactions | `transaction.smart.commit` | 효과 없음: 쿼리 창이 스마트 커밋을 켜지 않음(`isSmartAutoCommit` 기본값), `recoverSmartCommit` 호출 없음 |
 | Transactions | `transaction.smart.commit.recover` | 효과 없음: 위와 같음 |
-| Metadata | `database.meta.casesensitive` | 읽음, 화면 없음 → 다음 작업 |
-| Metadata | `database.meta.disableAdditionalRead` | 읽음(자동완성), 화면 없음 → 다음 작업 |
-| Metadata | `database.meta.extra.ddl.info` | 읽음, 화면 없음 → 다음 작업 |
+| Metadata | `database.meta.casesensitive` | **추가함**: Options > Metadata(2026-11-08) |
+| Metadata | `database.meta.disableAdditionalRead` | **추가함**: Options > Metadata(2026-11-08) |
+| Metadata | `database.meta.extra.ddl.info` | **추가함**: Options > Metadata(2026-11-08) |
 | Metadata | `database.meta.separate.connection` | 이미 있음: 연결 대화상자(내부에서 읽기만, 메타데이터 별도 연결) |
-| Metadata | `database.meta.server.side.filters` | 읽음, 화면 없음 → 다음 작업 |
-| Metadata | `database.props.expensive` | 읽음, 화면 없음 → 다음 작업 |
+| Metadata | `database.meta.server.side.filters` | **추가함**: Options > Metadata(2026-11-08) |
+| Metadata | `database.props.expensive` | **추가함**: Options > Metadata(2026-11-08) |
 | Drivers | `driver.selector.showCommercialDrivers` | 효과 없음(읽는 곳 없음) |
 | Drivers | `ui.drivers.home` | 읽음, 화면 없음 → 다음 작업 |
 | Drivers | `ui.drivers.offline` | 이미 있음: 드라이버 관리자 |
@@ -352,18 +464,18 @@ Swing 제품이 읽지만 화면이 없는 키다. 우선순위 순서로 적었
 | Data Editor | `resultset.automatic.row.count` | 효과 없음(읽는 곳 없음) |
 | Data Editor | `resultset.cancel.timeout` | 효과 없음(읽는 곳 없음) |
 | Data Editor | `resultset.column.label.ignore` | 읽음, 화면 없음 → 다음 작업 |
-| Data Editor | `resultset.confirm.beforeSave` | 이미 있음: Options > General > Query Results |
+| Data Editor | `resultset.confirm.beforeSave` | 이미 있음: Options > Query Results(2026-11-08 General 탭에서 옮김) |
 | Data Editor | `resultset.datetime.editor` | 효과 없음(읽는 곳 없음) |
 | Data Editor | `resultset.edit.disableIfKeyMissing` | 효과 없음(읽는 곳 없음) |
 | Data Editor | `resultset.edit.key.use_all_columns` | 효과 없음(읽는 곳 없음) |
 | Data Editor | `resultset.edit.new.row.after` | 효과 없음(읽는 곳 없음) |
 | Data Editor | `resultset.edit.refreshAfterUpdate` | 효과 없음(읽는 곳 없음) |
 | Data Editor | `resultset.edit.undoLevel` | 효과 없음(읽는 곳 없음) |
-| Data Editor | `resultset.fetch.size` | **추가함**: Options > General > Query Results |
+| Data Editor | `resultset.fetch.size` | **추가함**: Options > Query Results(2026-11-08 General 탭에서 옮김) |
 | Data Editor | `resultset.filter.use.navigator` | 효과 없음(읽는 곳 없음) |
 | Data Editor | `resultset.image.browser` | 효과 없음(읽는 곳 없음) |
 | Data Editor | `resultset.mark.cell.value.occurrences` | 효과 없음(읽는 곳 없음) |
-| Data Editor | `resultset.maxrows` | 이미 있음: Options > General > Query Results |
+| Data Editor | `resultset.maxrows` | 이미 있음: Options > Query Results(2026-11-08 General 탭에서 옮김) |
 | Data Editor | `resultset.maxrows.sql` | 읽음, 화면 없음 → 다음 작업 |
 | Data Editor | `resultset.order.mode` | 읽음, 화면 없음 → 다음 작업 |
 | Data Editor | `resultset.order.policy` | 읽음, 화면 없음 → 다음 작업 |
@@ -376,8 +488,8 @@ Swing 제품이 읽지만 화면이 없는 키다. 우선순위 순서로 적었
 | Binary Editor | `content.hex.encoding` | 읽음, 화면 없음 → 다음 작업 |
 | Binary Editor | `content.memory.maxsize` | 읽음, 화면 없음 → 다음 작업 |
 | Binary Editor | `resultset.binary.editor` | 효과 없음(읽는 곳 없음) |
-| Binary Editor | `resultset.binary.representation` | **추가함**: Options > General > Query Results |
-| Binary Editor | `resultset.binary.stringMaxLength` | **추가함**: Options > General > Query Results |
+| Binary Editor | `resultset.binary.representation` | **추가함**: Options > Query Results(2026-11-08 General 탭에서 옮김) |
+| Binary Editor | `resultset.binary.stringMaxLength` | **추가함**: Options > Query Results(2026-11-08 General 탭에서 옮김) |
 | Binary Editor | `resultset.commit.oncontentapply` | 효과 없음(읽는 곳 없음) |
 | Binary Editor | `resultset.commit.oneditapply` | 효과 없음(읽는 곳 없음) |
 | Binary Editor | `resultset.edit.longaslob` | 효과 없음(읽는 곳 없음) |
@@ -420,9 +532,9 @@ Swing 제품이 읽지만 화면이 없는 키다. 우선순위 순서로 적었
 | Plain text | `resultset.text.show.nulls` | 효과 없음(읽는 곳 없음) |
 | Plain text | `resultset.text.tab.size` | 효과 없음(읽는 곳 없음) |
 | Plain text | `resultset.text.value.format` | 효과 없음(읽는 곳 없음) |
-| Data Formats | `resultset.format.datetime.native` | 이미 있음: Options > General > Query Results |
-| Data Formats | `resultset.format.numeric.native` | **추가함**: Options > General > Query Results |
-| Data Formats | `resultset.format.numeric.scientific` | **추가함**: Options > General > Query Results |
+| Data Formats | `resultset.format.datetime.native` | 이미 있음: Options > Query Results(2026-11-08 General 탭에서 옮김) |
+| Data Formats | `resultset.format.numeric.native` | **추가함**: Options > Query Results(2026-11-08 General 탭에서 옮김) |
+| Data Formats | `resultset.format.numeric.scientific` | **추가함**: Options > Query Results(2026-11-08 General 탭에서 옮김) |
 | Dictionaries | `dictionary.max.rows` | 효과 없음(읽는 곳 없음) |
 | Dictionaries | `resultset.reference.value.description.column.patterns` | 읽음, 화면 없음 → 다음 작업 |
 | ERD | `erd.diagram.change.borders.colors` | 효과 없음(읽는 곳 없음) |
