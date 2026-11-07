@@ -35,9 +35,11 @@ import org.jkiss.utils.CommonUtils;
 import javax.swing.*;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
+import javax.swing.filechooser.FileNameExtensionFilter;
 import javax.swing.tree.DefaultMutableTreeNode;
 import javax.swing.tree.DefaultTreeCellRenderer;
 import javax.swing.tree.DefaultTreeModel;
+import javax.swing.tree.TreeNode;
 import javax.swing.tree.TreePath;
 import javax.swing.tree.TreeSelectionModel;
 import java.awt.*;
@@ -55,10 +57,13 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Enumeration;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Set;
 
 /**
@@ -68,7 +73,11 @@ import java.util.Set;
  * <ul>
  *     <li>트리는 디스크의 폴더 구조({@link QueryLibrary})를 그대로 보여 준다. 다시 읽기는 작업 스레드에서 모든 루트를 읽은 뒤 EDT에서 트리를
  *     다시 만들고, 펼친 폴더와 선택을 경로로 되살린다. 이 창에서 바꾼 것은 {@link QueryLibrary}의 알림으로 바로 다시 읽고, 다른 사람이 바꾼 공유 폴더는
- *     Refresh(도구 막대, 트리에 초점이 있을 때 F5)로 읽는다.</li>
+ *     {@link QueryLibraryWatcher}가 알려 저절로 다시 읽는다(이때는 스크롤 위치도 그대로 둔다). Refresh(도구 막대, 트리에 초점이 있을 때 F5)도 된다.
+ *     다시 읽을 때마다 열린 쿼리 창에 디스크의 내용을 알린다({@link QueryLibraryEditor#libraryRead}).</li>
+ *     <li>공유: Git 작업 사본인 루트는 이름 뒤에 브랜치·앞섬/뒤처짐·충돌 수를 보이고 Pull, Commit &amp; Push…를 단다({@link QueryLibraryGit}).
+ *     충돌 파일은 노란 점과 "conflict"로 표시한다. 폴더를 {@code .chromite-queries}로 내보내고 가져온다({@link QueryLibraryArchive}).
+ *     쿼리 하나를 평범한 {@code .sql}로 내보낸다(Save As .sql…).</li>
  *     <li>검색란은 이름·설명에 글자가 들어 있는 쿼리와 그 상위 폴더만 남기고 모두 펼친다.</li>
  *     <li>명령: Enter·Run(기본 대상에서 실행), Run on…(연결 고르기), 더블클릭·Edit(쿼리 창에서 편집), New Query, New Folder, Duplicate,
  *     Rename(F2), Delete(Delete 키, 확인 후 휴지통), Open Folder(탐색기에서 열기), Refresh, Library Roots….
@@ -85,6 +94,8 @@ import java.util.Set;
  * - 2026-11-06 화면 문구를 ToolsMessages로 옮김(OS 언어를 따름)
  * - 2026-11-07 밀도 B: 치수를 테마의 Chromite.size.* 키({@link UiSizes})에서 읽음 (docs/chromite/design-spec.md "치수 토큰")
  * - 2026-11-07 도구 막대를 {@link OverflowToolBar}로: 좁힌 도구 창에서 들어가지 않는 단추는 넘침 메뉴로 (docs/chromite/swing-frontend.md "도구 창 최소 폭")
+ * - 2026-11-07 ④ 공유: 자동 새로 고침, Git Pull·Commit &amp; Push와 충돌 표시, 내보내기·가져오기, Save As .sql…
+ *   (docs/chromite/swing-query-library.md "공유")
  */
 final class QueryLibraryPanel extends JPanel {
 
@@ -144,8 +155,17 @@ final class QueryLibraryPanel extends JPanel {
     private final Action scheduleAction;
     private final Action historyAction;
     private final Action scheduledAction;
+    private final Action saveSqlAction;
+    private final Action exportAction;
+    private final Action importAction;
+    private final Action pullAction;
+    private final Action commitPushAction;
+    private final JScrollPane scrollPane;
+    private final QueryLibraryWatcher watcher;
     private List<QueryLibrary.Folder> folders = List.of();
     private int loadSerial;
+    // A git command of this window is running (one at a time)
+    private boolean gitRunning;
     @Nullable
     private Runnable showWindow;
 
@@ -170,6 +190,11 @@ final class QueryLibraryPanel extends JPanel {
         historyAction = createAction(ToolsMessages.library_action_history, ToolsMessages.library_action_history_tip, this::showHistory);
         scheduledAction = createAction(ToolsMessages.library_action_scheduled, ToolsMessages.library_action_scheduled_tip,
             () -> QueryScheduledDialog.open(host.getComponent()));
+        saveSqlAction = createAction(ToolsMessages.library_action_save_sql, ToolsMessages.library_action_save_sql_tip, this::saveSelectedAsSql);
+        exportAction = createAction(ToolsMessages.library_action_export, ToolsMessages.library_action_export_tip, this::exportFolder);
+        importAction = createAction(ToolsMessages.library_action_import, ToolsMessages.library_action_import_tip, this::importArchive);
+        pullAction = createAction(ToolsMessages.library_git_pull, ToolsMessages.library_git_pull_tip, this::pull);
+        commitPushAction = createAction(ToolsMessages.library_git_commit_push, ToolsMessages.library_git_commit_push_tip, this::commitAndPush);
 
         tree.setRootVisible(false);
         tree.setShowsRootHandles(true);
@@ -249,11 +274,13 @@ final class QueryLibraryPanel extends JPanel {
         searchPanel.add(searchField, BorderLayout.CENTER);
         top.add(searchPanel, BorderLayout.SOUTH);
         add(top, BorderLayout.NORTH);
-        JScrollPane scrollPane = new JScrollPane(tree);
+        scrollPane = new JScrollPane(tree);
         scrollPane.setBorder(BorderFactory.createEmptyBorder());
         add(scrollPane, BorderLayout.CENTER);
 
         library.addListener(this::reload);
+        // Changes by others (shared folder, git pull, file manager): read again without moving the view
+        watcher = new QueryLibraryWatcher(() -> SwingUtilities.invokeLater(() -> reload(true)));
         // Alerts and schedule state show in the tree
         QueryScheduler.getInstance().addListener(tree::repaint);
         QueryScheduler.getInstance().start();
@@ -266,6 +293,7 @@ final class QueryLibraryPanel extends JPanel {
      */
     void dispose() {
         QueryScheduler.getInstance().stop();
+        watcher.stop();
     }
 
     /**
@@ -330,31 +358,48 @@ final class QueryLibraryPanel extends JPanel {
     // Loading (job) and tree (EDT)
 
     /**
-     * Reads all roots in a job and rebuilds the tree.
+     * Reads all roots in a job and rebuilds the tree (a change made here, Refresh).
      */
     void reload() {
+        reload(false);
+    }
+
+    /**
+     * Reads all roots in a job and rebuilds the tree.
+     *
+     * @param automatic read because the files changed on disk: the view does not scroll to the selection
+     */
+    private void reload(boolean automatic) {
         int serial = ++loadSerial;
         List<QueryLibrary.Root> roots = library.getRoots();
         new AbstractJob("Read Query Library") {
             @NotNull
             @Override
             protected IStatus run(@NotNull DBRProgressMonitor monitor) {
+                // Before reading: a change while the files are read is seen by the next check
+                watcher.setBaseline(roots, QueryLibraryWatcher.fingerprint(roots));
                 List<QueryLibrary.Folder> loaded = new ArrayList<>();
                 for (QueryLibrary.Root root : roots) {
+                    QueryLibrary.Folder folder;
                     try {
-                        loaded.add(library.load(root));
+                        folder = library.load(root);
                     } catch (IOException e) {
                         log.warn("Can't read Query Library root " + root.path(), e);
-                        loaded.add(new QueryLibrary.Folder(root, root.path()));
+                        folder = new QueryLibrary.Folder(root, root.path());
                     }
+                    readGitStatus(folder);
+                    loaded.add(folder);
                 }
                 List<QueryLibraryItem> scheduled = new ArrayList<>();
                 loaded.forEach(folder -> collectScheduled(folder, scheduled));
                 QueryScheduler.getInstance().update(scheduled);
+                Map<String, QueryLibraryItem> queries = new HashMap<>();
+                loaded.forEach(folder -> collectQueries(folder, queries));
                 SwingUtilities.invokeLater(() -> {
                     if (serial == loadSerial) {
                         folders = loaded;
-                        rebuildTree();
+                        rebuildTree(automatic);
+                        QueryLibraryEditor.libraryRead(host, queries);
                     }
                 });
                 return Status.OK_STATUS;
@@ -363,9 +408,44 @@ final class QueryLibraryPanel extends JPanel {
     }
 
     /**
+     * The Git state of a root in a Git working copy (job thread). Without git the root is still marked as a working
+     * copy, so that the Git commands show why they are off.
+     */
+    private static void readGitStatus(@NotNull QueryLibrary.Folder folder) {
+        if (folder.missing) {
+            return;
+        }
+        folder.workTree = QueryLibraryGit.findWorkTree(folder.path);
+        if (folder.workTree == null || !QueryLibraryGit.checkAvailable()) {
+            return;
+        }
+        try {
+            folder.git = QueryLibraryGit.status(folder.path, folder.workTree);
+        } catch (IOException e) {
+            log.debug("Can't read the Git status of " + folder.path + ": " + e.getMessage());
+        }
+    }
+
+    private static void collectQueries(@NotNull QueryLibrary.Folder folder, @NotNull Map<String, QueryLibraryItem> result) {
+        for (QueryLibraryItem item : folder.queries) {
+            result.put(item.getStateKey(), item);
+        }
+        folder.folders.forEach(f -> collectQueries(f, result));
+    }
+
+    /**
      * Rebuilds the tree from the last read folders with the search filter, keeping expanded folders and the selection.
      */
     private void rebuildTree() {
+        rebuildTree(false);
+    }
+
+    /**
+     * @param keepView keep the scroll position instead of showing the selection (the tree was read again because of
+     *                 changes on disk, the user did not ask for it)
+     */
+    private void rebuildTree(boolean keepView) {
+        Point viewPosition = scrollPane.getViewport().getViewPosition();
         Set<String> expanded = new HashSet<>();
         Enumeration<TreePath> expandedPaths = tree.getExpandedDescendants(new TreePath(rootNode));
         boolean firstBuild = rootNode.getChildCount() == 0;
@@ -404,10 +484,22 @@ final class QueryLibraryPanel extends JPanel {
                 if (selected.equals(getKey(node))) {
                     TreePath path = new TreePath(node.getPath());
                     tree.setSelectionPath(path);
-                    tree.scrollPathToVisible(path);
+                    if (!keepView) {
+                        tree.scrollPathToVisible(path);
+                    }
                     break;
                 }
             }
+        }
+        if (keepView) {
+            // After the layout of the new rows
+            SwingUtilities.invokeLater(() -> {
+                JViewport viewport = scrollPane.getViewport();
+                Dimension view = viewport.getViewSize();
+                Dimension extent = viewport.getExtentSize();
+                viewport.setViewPosition(new Point(Math.max(0, Math.min(viewPosition.x, view.width - extent.width)),
+                    Math.max(0, Math.min(viewPosition.y, view.height - extent.height))));
+            });
         }
         updateActions();
     }
@@ -518,6 +610,30 @@ final class QueryLibraryPanel extends JPanel {
         renameAction.setEnabled(writable && !isRoot);
         deleteAction.setEnabled(writable && !isRoot);
         openFolderAction.setEnabled(path != null && Desktop.isDesktopSupported() && Desktop.getDesktop().isSupported(Desktop.Action.OPEN));
+        saveSqlAction.setEnabled(query != null);
+        exportAction.setEnabled(node != null && node.getUserObject() instanceof QueryLibrary.Folder folder && !folder.missing);
+        importAction.setEnabled(targetWritable);
+        QueryLibrary.Folder root = getSelectedRoot();
+        boolean gitAvailable = QueryLibraryGit.isAvailable();
+        boolean workingCopy = root != null && root.workTree != null;
+        pullAction.setEnabled(workingCopy && gitAvailable && !gitRunning);
+        commitPushAction.setEnabled(workingCopy && gitAvailable && !gitRunning && !root.root.readOnly());
+        // Why the commands are off when git can't be run
+        pullAction.putValue(Action.SHORT_DESCRIPTION, gitAvailable ? ToolsMessages.library_git_pull_tip : ToolsMessages.library_git_missing);
+        commitPushAction.putValue(Action.SHORT_DESCRIPTION, !gitAvailable ? ToolsMessages.library_git_missing
+            : root != null && root.root.readOnly() ? ToolsMessages.library_git_read_only : ToolsMessages.library_git_commit_push_tip);
+    }
+
+    /**
+     * The root folder of the selection, or null.
+     */
+    @Nullable
+    private QueryLibrary.Folder getSelectedRoot() {
+        DefaultMutableTreeNode node = getSelectedNode();
+        while (node != null && node.getParent() != rootNode) {
+            node = (DefaultMutableTreeNode) node.getParent();
+        }
+        return node != null && node.getUserObject() instanceof QueryLibrary.Folder folder ? folder : null;
     }
 
     private void maybeShowMenu(@NotNull MouseEvent e) {
@@ -547,10 +663,22 @@ final class QueryLibraryPanel extends JPanel {
         menu.add(newFolderAction);
         if (getSelectedQuery() != null) {
             menu.add(duplicateAction);
+            menu.add(saveSqlAction);
         }
         menu.addSeparator();
         menu.add(renameAction);
         menu.add(deleteAction);
+        menu.addSeparator();
+        if (getSelectedQuery() == null) {
+            menu.add(exportAction);
+        }
+        menu.add(importAction);
+        QueryLibrary.Folder root = getSelectedRoot();
+        if (root != null && root.workTree != null) {
+            menu.addSeparator();
+            menu.add(pullAction);
+            menu.add(commitPushAction);
+        }
         menu.addSeparator();
         menu.add(openFolderAction);
         menu.add(scheduledAction);
@@ -770,6 +898,355 @@ final class QueryLibraryPanel extends JPanel {
         } catch (IOException | RuntimeException e) {
             DBWorkbench.getPlatformUI().showError(ToolsMessages.library_open_folder, NLS.bind(ToolsMessages.library_error_open_folder, folder), e);
         }
+    }
+
+    /**
+     * Save As .sql…: the query's SQL without the header as a plain file, in the charset and line separator of its file.
+     */
+    private void saveSelectedAsSql() {
+        QueryLibraryItem selected = getSelectedQuery();
+        if (selected == null) {
+            return;
+        }
+        QueryLibraryItem item = readCurrent(selected);
+        Path file = library.resolveFile(item);
+        SqlFileContent content = SqlFileContent.newFile(item.getSql());
+        if (file != null && Files.isRegularFile(file)) {
+            try {
+                content = SqlFileContent.read(file).withText(item.getSql());
+            } catch (IOException e) {
+                log.debug("Can't read " + file, e);
+            }
+        }
+        QueryLibraryEditor.exportSql(host.getComponent(), content, QueryLibraryFile.toFileName(item.getName()) + QueryLibraryFile.EXTENSION);
+    }
+
+    //////////////////////////////////////////////////////////
+    // Export and import (.chromite-queries)
+
+    @NotNull
+    private static JFileChooser createArchiveChooser(@NotNull String title) {
+        JFileChooser chooser = new JFileChooser();
+        chooser.setDialogTitle(title);
+        chooser.setFileFilter(new FileNameExtensionFilter(ToolsMessages.library_archive_filter, QueryLibraryArchive.EXTENSION.substring(1)));
+        return chooser;
+    }
+
+    private void exportFolder() {
+        DefaultMutableTreeNode node = getSelectedNode();
+        if (node == null || !(node.getUserObject() instanceof QueryLibrary.Folder folder)) {
+            return;
+        }
+        JFileChooser chooser = createArchiveChooser(ToolsMessages.library_export_title);
+        chooser.setSelectedFile(new File(chooser.getCurrentDirectory(), QueryLibraryFile.toFileName(folder.getName()) + QueryLibraryArchive.EXTENSION));
+        if (chooser.showSaveDialog(host.getComponent()) != JFileChooser.APPROVE_OPTION) {
+            return;
+        }
+        Path selected = chooser.getSelectedFile().toPath().toAbsolutePath().normalize();
+        Path target = selected.getFileName().toString().toLowerCase(Locale.ROOT).endsWith(QueryLibraryArchive.EXTENSION)
+            ? selected : selected.resolveSibling(selected.getFileName() + QueryLibraryArchive.EXTENSION);
+        if (Files.exists(target) && JOptionPane.showConfirmDialog(host.getComponent(), NLS.bind(ToolsMessages.library_save_sql_exists, target.getFileName()),
+            ToolsMessages.library_export_title, JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE) != JOptionPane.YES_OPTION) {
+            return;
+        }
+        new AbstractJob("Export Query Library folder") {
+            @NotNull
+            @Override
+            protected IStatus run(@NotNull DBRProgressMonitor monitor) {
+                try {
+                    int count = QueryLibraryArchive.export(folder.path, target);
+                    SwingUtilities.invokeLater(() -> {
+                        if (count == 0) {
+                            JOptionPane.showMessageDialog(host.getComponent(), NLS.bind(ToolsMessages.library_export_empty, folder.getName()),
+                                ToolsMessages.library_export_title, JOptionPane.INFORMATION_MESSAGE);
+                        } else {
+                            DBWorkbench.getPlatformUI().showNotification(ToolsMessages.library_export_title,
+                                NLS.bind(ToolsMessages.library_export_done, count, target), false, null);
+                        }
+                    });
+                } catch (IOException e) {
+                    SwingUtilities.invokeLater(() -> DBWorkbench.getPlatformUI().showError(ToolsMessages.library_export_title,
+                        NLS.bind(ToolsMessages.library_export_error, target), e));
+                }
+                return Status.OK_STATUS;
+            }
+        }.schedule();
+    }
+
+    /**
+     * Import…: the queries of an archive into the selected folder. Queries whose id is in the library already are
+     * overwritten, imported as copies or skipped, as the user answers (once for all if asked so).
+     */
+    private void importArchive() {
+        QueryLibrary.Folder folder = getTargetFolder();
+        if (folder == null || folder.root.readOnly()) {
+            return;
+        }
+        JFileChooser chooser = createArchiveChooser(ToolsMessages.library_import_title);
+        if (chooser.showOpenDialog(host.getComponent()) != JFileChooser.APPROVE_OPTION) {
+            return;
+        }
+        Path archive = chooser.getSelectedFile().toPath();
+        new AbstractJob("Read Query Library archive") {
+            @NotNull
+            @Override
+            protected IStatus run(@NotNull DBRProgressMonitor monitor) {
+                try {
+                    List<QueryLibraryArchive.Entry> entries = QueryLibraryArchive.read(archive, library);
+                    SwingUtilities.invokeLater(() -> importEntries(folder, archive, entries));
+                } catch (IOException | RuntimeException e) {
+                    SwingUtilities.invokeLater(() -> DBWorkbench.getPlatformUI().showError(ToolsMessages.library_import_title,
+                        NLS.bind(ToolsMessages.library_import_error, archive), e));
+                }
+                return Status.OK_STATUS;
+            }
+        }.schedule();
+    }
+
+    private void importEntries(@NotNull QueryLibrary.Folder folder, @NotNull Path archive, @NotNull List<QueryLibraryArchive.Entry> entries) {
+        if (entries.isEmpty()) {
+            JOptionPane.showMessageDialog(host.getComponent(), NLS.bind(ToolsMessages.library_import_empty, archive.getFileName()),
+                ToolsMessages.library_import_title, JOptionPane.INFORMATION_MESSAGE);
+            return;
+        }
+        List<QueryLibraryArchive.Choice> choices = new ArrayList<>();
+        int clashes = (int) entries.stream().filter(e -> e.existing() != null).count();
+        QueryLibraryArchive.Choice forAll = null;
+        for (QueryLibraryArchive.Entry entry : entries) {
+            Path existing = entry.existing();
+            if (existing == null) {
+                choices.add(null);
+                continue;
+            }
+            clashes--;
+            boolean existingReadOnly = library.isReadOnly(existing);
+            QueryLibraryArchive.Choice choice = forAll == QueryLibraryArchive.Choice.OVERWRITE && existingReadOnly ? null : forAll;
+            if (choice == null) {
+                JCheckBox allBox = new JCheckBox(NLS.bind(ToolsMessages.library_import_clash_all, clashes));
+                JPanel message = new JPanel(new BorderLayout(0, 8));
+                message.add(new JLabel(NLS.bind(existingReadOnly ? ToolsMessages.library_import_clash_read_only : ToolsMessages.library_import_clash,
+                    entry.item().getName(), existing)), BorderLayout.CENTER);
+                if (clashes > 0) {
+                    message.add(allBox, BorderLayout.SOUTH);
+                }
+                List<String> options = new ArrayList<>();
+                List<QueryLibraryArchive.Choice> values = new ArrayList<>();
+                if (!existingReadOnly) {
+                    options.add(ToolsMessages.library_import_overwrite);
+                    values.add(QueryLibraryArchive.Choice.OVERWRITE);
+                }
+                options.add(ToolsMessages.library_import_copy);
+                values.add(QueryLibraryArchive.Choice.COPY);
+                options.add(ToolsMessages.library_import_skip);
+                values.add(QueryLibraryArchive.Choice.SKIP);
+                options.add(ToolsMessages.button_cancel);
+                int answer = JOptionPane.showOptionDialog(host.getComponent(), message, ToolsMessages.library_import_title,
+                    JOptionPane.DEFAULT_OPTION, JOptionPane.QUESTION_MESSAGE, null, options.toArray(), options.get(values.indexOf(QueryLibraryArchive.Choice.COPY)));
+                if (answer < 0 || answer >= values.size()) {
+                    // Canceled: nothing is imported
+                    return;
+                }
+                choice = values.get(answer);
+                if (allBox.isSelected()) {
+                    forAll = choice;
+                }
+            }
+            choices.add(choice);
+        }
+        new AbstractJob("Import Query Library archive") {
+            @NotNull
+            @Override
+            protected IStatus run(@NotNull DBRProgressMonitor monitor) {
+                QueryLibraryArchive.Summary summary = QueryLibraryArchive.write(library, folder.path, entries, choices);
+                SwingUtilities.invokeLater(() -> {
+                    library.fireChanged();
+                    String text = NLS.bind(ToolsMessages.library_import_done, new Object[]{summary.added(), summary.overwritten(),
+                        summary.copied(), summary.skipped()});
+                    if (summary.errors().isEmpty()) {
+                        DBWorkbench.getPlatformUI().showNotification(ToolsMessages.library_import_title, text, false, null);
+                    } else {
+                        showOutput(ToolsMessages.library_import_title, text + "\n" + NLS.bind(ToolsMessages.library_import_failed, //$NON-NLS-1$
+                            summary.errors().size()), String.join("\n", summary.errors()), JOptionPane.WARNING_MESSAGE); //$NON-NLS-1$
+                    }
+                });
+                return Status.OK_STATUS;
+            }
+        }.schedule();
+    }
+
+    //////////////////////////////////////////////////////////
+    // Git
+
+    /**
+     * Pull: {@code git pull} in the root. Conflicts are not merged here: the conflicted files are marked in the tree
+     * and listed.
+     */
+    private void pull() {
+        QueryLibrary.Folder root = getSelectedRoot();
+        if (root == null || root.workTree == null || gitRunning) {
+            return;
+        }
+        Path workTree = root.workTree;
+        runGit(ToolsMessages.library_git_pull, monitor -> {
+            QueryLibraryGit.Result result = QueryLibraryGit.pull(root.path);
+            QueryLibraryGit.Status status = QueryLibraryGit.status(root.path, workTree);
+            return () -> {
+                if (!status.conflicts().isEmpty()) {
+                    showOutput(ToolsMessages.library_git_pull, NLS.bind(ToolsMessages.library_git_conflicts,
+                        describeFiles(root.path, status.conflicts())), result.output(), JOptionPane.WARNING_MESSAGE);
+                } else if (!result.ok()) {
+                    showOutput(ToolsMessages.library_git_pull, ToolsMessages.library_git_pull_failed, result.output(), JOptionPane.ERROR_MESSAGE);
+                } else {
+                    DBWorkbench.getPlatformUI().showNotification(ToolsMessages.library_git_pull,
+                        NLS.bind(ToolsMessages.library_git_pull_done, root.getName()), false, null);
+                }
+            };
+        });
+    }
+
+    /**
+     * Commit &amp; Push…: asks for a commit message (with the changed files), then commits the root's changes and
+     * pushes. A conflicted file that still has conflict markers stops it.
+     */
+    private void commitAndPush() {
+        QueryLibrary.Folder root = getSelectedRoot();
+        if (root == null || root.workTree == null || root.root.readOnly() || gitRunning) {
+            return;
+        }
+        Path workTree = root.workTree;
+        runGit(ToolsMessages.library_git_commit_push_title, monitor -> {
+            QueryLibraryGit.Status status = QueryLibraryGit.status(root.path, workTree);
+            List<Path> unresolved = QueryLibraryGit.findUnresolved(status.conflicts());
+            return () -> {
+                if (!unresolved.isEmpty()) {
+                    JOptionPane.showMessageDialog(host.getComponent(), NLS.bind(ToolsMessages.library_git_unresolved, describeFiles(root.path, unresolved)),
+                        ToolsMessages.library_git_commit_push_title, JOptionPane.WARNING_MESSAGE);
+                    return;
+                }
+                if (status.changes().isEmpty() && status.upstream() && status.ahead() == 0) {
+                    JOptionPane.showMessageDialog(host.getComponent(), ToolsMessages.library_git_nothing,
+                        ToolsMessages.library_git_commit_push_title, JOptionPane.INFORMATION_MESSAGE);
+                    return;
+                }
+                String message = askCommitMessage(root, status);
+                if (message == null) {
+                    return;
+                }
+                runGit(ToolsMessages.library_git_commit_push_title, m -> {
+                    QueryLibraryGit.Result result = QueryLibraryGit.commitAndPush(root.path, message, status.upstream());
+                    return () -> {
+                        if (result.ok()) {
+                            DBWorkbench.getPlatformUI().showNotification(ToolsMessages.library_git_commit_push_title,
+                                NLS.bind(ToolsMessages.library_git_pushed, root.getName()), false, null);
+                        } else {
+                            showOutput(ToolsMessages.library_git_commit_push_title, ToolsMessages.library_git_push_failed, result.output(),
+                                JOptionPane.ERROR_MESSAGE);
+                        }
+                    };
+                });
+            };
+        });
+    }
+
+    @Nullable
+    private String askCommitMessage(@NotNull QueryLibrary.Folder root, @NotNull QueryLibraryGit.Status status) {
+        JTextArea messageArea = new JTextArea(ToolsMessages.library_git_default_message, 3, 50);
+        messageArea.setLineWrap(true);
+        messageArea.setWrapStyleWord(true);
+        messageArea.selectAll();
+        JTextArea filesArea = new JTextArea(status.changes().isEmpty() ? ToolsMessages.library_git_no_changes
+            : describeFiles(root.path, status.changes()), 8, 50);
+        filesArea.setEditable(false);
+        JPanel panel = new JPanel(new BorderLayout(0, 6));
+        JPanel top = new JPanel(new BorderLayout(0, 4));
+        top.add(new JLabel(ToolsMessages.library_git_message), BorderLayout.NORTH);
+        top.add(new JScrollPane(messageArea), BorderLayout.CENTER);
+        panel.add(top, BorderLayout.NORTH);
+        JPanel files = new JPanel(new BorderLayout(0, 4));
+        files.add(new JLabel(NLS.bind(ToolsMessages.library_git_changes, status.changes().size())), BorderLayout.NORTH);
+        files.add(new JScrollPane(filesArea), BorderLayout.CENTER);
+        panel.add(files, BorderLayout.CENTER);
+        JLabel hint = new JLabel(ToolsMessages.library_git_credentials_hint);
+        hint.putClientProperty(FlatClientProperties.STYLE, "foreground: $Chromite.secondaryForeground"); //$NON-NLS-1$
+        panel.add(hint, BorderLayout.SOUTH);
+        while (true) {
+            if (JOptionPane.showConfirmDialog(host.getComponent(), panel, NLS.bind(ToolsMessages.library_git_commit_title, root.getName()),
+                JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE) != JOptionPane.OK_OPTION) {
+                return null;
+            }
+            if (!messageArea.getText().isBlank()) {
+                return messageArea.getText().strip();
+            }
+        }
+    }
+
+    /**
+     * A git step that runs in a job and then finishes on the EDT; the tree is read again afterwards.
+     */
+    private interface GitTask {
+        @NotNull
+        Runnable run(@NotNull DBRProgressMonitor monitor) throws IOException;
+    }
+
+    private void runGit(@NotNull String title, @NotNull GitTask task) {
+        gitRunning = true;
+        updateActions();
+        new AbstractJob("Query Library: " + title) { //$NON-NLS-1$
+            @NotNull
+            @Override
+            protected IStatus run(@NotNull DBRProgressMonitor monitor) {
+                Runnable finish;
+                try {
+                    finish = task.run(monitor);
+                } catch (IOException e) {
+                    finish = () -> DBWorkbench.getPlatformUI().showError(title, ToolsMessages.library_git_failed, e);
+                }
+                Runnable done = finish;
+                SwingUtilities.invokeLater(() -> {
+                    gitRunning = false;
+                    reload();
+                    done.run();
+                });
+                return Status.OK_STATUS;
+            }
+        }.schedule();
+    }
+
+    /**
+     * Files relative to the root, one per line (at most 50).
+     */
+    @NotNull
+    private static String describeFiles(@NotNull Path root, @NotNull Collection<Path> files) {
+        Path base = root.toAbsolutePath().normalize();
+        StringBuilder text = new StringBuilder();
+        int count = 0;
+        for (Path file : files) {
+            if (count++ == 50) {
+                text.append("…\n"); //$NON-NLS-1$
+                break;
+            }
+            Path normalized = file.toAbsolutePath().normalize();
+            text.append(normalized.startsWith(base) ? base.relativize(normalized) : normalized).append('\n');
+        }
+        return text.toString().strip();
+    }
+
+    /**
+     * A message with the output of a command below it (scrollable).
+     */
+    private void showOutput(@NotNull String title, @NotNull String message, @NotNull String output, int messageType) {
+        JPanel panel = new JPanel(new BorderLayout(0, 8));
+        JTextArea messageArea = new JTextArea(message);
+        messageArea.setEditable(false);
+        messageArea.setOpaque(false);
+        panel.add(messageArea, BorderLayout.NORTH);
+        if (!output.isBlank()) {
+            JTextArea outputArea = new JTextArea(output.strip(), Math.min(15, (int) output.strip().lines().count() + 1), 70);
+            outputArea.setEditable(false);
+            outputArea.setFont(new Font(Font.MONOSPACED, Font.PLAIN, outputArea.getFont().getSize()));
+            panel.add(new JScrollPane(outputArea), BorderLayout.CENTER);
+        }
+        JOptionPane.showMessageDialog(host.getComponent(), panel, title, messageType);
     }
 
     private void editRoots() {
@@ -1155,18 +1632,30 @@ final class QueryLibraryPanel extends JPanel {
                 setToolTipText(folder.path.toString());
                 if (root && folder.missing) {
                     secondaryText = ToolsMessages.library_tree_folder_missing;
-                } else if (root && folder.root.readOnly()) {
-                    secondaryText = ToolsMessages.library_tree_read_only;
+                } else if (root) {
+                    List<String> parts = new ArrayList<>();
+                    if (folder.root.readOnly()) {
+                        parts.add(ToolsMessages.library_tree_read_only);
+                    }
+                    if (folder.git != null) {
+                        parts.add(describeGit(folder.git));
+                    }
+                    secondaryText = parts.isEmpty() ? null : String.join(" · ", parts); //$NON-NLS-1$
                 }
             } else if (userObject instanceof QueryLibraryItem item) {
                 setText(item.getName());
                 Icon icon = UiIcons.get("library-query"); //$NON-NLS-1$
-                // A scheduled run met its condition and nobody has looked at it yet
-                setIcon(item.getId() != null && QueryLibraryState.hasAlert(item) ? UiIcons.withStatusDot(icon, UiIcons.Status.ERROR) : icon);
+                boolean conflict = isConflicted((DefaultMutableTreeNode) value, item);
+                // A scheduled run met its condition and nobody has looked at it yet; a merge conflict waits for the user
+                setIcon(conflict ? UiIcons.withStatusDot(icon, UiIcons.Status.WARNING)
+                    : item.getId() != null && QueryLibraryState.hasAlert(item) ? UiIcons.withStatusDot(icon, UiIcons.Status.ERROR) : icon);
                 String description = item.getDescription();
                 setToolTipText("<html>" + (description != null ? CommonUtils.escapeHtml(description) + "<br>" : "") //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$
-                    + CommonUtils.escapeHtml(String.valueOf(item.getFile())) + "</html>"); //$NON-NLS-1$
-                if (item.getTargetMode() == QueryLibraryItem.TargetMode.CONNECTION) {
+                    + CommonUtils.escapeHtml(String.valueOf(item.getFile()))
+                    + (conflict ? "<br>" + CommonUtils.escapeHtml(ToolsMessages.library_tree_conflict_tip) : "") + "</html>"); //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$
+                if (conflict) {
+                    secondaryText = ToolsMessages.library_tree_conflict;
+                } else if (item.getTargetMode() == QueryLibraryItem.TargetMode.CONNECTION) {
                     secondaryText = item.getTargetName();
                 } else if (item.getTargetMode() == QueryLibraryItem.TargetMode.ASK) {
                     secondaryText = ToolsMessages.library_tree_ask;
@@ -1177,6 +1666,36 @@ final class QueryLibraryPanel extends JPanel {
                 }
             }
             return this;
+        }
+
+        /**
+         * Branch, ahead and behind the upstream (as of the last fetch), conflicts: "main ↑1 ↓2 · 1 conflict".
+         */
+        @NotNull
+        private static String describeGit(@NotNull QueryLibraryGit.Status git) {
+            StringBuilder text = new StringBuilder(git.branch() != null ? git.branch() : ToolsMessages.library_tree_git_detached);
+            if (git.ahead() > 0) {
+                text.append(" ↑").append(git.ahead()); //$NON-NLS-1$
+            }
+            if (git.behind() > 0) {
+                text.append(" ↓").append(git.behind()); //$NON-NLS-1$
+            }
+            if (!git.conflicts().isEmpty()) {
+                text.append(" · ").append(NLS.bind(ToolsMessages.library_tree_git_conflicts, git.conflicts().size())); //$NON-NLS-1$
+            }
+            return text.toString();
+        }
+
+        /**
+         * Whether the query's file has a merge conflict in the Git working copy of its root.
+         */
+        private static boolean isConflicted(@NotNull DefaultMutableTreeNode node, @NotNull QueryLibraryItem item) {
+            TreeNode[] path = node.getPath();
+            if (path.length < 2 || item.getFile() == null
+                || !(((DefaultMutableTreeNode) path[1]).getUserObject() instanceof QueryLibrary.Folder root) || root.git == null) {
+                return false;
+            }
+            return root.git.conflicts().contains(item.getFile().toAbsolutePath().normalize());
         }
 
         private static boolean hasAlert(@NotNull DefaultMutableTreeNode node) {

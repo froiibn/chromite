@@ -49,10 +49,11 @@ import java.util.concurrent.CopyOnWriteArrayList;
  * 설계:
  * <ul>
  *     <li>쿼리 하나가 파일 하나({@link QueryLibraryFile})이고 폴더 구조가 곧 트리다. 별도 색인 파일을 두지 않는다. 그래서 Git 저장소나
- *     네트워크 공유 폴더를 그대로 루트로 쓸 수 있고, 다른 사람이 파일을 바꾸면 다시 읽기(Refresh)만으로 반영된다.
+ *     네트워크 공유 폴더를 그대로 루트로 쓸 수 있고, 다른 사람이 파일을 바꾸면 다시 읽기만으로 반영된다(자동 새로 고침 또는 Refresh).
  *     이름이 {@code .}으로 시작하는 폴더·파일({@code .git} 등)은 읽지 않는다.</li>
  *     <li>루트는 여러 개다: 기본 루트 "My Queries"(작업 공간의 {@code QueryLibrary} 폴더)와 사용자가 더한 루트(공유 폴더, Git 작업 사본).
- *     루트 목록은 이 번들의 설정 저장소({@code queryLibrary.roots})에 저장한다. 읽기 전용 루트에서는 쓰기 명령을 막는다.</li>
+ *     루트 목록은 이 번들의 설정 저장소({@code queryLibrary.roots})에 저장한다. 읽기 전용 루트에서는 쓰기 명령을 막는다.
+ *     바깥 변경은 {@link QueryLibraryWatcher}가 알리고, Git 작업 사본인 루트의 상태는 읽을 때 {@link QueryLibraryGit}로 함께 읽는다({@link Folder#git}).</li>
  *     <li>읽기({@link #load})는 파일을 여러 개 읽으므로 작업 스레드에서 한다(네트워크 폴더가 느릴 수 있음). 파일 하나를 바꾸는 명령은 EDT에서 한다.</li>
  *     <li>읽을 때 ID → 파일 위치 색인을 만든다. 편집 중인 쿼리의 파일을 트리에서 옮겨도 저장할 때 ID로 새 위치를 찾는다({@link #resolveFile}).</li>
  *     <li>삭제는 운영체제가 지원하면 휴지통으로 보낸다(실수로 지운 쿼리를 되살릴 수 있게). 지원하지 않으면 지운다.</li>
@@ -62,6 +63,8 @@ import java.util.concurrent.CopyOnWriteArrayList;
  * 변경 이력:
  * - 2026-11-06 Query Library: 최초 작성 (docs/chromite/swing-query-library.md "저장 위치와 루트")
  * - 2026-11-06 화면 문구를 ToolsMessages로 옮김(OS 언어를 따름)
+ * - 2026-11-07 ④ 공유: 루트의 Git 상태({@link Folder#git}), ID로 파일 찾기({@link #findFile}, 가져오기의 ID 충돌)
+ *   (docs/chromite/swing-query-library.md "공유")
  */
 final class QueryLibrary {
 
@@ -94,6 +97,12 @@ final class QueryLibrary {
         final List<QueryLibraryItem> queries = new ArrayList<>();
         // A root whose folder was not there when it was read (an unplugged share, a wrong path)
         boolean missing;
+        // A root in a Git working copy: the top folder of the working copy, and its state when it was read (null if
+        // git is missing or failed)
+        @Nullable
+        Path workTree;
+        @Nullable
+        QueryLibraryGit.Status git;
 
         Folder(@NotNull Root root, @NotNull Path path) {
             this.root = root;
@@ -272,6 +281,23 @@ final class QueryLibrary {
         }
         Path indexed = item.getId() != null ? fileIndex.get(item.getId()) : null;
         return indexed != null && Files.isRegularFile(indexed) ? indexed : file;
+    }
+
+    /**
+     * The file of the query with an id, as the last load found it and if it still has that id (job thread: reads the file).
+     */
+    @Nullable
+    Path findFile(@NotNull String id) {
+        Path indexed = fileIndex.get(id);
+        if (indexed == null || !Files.isRegularFile(indexed)) {
+            return null;
+        }
+        try {
+            return id.equals(QueryLibraryFile.read(indexed).getId()) ? indexed : null;
+        } catch (IOException e) {
+            log.debug("Can't read " + indexed, e);
+            return null;
+        }
     }
 
     //////////////////////////////////////////////////////////

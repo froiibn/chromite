@@ -70,11 +70,12 @@ import java.util.Map;
  *     <li>커밋·롤백({@link #endTransaction})은 알림과 쿼리 창의 열린 트랜잭션 표시가 같이 쓰고, 보여 준 트랜잭션과 같은지
  *     (첫 문장 시각) 확인한 뒤에만 한다. 그 사이 다른 트랜잭션이 시작되었으면 그 트랜잭션을 건드리지 않는다.</li>
  *     <li>업스트림의 유휴 트랜잭션 롤백(사용자 활동 시각 기준, 확인 서비스가 없으면 묻지 않고 롤백)은 이 클래스로 바꾸었다.
- *     유휴 연결 끊기({@link DataSourceMonitorJob}의 {@code DisconnectJob})는 사용자 활동 시각이 연결되어 있지 않아 지금처럼 동작하지 않는다.</li>
+ *     유휴 연결 닫기({@link DataSourceMonitorJob})는 열린 트랜잭션이 있는 연결을 닫지 않고 그 트랜잭션을 이 클래스에 맡긴다.</li>
  * </ul>
  *
  * 변경 이력:
  * - 2026-11-07 최초 작성 (docs/chromite/idle-transactions.md)
+ * - 2026-11-07 유휴 연결 닫기와의 관계를 설명에 고침(이제 닫기가 동작함) (docs/chromite/idle-transactions.md "유휴 연결 닫기")
  */
 public final class IdleTransactionMonitor {
 

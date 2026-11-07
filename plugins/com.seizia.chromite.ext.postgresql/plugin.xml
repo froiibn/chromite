@@ -694,20 +694,20 @@
                 </driver>
 
                 <provider-properties drivers="*">
-                    <propertyGroup label="Misc">
-                        <property id="@chromite-chosen-role@" label="User role" type="string" description="User role for connection"/>
+                    <propertyGroup label="%provider.group.misc.label">
+                        <property id="@chromite-chosen-role@" label="%provider.property.chosen_role.label" type="string" description="%provider.property.chosen_role.description"/>
                     </propertyGroup>
-                    <propertyGroup label="Database list">
-                        <property id="@chromite-show-non-default-db@" label="Show all databases" type="boolean" description="Show all databases on server. Otherwise show current database only."/>
-                        <property id="@chromite-show-template-db@" label="Show template databases" type="boolean" description="Show template databases."/>
-                        <property id="@chromite-show-unavailable-db@" label="Show unavailable databases" type="boolean" description="Show databases not unavailable for connection."/>
-                        <property id="@chromite-read-all-data-types-db@" label="Read all data types" type="boolean" description="Read all database data types. Including array types."/>
-                        <property id="read-keys-with-columns" label="Read table keys with columns" type="boolean" description="Read table constraints at the stage of reading columns for proper keys recognition. This setting may reduce metadata loading performance."/>
-                        <property id="replace-legacy-timezone" label="Replace legacy timezone" type="boolean" description="Replace legacy timezone. Enable only if you need to connect with legacy timezone like Europe/Kyiv or Asia/Calcutta"/>
+                    <propertyGroup label="%provider.group.database_list.label">
+                        <property id="@chromite-show-non-default-db@" label="%provider.property.show_non_default_db.label" type="boolean" description="%provider.property.show_non_default_db.description"/>
+                        <property id="@chromite-show-template-db@" label="%provider.property.show_template_db.label" type="boolean" description="%provider.property.show_template_db.description"/>
+                        <property id="@chromite-show-unavailable-db@" label="%provider.property.show_unavailable_db.label" type="boolean" description="%provider.property.show_unavailable_db.description"/>
+                        <property id="@chromite-read-all-data-types-db@" label="%provider.property.read_all_data_types.label" type="boolean" description="%provider.property.read_all_data_types.description"/>
+                        <property id="read-keys-with-columns" label="%provider.property.read_keys_with_columns.label" type="boolean" description="%provider.property.read_keys_with_columns.description"/>
+                        <property id="replace-legacy-timezone" label="%provider.property.replace_legacy_timezone.label" type="boolean" description="%provider.property.replace_legacy_timezone.description"/>
                     </propertyGroup>
                     <propertyGroup label="SQL">
-                        <property id="postgresql.dd.plain.string" label="Show $$ quote as String" type="boolean" description="Show $$ quote as String"/>
-                        <property id="postgresql.dd.tag.string" label="Show $tagName$ quote as String" type="boolean" description="Show $tagName$ quote as String"/>
+                        <property id="postgresql.dd.plain.string" label="%provider.property.dd_plain_string.label" type="boolean" description="%provider.property.dd_plain_string.label"/>
+                        <property id="postgresql.dd.tag.string" label="%provider.property.dd_tag_string.label" type="boolean" description="%provider.property.dd_tag_string.label"/>
                     </propertyGroup>
                 </provider-properties>
 

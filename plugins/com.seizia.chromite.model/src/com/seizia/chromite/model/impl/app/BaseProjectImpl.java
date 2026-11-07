@@ -63,6 +63,9 @@ import javax.crypto.spec.SecretKeySpec;
  * 변경 이력:
  * - 2026-11-07 옛 XML 연결 설정({@code .chromite-data-sources*.xml}) 형식 값 {@code LEGACY}를 지움. 내부 이름 변경(#59)으로 찾는 이름이
  *   어떤 빌드도 쓰지 않는 이름이 됐다(docs/chromite/internal-rename.md "사용자 데이터 이전")
+ * - 2026-11-07 예전 {@code credentials-config*.json}을 읽는 고정 키 암호기({@link #getLegacyCredentialsEncryptor()})를 더함. 데스크톱
+ *   연결 비밀번호는 OS 보안 저장소로 옮겼다(docs/chromite/credential-storage.md). {@link #getValueEncryptor()}는 그대로다(암호화
+ *   프로젝트 설정, 네이티브 도구 작업 설정이 쓴다)
  */
 public abstract class BaseProjectImpl implements DBPProject, DBSSecretSubject {
 
@@ -269,6 +272,16 @@ public abstract class BaseProjectImpl implements DBPProject, DBSSecretSubject {
     @Nullable
     protected SecretKey getLocalSecretKey() {
         return new SecretKeySpec(LOCAL_KEY_CACHE, DefaultValueEncryptor.KEY_ALGORITHM);
+    }
+
+    /**
+     * The encryptor of the {@code credentials-config*.json} files that earlier versions wrote with the key fixed in the
+     * source. Only for reading those files once, before they are moved to the OS secure storage and deleted: anyone
+     * with the source can decrypt them.
+     */
+    @NotNull
+    public static DBSValueEncryptor getLegacyCredentialsEncryptor() {
+        return new DefaultValueEncryptor(new SecretKeySpec(LOCAL_KEY_CACHE, DefaultValueEncryptor.KEY_ALGORITHM));
     }
 
     @NotNull

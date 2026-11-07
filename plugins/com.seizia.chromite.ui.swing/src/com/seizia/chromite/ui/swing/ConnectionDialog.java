@@ -84,6 +84,8 @@ import java.util.StringTokenizer;
  *   (docs/chromite/swing-driver-manager.md)
  * - 2026-11-07 {@link #openEditAutoCommit}: 쿼리 상태 줄의 커밋 방식 칸이 연결 설정의 Auto-commit으로 안내. 연결된 연결의 Auto-commit을 바꾸면
  *   다시 연결하지 않고 열린 세션에 적용({@link AutoCommitApplier}), 다시 연결 질문은 그 밖의 설정이 바뀌었을 때만 (docs/chromite/swing-frontend.md "자동 커밋 상태")
+ * - 2026-11-07 새 연결의 저장 실패(OS 보안 저장소가 비밀번호를 저장하지 못함)를 알림. 연결은 만들어진 채로 둔다
+ *   (docs/chromite/credential-storage.md "실패")
  */
 final class ConnectionDialog extends JDialog {
 
@@ -414,6 +416,11 @@ final class ConnectionDialog extends JDialog {
             } catch (DBException e) {
                 DBWorkbench.getPlatformUI().showError(ConnectionMessages.dialog_create_failed_title, ConnectionMessages.dialog_create_failed, e);
                 return;
+            }
+            // The registry keeps a save failure (the secure storage could not keep the password) as its last error
+            Throwable saveError = registry.getLastError();
+            if (saveError != null) {
+                DBWorkbench.getPlatformUI().showError(ConnectionMessages.dialog_save_failed_title, ConnectionMessages.dialog_save_failed, saveError);
             }
             registered = true;
             rememberHistory();

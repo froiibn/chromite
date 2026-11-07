@@ -191,6 +191,8 @@ public class CoreMessages extends NLS {
     public static String options_keep_runs_hint;
     public static String options_keep_days;
     public static String options_keep_days_hint;
+    public static String options_library_refresh;
+    public static String options_library_refresh_hint;
     public static String options_font;
     public static String options_family;
     public static String options_family_hint;

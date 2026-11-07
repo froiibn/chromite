@@ -24,6 +24,9 @@ import org.eclipse.osgi.util.NLS;
  * - 2026-11-07 SWT 프런트엔드 삭제로 쓰는 곳이 없어진 문구 삭제(docs/chromite/swt-removal.md)
  * - 2026-11-07 테이블 저장 방식 이름(model_struct_storage_*) 추가(docs/chromite/altibase.md)
  * - 2026-11-07 셸 명령 승인 대화상자의 암호 명령 문구(model_shell_command_*) 추가(docs/chromite/shell-command-approval.md)
+ * - 2026-11-07 연결 작업 이름과 연결 무효화 알림 문구(runtime_connect_job_name, runtime_invalidate_*) 추가
+ *   (docs/chromite/swing-l10n.md "남은 한국어 문구 정리")
+ * - 2026-11-07 유휴 연결 닫기 알림 문구(model_connection_idle_closed) 추가(docs/chromite/idle-transactions.md "유휴 연결 닫기")
  */
 public class ModelMessages extends NLS {
     static final String BUNDLE_NAME = "com.seizia.chromite.model.messages.ModelResources"; //$NON-NLS-1$
@@ -41,11 +44,16 @@ public class ModelMessages extends NLS {
     public static String model_connection_events_event_after_disconnect;
     public static String model_connection_events_event_before_connect;
     public static String model_connection_events_event_before_disconnect;
+    public static String model_connection_idle_closed;
 
     public static String model_shell_command_context_project;
     public static String model_shell_command_context_connection;
     public static String model_shell_command_context_event;
     public static String model_shell_command_event_password;
+
+    public static String runtime_connect_job_name;
+    public static String runtime_invalidate_success;
+    public static String runtime_invalidate_failure;
 
     public static String model_ddl_transaction_behavior_auto;
     public static String model_ddl_transaction_behavior_immediate;

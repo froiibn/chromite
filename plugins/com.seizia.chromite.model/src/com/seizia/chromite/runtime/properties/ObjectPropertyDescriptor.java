@@ -54,12 +54,23 @@ import java.util.stream.Collectors;
 
 /**
  * ObjectPropertyDescriptor
-*/
+ *
+ * 설계: 속성 범주({@code @Property(category)})는 영어 문자열 상수라 화면 언어로 바꾸려면 번들에서 찾아야 한다. 이름처럼 속성마다
+ * 키를 두면 같은 범주("Statistics" 등)를 클래스마다 번역해야 하므로, 범주 값 하나에 키 하나({@code meta.category.<값>})를 둔다.
+ * 게터를 선언한 클래스의 번들을 먼저 보고, 없으면 이 클래스의 번들(model)에 둔 공통 범주 사전을 본다. 둘 다 없으면 원래 값이다.
+ * 범주는 화면에서 묶는 데만 쓰이고 저장되거나 값으로 비교되지 않는다.
+ *
+ * 변경 이력:
+ * - 2026-11-07 속성 범주를 화면 언어로 찾음(docs/chromite/swing-l10n.md "남은 한국어 문구 정리")
+ */
 public class ObjectPropertyDescriptor extends ObjectAttributeDescriptor
     implements DBPPropertyDescriptor, DBPConditionalProperty, IPropertyValueListProvider<Object>
 {
 
+    private static final String CATEGORY_KEY_PREFIX = "meta.category."; //$NON-NLS-1$
+
     private final Property propInfo;
+    private final String propCategory;
     private final String propName;
     private final String propDescription;
     private final String propHint;
@@ -135,6 +146,7 @@ public class ObjectPropertyDescriptor extends ObjectAttributeDescriptor
             }
         }
         if (collectLocalizedNames) {
+            this.propCategory = getLocalizedCategory(propInfo.category(), locale);
             this.propName = getLocalizedString(propInfo.name(), Property.RESOURCE_TYPE_NAME, getId(), !propInfo.hidden(), locale);
             this.propDescription = CommonUtils.isEmpty(propInfo.description())
                 ? propName
@@ -149,6 +161,7 @@ public class ObjectPropertyDescriptor extends ObjectAttributeDescriptor
                 null :
                 getLocalizedString(propInfo.name(), Property.RESOURCE_TYPE_HINT, null, false, locale);
         } else {
+            propCategory = propInfo.category();
             propName = getId();
             propDescription = Property.DEFAULT_LOCAL_STRING.equals(propInfo.description()) ? propName : propInfo.description();
             propHint = null;
@@ -362,9 +375,9 @@ public class ObjectPropertyDescriptor extends ObjectAttributeDescriptor
 
     @Override
     public String getCategory() {
-        return CommonUtils.isEmpty(propInfo.category()) ?
+        return CommonUtils.isEmpty(propCategory) ?
             getParent() == null ? null : CommonUtils.notEmpty(getParent().getCategory()) :
-            propInfo.category();
+            propCategory;
     }
 
     @Override
@@ -708,6 +721,34 @@ public class ObjectPropertyDescriptor extends ObjectAttributeDescriptor
             return defaultValue;
         }
         return string;
+    }
+
+    /**
+     * The category in the UI language: {@code meta.category.<category>} from the getter owner's bundle, then from the
+     * shared category list of this bundle; the category itself when neither has it.
+     */
+    private String getLocalizedCategory(String category, String locale) {
+        if (CommonUtils.isEmpty(category)) {
+            return category;
+        }
+        String messageID = CATEGORY_KEY_PREFIX + category;
+        Class<?> propOwner = getGetter().getDeclaringClass();
+        for (Class<?> owner : new Class<?>[] { propOwner, ObjectPropertyDescriptor.class }) {
+            Bundle bundle = FrameworkUtil.getBundle(owner);
+            if (bundle == null) {
+                continue;
+            }
+            try {
+                String result = getPluginResourceBundle(bundle, owner, locale).getString(messageID);
+                // As in getLocalizedString: a localization may answer a missing key with the key itself
+                if (!result.equals(messageID)) {
+                    return result;
+                }
+            } catch (MissingResourceException e) {
+                // Not in this bundle
+            }
+        }
+        return category;
     }
 
     private ResourceBundle getPluginResourceBundle(Bundle bundle, Class<?> ownerClass, String language) {

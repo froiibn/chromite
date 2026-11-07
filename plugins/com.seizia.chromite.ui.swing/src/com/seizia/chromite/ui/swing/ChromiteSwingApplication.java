@@ -32,6 +32,7 @@ import com.seizia.chromite.model.DBConstants;
 import com.seizia.chromite.model.app.DBPPlatform;
 import com.seizia.chromite.model.preferences.DBPPreferenceStore;
 import com.seizia.chromite.model.rcp.DesktopApplicationImpl;
+import com.seizia.chromite.runtime.ChromiteNotifications;
 import com.seizia.chromite.runtime.DBWorkbench;
 import com.seizia.chromite.runtime.ui.DBPPlatformUI;
 import com.seizia.chromite.utils.GeneralUtils;
@@ -85,6 +86,8 @@ import java.util.concurrent.CountDownLatch;
  *   업데이트 도우미가 설치하는 동안에는 시작하지 않음 (docs/chromite/auto-update.md)
  * - 2026-11-07 SWT 앱처럼 Windows 인증서 저장소({@code WINDOWS-ROOT})를 기본 신뢰 저장소로 씀(설정이 켜져 있을 때),
  *   macOS 앱 메뉴의 끝내기·정보·환경설정을 메인 창 경로로 연결 (docs/chromite/platform-startup.md)
+ * - 2026-11-07 모델 알림 처리기({@link SwingModelNotifications}) 등록: 연결 감시가 시작되기 전에 등록해 유휴 연결 닫힘 등이
+ *   메인 창 알림으로 보이게 함 (docs/chromite/idle-transactions.md "모델 알림")
  */
 public class ChromiteSwingApplication extends DesktopApplicationImpl {
 
@@ -146,6 +149,8 @@ public class ChromiteSwingApplication extends DesktopApplicationImpl {
                 showStartupError(CoreMessages.app_error_init, ErrorText.describe(e));
                 return EXIT_OK;
             }
+            // Before the connection monitor starts: its notices (idle connection closed) go to the main window, not System.out
+            ChromiteNotifications.setHandler(new SwingModelNotifications());
             // Activates plugin services and the connection monitor; the SWT workbench window advisor does the same
             platform.postInitialize();
 

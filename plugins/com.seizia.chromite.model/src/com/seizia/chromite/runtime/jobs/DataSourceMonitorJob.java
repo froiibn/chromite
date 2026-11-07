@@ -21,12 +21,15 @@ import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.Platform;
 import org.eclipse.core.runtime.Status;
 import org.eclipse.core.runtime.jobs.IJobChangeEvent;
+import org.eclipse.core.runtime.jobs.Job;
 import org.eclipse.core.runtime.jobs.JobChangeAdapter;
+import org.eclipse.osgi.util.NLS;
 import org.jkiss.code.NotNull;
 import com.seizia.chromite.Log;
 import com.seizia.chromite.ModelPreferences;
 import com.seizia.chromite.model.DBPDataSource;
 import com.seizia.chromite.model.DBPDataSourceContainer;
+import com.seizia.chromite.model.DBPDataSourceTask;
 import com.seizia.chromite.model.DBPMessageType;
 import com.seizia.chromite.model.app.DBPDataSourceRegistry;
 import com.seizia.chromite.model.app.DBPPlatform;
@@ -34,12 +37,21 @@ import com.seizia.chromite.model.app.DBPProject;
 import com.seizia.chromite.model.app.DBPWorkspace;
 import com.seizia.chromite.model.connection.DBPConnectionConfiguration;
 import com.seizia.chromite.model.connection.DBPConnectionType;
+import com.seizia.chromite.model.exec.DBCExecutionContext;
+import com.seizia.chromite.model.messages.ModelMessages;
+import com.seizia.chromite.model.qm.QMTransactionState;
+import com.seizia.chromite.model.qm.QMUtils;
 import com.seizia.chromite.model.runtime.AbstractJob;
 import com.seizia.chromite.model.runtime.DBRProgressMonitor;
+import com.seizia.chromite.model.struct.DBSInstance;
+import com.seizia.chromite.runtime.DBServiceUnrecordedSessions;
 import com.seizia.chromite.runtime.DBWorkbench;
 import com.seizia.chromite.runtime.ChromiteNotifications;
 import com.seizia.chromite.runtime.OperationSystemState;
+import com.seizia.chromite.utils.DurationFormat;
+import com.seizia.chromite.utils.DurationFormatter;
 
+import java.time.Duration;
 import java.util.*;
 
 /**
@@ -47,11 +59,20 @@ import java.util.*;
  *
  * Performs connection keep-alive ping.
  * Watches idle transactions ({@link IdleTransactionMonitor}).
+ * Closes idle connections ({@link #isIdleConnection}).
+ *
+ * 설계(유휴 연결 닫기): 유휴 시간은 연결마다 마지막으로 쓴 때부터 잰다. 업스트림은 전역 마우스·키보드 활동 시각
+ * ({@code DBPApplication.getLastUserActivityTime})을 썼는데, Swing에는 그 값이 없어 유휴 시간이 늘 직전 점검(3초 전)부터였고
+ * 그래서 닫지 않았다. 전역 활동 대신 연결별 사용 시각을 쓴 것은 유휴 트랜잭션 감시와 같은 이유다: 다른 연결로 일하는 동안 놓인
+ * 연결도 닫혀야 한다. 열린 트랜잭션이 있는 연결은 닫지 않는다(닫으면 묻지 않고 롤백된다, 사용자 규칙 "트랜잭션 안전").
+ * 그 트랜잭션은 {@link IdleTransactionMonitor}가 알린다. 닫기 직전에 한 번 더 확인하고, 닫은 뒤 알림을 보낸다.
  *
  * 변경 이력:
  * - 2026-11-07 유휴 트랜잭션: 업스트림의 롤백 경로(전역 사용자 활동 시각 기준, 확인 서비스가 없으면 묻지 않고 롤백,
- *   데이터 소스 설정 {@code transaction.auto.close.*})를 지우고 {@link IdleTransactionMonitor}를 부름. 유휴 연결 끊기는 그대로
- *   (사용자 활동 시각이 없어 동작하지 않음) (docs/chromite/idle-transactions.md)
+ *   데이터 소스 설정 {@code transaction.auto.close.*})를 지우고 {@link IdleTransactionMonitor}를 부름 (docs/chromite/idle-transactions.md)
+ * - 2026-11-07 유휴 연결 닫기가 동작하게 함: 전역 사용자 활동 시각 대신 연결별 마지막 사용 시각, 열린 트랜잭션·실행 중이면 닫지 않음,
+ *   닫기 직전 다시 확인, 닫은 뒤 경고 알림(지역화 문구, 연결이 끊긴 뒤이므로 데이터 소스 없이 보냄)
+ *   (docs/chromite/idle-transactions.md "유휴 연결 닫기")
  */
 public class DataSourceMonitorJob extends AbstractJob {
     private static final int MONITOR_INTERVAL = 3000; // once per 3 seconds
@@ -167,24 +188,24 @@ public class DataSourceMonitorJob extends AbstractJob {
     protected void doJob() {
         final DBPWorkspace workspace = platform.getWorkspace();
         IdleTransactionMonitor.beginPass();
-        checkDataSourceAliveInWorkspace(workspace, getLastUserActivityTime(lastPingTime));
+        checkDataSourceAliveInWorkspace(workspace);
         IdleTransactionMonitor.sweep();
     }
 
-    protected void checkDataSourceAliveInWorkspace(DBPWorkspace workspace, long lastUserActivityTime) {
+    protected void checkDataSourceAliveInWorkspace(DBPWorkspace workspace) {
         List<DBPProject> projects = new ArrayList<>(workspace.getProjects());
         for (DBPProject project : projects) {
             if (project.isOpen() && project.isRegistryLoaded()) {
                 DBPDataSourceRegistry dataSourceRegistry = project.getDataSourceRegistry();
                 List<DBPDataSourceContainer> dataSources = new ArrayList<>(dataSourceRegistry.getDataSources());
                 for (DBPDataSourceContainer ds : dataSources) {
-                    checkDataSourceAlive(ds, lastUserActivityTime);
+                    checkDataSourceAlive(ds);
                 }
             }
         }
     }
 
-    private void checkDataSourceAlive(final DBPDataSourceContainer dataSourceDescriptor, long lastUserActivityTime) {
+    private void checkDataSourceAlive(final DBPDataSourceContainer dataSourceDescriptor) {
         if (!dataSourceDescriptor.isConnected()) {
             return;
         }
@@ -202,7 +223,7 @@ public class DataSourceMonitorJob extends AbstractJob {
 
         // End idle connections
         if (getDisconnectTimeoutSeconds(dataSourceDescriptor) > 0) {
-            if (endIdleConnection(dataSourceDescriptor, lastUserActivityTime)) {
+            if (endIdleConnection(dataSourceDescriptor)) {
                 return;
             }
         }
@@ -258,33 +279,74 @@ public class DataSourceMonitorJob extends AbstractJob {
         }
     }
 
-    private boolean endIdleConnection(DBPDataSourceContainer dsDescriptor, long lastUserActivityTime) {
-        if (!dsDescriptor.isConnected()) {
+    private boolean endIdleConnection(@NotNull DBPDataSourceContainer container) {
+        final long timeoutSeconds = getDisconnectTimeoutSeconds(container);
+        // A connect or disconnect job of the connection is scheduled or running
+        if (DisconnectJob.isInProcess(container) || Job.getJobManager().find(container).length > 0
+            || !isIdleConnection(container, timeoutSeconds)) {
             return false;
         }
+        DisconnectJob disconnectJob = new DisconnectJob(container) {
+            @Override
+            protected IStatus updateDataSource(DBRProgressMonitor monitor) {
+                // Checked again: a statement or a transaction may have started since the check
+                if (!isIdleConnection(container, timeoutSeconds)) {
+                    return Status.OK_STATUS;
+                }
+                log.debug("Close idle connection '" + container.getName() + "'");
+                IStatus result = super.updateDataSource(monitor);
+                if (!container.isConnected()) {
+                    showNotification(container, timeoutSeconds);
+                }
+                return result;
+            }
+        };
+        disconnectJob.schedule();
+        return true;
+    }
 
-        if (lastUserActivityTime < 0) {
+    /**
+     * The connection was not used for longer than the timeout, and nothing would be lost by closing it.
+     * <ul>
+     *     <li>Last use: the latest of its connection time and of the last use of each of its sessions as the query manager saw
+     *     it ({@link QMUtils#getLastUseTime}: statements of any purpose, commit, rollback), and of the sessions the query
+     *     manager does not see ({@link DBServiceUnrecordedSessions}, the AI agent). The keep-alive ping is not a use.</li>
+     *     <li>Never idle while a session has an open transaction: closing the JDBC connection would roll it back without
+     *     asking. {@link IdleTransactionMonitor} reminds about it (or rolls it back when the user turned that on), after
+     *     which the idle time starts again from the commit or rollback.</li>
+     *     <li>Never idle while a statement or a task (SQL editor execution, data editing) works on it.</li>
+     * </ul>
+     */
+    private static boolean isIdleConnection(@NotNull DBPDataSourceContainer container, long timeoutSeconds) {
+        DBPDataSource dataSource = container.getDataSource();
+        Date connectTime = container.getConnectTime();
+        if (timeoutSeconds <= 0 || dataSource == null || connectTime == null) {
             return false;
         }
-
-        final long idleInterval = (System.currentTimeMillis() - lastUserActivityTime) / 1000;
-        final long disconnectTimeoutSeconds = getDisconnectTimeoutSeconds(dsDescriptor);
-
-        DBPDataSource dataSource = dsDescriptor.getDataSource();
-
-        if (dataSource != null && disconnectTimeoutSeconds > 0 && idleInterval > disconnectTimeoutSeconds) {
-            if (DisconnectJob.isInProcess(dsDescriptor)) {
+        long lastUse = connectTime.getTime();
+        for (DBSInstance instance : dataSource.getAvailableInstances()) {
+            for (DBCExecutionContext context : instance.getAllContexts()) {
+                QMTransactionState transaction = QMUtils.getTransactionState(context);
+                if (transaction.isOpen() || transaction.isExecuting() || QMUtils.isTransactionActive(context)
+                    || Job.getJobManager().find(context).length > 0) {
+                    return false;
+                }
+                lastUse = Math.max(lastUse, QMUtils.getLastUseTime(context));
+            }
+        }
+        for (DBPDataSourceTask task : container.getTasks()) {
+            if (task.isActiveTask()) {
                 return false;
             }
-            // Kill idle connection
-            DisconnectJob disconnectJob = new DisconnectJob(dsDescriptor);
-            disconnectJob.schedule();
-
-            showNotification(dataSource);
-            return true;
         }
-
-        return false;
+        DBServiceUnrecordedSessions unrecorded = DBWorkbench.findService(DBServiceUnrecordedSessions.class);
+        if (unrecorded != null) {
+            if (unrecorded.isConnectionInUse(container)) {
+                return false;
+            }
+            lastUse = Math.max(lastUse, unrecorded.getLastUseTime(container));
+        }
+        return System.currentTimeMillis() - lastUse > timeoutSeconds * 1000;
     }
 
     public void scheduleMonitor() {
@@ -307,24 +369,14 @@ public class DataSourceMonitorJob extends AbstractJob {
         return 0;
     }
 
-    public static long getLastUserActivityTime() {
-        return getLastUserActivityTime(-1);
-    }
-
-    public static long getLastUserActivityTime(long lastUserActivityTime) {
-        long lat = DBWorkbench.getPlatform().getApplication().getLastUserActivityTime();
-        if (lat <= 0) {
-            return lastUserActivityTime;
-        }
-        return lat;
-    }
-
-    protected void showNotification(@NotNull DBPDataSource dataSource) {
+    private static void showNotification(@NotNull DBPDataSourceContainer container, long timeoutSeconds) {
         ChromiteNotifications.showNotification(
-            dataSource,
             ChromiteNotifications.NT_DISCONNECT_IDLE,
-            "Connection '" + dataSource.getContainer().getName() + "' has been closed after long idle period",
-            DBPMessageType.ERROR
+            container.getName(),
+            NLS.bind(ModelMessages.model_connection_idle_closed,
+                DurationFormatter.format(Duration.ofSeconds(timeoutSeconds), DurationFormat.LONG)),
+            DBPMessageType.WARNING,
+            null
         );
     }
 }

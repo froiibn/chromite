@@ -196,6 +196,7 @@ import java.util.function.Supplier;
  * - 2026-11-07 File 메뉴에 Import Connections… / Export Connections… ({@link ConnectionTransferCommands}, docs/chromite/connection-transfer.md)
  * - 2026-11-07 프로시저 디버거: Query &gt; Debug…(Modify 창의 루틴), 도구 문서의 닫기 전 확인({@link ToolDocument#confirmClose})을
  *   탭 닫기와 끝내기 전에 부름 (docs/chromite/procedure-debugger.md)
+ * - 2026-11-07 Query Library 쿼리 창의 Save As는 확장의 {@link SqlEditorExtension#saveAs}(SQL을 평범한 .sql로 내보냄) (docs/chromite/swing-query-library.md "공유")
  */
 final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplorerPanel.QueryWindows, TableDesignerPanel.Host, QueryLibraryPanel.Host {
 
@@ -1011,9 +1012,9 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
      * @return false if it was not saved (canceled or failed)
      */
     private boolean saveEditor(@NotNull SqlEditorPanel editor, boolean saveAs) {
-        // A Query Library query is saved to the library (with its header), also for Save As
+        // A Query Library query is saved to the library (with its header); Save As exports its SQL as a plain file
         if (editor.getExtension() != null) {
-            return editor.getExtension().save(editor);
+            return saveAs ? editor.getExtension().saveAs(editor) : editor.getExtension().save(editor);
         }
         Path file = editor.getFile();
         if (saveAs || file == null) {

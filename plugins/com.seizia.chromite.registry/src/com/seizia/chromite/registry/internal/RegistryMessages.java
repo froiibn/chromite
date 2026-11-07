@@ -23,6 +23,7 @@ import org.eclipse.osgi.util.NLS;
  * 변경 이력:
  * - 2026-11-06 드라이버 오프라인 모드 안내 문구(driver_offline_*) 추가, 한국어 번역 파일(_ko) 신설
  * - 2026-11-07 SWT 프런트엔드 삭제로 쓰는 곳이 없어진 문구 삭제(docs/chromite/swt-removal.md)
+ * - 2026-11-07 오프라인 드라이버 설치 묶음 문구(driver_bundle_*) 추가(docs/chromite/driver-offline-bundle.md)
  */
 public class RegistryMessages extends NLS {
     public static final String BUNDLE_NAME = "com.seizia.chromite.registry.internal.RegistryMessages"; //$NON-NLS-1$
@@ -60,6 +61,29 @@ public class RegistryMessages extends NLS {
 
     public static String driver_offline_files_missing;
     public static String driver_offline_download_blocked;
+
+    public static String driver_bundle_invalid;
+    public static String driver_bundle_invalid_zip;
+    public static String driver_bundle_invalid_manifest;
+    public static String driver_bundle_invalid_version;
+    public static String driver_bundle_invalid_files;
+    public static String driver_bundle_unsafe_entry;
+    public static String driver_bundle_too_large;
+    public static String driver_bundle_checksum_mismatch;
+    public static String driver_bundle_target_unsafe;
+    public static String driver_bundle_task_create;
+    public static String driver_bundle_task_resolve;
+    public static String driver_bundle_task_download;
+    public static String driver_bundle_task_write;
+    public static String driver_bundle_task_verify;
+    public static String driver_bundle_task_compare;
+    public static String driver_bundle_task_install;
+    public static String driver_bundle_resolve_failed;
+    public static String driver_bundle_download_failed;
+    public static String driver_bundle_skipped_file;
+    public static String driver_bundle_outside_folder;
+    public static String driver_bundle_write_failed;
+    public static String driver_bundle_install_failed;
 
     static {
         // initialize resource bundle

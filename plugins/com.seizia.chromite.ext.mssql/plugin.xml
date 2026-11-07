@@ -190,7 +190,7 @@
                     </folder>
                 </items>
                 <folder label="%tree.administer.node.name" icon="#folder_admin" id="folderAdmin"
-                        description="tree.administer.node.description">
+                        description="%tree.administer.node.tip">
                     <treeContribution category="connectionEditor"/>
                 </folder>
             </tree>
@@ -226,9 +226,9 @@
                     <file type="license" path="drivers/mssql/new/LICENSE.txt" bundle="drivers.mssql.new"/>
 
                     <provider-properties>
-                        <propertyGroup label="Advanced">
-                            <property id="@chromite-show-all-schemas@" label="Show all schemas" type="boolean" description="Shows all database schemas. If disabled shows only non-empty schemas."/>
-                            <property id="sslTrustServerCertificate" label="Trust Server Certificate" type="boolean" description="Trust Server Certificate"/>
+                        <propertyGroup label="%provider.group.advanced.label">
+                            <property id="@chromite-show-all-schemas@" label="%provider.property.show_all_schemas.label" type="boolean" description="%provider.property.show_all_schemas.description"/>
+                            <property id="sslTrustServerCertificate" label="%provider.property.trust_server_certificate.label" type="boolean" description="%provider.property.trust_server_certificate.label"/>
                         </propertyGroup>
                     </provider-properties>
                 </driver>
@@ -640,8 +640,8 @@
     <extension point="com.seizia.chromite.dataSourceAuth">
         <authModel
                 id="sqlserver_database"
-                label="SQL Server Authentication"
-                description="SQL Server password based authentication"
+                label="%auth.sqlserver_database.label"
+                description="%auth.sqlserver_database.description"
                 class="com.seizia.chromite.ext.mssql.auth.SQLServerAuthModelDatabase"
                 default="true">
             <datasource id="sqlserver"/>
@@ -650,52 +650,52 @@
         <authModel
                 id="sqlserver_windows"
                 desktop="true"
-                label="Windows Authentication"
-                description="Windows integrated authentication"
+                label="%auth.sqlserver_windows.label"
+                description="%auth.sqlserver_windows.description"
                 class="com.seizia.chromite.ext.mssql.auth.SQLServerAuthModelWindows">
             <datasource id="sqlserver"/>
         </authModel>
         <authModel
                 id="sqlserver_ntlm"
-                label="NTLM"
-                description="NTLM authentication"
+                label="%auth.sqlserver_ntlm.label"
+                description="%auth.sqlserver_ntlm.description"
                 class="com.seizia.chromite.ext.mssql.auth.SQLServerAuthModelNTLM">
             <datasource id="sqlserver" if="object.getDriverParameter('jtds') == null"/>
         </authModel>
         <authModel
                 id="sqlserver_ad_password"
-                label="Active Directory - Password"
-                description="Active Directory password based authentication"
+                label="%auth.sqlserver_ad_password.label"
+                description="%auth.sqlserver_ad_password.description"
                 class="com.seizia.chromite.ext.mssql.auth.SQLServerAuthModelADPassword">
             <datasource id="sqlserver" if="object.getDriverParameter('jtds') == null"/>
         </authModel>
         <authModel
                 id="sqlserver_msi"
-                label="Active Directory - MSI"
-                description="Active Directory MSI based authentication"
+                label="%auth.sqlserver_msi.label"
+                description="%auth.sqlserver_msi.description"
                 class="com.seizia.chromite.ext.mssql.auth.SQLServerAuthModelMSI">
             <datasource id="sqlserver" if="object.getDriverParameter('jtds') == null"/>
         </authModel>
         <authModel
                 id="sqlserver_mfa"
                 desktop="true"
-                label="Active Directory - MFA"
-                description="Interactive authentication flow (multi-factor authentication)"
+                label="%auth.sqlserver_mfa.label"
+                description="%auth.sqlserver_mfa.description"
                 class="com.seizia.chromite.ext.mssql.auth.SQLServerAuthModelMFA">
             <datasource id="sqlserver" if="object.getDriverParameter('jtds') == null"/>
         </authModel>
         <authModel
                 id="sqlserver_ad_integrated"
                 desktop="true"
-                label="Active Directory - Integrated"
-                description="Active Directory integrated authentication"
+                label="%auth.sqlserver_ad_integrated.label"
+                description="%auth.sqlserver_ad_integrated.description"
                 class="com.seizia.chromite.ext.mssql.auth.SQLServerAuthModelADIntegrated">
             <datasource id="sqlserver" if="object.getDriverParameter('jtds') == null"/>
         </authModel>
         <authModel
                 id="sqlserver_custom"
-                label="Custom"
-                description="Custom authentication schema"
+                label="%auth.sqlserver_custom.label"
+                description="%auth.sqlserver_custom.description"
                 class="com.seizia.chromite.ext.mssql.auth.SQLServerAuthModelCustom">
             <datasource id="sqlserver"/>
         </authModel>

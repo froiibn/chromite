@@ -100,6 +100,8 @@ import java.util.Set;
  * - 2026-11-07 {@link #focusAutoCommit()}: 쿼리 상태 줄의 커밋 방식 칸에서 이 설정으로 안내 (docs/chromite/swing-frontend.md "자동 커밋 상태")
  * - 2026-11-07 유휴 트랜잭션 알림(분, 기본값은 연결 종류)과 "묻지 않고 자동으로 롤백"(기본 꺼짐, 켜면 경고 문구). 연결 종류를 바꾸면
  *   알림 값만 그 종류의 기본값으로 바꾸고, 자동 롤백은 사용자가 이 연결에서 직접 켤 때만 켜진다 (docs/chromite/idle-transactions.md)
+ * - 2026-11-07 유휴 연결 닫기 도구 설명: 유휴 시간을 무엇부터 재는지, 열린 트랜잭션이 있으면 닫지 않음
+ *   (docs/chromite/idle-transactions.md "유휴 연결 닫기")
  */
 final class ConnectionSettingsPanel extends JPanel {
 
@@ -666,6 +668,8 @@ final class ConnectionSettingsPanel extends JPanel {
             updateColorButton();
         });
         closeIdleCheck.addActionListener(e -> closeIdleSpinner.setEnabled(closeIdleCheck.isSelected()));
+        closeIdleCheck.setToolTipText(ConnectionMessages.settings_close_idle_tip);
+        closeIdleSpinner.setToolTipText(ConnectionMessages.settings_close_idle_tip);
         idleTxnRemindCheck.addActionListener(e -> updateIdleTransactionFields());
         idleTxnRollbackCheck.addActionListener(e -> updateIdleTransactionFields());
         idleTxnRemindCheck.setToolTipText(ConnectionMessages.settings_idle_txn_remind_tip);

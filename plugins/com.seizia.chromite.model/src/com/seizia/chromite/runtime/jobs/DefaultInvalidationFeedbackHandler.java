@@ -17,15 +17,21 @@
  */
 package com.seizia.chromite.runtime.jobs;
 
+import org.eclipse.osgi.util.NLS;
 import org.jkiss.code.NotNull;
 import com.seizia.chromite.model.DBPDataSourceContainer;
 import com.seizia.chromite.model.DBPMessageType;
+import com.seizia.chromite.model.messages.ModelMessages;
 import com.seizia.chromite.runtime.DBWorkbench;
 import com.seizia.chromite.runtime.ChromiteNotifications;
 
 import java.util.Collection;
 import java.util.Set;
 
+/**
+ * 변경 이력:
+ * - 2026-11-07 알림 문구를 ModelMessages로 옮김(docs/chromite/swing-l10n.md "남은 한국어 문구 정리")
+ */
 public class DefaultInvalidationFeedbackHandler implements InvalidateJob.InvalidationFeedbackHandler {
     @Override
     public boolean confirmInvalidate(@NotNull Set<DBPDataSourceContainer> containersToInvalidate) {
@@ -40,7 +46,7 @@ public class DefaultInvalidationFeedbackHandler implements InvalidateJob.Invalid
         ChromiteNotifications.showNotification(
             container.getDataSource(),
             ChromiteNotifications.NT_RECONNECT_SUCCESS,
-            "Datasource was invalidated\n\nLive connection count: " + InvalidateJob.getSucceededCount(results) + "/" + results.size(),
+            NLS.bind(ModelMessages.runtime_invalidate_success, InvalidateJob.getSucceededCount(results), results.size()),
             DBPMessageType.INFORMATION
         );
     }
@@ -53,7 +59,7 @@ public class DefaultInvalidationFeedbackHandler implements InvalidateJob.Invalid
         ChromiteNotifications.showNotification(
             container.getDataSource(),
             ChromiteNotifications.NT_RECONNECT_FAILURE,
-            "Datasource invalidate failed",
+            ModelMessages.runtime_invalidate_failure,
             DBPMessageType.ERROR,
             () -> onNotificationFeedback(container)
         );
