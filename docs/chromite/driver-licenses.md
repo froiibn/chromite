@@ -1,13 +1,17 @@
 # JDBC 드라이버 라이선스 목록
 
 > 이 문서는 어떤 드라이버를 설치 파일에 넣을지 정하기 위한 엔지니어링 조사 결과다. **법률 자문이 아니다.**
-> 공개판을 배포하기 전에 라이선스 고지 방식과 함께 법률 검토를 받는다.
+> 배포하기 전에 라이선스 고지 방식과 함께 법률 검토를 받는다.
 
 ## 목적
 
-[drivers.md](drivers.md)의 공개판·내부판 구성을 정하려면 드라이버마다 재배포가 가능한지 알아야 한다.
+[drivers.md](drivers.md)의 내장 드라이버를 정하려면 드라이버마다 재배포가 가능한지 알아야 한다.
 이 문서는 `plugin.xml`이 참조하는 모든 JDBC 드라이버 파일의 버전, 라이선스, 출처, 크기를 정리하고
-공개판 내장 가능 여부를 분류한다.
+내장 가능 여부를 분류한다.
+
+- **배포판(2026-11-07 결정):** Chromite는 배포판이 하나다. 주요 DB(SQL Server, Oracle, PostgreSQL, MariaDB, MySQL, SQLite)만 내장하고
+  나머지는 필요할 때 내려받는다. 폐쇄망에는 별도 오프라인 설치 경로를 둔다(계획). 이전 결정(2026-11-06)은 공개판·내부판 두 판이었고,
+  아래 분류 표의 마지막 열은 그때의 내부판 기준이다. 내부판은 만들지 않으므로 B·C 분류는 어느 경우에도 내장하지 않는다.
 
 ## 조사 방법 (2026-11-06)
 
@@ -30,7 +34,7 @@
 
 ## 분류 기준
 
-| 분류 | 의미 | 공개판 | 내부판 |
+| 분류 | 의미 | 내장 | (참고) 이전 내부판 기준 |
 |---|---|---|---|
 | A | OSI 승인 오픈소스 라이선스(Apache, MIT, BSD, MPL, EPL, LGPL 등) | 내장 가능. 라이선스 원문 동봉, LGPL은 jar 수정 없이 별도 파일로 두고 소스 위치 안내 | 내장 |
 | A (GPL 조건) | GPLv2 + 예외 조항. OSI 라이선스로 전체 소스를 공개하는 앱과의 결합을 예외로 허용 | 내장 가능. jar 자체의 GPL 의무(원문 동봉, 대응 소스 제공)는 남는다 | 내장 |
@@ -38,13 +42,13 @@
 | B | 재배포는 허용되나 최종 사용자 약관 전가·면책 같은 조건이 붙어 Apache-2.0 공개 배포와 맞지 않음, 또는 약관을 확인하지 못함 | 내장하지 않음(온라인 다운로드) | 내장 가능. 단 고객사 장비에 설치해 넘기면 재배포에 해당하므로 그 경우 조건 확인 |
 | C | 재배포 금지, 서면 동의 필요, 클릭 동의 약관 | 내장하지 않음 | 내장하지 않음. 사용자(또는 고객사)가 자기 라이선스로 받은 jar를 지정 |
 
-## 공개판 4종
+## 주요 DB 드라이버(처음 내장한 4종)
 
 | 드라이버 | 버전 | 라이선스 | 출처 | 크기(MB) | 분류 | 비고 |
 |---|---|---|---|---|---|---|
 | SQL Server (`microsoft`, `babelfish`) | `mssql-jdbc` 13.4.0.jre11 | MIT | [repo1.maven.org](https://repo1.maven.org/maven2/com/microsoft/sqlserver/mssql-jdbc/13.4.0.jre11/mssql-jdbc-13.4.0.jre11.pom) | 1.5 | A | 최신 14.1.0.jre11-preview. 의존성 없음 |
 | Azure SQL (`azure`) 추가분 | `msal4j` 1.16.0 | MIT (의존성 Apache-2.0·MIT·BSD-3) | [repo1.maven.org](https://repo1.maven.org/maven2/com/microsoft/azure/msal4j/1.16.0/msal4j-1.16.0.pom) | 4.3 | A | Entra ID 인증용. 의존 jar 13개 |
-| SQL Server Windows 통합 인증 DLL | `mssql-jdbc_auth` 13.4.0.x64 | Microsoft Software License Terms | [raw.githubusercontent.com](https://raw.githubusercontent.com/microsoft/mssql-jdbc/v13.4.0/mssql-jdbc_auth_LICENSE) | 0.1 | B | 재배포는 허용되나 최종 사용자에게 Microsoft를 같은 수준으로 보호하는 약관 동의, 면책(indemnify) 의무. 공개판 제외 권장 |
+| SQL Server Windows 통합 인증 DLL | `mssql-jdbc_auth` 13.4.0.x64 | Microsoft Software License Terms | [raw.githubusercontent.com](https://raw.githubusercontent.com/microsoft/mssql-jdbc/v13.4.0/mssql-jdbc_auth_LICENSE) | 0.1 | B | 재배포는 허용되나 최종 사용자에게 Microsoft를 같은 수준으로 보호하는 약관 동의, 면책(indemnify) 의무. 내장하지 않음 |
 | Oracle (`oracle_thin`) | `ojdbc11` 23.2.0.0<br>`orai18n` 23.2.0.0<br>`xdb6` 18.3.0.0<br>`xmlparserv2` 23.2.0.0 | Oracle Free Use Terms and Conditions (FUTC) | [www.oracle.com](https://www.oracle.com/downloads/licenses/oracle-free-license.html) | 12.7 | A* | 최신 23.26.4.0.0. `xdb6` 18.3.0.0이 `xmlparserv2` 18.3.0.0(1.9MB)을 끌어와 23.2.0.0과 중복된다(크기에 포함) |
 | PostgreSQL (`postgres-jdbc`) | `postgresql` 42.7.14<br>`postgis-jdbc` 2.5.0<br>`postgis-geometry` 2.5.0<br>`waffle-jna` 3.5.1 | BSD-2-Clause (pgjdbc), LGPL-2.1 (postgis, 선택), MIT (waffle, 선택) | [repo1.maven.org](https://repo1.maven.org/maven2/org/postgresql/postgresql/42.7.14/postgresql-42.7.14.pom) | 6.2 | A | pgjdbc 본체+checker-qual(MIT)은 1.5MB. waffle-jna는 SSPI(`gsslib=sspi`)일 때만 쓰며 JNA(LGPL-2.1+ 또는 Apache-2.0 선택)를 포함 |
 | MariaDB (`mariaDB`) | `mariadb-java-client` 3.5.10 | LGPL-2.1-or-later | [repo1.maven.org](https://repo1.maven.org/maven2/org/mariadb/jdbc/mariadb-java-client/3.5.10/mariadb-java-client-3.5.10.pom) | 0.8 | A | 최신 4.0.0. 의존성 없음 |
@@ -54,7 +58,7 @@
 - **SQL Server:** `mssql-jdbc`와 `msal4j`는 MIT라 고지만 하면 된다.
   Windows 통합 인증용 `mssql-jdbc_auth` DLL은 Microsoft 독점 약관이다. REDIST 목록상 재배포 대상이지만
   배포자가 최종 사용자에게 Microsoft를 같은 수준으로 보호하는 약관에 동의를 받고 Microsoft를 면책해야 한다.
-  Apache-2.0만으로 배포하는 공개판과 맞지 않으므로 **공개판에는 넣지 않는다**(묶음의 `drivers/mssql/new/auth/x64`도 비운다,
+  Apache-2.0으로 배포하는 Chromite와 맞지 않으므로 **넣지 않는다**(묶음의 `drivers/mssql/new/auth/x64`도 비운다,
   [mssql/plugin.xml:201](../../plugins/com.seizia.chromite.ext.mssql/plugin.xml:201)).
   DLL 없이도 `authenticationScheme=JavaKerberos`, `NTLM` 같은 순수 Java 인증은 쓸 수 있다.
 - **Oracle:** FUTC는 오픈소스 라이선스가 아니지만 "수정하지 않은 프로그램의 재배포"를 허용한다. 조건은
@@ -70,9 +74,10 @@
 
 | 구성 | 크기 |
 |---|---|
-| 4종 전체(Azure용 msal4j, PostGIS, waffle 포함, Oracle 중복 제외) | 약 23.7MB |
+| 처음 4종 전체(Azure용 msal4j, PostGIS, waffle 포함, Oracle 중복 제외) | 약 23.7MB |
 | 최소 구성(SQL Server jar, Oracle 4종, pgjdbc, MariaDB) | 약 14.7MB |
-| MySQL Connector/J 9.x 추가 시 | +약 4.5MB (protobuf-java 포함 조사값. 실제 공개판은 protobuf-java를 빼고 9.7.0 jar 2.6MB만 넣음) |
+| MySQL Connector/J 9.x 추가 시 | +약 4.5MB (protobuf-java 포함 조사값. 실제로는 protobuf-java를 빼고 9.7.0 jar 2.6MB만 넣음) |
+| SQLite(Xerial) 추가 시 | +12.1MB(jar 12,132,578 bytes, 의존성 없음) |
 
 ## MySQL Connector/J
 
@@ -88,18 +93,18 @@
 - **Universal FOSS Exception의 내용:** OSI 승인 또는 FSF 자유 라이선스로 **전체 대응 소스와 함께** 배포하는 소프트웨어("Other FOSS")는
   Connector/J와 정적·동적으로 결합해 배포해도 Other FOSS 쪽 라이선스를 바꿀 필요가 없다(예외 iii항).
   Connector/J 자체는 계속 GPLv2다.
-- **공개판에 넣을 수 있다(조건부).** Chromite 공개판은 Apache-2.0으로 전체 소스를 공개하므로 Other FOSS에 해당한다. 남는 의무는 다음과 같다.
+- **내장할 수 있다(조건부).** Chromite는 Apache-2.0으로 전체 소스를 공개하므로 Other FOSS에 해당한다. 남는 의무는 다음과 같다.
   - Connector/J jar를 수정하지 않는다.
   - GPLv2 원문과 Universal FOSS Exception 원문(Connector/J `LICENSE` 파일)을 동봉한다.
   - GPLv2 3항에 따라 Connector/J 대응 소스를 함께 제공하거나 3년간 유효한 서면 제공 약속을 동봉한다.
 - **주의:**
   - 예외는 Other FOSS와 함께 배포할 때만 적용된다. 누군가 Chromite를 소스 비공개로 개조해 재배포하면 그쪽에서는 Connector/J를 빼야 한다.
-    Apache-2.0은 이런 재배포를 허용하므로 공개판 고지에 이 점을 적는다.
-  - 내부판에 비공개 코드가 들어가고 그 내부판을 고객사에 넘기면 Other FOSS 조건을 다시 확인해야 한다.
+    Apache-2.0은 이런 재배포를 허용하므로 Chromite 고지(`NOTICE`)에 이 점을 적는다.
+  - 비공개 코드를 넣은 Chromite를 고객사에 넘기면 Other FOSS 조건을 다시 확인해야 한다.
   - Connector/J 5.1.49(`mysql-connector-java`)는 예전 "MySQL FOSS License Exception"이 적용되며 2020년 이후 갱신이 없어 내장하지 않는다.
   - 지금 MySQL 드라이버는 8.2.0으로 고정돼 있다. 내장한다면 9.x(최신 9.7.0) 또는 26.x로 올린다.
-- **결론:** drivers.md의 "보류"는 "공개판 내장 가능(조건부)"로 바뀐다.
-- **결정 (2026-11-06, 사용자):** 공개판에 MySQL Connector/J를 내장한다. 구현은 [drivers.md](drivers.md)의 "구현" 참고.
+- **결론:** drivers.md의 "보류"는 "내장 가능(조건부)"로 바뀐다.
+- **결정 (2026-11-06, 사용자):** MySQL Connector/J를 내장한다. 구현은 [drivers.md](drivers.md)의 "구현" 참고.
   - 넣은 것: `mysql-connector-j` 9.7.0 jar 하나(Maven Central 원본, SHA-1 `4e6e3e8765e4a9d0609744b3e8fe75afe1b98cba`
     = Maven Central `.sha1`, SHA-256 `0353648eaa1c91e0f4020c959abf756bc866ffd583df22ae6b6f6e0cbd43eb44`).
     Oracle 소스 배포본(`mysql-connector-j-9.7.0.tar.gz`) 안의 jar와 SHA-256이 같다.
@@ -110,7 +115,7 @@
   - 남은 것: GPLv2 3항을 문자 그대로 따르려면 소스를 설치 파일과 같은 곳에 함께 두거나 서면 제공 약속을 넣어야 한다.
     지금은 Oracle이 공개한 위치만 안내한다(법률 검토 항목, [drivers.md](drivers.md) "미완료 항목").
   - `mysql-connector-java` 5.1.49(MySQL 5 (Legacy))는 위 방침대로 내장하지 않는다. 묶음 ID를 `drivers.mysql5`로 분리해
-    공개판에서도 Maven 다운로드가 그대로 동작한다.
+    Maven 다운로드가 그대로 동작한다.
 
 ## 전체 목록
 
@@ -132,7 +137,7 @@
 | ClickHouse | `clickhouse-jdbc` 0.10.0<br>`httpclient5` 5.4.4 | Apache-2.0 | [repo1.maven.org](https://repo1.maven.org/maven2/com/clickhouse/clickhouse-jdbc/0.10.0/clickhouse-jdbc-0.10.0.pom) | 12.0 | A | `load-optional-dependencies`라 실제로는 더 받을 수 있다 |
 | ClickHouse (Legacy) | `clickhouse-jdbc` 0.3.2 | Apache-2.0 | [repo1.maven.org](https://repo1.maven.org/maven2/ru/yandex/clickhouse/clickhouse-jdbc/0.3.2/clickhouse-jdbc-0.3.2.pom) | 3.4 | A |  |
 | DuckDB, MotherDuck | `duckdb_jdbc` 2.0.0.1 (RELEASE)<br>`duckdb_jdbc:windows_arm64` 2.0.0.1 (RELEASE) | MIT | [repo1.maven.org](https://repo1.maven.org/maven2/org/duckdb/duckdb_jdbc/2.0.0.1/duckdb_jdbc-2.0.0.1.pom) | 95.2 | A | 기본 jar에 전 플랫폼 네이티브 라이브러리 포함(80MB) + Windows ARM64 전용 jar(15MB) |
-| SQLite (Xerial) | `sqlite-jdbc` 3.54.1.0 (RELEASE) | Apache-2.0 | [repo1.maven.org](https://repo1.maven.org/maven2/org/xerial/sqlite-jdbc/3.54.1.0/sqlite-jdbc-3.54.1.0.pom) | 12.1 | A | 네이티브 SQLite(Public Domain) 포함 |
+| SQLite (Xerial) | `sqlite-jdbc` 3.54.1.0 (RELEASE) | Apache-2.0 | [repo1.maven.org](https://repo1.maven.org/maven2/org/xerial/sqlite-jdbc/3.54.1.0/sqlite-jdbc-3.54.1.0.pom) | 12.1 | A | 네이티브 SQLite(Public Domain) 포함. **2026-11-07 내장**(사용자 결정, 3.54.1.0 고정, [drivers.md](drivers.md)) |
 | LibSQL | `com.dbeaver.jdbc.driver.libsql` 1.0.8 (RELEASE) | Apache-2.0 | [repo1.maven.org](https://repo1.maven.org/maven2/com/dbeaver/jdbc/com.dbeaver.jdbc.driver.libsql/1.0.8/com.dbeaver.jdbc.driver.libsql-1.0.8.pom) | 0.0 | A | DBeaver 사 배포 |
 | H2 Embedded / Server | `h2` 2.4.240 | MPL-2.0 또는 EPL-1.0 | [repo1.maven.org](https://repo1.maven.org/maven2/com/h2database/h2/2.4.240/h2-2.4.240.pom) | 2.7 | A | 1.4.199(2.2MB), 2.1.210(2.5MB) 정의도 같은 라이선스. 최신 2.5.252 |
 | H2GIS | `h2gis` 2.2.5 (RELEASE) | LGPL-3.0+ (의존성 EPL-2.0/EDL, ISC 등) | [repo1.maven.org](https://repo1.maven.org/maven2/org/orbisgis/h2gis/2.2.5/h2gis-2.2.5.pom) | 13.1 | A |  |
@@ -185,7 +190,7 @@
 
 ### A*: 재배포를 허용하는 벤더 약관
 
-Oracle은 위 공개판 표에 있다.
+Oracle은 위 주요 DB 표에 있다.
 
 | 드라이버 | 버전 | 라이선스 | 출처 | 크기(MB) | 분류 | 비고 |
 |---|---|---|---|---|---|---|
@@ -193,7 +198,7 @@ Oracle은 위 공개판 표에 있다.
 | Exasol | `exasol-jdbc` 25.2.3 | EXAClient License | [repo1.maven.org](https://repo1.maven.org/maven2/com/exasol/exasol-jdbc/25.2.3/exasol-jdbc-25.2.3-license.txt) | 10.7 | A* | 2.2항: 다른 소프트웨어의 일부로 무상 재배포 허용. 최신 26.2.10 |
 | Elasticsearch | `x-pack-sql-jdbc` 8.17.1 | Elastic License 2.0 | [raw.githubusercontent.com](https://raw.githubusercontent.com/elastic/elasticsearch/v8.17.1/licenses/ELASTIC-LICENSE-2.0.txt) | 0.8 | A* | 재배포 허용(라이선스 고지 유지, 관리형 서비스 제공·라이선스 키 우회 금지). 서버 쪽 JDBC 기능은 Elastic 유료 구독 필요 |
 
-### B: 내부판만 내장
+### B: 내장하지 않음(이전 결정에서는 내부판만 내장)
 
 | 드라이버 | 버전 | 라이선스 | 출처 | 크기(MB) | 분류 | 비고 |
 |---|---|---|---|---|---|---|
@@ -257,8 +262,9 @@ Oracle은 위 공개판 표에 있다.
 
 | 구성 | 파일 수 | 크기 |
 |---|---|---|
-| 공개판 4종 | 31 | 약 23.7MB |
-| 공개판 5종 실제 배포(MySQL 포함, 2026-11-06 빌드의 `drivers/`, 라이선스·안내 텍스트 포함) | 37 | 21,608,448 bytes |
+| 처음 4종 | 31 | 약 23.7MB |
+| 5종 실제 배포(MySQL 포함, 2026-11-06 빌드의 `drivers/`, 라이선스·안내 텍스트 포함) | 37 | 21,608,448 bytes |
+| 6종 실제 배포(SQLite 포함, 2026-11-07 빌드의 `drivers/`, 라이선스·안내 텍스트 포함) | 40 | 33,754,109 bytes |
 | 전체(Maven 고유 아티팩트 + URL·`repo:/` 파일) | 944 + 15 | 약 1,725MB (Maven 1,487MB + URL 238MB) |
 
 큰 드라이버는 다음과 같다(드라이버별 의존성 포함 크기라 서로 겹치는 jar가 있다).
@@ -277,15 +283,18 @@ Oracle은 위 공개판 표에 있다.
 | Salesforce Data 360 | 50.2 |
 
 - 같은 아티팩트의 다른 버전(예: H2 3종, Connector/J 3종)은 따로 센다. 같은 버전은 한 번만 센다.
-- 내부판에서 C 분류와 사용하지 않는 레거시 드라이버를 빼고, DuckDB처럼 전 플랫폼 네이티브를 담은 jar를 플랫폼별로 나누면 줄일 수 있다.
+- 전체 내장(이전 내부판 구상)은 2026-11-07 결정으로 하지 않는다. 위 전체 크기는 조사 기록으로 남긴다.
 
 ## 남은 확인 사항
 
 - B 분류 중 "확인 못함" 항목(Informix, Ingres, InterSystems, Machbase, Athena Legacy, Denodo, Dremio, GaussDB, SnappyData, `dans-dbf-lib`, Jennifer)의 약관 원문.
-- Dameng, Kingbase, YashanDB는 POM이 Apache-2.0을 선언하지만 소스가 공개돼 있지 않다. 내부판에 넣기 전 벤더 배포 페이지의 약관과 대조한다.
-- 공개판 라이선스 고지 형식(Apache-2.0이 아닌 구성 요소 목록, GPL·LGPL 소스 제공 방법)에 대한 법률 검토.
+- Dameng, Kingbase, YashanDB는 POM이 Apache-2.0을 선언하지만 소스가 공개돼 있지 않다. 내장하거나 폐쇄망 설치 묶음에 넣기 전 벤더 배포 페이지의 약관과 대조한다.
+- 내장 드라이버 라이선스 고지 형식(Apache-2.0이 아닌 구성 요소 목록, GPL·LGPL 소스 제공 방법)에 대한 법률 검토.
 
 ## 변경 이력
 
 - 2026-11-06 최초 작성. plugin.xml 전체 드라이버의 라이선스·버전·크기 조사, 공개판 4종 확인, MySQL Connector/J 재배포 조건 정리.
 - 2026-11-06 MySQL Connector/J 9.7.0 공개판 내장 결정과 의무 이행 내용 기록.
+- 2026-11-07 배포판을 하나로 정함(사용자 결정, 이전 결정 2026-11-06: 공개판·내부판). 주요 DB만 내장, 나머지는 필요할 때 다운로드,
+  폐쇄망은 별도 오프라인 설치 경로(계획). "공개판"을 단일 제품 기준으로 고치고 분류 표의 내부판 열은 참고로 남김. B·C 분류는 계속 내장하지 않음.
+  SQLite(Xerial `sqlite-jdbc` 3.54.1.0) 내장 기록.

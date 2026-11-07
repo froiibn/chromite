@@ -30,7 +30,7 @@ JDBC 드라이버를 설치 파일에 미리 넣는다.
   앱이 `com.seizia.chromite.product.bundles` 확장 포인트로 `drivers.oracle` 묶음을 선언하면 설치 폴더의 `drivers/oracle`을 쓰고,
   선언하지 않으면 Maven에서 받는다([ProductBundleRegistry](../../plugins/com.seizia.chromite.registry/src/com/seizia/chromite/registry/ProductBundleRegistry.java)).
   이런 대체 정의가 있는 묶음은 약 45개다(`drivers.mssql.new`, `drivers.oracle`, `drivers.postgresql`, `drivers.mariadb`, `drivers.mysql`, `drivers.db2` 등).
-  upstream 저장소에는 묶음 선언이 없다. Chromite 공개판은 5개를 선언한다(아래 "구현").
+  upstream 저장소에는 묶음 선언이 없다. Chromite는 6개를 선언한다(아래 "구현").
 - **폴더 경로 해석:** `drivers/oracle` 같은 상대 경로는 설치 폴더 기준으로 먼저 찾는다
   ([DriverLibraryLocal.detectLocalFile](../../plugins/com.seizia.chromite.registry/src/com/seizia/chromite/registry/driver/DriverLibraryLocal.java:175)).
   경로가 폴더이면 그 폴더 **바로 아래의** `.jar`·`.zip` 파일만 클래스패스에 넣는다(하위 폴더는 보지 않음,
@@ -41,27 +41,31 @@ JDBC 드라이버를 설치 파일에 미리 넣는다.
 
 ## 설계
 
-### 배포판 구성
+### 배포판 구성 (2026-11-07 결정)
 
-| 구분 | 공개판 | 내부판 |
-|---|---|---|
-| 내장 드라이버 | SQL Server, Oracle, PostgreSQL, MariaDB, MySQL | 전체 |
-| MySQL | Connector/J 9.7.0 포함(2026-11-06 결정). MySQL 5 (Legacy) 드라이버는 내장하지 않음 | Connector/J 포함 |
-| 그 밖의 드라이버 | 인터넷이 되면 Maven에서 온라인 다운로드. 폐쇄망에서는 jar 파일을 직접 지정 | 모두 내장, 원격 다운로드 끔 |
+Chromite는 **배포판이 하나다.** 내부판(전체 드라이버 내장)은 만들지 않는다.
+
+| 구분 | 내용 |
+|---|---|
+| 내장 드라이버 | 주요 DB만: SQL Server, Oracle, PostgreSQL, MariaDB, MySQL, SQLite |
+| MySQL | Connector/J 9.7.0 포함(2026-11-06 결정). MySQL 5 (Legacy) 드라이버는 내장하지 않음 |
+| 그 밖의 드라이버 | 필요할 때 내려받는다. 인터넷이 되면 처음 연결할 때 Maven에서 온라인 다운로드 |
+| 폐쇄망 | 별도로 받아 설치하는 오프라인 설치 경로를 둔다(계획, 설계 중). 그때까지는 jar 파일을 직접 지정한다 |
+
+- 이전 결정(2026-11-06)은 공개판(주요 DB만 내장)과 내부판(전체 내장, 원격 다운로드 끔)의 두 판이었다.
+  사용자 결정(2026-11-07)으로 내부판을 없앴다. 주요 DB만 내장하고, 나머지는 내부망이든 외부망이든 필요할 때 받아 쓴다.
+- 라이선스 분류([driver-licenses.md](driver-licenses.md))는 그대로 쓴다. B·C 분류는 내장하지 않는다.
 
 ### 내장 방법
 
-1. **드라이버 묶음이 있는 드라이버:** 배포판별 묶음 선언 파일에 해당 묶음 ID를 선언하고, 빌드할 때 `drivers/<이름>/` 폴더에 jar를 넣는다.
-2. **묶음이 없는 드라이버(내부판):** 빌드할 때 Maven 아티팩트와 의존 라이브러리를 받아 `<설치폴더>/maven-local`에 Maven 구조로 넣는다.
-   URL로 받는 zip은 `<설치폴더>/drivers/`에 넣는다.
-3. **판 구분:** 공개판과 내부판의 차이는 묶음 선언 목록과 포함할 폴더 목록뿐이다.
-   판마다 "묶음 선언 플러그인 + 그 폴더를 채우는 빌드 설정" 한 쌍을 두고, 제품이 어느 쌍을 포함할지로 판을 고른다(아래 "구현").
+1. **드라이버 묶음이 있는 드라이버:** 묶음 선언 플러그인에 해당 묶음 ID를 선언하고, 빌드할 때 `drivers/<이름>/` 폴더에 jar를 넣는다.
+2. **"묶음 선언 플러그인 + 그 폴더를 채우는 빌드 설정"을 한 feature로 묶는다.** 제품은 이 feature를 포함한다(아래 "구현").
 
 ### 오프라인 우선 조회
 
 - `MavenRegistry`에서 로컬 저장소(`maven-local`)를 **가장 먼저** 찾도록 바꾼다.
   지금처럼 원격을 먼저 시도하면 폐쇄망에서 시간 초과까지 기다리게 된다.
-- 원격 다운로드를 끄는 오프라인 설정을 추가한다. 내부판은 기본값을 켬, 공개판은 끔으로 한다.
+- 원격 다운로드를 끄는 오프라인 설정을 추가한다. 기본값은 끔이다.
 
 ### 버전 고정
 
@@ -74,14 +78,14 @@ JDBC 드라이버를 설치 파일에 미리 넣는다.
 - "드라이버 다운로드" 대화상자 대신 내장 드라이버 사용 여부와 파일 위치를 보여 준다.
 - 내장되지 않은 드라이버는 jar 파일을 직접 지정하는 화면을 제공한다.
 
-## 구현 (공개판, 2026-11-06)
+## 구현 (2026-11-06, SQLite 2026-11-07)
 
 ### 구조
 
 | 위치 | 역할 |
 |---|---|
-| [plugins/com.seizia.chromite.drivers.public/plugin.xml](../../plugins/com.seizia.chromite.drivers.public/plugin.xml) | `com.seizia.chromite.product.bundles`로 `drivers.mssql.new`, `drivers.oracle`, `drivers.postgresql`, `drivers.mariadb`, `drivers.mysql` 선언. 코드 없음 |
-| [features/com.seizia.chromite.drivers.public.feature/feature.xml](../../features/com.seizia.chromite.drivers.public.feature/feature.xml) | 공개판 드라이버 전용 feature `com.seizia.chromite.drivers.public.feature`. 위 플러그인 포함 |
+| [plugins/com.seizia.chromite.drivers.public/plugin.xml](../../plugins/com.seizia.chromite.drivers.public/plugin.xml) | `com.seizia.chromite.product.bundles`로 `drivers.mssql.new`, `drivers.oracle`, `drivers.postgresql`, `drivers.mariadb`, `drivers.mysql`, `drivers.sqlite.xerial` 선언. 코드 없음 |
+| [features/com.seizia.chromite.drivers.public.feature/feature.xml](../../features/com.seizia.chromite.drivers.public.feature/feature.xml) | 내장 드라이버 전용 feature `com.seizia.chromite.drivers.public.feature`. 위 플러그인 포함 |
 | [features/com.seizia.chromite.drivers.public.feature/pom.xml](../../features/com.seizia.chromite.drivers.public.feature/pom.xml) | `maven-dependency-plugin:copy`(실행 ID `bundle-public-drivers`)로 Maven Central에서 정확한 버전의 jar를 `target/generated/drivers/<이름>/`에 받는다. jar 목록·버전은 이곳에만 있다. jar는 저장소에 커밋하지 않는다 |
 | [features/com.seizia.chromite.drivers.public.feature/drivers-root/drivers/](../../features/com.seizia.chromite.drivers.public.feature/drivers-root/drivers/) | 라이선스 원문, LGPL·GPL 소스 위치 안내(`SOURCE.txt`), 전체 목록(`README.txt`). 루트 [.gitattributes](../../.gitattributes)로 `core.autocrlf`와 상관없이 항상 LF로 체크아웃된다 |
 | [features/com.seizia.chromite.drivers.public.feature/build.properties](../../features/com.seizia.chromite.drivers.public.feature/build.properties) | `root = target/generated,drivers-root` — 두 폴더가 설치 폴더의 `drivers/`로 합쳐진다 |
@@ -93,7 +97,8 @@ JDBC 드라이버를 설치 파일에 미리 넣는다.
 - **feature를 따로 만든 이유:** 처음에는 플러그인과 루트 파일을 `ce.feature`에 두었는데, Swing 제품(`com.seizia.chromite.swing.feature`)은
   SWT 번들을 끌어오는 `ce.feature`를 포함할 수 없다. jar 목록을 두 곳에 적지 않도록 "선언 + 파일" 한 쌍을 전용 feature로 옮기고
   두 제품이 모두 포함하게 했다. p2는 feature의 루트 파일을 그 feature와 함께 설치하므로(포함된 feature도 같다) 두 제품의 `drivers/`는 같은 원본에서 나왔다.
-  SWT 제품을 삭제한 뒤에도 내부판 feature로 바꿔 끼우는 단위가 되므로 그대로 둔다.
+  SWT 제품을 삭제한 뒤에도 "선언 + 파일"을 함께만 배포하는 단위가 되므로 그대로 둔다. ID의 `public`은 공개판·내부판을 나누던 때의 이름이다.
+  배포판이 하나가 된 뒤(2026-11-07)에도 ID는 바꾸지 않았다. 제품 feature, 모듈 목록, 문서에 걸친 이름 변경이라 동작은 같고 바뀌는 곳만 많다.
 - **설치 위치:** Windows는 `<설치폴더>/drivers/`, macOS는 `Chromite.app/Contents/Eclipse/drivers/`(Eclipse 설치 위치 =
   `Platform.getInstallLocation()`, 기존 `licenses/`와 같은 곳). Swing 제품은 Windows `chromite-swing/drivers/`,
   macOS `ChromiteSwing.app/Contents/Eclipse/drivers/`다.
@@ -108,20 +113,23 @@ JDBC 드라이버를 설치 파일에 미리 넣는다.
 | `drivers/postgis/` | `postgis-jdbc-2.5.0.jar`, `postgis-geometry-2.5.0.jar`, `postgis-jdbc-jtsparser-2.5.0.jar`, `LICENSE.txt`(LGPL-2.1), `SOURCE.txt` | PostgreSQL 계열의 선택 파일 |
 | `drivers/mariadb/` | `mariadb-java-client-3.5.10.jar`, `LICENSE.txt`(LGPL-2.1), `SOURCE.txt` | MariaDB. MySQL 서버에도 쓸 수 있다 |
 | `drivers/mysql/` | `mysql8/mysql-connector-j-9.7.0.jar`, `LICENSE.txt`(jar 안의 `LICENSE` 그대로: GPLv2 + Universal FOSS Exception 1.0과 제3자 고지), `SOURCE.txt` | MySQL, NDB Cluster, Apache Doris, GreptimeDB, Manticore Search, TiDB(`drivers.mysql`을 쓰는 드라이버 전부) |
+| `drivers/sqlite/` | `xerial/sqlite-jdbc-3.54.1.0.jar`, `LICENSE.txt`(jar 안 `META-INF/maven/org.xerial/sqlite-jdbc/LICENSE`, Apache-2.0), `LICENSE-zentus.txt`(jar 안 `LICENSE.zentus`, 원본 Zentus 드라이버의 BSD 형식 라이선스) | SQLite(`sqlite_jdbc`, `drivers.sqlite.xerial`을 쓰는 유일한 드라이버) |
 
 - 버전은 각 `plugin.xml`의 Maven 대체 경로(`RELEASE[x]`)와 같다. 묶음 사용 여부와 상관없이 같은 드라이버를 쓴다.
   **예외는 MySQL이다.** `drivers/mysql/mysql8` 하나를 쓰는 드라이버들의 Maven 대체 경로가 서로 다르고
   (MySQL·NDB·Doris `RELEASE[8.2.0]`, Manticore `RELEASE[9.7.0]`, GreptimeDB·TiDB 버전 없는 `RELEASE` = 조사일 26.10.0),
   한 폴더에 Connector/J jar를 두 개 넣으면 같은 클래스가 겹치므로 하나만 넣어야 한다.
+  SQLite는 Maven 대체 경로가 버전 없는 `RELEASE`(`maven:/org.xerial:sqlite-jdbc:RELEASE`)라 내장 버전을 feature `pom.xml`에서 고정했다.
+  내장한 2026-11-07에 `RELEASE`가 가리키는 버전(3.54.1.0)과 같다. `plugin.xml`은 고치지 않았다(묶음 모드에서는 Maven 항목이 빠진다).
 - **넣은 것과 뺀 것(결정):**
   - `msal4j`와 의존 jar: 넣음. 묶음 모드에서는 Azure 드라이버의 `msal4j` Maven 항목이 `!drivers.mssql.new`로 빠지고
     대체 경로가 `drivers/mssql/new`뿐이라, 넣지 않으면 Entra ID(Azure AD) 인증이 동작하지 않는다. 모두 MIT·Apache-2.0·BSD-3.
-  - `mssql-jdbc_auth` DLL: 뺌(Microsoft 약관, 내부판만). `drivers/mssql/new/auth/x64`는 `optional`이라 없어도 된다.
-    공개판에서 Windows 통합 인증(`integratedSecurity=true`)을 쓰려면 드라이버 설정에서 DLL을 직접 추가해야 한다.
+  - `mssql-jdbc_auth` DLL: 뺌(Microsoft 약관). `drivers/mssql/new/auth/x64`는 `optional`이라 없어도 된다.
+    Windows 통합 인증(`integratedSecurity=true`)을 쓰려면 드라이버 설정에서 DLL을 직접 추가해야 한다.
   - `xmlparserv2` 18.3.0.0: 뺌. `xdb6`의 의존성으로 딸려 오지만 23.2.0.0과 중복이다(`copy`는 전이 의존성을 받지 않는다).
   - PostGIS 3종: 넣음. Maven 모드에서도 선택 파일로 함께 받으므로 같은 기능을 유지한다. LGPL-2.1, jar를 수정하지 않고 소스 위치를 동봉.
   - `waffle-jna`(PostgreSQL SSPI 인증): 뺌. `plugin.xml`의 묶음 대체 경로(`drivers/waffle`)가 주석 처리돼 있어 넣어도 쓰이지 않고,
-    JNA까지 약 3MB가 더 든다. 공개판에서 SSPI(`gsslib=sspi`)를 쓰려면 jar를 직접 추가한다.
+    JNA까지 약 3MB가 더 든다. SSPI(`gsslib=sspi`)를 쓰려면 jar를 직접 추가한다.
   - `checker-qual`: 뺌. pgjdbc의 runtime 의존성이지만 어노테이션뿐이라 실행에 필요 없다.
   - MySQL Connector/J 버전: 9.7.0. 저장소에 이미 고정된 버전(Manticore, upstream이 2026-09에 추가)이고,
     [driver-licenses.md](driver-licenses.md)에서 내장할 때 9.x 또는 26.x로 올리기로 정리했다. 8.2.0(2023년)은 오래됐고,
@@ -139,9 +147,15 @@ JDBC 드라이버를 설치 파일에 미리 넣는다.
     (`NativeAuthenticationProvider.java:145`의 "CLIENT_PLUGIN_AUTH is required", 8.2.0에도 같은 검사가 있다), Legacy 드라이버는 그런 예전 서버용이다.
     5.1.49는 예전 "MySQL FOSS License Exception"이 적용되고 2020년 이후 갱신이 없어 내장하지 않기로 했다([driver-licenses.md](driver-licenses.md)).
     그래서 [ext.mysql/plugin.xml](../../plugins/com.seizia.chromite.ext.mysql/plugin.xml)의 Legacy 드라이버 두 항목만 묶음 ID를
-    `drivers.mysql5`로 바꿨다. 공개판은 이 묶음을 선언하지 않으므로 Legacy 드라이버는 예전처럼 처음 쓸 때 Maven에서 5.1.49를 받는다.
-    바꾸지 않으면 `drivers.mysql` 선언과 함께 Maven 항목이 빠지고 폴더도 없어 파일 출처가 사라진다. 내부판은 `drivers.mysql5`를 선언하고 5.1.49를 넣을 수 있다.
+    `drivers.mysql5`로 바꿨다. Chromite는 이 묶음을 선언하지 않으므로 Legacy 드라이버는 예전처럼 처음 쓸 때 Maven에서 5.1.49를 받는다.
+    바꾸지 않으면 `drivers.mysql` 선언과 함께 Maven 항목이 빠지고 폴더도 없어 파일 출처가 사라진다.
     StarRocks(`starrocks-connector-j`)와 "MySQL (Old)"(ext.generic)는 묶음 속성이 없어 영향이 없다.
+  - SQLite(2026-11-07 사용자 결정): Xerial `sqlite-jdbc` 3.54.1.0 jar 하나를 넣음. Apache-2.0(A 분류), 12,132,578 bytes.
+    `dependency:tree`로 보면 runtime 의존성이 없다(`slf4j-api`는 `optional`이고 `plugin.xml`도 선택 의존성을 받지 않는다).
+    전 플랫폼 네이티브 SQLite(Public Domain)가 jar 안에 들어 있어 Windows·macOS 결과물이 같은 jar를 쓴다.
+    버전은 [driver-licenses.md](driver-licenses.md)에 조사 때 적은 3.54.1.0이다. 그보다 새 버전은 없다(2026-11-07 Maven Central `maven-metadata.xml`).
+    다만 Maven Central 게시일이 2026-10-29라 내장 시점에 9일밖에 지나지 않았다. 바로 전 버전은 3.53.4.0(2026-08-26 게시)이다.
+    jar 안 라이선스 두 개(`LICENSE`, `LICENSE.zentus`)를 줄바꿈만 LF로 바꿔 넣었다(`.gitattributes`가 LF로 고정).
 
 ### 오프라인 우선 조회와 오프라인 모드
 
@@ -160,7 +174,7 @@ JDBC 드라이버를 설치 파일에 미리 넣는다.
     캐시에 없는 POM([MavenArtifactVersion.java:286](../../plugins/com.seizia.chromite.registry/src/com/seizia/chromite/registry/maven/MavenArtifactVersion.java:286)) 요청을 막는다.
     `maven-local`과 `file:` 저장소, 이미 받아 둔 캐시는 그대로 쓴다.
   - [DriverLoaderDescriptor.downloadDriverLibraries](../../plugins/com.seizia.chromite.registry/src/com/seizia/chromite/registry/driver/DriverLoaderDescriptor.java:420):
-    다운로드 대화상자를 열지 않고 로컬 소스에서만 조용히 찾는다(내부판의 `maven-local` 해석도 이 경로).
+    다운로드 대화상자를 열지 않고 로컬 소스에서만 조용히 찾는다(`maven-local` 해석도 이 경로).
   - [DriverLoaderDescriptor.loadDriver](../../plugins/com.seizia.chromite.registry/src/com/seizia/chromite/registry/driver/DriverLoaderDescriptor.java:185):
     그래도 드라이버 클래스를 불러오지 못하고 필수 파일이 없으면 "드라이버 파일이 설치본에 포함되어 있지 않고 오프라인 모드가 켜져 있습니다.
     드라이버 설정에서 JAR 파일을 직접 추가하세요."로 연결이 실패한다(`RegistryMessages.driver_offline_files_missing`, 영어·한국어).
@@ -174,7 +188,7 @@ JDBC 드라이버를 설치 파일에 미리 넣는다.
   `Chromite.app/Contents/Eclipse/drivers/`도 파일 이름·크기가 같다.
 - 오프라인 모드를 켠 작업 공간에서 127.0.0.1:1(닫힌 포트)로 연결을 시도했다. PostgreSQL·MariaDB는 "Connection refused",
   Oracle은 `ORA-12541`, SQL Server는 TCP/IP 연결 실패로 끝났다. 다운로드 대화상자 없이 드라이버 클래스가 내장 jar에서 로드됐다는 뜻이다.
-- 내장되지 않은 SQLite는 다운로드 대화상자 없이 위 안내 문구(한국어)로 실패했다. 환경설정 > 연결 > 드라이버에 체크박스가 보인다.
+- 당시 내장되지 않았던 SQLite(2026-11-07부터 내장)는 다운로드 대화상자 없이 위 안내 문구(한국어)로 실패했다. 환경설정 > 연결 > 드라이버에 체크박스가 보인다.
 - Swing 제품(2026-11-06, 드라이버 feature 분리 후): Windows·macOS 결과물의 `drivers/` 34개 파일이 SWT 제품과 이름·크기·SHA-256이 같고(18,917,823 bytes,
   위 첫 확인보다 1,351바이트 큰 것은 `core.autocrlf=true` 체크아웃에서 라이선스 텍스트 1,351줄이 CRLF로 들어갔기 때문이다.
   이후 `.gitattributes`로 이 텍스트를 항상 LF로 고정해 크기가 체크아웃 설정에 따라 달라지지 않는다), SWT 제품의 `drivers/`도 분리 전과 같다. Swing 제품에서 오프라인 모드를 끈 채 PostgreSQL의
@@ -182,50 +196,59 @@ JDBC 드라이버를 설치 파일에 미리 넣는다.
 - MySQL 추가 후(2026-11-06, `-Pproduct-chromite-swt,product-chromite-swing` 빌드): 네 결과물(SWT·Swing × Windows·macOS)의 `drivers/`가
   37개 파일, 21,608,448 bytes로 이름·크기·SHA-256이 모두 같다. 늘어난 파일은 `mysql/LICENSE.txt`(82,896), `mysql/SOURCE.txt`,
   `mysql/mysql8/mysql-connector-j-9.7.0.jar`(2,607,237, SHA-256 `0353648e…43eb44`)이고 protobuf-java는 없다.
-  SWT Windows 제품을 오프라인 모드를 끈 새 작업 공간(공개판 기본값)으로 실행해 127.0.0.1:1에 연결했다. MySQL과 NDB Cluster
+  SWT Windows 제품을 오프라인 모드를 끈 새 작업 공간(기본값)으로 실행해 127.0.0.1:1에 연결했다. MySQL과 NDB Cluster
   (`jdbc:mysql:loadbalance:`, `com.mysql.jdbc.Driver`)는 다운로드 대화상자 없이 Connector/J의 "Communications link failure /
   Connection refused"로 끝났다. 스택의 `NonRegisteringDriver.java:180`은 9.7.0 소스와 맞는다(8.2.0은 189줄). MySQL 5 (Legacy)는
   예상대로 `mysql:mysql-connector-java` 5.1.49 다운로드 대화상자가 열렸다(취소함).
-- 오프라인 모드를 끈 상태(공개판 기본값)의 SWT 제품 내장 드라이버는 실행해 보지 않았다(MySQL 추가 전 4종 기준). 코드상 묶음 모드에서는 4개 드라이버에
+- 오프라인 모드를 끈 상태(기본값)의 SWT 제품 내장 드라이버는 실행해 보지 않았다(MySQL 추가 전 4종 기준). 코드상 묶음 모드에서는 4개 드라이버에
   내려받을 항목이 남지 않으므로(`getDriverDependencies`가 `null`) 다운로드 대화상자가 열리지 않는다.
+- SQLite 추가 후(2026-11-07, `-Pproduct-chromite-swing` 빌드): Windows x86_64·macOS aarch64 결과물의 `drivers/`가 40개 파일,
+  33,754,109 bytes로 이름·크기·SHA-256이 같다. 늘어난 파일은 `sqlite/xerial/sqlite-jdbc-3.54.1.0.jar`(12,132,578,
+  SHA-256 `f8dce420…be4639`, Maven Central `.sha1` `b74a59de…61a676`과 일치), `sqlite/LICENSE.txt`(11,358), `sqlite/LICENSE-zentus.txt`(1,288)이고
+  `README.txt`가 437 bytes 늘었다. 결과물의 `com.seizia.chromite.drivers.public` jar `plugin.xml`에 `drivers.sqlite.xerial`이 선언돼 있다.
+  `sqlite/` 폴더를 zip으로 묶으면 12,107,861 bytes라 설치 파일은 플랫폼마다 약 12MB 커진다.
+- 내장 jar만 클래스패스에 두고 내장 런타임(JBR 25.0.4.1, jlink)으로 작은 JDBC 프로그램을 실행했다. 새 `.db` 파일을 열어
+  `select sqlite_version()`이 `3.54.1`을 돌려주고 표 만들기·넣기·읽기가 됐다(다운로드 없음). xerial은 처음 연결할 때 jar 안의
+  네이티브 라이브러리(`sqlitejdbc.dll`, 약 1MB)를 `java.io.tmpdir`에 풀어 쓴다. Maven 모드에서도 같은 jar라 같은 동작이다.
+- 앱(Swing)으로 SQLite 연결을 만드는 확인은 하지 않았다. 묶음 선언(`drivers.sqlite.xerial`)과 `plugin.xml`의 폴더 경로(`drivers/sqlite/xerial`),
+  결과물의 폴더가 서로 맞는 것까지 확인했다.
 
-### 공개판에 드라이버를 추가하는 방법
+### 내장 드라이버를 추가하는 방법
 
 1. 드라이버의 `plugin.xml`에 `bundle="drivers.X"`인 폴더 경로와 `bundle="!drivers.X"`인 Maven 항목이 있는지 확인한다.
    없으면 그 둘을 추가해야 한다(Maven 항목에 `bundle="!drivers.X"`, 폴더 항목 `path="drivers/<이름>" bundle="drivers.X"`).
-2. [driver-licenses.md](driver-licenses.md)에서 공개판 내장이 가능한지(A 분류) 확인한다.
+2. [driver-licenses.md](driver-licenses.md)에서 내장이 가능한지(A 분류) 확인한다.
 3. `com.seizia.chromite.drivers.public/plugin.xml`에 `<bundle id="drivers.X"/>`를 추가한다.
 4. `com.seizia.chromite.drivers.public.feature/pom.xml`의 `bundle-public-drivers`에 jar를 `artifactItem`으로 추가한다. 버전은 `plugin.xml`의 `RELEASE[x]`와 같게,
    필요한 전이 의존성은 `dependency:tree`로 확인해 하나씩 적는다(`copy`는 전이 의존성을 받지 않는다).
 5. 같은 feature의 `drivers-root/drivers/<이름>/`에 라이선스 원문(LGPL·GPL이면 `SOURCE.txt`도)을 넣고 `drivers/README.txt`와 `NOTICE`를 갱신한다.
 
-### 내부판 계획 (미구현)
+### 폐쇄망 오프라인 설치 경로 (계획, 설계 중)
 
-- `com.seizia.chromite.drivers.internal` 플러그인(전체 묶음 선언)과 그 jar를 루트 파일로 넣는 전용 feature를 만들고,
-  제품이 `com.seizia.chromite.drivers.public.feature` 대신 포함한다.
-- 묶음이 없는 드라이버는 빌드할 때 `maven-local`에 Maven 구조(POM, `maven-metadata.xml` 포함)로 넣는다. 조회 순서 변경으로 원격보다 먼저 쓰인다.
-- 제품의 `plugin_customization.ini`에 `com.seizia.chromite.ui.swing/ui.drivers.offline=true`를 넣어 오프라인 모드를 기본으로 켠다
-  (`PrefUtils.setDefaultPreferenceValue`는 이미 정해진 기본값을 덮어쓰지 않는다).
-- `mssql-jdbc_auth` DLL을 `drivers/mssql/new/auth/x64/`에 넣는다.
+- 2026-11-07 결정으로 전체 드라이버를 내장하는 내부판은 만들지 않는다(위 "배포판 구성").
+- 인터넷이 없는 폐쇄망에서는 내장되지 않은 드라이버를 별도로 받아 설치하는 경로가 필요하다. 별도 작업으로 설계 중이며 아직 구현하지 않았다.
+- 이미 있는 기반: 설치 폴더의 `maven-local`을 원격보다 먼저 찾는 조회 순서, 오프라인 모드(`ui.drivers.offline`),
+  Driver Manager에서 jar 파일을 직접 추가하는 화면([swing-driver-manager.md](swing-driver-manager.md)).
 
 ## 라이선스
 
 - 드라이버별 버전, 라이선스, 출처, 크기, 분류 전체 목록은 [driver-licenses.md](driver-licenses.md)에 있다(법률 자문 아님).
 - 요약(2026-11-06 원문 확인):
 
-| 드라이버 | 라이선스 | 공개판 내장 |
+| 드라이버 | 라이선스 | 내장 |
 |---|---|---|
 | SQL Server (`mssql-jdbc`, Azure용 `msal4j`) | MIT | 가능 |
-| SQL Server 통합 인증 DLL (`mssql-jdbc_auth`) | Microsoft Software License Terms (최종 사용자 약관 전가·면책 의무) | 제외. 내부판만 |
+| SQL Server 통합 인증 DLL (`mssql-jdbc_auth`) | Microsoft Software License Terms (최종 사용자 약관 전가·면책 의무) | 제외 |
 | PostgreSQL (`postgresql`) | BSD-2-Clause | 가능 |
 | MariaDB Connector/J | LGPL-2.1-or-later | 가능 (jar 수정 없이, 라이선스·소스 위치 동봉) |
 | Oracle (`ojdbc11`, `orai18n`, `xdb6`, `xmlparserv2`) | Oracle Free Use Terms and Conditions | 가능. 수정 없는 재배포 허용, 약관 사본 동봉·사용료 미부과 조건 |
-| MySQL Connector/J | GPLv2 + Universal FOSS Exception 1.0 | 내장함(2026-11-06 결정). Apache-2.0 공개판은 예외가 적용되는 "Other FOSS"에 해당. jar 무수정, 라이선스 원문·소스 위치(`SOURCE.txt`) 동봉 |
-| IBM Db2·Informix, Vertica | 재배포 허용이지만 최종 사용자 약관 전가·면책 조건 | 제외. 내부판만 |
-| Teradata, SAP HANA, SAP ASE(jConnect), GBase 8s, Simba BigQuery | 재배포 금지 또는 서면 동의 필요 | 제외. 내부판에도 내장하지 않음 |
+| MySQL Connector/J | GPLv2 + Universal FOSS Exception 1.0 | 내장함(2026-11-06 결정). Apache-2.0으로 전체 소스를 공개하는 Chromite는 예외가 적용되는 "Other FOSS"에 해당. jar 무수정, 라이선스 원문·소스 위치(`SOURCE.txt`) 동봉 |
+| SQLite (Xerial `sqlite-jdbc`) | Apache-2.0 (원본 Zentus 코드는 BSD 형식, 네이티브 SQLite는 Public Domain) | 내장함(2026-11-07 결정) |
+| IBM Db2·Informix, Vertica | 재배포 허용이지만 최종 사용자 약관 전가·면책 조건 | 제외(필요할 때 다운로드) |
+| Teradata, SAP HANA, SAP ASE(jConnect), GBase 8s, Simba BigQuery | 재배포 금지 또는 서면 동의 필요 | 제외(필요할 때 다운로드, 사용자가 받은 jar 지정) |
 
-- 공개판 4종 크기는 의존성 포함 약 23.7MB(최소 구성 약 14.7MB)다. MySQL Connector/J 9.7.0은 jar 2,607,237 bytes와
-  `LICENSE.txt`·`SOURCE.txt`가 더해진다(protobuf-java를 빼서 조사 때 잡은 +약 4.5MB보다 작다). 전체를 내장하면 약 1.7GB다.
+- 처음 내장한 4종 크기는 의존성 포함 약 23.7MB(최소 구성 약 14.7MB)다. MySQL Connector/J 9.7.0은 jar 2,607,237 bytes와
+  `LICENSE.txt`·`SOURCE.txt`가 더해진다(protobuf-java를 빼서 조사 때 잡은 +약 4.5MB보다 작다). SQLite는 jar 12,132,578 bytes와 라이선스 텍스트 두 개가 더해진다. 전체를 내장하면 약 1.7GB다.
 
 ## 미완료 항목
 
@@ -234,9 +257,9 @@ JDBC 드라이버를 설치 파일에 미리 넣는다.
   ([driver-licenses.md](driver-licenses.md) "plugin.xml의 라이선스 표기와 실제가 다른 항목")
 - GPLv2 3항 대응 소스 제공 방식 확정: 지금은 `SOURCE.txt`에 Oracle의 공식 소스 배포 위치를 적었다. 3항을 문자 그대로 따르려면
   설치 파일과 같은 곳(예: GitHub Release)에 소스 묶음(`mysql-connector-j-9.7.0.tar.gz`, 4,556,015 bytes)을 함께 올리거나 서면 제공 약속을 넣어야 한다(법률 검토 항목)
-- [driver-licenses.md](driver-licenses.md)의 "확인 못함" 항목 약관 원문 확인, 공개판 라이선스 고지 형식 법률 검토
+- [driver-licenses.md](driver-licenses.md)의 "확인 못함" 항목 약관 원문 확인, 내장 드라이버 라이선스 고지 형식 법률 검토
 - 내장 드라이버로 실제 DB(SQL Server, Oracle, PostgreSQL, MariaDB, MySQL)에 로그인까지 하는 확인(드라이버 로드까지만 확인함), macOS 실행 확인
-- 내부판 구현(위 "내부판 계획")
+- 폐쇄망 오프라인 설치 경로(위 "폐쇄망 오프라인 설치 경로", 별도 작업)
 
 ## 변경 이력
 
@@ -256,3 +279,9 @@ JDBC 드라이버를 설치 파일에 미리 넣는다.
   MySQL 5 (Legacy) 드라이버의 묶음 ID를 `ext.mysql/plugin.xml`에서 `drivers.mysql5`로 분리해 Maven 다운로드(5.1.49)를 유지.
 - 2026-11-07 Microsoft Store 제품 삭제([build.md](build.md) "빌드하는 제품")에 맞춰 "플러그인을 따로 만든 이유"에서 msstore 제품 언급을 뺌.
 - 2026-11-07 SWT 프런트엔드 삭제([swt-removal.md](swt-removal.md)): 드라이버 feature를 포함하는 제품은 Swing 하나, 오프라인 모드 설정 노드는 `com.seizia.chromite.ui.swing`, 설정 화면은 SWT와 함께 없어짐.
+- 2026-11-07 배포판을 하나로 정함(사용자 결정). 이전 결정(2026-11-06)은 공개판(주요 DB만 내장)과 내부판(전체 내장)의 두 판이었다.
+  이제 주요 DB(SQL Server, Oracle, PostgreSQL, MariaDB, MySQL, SQLite)만 내장하고 나머지는 필요할 때 내려받는다.
+  폐쇄망용 별도 오프라인 설치 경로는 계획으로 남김(별도 작업). "내부판 계획" 절을 "폐쇄망 오프라인 설치 경로"로 바꾸고 "공개판"을 단일 제품 기준으로 고침.
+  SQLite(Xerial `sqlite-jdbc` 3.54.1.0) 내장: `drivers.sqlite.xerial` 선언, `drivers/sqlite/xerial/`에 jar, `drivers/sqlite/`에 jar 안의 라이선스 두 개,
+  `README.txt`·`NOTICE` 갱신. feature·플러그인 표시 이름에서 "(Public Edition)"을 뺌. ID(`drivers.public`)는 그대로 둠.
+  `drivers/README.txt`가 오프라인 모드 위치를 SWT와 함께 없어진 "Preferences > Connections > Drivers"로 적고 있어 "Tools > Driver Manager"로 고침.
