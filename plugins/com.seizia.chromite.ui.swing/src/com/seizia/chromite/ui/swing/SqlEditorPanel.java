@@ -129,8 +129,11 @@ import java.util.concurrent.atomic.AtomicLong;
  *     <li>엔진의 콜백({@link SQLQueryExecuteHandler}, {@link SQLQueryListener})은 Job 스레드에서 불리므로, 화면 변경은 모두
  *     {@link SwingUtilities#invokeLater}로 EDT에 넘긴다. 각 실행은 {@link Execution} 객체로 구분해, 끝난 실행의 늦은 결과가 다음 실행 화면에 섞이지 않게 한다.</li>
  *     <li>오류는 대화상자 대신 Messages 탭에 쓰고(오류 위치 = 편집기의 줄·열), 엔진의 "계속할까요" 질문
- *     ({@link SQLQueryExecuteHandler#handleExecutionError})에는 묻지 않고 멈춤으로 답한다. 오류가 나면 SSMS처럼 Messages 탭을 보여 준다.</li>
- *     <li>커밋 방식, 오류 처리 방식, 최대 행 수는 엔진 기본값(SWT 편집기 설정 기본값, 연결의 최대 행 수 설정)을 쓴다.
+ *     ({@link SQLQueryExecuteHandler#handleExecutionError})에는 묻지 않고 멈춤으로 답한다. 오류가 나면 SSMS처럼 Messages 탭을 보여 준다.
+ *     Options &gt; Query Execution에서 "건너뛰고 계속"을 고르면 실패한 문장을 건너뛰고 다음 문장을 실행한다({@link SqlExecutionOptionsPage}).
+ *     어느 쪽이든 오류 뒤 세션의 트랜잭션은 커밋도 롤백도 하지 않는다(엔진 기본값 {@code STOP_ROLLBACK}은 수동 커밋 세션의 열린 트랜잭션을
+ *     묻지 않고 롤백하므로 쓰지 않는다, 트랜잭션 안전 규칙).</li>
+ *     <li>커밋 방식과 최대 행 수는 엔진 기본값(커밋 방식 {@code NO_COMMIT}, 연결의 최대 행 수 설정)을 쓴다.
  *     "Select Top N Rows"로 연 편집기는 N행까지 가져오도록 최대 행 수를 키운다({@link #setMaxRows}).
  *     실행 문맥은 연결의 기본(주) 문맥이다(편집기별 별도 연결은 아직 없음).</li>
  *     <li>연결: 편집기는 연결 없이 열 수 있다(파일 열기). 연결 콤보(SSMS의 연결 바꾸기)로 연결을 고르거나 바꾸고,
@@ -213,6 +216,8 @@ import java.util.concurrent.atomic.AtomicLong;
  * - 2026-11-07 서버 출력: 문장마다 {@link DBCServerOutputReader}를 읽어 Messages 탭에 씀(Oracle DBMS_OUTPUT이 안 보이고 버퍼가 차던 것,
  *   Altibase PRINT가 메모리에 쌓이던 것) (docs/chromite/swing-server-output.md)
  * - 2026-11-07 원본 객체({@link #setSourceObject}): Modify 창의 루틴을 Query &gt; Debug…가 디버깅 (docs/chromite/procedure-debugger.md)
+ * - 2026-11-07 오류 처리 설정(Options &gt; Query Execution)을 엔진에 넘김. 오류로 멈춘 스크립트가 수동 커밋 세션의 열린 트랜잭션을
+ *   묻지 않고 롤백하던 것을 고침(엔진 기본값 {@code STOP_ROLLBACK}) (docs/chromite/swing-options.md)
  */
 final class SqlEditorPanel extends JPanel {
 
@@ -1092,6 +1097,8 @@ final class SqlEditorPanel extends JPanel {
             if (run.customMaxRows) {
                 job.setResultSetLimit(0, run.maxRows);
             }
+            // Stop or skip on errors; never the engine default STOP_ROLLBACK (see class doc)
+            job.setErrorHandling(SqlExecutionOptionsPage.getEngineErrorHandling(container.getPreferenceStore()));
             job.addJobChangeListener(new JobChangeAdapter() {
                 @Override
                 public void done(IJobChangeEvent event) {

@@ -24,6 +24,9 @@ import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
 import com.seizia.chromite.Log;
 import com.seizia.chromite.model.DBConstants;
+import com.seizia.chromite.model.DBPDataSource;
+import com.seizia.chromite.model.DBPDataSourceContainer;
+import com.seizia.chromite.model.DBPTransactionIsolation;
 import com.seizia.chromite.model.DatabaseURL;
 import com.seizia.chromite.model.connection.DBPAuthModelDescriptor;
 import com.seizia.chromite.model.connection.DBPConnectionBootstrap;
@@ -32,6 +35,7 @@ import com.seizia.chromite.model.connection.DBPConnectionType;
 import com.seizia.chromite.model.connection.DBPDriver;
 import com.seizia.chromite.model.connection.DBPDriverConfigurationType;
 import com.seizia.chromite.model.impl.PropertyDescriptor;
+import com.seizia.chromite.model.impl.jdbc.JDBCTransactionIsolation;
 import com.seizia.chromite.model.preferences.DBPPropertyDescriptor;
 import com.seizia.chromite.registry.DataSourceDescriptor;
 import com.seizia.chromite.registry.DataSourceProviderRegistry;
@@ -71,7 +75,7 @@ import java.util.Set;
  *     인증 묶음 아래에 두고 고른 방식의 것만 보인다. 저장할 때 고르지 않은 방식의 칸이 쓴 값은 지운다.</li>
  *     <li>드라이버별 주 칸({@link ConnectionDriverFields}: SQL Server Encrypt·Trust server certificate, Oracle Basic/TNS·SID/Service)은
  *     범용 칸 사이의 정해진 자리에 넣는다. 그 칸이 맡는 공급자 속성은 Provider Properties 표에서 뺀다(한 값을 두 곳에서 고치지 않게).</li>
- *     <li>Options 탭: Connection Properties(연결 종류, 자동 커밋, 기본 DB·스키마, 읽기 전용, 연결 색, 연결 직후 SQL, keep-alive, 유휴 연결 닫기,
+ *     <li>Options 탭: Connection Properties(연결 종류, 자동 커밋, 트랜잭션 격리 수준, 기본 DB·스키마, 읽기 전용, 연결 색, 연결 직후 SQL, keep-alive, 유휴 연결 닫기,
  *     유휴 트랜잭션 알림·자동 롤백. SWT
  *     {@code ConnectionPageGeneral}·{@code ConnectionPageInitialization}과 같은 값), 네트워크 핸들러 탭(SSH, Proxy, SSL: {@link ConnectionNetworkPage},
  *     쓰는 핸들러의 탭에는 확인 표시), Driver Properties, Provider Properties,
@@ -102,6 +106,8 @@ import java.util.Set;
  *   알림 값만 그 종류의 기본값으로 바꾸고, 자동 롤백은 사용자가 이 연결에서 직접 켤 때만 켜진다 (docs/chromite/idle-transactions.md)
  * - 2026-11-07 유휴 연결 닫기 도구 설명: 유휴 시간을 무엇부터 재는지, 열린 트랜잭션이 있으면 닫지 않음
  *   (docs/chromite/idle-transactions.md "유휴 연결 닫기")
+ * - 2026-11-07 Connection Properties에 트랜잭션 격리 수준(SWT {@code ConnectionPageInitialization}의 같은 값,
+ *   {@link #loadIsolationLevels}). 연결 유형 편집(Options)이 쓰도록 {@link ColorSwatch}를 패키지 안에 공개 (docs/chromite/swing-options.md)
  */
 final class ConnectionSettingsPanel extends JPanel {
 
@@ -147,6 +153,8 @@ final class ConnectionSettingsPanel extends JPanel {
 
     private final JComboBox<DBPConnectionType> connectionTypeCombo = new JComboBox<>();
     private final JComboBox<String> autoCommitCombo = new JComboBox<>(AUTO_COMMIT_ITEMS);
+    // The driver default (a String) or a DBPTransactionIsolation
+    private final JComboBox<Object> isolationCombo = new JComboBox<>();
     private final JTextField defaultCatalogField = new JTextField();
     private final JTextField defaultSchemaField = new JTextField();
     private final JCheckBox readOnlyCheck = new JCheckBox(ConnectionMessages.settings_read_only);
@@ -688,6 +696,18 @@ final class ConnectionSettingsPanel extends JPanel {
         FormBuilder form = new FormBuilder();
         form.addRow(ConnectionMessages.settings_connection_type, connectionTypeCombo);
         form.addRow(ConnectionMessages.settings_auto_commit, autoCommitCombo);
+        isolationCombo.setRenderer(new DefaultListCellRenderer() {
+            @Override
+            public Component getListCellRendererComponent(JList<?> list, Object value, int index, boolean isSelected, boolean cellHasFocus) {
+                super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
+                if (value instanceof DBPTransactionIsolation level) {
+                    setText(level.getTitle());
+                }
+                return this;
+            }
+        });
+        isolationCombo.setToolTipText(ConnectionMessages.settings_isolation_tip);
+        form.addRow(ConnectionMessages.settings_isolation, isolationCombo);
         form.addRow(ConnectionMessages.settings_default_database, defaultCatalogField);
         form.addRow(ConnectionMessages.settings_default_schema, defaultSchemaField);
         form.addRow((JLabel) null, readOnlyCheck);
@@ -837,7 +857,8 @@ final class ConnectionSettingsPanel extends JPanel {
     }
 
     /**
-     * Connection type, transactions and keep-alive, as ConnectionPageGeneral and ConnectionPageInitialization load them.
+     * Connection type, transactions (auto-commit, isolation level) and keep-alive, as ConnectionPageGeneral and
+     * ConnectionPageInitialization load them.
      */
     private void loadConnectionProperties(@NotNull DBPConnectionConfiguration configuration) {
         DBPConnectionType type = configuration.getConnectionType();
@@ -847,6 +868,7 @@ final class ConnectionSettingsPanel extends JPanel {
         connectionTypeCombo.setSelectedItem(type);
         Boolean autoCommit = configuration.getBootstrap().getDefaultAutoCommit();
         autoCommitCombo.setSelectedIndex(autoCommit == null ? 0 : autoCommit ? 1 : 2);
+        loadIsolationLevels(configuration.getBootstrap().getDefaultTransactionIsolation());
         defaultCatalogField.setText(CommonUtils.notEmpty(configuration.getBootstrap().getDefaultCatalogName()));
         defaultSchemaField.setText(CommonUtils.notEmpty(configuration.getBootstrap().getDefaultSchemaName()));
         readOnlyCheck.setSelected(dataSource.isConnectionReadOnly());
@@ -867,6 +889,43 @@ final class ConnectionSettingsPanel extends JPanel {
         bootstrapQueries = new ArrayList<>(configuration.getBootstrap().getInitQueries());
         ignoreBootstrapErrors = configuration.getBootstrap().isIgnoreErrors();
         updateBootstrapButton();
+    }
+
+    /**
+     * Isolation levels to choose from, as ConnectionPageInitialization lists them: the levels the connected database
+     * supports, read from the original connection (the edited copy has the same id). Without a connection the four JDBC
+     * levels are offered; the model sets the level when a session opens and ignores a level the driver refuses
+     * ({@code JDBCExecutionContext.connect}), so the choice is safe before the levels are known.
+     */
+    private void loadIsolationLevels(@Nullable Integer saved) {
+        List<DBPTransactionIsolation> levels = new ArrayList<>();
+        DBPDataSourceContainer original = dataSource.getRegistry().getDataSource(dataSource.getId());
+        DBPDataSource connected = original != null && original.isConnected() ? original.getDataSource() : null;
+        if (connected != null) {
+            for (DBPTransactionIsolation level : CommonUtils.safeCollection(connected.getInfo().getSupportedTransactionsIsolation())) {
+                // "None" means a database without transactions; it is not a level to choose
+                if (level.isEnabled() && level.getCode() != JDBCTransactionIsolation.NONE.getCode()) {
+                    levels.add(level);
+                }
+            }
+        } else {
+            levels.addAll(List.of(JDBCTransactionIsolation.READ_UNCOMMITTED, JDBCTransactionIsolation.READ_COMMITTED,
+                JDBCTransactionIsolation.REPEATABLE_READ, JDBCTransactionIsolation.SERIALIZABLE));
+        }
+        if (saved != null && levels.stream().noneMatch(level -> level.getCode() == saved)) {
+            JDBCTransactionIsolation level = JDBCTransactionIsolation.getByCode(saved);
+            if (level != null) {
+                levels.add(level);
+            }
+        }
+        isolationCombo.removeAllItems();
+        isolationCombo.addItem(ConnectionMessages.settings_isolation_default);
+        for (DBPTransactionIsolation level : levels) {
+            isolationCombo.addItem(level);
+            if (saved != null && level.getCode() == saved) {
+                isolationCombo.setSelectedItem(level);
+            }
+        }
     }
 
     /**
@@ -919,7 +978,8 @@ final class ConnectionSettingsPanel extends JPanel {
 
     /**
      * Same values as ConnectionPageGeneral.saveSettings (type, read-only) and ConnectionPageInitialization.saveSettings
-     * (auto-commit, default catalog and schema, keep-alive, idle connections), and Chromite's idle transaction settings.
+     * (auto-commit, isolation level, default catalog and schema, keep-alive, idle connections), and Chromite's idle
+     * transaction settings.
      * Empty names are saved as "not set".
      */
     private void saveConnectionProperties(@NotNull DataSourceDescriptor target) {
@@ -930,6 +990,9 @@ final class ConnectionSettingsPanel extends JPanel {
         DBPConnectionBootstrap bootstrap = configuration.getBootstrap();
         int autoCommit = autoCommitCombo.getSelectedIndex();
         bootstrap.setDefaultAutoCommit(autoCommit == 1 ? Boolean.TRUE : autoCommit == 2 ? Boolean.FALSE : null);
+        // Applied when a session opens: a connected connection asks to reconnect (ConnectionDialog), and the reconnect
+        // asks about open transactions first
+        bootstrap.setDefaultTransactionIsolation(isolationCombo.getSelectedItem() instanceof DBPTransactionIsolation level ? level.getCode() : null);
         bootstrap.setDefaultCatalogName(CommonUtils.nullIfEmpty(defaultCatalogField.getText().trim()));
         bootstrap.setDefaultSchemaName(CommonUtils.nullIfEmpty(defaultSchemaField.getText().trim()));
         // ConnectionPageInitialization.saveSettings
@@ -1193,7 +1256,7 @@ final class ConnectionSettingsPanel extends JPanel {
     /**
      * A 12x12 color square with a thin border; an empty square for "no color".
      */
-    private static final class ColorSwatch implements Icon {
+    static final class ColorSwatch implements Icon {
         @Nullable
         private final Color color;
 

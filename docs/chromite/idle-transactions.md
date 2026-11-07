@@ -101,7 +101,8 @@
 - 자동 롤백은 별도 설정이고 사용자가 그 연결에서 직접 켰을 때만 켜진다. 업스트림의 `autoCloseTransactions=true`(유형 기본값)는 "알림"으로만 읽고 롤백 동의로 읽지 않는다.
   켜면 경고 문구("유휴 트랜잭션의 커밋하지 않은 변경을 묻지 않고 버립니다. 버린 뒤 알림이 뜹니다.")가 보인다. 알림을 끄면 자동 롤백도 꺼진다.
 - 설정은 감시가 매번 읽으므로 저장하면 다시 연결하지 않아도 적용된다.
-- Swing에는 연결 유형 편집기가 없다. 그래서 자동 롤백의 유형별 기본값은 두지 않았다(모든 유형 꺼짐). 연결 유형 편집기를 만들면 그때 유형 기본값을 더한다.
+- 연결 유형의 알림과 기간은 Options > Connection Types에서 바꾼다(2026-11-07, [swing-options.md](swing-options.md)). 자동 롤백의 유형별 기본값은 두지 않았다
+  (모든 유형 꺼짐). 사용자가 연결마다 켜는 것이 결정이고, 유형에 두려면 모델에 새 필드가 필요하다.
 
 ## 설계 결정과 이유
 
@@ -212,7 +213,7 @@ Swing은 처리기를 등록하지 않아 기본 처리기가 `System.out`에만
 
 - Chromite Agent·MCP 도구의 격리 문맥은 QM을 거치지 않아 표시와 유휴 감시에 잡히지 않는다(`AgentSql`이 열린 트랜잭션만 따로 기록). 끝낼 때 질문(`ExitTransactionCheck`)은 이들도 묻는다. 유휴 연결 닫기는 `DBServiceUnrecordedSessions`로 이들을 본다.
 - 절전 감지(A-S8)를 더하면 `closeAllConnections`가 유휴 연결 닫기와 같은 트랜잭션 확인을 거치게 해야 한다.
-- 연결 유형 편집기가 생기면 유형별 알림·기간·자동 롤백 기본값을 그 화면에도 둔다.
+- 연결 유형별 자동 롤백 기본값(연결 유형 편집기는 2026-11-07에 생겼고 알림·기간은 그 화면에 있다). 넣는다면 사용자 결정을 다시 받는다.
 - 다른 세션의 열린 트랜잭션(Activity Monitor 탭)은 다음 작업이다.
 
 ## 변경 이력
@@ -223,3 +224,4 @@ Swing은 처리기를 등록하지 않아 기본 처리기가 `System.out`에만
   모델 알림을 메인 창 알림으로 보임. PostgreSQL·SQL Server에서 실행 확인(증거: `D:\Tools\_scratch\idle-close-notifications\`)
 - 2026-11-07 에이전트 기능의 공식 이름을 Chromite Agent로 정함([ai-agent.md](ai-agent.md) "명칭"): 이 문서의 설명에서 "AI 도우미"를 바꿈.
 - 2026-11-07 상태 줄 메뉴에 트랜잭션 로그, 공용 커밋 경로를 Query 메뉴·도구 막대·단축키·열린 트랜잭션 목록도 씀([transactions.md](transactions.md))
+- 2026-11-07 연결 유형 편집기(Options > Connection Types)가 생겨 유형의 알림·기간을 바꿀 수 있음을 반영([swing-options.md](swing-options.md))
