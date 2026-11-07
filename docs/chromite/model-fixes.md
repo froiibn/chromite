@@ -3,7 +3,7 @@
 2026-11-06 통합 중 모은 후속 과제(followups-2026-11-06) 가운데 모델 번들의 결함 다섯 가지를 고친 기록이다(#47, #48, #50, #60, #70).
 형식 매핑·Copy Tables의 기본 키(#39, #51, #52, #53)는 [swing-data-transfer.md](swing-data-transfer.md) "남은 매핑과 기본 키 (2026-11-07 밤)",
 작은 수의 표시(#53)는 [swing-result-viewer.md](swing-result-viewer.md) "아주 작은 수의 표시"에 있다.
-2026-11-08의 작은 모델·안전 수정 네 가지는 아래 "작은 모델·안전·라이선스 수정 (2026-11-08)"에 있다.
+2026-11-08의 작은 모델·안전·라이선스 수정 여섯 가지는 아래 "작은 모델·안전·라이선스 수정 (2026-11-08)"에 있다.
 항목마다 증상, 근본 원인(파일:줄, 고치기 전 기준), 같은 원인의 다른 경우, 고친 방법을 적는다. 모두 DBeaver에서 온 코드라 SWT(DBeaver)에도 같은 결함이 있다.
 
 ## SQL Server 매개변수 종류 (#47)
@@ -63,7 +63,7 @@
 
 ## 작은 모델·안전·라이선스 수정 (2026-11-08)
 
-후속 과제 followups-2026-11-07-evening의 #17, #4, #5, #3이다(`chromite/small-fixes-2`). 고치기 전에 모두 코드로 다시 확인했다.
+후속 과제 followups-2026-11-07-evening의 #17, #4, #5, #3, #12와 followups-2026-11-06의 #49다(`chromite/small-fixes-2`). 고치기 전에 모두 코드로 다시 확인했다.
 줄 번호는 고치기 전 기준이다.
 
 ### 변경을 하는 모델 확인의 기본 단추 (#17)
@@ -119,6 +119,16 @@
   - 한계: 사용자가 기본 문구와 똑같은 이름(예: 한국어 "개발")을 입력하면 기본 이름으로 취급되어 다른 언어 화면에서는 번역된다.
 - 같은 원인의 다른 경우: `data-sources.json`의 `connection-types` 사본에도 번역된 이름이 들어가지만, 읽을 때 이미 있는 유형(기본 유형은 늘 있음)은 건너뛰어(`DataSourceSerializerModern`) 화면에 쓰이지 않는다. 바꾸지 않았다.
 
+### 드라이버 라이선스 표기 (#12)
+
+- MySQL 5 (Legacy)는 `lgpl-2.0.txt`, StarRocks는 GNU 사이트의 GPLv2(URL)였다. 새 파일 `gpl-2.0-mysql-foss-exception.txt`와 `gpl-2.0-universal-foss-exception.txt`로 바꿨다.
+  근거와 파일 내용은 [driver-licenses.md](driver-licenses.md) "plugin.xml의 라이선스 표기와 실제가 다른 항목".
+
+### LICENSE.md의 JFreeChart (#49)
+
+- `LICENSE.md`의 제3자 목록이 "JFreeChart - Apache 2.0"이었다. JFreeChart는 LGPL 2.1이고, 지금 제품에 없다(빌드 설정·`MANIFEST.MF`·feature에 없음, Swing 대시보드는 Java2D 차트).
+  줄을 지웠다. 다시 넣으면 LGPL 2.1로 적는다([swing-dashboard.md](swing-dashboard.md) "차트 라이브러리").
+
 ### 확인 (2026-11-08)
 
 `mvn -B clean package -f product/aggregate/pom.xml -T1C -Pproduct-chromite-swing` BUILD SUCCESS, `tools/rename/gate.py` ALL GATES PASSED.
@@ -132,9 +142,11 @@
 | #5 | Oracle 쿼리 창에서 `@export {"type":"csv","consumer":{"outputFolder":"D:/Tools/_scratch/…/export",…}}` + `SELECT … FROM dual`, 마법사 마침 | "성공: 개체 1개 중 1개를 전송했습니다", 파일 `fwd_slash.csv`(2행) 생성 |
 | #3 | 옛 형식 파일(영어 기본 이름 + 사용자 이름 "My QA")을 한국어 화면에서 열기 → 유형을 바꿔 저장 | 목록 개발 / My QA / 운영(설명도 한국어). 저장된 파일은 `Development`, `My QA`, `Production`과 영어 설명 |
 | #3 | 한국어로 저장된 옛 파일(`개발`, `일반 개발 데이터베이스`)과 사용자 이름 `Производство`(러시아어 번역 아님)를 영어 화면(`-nl en`)에서 열기 | Development / My QA / Производство, 설명 Regular development database 등 |
+| #12 | 빌드 결과물의 설치 폴더 `licenses/external/` | `gpl-2.0-mysql-foss-exception.txt`(19,108 bytes)가 있고 `gpl-2.0-universal-foss-exception.txt`(22,864 bytes) 앞 안내에 StarRocks 문단이 있음. 드라이버 설정의 License 탭은 열어 보지 않았다 |
+| #49 | `LICENSE.md` 텍스트만 바뀜 | |
 
 - 회귀 테스트는 실행하지 않았다(요청 없음). 영향받을 수 있는 기능: 모델 확인 네 가지(Enter가 이제 아니요), Oracle·YashanDB 쿼리 창의 문장 실행(문장 전에 상태 확인, 바뀐 경우만 SQL 한 번),
-  `getPathFromString`을 쓰는 모든 파일 경로(한 글자 스킴은 이제 로컬 경로), 연결 유형 저장·읽기.
+  `getPathFromString`을 쓰는 모든 파일 경로(한 글자 스킴은 이제 로컬 경로), 연결 유형 저장·읽기, MySQL 5 (Legacy)·StarRocks 드라이버의 License 탭.
 
 ## 확인 (2026-11-07)
 
@@ -162,4 +174,4 @@
 - 2026-11-07 최초 작성: SQL Server 매개변수 종류(#47), MariaDB 패키지 캐시(#48), PostgreSQL Block IO 단위(#50), PostgreSQL 복사한 열의 COLLATE·STORAGE(#60),
   MySQL/MariaDB 계획 비용(#70).
 - 2026-11-08 "작은 모델·안전·라이선스 수정": 변경을 하는 모델 확인 네 곳의 기본 단추(#17), Oracle DBMS_OUTPUT을 열린 세션에도 적용(#4), 슬래시 Windows 경로(#5),
-  연결 유형 이름의 언어(#3).
+  연결 유형 이름의 언어(#3), MySQL 5 (Legacy)·StarRocks 라이선스 표기(#12), `LICENSE.md`의 JFreeChart 줄(#49).
