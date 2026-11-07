@@ -106,6 +106,10 @@ import java.util.Set;
  *     스키마 행의 체크 상자가 그 스키마 전체를 고른다. 트리 대신 같은 표에 머리 행을 둔 것은 체크 상자·전체 선택·요약이 같은 원본 목록을 쓰게
  *     하기 위해서다. 시스템 스키마는 기본으로 숨기고 체크 상자로 보일 때 그 스키마만 읽는다. producer는 스키마와 관계없이 고른 원본마다 만든다.
  *     여러 스키마에 같은 이름의 테이블이 있으면 파일 이름 패턴에 {@code ${schema}}가 있어야 다음으로 간다(파일이 서로 덮어쓰지 않도록).</li>
+ *     <li>{@code @export} 명령({@link SqlExportPragma}): SWT처럼 마법사를 열고 명령의 형식, 형식 속성, 출력({@code consumer})·원본({@code producer})
+ *     옵션을 미리 채운다. 화면에 칸이 있는 옵션은 칸에 넣어 사용자가 보고 고칠 수 있게 하고, 칸이 없는 옵션(파일 나누기, 시각 형식, 가져오기 크기 등)은
+ *     내보낼 때 설정에 넣는다. 받는 옵션은 {@link #EXPORT_CONSUMER_OPTIONS}·{@link #EXPORT_PRODUCER_OPTIONS}이고 나머지는 명령 처리기가 거절한다.
+ *     명령으로 연 마법사는 폴더·패턴·형식·형식 속성을 기억하지 않는다. 스크립트의 옵션이 Export Data…의 기본값을 바꾸면 안 되기 때문이다.</li>
  * </ul>
  *
  * 변경 이력:
@@ -116,6 +120,8 @@ import java.util.Set;
  * - 2026-11-06 테이블 복사: 형식 목록의 "Database"와 Copy Tables… 진입점, 복사 단계({@link DatabaseCopyPages}) (docs/chromite/swing-data-transfer.md)
  * - 2026-11-06 데이터베이스 노드에서 Export Data…·Copy Tables…: 스키마별로 묶은 원본 목록, 시스템 스키마 보이기, 같은 이름 파일 검사
  *   (docs/chromite/swing-data-transfer.md "데이터베이스 노드")
+ * - 2026-11-07 스크립트의 {@code @export} 명령: 다음 쿼리를 원본으로, 명령의 형식·옵션을 미리 채워 연다({@link #openForExportCommand},
+ *   {@link ExportCommand}) (docs/chromite/swing-data-transfer.md "@export 명령")
  */
 final class DataExportWizard extends DataTransferWizard {
 
@@ -125,6 +131,58 @@ final class DataExportWizard extends DataTransferWizard {
     private static final String PREF_BOM = "dataTransfer.export.bom"; //$NON-NLS-1$
     private static final String PREF_FORMAT = "dataTransfer.export.format"; //$NON-NLS-1$
     private static final String PREF_OPEN_FOLDER = "dataTransfer.export.openFolder"; //$NON-NLS-1$
+
+    // @export options: the setting names of StreamConsumerSettings / DatabaseProducerSettings (their loadSettings)
+    private static final String EXPORT_OUTPUT_FOLDER = "outputFolder"; //$NON-NLS-1$
+    private static final String EXPORT_OUTPUT_PATTERN = "outputFilePattern"; //$NON-NLS-1$
+    private static final String EXPORT_OUTPUT_ENCODING = "outputEncoding"; //$NON-NLS-1$
+    private static final String EXPORT_OUTPUT_BOM = "outputEncodingBOM"; //$NON-NLS-1$
+    private static final String EXPORT_OUTPUT_CLIPBOARD = "outputClipboard"; //$NON-NLS-1$
+    private static final String EXPORT_COMPRESS = "compressResults"; //$NON-NLS-1$
+    private static final String EXPORT_SINGLE_FILE = "useSingleFile"; //$NON-NLS-1$
+    private static final String EXPORT_OPEN_FOLDER = "openFolderOnFinish"; //$NON-NLS-1$
+    private static final String EXPORT_DELETE_ON_FAILURE = "deleteFileInCaseOfFail"; //$NON-NLS-1$
+    private static final String EXPORT_CONFLICT = "dataFileConflictBehavior"; //$NON-NLS-1$
+    private static final String EXPORT_VALUE_FORMAT = "valueFormat"; //$NON-NLS-1$
+    private static final String EXPORT_LOB_EXTRACT = "lobExtractType"; //$NON-NLS-1$
+    private static final String EXPORT_LOB_ENCODING = "lobEncoding"; //$NON-NLS-1$
+    private static final String EXPORT_TIMESTAMP_PATTERN = "outputTimestampPattern"; //$NON-NLS-1$
+    private static final String EXPORT_SPLIT_FILES = "splitOutFiles"; //$NON-NLS-1$
+    private static final String EXPORT_MAX_FILE_SIZE = "maxOutFileSize"; //$NON-NLS-1$
+    private static final String EXPORT_FETCH_SIZE = "fetchSize"; //$NON-NLS-1$
+    private static final String EXPORT_OPEN_NEW_CONNECTIONS = "openNewConnections"; //$NON-NLS-1$
+    private static final String EXPORT_QUERY_ROW_COUNT = "queryRowCount"; //$NON-NLS-1$
+    private static final String EXPORT_EXTRACT_TYPE = "extractType"; //$NON-NLS-1$
+    private static final String EXPORT_SEGMENT_SIZE = "segmentSize"; //$NON-NLS-1$
+
+    /**
+     * The {@code consumer} options of {@code @export} the wizard applies; others are refused by the command's handler.
+     */
+    static final Set<String> EXPORT_CONSUMER_OPTIONS = Set.of(EXPORT_OUTPUT_FOLDER, EXPORT_OUTPUT_PATTERN, EXPORT_OUTPUT_ENCODING,
+        EXPORT_OUTPUT_BOM, EXPORT_OUTPUT_CLIPBOARD, EXPORT_COMPRESS, EXPORT_SINGLE_FILE, EXPORT_OPEN_FOLDER, EXPORT_DELETE_ON_FAILURE,
+        EXPORT_CONFLICT, EXPORT_VALUE_FORMAT, EXPORT_LOB_EXTRACT, EXPORT_LOB_ENCODING, EXPORT_TIMESTAMP_PATTERN, EXPORT_SPLIT_FILES,
+        EXPORT_MAX_FILE_SIZE);
+    /**
+     * The {@code producer} options of {@code @export} the wizard applies. The grid selection options (selected rows or
+     * columns, fetched rows only) do not apply to a query that has not run.
+     */
+    static final Set<String> EXPORT_PRODUCER_OPTIONS = Set.of(EXPORT_FETCH_SIZE, EXPORT_OPEN_NEW_CONNECTIONS, EXPORT_QUERY_ROW_COUNT,
+        EXPORT_EXTRACT_TYPE, EXPORT_SEGMENT_SIZE);
+
+    /**
+     * Options of an {@code @export} script command, checked by its handler ({@link SqlExportPragma}).
+     *
+     * @param processorProperties the format's properties, converted to their types
+     * @param consumer            output options ({@link #EXPORT_CONSUMER_OPTIONS})
+     * @param producer            source options ({@link #EXPORT_PRODUCER_OPTIONS})
+     */
+    record ExportCommand(
+        @NotNull DataTransferProcessorDescriptor processor,
+        @NotNull Map<String, Object> processorProperties,
+        @NotNull Map<String, Object> consumer,
+        @NotNull Map<String, Object> producer
+    ) {
+    }
 
     /**
      * Format properties edited in this session, by processor id (the SWT wizard keeps them in its dialog settings).
@@ -218,6 +276,11 @@ final class DataExportWizard extends DataTransferWizard {
         new JComboBox<>(StreamConsumerSettings.DataFileConflictBehavior.values());
     private final JCheckBox openFolderCheck = new JCheckBox(ToolsMessages.export_output_open_folder);
     private final JCheckBox deleteOnFailureCheck = new JCheckBox(ToolsMessages.export_output_delete_on_failure, true);
+    /**
+     * Options of the {@code @export} command the wizard was opened for, or null.
+     */
+    @Nullable
+    private final ExportCommand exportCommand;
 
     private DataExportWizard(
         @Nullable Window owner,
@@ -228,10 +291,12 @@ final class DataExportWizard extends DataTransferWizard {
         @Nullable String orderNote,
         boolean copyOnly,
         @Nullable ObjectExplorerPanel.QueryWindows queryWindows,
-        @Nullable List<DataTransferObjects.SchemaTables> schemas
+        @Nullable List<DataTransferObjects.SchemaTables> schemas,
+        @Nullable ExportCommand exportCommand
     ) {
         super(owner, copyOnly ? DbCopyMessages.copy_title : ToolsMessages.export_title);
         this.query = query;
+        this.exportCommand = exportCommand;
         this.queryFilter = queryFilter;
         this.orderNote = orderNote;
         this.copyOnly = copyOnly;
@@ -265,6 +330,11 @@ final class DataExportWizard extends DataTransferWizard {
                 processor = descriptor;
             }
         }
+        if (exportCommand != null) {
+            // The command's format with its properties over the format's defaults (not the ones edited in this session)
+            processor = exportCommand.processor();
+            processorProperties = new PropertySourceCustom(processor.getProperties(), exportCommand.processorProperties());
+        }
         if (query != null) {
             readContextDefaults(query);
         }
@@ -278,6 +348,10 @@ final class DataExportWizard extends DataTransferWizard {
             pages.addAll(copy.createPages());
         }
         pages.addAll(List.of(new FormatSettingsPage(), new OutputPage(), new SummaryPage()));
+        if (exportCommand != null) {
+            // After the pages: they put the remembered values into the fields first
+            applyExportCommandFields(exportCommand.consumer());
+        }
         initWizard(pages);
     }
 
@@ -348,7 +422,7 @@ final class DataExportWizard extends DataTransferWizard {
                 JOptionPane.INFORMATION_MESSAGE);
             return;
         }
-        new DataExportWizard(SwingUtilities.getWindowAncestor(parent), containers, selected, null, null, null, copyOnly, queryWindows, null).open();
+        new DataExportWizard(SwingUtilities.getWindowAncestor(parent), containers, selected, null, null, null, copyOnly, queryWindows, null, null).open();
     }
 
     /**
@@ -383,7 +457,7 @@ final class DataExportWizard extends DataTransferWizard {
                 JOptionPane.INFORMATION_MESSAGE);
             return;
         }
-        new DataExportWizard(SwingUtilities.getWindowAncestor(parent), containers, Set.of(), null, null, null, copyOnly, queryWindows, schemas).open();
+        new DataExportWizard(SwingUtilities.getWindowAncestor(parent), containers, Set.of(), null, null, null, copyOnly, queryWindows, schemas, null).open();
     }
 
     /**
@@ -422,7 +496,99 @@ final class DataExportWizard extends DataTransferWizard {
             return;
         }
         new DataExportWizard(SwingUtilities.getWindowAncestor(parent), List.of(container), Set.of(container), (SQLQueryContainer) container,
-            filter != null && filter.hasFilters() ? new DBDDataFilter(filter) : null, orderNote, false, null, null).open();
+            filter != null && filter.hasFilters() ? new DBDDataFilter(filter) : null, orderNote, false, null, null, null).open();
+    }
+
+    /**
+     * Opens the wizard for the query that follows an {@code @export} command, with the command's format and options
+     * (the command's handler checked them). The query runs in the export, not in the query window.
+     */
+    static void openForExportCommand(@Nullable Component parent, @NotNull DBSDataContainer container, @NotNull ExportCommand command) {
+        if (!canExportQuery(container)) {
+            return;
+        }
+        Window owner = parent == null ? null : parent instanceof Window window ? window : SwingUtilities.getWindowAncestor(parent);
+        new DataExportWizard(owner, List.of(container), Set.of(container), (SQLQueryContainer) container, null, null, false, null, null,
+            command).open();
+    }
+
+    /**
+     * Puts the {@code @export} output options that have a field on the pages into the fields, so the user sees them.
+     */
+    private void applyExportCommandFields(@NotNull Map<String, Object> consumer) {
+        if (consumer.containsKey(EXPORT_OUTPUT_FOLDER)) {
+            folderField.setText(CommonUtils.toString(consumer.get(EXPORT_OUTPUT_FOLDER)));
+        }
+        if (consumer.containsKey(EXPORT_OUTPUT_PATTERN)) {
+            patternField.setText(CommonUtils.toString(consumer.get(EXPORT_OUTPUT_PATTERN)));
+        }
+        if (consumer.containsKey(EXPORT_OUTPUT_ENCODING)) {
+            encodingCombo.setSelectedItem(CommonUtils.toString(consumer.get(EXPORT_OUTPUT_ENCODING)));
+        }
+        applyCheck(consumer, EXPORT_OUTPUT_BOM, bomCheck);
+        applyCheck(consumer, EXPORT_OUTPUT_CLIPBOARD, clipboardCheck);
+        applyCheck(consumer, EXPORT_COMPRESS, compressCheck);
+        applyCheck(consumer, EXPORT_SINGLE_FILE, singleFileCheck);
+        applyCheck(consumer, EXPORT_OPEN_FOLDER, openFolderCheck);
+        applyCheck(consumer, EXPORT_DELETE_ON_FAILURE, deleteOnFailureCheck);
+        if (consumer.containsKey(EXPORT_CONFLICT)) {
+            conflictCombo.setSelectedItem(CommonUtils.valueOf(StreamConsumerSettings.DataFileConflictBehavior.class,
+                CommonUtils.toString(consumer.get(EXPORT_CONFLICT)), (StreamConsumerSettings.DataFileConflictBehavior) conflictCombo.getSelectedItem()));
+        }
+        if (consumer.containsKey(EXPORT_VALUE_FORMAT)) {
+            valueFormatCombo.setSelectedItem(DBDDisplayFormat.safeValueOf(CommonUtils.toString(consumer.get(EXPORT_VALUE_FORMAT))));
+        }
+        if (consumer.containsKey(EXPORT_LOB_EXTRACT)) {
+            lobExtractCombo.setSelectedItem(CommonUtils.valueOf(StreamConsumerSettings.LobExtractType.class,
+                CommonUtils.toString(consumer.get(EXPORT_LOB_EXTRACT)), (StreamConsumerSettings.LobExtractType) lobExtractCombo.getSelectedItem()));
+        }
+        if (consumer.containsKey(EXPORT_LOB_ENCODING)) {
+            lobEncodingCombo.setSelectedItem(CommonUtils.valueOf(StreamConsumerSettings.LobEncoding.class,
+                CommonUtils.toString(consumer.get(EXPORT_LOB_ENCODING)), (StreamConsumerSettings.LobEncoding) lobEncodingCombo.getSelectedItem()));
+        }
+    }
+
+    private static void applyCheck(@NotNull Map<String, Object> options, @NotNull String key, @NotNull JCheckBox check) {
+        if (options.containsKey(key)) {
+            check.setSelected(CommonUtils.toBoolean(options.get(key)));
+        }
+    }
+
+    /**
+     * The {@code @export} options without a field on the pages, into the settings of the transfer.
+     */
+    private static void applyExportCommandSettings(
+        @NotNull ExportCommand command,
+        @NotNull DatabaseProducerSettings producerSettings,
+        @NotNull StreamConsumerSettings output
+    ) {
+        Map<String, Object> producer = command.producer();
+        if (producer.containsKey(EXPORT_FETCH_SIZE)) {
+            producerSettings.setFetchSize(CommonUtils.toInt(producer.get(EXPORT_FETCH_SIZE), producerSettings.getFetchSize()));
+        }
+        if (producer.containsKey(EXPORT_OPEN_NEW_CONNECTIONS)) {
+            producerSettings.setOpenNewConnections(CommonUtils.toBoolean(producer.get(EXPORT_OPEN_NEW_CONNECTIONS)));
+        }
+        if (producer.containsKey(EXPORT_QUERY_ROW_COUNT)) {
+            producerSettings.setQueryRowCount(CommonUtils.toBoolean(producer.get(EXPORT_QUERY_ROW_COUNT)));
+        }
+        if (producer.containsKey(EXPORT_EXTRACT_TYPE)) {
+            producerSettings.setExtractType(CommonUtils.valueOf(DatabaseProducerSettings.ExtractType.class,
+                CommonUtils.toString(producer.get(EXPORT_EXTRACT_TYPE)), producerSettings.getExtractType()));
+        }
+        if (producer.containsKey(EXPORT_SEGMENT_SIZE)) {
+            producerSettings.setSegmentSize(CommonUtils.toInt(producer.get(EXPORT_SEGMENT_SIZE), producerSettings.getSegmentSize()));
+        }
+        Map<String, Object> consumer = command.consumer();
+        if (consumer.containsKey(EXPORT_TIMESTAMP_PATTERN)) {
+            output.setOutputTimestampPattern(CommonUtils.toString(consumer.get(EXPORT_TIMESTAMP_PATTERN)));
+        }
+        if (consumer.containsKey(EXPORT_SPLIT_FILES)) {
+            output.setSplitOutFiles(CommonUtils.toBoolean(consumer.get(EXPORT_SPLIT_FILES)));
+        }
+        if (consumer.containsKey(EXPORT_MAX_FILE_SIZE)) {
+            output.setMaxOutFileSize(CommonUtils.toLong(consumer.get(EXPORT_MAX_FILE_SIZE)));
+        }
     }
 
     /**
@@ -490,13 +656,19 @@ final class DataExportWizard extends DataTransferWizard {
         settings.selectConsumer(consumerNode, processor, true);
         Map<String, Object> properties = processorProperties.getPropertiesWithDefaults();
         settings.setProcessorProperties(properties);
-        processorPropertiesHistory.put(processor.getId(), new HashMap<>(processorProperties.getPropertyValues()));
+        // An @export command's options belong to its script: they do not become the defaults of Export Data…
+        if (exportCommand == null) {
+            processorPropertiesHistory.put(processor.getId(), new HashMap<>(processorProperties.getPropertyValues()));
+        }
 
         try {
             if (settings.getNodeSettings(producers.getFirst()) instanceof DatabaseProducerSettings producerSettings) {
                 // Field defaults of the SWT wizard's first run: own connection (isolated), row count for the progress
                 producerSettings.setOpenNewConnections(true);
                 producerSettings.setQueryRowCount(true);
+                if (exportCommand != null && settings.getNodeSettings(consumerNode) instanceof StreamConsumerSettings output) {
+                    applyExportCommandSettings(exportCommand, producerSettings, output);
+                }
             }
         } catch (DBException e) {
             DBWorkbench.getPlatformUI().showError(ToolsMessages.export_title, ToolsMessages.export_error_configure, e);
@@ -523,7 +695,9 @@ final class DataExportWizard extends DataTransferWizard {
         if (deleteOnFailureCheck.isSelected()) {
             output.getEventProcessorSettings(FailedExportFileCleanerProcessor.ID);
         }
-        saveOutputPreferences();
+        if (exportCommand == null) {
+            saveOutputPreferences();
+        }
         return settings;
     }
 

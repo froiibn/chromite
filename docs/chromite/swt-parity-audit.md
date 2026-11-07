@@ -81,7 +81,7 @@ SWT 프런트엔드를 지울 때(#68) 기능 전체 목록과 맞춰 보지 않
 - 탐색기에서 개체 삭제·이름 바꾸기, 이름 복사, 여러 개 선택, Generate SQL의 INSERT/UPDATE/DELETE 등.
 - 설정 화면: 트랜잭션, 연결 유형, 편집기·결과 기본값(설정 페이지 62개 중 45개는 Swing에서 바꿀 화면이 없음).
 - Oracle 사용자·역할·권한 관리, Oracle NLS 세션 설정, Altibase 잠금 탭, TRUNCATE·트리거 켜기/끄기·구체화된 뷰 새로 고침.
-- `@export` 명령이 무시됨(오류 없이 다음 쿼리 실행).
+- ~~`@export` 명령이 무시됨(오류 없이 다음 쿼리 실행).~~ 2026-11-07 고침: 형식·옵션을 채운 Export Data 마법사로 내보냄([swing-data-transfer.md](swing-data-transfer.md) "@export 명령").
 
 ### 4순위
 
@@ -103,4 +103,4 @@ SWT 사용자가 잃은 기능은 아니다. 그래도 옮길지는 따로 정�
 - 2026-11-07 2순위 A-S6(Windows 인증서 저장소), A-S14(macOS 끝내기·정보·환경설정) 고침([platform-startup.md](platform-startup.md)).
 - 2026-11-07 1순위 남은 두 줄 고침: A-S2 유휴 연결 닫기, A-S7 모델 알림([idle-transactions.md](idle-transactions.md)). #97로 고친 A-S1·A-S3·B-S23·B-S24의 상태도 영역 보고서에 반영.
 - 2026-11-07 A-C14 없음 → 일부: 연결 내보내기·가져오기(비밀번호는 암호로 암호화한 파일)([connection-transfer.md](connection-transfer.md)).
-- 2026-11-07 3순위 1차: 트랜잭션 줄(커밋/롤백 명령과 도구 단추, 트랜잭션 로그, 열린 트랜잭션 목록, [transactions.md](transactions.md)) 고침. 영역 A-C1·A-C2·A-C3·A-C4, B-S17·B-S20·B-S21 상태 갱신.
+- 2026-11-07 3순위 1차: 트랜잭션 줄(커밋/롤백 명령과 도구 단추, 트랜잭션 로그, 열린 트랜잭션 목록, [transactions.md](transactions.md))과 `@export` 줄([swing-data-transfer.md](swing-data-transfer.md) "@export 명령") 고침. 영역 A-C1·A-C2·A-C3·A-C4, B-S12·B-S17·B-S20·B-S21 상태 갱신.

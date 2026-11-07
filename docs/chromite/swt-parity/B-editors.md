@@ -58,7 +58,7 @@
 | S9 | 매개변수 `:name`, `${var}` 입력 | `SQLQueryParameterBindDialog`, `SQLEditorParametersProvider` | 있음 | `SqlParameterDialog`, swing-sql-editor-plus.md "매개변수" | 중간 | 값 기억 포함 |
 | S10 | `@set` 변수의 편집기 단위 유지, 변수 패널 | `SQLEditor` 전역 스크립트 문맥, `show.variables`, `SQLVariablesPanel` | 일부 | 실행마다 새 `SQLScriptContext`(`SqlEditorPanel.java:1022`) | 중간 | 한 번 실행 안에서만 `@set`이 살아 있음. 변수 보기·지우기 없음 |
 | S11 | `@include` | `ui.editors.sql/plugin.xml:55` `SQLCommandInclude` | 없음 | model.sql은 set/unset/echo/export만 등록(`model.sql/plugin.xml:72-75`) | 낮음 | 알 수 없는 명령 오류가 남 |
-| S12 | `@export` | `SQLCommandExport` + `data.transfer.ui` `SQLPragmaExport` | **조용히 끊김** | `SQLQueryExecuteJob.java:432` 처리기 없음 → 건너뜀 | 중간 | 위 요약 6 |
+| S12 | `@export` | `SQLCommandExport` + `data.transfer.ui` `SQLPragmaExport` | **있음** (2026-11-07, [swing-data-transfer.md](../swing-data-transfer.md) "@export 명령": Swing 처리기 `SqlExportPragma`가 다음 쿼리를 실행하지 않고 형식·옵션을 채운 Export Data 마법사를 엶, 모르는 형식·옵션과 SELECT가 아닌 다음 문장은 오류). 조사 당시: 조용히 끊김 | `SQLQueryExecuteJob.java:432` 처리기 없음 → 건너뜀 | 중간 | 위 요약 6 |
 | S13 | `@echo` 등 제어 명령 출력 | `SQLEditorOutputConsoleViewer` | 있음 | Messages 탭(swing-frontend.md C단계 "스크립트 문맥") | 낮음 | |
 | S14 | 오류 때 묻기(Stop/Retry/Ignore/Ignore all), 오류 처리 설정 | `showErrorStopRetryIgnore`, `PrefPageSQLExecute` | 일부 | `SqlEditorPanel.java:1372-1379` 늘 STOP | 중간 | 무시하고 계속할 방법 없음 |
 | S15 | 커밋 방식 설정(문장마다·스크립트 끝·N줄마다) | `PrefPageSQLExecute`, `SQLScriptCommitType` | 없음 | 엔진 기본 `NO_COMMIT`(swing-frontend.md C단계 "커밋·오류 처리") | 중간 | |
@@ -198,7 +198,7 @@ swing-security.md는 DB 보안(로그인·역할·권한) 문서이고 연결 �
 7. S17·S18 Commit/Rollback·커밋 방식 전환 명령 없음 (없음, 높음, 결정 대기) — 2026-11-07 S17 수정([transactions.md](../transactions.md)), S18 남음
 8. S22 쿼리 창별 별도 연결 없음 — 창들이 한 트랜잭션을 나눠 씀 (없음, 높음)
 9. S20·S21 트랜잭션 로그·모니터·미결 트랜잭션 보기 없음 (없음, 높음) — 2026-11-07 수정([transactions.md](../transactions.md))
-10. S12 `@export` 무시 / S8 스크립트 실행 제한 무시 (조용히 끊김, 중간)
+10. S12 `@export` 무시 / S8 스크립트 실행 제한 무시 (조용히 끊김, 중간) — 2026-11-07 S12 수정([swing-data-transfer.md](../swing-data-transfer.md) "@export 명령")
 
 ## 확인하지 못한 것
 

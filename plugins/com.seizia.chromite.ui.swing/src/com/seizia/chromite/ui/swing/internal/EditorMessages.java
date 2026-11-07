@@ -40,7 +40,7 @@ import org.eclipse.osgi.util.NLS;
  * - 2026-11-07 쿼리 창 실행 제한, 위험한 문 확인 문구({@code editor_sql_execution_restricted*}, {@code editor_sql_danger_*})
  *   (docs/chromite/swing-sql-exec-safety.md)
  * - 2026-11-07 Commit / Roll Back 도구 설명, 트랜잭션 로그·열린 트랜잭션 목록 문구({@code editor_txn_log_*}, {@code editor_txn_list_*})
- *   (docs/chromite/transactions.md)
+ *   (docs/chromite/transactions.md), {@code @export} 안내 줄({@code editor_sql_export_command}, docs/chromite/swing-data-transfer.md)
  */
 public class EditorMessages extends NLS {
     private static final String BUNDLE_NAME = "com.seizia.chromite.ui.swing.internal.EditorMessages"; //$NON-NLS-1$
@@ -256,6 +256,7 @@ public class EditorMessages extends NLS {
     public static String editor_txn_list_col_idle;
     public static String editor_txn_list_statements;
     public static String editor_txn_list_running;
+    public static String editor_sql_export_command;
 
     // Results (QueryResultsView)
     public static String editor_results_none;
