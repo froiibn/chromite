@@ -41,6 +41,7 @@ upstream의 전체 구조는 [AGENTS.md](../../AGENTS.md)와 [AGENTS-Architectur
 | [swing-security.md](swing-security.md) | Swing 보안 편집기: 로그인·사용자·역할 속성(일반, 역할 멤버 자격, SQL Server 사용자 매핑, 사용 권한), 새로 만들기·삭제, 개체 사용 권한(허용·권한 부여·거부), 스크립트 미리 보기 후 실행 |
 | [swing-query-library.md](swing-query-library.md) | Swing Query Library: 자주 쓰는 쿼리 트리(파일 하나 = 쿼리 하나, 여러 루트), 실행, 매개변수 매핑(안전한 바인딩), 예약 실행, 공유(공유 폴더 자동 새로 고침, Git, 내보내기·가져오기, 저장 충돌) |
 | [swing-erd.md](swing-erd.md) | Swing ER 다이어그램(View Diagram): 스키마·테이블의 관계도, 자동 배치, 확대·이동, PNG·SVG·.erd 내보내기, SWT와 같은 곳에 배치 저장 |
+| [schema-compare.md](schema-compare.md) | 스키마 비교(Tools > Compare Schemas…): 같은·다른 연결의 두 스키마 비교(테이블·열·키·인덱스·뷰·루틴·트리거·시퀀스), 결과 트리와 DDL 나란히 보기, 대상 드라이버의 객체 관리자로 만드는 마이그레이션 스크립트(실행하지 않음, DROP은 처음에 꺼짐) |
 | [procedure-debugger.md](procedure-debugger.md) | 프로시저 디버거: PostgreSQL pldbgapi(중단점, 단계 실행, 변수·호출 스택, attach 모드), Oracle DBMS_DEBUG(디버그 컴파일 질문, 프로시저 나가기, 권한 안내), 복원한 디버그 모델, 끝낼 때 트랜잭션 질문, SQL Server·MySQL·Altibase 가능성과 추정 |
 | [swing-source-editor.md](swing-source-editor.md) | Swing 개체 정의 편집: Modify·Script as ALTER(SWT 소스 탭 저장과 같은 객체 관리자 스크립트), New View/Procedure/Function 템플릿, 실행 뒤 노드 다시 읽기 |
 | [swing-sqlserver-agent.md](swing-sqlserver-agent.md) | Swing SQL Server 에이전트 관리: 개체 탐색기의 에이전트 노드(서비스 상태), 작업(속성·단계·일정·알림, 시작·중지·사용·기록·스크립트), 작업 활동 모니터, 경고, 운영자, 오류 로그, 프록시(읽기), 권한·에이전트 멈춤 처리 |

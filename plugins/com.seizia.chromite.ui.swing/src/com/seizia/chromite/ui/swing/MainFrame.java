@@ -19,6 +19,7 @@ package com.seizia.chromite.ui.swing;
 import com.formdev.flatlaf.FlatClientProperties;
 import com.formdev.flatlaf.util.UIScale;
 import com.seizia.chromite.ui.swing.internal.AiMessages;
+import com.seizia.chromite.ui.swing.internal.CompareMessages;
 import com.seizia.chromite.ui.swing.internal.ConnectionTransferMessages;
 import com.seizia.chromite.ui.swing.internal.CoreMessages;
 import com.seizia.chromite.ui.swing.internal.DashboardMessages;
@@ -205,6 +206,7 @@ import java.util.function.Supplier;
  * - 2026-11-08 문서 탭 UI가 {@link ChromiteTabbedPaneUI}를 상속: 테마를 바꾼 뒤 숨겨진 탭 단추의 도구 설명이 사라지던 문제
  *   (docs/chromite/swing-followup-fixes.md "작은 화면 수정")
  * - 2026-11-08 Save As 덮어쓰기 확인은 바꾸기 / 취소 단추(취소가 기본), 결과 표 변경 저장 질문은 취소가 기본 (docs/chromite/swing-frontend.md "실행 확인의 기본 단추")
+ * - 2026-11-08 Tools &gt; Compare Schemas… ({@link SchemaComparePanel}, docs/chromite/schema-compare.md)
  */
 final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplorerPanel.QueryWindows, TableDesignerPanel.Host, QueryLibraryPanel.Host {
 
@@ -1661,6 +1663,9 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
         JMenuItem findObjectsItem = new JMenuItem(CoreMessages.main_find_objects);
         findObjectsItem.setMnemonic(KeyEvent.VK_F);
         findObjectsItem.addActionListener(e -> openObjectSearch(explorerPanel.getSelectedNode()));
+        JMenuItem compareSchemasItem = new JMenuItem(CompareMessages.compare_command);
+        compareSchemasItem.setToolTipText(CompareMessages.compare_command_tip);
+        compareSchemasItem.addActionListener(e -> SchemaComparePanel.open(this, explorerPanel.getSelectedNode()));
         JMenuItem driverManagerItem = new JMenuItem(DriverManagerMessages.drivermgr_menu);
         driverManagerItem.setToolTipText(DriverManagerMessages.drivermgr_menu_tip);
         driverManagerItem.addActionListener(e -> DriverManagerDialog.open(this));
@@ -1672,6 +1677,7 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
         AdminViewCommands.addMenuItems(toolsMenu, this::openActivityMonitor);
         toolsMenu.add(openTransactionsItem);
         toolsMenu.add(findObjectsItem);
+        toolsMenu.add(compareSchemasItem);
         toolsMenu.addSeparator();
         toolsMenu.add(driverManagerItem);
         toolsMenu.add(optionsItem);

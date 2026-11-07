@@ -22,6 +22,7 @@ import com.formdev.flatlaf.util.UIScale;
 import com.seizia.chromite.model.admin.security.SecurityPrincipal;
 import com.seizia.chromite.ui.swing.internal.AgentMessages;
 import com.seizia.chromite.ui.swing.internal.BackupRestoreMessages;
+import com.seizia.chromite.ui.swing.internal.CompareMessages;
 import com.seizia.chromite.ui.swing.internal.CoreMessages;
 import com.seizia.chromite.ui.swing.internal.DashboardMessages;
 import com.seizia.chromite.ui.swing.internal.DbCopyMessages;
@@ -210,6 +211,7 @@ import java.util.function.Supplier;
  *   (docs/chromite/swing-explorer-object-actions.md)
  * - 2026-11-08 테이블 잘라내기·트리거 사용/사용 안 함·구체화된 뷰 새로 고침 메뉴({@link ObjectMaintenanceCommands})
  *   (docs/chromite/swing-explorer-object-actions.md "유지 관리 명령")
+ * - 2026-11-08 Compare Schemas… 메뉴({@link SchemaComparePanel}, docs/chromite/schema-compare.md)
  */
 final class ObjectExplorerPanel extends JPanel {
 
@@ -317,6 +319,7 @@ final class ObjectExplorerPanel extends JPanel {
     private final List<Action> adminViewActions;
     private final Action maintenanceAction;
     private final Action findObjectsAction;
+    private final Action compareSchemasAction;
     private final Action designAction;
     private final Action newTableAction;
     private final Action viewDiagramAction;
@@ -448,6 +451,8 @@ final class ObjectExplorerPanel extends JPanel {
         adminViewActions = AdminViewCommands.createActions(tab -> runOnSelectedDataSource(dataSource -> queryWindows.openActivityMonitor(dataSource, tab)));
         findObjectsAction = createAction(CoreMessages.main_find_objects, () -> queryWindows.openObjectSearch(getSelectedNavigatorNode()));
         findObjectsAction.putValue(Action.SHORT_DESCRIPTION, CoreMessages.explorer_find_objects_tip);
+        compareSchemasAction = createAction(CompareMessages.compare_command, () -> SchemaComparePanel.open(queryWindows, getSelectedNavigatorNode()));
+        compareSchemasAction.putValue(Action.SHORT_DESCRIPTION, CompareMessages.compare_command_tip);
         designAction = createAction(CoreMessages.explorer_design, () -> {
             if (getSelectedObject() instanceof DBSEntity table) {
                 queryWindows.designTable(table);
@@ -652,6 +657,7 @@ final class ObjectExplorerPanel extends JPanel {
         popupMenu.add(dashboardAction);
         adminViewActions.forEach(popupMenu::add);
         popupMenu.add(findObjectsAction);
+        popupMenu.add(compareSchemasAction);
         popupMenu.addSeparator();
         popupMenu.add(editConnectionAction);
         popupMenu.add(objectCommands.getCopyNameAction());
@@ -884,6 +890,7 @@ final class ObjectExplorerPanel extends JPanel {
         dashboardAction.setEnabled(dataSource != null);
         adminViewActions.forEach(action -> action.setEnabled(dataSource != null));
         findObjectsAction.setEnabled(projectNode != null);
+        compareSchemasAction.setEnabled(projectNode != null);
         editConnectionAction.setEnabled(connectionNode);
         renameAction.setEnabled(connectionNode || ExplorerObjectCommands.canRename(getSelectedNavigatorNode()));
         boolean principal = SecurityCommands.canOpenProperties(object);
