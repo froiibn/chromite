@@ -19,9 +19,11 @@ package com.seizia.chromite.ui.swing;
 import com.formdev.flatlaf.FlatClientProperties;
 import com.formdev.flatlaf.util.UIScale;
 import com.seizia.chromite.ui.swing.internal.AiMessages;
+import com.seizia.chromite.ui.swing.internal.BackupRestoreMessages;
 import com.seizia.chromite.ui.swing.internal.ConnectionTransferMessages;
 import com.seizia.chromite.ui.swing.internal.CoreMessages;
 import com.seizia.chromite.ui.swing.internal.DashboardMessages;
+import com.seizia.chromite.ui.swing.internal.DatabaseTasksMessages;
 import com.seizia.chromite.ui.swing.internal.DriverManagerMessages;
 import com.seizia.chromite.ui.swing.internal.ToolbarMessages;
 import io.github.andrewauclair.moderndocking.DockingRegion;
@@ -209,6 +211,8 @@ import java.util.function.Supplier;
  * - 2026-11-08 View &gt; Compact Mode(촘촘한 모드, {@link UiDensity}) (docs/chromite/design-spec.md "적용 현황 — 촘촘한 모드")
  * - 2026-11-08 Query History에서 연 바인딩 실행은 기록된 값으로 다시 바인딩(Execute는 묻지 않음)
  *   (docs/chromite/swing-query-library.md "매개변수 대화상자와 바인딩 하나로")
+ * - 2026-11-08 Database Tasks 도구 창(저장한 작업, {@link DatabaseTasksPanel}, 기본 숨김, Query Library와 같은 탭 묶음)과
+ *   Query &gt; Run with Native Client…(저장한 쿼리 창 파일을 psql·mysql·sqlplus로 실행) (docs/chromite/swing-database-tasks.md)
  */
 final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplorerPanel.QueryWindows, TableDesignerPanel.Host, QueryLibraryPanel.Host {
 
@@ -298,6 +302,11 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
      * Query &gt; Trace Execution…: traces the SQL Server procedure of the active Modify window (enabled when the Query menu opens).
      */
     private final Action traceAction;
+    /**
+     * Query &gt; Run with Native Client…: runs the active query window's saved file with psql, mysql or sqlplus (enabled when
+     * the Query menu opens).
+     */
+    private final Action nativeScriptAction;
     /**
      * Query &gt; Commit / Roll Back (also on the SQL Editor tool bar): enabled while the active query window shows an
      * open transaction that no statement is running in.
@@ -462,7 +471,12 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
         AIAgentServices.setConfirmationHandler(new AiConfirmationDialog.Handler(() -> this));
         AIAgentServices.setEditorBridge((connection, sql, windowTitle) ->
             SwingUtilities.invokeLater(() -> aiAssistantPanel.openInEditor(connection, sql, windowTitle)));
-        toolWindows = List.of(explorerWindow, registeredServersWindow, propertiesWindow, libraryWindow, aiWindow, resultsWindow);
+        // Saved tasks (backups, restores, native script runs): a tab next to the Query Library, hidden until opened
+        ToolWindow tasksWindow = new ToolWindow("databaseTasks", DatabaseTasksMessages.tasks_title, null); //$NON-NLS-1$
+        toolWindowDocking.addToolWindow(tasksWindow, new DatabaseTasksPanel(), false,
+            ToolWindowDocking.Place.next(libraryWindow.getId(), DockingRegion.CENTER, 0.5),
+            ToolWindowDocking.Place.edge(DockingRegion.EAST, DEFAULT_RIGHT_SHARE));
+        toolWindows = List.of(explorerWindow, registeredServersWindow, propertiesWindow, libraryWindow, tasksWindow, aiWindow, resultsWindow);
 
         newQueryAction = createAction(CoreMessages.main_new_query, CoreMessages.main_new_query_tip,
             KeyStroke.getKeyStroke(KeyEvent.VK_N, InputEvent.CTRL_DOWN_MASK), this::newQuery);
@@ -561,6 +575,12 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
             SqlEditorPanel editor = getActiveEditor();
             return editor != null ? editor.getSourceObject() : null;
         }, this);
+        nativeScriptAction = createAction(BackupRestoreMessages.native_script_editor_menu, BackupRestoreMessages.native_script_editor_menu_tip, null, () -> {
+            SqlEditorPanel editor = getActiveEditor();
+            if (editor != null) {
+                BackupRestoreCommands.runEditorScript(this, editor);
+            }
+        });
         sqlEditorToolBar = new SqlEditorToolBar(executeQueryAction, cancelQueryAction, estimatedPlanAction, actualPlanAction,
             commitAction, rollbackAction, this::openQueryHistory);
         editMenu = new EditMenu(this::getActiveTextArea);
@@ -1629,6 +1649,7 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
         queryMenu.addSeparator();
         queryMenu.add(new JMenuItem(debugAction));
         queryMenu.add(new JMenuItem(traceAction));
+        queryMenu.add(new JMenuItem(nativeScriptAction));
         queryMenu.addSeparator();
         queryMenu.add(new JMenuItem(commitAction));
         queryMenu.add(new JMenuItem(rollbackAction));
@@ -1645,6 +1666,7 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
             SqlEditorPanel editor = getActiveEditor();
             debugAction.setEnabled(editor != null && DebugCommands.canDebug(editor.getSourceObject()));
             traceAction.setEnabled(editor != null && ExecutionTraceCommands.canTrace(editor.getSourceObject()));
+            nativeScriptAction.setEnabled(editor != null && BackupRestoreCommands.findEditorTarget(editor) != null);
         });
 
         JMenu viewMenu = new JMenu(CoreMessages.main_menu_view);

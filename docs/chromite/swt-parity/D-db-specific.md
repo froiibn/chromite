@@ -48,7 +48,7 @@ K1–K3의 공통 원인은 SQL 편집기에 서버 출력 패널이 없는 것�
 | P3 | 연결 고급: DB 통계 보기(show-database-statistics), Prepared statement 사용(PgBouncer용) | `PostgreConnectionPageAdvanced:288-302` | 없음 | 두 키가 `<provider-properties>`에 없음. 모델은 그대로 읽음(`PostgreDataSource.java:99-110`, `:300-306`) | 중간 | 저장된 값(SWT 시절 데이터는 이름 바꿔 복사됨)은 계속 적용되지만 보거나 바꿀 수 없다. PgBouncer 서버 종류는 prepared statement를 켤 방법이 없다 |
 | P4 | PgPass 인증 + pgpass 호스트 이름 바꾸기 | `PostgreAuthPgPassConfigurator` | 있음 | `ConnectionAuthExtras`([swing-conn-advanced.md](../swing-conn-advanced.md) 21, 69행) | 낮음 | |
 | P5 | SSL(인증서·키·모드·factory·프록시 서비스) | `PostgreSSLConfigurator` | 일부 | `SslHandlerPanel`(swing-conn-advanced.md 136행) | 낮음 | "Use proxy service"(`sslProxyServer`, 모델 `PostgreDataSource.java:287`) 칸 없음, SSL factory는 목록 대신 직접 입력 |
-| P6 | 로컬 클라이언트(pg_dump 위치) 선택 | `PostgreConnectionPageAdvanced`의 `ClientHomesSelector` | 있음 | `NativeBackupRestoreDialog.loadClients`·`browseClient`(swing-backup-restore.md 37행 표) | 낮음 | 연결 화면이 아니라 백업 대화상자에서 고른다 |
+| P6 | 로컬 클라이언트(pg_dump 위치) 선택 | `PostgreConnectionPageAdvanced`의 `ClientHomesSelector` | 있음 | `NativeBackupRestoreDialog.loadClients`·`browseClient`(swing-backup-restore.md 37행 표), 2026-11-08 연결 편집기 연결 속성의 로컬 클라이언트([swing-database-tasks.md](../swing-database-tasks.md)) | 낮음 | 연결 화면(공통 탭)과 백업 대화상자 둘 다에서 고른다 |
 | P7 | 전역 환경설정 "PostgreSQL" 페이지(위 P2·P3 항목의 전역 기본값) | `PrefPagePostgreSQL`, `PostgrePreferencesInitializer` | 없음 | `OptionsDialog.java:178-180`(일반·편집기·색 탭뿐) | 낮음 | 연결마다 표로 바꿀 수는 있다 |
 | P8 | 세션 관리자(유휴 보기, Terminate, Cancel query) | `PostgreSessionEditor` | 있음 | `SessionManagerPanel` + `PostgreActivitySessionManager`(swing-admin-tools.md 124행) | 높음 | Swing이 대기·막는 세션·트랜잭션 경과를 더함 |
 | P9 | 잠금 관리자 | `PostgreLockEditor` | 있음 | `LockManagerPanel` + `PostgreBlockingLockManager`(swing-admin-tools.md 153행) | 높음 | |
@@ -63,7 +63,7 @@ K1–K3의 공통 원인은 SQL 편집기에 서버 출력 패널이 없는 것�
 | P18 | Backup(pg_dump) | 도구 `PostgreToolBackup`, `PostgreBackupWizard*` | 일부 | `NativeBackupRestoreDialog` | 중간 | 스키마·테이블 고르기, 도구 사용자·추가 인수 없음(swing-backup-restore.md 200행) |
 | P19 | Global Backup(pg_dumpall) | 도구 `PostgreToolBackupAll`, `PostgreBackupAllWizard*` | 없음 | swing-backup-restore.md 200행 "전체 클러스터 백업(pg_dumpall)" 남긴 것 | 중간 | 역할·테이블스페이스 백업 수단이 없다 |
 | P20 | Restore(pg_restore/psql) | 도구 `PostgreToolRestore`, `PostgreRestoreWizard` | 있음 | `NativeBackupRestoreDialog`(+ 첫 오류에서 멈춤) | 중간 | |
-| P21 | psql로 스크립트 실행(도구) + SQL 편집기 "네이티브 클라이언트로 실행"(`sql.executors`) | `PostgreScriptExecuteWizard`, `PostgreScriptExecutor` | 일부 | 일반 형식 복원이 psql로 파일을 실행함. 편집기 연동은 grep `ScriptExecute`·`sql.executors` → `ui.swing` 0건(MySQL 복원용 1건 제외) | 낮음 | |
+| P21 | psql로 스크립트 실행(도구) + SQL 편집기 "네이티브 클라이언트로 실행"(`sql.executors`) | `PostgreScriptExecuteWizard`, `PostgreScriptExecutor` | 있음(2026-11-08) | Tasks &gt; Run Script with Native Client…, Query &gt; Run with Native Client…, 작업 `pgScriptExecute` 저장·실행([swing-database-tasks.md](../swing-database-tasks.md)). 조사 당시: 일부 | 낮음 | 조사 당시 근거: 일반 형식 복원이 psql로 파일을 실행함. 편집기 연동은 grep `ScriptExecute`·`sql.executors` → `ui.swing` 0건(MySQL 복원용 1건 제외) |
 | P22 | 유지 관리: ANALYZE, VACUUM | 도구 `PostgreToolAnalyze`, `PostgreToolVacuum` | 있음 | `MaintenanceDialog` + `PostgreMaintenanceDialect`(swing-admin-tools.md 368행) | 중간 | Swing이 REINDEX·CLUSTER·부풀림 추정을 더함 |
 | P23 | TRUNCATE, 트리거 사용/사용 안 함, 구체화된 뷰 새로 고침 | 도구 `PostgreToolTruncate`, `PostgreToolTriggerEnable/Disable`, `PostgreToolRefreshMView` | 있음(2026-11-08) | Object Explorer 메뉴, `ObjectMaintenanceCommands` + `ObjectMaintenanceActions`(모델 도구의 SQL, swing-explorer-object-actions.md "유지 관리 명령") | 중간 | 조사 당시: 없음. 도구 옵션(ONLY, RESTART IDENTITY, CASCADE, CONCURRENTLY) 화면은 없음 |
 | P24 | 외부 데이터 래퍼(FDW) 구성 마법사 | `PostgreFDWConfigWizard*`, 명령 `ext.postgresql.ui.fdw` | 없음 | grep `FDW`·`ForeignDataWrapper` → 0건 | 낮음 | |
@@ -110,7 +110,7 @@ K1–K3의 공통 원인은 SQL 편집기에 서버 출력 패널이 없는 것�
 | M12 | Source 탭, 패키지 본문(MariaDB Oracle 모드) | `MySQLSourceViewEditor`, `MySQLPackageBodyEditor` | 일부 | View DDL, Modify(swing-source-editor.md 53행) | 낮음 | |
 | M13 | 내보내기(mysqldump) | 도구 `MySQLToolExport`, `MySQLExportWizard*` | 일부 | `NativeBackupRestoreDialog` | 중간 | 테이블 고르기 없음(swing-backup-restore.md 200행) |
 | M14 | 가져오기(mysql로 덤프 복원) | 도구 `MySQLToolImport` | 있음 | `NativeBackupRestoreDialog` | 중간 | |
-| M15 | mysql로 스크립트 실행 + 편집기 네이티브 실행(`sql.executors`) | `MySQLScriptExecuteWizard`, `MySQLScriptExecutor` | 일부 | 복원이 `MySQLScriptExecuteHandler`로 파일 실행(`NativeBackupRestoreDialog.java:29-30, 516`) | 낮음 | 편집기 연동 없음 |
+| M15 | mysql로 스크립트 실행 + 편집기 네이티브 실행(`sql.executors`) | `MySQLScriptExecuteWizard`, `MySQLScriptExecutor` | 있음(2026-11-08) | 같은 메뉴, 작업 `mysqlScriptExecute`(MariaDB 11.8 클라이언트로 확인, [swing-database-tasks.md](../swing-database-tasks.md)). 조사 당시: 일부 | 낮음 | 조사 당시 근거: 복원이 `MySQLScriptExecuteHandler`로 파일 실행(`NativeBackupRestoreDialog.java:29-30, 516`). 편집기 연동 없음 |
 | M16 | 테이블 유지 관리: ANALYZE, CHECK, OPTIMIZE, REPAIR | `MySQLToolAnalyse/Check/Optimize/Repair` | 있음 | `MySQLMaintenanceDialect`(swing-admin-tools.md 368행) | 중간 | |
 | M17 | TRUNCATE | `MySQLToolTruncate` | 있음(2026-11-08) | P23과 같음(MariaDB 확인) | 중간 | 조사 당시: 없음. "외래 키 검사 끄기" 옵션 화면은 없음 |
 | M18 | ENUM 값 편집기 | `MySQLEnumValueManager` | 없음 | P28과 같음 | 낮음 | |
@@ -141,7 +141,7 @@ K1–K3의 공통 원인은 SQL 편집기에 서버 출력 패널이 없는 것�
 | O19 | 통계 수집(테이블·인덱스) | `OracleToolGatherStatistics` | 있음 | `OracleMaintenanceDialect` GATHER_TABLE/INDEX/SCHEMA_STATS | 중간 | |
 | O20 | 구조 검증(VALIDATE STRUCTURE) | `OracleToolValidateStructure` | 없음 | swing-admin-tools.md 600행 "미룬 것" | 낮음 | |
 | O21 | TRUNCATE, 트리거 사용/사용 안 함, 구체화된 뷰 새로 고침 | `OracleToolTruncate`, `OracleToolTriggerEnable/Disable`, `OracleToolRefreshMView` | 있음(2026-11-08) | P23과 같음 | 중간 | 조사 당시: 없음. REUSE STORAGE·새로 고침 방식 옵션 화면은 없음 |
-| O22 | SQL*Plus로 스크립트 실행(도구 + 편집기 네이티브 실행) | `OracleToolScript`, `OracleScriptExecutor`(`sql.executors`) | 없음 | grep `sqlplus` → `ui.swing` 0건. 백업·복원도 Oracle은 대상 아님(swing-backup-restore.md 10행) | 낮음 | |
+| O22 | SQL*Plus로 스크립트 실행(도구 + 편집기 네이티브 실행) | `OracleToolScript`, `OracleScriptExecutor`(`sql.executors`) | 있음(2026-11-08) | 같은 메뉴(Oracle 스키마·연결), 작업 `oracleScriptExecute`. 암호를 명령줄에서 빼고 표준 입력 `CONNECT`로, 스키마를 현재 스키마로. Instant Client가 없어 명령 만들기만 확인([swing-database-tasks.md](../swing-database-tasks.md)). 조사 당시: 없음 | 낮음 | 조사 당시 근거: grep `sqlplus` → `ui.swing` 0건. 백업·복원도 Oracle은 대상 아님(swing-backup-restore.md 10행) |
 | O23 | Toad·SQL Developer 연결 가져오기 | `importWizards`: `ConfigImportWizardToad`, `ConfigImportWizardSqlDeveloper` | 없음 | swt-removal.md 115행(다른 도구의 연결 가져오기 없음) | 중간 | Oracle 사용자 이전 경로 |
 | O24 | DBMS_OUTPUT 출력 | (SQL 편집기 Output 패널 + `PREF_DBMS_OUTPUT`) | 있음(2026-11-07, 조사 때 조용히 끊김) | 위 K1. 쿼리 창 Messages 탭 | 높음 | 켜고 끄는 화면은 없음(O8) |
 

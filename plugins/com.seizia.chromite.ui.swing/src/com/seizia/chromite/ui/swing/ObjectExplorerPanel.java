@@ -152,7 +152,9 @@ import java.util.function.Supplier;
  *     <li>Tasks &gt; Import Data… / Export Data…(SSMS 데이터베이스 Tasks 메뉴): 테이블에서 가져오기({@link DataImportWizard}),
  *     테이블·뷰 또는 그것들을 담은 스키마·폴더에서 내보내기({@link DataExportWizard}). Copy Tables…는 같은 원본을 다른 연결·데이터베이스로 복사한다
  *     ({@link DataExportWizard#openForCopy}). 세 명령은 데이터베이스 노드와 데이터베이스가 하나뿐인 연결 노드에서도 켜진다({@link #getTransferObject}).</li>
- *     <li>Tasks &gt; Back Up… / Restore…(SSMS 데이터베이스 Tasks 메뉴): 데이터베이스 백업·복원({@link BackupRestoreCommands}).</li>
+ *     <li>Tasks &gt; Back Up… / Restore…(SSMS 데이터베이스 Tasks 메뉴): 데이터베이스 백업·복원({@link BackupRestoreCommands}).
+ *     Run Script with Native Client…는 스크립트 파일을 psql·mysql·sqlplus로 실행한다(PostgreSQL 데이터베이스, MySQL/MariaDB 카탈로그,
+ *     Oracle 스키마·연결, 연결 노드는 {@link #getScriptTarget}).</li>
  *     <li>보안({@link SecurityCommands}): 로그인·사용자·역할의 Properties와 Delete, Logins·Roles·Users 폴더의 New Login/Role/User…,
  *     테이블·뷰·시퀀스·루틴의 Permissions…</li>
  *     <li>SQL Server 에이전트({@link AgentCommands}): 에이전트 노드·폴더·작업·경고·운영자의 명령(그 노드에서만 보임), 작업·경고·운영자의
@@ -214,6 +216,7 @@ import java.util.function.Supplier;
  *   (docs/chromite/swing-explorer-object-actions.md "유지 관리 명령")
  * - 2026-11-08 SQL Server 프로시저의 Trace Execution… 메뉴({@link ExecutionTraceCommands}, docs/chromite/sqlserver-execution-trace.md)
  * - 2026-11-08 Search Data… 메뉴(여러 테이블의 값 찾기, {@link DataSearchPanel}) (docs/chromite/swing-data-search.md)
+ * - 2026-11-08 Tasks &gt; Run Script with Native Client…(docs/chromite/swing-database-tasks.md)
  */
 final class ObjectExplorerPanel extends JPanel {
 
@@ -343,6 +346,7 @@ final class ObjectExplorerPanel extends JPanel {
     private final ObjectMaintenanceCommands maintenanceCommands;
     private final Action backUpAction;
     private final Action restoreAction;
+    private final Action runScriptAction;
     private final Action copyTablesAction;
     private final INavigatorListener navigatorListener = this::navigatorNodeChanged;
     /**
@@ -550,10 +554,18 @@ final class ObjectExplorerPanel extends JPanel {
                 BackupRestoreCommands.restore(this, object, queryWindows);
             }
         });
+        runScriptAction = createAction(BackupRestoreMessages.native_script_menu, () -> {
+            DBSObject object = getScriptTarget();
+            if (object != null) {
+                BackupRestoreCommands.runScript(this, object);
+            }
+        });
+        runScriptAction.putValue(Action.SHORT_DESCRIPTION, BackupRestoreMessages.native_script_menu_tip);
         maintenanceAction = MaintenanceCommands.createAction(this, this::getSelectedObject);
         tasksMenu = new JMenu(CoreMessages.explorer_tasks);
         tasksMenu.add(backUpAction);
         tasksMenu.add(restoreAction);
+        tasksMenu.add(runScriptAction);
         tasksMenu.addSeparator();
         tasksMenu.add(importDataAction);
         tasksMenu.add(exportDataAction);
@@ -843,6 +855,20 @@ final class ObjectExplorerPanel extends JPanel {
     }
 
     /**
+     * The object of Run Script with Native Client…: the selected object, or the database of a selected connection (the only
+     * one, see {@link #getTransferObject}; an Oracle connection is itself the target).
+     */
+    @Nullable
+    private DBSObject getScriptTarget() {
+        DBSObject object = getTransferObject();
+        if (object == null && getSelectedNavigatorNode() instanceof DBNDataSource connection
+            && connection.getDataSourceContainer().getDataSource() instanceof DBSObject dataSource) {
+            return dataSource;
+        }
+        return object;
+    }
+
+    /**
      * The object of Import Data…, Export Data… and Copy Tables…: the selected object, or the only database of a selected
      * connection (null when it has several or they are not read yet, see {@link DataTransferObjects#findConnectionDatabase}).
      */
@@ -883,9 +909,11 @@ final class ObjectExplorerPanel extends JPanel {
         exportDataAction.setEnabled(DataExportWizard.canExport(transferObject));
         backUpAction.setEnabled(BackupRestoreCommands.canBackUp(object));
         restoreAction.setEnabled(backUpAction.isEnabled());
+        runScriptAction.setEnabled(BackupRestoreCommands.canRunScript(getScriptTarget()));
         copyTablesAction.setEnabled(exportDataAction.isEnabled());
         DataTransferObjects.updateTaskTooltips(transferObject, importDataAction, exportDataAction, copyTablesAction);
-        tasksMenu.setEnabled(importDataAction.isEnabled() || exportDataAction.isEnabled() || backUpAction.isEnabled());
+        tasksMenu.setEnabled(importDataAction.isEnabled() || exportDataAction.isEnabled() || backUpAction.isEnabled()
+            || runScriptAction.isEnabled());
         maintenanceAction.setEnabled(MaintenanceCommands.canMaintain(object));
         designAction.setEnabled(TableDesignSession.canDesign(object));
         newTableAction.setEnabled(getSelectedNavigatorNode() instanceof DBNDatabaseFolder folder && TableDesignSession.canCreateTable(folder));

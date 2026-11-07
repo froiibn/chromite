@@ -41,6 +41,7 @@ import org.eclipse.osgi.util.NLS;
  * - 2026-11-08 끊긴 세션만 다시 열었다는 알림({@code recovery_session_*})과 끊긴 세션의 트랜잭션을 버리는 질문({@code lost_txn_*})
  *   (docs/chromite/transactions.md "끊긴 세션의 쿼리 창")
  * - 2026-11-08 연결별 설정 탭({@code settings_tab_settings}) (docs/chromite/swing-options.md "연결별 설정")
+ * - 2026-11-08 로컬 클라이언트({@code settings_local_client*}) (docs/chromite/swing-database-tasks.md "연결 편집기의 로컬 클라이언트")
  */
 public class ConnectionMessages extends NLS {
     private static final String BUNDLE_NAME = "com.seizia.chromite.ui.swing.internal.ConnectionMessages"; //$NON-NLS-1$
@@ -141,6 +142,10 @@ public class ConnectionMessages extends NLS {
     public static String settings_color_dialog;
     public static String settings_bootstrap;
     public static String settings_bootstrap_edit_count;
+    public static String settings_local_client;
+    public static String settings_local_client_none;
+    public static String settings_local_client_missing;
+    public static String settings_local_client_tip;
     public static String settings_keep_alive;
     public static String settings_keep_alive_tip;
     public static String settings_close_idle;
