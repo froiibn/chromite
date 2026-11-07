@@ -73,6 +73,7 @@ import java.util.concurrent.TimeUnit;
  * - 2026-11-07 최초 작성 (docs/chromite/ai-agent.md "2단계")
  * - 2026-11-07 시스템 프롬프트와 요청 한도 오류에서 기능을 공식 이름 "Chromite Agent"로 부름 (docs/chromite/ai-agent.md "명칭")
  * - 2026-11-08 요청 크기: 연결에 맞는 도구만 보내고, 기록을 예산 안으로 줄임 (후속 과제 #76)
+ * - 2026-11-08 도구의 진행 글을 항목에 두고 {@link Listener#toolProgress}로 알림(백업·복원 도구)
  */
 public final class AIAgentChatRunner {
 
@@ -96,6 +97,10 @@ public final class AIAgentChatRunner {
 
         /** A tool call finished. */
         void entryUpdated(@NotNull AIAgentChat.Entry entry);
+
+        /** A running tool reported progress ({@link AIAgentChat.Entry#getProgress}). */
+        default void toolProgress(@NotNull AIAgentChat.Entry entry) {
+        }
     }
 
     private AIAgentChatRunner() {
@@ -188,7 +193,11 @@ public final class AIAgentChatRunner {
             arguments.put(AIToolConnections.PARAM_CONNECTION, chat.getConnectionId());
         }
         long start = System.currentTimeMillis();
-        AIToolCallResult result = AIToolExecutor.execute(monitor, AIToolClient.CHAT, call.getFunctionName(), arguments, null);
+        AIToolCallResult result = AIToolExecutor.execute(monitor, AIToolClient.CHAT, call.getFunctionName(), arguments, null,
+            progress -> {
+                entry.setProgress(progress);
+                listener.toolProgress(entry);
+            });
         String access = tool == null ? null : classify(monitor, tool, arguments);
         entry.finishTool(result.outcome().name(), access, result.text(), System.currentTimeMillis() - start);
         listener.entryUpdated(entry);
