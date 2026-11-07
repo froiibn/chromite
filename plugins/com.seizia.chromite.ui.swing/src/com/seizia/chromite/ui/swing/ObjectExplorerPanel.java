@@ -19,6 +19,7 @@ package com.seizia.chromite.ui.swing;
 import com.formdev.flatlaf.FlatClientProperties;
 import com.formdev.flatlaf.ui.FlatUIUtils;
 import com.formdev.flatlaf.util.UIScale;
+import com.seizia.chromite.ext.oracle.model.OracleDDLFormat;
 import com.seizia.chromite.model.admin.security.SecurityPrincipal;
 import com.seizia.chromite.ui.swing.internal.AgentMessages;
 import com.seizia.chromite.ui.swing.internal.BackupRestoreMessages;
@@ -140,6 +141,7 @@ import java.util.function.Supplier;
  *     <li>ER 다이어그램({@link ErdDiagramPanel}): 스키마·테이블의 "View Diagram".</li>
  *     <li>개체 정의 편집({@link SourceEditCommands}): 프로시저·함수·뷰·트리거·패키지의 "Modify"와 "Script as &gt; ALTER To",
  *     뷰·프로시저·함수 폴더의 "New View… / New Procedure… / New Function…".</li>
+ *     <li>루틴 명령({@link RoutineCommands}): 프로시저·함수의 "Execute Procedure…", Oracle 패키지 루틴의 "Go to Source Code".</li>
  *     <li>모양(docs/chromite/design-spec.md "트리"): 머리말 아래 아이콘 도구 막대({@link #createToolBar}, SSMS Object Explorer 도구 막대 순서),
  *     아이콘 팩 아이콘({@link NodeIcons#getNodeIcon}), 이름 뒤 보조 글자(열·매개 변수 형식, 읽은 폴더의 객체 수, 연결 호스트),
  *     마우스를 올린 행의 둥근 바탕({@link ExplorerTree}). 행 높이·들여쓰기·선택 모양은 테마 properties의 FlatLaf 키다.</li>
@@ -210,6 +212,8 @@ import java.util.function.Supplier;
  *   (docs/chromite/swing-explorer-object-actions.md)
  * - 2026-11-08 테이블 잘라내기·트리거 사용/사용 안 함·구체화된 뷰 새로 고침 메뉴({@link ObjectMaintenanceCommands})
  *   (docs/chromite/swing-explorer-object-actions.md "유지 관리 명령")
+ * - 2026-11-08 루틴의 Execute Procedure…, 패키지 루틴의 Go to Source Code({@link RoutineCommands}), View DDL의 Oracle DDL 형식
+ *   (docs/chromite/swing-routines.md)
  */
 final class ObjectExplorerPanel extends JPanel {
 
@@ -242,8 +246,10 @@ final class ObjectExplorerPanel extends JPanel {
          * Shows an object definition in a read-only tab ("View DDL").
          *
          * @param dataSource connection of the object (its SQL dialect highlights the text)
+         * @param formats    DDL formats the tab offers (Oracle tables and views), or null
          */
-        void showDdl(@Nullable DBPDataSourceContainer dataSource, @NotNull String objectName, @NotNull String ddl);
+        void showDdl(@Nullable DBPDataSourceContainer dataSource, @NotNull String objectName, @NotNull String ddl,
+                     @Nullable DdlViewerPanel.Formats formats);
 
         /**
          * Opens (or shows) the Activity Monitor of the connection at a tab ({@link ActivityMonitorPanel#OVERVIEW_TAB},
@@ -275,8 +281,10 @@ final class ObjectExplorerPanel extends JPanel {
          * Opens a query window with an object's ALTER script or a new object's template ("Modify", "New View").
          *
          * @param refreshNode node read again from the database after each run of the window (the object, or the folder)
+         * @param position    the place to show (a routine of a package, compile errors), or null for the start
          */
-        void openSourceScript(@NotNull DBPDataSourceContainer dataSource, @NotNull String script, @NotNull DBNDatabaseNode refreshNode);
+        void openSourceScript(@NotNull DBPDataSourceContainer dataSource, @NotNull String script, @NotNull DBNDatabaseNode refreshNode,
+                              @Nullable SqlEditorPanel.SourcePosition position);
 
         /**
          * Shows the document tab with a key, creating it first if none is open (SQL Server Agent job activity, history, log).
@@ -331,6 +339,7 @@ final class ObjectExplorerPanel extends JPanel {
     private final Action importDataAction;
     private final Action exportDataAction;
     private final SourceEditCommands sourceEditCommands;
+    private final RoutineCommands routineCommands;
     private final AgentCommands agentCommands;
     private final SchedulerCommands schedulerCommands;
     private final ExplorerObjectCommands objectCommands;
@@ -432,7 +441,8 @@ final class ObjectExplorerPanel extends JPanel {
             if (object != null) {
                 String ddl = generate(CoreMessages.explorer_view_ddl, monitor -> ObjectScripts.generateCreate(monitor, object));
                 if (ddl != null) {
-                    queryWindows.showDdl(getSelectedDataSource(), DBUtils.getObjectFullName(object, DBPEvaluationContext.UI), ddl);
+                    queryWindows.showDdl(getSelectedDataSource(), DBUtils.getObjectFullName(object, DBPEvaluationContext.UI), ddl,
+                        createDdlFormats(object));
                 }
             }
         });
@@ -499,6 +509,7 @@ final class ObjectExplorerPanel extends JPanel {
         selectToMenu.add(createAction(CoreMessages.explorer_clipboard, () -> scriptSelected(queryWindows, true, true)));
         sourceEditCommands = new SourceEditCommands(this::getSelectedNavigatorNode, queryWindows);
         debugAction = DebugCommands.createAction(this, this::getSelectedObject, queryWindows);
+        routineCommands = new RoutineCommands(this, this::getSelectedNavigatorNode, queryWindows);
         objectCommands = new ExplorerObjectCommands(this, this::getSelectedNavigatorNodes, queryWindows);
         tree.setTransferHandler(objectCommands.createTransferHandler());
         maintenanceCommands = new ObjectMaintenanceCommands(this, this::getSelectedNavigatorNodes, queryWindows);
@@ -632,6 +643,8 @@ final class ObjectExplorerPanel extends JPanel {
         schedulerCommands.addTo(popupMenu);
         popupMenu.add(designAction);
         popupMenu.add(sourceEditCommands.getModifyAction());
+        popupMenu.add(routineCommands.getExecuteAction());
+        popupMenu.add(routineCommands.getGoToSourceItem());
         popupMenu.add(debugAction);
         popupMenu.add(objectPermissionsAction);
         popupMenu.add(selectTopAction);
@@ -818,6 +831,27 @@ final class ObjectExplorerPanel extends JPanel {
     }
 
     /**
+     * The DDL formats View DDL offers for the object (Oracle tables, views, materialized views), or null.
+     */
+    @Nullable
+    private DdlViewerPanel.Formats createDdlFormats(@NotNull DBSObject object) {
+        if (!ObjectScripts.hasDdlFormats(object)) {
+            return null;
+        }
+        OracleDDLFormat[] formats = OracleDDLFormat.values();
+        List<String> labels = new ArrayList<>();
+        for (OracleDDLFormat format : formats) {
+            labels.add(switch (format) {
+                case FULL -> CoreMessages.ddl_format_full;
+                case NO_STORAGE -> CoreMessages.ddl_format_no_storage;
+                case COMPACT -> CoreMessages.ddl_format_compact;
+            });
+        }
+        return new DdlViewerPanel.Formats(labels, OracleDDLFormat.getCurrentFormat(object.getDataSource()).ordinal(),
+            index -> generate(CoreMessages.explorer_view_ddl, monitor -> ObjectScripts.generateCreate(monitor, object, formats[index])));
+    }
+
+    /**
      * The database object of the selected node; null for connections and folders.
      */
     @Nullable
@@ -874,6 +908,7 @@ final class ObjectExplorerPanel extends JPanel {
         designAction.setEnabled(TableDesignSession.canDesign(object));
         newTableAction.setEnabled(getSelectedNavigatorNode() instanceof DBNDatabaseFolder folder && TableDesignSession.canCreateTable(folder));
         sourceEditCommands.update(getSelectedNavigatorNode());
+        routineCommands.update(getSelectedNavigatorNode());
         debugAction.setEnabled(DebugCommands.canDebug(object));
         connectAction.setEnabled(dataSource != null && !connected);
         // Also for a server that is no longer connected: Disconnect removes it from this window

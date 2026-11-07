@@ -11,9 +11,9 @@
 
 | 상태 | SQL 편집기 | 결과 뷰어 | 개체 편집기 | 연결 편집기 | 그 밖의 편집기 | 합계 |
 |---|---|---|---|---|---|---|
-| 있음 | 9 | 7 | 4 | 5 | 0 | **25** |
+| 있음 | 10 | 7 | 4 | 5 | 0 | **26** |
 | 일부 | 12 | 8 | 6 | 9 | 7 | **42** |
-| 없음 | 19 | 12 | 1 | 7 | 0 | **39** |
+| 없음 | 18 | 12 | 1 | 7 | 0 | **38** |
 | 조용히 끊김 | 5 | 1 | 1 | 1 | 0 | **8** |
 | 의도적 제외 | 1 | 2 | 0 | 0 | 0 | **3** |
 | 합계 | 46 | 30 | 12 | 22 | 7 | **117** |
@@ -89,7 +89,7 @@
 | S39 | 연결·기본 DB/스키마 바꾸기 | 활성 연결·스키마 선택(`SelectActiveSchemaHandler`) | 있음 | `SqlEditorPanel` 콤보, `SqlEditorToolBar` | 중간 | 탐색기와 연결 맞추기(`sync.connection`)는 없음 |
 | S40 | DDL 실행 뒤 탐색기 갱신 | `SQLMetadataRefreshCoordinator` | 일부 | Modify·New 창만 노드를 다시 읽음(`setExecutionFinishedListener`, swing-source-editor.md) | 중간 | 일반 쿼리 창의 CREATE/DROP은 F5로 새로 고쳐야 보임 |
 | S41 | SQL 만들기(INSERT·UPDATE·DELETE·MERGE·JOIN, 결과 행에서, 결과로 DDL) | `GenerateSQLDialog`, `SQLGeneratorContributor`, `generate.ddl.by.resultSet` | 일부 | `ObjectScripts`(CREATE·SELECT), `SourceEditCommands`(ALTER); swing-frontend.md:1020 | 중간 | |
-| S42 | 저장 프로시저 실행(매개변수 입력) | `procedure.execute`, `ProcedureParameterBindDialog` | 없음 | grep `executeProcedure`/procedure call 0건 | 중간 | SSMS "Execute Stored Procedure"에 해당 |
+| S42 | 저장 프로시저 실행(매개변수 입력) | `procedure.execute`, `ProcedureParameterBindDialog` | 있음(2026-11-08) | Object Explorer "Execute Procedure…"(`ExecuteProcedureDialog`, 모델 `ProcedureCallScript`: 방언별 호출 스크립트, OUT 값), [swing-routines.md](../swing-routines.md) | 중간 | SSMS "Execute Stored Procedure"에 해당. 조사 당시: 없음 |
 | S43 | SQL 터미널 | `ui.editors.sql.terminal` | 없음 | swt-removal.md:105 | 낮음 | |
 | S44 | 결과 창 배치(최대화, 가로/세로, 숨기기) | `maximize.result.panel`, `toggleLayout`, `toggle.result.panel` | 일부 | 도킹 도구 창(`ToolWindowDocking`), Results 자동 숨김(swing-frontend.md "Results 자동 숨김") | 낮음 | |
 | S45 | SQL 편집기 설정 화면 | `PrefPageSQLEditor`, `CodeEditing`, `Completion`, `Execute`, `Format`, `Dialects`, `Resources` | 일부 | `OptionsDialog`(Query Editor, Formatting, Templates, 글꼴·색), swt-removal.md:116 | 중간 | 실행·방언·코드 편집 설정 없음 |

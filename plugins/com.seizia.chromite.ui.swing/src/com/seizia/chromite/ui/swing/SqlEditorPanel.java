@@ -20,7 +20,11 @@ import com.seizia.chromite.model.sql.exec.SQLActualPlanProvider;
 import com.seizia.chromite.model.sql.exec.SQLQueryExecuteHandler;
 import com.seizia.chromite.model.sql.exec.SQLQueryExecuteJob;
 import com.seizia.chromite.model.sql.exec.SQLScriptBatches;
+import com.seizia.chromite.ext.oracle.model.OracleDataSource;
+import com.seizia.chromite.model.admin.oracle.OracleCompileErrors;
+import com.seizia.chromite.model.exec.jdbc.JDBCSession;
 import com.seizia.chromite.ui.swing.internal.EditorMessages;
+import com.seizia.chromite.ui.swing.internal.RoutineMessages;
 import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.Status;
 import org.eclipse.core.runtime.jobs.IJobChangeEvent;
@@ -176,6 +180,9 @@ import java.util.concurrent.atomic.AtomicLong;
  *     읽으면 버퍼가 비워지므로 매번 읽는다(Oracle 버퍼 넘침, Altibase 메모리 증가 방지). 경고만 되풀이하는 읽기 도구는 실행 결과 없이 불러
  *     PRINT·NOTICE가 두 번 나오지 않는다(docs/chromite/swing-server-output.md). 문장을 실행하기 전에는
  *     {@link DBCServerOutputReader#syncServerOutput}으로 세션의 서버 쪽 켜짐을 지금 설정에 맞춘다(설정이 세션을 연 뒤 바뀐 경우).</li>
+ *     <li>Oracle 컴파일 오류: 저장 단위·뷰를 만든 CREATE 문이 성공하면 그 세션에서 {@code ALL_ERRORS}를 읽어({@link OracleCompileErrors})
+ *     편집기 줄·열로 바꾼 오류를 Messages 탭에 쓰고 그 줄을 오류 색으로 표시한다. Oracle은 컴파일 오류를 경고로만 알려 창이 성공으로 끝나기
+ *     때문이다(SWT는 객체 편집기가 저장 뒤 오류 줄로 옮겼다). 오류가 있으면 실행을 오류로 끝낸다. 표시는 다음 실행에서 지운다.</li>
  * </ul>
  *
  * 변경 이력:
@@ -230,6 +237,8 @@ import java.util.concurrent.atomic.AtomicLong;
  *   자동완성이 창을 만들 때의 연결을 계속 쓰던 것(생성자 매개 변수를 잡은 람다)을 지금 연결로 고침 (docs/chromite/transactions.md)
  * - 2026-11-08 문장마다 실행 전에 서버 출력 켜짐을 설정에 맞춤({@code syncServerOutput}). Oracle DBMS_OUTPUT을 끄거나 켜도 열린 세션은
  *   다시 연결할 때까지 그대로였던 것 (docs/chromite/model-fixes.md "작은 모델·안전·라이선스 수정")
+ * - 2026-11-08 Oracle CREATE 뒤 컴파일 오류 줄 표시(SWT 감사 O12), 위치 보이기({@link #showSourcePosition}: Go to Source Code,
+ *   Go to Error) (docs/chromite/swing-routines.md)
  */
 final class SqlEditorPanel extends JPanel {
 
@@ -341,6 +350,8 @@ final class SqlEditorPanel extends JPanel {
     // EDT only: the object whose definition this window edits (Modify), or null
     @Nullable
     private DBSObject sourceObject;
+    // EDT only: line highlights of compile errors (cleared when a run starts)
+    private final List<Object> errorLineMarks = new ArrayList<>();
     // The window's session: its own context or the connection's main context
     private final QueryWindowContext windowContext = new QueryWindowContext(this::getFileName);
 
@@ -528,6 +539,60 @@ final class SqlEditorPanel extends JPanel {
 
     void setSourceObject(@Nullable DBSObject sourceObject) {
         this.sourceObject = sourceObject;
+    }
+
+    /**
+     * A place in the text to show: the selection and the lines to mark as compile errors.
+     *
+     * @param start      selection start (caret when {@code end == start})
+     * @param errorLines 0-based lines marked with the error color
+     */
+    record SourcePosition(int start, int end, @NotNull List<Integer> errorLines) {
+    }
+
+    /**
+     * Selects a range, scrolls to it and marks error lines (Go to Source Code, Go to Error). The marks stay until the
+     * next run or the next call.
+     */
+    void showSourcePosition(@NotNull SourcePosition position) {
+        markErrorLines(position.errorLines());
+        int length = textArea.getDocument().getLength();
+        int start = Math.max(0, Math.min(position.start(), length));
+        int end = Math.max(start, Math.min(position.end(), length));
+        textArea.setCaretPosition(start);
+        textArea.moveCaretPosition(end);
+        textArea.requestFocusInWindow();
+    }
+
+    /**
+     * Marks lines with the error color, replacing earlier marks (EDT).
+     */
+    private void markErrorLines(@NotNull List<Integer> lines) {
+        clearErrorLines();
+        addErrorLines(lines);
+    }
+
+    /**
+     * Marks more lines with the error color, keeping the earlier marks (EDT).
+     */
+    private void addErrorLines(@NotNull List<Integer> lines) {
+        Color red = UIManager.getColor("Chromite.status.error"); //$NON-NLS-1$
+        Color base = red != null ? red : Color.RED;
+        Color color = new Color(base.getRed(), base.getGreen(), base.getBlue(), 50);
+        for (int line : lines) {
+            if (line >= 0 && line < textArea.getLineCount()) {
+                try {
+                    errorLineMarks.add(textArea.addLineHighlight(line, color));
+                } catch (BadLocationException e) {
+                    log.debug("Error line out of the text: " + line); //$NON-NLS-1$
+                }
+            }
+        }
+    }
+
+    private void clearErrorLines() {
+        errorLineMarks.forEach(textArea::removeLineHighlight);
+        errorLineMarks.clear();
     }
 
     /**
@@ -864,6 +929,7 @@ final class SqlEditorPanel extends JPanel {
         run.binding = binding;
         execution = run;
         resultsView.clear();
+        clearErrorLines();
         if (run.includeActualPlan) {
             planView.clear(EditorMessages.editor_sql_waiting_actual_plan);
         }
@@ -1261,6 +1327,11 @@ final class SqlEditorPanel extends JPanel {
         readServerOutput(session, messages);
         Throwable error = result.getError();
         String errorText = null;
+        List<CompileErrorLine> compileErrors = error == null ? readCompileErrors(run, session, result.getStatement()) : List.of();
+        if (compileErrors.stream().anyMatch(CompileErrorLine::error)) {
+            // The unit exists but is invalid: the run reports errors and brings the Messages tab to the front
+            run.hasErrors = true;
+        }
         if (error == null) {
             boolean anyCount = false;
             List<ActualPlanReceiver> planReceivers = run.planReceivers.getOrDefault(result.getStatement(), List.of());
@@ -1295,10 +1366,70 @@ final class SqlEditorPanel extends JPanel {
         String finalErrorText = errorText;
         post(run, () -> {
             messages.forEach(resultsView::appendMessage);
+            List<Integer> errorLines = new ArrayList<>();
+            for (CompileErrorLine compileError : compileErrors) {
+                if (compileError.error()) {
+                    resultsView.appendError(compileError.text());
+                } else {
+                    resultsView.appendMessage(compileError.text());
+                }
+                if (compileError.line() >= 0 && compileError.error()) {
+                    errorLines.add(compileError.line());
+                }
+            }
+            addErrorLines(errorLines);
             if (finalErrorText != null) {
                 resultsView.appendError(finalErrorText);
             }
         });
+    }
+
+    /**
+     * A message line about a compile error, and its 0-based editor line (-1: none).
+     */
+    private record CompileErrorLine(@NotNull String text, int line, boolean error) {
+    }
+
+    /**
+     * Oracle: the compile errors ({@code ALL_ERRORS}) of the stored unit or view a successful CREATE statement made, with
+     * their lines in the editor. Oracle reports them only as a warning (ORA-17110), so the window would say the run
+     * succeeded while the object is invalid (SWT showed them in the object editor after saving). Empty for other
+     * statements and databases. Job thread; reads in the statement's session.
+     */
+    @NotNull
+    private static List<CompileErrorLine> readCompileErrors(@NotNull Execution run, @NotNull DBCSession session, @NotNull SQLQuery query) {
+        if (!(session.getDataSource() instanceof OracleDataSource) || !(session instanceof JDBCSession jdbcSession)) {
+            return List.of();
+        }
+        String text = query.getText();
+        OracleCompileErrors.Unit unit = OracleCompileErrors.parseCreate(text);
+        if (unit == null) {
+            return List.of();
+        }
+        List<CompileErrorLine> lines = new ArrayList<>();
+        try {
+            String owner = unit.owner() != null ? unit.owner() : OracleCompileErrors.readCurrentSchema(jdbcSession);
+            List<OracleCompileErrors.CompileError> errors = OracleCompileErrors.read(jdbcSession, owner, unit.name(), List.of(unit.type()));
+            if (errors.isEmpty()) {
+                return List.of();
+            }
+            boolean anyError = errors.stream().anyMatch(OracleCompileErrors.CompileError::error);
+            lines.add(new CompileErrorLine(NLS.bind(anyError ? RoutineMessages.routine_compile_errors_header : RoutineMessages.routine_compile_warnings_header,
+                unit.type(), owner + "." + unit.name()), -1, anyError)); //$NON-NLS-1$
+            // The statement's text starts at its offset in the run's text (the editor text when the run started)
+            boolean aligned = run.text.startsWith(text, query.getOffset());
+            for (OracleCompileErrors.CompileError error : errors) {
+                int offset = query.getOffset() + OracleCompileErrors.getErrorOffset(text, unit.sourceStart(), error);
+                int line = aligned ? lineOf(run.text, offset) : lineOf(run.text, query.getOffset());
+                int column = aligned ? offset - run.text.lastIndexOf('\n', offset - 1) : 0;
+                String message = column > 0 ? NLS.bind(RoutineMessages.routine_compile_error_position, new Object[] {line, column, error.text()})
+                    : NLS.bind(RoutineMessages.routine_compile_error_line, line, error.text());
+                lines.add(new CompileErrorLine(message, line - 1, error.error()));
+            }
+        } catch (SQLException e) {
+            log.debug("Can't read the compile errors", e); //$NON-NLS-1$
+        }
+        return lines;
     }
 
     /**

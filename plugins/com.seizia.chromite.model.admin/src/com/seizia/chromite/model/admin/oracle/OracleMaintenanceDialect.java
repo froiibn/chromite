@@ -60,6 +60,8 @@ import java.util.Set;
  *     <li>다시 컴파일: 객체 하나는 종류에 맞는 {@code ALTER … COMPILE}(패키지·형식 본문은 {@code COMPILE BODY}), 스키마는
  *     {@code DBMS_UTILITY.COMPILE_SCHEMA}(무효인 것만, 또는 전체) 또는 무효 객체마다 {@code ALTER … COMPILE}을 고른다. 컴파일 오류는 예외가 아니라
  *     경고(ORA-17110)로 오므로, 실행 뒤에 {@code ALL_ERRORS}를 읽는 문장을 덧붙여 줄·위치·메시지를 결과 표로 보인다(미리 보기에도 보인다).</li>
+ *     <li>구조 검증: 모델 도구 {@code OracleToolTableValidateStructure}(SWT "Validate structure")와 같은 {@code ANALYZE TABLE … VALIDATE STRUCTURE}와
+ *     그 설정의 선택지(없음, CASCADE, CASCADE FAST, CASCADE ONLINE)다. 손상이 있으면 문장이 오류로 끝난다. 남의 스키마는 ANALYZE ANY가 필요하다.</li>
  *     <li>권한: 남의 스키마는 ANALYZE ANY(통계), ALTER ANY INDEX(다시 작성), 종류별 ALTER ANY …(컴파일)가 필요하다({@code SESSION_PRIVS}).
  *     목록은 DBA 뷰를 먼저 쓰고 읽을 수 없으면 ALL 뷰(접근할 수 있는 객체만)로 읽고 안내한다.</li>
  *     <li>ORACLE LICENSE GUARD: Diagnostics/Tuning Pack이 필요한 뷰(AWR {@code DBA_HIST_*}, ASH, SQL Tuning Advisor, SQL Access Advisor의
@@ -69,6 +71,7 @@ import java.util.Set;
  *
  * 변경 이력:
  * - 2026-11-07 최초 작성: DB 관리 축 4 유지 관리 (docs/chromite/swing-admin-tools.md)
+ * - 2026-11-08 테이블 구조 검증(VALIDATE STRUCTURE, SWT 감사 O20) (docs/chromite/swing-admin-tools.md)
  */
 public class OracleMaintenanceDialect extends MaintenanceDialect {
 
@@ -78,8 +81,10 @@ public class OracleMaintenanceDialect extends MaintenanceDialect {
     public static final String OP_REBUILD = "rebuild"; //$NON-NLS-1$
     public static final String OP_COMPILE = "compile"; //$NON-NLS-1$
     public static final String OP_COMPILE_SCHEMA = "compile_schema"; //$NON-NLS-1$
+    public static final String OP_VALIDATE = "validate"; //$NON-NLS-1$
 
     private static final String OPT_SAMPLE = "sample"; //$NON-NLS-1$
+    private static final String OPT_VALIDATE_CASCADE = "validate_cascade"; //$NON-NLS-1$
     private static final String OPT_CASCADE = "cascade"; //$NON-NLS-1$
     private static final String OPT_GATHER = "gather"; //$NON-NLS-1$
     private static final String OPT_ONLINE = "online"; //$NON-NLS-1$
@@ -308,8 +313,18 @@ public class OracleMaintenanceDialect extends MaintenanceDialect {
                     plan.addFact(NLS.bind(MaintenanceMessages.maint_ora_fact_table, new Object[] {
                         dash(state[0]), never(state[1]), state[2] == null ? "-" : yesNo(state[2])})); //$NON-NLS-1$
                     plan.addOperation(gatherOperation(OP_GATHER_TABLE, MaintenanceMessages.maint_ora_gather_table, true, false));
+                    // The options of the model's tool (OracleToolTableValidateStructureSettings), the SWT "Validate structure" tool
+                    plan.addOperation(new MaintenanceOperation(OP_VALIDATE, MaintenanceMessages.maint_ora_validate,
+                        MaintenanceMessages.maint_ora_validate_desc, List.of(
+                        MaintenanceOption.choice(OPT_VALIDATE_CASCADE, MaintenanceMessages.maint_ora_validate_cascade, List.of(
+                            new MaintenanceOption.Choice("", MaintenanceMessages.maint_ora_validate_table_only), //$NON-NLS-1$
+                            new MaintenanceOption.Choice("CASCADE", "CASCADE"), //$NON-NLS-1$ //$NON-NLS-2$
+                            new MaintenanceOption.Choice("CASCADE FAST", "CASCADE FAST"), //$NON-NLS-1$ //$NON-NLS-2$
+                            new MaintenanceOption.Choice("CASCADE ONLINE", "CASCADE ONLINE")), //$NON-NLS-1$ //$NON-NLS-2$
+                            "", MaintenanceMessages.maint_ora_validate_cascade_tip)))); //$NON-NLS-1$
                     if (!own && !privileges.contains("ANALYZE ANY")) { //$NON-NLS-1$
                         plan.deny(OP_GATHER_TABLE, NLS.bind(MaintenanceMessages.maint_ora_denied, "ANALYZE ANY")); //$NON-NLS-1$
+                        plan.deny(OP_VALIDATE, NLS.bind(MaintenanceMessages.maint_ora_denied, "ANALYZE ANY")); //$NON-NLS-1$
                     }
                 }
                 case INDEX -> {
@@ -433,6 +448,15 @@ public class OracleMaintenanceDialect extends MaintenanceDialect {
                 statements.add("ALTER INDEX " + identifier(schema) + "." + identifier(target.name()) + " REBUILD" + (online ? " ONLINE" : "")); //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$ //$NON-NLS-4$ //$NON-NLS-5$
                 if (!online) {
                     warnings.add(MaintenanceMessages.maint_ora_warn_rebuild);
+                }
+            }
+            case OP_VALIDATE -> {
+                // The statement of the model's OracleToolTableValidateStructure
+                String validateCascade = choice(plan, operationId, values, OPT_VALIDATE_CASCADE);
+                statements.add("ANALYZE TABLE " + identifier(schema) + "." + identifier(target.name()) + " VALIDATE STRUCTURE" //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$
+                    + (validateCascade.isEmpty() ? "" : " " + validateCascade)); //$NON-NLS-1$ //$NON-NLS-2$
+                if (!validateCascade.endsWith("ONLINE")) { //$NON-NLS-1$
+                    warnings.add(MaintenanceMessages.maint_ora_warn_validate);
                 }
             }
             case OP_COMPILE -> {

@@ -205,6 +205,7 @@ import java.util.function.Supplier;
  * - 2026-11-08 문서 탭 UI가 {@link ChromiteTabbedPaneUI}를 상속: 테마를 바꾼 뒤 숨겨진 탭 단추의 도구 설명이 사라지던 문제
  *   (docs/chromite/swing-followup-fixes.md "작은 화면 수정")
  * - 2026-11-08 Save As 덮어쓰기 확인은 바꾸기 / 취소 단추(취소가 기본), 결과 표 변경 저장 질문은 취소가 기본 (docs/chromite/swing-frontend.md "실행 확인의 기본 단추")
+ * - 2026-11-08 openSourceScript가 보일 위치(패키지 안 루틴, 컴파일 오류 줄)를 받음, showDdl이 DDL 형식을 받음 (docs/chromite/swing-routines.md)
  */
 final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplorerPanel.QueryWindows, TableDesignerPanel.Host, QueryLibraryPanel.Host {
 
@@ -789,17 +790,23 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
     }
 
     @Override
-    public void openSourceScript(@NotNull DBPDataSourceContainer dataSource, @NotNull String script, @NotNull DBNDatabaseNode refreshNode) {
+    public void openSourceScript(@NotNull DBPDataSourceContainer dataSource, @NotNull String script, @NotNull DBNDatabaseNode refreshNode,
+                                 @Nullable SqlEditorPanel.SourcePosition position) {
         SqlEditorPanel editor = openQueryEditor(dataSource, null);
         editor.setContent(SqlFileContent.newFile(script), null);
         editor.setExecutionFinishedListener(() -> SourceScripts.refreshAfterRun(refreshNode));
         // Modify: Query > Debug… debugs the routine of the window (a New window's node is its folder: not debuggable)
         editor.setSourceObject(refreshNode.getObject());
+        if (position != null) {
+            // After the new tab is laid out, so the text scrolls to the place
+            SwingUtilities.invokeLater(() -> editor.showSourcePosition(position));
+        }
     }
 
     @Override
-    public void showDdl(@Nullable DBPDataSourceContainer dataSource, @NotNull String objectName, @NotNull String ddl) {
-        DdlViewerPanel viewer = new DdlViewerPanel(dataSource, objectName, ddl);
+    public void showDdl(@Nullable DBPDataSourceContainer dataSource, @NotNull String objectName, @NotNull String ddl,
+                        @Nullable DdlViewerPanel.Formats formats) {
+        DdlViewerPanel viewer = new DdlViewerPanel(dataSource, objectName, ddl, formats);
         viewer.putClientProperty(FlatClientProperties.TABBED_PANE_TAB_CLOSABLE, true);
         documentTabs.addTab(viewer.getTitle(), UiIcons.get("file-sql"), viewer); //$NON-NLS-1$
         int index = documentTabs.indexOfComponent(viewer);

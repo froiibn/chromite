@@ -41,10 +41,10 @@ SWT 프런트엔드를 지울 때(#68) 기능 전체 목록과 맞춰 보지 않
 | 영역 | 있음 | 일부 | 없음 | 조용히 끊김 | 의도적 제외 | 계 |
 |---|---|---|---|---|---|---|
 | A 플랫폼·설정 | 11 | 13 | 33 | 14 | 2 | 73 |
-| B 편집기 | 25 | 42 | 39 | 8 | 3 | 117 |
+| B 편집기 | 26 | 42 | 38 | 8 | 3 | 117 |
 | C 탐색기·도구 | 16 | 18 | 27 | 2 | 1 | 64 (+해당 없음 4) |
-| D DB별 화면 | 49 | 31 | 38 | 5 | 1 | 124 |
-| **합계** | **101** | **104** | **137** | **29** | **7** | **378** |
+| D DB별 화면 | 56 | 28 | 34 | 5 | 1 | 124 |
+| **합계** | **109** | **101** | **132** | **29** | **7** | **378** |
 
 같은 문제가 두 영역에 함께 잡힌 것이 있다(예: 연결 끊기 때 트랜잭션 확인 = A-S3·B, 유휴 트랜잭션 = A-S1·B-S24). 그래서 합계는 항목 수의 상한이다.
 
@@ -90,12 +90,16 @@ SWT 프런트엔드를 지울 때(#68) 기능 전체 목록과 맞춰 보지 않
 - ~~Oracle 사용자·역할·권한 관리, Oracle NLS 세션 설정, Altibase 잠금 탭, TRUNCATE·트리거 켜기/끄기·구체화된 뷰 새로 고침.~~
   2026-11-08 고침(`chromite/p3-oracle-altibase-admin`): [swing-security.md](swing-security.md) "Oracle", [swing-conn-advanced.md](swing-conn-advanced.md) "Oracle 세션 설정",
   [swing-admin-tools.md](swing-admin-tools.md) "Altibase 잠금", [swing-explorer-object-actions.md](swing-explorer-object-actions.md) "유지 관리 명령".
-  PostgreSQL·SQL Server·Oracle·MariaDB·Altibase에서 실행 확인. 남은 것: Altibase TRUNCATE·MView 새로 고침(A5), 도구 옵션 화면, Oracle 패키지·열 권한.
+  PostgreSQL·SQL Server·Oracle·MariaDB·Altibase에서 실행 확인. 남은 것: 도구 옵션 화면, Oracle 패키지·열 권한. Altibase TRUNCATE·MView 새로 고침(A5)은
+  2026-11-08 `chromite/p4-routines`에서 고침([swing-routines.md](swing-routines.md)).
 - ~~`@export` 명령이 무시됨(오류 없이 다음 쿼리 실행).~~ 2026-11-07 고침: 형식·옵션을 채운 Export Data 마법사로 내보냄([swing-data-transfer.md](swing-data-transfer.md) "@export 명령").
 
 ### 4순위
 
 나머지 없음·일부 항목. 각 보고서 표에 있다. 예: 스키마 비교, 데이터 검색, 작업 저장·재실행, 차트, 프로젝트·스크립트 탐색기.
+
+- 루틴 묶음(`chromite/p4-routines`, 2026-11-08): B-S42 프로시저 실행, D-O11·O12·O13·O14·O20, D-A5·A6을 고쳤다([swing-routines.md](swing-routines.md)).
+  PostgreSQL·SQL Server·MariaDB·Oracle·Altibase에서 실행 확인.
 
 ## 원래 SWT 제품에 없던 것 (해당 없음)
 
@@ -125,3 +129,4 @@ PostgreSQL 디버거는 2026-11-07 사용자 요청으로 Swing에 옮겼다(C-6
   ([swing-options.md](swing-options.md)). A-platform §6, B-S14·B-S15 상태 갱신.
 - 2026-11-08 3순위 Oracle·Altibase 관리 줄 고침: D-P23·S14·M17·O5·O16·O21·A2 → 있음(결과 요약 D·합계 갱신), C #44·B O2 비고 갱신.
 - 2026-11-07 3순위 쿼리 창마다 별도 연결 고침([transactions.md](transactions.md) "쿼리 창마다 별도 연결"). B-S22, A-platform §6 SQL Editor 줄 상태 갱신.
+- 2026-11-08 4순위 루틴 묶음: B-S42, D-O11·O12·O13·O14·O20·A5·A6 → 있음([swing-routines.md](swing-routines.md)). 결과 요약의 B·D·합계 갱신.

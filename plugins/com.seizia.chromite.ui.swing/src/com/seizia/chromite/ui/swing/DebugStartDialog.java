@@ -27,7 +27,6 @@ import org.jkiss.code.Nullable;
 import org.jkiss.utils.CommonUtils;
 
 import javax.swing.*;
-import javax.swing.table.AbstractTableModel;
 import java.awt.*;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -46,6 +45,7 @@ import java.util.Map;
  * 변경 이력:
  * - 2026-11-07 최초 작성 (docs/chromite/procedure-debugger.md)
  * - 2026-11-07 attach 지원 여부 인수(Oracle 디버거)
+ * - 2026-11-08 인수 표를 {@link RoutineArgumentTable}로 옮겨 Execute Procedure 대화상자와 함께 씀 (docs/chromite/swing-routines.md)
  */
 final class DebugStartDialog extends JDialog {
 
@@ -54,7 +54,7 @@ final class DebugStartDialog extends JDialog {
     private final JRadioButton localButton = new JRadioButton(DebugMessages.debug_start_mode_local, true);
     private final JRadioButton attachButton = new JRadioButton(DebugMessages.debug_start_mode_attach);
     private final JTextField processField = new JTextField(8);
-    private final JTable table;
+    private final RoutineArgumentTable table;
     @Nullable
     private Map<String, Object> result;
 
@@ -84,51 +84,7 @@ final class DebugStartDialog extends JDialog {
         group.add(localButton);
         group.add(attachButton);
 
-        table = new JTable(new AbstractTableModel() {
-            @Override
-            public int getRowCount() {
-                return parameters.size();
-            }
-
-            @Override
-            public int getColumnCount() {
-                return 4;
-            }
-
-            @Override
-            public String getColumnName(int column) {
-                return switch (column) {
-                    case 0 -> DebugMessages.debug_col_name;
-                    case 1 -> DebugMessages.debug_col_type;
-                    case 2 -> DebugMessages.debug_col_mode;
-                    default -> DebugMessages.debug_col_value;
-                };
-            }
-
-            @Override
-            public Object getValueAt(int row, int column) {
-                DBSProcedureParameter parameter = parameters.get(row);
-                return switch (column) {
-                    case 0 -> parameter.getName();
-                    case 1 -> parameter.getParameterType() == null ? "" : parameter.getParameterType().getFullTypeName(); //$NON-NLS-1$
-                    case 2 -> parameter.getParameterKind().getTitle();
-                    default -> values.get(row);
-                };
-            }
-
-            @Override
-            public boolean isCellEditable(int row, int column) {
-                return column == 3 && localButton.isSelected();
-            }
-
-            @Override
-            public void setValueAt(Object value, int row, int column) {
-                values.set(row, CommonUtils.toString(value));
-            }
-        });
-        table.setSurrendersFocusOnKeystroke(true);
-        table.putClientProperty("terminateEditOnFocusLost", Boolean.TRUE); //$NON-NLS-1$
-        table.getColumnModel().getColumn(3).setPreferredWidth(UIScale.scale(260));
+        table = new RoutineArgumentTable(parameters, values, parameter -> localButton.isSelected());
 
         JPanel modePanel = new JPanel(new GridBagLayout());
         GridBagConstraints gc = new GridBagConstraints();
