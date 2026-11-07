@@ -16,6 +16,7 @@
  */
 package com.seizia.chromite.ui.swing;
 
+import com.seizia.chromite.Log;
 import com.seizia.chromite.ext.mssql.model.SQLServerDataSource;
 import com.seizia.chromite.ext.mssql.model.SQLServerDatabase;
 import com.seizia.chromite.ext.mssql.model.SQLServerLogin;
@@ -46,7 +47,10 @@ import com.seizia.chromite.model.runtime.DBRRunnableWithReturn;
 import com.seizia.chromite.model.struct.DBSObject;
 import com.seizia.chromite.runtime.DBInterruptedException;
 import com.seizia.chromite.runtime.DBWorkbench;
+import com.seizia.chromite.runtime.properties.ObjectAttributeDescriptor;
+import com.seizia.chromite.runtime.properties.ObjectPropertyDescriptor;
 import com.seizia.chromite.ui.swing.internal.CreateObjectMessages;
+import com.seizia.chromite.ui.swing.internal.SecurityMessages;
 import org.eclipse.osgi.util.NLS;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
@@ -57,6 +61,7 @@ import javax.swing.*;
 import javax.swing.table.AbstractTableModel;
 import java.awt.*;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -82,11 +87,16 @@ import java.util.function.Function;
  *     ({@link DBECommandContext#OPTION_AVOID_TRANSACTIONS}).</li>
  *     <li>PostgreSQL: SWT의 값(소유자, 템플릿, 인코딩, 테이블스페이스)에 LC_COLLATE·LC_CTYPE를 더했다({@code PostgreDatabase#setCollate}).
  *     목록은 pg_collation의 로캘이고 직접 쓸 수도 있다. 템플릿과 다른 로캘은 template0이 필요하다(서버 오류가 알려 줌).</li>
+ *     <li>이름 대화상자: 모델이 필수 암호 속성({@code @Property(password = true, required = true)})을 선언한 종류(Exasol 로컬 사용자,
+ *     Mimer 프로그램)는 암호와 확인을 가려서 받는다. 드라이버마다 대화상자를 두지 않고 모델의 선언을 보므로 ui.swing이 그 드라이버에
+ *     의존하지 않는다. 미리 보기에는 가린 값({@link #MASKED_PASSWORD})이 나가고 실제 암호는 저장하는 동안에만 객체에 들어간다
+ *     ({@link NameAndPassword}, {@link ExplorerObjectCommands.Secrets}). 선택 사항인 암호는 묻지 않는다(관리자가 문장에서 뺌).</li>
  * </ul>
  * 목록을 읽거나 대화상자를 띄우는 메서드는 EDT에서 부르고, {@link Configurer}는 작업 스레드에서 부른다.
  *
  * 변경 이력:
  * - 2026-11-08 최초 작성 (docs/chromite/swing-create-objects.md)
+ * - 2026-11-08 이름 대화상자가 필수 암호를 가려서 받음 (swing-create-objects.md "새 사용자의 암호")
  */
 final class NewObjectDialogs {
 
@@ -96,6 +106,14 @@ final class NewObjectDialogs {
     @FunctionalInterface
     interface Configurer {
         void configure(@NotNull DBRProgressMonitor monitor, @NotNull DBSObject object, @NotNull DBECommandContext context) throws DBException;
+
+        /**
+         * The new object's secrets, masked in the script preview and put in only for the save; null if it has none.
+         */
+        @Nullable
+        default ExplorerObjectCommands.Secrets getSecrets() {
+            return null;
+        }
     }
 
     /**
@@ -108,7 +126,14 @@ final class NewObjectDialogs {
         }
     }
 
+    private static final Log log = Log.getLog(NewObjectDialogs.class);
+
     private static final String[] SQL_SERVER_RECOVERY_MODELS = {"FULL", "SIMPLE", "BULK_LOGGED"}; //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$
+
+    /**
+     * The password a new object holds while its script is shown (as the security editor's preview).
+     */
+    private static final String MASKED_PASSWORD = "********"; //$NON-NLS-1$
 
     private NewObjectDialogs() {
     }
@@ -142,22 +167,122 @@ final class NewObjectDialogs {
         } else if (PostgreExtension.class.isAssignableFrom(childClass) && container instanceof PostgreDatabase database) {
             return askPostgreExtension(owner, title, database);
         }
-        return askName(owner, title);
+        return askName(owner, title, childClass);
     }
 
     //////////////////////////////////////////////////////////
-    // Name only
+    // Name only (and the required password)
 
     @Nullable
-    private static Configurer askName(@NotNull Component owner, @NotNull String title) {
+    private static Configurer askName(@NotNull Component owner, @NotNull String title, @NotNull Class<?> childClass) {
+        ObjectPropertyDescriptor passwordProperty = getRequiredPassword(childClass);
         JTextField nameField = new JTextField(28);
+        JPasswordField passwordField = new JPasswordField(28);
+        JPasswordField confirmField = new JPasswordField(28);
         JPanel form = new JPanel(new GridBagLayout());
         DesignerDialogs.addRow(form, 0, CreateObjectMessages.create_label_name, nameField);
+        if (passwordProperty != null) {
+            DesignerDialogs.addRow(form, 1, SecurityMessages.security_label_password, passwordField);
+            DesignerDialogs.addRow(form, 2, SecurityMessages.security_label_confirm_password, confirmField);
+        }
         String name = DesignerDialogs.showDialog(owner, title, form, () -> {
             String text = nameField.getText().trim();
-            return text.isEmpty() ? DesignerDialogs.error(CreateObjectMessages.create_error_name) : text;
+            if (text.isEmpty()) {
+                return DesignerDialogs.error(CreateObjectMessages.create_error_name);
+            }
+            if (passwordProperty != null) {
+                char[] password = passwordField.getPassword();
+                char[] confirm = confirmField.getPassword();
+                try {
+                    if (password.length == 0) {
+                        return DesignerDialogs.error(CreateObjectMessages.create_error_password);
+                    }
+                    if (!Arrays.equals(password, confirm)) {
+                        // Shorter than the security editor's message: the error line shares the row with the buttons
+                        return DesignerDialogs.error(CreateObjectMessages.create_error_password_mismatch);
+                    }
+                } finally {
+                    Arrays.fill(password, '\0');
+                    Arrays.fill(confirm, '\0');
+                }
+            }
+            return text;
         });
-        return name == null ? null : (monitor, object, context) -> setName(object, name);
+        if (name == null) {
+            return null;
+        }
+        if (passwordProperty == null) {
+            return (monitor, object, context) -> setName(object, name);
+        }
+        String password = new String(passwordField.getPassword());
+        passwordField.setText(""); //$NON-NLS-1$
+        confirmField.setText(""); //$NON-NLS-1$
+        return new NameAndPassword(name, passwordProperty, password);
+    }
+
+    /**
+     * The required password property of the type ({@code @Property(password = true, required = true)}, editable), or
+     * null. Such a type cannot be created without a secret, which no manager may make up (for example an Exasol local
+     * user or a Mimer program ident), so the name dialog asks for it.
+     */
+    @Nullable
+    private static ObjectPropertyDescriptor getRequiredPassword(@NotNull Class<?> childClass) {
+        for (ObjectPropertyDescriptor property : ObjectAttributeDescriptor.extractAnnotations(null, childClass, null, null, false)) {
+            if (property.isPassword() && property.isRequired() && property.isEditPossible()) {
+                return property;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Name and required password of a new object. The object gets a masked password for the script preview and the
+     * real one only while it is saved ({@link ExplorerObjectCommands.Secrets}).
+     */
+    private static final class NameAndPassword implements Configurer, ExplorerObjectCommands.Secrets {
+        private final String name;
+        private final ObjectPropertyDescriptor property;
+        private final String password;
+
+        NameAndPassword(@NotNull String name, @NotNull ObjectPropertyDescriptor property, @NotNull String password) {
+            this.name = name;
+            this.property = property;
+            this.password = password;
+        }
+
+        @Override
+        public void configure(@NotNull DBRProgressMonitor monitor, @NotNull DBSObject object, @NotNull DBECommandContext context) throws DBException {
+            setName(object, name);
+            writePassword(object, MASKED_PASSWORD);
+        }
+
+        @NotNull
+        @Override
+        public ExplorerObjectCommands.Secrets getSecrets() {
+            return this;
+        }
+
+        @Override
+        public void reveal(@NotNull DBSObject object) throws DBException {
+            writePassword(object, password);
+        }
+
+        @Override
+        public void clear(@NotNull DBSObject object) {
+            try {
+                writePassword(object, ""); //$NON-NLS-1$
+            } catch (DBException e) {
+                log.debug("Cannot clear the password of the new object", e); //$NON-NLS-1$
+            }
+        }
+
+        private void writePassword(@NotNull DBSObject object, @NotNull String value) throws DBException {
+            try {
+                property.writeValue(object, value);
+            } catch (ReflectiveOperationException | RuntimeException | IllegalAccessError e) {
+                throw new DBException("Cannot set the password of the new " + object.getClass().getSimpleName(), e);
+            }
+        }
     }
 
     /**

@@ -73,7 +73,8 @@ import java.util.function.Supplier;
  *     ({@link NewObjectDialogs})로 값을 받는다.</li>
  *     <li>이름만(Generic): 그 밖에 객체 관리자가 있는 종류는 이름만 받는다(틀이 없는 드라이버의 시퀀스처럼 관리자 기본값으로 문장이
  *     되는 것). 본문이나 대상이 필요한 종류(뷰, 루틴, 테이블, 트리거, 패키지, 형식, 별칭)와 다른 명령이 맡는 종류(New Table·New View·
- *     보안 주체·MySQL 이벤트, Oracle 스키마 = 사용자)는 여기서 빼서, 이름만으로 틀린 문장이 나오지 않게 한다.</li>
+ *     보안 주체·MySQL 이벤트, Oracle 스키마 = 사용자)는 여기서 빼서, 이름만으로 틀린 문장이 나오지 않게 한다. 모델이 필수 암호를
+ *     선언한 종류(Exasol 로컬 사용자 등)는 이 대화상자가 암호도 가려서 받는다({@link NewObjectDialogs}).</li>
  * </ol>
  * 대화상자와 이름만 길은 모델의 객체 관리자로 새 객체를 만들고({@link DBEObjectMaker#createNewObject}, 구성기 없이
  * {@link SQLObjectEditor#OPTION_SKIP_CONFIGURATION}), 삭제·이름 바꾸기와 같은 길({@link ExplorerObjectCommands#runChange})로 실행한다:
@@ -84,6 +85,8 @@ import java.util.function.Supplier;
  *
  * 변경 이력:
  * - 2026-11-08 최초 작성 (docs/chromite/swing-create-objects.md)
+ * - 2026-11-08 이름 대화상자의 암호를 미리 보기에서 가리도록 {@link ExplorerObjectCommands.Secrets}를 넘김
+ *   (swing-create-objects.md "새 사용자의 암호")
  */
 final class NewObjectCommands {
 
@@ -283,7 +286,7 @@ final class NewObjectCommands {
                 context.resetChanges(true);
                 throw new DBException("The " + target.childClass().getSimpleName() + " was not created");
             }
-            changes.add(new ExplorerObjectCommands.Change(object, context, new HashMap<>()));
+            changes.add(new ExplorerObjectCommands.Change(object, context, new HashMap<>(), configurer.getSecrets()));
             configurer.configure(monitor, object, context);
         });
     }

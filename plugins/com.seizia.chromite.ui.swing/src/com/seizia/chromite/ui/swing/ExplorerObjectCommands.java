@@ -81,7 +81,9 @@ import java.util.function.Supplier;
  *     미리 보기에서 취소하면 아무것도 바뀌지 않는다. 저장 뒤 모델이 객체 이벤트를 보내 탐색기 노드가 빠지거나 이름이 바뀐다.</li>
  *     <li>실행 전에는 언제나 스크립트를 보여 준다({@link ScriptPreviewDialog#confirmChange}: 실행, 쿼리 창으로 열기, 취소; 취소가 기본).
  *     SWT는 미리 보기가 선택(View Script)이었지만 DROP은 되돌릴 수 없으므로 SSMS "Script" 단계처럼 늘 보인다. 그래서 연결 유형의
- *     "데이터 변경 확인"을 따로 볼 필요가 없다. 스크립트는 저장과 같은 명령의 실행 동작({@link DBECommand#getPersistActions})으로 만든다.</li>
+ *     "데이터 변경 확인"을 따로 볼 필요가 없다. 스크립트는 저장과 같은 명령의 실행 동작({@link DBECommand#getPersistActions})으로 만든다.
+ *     새 개체의 암호({@link Secrets})는 미리 보기·복사·쿼리 창으로 열기에 가린 값으로 나가고, 저장하는 동안에만 객체에 들어간다
+ *     (보안 편집기의 {@code SecurityStatement#displaySql}과 같은 방식). 실행 동작은 저장할 때 객체에서 다시 만들어지기 때문이다.</li>
  *     <li>삭제 확인은 객체 목록(이름·형식)과, 관리자가 지원할 때만 {@link DeleteOption} 확인란(연쇄 삭제, 기존 연결 닫기)을 보인다
  *     ({@link DBEObjectMaker#getMakerOptions}의 기능 비트, SWT와 같다). 서로 다른 연결의 객체는 SWT처럼 함께 지우지 않는다.</li>
  *     <li>제한: 읽기 전용 연결({@link DBPDataSourceContainer#isConnectionReadOnly})과 메타데이터 변경 제한·읽기 전용 메타데이터
@@ -101,6 +103,7 @@ import java.util.function.Supplier;
  * - 2026-11-07 최초 작성 (docs/chromite/swing-explorer-object-actions.md)
  * - 2026-11-08 미리 보기·트랜잭션 질문·실행 경로({@link #runChange})를 패키지 안에 열어 새 개체 만들기({@link NewObjectCommands})도 같은 길로 실행
  *   (docs/chromite/swing-create-objects.md)
+ * - 2026-11-08 새 개체의 암호를 미리 보기에서 가리고 저장하는 동안에만 넣음({@link Secrets}, swing-create-objects.md "새 사용자의 암호")
  */
 final class ExplorerObjectCommands {
 
@@ -139,9 +142,34 @@ final class ExplorerObjectCommands {
     }
 
     /**
-     * One object's pending change: its own atomic command context and the options its persist actions read.
+     * One object's pending change: its own atomic command context, the options its persist actions read and the new
+     * object's secrets (null when it has none).
      */
-    record Change(@NotNull DBSObject object, @NotNull DBECommandContext context, @NotNull Map<String, Object> options) {
+    record Change(
+        @NotNull DBSObject object,
+        @NotNull DBECommandContext context,
+        @NotNull Map<String, Object> options,
+        @Nullable Secrets secrets
+    ) {
+        Change(@NotNull DBSObject object, @NotNull DBECommandContext context, @NotNull Map<String, Object> options) {
+            this(object, context, options, null);
+        }
+    }
+
+    /**
+     * Secret values (passwords) of a new object. While the script is built the object holds masked values, so the
+     * preview, copy and "Open in query window" never show them; the real values are in the object only during the save.
+     */
+    interface Secrets {
+        /**
+         * Puts the real values into the object; job thread, right before the save.
+         */
+        void reveal(@NotNull DBSObject object) throws DBException;
+
+        /**
+         * Removes the values from the object after the save, whether it succeeded or not.
+         */
+        void clear(@NotNull DBSObject object);
     }
 
     /**
@@ -541,8 +569,18 @@ final class ExplorerObjectCommands {
                 for (Change change : prepared.changes()) {
                     current[0] = change.object();
                     DBPDataSource dataSource = change.context().getExecutionContext().getDataSource();
-                    // Reconnects and retries once when the connection was lost, as the table designer's save
-                    DBExecUtils.tryExecuteRecover(monitor, dataSource, param -> change.context().saveChanges(monitor, change.options()));
+                    Secrets secrets = change.secrets();
+                    if (secrets != null) {
+                        secrets.reveal(change.object());
+                    }
+                    try {
+                        // Reconnects and retries once when the connection was lost, as the table designer's save
+                        DBExecUtils.tryExecuteRecover(monitor, dataSource, param -> change.context().saveChanges(monitor, change.options()));
+                    } finally {
+                        if (secrets != null) {
+                            secrets.clear(change.object());
+                        }
+                    }
                 }
                 return null;
             });

@@ -27,6 +27,8 @@ import org.eclipse.osgi.util.NLS;
  *
  * 변경 이력:
  * - 2026-11-08 최초 작성 (docs/chromite/swing-create-objects.md)
+ * - 2026-11-08 이름 대화상자의 암호 오류 {@code create_error_password}, {@code create_error_password_mismatch}
+ *   (swing-create-objects.md "새 사용자의 암호")
  */
 public class CreateObjectMessages extends NLS {
     private static final String BUNDLE_NAME = "com.seizia.chromite.ui.swing.internal.CreateObjectMessages"; //$NON-NLS-1$
@@ -59,6 +61,8 @@ public class CreateObjectMessages extends NLS {
     public static String create_column_version;
     public static String create_column_description;
     public static String create_error_name;
+    public static String create_error_password;
+    public static String create_error_password_mismatch;
     public static String create_error_owner;
     public static String create_error_location;
     public static String create_error_extension;
