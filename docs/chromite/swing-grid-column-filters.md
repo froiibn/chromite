@@ -197,3 +197,5 @@ ResultSetViewerPanel (결과 하나)
 - 2026-11-07 최초 작성: 결과 필터 줄 삭제, 열 머리글 필터·정렬 아이콘, 열 필터 팝업(서버 값 목록, 조건), 상태 줄 필터 요약,
   SQL Server 열 필터가 ORDER BY 쿼리에서 실패하던 모델 문제 수정.
 - 2026-11-08 "남긴 것"의 결과 영역 높이를 다시 확인함(지금 기본 배치에서는 생기지 않음).
+- 2026-11-08 Query Library가 값을 바인딩한 결과에서도 열 필터와 값 목록이 됨: `SQLQueryColumnValues`가 결과 컨테이너의 바인딩 방법을 넘겨받음
+  ([swing-query-library.md](swing-query-library.md) "매개변수 대화상자와 바인딩 하나로").

@@ -163,7 +163,9 @@ import java.util.concurrent.atomic.AtomicLong;
  *     ({@link SQLActualPlanProvider}, SQL Server) 실행 전에 켜고 끝나면 끄며 그 결과 집합을 계획으로 바꾸고({@link ActualPlanReceiver}),
  *     아니면 실행이 끝난 뒤 데이터를 바꾸지 않는 SELECT만 계획기의 ANALYZE 설정으로 다시 계획한다.</li>
  *     <li>쿼리 기록: 엔진의 문장 끝 이벤트마다 {@link QueryHistory}에 문장, 연결, 기본 DB/스키마, 시간, 행 수, 결과를 남긴다.</li>
- *     <li>매개변수: {@code :name}, {@code ${var}}에 값이 없으면 엔진이 {@link SqlParameterDialog}로 묻는다.</li>
+ *     <li>매개변수: {@code :name}, {@code ${var}}에 값이 없으면 엔진이 {@link QueryParameterBinder.ScriptProvider}로 묻고 값을 SQL 글자로 넣는다.
+ *     Query Library 쿼리(확장)와 기록에서 다시 연 바인딩 실행({@link #setRecordedParameters})은 실행 전에 묻고 값을 바인딩한다
+ *     ({@link SqlParameterBinding}). 대화상자는 모두 {@link QueryParameterDialog}다.</li>
  *     <li>편집 명령: SQL 서식(Ctrl+K Ctrl+D, Ctrl+Shift+F), 대문자·소문자(Ctrl+Shift+U/L), 주석 넣기·빼기(Ctrl+K Ctrl+C / Ctrl+K Ctrl+U),
  *     들여쓰기({@link SqlEditCommands}), 템플릿(이름 + Tab, Ctrl+K Ctrl+X 목록, {@link SqlTemplates})은 편집 영역({@link SqlTextArea})이 직접 키를 받는다.
  *     Ctrl+K로 시작하는 두 번 누르는 키는 편집 영역의 키 리스너가 두 번째 키를 받아 처리한다(키 바인딩보다 먼저 불려 Ctrl+C 복사 등을 막는다).
@@ -174,7 +176,8 @@ import java.util.concurrent.atomic.AtomicLong;
  *     {@link DBCServerOutputReader}로 읽어 그 문장의 메시지(경고 다음, 행 수 앞)로 Messages 탭에 쓴다. SWT의 별도 Output 패널 대신
  *     Messages 탭인 것은 SQL Server PRINT·PostgreSQL NOTICE가 이미 여기 있어 SSMS처럼 한 곳에 차례대로 보이게 하려는 것이다.
  *     읽으면 버퍼가 비워지므로 매번 읽는다(Oracle 버퍼 넘침, Altibase 메모리 증가 방지). 경고만 되풀이하는 읽기 도구는 실행 결과 없이 불러
- *     PRINT·NOTICE가 두 번 나오지 않는다(docs/chromite/swing-server-output.md).</li>
+ *     PRINT·NOTICE가 두 번 나오지 않는다(docs/chromite/swing-server-output.md). 문장을 실행하기 전에는
+ *     {@link DBCServerOutputReader#syncServerOutput}으로 세션의 서버 쪽 켜짐을 지금 설정에 맞춘다(설정이 세션을 연 뒤 바뀐 경우).</li>
  *     <li>SQL 터미널(Query &gt; SQL Terminal, 쿼리 창마다 켜고 끔): 켜고 시작한 실행은 결과 표와 Messages 탭은 그대로 두고, 문장마다
  *     {@code SQL> 문장}, 결과 집합의 글자 표, 같은 메시지와 오류를 Terminal 탭({@link SqlTerminalView})에도 쓴다. 글자 표는 결과를 받는 Job
  *     스레드에서 만들어 두었다가 문장이 끝날 때 메시지와 함께 한 번에 EDT로 넘겨 순서가 섞이지 않는다. 실행 중에는 Results 대신 Terminal 탭을
@@ -231,6 +234,11 @@ import java.util.concurrent.atomic.AtomicLong;
  * - 2026-11-07 쿼리 창마다 별도 연결({@link QueryWindowContext}): 실행·계획·기본 스키마·트랜잭션 표시와 명령·자동완성이 창의 문맥을 쓰고,
  *   창 닫기·연결 바꾸기·DB 인스턴스 바꾸기 전에 그 세션의 트랜잭션을 물음. 상태 줄 커밋 방식 칸의 도구 설명에 세션 수.
  *   자동완성이 창을 만들 때의 연결을 계속 쓰던 것(생성자 매개 변수를 잡은 람다)을 지금 연결로 고침 (docs/chromite/transactions.md)
+ * - 2026-11-08 매개변수 대화상자를 하나로({@link QueryParameterDialog}, 엔진 제공자는 {@link QueryParameterBinder.ScriptProvider}),
+ *   값을 바인딩한 결과도 바인딩의 데이터 컨테이너로 다시 읽음(필터·서버 정렬·다음 페이지·Export Data), 기록에 {@code :name} 글자와 값을 남기고
+ *   기록에서 연 창은 그 값으로 다시 바인딩({@link #setRecordedParameters}) (docs/chromite/swing-query-library.md "매개변수 대화상자와 바인딩 하나로")
+ * - 2026-11-08 문장마다 실행 전에 서버 출력 켜짐을 설정에 맞춤({@code syncServerOutput}). Oracle DBMS_OUTPUT을 끄거나 켜도 열린 세션은
+ *   다시 연결할 때까지 그대로였던 것 (docs/chromite/model-fixes.md "작은 모델·안전·라이선스 수정")
  * - 2026-11-08 SQL 터미널: 창마다 켜고 끄는 Terminal 탭에 문장과 결과를 글자로 씀({@link SqlTerminalView}, docs/chromite/swing-sql-terminal.md)
  * - 2026-11-08 Scripts 도구 창에서 이름을 바꾼 파일을 따라가는 {@link #fileMoved} (docs/chromite/swing-scripts-explorer.md)
  */
@@ -348,6 +356,11 @@ final class SqlEditorPanel extends JPanel {
     private Execution execution;
     @Nullable
     private SqlEditorExtension extension;
+    // EDT only: the values of a bound run reopened from the query history (its ":name" parameters are bound again), or null
+    @Nullable
+    private QueryParameterBinder.Recorded recordedParameters;
+    // EDT only: the next run uses the recorded values without asking (History: Execute)
+    private boolean runRecordedWithoutAsking;
     @Nullable
     private Runnable executionFinishedListener;
     // EDT only: the object whose definition this window edits (Modify), or null
@@ -530,6 +543,15 @@ final class SqlEditorPanel extends JPanel {
     @Nullable
     SqlEditorExtension getExtension() {
         return extension;
+    }
+
+    /**
+     * Makes the window bind the {@code :name} parameters of its text with the values of a run reopened from the query
+     * history (asked with those values first, unless {@code withoutAsking} for the next run).
+     */
+    void setRecordedParameters(@NotNull QueryParameterBinder.Recorded recorded, boolean withoutAsking) {
+        this.recordedParameters = recorded;
+        this.runRecordedWithoutAsking = withoutAsking;
     }
 
     /**
@@ -907,10 +929,18 @@ final class SqlEditorPanel extends JPanel {
                 return;
             }
         }
-        // Parameter values (Query Library): asked here in the EDT, bound in the job threads
+        // Parameter values (Query Library, a bound run from the history): asked here in the EDT, bound in the job threads.
+        // Other windows: the engine asks for the values it needs while the script runs (ScriptProvider)
         SqlParameterBinding binding = SqlParameterBinding.NONE;
         if (extension != null) {
             binding = extension.prepareExecution(this, container, text.substring(offset, offset + length));
+            if (binding == null) {
+                return;
+            }
+        } else if (recordedParameters != null) {
+            boolean ask = !runRecordedWithoutAsking;
+            runRecordedWithoutAsking = false;
+            binding = recordedParameters.prepareExecution(this, getFileName(), container, text.substring(offset, offset + length), ask);
             if (binding == null) {
                 return;
             }
@@ -1217,7 +1247,7 @@ final class SqlEditorPanel extends JPanel {
             }
             // Parameters without a value are asked for in a dialog (SWT: SQLEditorParametersProvider)
             SQLScriptContext scriptContext = new SQLScriptContext(null, () -> context, null, new MessagesWriter(run),
-                new SqlParameterDialog.Provider(this));
+                new QueryParameterBinder.ScriptProvider(this));
             SQLQueryExecuteJob job = new SQLQueryExecuteJob(
                 "Execute query", context, null, elements, scriptContext,
                 new QueryListener(run, context), new QueryHandler(run, context, scriptContext));
@@ -1433,6 +1463,24 @@ final class SqlEditorPanel extends JPanel {
     }
 
     /**
+     * Turns the server output on or off on this session when the setting changed after the session opened (Oracle
+     * {@code DBMS_OUTPUT}), before the statement runs: a statement run after turning it on is read, and a session
+     * turned off no longer buffers output that nobody reads.
+     */
+    private static void syncServerOutput(@NotNull DBCSession session) {
+        DBCExecutionContext context = session.getExecutionContext();
+        DBCServerOutputReader reader = DBUtils.getAdapter(DBCServerOutputReader.class, context.getDataSource());
+        if (reader == null) {
+            return;
+        }
+        try {
+            reader.syncServerOutput(session.getProgressMonitor(), context);
+        } catch (Throwable e) {
+            log.debug("Can't turn the server output on or off", e);
+        }
+    }
+
+    /**
      * SSMS-like error header ({@code Msg 208, State 42S02, Line 3, Column 15}) followed by the error messages.
      * The position comes from the dialect's error assistant when it can locate the error, else it is the query start.
      */
@@ -1605,14 +1653,13 @@ final class SqlEditorPanel extends JPanel {
 
         @NotNull
         private DBDDataReceiver createGridReceiver(@NotNull SQLQuery query) {
-            SQLQueryDataContainer dataContainer = new SQLQueryDataContainer(() -> context, query, scriptContext, log);
-            // Natively bound values (Query Library) exist only in this run's handler; the data container would send the
-            // query's "?" markers without them, so the result is not read again (Export Data, filters, next pages)
-            boolean boundParameters = run.binding.isBound(query);
-            return new ResultSetGridReceiver(dataContainer, boundParameters ? EditorMessages.editor_sql_bound_parameters : null, fetched -> {
+            // Natively bound values (Query Library) are bound again when the result is read again (Export Data, filters,
+            // next pages): the binding makes the data container
+            SQLQueryDataContainer dataContainer = run.binding.createDataContainer(() -> context, query, scriptContext, log);
+            return new ResultSetGridReceiver(dataContainer, fetched -> {
                 run.rowsFetched.addAndGet(fetched.data().rows().size());
                 // Only a query's first result set can be read again on its own (Export Data); receivers are called in order
-                boolean exportable = !boundParameters && gridQueries.add(query);
+                boolean exportable = gridQueries.add(query);
                 if (run.terminal) {
                     // Formatted here, off the EDT; written with the query's messages when it ends (reportQueryResult)
                     run.terminalTables.computeIfAbsent(query, q -> new ArrayList<>()).add(SqlTerminalView.formatTable(fetched.data()));
@@ -1667,6 +1714,11 @@ final class SqlEditorPanel extends JPanel {
         }
 
         @Override
+        public void onStartQuery(@NotNull DBCSession session, @NotNull SQLQuery query) {
+            syncServerOutput(session);
+        }
+
+        @Override
         public void onEndQuery(@NotNull DBCSession session, @NotNull SQLQueryResult result, @NotNull DBCStatistics statistics) {
             reportQueryResult(run, session, result);
             recordHistory(run, context, result);
@@ -1703,12 +1755,13 @@ final class SqlEditorPanel extends JPanel {
                 container.getId(),
                 container.getName(),
                 getDefaultObjectName(context),
-                // Bound values (Query Library) written into the text: the statement itself has "?" markers
+                // Bound values (Query Library): the text with its ":name" markers and the values; the statement itself has "?" markers
                 run.binding.getHistoryText(result.getStatement()),
                 result.getQueryTime(),
                 rows,
                 status,
-                result.getError() == null ? null : ErrorText.describe(result.getError())));
+                result.getError() == null ? null : ErrorText.describe(result.getError()),
+                run.binding.getHistoryParameters(result.getStatement())));
         } catch (Throwable e) {
             log.debug("Can't record the query history", e);
         }

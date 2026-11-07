@@ -61,6 +61,7 @@ import java.util.zip.ZipOutputStream;
  *
  * 변경 이력:
  * - 2026-11-07 Query Library ④ 공유: 최초 작성 (docs/chromite/swing-query-library.md "공유")
+ * - 2026-11-08 사본으로 가져올 때 고친 시각({@code @updated})을 쓰지 않음 (docs/chromite/swing-query-library.md "저장 형식")
  */
 final class QueryLibraryArchive {
 
@@ -280,9 +281,7 @@ final class QueryLibraryArchive {
                         copy.setId(null);
                         copy.ensureId();
                         copy.setName(NLS.bind(ToolsMessages.library_copy_name, copy.getName()));
-                        OffsetDateTime now = OffsetDateTime.now().withNano(0);
-                        copy.setCreated(now);
-                        copy.setUpdated(now);
+                        copy.setCreated(OffsetDateTime.now().withNano(0));
                         target = QueryLibrary.uniquePath(target.getParent(), QueryLibraryFile.toFileName(copy.getName()), QueryLibraryFile.EXTENSION);
                         // The exported bytes first, so that the copy keeps their charset and line separator
                         Files.write(target, entry.bytes());

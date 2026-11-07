@@ -37,9 +37,16 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.regex.Pattern;
 
+/**
+ * 변경 이력:
+ * - 2026-11-08 Chromite: {@link #URI_SCHEME_PREFIX}가 두 글자 이상의 스킴만 받음. 한 글자는 Windows 드라이브 문자라
+ *   {@code D:/x}가 스킴 "D"인 URI로 읽혀 "File system schema 'D' not recognized"로 실패했다(내보내기 폴더 등)
+ *   (docs/chromite/model-fixes.md "작은 모델·안전·라이선스 수정")
+ */
 public class DBFFileSystemManager implements DBFEventListener {
     public static final String QUERY_PARAM_FS_ID = "fs";
-    public static final Pattern URI_SCHEME_PREFIX = Pattern.compile("[a-z\\d]+:/.+", Pattern.CASE_INSENSITIVE);
+    // A one-letter "scheme" is a Windows drive letter (D:/x), as in IOUtils.isLocalFile
+    public static final Pattern URI_SCHEME_PREFIX = Pattern.compile("[a-z\\d]{2,}:/.+", Pattern.CASE_INSENSITIVE);
 
     private static final Log log = Log.getLog(DBFFileSystemManager.class);
     private volatile Map<String, DBFVirtualFileSystem> dbfFileSystems;

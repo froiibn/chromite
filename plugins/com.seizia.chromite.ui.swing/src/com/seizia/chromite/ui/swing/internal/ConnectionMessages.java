@@ -40,6 +40,7 @@ import org.eclipse.osgi.util.NLS;
  * - 2026-11-08 Oracle 세션 설정 탭({@code driver_oracle_session_tab}, {@code driver_oracle_nls_*}) (docs/chromite/swing-conn-advanced.md "Oracle 세션 설정")
  * - 2026-11-08 끊긴 세션만 다시 열었다는 알림({@code recovery_session_*})과 끊긴 세션의 트랜잭션을 버리는 질문({@code lost_txn_*})
  *   (docs/chromite/transactions.md "끊긴 세션의 쿼리 창")
+ * - 2026-11-08 연결별 설정 탭({@code settings_tab_settings}) (docs/chromite/swing-options.md "연결별 설정")
  */
 public class ConnectionMessages extends NLS {
     private static final String BUNDLE_NAME = "com.seizia.chromite.ui.swing.internal.ConnectionMessages"; //$NON-NLS-1$
@@ -97,6 +98,7 @@ public class ConnectionMessages extends NLS {
     public static String settings_connection_name;
     public static String settings_connection_name_placeholder;
     public static String settings_tab_connection_properties;
+    public static String settings_tab_settings;
     public static String settings_tab_driver_properties;
     public static String settings_tab_provider_properties;
     public static String settings_tab_additional;
