@@ -79,6 +79,9 @@ SWT 프런트엔드를 지울 때(#68) 기능 전체 목록과 맞춰 보지 않
 - 쿼리 창마다 별도 연결(지금은 한 연결의 창들이 트랜잭션을 공유).
 - 탐색기에서 개체 삭제·이름 바꾸기, 이름 복사, 여러 개 선택, Generate SQL의 INSERT/UPDATE/DELETE 등.
 - 설정 화면: 트랜잭션, 연결 유형, 편집기·결과 기본값(설정 페이지 62개 중 45개는 Swing에서 바꿀 화면이 없음).
+  2026-11-07 일부 고침([swing-options.md](swing-options.md)): 키 306개를 Swing에서 읽는지 전수 확인(효과 없음 197개는 화면을 만들지 않음).
+  Options에 Query Execution(구분 기호·매개 변수·오류 처리)·Connection Types(연결 유형 편집)·Oracle 탭과 결과 형식 행, 연결 대화상자에 격리 수준을 더함.
+  오류로 멈춘 스크립트가 수동 커밋 세션의 열린 트랜잭션을 묻지 않고 롤백하던 것을 고침. 남은 것: 읽지만 화면 없는 키 71개(연결별 값, 형식 프로필, 시간 제한, 메타데이터 등).
 - Oracle 사용자·역할·권한 관리, Oracle NLS 세션 설정, Altibase 잠금 탭, TRUNCATE·트리거 켜기/끄기·구체화된 뷰 새로 고침.
 - `@export` 명령이 무시됨(오류 없이 다음 쿼리 실행).
 
@@ -102,3 +105,5 @@ SWT 사용자가 잃은 기능은 아니다. 그래도 옮길지는 따로 정�
 - 2026-11-07 2순위 A-S6(Windows 인증서 저장소), A-S14(macOS 끝내기·정보·환경설정) 고침([platform-startup.md](platform-startup.md)).
 - 2026-11-07 1순위 남은 두 줄 고침: A-S2 유휴 연결 닫기, A-S7 모델 알림([idle-transactions.md](idle-transactions.md)). #97로 고친 A-S1·A-S3·B-S23·B-S24의 상태도 영역 보고서에 반영.
 - 2026-11-07 A-C14 없음 → 일부: 연결 내보내기·가져오기(비밀번호는 암호로 암호화한 파일)([connection-transfer.md](connection-transfer.md)).
+- 2026-11-07 3순위 설정 화면 일부: SWT 설정 키의 Swing 효과 전수, Query Execution·Connection Types·Oracle 탭, 결과 형식, 격리 수준, 오류 뒤 무확인 롤백 고침
+  ([swing-options.md](swing-options.md)). A-platform §6, B-S14·B-S15 상태 갱신.
