@@ -21,7 +21,7 @@ SWT 대조 4순위 B4 작업이고 대상 항목은 다음과 같다([swt-parity
 
 ## 구조
 
-모두 `com.seizia.chromite.ui.swing` 번들이다. 새 번들·새 의존은 없다. 모델은 바꾸지 않았다.
+Swing 클래스는 모두 `com.seizia.chromite.ui.swing` 번들이다. 새 번들·새 의존은 없다. 모델은 `SQLQueryDataContainer.countData` 하나를 고쳤다(아래 "전체 행 수").
 
 | 클래스 | 새/변경 | 역할 |
 |---|---|---|
@@ -144,6 +144,10 @@ SWT: `resultset.count`, `ResultSetViewer.readRowCount`.
 - 더 읽을 행이 있으면 상태 줄에 "행 수 세기"가 나온다(Navigate 메뉴에도). 모델의 `DBUtils.readRowCount`(컨테이너의 `countData`, 쿼리는 `SELECT COUNT(*)`로 감쌈)로
   지금 필터 조건 그대로 센다. 그 뒤 상태 줄은 "전체 12,345행 중 200행 읽음"이다. 필터를 바꾸거나 다른 테이블로 가면 다시 세야 한다.
   다시 읽을 수 없는 결과(여러 문장, 프로시저)는 세지 않는다(같은 이유로 다시 실행하지 않음).
+- **모델 고침:** 쿼리 결과의 컨테이너(`SQLQueryDataContainer`)는 `FEATURE_DATA_COUNT`를 내세우면서 `countData`가 늘 -1이었다(상태 줄에 "전체 -1행").
+  이제 필터 조건(정렬은 뺌)을 방언의 `addFiltersToQuery`로 넣고, 모델의 `SQLQueryTransformerCount`(SWT가 쿼리 결과를 셀 때 쓴 것)로 COUNT 쿼리를 만들어
+  같은 컨테이너의 `readData`로 읽는다. 그래서 매개변수는 행을 읽을 때처럼 채우거나 바인딩한다(`FLAG_REFRESH`: 다시 묻지 않음). SELECT 하나가 아니면 세지 않는다
+  (감싸면 그 문장이 실행되므로). 데이터 전송의 "행 수 세기"(기본 켬)도 이 메서드를 써서, 쿼리 내보내기 전에 COUNT 쿼리를 하나 더 실행한다(SWT와 같음).
 
 ### 오류 위치로 가기 (B-R27)
 
@@ -156,7 +160,7 @@ SWT: `GoToErrorAction`, `ErrorPresentation`.
 
 ## upstream 대비 변경점
 
-- upstream(SWT) 코드와 모델은 바꾸지 않았다. Swing 번들만 바뀌었다.
+- 모델은 `SQLQueryDataContainer.countData`만 바꿨다: upstream은 -1을 돌려주었고 SWT는 SQL 편집기의 자기 컨테이너(`QueryResultsContainer`)로 셌다.
 - SWT와 다른 동작:
   - 뒤로·앞으로는 다시 읽지 않고 남겨 둔 결과를 보인다.
   - Ctrl+B로 참조되는 행(SWT Alt+Space).
@@ -165,10 +169,39 @@ SWT: `GoToErrorAction`, `ErrorPresentation`.
   - 열은 머리글을 끌어 옮긴다(왼쪽·오른쪽 옮기기 명령 없음).
   - 열 고정, 가상 계산 열, 그룹 패널, 바꾸기 없음.
 
-## 확인
+## 확인 (2026-11-08)
 
-(아래 "확인 (2026-11-08)" 참고.)
-
+- 빌드: `mvn -B clean package -f product/aggregate/pom.xml -T1C -Pproduct-chromite-swing` → `BUILD SUCCESS`, `python tools/rename/gate.py` → `ALL GATES PASSED`.
+- 실행: 빌드한 Swing 제품을 `D:\Tools\_scratch\chromite-p4-grid-navigation`에 복사해 `CHROMITE_DATA`와 작업 공간을 그 폴더에 두고 열었다.
+  화면 조작은 실행 중인 앱 안의 시험용 Java 에이전트(제품에 들어가지 않음)가 Swing API로 했다(OS 입력·앞 창 없음). DB 값은 앱 밖의 다른 세션
+  (`docker exec`의 psql·sqlcmd·sqlplus)으로 확인했다. 시험 객체는 공용 Docker DB에 만들고(PostgreSQL 스키마 `p4nav`, SQL Server DB `chr_p4nav`,
+  Oracle 사용자 `CHR_P4NAV`: customers, orders(외래 키), nokey(키 없음), many(500행)) 끝난 뒤 지웠다.
+- **PostgreSQL:**
+  - orders의 customer_id 칸 Ctrl+B → customers 1행, 상태 줄 "→ p4nav.customers (orders_customer_id_fkey)", 필터 요약 "필터: id". Alt+← → orders 5행, Alt+→ → customers.
+    customers 행에서 이동 › 참조하는 테이블 › p4nav.orders → 그 고객의 주문 2행("← …"), 뒤로 두 번 → 처음 결과(기록 위치 0).
+  - 참조 패널: 행 2~3을 고르면 customers 2행. 집계 패널: 열마다(customer_id 개수 5·합계 9·평균 1.8·최솟값 1·최댓값 3, item 최솟값 apple·최댓값 사과),
+    "열마다" 끔 → 한 줄(15칸, 합계 27). 텍스트 보기(Ctrl+`) → 열을 맞춘 글.
+  - 500행 쿼리(200행 읽음): 행 수 세기 → "전체 500행 중 200행 읽음"(모델 고치기 전에는 "전체 -1행"). Ctrl+G 150 → 150행. Ctrl+F "x17" → 2 / 11, 3 / 11, 이전 2 / 11.
+    빈 열 숨기기 → empty_col 숨김(상태 줄 "열 1개 숨김"), 열 숨기기 → id, 열 옮기기 → [label, val], 서버 정렬 뒤에도 그 배치, 모든 열 보이기(2개 숨김) → 네 열.
+    Alt+0 두 번 → 글꼴 12 → 14.4, Alt+9 → 13.2. Ctrl+Shift+G "lab" → label 열.
+  - nokey: "읽기 전용: 고유 키 없음"과 "가상 키 정하기…" → customer_id를 골라 확인 → "편집 가능(nokey)" → 칸을 고쳐 Ctrl+S → psql에서 `n-two-edited`.
+    작업 공간 사본의 data-sources.json "virtual-models"에 `VIRTUAL_PK`(type vpk, customer_id)가 남음.
+  - 가상 외래 키 추가: 대화상자(참조 테이블 customers, 키 customers_pkey, 열 customer_id) → 다시 읽은 nokey에서 Ctrl+B → customers의 Alice.
+    가상 키 › 가상 외래 키 지우기 › "customer_id → p4nav.customers (id)" → 확인 대화상자 취소 → 남음 → 지우기 → 메뉴에서 사라짐.
+  - 오류 위치로 가기: 세 번째 줄의 없는 열 → Messages의 오류에 손 모양 커서·도구 설명, 두 번 누르기 → 편집기 3줄 12열(그 열 이름의 시작).
+- **SQL Server**(DB `chr_p4nav`, 세 부분 이름): Ctrl+B → "→ chr_p4nav.dbo.customers (fk_orders_customer)", 참조하는 테이블 → orders 2행, 참조 패널 2행,
+  행 수 세기 500, 가상 키 → 저장 → sqlcmd에서 `n-three-mssql`, 가상 외래 키(PK__customer__…) → Ctrl+B → 김철수, 오류 위치 → 3줄 1열(SQL Server는 줄만 줌).
+- **Oracle**(사용자 CHR_P4NAV): Ctrl+B → "→ CHR_P4NAV.CUSTOMERS (FK_ORDERS_CUSTOMER)", 참조하는 테이블 → 2행, 참조 패널 2행, 행 수 세기 500,
+  가상 키 → 저장 → sqlplus에서 `n-one-oracle`, 오류 위치 → 3줄 12열.
+- **언어·테마:** 한국어(OS 언어)와 영어(`-nl en`)에서 오른쪽 클릭 메뉴(이동·열·가상 키), 상태 줄, 찾기 줄, 텍스트 보기, 참조·집계 패널, 가상 고유 키·가상 외래 키·행으로 가기
+  대화상자를 화면으로 확인했다. 다크 테마에서 옆 패널·찾기 줄·상태 줄을 확인했다.
+- 확인하면서 고친 것:
+  - 쿼리 결과의 행 수가 -1: 모델 `SQLQueryDataContainer.countData`가 구현되지 않았다(위 "전체 행 수").
+  - 참조·집계 패널을 결과 아래에 두니 쿼리 창의 기본 결과 높이에서 표와 패널이 모두 몇 줄만 보였다 → 결과 오른쪽으로.
+  - 가상 외래 키 메뉴 이름에 탐색기 노드 경로의 끝(예: `customers_28502`)이 보이던 것 → 참조 테이블 이름.
+- 확인하지 못한 것: MariaDB·Altibase 등 다른 DB, 여러 열 외래 키를 여러 행에서 따라가기(OR 형식, 코드 경로만), 수동 커밋 연결에서 가상 키로 저장, macOS.
+- 회귀 테스트는 실행하지 않았다(요청 없음). 영향받을 수 있는 기능: 결과 뷰어의 정렬·필터·다음 페이지(표를 다시 만들 때 열 배치를 옮김), 값 패널·레코드 보기(선택 열을 모델 열로),
+  Messages 탭(오른쪽 클릭 메뉴), 테이블 디자이너의 외래 키 대화상자, 쿼리 결과 내보내기의 "행 수 세기"(COUNT 쿼리를 하나 더 실행).
 ## 남긴 것
 
 - **열 고정(pin):** Swing `JTable`은 고정 열이 없다. 두 번째 표를 행 머리글 자리에 두고 선택·편집·키·값 패널을 두 표에 맞춰야 해서 따로 한다.
