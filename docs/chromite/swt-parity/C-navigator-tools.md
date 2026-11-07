@@ -71,6 +71,7 @@
 ## 3. `ui.dashboard`, `ui.charts`
 
 `ui.charts`는 JFreeChart의 SWT 연결부이고 쓰는 곳은 `ui.dashboard`뿐이다(`git grep com.seizia.chromite.ui.charts 263b8ddb45 -- '*/MANIFEST.MF'`). 결과 표의 차트 보기는 CE에 없었다.
+2026-11-08 Chromite가 결과 표의 차트 보기를 새로 더했다(선·막대·원형, PNG 저장, [swing-result-charts-spatial.md](../swing-result-charts-spatial.md)). 아래 33(대시보드 차트 상호작용)과는 별개다.
 
 | # | 기능 | SWT 출처 | 상태 | 근거 | 영향 | 비고 |
 |---|---|---|---|---|---|---|
@@ -143,7 +144,7 @@ MView 새로 고침, TRUNCATE, 트리거 켜기/끄기), MySQL(ANALYZE·CHECK·O
 |---|---|---|---|---|---|---|
 | 62 | PostgreSQL 프로시저 디버거(중단점, 단계 실행, 변수, 호출 스택, 디버그 구성·실행 바로 가기) | `debug.ui`, `debug.core`, `ext.postgresql.debug.ui/core` | 있음(2026-11-07) | 모델 복원(`debug.core`, `ext.postgresql.debug.core`), Swing `ProcedureDebuggerPanel`·`DebugStartDialog`·`DebugCommands`([procedure-debugger.md](../procedure-debugger.md)) | 낮음 | 디버그 구성·실행 바로 가기(Eclipse 실행 구성)는 옮기지 않고 Debug… 메뉴와 시작 대화상자로 바꿈. attach(Global) 모드는 SWT에서 꺼져 있던 것을 켬. Step Out은 pldbgapi에 없음. SWT에 없던 Oracle 디버거(`ext.oracle.debug.core`, DBMS_DEBUG, Step Out 있음)를 2026-11-07 더함 |
 | 63 | Git 연동(프로젝트 공유, Git에서 프로젝트 가져오기, 커밋, 갱신, 기록, Repositories 보기) | `team.git.ui` (+EGit) | 없음(이식 대기) | swt-removal.md:109, build.md:82-85 | 낮음 | `git.feature`는 SWT 제품에 없었다. 삭제 결정 문서는 없음(위 사실 2) |
-| 64 | 공간 데이터(GIS) 보기: 결과의 지도 보기(Leaflet, 타일 고르기, SRID), 기하 값 패널, GIS 환경설정 | `data.gis.view` `GeometryValueManager`, `results.geometry` 프레젠테이션, `PrefPageGIS` | 없음 | swt-removal.md:106, `DBGeometry` grep 0 | 낮음 | 결과 표에 기하 값이 글자로 보이는지는 확인하지 않았다 |
+| 64 | 공간 데이터(GIS) 보기: 결과의 지도 보기(Leaflet, 타일 고르기, SRID), 기하 값 패널, GIS 환경설정 | `data.gis.view` `GeometryValueManager`, `results.geometry` 프레젠테이션, `PrefPageGIS` | 일부 (2026-11-08) | 결과 공간 보기 `ResultSetSpatialView`, 값 패널의 WKT([swing-result-charts-spatial.md](../swing-result-charts-spatial.md)). 조사 당시: 없음(swt-removal.md:106, `DBGeometry` grep 0) | 낮음 | 밑그림 없는 평면(폐쇄망), 타일 고르기·SRID 변환·GIS 환경설정 없음 |
 | — | 개발자 Test 메뉴(노드·연결 검증, 연결 스트레스 시험, 대화상자·아이콘·색 보기) | `ui.app.devtools` | 해당 없음 | `ui.test.feature`(테스트 제품)에만 포함 | — | |
 | — | DataDam(프로젝트 공유·동기화, DataDam AI 엔진, MCP 연결) | `ui.datadam` | 해당 없음 | 어떤 피처에도 없음(telemetry.md:110-113, swt-removal.md:29, 140) | — | 모델 번들 정리는 swt-removal.md "남은 일" |
 
@@ -152,13 +153,14 @@ MView 새로 고침, TRUNCATE, 트리거 켜기/끄기), MySQL(ANALYZE·CHECK·O
 | 상태 | 수 | 번호 |
 |---|---|---|
 | 있음 | 16 | 1, 2, 3, 10, 11, 17, 27, 28, 31, 34, 35, 45, 48, 50, 55, 62 |
-| 일부 | 18 | 4, 12, 13, 14, 15, 18, 19, 24, 36, 37, 38, 42, 44, 47, 51, 57, 59, 60 |
-| 없음 | 27 | 5, 6, 7, 8, 9, 16, 20, 21, 22, 23, 25, 26, 29, 30, 32, 33, 39, 40, 41, 43, 46, 49, 52, 53, 56, 63, 64 |
+| 일부 | 19 | 4, 12, 13, 14, 15, 18, 19, 24, 36, 37, 38, 42, 44, 47, 51, 57, 59, 60, 64 |
+| 없음 | 26 | 5, 6, 7, 8, 9, 16, 20, 21, 22, 23, 25, 26, 29, 30, 32, 33, 39, 40, 41, 43, 46, 49, 52, 53, 56, 63 |
 | 의도적 제외 | 1 | 61 |
 | 조용히 끊김 | 2 | 54, 58 |
 | 해당 없음 | 4 | 즐겨찾기, 작업 스케줄러, 개발자 Test 메뉴, DataDam |
 
-없음 27개 중 63(Git)은 SWT 제품에도 없던 번들이라 실제 사용자 손실은 없다. 62(디버거)는 2026-11-07 옮겼다([procedure-debugger.md](../procedure-debugger.md)).
+64(GIS)는 2026-11-08 결과 공간 보기로 일부가 되었다([swing-result-charts-spatial.md](../swing-result-charts-spatial.md)).
+조사 당시 없음 27개 중 63(Git)은 SWT 제품에도 없던 번들이라 실제 사용자 손실은 없다. 62(디버거)는 2026-11-07 옮겼다([procedure-debugger.md](../procedure-debugger.md)).
 10, 11, 17은 2026-11-07 옮겼고 12는 일부가 되었다([swing-explorer-object-actions.md](../swing-explorer-object-actions.md)).
 
 ## 영향순 상위 10 (없음·일부·조용히 끊김)

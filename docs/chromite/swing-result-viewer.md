@@ -21,6 +21,7 @@ QueryResultsView (결과 창, 결과마다 하나씩 쌓음)
  └ ResultSetViewerPanel (결과 하나, SWT ResultSetViewer에 해당)
     ├ JSplitPane
     │  ├ CardLayout: ResultSetGrid (C·G단계 표, 머리글은 ResultSetHeaderRenderer) | ResultSetRecordView (레코드 보기)
+    │  │             | ResultSetChartView (차트) | ResultSetSpatialView (공간, 2026-11-08 swing-result-charts-spatial.md)
     │  └ ResultSetValuePanel  값 패널 (F7)
     └ 상태 줄                   읽은 행 수, Fetch next / Fetch all, 필터 요약 | 선택 집계(ResultSetAggregates), 값 패널·레코드 단추
    (머리글 깔때기 → ResultSetColumnFilterPopup, 2026-11-07 swing-grid-column-filters.md)
@@ -200,3 +201,5 @@ SWT: 결과 뷰어의 레코드 모드(`ResultSetViewer.toggleMode`).
   [swing-grid-column-filters.md](swing-grid-column-filters.md).
 - 2026-11-07 값 패널 글꼴 설명을 코드에 맞춤: `ResultSetValuePanel` 설계 주석이 "SQL 편집기와 같은 글꼴"이라 했지만 코드와 design-spec.md는 `monospaced.font`(코드는 그대로).
 - 2026-11-07 아주 작은 수의 표시(#53): `scientificSmallValues` 기본값을 켜고, 원래 형식(편집·생성 SQL)이 값을 반올림하면 지수 표기를 둠. 위 "아주 작은 수의 표시".
+- 2026-11-08 상태 줄에 Chart·Spatial 단추, 표 자리에 차트·공간 보기(레코드 보기와 같은 방식, 한 번에 하나). 기하 값(`DBGeometry`)을 칸 값에 남겨 값 패널이
+  편집 형식(WKT)으로 보임. 선택 집계는 표가 보일 때만. [swing-result-charts-spatial.md](swing-result-charts-spatial.md).
