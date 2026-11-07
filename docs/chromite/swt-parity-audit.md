@@ -75,12 +75,16 @@ SWT 프런트엔드를 지울 때(#68) 기능 전체 목록과 맞춰 보지 않
 
 ### 3순위: 매일 쓰는 작업의 빈자리
 
-- 트랜잭션: 커밋/롤백 명령과 도구 단추, 트랜잭션 로그, 열린 트랜잭션 목록. 상태 줄 표시는 유휴 트랜잭션 작업에 포함.
+- ~~트랜잭션: 커밋/롤백 명령과 도구 단추, 트랜잭션 로그, 열린 트랜잭션 목록. 상태 줄 표시는 유휴 트랜잭션 작업에 포함.~~
+  2026-11-07 고침([transactions.md](transactions.md)). 남은 것: 로그의 지난 트랜잭션 보이기, 커밋 뒤 알림 설정.
 - 쿼리 창마다 별도 연결(지금은 한 연결의 창들이 트랜잭션을 공유).
 - 탐색기에서 개체 삭제·이름 바꾸기, 이름 복사, 여러 개 선택, Generate SQL의 INSERT/UPDATE/DELETE 등.
 - 설정 화면: 트랜잭션, 연결 유형, 편집기·결과 기본값(설정 페이지 62개 중 45개는 Swing에서 바꿀 화면이 없음).
+  2026-11-07 일부 고침([swing-options.md](swing-options.md)): 키 306개를 Swing에서 읽는지 전수 확인(효과 없음 197개는 화면을 만들지 않음).
+  Options에 Query Execution(구분 기호·매개 변수·오류 처리)·Connection Types(연결 유형 편집)·Oracle 탭과 결과 형식 행, 연결 대화상자에 격리 수준을 더함.
+  오류로 멈춘 스크립트가 수동 커밋 세션의 열린 트랜잭션을 묻지 않고 롤백하던 것을 고침. 남은 것: 읽지만 화면 없는 키 71개(연결별 값, 형식 프로필, 시간 제한, 메타데이터 등).
 - Oracle 사용자·역할·권한 관리, Oracle NLS 세션 설정, Altibase 잠금 탭, TRUNCATE·트리거 켜기/끄기·구체화된 뷰 새로 고침.
-- `@export` 명령이 무시됨(오류 없이 다음 쿼리 실행).
+- ~~`@export` 명령이 무시됨(오류 없이 다음 쿼리 실행).~~ 2026-11-07 고침: 형식·옵션을 채운 Export Data 마법사로 내보냄([swing-data-transfer.md](swing-data-transfer.md) "@export 명령").
 
 ### 4순위
 
@@ -105,3 +109,6 @@ PostgreSQL 디버거는 2026-11-07 사용자 요청으로 Swing에 옮겼다(C-6
 - 2026-11-07 A-C14 없음 → 일부: 연결 내보내기·가져오기(비밀번호는 암호로 암호화한 파일)([connection-transfer.md](connection-transfer.md)).
 - 2026-11-07 C-62·D-P29 없음 → 있음: PostgreSQL 프로시저 디버거(모델 복원, Swing 디버거 탭)([procedure-debugger.md](procedure-debugger.md)).
   결과 요약의 C·D·합계 수를 고침.
+- 2026-11-07 3순위 1차: 트랜잭션 줄(커밋/롤백 명령과 도구 단추, 트랜잭션 로그, 열린 트랜잭션 목록, [transactions.md](transactions.md))과 `@export` 줄([swing-data-transfer.md](swing-data-transfer.md) "@export 명령") 고침. 영역 A-C1·A-C2·A-C3·A-C4, B-S12·B-S17·B-S20·B-S21 상태 갱신.
+- 2026-11-07 3순위 설정 화면 일부: SWT 설정 키의 Swing 효과 전수, Query Execution·Connection Types·Oracle 탭, 결과 형식, 격리 수준, 오류 뒤 무확인 롤백 고침
+  ([swing-options.md](swing-options.md)). A-platform §6, B-S14·B-S15 상태 갱신.

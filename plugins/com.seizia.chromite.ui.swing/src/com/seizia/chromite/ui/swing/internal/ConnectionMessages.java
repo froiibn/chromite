@@ -33,6 +33,7 @@ import org.eclipse.osgi.util.NLS;
  * - 2026-11-07 끊기 전 열린 트랜잭션 질문({@code disconnect_txn_*}) (docs/chromite/idle-transactions.md "연결 끊기 전 질문")
  * - 2026-11-07 인증 방식 자격 증명 질문({@code auth_prompt_*})과 JSch SSH 질문({@code ssh_prompt_*}) (docs/chromite/swing-auth-prompts.md)
  * - 2026-11-07 유휴 연결 닫기 도구 설명({@code settings_close_idle_tip}) (docs/chromite/idle-transactions.md "유휴 연결 닫기")
+ * - 2026-11-07 트랜잭션 격리 수준({@code settings_isolation*}) (docs/chromite/swing-options.md)
  */
 public class ConnectionMessages extends NLS {
     private static final String BUNDLE_NAME = "com.seizia.chromite.ui.swing.internal.ConnectionMessages"; //$NON-NLS-1$
@@ -110,6 +111,9 @@ public class ConnectionMessages extends NLS {
     public static String settings_auto_commit_default;
     public static String settings_auto_commit_auto;
     public static String settings_auto_commit_manual;
+    public static String settings_isolation;
+    public static String settings_isolation_tip;
+    public static String settings_isolation_default;
     public static String settings_default_database;
     public static String settings_default_database_tip;
     public static String settings_default_schema;

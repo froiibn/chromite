@@ -28,6 +28,7 @@ DBeaver의 데이터 전송(`com.seizia.chromite.data.transfer` 모델 + `.ui` S
 | `ResultSetGrid` (변경) | 오른쪽 클릭 **Export Data…**, `Fetched.exportQuery`(다시 실행할 쿼리) |
 | `SqlEditorPanel` (변경) | 쿼리의 첫 결과 표에 그 쿼리의 `SQLQueryDataContainer`를 넘김 |
 | `ConnectionPropertiesTable` (변경, Javadoc만) | 처리기 속성 편집에도 쓴다는 설명 |
+| `SqlExportPragma` (새, 2026-11-07) | 스크립트의 `@export` 명령 처리기(`plugin.xml`의 `com.seizia.chromite.sqlCommand` pragma `export`): 옵션 검사, 마법사 열기. 아래 "@export 명령" |
 
 마법사를 위해 모델을 고치지는 않았다(새 테이블 형식 매핑의 모델·방언 수정은 아래 "새 테이블의 형식 매핑"). Swing 번들은 이미 `com.seizia.chromite.data.transfer`·`data.office`를 `Require-Bundle`로 쓰고 있었고(F단계), 새 번들 의존은 없다.
 
@@ -426,6 +427,32 @@ Copy Tables와 새 테이블로 가져오기는 대상 열 형식을 모델이 �
 SQL Server·MariaDB 원본 22열). PostgreSQL → SQL Server·MariaDB의 `c_numeric_free`는 배정밀도라 비교기의 상대 오차(1e-6) 안에서 같고, 자릿수 17 넘는 부분은 남지 않는다(위 "판단").
 비교기는 이때 시각대 없는 날짜시각을 JVM 시각대를 거치지 않는 벽시계 값(`LocalDateTime`)으로 비교하게 바꿨다(1900년 Asia/Seoul 지방시 오프셋 때문에 생기던 차이를 없앰).
 
+### @export 명령 (2026-11-07)
+
+쿼리 창 스크립트의 `@export` 명령은 오류 없이 무시되고 다음 쿼리가 쿼리 창에서 그냥 실행되었다(SWT 대조 B-S12).
+
+- 원인: 모델의 `SQLCommandExport`(model.sql)는 명령을 읽어 스크립트 문맥에 pragma `export`를 두기만 한다. 실행 엔진은 다음 쿼리에서
+  `com.seizia.chromite.sqlCommand` 확장점의 pragma 처리기를 찾는데(`SQLQueryExecuteJob.executeSingleQuery`), 처리기 `SQLPragmaExport`는 SWT 제거 때
+  지운 `data.transfer.ui` 번들에 있었다. 처리기가 없으면 pragma를 건너뛰고 쿼리를 그대로 실행한다.
+- 고친 것: Swing 번들이 같은 pragma 처리기 `SqlExportPragma`를 등록한다(`plugin.xml`). SWT처럼 다음 쿼리를 쿼리 창에서 실행하지 않고(쿼리 소비),
+  명령의 형식·옵션을 채운 Export Data 마법사(`DataExportWizard.openForExportCommand`)를 연다. 내보내기는 데이터 전송 엔진이 한다.
+  Messages 탭에 "@export: 다음 문장을 데이터 내보내기 마법사(CSV)로 보냈습니다. 쿼리 창에서는 실행하지 않았습니다." 줄을 쓴다.
+  엔진은 소비한 쿼리 뒤에서 스크립트를 멈춘다(SWT와 같음, 뒤 문장은 실행하지 않음).
+- 명령 형식(SWT와 같음): `@export {"type": "csv", "processor": {...}, "consumer": {...}, "producer": {...}}` 다음 줄에 내보낼 SELECT.
+  - `type`: 처리기 `stream.<type>`(csv, json, xml, html, markdown.table, sql, txt, xlsx 등). `"searchSimilar": true`이면 AI 형식 이름·짧은 이름·파일 확장자도 찾는다.
+  - `processor`: 형식 속성(예: CSV `delimiter`). 형식의 기본값 위에 덮어 형식 설정 단계에 보인다.
+  - `consumer`: 출력 단계의 칸에 들어가는 것 — `outputFolder`, `outputFilePattern`, `outputEncoding`, `outputEncodingBOM`, `outputClipboard`, `compressResults`,
+    `useSingleFile`, `openFolderOnFinish`, `deleteFileInCaseOfFail`, `dataFileConflictBehavior`, `valueFormat`, `lobExtractType`, `lobEncoding`.
+    칸 없이 내보낼 때 설정에 넣는 것 — `outputTimestampPattern`, `splitOutFiles`, `maxOutFileSize`.
+  - `producer`: `fetchSize`, `openNewConnections`, `queryRowCount`, `extractType`, `segmentSize`(마법사 기본: 새 연결, 행 수 세기).
+- 거절(오류로 멈춤, Messages에 이유와 받는 값 목록): `type` 없음, 모르는 형식, 모르는 형식 속성, 위 목록 밖의 `consumer`/`producer` 옵션(`includePipesConfiguration`,
+  `formatterProfile`, 실행 명령, 열 매핑, 결과 표 선택 옵션 등), 다음 문장이 데이터를 바꾸지 않는 SELECT 하나가 아님(`DataExportWizard.canExportQuery`).
+  SWT는 모르는 형식 속성을 로그만 남기고 건너뛰었지만 그러면 사용자가 준 옵션이 조용히 무시된다. SELECT만 받는 것은 내보내기가 새 연결에서 쿼리를 실행하므로
+  데이터를 바꾸는 문장이 쿼리 창의 수동 커밋 트랜잭션 밖에서 커밋되면 안 되기 때문이다.
+- 명령으로 연 마법사는 폴더·패턴·형식·형식 속성을 기억하지 않는다. 스크립트의 옵션이 Export Data…의 기본값을 바꾸면 안 되기 때문이다.
+- 경로는 Windows 형식으로 쓴다(JSON에서는 `"D:\\exports"`). `"D:/exports"`는 데이터 전송 엔진이 URI(`D` 파일 시스템)로 읽어
+  "File system schema 'D' not recognized"로 실패한다(`DBFUtils.resolvePathFromString`, 마법사에 직접 입력해도 같음. 이 작업에서 고치지 않음).
+
 ### 남은 매핑과 기본 키 (2026-11-07 밤)
 
 후속 과제 #39(나머지), #51, #52, #53. 결정(사용자 규칙 "제품 기능은 묻지 않는다"에 따라 주 에이전트가 정함): 기본 키를 만들고, `bit` → `boolean`.
@@ -609,6 +636,7 @@ SQL Server·MariaDB 원본 22열). PostgreSQL → SQL Server·MariaDB의 `c_nume
   ORA-17004), 텍스트 시각 → `TIMESTAMP`(`JDBCDateTimeValueHandler`, MariaDB → Oracle ORA-01843), `BINARY_FLOAT`/`BINARY_DOUBLE`을 IEEE 값으로 바인딩
   (`OracleBinaryFloatValueHandler`), 다른 DB 문자열 → `VARCHAR2(n CHAR)`/`CHAR(n CHAR)`와 Oracle 열의 문자 길이 단위(`OracleTableColumn`, `OracleSQLDialect`),
   정밀도 없는 소수 → 배정밀도·Oracle `NUMBER`(`DBStructUtils`, `OracleSQLDialect`), MariaDB `uuid` → PostgreSQL `uuid`(`PostgreDialect`). 4×3 복사 다시 확인과 Oracle 표 편집.
+- 2026-11-07 `@export` 명령: 조용히 무시되고 다음 쿼리가 실행되던 것을 고침. Swing pragma 처리기 `SqlExportPragma`가 다음 쿼리를 실행하지 않고 형식·옵션을 채운 Export Data 마법사를 연다(`DataExportWizard.openForExportCommand`). 모르는 형식·옵션, SELECT가 아닌 다음 문장은 오류. PostgreSQL(CSV, 구분자 `;`)·SQL Server(JSON)에서 파일 생성 확인(증거: `D:\Tools\_scratch\p3-transactions-export\`). 위 "@export 명령".
 - 2026-11-07 남은 매핑과 기본 키(모델·방언, SWT에도 적용): 새 테이블에 원본의 기본 키(`DatabaseTransferUtils`, #39), Oracle 열 복사의 문자 길이 단위
   (`OracleTableColumnManager`, #51), `MAX_STRING_SIZE`에 따른 `VARCHAR2` 한도(`OracleSQLDialect`, #52), 다른 DB의 한 비트 `BIT` → PostgreSQL `boolean`(`PostgreDialect`, #53),
   NULL 열이 바뀌는 행을 행마다 삽입할 때 앞 행의 문장을 쓰던 것(`ExecuteBatchImpl`). `NUMBER(p,0)` → `numeric(p,0)`은 확인만 함.

@@ -63,7 +63,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * The "AI Assistant" tool window: conversations with an AI model that works on the user's connections through the agent
+ * The "Chromite Agent" tool window: conversations with an AI model that works on the user's connections through the agent
  * tools (docs/chromite/ai-agent.md "2단계").
  *
  * 설계:
@@ -81,6 +81,7 @@ import java.util.Map;
  *
  * 변경 이력:
  * - 2026-11-07 최초 작성 (docs/chromite/ai-agent.md "2단계")
+ * - 2026-11-07 화면 이름을 Chromite Agent로 바꾼 데 맞춰 화면 문구를 인용한 주석을 고침(docs/chromite/ai-agent.md "명칭")
  */
 final class AiAssistantPanel extends JPanel {
 
@@ -103,7 +104,7 @@ final class AiAssistantPanel extends JPanel {
         /** A new query window with the text (not executed). */
         void openSqlEditor(@Nullable DBPDataSourceContainer connection, @NotNull String sql, @Nullable String title);
 
-        /** Shows the AI Assistant tool window. */
+        /** Shows the Chromite Agent tool window. */
         void showAssistant();
 
         /** Tools &gt; Options. */
@@ -828,7 +829,7 @@ final class AiAssistantPanel extends JPanel {
             label.setToolTipText("<html><pre>" + CommonUtils.escapeHtml(entry.getText()) + "</pre></html>"); //$NON-NLS-1$ //$NON-NLS-2$
             text = label;
         } else {
-            // The prompt may hold SQL in a code block ("Ask AI"): shown like the answers, with Copy and Open in Query Window
+            // The prompt may hold SQL in a code block ("Ask Chromite Agent"): shown like the answers, with Copy and Open in Query Window
             AiMarkdownView markdown = new AiMarkdownView(this::openInEditor);
             markdown.setMarkdown(entry.getText());
             text = markdown;
@@ -904,7 +905,7 @@ final class AiAssistantPanel extends JPanel {
     }
 
     //////////////////////////////////////////////////////////
-    // Playbooks and the editor's "Ask AI"
+    // Playbooks and the editor's "Ask Chromite Agent"
 
     @NotNull
     private static List<Playbook> getPlaybooks() {
@@ -1011,7 +1012,7 @@ final class AiAssistantPanel extends JPanel {
     }
 
     /**
-     * Adds "Ask AI About This Query" to the context menu of a query window's editor.
+     * Adds "Ask Chromite Agent About This Query" to the context menu of a query window's editor.
      */
     void installEditorActions(@NotNull SqlEditorPanel editor) {
         JPopupMenu menu = editor.getTextArea().getPopupMenu();
@@ -1060,7 +1061,7 @@ final class AiAssistantPanel extends JPanel {
     }
 
     /**
-     * Remembers the model names loaded from a provider (Options &gt; AI Assistant &gt; Test), for the model picker.
+     * Remembers the model names loaded from a provider (Options &gt; Chromite Agent &gt; Test), for the model picker.
      */
     static void rememberModels(@NotNull String engineId, @NotNull List<String> models) {
         DBPPreferenceStore preferences = getPreferences();

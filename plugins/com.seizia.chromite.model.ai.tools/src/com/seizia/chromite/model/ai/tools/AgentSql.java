@@ -92,11 +92,13 @@ import java.util.concurrent.locks.ReentrantLock;
  *   ({@link #pendingAgentTransaction})을 나눔. 모델에 돌려주는 {@link #getPendingTransactions}는 영어 그대로
  *   (docs/chromite/swing-l10n.md "남은 한국어 문구 정리")
  * - 2026-11-07 유휴 연결 닫기용 사용 중 여부와 마지막 사용 시각 (docs/chromite/idle-transactions.md "유휴 연결 닫기")
+ * - 2026-11-07 격리 문맥 이름을 기능의 공식 이름 "Chromite Agent"로 바꿈. 서버 세션 목록의 프로그램 이름에 보이는 값이다
+ *   (docs/chromite/ai-agent.md "명칭", "실행 문맥")
  */
 public final class AgentSql {
 
     private static final Log log = Log.getLog(AgentSql.class);
-    private static final String CONTEXT_NAME = "Chromite AI agent"; //$NON-NLS-1$
+    private static final String CONTEXT_NAME = "Chromite Agent"; //$NON-NLS-1$
 
     public enum Mode {
         READ_ONLY,

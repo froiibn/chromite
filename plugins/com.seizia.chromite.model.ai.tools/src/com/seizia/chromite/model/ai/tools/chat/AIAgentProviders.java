@@ -50,6 +50,8 @@ import java.util.List;
  * - 2026-11-07 최초 작성 (docs/chromite/ai-agent.md "2단계")
  * - 2026-11-07 비밀을 설정보다 먼저 저장(보안 저장소 실패 시 오류 대화상자 한 번, 아무것도 저장 안 함). 키가 실제로 OS 보안 저장소에 가도록
  *   {@code AIUtils}를 고쳐 설명을 사실에 맞춤
+ * - 2026-11-07 "설정하지 않음" 오류의 설정 경로를 바뀐 탭 이름(Options &gt; Chromite Agent &gt; Providers)으로 고침
+ *   (docs/chromite/ai-agent.md "명칭")
  */
 public final class AIAgentProviders {
 
@@ -203,7 +205,7 @@ public final class AIAgentProviders {
     public static AIEngine<?> createEngine(@NotNull String engineId, @Nullable String model) throws DBException {
         AIConfigurationProfile profile = getProfile(engineId);
         if (profile == null) {
-            throw new DBException(getLabel(engineId) + " is not configured (Options > AI Assistant > Providers)");
+            throw new DBException(getLabel(engineId) + " is not configured (Options > Chromite Agent > Providers)");
         }
         profile.resolveSecrets();
         AIEngineProperties source = profile.getConfiguration();
@@ -213,7 +215,7 @@ public final class AIAgentProviders {
             copy.setModel(model.trim());
         }
         if (!copy.isValidConfiguration()) {
-            throw new DBException(getLabel(engineId) + " is not configured (Options > AI Assistant > Providers)");
+            throw new DBException(getLabel(engineId) + " is not configured (Options > Chromite Agent > Providers)");
         }
         return profile.getEngineDescriptor().createEngineInstance(copy);
     }

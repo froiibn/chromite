@@ -35,6 +35,7 @@ import org.eclipse.osgi.util.NLS;
  * - 2026-11-07 진행 대화상자의 취소 중 문구, 탭 넘침 단추의 도구 설명 추가
  * - 2026-11-07 Options의 결과 표 저장 전 스크립트 미리 보기 설정 문구 추가
  * - 2026-11-07 Options의 위험한 문(WHERE 없는 UPDATE/DELETE, DROP) 확인 설정 문구 추가 (docs/chromite/swing-sql-exec-safety.md)
+ * - 2026-11-07 Query 메뉴의 Commit / Roll Back / Transaction Log, Tools 메뉴의 Open Transactions 문구 추가 (docs/chromite/transactions.md)
  */
 public class CoreMessages extends NLS {
     private static final String BUNDLE_NAME = "com.seizia.chromite.ui.swing.internal.CoreMessages"; //$NON-NLS-1$
@@ -100,12 +101,20 @@ public class CoreMessages extends NLS {
     public static String main_auto_complete_tip;
     public static String main_query_history;
     public static String main_query_history_tip;
+    public static String main_commit;
+    public static String main_commit_tip;
+    public static String main_rollback;
+    public static String main_rollback_tip;
+    public static String main_transaction_log;
+    public static String main_transaction_log_tip;
     public static String main_menu_view;
     public static String main_about;
     public static String main_menu_help;
     public static String main_options;
     public static String main_locks;
     public static String main_find_objects;
+    public static String main_open_transactions;
+    public static String main_open_transactions_tip;
     public static String main_menu_tools;
     public static String main_menu_window;
     public static String main_reset_layout;

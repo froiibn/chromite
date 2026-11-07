@@ -40,11 +40,13 @@ import com.seizia.chromite.model.navigator.DBNDatabaseFolder;
 import com.seizia.chromite.model.navigator.DBNDatabaseNode;
 import com.seizia.chromite.model.navigator.DBNNode;
 import com.seizia.chromite.model.preferences.DBPPreferenceStore;
+import com.seizia.chromite.model.qm.QMTransactionState;
 import com.seizia.chromite.model.struct.DBSEntity;
 import com.seizia.chromite.model.struct.DBSObject;
 import com.seizia.chromite.runtime.DBWorkbench;
 import com.seizia.chromite.utils.GeneralUtils;
 import com.seizia.chromite.utils.PrefUtils;
+import com.seizia.chromite.utils.RuntimeUtils;
 import org.jkiss.utils.CommonUtils;
 
 import javax.swing.*;
@@ -197,6 +199,8 @@ import java.util.function.Supplier;
  * - 2026-11-07 프로시저 디버거: Query &gt; Debug…(Modify 창의 루틴), 도구 문서의 닫기 전 확인({@link ToolDocument#confirmClose})을
  *   탭 닫기와 끝내기 전에 부름 (docs/chromite/procedure-debugger.md)
  * - 2026-11-07 Query Library 쿼리 창의 Save As는 확장의 {@link SqlEditorExtension#saveAs}(SQL을 평범한 .sql로 내보냄) (docs/chromite/swing-query-library.md "공유")
+ * - 2026-11-07 Query &gt; Commit / Roll Back(SWT 단축키, SQL Editor 도구 막대 단추)·Transaction Log, Tools &gt; Open Transactions…
+ *   ({@link OpenTransactionsDialog}) (docs/chromite/transactions.md)
  */
 final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplorerPanel.QueryWindows, TableDesignerPanel.Host, QueryLibraryPanel.Host {
 
@@ -282,6 +286,13 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
      * Query &gt; Debug…: debugs the routine of the active Modify window (enabled when the Query menu opens).
      */
     private final Action debugAction;
+    /**
+     * Query &gt; Commit / Roll Back (also on the SQL Editor tool bar): enabled while the active query window shows an
+     * open transaction that no statement is running in.
+     */
+    private final Action commitAction;
+    private final Action rollbackAction;
+    private final Action transactionLogAction;
     private final SqlEditorToolBar sqlEditorToolBar;
     private final EditMenu editMenu;
     private int queryCounter;
@@ -505,12 +516,37 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
             });
         // Menu items and toggle buttons write their state back to the action only if it has one
         actualPlanAction.putValue(Action.SELECTED_KEY, Boolean.FALSE);
+        // The SWT shortcuts: Ctrl+Alt+Shift+K / R on Windows, Ctrl+4 / Ctrl+8 elsewhere (core plugin.xml key bindings)
+        boolean windows = RuntimeUtils.isWindows();
+        int windowsModifiers = InputEvent.CTRL_DOWN_MASK | InputEvent.ALT_DOWN_MASK | InputEvent.SHIFT_DOWN_MASK;
+        commitAction = createAction(CoreMessages.main_commit, CoreMessages.main_commit_tip,
+            windows ? KeyStroke.getKeyStroke(KeyEvent.VK_K, windowsModifiers) : KeyStroke.getKeyStroke(KeyEvent.VK_4, InputEvent.CTRL_DOWN_MASK),
+            () -> {
+                SqlEditorPanel editor = getActiveEditor();
+                if (editor != null) {
+                    editor.endOpenTransaction(true);
+                }
+            });
+        rollbackAction = createAction(CoreMessages.main_rollback, CoreMessages.main_rollback_tip,
+            windows ? KeyStroke.getKeyStroke(KeyEvent.VK_R, windowsModifiers) : KeyStroke.getKeyStroke(KeyEvent.VK_8, InputEvent.CTRL_DOWN_MASK),
+            () -> {
+                SqlEditorPanel editor = getActiveEditor();
+                if (editor != null) {
+                    editor.endOpenTransaction(false);
+                }
+            });
+        transactionLogAction = createAction(CoreMessages.main_transaction_log, CoreMessages.main_transaction_log_tip, null, () -> {
+            SqlEditorPanel editor = getActiveEditor();
+            if (editor != null) {
+                editor.showTransactionLog();
+            }
+        });
         debugAction = DebugCommands.createAction(this, () -> {
             SqlEditorPanel editor = getActiveEditor();
             return editor != null ? editor.getSourceObject() : null;
         }, this);
-        sqlEditorToolBar =new SqlEditorToolBar(executeQueryAction, cancelQueryAction, estimatedPlanAction, actualPlanAction,
-            this::openQueryHistory);
+        sqlEditorToolBar = new SqlEditorToolBar(executeQueryAction, cancelQueryAction, estimatedPlanAction, actualPlanAction,
+            commitAction, rollbackAction, this::openQueryHistory);
         editMenu = new EditMenu(this::getActiveTextArea);
         documentTabs.addChangeListener(e -> activeEditorChanged());
         resultTabs.addChangeListener(e -> {
@@ -1400,6 +1436,12 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
         estimatedPlanAction.setEnabled(editor != null && editor.canExplain());
         actualPlanAction.setEnabled(editor != null);
         actualPlanAction.putValue(Action.SELECTED_KEY, editor != null && editor.isIncludeActualPlan());
+        // Ending the transaction needs it idle: a running statement or script of this window would be refused
+        QMTransactionState transaction = editor == null ? null : editor.getOpenTransaction();
+        boolean canEndTransaction = transaction != null && !transaction.isExecuting() && !editor.canCancel();
+        commitAction.setEnabled(canEndTransaction);
+        rollbackAction.setEnabled(canEndTransaction);
+        transactionLogAction.setEnabled(editor != null);
         saveAction.setEnabled(editor != null || documentTabs.getSelectedComponent() instanceof TableDesignerPanel);
         saveAsAction.setEnabled(editor != null);
         // Results belong to a query window: without one, Ctrl+R and the View menu item are disabled and say why
@@ -1560,6 +1602,10 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
         queryMenu.addSeparator();
         queryMenu.add(new JMenuItem(debugAction));
         queryMenu.addSeparator();
+        queryMenu.add(new JMenuItem(commitAction));
+        queryMenu.add(new JMenuItem(rollbackAction));
+        queryMenu.add(new JMenuItem(transactionLogAction));
+        queryMenu.addSeparator();
         JMenuItem historyItem = new JMenuItem(CoreMessages.main_query_history, UiIcons.get("history")); //$NON-NLS-1$
         historyItem.setToolTipText(CoreMessages.main_query_history_tip);
         historyItem.addActionListener(e -> openQueryHistory());
@@ -1599,6 +1645,9 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
         JMenuItem dashboardItem = new JMenuItem(DashboardMessages.dashboard_command);
         dashboardItem.setToolTipText(DashboardMessages.dashboard_command_tip);
         dashboardItem.addActionListener(e -> openActivityMonitor(ActivityMonitorPanel.OVERVIEW_TAB));
+        JMenuItem openTransactionsItem = new JMenuItem(CoreMessages.main_open_transactions);
+        openTransactionsItem.setToolTipText(CoreMessages.main_open_transactions_tip);
+        openTransactionsItem.addActionListener(e -> OpenTransactionsDialog.open(this));
         JMenuItem findObjectsItem = new JMenuItem(CoreMessages.main_find_objects);
         findObjectsItem.setMnemonic(KeyEvent.VK_F);
         findObjectsItem.addActionListener(e -> openObjectSearch(explorerPanel.getSelectedNode()));
@@ -1611,6 +1660,7 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
         toolsMenu.add(locksItem);
         toolsMenu.add(dashboardItem);
         AdminViewCommands.addMenuItems(toolsMenu, this::openActivityMonitor);
+        toolsMenu.add(openTransactionsItem);
         toolsMenu.add(findObjectsItem);
         toolsMenu.addSeparator();
         toolsMenu.add(driverManagerItem);
