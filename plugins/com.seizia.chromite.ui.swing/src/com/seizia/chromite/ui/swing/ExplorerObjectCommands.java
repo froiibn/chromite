@@ -99,6 +99,8 @@ import java.util.function.Supplier;
  *
  * 변경 이력:
  * - 2026-11-07 최초 작성 (docs/chromite/swing-explorer-object-actions.md)
+ * - 2026-11-08 미리 보기·트랜잭션 질문·실행 경로({@link #runChange})를 패키지 안에 열어 새 개체 만들기({@link NewObjectCommands})도 같은 길로 실행
+ *   (docs/chromite/swing-create-objects.md)
  */
 final class ExplorerObjectCommands {
 
@@ -139,7 +141,7 @@ final class ExplorerObjectCommands {
     /**
      * One object's pending change: its own atomic command context and the options its persist actions read.
      */
-    private record Change(@NotNull DBSObject object, @NotNull DBECommandContext context, @NotNull Map<String, Object> options) {
+    record Change(@NotNull DBSObject object, @NotNull DBECommandContext context, @NotNull Map<String, Object> options) {
     }
 
     /**
@@ -151,7 +153,7 @@ final class ExplorerObjectCommands {
     }
 
     @FunctionalInterface
-    private interface ChangeBuilder {
+    interface ChangeBuilder {
         /**
          * Adds the commands; job thread.
          */
@@ -507,7 +509,7 @@ final class ExplorerObjectCommands {
      *
      * @param errorMessage the error of a failed object, {@code {0}} = the object
      */
-    private void runChange(
+    void runChange(
         @NotNull String title,
         @NotNull DBPDataSourceContainer container,
         @NotNull String errorMessage,
@@ -631,7 +633,7 @@ final class ExplorerObjectCommands {
      * ({@code NavigatorHandlerObjectBase.getCommandTarget}): the model is changed only after the save.
      */
     @NotNull
-    private static DBECommandContext createCommandContext(@NotNull DBSObject object) throws DBException {
+    static DBECommandContext createCommandContext(@NotNull DBSObject object) throws DBException {
         DBCExecutionContext executionContext = DBUtils.getDefaultContext(object, false);
         if (executionContext == null) {
             throw new DBException(NLS.bind(ToolsMessages.designer_error_not_connected, object.getName()));
@@ -695,7 +697,7 @@ final class ExplorerObjectCommands {
 
     @Nullable
     @SuppressWarnings("unchecked")
-    private static DBEObjectMaker<DBSObject, ?> getMaker(@NotNull DBSObject object) {
+    static DBEObjectMaker<DBSObject, ?> getMaker(@NotNull DBSObject object) {
         return DBWorkbench.getPlatform().getEditorsRegistry().getObjectManager(object.getClass(), DBEObjectMaker.class);
     }
 

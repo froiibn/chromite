@@ -220,6 +220,7 @@ import java.util.function.Supplier;
  * - 2026-11-08 SQL Server 프로시저의 Trace Execution… 메뉴({@link ExecutionTraceCommands}, docs/chromite/sqlserver-execution-trace.md)
  * - 2026-11-08 Search Data… 메뉴(여러 테이블의 값 찾기, {@link DataSearchPanel}) (docs/chromite/swing-data-search.md)
  * - 2026-11-08 Compare Schemas… 메뉴({@link SchemaComparePanel}, docs/chromite/schema-compare.md)
+ * - 2026-11-08 폴더의 New &lt;종류&gt;… 메뉴({@link NewObjectCommands}, docs/chromite/swing-create-objects.md)
  */
 final class ObjectExplorerPanel extends JPanel {
 
@@ -352,6 +353,7 @@ final class ObjectExplorerPanel extends JPanel {
     private final AgentCommands agentCommands;
     private final SchedulerCommands schedulerCommands;
     private final ExplorerObjectCommands objectCommands;
+    private final NewObjectCommands newObjectCommands;
     private final ObjectMaintenanceCommands maintenanceCommands;
     private final Action backUpAction;
     private final Action restoreAction;
@@ -531,6 +533,7 @@ final class ObjectExplorerPanel extends JPanel {
         traceAction = ExecutionTraceCommands.createAction(this, this::getSelectedObject, queryWindows);
         objectCommands = new ExplorerObjectCommands(this, this::getSelectedNavigatorNodes, queryWindows);
         tree.setTransferHandler(objectCommands.createTransferHandler());
+        newObjectCommands = new NewObjectCommands(this, this::getSelectedNavigatorNode, queryWindows, objectCommands);
         maintenanceCommands = new ObjectMaintenanceCommands(this, this::getSelectedNavigatorNodes, queryWindows);
         scriptAsMenu = new JMenu(CoreMessages.explorer_script_as);
         scriptAsMenu.add(createToMenu);
@@ -657,6 +660,7 @@ final class ObjectExplorerPanel extends JPanel {
         popupMenu.add(sourceEditCommands.getNewViewAction());
         popupMenu.add(sourceEditCommands.getNewProcedureAction());
         popupMenu.add(sourceEditCommands.getNewFunctionAction());
+        popupMenu.add(newObjectCommands.getItem());
         popupMenu.add(newPrincipalAction);
         agentCommands.addTo(popupMenu);
         schedulerCommands.addTo(popupMenu);
@@ -930,6 +934,7 @@ final class ObjectExplorerPanel extends JPanel {
         designAction.setEnabled(TableDesignSession.canDesign(object));
         newTableAction.setEnabled(getSelectedNavigatorNode() instanceof DBNDatabaseFolder folder && TableDesignSession.canCreateTable(folder));
         sourceEditCommands.update(getSelectedNavigatorNode());
+        newObjectCommands.update(getSelectedNavigatorNode());
         routineCommands.update(getSelectedNavigatorNode());
         debugAction.setEnabled(DebugCommands.canDebug(object));
         traceAction.setEnabled(ExecutionTraceCommands.canTrace(object));

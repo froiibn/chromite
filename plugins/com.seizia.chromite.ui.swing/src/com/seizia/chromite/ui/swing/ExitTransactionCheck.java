@@ -86,6 +86,7 @@ import java.util.function.Function;
  *   그 잠금을 기다리지 않게 (docs/chromite/swing-explorer-object-actions.md "트랜잭션")
  * - 2026-11-08 연결이 끊긴 세션은 커밋·롤백 대신 버리기·취소를 물음(전에는 실패해 창을 닫거나 끊을 수 없었음)
  *   (docs/chromite/transactions.md "끊긴 세션의 쿼리 창")
+ * - 2026-11-08 주석만: {@link #confirmObjectChange}를 새 개체 만들기와 테이블 디자이너 저장도 씀 (docs/chromite/swing-create-objects.md)
  */
 final class ExitTransactionCheck {
 
@@ -128,7 +129,8 @@ final class ExitTransactionCheck {
     }
 
     /**
-     * Before Object Explorer runs DDL on the connection (Delete, Rename): asks Commit / Roll back / Cancel when it has
+     * Before Object Explorer or the table designer runs DDL on the connection (Delete, Rename, maintenance commands,
+     * New object, designer Save): asks Commit / Roll back / Cancel when it has
      * transactions that are not committed. The model's command path commits after each command
      * ({@code AbstractCommandContext.saveChanges}) and some databases commit DDL implicitly, so an open transaction of the
      * same session would be committed with it; one of another session may hold locks the DDL waits for. Call in the EDT.

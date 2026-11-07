@@ -98,7 +98,7 @@
                             </items>
                         </folder>
                         <folder type="com.seizia.chromite.ext.mysql.model.MySQLSequence" label="%tree.sequences.node.name" icon="#sequences" description="%tree.sequences.node.tip" visibleIf="object.dataSource.supportsSequences()">
-                            <items label="%tree.sequences.node.name" path="sequence" property="sequences" icon="#sequence">
+                            <items label="%tree.sequence.node.name" path="sequence" property="sequences" icon="#sequence">
                             </items>
                         </folder>
                         <folder type="com.seizia.chromite.model.struct.rdb.DBSTrigger" label="%tree.triggers.node.name" icon="#triggers" description="%tree.triggers.node.tip" virtual="true" visibleIf="object.dataSource.supportsTriggers()">

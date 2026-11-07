@@ -60,6 +60,9 @@ import java.util.TreeSet;
 
 /**
 * SQL Server database
+*
+* 변경 이력:
+* - 2026-11-08 {@link #getCollationNames}: 새 데이터베이스 대화상자가 정렬 규칙 목록을 고르게 공개 (docs/chromite/swing-create-objects.md)
 */
 public class SQLServerDatabase
     implements
@@ -346,6 +349,14 @@ public class SQLServerDatabase
             }
         }
         return related;
+    }
+
+    /**
+     * Names of the collations the server supports ({@code sys.fn_helpcollations()}), sorted; empty when they cannot be read.
+     */
+    @NotNull
+    public List<String> getCollationNames(@NotNull DBRProgressMonitor monitor) {
+        return List.copyOf(getSupportedCollations(monitor));
     }
 
     @NotNull
