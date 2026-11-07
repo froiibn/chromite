@@ -16,6 +16,7 @@
  */
 package com.seizia.chromite.ui.swing;
 
+import com.formdev.flatlaf.FlatClientProperties;
 import com.seizia.chromite.model.sql.exec.SQLActualPlanProvider;
 import com.seizia.chromite.model.sql.exec.SQLQueryExecuteHandler;
 import com.seizia.chromite.model.sql.exec.SQLQueryExecuteJob;
@@ -227,6 +228,8 @@ import java.util.concurrent.atomic.AtomicLong;
  * - 2026-11-07 쿼리 창마다 별도 연결({@link QueryWindowContext}): 실행·계획·기본 스키마·트랜잭션 표시와 명령·자동완성이 창의 문맥을 쓰고,
  *   창 닫기·연결 바꾸기·DB 인스턴스 바꾸기 전에 그 세션의 트랜잭션을 물음. 상태 줄 커밋 방식 칸의 도구 설명에 세션 수.
  *   자동완성이 창을 만들 때의 연결을 계속 쓰던 것(생성자 매개 변수를 잡은 람다)을 지금 연결로 고침 (docs/chromite/transactions.md)
+ * - 2026-11-08 촘촘한 모드: 도구 막대 선택 상자의 여백을 치수 키로 정하고, 높이를 UI가 바뀔 때 다시 정함
+ *   (docs/chromite/design-spec.md "적용 현황 — 촘촘한 모드")
  */
 final class SqlEditorPanel extends JPanel {
 
@@ -791,8 +794,18 @@ final class SqlEditorPanel extends JPanel {
     /**
      * Fixed width of a picker in the SQL Editor tool bar. In a narrow main window the pickers give way (down to
      * {@link #PICKER_MIN_WIDTH}) before the tool bar's buttons overflow ({@link OverflowToolBar}).
+     * The padding comes from the density (the control margin in density B, 24 high pickers in compact mode); the height is set again
+     * whenever the picker gets a new UI (theme or density change, {@link UiDensity}).
      */
     static void sizePicker(@NotNull JComboBox<?> combo, int width) {
+        combo.putClientProperty(FlatClientProperties.STYLE, "padding: $" + UiSizes.EDITOR_TOOL_BAR_COMBO_PADDING); //$NON-NLS-1$
+        setPickerSize(combo, width);
+        combo.addPropertyChangeListener("UI", e -> setPickerSize(combo, width)); //$NON-NLS-1$
+    }
+
+    private static void setPickerSize(@NotNull JComboBox<?> combo, int width) {
+        // The height the picker's UI computes, not the one fixed for the previous UI
+        combo.setPreferredSize(null);
         Dimension size = new Dimension(width, combo.getPreferredSize().height);
         combo.setPreferredSize(size);
         combo.setMaximumSize(size);

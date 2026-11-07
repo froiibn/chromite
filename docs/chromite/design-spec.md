@@ -204,7 +204,7 @@ Swing 프런트엔드(`com.seizia.chromite.ui.swing`)의 화면을 **배치와 �
 | 간격 단위 | — | 2·4·6·8·12·16·20 [J `SpacingConfiguration`, `Tree.border`, `List.border`] | 화면마다 다름(2, 3, 8, 14 등) [C] | "디자인 토큰"의 `space.*`만 씀 | P1 |
 | 시작 탭(Welcome) | 시작 화면 | Welcome 화면(로고, 큰 단추) | 큰 로고 + 안내 글 [S] | 로고 64, 제목 `font.title`, "New Connection", "New Query", "Open File" 링크 단추, 최근 파일 목록 | P2 (2026-11-06 탭 대신 빈 문서 영역: "적용 현황 — 빈 문서 영역") |
 | Islands | — | 2025.3부터 기본: 패널 사이 6px 틈, 패널 모서리 arc 20 [T `ManyIslands*`] | — | 기본 모양으로 적용("적용 현황 — Islands 적용") | 완료 |
-| 촘촘한 모드 | — | Compact: 트리 22, 머리말 낮춤, 트리 여백 2,8 [T `*.compact`] | — | 기본 밀도를 B("조금 촘촘")로 바꿈(2026-11-07, "치수 토큰"). 더 촘촘한 C는 보기 메뉴 전환으로 제공(P2): 치수가 테마 키에 모여 있어 값만 바꾸면 됨 | B 완료, C는 P2 |
+| 촘촘한 모드 | — | Compact: 트리 22, 머리말 낮춤, 트리 여백 2,8 [T `*.compact`] | — | 기본 밀도를 B("조금 촘촘")로 바꿈(2026-11-07, "치수 토큰"). 더 촘촘한 C는 View > Compact Mode 전환(2026-11-08, "적용 현황 — 촘촘한 모드"): 치수가 테마 키에 모여 있어 값만 바꿈 | B·C 완료 |
 
 ## P0 상위 15개
 
@@ -323,10 +323,12 @@ IntelliJ 전용 키와 FlatLaf 키의 차이를 줄이기 위해서다(설계 �
 밀도를 정하는 값은 모두 테마 properties(`ChromiteLightLaf.properties`, `ChromiteDarkLaf.properties`, 두 파일 같은 값)의 "Sizes" 절에 있다:
 FlatLaf 키와, Chromite 컴포넌트가 `UiSizes`로 읽는 `Chromite.size.*` 키. 컴포넌트 코드에는 밀도 값을 두지 않는다.
 
-**촘촘한 모드(C, P2)**: 보기 메뉴의 전환으로 넣을 때는 이 키들만 `FlatLaf.setExtraDefaults`로 덮어쓰면 된다. 시안의 C 값:
-트리 행 20(여백 2,8, 들여쓰기 5 + 10), 그리드 행 22·머리글 24(셀 여백 0,6,2,6), 도구 창 머리말 30(왼쪽 8), 주 도구 막대 28(단추 22 = 여백 3), 도구 창 도구 막대 26,
-편집기 도구 막대 28(콤보 24 = 여백 3,8,2,8), 문서 탭 32(알약 4), 도구 탭 26, 메뉴 항목 20(1,8,2,8), 상태 표시줄·쿼리 상태 줄 24, Properties 행 20, 필터 막대 여백 1, 결과 상태 막대 여백 0.
-`Chromite.size.*` 값은 컴포넌트를 만들 때 읽는다(크기를 계산할 때마다 읽는 곳도 있음). 실행 중에 바꾸려면 창을 다시 만들거나 다시 시작해야 한다.
+**촘촘한 모드(C)**: View > Compact Mode(2026-11-08). 이 키들 중 바뀌는 것만 `ChromiteCompact.properties`에 두고 `FlatLaf.setExtraDefaults`로 덮어쓴다.
+C 값(시안 C를 12px 글꼴에 맞춤): 트리 행 20(여백 2,8, 들여쓰기 5 + 10, 선택 안쪽 4), 그리드 행 22·머리글 24(셀 여백 0,6,2,6), 도구 창 머리말 30(여백 0,8,0,8),
+주 도구 막대 28(단추 22 = 여백 3, 막대 여백 3,6,3,6), 도구 창 도구 막대 26(단추 22), 편집기 도구 막대 28(선택 상자 24 = 아이콘 16 + 여백 3,8,3,8), 문서 탭 32(알약 4), 도구 탭 26,
+메뉴 항목 20(`@menuItemMargin` 2,8,2,8), 상태 표시줄·쿼리 상태 줄 24, Properties 행 20, 트리 보조 글자 앞 5, 결과 상태 막대 여백 0,6,0,6.
+`Chromite.size.*` 값은 쓸 때 읽는다(크기 계산·그리기, 여백 테두리, 스타일의 `$키`). 만들 때 한 번 정하는 값(표 행 높이, 선택 상자 크기, 글자 단추 여백)은
+UI가 바뀔 때 다시 정한다. 그래서 테마 전환처럼 실행 중에 바로 바뀐다.
 
 | 토큰 | 값 | 근거 | FlatLaf 키 / 구현 |
 |---|---|---|---|
@@ -343,7 +345,7 @@ FlatLaf 키와, Chromite 컴포넌트가 `UiSizes`로 읽는 `Chromite.size.*` �
 | `size.tabUnderline` | 4 (탭) / 3 (결과 탭) | [T `EditorTabs.underlineHeight`][J] | `TabbedPane.tabSelectionHeight`, `TabbedPane.tabSelectionArc = 4` |
 | `size.titleBar` | 40 | [J] 주 도구 막대 40 | `TitlePane.buttonSize = 46,40` |
 | `size.toolbar.main` | 32 (36) | Chromite 결정(SSMS 두 줄 유지) | `Chromite.size.mainToolBar.padding = 4,8,4,8` |
-| `size.toolbar.editor` | 32 (36) | [S] ≈36 | `Chromite.size.editorToolBar.padding = 2,8,2,8`(콤보 28 + 4; 메인 창 둘째 줄 SQL Editor 도구 막대, 테이블 디자이너) |
+| `size.toolbar.editor` | 32 (36) | [S] ≈36 | `Chromite.size.editorToolBar.padding = 2,8,2,8`(콤보 28 + 4; 메인 창 둘째 줄 SQL Editor 도구 막대, 테이블 디자이너). 연결·DB 선택 상자 여백 `Chromite.size.editorToolBar.comboBox.padding = @componentMargin`(촘촘한 모드에서 24로 낮춤) |
 | `size.statusBar` | 26 (28) | ≈ | `Chromite.size.statusBar.height` |
 | `size.statusLine.query` | 26 (28) (+ 위 선 1) | Chromite 결정 | `Chromite.size.queryStatusLine.height`. 칸의 위아래 여백은 글자 줄 높이로 계산한다(칸이 줄보다 높아지지 않게) |
 | `size.control` | 28 | [T `Button.minimumSize` 72,28, `TextField.minimumSize`, `ComboBox.minimumSize`] | 글자 줄 15(12px) + 위 6·아래 5 + 테두리 2: `@componentMargin = 6,8,5,8`(입력·콤보·스피너), `Button.margin = 6,14,5,14`. 13px일 때는 글자 줄 17 + 위 5·아래 4 |
@@ -971,6 +973,48 @@ UI 글꼴 `font.grid` = `font.ui`(Pretendard 12)로 바꿨다. 열 머리글은 
 - 필터 막대(34)가 없어진 만큼 결과 영역이 넓어졌다. 흐린 아이콘이라 머리글이 무거워 보이지 않고, 필터가 걸린 열은 강조색으로 바로 보인다.
 - 캡처: `D:\Tools\_scratch\grid-column-filters\run\shots\`(한국어·영어, 라이트·다크).
 
+### 적용 현황 — 촘촘한 모드 (2026-11-08)
+
+사용자 결정(2026-11-07, 후속 #46): 기본 밀도는 B, 촘촘한 모드(C)는 나중에 보기 메뉴 전환으로. 그 전환을 넣었다.
+
+- **메뉴:** View > Compact Mode(한국어 "촘촘한 모드"), Theme 아래의 확인 항목. 누르면 바로 바뀌고(다시 시작하지 않음) 다음 시작에도 쓴다.
+- **값:** 위 "치수 토큰"의 C 값. 바뀌는 키만 `ChromiteCompact.properties`(테마 properties와 같은 폴더)에 있고, 없는 키는 B 값 그대로다.
+  두 테마가 같은 파일을 쓴다. 새 키는 `Chromite.size.editorToolBar.comboBox.padding` 하나다(B는 `@componentMargin`, SQL Editor 도구 막대의 연결·DB 선택 상자).
+- **저장:** 이 번들의 설정 `ui.compactMode`(테마 `ui.theme`과 같은 저장소, 기본 false).
+
+| 구조 | 내용 |
+|---|---|
+| `UiDensity`(새 파일) | 저장된 밀도, 지금 밀도, C 값 읽기(`ChromiteCompact.properties` → FlatLaf extra defaults), `apply` = 지금 테마 다시 설치 + 저장 |
+| `ChromiteTheme.install` | 테마를 설치할 때마다 밀도의 extra defaults를 넘김(semibold 글꼴 대체와 합침) |
+| `ChromiteSwingApplication.openMainWindow` | 저장된 테마나 밀도가 처음 설치(작업 공간을 잠그기 전, 라이트·B)와 다르면 주 창을 열기 전에 다시 설치 |
+| `MainFrame` | View 메뉴 항목 |
+| `UiSizes.createPadding` | 여백 테두리가 토큰을 그때마다 읽음(도구 막대·도구 창 머리말·결과 상태 막대 여백이 실행 중에 바뀜) |
+| `UiIcons.createToolButton` | 글자 단추(새 쿼리, 실행)의 명시한 여백을 UI가 바뀔 때 다시 계산(아니면 단추 24가 남아 주 도구 막대가 30) |
+| `SqlEditorPanel.sizePicker` | 연결·DB 선택 상자의 여백을 토큰으로, 고정한 높이를 UI가 바뀔 때 다시 계산 |
+| `PropertiesPanel` | 행 높이를 `updateUI`에서 다시 정함 |
+| `ResultSetGrid` | 행 번호 표의 행 높이가 그리드 행 높이를 따라가고, 열·행 번호 폭이 칸 여백 차이만큼 바뀜(맞춘 폭과 사용자가 바꾼 폭 모두) |
+| `QueryStatusLine` | 칸 테두리(구분선 위치, 위아래 여백)가 줄 높이와 글자 줄을 그때마다 읽음 |
+
+측정(이 브랜치 빌드, Windows 11 150%, 1280×800 창, SQL Server 쿼리 60행, 한국어·영어 같은 값, 라이트·다크 같은 값):
+
+| 요소 | B | C |
+|---|---|---|
+| 트리 행 / 트리 여백 | 22 / 3,10 | 20 / 2,8 |
+| 그리드 행 / 머리글 / 행 번호 행 | 24 / 26 / 24 | 22 / 24 / 22 |
+| 주 도구 막대(단추) | 32 (24) | 28 (22) |
+| SQL Editor 도구 막대(선택 상자) | 33 (29) | 28 (24) |
+| 도구 창 머리말(+선) / 도구 창 도구 막대 | 35 / 28 | 31 / 26 |
+| 문서 탭 / 결과 탭 | 36 / 28 | 32 / 26 |
+| 쿼리 상태 줄(+선) / 상태 표시줄 | 27 / 26 | 25 / 24 |
+| Properties 행 | 22 | 20 |
+| 메뉴 항목 | 22 | 20 |
+| 제목·메뉴 막대, 대화상자 컨트롤, 글꼴, 편집기 줄 | 그대로 | 그대로 |
+
+- 실행 중 전환: B → C → (다크) → B → C, 저장한 C로 다시 시작(영어)에서 위 값이 모두 맞았다. View 메뉴의 확인 표시도 따라간다.
+- SQL Editor 도구 막대의 B 값 33은 이번 변경 전과 같다: 연결·DB 선택 상자는 아이콘(16)이 12px 글자 줄(15)보다 높아 29다(빈 선택 상자는 28).
+  C 여백은 아이콘 줄에 맞춰 24로 했다(빈 선택 상자는 23).
+- 캡처: `D:\Tools\_scratch\chromite-compact-mode\run\shots\`(ko·en × light·dark × B·C, View 메뉴).
+
 ### Swing/FlatLaf로 못 한 것과 이유
 
 | 항목 | 이유 | 대신 한 것 |
@@ -1004,9 +1048,11 @@ UI 글꼴 `font.grid` = `font.ui`(Pretendard 12)로 바꿨다. 열 머리글은 
   쿼리 창이 아닌 문서가 활성이거나 문서가 없으면 2줄은 보인 채 컨트롤이 모두 꺼진다(SSMS). 구현은 [swing-frontend.md](swing-frontend.md) "SQL Editor 도구 막대".
 - **라이트 머리말**: New UI Light의 기본은 어두운 주 도구 막대지만, SSMS 라이트와 이어지고 밝은 화면에서 덜 튀도록 "Light with Light Header" 값(`MainToolbar.background` `#F7F8FA`)을 쓴다.
 - **결과 탭 높이 32**: 결과가 쿼리 창 아래 붙는 SSMS 배치에서 40은 세로 공간을 많이 쓴다. 도구 창 머리말(40)과 구분되는 낮은 탭으로 둔다. (2026-11-07 밀도 B로 28)
-- **그리드 행 27**: DataGrip 측정값을 따른다. SSMS(≈20)보다 성기지만 모양 기준이 DataGrip이다. 촘촘한 모드(P2)에서 낮춘다. (2026-11-07 밀도 B로 24)
+- **그리드 행 27**: DataGrip 측정값을 따른다. SSMS(≈20)보다 성기지만 모양 기준이 DataGrip이다. 촘촘한 모드에서 낮춘다. (2026-11-07 밀도 B로 24, 2026-11-08 촘촘한 모드 22)
 - **기본 밀도 B**(2026-11-07 사용자 결정): DataGrip 기본(A)은 SSMS 사용자에게 성기다. 같은 창 높이에서 트리 행이 약 10%, 그리드 행이 약 20% 더 보이는
-  B를 기본으로 하고, DataGrip Compact 수준(C)은 선택으로 남긴다. 치수를 테마 키 한곳에 모아 C가 값 교체로 끝나게 했다.
+  B를 기본으로 하고, DataGrip Compact 수준(C)은 선택으로 남긴다. 치수를 테마 키 한곳에 모아 C가 값 교체로 끝나게 했다(2026-11-08 View > Compact Mode).
+- **촘촘한 모드는 도구 창·도구 막대·행만**(2026-11-08): 대화상자의 입력·선택 상자(size.control 28), 단추, 제목 표시줄(40), 글꼴은 바꾸지 않는다.
+  시안 C가 이 범위였고, 입력 칸까지 낮추면 12px 글자 위아래 여백이 4·3보다 줄어 한글이 답답해진다. 실행 중 전환은 테마 전환과 같은 길(Look and Feel 다시 설치)을 쓴다.
 - **UI 글꼴 Pretendard**(2026-11-07 사용자 결정): Inter + 맑은 고딕 대체는 한글과 라틴 글자의 굵기·크기·기준선이 달랐다. Pretendard는
   한글과 라틴 글자를 한 글꼴로 맞춰 그린다(라틴 글자는 Inter 기반). 13px 한 줄 높이는 17로 Inter(JBR)와 같다.
 - **UI 글꼴 12**(2026-11-07 사용자 요청 "앱 기본 폰트 사이즈를 한단계 줄인다"): 밀도 B의 행·막대 높이는 그대로 두고 글자만 줄인다.
@@ -1034,7 +1080,8 @@ UI 글꼴 `font.grid` = `font.ui`(Pretendard 12)로 바꿨다. 열 머리글은 
 - ~~Inter·JetBrains Mono 글꼴 jar~~: 2026-11-06 넣음("적용 현황 — 글꼴").
 - 공급자 로고의 상표 사용 검토(공개 배포 전).
 - 그리드 숫자의 고정폭 숫자(`tnum`): JBR API(`jbr-api` `FontExtensions`) 의존성을 넣을지, 숫자 열만 고정폭으로 할지(2026-11-07 "적용 현황 — 그리드 글꼴 Pretendard").
-- 촘촘한 모드 C(보기 메뉴 전환, P2). 연결별 색(SSMS Color, DataGrip 데이터 소스 색). (Islands는 2026-11-06, 기본 밀도 B는 2026-11-07 적용)
+- ~~촘촘한 모드 C(보기 메뉴 전환, P2)~~: 2026-11-08 View > Compact Mode("적용 현황 — 촘촘한 모드").
+- 연결별 색(SSMS Color, DataGrip 데이터 소스 색). (Islands는 2026-11-06, 기본 밀도 B는 2026-11-07 적용)
 
 ## 참고 자료
 
@@ -1088,3 +1135,5 @@ UI 글꼴 `font.grid` = `font.ui`(Pretendard 12)로 바꿨다. 열 머리글은 
 - 2026-11-07 실행 계획 세 보기(사용자 결정): "적용 현황 — 실행 계획 그림" 절(보기 전환, 연산자 상자·화살표·비싼 연산자·경고 배지·선택 색과 치수) 추가, 아이콘 팩 파일 수(74 → 92) 갱신.
 - 2026-11-07 열 필터(사용자 요청 10): 8절 머리글 목표(늘 보이는 흐린 깔때기·정렬 아이콘), 색 토큰 `grid.headerIcon`·`grid.headerIconActive`,
   치수 토큰 `size.gridHeader.*`(필터 막대 여백 삭제), `font.code` 쓰는 곳 갱신, "적용 현황 — 열 필터" 절 추가.
+- 2026-11-08 촘촘한 모드(사용자 결정 2026-11-07 후속 #46): View > Compact Mode. 14절 표, "치수 토큰"의 C 값과 실행 중 전환 설명,
+  `size.toolbar.editor` 행(선택 상자 여백 키), 설계 결정(촘촘한 모드 범위), 미룬 결정 갱신. "적용 현황 — 촘촘한 모드" 절(구조, B·C 측정) 추가.
