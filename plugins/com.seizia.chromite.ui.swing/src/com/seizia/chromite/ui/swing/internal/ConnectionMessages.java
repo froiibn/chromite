@@ -34,6 +34,8 @@ import org.eclipse.osgi.util.NLS;
  * - 2026-11-07 인증 방식 자격 증명 질문({@code auth_prompt_*})과 JSch SSH 질문({@code ssh_prompt_*}) (docs/chromite/swing-auth-prompts.md)
  * - 2026-11-07 유휴 연결 닫기 도구 설명({@code settings_close_idle_tip}) (docs/chromite/idle-transactions.md "유휴 연결 닫기")
  * - 2026-11-07 트랜잭션 격리 수준({@code settings_isolation*}) (docs/chromite/swing-options.md)
+ * - 2026-11-07 쿼리 창마다 별도 연결: 연결별 설정({@code settings_separate_connection*}), 창 세션을 끝내기 전 질문({@code window_txn_*})
+ *   (docs/chromite/transactions.md "쿼리 창마다 별도 연결")
  */
 public class ConnectionMessages extends NLS {
     private static final String BUNDLE_NAME = "com.seizia.chromite.ui.swing.internal.ConnectionMessages"; //$NON-NLS-1$
@@ -114,6 +116,11 @@ public class ConnectionMessages extends NLS {
     public static String settings_isolation;
     public static String settings_isolation_tip;
     public static String settings_isolation_default;
+    public static String settings_separate_connection;
+    public static String settings_separate_connection_tip;
+    public static String settings_separate_connection_global;
+    public static String settings_separate_connection_always;
+    public static String settings_separate_connection_never;
     public static String settings_default_database;
     public static String settings_default_database_tip;
     public static String settings_default_schema;
@@ -390,6 +397,9 @@ public class ConnectionMessages extends NLS {
     // Open transactions before a disconnect (ExitTransactionCheck.confirmDisconnect)
     public static String disconnect_txn_message;
     public static String disconnect_txn_error;
+    // ... and before a query window's own session ends (ExitTransactionCheck.confirmEndSession)
+    public static String window_txn_message;
+    public static String window_txn_error;
 
     static {
         NLS.initializeMessages(BUNDLE_NAME, ConnectionMessages.class);

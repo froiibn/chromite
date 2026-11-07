@@ -96,6 +96,8 @@ import java.util.function.Supplier;
  * 변경 이력:
  * - 2026-11-06 F단계: 최초 작성 (docs/chromite/swing-frontend.md "구현 현황 — F단계")
  * - 2026-11-07 프로시저·함수 제안을 늘 끄던 것을 Tools &gt; Options 설정으로 바꿈 (docs/chromite/swing-followup-fixes.md "자동완성 프로시저")
+ * - 2026-11-07 쿼리 창의 실행 문맥({@link Request#executionContext})을 씀: 창이 자기 세션을 쓰면 기본 카탈로그·스키마가 창마다 다르다
+ *   (docs/chromite/transactions.md "쿼리 창마다 별도 연결")
  */
 final class SqlCompletionAnalysis {
 
@@ -117,9 +119,17 @@ final class SqlCompletionAnalysis {
     /**
      * Snapshot of the editor taken in the EDT.
      *
-     * @param explicit Ctrl+Space (connects if needed) rather than auto-activation while typing
+     * @param executionContext the query window's session (its default catalog/schema), or null to use the connection's
+     *                         main context (not connected yet, or the window's own session is not open yet)
+     * @param explicit         Ctrl+Space (connects if needed) rather than auto-activation while typing
      */
-    record Request(@NotNull DBPDataSourceContainer dataSourceContainer, @NotNull String text, int offset, boolean explicit) {
+    record Request(
+        @NotNull DBPDataSourceContainer dataSourceContainer,
+        @Nullable DBCExecutionContext executionContext,
+        @NotNull String text,
+        int offset,
+        boolean explicit
+    ) {
     }
 
     /**
@@ -149,7 +159,10 @@ final class SqlCompletionAnalysis {
         if (dataSource == null || !container.isConnected() || monitor.isCanceled()) {
             return null;
         }
-        DBCExecutionContext executionContext = DBUtils.getDefaultContext(dataSource.getDefaultInstance(), false);
+        // The window's session when it belongs to this data source (not one closed by a reconnect)
+        DBCExecutionContext windowContext = request.executionContext();
+        DBCExecutionContext executionContext = windowContext != null && windowContext.getDataSource() == dataSource
+            ? windowContext : DBUtils.getDefaultContext(dataSource.getDefaultInstance(), false);
         if (executionContext == null) {
             return null;
         }

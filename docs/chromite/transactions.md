@@ -76,6 +76,111 @@
 - 보이지 않는 것: Chromite Agent·MCP 도구의 격리 세션(쿼리 관리자를 거치지 않음). 설명 문구에 적었다. 끝낼 때와 끊을 때는 `ExitTransactionCheck`가 이들도 묻는다.
 - SWT와 다른 점: SWT의 "Show all connections"(트랜잭션 없는 문맥도 보이기)와 아래 붙은 로그는 두지 않았다. 끝낼 것이 없는 문맥이고, 로그는 단추로 연다.
 
+## 쿼리 창마다 별도 연결
+
+### 문제
+
+Swing 쿼리 창은 모두 연결의 주 실행 문맥(서버 세션 하나)을 썼다. 그래서 수동 커밋 연결에서 창 A의 Commit이 창 B의 변경까지 커밋하고,
+A의 Roll Back이 B의 작업도 버렸다. 한 창에서 바꾼 기본 DB/스키마도 같은 연결의 모든 창에 적용되었다. SWT는 SQL 편집기마다 격리된 실행 문맥을 열었다
+(SWT 대조 B-S22, [swt-parity-audit.md](swt-parity-audit.md) 3순위).
+
+### 구조
+
+| 부분 | 클래스 |
+|---|---|
+| 창의 세션(열기, 읽기, 닫기, 설정 판단, 세션 수) | `QueryWindowContext`(새 파일) |
+| 창이 쓰는 문맥 | `SqlEditorPanel.getExecutionContext`, `confirmEndSession` |
+| 세션을 끝내기 전 질문 | `ExitTransactionCheck.confirmEndSession`(끝낼 때·끊을 때와 같은 커밋·롤백 코드) |
+| 창 이름 붙이기 | `SwingIdleTransactionService.describeQueryWindows`(열린 트랜잭션 목록, 트랜잭션 로그, 유휴 알림, 끊기·끝내기 질문), `AutoCommitApplier` |
+| 상태 줄 세션 수 | `QueryStatusLine.setSessions` |
+| 자동완성 | `SqlCompletionPopup`, `SqlCompletionAnalysis.Request.executionContext` |
+| Chromite Agent | `AiAssistantPanel.getCurrentDatabase(SqlEditorPanel)` |
+| 설정 | `SqlExecutionOptionsPage`(Options > Query Execution > Sessions), `ConnectionSettingsPanel`(Connection Properties > Query window sessions), `ConnectionDialog` |
+| 문구 | `SettingsMessages`(`exec_separate_connection*`), `ConnectionMessages`(`settings_separate_connection*`, `window_txn_*`), `EditorMessages`(`editor_status_session_*`), 영어·한국어 |
+
+### 설정
+
+- 키는 SWT와 같은 `database.editor.separate.connection`, 값은 `ModelPreferences.SeparateConnectionBehavior`(`DEFAULT` / `ALWAYS` / `NEVER`)다.
+  SWT 사용자가 저장해 둔 값(전역, 연결별)이 그대로 적용된다.
+- 기본값은 SWT와 같다: `DEFAULT` = 창마다 세션, 단 연결이 "단일 연결"(`isForceUseSingleConnection`)이거나 드라이버가 내장 DB(`isEmbedded`, SQLite·H2 등)이면 함께 씀
+  (SWT `SQLEditorUtils.isOpenSeparateConnection`). Swing에서도 그대로 켰다. 끌 이유를 찾지 못했다: 세션이 창 수만큼 늘지만 SSMS도 쿼리 창마다 연결한다.
+- 전역: Tools > Options > Query Execution > Sessions의 "Query window sessions"(창마다(기본) / 항상 창마다 / 함께 씀). 기본을 고르면 값을 지운다.
+- 연결별: 연결 편집 > Connection Properties의 "Query window sessions"(Options 설정을 따름 / 창마다 / 함께 씀). 연결의 설정 저장소(`data-sources.json`의
+  `custom-properties`)에 쓴다. 이것만 바꾸면 다시 연결을 묻지 않는다(`ConnectionDialog`, 자동 커밋과 같은 방식).
+- 적용 시점: 창이 한 연결(데이터 소스)에서 처음 문맥을 얻을 때 정하고 그 연결 동안 유지한다. 바꾼 뒤 연결하는 창(새 창, 다시 연결, 연결 바꾸기)부터 적용된다.
+  이미 정한 창을 바꾸지 않는 이유: 그 창의 열린 트랜잭션이 갑자기 다른 세션의 것처럼 보이게 된다.
+
+### 세션의 수명
+
+- 열기: 창이 연결된 연결을 가질 때(창을 열 때, 연결될 때, 연결을 바꿀 때, 상태 줄의 커밋 방식 읽기와 기본 DB 읽기 작업) 또는 처음 실행할 때 작업 스레드에서
+  `DBSInstance.openIsolatedContext(monitor, "SQLEditor <파일 이름>", 주 문맥)`으로 연다. SWT와 같은 이름이라 서버의 세션 목록(클라이언트 이름)에서 창을 구별할 수 있다.
+  주 문맥을 `initFrom`으로 넘겨 기본 카탈로그·스키마를 복사한다(PostgreSQL search_path, SQL Server·MySQL 현재 DB). 자동 커밋·격리 수준은 연결 설정을 따른다.
+  Modify·New 스크립트 창도 스크립트를 만들 때 주 문맥에 맞춘 DB/스키마를 이렇게 이어받는다(`SourceScripts`).
+- 닫기: 창을 닫을 때, 창의 연결을 바꿀 때 작업 스레드에서 닫는다.
+- 연결 끊기: 인스턴스가 모든 문맥을 닫는다(`JDBCRemoteInstance.shutdown`). 끊기 전 질문(`ExitTransactionCheck.confirmDisconnect`)은 연결의 모든 문맥을 보므로
+  창마다의 세션이 모두 목록에 나오고, 목록은 문맥 이름 대신 창 이름("연결 (SQLQuery1.sql)")이다. 다시 연결하면 창마다 새 세션을 연다.
+- 다시 연결(연결 유지 실패 등 무효화): 같은 문맥 객체가 다시 연결되므로 창은 같은 세션을 계속 쓴다.
+
+### 트랜잭션 안전
+
+창의 자기 세션을 끝내는 동작은 커밋하지 않은 트랜잭션(`QMUtils.isTransactionActive`, 끊기·끝내기 질문과 같은 기준)이 있으면 먼저 Commit / Roll back / Cancel을 묻는다.
+
+| 동작 | 질문 | 취소하면 |
+|---|---|---|
+| 쿼리 창 닫기 | 저장 질문 뒤에 "쿼리 창 X의 세션에 커밋하지 않은 트랜잭션이 있습니다" | 창이 열린 채 남음 |
+| 연결 콤보로 연결 바꾸기 | 같음 | 콤보가 이전 연결로 돌아감 |
+| 기본 DB 콤보로 다른 인스턴스의 DB 고르기(PostgreSQL) | 같음. 격리 문맥은 다른 DB로 다시 연결한다(`PostgreExecutionContext.setDefaultCatalog`) | 콤보가 이전 DB로 돌아감 |
+| 연결 끊기, 다시 연결, 삭제, Chromite 끝내기 | 기존 질문(#97)이 창마다의 세션을 창 이름으로 보임 | 기존과 같음 |
+
+창들이 주 문맥을 함께 쓰는 설정에서는 창을 닫아도 세션이 끝나지 않으므로 묻지 않는다(예전과 같음).
+
+### 창의 문맥을 따르는 것
+
+| 기능 | 어떻게 |
+|---|---|
+| 실행(F5), 실제 계획 켜기·끄기, 쿼리 기록의 DB/스키마 | 준비 작업이 `QueryWindowContext.open`으로 얻은 문맥에서 엔진을 돌린다 |
+| 예상 계획(Ctrl+L), 실제 계획 다시 계획 | 같은 문맥 |
+| 기본 DB/스키마 콤보 | 그 문맥의 기본값을 읽고 바꾼다(이 창에만 적용) |
+| 상태 줄 커밋 방식·열린 트랜잭션 칸, Query > Commit / Roll Back, 도구 막대 단추, 단축키, Transaction Log | `SqlEditorPanel.getExecutionContext`(1초마다 읽음, 서버를 부르지 않음) |
+| 열린 트랜잭션 목록 | 모든 문맥을 보므로 창마다 한 줄. 세션 열은 그 문맥을 쓰는 창 이름 |
+| 유휴 알림·자동 롤백, 유휴 연결 닫기 | 모델 감시가 모든 문맥을 본다. 알림의 창 이름은 그 문맥을 쓰는 창 |
+| 결과 표 편집·저장, `@export` | 결과를 읽은 문맥을 넘겨받는다(`SQLQueryDataContainer`, `ResultSetEditModel`). 저장이 자동 커밋을 잠시 끄는 문맥도 이 창의 것이다 |
+| 자동완성 | 요청에 창의 문맥을 넣는다(기본 스키마). 아직 세션이 없으면 주 문맥 |
+| Chromite Agent | 새 대화와 "이 쿼리에 대해 묻기"의 현재 DB는 창의 문맥. `openInEditor`는 새 창을 열고 새 창은 자기 세션을 연다 |
+| 연결 설정의 자동 커밋 적용(`AutoCommitApplier`) | 이미 연결의 모든 문맥에 적용한다. 질문의 이름이 창 이름이다 |
+
+### 세션 수
+
+쿼리 상태 줄의 커밋 방식 칸 도구 설명 맨 아래에 "세션: 이 창만 쓰는 세션(이 연결에 열린 세션 N개)" 또는 "…다른 쿼리 창과 함께 쓰는 세션(…)"을 보인다.
+N은 연결의 모든 인스턴스의 실행 문맥 수다(주, 메타데이터, 쿼리 창, Activity Monitor, Chromite Agent 등 Chromite가 서버에 연 세션 모두). 1초마다 다시 센다(메모리 목록만).
+
+### 확인 (2026-11-07)
+
+이 브랜치의 제품 빌드를 복사해 자기 작업 공간으로 실행하고, 앱 안에서 Swing API로 누르는 스크립트(OS 입력 없음)로 확인했다.
+연결은 수동 커밋, 이 작업 전용 DB `chr_p3_sepconn`의 `sep_test`(행 1~10). 증거: `D:\Tools\_scratch\p3-separate-connections\`
+(스크립트 `p*.txt`, 결과 `*.txt.log`, 창 그림 `shots\`). 행 값과 세션은 다른 세션(`docker exec … psql` / `sqlcmd`)에서 읽었다.
+
+| 확인 | PostgreSQL 17 (55432) | SQL Server 2022 (51433) |
+|---|---|---|
+| 두 창의 세션 | `pg_backend_pid` 34029 / 34032, 서버 `application_name` `Chromite 0.1.0 - SQLEditor <SQLQuery1.sql>` 등 | `@@SPID` 54 / 55, `program_name` `… SQLEditor <SQLQuery4.sql>` 등 |
+| A의 UPDATE(행 1)가 커밋 전 B에 안 보임(B에서 확인) | B의 SELECT: 행 1 = `orig`(A 안에서는 `A-pending`) | B의 `WITH (READPAST)` SELECT: 행 1이 A의 잠금으로 빠지고 행 2만 |
+| 상태 줄 세션 줄 | "세션: 이 창만 쓰는 세션(이 연결에 열린 세션 4개)" | 같음 |
+| 열린 트랜잭션 목록 | `SQLQuery1.sql`, `SQLQuery2.sql` 두 줄 | `SQLQuery4.sql`, `SQLQuery5.sql` 두 줄 |
+| A에서 Commit | 행 1 = `A-pending`, B의 행 2 = `orig`(B의 상태 줄은 여전히 열린 트랜잭션) | 행 1 커밋, B의 변경은 뒤에 끊기 질문에서 롤백되어 행 2 = `orig`(A의 커밋에 들어가지 않음) |
+| 열린 트랜잭션이 있는 A 닫기 | 저장 질문 뒤 "쿼리 창 SQLQuery1.sql의 세션에 커밋하지 않은 트랜잭션…"; 취소 → 창·트랜잭션 남음; 롤백 → 창 닫힘, 행 3 = `orig`, 서버에서 A 세션 사라짐 | 같은 질문, 롤백 → 행 3 = `orig` |
+| 끊기 | 질문 목록 "PostgreSQL 테스트 (SQLQuery2.sql)", "(SQLQuery3.sql)"; 취소 → 그대로; 롤백 → 끊김, 행 2·4 = `orig`, 서버 세션 0 | "SQL Server 테스트 (SQLQuery5.sql)", "(SQLQuery6.sql)"; 롤백 → 끊김, 행 4 = `orig` |
+| 설정 끄기 | Options > Query Execution "한 연결의 쿼리 창들이 한 세션을 함께 씀": 두 창 pid 같음(34131 = Main), B의 UPDATE를 C가 봄, 목록 한 줄 "SQLQuery2.sql, SQLQuery3.sql", C의 Commit이 B의 변경을 커밋(행 5 = `B-shared`) | 연결 대화상자 "쿼리 창들이 한 세션을 함께 씀"(`custom-properties`에 `NEVER` 저장): 두 창 SPID 52 = Main, B의 Commit이 A의 변경을 커밋(행 5 = `A-shared`) |
+
+확인한 뒤 행을 `orig`로 되돌리고 확인용 DB를 지웠다. 연결 콤보로 연결 바꾸기와 PostgreSQL 다른 DB 고르기의 질문은 실행해 보지 않았다(창 닫기와 같은 `confirmEndSession` 경로).
+
+### SWT와 다른 점
+
+- SWT 편집기의 "별도 연결 전환" 명령(`SQLEditorHandlerSeparateConnectionSwitch`)은 옮기지 않았다. 연결 대화상자의 연결별 값으로 대신한다.
+- SWT는 설정이 바뀌면 열린 편집기의 문맥을 바로 바꿨다(`EDITOR_SEPARATE_CONNECTION` 속성 변경 이벤트). Chromite는 열린 트랜잭션이 다른 세션으로
+  옮겨진 것처럼 보이지 않도록 바꾼 뒤 연결하는 창부터 적용한다.
+- SWT `OpenContextJob`은 새 문맥의 기본값을 정한 뒤 그 문맥을 커밋했다. Chromite는 기본값을 따로 정하지 않고 `initFrom` 복사만 쓴다(모델의 문맥 초기화가 이미 커밋한다).
+- SWT 스크립트 파일에 저장해 둔 기본 스키마 복원(`SQLEditor.autoSaveActiveSchema`)은 Swing에 그 기능이 없어 없다.
+
 ## 설계 결정과 이유
 
 - **한 커밋 경로**: Query 메뉴·도구 막대·단축키·목록이 모두 #97의 `SwingIdleTransactionService.endTransaction`을 쓴다. 오래된 화면이 새 트랜잭션을 끝내지 않는 보호(시작 시각 비교, 실행 중이면 하지 않음)를 그대로 얻는다.
@@ -112,9 +217,12 @@
 
 - 트랜잭션 로그의 "지난 트랜잭션 보이기"와 "모든 문장(메타데이터 포함) 보이기".
 - 커밋·롤백 뒤 알림과 그 설정(SWT `transaction.show.notifications`). 트랜잭션 설정 화면(A-P1 "Transactions")과 함께 한다.
-- 스마트 커밋(B-S16), 실행 중 자동/수동 커밋 전환(B-S18), 쿼리 창마다 별도 연결(B-S22)은 이 작업에 들어 있지 않다.
+- 스마트 커밋(B-S16), 실행 중 자동/수동 커밋 전환(B-S18)은 이 작업에 들어 있지 않다. 쿼리 창마다 별도 연결(B-S22)은 2026-11-07에 더했다(위 절).
 
 ## 변경 이력
 
 - 2026-11-07 최초 작성: Query > Commit / Roll Back(SWT 단축키, SQL Editor 도구 막대 단추), 트랜잭션 로그, 열린 트랜잭션 목록.
   PostgreSQL·SQL Server에서 실행 확인(위 "확인")
+- 2026-11-07 쿼리 창마다 별도 연결(SWT 대조 B-S22): 창마다 격리된 세션, 창 닫기·연결 바꾸기·DB 인스턴스 바꾸기 전 트랜잭션 질문,
+  상태 줄·명령·로그·목록·유휴 알림·결과 저장·자동완성·Chromite Agent가 창의 세션을 따름, Options와 연결 대화상자의 설정, 세션 수 표시.
+  PostgreSQL·SQL Server에서 실행 확인("쿼리 창마다 별도 연결 > 확인")

@@ -21,12 +21,12 @@ SWT 제품은 설정 페이지 62개(Window > Preferences, 연결별 속성 페�
 
 | 상태 | 키 수 | 뜻 |
 |---|---|---|
-| 추가함 | 22 | 이번에 Swing 화면을 만듦 |
+| 추가함 | 23 | 이번에 Swing 화면을 만듦(2026-11-07 쿼리 창 세션 1키 포함) |
 | 이미 있음 | 7 | 전에 만든 Swing 화면이 같은 키를 씀 |
 | 연결별 공급자 속성 | 7 | 연결 대화상자 Provider Properties 탭에서 이미 바꿀 수 있음 |
 | 규칙상 두지 않음 | 2 | 스크립트 커밋 방식: 트랜잭션 안전 규칙에 어긋남 |
 | 다음 작업 | 71 | Swing에서 읽지만 화면 없음(아래 "다음 작업") |
-| 효과 없음 | 197 | Swing에서 읽는 곳이 없거나 경로가 돌지 않음. 화면을 만들지 않음 |
+| 효과 없음 | 196 | Swing에서 읽는 곳이 없거나 경로가 돌지 않음. 화면을 만들지 않음 |
 
 키가 아닌 설정(연결 유형, 연결별 격리 수준, 템플릿, AI 등)은 아래 페이지별 표에 적었다.
 
@@ -46,6 +46,7 @@ SWT 제품은 설정 페이지 62개(Window > Preferences, 연결별 속성 페�
 | 변수 | `sql.variables.enabled` | `SQLSyntaxManager.init` |
 | 명령 접두사 | `sql.command.prefix` | `SQLSyntaxManager.init` |
 | 오류가 나면: 스크립트 중지 / 그 문을 건너뛰고 계속 | `script.error.handling` | `SqlEditorPanel` → `SQLQueryExecuteJob.setErrorHandling` |
+| 쿼리 창 세션: 창마다(내장·단일 연결 DB 제외, 기본) / 항상 창마다 / 함께 씀 | `database.editor.separate.connection` | `QueryWindowContext.isSeparate`(2026-11-07, [transactions.md](transactions.md) "쿼리 창마다 별도 연결"). 연결 대화상자의 같은 키가 이긴다 |
 
 - 쿼리 창은 실행할 때마다 파서 문맥을 새로 만든다(`SQLScriptBatches.createParserContext`). 그래서 다시 연결하지 않아도 다음 실행부터 적용된다.
 - 값은 플랫폼 설정 저장소에 쓴다. 연결의 설정 저장소(`DataSourcePreferenceStore`)가 이것을 부모로 가지므로 연결별 값을 두지 않은 모든 연결에 적용된다.
@@ -148,14 +149,15 @@ SWT `ConnectionPageInitialization`의 트랜잭션 격리 수준(`DBPConnectionB
 | Maven | 다음 작업: 저장소 목록은 키가 아니라 `maven-repositories.xml`(`MavenRegistry`)에 저장되고 드라이버 내려받기가 읽는다 |
 | Network Profiles | 다음 작업: 전역·프로젝트 네트워크 프로필 편집(지금은 연결이 쓰는 프로필을 읽기 전용으로 보임) |
 | Templates, AI | Swing 자체 저장으로 이미 있음(Options > Templates, Chromite Agent) |
-| User Interface, Editors, Toolbar Customization, Accessibility, Confirmations, Miscellaneous, Expert Settings, GIS, Appearance, Grid, Plain text, ERD, SQL Editor, Code Editor, SQL Dialects, Scripts, macOS Mouse, Project Resources | 효과 없음: 키를 읽던 SWT 코드가 지워졌다. Swing에 같은 기능이 생기면 그때 그 기능의 키를 정한다 |
+| SQL Editor | `database.editor.separate.connection`만 **추가함**(Options > Query Execution의 쿼리 창 세션, 연결 대화상자 Connection Properties의 연결별 값, 2026-11-07). 나머지 키는 효과 없음 |
+| User Interface, Editors, Toolbar Customization, Accessibility, Confirmations, Miscellaneous, Expert Settings, GIS, Appearance, Grid, Plain text, ERD, Code Editor, SQL Dialects, Scripts, macOS Mouse, Project Resources | 효과 없음: 키를 읽던 SWT 코드가 지워졌다. Swing에 같은 기능이 생기면 그때 그 기능의 키를 정한다 |
 | DataDam, Projects | 의도적 제외에 준함(삭제 전에도 어떤 제품에도 없던 기능) |
 
 ## 다음 작업 (키 목록)
 
 Swing 제품이 읽지만 화면이 없는 키다. 우선순위 순서로 적었다.
 
-1. 연결별 값: 위 화면은 모두 전역 값이다. SWT의 연결별 속성 페이지(`DataSourcePreferenceStore`)에 해당하는 화면이 없다.
+1. 연결별 값: 위 화면은 모두 전역 값이다(쿼리 창 세션만 연결 대화상자에 연결별 값이 있음). SWT의 연결별 속성 페이지(`DataSourcePreferenceStore`)에 해당하는 화면이 없다.
 2. 데이터 형식 프로필: 날짜·시간·숫자 패턴(`DataFormatterProfile`, 키 `dataformat.*`), 프로필 고르기.
 3. Errors and Timeouts: `connection.open.timeout`, `connection.close.timeout`, `connection.validation.timeout`, `execute.recover.enabled`,
    `execute.recover.retryCount`, `execute.cancel.checkTimeout`, `query.rollback-on-error`.
@@ -207,6 +209,8 @@ Swing 제품이 읽지만 화면이 없는 키다. 우선순위 순서로 적었
 
 - 2026-11-07 최초 작성: SWT 설정 페이지 키 전수와 Swing 효과 판정, Options > Query Execution·Connection Types·Oracle 탭, Query Results의 가져오기 크기·이진 값·숫자 형식,
   연결 대화상자의 격리 수준. 오류로 멈춘 스크립트가 수동 커밋 세션의 열린 트랜잭션을 묻지 않고 롤백하던 것을 고침.
+- 2026-11-07 쿼리 창 세션(`database.editor.separate.connection`): Options > Query Execution과 연결 대화상자. 요약 수(추가함 23, 효과 없음 196)와 부록 갱신
+  ([transactions.md](transactions.md) "쿼리 창마다 별도 연결").
 
 ## 부록: 키별 상태
 
@@ -444,7 +448,7 @@ Swing 제품이 읽지만 화면이 없는 키다. 우선순위 순서로 적었
 | SQL Editor | `SQLEditor.resultSet.replaceCurrentTab` | 효과 없음(읽는 곳 없음) |
 | SQL Editor | `database.editor.connect.on.activate` | 효과 없음(읽는 곳 없음) |
 | SQL Editor | `database.editor.connect.on.execute` | 효과 없음(읽는 곳 없음) |
-| SQL Editor | `database.editor.separate.connection` | 효과 없음(읽는 곳 없음) |
+| SQL Editor | `database.editor.separate.connection` | **추가함**: Options > Query Execution, 연결 대화상자(2026-11-07) |
 | Code Editor | `SQLEditor.Folding.enabled` | 효과 없음(읽는 곳 없음) |
 | Code Editor | `SQLEditor.closeBrackets` | 효과 없음(읽는 곳 없음) |
 | Code Editor | `SQLEditor.closeDoubleQuotes` | 효과 없음(읽는 곳 없음) |

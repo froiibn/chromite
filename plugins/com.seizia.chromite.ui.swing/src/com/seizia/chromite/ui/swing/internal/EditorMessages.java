@@ -41,6 +41,7 @@ import org.eclipse.osgi.util.NLS;
  *   (docs/chromite/swing-sql-exec-safety.md)
  * - 2026-11-07 Commit / Roll Back 도구 설명, 트랜잭션 로그·열린 트랜잭션 목록 문구({@code editor_txn_log_*}, {@code editor_txn_list_*})
  *   (docs/chromite/transactions.md), {@code @export} 안내 줄({@code editor_sql_export_command}, docs/chromite/swing-data-transfer.md)
+ * - 2026-11-07 상태 줄 커밋 방식 칸 도구 설명의 세션 줄({@code editor_status_session_*}) (docs/chromite/transactions.md "쿼리 창마다 별도 연결")
  */
 public class EditorMessages extends NLS {
     private static final String BUNDLE_NAME = "com.seizia.chromite.ui.swing.internal.EditorMessages"; //$NON-NLS-1$
@@ -217,6 +218,8 @@ public class EditorMessages extends NLS {
     public static String editor_status_manual_commit;
     public static String editor_status_manual_commit_tip;
     public static String editor_status_commit_setting_tip;
+    public static String editor_status_session_own;
+    public static String editor_status_session_shared;
     public static String editor_status_commit_default_differs;
     public static String editor_status_txn_open_one;
     public static String editor_status_txn_open_many;

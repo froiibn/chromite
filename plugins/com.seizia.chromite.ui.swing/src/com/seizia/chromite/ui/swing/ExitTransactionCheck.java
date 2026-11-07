@@ -72,6 +72,8 @@ import java.util.function.Function;
  * - 2026-11-07 AI 에이전트 격리 문맥의 열린 트랜잭션도 찾아 같은 질문으로 끝냄(전에는 쿼리 관리자만 봐서 놓침, docs/chromite/ai-agent.md "트랜잭션 안전")
  * - 2026-11-07 연결 끊기 전 질문({@link #confirmDisconnect}): 끊기·다시 연결·삭제·편집 뒤 다시 연결이 열린 트랜잭션을 묻지 않고
  *   롤백하던 것을 막음. 찾기·질문·끝내기는 끝낼 때와 같은 코드 (docs/chromite/idle-transactions.md "연결 끊기 전 질문")
+ * - 2026-11-07 쿼리 창 자기 세션이 끝나기 전 질문({@link #confirmEndSession}: 창 닫기, 연결 바꾸기, DB 인스턴스 바꾸기). 목록은 문맥 이름 대신
+ *   그 문맥을 쓰는 쿼리 창 이름으로 보임(창마다 세션이 따로라 끊을 때 창별로 보임) (docs/chromite/transactions.md "쿼리 창마다 별도 연결")
  */
 final class ExitTransactionCheck {
 
@@ -99,6 +101,21 @@ final class ExitTransactionCheck {
     }
 
     /**
+     * Before a query window's own session ends (the window closes, changes its connection or its database instance):
+     * asks Commit / Roll back / Cancel when the session has a transaction that is not committed. Call in the EDT.
+     *
+     * @param windowName the window's file name
+     * @return true when the session may end: no open transaction, or it was committed or rolled back as asked
+     */
+    static boolean confirmEndSession(@Nullable Component parent, @NotNull DBCExecutionContext context, @NotNull String windowName) {
+        if (!QMUtils.isTransactionActive(context)) {
+            return true;
+        }
+        return confirm(parent, List.of(context), List.of(), list -> NLS.bind(ConnectionMessages.window_txn_message, windowName, list),
+            ConnectionMessages.window_txn_error);
+    }
+
+    /**
      * @param message the question for the list of open transactions
      * @param error   the error of a failed commit or rollback, {@code {0}} = the connection
      */
@@ -108,14 +125,24 @@ final class ExitTransactionCheck {
         @NotNull Function<String, String> message,
         @NotNull String error
     ) {
-        List<DBCExecutionContext> active = findActive(containers);
-        List<DBPDataSourceContainer> agentActive = findAgentActive(containers);
+        return confirm(parent, findActive(containers), findAgentActive(containers), message, error);
+    }
+
+    private static boolean confirm(
+        @Nullable Component parent,
+        @NotNull List<DBCExecutionContext> active,
+        @NotNull List<DBPDataSourceContainer> agentActive,
+        @NotNull Function<String, String> message,
+        @NotNull String error
+    ) {
         if (active.isEmpty() && agentActive.isEmpty()) {
             return true;
         }
         Set<String> names = new LinkedHashSet<>();
         for (DBCExecutionContext context : active) {
-            names.add(context.getDataSource().getContainer().getName() + " (" + context.getContextName() + ")"); //$NON-NLS-1$ //$NON-NLS-2$
+            // A query window's own session, or the main context, by the windows that run in it
+            String windows = SwingIdleTransactionService.describeQueryWindows(context);
+            names.add(context.getDataSource().getContainer().getName() + " (" + (windows != null ? windows : context.getContextName()) + ")"); //$NON-NLS-1$ //$NON-NLS-2$
         }
         for (DBPDataSourceContainer container : agentActive) {
             names.add(NLS.bind(UpdateMessages.exit_txn_agent_item, container.getName()));
