@@ -54,6 +54,8 @@ import java.util.List;
  * 변경 이력:
  * - 2026-11-07 {@link #getTransactionState}: 열린 트랜잭션 표시와 유휴 트랜잭션 감시가 쓰도록 마지막 문장 시각과 실행 중 여부를 더함
  *   (docs/chromite/idle-transactions.md)
+ * - 2026-11-07 {@link #getLastUseTime}: 유휴 연결 닫기가 연결마다 마지막으로 쓴 시각을 읽음(전역 마우스·키보드 활동 대신)
+ *   (docs/chromite/idle-transactions.md "유휴 연결 닫기")
  */
 public class QMUtils {
 
@@ -197,6 +199,36 @@ public class QMUtils {
             }
         }
         return new QMTransactionState(execCount, updateCount, txnMode, txnStartTime, lastExecTime, executing);
+    }
+
+    /**
+     * When the context was last used, as the query manager saw it: the end of its last statement of any purpose (user,
+     * metadata, internal), its last commit, rollback or commit mode change, or its (re)connection. The current time while
+     * a statement runs or fetches; 0 when the query manager has no record of the context. Cheap like
+     * {@link #getTransactionState}.
+     */
+    public static long getLastUseTime(@Nullable DBCExecutionContext executionContext) {
+        if (executionContext == null || qmRegistry == null) {
+            return 0;
+        }
+        QMMConnectionInfo sessionInfo = getCurrentConnection(executionContext);
+        if (sessionInfo == null || sessionInfo.isClosed()) {
+            return 0;
+        }
+        long time = sessionInfo.getOpenTime();
+        QMMStatementExecuteInfo lastExec = sessionInfo.getExecutionStack();
+        if (lastExec != null) {
+            if (!lastExec.isClosed() || lastExec.isFetching()) {
+                return System.currentTimeMillis();
+            }
+            time = Math.max(time, Math.max(lastExec.getCloseTime(), lastExec.getFetchEndTime()));
+        }
+        // A commit or rollback starts a new transaction record
+        QMMTransactionInfo txnInfo = sessionInfo.getTransaction();
+        if (txnInfo != null) {
+            time = Math.max(time, txnInfo.getOpenTime());
+        }
+        return time;
     }
 
     @NotNull

@@ -15,14 +15,14 @@
 
 | # | 기능 | SWT 출처 | 상태 | 근거 | 영향 | 메모 |
 |---|---|---|---|---|---|---|
-| S1 | 유휴 트랜잭션 자동 롤백과 그 확인 질문 | `ui.app.standalone` `ChromiteApplication.getLastUserActivityTime`(177-180, 입력 필터 540-546), `core` `UIServiceConnectionsImpl`(core `plugin.xml`:1110) | 조용히 끊김 (**알려진 건, 다른 에이전트가 수정 중**) | `ChromiteSwingApplication`에 `getLastUserActivityTime` 재정의 없음 → 기본값 -1 → `DataSourceMonitorJob.getLastUserActivityTime(lastPingTime)`(model `runtime/jobs/DataSourceMonitorJob.java`:173, 365-371)이 직전 점검 시각(약 3초 전)을 돌려줌 → `idleInterval`(270)이 시간 제한을 넘지 못함. `ui.swing/plugin.xml`:20-27에 `UIServiceConnections` 등록 없음 → `EndIdleTransactionsJob.java`:63-70이 확인 없이 롤백함(활동 시각만 고치면 이 경로가 열림) | 높음 | 수정 때 S2·S3·S7도 함께 봐야 한다(아래) |
-| S2 | 유휴 연결 자동 끊기(Close idle connection) | 같은 `DataSourceMonitorJob` + SWT 활동 시각 | 조용히 끊김 | Swing 연결 대화상자는 체크 상자와 시간을 **보여 주고 저장한다**(`ConnectionSettingsPanel.java`:888-892). 그러나 S1과 같은 원인으로 `DataSourceMonitorJob.java`:276 조건이 참이 되지 않아 끊지 않는다. 끊기가 동작하게 되면 `DisconnectJob` → `JDBCDataSource.closeConnection`(model.jdbc `JDBCDataSource.java`:514-519)이 열린 트랜잭션을 **묻지 않고 롤백**한다 | 높음 | 화면에 있는 설정이 효과가 없다. S1 수정이 이 경로도 같이 열기 때문에 S3의 확인이 먼저 필요하다 |
-| S3 | 연결 끊기·다시 연결·연결 삭제·설정 변경 후 다시 연결 때 열린 트랜잭션 확인(Commit / Rollback / Cancel) | `ui.editors.connection` `DataSourceHandler.checkAndCloseActiveTransaction`(SWT `ApplicationWorkbenchAdvisor.closeActiveTransactions`:538-545도 같은 함수), `UIServiceConnections.checkAndCloseActiveTransaction` | 조용히 끊김 | Swing `ConnectionCommands.disconnect`(`ConnectionCommands.java`:177-203)는 `DisconnectJob`만 예약한다. `reconnect`(122-128), `delete`(133-149), 연결 편집 뒤 다시 연결(`ConnectionDialog.java`:463)이 모두 이 경로다. 모델은 닫을 때 롤백한다(`JDBCDataSource.java`:514-519, 주석 "Any valuable transaction changes should be committed by UI"). 앱 종료만 `ExitTransactionCheck`로 묻는다(`MainFrame.java`:1191). [swing-frontend.md](../swing-frontend.md):789에 "진행 중 트랜잭션 확인은 아직 없다"로 기록됨 | 높음 | 사용자 규칙 "트랜잭션 안전"(암묵적 커밋·롤백 금지)에 어긋남 |
+| S1 | 유휴 트랜잭션 자동 롤백과 그 확인 질문 | `ui.app.standalone` `ChromiteApplication.getLastUserActivityTime`(177-180, 입력 필터 540-546), `core` `UIServiceConnectionsImpl`(core `plugin.xml`:1110) | **수정함** (2026-11-07, #97, [idle-transactions.md](../idle-transactions.md): 유휴 시간을 그 트랜잭션 문맥의 마지막 사용자 문장부터 잼(전역 활동 시각 대신), 기본은 알림과 커밋 / 롤백 / 열어 두기, 연결에서 켰을 때만 자동 롤백 뒤 알림. 묻지 않고 롤백하던 `EndIdleTransactionsJob` 경로와 `confirmTransactionsClose`를 지움). 조사 당시: 조용히 끊김 (**알려진 건, 다른 에이전트가 수정 중**) | `ChromiteSwingApplication`에 `getLastUserActivityTime` 재정의 없음 → 기본값 -1 → `DataSourceMonitorJob.getLastUserActivityTime(lastPingTime)`(model `runtime/jobs/DataSourceMonitorJob.java`:173, 365-371)이 직전 점검 시각(약 3초 전)을 돌려줌 → `idleInterval`(270)이 시간 제한을 넘지 못함. `ui.swing/plugin.xml`:20-27에 `UIServiceConnections` 등록 없음 → `EndIdleTransactionsJob.java`:63-70이 확인 없이 롤백함(활동 시각만 고치면 이 경로가 열림) | 높음 | 수정 때 S2·S3·S7도 함께 봐야 한다(아래) |
+| S2 | 유휴 연결 자동 끊기(Close idle connection) | 같은 `DataSourceMonitorJob` + SWT 활동 시각 | **수정함** (2026-11-07, `chromite/idle-close-notifications`, [idle-transactions.md](../idle-transactions.md) "유휴 연결 닫기": 연결별 마지막 사용 시각(쿼리 관리자 기록, 커밋·롤백, 연결 시각, AI 도우미 세션)으로 잼, 열린 트랜잭션·실행 중이면 닫지 않고 그 트랜잭션은 유휴 트랜잭션 감시에 맡김, 끊기 직전 다시 확인, 끊은 뒤 경고 알림. PostgreSQL·SQL Server에서 실행 확인). 조사 당시: 조용히 끊김 | Swing 연결 대화상자는 체크 상자와 시간을 **보여 주고 저장한다**(`ConnectionSettingsPanel.java`:888-892). 그러나 S1과 같은 원인으로 `DataSourceMonitorJob.java`:276 조건이 참이 되지 않아 끊지 않는다. 끊기가 동작하게 되면 `DisconnectJob` → `JDBCDataSource.closeConnection`(model.jdbc `JDBCDataSource.java`:514-519)이 열린 트랜잭션을 **묻지 않고 롤백**한다 | 높음 | 화면에 있는 설정이 효과가 없다. S1 수정이 이 경로도 같이 열기 때문에 S3의 확인이 먼저 필요하다 |
+| S3 | 연결 끊기·다시 연결·연결 삭제·설정 변경 후 다시 연결 때 열린 트랜잭션 확인(Commit / Rollback / Cancel) | `ui.editors.connection` `DataSourceHandler.checkAndCloseActiveTransaction`(SWT `ApplicationWorkbenchAdvisor.closeActiveTransactions`:538-545도 같은 함수), `UIServiceConnections.checkAndCloseActiveTransaction` | **수정함** (2026-11-07, #97, [idle-transactions.md](../idle-transactions.md) "연결 끊기 전 질문": 끊기·다시 연결·삭제·편집 뒤 다시 연결이 `ExitTransactionCheck.confirmDisconnect`로 커밋 / 롤백 / 취소를 물음). 조사 당시: 조용히 끊김 | Swing `ConnectionCommands.disconnect`(`ConnectionCommands.java`:177-203)는 `DisconnectJob`만 예약한다. `reconnect`(122-128), `delete`(133-149), 연결 편집 뒤 다시 연결(`ConnectionDialog.java`:463)이 모두 이 경로다. 모델은 닫을 때 롤백한다(`JDBCDataSource.java`:514-519, 주석 "Any valuable transaction changes should be committed by UI"). 앱 종료만 `ExitTransactionCheck`로 묻는다(`MainFrame.java`:1191). [swing-frontend.md](../swing-frontend.md):789에 "진행 중 트랜잭션 확인은 아직 없다"로 기록됨 | 높음 | 사용자 규칙 "트랜잭션 안전"(암묵적 커밋·롤백 금지)에 어긋남 |
 | S4 | 셸 명령 실행 전 사용자 승인: 연결 이벤트(연결 전·후, 끊기 전·후 명령), 셸 명령 비밀번호 인증 방식, 내보내기 끝난 뒤 명령 실행 | `core` `UIServiceShellCommandsImpl`(core `plugin.xml`:1113, `ConfirmShellCommandDialog`, 승인 기록 `ConfirmedShellCommandsStore`) | **수정함** (2026-11-07, [shell-command-approval.md](../shell-command-approval.md): Swing `SwingShellCommandsService` 등록, 서비스가 없으면 실행 거부). 조사 당시: 조용히 끊김 (**확인 건너뜀**) | `UIServiceShellCommands`가 Swing에 등록되지 않음. 세 호출부 모두 `if (service != null) validateByUser(...)` 형태라 서비스가 없으면 승인 없이 실행한다: registry `DataSourceDescriptor.java`:1475-1483, model `impl/auth/AuthModelDatabaseShellCommand.java`:116-122, data.transfer `ExecuteCommandEventProcessor.java`:48-52 | 높음 (보안) | Swing에는 이 명령을 설정하는 화면이 없지만, `data-sources.json`에 이미 있거나 가져온·공유한 연결 설정에 들어 있으면 연결할 때 그대로 실행된다. 승인 대화상자의 목적이 바로 이 경우다 |
 | S5 | 비밀번호를 저장하지 않은 연결의 자격 증명 질문(기본 방식이 아닌 인증 방식) | `core` `DesktopUI.promptAuthModelCredentials`(465-475) → `AuthModelCredentialsDialog` | **수정함** (2026-11-07, [swing-auth-prompts.md](../swing-auth-prompts.md): `SwingPlatformUI.promptAuthModelCredentials`). 조사 당시: 조용히 끊김 (수정 전 빌드에서 실행 확인함: 질문·알림 없이 연결되지 않음) | registry `DataSourceDescriptor.java`:2133-2139는 인증 방식 클래스가 정확히 `AuthModelDatabaseNative`가 아니면 `promptAuthModelCredentials`를 부른다. Swing은 재정의하지 않아 기본값 `false`(model `runtime/ui/DBPPlatformUI.java`:136-140) → `connect`가 `false`(1176-1181) → `ConnectJob`이 `CANCEL_STATUS` → `SwingConnectionService.java`:114가 취소는 알리지 않음. 해당 방식: SQL Server 기본 "SQL Server Authentication"(`SQLServerAuthModelDatabase`, ext.mssql `plugin.xml`:641-649 `default="true"`), Oracle 기본 "Username/password"(`OracleAuthModelDatabaseNative`, ext.oracle `plugin.xml`:470-476), pgpass, BigQuery, Snowflake, Spanner 등 `AuthModelDatabaseNative` 하위 클래스 | 높음 | 코드 근거만으로 판단, 실행 확인 안 함. "Save password"를 끈 SQL Server·Oracle 연결은 연결 시도가 아무 메시지 없이 끝날 것으로 보인다. SWT는 이 경우 대화상자를 띄웠다 |
 | S6 | Windows 인증서 저장소 사용(`javax.net.ssl.trustStoreType=WINDOWS-ROOT`) | `ui.app.standalone` `ChromiteApplication.start`:332-339 | **수정함** (2026-11-07, [platform-startup.md](../platform-startup.md): Swing 앱 시작에서 같은 조건으로 설정, Windows에서 실행 확인). 조사 당시: 조용히 끊김 | Swing 시작 코드에 없음(`ui.swing/src`에서 `trustStore` 검색 0). 설정 기본값은 Windows에서 켬(model `ModelPreferences.java`:426). 헤드리스 앱은 같은 코드를 갖고 있다(headless `ChromiteHeadlessApplication.java`:50-54) | 높음 (해당 환경) | 사내 CA로 서명한 서버 인증서를 Windows에만 설치한 환경에서 SSL 연결이 PKIX 오류로 실패할 수 있다. 실행 확인 안 함 |
-| S7 | 모델 알림: 유휴 연결 끊김, 유휴 트랜잭션 롤백, 절전 뒤 연결 재검증 성공·실패 | `ui.app.standalone` `CoreApplicationActivator.configureNotifications`(57-80) → `NotificationUtils` 팝업 | 조용히 끊김 | Swing은 `ChromiteNotifications.setHandler`를 부르지 않음(`ui.swing/src` 검색 0) → 기본 `ConsoleHandler`가 `System.out`에만 씀(model `runtime/ChromiteNotifications.java`:96-117). 호출부: `DataSourceMonitorJob.java`:374, `EndIdleTransactionsJob.java`:79, `DefaultInvalidationFeedbackHandler.java`:40, 53 | 중간 | S1·S2가 고쳐지면 "롤백했다"는 사실이 화면에 안 나온다. Swing에는 이미 알림 창(`NotificationToast`, `SwingPlatformUI.showNotification`)이 있으니 연결만 하면 된다 |
-| S8 | 시스템 절전 때 연결 닫기(`connection.closeOnSleep`, macOS 기본 켬) | `ui.app.standalone` `ApplicationWorkbenchAdvisor.systemSleepListener`(223-233) → `OperationSystemState.toggleSleepMode` | 조용히 끊김 | `toggleSleepMode`를 부르는 곳이 없음(전체 검색 0). `DataSourceMonitorJob.java`:91-109의 "절전 진입 → 모든 연결 닫기" 분기가 실행되지 않는다. 깨어남 감지(점검 간격 20초 초과로 추정)는 그대로 동작 | 중간 | 동작하게 되면 이것도 S3처럼 묻지 않고 롤백한다 |
+| S7 | 모델 알림: 유휴 연결 끊김, 유휴 트랜잭션 롤백, 절전 뒤 연결 재검증 성공·실패 | `ui.app.standalone` `CoreApplicationActivator.configureNotifications`(57-80) → `NotificationUtils` 팝업 | **수정함** (2026-11-07, `chromite/idle-close-notifications`, [idle-transactions.md](../idle-transactions.md) "모델 알림": `SwingModelNotifications` 등록, 종류 유지, 경고·오류는 닫을 때까지 남음. 수정 때 확인: 유휴 트랜잭션 롤백은 #97부터 모델 알림을 쓰지 않고, 절전 뒤 재검증은 처리기 없이 불려 알림이 없음. 다시 연결 성공·실패는 연결 유지 핑과 실행 중 복구에서 옴). 조사 당시: 조용히 끊김 | Swing은 `ChromiteNotifications.setHandler`를 부르지 않음(`ui.swing/src` 검색 0) → 기본 `ConsoleHandler`가 `System.out`에만 씀(model `runtime/ChromiteNotifications.java`:96-117). 호출부: `DataSourceMonitorJob.java`:374, `EndIdleTransactionsJob.java`:79, `DefaultInvalidationFeedbackHandler.java`:40, 53 | 중간 | S1·S2가 고쳐지면 "롤백했다"는 사실이 화면에 안 나온다. Swing에는 이미 알림 창(`NotificationToast`, `SwingPlatformUI.showNotification`)이 있으니 연결만 하면 된다 |
+| S8 | 시스템 절전 때 연결 닫기(`connection.closeOnSleep`, macOS 기본 켬) | `ui.app.standalone` `ApplicationWorkbenchAdvisor.systemSleepListener`(223-233) → `OperationSystemState.toggleSleepMode` | 조용히 끊김 | `toggleSleepMode`를 부르는 곳이 없음(전체 검색 0). `DataSourceMonitorJob.java`:91-109의 "절전 진입 → 모든 연결 닫기" 분기가 실행되지 않는다. 깨어남 감지(점검 간격 20초 초과로 추정)는 그대로 동작 | 중간 | 동작하게 되면 이것도 S3처럼 묻지 않고 롤백한다. 2026-11-07 S2 수정은 이 경로를 열지 않았다(`isInSleepMode`가 여전히 거짓). 열 때는 유휴 연결 닫기와 같은 트랜잭션 확인을 거쳐야 한다 |
 | S9 | BouncyCastle JCE 공급자 등록(`security.jce.bc`, 기본 켬) | `core` `DesktopPlatform.initialize`:96-98 → `SecurityProviderUtils.registerSecurityProvider` | 조용히 끊김 | `ChromiteSwingPlatform.initialize`에 없음. 남은 코드에서 `registerSecurityProvider` 호출 0 | 중간 | 어떤 기능이 공급자 "BC"를 이름으로 찾는지는 확인하지 못했다(PEM·PKCS 키 파일, 일부 드라이버의 키 형식 의심). 실행 확인 필요 |
 | S10 | H2 연결 URL의 `INIT=` 스크립트와 H2 연결의 초기화 SQL(부트스트랩 쿼리) 실행 확인 | `core` `UIServiceConnectionInitImpl`(core `plugin.xml`:1106-1107) | 조용히 끊김 (안전 쪽으로 실패) | ext.h2 `H2DataSource.java`:97, 112: 서비스가 없으면 `false` → `H2InitScriptValidator.java`:48-49가 "not approved. Connection cancelled" 예외 | 낮음 | 오류는 보인다. 다만 Swing 연결 대화상자는 모든 드라이버에 초기화 SQL 편집(`BootstrapQueriesDialog`)을 주므로 H2에서는 넣는 순간 연결이 안 된다 |
 | S11 | SQLite 네이티브 확장 로드 승인 | `ext.sqlite.ui` `SQLiteExtensionConfirmationImpl`(ext.sqlite.ui `plugin.xml`:7) | 조용히 끊김 (안전 쪽으로 실패) | ext.sqlite `SQLiteDataSource.java`:178-179 → `SQLiteExtensionLoading.java`:77-78 "not approved. Connection cancelled" | 낮음 | 확장을 켠 SQLite 연결은 열리지 않는다 |
@@ -38,7 +38,7 @@
 | model `runtime/net/GlobalProxyAuthenticator.java`:117 | `DBServiceConnections.getGlobalProxyConfiguration` | `UIServiceConnectionsImpl`:126-140(Eclipse `IProxyService` 자격 증명) | 기본 메서드(`null`) | Eclipse 네트워크 설정의 프록시 자격 증명을 쓰지 않음 | 없음 (낮음) |
 | registry `driver/DriverLoaderDescriptor.java`:424 | `UIServiceDrivers` | `UIServiceDriversImpl` | `SwingDriversService` | - | 있음 |
 | tasks.native `AbstractNativeToolHandler.java`:280 | `UIServiceSystemAgent` | `UIServiceSystemAgentImpl`(트레이) | `SwingSystemAgent`(알림 창) | - | 있음 |
-| model `runtime/jobs/EndIdleTransactionsJob.java`:63 | `UIServiceConnections.confirmTransactionsClose` | `UIServiceConnectionsImpl` | 없음 | 확인 없이 롤백 | 조용히 끊김 (S1) |
+| model `runtime/jobs/EndIdleTransactionsJob.java`:63 | `UIServiceConnections.confirmTransactionsClose` | `UIServiceConnectionsImpl` | 호출 삭제(#97) | - | S1 수정함(이 호출과 묻지 않는 롤백 경로를 지움). 조사 당시: 조용히 끊김 |
 | registry `DataSourceDescriptor.java`:1476 | `UIServiceShellCommands.validateByUser` | `UIServiceShellCommandsImpl` | `SwingShellCommandsService` (2026-11-07) | 실행 거부(`UIServiceShellCommands.validate`) | 있음 (S4 수정함. 조사 당시: 승인 없이 실행) |
 | model `impl/auth/AuthModelDatabaseShellCommand.java`:116 | 같음 | 같음 | 같음 | 같음 | 있음 (S4 수정함) |
 | data.transfer `processor/ExecuteCommandEventProcessor.java`:48 | 같음 | 같음 | 같음 | 같음 | 있음 (S4 수정함). Swing 내보내기 마법사는 이 처리기를 고를 수 없어 SWT에서 저장한 작업으로만 닿음 |
@@ -70,17 +70,17 @@
 
 | 항목 | SWT | Swing | 분류 |
 |---|---|---|---|
-| `getLastUserActivityTime` | 키·마우스 입력 필터로 갱신(`ChromiteApplication.java`:177-180, 540-546) | 재정의 없음(-1) | 조용히 끊김 (S1, S2) |
+| `getLastUserActivityTime` | 키·마우스 입력 필터로 갱신(`ChromiteApplication.java`:177-180, 540-546) | 메서드 삭제(2026-11-07): 유휴 시간은 문맥·연결별 사용 시각으로 잼 | S1·S2 수정함. 조사 당시: 조용히 끊김 |
 | `isStandalone`/`isPrimaryInstance`/`isHeadlessMode`/`isExclusiveMode`/`isCommunity`/`getDefaultProjectName` | 재정의(인스턴스 서버·CLI 모드에 따라 바뀜) | 기본값(true/true/false/false) + `isCommunity`, `getDefaultProjectName` 재정의 | 있음 (일반 실행에서 값이 같다) |
 | `getPreferenceStore` / 모델 설정 노드 | `com.seizia.chromite.core`(`ChromiteActivator.java`:71 `setMainBundle`) | `com.seizia.chromite.ui.swing`(`ChromiteSwingActivator.java`:65) | 일부 — A-P1 |
 | `initializeApplication` | IP 스택, 네트워크 디버그, Defender 정책 | 없음 | 조용히 끊김 (S13) |
 | `start`의 Windows 인증서 저장소, 시간대 | 있음(:330-339) | 인증서 저장소만 있음(`ChromiteSwingApplication.useWindowsTrustStore`) | S6 수정함. 시간대는 조용히 끊김 (S12) |
 | `DesktopPlatform.initialize`의 BouncyCastle | 있음 | 없음 | 조용히 끊김 (S9) |
 | `DesktopPlatform.dispose`의 `setHeadlessMode(true)` | 종료 중 UI 질문을 막음 | 없음 | 일부, 낮음(종료 중 모델이 대화상자를 띄울 수 있음, 실행 확인 안 함) |
-| 알림 처리기(`ChromiteNotifications.setHandler`) | `CoreApplicationActivator` | 없음 | 조용히 끊김 (S7) |
+| 알림 처리기(`ChromiteNotifications.setHandler`) | `CoreApplicationActivator` | `SwingModelNotifications`(`ChromiteSwingApplication.start`) | 있음 (S7 수정함. 조사 당시: 조용히 끊김) |
 | 절전 감지 | `ApplicationWorkbenchAdvisor` | 없음 | 조용히 끊김 (S8) |
 | Eclipse 프록시 서비스 활성화 | `ApplicationWorkbenchAdvisor.activateProxyService`:626-643 | 없음 | 없음 (낮음) |
-| 연결 감시 Job(`DataSourceMonitorJob`) 시작 | 워크벤치 창 advisor | `platform.postInitialize()`(`ChromiteSwingApplication.java` start) | 있음 (단, S1·S2) |
+| 연결 감시 Job(`DataSourceMonitorJob`) 시작 | 워크벤치 창 advisor | `platform.postInitialize()`(`ChromiteSwingApplication.java` start) | 있음 (S1·S2 수정함) |
 | 디버그 로그 | `initDebugWriter` | 같은 방식(`ChromiteSwingApplication.initDebugWriter`) | 있음 |
 
 ## 5. 기능 인벤토리 (번들별)
@@ -108,7 +108,7 @@
 | A-C17 | 셸 명령 승인 | `UIServiceShellCommandsImpl` | 있음 (2026-11-07 수정. 조사 당시: 조용히 끊김) | S4, `SwingShellCommandsService` | 높음 | [shell-command-approval.md](../shell-command-approval.md) |
 | A-C18 | H2 초기화 스크립트 승인 | `UIServiceConnectionInitImpl` | 조용히 끊김 | S10 | 낮음 | |
 | A-C19 | 브라우저·코드 인증 팝업 | `UIServiceAuthImpl` | 없음 | §2 | 낮음 | |
-| A-C20 | 연결 서비스(연결 Job, 확인) | `UIServiceConnectionsImpl` | 일부 | `SwingConnectionService`는 `DBServiceConnections`만. `UIServiceConnections`(트랜잭션 확인, 다시 연결 질문) 없음 | 높음 | S1, S3 |
+| A-C20 | 연결 서비스(연결 Job, 확인) | `UIServiceConnectionsImpl` | 일부 | `SwingConnectionService`는 `DBServiceConnections`만. `UIServiceConnections`(트랜잭션 확인, 다시 연결 질문) 없음. 트랜잭션 확인은 `ExitTransactionCheck`(S3)와 `SwingIdleTransactionService`(S1)가 대신함(#97) | 높음 | S1, S3 |
 | A-C21 | 드라이버 내려받기 확인 | `UIServiceDriversImpl` | 있음 | `SwingDriversService` | - | |
 | A-C22 | 오래 걸린 작업 알림 | `UIServiceSystemAgentImpl` | 있음 | `SwingSystemAgent` | - | 트레이 대신 알림 창 |
 | A-C23 | 상태 줄 breadcrumbs | `controls/BreadcrumbTrim` | 일부 | `QueryStatusLine`(서버·사용자·DB/스키마) | 낮음 | |
@@ -127,7 +127,7 @@
 | A-U3 | 연결 끊김 대화상자 | `ConnectionLostDialog` | 없음 | §3 | 중간 | A-C15와 같은 항목 |
 | A-U4 | 자격 증명·비밀번호 변경·텍스트 입력·라이선스 동의 대화상자 | `BaseAuthDialog`(ui.editors.connection), `PasswordChangeDialog`, `EditTextDialog`, `AcceptLicenseDialog` | 있음 | `SwingPlatformUI.java`:302-475 | - | |
 | A-U5 | 진행 대화상자 | `BaseProgressDialog` | 있음 | `ProgressDialog` | - | |
-| A-U6 | 알림 팝업(+데이터베이스 알림, 알림 소리) | `notifications/*`, `NotificationSound`, `BeepSoundProvider` | 일부 | `NotificationToast`(DBPPlatformUI 알림만). 모델 알림(S7)·소리 없음 | 중간 | |
+| A-U6 | 알림 팝업(+데이터베이스 알림, 알림 소리) | `notifications/*`, `NotificationSound`, `BeepSoundProvider` | 일부 | `NotificationToast`(DBPPlatformUI 알림, 2026-11-07부터 모델 알림도 `SwingModelNotifications`로, S7). 소리 없음 | 중간 | |
 | A-U7 | 트레이 아이콘 알림 | `TrayIconHandler` | 일부 | `SwingSystemAgent` → 알림 창 | 낮음 | |
 | A-U8 | 확인 대화상자(토글 포함), 새 메시지 상자 | `ConfirmationDialog`, `MessageBoxModern` | 일부 | `SwingPlatformUI.confirmAction`(토글 없음) | 낮음 | |
 | A-U9 | 찾기·바꾸기, 자동 새로 고침, 속성 보기, 테마·글꼴 | `controls/findandreplace`, `controls/autorefresh`, `properties`, `css`, `UIFonts` | 있음 | `FindReplaceDialog`, `AutoRefreshBox`, `PropertiesPanel`, `ChromiteTheme`, `EditorFont`, `EditorColors` | - | 다른 영역에서 자세히 봄 |
@@ -239,7 +239,7 @@ Swing에서 바꿀 수 있는 설정: Options — 테마, 아이콘 모양, 입�
 | 일부 | 12 (A-C5, A-C6, A-C8, A-C9, A-C10, A-C15, A-C20, A-C23, A-U6, A-U7, A-U8, A-P1) |
 | 없음 | 34 (A-C1~A-C4, A-C7, A-C11~A-C14, A-C19, A-C24~A-C28, A-U3, A-U10, A-U11, A-S2~A-S8, A-S11, A-S12, A-S14, A-S15, A-S17, A-X1, A-X3, A-X4, A-X6) |
 | 의도적 제외 | 2 (A-X2 사용 통계 페이지, A-X5 런처) |
-| 조용히 끊김 | 14 (S1~S14. 그중 S1은 다른 에이전트가 수정 중, S10·S11은 안전 쪽으로 실패, S14는 macOS 실행 확인 필요) |
+| 조용히 끊김 | 14 (S1~S14, 조사 당시. 그 뒤 S1·S2·S3·S4·S5·S6·S7 수정함, S14는 수정했지만 macOS 실행 확인 필요. S10·S11은 안전 쪽으로 실패) |
 
 §3의 `DBPPlatformUI` 차이(`openEntityEditor`, HTML 복사, `readAndDispatchEvents`, `createLoadingService`)는 모두 일부·낮음이고 위 수에 넣지 않았다.
 
@@ -248,8 +248,8 @@ Swing에서 바꿀 수 있는 설정: Options — 테마, 아이콘 모양, 입�
 
 ## 8. 영향이 큰 순서 (없음·조용히 끊김)
 
-1. **S3** 연결 끊기·다시 연결·삭제 때 열린 트랜잭션을 묻지 않고 롤백(트랜잭션 안전 규칙 위반, 매일 쓰는 명령).
-2. **S1/S2** 유휴 트랜잭션 롤백·유휴 연결 끊기가 동작하지 않음(알려진 건). 고칠 때 S3의 확인과 S7의 알림이 같이 있어야 "묻지 않는 롤백"이 새로 생기지 않는다.
+1. **S3** 연결 끊기·다시 연결·삭제 때 열린 트랜잭션을 묻지 않고 롤백(트랜잭션 안전 규칙 위반, 매일 쓰는 명령). 2026-11-07 수정함(#97).
+2. **S1/S2** 유휴 트랜잭션 롤백·유휴 연결 끊기가 동작하지 않음(알려진 건). 고칠 때 S3의 확인과 S7의 알림이 같이 있어야 "묻지 않는 롤백"이 새로 생기지 않는다. 2026-11-07 S1 수정함(#97), S2 수정함([idle-transactions.md](../idle-transactions.md) "유휴 연결 닫기").
 3. **S5** 비밀번호를 저장하지 않은 SQL Server(SQL 인증)·Oracle 연결이 질문 없이 취소됨. 2026-11-07 실행으로 확인한 뒤 수정함([swing-auth-prompts.md](../swing-auth-prompts.md)).
 4. **S4** 연결 이벤트·셸 인증·내보내기 후 셸 명령이 승인 없이 실행됨(보안). 2026-11-07 수정함([shell-command-approval.md](../shell-command-approval.md)).
 5. **A-C1/A-C3/A-C2** 커밋·롤백 명령, 보류 트랜잭션 창, 열린 트랜잭션 표시가 없음(수동 커밋 연결을 안전하게 쓰기 어렵다).
@@ -257,7 +257,7 @@ Swing에서 바꿀 수 있는 설정: Options — 테마, 아이콘 모양, 입�
 7. **S14** macOS Cmd+Q가 저장·트랜잭션 확인을 건너뛸 가능성(실행 확인 필요).
 8. **Transactions·Connection Types 설정 화면 없음**(§6) — 트랜잭션 자동 종료 시간, 스마트 커밋, 운영 연결의 실행 확인 같은 안전 설정을 정할 수 없음.
 9. **A-P1** SWT에서 정한 전역 설정이 Swing으로 넘어오지 않음.
-10. **S7** 모델 알림(롤백·끊김·재검증)이 콘솔에만 찍힘.
+10. **S7** 모델 알림(롤백·끊김·재검증)이 콘솔에만 찍힘. 2026-11-07 수정함([idle-transactions.md](../idle-transactions.md) "모델 알림").
 
 ## 9. 확인하지 못한 것
 
