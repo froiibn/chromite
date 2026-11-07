@@ -20,6 +20,7 @@ import com.formdev.flatlaf.FlatClientProperties;
 import com.formdev.flatlaf.util.UIScale;
 import com.seizia.chromite.ui.swing.internal.EditorMessages;
 import com.seizia.chromite.ui.swing.internal.GridEditMessages;
+import com.seizia.chromite.ui.swing.internal.GridNavMessages;
 import org.eclipse.osgi.util.NLS;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
@@ -122,6 +123,8 @@ import java.util.Map;
  * - 2026-11-08 Export Data… 도구 설명의 예를 고침: 값을 바인딩한 실행도 이제 다시 읽음 (docs/chromite/swing-query-library.md "매개변수 대화상자와 바인딩 하나로")
  * - 2026-11-08 저장하고 커밋, 변경 미리 보기, 불리언·ENUM·날짜 편집기, LOB 칸은 값 패널로, 행 복제·위아래 값 복사·기본값·칸 되돌리기,
  *   실행 취소, 붙여넣기·특수 붙여넣기 (docs/chromite/swing-grid-editing.md)
+ * - 2026-11-08 결과 탐색: 결과 뷰어가 외래 키로 떠나며 남기는 결과의 변경을 버리도록 {@link #cancelChanges}를 열고, 읽기 전용 줄에
+ *   "키가 없음"이면 가상 키 정하기 링크({@link Host#defineVirtualKey}) (docs/chromite/swing-grid-navigation.md)
  */
 final class ResultSetGrid extends JPanel {
 
@@ -227,6 +230,15 @@ final class ResultSetGrid extends JPanel {
          * opens. A grid without a viewer does nothing.
          */
         default void editInValuePanel() {
+        }
+
+        /**
+         * "Define Virtual Key…" on a result that is read-only for want of a unique key, or null when the host can't
+         * define one (a grid without a result viewer). The result viewer defines it and reads the result again.
+         */
+        @Nullable
+        default Runnable defineVirtualKey() {
+            return null;
         }
     }
 
@@ -440,6 +452,14 @@ final class ResultSetGrid extends JPanel {
             statusLabel.setText(NLS.bind(EditorMessages.editor_grid_read_only, CommonUtils.notEmpty(readOnlyReason)));
         }
         strip.add(statusLabel);
+        // No unique key: a virtual key makes the table editable (SWT ValidateUniqueKeyUsageDialog)
+        Runnable defineKey = editModel == null && EditorMessages.editor_grid_reason_no_unique_key.equals(readOnlyReason)
+            ? host.defineVirtualKey() : null;
+        if (defineKey != null) {
+            Action defineKeyAction = createAction(GridNavMessages.gridnav_vkey_define, null, defineKey);
+            defineKeyAction.putValue(Action.SHORT_DESCRIPTION, GridNavMessages.gridnav_vkey_define_tip);
+            strip.add(createStripButton(defineKeyAction));
+        }
         return strip;
     }
 
@@ -822,7 +842,11 @@ final class ResultSetGrid extends JPanel {
         }
     }
 
-    private void cancelChanges() {
+    /**
+     * Reverts all pending changes: Cancel, and the result viewer when it keeps the result for going back after a
+     * foreign key navigation whose "discard the changes?" the user confirmed.
+     */
+    void cancelChanges() {
         if (editModel == null || editModel.isSaving()) {
             return;
         }

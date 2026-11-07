@@ -31,6 +31,7 @@ import com.seizia.chromite.model.sql.*;
 import com.seizia.chromite.model.sql.parser.SQLParserContext;
 import com.seizia.chromite.model.sql.parser.SQLRuleManager;
 import com.seizia.chromite.model.sql.parser.SQLScriptParser;
+import com.seizia.chromite.model.sql.transformers.SQLQueryTransformerCount;
 import com.seizia.chromite.model.struct.DBSDataContainer;
 import com.seizia.chromite.model.struct.DBSObject;
 import org.jkiss.utils.CommonUtils;
@@ -47,8 +48,13 @@ import java.util.Map;
  * 바인딩 방법은 {@code :name} 글자를 받아 그때 {@code ?}로 바꾸고 값을 이름으로 바인딩한다. 필터·정렬이 쿼리를 감싸거나 ORDER BY를
  * 바꿔도 {@code ?}의 순서가 어긋나지 않는다. 바인딩 방법이 없으면 예전처럼 스크립트 문맥이 값을 글자로 채운다.
  *
+ * 행 수({@link #countData})는 컨테이너가 {@code FEATURE_DATA_COUNT}를 내세우면서도 늘 -1을 돌려주던 것을 고쳐, 필터 조건을 넣은 쿼리를
+ * 모델의 COUNT 변환기로 바꾸고 {@link #readData}로 읽는다(매개변수 처리가 행 읽기와 같게).
+ *
  * 변경 이력:
  * - 2026-11-08 {@link ParameterBinder}: 값을 바인딩한 쿼리의 결과도 다시 읽음 (docs/chromite/swing-query-library.md "매개변수 바인딩")
+ * - 2026-11-08 {@link #countData}: 쿼리 결과의 전체 행 수(결과 뷰어 "행 수 세기", 데이터 전송의 "행 수 읽기"). 전에는 -1이라 상태 줄에
+ *   "전체 -1행"이 보이고 내보내기는 전체 행 수를 몰랐다 (docs/chromite/swing-grid-navigation.md "전체 행 수")
  */
 public class SQLQueryDataContainer implements DBSDataContainer, SQLQueryContainer, DBPContextProvider, DBPImageProvider {
 
@@ -230,11 +236,71 @@ public class SQLQueryDataContainer implements DBSDataContainer, SQLQueryContaine
         return statistics;
     }
 
+    /**
+     * Counts the rows {@link #readData} reads: the query with the filter's conditions, turned into a count by the model's
+     * {@link SQLQueryTransformerCount} (SWT counted query results the same way), and read through {@link #readData} so
+     * that its parameters are filled or bound as for the rows. Only a single SELECT is counted: wrapping another
+     * statement would run it.
+     */
     @Override
     public long countData(@NotNull DBCExecutionSource source, @NotNull DBCSession session, @Nullable DBDDataFilter dataFilter, long flags)
         throws DBCException
     {
-        return -1;
+        if (query.getType() != SQLQueryType.SELECT || query.isModifying()) {
+            throw new DBCException("Can't count the rows of a statement that is not a single SELECT");
+        }
+        DBPDataSource dataSource = session.getDataSource();
+        try {
+            String queryText = query.getText();
+            if (dataFilter != null && dataFilter.hasConditions()) {
+                // The order does not change the count
+                DBDDataFilter conditions = new DBDDataFilter(dataFilter);
+                conditions.resetOrderBy();
+                queryText = dataSource.getSQLDialect().addFiltersToQuery(session.getProgressMonitor(), dataSource, queryText, conditions);
+            }
+            SQLSyntaxManager syntaxManager = new SQLSyntaxManager();
+            syntaxManager.init(dataSource.getSQLDialect(), dataSource.getContainer().getPreferenceStore());
+            SQLQuery countQuery = new SQLQueryTransformerCount().transformQuery(dataSource, syntaxManager, new SQLQuery(dataSource, queryText, query));
+            SQLQueryDataContainer counter = new SQLQueryDataContainer(contextProvider, countQuery, scriptContext, log);
+            counter.setParameterBinder(parameterBinder);
+            CountReceiver receiver = new CountReceiver();
+            // FLAG_REFRESH: the parameters keep the values of the rows' read instead of being asked again
+            counter.readData(source, session, receiver, null, 0, 1, flags | DBSDataContainer.FLAG_REFRESH, 0);
+            if (receiver.count < 0) {
+                throw new DBCException("Row count query didn't return any value");
+            }
+            return receiver.count;
+        } catch (DBCException e) {
+            throw e;
+        } catch (DBException e) {
+            throw new DBCException("Can't count the rows of the query", e, session.getExecutionContext());
+        }
+    }
+
+    /**
+     * The first value of a count query's result.
+     */
+    private static final class CountReceiver implements DBDDataReceiver {
+        private long count = -1;
+
+        @Override
+        public void fetchStart(@NotNull DBCSession session, @NotNull DBCResultSet resultSet, long offset, long maxRows) {
+        }
+
+        @Override
+        public void fetchRow(@NotNull DBCSession session, @NotNull DBCResultSet resultSet) throws DBException {
+            if (count < 0 && resultSet.getAttributeValue(0) instanceof Number number) {
+                count = number.longValue();
+            }
+        }
+
+        @Override
+        public void fetchEnd(@NotNull DBCSession session, @NotNull DBCResultSet resultSet) {
+        }
+
+        @Override
+        public void close() {
+        }
     }
 
     @Nullable

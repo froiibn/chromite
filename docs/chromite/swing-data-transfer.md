@@ -649,3 +649,5 @@ SQL Server·MariaDB 원본 22열). PostgreSQL → SQL Server·MariaDB의 `c_nume
 - 2026-11-08 `MAX_STRING_SIZE` 조회가 `SQLException`만 잡아, 문장을 주지 않는 세션(SQL 파서 시험의 mock)에서 `NullPointerException`이 방언 설정 밖으로 나가
   Oracle 파서 시험 11개가 실패하던 것: 모든 실패를 4000으로(`OracleSQLDialect.readMaxVarchar2Length`). 위 "`MAX_STRING_SIZE`(#52)",
   [regression-tests.md](regression-tests.md) "실행 결과".
+- 2026-11-08 쿼리 내보내기의 "행 수 세기"가 동작함: 모델 `SQLQueryDataContainer.countData`가 늘 -1이라 쿼리 결과는 전체 행 수를 몰랐다.
+  이제 내보내기 전에 COUNT 쿼리 하나를 더 실행한다(SWT 쿼리 결과와 같음, 옵션을 끄면 실행하지 않음). [swing-grid-navigation.md](swing-grid-navigation.md) "전체 행 수".

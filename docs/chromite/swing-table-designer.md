@@ -141,3 +141,5 @@ PostgreSQL 17(`chr_table_designer`)에서 화면으로 확인했다(빌드한 Sw
   제약 조건을 지우고 `ALTER COLUMN` 뒤에 다시 만든다. [schema-compare.md](schema-compare.md) "SQL Server 기본값 제약 조건".
 - 2026-11-08 Oracle 인덱스·외래 키·CHECK(`OracleTableDesignerDriver`, `OracleTableBase` 어댑터), 저장 전 열린 트랜잭션 질문.
   Object Explorer 테이블 자식 폴더의 New Column…/New Index… 등이 디자이너를 연다. [swing-create-objects.md](swing-create-objects.md).
+- 2026-11-08 외래 키 대화상자(`DesignerDialogs.editForeignKey`)를 결과 그리드의 가상 외래 키에도 씀: 가상 모드는 이름·ON DELETE/UPDATE를 숨기고
+  참조 테이블의 가상 고유 키도 고른다. 디자이너의 동작은 그대로. [swing-grid-navigation.md](swing-grid-navigation.md) "가상 키".
