@@ -52,7 +52,7 @@
 | 19 | 활성 연결·스키마 고르기(도구 막대 콤보, Ctrl+9 연결 선택·Ctrl+0 스키마 선택 대화상자) ― 브리프의 "최근 연결" | `SelectActiveDataSourceHandler`, `SelectActiveSchemaHandler`, `SelectDataSourceCombo` | 일부 | 콤보 있음(`SqlEditorToolBar`), Connect 대화상자의 드라이버별 최근 서버 기록(`ConnectionHistory`). Ctrl+9/0 대화상자 없음(`VK_9` grep 0) | 낮음 | 위 "먼저 알아 둘 사실" 5 |
 | 20 | 북마크(Ctrl+Alt+Shift+D로 추가, 프로젝트의 Bookmarks 폴더, 북마크로 이동) | `core` `AddBookmarkHandler`, `NavigateBookmarkHandler`, `model.rcp` 자원 형식 `bookmark` | 없음 | Swing에서 `bookmark`는 주석 한 줄뿐(`ObjectExplorerPanel.java:1093`) | 낮음 | swt-removal.md:108에 포함 |
 | 21 | 프로젝트 관리(Projects 보기, 새 프로젝트 마법사, 활성 프로젝트 바꾸기, 프로젝트 설정·자원 위치 설정 페이지) | `ProjectNavigatorView`, `ProjectCreateWizard`, `NavigatorHandlerProjectSetActive/Select`, `PrefPageProjectResourceSettings` | 없음 | Swing은 `getActiveProject()`만 쓰고 `setActiveProject` 호출 0. swt-removal.md:108 | 낮음 | 프로젝트가 하나면 영향 없음. 다른 프로젝트의 연결은 Swing에서 볼 수 없음 |
-| 22 | 자원 탐색기(Scripts 폴더·파일 트리, 새 파일·폴더, 파일·폴더 링크, 파일 시스템 탐색기, 스크립트와 연결 묶기, 시스템 탐색기에서 보기, 연결별 최근 스크립트 열기) | `ProjectExplorerView`, `FileSystemExplorerView`, `NavigatorHandlerCreateFile/Folder`, `LinkFile/FolderHandler`, `NavigatorHandlerAssociateScript`, `NavigatorHandlerShowInExplorer` | 없음 | Swing은 SSMS식 File > Open / Save / Save As / Recent Files(`MainFrame.java:112-114`). 스크립트-연결 묶기 grep 0(연 파일은 고른 연결로 열림) | 중간 | swt-removal.md:108 |
+| 22 | 자원 탐색기(Scripts 폴더·파일 트리, 새 파일·폴더, 파일·폴더 링크, 파일 시스템 탐색기, 스크립트와 연결 묶기, 시스템 탐색기에서 보기, 연결별 최근 스크립트 열기) | `ProjectExplorerView`, `FileSystemExplorerView`, `NavigatorHandlerCreateFile/Folder`, `LinkFile/FolderHandler`, `NavigatorHandlerAssociateScript`, `NavigatorHandlerShowInExplorer` | 일부(2026-11-08. 조사 당시: 없음) | Scripts 도구 창(`ScriptsPanel`): 활성 프로젝트 Scripts 폴더 트리, 열기·새 폴더·이름 바꾸기·삭제, 스크립트와 연결 묶기(SWT와 같은 자원 속성, `ScriptFiles`). 조사 당시: File > Open / Save / Save As / Recent Files만, 묶기 grep 0 | 중간 | 남은 것: 새 파일, 파일·폴더 링크, 파일 시스템 탐색기, 시스템 탐색기에서 보기, 연결별 스크립트 목록. [swing-scripts-explorer.md](../swing-scripts-explorer.md) |
 | 23 | 스크립트를 네이티브 클라이언트로 실행(psql·mysql 등) | `NavigatorHandlerExec`, `SQLNativeExecutorRegistry` | 없음 | `scriptNative` grep 0 | 낮음 | |
 | 24 | 연결 노드 인라인 단추(연결 설정, 터널, 읽기 전용, 연결 보기) | `NNAHDataSourceConfiguration/Tunnel/ReadOnly/ConnectionView` | 일부 | 같은 일은 메뉴·연결 대화상자로(읽기 전용은 `ConnectionSettingsPanel`) | 낮음 | |
 | 25 | Database Browser 보기(하위 트리를 따로 연 보기) | `DatabaseBrowserView` | 없음 | 해당 클래스·명령 없음 | 낮음 | |
@@ -152,13 +152,13 @@ MView 새로 고침, TRUNCATE, 트리거 켜기/끄기), MySQL(ANALYZE·CHECK·O
 | 상태 | 수 | 번호 |
 |---|---|---|
 | 있음 | 16 | 1, 2, 3, 10, 11, 17, 27, 28, 31, 34, 35, 45, 48, 50, 55, 62 |
-| 일부 | 18 | 4, 12, 13, 14, 15, 18, 19, 24, 36, 37, 38, 42, 44, 47, 51, 57, 59, 60 |
-| 없음 | 27 | 5, 6, 7, 8, 9, 16, 20, 21, 22, 23, 25, 26, 29, 30, 32, 33, 39, 40, 41, 43, 46, 49, 52, 53, 56, 63, 64 |
+| 일부 | 19 | 4, 12, 13, 14, 15, 18, 19, 22, 24, 36, 37, 38, 42, 44, 47, 51, 57, 59, 60 |
+| 없음 | 26 | 5, 6, 7, 8, 9, 16, 20, 21, 23, 25, 26, 29, 30, 32, 33, 39, 40, 41, 43, 46, 49, 52, 53, 56, 63, 64 |
 | 의도적 제외 | 1 | 61 |
 | 조용히 끊김 | 2 | 54, 58 |
 | 해당 없음 | 4 | 즐겨찾기, 작업 스케줄러, 개발자 Test 메뉴, DataDam |
 
-없음 27개 중 63(Git)은 SWT 제품에도 없던 번들이라 실제 사용자 손실은 없다. 62(디버거)는 2026-11-07 옮겼다([procedure-debugger.md](../procedure-debugger.md)).
+없음 26개 중 63(Git)은 SWT 제품에도 없던 번들이라 실제 사용자 손실은 없다. 62(디버거)는 2026-11-07 옮겼다([procedure-debugger.md](../procedure-debugger.md)).
 10, 11, 17은 2026-11-07 옮겼고 12는 일부가 되었다([swing-explorer-object-actions.md](../swing-explorer-object-actions.md)).
 
 ## 영향순 상위 10 (없음·일부·조용히 끊김)

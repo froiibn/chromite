@@ -106,7 +106,7 @@ Swing 소스에서 해당 모델 API나 기능을 찾지 못한 검색으로 확
 | SQL 터미널(편집기 아래 콘솔 형식 결과) | `ui.editors.sql.terminal` | - | 2026-11-08 옮김: Query > SQL Terminal, 쿼리 창마다 켜는 Terminal 탭([swing-sql-terminal.md](swing-sql-terminal.md)) |
 | 차트, 결과의 GIS(공간 데이터) 보기 | `ui.charts`, `data.gis.view` | `data.gis` | `Chart`·`DBGeometry` 참조 0 |
 | 사용자 정의 대시보드(대시보드 편집·여러 대시보드 보기) | `ui.dashboard` | `model.dashboard` | Swing에는 Activity Monitor의 고정 서버 대시보드만 있다([swing-dashboard.md](swing-dashboard.md), 2026-11-07 devel 병합으로 확인) |
-| 프로젝트·자원 탐색기(스크립트 폴더, 북마크, 프로젝트 관리) | `ui.navigator`의 프로젝트 보기, `core` | `model`, `model.rcp` | Object Explorer는 연 서버만 보인다(`ObjectExplorerPanel` 루트 주석) |
+| 프로젝트·자원 탐색기(스크립트 폴더, 북마크, 프로젝트 관리) | `ui.navigator`의 프로젝트 보기, `core` | `model`, `model.rcp` | Object Explorer는 연 서버만 보인다(`ObjectExplorerPanel` 루트 주석). 2026-11-08 스크립트 폴더는 옮김: Scripts 도구 창([swing-scripts-explorer.md](swing-scripts-explorer.md)). 북마크·프로젝트 관리는 없음 |
 | Git 연동 | `team.git.ui`(+ EGit/JGit) | - | JGit 참조 0 |
 | 스키마 비교 | `cmp.simple.ui` | `cmp.simple` | `CMPCompare` 참조 0 |
 | AI 자동완성(AI 채팅은 #92에서 옮김, [ai-agent.md](ai-agent.md)) | `ui.ai` | `model.ai` | Swing에 AI 자동완성 없음 |

@@ -232,6 +232,7 @@ import java.util.concurrent.atomic.AtomicLong;
  *   창 닫기·연결 바꾸기·DB 인스턴스 바꾸기 전에 그 세션의 트랜잭션을 물음. 상태 줄 커밋 방식 칸의 도구 설명에 세션 수.
  *   자동완성이 창을 만들 때의 연결을 계속 쓰던 것(생성자 매개 변수를 잡은 람다)을 지금 연결로 고침 (docs/chromite/transactions.md)
  * - 2026-11-08 SQL 터미널: 창마다 켜고 끄는 Terminal 탭에 문장과 결과를 글자로 씀({@link SqlTerminalView}, docs/chromite/swing-sql-terminal.md)
+ * - 2026-11-08 Scripts 도구 창에서 이름을 바꾼 파일을 따라가는 {@link #fileMoved} (docs/chromite/swing-scripts-explorer.md)
  */
 final class SqlEditorPanel extends JPanel {
 
@@ -500,6 +501,16 @@ final class SqlEditorPanel extends JPanel {
         this.fileName = file.getFileName().toString();
         this.fileFormat = content;
         dirty = false;
+        host.titleChanged(this);
+    }
+
+    /**
+     * The window's file was renamed or its folder renamed (Scripts tool window): the window keeps its text and modified
+     * state, and saves to the new file.
+     */
+    void fileMoved(@NotNull Path file) {
+        this.file = file;
+        this.fileName = file.getFileName().toString();
         host.titleChanged(this);
     }
 

@@ -65,6 +65,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
  * - 2026-11-06 화면 문구를 ToolsMessages로 옮김(OS 언어를 따름)
  * - 2026-11-07 ④ 공유: 루트의 Git 상태({@link Folder#git}), ID로 파일 찾기({@link #findFile}, 가져오기의 ID 충돌)
  *   (docs/chromite/swing-query-library.md "공유")
+ * - 2026-11-08 {@link #deleteRecursively}를 Scripts 도구 창도 쓰도록 패키지 안에 엶 (docs/chromite/swing-scripts-explorer.md)
  */
 final class QueryLibrary {
 
@@ -442,7 +443,11 @@ final class QueryLibrary {
         fireChanged();
     }
 
-    private static void deleteRecursively(@NotNull Path path) throws IOException {
+    /**
+     * Deletes a file, or a folder with everything in it, for good (also used by the Scripts tool window when the
+     * system has no trash).
+     */
+    static void deleteRecursively(@NotNull Path path) throws IOException {
         if (!Files.isDirectory(path)) {
             Files.deleteIfExists(path);
             return;

@@ -23,6 +23,7 @@ import com.seizia.chromite.ui.swing.internal.ConnectionTransferMessages;
 import com.seizia.chromite.ui.swing.internal.CoreMessages;
 import com.seizia.chromite.ui.swing.internal.DashboardMessages;
 import com.seizia.chromite.ui.swing.internal.DriverManagerMessages;
+import com.seizia.chromite.ui.swing.internal.ScriptsMessages;
 import com.seizia.chromite.ui.swing.internal.TerminalMessages;
 import com.seizia.chromite.ui.swing.internal.ToolbarMessages;
 import io.github.andrewauclair.moderndocking.DockingRegion;
@@ -79,8 +80,8 @@ import java.util.function.Supplier;
  * Chromite Swing 메인 창 (SSMS식 배치).
  *
  * 설계: 가운데 문서 영역(문서 탭, 그 아래 Results / Messages)은 고정이고, 도구 창(Object Explorer, Registered Servers, Properties,
- * Query Library)은 도킹 배치({@link ToolWindowDocking})에 놓인다. 기본 배치는 왼쪽 열에 Object Explorer(위)와 Registered Servers(아래),
- * 오른쪽 열에 Properties(Query Library는 처음에 숨김, 보이면 Properties 위)이고, Properties가 SSMS처럼 문서와 결과 옆에 세로로 길게 붙는다.
+ * Query Library, Scripts)은 도킹 배치({@link ToolWindowDocking})에 놓인다. 기본 배치는 왼쪽 열에 Object Explorer(위)와 Registered Servers(아래),
+ * 오른쪽 열에 Properties(Query Library와 Scripts {@link ScriptsPanel}는 처음에 숨김, 보이면 Properties 위)이고, Properties가 SSMS처럼 문서와 결과 옆에 세로로 길게 붙는다.
  * 도구 창은 머리말을 끌어 옮기거나 탭으로 합치거나 떠 있는 창으로 띄울 수 있다. Results는 쿼리 창 안에 있으므로 도킹하지 않고
  * 문서 영역의 분할 창 아래쪽이다({@link ToolWindow.SplitHost}).
  * <ul>
@@ -115,7 +116,8 @@ import java.util.function.Supplier;
  *     <li>상태 표시줄의 연결 수는 모든 프로젝트의 연결 레지스트리 이벤트({@link DBPEventListener}, 연결 추가·삭제)를 받아 다시 센다.
  *     같은 이벤트의 연결 변경(이름 바꾸기, 연결, 끊기)은 그 연결을 쓰는 편집기의 탭 제목과 기본 스키마 콤보에 알린다.</li>
  *     <li>SQL 파일(SSMS): File > Open File(Ctrl+O), Save(Ctrl+S), Save As, Recent Files(최근 10개, {@link RecentFiles}).
- *     연 파일은 Object Explorer에서 고른 연결(없으면 활성 편집기의 연결, 그것도 없으면 연결 없음)로 연다. 이미 열린 파일은 그 탭을 보여 준다.
+ *     연 파일은 스크립트에 묶은 연결({@link ScriptFiles}), 없으면 Object Explorer에서 고른 연결(없으면 활성 편집기의 연결, 그것도 없으면 연결 없음)로 연다.
+ *     이미 열린 파일은 그 탭을 보여 준다. 스크립트 폴더에 저장한 파일은 묶은 연결이 없으면 쿼리 창의 연결에 묶고 Scripts 창을 다시 읽는다.
  *     파일 대화상자의 폴더는 실행 중에만 기억한다.</li>
  *     <li>고친 편집기 탭을 닫거나 앱을 끝낼 때(창 닫기, File > Exit) SSMS처럼 Save / Don't Save / Cancel을 묻는다.
  *     결과 표에 저장하지 않은 변경이 있는 편집기도 같이 묻고, Save면 결과 변경을 진행 대화상자에서 저장한다(실패하면 닫지 않고 오류는 Messages에).
@@ -209,6 +211,8 @@ import java.util.function.Supplier;
  *   (docs/chromite/swing-followup-fixes.md "작은 화면 수정")
  * - 2026-11-08 Save As 덮어쓰기 확인은 바꾸기 / 취소 단추(취소가 기본), 결과 표 변경 저장 질문은 취소가 기본 (docs/chromite/swing-frontend.md "실행 확인의 기본 단추")
  * - 2026-11-08 Query &gt; SQL Terminal(Ctrl+T)과 활성 쿼리 창이 켰을 때만 붙는 Terminal 탭 (docs/chromite/swing-sql-terminal.md)
+ * - 2026-11-08 Scripts 도구 창(Ctrl+Alt+L, Properties 위, 기본 숨김), 스크립트에 묶은 연결로 파일 열기, 스크립트 폴더에 저장할 때 연결 묶기
+ *   (docs/chromite/swing-scripts-explorer.md)
  */
 final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplorerPanel.QueryWindows, TableDesignerPanel.Host, QueryLibraryPanel.Host {
 
@@ -250,6 +254,7 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
     private final ObjectExplorerPanel explorerPanel;
     private final RegisteredServersPanel registeredServersPanel;
     private final QueryLibraryPanel queryLibraryPanel;
+    private final ScriptsPanel scriptsPanel;
     private final AiAssistantPanel aiAssistantPanel;
     private final ToolWindow aiWindow;
     private final StatusBar statusBar;
@@ -436,7 +441,32 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
             ToolWindowDocking.Place.next(propertiesWindow.getId(), DockingRegion.NORTH, 0.5),
             ToolWindowDocking.Place.edge(DockingRegion.EAST, DEFAULT_RIGHT_SHARE));
         queryLibraryPanel.setShowWindow(() -> libraryWindow.setShown(true));
-        aiWindow = new ToolWindow("aiAssistant", AiMessages.ai_title, //$NON-NLS-1$
+        scriptsPanel = new ScriptsPanel(new ScriptsPanel.Host() {
+            @NotNull
+            @Override
+            public Component getComponent() {
+                return MainFrame.this;
+            }
+
+            @NotNull
+            @Override
+            public List<SqlEditorPanel> getQueryWindows() {
+                return getEditors();
+            }
+
+            @Override
+            public void openScript(@NotNull Path file) {
+                openFile(file);
+            }
+        });
+        // Scripts above Properties in the right column, like SSMS's Solution Explorer; hidden until opened (Ctrl+Alt+L,
+        // the Solution Explorer shortcut)
+        ToolWindow scriptsWindow = new ToolWindow("scripts", ScriptsMessages.scripts_title, //$NON-NLS-1$
+            KeyStroke.getKeyStroke(KeyEvent.VK_L, InputEvent.CTRL_DOWN_MASK | InputEvent.ALT_DOWN_MASK));
+        toolWindowDocking.addToolWindow(scriptsWindow, scriptsPanel, false,
+            ToolWindowDocking.Place.next(propertiesWindow.getId(), DockingRegion.NORTH, 0.5),
+            ToolWindowDocking.Place.edge(DockingRegion.EAST, DEFAULT_RIGHT_SHARE));
+        aiWindow =new ToolWindow("aiAssistant", AiMessages.ai_title, //$NON-NLS-1$
             KeyStroke.getKeyStroke(KeyEvent.VK_I, InputEvent.CTRL_DOWN_MASK | InputEvent.ALT_DOWN_MASK));
         aiAssistantPanel = new AiAssistantPanel(new AiAssistantPanel.Host() {
             @Nullable
@@ -468,7 +498,7 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
         AIAgentServices.setConfirmationHandler(new AiConfirmationDialog.Handler(() -> this));
         AIAgentServices.setEditorBridge((connection, sql, windowTitle) ->
             SwingUtilities.invokeLater(() -> aiAssistantPanel.openInEditor(connection, sql, windowTitle)));
-        toolWindows = List.of(explorerWindow, registeredServersWindow, propertiesWindow, libraryWindow, aiWindow, resultsWindow);
+        toolWindows = List.of(explorerWindow, registeredServersWindow, propertiesWindow, libraryWindow, scriptsWindow, aiWindow, resultsWindow);
 
         newQueryAction = createAction(CoreMessages.main_new_query, CoreMessages.main_new_query_tip,
             KeyStroke.getKeyStroke(KeyEvent.VK_N, InputEvent.CTRL_DOWN_MASK), this::newQuery);
@@ -1067,7 +1097,11 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
             DBWorkbench.getPlatformUI().showError(CoreMessages.main_open_file_title, NLS.bind(CoreMessages.main_cant_open, file), e);
             return;
         }
-        DBPDataSourceContainer dataSource = explorerPanel.getSelectedDataSource();
+        // A script linked to a connection (Scripts tool window) opens with it, wherever it is opened from
+        DBPDataSourceContainer dataSource = ScriptFiles.getLink(file).connection();
+        if (dataSource == null) {
+            dataSource = explorerPanel.getSelectedDataSource();
+        }
         if (dataSource == null) {
             SqlEditorPanel activeEditor = getActiveEditor();
             dataSource = activeEditor != null ? activeEditor.getDataSourceContainer() : null;
@@ -1116,6 +1150,15 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
         editor.saved(file, content);
         lastDirectory = file.getParent();
         RecentFiles.add(file);
+        if (ScriptFiles.findRoot(file) != null) {
+            // A script saved into the script folder remembers the connection it was written for, unless the user linked
+            // it already (an explicit link is not replaced by the connection of whichever window saves it)
+            DBPDataSourceContainer connection = editor.getDataSourceContainer();
+            if (connection != null && ScriptFiles.getLink(file).dataSourceId() == null) {
+                ScriptFiles.setLink(file, connection);
+            }
+            scriptsPanel.reload();
+        }
         return true;
     }
 
