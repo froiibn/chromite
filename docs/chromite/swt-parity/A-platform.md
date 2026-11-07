@@ -196,8 +196,8 @@ Swing에서 바꿀 수 있는 설정: Options — 테마, 아이콘 모양, 입�
 | Transactions (`main.transactions`) | ui.editors.connection `PrefPageTransactions` | ✓ | `transaction.smart.commit`, `transaction.smart.commit.recover`, `transaction.auto.close.enabled`, `transaction.auto.close.ttl`, `transaction.show.notifications`, `transaction.ddl.behavior` | 해당 키 효과 없음(2026-11-07 확인, [swing-options.md](../swing-options.md): 스마트 커밋은 쿼리 창이 켜지 않음, 자동 종료 키는 #97에서 지움, 나머지는 읽는 곳 없음). 같은 기능은 연결 유형 편집(Options > Connection Types)과 연결 대화상자(자동 커밋, 격리 수준, 유휴 트랜잭션 알림)에 있음. 조사 당시: 없음 | 높음 |
 | Metadata (`main.meta`) | ui.editors.connection `PrefPageMetaData` | ✓ | `database.meta.separate.connection`, `database.props.expensive`, `database.meta.casesensitive`, `database.meta.server.side.filters`, `database.meta.extra.ddl.info`, `database.meta.disableAdditionalRead` | 있음(2026-11-08, Options > Metadata와 연결별 값 5키, 별도 연결은 연결 대화상자, [swing-options.md](../swing-options.md)). 조사 당시: 없음(Swing은 두 키를 내부에서 읽기만) | 중간 |
 | Drivers (`drivers`) | ui.editors.connection `PrefPageDrivers` | | `ui.drivers.version.update`, `driver.selector.showCommercialDrivers`, `ui.proxy.host`, `ui.proxy.port`, `ui.proxy.user`(+비밀번호), `ui.drivers.home`, `ui.drivers.sources`, `ui.drivers.offline` | 일부: 오프라인 모드만(`DriverManagerDialog.java`:181) | 낮음 |
-| Maven (`drivers.maven`) | ui.editors.connection | | Maven 저장소 목록 | 없음([swing-driver-manager.md](../swing-driver-manager.md):105) | 낮음 |
-| Classpath (`drivers.classpath`) | ui.editors.connection | | `ui.drivers.global.libraries` | 없음(swing-driver-manager.md:105) | 낮음 |
+| Maven (`drivers.maven`) | ui.editors.connection | | Maven 저장소 목록 | 없음: 저장소 목록([swing-driver-manager.md](../swing-driver-manager.md) "남긴 것"). 드라이버의 Maven 아티팩트 추가·편집은 2026-11-08 드라이버 편집 창에 있음(B-C18) | 낮음 |
+| Classpath (`drivers.classpath`) | ui.editors.connection | | `ui.drivers.global.libraries` | 있음(2026-11-08, Driver Manager > Global Libraries…, [swing-driver-manager.md](../swing-driver-manager.md) "전역 라이브러리"). 조사 당시: 없음 | 낮음 |
 | Network Profiles (전역 `globalNetworkProfiles`, 프로젝트별) | ui.editors.connection | ✓ | 네트워크 프로필(SSH·프록시 묶음) | 일부: 연결이 쓰는 프로필을 읽기 전용으로 보임, 편집 없음(`ConnectionNetworkPage.java` 클래스 주석) | 낮음 |
 | Connection Types (`connectionTypes`) | ui.editors.connection `PrefPageConnectionTypes` | ✓ | 연결 종류 만들기·고치기(이름, 색, 자동 커밋, 실행 확인, 데이터 변경 확인, 스마트 커밋, 유휴 트랜잭션·연결 자동 종료) | 있음(2026-11-07, Options > Connection Types, [swing-options.md](../swing-options.md)): 스마트 커밋만 뺌(효과 없음). 자동 커밋 변경은 열린 세션에 적용하며 커밋하지 않은 변경을 물음. 조사 당시: 일부(고르기만) | 중간 (운영 연결의 "실행 확인" 같은 안전 장치를 새로 정할 수 없음) |
 | Navigator (`navigator`, 연결별 `Database Navigator`) | ui.navigator `PrefPageDatabaseNavigator` | ✓ | `navigator.*` 25개(호스트 표시, 설명, 통계, 정렬, 자식 수, 드라이버별 묶기, 연결 시 펼치기, 필터 복원, 긴 목록 가져오기 크기, 더블클릭 동작 등) | 없음 | 낮음 (탐색기 영역에서 자세히) |
@@ -249,6 +249,7 @@ Swing에서 바꿀 수 있는 설정: Options — 테마, 아이콘 모양, 입�
 추가함 22 + 이미 있음 7 + 공급자 속성 7, 규칙상 두지 않음 2, 남은 것(다음 작업) 71개다. 나머지 197개는 Swing에서 읽는 곳이 없어 화면을 만들지 않는다.
 2026-11-08 갱신: 연결별 설정 화면을 만들었다(연결 대화상자 Options > Settings: Query Execution, Query Results, Data Formats, Errors and Timeouts, Metadata,
 Client Identification, Oracle). Errors and Timeouts·Metadata·Client Identification·데이터 형식 프로필을 더해 추가함 37, 규칙상 두지 않음 4, 다음 작업 55개다.
+같은 날 전역 라이브러리(`ui.drivers.global.libraries`)를 Driver Manager > Global Libraries…로 만들어 추가함 38, 다음 작업 54개다.
 
 ## 8. 영향이 큰 순서 (없음·조용히 끊김)
 

@@ -130,8 +130,8 @@ K1–K3의 공통 원인은 SQL 편집기에 서버 출력 패널이 없는 것�
 | O6 | 메타데이터 옵션: 옵티마이저 힌트, RULE 힌트, 단순 제약 질의, 다른 테이블 질의, DBA 뷰 쓰기·항상 DBA 보기, SYS 스키마, 빈 스키마 숨김, 한 스키마만, DATE를 날짜로, 동의어에서 찾기, OS 사용자 | `OracleConnectionExtraPage` | 있음 | 모두 선언(`ext.oracle/plugin.xml` provider-properties) → 표 | 낮음 | |
 | O7 | 메타데이터 옵션: 열 주석 읽기, 시퀀스에서 찾기, 옵티마이저 버전 | `OracleConnectionExtraPage:138-171` | 없음 | 키 미선언. 모델 `OracleSchema.java:151`, `:813`, `OracleDataSource.java:396` | 낮음 | |
 | O8 | 전역·연결별 "Oracle" 환경설정(PLAN_TABLE 이름, ROWID 사용, DBMS_OUTPUT 켜기, 모든 동의어 읽기, 스크립트 escape 처리 끄기) | `PrefPageOracle`(preferencePages + propertyPages) | 없음 | `OptionsDialog.java:178-180` | 낮음 | 기본값은 모델 쪽 `OraclePreferencesInitializer`가 그대로 넣는다(UI 번들의 같은 초기화가 지워져도 값 같음). K1을 끌 방법도 없다 |
-| O9 | 세션 관리자(Kill, Disconnect, 백그라운드·비활성 보기) | `OracleSessionEditor` | 있음 | `OracleActivitySessionManager`(swing-admin-tools.md 127행) | 높음 | |
-| O10 | 잠금 관리자 | `OracleLockEditor` | 있음 | `OracleBlockingLockManager`(swing-admin-tools.md 154행) | 높음 | |
+| O9 | 세션 관리자(Kill, Disconnect, 백그라운드·비활성 보기) | `OracleSessionEditor` | 있음 | `OracleActivitySessionManager`(swing-admin-tools.md 127행) | 높음 | 2026-11-08 SWT에 없던 Cancel Query(18c+, `ALTER SYSTEM CANCEL SQL`)와 RAC 세션 번호(`@INST_ID`) 더함(swing-admin-tools.md "Oracle RAC와 쿼리 취소") |
+| O10 | 잠금 관리자 | `OracleLockEditor` | 있음 | `OracleBlockingLockManager`(swing-admin-tools.md 154행) | 높음 | 2026-11-08 RAC(인스턴스 2개 이상)는 `GV$`로 모든 인스턴스를 읽음 |
 | O11 | Compile 명령(탐색기에서 고른 PL/SQL 객체 컴파일, 오류 목록, 편집기의 오류 줄로 이동) | 명령 `ext.oracle.code.compile` → `CompileHandler`, `OracleCompilerDialog` | 일부 | Maintenance 대화상자의 무효 객체 `ALTER … COMPILE`·스키마 COMPILE_SCHEMA + `ALL_ERRORS` 표(swing-admin-tools.md 370행). 하지만 `OracleMaintenanceDialect.getTarget`(`:131-143`)은 테이블·인덱스·스키마만 받아 프로시저·패키지 노드에서는 열 수 없음 | 중간 | 유효한 객체를 다시 컴파일하거나 노드에서 바로 컴파일 불가 |
 | O12 | PL/SQL 소스 편집기(패키지 선언·본문, 프로시저)와 저장 뒤 컴파일 오류 표시 | `OracleSourceDeclarationEditor`, `OracleSourceDefinitionEditor`, `OracleObjectDeclarationViewer`, (모델 쪽 `OracleObjectValidateAction`) | 일부 | Modify → 쿼리 창(swing-source-editor.md 142행). 오류는 드라이버 경고만(같은 문서 157행) | 중간 | 객체가 INVALID로 저장되어도 오류 줄·위치가 안 보인다 |
 | O13 | 패키지 안 프로시저 → 소스 위치로 이동 | 명령 `ext.oracle.code.package.navigate` → `PackageNavigateHandler` | 없음 | grep `navigate` 관련 명령 없음 | 낮음 | |
@@ -265,3 +265,4 @@ SWT에도 Altibase 전용 연결 화면은 없었다(`dataSourceConfigurator` �
 
 - 2026-11-08 3순위 Oracle·Altibase 관리: P23·S14·M17·O5·O16·O21·A2 → 있음, 요약 표와 높은 순서 목록 갱신.
 - 2026-11-08 O23 Toad·SQL Developer 연결 가져오기 → 있음([connection-transfer.md](../connection-transfer.md) "다른 도구에서 가져오기"), 요약 표 갱신.
+- 2026-11-08 후속 #69: O9·O10 비고(Oracle Cancel Query, RAC `GV$`). 상태 변화 없음.

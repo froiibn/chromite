@@ -44,6 +44,10 @@ import java.util.stream.Collectors;
 
 /**
  * DriverDescriptorSerializerLegacy
+ *
+ * 변경 이력:
+ * - 2026-11-08 Maven 라이브러리의 ignore-dependencies·load-optional-dependencies·forced-version을 라이브러리를 찾거나 만든 뒤에 읽음.
+ *   전에는 이미 있는 라이브러리에만 읽어서, 사용자가 추가한 Maven 아티팩트는 다시 시작하면 이 옵션을 잃었다(docs/chromite/swing-driver-manager.md).
  */
 public class DriverDescriptorSerializerLegacy extends DriverDescriptorSerializer {
 
@@ -430,12 +434,6 @@ public class DriverDescriptorSerializerLegacy extends DriverDescriptorSerializer
                     if (providedDrivers && lib == null && !(curDriver.getDriverLibraries().isEmpty())){
                         curDriver.disabledAllDefaultLibraries();
                     }
-                    if (lib instanceof DriverLibraryMavenArtifact mvnLibrary) {
-                        mvnLibrary.setIgnoreDependencies(CommonUtils.toBoolean(attributes.getValue("ignore-dependencies")));
-                        mvnLibrary.setLoadOptionalDependencies(CommonUtils.toBoolean(attributes.getValue("load-optional-dependencies")));
-                        mvnLibrary.setForcedVersion(CommonUtils.toBoolean(attributes.getValue("forced-version")));
-                    }
-
                     String disabledAttr = attributes.getValue(RegistryConstants.ATTR_DISABLED);
                     if (lib != null && CommonUtils.getBoolean(disabledAttr)) {
                         lib.setDisabled(true);
@@ -465,6 +463,13 @@ public class DriverDescriptorSerializerLegacy extends DriverDescriptorSerializer
                             // library was enabled in config file
                             lib.setDisabled(false);
                         }
+                    }
+                    // After the library is found or created: a custom Maven artifact (Driver Manager > Add Artifact) is created
+                    // above from its path, and its options were lost when they were set only on an existing library
+                    if (lib instanceof DriverLibraryMavenArtifact mvnLibrary) {
+                        mvnLibrary.setIgnoreDependencies(CommonUtils.toBoolean(attributes.getValue("ignore-dependencies")));
+                        mvnLibrary.setLoadOptionalDependencies(CommonUtils.toBoolean(attributes.getValue("load-optional-dependencies")));
+                        mvnLibrary.setForcedVersion(CommonUtils.toBoolean(attributes.getValue("forced-version")));
                     }
                     curLibrary = lib;
                     break;

@@ -23,11 +23,11 @@ SWT 제품은 설정 페이지 62개(Window > Preferences, 연결별 속성 페�
 
 | 상태 | 키 수 | 뜻 |
 |---|---|---|
-| 추가함 | 37 | Swing 화면을 만듦(2026-11-07 23키, 2026-11-08 Errors and Timeouts 5·Metadata 5·Client Identification 4) |
+| 추가함 | 38 | Swing 화면을 만듦(2026-11-07 23키, 2026-11-08 Errors and Timeouts 5·Metadata 5·Client Identification 4·전역 라이브러리 1(Driver Manager)) |
 | 이미 있음 | 7 | 전에 만든 Swing 화면이 같은 키를 씀 |
 | 연결별 공급자 속성 | 7 | 연결 대화상자 Provider Properties 탭에서 이미 바꿀 수 있음 |
 | 규칙상 두지 않음 | 4 | 스크립트 커밋 방식 2키, 오류 때 롤백, 취소가 안 될 때 세션 단위 취소: 트랜잭션 안전 규칙에 어긋남 |
-| 다음 작업 | 55 | Swing에서 읽지만 화면 없음(아래 "다음 작업") |
+| 다음 작업 | 54 | Swing에서 읽지만 화면 없음(아래 "다음 작업") |
 | 효과 없음 | 196 | Swing에서 읽는 곳이 없거나 경로가 돌지 않음. 화면을 만들지 않음 |
 
 키가 아닌 설정(연결 유형, 연결별 격리 수준, 템플릿, AI, 데이터 형식 프로필의 `dataformat.*` 키 등)은 아래 페이지별 표에 적었다.
@@ -235,7 +235,8 @@ SWT는 설정 페이지 중 일부(`TargetPrefPage`를 쓰는 페이지)를 연�
 | Errors and Timeouts | **추가함**(2026-11-08, 연결별 값 있음) 5키. 오류 때 롤백·세션 단위 취소 2키는 규칙상 두지 않음 |
 | Metadata | **추가함**(2026-11-08, 연결별 값 있음) 5키. 별도 연결은 이미 있음 |
 | Client Identification | **추가함**(2026-11-08, 연결별 값 있음) 4키 |
-| Drivers, Classpath, Query Manager, Error Logs, Navigator(정렬), Notifications(긴 작업 알림), Data Transfer(매핑 3키), Dictionaries, Code Completion(4키), Altibase, CUBRID, Mimer | 다음 작업(키는 아래 목록) |
+| Drivers, Query Manager, Error Logs, Navigator(정렬), Notifications(긴 작업 알림), Data Transfer(매핑 3키), Dictionaries, Code Completion(4키), Altibase, CUBRID, Mimer | 다음 작업(키는 아래 목록) |
+| Classpath | **추가함**(2026-11-08): Driver Manager > Global Libraries…(`ui.drivers.global.libraries`) |
 | Maven | 다음 작업: 저장소 목록은 키가 아니라 `maven-repositories.xml`(`MavenRegistry`)에 저장되고 드라이버 내려받기가 읽는다 |
 | Network Profiles | 다음 작업: 전역·프로젝트 네트워크 프로필 편집(지금은 연결이 쓰는 프로필을 읽기 전용으로 보임) |
 | Templates, AI | Swing 자체 저장으로 이미 있음(Options > Templates, Chromite Agent) |
@@ -261,7 +262,7 @@ Swing 제품이 읽지만 화면이 없는 키다. 우선순위 순서로 적었
 6. ~~Client Identification~~: 2026-11-08.
 7. Connections: `connection.sanitizeDriverProperties`, `connection.shellAuthModelEnabled`, `connections.useWinTrustStoreType`. General: `java.client.timezone`(적용 코드 S12와 함께).
 8. Drivers·Classpath·Maven: `ui.drivers.home`, `ui.drivers.sources`, `ui.drivers.version.update`, `ui.proxy.host`, `ui.proxy.port`, `ui.proxy.user`(+비밀번호),
-   `ui.drivers.global.libraries`, `maven-repositories.xml`.
+   ~~`ui.drivers.global.libraries`~~(2026-11-08 Driver Manager > Global Libraries…, [swing-driver-manager.md](swing-driver-manager.md) "전역 라이브러리"), `maven-repositories.xml`.
 9. Query Manager: `qm.storeLogs`, `qm.historyDays`, `qm.logDirectory`, `qm.objectTypes`, `qm.queryTypes`. Error Logs: `logs.files.output.maxSize`, `logs.files.output.maxCount`.
 10. Navigator: `navigator.sort.case.insensitive`, `navigator.sort.case.insensitive.ignore.case`, `navigator.sort.forlers.first`, `navigator.show.folder.placeholders`.
 11. Notifications: `agent.long.operation.notify`, `agent.long.operation.timeout`. Data Transfer: `nameCaseMapping`, `replaceMapping`, `maxTypeLengthMapping`.
@@ -325,6 +326,7 @@ Swing 제품이 읽지만 화면이 없는 키다. 우선순위 순서로 적었
   다음 작업 55)와 부록 갱신.
 - 2026-11-08 Oracle DBMS_OUTPUT: 값을 바꾸면 열린 쿼리 창 세션에도 다음 문장부터 적용(도구 설명 갱신), 기본 연결 유형 이름을 언어와 상관없이 저장
   ([model-fixes.md](model-fixes.md) "작은 모델·안전·라이선스 수정").
+- 2026-11-08 `ui.drivers.global.libraries`: Driver Manager > Global Libraries…로 만듦(후속 #55, [swing-driver-manager.md](swing-driver-manager.md) "전역 라이브러리"). 요약 수(추가함 38, 다음 작업 54)와 8순위·부록 갱신.
 
 ## 부록: 키별 상태
 
@@ -393,7 +395,7 @@ Swing 제품이 읽지만 화면이 없는 키다. 우선순위 순서로 적었
 | Drivers | `ui.proxy.host` | 읽음, 화면 없음 → 다음 작업 |
 | Drivers | `ui.proxy.port` | 읽음, 화면 없음 → 다음 작업 |
 | Drivers | `ui.proxy.user` | 읽음, 화면 없음 → 다음 작업 |
-| Classpath | `ui.drivers.global.libraries` | 읽음, 화면 없음 → 다음 작업 |
+| Classpath | `ui.drivers.global.libraries` | **추가함**(2026-11-08 Driver Manager > Global Libraries…). 조사 당시: 읽음, 화면 없음 → 다음 작업 |
 | Navigator | `navigator.color.nodes.all` | 효과 없음(읽는 곳 없음) |
 | Navigator | `navigator.connection.doubleClick` | 효과 없음(읽는 곳 없음) |
 | Navigator | `navigator.editor.showGrid` | 효과 없음(읽는 곳 없음) |
