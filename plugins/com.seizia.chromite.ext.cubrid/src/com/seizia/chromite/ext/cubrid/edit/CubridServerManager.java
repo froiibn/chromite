@@ -40,6 +40,15 @@ import org.jkiss.utils.CommonUtils;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * CUBRID server (DBLink) manager: CREATE/ALTER/RENAME/DROP SERVER.
+ *
+ * 설계: 원격 서버의 암호가 든 CREATE·ALTER(PASSWORD=, CHANGE PASSWORD=)는 쿼리 관리자 기록에서 뺀다
+ * ({@code setDisableSessionLogging}, PostgreSQL 역할·SQL Server 로그인 관리자와 같음).
+ *
+ * 변경 이력:
+ * - 2026-11-08 암호가 든 CREATE·ALTER의 기록 끄기 (docs/chromite/password-handling.md)
+ */
 public class CubridServerManager extends SQLObjectEditor<CubridServer, GenericStructContainer> implements DBEObjectRenamer<CubridServer> {
 
     public static final String BASE_SERVER_NAME = "new_server";
@@ -90,6 +99,9 @@ public class CubridServerManager extends SQLObjectEditor<CubridServer, GenericSt
         }
         additionalCreateActions(server, query);
         query.append(")");
+        if (server.getPassword() != null) {
+            command.setDisableSessionLogging(true); // Hide password from Query Manager
+        }
         actions.add(new SQLDatabasePersistAction("Create Server", query.toString()));
     }
 
@@ -146,6 +158,7 @@ public class CubridServerManager extends SQLObjectEditor<CubridServer, GenericSt
         }
         if (command.getProperty("password") != null && server.getPassword() != null) {
             query.append(" CHANGE PASSWORD=").append(SQLUtils.quoteString(server, server.getPassword())).append(suffix);
+            command.setDisableSessionLogging(true); // Hide password from Query Manager
         }
         if (command.hasProperty("properties") || server.getProperties() != null) {
             query.append(" CHANGE PROPERTIES=").append(SQLUtils.quoteString(server, CommonUtils.notEmpty(server.getProperties())))

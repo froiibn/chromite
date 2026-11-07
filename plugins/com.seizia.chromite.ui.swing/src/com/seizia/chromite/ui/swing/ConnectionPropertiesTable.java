@@ -20,6 +20,7 @@ import com.formdev.flatlaf.FlatClientProperties;
 import com.seizia.chromite.ui.swing.internal.ConnectionMessages;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
+import com.seizia.chromite.model.DBConstants;
 import com.seizia.chromite.model.impl.PropertyDescriptor;
 import com.seizia.chromite.model.meta.IPropertyValueListProvider;
 import com.seizia.chromite.model.preferences.DBPPropertyDescriptor;
@@ -48,7 +49,9 @@ import java.util.Locale;
  *     값을 지우면 기본값으로 되돌린다.</li>
  *     <li>사용자 속성: Add로 이름을 받아 사용자 속성({@link #USER_PROPERTIES_CATEGORY}) 범주에 더하고, 그 범주의 속성만 Remove로 지울 수 있다
  *     (SWT와 같은 규칙). 사용자 속성을 받지 않는 표(공급자 속성)에는 두 단추가 없다.</li>
- *     <li>이름에 password·token이 들어간 글자 속성은 값을 가린다(SWT {@code isHidePropertyValue}와 같은 규칙).</li>
+ *     <li>암호 속성({@code password} 기능)과 이름에 password·token이 들어간 글자 속성은 값을 가린다(SWT {@code isHidePropertyValue}와
+ *     같은 규칙에 암호 기능을 더함). 표 모델이 가린 글자를 내주므로 복사에도 실제 값이 가지 않고, 편집은 가린 입력 칸
+ *     ({@link JPasswordField})이 속성의 실제 값을 받아서 한다.</li>
  * </ul>
  * 트리 대신 표를 쓴 것은 MVP 범위("간단한 편집 가능한 표")에 맞추기 위해서다. 범주는 첫 열로 보여 주고 범주 순으로 정렬한다.
  * 데이터 내보내기·가져오기 마법사도 형식(처리기) 속성을 같은 {@link PropertySourceCustom}으로 이 표에서 고친다(SWT도 두 곳 모두 {@code PropertyTreeViewer}).
@@ -59,6 +62,8 @@ import java.util.Locale;
  * - 2026-11-06 화면 문구를 ConnectionMessages로 옮김(OS 언어를 따름)
  * - 2026-11-08 데이터 형식(Options &gt; Data Formats)의 형식 속성 편집에도 씀. 값이 바뀌면 알림({@link #addValueListener}, 견본 갱신)
  *   (docs/chromite/swing-options.md "Data Formats")
+ * - 2026-11-08 암호 기능 속성도 가림, 가리기를 표 모델로 옮김(복사 보호), 비밀 값은 가린 입력 칸으로 편집
+ *   (docs/chromite/password-handling.md)
  */
 final class ConnectionPropertiesTable extends JPanel {
 
@@ -289,10 +294,27 @@ final class ConnectionPropertiesTable extends JPanel {
             comboBox.setEditable(true);
             return new DefaultCellEditor(comboBox);
         }
+        if (isHiddenValue(property)) {
+            // The table holds the masked text; the masked field edits the real value
+            return new DefaultCellEditor(new JPasswordField()) {
+                @Override
+                public Component getTableCellEditorComponent(JTable table, Object value, boolean isSelected, int row, int column) {
+                    Object realValue = source == null ? null : source.getPropertyValue(null, property.getId());
+                    return super.getTableCellEditorComponent(table, realValue, isSelected, row, column);
+                }
+            };
+        }
         return new DefaultCellEditor(new JTextField());
     }
 
+    /**
+     * Whether the value is a secret: a {@code password} feature, or a text property whose name has "password" or
+     * "token" in it.
+     */
     private static boolean isHiddenValue(@NotNull DBPPropertyDescriptor property) {
+        if (property.hasFeature(DBConstants.PROP_FEATURE_PASSWORD)) {
+            return true;
+        }
         Class<?> dataType = property.getDataType();
         if (dataType != null && !String.class.isAssignableFrom(dataType)) {
             return false;
@@ -328,8 +350,17 @@ final class ConnectionPropertiesTable extends JPanel {
             return switch (column) {
                 case 0 -> CommonUtils.notEmpty(property.getCategory());
                 case 1 -> CommonUtils.notEmpty(property.getDisplayName());
-                default -> source == null ? null : source.getPropertyValue(null, property.getId());
+                default -> source == null ? null : maskHiddenValue(property, source.getPropertyValue(null, property.getId()));
             };
+        }
+
+        /**
+         * A secret's value is masked here, not in the renderer, so that it does not reach the clipboard (Copy reads
+         * the model) either.
+         */
+        @Nullable
+        private Object maskHiddenValue(@NotNull DBPPropertyDescriptor property, @Nullable Object value) {
+            return value != null && isHiddenValue(property) && !value.toString().isEmpty() ? ObjectListTable.MASKED_VALUE : value;
         }
 
         @Override
@@ -350,17 +381,13 @@ final class ConnectionPropertiesTable extends JPanel {
     }
 
     /**
-     * Masks secret values and marks properties that differ from their defaults in bold.
+     * Marks properties that differ from their defaults in bold (secret values come masked from the model).
      */
     private final class ValueRenderer extends DefaultTableCellRenderer {
         @Override
         public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
             DBPPropertyDescriptor property = rows.get(table.convertRowIndexToModel(row));
-            Object shown = value;
-            if (column == VALUE_COLUMN && value != null && isHiddenValue(property) && !value.toString().isEmpty()) {
-                shown = "••••••"; //$NON-NLS-1$
-            }
-            super.getTableCellRendererComponent(table, shown, isSelected, hasFocus, row, column);
+            super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
             boolean set = source != null && source.isPropertySet(property.getId());
             setFont(table.getFont().deriveFont(set && column != 0 ? Font.BOLD : Font.PLAIN));
             return this;

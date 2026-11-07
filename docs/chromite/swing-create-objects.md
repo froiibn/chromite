@@ -111,6 +111,8 @@ SWT 전수 조사 4순위 B7 "개체 만들기"를 옮긴다. 줄은 [swt-parity
   문장이 나오지 않는다(예: `CREATE SYNONYM x FOR null`). MySQL 이벤트는 작업 스케줄러가, Oracle 스키마는 사용자(보안)가 만든다
   (모델은 암호 없는 `CREATE USER`를 만든다). 틀이 없는 드라이버의 시퀀스는 관리자 기본값으로 `CREATE SEQUENCE`가 되므로 이름만 길에
   남겼다(관리자가 만들 수 있다고 할 때만, `canCreateObject`. Generic·Altibase 시퀀스 관리자는 아니라고 해서 항목이 없다).
+  모델이 이름 대화상자가 묻지 않는 필수 값(`@Property(required = true)`, 이름과 필수 암호 말고)을 선언한 종류도 뺀다
+  (`NewObjectDialogs.hasUnaskedRequiredValue`, 2026-11-08: Exasol CONNECTION의 연결 문자열, [password-handling.md](password-handling.md)).
 - **PostgreSQL 스키마 소유자.** `PostgreSchemaManager`가 현재 연결 사용자와 같은 소유자는 `AUTHORIZATION`을 빼는데,
   연결 대화상자에서 입력한 사용자 이름은 연결 설정에 저장되지 않아(비밀번호를 저장하지 않는 연결) 같은 사용자여도 `AUTHORIZATION`이 붙는다.
   결과는 같다.
@@ -243,14 +245,10 @@ SWT 전수 조사 4순위 B7 "개체 만들기"를 옮긴다. 줄은 [swt-parity
 - 공통 외래 키 대화상자의 규칙 목록을 드라이버별로 줄이기(지금은 Oracle이 받지 않는 규칙을 고르면 추가할 때 알림).
 - PostgreSQL 데이터베이스의 `CONNECTION LIMIT`, `IS_TEMPLATE`, `ALLOW_CONNECTIONS` 등 SWT에도 없던 옵션.
 - SQL Server 데이터베이스 파일(크기, 증가, 경로)과 파일 그룹(SSMS 새 데이터베이스의 파일 페이지).
-- 새 사용자의 암호(위 "새 사용자의 암호")에서 범위 밖으로 남긴 것. 코드를 읽어 찾았고 보고만 한다.
-  - Exasol·Oracle·YashanDB·HANA의 암호 바꾸기 관리자(`*ChangeUserPasswordManager`, `HANAUserPasswordManager`)는 새 암호를
-    `DBUtils.getQuotedIdentifier`로 감싼다. 이 함수는 이미 따옴표로 싸인 글을 그대로 둔다.
-  - `MimerUserManager`와 Mimer의 `ALTER IDENT … SET PASSWORD`는 쿼리 관리자 기록을 끄지 않는다.
-  - Exasol LDAP 사용자의 `AT LDAP AS '…'`는 작은따옴표를 처리하지 않는다.
-  - Exasol CONNECTION의 이름만 길(New Connection…)은 사용자 이름이 null이라 `ExasolConnectionManager.addObjectCreateActions`의
-    `getUserName().isEmpty()`에서 NullPointerException이 날 것으로 보인다. 연결 문자열이 필요한 종류라 이름만 길에서 빼야 한다.
-  - Swing 속성 표는 `password = true` 속성을 가리지 않는다. 예를 들어 Exasol 사용자의 "Password Hash"(서버의 암호 해시)가 그대로 보인다.
+- 새 사용자의 암호(위 "새 사용자의 암호")에서 범위 밖으로 남긴 것.
+  - 암호 바꾸기의 따옴표(Exasol·Oracle·YashanDB·HANA), Mimer의 쿼리 관리자 기록, Exasol LDAP의 작은따옴표, Exasol New Connection…의
+    NullPointerException, Swing 속성 표의 암호 가리기는 2026-11-08 고쳤다([password-handling.md](password-handling.md)).
+    New Connection…은 연결 문자열이 필수라 이름만 길에서 뺐다(모델이 `required = true`로 선언).
   - "드라이버 파일 다운로드" 질문의 기본 단추가 Download다.
 
 ## 변경 이력
@@ -261,3 +259,5 @@ SWT 전수 조사 4순위 B7 "개체 만들기"를 옮긴다. 줄은 [swt-parity
   드라이버의 시퀀스를 이름만 길에 둠, 소유자를 고르지 않은 PostgreSQL 새 스키마의 `AUTHORIZATION public`.
 - 2026-11-08 새 사용자의 암호(`chromite/exasol-password-fix`): Exasol 새 사용자의 고정 암호 `"password"`를 없애고, 이름 대화상자가 모델의
   필수 암호 속성을 가려서 받음(미리 보기는 `********`, 실제 암호는 저장하는 동안만). 빈 암호의 Exasol 사용자·Mimer 프로그램 CREATE는 거절.
+- 2026-11-08 묻지 않는 필수 값이 있는 종류를 이름만 길에서 뺌(Exasol New Connection…), "남긴 것"의 암호 항목을 고쳤다고 적음
+  (`chromite/password-handling-fixes`, [password-handling.md](password-handling.md)).

@@ -30,6 +30,16 @@ import org.jkiss.utils.CommonUtils;
 
 import java.sql.SQLException;
 
+/**
+ * Changes the password of the connected Oracle user ({@code ALTER USER … IDENTIFIED BY … REPLACE …}).
+ *
+ * 설계: 새 암호와 옛 암호는 {@link OracleUtils#quotePassword}로 늘 큰따옴표로 감싼다. 식별자용
+ * {@code DBUtils.getQuotedIdentifier}는 이미 따옴표로 싸인 글을 그대로 두어 {@code "abc"}를 친 사용자의 암호가 {@code abc}가 됐다.
+ * 문장은 쿼리 관리자 기록에서 뺀다({@code enableLogging(false)}).
+ *
+ * 변경 이력:
+ * - 2026-11-08 암호를 식별자가 아니라 암호로 따옴표 처리, 큰따옴표가 든 암호는 보내기 전에 거절 (docs/chromite/password-handling.md)
+ */
 public class OracleChangeUserPasswordManager implements DBAUserPasswordManager {
 
     private OracleDataSource dataSource;
@@ -40,14 +50,14 @@ public class OracleChangeUserPasswordManager implements DBAUserPasswordManager {
 
     @Override
     public void changeUserPassword(@NotNull DBRProgressMonitor monitor, @NotNull String userName, @NotNull String newPassword, @NotNull String oldPassword) throws DBException {
-        // Do not use numbers in the password beginning
+        String quotedNewPassword = OracleUtils.quotePassword(CommonUtils.notEmpty(newPassword));
+        String quotedOldPassword = OracleUtils.quotePassword(CommonUtils.notEmpty(oldPassword));
         try (JDBCSession session = DBUtils.openMetaSession(monitor, dataSource, "Change user password")) {
             session.enableLogging(false);
             String transformedUserName = DBObjectNameCaseTransformer.transformName(dataSource, userName);
             JDBCUtils.executeSQL(session, "ALTER USER " + DBUtils.getQuotedIdentifier(dataSource,
                 transformedUserName != null ? transformedUserName : userName) + " IDENTIFIED BY " +
-                DBUtils.getQuotedIdentifier(dataSource, CommonUtils.notEmpty(newPassword)) +
-                " REPLACE " + DBUtils.getQuotedIdentifier(dataSource, CommonUtils.notEmpty(oldPassword)));
+                quotedNewPassword + " REPLACE " + quotedOldPassword);
         } catch (SQLException e) {
             throw new DBCException("Error changing user password", e);
         }
