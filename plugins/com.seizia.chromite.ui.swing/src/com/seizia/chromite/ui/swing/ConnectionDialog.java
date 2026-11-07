@@ -88,6 +88,7 @@ import java.util.StringTokenizer;
  *   (docs/chromite/credential-storage.md "실패")
  * - 2026-11-07 쿼리 창 세션 설정(쿼리 창마다 별도 연결)만 바꾸면 다시 연결을 묻지 않음: 그 뒤 연결하는 창부터 적용
  *   (docs/chromite/transactions.md "쿼리 창마다 별도 연결")
+ * - 2026-11-08 연결 설명만 바꾸면 다시 연결을 묻지 않음: 세션과 관계없는 값 (docs/chromite/swing-conn-advanced.md "4. 일반 설정")
  */
 final class ConnectionDialog extends JDialog {
 
@@ -455,6 +456,8 @@ final class ConnectionDialog extends JDialog {
             } else {
                 after.getPreferenceStore().setToDefault(QueryWindowContext.PREF_SEPARATE_CONNECTION);
             }
+            // The description is not used by the sessions either
+            after.setDescription(before.getDescription());
             otherChanged = !before.equalSettings(after);
         } finally {
             before.dispose();

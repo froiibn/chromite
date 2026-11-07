@@ -51,6 +51,7 @@ import javax.swing.event.DocumentListener;
 import java.awt.*;
 import java.io.File;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -73,11 +74,13 @@ import java.util.Set;
  *     예시 URL이 없거나 그중 아무것도 없으면 JDBC URL만 입력한다.</li>
  *     <li>Authentication: {@link ConnectionAuthModels}가 고른 인증 방식(둘 이상일 때만 콤보를 보임, SWT {@code AuthModelSelector}와 같음).
  *     인증 방식마다 Login·Password 칸을 보이거나 숨긴다. 드라이버가 익명 접속이면 인증 칸을 모두 숨긴다.</li>
- *     <li>인증 방식별 추가 칸({@link ConnectionAuthExtras}: SQL Server NTLM의 integrated security, Oracle Role, PgPass 호스트 이름)은
+ *     <li>인증 방식별 추가 칸({@link ConnectionAuthExtras}: SQL Server NTLM의 integrated security, Oracle Role, PgPass 호스트 이름,
+ *     BigQuery OAuth, Snowflake Role·Authenticator, Spanner 키 파일)은
  *     인증 묶음 아래에 두고 고른 방식의 것만 보인다. 저장할 때 고르지 않은 방식의 칸이 쓴 값은 지운다.</li>
- *     <li>드라이버별 주 칸({@link ConnectionDriverFields}: SQL Server Encrypt·Trust server certificate, Oracle Basic/TNS·SID/Service)은
+ *     <li>드라이버별 주 칸({@link ConnectionDriverFields}: SQL Server Encrypt·Trust server certificate, Oracle Basic/TNS·SID/Service,
+ *     BigQuery·Snowflake·SAP HANA·Firebird Embedded·Mimer SQL의 칸)은
  *     범용 칸 사이의 정해진 자리에 넣는다. 그 칸이 맡는 공급자 속성은 Provider Properties 표에서 뺀다(한 값을 두 곳에서 고치지 않게).</li>
- *     <li>Options 탭: Connection Properties(연결 종류, 자동 커밋, 트랜잭션 격리 수준, 쿼리 창 세션(연결의 설정 저장소, {@link QueryWindowContext}), 기본 DB·스키마, 읽기 전용, 연결 색, 연결 직후 SQL, keep-alive, 유휴 연결 닫기,
+ *     <li>Options 탭: Connection Properties(설명, 연결 종류, 자동 커밋, 트랜잭션 격리 수준, 쿼리 창 세션(연결의 설정 저장소, {@link QueryWindowContext}), 기본 DB·스키마, 읽기 전용, 연결 색, 연결 직후 SQL, keep-alive, 유휴 연결 닫기,
  *     유휴 트랜잭션 알림·자동 롤백. SWT
  *     {@code ConnectionPageGeneral}·{@code ConnectionPageInitialization}과 같은 값), 네트워크 핸들러 탭(SSH, Proxy, SSL: {@link ConnectionNetworkPage},
  *     쓰는 핸들러의 탭에는 확인 표시), Driver Properties, Provider Properties,
@@ -114,6 +117,9 @@ import java.util.Set;
  *   (docs/chromite/swing-conn-advanced.md "Oracle 세션 설정")
  * - 2026-11-07 Connection Properties에 쿼리 창 세션(이 연결의 쿼리 창마다 별도 연결: Options 설정 / 창마다 / 함께 씀)
  *   (docs/chromite/transactions.md "쿼리 창마다 별도 연결")
+ * - 2026-11-08 Connection Properties 맨 위에 연결 설명(SWT {@code ConnectionPageGeneral}의 Description, 탐색기 도구 설명에 보임)
+ *   (docs/chromite/swing-conn-advanced.md "4. 일반 설정")
+ * - 2026-11-08 공급자 속성이 모두 주 양식 칸에 있으면 Provider Properties 탭을 만들지 않음(HANA의 빈 표)
  */
 final class ConnectionSettingsPanel extends JPanel {
 
@@ -161,6 +167,7 @@ final class ConnectionSettingsPanel extends JPanel {
     @Nullable
     private JComponent databaseRow;
 
+    private final JTextField descriptionField = new JTextField();
     private final JComboBox<DBPConnectionType> connectionTypeCombo = new JComboBox<>();
     private final JComboBox<String> autoCommitCombo = new JComboBox<>(AUTO_COMMIT_ITEMS);
     // The driver default (a String) or a DBPTransactionIsolation
@@ -190,6 +197,10 @@ final class ConnectionSettingsPanel extends JPanel {
     private final ConnectionPropertiesTable driverPropertiesTable = new ConnectionPropertiesTable(true);
     @Nullable
     private final ConnectionPropertiesTable providerPropertiesTable;
+    /**
+     * Provider properties edited by the main form's fields (left out of the Provider Properties table).
+     */
+    private final Set<String> handledProviderProperties = new HashSet<>();
     private boolean driverPropertiesRequested;
     private boolean loading;
 
@@ -246,8 +257,17 @@ final class ConnectionSettingsPanel extends JPanel {
         driverFields = urlOnly ? null : ConnectionDriverFields.create(driver, this.changeListener);
         networkPages = ConnectionNetworkPage.createPages(dataSource, this.changeListener);
 
+        // Properties with a field in the main form are edited there only; without other properties there is no table tab (HANA)
+        if (driverFields != null) {
+            handledProviderProperties.addAll(driverFields.getHandledProviderProperties());
+        }
+        for (ConnectionAuthExtras.Extra extra : authExtras) {
+            handledProviderProperties.addAll(extra.getHandledProviderProperties());
+        }
         DBPPropertyDescriptor[] providerDescriptors = driver.getProviderPropertyDescriptors();
-        providerPropertiesTable = providerDescriptors == null || providerDescriptors.length == 0 ? null : new ConnectionPropertiesTable(false);
+        boolean tableProperties = providerDescriptors != null
+            && Arrays.stream(providerDescriptors).anyMatch(descriptor -> !handledProviderProperties.contains(descriptor.getId()));
+        providerPropertiesTable = tableProperties ? new ConnectionPropertiesTable(false) : null;
 
         add(createMainForm(databaseTypeCombo), BorderLayout.NORTH);
         optionsTabs.addTab(ConnectionMessages.settings_tab_connection_properties, createConnectionPropertiesPage());
@@ -709,6 +729,8 @@ final class ConnectionSettingsPanel extends JPanel {
         keepAliveSpinner.setToolTipText(ConnectionMessages.settings_keep_alive_tip);
 
         FormBuilder form = new FormBuilder();
+        descriptionField.setToolTipText(ConnectionMessages.settings_description_tip);
+        form.addRow(ConnectionMessages.settings_description, descriptionField);
         form.addRow(ConnectionMessages.settings_connection_type, connectionTypeCombo);
         form.addRow(ConnectionMessages.settings_auto_commit, autoCommitCombo);
         isolationCombo.setRenderer(new DefaultListCellRenderer() {
@@ -842,15 +864,7 @@ final class ConnectionSettingsPanel extends JPanel {
 
             if (providerPropertiesTable != null && providerDescriptors != null) {
                 List<DBPPropertyDescriptor> descriptors = new ArrayList<>(List.of(providerDescriptors));
-                // Properties with a field in the main form are edited there only
-                Set<String> handled = new HashSet<>();
-                if (driverFields != null) {
-                    handled.addAll(driverFields.getHandledProviderProperties());
-                }
-                for (ConnectionAuthExtras.Extra extra : authExtras) {
-                    handled.addAll(extra.getHandledProviderProperties());
-                }
-                descriptors.removeIf(descriptor -> handled.contains(descriptor.getId()));
+                descriptors.removeIf(descriptor -> handledProviderProperties.contains(descriptor.getId()));
                 providerPropertiesTable.setSource(
                     new PropertySourceCustom(descriptors, new HashMap<>(configuration.getProviderProperties())), null);
             }
@@ -878,6 +892,7 @@ final class ConnectionSettingsPanel extends JPanel {
      * ConnectionPageInitialization load them.
      */
     private void loadConnectionProperties(@NotNull DBPConnectionConfiguration configuration) {
+        descriptionField.setText(CommonUtils.notEmpty(dataSource.getDescription()));
         DBPConnectionType type = configuration.getConnectionType();
         if (((DefaultComboBoxModel<DBPConnectionType>) connectionTypeCombo.getModel()).getIndexOf(type) < 0) {
             connectionTypeCombo.addItem(type);
@@ -1000,12 +1015,15 @@ final class ConnectionSettingsPanel extends JPanel {
     }
 
     /**
-     * Same values as ConnectionPageGeneral.saveSettings (type, read-only) and ConnectionPageInitialization.saveSettings
+     * Same values as ConnectionPageGeneral.saveSettings (description, type, read-only) and ConnectionPageInitialization.saveSettings
      * (auto-commit, isolation level, default catalog and schema, keep-alive, idle connections), and Chromite's idle
      * transaction settings.
      * Empty names are saved as "not set".
      */
     private void saveConnectionProperties(@NotNull DataSourceDescriptor target) {
+        // ConnectionPageGeneral.saveSettings: an empty description is "none"
+        String description = descriptionField.getText().trim();
+        target.setDescription(description.isEmpty() ? null : description);
         DBPConnectionConfiguration configuration = target.getConnectionConfiguration();
         if (connectionTypeCombo.getSelectedItem() instanceof DBPConnectionType type && !Objects.equals(type, configuration.getConnectionType())) {
             configuration.setConnectionType(type);

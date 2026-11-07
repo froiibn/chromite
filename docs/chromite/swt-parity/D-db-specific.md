@@ -16,15 +16,17 @@
 
 | 구역 | 행 | 있음 | 일부 | 없음 | 의도적 제외 | 조용히 끊김 |
 |---|---|---|---|---|---|---|
-| PostgreSQL (`ext.postgresql.ui`, `ext.postgresql.debug.ui`) | 29 | 13 | 7 | 9 | 0 | 0 |
-| SQL Server (`ext.mssql.ui`) | 14 | 10 | 1 | 3 | 0 | 0 |
+| PostgreSQL (`ext.postgresql.ui`, `ext.postgresql.debug.ui`) | 29 | 14 | 7 | 8 | 0 | 0 |
+| SQL Server (`ext.mssql.ui`) | 14 | 12 | 1 | 1 | 0 | 0 |
 | MySQL/MariaDB (`ext.mysql.ui`) | 19 | 10 | 4 | 5 | 0 | 0 |
-| Oracle (`ext.oracle.ui`) | 24 | 11 | 3 | 8 | 1 | 1 |
+| Oracle (`ext.oracle.ui`) | 24 | 12 | 3 | 7 | 1 | 1 |
 | Altibase (`ext.altibase.ui`) | 9 | 3 | 0 | 5 | 0 | 1 |
-| 나머지 26개 번들 (+ 끊김 3행) | 29 | 2 | 16 | 8 | 0 | 3 |
-| **합계** | **124** | **49** | **31** | **38** | **1** | **5** |
+| 나머지 26개 번들 (+ 끊김 3행) | 29 | 9 | 14 | 4 | 0 | 2 |
+| **합계** | **124** | **60** | **29** | **30** | **1** | **4** |
 
 2026-11-08 3순위 Oracle·Altibase 관리(`chromite/p3-oracle-altibase-admin`): P23·S14·M17·O5·O16·O21·A2 없음 → 있음.
+2026-11-08 4순위 연결 칸(`chromite/p4-connection-fields`): P3·S4·S5·O7 없음 → 있음, 번들 줄 bigquery·firebird·hana·snowflake 일부 → 있음,
+databend·tidblake 없음 → 있음, clickhouse·mimer 없음 → 일부. 같은 때 나머지 번들 줄의 수를 표와 맞춤(2026-11-07에 고친 CUBRID K3가 끊김으로 남아 있었음).
 
 ### 조용히 끊김 (먼저 볼 것)
 
@@ -45,9 +47,9 @@ K1–K3의 공통 원인은 SQL 편집기에 서버 출력 패널이 없는 것�
 |---|---|---|---|---|---|---|
 | P1 | 연결 주 양식(호스트·포트·DB·URL) | `PostgreConnectionPage` | 있음 | `ConnectionSettingsPanel`(범용 양식) | 높음 | |
 | P2 | 연결 고급: 모든 DB 보기(show-non-default-db), 템플릿 DB, 사용 불가 DB, 모든 데이터 형식 읽기, 키를 열과 함께 읽기, 옛 시간대 바꾸기, `$$` 문자열 처리 2개, 세션 역할 | `PostgreConnectionPage`, `PostgreConnectionPageAdvanced` | 있음 | 모두 `ext.postgresql/plugin.xml` `<provider-properties>`에 선언 → Provider Properties 표(`ConnectionSettingsPanel.java:220`) | 중간 | 주 양식 확인란이 아니라 Options의 표 한 줄이다 |
-| P3 | 연결 고급: DB 통계 보기(show-database-statistics), Prepared statement 사용(PgBouncer용) | `PostgreConnectionPageAdvanced:288-302` | 없음 | 두 키가 `<provider-properties>`에 없음. 모델은 그대로 읽음(`PostgreDataSource.java:99-110`, `:300-306`) | 중간 | 저장된 값(SWT 시절 데이터는 이름 바꿔 복사됨)은 계속 적용되지만 보거나 바꿀 수 없다. PgBouncer 서버 종류는 prepared statement를 켤 방법이 없다 |
+| P3 | 연결 고급: DB 통계 보기(show-database-statistics), Prepared statement 사용(PgBouncer용) | `PostgreConnectionPageAdvanced:288-302` | **있음** (2026-11-08, `chromite/p4-connection-fields`: 두 키를 `<provider-properties>`에 선언 → Provider Properties 표, [swing-conn-advanced.md](../swing-conn-advanced.md) "공급자 속성 선언"). 조사 당시: 없음 | 두 키가 `<provider-properties>`에 없음. 모델은 그대로 읽음(`PostgreDataSource.java:99-110`, `:300-306`) | 중간 | 조사 당시: 저장된 값은 계속 적용되지만 보거나 바꿀 수 없었다 |
 | P4 | PgPass 인증 + pgpass 호스트 이름 바꾸기 | `PostgreAuthPgPassConfigurator` | 있음 | `ConnectionAuthExtras`([swing-conn-advanced.md](../swing-conn-advanced.md) 21, 69행) | 낮음 | |
-| P5 | SSL(인증서·키·모드·factory·프록시 서비스) | `PostgreSSLConfigurator` | 일부 | `SslHandlerPanel`(swing-conn-advanced.md 136행) | 낮음 | "Use proxy service"(`sslProxyServer`, 모델 `PostgreDataSource.java:287`) 칸 없음, SSL factory는 목록 대신 직접 입력 |
+| P5 | SSL(인증서·키·모드·factory·프록시 서비스) | `PostgreSSLConfigurator` | 일부 | `SslHandlerPanel`(swing-conn-advanced.md 136행) | 낮음 | SSL factory는 목록 대신 직접 입력. "Use proxy service"(`sslProxyServer`): SWT도 숨긴 칸(`PostgreSSLConfigurator.ENABLE_PROXY = false`)이고 켜면 모델이 SSL 설정을 하나도 넘기지 않는다(`initProxySSL` 비어 있음). 2026-11-08: 저장된 값이 켜져 있을 때만 확인란을 보여 끌 수 있게 함([swing-conn-advanced.md](../swing-conn-advanced.md) "SSL") |
 | P6 | 로컬 클라이언트(pg_dump 위치) 선택 | `PostgreConnectionPageAdvanced`의 `ClientHomesSelector` | 있음 | `NativeBackupRestoreDialog.loadClients`·`browseClient`(swing-backup-restore.md 37행 표) | 낮음 | 연결 화면이 아니라 백업 대화상자에서 고른다 |
 | P7 | 전역 환경설정 "PostgreSQL" 페이지(위 P2·P3 항목의 전역 기본값) | `PrefPagePostgreSQL`, `PostgrePreferencesInitializer` | 없음 | `OptionsDialog.java:178-180`(일반·편집기·색 탭뿐) | 낮음 | 연결마다 표로 바꿀 수는 있다 |
 | P8 | 세션 관리자(유휴 보기, Terminate, Cancel query) | `PostgreSessionEditor` | 있음 | `SessionManagerPanel` + `PostgreActivitySessionManager`(swing-admin-tools.md 124행) | 높음 | Swing이 대기·막는 세션·트랜잭션 경과를 더함 |
@@ -80,8 +82,8 @@ K1–K3의 공통 원인은 SQL 편집기에 서버 출력 패널이 없는 것�
 | S1 | 인증 종류(SQL Server / Windows / NTLM / Kerberos / AD 계열) + NTLM integrated security | `SQLServerConnectionPage`(인증 패널), `SQLServerAuthConfigurator` | 있음 | `ConnectionAuthModels`, `ConnectionAuthExtras`(swing-conn-advanced.md 67행, swing-frontend.md 1424-1425행 표) | 높음 | |
 | S2 | Trust server certificate | `SQLServerConnectionPage:173` | 있음 | `ConnectionDriverFields`(swing-conn-advanced.md 153행) | 높음 | Swing이 Encrypt(Optional/Mandatory/Strict)를 주 양식에 더함 |
 | S3 | Show all schemas | `SQLServerConnectionPage:170` | 있음 | `<provider-properties>` 선언 → 표 | 낮음 | |
-| S4 | Azure·Babelfish "Show all databases"(`show-all-databases-azure`) | `SQLServerConnectionPage:163` | 없음 | 키가 `<provider-properties>`에 없음. 모델 `SQLServerDataSource.java:759-763`은 값이 없으면 Azure·Babelfish에서 현재 DB만 보임 | 중간 | Azure SQL 사용자는 다른 DB를 탐색기에서 볼 수 없다(저장된 값은 동작) |
-| S5 | Sybase/jTDS "Encrypt password" | `SQLServerConnectionPage:160` | 없음 | 키 미선언. 모델 `SQLServerGenericDataSource.java:91` | 낮음 | |
+| S4 | Azure·Babelfish "Show all databases"(`show-all-databases-azure`) | `SQLServerConnectionPage:163` | **있음** (2026-11-08, `chromite/p4-connection-fields`: Azure·Babelfish 드라이버의 `<provider-properties>`에 선언(SQL Server 드라이버의 줄도 함께 복사) → 표). 조사 당시: 없음 | 키가 `<provider-properties>`에 없음. 모델 `SQLServerDataSource.java:759-763`은 값이 없으면 Azure·Babelfish에서 현재 DB만 보임 | 중간 | Azure SQL 사용자는 다른 DB를 탐색기에서 볼 수 없다(저장된 값은 동작) |
+| S5 | Sybase/jTDS "Encrypt password" | `SQLServerConnectionPage:160` | **있음** (2026-11-08, `chromite/p4-connection-fields`: Generic(Sybase·예전) 공급자의 `<provider-properties>`에 선언 → 표. 같은 때 Azure·Babelfish 드라이버에 "Show all databases"(`show-all-databases-azure`)와 SQL Server 드라이버의 표 줄을 선언). 조사 당시: 없음 | 키 미선언. 모델 `SQLServerGenericDataSource.java:91` | 낮음 | |
 | S6 | SSL(키 저장소, 비밀번호, 인증서 호스트 이름) | `SQLServerSSLConfigurator` | 있음 | `SslHandlerPanel`(swing-conn-advanced.md 138행) | 중간 | |
 | S7 | 세션 관리자(Only connections, Kill) | `SQLServerSessionEditor` | 있음 | `SessionManagerPanel`(swing-admin-tools.md 125행) | 높음 | Swing이 잠금 탭을 새로 더함(SWT에 없었음) |
 | S8 | Source / Definition / DDL 탭 | `SQLServerSourceViewEditor` | 일부 | View DDL, Modify → 쿼리 창(swing-source-editor.md 53행) | 중간 | 제자리 편집 없음 |
@@ -126,7 +128,7 @@ K1–K3의 공통 원인은 SQL 편집기에 서버 출력 패널이 없는 것�
 | O4 | Oracle 클라이언트(OCI) 홈 선택 | `OracleConnectionPage.createClientHomeGroup` | 의도적 제외 | swing-conn-advanced.md 165행. SWT도 `PRODUCT_FEATURE_ADVANCED_DATABASE_ADMINISTRATION`(상용)일 때만 보임(`OracleConnectionPage.java:112-114`) | 낮음 | |
 | O5 | 세션 NLS: 언어, 지역, 날짜·타임스탬프 형식, 길이 의미(BYTE/CHAR), 통화 | `OracleConnectionExtraPage:103-122` | 있음(2026-11-08) | 연결 대화상자 Options의 세션 설정 탭(`ConnectionDriverFields` Oracle, swing-conn-advanced.md "Oracle 세션 설정") | 중간 | 조사 당시: 없음(6개 키가 `<provider-properties>`에 없어 저장값이 보이지 않게 적용됨) |
 | O6 | 메타데이터 옵션: 옵티마이저 힌트, RULE 힌트, 단순 제약 질의, 다른 테이블 질의, DBA 뷰 쓰기·항상 DBA 보기, SYS 스키마, 빈 스키마 숨김, 한 스키마만, DATE를 날짜로, 동의어에서 찾기, OS 사용자 | `OracleConnectionExtraPage` | 있음 | 모두 선언(`ext.oracle/plugin.xml` provider-properties) → 표 | 낮음 | |
-| O7 | 메타데이터 옵션: 열 주석 읽기, 시퀀스에서 찾기, 옵티마이저 버전 | `OracleConnectionExtraPage:138-171` | 없음 | 키 미선언. 모델 `OracleSchema.java:151`, `:813`, `OracleDataSource.java:396` | 낮음 | |
+| O7 | 메타데이터 옵션: 열 주석 읽기, 시퀀스에서 찾기, 옵티마이저 버전 | `OracleConnectionExtraPage:138-171` | **있음** (2026-11-08, `chromite/p4-connection-fields`: 세 키를 Performance 묶음에 선언 → 표, 옵티마이저 버전은 SWT 목록 콤보). 조사 당시: 없음 | 키 미선언. 모델 `OracleSchema.java:151`, `:813`, `OracleDataSource.java:396` | 낮음 | |
 | O8 | 전역·연결별 "Oracle" 환경설정(PLAN_TABLE 이름, ROWID 사용, DBMS_OUTPUT 켜기, 모든 동의어 읽기, 스크립트 escape 처리 끄기) | `PrefPageOracle`(preferencePages + propertyPages) | 없음 | `OptionsDialog.java:178-180` | 낮음 | 기본값은 모델 쪽 `OraclePreferencesInitializer`가 그대로 넣는다(UI 번들의 같은 초기화가 지워져도 값 같음). K1을 끌 방법도 없다 |
 | O9 | 세션 관리자(Kill, Disconnect, 백그라운드·비활성 보기) | `OracleSessionEditor` | 있음 | `OracleActivitySessionManager`(swing-admin-tools.md 127행) | 높음 | |
 | O10 | 잠금 관리자 | `OracleLockEditor` | 있음 | `OracleBlockingLockManager`(swing-admin-tools.md 154행) | 높음 | |
@@ -171,54 +173,54 @@ SWT에도 Altibase 전용 연결 화면은 없었다(`dataSourceConfigurator` �
 | DB | 설정 | 저장 키 | 선언됨 | Swing에서 | 저장된 값이 동작 |
 |---|---|---|---|---|---|
 | PostgreSQL | Show all databases, 템플릿·사용 불가 DB, 모든 형식 읽기, 키와 열, 옛 시간대, `$$` 2개, 세션 역할 | `@chromite-show-non-default-db@` 등 | 예 | 표 | 예 |
-| PostgreSQL | DB 통계 보기 | `show-database-statistics` | 아니오 | 없음 | 예(`PostgreDataSource.java:99-110`) |
-| PostgreSQL | Prepared statement 사용(PgBouncer) | `@chromite-use-prepared-statements-db@` | 아니오 | 없음 | 예(`:300-306`) |
+| PostgreSQL | DB 통계 보기 | `show-database-statistics` | 예(2026-11-08) | 표 | 예(`PostgreDataSource.java:99-110`) |
+| PostgreSQL | Prepared statement 사용(PgBouncer) | `@chromite-use-prepared-statements-db@` | 예(2026-11-08) | 표(Performance) | 예(`:300-306`) |
 | PostgreSQL | pgpass 호스트 이름 | `overriddenUsername` | 아니오 | 주 양식 칸(`ConnectionAuthExtras`) | 예 |
-| PostgreSQL | SSL 프록시 서비스 | 핸들러 속성 `sslProxyServer` | — | 없음 | 예 |
+| PostgreSQL | SSL 프록시 서비스 | 핸들러 속성 `sslProxyServer` | — | SSL 탭, 저장된 값이 켜져 있을 때만(2026-11-08, SWT도 숨김) | 예(켜면 SSL 설정을 넘기지 않음) |
 | SQL Server | 인증 종류 / Windows / NTLM integrated | auth model, 드라이버 속성 `integratedSecurity` | — | 콤보 + 칸 | 예 |
 | SQL Server | Trust server certificate, Show all schemas | `sslTrustServerCertificate`, `@chromite-show-all-schemas@` | 예 | 주 양식 / 표 | 예 |
-| SQL Server | Azure·Babelfish Show all databases | `show-all-databases-azure` | 아니오 | 없음 | 예(`SQLServerDataSource.java:759-763`) |
-| SQL Server | Encrypt password(jTDS/Sybase) | `@chromite-encrypt-password@` | 아니오 | 없음 | 예 |
+| SQL Server | Azure·Babelfish Show all databases | `show-all-databases-azure` | 예(2026-11-08, Azure·Babelfish 드라이버) | 표 | 예(`SQLServerDataSource.java:759-763`) |
+| SQL Server | Encrypt password(jTDS/Sybase) | `@chromite-encrypt-password@` | 예(2026-11-08, Generic 공급자) | 표 | 예 |
 | MySQL | Show all databases, Server time zone | `@chromite-show-all-dbs@`, `@chromite-serverTimezone@` | 예 | 표 | 예 |
 | MySQL | SSL 옵션 | `ssl.*` 핸들러 속성 | — | SSL 탭 | 예 |
 | Oracle | Basic/TNS, TNS 경로, SID/Service | `@chromite-connection-type@`, `@chromite-tns-path@`, `@chromite-sid-service@` | 일부(sid-service만) | 주 양식 칸(`ConnectionDriverFields`) | 예 |
 | Oracle | Role(SYSDBA 등), OS 인증 | 인증 속성 `oracle.logon-as`, auth model | 예 | 주 양식 칸 | 예 |
 | Oracle | NLS 언어·지역·날짜·타임스탬프·길이·통화 | `@chromite-session-language@`, `@chromite-session-territory@`, `@chromite-session-nls-date-format@`, `session-nls-timestamp-format`, `session-nls-length-format`, `session-nls-currency-format` | 아니오 | Options의 세션 설정 탭(2026-11-08, swing-conn-advanced.md "Oracle 세션 설정") | 예(`OracleDataSource.java:361-372`) |
-| Oracle | 열 주석 읽기, 시퀀스에서 찾기, 옵티마이저 버전 | `@chromite-meta-read-column-comments@`, `oracle.meta-search-in-sequences`, `oracle-meta-optimizer-version` | 아니오 | 없음 | 예 |
+| Oracle | 열 주석 읽기, 시퀀스에서 찾기, 옵티마이저 버전 | `@chromite-meta-read-column-comments@`, `oracle.meta-search-in-sequences`, `oracle-meta-optimizer-version` | 예(2026-11-08) | 표(Performance) | 예 |
 | Oracle | 그 밖의 메타데이터 옵션 11개 | O6 | 예 | 표 | 예 |
-| 기타 | Firebird 내장 라이브러리 경로, Spanner 키 경로, BigQuery OAuth 종류·키 경로, Snowflake 스키마(`@chromite-schema@`)·인증자·역할, CUBRID shard, Mimer protocol·program, HANA 에디션 | 각 `*ConnectionPage`·`*AuthConfigurator` | 아니오 | 없음 | 예 |
+| 기타 | Firebird 내장 라이브러리 경로, Spanner 키 경로, BigQuery OAuth 종류·키 경로, Snowflake 스키마(`@chromite-schema@`)·인증자·역할, CUBRID shard, Mimer protocol·program, HANA 에디션 | 각 `*ConnectionPage`·`*AuthConfigurator` | 아니오 | 2026-11-08: CUBRID shard 말고 모두 주 양식 칸(드라이버별 칸·인증 방식별 칸, [swing-conn-advanced.md](../swing-conn-advanced.md)). CUBRID `shardType`·`shardValue`는 드라이버 속성이라 Driver Properties 표에서 고칠 수 있다(SWT의 값 검사 없음) | 예 |
 
 ## 7. 나머지 26개 번들 (한 번들 한 줄 + 끊김 행)
 
 | 번들 | 주요 SWT 기능 | 상태 | 근거 | 영향 | 비고 |
 |---|---|---|---|---|---|
 | `ext.athena.ui` | 연결 화면(지역, S3 출력 위치, AWS 카탈로그 보기) | 일부 | `AwsRegion`, `S3OutputLocation`, `show-aws-catalogs` 선언 → 표. SWT는 새 키 `OutputLocation`에 쓰고 모델은 둘 다 읽음(`AthenaDataSource.java:59-61`) | 낮음 | |
-| `ext.bigquery.ui` | 연결 화면, 인증(OAuth 종류, 서비스 계정 키 파일) | 일부 | `AdditionalProjects`만 선언. 전용 인증 칸 없음(swing-conn-advanced.md 226행) | 낮음 | |
-| `ext.clickhouse.ui` | SSL 칸, Cloud SSO·OIDC 인증, ENUM 값 편집기 | 없음 | swing-conn-advanced.md 225-226행, swing-frontend.md 1429행. 인증 서비스 `UIServiceAuth`(`ClickhouseAuthPrompt.java:61`) 구현 없음 | 낮음 | 사용자 이름/암호 연결은 범용 화면으로 됨 |
+| `ext.bigquery.ui` | 연결 화면, 인증(OAuth 종류, 서비스 계정 키 파일) | **있음** (2026-11-08) | 주 양식 Project 칸(전에는 예시 URL에 `{database}`가 없어 넣을 곳이 없었음), 인증 칸 OAuth type·Key file(드라이버 속성 `OAuthType`·`OAuthPvtKeyPath`). 조사 당시: 일부 | 낮음 | |
+| `ext.clickhouse.ui` | SSL 칸, Cloud SSO·OIDC 인증, ENUM 값 편집기 | 일부 (2026-11-08: SSL 탭) | SSL 탭: CA·클라이언트 인증서·키, SSL mode STRICT/NONE. 남은 것: Cloud SSO·OIDC 인증 칸과 `UIServiceAuth`(`ClickhouseAuthPrompt.java:61`) 구현, ENUM 값 편집기. 조사 당시: 없음 | 낮음 | 사용자 이름/암호 연결은 범용 화면으로 됨 |
 | `ext.cloudflare.d1.ui` | 연결 화면, 인증 칸, DB 고르기 | 일부 | 전용 방식 하나의 Login·Password만(swing-frontend.md 1432행) | 낮음 | DB 목록 고르기 없음 |
 | `ext.cubrid.ui` | 연결 + shard 페이지, 프로시저·열·고유 키 만들기, OID 검색, 권한 편집기, 정보 패널, 계획 보기, 환경설정(DBMS 출력) | 없음 | 연결 외 grep 0건. 결과 패널(`resultset.panel`)·계획 보기(`sql.plan.view`) 없음 | 낮음 | 출력은 아래 K3 |
 | ↳ CUBRID DBMS_OUTPUT | (편집기 Output) | 있음(2026-11-07, 코드 경로만 확인) | K3 | 낮음 | |
 | `ext.dameng.ui` | 스키마·시퀀스 만들기 | 없음 | 새로 만들기 메뉴 없음 | 낮음 | |
-| `ext.databend.ui` | SSL 칸 | 없음 | swing-conn-advanced.md 225행 | 낮음 | |
+| `ext.databend.ui` | SSL 칸 | **있음** (2026-11-08) | SSL 탭(켜기만, 모델이 `sslmode=enable`을 넣음). 조사 당시: 없음 | 낮음 | 핸들러가 `desktop="false"`지만 SWT는 탭을 보였다 |
 | `ext.db2.ui` | 연결 + 추적(trace) 페이지, FK·인덱스·스키마·시퀀스·고유 키 만들기, 루틴·테이블 DDL 편집기, 서버 애플리케이션(세션) 편집기, 테이블스페이스 고르기, 오류 보기 도구, REORG TABLE | 일부 | 세션은 `DB2DataSource`의 세션 관리자 어댑터로 Activity Monitor에 나옴. 나머지 grep 0건 | 낮음 | |
 | `ext.duckdb.ui` | 연결 + 고급(`$$` 처리), DB 파일 열기 처리기, MotherDuck 인증 | 일부 | `$$` 키 선언 → 표, MotherDuck은 Password(토큰) 칸(swing-frontend.md 1431행). 파일 처리기(`fileTypeHandler`) 없음 | 낮음 | |
 | `ext.exasol.ui` | 연결(백업 호스트, 암호화), 사용자·역할·스키마·소비자 그룹·우선순위 그룹·PK/FK/인덱스 대화상자, 세션·잠금 편집기, 테이블 가져오기·내보내기 도구 | 일부 | 연결 키 선언 → 표, 세션은 어댑터로 나옴. 잠금은 모델 `ExasolLockManager`가 있으나 연결 안 됨(A2와 같은 이유). 나머지 없음 | 낮음 | |
-| `ext.firebird.ui` | 연결, 내장(embedded) 연결 페이지(네이티브 라이브러리 경로) | 일부 | `nativeLibraryPath` 미선언 | 낮음 | |
+| `ext.firebird.ui` | 연결, 내장(embedded) 연결 페이지(네이티브 라이브러리 경로) | **있음** (2026-11-08) | Firebird Embedded 주 양식에 Native library folder(공급자 속성 `nativeLibraryPath`, 폴더 고르기). 조사 당시: 일부(`nativeLibraryPath` 미선언) | 낮음 | |
 | `ext.gaussdb.ui` | 연결, 새 DB, 함수·프로시저·패키지 만들기, 패키지 선언·본문 편집기 | 일부 | 연결은 범용, 나머지 없음 | 낮음 | |
 | `ext.generic.ui` | 범용 연결 화면, MS Access 파일 처리기, PK·FK·인덱스 만들기, 소스 보기 | 일부 | 연결·View DDL 있음. 디자이너의 인덱스·FK는 Generic 미지원(swing-table-designer.md 124행), 파일 처리기 없음 | 낮음 | |
 | `ext.h2.ui` | 환경설정 "H2"(허용 Java 클래스 목록, 보안) | 없음 | `OptionsDialog`에 없음 | 낮음 | |
 | ↳ H2 초기화 스크립트 확인 | (`core`의 `UIServiceConnectionInitImpl`) | 조용히 끊김 | K4 | 낮음 | 안전한 쪽(거부)으로 실패 |
-| `ext.hana.ui` | 연결(에디션, 인스턴스 번호) | 일부 | `instanceNumber`만 선언, 에디션 고르기 없음. 만료 암호 변경·라이선스 입력 창은 `SwingPlatformUI`가 구현(`:360`, `:433`) | 낮음 | |
+| `ext.hana.ui` | 연결(에디션, 인스턴스 번호) | **있음** (2026-11-08) | 주 양식 Edition·Instance number·Tenant database. 모델은 `edition`·`instanceNumber`를 읽지 않으므로(표의 Instance Number 줄은 효과가 없었다) 대화상자가 SWT처럼 포트와 드라이버 속성 `databaseName`을 정한다. 만료 암호 변경·라이선스 입력 창은 `SwingPlatformUI`가 구현(`:360`, `:433`). 조사 당시: 일부 | 낮음 | |
 | `ext.iotdb.ui` | 연결, 사용자 관리자(UI 번들의 objectManager)·사용자 편집기·권한 | 없음 | Swing 보안 방언은 3개 DB뿐 | 낮음 | |
 | `ext.kingbase.ui` | 연결, 새 DB, 함수·프로시저 만들기 | 일부 | gaussdb와 같음 | 낮음 | |
-| `ext.mimer.ui` | 연결 설정(프로토콜, 프로그램 인증), 약 80개 만들기 페이지(databank, shadow, domain, 권한 등), 온라인 상태·shadow 복원 명령, XML 계획 보기, 환경설정 | 없음 | 연결 외 grep 0건 | 낮음 | |
+| `ext.mimer.ui` | 연결 설정(프로토콜, 프로그램 인증), 약 80개 만들기 페이지(databank, shadow, domain, 권한 등), 온라인 상태·shadow 복원 명령, XML 계획 보기, 환경설정 | 일부 (2026-11-08: 연결 설정) | 주 양식 Protocol·Program·Program password(2026-11-08). 나머지는 grep 0건. 조사 당시: 없음 | 낮음 | |
 | `ext.oceanbase.ui` | 연결 화면(서버=테넌트, DB) | 있음 | 범용 양식의 서버·DB 칸 | 낮음 | |
-| `ext.snowflake.ui` | 연결(창고, 스키마) + 고급(`ddString`) + 인증(authenticator, 역할) | 일부 | `warehouse`, `ddString` 선언. SWT가 쓰는 스키마 키 `@chromite-schema@`(`SnowflakeConstants.java:28`)와 인증 속성은 칸 없음 | 낮음 | |
-| `ext.spanner.ui` | 연결, 인증(개인 키 경로) | 일부 | `PvtKeyPath` 미선언(swing-conn-advanced.md 226행) | 낮음 | |
+| `ext.snowflake.ui` | 연결(창고, 스키마) + 고급(`ddString`) + 인증(authenticator, 역할) | **있음** (2026-11-08) | 주 양식 Warehouse·Schema(모델이 먼저 읽는 서버 이름·`@chromite-schema@`를 보임), 인증 칸 Role·Authenticator(인증 속성), `ddString`은 표. Test 뒤 DB·창고·스키마 목록 채우기는 없음. 조사 당시: 일부 | 낮음 | |
+| `ext.spanner.ui` | 연결, 인증(개인 키 경로) | 일부 | 2026-11-08: 인증 칸 Key file(`PvtKeyPath`). 남은 것: 드라이버 예시 URL에 자리 표시가 없어 Project·Instance·Database 칸 대신 JDBC URL만 입력(`main-properties` 미사용) | 낮음 | |
 | `ext.sqlite.ui` | 연결, DB 파일 처리기, 확장 불러오기 승인·오류 동작, LibSQL 토큰, 값 편집기 | 일부 | 파일 연결·LibSQL Token 있음(swing-frontend.md 1431행). 파일 처리기·값 편집기 없음 | 낮음 | |
 | ↳ SQLite 확장 불러오기 승인 | `SQLiteExtensionConfirmationImpl`(`com.seizia.chromite.service`) | 조용히 끊김 | K5 | 낮음 | 안전한 쪽(거부)으로 실패 |
 | `ext.tidb.ui` | 연결 화면(MySQL 계열) | 있음 | 범용 양식 | 낮음 | |
-| `ext.tidblake.ui` | SSL 칸 | 없음 | swing-conn-advanced.md 225행 | 낮음 | |
+| `ext.tidblake.ui` | SSL 칸 | **있음** (2026-11-08) | SSL 탭(켜기만). SWT 화면의 클라이언트 인증서 칸은 모델이 읽지 않아 옮기지 않음. 조사 당시: 없음 | 낮음 | 핸들러가 `desktop="false"`지만 SWT는 탭을 보였다 |
 | `ext.vertica.ui` | 연결 + 고급(주석 읽기 끄기, `$$`), 시퀀스 만들기 | 일부 | 고급 키 선언 → 표, 시퀀스 만들기 없음 | 낮음 | |
 | `ext.yashandb.ui` | 연결, 데이터 형식·패키지·프로시저·스키마·트리거 만들기, 세션 편집기 | 일부 | 세션은 `YashanDBDataSource` 어댑터로 나옴, 나머지 없음 | 낮음 | |
 
@@ -246,7 +248,7 @@ SWT에도 Altibase 전용 연결 화면은 없었다(`dataSourceConfigurator` �
 9. P29 PostgreSQL 디버거(모델까지 삭제) — 없음, 중간. (2026-11-07 옮김, [procedure-debugger.md](../procedure-debugger.md))
 10. A6·A7 Altibase 컴파일, 복제 시작·중지 — 없음, 중간.
 
-다음 순위: S4 Azure·Babelfish 모든 DB 보기, P19 pg_dumpall, O23 Toad·SQL Developer 가져오기, P3 PgBouncer prepared statement, K3 CUBRID 출력.
+다음 순위: S4 Azure·Babelfish 모든 DB 보기(2026-11-08 고침), P19 pg_dumpall, O23 Toad·SQL Developer 가져오기, P3 PgBouncer prepared statement(2026-11-08 고침), K3 CUBRID 출력.
 "일부"이지만 영향이 큰 것: O11·O12 Oracle 컴파일과 컴파일 오류 표시(노드에서 컴파일 불가, Modify 뒤 오류 위치 없음).
 
 ## 확인하지 못한 것
@@ -262,3 +264,5 @@ SWT에도 Altibase 전용 연결 화면은 없었다(`dataSourceConfigurator` �
 ## 변경 이력
 
 - 2026-11-08 3순위 Oracle·Altibase 관리: P23·S14·M17·O5·O16·O21·A2 → 있음, 요약 표와 높은 순서 목록 갱신.
+- 2026-11-08 4순위 연결 칸: P3·S4·S5·O7 → 있음, P5 비고(프록시 서비스), §6 연결 설정 표, §7 bigquery·clickhouse·databend·firebird·hana·mimer·snowflake·spanner·tidblake 줄과 요약 표 갱신
+  ([swing-conn-advanced.md](../swing-conn-advanced.md)).

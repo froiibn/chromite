@@ -40,6 +40,10 @@ import org.eclipse.osgi.util.NLS;
  * - 2026-11-08 Oracle 세션 설정 탭({@code driver_oracle_session_tab}, {@code driver_oracle_nls_*}) (docs/chromite/swing-conn-advanced.md "Oracle 세션 설정")
  * - 2026-11-08 끊긴 세션만 다시 열었다는 알림({@code recovery_session_*})과 끊긴 세션의 트랜잭션을 버리는 질문({@code lost_txn_*})
  *   (docs/chromite/transactions.md "끊긴 세션의 쿼리 창")
+ * - 2026-11-08 연결 설명({@code settings_description*}), DB별 칸({@code driver_bigquery_*}, {@code driver_snowflake_*}, {@code driver_hana_*},
+ *   {@code driver_firebird_*}, {@code driver_mimer_*}), 인증 칸({@code auth_bigquery_*}, {@code auth_snowflake_*}, {@code auth_spanner_*},
+ *   {@code auth_key_file}), SSL({@code ssl_proxy_server*}, {@code ssl_clickhouse_mode_tip}, {@code ssl_enable_only})
+ *   (docs/chromite/swing-conn-advanced.md)
  */
 public class ConnectionMessages extends NLS {
     private static final String BUNDLE_NAME = "com.seizia.chromite.ui.swing.internal.ConnectionMessages"; //$NON-NLS-1$
@@ -112,6 +116,8 @@ public class ConnectionMessages extends NLS {
     public static String settings_enter_file;
     public static String settings_enter_folder;
     public static String settings_port_not_number;
+    public static String settings_description;
+    public static String settings_description_tip;
     public static String settings_connection_type;
     public static String settings_auto_commit;
     public static String settings_auto_commit_default;
@@ -183,6 +189,36 @@ public class ConnectionMessages extends NLS {
     public static String driver_oracle_nls_currency;
     public static String driver_oracle_nls_currency_tip;
     public static String driver_oracle_nls_hint;
+    public static String driver_bigquery_project;
+    public static String driver_bigquery_project_tip;
+    public static String driver_bigquery_enter_project;
+    public static String driver_snowflake_warehouse;
+    public static String driver_snowflake_warehouse_tip;
+    public static String driver_snowflake_schema;
+    public static String driver_snowflake_schema_tip;
+    public static String driver_hana_edition;
+    public static String driver_hana_edition_generic;
+    public static String driver_hana_edition_single;
+    public static String driver_hana_edition_system;
+    public static String driver_hana_edition_tenant;
+    public static String driver_hana_edition_express;
+    public static String driver_hana_edition_cloud;
+    public static String driver_hana_instance;
+    public static String driver_hana_instance_tip;
+    public static String driver_hana_tenant_database;
+    public static String driver_hana_enter_instance;
+    public static String driver_hana_enter_database;
+    public static String driver_hana_port_hint;
+    public static String driver_firebird_library;
+    public static String driver_firebird_library_tip;
+    public static String driver_firebird_library_placeholder;
+    public static String driver_mimer_protocol;
+    public static String driver_mimer_protocol_tip;
+    public static String driver_mimer_protocol_tcp;
+    public static String driver_mimer_protocol_local;
+    public static String driver_mimer_program;
+    public static String driver_mimer_program_tip;
+    public static String driver_mimer_program_password;
 
     public static String auth_integrated_security;
     public static String auth_integrated_security_tip;
@@ -190,6 +226,17 @@ public class ConnectionMessages extends NLS {
     public static String auth_role_tip;
     public static String auth_pgpass_override;
     public static String auth_pgpass_override_tip;
+    public static String auth_key_file;
+    public static String auth_bigquery_oauth_type;
+    public static String auth_bigquery_service_based;
+    public static String auth_bigquery_user_based;
+    public static String auth_bigquery_key_file_tip;
+    public static String auth_snowflake_role_tip;
+    public static String auth_snowflake_authenticator;
+    public static String auth_snowflake_authenticator_tip;
+    public static String auth_snowflake_authenticator_snowflake;
+    public static String auth_snowflake_authenticator_browser;
+    public static String auth_spanner_key_file_tip;
 
     public static String commands_no_project;
     public static String commands_connect_title;
@@ -278,6 +325,10 @@ public class ConnectionMessages extends NLS {
     public static String ssl_mode_driver_default;
     public static String ssl_factory;
     public static String ssl_factory_tip;
+    public static String ssl_proxy_server;
+    public static String ssl_proxy_server_tip;
+    public static String ssl_clickhouse_mode_tip;
+    public static String ssl_enable_only;
 
     public static String socks_host;
     public static String socks_enter_host;
