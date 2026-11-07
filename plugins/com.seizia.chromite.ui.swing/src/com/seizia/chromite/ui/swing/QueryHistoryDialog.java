@@ -51,11 +51,13 @@ import java.util.TreeSet;
  * 설계: 하나만 여는 모달 아닌 창이다(편집기를 쓰면서 옆에 둔다). 찾기 글자(문장, 연결, DB 이름에서 대소문자 무시), 연결, 기간으로 거른다.
  * 아래 미리 보기는 읽기 전용 SQL 편집 영역이다. 두 번 누르기·Enter·Open in Editor는 기록의 연결로 새 쿼리 창을 열어 문장을 넣고,
  * Execute는 열고 바로 실행한다(편집기를 여는 일은 메인 창이 한다: {@link Opener}). 기록이 바뀌면(다른 창에서 실행) 목록을 다시 채운다.
+ * 값을 바인딩한 실행은 미리 보기에서 문장 아래에 값을 주석 줄({@code -- :name = 값})로 보인다(문장에는 {@code :name}이 남아 있다).
  *
  * 변경 이력:
  * - 2026-11-06 최초 작성 (docs/chromite/swing-sql-editor-plus.md)
  * - 2026-11-06 화면 문구를 EditorMessages로 옮김(OS 언어를 따름)
  * - 2026-11-08 기록 지우기 확인은 기록 지우기 / 취소 단추(취소가 기본) (docs/chromite/swing-frontend.md "실행 확인의 기본 단추")
+ * - 2026-11-08 바인딩한 실행의 값: 미리 보기에 보이고 Open·Execute에 기록 전체를 넘김 (docs/chromite/swing-query-library.md "매개변수 대화상자와 바인딩 하나로")
  */
 final class QueryHistoryDialog extends JDialog {
 
@@ -69,7 +71,7 @@ final class QueryHistoryDialog extends JDialog {
         /**
          * @param container the recorded connection, or null when it no longer exists
          */
-        void openHistoryQuery(@Nullable DBPDataSourceContainer container, @NotNull String query, boolean execute);
+        void openHistoryQuery(@Nullable DBPDataSourceContainer container, @NotNull QueryHistory.Entry entry, boolean execute);
     }
 
     private enum Period {
@@ -312,7 +314,7 @@ final class QueryHistoryDialog extends JDialog {
     private void selectionChanged() {
         QueryHistory.Entry entry = getSelectedEntry();
         preview.setDataSourceContainer(entry == null ? null : findConnection(entry.connectionId()));
-        preview.setText(entry == null ? "" : entry.error() == null ? entry.query() : entry.query() + "\n\n-- " + entry.error().replace("\n", "\n-- ")); //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$ //$NON-NLS-4$
+        preview.setText(entry == null ? "" : getPreviewText(entry)); //$NON-NLS-1$
         preview.setCaretPosition(0);
         openButton.setEnabled(entry != null);
         executeButton.setEnabled(entry != null);
@@ -324,7 +326,26 @@ final class QueryHistoryDialog extends JDialog {
             return;
         }
         DBPDataSourceContainer container = findConnection(entry.connectionId());
-        opener.openHistoryQuery(container, entry.query(), execute && container != null);
+        opener.openHistoryQuery(container, entry, execute && container != null);
+    }
+
+    /**
+     * The statement, the bound values and the error as comment lines below it.
+     */
+    @NotNull
+    private static String getPreviewText(@NotNull QueryHistory.Entry entry) {
+        StringBuilder text = new StringBuilder(entry.query());
+        if (entry.parameters() != null && !entry.parameters().isEmpty()) {
+            text.append('\n');
+            for (QueryHistory.Parameter parameter : entry.parameters()) {
+                text.append("\n-- :").append(parameter.name()).append(" = ") //$NON-NLS-1$ //$NON-NLS-2$
+                    .append(CommonUtils.isEmpty(parameter.value()) ? "NULL" : parameter.value().replace("\n", " ")); //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$
+            }
+        }
+        if (entry.error() != null) {
+            text.append("\n\n-- ").append(entry.error().replace("\n", "\n-- ")); //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$
+        }
+        return text.toString();
     }
 
     private void clearHistory() {

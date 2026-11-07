@@ -84,6 +84,8 @@ import java.util.function.Consumer;
  * - 2026-11-06 화면 문구를 EditorMessages로 옮김(OS 언어를 따름)
  * - 2026-11-07 오류 문구를 {@link ErrorText}로 만듦(클래스 이름이 화면에 나오지 않게, docs/chromite/swing-frontend.md "오류 문구")
  * - 2026-11-08 공간 값({@link DBGeometry})을 칸 값에 남김(결과 공간 보기, docs/chromite/swing-result-charts-spatial.md)
+ * - 2026-11-08 다시 읽으면 안 되는 이유를 받는 생성자를 지움: 값을 바인딩한 결과도 바인딩의 데이터 컨테이너로 다시 읽음
+ *   (docs/chromite/swing-query-library.md "매개변수 대화상자와 바인딩 하나로")
  */
 final class ResultSetGridReceiver implements DBDDataReceiver {
 
@@ -97,11 +99,6 @@ final class ResultSetGridReceiver implements DBDDataReceiver {
     private final Set<Integer> failedColumns = new HashSet<>();
     @Nullable
     private final DBDAttributeBinding[] segmentBindings;
-    /**
-     * Why the result can't be read again whatever the query is, or null (see {@link #ResultSetGridReceiver(DBSDataContainer, String, Consumer)}).
-     */
-    @Nullable
-    private final String requeryBlocker;
     private DBDAttributeBinding[] bindings;
     private DBDValueHandler[] fetchHandlers;
     private boolean[] unreadableColumns;
@@ -113,30 +110,16 @@ final class ResultSetGridReceiver implements DBDDataReceiver {
      * @param consumer      receives the fetched data in the job thread
      */
     ResultSetGridReceiver(@NotNull DBSDataContainer dataContainer, @NotNull Consumer<ResultSetGrid.Fetched> consumer) {
-        this(dataContainer, null, null, consumer);
-    }
-
-    /**
-     * @param requeryBlocker why the data container can't read the result again although its query looks re-readable
-     *                       (e.g. parameter values bound natively for one run only), or null
-     */
-    ResultSetGridReceiver(
-        @NotNull DBSDataContainer dataContainer,
-        @Nullable String requeryBlocker,
-        @NotNull Consumer<ResultSetGrid.Fetched> consumer
-    ) {
-        this(dataContainer, null, requeryBlocker, consumer);
+        this(dataContainer, null, consumer);
     }
 
     private ResultSetGridReceiver(
         @NotNull DBSDataContainer dataContainer,
         @Nullable DBDAttributeBinding[] segmentBindings,
-        @Nullable String requeryBlocker,
         @NotNull Consumer<ResultSetGrid.Fetched> consumer
     ) {
         this.dataContainer = dataContainer;
         this.segmentBindings = segmentBindings;
-        this.requeryBlocker = requeryBlocker;
         this.consumer = consumer;
     }
 
@@ -150,7 +133,7 @@ final class ResultSetGridReceiver implements DBDDataReceiver {
         @NotNull DBDAttributeBinding[] bindings,
         @NotNull Consumer<ResultSetGrid.Fetched> consumer
     ) {
-        return new ResultSetGridReceiver(dataContainer, bindings, null, consumer);
+        return new ResultSetGridReceiver(dataContainer, bindings, consumer);
     }
 
     @Override
@@ -324,8 +307,7 @@ final class ResultSetGridReceiver implements DBDDataReceiver {
         ResultSetEditModel editModel = editContext == null ? null
             : new ResultSetEditModel(editContext, dataContainer, bindings, unreadableColumns, rawValues, rows);
         rawValues.clear();
-        String blocker = requeryBlocker != null ? requeryBlocker
-            : context == null ? EditorMessages.editor_grid_fetch_incomplete : ResultSetSource.getRequeryBlocker(dataContainer, context);
+        String blocker = context == null ? EditorMessages.editor_grid_fetch_incomplete : ResultSetSource.getRequeryBlocker(dataContainer, context);
         ResultSetSource source = new ResultSetSource(dataContainer, context, Math.max(maxRows, 0), blocker,
             unreadableColumns.clone(), List.copyOf(cellValues));
         cellValues.clear();

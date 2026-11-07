@@ -45,6 +45,8 @@ import org.eclipse.osgi.util.NLS;
  * - 2026-11-07 위험한 문 확인에 TRUNCATE({@code editor_sql_danger_truncate}) (docs/chromite/swing-sql-exec-safety.md)
  * - 2026-11-08 결과 차트·공간 보기 문구({@code editor_viewer_chart*}, {@code editor_viewer_spatial*}, {@code editor_chart_*}, {@code editor_spatial_*})
  *   (docs/chromite/swing-result-charts-spatial.md)
+ * - 2026-11-08 {@code editor_sql_bound_parameters} 삭제: 값을 바인딩한 결과도 다시 읽음. {@code editor_param_*}는 합친 매개변수 대화상자
+ *   ({@code QueryParameterDialog}의 스크립트 모드)가 씀 (docs/chromite/swing-query-library.md "매개변수 대화상자와 바인딩 하나로")
  */
 public class EditorMessages extends NLS {
     private static final String BUNDLE_NAME = "com.seizia.chromite.ui.swing.internal.EditorMessages"; //$NON-NLS-1$
@@ -124,7 +126,6 @@ public class EditorMessages extends NLS {
     public static String editor_sql_error_generic;
     public static String editor_sql_error_line;
     public static String editor_sql_error_column;
-    public static String editor_sql_bound_parameters;
     public static String editor_sql_change_schema_title;
     public static String editor_sql_change_schema_error;
     public static String editor_sql_select_connection;
@@ -158,7 +159,7 @@ public class EditorMessages extends NLS {
     public static String editor_templates_default_upd;
     public static String editor_templates_default_del;
 
-    // Bind Parameters (SqlParameterDialog)
+    // Bind Parameters (QueryParameterDialog script mode)
     public static String editor_param_title;
     public static String editor_param_hint;
     public static String editor_param_ignore;

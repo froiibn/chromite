@@ -48,6 +48,10 @@ import java.util.stream.Collectors;
 
 /**
  * Task utils
+ *
+ * 변경 이력:
+ * - 2026-11-08 Chromite: 작업 실행 확인({@link #confirmTask}, 복원처럼 "데이터베이스가 손상될 수 있다"고 묻는 확인)을 경고 확인으로 물음
+ *   (아니요가 기본 단추). 습관처럼 친 Enter로 작업이 시작되지 않게 (docs/chromite/model-fixes.md "작은 모델·안전·라이선스 수정")
  */
 public class DBTaskUtils {
     private static final Log log = Log.getLog(DBTaskUtils.class);
@@ -208,7 +212,7 @@ public class DBTaskUtils {
         } else {
             messageBuilder.append("\n").append(ModelMessages.tasks_restore_confirmation_message);
         }
-        if (DBWorkbench.getPlatformUI().confirmAction(NLS.bind(ModelMessages.tasks_restore_confirmation_title, task.getName()), messageBuilder.toString())) {
+        if (DBWorkbench.getPlatformUI().confirmAction(NLS.bind(ModelMessages.tasks_restore_confirmation_title, task.getName()), messageBuilder.toString(), true)) {
             return true;
         }
         
