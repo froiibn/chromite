@@ -40,7 +40,8 @@ import java.util.function.Consumer;
  * 검색 창({@link DriverSelectionPanel}: 검색, 범주, 전체 드라이버)에서 고른다(docs/chromite/design-spec.md "11. 대화상자").
  * 드라이버가 100개가 넘어 콤보 하나에 모두 넣으면 찾기 어렵고, 편집 가능한 콤보로 걸러 내면 공급자 아이콘을 편집 칸에 보일 수 없기 때문이다.
  * <ul>
- *     <li>맨 위: 공개판에 드라이버가 내장된 주요 DB({@link #FAVORITES}: SQL Server, PostgreSQL, MySQL, MariaDB, Oracle, SQLite) 중 이 제품에 있는 것.</li>
+ *     <li>맨 위: 주요 DB({@link #FAVORITES}: SQL Server, PostgreSQL, MySQL, MariaDB, Oracle, SQLite) 중 이 제품에 있는 것.
+ *     MySQL을 뺀 다섯은 드라이버가 내장돼 있고, MySQL은 처음 연결할 때 드라이버를 내려받는다(docs/chromite/drivers.md).</li>
  *     <li>그다음: 최근에 연결을 만든 다른 드라이버({@link ConnectionHistory#getRecentDrivers()}), 더 찾기에서 고른 드라이버.</li>
  *     <li>콤보에 포커스가 있을 때 글자를 치면 이름이 그 글자들로 시작하는 항목으로 간다(1초 안에 친 글자를 이어 붙임).</li>
  * </ul>
@@ -49,6 +50,7 @@ import java.util.function.Consumer;
  * 변경 이력:
  * - 2026-11-06 최초 작성: SSMS식 Connect 대화상자 (docs/chromite/swing-frontend.md "Connect 대화상자 (SSMS식)")
  * - 2026-11-06 화면 문구를 ConnectionMessages로 옮김(OS 언어를 따름)
+ * - 2026-11-07 MySQL 드라이버 내장을 없앰: 사용자 결정은 내장 여부만 정했으므로 목록은 그대로 두고 설명만 고침
  */
 final class DatabaseTypeCombo extends JComboBox<Object> {
 

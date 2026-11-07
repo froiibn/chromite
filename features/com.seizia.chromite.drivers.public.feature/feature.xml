@@ -14,6 +14,7 @@
     - 2026-11-07 The SWT product was removed (docs/chromite/swt-removal.md); the Swing feature is the only includer.
     - 2026-11-07 Added SQLite. Chromite ships one edition (no internal edition), so the "public edition" labels
       became "bundled drivers"; the feature and plugin IDs keep "public" because renaming them buys nothing.
+    - 2026-11-07 Removed MySQL Connector/J (user decision); MySQL drivers download it when first used.
 -->
 <feature
         id="com.seizia.chromite.drivers.public.feature"
@@ -21,7 +22,7 @@
         version="26.2.5.qualifier"
         provider-name="Chromite contributors">
 
-    <description>JDBC drivers bundled with Chromite: SQL Server, Oracle, PostgreSQL, MariaDB, MySQL, SQLite</description>
+    <description>JDBC drivers bundled with Chromite: SQL Server, Oracle, PostgreSQL, MariaDB, SQLite</description>
 
     <copyright>Chromite contributors. Driver licenses: drivers/README.txt</copyright>
 
