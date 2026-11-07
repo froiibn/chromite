@@ -233,6 +233,8 @@ import java.util.function.Supplier;
  * - 2026-11-08 편집 편의: Outline 도구 창({@link SqlOutlinePanel}, 기본 숨김, Ctrl+Alt+O), Query &gt; Pin Results(Ctrl+Shift+P),
  *   View &gt; Results Beside Editor·Maximize Results(Ctrl+Shift+T, 놓는 방향은 저장), 쿼리 창의 Ctrl+클릭을 Object Explorer에 보임
  *   (docs/chromite/swing-sql-editor-ergonomics.md)
+ * - 2026-11-08 끝낼 때 실행 중인 작업 질문({@link RunningJobsCheck}: 기다리기 / 멈추고 끝내기 / 취소, 트랜잭션 질문 앞)
+ *   (docs/chromite/connection-lifecycle.md "끝낼 때 실행 중인 작업")
  * - 2026-11-08 Database Tasks 도구 창(저장한 작업, {@link DatabaseTasksPanel}, 기본 숨김, Query Library와 같은 탭 묶음)과
  *   Query &gt; Run with Native Client…(저장한 쿼리 창 파일을 psql·mysql·sqlplus로 실행) (docs/chromite/swing-database-tasks.md)
  */
@@ -1500,8 +1502,8 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
     /**
      * Window closing, File > Exit and an update's [Restart now]: asks to save the modified query windows and the unsaved
      * changes of their result grids (SSMS lists them in one question), then lets the tool documents end their own
-     * sessions ({@link ToolDocument#confirmClose}: the debugger), then what to do with uncommitted transactions
-     * ({@link ExitTransactionCheck}), then closes the window.
+     * sessions ({@link ToolDocument#confirmClose}: the debugger), then what to do with jobs that still run
+     * ({@link RunningJobsCheck}), then with uncommitted transactions ({@link ExitTransactionCheck}), then closes the window.
      */
     private void requestExit() {
         // Table designers ask one by one: saving shows each change script
@@ -1560,6 +1562,11 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
                     return;
                 }
             }
+        }
+        // Running queries, exports and tasks: wait for them, stop them, or keep Chromite open (before the transactions,
+        // which can be ended only once their statements stopped)
+        if (!RunningJobsCheck.confirm(this)) {
+            return;
         }
         // Closing ends every session: open transactions are committed or rolled back only as the user says
         if (!ExitTransactionCheck.confirm(this)) {

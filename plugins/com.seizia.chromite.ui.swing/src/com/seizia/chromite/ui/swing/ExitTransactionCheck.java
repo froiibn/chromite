@@ -33,6 +33,7 @@ import com.seizia.chromite.registry.DataSourceRegistry;
 import com.seizia.chromite.runtime.jobs.TransactionRecoveryGuard;
 import com.seizia.chromite.ui.swing.internal.ConnectionMessages;
 import com.seizia.chromite.ui.swing.internal.CoreMessages;
+import com.seizia.chromite.ui.swing.internal.LifecycleMessages;
 import com.seizia.chromite.ui.swing.internal.NavigatorMessages;
 import com.seizia.chromite.ui.swing.internal.ObjectExplorerMessages;
 import com.seizia.chromite.ui.swing.internal.UpdateMessages;
@@ -52,7 +53,8 @@ import java.util.function.Function;
 
 /**
  * Before Chromite closes (window close, File &gt; Exit, [Restart now] of an update) and before a connection is
- * disconnected (Disconnect, Reconnect, Delete, reconnect after editing it), and before Object Explorer changes database
+ * disconnected (Disconnect, Disconnect All / Others, a server group's Disconnect, Reconnect, Invalidate/Reconnect, Delete,
+ * reconnect after editing it, Disconnect of the connection lost dialog), and before Object Explorer changes database
  * objects (Delete, Rename): asks what to do with the transactions that are not committed — Commit / Roll back / Cancel.
  * Nothing is committed or rolled back silently.
  *
@@ -89,6 +91,8 @@ import java.util.function.Function;
  *   (docs/chromite/transactions.md "끊긴 세션의 쿼리 창")
  * - 2026-11-08 Object Explorer Set as Default가 주 세션을 다른 데이터베이스 인스턴스로 옮기기 전 질문({@link #confirmDefaultChange})
  *   (docs/chromite/swing-explorer-productivity.md "기본 스키마")
+ * - 2026-11-08 여러 연결 끊기(모두 끊기, 다른 연결 끊기, 서버 그룹 끊기)는 한 질문으로, 무효화·다시 연결(세션을 다시 엶) 전 질문
+ *   ({@link #confirmReconnect}) (docs/chromite/connection-lifecycle.md)
  */
 final class ExitTransactionCheck {
 
@@ -113,6 +117,28 @@ final class ExitTransactionCheck {
     static boolean confirmDisconnect(@Nullable Component parent, @NotNull DBPDataSourceContainer container) {
         return confirm(parent, List.of(container), list -> NLS.bind(ConnectionMessages.disconnect_txn_message, container.getName(), list),
             ConnectionMessages.disconnect_txn_error);
+    }
+
+    /**
+     * Before several connections are disconnected at once (Disconnect All, Disconnect Others, a server group's
+     * Disconnect): one question for all of them. Call in the EDT.
+     *
+     * @return true when they may be disconnected: no open transaction, or each one was committed or rolled back as asked
+     */
+    static boolean confirmDisconnect(@Nullable Component parent, @NotNull Collection<? extends DBPDataSourceContainer> containers) {
+        return confirm(parent, containers, list -> NLS.bind(LifecycleMessages.disconnect_many_txn_message, list),
+            ConnectionMessages.disconnect_txn_error);
+    }
+
+    /**
+     * Before Invalidate/Reconnect reopens the sessions of the connections (the connection and those that share its
+     * network tunnel): reopening closes the old JDBC connections, which ends their transactions. Call in the EDT.
+     *
+     * @return true when they may be reconnected: no open transaction, or each one was committed or rolled back as asked
+     */
+    static boolean confirmReconnect(@Nullable Component parent, @NotNull Collection<? extends DBPDataSourceContainer> containers) {
+        return confirm(parent, containers, list -> NLS.bind(LifecycleMessages.reconnect_txn_message, list),
+            LifecycleMessages.reconnect_txn_error);
     }
 
     /**

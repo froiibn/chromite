@@ -177,11 +177,10 @@ Swing의 끊기, 다시 연결, 삭제, 연결 편집 뒤 다시 연결은 이�
 - 기본값은 업스트림 그대로다: 켜짐(`CLOSE_IDLE_CONNECTION_DEFAULT`), 연결 유형별 기간(개발 4시간 등). 지금까지는 효과가 없었으므로, 이 변경 뒤에는
   오래 쓰지 않은 연결이 실제로 닫히고 알림이 뜬다.
 
-### 절전 때 연결 닫기(A-S8)는 바뀌지 않았다
+### 절전 때 연결 닫기(A-S8)
 
-`DataSourceMonitorJob`의 "절전 진입 → 모든 연결 닫기"(`closeAllConnections`)는 `OperationSystemState.isInSleepMode()`가 참일 때만 돈다.
-`toggleSleepMode`를 부르는 곳이 없어 Swing에서는 여전히 실행되지 않는다. 이 변경은 그 경로를 열지 않았고 절전 감지도 더하지 않았다.
-절전 감지를 더하면 `closeAllConnections`도 위 조건(열린 트랜잭션이면 닫지 않음)을 거쳐야 한다. 지금은 묻지 않고 끊는다.
+2026-11-08부터 Swing이 JDK 절전 알림(macOS만)을 연결 감시에 넘기고, 절전 닫기(`closeAllConnections`)와 깨어난 뒤 다시 초기화(`invalidateSleptConnections`)는
+위 "닫지 않는 경우"와 같은 조건(`DataSourceMonitorJob.isInUse`)의 연결을 건너뛴다. 자세한 것은 [connection-lifecycle.md](connection-lifecycle.md) "절전".
 
 ## 모델 알림
 
@@ -212,7 +211,6 @@ Swing은 처리기를 등록하지 않아 기본 처리기가 `System.out`에만
 ## 남은 일
 
 - Chromite Agent·MCP 도구의 격리 문맥은 QM을 거치지 않아 표시와 유휴 감시에 잡히지 않는다(`AgentSql`이 열린 트랜잭션만 따로 기록). 끝낼 때 질문(`ExitTransactionCheck`)은 이들도 묻는다. 유휴 연결 닫기는 `DBServiceUnrecordedSessions`로 이들을 본다.
-- 절전 감지(A-S8)를 더하면 `closeAllConnections`가 유휴 연결 닫기와 같은 트랜잭션 확인을 거치게 해야 한다.
 - 연결 유형별 자동 롤백 기본값(연결 유형 편집기는 2026-11-07에 생겼고 알림·기간은 그 화면에 있다). 넣는다면 사용자 결정을 다시 받는다.
 - 다른 세션의 열린 트랜잭션(Activity Monitor 탭)은 다음 작업이다.
 
@@ -228,3 +226,4 @@ Swing은 처리기를 등록하지 않아 기본 처리기가 `System.out`에만
 - 2026-11-07 쿼리 창마다 별도 연결: 상태 줄과 알림의 쿼리 창이 창의 실제 실행 문맥을 따름([transactions.md](transactions.md) "쿼리 창마다 별도 연결")
 - 2026-11-07 같은 UI 서비스(`UIServiceIdleTransactions`)에 오류 복구가 멈춘 알림 두 가지를 더함. 다시 연결 알림이 언제 뜨는지 고침
   ([transactions.md](transactions.md) "오류 복구와 열린 트랜잭션")
+- 2026-11-08 절전 때 연결 닫기·깨어난 뒤 다시 초기화가 쓰는 중인 연결을 건너뜀(유휴 연결 닫기의 조건을 `isInUse`로 뺌)([connection-lifecycle.md](connection-lifecycle.md) "절전")

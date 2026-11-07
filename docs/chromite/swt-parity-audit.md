@@ -157,3 +157,5 @@ PostgreSQL 디버거는 2026-11-07 사용자 요청으로 Swing에 옮겼다(C-6
   ([swing-sql-editor-ergonomics.md](swing-sql-editor-ergonomics.md)). 결과 요약 수는 병합 때 다시 셈.
 - 2026-11-08 4순위 연결 칸(`chromite/p4-connection-fields`, [swing-conn-advanced.md](swing-conn-advanced.md)): 공급자 속성 선언, ClickHouse·Databend·TiDB Lake SSL, BigQuery·Snowflake·Spanner·HANA·Firebird·Mimer 칸, 연결 설명.
   D-P3·S4·S5·O7과 번들 줄 9개 갱신, B-C2·C4·C8 비고 갱신. 결과 요약 수는 고치지 않음(공통 규칙: 메인 세션이 다시 셈).
+- 2026-11-08 4순위 B2 연결 수명 주기([connection-lifecycle.md](connection-lifecycle.md)): A-S8·S10·S11(조용히 끊김) 수정, A-C4·A-C7·A-C8·A-C15·A-U3 → 있음, A-S2 → 일부,
+  B-S16 → 있음, B-C15 → 일부, D-K4·K5 수정. 닫기 경로 전수 점검(절전 닫기·깨어남 다시 초기화의 무확인 롤백을 고침).

@@ -40,8 +40,8 @@ databend·tidblake 없음 → 있음, clickhouse·mimer 없음 → 일부. 위 �
 | K1 | Oracle DBMS_OUTPUT | 모델이 모든 실행 컨텍스트에서 `DBMS_OUTPUT.ENABLE(1000000)`을 켠다(설정 기본값 켬). 출력을 읽는 쪽(`readServerOutput`, SWT SQL 편집기의 Output 패널)이 Swing에 없어 `PUT_LINE` 출력이 보이지 않는다. Oracle 문서상 `GET_LINE(S)`를 한 번도 부르지 않으면 줄이 계속 쌓이므로, 한 세션에서 출력이 100만 바이트를 넘으면 사용자 PL/SQL이 `ORU-10027: buffer overflow`로 실패할 수 있다(추론, 재현하지 않음) | `ext.oracle/.../OracleDataSource.java:335-342`(켜기), `:982-997`(1,000,000), `OracleConstants.java:210`, `ext.oracle/.../internal/OraclePreferencesInitializer.java:40`(기본 켬). `readServerOutput`·`DBCServerOutputReader` 호출: `ui.swing`, `model.sql`, `model.ai*`에서 grep 0건. **2026-11-07 고침:** 쿼리 창이 문장마다 읽어 비움([swing-server-output.md](../swing-server-output.md)) | 높음 |
 | K2 | Altibase 서버 출력(PRINT/PRINTLN) | 모든 컨텍스트에 메시지 콜백을 등록하고 받은 글을 `StringBuilder`에 붙인다. 비우는 곳은 `readServerOutput`뿐인데 Swing이 부르지 않아, 출력이 보이지 않고 데이터 원본이 살아 있는 동안 메모리에 계속 쌓인다 | `ext.altibase/.../AltibaseDataSource.java:124-127`, `:728`, `:780`(append), `:817-819`(읽을 때만 비움), `AltibasePreferencesInitializer.java:36`(기본 켬). **2026-11-07 고침:** 쿼리 창이 문장마다 읽어 비움. 실행해 보니 기본값 초기화가 한 번도 실행되지 않아(번들에 활성화 코드가 없음) 설정이 꺼짐으로 읽혔다. `AltibaseActivator`를 더하고, 꺼져 있으면 콜백을 등록하지 않게 함([swing-server-output.md](../swing-server-output.md)) | 중간 |
 | K3 | CUBRID DBMS_OUTPUT | Oracle과 같은 구조. 연결마다 `dbms_output.enable(10000)`(기본 버퍼 1만 바이트)을 켜고 읽지 않는다. 버퍼가 작아 넘침 가능성이 Oracle보다 크다(추론) | `ext.cubrid/.../CubridDataSource.java:333`, `:513-528`, `CubridPreferencesInitializer.java:35-36`. **2026-11-07 고침(코드 경로만, CUBRID 서버로 실행하지 않음):** 쿼리 창이 문장마다 읽어 비움 | 낮음(사용자 적음) |
-| K4 | H2 초기화 스크립트 확인 | URL의 `INIT=`·연결 직후 SQL을 실행하기 전에 묻는 서비스(`UIServiceConnectionInit`, SWT `core`의 `UIServiceConnectionInitImpl`)가 Swing에 없다. 서비스가 없으면 "승인 안 됨"으로 연결을 거부한다(안전한 쪽으로 실패). 기능은 못 쓴다 | `ext.h2/.../H2DataSource.java:97`, `:112`, `H2InitScriptValidator.java:48-49`. Swing `plugin.xml`의 service 등록은 3개뿐(`:21-26`) | 낮음 |
-| K5 | SQLite 확장 불러오기 승인 | 확장 불러오기를 승인하는 서비스(`SQLiteExtensionConfirmationImpl`, `ext.sqlite.ui`의 `com.seizia.chromite.service`)가 없어 승인이 늘 거부된다(안전한 쪽으로 실패). 오류 결과의 "확장 설정" 동작(`resultset.error`)도 없다 | `ext.sqlite/.../SQLiteDataSource.java:178-179` | 낮음 |
+| K4 | H2 초기화 스크립트 확인 | URL의 `INIT=`·연결 직후 SQL을 실행하기 전에 묻는 서비스(`UIServiceConnectionInit`, SWT `core`의 `UIServiceConnectionInitImpl`)가 Swing에 없다. 서비스가 없으면 "승인 안 됨"으로 연결을 거부한다(안전한 쪽으로 실패). 기능은 못 쓴다 | `ext.h2/.../H2DataSource.java:97`, `:112`, `H2InitScriptValidator.java:48-49`. Swing `plugin.xml`의 service 등록은 3개뿐(`:21-26`). **2026-11-08 고침:** `SwingConnectionInitService`가 묻는다(허용하고 연결 / 취소, SWT와 같은 승인 파일, [connection-lifecycle.md](../connection-lifecycle.md) "초기화 SQL과 SQLite 확장 승인") | 낮음 |
+| K5 | SQLite 확장 불러오기 승인 | 확장 불러오기를 승인하는 서비스(`SQLiteExtensionConfirmationImpl`, `ext.sqlite.ui`의 `com.seizia.chromite.service`)가 없어 승인이 늘 거부된다(안전한 쪽으로 실패). 오류 결과의 "확장 설정" 동작(`resultset.error`)도 없다 | `ext.sqlite/.../SQLiteDataSource.java:178-179`. **2026-11-08 고침:** `SwingSqliteExtensionConfirmation`이 묻는다([connection-lifecycle.md](../connection-lifecycle.md)). 오류 결과의 "확장 설정" 동작은 여전히 없음 | 낮음 |
 
 K1–K3의 공통 원인은 SQL 편집기에 서버 출력 패널이 없는 것이다([swing-frontend.md](../swing-frontend.md) 708-709행 "서버 출력 읽기"를 C단계 남긴 일로 기록). 편집기 영역 감사와 겹친다.
 2026-11-07 #105에서 고쳤다(쿼리 창의 Messages 탭, [swing-server-output.md](../swing-server-output.md)).
@@ -214,7 +214,7 @@ SWT에도 Altibase 전용 연결 화면은 없었다(`dataSourceConfigurator` �
 | `ext.gaussdb.ui` | 연결, 새 DB, 함수·프로시저·패키지 만들기, 패키지 선언·본문 편집기 | 일부 | 연결은 범용, 나머지 없음 | 낮음 | |
 | `ext.generic.ui` | 범용 연결 화면, MS Access 파일 처리기, PK·FK·인덱스 만들기, 소스 보기 | 일부 | 연결·View DDL 있음. 디자이너의 인덱스·FK는 Generic 미지원(swing-table-designer.md 124행), 파일 처리기 없음 | 낮음 | |
 | `ext.h2.ui` | 환경설정 "H2"(허용 Java 클래스 목록, 보안) | 없음 | `OptionsDialog`에 없음 | 낮음 | |
-| ↳ H2 초기화 스크립트 확인 | (`core`의 `UIServiceConnectionInitImpl`) | 조용히 끊김 | K4 | 낮음 | 안전한 쪽(거부)으로 실패 |
+| ↳ H2 초기화 스크립트 확인 | (`core`의 `UIServiceConnectionInitImpl`) | 있음 (2026-11-08. 조사 당시: 조용히 끊김) | K4 | 낮음 | 수정함 |
 | `ext.hana.ui` | 연결(에디션, 인스턴스 번호) | **있음** (2026-11-08) | 주 양식 Edition·Instance number·Tenant database. 모델은 `edition`·`instanceNumber`를 읽지 않으므로(표의 Instance Number 줄은 효과가 없었다) 대화상자가 SWT처럼 포트와 드라이버 속성 `databaseName`을 정한다. 만료 암호 변경·라이선스 입력 창은 `SwingPlatformUI`가 구현(`:360`, `:433`). 조사 당시: 일부 | 낮음 | |
 | `ext.iotdb.ui` | 연결, 사용자 관리자(UI 번들의 objectManager)·사용자 편집기·권한 | 없음 | Swing 보안 방언은 3개 DB뿐 | 낮음 | |
 | `ext.kingbase.ui` | 연결, 새 DB, 함수·프로시저 만들기 | 일부 | gaussdb와 같음 | 낮음 | |
@@ -223,7 +223,7 @@ SWT에도 Altibase 전용 연결 화면은 없었다(`dataSourceConfigurator` �
 | `ext.snowflake.ui` | 연결(창고, 스키마) + 고급(`ddString`) + 인증(authenticator, 역할) | **있음** (2026-11-08) | 주 양식 Warehouse·Schema(모델이 먼저 읽는 서버 이름·`@chromite-schema@`를 보임), 인증 칸 Role·Authenticator(인증 속성), `ddString`은 표. Test 뒤 DB·창고·스키마 목록 채우기는 없음. 조사 당시: 일부 | 낮음 | |
 | `ext.spanner.ui` | 연결, 인증(개인 키 경로) | 일부 | 2026-11-08: 인증 칸 Key file(`PvtKeyPath`). 남은 것: 드라이버 예시 URL에 자리 표시가 없어 Project·Instance·Database 칸 대신 JDBC URL만 입력(`main-properties` 미사용) | 낮음 | |
 | `ext.sqlite.ui` | 연결, DB 파일 처리기, 확장 불러오기 승인·오류 동작, LibSQL 토큰, 값 편집기 | 일부 | 파일 연결·LibSQL Token 있음(swing-frontend.md 1431행). 파일 처리기·값 편집기 없음 | 낮음 | |
-| ↳ SQLite 확장 불러오기 승인 | `SQLiteExtensionConfirmationImpl`(`com.seizia.chromite.service`) | 조용히 끊김 | K5 | 낮음 | 안전한 쪽(거부)으로 실패 |
+| ↳ SQLite 확장 불러오기 승인 | `SQLiteExtensionConfirmationImpl`(`com.seizia.chromite.service`) | 있음 (2026-11-08. 조사 당시: 조용히 끊김) | K5 | 낮음 | 수정함. 오류 결과의 "확장 설정" 동작은 없음 |
 | `ext.tidb.ui` | 연결 화면(MySQL 계열) | 있음 | 범용 양식 | 낮음 | |
 | `ext.tidblake.ui` | SSL 칸 | **있음** (2026-11-08) | SSL 탭(켜기만). SWT 화면의 클라이언트 인증서 칸은 모델이 읽지 않아 옮기지 않음. 조사 당시: 없음 | 낮음 | 핸들러가 `desktop="false"`지만 SWT는 탭을 보였다 |
 | `ext.vertica.ui` | 연결 + 고급(주석 읽기 끄기, `$$`), 시퀀스 만들기 | 일부 | 고급 키 선언 → 표, 시퀀스 만들기 없음 | 낮음 | |

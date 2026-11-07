@@ -116,8 +116,7 @@ SWT `PrefPageConnectionTypes`의 Swing판이다. 지금까지 연결 유형은 �
 - 알려진 동작(업스트림과 같음, 고치지 않음): 저장하면 미리 정의된 유형의 이름도 그때의 화면 언어 글자로 저장된다(`saveConnectionTypes`의 `name`).
   그 뒤 다른 언어로 실행하면 저장할 때의 이름(예: 한국어 화면에서 "Development")이 보인다. 실행 확인 중 영어 화면에서 저장한 뒤 한국어로 실행해 확인했다.
 - 두지 않은 것:
-  - 스마트 커밋(`smartCommit`, `smartCommitRecover`): Swing 쿼리 창은 엔진 처리기의 `isSmartAutoCommit`을 켜지 않고, `DBExecUtils.recoverSmartCommit`을 부르는 곳이 없다.
-    효과가 없어 화면에 두지 않았다. 저장된 값은 그대로 유지한다.
+  - 스마트 커밋(`smartCommit`, `smartCommitRecover`): 2026-11-08부터 쿼리 창이 쓰므로 두 칸을 더했다([connection-lifecycle.md](connection-lifecycle.md) "스마트 커밋").
   - 유휴 트랜잭션 자동 롤백의 유형별 기본값: 자동 롤백은 사용자가 연결마다 켜는 것이 사용자 결정이다([idle-transactions.md](idle-transactions.md)). 유형에 두려면
     모델에 새 필드가 필요해 이번에는 하지 않았다.
 
@@ -413,7 +412,9 @@ Swing 제품이 읽지만 화면이 없는 키다. 우선순위 순서로 적었
 13. ~~DB별~~: 2026-11-08 오후 Options > Altibase·CUBRID·Mimer SQL. 남은 것: `altibase.explain.plan.type`은 "ON"이 계획 보기에서 문장을 실행하므로
     확인 절차를 만들 때까지 두지 않는다. PostgreSQL `show-database-statistics`는 효과 없음. `postgresql.dd.*`의 전역 기본값(`PostgreDialect`가 연결의
     공급자 속성이 없을 때 플랫폼 저장소를 읽음)은 이번 작업 목록 밖이라 남겨 둔다.
-14. 효과 없는 키 중 Swing 기능이 생기면 다시 볼 것: `statement.timeout`(문장 시간 제한), 스마트 커밋, 절전 때 연결 닫기(`connection.closeOnSleep`, A-S8).
+14. 효과 없는 키 중 Swing 기능이 생기면 다시 볼 것: `statement.timeout`(문장 시간 제한).
+15. 2026-11-08 효과가 생긴 키([connection-lifecycle.md](connection-lifecycle.md)): `transaction.smart.commit`, `transaction.smart.commit.recover`(연결별 값만 읽음.
+    기본값은 Options > Connection Types의 유형 칸), `connection.closeOnSleep`(macOS 절전 알림). 화면은 없다.
 
 ## 실행 확인 (2026-11-07)
 
@@ -470,7 +471,7 @@ Windows 인증서 저장소(다시 시작 뒤 적용, 키 저장만 확인), 끝
 
 - 쿼리 창 오류 처리에서 `STOP_ROLLBACK`(엔진 기본값)을 쓰지 않는다. 멈춘 스크립트가 열린 트랜잭션을 롤백하지 않는다.
 - 스크립트 커밋 방식 설정(끝에서 커밋, N줄마다 커밋, 문장마다 자동 커밋)을 두지 않는다. 쿼리 창은 늘 `NO_COMMIT`이다.
-- 연결 유형 편집에 스마트 커밋이 없다. 연결 유형을 바꿔 연결의 커밋 방식이 바뀌면 열린 세션에 적용하고, 커밋하지 않은 변경이 있으면 묻는다(SWT는 다시 연결할 때 적용).
+- 연결 유형을 바꿔 연결의 커밋 방식이 바뀌면 열린 세션에 적용하고, 커밋하지 않은 변경이 있으면 묻는다(SWT는 다시 연결할 때 적용).
 - 격리 수준을 연결 전에도 고를 수 있다(SWT는 연결되어 있을 때만).
 - 연결별 설정은 연결 대화상자의 한 탭(Settings)에 모았다(SWT는 연결의 속성 페이지 트리). 연결별 값을 켜면 페이지의 모든 키를 연결의 값으로 쓴다
   (SWT 데이터 형식 페이지는 로캘 기본값과 다른 값만 써서, 전역에서 바꾼 패턴을 연결에서 기본값으로 되돌릴 수 없었다).
@@ -499,6 +500,8 @@ Windows 인증서 저장소(다시 시작 뒤 적용, 키 저장만 확인), 끝
   전역 값이 무시되던 것과 그룹이 있는 Maven 저장소를 저장하지 못하던 것(`MavenRegistry`), 결과 표 머리글이 별칭 대신 원래 열 이름을 보이던 것
   (`ResultSetGridReceiver`)을 고침. 다시 확인해 효과 없는 키 6개를 옮김. 요약 수(추가함 85, 규칙상 두지 않음 5, 다음 작업 0, 효과 없음 202, devel 병합 뒤 다시 셈)와 부록 갱신.
 - 2026-11-08 `ui.drivers.global.libraries`: Driver Manager > Global Libraries…로 만듦(후속 #55, [swing-driver-manager.md](swing-driver-manager.md) "전역 라이브러리"). 요약 수(추가함 38, 다음 작업 54)와 8순위·부록 갱신.
+- 2026-11-08 스마트 커밋이 동작하게 되어 Connection Types에 두 칸, `transaction.smart.commit`·`.recover`·`connection.closeOnSleep`이 효과 있음으로 바뀜
+  ([connection-lifecycle.md](connection-lifecycle.md)). 요약 수는 고치지 않음(메인 세션이 다시 셈).
 
 ## 부록: 키별 상태
 
@@ -538,7 +541,7 @@ Windows 인증서 저장소(다시 시작 뒤 적용, 키 저장만 확인), 끝
 | Error Logs | `logs.debug.location` | 효과 없음(읽는 곳 없음) |
 | Error Logs | `logs.files.output.maxCount` | **추가함**: Options > Logs(2026-11-08) |
 | Error Logs | `logs.files.output.maxSize` | **추가함**: Options > Logs(2026-11-08) |
-| Connections | `connection.closeOnSleep` | 효과 없음: 읽는 경로(절전 감지)가 Swing에 없음(A-S8) |
+| Connections | `connection.closeOnSleep` | 다음 작업: 2026-11-08부터 읽음(macOS 절전 알림, [connection-lifecycle.md](connection-lifecycle.md) "절전"), 화면 없음 |
 | Connections | `connection.sanitizeDriverProperties` | **추가함**: Options > Connections(2026-11-08) |
 | Connections | `connection.shellAuthModelEnabled` | 효과 없음: Swing 연결 대화상자가 셸 명령 인증을 고를 수 없게 거름(`ConnectionAuthModels`, 2026-11-08 확인) |
 | Connections | `connections.useWinTrustStoreType` | **추가함**: Options > Connections(2026-11-08, Windows만, 다시 시작 뒤 적용) |
@@ -551,8 +554,8 @@ Windows 인증서 저장소(다시 시작 뒤 적용, 키 저장만 확인), 끝
 | Transactions | `transaction.auto.close.ttl` | 효과 없음: 위와 같음 |
 | Transactions | `transaction.ddl.behavior` | 효과 없음(읽는 곳 없음) |
 | Transactions | `transaction.show.notifications` | 효과 없음(읽는 곳 없음) |
-| Transactions | `transaction.smart.commit` | 효과 없음: 쿼리 창이 스마트 커밋을 켜지 않음(`isSmartAutoCommit` 기본값), `recoverSmartCommit` 호출 없음 |
-| Transactions | `transaction.smart.commit.recover` | 효과 없음: 위와 같음 |
+| Transactions | `transaction.smart.commit` | 다음 작업: 2026-11-08부터 쿼리 창이 연결별 값을 읽음(`SmartCommit`), 연결별 화면 없음. 유형 기본값은 Connection Types |
+| Transactions | `transaction.smart.commit.recover` | 다음 작업: 위와 같음 |
 | Metadata | `database.meta.casesensitive` | **추가함**: Options > Metadata(2026-11-08) |
 | Metadata | `database.meta.disableAdditionalRead` | **추가함**: Options > Metadata(2026-11-08) |
 | Metadata | `database.meta.extra.ddl.info` | **추가함**: Options > Metadata(2026-11-08) |
