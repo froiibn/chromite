@@ -129,7 +129,8 @@ DBeaver의 데이터 전송(`com.seizia.chromite.data.transfer` 모델 + `.ui` S
   Swing에 객체 편집기가 없어 끄고, 성공하면 대상 테이블마다(최대 5개) "상위 1000개 행 선택" 쿼리 창을 연다(`DataTransferWizard.transferSucceeded`).
 - **형식 매핑은 모델에서:** 새 테이블의 열 형식은 모델의 `DBStructUtils.mapTargetDataType`(SWT와 같음)이 정하고 Swing은 결과를 고치지 않는다.
   잘못 매핑되던 형식(PostgreSQL `int4` → MariaDB `TINYINT`, 문자열 → SQL Server `varchar` 등)은 2026-11-07 모델과 방언에서 고쳤다(아래 "새 테이블의 형식 매핑").
-  모델의 구조 DDL은 기본 키를 만들지 않고, 괄호가 있는 형식(`varchar(100)`)은 원본의 NOT NULL을 옮기지 않는다(`generateStructTableDDL`, SWT도 같음).
+  모델의 구조 DDL은 2026-11-07 밤부터 원본 테이블의 기본 키를 만든다(아래 "남은 매핑과 기본 키"). 괄호가 있는 형식(`varchar(100)`)은 키 열이 아니면
+  원본의 NOT NULL을 옮기지 않는다(`generateStructTableDDL`, SWT도 같음).
 - **취소:** 진행 중 Cancel은 내보내기와 같다. 넣던 일괄 처리가 취소되면 모델이 Stop / Retry / Skip / Skip All을 묻고(`DatabaseTransferConsumer`의 일괄 삽입 오류 처리),
   Stop을 누르면 끝난다. 이미 커밋한 행(커밋 간격마다)은 대상에 남는다.
 
@@ -333,7 +334,7 @@ Copy Tables와 새 테이블로 가져오기는 대상 열 형식을 모델이 �
 | c_numeric | `numeric(12,2)` | `numeric(12,2)` = | `NUMERIC(12,2)` = | `NUMBER(12,2)` = |
 | c_real | `real` | `real` = | `REAL` = | `REAL` → **`BINARY_FLOAT`** |
 | c_double | `float` | `float8` → **`double precision`** | `FLOAT` → **`DOUBLE PRECISION`** | `FLOAT` → **`BINARY_DOUBLE`** |
-| c_bool | `bit` | `bit` = | `BIT` = | `DECIMAL(1,0)` = |
+| c_bool | `bit` | `bit` → **`boolean`**(2026-11-07 밤) | `BIT` = | `DECIMAL(1,0)` = |
 | c_date | `date` | `date` = | `DATE` = | `DATE` = |
 | c_time | `time` | `time` = | `TIME` = | `TIME` → **`TIMESTAMP`** |
 | c_timestamp | `datetime2` | `timestamp` = | `TIMESTAMP` → **`DATETIME(6)`** | `TIMESTAMP` = |
@@ -452,6 +453,37 @@ SQL Server·MariaDB 원본 22열). PostgreSQL → SQL Server·MariaDB의 `c_nume
 - 경로는 Windows 형식으로 쓴다(JSON에서는 `"D:\\exports"`). `"D:/exports"`는 데이터 전송 엔진이 URI(`D` 파일 시스템)로 읽어
   "File system schema 'D' not recognized"로 실패한다(`DBFUtils.resolvePathFromString`, 마법사에 직접 입력해도 같음. 이 작업에서 고치지 않음).
 
+### 남은 매핑과 기본 키 (2026-11-07 밤)
+
+후속 과제 #39(나머지), #51, #52, #53. 결정(사용자 규칙 "제품 기능은 묻지 않는다"에 따라 주 에이전트가 정함): 기본 키를 만들고, `bit` → `boolean`.
+
+- **기본 키(#39):** 새 테이블(새로 만들기, 삭제 후 다시 만들기)에 원본 테이블의 기본 키를 만든다. SWT도 만들지 않았지만, 기본 키 없이 복사된 테이블은 흔히 놀라는 결과라 만든다.
+  - 원인: 구조 DDL(`DatabaseTransferUtils.generateStructTableDDL`)은 테이블·열 관리자로 `CREATE TABLE`만 만든다. 기본 키를 만드는 코드는 구조 DDL이 실패했을 때 쓰는
+    일반 SQL 경로(`generateTargetTableDDL`의 `PRIMARY KEY (…)`)에만 있었고, 구조 DDL은 늘 쓰인다(`USE_STRUCT_DDL = true`).
+  - 고친 것: 원본이 테이블이고 선언된 기본 키가 있으면(`getConstraints`의 `PRIMARY_KEY`, 고유 키·고유 인덱스는 NULL을 허용할 수 있어 쓰지 않음) `CREATE TABLE` 뒤에
+    `ALTER TABLE <대상> ADD PRIMARY KEY (<열>…)`를 더한다. 이름은 데이터베이스가 정한다(PostgreSQL `<테이블>_pkey`, SQL Server `PK__…`, Oracle `SYS_C…`).
+    키 열은 NOT NULL로 만든다(SQL Server는 NULL 허용 열에 기본 키를 만들지 못하고, 괄호가 있는 형식은 원본의 NOT NULL이 옮겨지지 않았다).
+    키 열 가운데 건너뛴 열이 있으면 만들지 않는다. 대상 DDL 탭에 같은 문장이 보인다. 고유 키·인덱스·외래 키는 옮기지 않는다(아래 "남긴 것").
+    `ALTER TABLE … ADD PRIMARY KEY`는 PostgreSQL·SQL Server·MariaDB·Oracle이 같은 문법이라 드라이버별 제약 조건 관리자를 쓰지 않았다.
+- **Oracle 열 복사의 문자 길이 단위(#51):** 테이블 디자이너에서 기존 열을 복사·붙여넣으면(`OracleTableColumnManager.copyColumnProperties`) 길이 숫자만 옮겨
+  `VARCHAR2(50 CHAR)` 열의 복사본이 `VARCHAR2(50)`(바이트)이 되었다. 단위(`OracleTableColumn.setCharLengthSemantics`)도 옮긴다.
+- **`MAX_STRING_SIZE`(#52):** 다른 DB 문자열을 `VARCHAR2(n CHAR)`로 둘지 `CLOB`으로 둘지 정하는 한도가 4000으로 고정이었다(`OracleSQLDialect`).
+  연결할 때(`initDriverSettings`) `V$PARAMETER`의 `max_string_size`를 읽어 `EXTENDED`면 32767, 아니면 4000. `V$PARAMETER`는 `SELECT_CATALOG_ROLE`이나
+  권한이 있어야 읽히고(시험 사용자 `CHR_MFB`는 ORA-00942), 12c 전 서버에는 이 매개변수가 없다. 그때는 4000을 쓴다(더 긴 문자열은 모든 값을 담는 `CLOB`).
+  바이트 한도는 그대로라 `EXTENDED`에서도 32767바이트를 넘는 한글 문자열은 ORA-12899로 실패한다(말없이 잘리지 않음).
+- **`bit` → PostgreSQL(#53):** SQL Server `bit`가 PostgreSQL `bit`(비트 문자열)가 되었다. 이름 찾기(`DBStructUtils`)가 같은 이름을 찾고, 두 형식 모두 JDBC `BIT`라
+  데이터 종류도 같았다. PostgreSQL 방언 변환기가 다른 DB의 한 비트 `BIT`(JDBC `BIT`, 정밀도 1 이하: SQL Server `bit`, MySQL/MariaDB `BIT(1)`)를 `boolean`으로 둔다.
+  여러 비트(`BIT(8)`)와 PostgreSQL 계열 원본은 그대로다.
+- **Oracle `NUMBER(p,0)`(#53):** 이미 같은 자릿수의 `numeric(p,0)`이다(PostgreSQL 방언 변환기의 `number`, 2026-11-07 오후 표의 `ID`). 다시 확인만 했고 코드는 바꾸지 않았다.
+  DDL에는 PostgreSQL이 같은 형식으로 보는 `numeric(10)`으로 나온다.
+- **아주 작은 수(#53):** 표에 `-2.5E-300`이 `-0`으로 보이던 것은 [swing-result-viewer.md](swing-result-viewer.md) "아주 작은 수의 표시".
+- **NULL 열이 바뀌는 행의 삽입(확인 중 찾음):** PostgreSQL → SQL Server 복사에서 `B` 행의 NULL `note`에 앞 행 값 `한글`이 들어가고, `C` 행은 SQL Server 오류 245
+  ("Conversion failed when converting the nvarchar value 'x' to data type bit")로 멈췄다(기본 키 없는 원본으로도 같음 — 이 작업 전부터 있던 결함).
+  삽입 문장은 NULL인 열을 빼고 만드는데(`ExecuteInsertBatchImpl`), 행의 NULL 열이 앞 행과 다를 때 새 문장을 준비하는 조건이 "일괄 처리에 쌓인 문장이 있을 때"
+  (`ExecuteBatchImpl.processBatch`, `statementsInBatch > 0`)라, 행마다 실행하는 경로(일괄 처리를 쓰지 않을 때)에서는 앞 행의 문장을 그대로 썼다. 그래서 새로 NULL이 된
+  열의 매개변수에 앞 행 값이 남고 뒤 매개변수가 한 칸씩 밀렸다. 조건을 "준비한 문장이 있을 때"로 바꿨다(일괄 처리면 전처럼 먼저 실행). 같은 경로를 쓰는 스크립트 생성(값을 넣은
+  INSERT 미리 보기)도 같은 원인이었다. 이 복사가 왜 일괄 처리를 쓰지 않았는지(SQL Server `supportsBatchUpdates`는 참, "행을 하나씩 삽입"은 꺼짐)는 찾지 못했다.
+
 ## upstream 대비 변경점
 
 - SWT `data.transfer.ui` 마법사 대신 Swing 마법사(SSMS 단계 구성). 작업(task) 저장·편집, 형식 프로필, 열 고르기(`StreamMappingContainer`),
@@ -462,7 +494,8 @@ SQL Server·MariaDB 원본 22열). PostgreSQL → SQL Server·MariaDB의 `c_nume
 - 가져오기 자동 매핑에서 맞는 열이 없는 원본 열은 새 열 만들기가 아니라 건너뛰기.
 - 데이터베이스 노드의 원본 목록은 스키마별로 묶어 보이고(SWT는 데이터베이스에서 내보내기를 열 수 없음), 가져오기는 첫 단계에서 대상 테이블(기존 또는 새 테이블)을 고른다.
   여러 스키마의 같은 이름 테이블이 같은 파일·같은 대상 테이블로 가는 것을 막는다.
-- 새 테이블의 형식 매핑과 값 바인딩, Oracle 열의 문자 길이 단위를 모델·방언에서 고쳤다(위 "새 테이블의 형식 매핑", SWT에도 적용). 그 밖의 모델 코드 변경은 오류 문구의 대상 이름(`DatabaseMappingContainer.getTargetFullName`, 2026-11-07)뿐이다.
+- 새 테이블의 형식 매핑과 값 바인딩, Oracle 열의 문자 길이 단위를 모델·방언에서 고쳤다(위 "새 테이블의 형식 매핑", SWT에도 적용). 그 밖의 모델 코드 변경은 오류 문구의 대상 이름(`DatabaseMappingContainer.getTargetFullName`, 2026-11-07),
+  새 테이블의 기본 키와 NULL 열이 바뀌는 행의 삽입(`DatabaseTransferUtils`, `ExecuteBatchImpl`, 2026-11-07 밤, 위 "남은 매핑과 기본 키")이다. SWT는 새 테이블에 기본 키를 만들지 않았다.
 
 ## 확인 (2026-11-06)
 
@@ -549,15 +582,37 @@ SQL Server·MariaDB 원본 22열). PostgreSQL → SQL Server·MariaDB의 `c_nume
 - 회귀 테스트는 실행하지 않았다(CLAUDE.md 7번). 영향받을 수 있는 기능: 다른 데이터 소스의 LOB·이진·JSON 값을 받는 모든 데이터 전송(내용 객체 변환), 시각 문자열을
   받는 `TIMESTAMP` 열, Oracle `BINARY_FLOAT`/`BINARY_DOUBLE` 값 편집, Oracle 문자 길이(`CHAR`) 열의 DDL·표 디자이너의 형식 입력, Oracle `NUMBER` 새 열의 DDL.
 
+### 남은 매핑과 기본 키 (2026-11-07 밤)
+
+- 빌드: `-Pproduct-chromite-swing` BUILD SUCCESS(origin/devel `897c37749e` 위). 시험 작업 공간 사본과 이 빌드로 앱 하나를 띄우고, 같은 프로세스의 시험 에이전트로
+  Tasks ▸ Copy Tables…를 EDT에서 눌렀다(OS 입력 없음). 원본: PostgreSQL `postgres.chr_mfb.pk_src`(`code varchar(20)`, `id int`, `flag boolean`, `note text`,
+  기본 키 `(code, id)`, NULL 위치가 다른 3행), SQL Server `chr_mfb.dbo.pk_src`(`id int` 기본 키, `flag bit`, `name nvarchar(30)`, 3행), Oracle `CHR_MFB.NUM_SRC`
+  (`ID NUMBER(10,0)` 기본 키, `AMOUNT NUMBER(12,2)`, `NAME VARCHAR2(50 CHAR)`, `CODE VARCHAR2(20)`, 2행).
+- PostgreSQL → SQL Server(`chr_mfb.from_pg`): 대상 DDL `code nvarchar(20) NOT NULL, id int NOT NULL, flag bit NULL, note nvarchar(MAX) NULL` +
+  `ALTER TABLE chr_mfb.from_pg.pk_src ADD PRIMARY KEY (code, id)`, SUCCESS 3행. `sys.key_constraints`에 `PRIMARY_KEY_CONSTRAINT`(`code` 1, `id` 2), 값 `A|1|1|한글`, `B|2|0|NULL`, `C|3|NULL|x`.
+  `ExecuteBatchImpl`을 고치기 전 빌드: 같은 복사가 `C` 행에서 오류 245, `B`의 `note`가 `한글`(기본 키 없는 원본 `nopk_src`도 같음).
+- SQL Server → PostgreSQL(`chr_mfb_from_mssql`): `id int NOT NULL, flag boolean NULL, name varchar(30) NULL` + `ADD PRIMARY KEY (id)`, SUCCESS 3행.
+  `pg_constraint` `pk_src_pkey PRIMARY KEY (id)`, `flag`는 `boolean`(`t`, `f`, NULL).
+- Oracle → PostgreSQL(`chr_mfb_from_ora`): `"ID" numeric(10) NOT NULL, "AMOUNT" numeric(12, 2)` + `ADD PRIMARY KEY ("ID")`, SUCCESS 2행.
+  `information_schema.columns`에서 `ID numeric` 정밀도 10·소수 자리 0, `num_src_pkey PRIMARY KEY ("ID")`, `1234567890`·`12.34`·`한글이름` 그대로.
+- 모델 확인(같은 앱 안에서 부름): `DBStructUtils.mapTargetDataType` — SQL Server `flag bit` → PostgreSQL `boolean`, PostgreSQL `bool` → SQL Server `bit`(그대로),
+  Oracle `NUMBER(10,0)` → `numeric(10,0)`. Oracle `NAME VARCHAR2(50 CHAR)` 열을 열 관리자로 복사한 새 열의 DDL `ADD NAME VARCHAR2(50 CHAR) NULL`,
+  `CODE VARCHAR2(20)`(바이트)는 `VARCHAR2(20)`. Oracle 방언의 한도: 시험 DB `MAX_STRING_SIZE = STANDARD`라 4000(`system` 연결이 `V$PARAMETER`를 읽음).
+  `EXTENDED` 경로는 시험하지 못했다(바꾸면 되돌릴 수 없는 설정이라 바꾸지 않음).
+- 대상 테이블·시험 스키마·사용자는 확인 뒤 지웠다. UI 문구는 바뀌지 않아 화면 언어·테마별 그림은 찍지 않았다.
+- 회귀 테스트는 실행하지 않았다(CLAUDE.md 7번). 영향받을 수 있는 기능: 새 테이블을 만드는 모든 데이터 전송(기본 키 추가, 키 열 NOT NULL), 행마다 실행하는
+  모든 삽입(데이터 전송, `ExecuteBatchImpl`을 쓰는 결과 저장의 INSERT)과 값을 넣은 INSERT 스크립트, PostgreSQL 대상의 `bit` 매핑, Oracle 열 복사, Oracle 대상 문자열 한도.
+
 ## 남긴 것
 
 - 결과 표의 쿼리를 다른 DB 테이블로 복사(모델은 지원, 이 마법사에서는 확인하지 않아 "Database"를 두지 않음).
 - 테이블 복사의 매핑 규칙·열 변환기·새 테이블 속성·중복 키 처리 방법·매핑 저장, 작업으로 저장, 외래 키 옮기기.
 - XLSX 가져오기(모델에 처리기 없음), 여러 파일 한 번에 가져오기. 새 테이블로 가져오기는 데이터베이스 노드에서만 된다(테이블·스키마 노드는 전과 같음).
-- 형식 매핑에 남은 것: Oracle `NUMBER(p,0)`은 정수가 아니라 같은 자릿수의 `numeric`, SQL Server `bit` → PostgreSQL `bit`(값은 같게 복사됨),
-  기존 Oracle 열을 복사·붙여넣기로 만든 새 열(`OracleTableColumnManager`의 복사)은 문자 길이 단위를 옮기지 않음, MariaDB `TIME`의 24시간 넘는 값 → Oracle,
-  Oracle 대상 문자열의 4000바이트 한도(`MAX_STRING_SIZE = EXTENDED`인지 읽지 않음). (2026-11-07 오후에 Oracle 대상 값 바인딩, MariaDB `uuid`, 바이트 길이,
-  정밀도 없는 `numeric`을 고쳤고 숨은 열은 제품에서 보이지 않음을 확인 — 위 "Oracle 대상과 남은 매핑")
+- 형식 매핑에 남은 것: MariaDB `TIME`의 24시간 넘는 값 → Oracle. (2026-11-07 오후에 Oracle 대상 값 바인딩, MariaDB `uuid`, 바이트 길이,
+  정밀도 없는 `numeric`을, 밤에 `bit` → `boolean`, Oracle 열 복사의 길이 단위, `MAX_STRING_SIZE`를 고쳤고 `NUMBER(p,0)` → `numeric(p,0)`을 확인 —
+  위 "Oracle 대상과 남은 매핑", "남은 매핑과 기본 키")
+- 새 테이블에는 기본 키만 옮긴다. 고유 키·인덱스·외래 키·CHECK, 키가 아닌 열의 NOT NULL(괄호가 있는 형식일 때, 모델 그대로)은 옮기지 않는다.
+- `MAX_STRING_SIZE = EXTENDED` 경로는 시험 DB에서 확인하지 못했다.
 - 여러 스키마를 복사할 때 원본 스키마마다 같은 이름의 대상 스키마로 나눠 보내기(모델의 대상 컨테이너가 하나라 다루지 않음).
 - 데이터베이스가 여럿인 연결 노드에서 데이터베이스를 고르게 하기(지금은 꺼짐), 펼치지 않은 연결 노드에서 켜기(메타데이터를 EDT에서 읽지 않기 위해 꺼짐).
 - 내보내기 열 고르기, 형식 프로필(날짜·숫자 형식), 분할 파일, 작업으로 저장.
@@ -582,3 +637,6 @@ SQL Server·MariaDB 원본 22열). PostgreSQL → SQL Server·MariaDB의 `c_nume
   (`OracleBinaryFloatValueHandler`), 다른 DB 문자열 → `VARCHAR2(n CHAR)`/`CHAR(n CHAR)`와 Oracle 열의 문자 길이 단위(`OracleTableColumn`, `OracleSQLDialect`),
   정밀도 없는 소수 → 배정밀도·Oracle `NUMBER`(`DBStructUtils`, `OracleSQLDialect`), MariaDB `uuid` → PostgreSQL `uuid`(`PostgreDialect`). 4×3 복사 다시 확인과 Oracle 표 편집.
 - 2026-11-07 `@export` 명령: 조용히 무시되고 다음 쿼리가 실행되던 것을 고침. Swing pragma 처리기 `SqlExportPragma`가 다음 쿼리를 실행하지 않고 형식·옵션을 채운 Export Data 마법사를 연다(`DataExportWizard.openForExportCommand`). 모르는 형식·옵션, SELECT가 아닌 다음 문장은 오류. PostgreSQL(CSV, 구분자 `;`)·SQL Server(JSON)에서 파일 생성 확인(증거: `D:\Tools\_scratch\p3-transactions-export\`). 위 "@export 명령".
+- 2026-11-07 남은 매핑과 기본 키(모델·방언, SWT에도 적용): 새 테이블에 원본의 기본 키(`DatabaseTransferUtils`, #39), Oracle 열 복사의 문자 길이 단위
+  (`OracleTableColumnManager`, #51), `MAX_STRING_SIZE`에 따른 `VARCHAR2` 한도(`OracleSQLDialect`, #52), 다른 DB의 한 비트 `BIT` → PostgreSQL `boolean`(`PostgreDialect`, #53),
+  NULL 열이 바뀌는 행을 행마다 삽입할 때 앞 행의 문장을 쓰던 것(`ExecuteBatchImpl`). `NUMBER(p,0)` → `numeric(p,0)`은 확인만 함.

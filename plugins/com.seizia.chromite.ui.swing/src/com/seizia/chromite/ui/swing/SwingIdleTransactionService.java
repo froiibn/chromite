@@ -23,6 +23,7 @@ import com.seizia.chromite.model.qm.QMTransactionState;
 import com.seizia.chromite.model.runtime.AbstractJob;
 import com.seizia.chromite.model.runtime.DBRProgressMonitor;
 import com.seizia.chromite.runtime.jobs.IdleTransactionMonitor;
+import com.seizia.chromite.runtime.jobs.TransactionRecoveryGuard;
 import com.seizia.chromite.runtime.ui.UIServiceIdleTransactions;
 import com.seizia.chromite.ui.swing.internal.ConnectionMessages;
 import org.eclipse.core.runtime.IStatus;
@@ -39,6 +40,7 @@ import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.IdentityHashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -58,6 +60,9 @@ import java.util.Map;
  *     ({@link IdleTransactionMonitor#endTransaction}).</li>
  *     <li>자동 롤백 뒤의 알림은 닫을 때까지 남고 연결, 쿼리 창, 유휴 시간, 취소된 문장 수를 적는다. 실패하면 오류 알림이다.</li>
  *     <li>모든 화면 작업은 EDT에서 하고 커밋·롤백은 작업 스레드({@link AbstractJob})에서 한다. 모니터는 백그라운드 스레드에서 부른다.</li>
+ *     <li>오류 복구가 멈춘 알림({@link TransactionRecoveryGuard}): 서버가 중단한 트랜잭션은 잃은 문장 수와 롤백 단추를,
+ *     끊긴 연결은 다시 연결이 끝낼 트랜잭션 목록과 다시 연결 단추를 보인다. 답할 때까지 남는다. 같은 트랜잭션(연결)에 대한 알림이
+ *     떠 있으면 다시 띄우지 않는다. 멈춘 뒤의 문장마다 같은 오류가 나기 때문이다.</li>
  * </ul>
  *
  * 변경 이력:
@@ -66,6 +71,8 @@ import java.util.Map;
  *   목록과 나눔 (docs/chromite/transactions.md)
  * - 2026-11-07 쿼리 창 이름 찾기가 창의 실제 실행 문맥을 비교함(쿼리 창마다 별도 연결, 전에는 주 문맥만 창으로 보임)
  *   (docs/chromite/transactions.md "쿼리 창마다 별도 연결")
+ * - 2026-11-07 오류 복구가 멈춘 알림({@link #showTransactionAborted}, {@link #showReconnectHeld})
+ *   (docs/chromite/transactions.md "오류 복구와 열린 트랜잭션")
  */
 public class SwingIdleTransactionService implements UIServiceIdleTransactions {
 
@@ -75,6 +82,19 @@ public class SwingIdleTransactionService implements UIServiceIdleTransactions {
 
     // EDT only: the shown reminder of each context
     private final Map<DBCExecutionContext, NotificationToast> reminders = new IdentityHashMap<>();
+    // EDT only: the shown notices of the stopped error recovery (TransactionRecoveryGuard)
+    private final Map<DBCExecutionContext, Notice> abortedNotices = new IdentityHashMap<>();
+    private final Map<DBPDataSourceContainer, Notice> reconnectNotices = new IdentityHashMap<>();
+
+    /**
+     * A shown notice and the transaction it is about (its first statement time; 0 for a connection).
+     */
+    private record Notice(@NotNull NotificationToast toast, long transactionStart) {
+        boolean isShown() {
+            // A closed toast is removed from the frame's layered pane
+            return toast.getParent() != null;
+        }
+    }
 
     @Override
     public void showIdleTransactionReminder(@NotNull DBCExecutionContext context, @NotNull QMTransactionState transaction) {
@@ -148,6 +168,95 @@ public class SwingIdleTransactionService implements UIServiceIdleTransactions {
                     NotificationToast.Kind.ERROR, List.of(), null);
             }
         });
+    }
+
+    @Override
+    public void showTransactionAborted(@NotNull DBCExecutionContext context, @NotNull QMTransactionState transaction) {
+        long start = transaction.getTransactionStartTime();
+        SwingUtilities.invokeLater(() -> {
+            JFrame frame = findMainFrame();
+            if (frame == null) {
+                return;
+            }
+            Notice shown = abortedNotices.get(context);
+            if (shown != null && shown.isShown()) {
+                if (shown.transactionStart() == start) {
+                    // Every further statement fails the same way: one notice is enough
+                    return;
+                }
+                shown.toast().dismiss();
+            }
+            String target = describeContext(context);
+            log.info("Transaction aborted by the server, not rolled back automatically: " + target); //$NON-NLS-1$
+            Runnable forget = () -> abortedNotices.remove(context);
+            List<Action> actions = List.of(createAction(ConnectionMessages.idle_txn_rollback, () -> {
+                forget.run();
+                endTransaction(frame, context, start, false, null);
+            }));
+            abortedNotices.put(context, new Notice(NotificationToast.showWithActions(frame, ConnectionMessages.recovery_aborted_title,
+                NLS.bind(ConnectionMessages.recovery_aborted_message, target, transaction.getExecuteCount(), formatTime(start)),
+                NotificationToast.Kind.WARNING, actions, forget), start));
+        });
+    }
+
+    @Override
+    public void showReconnectHeld(
+        @NotNull DBPDataSource dataSource,
+        @NotNull Map<DBCExecutionContext, QMTransactionState> transactions,
+        @NotNull List<DBPDataSourceContainer> agentSessions,
+        @NotNull Throwable error
+    ) {
+        Map<DBCExecutionContext, QMTransactionState> open = new LinkedHashMap<>(transactions);
+        List<DBPDataSourceContainer> agents = List.copyOf(agentSessions);
+        SwingUtilities.invokeLater(() -> {
+            DBPDataSourceContainer container = dataSource.getContainer();
+            JFrame frame = findMainFrame();
+            Notice shown = reconnectNotices.get(container);
+            if (frame == null || shown != null && shown.isShown()) {
+                return;
+            }
+            List<String> items = new ArrayList<>();
+            for (Map.Entry<DBCExecutionContext, QMTransactionState> entry : open.entrySet()) {
+                items.add(NLS.bind(ConnectionMessages.recovery_reconnect_item, describeContext(entry.getKey()),
+                    entry.getValue().getExecuteCount(), formatTime(entry.getValue().getTransactionStartTime())));
+            }
+            for (DBPDataSourceContainer agent : agents) {
+                items.add(NLS.bind(ConnectionMessages.recovery_reconnect_agent, agent.getName()));
+            }
+            // The first line only: the causes of a connection error repeat it
+            String reason = ErrorText.describe(error).lines().findFirst().orElse(""); //$NON-NLS-1$
+            log.info("Connection failed, not reconnected automatically: " + container.getName() + ": " + reason); //$NON-NLS-1$ //$NON-NLS-2$
+            Runnable forget = () -> reconnectNotices.remove(container);
+            List<Action> actions = List.of(createAction(ConnectionMessages.recovery_reconnect, () -> {
+                forget.run();
+                reconnect(frame, dataSource);
+            }));
+            reconnectNotices.put(container, new Notice(NotificationToast.showWithActions(frame, ConnectionMessages.recovery_reconnect_title,
+                NLS.bind(ConnectionMessages.recovery_reconnect_message, new Object[]{container.getName(), reason, String.join("\n", items)}), //$NON-NLS-1$
+                NotificationToast.Kind.ERROR, actions, forget), 0));
+        });
+    }
+
+    /**
+     * The reconnect the user chose in the notice of {@link #showReconnectHeld}, in a job. The model's invalidation
+     * reports its result itself (reconnect notifications); here only an unexpected error is shown.
+     */
+    private static void reconnect(@NotNull Component parent, @NotNull DBPDataSource dataSource) {
+        DBPDataSourceContainer container = dataSource.getContainer();
+        new AbstractJob("Reconnect " + container.getName()) { //$NON-NLS-1$
+            @NotNull
+            @Override
+            protected IStatus run(@NotNull DBRProgressMonitor monitor) {
+                try {
+                    TransactionRecoveryGuard.reconnect(monitor, dataSource);
+                } catch (Exception e) {
+                    log.warn("Cannot reconnect " + container.getName(), e); //$NON-NLS-1$
+                    SwingUtilities.invokeLater(() -> ErrorDialog.show(parent, ConnectionMessages.recovery_reconnect_title,
+                        NLS.bind(ConnectionMessages.recovery_reconnect_error, container.getName()), e));
+                }
+                return Status.OK_STATUS;
+            }
+        }.schedule();
     }
 
     /**

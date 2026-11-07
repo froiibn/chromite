@@ -23,6 +23,7 @@ import com.seizia.chromite.model.DBPDataSourceContainer;
 import com.seizia.chromite.model.runtime.DBRProgressMonitor;
 import org.jkiss.code.NotNull;
 
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -32,9 +33,13 @@ import java.util.Map;
  * Swing 디버거는 이 인터페이스를 직접 쓰므로, 세션을 열기 전에 중단점을 놓을 수 있게 루틴 원본({@link #readSource})과
  * 그 원본의 식별자({@link #getSourceIdentifier})를 컨트롤러가 준다. 중단점 설명은 마커 속성 맵 대신 원본 식별자와 줄 번호로 만든다.
  *
+ * 디버그 정보로 다시 컴파일해야 하는 DB(Oracle)를 위해 {@link #getUnitsToCompile}·{@link #compileForDebugging}을 둔다. 다시 컴파일은
+ * 의존 객체를 잠시 무효로 만들 수 있어 컨트롤러가 스스로 하지 않고, 화면이 사용자에게 물은 뒤 부른다.
+ *
  * 변경 이력:
  * - 2026-11-07 Swing 디버거용으로 복원(커밋 745f87f8ee에서 삭제): readSource·getSourceIdentifier 추가, describeBreakpoint를
  *   마커 속성 대신 원본·줄로 (docs/chromite/procedure-debugger.md)
+ * - 2026-11-07 getUnitsToCompile·compileForDebugging 추가(Oracle 디버거)
  */
 public interface DBGController {
 
@@ -59,6 +64,22 @@ public interface DBGController {
      */
     @NotNull
     Object getSourceIdentifier();
+
+    /**
+     * Program units of the routine that must be compiled for debugging before the debugger can stop in them and show
+     * their variables (names to show the user). Empty when none must be (the default).
+     */
+    @NotNull
+    default List<String> getUnitsToCompile(@NotNull DBRProgressMonitor monitor) throws DBGException {
+        return List.of();
+    }
+
+    /**
+     * Compiles the units of {@link #getUnitsToCompile} for debugging. Call only after the user agreed: recompiling may
+     * invalidate dependent objects until they are next used.
+     */
+    default void compileForDebugging(@NotNull DBRProgressMonitor monitor) throws DBGException {
+    }
 
     /**
      * A line breakpoint in a routine.

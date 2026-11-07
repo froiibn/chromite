@@ -16,22 +16,32 @@
  */
 package com.seizia.chromite.runtime.ui;
 
+import com.seizia.chromite.model.DBPDataSource;
+import com.seizia.chromite.model.DBPDataSourceContainer;
 import com.seizia.chromite.model.exec.DBCExecutionContext;
 import com.seizia.chromite.model.qm.QMTransactionState;
 import com.seizia.chromite.runtime.jobs.IdleTransactionMonitor;
+import com.seizia.chromite.runtime.jobs.TransactionRecoveryGuard;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
 
+import java.util.List;
+import java.util.Map;
+
 /**
- * Shows the reminder and the notice of {@link IdleTransactionMonitor}. All methods are called from the monitor's
- * background thread and must not block.
+ * Shows the reminder and the notice of {@link IdleTransactionMonitor}, and the notices of
+ * {@link TransactionRecoveryGuard} (the error recovery stopped instead of ending an open transaction). All methods are
+ * called from background threads and must not block.
  *
  * 설계: 감지와 시간 재기는 모델({@link IdleTransactionMonitor})이 하고, 사용자에게 보이는 것은 UI 번들이 이 서비스로 한다
  * (AGENTS-Architecture.md 모델/UI 분리). 서비스가 없으면(헤드리스) 모니터는 알리지도 롤백하지도 않는다: 자동 롤백 뒤에는
- * 반드시 보이는 알림이 따라야 하기 때문이다(사용자 결정 2026-11-07).
+ * 반드시 보이는 알림이 따라야 하기 때문이다(사용자 결정 2026-11-07). 오류 복구의 알림도 같은 "열린 트랜잭션에 대한 알림"이라
+ * 새 서비스를 만들지 않고 이 서비스에 두었다.
  *
  * 변경 이력:
  * - 2026-11-07 최초 작성 (docs/chromite/idle-transactions.md)
+ * - 2026-11-07 오류 복구가 멈췄다는 알림 두 가지({@link #showTransactionAborted}, {@link #showReconnectHeld})
+ *   (docs/chromite/transactions.md "오류 복구와 열린 트랜잭션")
  */
 public interface UIServiceIdleTransactions {
 
@@ -59,4 +69,26 @@ public interface UIServiceIdleTransactions {
         @NotNull QMTransactionState transaction,
         long rollbackTime,
         @Nullable Throwable error);
+
+    /**
+     * Shows a notice that stays until answered or dismissed: the server aborted the context's transaction after an
+     * error, and the error recovery did not roll it back because it has the user's statements. Offers Roll back of
+     * this transaction ({@link IdleTransactionMonitor#endTransaction}). One notice per context at a time.
+     */
+    void showTransactionAborted(@NotNull DBCExecutionContext context, @NotNull QMTransactionState transaction);
+
+    /**
+     * Shows a notice that stays until answered or dismissed: the connection failed, and the error recovery did not
+     * reconnect because reconnecting ends open transactions. Offers Reconnect ({@link TransactionRecoveryGuard#reconnect}).
+     * One notice per connection at a time.
+     *
+     * @param transactions  the sessions with open transactions and what they hold
+     * @param agentSessions connections where Chromite Agent sessions run a statement or left a transaction open
+     * @param error         the connection error
+     */
+    void showReconnectHeld(
+        @NotNull DBPDataSource dataSource,
+        @NotNull Map<DBCExecutionContext, QMTransactionState> transactions,
+        @NotNull List<DBPDataSourceContainer> agentSessions,
+        @NotNull Throwable error);
 }

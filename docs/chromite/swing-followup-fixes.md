@@ -19,6 +19,7 @@
   연결별 값은 두지 않았다(SWT는 연결 설정으로 덮어쓸 수 있으나 Swing 자동완성의 다른 설정도 모두 전역이다).
 - 새 엔진에는 `EXEC`/`CALL` 뒤의 프로시저 제안 문맥이 없다. 예전 엔진(`SQLCompletionAnalyzer.java:353-358`)에는 있지만 SWT 기본 설정도
   새 엔진만 쓰므로(`SqlCompletionAnalysis` 클래스 설명) Swing도 그대로 두었다.
+  2026-11-07 새 엔진에 추가했다([swing-sql-completion.md](swing-sql-completion.md)). 이 설정은 값 자리에만 적용되고 호출문 뒤는 늘 제안한다.
 
 ## SQL Server 열 정렬 규칙
 
@@ -33,7 +34,7 @@
 - 다른 방언: MySQL/MariaDB는 이미 `getDataKind() == STRING`일 때만 `CHARACTER SET`·`COLLATE`를 붙인다(`MySQLTableColumnManager.java:76-86`).
   PostgreSQL은 열 변경(`ALTER COLUMN … TYPE`, `PostgreTableColumnManager.addObjectModifyActions`)에 정렬 규칙을 넣지 않는다. 새 열을 만들 때만
   `PostgreCollateModifier`(`:116-125`)가 붙이는데 기본 정렬 규칙은 건너뛰므로, 기본이 아닌 정렬 규칙을 가진 열을 복사해 형식을 바꾼 경우에만 남는다
-  (고치지 않음, "남긴 것"). Oracle·일반 드라이버의 열 관리자는 정렬 규칙을 쓰지 않는다.
+  (2026-11-07 고침, [model-fixes.md](model-fixes.md) "PostgreSQL 복사한 열의 정렬 규칙과 저장 방식"). Oracle·일반 드라이버의 열 관리자는 정렬 규칙을 쓰지 않는다.
 
 ## 날짜/시간 소수 초
 
@@ -132,9 +133,8 @@ Swing 제품(`-vm D:\Tools\jbrsdk-25\bin\server\jvm.dll`, 비공개 작업 공�
 - 회귀 테스트는 실행하지 않았다(CLAUDE.md 7번). 영향받을 수 있는 기능은 각 항목의 "고친 것"에 적은 곳이다.
 
 ## 남긴 것
-- SQL Server에서 `EXEC dbo.` 뒤 자동완성이 모델 안에서 `NullPointerException`("identifier" is null)으로 실패한다. 프로시저 설정과 상관없다(고치기 전에도 같음).
-- 새 완성 엔진의 `EXEC`/`CALL` 뒤 프로시저 제안(SWT도 기본 설정에서는 없음).
-- PostgreSQL: 기본이 아닌 정렬 규칙을 가진 열을 복사해 만든 새 열의 형식을 정렬 규칙이 없는 형식으로 바꾸면 `COLLATE`가 남는다.
+- (2026-11-07 고침) SQL Server `EXEC dbo.` 뒤 자동완성의 `NullPointerException`과 새 완성 엔진의 `EXEC`/`CALL` 뒤 프로시저 제안:
+  [swing-sql-completion.md](swing-sql-completion.md).
 - 열의 소수 초 자릿수에 맞춘 표시(`datetime2(7)`은 일곱 자리처럼). 데이터베이스 형식 설정을 켠 채 Oracle로 복사하면 문자열 바인딩이 `NLS_TIMESTAMP_FORMAT`에 달려 있다.
 - 테마를 실행 중에 바꾸면 이미 있는 탭 창의 넘침 단추 도구 설명이 사라진다. FlatLaf가 단추를 `installComponents`에서 만들 때는 아직 문구를 읽기 전이라
   번역과 상관없이 영어 문구도 같다. 다시 시작하면 나온다.
@@ -148,3 +148,5 @@ Swing 제품(`-vm D:\Tools\jbrsdk-25\bin\server\jvm.dll`, 비공개 작업 공�
 - 2026-11-07 데이터 전송 오류의 대상 이름이 `….null`로 나오던 것(#44).
 - 2026-11-07 네이티브 백업·복원 실패 항목을 swing-backup-restore.md로 연결(#40).
 - 2026-11-07 Oracle `v$session.program`에서 `.`·`-`까지 `?`로 바꾸던 것(#68), 위 "Oracle 프로그램 이름".
+- 2026-11-07 "남긴 것"의 PostgreSQL 복사한 열 `COLLATE`(#60)를 고침: [model-fixes.md](model-fixes.md).
+- 2026-11-07 "남긴 것"의 `EXEC dbo.` 예외와 `EXEC`/`CALL` 뒤 프로시저 제안(#56, #57)을 고침: [swing-sql-completion.md](swing-sql-completion.md).

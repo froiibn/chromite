@@ -200,7 +200,7 @@ Swing은 처리기를 등록하지 않아 기본 처리기가 `System.out`에만
 | 보내는 곳 | 알림 | 종류 | 언제 |
 |---|---|---|---|
 | `DataSourceMonitorJob.showNotification` | `NT_DISCONNECT_IDLE` 유휴 연결 닫힘 | 경고 | 위 "유휴 연결 닫기" |
-| `DefaultInvalidationFeedbackHandler.onInvalidateSuccess` | `NT_RECONNECT_SUCCESS` "Datasource was invalidated, Live connection count: n/m" | 정보 | 끊긴 연결을 다시 이었을 때: 연결 유지 핑 실패(`KeepAlivePingJob`), 실행 중 연결 오류 복구(`DBExecUtils`) |
+| `DefaultInvalidationFeedbackHandler.onInvalidateSuccess` | `NT_RECONNECT_SUCCESS` "Datasource was invalidated, Live connection count: n/m" | 정보 | 끊긴 연결을 다시 이었을 때: 연결 유지 핑 실패(`KeepAlivePingJob`), 실행 중 연결 오류 복구(`DBExecUtils`), "연결 끊김" 알림의 다시 연결. 열린 트랜잭션이 있으면 자동으로 다시 잇지 않는다([transactions.md](transactions.md) "오류 복구와 열린 트랜잭션") |
 | `DefaultInvalidationFeedbackHandler.onInvalidateFailure` | `NT_RECONNECT_FAILURE` "Datasource invalidate failed" | 오류 | 실행 중 연결 오류 복구가 실패했을 때(핑 실패 쪽은 오류를 보이지 않게 부른다) |
 
 - 유휴 트랜잭션 롤백은 #97부터 모델 알림을 쓰지 않는다(`EndIdleTransactionsJob` → `UIServiceIdleTransactions.showIdleTransactionRolledBack`, `NT_ROLLBACK_IDLE`은 지웠다).
@@ -226,3 +226,5 @@ Swing은 처리기를 등록하지 않아 기본 처리기가 `System.out`에만
 - 2026-11-07 상태 줄 메뉴에 트랜잭션 로그, 공용 커밋 경로를 Query 메뉴·도구 막대·단축키·열린 트랜잭션 목록도 씀([transactions.md](transactions.md))
 - 2026-11-07 연결 유형 편집기(Options > Connection Types)가 생겨 유형의 알림·기간을 바꿀 수 있음을 반영([swing-options.md](swing-options.md))
 - 2026-11-07 쿼리 창마다 별도 연결: 상태 줄과 알림의 쿼리 창이 창의 실제 실행 문맥을 따름([transactions.md](transactions.md) "쿼리 창마다 별도 연결")
+- 2026-11-07 같은 UI 서비스(`UIServiceIdleTransactions`)에 오류 복구가 멈춘 알림 두 가지를 더함. 다시 연결 알림이 언제 뜨는지 고침
+  ([transactions.md](transactions.md) "오류 복구와 열린 트랜잭션")

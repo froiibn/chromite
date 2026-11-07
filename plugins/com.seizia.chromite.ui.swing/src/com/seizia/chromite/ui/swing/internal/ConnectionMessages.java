@@ -36,6 +36,7 @@ import org.eclipse.osgi.util.NLS;
  * - 2026-11-07 트랜잭션 격리 수준({@code settings_isolation*}) (docs/chromite/swing-options.md)
  * - 2026-11-07 쿼리 창마다 별도 연결: 연결별 설정({@code settings_separate_connection*}), 창 세션을 끝내기 전 질문({@code window_txn_*})
  *   (docs/chromite/transactions.md "쿼리 창마다 별도 연결")
+ * - 2026-11-07 오류 복구가 멈췄다는 알림({@code recovery_*}) (docs/chromite/transactions.md "오류 복구와 열린 트랜잭션")
  */
 public class ConnectionMessages extends NLS {
     private static final String BUNDLE_NAME = "com.seizia.chromite.ui.swing.internal.ConnectionMessages"; //$NON-NLS-1$
@@ -393,6 +394,14 @@ public class ConnectionMessages extends NLS {
     public static String idle_txn_title;
     public static String idle_txn_not_ended;
     public static String idle_txn_error;
+    public static String recovery_aborted_title;
+    public static String recovery_aborted_message;
+    public static String recovery_reconnect_title;
+    public static String recovery_reconnect_message;
+    public static String recovery_reconnect_item;
+    public static String recovery_reconnect_agent;
+    public static String recovery_reconnect;
+    public static String recovery_reconnect_error;
 
     // Open transactions before a disconnect (ExitTransactionCheck.confirmDisconnect)
     public static String disconnect_txn_message;

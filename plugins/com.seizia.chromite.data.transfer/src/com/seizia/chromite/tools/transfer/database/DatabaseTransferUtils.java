@@ -49,6 +49,10 @@ import java.util.*;
 
 /**
 * DatabaseTransferUtils
+*
+* 변경 이력:
+* - 2026-11-07 Chromite: 새 테이블(구조 DDL)에 원본 테이블의 기본 키를 만듦(ALTER TABLE … ADD PRIMARY KEY, 키 열은 NOT NULL).
+*   이전에는 열만 만들어 복사한 테이블에 기본 키가 없었다 (docs/chromite/swing-data-transfer.md)
 */
 public class DatabaseTransferUtils {
 
@@ -212,7 +216,7 @@ public class DatabaseTransferUtils {
         if (USE_STRUCT_DDL) {
             try {
                 final List<DBEPersistAction> actions = new ArrayList<>();
-                generateStructTableDDL(monitor, executionContext, schema, containerMapping, actions, changedProperties);
+                generateStructTableDDL(monitor, executionContext, schema, containerMapping, actions, changedProperties, !hasExtraTargetStructure);
                 if (hasExtraTargetStructure) {
                     Collections.addAll(actions, consumerSettings.generateExtraTargetTableDDL(
                         monitor, executionContext, schema, containerMapping));
@@ -395,6 +399,7 @@ public class DatabaseTransferUtils {
      * @param containerMapping mapping container
      * @param actions will be filled by persist actions
      * @param changedProperties list of properties what feature table must have
+     * @param createPrimaryKey whether a new table gets the primary key of the source table
      * @return DBSEntity table object that can be used as temporary to work with its properties, for example
      * @throws DBException on any DB error
      */
@@ -405,7 +410,8 @@ public class DatabaseTransferUtils {
         @NotNull DBSObjectContainer schema,
         @NotNull DatabaseMappingContainer containerMapping,
         @NotNull List<DBEPersistAction> actions,
-        @Nullable Map<DBPPropertyDescriptor, Object> changedProperties
+        @Nullable Map<DBPPropertyDescriptor, Object> changedProperties,
+        boolean createPrimaryKey
     ) throws DBException {
         final DBERegistry editorsRegistry = DBWorkbench.getPlatform().getEditorsRegistry();
 
@@ -473,6 +479,10 @@ public class DatabaseTransferUtils {
                 }
             }
 
+            // Columns of the source primary key, for a new table only
+            List<String> primaryKeyNames = createPrimaryKey && createCommand != null ?
+                getPrimaryKeyNames(monitor, containerMapping.getSource()) : Collections.emptyList();
+            Map<String, DBSEntityAttribute> primaryKeyColumns = new HashMap<>();
             if (attributeManager != null) {
                 for (DatabaseMappingAttribute attributeMapping : containerMapping.getAttributeMappings(monitor)) {
                     if (attributeMapping.getMappingType() != DatabaseMappingType.create) {
@@ -483,6 +493,11 @@ public class DatabaseTransferUtils {
                         throw new DBException("Table column name cannot be set for " + attrClass.getName());
                     }
                     namedObject2.setName(getTransformedName(newAttribute.getDataSource(), attributeMapping.getTargetName(), false));
+                    DBSAttributeBase mappingSource = attributeMapping.getSource();
+                    boolean primaryKeyColumn = mappingSource != null && primaryKeyNames.contains(mappingSource.getName());
+                    if (primaryKeyColumn) {
+                        primaryKeyColumns.put(mappingSource.getName(), newAttribute);
+                    }
 
                     // Set attribute properties
                     if (newAttribute instanceof DBSTypedObjectExt2 typedAttr) {
@@ -504,6 +519,11 @@ public class DatabaseTransferUtils {
                                 typedAttr.setScale(sourceAttr.getScale());
                                 typedAttr.setRequired(sourceAttr.isRequired());
                             }
+                        }
+                        if (primaryKeyColumn) {
+                            // A key column must be NOT NULL (SQL Server rejects ADD PRIMARY KEY on a nullable column),
+                            // and the line above copies the source flag only for types without modifiers
+                            typedAttr.setRequired(true);
                         }
                     }
 
@@ -533,10 +553,48 @@ public class DatabaseTransferUtils {
                     executionContext,
                     options,
                     null));
+            if (!primaryKeyNames.isEmpty() && primaryKeyColumns.size() == primaryKeyNames.size()) {
+                // The table managers create columns only, so a copied table had no primary key. A separate
+                // ALTER TABLE is the same statement in every database; it is skipped when a key column is not copied.
+                StringBuilder sql = new StringBuilder();
+                sql.append("ALTER TABLE ").append(DBUtils.getObjectFullName(table, DBPEvaluationContext.DDL)).append(" ADD PRIMARY KEY (");
+                for (int i = 0; i < primaryKeyNames.size(); i++) {
+                    if (i > 0) {
+                        sql.append(", ");
+                    }
+                    sql.append(DBUtils.getQuotedIdentifier(primaryKeyColumns.get(primaryKeyNames.get(i))));
+                }
+                sql.append(")");
+                actions.add(new SQLDatabasePersistAction("Create primary key", sql.toString()));
+            }
             return table;
         } catch (DBException e) {
             throw new DBException("Can't create or modify target table", e);
         }
+    }
+
+    /**
+     * Column names of the primary key of a source table, in key order; empty for other sources and tables without
+     * one. Only a declared primary key counts: a unique key may allow NULL, which a primary key does not.
+     */
+    @NotNull
+    private static List<String> getPrimaryKeyNames(@NotNull DBRProgressMonitor monitor, @Nullable DBSObject source) throws DBException {
+        if (!(source instanceof DBSEntity entity)) {
+            return Collections.emptyList();
+        }
+        Collection<? extends DBSEntityConstraint> constraints = entity.getConstraints(monitor);
+        if (constraints != null) {
+            for (DBSEntityConstraint constraint : constraints) {
+                if (constraint.getConstraintType() == DBSEntityConstraintType.PRIMARY_KEY && constraint instanceof DBSEntityReferrer referrer) {
+                    List<String> names = new ArrayList<>();
+                    for (DBSEntityAttribute attribute : DBUtils.getEntityAttributes(monitor, referrer)) {
+                        names.add(attribute.getName());
+                    }
+                    return names;
+                }
+            }
+        }
+        return Collections.emptyList();
     }
 
     @Nullable

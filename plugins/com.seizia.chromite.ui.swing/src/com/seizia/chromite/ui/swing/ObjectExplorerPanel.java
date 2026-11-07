@@ -82,11 +82,13 @@ import javax.swing.tree.TreePath;
 import javax.swing.tree.TreeSelectionModel;
 import java.awt.*;
 import java.awt.event.ActionEvent;
+import java.awt.event.InputEvent;
 import java.awt.event.KeyEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.geom.RoundRectangle2D;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Enumeration;
 import java.util.HashMap;
@@ -155,6 +157,10 @@ import java.util.function.Supplier;
  *     Properties와 Delete, 두 번 클릭으로 작업 활동 모니터·에이전트 로그·속성 열기, 에이전트 노드의 서비스 상태 보조 글자.</li>
  *     <li>작업 스케줄러({@link SchedulerCommands}): Oracle 스케줄러·pg_cron·MySQL 이벤트의 명령(그 노드에서만 보임), 작업·이벤트의
  *     Properties와 Delete, 두 번 클릭으로 실행 기록·실행 중인 작업·속성 열기, 스케줄러 상태·사용 안 함 보조 글자.</li>
+ *     <li>DB 객체 작업({@link ExplorerObjectCommands}): 객체 관리자로 하는 Delete(Delete 키)·Rename(F2)과 스크립트 미리 보기, Copy Name(Ctrl+C,
+ *     트리의 전송 처리기)·Copy Qualified Name(Ctrl+Shift+C), Generate SQL 메뉴. 위의 연결·보안·에이전트·스케줄러 갈래가 먼저다.</li>
+ *     <li>여러 개 선택: 트리는 여러 노드를 고를 수 있다. Delete, 이름 복사, Generate SQL은 선택 전체에 적용하고, 나머지 명령은
+ *     {@link #getSelectedNavigatorNode}가 null이 되어 꺼진다. 오른쪽 클릭이 고른 행 위면 선택을 그대로 둔다.</li>
  * </ul>
  *
  * 변경 이력:
@@ -200,6 +206,8 @@ import java.util.function.Supplier;
  *   (docs/chromite/swing-job-schedulers.md)
  * - 2026-11-07 Disconnect를 열린 트랜잭션 때문에 취소하면 서버를 창에서 빼지 않음 (docs/chromite/idle-transactions.md "연결 끊기 전 질문")
  * - 2026-11-07 함수·프로시저의 Debug… 메뉴({@link DebugCommands}, docs/chromite/procedure-debugger.md)
+ * - 2026-11-07 DB 객체 Delete·Rename, Copy Name·Copy Qualified Name, Generate SQL 메뉴, 여러 개 선택({@link ExplorerObjectCommands})
+ *   (docs/chromite/swing-explorer-object-actions.md)
  */
 final class ObjectExplorerPanel extends JPanel {
 
@@ -323,6 +331,7 @@ final class ObjectExplorerPanel extends JPanel {
     private final SourceEditCommands sourceEditCommands;
     private final AgentCommands agentCommands;
     private final SchedulerCommands schedulerCommands;
+    private final ExplorerObjectCommands objectCommands;
     private final Action backUpAction;
     private final Action restoreAction;
     private final Action copyTablesAction;
@@ -363,7 +372,8 @@ final class ObjectExplorerPanel extends JPanel {
         tree.setRootVisible(false);
         tree.setShowsRootHandles(true);
         tree.setCellRenderer(new ExplorerCellRenderer());
-        tree.getSelectionModel().setSelectionMode(TreeSelectionModel.SINGLE_TREE_SELECTION);
+        // Several objects for Delete, Copy Name and Generate SQL; the other commands need one node (getSelectedNavigatorNode)
+        tree.getSelectionModel().setSelectionMode(TreeSelectionModel.DISCONTIGUOUS_TREE_SELECTION);
         tree.putClientProperty(FlatClientProperties.TREE_WIDE_SELECTION, true);
         ToolTipManager.sharedInstance().registerComponent(tree);
         tree.addTreeWillExpandListener(new TreeWillExpandListener() {
@@ -486,6 +496,8 @@ final class ObjectExplorerPanel extends JPanel {
         selectToMenu.add(createAction(CoreMessages.explorer_clipboard, () -> scriptSelected(queryWindows, true, true)));
         sourceEditCommands = new SourceEditCommands(this::getSelectedNavigatorNode, queryWindows);
         debugAction = DebugCommands.createAction(this, this::getSelectedObject, queryWindows);
+        objectCommands = new ExplorerObjectCommands(this, this::getSelectedNavigatorNodes, queryWindows);
+        tree.setTransferHandler(objectCommands.createTransferHandler());
         scriptAsMenu = new JMenu(CoreMessages.explorer_script_as);
         scriptAsMenu.add(createToMenu);
         scriptAsMenu.add(sourceEditCommands.getAlterToMenu());
@@ -557,6 +569,8 @@ final class ObjectExplorerPanel extends JPanel {
         renameAction = createAction(CoreMessages.explorer_rename, () -> {
             if (getSelectedNavigatorNode() instanceof DBNDataSource node) {
                 ConnectionCommands.rename(this, node);
+            } else if (ExplorerObjectCommands.canRename(getSelectedNavigatorNode())) {
+                objectCommands.rename(getSelectedNavigatorNode());
             }
         });
         renameAction.putValue(Action.ACCELERATOR_KEY, KeyStroke.getKeyStroke(KeyEvent.VK_F2, 0));
@@ -569,6 +583,9 @@ final class ObjectExplorerPanel extends JPanel {
                 agentCommands.delete(getSelectedNavigatorNode());
             } else if (SchedulerCommands.canDelete(getSelectedNavigatorNode())) {
                 schedulerCommands.delete(getSelectedNavigatorNode());
+            } else if (ExplorerObjectCommands.canDelete(getSelectedNavigatorNodes())) {
+                // Database objects through their object managers, also several selected ones
+                objectCommands.delete(getSelectedNavigatorNodes());
             }
         });
         deleteAction.putValue(Action.ACCELERATOR_KEY, KeyStroke.getKeyStroke(KeyEvent.VK_DELETE, 0));
@@ -592,6 +609,9 @@ final class ObjectExplorerPanel extends JPanel {
         });
         bindKey(KeyStroke.getKeyStroke(KeyEvent.VK_F2, 0), "chromite.rename", () -> renameAction.actionPerformed(null)); //$NON-NLS-1$
         bindKey(KeyStroke.getKeyStroke(KeyEvent.VK_DELETE, 0), "chromite.delete", () -> deleteAction.actionPerformed(null)); //$NON-NLS-1$
+        // Ctrl+C is the tree's own copy key (the transfer handler copies the names)
+        bindKey(KeyStroke.getKeyStroke(KeyEvent.VK_C, InputEvent.CTRL_DOWN_MASK | InputEvent.SHIFT_DOWN_MASK), "chromite.copyQualifiedName", //$NON-NLS-1$
+            () -> objectCommands.getCopyQualifiedNameAction().actionPerformed(null));
         // SSMS: F5 in Object Explorer refreshes (elsewhere it executes the query, Query menu)
         bindKey(KeyStroke.getKeyStroke(KeyEvent.VK_F5, 0), "chromite.refresh", this::refreshSelection); //$NON-NLS-1$
 
@@ -612,6 +632,7 @@ final class ObjectExplorerPanel extends JPanel {
         popupMenu.add(objectPermissionsAction);
         popupMenu.add(selectTopAction);
         popupMenu.add(scriptAsMenu);
+        popupMenu.add(objectCommands.getGenerateSqlMenu());
         popupMenu.add(viewDdlAction);
         popupMenu.add(viewDiagramAction);
         popupMenu.add(tasksMenu);
@@ -628,6 +649,8 @@ final class ObjectExplorerPanel extends JPanel {
         popupMenu.add(findObjectsAction);
         popupMenu.addSeparator();
         popupMenu.add(editConnectionAction);
+        popupMenu.add(objectCommands.getCopyNameAction());
+        popupMenu.add(objectCommands.getCopyQualifiedNameAction());
         popupMenu.add(renameAction);
         popupMenu.add(deleteAction);
         popupMenu.addSeparator();
@@ -657,7 +680,10 @@ final class ObjectExplorerPanel extends JPanel {
                 if (SwingUtilities.isRightMouseButton(e)) {
                     TreePath path = tree.getClosestPathForLocation(e.getX(), e.getY());
                     if (path != null && tree.getPathBounds(path) != null && tree.getPathBounds(path).contains(e.getPoint())) {
-                        tree.setSelectionPath(path);
+                        // A row of a multi-selection keeps the selection (Delete, Copy Name, Generate SQL act on all of it)
+                        if (!tree.isPathSelected(path)) {
+                            tree.setSelectionPath(path);
+                        }
                     } else {
                         tree.clearSelection();
                     }
@@ -854,11 +880,13 @@ final class ObjectExplorerPanel extends JPanel {
         adminViewActions.forEach(action -> action.setEnabled(dataSource != null));
         findObjectsAction.setEnabled(projectNode != null);
         editConnectionAction.setEnabled(connectionNode);
-        renameAction.setEnabled(connectionNode);
+        renameAction.setEnabled(connectionNode || ExplorerObjectCommands.canRename(getSelectedNavigatorNode()));
         boolean principal = SecurityCommands.canOpenProperties(object);
         boolean agentObject = AgentCommands.canDelete(getSelectedNavigatorNode());
         boolean schedulerObject = SchedulerCommands.canDelete(getSelectedNavigatorNode());
-        deleteAction.setEnabled(connectionNode || principal || agentObject || schedulerObject);
+        deleteAction.setEnabled(connectionNode || principal || agentObject || schedulerObject
+            || ExplorerObjectCommands.canDelete(getSelectedNavigatorNodes()));
+        objectCommands.update(getSelectedNavigatorNodes());
         principalPropertiesAction.setEnabled(principal || agentObject || schedulerObject);
         principalPropertiesAction.putValue(Action.SHORT_DESCRIPTION, agentObject ? AgentMessages.agent_properties_tip
             : schedulerObject ? SchedulerMessages.scheduler_properties_tip : SecurityMessages.security_properties_tip);
@@ -1027,13 +1055,36 @@ final class ObjectExplorerPanel extends JPanel {
         return getSelectedNavigatorNode();
     }
 
+    /**
+     * The selected navigator node; null when nothing or several nodes are selected, so that the commands for one node
+     * (and the Properties window) are off with a multi-selection.
+     */
     @Nullable
     private DBNNode getSelectedNavigatorNode() {
-        TreePath path = tree.getSelectionPath();
+        TreePath path = tree.getSelectionCount() == 1 ? tree.getSelectionPath() : null;
         if (path != null && path.getLastPathComponent() instanceof ExplorerNode node && node.getUserObject() instanceof DBNNode navigatorNode) {
             return navigatorNode;
         }
         return null;
+    }
+
+    /**
+     * All selected navigator nodes in tree order (not the "Loading…" placeholders).
+     */
+    @NotNull
+    private List<DBNNode> getSelectedNavigatorNodes() {
+        List<DBNNode> nodes = new ArrayList<>();
+        int[] rows = tree.getSelectionRows();
+        if (rows == null) {
+            return nodes;
+        }
+        Arrays.sort(rows);
+        for (int row : rows) {
+            if (tree.getPathForRow(row).getLastPathComponent() instanceof ExplorerNode node && node.getUserObject() instanceof DBNNode navigatorNode) {
+                nodes.add(navigatorNode);
+            }
+        }
+        return nodes;
     }
 
     private void refreshSelection() {

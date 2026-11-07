@@ -43,6 +43,7 @@ import net.sf.jsqlparser.statement.drop.Drop;
 import net.sf.jsqlparser.statement.insert.Insert;
 import net.sf.jsqlparser.statement.merge.Merge;
 import net.sf.jsqlparser.statement.select.*;
+import net.sf.jsqlparser.statement.truncate.Truncate;
 import net.sf.jsqlparser.statement.update.Update;
 import net.sf.jsqlparser.util.TablesNamesFinder;
 import org.jkiss.code.NotNull;
@@ -66,6 +67,9 @@ import java.util.stream.Collectors;
 
 /**
  * SQLQuery
+ *
+ * 변경 이력:
+ * - 2026-11-07 {@link #isTruncate()}: 쿼리 창의 위험한 문 확인이 TRUNCATE도 묻도록 (docs/chromite/swing-sql-exec-safety.md)
  */
 public class SQLQuery implements SQLScriptElement {
 
@@ -797,6 +801,15 @@ public class SQLQuery implements SQLScriptElement {
             return update.getWhere() == null;
         }
         return false;
+    }
+
+    /**
+     * TRUNCATE removes every row of the table, like DELETE without WHERE; MySQL, MariaDB and Oracle also commit it
+     * implicitly, so it cannot be rolled back.
+     */
+    public boolean isTruncate() {
+        parseQuery();
+        return statement instanceof Truncate;
     }
 
     public boolean isDropDangerous() {

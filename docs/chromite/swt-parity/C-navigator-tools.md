@@ -40,14 +40,14 @@
 | 7 | 두 번 클릭 동작 설정(연결: 편집/연결/최근 스크립트/새 스크립트, 객체: 편집기 열기/펼치기, 기본 편집기 페이지) | `NavigatorViewBase.java:157-221`, `NavigatorPreferences.DoubleClickBehavior` | 없음 | `ObjectExplorerPanel.java:122`: 두 번 클릭은 펼치기/접기만(에이전트·스케줄러 노드 예외 `:661-668`) | 낮음 | |
 | 8 | 탐색기 환경설정(연결 시 펼치기, 상태 복원 깊이, 드라이버별 묶기, 통계·호스트·설명·자식 수 표시, 툴팁, 긴 목록 크기 등) | `PrefPageDatabaseNavigator`, `NavigatorPreferences` | 없음 | `OptionsDialog.java:178-183` 탭은 General, Editor, Editor Colors, Templates, Updates, AI뿐 | 낮음 | |
 | 9 | 긴 목록 나눠 읽기("더 보기" 노드), 통계 렌더러(테이블 크기 막대) | `TreeNodeLazyExpander`, `StatisticsNavigatorNodeRenderer` | 없음 | `ObjectExplorerPanel`은 자식을 한 번에 다 읽는다(`readChildren`). grep `lazy|fetch size` 0 | 낮음 | 테이블 수천 개 스키마에서 느릴 수 있음(미확인). 크기는 Disk Usage 탭에 있음 |
-| 10 | DB 객체 이름 바꾸기(F2, `DBEObjectRenamer`: 테이블·열·뷰 등) | `NavigatorHandlerObjectRename` | 일부 | `renameAction`은 연결 노드에서만 켜진다(`ObjectExplorerPanel.java:553-557, 848`). 테이블·열 이름은 테이블 디자이너에서 바꿀 수 있음 | 중간 | 뷰·루틴·인덱스 이름 바꾸기는 SQL로 해야 함 |
-| 11 | DB 객체 삭제(DROP, 여러 개, 연쇄 옵션, 스크립트 미리 보기) | `NavigatorHandlerObjectDelete`, `NavigatorObjectsDeleter`, `NavigatorNodesDeletionConfirmations` | 일부 | `deleteAction`은 연결·보안 주체·에이전트·스케줄러 객체만(`ObjectExplorerPanel.java:559-569, 852`). 테이블·뷰·루틴·스키마 삭제 없음. Script as의 DROP도 없음(`swing-frontend.md:1020`) | 중간 | 디자이너 안의 열·인덱스·키 삭제는 있음 |
-| 12 | 복사(Ctrl+C: 객체 이름·정규화 이름), Copy Special(고급 복사), 붙여넣기로 객체·연결 복제 | `NavigatorHandlerCopyObject`, `NavigatorHandlerCopySpecial`, `NavigatorHandlerObjectCreateCopy` | 없음 | Object Explorer·Registered Servers에 복사·붙여넣기·복제 명령 grep 0. 트리는 단일 선택(`ObjectExplorerPanel.java:363`) | 중간 | 연결 복제(같은 설정으로 새 연결)도 없음 |
+| 10 | DB 객체 이름 바꾸기(F2, `DBEObjectRenamer`: 테이블·열·뷰 등) | `NavigatorHandlerObjectRename` | 있음 | 2026-11-07 옮김: F2·메뉴 "이름 바꾸기"가 객체 관리자가 이름을 바꿀 수 있는 DB 객체에서 켜진다(`ExplorerObjectCommands.canRename`/`rename`: `DBEObjectRenamer`, 원자적 명령 묶음, 늘 스크립트 미리 보기, 실행 전 열린 트랜잭션 질문). [swing-explorer-object-actions.md](../swing-explorer-object-actions.md) | 중간 | 트리 안 인라인 편집이 아니라 입력 창(연결 이름 바꾸기와 같음) |
+| 11 | DB 객체 삭제(DROP, 여러 개, 연쇄 옵션, 스크립트 미리 보기) | `NavigatorHandlerObjectDelete`, `NavigatorObjectsDeleter`, `NavigatorNodesDeletionConfirmations` | 있음 | 2026-11-07 옮김: Delete 키·메뉴 "삭제"가 객체 관리자가 지울 수 있는 DB 객체(여러 개, 한 연결)에서 켜진다(`ExplorerObjectCommands.canDelete`/`delete`): 목록 확인, 연쇄 삭제·기존 연결 닫기 옵션, 늘 스크립트 미리 보기, 실행 전 열린 트랜잭션 질문. [swing-explorer-object-actions.md](../swing-explorer-object-actions.md) | 중간 | 열 삭제의 종속 객체 확인(`DBEObjectWithDependencies`)은 없음. Script as의 DROP은 여전히 없음(삭제의 미리 보기 "쿼리 창에서 열기"로 대신) |
+| 12 | 복사(Ctrl+C: 객체 이름·정규화 이름), Copy Special(고급 복사), 붙여넣기로 객체·연결 복제 | `NavigatorHandlerCopyObject`, `NavigatorHandlerCopySpecial`, `NavigatorHandlerObjectCreateCopy` | 일부 | 2026-11-07: Object Explorer의 "이름 복사"(Ctrl+C, Edit > 복사)·"정규화된 이름 복사"(Ctrl+Shift+C, 방언 따옴표), 여러 개 선택(`ExplorerObjectCommands`, 트리 `DISCONTIGUOUS_TREE_SELECTION`). [swing-explorer-object-actions.md](../swing-explorer-object-actions.md). Copy Special 대화상자, 붙여넣기 복제는 없음 | 중간 | 연결 복제(같은 설정으로 새 연결)도 없음 |
 | 13 | 끌어 놓기: 객체를 SQL 편집기로(이름 넣기), 연결을 폴더로 | `NavigatorDragSourceListener`, `NavigatorDropTargetListener` | 일부 | 서버 → 그룹 끌어 놓기는 `RegisteredServersPanel`에 있음. `ObjectExplorerPanel`에는 `TransferHandler` 없음 | 낮음 | |
 | 14 | 새 객체 만들기(모든 폴더의 "Create New …": 스키마·시퀀스·트리거·인덱스·데이터베이스 등), 열에서 인덱스·제약 만들기 | `NavigatorHandlerObjectCreateNew`, `NavigatorHandlerCreateColumnIndex/Constraint` | 일부 | Swing은 New Table / View / Procedure / Function / Login·Role·User / 에이전트·스케줄러 작업만(`ObjectExplorerPanel.java:596-603`). 인덱스·제약은 테이블 디자이너. 범용 `DBEObjectMaker` 사용은 `TableDesignSession`뿐 | 중간 | |
 | 15 | 객체 편집기(엔터티 편집기: 속성 편집·저장·되돌리기·미리 보기, 폴더 탭, 하이퍼링크) | `EntityEditor`, `ObjectPropertiesEditor`, `FolderEditor`(이 번들 안) | 일부 | 읽기 전용 Properties 창(`PropertiesPanel` 주석 "읽기 전용이다"), View DDL, Design, Modify. `openEntityEditor`는 로그만(`SwingPlatformUI.java:496-505`) | 중간 | 편집기 영역 조사와 겹침 |
 | 16 | 폴더 내용 표(폴더를 열면 객체 목록을 속성 열로) | `FolderEditor`, `ItemListControl` | 없음 | `ObjectListTable`은 세션·잠금·에이전트 활동에만 쓰임(`AgentJobActivityPanel.java:88`, `LockManagerPanel.java:108,115`) | 낮음 | SSMS "Object Explorer Details"에 해당 |
-| 17 | Generate SQL 메뉴(SELECT, INSERT, UPDATE, DELETE, MERGE, SIMPLE/INNER JOIN, CALL, DDL, PG `INSERT ON CONFLICT`·`UPDATE FROM`·`DELETE USING`, Firebird 2종) | `ui.editors.sql` `SQLGeneratorContributor` + `model.sql` 생성기 | 일부 | Swing은 Script as > CREATE / SELECT(`ObjectScripts`: `SQLGeneratorDDL`, `SQLGeneratorSelect`만), ALTER(`SourceEditCommands`). 나머지 생성기 사용 grep 0. 남은 것으로 기록됨(`swing-frontend.md:1020`) | 중간 | 결과 행에서 만드는 생성기(`dataInsert` 등)는 결과 영역 |
+| 17 | Generate SQL 메뉴(SELECT, INSERT, UPDATE, DELETE, MERGE, SIMPLE/INNER JOIN, CALL, DDL, PG `INSERT ON CONFLICT`·`UPDATE FROM`·`DELETE USING`, Firebird 2종) | `ui.editors.sql` `SQLGeneratorContributor` + `model.sql` 생성기 | 있음 | 2026-11-07 옮김: 메뉴 "SQL 생성"이 생성기 확장점에서 선택(여러 개 포함)에 맞는 생성기를 모두 보인다(`ObjectScripts.getGenerators`, SWT와 같은 순서·구분선). 결과는 새 쿼리 창(실행하지 않음). [swing-explorer-object-actions.md](../swing-explorer-object-actions.md) | 중간 | 결과 행에서 만드는 생성기(`dataInsert` 등)는 결과 영역. 생성기 옵션 화면은 없음 |
 | 18 | 트리에서 기본 스키마·카탈로그 지정 | `NavigatorHandlerSetDefaultObject` | 일부 | 쿼리 창 도구 막대의 연결·DB 콤보(`swing-frontend.md:933`) | 낮음 | |
 | 19 | 활성 연결·스키마 고르기(도구 막대 콤보, Ctrl+9 연결 선택·Ctrl+0 스키마 선택 대화상자) ― 브리프의 "최근 연결" | `SelectActiveDataSourceHandler`, `SelectActiveSchemaHandler`, `SelectDataSourceCombo` | 일부 | 콤보 있음(`SqlEditorToolBar`), Connect 대화상자의 드라이버별 최근 서버 기록(`ConnectionHistory`). Ctrl+9/0 대화상자 없음(`VK_9` grep 0) | 낮음 | 위 "먼저 알아 둘 사실" 5 |
 | 20 | 북마크(Ctrl+Alt+Shift+D로 추가, 프로젝트의 Bookmarks 폴더, 북마크로 이동) | `core` `AddBookmarkHandler`, `NavigateBookmarkHandler`, `model.rcp` 자원 형식 `bookmark` | 없음 | Swing에서 `bookmark`는 주석 한 줄뿐(`ObjectExplorerPanel.java:1093`) | 낮음 | swt-removal.md:108에 포함 |
@@ -141,7 +141,7 @@ MView 새로 고침, TRUNCATE, 트리거 켜기/끄기), MySQL(ANALYZE·CHECK·O
 
 | # | 기능 | SWT 출처 | 상태 | 근거 | 영향 | 비고 |
 |---|---|---|---|---|---|---|
-| 62 | PostgreSQL 프로시저 디버거(중단점, 단계 실행, 변수, 호출 스택, 디버그 구성·실행 바로 가기) | `debug.ui`, `debug.core`, `ext.postgresql.debug.ui/core` | 있음(2026-11-07) | 모델 복원(`debug.core`, `ext.postgresql.debug.core`), Swing `ProcedureDebuggerPanel`·`DebugStartDialog`·`DebugCommands`([procedure-debugger.md](../procedure-debugger.md)) | 낮음 | 디버그 구성·실행 바로 가기(Eclipse 실행 구성)는 옮기지 않고 Debug… 메뉴와 시작 대화상자로 바꿈. attach(Global) 모드는 SWT에서 꺼져 있던 것을 켬. Step Out은 pldbgapi에 없음 |
+| 62 | PostgreSQL 프로시저 디버거(중단점, 단계 실행, 변수, 호출 스택, 디버그 구성·실행 바로 가기) | `debug.ui`, `debug.core`, `ext.postgresql.debug.ui/core` | 있음(2026-11-07) | 모델 복원(`debug.core`, `ext.postgresql.debug.core`), Swing `ProcedureDebuggerPanel`·`DebugStartDialog`·`DebugCommands`([procedure-debugger.md](../procedure-debugger.md)) | 낮음 | 디버그 구성·실행 바로 가기(Eclipse 실행 구성)는 옮기지 않고 Debug… 메뉴와 시작 대화상자로 바꿈. attach(Global) 모드는 SWT에서 꺼져 있던 것을 켬. Step Out은 pldbgapi에 없음. SWT에 없던 Oracle 디버거(`ext.oracle.debug.core`, DBMS_DEBUG, Step Out 있음)를 2026-11-07 더함 |
 | 63 | Git 연동(프로젝트 공유, Git에서 프로젝트 가져오기, 커밋, 갱신, 기록, Repositories 보기) | `team.git.ui` (+EGit) | 없음(이식 대기) | swt-removal.md:109, build.md:82-85 | 낮음 | `git.feature`는 SWT 제품에 없었다. 삭제 결정 문서는 없음(위 사실 2) |
 | 64 | 공간 데이터(GIS) 보기: 결과의 지도 보기(Leaflet, 타일 고르기, SRID), 기하 값 패널, GIS 환경설정 | `data.gis.view` `GeometryValueManager`, `results.geometry` 프레젠테이션, `PrefPageGIS` | 없음 | swt-removal.md:106, `DBGeometry` grep 0 | 낮음 | 결과 표에 기하 값이 글자로 보이는지는 확인하지 않았다 |
 | — | 개발자 Test 메뉴(노드·연결 검증, 연결 스트레스 시험, 대화상자·아이콘·색 보기) | `ui.app.devtools` | 해당 없음 | `ui.test.feature`(테스트 제품)에만 포함 | — | |
@@ -151,14 +151,15 @@ MView 새로 고침, TRUNCATE, 트리거 켜기/끄기), MySQL(ANALYZE·CHECK·O
 
 | 상태 | 수 | 번호 |
 |---|---|---|
-| 있음 | 13 | 1, 2, 3, 27, 28, 31, 34, 35, 45, 48, 50, 55, 62 |
-| 일부 | 20 | 4, 10, 11, 13, 14, 15, 17, 18, 19, 24, 36, 37, 38, 42, 44, 47, 51, 57, 59, 60 |
-| 없음 | 28 | 5, 6, 7, 8, 9, 12, 16, 20, 21, 22, 23, 25, 26, 29, 30, 32, 33, 39, 40, 41, 43, 46, 49, 52, 53, 56, 63, 64 |
+| 있음 | 16 | 1, 2, 3, 10, 11, 17, 27, 28, 31, 34, 35, 45, 48, 50, 55, 62 |
+| 일부 | 18 | 4, 12, 13, 14, 15, 18, 19, 24, 36, 37, 38, 42, 44, 47, 51, 57, 59, 60 |
+| 없음 | 27 | 5, 6, 7, 8, 9, 16, 20, 21, 22, 23, 25, 26, 29, 30, 32, 33, 39, 40, 41, 43, 46, 49, 52, 53, 56, 63, 64 |
 | 의도적 제외 | 1 | 61 |
 | 조용히 끊김 | 2 | 54, 58 |
 | 해당 없음 | 4 | 즐겨찾기, 작업 스케줄러, 개발자 Test 메뉴, DataDam |
 
-없음 28개 중 63(Git)은 SWT 제품에도 없던 번들이라 실제 사용자 손실은 없다. 62(디버거)는 2026-11-07 옮겼다([procedure-debugger.md](../procedure-debugger.md)).
+없음 27개 중 63(Git)은 SWT 제품에도 없던 번들이라 실제 사용자 손실은 없다. 62(디버거)는 2026-11-07 옮겼다([procedure-debugger.md](../procedure-debugger.md)).
+10, 11, 17은 2026-11-07 옮겼고 12는 일부가 되었다([swing-explorer-object-actions.md](../swing-explorer-object-actions.md)).
 
 ## 영향순 상위 10 (없음·일부·조용히 끊김)
 
@@ -166,16 +167,16 @@ MView 새로 고침, TRUNCATE, 트리거 켜기/끄기), MySQL(ANALYZE·CHECK·O
 
 1. **(조용히 끊김) `@ai` 명령의 실행 확인에 SQL이 보이지 않음** (#58) — AI가 만든 DML·DDL을 내용 없이 승인. 확인 규칙 설정도 없음.
 2. **(조용히 끊김) JSch SSH 구현의 호스트 키 질문·OTP 입력 없음** (#54) — JSch를 고른 연결은 새·바뀐 호스트에서 묻지 않고 실패, 2단계 인증 서버에 로그인 불가. 2026-11-07 수정함([swing-auth-prompts.md](../swing-auth-prompts.md)).
-3. DB 객체 삭제(DROP) 명령 없음 (#11)
-4. 객체 이름 복사·연결 복제·붙여넣기 없음 (#12)
-5. Generate SQL의 INSERT/UPDATE/DELETE/MERGE/JOIN/CALL/DROP 없음 (#17)
+3. DB 객체 삭제(DROP) 명령 없음 (#11) — 2026-11-07 옮김([swing-explorer-object-actions.md](../swing-explorer-object-actions.md))
+4. 객체 이름 복사·연결 복제·붙여넣기 없음 (#12) — 2026-11-07 이름 복사만 옮김(일부)
+5. Generate SQL의 INSERT/UPDATE/DELETE/MERGE/JOIN/CALL/DROP 없음 (#17) — 2026-11-07 옮김(DROP은 삭제의 스크립트 미리 보기)
 6. 저장한 작업(Task) 보기·재실행·실행 기록 없음 (#43), 데이터 전송을 작업으로 저장 없음 (#39)
 7. DB 도구 일부 없음: TRUNCATE, 트리거 켜기/끄기, MView 새로 고침, DB2·Exasol·Altibase 도구 (#44)
 8. 데이터 검색(여러 테이블 값 찾기) 없음 (#29)
 9. 객체 비교(Simple compare) 없음 (#49)
 10. 자원 탐색기(Scripts 폴더, 스크립트-연결 묶기, 연결별 최근 스크립트) 없음 (#22)
 
-그다음: 범용 새 객체 만들기 일부(#14), DB 객체 이름 바꾸기 일부(#10), 필터 편집 일부(#4), 테이블 복사 고급 옵션(#36), 편집기 안 AI 번역(#57), 객체 편집기(#15, 편집기 영역과 겹침).
+그다음: 범용 새 객체 만들기 일부(#14), 필터 편집 일부(#4), 테이블 복사 고급 옵션(#36), 편집기 안 AI 번역(#57), 객체 편집기(#15, 편집기 영역과 겹침).
 
 ## 확인하지 못한 것
 

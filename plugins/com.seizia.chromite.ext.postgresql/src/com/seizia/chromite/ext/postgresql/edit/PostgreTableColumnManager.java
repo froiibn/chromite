@@ -47,6 +47,11 @@ import java.util.Map;
 
 /**
  * Postgre table column manager
+ *
+ * 변경 이력:
+ * - 2026-11-07 COLLATE는 정렬 규칙을 받는 형식(pg_type.typcollation &lt;&gt; 0)에만, STORAGE는 PLAIN이 아닌 저장 방식을 받는
+ *   형식(typstorage &lt;&gt; 'p')에만 붙임: 비기본 정렬 규칙이 있는 text 열을 복사해 형식을 int4로 바꾸면 ADD COLUMN이
+ *   "collations are not supported by type integer", "can only have storage PLAIN"으로 실패하던 문제 (docs/chromite/model-fixes.md)
  */
 public class PostgreTableColumnManager extends SQLTableColumnManager<PostgreTableColumn, PostgreTableBase>
         implements DBEObjectRenamer<PostgreTableColumn>, DBPScriptObjectExt2 {
@@ -77,7 +82,7 @@ public class PostgreTableColumnManager extends SQLTableColumnManager<PostgreTabl
     };
 
     protected final ColumnModifier<PostgreTableColumn> PostgreStorageModifier = (monitor, column, sql, command) -> {
-        if (!column.hasDefaultStorage()) {
+        if (!column.hasDefaultStorage() && acceptsStorage(column)) {
             sql.append(" STORAGE ");
             sql.append(column.getStorage());
         }
@@ -116,6 +121,12 @@ public class PostgreTableColumnManager extends SQLTableColumnManager<PostgreTabl
 
     protected final ColumnModifier<PostgreTableColumn> PostgreCollateModifier = (monitor, column, sql, command) -> {
         try {
+            // The column keeps its collation when its type is changed (a copied text column changed to int4), but
+            // PostgreSQL accepts COLLATE only for collatable types (pg_type.typcollation <> 0)
+            PostgreDataType dataType = column.getDataType();
+            if (dataType != null && dataType.getCollationId(monitor) == null) {
+                return;
+            }
             PostgreCollation collation = column.getCollation(monitor);
             if (collation != null && !PostgreConstants.COLLATION_DEFAULT.equals(collation.getName())) {
                 sql.append(" COLLATE \"").append(collation.getName()).append("\"");
@@ -216,6 +227,7 @@ public class PostgreTableColumnManager extends SQLTableColumnManager<PostgreTabl
             getNestedDeclaration(monitor, table, command, options);
         actions.add(new SQLDatabasePersistAction("Create new table column", sql));
         if (command.getObject().getStorage() != null
+            && acceptsStorage(command.getObject())
             && table.getDataSource().getServerType().supportsAlterStorageStrategy()
             && !table.getDataSource().getServerType().supportsStorageModifier()) {
             addColumnStorageAction(actions, command.getObject());
@@ -271,6 +283,15 @@ public class PostgreTableColumnManager extends SQLTableColumnManager<PostgreTabl
         if (command.hasProperty(DBConstants.PROP_ID_DESCRIPTION)) {
             addColumnCommentAction(actionList, column);
         }
+    }
+
+    /**
+     * A type stored PLAIN (pg_type.typstorage 'p': int4, bool, uuid) takes no other storage, but a column keeps its
+     * storage when its type is changed (a copied text column changed to int4 kept EXTENDED).
+     */
+    private static boolean acceptsStorage(@NotNull PostgreAttribute<?> column) {
+        PostgreDataType dataType = column.getDataType();
+        return dataType == null || dataType.getStorage() != PostgreTypeStorage.p;
     }
 
     public static void addColumnStorageAction(List<DBEPersistAction> actionList, PostgreAttribute column) {
