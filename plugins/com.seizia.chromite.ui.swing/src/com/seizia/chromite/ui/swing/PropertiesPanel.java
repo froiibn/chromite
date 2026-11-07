@@ -83,6 +83,7 @@ import java.util.stream.Stream;
  * - 2026-11-07 제목을 Object Explorer와 같은 노드 글자로(이름 없는 반환 값 매개 변수, docs/chromite/swing-frontend.md "Object Explorer 탐색 불가 항목")
  * - 2026-11-08 분류 행 semibold 글꼴 주석을 고침: deriveFont도 대체 글꼴을 유지하며, semibold.font를 쓰는 이유는 Java에 semibold 스타일이 없어서다
  *   (docs/chromite/swing-followup-fixes.md "작은 화면 수정")
+ * - 2026-11-08 촘촘한 모드: 행 높이를 UI가 바뀔 때 다시 정함(실행 중 밀도 전환) (docs/chromite/design-spec.md "적용 현황 — 촘촘한 모드")
  */
 final class PropertiesPanel extends JPanel {
 
@@ -125,6 +126,13 @@ final class PropertiesPanel extends JPanel {
 
         grid = new JTable(gridModel) {
             @Override
+            public void updateUI() {
+                super.updateUI();
+                // size.row.properties, set again on theme and density changes (UiDensity)
+                setRowHeight(UiSizes.get(UiSizes.PROPERTY_ROW_HEIGHT));
+            }
+
+            @Override
             protected void paintComponent(Graphics g) {
                 super.paintComponent(g);
                 paintGridLines(this, g);
@@ -133,7 +141,6 @@ final class PropertiesPanel extends JPanel {
         grid.setTableHeader(null);
         grid.setShowGrid(false);
         grid.setIntercellSpacing(new Dimension(0, 0));
-        grid.setRowHeight(UiSizes.get(UiSizes.PROPERTY_ROW_HEIGHT));
         grid.setFillsViewportHeight(true);
         grid.setRowSelectionAllowed(true);
         grid.setColumnSelectionAllowed(false);
