@@ -238,7 +238,7 @@ pwsh tools/release/rehearsal/rehearse.ps1 -Down
 | 경로 | 내용 |
 |---|---|
 | `/index.html` | 언어 선택. `assets/lang.js`가 브라우저 첫 언어가 한국어면 `/ko/`, 아니면 `/en/`으로 보낸다(서버는 정적 파일만) |
-| `/ko/`, `/en/` | 다운로드: 제품 한 줄 소개, Windows 설치 파일, macOS 디스크 이미지(버전, 크기, 게시일, SHA-256과 복사 단추), 앱 화면, 들어 있는 것, 서명·자동 업데이트 안내, 오픈 소스(GitHub 저장소, Apache License 2.0, `LICENSE.md`·`NOTICE` 링크) |
+| `/ko/`, `/en/` | 다운로드: 제품 한 줄 소개, Windows 설치 파일, macOS 디스크 이미지(버전, 크기, 게시일, SHA-256과 복사 단추, 방문자 운영체제 것이 먼저이고 다른 것은 단추로 펼침), 앱 화면, 들어 있는 것, 서명·자동 업데이트 안내, 오픈 소스(GitHub 저장소, Apache License 2.0, `LICENSE.md`·`NOTICE` 링크) |
 | `/ko|en/changelog.html` | 변경 내역. 버전마다 `<section id="v<버전>">` (`notes_url`의 앵커) |
 | `/ko|en/privacy.html` | 개인정보: 업데이트 확인은 고정 User-Agent만 보낸다, 사이트에 쿠키·분석 없음, 접속 기록 30일 |
 | `/assets/` | `site.css`, `site.js`, `lang.js`, `chromite-icon.svg`(`chromite_logo_pack/chromite_icon_64.svg`), `fonts/`(Pretendard 1.3.9 웹 부분 집합 Regular·SemiBold, `OFL.txt`), `shots/`(앱 화면 WebP 4장), `icons/`(Octicons 19.33.0 GitHub 마크 16·24, `LICENSE-octicons.txt`) |
@@ -264,7 +264,24 @@ pwsh tools/release/rehearsal/rehearse.ps1 -Down
   `<picture>`의 `prefers-color-scheme` 소스로 테마에 맞는 한 장만 받는다. 너비·높이 속성으로 자리를 미리 잡는다.
 - GitHub 마크는 Octicons `mark-github`(MIT) 파일을 고치지 않고 두고, CSS `mask`로 글자색을 입힌다(밝은·어두운 테마 모두). 출처는 `NOTICE`.
 - 오픈 소스 절에 "Apache License 2.0으로 공개된 다른 오픈 소스 프로젝트에서 출발했다"는 문장과 `NOTICE` 링크를 둔다. 원래 프로젝트의 상표 이름은 쓰지 않는다(CLAUDE.md "브랜딩").
-- `site.js`, `lang.js`, 데이터 계약(`data-platform`·`data-field`·`data-state`·`data-ready`)은 바꾸지 않았다. 개인정보 내용도 그대로다(배치만 바뀜).
+- 개편 때 `site.js`, `lang.js`, 데이터 계약(`data-platform`·`data-field`·`data-state`·`data-ready`)은 바꾸지 않았다. 개인정보 내용도 그대로다(배치만 바뀜).
+
+### 방문자 운영체제에 맞춘 다운로드 (2026-11-07)
+
+사용자 요청: "윈도우로 접속하면 윈도우 버전 다운로드, 맥으로 접속하면 맥 버전 다운로드를 노출".
+
+- HTML에는 두 카드가 다 있고, `site.js`가 좁힌다(점진적 향상). 방문자가 Windows 또는 macOS로 확실하고 그 카드에 파일이 있을 때만
+  그 카드를 맨 위로 옮기고, 다른 카드는 `hidden`으로 접은 뒤 그 사이에 단추 "다른 운영체제용 받기 (macOS)" / "Download for macOS instead"
+  (반대도 같음)를 넣는다. 단추는 실제 `<button>`이고 `aria-expanded`, `aria-controls`(`download-windows`/`download-macos`)를 가진다. 누르면 펼치고, 다시 누르면 접는다.
+  단추 글은 카드의 `data-other-label`(페이지 언어별)에서 읽는다.
+- 운영체제 판별: `navigator.userAgentData.platform`이 있으면 그것, 없으면 `navigator.platform`, 그것도 비면 User-Agent(`Windows NT`, `Macintosh`).
+  `Win…` → Windows, `Mac…` → macOS. iPad는 `MacIntel`로 Mac처럼 보이므로 터치 지점이 2개 이상인 "Mac"은 모름으로 친다.
+  모름(Linux, Android, iPhone·iPad, 봇)이면 지금처럼 두 카드 모두. 방문자 카드에 파일이 없을 때(예: Windows 파일만 있는 피드에 Mac 방문자)도 두 카드 모두.
+- Intel Mac과 Apple Silicon Mac은 브라우저에서 확실히 구별할 수 없다. 그래서 macOS 카드의 "Apple Silicon(M1 이후)" 요구 사항 글은 언제나 보인다.
+- JavaScript가 없을 때: 처음 상태를 `loading`에서 `static`으로 바꿨다. 전에는 스크립트 없이 "최신 버전을 확인하는 중입니다…"만 계속 보이고 카드가 없었다
+  (`releases.js`와 `site.js`는 지연 스크립트라 실제 "읽는 중" 순간은 없고, 그 문구는 스크립트가 없을 때만 남았다). 이제 두 카드(요구 사항)와,
+  파일 이름·크기·SHA-256은 `releases.json`에 있고 `/downloads/<파일 이름>`으로 받는다는 안내, GitHub 릴리스 링크를 보여 준다.
+  `site.js`는 실행되면 언제나 `ready`·`error`·`empty` 중 하나로 바꾼다. `state-loading` 문구와 CSS는 지웠다.
 
 ### CSP와 `releases.js`
 
@@ -316,6 +333,11 @@ pwsh tools/release/rehearsal/rehearse.ps1 -Down
   `releases.js`를 가로채 바꾼 세 경우: 없음(404) → 오류 안내, 빈 피드 → "아직 공개된 릴리스가 없습니다", Windows만 → Windows 카드만 채우고 macOS는 "아직 없습니다".
   영어 개인정보 페이지가 375px에서 긴 `<code>` URL 때문에 가로로 넘치던 것(첫 확인에서 455px)을 `code { overflow-wrap: anywhere }`로 고쳤다.
   화면 사진: `D:\Tools\_scratch\site-redesign\shots\`.
+- 방문자 운영체제(2026-11-07): 리허설(실제 0.1.0 파일)에서 헤드리스 Edge로 User-Agent·`navigator.platform`·Client Hints를 바꿔 한국어·영어 페이지 확인.
+  Windows(Client Hints `Windows`) → Windows 카드만, 단추 "다른 운영체제용 받기 (macOS)". macOS(`macOS`)와 Client Hints 없는 Safari Mac(`MacIntel`) → macOS 카드만,
+  단추 "… (Windows)". 단추 `aria-expanded` false → 누름 true(다른 카드 보임) → 다시 누름 false(다시 숨김). Linux, iPad(`MacIntel` + 터치 5) → 두 카드.
+  JavaScript 끔 → 두 카드(요구 사항)와 `static` 안내. 어두운 테마, 375px 모두 가로 스크롤 없음, 콘솔·CSP 오류 없음.
+  기존 확인(복사 단추, 빈 피드·Windows만·`releases.js` 없음, `/` 언어 이동)을 다시 돌려 같은 결과. 화면 사진: `D:\Tools\_scratch\site-redesign\shots-platform\`.
 
 ## 확인하지 못한 것
 
@@ -350,3 +372,5 @@ DBeaver는 이 저장소에 설치 프로그램·배포 설정이 없다(별도 
 - 2026-11-07 작업 공간 위치 수정 반영: "사용자 데이터의 위치"를 고친 뒤 기준으로 바꾸고 사용자 할 일 완료 표시([workspace-location.md](workspace-location.md)).
 - 2026-11-07 다운로드 사이트 개편("사이트" > "디자인"): 앱 토큰의 도구 창·속성 격자 모양, 실제 앱 화면(한국어·영어 × 밝은·어두운 WebP 4장),
   "들어 있는 것", 오픈 소스 절과 모든 페이지의 GitHub 마크 링크(Octicons, MIT, `NOTICE`), 왼쪽 제목·오른쪽 내용 배치. `site.js`·`lang.js`·피드 계약은 그대로.
+- 2026-11-07 방문자 운영체제에 맞춘 다운로드("사이트" > "방문자 운영체제에 맞춘 다운로드"): Windows·macOS 방문자에게 그 카드만, 다른 운영체제는 단추로 펼침.
+  JavaScript 없을 때의 첫 상태를 `loading`에서 `static`(두 카드와 파일 위치 안내)으로 바꿈.

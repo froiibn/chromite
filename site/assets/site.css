@@ -26,6 +26,9 @@
  * - 2026-11-07 Created.
  * - 2026-11-07 Redesigned: app-token panels and property grid, heading/content sections, product
  *   screenshots, GitHub links and an open-source section.
+ * - 2026-11-07 The "other platform" button row (site.js puts the visitor's platform first). The first
+ *   state is "static" instead of "loading": without script the page used to say "looking for the latest
+ *   version" forever and show no card; now it shows both cards and where to get the files.
  */
 @font-face {
   font-family: "Pretendard";
@@ -158,7 +161,23 @@ li + li { margin-top: 6px; }
 .panel { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; }
 .panel-head { display: flex; align-items: center; min-height: 40px; padding: 0 16px; border-bottom: 1px solid var(--line-subtle); font-size: 14px; }
 .card { padding: 18px 16px 16px; }
-.card + .card { border-top: 1px solid var(--line-subtle); }
+.card + .card, .other-os + .card { border-top: 1px solid var(--line-subtle); }
+.card[hidden] { display: none; }
+/* added by site.js when the visitor's platform is known: the other platform's card behind this button */
+.other-os { padding: 10px 16px 12px; border-top: 1px solid var(--line-subtle); }
+.other-os button {
+  font: inherit;
+  font-size: 14px;
+  color: var(--link);
+  background: none;
+  border: 0;
+  padding: 2px 0;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  text-decoration-thickness: 1px;
+}
+.other-os button:hover { text-decoration-thickness: 2px; }
 .card h3 { font-size: 20px; line-height: 1.3; }
 .card .req { margin-top: 4px; font-size: 14px; color: var(--ink-2); }
 .card .when-ready { margin-top: 14px; }
@@ -199,12 +218,17 @@ li + li { margin-top: 6px; }
 }
 .copy:hover { background: var(--selection); border-color: var(--selection); }
 
-/* states: the script sets data-state on .downloads-area and data-ready on each card */
+/* states: the page starts as "static" (what a browser without script keeps: both cards with their
+   requirements and a note on where the files are); site.js sets ready, error or empty and data-ready on
+   each card */
 .downloads-area .state { display: none; margin: 16px; color: var(--ink-2); font-size: 15px; }
-.downloads-area[data-state="loading"] .state-loading,
+.downloads-area[data-state="static"] .state-static,
 .downloads-area[data-state="error"] .state-error,
 .downloads-area[data-state="empty"] .state-empty { display: block; }
-.downloads-area:not([data-state="ready"]) .downloads { display: none; }
+.downloads-area[data-state="error"] .downloads,
+.downloads-area[data-state="empty"] .downloads,
+.downloads-area[data-state="static"] .card .when-ready { display: none; }
+.downloads-area[data-state="static"] .state-static { margin-top: 0; padding-top: 14px; border-top: 1px solid var(--line-subtle); font-size: 14px; }
 .card .when-missing { display: none; margin-top: 10px; color: var(--ink-2); font-size: 14px; }
 .card[data-ready="false"] .when-ready { display: none; }
 .card[data-ready="false"] .when-missing { display: block; }
