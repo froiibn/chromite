@@ -18,8 +18,12 @@ package com.seizia.chromite.ui.swing;
 
 import com.formdev.flatlaf.FlatClientProperties;
 import com.seizia.chromite.ui.swing.internal.ConnectionMessages;
+import org.eclipse.osgi.util.NLS;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
+import com.seizia.chromite.ext.bigquery.BQDataSourceProvider;
+import com.seizia.chromite.ext.mimer.MimerConstants;
+import com.seizia.chromite.ext.mimer.MimerDataSourceProvider;
 import com.seizia.chromite.ext.mssql.SQLServerConstants;
 import com.seizia.chromite.ext.mssql.SQLServerUtils;
 import com.seizia.chromite.ext.oracle.OracleDataSourceProvider;
@@ -28,6 +32,10 @@ import com.seizia.chromite.ext.oracle.model.dict.OracleConnectionType;
 import com.seizia.chromite.ext.oracle.model.dict.OracleLanguage;
 import com.seizia.chromite.ext.oracle.model.dict.OracleTerritory;
 import com.seizia.chromite.ext.oracle.oci.OCIUtils;
+import com.seizia.chromite.ext.snowflake.SnowflakeConstants;
+import com.seizia.chromite.ext.snowflake.SnowflakeDataSourceProvider;
+import com.seizia.chromite.ext.snowflake.SnowflakeUtils;
+import com.seizia.chromite.model.DBPDataSourceProvider;
 import com.seizia.chromite.model.connection.DBPConnectionConfiguration;
 import com.seizia.chromite.model.connection.DBPDriver;
 import com.seizia.chromite.registry.DataSourceDescriptor;
@@ -71,15 +79,37 @@ import java.util.Set;
  *     {@code ALTER SESSION SET NLS_…}으로 적용한다({@code OracleDataSource.initializeContextState}). 기본값(빈 값)이면 속성을 지운다(SWT와 같음).
  *     언어·지역 목록은 SWT처럼 모델의 {@link OracleLanguage}·{@link OracleTerritory}이고 직접 입력도 된다. 길이 의미는 SWT의 글 칸 대신
  *     BYTE/CHAR 콤보(입력 가능)다.</li>
+ *     <li>BigQuery({@code BQConnectionPage}): Project(DB 이름). 예시 URL에 {@code {database}}가 없어 범용 양식에 칸이 없었고, 모델은 이 값을
+ *     드라이버 속성 {@code ProjectId}로 넘긴다. 비어 있으면 Test·Connect가 꺼진다(SWT {@code isComplete}).</li>
+ *     <li>Snowflake({@code SnowflakeConnectionPage}): Warehouse(서버 이름, SWT와 같음)와 Schema(내부 공급자 속성 {@code @…-schema@}).
+ *     모델은 서버 이름이 비면 공급자 속성 {@code warehouse}, 내부 속성이 비면 {@code schema}를 읽는다. 표에 선언된 두 키({@code warehouse}, {@code schema})는
+ *     모델이 먼저 읽는 자리를 보이지 않아, 표에서 빼고 모델이 실제로 쓰는 값을 이 칸에 보인다. 저장은 값이 바뀌었을 때만 SWT 자리에 쓰고 대체 키를 지운다.</li>
+ *     <li>SAP HANA({@code HANAConnectionPage}): Edition, Instance number, Tenant database. 모델은 공급자 속성 {@code edition}·{@code instanceNumber}를
+ *     읽지 않는다. 이 값으로 대화상자가 포트(플랫폼 3NN15/3NN13, Express 39015, Cloud 443)와 드라이버 속성 {@code databaseName}(테넌트 DB)을 정한다.
+ *     포트를 정하는 에디션이면 Server name에 적은 포트 대신 그 포트를 쓰고, 칸 아래에 그 포트를 보인다.</li>
+ *     <li>Firebird Embedded({@code FireBirdEmbeddedConnectionPage}): 네이티브 라이브러리 폴더 → 공급자 속성 {@code nativeLibraryPath}.
+ *     공급자가 연결 전에 {@code jna.library.path}에 더한다.</li>
+ *     <li>Mimer SQL({@code MimerConnectionSettingsPage}): Protocol(TCP/IP, 이 컴퓨터의 공유 메모리) → 공급자 속성 {@code protocol},
+ *     PROGRAM 보안 계층의 Program(드라이버 속성)과 비밀번호(인증 속성, 레지스트리가 보안 저장소에 둠).</li>
  * </ul>
+ * HANA·Firebird는 공급자 클래스나 상수를 내보내지 않아 {@code plugin.xml}의 공급자·드라이버 ID로 고른다.
  *
  * 변경 이력:
  * - 2026-11-06 최초 작성: 고급 연결 설정 (docs/chromite/swing-conn-advanced.md)
  * - 2026-11-06 화면 문구를 ConnectionMessages로 옮김(OS 언어를 따름)
  * - 2026-11-08 Oracle 세션 설정(NLS) 탭과 드라이버별 Options 탭 고리({@link #getOptionsPage})
  *   (docs/chromite/swing-conn-advanced.md "Oracle 세션 설정")
+ * - 2026-11-08 BigQuery Project, Snowflake Warehouse·Schema, HANA 에디션, Firebird Embedded 라이브러리 폴더, Mimer 프로토콜·PROGRAM
+ *   (docs/chromite/swing-conn-advanced.md "3. DB별 주 양식 칸")
  */
 abstract class ConnectionDriverFields {
+
+    /**
+     * Provider and driver IDs of plugin.xml (the HANA and Firebird bundles export no provider class or constant for them).
+     */
+    private static final String PROVIDER_HANA = "hana"; //$NON-NLS-1$
+    private static final String PROVIDER_FIREBIRD = "jaybird"; //$NON-NLS-1$
+    private static final String DRIVER_FIREBIRD_EMBEDDED = "jaybird_embedded"; //$NON-NLS-1$
 
     protected final Runnable changeListener;
 
@@ -97,6 +127,23 @@ abstract class ConnectionDriverFields {
         }
         if (SQLServerUtils.isDriverSqlServer(driver)) {
             return new SqlServerFields(changeListener);
+        }
+        DBPDataSourceProvider provider = driver.getDataSourceProvider();
+        if (provider instanceof BQDataSourceProvider) {
+            return new BigQueryFields(changeListener);
+        }
+        if (provider instanceof SnowflakeDataSourceProvider) {
+            return new SnowflakeFields(changeListener);
+        }
+        if (provider instanceof MimerDataSourceProvider) {
+            return new MimerFields(changeListener);
+        }
+        if (PROVIDER_HANA.equals(driver.getProviderId())) {
+            return new HanaFields(changeListener, driver.getDefaultPort());
+        }
+        if (PROVIDER_FIREBIRD.equals(driver.getProviderId()) && DRIVER_FIREBIRD_EMBEDDED.equals(driver.getId())) {
+            // FireBirdConnectionPage shows the native library page for the embedded driver only
+            return new FirebirdEmbeddedFields(changeListener);
         }
         return null;
     }
@@ -513,6 +560,463 @@ abstract class ConnectionDriverFields {
             } finally {
                 loading = wasLoading;
             }
+        }
+    }
+
+    /**
+     * Sets or (empty value) removes a provider property.
+     */
+    protected static void setOrRemoveProviderProperty(@NotNull DBPConnectionConfiguration configuration, @NotNull String name, @NotNull String value) {
+        if (value.isEmpty()) {
+            configuration.removeProviderProperty(name);
+        } else {
+            configuration.setProviderProperty(name, value);
+        }
+    }
+
+    /**
+     * Runs {@link #changeListener} when the text of a field changes (the dialog validates again).
+     */
+    protected void listenTo(@NotNull JTextField field) {
+        field.getDocument().addDocumentListener(new DocumentListener() {
+            @Override
+            public void insertUpdate(DocumentEvent e) {
+                changeListener.run();
+            }
+
+            @Override
+            public void removeUpdate(DocumentEvent e) {
+                changeListener.run();
+            }
+
+            @Override
+            public void changedUpdate(DocumentEvent e) {
+                changeListener.run();
+            }
+        });
+    }
+
+    /**
+     * BigQuery: the project (the database name; BQDataSource passes it as the driver property ProjectId). The URL template
+     * has no {database}, so the generic form has no field for it.
+     */
+    private static final class BigQueryFields extends ConnectionDriverFields {
+        private final JTextField projectField = new JTextField();
+
+        BigQueryFields(@NotNull Runnable changeListener) {
+            super(changeListener);
+            projectField.setToolTipText(ConnectionMessages.driver_bigquery_project_tip);
+            listenTo(projectField);
+        }
+
+        @Override
+        void addLeadingRows(@NotNull ConnectionSettingsPanel.FormBuilder form) {
+            form.addRow(ConnectionMessages.driver_bigquery_project, projectField);
+        }
+
+        @Override
+        void loadSettings(@NotNull DataSourceDescriptor dataSource, boolean isNew) {
+            projectField.setText(CommonUtils.notEmpty(dataSource.getConnectionConfiguration().getDatabaseName()));
+        }
+
+        @Override
+        void saveSettings(@NotNull DBPConnectionConfiguration configuration, boolean urlMode) {
+            configuration.setDatabaseName(projectField.getText().trim());
+        }
+
+        @Nullable
+        @Override
+        String validate() {
+            // BQConnectionPage.isComplete
+            return projectField.getText().isBlank() ? ConnectionMessages.driver_bigquery_enter_project : null;
+        }
+    }
+
+    /**
+     * Snowflake: warehouse and default schema (SnowflakeConnectionPage). They are read where the model reads them
+     * (warehouse: server name, then the provider property; schema: the internal provider property, then "schema") and
+     * written where SWT writes them (server name, internal property).
+     */
+    private static final class SnowflakeFields extends ConnectionDriverFields {
+        private final JTextField warehouseField = new JTextField();
+        private final JTextField schemaField = new JTextField();
+
+        SnowflakeFields(@NotNull Runnable changeListener) {
+            super(changeListener);
+            warehouseField.setToolTipText(ConnectionMessages.driver_snowflake_warehouse_tip);
+            schemaField.setToolTipText(ConnectionMessages.driver_snowflake_schema_tip);
+        }
+
+        @Override
+        void addAddressRows(@NotNull ConnectionSettingsPanel.FormBuilder form) {
+            form.addRow(ConnectionMessages.driver_snowflake_warehouse, warehouseField);
+            form.addRow(ConnectionMessages.driver_snowflake_schema, schemaField);
+        }
+
+        @Override
+        void loadSettings(@NotNull DataSourceDescriptor dataSource, boolean isNew) {
+            DBPConnectionConfiguration configuration = dataSource.getConnectionConfiguration();
+            warehouseField.setText(CommonUtils.notEmpty(SnowflakeUtils.getWarehouse(configuration)));
+            schemaField.setText(getSchema(configuration));
+        }
+
+        @Override
+        void saveSettings(@NotNull DBPConnectionConfiguration configuration, boolean urlMode) {
+            // Written only when the value differs from the one the model would use: an unchanged connection stays equal
+            // even when its value is in the fallback place, and an edited value can't be hidden by the fallback
+            String warehouse = warehouseField.getText().trim();
+            if (!warehouse.equals(CommonUtils.notEmpty(SnowflakeUtils.getWarehouse(configuration)))) {
+                configuration.setServerName(warehouse);
+                configuration.removeProviderProperty(SnowflakeConstants.PROP_WAREHOUSE);
+            }
+            String schema = schemaField.getText().trim();
+            if (!schema.equals(getSchema(configuration))) {
+                setOrRemoveProviderProperty(configuration, SnowflakeConstants.PROP_SCHEMA, schema);
+                configuration.removeProviderProperty(SnowflakeConstants.PROP_SCHEMA2);
+            }
+        }
+
+        /**
+         * The schema the model uses (SnowflakeDataSourceProvider.getConnectionURL).
+         */
+        @NotNull
+        private static String getSchema(@NotNull DBPConnectionConfiguration configuration) {
+            String schema = configuration.getProviderProperty(SnowflakeConstants.PROP_SCHEMA);
+            if (CommonUtils.isEmpty(schema)) {
+                schema = configuration.getProviderProperty(SnowflakeConstants.PROP_SCHEMA2);
+            }
+            return CommonUtils.notEmpty(schema);
+        }
+
+        @NotNull
+        @Override
+        Set<String> getHandledProviderProperties() {
+            return Set.of(SnowflakeConstants.PROP_WAREHOUSE, SnowflakeConstants.PROP_SCHEMA, SnowflakeConstants.PROP_SCHEMA2);
+        }
+    }
+
+    /**
+     * SAP HANA: edition, instance number and tenant database (HANAConnectionPage). The model reads none of the two
+     * provider properties: they only let the dialog work out the port (platform editions: 3NN15 for a single database,
+     * 3NN13 for the system or a tenant database; Express 39015; Cloud 443) and the tenant database, which is the driver
+     * property databaseName.
+     */
+    private static final class HanaFields extends ConnectionDriverFields {
+        private static final String PROP_EDITION = "edition"; //$NON-NLS-1$
+        private static final String PROP_INSTANCE_NUMBER = "instanceNumber"; //$NON-NLS-1$
+        private static final String DRIVER_PROP_DATABASE_NAME = "databaseName"; //$NON-NLS-1$
+        private static final String EXPRESS_INSTANCE = "90"; //$NON-NLS-1$
+        private static final String EXPRESS_PORT = "39015"; //$NON-NLS-1$
+        private static final String CLOUD_PORT = "443"; //$NON-NLS-1$
+
+        /**
+         * HANAEdition of the SWT page, in the same order.
+         */
+        private enum Edition {
+            GENERIC, PLATFORM_SINGLE_DB, PLATFORM_SYSTEM_DB, PLATFORM_TENANT_DB, EXPRESS, CLOUD;
+
+            boolean isPlatform() {
+                return this == PLATFORM_SINGLE_DB || this == PLATFORM_SYSTEM_DB || this == PLATFORM_TENANT_DB;
+            }
+        }
+
+        private final String defaultPort;
+        private final JComboBox<String> editionCombo = new JComboBox<>(new String[]{
+            ConnectionMessages.driver_hana_edition_generic, ConnectionMessages.driver_hana_edition_single,
+            ConnectionMessages.driver_hana_edition_system, ConnectionMessages.driver_hana_edition_tenant,
+            ConnectionMessages.driver_hana_edition_express, ConnectionMessages.driver_hana_edition_cloud});
+        private final JLabel instanceLabel = new JLabel(ConnectionMessages.driver_hana_instance);
+        private final JTextField instanceField = new JTextField(4);
+        private final JLabel databaseLabel = new JLabel(ConnectionMessages.driver_hana_tenant_database);
+        private final JTextField databaseField = new JTextField();
+        private final JLabel portHint = new JLabel();
+        private String typedInstance = ""; //$NON-NLS-1$
+        private boolean loading;
+
+        HanaFields(@NotNull Runnable changeListener, @Nullable String defaultPort) {
+            super(changeListener);
+            this.defaultPort = CommonUtils.notEmpty(defaultPort);
+            instanceField.setToolTipText(ConnectionMessages.driver_hana_instance_tip);
+            portHint.putClientProperty(FlatClientProperties.STYLE_CLASS, "small"); //$NON-NLS-1$
+            portHint.setForeground(UIManager.getColor("Label.disabledForeground")); //$NON-NLS-1$
+            editionCombo.addActionListener(e -> {
+                updateVisibility();
+                if (!loading) {
+                    changeListener.run();
+                    if (SwingUtilities.getWindowAncestor(editionCombo) instanceof ConnectionDialog dialog) {
+                        // Rows were shown or hidden
+                        dialog.fitToContent();
+                    }
+                }
+            });
+            listenTo(instanceField);
+            listenTo(databaseField);
+            instanceField.getDocument().addDocumentListener(new DocumentListener() {
+                @Override
+                public void insertUpdate(DocumentEvent e) {
+                    updatePortHint();
+                }
+
+                @Override
+                public void removeUpdate(DocumentEvent e) {
+                    updatePortHint();
+                }
+
+                @Override
+                public void changedUpdate(DocumentEvent e) {
+                    updatePortHint();
+                }
+            });
+        }
+
+        @Override
+        void addAddressRows(@NotNull ConnectionSettingsPanel.FormBuilder form) {
+            form.addRow(ConnectionMessages.driver_hana_edition, ConnectionSettingsPanel.leftAligned(editionCombo));
+            form.addRow(instanceLabel, ConnectionSettingsPanel.leftAligned(instanceField));
+            form.addRow(databaseLabel, databaseField);
+            form.addRow((JLabel) null, portHint);
+        }
+
+        @Override
+        void loadSettings(@NotNull DataSourceDescriptor dataSource, boolean isNew) {
+            loading = true;
+            try {
+                DBPConnectionConfiguration configuration = dataSource.getConnectionConfiguration();
+                Edition edition = Edition.GENERIC;
+                String saved = configuration.getProviderProperty(PROP_EDITION);
+                for (Edition value : Edition.values()) {
+                    if (value.name().equals(saved)) {
+                        edition = value;
+                    }
+                }
+                typedInstance = CommonUtils.notEmpty(configuration.getProviderProperty(PROP_INSTANCE_NUMBER));
+                instanceField.setEditable(true);
+                instanceField.setText(typedInstance);
+                databaseField.setText(CommonUtils.notEmpty(getDatabaseName(configuration)));
+                editionCombo.setSelectedIndex(edition.ordinal());
+            } finally {
+                loading = false;
+            }
+            updateVisibility();
+        }
+
+        @Override
+        void saveSettings(@NotNull DBPConnectionConfiguration configuration, boolean urlMode) {
+            // HANAConnectionPage.saveSettings
+            Edition edition = getEdition();
+            setProviderProperty(configuration, PROP_EDITION, edition.name(), Edition.GENERIC.name());
+            if (edition == Edition.GENERIC) {
+                return;
+            }
+            setOrRemoveProviderProperty(configuration, PROP_INSTANCE_NUMBER, getInstance());
+            String database = edition == Edition.PLATFORM_TENANT_DB ? databaseField.getText().trim() : ""; //$NON-NLS-1$
+            for (String name : new ArrayList<>(configuration.getProperties().keySet())) {
+                // The driver reads the property name in any case
+                if (name.equalsIgnoreCase(DRIVER_PROP_DATABASE_NAME) && (database.isEmpty() || !name.equals(DRIVER_PROP_DATABASE_NAME))) {
+                    configuration.removeProperty(name);
+                }
+            }
+            if (!database.isEmpty()) {
+                configuration.setProperty(DRIVER_PROP_DATABASE_NAME, database);
+            }
+            String port = getPort(configuration.getHostPort());
+            if (!urlMode && port != null) {
+                configuration.setHostPort(port);
+            }
+        }
+
+        @Nullable
+        @Override
+        String validate() {
+            // HANAConnectionPage.isComplete
+            Edition edition = getEdition();
+            if (edition.isPlatform() && !instanceField.getText().isBlank()) {
+                int instance = CommonUtils.toInt(instanceField.getText().trim(), -1);
+                if (instance < 0 || instance > 99) {
+                    return ConnectionMessages.driver_hana_enter_instance;
+                }
+            }
+            if (edition == Edition.PLATFORM_TENANT_DB && databaseField.getText().isBlank()) {
+                return ConnectionMessages.driver_hana_enter_database;
+            }
+            return null;
+        }
+
+        @NotNull
+        @Override
+        Set<String> getHandledProviderProperties() {
+            return Set.of(PROP_EDITION, PROP_INSTANCE_NUMBER);
+        }
+
+        @NotNull
+        private Edition getEdition() {
+            return Edition.values()[Math.max(0, editionCombo.getSelectedIndex())];
+        }
+
+        /**
+         * The instance number the edition uses: typed (platform), fixed (Express) or none.
+         */
+        @NotNull
+        private String getInstance() {
+            Edition edition = getEdition();
+            return edition.isPlatform() ? instanceField.getText().trim() : edition == Edition.EXPRESS ? EXPRESS_INSTANCE : ""; //$NON-NLS-1$
+        }
+
+        /**
+         * The port the edition sets, or {@code null} when the typed one is kept (HANAConnectionPage.editionUpdated).
+         *
+         * @param typedPort the port written from the server name (the driver's default when none was typed)
+         */
+        @Nullable
+        private String getPort(@Nullable String typedPort) {
+            Edition edition = getEdition();
+            if (edition.isPlatform()) {
+                String instance = instanceField.getText().trim();
+                int number = CommonUtils.toInt(instance, -1);
+                if (instance.isEmpty() || number < 0 || number > 99) {
+                    return null;
+                }
+                return String.format(edition == Edition.PLATFORM_SINGLE_DB ? "3%02d15" : "3%02d13", number); //$NON-NLS-1$ //$NON-NLS-2$
+            }
+            if (edition == Edition.EXPRESS) {
+                // Express listens on 39015 unless another port was typed
+                return CommonUtils.isEmpty(typedPort) || typedPort.equals(defaultPort) ? EXPRESS_PORT : null;
+            }
+            return edition == Edition.CLOUD ? CLOUD_PORT : null;
+        }
+
+        private void updateVisibility() {
+            Edition edition = getEdition();
+            boolean instance = edition.isPlatform() || edition == Edition.EXPRESS;
+            instanceLabel.setVisible(instance);
+            instanceField.setVisible(instance);
+            // Express shows its fixed number; the typed one comes back on a platform edition (HANAConnectionPage keeps instanceValue)
+            if (edition == Edition.EXPRESS && instanceField.isEditable()) {
+                typedInstance = instanceField.getText();
+                instanceField.setText(EXPRESS_INSTANCE);
+            } else if (edition.isPlatform() && !instanceField.isEditable()) {
+                instanceField.setText(typedInstance);
+            }
+            instanceField.setEditable(edition.isPlatform());
+            boolean database = edition == Edition.PLATFORM_TENANT_DB;
+            databaseLabel.setVisible(database);
+            databaseField.setVisible(database);
+            updatePortHint();
+        }
+
+        private void updatePortHint() {
+            Edition edition = getEdition();
+            String port = edition == Edition.EXPRESS ? EXPRESS_PORT : getPort(null);
+            portHint.setText(port == null ? "" : NLS.bind(ConnectionMessages.driver_hana_port_hint, port)); //$NON-NLS-1$
+            portHint.setVisible(port != null);
+        }
+
+        /**
+         * The driver property databaseName in any case (HANAConnectionPage.getProperty).
+         */
+        @Nullable
+        private static String getDatabaseName(@NotNull DBPConnectionConfiguration configuration) {
+            for (Map.Entry<String, String> entry : configuration.getProperties().entrySet()) {
+                if (entry.getKey().equalsIgnoreCase(DRIVER_PROP_DATABASE_NAME)) {
+                    return entry.getValue();
+                }
+            }
+            return null;
+        }
+    }
+
+    /**
+     * Firebird Embedded: the folder of the native client library (FireBirdEmbeddedConnectionPage). The provider adds it
+     * to jna.library.path before connecting (FireBirdDataSourceProvider.getConnectionURL).
+     */
+    private static final class FirebirdEmbeddedFields extends ConnectionDriverFields {
+        private static final String PROP_NATIVE_LIBRARY_PATH = "nativeLibraryPath"; //$NON-NLS-1$
+
+        private final JTextField pathField = new JTextField();
+
+        FirebirdEmbeddedFields(@NotNull Runnable changeListener) {
+            super(changeListener);
+            pathField.putClientProperty(FlatClientProperties.PLACEHOLDER_TEXT, ConnectionMessages.driver_firebird_library_placeholder);
+            pathField.setToolTipText(ConnectionMessages.driver_firebird_library_tip);
+        }
+
+        @Override
+        void addAddressRows(@NotNull ConnectionSettingsPanel.FormBuilder form) {
+            form.addRow(ConnectionMessages.driver_firebird_library,
+                NetworkHandlerPanel.createPathField(pathField, ConnectionMessages.driver_firebird_library_tip, true));
+        }
+
+        @Override
+        void loadSettings(@NotNull DataSourceDescriptor dataSource, boolean isNew) {
+            pathField.setText(CommonUtils.notEmpty(dataSource.getConnectionConfiguration().getProviderProperty(PROP_NATIVE_LIBRARY_PATH)));
+        }
+
+        @Override
+        void saveSettings(@NotNull DBPConnectionConfiguration configuration, boolean urlMode) {
+            setOrRemoveProviderProperty(configuration, PROP_NATIVE_LIBRARY_PATH, pathField.getText().trim());
+        }
+    }
+
+    /**
+     * Mimer SQL: protocol (provider property, "local" = shared memory on this computer) and the PROGRAM security layer
+     * (driver property program, auth property programPwd, which the registry keeps in the secure storage)
+     * (MimerConnectionSettingsPage).
+     */
+    private static final class MimerFields extends ConnectionDriverFields {
+        private final JComboBox<String> protocolCombo = new JComboBox<>(new String[]{
+            ConnectionMessages.driver_mimer_protocol_tcp, ConnectionMessages.driver_mimer_protocol_local});
+        private final JTextField programField = new JTextField();
+        private final JPasswordField programPasswordField = new JPasswordField();
+
+        MimerFields(@NotNull Runnable changeListener) {
+            super(changeListener);
+            protocolCombo.setToolTipText(ConnectionMessages.driver_mimer_protocol_tip);
+            programField.setToolTipText(ConnectionMessages.driver_mimer_program_tip);
+            programPasswordField.setToolTipText(ConnectionMessages.driver_mimer_program_tip);
+        }
+
+        @Override
+        void addAddressRows(@NotNull ConnectionSettingsPanel.FormBuilder form) {
+            form.addRow(ConnectionMessages.driver_mimer_protocol, ConnectionSettingsPanel.leftAligned(protocolCombo));
+        }
+
+        @Override
+        void addSecurityRows(@NotNull ConnectionSettingsPanel.FormBuilder form) {
+            form.addGroupGap();
+            form.addRow(ConnectionMessages.driver_mimer_program, programField);
+            form.addRow(ConnectionMessages.driver_mimer_program_password, programPasswordField);
+        }
+
+        @Override
+        void loadSettings(@NotNull DataSourceDescriptor dataSource, boolean isNew) {
+            DBPConnectionConfiguration configuration = dataSource.getConnectionConfiguration();
+            protocolCombo.setSelectedIndex(MimerConstants.PROTOCOL_LOCAL.equals(configuration.getProviderProperty(MimerConstants.PROP_PROTOCOL)) ? 1 : 0);
+            programField.setText(CommonUtils.notEmpty(configuration.getProperty(MimerConstants.PROP_PROGRAM)));
+            programPasswordField.setText(CommonUtils.notEmpty(configuration.getAuthProperty(MimerConstants.PROP_PROGRAM_PASSWORD)));
+        }
+
+        @Override
+        void saveSettings(@NotNull DBPConnectionConfiguration configuration, boolean urlMode) {
+            setProviderProperty(configuration, MimerConstants.PROP_PROTOCOL,
+                protocolCombo.getSelectedIndex() == 1 ? MimerConstants.PROTOCOL_LOCAL : MimerConstants.PROTOCOL_TCP, MimerConstants.PROTOCOL_TCP);
+            String program = programField.getText().trim();
+            if (program.isEmpty()) {
+                configuration.removeProperty(MimerConstants.PROP_PROGRAM);
+            } else {
+                configuration.setProperty(MimerConstants.PROP_PROGRAM, program);
+            }
+            String password = new String(programPasswordField.getPassword());
+            if (!password.isEmpty()) {
+                configuration.setAuthProperty(MimerConstants.PROP_PROGRAM_PASSWORD, password);
+            } else if (configuration.getAuthProperty(MimerConstants.PROP_PROGRAM_PASSWORD) != null) {
+                configuration.setAuthProperty(MimerConstants.PROP_PROGRAM_PASSWORD, null);
+            }
+        }
+
+        @NotNull
+        @Override
+        Set<String> getHandledProviderProperties() {
+            return Set.of(MimerConstants.PROP_PROTOCOL);
         }
     }
 }

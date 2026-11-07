@@ -155,13 +155,13 @@ swing-security.md는 DB 보안(로그인·역할·권한) 문서이고 연결 �
 | # | 기능 | SWT 출처 | 상태 | 근거 | 영향 | 메모 |
 |---|---|---|---|---|---|---|
 | C1 | 일반: 이름, 연결 종류, 색, 읽기 전용 | `ConnectionPageGeneral` | 있음 | `ConnectionSettingsPanel`, `ConnectionColors` | 중간 | |
-| C2 | 설명, 연결 폴더, 탐색기 설정(시스템 개체·단순 보기 등) | `ConnectionPageGeneral`, `EditConnectionNavigatorSettingsDialog` | 일부 | 폴더는 Registered Servers 그룹(`RegisteredServerCommands`); grep `NavigatorSettings` 0건 | 낮음 | 설명·탐색기 설정 없음 |
+| C2 | 설명, 연결 폴더, 탐색기 설정(시스템 개체·단순 보기 등) | `ConnectionPageGeneral`, `EditConnectionNavigatorSettingsDialog` | 일부 | 폴더는 Registered Servers 그룹(`RegisteredServerCommands`); grep `NavigatorSettings` 0건 | 낮음 | 탐색기 설정 없음. 설명은 2026-11-08 Connection Properties 탭에 더함([swing-conn-advanced.md](../swing-conn-advanced.md) "4. 일반 설정") |
 | C3 | 드라이버 속성, 공급자 속성 | `DriverPropertiesDialogPage`, `ConnectionPropertiesControl` | 있음 | `ConnectionPropertiesTable` | 중간 | |
-| C4 | 인증 방식과 방식별 칸 | `AuthModelSelector`, `*AuthConfigurator` | 일부 | `ConnectionAuthModels`, `ConnectionAuthExtras` | 중간 | 셸 명령 비밀번호, ClickHouse SSO, BigQuery·Snowflake·Spanner 칸 없음(swing-conn-advanced.md:226) |
+| C4 | 인증 방식과 방식별 칸 | `AuthModelSelector`, `*AuthConfigurator` | 일부 | `ConnectionAuthModels`, `ConnectionAuthExtras` | 중간 | 셸 명령 비밀번호, ClickHouse SSO·OIDC 칸 없음. BigQuery·Snowflake·Spanner 칸은 2026-11-08 더함([swing-conn-advanced.md](../swing-conn-advanced.md) "1. 인증 방식") |
 | C5 | 저장 안 한 비밀번호의 인증 방식 자격 증명 묻기 | `AuthModelCredentialsDialog`, `DesktopUI.promptAuthModelCredentials` | **조용히 끊김** | 위 요약 2 | 높음 | 실행 확인 못 함(코드 경로) |
 | C6 | SSH 터널 | `SSHTunnelDefaultConfiguratorUI` | 일부 | `SshTunnelPanel` | 중간 | 점프 서버 목록 편집 없음(보존만) |
 | C7 | 프록시 | `SocksProxyConfiguratorUI` | 있음 | `SocksProxyPanel` | 낮음 | SOCKS만(HTTP는 모델에 없음) |
-| C8 | SSL | `SSLConfiguratorTrustStoreUI`, DB별 SSL 화면 | 일부 | `SslHandlerPanel`(PostgreSQL·MySQL·SQL Server) | 중간 | ClickHouse·Databend·TiDB Lake 없음, PostgreSQL SSL factory 목록 없음 |
+| C8 | SSL | `SSLConfiguratorTrustStoreUI`, DB별 SSL 화면 | 일부 | `SslHandlerPanel`(PostgreSQL·MySQL·SQL Server, 2026-11-08 ClickHouse·Databend·TiDB Lake) | 중간 | PostgreSQL SSL factory 목록 없음(직접 입력) |
 | C9 | 네트워크 프로필 편집 | `PrefPageNetworkProfiles` 등 | 없음 | swing-conn-advanced.md:224 | 낮음 | 프로필을 쓰는 연결은 표시만 |
 | C10 | 연결 직후 SQL(bootstrap) | `EditBootstrapQueriesDialog` | 있음 | `BootstrapQueriesDialog` | 중간 | |
 | C11 | 초기화 설정(자동 커밋, 기본 DB/스키마, keep-alive, 유휴 연결 닫기, 격리 수준) | `ConnectionPageInitialization` | 일부 | `ConnectionSettingsPanel` Options; 격리 수준 grep 0건 | 중간 | 격리 수준만 없음 |
