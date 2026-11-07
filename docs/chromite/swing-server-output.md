@@ -100,6 +100,21 @@ SWT 대조 감사 항목 D-K1·K2·K3, D-O24, D-A4, B-S25, A-C10([swt-parity-aud
 
 회귀 테스트는 작성·실행하지 않았다(요청 없음). 영향받을 수 있는 기능: 쿼리 창 Messages 탭의 메시지 순서, Altibase 연결(번들 활성화 코드 추가).
 
+## 확인 (2026-11-08, evening #19, `chromite/followups-3` 빌드)
+
+Altibase 7.3 Docker, 한 쿼리 창에서 `EXEC PRINTLN('…')`, Tools > Options > Altibase의 PRINT 칸만 바꿈(다시 연결하지 않음). 프로세스 안 드라이버로 조작했다.
+
+| 확인 | 한국어 | 영어 |
+|---|---|---|
+| 켬 → 실행 | 출력 나옴 | `fu3 en on` 나옴 |
+| 끔 → 실행 | 출력 없음 | 출력 없음 |
+| 다시 켬 → 실행 | `fu3 on again`만 나옴(끈 동안의 줄은 나오지 않음) | `fu3 en on again`만 나옴 |
+| 끈 채로 연결 끊고 새 쿼리 창(세션을 꺼진 상태로 엶) → 실행 → 켬 → 실행 | 처음은 출력 없음, 켠 뒤 `fu3 turned on without reconnect` 나옴(고치기 전에는 다시 연결할 때까지 나오지 않던 경우) | - |
+
+CUBRID: 시험 서버가 없어 실행하지 않았다. 코드 경로(`CubridOutputReader.syncServerOutput` → `applyDbmsOutput`)만 확인했다. 캡처:
+`D:\Tools\_scratch\chromite-followups-3\shots\alti-19-ko.png`, `alti-19-en.png`. 회귀 테스트는 실행하지 않았다(요청 없음). 영향받을 수 있는 기능:
+Altibase·CUBRID 쿼리 창의 문장 실행(문장 전에 상태 확인, 바뀐 경우만 드라이버 호출 또는 SQL 한 번), CUBRID 연결 설정 저장(다시 연결 질문이 없어짐).
+
 ## 변경 이력
 
 - 2026-11-07 최초 작성: 쿼리 창이 문장마다 서버 출력을 읽어 Messages 탭에 씀, Altibase 읽기 도구 정리, Altibase 번들 활성화 코드로 기본값 초기화

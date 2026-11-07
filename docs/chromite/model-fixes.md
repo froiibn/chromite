@@ -3,7 +3,7 @@
 2026-11-06 통합 중 모은 후속 과제(followups-2026-11-06) 가운데 모델 번들의 결함 다섯 가지를 고친 기록이다(#47, #48, #50, #60, #70).
 형식 매핑·Copy Tables의 기본 키(#39, #51, #52, #53)는 [swing-data-transfer.md](swing-data-transfer.md) "남은 매핑과 기본 키 (2026-11-07 밤)",
 작은 수의 표시(#53)는 [swing-result-viewer.md](swing-result-viewer.md) "아주 작은 수의 표시"에 있다.
-2026-11-08의 작은 모델·안전·라이선스 수정 여섯 가지는 아래 "작은 모델·안전·라이선스 수정 (2026-11-08)"에 있다.
+2026-11-08의 작은 모델·안전·라이선스 수정 여섯 가지는 아래 "작은 모델·안전·라이선스 수정 (2026-11-08)", 그 뒤의 후속 과제 열 가지는 "후속 수정 3 (2026-11-08)"에 있다.
 항목마다 증상, 근본 원인(파일:줄, 고치기 전 기준), 같은 원인의 다른 경우, 고친 방법을 적는다. 모두 DBeaver에서 온 코드라 SWT(DBeaver)에도 같은 결함이 있다.
 
 ## SQL Server 매개변수 종류 (#47)
@@ -96,6 +96,7 @@
   도구 설명을 "바꾸면 열린 쿼리 창에도 다음 문장부터 적용"으로 고쳤다(영어·한국어).
 - 같은 원인의 다른 경우: YashanDB는 `OracleDataSource`를 상속해 함께 고쳐진다. Altibase(콜백 등록)·CUBRID(`dbms_output.enable`)도 세션을 열 때만 설정을 반영하지만,
   Swing에 그 설정을 바꾸는 화면이 없어 실행 중에 바뀌지 않는다. 화면이 생기면 같은 메서드를 구현한다.
+  (2026-11-08 화면이 생겼고 같은 날 두 읽기 도구가 `syncServerOutput`을 구현했다, evening #19, [swing-server-output.md](swing-server-output.md).)
 
 ### 슬래시를 쓴 Windows 경로 (#5)
 
@@ -193,6 +194,44 @@
   저장한 뒤, 실패한 페이지를 "페이지: 오류" 줄로 한 번에 알린다(`options_save_failed`, 영어·한국어). 저장 순서는 그대로다(테마가 마지막).
   자세한 것은 [swing-options.md](swing-options.md). 확인: 정상 저장(Altibase, 로그 페이지)은 앱에서, 실패 경로는 코드로만 확인했다(예외를 일으킬 방법이 없음).
 
+### Oracle View DDL의 ORA-38802 (#30, 고치지 않음)
+
+- 보고: B5 작업이 23ai 컨테이너에서 테이블 `T1`의 View DDL·Script as CREATE가 메타데이터 세션에서 ORA-38802("edition does not exist")로 실패해
+  일반 DDL로 대신하는 것을 보았다([swing-routines.md](swing-routines.md) "범위 밖").
+- 코드: Chromite의 Oracle 코드에 에디션을 정하는 곳이 없다. `DBMS_METADATA`에 넘기는 값은 `SET_TRANSFORM_PARAM` 일곱 개와 `GET_DDL(type, name, schema)`뿐이고
+  (`OracleUtils.getDDL` `:98-118`), 세션 설정은 NLS 값과 메타데이터 세션의 옵티마이저 값(`OracleDataSource.initializeContextState` `:365-421`)뿐이며,
+  연결 속성은 `v$session.program`(과 OS 인증의 `v$session.osuser`)뿐이다(`EDITION` 검색 결과는 SQL 방언의 `EDITIONABLE` 키워드뿐).
+- 재현 시도(모두 성공, 오류 없음): 앱(이 브랜치 빌드)의 View DDL·형식 바꾸기(전체·간단·저장소)를 `system`과 권한이 적은 새 사용자 `CHR_FU3`로, 한국어·영어 화면에서.
+  sqlplus와 JDBC(ojdbc11 23.2, 한국어·영어 로캘)에서 메타데이터 세션과 같은 `ALTER SESSION`(옵티마이저 값 4개, `NLS_LANGUAGE=KOREAN`, 언어 정렬)과
+  변환 값을 준 `GET_DDL`, `CURRENT_SCHEMA` 바꾸기, 세션이 열린 동안 `USE ON EDITION ORA$BASE`를 빼앗기.
+- 관찰: 이 컨테이너의 `ORA$BASE`에 대한 `USE` 권한이 `PUBLIC`이 아니라 `SYSTEM`에게만 있다(`dba_tab_privs`, 기본은 PUBLIC). 공용 컨테이너라 다른 작업의 권한 시험이
+  에디션 권한을 바꾼 흔적으로 보인다. ORA-38802는 "에디션이 없거나 권한이 없음"이라 B5 당시 그 권한 상태가 원인이었을 수 있으나 확인하지 못했다.
+- 결론: 근본 원인을 찾지 못했고 재현되지 않아 코드를 바꾸지 않았다. 다시 나면 그 세션에서 `SYS_CONTEXT('USERENV','CURRENT_EDITION_NAME')`과
+  `dba_tab_privs`(`ORA$BASE`)를 함께 기록한다.
+
+### 확인 (2026-11-08, 후속 수정 3)
+
+`mvn -B clean package -f product/aggregate/pom.xml -T1C -Pproduct-chromite-swing` BUILD SUCCESS, `tools/rename/gate.py` ALL GATES PASSED.
+빌드 결과물을 작업 공간 사본과 별도 데이터 폴더(`CHROMITE_DATA`)로 한 번 실행(한국어, 다시 `-nl en`)하고, 같은 프로세스 안에 붙인 시험 드라이버로 조작했다(OS 입력 없음).
+Docker 시험 DB(SQL Server 2022 `chr_followups_3`, Oracle 23ai 사용자 `CHR_FU3`, Altibase 7.3)에 이 작업이 만든 개체만 썼다. 항목별 결과는 위 절과 각 문서에 있다.
+
+| 항목 | 확인 |
+|---|---|
+| #18 | 배포 jar `com.jcraft.jsch_2.28.7.jar`의 `Bundle-License`·내장 POM: Revised BSD(JSch, JZlib), ISC(jBCrypt), 함께 든 junixsocket 2.10.1은 부모 POM이 Apache 2.0. `LICENSE.md` 글만 바뀜 |
+| #20 | `ext.generic` MySQL (Old)에 License 항목(코드). 이 드라이버는 내장하지 않는다 |
+| #19 | Altibase 앱 확인(한국어·영어), CUBRID 코드 경로 |
+| #23 | SQL Server 앱 확인(한국어·영어) |
+| #24 | Oracle 앱 안 모델 호출(저장·읽기 왕복), Altibase 코드 경로 |
+| #27 2·3부 | 코드 경로만(MCP 클라이언트로 부르지 않음). 문구는 영어·한국어 파일에서 확인 |
+| #28 | SQL Server Query Library 실행(한국어·영어) |
+| #30 | 재현 안 됨(위) |
+| #31 | SQL Server 실행 대화상자(한국어). 루틴 마우스 올림 설명, Oracle 형식 컴파일은 코드 경로 |
+| #33 | 정상 저장은 앱, 실패 경로와 핸들 수는 코드 |
+
+- 회귀 테스트는 실행하지 않았다(요청 없음). 영향받을 수 있는 기능: 결과 그리드의 필터·서버 정렬·다음 페이지·Export Data(감싸는 쿼리의 열 목록), Oracle·Altibase
+  계획 저장 형식, SQL Server 루틴 매개변수를 쓰는 곳(자동완성, 실행·디버그 대화상자, 호출문), SQL 터미널, Query History 미리 보기, Tools > Options OK, SQL 로그 파일,
+  Chromite Agent 확인 대화상자, Altibase·CUBRID 쿼리 창.
+
 ## 확인 (2026-11-07)
 
 빌드한 Swing 제품(`-vm D:\Tools\jbrsdk-25\bin\server\jvm.dll`, 시험 작업 공간 사본)에 같은 프로세스 안에서 도는 시험 코드를 붙여 모델을 불렀다(OS 입력 없음).
@@ -223,3 +262,4 @@
 - 2026-11-08 "후속 수정 3": Oracle 계획 노드의 부모 번호와 저장한 계획 읽기(#24, Altibase 같은 원인).
 - 2026-11-08 "후속 수정 3": Oracle 형식 컴파일의 개체 종류, SQL Server 루틴 매개변수의 길이와 루틴 설명의 정밀도(#31).
 - 2026-11-08 "후속 수정 3": SQL 로그 파일 핸들, Options OK의 저장 실패 알림(#33).
+- 2026-11-08 "후속 수정 3": 머리말, Oracle View DDL의 ORA-38802 조사(#30, 재현 안 됨), 확인 표.
