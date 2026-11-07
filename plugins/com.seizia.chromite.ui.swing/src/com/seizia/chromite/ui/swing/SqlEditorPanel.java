@@ -176,7 +176,8 @@ import java.util.concurrent.atomic.AtomicLong;
  *     {@link DBCServerOutputReader}로 읽어 그 문장의 메시지(경고 다음, 행 수 앞)로 Messages 탭에 쓴다. SWT의 별도 Output 패널 대신
  *     Messages 탭인 것은 SQL Server PRINT·PostgreSQL NOTICE가 이미 여기 있어 SSMS처럼 한 곳에 차례대로 보이게 하려는 것이다.
  *     읽으면 버퍼가 비워지므로 매번 읽는다(Oracle 버퍼 넘침, Altibase 메모리 증가 방지). 경고만 되풀이하는 읽기 도구는 실행 결과 없이 불러
- *     PRINT·NOTICE가 두 번 나오지 않는다(docs/chromite/swing-server-output.md).</li>
+ *     PRINT·NOTICE가 두 번 나오지 않는다(docs/chromite/swing-server-output.md). 문장을 실행하기 전에는
+ *     {@link DBCServerOutputReader#syncServerOutput}으로 세션의 서버 쪽 켜짐을 지금 설정에 맞춘다(설정이 세션을 연 뒤 바뀐 경우).</li>
  * </ul>
  *
  * 변경 이력:
@@ -232,6 +233,8 @@ import java.util.concurrent.atomic.AtomicLong;
  * - 2026-11-08 매개변수 대화상자를 하나로({@link QueryParameterDialog}, 엔진 제공자는 {@link QueryParameterBinder.ScriptProvider}),
  *   값을 바인딩한 결과도 바인딩의 데이터 컨테이너로 다시 읽음(필터·서버 정렬·다음 페이지·Export Data), 기록에 {@code :name} 글자와 값을 남기고
  *   기록에서 연 창은 그 값으로 다시 바인딩({@link #setRecordedParameters}) (docs/chromite/swing-query-library.md "매개변수 대화상자와 바인딩 하나로")
+ * - 2026-11-08 문장마다 실행 전에 서버 출력 켜짐을 설정에 맞춤({@code syncServerOutput}). Oracle DBMS_OUTPUT을 끄거나 켜도 열린 세션은
+ *   다시 연결할 때까지 그대로였던 것 (docs/chromite/model-fixes.md "작은 모델·안전·라이선스 수정")
  */
 final class SqlEditorPanel extends JPanel {
 
@@ -1357,6 +1360,24 @@ final class SqlEditorPanel extends JPanel {
     }
 
     /**
+     * Turns the server output on or off on this session when the setting changed after the session opened (Oracle
+     * {@code DBMS_OUTPUT}), before the statement runs: a statement run after turning it on is read, and a session
+     * turned off no longer buffers output that nobody reads.
+     */
+    private static void syncServerOutput(@NotNull DBCSession session) {
+        DBCExecutionContext context = session.getExecutionContext();
+        DBCServerOutputReader reader = DBUtils.getAdapter(DBCServerOutputReader.class, context.getDataSource());
+        if (reader == null) {
+            return;
+        }
+        try {
+            reader.syncServerOutput(session.getProgressMonitor(), context);
+        } catch (Throwable e) {
+            log.debug("Can't turn the server output on or off", e);
+        }
+    }
+
+    /**
      * SSMS-like error header ({@code Msg 208, State 42S02, Line 3, Column 15}) followed by the error messages.
      * The position comes from the dialect's error assistant when it can locate the error, else it is the query start.
      */
@@ -1574,6 +1595,11 @@ final class SqlEditorPanel extends JPanel {
         QueryListener(@NotNull Execution run, @NotNull DBCExecutionContext context) {
             this.run = run;
             this.context = context;
+        }
+
+        @Override
+        public void onStartQuery(@NotNull DBCSession session, @NotNull SQLQuery query) {
+            syncServerOutput(session);
         }
 
         @Override

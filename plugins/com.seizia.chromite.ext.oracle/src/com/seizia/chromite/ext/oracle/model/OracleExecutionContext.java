@@ -36,11 +36,17 @@ import java.sql.SQLException;
 
 /**
  * OracleExecutionContext
+ *
+ * 변경 이력:
+ * - 2026-11-08 Chromite: 이 세션에서 DBMS_OUTPUT이 켜져 있는지 기억함({@link #isServerOutputEnabled}). 설정은 언제든 바뀌지만 서버 상태는
+ *   세션마다 따로 있어서, 설정과 다를 때만 그 세션에 ENABLE/DISABLE을 보낸다({@code OracleOutputReader.syncServerOutput})
+ *   (docs/chromite/model-fixes.md "작은 모델·안전·라이선스 수정")
  */
 public class OracleExecutionContext extends JDBCExecutionContext implements DBCExecutionContextDefaults<DBSCatalog, OracleSchema> {
     private static final Log log = Log.getLog(OracleExecutionContext.class);
 
     private String activeSchemaName;
+    private volatile boolean serverOutputEnabled;
 
     OracleExecutionContext(@NotNull JDBCRemoteInstance instance, String purpose) {
         super(instance, purpose);
@@ -60,6 +66,17 @@ public class OracleExecutionContext extends JDBCExecutionContext implements DBCE
 
     public String getActiveSchemaName() {
         return activeSchemaName;
+    }
+
+    /**
+     * Whether DBMS_OUTPUT was last enabled (true) or disabled on this session's server side.
+     */
+    boolean isServerOutputEnabled() {
+        return serverOutputEnabled;
+    }
+
+    void setServerOutputEnabled(boolean serverOutputEnabled) {
+        this.serverOutputEnabled = serverOutputEnabled;
     }
 
     @Override

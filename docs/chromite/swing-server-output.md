@@ -18,8 +18,9 @@ SWT 대조 감사 항목 D-K1·K2·K3, D-O24, D-A4, B-S25, A-C10([swt-parity-aud
 |---|---|
 | `ui.swing` `SqlEditorPanel.readServerOutput` | 문장마다(엔진의 `SQLQueryListener.onEndQuery`, 엔진 Job 스레드) 연결의 `DBCServerOutputReader`로 출력을 읽어 그 문장의 메시지 목록에 넣는다 |
 | `ui.swing` `SqlEditorPanel.reportQueryResult` | 메시지 목록을 Messages 탭에 쓴다. 순서: 경고(PRINT, NOTICE) → 서버 출력 → 행 수·`Commands completed` → 실행 시간, 또는 오류 |
-| `model` `DBCServerOutputReader` | 연결별 읽기 도구(데이터 원본의 `getAdapter`). 이번에 바꾸지 않았다 |
-| `ext.oracle` `OracleDataSource.OracleOutputReader` | `DBMS_OUTPUT.GET_LINE`을 상태가 0이 아닐 때까지 부른다. 읽으면 서버 버퍼에서 빠진다. 바꾸지 않았다 |
+| `ui.swing` `SqlEditorPanel.syncServerOutput` | 문장을 실행하기 전에(엔진의 `SQLQueryListener.onStartQuery`, 엔진 Job 스레드) 읽기 도구의 `syncServerOutput`을 부른다(2026-11-08) |
+| `model` `DBCServerOutputReader` | 연결별 읽기 도구(데이터 원본의 `getAdapter`). 2026-11-08에 기본 메서드 `syncServerOutput`(아무것도 하지 않음)을 더했다 |
+| `ext.oracle` `OracleDataSource.OracleOutputReader` | `DBMS_OUTPUT.GET_LINE`을 상태가 0이 아닐 때까지 부른다. 읽으면 서버 버퍼에서 빠진다. `syncServerOutput`은 실행 문맥이 기억한 켜짐(`OracleExecutionContext`)이 설정과 다르면 `ENABLE`/`DISABLE`을 보낸다(2026-11-08) |
 | `ext.altibase` `AltibaseDataSource.AltibaseOutputReader` | 콜백 버퍼를 한 번에 쓰고 비운다. 설정이 꺼져 있으면 콜백을 등록하지 않고, 버퍼가 비어 있으면 아무것도 쓰지 않게 고쳤다 |
 | `ext.cubrid` `CubridDataSource.CubridOutputReader` | Oracle과 같은 `get_line` 반복. 바꾸지 않았다 |
 | `ext.altibase` `internal.AltibaseActivator`(새로 만듦, `MANIFEST.MF`의 `Bundle-Activator`) | 번들이 활성화될 때 기본값 노드를 읽어 `AltibasePreferencesInitializer`를 실행한다 |
@@ -36,6 +37,15 @@ SWT 대조 감사 항목 D-K1·K2·K3, D-O24, D-A4, B-S25, A-C10([swt-parity-aud
   그래서 문장마다 읽으면 다음 실행에 이전 줄이 다시 나오지 않고, 버퍼가 차거나 커지지 않는다.
 - **설정을 따른다.** 읽기 도구의 `isServerOutputEnabled()`(Oracle `oracle.dbms.output`, Altibase `altibase.dbms.output`, CUBRID `pref.dbms.output`,
   모두 기본 켬)가 거짓이면 읽지 않는다. Oracle을 켜는 방식(`DBMS_OUTPUT.ENABLE(1000000)`)은 바꾸지 않았다.
+- **설정을 바꾸면 열린 세션에도 적용한다(2026-11-08, Oracle).** 서버의 켜짐은 세션마다 있는데, 전에는 세션을 열 때만 설정에 맞췄다. 끄면 읽기만 멈추고
+  서버는 계속 쌓아 100만 바이트에서 `ORU-10027`이 날 수 있었고, 켜면 다시 연결할 때까지 아무것도 나오지 않았다. 이제 실행 문맥이 마지막으로 보낸 상태를
+  기억하고, 쿼리 창이 문장을 실행하기 전에 설정과 다르면 그 세션에 `ENABLE`/`DISABLE`을 보낸다. 바꾼 다음 문장부터 맞는다.
+  - Options의 OK에서 모든 세션에 바로 보내지 않는다. 다른 스레드가 쓰는 세션(긴 쿼리, 디버거가 기다리게 한 대상 세션)에서는 JDBC 호출이 그 일이 끝날
+    때까지 막히고, 디버거 대상 세션은 PL/SQL 호출마다 디버거를 기다린다. 문장을 실행할 스레드가 실행 직전에 보내면 이런 겹침이 없다.
+  - `UTIL` 세션으로 보내므로 쿼리 관리자는 사용자의 트랜잭션 문장으로 세지 않는다(`QMUtils.isUserStatement`). `DBMS_OUTPUT.ENABLE`/`DISABLE`은
+    트랜잭션을 시작하거나 끝내지 않는다.
+  - 맞추는 것은 쿼리 창이 문장을 실행하는 세션뿐이다. 쿼리 창이 쓰지 않는 실행 문맥(디버거의 격리 문맥 등)은 세션을 열 때의 상태 그대로다.
+    YashanDB는 `OracleDataSource`를 상속해 같다.
 - **PRINT·NOTICE를 두 번 쓰지 않는다.** PostgreSQL 읽기 도구(`PostgreServerOutputReader`)와 기본 읽기 도구(`DefaultServerOutputReader`)는
   실행 결과나 문장의 `SQLWarning`을 되풀이할 뿐이다. 실행 결과와 문장을 `null`로 넘기면 아무것도 쓰지 않는다. SQL Server는 읽기 도구가 없다.
   경고는 지금처럼 `reportQueryResult`가 한 번만 쓴다.
@@ -62,8 +72,9 @@ SWT 대조 감사 항목 D-K1·K2·K3, D-O24, D-A4, B-S25, A-C10([swt-parity-aud
 
 ## 남은 일과 한계
 
-- Oracle·Altibase·CUBRID 서버 출력을 켜고 끄는 화면이 없다(Oracle 설정 페이지 D-O8, Altibase A3, CUBRID 환경설정). 설정 파일로만 바꿀 수 있다.
-  끄면 Oracle은 다음 연결부터 `DBMS_OUTPUT.DISABLE`을 부른다. 바꾸는 화면이 생기면 열린 연결에 바로 적용할지 정해야 한다.
+- Oracle은 Tools > Options > Oracle에서 켜고 끈다(2026-11-07, [swing-options.md](swing-options.md)). 열린 세션에는 다음 문장부터 적용된다(위 설계 결정).
+  Altibase·CUBRID는 켜고 끄는 화면이 없다(Altibase A3, CUBRID 환경설정). 설정 파일로만 바꿀 수 있고, 둘은 세션을 열 때만 설정을 반영한다
+  (Altibase 콜백 등록, CUBRID `dbms_output.enable`). 화면이 생기면 `syncServerOutput`을 구현한다.
 - 쿼리 창 밖에서 같은 실행 문맥으로 PL/SQL을 실행하면(개체 편집기의 저장 등) 그 출력은 다음 쿼리 창 실행 때 함께 나온다. Altibase 버퍼는 데이터 원본 하나에
   하나라서, 예약 쿼리(격리 문맥)의 `PRINT`도 다음 쿼리 창 실행 때 나온다.
 - Altibase 콜백 버퍼(`StringBuilder`)는 동기화하지 않는다(upstream 그대로). 드라이버는 문장을 실행하는 스레드에서 콜백을 부르므로 읽기와 겹치는 일은
@@ -88,3 +99,5 @@ SWT 대조 감사 항목 D-K1·K2·K3, D-O24, D-A4, B-S25, A-C10([swt-parity-aud
 
 - 2026-11-07 최초 작성: 쿼리 창이 문장마다 서버 출력을 읽어 Messages 탭에 씀, Altibase 읽기 도구 정리, Altibase 번들 활성화 코드로 기본값 초기화
   (`chromite/server-output`)
+- 2026-11-08 Oracle DBMS_OUTPUT 설정을 바꾸면 열린 세션에도 다음 문장부터 적용(`DBCServerOutputReader.syncServerOutput`, `chromite/small-fixes-2`,
+  [model-fixes.md](model-fixes.md) "작은 모델·안전·라이선스 수정"). "남은 일과 한계"의 설정 화면 항목 갱신.

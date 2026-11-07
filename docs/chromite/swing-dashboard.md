@@ -132,8 +132,8 @@ DBeaver의 블록 I/O(읽기·적중 초당) 차트로 본다.
 | 필요한 기능 | 차고 넘침 | 선 몇 개, 시간 축, 0부터의 값 축, 범례, 마우스 위치 값으로 충분 |
 
 새 의존성을 더하지 않는다는 원칙(CLAUDE.md 1번)과 Islands 모양을 맞추기 쉬운 점 때문에 직접 만들었다. 더 많은 차트 종류(막대, 원형,
-히스토그램)가 필요해지면 그때 JFreeChart를 다시 검토한다. 참고로 `LICENSE.md`의 제3자 목록은 JFreeChart를 "Apache 2.0"으로 적었지만
-실제로는 LGPL 2.1이다(아래 "확인하지 못한 것·알릴 것").
+히스토그램)가 필요해지면 그때 JFreeChart를 다시 검토한다. JFreeChart는 LGPL 2.1이다. 제품에 넣지 않으므로 `LICENSE.md`의 제3자 목록에서
+"JFreeChart - Apache 2.0" 줄을 지웠다(2026-11-08, 아래 "확인하지 못한 것·알릴 것"). 다시 넣으면 LGPL 2.1로 고지한다.
 
 계열 색은 라이트·다크 각각 고른 8색이고 순서가 정해져 있다(처음 나온 계열부터, 계열이 사라져도 남은 계열 색은 바뀌지 않음).
 색각 이상 구분 검사 결과(인접 계열 OKLab ΔE): 라이트(바탕 #ffffff) CVD 9.1 / 일반 19.6, 다크(바탕 #191a1c) CVD 8.4 / 일반 19.3 — 모두 통과.
@@ -190,6 +190,7 @@ SQL Server 갱신·조회 루프 4개(150초)와 `WAITFOR DELAY` 차단 + 대기
 - Oracle은 차트 정의가 없어 빈 화면 문구만 해당된다(확인하지 않음).
 - DBeaver PostgreSQL "Block IO" 정의는 블록 수를 `value="bytes"`로 적어 단위가 바이트로 보였다(실제는 블록/초). 2026-11-07 `value="integer"`로 고침([model-fixes.md](model-fixes.md) "PostgreSQL Block IO 대시보드 단위").
 - `LICENSE.md`의 제3자 목록이 JFreeChart를 "Apache 2.0"으로 적었으나 JFreeChart는 LGPL 2.1이다. 이 작업은 JFreeChart를 쓰지 않아 고치지 않았다.
+  2026-11-08: 제품에 JFreeChart가 없어(빌드 설정·`MANIFEST.MF`에 없음) 그 줄을 지웠다([model-fixes.md](model-fixes.md) "작은 모델·안전·라이선스 수정").
 
 ## 변경 이력
 
@@ -197,3 +198,4 @@ SQL Server 갱신·조회 루프 4개(150초)와 `WAITFOR DELAY` 차단 + 대기
   (`DashboardSampler`, `DashboardHistory`)과 SQL Server·PostgreSQL·MySQL 차트 정의, Java2D 차트.
 - 2026-11-07 Activity Monitor 탭 스타일: 밀도 B 브랜치와 합칠 때 옛 고정값(`tabHeight: 32`) 줄이 남아 밀도 B 값(`UiSizes.TOOL_TABS_STYLE`)을 덮던 것을 지움.
 - 2026-11-07 PostgreSQL "Block IO" 정의의 단위를 바이트에서 정수(블록/초)로(`ext.postgresql` `plugin.xml`, #50).
+- 2026-11-08 `LICENSE.md`의 "JFreeChart - Apache 2.0" 줄 삭제(제품에 없음, 실제 라이선스는 LGPL 2.1) 기록(#49).
