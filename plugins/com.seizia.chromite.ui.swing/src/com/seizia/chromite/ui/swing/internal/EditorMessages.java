@@ -43,6 +43,8 @@ import org.eclipse.osgi.util.NLS;
  *   (docs/chromite/transactions.md), {@code @export} 안내 줄({@code editor_sql_export_command}, docs/chromite/swing-data-transfer.md)
  * - 2026-11-07 상태 줄 커밋 방식 칸 도구 설명의 세션 줄({@code editor_status_session_*}) (docs/chromite/transactions.md "쿼리 창마다 별도 연결")
  * - 2026-11-07 위험한 문 확인에 TRUNCATE({@code editor_sql_danger_truncate}) (docs/chromite/swing-sql-exec-safety.md)
+ * - 2026-11-08 결과 차트·공간 보기 문구({@code editor_viewer_chart*}, {@code editor_viewer_spatial*}, {@code editor_chart_*}, {@code editor_spatial_*})
+ *   (docs/chromite/swing-result-charts-spatial.md)
  */
 public class EditorMessages extends NLS {
     private static final String BUNDLE_NAME = "com.seizia.chromite.ui.swing.internal.EditorMessages"; //$NON-NLS-1$
@@ -333,6 +335,10 @@ public class EditorMessages extends NLS {
     public static String editor_viewer_value_panel_tip;
     public static String editor_viewer_record;
     public static String editor_viewer_record_tip;
+    public static String editor_viewer_chart;
+    public static String editor_viewer_chart_tip;
+    public static String editor_viewer_spatial;
+    public static String editor_viewer_spatial_tip;
     public static String editor_viewer_fetch_next;
     public static String editor_viewer_fetch_next_count;
     public static String editor_viewer_fetch_all;
@@ -400,6 +406,50 @@ public class EditorMessages extends NLS {
     public static String editor_record_no_rows;
     public static String editor_record_position;
     public static String editor_record_type;
+
+    // Chart view (ResultSetChartView, ResultSetChart)
+    public static String editor_chart_line;
+    public static String editor_chart_bar;
+    public static String editor_chart_pie;
+    public static String editor_chart_x_axis;
+    public static String editor_chart_row_number;
+    public static String editor_chart_values;
+    public static String editor_chart_values_none;
+    public static String editor_chart_values_tip;
+    public static String editor_chart_values_limit;
+    public static String editor_chart_rows;
+    public static String editor_chart_rows_all;
+    public static String editor_chart_rows_selected;
+    public static String editor_chart_save_png;
+    public static String editor_chart_save_png_title;
+    public static String editor_chart_png_filter;
+    public static String editor_chart_no_numeric;
+    public static String editor_chart_choose_values;
+    public static String editor_chart_no_rows;
+    public static String editor_chart_no_values;
+    public static String editor_chart_pie_no_positive;
+    public static String editor_chart_empty_value;
+    public static String editor_chart_other;
+    public static String editor_chart_note_rows_one;
+    public static String editor_chart_note_rows_many;
+    public static String editor_chart_note_more_rows;
+    public static String editor_chart_note_pie_first;
+    public static String editor_chart_note_pie_left_out;
+
+    // Spatial view (ResultSetSpatialView)
+    public static String editor_spatial_column;
+    public static String editor_spatial_fit;
+    public static String editor_spatial_fit_tip;
+    public static String editor_spatial_no_columns;
+    public static String editor_spatial_no_values;
+    public static String editor_spatial_note_one;
+    public static String editor_spatial_note_many;
+    public static String editor_spatial_note_srid;
+    public static String editor_spatial_note_mixed_srid;
+    public static String editor_spatial_note_empty;
+    public static String editor_spatial_note_unreadable;
+    public static String editor_spatial_note_no_basemap;
+    public static String editor_spatial_tip;
 
     // Aggregates (ResultSetAggregates)
     public static String editor_aggregate_count;
