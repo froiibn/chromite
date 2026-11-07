@@ -21,6 +21,7 @@ import com.formdev.flatlaf.util.UIScale;
 import com.seizia.chromite.ui.swing.internal.EditorMessages;
 import com.seizia.chromite.ui.swing.internal.GridEditMessages;
 import com.seizia.chromite.ui.swing.internal.GridFilterMessages;
+import com.seizia.chromite.ui.swing.internal.GridNavMessages;
 import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.Status;
 import org.eclipse.osgi.util.NLS;
@@ -29,16 +30,21 @@ import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
 import com.seizia.chromite.Log;
 import com.seizia.chromite.model.DBPDataSource;
+import com.seizia.chromite.model.DBPEvaluationContext;
 import com.seizia.chromite.model.DBUtils;
 import com.seizia.chromite.model.data.DBDAttributeBinding;
 import com.seizia.chromite.model.data.DBDAttributeConstraint;
 import com.seizia.chromite.model.data.DBDContent;
 import com.seizia.chromite.model.data.DBDDataFilter;
+import com.seizia.chromite.model.data.DBDReferenceNavigation;
+import com.seizia.chromite.model.data.DBDResultSetModel;
+import com.seizia.chromite.model.data.DBDValueRow;
 import com.seizia.chromite.model.data.order.OrderingStrategy;
 import com.seizia.chromite.model.exec.DBCExecutionContext;
 import com.seizia.chromite.model.exec.DBCExecutionPurpose;
 import com.seizia.chromite.model.exec.DBCLogicalOperator;
 import com.seizia.chromite.model.exec.DBCSession;
+import com.seizia.chromite.model.exec.DBExecUtils;
 import com.seizia.chromite.model.gis.DBGeometry;
 import com.seizia.chromite.model.impl.AbstractExecutionSource;
 import com.seizia.chromite.model.preferences.DBPPreferenceStore;
@@ -48,6 +54,10 @@ import com.seizia.chromite.model.sql.SQLQueryContainer;
 import com.seizia.chromite.model.sql.SQLUtils;
 import com.seizia.chromite.model.sql.parser.SQLSemanticProcessor;
 import com.seizia.chromite.model.struct.DBSDataContainer;
+import com.seizia.chromite.model.struct.DBSEntity;
+import com.seizia.chromite.model.struct.DBSEntityAssociation;
+import com.seizia.chromite.model.struct.DBSEntityAttribute;
+import com.seizia.chromite.model.virtual.DBVEntityForeignKey;
 import com.seizia.chromite.runtime.DBWorkbench;
 import com.seizia.chromite.runtime.jobs.DataSourceJob;
 import org.jkiss.utils.CommonUtils;
@@ -66,9 +76,11 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Objects;
 import java.util.function.Consumer;
 
 /**
@@ -103,6 +115,15 @@ import java.util.function.Consumer;
  *     (한 번에 하나, 같은 단추를 다시 누르면 표). 둘 다 표에 읽혀 있는 행을 그리고, 행이 바뀌면 다시 그린다. Spatial 단추는 기하 열이 있을 때만 보인다.</li>
  *     <li><b>상태 줄</b>: 읽은 행 수("200 rows fetched — more available"), 다음 페이지 링크, 선택한 칸의 집계(SSMS 상태 줄처럼 개수·합계·평균·최솟값·최댓값,
  *     모델 계층의 {@code com.seizia.chromite.model.data.aggregate} 함수 사용, {@link ResultSetAggregates}).</li>
+ *     <li><b>외래 키 따라가기</b>(SWT {@code navigateAssociation}/{@code navigateReference}): 칸의 외래 키(Ctrl+B)나 "Navigate" 메뉴의 참조 테이블·참조하는 테이블로
+ *     고른 행의 관련 행을 이 뷰어에서 읽는다(대상 테이블을 데이터 컨테이너로, 모델이 만든 필터로). 떠난 결과는 그대로 기록에 남겨({@code HistoryState})
+ *     뒤로·앞으로(Alt+←/→, 상태 줄 ←/→)가 다시 읽지 않고 돌려놓는다. 관계 목록은 처음 쓸 때 한 번 읽는다({@link ResultSetReferences}).</li>
+ *     <li><b>옆 패널</b>: 참조 패널({@link ResultSetReferencesPanel})과 집계 패널({@link ResultSetAggregatePanel})을 탭으로 결과 오른쪽에 둔다(결과 창은 넓고 낮아서).
+ *     켠 패널이 없으면 숨는다.</li>
+ *     <li><b>열 배치와 이동</b>({@link ResultSetColumnLayout}): 열 숨기기·빈 열 숨기기·머리글 끌어 순서 바꾸기, 행·열로 가기, 확대·축소.
+ *     표를 새로 만들 때 같은 열이면 배치를 옮긴다. 찾기 줄({@link ResultSetFindBar}, Ctrl+F)과 텍스트 보기({@link ResultSetTextView})도 있다.</li>
+ *     <li><b>전체 행 수</b>(SWT {@code resultset.count}): 더 읽을 행이 있으면 상태 줄 "행 수 세기"가 모델의 {@code countData}(SELECT COUNT)로 센다.</li>
+ *     <li><b>가상 키</b>({@link ResultSetVirtualKeys}): 키가 없어 읽기 전용인 결과의 가상 고유 키, 가상 외래 키. 정하면 결과를 다시 읽는다.</li>
  * </ul>
  * 모든 메서드는 EDT에서 부른다.
  *
@@ -127,6 +148,9 @@ import java.util.function.Consumer;
  *   기하 값은 값 패널에도 보이고 "Filter by Value"에는 넣지 않음 (docs/chromite/swing-result-charts-spatial.md)
  * - 2026-11-08 끝까지 내리면 더 읽기({@link #isAutoFetchNextSegment}): 기본값을 전역 설정에 두고 연결의 저장소로 읽음. 전에는 연결 자신의 값만
  *   보아 Options의 값이 효과가 없었다 (docs/chromite/swing-options.md "남은 키 (2026-11-08 오후)")
+ * - 2026-11-08 결과 탐색(SWT 대조 B4): 외래 키 따라가기와 뒤로·앞으로, 참조·집계 패널, 가상 키, 열 숨기기·순서·빈 열, 행·열로 가기, 확대·축소,
+ *   찾기, 텍스트 보기, 전체 행 수. 레코드 보기의 줄은 모델 열 번호라 표의 열을 숨기거나 옮겨도 같은 칸을 가리키게 바꿈
+ *   (docs/chromite/swing-grid-navigation.md)
  */
 final class ResultSetViewerPanel extends JPanel {
 
@@ -140,6 +164,7 @@ final class ResultSetViewerPanel extends JPanel {
     private static final String CARD_RECORD = "record"; //$NON-NLS-1$
     private static final String CARD_CHART = "chart"; //$NON-NLS-1$
     private static final String CARD_SPATIAL = "spatial"; //$NON-NLS-1$
+    private static final String CARD_TEXT = "text"; //$NON-NLS-1$
     private static final int SORT_CLICK_BORDER = 4;
     /**
      * Widest first column width made for the header icons (the grid's own first widths stop at the same width).
@@ -152,10 +177,11 @@ final class ResultSetViewerPanel extends JPanel {
     private static boolean valuePanelDefault;
 
     /**
-     * What the viewer shows in place of the grid: the grid itself, the record view, the chart view or the spatial view.
+     * What the viewer shows in place of the grid: the grid itself, the record view, the chart view, the spatial view
+     * or the text view.
      */
     private enum ViewMode {
-        GRID(CARD_GRID), RECORD(CARD_RECORD), CHART(CARD_CHART), SPATIAL(CARD_SPATIAL);
+        GRID(CARD_GRID), RECORD(CARD_RECORD), CHART(CARD_CHART), SPATIAL(CARD_SPATIAL), TEXT(CARD_TEXT);
 
         private final String card;
 
@@ -174,6 +200,24 @@ final class ResultSetViewerPanel extends JPanel {
         @Nullable Object[] kept,
         @NotNull Object[] cells,
         @Nullable Object[] values
+    ) {
+    }
+
+    /**
+     * A result the viewer left by following a foreign key, kept as it was to go back to it.
+     *
+     * @param title what the status line shows for it (the table and key it was reached by), or null for the query's
+     *              own result
+     */
+    private record HistoryState(
+        @NotNull ResultSetGrid.Fetched fetched,
+        @NotNull int[] ordinals,
+        @NotNull DBDDataFilter dataFilter,
+        @NotNull DBDDataFilter serverFilter,
+        boolean hasMore,
+        boolean clientOrdered,
+        @Nullable String title,
+        @Nullable Long totalRowCount
     ) {
     }
 
@@ -197,6 +241,22 @@ final class ResultSetViewerPanel extends JPanel {
     private final Action saveFileAction;
     private final JToggleButton chartToggle;
     private final JToggleButton spatialToggle;
+    private final JToggleButton textToggle;
+    private final JToggleButton referencesToggle;
+    private final JToggleButton aggregatesToggle;
+    private final ResultSetTextView textView;
+    private final ResultSetFindBar findBar;
+    private final ResultSetReferencesPanel referencesPanel;
+    private final ResultSetAggregatePanel aggregatePanel;
+    // The references and aggregates panels beside the result (the results area is wide and low), as tabs; hidden while neither is on
+    private final JTabbedPane sidePanels = new JTabbedPane();
+    private final JSplitPane panelSplit;
+    private final Action backAction;
+    private final Action forwardAction;
+    private final JButton backButton;
+    private final JButton forwardButton;
+    private final JLabel navigationLabel = new JLabel();
+    private final JButton countButton;
     private final JPanel cards = new JPanel(new CardLayout());
     private final JSplitPane split;
     private final Timer selectionTimer;
@@ -224,6 +284,34 @@ final class ResultSetViewerPanel extends JPanel {
     // Kept apart from the toggle buttons: a click selects the button before its action runs
     private ViewMode viewMode = ViewMode.GRID;
     private int valuePanelWidth = -1;
+    /**
+     * Results left by following foreign keys and the ones gone back from; the entry at {@link #historyPosition} is
+     * null, as the current result lives in the viewer's fields.
+     */
+    private final List<HistoryState> history = new ArrayList<>();
+    private int historyPosition = -1;
+    @Nullable
+    private String navigationTitle;
+    /**
+     * The relations of the result's tables, read once ({@link #requestLinks}), and the tables they were read for.
+     */
+    @Nullable
+    private List<ResultSetReferences.Link> links;
+    @Nullable
+    private List<DBSEntity> linkTables;
+    private final List<Consumer<List<ResultSetReferences.Link>>> linkCallbacks = new ArrayList<>();
+    private int zoom;
+    // The grid's font and row height before zooming
+    private Font gridFont;
+    private int gridRowHeight;
+    @Nullable
+    private Long totalRowCount;
+    private boolean counting;
+    // The rows the references panel last read for
+    @Nullable
+    private int[] referenceRows;
+    @Nullable
+    private ResultSetGrid.Fetched referenceFetched;
 
     ResultSetViewerPanel(@NotNull ResultSetGrid.Fetched fetched, @NotNull ResultSetGrid.Host host) {
         super(new BorderLayout());
@@ -269,6 +357,15 @@ final class ResultSetViewerPanel extends JPanel {
                     : null;
                 DataExportWizard.openForQuery(parent, query, serverFilter, orderNote);
             }
+
+            @Nullable
+            @Override
+            public Runnable defineVirtualKey() {
+                // The grid's link only for a table the virtual key applies to (no real key)
+                DBSEntity entity = getSingleSource();
+                return entity != null && ResultSetVirtualKeys.usesVirtualKey(entity, ResultSetViewerPanel.this.fetched.data().bindings())
+                    ? () -> editVirtualKey(entity) : null;
+            }
         };
         this.fetched = fetched;
         this.ordinals = sequence(fetched.data().rows().size());
@@ -300,8 +397,49 @@ final class ResultSetViewerPanel extends JPanel {
         Action toggleSpatial = createAction(EditorMessages.editor_viewer_spatial, null, () -> toggleViewMode(ViewMode.SPATIAL));
         toggleSpatial.putValue(Action.SHORT_DESCRIPTION, EditorMessages.editor_viewer_spatial_tip);
         spatialToggle = createToggle(toggleSpatial);
+        Action toggleText = createAction(GridNavMessages.gridnav_text,
+            KeyStroke.getKeyStroke(KeyEvent.VK_BACK_QUOTE, InputEvent.CTRL_DOWN_MASK), () -> toggleViewMode(ViewMode.TEXT));
+        toggleText.putValue(Action.SHORT_DESCRIPTION, GridNavMessages.gridnav_text_tip);
+        textToggle = createToggle(toggleText);
+        textView = new ResultSetTextView(new TextSource());
+        findBar = new ResultSetFindBar(() -> grid == null ? null : grid.getTable());
+        referencesPanel = new ResultSetReferencesPanel(new ReferencesSource());
+        aggregatePanel = new ResultSetAggregatePanel(new AggregateSource());
+        Action toggleReferences = createAction(GridNavMessages.gridnav_refs, null,
+            () -> toggleSidePanel(referencesPanel, GridNavMessages.gridnav_refs));
+        toggleReferences.putValue(Action.SHORT_DESCRIPTION, GridNavMessages.gridnav_refs_tip);
+        referencesToggle = createToggle(toggleReferences);
+        Action toggleAggregates = createAction(GridNavMessages.gridnav_agg, null,
+            () -> toggleSidePanel(aggregatePanel, GridNavMessages.gridnav_agg));
+        toggleAggregates.putValue(Action.SHORT_DESCRIPTION, GridNavMessages.gridnav_agg_tip);
+        aggregatesToggle = createToggle(toggleAggregates);
+        backAction = createAction("←", KeyStroke.getKeyStroke(KeyEvent.VK_LEFT, InputEvent.ALT_DOWN_MASK), //$NON-NLS-1$
+            () -> navigateHistory(historyPosition - 1));
+        backAction.putValue(Action.SHORT_DESCRIPTION, GridNavMessages.gridnav_back_tip);
+        forwardAction = createAction("→", KeyStroke.getKeyStroke(KeyEvent.VK_RIGHT, InputEvent.ALT_DOWN_MASK), //$NON-NLS-1$
+            () -> navigateHistory(historyPosition + 1));
+        forwardAction.putValue(Action.SHORT_DESCRIPTION, GridNavMessages.gridnav_forward_tip);
+        backButton = createLinkButton(backAction);
+        forwardButton = createLinkButton(forwardAction);
+        Action count = createAction(GridNavMessages.gridnav_count, null, this::countRows);
+        count.putValue(Action.SHORT_DESCRIPTION, GridNavMessages.gridnav_count_tip);
+        countButton = createLinkButton(count);
         getInputMap(WHEN_ANCESTOR_OF_FOCUSED_COMPONENT).put((KeyStroke) toggleValuePanel.getValue(Action.ACCELERATOR_KEY), "chromite.toggleValuePanel"); //$NON-NLS-1$
         getActionMap().put("chromite.toggleValuePanel", toggleValuePanel); //$NON-NLS-1$
+        // Result navigation keys (SWT result set commands at 263b8ddb45; Ctrl+B for the referenced row as DataGrip, since
+        // SWT's Alt+Space opens the window menu on Windows)
+        bindViewerKey(toggleText);
+        bindViewerKey(backAction);
+        bindViewerKey(forwardAction);
+        bindViewerKey(createAction("find", KeyStroke.getKeyStroke(KeyEvent.VK_F, InputEvent.CTRL_DOWN_MASK), findBar::open)); //$NON-NLS-1$
+        bindViewerKey(createAction("gotoRow", KeyStroke.getKeyStroke(KeyEvent.VK_G, InputEvent.CTRL_DOWN_MASK), this::goToRow)); //$NON-NLS-1$
+        bindViewerKey(createAction("gotoColumn", KeyStroke.getKeyStroke(KeyEvent.VK_G, InputEvent.CTRL_DOWN_MASK | InputEvent.SHIFT_DOWN_MASK), //$NON-NLS-1$
+            this::goToColumn));
+        bindViewerKey(createAction("navigateLink", KeyStroke.getKeyStroke(KeyEvent.VK_B, InputEvent.CTRL_DOWN_MASK), this::navigateCellLink)); //$NON-NLS-1$
+        bindViewerKey(createAction("referencesMenu", KeyStroke.getKeyStroke(KeyEvent.VK_1, InputEvent.CTRL_DOWN_MASK | InputEvent.SHIFT_DOWN_MASK), //$NON-NLS-1$
+            this::showReferencesMenu));
+        bindViewerKey(createAction("zoomIn", KeyStroke.getKeyStroke(KeyEvent.VK_0, InputEvent.ALT_DOWN_MASK), () -> setZoom(zoom + 1))); //$NON-NLS-1$
+        bindViewerKey(createAction("zoomOut", KeyStroke.getKeyStroke(KeyEvent.VK_9, InputEvent.ALT_DOWN_MASK), () -> setZoom(zoom - 1))); //$NON-NLS-1$
 
         Action fetchNext = createAction(EditorMessages.editor_viewer_fetch_next, null, () -> readNextSegment(false));
         fetchNextButton = createLinkButton(fetchNext);
@@ -313,6 +451,7 @@ final class ResultSetViewerPanel extends JPanel {
         cards.add(recordView, CARD_RECORD);
         cards.add(chartView, CARD_CHART);
         cards.add(spatialView, CARD_SPATIAL);
+        cards.add(textView, CARD_TEXT);
         // The split stays in place and the hidden value panel is invisible: moving the grid to another parent would
         // take the keyboard focus away from it
         split = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, cards, valuePanel);
@@ -320,8 +459,17 @@ final class ResultSetViewerPanel extends JPanel {
         split.setContinuousLayout(true);
         split.setBorder(BorderFactory.createEmptyBorder());
         valuePanel.setVisible(false);
+        // The same for the panels beside the result
+        panelSplit = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, split, sidePanels);
+        panelSplit.setResizeWeight(1.0);
+        panelSplit.setContinuousLayout(true);
+        panelSplit.setBorder(BorderFactory.createEmptyBorder());
+        sidePanels.putClientProperty(FlatClientProperties.STYLE, UiSizes.TOOL_TABS_STYLE);
+        sidePanels.setVisible(false);
+        sidePanels.addChangeListener(e -> refreshSidePanel());
 
-        add(split, BorderLayout.CENTER);
+        add(findBar, BorderLayout.NORTH);
+        add(panelSplit, BorderLayout.CENTER);
         add(createStatusBar(), BorderLayout.SOUTH);
 
         selectionTimer = new Timer(100, e -> selectionChanged());
@@ -348,7 +496,15 @@ final class ResultSetViewerPanel extends JPanel {
     void dispose() {
         selectionTimer.stop();
         valuePanel.dispose();
+        referencesPanel.dispose();
         releaseContents(fetched.source().cellValues());
+        // The results kept to go back to
+        for (HistoryState state : history) {
+            if (state != null) {
+                releaseContents(state.fetched().source().cellValues());
+            }
+        }
+        history.clear();
     }
 
     //////////////////////////////////////////////////////////
@@ -363,9 +519,14 @@ final class ResultSetViewerPanel extends JPanel {
         JPanel left = new JPanel(new WrapFlowLayout(FlowLayout.LEFT, 4, 0));
         left.setOpaque(false);
         rowsLabel.putClientProperty(FlatClientProperties.STYLE, "foreground: $Chromite.secondaryForeground"); //$NON-NLS-1$
+        // Foreign key navigation: back, forward and the table it reached, only after a navigation
+        left.add(backButton);
+        left.add(forwardButton);
+        left.add(navigationLabel);
         left.add(rowsLabel);
         left.add(fetchNextButton);
         left.add(fetchAllButton);
+        left.add(countButton);
         // Active filters: only when there are any, so the status line keeps its height and no row is added
         filterSummary.setOpaque(false);
         filterSummary.add(new JLabel(ResultSetHeaderRenderer.createActiveFilterIcon()));
@@ -394,8 +555,11 @@ final class ResultSetViewerPanel extends JPanel {
         right.add(aggregateLabel);
         right.add(valuePanelToggle);
         right.add(recordToggle);
+        right.add(textToggle);
         right.add(chartToggle);
         right.add(spatialToggle);
+        right.add(referencesToggle);
+        right.add(aggregatesToggle);
         bar.add(left, BorderLayout.CENTER);
         bar.add(right, BorderLayout.EAST);
         return bar;
@@ -436,16 +600,20 @@ final class ResultSetViewerPanel extends JPanel {
         recordToggle.setSelected(mode == ViewMode.RECORD);
         chartToggle.setSelected(mode == ViewMode.CHART);
         spatialToggle.setSelected(mode == ViewMode.SPATIAL);
+        textToggle.setSelected(mode == ViewMode.TEXT);
         ((CardLayout) cards.getLayout()).show(cards, mode.card);
         switch (mode) {
             case RECORD -> {
                 recordView.refresh();
-                // The record line of the grid's selected column, so the value panel keeps showing the same cell
-                recordView.focusTable(grid != null ? grid.getTable().getColumnModel().getSelectionModel().getLeadSelectionIndex() : -1);
+                // The record line (a model column) of the grid's selected column, so the value panel keeps showing the same cell
+                int viewColumn = grid != null ? grid.getTable().getColumnModel().getSelectionModel().getLeadSelectionIndex() : -1;
+                recordView.focusTable(grid != null && viewColumn >= 0 && viewColumn < grid.getTable().getColumnCount()
+                    ? grid.getTable().convertColumnIndexToModel(viewColumn) : -1);
             }
             // The chart starts from the cells selected in the grid
             case CHART -> chartView.configureFromSelection();
             case SPATIAL -> spatialView.refresh();
+            case TEXT -> textView.refresh();
             case GRID -> {
                 if (grid != null) {
                     grid.getTable().requestFocusInWindow();
@@ -521,15 +689,11 @@ final class ResultSetViewerPanel extends JPanel {
         Point viewPosition = null;
         int selectedRow = -1;
         int selectedColumn = -1;
-        int[] widths = null;
+        ResultSetColumnLayout.State layout = null;
         if (oldGrid != null) {
             JTable oldTable = oldGrid.getTable();
+            layout = ResultSetColumnLayout.capture(oldTable);
             if (keepView) {
-                // The same rows in another order or with more rows: the user's column widths stay; a new read fits them again
-                widths = new int[oldTable.getColumnCount()];
-                for (int i = 0; i < widths.length; i++) {
-                    widths[i] = oldTable.getColumnModel().getColumn(i).getWidth();
-                }
                 JViewport viewport = getViewport(oldTable);
                 viewPosition = viewport != null ? viewport.getViewPosition() : null;
                 selectedRow = oldTable.getSelectedRow();
@@ -542,14 +706,18 @@ final class ResultSetViewerPanel extends JPanel {
         grid = newGrid;
         cards.add(newGrid, CARD_GRID, 0);
         JTable table = newGrid.getTable();
-        if (widths != null && widths.length == table.getColumnCount()) {
-            for (int i = 0; i < widths.length; i++) {
-                table.getColumnModel().getColumn(i).setPreferredWidth(widths[i]);
-            }
-        }
+        // The same rows in another order or with more rows: the user's column layout and widths stay. A new read of the
+        // same columns keeps the hidden columns and their order, its widths are fitted again. Other columns start anew.
+        boolean restored = layout != null && (keepView || !ResultSetColumnLayout.isNatural(layout))
+            && ResultSetColumnLayout.restore(table, layout, keepView);
         installHeader(table);
-        if (widths == null) {
+        if (!(restored && keepView)) {
             fitHeaderWidths(table);
+        }
+        gridFont = table.getFont();
+        gridRowHeight = table.getRowHeight();
+        if (zoom != 0) {
+            ResultSetColumnLayout.applyZoom(table, gridFont, gridRowHeight, zoom);
         }
         installMenus(table);
         ListSelectionListener selectionListener = e -> scheduleSelectionUpdate();
@@ -586,12 +754,15 @@ final class ResultSetViewerPanel extends JPanel {
         }
         updateStatus();
         recordView.refresh();
-        // Sorted, filtered or more rows: the chart and the map show the grid's rows
+        // Sorted, filtered or more rows: the chart, the map and the text show the grid's rows
         if (viewMode == ViewMode.CHART) {
             chartView.refresh();
         } else if (viewMode == ViewMode.SPATIAL) {
             spatialView.refresh();
+        } else if (viewMode == ViewMode.TEXT) {
+            textView.refresh();
         }
+        checkLinkTables();
         scheduleSelectionUpdate();
     }
 
@@ -641,10 +812,19 @@ final class ResultSetViewerPanel extends JPanel {
             }
         });
         header.setDefaultRenderer(renderer);
+        // Columns are moved by dragging their header (SWT moveColumnLeft/Right); a drag is not a sort click
+        header.setReorderingAllowed(true);
+        boolean[] dragged = {false};
         header.addMouseListener(new MouseAdapter() {
             @Override
+            public void mousePressed(MouseEvent e) {
+                dragged[0] = false;
+            }
+
+            @Override
             public void mouseClicked(MouseEvent e) {
-                if (!SwingUtilities.isLeftMouseButton(e) || e.getClickCount() != 1 || header.getCursor().getType() == Cursor.E_RESIZE_CURSOR) {
+                if (!SwingUtilities.isLeftMouseButton(e) || e.getClickCount() != 1 || dragged[0]
+                    || header.getCursor().getType() == Cursor.E_RESIZE_CURSOR) {
                     return;
                 }
                 int column = header.columnAtPoint(e.getPoint());
@@ -666,6 +846,11 @@ final class ResultSetViewerPanel extends JPanel {
             }
         });
         header.addMouseMotionListener(new MouseAdapter() {
+            @Override
+            public void mouseDragged(MouseEvent e) {
+                dragged[0] = true;
+            }
+
             @Override
             public void mouseMoved(MouseEvent e) {
                 int column = header.columnAtPoint(e.getPoint());
@@ -707,6 +892,8 @@ final class ResultSetViewerPanel extends JPanel {
                     headerMenu.add(createAction(EditorMessages.editor_viewer_fit_column, null, () -> ResultSetColumnFit.fitColumn(table, column)));
                 }
                 headerMenu.add(createAction(EditorMessages.editor_viewer_fit_all_columns, null, () -> ResultSetColumnFit.fitAllColumns(table)));
+                headerMenu.addSeparator();
+                addColumnItems(headerMenu, table, column);
                 headerMenu.show(header, e.getX(), e.getY());
             }
 
@@ -815,6 +1002,14 @@ final class ResultSetViewerPanel extends JPanel {
         JMenuItem saveFileItem = new JMenuItem(saveFileAction);
         JCheckBoxMenuItem chartItem = new JCheckBoxMenuItem(chartToggle.getAction());
         JCheckBoxMenuItem spatialItem = new JCheckBoxMenuItem(spatialToggle.getAction());
+        JCheckBoxMenuItem textItem = new JCheckBoxMenuItem(textToggle.getAction());
+        JCheckBoxMenuItem referencesItem = new JCheckBoxMenuItem(referencesToggle.getAction());
+        JCheckBoxMenuItem aggregatesItem = new JCheckBoxMenuItem(aggregatesToggle.getAction());
+        JMenu navigateMenu = new JMenu(GridNavMessages.gridnav_menu_navigate);
+        JMenu columnsMenu = new JMenu(GridNavMessages.gridnav_menu_columns);
+        JMenu virtualMenu = new JMenu(GridNavMessages.gridnav_menu_virtual);
+        JMenuItem findItem = new JMenuItem(createAction(GridNavMessages.gridnav_find,
+            KeyStroke.getKeyStroke(KeyEvent.VK_F, InputEvent.CTRL_DOWN_MASK), this::openFindBar));
 
         int copyIndex = -1;
         for (int i = 0; i < menu.getComponentCount(); i++) {
@@ -833,12 +1028,20 @@ final class ResultSetViewerPanel extends JPanel {
         menu.addSeparator();
         menu.add(filterMenu);
         menu.add(clearFilter);
+        menu.add(navigateMenu);
         menu.addSeparator();
         menu.add(fitColumns);
+        menu.add(columnsMenu);
+        menu.add(virtualMenu);
+        menu.add(findItem);
+        menu.addSeparator();
         menu.add(valuePanelItem);
         menu.add(recordItem);
+        menu.add(textItem);
         menu.add(chartItem);
         menu.add(spatialItem);
+        menu.add(referencesItem);
+        menu.add(aggregatesItem);
         menu.addPopupMenuListener(new javax.swing.event.PopupMenuListener() {
             @Override
             public void popupMenuWillBecomeVisible(javax.swing.event.PopupMenuEvent e) {
@@ -850,6 +1053,14 @@ final class ResultSetViewerPanel extends JPanel {
                 chartItem.setSelected(viewMode == ViewMode.CHART);
                 spatialItem.setVisible(spatialToggle.isVisible());
                 spatialItem.setSelected(viewMode == ViewMode.SPATIAL);
+                textItem.setSelected(viewMode == ViewMode.TEXT);
+                referencesItem.setSelected(isSidePanelShown(referencesPanel));
+                aggregatesItem.setSelected(isSidePanelShown(aggregatePanel));
+                fillNavigateMenu(navigateMenu);
+                columnsMenu.removeAll();
+                int lead = table.getColumnModel().getSelectionModel().getLeadSelectionIndex();
+                addColumnItems(columnsMenu, table, lead >= 0 && lead < table.getColumnCount() ? lead : -1);
+                fillVirtualMenu(virtualMenu);
             }
 
             @Override
@@ -985,12 +1196,23 @@ final class ResultSetViewerPanel extends JPanel {
         }
         JTable table = grid.getTable();
         int row = table.getSelectionModel().getLeadSelectionIndex();
-        int viewColumn = isRecordMode() && recordView.getSelectedColumn() >= 0
-            ? recordView.getSelectedColumn() : table.getColumnModel().getSelectionModel().getLeadSelectionIndex();
-        if (row < 0 || row >= table.getRowCount() || viewColumn < 0 || viewColumn >= table.getColumnCount()) {
+        int column = getSelectedModelColumn(table);
+        if (row < 0 || row >= table.getRowCount() || column < 0) {
             return null;
         }
-        return new int[]{row, table.convertColumnIndexToModel(viewColumn)};
+        return new int[]{row, column};
+    }
+
+    /**
+     * The model column of the selected cell: the record view's line (its lines are the model columns) or the grid's
+     * column (a view column: columns may be hidden or moved), or -1.
+     */
+    private int getSelectedModelColumn(@NotNull JTable table) {
+        if (isRecordMode() && recordView.getSelectedColumn() >= 0) {
+            return recordView.getSelectedColumn();
+        }
+        int viewColumn = table.getColumnModel().getSelectionModel().getLeadSelectionIndex();
+        return viewColumn >= 0 && viewColumn < table.getColumnCount() ? table.convertColumnIndexToModel(viewColumn) : -1;
     }
 
     /**
@@ -1095,17 +1317,12 @@ final class ResultSetViewerPanel extends JPanel {
         }
         JTable table = grid.getTable();
         int row = table.getSelectionModel().getLeadSelectionIndex();
-        int viewColumn = table.getColumnModel().getSelectionModel().getLeadSelectionIndex();
         if (isRecordMode()) {
             recordView.refresh();
-            int recordColumn = recordView.getSelectedColumn();
-            if (recordColumn >= 0) {
-                viewColumn = recordColumn;
-            }
         }
+        int column = getSelectedModelColumn(table);
         if (valuePanelShown) {
-            if (row >= 0 && row < table.getRowCount() && viewColumn >= 0 && viewColumn < table.getColumnCount()) {
-                int column = table.convertColumnIndexToModel(viewColumn);
+            if (row >= 0 && row < table.getRowCount() && column >= 0) {
                 DBDAttributeBinding binding = fetched.data().bindings()[column];
                 valuePanel.showCell(new ResultSetValuePanel.Cell(
                     System.identityHashCode(grid) + ":" + row + ":" + column, //$NON-NLS-1$ //$NON-NLS-2$
@@ -1123,6 +1340,18 @@ final class ResultSetViewerPanel extends JPanel {
         // The aggregates describe the grid's selection: only while the grid is shown
         aggregateLabel.setText(viewMode != ViewMode.GRID ? "" : ResultSetAggregates.describeSelection(table, this::getAggregateValue));
         updateFileActions();
+        Component sidePanel = sidePanels.isVisible() ? sidePanels.getSelectedComponent() : null;
+        if (sidePanel == aggregatePanel) {
+            aggregatePanel.refresh();
+        } else if (sidePanel == referencesPanel) {
+            // The related rows are read again only when other rows are selected (not for another column of the same rows)
+            int[] rows = table.getSelectedRows();
+            if (!Arrays.equals(rows, referenceRows) || referenceFetched != fetched) {
+                referenceRows = rows;
+                referenceFetched = fetched;
+                referencesPanel.scheduleRefresh();
+            }
+        }
     }
 
     @Nullable
@@ -1146,12 +1375,11 @@ final class ResultSetViewerPanel extends JPanel {
         }
         JTable table = grid.getTable();
         int row = table.getSelectionModel().getLeadSelectionIndex();
-        int viewColumn = isRecordMode() && recordView.getSelectedColumn() >= 0
-            ? recordView.getSelectedColumn() : table.getColumnModel().getSelectionModel().getLeadSelectionIndex();
-        if (row < 0 || viewColumn < 0) {
+        int column = getSelectedModelColumn(table);
+        if (row < 0 || column < 0) {
             return EditorMessages.editor_viewer_no_cell;
         }
-        return grid.setCellText(row, table.convertColumnIndexToModel(viewColumn), text);
+        return grid.setCellText(row, column, text);
     }
 
     //////////////////////////////////////////////////////////
@@ -1174,17 +1402,40 @@ final class ResultSetViewerPanel extends JPanel {
             text = statusMessage;
         } else {
             String rowsText = String.format("%,d", rows); //$NON-NLS-1$
-            text = NLS.bind(hasMore
-                ? rows == 1 ? EditorMessages.editor_viewer_rows_more_one : EditorMessages.editor_viewer_rows_more_many
-                : rows == 1 ? EditorMessages.editor_viewer_rows_one : EditorMessages.editor_viewer_rows_many, rowsText);
+            if (hasMore && totalRowCount != null) {
+                // Counted on the server (Count Rows)
+                text = NLS.bind(GridNavMessages.gridnav_rows_of_total, rowsText, String.format("%,d", totalRowCount)); //$NON-NLS-1$
+            } else {
+                text = NLS.bind(hasMore
+                    ? rows == 1 ? EditorMessages.editor_viewer_rows_more_one : EditorMessages.editor_viewer_rows_more_many
+                    : rows == 1 ? EditorMessages.editor_viewer_rows_one : EditorMessages.editor_viewer_rows_many, rowsText);
+            }
             if (dataFilter.hasConditions()) {
                 text = NLS.bind(EditorMessages.editor_viewer_rows_filtered, text);
+            }
+            String hidden = grid == null ? null : ResultSetColumnLayout.describeHidden(grid.getTable());
+            if (hidden != null) {
+                text = text + "  ·  " + hidden; //$NON-NLS-1$
             }
         }
         rowsLabel.setText(text);
         boolean canRead = hasMore && fetched.source().canRequery() && !reading;
         fetchNextButton.setVisible(canRead);
         fetchAllButton.setVisible(canRead);
+        countButton.setVisible(canRead && totalRowCount == null
+            && fetched.source().dataContainer().isFeatureSupported(DBSDataContainer.FEATURE_DATA_COUNT));
+        countButton.setEnabled(!counting);
+        countButton.setText(counting ? GridNavMessages.gridnav_counting : GridNavMessages.gridnav_count);
+        // Back and forward appear with the first foreign key navigation
+        boolean navigated = history.size() > 1;
+        backButton.setVisible(navigated);
+        forwardButton.setVisible(navigated);
+        backAction.setEnabled(!reading && historyPosition > 0);
+        forwardAction.setEnabled(!reading && historyPosition >= 0 && historyPosition < history.size() - 1);
+        navigationLabel.setVisible(navigationTitle != null);
+        navigationLabel.setText(navigationTitle);
+        navigationLabel.setToolTipText(navigationTitle == null ? null : NLS.bind(GridNavMessages.gridnav_navigated_tip,
+            DBUtils.getObjectFullName(fetched.source().dataContainer(), DBPEvaluationContext.UI)));
         fetchNextButton.setText(NLS.bind(EditorMessages.editor_viewer_fetch_next_count, String.format("%,d", fetched.source().segmentSize()))); //$NON-NLS-1$
         if (!fetched.source().canRequery() && hasMore) {
             rowsLabel.setToolTipText(NLS.bind(EditorMessages.editor_viewer_more_rows_blocked, fetched.source().requeryBlocker()));
@@ -1446,6 +1697,8 @@ final class ResultSetViewerPanel extends JPanel {
             }
         }
         filter.setOrder(old.getOrder());
+        // A foreign key of several columns from several rows: (a = 1 AND b = 2) OR (…), not a IN (…) AND b IN (…)
+        filter.setUseDisjunctiveNormalForm(old.isUseDisjunctiveNormalForm());
         return filter;
     }
 
@@ -1551,7 +1804,7 @@ final class ResultSetViewerPanel extends JPanel {
         startRead("Read results", context, (monitor, done) -> {
             ResultSetGrid.Fetched[] result = new ResultSetGrid.Fetched[1];
             ResultSetGridReceiver receiver = new ResultSetGridReceiver(source.dataContainer(), fetchedResult -> result[0] = fetchedResult);
-            readData(monitor, context, source.dataContainer(), receiver, readFilter, 0, segmentSize > 0 ? segmentSize : -1);
+            readData(monitor, context, source.dataContainer(), receiver, readFilter, 0, segmentSize > 0 ? segmentSize : -1, this);
             done.accept(() -> {
                 if (result[0] != null) {
                     applyRequery(result[0], viewFilter);
@@ -1571,6 +1824,8 @@ final class ResultSetViewerPanel extends JPanel {
         dataFilter = rebindFilter(filter, newFetched.data().bindings());
         serverFilter = new DBDDataFilter(dataFilter);
         clientOrdered = false;
+        // Other conditions: the counted total no longer applies
+        totalRowCount = null;
         installGrid(new ResultSetGrid(newFetched, gridHost), false);
         host.editStateChanged();
         host.rowsChanged();
@@ -1666,7 +1921,7 @@ final class ResultSetViewerPanel extends JPanel {
             ResultSetGrid.Fetched[] result = new ResultSetGrid.Fetched[1];
             ResultSetGridReceiver receiver = ResultSetGridReceiver.forNextSegment(source.dataContainer(), bindings,
                 fetchedResult -> result[0] = fetchedResult);
-            readData(monitor, context, source.dataContainer(), receiver, readFilter, offset, maxRows);
+            readData(monitor, context, source.dataContainer(), receiver, readFilter, offset, maxRows, this);
             done.accept(() -> {
                 if (result[0] != null) {
                     applySegment(result[0]);
@@ -1849,20 +2104,27 @@ final class ResultSetViewerPanel extends JPanel {
         }
     }
 
-    private void readData(
+    /**
+     * Reads a data container's rows into a receiver (job thread): the result's query again, or the table a foreign key
+     * leads to (navigation, references panel).
+     *
+     * @param controller the execution source's controller (the viewer or panel that reads)
+     */
+    static void readData(
         @NotNull DBRProgressMonitor monitor,
         @NotNull DBCExecutionContext context,
         @NotNull DBSDataContainer dataContainer,
         @NotNull ResultSetGridReceiver receiver,
         @NotNull DBDDataFilter filter,
         long offset,
-        long maxRows
+        long maxRows,
+        @NotNull Object controller
     ) throws Exception {
         try (DBCSession session = context.openSession(monitor, DBCExecutionPurpose.USER, "Read result rows")) {
             // The query is the source descriptor, as in the engine's first run: binding the columns to the table
             // (editing, keys) reads the table from it, because drivers like SQL Server don't name the column tables
             Object descriptor = dataContainer instanceof SQLQueryContainer container ? container.getQuery() : null;
-            AbstractExecutionSource source = new AbstractExecutionSource(dataContainer, context, this, descriptor);
+            AbstractExecutionSource source = new AbstractExecutionSource(dataContainer, context, controller, descriptor);
             // FLAG_REFRESH: query parameters keep their values instead of being asked again
             dataContainer.readData(source, session, receiver, filter.hasFilters() ? filter : null, offset, maxRows,
                 DBSDataContainer.FLAG_REFRESH, 0);
@@ -1873,9 +2135,668 @@ final class ResultSetViewerPanel extends JPanel {
     }
 
     //////////////////////////////////////////////////////////
+    // Foreign key navigation (SWT navigateAssociation, navigateReference, navigateHistory)
+
+    /**
+     * The table of a single-table result, or null.
+     */
+    @Nullable
+    private DBSEntity getSingleSource() {
+        return DBExecUtils.detectSingleSourceTable(fetched.data().bindings());
+    }
+
+    /**
+     * The tables whose columns the result shows: the relations are read for them.
+     */
+    @NotNull
+    private List<DBSEntity> getLinkTables() {
+        List<DBSEntity> tables = new ArrayList<>();
+        for (DBDAttributeBinding binding : fetched.data().bindings()) {
+            DBSEntityAttribute attribute = binding.getEntityAttribute();
+            if (attribute != null && !tables.contains(attribute.getParentObject())) {
+                tables.add(attribute.getParentObject());
+            }
+        }
+        return tables;
+    }
+
+    /**
+     * A new grid of other tables (navigation, another query): the relations read before don't apply.
+     */
+    private void checkLinkTables() {
+        if (!Objects.equals(getLinkTables(), linkTables)) {
+            links = null;
+            linkTables = null;
+            referencesPanel.resultChanged();
+        }
+    }
+
+    /**
+     * Gives the relations of the result's tables to the callback in the EDT, reading them first in a job (once per
+     * result tables).
+     */
+    private void requestLinks(@NotNull Consumer<List<ResultSetReferences.Link>> callback) {
+        if (links != null) {
+            callback.accept(links);
+            return;
+        }
+        linkCallbacks.add(callback);
+        if (linkCallbacks.size() > 1) {
+            // Being read
+            return;
+        }
+        DBCExecutionContext context = fetched.source().context();
+        DBDAttributeBinding[] bindings = fetched.data().bindings();
+        List<DBSEntity> tables = getLinkTables();
+        if (context == null || tables.isEmpty()) {
+            deliverLinks(List.of(), tables);
+            return;
+        }
+        new DataSourceJob("Read table relations", context) {
+            @NotNull
+            @Override
+            protected IStatus run(@NotNull DBRProgressMonitor monitor) {
+                List<ResultSetReferences.Link> result;
+                try {
+                    result = ResultSetReferences.readLinks(monitor, bindings);
+                } catch (Throwable e) {
+                    // As SWT: relations may be unsupported by the database; the menus show none
+                    log.debug("Can't read the table relations", e);
+                    result = List.of();
+                }
+                List<ResultSetReferences.Link> read = result;
+                SwingUtilities.invokeLater(() -> deliverLinks(read, tables));
+                return Status.OK_STATUS;
+            }
+        }.schedule();
+    }
+
+    private void deliverLinks(@NotNull List<ResultSetReferences.Link> read, @NotNull List<DBSEntity> tables) {
+        if (tables.equals(getLinkTables())) {
+            links = read;
+            linkTables = tables;
+        }
+        List<Consumer<List<ResultSetReferences.Link>>> callbacks = new ArrayList<>(linkCallbacks);
+        linkCallbacks.clear();
+        callbacks.forEach(callback -> callback.accept(read));
+    }
+
+    /**
+     * "table (key)" of a foreign key of a cell's column (no database access for real keys).
+     */
+    @NotNull
+    private static String describeAssociation(@NotNull DBSEntityAssociation association) {
+        DBSEntity target = association.getAssociatedEntity();
+        return target == null ? association.getName() : ResultSetReferences.describe(target, association);
+    }
+
+    /**
+     * The Navigate submenu: the referenced rows of the cell's foreign keys, the referenced and referencing tables,
+     * back and forward, go to row or column, count rows.
+     */
+    private void fillNavigateMenu(@NotNull JMenu menu) {
+        menu.removeAll();
+        boolean canRead = !reading && fetched.source().context() != null && grid != null && grid.getTable().getSelectedRowCount() > 0;
+        int[] cell = getSelectedCell();
+        List<DBSEntityAssociation> associations = cell == null ? List.of()
+            : ResultSetReferences.getCellAssociations(fetched.data().bindings()[cell[1]]);
+        if (associations.isEmpty()) {
+            JMenuItem none = new JMenuItem(GridNavMessages.gridnav_no_cell_link);
+            none.setEnabled(false);
+            menu.add(none);
+        }
+        for (int i = 0; i < associations.size(); i++) {
+            DBSEntityAssociation association = associations.get(i);
+            String label = describeAssociation(association);
+            Action action = createAction(NLS.bind(GridNavMessages.gridnav_go_referenced, label),
+                i == 0 ? KeyStroke.getKeyStroke(KeyEvent.VK_B, InputEvent.CTRL_DOWN_MASK) : null,
+                () -> navigate(association, false, label));
+            action.setEnabled(canRead);
+            menu.add(action);
+        }
+        menu.addSeparator();
+        JMenu referenced = new JMenu(GridNavMessages.gridnav_referenced_tables);
+        JMenu referencing = new JMenu(GridNavMessages.gridnav_referencing_tables);
+        menu.add(referenced);
+        menu.add(referencing);
+        fillLinkMenus(referenced, referencing, canRead);
+        menu.addSeparator();
+        menu.add(createMenuAction(GridNavMessages.gridnav_back, backAction));
+        menu.add(createMenuAction(GridNavMessages.gridnav_forward, forwardAction));
+        menu.addSeparator();
+        menu.add(createAction(GridNavMessages.gridnav_goto_row, KeyStroke.getKeyStroke(KeyEvent.VK_G, InputEvent.CTRL_DOWN_MASK), this::goToRow));
+        menu.add(createAction(GridNavMessages.gridnav_goto_column,
+            KeyStroke.getKeyStroke(KeyEvent.VK_G, InputEvent.CTRL_DOWN_MASK | InputEvent.SHIFT_DOWN_MASK), this::goToColumn));
+        Action count = createAction(GridNavMessages.gridnav_count, null, this::countRows);
+        count.setEnabled(countButton.isVisible() && !counting);
+        menu.add(count);
+    }
+
+    /**
+     * A menu item for an action of the status line (its accelerator and enabled state) under a menu name.
+     */
+    @NotNull
+    private static Action createMenuAction(@NotNull String name, @NotNull Action target) {
+        Action action = createAction(name, (KeyStroke) target.getValue(Action.ACCELERATOR_KEY),
+            () -> target.actionPerformed(new ActionEvent(target, ActionEvent.ACTION_PERFORMED, name)));
+        action.setEnabled(target.isEnabled());
+        return action;
+    }
+
+    /**
+     * Fills the referenced and referencing tables menus, after reading the relations if needed.
+     */
+    private void fillLinkMenus(@NotNull JMenu referenced, @NotNull JMenu referencing, boolean canRead) {
+        if (links != null) {
+            fillLinkMenus(referenced, referencing, canRead, links);
+            return;
+        }
+        for (JMenu menu : new JMenu[]{referenced, referencing}) {
+            JMenuItem reading = new JMenuItem(GridNavMessages.gridnav_reading_links);
+            reading.setEnabled(false);
+            menu.add(reading);
+        }
+        requestLinks(read -> fillLinkMenus(referenced, referencing, canRead, read));
+    }
+
+    private void fillLinkMenus(@NotNull JMenu referenced, @NotNull JMenu referencing, boolean canRead,
+                               @NotNull List<ResultSetReferences.Link> read) {
+        referenced.removeAll();
+        referencing.removeAll();
+        for (ResultSetReferences.Link link : read) {
+            Action action = createAction(link.label(), null, () -> navigate(link.association(), link.referencing(), link.label()));
+            action.setEnabled(canRead);
+            (link.referencing() ? referencing : referenced).add(action);
+        }
+        for (JMenu menu : new JMenu[]{referenced, referencing}) {
+            if (menu.getMenuComponentCount() == 0) {
+                JMenuItem none = new JMenuItem(menu == referenced ? GridNavMessages.gridnav_no_referenced : GridNavMessages.gridnav_no_referencing);
+                none.setEnabled(false);
+                menu.add(none);
+            }
+            // Read while the submenu was open: it takes its new size
+            if (menu.isPopupMenuVisible()) {
+                menu.getPopupMenu().pack();
+            }
+        }
+    }
+
+    /**
+     * Ctrl+B (DataGrip "Go to referenced data"; SWT navigateLink): the referenced rows of the cell's foreign key, a
+     * choice if the column has several.
+     */
+    private void navigateCellLink() {
+        int[] cell = getSelectedCell();
+        if (cell == null || grid == null) {
+            return;
+        }
+        List<DBSEntityAssociation> associations = ResultSetReferences.getCellAssociations(fetched.data().bindings()[cell[1]]);
+        if (associations.isEmpty()) {
+            statusMessage = GridNavMessages.gridnav_no_cell_link;
+            updateStatus();
+            return;
+        }
+        if (associations.size() == 1) {
+            navigate(associations.getFirst(), false, describeAssociation(associations.getFirst()));
+            return;
+        }
+        JPopupMenu popup = new JPopupMenu();
+        for (DBSEntityAssociation association : associations) {
+            String label = describeAssociation(association);
+            popup.add(createAction(NLS.bind(GridNavMessages.gridnav_go_referenced, label), null, () -> navigate(association, false, label)));
+        }
+        showAtSelectedCell(popup);
+    }
+
+    /**
+     * Ctrl+Shift+1 (SWT referencesMenu): the referenced and referencing tables at the selected cell.
+     */
+    private void showReferencesMenu() {
+        if (grid == null) {
+            return;
+        }
+        JTable table = grid.getTable();
+        requestLinks(read -> {
+            if (grid == null || grid.getTable() != table || !table.isShowing()) {
+                return;
+            }
+            JPopupMenu popup = new JPopupMenu();
+            JMenu referenced = new JMenu(GridNavMessages.gridnav_referenced_tables);
+            JMenu referencing = new JMenu(GridNavMessages.gridnav_referencing_tables);
+            fillLinkMenus(referenced, referencing, !reading && table.getSelectedRowCount() > 0, read);
+            popup.add(referenced);
+            popup.add(referencing);
+            showAtSelectedCell(popup);
+        });
+    }
+
+    private void showAtSelectedCell(@NotNull JPopupMenu popup) {
+        if (grid == null) {
+            return;
+        }
+        JTable table = grid.getTable();
+        int row = Math.max(table.getSelectionModel().getLeadSelectionIndex(), 0);
+        int column = Math.max(table.getColumnModel().getSelectionModel().getLeadSelectionIndex(), 0);
+        Rectangle cell = table.getCellRect(row, column, true);
+        popup.show(table, cell.x, cell.y + cell.height);
+    }
+
+    /**
+     * The selected rows (at most {@link ResultSetReferencesPanel#MAX_ROWS}) with the model that gives their key
+     * values: the edit model of an editable result, the kept values otherwise. Null when no row is selected.
+     */
+    @Nullable
+    private ResultSetReferencesPanel.SelectedRows getSelectedRowsForLinks() {
+        if (grid == null) {
+            return null;
+        }
+        JTable table = grid.getTable();
+        int[] rows = table.getSelectedRows();
+        if (rows.length == 0) {
+            return null;
+        }
+        if (rows.length > ResultSetReferencesPanel.MAX_ROWS) {
+            rows = Arrays.copyOf(rows, ResultSetReferencesPanel.MAX_ROWS);
+        }
+        ResultSetEditModel editModel = fetched.editModel();
+        if (editModel != null) {
+            List<DBDValueRow> selected = new ArrayList<>();
+            for (int row : rows) {
+                if (row < editModel.getRowCount()) {
+                    selected.add(editModel.getRow(row));
+                }
+            }
+            return selected.isEmpty() ? null : new ResultSetReferencesPanel.SelectedRows(editModel, selected);
+        }
+        List<Object[]> cells = fetched.source().cellValues();
+        List<Object[]> values = new ArrayList<>();
+        for (int row : rows) {
+            if (row < cells.size()) {
+                Object[] rowValues = cells.get(row).clone();
+                for (int i = 0; i < rowValues.length; i++) {
+                    // LOB content and geometries are not key values
+                    if (rowValues[i] instanceof ResultSetCellContent || rowValues[i] instanceof DBGeometry) {
+                        rowValues[i] = null;
+                    }
+                }
+                values.add(rowValues);
+            }
+        }
+        if (values.isEmpty()) {
+            return null;
+        }
+        DBDResultSetModel model = new ResultSetReferences.RowsModel(fetched.source().dataContainer(), fetched.data().bindings(), values);
+        return new ResultSetReferencesPanel.SelectedRows(model, model.getAllRows());
+    }
+
+    /**
+     * Reads the rows a foreign key leads to from the selected rows and shows them in this viewer; the result left is
+     * kept for Back.
+     *
+     * @param referencing the other table references this result (its rows point to the selected rows)
+     */
+    private void navigate(@NotNull DBSEntityAssociation association, boolean referencing, @NotNull String label) {
+        DBCExecutionContext context = fetched.source().context();
+        if (reading || context == null) {
+            return;
+        }
+        ResultSetReferencesPanel.SelectedRows selected = getSelectedRowsForLinks();
+        if (selected == null) {
+            statusMessage = GridNavMessages.gridnav_select_rows;
+            updateStatus();
+            return;
+        }
+        if (!checkNoChanges(GridNavMessages.gridnav_action_navigate)) {
+            return;
+        }
+        String title = NLS.bind(referencing ? GridNavMessages.gridnav_title_referencing : GridNavMessages.gridnav_title_referenced, label);
+        long segmentSize = fetched.source().segmentSize();
+        startRead("Navigate foreign key", context, (monitor, done) -> {
+            DBDReferenceNavigation navigation = ResultSetReferences.resolve(monitor, association, referencing, selected.model(), selected.rows());
+            DBSDataContainer target = (DBSDataContainer) navigation.getTargetEntity();
+            ResultSetGrid.Fetched[] result = new ResultSetGrid.Fetched[1];
+            ResultSetGridReceiver receiver = new ResultSetGridReceiver(target, fetchedResult -> result[0] = fetchedResult);
+            readData(monitor, context, target, receiver, navigation.getTargetFilter(), 0, segmentSize > 0 ? segmentSize : -1, this);
+            done.accept(() -> {
+                if (result[0] != null) {
+                    showNavigated(result[0], navigation.getTargetFilter(), title);
+                }
+            });
+        });
+    }
+
+    private void showNavigated(@NotNull ResultSetGrid.Fetched navigated, @NotNull DBDDataFilter filter, @NotNull String title) {
+        // The result left stays as it is for Back; results gone back from are dropped (as browser history)
+        while (history.size() > historyPosition + 1) {
+            HistoryState dropped = history.removeLast();
+            if (dropped != null) {
+                releaseContents(dropped.fetched().source().cellValues());
+            }
+        }
+        if (historyPosition < 0) {
+            history.add(captureState());
+        } else {
+            history.set(historyPosition, captureState());
+        }
+        history.add(null);
+        historyPosition = history.size() - 1;
+        // The navigation's conditions become the column filters of the new result (shown in the status line, removable).
+        // A table's rows have no query: "Export Data…" runs queries only, so it stays off here
+        DBDDataFilter viewFilter = rebindFilter(filter, navigated.data().bindings());
+        restoreState(new HistoryState(navigated, sequence(navigated.data().rows().size()), viewFilter, new DBDDataFilter(viewFilter),
+            navigated.data().truncated() && navigated.source().segmentSize() > 0, false, title, null));
+    }
+
+    /**
+     * The current result as a history entry. Its pending changes were confirmed to be discarded ({@link #checkNoChanges}),
+     * so they are reverted: going back shows the rows as read or saved.
+     */
+    @NotNull
+    private HistoryState captureState() {
+        if (grid != null && grid.isDirty()) {
+            grid.cancelChanges();
+        }
+        return new HistoryState(fetched, ordinals, dataFilter, serverFilter, hasMore, clientOrdered, navigationTitle, totalRowCount);
+    }
+
+    private void restoreState(@NotNull HistoryState state) {
+        fetched = state.fetched();
+        ordinals = state.ordinals();
+        dataFilter = state.dataFilter();
+        serverFilter = state.serverFilter();
+        hasMore = state.hasMore();
+        clientOrdered = state.clientOrdered();
+        navigationTitle = state.title();
+        totalRowCount = state.totalRowCount();
+        statusMessage = null;
+        installGrid(new ResultSetGrid(fetched, gridHost), false);
+        host.editStateChanged();
+        host.rowsChanged();
+    }
+
+    /**
+     * Back and forward (Alt+←/→): shows a kept result again as it was (not read again).
+     */
+    private void navigateHistory(int position) {
+        if (reading || position < 0 || position >= history.size() || position == historyPosition || history.get(position) == null) {
+            return;
+        }
+        if (!checkNoChanges(GridNavMessages.gridnav_action_navigate)) {
+            return;
+        }
+        HistoryState target = history.get(position);
+        history.set(historyPosition, captureState());
+        history.set(position, null);
+        historyPosition = position;
+        restoreState(target);
+    }
+
+    //////////////////////////////////////////////////////////
+    // Panels beside the result, columns, find, zoom, count, virtual keys
+
+    private boolean isSidePanelShown(@NotNull JComponent panel) {
+        return sidePanels.indexOfComponent(panel) >= 0;
+    }
+
+    /**
+     * Shows a panel as a tab beside the result, or removes it; the panel area is hidden without tabs.
+     */
+    private void toggleSidePanel(@NotNull JComponent panel, @NotNull String title) {
+        if (isSidePanelShown(panel)) {
+            sidePanels.remove(panel);
+        } else {
+            sidePanels.addTab(title, panel);
+            sidePanels.setSelectedComponent(panel);
+        }
+        boolean shown = sidePanels.getTabCount() > 0;
+        if (shown != sidePanels.isVisible()) {
+            sidePanels.setVisible(shown);
+            if (shown) {
+                placePanelDivider();
+            }
+        }
+        referencesToggle.setSelected(isSidePanelShown(referencesPanel));
+        aggregatesToggle.setSelected(isSidePanelShown(aggregatePanel));
+        panelSplit.revalidate();
+        panelSplit.repaint();
+        refreshSidePanel();
+    }
+
+    private void placePanelDivider() {
+        if (panelSplit.getWidth() <= 0) {
+            panelSplit.addComponentListener(new java.awt.event.ComponentAdapter() {
+                @Override
+                public void componentResized(java.awt.event.ComponentEvent e) {
+                    if (panelSplit.getWidth() > 0) {
+                        panelSplit.removeComponentListener(this);
+                        placePanelDivider();
+                    }
+                }
+            });
+            return;
+        }
+        panelSplit.setDividerLocation(Math.max(200, panelSplit.getWidth() * 55 / 100));
+    }
+
+    private void refreshSidePanel() {
+        Component panel = sidePanels.getSelectedComponent();
+        if (panel == referencesPanel) {
+            referenceRows = null;
+            referencesPanel.scheduleRefresh();
+        } else if (panel == aggregatePanel) {
+            aggregatePanel.refresh();
+        }
+    }
+
+    /**
+     * Hide, show and hide empty columns, go to column, and zoom, for the header menu and the grid's Columns menu.
+     *
+     * @param viewColumn the clicked or selected column, or -1
+     */
+    private void addColumnItems(@NotNull JComponent menu, @NotNull JTable table, int viewColumn) {
+        Action hide = createAction(GridNavMessages.gridnav_hide_column, null, () -> {
+            // The selected columns when the clicked one is among them
+            int[] columns = viewColumn >= 0 && !table.isColumnSelected(viewColumn) ? new int[]{viewColumn} : table.getSelectedColumns();
+            ResultSetColumnLayout.hideColumns(table, columns);
+            columnsChanged();
+        });
+        hide.setEnabled(viewColumn >= 0 && table.getColumnCount() > 1);
+        int hidden = ResultSetColumnLayout.getHiddenCount(table);
+        Action showAll = createAction(hidden > 0 ? NLS.bind(GridNavMessages.gridnav_show_all_columns_count, hidden)
+            : GridNavMessages.gridnav_show_all_columns, null, () -> {
+            ResultSetColumnLayout.showAllColumns(table);
+            ResultSetColumnFit.fitAllColumns(table);
+            columnsChanged();
+        });
+        showAll.setEnabled(hidden > 0);
+        Action hideEmpty = createAction(GridNavMessages.gridnav_hide_empty_columns, null, () -> {
+            int count = ResultSetColumnLayout.hideEmptyColumns(table);
+            statusMessage = count == 0 ? GridNavMessages.gridnav_no_empty_columns : null;
+            columnsChanged();
+        });
+        menu.add(new JMenuItem(hide));
+        menu.add(new JMenuItem(showAll));
+        menu.add(new JMenuItem(hideEmpty));
+        menu.add(new JMenuItem(createAction(GridNavMessages.gridnav_goto_column,
+            KeyStroke.getKeyStroke(KeyEvent.VK_G, InputEvent.CTRL_DOWN_MASK | InputEvent.SHIFT_DOWN_MASK), this::goToColumn)));
+        menu.add(new JSeparator());
+        Action zoomIn = createAction(GridNavMessages.gridnav_zoom_in, KeyStroke.getKeyStroke(KeyEvent.VK_0, InputEvent.ALT_DOWN_MASK), () -> setZoom(zoom + 1));
+        zoomIn.setEnabled(zoom < ResultSetColumnLayout.MAX_ZOOM);
+        Action zoomOut = createAction(GridNavMessages.gridnav_zoom_out, KeyStroke.getKeyStroke(KeyEvent.VK_9, InputEvent.ALT_DOWN_MASK), () -> setZoom(zoom - 1));
+        zoomOut.setEnabled(zoom > ResultSetColumnLayout.MIN_ZOOM);
+        Action zoomReset = createAction(GridNavMessages.gridnav_zoom_reset, null, () -> setZoom(0));
+        zoomReset.setEnabled(zoom != 0);
+        menu.add(new JMenuItem(zoomIn));
+        menu.add(new JMenuItem(zoomOut));
+        menu.add(new JMenuItem(zoomReset));
+    }
+
+    /**
+     * The grid's columns were hidden, shown or moved.
+     */
+    private void columnsChanged() {
+        updateStatus();
+        if (viewMode == ViewMode.TEXT) {
+            textView.refresh();
+        }
+        scheduleSelectionUpdate();
+    }
+
+    private void setZoom(int step) {
+        int newZoom = Math.clamp(step, ResultSetColumnLayout.MIN_ZOOM, ResultSetColumnLayout.MAX_ZOOM);
+        if (newZoom == zoom || grid == null) {
+            return;
+        }
+        zoom = newZoom;
+        ResultSetColumnLayout.applyZoom(grid.getTable(), gridFont, gridRowHeight, zoom);
+    }
+
+    /**
+     * Go to row and column work in the grid: another view shows the grid first.
+     */
+    private void showGrid() {
+        if (viewMode != ViewMode.GRID) {
+            setViewMode(ViewMode.GRID);
+        }
+    }
+
+    private void goToRow() {
+        if (grid != null) {
+            showGrid();
+            ResultSetColumnLayout.goToRow(this, grid.getTable());
+        }
+    }
+
+    private void goToColumn() {
+        if (grid != null) {
+            showGrid();
+            ResultSetColumnLayout.goToColumn(this, grid.getTable());
+            columnsChanged();
+        }
+    }
+
+    private void openFindBar() {
+        showGrid();
+        findBar.open();
+    }
+
+    /**
+     * Count Rows (SWT {@code resultset.count}): the rows of the result's query or table with the filters the rows were
+     * read with, counted on the server ({@code countData}, SELECT COUNT).
+     */
+    private void countRows() {
+        ResultSetSource source = fetched.source();
+        DBCExecutionContext context = source.context();
+        if (counting || context == null || !source.canRequery()) {
+            return;
+        }
+        counting = true;
+        updateStatus();
+        DBDDataFilter countedFilter = serverFilter;
+        DBDDataFilter filter = new DBDDataFilter(serverFilter);
+        DBSDataContainer container = source.dataContainer();
+        new DataSourceJob("Count rows", context) {
+            @NotNull
+            @Override
+            protected IStatus run(@NotNull DBRProgressMonitor monitor) {
+                long count = -1;
+                Throwable error = null;
+                try {
+                    count = DBUtils.readRowCount(monitor, context, container, filter.hasConditions() ? filter : null, ResultSetViewerPanel.this);
+                } catch (Throwable e) {
+                    error = e;
+                }
+                long counted = count;
+                Throwable countError = error;
+                SwingUtilities.invokeLater(() -> {
+                    counting = false;
+                    if (countError != null || counted < 0) {
+                        // A container may not know its count (-1)
+                        statusMessage = GridNavMessages.gridnav_count_failed;
+                        if (countError != null) {
+                            host.appendError(NLS.bind(GridNavMessages.gridnav_count_failed_detail, ErrorText.describe(countError)));
+                            log.debug("Row count failed", countError);
+                        }
+                    } else if (serverFilter == countedFilter) {
+                        // The same rows as when the count started (no new filter or navigation since)
+                        totalRowCount = counted;
+                    }
+                    updateStatus();
+                });
+                return Status.OK_STATUS;
+            }
+        }.schedule();
+    }
+
+    /**
+     * The Virtual Keys submenu: the virtual unique key and virtual foreign keys of the result's table.
+     */
+    private void fillVirtualMenu(@NotNull JMenu menu) {
+        menu.removeAll();
+        DBSEntity entity = getSingleSource();
+        if (entity == null) {
+            JMenuItem none = new JMenuItem(GridNavMessages.gridnav_vkey_no_table);
+            none.setEnabled(false);
+            menu.add(none);
+            return;
+        }
+        Action key = createAction(GridNavMessages.gridnav_vkey_define, null, () -> editVirtualKey(entity));
+        key.setEnabled(!reading && ResultSetVirtualKeys.usesVirtualKey(entity, fetched.data().bindings()));
+        JMenuItem keyItem = new JMenuItem(key);
+        if (!key.isEnabled()) {
+            keyItem.setToolTipText(GridNavMessages.gridnav_vkey_has_key);
+        }
+        menu.add(keyItem);
+        Action foreignKey = createAction(GridNavMessages.gridnav_vfk_add, null, () -> addVirtualForeignKey(entity));
+        foreignKey.setEnabled(!reading);
+        menu.add(foreignKey);
+        List<DBVEntityForeignKey> foreignKeys = ResultSetVirtualKeys.getForeignKeys(entity);
+        if (!foreignKeys.isEmpty()) {
+            JMenu remove = new JMenu(GridNavMessages.gridnav_vfk_remove);
+            for (DBVEntityForeignKey existing : foreignKeys) {
+                remove.add(createAction(ResultSetVirtualKeys.describe(existing), null, () -> {
+                    if (ResultSetVirtualKeys.removeForeignKey(this, entity, existing)) {
+                        readAgainForKeys();
+                    }
+                }));
+            }
+            remove.setEnabled(!reading);
+            menu.add(remove);
+        }
+    }
+
+    private void editVirtualKey(@NotNull DBSEntity entity) {
+        if (!reading && ResultSetVirtualKeys.editUniqueKey(this, entity, fetched.data().bindings())) {
+            readAgainForKeys();
+        }
+    }
+
+    private void addVirtualForeignKey(@NotNull DBSEntity entity) {
+        if (!reading && ResultSetVirtualKeys.addForeignKey(this, entity, fetched.data().bindings())) {
+            readAgainForKeys();
+        }
+    }
+
+    /**
+     * A virtual key changed: the columns are bound to the keys when the result is read, so it is read again (its
+     * pending changes are discarded after asking). A result that can't be read again tells to run the query again.
+     */
+    private void readAgainForKeys() {
+        links = null;
+        linkTables = null;
+        referencesPanel.resultChanged();
+        if (!fetched.source().canRequery() || reading || !checkNoChanges(GridNavMessages.gridnav_action_read_again)) {
+            statusMessage = GridNavMessages.gridnav_vkey_run_again;
+            updateStatus();
+            return;
+        }
+        requery(new DBDDataFilter(dataFilter));
+    }
+
+    //////////////////////////////////////////////////////////
     // Helpers
 
-    private static void releaseContents(@NotNull List<Object[]> cells) {
+    static void releaseContents(@NotNull List<Object[]> cells) {
         for (Object[] row : cells) {
             for (Object cell : row) {
                 if (cell instanceof ResultSetCellContent content) {
@@ -2090,6 +3011,100 @@ final class ResultSetViewerPanel extends JPanel {
         public void selectionChanged() {
             scheduleSelectionUpdate();
         }
+    }
+
+    /**
+     * The text view's access to the grid.
+     */
+    private final class TextSource implements ResultSetTextView.Source {
+        @Nullable
+        @Override
+        public JTable getTable() {
+            return grid == null ? null : grid.getTable();
+        }
+
+        @Override
+        public boolean isNumeric(int column) {
+            boolean[] numeric = fetched.data().numeric();
+            return column >= 0 && column < numeric.length && numeric[column];
+        }
+    }
+
+    /**
+     * The aggregates panel's access to the grid's selection and values.
+     */
+    private final class AggregateSource implements ResultSetAggregatePanel.Source {
+        @Nullable
+        @Override
+        public JTable getTable() {
+            return grid == null ? null : grid.getTable();
+        }
+
+        @Nullable
+        @Override
+        public Object getValue(int row, int column) {
+            return getAggregateValue(row, column);
+        }
+
+        @NotNull
+        @Override
+        public String getDisplayText(int row, int column) {
+            Object display = getDisplayValue(row, column);
+            return display == null ? "" : display.toString();
+        }
+
+        @NotNull
+        @Override
+        public String getColumnName(int column) {
+            return fetched.data().columns()[column];
+        }
+    }
+
+    /**
+     * The references panel's access to the result: its relations, the selected rows and the viewer's navigation.
+     */
+    private final class ReferencesSource implements ResultSetReferencesPanel.Source {
+        @Nullable
+        @Override
+        public DBCExecutionContext getContext() {
+            return fetched.source().context();
+        }
+
+        @Override
+        public void requestLinks(@NotNull Consumer<List<ResultSetReferences.Link>> callback) {
+            ResultSetViewerPanel.this.requestLinks(callback);
+        }
+
+        @Nullable
+        @Override
+        public ResultSetReferencesPanel.SelectedRows getSelectedRows() {
+            return getSelectedRowsForLinks();
+        }
+
+        @Override
+        public long getSegmentSize() {
+            return fetched.source().segmentSize();
+        }
+
+        @NotNull
+        @Override
+        public ResultSetGrid.Host getHost() {
+            return host;
+        }
+
+        @Override
+        public void open(@NotNull ResultSetReferences.Link link) {
+            navigate(link.association(), link.referencing(), link.label());
+        }
+    }
+
+    /**
+     * Binds an action's accelerator in the viewer (while the focus is in it: grid, record view, panels).
+     */
+    private void bindViewerKey(@NotNull Action action) {
+        String key = "chromite.viewer." + action.getValue(Action.NAME); //$NON-NLS-1$
+        getInputMap(WHEN_ANCESTOR_OF_FOCUSED_COMPONENT).put((KeyStroke) action.getValue(Action.ACCELERATOR_KEY), key);
+        getActionMap().put(key, action);
     }
 
     /**

@@ -18,6 +18,7 @@ package com.seizia.chromite.ui.swing;
 
 import com.formdev.flatlaf.FlatClientProperties;
 import com.seizia.chromite.ui.swing.internal.EditorMessages;
+import com.seizia.chromite.ui.swing.internal.GridNavMessages;
 import org.eclipse.osgi.util.NLS;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
@@ -28,6 +29,8 @@ import javax.swing.text.SimpleAttributeSet;
 import javax.swing.text.StyleConstants;
 import javax.swing.text.StyledDocument;
 import java.awt.*;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
@@ -65,6 +68,8 @@ import java.util.function.IntConsumer;
  * - 2026-11-07 결과 뷰어의 필터 줄이 없어져 최소 높이 주석을 고침(값은 그대로) (docs/chromite/swing-grid-column-filters.md)
  * - 2026-11-08 결과 고정({@link #pinResults}): 고정 탭, 지금 결과만 세는 {@link #getCurrentChangeCount}
  *   (docs/chromite/swing-sql-editor-ergonomics.md)
+ * - 2026-11-08 오류 위치로 가기: 위치를 아는 오류 글자를 두 번 누르거나 오른쪽 클릭 "오류 위치로 가기"로 쿼리 창의 그 자리로
+ *   ({@link Listener#goToSource}), Messages 오른쪽 클릭에 복사 (docs/chromite/swing-grid-navigation.md "오류 위치로 가기")
  */
 final class QueryResultsView {
 
@@ -86,7 +91,23 @@ final class QueryResultsView {
          * A result viewer read its rows again (filter, sort, more rows): {@link #getRowCount()} changed.
          */
         void resultsRowsChanged();
+
+        /**
+         * Go to Error: a double click on an error that knows its position in the query window's text.
+         */
+        default void goToSource(int offset) {
+        }
     }
+
+    /**
+     * Character attribute of an error's text in Messages: its offset in the query window's text.
+     */
+    private static final Object ERROR_OFFSET_ATTRIBUTE = new Object() {
+        @Override
+        public String toString() {
+            return "chromite.errorOffset"; //$NON-NLS-1$
+        }
+    };
 
     // A result viewer adds a status line below its grid (ResultSetViewerPanel)
     private static final int MIN_GRID_HEIGHT = 220;
@@ -143,6 +164,7 @@ final class QueryResultsView {
         messagesPane.setEditable(false);
         // font.code, like the DataGrip console output
         messagesPane.putClientProperty(FlatClientProperties.STYLE_CLASS, "monospaced"); //$NON-NLS-1$
+        installGoToError();
         messagesComponent = new JScrollPane(messagesPane);
         messagesComponent.setBorder(BorderFactory.createEmptyBorder());
         clear();
@@ -396,10 +418,87 @@ final class QueryResultsView {
     }
 
     void appendError(@NotNull String text) {
+        appendError(text, -1);
+    }
+
+    /**
+     * @param sourceOffset the error's position in the query window's text (a double click goes there), or -1
+     */
+    void appendError(@NotNull String text, int sourceOffset) {
         SimpleAttributeSet attributes = new SimpleAttributeSet();
         Color errorColor = UIManager.getColor("Chromite.status.error"); //$NON-NLS-1$
         StyleConstants.setForeground(attributes, errorColor != null ? errorColor : Color.RED);
+        if (sourceOffset >= 0) {
+            attributes.addAttribute(ERROR_OFFSET_ATTRIBUTE, sourceOffset);
+        }
         append(text, attributes);
+    }
+
+    /**
+     * Go to Error (SWT {@code GoToErrorAction}): a double click on an error with a position, or its context menu item,
+     * moves the query window's caret there. The pointer and the tool tip show which texts have a position.
+     */
+    private void installGoToError() {
+        JPopupMenu menu = new JPopupMenu();
+        int[] menuOffset = {-1};
+        JMenuItem goToItem = new JMenuItem(GridNavMessages.gridnav_goto_error);
+        goToItem.addActionListener(e -> {
+            if (menuOffset[0] >= 0) {
+                listener.goToSource(menuOffset[0]);
+            }
+        });
+        JMenuItem copyItem = new JMenuItem(EditorMessages.editor_grid_copy);
+        copyItem.addActionListener(e -> messagesPane.copy());
+        menu.add(goToItem);
+        menu.add(copyItem);
+        messagesPane.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                int offset = getErrorOffsetAt(e.getPoint());
+                if (e.getClickCount() == 2 && SwingUtilities.isLeftMouseButton(e) && offset >= 0) {
+                    listener.goToSource(offset);
+                }
+            }
+
+            @Override
+            public void mousePressed(MouseEvent e) {
+                showMenu(e);
+            }
+
+            @Override
+            public void mouseReleased(MouseEvent e) {
+                showMenu(e);
+            }
+
+            private void showMenu(@NotNull MouseEvent e) {
+                if (e.isPopupTrigger()) {
+                    menuOffset[0] = getErrorOffsetAt(e.getPoint());
+                    goToItem.setEnabled(menuOffset[0] >= 0);
+                    copyItem.setEnabled(messagesPane.getSelectionStart() != messagesPane.getSelectionEnd());
+                    menu.show(messagesPane, e.getX(), e.getY());
+                }
+            }
+        });
+        messagesPane.addMouseMotionListener(new MouseAdapter() {
+            @Override
+            public void mouseMoved(MouseEvent e) {
+                boolean onError = getErrorOffsetAt(e.getPoint()) >= 0;
+                messagesPane.setCursor(Cursor.getPredefinedCursor(onError ? Cursor.HAND_CURSOR : Cursor.TEXT_CURSOR));
+                messagesPane.setToolTipText(onError ? GridNavMessages.gridnav_goto_error_tip : null);
+            }
+        });
+    }
+
+    /**
+     * The query position of the error text at a point of Messages, or -1.
+     */
+    private int getErrorOffsetAt(@NotNull Point point) {
+        int position = messagesPane.viewToModel2D(point);
+        if (position < 0) {
+            return -1;
+        }
+        Object offset = messagesPane.getStyledDocument().getCharacterElement(position).getAttributes().getAttribute(ERROR_OFFSET_ATTRIBUTE);
+        return offset instanceof Integer value ? value : -1;
     }
 
     private void append(@NotNull String text, @Nullable SimpleAttributeSet attributes) {

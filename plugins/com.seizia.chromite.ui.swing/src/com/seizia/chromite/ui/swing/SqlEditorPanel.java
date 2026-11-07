@@ -281,6 +281,8 @@ import java.util.concurrent.atomic.AtomicLong;
  *   명령({@link SqlTextArea.Command}), 결과 고정. 다시 실행 전 버리기 묻기는 고정하지 않은 결과만 셈 (docs/chromite/swing-sql-editor-ergonomics.md)
  * - 2026-11-08 스마트 커밋({@link SmartCommit}): 엔진 처리기가 설정을 따르고, 문장이 세션을 수동 커밋으로 바꾸면 커밋·롤백 뒤 되돌릴 세션으로 기억
  *   (docs/chromite/connection-lifecycle.md "스마트 커밋"). 쿼리 관리자가 본 커밋 방식이 바뀌면 상태 줄의 커밋 방식을 다시 읽음(실행 밖의 전환)
+ * - 2026-11-08 오류 위치로 가기(SWT {@code GoToErrorAction}): Messages의 오류가 머리글의 줄·열 위치를 함께 갖고, 두 번 누르면 그 자리로 가서
+ *   줄을 오류 색으로 표시({@code ErrorReport}, {@link QueryResultsView.Listener#goToSource}) (docs/chromite/swing-grid-navigation.md)
  */
 final class SqlEditorPanel extends JPanel {
 
@@ -375,6 +377,20 @@ final class SqlEditorPanel extends JPanel {
                 long rows = resultsView.getRowCount();
                 statusLine.setRows(NLS.bind(rows == 1 ? EditorMessages.editor_sql_rows_one : EditorMessages.editor_sql_rows_many, rows));
             }
+        }
+
+        @Override
+        public void goToSource(int offset) {
+            // Go to Error (SWT GoToErrorAction): the position the error names, its line marked
+            int length = textArea.getDocument().getLength();
+            int position = Math.clamp(offset, 0, length);
+            int line = 0;
+            try {
+                line = textArea.getLineOfOffset(position);
+            } catch (BadLocationException e) {
+                log.debug("Error position out of the text: " + position); //$NON-NLS-1$
+            }
+            showSourcePosition(new SourcePosition(position, position, List.of(line)));
         }
     });
     // EDT only: Query > Include Actual Execution Plan for this window
@@ -1595,6 +1611,7 @@ final class SqlEditorPanel extends JPanel {
         readServerOutput(session, messages);
         Throwable error = result.getError();
         String errorText = null;
+        int errorOffset = -1;
         List<CompileErrorLine> compileErrors = error == null ? readCompileErrors(run, session, result.getStatement()) : List.of();
         if (compileErrors.stream().anyMatch(CompileErrorLine::error)) {
             // The unit exists but is invalid: the run reports errors and brings the Messages tab to the front
@@ -1628,10 +1645,13 @@ final class SqlEditorPanel extends JPanel {
             messages.add(NLS.bind(EditorMessages.editor_sql_execution_time, result.getQueryTime()));
         } else {
             run.hasErrors = true;
-            errorText = describeError(run, session, result.getStatement(), error);
+            ErrorReport report = describeError(run, session, result.getStatement(), error);
+            errorText = report.text();
+            errorOffset = report.offset();
             run.reportedErrors.add(error);
         }
         String finalErrorText = errorText;
+        int finalErrorOffset = errorOffset;
         // SQL terminal: the statement, its result sets as text tables, then the same messages as the Messages tab
         String terminalText = null;
         if (run.terminal) {
@@ -1669,7 +1689,7 @@ final class SqlEditorPanel extends JPanel {
             }
             addErrorLines(errorLines);
             if (finalErrorText != null) {
-                resultsView.appendError(finalErrorText);
+                resultsView.appendError(finalErrorText, finalErrorOffset);
             }
             if (finalTerminalText != null) {
                 terminalView.append(finalTerminalText);
@@ -1779,11 +1799,19 @@ final class SqlEditorPanel extends JPanel {
     }
 
     /**
+     * An error's Messages text and where it is in the window's text.
+     *
+     * @param offset the error position in the editor text at the run (Go to Error), or -1 when it is in an included file
+     */
+    private record ErrorReport(@NotNull String text, int offset) {
+    }
+
+    /**
      * SSMS-like error header ({@code Msg 208, State 42S02, Line 3, Column 15}) followed by the error messages.
      * The position comes from the dialect's error assistant when it can locate the error, else it is the query start.
      */
     @NotNull
-    private static String describeError(@NotNull Execution run, @NotNull DBCSession session, @NotNull SQLQuery query, @NotNull Throwable error) {
+    private static ErrorReport describeError(@NotNull Execution run, @NotNull DBCSession session, @NotNull SQLQuery query, @NotNull Throwable error) {
         // A statement of an included file: its offsets are in that file's text
         SQLQueryExecuteJob engine = run.engine;
         SQLIncludedScript included = engine == null ? null : run.includedScripts.get(engine.getCurrentScriptContext());
@@ -1835,8 +1863,29 @@ final class SqlEditorPanel extends JPanel {
         if (column > 0) {
             header.append(NLS.bind(EditorMessages.editor_sql_error_column, column));
         }
+        // The position the header names, in the window's text (Go to Error); an included file's is not in the window
+        int sourceOffset = -1;
+        if (included == null) {
+            sourceOffset = errorOffset >= 0 && errorOffset <= text.length() ? errorOffset
+                : Math.min(text.length(), offsetOfLine(text, line) + Math.max(column - 1, 0));
+        }
         // The header already shows the error code and state
-        return header + "\n" + ErrorText.describeMessages(error);
+        return new ErrorReport(header + "\n" + ErrorText.describeMessages(error), sourceOffset);
+    }
+
+    /**
+     * The offset where a one-based line starts.
+     */
+    private static int offsetOfLine(@NotNull String text, int line) {
+        int offset = 0;
+        for (int current = 1; current < line; current++) {
+            int next = text.indexOf('\n', offset);
+            if (next < 0) {
+                return text.length();
+            }
+            offset = next + 1;
+        }
+        return offset;
     }
 
     @Nullable

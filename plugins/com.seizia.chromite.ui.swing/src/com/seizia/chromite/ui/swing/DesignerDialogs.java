@@ -24,11 +24,16 @@ import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
 import com.seizia.chromite.model.DBPEvaluationContext;
 import com.seizia.chromite.model.DBUtils;
+import com.seizia.chromite.model.runtime.DBRProgressMonitor;
 import com.seizia.chromite.model.struct.DBSEntity;
 import com.seizia.chromite.model.struct.DBSEntityAttribute;
 import com.seizia.chromite.model.struct.DBSEntityConstraint;
 import com.seizia.chromite.model.struct.DBSEntityConstraintType;
 import com.seizia.chromite.model.struct.rdb.DBSForeignKeyModifyRule;
+import com.seizia.chromite.model.struct.rdb.DBSTableIndex;
+import com.seizia.chromite.model.virtual.DBVEntity;
+import com.seizia.chromite.model.virtual.DBVEntityConstraint;
+import com.seizia.chromite.model.virtual.DBVUtils;
 import com.seizia.chromite.runtime.DBInterruptedException;
 import com.seizia.chromite.runtime.DBWorkbench;
 import org.jkiss.utils.CommonUtils;
@@ -58,6 +63,8 @@ import java.util.function.Supplier;
  * - 2026-11-06 화면 문구를 ToolsMessages로 옮김(OS 언어를 따름)
  * - 2026-11-08 폼 도우미({@link #addRow}, {@link #showDialog}, {@link #error})를 패키지 안에 열어 새 개체 대화상자({@link NewObjectDialogs})도 씀
  *   (docs/chromite/swing-create-objects.md)
+ * - 2026-11-08 결과 그리드의 가상 외래 키도 이 외래 키 대화상자로 정함(이름·규칙 없음, 참조 테이블의 가상 고유 키도 고름)
+ *   (docs/chromite/swing-grid-navigation.md "가상 키")
  */
 final class DesignerDialogs {
 
@@ -213,6 +220,16 @@ final class DesignerDialogs {
     @Nullable
     static ForeignKeySpec editForeignKey(@NotNull Component owner, @NotNull DBSEntity table, @NotNull List<DBSEntityAttribute> columns,
                                          @NotNull List<DBSEntity> referenceTables) {
+        return editForeignKey(owner, ToolsMessages.designer_add_foreign_key, table, columns, referenceTables, false);
+    }
+
+    /**
+     * @param virtual a virtual foreign key of the result grid ({@code DBVEntityForeignKey}): no name and no rules (the
+     *                model keeps neither), and the referenced table's keys include its virtual unique keys
+     */
+    @Nullable
+    static ForeignKeySpec editForeignKey(@NotNull Component owner, @NotNull String title, @NotNull DBSEntity table,
+                                         @NotNull List<DBSEntityAttribute> columns, @NotNull List<DBSEntity> referenceTables, boolean virtual) {
         JTextField nameField = new JTextField(24);
         nameField.setToolTipText(ToolsMessages.designer_dialog_generated_name_tip);
         JComboBox<DBSEntity> tableCombo = new JComboBox<>(referenceTables.toArray(new DBSEntity[0]));
@@ -268,7 +285,8 @@ final class DesignerDialogs {
             if (keys == null) {
                 try {
                     keys = ProgressDialog.runTask(NLS.bind(ToolsMessages.designer_dialog_progress_read_keys, refTable.getName()), monitor -> {
-                        List<DBSEntityConstraint> found = TableDesignSession.readUniqueKeys(monitor, refTable);
+                        List<DBSEntityConstraint> found = virtual ? readVirtualTargetKeys(monitor, refTable)
+                            : TableDesignSession.readUniqueKeys(monitor, refTable);
                         for (DBSEntityConstraint key : found) {
                             columnsByKey.put(key, TableDesignSession.readKeyColumns(monitor, key));
                         }
@@ -277,7 +295,7 @@ final class DesignerDialogs {
                 } catch (DBInterruptedException ex) {
                     keys = List.of();
                 } catch (DBException ex) {
-                    DBWorkbench.getPlatformUI().showError(ToolsMessages.designer_add_foreign_key,
+                    DBWorkbench.getPlatformUI().showError(title,
                         NLS.bind(ToolsMessages.designer_dialog_error_read_keys, refTable.getName()), ex);
                     keys = List.of();
                 }
@@ -302,11 +320,16 @@ final class DesignerDialogs {
         }
 
         JPanel form = new JPanel(new GridBagLayout());
-        addRow(form, 0, ToolsMessages.designer_label_name, nameField);
-        addRow(form, 1, ToolsMessages.designer_dialog_referenced_table, tableCombo);
-        addRow(form, 2, ToolsMessages.designer_dialog_referenced_key, keyCombo);
-        addRow(form, 3, ToolsMessages.designer_dialog_on_delete, deleteCombo);
-        addRow(form, 4, ToolsMessages.designer_dialog_on_update, updateCombo);
+        if (virtual) {
+            addRow(form, 0, ToolsMessages.designer_dialog_referenced_table, tableCombo);
+            addRow(form, 1, ToolsMessages.designer_dialog_referenced_key, keyCombo);
+        } else {
+            addRow(form, 0, ToolsMessages.designer_label_name, nameField);
+            addRow(form, 1, ToolsMessages.designer_dialog_referenced_table, tableCombo);
+            addRow(form, 2, ToolsMessages.designer_dialog_referenced_key, keyCombo);
+            addRow(form, 3, ToolsMessages.designer_dialog_on_delete, deleteCombo);
+            addRow(form, 4, ToolsMessages.designer_dialog_on_update, updateCombo);
+        }
         JPanel content = new JPanel(new BorderLayout(0, 8));
         content.add(form, BorderLayout.NORTH);
         JPanel mappingPanel = new JPanel(new BorderLayout(0, 4));
@@ -315,7 +338,7 @@ final class DesignerDialogs {
         content.add(mappingPanel, BorderLayout.CENTER);
         content.setPreferredSize(new Dimension(520, 420));
 
-        return showDialog(owner, ToolsMessages.designer_add_foreign_key, content, () -> {
+        return showDialog(owner, title, content, () -> {
             DBSEntityConstraint key = (DBSEntityConstraint) keyCombo.getSelectedItem();
             if (key == null) {
                 return error(ToolsMessages.designer_dialog_error_no_key);
@@ -327,6 +350,22 @@ final class DesignerDialogs {
             return new ForeignKeySpec(nameField.getText().trim(), key, (DBSForeignKeyModifyRule) deleteCombo.getSelectedItem(),
                 (DBSForeignKeyModifyRule) updateCombo.getSelectedItem(), pairs);
         });
+    }
+
+    /**
+     * Keys a virtual foreign key can reference: the table's primary and unique keys and its complete virtual unique
+     * keys ({@link DBVUtils#getAllConstraints}, as SWT {@code EditForeignKeyPage} with custom keys).
+     */
+    @NotNull
+    private static List<DBSEntityConstraint> readVirtualTargetKeys(@NotNull DBRProgressMonitor monitor, @NotNull DBSEntity table) throws DBException {
+        List<DBSEntityConstraint> keys = new ArrayList<>();
+        for (DBSEntityConstraint constraint : DBVUtils.getAllConstraints(monitor, table)) {
+            if (constraint instanceof DBVEntityConstraint virtualKey ? DBVEntity.isComplete(virtualKey)
+                : constraint.getConstraintType().isUnique() && !(constraint instanceof DBSTableIndex)) {
+                keys.add(constraint);
+            }
+        }
+        return keys;
     }
 
     @NotNull

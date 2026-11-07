@@ -278,9 +278,9 @@ SWT는 설정 페이지 중 일부(`TargetPrefPage`를 쓰는 페이지)를 연�
 | SSL에 Windows 인증서 저장소 사용(Windows만) | `connections.useWinTrustStoreType` | `ChromiteSwingApplication.useWindowsTrustStore`(시작할 때, S6). 다시 시작한 뒤 적용 |
 | 클라이언트 시간대 | `java.client.timezone` | `ClickhouseDataSource`(연결할 때) |
 
-- 시간대와 IP 스택(A-S12/A-S13)의 시작 처리는 B9 2부의 일이다. 이 페이지는 키만 쓴다. 앱 전체의 JVM 기본 시간대를 시작할 때 바꾸는
-  `TimezoneRegistry.overrideTimezone`은 Swing에서 아직 부르지 않는다. 실행 중에 JVM 시간대를 바꾸지 않는다(SWT는 OK에서 바꿨다): 열린 결과와
-  기록의 시간이 섞이고, 다음 시작 때는 적용되지 않아 동작이 어긋난다. 그래서 힌트는 지금 효과가 있는 곳(ClickHouse)만 적었다.
+- 시간대와 IP 스택(A-S12/A-S13)의 시작 처리는 B9 2부(`chromite/p4-connection-tools`)가 한다: 앱이 시작할 때 `TimezoneRegistry.overrideTimezone`으로
+  JVM 기본 시간대를 바꾼다([platform-startup.md](platform-startup.md)). 이 페이지는 키만 쓴다. 실행 중에 JVM 시간대를 바꾸지 않는다(SWT는 OK에서 바꿨다):
+  열린 결과와 기록의 시간이 섞이기 때문이다. 바꾼 시간대는 다음 시작부터 적용된다.
 - 두지 않은 것: "셸 명령" 인증 방식 허용(`connection.shellAuthModelEnabled`). 모델은 이 키로 인증 방식 목록에 셸 명령을 넣지만
   (`enabledWhen`의 `hasPreference` → `getApplicableAuthModels`), Swing 연결 대화상자는 Login·Password 칸만으로 설정이 끝나는 방식만 보인다
   (`ConnectionAuthModels.getChoices`, 셸 명령은 명령·작업 폴더 칸이 필요해 뺌). 실행 확인에서 켠 뒤 PostgreSQL 연결 대화상자의 인증 목록이
@@ -517,7 +517,7 @@ Windows 인증서 저장소(다시 시작 뒤 적용, 키 저장만 확인), 끝
 
 | SWT 페이지 | 키 | Swing 상태 |
 |---|---|---|
-| General | `java.client.timezone` | **추가함**: Options > Connections(2026-11-08, 키만. 앱 전체 적용은 B9 2부 S12) |
+| General | `java.client.timezone` | **추가함**: Options > Connections(2026-11-08). 시작할 때 적용(S12, [platform-startup.md](platform-startup.md)) |
 | General | `ui.auto.update.check` | 효과 없음(읽는 곳 없음) |
 | User Interface | `ui.showZoomRestartPrompt` | 효과 없음(읽는 곳 없음) |
 | User Interface | `ui.statusBar.show.breadcrumbs` | 효과 없음(읽는 곳 없음) |
@@ -609,9 +609,9 @@ Windows 인증서 저장소(다시 시작 뒤 적용, 키 저장만 확인), 끝
 | Notifications | `notifications.soundEnabled` | 효과 없음(읽는 곳 없음) |
 | Notifications | `notifications.soundVolume` | 효과 없음(읽는 곳 없음) |
 | Miscellaneous | `ui.show.holiday.decorations` | 효과 없음(읽는 곳 없음) |
-| Expert Settings | `connections.debugNetworkConnections` | 효과 없음(읽는 곳 없음) |
-| Expert Settings | `connections.preferredIPAddresses` | 효과 없음: 적용 코드가 Swing에 없음(S13) |
-| Expert Settings | `connections.preferredIPType` | 효과 없음: 적용 코드가 Swing에 없음(S13) |
+| Expert Settings | `connections.debugNetworkConnections` | 2026-11-08: 시작할 때 적용(`javax.net.debug=all`, S13). 설정 칸 없음 |
+| Expert Settings | `connections.preferredIPAddresses` | 2026-11-08: 시작할 때 적용(S13). 설정 칸 없음 |
+| Expert Settings | `connections.preferredIPType` | 2026-11-08: 시작할 때 적용(S13). 설정 칸 없음 |
 | Data Transfer | `captureUnsavedTaskLogs` | 효과 없음(읽는 곳 없음) |
 | Data Transfer | `fallbackOutputDirectory` | 효과 없음(읽는 곳 없음) |
 | Data Transfer | `maxTypeLengthMapping` | **추가함**: Options > Data Transfer(2026-11-08, 연결별 값) |

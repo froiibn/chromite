@@ -101,7 +101,8 @@ Connection Properties | SSH ✓ | SSL | Proxy | Driver Properties | Provider Pro
   OS 보안 저장소에 쓴다(2026-11-07부터, [credential-storage.md](credential-storage.md). 그 전에는 고정 키로 암호화한 `credentials-config.json`)
   ([DataSourceParser.java](../../plugins/com.seizia.chromite.registry/src/com/seizia/chromite/registry/DataSourceParser.java) `saveNetworkHandlerConfiguration`). 설정 파일·환경 설정에는 평문으로 남지 않는다.
 - 켜진 핸들러의 칸이 비어 있으면(`getErrorMessage`) 대화상자 아래 빠진 값 안내에 `SSH: Enter the SSH host.`처럼 보이고 Test·Connect가 꺼진다(SWT `isPageComplete`).
-- 네트워크 프로필: 연결이 프로필을 쓰고 그 프로필에 이 핸들러가 켜져 있으면 칸을 끄고 프로필 이름을 보인다. 이때 연결의 핸들러 설정은 건드리지 않는다(프로필 편집 화면은 없다).
+- 네트워크 프로필: 연결이 프로필을 쓰고 그 프로필에 이 핸들러가 켜져 있으면 칸을 끄고 프로필 이름을 보인다. 이때 연결의 핸들러 설정은 건드리지 않는다.
+  프로필 고르기와 편집은 아래 "네트워크 프로필"(2026-11-08).
 
 ### SSH (`SshTunnelPanel`)
 
@@ -111,7 +112,7 @@ Connection Properties | SSH ✓ | SSL | Proxy | Driver Properties | Provider Pro
   Bypass host key verification, Share this tunnel with other connections.
 - 읽기·쓰기: 대상 호스트는 `SSHUtils.loadHostConfigurations`/`saveHostConfigurations`. 공개 키는 데스크톱 SWT처럼 키 파일 경로(`KeyFile`)로 저장한다.
   고급 값의 저장 규칙(0 이하는 지움, 기본 시간 초과는 저장하지 않음)은 `SSHTunnelDefaultConfiguratorUI.saveSettings`와 같다.
-- 점프 서버: 읽은 점프 서버는 그대로 다시 저장하고 개수만 안내한다(목록 편집 화면은 옮기지 않음).
+- 점프 서버: 아래 "SSH 점프 서버"(2026-11-08). 그 전에는 읽은 점프 서버를 그대로 다시 저장하고 개수만 안내했다.
 - Test Tunnel: 폼 값으로 만든 핸들러 설정(변수 풀기, DB 없음)으로 모델의 `SSHTunnelImpl`을 진행 대화상자에서 열었다 닫고 SSH 클라이언트·서버 버전을 보인다
   (`testTunnelConnection`과 같음). 저장하지 않는 비밀번호도 시험에는 쓴다.
 
@@ -135,6 +136,17 @@ SSH 시험 직후 Windows 방화벽이 앱(`chromite-swing.exe`)의 네트워크
   고친 빌드로 앱을 다시 열었을 때 그 프로세스의 LISTENING 줄은 없었다(터널을 열지 않은 상태). 0.0.0.0 쪽 재현은 같은 방화벽 창을 또 띄우므로 하지 않았다
   (`ServerSocket(int)`이 와일드카드 주소에서 듣는 것은 Java API 동작).
 - 이미 떠 있는 방화벽 창은 사용자가 정할 일이라(허용·취소 모두 방화벽 규칙을 바꿈) 건드리지 않았다.
+
+### SSH 점프 서버 (2026-11-08, `SshJumpServersDialog`)
+
+점프 서버는 대상 SSH 호스트 앞에 차례로 거치는 SSH 호스트다. 모델은 [점프 서버…, 대상 호스트] 순서의 `SSHHostConfiguration` 배열로 저장한다
+(`SSHUtils.saveHostConfigurations`, SWT `SSHTunnelDefaultConfiguratorUI`와 같은 값).
+
+- SSH 탭의 **Jump servers** 줄: 없음 / "N개, 첫 서버: 사용자@호스트:포트"와 **Edit…** 단추.
+- 대화상자: 목록(거치는 순서, 첫 줄이 먼저), Add… / Edit… / Remove / Move Up / Move Down, OK / Cancel(Cancel은 아무것도 바꾸지 않음).
+- 서버 하나: 호스트, 포트, 사용자, 인증(Password / Public key / Agent), 키 파일, 비밀번호 또는 키 암호, Remember password. 대상 호스트 칸과 같은 규칙이고
+  비밀번호는 핸들러 설정과 함께 레지스트리가 보안 저장소에 둔다. 서버 제품이 저장한 키 내용(`KeyData`)은 키 파일을 고르지 않으면 그대로 둔다.
+- Test Tunnel은 폼의 점프 서버까지 넣은 설정으로 시험한다(`saveSettings`를 그대로 쓴다).
 
 ### Proxy (`SocksProxyPanel`)
 
@@ -228,6 +240,48 @@ SWT `OracleConnectionExtraPage`의 "Session settings" 묶음(D-db-specific O5)�
 - 공급자 클래스를 내보내지 않는 HANA·Firebird는 `plugin.xml`의 공급자 ID(`hana`, `jaybird`)와 드라이버 ID(`jaybird_embedded`)로 고른다.
 - Spanner는 예시 URL에 자리 표시가 없어 Swing에서 JDBC URL로만 연결한다(키 파일은 인증 칸, 위 1절). SWT의 Project·Instance·Database 칸은 옮기지 않았다.
 
+## 셸 명령 (2026-11-08, `ConnectionShellCommandsPage`)
+
+Options의 **Shell Commands** 탭. SWT `ConnectionPageShellCommands`와 같은 값(`DBPConnectionConfiguration.setEvent`, `DBRShellCommand`)이다.
+
+| 칸 | 값 |
+|---|---|
+| 이벤트 목록과 확인란 | 연결 전·후, 끊기 전·후(`DBPConnectionEventType`). 확인란이 그 이벤트의 명령을 켠다. 쓰는 이벤트가 있으면 탭에 확인 표시 |
+| Command | 명령(여러 줄). 도구 설명에 쓸 수 있는 변수(`${host}` 등, `DBPConnectionConfiguration.INTERNAL_CONNECT_VARIABLES`) |
+| Working folder | 작업 폴더(폴더 고르기) |
+| Wait until the process ends / Time limit (ms) | 끝날 때까지 기다리기, 시간 제한(-1 = 제한 없음) |
+| Stop the process on disconnect | 연결을 끊을 때 아직 실행 중인 프로세스를 끝냄 |
+| Pause after it starts (ms) | 시작 뒤 멈춤 |
+| Clear | 그 이벤트의 명령을 지움 |
+
+- **승인(#99)은 그대로다**: 여기서 입력하거나 고친 명령도 실행할 때 승인 대화상자([shell-command-approval.md](shell-command-approval.md))를 거친다.
+  SWT는 이 화면에서 새로 입력한 명령을 승인 기록에 바로 넣었지만 Chromite는 넣지 않는다. 승인은 실행 시점 한 곳에서만 받는다(Run Once / Always Allow / Cancel).
+- SWT의 "프로세스 패널 보이기"는 Swing에 프로세스 보기가 없어 칸이 없다(저장된 값은 그대로 둔다).
+- 바뀌지 않은 이벤트는 다시 쓰지 않아, 고치지 않은 연결을 Save해도 "바뀜"이 되지 않는다.
+
+## 네트워크 프로필 (2026-11-08, `NetworkProfilesDialog`)
+
+네트워크 프로필은 여러 연결이 함께 쓰는 SSH 터널·프록시 설정 묶음이다. SWT `PrefPageNetworkProfiles`(전역·프로젝트 페이지)와 같은 모델 동작이다.
+
+- **편집**: Tools > Network Profiles…, 또는 연결 대화상자 Connection Properties의 Network profile 옆 **Manage…**.
+  - 범위: Global(작업 공간 전체, `network-profiles.json`, `GlobalNetworkProfileManager`) / Project(현재 프로젝트의 연결 설정 파일). 프로젝트 연결은 두 범위의 프로필을 모두 쓸 수 있다.
+  - 목록과 Add… / Copy… / Remove, 오른쪽에 드라이버와 관계없는 핸들러 탭(SSH, Proxy, "Use …" 확인란 + SSH·프록시 탭과 같은 칸). SWT도 `hasObjectTypes`가 없는 핸들러만 보였다.
+  - 이름은 범위 안에서 겹치면 안 된다. 연결이 쓰는 프로필은 지우지 않고 쓰는 연결을 알린다(SWT `canDeleteProfile`). 지우기 확인은 Remove / Cancel(Cancel이 기본).
+  - OK에서 저장한다: 지운 프로필을 빼고, 바꾼 프로필을 넣고(`addOrUpdateProfile`) 관리자가 저장한다(`saveSettings`). 프로젝트가 보안 저장소를 쓰면 SWT처럼 프로필 비밀번호를
+    프로젝트 비밀 저장소에 쓴다(`persistSecrets`). 프로젝트 관리자는 연결 설정 파일을 비동기로(100 ms 뒤) 저장한다.
+- **고르기**: Connection Properties의 **Network profile**(None / 프로필, 전역 프로필은 "(global)"). 고르면 핸들러 탭을 그 프로필로 다시 읽어, 프로필이 켜는 핸들러는
+  칸을 끄고 "Configured by the network profile '…'"을 보인다. 저장은 `setConfigProfile`이고, 고른 프로필이 그대로면 다시 쓰지 않는다.
+  네트워크 핸들러 탭이 없는 드라이버(내장 DB 등)에는 이 줄이 없다.
+
+## 비밀번호 바꾸기 (2026-11-08)
+
+연결한 사용자의 데이터베이스 비밀번호를 바꾼다(SWT `connection.changeCurrentPassword`, `ChangePasswordDialogHandler`).
+
+- Object Explorer 연결 노드와 Registered Servers 서버의 메뉴 **Change Password…**. 연결되어 있고 연결에 사용자 이름이 있으며 데이터베이스가 `DBAUserPasswordManager`를
+  줄 때만 켜진다(SWT `ChangeUserPasswordPropertyTester`). 2026-11-08 현재 SQL Server, PostgreSQL, Oracle, SAP HANA, Exasol, Vertica, YashanDB 모델이 준다.
+- 모델의 `DBAuthUtils.promptAndChangePasswordForCurrentUser`를 진행 대화상자에서 실행한다: 새 비밀번호(두 번) 묻기 → 데이터베이스 문장 실행
+  (SQL Server `ALTER LOGIN … WITH PASSWORD`) → 연결 설정에 저장할지 묻기.
+
 ## 4. 일반 설정 (Connection Properties 탭)
 
 - 기존: 연결 종류, 자동 커밋, 기본 DB·스키마, 읽기 전용, keep-alive, 유휴 연결 닫기("Connect 대화상자 (SSMS식)").
@@ -277,7 +331,9 @@ Provider Properties 표는 모델 `plugin.xml`의 `<provider-properties>`에 선
   URL은 공급자 속성까지 쓴 뒤 만든다(Oracle TNS URL은 공급자 속성으로 만든다). 예전 순서는 URL을 속성 표보다 먼저 만들었다.
 - **기본값을 없는 키에 넣지 않음**: SWT는 Trust server certificate `false`, SID/Service `SERVICE` 등을 항상 쓴다. 편집 대화상자는 Save할 때 `equalSettings`로 바뀜을 판단하므로,
   그대로 따르면 아무것도 고치지 않은 예전 연결도 "바뀜"이 되어 다시 연결을 묻는다. 그래서 값이 모델 기본값이고 키가 없으면 넣지 않는다.
-- **SSH 점프 서버**: 목록 편집 화면 대신 읽은 값을 보존하고 안내만 한다(한 번에 다 옮기면 완성도가 떨어져서).
+- **SSH 점프 서버**: 처음에는 읽은 값을 보존하고 안내만 했다. 2026-11-08 목록 편집 대화상자를 더했다.
+- **셸 명령 승인은 실행 시점 한 곳(2026-11-08)**: 편집 화면이 입력한 명령을 승인 기록에 넣으면, 다른 사람이 넘긴 연결 설정을 열어 Save만 눌러도 그 명령이 승인될 수 있다.
+  그래서 편집은 값만 바꾸고 승인은 실행할 때 정확한 명령을 보고 받는다.
 - **선언할지 칸을 만들지(2026-11-08)**: 값이 참/거짓이나 짧은 글이고 SWT도 확인란·글 칸 하나였던 키는 모델 `plugin.xml`에 선언해 Provider Properties 표로 고친다(6절).
   파일·폴더 고르기, 목록, 다른 값과 함께 정해지는 값(HANA 포트, Snowflake 대체 키), 인증 속성·드라이버 속성은 주 양식 칸으로 만든다. 표는 공급자 속성만 다루고
   고르기 단추가 없기 때문이다.
@@ -289,7 +345,9 @@ Provider Properties 표는 모델 `plugin.xml`의 `<provider-properties>`에 선
 - upstream 코드는 SSH 터널의 로컬 주소 두 곳(`SSHTunnelImpl`, `SSHUtils`, 위 절)과, 2026-11-08 공급자 속성 선언(`ext.postgresql`·`ext.mssql`·`ext.oracle`의
   `plugin.xml`과 `OSGI-INF/l10n/bundle.properties`·`bundle_ko.properties`, 위 6절)만 고쳤고 나머지는 Swing 번들만 바뀌었다. 모델 Java 코드는 이번에 바꾸지 않았다.
 - SWT와 다른 동작: SQL Server Encrypt를 주 양식에 둠(SWT는 드라이버 속성 표), 연결 색을 쿼리 창 상태 줄에 칠함(SWT는 편집기 탭·탐색기),
-  Oracle Custom은 JDBC URL 연결 방식으로 통합, PostgreSQL SSL factory는 직접 입력, 네트워크 프로필 편집 없음.
+  Oracle Custom은 JDBC URL 연결 방식으로 통합, PostgreSQL SSL factory는 직접 입력.
+  2026-11-08: 셸 명령 편집이 명령을 승인 기록에 넣지 않음, 네트워크 프로필 고르기는 Connection Properties의 콤보(SWT는 설정 페이지 도구 막대 메뉴),
+  Server name이 `https://…` 같은 URL이면 첫 `:`를 포트 구분으로 보지 않음(BigQuery 기본 호스트, 끝의 `:숫자`만 포트).
   2026-11-08: 연결 설명은 Connection Properties 탭(SWT는 General 페이지), SSL 칸을 핸들러 ID로 고름(SWT는 구현 클래스, Databend·TiDB Lake가 겹침),
   PostgreSQL 프록시 서비스는 저장값이 켜져 있을 때만 보임, Snowflake·Spanner 빈 값은 속성을 지움(1절).
 
@@ -337,19 +395,39 @@ Windows에서 in-process JVM으로 개인 작업 공간을 열어 로컬 Docker 
 - 같은 확인을 한국어(OS 언어)와 영어(`-nl en_US`)로 두 번 실행: 표 이름·안내·막힘 문구가 각 언어로 나옴(예: "Connects to port 30713 (set by the edition)",
   "포트 30713에 연결합니다(에디션이 정함)"). 화면은 `shots-ko\`, `shots\`(영어).
 
+### 확인 (2026-11-08, 연결 도구)
+
+빌드 `-Pproduct-chromite-swing` BUILD SUCCESS. 개인 데이터 폴더·작업 공간으로 연 앱 하나(영어 `-nl en_US`)에 시험 코드를 붙여, 패널과 대화상자를 화면 밖에서 만들고
+그 대화상자의 단추를 같은 프로세스 안에서 눌렀다(화면 입력 없음). 기록 `D:\Tools\_scratch\chromite-p4-connection-fields\ops-tools-*.log`, 화면 `shots\`.
+
+- 셸 명령: 탭 순서 Connection Properties, SSH, SSL, Proxy, **Shell Commands**, Settings, …. Before Connect를 켜고 `cmd /c echo p4ct`, 기다리기 → 저장된 이벤트
+  (켜짐, 기다림, 시간 제한 -1), 탭 확인 표시. 그 연결로 Docker PostgreSQL에 연결: 승인 대화상자에 명령이 보이고, Cancel → "Shell command was not approved …"로 연결 안 됨,
+  Run Once → 연결됨. 한 번 저장한 연결을 그대로 저장하면 `equalSettings` 참.
+- 점프 서버: 저장된 점프 서버 1개 → "1 jump server(s), first: jump1@jump1.example:22". 대화상자에서 서버를 더하고 Move Up → 순서가 바뀜.
+  저장 결과 `[jump2(KeyFile), jump1(Password), 대상 호스트]`.
+- 네트워크 프로필: 대화상자 범위 2개(Global, Project General), 탭 SSH·Proxy. 프로젝트 프로필 `p4ct-profile`(SSH bastion.example)을 저장 → 관리자와 `.chromite/data-sources.json`에 있음.
+  연결 대화상자의 Network profile 콤보 `[None, p4ct-profile]`, 고르면 SSH 탭에 "Configured by the network profile 'p4ct-profile'", 저장된 프로필 이름, 그대로 저장하면 `equalSettings` 참.
+  그 프로필을 쓰는 연결을 등록하면 지우기 검사가 그 연결 이름을 돌려줌. 시험 프로필·연결은 지움.
+- 비밀번호 바꾸기(공유 Docker SQL Server, 직접 만든 로그인 `p4ct_user`): 끊긴 연결은 메뉴가 꺼짐(관리자 없음), 연결한 SQL Server·PostgreSQL은 켜짐.
+  메뉴 동작 → "Change user password" 묻기에 새 비밀번호 → "Change current user password"(저장할지)에 No → 새 비밀번호로 연결됨, 옛 비밀번호로 연결 안 됨. 로그인은 지움.
+- Server name: `https://www.googleapis.com/bigquery/v2` → 호스트 그대로·포트 없음, `…/v2:8443` → 포트 8443, `db.example:5433`, `db.example,1433`, `[::1]:5432`, `fe80::1`은 전과 같음.
+  새 BigQuery 연결의 저장값: 호스트 `https://www.googleapis.com/bigquery/v2`, 포트 443, URL `jdbc:bigquery://https://www.googleapis.com/bigquery/v2:443;…`.
+- 확인하지 못한 것: 실제 SSH 점프 서버·프로필을 거친 연결(시험 SSH 서버 없음), 승인 기록 Always Allow 뒤 묻지 않는지(#99에서 확인함), 한국어 화면.
+
 ## 남긴 것
 
-- SSH 점프 서버 목록 편집, 네트워크 프로필 편집·선택, HTTP 프록시(모델에 구현 없음).
+- HTTP 프록시(모델에 구현 없음). 2026-11-08 점프 서버 목록 편집, 네트워크 프로필 편집·고르기, 셸 명령 편집, 비밀번호 바꾸기를 더함.
+- 셸 명령 출력을 보는 프로세스 보기(SWT `ShellProcessView`, A-C11)와 승인 기록 관리 화면은 없다.
 - 인증서 내용 붙여 넣기(분산 제품용 `.value` 속성).
 - 인증 방식별 칸이 더 필요한 방식: 셸 명령 비밀번호, ClickHouse Cloud SSO/OIDC(인증 서비스 `UIServiceAuth` 구현도 없음).
 - Oracle 클라이언트(OCI) 홈 선택, PostgreSQL SSL factory 목록 찾기, Snowflake의 Test 뒤 목록 채우기, Spanner Project·Instance·Database 칸(지금은 JDBC URL),
   CUBRID shard 칸(드라이버 속성 표로는 고칠 수 있음).
-- BigQuery 기본 호스트(`https://www.googleapis.com/bigquery/v2`)를 Server name 한 칸으로 읽으면 첫 `:`에서 호스트와 포트로 나뉜다(`ConnectionSettingsPanel.splitServerName`).
-  2026-11-08 확인에서 저장값이 호스트 `https`, 포트 `//www.googleapis.com/bigquery/v2`였다. 만들어지는 URL 앞부분은 같지만 포트 443이 빠진다. 이번 범위 밖이라 고치지 않았다(실제 BigQuery 연결은 확인하지 못함).
 - 연결 색을 문서 탭에도 칠하기(지금은 상태 줄, Registered Servers, Object Explorer).
 
 ## 변경 이력
 
+- 2026-11-08 연결 도구(`chromite/p4-connection-tools`): 셸 명령 탭, SSH 점프 서버 편집, 네트워크 프로필 편집·고르기, 비밀번호 바꾸기 메뉴,
+  Server name의 URL 호스트(BigQuery) 나누기 고침. "확인 (2026-11-08, 연결 도구)" 절.
 - 2026-11-08 Oracle 세션 설정(NLS) 탭, 드라이버별 Options 탭 고리(`ConnectionDriverFields#getOptionsPage`).
 - 2026-11-08 연결 칸 4순위(`chromite/p4-connection-fields`): 공급자 속성 선언(PostgreSQL·SQL Server·Oracle, 6절), ClickHouse SSL 탭, Databend·TiDB Lake SSL 탭,
   저장된 PostgreSQL 프록시 서비스 끄기, BigQuery·Snowflake·Spanner 인증 칸, BigQuery·Snowflake·HANA·Firebird Embedded·Mimer 주 양식 칸, 연결 설명,

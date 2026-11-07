@@ -101,18 +101,18 @@
 | # | 기능 | SWT 출처 | 상태 | 근거 | 영향 | 메모 |
 |---|---|---|---|---|---|---|
 | R1 | 그리드 보기 | `SpreadsheetPresentation` | 있음 | `ResultSetGrid`, `ResultSetViewerPanel` | 높음 | |
-| R2 | 텍스트 보기 | `PlainTextPresentation`, `switch.presentation` | 없음 | grep `PlainText` 0건, swing-frontend.md C단계 남긴 것 | 낮음 | |
+| R2 | 텍스트 보기 | `PlainTextPresentation`, `switch.presentation` | 있음 (2026-11-08) | `ResultSetTextView`, 상태 줄 "텍스트"(Ctrl+`), [swing-grid-navigation.md](../swing-grid-navigation.md). 조사 당시: 없음(grep `PlainText` 0건) | 낮음 | 읽기 전용, 20,000행까지 |
 | R3 | 레코드 보기 | `toggleMode` | 있음 | `ResultSetRecordView` | 중간 | |
 | R4 | 값 패널(글자·JSON·XML·이미지·Hex) | `ValueViewerPanel`, `ContentPanelEditor` | 있음 | `ResultSetValuePanel`, `ResultSetCellContent` | 중간 | 글자 값만 편집, LOB 읽기 전용 |
 | R5 | 메타데이터 패널 | `MetaDataPanel` | 없음 | swing-result-viewer.md:179 | 낮음 | |
-| R6 | 집계 패널 | `AggregateColumnsPanel`, `aggregateFunction` 확장 | 일부 | `ResultSetAggregates`(상태 줄 Count·Sum·Avg·Min·Max) | 낮음 | 함수 고르기·열별 표·그룹 집계 없음 |
-| R7 | 참조 패널, 외래 키 따라가기(참조 행 열기, 참조하는 행 보기) | `ReferencesPanel`, `navigateLink`, `referencesMenu` | 없음 | 결과 클래스에 `ForeignKey`/`DBSEntityAssociation` 0건 | 중간 | |
+| R6 | 집계 패널 | `AggregateColumnsPanel`, `aggregateFunction` 확장 | 있음 (2026-11-08) | `ResultSetAggregatePanel`(함수 9개 고르기, 열마다·전체), [swing-grid-navigation.md](../swing-grid-navigation.md) "집계 패널". 조사 당시: 일부(상태 줄 집계만) | 낮음 | 합계·평균은 숫자 값만(SWT는 글자도 숫자로 읽음) |
+| R7 | 참조 패널, 외래 키 따라가기(참조 행 열기, 참조하는 행 보기) | `ReferencesPanel`, `navigateLink`, `referencesMenu` | 있음 (2026-11-08) | Ctrl+B·Ctrl+Shift+1·Navigate 메뉴, 뒤로·앞으로(Alt+←/→), `ResultSetReferencesPanel`, [swing-grid-navigation.md](../swing-grid-navigation.md). 조사 당시: 없음 | 중간 | 참조 패널은 읽기 전용("열기"로 편집), 뒤로는 다시 읽지 않고 남긴 결과 |
 | R8 | 그룹 패널(GROUP BY 보기, 중복만) | `GroupingPanel` | 없음 | grep `Grouping` 0건(결과) | 낮음 | |
 | R9 | GIS(공간 데이터) 보기 | `data.gis.view` | 일부 (2026-11-08) | `ResultSetSpatialView`, `SqlServerSpatialReader`([swing-result-charts-spatial.md](../swing-result-charts-spatial.md)). 조사 당시: 없음(swt-removal.md:106) | 낮음 | 밑그림 지도(온라인 타일)·SRID 변환·GIS 설정·기하 값 편집 없음(폐쇄망용으로 일부러 뺌). SQL Server 바이트는 SWT보다 더 그림 |
 | R10 | 필터 | `ResultSetFilterPanel`, `filterMenu`, `filterSave`, `filterSettings` | 일부 | `ResultSetColumnFilterPopup`, "Filter by Value"(swing-grid-column-filters.md) | 중간 | 저장한 필터, 필터 편집 대화상자, 고급 WHERE 입력 없음(swing-result-viewer.md:177) |
 | R11 | 정렬(서버·표 안) | `toggleOrder`, `OrderingStrategy` | 있음 | `ResultSetViewerPanel`, swing-result-viewer.md "정렬과 필터" | 중간 | 2026-11-08 SWT와 다름: 서버 정렬이 쿼리의 ORDER BY를 바꾸고(SWT는 뒤에 덧붙임) 상태 줄에 정렬 요약·쿼리 순서로 되돌리기([swing-grid-column-filters.md](../swing-grid-column-filters.md) "정렬과 쿼리의 ORDER BY") |
 | R12 | 페이지·더 읽기·모두 읽기, 최대 행 수 | `fetch.page`, `fetch.all`, `PrefPageResultSetMain` | 있음 | `ResultSetViewerPanel`, Options "Maximum rows" | 중간 | JDBC fetch size 설정 없음 |
-| R13 | 전체 행 수 세기 | `resultset.count` | 없음 | swing-result-viewer.md:177 | 낮음 | |
+| R13 | 전체 행 수 세기 | `resultset.count` | 있음 (2026-11-08) | 상태 줄·Navigate "행 수 세기", 모델 `SQLQueryDataContainer.countData` 고침(늘 -1이었음), [swing-grid-navigation.md](../swing-grid-navigation.md) "전체 행 수". 조사 당시: 없음 | 낮음 | 다시 읽을 수 있는 결과만 |
 | R14 | 형식별 값 편집기(날짜 선택, 불리언 확인란, 참조 값 고르기, 배열·구조체, 커서, LOB 파일 불러오기·저장, 외부 편집기, UUID 만들기) | `data/editors/*`, `data/managers/*`, `openWith`, `cell.save`, `generate.uuid` | 일부 | 2026-11-08 날짜·시각 선택기, 불리언·ENUM 목록, LOB 파일 불러오기·저장, LOB 값 패널 편집([swing-grid-editing.md](../swing-grid-editing.md)) | 중간 | 참조 값 고르기, 배열·구조체·커서, 외부 편집기, UUID 만들기는 남음 |
 | R15 | 이진 표시 형식, 데이터 형식 설정 화면 | `BinaryFormatAction`, `PrefPageDataFormat` | 일부 | Options "Show date/time values in the database format" 하나 | 낮음 | |
 | R16 | 고급 복사(설정 대화상자, JSON·XML·HTML·SQL INSERT 등 처리기별 복사), 특수 붙여넣기 | `ResultSetHandlerCopySpecial`, `CopyAs`, `PasteSpecial` | 있음 (2026-11-08) | `ResultSetCopyFormats`(CSV·TSV·Markdown·SQL IN·JSON·XML·HTML·SQL INSERT, 고급 복사), `ResultSetPaste`(여러 칸 붙여넣기, 특수 붙여넣기), [swing-grid-editing.md](../swing-grid-editing.md) | 중간 | 복사 형식은 데이터 전송 처리기가 아니라 표의 값으로 만듦 |
@@ -121,12 +121,12 @@
 | R19 | 저장 전 스크립트 미리 보기, 연결 종류 "데이터 변경 확인" | `ResultSetViewer.java:4735`, `SavePreviewDialog`, `toggleConfirmSave` | 있음 (2026-11-07 수정, 조사 때 조용히 끊김) | `ResultSetGrid.confirmSave`, `ScriptPreviewDialog.confirmSave`, Options "Show the SQL script before saving grid changes" | 높음 | Test·Production 기본 켬. 도구 막대 토글·연쇄 삭제 선택 없음 |
 | R20 | 저장하고 커밋, 변경 스크립트 보기, 연쇄 삭제 옵션 | `applyAndCommitChanges`, `generateScript`, `SaveScriptDialog` | 일부 (2026-11-08) | 저장하고 커밋(수동 커밋 연결, 그 전 변경은 먼저 물음), 변경 미리 보기([swing-grid-editing.md](../swing-grid-editing.md)) | 중간 | 연쇄 삭제는 남음 |
 | R21 | 행 복제·위/아래 행 복사, 기본값으로, 칸 되돌리기, 실행 취소 | `row.copy*`, `cell.setDefault`, `cell.reset` | 있음 (2026-11-08) | `ResultSetGrid`·`ResultSetEditModel`, SWT 단축키([swing-grid-editing.md](../swing-grid-editing.md)) | 낮음 | 셀 되돌리기에 Esc 없음(표의 편집 취소 키) |
-| R22 | 가상 키(키 없는 테이블 편집), 가상(계산) 열, 가상 외래 키 | `controls/resultset/virtual/*` | 없음 | swing-frontend.md:1291, grep `DBVEntity` 0건(결과) | 중간 | 기본 키 없는 테이블은 편집 불가 |
+| R22 | 가상 키(키 없는 테이블 편집), 가상(계산) 열, 가상 외래 키 | `controls/resultset/virtual/*` | 일부 (2026-11-08) | 가상 고유 키(읽기 전용 줄의 "가상 키 정하기…"), 가상 외래 키 추가·지우기(`ResultSetVirtualKeys`, 가상 모델에 저장), [swing-grid-navigation.md](../swing-grid-navigation.md) "가상 키". 조사 당시: 없음 | 중간 | 가상(계산) 열은 남음 |
 | R23 | 값에 따른 색, 행 색, 그룹 줄무늬 | `colors/*` | 없음 | grep 0건 | 낮음 | |
-| R24 | 열 숨기기·순서·고정·빈 열 숨기기, 행·열로 가기, 확대·축소 | `grid.*` 명령, `zoomIn/Out` | 일부 | 열 너비 맞추기만(`ResultSetColumnFit`), swing-result-viewer.md:177 | 낮음 | |
-| R25 | 결과 안 찾기 | Find/Replace on grid | 없음 | swing-result-viewer.md:179 | 낮음 | |
+| R24 | 열 숨기기·순서·고정·빈 열 숨기기, 행·열로 가기, 확대·축소 | `grid.*` 명령, `zoomIn/Out` | 일부 (2026-11-08) | 숨기기·모두 보이기·빈 열 숨기기, 머리글 끌어 옮기기, Ctrl+G·Ctrl+Shift+G, Alt+0/Alt+9(`ResultSetColumnLayout`), [swing-grid-navigation.md](../swing-grid-navigation.md). 조사 당시: 열 너비 맞추기만 | 낮음 | 열 고정(pin)은 남음 |
+| R25 | 결과 안 찾기 | Find/Replace on grid | 있음 (2026-11-08) | Ctrl+F 찾기 줄(`ResultSetFindBar`), [swing-grid-navigation.md](../swing-grid-navigation.md). 조사 당시: 없음 | 낮음 | 찾기만(바꾸기 없음), 읽은 행만 |
 | R26 | 결과 뷰어 설정 화면 | `PrefPageResultSetMain/Presentation/Editors` | 일부 | Options: 최대 행 수, 날짜 형식 | 낮음 | |
-| R27 | 오류 위치로 가기 | `GoToErrorAction`, `ErrorPresentation` | 일부 | Messages에 Line/Column 표시, 이동 없음(swing-frontend.md:705-708) | 낮음 | |
+| R27 | 오류 위치로 가기 | `GoToErrorAction`, `ErrorPresentation` | 있음 (2026-11-08) | Messages의 오류를 두 번 누르기·오른쪽 클릭 "오류 위치로 가기"(`QueryResultsView`, `SqlEditorPanel.ErrorReport`), [swing-grid-navigation.md](../swing-grid-navigation.md). 조사 당시: 일부(Line/Column 표시만) | 낮음 | `@include` 파일의 오류는 위치 없음 |
 | R28 | 힌트·변환기(참조 힌트, 복합형 펼치기, 자료형 색) | `dataHintProvider`, `TransformerAction` | 없음 | grep 0건 | 낮음 | |
 | R29 | 서버 정렬 전 확인 대화상자 | `ResultSetViewer` 정렬 확인 | 의도적 제외 | swing-result-viewer.md:90 "확인 대화상자는 띄우지 않는다" | 낮음 | |
 | R30 | 데이터를 바꾸는 쿼리를 다시 실행하기 전 확인 | `verifyQuerySafety` | 의도적 제외 | swing-result-viewer.md:100-101: 묻는 대신 SELECT 하나만 다시 읽음 | 낮음 | 더 안전한 쪽으로 바꿈 |
@@ -159,13 +159,13 @@ swing-security.md는 DB 보안(로그인·역할·권한) 문서이고 연결 �
 | C3 | 드라이버 속성, 공급자 속성 | `DriverPropertiesDialogPage`, `ConnectionPropertiesControl` | 있음 | `ConnectionPropertiesTable` | 중간 | |
 | C4 | 인증 방식과 방식별 칸 | `AuthModelSelector`, `*AuthConfigurator` | 일부 | `ConnectionAuthModels`, `ConnectionAuthExtras` | 중간 | 셸 명령 비밀번호, ClickHouse SSO·OIDC 칸 없음. BigQuery·Snowflake·Spanner 칸은 2026-11-08 더함([swing-conn-advanced.md](../swing-conn-advanced.md) "1. 인증 방식") |
 | C5 | 저장 안 한 비밀번호의 인증 방식 자격 증명 묻기 | `AuthModelCredentialsDialog`, `DesktopUI.promptAuthModelCredentials` | **조용히 끊김** | 위 요약 2 | 높음 | 실행 확인 못 함(코드 경로) |
-| C6 | SSH 터널 | `SSHTunnelDefaultConfiguratorUI` | 일부 | `SshTunnelPanel` | 중간 | 점프 서버 목록 편집 없음(보존만) |
+| C6 | SSH 터널 | `SSHTunnelDefaultConfiguratorUI` | 있음 (2026-11-08: 점프 서버 목록 편집 `SshJumpServersDialog`). 조사 당시: 일부 | `SshTunnelPanel` | 중간 | |
 | C7 | 프록시 | `SocksProxyConfiguratorUI` | 있음 | `SocksProxyPanel` | 낮음 | SOCKS만(HTTP는 모델에 없음) |
 | C8 | SSL | `SSLConfiguratorTrustStoreUI`, DB별 SSL 화면 | 일부 | `SslHandlerPanel`(PostgreSQL·MySQL·SQL Server, 2026-11-08 ClickHouse·Databend·TiDB Lake) | 중간 | PostgreSQL SSL factory 목록 없음(직접 입력) |
-| C9 | 네트워크 프로필 편집 | `PrefPageNetworkProfiles` 등 | 없음 | swing-conn-advanced.md:224 | 낮음 | 프로필을 쓰는 연결은 표시만 |
+| C9 | 네트워크 프로필 편집 | `PrefPageNetworkProfiles` 등 | 있음 (2026-11-08). 조사 당시: 없음 | `NetworkProfilesDialog`, 연결 대화상자의 Network profile 고르기([swing-conn-advanced.md](../swing-conn-advanced.md) "네트워크 프로필") | 낮음 | |
 | C10 | 연결 직후 SQL(bootstrap) | `EditBootstrapQueriesDialog` | 있음 | `BootstrapQueriesDialog` | 중간 | |
 | C11 | 초기화 설정(자동 커밋, 기본 DB/스키마, keep-alive, 유휴 연결 닫기, 격리 수준) | `ConnectionPageInitialization` | 일부 | `ConnectionSettingsPanel` Options; 격리 수준 grep 0건 | 중간 | 격리 수준만 없음 |
-| C12 | 셸 명령(연결 전·후 이벤트) | `ConnectionPageShellCommands` | 없음 | grep `DBPConnectionEventType` 0건 | 낮음 | 이미 저장된 명령은 모델이 실행(`SwingPlatformUI.executeProcess`) |
+| C12 | 셸 명령(연결 전·후 이벤트) | `ConnectionPageShellCommands` | 있음 (2026-11-08). 조사 당시: 없음 | Options의 Shell Commands 탭(`ConnectionShellCommandsPage`, [swing-conn-advanced.md](../swing-conn-advanced.md) "셸 명령") | 낮음 | 실행 전 승인(#99)은 그대로. 편집한 명령도 처음 실행할 때 묻는다 |
 | C13 | 연결 보안 제한(권한 편집), 연결 잠금 | `EditConnectionPermissionsDialog` | 없음 | grep `setModifyPermission` 0건 | 중간 | 편집 화면이 없고 S8처럼 일부 제한은 무시됨 |
 | C14 | 연결 종류 편집기(새 종류, 자동 커밋·실행 확인·데이터 변경 확인·스마트 커밋·자동 닫기 기간·색) | `PrefPageConnectionTypes` | 없음 | `ConnectionSettingsPanel.java:632`는 종류 목록만 고름 | 중간 | 기본 3종류의 값을 바꿀 수 없음 |
 | C15 | 트랜잭션 설정(스마트 커밋·복귀, 유휴 트랜잭션 자동 닫기·시간) | `PrefPageTransactions` | 일부 (2026-11-08 스마트 커밋·되돌리기는 Options > Connection Types, [connection-lifecycle.md](../connection-lifecycle.md). 유휴 트랜잭션은 연결 대화상자, [idle-transactions.md](../idle-transactions.md)). 조사 당시: 없음 | grep `TRANSACTIONS_SMART_COMMIT`·`TRANSACTIONS_AUTO_CLOSE` Swing 0건 | 중간 | S16·S24의 설정 쪽 |
@@ -174,7 +174,7 @@ swing-security.md는 DB 보안(로그인·역할·권한) 문서이고 연결 �
 | C18 | 드라이버 관리 나머지(Maven 아티팩트, 의존성 트리, 전역 클래스패스) | `DriverEditDialog`, `PrefPageDrivers*` | 있음 (2026-11-08, 조사 때 일부) | `MavenArtifactDialog`, `DriverLibraryDetailsDialog`, `GlobalLibrariesDialog`([swing-driver-manager.md](../swing-driver-manager.md)) | 낮음 | Maven 저장소 목록과 라이브러리 내보내기는 남음 |
 | C19 | 클라이언트 홈 선택 | `ClientHomesSelector`, `ClientHomesPanel` | 있음 (2026-11-08, 조사 때 일부) | 드라이버의 설치 목록은 드라이버 편집 창 Local Client 탭(`ClientHomesPanel`), 연결마다 고르기는 백업 대화상자(D-P6, M2). 새 연결은 기본 홈(`ConnectionDialog.java:340`) | 낮음 | Oracle OCI 홈은 SWT에서도 상용 기능이라 옮기지 않음(swing-conn-advanced.md:165) |
 | C20 | URL로 새 연결, 드라이버 종류 바꾸기 | `new.connection.from.url`, Driver type | 일부 | Connect with: JDBC URL 방식은 있음 | 낮음 | |
-| C21 | 현재 사용자 비밀번호 바꾸기 | `connection.changeCurrentPassword`, `PasswordChangeDialog` | 일부 | 만료 비밀번호 묻기는 됨(`SwingPlatformUI.promptUserPasswordChange` `:360`), 메뉴 없음 | 낮음 | |
+| C21 | 현재 사용자 비밀번호 바꾸기 | `connection.changeCurrentPassword`, `PasswordChangeDialog` | 있음 (2026-11-08: Object Explorer·Registered Servers의 Change Password…). 조사 당시: 일부 | 만료 비밀번호 묻기(`SwingPlatformUI.promptUserPasswordChange`)와 메뉴(`ConnectionCommands.changePassword`, [swing-conn-advanced.md](../swing-conn-advanced.md) "비밀번호 바꾸기") | 낮음 | |
 | C22 | Test Connection | `ConnectionWizard.testConnection` | 있음 | `ConnectionDialog`, swing-conn-advanced.md "5. Test Connection" | 중간 | |
 
 ## E. 그 밖의 편집기 (`session`, `locks`, `acl`, `hex`, `image`, `json`, `xml`)

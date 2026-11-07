@@ -39,6 +39,7 @@ import com.seizia.chromite.model.connection.DBPDriverConfigurationType;
 import com.seizia.chromite.model.connection.DBPNativeClientLocation;
 import com.seizia.chromite.model.impl.PropertyDescriptor;
 import com.seizia.chromite.model.impl.jdbc.JDBCTransactionIsolation;
+import com.seizia.chromite.model.net.DBWNetworkProfile;
 import com.seizia.chromite.model.preferences.DBPPreferenceStore;
 import com.seizia.chromite.model.preferences.DBPPropertyDescriptor;
 import com.seizia.chromite.registry.DataSourceDescriptor;
@@ -85,7 +86,7 @@ import java.util.Set;
  *     <li>Options 탭: Connection Properties(설명, 연결 종류, 자동 커밋, 트랜잭션 격리 수준, 쿼리 창 세션(연결의 설정 저장소, {@link QueryWindowContext}), 기본 DB·스키마, 읽기 전용, 연결 색, 연결 직후 SQL, keep-alive, 유휴 연결 닫기,
  *     유휴 트랜잭션 알림·자동 롤백, 네이티브 도구 드라이버면 로컬 클라이언트. SWT
  *     {@code ConnectionPageGeneral}·{@code ConnectionPageInitialization}과 같은 값), 네트워크 핸들러 탭(SSH, Proxy, SSL: {@link ConnectionNetworkPage},
- *     쓰는 핸들러의 탭에는 확인 표시), Settings(Tools &gt; Options 페이지의 연결별 값, {@link ConnectionSettingsOverrides}), Driver Properties,
+ *     쓰는 핸들러의 탭에는 확인 표시), Shell Commands(연결 이벤트 명령, {@link ConnectionShellCommandsPage}), Settings(Tools &gt; Options 페이지의 연결별 값, {@link ConnectionSettingsOverrides}), Driver Properties,
  *     Provider Properties, Additional Connection Parameters(연결 방식: 칸 / JDBC URL 직접 입력, {@link DBPDriverConfigurationType}).</li>
  *     <li>Driver Properties 탭: 처음 열 때 모델의 {@code DBPDataSourceProvider#getConnectionProperties}(JDBC 드라이버의
  *     {@code getPropertyInfo})로 읽는다(SWT {@code ConnectionPropertiesControl}과 같은 호출, 드라이버 파일이 없으면 이때 내려받기를 묻는다).
@@ -119,6 +120,9 @@ import java.util.Set;
  *   (docs/chromite/swing-conn-advanced.md "Oracle 세션 설정")
  * - 2026-11-07 Connection Properties에 쿼리 창 세션(이 연결의 쿼리 창마다 별도 연결: Options 설정 / 창마다 / 함께 씀)
  *   (docs/chromite/transactions.md "쿼리 창마다 별도 연결")
+ * - 2026-11-08 Options의 Shell Commands 탭({@link ConnectionShellCommandsPage}, 연결 이벤트 명령), Server name의 URL 호스트(https://…)를
+ *   첫 ':'에서 나누지 않음(BigQuery 기본 호스트), Connection Properties의 Network profile(고르기와 Manage…, {@link NetworkProfilesDialog})
+ *   (docs/chromite/swing-conn-advanced.md "셸 명령", "네트워크 프로필")
  * - 2026-11-08 Options의 Settings 탭: Tools &gt; Options 페이지의 연결별 값({@link ConnectionSettingsOverrides}). 다시 연결 없이 적용되는
  *   설정 키를 대화상자에 알림({@link #getPreferencesAppliedWithoutReconnect}) (docs/chromite/swing-options.md "연결별 설정")
  * - 2026-11-08 Connection Properties 맨 위에 연결 설명(SWT {@code ConnectionPageGeneral}의 Description, 탐색기 도구 설명에 보임)
@@ -131,6 +135,7 @@ final class ConnectionSettingsPanel extends JPanel {
 
     private static final Log log = Log.getLog(ConnectionSettingsPanel.class);
 
+    private static final String URL_SCHEME_SEPARATOR = "://"; //$NON-NLS-1$
     private static final String[] AUTO_COMMIT_ITEMS = {
         ConnectionMessages.settings_auto_commit_default, ConnectionMessages.settings_auto_commit_auto, ConnectionMessages.settings_auto_commit_manual};
     // Query window sessions: no value of the connection (the Options setting), ALWAYS, NEVER
@@ -175,6 +180,8 @@ final class ConnectionSettingsPanel extends JPanel {
 
     private final JTextField descriptionField = new JTextField();
     private final JComboBox<DBPConnectionType> connectionTypeCombo = new JComboBox<>();
+    // ConnectionMessages.profiles_none (no profile) or a DBWNetworkProfile
+    private final JComboBox<Object> profileCombo = new JComboBox<>();
     private final JComboBox<String> autoCommitCombo = new JComboBox<>(AUTO_COMMIT_ITEMS);
     // The driver default (a String) or a DBPTransactionIsolation
     private final JComboBox<Object> isolationCombo = new JComboBox<>();
@@ -202,6 +209,7 @@ final class ConnectionSettingsPanel extends JPanel {
     private final JComboBox<String> localClientCombo = new JComboBox<>();
     private final Map<String, DBPNativeClientLocation> localClients = new HashMap<>();
     private final List<ConnectionNetworkPage> networkPages;
+    private final ConnectionShellCommandsPage shellCommandsPage;
     private final ConnectionSettingsOverrides settingsOverrides;
 
     private final JTabbedPane optionsTabs = new JTabbedPane();
@@ -267,6 +275,7 @@ final class ConnectionSettingsPanel extends JPanel {
         authExtras = ConnectionAuthExtras.create(authModels);
         driverFields = urlOnly ? null : ConnectionDriverFields.create(driver, this.changeListener);
         networkPages = ConnectionNetworkPage.createPages(dataSource, this.changeListener);
+        shellCommandsPage = new ConnectionShellCommandsPage(this.changeListener);
         settingsOverrides = new ConnectionSettingsOverrides(dataSource);
 
         // Properties with a field in the main form are edited there only; without other properties there is no table tab (HANA)
@@ -290,6 +299,7 @@ final class ConnectionSettingsPanel extends JPanel {
         for (ConnectionNetworkPage page : networkPages) {
             optionsTabs.addTab(page.getTitle(), page);
         }
+        optionsTabs.addTab(ConnectionMessages.settings_tab_shell_commands, shellCommandsPage);
         optionsTabs.addTab(ConnectionMessages.settings_tab_settings, settingsOverrides);
         optionsTabs.addTab(ConnectionMessages.settings_tab_driver_properties, driverPropertiesTable);
         if (providerPropertiesTable != null) {
@@ -497,9 +507,11 @@ final class ConnectionSettingsPanel extends JPanel {
             }
         }
         saveConnectionProperties(target);
+        saveNetworkProfile(target);
         for (ConnectionNetworkPage page : networkPages) {
             page.saveSettings(target);
         }
+        shellCommandsPage.saveSettings(target);
         settingsOverrides.saveSettings(target);
     }
 
@@ -542,10 +554,10 @@ final class ConnectionSettingsPanel extends JPanel {
     }
 
     /**
-     * A check mark on the tabs of the handlers the connection uses.
+     * A check mark on the tabs of the handlers the connection uses, and on Shell Commands when an event runs a command.
      */
     private void updateNetworkTabs() {
-        if (networkPages == null) {
+        if (networkPages == null || shellCommandsPage == null) {
             // Called while the panel is being built
             return;
         }
@@ -554,6 +566,102 @@ final class ConnectionSettingsPanel extends JPanel {
             if (index >= 0) {
                 optionsTabs.setIconAt(index, page.isHandlerEnabled() ? UiIcons.get("check") : null); //$NON-NLS-1$
             }
+        }
+        int index = optionsTabs.indexOfComponent(shellCommandsPage);
+        if (index >= 0) {
+            optionsTabs.setIconAt(index, shellCommandsPage.isUsed() ? UiIcons.get("check") : null); //$NON-NLS-1$
+        }
+    }
+
+    //////////////////////////////////////////////////////////
+    // Network profile
+
+    /**
+     * The network profile combo (none, the global and the project's profiles) and "Manage…" ({@link NetworkProfilesDialog}).
+     * Choosing a profile reloads the handler tabs: the handlers the profile turns on come from the profile
+     * (ConnectionPageSettings.selectProfile).
+     */
+    @NotNull
+    private JComponent createNetworkProfileRow() {
+        profileCombo.setRenderer(new DefaultListCellRenderer() {
+            @Override
+            public Component getListCellRendererComponent(JList<?> list, Object value, int index, boolean isSelected, boolean cellHasFocus) {
+                Object text = value instanceof DBWNetworkProfile profile
+                    ? profile.getProject() == null ? NLS.bind(ConnectionMessages.profiles_global_item, profile.getProfileName()) : profile.getProfileName()
+                    : value;
+                return super.getListCellRendererComponent(list, text, index, isSelected, cellHasFocus);
+            }
+        });
+        profileCombo.setToolTipText(ConnectionMessages.profiles_connection_tip);
+        profileCombo.addActionListener(e -> {
+            if (!loading) {
+                DBWNetworkProfile profile = getSelectedProfile();
+                for (ConnectionNetworkPage page : networkPages) {
+                    page.loadSettings(dataSource, profile);
+                }
+                changeListener.run();
+            }
+        });
+        JButton manageButton = new JButton(ConnectionMessages.profiles_manage);
+        manageButton.addActionListener(e -> {
+            DBWNetworkProfile selected = getSelectedProfile();
+            if (NetworkProfilesDialog.open(this, dataSource.getProject())) {
+                // The managers now hold new profile objects: select the same profile by name
+                DBWNetworkProfile again = selected == null ? null
+                    : dataSource.getRegistry().getNetworkProfiles().getProfile(selected.getProfileSource(), selected.getProfileName());
+                fillNetworkProfiles(again);
+                for (ConnectionNetworkPage page : networkPages) {
+                    page.loadSettings(dataSource, again);
+                }
+                changeListener.run();
+            }
+        });
+        JPanel panel = new JPanel(new BorderLayout(6, 0));
+        panel.add(profileCombo, BorderLayout.CENTER);
+        panel.add(manageButton, BorderLayout.EAST);
+        return panel;
+    }
+
+    private void fillNetworkProfiles(@Nullable DBWNetworkProfile selected) {
+        boolean wasLoading = loading;
+        loading = true;
+        try {
+            profileCombo.removeAllItems();
+            profileCombo.addItem(ConnectionMessages.profiles_none);
+            for (DBWNetworkProfile profile : dataSource.getRegistry().getNetworkProfiles().getAllProfiles()) {
+                profileCombo.addItem(profile);
+            }
+            if (selected != null && ((DefaultComboBoxModel<Object>) profileCombo.getModel()).getIndexOf(selected) < 0) {
+                // A profile of another source (not listed): kept as it is
+                profileCombo.addItem(selected);
+            }
+            profileCombo.setSelectedItem(selected == null ? ConnectionMessages.profiles_none : selected);
+        } finally {
+            loading = wasLoading;
+        }
+    }
+
+    @Nullable
+    private DBWNetworkProfile getSelectedProfile() {
+        return profileCombo.getSelectedItem() instanceof DBWNetworkProfile profile ? profile : null;
+    }
+
+    /**
+     * The chosen network profile (ConnectionPageSettings.saveSettings); an unchanged choice is not written again, so that
+     * an unchanged connection stays equal.
+     */
+    private void saveNetworkProfile(@NotNull DataSourceDescriptor target) {
+        if (networkPages.isEmpty()) {
+            return;
+        }
+        DBWNetworkProfile selected = getSelectedProfile();
+        DBPConnectionConfiguration configuration = target.getConnectionConfiguration();
+        boolean same = selected == null
+            ? CommonUtils.isEmpty(configuration.getConfigProfileName())
+            : CommonUtils.equalObjects(configuration.getConfigProfileName(), selected.getProfileId())
+                && CommonUtils.equalObjects(configuration.getConfigProfileSource(), selected.getProfileSource());
+        if (!same) {
+            configuration.setConfigProfile(selected);
         }
     }
 
@@ -757,6 +865,9 @@ final class ConnectionSettingsPanel extends JPanel {
         descriptionField.setToolTipText(ConnectionMessages.settings_description_tip);
         form.addRow(ConnectionMessages.settings_description, descriptionField);
         form.addRow(ConnectionMessages.settings_connection_type, connectionTypeCombo);
+        if (!networkPages.isEmpty()) {
+            form.addRow(ConnectionMessages.profiles_connection, createNetworkProfileRow());
+        }
         form.addRow(ConnectionMessages.settings_auto_commit, autoCommitCombo);
         isolationCombo.setRenderer(new DefaultListCellRenderer() {
             @Override
@@ -906,6 +1017,8 @@ final class ConnectionSettingsPanel extends JPanel {
             for (ConnectionNetworkPage page : networkPages) {
                 page.loadSettings(dataSource);
             }
+            shellCommandsPage.loadSettings(dataSource);
+            fillNetworkProfiles(ConnectionNetworkPage.getActiveProfile(dataSource));
         } finally {
             loading = false;
         }
@@ -1267,7 +1380,8 @@ final class ConnectionSettingsPanel extends JPanel {
 
     /**
      * Splits an SSMS-style server name: {@code host}, {@code host:port}, {@code host,port} (SSMS) or {@code [IPv6]:port}.
-     * A name with more than one ':' and no brackets is an IPv6 address without a port.
+     * A name with more than one ':' and no brackets is an IPv6 address without a port. A name with a URL scheme
+     * ({@code https://…}, the BigQuery driver's default host) only has a port when it ends with {@code :digits}.
      *
      * @param withPort the URL template has a port: otherwise the whole text is the host
      */
@@ -1278,6 +1392,15 @@ final class ConnectionSettingsPanel extends JPanel {
             return new String[]{server, ""};
         }
         int separator;
+        int scheme = server.indexOf(URL_SCHEME_SEPARATOR);
+        if (scheme > 0) {
+            // A host that is a URL (BigQuery's https://www.googleapis.com/bigquery/v2): the ':' of the scheme is not a port
+            // separator; only digits after the last ':' of the rest are a port (https://host/path:443)
+            int last = server.lastIndexOf(':');
+            boolean port = last > scheme + URL_SCHEME_SEPARATOR.length() && last + 1 < server.length()
+                && server.substring(last + 1).chars().allMatch(Character::isDigit);
+            return port ? new String[]{server.substring(0, last), server.substring(last + 1)} : new String[]{server, ""};
+        }
         if (server.startsWith("[")) { //$NON-NLS-1$
             int end = server.indexOf(']');
             separator = end < 0 ? -1 : end + 1 < server.length() ? end + 1 : -1;

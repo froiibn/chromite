@@ -21,6 +21,7 @@ import com.seizia.chromite.ui.swing.internal.CoreMessages;
 import com.seizia.chromite.ui.swing.internal.ErrorMessages;
 import com.seizia.chromite.ui.swing.internal.NavigatorMessages;
 import com.seizia.chromite.ui.swing.internal.ObjectExplorerMessages;
+import org.eclipse.core.runtime.IAdaptable;
 import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.jobs.IJobChangeEvent;
 import org.eclipse.core.runtime.jobs.Job;
@@ -32,6 +33,8 @@ import org.jkiss.dbeaver.DBException;
 import com.seizia.chromite.model.DBPDataSource;
 import com.seizia.chromite.model.DBPDataSourceContainer;
 import com.seizia.chromite.model.DBPDataSourceFolder;
+import com.seizia.chromite.model.access.DBAUserPasswordManager;
+import com.seizia.chromite.model.access.DBAuthUtils;
 import com.seizia.chromite.model.app.DBPDataSourceRegistry;
 import com.seizia.chromite.model.app.DBPProject;
 import com.seizia.chromite.model.navigator.DBNDataSource;
@@ -44,6 +47,7 @@ import com.seizia.chromite.runtime.jobs.DisconnectJob;
 import com.seizia.chromite.runtime.jobs.InvalidateJob;
 import com.seizia.chromite.utils.DataSourceUtils;
 import org.jkiss.utils.ArrayUtils;
+import org.jkiss.utils.CommonUtils;
 
 import javax.swing.*;
 import java.awt.*;
@@ -89,6 +93,8 @@ import java.util.Set;
  * - 2026-11-08 연결 삭제 확인은 삭제 / 취소 단추(취소가 기본) (docs/chromite/swing-frontend.md "실행 확인의 기본 단추")
  * - 2026-11-08 연결 복제 {@link #duplicate} (docs/chromite/swing-explorer-productivity.md "Copy Special과 연결 복제")
  * - 2026-11-08 여러 연결 끊기와 무효화·다시 연결({@link #invalidate}) (docs/chromite/connection-lifecycle.md)
+ * - 2026-11-08 {@link #changePassword}: 연결한 사용자의 비밀번호 바꾸기(SWT {@code connection.changeCurrentPassword}, 데이터베이스가
+ *   {@code DBAUserPasswordManager}를 줄 때만) (docs/chromite/swing-conn-advanced.md "비밀번호 바꾸기")
  */
 final class ConnectionCommands {
 
@@ -118,6 +124,36 @@ final class ConnectionCommands {
     /**
      * Edit Connection with the Auto-commit field focused: where the commit mode is changed.
      */
+    /**
+     * The current user's password manager of a connected database, or {@code null} when the database has none or the
+     * connection has no user name (ChangeUserPasswordPropertyTester).
+     */
+    @Nullable
+    static DBAUserPasswordManager getPasswordManager(@NotNull DBPDataSourceContainer dataSource) {
+        if (!dataSource.isConnected() || CommonUtils.isEmpty(dataSource.getConnectionConfiguration().getUserName())
+            || !(dataSource.getDataSource() instanceof IAdaptable adaptable)) {
+            return null;
+        }
+        return adaptable.getAdapter(DBAUserPasswordManager.class);
+    }
+
+    /**
+     * Changes the password of the connected user in the database (ChangePasswordDialogHandler): the model asks for the
+     * new password, runs the database's own statement and then asks whether to save it in the connection.
+     */
+    static void changePassword(@NotNull DBPDataSourceContainer dataSource) {
+        DBAUserPasswordManager manager = getPasswordManager(dataSource);
+        if (manager == null) {
+            return;
+        }
+        try {
+            ProgressDialog.runTask(ConnectionMessages.commands_change_password,
+                monitor -> DBAuthUtils.promptAndChangePasswordForCurrentUser(monitor, dataSource, manager));
+        } catch (DBException e) {
+            DBWorkbench.getPlatformUI().showError(ConnectionMessages.commands_change_password, ConnectionMessages.commands_change_password_error, e);
+        }
+    }
+
     static void editAutoCommit(@Nullable Component parent, @NotNull DBPDataSourceContainer dataSource) {
         if (dataSource instanceof DataSourceDescriptor descriptor) {
             ConnectionDialog.openEditAutoCommit(getWindow(parent), descriptor);

@@ -121,8 +121,8 @@ MView 새로 고침, TRUNCATE, 트리거 켜기/끄기), MySQL(ANALYZE·CHECK·O
 | # | 기능 | SWT 출처 | 상태 | 근거 | 영향 | 비고 |
 |---|---|---|---|---|---|---|
 | 50 | SSH 터널 설정(호스트·포트·사용자, 비밀번호/공개 키/에이전트, 비밀번호 저장, 구현 선택, Keep-alive·시간 초과, 로컬·원격 주소, 호스트 키 확인 건너뛰기, 터널 공유, Test tunnel) | `SSHTunnelDefaultConfiguratorUI` | 있음 | `SshTunnelPanel.java:47-63`, `swing-conn-advanced.md:94-103` | 높음 | |
-| 51 | 점프 서버 목록 편집 | `SSHTunnelDefaultConfiguratorUI`의 점프 서버 표 | 일부 | 읽은 점프 서버를 그대로 저장하고 개수만 안내(`swing-conn-advanced.md:102`, `SshTunnelPanel.java:194-196`) | 낮음 | 새로 더하거나 고칠 수 없음 |
-| 52 | 네트워크 프로필을 쓰는 연결의 SSH 자격 증명만 입력 | `SSHTunnelCredsOnlyConfiguratorUI` | 없음 | 프로필을 쓰면 칸을 끄고 프로필 이름만 보임, 프로필 편집 화면 없음(`swing-conn-advanced.md:92`) | 낮음 | |
+| 51 | 점프 서버 목록 편집 | `SSHTunnelDefaultConfiguratorUI`의 점프 서버 표 | 있음 (2026-11-08). 조사 당시: 일부 | SSH 탭의 Jump servers → Edit…(`SshJumpServersDialog`: 추가·편집·삭제·순서, [swing-conn-advanced.md](../swing-conn-advanced.md) "SSH 점프 서버") | 낮음 | |
+| 52 | 네트워크 프로필을 쓰는 연결의 SSH 자격 증명만 입력 | `SSHTunnelCredsOnlyConfiguratorUI` | 없음 | 프로필을 쓰면 칸을 끄고 프로필 이름만 보임. 프로필 편집은 2026-11-08부터 있음(`NetworkProfilesDialog`), 연결별 자격 증명만 넣는 칸은 아직 없음 | 낮음 | |
 | 53 | SSH 터널 탐색기 보기(열린 터널 목록) | `SSHTunnelView` | 없음 | grep 0 | 낮음 | |
 | 54 | **JSch 구현의 호스트 키 확인 질문과 키보드 대화형(OTP) 입력** | `JSCHUIPromptProviderAdapterFactory` → `JSCHUIPromptProvider`(`org.eclipse.jsch.ui.UserInfoPrompter`, `promptYesNo` → `confirmAction`) | **수정함** (2026-11-07, [swing-auth-prompts.md](../swing-auth-prompts.md): `JschPromptAdapterFactory` → `JschUserInfoPrompter`). 조사 당시: 조용히 끊김 | 어댑터가 없어 `GeneralUtils.adapt`가 null을 주고 모델 기본 `JschUserInfo`를 쓴다(`JSCHSessionController.java:90-99`). 이것은 `promptYesNo`가 늘 false, 키보드 대화형 질문마다 저장된 비밀번호를 돌려준다(`:178-220`). 호스트 키 확인은 `StrictHostKeyChecking=ask`(`:126-151`) | 중간 | 결과: JSch를 고른 연결은 known_hosts에 없거나 바뀐 호스트에 묻지 않고 거절(연결 실패), OTP를 묻는 서버에는 로그인 불가. 확인을 건너뛰는 방향은 아니다. 기본 구현 SSHJ는 `KnownHostsVerifier`가 `getPlatformUI().confirmAction`을 써서 Swing에서도 묻는다(`KnownHostsVerifier.java:64-84`). JSch는 `runtime.feature`에 들어 있고 Swing 구현 콤보에 보인다(`SshTunnelPanel.java:116`) |
 
