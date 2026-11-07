@@ -59,6 +59,7 @@ import java.util.Map;
  * 변경 이력:
  * - 2026-11-07 최초 작성 (docs/chromite/connection-transfer.md)
  * - 2026-11-07 가져온 연결의 저장 실패(OS 보안 저장소가 비밀번호를 저장하지 못함)를 결과 뒤에 알림 (docs/chromite/credential-storage.md)
+ * - 2026-11-08 내보내기 파일 덮어쓰기 확인은 바꾸기 / 취소 단추(취소가 기본) (docs/chromite/swing-frontend.md "실행 확인의 기본 단추")
  */
 final class ConnectionTransferCommands {
 
@@ -245,9 +246,9 @@ final class ConnectionTransferCommands {
                 selected = new File(selected.getParentFile(), selected.getName() + extension);
             }
             Path file = selected.toPath();
-            if (!Files.exists(file) || JOptionPane.showConfirmDialog(getWindow(parent),
+            if (!Files.exists(file) || SwingPlatformUI.confirmChange(getWindow(parent),
                 NLS.bind(ConnectionTransferMessages.transfer_export_overwrite, file.getFileName()),
-                ConnectionTransferMessages.transfer_export_title, JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE) == JOptionPane.YES_OPTION) {
+                ConnectionTransferMessages.transfer_export_title, CoreMessages.common_replace, JOptionPane.WARNING_MESSAGE)) {
                 return file;
             }
         }

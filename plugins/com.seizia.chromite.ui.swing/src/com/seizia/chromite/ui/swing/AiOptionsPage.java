@@ -84,6 +84,7 @@ import java.util.Map;
  * - 2026-11-07 최초 작성 (docs/chromite/ai-agent.md "2단계")
  * - 2026-11-07 OS 보안 저장소 실패 안내({@code ai_options_save_failed_secure_storage})
  * - 2026-11-07 탭 이름을 Chromite Agent로 바꾼 데 맞춰 주석을 고침(docs/chromite/ai-agent.md "명칭")
+ * - 2026-11-08 MCP 토큰 다시 만들기 확인은 다시 만들기 / 취소 단추(취소가 기본) (docs/chromite/swing-frontend.md "실행 확인의 기본 단추")
  */
 final class AiOptionsPage extends JPanel {
 
@@ -804,8 +805,8 @@ final class AiOptionsPage extends JPanel {
         }
 
         private void regenerate() {
-            if (JOptionPane.showConfirmDialog(this, AiMessages.ai_mcp_regenerate_question, AiMessages.ai_mcp_regenerate,
-                JOptionPane.OK_CANCEL_OPTION, JOptionPane.WARNING_MESSAGE) != JOptionPane.OK_OPTION) {
+            if (!SwingPlatformUI.confirmChange(this, AiMessages.ai_mcp_regenerate_question, AiMessages.ai_mcp_regenerate,
+                AiMessages.ai_mcp_regenerate, JOptionPane.WARNING_MESSAGE)) {
                 return;
             }
             try {

@@ -17,6 +17,7 @@
 package com.seizia.chromite.ui.swing;
 
 import com.seizia.chromite.ui.swing.internal.CoreMessages;
+import com.seizia.chromite.ui.swing.internal.NavigatorMessages;
 import org.eclipse.osgi.util.NLS;
 import org.jkiss.code.NotNull;
 import org.jkiss.code.Nullable;
@@ -67,6 +68,7 @@ import java.util.Objects;
  * - 2026-11-06 화면 문구를 CoreMessages로 옮김(OS 언어를 따름)
  * - 2026-11-07 오류 문구를 {@link ErrorText}로 만듦(클래스 이름이 화면에 나오지 않게, docs/chromite/swing-frontend.md "오류 문구")
  * - 2026-11-07 {@link #updateConfig}를 패키지 안에 엶: 연결 가져오기가 가져온 그룹을 탐색기에 알린다 (docs/chromite/connection-transfer.md)
+ * - 2026-11-08 그룹 삭제 확인은 삭제 / 취소 단추(취소가 기본) (docs/chromite/swing-frontend.md "실행 확인의 기본 단추")
  */
 final class RegisteredServerCommands {
 
@@ -162,9 +164,8 @@ final class RegisteredServerCommands {
                 : (subgroups > 0 ? CoreMessages.servers_delete_servers_move_sub : CoreMessages.servers_delete_servers_move);
             message.append(subgroups > 0 ? "\n" : "\n\n").append(NLS.bind(serversMessage, target, servers)); //$NON-NLS-1$ //$NON-NLS-2$
         }
-        int answer = JOptionPane.showConfirmDialog(getWindow(parent), message.toString(), CoreMessages.servers_delete_group_title,
-            JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE);
-        if (answer != JOptionPane.YES_OPTION) {
+        if (!SwingPlatformUI.confirmChange(getWindow(parent), message.toString(), CoreMessages.servers_delete_group_title,
+            NavigatorMessages.navigator_delete_button, JOptionPane.WARNING_MESSAGE)) {
             return;
         }
         DBPDataSourceRegistry registry = folder.getDataSourceRegistry();

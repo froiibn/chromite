@@ -89,6 +89,8 @@ import java.util.function.Supplier;
  *   (docs/chromite/swing-frontend.md "오류 문구")
  * - 2026-11-07 {@code promptAuthModelCredentials}: 기본 방식이 아닌 인증 방식(SQL Server Authentication, Oracle Username/password 등)의
  *   비밀번호를 저장하지 않은 연결이 묻지 않고 취소되던 것을 고침 (docs/chromite/swing-auth-prompts.md)
+ * - 2026-11-08 경고 확인({@code confirmAction(title, message, true)})은 No가 기본 단추. 데이터·스키마·작업·세션·파일을 바꾸는 확인의
+ *   공통 대화상자 {@link #confirmChange}(동사 단추와 기본 단추인 Cancel) (docs/chromite/swing-frontend.md "실행 확인의 기본 단추")
  */
 public class SwingPlatformUI implements DBPPlatformUI {
 
@@ -186,13 +188,21 @@ public class SwingPlatformUI implements DBPPlatformUI {
 
     @Override
     public boolean confirmAction(String title, String message, boolean isWarning) {
-        Integer result = runOnEdt(() -> JOptionPane.showConfirmDialog(
+        String yes = UIManager.getString("OptionPane.yesButtonText"); //$NON-NLS-1$
+        String no = UIManager.getString("OptionPane.noButtonText"); //$NON-NLS-1$
+        Object[] options = {yes, no};
+        Integer result = runOnEdt(() -> JOptionPane.showOptionDialog(
             getDialogParent(),
             createMessageComponent(message),
             title,
             JOptionPane.YES_NO_OPTION,
-            isWarning ? JOptionPane.WARNING_MESSAGE : JOptionPane.QUESTION_MESSAGE));
-        return result != null && result == JOptionPane.YES_OPTION;
+            isWarning ? JOptionPane.WARNING_MESSAGE : JOptionPane.QUESTION_MESSAGE,
+            null,
+            options,
+            // A warning asks before something that changes data (a modifying query on a confirmed connection type,
+            // renaming a database file): Enter pressed by habit must not run it
+            isWarning ? no : yes));
+        return result != null && result == 0;
     }
 
     @Override
@@ -800,6 +810,27 @@ public class SwingPlatformUI implements DBPPlatformUI {
             ErrorDialog.show(getDialogParent(), title, message, error);
             return null;
         });
+    }
+
+    /**
+     * Asks before an action that changes data, schema, jobs, sessions or files. The action button carries its verb
+     * (Delete, Kill, Replace…) and Cancel is the default button with the initial focus ({@link JOptionPane} gives both to
+     * the initial value), so that Enter pressed by habit does not run the action. Call on the EDT.
+     *
+     * @param message     text or component shown in the dialog, as {@link JOptionPane#showOptionDialog} takes it
+     * @param actionLabel label of the button that runs the action
+     * @param messageType {@link JOptionPane} message type (icon)
+     * @return true if the user chose the action
+     */
+    static boolean confirmChange(
+        @Nullable Component parent,
+        @NotNull Object message,
+        @NotNull String title,
+        @NotNull String actionLabel,
+        int messageType
+    ) {
+        Object[] options = {actionLabel, CoreMessages.common_cancel};
+        return JOptionPane.showOptionDialog(parent, message, title, JOptionPane.DEFAULT_OPTION, messageType, null, options, options[1]) == 0;
     }
 
     /**

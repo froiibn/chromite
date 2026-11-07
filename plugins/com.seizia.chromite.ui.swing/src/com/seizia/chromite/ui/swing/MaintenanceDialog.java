@@ -67,6 +67,7 @@ import java.util.Map;
  *
  * 변경 이력:
  * - 2026-11-07 최초 작성: DB 관리 축 4 유지 관리 (docs/chromite/swing-admin-tools.md)
+ * - 2026-11-08 실행 확인은 실행 / 취소 단추(취소가 기본), 실행 중에 닫을 때의 취소 질문은 아니요가 기본 (docs/chromite/swing-frontend.md "실행 확인의 기본 단추")
  */
 final class MaintenanceDialog extends JDialog {
 
@@ -485,9 +486,8 @@ final class MaintenanceDialog extends JDialog {
         message.setFont(UIManager.getFont("Label.font")); //$NON-NLS-1$
         message.setColumns(60);
         message.setSize(new Dimension(UIScale.scale(520), Short.MAX_VALUE));
-        int answer = JOptionPane.showConfirmDialog(this, message, MaintenanceViewMessages.maintview_confirm_title, JOptionPane.OK_CANCEL_OPTION,
+        return SwingPlatformUI.confirmChange(this, message, MaintenanceViewMessages.maintview_confirm_title, MaintenanceViewMessages.maintview_run,
             runCommand.warnings().isEmpty() ? JOptionPane.QUESTION_MESSAGE : JOptionPane.WARNING_MESSAGE);
-        return answer == JOptionPane.OK_OPTION;
     }
 
     private void cancel() {
@@ -537,9 +537,11 @@ final class MaintenanceDialog extends JDialog {
 
     private void closeRequested() {
         if (runningJob != null) {
-            int answer = JOptionPane.showConfirmDialog(this, MaintenanceViewMessages.maintview_close_running,
-                MaintenanceViewMessages.maintview_confirm_title, JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE);
-            if (answer == JOptionPane.YES_OPTION) {
+            Object[] options = {UIManager.getString("OptionPane.yesButtonText"), UIManager.getString("OptionPane.noButtonText")}; //$NON-NLS-1$ //$NON-NLS-2$
+            // No is the default button: Enter must not stop the running command
+            int answer = JOptionPane.showOptionDialog(this, MaintenanceViewMessages.maintview_close_running,
+                MaintenanceViewMessages.maintview_confirm_title, JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE, null, options, options[1]);
+            if (answer == 0) {
                 cancel();
             }
             return;

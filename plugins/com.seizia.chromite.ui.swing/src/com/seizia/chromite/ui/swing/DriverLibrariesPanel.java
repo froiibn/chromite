@@ -74,6 +74,7 @@ import java.util.List;
  *
  * 변경 이력:
  * - 2026-11-07 최초 작성 (docs/chromite/swing-driver-manager.md)
+ * - 2026-11-08 라이브러리 제거 확인은 제거 / 취소 단추(취소가 기본) (docs/chromite/swing-frontend.md "실행 확인의 기본 단추")
  */
 final class DriverLibrariesPanel extends JPanel {
 
@@ -292,9 +293,8 @@ final class DriverLibrariesPanel extends JPanel {
         if (selected.isEmpty()) {
             return;
         }
-        int choice = JOptionPane.showConfirmDialog(this, DriverManagerMessages.driverlib_remove_confirm,
-            DriverManagerMessages.driverlib_remove_title, JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE);
-        if (choice != JOptionPane.YES_OPTION) {
+        if (!SwingPlatformUI.confirmChange(this, DriverManagerMessages.driverlib_remove_confirm,
+            DriverManagerMessages.driverlib_remove_title, DriverManagerMessages.driverlib_remove, JOptionPane.QUESTION_MESSAGE)) {
             return;
         }
         // The class loader holds the removed files open until it is dropped (SWT does the same)
