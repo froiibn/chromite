@@ -27,6 +27,10 @@ import com.seizia.chromite.model.runtime.DBRProgressMonitor;
 
 /**
  * Connections Service
+ *
+ * 변경 이력:
+ * - 2026-11-07 {@code confirmTransactionsClose}를 지움: 유일한 호출(업스트림 유휴 트랜잭션 롤백)이 {@link UIServiceIdleTransactions}로 바뀜
+ *   (docs/chromite/idle-transactions.md)
  */
 public interface UIServiceConnections {
 
@@ -39,8 +43,6 @@ public interface UIServiceConnections {
     void askToReconnect(@NotNull DBPDataSourceContainer dataSourceContainer);
 
     void closeActiveTransaction(@NotNull DBRProgressMonitor monitor, @NotNull DBCExecutionContext context, boolean commitTxn);
-
-    boolean confirmTransactionsClose(@NotNull DBCExecutionContext[] contexts);
 
     boolean checkAndCloseActiveTransaction(@NotNull DBCExecutionContext[] contexts);
 

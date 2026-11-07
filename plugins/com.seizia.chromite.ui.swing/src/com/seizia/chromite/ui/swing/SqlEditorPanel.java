@@ -58,6 +58,8 @@ import com.seizia.chromite.model.exec.DBCTransactionManager;
 import com.seizia.chromite.model.exec.DBExecUtils;
 import com.seizia.chromite.model.exec.plan.DBCQueryPlanner;
 import com.seizia.chromite.model.impl.struct.ContextDefaultObjectsReader;
+import com.seizia.chromite.model.qm.QMTransactionState;
+import com.seizia.chromite.model.qm.QMUtils;
 import com.seizia.chromite.model.runtime.AbstractJob;
 import com.seizia.chromite.model.runtime.DBRProgressMonitor;
 import com.seizia.chromite.model.runtime.VoidProgressMonitor;
@@ -195,6 +197,8 @@ import java.util.concurrent.atomic.AtomicLong;
  *   (docs/chromite/swing-frontend.md "SQL Editor 도구 막대")
  * - 2026-11-07 상태 줄의 커밋 방식: 실행 컨텍스트의 실제 자동 커밋 상태를 작업 스레드에서 읽어 보임({@link #refreshTransactionMode}),
  *   칸을 누르면 연결 설정의 Auto-commit으로 안내 (docs/chromite/swing-frontend.md "자동 커밋 상태")
+ * - 2026-11-07 상태 줄의 열린 트랜잭션: 실행 문맥의 쿼리 관리자 상태를 1초마다 읽어 보이고({@link #refreshOpenTransaction}),
+ *   메뉴의 Commit / Roll back은 보여 준 트랜잭션만 끝냄({@link SwingIdleTransactionService#endTransaction}) (docs/chromite/idle-transactions.md)
  * - 2026-11-07 실행 안전 확인: 스크립트 실행 제한, 위험한 문 확인 (docs/chromite/swing-sql-exec-safety.md)
  */
 final class SqlEditorPanel extends JPanel {
@@ -290,6 +294,7 @@ final class SqlEditorPanel extends JPanel {
     private boolean planTabSelected;
     private final QueryStatusLine statusLine = new QueryStatusLine();
     private final Timer elapsedTimer;
+    private final Timer transactionTimer;
     private final Object jobLock = new Object();
     // EDT only
     @Nullable
@@ -325,6 +330,10 @@ final class SqlEditorPanel extends JPanel {
                 statusLine.setElapsed(formatElapsed(System.currentTimeMillis() - execution.startTime, false));
             }
         });
+        // The open transaction segment counts up; the query manager's state is in memory, so a read each second is cheap
+        transactionTimer = new Timer(1000, e -> refreshOpenTransaction());
+        transactionTimer.start();
+        statusLine.setOpenTransactionActions(this::endOpenTransaction);
         statusLine.setConnection(dataSourceContainer);
         // The commit mode segment only leads to the connection's Auto-commit setting (user decision 2026-11-07)
         statusLine.setTransactionAction(() -> {
@@ -607,6 +616,7 @@ final class SqlEditorPanel extends JPanel {
         cancel();
         completion.cancel();
         elapsedTimer.stop();
+        transactionTimer.stop();
     }
 
     /**
@@ -863,6 +873,7 @@ final class SqlEditorPanel extends JPanel {
         statusLine.setElapsed(formatElapsed(elapsed, true));
         long rows = run.rowsFetched.get();
         statusLine.setRows(NLS.bind(rows == 1 ? EditorMessages.editor_sql_rows_one : EditorMessages.editor_sql_rows_many, rows));
+        refreshOpenTransaction();
         updateActions();
         // As in SSMS: errors (or no result grids at all) bring the Messages tab to the front
         host.showResults(this, run.hasErrors || resultsView.getGridCount() == 0);
@@ -1584,6 +1595,7 @@ final class SqlEditorPanel extends JPanel {
      */
     void refreshTransactionMode() {
         int serial = ++transactionSerial;
+        refreshOpenTransaction();
         DBPDataSourceContainer container = dataSourceContainer;
         DBPDataSource dataSource = container != null && container.isConnected() ? container.getDataSource() : null;
         if (dataSource == null) {
@@ -1612,6 +1624,34 @@ final class SqlEditorPanel extends JPanel {
                 return Status.OK_STATUS;
             }
         }.schedule();
+    }
+
+    /**
+     * Shows the open transaction of the execution context this window runs in (the connection's main context, shared
+     * by the connection's query windows): hidden in auto-commit mode and when nothing ran since the last commit or
+     * rollback. Reads only the query manager's in-memory state, so it runs in the EDT.
+     */
+    private void refreshOpenTransaction() {
+        DBCExecutionContext context = getTransactionContext();
+        QMTransactionState transaction = context == null ? null : QMUtils.getTransactionState(context);
+        statusLine.setOpenTransaction(transaction != null && transaction.isOpen() ? transaction : null);
+    }
+
+    /**
+     * Commit / Roll back of the status line's open transaction menu, for the transaction shown when the menu opened.
+     */
+    private void endOpenTransaction(@NotNull QMTransactionState transaction, boolean commit) {
+        DBCExecutionContext context = getTransactionContext();
+        if (context != null) {
+            SwingIdleTransactionService.endTransaction(this, context, transaction.getTransactionStartTime(), commit, this::refreshOpenTransaction);
+        }
+    }
+
+    @Nullable
+    private DBCExecutionContext getTransactionContext() {
+        DBPDataSourceContainer container = dataSourceContainer;
+        DBPDataSource dataSource = container != null && container.isConnected() ? container.getDataSource() : null;
+        return dataSource == null ? null : DBUtils.getDefaultContext(dataSource.getDefaultInstance(), false);
     }
 
     private void showSchemas(int serial, @Nullable SchemaState state) {

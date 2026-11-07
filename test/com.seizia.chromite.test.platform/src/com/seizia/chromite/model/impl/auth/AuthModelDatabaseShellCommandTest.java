@@ -24,6 +24,7 @@ import com.seizia.chromite.model.DBPDataSourceContainer;
 import com.seizia.chromite.model.app.DBPProject;
 import com.seizia.chromite.model.connection.DBPConnectionConfiguration;
 import com.seizia.chromite.model.connection.DBPDriver;
+import com.seizia.chromite.model.messages.ModelMessages;
 import com.seizia.chromite.runtime.ServiceRegistry;
 import com.seizia.chromite.runtime.ui.UIServiceShellCommands;
 import com.seizia.chromite.utils.RuntimeUtils;
@@ -43,6 +44,12 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
+/**
+ * 변경 이력:
+ * - 2026-11-07 승인 범위 인자와 이벤트 문구에 맞춤. 승인 서비스가 없을 때 실행하던 것을 거부로 바꾼 동작에 맞춰
+ *   {@code commandResolvesPasswordWithoutUiService}를 {@code commandIsRefusedWithoutUiService}로 바꿈
+ *   (docs/chromite/shell-command-approval.md)
+ */
 public class AuthModelDatabaseShellCommandTest extends ChromiteUnitTest {
     @TempDir
     Path workingDirectory;
@@ -94,7 +101,7 @@ public class AuthModelDatabaseShellCommandTest extends ChromiteUnitTest {
         configuration.setAuthProperty(AuthModelDatabaseShellCommandCredentials.PROP_COMMAND, command);
         var credentials = authModel.loadCredentials(container, configuration);
         DBException rejection = new DBException("Command execution declined");
-        doThrow(rejection).when(shellCommandsService).validateByUser(any(), anyMap());
+        doThrow(rejection).when(shellCommandsService).validateByUser(any(), any(), anyMap());
 
         DBException error = assertThrows(DBException.class, () ->
             authModel.initAuthentication(monitor, dataSource, credentials, configuration, connectionProperties));
@@ -117,9 +124,10 @@ public class AuthModelDatabaseShellCommandTest extends ChromiteUnitTest {
             command.equals(shellCommand.getCommand())
                 && workingDirectory.toString().equals(shellCommand.getWorkingDirectory())
                 && shellCommand.isEnabled()
-                && shellCommand.isWaitProcessFinish()), eq(Map.of(
-                    "Project", "Test project",
-                    "Connection", "Test connection"
+                && shellCommand.isWaitProcessFinish()), isNull(), eq(Map.of(
+                    ModelMessages.model_shell_command_context_project, "Test project",
+                    ModelMessages.model_shell_command_context_connection, "Test connection",
+                    ModelMessages.model_shell_command_context_event, ModelMessages.model_shell_command_event_password
                 )));
         assertEquals("test-password", credentials.getUserPassword());
         assertEquals("test-password", connectionProperties.getProperty(DBConstants.DATA_SOURCE_PROPERTY_PASSWORD));
@@ -127,15 +135,19 @@ public class AuthModelDatabaseShellCommandTest extends ChromiteUnitTest {
     }
 
     @Test
-    public void commandResolvesPasswordWithoutUiService() throws Exception {
+    public void commandIsRefusedWithoutUiService() throws Exception {
         when(serviceRegistry.getService(UIServiceShellCommands.class)).thenReturn(null);
-        configuration.setAuthProperty(AuthModelDatabaseShellCommandCredentials.PROP_COMMAND,
-            RuntimeUtils.isWindows() ? "cmd /c echo test-password" : "/bin/echo test-password");
+        Path marker = workingDirectory.resolve("command-executed");
+        String command = (RuntimeUtils.isWindows() ? "cmd /c " : "") + "mkdir \"" + marker + "\"";
+        configuration.setAuthProperty(AuthModelDatabaseShellCommandCredentials.PROP_COMMAND, command);
         var credentials = authModel.loadCredentials(container, configuration);
 
-        authModel.initAuthentication(monitor, dataSource, credentials, configuration, connectionProperties);
+        assertThrows(DBException.class, () ->
+            authModel.initAuthentication(monitor, dataSource, credentials, configuration, connectionProperties));
 
-        assertEquals("test-password", connectionProperties.getProperty(DBConstants.DATA_SOURCE_PROPERTY_PASSWORD));
+        assertFalse(Files.exists(marker), "Without an approval service the password command must not execute");
+        assertNull(credentials.getUserPassword());
+        assertFalse(connectionProperties.containsKey(DBConstants.DATA_SOURCE_PROPERTY_PASSWORD));
         verifyNoInteractions(shellCommandsService);
     }
 

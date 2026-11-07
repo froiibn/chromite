@@ -25,13 +25,16 @@ import com.seizia.chromite.model.DBPMessageType;
 
 /**
  * Notifications utilities
+ *
+ * 변경 이력:
+ * - 2026-11-07 {@code NT_ROLLBACK_IDLE}을 지움: 유휴 트랜잭션 롤백 알림은 {@code UIServiceIdleTransactions}가 보임
+ *   (docs/chromite/idle-transactions.md)
  */
 public class ChromiteNotifications {
 
     public static final String NT_COMMIT = "commit";
     public static final String NT_DISCONNECT_IDLE = "disconnect.idle";
     public static final String NT_ROLLBACK = "rollback";
-    public static final String NT_ROLLBACK_IDLE = "rollback.idle";
     public static final String NT_RECONNECT_SUCCESS = "reconnect.success";
     public static final String NT_RECONNECT_FAILURE = "reconnect.failure";
     public static final String NT_GENERIC = "generic";

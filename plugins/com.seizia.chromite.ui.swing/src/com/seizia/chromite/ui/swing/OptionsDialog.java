@@ -55,6 +55,7 @@ import java.util.Objects;
  *     General 탭의 Query History: 쿼리 기록 보관 일수({@link QueryHistory}). Templates 탭: SQL 템플릿({@link SqlTemplatesPage}).</li>
  *     <li>Query Library 기록 보존(실행 수, 일수): {@link QueryLibraryHistory}의 설정. 다음 기록을 덧붙일 때 줄인다.</li>
  *     <li>Updates 탭: 자동 업데이트 확인 켜기·끄기(업데이트 모델이 설치 단위로 저장), 현재 버전, 지금 확인({@link UpdateOptionsPage}).</li>
+ *     <li>저장 전 스크립트 표시: 결과 표가 읽는 {@link ResultSetGrid#PREF_CONFIRM_BEFORE_SAVE}. Maximum rows처럼 플랫폼 저장소에 쓴다.</li>
  * </ul>
  * OK를 누를 때 바뀐 값만 적용한다. 읽기는 열 때 한 번 한다.
  *
@@ -69,6 +70,7 @@ import java.util.Objects;
  * - 2026-11-07 날짜/시간 값을 데이터베이스 형식 그대로 보이는 설정(SWT "Disable date/time formatting") (docs/chromite/swing-followup-fixes.md "날짜/시간 소수 초")
  * - 2026-11-07 Updates 탭: 자동 업데이트 확인, 현재 버전, 지금 확인({@link UpdateOptionsPage}) (docs/chromite/auto-update.md)
  * - 2026-11-07 AI Assistant 탭: 제공자, 도구 권한 정책, MCP 서버, 감사 기록({@link AiOptionsPage}) (docs/chromite/ai-agent.md "2단계")
+ * - 2026-11-07 결과 표 저장 전 스크립트 표시 설정(SWT Data Editor 설정 페이지의 같은 항목) (docs/chromite/swing-frontend.md "저장 전 스크립트 미리 보기")
  * - 2026-11-07 Query editor 절에 위험한 문 확인 설정 두 개 (docs/chromite/swing-sql-exec-safety.md)
  */
 final class OptionsDialog extends JDialog {
@@ -90,6 +92,7 @@ final class OptionsDialog extends JDialog {
     private final JSpinner delaySpinner;
     private final JSpinner maxRowsSpinner;
     private final JCheckBox nativeDateTimeBox = new JCheckBox(CoreMessages.options_native_datetime);
+    private final JCheckBox confirmBeforeSaveBox = new JCheckBox(CoreMessages.options_confirm_before_save);
     private final JSpinner historyDaysSpinner = new JSpinner(new SpinnerNumberModel(
         Math.min(QueryHistory.getRetentionDays(), QueryHistory.MAX_RETENTION_DAYS), 0, QueryHistory.MAX_RETENTION_DAYS, 1));
     private final JComboBox<String> formatterCombo = new JComboBox<>(new String[]{CoreMessages.options_formatter_default, CoreMessages.options_formatter_compact});
@@ -164,6 +167,9 @@ final class OptionsDialog extends JDialog {
         nativeDateTimeBox.setSelected(getPlatformPreferences().getBoolean(ModelPreferences.RESULT_NATIVE_DATETIME_FORMAT));
         nativeDateTimeBox.setToolTipText(CoreMessages.options_native_datetime_tip);
         row = addRow(form, row, null, nativeDateTimeBox, null);
+        confirmBeforeSaveBox.setSelected(getPlatformPreferences().getBoolean(ResultSetGrid.PREF_CONFIRM_BEFORE_SAVE));
+        confirmBeforeSaveBox.setToolTipText(CoreMessages.options_confirm_before_save_tip);
+        row = addRow(form, row, null, confirmBeforeSaveBox, null);
         row = addSection(form, row, CoreMessages.options_query_history);
         row = addRow(form, row, CoreMessages.options_keep_history, historyDaysSpinner, CoreMessages.options_keep_history_hint);
         row = addSection(form, row, CoreMessages.options_query_library);
@@ -472,6 +478,10 @@ final class OptionsDialog extends JDialog {
         }
         if (nativeDateTimeBox.isSelected() != platformPreferences.getBoolean(ModelPreferences.RESULT_NATIVE_DATETIME_FORMAT)) {
             platformPreferences.setValue(ModelPreferences.RESULT_NATIVE_DATETIME_FORMAT, nativeDateTimeBox.isSelected());
+            PrefUtils.savePreferenceStore(platformPreferences);
+        }
+        if (confirmBeforeSaveBox.isSelected() != platformPreferences.getBoolean(ResultSetGrid.PREF_CONFIRM_BEFORE_SAVE)) {
+            platformPreferences.setValue(ResultSetGrid.PREF_CONFIRM_BEFORE_SAVE, confirmBeforeSaveBox.isSelected());
             PrefUtils.savePreferenceStore(platformPreferences);
         }
         int historyDays = ((Number) historyDaysSpinner.getValue()).intValue();

@@ -28,23 +28,14 @@ import com.seizia.chromite.ModelPreferences;
 import com.seizia.chromite.model.DBPDataSource;
 import com.seizia.chromite.model.DBPDataSourceContainer;
 import com.seizia.chromite.model.DBPMessageType;
-import com.seizia.chromite.model.DBUtils;
 import com.seizia.chromite.model.app.DBPDataSourceRegistry;
 import com.seizia.chromite.model.app.DBPPlatform;
 import com.seizia.chromite.model.app.DBPProject;
 import com.seizia.chromite.model.app.DBPWorkspace;
 import com.seizia.chromite.model.connection.DBPConnectionConfiguration;
 import com.seizia.chromite.model.connection.DBPConnectionType;
-import com.seizia.chromite.model.exec.DBCException;
-import com.seizia.chromite.model.exec.DBCExecutionContext;
-import com.seizia.chromite.model.exec.DBCTransactionManager;
-import com.seizia.chromite.model.exec.DBExecUtils;
-import com.seizia.chromite.model.preferences.DBPPreferenceStore;
-import com.seizia.chromite.model.qm.QMTransactionState;
-import com.seizia.chromite.model.qm.QMUtils;
 import com.seizia.chromite.model.runtime.AbstractJob;
 import com.seizia.chromite.model.runtime.DBRProgressMonitor;
-import com.seizia.chromite.model.struct.DBSInstance;
 import com.seizia.chromite.runtime.DBWorkbench;
 import com.seizia.chromite.runtime.ChromiteNotifications;
 import com.seizia.chromite.runtime.OperationSystemState;
@@ -55,7 +46,12 @@ import java.util.*;
  * DataSourceMonitorJob.
  *
  * Performs connection keep-alive ping.
- * Ends idle transactions.
+ * Watches idle transactions ({@link IdleTransactionMonitor}).
+ *
+ * 변경 이력:
+ * - 2026-11-07 유휴 트랜잭션: 업스트림의 롤백 경로(전역 사용자 활동 시각 기준, 확인 서비스가 없으면 묻지 않고 롤백,
+ *   데이터 소스 설정 {@code transaction.auto.close.*})를 지우고 {@link IdleTransactionMonitor}를 부름. 유휴 연결 끊기는 그대로
+ *   (사용자 활동 시각이 없어 동작하지 않음) (docs/chromite/idle-transactions.md)
  */
 public class DataSourceMonitorJob extends AbstractJob {
     private static final int MONITOR_INTERVAL = 3000; // once per 3 seconds
@@ -170,7 +166,9 @@ public class DataSourceMonitorJob extends AbstractJob {
 
     protected void doJob() {
         final DBPWorkspace workspace = platform.getWorkspace();
+        IdleTransactionMonitor.beginPass();
         checkDataSourceAliveInWorkspace(workspace, getLastUserActivityTime(lastPingTime));
+        IdleTransactionMonitor.sweep();
     }
 
     protected void checkDataSourceAliveInWorkspace(DBPWorkspace workspace, long lastUserActivityTime) {
@@ -191,6 +189,8 @@ public class DataSourceMonitorJob extends AbstractJob {
             return;
         }
 
+        IdleTransactionMonitor.check(dataSourceDescriptor);
+
         final String dsId = dataSourceDescriptor.getId();
         synchronized (this) {
             if (pingCache.contains(dsId)) {
@@ -200,9 +200,9 @@ public class DataSourceMonitorJob extends AbstractJob {
             }
         }
 
-        // End long transactions or connections
-        if (getDisconnectTimeoutSeconds(dataSourceDescriptor) > 0 || getTransactionTimeoutSeconds(dataSourceDescriptor) > 0) {
-            if (endIdleTransactionOrConnection(dataSourceDescriptor, lastUserActivityTime)) {
+        // End idle connections
+        if (getDisconnectTimeoutSeconds(dataSourceDescriptor) > 0) {
+            if (endIdleConnection(dataSourceDescriptor, lastUserActivityTime)) {
                 return;
             }
         }
@@ -258,7 +258,7 @@ public class DataSourceMonitorJob extends AbstractJob {
         }
     }
 
-    private boolean endIdleTransactionOrConnection(DBPDataSourceContainer dsDescriptor, long lastUserActivityTime) {
+    private boolean endIdleConnection(DBPDataSourceContainer dsDescriptor, long lastUserActivityTime) {
         if (!dsDescriptor.isConnected()) {
             return false;
         }
@@ -269,7 +269,6 @@ public class DataSourceMonitorJob extends AbstractJob {
 
         final long idleInterval = (System.currentTimeMillis() - lastUserActivityTime) / 1000;
         final long disconnectTimeoutSeconds = getDisconnectTimeoutSeconds(dsDescriptor);
-        final long rollbackTimeoutSeconds = getTransactionTimeoutSeconds(dsDescriptor);
 
         DBPDataSource dataSource = dsDescriptor.getDataSource();
 
@@ -282,35 +281,6 @@ public class DataSourceMonitorJob extends AbstractJob {
             disconnectJob.schedule();
 
             showNotification(dataSource);
-            return true;
-        }
-
-        if (dataSource != null && rollbackTimeoutSeconds > 0 && idleInterval > rollbackTimeoutSeconds) {
-            if (EndIdleTransactionsJob.isInProcess(dsDescriptor) || DBExecUtils.isExecutionInProgress(dataSource)) {
-                return false;
-            }
-            try {
-                Map<DBCExecutionContext, DBCTransactionManager> txnToEnd = new IdentityHashMap<>();
-                for (DBSInstance instance : dataSource.getAvailableInstances()) {
-                    for (DBCExecutionContext ec : instance.getAllContexts()) {
-                        if (ec.isConnected()) {
-                            DBCTransactionManager txnManager = DBUtils.getTransactionManager(ec);
-                            if (txnManager != null && txnManager.isSupportsTransactions() && !txnManager.isAutoCommit()) {
-                                QMTransactionState txnState = QMUtils.getTransactionState(ec);
-                                if (txnState.getUpdateCount() > 0 && txnState.getTransactionStartTime() <= lastUserActivityTime) {
-                                    txnToEnd.put(ec, txnManager);
-                                }
-                            }
-                        }
-                    }
-                }
-
-                if (!txnToEnd.isEmpty()) {
-                    new EndIdleTransactionsJob(dataSource, txnToEnd).schedule();
-                }
-            } catch (DBCException e) {
-                log.error(e);
-            }
             return true;
         }
 
@@ -335,27 +305,6 @@ public class DataSourceMonitorJob extends AbstractJob {
             return connectionType.getCloseIdleConnectionPeriod();
         }
         return 0;
-    }
-
-    public static long getTransactionTimeoutSeconds(@NotNull DBPDataSourceContainer container) {
-        final DBPPreferenceStore pref = container.getPreferenceStore();
-        final DBPConnectionConfiguration config = container.getConnectionConfiguration();
-        int ttlSeconds = 0;
-
-        if (pref.contains(ModelPreferences.TRANSACTIONS_AUTO_CLOSE_ENABLED)) {
-            // First check datasource settings from the "Transactions" preference page
-            ttlSeconds = pref.getInt(ModelPreferences.TRANSACTIONS_AUTO_CLOSE_TTL);
-        }
-
-        if (ttlSeconds == 0) {
-            // Or get this info from the current connection type
-            final DBPConnectionType connectionType = config.getConnectionType();
-            if (connectionType.isAutoCloseTransactions()) {
-                ttlSeconds = connectionType.getCloseIdleTransactionPeriod();
-            }
-        }
-
-        return Math.max(0, ttlSeconds);
     }
 
     public static long getLastUserActivityTime() {

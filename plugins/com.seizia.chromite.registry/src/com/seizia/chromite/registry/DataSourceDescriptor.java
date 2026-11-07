@@ -80,6 +80,10 @@ import java.util.*;
 
 /**
  * DataSourceDescriptor
+ *
+ * 변경 이력:
+ * - 2026-11-07 연결 이벤트 셸 명령: 승인 서비스가 없으면 승인 없이 실행하던 것을 {@link UIServiceShellCommands#validate}로
+ *   바꿔 실행하지 않게 함(fail closed), 승인을 연결 범위로 기억 (docs/chromite/shell-command-approval.md)
  */
 public class DataSourceDescriptor
     implements
@@ -1473,10 +1477,8 @@ public class DataSourceDescriptor
         DBPConnectionConfiguration info = getActualConnectionConfiguration();
         DBRShellCommand command = info.getEvent(eventType);
         if (command != null && command.isEnabled()) {
-            UIServiceShellCommands shellCommandsService = DBWorkbench.getService(UIServiceShellCommands.class);
-            if (shellCommandsService != null) {
-                shellCommandsService.validateByUser(command, createApprovalContext(eventType));
-            }
+            UIServiceShellCommands.validate(
+                command, UIServiceShellCommands.getConnectionScope(this), createApprovalContext(eventType));
             final DBRProcessDescriptor processDescriptor = new DBRProcessDescriptor(command, getVariablesResolver(true));
 
             monitor.subTask("Execute process " + processDescriptor.getName());

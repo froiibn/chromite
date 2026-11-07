@@ -3,6 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
 <title>Chromite changelog</title>
 <meta name="description" content="Changes in each version of Chromite">
 <link rel="icon" href="/assets/chromite-icon.svg" type="image/svg+xml">
@@ -13,35 +14,45 @@
 <header class="top">
   <div class="wrap">
     <a class="brand" href="/en/"><img src="/assets/chromite-icon.svg" alt="">Chromite</a>
-    <nav class="nav">
+    <nav class="nav" aria-label="Site">
       <a href="/en/">Download</a>
       <a href="/en/changelog.html" aria-current="page">Changelog</a>
       <a href="/en/privacy.html">Privacy</a>
+      <span class="sep" aria-hidden="true"></span>
+      <a href="https://github.com/froiibn/chromite"><span class="mark-github" aria-hidden="true"></span><span class="label">GitHub</span></a>
       <a href="/ko/changelog.html" lang="ko">한국어</a>
     </nav>
   </div>
 </header>
 
 <main class="wrap page">
-  <h1>Changelog</h1>
-  <p>Versions are numbered <code>major.minor.dev</code>. The app's update notice links to each version's anchor (for example <code>#v0.1.0</code>).</p>
+  <div class="page-head">
+    <h1>Changelog</h1>
+    <p>Versions are numbered <code>major.minor.dev</code>. The app's update notice links to each version's anchor (for example <code>#v0.1.0</code>).</p>
+  </div>
 
-  <section class="release" id="v0.1.0">
+  <section class="sect release" id="v0.1.0">
     <h2>0.1.0</h2>
-    <p>The first version of Chromite.</p>
-    <ul>
-      <li>Object Explorer, SQL editor with result grid, table designer, ER diagrams, data import and export, backup and restore, activity monitor</li>
-      <li>Built-in JDBC drivers for PostgreSQL, SQL Server, MariaDB, MySQL and Oracle</li>
-      <li>Built-in Java runtime (JetBrains Runtime 25)</li>
-      <li>Korean and English user interface, light and dark themes</li>
-      <li>Installer for Windows x64, disk image for Macs with Apple silicon</li>
-    </ul>
+    <div class="body">
+      <p>The first version of Chromite.</p>
+      <ul>
+        <li>Object Explorer, SQL editor with result grid, table designer, ER diagrams, data import and export, backup and restore, activity monitor</li>
+        <li>Built-in JDBC drivers for PostgreSQL, SQL Server, MariaDB, MySQL and Oracle</li>
+        <li>Built-in Java runtime (JetBrains Runtime 25)</li>
+        <li>Korean and English user interface, light and dark themes</li>
+        <li>Installer for Windows x64, disk image for Macs with Apple silicon</li>
+      </ul>
+    </div>
   </section>
 </main>
 
 <footer class="foot">
   <div class="wrap">
-    © 2026 Chromite contributors · <a href="https://github.com/froiibn/chromite">Source code</a> (Apache License 2.0)
+    <span>© 2026 Chromite contributors</span>
+    <span class="right">
+      <a href="https://github.com/froiibn/chromite/blob/devel/LICENSE.md">Apache License 2.0</a>
+      <a href="https://github.com/froiibn/chromite">GitHub</a>
+    </span>
   </div>
 </footer>
 </body>

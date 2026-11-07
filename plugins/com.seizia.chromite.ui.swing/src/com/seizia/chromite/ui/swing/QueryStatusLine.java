@@ -17,6 +17,7 @@
 package com.seizia.chromite.ui.swing;
 
 import com.formdev.flatlaf.util.UIScale;
+import com.seizia.chromite.model.qm.QMTransactionState;
 import com.seizia.chromite.ui.swing.internal.EditorMessages;
 import org.eclipse.osgi.util.NLS;
 import org.jkiss.code.NotNull;
@@ -33,9 +34,13 @@ import javax.swing.border.Border;
 import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.time.Instant;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 
 /**
- * 쿼리 창 상태 줄(SSMS 쿼리 창 맨 아래 줄): 상태 아이콘과 문구 │ 서버 │ 사용자 │ DB/스키마 │ 커밋 방식 │ 경과 시간 │ 행 수 │ 커서 위치(Ln, Col).
+ * 쿼리 창 상태 줄(SSMS 쿼리 창 맨 아래 줄): 상태 아이콘과 문구 │ 서버 │ 사용자 │ DB/스키마 │ 커밋 방식 │ 열린 트랜잭션 │ 경과 시간 │ 행 수 │
+ * 커서 위치(Ln, Col).
  *
  * 설계:
  * <ul>
@@ -50,6 +55,10 @@ import java.awt.event.MouseEvent;
  *     글자도 함께 보여 색만으로 구별하지 않는다(사용자 요청). 보이는 값은 열린 세션의 실제 상태이고, 연결 설정에 저장한 값과 다르면(다음 연결부터 적용)
  *     도구 설명에 적는다. 수동 커밋의 도구 설명은 COMMIT이 필요하다고 알린다.
  *     칸을 누르면 설정 화면(연결 편집의 Auto-commit)으로 안내만 한다: 사용자 결정(2026-11-07)으로 상태 줄에서는 커밋 방식을 바꾸지 않는다.</li>
+ *     <li>열린 트랜잭션(2026-11-07 사용자 요청, 잠금 사고 방지): 커밋 방식 바로 뒤에 수동 커밋 문맥에서 커밋·롤백하지 않은 문장이 있는 동안만
+ *     보인다. 점은 커밋 방식 점과 같은 크기의 status.warning(주의, 오류 아님)이고 글자는 트랜잭션 시작부터의 경과 시간(1초마다 쿼리 창이 갱신)과
+ *     문장 수다. 도구 설명은 시작 시각, 문장 수와 그중 데이터를 바꾼 문장 수, 마지막 문장 시각이다. 칸을 누르면 Commit / Roll back 메뉴를
+ *     보이고, 고르면 메뉴를 연 때의 트랜잭션을 쿼리 창이 끝낸다({@link OpenTransactionActions}). 사용자가 직접 고르는 동작이라 허용된다.</li>
  *     <li>커서 위치는 SSMS 창 아래 상태 표시줄의 Ln/Col이다(한 줄로 합쳐 쿼리 창 상태 줄 끝에 둔다).</li>
  *     <li>바탕은 연결 색({@link ConnectionColors}: 연결에 정한 색, 없으면 연결 종류의 색)이다. 색이 없는 연결(기본 Development)은 카드 바탕 그대로다.
  *     연결 설정이 바뀌면 편집기가 {@link #setConnection}을 다시 불러 색도 바뀐다.
@@ -69,6 +78,7 @@ import java.awt.event.MouseEvent;
  * - 2026-11-06 화면 문구를 EditorMessages로 옮김(OS 언어를 따름)
  * - 2026-11-07 밀도 B: 치수를 테마의 Chromite.size.* 키({@link UiSizes})에서 읽음 (docs/chromite/design-spec.md "치수 토큰")
  * - 2026-11-07 커밋 방식 칸(자동 커밋/수동 커밋, 사용자 요청) (docs/chromite/swing-frontend.md "자동 커밋 상태")
+ * - 2026-11-07 열린 트랜잭션 칸(경과 시간, 문장 수, 누르면 커밋/롤백, 사용자 요청) (docs/chromite/idle-transactions.md)
  */
 final class QueryStatusLine extends JPanel {
 
@@ -79,11 +89,24 @@ final class QueryStatusLine extends JPanel {
         READY, EXECUTING, SUCCESS, ERROR, CANCELED
     }
 
+    /**
+     * Ends the open transaction shown in the status line (Commit / Roll back of its menu).
+     */
+    interface OpenTransactionActions {
+        /**
+         * @param transaction the transaction shown when the menu opened
+         */
+        void end(@NotNull QMTransactionState transaction, boolean commit);
+    }
+
+    private static final DateTimeFormatter TIME_FORMAT = DateTimeFormatter.ofPattern("HH:mm:ss"); //$NON-NLS-1$
+
     private final JLabel stateLabel = new BandLabel(false);
     private final JLabel serverLabel = createSegment();
     private final JLabel userLabel = createSegment();
     private final JLabel databaseLabel = createSegment();
     private final JLabel transactionLabel = createSegment();
+    private final JLabel openTransactionLabel = createSegment();
     private final JLabel elapsedLabel = createSegment();
     private final JLabel rowsLabel = createSegment();
     private final JLabel caretLabel = createSegment();
@@ -92,6 +115,10 @@ final class QueryStatusLine extends JPanel {
     private DBPDataSourceContainer container;
     @Nullable
     private Runnable transactionAction;
+    @Nullable
+    private QMTransactionState openTransaction;
+    @Nullable
+    private OpenTransactionActions openTransactionActions;
     /**
      * Text color of every label when the theme's text is unreadable on the connection color, else {@code null}.
      */
@@ -123,6 +150,16 @@ final class QueryStatusLine extends JPanel {
             }
         });
         segments.add(transactionLabel);
+        openTransactionLabel.setIconTextGap(UIScale.scale(6));
+        openTransactionLabel.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                if (SwingUtilities.isLeftMouseButton(e)) {
+                    showOpenTransactionMenu();
+                }
+            }
+        });
+        segments.add(openTransactionLabel);
         segments.add(elapsedLabel);
         segments.add(rowsLabel);
         segments.add(caretLabel);
@@ -224,6 +261,67 @@ final class QueryStatusLine extends JPanel {
     void setTransactionAction(@Nullable Runnable action) {
         transactionAction = action;
         transactionLabel.setCursor(action != null ? Cursor.getPredefinedCursor(Cursor.HAND_CURSOR) : null);
+    }
+
+    /**
+     * The open transaction of the window's execution context (manual commit with statements since the last commit or
+     * rollback), or null to hide the segment. Called about once a second, so the elapsed time counts up.
+     */
+    void setOpenTransaction(@Nullable QMTransactionState transaction) {
+        openTransaction = transaction;
+        if (transaction == null) {
+            setSegment(openTransactionLabel, null, null);
+            openTransactionLabel.setIcon(null);
+            return;
+        }
+        String elapsed = formatClock(System.currentTimeMillis() - transaction.getTransactionStartTime());
+        String text = transaction.getExecuteCount() == 1 ? NLS.bind(EditorMessages.editor_status_txn_open_one, elapsed)
+            : NLS.bind(EditorMessages.editor_status_txn_open_many, elapsed, transaction.getExecuteCount());
+        StringBuilder tip = new StringBuilder("<html>") //$NON-NLS-1$
+            .append(CommonUtils.escapeHtml(NLS.bind(EditorMessages.editor_status_txn_tip_started, formatTime(transaction.getTransactionStartTime()))))
+            .append("<br>").append(CommonUtils.escapeHtml(NLS.bind(EditorMessages.editor_status_txn_tip_statements, //$NON-NLS-1$
+                transaction.getExecuteCount(), transaction.getUpdateCount())))
+            .append("<br>").append(CommonUtils.escapeHtml(NLS.bind(EditorMessages.editor_status_txn_tip_last, //$NON-NLS-1$
+                formatTime(transaction.getLastExecuteTime()))));
+        if (openTransactionActions != null) {
+            tip.append("<br>").append(CommonUtils.escapeHtml(EditorMessages.editor_status_txn_tip_click)); //$NON-NLS-1$
+        }
+        setSegment(openTransactionLabel, text, tip.append("</html>").toString()); //$NON-NLS-1$
+        openTransactionLabel.setIcon(UiIcons.statusDot(UiIcons.Status.WARNING));
+    }
+
+    /**
+     * What Commit / Roll back of the open transaction segment's menu do; null for no menu.
+     */
+    void setOpenTransactionActions(@Nullable OpenTransactionActions actions) {
+        openTransactionActions = actions;
+        openTransactionLabel.setCursor(actions != null ? Cursor.getPredefinedCursor(Cursor.HAND_CURSOR) : null);
+    }
+
+    /**
+     * Commit / Roll back for the transaction shown now, above the segment (the line is at the bottom of the window).
+     */
+    private void showOpenTransactionMenu() {
+        QMTransactionState transaction = openTransaction;
+        OpenTransactionActions actions = openTransactionActions;
+        if (transaction == null || actions == null) {
+            return;
+        }
+        JPopupMenu menu = new JPopupMenu();
+        menu.add(new JMenuItem(EditorMessages.editor_status_txn_commit)).addActionListener(e -> actions.end(transaction, true));
+        menu.add(new JMenuItem(EditorMessages.editor_status_txn_rollback)).addActionListener(e -> actions.end(transaction, false));
+        menu.show(openTransactionLabel, 0, -menu.getPreferredSize().height);
+    }
+
+    @NotNull
+    private static String formatClock(long millis) {
+        long seconds = Math.max(0, millis / 1000);
+        return String.format("%02d:%02d:%02d", seconds / 3600, seconds / 60 % 60, seconds % 60); //$NON-NLS-1$
+    }
+
+    @NotNull
+    private static String formatTime(long time) {
+        return TIME_FORMAT.format(Instant.ofEpochMilli(time).atZone(ZoneId.systemDefault()));
     }
 
     void setElapsed(@Nullable String elapsed) {

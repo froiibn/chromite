@@ -24,6 +24,11 @@
         <!-- Notifies the end of long operations (native backup/restore tools); the SWT product registers UIServiceSystemAgentImpl.
              Without it DBWorkbench.getService logs "Service ... not found" into the task output. -->
         <service name="com.seizia.chromite.runtime.ui.UIServiceSystemAgent" class="com.seizia.chromite.ui.swing.SwingSystemAgent"/>
+        <!-- Reminder and notice of idle open transactions (IdleTransactionMonitor); without it the monitor neither reminds nor rolls back -->
+        <service name="com.seizia.chromite.runtime.ui.UIServiceIdleTransactions" class="com.seizia.chromite.ui.swing.SwingIdleTransactionService"/>
+        <!-- Asks before running shell commands from saved settings (connection events, password command, data transfer step);
+             the SWT product registered UIServiceShellCommandsImpl. Without it the model refuses to run them. -->
+        <service name="com.seizia.chromite.runtime.ui.UIServiceShellCommands" class="com.seizia.chromite.ui.swing.SwingShellCommandsService"/>
         <!-- Shows the SQL that an @ai script command generated before it runs; the SWT product registers UIServiceSQLImpl.
              Without it AIUtils asks a plain yes/no question without the SQL. Only confirmQueryExecution is implemented. -->
         <service name="com.seizia.chromite.runtime.ui.UIServiceSQL" class="com.seizia.chromite.ui.swing.SwingSqlService"/>
