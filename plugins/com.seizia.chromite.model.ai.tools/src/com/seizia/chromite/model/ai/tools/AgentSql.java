@@ -78,6 +78,10 @@ import java.util.concurrent.locks.ReentrantLock;
  *     {@code SET TRANSACTION READ ONLY}), 끝나면 롤백(쓴 것이 없어 잃는 것이 없음). 열린 트랜잭션이 있으면 그 안에서 그대로 읽고 롤백하지 않는다.
  *     {@link Mode#NATIVE}: 문맥의 커밋 방식 그대로(runSql, runScript, BACKUP 같은 트랜잭션 밖 명령). {@link Mode#ATOMIC}: 자동 커밋 문맥이면
  *     호출 전체를 한 트랜잭션으로 묶어 끝에 커밋, 수동 커밋 문맥이면 그대로 실행하고 열어 둔다(행 편집, 가져오기, 복사).</li>
+ *     <li>에이전트의 열린 트랜잭션 안에서 실행하는 호출은(PostgreSQL) 먼저 통계 스냅숏을 비운다({@link #clearStatisticsSnapshot}).
+ *     PostgreSQL은 트랜잭션에서 처음 읽은 {@code pg_stat_activity}·통계 뷰를 트랜잭션이 끝날 때까지 그대로 돌려주어, 진단 도구가 그 뒤에 생긴
+ *     세션과 대기를 보지 못한다(Activity Monitor 잠금 탭과 같은 원인, docs/chromite/swing-admin-tools.md "모니터링 연결의 커밋 방식").
+ *     열린 트랜잭션이 없는 읽기는 호출마다 새 트랜잭션이라 해당하지 않는다.</li>
  *     <li>취소: 실행 중 문장을 연결별로 기록해 {@code cancelQuery}가 {@link Statement#cancel()}을 부른다. 모니터에도 블록으로 등록해
  *     MCP 취소 알림·채팅 중지가 같은 문장을 취소한다.</li>
  *     <li>"단일 연결 사용" 연결은 격리 문맥을 열 수 없어 기본 문맥을 쓴다. 이때는 사용자 트랜잭션을 건드리지 않도록 자동 커밋을 바꾸지 않고,
@@ -94,6 +98,7 @@ import java.util.concurrent.locks.ReentrantLock;
  * - 2026-11-07 유휴 연결 닫기용 사용 중 여부와 마지막 사용 시각 (docs/chromite/idle-transactions.md "유휴 연결 닫기")
  * - 2026-11-07 격리 문맥 이름을 기능의 공식 이름 "Chromite Agent"로 바꿈. 서버 세션 목록의 프로그램 이름에 보이는 값이다
  *   (docs/chromite/ai-agent.md "명칭", "실행 문맥")
+ * - 2026-11-08 열린 에이전트 트랜잭션 안의 호출은 PostgreSQL 통계 스냅숏을 먼저 비움(docs/chromite/ai-agent.md "실행 문맥")
  */
 public final class AgentSql {
 
@@ -215,6 +220,9 @@ public final class AgentSql {
                     // The user's own context: never touch its transaction mode
                     return work.run(connection, runner);
                 }
+                if (agentContext.pending && family == DbFamily.POSTGRESQL) {
+                    clearStatisticsSnapshot(connection);
+                }
                 try {
                     return switch (mode) {
                         case READ_ONLY -> agentContext.pending
@@ -241,6 +249,20 @@ public final class AgentSql {
         } finally {
             lastUse.put(container.getId(), System.currentTimeMillis());
             agentContext.lock.unlock();
+        }
+    }
+
+    /**
+     * The call continues the agent's open transaction (PostgreSQL): the server would answer {@code pg_stat_activity} and the
+     * statistics views from the snapshot taken at their first read in that transaction, so sessions, waits and counters that
+     * changed since would not show. Clearing it changes nothing else in the transaction.
+     */
+    private static void clearStatisticsSnapshot(@NotNull Connection connection) {
+        try (Statement statement = connection.createStatement()) {
+            statement.execute("SELECT pg_catalog.pg_stat_clear_snapshot()"); //$NON-NLS-1$
+        } catch (SQLException e) {
+            // An aborted transaction fails the call's own statements with the server's message
+            log.debug("Can't clear the statistics snapshot of the agent transaction", e);
         }
     }
 

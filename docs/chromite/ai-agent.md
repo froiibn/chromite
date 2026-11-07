@@ -81,6 +81,12 @@ Chromite 안에서 AI 모델이 DBA처럼 일하게 한다. 사용자가 "이 �
   잠금에 걸린 에이전트 DDL(블로킹된 `CREATE INDEX`) 하나가 그 연결의 진단·`cancelQuery`까지 막았다(아래 "확인"). 쓰기는 열린 에이전트 트랜잭션이 있는
   문맥을 이어서 써야 하므로 그 문맥을 기다리고, 읽기는 그 문맥이 비어 있으면 그것을(커밋 전 변경이 보이게), 아니면 다른 문맥을 쓴다.
 - 연결이 "단일 연결 사용"(`isForceUseSingleConnection`)이면 격리 문맥을 열 수 없어 기본 문맥을 쓴다.
+- 에이전트의 열린 트랜잭션 안에서 실행하는 호출은(PostgreSQL) 먼저 `pg_stat_clear_snapshot()`을 부른다(`AgentSql.clearStatisticsSnapshot`, 2026-11-08).
+  PostgreSQL은 트랜잭션에서 처음 읽은 `pg_stat_activity`·통계 뷰를 트랜잭션이 끝날 때까지 그대로 돌려주므로, 수동 커밋 연결에 쓰고 트랜잭션을 열어 둔 동안
+  `getBlockingChain`·`listSessions` 같은 진단이 그 뒤에 생긴 세션과 대기를 보지 못했다(Activity Monitor 잠금 탭과 같은 원인,
+  [swing-admin-tools.md](swing-admin-tools.md) "모니터링 연결의 커밋 방식"). 스냅숏을 비워도 트랜잭션의 다른 상태는 그대로다. 열린 트랜잭션이 없는 읽기는
+  호출마다 새 읽기 전용 트랜잭션이라 해당하지 않는다. SQL Server DMV, MySQL·MariaDB의 `information_schema`·`performance_schema`, Oracle `V$` 뷰는
+  트랜잭션 스냅숏을 따르지 않는다.
 - `setCurrentDatabase`는 에이전트 문맥의 기본 DB/스키마만 바꾼다. 사용자의 화면은 바뀌지 않는다.
 - PostgreSQL처럼 DB마다 인스턴스가 다른 드라이버는 `database` 인수로 그 DB의 인스턴스 문맥을 쓴다.
 
@@ -774,6 +780,7 @@ Oracle 진단 결과의 대문자 열 이름(소문자로 맞춤), PostgreSQL에
 
 ## 변경 이력
 
+- 2026-11-08 에이전트의 열린 트랜잭션 안 호출은 PostgreSQL 통계 스냅숏을 먼저 비움(위 "실행 문맥", [swing-admin-tools.md](swing-admin-tools.md) "모니터링 연결의 커밋 방식").
 - 2026-11-07 쿼리 창마다 별도 연결: 새 대화·"이 쿼리에 대해 묻기"의 현재 데이터베이스를 쿼리 창의 실행 문맥에서 읽음(`AiAssistantPanel.getCurrentDatabase(SqlEditorPanel)`).
 - 2026-11-07 모델 번들(`model.ai.tools`)의 남은 옛 이름을 Chromite Agent로: 제공자 미설정 오류의 경로 "Options > Chromite Agent > Providers"
   (`AIAgentProviders`), 요청 한도 오류 "Chromite Agent made … requests in one turn …"(`AIAgentChatRunner`, 둘 다 영어 고정 글이라 영어만),
