@@ -219,7 +219,7 @@ Swing에서 바꿀 수 있는 설정: Options — 테마, 아이콘 모양, 입�
 | Dictionaries | ui.editors.data `PrefPageDataViewer` | ✓ | `resultset.reference.value.description.column.patterns`, `dictionary.max.rows` | 없음 | 낮음 |
 | Diagram Editor, ERD Settings | ui.editors.erd `ERDPreferencePage` | ✓ | `erd.*` 14개(설명 지연 읽기, 뷰·파티션 표시, 격자, 인쇄 여백 등) | 없음 | 낮음 |
 | HEX Editor | ui.editors.hex | | `hex.font.*` 3개, `default.hex.width` | 없음(HEX 편집기 없음) | 낮음 |
-| SQL Terminal | ui.editors.sql.terminal | ✓ | `SQLEditor.ConsoleView.showConsoleViewByDefault`, `SQLEditor.SQLTerminal.showQueryText`, `SQLEditor.SQLTerminal.showServerOutput` | 없음(터미널 없음) | 낮음 |
+| SQL Terminal | ui.editors.sql.terminal | ✓ | `SQLEditor.ConsoleView.showConsoleViewByDefault`, `SQLEditor.SQLTerminal.showQueryText`, `SQLEditor.SQLTerminal.showServerOutput` | 일부(2026-11-08: 터미널은 Query > SQL Terminal로 옮김, 이 설정 키 3개는 없음, [swing-sql-terminal.md](../swing-sql-terminal.md)) | 낮음 |
 | SQL Editor | ui.editors.sql `PrefPageSQLEditor` | ✓ | `database.editor.separate.connection`, `database.editor.connect.on.activate`, `database.editor.connect.on.execute`, `SQLEditor.autoSave*` 4개, `SQLEditor.resultSet.*` 4개, `SQLEditor.outputPanel.autoShow` | 일부: `database.editor.separate.connection`(2026-11-07, Options > Query Execution과 연결 대화상자, [transactions.md](../transactions.md) "쿼리 창마다 별도 연결") | 중간. 조사 당시: 편집기별 별도 연결을 정할 수 없음 |
 | Code Editor | ui.editors.sql `PrefPageSQLCodeEditing` | ✓ | 접기, 단어 이동, 같은 단어 표시, 문제 표시, 의미 분석 3개, 따옴표·괄호 자동 닫기 3개, 키워드 대소문자 자동, 원본에서 서식 추출 | 없음 | 낮음 |
 | Code Completion | ui.editors.sql `PrefPageSQLCompletion` | ✓ | `SQLEditor.ContentAssistant.*` 21개 + `sql.proposals.insert.table.alias` | 일부: 자동 활성·지연·프로시저 제안(Swing 자체 키 `sqlEditor.completion.*`, `SqlCompletionPopup.java`:94-104) | 낮음 |

@@ -103,7 +103,7 @@ Swing 소스에서 해당 모델 API나 기능을 찾지 못한 검색으로 확
 |---|---|---|---|
 | PostgreSQL 디버거(프로시저 중단점·단계 실행) | `debug.ui`, `ext.postgresql.debug.ui`, (모델) `debug.core`, `ext.postgresql.debug.core` | 없음(함께 삭제, git 이력) | 2026-11-07 옮김: 모델의 DB 중립 부분과 PostgreSQL 구현을 `org.eclipse.debug.core` 없이 복원, Swing 디버거 탭([procedure-debugger.md](procedure-debugger.md)) |
 | 작업(Task) 관리와 예약 실행: 저장한 작업 목록, 스케줄러, SQL 스크립트 작업 | `tasks.ui`, `tasks.ui.view`, `tasks.sql.ui`, `tasks.native.ui` | `model`의 `DBTTask*`, `tasks.native` | `DBTTask`는 데이터 전송 실행(`DataTransferWizard`)에만 쓰임. 작업 저장·예약 화면 없음 |
-| SQL 터미널(편집기 아래 콘솔 형식 결과) | `ui.editors.sql.terminal` | - | `terminal` 참조 0 |
+| SQL 터미널(편집기 아래 콘솔 형식 결과) | `ui.editors.sql.terminal` | - | 2026-11-08 옮김: Query > SQL Terminal, 쿼리 창마다 켜는 Terminal 탭([swing-sql-terminal.md](swing-sql-terminal.md)) |
 | 차트, 결과의 GIS(공간 데이터) 보기 | `ui.charts`, `data.gis.view` | `data.gis` | `Chart`·`DBGeometry` 참조 0 |
 | 사용자 정의 대시보드(대시보드 편집·여러 대시보드 보기) | `ui.dashboard` | `model.dashboard` | Swing에는 Activity Monitor의 고정 서버 대시보드만 있다([swing-dashboard.md](swing-dashboard.md), 2026-11-07 devel 병합으로 확인) |
 | 프로젝트·자원 탐색기(스크립트 폴더, 북마크, 프로젝트 관리) | `ui.navigator`의 프로젝트 보기, `core` | `model`, `model.rcp` | Object Explorer는 연 서버만 보인다(`ObjectExplorerPanel` 루트 주석) |

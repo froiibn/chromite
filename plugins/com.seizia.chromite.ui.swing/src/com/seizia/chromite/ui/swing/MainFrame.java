@@ -23,6 +23,7 @@ import com.seizia.chromite.ui.swing.internal.ConnectionTransferMessages;
 import com.seizia.chromite.ui.swing.internal.CoreMessages;
 import com.seizia.chromite.ui.swing.internal.DashboardMessages;
 import com.seizia.chromite.ui.swing.internal.DriverManagerMessages;
+import com.seizia.chromite.ui.swing.internal.TerminalMessages;
 import com.seizia.chromite.ui.swing.internal.ToolbarMessages;
 import io.github.andrewauclair.moderndocking.DockingRegion;
 import org.eclipse.osgi.util.NLS;
@@ -103,7 +104,9 @@ import java.util.function.Supplier;
  *     <li>결과는 SSMS처럼 쿼리 창마다 따로 있다({@link QueryResultsView}). 아래 Results / Messages 탭에는 활성 편집기의 결과를 끼운다.
  *     편집기마다 마지막으로 본 탭(Results 또는 Messages)을 기억한다. 탭에서 빠져 있던 결과 컴포넌트는 테마 전환을 받지 못했을 수 있어, 끼울 때 Look and Feel을 맞춘다.
  *     쿼리 상태 줄({@link QueryStatusLine})도 같은 방식으로, 활성 편집기의 줄을 Results 카드의 아래쪽(SSMS 쿼리 창 맨 아래)에 끼운다.
- *     Results가 숨겨져 있으면 문서 카드의 아래쪽(편집기 아래)으로 옮긴다. 빈 문서 영역과 DDL 탭에는 없다.</li>
+ *     Results가 숨겨져 있으면 문서 카드의 아래쪽(편집기 아래)으로 옮긴다. 빈 문서 영역과 DDL 탭에는 없다.
+ *     Terminal 탭(Query &gt; SQL Terminal, Ctrl+T)은 활성 쿼리 창이 터미널을 켰을 때만 넷째 탭으로 붙인다. 켜는 것이 창마다라서
+ *     탭이 늘 있으면 꺼진 창에서 빈 탭이 되기 때문이다.</li>
  *     <li>Results 카드는 DataGrip처럼 활성 문서가 쿼리 창일 때만 보인다. 빈 문서 영역과 다른 문서(테이블 디자이너, ER 다이어그램, 도구 문서, DDL 탭)에서는
  *     숨겨 빈 화면·문서가 문서 영역을 다 쓴다. 사용자가 숨긴 것(Ctrl+R, View 메뉴, — 단추)은 전역이 아니라 그 쿼리 창에 기억하고
  *     ({@link #RESULTS_HIDDEN_KEY}), 실행·실행 계획은 그 쿼리 창의 Results를 다시 보인다. 활성 문서가 바뀔 때 {@link ToolWindow.SplitHost#update()}가
@@ -205,6 +208,7 @@ import java.util.function.Supplier;
  * - 2026-11-08 문서 탭 UI가 {@link ChromiteTabbedPaneUI}를 상속: 테마를 바꾼 뒤 숨겨진 탭 단추의 도구 설명이 사라지던 문제
  *   (docs/chromite/swing-followup-fixes.md "작은 화면 수정")
  * - 2026-11-08 Save As 덮어쓰기 확인은 바꾸기 / 취소 단추(취소가 기본), 결과 표 변경 저장 질문은 취소가 기본 (docs/chromite/swing-frontend.md "실행 확인의 기본 단추")
+ * - 2026-11-08 Query &gt; SQL Terminal(Ctrl+T)과 활성 쿼리 창이 켰을 때만 붙는 Terminal 탭 (docs/chromite/swing-sql-terminal.md)
  */
 final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplorerPanel.QueryWindows, TableDesignerPanel.Host, QueryLibraryPanel.Host {
 
@@ -237,6 +241,11 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
     private static final int RESULTS_TAB = 0;
     private static final int MESSAGES_TAB = 1;
     private static final int PLAN_TAB = 2;
+    /**
+     * Index of the Terminal tab, which is there only while the active query window has Query &gt; SQL Terminal on
+     * ({@link #updateTerminalTab}).
+     */
+    private static final int TERMINAL_TAB = 3;
 
     private final ObjectExplorerPanel explorerPanel;
     private final RegisteredServersPanel registeredServersPanel;
@@ -286,6 +295,11 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
      * ({@link Action#SELECTED_KEY}) while the active query window includes the actual plan.
      */
     private final Action actualPlanAction;
+    /**
+     * Query &gt; SQL Terminal (Ctrl+T, SSMS "Results to Text"): selected ({@link Action#SELECTED_KEY}) while the active
+     * query window writes its runs to the Terminal tab.
+     */
+    private final Action terminalAction;
     /**
      * Query &gt; Debug…: debugs the routine of the active Modify window (enabled when the Query menu opens).
      */
@@ -520,6 +534,22 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
             });
         // Menu items and toggle buttons write their state back to the action only if it has one
         actualPlanAction.putValue(Action.SELECTED_KEY, Boolean.FALSE);
+        // Ctrl+T is SSMS's Results to Text, the nearest SSMS command to a console-style output
+        terminalAction = createAction(TerminalMessages.terminal_action, TerminalMessages.terminal_action_tip,
+            KeyStroke.getKeyStroke(KeyEvent.VK_T, InputEvent.CTRL_DOWN_MASK), () -> {
+                SqlEditorPanel editor = getActiveEditor();
+                if (editor != null) {
+                    editor.setTerminalEnabled(!editor.isTerminalEnabled());
+                    if (editor.isTerminalEnabled()) {
+                        showTerminal(editor);
+                    } else {
+                        // The Terminal tab goes away; the tab the window showed before it comes back
+                        selectResultTab(editor);
+                    }
+                }
+                updateQueryActions();
+            });
+        terminalAction.putValue(Action.SELECTED_KEY, Boolean.FALSE);
         // The SWT shortcuts: Ctrl+Alt+Shift+K / R on Windows, Ctrl+4 / Ctrl+8 elsewhere (core plugin.xml key bindings)
         boolean windows = RuntimeUtils.isWindows();
         int windowsModifiers = InputEvent.CTRL_DOWN_MASK | InputEvent.ALT_DOWN_MASK | InputEvent.SHIFT_DOWN_MASK;
@@ -558,6 +588,7 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
             if (editor != null && !switchingResults) {
                 editor.getResultsView().setMessagesTabSelected(resultTabs.getSelectedIndex() == MESSAGES_TAB);
                 editor.setPlanTabSelected(resultTabs.getSelectedIndex() == PLAN_TAB);
+                editor.setTerminalTabSelected(resultTabs.getSelectedIndex() == TERMINAL_TAB);
             }
         });
         updateQueryActions();
@@ -1361,11 +1392,10 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
             attachResultTab(RESULTS_TAB, editor != null ? editor.getResultsView().getResultsComponent() : null);
             attachResultTab(MESSAGES_TAB, editor != null ? editor.getResultsView().getMessagesComponent() : null);
             attachResultTab(PLAN_TAB, editor != null ? editor.getPlanView().getComponent() : null);
-            resultTabs.setSelectedIndex(editor != null && editor.isPlanTabSelected() ? PLAN_TAB
-                : editor != null && editor.getResultsView().isMessagesTabSelected() ? MESSAGES_TAB : RESULTS_TAB);
         } finally {
             switchingResults = false;
         }
+        selectResultTab(editor);
         // Before the status line, which goes below the results only while they are shown
         resultsSplit.update();
         attachStatusLine(editor != null ? editor.getStatusLine() : null);
@@ -1375,6 +1405,36 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
             editor.refreshTransactionMode();
         }
         updateQueryActions();
+    }
+
+    /**
+     * Shows the Terminal tab of the window (or none) and brings back the result tab the window showed last.
+     */
+    private void selectResultTab(@Nullable SqlEditorPanel editor) {
+        switchingResults = true;
+        try {
+            updateTerminalTab(editor);
+            resultTabs.setSelectedIndex(editor != null && editor.isTerminalEnabled() && editor.isTerminalTabSelected() ? TERMINAL_TAB
+                : editor != null && editor.isPlanTabSelected() ? PLAN_TAB
+                : editor != null && editor.getResultsView().isMessagesTabSelected() ? MESSAGES_TAB : RESULTS_TAB);
+        } finally {
+            switchingResults = false;
+        }
+    }
+
+    /**
+     * The Terminal tab is there only while the active query window has Query &gt; SQL Terminal on, with that window's
+     * terminal. Call with {@link #switchingResults} set: removing the selected tab selects another one.
+     */
+    private void updateTerminalTab(@Nullable SqlEditorPanel editor) {
+        if (editor != null && editor.isTerminalEnabled()) {
+            if (resultTabs.getTabCount() <= TERMINAL_TAB) {
+                resultTabs.addTab(TerminalMessages.terminal_tab, UiIcons.get("terminal"), null); //$NON-NLS-1$
+            }
+            attachResultTab(TERMINAL_TAB, editor.getTerminalView().getComponent());
+        } else if (resultTabs.getTabCount() > TERMINAL_TAB) {
+            resultTabs.removeTabAt(TERMINAL_TAB);
+        }
     }
 
     /**
@@ -1446,6 +1506,8 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
         estimatedPlanAction.setEnabled(editor != null && editor.canExplain());
         actualPlanAction.setEnabled(editor != null);
         actualPlanAction.putValue(Action.SELECTED_KEY, editor != null && editor.isIncludeActualPlan());
+        terminalAction.setEnabled(editor != null);
+        terminalAction.putValue(Action.SELECTED_KEY, editor != null && editor.isTerminalEnabled());
         // Ending the transaction needs it idle: a running statement or script of this window would be refused
         QMTransactionState transaction = editor == null ? null : editor.getOpenTransaction();
         boolean canEndTransaction = transaction != null && !transaction.isExecuting() && !editor.canCancel();
@@ -1485,6 +1547,7 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
         }
         editor.getResultsView().setMessagesTabSelected(messages);
         editor.setPlanTabSelected(false);
+        editor.setTerminalTabSelected(false);
         resultTabs.setSelectedIndex(messages ? MESSAGES_TAB : RESULTS_TAB);
         resultsWindow.setShown(true);
     }
@@ -1495,7 +1558,24 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
             return;
         }
         editor.setPlanTabSelected(true);
+        editor.setTerminalTabSelected(false);
         resultTabs.setSelectedIndex(PLAN_TAB);
+        resultsWindow.setShown(true);
+    }
+
+    @Override
+    public void showTerminal(@NotNull SqlEditorPanel editor) {
+        if (editor != getActiveEditor()) {
+            return;
+        }
+        if (!editor.isTerminalEnabled()) {
+            // Turned off while a run that started with it was going on: its output still goes to the (hidden) terminal
+            showResults(editor, false);
+            return;
+        }
+        editor.setPlanTabSelected(false);
+        editor.setTerminalTabSelected(true);
+        selectResultTab(editor);
         resultsWindow.setShown(true);
     }
 
@@ -1609,6 +1689,7 @@ final class MainFrame extends JFrame implements SqlEditorPanel.Host, ObjectExplo
         queryMenu.addSeparator();
         queryMenu.add(new JMenuItem(estimatedPlanAction));
         queryMenu.add(new JCheckBoxMenuItem(actualPlanAction));
+        queryMenu.add(new JCheckBoxMenuItem(terminalAction));
         queryMenu.addSeparator();
         queryMenu.add(new JMenuItem(debugAction));
         queryMenu.addSeparator();
