@@ -101,7 +101,7 @@
 | A-C10 | 서버 출력 보기(Oracle DBMS_OUTPUT 등) | `views/DatabaseOutputView` | 일부 (2026-11-07 쿼리 창 출력은 고침) | 쿼리 창이 문장마다 `DBCServerOutputReader`로 읽어 Messages 탭에 씀(`SqlEditorPanel.readServerOutput`, [swing-server-output.md](../swing-server-output.md)). 별도 Output 보기는 없음 | 중간 | 출력은 SQL Server PRINT·PostgreSQL NOTICE와 같은 Messages 탭에 차례대로 나온다 |
 | A-C11 | 셸 프로세스 보기(연결 이벤트 명령 출력, 중지) | `views/process/ShellProcessView` | 없음 | Swing 검색 0 | 낮음 | |
 | A-C12 | 북마크 | `resources/bookmarks/*` | 없음 | swt-removal.md:108(프로젝트·자원 탐색기) | 낮음 | |
-| A-C13 | 프로젝트 패널·자원 처리기(스크립트 폴더, 바로 가기) | `controls/ProjectsPanel`, `resources/*Handler*` | 없음 | swt-removal.md:108 | 중간 | |
+| A-C13 | 프로젝트 패널·자원 처리기(스크립트 폴더, 바로 가기) | `controls/ProjectsPanel`, `resources/*Handler*` | 일부(2026-11-08. 조사 당시: 없음) | Scripts 도구 창(`ScriptsPanel`, 스크립트 폴더), swt-removal.md:108 | 중간 | 바로 가기·다른 자원 처리기는 없음. [swing-scripts-explorer.md](../swing-scripts-explorer.md) |
 | A-C14 | 설정·프로젝트·스크립트 내보내기/가져오기 마법사 | `tools/configuration`, `tools/project`, `tools/scripts` | 일부 (2026-11-07 연결만. 조사 당시: 없음) | 연결·그룹·비밀번호는 암호로 암호화한 파일로 옮김([connection-transfer.md](../connection-transfer.md)). 설정·스크립트·프로젝트 자원은 없음 | 중간 | 연결 외의 작업 공간 내용은 다른 PC로 옮기는 공식 경로가 없다 |
 | A-C15 | 연결 끊김 시 다시 연결 대화상자, 드라이버 설정 오류 안내, 드라이버 라이선스 오류 | `DesktopUI.showDatabaseError` | 일부 | §3 | 중간 | 모델의 자동 복구(`execute.recover.*`)는 남아 있음 |
 | A-C16 | 인증 방식 자격 증명 대화상자 | `DesktopUI.promptAuthModelCredentials` | 있음 (2026-11-07 수정함. 조사 당시: 조용히 끊김) | S5, [swing-auth-prompts.md](../swing-auth-prompts.md) | 높음 | |
@@ -219,7 +219,7 @@ Swing에서 바꿀 수 있는 설정: Options — 테마, 아이콘 모양, 입�
 | Dictionaries | ui.editors.data `PrefPageDataViewer` | ✓ | `resultset.reference.value.description.column.patterns`, `dictionary.max.rows` | 없음 | 낮음 |
 | Diagram Editor, ERD Settings | ui.editors.erd `ERDPreferencePage` | ✓ | `erd.*` 14개(설명 지연 읽기, 뷰·파티션 표시, 격자, 인쇄 여백 등) | 없음 | 낮음 |
 | HEX Editor | ui.editors.hex | | `hex.font.*` 3개, `default.hex.width` | 없음(HEX 편집기 없음) | 낮음 |
-| SQL Terminal | ui.editors.sql.terminal | ✓ | `SQLEditor.ConsoleView.showConsoleViewByDefault`, `SQLEditor.SQLTerminal.showQueryText`, `SQLEditor.SQLTerminal.showServerOutput` | 없음(터미널 없음) | 낮음 |
+| SQL Terminal | ui.editors.sql.terminal | ✓ | `SQLEditor.ConsoleView.showConsoleViewByDefault`, `SQLEditor.SQLTerminal.showQueryText`, `SQLEditor.SQLTerminal.showServerOutput` | 일부(2026-11-08: 터미널은 Query > SQL Terminal로 옮김, 이 설정 키 3개는 없음, [swing-sql-terminal.md](../swing-sql-terminal.md)) | 낮음 |
 | SQL Editor | ui.editors.sql `PrefPageSQLEditor` | ✓ | `database.editor.separate.connection`, `database.editor.connect.on.activate`, `database.editor.connect.on.execute`, `SQLEditor.autoSave*` 4개, `SQLEditor.resultSet.*` 4개, `SQLEditor.outputPanel.autoShow` | 일부: `database.editor.separate.connection`(2026-11-07, Options > Query Execution과 연결 대화상자, [transactions.md](../transactions.md) "쿼리 창마다 별도 연결") | 중간. 조사 당시: 편집기별 별도 연결을 정할 수 없음 |
 | Code Editor | ui.editors.sql `PrefPageSQLCodeEditing` | ✓ | 접기, 단어 이동, 같은 단어 표시, 문제 표시, 의미 분석 3개, 따옴표·괄호 자동 닫기 3개, 키워드 대소문자 자동, 원본에서 서식 추출 | 없음 | 낮음 |
 | Code Completion | ui.editors.sql `PrefPageSQLCompletion` | ✓ | `SQLEditor.ContentAssistant.*` 21개 + `sql.proposals.insert.table.alias` | 일부: 자동 활성·지연·프로시저 제안(Swing 자체 키 `sqlEditor.completion.*`, `SqlCompletionPopup.java`:94-104) | 낮음 |

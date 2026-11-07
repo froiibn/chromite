@@ -87,12 +87,12 @@
 | S35 | 마우스 올림 정보, Ctrl+클릭으로 개체 열기, 같은 단어 강조 | `SQLAnnotationHover`, `SQLHyperlinkDetector`, `navigate.object`, `SQLOccurrencesHighlighter` | 없음 | `SqlEditorPanel` grep `Hover`/`ToolTipSupplier`/`setMarkOccurrences` 0건 | 낮음 | |
 | S36 | 의미 분석 오류 표시, 빠른 수정 | `SQLEditorSemanticMarkersManager`, `SQLEditorQuickAssistProcessor` | 없음 | grep 0건 | 낮음 | |
 | S37 | 글자 도구: 줄 바꿈 토글, 공백 다듬기, 목록 변환, 소스 코드로 복사(Java·Python 등), 웹 검색 | `word.wrap`, `trim.*`, `morph.delimited.list`, `convert/*`, `search.web` | 없음 | grep 0건(쿼리 편집기에 `setLineWrap` 없음) | 낮음 | 대소문자 바꾸기는 있음(S30) |
-| S38 | 스크립트 파일 관리(프로젝트 Scripts 폴더, 연결별 스크립트 목록, 이름 바꾸기·삭제, 스크립트에 연결 기억, 자동 저장, 다시 시작할 때 열린 편집기 복원) | `showScripts`, `rename`, `deleteThisScript`, `ScriptsHandlerImpl`, `SQLEditorHandlerOpenEditor` | 일부 | `SqlFileContent`, `RecentFiles`, File Open/Save; `MainFrame`에 편집기 복원 없음; swt-removal.md:108 | 중간 | 파일 단위 열기·저장·최근 파일만 |
+| S38 | 스크립트 파일 관리(프로젝트 Scripts 폴더, 연결별 스크립트 목록, 이름 바꾸기·삭제, 스크립트에 연결 기억, 자동 저장, 다시 시작할 때 열린 편집기 복원) | `showScripts`, `rename`, `deleteThisScript`, `ScriptsHandlerImpl`, `SQLEditorHandlerOpenEditor` | 일부 | `SqlFileContent`, `RecentFiles`, File Open/Save; Scripts 도구 창(2026-11-08: 폴더·이름 바꾸기·삭제·연결 묶기, `ScriptsPanel`); `MainFrame`에 편집기 복원 없음; swt-removal.md:108 | 중간 | 남은 것: 연결별 스크립트 목록, 자동 저장, 다시 시작할 때 편집기 복원. [swing-scripts-explorer.md](../swing-scripts-explorer.md) |
 | S39 | 연결·기본 DB/스키마 바꾸기 | 활성 연결·스키마 선택(`SelectActiveSchemaHandler`) | 있음 | `SqlEditorPanel` 콤보, `SqlEditorToolBar` | 중간 | 탐색기와 연결 맞추기(`sync.connection`)는 없음 |
 | S40 | DDL 실행 뒤 탐색기 갱신 | `SQLMetadataRefreshCoordinator` | 일부 | Modify·New 창만 노드를 다시 읽음(`setExecutionFinishedListener`, swing-source-editor.md) | 중간 | 일반 쿼리 창의 CREATE/DROP은 F5로 새로 고쳐야 보임 |
 | S41 | SQL 만들기(INSERT·UPDATE·DELETE·MERGE·JOIN, 결과 행에서, 결과로 DDL) | `GenerateSQLDialog`, `SQLGeneratorContributor`, `generate.ddl.by.resultSet` | 일부 | `ObjectScripts`(CREATE·SELECT), `SourceEditCommands`(ALTER); swing-frontend.md:1020 | 중간 | |
 | S42 | 저장 프로시저 실행(매개변수 입력) | `procedure.execute`, `ProcedureParameterBindDialog` | 없음 | grep `executeProcedure`/procedure call 0건 | 중간 | SSMS "Execute Stored Procedure"에 해당 |
-| S43 | SQL 터미널 | `ui.editors.sql.terminal` | 없음 | swt-removal.md:105 | 낮음 | |
+| S43 | SQL 터미널 | `ui.editors.sql.terminal` | 있음(2026-11-08) | Query > SQL Terminal(Ctrl+T), `SqlTerminalView`, `MainFrame.updateTerminalTab` | 낮음 | 쿼리 창마다 켜고 끔(저장 안 함). SWT 설정 3개는 없음. [swing-sql-terminal.md](../swing-sql-terminal.md) |
 | S44 | 결과 창 배치(최대화, 가로/세로, 숨기기) | `maximize.result.panel`, `toggleLayout`, `toggle.result.panel` | 일부 | 도킹 도구 창(`ToolWindowDocking`), Results 자동 숨김(swing-frontend.md "Results 자동 숨김") | 낮음 | |
 | S45 | SQL 편집기 설정 화면 | `PrefPageSQLEditor`, `CodeEditing`, `Completion`, `Execute`, `Format`, `Dialects`, `Resources` | 일부 | `OptionsDialog`(Query Editor, Formatting, Templates, 글꼴·색), swt-removal.md:116 | 중간 | 실행·방언·코드 편집 설정 없음 |
 
