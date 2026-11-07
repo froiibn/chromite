@@ -24,6 +24,7 @@ import com.seizia.chromite.Log;
 import com.seizia.chromite.model.DBPDataSource;
 import com.seizia.chromite.model.DBPScriptObject;
 import com.seizia.chromite.model.DBUtils;
+import com.seizia.chromite.model.data.DBDDataFilter;
 import com.seizia.chromite.model.exec.DBCQueryTransformProvider;
 import com.seizia.chromite.model.exec.DBCQueryTransformType;
 import com.seizia.chromite.model.exec.DBCQueryTransformer;
@@ -54,7 +55,8 @@ import java.util.List;
  *     <li>CREATE(DDL): {@link SQLGeneratorDDL}("Generate SQL > DDL"). 테이블·뷰는 {@code DBStructUtils.generateTableListDDL},
  *     그 밖의 객체는 {@link DBPScriptObject#getObjectDefinitionText}로 만든다. 생성기 기본 옵션(완전한 이름, 주석 포함)을 쓴다.
  *     이 생성기는 {@code OPTION_INCLUDE_OBJECT_DROP}을 켜므로, 이 옵션을 읽는 MySQL 테이블은 DROP 문이 앞에 붙는다(SWT와 같음).</li>
- *     <li>SELECT: {@link SQLGeneratorSelect}("Generate SQL > SELECT", 숨은 열을 뺀 열 목록).</li>
+ *     <li>SELECT: {@link SQLGeneratorSelect}("Generate SQL > SELECT", 숨은 열을 뺀 열 목록). 데이터 검색의 "행 열기"는 같은 SELECT에
+ *     모델의 조건 생성기로 만든 WHERE를 붙인다({@link #generateFilteredSelect}).</li>
  *     <li>행 수 제한(Select Top N Rows): 방언마다 다른 문법을 직접 쓰지 않고, 실행 엔진이 최대 행 수를 SQL로 넣을 때 쓰는
  *     연결의 {@link DBCQueryTransformProvider}({@link DBCQueryTransformType#RESULT_SET_LIMIT})로 바꾼다
  *     (SQL Server {@code TOP}, SQLite·PostgreSQL·MySQL {@code LIMIT} 등). 변환기가 없거나 적용할 수 없으면 SELECT를 그대로 두고,
@@ -69,6 +71,7 @@ import java.util.List;
  * - 2026-11-06 E단계: 최초 작성 (docs/chromite/swing-frontend.md "구현 현황 — E단계")
  * - 2026-11-06 화면 문구를 CoreMessages로 옮김(OS 언어를 따름)
  * - 2026-11-07 Generate SQL 메뉴의 생성기 고르기와 실행 (docs/chromite/swing-explorer-object-actions.md)
+ * - 2026-11-08 조건을 붙인 SELECT {@link #generateFilteredSelect}(데이터 검색, docs/chromite/swing-data-search.md)
  */
 final class ObjectScripts {
 
@@ -101,6 +104,33 @@ final class ObjectScripts {
         generator.initGenerator(List.of(entity));
         String sql = runGenerator(monitor, generator);
         return maxRows > 0 ? applyRowLimit(entity.getDataSource(), sql, maxRows) : sql;
+    }
+
+    /**
+     * The SELECT of {@link #generateSelect} with a WHERE clause from a filter, values written into the SQL by the model's
+     * condition generator (the query window runs plain SQL). Data search opens its matching rows with it.
+     *
+     * @param maxRows row limit added with the data source's limit syntax, 0 for none
+     */
+    @NotNull
+    static String generateFilteredSelect(
+        @NotNull DBRProgressMonitor monitor,
+        @NotNull DBSEntity entity,
+        @NotNull DBDDataFilter filter,
+        long maxRows
+    ) throws DBException {
+        SQLGeneratorSelect generator = new SQLGeneratorSelect();
+        generator.initGenerator(List.of(entity));
+        DBPDataSource dataSource = entity.getDataSource();
+        SQLDialect dialect = dataSource.getSQLDialect();
+        StringBuilder sql = new StringBuilder(SQLUtils.removeQueryDelimiter(dialect, runGenerator(monitor, generator).trim()));
+        sql.append("\nWHERE "); //$NON-NLS-1$
+        SQLUtils.appendConditionString(filter, dataSource, null, sql, true);
+        String select = sql.toString();
+        // The limit goes to the statement without its delimiter: a LIMIT transformer appends after the text, so a
+        // delimited statement would end up as "...;\nLIMIT n". applyRowLimit ends a changed statement itself.
+        String limited = maxRows > 0 ? applyRowLimit(dataSource, select, maxRows) : select;
+        return limited.equals(select) ? select + SQLUtils.getDefaultScriptDelimiter(dialect) + "\n" : limited; //$NON-NLS-1$
     }
 
     /**
