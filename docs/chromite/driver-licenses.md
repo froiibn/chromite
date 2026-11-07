@@ -263,7 +263,8 @@ Oracle은 위 주요 DB 표에 있다.
   - StarRocks는 GNU 사이트의 GPLv2 원문(URL)이었다. POM(`starrocks-connector-j` 1.1.2)이 선언한 라이선스는 "The GNU General Public License, v2 with Universal FOSS
     Exception, v1.0"이고, POM이 가리키는 `CelerData/starrocks-connector-j` 저장소는 공개돼 있지 않다(2026-11-08 404). 그래서 같은 원문인
     `gpl-2.0-universal-foss-exception.txt`를 쓰고, 그 파일 앞 안내에 StarRocks Connector/J(Connector/J 포크)가 POM에서 같은 라이선스를 선언한다는 문단을 더했다.
-  - 같은 5.1.49 jar를 쓰는 MySQL (Old)(`ext.generic`, `mysql3`)에는 `type="license"` 항목이 아예 없다. 표기가 틀린 것은 아니라 이번에 더하지 않았다.
+  - 같은 5.1.49 jar를 쓰는 MySQL (Old)(`ext.generic`, `mysql3`)에는 `type="license"` 항목이 아예 없었다. 2026-11-08(evening #20)에 MySQL 5 (Legacy)와 같은
+    `licenses/external/gpl-2.0-mysql-foss-exception.txt`를 더했다. 이 드라이버도 내장하지 않는다(설치 폴더 `drivers/`에 없음, 처음 쓸 때 Maven에서 받음).
 
 | 드라이버 | plugin.xml 표기 | 실제 |
 |---|---|---|
@@ -323,3 +324,4 @@ Oracle은 위 주요 DB 표에 있다.
 - 2026-11-07 MySQL Connector/J 내장 취소(사용자 결정) 기록, v0.1.0 내장 배포 기록. MySQL 계열 6개 드라이버의 라이선스 표기 수정(`gnu3.txt` 삭제).
 - 2026-11-08 MySQL 5 (Legacy)·StarRocks 라이선스 표기 수정(evening #12, 새 파일 `gpl-2.0-mysql-foss-exception.txt`). v0.1.0 Release에 Connector/J 9.7.0
   소스 묶음을 첨부한 기록(크기·SHA-256, 초안 Release 게시 때 공개, 0.1.1부터는 해당 없음).
+- 2026-11-08 MySQL (Old)(`mysql3`)에 라이선스 항목 추가(evening #20).

@@ -47,6 +47,10 @@ import java.util.stream.Stream;
 
 /**
  * Query manager log writer
+ *
+ * 변경 이력:
+ * - 2026-11-08 Chromite: 설정이 바뀔 때마다(qm. 키 하나하나) 새 파일을 열면서 이전 핸들을 닫지 않던 것을 고침. 종료할 때도 닫음
+ *   (evening #33, docs/chromite/model-fixes.md "후속 수정 3")
  */
 public class QMLogFileWriter implements QMMetaListener, DBPPreferenceListener {
 
@@ -70,9 +74,15 @@ public class QMLogFileWriter implements QMMetaListener, DBPPreferenceListener {
     public void dispose()
     {
         DBWorkbench.getPlatform().getPreferenceStore().removePropertyChangeListener(this);
+        closeLogFile();
     }
 
+    /**
+     * Opens the log file the settings ask for. Called again on every change of a QM setting, so the file opened before
+     * is closed first.
+     */
     private synchronized void initLogFile() {
+        closeLogFile();
         final DBPPreferenceStore preferences = DBWorkbench.getPlatform().getPreferenceStore();
         enabled = preferences.getBoolean(QMConstants.PROP_STORE_LOG_FILE);
         if (enabled) {
@@ -99,13 +109,15 @@ public class QMLogFileWriter implements QMMetaListener, DBPPreferenceListener {
             } catch (IOException e) {
                 log.error("Can't open log writer", e);
             }
-        } else {
-            if (logWriter != null) {
-                ContentUtils.close(logWriter);
-                logWriter = null;
-            }
         }
         eventFilter = new DefaultEventFilter();
+    }
+
+    private synchronized void closeLogFile() {
+        if (logWriter != null) {
+            ContentUtils.close(logWriter);
+            logWriter = null;
+        }
     }
 
     private static void purgeOldLogs(@NotNull Path logDirectory, int daysToKeep) throws IOException {

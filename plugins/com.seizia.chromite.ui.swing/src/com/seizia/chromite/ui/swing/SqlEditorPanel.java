@@ -272,6 +272,8 @@ import java.util.concurrent.atomic.AtomicLong;
  * - 2026-11-08 Oracle CREATE 뒤 컴파일 오류 줄 표시(SWT 감사 O12), 위치 보이기({@link #showSourcePosition}: Go to Source Code,
  *   Go to Error) (docs/chromite/swing-routines.md)
  * - 2026-11-08 SQL 터미널: 창마다 켜고 끄는 Terminal 탭에 문장과 결과를 글자로 씀({@link SqlTerminalView}, docs/chromite/swing-sql-terminal.md)
+ * - 2026-11-08 SQL 터미널: 값을 바인딩한 실행(Query Library)은 문장 아래에 값을 {@code -- :name = 값} 줄로 씀(기록 미리 보기와 같은 형식,
+ *   docs/chromite/swing-sql-terminal.md)
  * - 2026-11-08 Scripts 도구 창에서 이름을 바꾼 파일을 따라가는 {@link #fileMoved} (docs/chromite/swing-scripts-explorer.md)
  * - 2026-11-08 문장 명령(현재 문장, 커서부터, 행 수, 식, 이전·다음 문장, 현재 문장 복사), 창 단위 {@code @set} 변수와 변수 대화상자,
  *   {@code @include}(창의 파일 기준 상대 경로, 포함 파일의 위험한 문 확인과 오류 줄), DDL 뒤 탐색기 갱신 (docs/chromite/swing-query-commands.md)
@@ -1654,6 +1656,11 @@ final class SqlEditorPanel extends JPanel {
         String terminalText = null;
         if (run.terminal) {
             StringBuilder terminal = new StringBuilder(SqlTerminalView.formatStatement(run.binding.getHistoryText(result.getStatement())));
+            // A bound run (Query Library) keeps its :name markers: the values follow as the history preview shows them
+            List<QueryHistory.Parameter> boundParameters = run.binding.getHistoryParameters(result.getStatement());
+            if (boundParameters != null && !boundParameters.isEmpty()) {
+                terminal.append('\n').append(QueryHistory.Parameter.toCommentLines(boundParameters));
+            }
             for (String table : run.terminalTables.getOrDefault(result.getStatement(), List.of())) {
                 terminal.append('\n').append(table);
             }
@@ -1774,8 +1781,8 @@ final class SqlEditorPanel extends JPanel {
     }
 
     /**
-     * Turns the server output on or off on this session when the setting changed after the session opened (Oracle
-     * {@code DBMS_OUTPUT}), before the statement runs: a statement run after turning it on is read, and a session
+     * Turns the server output on or off on this session when the setting changed after the session opened (Oracle and
+     * CUBRID {@code DBMS_OUTPUT}, Altibase {@code PRINT} callback), before the statement runs: a statement run after turning it on is read, and a session
      * turned off no longer buffers output that nobody reads.
      */
     private static void syncServerOutput(@NotNull DBCSession session) {

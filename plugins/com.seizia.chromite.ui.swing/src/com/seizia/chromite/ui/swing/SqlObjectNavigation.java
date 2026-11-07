@@ -94,6 +94,7 @@ import java.util.function.Consumer;
  *
  * 변경 이력:
  * - 2026-11-08 최초 작성 (docs/chromite/swing-sql-editor-ergonomics.md)
+ * - 2026-11-08 루틴 설명의 매개 변수 형식이 매개 변수 자신의 길이·정밀도를 보임(evening #31, docs/chromite/model-fixes.md "후속 수정 3")
  */
 final class SqlObjectNavigation implements ToolTipSupplier, LinkGenerator {
 
@@ -460,7 +461,9 @@ final class SqlObjectNavigation implements ToolTipSupplier, LinkGenerator {
                     if (parameter.getParameterKind() != null) {
                         html.append(escape(parameter.getParameterKind().getTitle())).append(' ');
                     }
-                    html.append(escape(DBUtils.getFullTypeName(parameter.getParameterType()))).append("</span>"); //$NON-NLS-1$
+                    // The parameter's own length and precision (SQL Server decimal(5,2)), not its data type's defaults (decimal(38,38))
+                    DBSTypedObject type = parameter instanceof DBSTypedObject typed ? typed : parameter.getParameterType();
+                    html.append(escape(DBUtils.getFullTypeName(type))).append("</span>"); //$NON-NLS-1$
                 });
             }
         } catch (Exception e) {

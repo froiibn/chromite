@@ -28,7 +28,8 @@ Swing 쿼리 창에 같은 기능을 쿼리 창마다 켜고 끄는 **Query > SQ
 
   ```
 
-  순서: `SQL> 문장`(둘째 줄부터 들여씀) → 결과 집합마다 글자 표 → Messages 탭과 같은 메시지(PRINT·NOTICE 경고, 서버 출력, 행 수,
+  순서: `SQL> 문장`(둘째 줄부터 들여씀) → 값을 바인딩한 실행(Query Library 실행, 기록에서 다시 연 바인딩 실행)은 값 줄(`-- :name = 값`,
+  빈 값은 `NULL`, Query History 미리 보기와 같은 형식) → 결과 집합마다 글자 표 → Messages 탭과 같은 메시지(PRINT·NOTICE 경고, 서버 출력, 행 수,
   `Commands completed`, 실행 시간) → 오류(빨간색) → 빈 줄. 스크립트 명령(`@echo`) 출력, 문장 밖 오류(연결 실패 등), 취소 문구도 쓴다.
 - 실행 중과 끝난 뒤에는 Results 대신 Terminal 탭이 앞으로 온다(오류가 나도 Terminal 탭). 오류는 Terminal에도 빨간색으로 나온다.
 - 내용은 실행마다 지우지 않고 쌓인다. 오른쪽 클릭 메뉴: Copy, Select All, Clear.
@@ -66,6 +67,9 @@ Swing 쿼리 창에 같은 기능을 쿼리 창마다 켜고 끄는 **Query > SQ
 - **쌓되 상한.** 명령줄처럼 앞 실행과 비교할 수 있게 실행마다 지우지 않는다. 200만 자를 넘으면 앞의 오래된 줄부터 줄 단위로 지운다(메모리).
 - **탭은 켰을 때만.** 결과 탭은 활성 쿼리 창의 내용을 끼우는 공용 탭이다. 터미널은 창마다 켜므로 탭이 늘 있으면 꺼진 창에서 빈 탭이 된다.
 - **실행 중 끄기.** 실행은 시작할 때의 선택을 따른다(`Execution.terminal`). 실행 중에 끄면 남은 출력은 숨은 터미널에 쓰이고, 결과는 Results 탭이 보인다.
+- **바인딩한 값은 주석 줄로(2026-11-08, evening #28).** 바인딩한 실행의 문장은 `:name`이 남은 글자(`getHistoryText`)라, 전에는 터미널에 값이 보이지 않았다.
+  값을 문장에 끼워 넣지 않고 Query History 미리 보기와 같은 `-- :name = 값` 줄로 쓴다(`QueryHistory.Parameter.toCommentLines`, 두 곳이 같은 코드).
+  끼워 넣으면 실제로 보낸 문장(`?`로 바인딩)과 달라 보이고, 리터럴로 바꾸는 규칙이 서버마다 다르다(`QueryParameterBinder` 설계).
 
 ## upstream 대비 변경점
 
@@ -89,6 +93,19 @@ Swing 쿼리 창에 같은 기능을 쿼리 창마다 켜고 끄는 **Query > SQ
 | 한국어(`-nl ko`) | 메뉴 `SQL 터미널`, 탭 `터미널`, `(1개 행 적용됨)`, 한글 열 이름 정렬 |
 | 다크 테마 | 탭·글자 색이 테마를 따름 |
 
+### 확인 기록 (2026-11-08, evening #28, `chromite/followups-3` 빌드)
+
+Query Library 쿼리 `SELECT id, name, price FROM dbo.fu3_items WHERE price > :min_price AND name LIKE :prefix + '%' ORDER BY id`(SQL Server, `min_price` 숫자,
+`prefix` 글자)를 한 번 실행해 창을 만들고 Query > SQL Terminal을 켠 뒤 라이브러리에서 다시 실행했다.
+
+| 언어 | 터미널 |
+|---|---|
+| 한국어(745, `Item 49`) | `SQL> SELECT … :min_price … :prefix …` 아래 `-- :min_price = 745`, `-- :prefix = Item 49`, 3행 표, `(3개 행 적용됨)` |
+| 영어(0, `Item 5`) | `-- :min_price = 0`, `-- :prefix = Item 5`, 1행 표, `(1 row affected)` |
+
+캡처: `D:\Tools\_scratch\chromite-followups-3\shots\ql-28-terminal-ko.png`, `ql-28-terminal-en.png`. 기록 미리 보기는 같은 메서드로 바꾸었고 글자는 전과 같다(코드로 확인).
+
 ## 변경 이력
 
 - 2026-11-08 최초 작성: Query > SQL Terminal(Ctrl+T), 창마다 켜는 Terminal 탭, 글자 표, 아이콘
+- 2026-11-08 바인딩한 실행의 값을 문장 아래 `-- :name = 값` 줄로 씀(evening #28, `chromite/followups-3`)

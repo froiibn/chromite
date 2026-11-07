@@ -26,10 +26,16 @@ import com.seizia.chromite.model.exec.plan.DBCPlanNode;
 import com.seizia.chromite.model.exec.plan.DBCPlanNodeKind;
 import com.seizia.chromite.model.impl.plan.AbstractExecutionPlanNode;
 import com.seizia.chromite.model.meta.Property;
-import org.jkiss.utils.IntKeyMap;
 
 import java.util.*;
 
+/**
+ * Altibase execution plan node.
+ *
+ * 변경 이력:
+ * - 2026-11-08 Chromite: 저장한 계획의 노드는 읽는 쪽이 넘긴 부모를 쓰고 스스로 자식으로 붙지 않음(자식이 두 번 들어갔다),
+ *   parent_id를 담음 (evening #24의 같은 원인, docs/chromite/model-fixes.md "후속 수정 3")
+ */
 public class AltibasePlanNode extends AbstractExecutionPlanNode  {
 
     private final AltibaseDataSource dataSource;
@@ -82,25 +88,19 @@ public class AltibasePlanNode extends AbstractExecutionPlanNode  {
     }
 
     /**
-     * Load plan from saved execution plan
+     * Load plan from saved execution plan. The parent is the node the deserializer reads this one under, which also adds
+     * it to that node's children.
      */
-    public AltibasePlanNode(AltibaseDataSource dataSource, IntKeyMap<AltibasePlanNode> prevNodes, Map<String, Object> attributes) {
+    public AltibasePlanNode(AltibaseDataSource dataSource, @Nullable AltibasePlanNode parent, Map<String, Object> attributes) {
         this.dataSource = dataSource;
+        this.parent = parent;
 
         this.id = JSONUtils.getInteger(attributes, "id");
         this.depth = JSONUtils.getInteger(attributes, "depth");
         this.plan = JSONUtils.getString(attributes, "plan");
+        this.parentId = JSONUtils.getInteger(attributes, "parent_id", 0);
 
         setOperation();
-
-        Integer parentIdFromMap =  JSONUtils.getInteger(attributes, "parent_id");
-
-        if (parentIdFromMap != null) {
-            parent = prevNodes.get(parentIdFromMap);
-        }
-        if (parent != null) {
-            parent.addChildNode(this);
-        }
     }
 
     /**

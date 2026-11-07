@@ -998,13 +998,16 @@ Oracle 진단 결과의 대문자 열 이름(소문자로 맞춤), PostgreSQL에
   함께 쓰므로, 0.1.0에서 작업 공간마다 다른 키를 두었다면 먼저 연 작업 공간의 키가 옮겨져 모두에 쓰이고 다른 작업 공간의 평문 키는 지워진다(다시 넣어야 한다).
 - **PostgreSQL·MySQL 백업·복원 도구의 남은 점(2026-11-08)**: ~~연결의 로컬 클라이언트는 아직 백업·복원 대화상자를 실행할 때만 저장된다(연결 편집 화면에
   칸이 없음, swt-parity D-db-specific P6).~~ 2026-11-08 연결 편집기의 연결 속성에 로컬 클라이언트 칸을 더했고 도구의 안내 문구도 그 칸을 가리킨다
-  ([swing-database-tasks.md](swing-database-tasks.md)). 확인 대화상자의 미리 보기 제목은 "실행할 SQL"인데 이 도구에서는 명령줄이다. 기존 `backupDatabase`·`restoreDatabase`를
-  SQL Server가 아닌 연결로 MCP에서 부르면 확인을 먼저 묻고 실행할 때 거절한다(미리 보기가 DB 종류를 보지 않음, 채팅은 도구 고르기로 보내지 않음).
-  MySQL 8 서버와 mysqldump 8은 이 PC에 없어 MariaDB로만 확인했다.
+  ([swing-database-tasks.md](swing-database-tasks.md)). ~~확인 대화상자의 미리 보기 제목은 "실행할 SQL"인데 이 도구에서는 명령줄이다. 기존 `backupDatabase`를
+  SQL Server가 아닌 연결로 MCP에서 부르면 확인을 먼저 묻고 실행할 때 거절한다(미리 보기가 DB 종류를 보지 않음, 채팅은 도구 고르기로 보내지 않음).~~
+  2026-11-08 고침(evening #27): 미리 보기 제목을 SQL·명령줄 모두에 맞는 "실행할 내용"(What will run)으로 바꿨고, `backupDatabase`의 미리 보기가
+  `restoreDatabase`처럼 먼저 연결 종류를 확인해 묻기 전에 거절한다. MySQL 8 서버와 mysqldump 8은 이 PC에 없어 MariaDB로만 확인했다.
 - **진단 SQL은 버전에 따라 다르다**: 시험은 PG 17, SQL Server 2022, MariaDB 11, Oracle 23ai에서만 했다. MySQL 8 블록(`performance_schema.data_lock_waits`, `error_log`)은 MySQL 서버가 없어 실행해 보지 못했다.
 
 ## 변경 이력
 
+- 2026-11-08 확인 대화상자의 미리 보기 제목을 "실행할 내용"(What will run)으로(명령줄 미리 보기도 있음), `backupDatabase`가 SQL Server가 아닌 연결을
+  확인 전에 거절(evening #27 2·3부, `chromite/followups-3`). 위 "위험과 남은 일".
 - 2026-11-08 `dumpDatabase`·`restoreDump`의 로컬 클라이언트 안내가 연결 편집기의 로컬 클라이언트 칸도 가리킴([swing-database-tasks.md](swing-database-tasks.md)).
 - 2026-11-08 `getActualPlan`(Oracle)의 첫 키워드 찾기: 앞 공백·`--` 주석·블록 주석은 반복문(`PlanTools.skipLeadingComments`)으로 건너뛰고 정규식은 그 자리의
   키워드만 본다. 주석 본문 패턴의 그룹이 글자마다 반복되어 약 2,000자 넘는 머리 주석에서 `StackOverflowError`가 났다(ReDoS 수정 뒤 남은 문제).

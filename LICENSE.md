@@ -209,7 +209,7 @@ subject to the terms and conditions of the following licenses.
 
 Eclipse Platform (http://eclipse.org) - Eclipse Public License (EPL)
 Apache Commons - Apache 2.0
-JSch - LGPL
+JSch (mwiede/jsch fork) - BSD-style (Revised BSD; includes JZlib - Revised BSD, jBCrypt - ISC, junixsocket - Apache 2.0)
 JTS - EPL
 CTS - LGPL
 JSQLParser - Apache 2.0

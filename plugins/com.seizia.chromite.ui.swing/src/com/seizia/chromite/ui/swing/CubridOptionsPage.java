@@ -34,13 +34,14 @@ import java.util.List;
  * 설계:
  * <ul>
  *     <li>읽는 곳: {@code CubridDataSource}가 세션을 열 때({@code initializeContextState}) 서버의 DBMS_OUTPUT을 켜고 버퍼 크기를 정한다. 쿼리 창은
- *     문장마다 켜짐 여부를 읽어 메시지 탭에 보인다. 버퍼 크기와 서버 쪽 켜기는 세션을 열 때만 적용되므로 연결된 연결에서 바꾸면 다시 연결을 묻는다
- *     ({@link #isAppliedWithoutReconnect}, 다시 연결은 열린 트랜잭션을 먼저 묻는다).</li>
+ *     문장마다 켜짐 여부를 읽어 메시지 탭에 보이고, 문장 전에 {@code syncServerOutput}으로 열린 세션의 켜짐과 버퍼 크기를 설정에 맞춘다.
+ *     그래서 연결된 연결에서 바꿔도 다시 연결하지 않는다.</li>
  *     <li>기본값(켬, 10000)은 CUBRID 번들의 설정 초기화가 넣는다. Oracle 페이지처럼 값을 읽기 전에 번들의 클래스를 불러 시작시킨다.</li>
  * </ul>
  *
  * 변경 이력:
  * - 2026-11-08 최초 작성 (docs/chromite/swing-options.md "남은 키 (2026-11-08 오후)")
+ * - 2026-11-08 열린 세션에도 다음 문장부터 적용되어 다시 연결을 묻지 않음 (docs/chromite/swing-server-output.md)
  */
 final class CubridOptionsPage extends SettingsPage {
 
@@ -94,13 +95,5 @@ final class CubridOptionsPage extends SettingsPage {
     @Override
     void updateEnablement() {
         bufferSizeSpinner.setEnabled(dbmsOutputBox.isEnabled() && dbmsOutputBox.isSelected());
-    }
-
-    /**
-     * The server output is switched on and its buffer sized when a session opens.
-     */
-    @Override
-    boolean isAppliedWithoutReconnect() {
-        return false;
     }
 }

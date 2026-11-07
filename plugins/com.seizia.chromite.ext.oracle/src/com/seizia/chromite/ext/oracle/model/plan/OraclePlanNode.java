@@ -44,6 +44,9 @@ import java.util.*;
  * 변경 이력:
  * - 2026-11-08 Chromite: 적응 계획의 표시 부모로 다시 잇는 {@link #linkToDisplayParent}·{@link #clearNested}
  *   (docs/chromite/swing-sql-editor-plus.md "Oracle 적응 계획")
+ * - 2026-11-08 Chromite: PARENT_ID를 {@link #getParentId}에 담음(늘 0이라 저장한 계획의 parent_id가 모두 0이었다). 저장한 계획을 읽을 때
+ *   부모는 저장한 트리에서 받는다. 예전에는 parent_id(늘 0)로 부모를 찾고 스스로 자식으로 붙어, 읽는 쪽이 붙인 것과 겹쳤다
+ *   (evening #24, docs/chromite/model-fixes.md "후속 수정 3")
  */
 public class OraclePlanNode extends AbstractExecutionPlanNode implements DBCPlanCostNode {
 
@@ -191,8 +194,13 @@ public class OraclePlanNode extends AbstractExecutionPlanNode implements DBCPlan
         return DBCPlanNodeKind.DEFAULT;
     }
 
-    public OraclePlanNode(OracleDataSource dataSource, IntKeyMap<OraclePlanNode> prevNodes, Map<String, Object> attributes) {
+    /**
+     * A node of a saved plan. The saved tree is the displayed plan (an adaptive plan's inactive rows are not in it), so the
+     * parent is the node the deserializer reads this one under, which also adds it to that node's children.
+     */
+    public OraclePlanNode(OracleDataSource dataSource, @Nullable OraclePlanNode parent, Map<String, Object> attributes) {
         this.dataSource = dataSource;
+        this.parent = parent;
 
         this.statementId = JSONUtils.getString(attributes, "statement_id");
         this.plan_id = JSONUtils.getLong(attributes, "plan_id", 0);
@@ -229,15 +237,7 @@ public class OraclePlanNode extends AbstractExecutionPlanNode implements DBCPlan
         this.time = JSONUtils.getLong(attributes, "time", 0);
         this.qblockName = JSONUtils.getString(attributes, "qblock_name");
         this.otherXml = JSONUtils.getString(attributes, "other_xml");
-
-        Integer parent_id = JSONUtils.getInteger(attributes, "parent_id");
-
-        if (parent_id != null) {
-            parent = prevNodes.get(parent_id);
-        }
-        if (parent != null) {
-            parent.addChild(this);
-        }
+        this.parentId = JSONUtils.getInteger(attributes, "parent_id", 0);
     }
 
     public OraclePlanNode(OracleDataSource dataSource, IntKeyMap<OraclePlanNode> prevNodes, ResultSet dbResult) throws SQLException {
@@ -280,6 +280,7 @@ public class OraclePlanNode extends AbstractExecutionPlanNode implements DBCPlan
 
         Integer parent_id = JDBCUtils.safeGetInteger(dbResult, "parent_id");
         if (parent_id != null) {
+            parentId = parent_id;
             parent = prevNodes.get(parent_id);
         }
         if (parent != null) {

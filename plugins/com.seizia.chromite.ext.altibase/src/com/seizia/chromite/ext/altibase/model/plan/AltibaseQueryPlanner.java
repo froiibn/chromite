@@ -30,7 +30,6 @@ import com.seizia.chromite.model.exec.plan.*;
 import com.seizia.chromite.model.impl.plan.AbstractExecutionPlanSerializer;
 import com.seizia.chromite.model.impl.plan.ExecutionPlanDeserializer;
 import org.jkiss.utils.CommonUtils;
-import org.jkiss.utils.IntKeyMap;
 
 import java.io.IOException;
 import java.io.Reader;
@@ -39,7 +38,11 @@ import java.lang.reflect.InvocationTargetException;
 import java.util.List;
 
 /**
- * Altibase execution plan node
+ * Altibase query planner, and the saved plan format (JSON of the plan nodes).
+ *
+ * 변경 이력:
+ * - 2026-11-08 Chromite: 저장한 계획을 읽을 때 노드의 부모를 저장한 트리에서 넘김. 노드가 parent_id로 부모를 찾아 스스로 자식으로 붙고
+ *   읽는 쪽도 붙여 자식이 두 번 들어갔다(evening #24의 같은 원인, docs/chromite/model-fixes.md "후속 수정 3")
  */
 public class AltibaseQueryPlanner extends AbstractExecutionPlanSerializer implements DBCQueryPlanner {
 
@@ -121,13 +124,8 @@ public class AltibaseQueryPlanner extends AbstractExecutionPlanSerializer implem
 
             ExecutionPlanDeserializer<AltibasePlanNode> loader = new ExecutionPlanDeserializer<>();
 
-            IntKeyMap<AltibasePlanNode> allNodes = new IntKeyMap<>();
-
-            List<AltibasePlanNode> rootNodes = loader.loadRoot(dataSource, jo, (datasource, node, parent) -> {
-                AltibasePlanNode altiNode = new AltibasePlanNode(dataSource, allNodes, getNodeAttributes(node));
-                allNodes.put(altiNode.getId(), altiNode);
-                return altiNode;
-            });
+            List<AltibasePlanNode> rootNodes = loader.loadRoot(dataSource, jo,
+                (datasource, node, parent) -> new AltibasePlanNode(dataSource, parent, getNodeAttributes(node)));
             return new AltibaseExecutionPlan(query, rootNodes);
 
         } catch (Throwable e) {

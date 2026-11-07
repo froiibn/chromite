@@ -61,18 +61,24 @@ import java.sql.SQLException;
 import java.sql.SQLWarning;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
+import java.util.WeakHashMap;
 
 /**
  * Altibase data source.
  *
  * 설계: 서버 출력(PRINT/PRINTLN)은 드라이버의 메시지 콜백이 데이터 원본의 버퍼({@code AltibaseOutputReader})에 모으고,
  * SQL 편집기가 문장마다 {@code readServerOutput}으로 읽어 비운다. 설정이 꺼져 있으면 콜백을 등록하지 않는다(읽는 쪽도 읽지 않아
- * 등록하면 버퍼가 연결이 열려 있는 동안 계속 커진다).
+ * 등록하면 버퍼가 연결이 열려 있는 동안 계속 커진다). 콜백은 세션마다 등록되므로, 세션을 연 뒤 설정이 바뀌면 쿼리 창이 다음 문장 전에
+ * 부르는 {@code syncServerOutput}이 그 세션의 콜백을 등록하거나 지운다(드라이버의 {@code registerMessageCallback(null)}은 콜백을 지우고
+ * 서버에 메시지를 보내지 말라고 알린다, {@code javap}로 확인).
  *
  * 변경 이력:
  * - 2026-11-07 서버 출력 설정이 꺼져 있으면 콜백을 등록하지 않고, 비어 있으면 빈 줄을 쓰지 않음
  *   (docs/chromite/swing-server-output.md)
+ * - 2026-11-08 설정을 바꾸면 열린 세션에도 다음 문장부터 적용({@code syncServerOutput}, docs/chromite/swing-server-output.md)
  */
 public class AltibaseDataSource extends GenericDataSource implements DBPObjectStatisticsCollector {
 
@@ -737,6 +743,8 @@ public class AltibaseDataSource extends GenericDataSource implements DBPObjectSt
     private class AltibaseOutputReader implements DBCServerOutputReader {
 
         private StringBuilder callBackMsg = new StringBuilder();
+        // Whether each session has the PRINT callback, so that syncServerOutput only calls the driver when the setting changed
+        private final Map<DBCExecutionContext, Boolean> callbackRegistered = Collections.synchronizedMap(new WeakHashMap<>());
 
         @Override
         public boolean isServerOutputEnabled() {
@@ -748,13 +756,22 @@ public class AltibaseDataSource extends GenericDataSource implements DBPObjectSt
             return false;
         }
 
+        /**
+         * Registers the PRINT callback on the session, or removes it ({@code null}): without a callback the driver drops PRINT
+         * output and tells the server to stop sending it; with one it is kept in callBackMsg until it is read.
+         */
         public void enableServerOutput(
-                DBRProgressMonitor monitor, 
-                DBCExecutionContext context, 
+                DBRProgressMonitor monitor,
+                DBCExecutionContext context,
                 boolean enable) throws DBCException {
             if (!enable) {
-                // Without a callback the driver drops PRINT output; with one it is kept in callBackMsg until it is read
-                return;
+                // Output nobody reads any more: the buffer is per data source and the setting is per connection
+                callBackMsg.setLength(0);
+                if (!Boolean.TRUE.equals(callbackRegistered.get(context))) {
+                    // A new session has no callback
+                    callbackRegistered.put(context, false);
+                    return;
+                }
             }
 
             Connection conn = null;
@@ -787,20 +804,22 @@ public class AltibaseDataSource extends GenericDataSource implements DBPObjectSt
                     throw new ClassNotFoundException("Failed to load class: " + className4MessageCallback);
                 }
 
-                instance4Callback = Proxy.newProxyInstance(classLoader, 
-                        new Class[] { class4MsgCallback }, 
-                        new InvocationHandler() {
-                            public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
-                                if ("print".equals(method.getName())) {
-                                    callBackMsg.append((String) args[0]);
-                        }
+                if (enable) {
+                    instance4Callback = Proxy.newProxyInstance(classLoader,
+                            new Class[] { class4MsgCallback },
+                            new InvocationHandler() {
+                                public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
+                                    if ("print".equals(method.getName())) {
+                                        callBackMsg.append((String) args[0]);
+                                    }
 
-                        return null;
+                                    return null;
+                                }
+                            });
+
+                    if (instance4Callback == null) {
+                        throw new InstantiationException("Failed to instantiate class: " + className4MessageCallback);
                     }
-                });
-
-                if (instance4Callback == null) {
-                    throw new InstantiationException("Failed to instantiate class: " + className4MessageCallback);
                 }
 
                 method2RegisterCallback = classLoader
@@ -814,11 +833,20 @@ public class AltibaseDataSource extends GenericDataSource implements DBPObjectSt
                             className4MessageCallback));
                 }
 
-                method2RegisterCallback.invoke(conn, instance4Callback);
+                method2RegisterCallback.invoke(conn, new Object[] { instance4Callback });
+                callbackRegistered.put(context, enable);
 
             } catch (Exception e) {
                 log.error("Failed to register DBMS output message callback method: " + e.getMessage());
                 throw new DBCException(e, context);
+            }
+        }
+
+        @Override
+        public void syncServerOutput(@NotNull DBRProgressMonitor monitor, @NotNull DBCExecutionContext context) throws DBCException {
+            boolean enable = isServerOutputEnabled();
+            if (Boolean.TRUE.equals(callbackRegistered.get(context)) != enable) {
+                enableServerOutput(monitor, context, enable);
             }
         }
 

@@ -21,8 +21,8 @@ SWT 대조 감사 항목 D-K1·K2·K3, D-O24, D-A4, B-S25, A-C10([swt-parity-aud
 | `ui.swing` `SqlEditorPanel.syncServerOutput` | 문장을 실행하기 전에(엔진의 `SQLQueryListener.onStartQuery`, 엔진 Job 스레드) 읽기 도구의 `syncServerOutput`을 부른다(2026-11-08) |
 | `model` `DBCServerOutputReader` | 연결별 읽기 도구(데이터 원본의 `getAdapter`). 2026-11-08에 기본 메서드 `syncServerOutput`(아무것도 하지 않음)을 더했다 |
 | `ext.oracle` `OracleDataSource.OracleOutputReader` | `DBMS_OUTPUT.GET_LINE`을 상태가 0이 아닐 때까지 부른다. 읽으면 서버 버퍼에서 빠진다. `syncServerOutput`은 실행 문맥이 기억한 켜짐(`OracleExecutionContext`)이 설정과 다르면 `ENABLE`/`DISABLE`을 보낸다(2026-11-08) |
-| `ext.altibase` `AltibaseDataSource.AltibaseOutputReader` | 콜백 버퍼를 한 번에 쓰고 비운다. 설정이 꺼져 있으면 콜백을 등록하지 않고, 버퍼가 비어 있으면 아무것도 쓰지 않게 고쳤다 |
-| `ext.cubrid` `CubridDataSource.CubridOutputReader` | Oracle과 같은 `get_line` 반복. 바꾸지 않았다 |
+| `ext.altibase` `AltibaseDataSource.AltibaseOutputReader` | 콜백 버퍼를 한 번에 쓰고 비운다. 설정이 꺼져 있으면 콜백을 등록하지 않고, 버퍼가 비어 있으면 아무것도 쓰지 않게 고쳤다. `syncServerOutput`은 세션마다 기억한 콜백 등록이 설정과 다르면 콜백을 등록하거나 `null`로 지운다(2026-11-08) |
+| `ext.cubrid` `CubridDataSource.CubridOutputReader` | Oracle과 같은 `get_line` 반복. `syncServerOutput`은 세션마다 기억한 버퍼 크기(꺼짐 0)가 설정과 다르면 `ENABLE(크기)`/`DISABLE`을 보낸다(2026-11-08) |
 | `ext.altibase` `internal.AltibaseActivator`(새로 만듦, `MANIFEST.MF`의 `Bundle-Activator`) | 번들이 활성화될 때 기본값 노드를 읽어 `AltibasePreferencesInitializer`를 실행한다 |
 
 ## 설계 결정과 이유
@@ -46,6 +46,10 @@ SWT 대조 감사 항목 D-K1·K2·K3, D-O24, D-A4, B-S25, A-C10([swt-parity-aud
     트랜잭션을 시작하거나 끝내지 않는다.
   - 맞추는 것은 쿼리 창이 문장을 실행하는 세션뿐이다. 쿼리 창이 쓰지 않는 실행 문맥(디버거의 격리 문맥 등)은 세션을 열 때의 상태 그대로다.
     YashanDB는 `OracleDataSource`를 상속해 같다.
+  - Altibase·CUBRID도 같은 방식이다(2026-11-08, evening #19). Altibase는 세션마다 드라이버 콜백을 등록하거나 지운다. 드라이버의
+    `AltibaseConnection.registerMessageCallback`은 콜백이 바뀌면 서버에 메시지 전송 여부를 알리고(`null`이면 끔, `javap`로 확인), 콜백이 없으면 메시지를 버린다.
+    끌 때는 데이터 원본의 버퍼도 비운다(꺼진 동안 아무도 읽지 않음). CUBRID는 세션마다 켠 버퍼 크기를 기억하고, 켜짐이나 크기가 다르면 `dbms_output.enable(크기)`,
+    끄면 `dbms_output.disable()`(읽지 않은 줄도 버림, CUBRID 11.4 설명서 "System Package")을 보낸다. 그래서 Options > CUBRID가 더 이상 다시 연결을 묻지 않는다.
 - **PRINT·NOTICE를 두 번 쓰지 않는다.** PostgreSQL 읽기 도구(`PostgreServerOutputReader`)와 기본 읽기 도구(`DefaultServerOutputReader`)는
   실행 결과나 문장의 `SQLWarning`을 되풀이할 뿐이다. 실행 결과와 문장을 `null`로 넘기면 아무것도 쓰지 않는다. SQL Server는 읽기 도구가 없다.
   경고는 지금처럼 `reportQueryResult`가 한 번만 쓴다.
@@ -73,8 +77,9 @@ SWT 대조 감사 항목 D-K1·K2·K3, D-O24, D-A4, B-S25, A-C10([swt-parity-aud
 ## 남은 일과 한계
 
 - Oracle은 Tools > Options > Oracle에서 켜고 끈다(2026-11-07, [swing-options.md](swing-options.md)). 열린 세션에는 다음 문장부터 적용된다(위 설계 결정).
-  Altibase·CUBRID는 켜고 끄는 화면이 없다(Altibase A3, CUBRID 환경설정). 설정 파일로만 바꿀 수 있고, 둘은 세션을 열 때만 설정을 반영한다
-  (Altibase 콜백 등록, CUBRID `dbms_output.enable`). 화면이 생기면 `syncServerOutput`을 구현한다.
+  Altibase·CUBRID는 Tools > Options > Altibase·CUBRID와 그 연결의 연결별 값으로 켜고 끈다(2026-11-08, [swing-options.md](swing-options.md)).
+  열린 세션에도 다음 문장부터 적용된다(위 설계 결정). CUBRID 시험 서버가 없어 CUBRID 경로는 코드로만 확인했다. 이미 켠 세션에 `ENABLE`을 다른 크기로
+  다시 부를 때 버퍼 크기가 바뀌는지는 설명서에 없다.
 - 쿼리 창 밖에서 같은 실행 문맥으로 PL/SQL을 실행하면(개체 편집기의 저장 등) 그 출력은 다음 쿼리 창 실행 때 함께 나온다. Altibase 버퍼는 데이터 원본 하나에
   하나라서, 예약 쿼리(격리 문맥)의 `PRINT`도 다음 쿼리 창 실행 때 나온다.
 - Altibase 콜백 버퍼(`StringBuilder`)는 동기화하지 않는다(upstream 그대로). 드라이버는 문장을 실행하는 스레드에서 콜백을 부르므로 읽기와 겹치는 일은
@@ -95,9 +100,26 @@ SWT 대조 감사 항목 D-K1·K2·K3, D-O24, D-A4, B-S25, A-C10([swt-parity-aud
 
 회귀 테스트는 작성·실행하지 않았다(요청 없음). 영향받을 수 있는 기능: 쿼리 창 Messages 탭의 메시지 순서, Altibase 연결(번들 활성화 코드 추가).
 
+## 확인 (2026-11-08, evening #19, `chromite/followups-3` 빌드)
+
+Altibase 7.3 Docker, 한 쿼리 창에서 `EXEC PRINTLN('…')`, Tools > Options > Altibase의 PRINT 칸만 바꿈(다시 연결하지 않음). 프로세스 안 드라이버로 조작했다.
+
+| 확인 | 한국어 | 영어 |
+|---|---|---|
+| 켬 → 실행 | 출력 나옴 | `fu3 en on` 나옴 |
+| 끔 → 실행 | 출력 없음 | 출력 없음 |
+| 다시 켬 → 실행 | `fu3 on again`만 나옴(끈 동안의 줄은 나오지 않음) | `fu3 en on again`만 나옴 |
+| 끈 채로 연결 끊고 새 쿼리 창(세션을 꺼진 상태로 엶) → 실행 → 켬 → 실행 | 처음은 출력 없음, 켠 뒤 `fu3 turned on without reconnect` 나옴(고치기 전에는 다시 연결할 때까지 나오지 않던 경우) | - |
+
+CUBRID: 시험 서버가 없어 실행하지 않았다. 코드 경로(`CubridOutputReader.syncServerOutput` → `applyDbmsOutput`)만 확인했다. 캡처:
+`D:\Tools\_scratch\chromite-followups-3\shots\alti-19-ko.png`, `alti-19-en.png`. 회귀 테스트는 실행하지 않았다(요청 없음). 영향받을 수 있는 기능:
+Altibase·CUBRID 쿼리 창의 문장 실행(문장 전에 상태 확인, 바뀐 경우만 드라이버 호출 또는 SQL 한 번), CUBRID 연결 설정 저장(다시 연결 질문이 없어짐).
+
 ## 변경 이력
 
 - 2026-11-07 최초 작성: 쿼리 창이 문장마다 서버 출력을 읽어 Messages 탭에 씀, Altibase 읽기 도구 정리, Altibase 번들 활성화 코드로 기본값 초기화
   (`chromite/server-output`)
 - 2026-11-08 Oracle DBMS_OUTPUT 설정을 바꾸면 열린 세션에도 다음 문장부터 적용(`DBCServerOutputReader.syncServerOutput`, `chromite/small-fixes-2`,
   [model-fixes.md](model-fixes.md) "작은 모델·안전·라이선스 수정"). "남은 일과 한계"의 설정 화면 항목 갱신.
+- 2026-11-08 Altibase·CUBRID도 설정을 바꾸면 열린 세션에 다음 문장부터 적용(evening #19, `chromite/followups-3`). Altibase 콜백 등록·해제,
+  CUBRID `ENABLE`/`DISABLE`과 버퍼 크기. 확인은 아래 "확인 (2026-11-08)".
