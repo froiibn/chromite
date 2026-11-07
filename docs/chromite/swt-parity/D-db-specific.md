@@ -29,6 +29,8 @@
 
 2026-11-08 다른 도구에서 가져오기(`chromite/import-other-tools`): O23 없음 → 있음.
 
+2026-11-08 4순위 결과 편집(`chromite/p4-grid-editing`): P28 없음 → 일부(ENUM 콤보), M18 없음 → 있음.
+
 ### 조용히 끊김 (먼저 볼 것)
 
 | # | 기능 | 무엇이 끊겼나 | 근거 | 영향 |
@@ -73,7 +75,7 @@ K1–K3의 공통 원인은 SQL 편집기에 서버 출력 패널이 없는 것�
 | P25 | pgAgent 작업·일정 편집(분·시·요일 표) | `PostgreScheduleEditor`(+ 범용 편집기) | 일부 | 탐색기에 pgAgent 폴더는 모델 트리로 보임. 만들기·편집 없음. pg_cron은 Swing 새 기능(swing-job-schedulers.md 13, 75행) | 낮음 | |
 | P26 | EXPLAIN 옵션(ANALYZE, VERBOSE, COSTS, BUFFERS, SETTINGS, WAL, TIMING, SUMMARY) | `PostgreExplainPlanConfigurator` | 일부 | `SqlPlanExplainer.java:123-126`(실제 계획 = ANALYZE만) | 낮음 | BUFFERS 등 진단 옵션 없음 |
 | P27 | plpgsql_check로 함수 검사(SQL 생성기, 편집기 명령) | `SQLGeneratorProcedureCheck`, `SQLEditorHandlerCheckProcedureConsole` | 없음 | grep `plpgsql_check` → 0건 | 낮음 | |
-| P28 | 값 편집기: ENUM 콤보, hstore(구조), money, bit string | `dataManager`: `PostgreEnumValueManager` 등 | 없음 | 결과 표 편집은 글자 칸. grep `ValueManager`·`getEnumValues` → `ResultSet*` 0건 | 낮음 | 글자로는 입력 가능 |
+| P28 | 값 편집기: ENUM 콤보, hstore(구조), money, bit string | `dataManager`: `PostgreEnumValueManager` 등 | 일부 (2026-11-08) | ENUM 열은 허용 값 목록으로 편집(`ResultSetEnumValues`, [swing-grid-editing.md](../swing-grid-editing.md)) | 낮음 | hstore·money·bit string은 글자로 입력 |
 | P29 | PL/pgSQL 디버거(중단점, 단계 실행) | `ext.postgresql.debug.ui`(+ 모델 `debug.core`, `ext.postgresql.debug.core`도 함께 삭제) | 있음(2026-11-07) | 모델 복원, Swing 디버거 탭([procedure-debugger.md](../procedure-debugger.md)) | 중간 | Step Out은 pldbgapi에 없음 |
 
 ## 2. SQL Server (`ext.mssql.ui`, 16 클래스)
@@ -116,7 +118,7 @@ K1–K3의 공통 원인은 SQL 편집기에 서버 출력 패널이 없는 것�
 | M15 | mysql로 스크립트 실행 + 편집기 네이티브 실행(`sql.executors`) | `MySQLScriptExecuteWizard`, `MySQLScriptExecutor` | 일부 | 복원이 `MySQLScriptExecuteHandler`로 파일 실행(`NativeBackupRestoreDialog.java:29-30, 516`) | 낮음 | 편집기 연동 없음 |
 | M16 | 테이블 유지 관리: ANALYZE, CHECK, OPTIMIZE, REPAIR | `MySQLToolAnalyse/Check/Optimize/Repair` | 있음 | `MySQLMaintenanceDialect`(swing-admin-tools.md 368행) | 중간 | |
 | M17 | TRUNCATE | `MySQLToolTruncate` | 있음(2026-11-08) | P23과 같음(MariaDB 확인) | 중간 | 조사 당시: 없음. "외래 키 검사 끄기" 옵션 화면은 없음 |
-| M18 | ENUM 값 편집기 | `MySQLEnumValueManager` | 없음 | P28과 같음 | 낮음 | |
+| M18 | ENUM 값 편집기 | `MySQLEnumValueManager` | 있음 (2026-11-08) | `ENUM` 열은 허용 값 목록으로 편집(`ResultSetEnumValues`) | 낮음 | `SET`은 글자로 입력 |
 | M19 | 스크립트의 `source`(다른 파일 포함) 명령 | `sqlCommand` `mysql.source` → `SQLCommandInclude`(`ui.editors.sql`) | 없음 | 모델 명령 등록에 include 없음, grep `SQLCommandInclude` → 0건. 알 수 없는 명령은 오류(`SQLQueryExecuteJob.java:454-475`) | 낮음 | |
 
 ## 4. Oracle (`ext.oracle.ui`, 42 클래스)
@@ -265,6 +267,7 @@ SWT에도 Altibase 전용 연결 화면은 없었다(`dataSourceConfigurator` �
 ## 변경 이력
 
 - 2026-11-08 3순위 Oracle·Altibase 관리: P23·S14·M17·O5·O16·O21·A2 → 있음, 요약 표와 높은 순서 목록 갱신.
+- 2026-11-08 4순위 결과 편집: P28 → 일부, M18 → 있음(ENUM 콤보, [swing-grid-editing.md](../swing-grid-editing.md)). 요약 표 수는 메인 세션이 다시 셈.
 - 2026-11-08 4순위 루틴: O11·O12·O13·O14·O20·A5·A6 → 있음, 높은 순서 목록 갱신(요약 표 수는 devel 병합 뒤 다시 센다)([swing-routines.md](../swing-routines.md)).
 - 2026-11-08 O23 Toad·SQL Developer 연결 가져오기 → 있음([connection-transfer.md](../connection-transfer.md) "다른 도구에서 가져오기"), 요약 표 갱신.
 - 2026-11-08 후속 #69: O9·O10 비고(Oracle Cancel Query, RAC `GV$`). 상태 변화 없음.
