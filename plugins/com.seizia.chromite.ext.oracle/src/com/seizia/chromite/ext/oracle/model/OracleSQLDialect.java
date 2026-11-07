@@ -76,6 +76,8 @@ import java.util.Set;
  *   V$PARAMETER when the login may read it; 4000 otherwise).
  * - 2026-11-08 Chromite: any failure of the MAX_STRING_SIZE probe keeps 4000 (only SQLException was caught; a session without
  *   a statement threw NullPointerException out of the dialect setup and broke 11 SQL parser tests, docs/chromite/regression-tests.md).
+ * - 2026-11-08 Chromite: {@link #supportsMergeStatement} (MERGE since Oracle 9i) for Generate SQL from result rows
+ *   (docs/chromite/swing-result-generate-sql.md).
  */
 public class OracleSQLDialect extends JDBCSQLDialect
     implements SQLDataTypeConverter, SQLDialectDDLExtension, SQLDialectSchemaController {
@@ -534,6 +536,11 @@ public class OracleSQLDialect extends JDBCSQLDialect
     @Override
     public String getDualTableName() {
         return "DUAL";
+    }
+
+    @Override
+    public boolean supportsMergeStatement() {
+        return true;
     }
 
     @NotNull

@@ -60,9 +60,19 @@ import java.util.*;
  *   time zone (Oracle DATE has a time part); text and bytea never get a length (text(10485760) failed).
  * - 2026-11-07 Chromite: MariaDB uuid (a character type there) becomes uuid instead of varchar(36).
  * - 2026-11-07 Chromite: a one-bit BIT of another database (SQL Server bit) becomes boolean instead of bit.
+ * - 2026-11-08 Chromite: a numeric without precision (display size 131089, e.g. an expression column of a query result)
+ *   gets no modifiers in a new column; numeric(131089) failed (docs/chromite/swing-result-generate-sql.md).
  */
 public class PostgreDialect extends JDBCSQLDialect implements TPRuleProvider, SQLDataTypeConverter,
     SQLDialectDDLExtension, SQLDialectSchemaController {
+
+    private static final String TYPE_NUMERIC = "numeric"; //$NON-NLS-1$
+    private static final String TYPE_DECIMAL = "decimal"; //$NON-NLS-1$
+    /**
+     * Largest precision of a numeric column (the server's NUMERIC_MAX_PRECISION).
+     */
+    private static final int NUMERIC_MAX_PRECISION = 1000;
+
     @NotNull
     @Override
     public SQLDialectFeatures getDialectFeatures() {
@@ -1198,6 +1208,18 @@ public class PostgreDialect extends JDBCSQLDialect implements TPRuleProvider, SQ
             // These types have no length. The generic code adds the source length (SQL Server ntext, Oracle BLOB),
             // which made CREATE TABLE fail with text(10485760) or bytea(4000).
             return null;
+        }
+        if (lowerTypeName.equals(TYPE_NUMERIC) || lowerTypeName.equals(TYPE_DECIMAL)) {
+            // A numeric without precision (a column or an expression such as price * 2 in a query result) is reported
+            // with precision 0 and display size 131089, which the generic code takes as the precision: numeric(131089)
+            // failed as a new column ("must be between 1 and 1000")
+            long precision = CommonUtils.toInt(column.getPrecision());
+            if (precision == 0) {
+                precision = column.getMaxLength();
+            }
+            if (precision > NUMERIC_MAX_PRECISION) {
+                return null;
+            }
         }
         return super.getColumnTypeModifiers(dataSource, column, typeName, dataKind);
     }

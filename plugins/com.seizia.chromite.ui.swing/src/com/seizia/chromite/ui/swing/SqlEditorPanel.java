@@ -283,6 +283,8 @@ import java.util.concurrent.atomic.AtomicLong;
  *   (docs/chromite/connection-lifecycle.md "스마트 커밋"). 쿼리 관리자가 본 커밋 방식이 바뀌면 상태 줄의 커밋 방식을 다시 읽음(실행 밖의 전환)
  * - 2026-11-08 오류 위치로 가기(SWT {@code GoToErrorAction}): Messages의 오류가 머리글의 줄·열 위치를 함께 갖고, 두 번 누르면 그 자리로 가서
  *   줄을 오류 색으로 표시({@code ErrorReport}, {@link QueryResultsView.Listener#goToSource}) (docs/chromite/swing-grid-navigation.md)
+ * - 2026-11-08 결과 행에서 SQL 만들기: 결과가 만든 문장을 메인 창이 새 쿼리 창에 엶({@link Host#openScript}, 실행하지 않음)
+ *   (docs/chromite/swing-result-generate-sql.md)
  */
 final class SqlEditorPanel extends JPanel {
 
@@ -324,6 +326,14 @@ final class SqlEditorPanel extends JPanel {
          * Brings the Terminal tab of the editor to the front (a run while Query &gt; SQL Terminal is on).
          */
         void showTerminal(@NotNull SqlEditorPanel editor);
+
+        /**
+         * Opens a script in a new query window of a connection (statements made from a result).
+         *
+         * @param maxRows rows to read if it runs, 0 for the default
+         * @param execute run it right away
+         */
+        void openScript(@NotNull DBPDataSourceContainer dataSource, @NotNull String script, long maxRows, boolean execute);
     }
 
     private static final String NOT_AVAILABLE = "< N/A >"; //$NON-NLS-1$
@@ -391,6 +401,12 @@ final class SqlEditorPanel extends JPanel {
                 log.debug("Error position out of the text: " + position); //$NON-NLS-1$
             }
             showSourcePosition(new SourcePosition(position, position, List.of(line)));
+        }
+
+        @Override
+        public void openScript(@NotNull DBPDataSourceContainer container, @NotNull String script) {
+            // Generate SQL from a result: never run here
+            host.openScript(container, script, 0, false);
         }
     });
     // EDT only: Query > Include Actual Execution Plan for this window
