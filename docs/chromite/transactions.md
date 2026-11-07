@@ -179,6 +179,12 @@ N은 연결의 모든 인스턴스의 실행 문맥 수다(주, 메타데이터,
 | 끊기 | 질문 목록 "PostgreSQL 테스트 (SQLQuery2.sql)", "(SQLQuery3.sql)"; 취소 → 그대로; 롤백 → 끊김, 행 2·4 = `orig`, 서버 세션 0 | "SQL Server 테스트 (SQLQuery5.sql)", "(SQLQuery6.sql)"; 롤백 → 끊김, 행 4 = `orig` |
 | 설정 끄기 | Options > Query Execution "한 연결의 쿼리 창들이 한 세션을 함께 씀": 두 창 pid 같음(34131 = Main), B의 UPDATE를 C가 봄, 목록 한 줄 "SQLQuery2.sql, SQLQuery3.sql", C의 Commit이 B의 변경을 커밋(행 5 = `B-shared`) | 연결 대화상자 "쿼리 창들이 한 세션을 함께 씀"(`custom-properties`에 `NEVER` 저장): 두 창 SPID 52 = Main, B의 Commit이 A의 변경을 커밋(행 5 = `A-shared`) |
 
+오류 복구(#120)와 함께(2026-11-08, PostgreSQL, 수동 커밋, 증거 `m*-pg.txt.log`, `shots\m1-…`, `shots\m3-…`):
+- B에 열린 트랜잭션(UPDATE), A에서 UPDATE → `SELECT 1/0` → `SELECT 1`: 알림 "서버가 트랜잭션을 중단함 … 쿼리 창 SQLQuery1.sql …"은 A에만 뜨고,
+  B는 같은 세션(pid 34716)에서 `idle in transaction` 그대로. A는 알림의 롤백으로 끝냄.
+- A의 세션을 밖에서 `pg_terminate_backend` → A에서 `SELECT 4`: 알림 "연결 끊김 … 57P01 … 쿼리 창 SQLQuery2.sql: 00:11:16부터 문장 2개", 다시 연결하지 않음.
+  B는 같은 pid로 `idle in transaction`, 행 2는 밖에서 `orig`(커밋도 롤백도 되지 않음).
+
 확인한 뒤 행을 `orig`로 되돌리고 확인용 DB를 지웠다. 연결 콤보로 연결 바꾸기와 PostgreSQL 다른 DB 고르기의 질문은 실행해 보지 않았다(창 닫기와 같은 `confirmEndSession` 경로).
 
 ### SWT와 다른 점
