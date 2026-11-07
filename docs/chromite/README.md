@@ -49,6 +49,7 @@ upstream의 전체 구조는 [AGENTS.md](../../AGENTS.md)와 [AGENTS-Architectur
 | [versioning.md](versioning.md) | 제품 버전 체계(`major.minor.dev`, 0.1.0부터): 규칙, 버전이 있는 곳과 유일한 원본, 번들 버전을 따로 두는 이유, `tools/release/bump-version.ps1`, 릴리스 태그 검사 |
 | [build.md](build.md) | 빌드 의존 저장소(`deps/dbeaver-common`, `deps/datadam-api`) 구성, 빌드 명령, 빌드하는 제품, 갱신 방법 |
 | [swt-removal.md](swt-removal.md) | SWT(Eclipse RCP) 프런트엔드 삭제: 남길 번들 판별, 삭제·이동한 것, Swing으로 옮길 때까지 없는 기능 목록 |
+| [swt-parity-audit.md](swt-parity-audit.md) | SWT → Swing 미이관 기능 전수 조사: 누락 원인, 영역별 대조(플랫폼·편집기·탐색기·DB별, `swt-parity/`), "조용히 끊김" 분류, 우선순위 |
 | [internal-rename.md](internal-rename.md) | 내부 이름 변경(DBeaver 패키지·번들 이름 → `com.seizia.chromite`): 이름 규칙, 유지하는 이름, 도구(`tools/rename/`), 새로 시작(데이터 폴더), 검증 게이트 |
 | [ci.md](ci.md) | GitHub Actions CI: 플랫폼별 빌드와 결과물, CodeQL, `.github` 파일 정리, 린트를 뺀 이유 |
 | [workspace-location.md](workspace-location.md) | 작업 공간 위치: `-data`가 없으면 `ChromiteData\workspace6`(현재 폴더와 무관), 원인(jdb 추적), 고치기 전 `workspace\` 한 번 복사와 이름 변경 이전과의 순서 |

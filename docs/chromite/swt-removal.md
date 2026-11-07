@@ -97,6 +97,7 @@ Swing 제품의 번들 수는 삭제 전과 같다(Windows x64 138개, macOS arm
 SWT 제품에만 있었고 Swing 번들(`plugins/com.seizia.chromite.ui.swing/src`)에 아직 없는 기능이다. 각 항목은 삭제한 번들과,
 Swing 소스에서 해당 모델 API나 기능을 찾지 못한 검색으로 확인했다(2026-11-07, 근거 열).
 모델 계층이 남아 있는 기능은 화면만 새로 만들면 된다.
+이 표는 큰 화면 단위다. 항목 단위의 전수 대조와 "조용히 끊긴" 기능은 [swt-parity-audit.md](swt-parity-audit.md)에 있다.
 
 | 기능 | 삭제한 SWT 번들 | 남은 모델 | Swing 확인 근거 |
 |---|---|---|---|
@@ -108,7 +109,7 @@ Swing 소스에서 해당 모델 API나 기능을 찾지 못한 검색으로 확
 | 프로젝트·자원 탐색기(스크립트 폴더, 북마크, 프로젝트 관리) | `ui.navigator`의 프로젝트 보기, `core` | `model`, `model.rcp` | Object Explorer는 연 서버만 보인다(`ObjectExplorerPanel` 루트 주석) |
 | Git 연동 | `team.git.ui`(+ EGit/JGit) | - | JGit 참조 0 |
 | 스키마 비교 | `cmp.simple.ui` | `cmp.simple` | `CMPCompare` 참조 0 |
-| AI 채팅·AI 자동완성 | `ui.ai` | `model.ai` | `model.ai` 참조 0 |
+| AI 자동완성(AI 채팅은 #92에서 옮김, [ai-agent.md](ai-agent.md)) | `ui.ai` | `model.ai` | Swing에 AI 자동완성 없음 |
 | Query Manager(실행 로그 보기) | `ui.editors.sql`(`QueryLogViewer`) | `model`의 QM | QM 보기 없음. Swing에는 자체 쿼리 기록만 있다([swing-sql-editor-plus.md](swing-sql-editor-plus.md)) |
 | 데이터 검색(여러 테이블의 값 찾기) | `ui.search` | `model` | `DataSearch` 참조 0. 이름으로 객체 찾기는 있음(`ObjectSearchPanel`) |
 | 드라이버 관리의 나머지: Maven 아티팩트 추가·편집, 라이브러리 의존성 트리, 전역 클래스패스 | `ui.editors.connection` | `registry` | 관리자·편집 창·오프라인 모드는 Swing에 있다([swing-driver-manager.md](swing-driver-manager.md) "남긴 것", 2026-11-07 devel 병합으로 확인) |
@@ -159,3 +160,4 @@ DBeaver CE의 Eclipse RCP 제품, SWT UI 번들 79개, SWT 전용 피처 12개, 
 
 - 2026-11-07 최초 작성. SWT 프런트엔드 삭제(번들 79개, 피처 12개, `product/community`, SWT 프로파일과 CI 단계), 남길 번들 판별 방법, 옮긴 리소스, 없어진 기능 목록.
 - 2026-11-07 devel 병합(#65 드라이버 관리자, #66 내장 런타임): 런타임 단계·`BundleJre.java`를 Swing 제품만 대상으로, 드라이버 관리자·오프라인 모드를 없는 기능 목록에서 뺌.
+- 2026-11-07 전수 조사 문서 [swt-parity-audit.md](swt-parity-audit.md) 연결, AI 채팅 줄 갱신(#92에서 옮김).
