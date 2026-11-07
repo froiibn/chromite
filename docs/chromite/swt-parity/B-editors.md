@@ -137,8 +137,8 @@
 
 | # | 기능 | SWT 출처 | 상태 | 근거 | 영향 | 메모 |
 |---|---|---|---|---|---|---|
-| E1 | 속성 탭(보기) | `EntityEditor` 속성 페이지 | 일부 | `PropertiesPanel` Javadoc "읽기 전용이다" | 중간 | 보기는 됨, 고치기는 E2 |
-| E2 | 속성 편집·저장(모든 개체·모든 DB) | `EntityEditor` + `DBEObjectManager` | 일부 | `TableDesignerPanel`(PostgreSQL·SQL Server·MySQL만, `design/*Driver`), `PrincipalPropertiesDialog`; swing-table-designer.md:121-124 | 중간 | 조사 당시: Oracle·DB2·Generic 테이블, 시퀀스 등 편집 없음. 2026-11-08 Oracle 테이블 디자이너(`design/OracleTableDesignerDriver`, D-O18). DB2·Generic 인덱스·외래 키, 시퀀스 등 다른 개체 속성 편집은 없음 |
+| E1 | 속성 탭(보기) | `EntityEditor` 속성 페이지 | 있음(2026-11-08) | Properties 창과 Object Details 첫 탭인 속성 탭(`PropertiesPanel`, `ObjectDetailsPanel`), 자식이 없는 객체(시퀀스)도 F7로 열림. [swing-object-properties.md](../swing-object-properties.md) | 중간 | 조사 당시: 일부(`PropertiesPanel` Javadoc "읽기 전용이다"). 고치기는 E2 |
+| E2 | 속성 편집·저장(모든 개체·모든 DB) | `EntityEditor` + `DBEObjectManager` | 일부 | `TableDesignerPanel`(PostgreSQL·SQL Server·MySQL만, `design/*Driver`), `PrincipalPropertiesDialog`; swing-table-designer.md:121-124 | 중간 | 조사 당시: Oracle·DB2·Generic 테이블, 시퀀스 등 편집 없음. 2026-11-08 Oracle 테이블 디자이너(`design/OracleTableDesignerDriver`, D-O18). 2026-11-08 속성 편집: 객체 관리자가 있고 `updatable`인 속성을 Properties 창·Object Details 속성 탭에서 고침(`ObjectPropertyEdits`: 미리 보기(취소가 기본) → 트랜잭션 질문 → DDL, 취소·오류면 모델을 되돌림), PostgreSQL·SQL Server·Oracle·MariaDB에서 확인, [swing-object-properties.md](../swing-object-properties.md). 남은 것: 값을 모아 한 번에 저장하는 방식, 모델에 관리자·`updatable`이 없는 속성(MariaDB·SQL Server 시퀀스 등) |
 | E3 | DDL 탭 | `SQLSourceViewer` | 있음 | `DdlViewerPanel`, Script as CREATE(`ObjectScripts`) | 중간 | |
 | E4 | 소스 편집(뷰·프로시저·함수·트리거·패키지) | 소스 탭 + Ctrl+S | 있음 | `SourceEditCommands`, `SourceScripts`(swing-source-editor.md) | 높음 | Modify → 쿼리 창 실행으로 흐름을 바꿈 |
 | E5 | 데이터 탭 | `DatabaseDataEditor` | 있음 | Select Top 1000 Rows(쿼리 창, 편집 가능) | 중간 | |

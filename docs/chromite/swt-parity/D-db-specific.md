@@ -239,6 +239,7 @@ SWT에도 Altibase 전용 연결 화면은 없었다(`dataSourceConfigurator` �
   (2026-11-07 고침, #119: 객체 관리자가 있는 모든 DB 객체를 지우고 이름을 바꿈(`ExplorerObjectCommands`), C-10·C-11, B-E11)
 - **객체 속성 편집:** 속성 창은 읽기 전용(`PropertiesPanel.java:68`). SWT `databaseEditor`(17개 번들)·`*Configurator`로 하던 속성 편집은
   테이블 디자이너의 Table 탭(PostgreSQL·SQL Server·MySQL)에서만 된다(swing-table-designer.md 121행).
+  (2026-11-08 고침: Properties 창과 Object Details 속성 탭에서 객체 관리자가 고칠 수 있다고 하는 속성을 고침, `ObjectPropertyEdits`, [swing-object-properties.md](../swing-object-properties.md), B-E1·B-E2·C-15)
 - **서버 출력 패널:** K1–K3의 원인. SQL 편집기 영역. (2026-11-07 Messages 탭으로 고침)
 - **DB별 환경설정 페이지 전부(PostgreSQL, Oracle, Altibase, CUBRID, H2, Mimer):** Swing `OptionsDialog`에 없다(`OptionsDialog.java:178-180`).
   (2026-11-07·08 Oracle·Altibase·CUBRID·Mimer SQL 페이지를 더함(`OptionsDialog.java`:135, O8, A3, §7). PostgreSQL(P7)·H2는 남음)
