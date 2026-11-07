@@ -27,9 +27,11 @@ import org.eclipse.osgi.util.NLS;
  * - 2026-11-07 연결 작업 이름과 연결 무효화 알림 문구(runtime_connect_job_name, runtime_invalidate_*) 추가
  *   (docs/chromite/swing-l10n.md "남은 한국어 문구 정리")
  * - 2026-11-07 유휴 연결 닫기 알림 문구(model_connection_idle_closed) 추가(docs/chromite/idle-transactions.md "유휴 연결 닫기")
+ * - 2026-11-08 {@link #BUNDLE_NAME}을 public으로: 기본 연결 유형의 이름을 모든 번역과 비교하는 {@code DBPConnectionType}이 번역 파일을 찾음
+ *   (docs/chromite/model-fixes.md "작은 모델·안전·라이선스 수정")
  */
 public class ModelMessages extends NLS {
-    static final String BUNDLE_NAME = "com.seizia.chromite.model.messages.ModelResources"; //$NON-NLS-1$
+    public static final String BUNDLE_NAME = "com.seizia.chromite.model.messages.ModelResources"; //$NON-NLS-1$
 
     public static String error_not_connected_to_database;
     public static String dialog_web_download_text_known;

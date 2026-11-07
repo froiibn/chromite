@@ -22,13 +22,13 @@ import com.seizia.chromite.model.sql.SQLConstants;
 import com.seizia.chromite.model.sql.SQLScriptErrorHandling;
 import com.seizia.chromite.runtime.DBWorkbench;
 import com.seizia.chromite.ui.swing.internal.SettingsMessages;
-import com.seizia.chromite.utils.PrefUtils;
 import org.eclipse.osgi.util.NLS;
 import org.jkiss.code.NotNull;
-import org.jkiss.utils.CommonUtils;
 
 import javax.swing.*;
 import java.awt.*;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 
 /**
@@ -52,14 +52,18 @@ import java.util.List;
  *     <li>쿼리 창 세션({@link QueryWindowContext#PREF_SEPARATE_CONNECTION}, SWT SQL Editor 페이지의 "Open separate connection for each editor"):
  *     기본(내장·단일 연결 DB 빼고 창마다) / 항상 / 사용 안 함. 기본은 저장하지 않는다(기본값으로 되돌림). 연결 대화상자에서 연결마다 바꿀 수 있다.
  *     이미 세션을 정한 창은 바뀌지 않고 바꾼 뒤 연결하는 창부터 적용된다.</li>
+ *     <li>연결별 값({@link SettingsPage}): 연결 대화상자 Options &gt; Settings에서 같은 페이지로 이 연결만의 값을 둔다(SWT {@code PrefPageSQLExecute}가
+ *     연결 속성 페이지였던 것과 같음). 쿼리 창 세션은 연결 대화상자 Connection Properties에 따로 있어 연결별 페이지에는 두지 않는다.
+ *     모든 키를 실행할 때마다 읽으므로 다시 연결하지 않아도 된다.</li>
  * </ul>
  * OK를 누를 때 바뀐 값만 저장한다.
  *
  * 변경 이력:
  * - 2026-11-07 최초 작성: 문 구분 기호, 매개 변수, 오류 처리 (docs/chromite/swing-options.md)
  * - 2026-11-07 쿼리 창 세션(쿼리 창마다 별도 연결) (docs/chromite/transactions.md "쿼리 창마다 별도 연결")
+ * - 2026-11-08 {@link SettingsPage}로 바꿈: 연결별 값(연결 대화상자) (docs/chromite/swing-options.md "연결별 설정")
  */
-final class SqlExecutionOptionsPage extends JPanel {
+final class SqlExecutionOptionsPage extends SettingsPage {
 
     /**
      * SWT {@code SQLPreferenceConstants.SCRIPT_ERROR_HANDLING}: a {@link SQLScriptErrorHandling} name.
@@ -79,7 +83,7 @@ final class SqlExecutionOptionsPage extends JPanel {
         ModelPreferences.SQLScriptStatementDelimiterMode.ONLY_SEPARATOR,
     };
 
-    private final DBPPreferenceStore store = DBWorkbench.getPlatform().getPreferenceStore();
+    private final boolean global;
     private final JTextField delimiterField = new JTextField(6);
     private final JCheckBox ignoreNativeDelimiterBox = new JCheckBox(SettingsMessages.exec_ignore_native_delimiter);
     private final JComboBox<String> blankLineCombo = new JComboBox<>(new String[]{
@@ -98,32 +102,21 @@ final class SqlExecutionOptionsPage extends JPanel {
         SettingsMessages.exec_separate_connection_default, SettingsMessages.exec_separate_connection_always,
         SettingsMessages.exec_separate_connection_never});
 
-    SqlExecutionOptionsPage() {
-        super(new BorderLayout());
-        delimiterField.setText(store.getString(ModelPreferences.SCRIPT_STATEMENT_DELIMITER));
+    /**
+     * @param global the global settings (Options); otherwise one connection's settings, without the query window
+     *               session (the connection dialog has it on Connection Properties)
+     */
+    SqlExecutionOptionsPage(boolean global) {
+        this.global = global;
         delimiterField.setToolTipText(SettingsMessages.exec_delimiter_tip);
-        ignoreNativeDelimiterBox.setSelected(store.getBoolean(ModelPreferences.SCRIPT_IGNORE_NATIVE_DELIMITER));
         ignoreNativeDelimiterBox.setToolTipText(SettingsMessages.exec_ignore_native_delimiter_tip);
-        blankLineCombo.setSelectedIndex(indexOf(ModelPreferences.SQLScriptStatementDelimiterMode.fromPreferences(store)));
         blankLineCombo.setToolTipText(SettingsMessages.exec_blank_line_tip);
-        removeTrailingDelimiterBox.setSelected(store.getBoolean(ModelPreferences.QUERY_REMOVE_TRAILING_DELIMITER));
         removeTrailingDelimiterBox.setToolTipText(SettingsMessages.exec_remove_trailing_delimiter_tip);
-        parametersBox.setSelected(store.getBoolean(ModelPreferences.SQL_PARAMETERS_ENABLED));
-        parametersBox.addActionListener(e -> updateParameterFields());
-        namedPrefixField.setText(store.getString(ModelPreferences.SQL_NAMED_PARAMETERS_PREFIX));
-        anonymousParametersBox.setSelected(store.getBoolean(ModelPreferences.SQL_ANONYMOUS_PARAMETERS_ENABLED));
-        anonymousParametersBox.addActionListener(e -> updateParameterFields());
-        anonymousMarkField.setText(store.getString(ModelPreferences.SQL_ANONYMOUS_PARAMETERS_MARK));
-        embeddedParametersBox.setSelected(store.getBoolean(ModelPreferences.SQL_PARAMETERS_IN_EMBEDDED_CODE_ENABLED));
+        parametersBox.addActionListener(e -> updateEnablement());
+        anonymousParametersBox.addActionListener(e -> updateEnablement());
         embeddedParametersBox.setToolTipText(SettingsMessages.exec_parameters_in_embedded_code_tip);
-        variablesBox.setSelected(store.getBoolean(ModelPreferences.SQL_VARIABLES_ENABLED));
-        commandPrefixField.setText(store.getString(ModelPreferences.SQL_CONTROL_COMMAND_PREFIX));
         commandPrefixField.setToolTipText(SettingsMessages.exec_command_prefix_tip);
-        errorHandlingCombo.setSelectedIndex(isIgnoreErrors(store) ? 1 : 0);
-        separateConnectionCombo.setSelectedIndex(List.of(SEPARATE_CONNECTION_MODES).indexOf(
-            ModelPreferences.SeparateConnectionBehavior.parse(store.getString(QueryWindowContext.PREF_SEPARATE_CONNECTION))));
         separateConnectionCombo.setToolTipText(SettingsMessages.exec_separate_connection_tip);
-        updateParameterFields();
 
         JPanel form = new JPanel(new GridBagLayout());
         int row = OptionsDialog.addSection(form, 0, SettingsMessages.exec_section_delimiters);
@@ -145,10 +138,56 @@ final class SqlExecutionOptionsPage extends JPanel {
             NLS.bind(SettingsMessages.exec_default_hint, SQLConstants.DEFAULT_CONTROL_COMMAND_PREFIX));
         row = OptionsDialog.addSection(form, row, SettingsMessages.exec_section_errors);
         row = OptionsDialog.addRow(form, row, SettingsMessages.exec_on_error, errorHandlingCombo, SettingsMessages.exec_on_error_hint);
-        row = OptionsDialog.addSection(form, row, SettingsMessages.exec_section_sessions);
-        OptionsDialog.addRow(form, row, SettingsMessages.exec_separate_connection, separateConnectionCombo,
-            SettingsMessages.exec_separate_connection_hint);
+        if (global) {
+            row = OptionsDialog.addSection(form, row, SettingsMessages.exec_section_sessions);
+            OptionsDialog.addRow(form, row, SettingsMessages.exec_separate_connection, separateConnectionCombo,
+                SettingsMessages.exec_separate_connection_hint);
+            load(DBWorkbench.getPlatform().getPreferenceStore());
+        }
         add(OptionsDialog.wrapPage(form), BorderLayout.CENTER);
+    }
+
+    @NotNull
+    @Override
+    String getTitle() {
+        return SettingsMessages.exec_tab;
+    }
+
+    @NotNull
+    @Override
+    Collection<String> getKeys() {
+        List<String> keys = new ArrayList<>(List.of(
+            ModelPreferences.SCRIPT_STATEMENT_DELIMITER, ModelPreferences.SCRIPT_IGNORE_NATIVE_DELIMITER,
+            ModelPreferences.SCRIPT_STATEMENT_DELIMITER_BLANK, ModelPreferences.QUERY_REMOVE_TRAILING_DELIMITER,
+            ModelPreferences.SQL_PARAMETERS_ENABLED, ModelPreferences.SQL_NAMED_PARAMETERS_PREFIX,
+            ModelPreferences.SQL_ANONYMOUS_PARAMETERS_ENABLED, ModelPreferences.SQL_ANONYMOUS_PARAMETERS_MARK,
+            ModelPreferences.SQL_PARAMETERS_IN_EMBEDDED_CODE_ENABLED, ModelPreferences.SQL_VARIABLES_ENABLED,
+            ModelPreferences.SQL_CONTROL_COMMAND_PREFIX, PREF_SCRIPT_ERROR_HANDLING));
+        if (global) {
+            keys.add(QueryWindowContext.PREF_SEPARATE_CONNECTION);
+        }
+        return keys;
+    }
+
+    @Override
+    void load(@NotNull DBPPreferenceStore store) {
+        delimiterField.setText(store.getString(ModelPreferences.SCRIPT_STATEMENT_DELIMITER));
+        ignoreNativeDelimiterBox.setSelected(store.getBoolean(ModelPreferences.SCRIPT_IGNORE_NATIVE_DELIMITER));
+        blankLineCombo.setSelectedIndex(indexOf(ModelPreferences.SQLScriptStatementDelimiterMode.fromPreferences(store)));
+        removeTrailingDelimiterBox.setSelected(store.getBoolean(ModelPreferences.QUERY_REMOVE_TRAILING_DELIMITER));
+        parametersBox.setSelected(store.getBoolean(ModelPreferences.SQL_PARAMETERS_ENABLED));
+        namedPrefixField.setText(store.getString(ModelPreferences.SQL_NAMED_PARAMETERS_PREFIX));
+        anonymousParametersBox.setSelected(store.getBoolean(ModelPreferences.SQL_ANONYMOUS_PARAMETERS_ENABLED));
+        anonymousMarkField.setText(store.getString(ModelPreferences.SQL_ANONYMOUS_PARAMETERS_MARK));
+        embeddedParametersBox.setSelected(store.getBoolean(ModelPreferences.SQL_PARAMETERS_IN_EMBEDDED_CODE_ENABLED));
+        variablesBox.setSelected(store.getBoolean(ModelPreferences.SQL_VARIABLES_ENABLED));
+        commandPrefixField.setText(store.getString(ModelPreferences.SQL_CONTROL_COMMAND_PREFIX));
+        errorHandlingCombo.setSelectedIndex(isIgnoreErrors(store) ? 1 : 0);
+        if (global) {
+            separateConnectionCombo.setSelectedIndex(List.of(SEPARATE_CONNECTION_MODES).indexOf(
+                ModelPreferences.SeparateConnectionBehavior.parse(store.getString(QueryWindowContext.PREF_SEPARATE_CONNECTION))));
+        }
+        updateEnablement();
     }
 
     /**
@@ -169,25 +208,28 @@ final class SqlExecutionOptionsPage extends JPanel {
         return isIgnoreErrors(store) ? SQLScriptErrorHandling.IGNORE : SQLScriptErrorHandling.STOP_COMMIT;
     }
 
-    /**
-     * Saves the changed values (Options dialog OK).
-     */
-    void apply() {
-        boolean changed = setString(ModelPreferences.SCRIPT_STATEMENT_DELIMITER, delimiterField.getText().trim());
-        changed |= setBoolean(ModelPreferences.SCRIPT_IGNORE_NATIVE_DELIMITER, ignoreNativeDelimiterBox.isSelected());
-        changed |= setString(ModelPreferences.SCRIPT_STATEMENT_DELIMITER_BLANK, BLANK_LINE_MODES[blankLineCombo.getSelectedIndex()].name());
-        changed |= setBoolean(ModelPreferences.QUERY_REMOVE_TRAILING_DELIMITER, removeTrailingDelimiterBox.isSelected());
-        changed |= setBoolean(ModelPreferences.SQL_PARAMETERS_ENABLED, parametersBox.isSelected());
-        changed |= setString(ModelPreferences.SQL_NAMED_PARAMETERS_PREFIX, namedPrefixField.getText().trim());
-        changed |= setBoolean(ModelPreferences.SQL_ANONYMOUS_PARAMETERS_ENABLED, anonymousParametersBox.isSelected());
-        changed |= setString(ModelPreferences.SQL_ANONYMOUS_PARAMETERS_MARK, anonymousMarkField.getText().trim());
-        changed |= setBoolean(ModelPreferences.SQL_PARAMETERS_IN_EMBEDDED_CODE_ENABLED, embeddedParametersBox.isSelected());
-        changed |= setBoolean(ModelPreferences.SQL_VARIABLES_ENABLED, variablesBox.isSelected());
-        changed |= setString(ModelPreferences.SQL_CONTROL_COMMAND_PREFIX, commandPrefixField.getText().trim());
+    @Override
+    void save(@NotNull Writer writer) {
+        DBPPreferenceStore store = writer.getStore();
+        // Empty fields go back to the default (Writer.setStringOrDefault)
+        writer.setStringOrDefault(ModelPreferences.SCRIPT_STATEMENT_DELIMITER, delimiterField.getText().trim());
+        writer.setBoolean(ModelPreferences.SCRIPT_IGNORE_NATIVE_DELIMITER, ignoreNativeDelimiterBox.isSelected());
+        writer.setString(ModelPreferences.SCRIPT_STATEMENT_DELIMITER_BLANK, BLANK_LINE_MODES[blankLineCombo.getSelectedIndex()].name());
+        writer.setBoolean(ModelPreferences.QUERY_REMOVE_TRAILING_DELIMITER, removeTrailingDelimiterBox.isSelected());
+        writer.setBoolean(ModelPreferences.SQL_PARAMETERS_ENABLED, parametersBox.isSelected());
+        writer.setStringOrDefault(ModelPreferences.SQL_NAMED_PARAMETERS_PREFIX, namedPrefixField.getText().trim());
+        writer.setBoolean(ModelPreferences.SQL_ANONYMOUS_PARAMETERS_ENABLED, anonymousParametersBox.isSelected());
+        writer.setStringOrDefault(ModelPreferences.SQL_ANONYMOUS_PARAMETERS_MARK, anonymousMarkField.getText().trim());
+        writer.setBoolean(ModelPreferences.SQL_PARAMETERS_IN_EMBEDDED_CODE_ENABLED, embeddedParametersBox.isSelected());
+        writer.setBoolean(ModelPreferences.SQL_VARIABLES_ENABLED, variablesBox.isSelected());
+        writer.setStringOrDefault(ModelPreferences.SQL_CONTROL_COMMAND_PREFIX, commandPrefixField.getText().trim());
         boolean ignoreErrors = errorHandlingCombo.getSelectedIndex() == 1;
-        if (ignoreErrors != isIgnoreErrors(store)) {
+        if (writer.isOverride() || ignoreErrors != isIgnoreErrors(store)) {
             store.setValue(PREF_SCRIPT_ERROR_HANDLING, ignoreErrors ? SQLScriptErrorHandling.IGNORE.name() : SQLScriptErrorHandling.STOP_ROLLBACK.name());
-            changed = true;
+            writer.markChanged();
+        }
+        if (!global) {
+            return;
         }
         ModelPreferences.SeparateConnectionBehavior separate = SEPARATE_CONNECTION_MODES[separateConnectionCombo.getSelectedIndex()];
         if (separate != ModelPreferences.SeparateConnectionBehavior.parse(store.getString(QueryWindowContext.PREF_SEPARATE_CONNECTION))) {
@@ -197,46 +239,17 @@ final class SqlExecutionOptionsPage extends JPanel {
             } else {
                 store.setValue(QueryWindowContext.PREF_SEPARATE_CONNECTION, separate.name());
             }
-            changed = true;
-        }
-        if (changed) {
-            PrefUtils.savePreferenceStore(store);
+            writer.markChanged();
         }
     }
 
     /**
-     * The named prefix and the mark only apply with their parameter kind on.
+     * The named prefix and the mark only apply with their parameter kind on (and while the page is enabled).
      */
-    private void updateParameterFields() {
-        namedPrefixField.setEnabled(parametersBox.isSelected());
-        anonymousMarkField.setEnabled(anonymousParametersBox.isSelected());
-    }
-
-    /**
-     * Sets a text value; an empty field goes back to the default (an empty prefix or mark would make every statement
-     * look like a parameter or a command).
-     */
-    private boolean setString(@NotNull String key, @NotNull String value) {
-        if (CommonUtils.isEmpty(value)) {
-            if (store.isDefault(key)) {
-                return false;
-            }
-            store.setToDefault(key);
-            return true;
-        }
-        if (value.equals(store.getString(key))) {
-            return false;
-        }
-        store.setValue(key, value);
-        return true;
-    }
-
-    private boolean setBoolean(@NotNull String key, boolean value) {
-        if (value == store.getBoolean(key)) {
-            return false;
-        }
-        store.setValue(key, value);
-        return true;
+    @Override
+    void updateEnablement() {
+        namedPrefixField.setEnabled(parametersBox.isEnabled() && parametersBox.isSelected());
+        anonymousMarkField.setEnabled(anonymousParametersBox.isEnabled() && anonymousParametersBox.isSelected());
     }
 
     private static int indexOf(@NotNull ModelPreferences.SQLScriptStatementDelimiterMode mode) {

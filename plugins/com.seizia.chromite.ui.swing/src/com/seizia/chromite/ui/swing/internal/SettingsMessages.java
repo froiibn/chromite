@@ -27,6 +27,8 @@ import org.eclipse.osgi.util.NLS;
  * 변경 이력:
  * - 2026-11-07 최초 작성 (docs/chromite/swing-options.md)
  * - 2026-11-07 Query Execution 탭의 쿼리 창 세션({@code exec_separate_connection*}) (docs/chromite/transactions.md "쿼리 창마다 별도 연결")
+ * - 2026-11-08 연결별 설정({@code overrides_*}), Data Formats·Errors and Timeouts·Metadata·Client Identification 탭
+ *   ({@code dataformat_*}, {@code errors_*}, {@code metadata_*}, {@code client_*}) (docs/chromite/swing-options.md "연결별 설정")
  */
 public class SettingsMessages extends NLS {
     private static final String BUNDLE_NAME = "com.seizia.chromite.ui.swing.internal.SettingsMessages"; //$NON-NLS-1$
@@ -127,6 +129,52 @@ public class SettingsMessages extends NLS {
     public static String oracle_rowid_tip;
     public static String oracle_read_all_synonyms;
     public static String oracle_read_all_synonyms_tip;
+    public static String overrides_use_connection;
+    public static String overrides_hint;
+    public static String dataformat_tab;
+    public static String dataformat_section;
+    public static String dataformat_locale;
+    public static String dataformat_locale_tip;
+    public static String dataformat_type;
+    public static String dataformat_sample;
+    public static String errors_tab;
+    public static String errors_section_timeouts;
+    public static String errors_ms_hint;
+    public static String errors_open_timeout;
+    public static String errors_open_timeout_hint;
+    public static String errors_open_timeout_tip;
+    public static String errors_close_timeout;
+    public static String errors_close_timeout_tip;
+    public static String errors_validation_timeout;
+    public static String errors_validation_timeout_tip;
+    public static String errors_section_recovery;
+    public static String errors_recover;
+    public static String errors_recover_tip;
+    public static String errors_recover_retry;
+    public static String errors_recover_retry_tip;
+    public static String metadata_tab;
+    public static String metadata_section_ddl;
+    public static String metadata_section_reading;
+    public static String metadata_case_sensitive;
+    public static String metadata_case_sensitive_tip;
+    public static String metadata_extra_ddl_info;
+    public static String metadata_extra_ddl_info_tip;
+    public static String metadata_server_side_filters;
+    public static String metadata_server_side_filters_tip;
+    public static String metadata_expensive_properties;
+    public static String metadata_expensive_properties_tip;
+    public static String metadata_disable_extra_read;
+    public static String metadata_disable_extra_read_tip;
+    public static String client_tab;
+    public static String client_section_name;
+    public static String client_disable;
+    public static String client_disable_tip;
+    public static String client_override;
+    public static String client_name;
+    public static String client_name_tip;
+    public static String client_section_parameters;
+    public static String client_use_variables;
+    public static String client_use_variables_tip;
 
     static {
         NLS.initializeMessages(BUNDLE_NAME, SettingsMessages.class);

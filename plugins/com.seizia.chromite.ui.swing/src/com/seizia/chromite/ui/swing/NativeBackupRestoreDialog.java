@@ -23,37 +23,22 @@ import org.jkiss.code.Nullable;
 import org.jkiss.dbeaver.DBException;
 import com.seizia.chromite.Log;
 import com.seizia.chromite.ext.mysql.model.MySQLCatalog;
-import com.seizia.chromite.ext.mysql.tasks.MySQLDatabaseExportHandler;
-import com.seizia.chromite.ext.mysql.tasks.MySQLDatabaseExportInfo;
 import com.seizia.chromite.ext.mysql.tasks.MySQLExportSettings;
-import com.seizia.chromite.ext.mysql.tasks.MySQLScriptExecuteHandler;
 import com.seizia.chromite.ext.mysql.tasks.MySQLScriptExecuteSettings;
-import com.seizia.chromite.ext.mysql.tasks.MySQLTasks;
 import com.seizia.chromite.ext.postgresql.model.PostgreDatabase;
 import com.seizia.chromite.ext.postgresql.tasks.PostgreBackupRestoreSettings;
-import com.seizia.chromite.ext.postgresql.tasks.PostgreDatabaseBackupHandler;
-import com.seizia.chromite.ext.postgresql.tasks.PostgreDatabaseBackupInfo;
 import com.seizia.chromite.ext.postgresql.tasks.PostgreDatabaseBackupSettings;
-import com.seizia.chromite.ext.postgresql.tasks.PostgreDatabaseRestoreHandler;
 import com.seizia.chromite.ext.postgresql.tasks.PostgreDatabaseRestoreInfo;
 import com.seizia.chromite.ext.postgresql.tasks.PostgreDatabaseRestoreSettings;
-import com.seizia.chromite.ext.postgresql.tasks.PostgreSQLTasks;
 import com.seizia.chromite.model.DBPDataSourceContainer;
+import com.seizia.chromite.model.admin.nativetool.NativeBackupRestore;
 import com.seizia.chromite.model.app.DBPProject;
 import com.seizia.chromite.model.connection.DBPDriver;
 import com.seizia.chromite.model.connection.DBPNativeClientLocation;
-import com.seizia.chromite.model.connection.DBPNativeClientLocationManager;
 import com.seizia.chromite.model.connection.LocalNativeClientLocation;
 import com.seizia.chromite.model.runtime.DBRProgressMonitor;
-import com.seizia.chromite.model.runtime.MonitorRunnableContext;
 import com.seizia.chromite.model.struct.DBSObject;
-import com.seizia.chromite.model.task.DBTTask;
-import com.seizia.chromite.model.task.DBTTaskExecutionListener;
-import com.seizia.chromite.model.task.DBTTaskHandler;
-import com.seizia.chromite.model.task.DBTTaskType;
 import com.seizia.chromite.registry.driver.DriverDescriptor;
-import com.seizia.chromite.registry.driver.RemoteNativeClientLocation;
-import com.seizia.chromite.registry.task.TaskPreferenceStore;
 import com.seizia.chromite.runtime.DBWorkbench;
 import com.seizia.chromite.tasks.nativetool.AbstractNativeToolSettings;
 import com.seizia.chromite.utils.RuntimeUtils;
@@ -65,7 +50,6 @@ import javax.swing.event.DocumentListener;
 import java.awt.*;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
-import java.io.IOException;
 import java.io.OutputStream;
 import java.io.PrintStream;
 import java.nio.charset.StandardCharsets;
@@ -93,9 +77,10 @@ import java.util.List;
  *     <li>명령줄 미리 보기: 처리기의 {@code getCommandLine}(보호 메서드)을 미리 보기용 하위 클래스로 불러 실제로 실행할 명령을
  *     보여 준다. 암호는 명령줄에 없다(PGPASSWORD·MYSQL_PWD 환경 변수로 넘김).</li>
  *     <li>도구 출력(명령줄, 진행 로그, 오류)은 처리기의 로그 스트림으로 받아 메시지 페이지에 줄 단위로 보인다.</li>
- *     <li>PostgreSQL 복원은 작업 형식의 처리기를 상속한 {@code CheckedPostgreRestore}로 실행한다. pg_restore는 치명적인 오류
- *     (로그인 실패 등)에도 종료 코드 1을 돌려주는데 모델 처리기는 이를 경고 알림만 띄우고 성공으로 끝내므로, 종료 코드 1을
- *     기억해 두었다가 실패로 보인다. 모델 처리기(DBeaver 코드)는 SWT에서도 쓰므로 고치지 않았다.</li>
+ *     <li>PostgreSQL 복원에서 pg_restore가 종료 코드 1(오류 있음, 로그인 실패 같은 치명적인 오류도 같음)로 끝나면 실패로 보인다.
+ *     모델 처리기는 이를 경고 알림만 띄우고 성공으로 끝낸다.</li>
+ *     <li>화면과 상관없는 부분(클라이언트 목록, 작업 형식, 명령줄, 처리기 실행, pg_restore 종료 코드 1)은 모델의
+ *     {@link NativeBackupRestore}에 있다. Chromite Agent 백업·복원 도구가 같은 실행 경로를 쓴다.</li>
  * </ul>
  *
  * 변경 이력:
@@ -103,6 +88,7 @@ import java.util.List;
  * - 2026-11-06 pg_restore가 오류로 끝난 복원(종료 코드 1)을 성공으로 보이던 것을 실패로 보이게 고침
  * - 2026-11-07 메시지 페이지에서 로그의 스택 추적 머리줄("…Exception: …", "Caused by:")도 빼고 클래스 이름을 줄임 (docs/chromite/swing-frontend.md "오류 문구")
  * - 2026-11-07 PostgreSQL 복원 옵션 "첫 오류에서 멈춤"(psql ON_ERROR_STOP, pg_restore --exit-on-error) (docs/chromite/swing-backup-restore.md "실패한 백업과 psql 오류")
+ * - 2026-11-08 모델 부분을 {@link NativeBackupRestore}(model.admin)로 옮김: Chromite Agent 백업·복원 도구와 같은 실행 경로 (docs/chromite/ai-agent.md)
  */
 final class NativeBackupRestoreDialog extends DatabaseTaskDialog {
 
@@ -345,10 +331,7 @@ final class NativeBackupRestoreDialog extends DatabaseTaskDialog {
 
     @NotNull
     private String getToolNames() {
-        if (kind == Kind.POSTGRES) {
-            return restore ? "pg_restore, psql" : "pg_dump"; //$NON-NLS-1$ //$NON-NLS-2$
-        }
-        return restore ? "mysql / mariadb" : "mysqldump / mariadb-dump"; //$NON-NLS-1$ //$NON-NLS-2$
+        return NativeBackupRestore.getToolNames(kind == Kind.POSTGRES, restore);
     }
 
     private void fileNameChanged() {
@@ -382,24 +365,14 @@ final class NativeBackupRestoreDialog extends DatabaseTaskDialog {
      * Locations downloaded from a remote repository are left out (see the class comment).
      */
     private void loadClients(@Nullable String selectedId) {
-        DBPDriver driver = container.getDriver();
-        Map<String, DBPNativeClientLocation> locations = new LinkedHashMap<>();
-        for (DBPNativeClientLocation location : driver.getNativeClientLocations()) {
-            if (!(location instanceof RemoteNativeClientLocation)) {
-                locations.put(location.getName(), location);
-            }
-        }
-        DBPNativeClientLocationManager manager = driver.getNativeClientManager();
-        if (manager != null) {
-            for (DBPNativeClientLocation location : manager.findLocalClientLocations()) {
-                locations.putIfAbsent(location.getName(), location);
-            }
-        }
         clientModel.removeAllElements();
-        for (DBPNativeClientLocation location : locations.values()) {
+        DBPNativeClientLocation selected = null;
+        for (DBPNativeClientLocation location : NativeBackupRestore.findLocalClients(container.getDriver())) {
             clientModel.addElement(location);
+            if (location.getName().equals(selectedId)) {
+                selected = location;
+            }
         }
-        DBPNativeClientLocation selected = selectedId == null ? null : locations.get(selectedId);
         if (selected == null && clientModel.getSize() > 0) {
             selected = clientModel.getElementAt(0);
         }
@@ -430,7 +403,7 @@ final class NativeBackupRestoreDialog extends DatabaseTaskDialog {
             // Keep the driver's custom locations and add this one, as the SWT client homes panel saves them
             List<DBPNativeClientLocation> custom = new ArrayList<>();
             for (DBPNativeClientLocation location : driver.getNativeClientLocations()) {
-                if (!(location instanceof RemoteNativeClientLocation) && !location.getName().equals(path)) {
+                if (NativeBackupRestore.isLocal(location) && !location.getName().equals(path)) {
                     custom.add(location);
                 }
             }
@@ -528,50 +501,6 @@ final class NativeBackupRestoreDialog extends DatabaseTaskDialog {
         return settings;
     }
 
-    @NotNull
-    private String getTaskTypeId() {
-        if (kind == Kind.POSTGRES) {
-            return restore ? PostgreSQLTasks.TASK_DATABASE_RESTORE : PostgreSQLTasks.TASK_DATABASE_BACKUP;
-        }
-        return restore ? MySQLTasks.TASK_DATABASE_RESTORE : MySQLTasks.TASK_DATABASE_BACKUP;
-    }
-
-    /**
-     * The command line the handler will run (see {@link PreviewPostgreBackup} and the other preview handlers).
-     *
-     * @throws IOException the tool is not in the client location
-     */
-    @NotNull
-    private String buildCommandLine(@NotNull AbstractNativeToolSettings<?> settings) throws IOException {
-        List<String> command;
-        String redirect = null;
-        if (settings instanceof PostgreDatabaseBackupSettings pg) {
-            // A local output file is passed with --file
-            command = new PreviewPostgreBackup().preview(pg, pg.getExportObjects().get(0));
-        } else if (settings instanceof PostgreDatabaseRestoreSettings pg) {
-            command = new PreviewPostgreRestore().preview(pg, pg.getRestoreInfo());
-        } else if (settings instanceof MySQLExportSettings my) {
-            MySQLDatabaseExportInfo info = my.getExportObjects().get(0);
-            command = new PreviewMySQLExport().preview(my, info);
-            redirect = "> " + my.getOutputFile(info); //$NON-NLS-1$
-        } else {
-            MySQLScriptExecuteSettings my = (MySQLScriptExecuteSettings) settings;
-            command = new PreviewMySQLRestore().preview(my, my.getDatabaseObjects().get(0));
-            redirect = "< " + my.getInputFile(); //$NON-NLS-1$
-        }
-        StringBuilder text = new StringBuilder();
-        for (String arg : command) {
-            if (!text.isEmpty()) {
-                text.append(' ');
-            }
-            text.append(arg.isEmpty() || arg.indexOf(' ') >= 0 ? "\"" + arg + "\"" : arg); //$NON-NLS-1$ //$NON-NLS-2$
-        }
-        if (redirect != null) {
-            text.append(' ').append(redirect);
-        }
-        return text.toString();
-    }
-
     private void schedulePreview() {
         previewTimer.restart();
     }
@@ -584,7 +513,7 @@ final class NativeBackupRestoreDialog extends DatabaseTaskDialog {
             return;
         }
         try {
-            commandArea.setText(buildCommandLine(createSettings()));
+            commandArea.setText(NativeBackupRestore.getCommandLine(createSettings()));
             commandArea.setCaretPosition(0);
             clientStatus.setText(NLS.bind(BackupRestoreMessages.native_client_found, client.getPath().getAbsolutePath()));
         } catch (Exception e) {
@@ -616,7 +545,7 @@ final class NativeBackupRestoreDialog extends DatabaseTaskDialog {
             return NLS.bind(BackupRestoreMessages.native_client_missing, getToolNames());
         }
         try {
-            buildCommandLine(createSettings());
+            NativeBackupRestore.getCommandLine(createSettings());
         } catch (Exception e) {
             return NLS.bind(BackupRestoreMessages.native_client_tool_missing, getToolNames(), client.getPath().getAbsolutePath());
         }
@@ -633,58 +562,20 @@ final class NativeBackupRestoreDialog extends DatabaseTaskDialog {
             container.getConnectionConfiguration().setClientHomeId(client.getName());
             container.persistConfiguration();
         }
-        DBPProject project = container.getProject();
         String title = getTitle();
-        String taskTypeId = getTaskTypeId();
-        return monitor -> runHandler(monitor, project, taskTypeId, title, settings);
+        return monitor -> runHandler(monitor, title, settings);
     }
 
     private void runHandler(
         @NotNull DBRProgressMonitor monitor,
-        @NotNull DBPProject project,
-        @NotNull String taskTypeId,
         @NotNull String title,
         @NotNull AbstractNativeToolSettings<?> settings
     ) throws Exception {
-        DBTTaskType taskType = project.getTaskManager().getRegistry().getTaskType(taskTypeId);
-        if (taskType == null) {
-            throw new DBException("Task type " + taskTypeId + " is not registered"); //$NON-NLS-1$ //$NON-NLS-2$
-        }
-        DBTTask task = project.getTaskManager().createTemporaryTask(taskType, title);
-        MonitorRunnableContext context = new MonitorRunnableContext(monitor);
-        // As the SWT wizards: the settings are saved into the task and the handler loads them from it
-        Map<String, Object> properties = new LinkedHashMap<>();
-        settings.saveSettings(context, new TaskPreferenceStore(properties));
-        task.setProperties(properties);
-        Throwable[] error = new Throwable[1];
-        DBTTaskExecutionListener listener = new DBTTaskExecutionListener() {
-            @Override
-            public void taskStarted(@Nullable DBTTask task) {
-            }
-
-            @Override
-            public void taskFinished(@Nullable DBTTask task, @Nullable Object result, @Nullable Throwable e, @Nullable Object s) {
-                error[0] = e;
-            }
-
-            @Override
-            public void subTaskFinished(@Nullable DBTTask task, @Nullable Throwable e, @Nullable Object s) {
-            }
-        };
-        // pg_restore exits with 1 on any error, fatal ones too (a failed login, an unreadable file); the model handler
-        // only shows a warning toast for it and returns normally, which made a failed restore look successful here
-        DBTTaskHandler handler = PostgreSQLTasks.TASK_DATABASE_RESTORE.equals(taskTypeId)
-            ? new CheckedPostgreRestore() : taskType.createHandler();
+        boolean restoreErrors;
         try (PrintStream logStream = new PrintStream(new MessagesStream(), true, StandardCharsets.UTF_8)) {
-            handler.executeTask(context, task, Locale.getDefault(), log, logStream, listener);
+            restoreErrors = NativeBackupRestore.execute(monitor, settings, title, logStream);
         }
-        if (error[0] != null) {
-            if (error[0] instanceof Exception e) {
-                throw e;
-            }
-            throw new DBException("Native tool failed", error[0]); //$NON-NLS-1$
-        }
-        if (handler instanceof CheckedPostgreRestore restoreHandler && restoreHandler.errorsReported) {
+        if (restoreErrors) {
             throw new DBException(BackupRestoreMessages.native_error_pg_restore_errors);
         }
     }
@@ -701,7 +592,7 @@ final class NativeBackupRestoreDialog extends DatabaseTaskDialog {
         Action copy = new AbstractAction(BackupRestoreMessages.native_copy_command) {
             @Override
             public void actionPerformed(java.awt.event.ActionEvent e) {
-                String command = buildScript(() -> buildCommandLine(createSettings()));
+                String command = buildScript(() -> NativeBackupRestore.getCommandLine(createSettings()));
                 if (command != null) {
                     DBWorkbench.getPlatformUI().copyTextToClipboard(command, false);
                 }
@@ -744,54 +635,6 @@ final class NativeBackupRestoreDialog extends DatabaseTaskDialog {
             if (!CommonUtils.isEmptyTrimmed(text) && !ErrorText.isStackTraceLine(text)) {
                 appendMessage(ErrorText.clean(text));
             }
-        }
-    }
-
-    /**
-     * The handler of the PostgreSQL restore task type that remembers an exit code 1 of pg_restore (errors occurred)
-     * instead of passing it to the model handler, which would only show a warning toast and report success.
-     */
-    private static final class CheckedPostgreRestore extends PostgreDatabaseRestoreHandler {
-        private volatile boolean errorsReported;
-
-        @Override
-        public void validateErrorCode(int exitCode) throws IOException {
-            if (exitCode == 1) {
-                errorsReported = true;
-            } else {
-                super.validateErrorCode(exitCode);
-            }
-        }
-    }
-
-    //////////////////////////////////////////////////////////
-    // Preview handlers: the command line building of the model handlers is protected
-
-    private static final class PreviewPostgreBackup extends PostgreDatabaseBackupHandler {
-        @NotNull
-        List<String> preview(@NotNull PostgreDatabaseBackupSettings settings, @NotNull PostgreDatabaseBackupInfo info) throws IOException {
-            return getCommandLine(settings, info);
-        }
-    }
-
-    private static final class PreviewPostgreRestore extends PostgreDatabaseRestoreHandler {
-        @NotNull
-        List<String> preview(@NotNull PostgreDatabaseRestoreSettings settings, @NotNull PostgreDatabaseRestoreInfo info) throws IOException {
-            return getCommandLine(settings, info);
-        }
-    }
-
-    private static final class PreviewMySQLExport extends MySQLDatabaseExportHandler {
-        @NotNull
-        List<String> preview(@NotNull MySQLExportSettings settings, @NotNull MySQLDatabaseExportInfo info) throws IOException {
-            return getCommandLine(settings, info);
-        }
-    }
-
-    private static final class PreviewMySQLRestore extends MySQLScriptExecuteHandler {
-        @NotNull
-        List<String> preview(@NotNull MySQLScriptExecuteSettings settings, @NotNull MySQLCatalog catalog) throws IOException {
-            return getCommandLine(settings, catalog);
         }
     }
 }
